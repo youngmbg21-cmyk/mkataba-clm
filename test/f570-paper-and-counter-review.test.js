@@ -109,7 +109,7 @@ describe('f570 (2) Copilot\'s counter, on the paper and in the editor', () => {
     /* RE-POINTED 18 Oct 2026 (owner: "make the counter changes in the clause
        itself … do not add a new clause unless the counter clause is completely
        different"): a counter is marked in the clause — his words in, theirs
-       struck, in his dashed ink; the box is only a rewrite's (f730) */
+       struck, in his dashed ink; the box is only a rewrite's (f732) */
     const marks = el => el.querySelectorAll('.rl-sug-box, .rl-sug-ins, .rl-sug-del').length;
     assert.equal(marks(paint(null, 'owner')), 0, 'no answer, no marks');
     assert.ok(!win.redlineDocHtml(c, { side: 'owner' }).includes('rl-sug'), 'the render itself never carries it');

@@ -1133,6 +1133,8 @@ const IG_TIME_KEYS=['decision','expiry','signed','created'];
    the map CAN do in that role (ask back, step 4). */
 const IG_NEAREST={ group:['folder','counterparty','status'], floors:['status','payterms','valueBand'], columns:['folder','counterparty','kind'], colour:['status','risk','payterms'], size:['value','obligations','same'], label:['counterparty','owner','payterms'], time:['decision','expiry','signed'] };
 const IG_UNDO_MAX=30, IG_VIEWS_KEY='hati.v1.igViews', IG_VIEWS_MAX=12, IG_TOP_DEFAULT=10;
+const IG_NUM_WORDS={ one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8, nine:9, ten:10, eleven:11, twelve:12,
+  en:1, ett:1, 'två':2, tre:3, fyra:4, fem:5, sex:6, sju:7, 'åtta':8, nio:9, tio:10, elva:11, tolv:12 };
 function igRecipeNow(){
   return { lenses:intel.lenses.map(l=>({ ...l, ids:l.ids.slice(), badges:l.badges?{ ...l.badges }:null })),
     groupBy:intel.groupBy, groups:intel.groups?{ ...intel.groups }:null,
@@ -1595,7 +1597,10 @@ function igRecipeParse(qRaw){
   if(tp&&(/\b(top|topp|biggest|largest|highest|slowest|största|högsta|långsammaste)\b/.test(rest)||tpEnd)){
     /* the other end: "the 5 smallest contracts", "lowest value", "bottom 10" */
     const up=tpEnd&&!/\b(?:top|topp|biggest|largest|highest|största|högsta)\b/.test(rest);
-    const n=Number((rest.match(/\b(\d+)\b/)||[])[1]||IG_TOP_DEFAULT);
+    /* a number in words counts too: "the top two by value" (bug log, 5 Oct 2026) */
+    const nw=rest.match(/\b(?:top|topp|de|bottom|biggest|largest|highest|smallest|lowest|största|högsta|minsta|lägsta)\s+(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|en|ett|två|tre|fyra|fem|sex|sju|åtta|nio|tio|elva|tolv)(?![\wåäö])/);
+    const nw2=nw||rest.match(/(?:^|\s)(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|en|ett|två|tre|fyra|fem|sex|sju|åtta|nio|tio|elva|tolv)\s+(?:biggest|largest|highest|smallest|lowest|least valuable|slowest|största|högsta|minsta|lägsta|långsammaste)\b/);
+    const n=Number((rest.match(/\b(\d+)\b/)||[])[1]||(nw2?IG_NUM_WORDS[nw2[1]]:0)||IG_TOP_DEFAULT);
     const by=/slow|pay|betal|långsam/.test(rest)?'payterms':/obligation|åtagand/.test(rest)?'obligations':/renew|förny|soonest/.test(rest)?'renewal':'value';
     const perM=rest.match(/\b(?:in each|per|for each|within each|by each|i varje|för varje|per)\s+(.+)$/); const per=perM?igFactFind(perM[1]):null;
     acts.push({ top:Object.assign({ n:Math.max(1,Math.min(200,n)), by, per:per?per.key:null }, up&&by==='value'?{ dir:'up' }:{}) });
@@ -2316,10 +2321,12 @@ function intelGraphApply(q, res, opts){
 }
 
 /* ---- template advisor: stage 1 metadata shortlist, stage 2 clause-level Copilot rank ---- */
-function contractPlainText(c){
+function contractPlainText(c, opts){
   try{
     if(isUpload(c)) return (c.upload&&c.upload.extractedText)||'';
-    const host=document.createElement('div'); host.innerHTML=docBody(c);
+    /* the words alone, never the scan's tags; { marks:true } only for the wording
+       hash (triageWordingHash), whose stamps on file were taken over the tagged text */
+    const host=document.createElement('div'); host.innerHTML=docBody(c,(opts&&opts.marks)?undefined:{ marks:false });
     host.querySelectorAll('input').forEach(i=>i.replaceWith(document.createTextNode(i.value||i.getAttribute('value')||'')));
     return (host.textContent||'').replace(/\s+/g,' ').trim();
   }catch(e){ return ''; }
@@ -2490,7 +2497,9 @@ async function intelComplianceScan(q){
   const totalFindings=rows.reduce((n,r)=>n+r.findings.length,0);
   let html=`<b>${i18t('int_compliance_review')}</b> ${rows.length} of ${cs.length} live contracts carry clauses worth a closer look — ${totalFindings} potential issue${totalFindings===1?'':'s'} in all (risks, missing protections or ambiguous terms), ranked by severity. This is a first-pass review to raise with counsel, not legal advice.`;
   html+=top.map(r=>{
-    const items=r.findings.slice(0,3).map(f=>`<li style="margin:2px 0"><b>${igEsc(f.title)}</b>${f.why?` — ${igEsc(f.why)}`:''}</li>`).join('');
+    /* named by the ONE short title (riskTitleOf), as the health report is */
+    const fTitle=f=>(typeof riskTitleOf==='function')?riskTitleOf({ src:'scan', id:f.id, kind:f.kind||'', title:String(f.title||'') }):f.title;
+    const items=r.findings.slice(0,3).map(f=>`<li style="margin:2px 0"><b>${igEsc(fTitle(f))}</b>${f.why?` — ${igEsc(f.why)}`:''}</li>`).join('');
     const more=r.findings.length>3?`<div style="font-size:var(--t-label);color:var(--color-neutral-500);margin-top:1px">+${r.findings.length-3} more</div>`:'';
     return `<div style="margin-top:10px;padding-top:9px;border-top:1px solid color-mix(in srgb,var(--color-text) 9%,transparent)">
       <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;flex-wrap:wrap">
@@ -5036,7 +5045,10 @@ function obReminderOf(o, c){
   const theirs=(typeof obligationIsTheirs==='function')?obligationIsTheirs(o):((o&&o.party)==='theirs');
   const ours=!theirs;
   const typed=String((o&&o.assignee)||'').trim();
-  const mem=(typed&&typeof window.obligationReminderTo==='function')?obligationReminderTo({ assignee:typed }):null;
+  /* the server's obligationRecipient mails a member only where they can open
+     the contract's stream; so does this reading (bug log) */
+  const mem0=(typed&&typeof window.obligationReminderTo==='function')?obligationReminderTo({ assignee:typed }):null;
+  const mem=(mem0&&(!c||typeof window.canAccessFolder!=='function'||canAccessFolder(c.folder||'',mem0)))?mem0:null;
   const owner=(!mem&&ours&&typeof window.obligationOwnerTo==='function')?obligationOwnerTo(c):null;
   const owned=!!mem, reach=owned||!!owner;
   const last=ours?OB_LAST_OURS:OB_LAST_OWNED;

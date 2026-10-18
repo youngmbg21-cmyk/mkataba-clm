@@ -103,7 +103,8 @@ function weeklyData(){
     const v=val(c), d=dTo(exp(c));
     finds(c).forEach(f=>actions.push({ c, kind:'finding',
       w:(f.sev==='high'?900:f.sev==='med'?400:150)+Math.min(v/1e6,300),
-      title:f.title||'', why:'finding' }));
+      /* named by the ONE short title (riskTitleOf), as the health report is */
+      title:(typeof riskTitleOf==='function')?riskTitleOf({ src:'scan', id:f.id, kind:f.kind||'', title:String(f.title||'') }):(f.title||''), why:'finding' }));
     if(d!=null&&d<0) actions.push({ c, kind:'expired', w:700+Math.min(v/1e6,300),
       title:'', why:'expired' });
     else if(d!=null&&d<=WK_HORIZON) actions.push({ c, kind:'ending', w:500+Math.min(v/1e6,300),

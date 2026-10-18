@@ -1322,7 +1322,7 @@ function amendParentHtml(parent){
       return t.split(/\n+/).filter(Boolean).map(l=>`<p>${_famEsc(l)}</p>`).join('');
     }
     if(parent.redlineText) return String(parent.redlineText).split(/\n+/).filter(Boolean).map(l=>`<p>${_famEsc(l)}</p>`).join('');
-    if(window.docBody) return String(docBody(parent)||'');
+    if(window.docBody) return String(docBody(parent,{ marks:false })||'');
   }catch(_){}
   return '';
 }

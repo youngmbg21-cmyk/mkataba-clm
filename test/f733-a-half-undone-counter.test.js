@@ -1,6 +1,6 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════════════════════
-   f731 — A COUNTER THAT UNDOES ONLY PART OF THEIR ASK SAYS SO (owner, 18 Oct
+   f733 — A COUNTER THAT UNDOES ONLY PART OF THEIR ASK SAYS SO (owner, 18 Oct
    2026, over MK-369: "In the governing law clause, you have changed back to
    Sweden but left the city to be still in Nairobi which makes no sense")
    (1) their ask: Sweden → Kenya and Stockholm → Nairobi twice; our draft on
@@ -33,7 +33,7 @@ const stage = (ours) => {
   return { w, c, ours: c.changes[1], theirs: c.changes[0] };
 };
 
-describe('f731 (1) the owner\'s case', () => {
+describe('f733 (1) the owner\'s case', () => {
   test('Sweden put back, Nairobi kept twice: our row says so', () => {
     const { w, c, ours } = stage(THEIRS.replace('laws of Kenya', 'laws of Sweden'));
     assert.equal(typeof w.win.negoKeepsTheirs, 'function', 'the reading exists');
@@ -44,7 +44,7 @@ describe('f731 (1) the owner\'s case', () => {
   });
 });
 
-describe('f731 (2) only a half-undone counter says it', () => {
+describe('f733 (2) only a half-undone counter says it', () => {
   test('undoing none, or all, of their words says nothing', () => {
     const none = stage(THEIRS.replace('referred to arbitration', 'referred to binding arbitration'));
     assert.equal(none.w.win.negoKeepsTheirs(none.c, none.ours), null, 'none of theirs undone');
@@ -58,7 +58,7 @@ describe('f731 (2) only a half-undone counter says it', () => {
   });
 });
 
-describe('f731 (3) the law, the seat and the body', () => {
+describe('f733 (3) the law, the seat and the body', () => {
   test('Swedish law seated in Nairobi asks', () => {
     const { w } = stage(LAW);
     const q = w.win.negoLawSeatQ(THEIRS.replace('laws of Kenya', 'laws of Sweden'));
@@ -80,7 +80,7 @@ describe('f731 (3) the law, the seat and the body', () => {
   });
 });
 
-describe('f731 (4) a line on our row, nothing more', () => {
+describe('f733 (4) a line on our row, nothing more', () => {
   test('never on their seat, never on a settled row', () => {
     const { w, c, ours } = stage(THEIRS.replace('laws of Kenya', 'laws of Sweden'));
     assert.equal(w.win.rlRowKeepsHtml(c, ours, 'counterparty'), '');
