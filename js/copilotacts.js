@@ -1527,7 +1527,10 @@ function caPlaceRows(q){
 }
 function caPlaceRun(k){
   const word = _caT('ca_w_' + k);
-  if (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof intelAsk === 'function') return intelAsk(word);
+  /* a pressed row names the page: it goes there, even where the screen in
+     front could show the same contracts ("negotiations" on Explorer) — said
+     as "/" says it (caHereRead leaves a "/" word to the page) */
+  if (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof intelAsk === 'function') return intelAsk(caHereRead(word) ? '/' + caSlashWord(k) : word);
   const a = caReadPlace(word); if (!a) return false;
   if (CA_CARD_WORDS.includes(a.place)){ caUseBump(a.place); return caHandHome(word, a); }
   return caGo(a);
@@ -1566,30 +1569,62 @@ function caHandHome(t, a){
   setTimeout(ask, 0);
   return true;
 }
-/* ---- ANSWER WHERE YOU STAND (owner, 18 Oct 2026: "assessment of current
-   screen vs moving someone to another screen if the information is in
-   multiple locations"; the imports trial) ----
-   A request to SEE a group of contracts that the screen in front can show is
-   answered THERE — Explorer narrows its map with its own reader, the Contracts
-   place narrows its list — and the page that also holds them is offered as a
-   door under the answer, never pressed. A page named outright ("open the
-   import page", "go to imports") or an act only that page does ("import old
-   contracts", "bulk upload") still goes to the page. Spends nothing.
-   CA_HERE_FACTS is the ONE list of such facts: Explorer's reader
-   (igConditions) reads its words from here, and the AI's map filter carries
-   the same fact as a field (GRAPH_WHERE_KEYS `imported`, both hosts). */
+/* ---- ANSWER WHERE YOU STAND — ONE RULE, EVERY SCREEN (owner, 18 Oct 2026:
+   the imports trial; then "why do you have to code such a rule in
+   isolation? It should be a simple rule or code to show in your page unless
+   it is not possible or you are instructed to go to another page"; "Yes") ----
+   A request to SEE a group of contracts is tried on the screen in front
+   FIRST, with that screen's own reader — Explorer's map and the Contracts
+   place's list both read words through igConditions. When the reader
+   understands ALL of the words (every condition read, nothing left but
+   everyday words, igLeftover), or the words ask for every contract, it is
+   answered there, and the page that also holds them is a door under the
+   answer, never pressed. Jambo moves only when the page is named outright
+   ("open the import page", "go to contracts", a "/" row), when the words ask
+   for an act another page does ("import old contracts"), or when the
+   screen cannot read them all (a contract's number, "draft…", a fact the
+   reader does not know) — then everything goes on as before. Spends nothing.
+   A screen that shows contracts joins with a line in caHereScreen and its
+   reader; a fact the reader learns is learned once, for every screen.
+   CA_HERE_FACTS is the ONE list of the page that also holds a fact (the
+   door); `imported` keeps its words here too, and the reader reads them
+   from here (igConditions → caHereFact), as the AI's map filter carries the
+   same fact (GRAPH_WHERE_KEYS `imported`, both hosts). */
 const CA_HERE_FACTS = [
   /* brought in through Import: c.migration, written by the Import page alone */
-  { k: 'imported', page: 'import', of: c => !!(c && c.migration),
+  { k: 'imported', page: 'import', also: 'ca_here_also_imported', none: 'ca_here_none_imported', of: c => !!(c && c.migration),
     re: /(?<!\p{L})(?:imports|imported|migrated|(?:did|have|had)\s+(?:we|i)\s+import|importerade|migrerade|importer|importerna|importerat)(?!\p{L})/iu },
+  /* a live negotiation, whose move it is, stalled: the Negotiations list holds them by whose move */
+  { k: 'nego', page: 'negotiations', also: 'ca_here_also_negotiations' },
+  { k: 'move', page: 'negotiations', also: 'ca_here_also_negotiations' },
+  { k: 'stalled', page: 'negotiations', also: 'ca_here_also_negotiations' },
+  /* suppliers or customers: Parties holds one row per party */
+  { k: 'side', page: 'parties', also: 'ca_here_also_parties' },
+  /* late obligations: the Obligations page holds each one, who owes it, when */
+  { k: 'overdue', page: 'oblig', also: 'ca_here_also_oblig' },
 ];
-/* the page itself is asked for */
-const CA_HERE_PAGE_RE = /(?<!\p{L})(?:page|screen|sidan|sida|vyn)(?!\p{L})|^\s*(?:please\s+)?(?:(?:go|take me|bring me|jump|switch)\s+(?:back\s+)?to|open|gå\s+(?:tillbaka\s+)?till|öppna|ta mig till)(?!\p{L})/iu;
-/* an act only that page does */
-const CA_HERE_ACT_RE = /^\s*(?:please\s+)?(?:(?:can|could|would)\s+you\s+)?(?:import|importera|bulk|upload|migrate|bring in|load|ladda upp|flytta in|ta in)(?!\p{L})|(?<!\p{L})(?:how (?:do|can|should) (?:i|we)|i want to|we want to|we need to|help me|let me|jag vill|vi vill|hur (?:gör|kan) (?:jag|vi))\s+(?:import|upload|migrate|bring in|importera|ladda upp|flytta in)(?!\p{L})/iu;
-/* shaped as a request to see: a see-word first, or only a few words ("imports", "the imported ones") */
+/* on the map, any other set is also the Contracts place's list, narrowed the same (and every contract, the list at rest) */
+const CA_HERE_LIST = { k: '', page: 'contracts', also: 'ca_here_also_contracts' };
+/* the page itself is asked for: its name with "page", "go to", "open", or a "/" row */
+const CA_HERE_PAGE_RE = /^\s*\/|(?<!\p{L})(?:page|screen|sidan|sida|vyn)(?!\p{L})|^\s*(?:please\s+)?(?:(?:go|take me|bring me|jump|switch)\s+(?:back\s+)?to|open|gå\s+(?:tillbaka\s+)?till|öppna|ta mig till)(?!\p{L})/iu;
+/* an act another page does: a verb first ("draft a contract", "review all",
+   "import old contracts"), even where the verb is also a stage's word */
+const CA_HERE_ACT_RE = /^\s*(?:please\s+)?(?:(?:can|could|would)\s+you\s+)?(?:import|importera|bulk|upload|migrate|bring in|load|ladda upp|flytta in|ta in|draft|write|create|make|prepare|start|sign|review|send|share|redline|negotiate|amend|renew|book|schedule|fill|edit|change|delete|archive|export|download|print|skriv|skapa|upprätta|signera|granska|skicka|dela|förhandla|ändra|förnya|boka|fyll|radera|arkivera|exportera|ladda ner)(?!\p{L})|(?<!\p{L})(?:how (?:do|can|should) (?:i|we)|i want to|we want to|we need to|help me|let me|jag vill|vi vill|hur (?:gör|kan) (?:jag|vi))\s+(?:import|upload|migrate|bring in|importera|ladda upp|flytta in)(?!\p{L})/iu;
+/* the words that ask to see, read away before the reader's leftover is measured */
 const CA_HERE_SEE_RE = /^\s*(?:please\s+)?(?:(?:can|could|would)\s+you\s+)?(?:show|see|list|which|what|find|filter|highlight|display|only|just|give me|get me|bring up|how many|where|visa|vilka|vilket|vilken|vad|hitta|lista|filtrera|markera|hur många|var|ge mig)(?!\p{L})/iu;
-const CA_HERE_SHORT = 4;
+/* every contract: "show me all contracts", "every contract", "contracts", "alla avtal" */
+const CA_HERE_ALL_RE = /^\s*(?:please\s+)?(?:(?:can|could|would)\s+you\s+)?(?:(?:show|list|see|display|give|get|bring up)(?:\s+(?:me|us))?\s+|(?:visa|lista)(?:\s+(?:mig|oss))?\s+)?(?:(?:all|every)(?:\s+(?:of\s+)?(?:the\s+|our\s+)?(?:contracts?|agreements?))?|everything|(?:the\s+)?(?:contracts|agreements)|all of them|the whole (?:book|map)|alla(?:\s+(?:våra\s+)?avtal(?:en)?)?|allt|avtal(?:en)?|hela (?:boken|kartan))(?:\s+(?:again|here|igen|här))?\s*[.!?]*\s*$/iu;
+/* a word for a page that is not a group of contracts ("draft", "list", "sign")
+   is that page's; the pages that ARE a group of contracts the screen in front
+   may answer instead ("contracts", "negotiations", "suppliers", "imports") */
+const CA_HERE_GROUP_PLACES = ['contracts', 'negotiations', 'parties', 'import'];
+/* other things than contracts, asked for without a contract word: the page that holds them ("overdue obligations") */
+const CA_HERE_OTHER_RE = /(?<!\p{L})(?:obligations?|duties|duty|åtaganden?|skyldigheter|approvals?|godkännanden?|requests?|förfrågningar|förfrågan|notes?|anteckningar|templates?|mallar|people|personer|clauses?|klausuler|risks?|risker)(?!\p{L})/iu;
+const CA_HERE_CONTRACT_RE = /(?<!\p{L})(?:contracts?|agreements?|deals?|avtal(?:en|et)?)(?!\p{L})/iu;
+/* everyday words the map's own leftover keeps that ask for nothing ("where are the …", "de importerade";
+   its filler misses the Swedish ones with å, ä or ö: "hur många", "är") */
+const CA_HERE_EXTRA_RE = /(?<!\p{L})(?:where|ones?|de|den|det|dem|en|ett|var|är|många|för|värde|värda|åtaganden?)(?!\p{L})/giu;
+const CA_HERE_MAX = 160;
 /* which screen in front can show a group of contracts: Explorer's map, or the Contracts place's list */
 function caHereScreen(){
   try {
@@ -1601,34 +1636,59 @@ function caHereScreen(){
   return '';
 }
 function caHereFact(k){ return CA_HERE_FACTS.find(f => f.k === k) || null; }
+/* THE RULE: { kind:'here', screen, all, fact, page, also, what } when the
+   screen in front answers the words, else null and they go on as before */
 function caHereRead(q){
-  const t = String(q || '').trim(); if (!t || t.length > 160) return null;
+  const t = String(q || '').trim(); if (!t || t.length > CA_HERE_MAX) return null;
   const screen = caHereScreen(); if (!screen) return null;
   if (CA_HERE_PAGE_RE.test(t) || CA_HERE_ACT_RE.test(t)) return null;
-  const fact = CA_HERE_FACTS.find(f => f.re.test(t)); if (!fact) return null;
-  if (!CA_HERE_SEE_RE.test(t) && t.split(/\s+/).length > CA_HERE_SHORT) return null;
-  return { kind: 'here', fact: fact.k, page: fact.page, screen };
+  if (CA_HERE_OTHER_RE.test(t) && !CA_HERE_CONTRACT_RE.test(t)) return null;
+  let pl = null; try { pl = caReadPlace(t); } catch (_){ pl = null; }
+  if (pl && !CA_HERE_GROUP_PLACES.includes(pl.place)) return null;
+  const door = d => ({ fact: d ? d.k : '', page: d ? d.page : '', also: d ? d.also : '' });
+  if (CA_HERE_ALL_RE.test(t)) return Object.assign({ kind: 'here', screen, all: true, what: '' }, door(screen === 'explorer' ? CA_HERE_LIST : null));
+  if (typeof igConditions !== 'function' || typeof igLeftover !== 'function') return null;
+  let conds = []; try { conds = igConditions(t) || []; } catch (_){ conds = []; }
+  if (!conds.length) return null;
+  let left = 'x'; try { left = String(igLeftover(t.replace(CA_HERE_SEE_RE, ' '), conds) || ''); } catch (_){ left = 'x'; }
+  if (left.replace(CA_HERE_EXTRA_RE, ' ').trim()) return null;
+  /* on Explorer the map's own recipe answers, so it must read them as a set
+     to show (a narrowing), not a question back ("suppliers": arrange by what?) */
+  if (screen === 'explorer' && typeof igRecipeParse === 'function'){
+    let p = null; try { p = igRecipeParse(t); } catch (_){ p = null; }
+    const acts = (p && p.acts) || [];
+    if (!acts.some(x => x.narrow) || acts.some(x => x.ask || x.unknownFact)) return null;
+  }
+  const d = conds.map(c => caHereFact(c.field)).find(Boolean) || (screen === 'explorer' ? CA_HERE_LIST : null);
+  return Object.assign({ kind: 'here', screen, all: false, what: conds.map(c => c.label).join(' · ') }, door(d));
 }
-/* THE CONTRACTS PLACE: its list narrowed by the map's own reading of the same
-   words (igConditions → igIdsWhere), so "imported contracts expiring this
-   year" keeps both; none found is said, the list left whole */
+/* THE CONTRACTS PLACE: its list narrowed by the reader's own reading of the
+   same words (igConditions → igIdsWhere), so "imported contracts expiring
+   this year" keeps both; none found is said, the list left whole */
 function caHereOnList(here, q){
   let conds = []; try { conds = (typeof igConditions === 'function') ? igConditions(q) : []; } catch (_){ conds = []; }
-  if (!conds.some(c => c.field === here.fact)) return null;
+  if (!conds.length) return null;
   let ids = []; try { ids = (typeof igIdsWhere === 'function') ? igIdsWhere(conds, caContracts()) : []; } catch (_){ ids = []; }
   const what = conds.map(c => c.label).join(' · ');
   if (ids.length && typeof regShowOnly === 'function') regShowOnly(ids, what);
-  const any = ids.length || caContracts().some(c => { const f = caHereFact(here.fact); return !!(f && f.of(c)); });
+  const f = here.fact ? caHereFact(here.fact) : null;
+  const none = !ids.length && !!(f && f.none && f.of) && !caContracts().some(c => f.of(c));
   return Object.assign({}, here, { n: ids.length, what, say: ids.length ? _caT('ca_here_list', { n: ids.length, what })
-    : any ? _caT('ca_here_none_match', { what }) : _caT('ca_here_none_' + here.fact) });
+    : none ? _caT(f.none) : _caT('ca_here_none_match', { what }) });
 }
 function caHereCardHtml(a, i){
+  if (!a || !a.page) return '';
   const B = (act, label) => `<button type="button" class="ui-btn ui-btn-sm" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`;
-  return `<div class="ca-card ca-here" data-ca-card="${i}"><p class="ca-foot" style="margin-top:0">${_caE(_caT('ca_here_also_' + a.fact))}</p>
+  return `<div class="ca-card ca-here" data-ca-card="${i}"><p class="ca-foot" style="margin-top:0">${_caE(_caT(a.also))}</p>
     <div class="ca-acts">${B('herepage', _caT('ca_here_open_' + a.page))}</div></div>`;
 }
-/* the door: the page, through the one mover */
-function caHerePress(a, act){ if (act === 'herepage') return caGo({ kind: 'go', place: a.page, state: 'ready' }); }
+/* the door: the page, through the one mover — the Contracts place narrowed to
+   the set the map shows (caGo's `reg`, the doors' own regGoFiltered) */
+function caHerePress(a, act){
+  if (act !== 'herepage') return;
+  if (a.page === 'contracts' && Array.isArray(a.ids) && a.ids.length) return caGo({ kind: 'go', place: 'contracts', reg: { only: { ids: a.ids.slice(), label: String(a.what || '') } }, state: 'ready' });
+  return caGo({ kind: 'go', place: a.page, state: 'ready' });
+}
 function caAskAnywhere(text, opts = {}){
   const t = String(text || '').trim(); if (!t) return false;
   /* A REQUEST TO BOOK OR FIND TIME, OR A QUESTION ABOUT ONE'S OWN CALENDAR
@@ -1642,7 +1702,9 @@ function caAskAnywhere(text, opts = {}){
   }
   /* on Home his own box is the reader already */
   if (typeof document !== 'undefined' && document.getElementById('igd-input') && typeof intelAsk === 'function'
-    && typeof state !== 'undefined' && state && state.view === 'dashboard'){ if (!opts.all && !caReadPlace(t) && !caTakesWords(t)) return false; intelAsk(t); return true; }
+    && typeof state !== 'undefined' && state && state.view === 'dashboard'){
+    /* …and a request to see what the screen in front shows is answered there (caHereRead) */
+    if (!opts.all && !caReadPlace(t) && !caTakesWords(t) && !caHereRead(t)) return false; intelAsk(t); return true; }
   let a = null; try { a = caReadPlace(t); } catch (_){ a = null; }
   if (a && a.kind === 'go' && !CA_CARD_WORDS.includes(a.place) && caGo(a)) return true;
   /* JAMBO'S MAP (js/jambomap.js) on Home's box, where every word is Jambo's
@@ -1774,4 +1836,4 @@ Object.assign(window, { CA_PLACES, CA_PLACE_LEAD, CA_PLACE_MAX, CA_PLACE_MIN_TYP
   CA_TRAIL_MAX, caPlaceNow, caTrailPush, caTrailTop, caTrailLabel, caTrailBack, caBackRowHtml, caHomeFace, caHomeWall, caRoomTab, CA_GO, caGoSay, caGo, caGoRepaint,
   caPlaceRows, caPlaceRun, CA_CARD_WORDS, caTakesWords, caHandHome, caAskAnywhere, CA_SL_MAX, CA_SL_TALL, caSlRead, caSlPaint, caSlClose, caSlTake, caGoCardHtml, caGoPress, CA_CHIPS, CA_CHIPS_WALL, CA_CHIP_WALL_WORD, caChipLead });
 /* ANSWER WHERE YOU STAND (the imports trial): published after its definitions */
-Object.assign(window, { CA_HERE_FACTS, CA_HERE_PAGE_RE, CA_HERE_ACT_RE, CA_HERE_SEE_RE, caHereScreen, caHereFact, caHereRead, caHereOnList, caHereCardHtml, caHerePress });
+Object.assign(window, { CA_HERE_FACTS, CA_HERE_LIST, CA_HERE_PAGE_RE, CA_HERE_ACT_RE, CA_HERE_SEE_RE, CA_HERE_ALL_RE, CA_HERE_EXTRA_RE, CA_HERE_GROUP_PLACES, CA_HERE_OTHER_RE, CA_HERE_CONTRACT_RE, CA_HERE_MAX, caHereScreen, caHereFact, caHereRead, caHereOnList, caHereCardHtml, caHerePress });

@@ -1609,7 +1609,8 @@ function igRecipeParse(qRaw){
   if(/^(?:please\s+)?(?:summari[sz]e|explain|describe|quote|tell me about|draft|write|translate|sammanfatta|förklara|beskriv|citera|skriv|översätt)\b/.test(q)) return null;
   if(/^(?:undo|go back|back|previous view|revert|undo that|take that back|ångra|tillbaka|gå tillbaka|backa)$/.test(q)) return { acts:[{ undo:true }], rest:'' };
   if(/^(?:please\s+)?(?:reset(?: the map| everything| it)?|start (?:again|over)|back to (?:the )?start|återställ(?: kartan| allt)?|börja om)$/.test(q)) return { acts:[{ everything:true }, { landing:true }], rest:'' };
-  if(IG_EVERYTHING_RE.test(q)||/^(?:visa allt|visa alla(?: avtal)?|rensa(?: allt| kartan)?)$/.test(q)) return { acts:[{ everything:true }], rest:'' };
+  /* every contract, in the words Jambo's one rule reads it (CA_HERE_ALL_RE: "all contracts", "every contract", "alla avtal") */
+  if(IG_EVERYTHING_RE.test(q)||/^(?:visa allt|visa alla(?: avtal)?|rensa(?: allt| kartan)?)$/.test(q)||(window.CA_HERE_ALL_RE instanceof RegExp&&CA_HERE_ALL_RE.test(q))) return { acts:[{ everything:true }], rest:'' };
   let m=q.match(/^(?:save|keep|remember)\s+(?:this|the current|the)?\s*(?:view|map|layout)(?:\s+(?:as|called|named)\s+(.+))?$/)||q.match(/^spara\s+(?:den här\s+|denna\s+)?(?:vyn|vy|kartan)(?:\s+som\s+(.+))?$/);
   if(m){ const raw=m[1]?String(q0).slice(-m[1].length).trim():''; return { acts:[{ save:(raw&&_igNorm(raw)===m[1].trim()?raw:(m[1]||'')).trim() }], rest:'' }; }
   m=q.match(/^(?:open|show|load|go to|switch to)\s+(?:the\s+|my\s+)?(?:saved\s+)?view\s+(.+)$/)||q.match(/^(?:öppna|visa)\s+(?:den sparade\s+)?vyn\s+(.+)$/);
@@ -1695,7 +1696,8 @@ function igRecipeParse(qRaw){
   /* narrowing: only / hide / highlight */
   const nar=rest.match(/\b(?:only|just|nothing but|bara|endast|enbart)\s+(.+)$/);
   const hid=rest.match(/\b(?:hide|without|except|excluding|exclude|leave out|but not|göm|dölj|utan|förutom|utom)\s+(.+)$/);
-  const hil=rest.match(/^(?:highlight|light up|mark|point out|which|what|markera|lys upp|vilka|visa vilka)\s+(.+)$/);
+  /* "where are the …" asks to be shown them, as "which" does (Jambo's one rule, 18 Oct 2026) */
+  const hil=rest.match(/^(?:highlight|light up|mark|point out|which|what|where are|where's|markera|lys upp|vilka|visa vilka|var är|var finns)\s+(.+)$/);
   if(nar){ const c=igConditions(nar[1]); if(c.length) acts.push({ narrow:{ conds:c, mode:follow?'and':'only' } }); }
   else if(hid){ const c=igConditions(hid[1]); if(c.length) acts.push({ narrow:{ conds:c, mode:'hide' } }); }
   else if(hil&&!/\boutliers?\b/.test(hil[1])){ const c=igConditions(hil[1]); if(c.length&&!/\b(say|says|mean|clause|wording|står|säger)\b/.test(hil[1])) acts.push({ narrow:{ conds:c, mode:'highlight' } }); }
@@ -1979,12 +1981,17 @@ async function intelAsk(qRaw){
     renderIntelDock(); return;
   }
   const tplAsk=IG_TEMPLATE_RE.test(q);
-  /* ANSWER WHERE YOU STAND (the imports trial, owner 18 Oct 2026): a request to
-     SEE contracts the screen in front can show is answered there, and the page
-     that also holds them is a door under the answer (caHereRead). The
-     Contracts place narrows its list now; on Explorer no page word is read,
+  /* ANSWER WHERE YOU STAND — ONE RULE, EVERY SCREEN (owner, 18 Oct 2026): a
+     request to SEE contracts that the screen in front reads whole is answered
+     there, and the page that also holds them is a door under the answer
+     (caHereRead). The Contracts place narrows its list now (every contract:
+     the place at rest, as its word does); on Explorer no page word is read,
      so the map's own reader below narrows the map. */
   const here=(typeof window.caHereRead==='function')?caHereRead(q):null;
+  if(here&&here.screen==='contracts'&&here.all&&typeof window.caGo==='function'){
+    const go={ kind:'go', place:'contracts', state:'ready' };
+    intel.history.push({role:'user', text:q}, {role:'assistant', text:typeof window.caGoSay==='function'?caGoSay(go):'', act:go}); renderIntelDock(); caGo(go); return;
+  }
   if(here&&here.screen==='contracts'&&typeof window.caHereOnList==='function'){
     const done=caHereOnList(here,q);
     if(done){ intel.history.push({role:'user', text:q}, {role:'assistant', text:igEsc(done.say), act:done}); renderIntelDock(); return; }
@@ -2093,9 +2100,15 @@ async function intelAsk(qRaw){
     intel.history.push({role:'assistant', text:'Something went wrong: '+igEsc(e.message), err:true});
   }
   intel.busy=false;
-  /* the page that also holds what the map now shows is a door under the answer */
+  /* the page that also holds what the map now shows is a door under the answer;
+     the Contracts list opens on the same set the map shows (none shown, no door)
+     — and where the map's answer already carries its own door to that list
+     ("Open these N on the Contracts page", igDoorsHtml), that one is the door */
   if(hereMap){ const m=intel.history.slice(h0).reverse().find(x=>x&&x.role==='assistant'&&!x.err);
-    if(m&&!m.act) m.act=Object.assign({}, here); }
+    const shown=intelActive().ids, ids=shown?[...shown]:null;
+    const list=here.page==='contracts'&&!here.all;
+    const ownDoor=list&&!!m&&Array.isArray(m.listIds)&&m.listIds.length>0;
+    if(m&&!m.act&&!ownDoor&&!(list&&!(ids&&ids.length))) m.act=Object.assign({}, here, list?{ ids }:{}); }
   rebuildIntelGraph(); renderIntelDock();
   /* ASKED ON HOME'S BOARD, ANSWERED ON THE BOARD (4 Oct 2026): a list that
      came back from Copilot or the map is drawn on the board as well. */
