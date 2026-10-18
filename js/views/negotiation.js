@@ -21821,7 +21821,7 @@ function rlSuggestPileLabel(c, list){
   }
   const by = [...new Set(L.map(ch => { const g = (typeof window.deskSuggestion === 'function') ? window.deskSuggestion(ch) : null;
     return String((g && g.by) || ch.author || '').trim(); }).filter(Boolean))];
-  return by.length === 1 ? i18t('ng_band_suggest_one', { who: by[0].split(/\s+/)[0] }) : i18t('ng_band_suggest_many');
+  return by.length === 1 ? i18t('ng_band_suggest_by', { who: by[0].split(/\s+/)[0] }) : i18t('ng_band_suggest_many');
 }
 /* the ruler's row: Adopt · Hand back · Ladder — the strip's own two presses,
    handled by the one delegated listener */

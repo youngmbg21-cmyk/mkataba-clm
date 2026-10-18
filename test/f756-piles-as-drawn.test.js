@@ -129,7 +129,7 @@ describe('f756 (2) who holds the clause, on its row', () => {
 describe('f756 (3) the piles\' names', () => {
   test('3a "Lina suggests", "Colleagues suggest", and on the author\'s seat whose turn it is', () => {
     const f = stage();
-    assert.equal(f.rlSuggestPileLabel({}, [{ author: 'Lina Ek', suggested: { by: 'Lina Ek' } }]), 'ng_band_suggest_one[who=Lina]');
+    assert.equal(f.rlSuggestPileLabel({}, [{ author: 'Lina Ek', suggested: { by: 'Lina Ek' } }]), 'ng_band_suggest_by[who=Lina]');
     assert.equal(f.rlSuggestPileLabel({}, [{ author: 'Lina Ek' }, { author: 'Erik Sandberg' }]), 'ng_band_suggest_many');
     assert.equal(stage({ me: 'Lina Ek' }).rlSuggestPileLabel({}, [{ author: 'Lina Ek', authorSide: 'owner' }]), 'ng_band_suggest_mine[who=Maria]');
   });

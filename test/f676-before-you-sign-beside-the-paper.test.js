@@ -308,7 +308,10 @@ describe('f676 (10) what the Negotiate page did, the Redlines face does too (fou
   test('10a Jambo\'s answer glows on the face: the page\'s after-paint is published, and the review door glows on the menu', () => {
     assert.match(NEGO, /Object\.assign\(window, \{ negoAfterPaint, negoTurnBannerHtml,/);
     /* RE-POINTED 15 Oct 2026: the ⋯ went; the Menu tab's review row, or the tab itself while it is shut, glows */
-    assert.match(NEGO, /escalate: \(\) => '\[data-rl-review\], #pd-body \.pd-menu \[data-ig-review\], #ig-dock \[data-pd-tab="menu"\]'/);
+    /* RE-POINTED 18 Oct 2026 (round 9's gaps, "Piles" as drawn): the Redlines
+       column's own head carries "Ask for review" ([data-rl-review-go]) — on
+       the face that is the review door that glows; the menu rows stay */
+    assert.match(NEGO, /escalate: \(\) => '\[data-rl-review\], \[data-rl-review-go\]:not\(:disabled\), #pd-body \.pd-menu \[data-ig-review\], #ig-dock \[data-pd-tab="menu"\]'/);
   });
   test('10b the live probe and the presence beat run for the face', () => {
     assert.match(strip(fnBody(NEGO, 'rlLiveHere')), /pdRedShows\(\)/);

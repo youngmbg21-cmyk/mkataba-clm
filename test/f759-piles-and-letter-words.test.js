@@ -23,7 +23,7 @@ const R = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
 const I18N = R('js/i18n.js');
 const { STRINGS } = require('../js/i18n.js');
 
-const NEW = ['ng_row_you', 'ng_row_notes_w_one', 'ng_row_notes_w_other', 'ng_row_lock_editing', 'ng_band_suggest', 'ng_band_suggest_one',
+const NEW = ['ng_row_you', 'ng_row_notes_w_one', 'ng_row_notes_w_other', 'ng_row_lock_editing', 'ng_band_suggest', 'ng_band_suggest_by',
   'ng_band_suggest_many', 'ng_band_suggest_mine', 'ng_band_settled_in', 'ng_band_settled_upto', 'ng_round_asks_came', 'ng_here_now', 'ng_discard_last',
   'pd_face_w_fill', 'pd_face_w_red', 'pd_face_w_signing', 'pd_face_w_amend', 'pd_face_w_send', 'dk_send_tab',
   'sh_lt_stays_held_by', 'sh_lt_stays_wait_by', 'sh_lt_stays_counter', 'sh_lt_stays_change', 'sh_lt_stays_counter_x', 'sh_lt_stays_change_x',
@@ -68,7 +68,7 @@ describe('f759 (2) the words say what the drawings say', () => {
   const en = STRINGS.en;
   test('2a Redlines (round 9)', () => {
     assert.equal(en.ng_band_awaiting, 'Waiting on you');
-    assert.equal(fill(en.ng_band_suggest_one, { who: 'Lina' }), 'Lina suggests');
+    assert.equal(fill(en.ng_band_suggest_by, { who: 'Lina' }), 'Lina suggests');
     assert.equal(en.ng_band_drafts, 'Your drafts, not yet sent');
     assert.equal(fill(en.ng_band_settled_in, { n: 1 }), 'Settled in round 1');
     assert.equal(en.ng_here_now, 'Here now');
