@@ -227,6 +227,7 @@ Tests: f447, f448, f482, f483, f496–f504, f511–f521, f524–f543, f549–f55
 
 ## JAMBO'S MAP — EVERYDAY WORDS FOR THE THIRTY TASKS (js/jambomap.js, owner 18 Oct 2026)
 - `JM_TASKS` (30, ways of asking in both languages) each lands on an EXISTING door (a `CA_PLACES` word, `CA_DOORS`, `CA_MENU`, `regGoFiltered`, `stFindGo`); MiniSearch (vendor/, fetched on idle by `jmLib`; absent = null) matches; `jmRead` is asked LAST in `caActOf` and by `counterAsk`. Sure → the existing act (`caGo` reads `a.reg`/`a.st`/`a.say`); close → the "which did you mean" card (`jmCardHtml`/`jmCardPress`). Left alone: `JM_FACT_RE`, `JM_WINDOW_RE`, under `JM_COVER`, the Board's own words (`jmBoardKeeps`); admin tasks to admins only.
+- ⌘K: `jmPaletteRows` (≤3 task rows after the place words, never a place's or the finder's door twice); a row runs `jmRun`. The top bar's box: Enter on words no contract matches → `jmRead` → `jmRunAct` (a page at once; a card beside the Board).
 - A new way of asking is a line in `JM_TASKS` and an exam line in f705 (its 58 "not the map's" questions must stay null). Tests: f705, jambo-map-verify.
 
 ## STAKES — THE CLAUSES TAB CARRIES THE DEEP READ

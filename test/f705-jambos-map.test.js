@@ -23,6 +23,13 @@
    (8) THE WIRING: caActOf asks the map LAST; the card is drawn and pressed
        through caCardHtml / caCardPress; the Counter's box asks it too.
    (9) READING SPENDS NOTHING: no route, no model, nothing written.
+  (10) ⌘K (owner, 18 Oct 2026: "wire the map into the top search bar and
+       ⌘K"): up to three tasks as rows, titled and described from the books,
+       as they are typed, never a place word's or the Settings finder's door twice.
+  (11) AN ACT FROM OUTSIDE JAMBO'S BOX: a page opens at once; an act that
+       waits for a press is Jambo's card beside the Board.
+  (12) THE TOP BAR'S BOX: Enter on words no contract matches goes where
+       Jambo's box would; words that match a contract stay a search.
    AT THE PARENT every claim FAILS: js/jambomap.js and the vendored
    MiniSearch do not exist there.
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -49,7 +56,7 @@ const BOOKS = (() => {
 const J = x => JSON.parse(JSON.stringify(x));
 const fill = (s, v) => String(s).replace(/\{(\w+)\}/g, (_, k) => (v && k in v) ? v[k] : '{' + k + '}');
 
-function stage({ lang = 'en', paper = 'MK-9', face = 'paper', view = 'dashboard', admin = true, board = null } = {}){
+function stage({ lang = 'en', paper = 'MK-9', face = 'paper', view = 'dashboard', admin = true, board = null, runLater = false } = {}){
   const contracts = [{ id: 'MK-9', contractNo: 'MK-9', name: 'SaaS Agreement', status: 'Under Review', counterparty: 'Nordkust Industri AB' },
     { id: 'MK-12', contractNo: 'MK-12', name: 'Supply', status: 'Signed' }];
   const calls = [], spent = [];
@@ -60,7 +67,7 @@ function stage({ lang = 'en', paper = 'MK-9', face = 'paper', view = 'dashboard'
     getUsers: () => [], currentUser: () => ({ id: 'u1', name: 'Amina' }), isAdmin: () => admin,
     state: { contracts, view },
     i18t: (k, v) => fill(k in BOOKS[lang] ? BOOKS[lang][k] : k, v),
-    setTimeout: () => 0,
+    setTimeout: fn => { if (runLater) fn(); return 0; },
     localStorage: { getItem: () => null, setItem: () => {} },
     needsYouOf: () => [],
     igHomePaperFace: () => hb.face === 'paper', igPaperUp: () => hb.face === 'paper' && !!ctx.intel.paper,
@@ -137,8 +144,8 @@ describe('f705 (1) the map: thirty tasks, both languages, each on an existing do
       }
     }
   });
-  test('1d every task is titled in both books, and the lines the map says are in both', () => {
-    const keys = ['jm_pick_title', 'jm_pick_done', ...T.map(t => 'jm_t_' + t.k), ...T.filter(t => t.to.reg || t.to.st).map(t => 'jm_go_' + t.k)];
+  test('1d every task is titled and described in both books, and the lines the map says are in both', () => {
+    const keys = ['jm_pick_title', 'jm_pick_done', 'jm_tag', ...T.map(t => 'jm_t_' + t.k), ...T.map(t => 'jm_s_' + t.k), ...T.filter(t => t.to.reg || t.to.st).map(t => 'jm_go_' + t.k)];
     for (const k of keys){
       assert.ok(BOOKS.en[k], k + ' English');
       assert.ok(BOOKS.sv[k], k + ' Svenska');
@@ -205,6 +212,7 @@ const NOT_MINE = [
   'how many NDAs do we have', 'find the indemnity in MK-9', 'does the supplier pay late fees', 'who owns the Kabras contract',
   'what is the term of the lease', 'analyse the payment terms',
   'which contracts end this year', 'what do we owe this month?', 'vilka avtal löper ut i år?',
+  'list all the contracts in hati so i can see how many we have', 'show me the contracts and how much they are worth',
 ];
 
 describe('f705 (2) the exam: everyday words land on the task\'s door', () => {
@@ -247,6 +255,15 @@ describe('f705 (3) what the map leaves alone', () => {
     const { ctx } = stage({ face: 'board', board: /by stream/i });
     assert.equal(ctx.jmRead('show me our obligations by stream'), null);
     assert.equal(lands(ctx, ctx.jmRead('show me our deliverables')), 'oblig', 'what the Board does not read, the map still does');
+  });
+  test('3d2 on the Board or Explorer a question for a list of contracts is theirs, drawn where the reader looks', () => {
+    for (const face of ['board', 'explorer']){
+      const { ctx } = stage({ face });
+      assert.equal(ctx.jmRead('Which contracts renew soon?'), null, face);
+      assert.equal(ctx.jmRead('vilka avtal löper ut snart?'), null, face + ' sv');
+      assert.equal(lands(ctx, ctx.jmRead('where do I change my language?')), 'lang', face + ': a task that is not a list still goes');
+    }
+    assert.equal(lands(stage().ctx, stage().ctx.jmRead('Which contracts renew soon?')), 'expiring', 'beside a paper the page is the answer');
   });
   test('3e until MiniSearch has arrived the map answers null, and the ask goes on as before', () => {
     const { ctx } = stage();
@@ -403,3 +420,86 @@ describe('f705 (9) reading spends nothing', () => {
     assert.deepEqual(calls, []);
   });
 });
+
+describe('f705 (10) ⌘K: the map\'s tasks as rows', () => {
+  test('10a a sentence gives its task, titled and described from the book, tagged as a task', () => {
+    const { ctx } = stage();
+    const rows = J(ctx.jmPaletteRows('which contracts are expiring soon?'));
+    assert.equal(rows[0].kind, 'task'); assert.equal(rows[0].id, 'expiring');
+    assert.equal(rows[0].title, BOOKS.en.jm_t_expiring); assert.equal(rows[0].sub, BOOKS.en.jm_s_expiring); assert.equal(rows[0].tag, BOOKS.en.jm_tag);
+    const sv = J(stage({ lang: 'sv' }).ctx.jmPaletteRows('vilka avtal löper ut snart?'));
+    assert.equal(sv[0].title, BOOKS.sv.jm_t_expiring); assert.equal(sv[0].tag, BOOKS.sv.jm_tag);
+  });
+  test('10b as it is typed: the start of a word is enough', () => {
+    const { ctx } = stage();
+    assert.ok(J(ctx.jmPaletteRows('renew')).some(r => r.id === 'expiring'));
+    assert.ok(J(ctx.jmPaletteRows('templ')).some(r => r.id === 'ourpaper'));
+    assert.ok(J(ctx.jmPaletteRows('where do I change my langu')).some(r => r.id === 'lang'));
+  });
+  test('10c never a door twice: a place word already listed, a Settings section the finder found', () => {
+    const { ctx } = stage();
+    assert.ok(J(ctx.jmPaletteRows('my calendar')).some(r => r.id === 'calendar'));
+    assert.ok(!J(ctx.jmPaletteRows('my calendar', { places: ['calendar'] })).some(r => r.id === 'calendar'));
+    assert.ok(J(ctx.jmPaletteRows('set the signing limits')).some(r => r.id === 'signcap'));
+    assert.ok(!J(ctx.jmPaletteRows('set the signing limits', { settings: ['panel:signcap'] })).some(r => r.id === 'signcap'));
+  });
+  test('10d at most three rows; an admin\'s task to an admin only; a contract question gives none', () => {
+    const { ctx } = stage();
+    for (const [q] of EXAM) assert.ok(ctx.jmPaletteRows(q).length <= ctx.JM_PALETTE_MAX, q);
+    assert.ok(!J(stage({ admin: false }).ctx.jmPaletteRows('how do I add a new user?')).some(r => r.id === 'team'));
+    for (const q of NOT_MINE) assert.deepEqual(J(ctx.jmPaletteRows(q)), [], q);
+  });
+});
+
+describe('f705 (11) an act from outside Jambo\'s box', () => {
+  test('11a a page opens at once from another page, with nothing said in Jambo\'s panel', () => {
+    const { ctx, calls } = stage({ view: 'counter' });
+    assert.equal(ctx.jmRun('lang', 'where do I change my language?'), true);
+    assert.deepEqual(calls.filter(c => c[0] === 'settings'), [['settings', 'you:lang']]);
+    assert.ok(!calls.some(c => c[0] === 'view' && c[1] === 'dashboard'));
+    assert.equal(ctx.intel.history.length, 0);
+  });
+  test('11b an act that waits for a press is Jambo\'s card beside the Board: asked, answered, nothing pressed', () => {
+    const { ctx, calls } = stage({ view: 'counter', runLater: true });
+    ctx.jmRun('signlink', 'how do I get them to sign?');
+    assert.ok(calls.some(c => c[0] === 'view' && c[1] === 'dashboard'));
+    const [asked, said] = ctx.intel.history;
+    assert.equal(asked.role, 'user'); assert.equal(asked.text, 'how do I get them to sign?');
+    assert.equal(said.act.kind, 'door'); assert.equal(said.act.door, 'signlink'); assert.equal(said.act.state, 'ready');
+    assert.ok(calls.some(c => c[0] === 'dock'));
+  });
+  test('11c on Home it is said in the conversation and the page opens, as a typed word is', () => {
+    const { ctx, calls } = stage();
+    ctx.jmRun('expiring', 'contracts ending soon');
+    assert.equal(ctx.intel.history[1].text, BOOKS.en.jm_go_expiring);
+    assert.deepEqual(calls.find(c => c[0] === 'narrowed'), ['narrowed', { view: 'expiring90' }]);
+  });
+  test('11d "which did you mean?" from outside lands as the card beside the Board', () => {
+    const { ctx } = stage({ view: 'counter', runLater: true });
+    ctx.jmRunAct(ctx.jmRead('approval'), 'approval');
+    assert.equal(ctx.intel.history[1].act.kind, 'map');
+  });
+});
+
+describe('f705 (12) the wiring of ⌘K and the top bar\'s box', () => {
+  const APP = R('js/app.js');
+  const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
+  test('12a ⌘K asks the map after the place words, telling it the places and the Settings rows already drawn', () => {
+    const body = strip(APP).match(/function commandPaletteResults\(q\)\{([\s\S]*?)\n\}/)[1];
+    assert.match(body, /const places=out\.filter\(r=>r\.kind==='place'\)\.map\(r=>r\.id\);/);
+    assert.match(body, /jmPaletteRows\(q,\{places,settings:setRows\.map\(r=>r\.id\)\}\)/);
+    assert.ok(body.indexOf('caPlaceRows(q)') < body.indexOf('jmPaletteRows('));
+    assert.match(strip(APP), /if\(it\.kind==='task'\)\{ const asked=input\.value; close\(\); if\(window\.jmRun\) jmRun\(it\.id,asked\); return; \}/);
+  });
+  test('12b the top bar\'s Enter: a contract match stays a search; otherwise the map, the list cleared, then the act', () => {
+    const src = strip(APP);
+    const at = src.indexOf("search.addEventListener('keydown'"); assert.ok(at > 0);
+    const body = src.slice(at, src.indexOf('});', at));
+    const i = w => body.indexOf(w);
+    assert.ok(i("e.key!=='Enter'") >= 0 && i("state.view==='team'") >= 0, 'Enter only, and not on Settings (where the box is ⌘K)');
+    assert.ok(i('regFiltered()') >= 0 && i('regFiltered()') < i('jmRead(q)'), 'a contract match is asked first');
+    assert.ok(i("R.query=''") > i('jmRead(q)') && i("search.value=''") > i('jmRead(q)'), 'the request leaves the list and the box');
+    assert.ok(i('jmRunAct(a,q)') > i("R.query=''"));
+  });
+});
+

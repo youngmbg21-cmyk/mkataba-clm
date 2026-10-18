@@ -105,7 +105,7 @@ const JM_TASKS = [
     en: ['who changed what', 'audit trail', 'activity log', 'change log', 'what happened', 'version history', 'previous versions', 'latest changes', 'who edited it'],
     sv: ['vem ändrade vad', 'historik', 'ändringslogg', 'tidigare versioner', 'vad har hänt', 'aktivitetslogg', 'senaste ändringarna', 'ändringshistorik'] } },
   { k: 'calendar', to: { place: 'calendar' }, w: {
-    en: ['deadlines', 'due dates', 'what is coming up', 'upcoming dates', 'my schedule', 'key dates', 'important dates', 'reminders'],
+    en: ['deadlines', 'due dates', 'what is coming up', 'upcoming dates', 'my schedule', 'my calendar', 'key dates', 'important dates', 'reminders'],
     sv: ['kalender', 'förfallodatum', 'vad händer framöver', 'kommande datum', 'viktiga datum', 'påminnelser'] } },
   { k: 'amend', to: { door: 'amend', home: 'document' }, w: {
     en: ['change a signed contract', 'make an amendment', 'variation', 'addendum', 'extend the contract', 'update a signed agreement', 'change the terms after signing', 'add an addendum', 'change the price in a signed deal'],
@@ -186,6 +186,8 @@ const JM_FACT_RE = /^\s*(?:how (?:many|much|long|often)|does|do (?:we|they|i) ha
 /* "which contracts end this year?" asks for a list over a window no page
    narrows to: the model answers it with the list, not a page */
 const JM_WINDOW_RE = /^\s*(?:which|what|vilka|vilket|vad)(?!\p{L}).*(?<!\p{L})(?:years?|months?|quarters?|christmas|år|året|månad|månaden|månader|kvartal|kvartalet|jul)(?!\p{L})/iu;
+/* a count asked anywhere in the sentence ("list all the contracts so I can see how many") is the model's */
+const JM_COUNT_RE = /(?<!\p{L})(?:how many|how much|hur många|hur mycket)(?!\p{L})/iu;
 /* a whole sentence of the frame alone, as a task lists it (JM_TASKS[].whole) */
 const jmNorm = s => String(s || '').toLowerCase().replace(/[’‘]/g, "'").replace(/[\p{P}\p{S}]+/gu, ' ').replace(/\s+/g, ' ').trim();
 /* a reference names a contract (MK-458), never a word of the task */
@@ -261,7 +263,7 @@ function jmIndex(){
    { words, tasks: [{ k, score, cover }] } — first the strongest — or null. */
 function jmMatch(q, opts = {}){
   const t = String(q || '').trim();
-  if (!t || t.length > JM_MAX || JM_FACT_RE.test(t) || JM_WINDOW_RE.test(t)) return null;
+  if (!t || t.length > JM_MAX || JM_FACT_RE.test(t) || JM_WINDOW_RE.test(t) || JM_COUNT_RE.test(t)) return null;
   const skip = opts.skip || (() => false);
   const n = jmNorm(t);
   const whole = JM_TASKS.find(T => !skip(T.k) && (T.whole || []).includes(n));
@@ -280,8 +282,9 @@ function jmMatch(q, opts = {}){
     /* a word KNOWN by this task: met as it is or as the start of the task's word;
        met only by a near spelling, it is known when long enough to be a typo
        ("signeture") rather than another word ("supply" is not "supplier");
-       the start of a much longer word is another word ("stand" is not "standard") */
-    const met = w => (r.terms || []).some(t => t === w || (t.startsWith(w) && t.length - w.length <= 2));
+       the start of a much longer word is another word ("stand" is not "standard"),
+       except while the word is still being typed (⌘K: "templ" is "templates") */
+    const met = w => (r.terms || []).some(t => t === w || (t.startsWith(w) && (opts.typing || t.length - w.length <= 2)));
     (r.queryTerms || []).forEach(w => { if (met(w) || w.length >= JM_FUZZY_COUNTS) b.hit.add(w); });
     by.set(r.k, b);
   }
@@ -332,8 +335,14 @@ function jmActOf(k, q){
 }
 /* ON THE BOARD ITS OWN READER KEEPS ITS WORDS (as caPlaceOf): "show
    obligations by stream" is the Board's chart, not a page */
+/* AND ON THE BOARD OR EXPLORER A QUESTION FOR A LIST OF CONTRACTS IS THEIRS
+   ("Which contracts renew soon?"): they answer it with the list drawn where
+   the reader is looking, which a page cannot (analyze-on-the-graph 0a) */
+const JM_LIST_RE = /^\s*(?:which|what|show|list|vilka|vilket|visa)(?!\p{L}).*(?<!\p{L})(?:contracts?|agreements?|deals?|avtal\p{L}*|kontrakt\p{L}*)(?!\p{L})/iu;
 function jmBoardKeeps(q){
   try {
+    const face = (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof hbFace === 'function') ? hbFace() : '';
+    if ((face === 'board' || face === 'explorer') && JM_LIST_RE.test(q)) return true;
     if (typeof caOnBoard !== 'function' || !caOnBoard() || typeof hbParse !== 'function') return false;
     const r = hbParse(q); return !!(r && r.act !== 'face');
   } catch (_){ return false; }
@@ -376,11 +385,55 @@ function jmCardPress(i, act){
   if (next.kind === 'go' && typeof caGo === 'function') caGo(next);
 }
 
+/* ---- ⌘K AND THE TOP BAR'S BOX (owner, 18 Oct 2026: "wire the map into the
+   top search bar and ⌘K") ----
+   ⌘K draws up to JM_PALETTE_MAX tasks as rows beside the place words and the
+   Settings finder's rows (commandPaletteResults), never one of theirs twice:
+   a task whose door is a place word already listed, or a Settings section the
+   finder already found, is left out. The top bar's box keeps searching
+   contracts as it is typed; Enter on words no contract matches is a request,
+   and goes where Jambo's box would take it (jmRunAct). */
+const JM_PALETTE_MAX = 3;
+function jmPaletteRows(q, opts = {}){
+  const t = String(q || '').trim(); if (!t) return [];
+  if (!jmLibNow()){ jmLib(); return []; }
+  const admin = jmIsAdmin(), places = new Set(opts.places || []), settings = new Set(opts.settings || []);
+  const skip = k => { const T = jmTask(k);
+    return !T || (T.admin && !admin) || (!!T.to.place && places.has(T.to.place)) || (!!T.to.st && settings.has(T.to.st)); };
+  const m = jmMatch(t, { skip, typing: true }); if (!m) return [];
+  return m.tasks.filter(x => x.cover >= JM_COVER).slice(0, JM_PALETTE_MAX).map(x => {
+    const T = jmTask(x.k);
+    return { kind: 'task', id: x.k, title: _jmT('jm_t_' + x.k), sub: _jmT('jm_s_' + x.k), tag: _jmT('jm_tag'), ic: T.to.st ? 'cog' : 'chevR' };
+  });
+}
+/* AN ACT FROM OUTSIDE JAMBO'S BOX, said and moved as if it had been typed
+   there: a page opens at once (caGo); anything that waits for a press — an
+   act's card, "which contract?", "which did you mean?", share, draft — is
+   Jambo's, beside the Board, where his cards live */
+const JM_CARD_PLACES = ['share', 'draft', 'help', 'next'];
+function jmRunAct(a, q){
+  if (!a) return false;
+  const view = (typeof state !== 'undefined' && state) ? state.view : '';
+  const card = a.kind !== 'go' || !!a.missing || JM_CARD_PLACES.includes(a.place);
+  if (!card && view !== 'dashboard') return (typeof caGo === 'function') ? caGo(a) : false;
+  const say = () => {
+    const line = (a.kind === 'go' && typeof caGoSay === 'function') ? caGoSay(a) : _jmT('ca_intro_job');
+    const asked = String(q || '').trim() || (a.map ? _jmT('jm_t_' + a.map) : '');
+    try { intel.history.push({ role: 'user', text: asked }, { role: 'assistant', text: line, act: a }); } catch (_){}
+    if (typeof renderIntelDock === 'function') try { renderIntelDock(); } catch (_){}
+    if (a.kind === 'go' && typeof caGo === 'function') caGo(a);
+  };
+  if (view !== 'dashboard' && typeof setView === 'function'){ setView('dashboard'); setTimeout(say, 0); return true; }
+  say(); return true;
+}
+function jmRun(k, q){ return jmRunAct(jmActOf(k, q), q); }
+
 /* the library is asked for once the page is idle, so the first ask finds it */
 if (typeof window !== 'undefined' && typeof document !== 'undefined'){
   const kick = () => { try { jmLib(); } catch (_){} };
   if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(kick, { timeout: 4000 }); else setTimeout(kick, 1500);
 }
 
-if (typeof window !== 'undefined') Object.assign(window, { JM_LIB_SRC, JM_MAX, JM_COVER, JM_LEAD, JM_NEAR, JM_PICKS, JM_FUZZY_COUNTS, JM_TASKS, JM_STOP, JM_SOFT, JM_FACT_RE, JM_WINDOW_RE,
-  jmNorm, jmTerms, jmLib, jmIndex, jmMatch, jmPick, jmTask, jmActOf, jmBoardKeeps, jmRead, jmCardHtml, jmCardPress });
+if (typeof window !== 'undefined') Object.assign(window, { JM_LIB_SRC, JM_MAX, JM_COVER, JM_LEAD, JM_NEAR, JM_PICKS, JM_FUZZY_COUNTS, JM_TASKS, JM_STOP, JM_SOFT, JM_FACT_RE, JM_WINDOW_RE, JM_COUNT_RE, JM_LIST_RE,
+  jmNorm, jmTerms, jmLib, jmIndex, jmMatch, jmPick, jmTask, jmActOf, jmBoardKeeps, jmRead, jmCardHtml, jmCardPress,
+  JM_PALETTE_MAX, jmPaletteRows, JM_CARD_PLACES, jmRunAct, jmRun });
