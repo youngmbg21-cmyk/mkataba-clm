@@ -97,9 +97,7 @@ test('f426 (3) one list of facts: the new five read existing readings, and any f
 test('f426 (4) no more guessing from words: the reader, then Copilot decides, and "wording" goes to the chat', () => {
   const ask = code(region(IG, 'intelAsk'));
   assert.doesNotMatch(ask, /IG_QA_RE|IG_GRAPH_RE/, 'the word lists no longer route');
-  /* RE-POINTED 18 Oct 2026 (rounds 7 and 12 as drawn): nor beside a page
-     brought up on the desk, whose box asks about that contract (heldId) */
-  assert.match(ask, /const mapRest=\(igPaperUp\(\)\|\|boardUp\|\|heldId\)\?null:await intelMapLocal\(q\);/);
+  assert.match(ask, /const mapRest=\(igPaperUp\(\)\|\|boardUp\|\|tplAsk\)\?null:await intelMapLocal\(q\);/);
   assert.match(ask, /else if\(idHits>=2\)\s+await intelChatAsk\(q\);/, 'two named contracts still go side by side');
   assert.match(ask, /else\s+await intelGraphAsk\(q\);/, 'everything else goes to Copilot to decide');
   assert.match(code(region(IG, 'intelGraphAsk')), /if\(res&&res\.kind==='wording'\)\{ await intelChatAsk\(q\); return; \}/);

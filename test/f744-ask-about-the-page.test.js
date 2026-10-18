@@ -160,8 +160,15 @@ describe('f744 (3) the box asks about what is held', () => {
     const A = fnBody(IG, 'intelAsk');
     assert.match(A, /const heldId=igHeldAskId\(\);/);
     assert.match(A, /if\(state\.view==='dashboard' && \(onPaperSide\|\|heldId\) && typeof window\.hbBringOf==='function'/);
-    assert.match(A, /if\(state\.view==='dashboard' && !onPaperSide && !heldId && typeof window\.hbAsk==='function'\)/);
-    assert.match(A, /const mapRest=\(igPaperUp\(\)\|\|boardUp\|\|heldId\)\?null:await intelMapLocal\(q\);/);
+    /* main's template ask (tplAsk) and ANSWER WHERE YOU STAND (hereMap) kept beside it */
+    assert.match(A, /if\(!heldId && state\.view==='dashboard' && !onPaperSide && !tplAsk && !hereMap && typeof window\.hbAsk==='function'\)/);
+    assert.match(A, /const boardUp=\(!!igBoardNow\(\)&&!IG_WALK_RE\.test\(q\)&&!IG_OUTLIER_RE\.test\(q\)&&!mapListy\)\|\|!!heldId;/);
+    assert.match(A, /const mapRest=\(igPaperUp\(\)\|\|boardUp\|\|tplAsk\)\?null:await intelMapLocal\(q\);/);
+    /* JAMBO, THE SAME ON EVERY PAGE (main, 18 Oct 2026): the screen in front
+       (caHereRead) and the words' acts (caActOf) are read before the page's
+       question goes with its wording */
+    assert.ok(A.indexOf('caHereRead(q)') > 0 && A.indexOf('caHereRead(q)') < A.indexOf('const heldId=igHeldAskId();'), 'the screen in front first');
+    assert.ok(A.indexOf('caActOf(q)') < A.indexOf('const heldId=igHeldAskId();'), 'the words\' acts next');
     assert.match(A, /else if\(heldId\)\s+await igPaperAsk\(q,heldId\);/);
     const P = fnBody(IG, 'igPaperAsk');
     assert.match(P, /^function igPaperAsk\(q,cid\)\{\n[\s\S]*?const p0=intel\.paper; const c=cid\?getContract\(cid\):\(p0\?getContract\(p0\.id\):null\);/);

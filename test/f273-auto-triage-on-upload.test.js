@@ -377,8 +377,10 @@ describe('F273 — auto-triage on upload', () => {
     test('declining asks first and is an act on the record', () => {
       const w = HOME.slice(HOME.indexOf("if(act==='decline')"), HOME.indexOf("if(window.triageAck) triageAck(c);\n    /*"));
       assert.match(w, /confirmDialog/, 'it asks');
-      assert.match(w, /c\.status='Declined'/, 'sets a status this product already understands');
-      assert.match(w, /logAudit\(c,'Declined'/, 'and leaves a line');
+      /* RE-POINTED 13 Oct 2026: through the ONE act, contractDecline, which sets
+         the status, leaves the line and refuses a signed or handed-over one. */
+      assert.match(w, /contractDecline\(c,'Declined from the triage card — not ours'\)/,
+        'sets a status this product already understands, and leaves a line, through the one act');
     });
     test('the fold is per sitting and in memory', () => {
       assert.match(HOME, /const _hmTriageFold=new Set\(\)/);

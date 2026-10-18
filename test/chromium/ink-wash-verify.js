@@ -20,6 +20,22 @@
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
 
+   RE-RECORDED 18 Oct 2026 (eighteenth), OWNER-ASKED ("The SAP way, and call
+   it Home"): no tab row above the page; the bar reads ‹ · Ha · the page's
+   name ▾ and opens Recent. Audited by key: counts moved on every screen (the
+   row left, everything under it moved up); GONE only the tab row's own
+   colours in the dark themes (the pressed pill's accent wash and edge, the
+   "‹ The counter" link's ink, the × ink, the bar divider's fill now hidden)
+   and, on Our paper's sheet, one number box's HOVER tint — the census signs
+   in by a click, the mouse stays there, and before the change that box sat
+   under it (measured: rest .16, hover .28; the box's own clothes did not
+   move). NEW only fill rgb(255,255,255) in the dark themes: the ▾ beside the
+   page's name, the bar's own white. No colour new to the product.
+   RE-RECORDED 18 Oct 2026 (seventeenth), OWNER-ASKED ("this should not be on
+   paper at all"): the ladder's step chip and its tally chip left the paper
+   (THE PAPER CARRIES NO LADDER), so the negotiate screen's paper counts two
+   fewer elements. Audited by key: every theme, counts only, each down by 2;
+   no key new, none gone, no colour or size moved.
    RE-RECORDED 18 Oct 2026 (sixteenth), OWNER-ASKED (the owner's yes to round
    24's question: the left-sidebar switch goes from Settings → You): the
    settings screen lost one row, so its counts fell. Audited by key: settings

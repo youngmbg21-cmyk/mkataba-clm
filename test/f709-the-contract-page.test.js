@@ -62,7 +62,8 @@ describe('f709 (1) a page on the desk', () => {
     const open = fnBody(CN, 'deskTabOpen');
     assert.match(open, /if \(t && t\.view === 'card' && typeof hbStripBring === 'function' && hbStripBring\(c\.id\)\) return true;/);
     assert.match(open, /const left = \(typeof window\.bsCardLeave === 'function'\) && window\.bsCardLeave\(\);/);
-    assert.match(fnBody(CN, 'deskTabClose'), /if \(L\[i\]\.view === 'card' && typeof bsStripClose === 'function'\) bsStripClose\(k\.slice\(2\)\);/);
+    /* RE-POINTED 18 Oct 2026 (the SAP way): the tab is a Recent row; × may also take the page in front off */
+    assert.match(fnBody(CN, 'deskTabClose'), /if \(i >= 0 && L\[i\]\.view === 'card' && typeof bsStripClose === 'function'\) bsStripClose\(k\.slice\(2\)\);/);
   });
 });
 

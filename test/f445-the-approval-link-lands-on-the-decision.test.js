@@ -40,6 +40,7 @@ const CORE = read('js/core.js');
 const I18N = read('js/i18n.js');
 const APPROVALS = read('js/approvals.js');
 const INDEX = read('index.html');
+const COMP = read('js/components.js');
 const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 const chunk = (src, from, to) => {
@@ -108,33 +109,39 @@ describe('f445 (4) the browser honours a narrow list', () => {
 
 describe('f445 (5) it is not a second door onto deciding', () => {
   const fn = chunk(CORE, '  if(go){', '  return true;\n}');
-  test('the arrival scrolls and lights, and presses nothing', () => {
-    assert.match(fn, /scrollIntoView/);
-    assert.match(fn, /classList\.add\('is-landed'\)/);
-    assert.doesNotMatch(fn, /\.click\(\)|signApprovalDecide|approveContract/,
+  /* RE-POINTED 18 Oct 2026 (LAND ON IT): the arrival is the house's one
+     lander (landOn, js/components.js), which scrolls and lights and presses
+     nothing; the ring now stays until the reader's next press. */
+  const LANDER = chunk(COMP, 'function landOn(', '\n/* the reader');
+  test('the arrival goes through the one lander, which scrolls and lights, and presses nothing', () => {
+    assert.match(fn, /landOn\(go\.sel/);
+    assert.match(LANDER, /scrollIntoView/);
+    assert.match(LANDER, /classList\.add\('is-landed'\)/);
+    assert.doesNotMatch(fn + LANDER, /\.click\(\)|signApprovalDecide|approveContract/,
       'the press is still the in-app button, behind the same guard');
   });
-  test('and the mark takes itself off, so nothing permanent is added', () => {
-    assert.match(fn, /classList\.remove\('is-landed'\)/);
+  test('and the mark comes off at the reader\'s next press, so nothing permanent is added', () => {
+    assert.match(COMP, /function landOff\(\)\{[\s\S]*?classList\.remove\('is-landed'/);
+    assert.match(COMP, /addEventListener\('pointerdown', \(\) => \{ if \(_land[^}]*landOff\(\)/);
   });
   test('the ring costs the page no layout, and respects reduced motion', () => {
-    assert.match(INDEX, /\.sa-card\.is-landed\{outline:/, 'an outline is drawn outside the box');
-    assert.doesNotMatch(chunk(INDEX, '.sa-card.is-landed{', '.sa-card-h{'), /margin|padding|border-width/,
+    assert.match(INDEX, /\.is-landed:not\(#_\), \.rl-glow:not\(#_\)\{outline:/, 'an outline is drawn outside the box');
+    assert.doesNotMatch(chunk(INDEX, '.is-landed:not(#_), .rl-glow:not(#_){', '@keyframes hatiLand'), /margin|padding|border-width/,
       'nothing that would move the card');
-    assert.match(INDEX, /prefers-reduced-motion: reduce\)\{ \.sa-card\.is-landed\{animation:none/);
+    assert.match(INDEX, /prefers-reduced-motion: reduce\)\{ \.is-landed:not\(#_\), \.rl-glow:not\(#_\)\{animation:none/);
   });
 });
 
 describe('f445 (6) the landing is bounded', () => {
   const fn = chunk(CORE, '  if(go){', '  return true;\n}');
+  const LANDER = chunk(COMP, 'function landOn(', '\n/* the reader');
   test('it gives up rather than waiting for ever', () => {
-    assert.match(CORE, /const HASH_GO_WAIT = \d+, HASH_GO_TRIES = \d+, HASH_GO_LIT = \d+/,
-      'the three numbers are named once');
-    assert.match(fn, /\+\+tries<HASH_GO_TRIES/, 'a reader who never gets a card leaves no timer running');
+    assert.match(CORE, /const HASH_GO_WAIT = \d+, HASH_GO_TRIES = \d+;/, 'the numbers are named once');
+    assert.match(fn, /tries:HASH_GO_TRIES/, 'the landing is told how long to look');
+    assert.match(LANDER, /if \(\+\+n < tries\)/, 'a reader who never gets a card leaves no timer running');
   });
   test('a reader with no decision to make simply arrives on the tab', () => {
-    assert.match(fn, /if\(!el\)\{/, 'no card is not an error to explain away');
-    assert.doesNotMatch(fn, /toast\(/, 'and nothing is said about it');
+    assert.doesNotMatch(fn, /missing:/, 'no card is not an error to explain away: nothing is said about it');
   });
 });
 

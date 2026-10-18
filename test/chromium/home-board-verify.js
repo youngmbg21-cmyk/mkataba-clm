@@ -87,7 +87,7 @@ const CONTRACTS = [
     ok('1a Home lands on the board with five figures', landed);
     const L = await page.evaluate(() => ({ face: typeof hbS === 'function' && hbS().face,
       dark: !!document.querySelector('#ig-page.hb-dark'), light: !!document.querySelector('#ig-page.hb-light'),
-      order: [...document.querySelectorAll('#hb-head [data-hb-screen]')].map(b => b.getAttribute('data-hb-screen')).join(','), up: typeof igMapUp === 'function' ? igMapUp() : null,
+      order: [...document.querySelectorAll('[data-hb-screen]')].map(b => b.getAttribute('data-hb-screen')).join(','), up: typeof igMapUp === 'function' ? igMapUp() : null,
       nums: [...document.querySelectorAll('.hb-fig .hb-fig-n')].map(e => e.textContent.trim()),
       want: typeof hbBookData === 'function' ? hbBookData('all').figs : null }));
     /* the Board LANDS LIGHT, Light before Dark (Young, 6 Oct 2026) */
@@ -209,7 +209,8 @@ const CONTRACTS = [
     /* ===== 8. PRESENT, THE POINTER AND THE PEN ===== */
     const toolsAtRest = await page.evaluate(() => getComputedStyle(document.getElementById('hb-tools')).display);
     ok('8a the tools are not drawn outside Present', toolsAtRest === 'none', toolsAtRest);
-    await page.click('#hb-present');
+    /* RE-POINTED 18 Oct 2026 (the SAP way): Present is Recent's last row, under the page's name */
+    await page.click('#dk-page'); await page.click('#dk-recent [data-dk-present]');
     /* the pointer waits for its button (Young, 6 Oct 2026) */
     ok('8b Present puts the page in presenting, the pointer OFF', await until(page, () =>
       document.getElementById('ig-page').classList.contains('hb-presenting')

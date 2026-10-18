@@ -3067,6 +3067,13 @@ function _obPlusDays(iso, n){
   d.setDate(d.getDate() + n);
   return isoDay(d);
 }
+/* WHO THE EMAIL REACHES is a member who can open the contract's stream: the
+   server's obligationRecipient and contractOwnerRecipient ask folderScopeFor,
+   so a reading that names somebody they would skip promises a mail nobody
+   sends (bug log, 13 Oct; the #253 review, 18 Oct 2026). */
+function obligationReachable(m, c){
+  return (m && (!c || typeof canAccessFolder !== 'function' || canAccessFolder(c.folder || '', m))) ? m : null;
+}
 function obligationReminderSay(o, c){
   if(obState(o) === 'done') return _obEsc(i18t('ob_rem_done'));
   const due = obligationDue(o);
@@ -3079,7 +3086,7 @@ function obligationReminderSay(o, c){
   if(c && obligationBlocked(o, c)){
     const s = obligationStepNo(o, c);
     const ownerName = (typeof window.contractOwnerName === 'function' && contractOwnerName(c)) || '';
-    const owner = ownerName ? obligationReminderTo({ assignee: ownerName }) : null;
+    const owner = ownerName ? obligationReachable(obligationReminderTo({ assignee: ownerName }), c) : null;
     return _obEsc(i18t('ob_rem_held', { n: s ? s.n - 1 : '', who: owner ? (owner.name || ownerName) : admins }));
   }
   if(!due) return _obEsc(i18t('ob_rem_nodate'));
@@ -3090,7 +3097,7 @@ function obligationReminderSay(o, c){
   /* OUR SIDE IS OUR PROMISES' (runOurPromises, 27 Sep 2026): the assignee,
      else the contract's owner, 7 days before, on the day and the day after —
      and no day-four mail to the admins any more. */
-  const m = obligationReminderTo(o);
+  const m = obligationReachable(obligationReminderTo(o), c);
   const ow = m ? null : obligationOwnerTo(c);
   if(!m && !ow) return `<span class="ins-nobody">${_obEsc(i18t('ob_rem_nobody'))}</span> ${_obEsc(i18t('ob_rem_nobody_more'))}` + next([[1, admins]]);
   const who = m || ow;
@@ -3110,7 +3117,7 @@ function obligationReminderLine(o, c){
   }
   if(!due) return _obEsc(i18t('ob_rem_l_nodate'));
   if(obligationIsTheirs(o)) return _obEsc(i18t('ob_rem_l_theirs', { cp: o.counterparty || (c && c.counterparty) || i18t('ob_side_theirs') }));
-  const m = obligationReminderTo(o);
+  const m = obligationReachable(obligationReminderTo(o), c);
   const ow = m ? null : obligationOwnerTo(c);
   if(!m && !ow) return _obEsc(i18t('ob_rem_l_nobody'));
   const who = m || ow;
@@ -3127,8 +3134,8 @@ function obligationOwnerTo(c){
   let mem = [];
   try{ mem = (typeof window.getUsers === 'function') ? (getUsers() || []) : []; }catch(_){ mem = []; }
   const byId = ow.id != null ? mem.find(u => u && String(u.id) === String(ow.id)) : null;
-  if(byId) return /.+@.+\..+/.test(String(byId.email || '').trim()) ? byId : null;
-  return ow.name ? obligationReminderTo({ assignee: ow.name }) : null;
+  if(byId) return /.+@.+\..+/.test(String(byId.email || '').trim()) ? obligationReachable(byId, c) : null;
+  return ow.name ? obligationReachable(obligationReminderTo({ assignee: ow.name }), c) : null;
 }
 
 /* ---- WHAT HAS HAPPENED TO IT, off the contract's own trail ----
@@ -3363,8 +3370,11 @@ function obPanelOpts(o, c, i, ctx){
   const theirs = obligationIsTheirs(o);
   const st = obligationStatusSay(o, c);
   const money = obligationMoneyVisible();
-  const m = theirs ? null : obligationReminderTo(o);
-  const typed = String((o && o.assignee) || '').trim();
+  /* who the reminder reaches, as its Reminders line below reads it: a member
+     who cannot open the stream is named, and said not reminded */
+  const m0 = theirs ? null : obligationReminderTo(o);
+  const m = obligationReachable(m0, c);
+  const typed = String((o && o.assignee) || '').trim() || (m0 && m0.name) || '';
   const whose = theirs
     ? _obEsc(ctx === 'page' ? i18t('ob_whose_theirs_cp', { cp: o.counterparty || c.counterparty || '' }) : i18t('ob_side_theirs'))
     : (m ? _obEsc(i18t('ob_whose_ours', { who: m.name || typed })) : `<span class="ins-unassigned">${_obEsc(i18t(typed ? 'ob_whose_ours_unknown' : 'ob_whose_ours_nobody', { who: typed }))}</span>`);

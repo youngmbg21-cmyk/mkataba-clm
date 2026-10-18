@@ -34,5 +34,5 @@ test('f615 with Copilot connected the line names its cost; without it, it promis
   assert.ok(!/three Copilot calls/.test(off), 'no Copilot calls promised without Copilot');
   assert.match(off, /Jambo is not connected/);
   assert.match(off, /local risk scan still does/);
-  assert.match(I18N, /ct_triage_optin_sub_noai: 'Jambo är inte anslutet/, 'and in Swedish');
+  assert.match(I18N, /ct_triage_optin_sub_noai: 'Jambo är inte ansluten/, 'and in Swedish');
 });

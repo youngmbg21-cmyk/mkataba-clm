@@ -196,10 +196,16 @@ const check = (name, pass, detail) => {
       const at = await page.evaluate(() => IG.nodes.findIndex(x => x.kind === 'contract' && x.g.getBoundingClientRect().width)), d0 = await dotOf(at); let far = 0;
       for (let i = 0; i < 8; i++){ await page.waitForTimeout(200); const d = await dotOf(at); far = Math.max(far, Math.hypot(d[0] - d0[0], d[1] - d0[1])); }
       const b = await page.evaluate(k => intel.cam[k] || 0, key); return { moved: Math.abs(b - a) > 0.02, far: Math.round(far * 10) / 10, a: +a.toFixed(3), b: +b.toFixed(3) }; };
-    const jig = m => !m.moved && m.far >= 1 && m.far < 14;
+    /* THE LIMIT FOLLOWS THE STAGE (18 Oct 2026): the dots wobble in the stage's own
+       scale, and 14px was set when the stage stood 763px tall under Home's head row;
+       the SAP way gave the map that row back (852px at 1366x900), so the limit is
+       the same share of the stage's height */
+    const stH = await page.evaluate(() => document.getElementById('ig-gwrap').getBoundingClientRect().height);
+    const JIG_MAX = 14 * stH / 763;
+    const jig = m => !m.moved && m.far >= 1 && m.far < JIG_MAX;
     const sw0 = await page.evaluate(() => intel.cam.sway || 0);
     const qB = await stray(0, 'rot'), qF = await stray(2, 'rotL'), qG = await stray(3, 'rotG'), qT = await stray(4, 'rotT');
-    check('4a2 Still: Brain, Floors, Grid and Timeline do not turn or swing — their dots only jiggle a little', jig(qB) && jig(qF) && jig(qG) && jig(qT) && (await page.evaluate(() => intel.cam.sway || 0)) === sw0, JSON.stringify({ qB, qF, qG, qT, sw0 }));
+    check('4a2 Still: Brain, Floors, Grid and Timeline do not turn or swing — their dots only jiggle a little', jig(qB) && jig(qF) && jig(qG) && jig(qT) && (await page.evaluate(() => intel.cam.sway || 0)) === sw0, JSON.stringify({ qB, qF, qG, qT, sw0, max: Math.round(JIG_MAX * 10) / 10 }));
     const fps = () => page.evaluate(() => new Promise(r => { const f0 = igFramesDrawn(); setTimeout(() => r(igFramesDrawn() - f0), 1000); }));
     await page.waitForTimeout(2600);
     const fStill = await fps();
@@ -242,11 +248,15 @@ const check = (name, pass, detail) => {
        Young, 29 Sep 2026, off a screenshot with the "Grouped by value stream"
        row ringed: "remove the space in the highlighted area and give it to the
        dark screen." */
-    /* the head row is Home's own on the map's page since 3 Oct 2026 (#hb-head) */
-    const hl = await page.evaluate(() => { const r = id => document.getElementById(id).getBoundingClientRect(), head = (document.getElementById('ig-head') || document.getElementById('hb-head')).getBoundingClientRect(), st = r('ig-gwrap'), n = r('ig-note');
+    /* the head row is Home's own on the map's page since 3 Oct 2026 (#hb-head); on a
+       computer that row is gone (the SAP way, 18 Oct 2026: the bar names the page),
+       so the map starts straight under the bar */
+    const hl = await page.evaluate(() => { const r = id => document.getElementById(id).getBoundingClientRect(),
+      hd = document.getElementById('ig-head') || document.getElementById('hb-head'),
+      head = (hd && !hd.hidden && hd.getBoundingClientRect().height ? hd : document.getElementById('top-header')).getBoundingClientRect(), st = r('ig-gwrap'), n = r('ig-note');
       const note = document.getElementById('ig-note'), b = note.querySelector('b');
       return { headBottom: Math.round(head.bottom), stageTop: Math.round(st.top), inStage: n.left >= st.left && n.top >= st.top && n.right <= st.right && n.bottom <= st.bottom, text: note.textContent.replace(/\s+/g, ' ').trim().slice(0, 60), boldCol: b ? getComputedStyle(b).color : null }; });
-    check('5a the dark map starts straight under the tab row — the head line\'s row is the map\'s now', Math.abs(hl.stageTop - hl.headBottom) <= 1, JSON.stringify(hl));
+    check('5a the dark map starts straight under the bar (or the tab row) — the head line\'s row is the map\'s now', Math.abs(hl.stageTop - hl.headBottom) <= 1, JSON.stringify(hl));
     check('5b the head line is still there, in the map\'s top corner, its words light on the dark', hl.inStage && /Grouped by/.test(hl.text) && hl.boldCol === 'rgb(255, 255, 255)', JSON.stringify(hl));
     await page.screenshot({ path: path.join(OUT, '5-head-line-on-the-stage.png') });
     check('9a no page errors', errors.length === 0, JSON.stringify(errors.slice(0, 3)));

@@ -112,16 +112,23 @@ const check = (name, pass, detail) => {
       /* the brain also turns slowly by itself; a 120px drag is ~0.72 rad, far past that drift */
       check(`3${'abc'[i]} a real mouse drag turns the ${['Brain', 'Wiring', 'Floors'][i]} view, the side facing you following the mouse`, r0 - r1 > 0.5, `${r0.toFixed(2)} → ${r1.toFixed(2)}`);
     }
-    /* the empty top-right corner — the head line rides the top-left since 29 Sep 2026 */
-    await page.dblclick('#ig-svg', { position: { x: (await page.evaluate(() => document.getElementById('ig-svg').getBoundingClientRect().width)) - 30, y: 30 } });
+    /* an EMPTY spot on the right edge: the head line rides the top-left since 29 Sep 2026,
+       and Group by took the top-right corner on 18 Oct 2026 (the SAP way), so the spot is
+       found below it, where the map (any double-click on it faces the view) is what a press lands on */
+    const emptySpot = () => page.evaluate(() => { const sv = document.getElementById('ig-svg'), r = sv.getBoundingClientRect();
+      const gb = document.getElementById('hb-groupby'), g = gb && !gb.hidden ? gb.getBoundingClientRect() : null;
+      for (let y = (g ? g.bottom - r.top : 0) + 24; y < r.height - 24; y += 8){ const hit = document.elementFromPoint(r.left + r.width - 30, r.top + y);
+        if (hit && sv.contains(hit)) return { x: r.width - 30, y }; }
+      return { x: r.width - 30, y: 30 }; });
+    await page.dblclick('#ig-svg', { position: await emptySpot() });
     const faced = await page.evaluate(() => ({ rotL: intel.cam.rotL, tiltL: intel.cam.tiltL, zoom: intel.cam.zoom }));
     /* the Floors turn by themselves too (28 Sep 2026), so a frame after facing it has drifted a hair */
     check('3d a double-click faces the view again', Math.abs(faced.rotL) < 0.05 && faced.tiltL === 0 && faced.zoom === 1, JSON.stringify(faced));
     await page.click('[data-ig-zoom="in"]'); await page.click('[data-ig-zoom="in"]');
     const zv = await page.evaluate(() => ({ z: intel.cam.zoom, t: document.getElementById('ig-zv').textContent }));
     check('3e the zoom buttons zoom, and the readout says by how much', zv.z > 1.3 && zv.t === Math.round(zv.z * 100) + '%', JSON.stringify(zv));
-    /* the empty top-right corner — the head line rides the top-left since 29 Sep 2026 */
-    await page.dblclick('#ig-svg', { position: { x: (await page.evaluate(() => document.getElementById('ig-svg').getBoundingClientRect().width)) - 30, y: 30 } });
+    /* the same empty spot (above) */
+    await page.dblclick('#ig-svg', { position: await emptySpot() });
 
     /* ================= 4. A CARD FOLDS; NOTHING ON THE MAP IS A FILTER ===== */
     await page.click('[data-ig-view="1"]'); await until(() => intel.cam.w[1] > 0.97);
