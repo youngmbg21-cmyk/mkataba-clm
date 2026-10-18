@@ -1561,9 +1561,10 @@ function keepScroll(fn){
   const host=document.getElementById('content');
   const tops=[];
   if(sc && sc.scrollTop) tops.push(['content-scroll',sc.scrollTop]);
-  if(host && host.querySelectorAll) host.querySelectorAll('[id]').forEach(el=>{
+  /* …and the page's Jambo panel beside it (#page-dock, pageDockSet) */
+  [host, document.getElementById('page-dock')].forEach(root=>{ if(root && root.querySelectorAll) root.querySelectorAll('[id]').forEach(el=>{
     if(el.scrollTop) tops.push([el.id,el.scrollTop]);
-  });
+  }); });
   fn();
   if(!tops.length) return;
   const put=()=>tops.forEach(([id,top])=>{ const el=document.getElementById(id); if(el) el.scrollTop=top; });
@@ -1616,7 +1617,7 @@ function placeNow(){
   const sc=document.getElementById('content-scroll');
   if(sc&&sc.scrollTop) p.scroll['content-scroll']=Math.round(sc.scrollTop);
   const host=document.getElementById('content');
-  if(host&&host.querySelectorAll) host.querySelectorAll('[id]').forEach(el=>{ if(el.scrollTop) p.scroll[el.id]=Math.round(el.scrollTop); });
+  [host, document.getElementById('page-dock')].forEach(root=>{ if(root&&root.querySelectorAll) root.querySelectorAll('[id]').forEach(el=>{ if(el.scrollTop) p.scroll[el.id]=Math.round(el.scrollTop); }); });
   return p;
 }
 function placeSave(){

@@ -579,8 +579,10 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
       const row = document.querySelector('.st-tabs'), sc = document.getElementById('content-scroll');
       if (!row || !sc) return null;
       const r = row.getBoundingClientRect(), s = sc.getBoundingClientRect();
-      /* the first painted thing on the row is the pill's track (16 Oct 2026) */
-      const first = document.querySelector('#set-page .st-faces') || document.querySelector('.st-tab');
+      /* the first painted thing on the row is the pill's track (16 Oct 2026);
+         RE-POINTED 18 Oct 2026: the page's name rides the band now (Jambo's
+         panel beside the page runs to the top), so it is the band's first */
+      const first = document.querySelector('#set-page .st-title') || document.querySelector('#set-page .st-faces') || document.querySelector('.st-tab');
       const live = document.querySelector('#set-page .st-face[aria-selected="true"]') || first;
       const lr = live.getBoundingClientRect();
       const hit = document.elementFromPoint(Math.round(lr.left + lr.width / 2), Math.round(lr.top + lr.height / 2));
