@@ -30627,3 +30627,12 @@ The owner picked "The SAP way" by name (round 18, Explorer, skipped: "Explorer n
 - **THE PANEL'S TWO LISTS.** Under the facts: what waits, each row with its own door (`needsYouGo`; our move opens the redlines), and the party's agreements, each a door onto its paper (`regOpenContract`, Home's Document). Rows are delegated once on the document.
 - **KEPT, AND WHY.** The drawing set the filter labels above their boxes and drew People as a table. The owner ruled the label inside the box for this band on 10 Oct, and picked People's face cards on 13 Oct; a drawing's detail is not taken as reversing either (the scope rule: never the wider reading). Both are named in the morning summary. A "City" column was drawn; HaTi keeps no city on a party, so none was invented.
 - Tests: f720 (red at the parent), parties-sap-way-verify (red at the parent).
+
+## REQUESTS, "THE SAP WAY" — ROUND 20 OF THE REDESIGN (17 Oct 2026)
+
+The owner picked "The SAP way" by name for Requests and My notes; the round asked nothing.
+
+- **THE TEAM'S LIST, AS DRAWN.** Ref · Request · Kind · How it is handled · **With** · **Files** · **Asked** · Promised by. With was the asker's column only ("who has my request" is the asker's whole question); the team now sees it too, through the same builder (`ikWithCellHtml`: "You" for the reader, a colleague by name, "Nobody yet" in amber — the borrowing from Pipeline), and under it, while the request is open, the lane that sent it ("NDA lane", `ikWithListHtml`). Files counts the clip (`ikFilesCellHtml`, a drawn `clip` icon); Asked is the day it came in. The columns were measured at the iPad width so the reference, the file count and the heads stay whole and the request keeps room to read.
+- **THE PANEL'S HOLDER** adds "· sent by the NDA lane" where a lane routed it.
+- **KEPT, AND WHY.** The drawing moved the search and two filters into the band beside the tabs; the list keeps its search box and its Filter fold on the card's head (SAP batch 2), since moving them is not what the pick decided. "Oldest waiting first" was drawn as the card's note while the drawn rows ran newest first; the list keeps its newest-first order. The asker's own list and My notes are unchanged (the drawing's My notes is today's).
+- Tests: f721 (red at the parent), requests-sap-way-verify (red at the parent).
