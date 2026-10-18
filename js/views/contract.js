@@ -8699,7 +8699,7 @@ function histSaysOf(e){
     :ch.counterOf?'ct_hist_s_counter_'+(theirs?'ours':'theirs')
     :'ct_hist_s_proposed';
   const say=i18t(k,{ clause:cl });
-  return (what&&e._k!=='withdrawn')?i18t('ct_hist_s_what',{ say, what }):say;
+  return (what&&e._k!=='withdrawn')?say+': '+what:say;
 }
 /* ---- WHERE THE NEGOTIATION STANDS, FOR HISTORY'S HEAD AND JAMBO (round 12)
    ---- ONE reading: what is still open (their asks and ours, dsOpen's own

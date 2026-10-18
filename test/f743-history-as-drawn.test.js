@@ -175,7 +175,7 @@ describe('f743 (4) Jambo on History, and both books', () => {
   });
   test('4c every new word in English and Svenska', () => {
     for (const k of ['ct_hist_open_n_one', 'ct_hist_open_n_other', 'ct_hist_clause_nm', 'ct_hist_s_proposed', 'ct_hist_s_counter_theirs', 'ct_hist_s_counter_ours',
-      'ct_hist_s_acc_theirs', 'ct_hist_s_acc_ours', 'ct_hist_s_rej_theirs', 'ct_hist_s_rej_ours', 'ct_hist_s_withdrawn', 'ct_hist_s_what',
+      'ct_hist_s_acc_theirs', 'ct_hist_s_acc_ours', 'ct_hist_s_rej_theirs', 'ct_hist_s_rej_ours', 'ct_hist_s_withdrawn',
       'ct_hist_sum_clauses_one', 'ct_hist_sum_clauses_other', 'ct_hist_sum_more_one', 'ct_hist_sum_more_other', 'ct_hist_sum_their_round', 'ct_hist_sum_our_round',
       'pd_hg_head', 'pd_ask_hist', 'pd_hg_recent_one', 'pd_hg_recent_other', 'pd_hg_quiet_one', 'pd_hg_quiet_other', 'pd_hg_none', 'pd_hg_newest',
       'pd_hg_theirs_open_one', 'pd_hg_theirs_open_other', 'pd_hg_ours_open_one', 'pd_hg_ours_open_other', 'pd_hg_open_none',
