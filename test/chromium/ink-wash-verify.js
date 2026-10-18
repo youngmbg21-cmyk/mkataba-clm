@@ -20,6 +20,11 @@
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
 
+   RE-RECORDED 18 Oct 2026 (thirteenth), OWNER-ASKED (the overnight build,
+   same standing yes): Round 17, "Then and now" — Your book is a table (then,
+   today, change, line) and the stage bar is drawn twice, so on the home
+   screen the figures moved from 20 to 16px and the labels' counts rose.
+   Audited by key: sizes only, no colour moved.
    RE-RECORDED 18 Oct 2026 (twelfth), OWNER-ASKED (the overnight build, same
    standing yes): Round 16, "Week by week" — the calendar (and Home showing
    it) opens on this week by the hour and five more weeks instead of the

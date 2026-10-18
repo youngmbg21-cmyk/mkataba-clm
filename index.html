@@ -11191,6 +11191,33 @@
     .hb-book .hb-figs>.hb-fig{border-top:0;border-left:1px solid rgba(var(--hb-ln),.16)}
     .hb-book .hb-figs>.hb-fig:nth-child(2n+1){border-left:0}
     .hb-book .hb-figs>.hb-fig:nth-child(n+3){border-top:1px solid rgba(var(--hb-ln),.16)} }
+  /* THEN AND NOW (round 17, owner picked it, 17 Oct 2026): Your book is a
+     table — what it counts, then, today, the change, its six-month line —
+     every row on one shared set of columns (subgrid), whatever the width; the
+     stage bar is drawn twice, then above today. Doubled class: it outranks
+     the tiles' wrapping rules above by scope. */
+  .hb-book .hb-figs.hb-tn.hb-tn{grid-template-columns:minmax(0,1.7fr) minmax(64px,max-content) minmax(84px,max-content) minmax(70px,max-content) minmax(80px,1fr)}
+  .hb-book .hb-figs.hb-tn.hb-tn>.hb-fig,.hb-book .hb-figs.hb-tn.hb-tn>.hb-tn-h{grid-column:1/-1;display:grid;grid-template-columns:subgrid;align-items:center;gap:0;padding:0;border-left:0;border-top:1px solid rgba(var(--hb-ln),.12)}
+  .hb-book .hb-figs.hb-tn.hb-tn>.hb-tn-h{border-top:0;font-size:var(--t-micro);color:var(--hb-mute)}
+  .hb-tn-h>span{padding:8px 14px 6px;white-space:nowrap}
+  .hb-tn-h>span:nth-child(2),.hb-tn-h>span:nth-child(3){text-align:right}
+  .hb-book .hb-tn .hb-fig-main{grid-column:1/4;display:grid;grid-template-columns:subgrid;align-items:center;gap:0;width:auto}
+  .hb-tn .hb-fig-lw{display:flex;flex-direction:column;gap:1px;padding:9px 14px;min-width:0}
+  .hb-tn .hb-fig-lw .hb-fig-left{margin:0}
+  .hb-tn .hb-fig-then{padding:0 14px;text-align:right;font-variant-numeric:tabular-nums;color:var(--hb-ink-2);white-space:nowrap}
+  .hb-book .hb-tn .hb-fig-n{padding:0 14px;text-align:right;font-size:var(--t-section)}
+  .hb-tn .hb-fig-chg{display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:0 14px;min-width:0}
+  .hb-book .hb-tn .hb-spark{height:24px;margin:0;width:calc(100% - 14px)}
+  .hb-stagerows{display:flex;flex-direction:column;gap:6px}
+  .hb-stagerow{display:grid;grid-template-columns:76px minmax(0,1fr) 40px;align-items:center;gap:10px}
+  .hb-sr-l{font-size:var(--t-meta);color:var(--hb-ink-2);white-space:nowrap}
+  .hb-stagerow:not(.is-then) .hb-sr-l{color:var(--hb-ink);font-weight:var(--w-label)}
+  .hb-sr-n{font-size:var(--t-meta);color:var(--hb-ink-2);text-align:right;font-variant-numeric:tabular-nums}
+  .hb-stagebar-then{display:flex;gap:2px;height:12px;border-radius:2px;overflow:hidden}
+  .hb-stagebar-then span{min-width:4px}
+  .hb-stagerows+.hb-stagekey{padding-left:86px}
+  .hb-sk-then{color:var(--hb-ink-2);font-variant-numeric:tabular-nums}
+  .hb-sk-note{color:var(--hb-mute)}
   .hb-sheet-def{margin:0 0 6px;font-size:var(--t-label);line-height:1.45;color:var(--hb-ink-2)}
   .hb-fig-left{display:block;font-size:var(--t-micro);line-height:1.35;color:var(--hb-amber);margin:-2px 0 4px}
   .hb-fig-left.is-split{color:var(--hb-ink-2)}

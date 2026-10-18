@@ -68,7 +68,8 @@ describe('f660 the board tiles as one strip', () => {
   test('(3) the tile reads what it counts, then the number', () => {
     const w = world();
     const html = w.hbBookHtml(w.hbBookData('all'), null, null);
-    const tile = html.slice(html.indexOf('class="hb-fig'), html.indexOf('</div>', html.indexOf('class="hb-fig')));
+    /* a figure's own row since round 17 (then and now): the head row leads the table */
+    const tile = html.slice(html.indexOf('data-hb-fig="'), html.indexOf('</div>', html.indexOf('data-hb-fig="')));
     assert.ok(tile.indexOf('hb-fig-l') > 0 && tile.indexOf('hb-fig-l') < tile.indexOf('hb-fig-n'), 'label before number');
   });
 

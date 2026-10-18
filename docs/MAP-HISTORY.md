@@ -30604,3 +30604,15 @@ The owner picked "Week by week" by name and answered its one question — "Monda
 - Re-pointed: four-inspectors 1b (the groups are weeks); calendar-holds-still, calendar-redesign, calendar-day and laptops-verify press Month before checking the month, and count five weekdays; laptops-verify's scroller list takes `cal-wk-body` (the hours scroll by design); f261 pins the calendar opening on Week.
 - Census: ink-wash (twelfth) and theme-tokens (fifth) re-recorded under the standing yes; audited by key, no colour new; in dark the month's greyed numbers and filled "today" square left the opening screen with the month.
 - Tests: f718 (red at the parent), week-by-week-verify (red at the parent).
+
+## THE BOARD'S BOOK, "THEN AND NOW" — ROUND 17 OF THE REDESIGN (17 Oct 2026)
+
+The owner picked "Then and now" by name. Its one question was about another option (the SAP way's filter band), so nothing waited on an answer.
+
+- **YOUR BOOK IS A TABLE.** The five figure tiles became rows on one shared set of columns (CSS subgrid): what the figure counts (and, under it, what it leaves out — the value's currencies, the overdue split), the day six months ago ("18 April"), Today, the Change, and the six-month line. The head says "18 April against today".
+- **ONE READING.** Every row reads its figure's own line, `hbFigSeries` — the reading the tiles' "vs 6 months ago" already used: the "then" is the line's first point, today its last; the change is that same reading without its words (`hbVsHtml(…, bare)`). Today is still the figure's door (`data-hb-dig="f:…"`), a zero still not one; the "then" sits inside that door and opens nothing of its own. The "since your last visit" chip rides the Change cell. The figure picker (five, each person's own) is unchanged.
+- **THE STAGE BAR, TWICE.** Six months ago above Today, the then bar drawn from the stage figures' own lines (`hbStageThen`: Draft → drafting, Under Review → review, Signed → signed) and pressing nothing (history has no list behind it); the key keeps today's count and adds then in brackets, "Drafting 6 (7)", and says "April in brackets".
+- **KEPT, AND WHY.** The drawing moved the saved views into the Board's head as chips and dropped Needs you and Jambo's work from the Board. Saved views already have their place (`hbSavedViewsHtml`) and Needs you is the owner's own card (15 Oct); moving or removing either is not what the pick decided, so both stay where they are.
+- Re-pointed: f660 (3) and f690 (the row and the class), board-walkthrough-fixes 6 (on a narrowed board the figures stay one row each, numbers in one column, none cut — the number columns size to their content) and home-page 4 (the five numbers share one right edge).
+- Census: ink-wash (thirteenth) re-recorded under the standing yes — sizes only on the home screen (the figures 20 → 16px); no colour moved.
+- Tests: f719 (red at the parent), then-and-now-verify (red at the parent).
