@@ -101,8 +101,9 @@ const signIn = async (page, base, email, pass) => {
     }
 
     /* ---- every row on every tab opens a drawer, and it is visible ---- */
+    /* a panel whose door is a page (Data & backup since round 26) is walked below */
     const panelKeys = await page.evaluate(() =>
-      Object.keys(SET_PANELS).filter(k => !SET_PANELS[k].show || SET_PANELS[k].show()));
+      Object.keys(SET_PANELS).filter(k => (!SET_PANELS[k].show || SET_PANELS[k].show()) && !SET_PANELS[k].page));
     const bad = [];
     for (const k of panelKeys) {
       await page.evaluate(x => { settingsGoTab(SET_PANELS[x].tab); }, k);
@@ -120,6 +121,12 @@ const signIn = async (page, base, email, pass) => {
     }
     check(`all ${panelKeys.length} rows open a drawer with a name and something in it`,
       bad.length === 0, bad.slice(0, 4).join(' | ') || panelKeys.join(', '));
+    await page.evaluate(() => { settingsGoTab(SET_PANELS.backup.tab); });
+    await page.waitForTimeout(250);
+    await page.click('[data-st-panel="backup"]');
+    const dataPage = await page.waitForFunction(() => !!document.querySelector('[data-st-pg="data"] .st-pg-t'), null, { timeout: 5000 }).then(() => true, () => false);
+    check('Data & backup\'s row opens its page (round 26)', dataPage);
+    await page.evaluate(() => settingsGoPage(''));
 
     /* ---- the three ways out ---- */
     const isOpen = () => page.evaluate(() => document.getElementById('st-drawer').classList.contains('open'));
@@ -741,7 +748,8 @@ const signIn = async (page, base, email, pass) => {
       gates: !!document.getElementById('rv-gate-panel') || !!document.getElementById('dk-rule-panel'),
       /* since the full build (16 Oct 2026): a short card each, whose door
          opens the drawer with the control in it */
-      mine: !!document.querySelector('[data-st-you-card="who"] [data-st-panel="me:who"]') && !!document.querySelector('[data-st-you-card="work"] [data-st-panel="me:work"]'),
+      /* since round 24 (One sheet) how you work changes in its row */
+      mine: !!document.querySelector('[data-st-you-card="who"] [data-st-panel="me:who"]') && !!document.querySelector('[data-st-you-card="work"] [data-st-sw="chips"]'),
       sessions: !!document.querySelector('[data-st-you-card="safety"] [data-st-panel="me:safety"]'),
       backup: !!document.querySelector('[data-st-you-card="data"] [data-st-backup]'),
       design: !!document.querySelector('[data-st-you-card="design"] [data-st-panel="me:design"]'),

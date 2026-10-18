@@ -100,7 +100,8 @@ describe('f261 (2) — the heading IS the control', () => {
        be on ninety a week later. */
     /* RE-POINTED 10 Oct 2026 (Young: Month · Week · Horizon, with layers): the
        week and the layers join the per-sitting state, still unstored. */
-    assert.match(CAL_CODE, /let calState = \{ ym:null, view:'month', scope:'all', days:null, wk:null, lay:\{ ct:true, me:true, cp:true \} \};/);
+    /* the calendar opens on this week and five more since round 16 (17 Oct 2026) */
+    assert.match(CAL_CODE, /let calState = \{ ym:null, view:'week', scope:'all', days:null, wk:null, lay:\{ ct:true, me:true, cp:true \} \};/);
     assert.ok(!/regColSetWidths|localStorage[^)]*calState\.days/.test(CAL_CODE), 'nothing stores it');
     /* AND IT IS NOT IN ITS OWN TEMPORAL DEAD ZONE: calState is built at load
        and CAL_AGENDA_DAYS is a const declared below it. */

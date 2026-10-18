@@ -29,6 +29,22 @@
    variables actually repaints the platform. A token nothing reads is not a
    token, and no census of the DEFAULT theme would ever notice.
 
+   RE-RECORDED 18 Oct 2026 (sixth), OWNER-ASKED (the overnight build, same
+   standing yes): Round 21, "Paper first" — the templates screen's book is an
+   index and a template's own paper, so its counts moved in both themes.
+   Audited by key: no colour new, none gone.
+   RE-RECORDED 18 Oct 2026 (fifth), OWNER-ASKED (the overnight build, same
+   standing yes): Round 16, "Week by week" — the calendar opens on this week
+   by the hour with five more weeks under it, and the month draws Monday to
+   Friday, so the calendar's counts moved in both themes. Audited by key: no
+   colour new, none gone.
+   RE-RECORDED 18 Oct 2026 (fourth), OWNER-ASKED (the overnight build, same
+   standing yes): Round 13, "Wall of papers" — the register screen's counts
+   moved, light and dark; audited by key: nothing new, nothing gone.
+   RE-RECORDED 18 Oct 2026 (third), OWNER-ASKED (the overnight build, same
+   standing yes): Round 12, "Two sides" — History's two lanes moved its own
+   counts, light and dark; audited as a set difference by key: only the
+   History screen moved, no value new to the record, nothing gone.
    RE-RECORDED 17 Oct 2026 (second), OWNER-ASKED (the overnight build: "Build
    and update record even on new ones"): Round 7, "Read down" — a contract
    brought up is a page of its own on the desk, so the History screen (a

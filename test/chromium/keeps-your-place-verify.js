@@ -206,20 +206,24 @@ const check = (name, pass, detail) => {
        halves are a segmented switch (Shelves · Value streams) rather than two
        headings. The claims stand: every shelf whatever the window, no "see
        all", two halves, and the card reaches down a tall screen. */
+    /* RE-POINTED 18 Oct 2026 (round 21, "Paper first"): the book is an index
+       of templates and the chosen one's paper — every template whatever the
+       window, the two halves are the index and the paper, and the book still
+       reaches down a tall screen. */
     const tall = await page.evaluate(() => ({
-      cards: document.querySelectorAll('#tpl-bk-library [data-tpl-ov-bucket]').length,
-      bands: document.querySelectorAll('#tpl-bk-library [data-tpl-book-cut]').length,
+      cards: document.querySelectorAll('.tpl-pf-idx [data-tpl-pf]').length,
+      bands: document.querySelectorAll('.tpl-pf > .tpl-pf-idx, .tpl-pf > .tpl-pf-paper').length,
       seeAll: !!document.getElementById('tpl-ov-all'),
-      bottom: Math.round((document.getElementById('tpl-bk-library') || { getBoundingClientRect: () => ({ bottom: 0 }) }).getBoundingClientRect().bottom) }));
+      bottom: Math.round((document.querySelector('.tpl-pf') || { getBoundingClientRect: () => ({ bottom: 0 }) }).getBoundingClientRect().bottom) }));
     await page.setViewportSize({ width: 2000, height: 700 });
     await page.evaluate(() => renderTemplatesPage());
     await page.waitForTimeout(1600);
     const short = await page.evaluate(() =>
-      document.querySelectorAll('#tpl-bk-library [data-tpl-ov-bucket]').length);
-    check('the templates book shows every shelf, whatever the window',
+      document.querySelectorAll('.tpl-pf-idx [data-tpl-pf]').length);
+    check('the templates book shows every template, whatever the window',
       tall.cards > 0 && tall.cards === short, `${tall.cards} at 1030, ${short} at 700`);
     check('and nothing is held back behind a "see all"', !tall.seeAll, tall.seeAll);
-    check('the book is segmented into its two halves — shelves and value streams',
+    check('the book is in its two halves — the index and the paper',
       tall.bands === 2, `${tall.bands} halves`);
     check('the book reaches down the tall screen rather than stopping short',
       tall.bottom > 700, tall.bottom + 'px of 1030');

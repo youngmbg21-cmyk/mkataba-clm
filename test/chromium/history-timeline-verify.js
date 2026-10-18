@@ -96,6 +96,8 @@ const PROBE = `(() => {
         fill: dcs.backgroundColor, ring: dcs.borderTopColor, ringW: px(dcs.borderTopWidth) } : null,
       line: drawn ? { x: lineX, top: lineTop, bot: lineBot, w: px(b.width), color: b.backgroundColor } : null,
       rowTop: rr.top, rowBot: rr.bottom, rule: px(getComputedStyle(r).borderBottomWidth),
+      edge: px(getComputedStyle(r.querySelector('.hist-bub, .hist-inside') || r).borderTopWidth),
+      lane: r.getAttribute('data-hist-lane'),
       title: tcs ? { color: tcs.color, weight: tcs.fontWeight } : null,
       round: rnd ? { text: rnd.textContent.trim(), hover: rnd.getAttribute('title') || '',
         weight: getComputedStyle(rnd).fontWeight } : null,
@@ -109,7 +111,10 @@ const PROBE = `(() => {
      accent's INK, which lightens after dark — the table's own entry changed. */
   for (const v of ['--accent-ink', '--st-green-dot', '--st-ruby-dot', '--st-amber-dot',
     '--st-steel-dot', '--color-neutral-400']) tones[v] = bg(v);
-  return { mounted: true, rows: out,
+  const trail = pane.querySelector('.hist-trail'), tb = trail ? getComputedStyle(trail, '::before') : null, trr = trail ? trail.getBoundingClientRect() : null;
+  const spine = tb && tb.content && tb.content !== 'none' && tb.display !== 'none' && tb.position === 'absolute'
+    ? { x: trr.left + px(tb.left) + px(tb.width) / 2, mid: trr.left + trr.width / 2, w: px(tb.width) } : null;
+  return { mounted: true, rows: out, spine,
     cap: (pane.querySelector('.hist-cap') || {}).textContent || '',
     filters: [...pane.querySelectorAll('.hist-f select')].filter(s => s.getBoundingClientRect().width > 0).length,
     ink: tok('--color-text'), surface: bg('--color-surface'), rule: bg('--rule'),
@@ -269,10 +274,17 @@ const PROBE = `(() => {
         && near(r.line.top, i === 0 ? r.dot.cy : r.rowTop) && near(r.line.bot, i === d.rows.length - 1 ? r.dot.cy : r.rowBot));
     };
     const many = days.filter(d => d.rows.length > 1), one = days.filter(d => d.rows.length === 1);
-    ok('4a within a day the rings are joined by a line, ring to ring; a heading breaks it; a lone entry draws none',
-      many.length > 0 && one.length > 0 && days.every(dayOk),
-      days.map(d => `${d.rows.length}:${dayOk(d) ? 'ok' : 'BAD'}`).join(' · '));
-    ok('4b each entry is ruled off from the next', rows.length > 0 && rows.every(r => r.rule >= 1), rows.map(r => r.rule).join(','));
+    /* RE-POINTED 17 Oct 2026 (round 12: the owner picked "Two sides"): the
+       days run down ONE middle line between the two lanes, behind the day
+       pills, so no row draws a line of its own; each entry is its own bubble
+       (or, on the middle line, its own pill) instead of a ruled row.
+       dayOk/many/one stay for the record of what 12 Oct asked. */
+    void many; void one; void dayOk;
+    ok('4a the days run down one middle line between the lanes; no row draws its own',
+      !!(m.spine && Math.abs(m.spine.x - m.spine.mid) <= 2 && m.spine.w >= 1) && rows.every(r => !r.line),
+      JSON.stringify(m.spine) + ' · row lines ' + rows.filter(r => r.line).length);
+    ok('4b each entry stands in its own edge: a bubble in its lane, or a pill on the middle line', rows.length > 0 && rows.every(r => r.edge >= 1),
+      rows.map(r => r.lane + ':' + r.edge).join(','));
 
     /* ================= 5. THE ROUND AT THE RIGHT WALL ================= */
     const r1 = rows.find(r => r.round && /^R1$/.test(r.round.text));
@@ -300,7 +312,8 @@ const PROBE = `(() => {
        the fold for one switch in the open (All sides · Ours · Theirs); the
        other four fold behind Filter */
     const side = await page.evaluate(sel => [...document.querySelectorAll(sel + ' .hist-side [data-ht-side]')].filter(b => b.getBoundingClientRect().width > 0).map(b => b.textContent.trim()), HP);
-    ok('7a the four other filters fold behind Filter, Side in the open as one switch', m.filters === 0 && JSON.stringify(side) === JSON.stringify(['All sides', 'Ours', 'Theirs']), m.filters + ' filters showing · ' + side.join(' · '));
+    /* RE-POINTED 17 Oct 2026 (round 12): no side switch — the side is the lane */
+    ok('7a the four other filters fold behind Filter, and no side switch (the side is the lane)', m.filters === 0 && side.length === 0, m.filters + ' filters showing · ' + side.join(' · '));
     await page.click('#hist-filter-btn');
     await page.waitForTimeout(300);
     const f5 = await page.evaluate(sel => [...document.querySelectorAll(sel + ' .hist-f select')].filter(s => s.getBoundingClientRect().width > 0).map(s => s.getAttribute('data-ht-filter')), HP);

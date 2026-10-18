@@ -823,13 +823,14 @@ function jhScorecard(pieces, upto){
   list.forEach(k => { const s = agPointsTally(k, pieces, upto); n += s.n; used += s.used; changed += s.changed; thrown += s.thrown; open += s.open; pts += s.pts; hrs += s.hrs; });
   const title = (_jh.sel ? _jhT('ag_' + _jh.sel) : _jhT('jh_all')) + (_jh.one ? ' · ' + jhOneNo() : '');
   const res = jhResults(pieces, upto, list);
-  const key = [title, n, used, changed, thrown, open, pts, res.touched, res.dates, res.nudges, JSON.stringify(_jh.sel ? agPointsOf(_jh.sel) : '')].join('|');
+  const key = [title, n, used, changed, thrown, open, pts, res.touched, res.dates, res.nudges, JSON.stringify(_jh.sel ? agPointsOf(_jh.sel) : ''), _jh.sel ? jhLevelPickHtml(_jh.sel) : ''].join('|');
   if (key === _jhScKey) return; _jhScKey = key;
   const done = used + changed + thrown, pc = x => done ? Math.round(x / done * 100) : 0;
   const lvl = _jh.sel ? jhLevelWords(_jh.sel) : jhRangeWords();
   const sum = _jh.sel ? (() => { const s = agPointsTally(_jh.sel, pieces, upto);
     return `<div class="jh-sum"><small>${_jhE(_jhT('jh_sum_h'))}${agPointsMine(_jh.sel) ? ' · ' + _jhE(_jhT('jh_mine_tag')) : ''}</small>${_jhE(agPointsSumLine(s, _jh.sel))}<span>${_jhE(_jhT('jh_sum_rule'))}</span></div>`; })() : '';
-  host.innerHTML = `<h4 class="jh-sc-h"><span>${_jhE(title)}</span><span class="jh-quiet">${_jhE(lvl)}</span></h4>
+  const pick = _jh.sel ? jhLevelPickHtml(_jh.sel) : '';
+  host.innerHTML = `<h4 class="jh-sc-h"><span>${_jhE(title)}</span>${pick || `<span class="jh-quiet">${_jhE(lvl)}</span>`}</h4>
     <div class="jh-mix" role="img" aria-label="${_jhE(_jhT('jh_used'))} ${pc(used)}%, ${_jhE(_jhT('jh_changed'))} ${pc(changed)}%, ${_jhE(_jhT('jh_thrown'))} ${pc(thrown)}%">
       <i style="width:${pc(used)}%" class="u"></i><i style="width:${pc(changed)}%" class="c"></i><i style="width:${pc(thrown)}%" class="t"></i></div>
     <div class="jh-legend"><span><b class="u"></b>${_jhE(_jhT('jh_used'))} ${pc(used)}%</span><span><b class="c"></b>${_jhE(_jhT('jh_changed'))} ${pc(changed)}%</span><span><b class="t"></b>${_jhE(_jhT('jh_thrown'))} ${pc(thrown)}%</span></div>
@@ -837,6 +838,20 @@ function jhScorecard(pieces, upto){
       <div><small>${_jhE(_jhT('jh_k_waiting'))}</small><b>${_jhFmt(open)}</b></div><div><small>${_jhE(_jhT('jh_k_points'))}</small><b>${_jhFmt(pts)}</b></div></div>
     <div class="jh-res" id="jh-res"><div><b>${_jhFmt(res.touched)}</b><small>${_jhE(_jhT('jh_k_touched'))}</small></div><div><b>${_jhFmt(res.dates)}</b><small>${_jhE(_jhT('jh_k_dates'))}</small></div><div><b>${_jhFmt(res.nudges)}</b><small>${_jhE(_jhT('jh_k_nudges'))}</small></div></div>${sum}`;
   jhFitPanel();
+}
+/* EACH PERSON CHOOSES (round 23, owner, 17 Oct 2026): on an acting agent's
+   card, "For you" — the company's level, or a step DOWN from it (Ask me
+   first · Leave it to me). "Just do it" is never offered here: it stays the
+   admin's. Where nothing is below the company's, the words alone. */
+function jhLevelPickHtml(k){
+  if (typeof AG_READINGS !== 'undefined' && Array.isArray(AG_READINGS) && AG_READINGS.includes(k)) return '';
+  if (typeof agLevelCo !== 'function' || typeof agentLevelMineSet !== 'function') return '';
+  const co = agLevelCo(k), mine = (typeof agLevelMine === 'function') ? agLevelMine(k) : null;
+  const below = co === 'auto' ? ['ask', 'mine'] : co === 'ask' ? ['mine'] : [];
+  if (!below.length) return '';
+  const lv = w => _jhT('st_agents_lv_' + w);
+  const opt = (v, label) => `<option value="${v}"${(mine || '') === v ? ' selected' : ''}>${_jhE(label)}</option>`;
+  return `<label class="jh-lv"><span>${_jhE(_jhT('ag_lv_for_you'))}</span><select data-jh-lv="${_jhE(k)}">${opt('', _jhT('ag_lv_company', { lv: lv(co) }))}${below.map(w => opt(w, lv(w))).join('')}</select></label>`;
 }
 function jhLevelWords(k){
   if (typeof AG_READINGS !== 'undefined' && Array.isArray(AG_READINGS) && AG_READINGS.includes(k)) return _jhT('jh_reads_only');
@@ -1183,6 +1198,13 @@ function jhWire(host){
   host.addEventListener('focusin', e => { if (e.target && e.target.id === 'jh-one'){ try { e.target.select(); } catch (_) {} _jhOneAct = 0; jhOnePaintList(); } });
   host.addEventListener('focusout', e => { if (e.target && e.target.id === 'jh-one') setTimeout(jhOneShow, 0); });
   host.addEventListener('change', e => { const id = e.target && e.target.id;
+    const lvk = e.target && e.target.getAttribute && e.target.getAttribute('data-jh-lv');
+    if (lvk){ const v = e.target.value || null;
+      Promise.resolve(agentLevelMineSet(lvk, v)).then(ok => { if (!ok) return; _jhScKey = '';
+        if (typeof toast === 'function') toast(_jhT('ag_lv_saved', { lv: _jhT('st_agents_lv_' + agLevelOf(lvk)) }), 'ok');
+        jhKick(); },
+      err => { if (typeof toast === 'function') toast(_jhT('st_pref_failed') + ' ' + ((err && err.message) || ''), 'err'); _jhScKey = ''; });
+      return; }
     if (id === 'jh-look') jhSetLook(Number(e.target.value) === 1 ? 1 : 0);
     else if (id === 'jh-speed'){ const v = Number(e.target.value); if (JH_SPEEDS.includes(v)){ _jh.speed = v; if (typeof placeSave === 'function') placeSave(); } }
     else if (id === 'jh-range'){ const v = e.target.value;
@@ -1465,6 +1487,10 @@ const JH_CSS = `
   .jh-row-p{font-variant-numeric:tabular-nums;font-weight:var(--w-title)}
   .jh-sc{border-top:1px solid var(--color-divider);padding-top:10px;display:flex;flex-direction:column;gap:8px;flex:none}
   .jh-sc-h{margin:0;font-size:var(--t-meta);font-weight:var(--w-strong);display:flex;justify-content:space-between;gap:8px}
+  .jh-sc-h{align-items:center;flex-wrap:wrap}
+  .jh-lv{display:flex;flex:1 1 100%;align-items:center;gap:8px;font-weight:400;color:var(--color-neutral-600);min-width:0}
+  .jh-lv>span{white-space:nowrap}
+  .jh-lv select{flex:1 1 auto;min-width:0;height:var(--ctl-h-sm);font-size:var(--t-meta)}
   .jh-mix{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--color-divider)}
   .jh-mix i{display:block;height:100%}
   .jh-mix .u,.jh-legend .u,.jh-sw.u{background:var(--st-green-dot)} .jh-mix .c,.jh-legend .c,.jh-sw.c{background:var(--st-amber-dot)} .jh-mix .t,.jh-legend .t,.jh-sw.t{background:var(--st-ruby-dot)}
@@ -1499,6 +1525,6 @@ const JH_CSS = `
 /* The menu's face for Jambo's agents takes its picture at load. */
 try { if (typeof jamboFacePaint === 'function') jamboFacePaint(); } catch (_) {}
 
-Object.assign(window, { AG_POINTS_LAUNCH, AG_POINTS_START_MINS, AG_POINTS_NEW_MINS, AG_POINTS_FIELDS, agPointsKeys, agPointsStart, agPointsCompany, agPointsMine, agPointsOf,
+Object.assign(window, { jhLevelPickHtml, AG_POINTS_LAUNCH, AG_POINTS_START_MINS, AG_POINTS_NEW_MINS, AG_POINTS_FIELDS, agPointsKeys, agPointsStart, agPointsCompany, agPointsMine, agPointsOf,
   agPointsIsNew, agPointsEach, agPointsTally, agPointsSumLine, agPieceSay, agPointsTableHtml, agPointsWire, renderJamboHouse, jhRepaint, jhPlace, jhPlacePut, jhLayout, jhRoomAt, jhFloorCounts, jhGeom, jhFinish, jhUptoFor, jhHoursWords, jhPopsSoft: () => _jh.pops.filter(p => p.soft).length, jhMotionOf: (k, t) => { const r = _jhRooms.find(x => x.k === k); return r ? jhPosAt(r, t) : null; }, jhPopRef, jhRoomQuietWhy, jhRoomStateWords, jhResults, jhUnitWords, jhSheetsIn, JH_ROUTE, _jhPlaying: () => _jh.playing, jhOverlapAudit,
   jhOfficeOf: () => ({ floors: _jhF, desk: _jhDesk && { f: _jhDesk.f, x0: _jhDesk.card.x, x1: _jhDesk.card.x + _jhDesk.card.w }, shared: _jhShared.map(s => ({ id: s.id, f: s.f })), rooms: _jhRooms.map(r => ({ k: r.k, f: r.f, reading: !!r.reading })) }) });

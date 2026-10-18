@@ -125,8 +125,9 @@ const inRound = (id, name, cp) => {
     });
     let rows = await listRows();
     const r1 = rows['MK-NL1'] || {}, r2 = rows['MK-NL2'] || {};
-    ok('1a on first look, a deal whose only link ran out is MINE, under "Waiting on you" — nothing has to be opened first',
-      r1.word === 'Mine' && /waiting on you/i.test(r1.band) && /no live copy/i.test(r1.say || ''), JSON.stringify(r1));
+    /* RE-POINTED 17 Oct 2026 (round 14, "Whose move"): the group is "Waiting on our side" */
+    ok('1a on first look, a deal whose only link ran out is MINE, under "Waiting on our side" — nothing has to be opened first',
+      r1.word === 'Mine' && /waiting on our side/i.test(r1.band) && /no live copy/i.test(r1.say || ''), JSON.stringify(r1));
     ok('1b CONTROL: a deal with an unused one-time link is theirs', r2.word === 'Theirs', JSON.stringify(r2));
     /* Open NL2 — the negotiation page fills the share cache — and come back. */
     await page.evaluate(async () => { openRedlineWorkbench('MK-NL2'); await new Promise(r => setTimeout(r, 1500)); });

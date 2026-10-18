@@ -30542,3 +30542,247 @@ The owner picked "The letter" by name and answered the round's one question "1. 
 - **NOTICED, NOT FIXED.** The share email's invitation has two forms only: Negotiate gets "work through the proposed changes… Nothing is signed there"; every other kind — Sign, View only, Adviser, the negotiation history and a "Where we are" page — gets "review it and respond — approve & sign, propose changes, or decline", which is wrong for View, Adviser, history and status links. The letter now shows that sentence where it is wrong; changing the email is the owner's call (BUGLOG). The lead line says "has shared … with you for review" on a Negotiate link too.
 - Re-pointed: f42 (the purpose is the "Sent as" row under To, as an email reads — reverses "above the recipient"), f310 (1) (the letter's order: who, how it goes, the note, the checks, then what travels, then Send — reverses the 13 Sep drawing's order), F178 (the opening frame's width, 64rem). Round 9's f137 was re-pointed on its own branch: Piles quotes the reason on the row, reversing the 19 Aug ruling for the row (the titled strip stays gone; the panel still draws it).
 - Tests: f713 (red at the parent), the-letter-verify (red at the parent).
+
+## HISTORY, "TWO SIDES" — ROUND 12 OF THE REDESIGN (17 Oct 2026)
+
+The owner picked "Two sides" by name (the design notes recommended "One trail") and answered "Yes" to the round's one question: a door from History to the whole trail, for admins only.
+
+- **THE LANES.** A contract's History (the strip's History page, and the room's pane by name) reads as the negotiation's conversation: three lanes under one head — "Ours · {our party}", "Day", "Theirs · {their party}" — our steps as bubbles in the left lane (an edge in our colour on the inside), theirs in the right, the days as pills down one middle line. Each row keeps its parts (time, ring, who, outcome; the event, its clause and round chips, its wording under "Show the wording") and its place in time: one row per entry, newest first. The head says "Newest first · every entry names who and when · our side left, theirs right".
+- **WHICH LANE IS ONE READING.** `histLaneOf(e, ours)`: the negotiation's own `side`; a trail entry with no side is ours where one of our own people wrote it (`_histOurPeople`, the "Ours" reading's own rule); who opened it and who was named on its private stream (`opened`, `access`) and an entry nobody can place (HaTi's own name) sit on the middle line — the inside-only ones as dashed pills. Nothing is filtered, hidden or counted by the lanes: every entry the trail reads is drawn (the browser check counts them).
+- **REVERSED.** The All sides · Ours · Theirs switch in the open (15 Oct 2026, the owner's "History gets filtering on sides") is gone with the drawing: the side is read where the entry stands. The filters behind Filter stay. "One day, one line" (12 Oct 2026) became one middle line for all the days, with the day pills on it. `HIST_SIDES` was deleted; `.hist-side` and `ct_hist_side_all` are inert.
+- **THE ADMIN'S DOOR.** ⋯ More keeps Verify integrity, Export history and Print history, and, for an admin on a server (`histTrailDoorOn`, the trail's own rule: Settings' `stTrailOn`), adds "Every contract · admins only" → "The whole trail, as a file ›", which opens Settings → Data & backup on The trail (`openSettingsAt('company','trail')`), its one home. A colleague who is not an admin is not offered it.
+- **NOTICED, NOT FIXED (from the design notes).** History's head counts opens as "· 1 open", which reads like one open item rather than one time somebody opened the contract (BUGLOG).
+- Re-pointed: history-timeline-verify 4a/4b/7a (one middle line, an edge per entry, no switch), history-head-verify (no switch; the lanes' words; the menu's admin row; the narrowing is asked of the Person filter), board-strip-verify 3f/3h/3i (the lanes; their moves in the right lane, nothing hidden). The colour census was re-recorded on the owner's standing yes (only History moved; in dark the Board's own side pair is new to that screen).
+- Tests: f714 (red at the parent), two-sides-verify (red at the parent).
+
+## THE CONTRACTS PLACE, "WALL OF PAPERS" — ROUND 13 OF THE REDESIGN (17 Oct 2026)
+
+The owner picked "Wall of papers" by name (the design notes recommended "The SAP way") and answered "Yes" to the first of the round's questions: the archive leaves the Quick filters box for a button of its own. (The other two questions — a Lanes view, and a door for "ask to be added" to a code-named deal — belonged to options not picked.)
+
+- **THE PAPER.** Each contract on the wall is a small paper: the top of its first page (wider than tall, about 132 × 85 px at 1440), its title and party on it over a few ruled lines, and nothing stamped on it any more — the stage stamp sat over the title ("Drafting" across MK-0399's name, noticed in today's HaTi), and the redline and signature marks went with it. The facts stand under it: the stage in words with its dot; the number with its value (`igWallValue`: the List's own reading `fmtMoneyShortOf`, a dash where no money passes, no figure is set, or it is pay; nothing where values are not the reader's to see); the party; then "Needs you" and, on a private stream, a lock with the stream's name. Two rows of papers stand on all three of the owner's screens.
+- **A DEAL KEPT TO ITS LIST.** Its stand-in (a code name, as the server sends it to anyone not on its list) is a hatched paper with a tag, its code name and "code name"; under it its stream where the value would be, and "Kept to its list" where the party would be.
+- **THE ARCHIVE'S OWN BUTTON.** "Archive" with the shelf's count (the press's own reading, `regViewCount('archived')`) stands beside Wall | List. One press shows the shelf (the archive view, `R.view 'archived'`), a second the live book. The Quick filters box on the place no longer offers it; the full Contracts table's box still does.
+- **NOT BUILT.** The drawing's "Showing 12 of 48 · Show more": every contract still stands on the wall (no cap, as before). The drawing's "N contracts · newest first" head: the count line keeps "k of n contracts".
+- **NOTICED, NOT FIXED (from the design notes).** An admin who is not on a code-named deal's list cannot change its code name: the front-door wall refuses any request about the deal (BUGLOG).
+- Re-pointed: document-wall-verify 2b (the top of a page, not a whole page), contracts-stage-tabs-verify 3b/3c (the box without the archive; a pick asked of another shortcut). The colour census was re-recorded on the owner's standing yes (counts only).
+- Tests: f715 (red at the parent), wall-of-papers-verify (red at the parent).
+
+## NEGOTIATIONS, "WHOSE MOVE" — ROUND 14 OF THE REDESIGN (17 Oct 2026)
+
+The owner picked "Whose move" by name, answered "Yes" to its first question (change "Your move" to "Our move" and add a Lead column, because a deal a colleague leads is not the reader's own move) and "No" to its second (a code-named deal on this list for people outside its list).
+
+- **OUR SIDE'S WORDS.** The tab reads "Our move" (and the panel's pill with it), the first group "Waiting on our side" and the page's facts line "N waiting on our side"; the column that says what the changes ask reads "What is open". "For signature" (the group "With them for signature") and "Neither" are tabs only where something is in them, or while the reader stands on one — a choice that gives nothing is not listed.
+- **THE LEAD COLUMN.** Who leads each deal: the desk's lead, else the contract's owner — ONE reading, `regNegoLeadOf`, for the panel's Lead fact and the list's Lead column. The column says "You" for the reader's own deal and a colleague's first name otherwise, the whole name on the hover. The four short columns (Round, What is open, Waiting, Lead) take their room from the counterparty column; the old pairing with stage + value (inspector-verify 2e) was already retired on 15 Oct.
+- **A DEAL KEPT TO ITS LIST.** Not a live negotiation for anyone outside its list (`negoIsLive` returns false for a code-name stand-in), so it is off the list and out of every count that reads the live list — the facts line, the tabs and the Board — alike. (The server's stand-in carries no negotiation anyway; the reading now says so on purpose rather than by accident.)
+- **KEPT, AND WHY.** The drawing put the pressed row's facts, checklist and two doors in Jambo's panel. Negotiations is a page of its own, not a Home place, and has no Jambo panel; the list inspector beside the table already holds the same facts and the same two doors (Negotiation · Workspace), so it stays.
+- Re-pointed: f184 and f387 (the group's words, the six column heads), inspector-verify 2a/2b/2c (the heads; the wait is the second-to-last cell; "Our move" tab), no-link-to-sign-verify 1a and negotiations-door-verify (the group's words).
+- Tests: f716 (red at the parent), whose-move-verify (red at the parent).
+
+## APPROVALS & SIGNING, "ONE WORKLIST" — ROUND 15 OF THE REDESIGN (17 Oct 2026)
+
+The owner picked "One worklist" by name. Its two questions went unanswered: the second ("the Approvals / Signatures tabs go, a Kind column replaces them") is what the pick itself means, so it was built; the first ("may the amber 'Your approval is asked for.' strip go from the panel?") is a removal of a band, which needs the owner's yes, so the strip STAYS.
+
+- **ONE LIST, NO TABS.** Approvals and signatures are drawn in one table: Ref · Counterparty and agreement · Kind (an Approval or Signature pill) · Why it waits (the rule, or what stands before the signature) · Whose turn · Waiting · Value. The old `?tab` doors (`AP_TABS`, `apTab`, `apSetTab`) are kept so links that name a tab still land; the page no longer draws the tab row.
+- **GROUPED BY WHO OWES THE NEXT STEP.** ONE reading, `apWorkRows`: "Yours to answer" — an approval asked of you, your own signature, an approval you raised and never sent, one you already answered (it stays with its Undo until it leaves) — then "Waiting on others". The band under the page's name counts the same two groups in the same words ("3 yours to answer · 1 waiting on others"); an admin's "Approval rules" door moved from the list's foot to the band's end, a small button so the band keeps Obligations' height (overview-and-obligations-polish 3a pins them equal).
+- **WHOSE TURN.** `apTurnText`: "You", "You sign", "You, to ask", else who the approval waits on. Every cell that can be cut carries its whole text on the hover.
+- **ITS OWN PANEL PER ROW.** The list inspector reads each row's own kind (`apRowTab`): a signature's row opens what stands before signing (no Approve), an approval's carries Approve and Refuse.
+- **A NAME CLASH, CAUGHT IN THE PHOTOS.** The group rows first wore the band's class name (`.ap-band`), so they took its `display:flex` and shrank to one column ("Yours …"). They are `.ap-grp` now; f717 4b pins the table never wearing the band's name.
+- **KEPT, AND WHY.** The drawing put the answer in Jambo's panel. Approvals & signing is a page of its own, not a Home place, and has no Jambo panel; the list inspector beside it holds the same facts and the same Approve · Refuse · doors, so it stays (as round 14 kept it on Negotiations). The stand-in wording the drawing showed ("Approve for Jonas") is When you're away's own (`awayByLabel`), untouched here.
+- Re-pointed: f387 5a (one list in, no tab).
+- Tests: f717 (red at the parent), one-worklist-verify (red at the parent).
+
+## OBLIGATIONS AND THE CALENDAR, "WEEK BY WEEK" — ROUND 16 OF THE REDESIGN (17 Oct 2026)
+
+The owner picked "Week by week" by name and answered its one question — "Monday to Friday everywhere, including the month? A weekend date would show on the Friday before, with its real date" — yes.
+
+- **THE OBLIGATIONS PAGE GROUPS BY WEEK.** ONE reading, `obWeekKeyOf`: Late (the old Overdue window), This week and Next week (each with its Monday-to-Friday dates, "19–23 October"), then each later week of the six the calendar shows, then Later; No date, Waiting on an earlier step and Completed keep their groups. On a Saturday or a Sunday "this week" is the working week ahead (`obThisMonday`), as the calendar's own `calWeekStart` says; a promise due on a weekend stays in its own week with its own weekday. A row's day reads as a weekday ("Mon 19"; Late and Later add the month).
+- **LATER WEEKS FOLD.** From the third week on, a week is one line saying what it holds ("Pay the storage fee · Probation review · +1 more", `obWeekSaid`); its name is the button that opens it, and "Open every week" in the list's head opens them all (and turns to "Fold the later weeks"). Per sitting, not stored. The row the reader had chosen never hides: its week opens. The keyboard walks only the rows shown.
+- **ONLY THE PAGE.** The contract's own Obligations tab, its printed report and the phone keep their windows (`OB_WINDOWS`): the tab has its own drawing (SAP batch 3) and the round named the Obligations page and the Calendar.
+- **THE CALENDAR OPENS ON THIS WEEK AND FIVE MORE.** The Week view is now this week by the hour (rows of 28px, the hours scrolling inside their own box) with the next five weeks under it, one row each: the week's dates and how many contract dates it holds, then Monday to Friday with each day's first date and "+N more". A day in those rows is that week's door. The bar's title names the six weeks ("19 Oct – 27 Nov 2026"); `calPeriod` covers them, so Export and Share carry what is on screen. The calendar now opens on Week (it opened on Month).
+- **MONDAY TO FRIDAY EVERYWHERE.** The Month draws five columns, six weeks; a Saturday's or a Sunday's dates stand on the Friday before, each chip saying its own day ("Sat 24 · …"); where that Saturday is the 1st, the greyed Friday of the month before carries it. The week's all-day row does the same.
+- **KEPT, AND WHY.** The drawing put row buttons on each obligation (Mark done, Chase, Decide) and Jambo's week summary beside the list. The list inspector beside the page already holds Mark done and the doors for the chosen row, and Obligations is not a Home place with Jambo's panel, so the inspector stays (as rounds 14 and 15 kept it). The head's "11 outstanding · 1 overdue" line stays off (the 9 Oct ruling keeps the band Approvals' height).
+- Re-pointed: four-inspectors 1b (the groups are weeks); calendar-holds-still, calendar-redesign, calendar-day and laptops-verify press Month before checking the month, and count five weekdays; laptops-verify's scroller list takes `cal-wk-body` (the hours scroll by design); f261 pins the calendar opening on Week.
+- Census: ink-wash (twelfth) and theme-tokens (fifth) re-recorded under the standing yes; audited by key, no colour new; in dark the month's greyed numbers and filled "today" square left the opening screen with the month.
+- Tests: f718 (red at the parent), week-by-week-verify (red at the parent).
+
+## THE BOARD'S BOOK, "THEN AND NOW" — ROUND 17 OF THE REDESIGN (17 Oct 2026)
+
+The owner picked "Then and now" by name. Its one question was about another option (the SAP way's filter band), so nothing waited on an answer.
+
+- **YOUR BOOK IS A TABLE.** The five figure tiles became rows on one shared set of columns (CSS subgrid): what the figure counts (and, under it, what it leaves out — the value's currencies, the overdue split), the day six months ago ("18 April"), Today, the Change, and the six-month line. The head says "18 April against today".
+- **ONE READING.** Every row reads its figure's own line, `hbFigSeries` — the reading the tiles' "vs 6 months ago" already used: the "then" is the line's first point, today its last; the change is that same reading without its words (`hbVsHtml(…, bare)`). Today is still the figure's door (`data-hb-dig="f:…"`), a zero still not one; the "then" sits inside that door and opens nothing of its own. The "since your last visit" chip rides the Change cell. The figure picker (five, each person's own) is unchanged.
+- **THE STAGE BAR, TWICE.** Six months ago above Today, the then bar drawn from the stage figures' own lines (`hbStageThen`: Draft → drafting, Under Review → review, Signed → signed) and pressing nothing (history has no list behind it); the key keeps today's count and adds then in brackets, "Drafting 6 (7)", and says "April in brackets".
+- **KEPT, AND WHY.** The drawing moved the saved views into the Board's head as chips and dropped Needs you and Jambo's work from the Board. Saved views already have their place (`hbSavedViewsHtml`) and Needs you is the owner's own card (15 Oct); moving or removing either is not what the pick decided, so both stay where they are.
+- Re-pointed: f660 (3) and f690 (the row and the class), board-walkthrough-fixes 6 (on a narrowed board the figures stay one row each, numbers in one column, none cut — the number columns size to their content) and home-page 4 (the five numbers share one right edge).
+- Census: ink-wash (thirteenth) re-recorded under the standing yes — sizes only on the home screen (the figures 20 → 16px); no colour moved.
+- Tests: f719 (red at the parent), then-and-now-verify (red at the parent).
+
+## PARTIES, "THE SAP WAY" — ROUND 19 OF THE REDESIGN (17 Oct 2026)
+
+The owner picked "The SAP way" by name (round 18, Explorer, skipped: "Explorer needs to stay exactly as it is today") and answered its question — a deal behind a code name on Parties — "Leave it off".
+
+- **A DEAL KEPT TO ITS LIST IS LEFT OFF BY NAME.** The server's stand-in names no party, so it never made a shelf; `cuBook` now also leaves out any `_codeNamed` record on purpose, so a stand-in that one day carries a party name stays off too.
+- **A STATUS BOX.** All · Live · Ended beside Stream, Owner and NDA, read through the one reading `cuBucket`; a choice that holds nobody is not offered; a refresh keeps it (`cuPlace`). It opens on All, so the list and its count are as before until the reader narrows.
+- **WHAT WAITS ON YOU, IN WORDS.** The column said a number (negotiations whose move is ours); it now says what waits — the checklist's own items over the party's contracts (`needsYouOf`, said by `insNeedWords`, the words the panel beside every list uses), urgent first, then any negotiation whose move is ours the checklist does not already name: "1 detail to fill", "Your approval is asked for · +2 more". ONE reading, `cuNeedsOf`; `cuNeedsSay` for the column and the panel's fact.
+- **THE PANEL'S TWO LISTS.** Under the facts: what waits, each row with its own door (`needsYouGo`; our move opens the redlines), and the party's agreements, each a door onto its paper (`regOpenContract`, Home's Document). Rows are delegated once on the document.
+- **KEPT, AND WHY.** The drawing set the filter labels above their boxes and drew People as a table. The owner ruled the label inside the box for this band on 10 Oct, and picked People's face cards on 13 Oct; a drawing's detail is not taken as reversing either (the scope rule: never the wider reading). Both are named in the morning summary. A "City" column was drawn; HaTi keeps no city on a party, so none was invented.
+- Tests: f720 (red at the parent), parties-sap-way-verify (red at the parent).
+
+## REQUESTS, "THE SAP WAY" — ROUND 20 OF THE REDESIGN (17 Oct 2026)
+
+The owner picked "The SAP way" by name for Requests and My notes; the round asked nothing.
+
+- **THE TEAM'S LIST, AS DRAWN.** Ref · Request · Kind · How it is handled · **With** · **Files** · **Asked** · Promised by. With was the asker's column only ("who has my request" is the asker's whole question); the team now sees it too, through the same builder (`ikWithCellHtml`: "You" for the reader, a colleague by name, "Nobody yet" in amber — the borrowing from Pipeline), and under it, while the request is open, the lane that sent it ("NDA lane", `ikWithListHtml`). Files counts the clip (`ikFilesCellHtml`, a drawn `clip` icon); Asked is the day it came in. The columns were measured at the iPad width so the reference, the file count and the heads stay whole and the request keeps room to read.
+- **THE PANEL'S HOLDER** adds "· sent by the NDA lane" where a lane routed it.
+- **KEPT, AND WHY.** The drawing moved the search and two filters into the band beside the tabs; the list keeps its search box and its Filter fold on the card's head (SAP batch 2), since moving them is not what the pick decided. "Oldest waiting first" was drawn as the card's note while the drawn rows ran newest first; the list keeps its newest-first order. The asker's own list and My notes are unchanged (the drawing's My notes is today's).
+- Tests: f721 (red at the parent), requests-sap-way-verify (red at the parent).
+
+## OUR PAPER'S BOOK, "PAPER FIRST" — ROUND 21 OF THE REDESIGN (17 Oct 2026)
+
+The owner picked "Paper first" by name. The round's one question — marks on the paper (small tags under a clause: meets one of Our standards / came back changed), "not a band, but new words on the paper. Wanted?" — went unanswered, so no marks were added.
+
+- **AN INDEX AND A PAPER.** The book's tab is an index of every template under its shelf (our own paper first, then HaTi's, the samples, theirs; `TPL_PF_SHELVES`), each row its name, version, how often used and stream, with "N changed" in amber where contracts drafted from it came back changed and "Draft" on a draft; a find box narrows it (the caret kept). Beside it, the chosen template's own paper under its name, version and facts (shelf · stream · used N times · N came back changed).
+- **THE ONE RENDERER.** The paper is `fillPreviewHtml` (→ `docBody`), the renderer the fill forms already use — never a second drawing. A sample is read once it is imported; a template whose paper cannot be drawn here says it is read in the builder.
+- **THE TEMPLATE'S OWN DOORS.** Draft a contract, Make it ours, Continue editing… — `tplPanelActs`, the list's verbs through the same functions; the rarer ⋯ menu stays on the list.
+- **THE SHELVES' TABLE** the book drew before (SAP batch 2) is kept whole in `tplBookShelvesHtml`, unused by the page; the head's three figures (In the book · Drafted from them · Came back changed) are unchanged.
+- **NOT BUILT, AND WHY.** The builder's redesign in this option (the paper filling the desk, Jambo's proposals on it, the outline as a panel tab) was not built tonight; the builder is unchanged. Named in the morning summary.
+- **THE CENSUS LEARNS A PAPER.** ink-wash's PAPER reading now knows `.tpl-pf-sheet` as it knows `.pg-sheet` (a template's paper wears the paper's own greys and capitals, as every paper does); re-recorded (fourteenth) and theme-tokens (sixth) under the standing yes, audited by key: nothing new to the product.
+- Re-pointed: f244 (7), f336 (2)(4) (the book is an index and a paper; the shelves' rows pinned in `tplBookShelvesHtml`), templates-tabs 9a/9b/9h/9i, keeps-your-place (every template whatever the window, the index and the paper), templates-cleaned-up 4f/4g (the name door brings the paper up).
+- Tests: f722 (red at the parent), paper-first-verify (red at the parent).
+
+## IMPORT, "THE SAP WAY" — ROUND 22 OF THE REDESIGN (17 Oct 2026)
+
+The owner picked "The SAP way" by name; the round asked nothing. The designer could not photograph today's Import, so today's page was photographed first (a batch of four files) and set beside the drawing; the build is the difference.
+
+- **EACH FIGURE IS A DOOR.** Contracts migrated · Fully migrated · Need review · No readable text narrow Migrated contracts to what each counts, read by the figures' own readings (`needsReview`, `migComplete`, `blocked`; `migShowPass`); pressed again, or the first figure, or the "2 of 3 shown ×" note on the list's head, the whole list is back (`migShowSet`). A figure of zero is not a door. Per sitting; nothing written.
+- **THE DROP AREA IS A STRIP.** The same `#mig-drop`, the same press and drop, one line tall (about 60px instead of about 150), its Choose files at its end, so the batch and the list come up a screen sooner.
+- **KEPT, AND WHY.** The drawing merged the batch's queue and the migrated list into one "Files in this batch" table with six marks and a state, renamed the figures (Files · Filed · To check · Duplicate?), and put the chosen file's facts in Jambo's panel with "Check all 3" opening the One-at-a-time view. Import is not a Home place with Jambo's panel, and today's review dialog (Review all) is the existing door for checking files; the queue and the list keep their separate cards. Named in the morning summary.
+- The figure cards' clothes moved from inline style to `.mig-kpi`/`.mig-kpi-card` so the lit state needs no `!important`.
+- Tests: f723 (red at the parent), import-sap-way-verify (red at the parent).
+
+## JAMBO'S WORK, "OPEN IN PLACE" — ROUND 23 OF THE REDESIGN (17 Oct 2026)
+
+The owner picked "Open in place" by name in the round 23 artifact, answered "Each person chooses" to the levels question, and kept the word "Put away" (today's `desk_discard`) over the drawing's "Discard".
+
+- **THE FIRST ROW OPENS WHERE IT IS.** The Counter's "Jambo's work" row no longer leaves for the Board: Open folds the prepared pieces out under it (`cnJwPiecesHtml`, at most `CN_JW_MAX` 8, the rest counted "N more in the house"), one row each — the agent's tag, what it is (`agPanelTitle`), the contract's ref, its one line (`agCardParts`) — with Look (the piece's whole body, `agPanelBody`, Hide puts it back) and the house's own acts (`agPanelActs` → `agRunAct`, the one runner; Put away among them). Every act there is the quiet button: one filled button per area. The row's own button says Close while open. "Jambo's house ›" at the foot opens his house (`setView('jambo')`). Per sitting; nothing is sent or filed until a press.
+- **EACH PERSON CHOOSES, ONLY DOWN.** A person's own level per acting agent lives in their prefs (`agentLevels`, PUT /api/me/prefs; 'ask' or 'mine'; null = the company's; an unknown agent or any other level is refused 400). One reading on each host: `agLevelOf` (browser: `agLevelCo` the company's, `agLevelMine` the person's) and `agentLevelFor` (server). A person only steps DOWN — "Just do it" stays the admin's to give, because it is the one level where an agent acts alone (rule 7); a company "Leave it to me" cannot be stepped up. The link watch's "Just do it" now asks the owner's own level before it keeps a link open. The browser saves through `agentLevelMineSet` in js/agentruns.js, because the agents page never talks to the server itself (f413 7d).
+- **THE CHOOSER.** On the house's agent card (Points tab, the agent chosen) "For you" offers the company's level and only the steps below it (`jhLevelPickHtml`); where nothing is below, or for a reading agent, the words alone, as before. A change saves, says "For you: <level>" in an 'ok' toast and the rooms read it at once ("Leave it to me", "left to you"). Leave it to me empties that agent's pieces from this person's Counter and Board (the existing `agentsData` rule), and only theirs.
+- **KEPT, AND WHY.** The drawing's piece rows carried a Discard button on every piece; the house's acts already carry Put away where a piece can be put away (renewals, notices, chases), and not on pieces that are someone's work owed (approvals, answers), so the house's rule stands. Everything else on the Counter is unchanged.
+- Tests: f724 (13, all red at the parent), open-in-place-verify (13 red at the parent; the run finishes there and reports).
+
+## SETTINGS → YOU AS "ONE SHEET" — ROUND 24 OF THE REDESIGN (17 Oct 2026)
+
+The owner picked "One sheet" by name in the round 24 artifact (recommended), with no note; the question about the sidebar switch ("only what you use", which has nothing to act on now the Counter has no left menu) went unanswered, so the switch stays as it was, as a row.
+
+- **ONE SHEET, NOT CARDS.** You is a contents list beside one column of sections — When you're away first, then Who you are, Sign-in & safety, Language, How you're told, How you like to work, (an Editor's) Company design, Jambo's points, Your data (`ST_YOU_SHEET`, `stYouSheetItems`). Each section is rows of label · value · act (`stSrHtml`) and still answers to `data-st-you-card="<key>"`, drawn by `stYouCardHtml`, so every older door (Jambo's finder, the Menu, `stYouGo`, `stYouCardRepaint`, the away drawer's repaint) reaches it by the same name. The contents list jumps and lights the section (`data-st-toc`, `aria-current`, `.st-lit`) and stays in view under the tab band (sticky at 60px, the same as Jambo's side panel).
+- **A SWITCH OR A CHOICE CHANGES IN ITS ROW.** Jambo's suggestions and Show everything are switches (`stSwHtml`, `role="switch"`), the brief and where a contract opens are choices, the language is two buttons. Each writes through the ONE writer its drawer now uses too (`stChipsSet`, `stOpensSet`, `stBriefSet`, `stNavAllSet` — the account drawer's controls were moved onto them; the language goes through `langSet`, the bar's own writer) and confirms with a passing 'ok' toast; a failed save puts the row back. `briefPaintCadence` paints the sheet's choice too. Jambo's "get it ready" now lights the row's control (`stJbYouStage` focuses `[data-st-brief]`, `[data-st-lang="…"]`, `[data-st-opens]`, `[data-st-sw="chips"]`); told and work have no drawer door any more (their drawers stay for the avatar's account drawer).
+- **KEPT, AND WHY.** The drawing opened the bigger forms (two-step, away) INSIDE their row. The drawer is today's one door for a form of several boxes — its refusal, Save/Cancel and keyboard trap are built once around it — so job title, password, two-step and devices, away, the points table and the design keep their drawer, opened from their row. Name and email have no "Change": a person cannot change them today (only the job title), so the rows say them and offer nothing. "Ask an admin" on the Role row was left out: the ask is a turn in Jambo's panel, beside the page.
+- The dropdowns wear HaTi's field (surface, `--field-line` edge), not the browser's grey.
+- Census: ink-wash re-recorded (fifteenth) under the standing yes — settings counts moved; dark adds the hairline, the accent icon stroke and the off switch's `--field-line` fill.
+- Tests: f725 (all red at the parent but (3), which pins what is kept), one-sheet-verify (all red at the parent but 6, likewise); re-pointed: f214 (the brief's writer), f691 (Jambo readies the row), control-room-in-full, settings-tabs, when-youre-away verify.
+
+## SETTINGS → COMPANY, "CONTROL ROOM" — ROUND 25 OF THE REDESIGN (17 Oct 2026)
+
+The owner picked "Control room" by name in the round 25 artifact (recommended): today's page (their pick of 16 Oct) on the new desk, tidied. No questions were asked for this page.
+
+- **NEEDS YOUR ATTENTION, TWO LINES A ROW.** Each row is what it is, then on its own line its kind or state and since when (`stNeedRowHtml` → `.st-need-w` holding `.st-need-t` and `.st-need-s`; the old " · " run-on is gone), its button on the right. The head says what the buttons do (`st_needs_sub`). A clash in who may do what had no second line, so it now says what kind of thing it is (`st_need_kind_clash`). Still four at most, "N more" opens the rest.
+- **NINE EVEN CARDS, THE LADDER UNDER THEM.** People & access is one card like the other eight (no longer two columns wide; its four facts read down one column), three to a row at all three screens. The governance ladder leaves the grid and is drawn across the page after the nine (`stCompanyHtml`), then the access sheet. `ST_CARDS` keeps the ladder's entry so `stCrSync` and the door names hold; it is filtered out of the grid.
+- **A LINE WRAPS, NEVER CUT.** A fact's name and state wrap (no `nowrap`/ellipsis on `.st-fact-n`/`.st-fact-s`), so "Who must say yes before signing · 3 of 7 rules on before signing" reads whole — it was "signi…" at 1440 (noticed in the round 25 drawing's notes; fixed here because the drawing shows it whole).
+- **KEPT, AND WHY.** The drawing put the workspace's name beside "Settings" and drew You/Company as underlined tabs; the bar already names the workspace (round 1), and the face buttons are the owner's 16 Oct pick ("a tab at the top just like in the home page"), so both stay. The drawing's sample rows (Lina Ek's clash, Q4 review, Sales keeping) are the same readings this page already makes.
+- Tests: f726 and company-control-room-verify (all red at the parent but the sideways-scroll check and the console). Re-pointed: f691 (nine cards, ladder after), settings-groups 1e (People one card, ladder across), access-review 1a and keeping 3a (two lines a row). Census unchanged.
+
+## CONTRACT STREAMS AND DATA & BACKUP, "THE SAP WAY" — ROUND 26 OF THE REDESIGN (17 Oct 2026)
+
+The owner picked "The SAP way" by name in the round 26 artifact (the drawing recommended "One page"), with no note. The question about a private stream's keeping (Board, not naming the admin, so its contracts past their keeping period never reach that admin's Ready to delete) went unanswered: today's rule stands — a private stream's contracts are listed only for an admin it names.
+
+- **CONTRACT STREAMS IS A PAGE.** `settingsGoPage('streams')` (`ST_PAGES`), reached by a door on the Your standards card ("Contract streams ›", a card door may now name a page: `extra` items with `page`). Labelled filters in a band — Who may open (Any · Everyone given it · Only people named), Keeping (Any · A keeping period · No keeping period), Find (by name) — then a table: Stream (dot, name, Private), Who may open ("N people named · not you" / "Everyone given it · N people"), Contracts (`stPsCount`, the server's count where read), Kept after they end (`stKpSaved`), Due now (the keeping book's due, amber), On legal hold. One reading `stSwRows`, filtered by `stSwShown`; the filters repaint the table only (`stSwRepaint`) so the find box keeps the hand. The server's counts and the keeping book are read when the page comes up (`stSwLoad`).
+- **A ROW OPENS THE STREAM'S OWN PAGE, THE ONE DOOR.** The drawing opened a read-only summary in the side panel; the stream's page in the drawer (`stream:<fid>`, Access · Keeping · People) is today's one door for it, so a row (or Enter on it) opens that. "+ New stream" opens the Contract folders drawer at its add box: adding, renaming, removing and categories stay there.
+- **DATA & BACKUP IS A PAGE.** Every door that named the drawer — the Housekeeping card, The trail door, the Menu, Jambo, ⌘K, Needs you — lands on `settingsGoPage('data')` on the tab it asked for (`stDrawerOpen`: `trail` → the trail tab, `backup` → the Backup tab); `SET_PANELS.backup.page='data'` marks it, and its drawer body stays for anything that paints the panel by name. Tabs The trail · Backup at the head's right. The trail's asks are labelled boxes in one row (From, To, Streams, As — a choice, `#st-tr-as-sel`, where the drawer had two radios) with Download and the count under them; the downloads a table under that (`stTrailBandHtml`, the drawer's own ids and wiring, `stBkPaneHtml` choosing band or stack). The drawer's lead sentence ("Every act in HaTi for a period…") is not on the page: the page's name and its boxes say it.
+- **KEPT, AND WHY.** The drawing's Downloads table had an Acts column; the server does not keep a download's count, so the column is left out rather than guessed.
+- Tests: f727, streams-and-data-verify (red at the parent). Re-pointed: f193 (the drawer reuse test opens Approvals), settings-tabs (the drawer walk leaves out a panel whose door is a page, and checks that one lands on its page), trail-export (the page's tabs and band).
+
+
+## IMPORT: JAMBO'S PANEL BESIDE THE LIST (18 Oct 2026)
+
+The owner picked "The SAP way" for Import in round 22 of the redesign. The
+overnight build made the figures doors and the drop area a strip, but left out
+the panel the drawing showed beside the list, and said so in the morning
+summary ("there's no Jambo panel"). The owner's answer, 18 Oct 2026: "you need
+a jambo side panel so the uploads needs fixing".
+
+What was built (js/views/migration.js):
+- `#mig-side`, beside the list on a computer (the list and the panel in two
+  columns; under 1180 px wide the panel follows the list). Sticky in the page's
+  own scroller; nothing filed, per sitting like the figures.
+- With no file chosen, Jambo says the batch in words from the figures' own
+  counts (`migKpis`): how many came in, what needs you (to check, no readable
+  text, link decisions), the onboarding allowance used, and a chip that is the
+  figure's own door (narrows the list to the files to check, `migShowSet`).
+- A row press now CHOOSES the file (`migPickSet`, the list inspector's rule: a
+  press selects; pressed again it is let go). The row's Open, a double-click
+  and Enter on a chosen row still open the contract.
+- The chosen file: its facts are the review window's (MIG_CRITICAL, labelled
+  by META_FIELDS), amber where missing or read with low confidence — the same
+  reading migReadNeedsReview makes; a contract that passes no money is not
+  missing its value; evergreen is an answer. The marks (`migGates`), which the
+  dots only named on a hover, are said in words. Its doors are the row's own:
+  Review (openMigReview), Link (openLinkModal), Open.
+- Not built: the ask box at the panel's foot in the drawing — Jambo's one door
+  stays in the top bar, so the page has no second ask box. The import queue and
+  the migrated list stay two cards.
+
+Tests: f728-import-jambo-panel (red at main), import-jambo-panel-verify (red at
+main: every check fails, the run stops at a row press that opened the contract).
+
+
+## APPROVALS & SIGNING: THE AMBER LINE GOES (18 Oct 2026)
+
+Round 15 ("One worklist") left a question open: may the amber "Your approval is
+asked for." line go from the approval's panel, since the list's first group
+("Yours to answer") and the panel's Approve button already say it? The owner's
+yes came on 18 Oct 2026. The panel's line now skips the `approval` item
+(js/views/approvalsview.js, `insNeedsLineHtml(c, skip)`, `needsSkip` alike);
+anything else the contract owes still makes a line ("1 detail to fill."). Only
+the Approvals page's panel changes: the checklist beside the other lists keeps
+the item. sap-lists-verify 2d re-pointed (red at main: the line still said
+"Your approval is asked for. 1 detail to fill is also waiting.").
+
+
+## SETTINGS → YOU: THE SIDEBAR SWITCH GOES (18 Oct 2026)
+
+Round 24 ("One sheet") left a question open: "How you like to work" had a
+switch for the left sidebar ("only what you use" / show everything), but a
+computer draws no left sidebar since the Counter and the desk tabs, so the
+switch had nothing to act on. The owner's yes to removing it came on 18 Oct
+2026. Gone from the computer: the row on You (`stYouCardHtml` 'work'), the
+toggle in the How you like to work drawer (`#pref-nav-all`), its writer
+`stNavAllSet` and its finder words. It is on SET_CLOSURES (`sidebar`), so f193
+names it rather than missing it. The phone keeps its own switch in its menu
+(js/mobile.js), where the menu still earns its items (navShowEverything,
+navEarned) — those and their words stay. Tests re-pointed: f193, f691, f725.
+
+
+## KEEPING: A PRIVATE STREAM NO ADMIN CAN SEE (18 Oct 2026)
+
+Round 26 left a question open. A private stream's contracts are read only by
+the people it names, admins too, so where no admin is named, contracts past
+their keeping period were never listed for anybody: nobody was asked, and they
+stayed for ever. Three answers were offered; the owner picked "Prompt admins to
+get named" on 18 Oct 2026.
+
+- Server: `kpUnseen(rules)` reads, for each private stream that has a keeping
+  rule and names no admin, whether anything in it is due (`kpBook(null, fid,
+  [fid])` — kpBook took an optional scope for this; the one place the server
+  looks past the wall, and only to say yes or no). The answer, a list of stream
+  ids and nothing else (no count, no contract's id, name or party), rides the
+  admin's bootstrap (`keeping.unseen`) and GET /api/keeping. A workspace with no
+  rules keeps its old answer, `{ rules, due }`.
+- Browser: `stKpNeedRows` adds a Needs your attention row per stream, "No admin
+  can see it · <stream>", its button the stream's own page (Access), where an
+  admin names an admin, themselves included ("Add me"). Saving the stream reads
+  keeping again (`stKpLoad`) and takes the row out at once (`stSyncAttention`,
+  which removes rows and never adds one under the reader's hand); the page's
+  next paint brings the stream's contracts into that admin's own Ready to delete.
+- Not changed: who may delete. Only an admin named on the stream decides.
+
+Tests: f729 (1–3 red at main), keeping-no-admin-verify (1–3 red at main).

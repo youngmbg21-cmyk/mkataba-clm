@@ -7487,17 +7487,30 @@ function igWallStageWord(k){
   if(k==='expired') return i18t('status_expired');
   return (typeof statusLabel==='function')?statusLabel(k):k;
 }
+/* ---- THE WALL OF PAPERS, TIDIED (round 13 of the redesign: the owner
+   picked "Wall of papers", 17 Oct 2026) ----
+   Each contract is a small paper — the top of its first page: its title and
+   party over a few ruled lines — and the facts stand UNDER it: the stage in
+   words, the number with its value (a dash where no money passes or it is
+   pay, nothing where the reader may not see values), the party, then what it
+   asks of the reader and, on a private stream, a lock with the stream's name.
+   Nothing is stamped on the paper any more: the stage stamp sat over the
+   title ("Drafting" across MK-0399's name). A deal kept to its list (a code
+   name) is a hatched paper with its code name, and under it its stream
+   instead of a value, and "Kept to its list" instead of a party. */
 function igWallSheetHtml(c,opening){
-  const st=igWallStage(c);
-  const sigs=Array.isArray(c.signatures)?c.signatures.length:0;
-  const changes=Array.isArray(c.changes)&&c.changes.length>0;
-  let marks='', sig='';
-  if(st==='Draft') marks=`<span class="igw-stamp">${igEsc(statusLabel('Draft'))}</span>`;
-  if(st==='expired') marks=`<span class="igw-stamp is-end">${igEsc(i18t('status_expired'))}</span>`;
-  if(st==='Under Review'&&changes) marks+='<span class="igw-red" aria-hidden="true"><i class="d"></i><i class="a"></i><i class="d"></i><i class="a"></i></span>';
-  if(st==='Signed'||st==='expired') sig='<span class="igw-sigs"><i class="on"></i><i class="on"></i></span>';
-  else if(st==='Under Review'&&sigs) sig='<span class="igw-sigs"><i class="on"></i><i></i></span>';
-  return `<span class="igw-sheet${sig?' has-sig':''}" aria-hidden="true">${marks}<span class="igw-t">${igEsc(c.name||'')}</span><span class="igw-p">${igEsc(c.counterparty||'')}</span><span class="igw-ln"></span>${sig}${opening?igOpeningHtml():''}</span>`;
+  if(c&&c._codeNamed) return `<span class="igw-sheet is-coded" aria-hidden="true"><span class="igw-cn">${typeof icon==='function'?icon('tag','w-3.5 h-3.5'):''}<span class="igw-t">${igEsc(c.name||'')}</span><span class="igw-p">${igEsc(i18t('igw_code_name'))}</span></span>${opening?igOpeningHtml():''}</span>`;
+  return `<span class="igw-sheet" aria-hidden="true"><span class="igw-t">${igEsc(c.name||'')}</span><span class="igw-p">${igEsc(c.counterparty||'')}</span><span class="igw-ln"></span>${opening?igOpeningHtml():''}</span>`;
+}
+/* the number's companion under the paper: its value, read as the List reads
+   it (fmtMoneyShortOf: pay is a dash), a dash where no money passes, nothing
+   where values are not the reader's to see; a code-named deal's stream */
+function igWallValue(c){
+  if(c&&c._codeNamed){ const f=(typeof FOLDERS==='object'&&FOLDERS&&FOLDERS[c.folder])||null; return f&&f.name?f.name:''; }
+  if(typeof canViewValues==='function'&&!canViewValues()) return '';
+  const money=(typeof isMonetary==='function')?isMonetary(c):true;
+  if(!money||!Number(c&&c.value)) return '\u2014';
+  return (typeof fmtMoneyShortOf==='function')?fmtMoneyShortOf(c):String(c.value);
 }
 function igWallCardHtml(c,need){
   const st=igWallStage(c);
@@ -7507,11 +7520,16 @@ function igWallCardHtml(c,need){
   const label=[ref,c.name,c.counterparty,word].filter(Boolean).join(', ');
   /* a paper being read before it goes up keeps its ring through a repaint (igOpeningPaint) */
   const opening=!!(intel.opening&&String(intel.opening.id)===String(c.id));
-  return `<button type="button" role="listitem" class="igw-card${opening?' is-opening':''}" data-ig-pick="${igEsc(c.id)}" aria-label="${igEsc(label)}"${opening?' aria-busy="true"':''}>
+  const val=igWallValue(c);
+  const priv=!c._codeNamed&&typeof streamIsPrivate==='function'&&streamIsPrivate(c.folder);
+  const fname=((typeof FOLDERS==='object'&&FOLDERS&&FOLDERS[c.folder])||{}).name||'';
+  const pills=(need?`<span class="igw-need">${igEsc(i18t('igw_need'))}</span>`:'')
+    +(priv?`<span class="igw-lock" title="${igEsc(i18t('igw_private_title',{ s:fname }))}">${typeof icon==='function'?icon('lock','w-3 h-3'):''}${igEsc(fname)}</span>`:'');
+  return `<button type="button" role="listitem" class="igw-card${opening?' is-opening':''}${c._codeNamed?' is-coded':''}" data-ig-pick="${igEsc(c.id)}" aria-label="${igEsc(label)}"${opening?' aria-busy="true"':''}>
     ${igWallSheetHtml(c,opening)}
-    <span class="igw-m"><span class="igw-dot" style="background:${dot}"></span><span>${igEsc(word)}</span>${need?`<span class="igw-need">${igEsc(i18t('igw_need'))}</span>`:''}</span>
-    <span class="igw-ref">${window.refHtml?refHtml(c):igEsc(ref)}</span>
-    <span class="igw-nm">${igEsc([c.counterparty,c.name].filter(Boolean).join(' · '))}</span></button>`;
+    <span class="igw-m"><span class="igw-dot" style="background:${dot}"></span><span>${igEsc(word)}</span></span>
+    <span class="igw-rl"><span class="igw-ref">${window.refHtml?refHtml(c):igEsc(ref)}</span>${val?`<span class="igw-val">\u00a0\u00b7 ${igEsc(val)}</span>`:''}</span>
+    <span class="igw-nm">${igEsc(c._codeNamed?i18t('igw_kept_list'):(c.counterparty||''))}</span>${pills?`<span class="igw-pills">${pills}</span>`:''}</button>`;
 }
 /* THE COUNT LINE. Open: the papers drawn, out of the book at rest. NARROWED TO
    A SET (Open party, a calendar day, a number pressed on the Board): counted

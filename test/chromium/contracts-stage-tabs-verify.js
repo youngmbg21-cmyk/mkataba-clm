@@ -105,13 +105,17 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
     ok('3a the box is on the band', r3.viewBox);
     if (r3.viewBox) {
       const opts = await page.$$eval('#reg-view-sel option', o => o.map(x => x.value));
-      ok('3b it holds All, the shortcuts (In negotiation among them) and the save act',
-        opts[0] === '' && ['expiring90', 'expired', 'autosoon', 'nego', 'overdueob', 'archived'].every(k => opts.includes(k)) && opts.includes('act:save'),
+      /* RE-POINTED 17 Oct 2026 (round 13, the owner picked "Wall of papers"
+         and said yes to the archive leaving this box): the archive is its own
+         button beside Wall | List; the box keeps the other shortcuts. */
+      ok('3b it holds All, the shortcuts (In negotiation among them) and the save act — the archive is its own button',
+        opts[0] === '' && ['expiring90', 'expired', 'autosoon', 'nego', 'overdueob'].every(k => opts.includes(k)) && !opts.includes('archived') && opts.includes('act:save')
+        && await page.evaluate(() => !!document.querySelector('[data-reg-home] [data-ct-archive]')),
         opts.join(','));
-      await page.selectOption('#reg-view-sel', 'archived');
-      await page.waitForFunction(() => regState().view === 'archived', null, { timeout: 5000 }).catch(() => {});
+      await page.selectOption('#reg-view-sel', 'expired');
+      await page.waitForFunction(() => regState().view === 'expired', null, { timeout: 5000 }).catch(() => {});
       const lit = await page.evaluate(() => { const s = document.getElementById('reg-view-sel'); const c = s && s.closest('.reg-chip'); return { on: !!(c && c.classList.contains('on')), v: s && s.value }; });
-      ok('3c a pick puts the shortcut in force and lights the box', (await read()).view === 'archived' && lit.on && lit.v === 'archived', JSON.stringify(lit));
+      ok('3c a pick puts the shortcut in force and lights the box', (await read()).view === 'expired' && lit.on && lit.v === 'expired', JSON.stringify(lit));
       await page.selectOption('#reg-view-sel', '');
       await page.waitForFunction(() => !regState().view, null, { timeout: 5000 }).catch(() => {});
       ok('3d All takes it off again', !(await read()).view);

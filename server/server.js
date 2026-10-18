@@ -13311,9 +13311,9 @@ function kpRules() {
 const kpCutoff = years => { const d = new Date(); d.setFullYear(d.getFullYear() - years); d.setDate(d.getDate() - 1); return isoDay(d); };
 const kpHeld = c => !!(c && c.hold && c.hold.at);
 const kpThenWords = r => `${r.years} year${r.years === 1 ? '' : 's'}, then ${r.then === 'archive' ? 'kept archived' : 'listed for an admin to delete'}`;
-function kpBook(user, onlyFid) {
+function kpBook(user, onlyFid, scopeOver) {
   const rules = kpRules();
-  const f = scopeFrag(folderScopeFor(user));
+  const f = scopeFrag(scopeOver || folderScopeFor(user));
   const rows = db.prepare(`SELECT id, folder, status, expiry, parent_id, seq, version, json FROM contracts ${whereOf(f.sql)}`).all(...f.args)
     .filter(r => !onlyFid || String(r.folder || '') === onlyFid || r.parent_id);
   const parsed = new Map();
@@ -13341,17 +13341,37 @@ function kpBook(user, onlyFid) {
   for (const [fid, rule] of Object.entries(rules)) { const s = S(fid); s.rule = rule; s.cutoff = kpCutoff(rule.years); }
   return { rules, streams, years: KP_YEARS, rows: new Map(rows.map(r => [r.id, r])), parsed };
 }
+/* THE STREAM NO ADMIN CAN SEE (owner's yes, 18 Oct 2026, round 26's open
+   question): a private stream's contracts are read only by the people it
+   names, admins too — so where no admin is named, contracts past their keeping
+   time were never listed for anybody. The server reads that stream on its own
+   (the one place it looks past the wall) and tells admins ONLY that it has
+   contracts due and names no admin: no count, no names, nothing of them. An
+   admin who names an admin there — themselves included — brings them into
+   that admin's own Ready to delete. */
+function kpUnseen(rules) {
+  const all = privateStreamsAll(), out = [];
+  const fids = psPrivateFolders().filter(fid => rules[fid]);
+  if (!fids.length) return out;
+  const admins = new Set(db.prepare("SELECT id FROM users WHERE role = 'admin'").all().map(u => String(u.id)));
+  for (const fid of fids) {
+    if (psIds(all[fid]).some(id => admins.has(id))) continue;
+    const s = kpBook(null, fid, [fid]).streams[fid];
+    if (s && s.due.length) out.push(fid);
+  }
+  return out;
+}
 const kpSummary = user => {
   const rules = kpRules(); if (!Object.keys(rules).length) return { rules, due: {} };
   const b = kpBook(user), due = {};
   for (const [fid, s] of Object.entries(b.streams)) if (s.rule && s.due.length) due[fid] = { n: s.due.length, then: s.rule.then };
-  return { rules, due };
+  return { rules, due, unseen: kpUnseen(rules) };
 };
 const kpRecord = (req, kind, o) => db.prepare(`INSERT INTO keeping_acts (at, by_id, by_name, kind, folder, contract_id, contract_ref, name, counterparty, ended, detail)
   VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run(now(), String(req.user.id || ''), String(req.user.name || ''), kind, o.folder || '', o.id || '', o.ref || '', o.name || '', o.counterparty || '', o.ended || '', o.detail || '');
 app.get('/api/keeping', auth, admin, (req, res) => {
   const b = kpBook(req.user);
-  res.json({ rules: b.rules, years: b.years, streams: b.streams });
+  res.json({ rules: b.rules, years: b.years, streams: b.streams, unseen: kpUnseen(b.rules) });
 });
 /* THE RULE: a period from the list and what then; null takes it away */
 app.put('/api/keeping/:fid', auth, admin, (req, res) => {
@@ -19937,6 +19957,25 @@ app.put('/api/me/prefs', auth, (req, res) => {
     else if (OPENS_ON_SRV.includes(v)) prefs.opensOn = v;
     else return res.status(400).json({ error: 'opensOn must be one of: ' + ['jambo'].concat(OPENS_ON_SRV).join(', ') });
   }
+  /* EACH PERSON CHOOSES HOW JAMBO WORKS FOR THEM (round 23, owner, 17 Oct
+     2026): per agent, 'ask' (Ask me first) or 'mine' (Leave it to me); null
+     takes that agent back to the company's level. A person may only step
+     DOWN from the company's: "Just do it" stays the admin's to give, so it is
+     refused here. agentLevelFor reads it. */
+  if ('agentLevels' in (req.body || {})) {
+    const v = req.body.agentLevels;
+    if (v === null) delete prefs.agentLevels;
+    else if (typeof v === 'object' && !Array.isArray(v)) {
+      const mine = { ...(prefs.agentLevels && typeof prefs.agentLevels === 'object' ? prefs.agentLevels : {}) };
+      for (const [k, x] of Object.entries(v)) {
+        if (!AGENT_KEYS.includes(k)) return res.status(400).json({ error: 'No such agent: ' + k });
+        if (x === null) { delete mine[k]; continue; }
+        if (!AGENT_PERSON_LEVELS.includes(x)) return res.status(400).json({ error: 'A level must be one of: ' + AGENT_PERSON_LEVELS.join(', ') });
+        mine[k] = x;
+      }
+      if (Object.keys(mine).length) prefs.agentLevels = mine; else delete prefs.agentLevels;
+    } else return res.status(400).json({ error: 'agentLevels must be an object or null' });
+  }
   if ('agentsLook' in (req.body || {})) {
     const v = req.body.agentsLook;
     if (v === null) delete prefs.agentsLook;
@@ -21215,12 +21254,13 @@ async function runLinkWatch() {
        by the agent itself — nothing is sent, the other side's link simply
        keeps working, the trail says so and the owner is told. Asked through
        the SAME refusals as the owner's own press. */
-    if (agentLevel('link') === 'auto') for (const it of items) {
+    /* the owner's own level wins where they stepped down (round 23) */
+    const uOwn = agentLevel('link') === 'auto' ? db.prepare('SELECT * FROM users WHERE id=?').get(String(owner.id)) : null;
+    if (uOwn && agentLevelFor('link', uOwn) === 'auto') for (const it of items) {
       if (!it.kind.startsWith('soon') || !it.token) continue;
       const sh = db.prepare('SELECT * FROM shares WHERE token=?').get(it.token);
       if (!sh || sh.revoked_at || shareExpired(sh) || (sh.response && !sh.durable)) continue;
-      const u0 = db.prepare('SELECT * FROM users WHERE id=?').get(String(owner.id));
-      if (!u0) continue;
+      const u0 = uOwn;
       const no = srvLinkRefusal({ user: u0 }, srvStoredContract(sh.contract_id), sharePurposeOf(sh), { keep: true, contractId: sh.contract_id });
       if (no) { bump('autoRefused'); continue; }
       it.kept = srvShareExtend(sh, SHARE_EXPIRY_DEFAULT_DAYS, 'Jambo (keep links working)');
@@ -22023,6 +22063,16 @@ function agentLevel(k) {
   const v = String(agentCfg(k).level || '');
   if (v === 'auto' && !AGENT_AUTO_OK.includes(k)) return 'ask';
   return AGENT_LEVELS.includes(v) ? v : 'ask';
+}
+/* THE LEVEL FOR ONE PERSON (round 23): their own choice where they made one
+   ('ask' or 'mine' — a person only steps down), else the company's. */
+const AGENT_PERSON_LEVELS = ['ask', 'mine'];
+function agentLevelFor(k, u) {
+  const co = agentLevel(k);
+  let mine = null;
+  try { const p = u ? userPrefs(u) : null; mine = p && p.agentLevels ? p.agentLevels[k] : null; } catch (_) { mine = null; }
+  if (!AGENT_PERSON_LEVELS.includes(mine)) return co;
+  return co === 'mine' ? 'mine' : mine;
 }
 function agentSetCfg(k, patch) {
   if (k === 'renew') {

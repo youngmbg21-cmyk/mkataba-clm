@@ -205,8 +205,10 @@ describe('F214 — the Daily Brief', () => {
       assert.ok(src.includes("'" + v + "','set_brief_" + v + "'"), 'the ' + v + ' option is drawn');
     assert.ok(!src.includes('pref-daily-brief'),
       'the old tick-box is gone rather than left beside its replacement');
-    const i = src.indexOf('[data-pref-brief]');
-    assert.ok(src.slice(i, i + 600).includes("api('me/prefs','PUT',{ briefEvery:v })"),
+    /* the one writer, since round 24 shared by the drawer's radios and the sheet's row */
+    assert.match(src, /querySelectorAll\('\[data-pref-brief\]'\)\.forEach\(el=>el\.addEventListener\('change',e=>stBriefSet\(/);
+    const i = src.indexOf('async function stBriefSet(');
+    assert.ok(i > 0 && src.slice(i, i + 600).includes("api('me/prefs','PUT',{ briefEvery:v })"),
       'a press writes immediately — a setting that needs a Save button is off when it matters');
     assert.match(src.slice(i, i + 900), /briefPaintCadence\(was\)/,
       'and a failed save puts the previous answer back');

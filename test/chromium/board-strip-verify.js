@@ -311,24 +311,26 @@ const OBS = [
     const H1 = await page.evaluate(() => { const host = document.querySelector('#bs-strip-MK-L1 [data-bs-host="hist"]');
       const tr = host.querySelector('.hist-trail');
       return { q: !!host.querySelector('#hist-q'), side: [...host.querySelectorAll('.hist-side [data-ht-side]')].map(b => b.textContent.trim()), sideSel: !!host.querySelector('[data-ht-filter="side"]'),
+        lanes: [...host.querySelectorAll('.hist-trail.is-lanes > .hist-lh')].map(x => x.textContent.trim().split(' · ')[0]),
         filter: !!host.querySelector('#hist-filter-btn'), wording: (host.querySelector('#hist-detail') || {}).textContent, n: host.querySelectorAll('.hist-ev').length,
         scroll: tr ? getComputedStyle(tr).overflowY : '', maxH: tr ? parseFloat(getComputedStyle(tr).maxHeight) : 0, more: !!host.querySelector('#hist-more-menu #ht-verify') }; });
-    check('3f History opens in the strip: search, Side in the open as All sides · Ours · Theirs (no Side box in the fold), Filter, Show the wording',
-      hs && H1.q && JSON.stringify(H1.side) === JSON.stringify(['All sides', 'Ours', 'Theirs']) && !H1.sideSel && H1.filter && /Show the wording/.test(H1.wording || ''), JSON.stringify(H1));
+    /* RE-POINTED 17 Oct 2026 (round 12, the owner picked "Two sides"): the
+       side is the lane — Ours · Day · Theirs — and the switch is gone */
+    check('3f History opens in the strip: search, two lanes (Ours · Day · Theirs, no switch, no Side box), Filter, Show the wording',
+      hs && H1.q && H1.side.length === 0 && JSON.stringify(H1.lanes) === JSON.stringify(['Ours', 'Day', 'Theirs']) && !H1.sideSel && H1.filter && /Show the wording/.test(H1.wording || ''), JSON.stringify(H1));
     check('3g the trail scrolls inside the card, and ⋯ More keeps Verify integrity', H1.scroll === 'auto' && H1.maxH > 0 && H1.maxH <= 480 && H1.more, JSON.stringify({ scroll: H1.scroll, maxH: H1.maxH, more: H1.more }));
-    await page.click(M('.hist-side [data-ht-side="counterparty"]'));
-    await pause(300);
+    /* RE-POINTED 17 Oct 2026 (round 12): their moves stand in the right lane —
+       exactly the trail's own "Theirs" reading, nothing filtered away */
     const H2 = await page.evaluate(() => { const host = document.querySelector('#bs-strip-MK-L1 [data-bs-host="hist"]');
       const evs = roomHistoryEvents(getContract('MK-L1'), { side: 'counterparty' });
-      return { n: host.querySelectorAll('.hist-ev').length, want: evs.length, pressed: (host.querySelector('[data-ht-side][aria-pressed="true"]') || {}).textContent, cap: (host.querySelector('.hist-cap') || {}).textContent }; });
-    check('3h Theirs keeps only their moves (the trail\'s own side filter), the switch says so', H2.pressed === 'Theirs' && H2.n === H2.want && H2.n > 0 && H2.n < H1.n, JSON.stringify(H2) + ' of ' + H1.n);
+      return { n: host.querySelectorAll('.hist-ev.is-theirs').length, want: evs.length, all: host.querySelectorAll('.hist-ev').length }; });
+    check('3h their moves stand in the right lane — the trail\'s own "Theirs" reading — and nothing is hidden', H2.n === H2.want && H2.n > 0 && H2.all === H1.n, JSON.stringify(H2) + ' of ' + H1.n);
     await page.click(M('#hist-detail'));
     await pause(300);
     const H3 = await page.evaluate(() => { const host = document.querySelector('#bs-strip-MK-L1 [data-bs-host="hist"]');
-      return { red: host.querySelectorAll('.hist-redline').length, btn: (host.querySelector('#hist-detail') || {}).textContent, side: (host.querySelector('[data-ht-side][aria-pressed="true"]') || {}).textContent }; });
-    check('3i Show the wording puts each proposal\'s words under it, the side kept', H3.red >= 1 && /Hide the wording/.test(H3.btn) && H3.side === 'Theirs', JSON.stringify(H3));
+      return { red: host.querySelectorAll('.hist-ev.is-theirs .hist-redline').length, btn: (host.querySelector('#hist-detail') || {}).textContent }; });
+    check('3i Show the wording puts each proposal\'s words under it, in its lane', H3.red >= 1 && /Hide the wording/.test(H3.btn), JSON.stringify(H3));
     await shot('3-history-theirs-wording');
-    await page.click(M('.hist-side [data-ht-side=""]'));
     await page.click(M('#hist-detail'));
     await page.click(M('.bs-crumbs [data-bs-page="ov"]'));
     check('3j "‹ Overview" takes the strip back to its chart', await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L1 .bs-chart'), 5000));

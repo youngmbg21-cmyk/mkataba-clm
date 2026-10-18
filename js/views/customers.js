@@ -40,7 +40,7 @@
 
 /* Per sitting: the list's own find and filters. A refresh puts them back
    through PLACE_PARTS (cuPlace / cuPlacePut). */
-const _cu = { stream: 'all', owner: 'all', nda: 'all', q: '' };
+const _cu = { stream: 'all', owner: 'all', nda: 'all', status: 'all', q: '' };
 
 function cuNameOf(c){ return String((c && c.counterparty) || '').trim(); }
 /* One shelf per name, whatever its case or spacing: "Naivas Ltd" and "naivas
@@ -53,7 +53,10 @@ function cuKeyOf(name){ return String(name || '').trim().replace(/\s+/g, ' ').to
    is counted with its agreement. */
 function cuBook(){
   const all = (typeof state !== 'undefined' && Array.isArray(state.contracts)) ? state.contracts : [];
-  return all.filter(c => c && !c.archived && !c.parentId && cuNameOf(c));
+  /* A DEAL KEPT TO ITS LIST IS NOT ON PARTIES (round 19, owner: "Leave it
+     off", 17 Oct 2026): its stand-in names no party, and is left out on
+     purpose, not by accident */
+  return all.filter(c => c && !c.archived && !c.parentId && !c._codeNamed && cuNameOf(c));
 }
 function cuBucket(c){
   if (c && c.status === 'Declined') return 'expired';
@@ -129,10 +132,11 @@ function cuDoorCount(){ return cuCustomers().length; }
 /* ---- WHAT THE FILTERS LEAVE ---- */
 function cuFilterItems(items){
   return (items || []).filter(c =>
-    (_cu.stream === 'all' || String(c.folder) === String(_cu.stream))
+    (_cu.status === 'all' || cuBucket(c) === (_cu.status === 'live' ? 'active' : 'expired'))
+    && (_cu.stream === 'all' || String(c.folder) === String(_cu.stream))
     && (_cu.owner === 'all' || ((typeof contractOwnerName === 'function' && contractOwnerName(c)) || '') === _cu.owner));
 }
-function cuFiltersOn(){ return _cu.stream !== 'all' || _cu.owner !== 'all'; }
+function cuFiltersOn(){ return _cu.stream !== 'all' || _cu.owner !== 'all' || _cu.status !== 'all'; }
 /* ONE CUSTOMER AS THE PAGE SHOWS IT, filters applied — the row, its sub-line,
    the side panel and the doors read this, so they never disagree (owner's
    screenshot, 10 Oct 2026: Owner on, the row said 3 and its sub-line 21). */
@@ -141,7 +145,39 @@ function cuView(r){
   const items = cuFiltersOn() ? cuFilterItems(r.items) : r.items;
   const active = items.filter(c => cuBucket(c) === 'active'), expired = items.filter(c => cuBucket(c) === 'expired');
   const streams = [...new Set(items.map(c => c.folder).filter(f => f && cuStreamName(f)))];
-  return { key: r.key, name: r.name, items, active, expired, streams, next: cuNextEnd(items), waiting: items.filter(cuWaitingOnYou).length };
+  return { key: r.key, name: r.name, items, active, expired, streams, next: cuNextEnd(items), waiting: items.filter(cuWaitingOnYou).length, needs: cuNeedsOf(items) };
+}
+/* ---- WHAT WAITS ON YOU AT THIS PARTY, IN WORDS (round 19, owner picked
+   "The SAP way", 17 Oct 2026) ----
+   The checklist's own items (needsYouOf, said by insNeedWords — the panel
+   beside every list reads the same) over the party's contracts, then any
+   negotiation whose move is ours that the checklist does not already name.
+   Urgent first. The column says the first and how many more; the panel lists
+   them, each with its own door (needsYouGo). */
+function cuNeedsOf(items){
+  const out = [];
+  (items || []).forEach(c => {
+    let xs = [];
+    try { xs = (typeof needsYouOf === 'function') ? (needsYouOf(c) || []) : []; } catch (_) { xs = []; }
+    const verb = (typeof INS_NEED_VERB !== 'undefined') ? INS_NEED_VERB : null;
+    xs.filter(it => it && (!verb || verb[it.kind])).forEach(it => out.push({ c, it }));
+    if (cuWaitingOnYou(c) && !xs.some(it => it && (it.kind === 'quiet' || it.kind === 'review'))) out.push({ c, it: { kind: 'move' } });
+  });
+  return out.sort((a, b) => (b.it.urgent ? 1 : 0) - (a.it.urgent ? 1 : 0));
+}
+function cuNeedTitle(x){
+  if (!x) return '';
+  if (x.it.kind === 'move') return i18t('cu_need_move');
+  try { return (typeof insNeedWords === 'function') ? String(insNeedWords(x.c, x.it).title || '') : ''; } catch (_) { return ''; }
+}
+function cuNeedsSay(list){
+  if (!list || !list.length) return '';
+  const t = cuNeedTitle(list[0]);
+  return list.length > 1 ? i18t('cu_need_more', { t, n: list.length - 1 }) : t;
+}
+function cuNeedGo(kind, id){
+  if (kind === 'move'){ if (typeof openRedlineWorkbench === 'function') openRedlineWorkbench(id); return; }
+  if (typeof needsYouGo === 'function') needsYouGo(kind, id);
 }
 /* The ids a door carries: the customer's agreements as counted, and every
    amendment under them, so the Contracts page draws each under its agreement. */
@@ -259,12 +295,13 @@ if (typeof document !== 'undefined') document.addEventListener('click', e => {
 
 /* ---- THE PLACE A REFRESH PUTS BACK ---- the list's own find and filters; a
    customer kept by an older refresh ("cust") is ignored and lands on the list. */
-function cuPlace(){ return { stream: _cu.stream, owner: _cu.owner, nda: _cu.nda, q: _cu.q }; }
+function cuPlace(){ return { stream: _cu.stream, owner: _cu.owner, nda: _cu.nda, status: _cu.status, q: _cu.q }; }
 function cuPlacePut(p){
   if (!p || typeof p !== 'object') return;
   _cu.stream = p.stream ? String(p.stream) : 'all';
   _cu.owner = p.owner ? String(p.owner) : 'all';
   _cu.nda = ['inforce', 'unconfirmed', 'none'].includes(p.nda) ? p.nda : 'all';
+  _cu.status = ['live', 'ended'].includes(p.status) ? p.status : 'all';
   _cu.q = p.q ? String(p.q) : '';
 }
 
@@ -331,6 +368,8 @@ function cuFilterBarHtml(items, ndaCounts){
   const owners = [...new Set((items || []).map(c => (typeof contractOwnerName === 'function' && contractOwnerName(c)) || '').filter(Boolean))].sort();
   return `<div class="reg-filterbar reg-fb">
     <label class="cu-find"><span class="sr-only">${_cuE(i18t('cu_find'))}</span><input id="cu-q" type="search" autocomplete="off" placeholder="${_cuE(i18t('cu_find_ph'))}" value="${_cuE(_cu.q)}"></label>
+    ${cuChip({ label: i18t('cu_status'), attr: 'data-cu-f', key: 'status', cur: _cu.status, def: 'all',
+      opts: [['all', i18t('cu_status_all')], ...['live', 'ended'].filter(k => (items || []).some(c => cuBucket(c) === (k === 'live' ? 'active' : 'expired')) || _cu.status === k).map(k => [k, i18t('cu_status_' + k)])] })}
     ${cuChip({ label: i18t('reg_chip_stream'), title: i18t('reg_value_stream'), attr: 'data-cu-f', key: 'stream', cur: _cu.stream, def: 'all',
       opts: [['all', i18t('cu_all_streams')], ...streams.map(f => [f, cuStreamName(f)])] })}
     ${cuChip({ label: i18t('cu_owner'), attr: 'data-cu-f', key: 'owner', cur: _cu.owner, def: 'all',
@@ -388,6 +427,16 @@ const CU_CSS = `
   .cu-nda-none{color:var(--color-neutral-500);}
   .cu-nda-go{border:0;background:none;padding:0 0 0 4px;font:inherit;font-weight:var(--w-label);color:var(--color-accent);cursor:pointer;white-space:nowrap;}
   .cu-nda-go:hover{text-decoration:underline;}
+  .cu-table td.cu-wait{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cu-table td.ruby{color:var(--st-ruby-fg);font-weight:var(--w-strong);}
+  .cu-list{display:flex;flex-direction:column;gap:6px;}
+  .cu-li{display:flex;align-items:center;gap:var(--s-2);padding:8px 10px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:var(--color-surface);text-align:left;font:inherit;color:inherit;width:100%;box-sizing:border-box;}
+  button.cu-li{cursor:pointer;} button.cu-li:hover{border-color:var(--btn-edge);background:var(--surface-2);}
+  .cu-li-b{display:flex;flex-direction:column;min-width:0;flex:1;}
+  .cu-li-b b{font-weight:var(--w-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cu-li-b span{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cu-li.is-late .cu-li-b b{color:var(--st-ruby-fg);}
+  .cu-ag-st{flex:none;font-size:var(--t-meta);color:var(--color-neutral-600);}
 `;
 
 /* ---- THE CUSTOMERS PAGE ---- */
@@ -409,9 +458,10 @@ function cuListHtml(INS){
      heads wrap onto two lines (as a worklist's do) and the columns fit their
      values, so the party's name keeps the width it had before the column came */
   const head = [{ t: i18t('cu_col_customer') }, { t: i18t('cu_col_active'), r: 1, w: 62 }, { t: i18t('cu_col_expired'), r: 1, w: 78 },
-    ...(money ? [{ t: i18t('cu_col_on_paper'), r: 1, w: 92 }] : []), { t: i18t('cu_col_next_end'), w: 104 }, { t: i18t('cu_col_waiting'), r: 1, w: 76 }, { t: i18t('cu_col_nda'), w: 124 }];
+    ...(money ? [{ t: i18t('cu_col_on_paper'), r: 1, w: 92 }] : []), { t: i18t('cu_col_next_end'), w: 104 }, { t: i18t('cu_col_waiting'), w: 168 }, { t: i18t('cu_col_nda'), w: 124 }];
   const body = rows.map(r => {
-    const v = cuView(r), act = v.active, exp = v.expired, w = v.waiting, next = v.next;
+    const v = cuView(r), act = v.active, exp = v.expired, next = v.next;
+    const ws = cuNeedsSay(v.needs), wAll = v.needs.map(cuNeedTitle).join(' · '), wLate = v.needs.some(x => x.it.urgent);
     const ov = money ? cuMoneyWords(act) : '';
     return `<tr data-cu-cust="${_cuE(r.key)}" tabindex="-1">
       <td><div class="ap-id">${cuAvHtml(r.name)}<div><span class="ap-name">${_cuE(r.name)}</span><span class="ap-sub">${
@@ -420,7 +470,7 @@ function cuListHtml(INS){
       <td class="n${exp.length ? '' : ' quiet'}">${exp.length || '—'}</td>
       ${money ? `<td class="n${ov ? '' : ' quiet'}">${_cuE(ov || '—')}</td>` : ''}
       <td class="${next ? '' : 'quiet'}">${_cuE(next ? cuDay(next) : '—')}</td>
-      <td class="n${w ? ' amber' : ' quiet'}">${w || '—'}</td>
+      <td class="cu-wait${ws ? (wLate ? ' ruby' : ' amber') : ' quiet'}"${ws ? ` title="${_cuE(wAll)}"` : ''}>${_cuE(ws || '—')}</td>
       <td class="cu-nda-td">${cuNdaCellHtml(cuNdaOf(r.key, ndas))}</td>
     </tr>`;
   }).join('');
@@ -455,7 +505,7 @@ function cuPaintCustomerPanel(tb){
       { k: 'active', label: i18t('cu_tab_active'), v: _cuE(count(r.active)) },
       { k: 'expired', label: i18t('cu_tab_expired'), v: _cuE(count(r.expired)) },
       { k: 'next', label: i18t('cu_col_next_end'), v: r.next ? _cuE(cuDay(r.next)) : '' },
-      { k: 'waiting', label: i18t('cu_col_waiting'), v: _cuE(String(r.waiting)) },
+      { k: 'waiting', label: i18t('cu_col_waiting'), v: _cuE(cuNeedsSay(r.needs)) },
       { k: 'nda', label: i18t('cu_col_nda'), v: cuNdaFactHtml(cuNdaOf(key)), wide: true },
     ];
     const streams = r.streams.map(f => `<span>${cuStripeHtml(f)}${_cuE(cuStreamName(f))}</span><span class="n">${r.items.filter(c => c.folder === f).length}</span>`).join('');
@@ -470,6 +520,8 @@ function cuPaintCustomerPanel(tb){
           ...((() => { const n = (typeof dirPeopleOfParty === 'function') ? dirPeopleOfParty(r.key).length : 0;
             return n ? [{ k: 'people', label: i18t('cu_people_door', { n }), run: x => { if (typeof dirOpenParty === 'function') dirOpenParty(x.id); } }] : []; })())] },
       body: (typeof insKvHtml === 'function' ? insKvHtml(facts) : '')
+        + (r.needs.length && typeof insSecHtml === 'function' ? insSecHtml(i18t('cu_col_waiting'), r.needs.length, cuPanelNeedsHtml(r.needs), 'cu-needs') : '')
+        + (r.items.length && typeof insSecHtml === 'function' ? insSecHtml(i18t('cu_panel_agreements'), r.items.length, cuPanelAgreementsHtml(r.items), 'cu-ags') : '')
         + (streams && typeof insSecHtml === 'function' ? insSecHtml(i18t('cu_panel_streams'), r.streams.length, `<div class="cu-panel-streams">${streams}</div>`) : '') });
   };
   paint(id);
@@ -477,6 +529,28 @@ function cuPaintCustomerPanel(tb){
     onSelect: key => { insSelect(seat, key); insMarkRow(tb, '[data-cu-cust]', idOf, key); paint(key); },
     onOpen: key => cuOpenCustomer(key) });
 }
+
+/* THE PANEL'S TWO LISTS (round 19): what waits on you here, each with its
+   own door; and the party's agreements, each a door onto its paper */
+function cuPanelNeedsHtml(list){
+  return `<div class="cu-list">${list.map(x => {
+    const t = cuNeedTitle(x), ref = (typeof contractRef === 'function') ? contractRef(x.c) : x.c.id;
+    const go = x.it.kind === 'move' ? i18t('cu_need_go_move') : i18t((typeof INS_NEED_GO !== 'undefined' && INS_NEED_GO[x.it.kind]) || 'ins_need_go_nego');
+    return `<div class="cu-li${x.it.urgent ? ' is-late' : ''}"><div class="cu-li-b"><b title="${_cuE(t)}">${_cuE(t)}</b><span>${_cuE([x.c.name || '', ref].filter(Boolean).join(' · '))}</span></div>
+      <button type="button" class="ui-btn ui-btn-sm" data-cu-need="${_cuE(x.it.kind)}" data-cu-id="${_cuE(x.c.id)}">${_cuE(go)}</button></div>`; }).join('')}</div>`;
+}
+function cuPanelAgreementsHtml(items){
+  return `<div class="cu-list">${items.slice().sort((a, b) => String(cuEnds(b) || '').localeCompare(String(cuEnds(a) || ''))).map(c => {
+    const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
+    const stage = (typeof statusLabel === 'function' && c.status) ? statusLabel(c.status) : (c.status || '');
+    return `<button type="button" class="cu-li cu-ag" data-cu-ag="${_cuE(c.id)}"><span class="cu-li-b"><b>${_cuE(c.name || ref)}</b><span>${_cuE([ref, cuBucket(c) === 'expired' ? i18t('cu_status_ended') : ''].filter(Boolean).join(' · '))}</span></span><span class="cu-ag-st">${_cuE(stage)}</span></button>`; }).join('')}</div>`;
+}
+/* the panel's rows are delegated once, on the document */
+if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('click', e => {
+  const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+  const n = t.closest('[data-cu-need]'); if (n){ cuNeedGo(n.getAttribute('data-cu-need'), n.getAttribute('data-cu-id')); return; }
+  const a = t.closest('[data-cu-ag]'); if (a && typeof regOpenContract === 'function') regOpenContract(a.getAttribute('data-cu-ag'));
+});
 
 /* ---- THE PAGE ---- */
 function renderCustomers(){
@@ -498,7 +572,7 @@ function cuRepaint(){ if (typeof state !== 'undefined' && state.view === 'custom
 function cuWire(host, INS){
   host.querySelector('[data-cu-draft]')?.addEventListener('click', e => cuDraftFor(e.currentTarget.getAttribute('data-cu-draft') || ''));
   host.querySelectorAll('select[data-cu-f]').forEach(s => s.addEventListener('change', () => {
-    const k = s.getAttribute('data-cu-f'); if (!['stream', 'owner', 'nda'].includes(k)) return;
+    const k = s.getAttribute('data-cu-f'); if (!['stream', 'owner', 'nda', 'status'].includes(k)) return;
     _cu[k] = s.value || 'all'; renderCustomers(); if (typeof placeSave === 'function') placeSave(); }));
   const q = host.querySelector('#cu-q');
   if (q) q.addEventListener('input', () => { _cu.q = q.value; renderCustomers(); });
@@ -512,7 +586,7 @@ function cuWire(host, INS){
   });
 }
 
-Object.assign(window, { cuNameOf, cuKeyOf, cuBook, cuBucket, cuCustomers, cuCustomerOf, cuDoorCount, cuNextEnd, cuFilterItems, cuView, cuIdsOf,
+Object.assign(window, { cuNeedsOf, cuNeedTitle, cuNeedsSay, cuNeedGo, cuPanelNeedsHtml, cuPanelAgreementsHtml, cuNameOf, cuKeyOf, cuBook, cuBucket, cuCustomers, cuCustomerOf, cuDoorCount, cuNextEnd, cuFilterItems, cuView, cuIdsOf,
   cuNdaMap, cuNdaOf, cuNdaWants, cuNdaShort, cuOpenNda,
   cuPlace, cuPlacePut, cuOpenCustomer, cuOpenExplorer, cuDraftFor, renderCustomers, cuRepaint,
   /* the one filter-box builder the band's clothes dress; the Directory draws its boxes with it too (13 Oct 2026) */

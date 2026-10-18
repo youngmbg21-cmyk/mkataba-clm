@@ -3851,6 +3851,10 @@
     font-size:var(--t-body); font-weight:var(--w-strong); color:var(--color-text); text-transform:none; letter-spacing:0; }
   .st-cr .st-needs-n{ font-size:var(--t-label); font-weight:var(--w-label); color:var(--st-amber-fg); font-variant-numeric:tabular-nums; }
   .st-cr .st-need{ display:flex; align-items:center; gap:10px; padding:8px 14px; border-bottom:1px solid var(--surface-2); min-width:0; }
+  /* two lines a row (round 25): what it is, then its kind and since when */
+  .st-cr .st-need-w{ flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
+  .st-cr .st-need-w .st-need-t{ flex:none; }
+  .st-cr .st-needs-sub{ font-size:var(--t-label); font-weight:var(--w-body); color:var(--color-neutral-600); }
   .st-cr .st-need:last-child{ border-bottom:0; }
   .st-cr .st-need-t{ flex:1; min-width:0; font-size:var(--t-meta); color:var(--color-text); line-height:1.45; }
   .st-cr .st-need-s{ font-size:var(--t-label); color:var(--color-neutral-600); }
@@ -3862,7 +3866,7 @@
   .st-cr .st-card{ display:flex; flex-direction:column; gap:4px; min-width:0; padding:11px 14px 12px; background:var(--color-surface);
     border:1px solid var(--color-divider); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); }
   .st-cr .st-cards > .st-card{ margin:0; }
-  .st-cr .st-cards > [data-st-card="people"], .st-cr .st-cards > [data-st-card="ladder"]{ grid-column:span 2; }
+  .st-cr .st-board > .st-card-ladder{ margin:0 0 var(--s-4); }
   .st-cr .st-card-h:not(#_){ margin:0 0 3px; display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap;
     font-size:var(--t-body); font-weight:var(--w-strong); color:var(--color-text); text-transform:none; letter-spacing:0; border:0; padding:0; }
   .st-cr .st-card-sub{ font-size:var(--t-label); font-weight:var(--w-body); color:var(--color-neutral-600); }
@@ -3872,9 +3876,13 @@
     display:flex; align-items:center; gap:7px; min-width:0; padding:3px 4px; margin:0 -4px; border-radius:var(--radius); font-size:var(--t-meta); line-height:1.4; }
   .st-cr .st-fact:hover{ background:var(--surface-2); }
   .st-cr .st-fact:focus-visible, .st-cr .st-door:focus-visible{ outline:2px solid var(--color-accent); outline-offset:-1px; }
-  .st-cr .st-fact-n{ flex:none; max-width:62%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* a fact wraps rather than being cut short (round 25: "Who must say yes
+     before signi…" at 1440) */
+  .st-cr .st-fact{ align-items:flex-start; }
+  .st-cr .st-fact .st-dot{ margin-top:6px; }
+  .st-cr .st-fact-n{ flex:none; max-width:62%; overflow-wrap:anywhere; }
   .st-cr .st-fact-plain .st-fact-n{ max-width:none; flex:1; white-space:normal; }
-  .st-cr .st-fact-s{ flex:1; min-width:0; color:var(--color-neutral-600); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .st-cr .st-fact-s{ flex:1; min-width:0; color:var(--color-neutral-600); overflow-wrap:anywhere; }
   .st-cr .st-fact-s:not(:empty)::before{ content:"· "; }
   .st-cr .st-fig{ font-weight:var(--w-strong); color:var(--accent-ink); font-variant-numeric:tabular-nums; }
   .st-cr .st-amber{ background:var(--st-amber-bg); color:var(--st-amber-fg); border-radius:var(--radius); padding:0 6px; font-size:var(--t-label); white-space:nowrap; }
@@ -3935,6 +3943,61 @@
   .st-codes{ display:flex; align-items:center; gap:10px; margin-top:var(--s-2); }
   .st-me-who{ display:flex; flex-direction:column; gap:2px; margin:0 0 var(--s-3); }
   .st-me-n{ font-weight:var(--w-strong); color:var(--color-text); }
+  /* ONE SHEET (round 24, owner picked it 17 Oct 2026): You is one page of
+     rows under its headings, a contents list beside it; a switch or a choice
+     changes in its row */
+  .st-cr .st-sheet{ display:grid; grid-template-columns:200px minmax(0,1fr); gap:var(--s-3); align-items:start; margin-bottom:var(--s-4); }
+  .st-cr .st-toc{ position:sticky; top:60px; display:flex; flex-direction:column; padding:6px 0; background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); }
+  .st-cr .st-toc button{ appearance:none; border:0; border-left:2px solid transparent; background:none; text-align:left; font:inherit; font-size:var(--t-meta); color:var(--color-text); padding:6px 14px; cursor:pointer; }
+  .st-cr .st-toc button:hover{ color:var(--accent-ink); }
+  .st-cr .st-toc button[aria-current="true"]{ color:var(--accent-ink); font-weight:var(--w-label); border-left-color:var(--color-accent); }
+  .st-cr .st-sheet .st-you-board{ display:flex; flex-direction:column; gap:var(--s-3); margin:0; }
+  .st-cr .st-ssec{ margin:0; background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); min-width:0; scroll-margin-top:12px; }
+  .st-cr .st-ssec-h{ margin:0; padding:10px 16px; font-size:var(--t-meta); font-weight:var(--w-strong); color:var(--color-text); border-bottom:1px solid var(--color-divider); }
+  .st-cr .st-sr{ display:grid; grid-template-columns:minmax(120px,190px) minmax(0,1fr) auto; gap:12px; align-items:center; padding:9px 16px; border-top:1px solid var(--surface-2); font-size:var(--t-meta); color:var(--color-text); min-height:40px; }
+  .st-cr .st-srows > .st-sr:first-child{ border-top:0; }
+  .st-cr .st-sr.is-full{ grid-template-columns:minmax(0,1fr); }
+  .st-cr .st-sl{ color:var(--color-text); font-weight:var(--w-label); }
+  .st-cr .st-sv{ min-width:0; display:flex; flex-wrap:wrap; align-items:center; gap:2px 10px; line-height:1.45; }
+  .st-cr .st-sv > b + .st-you-sub{ flex-basis:100%; }
+  .st-cr .st-sa{ display:flex; gap:14px; align-items:center; justify-content:flex-end; white-space:nowrap; }
+  .st-cr .st-sr-door{ font-size:var(--t-meta); }
+  .st-cr .st-sv select{ height:var(--ctl-h-sm); font-size:var(--t-meta); min-width:200px; max-width:100%; padding:0 8px; color:var(--color-text); background-color:var(--color-surface); border:1px solid var(--field-line); border-radius:var(--radius); }
+  .st-cr .st-yseg{ display:inline-flex; border:1px solid var(--field-line); border-radius:var(--radius); overflow:hidden; }
+  .st-cr .st-yseg button{ appearance:none; border:0; border-right:1px solid var(--field-line); background:var(--color-surface); font:inherit; font-size:var(--t-meta); padding:0 14px; height:var(--ctl-h-sm); color:var(--color-text); cursor:pointer; }
+  .st-cr .st-yseg button:last-child{ border-right:0; }
+  .st-cr .st-yseg button[aria-pressed="true"]{ background:color-mix(in srgb,var(--color-accent) 10%,var(--color-surface)); color:var(--accent-ink); font-weight:var(--w-strong); }
+  .st-cr .st-swt{ appearance:none; position:relative; flex:none; width:34px; height:20px; padding:0; border:0; border-radius:10px; background:var(--field-line); cursor:pointer; }
+  .st-cr .st-swt i{ position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--color-surface); transition:left .15s; }
+  .st-cr .st-swt.on{ background:var(--color-accent); }
+  .st-cr .st-swt.on i{ left:16px; }
+  .st-cr .st-swt:focus-visible{ outline:2px solid var(--color-accent); outline-offset:2px; }
+  @media (max-width:1180px){ .st-cr .st-sheet{ grid-template-columns:minmax(0,1fr); } .st-cr .st-toc{ display:none; } }
+  /* ROUND 26, "THE SAP WAY" (owner picked it 17 Oct 2026): Contract streams
+     and Data & backup as pages — labelled boxes in a band, then a table */
+  .st-cr .st-sw-band{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px 16px; margin:0 0 var(--s-3); padding:12px 14px; background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); }
+  .st-cr .st-sw-f{ display:flex; flex-direction:column; gap:4px; min-width:0; font-size:var(--t-label); color:var(--color-text); font-weight:var(--w-label); }
+  .st-cr .st-sw-f select, .st-cr .st-sw-f input{ height:var(--ctl-h); min-width:170px; max-width:100%; padding:0 8px; font:inherit; font-size:var(--t-meta); font-weight:400; color:var(--color-text); background-color:var(--color-surface); border:1px solid var(--field-line); border-radius:var(--radius); }
+  .st-cr .st-sw-find input{ min-width:200px; }
+  .st-cr .st-sw-card{ padding:10px 14px 6px; }
+  .st-cr .st-sw-tb .r{ text-align:right; font-variant-numeric:tabular-nums; }
+  .st-cr .st-sw-tb th.r{ text-align:right; }
+  .st-cr .st-sw-row{ cursor:pointer; }
+  .st-cr .st-sw-row:hover td, .st-cr .st-sw-row:focus-visible td{ background:var(--surface-2); }
+  .st-cr .st-sw-row:focus-visible{ outline:2px solid var(--color-accent); outline-offset:-2px; }
+  .st-cr .st-sw-tb .st-fdot{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:8px; vertical-align:1px; }
+  .st-cr .st-sw-tb .st-ps-badge{ margin-left:6px; }
+  .st-cr .st-sw-due{ color:var(--st-amber-fg); font-weight:var(--w-label); }
+  .st-cr .st-sw-tb tbody tr:last-child td{ border-bottom:0; }
+  .st-cr .st-dp-tabs{ display:flex; gap:4px; border-bottom:1px solid var(--color-divider); }
+  .st-cr .st-dp-tab{ appearance:none; border:0; border-bottom:2px solid transparent; background:none; font:inherit; font-size:var(--t-meta); color:var(--color-text); padding:6px 10px; cursor:pointer; margin-bottom:-1px; }
+  .st-cr .st-dp-tab.is-on{ color:var(--accent-ink); font-weight:var(--w-label); border-bottom-color:var(--color-accent); }
+  .st-cr .st-tr-band .st-sw-f{ min-width:150px; }
+  .st-cr .st-sw-f .dp-face{ height:var(--ctl-h); min-width:150px; padding:0 8px; font-size:var(--t-meta); font-weight:400; color:var(--color-text); background:var(--color-surface); border:1px solid var(--field-line); border-radius:var(--radius); }
+  .st-cr .st-tr-go-band{ display:flex; flex-wrap:wrap-reverse; align-items:center; gap:6px 12px; margin:0; padding:0; background:none; border:0; border-radius:0; }
+  .st-cr .st-tr-go-band .st-tr-fig{ flex-basis:100%; font-size:var(--t-label); }
+  .st-cr .st-dp-card .st-tr-past{ margin-top:0; }
+  .st-cr .st-dp-card{ padding:10px 14px 8px; }
 
   /* THE BOARD'S DRAWERS: everyone's limits, the rules still off */
   .st-lim-off{ display:flex; align-items:center; gap:10px; padding:8px 10px; margin:0 0 var(--s-3); border-radius:var(--radius);
@@ -4084,6 +4147,8 @@
     border:0; background:none; cursor:pointer; font:inherit; font-size:var(--t-body); font-weight:var(--w-body);
     color:var(--color-text); border-radius:var(--radius); padding:var(--s-2) 10px; }
   .room-menu button:hover{ background:var(--color-neutral-100); }
+  /* a group's small head inside a menu (History's "Every contract · admins only", round 12) */
+  .room-menu .hist-mg{ margin:6px 4px 2px; padding-top:6px; border-top:1px solid var(--color-divider); font-size:var(--t-label); color:var(--color-neutral-600); }
   /* "Draft new agreement" drops its two doors as a menu (SAP's menu button,
      10 Oct 2026; openNewDoors in js/wizard.js). */
   .nd-menu{ position:fixed; z-index:72; width:320px; padding:4px; background:var(--color-surface);
@@ -5520,6 +5585,47 @@
   .hist-pill.is-r{ background:var(--st-ruby-bg); color:var(--st-ruby-fg); }
   .hist-pill.is-a{ background:var(--st-amber-bg); color:var(--st-amber-fg); }
   @media (max-width:900px){ .hist-trail .hist-ev{ grid-template-columns:56px 14px minmax(0,1fr) auto; } .hist-who{ display:none; } }
+  /* TWO SIDES (round 12 of the redesign, owner picked "Two sides", 17 Oct
+     2026): our steps in the left lane, theirs in the right, the days down a
+     middle line; what only we can see sits on that line as a quiet pill. The
+     row keeps its parts (time, ring, who, outcome); only where it stands
+     moves. The per-row joining line gives way to the one middle line. The two
+     side colours are the Board's own pair, checked for colour blindness. */
+  .hist-trail.is-lanes{ --hist-ours:var(--bs-ours,#264c9e); --hist-theirs:var(--bs-theirs,#7E66D6);
+    display:grid; grid-template-columns:minmax(0,1fr) 64px minmax(0,1fr); row-gap:6px; padding:0 var(--s-4) 14px; }
+  .hist-trail.is-lanes::before{ content:""; position:absolute; top:30px; bottom:0; left:50%; width:1px; background:var(--rule); }
+  .hist-trail.is-lanes .hist-ev::before{ display:none; }
+  .hist-trail.is-lanes .hist-ev{ display:flex; grid-template-columns:none; padding:0; border-bottom:0; background:transparent; min-width:0; }
+  .hist-trail.is-lanes .hist-ev:hover{ background:transparent; }
+  .hist-trail.is-lanes .hist-ev.is-ours{ grid-column:1; justify-content:flex-end; padding-right:12px; }
+  .hist-trail.is-lanes .hist-ev.is-theirs{ grid-column:3; justify-content:flex-start; padding-left:12px; }
+  .hist-trail.is-lanes .hist-ev.is-mid{ grid-column:1 / -1; flex-direction:column; align-items:center; }
+  .hist-trail.is-lanes .hist-day-h{ grid-column:1 / -1; justify-self:center; position:relative; z-index:1; margin:10px 0 2px;
+    padding:1px 10px; border:1px solid var(--color-divider); border-radius:11px; background:var(--surface-2); white-space:nowrap; }
+  .hist-trail.is-lanes .hist-day-h:first-child{ border-top:1px solid var(--color-divider); }
+  .hist-lh{ position:sticky; top:0; z-index:2; padding:8px 0 4px; background:var(--color-surface);
+    font-size:var(--t-meta); font-weight:var(--w-label); color:var(--color-neutral-600); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .hist-lh.is-l{ grid-column:1; text-align:right; padding-right:12px; }
+  .hist-lh.is-m{ grid-column:2; text-align:center; }
+  .hist-lh.is-r{ grid-column:3; padding-left:12px; }
+  .hist-lh i{ display:inline-block; width:8px; height:8px; border-radius:50%; margin:0 6px; vertical-align:0; background:var(--hist-ours); }
+  .hist-lh.is-r i{ background:var(--hist-theirs); }
+  .hist-bub{ min-width:0; max-width:440px; padding:7px 10px; border:1px solid var(--color-divider); border-radius:var(--radius-lg); background:var(--color-surface); }
+  .hist-ev.is-ours .hist-bub{ border-right:3px solid var(--hist-ours); }
+  .hist-ev.is-theirs .hist-bub{ border-left:3px solid var(--hist-theirs); }
+  .hist-top{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:2px; font-size:var(--t-meta); color:var(--color-neutral-600); }
+  .hist-top .hist-when, .hist-inside .hist-when{ flex-direction:row; line-height:18px; }
+  .hist-top .hist-dot, .hist-inside .hist-dot{ --hist-dot:10px; margin-top:0; border-width:2px; }
+  .hist-top .hist-oc{ margin-left:auto; }
+  .hist-inside{ position:relative; z-index:1; display:inline-flex; align-items:center; gap:6px; max-width:100%; padding:2px 10px;
+    border:1px solid var(--color-divider); border-radius:12px; background:var(--color-surface); font-size:var(--t-meta); color:var(--color-neutral-600); }
+  .hist-ev.is-inside .hist-inside{ border-style:dashed; border-color:var(--rule-strong); }
+  .hist-inside .hist-text{ font-size:var(--t-meta); font-weight:var(--w-body); line-height:18px; color:inherit; }
+  .hist-inside .hist-body{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .hist-mid-more{ max-width:560px; width:100%; }
+  @media (max-width:700px){ .hist-trail.is-lanes{ grid-template-columns:minmax(0,1fr); }
+    .hist-trail.is-lanes::before, .hist-lh.is-m{ display:none; }
+    .hist-trail.is-lanes .hist-ev.is-ours, .hist-trail.is-lanes .hist-ev.is-theirs, .hist-lh.is-l, .hist-lh.is-r{ grid-column:1; justify-content:flex-start; text-align:left; padding:0; } }
   .hist-head{ display:flex; align-items:center; gap:10px; flex-wrap:wrap;
     padding:10px var(--s-4); border-bottom:1px solid var(--color-divider); }
   .hist-cap{ font-size:var(--t-label); color:var(--color-neutral-600); }
@@ -9081,6 +9187,34 @@
   .igw-ref{font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .igw-nm{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   @media (prefers-reduced-motion:reduce){.igw-sheet{transition:none}}
+  /* WALL OF PAPERS (round 13 of the redesign, owner picked "Wall of papers",
+     17 Oct 2026): a small paper — the top of its first page, title and party
+     over a few ruled lines, nothing stamped on it — and the facts under it:
+     stage, number · value, party, then what it asks and a private stream's
+     lock. A deal kept to its list is a hatched paper with its code name. The
+     archive is its own button beside Wall | List. */
+  .ct-wall .igw-sheet{aspect-ratio:1.55/1;padding:9% 9% 0}
+  .ct-wall .igw-t{font-size:8px;-webkit-line-clamp:1}
+  .ct-wall .igw-p{font-size:6px;margin:2px 0 7px}
+  .ct-wall .igw-ln{height:60%}
+  .igw-rl{display:flex;align-items:baseline;min-width:0;white-space:nowrap}
+  .igw-rl .igw-ref{flex:none;max-width:100%}
+  .igw-val{min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:var(--t-body);font-weight:var(--w-body);color:var(--color-neutral-600)}
+  .igw-pills{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:2px;min-width:0}
+  .igw-lock{display:inline-flex;align-items:center;gap:4px;max-width:100%;padding:0 6px;border:1px solid var(--color-divider);border-radius:999px;
+    font-size:11px;line-height:18px;color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .igw-lock svg{flex:none;width:11px;height:11px}
+  .igw-cn svg{flex:none;width:14px;height:14px}
+  .ct-arch svg{flex:none;width:16px;height:16px}
+  .igw-sheet.is-coded{display:grid;place-items:center;padding:6%;background:repeating-linear-gradient(135deg,var(--color-surface) 0 6px,var(--surface-2) 6px 12px)}
+  .igw-cn{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;color:var(--color-neutral-600)}
+  .igw-sheet.is-coded .igw-t{font-family:inherit;font-size:var(--t-meta);-webkit-line-clamp:1}
+  .igw-sheet.is-coded .igw-p{font-size:11px;margin:0}
+  .igw-card.is-coded .igw-nm{color:var(--accent-ink)}
+  .ct-arch{display:inline-flex;align-items:center;gap:6px}
+  .ct-arch[aria-pressed="true"]{border-color:var(--accent-fill);color:var(--accent-ink);background:color-mix(in srgb,var(--accent-fill) 8%,var(--color-surface))}
+  .ct-arch-n{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;
+    background:var(--color-accent-100);color:var(--accent-ink);font-size:11px;font-weight:var(--w-label);font-variant-numeric:tabular-nums}
   /* A PAPER BEING OPENED wears the turning ring until it is up (igOpeningPaint, owner 16 Oct 2026) */
   .igw-opening{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:inline-flex;align-items:center;white-space:nowrap;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:999px;padding:3px 10px;font-size:11px;line-height:1.4;color:var(--color-text)}
   .igw-opening .ob-spin{width:9px;height:9px;margin-right:5px;border-width:1.5px}
@@ -9101,6 +9235,8 @@
   /* Wall | List wears the page's own switch (.reg-seg — the clothes follow
      the builder); only its place in the row and the icon's gap are its own. */
   .reg-seg.ct-seg{align-self:flex-start;margin-left:auto}
+  .ct-top .ct-arch{align-self:flex-start;margin-left:auto;flex:none}
+  .ct-top .ct-arch + .reg-seg.ct-seg{margin-left:0}
   .reg-seg.ct-seg button{display:inline-flex;align-items:center;gap:6px}
   /* the filter row: the boxes from the left edge (wrapping within their own
      block on a narrow place), Do this to these and Adapt filters at its end */
@@ -11118,6 +11254,33 @@
     .hb-book .hb-figs>.hb-fig{border-top:0;border-left:1px solid rgba(var(--hb-ln),.16)}
     .hb-book .hb-figs>.hb-fig:nth-child(2n+1){border-left:0}
     .hb-book .hb-figs>.hb-fig:nth-child(n+3){border-top:1px solid rgba(var(--hb-ln),.16)} }
+  /* THEN AND NOW (round 17, owner picked it, 17 Oct 2026): Your book is a
+     table — what it counts, then, today, the change, its six-month line —
+     every row on one shared set of columns (subgrid), whatever the width; the
+     stage bar is drawn twice, then above today. Doubled class: it outranks
+     the tiles' wrapping rules above by scope. */
+  .hb-book .hb-figs.hb-tn.hb-tn{grid-template-columns:minmax(0,1.7fr) minmax(64px,max-content) minmax(84px,max-content) minmax(70px,max-content) minmax(80px,1fr)}
+  .hb-book .hb-figs.hb-tn.hb-tn>.hb-fig,.hb-book .hb-figs.hb-tn.hb-tn>.hb-tn-h{grid-column:1/-1;display:grid;grid-template-columns:subgrid;align-items:center;gap:0;padding:0;border-left:0;border-top:1px solid rgba(var(--hb-ln),.12)}
+  .hb-book .hb-figs.hb-tn.hb-tn>.hb-tn-h{border-top:0;font-size:var(--t-micro);color:var(--hb-mute)}
+  .hb-tn-h>span{padding:8px 14px 6px;white-space:nowrap}
+  .hb-tn-h>span:nth-child(2),.hb-tn-h>span:nth-child(3){text-align:right}
+  .hb-book .hb-tn .hb-fig-main{grid-column:1/4;display:grid;grid-template-columns:subgrid;align-items:center;gap:0;width:auto}
+  .hb-tn .hb-fig-lw{display:flex;flex-direction:column;gap:1px;padding:9px 14px;min-width:0}
+  .hb-tn .hb-fig-lw .hb-fig-left{margin:0}
+  .hb-tn .hb-fig-then{padding:0 14px;text-align:right;font-variant-numeric:tabular-nums;color:var(--hb-ink-2);white-space:nowrap}
+  .hb-book .hb-tn .hb-fig-n{padding:0 14px;text-align:right;font-size:var(--t-section)}
+  .hb-tn .hb-fig-chg{display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:0 14px;min-width:0}
+  .hb-book .hb-tn .hb-spark{height:24px;margin:0;width:calc(100% - 14px)}
+  .hb-stagerows{display:flex;flex-direction:column;gap:6px}
+  .hb-stagerow{display:grid;grid-template-columns:76px minmax(0,1fr) 40px;align-items:center;gap:10px}
+  .hb-sr-l{font-size:var(--t-meta);color:var(--hb-ink-2);white-space:nowrap}
+  .hb-stagerow:not(.is-then) .hb-sr-l{color:var(--hb-ink);font-weight:var(--w-label)}
+  .hb-sr-n{font-size:var(--t-meta);color:var(--hb-ink-2);text-align:right;font-variant-numeric:tabular-nums}
+  .hb-stagebar-then{display:flex;gap:2px;height:12px;border-radius:2px;overflow:hidden}
+  .hb-stagebar-then span{min-width:4px}
+  .hb-stagerows+.hb-stagekey{padding-left:86px}
+  .hb-sk-then{color:var(--hb-ink-2);font-variant-numeric:tabular-nums}
+  .hb-sk-note{color:var(--hb-mute)}
   .hb-sheet-def{margin:0 0 6px;font-size:var(--t-label);line-height:1.45;color:var(--hb-ink-2)}
   .hb-fig-left{display:block;font-size:var(--t-micro);line-height:1.35;color:var(--hb-amber);margin:-2px 0 4px}
   .hb-fig-left.is-split{color:var(--hb-ink-2)}
@@ -13080,6 +13243,20 @@
   .ap-body.is-ins .ap-card{min-height:0;overflow:auto;display:flex;flex-direction:column;}
   .ap-body.is-ins .ap-card > .ap-table{flex:none;}
   .ap-body.is-ins .ap-foot{margin-top:auto;position:sticky;bottom:0;background:var(--color-surface);}
+  /* ONE WORKLIST (round 15 of the redesign, owner picked "One worklist", 17 Oct
+     2026): approvals and signatures in one list, grouped by who owes the next
+     step, a Kind column instead of the two tabs; the band says how many are
+     yours and how many wait on others, Approval rules at its end. */
+  .ap-band{display:flex;align-items:center;gap:12px;min-height:38px}
+  .ap-facts{font-size:var(--t-meta);color:var(--color-neutral-600)}
+  .ap-band-sp{flex:1}
+  .ap-table tr.ap-grp td{padding:6px 12px;background:var(--surface-2);font-size:var(--t-meta);color:var(--color-neutral-700);border-top:1px solid var(--color-divider);border-bottom:1px solid var(--color-divider)}
+  .ap-table tr.ap-grp i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;vertical-align:0;background:var(--color-neutral-400)}
+  .ap-table tr.ap-grp.is-yours i{background:var(--st-amber-dot)}
+  .ap-table tr.ap-grp b{font-weight:var(--w-strong);color:var(--color-text)}
+  .ap-table tr.ap-grp .n{margin-left:8px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
+  .ap-kind{display:inline-flex;align-items:center;height:20px;padding:0 8px;border:1px solid var(--color-divider);border-radius:999px;font-size:11.5px;color:var(--color-text);background:var(--color-surface)}
+  .ap-kind.is-sig{background:var(--surface-2)}
   .ap-table.ap-ins{table-layout:fixed;}
   .ap-table.ap-ins th{position:sticky;top:0;z-index:1;background:var(--color-surface);text-transform:none;letter-spacing:0;
     font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600);}
@@ -13132,6 +13309,15 @@
   .ins-g{display:flex;align-items:center;gap:8px;min-width:0;}
   .ins-g .n{color:var(--color-neutral-600);font-weight:var(--w-label);font-variant-numeric:tabular-nums;}
   .ins-g-r{margin-left:auto;min-width:0;font-weight:var(--w-body);color:var(--color-neutral-600);font-size:var(--t-label);overflow:hidden;text-overflow:ellipsis;}
+  /* WEEK BY WEEK (round 16, owner picked it, 17 Oct 2026): the Obligations
+     page groups by week; a later week folds to one line saying what it holds,
+     its name the press that opens it. */
+  .ob-wk-rng{margin-left:8px;font-weight:var(--w-body);color:var(--color-neutral-600);font-size:var(--t-label);}
+  .ob-wk-fold{display:inline-flex;align-items:center;gap:6px;border:0;background:none;padding:0;font:inherit;color:inherit;cursor:pointer;}
+  .ob-wk-fold:focus-visible{outline:2px solid var(--focus-color);outline-offset:2px;border-radius:2px;}
+  .ob-wk-car{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--color-neutral-600);transition:transform .12s;}
+  .ins-grp.is-shut .ob-wk-car{transform:rotate(-90deg);}
+  .ob-wk-said{min-width:0;font-weight:var(--w-body);color:var(--color-neutral-600);font-size:var(--t-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   /* THE EMPTY MESSAGE IS NOT A ROW, SO IT DRAWS NO ROW'S RULE (Young, 7 Oct 2026:
      "the empty obligations page has a line in it for no reason"). */
   .ins-lt tr.ins-empty td{height:120px;text-align:center;color:var(--color-neutral-600);white-space:normal;border-bottom:0;}
@@ -13152,6 +13338,10 @@
   .ins-ok{color:var(--st-green-fg);font-weight:var(--w-label);}
   .ins-quiet{color:var(--color-neutral-500);}
   .ins-nobody{color:var(--st-amber-fg);font-weight:var(--w-label);}
+  /* REQUESTS, THE SAP WAY (round 20): the lane that sent it, the files' clip, the day asked */
+  .ik-lane-chip{display:block;margin:1px 0 0 26px;font-size:var(--t-micro);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ik-files-n{display:inline-flex;align-items:center;gap:3px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums;}
+  .ik-lt td.ik-ask{white-space:nowrap;font-variant-numeric:tabular-nums;}
   /* Unassigned is a state, not an alarm (SAP benchmark, owner-approved 9 Oct 2026). */
   .ins-unassigned{color:var(--color-neutral-600);}
   .ins-cardhead{display:flex;align-items:center;gap:var(--s-2);padding:var(--s-3) var(--s-4);border-bottom:1px solid var(--color-divider);flex:none;}
@@ -13681,6 +13871,34 @@
   .tpl-bk-seg button + button{border-left:1px solid var(--btn-edge);}
   .tpl-bk-seg button.on{background:var(--color-accent-50);color:var(--accent-ink);font-weight:var(--w-strong);}
   @media (max-width:1023px){ .tpl-bk{grid-template-columns:minmax(0,1fr);} }
+  /* THE BOOK IS PAPER FIRST (round 21, owner picked it, 17 Oct 2026): the
+     index on the left, the chosen template's own paper on the right, each
+     scrolling in its own box; the paper wears the fill preview's clothes */
+  .tpl-pf{display:grid;grid-template-columns:minmax(220px,280px) minmax(0,1fr);gap:var(--s-4);align-items:stretch;min-height:0;height:100%;}
+  .tpl-pf-idx,.tpl-pf-paper{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);min-height:0;display:flex;flex-direction:column;overflow:hidden;}
+  .tpl-pf-find{display:flex;align-items:center;gap:6px;margin:10px;padding:0 10px;height:var(--ctl-h);border:1px solid var(--btn-edge);border-radius:var(--radius);color:var(--color-neutral-600);}
+  .tpl-pf-find input{flex:1;min-width:0;border:0;background:none;font:inherit;color:var(--color-text);outline:0;}
+  .tpl-pf-list{flex:1;min-height:0;overflow:auto;}
+  .tpl-pf-g{padding:8px 12px 4px;font-size:var(--t-micro);color:var(--color-neutral-600);border-top:1px solid var(--color-divider);}
+  .tpl-pf-list>.tpl-pf-g:first-child{border-top:0;}
+  .tpl-pf-i{display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border:0;border-top:1px solid var(--color-divider);background:none;text-align:left;font:inherit;color:inherit;cursor:pointer;}
+  .tpl-pf-i:hover{background:var(--surface-2);}
+  .tpl-pf-i.is-on{background:color-mix(in srgb,var(--color-accent) 8%,transparent);box-shadow:inset 2px 0 0 var(--accent-solid);}
+  .tpl-pf-t{display:flex;flex-direction:column;min-width:0;flex:1;}
+  .tpl-pf-t b{font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tpl-pf-t span{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tpl-pf-b{flex:none;font-size:var(--t-micro);padding:1px 7px;border-radius:999px;border:1px solid var(--color-divider);color:var(--color-neutral-600);}
+  .tpl-pf-b.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg);border-color:transparent;}
+  .tpl-pf-h{display:flex;align-items:flex-start;gap:var(--s-3);padding:14px 16px;border-bottom:1px solid var(--color-divider);}
+  .tpl-pf-hl{flex:1;min-width:0;}
+  .tpl-pf-hl h2{margin:0;font-size:var(--t-section);font-weight:var(--w-title);color:var(--color-text);}
+  .tpl-pf-hl p{margin:3px 0 0;font-size:var(--t-meta);color:var(--color-neutral-600);}
+  .tpl-pf-v{display:inline-block;margin-left:6px;padding:0 7px;border:1px solid var(--color-divider);border-radius:999px;font-size:var(--t-micro);font-weight:var(--w-label);color:var(--color-neutral-600);vertical-align:2px;}
+  .tpl-pf-acts{display:flex;gap:8px;flex:none;flex-wrap:wrap;justify-content:flex-end;}
+  .tpl-pf-scroll{flex:1;min-height:0;overflow:auto;padding:16px;background:var(--desk-ground, var(--surface-2));}
+  .tpl-pf-sheet{max-width:var(--doc-sheet-max, 720px);margin:0 auto;background:var(--color-doc-warm);border:1px solid var(--color-doc-warm-line);padding:28px 36px;font-size:13px;user-select:text;}
+  .tpl-pf-none{padding:16px;}
+  @media (max-width:1023px){ .tpl-pf{grid-template-columns:minmax(0,1fr);height:auto;} }
   /* THE DRAWING'S BOOK (SAP benchmark, owner 9 Oct 2026): the shelves card runs
      to the foot of the page, the small cards stay their own height, a touch
      more air between the figures and the tabs, Most used at reading size. */
@@ -14238,6 +14456,16 @@
   .cn-n{font-weight:400;color:var(--color-neutral-500)}
   .cn-late{color:var(--st-ruby-fg)}
   .cn-jw{background:var(--color-accent-50)}
+  /* JAMBO'S WORK OPENS IN PLACE (round 23, owner picked it, 17 Oct 2026) */
+  .cn-jw-list{background:color-mix(in srgb,var(--color-accent-50) 55%,var(--color-surface));border-bottom:1px solid var(--color-divider)}
+  .cn-jw-i{border-top:1px solid var(--color-divider);padding:8px 16px 8px 52px}
+  .cn-jw-r{display:flex;align-items:center;gap:12px}
+  .cn-jw-r .cn-w{flex:1;min-width:0}
+  .cn-jw-tag{display:inline-block;margin-right:6px;padding:0 6px;border-radius:3px;background:var(--color-surface);border:1px solid var(--color-divider);font-size:var(--t-micro);font-weight:var(--w-label);color:var(--color-neutral-600);vertical-align:1px}
+  .cn-jw-acts{display:flex;align-items:center;gap:8px;flex:none;flex-wrap:wrap;justify-content:flex-end}
+  .cn-jw-acts .ui-btn{height:var(--ctl-h-sm);padding:0 10px;font-size:var(--t-label)}
+  .cn-jw-body{margin-top:8px;padding:12px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg)}
+  .cn-jw-foot{display:flex;justify-content:flex-end;gap:12px;align-items:center;padding:8px 16px;border-top:1px solid var(--color-divider);font-size:var(--t-meta);color:var(--color-neutral-600)}
   .cn-pill{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:10px;font-size:var(--t-micro);font-weight:400;background:var(--surface-2);color:var(--color-neutral-600);border:1px solid var(--color-divider)}
   .cn-pill-ic{width:11px;height:11px}
   .cn-co-ic{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--color-accent-100);color:var(--accent-ink);flex:none}

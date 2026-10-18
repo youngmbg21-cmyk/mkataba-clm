@@ -117,15 +117,14 @@ const signIn = async (page, base, email, pass) => {
     /* ---- 4. You ---- */
     await page.click('.st-face[data-st-tab="you"]');
     await until(() => !!document.querySelector('[data-st-you-card="work"]'));
-    await page.click('[data-st-you-card="work"] [data-st-panel="me:work"]');
-    await until(() => !!document.getElementById('pref-jb-chips'));
-    /* the house's switch is styled over its box: pressed as a reader presses it */
-    await page.evaluate(() => document.getElementById('pref-jb-chips').click());
+    /* since round 24 (One sheet) the two flags change IN THEIR ROWS */
+    await until(() => !!document.querySelector('[data-st-you-card="work"] [data-st-sw="chips"]'));
+    await page.click('[data-st-you-card="work"] [data-st-sw="chips"]');
     await until(() => currentUser().prefs && currentUser().prefs.jamboChips === false);
-    await page.selectOption('#pref-opens-on', 'fill').catch(async () => {
-      await page.evaluate(() => { const s = document.getElementById('pref-opens-on'); s.value = 'fill'; s.dispatchEvent(new Event('change', { bubbles: true })); }); });
+    await page.selectOption('[data-st-opens]', 'fill').catch(async () => {
+      await page.evaluate(() => { const s = document.querySelector('[data-st-opens]'); s.value = 'fill'; s.dispatchEvent(new Event('change', { bubbles: true })); }); });
     const prefs = await until(() => { const p = currentUser().prefs || {}; return p.opensOn === 'fill' ? JSON.stringify(p) : null; });
-    check('4. a You door opens its drawer; the two flags are saved as they change', !!prefs, prefs);
+    check('4. the two flags change in their rows on You, saved as they change', !!prefs, prefs);
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
     const noChips = await until(() => document.querySelectorAll('#st-side .st-jb-chip').length === 0);
     check('4b. Jambo\'s suggestions off: none beside Settings', !!noChips);

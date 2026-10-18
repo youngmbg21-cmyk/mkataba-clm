@@ -71,20 +71,20 @@ const CONTRACTS = [
     check('1a Housekeeping carries a door, The trail', /^The trail ›$/.test(door || ''), door);
     await shot(page, 'trail-company');
     if (door) await press('[data-st-card="house"] [data-st-panel="trail"]', '1b the door');
-    const tabs = await until(() => { const d = document.getElementById('st-drawer');
-      if (!d || !d.classList.contains('open')) return null;
-      const t = [...document.querySelectorAll('#st-dbody [data-st-bk-tab]')];
-      return t.length ? { tabs: t.map(b => b.textContent.trim() + (b.classList.contains('is-on') ? '*' : '')).join(' | '), title: (document.querySelector('#st-dhead .rvd-title') || {}).textContent || '' } : null; });
-    check('1b it opens Data & backup on The trail', !!tabs && tabs.tabs === 'Backup | The trail*' && /Data/.test(tabs.title), JSON.stringify(tabs));
+    /* since round 26 ("The SAP way") Data & backup is a PAGE: The trail · Backup are its tabs */
+    const tabs = await until(() => { const pg = document.querySelector('[data-st-pg="data"]');
+      if (!pg) return null;
+      const t = [...pg.querySelectorAll('[data-st-bk-tab]')];
+      return t.length ? { tabs: t.map(b => b.textContent.trim() + (b.classList.contains('is-on') ? '*' : '')).join(' | '), title: (pg.querySelector('.st-pg-t') || {}).textContent || '' } : null; });
+    check('1b it opens Data & backup on The trail', !!tabs && tabs.tabs === 'The trail* | Backup' && /Data/.test(tabs.title), JSON.stringify(tabs));
 
     console.log('\n2 · it asks, and counts before the press');
     const qWord = `Q${QQ + 1} ${QY}`;
     const fig = await until(w => { const f = document.querySelector('#st-tr-go .st-tr-fig'); const t = f && f.textContent.replace(/\s+/g, ' ').trim(); return t && t.includes(w) ? t : null; }, qWord);
     check('2a the last whole quarter, counted: 3 acts · 2 streams · 3 people · ' + qWord, fig === `3 acts · 2 streams · 3 people · ${qWord}`, fig);
     const asks = await page.evaluate(() => ({ from: !!document.getElementById('st-tr-from'), to: !!document.getElementById('st-tr-to'),
-      stream: [...(document.querySelectorAll('#st-tr-stream option') || [])].length, as: [...document.querySelectorAll('input[name="st-tr-as"]')].map(r => r.value).join(' '),
-      lead: ((document.querySelector('.st-tr-lead') || {}).textContent || '').trim() }));
-    check('2b it asks From, To, the streams and CSV or PDF, and says what the trail is', asks.from && asks.to && asks.stream >= 3 && asks.as === 'csv pdf' && /who did what/.test(asks.lead), JSON.stringify(asks));
+      stream: [...(document.querySelectorAll('#st-tr-stream option') || [])].length, as: [...document.querySelectorAll('#st-tr-as-sel option')].map(r => r.value).join(' ') }));
+    check('2b it asks From, To, the streams and CSV or PDF, as labelled boxes', asks.from && asks.to && asks.stream >= 3 && asks.as === 'csv pdf', JSON.stringify(asks));
     const sales = await page.evaluate(s => { const el = document.getElementById('st-tr-stream'); if (!el) return false; el.value = s; el.dispatchEvent(new Event('change', { bubbles: true })); return true; }, H.FOLDER_B);
     const one = sales ? await until(() => { const t = (document.querySelector('#st-tr-go .st-tr-fig') || {}).textContent || ''; return /^1 act/.test(t.trim()) ? t.replace(/\s+/g, ' ').trim() : null; }) : null;
     check('2c one stream asked: the count follows — 1 act', /^1 act · 1 stream · 1 person/.test(one || ''), one);
@@ -101,7 +101,7 @@ const CONTRACTS = [
     await until(() => { const b = document.getElementById('st-tr-download'); return b && !b.disabled && /3 acts/.test((document.querySelector('#st-tr-go .st-tr-fig') || {}).textContent || ''); });
 
     console.log('\n4 · the hand-over, and its record');
-    await page.evaluate(() => { const r = document.querySelector('input[name="st-tr-as"][value="pdf"]'); if (r) { r.checked = true; r.dispatchEvent(new Event('change', { bubbles: true })); } });
+    await page.evaluate(() => { const r = document.getElementById('st-tr-as-sel'); if (r) { r.value = 'pdf'; r.dispatchEvent(new Event('change', { bubbles: true })); } });
     await shot(page, 'trail-drawer-1440x780');
     let file = null;
     if (await page.locator('#st-tr-download').count()) {
@@ -114,19 +114,19 @@ const CONTRACTS = [
     check('4b it says so', !!told, told);
     const past = await until(() => { const rows = [...document.querySelectorAll('#st-tr-past tbody tr')]; return rows.length ? rows.map(r => [...r.cells].map(c => c.textContent.trim()).join(' | ')) : null; });
     check('4c …and the download is listed under Downloads so far: who, the period, PDF', !!past && past.length === 1 && /Amina Otieno/.test(past[0]) && past[0].includes(qWord) && /\| PDF$/.test(past[0]), JSON.stringify(past));
-    await press('#st-dbody [data-st-bk-tab="backup"]', '4d the Backup tab');
+    await press('[data-st-pg="data"] [data-st-bk-tab="backup"]', '4d the Backup tab');
     const backup = await until(() => document.getElementById('bk-export') ? true : null);
     check('4d the Backup tab still holds the backup', !!backup);
-    await press('#st-dbody [data-st-bk-tab="trail"]', '4d back to The trail');
+    await press('[data-st-pg="data"] [data-st-bk-tab="trail"]', '4d back to The trail');
 
     console.log('\n5 · the owner\'s three screens');
     for (const vp of [{ width: 1440, height: 780 }, { width: 1536, height: 730 }, { width: 1366, height: 950 }]) {
       await page.setViewportSize(vp);
       await until(() => !!document.querySelector('#st-tr-go .st-tr-fig b'));
       const fit = await page.evaluate(() => {
-        const dw = document.getElementById('st-drawer'), body = document.getElementById('st-dbody');
-        const cut = [...document.querySelectorAll('#st-dbody .st-ps-tab, #st-tr-download, .st-tr-fig, #st-tr-past td, .st-ps-radio')].filter(x => x.scrollWidth > x.clientWidth + 1).length;
-        return { side: body ? body.scrollWidth - body.clientWidth : -1, cut, inside: dw ? dw.getBoundingClientRect().right <= innerWidth + 1 : false };
+        const band = document.querySelector('.st-tr-band');
+        const cut = [...document.querySelectorAll('[data-st-pg="data"] .st-dp-tab, #st-tr-download, .st-tr-fig, #st-tr-past td')].filter(x => x.scrollWidth > x.clientWidth + 1).length;
+        return { side: document.scrollingElement.scrollWidth - innerWidth, cut, inside: band ? band.getBoundingClientRect().right <= innerWidth + 1 : false };
       });
       await shot(page, `trail-drawer-${vp.width}x${vp.height}`);
       check(`5 ${vp.width}×${vp.height}: nothing cut, no sideways scroll`, fit.side <= 0 && fit.cut === 0 && fit.inside, JSON.stringify(fit));
