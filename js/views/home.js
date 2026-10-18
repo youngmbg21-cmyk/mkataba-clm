@@ -1640,9 +1640,30 @@ function lookDone(c){
   if(typeof toast==='function') toast(i18t('look_done_toast',{ who:(mine[0].by&&mine[0].by.name)||'' }),'ok');
   return true;
 }
+/* LAND ON IT (owner, 18 Oct 2026): each kind of work owed names the one thing
+   it is about, and the door that opened its face lands there, lit — the
+   approval card, the Sign button, the first box still to fill, the first row
+   waiting on you, the colleague's suggestion, the renewal decision. The face
+   is the door's own; this only says where in it the reader arrives. */
+const NEEDS_LAND={
+  approval:'#pd-signface #sa-card, #sa-card',
+  refused:'#pd-signface .pd-road-stop.is-now',
+  sign:'#pd-signface #sign-btn',
+  details:'#pd-fillface [data-pd-owed="1"]',
+  quiet:'#pd-redface [data-nego-card]',
+  review:'#pd-redface [data-nego-card]',
+  suggest:()=>{ const b=document.querySelector('#pd-redface [data-dk-adopt]'); return b?(b.closest('[data-nego-card]')||b):document.querySelector('#pd-redface [data-nego-card]'); },
+  renewal:'#renewal-host',
+};
+function needsLand(kind){
+  const t=NEEDS_LAND[kind];
+  if(t&&typeof window.landOn==='function') landOn(t,{ block:kind==='renewal'?'center':'nearest' });
+}
 function needsYouGo(kind, id){
   const c=(typeof getContract==='function')?getContract(id):null;
   if(!c) return false;
+  /* the lander waits, bounded, for the face below to draw its item */
+  needsLand(kind);
   if(kind==='look') return lookDone(c);
   /* AN APPROVAL ASKED OF YOU OPENS BEFORE YOU SIGN ON HOME, AS THE BELL'S ROW
      DOES (owner, 15 Oct 2026: "go with your suggestions" — the checklist's row
@@ -1685,10 +1706,6 @@ function needsYouGo(kind, id){
      Home's paper, where the notes drawer lives (the paper's Notes door). */
   if(kind==='renewal' && window.roomOverviewOpen){
     roomOverviewOpen(c);
-    let n=0; const land=()=>{ const el=document.getElementById('renewal-host');
-      if(el&&el.getBoundingClientRect().height>0){ try{ el.scrollIntoView({ block:'center' }); }catch(_){} return; }
-      if(++n<20) setTimeout(land,120); };
-    setTimeout(land,60);
     return true;
   }
   if(kind==='note' && window.pdOpenOnHome && !(window.innerWidth&&window.innerWidth<768) && pdOpenOnHome(c.id,'plain')){

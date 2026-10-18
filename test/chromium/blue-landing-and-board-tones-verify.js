@@ -101,8 +101,9 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
     /* ============ N-1 Present survives a change of side ============ */
     const pres = () => page.evaluate(() => ({ fs: !!document.fullscreenElement,
       cls: !!document.querySelector('.hb-presenting'), face: (typeof hbFace === 'function') ? hbFace() : '' }));   /* Home's face in front (a desk tab since 17 Oct 2026) */
-    if (await page.$('#hb-present')){
-      await page.click('#hb-present');
+    /* RE-POINTED 18 Oct 2026 (the SAP way): Present is Recent's last row, under the page's name */
+    if (await page.$('#dk-page')){
+      await page.click('#dk-page'); await page.click('#dk-recent [data-dk-present]');
       await page.waitForTimeout(800);
       const on = await pres();
       check('N-1a Present fills the screen', on.fs && on.cls, JSON.stringify(on));
@@ -121,7 +122,7 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
       await page.waitForTimeout(800);
       const off = await pres();
       check('N-1d the reader\'s exit still ends it', !off.fs && !off.cls, JSON.stringify(off));
-    } else check('N-1 Present button is drawn', false, 'no #hb-present');
+    } else check('N-1 the page\'s name is in the bar, holding Present', false, 'no #dk-page');
 
     /* ============ N-2 and N-9 on the Contracts list ============ */
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));

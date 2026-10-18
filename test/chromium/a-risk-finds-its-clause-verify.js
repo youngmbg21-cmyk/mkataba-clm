@@ -180,7 +180,7 @@ const NEW_CL = 'Each party shall sign this Agreement in the order the Buyer name
     const last = add[add.length - 1];
     await page.selectOption('#clause-editor #ce-lane [data-ce-rk-where]', last.v);
     const L4 = await until(page, async (n) => { const pg = document.getElementById('clause-editor'); const ln = pg && pg.querySelector('#ce-lane');
-      return ln && window._asked.length > n && document.querySelector('#ce-lane [data-ce-apply="rk:0"]') && document.querySelector('#clause-editor .ce-new-badge') ? true : null; }, before, 10000) && await lane();
+      return ln && window._asked.length > n && document.querySelector('#ce-lane [data-ce-apply="rk:0"]') && document.querySelector(`#clause-editor #ce-doc [data-clause="${window.CE_NEW_ID}"]`) ? true : null; }, before, 10000) && await lane();
     check(!!L4, '2i a place for a new clause holds it there, and Jambo is asked');
     const ask4 = await page.evaluate(() => window._asked.slice(-1)[0] || '');
     check(/There is no existing wording/.test(ask4) && !/The selected wording is/.test(ask4) && !/"""/.test(ask4),

@@ -457,6 +457,10 @@ function stWireDrawerOnce(){
     const box=document.getElementById('st-jb-q');
     const q=(box&&box.value||'').trim(); if(!q) return;
     box.value='';
+    /* JAMBO, THE SAME ON EVERY PAGE (owner, 18 Oct 2026): a page, a contract's
+       number, a draft or a send is read as Home reads it (caAskAnywhere);
+       finding a setting is this box's own job, for the rest */
+    if(typeof caAskAnywhere==='function'&&caAskAnywhere(q)) return;
     stJbAsk(q);
   });
   /* A dialog opened from inside the drawer owns Escape while it is up: one
@@ -2526,7 +2530,7 @@ function stJamboHtml(){
     </div>
     <form class="st-jb-ask" id="st-jb-form" autocomplete="off">
       <label class="sr-only" for="st-jb-q">${esc(i18t('st_jb_ph'))}</label>
-      <input id="st-jb-q" type="text" maxlength="200" placeholder="${esc(i18t('st_jb_ph'))}">
+      <input id="st-jb-q" type="text" maxlength="200" data-ca-slash autocomplete="off" placeholder="${esc(i18t('st_jb_ph'))}">
       <button type="submit" class="ui-btn ui-btn-primary">${esc(i18t('st_jb_ask'))}</button>
     </form>
   </div>`;

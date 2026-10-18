@@ -80,9 +80,11 @@ describe('f732 (2) the order the box asks them in', () => {
   test('the red-flag sweep reads the whole book only when no contract is named', () => {
     assert.ok(/IG_COMPLIANCE_RE\.test\(q\)&&!idHits\)\s+await intelComplianceScan\(q\)/.test(ask));
   });
+  /* RE-POINTED 18 Oct 2026 (#339, Jambo the same on every page): the place
+     words are read inside the one reader every box uses, caAskAnywhere */
   test('the Counter hands a booking over before it reads a place', () => {
     const cn = regionOf(CN, 'function counterAsk(');
-    const book = cn.indexOf('igBookAsk(t)'), place = cn.indexOf('caReadPlace(t)');
+    const book = cn.indexOf('igBookAsk(t)'), place = cn.indexOf('caAskAnywhere(');
     assert.ok(book > -1 && place > -1 && book < place);
     assert.ok(/calHandOff\(t\)\) return true/.test(cn));
   });

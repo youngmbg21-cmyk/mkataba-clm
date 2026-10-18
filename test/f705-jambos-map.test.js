@@ -397,9 +397,16 @@ describe('f705 (8) the wiring', () => {
     assert.match(src.match(/function caCardHtml\(a, i\)\{[\s\S]*?\n\}/)[0], /a\.kind === 'map'[^\n]*jmCardHtml\(a, i\)/);
     assert.match(src.match(/async function caCardPress\(i, act, btn\)\{[\s\S]*?\n\}/)[0], /a\.kind === 'map'[^\n]*jmCardPress\(i, act\)/);
   });
-  test('8c the Counter\'s box asks the map before it hands the words to Jambo beside the Board', () => {
+  /* RE-POINTED 18 Oct 2026 (Jambo the same on every page): Home's box reads
+     through the one reader every Jambo box uses, caAskAnywhere, with {all};
+     the map is asked there, after the place words, before the hand to Jambo */
+  test('8c Home\'s box asks the map before it hands the words to Jambo beside the Board', () => {
     const body = strip(R('js/views/counter.js')).match(/function counterAsk\(text\)\{([\s\S]*?)\n\}/)[1];
-    assert.ok(body.indexOf('jmRead(') > body.indexOf('caReadPlace(') && body.indexOf('jmRead(') < body.indexOf('intelAsk('));
+    assert.match(body, /caAskAnywhere\(text, \{ all: true \}\)/);
+    const any = strip(ACTS).match(/function caAskAnywhere\(text, opts = \{\}\)\{([\s\S]*?)\n\}/)[1];
+    const tail = any.slice(any.indexOf('let a = null'));
+    assert.ok(tail.indexOf('jmRead(') > tail.indexOf('caReadPlace(') && tail.indexOf('jmRead(') < tail.indexOf('caHandHome('));
+    assert.match(tail, /!a && opts\.all && typeof jmRead === 'function'/, 'Home\'s box only: a page\'s own box keeps its own job');
   });
   test('8d the app loads the map, after Jambo\'s word table; the library is fetched from HaTi itself', () => {
     const app = R('js/app.js');

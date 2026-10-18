@@ -1447,9 +1447,12 @@ const CA_GO = {
   fill: c => (typeof pdFillOpen === 'function') ? pdFillOpen(c.id) : caRoomTab(c, 'details'),
   oblig: c => c ? pdOpenOnHome(c.id, 'oblig') : (typeof setView === 'function' && setView('obligations')),
   history: c => c ? ((typeof hbOpenView === 'function') ? hbOpenView(c.id, 'hist') : caRoomTab(c, 'history')) : (typeof openPanel === 'function' && openPanel('activity')),
-  /* THE FILE PICKER, NOT THE POP-UP (step 4): the file lands on the paper
-     through the existing upload path (pdDropPick → uploadFromDrop) */
-  upload: () => !caMayAdd() ? false : (typeof pdDropPick === 'function') ? pdDropPick() : (typeof openUploadModal === 'function' && openUploadModal()),
+  /* LAND ON IT (owner, 18 Oct 2026: "upload document … should take you to
+     contracts page" with the place to go lit): on a computer the word lands
+     on Jambo's drop area, lit, Choose files ready — it presses nothing, so
+     the picker no longer opens by itself; the phone keeps the picker */
+  upload: () => !caMayAdd() ? false : (typeof pdDropDoor === 'function' && pdDropDoor()) ? true
+    : (typeof pdDropPick === 'function') ? pdDropPick() : (typeof openUploadModal === 'function' && openUploadModal()),
   /* THE ONE FORM, never the two-door menu (step 3) — a word answers with the
      Draft card (caGoCardHtml); this is for a caller that moves straight on */
   draft: () => caDraftForm(null),
@@ -1490,7 +1493,7 @@ function caGo(a){
   if (a.place === 'help') return true;
   caUseBump(a.place);
   /* share and draft answer with a card in the panel (caGoCardHtml) and move nothing */
-  if (a.place === 'share' || a.place === 'draft' || a.place === 'next') return true;
+  if (a.place !== 'help' && CA_CARD_WORDS.includes(a.place)) return true;
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   caTrailPush();
   if (a.missing){ caHomeWall(); caGoRepaint(); return true; }
@@ -1524,8 +1527,112 @@ function caPlaceRun(k){
   const word = _caT('ca_w_' + k);
   if (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof intelAsk === 'function') return intelAsk(word);
   const a = caReadPlace(word); if (!a) return false;
-  if (a.place === 'share' || a.place === 'help' || a.place === 'draft' || a.place === 'next'){ caUseBump(a.place); if (typeof setView === 'function') setView('dashboard'); setTimeout(() => { if (typeof intelAsk === 'function') intelAsk(word); }, 0); return true; }
+  if (CA_CARD_WORDS.includes(a.place)){ caUseBump(a.place); return caHandHome(word, a); }
   return caGo(a);
+}
+
+/* ---- JAMBO, THE SAME ON EVERY PAGE (owner, 18 Oct 2026: "In the calendar I
+   can't use jambo to move to another page as it is only there to support the
+   calendar … Jambo should work with the same powers as the jambo in the home
+   page") ----
+   EVERY Jambo box reads what was typed through the ONE reader Home's box uses
+   first, before its own page's job: a place word, a page's name or a contract
+   number moves the reader there (caGo, the one mover); a word Home's Jambo
+   answers with a card (CA_CARD_WORDS) or an act he prepares from the words
+   alone (send, a job, a door, a Menu row, a draft sentence) is asked of Home's
+   Jambo, beside the Board — the Counter's own way. Answers whether it took the
+   words; only then does a page's own job run (the Calendar plans time,
+   Settings finds a setting, the window answers a question). Spends nothing:
+   no reader here calls a model. */
+const CA_CARD_WORDS = ['share', 'draft', 'help', 'next'];
+function caTakesWords(t){
+  try { if (caReadSend(t) || caReadJob(t) || caReadDoor(t) || caReadMenu(t)) return true; } catch (_){}
+  try { if (typeof caIsDraftAsk === 'function' && caIsDraftAsk(t)) return true; } catch (_){}
+  return false;
+}
+/* hand the words to Home's Jambo: drafting is the wall's, the rest the Board's */
+function caHandHome(t, a){
+  if (typeof hbS !== 'function' || typeof setView !== 'function') return false;
+  const toWall = !!(a && a.place === 'draft') || (typeof caIsDraftAsk === 'function' && caIsDraftAsk(t));
+  if (toWall && typeof hbOpenContracts === 'function') hbOpenContracts();
+  else { const s = hbS(); s.face = 'board'; if (typeof hbSave === 'function') hbSave(); setView('dashboard'); }
+  let tries = 0;
+  const ask = () => {
+    if (document.getElementById('igd-input') && typeof intelAsk === 'function'){ try { intelAsk(t); } catch (_){} return; }
+    if (++tries < 30) setTimeout(ask, 100);
+  };
+  setTimeout(ask, 0);
+  return true;
+}
+function caAskAnywhere(text, opts = {}){
+  const t = String(text || '').trim(); if (!t) return false;
+  /* on Home his own box is the reader already */
+  if (typeof document !== 'undefined' && document.getElementById('igd-input') && typeof intelAsk === 'function'
+    && typeof state !== 'undefined' && state && state.view === 'dashboard'){ if (!opts.all && !caReadPlace(t) && !caTakesWords(t)) return false; intelAsk(t); return true; }
+  let a = null; try { a = caReadPlace(t); } catch (_){ a = null; }
+  if (a && a.kind === 'go' && !CA_CARD_WORDS.includes(a.place) && caGo(a)) return true;
+  /* JAMBO'S MAP (js/jambomap.js) on Home's box, where every word is Jambo's
+     (opts.all): everyday words for a page open it as a place word does; a card
+     of his ("which did you mean?") is his beside the Board. A page's own box
+     keeps its own job for the rest. */
+  if (!a && opts.all && typeof jmRead === 'function'){ let m = null; try { m = jmRead(t); } catch (_){ m = null; }
+    if (m && m.kind === 'go' && !m.missing && !CA_CARD_WORDS.includes(m.place) && caGo(m)) return true; }
+  if ((a && a.kind === 'go') || caTakesWords(t) || opts.all) return caHandHome(t, a);
+  return false;
+}
+
+/* ---- "/" IN EVERY JAMBO BOX ----
+   A box marked data-ca-slash lists the places, most used first, the moment it
+   starts with "/" — the same rows Home's and the Counter's lists draw
+   (caSlashRows), less the words that need a contract where none is open. A
+   row is the place's own run (caPlaceRun). Painted fixed above the box, so a
+   panel's own scroller never clips it. */
+const CA_SL_MAX = 40;
+const CA_SL_TALL = 360;   // the Counter's list is as tall; the rest scrolls inside it
+let _caSl = null;   // { inp, rows, on }
+function caSlRead(inp){
+  const m = /^\s*\/([\w\-åäöÅÄÖ'’]*)$/.exec(String(inp.value || ''));
+  if (!m){ caSlClose(); return; }
+  const one = caOpenContract() ? new Set() : new Set(CA_PLACES.filter(p => p.need === 'one').map(p => p.k));
+  const rows = caSlashRows(m[1].toLowerCase(), { max: 99 }).filter(r => !one.has(r.k)).slice(0, CA_SL_MAX);
+  if (!rows.length){ caSlClose(); return; }
+  _caSl = { inp, rows, on: Math.min((_caSl && _caSl.on) || 0, rows.length - 1) };
+  caSlPaint();
+}
+function caSlPaint(){
+  if (!_caSl) return;
+  let el = document.getElementById('ca-slash');
+  if (!el){ el = document.createElement('div'); el.id = 'ca-slash'; el.className = 'ca-pop ca-slash'; document.body.appendChild(el); }
+  el.innerHTML = `<h5>${_caE(_caT('hb_pop_places'))}</h5><div role="listbox">${_caSl.rows.map((r, i) =>
+    `<div class="ca-opt${i === _caSl.on ? ' on' : ''}" role="option" aria-selected="${i === _caSl.on}" data-ca-sl="${i}"><span class="who"><b>${_caE(r.word)}</b>${r.sub ? `<small>${_caE(r.sub)}</small>` : ''}</span></div>`).join('')}</div><p class="ca-hint">${_caE(_caT('hb_pop_keys'))}</p>`;
+  const r = _caSl.inp.getBoundingClientRect();
+  el.style.left = Math.max(8, r.left) + 'px';
+  el.style.width = Math.max(260, r.width) + 'px';
+  el.style.bottom = Math.max(8, innerHeight - r.top + 6) + 'px';
+  el.style.maxHeight = Math.max(160, Math.min(CA_SL_TALL, r.top - 16)) + 'px';
+  const on = el.querySelector('.ca-opt.on'); if (on && on.scrollIntoView) try { on.scrollIntoView({ block: 'nearest' }); } catch (_){}
+}
+function caSlClose(){ _caSl = null; const el = document.getElementById('ca-slash'); if (el) el.remove(); }
+function caSlTake(i){
+  const P = _caSl; const r = P && P.rows[i]; if (!r) return;
+  P.inp.value = ''; caSlClose();
+  caPlaceRun(r.k);
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._caSlWired){
+  document._caSlWired = true;
+  document.addEventListener('input', e => { const t = e.target; if (t && t.matches && t.matches('[data-ca-slash]')) caSlRead(t); });
+  document.addEventListener('keydown', e => {
+    const t = e.target; if (!_caSl || !t || t !== _caSl.inp) return;
+    const n = _caSl.rows.length;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); e.stopPropagation(); _caSl.on = (_caSl.on + (e.key === 'ArrowDown' ? 1 : n - 1)) % n; caSlPaint(); return; }
+    if (e.key === 'Enter' || e.key === 'Tab'){ e.preventDefault(); e.stopPropagation(); caSlTake(_caSl.on); return; }
+    if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); caSlClose(); }
+  }, true);
+  document.addEventListener('mousedown', e => {
+    const o = e.target && e.target.closest ? e.target.closest('[data-ca-sl]') : null;
+    if (o){ e.preventDefault(); caSlTake(Number(o.getAttribute('data-ca-sl'))); return; }
+    if (_caSl && !(e.target && e.target.closest && e.target.closest('#ca-slash, [data-ca-slash]'))) caSlClose();
+  });
 }
 
 /* ---- THE TWO WORDS THAT ANSWER WITH A CARD ----
@@ -1569,7 +1676,8 @@ function caGoCardHtml(a, i){
   return '';
 }
 function caGoPress(a, act){
-  if (a.place === 'draft'){ if (act === 'draftform') caDraftForm(null); else if (act === 'draftupload') CA_GO.upload(); return; }
+  /* "Upload their paper" is the reader's own press: the picker itself */
+  if (a.place === 'draft'){ if (act === 'draftform') caDraftForm(null); else if (act === 'draftupload'){ if (!caMayAdd()) return; if (typeof pdDropPick === 'function') pdDropPick(); else CA_GO.upload(); } return; }
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null; if (!c) return;
   if (String(act).startsWith('next:')){ caNextRun(c, String(act).slice(5)); return; }
   if (act === 'shareout'){ if (typeof openShareModal === 'function') openShareModal(c); return; }
@@ -1590,4 +1698,4 @@ if (typeof document !== 'undefined' && !document._caBackWired){
 }
 Object.assign(window, { CA_PLACES, CA_PLACE_LEAD, CA_PLACE_MAX, CA_PLACE_MIN_TYPED, caPlaceOf, caOnBoard, caReadPlace, CA_USES_KEY, caUses, caUseBump, CA_SLASH, CA_SLASH_MAX, caSlashWord, caSlashRows,
   CA_TRAIL_MAX, caPlaceNow, caTrailPush, caTrailTop, caTrailLabel, caTrailBack, caBackRowHtml, caHomeFace, caHomeWall, caRoomTab, CA_GO, caGoSay, caGo, caGoRepaint,
-  caPlaceRows, caPlaceRun, caGoCardHtml, caGoPress, CA_CHIPS, CA_CHIPS_WALL, CA_CHIP_WALL_WORD, caChipLead });
+  caPlaceRows, caPlaceRun, CA_CARD_WORDS, caTakesWords, caHandHome, caAskAnywhere, CA_SL_MAX, CA_SL_TALL, caSlRead, caSlPaint, caSlClose, caSlTake, caGoCardHtml, caGoPress, CA_CHIPS, CA_CHIPS_WALL, CA_CHIP_WALL_WORD, caChipLead });

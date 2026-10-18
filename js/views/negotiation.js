@@ -7164,89 +7164,40 @@ function rlReadAtHtml(c, clauseId, side){
   return `<div class="nego-body nego-stack rl-read-at" data-rl-read-at="${_ne(r.id)}">${inner}</div>`;
 }
 
-/* ---- THE CHIP ON THE CLAUSE'S OWN HEAD ROW ----
-   What the paper is showing on this clause, in five words, and a door onto
-   everything it is not showing. Drawn only where there is something to say:
-   a clause nobody has touched carries nothing, because a chip reading "no
-   moves" is a fact printed for its own sake.
-   NEVER ON A PREVIEW and never inside the clause editor's own canvas — that
-   page is one clause and the ladder is in its rail. */
+/* ---- NO STEP CHIP ON THE PAPER (owner, 18 Oct 2026) ----
+   The clause's head row used to carry "Step 2 · your ask on their step 1 ·
+   not sent" — printed inside the contract itself, saying again what the
+   Redlines row for that change already says ("Step 2 · yours on their step
+   1"), whose Ladder verb is the door this chip was. The owner ruled it off
+   the paper on both seats and in the clause editor. What stays is the one
+   state the reader CHOSE: while a rung is pinned the paper shows an earlier
+   step, and this says so with the way back to today (rlReadAtRung). The
+   reading itself (ladderChip, js/ladder.js) is unchanged. */
 function rlLadderChipHtml(c, cl, side, opts = {}){
-  if (!cl || !cl.clauseId) return '';
-  /* ---- A CLEAN READING CARRIES NO CHIP, FOR THE PENCIL'S OWN REASON ----
-     Under "As agreed" or "With changes" the clause is drawn with no marks
-     on it, and a chip saying which move the paper is showing would be
-     describing a reading the reader is not in. rlClauseEditPillHtml stands
-     down on the same question (rlReadOnlyReading) and this follows it, so
-     the row is the same row in every reading. The ladder is still reached
-     from the change column's own rows and from the deal board. */
+  if (!cl || !cl.clauseId || opts.pill) return '';
   if (typeof rlReadOnlyReading === 'function' && rlReadOnlyReading()) return '';
-  if (typeof window.ladderChip !== 'function') return '';
   const id = String(cl.clauseId);
-  /* The chip may not say the paper is showing an earlier move while a clean
-     reading is drawing today's wording — see rlReadAtHtml. */
   const at = rlReadMode() === 'marks' ? rlReadAtRung(c, id) : null;
-  if (at){
-    return `<button type="button" class="rl-rung rl-rung-reading" data-rl-read-now="${_ne(id)}"
+  if (!at) return '';
+  return `<button type="button" class="rl-rung rl-rung-reading" data-rl-read-now="${_ne(id)}"
       title="${_nea(i18t('ng_rung_back_title'))}">${_ne(i18t('ng_rung_reading', { n: at.n }))}</button>`;
-  }
-  const chip = ladderChip(c, id, side);
-  if (!chip) return '';
-  /* INSIDE THE CLAUSE EDITOR (opts.pill) the chip is a statement, not a door:
-     that page is one clause and its rail carries the ladder as a tab. */
-  if (opts.pill) return `<span class="rl-rung rl-rung-${_ne(chip.cls)} rl-rung-static">${_ne(chip.text)}</span>`;
-  return `<button type="button" class="rl-rung rl-rung-${_ne(chip.cls)}"
-    data-rl-ladder="${_ne(id)}" aria-expanded="false"
-    title="${_nea(i18t('ng_rung_open_title'))}">${_ne(chip.text)}</button>`;
 }
 
-/* ---- THE LINE UNDER A STACKED CLAUSE (Young ruled 14 Sep 2026: build the
-   artifact's line) ----
-   Under two moves the PLAIN words are the last wording exchanged, and the
-   reader who takes them for the contract signs off on a figure nobody
-   accepted. The column's key says it once for the whole column; this says
-   it on the clause it is true of, with the figure, and puts the agreed
-   figure and the way to read it beside it. Drawn only on a stack (a lone ask
-   is drawn against the agreed text, so there is nothing to say), only in
-   the redlined reading, and never inside the clause editor (opts.pill —
-   that page is one clause and its rail says all of this). While a rung is
-   pinned it says what the paper is showing instead, with the way back.
-   FURNITURE, NOT PAPER: it names no size in the sheet's scale. */
+/* ---- NO LADDER LINE UNDER A CLAUSE (owner, 18 Oct 2026: "this should not
+   be on paper at all") ----
+   Under a stacked clause the paper used to say "Plain text on clause 4 = the
+   agreed wording · Agreed wording = R0" (our seat) or a sentence of it
+   (theirs, 8 Oct). It is gone from the paper on both seats; the Ladder (each
+   Redlines row's verb) says where every step stands. What stays is the line
+   for the state the reader CHOSE: while a rung is pinned it says the paper is
+   reading an earlier step, with the way back. */
 function rlBaselineHtml(c, cl, side, opts = {}){
   if (!cl || !cl.clauseId || opts.pill) return '';
   if (typeof rlReadOnlyReading === 'function' && rlReadOnlyReading()) return '';
-  if (typeof window.ladderBaseline !== 'function') return '';
   const id = String(cl.clauseId);
-  const at = rlReadAtRung(c, id);
-  if (at){
-    return `<div class="rl-baseline" data-rl-baseline="${_ne(id)}"><span>${_ne(i18t('ng_base_reading'))}</span>
+  if (!rlReadAtRung(c, id)) return '';
+  return `<div class="rl-baseline" data-rl-baseline="${_ne(id)}"><span>${_ne(i18t('ng_base_reading'))}</span>
       <button type="button" data-rl-read-now="${_ne(id)}">${_ne(i18t('ng_rung_back'))}</button></div>`;
-  }
-  const b = ladderBaseline(c, id, side);
-  if (!b) return '';
-  const num = (String(cl.label || cl.headingText || '').match(/^\s*(\d+(?:\.\d+)*)/) || [])[1]
-    || (typeof clauseNameShown === 'function' ? clauseNameShown(cl.label || '') : String(cl.label || ''));
-  const u = b.unit;
-  const figOf = n => (n == null || !u) ? '' : ` (${_ne(String(n))} ${_ne(u)})`;
-  const plain = b.below
-    ? _ne(i18t('ng_base_eq_rung', { who: i18t(b.below.who === 'you' ? 'ng_base_your' : 'ng_base_their'), n: b.below.n }))
-      + figOf(b.below.fig) + _ne(i18t('ng_base_not_agreed'))
-    : _ne(i18t('ng_base_eq_agreed'));
-  /* THEIR SEAT READS NO LADDER JARGON (8 Oct 2026): "Plain text on clause 2
-     = the agreed wording · Agreed wording = R0 (30 days)" said nothing a
-     reader outside could use. Where the unmarked words ARE the agreed wording
-     there is nothing to say; otherwise it is said in words, with the agreed
-     figure and no rung number. */
-  if (side === 'counterparty' || (typeof rlOnTheirPage === 'function' && rlOnTheirPage())){
-    if (!b.below) return '';
-    return `<div class="rl-baseline" data-rl-baseline="${_ne(id)}">
-    <span><b>${_ne(i18t('ng_base_plain_theirs', { n: num }))}</b> ${plain}</span>${
-      b.baseFig != null && u ? `
-    <span><b>${_ne(i18t('ng_base_agreed'))}:</b> ${_ne(String(b.baseFig))} ${_ne(u)}</span>` : ''}</div>`;
-  }
-  return `<div class="rl-baseline" data-rl-baseline="${_ne(id)}">
-    <span><b>${_ne(i18t('ng_base_plain', { n: num }))}</b> = ${plain}</span>
-    <span><b>${_ne(i18t('ng_base_agreed'))}</b> = R0${figOf(b.baseFig)}</span></div>`;
 }
 /* ---- THE LADDER ITSELF ----
    Newest at the top, which is the History tab's own order and the order a
@@ -18393,9 +18344,94 @@ function rlSugWordsHtml(from, to){
   }
   return out;
 }
+/* ---- JAMBO'S COUNTER IS MARKED IN THE CLAUSE ITSELF (owner, 18 Oct 2026: "the
+   counter highlighted in blue is a full clause which makes it a terrible
+   choice especially if it is a long clause. Just make the counter changes in
+   the clause itself by editing the words or numbers but do not add a new
+   clause unless the counter clause is completely different") ----
+   The words the paper shows standing (their marks included, struck words
+   left out) are set against Jambo's wording, word by word: a word he would
+   take out gets a dashed strike where it stands, a word he would put in is
+   drawn beside it in his dashed ink — "within 45 90 55 days", nothing else
+   moves. Only a counter that keeps less than half the clause's words (or one
+   redlineWholesale reads as a rewrite) is drawn whole, in the box under it.
+   PAINTED AFTER THE RENDER as before, never into the paper's HTML; the
+   reader's own click-to-type counts past it (rlInlineCountTo). */
+const RL_SUG_SKIP = 'del, .nego-del, .hati-del, .rl-line-del, .rl-sug-ins, button, .rl-clause-top';
+const RL_SUG_MARK = 'ins, .nego-ins, mark';
+function rlSugInlineClear(root){
+  if (!root || !root.querySelectorAll) return;
+  root.querySelectorAll('.rl-sug-ins').forEach(e => { const p = e.parentNode;
+    /* the plain space it brought goes with it */
+    const sp = e.previousSibling && e.previousSibling.nodeType === 3 && e.previousSibling.data === ' ' ? e.previousSibling
+      : e.nextSibling && e.nextSibling.nodeType === 3 && e.nextSibling.data === ' ' ? e.nextSibling : null;
+    if (sp) sp.remove(); e.remove(); if (p && p.normalize) p.normalize(); });
+  root.querySelectorAll('.rl-sug-del').forEach(e => { const p = e.parentNode; e.replaceWith(document.createTextNode(e.textContent)); if (p && p.normalize) p.normalize(); });
+}
+function rlSugInline(body, to, id){
+  if (!body || typeof document === 'undefined') return false;
+  const W = [];
+  const walker = document.createTreeWalker(body, 4 /* SHOW_TEXT */, null);
+  let t;
+  while ((t = walker.nextNode())){
+    const p = t.parentElement; if (p && p.closest && p.closest(RL_SUG_SKIP)) continue;
+    const re = /\S+/g; let m;
+    while ((m = re.exec(t.data))) W.push({ node: t, s: m.index, e: m.index + m[0].length, w: m[0] });
+  }
+  const B = String(to || '').split(/\s+/).filter(Boolean);
+  const n = W.length, k = B.length;
+  if (!n || !k || n * k > 400000) return false;
+  const norm = x => x.replace(/[“”]/g, '"').replace(/[‘’]/g, "'");
+  const L = Array.from({ length: n + 1 }, () => new Int32Array(k + 1));
+  for (let i = n - 1; i >= 0; i--) for (let j = k - 1; j >= 0; j--)
+    L[i][j] = norm(W[i].w) === norm(B[j]) ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  /* a counter that keeps less than half the words is a different clause */
+  if (L[0][0] < Math.min(n, k) / 2) return false;
+  const dels = [], ins = [];
+  let i = 0, j = 0, last = -1, pend = null;
+  while (i < n || j < k){
+    if (i < n && j < k && norm(W[i].w) === norm(B[j])){ if (pend){ ins.push(pend); pend = null; } last = i; i++; j++; }
+    else if (i < n && (j >= k || L[i + 1][j] >= L[i][j + 1])){ if (pend){ ins.push(pend); pend = null; } dels.push(i); last = i; i++; }
+    else { if (!pend) pend = { after: last, words: [] }; pend.words.push(B[j]); j++; }
+  }
+  if (pend) ins.push(pend);
+  if (!dels.length && !ins.length) return false;
+  const title = i18t('ng_prep_box_title');
+  const edits = new Map();
+  const add = (node, e) => { if (!edits.has(node)) edits.set(node, []); edits.get(node).push(e); };
+  dels.forEach(x => add(W[x].node, { kind: 'del', s: W[x].s, e: W[x].e }));
+  ins.forEach(p => { const w = p.after >= 0 ? W[p.after] : W[0];
+    add(w.node, { kind: 'ins', s: p.after >= 0 ? w.e : w.s, e: 0, words: p.words, before: p.after < 0 }); });
+  const span = (cls, text) => { const el = document.createElement('span'); el.className = cls; el.setAttribute('data-rl-sug', id);
+    el.setAttribute('title', title); el.textContent = text; return el; };
+  for (const [node, list] of edits){
+    /* last first, so every earlier offset still points into the same node */
+    list.sort((x, y) => (y.s - x.s) || (x.kind === 'ins' ? -1 : 1));
+    for (const e of list){
+      if (e.kind === 'ins'){
+        /* the space between his words and theirs is plain, never marked */
+        const frag = document.createDocumentFragment();
+        if (!e.before) frag.appendChild(document.createTextNode(' '));
+        frag.appendChild(span('rl-sug-ins', e.words.join(' ')));
+        if (e.before) frag.appendChild(document.createTextNode(' '));
+        const mark = node.parentElement && node.parentElement.closest && node.parentElement.closest(RL_SUG_MARK);
+        /* after the last word of their own insertion, his words stand beside it, not inside it */
+        if (!e.before && mark && body.contains(mark) && e.s >= node.data.length && mark.lastChild === node) mark.after(frag);
+        else { const rest = node.splitText(Math.min(e.s, node.data.length)); rest.parentNode.insertBefore(frag, rest); }
+      } else {
+        node.splitText(e.e);
+        const mid = node.splitText(e.s);
+        const el = span('rl-sug-del', mid.data);
+        mid.replaceWith(el);
+      }
+    }
+  }
+  return true;
+}
 function rlPaintCopilotAnswers(root, c, opts = {}){
   if (!root || !c) return 0;
   root.querySelectorAll('.rl-sug-box').forEach(e => e.remove());
+  rlSugInlineClear(root);
   root.querySelectorAll('.rl-sug').forEach(e => e.classList.remove('rl-sug', 'rl-sug-counter', 'rl-sug-reject', 'rl-sug-accept', 'rl-sug-escalate'));
   const scope = opts.verbsIn || document;
   if (!opts.noGlow) scope.querySelectorAll('.rl-glow').forEach(e => e.classList.remove('rl-glow'));
@@ -18407,15 +18443,17 @@ function rlPaintCopilotAnswers(root, c, opts = {}){
       || root.querySelector(`section[data-clause="${css(ch.clauseId)}"]`);
     if (sec && a.verdict !== 'escalate'){
       sec.classList.add('rl-sug', 'rl-sug-' + a.verdict);
-      if (a.verdict === 'counter' && a.wording){
+      const body = sec.querySelector('.nego-body');
+      const whole = typeof window.redlineWholesale === 'function' && ch.newText && redlineWholesale(ch.newText, a.wording);
+      if (a.verdict === 'counter' && a.wording && (whole || !rlSugInline(body, a.wording, ch.id))){
         const box = document.createElement('div');
         box.className = 'rl-sug-box';
         box.setAttribute('data-rl-sug', ch.id);
         box.setAttribute('aria-label', i18t('ag_prep_counter'));
         box.setAttribute('title', i18t('ng_prep_box_title'));
         box.innerHTML = rlSugWordsHtml(ch.newText, a.wording);
-        const body = sec.querySelector('.nego-body') || sec.lastElementChild;
-        (body || sec).after ? (body || sec).after(box) : sec.appendChild(box);
+        const at = body || sec.lastElementChild;
+        (at || sec).after ? (at || sec).after(box) : sec.appendChild(box);
       }
       if (ch.changeType === 'deleteClause') sec.classList.add('rl-sug-whole');
       n++;
@@ -18480,7 +18518,7 @@ function rlInlineCountTo(nodes, range){
     let t;
     while ((t = walker.nextNode())){
       const p = t.parentElement;
-      if (p && p.closest && p.closest('del, .nego-del, .hati-del')) continue;
+      if (p && p.closest && p.closest('del, .nego-del, .hati-del, .rl-sug-ins')) continue;
       if (t === range.startContainer) return n + Math.min(range.startOffset, t.data.length);
       try{ if (range.comparePoint(t, 0) > 0) return n; }catch(_){ return n; }
       n += t.data.length;
@@ -20284,7 +20322,8 @@ function redlineChangeCardsHtml(c, opts = {}){
                   quiet, in the data face; the clause still leads. */}${
             who ? `<span class="rl-card-id">${_ne(ch.id)}</span>${rlRowByHtml(ch, _short)}` : ''}${
             rlCardNotesCountHtml(c, ch, opts, side)}</div>
-          ${(() => { const why = rlRowWhyHtml(ch); return why ? `<div class="rl-card-sumw">${sub}${why}</div>` : sub; })()}${pySub}${prepSub}
+          ${(() => { const why = rlRowWhyHtml(ch), keeps = rlRowKeepsHtml(c, ch, side);
+            return (why || keeps) ? `<div class="rl-card-sumw">${sub}${why}${keeps}</div>` : sub; })()}${pySub}${prepSub}
         </div>
         ${''/* ---- AND THE OPEN BUTTON IS GONE WITH THE BODY IT UNFOLDED
                (Young ruled 15 Sep 2026) ----
@@ -21610,6 +21649,93 @@ function rlRowByHtml(ch, short){
   const words = [who ? (typeof short === 'function' ? short(who) : who) : '', when].filter(Boolean).join(' \u00b7 ');
   return words ? `<span class="rl-card-by" title="${_nea([who, ch.id].filter(Boolean).join(' \u00b7 '))}">${_ne(words)}</span>` : '';
 }
+/* ---- A COUNTER THAT UNDOES ONLY PART OF THEIR ASK SAYS WHAT IT KEEPS (owner,
+   18 Oct 2026, over MK-369: "In the governing law clause, you have changed
+   back to Sweden but left the city to be still in Nairobi which makes no
+   sense") ----
+   A counter on top of their ask accepts whatever of it the counter does not
+   touch. Where ours takes out some of the words they put in but leaves others
+   standing, our row says which stand ("Keeps their change: Nairobi (2
+   places)"). A READING of the two changes' words (a word LCS), RAW, nothing
+   filed, our seat only; a counter that undoes none of theirs, or all of it,
+   says nothing. */
+const _rlTok = s => String(s == null ? '' : s).split(/\s+/).filter(Boolean);
+const _rlWordNorm = w => String(w).replace(/^[“"‘'(]+|[”"’'),.;:]+$/g, '').replace(/[’]/g, "'");
+function rlWordKept(A, B){
+  const n = A.length, m = B.length; if (!n || !m || n * m > 400000) return null;
+  const L = Array.from({ length: n + 1 }, () => new Int32Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--)
+    L[i][j] = A[i] === B[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  const a = new Array(n).fill(false), b = new Array(m).fill(false);
+  let i = 0, j = 0;
+  while (i < n && j < m){
+    if (A[i] === B[j]){ a[i] = b[j] = true; i++; j++; }
+    else if (L[i + 1][j] >= L[i][j + 1]) i++; else j++;
+  }
+  return { a, b };
+}
+function negoKeepsTheirs(c, ch){
+  if (!c || !ch || ch.authorSide === 'counterparty' || !ch.counterOf) return null;
+  const th = (Array.isArray(c.changes) ? c.changes : []).find(x => x && x.id === ch.counterOf);
+  if (!th || th.authorSide !== 'counterparty') return null;
+  const O = _rlTok(th.oldText), T = _rlTok(th.newText), U = _rlTok(ch.newText);
+  const theirs = rlWordKept(O, T), ours = rlWordKept(T, U);
+  if (!theirs || !ours) return null;
+  const put = T.map((w, i) => !theirs.b[i]);            // the words they put in
+  const undone = put.some((p, i) => p && !ours.a[i]);
+  const kept = [];
+  for (let i = 0; i < T.length; i++){
+    if (!put[i] || !ours.a[i]) continue;
+    const run = [T[i]];
+    while (i + 1 < T.length && put[i + 1] && ours.a[i + 1]) run.push(T[++i]);
+    kept.push(run.map(_rlWordNorm).join(' ').trim());
+  }
+  if (!undone || !kept.length) return null;
+  const counted = [];
+  kept.filter(Boolean).forEach(w => { const x = counted.find(k => k.w === w); if (x) x.n++; else counted.push({ w, n: 1 }); });
+  return counted.length ? counted : null;
+}
+/* ---- THE LAW, THE SEAT AND THE BODY ASKED TOGETHER (the same ruling) ----
+   Governing law, the arbitration seat and the arbitration body are agreed as
+   one choice; a counter that moves one and not the others says something
+   nobody meant ("the laws of Sweden … seated in Nairobi"). Read off the words
+   our draft proposes, with no model; said as a QUESTION on our row, never a
+   block — a neutral seat is sometimes chosen on purpose. Only places this
+   table knows are compared; an unknown one says nothing. */
+const RL_SEAT_LAND = { stockholm: 'sweden', gothenburg: 'sweden', 'göteborg': 'sweden', 'malmö': 'sweden', nairobi: 'kenya', mombasa: 'kenya',
+  london: 'england', paris: 'france', geneva: 'switzerland', zurich: 'switzerland', singapore: 'singapore', 'hong kong': 'hong kong', dubai: 'uae',
+  kampala: 'uganda', 'dar es salaam': 'tanzania', kigali: 'rwanda', lagos: 'nigeria', johannesburg: 'south africa', 'new york': 'usa', oslo: 'norway',
+  copenhagen: 'denmark', helsinki: 'finland', 'the hague': 'netherlands', amsterdam: 'netherlands', frankfurt: 'germany', vienna: 'austria' };
+const RL_LAW_LAND = { sweden: 'sweden', kenya: 'kenya', england: 'england', 'england and wales': 'england', 'england & wales': 'england', 'the united kingdom': 'england',
+  france: 'france', switzerland: 'switzerland', singapore: 'singapore', 'hong kong': 'hong kong', 'the united arab emirates': 'uae', uganda: 'uganda', tanzania: 'tanzania',
+  rwanda: 'rwanda', nigeria: 'nigeria', 'south africa': 'south africa', 'the state of new york': 'usa', 'new york': 'usa', norway: 'norway', denmark: 'denmark',
+  finland: 'finland', 'the netherlands': 'netherlands', netherlands: 'netherlands', germany: 'germany', austria: 'austria' };
+function negoLawSeatQ(text){
+  const t = String(text == null ? '' : text).replace(/\s+/g, ' ');
+  const law = /\blaws? of ((?:the )?[A-Z][\wåäöÅÄÖ&' ]{1,40}?)(?=\s*(?:[,.;]|with\b|and\b|as\b|$))/.exec(t);
+  const seat = /\bseated in ([A-Z][\wåäöÅÄÖ' ]{1,30}?)(?=\s*(?:[,.;]|under\b|before\b|and\b|$))/.exec(t);
+  /* the city right before "Chamber of Commerce" (one or two capitalised words) */
+  const inst = /\b([A-Z][\wåäöÅÄÖ']*(?: [A-Z][\wåäöÅÄÖ']*)?) Chamber of Commerce/.exec(t);
+  const S = seat && seat[1].trim(), sL = S && RL_SEAT_LAND[S.toLowerCase()];
+  if (law && sL){
+    const W = law[1].trim(), wL = RL_LAW_LAND[W.toLowerCase()];
+    if (wL && wL !== sL) return { kind: 'law', law: W.replace(/^the /i, ''), seat: S };
+  }
+  if (inst && S && sL){
+    const I = inst[1].trim();
+    if (RL_SEAT_LAND[I.toLowerCase()] && I.toLowerCase() !== S.toLowerCase()) return { kind: 'body', seat: S, body: I };
+  }
+  return null;
+}
+function rlRowKeepsHtml(c, ch, side){
+  if (side === 'counterparty' || !ch || ch.authorSide === 'counterparty' || ch.status !== 'pending' || ch.withdrawn) return '';
+  const lines = [];
+  const k = negoKeepsTheirs(c, ch);
+  if (k) lines.push(i18t('ng_keeps_theirs', { what: k.map(x => x.n > 1 ? i18tn('ng_keeps_n', x.n, { w: x.w, n: x.n }) : x.w).join(', ') }));
+  const q = negoLawSeatQ(ch.newText);
+  if (q) lines.push(q.kind === 'law' ? i18t('ng_lawseat_q', { law: q.law, seat: q.seat }) : i18t('ng_seatbody_q', { seat: q.seat, body: q.body }));
+  return lines.length ? `<div class="rl-card-keeps">${lines.map(l => `<span>${_ne(l)}</span>`).join('')}</div>` : '';
+}
 function rlRowWhyHtml(ch){
   const w = String((typeof window.negoReasonOf === 'function') ? negoReasonOf(ch) : ((ch && ch.why) || '')).trim();
   return w ? `<div class="rl-card-whyq" title="${_nea(w)}">\u201c${_ne(w)}\u201d</div>` : '';
@@ -22013,7 +22139,7 @@ if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoT
   rlCpOpenId, rlCpSetOpen, rlCpSetShown, rlCpPaint, rlCpNotesOn, rlCpSetNotes, rlCpLadderOnly, rlCpNarrowSeat,
   rlEditorTakesIt,
   rlCpTypePx, rlCpSetType, rlCpZoom, rlCpZoomPct, rlCpSetZoom,
-  rlUnsentBandHtml, rlUnsentSendHtml, rlDecisionsSendHtml, rlPaperSubText, RL_SUG_VERB, rlCopilotAnswers, rlSugWordsHtml, rlPaintCopilotAnswers, rlUnsentCount, rlCloseRoundHtml, rlRoundLabelHtml,
+  rlUnsentBandHtml, rlUnsentSendHtml, rlDecisionsSendHtml, rlPaperSubText, RL_SUG_VERB, rlCopilotAnswers, rlSugWordsHtml, rlWordKept, negoKeepsTheirs, RL_SEAT_LAND, RL_LAW_LAND, negoLawSeatQ, rlRowKeepsHtml, RL_SUG_SKIP, RL_SUG_MARK, rlSugInline, rlSugInlineClear, rlPaintCopilotAnswers, rlUnsentCount, rlCloseRoundHtml, rlRoundLabelHtml,
   rlFitTabRow, rlWireFitTabRow, rlObserveTabRow,
   redlineHeldId, redlineEvict, openRedlineWorkbench,
   rlRungPeekHtml, rlPeekShow, rlPeekHide, rlPeekLater, rlPeekOpenId, RL_PEEK_MS,

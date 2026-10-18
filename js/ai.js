@@ -4265,6 +4265,20 @@ async function aiSubmit(){
   /* Back to one line, or the next question is typed into the hole the last one
      grew to. */
   if(window.chatFieldReset) chatFieldReset(inp); else inp.value='';
+  /* JAMBO, THE SAME ON EVERY PAGE (owner, 18 Oct 2026): unless a proposal or a
+     seeded passage owns the sentence, what he reads on Home — a page, a
+     contract's number, a draft, a send — he does from this window too
+     (caAskAnywhere), and says so in one line; a question goes on below. */
+  if(!aiActiveProposal() && !aiActiveRephrase() && typeof window.caAskAnywhere==='function'){
+    let go=null; try{ go=window.caReadPlace?caReadPlace(q):null; }catch(_){ go=null; }
+    if(caAskAnywhere(q)){
+      const say=(go&&go.kind==='go'&&!(window.CA_CARD_WORDS||[]).includes(go.place)&&window.caGoSay)?caGoSay(go):i18t('ai_handed_home');
+      aiPush('user',{text:esc(q), raw:q});
+      aiPush('assistant',{text:`<div>${_aiEsc(say)}</div>`});
+      renderAIFeed();
+      return;
+    }
+  }
   /* ---- WHAT THE READER TYPED IS WORDS, NEVER MARKUP (26 Sep 2026, the
      overnight clean-up) ---- The feed draws a user bubble's `text` as HTML,
      because the two seeded doors (a clause action from the Document tab and

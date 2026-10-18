@@ -3,11 +3,11 @@
    f724 — JAMBO'S WORK, "OPEN IN PLACE" (round 23 of the redesign: the owner
    picked "Open in place" by name, 17 Oct 2026; levels "Each person chooses";
    the button word "Put away")
-   (1) The Counter's first row of Needs you opens where it is: one row per
-       prepared piece (its agent, what it is, the contract, one line) with
-       Look · the house's own acts · Put away; Look opens the piece's whole
-       body under its row; past CN_JW_MAX the rest wait in the house, one
-       link away. One filled button per area: every act here is the quiet one.
+   (1) REVERSED 18 Oct 2026 (LAND ON IT; the owner: "when you click on jambos
+       work, it should take you to the jambos work card in the board" and
+       "remove the in-place list"): the Counter's first row of Needs you is one
+       row with Open, and Open lands on the Board's Jambo's work card, lit
+       (hbOpenAgent → landOn). The in-place list is gone.
    (2) Each person chooses: a person may step an agent DOWN for themselves
        (Ask me first · Leave it to me), never up — "Just do it" stays the
        admin's. One reading on each host (agLevelOf, agentLevelFor); the
@@ -41,72 +41,38 @@ const BOOKS = (() => {
 })();
 const fill = (s, v) => String(s || '').replace(/\{(\w+)\}/g, (_, k) => (v && k in v) ? v[k] : '{' + k + '}');
 
-function counter(pieces){
-  const items = {};
-  pieces.forEach(p => { items[p.key] = p; });
+function counter(){
   const ctx = {
     i18t: (k, v) => fill(BOOKS.en[k] || k, v), i18tn: (k, n, v) => fill(BOOKS.en[k] || k, v),
     jamboFaceHtml: () => '<i class="face"></i>',
-    agFind: k => items[k] || null,
-    agPanelTitle: it => 'Title ' + it.key, agCardParts: it => ({ sum: 'Sum of ' + it.key, who: 'Who' }),
-    agPanelActs: () => '<button type="button" class="ui-btn ui-btn-primary" data-ag-act="overview">Open</button><button type="button" class="ui-link" data-ag-act="away">Put away</button>',
-    agPanelBody: it => '<p class="body">Body of ' + it.key + '</p>',
-    refHtml: c => '<span class="ref">' + c.id + '</span>',
   };
   vm.createContext(ctx);
-  const src = ['_cnE', '_cnT', '_cnTn'].map(n => constLine(CN, n)).join('\n') + '\nlet _cnJwOpen = false, _cnJwLook = null;\n' + constLine(CN, 'CN_JW_MAX')
-    + fnBody(CN, 'cnFace') + fnBody(CN, 'cnJwRowHtml') + fnBody(CN, 'cnJwPiecesHtml')
-    + ';this.set=(o,l)=>{_cnJwOpen=o;_cnJwLook=l;};this.max=()=>CN_JW_MAX;';
+  const src = ['_cnE', '_cnT', '_cnTn'].map(n => constLine(CN, n)).join('\n') + '\n'
+    + fnBody(CN, 'cnFace') + fnBody(CN, 'cnJwRowHtml');
   vm.runInContext(src, ctx);
   return ctx;
 }
 const A = n => ({ ready: n, rows: [{ who: 'Nandi Dairy', items: Array.from({ length: n }, (_, i) => ({ key: 'k' + i })) }] });
-const P = n => Array.from({ length: n }, (_, i) => ({ key: 'k' + i, agent: 'renew', c: { id: 'MK-' + i } }));
+const HB = R('js/views/homeboard.js');
 
-describe('f724 (1) Jambo\'s work opens in place', () => {
-  test('1a shut, it is one row with Open; open, one row per piece and Close', () => {
-    const w = counter(P(2));
-    const shut = w.cnJwRowHtml(A(2));
-    assert.match(shut, /data-cn-jw aria-expanded="false">Open</);
-    assert.doesNotMatch(shut, /cn-jw-list/);
-    w.set(true, null);
-    const open = w.cnJwRowHtml(A(2));
-    assert.match(open, /class="cn-r cn-jw is-open"/);
-    assert.match(open, /data-cn-jw aria-expanded="true">Close</);
-    assert.equal((open.match(/data-cn-ag-item="/g) || []).length, 2);
-    assert.match(open, new RegExp(BOOKS.en.cn_jw_said), 'it says nothing goes until a press');
-    assert.match(open, /<span class="cn-jw-tag">[^<]+<\/span> Title k0 <span class="ref">MK-0<\/span>/, 'its agent, what it is, the contract');
-    assert.match(open, /data-cn-house>/, 'the house one link away');
+describe('f724 (1) Jambo\'s work lands on the Board\'s card (LAND ON IT, reverses Open in place)', () => {
+  test('1a one row with Open, and no list drawn in place', () => {
+    const w = counter();
+    const row = w.cnJwRowHtml(A(2));
+    assert.match(row, /data-cn-jw>Open</);
+    assert.doesNotMatch(row, /cn-jw-list|data-cn-ag-item|data-cn-look|aria-expanded/);
+    assert.doesNotMatch(w.cnJwRowHtml(A(0)), /data-cn-jw/, 'no Open where Jambo has nothing prepared');
   });
-  test('1b each piece carries Look and the house\'s own acts, every one the quiet button', () => {
-    const w = counter(P(1)); w.set(true, null);
-    const html = w.cnJwRowHtml(A(1));
-    assert.match(html, /data-cn-look="k0" aria-expanded="false">Look</);
-    assert.match(html, /data-ag-act="overview"/);
-    assert.match(html, /data-ag-act="away">Put away</);
-    assert.doesNotMatch(html, /ui-btn-primary/, 'one filled button per area');
-  });
-  test('1c Look opens the piece\'s whole body under its row; Hide puts it back', () => {
-    const w = counter(P(2)); w.set(true, 'k1');
-    const html = w.cnJwRowHtml(A(2));
-    assert.match(html, /data-cn-look="k1" aria-expanded="true">Hide</);
-    assert.match(html, /<div class="cn-jw-body"><p class="body">Body of k1<\/p><\/div>/);
-    assert.doesNotMatch(html, /Body of k0/);
-  });
-  test('1d past the cap the rest wait in the house, and it says how many', () => {
-    const max = counter([]).max();
-    const n = max + 3;
-    const w = counter(P(n)); w.set(true, null);
-    const html = w.cnJwRowHtml(A(n));
-    assert.equal((html.match(/data-cn-ag-item="/g) || []).length, max);
-    assert.match(html, new RegExp(fill(BOOKS.en.cn_jw_more, { n: 3 })));
-  });
-  test('1e the presses: Open toggles in place, an act runs through the house\'s one runner, the house link goes there', () => {
+  test('1b Open goes to the Board\'s card through the one opener', () => {
     const wire = CN.slice(CN.indexOf("if ((el = t.closest('[data-cn-jw]')))"), CN.indexOf("if ((el = t.closest('[data-cn-need]')))"));
-    assert.match(wire, /_cnJwOpen = !_cnJwOpen; _cnJwLook = null; counterRepaint\(\)/);
-    assert.match(wire, /\[data-cn-ag-item\] \[data-ag-act\][\s\S]*agRunAct\(k, el\.getAttribute\('data-ag-act'\)\)/);
-    assert.match(wire, /\[data-cn-house\][^\n]*setView\('jambo'\)/, 'the house is his house');
-    assert.doesNotMatch(wire, /hbOpenAgent/, 'Open no longer leaves the Counter');
+    assert.match(wire, /hbOpenAgent\(\)/);
+    assert.doesNotMatch(CN, /cnJwPiecesHtml|_cnJwOpen|data-cn-look|data-cn-house/, 'the in-place list is gone');
+  });
+  test('1c the opener lands on the card and lights it, saying so when there is nothing', () => {
+    const f = fnBody(HB, 'hbOpenAgent');
+    assert.match(f, /landOn\(target, \{ block: 'start', missing: i18t\('hb_land_no_work'\) \}\)/);
+    assert.match(f, /getElementById\('hm-agents'\)/);
+    assert.ok(BOOKS.en.hb_land_no_work && BOOKS.sv.hb_land_no_work, 'said in both books');
   });
 });
 

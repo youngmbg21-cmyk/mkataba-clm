@@ -97,10 +97,14 @@ const WATCH = () => { window._walk = {}; const tick = () => {
        opens the file picker, not the pop-up; the file goes through the upload's
        own path and lands on the paper, and what the pop-up asked (the other
        party) is asked by Fill in below */
-    const chooser = page.waitForEvent('filechooser', { timeout: 6000 }).catch(() => null);
+    /* RE-POINTED 18 Oct 2026 (LAND ON IT): "upload" lands on the drop area,
+       lit, Choose a file ready, and presses nothing; Choose is the reader's */
     await say('upload');
+    const lit1 = await waitFor(page, () => { const d = document.getElementById('pd-drop'); return !!d && d.classList.contains('is-landed'); }, 6000);
+    const chooser = page.waitForEvent('filechooser', { timeout: 6000 }).catch(() => null);
+    await page.click('#pd-drop [data-pd-drop-pick]').catch(() => {});
     const fc = await chooser;
-    check('1a "upload" in Jambo\'s box opens the file picker over Home, no pop-up', !!fc && await page.evaluate(() => state.view === 'dashboard' && !document.getElementById('up-file')));
+    check('1a "upload" in Jambo\'s box lands on the drop area, lit; Choose a file opens the picker, no pop-up', !!lit1 && !!fc && await page.evaluate(() => state.view === 'dashboard' && !document.getElementById('up-file')));
     if (fc) await fc.setFiles(file);
     const landed = await waitFor(page, () => state.contracts.length === 1 && !!intel.paper && intel.paper.id === state.contracts[0].id
       && !!document.querySelector('#pd-fillface .pd-ff[data-pd-ff="' + state.contracts[0].id + '"]'), 15000);

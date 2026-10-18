@@ -1909,7 +1909,7 @@ function calPlanHtml(){
     <div class="cal-plan-body scroll-thin" id="cal-plan-body">${you}${answer}</div>
     <div class="cal-plan-chips"><button type="button" data-cal-plan-q="week"${off}>${_esc(i18t('cal_plan_q_week'))}</button><button type="button" data-cal-plan-q="due"${off}>${_esc(i18t('cal_plan_q_due'))}</button>${
       nx?`<button type="button" data-cal-plan-q="hour" data-cal-plan-ref="${_esc(nx.ref)}"${off}>${_esc(i18t('cal_plan_q_hour',{ref:nx.ref}))}</button>`:''}</div>
-    <div class="cal-plan-ask"><input id="cal-plan-in" type="text" maxlength="600" enterkeyhint="send" placeholder="${_esc(i18t('cal_plan_ph'))}" aria-label="${_esc(i18t('cal_plan_ph'))}"${off}></div>
+    <div class="cal-plan-ask"><input id="cal-plan-in" type="text" maxlength="600" enterkeyhint="send" data-ca-slash autocomplete="off" placeholder="${_esc(i18t('cal_plan_ph'))}" aria-label="${_esc(i18t('cal_plan_ph'))}"${off}></div>
     <p class="cal-plan-cost">${_esc(i18t(auto?'cal_plan_cost_auto':'cal_plan_cost'))}</p>
   </aside>`;
 }
@@ -2041,7 +2041,11 @@ function calWireOwn(){
   const lv=document.getElementById('cal-plan-level');
   if(lv) lv.addEventListener('change',async()=>{ try{ await mineSave('pref',{ ...minePref(), copilotLevel:lv.value }); }catch(_){} calPlanRepaint(); });
   const inp=document.getElementById('cal-plan-in');
-  if(inp) inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); calPlanAsk(inp.value); } });
+  /* JAMBO, THE SAME ON EVERY PAGE (owner, 18 Oct 2026): what he reads on
+     Home — a page, a contract's number, a draft, a send — he does here too
+     (caAskAnywhere); planning time is this box's own job, for the rest */
+  if(inp) inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault();
+    const v=inp.value; if(typeof caAskAnywhere==='function'&&caAskAnywhere(v)){ inp.value=''; return; } calPlanAsk(v); } });
   const body=document.getElementById('cal-wk-body');
   if(body&&body.dataset&&!body.dataset.scrolled&&typeof getComputedStyle==='function'){ body.dataset.scrolled='1';
     const first=body.querySelector('.cal-wk-blk'); const pref=typeof minePref==='function'?minePref():{dayStart:8};
