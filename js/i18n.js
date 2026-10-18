@@ -17568,7 +17568,7 @@ const STRINGS = {
     brn_pd_counter: 'The first screen after signing in on a computer: Jambo’s box, then what needs you — Jambo’s work first, each contract’s item, and for an admin one row onto Settings.',
     brn_p_desktabs: 'Desk tabs',
     brn_pd_desktabs: 'Every page open on the desk as a tab after “‹ The counter”, in the left menu’s place; six in sight, the rest behind “+N more”.',
-    // ---- Jambo's map: the thirty commonest tasks in everyday words (18 Oct 2026) ----
+    // ---- Jambo's map: the thirty-one commonest tasks in everyday words (18 Oct 2026) ----
     jm_pick_title: 'Which of these did you mean?',
     jm_pick_done: 'Opened: {what}.',
     jm_t_needs: 'What needs me',
@@ -17596,6 +17596,7 @@ const STRINGS = {
     jm_t_import: 'Import old contracts',
     jm_t_board: 'The Board',
     jm_t_insights: 'Insights',
+    jm_t_explorer: 'Explorer',
     jm_t_team: 'Team and access',
     jm_t_signcap: 'Signing limits',
     jm_t_folders: 'Contract folders',
@@ -17633,13 +17634,14 @@ const STRINGS = {
     jm_s_import: 'Bring in a whole back-catalogue',
     jm_s_board: 'The figures and today\'s insights',
     jm_s_insights: 'The book in charts',
+    jm_s_explorer: 'Every contract on one map, grouped as you ask',
     jm_s_team: 'Add, invite or remove people',
     jm_s_signcap: 'How much each person may sign',
     jm_s_folders: 'Each folder, and who may open it',
     jm_s_lang: 'Your language; colleagues keep theirs',
     jm_s_away: 'Who answers for you while you are away',
     brn_p_jambomap: 'Jambo\'s map',
-    brn_pd_jambomap: 'The thirty commonest tasks in everyday words, both languages: a sentence that does not know a feature\'s name still reaches its door. Matched by MiniSearch, free, nothing written.',
+    brn_pd_jambomap: 'The thirty-one commonest tasks in everyday words, both languages: a sentence that does not know a feature\'s name still reaches its door. Matched by MiniSearch, free, nothing written.',
   },
 
   sv: {
@@ -34221,7 +34223,7 @@ const STRINGS = {
     brn_pd_counter: 'Första skärmen efter inloggning på en dator: Jambos ruta, sedan det som behöver dig — Jambos arbete först, varje avtals punkt och för en administratör en rad till inställningarna.',
     brn_p_desktabs: 'Skrivbordsflikar',
     brn_pd_desktabs: 'Varje sida som är öppen på skrivbordet som en flik efter ”‹ Disken”, i vänstermenyns ställe; sex syns, resten bakom ”+N till”.',
-    // ---- Jambos karta: de trettio vanligaste uppgifterna med vardagliga ord (18 okt 2026) ----
+    // ---- Jambos karta: de trettioen vanligaste uppgifterna med vardagliga ord (18 okt 2026) ----
     jm_pick_title: 'Vilket av dessa menade du?',
     jm_pick_done: 'Öppnade: {what}.',
     jm_t_needs: 'Det som väntar på mig',
@@ -34249,6 +34251,7 @@ const STRINGS = {
     jm_t_import: 'Importera gamla avtal',
     jm_t_board: 'Tavlan',
     jm_t_insights: 'Insikter',
+    jm_t_explorer: 'Utforskaren',
     jm_t_team: 'Teamet och åtkomst',
     jm_t_signcap: 'Underteckningsgränser',
     jm_t_folders: 'Avtalsmappar',
@@ -34286,13 +34289,14 @@ const STRINGS = {
     jm_s_import: 'Ta in ett helt gammalt arkiv',
     jm_s_board: 'Siffrorna och dagens insikter',
     jm_s_insights: 'Avtalsboken i diagram',
+    jm_s_explorer: 'Alla avtal på en karta, grupperade som du ber om',
     jm_s_team: 'Lägg till, bjud in eller ta bort personer',
     jm_s_signcap: 'Hur mycket varje person får signera',
     jm_s_folders: 'Varje mapp, och vem som får öppna den',
     jm_s_lang: 'Ditt språk; kollegor behåller sitt',
     jm_s_away: 'Vem som svarar för dig när du är borta',
     brn_p_jambomap: 'Jambos karta',
-    brn_pd_jambomap: 'De trettio vanligaste uppgifterna med vardagliga ord, på båda språken: en mening som inte kan en funktions namn når ändå dess dörr. Matchas av MiniSearch, gratis, inget skrivs.',
+    brn_pd_jambomap: 'De trettioen vanligaste uppgifterna med vardagliga ord, på båda språken: en mening som inte kan en funktions namn når ändå dess dörr. Matchas av MiniSearch, gratis, inget skrivs.',
   },
 };
 
