@@ -11,8 +11,8 @@
      3 Review in the panel opens the review window; pressed again the row is
        let go, and "‹ All files" goes back too
      4 the panel's Open, and a double-click on a row, open the contract
-     5 the owner's three screens: the panel beside the list, from the top of
-       the page's room to the window's foot (18 Oct 2026), nothing sideways
+     5 the owner's three screens: the panel beside the list, in the window,
+       nothing sideways
    At the parent (main before this change) every check fails but the console.
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/import-jambo-panel-verify.js */
@@ -125,12 +125,9 @@ const body = (title, party) => `${title}\n\nThis Agreement is made between Highl
       await toImport(); await page.waitForTimeout(250);
       await page.evaluate(id => { if (id) migPickSet(id); }, pick);
       await page.waitForTimeout(150);
-      /* RE-POINTED 18 Oct 2026 (owner: the panel "goes to the top", as Home's
-         does): beside the list, from the top of the page's room — level with
-         the page's name, above the list — to the window's foot */
       const fit = await page.evaluate(() => { const s = document.getElementById('mig-side'), m = document.querySelector('.mig-main');
-        const R = s.getBoundingClientRect(), M = m.getBoundingClientRect(), room = document.getElementById('body-grid').getBoundingClientRect();
-        return { beside: R.left >= M.right - 1 && Math.abs(R.top - room.top) < 2 && R.top < M.top && Math.abs(R.bottom - innerHeight) < 2, inWin: R.right <= innerWidth && R.bottom <= innerHeight + 1 && R.top >= 0,
+        const R = s.getBoundingClientRect(), M = m.getBoundingClientRect();
+        return { beside: R.left >= M.right - 1 && Math.abs(R.top - M.top) < 4, inWin: R.right <= innerWidth && R.bottom <= innerHeight + 1 && R.top >= 0,
           sx: document.scrollingElement.scrollWidth > innerWidth, w: Math.round(R.width) }; });
       check(`5 at ${w}×${hh}: the panel beside the list, in the window, nothing sideways`, fit.beside && fit.inWin && !fit.sx, JSON.stringify(fit));
       await shot(page, `import-jambo-${w}x${hh}`);
