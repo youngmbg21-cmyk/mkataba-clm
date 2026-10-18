@@ -102,8 +102,11 @@ const PAINTED = (sel) => {
       const P = window.SET_PANELS, G = (window.ST_GROUPS || []).filter(g => g.tab === 'platform' || g.tab === 'build');
       return G.map(g => Object.keys(P).filter(k => P[k].group === g.key && P[k].tab === g.tab && (!P[k].show || P[k].show())));
     });
+    /* RE-POINTED 18 Oct 2026 (round 25 as drawn, the gaps): a card carries the
+       drawing's two facts and its doors — no longer every panel of its group;
+       every panel is still one press away in the Menu beside the board (1d) */
     check('1a. the Company board draws every group it declares, each on one card',
-      declared.length > 1 && declared.filter(ks => ks.length).every(ks => cards.some(c => ks.every(k => c.panels.includes(k)))),
+      declared.length > 1 && declared.filter(ks => ks.length).every(ks => cards.some(c => ks.some(k => c.panels.includes(k)))),
       cards.map(c => `${c.name}(${c.panels.length})`).join(' · '));
     check('1b. every card\'s name is painted ink, not an empty box',
       cards.length > 3 && cards.every(c => c.name.length && c.h > 0), cards.map(c => c.h + 'px').join(' ') || 'no cards');
@@ -113,10 +116,11 @@ const PAINTED = (sel) => {
       const P = window.SET_PANELS;
       return { want: Object.keys(P).filter(k => (P[k].tab === 'platform' || P[k].tab === 'build') && (!P[k].show || P[k].show())) };
     });
-    const keys = cards.flatMap(c => c.panels);
+    /* the Menu beside the board holds the whole list (re-pointed 18 Oct 2026) */
+    const keys = await page.evaluate(() => [...document.querySelectorAll('#st-list .st-mrow[data-st-panel]')].map(b => b.getAttribute('data-st-panel')).filter(k => window.SET_PANELS[k]));
     check('1d. every company panel is still there, once each',
       all.want.length > 0 && keys.length === all.want.length && new Set(keys).size === keys.length && all.want.every(k => keys.includes(k)),
-      `${keys.length} doors for ${all.want.length} panels`);
+      `${keys.length} rows in the Menu for ${all.want.length} panels`);
     const spans = await page.evaluate(() => {
       const w = k => { const el = document.querySelector(`.st-cards > [data-st-card="${k}"], .st-board > [data-st-card="${k}"]`); return el ? el.getBoundingClientRect().width : 0; };
       return { people: w('people'), ladder: w('ladder'), one: w('signing') };
@@ -276,7 +280,11 @@ const PAINTED = (sel) => {
     }));
     /* RE-POINTED 16 Oct 2026: Going live and the plumbing are one card, as drawn */
     check('6a. Build & launch is on the board too, on its own card', build.panels.length > 0, build.panels.join(' · '));
-    check('6b. and all seven of its panels are still drawn', new Set(build.panels).size === 7, build.panels.length + ' doors');
+    /* RE-POINTED 18 Oct 2026 (round 25 as drawn): its card says Before going
+       live and Email delivery, with Email & outbox and History integrity
+       check as doors; all seven are in the Menu */
+    const buildMenu = await page.evaluate(() => [...document.querySelectorAll('#st-list .st-mrow[data-st-panel]')].map(b => b.getAttribute('data-st-panel')).filter(k => window.SET_PANELS[k] && window.SET_PANELS[k].tab === 'build'));
+    check('6b. and all seven of its panels are still drawn', new Set(build.panels).size === 3 && ['golive', 'mail', 'integrity'].every(k => build.panels.includes(k)) && new Set(buildMenu).size === 7, `${[...new Set(build.panels)].join(',')} on the card · ${buildMenu.length} in the Menu`);
     /* `=== ''` rather than falsy: on a build with no box at all the value reads
        undefined, and "not truthy" would call that a pass. */
     check('6c. changing tab clears the search, so the tab press cannot look broken',

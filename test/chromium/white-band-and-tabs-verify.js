@@ -539,6 +539,10 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
       const s = getComputedStyle(t);
       return { padding: s.padding, widths: faces.map(f => Math.round(f.getBoundingClientRect().width)),
         thumbUnder: !!(thumb && live) && Math.abs(thumb.getBoundingClientRect().left - live.getBoundingClientRect().left) <= 1,
+        thumbShown: !!thumb && getComputedStyle(thumb).display !== 'none',
+        /* a line is painted only when its style draws one AND its ink shows */
+        lines: faces.map(f => { const cs = getComputedStyle(f), ink = !/rgba\(\d+, \d+, \d+, 0\)|transparent/.test(cs.borderBottomColor) && cs.borderBottomStyle !== 'none' && parseFloat(cs.borderBottomWidth) > 0;
+          return (f.getAttribute('aria-selected') === 'true' ? 'live:' : 'other:') + (ink ? cs.borderBottomStyle + ' ' + cs.borderBottomWidth : 'none'); }),
         inParsedSheet: (() => {
           for (const sheet of document.styleSheets){
             let rules; try { rules = sheet.cssRules; } catch (_) { continue; }
@@ -551,11 +555,15 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     check('6a THE RULE IS IN THE PARSED STYLESHEET — no comment swallowed it',
       stBox && stBox.inParsedSheet && stBox.padding !== '0px',
       stBox && { inSheet: stBox.inParsedSheet, padding: stBox.padding });
-    check('6b the two tabs are one width, as Home\'s are',
-      stBox && stBox.widths.length === 2 && stBox.widths[0] === stBox.widths[1],
-      stBox && stBox.widths);
-    check('6c and the white pill sits under the live one',
-      stBox && stBox.thumbUnder, stBox && stBox.thumbUnder);
+    /* RE-POINTED 18 Oct 2026 (round 25 "Control room" as drawn, the owner's
+       yes reversing the 16 Oct pill): You · Company are UNDERLINED TABS, each
+       as wide as its word — a painted line under the live one, no sliding
+       pill */
+    check('6b the two tabs, a painted line under the live one only',
+      stBox && stBox.widths.length === 2 && stBox.lines.some(l => l === 'live:solid 2px') && stBox.lines.filter(l => /^other:/.test(l)).every(l => l === 'other:none'),
+      stBox && stBox.lines);
+    check('6c and no sliding pill',
+      stBox && !stBox.thumbShown, stBox && stBox.thumbShown);
 
     /* ---- 6d-6g THE ROW STAYS WHILE THE PAGE SCROLLS (Young ruled it 18 Sep
        2026: "for the team & settings page, make that when you scroll, you do
@@ -609,10 +617,14 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
        number typed here. */
     const padT = await page.evaluate(() =>
       parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--page-pad-t')) || 0);
+    /* RE-POINTED 18 Oct 2026 (round 25 as drawn): the head "Settings ·
+       <the company>" sits above the tabs and carries the page's first glyph
+       (ONE HEADER TOP is the head's now); the tab row's own glyph still does
+       not move, pinned or not */
+    void padT;
     check('6f and the first glyph sits where it always sat, pinned or not',
-      pinRest && stScrolled && pinRest.glyph === stScrolled.glyph
-        && Math.abs(pinRest.glyph - padT) <= 1,
-      { rest: pinRest && pinRest.glyph, scrolled: stScrolled && stScrolled.glyph, pageTopToken: padT });
+      pinRest && stScrolled && pinRest.glyph === stScrolled.glyph,
+      { rest: pinRest && pinRest.glyph, scrolled: stScrolled && stScrolled.glyph });
     /* A PINNED ROW HAS TO BE OPAQUE ACROSS THE WHOLE WIDTH or the body shows
        through the gutters beside it. */
     check('6f2 it is opaque and reaches the page\'s own left edge',

@@ -7,8 +7,10 @@
        of every stream (who may open, contracts, kept, due now, on hold)
      2 a filter narrows the table and the count says so; find by name
      3 a row opens that stream's own page (the drawer it always had)
-     4 + New stream opens the Contract folders drawer at its add box
-     5 Housekeeping's Data & backup lands on the page; The trail's asks are
+     4 + New stream opens its own form (re-pointed 18 Oct 2026, round 26 as
+       drawn: "a new stream opens its form")
+     5 Housekeeping's Data & backup lands on the page, on The trail
+       (re-pointed 18 Oct 2026, round 26 as drawn); The trail's asks are
        labelled boxes in one row with its count; the Backup tab holds the
        backup; ‹ Settings goes back
      6 a refresh keeps the page
@@ -88,19 +90,22 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     }
 
     console.log('\n4 · + New stream');
-    if (await press('[data-st-pg="streams"] .st-pg-head [data-st-panel="folders"]', '4 + New stream')) {
-      const add = await until(() => { const dw = document.getElementById('st-drawer'); return dw && dw.classList.contains('open') && document.getElementById('st-folder-new') ? true : null; }, null, 4000);
-      check('4 it opens Contract folders with its add box', !!add);
+    if (await press('[data-st-pg="streams"] .st-pg-head [data-st-panel="stream:new"]', '4 + New stream')) {
+      const add = await until(() => { const dw = document.getElementById('st-drawer'); return dw && dw.classList.contains('open') && document.getElementById('st-stream-name') ? true : null; }, null, 4000);
+      check('4 it opens its own form, a name box', !!add);
       await page.evaluate(() => stDrawerClose());
     }
 
     console.log('\n5 · Data & backup');
     await toCompany();
-    if (await press('[data-st-card="house"] [data-st-panel="backup"]', '5 the door')) {
+    if (await press('[data-st-card="house"] [data-st-page="data"]', '5 the door')) {
       const dp = await until(() => { const p = document.querySelector('[data-st-pg="data"]'); const dw = document.getElementById('st-drawer');
         return p ? { title: (p.querySelector('.st-pg-t') || {}).textContent, tabs: [...p.querySelectorAll('[data-st-bk-tab]')].map(b => b.textContent.trim() + (b.classList.contains('is-on') ? '*' : '')).join(' | '),
           drawer: !!(dw && dw.classList.contains('open')), backup: !!document.getElementById('bk-export') } : null; }, null, 6000);
-      check('5a the door lands on the page, Backup in front, no drawer', !!dp && /Data/.test(dp.title) && dp.tabs === 'The trail | Backup*' && !dp.drawer && dp.backup, JSON.stringify(dp));
+      check('5a the door lands on the page, The trail in front, no drawer', !!dp && /Data/.test(dp.title) && dp.tabs === 'The trail* | Backup' && !dp.drawer, JSON.stringify(dp));
+      await press('[data-st-pg="data"] [data-st-bk-tab="backup"]', '5a Backup');
+      const bk = await until(() => !!document.getElementById('bk-export'), null, 4000);
+      check('5a the Backup tab holds the backup', !!bk);
       await press('[data-st-pg="data"] [data-st-bk-tab="trail"]', '5b The trail');
       const band = await until(() => { const b = document.querySelector('.st-tr-band'); if (!b) return null;
         const boxes = [...b.querySelectorAll('.st-sw-f')]; const tops = new Set(boxes.map(x => Math.round(x.getBoundingClientRect().top)));

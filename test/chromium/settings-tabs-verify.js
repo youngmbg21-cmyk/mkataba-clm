@@ -109,8 +109,13 @@ const signIn = async (page, base, email, pass) => {
       await page.evaluate(x => { settingsGoTab(SET_PANELS[x].tab); }, k);
       await page.waitForTimeout(250);
       /* PRESSED, not called: the row's own delegated handler is what a person
-         uses, and a row that is drawn but not wired passes a function call. */
-      await page.click(`[data-st-panel="${k}"]`);
+         uses, and a row that is drawn but not wired passes a function call.
+         RE-POINTED 18 Oct 2026 (round 25 as drawn): a panel with no door on
+         its card is pressed where it is drawn — the Menu beside the board */
+      if (!(await page.locator(`#st-board [data-st-panel="${k}"]:visible`).count())) {
+        await page.evaluate(() => stSideSet('menu')); await page.waitForTimeout(150);
+      }
+      await page.locator(`[data-st-panel="${k}"]:visible`).first().click();
       await page.waitForTimeout(500);
       const v = await page.evaluate(VISIBLE, '#st-drawer');
       const title = await page.evaluate(() => (document.querySelector('#st-dhead .rvd-title') || {}).textContent || '');
@@ -118,12 +123,14 @@ const signIn = async (page, base, email, pass) => {
       if (!v.ok || !title.trim() || bodyLen < 10) bad.push(`${k}: ${v.why}${title ? '' : ' · no title'}${bodyLen < 10 ? ' · empty' : ''}`);
       await page.keyboard.press('Escape');
       await page.waitForTimeout(250);
+      await page.evaluate(() => stSideSet('jambo'));
     }
     check(`all ${panelKeys.length} rows open a drawer with a name and something in it`,
       bad.length === 0, bad.slice(0, 4).join(' | ') || panelKeys.join(', '));
     await page.evaluate(() => { settingsGoTab(SET_PANELS.backup.tab); });
     await page.waitForTimeout(250);
-    await page.click('[data-st-panel="backup"]');
+    await page.evaluate(() => stSideSet('menu')); await page.waitForTimeout(150);
+    await page.locator('[data-st-panel="backup"]:visible').first().click();
     const dataPage = await page.waitForFunction(() => !!document.querySelector('[data-st-pg="data"] .st-pg-t'), null, { timeout: 5000 }).then(() => true, () => false);
     check('Data & backup\'s row opens its page (round 26)', dataPage);
     await page.evaluate(() => settingsGoPage(''));
@@ -754,7 +761,9 @@ const signIn = async (page, base, email, pass) => {
       mine: !!document.querySelector('[data-st-you-card="who"] [data-st-rform="me:name"]') && !!document.querySelector('[data-st-you-card="work"] [data-st-sw="chips"]'),
       sessions: !!document.querySelector('[data-st-you-card="safety"] [data-st-rform="me:sessions"]'),
       backup: !!document.querySelector('[data-st-you-card="data"] [data-st-mycopy]'),
-      design: !!document.querySelector('[data-st-you-card="design"] [data-st-panel="me:design"]'),
+      /* re-pointed 18 Oct 2026 (round 24 as drawn: eight headings): Company
+         design is off the sheet and found by its name — the Menu names it */
+      design: !document.querySelector('[data-st-you-card="design"]') && !!document.querySelector('#st-list [data-st-you="design"]'),
     }));
     await p2.click('[data-st-you-card="who"] [data-st-rform="me:name"]'); await p2.waitForTimeout(500);
     const whoV = await p2.evaluate(VISIBLE, '#st-me-title');

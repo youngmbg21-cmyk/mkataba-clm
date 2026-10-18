@@ -229,13 +229,26 @@ describe('f193 — half (a): nothing the old page carried was left behind', () =
     /* SINCE THE FULL BUILD (16 Oct 2026) a group's card holds its panels as
        two facts and doors — still each panel once; the People card and the
        ladder hold their own doors and are asked about in f691. */
-    for (const [where, sel] of [['the board\'s cards', '.st-cards > .st-card:not([data-st-card="people"]):not([data-st-card="ladder"]) [data-st-panel]'], ['the Menu', '#st-list .st-mrow[data-st-panel]']]) {
-      const drawn = [...win.document.querySelectorAll(sel)].map(b => b.getAttribute('data-st-panel')).filter(k => sb.SET_PANELS[k]);
-      assert.deepEqual(drawn.slice().sort(), expected.slice().sort(),
-        `${where} draw every company panel and nobody else's`);
-      /* THE COUNT MATTERS AS MUCH AS THE SET: a panel that landed in two
-         groups would pass a set compare and be drawn twice on screen. */
-      assert.equal(drawn.length, expected.length, `${where} draw each panel exactly once`);
+    /* RE-POINTED 18 Oct 2026 (round 25 as drawn, the gaps): each card now
+       carries the drawing's own two facts and doors, not "the rest of its
+       group", so the board's cards no longer hold every panel — the MENU
+       beside it does, each exactly once, and that is where "nothing was left
+       behind" is asked. The cards are asked what still bites there: nothing
+       but company panels, and no panel twice among a card's facts or twice
+       among its doors (a fact and a door naming one drawer is drawn so on
+       Links you send and Going live). */
+    const menu = [...win.document.querySelectorAll('#st-list .st-mrow[data-st-panel]')].map(b => b.getAttribute('data-st-panel')).filter(k => sb.SET_PANELS[k]);
+    assert.deepEqual(menu.slice().sort(), expected.slice().sort(), 'the Menu draws every company panel and nobody else\'s');
+    /* THE COUNT MATTERS AS MUCH AS THE SET: a panel that landed in two
+       groups would pass a set compare and be drawn twice on screen. */
+    assert.equal(menu.length, expected.length, 'the Menu draws each panel exactly once');
+    for (const card of win.document.querySelectorAll('.st-cards > .st-card:not([data-st-card="people"]):not([data-st-card="ladder"]):not([data-st-card="sheet"])')) {
+      const name = card.getAttribute('data-st-card');
+      for (const part of ['.st-card-facts', '.st-card-doors']) {
+        const ks = [...card.querySelectorAll(part + ' [data-st-panel]')].map(b => b.getAttribute('data-st-panel')).filter(k => sb.SET_PANELS[k]);
+        for (const k of ks) assert.ok(expected.includes(k), `${name}: ${k} is a company panel`);
+        assert.equal(new Set(ks).size, ks.length, `${name}: no panel twice among its ${part.slice(9)}`);
+      }
     }
     /* AND EVERY GROUP THAT DRAWS AT ALL IS NAMED — a headless box of rows is
        the flat list again, wearing a gap. */
@@ -327,9 +340,16 @@ describe('f193 — half (b): nobody was locked out quietly', () => {
     assert.match(fn.slice(0, 700), /renderMyAccountPage\(\)/, 'and answers it with a real page');
   });
 
+  /* RE-POINTED 18 Oct 2026 (round 24 as drawn: eight headings on Your
+     settings): Company design is a workspace setting, so it is off the
+     Editor's sheet and found by its name — the Menu lists it and it opens in
+     its drawer — rather than lost */
   test('the Editor keeps a company-design door and an admin keeps theirs', () => {
     const legal = stage({ role: 'legal' });
-    assert.ok(legal.sb.document.querySelector('[data-st-you-card="design"] [data-st-panel="me:design"]'), 'an Editor\'s You board has the design door');
+    assert.ok(!legal.sb.document.querySelector('[data-st-you-card="design"]'), 'not a heading on the Editor\'s sheet (eight, as drawn)');
+    assert.ok(legal.sb.document.querySelector('#st-list [data-st-you="design"]'), 'an Editor\'s Menu still names Company design');
+    legal.sb.stYouGo('design');
+    assert.ok(legal.$('brand-edit'), 'and its door reaches the design step');
     legal.sb.stDrawerOpen('me:design');
     assert.ok(legal.$('brand-edit'), 'and it reaches the design step');
     const viewer = stage({ role: 'viewer' });

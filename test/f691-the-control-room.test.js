@@ -159,11 +159,16 @@ describe('f691 — the Company board, as drawn', () => {
     assert.equal(cards[0], 'people'); assert.equal(cards.length, 9); assert.ok(!cards.includes('ladder'));
     const ladder = win.document.querySelector('.st-board > [data-st-card="ladder"]');
     assert.ok(ladder && ladder.previousElementSibling.classList.contains('st-cards'), 'the ladder last, after the cards');
+    /* RE-POINTED 18 Oct 2026 (round 25 as drawn, the gaps): each card holds
+       the drawing's two facts and its doors — no longer every panel of its
+       group. Every company panel is still one press away in the Menu beside
+       the board (each once; f193 asks it), and the cards hold nothing else */
     const panels = [...win.document.querySelectorAll('.st-cards > [data-st-card]:not([data-st-card="people"]):not([data-st-card="ladder"]) [data-st-panel]')]
       .map(b => b.getAttribute('data-st-panel')).filter(k => sb.SET_PANELS[k]);
     const expected = Object.keys(sb.SET_PANELS).filter(k => ['platform', 'build'].includes(sb.SET_PANELS[k].tab) && (!sb.SET_PANELS[k].show || sb.SET_PANELS[k].show()));
-    assert.deepEqual(panels.slice().sort(), expected.slice().sort(), 'every company panel is a fact or a door on its card');
-    assert.equal(panels.length, expected.length, 'and each one once');
+    for (const k of panels) assert.ok(expected.includes(k), `${k} on a card is a company panel`);
+    const menu = [...win.document.querySelectorAll('#st-list .st-mrow[data-st-panel]')].map(b => b.getAttribute('data-st-panel')).filter(k => sb.SET_PANELS[k]);
+    assert.deepEqual(menu.slice().sort(), expected.slice().sort(), 'every company panel is in the Menu beside the board');
     for (const card of win.document.querySelectorAll('.st-cards > [data-st-card]:not([data-st-card="people"]):not([data-st-card="ladder"])'))
       assert.ok(card.querySelectorAll('.st-fact').length <= 2, `${card.getAttribute('data-st-card')}: two facts at most`);
     assert.ok(win.document.getElementById('st-sheet-card'), 'and the access sheet under them');

@@ -93,7 +93,9 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     if (!self) check('2b the rule row (nothing to press)', false);
     if (clash[0] && await press(`#st-att [data-st-need="${clash[0].key}"] .st-need-go`, '2a the red row\'s button')) {
       const who = await until(() => { const d = document.getElementById('st-drawer'); return d && d.classList.contains('open') ? (document.querySelector('#st-dhead .rvd-title') || {}).textContent : null; });
-      check('2a "Open Unrestricted" opens Unrestricted Legal\'s drawer', clash[0].btn === 'Open Unrestricted' && who === 'Unrestricted Legal', clash[0].btn + ' → ' + who);
+      /* re-pointed 18 Oct 2026 (round 25 as drawn: "Open Lina Ek"): the
+         button says the person's whole name */
+      check('2a "Open Unrestricted Legal" opens Unrestricted Legal\'s drawer', clash[0].btn === 'Open Unrestricted Legal' && who === 'Unrestricted Legal', clash[0].btn + ' → ' + who);
       await page.evaluate(() => { if (typeof stDrawerClose === 'function') stDrawerClose(); });
       await until(() => !document.getElementById('st-drawer').classList.contains('open'));
     }

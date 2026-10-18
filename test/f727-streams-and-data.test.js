@@ -118,8 +118,10 @@ describe('f727 (1) Contract streams is a page', () => {
     /* re-pointed 18 Oct 2026 (round 26 as drawn): a press SHOWS the stream in
        the side panel; Enter or a double press opens its page (f781) */
     assert.ok(rows.every(r => fids(sb).includes(r.getAttribute('data-st-sw-pick'))), 'a row shows its stream beside the list');
-    const add = pg.querySelector('.st-pg-head [data-st-panel="folders"]');
-    assert.ok(add && add.getAttribute('data-st-focus') === '#st-folder-new', '+ New stream opens the add box');
+    /* re-pointed 18 Oct 2026 (round 26 as drawn: "a new stream opens its
+       form"): its own form, the hand in its name */
+    const add = pg.querySelector('.st-pg-head [data-st-panel="stream:new"]');
+    assert.ok(add && add.getAttribute('data-st-focus') === '#st-stream-name', '+ New stream opens its form');
   });
   test('1b the row reads the stream\'s own readings: private, keeping, due, held', () => {
     const { sb } = stage();

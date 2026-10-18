@@ -76,7 +76,9 @@ const CONTRACTS = [
       const more = document.querySelector('#st-att [data-st-needs-all]'); if (more && more.getAttribute('aria-expanded') !== 'true') { more.click(); return null; }
       const r = document.querySelector('#st-att [data-st-need="review"]');
       return r ? { text: r.textContent.replace(/\s+/g, ' ').trim() } : null; }, null, 15000);
-    check('1a Needs your attention asks for the quarter\'s review', !!ask && ask.text === `Quarterly access review · ${qWord()} 0 of 3 reviewed Review` /* two lines a row since round 25 */, ask && ask.text);
+    /* re-pointed 18 Oct 2026 (round 25 as drawn): the second line says it is
+       asked until the quarter is stamped */
+    check('1a Needs your attention asks for the quarter\'s review', !!ask && ask.text === `Quarterly access review · ${qWord()} 0 of 3 reviewed · asked until the quarter is stamped Review` /* two lines a row since round 25 */, ask && ask.text);
     const bell = await page.evaluate(() => (typeof buildAlerts === 'function' ? buildAlerts() : []).filter(a => a.kind === 'access-review').map(a => a.text).join(' | '));
     check('1b …and so does the bell', bell === `The quarterly access review is due · ${qWord()}`, bell);
     await shot(page, 'ar-needs');
