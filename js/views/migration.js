@@ -933,6 +933,22 @@ function migAllowanceHtml(){
     ${done?`<div style="margin-top:6px;line-height:1.5">The import carries on with the built-in pattern matcher — nothing fails and nothing is lost, but extracted details will need more review. An admin can top the allowance up in Settings.</div>`:''}
   </div>`;
 }
+/* ---- EACH FIGURE IS A DOOR ONTO THE LIST (round 22 of the redesign: the
+   owner picked "The SAP way" for Import, 17 Oct 2026) ----
+   A press on a figure narrows Migrated contracts to what it counts — the same
+   readings the figures count (needsReview, migComplete, blocked); pressed
+   again, or the first figure (all of them), the whole list is back. Per
+   sitting; nothing is written. */
+let _migShow = 'all';
+const MIG_SHOWS = ['all', 'complete', 'review', 'blocked'];
+function migShowPass(c, show){
+  const k = show || _migShow;
+  if (k === 'review') return !!(c.migration && c.migration.needsReview);
+  if (k === 'complete') return migComplete(c);
+  if (k === 'blocked') return !!(c.migration && c.migration.blocked);
+  return true;
+}
+function migShowSet(k){ _migShow = (!MIG_SHOWS.includes(k) || k === _migShow) ? 'all' : k; renderMigration(); }
 function migKpis(){
   const cs=migContracts();
   return { total:cs.length,
@@ -1092,9 +1108,10 @@ function renderMigration(){
   const folderOpts=folderOptionsHtml(M.defaults.folder||'auto', true);
   const statusOpts=[['Signed','Executed — signed outside HaTi'],['Under Review','In Review'],['Draft','Drafting']]
     .map(([v,l])=>`<option value="${v}" ${M.defaults.status===v?'selected':''}>${l}</option>`).join('');
-  const kpi=(n,label,color)=>`<div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow-sm)">
+  const kpi=(n,label,color,show)=>{ const tag=show?'button':'div', on=show&&show!=='all'&&_migShow===show;
+    return `<${tag}${show?` type="button" class="mig-kpi${on?' is-on':''}" data-mig-show="${show}" aria-pressed="${on?'true':'false'}" title="${migEsc(i18t(show==='all'?'mig_show_all':'mig_show_only',{what:String(label).replace(/<[^>]*>/g,'')}))}"`:' class="mig-kpi-card"'}>
       <div style="font-family:var(--font-mono);font-size:24px;font-weight:var(--w-title);color:${color||'var(--color-text)'};line-height:1;font-variant-numeric:tabular-nums">${n}</div>
-      <div style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);margin-top:6px">${label}</div></div>`;
+      <div style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);margin-top:6px">${label}</div></${tag}>`; };
   const selStyle='font:inherit;font-size:var(--field-size);height:var(--field-h);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x);color:inherit;cursor:pointer';
 
   document.getElementById('content').innerHTML=`
@@ -1116,8 +1133,16 @@ function renderMigration(){
              fixed columns left an empty fifth slot whenever four cards drew. */}
       @media (min-width:1024px){ .mig-kpis{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr)} }
       .mig-table tbody tr:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
-      #mig-drop{border:2px dashed var(--color-divider);border-radius:var(--radius);padding:var(--s-8) var(--s-4);
-        text-align:center;cursor:pointer;transition:border-color var(--dur-1),background var(--dur-1)}
+      ${''/* THE DROP AREA IS A STRIP (round 22, "The SAP way"): the same box and
+             the same press, one line tall, its Choose files at its end */}
+      #mig-drop{display:flex;align-items:center;gap:var(--s-3);border:1px dashed var(--color-divider);border-radius:var(--radius-lg);padding:12px 16px;
+        text-align:left;cursor:pointer;background:var(--surface-2);transition:border-color var(--dur-1),background var(--dur-1)}
+      .mig-kpi,.mig-kpi-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow-sm);text-align:left;font:inherit;color:inherit}
+      .mig-kpi{cursor:pointer}
+      .mig-kpi:hover{border-color:var(--btn-edge)}
+      .mig-kpi.is-on{border-color:var(--color-accent);box-shadow:0 0 0 1px var(--color-accent)}
+      .mig-kpi:focus-visible{outline:2px solid var(--focus-color);outline-offset:2px}
+      .mig-shown{border:1px solid var(--color-accent);border-radius:999px;background:color-mix(in srgb,var(--color-accent) 8%,transparent);color:var(--accent-ink);font:inherit;font-size:var(--t-label);padding:1px 9px;cursor:pointer}
       #mig-drop:hover{border-color:var(--color-accent)}
       #mig-drop.dragover{border-color:var(--color-accent);background:var(--st-steel-bg)}
     </style>
@@ -1125,10 +1150,10 @@ function renderMigration(){
 
       <!-- KPI strip -->
       <div id="mig-kpis" class="mig-kpis">
-        ${kpi(k.agreements===k.total?k.total:`${k.agreements}<span style="font-size:var(--t-body);color:var(--color-neutral-500)"> · ${k.total}</span>`, k.agreements===k.total?i18t('mig_contracts_migrated'):i18t('mig_agreements_documents'))}
-        ${kpi(k.complete,'Fully migrated', k.total&&k.complete===k.total?'var(--st-green-fg)':undefined)}
-        ${kpi(k.review,i18t('mig_need_review'), k.review?'var(--st-amber-fg)':'var(--st-green-fg)')}
-        ${kpi(k.blocked,i18t('mig_no_text'), k.blocked?'var(--st-ruby-fg)':'var(--st-green-fg)')}
+        ${kpi(k.agreements===k.total?k.total:`${k.agreements}<span style="font-size:var(--t-body);color:var(--color-neutral-500)"> · ${k.total}</span>`, k.agreements===k.total?i18t('mig_contracts_migrated'):i18t('mig_agreements_documents'), undefined, cs.length?'all':null)}
+        ${kpi(k.complete,'Fully migrated', k.total&&k.complete===k.total?'var(--st-green-fg)':undefined, k.complete?'complete':null)}
+        ${kpi(k.review,i18t('mig_need_review'), k.review?'var(--st-amber-fg)':'var(--st-green-fg)', k.review?'review':null)}
+        ${kpi(k.blocked,i18t('mig_no_text'), k.blocked?'var(--st-ruby-fg)':'var(--st-green-fg)', k.blocked?'blocked':null)}
         ${k.linkPending?kpi(k.linkPending,'Link decision waiting','var(--st-amber-fg)'):''}
         ${recon?kpi(`${recon.matched}/${M.manifest.length}`,'Manifest matched', recon.matched===M.manifest.length?'var(--st-green-fg)':'var(--st-amber-fg)'):''}
       </div>
@@ -1161,9 +1186,10 @@ function renderMigration(){
           ${M.manifestProblems.length>12?`<div style="margin-top:var(--s-1)">…and ${M.manifestProblems.length-12} more.</div>`:''}
         </div>`:''}
         <div id="mig-drop">
-          <div style="display:inline-grid;place-items:center;width:40px;height:40px;border-radius:var(--radius);background:var(--color-neutral-100);color:var(--accent-ink-700);margin-bottom:var(--s-2)">${icon('upload','w-5 h-5')}</div>
-          <div style="font-size:var(--t-body);font-weight:var(--w-strong)">${i18t('mig_drop_files')}</div>
-          <div style="font-size:var(--t-label);color:var(--color-neutral-600);margin-top:3px">Up to ${MIG_MAX_FILES} files per batch · duplicates skipped automatically</div>
+          <div style="display:inline-grid;place-items:center;flex:none;width:36px;height:36px;border-radius:var(--radius);background:var(--color-neutral-100);color:var(--accent-ink-700)">${icon('upload','w-5 h-5')}</div>
+          <div style="flex:1;min-width:0"><div style="font-size:var(--t-body);font-weight:var(--w-strong)">${i18t('mig_drop_files')}</div>
+          <div style="font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px">Up to ${MIG_MAX_FILES} files per batch · duplicates skipped automatically</div></div>
+          <span class="ui-btn" style="flex:none" aria-hidden="true">${migEsc(i18t('mig_choose_files'))}</span>
           <input id="mig-files" type="file" multiple accept="${MIG_ACCEPT}" style="display:none">
         </div>
       </section>`:`<div style="font-size:var(--t-meta);color:var(--color-neutral-600);background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-3) 14px">${i18t('mig_viewers_readonly')}</div>`}
@@ -1176,6 +1202,7 @@ function renderMigration(){
         <div style="display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;padding:var(--s-3) 14px;border-bottom:1px solid var(--color-divider)">
           <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);margin:0">${i18t('mig_migrated_contracts')}</h3>
           <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${k.complete}/${k.total} fully migrated</span>
+          ${_migShow!=='all'?`<button type="button" class="mig-shown" data-mig-show="${_migShow}" title="${migEsc(i18t('mig_show_all'))}">${migEsc(i18t('mig_shown_n',{n:cs.filter(c=>migShowPass(c)).length,of:cs.length}))} ×</button>`:''}
           <span style="flex:1"></span>
           ${canEdit()&&k.review?`<button id="mig-review-all" class="ui-btn ui-btn-primary">${icon('check2','w-3.5 h-3.5')} Review all (${k.review})</button>`:''}
           ${canEdit()&&heur&&API_MODE()&&state.aiConfigured?`<button id="mig-rerun" class="ui-btn">${icon('sparkle','w-3.5 h-3.5')} Re-run Jambo extraction (${heur})</button>`:''}
@@ -1191,7 +1218,7 @@ function renderMigration(){
               <th>${i18t('mig_col_gates')}</th><th style="text-align:right;padding-right:var(--s-3)"></th>
             </tr></thead>
             <tbody>
-              ${cs.map(c=>{ const m=c.metadata||{};
+              ${cs.filter(c=>migShowPass(c)).map(c=>{ const m=c.metadata||{};
                 const need=c.migration.needsReview;
                 return `<tr data-row="${c.id}" style="cursor:pointer">
                 <td style="padding-left:var(--s-3);font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap">${window.refHtml?refHtml(c):c.id}</td>
@@ -1267,9 +1294,10 @@ function renderMigration(){
   document.querySelectorAll('[data-mig-review]').forEach(b=>b.addEventListener('click',()=>{ const c=getContract(b.getAttribute('data-mig-review')); if(c) openMigReview(c); }));
   document.querySelectorAll('[data-mig-link]').forEach(b=>b.addEventListener('click',()=>{ const c=getContract(b.getAttribute('data-mig-link')); if(c) openLinkModal(c, ()=>renderMigration()); }));
   document.querySelectorAll('.mig-table [data-row]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-row'))));
+  document.querySelectorAll('[data-mig-show]').forEach(b=>b.addEventListener('click',()=>migShowSet(b.getAttribute('data-mig-show'))));
   wireOpens(document.getElementById('content'));
   renderMigQueue();
   setActiveNav('migration');
 }
 
-Object.assign(window,{migAllowanceHtml,migBuildAndSave,migIndexContract,migDrawAllowanceDoc,migResolveDuplicate,migDupeRowHtml,migWireDupes,migEstimate,migConfirmEstimate,migLoadAiState,migGuessPages,applyReviewedMeta,migContracts,migExportSheet,migGates,migImportSheet,migLoadManifest,migLoadUnfinished,migDismissBatch,migUnfinishedHtml,migDateOrder,migParseDate,migParseValue,migNeedsReview,migProcessFiles,migReviewAll,migRerunAi,migState,openMigReview,parseCsv,renderMigration});
+Object.assign(window,{migShowPass,migShowSet,MIG_SHOWS,migAllowanceHtml,migBuildAndSave,migIndexContract,migDrawAllowanceDoc,migResolveDuplicate,migDupeRowHtml,migWireDupes,migEstimate,migConfirmEstimate,migLoadAiState,migGuessPages,applyReviewedMeta,migContracts,migExportSheet,migGates,migImportSheet,migLoadManifest,migLoadUnfinished,migDismissBatch,migUnfinishedHtml,migDateOrder,migParseDate,migParseValue,migNeedsReview,migProcessFiles,migReviewAll,migRerunAi,migState,openMigReview,parseCsv,renderMigration});

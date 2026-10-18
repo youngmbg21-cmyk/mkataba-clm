@@ -10557,6 +10557,11 @@ const STRINGS = {
     mig_contracts_migrated: 'Contracts migrated',
     mig_agreements_documents: 'Agreements · documents',
     mig_need_review: 'Need review',
+    /* ---- IMPORT, THE SAP WAY (round 22, owner picked it, 17 Oct 2026) ---- */
+    mig_show_all: 'Show every migrated contract',
+    mig_show_only: 'Show only: {what}',
+    mig_shown_n: '{n} of {of} shown',
+    mig_choose_files: 'Choose files',
     mig_no_text: 'No readable text',
     mig_drop_all: 'Drop your whole portfolio at once (PDF, Word .docx, image or text · max {max} each · legacy .doc must be re-saved as .docx or PDF first). Every file is hashed for duplicates, text-extracted and {how} — then only the fields the machine wasn’t sure about come back to you for review.',
     mig_read_by_copilot: 'read by Jambo’s engine',
@@ -27242,6 +27247,11 @@ const STRINGS = {
     mig_contracts_migrated: 'Migrerade avtal',
     mig_agreements_documents: 'Avtal · dokument',
     mig_need_review: 'Behöver granskas',
+    /* ---- IMPORT, SAP-SÄTTET (omgång 22) ---- */
+    mig_show_all: 'Visa alla migrerade avtal',
+    mig_show_only: 'Visa bara: {what}',
+    mig_shown_n: '{n} av {of} visas',
+    mig_choose_files: 'Välj filer',
     mig_no_text: 'Ingen läsbar text',
     mig_drop_all: 'Släpp hela beståndet på en gång (PDF, Word .docx, bild eller text · högst {max} styck · äldre .doc måste sparas om som .docx eller PDF först). Varje fil hashas mot dubbletter, textextraheras och {how} — sedan kommer bara de fält maskinen var osäker på tillbaka till dig för granskning.',
     mig_read_by_copilot: 'läses av Jambo-motorn',

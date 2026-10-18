@@ -30649,3 +30649,13 @@ The owner picked "Paper first" by name. The round's one question — marks on th
 - **THE CENSUS LEARNS A PAPER.** ink-wash's PAPER reading now knows `.tpl-pf-sheet` as it knows `.pg-sheet` (a template's paper wears the paper's own greys and capitals, as every paper does); re-recorded (fourteenth) and theme-tokens (sixth) under the standing yes, audited by key: nothing new to the product.
 - Re-pointed: f244 (7), f336 (2)(4) (the book is an index and a paper; the shelves' rows pinned in `tplBookShelvesHtml`), templates-tabs 9a/9b/9h/9i, keeps-your-place (every template whatever the window, the index and the paper), templates-cleaned-up 4f/4g (the name door brings the paper up).
 - Tests: f722 (red at the parent), paper-first-verify (red at the parent).
+
+## IMPORT, "THE SAP WAY" — ROUND 22 OF THE REDESIGN (17 Oct 2026)
+
+The owner picked "The SAP way" by name; the round asked nothing. The designer could not photograph today's Import, so today's page was photographed first (a batch of four files) and set beside the drawing; the build is the difference.
+
+- **EACH FIGURE IS A DOOR.** Contracts migrated · Fully migrated · Need review · No readable text narrow Migrated contracts to what each counts, read by the figures' own readings (`needsReview`, `migComplete`, `blocked`; `migShowPass`); pressed again, or the first figure, or the "2 of 3 shown ×" note on the list's head, the whole list is back (`migShowSet`). A figure of zero is not a door. Per sitting; nothing written.
+- **THE DROP AREA IS A STRIP.** The same `#mig-drop`, the same press and drop, one line tall (about 60px instead of about 150), its Choose files at its end, so the batch and the list come up a screen sooner.
+- **KEPT, AND WHY.** The drawing merged the batch's queue and the migrated list into one "Files in this batch" table with six marks and a state, renamed the figures (Files · Filed · To check · Duplicate?), and put the chosen file's facts in Jambo's panel with "Check all 3" opening the One-at-a-time view. Import is not a Home place with Jambo's panel, and today's review dialog (Review all) is the existing door for checking files; the queue and the list keep their separate cards. Named in the morning summary.
+- The figure cards' clothes moved from inline style to `.mig-kpi`/`.mig-kpi-card` so the lit state needs no `!important`.
+- Tests: f723 (red at the parent), import-sap-way-verify (red at the parent).
