@@ -850,9 +850,22 @@ const CA_MENU = [
 const CA_MENU_MAX = 140;
 /* a question about the thing ("who are the signers?") is for Jambo to answer, not a press */
 const CA_MENU_ASKS = /^\s*(?:what|who|whom|why|how|when|which|where|vad|vem|varför|hur|när|vilken|vilka)\b/i;   // a longer question is a question for the model, not a press
+/* TWO ROWS THAT MISREAD A FILE COMING IN (owner, 18 Oct 2026: "Fix the Menu
+   reader's pdf and import misreads"). The PDF row is a copy going OUT: "I want
+   to upload a pdf", "add a signed pdf", "we got a pdf" bring a file in, so the
+   row is not read and the words go on to the doors that bring one in (the
+   signed-document row, the upload). The import row brings in THEIR file — the
+   other side's Word response — so it is read only where the words say whose:
+   "import from excel" and "import our old contracts" are the Import page's. */
+const CA_MENU_INBOUND = /(?<!\p{L})(?:upload\p{L}*|attach\p{L}*|scan\p{L}*|drop\p{L}*|add(?:s|ed|ing)?|receiv\p{L}*|got|bring(?:ing)? in|import\p{L}*|ladda(?:r|de)? upp|bifoga\p{L}*|lägg(?:a|er)? (?:in|till)|skanna\p{L}*|fått|fick)(?!\p{L})/iu;
+const CA_MENU_THEIR_FILE = /(?<!\p{L})(?:their|them|the other side|counterparty|response|reply|markup|mark-up|redlines?|changes|word|deras|motparten|svar(?:et)?|ändringar(?:na)?)(?!\p{L})/iu;
+const CA_MENU_NOT = {
+  pdf: t => CA_MENU_INBOUND.test(t),
+  import: t => !CA_MENU_THEIR_FILE.test(t),
+};
 function caReadMenu(q){
   const t = String(q || ''); if (t.length > CA_MENU_MAX || CA_MENU_ASKS.test(t)) return null;
-  const hit = CA_MENU.find(([, re]) => re.test(t)); if (!hit) return null;
+  const hit = CA_MENU.find(([k, re]) => re.test(t) && !(CA_MENU_NOT[k] && CA_MENU_NOT[k](t))); if (!hit) return null;
   const c = caFindContract(t); if (!c) return null;
   return { kind: 'menu', menu: hit[0], sels: hit[2], cid: c.id, state: 'ready' };
 }
@@ -1169,7 +1182,7 @@ async function caDraftReply(prompt, cid){
   }
 }
 Object.assign(window, { caDraftReply });
-Object.assign(window, { caRefFix, CA_REF_RE, caRefLinkPaint, caRefOpen, CA_MENU, caReadMenu, caMenuRows, caMenuCardHtml, caMenuPress, CA_DOORS, caReadDoor, caRoomSign, CA_DOOR_GO, CA_DOOR_SHUT, CA_DOOR_NEEDS, caDoorCardHtml, caDoorPress });
+Object.assign(window, { caRefFix, CA_REF_RE, caRefLinkPaint, caRefOpen, CA_MENU, CA_MENU_INBOUND, CA_MENU_THEIR_FILE, CA_MENU_NOT, caReadMenu, caMenuRows, caMenuCardHtml, caMenuPress, CA_DOORS, caReadDoor, caRoomSign, CA_DOOR_GO, CA_DOOR_SHUT, CA_DOOR_NEEDS, caDoorCardHtml, caDoorPress });
 Object.assign(window, { CA_PICK_MAX, CA_NOTE_MAX, CA_SEND_RE, caPeople, caContracts, caOpenContract, caTokenAt, caMatches, caPopHtml, caPopClose, caPopRead, caChoose,
   caFindContract, caFindPerson, caNoteOf, caReadSend, caActOf, caSendBlock, caCardHtml, caCardPress,
   CA_DRAFT_RE, CA_DRAFT_NOUN, CA_DRAFT_OPTS, caReadDraft, caDraftScore, caDraftRank, caDraftRun, caDraftCardHtml, caDraftPress, CA_DRAFT_WITH, CA_DRAFT_WITH_MAX, caDraftWith, CA_DRAFT_NOT_PARTY, CA_DRAFT_TERM_WORD, caDraftBest, caDraftTitleOf, caDraftWho, caDraftForm,
