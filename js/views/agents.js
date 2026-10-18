@@ -1924,15 +1924,13 @@ function agChaseMail(c, o, firm){
      (srvChaseSend): a calendar day read as that day, UTC, anything unreadable
      left as written. The preview printed the stored "2026-10-13" while the
      inbox got "13 October 2026" (round 23's gaps, 18 Oct 2026). */
-  const dayWords = v => {
-    const iso = String(v || '').slice(0, 10);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return v || '';
-    try { return new Date(iso + 'T00:00:00Z').toLocaleDateString(L === 'sv' ? 'sv-SE' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }); } catch (_){ return iso; }
-  };
+  /* ONE READING, BOTH HOSTS (js/sharemail.js chaseDayWords, second pass): "14
+     October" inside the year, as drawn; the year only outside it */
+  const today = (typeof todayISO === 'function') ? todayISO() : new Date().toISOString().slice(0, 10);
+  const dayWords = v => (typeof chaseDayWords === 'function') ? chaseDayWords(v, L, today) : (v || '');
   const vars = { desc: (o && o.desc) || '', name: c.name || ref, id: ref, due: dayWords(o && o.due) };
   /* THE FIRMER ONE is the route's own `firm` keys, with the day the first went. */
   if (firm) vars.first = dayWords(String((o && o.chasedAt) || '').slice(0, 10));
-  const today = (typeof todayISO === 'function') ? todayISO() : new Date().toISOString().slice(0, 10);
   const soon = !!(o && o.due && String(o.due).slice(0, 10) > today);   // the route's own rule (B11)
   /* ONE LETTER, TWO HOSTS (js/sharemail.js chaseMailOf): signed by the person
      who will press Send, for our company on this agreement. The standing link
@@ -2147,11 +2145,16 @@ function agPanelTitle(it){
    check"), its reference, and one sentence of what it holds, read off the
    readings the piece already carries — nothing asked of a model, nothing
    written. A kind with no sentence of its own says the card's line. */
-/* THE ENGLISH POSSESSIVE OF A NAME, for the words that say "{whos}": "Sara’s",
-   "Jonas’s", and a name of several words that ends in s takes the mark alone
-   ("Brightwater Foods’"). The Swedish words never use it (they say "från {who}"). */
+/* THE POSSESSIVE OF A NAME, for the words that say "{whos}", in the reader's
+   language. English: "Sara’s", "Jonas’s", and a name of several words that
+   ends in s takes the mark alone ("Brightwater Foods’"). Swedish (second pass,
+   both books fill the same holes): "Saras", "Nordvik Logistiks", a name that
+   already ends in s, x or z as it is ("Jonas"), an abbreviation with a colon
+   ("Kettle & Co:s", "IKEA:s"). */
+const AG_POSS_ABBR = /(?:^|\s)(?:\p{Lu}{2,}|Co|Inc|Ltd|Corp|Oy|GmbH|plc|AB|AS)$/u;
 function agPoss(name){
   const n = String(name || '').trim(); if (!n) return '';
+  if (typeof langId === 'function' && langId() === 'sv') return AG_POSS_ABBR.test(n) ? n + ':s' : /[sxz]$/i.test(n) ? n : n + 's';
   return (/s$/i.test(n) && /\s/.test(n)) ? n + '\u2019' : n + '\u2019s';
 }
 function agPieceTitle(it){
@@ -2190,7 +2193,12 @@ function _agClauseSay(label){
   const w = l.split(' '), q = w.slice(0, 5).join(' ').replace(/[.,;:]+$/, '');
   return _agT('ag_ln_clause_q', { q: w.length > 5 ? q + '\u2026' : q });
 }
-function agPieceLine(it){
+/* ONE SENTENCE ENDS ONCE (round 23's gaps, second pass): a Swedish short
+   date already ends in its own full stop ("27 nov."), and "Det löper ut
+   {day}." printed "27 nov.." — the sentence's stop is not added twice */
+const _agStop = s => String(s || '').replace(/(?<!\.)\.\.(?=\s|$)/g, '.');
+function agPieceLine(it){ return _agStop(_agPieceLine(it)); }
+function _agPieceLine(it){
   if (!it) return '';
   const p = agCardParts(it);
   const c = it.c || null;
@@ -2235,7 +2243,10 @@ function agPieceLine(it){
   if (it.kind === 'chase' || it.kind === 'chase-firm'){
     const desc = String((it.ob && it.ob.desc) || '').trim();
     const days = Number(it.days) || 0;
-    const late = _agTn('ag_ln_late', days, { n: days, what: desc });
+    /* "Their insurance certificate is 5 days late." — a thing is theirs; an
+       act stays in its quotation marks (chaseWhatOf, the letter's own reading) */
+    const w = (typeof chaseWhatOf === 'function') ? chaseWhatOf(desc) : { thing: false };
+    const late = w.thing ? _agTn('ag_ln_late_their', days, { n: days, what: w.noun }) : _agTn('ag_ln_late', days, { n: days, what: desc });
     if (it.noAddress) return late + ' ' + _agT('ag_ln_chase_noaddr');
     return late + ' ' + (it.kind === 'chase-firm' ? _agT('ag_ln_chase_firm', { day: _agDay(it.ob && it.ob.chasedAt) }) : _agT('ag_ln_chase_ready'));
   }

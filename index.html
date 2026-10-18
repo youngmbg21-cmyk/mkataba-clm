@@ -9256,16 +9256,17 @@
   /* COPILOT PREPARES, YOU PRESS (7 Oct 2026): the @ / # list over the ask box,
      and the card an act answers with. */
   #ig-dock{position:relative;background:var(--color-bg);border-left:1px solid var(--color-neutral-300);box-shadow:-10px 0 28px -20px rgba(43,43,45,.35)}
-  /* THE FOLDED PANEL IS A DOOR THAT LOOKS LIKE ONE (8 Oct 2026): tinted, the mark in the accent, "Ask Copilot" readable top to bottom */
-  #ig-dock .igd-door{height:100%;width:100%;display:flex;flex-direction:column;align-items:center;gap:10px;padding-top:14px;background:var(--color-accent-50);border:0;border-left:1px solid var(--color-accent-100);color:var(--accent-ink);cursor:pointer;transition:background var(--dur-2)}
-  #ig-dock .igd-door:hover{background:var(--color-accent-100)}
-  #ig-dock .igd-door:focus-visible{outline:2px solid var(--accent-ink);outline-offset:-3px}
-  #ig-dock .igd-door-w{writing-mode:vertical-rl;font-size:var(--t-meta);font-weight:var(--w-strong);letter-spacing:.02em;white-space:nowrap}
+  /* THE FOLDED PANEL IS A DOOR THAT LOOKS LIKE ONE (8 Oct 2026): tinted, the mark in the accent, "Ask Copilot" readable top to bottom;
+     the same clothes on Jambo's house, where he stands folded beside it (round 23's gaps, #jh-jambo) */
+  :is(#ig-dock,#jh-jambo) .igd-door{height:100%;width:100%;display:flex;flex-direction:column;align-items:center;gap:10px;padding-top:14px;background:var(--color-accent-50);border:0;border-left:1px solid var(--color-accent-100);color:var(--accent-ink);cursor:pointer;transition:background var(--dur-2)}
+  :is(#ig-dock,#jh-jambo) .igd-door:hover{background:var(--color-accent-100)}
+  :is(#ig-dock,#jh-jambo) .igd-door:focus-visible{outline:2px solid var(--accent-ink);outline-offset:-3px}
+  :is(#ig-dock,#jh-jambo) .igd-door-w{writing-mode:vertical-rl;font-size:var(--t-meta);font-weight:var(--w-strong);letter-spacing:.02em;white-space:nowrap}
   /* his face on the folded strip, with the count his tab carries (round 3, "Tabs and faces") */
-  #ig-dock .igd-door-i{position:relative;display:grid;place-items:center;width:28px;height:28px}
-  #ig-dock .igd-door-face{width:28px;height:28px;border-radius:50%}
-  #ig-dock .igd-door-i .pd-tab-n{left:16px}
-  #ig-dock .igd-door-o{flex:none;opacity:.8}
+  :is(#ig-dock,#jh-jambo) .igd-door-i{position:relative;display:grid;place-items:center;width:28px;height:28px}
+  :is(#ig-dock,#jh-jambo) .igd-door-face{width:28px;height:28px;border-radius:50%}
+  :is(#ig-dock,#jh-jambo) .igd-door-i .pd-tab-n{left:16px}
+  :is(#ig-dock,#jh-jambo) .igd-door-o{flex:none;opacity:.8}
   .ca-pop{position:absolute;left:12px;right:12px;z-index:30;background:var(--color-surface);border:1px solid var(--color-neutral-300);border-radius:var(--radius-lg);box-shadow:0 10px 28px rgba(0,0,0,.16);padding:6px;max-height:60%;overflow:auto}
   .ca-pop h5{margin:4px 8px 6px;font-size:11px;color:var(--cap-ink);font-weight:400}
   .ca-opt{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:7px 8px;border-radius:var(--radius);font-size:13px;cursor:pointer;color:var(--color-text)}
@@ -14443,7 +14444,6 @@
   .cn-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
   .cn-chip{height:26px;padding:0 10px;border:1px solid var(--color-divider);border-radius:13px;background:var(--color-surface);color:var(--accent-ink);font-size:var(--t-label);cursor:pointer;white-space:nowrap}
   .cn-chip:hover{border-color:var(--color-accent)}
-  .cn-chip.is-lead{border-color:var(--color-accent);font-weight:var(--w-label)}
   .cn-h{display:flex;align-items:center;gap:8px;padding:10px 12px 10px 16px;border-bottom:1px solid var(--color-divider);min-height:40px}
   .cn-t{font-weight:var(--w-strong);font-size:var(--t-body);color:var(--color-text);white-space:nowrap}
   .cn-cnt{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:18px;padding:0 6px;border-radius:9px;background:var(--color-accent-100);color:var(--accent-ink);font-size:var(--t-micro);font-weight:var(--w-strong)}
@@ -14462,13 +14462,14 @@
   .cn-jw-r{display:flex;align-items:center;gap:12px}
   .cn-jw-r .cn-w{flex:1;min-width:0}
   /* AS DRAWN (round 23's gaps, 18 Oct 2026): the agent's tag is its room's colour and its name, no box;
-     what it is, bold; its reference quiet; one line under, clipped — whole while it is open under Look */
-  .cn-w b.cn-jw-t{gap:6px 8px;flex-wrap:nowrap;min-width:0}
-  .cn-jw-t > .cn-jw-tag,.cn-jw-t > .cn-jw-ref{flex:none}
-  .cn-jw-tag{display:inline-flex;align-items:center;gap:5px;font-size:var(--t-micro);font-weight:400;color:var(--color-neutral-600);white-space:nowrap}
+     what it is, bold and WHOLE (second pass: it was cut, "Nordvik Logistik's ans…"); its reference
+     quiet; one line under, clipped — whole while it is open under Look. The three run as words do:
+     where they cannot share a line the reference goes under, never a name cut short. */
+  .cn-w b.cn-jw-t{display:block;white-space:normal;line-height:1.45;min-width:0}
+  .cn-jw-tag{display:inline-flex;align-items:center;gap:5px;margin-right:8px;font-size:var(--t-micro);font-weight:400;color:var(--color-neutral-600);white-space:nowrap;vertical-align:1px}
   .cn-jw-tag i{width:8px;height:8px;border-radius:2px;background:var(--c,var(--color-neutral-400));flex:none}
-  .cn-jw-name{font-weight:var(--w-strong);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .cn-jw-ref{font-weight:400;font-size:var(--t-label);color:var(--color-neutral-600)}
+  .cn-jw-name{font-weight:var(--w-strong);margin-right:8px}
+  .cn-jw-ref{display:inline-block;font-weight:400;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap}
   .cn-jw-i.is-look .cn-w > .cn-jw-line{white-space:normal}
   .cn-jw-acts .cn-jw-look.is-on{background:color-mix(in srgb,var(--accent-solid) 10%,transparent)}
   .cn-jw-body.is-mail{padding:0;background:none;border:0;border-radius:0}

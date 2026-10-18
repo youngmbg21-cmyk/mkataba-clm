@@ -265,6 +265,31 @@ function cnRows(){
   reqs.forEach(r => out.push({ k: 'req', kind: 'request', urgent: false, r }));
   return out.map((y, i) => ({ y, i })).sort((a, b) => (Number(b.y.urgent) - Number(a.y.urgent)) || (a.i - b.i)).map(o => o.y);
 }
+/* WHAT WAITS FOR YOU, BY AGENT — the Counter's own count of Jambo's work
+   (cnWork: the pieces it lists, each agent's pill) for anybody else who says
+   it. Jambo's house says it on Your desk ("5 waiting for you") and in each
+   room ("1 waiting for you"), and those words open the work here
+   (counterOpenWork) — one reading, so the house and the Counter never
+   disagree (round 23's gaps, second pass: the house counted its own record
+   and the approvals desk, which the Counter never lists). */
+function counterWorkByAgent(){
+  const A = cnWork(), by = {};
+  (A.rows || []).forEach(r => { if (r && r.k) by[r.k] = Number(r.pill != null ? r.pill : r.n) || 0; });
+  return { ready: Number(A.ready) || 0, by };
+}
+/* the house's "waiting for you" lands here: the Counter, Jambo's work open,
+   the agent's first piece in sight when one was named */
+function counterOpenWork(k){
+  _cnJwOpen = true; _cnJwLook = null;
+  if (typeof setView === 'function') setView('counter');
+  cnStatusWanted();
+  const go = () => {
+    const A = cnWork(), row = k ? (A.rows || []).find(r => r.k === k) : null, key = row && row.items && row.items[0] && row.items[0].key;
+    const el = (key && document.querySelector(`[data-cn-ag-item="${(window.CSS && CSS.escape) ? CSS.escape(key) : key}"]`)) || document.getElementById('cn-jw-list');
+    if (el && el.scrollIntoView) try { el.scrollIntoView({ block: 'nearest' }); } catch (_){}
+  };
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(go); else go();
+}
 /* the number on "Needs you" is the rows under it: Jambo's work while he has
    prepared any, each owed row, and the admin's one row */
 function counterNeedsCount(){ return (cnWork().ready ? 1 : 0) + cnRows().length + ((cnSetup() || cnCompany().length) ? 1 : 0); }
@@ -308,21 +333,41 @@ function cnJwPiecesHtml(A){
 /* "All seven agents: Ask me first · set by Sara for everyone · Ask an admin"
    (round 23, "Open in place"): the levels the house keeps, in one line —
    agLevelsSaid's reading; where a person chose their own, it says so. A
-   member asks an admin through the tracked ask (stAskFrom, the record
-   Settings' Ask an admin makes); an admin changes it where it is set. */
+   member asks an admin HERE (second pass, as drawn: "sends Sara your question
+   as a request she answers; it waits in her Needs you until she does"): the
+   tracked ask Settings makes (stAskDirect, the same record), sent from the
+   Counter, which the reader never leaves; once sent the line says so where
+   the button stood (stAskOpenOn). An admin changes it where it is set. */
+let _cnLvAsking = false;
+function cnLvAskState(){
+  if (_cnLvAsking) return `<span class="cn-lv-asked">${(typeof busyHtml === 'function') ? busyHtml(_cnT('cn_lv_asking')) : _cnE(_cnT('cn_lv_asking'))}</span>`;
+  let open = null; try { open = (typeof stAskOpenOn === 'function') ? stAskOpenOn('agents') : null; } catch (_){ open = null; }
+  if (!open) return `<button type="button" class="ui-link" data-cn-lv-ask>${_cnE(_cnT('cn_lv_ask'))}</button>`;
+  let who = ''; try { who = (typeof stAdminsSaid === 'function') ? stAdminsSaid() : ''; } catch (_){ who = ''; }
+  return `<span class="cn-lv-asked" data-cn-lv-asked>${_cnE(who ? _cnT('cn_lv_asked', { who }) : _cnT('cn_lv_asked_any'))}</span>`;
+}
+async function cnLvAsk(){
+  if (_cnLvAsking) return;
+  const words = _cnT('cn_lv_ask_words');
+  /* with no server to keep the ask (the static sample), Settings' own card says so */
+  if (typeof stAskDirect !== 'function' || !(typeof API_MODE === 'function' && API_MODE())){ if (typeof stAskFrom === 'function') stAskFrom('agents', words); return; }
+  _cnLvAsking = true; counterRepaint();
+  try { await stAskDirect('agents', words, ''); }
+  catch (e){ if (typeof toast === 'function') toast((e && e.message) || _cnT('cn_lv_ask_failed'), 'err'); }
+  finally { _cnLvAsking = false; counterRepaint(); }
+}
 function cnJwLevelsHtml(){
   let L = null; try { L = (typeof agLevelsSaid === 'function') ? agLevelsSaid() : null; } catch (_){ L = null; }
   if (!L || !L.groups || !L.groups.length) return '';
   const lv = v => _cnT('st_agents_lv_' + v), ag = k => _cnT('ag_' + k);
   const head = L.groups.length === 1
     ? `${_cnE(L.n === 7 ? _cnT('cn_lv_all7') : _cnT('cn_lv_all', { n: L.n }))} <b>${_cnE(lv(L.groups[0].lv))}</b>`
-    : L.groups.map(g => `${_cnE(g.keys.length === 1 ? _cnT('cn_lv_one', { agent: ag(g.keys[0]) }) : _cnTn('cn_lv_n', g.keys.length, { n: g.keys.length }))} <b>${_cnE(lv(g.lv))}</b>`).join(' · ');
+    : L.groups.map(g => `${_cnE(g.keys.length === 1 ? _cnT('cn_lv_agent', { agent: ag(g.keys[0]) }) : _cnTn('cn_lv_n', g.keys.length, { n: g.keys.length }))} <b>${_cnE(lv(g.lv))}</b>`).join(' · ');
   const names = L.by.map(b => b.you ? _cnT('cn_lv_you') : _cnFirst(b.name)).filter(Boolean);
   const by = !names.length ? _cnT('cn_lv_start') : _cnT('cn_lv_by', { who: names.length < 2 ? names[0] : names.slice(0, -1).join(', ') + ' ' + _cnT('ag_ln_and') + ' ' + names[names.length - 1] });
   const mine = !L.mine.length ? '' : L.mine.length === 1 ? _cnT('cn_lv_mine_k', { lv: lv(L.mine[0].lv), agent: ag(L.mine[0].k) }) : _cnTn('cn_lv_mine', L.mine.length, { n: L.mine.length });
   const admin = typeof isAdmin === 'function' && isAdmin();
-  const door = admin ? `<button type="button" class="ui-link" data-cn-lv-change>${_cnE(_cnT('cn_lv_change'))}</button>`
-    : `<button type="button" class="ui-link" data-cn-lv-ask>${_cnE(_cnT('cn_lv_ask'))}</button>`;
+  const door = admin ? `<button type="button" class="ui-link" data-cn-lv-change>${_cnE(_cnT('cn_lv_change'))}</button>` : cnLvAskState();
   return `<span class="cn-lv" data-cn-levels>${head} · ${_cnE(by)}${mine ? ' · ' + _cnE(mine) : ''}</span>${door}`;
 }
 /* ---- A ROW OF NEEDS YOU, AS DRAWN (round 23's gaps) ----
@@ -397,11 +442,25 @@ function cnReqRowHtml(y){
   const sub = [r.counterparty ? _cnE(r.counterparty) : '', age ? _cnE(_cnT('cn_waiting', { days: (typeof hbNyDays === 'function') ? hbNyDays(age) : age })) : ''].filter(Boolean).join(' · ');
   return `<div class="cn-r" title="${_cnE(String(r.id || ''))}"><div class="cn-w"><b>${_cnE(_cnT('cn_need_request', { ..._cnWho(_cnFirst(who)), title: r.title || '' }))}</b>${sub ? `<span>${sub}</span>` : ''}</div><button type="button" class="ui-btn ui-btn-sm" data-cn-req="${_cnE(String(r.id || ''))}">${_cnE(_cnT('cn_need_go_request'))}</button></div>`;
 }
+/* WHAT A REQUEST IS FOR, IN A WORD OR THREE ("Sara's NDA request"): the kind
+   of agreement its own title names first — "NDA with Kettle & Co" → "NDA",
+   "New supply agreement for Baltic" → "supply agreement" — read off the words
+   the asker typed, never guessed: a title that names no agreement says
+   nothing, and the short name is "Sara's request". */
+const CN_REQ_WHAT_RE = /^\s*(?:(?:a|an|the|new|our|ett|en|nytt|ny|vårt|vår)\s+)?((?:(?!(?:the|a|an|this|that|our|their|my|its|your|den|det|vårt|vår|deras|er|review|check|draft|prepare|renew|sign|amend|update|need|needs|help|please|ask|get|make|write|create|send|granska|skriv|förnya|uppdatera|behöver)\s)[\p{L}&'’-]+\s+){0,2}?(?:agreement|contract|nda|non-?disclosure agreement|lease|licen[cs]e|mou|sow|statement of work|addendum|amendment|msa|dpa|sla|\p{L}*avtal|kontrakt|tillägg))(?=\s+(?:with|for|to|between|med|för|till|mellan)\b|\s*[–—:,(]|\s*$)/iu;
+function cnReqWhat(r){
+  const m = CN_REQ_WHAT_RE.exec(String((r && r.title) || '').replace(/\s+/g, ' '));
+  if (!m) return '';
+  const w = m[1].trim();
+  /* a word the asker capitalised for the sentence is lowered; an acronym keeps its letters */
+  return /^\p{Lu}[\p{Ll}'’-]*(\s|$)/u.test(w) ? w.charAt(0).toLowerCase() + w.slice(1) : w;
+}
 /* THE SHORT NAME OF A ROW — the lead chip, and the names "Show 3 more" says
    ("a note due today · Baltic Freight's 3 details · Sara's NDA request") */
 function cnNeedShort(y){
   if (y.k === 'note') return y.urgent ? _cnT('cn_sh_mynote_late') : _cnT('cn_sh_mynote');
-  if (y.k === 'req') return _cnT('cn_sh_request', _cnWho(_cnFirst((y.r && y.r.by && y.r.by.name) || '')));
+  if (y.k === 'req'){ const what = cnReqWhat(y.r), who = _cnWho(_cnFirst((y.r && y.r.by && y.r.by.name) || ''));
+    return what ? _cnT('cn_sh_request_what', { ...who, what }) : _cnT('cn_sh_request', who); }
   const x = y.x, c = x.c, it = x.it, cp = String(c.counterparty || c.name || '').trim(), n = it.n || 1;
   if (it.kind === 'approval') return y.fw ? _cnT('cn_sh_approval_for', _cnWho(_cnFirst(y.fw.name))) : _cnT('cn_sh_approval', { who: cp });
   if (it.kind === 'quiet') return _cnTn('cn_sh_redlines', n, { ..._cnWho(cp), n });
@@ -427,12 +486,13 @@ function cnSetupRowHtml(n){
 }
 /* THE CHIPS, AS DRAWN ("Jonas's approval · contracts · calendar · draft a new
    agreement"): what is owed first leads — the first row's short name, its
-   press the row's own door — then the three places */
+   press the row's own door — then the three places. All four wear the same
+   plain pill (the drawing's; the lead is first, not louder). */
 function cnChipsHtml(rows){
   const w = k => _cnT(k);
   const first = (rows || [])[0];
   const lead = first ? cnNeedShort(first) : '';
-  return (lead ? `<button type="button" class="cn-chip is-lead" ${cnNeedDoorAttrs(first)}>${_cnE(lead)}</button>` : '')
+  return (lead ? `<button type="button" class="cn-chip" data-cn-lead ${cnNeedDoorAttrs(first)}>${_cnE(lead)}</button>` : '')
     + [w('nav_contracts').toLowerCase(), w('ca_w_calendar'), w('ca_wall_draft')].map(word => `<button type="button" class="cn-chip" data-cn-ask="${_cnE(word)}">${_cnE(word)}</button>`).join('');
 }
 function counterHtml(){
@@ -446,7 +506,8 @@ function counterHtml(){
   const after = (S ? cnSetupRowHtml(S) : R.length ? cnCompanyRowHtml(R) : '')
     + (quiet ? `<div class="cn-r"><div class="cn-w"><b>${_cnE(_cnT('cn_nothing'))}</b></div></div>` : '');
   /* "Show 3 more · a note due today · Baltic Freight's 3 details · Sara's NDA
-     request": what waits behind the press, by name (A CAP IS A FACT) */
+     request": what waits behind the press, by name (A CAP IS A FACT) — the
+     card's LAST line, as drawn, under the admin's own row */
   const hid = N.slice(CN_ROWS);
   const names = hid.slice(0, 3).map(cnNeedShort).filter(Boolean);
   const said = names.join(' · ') + (hid.length > 3 ? ' · ' + _cnT('cn_and_more', { n: hid.length - 3 }) : '');
@@ -459,12 +520,16 @@ function counterHtml(){
     <section class="cn-card cn-ask">${cnFace(40, 'cn-face')}<h1>${_cnE(_cnT('cn_hello', { name }))}</h1>
       <div class="cn-wrap"><div class="cn-box"><input id="cn-q" type="text" autocomplete="off" spellcheck="false" placeholder="${_cnE(_cnT('cn_box_ph'))}" aria-label="${_cnE(_cnT('cn_box_label'))}"><button type="button" class="ui-btn ui-btn-primary" data-cn-send>${_cnE(_cnT('cn_ask'))}</button></div><div class="ca-pop cn-pop" id="cn-pop" hidden></div></div>
       <div class="cn-chips" id="cn-chips">${cnChipsHtml(N)}</div></section>
-    <section class="cn-card cn-needs" id="cn-needs"><header class="cn-h"><span class="cn-t">${_cnE(_cnT('hb_ny_title'))}</span><span class="cn-cnt">${n}</span>${n ? `<span class="cn-hint">${_cnE(_cnT('cn_needs_hint'))}</span>` : ''}</header>${rows}${more}${after}</section>
+    <section class="cn-card cn-needs" id="cn-needs"><header class="cn-h"><span class="cn-t">${_cnE(_cnT('hb_ny_title'))}</span><span class="cn-cnt">${n}</span>${n ? `<span class="cn-hint">${_cnE(_cnT('cn_needs_hint'))}</span>` : ''}</header>${rows}${after}${more}</section>
     ${pick}</div></div>`;
 }
 /* what the card was drawn from, so a list that arrives later redraws it once */
 let _cnSig = '';
-function cnSig(N, A){ return [(A && A.ready) || 0, (A && A.rows || []).map(r => (r.items || []).map(i => i.key).join(',')).join(';'), N.map(y => y.k + ':' + y.kind + ':' + (y.x ? y.x.c.id : y.n ? y.n.id : y.r ? y.r.id : '')).join(',')].join('|'); }
+function cnSig(N, A){
+  /* an ask of yours that arrived after the paint (Settings' list, read on its own beat) redraws the levels line too */
+  let ask = ''; try { const a = (typeof stAskOpenOn === 'function') ? stAskOpenOn('agents') : null; ask = a ? String(a.id || 1) : ''; } catch (_){ ask = ''; }
+  return [(A && A.ready) || 0, (A && A.rows || []).map(r => (r.items || []).map(i => i.key).join(',')).join(';'), N.map(y => y.k + ':' + y.kind + ':' + (y.x ? y.x.c.id : y.n ? y.n.id : y.r ? y.r.id : '')).join(','), ask].join('|');
+}
 function renderCounter(){
   const host = document.getElementById('content'); if (!host) return;
   _cnPop = null;
@@ -568,10 +633,10 @@ if (typeof document !== 'undefined' && !window._cnWired){
       if (typeof agRunAct === 'function'){ let r = null; try { r = agRunAct(k, el.getAttribute('data-ag-act')); } catch (_){ r = null; }
         Promise.resolve(r).then(() => setTimeout(counterRepaint, 0), () => setTimeout(counterRepaint, 0)); } return; }
     if ((el = t.closest('[data-cn-house]'))){ if (typeof setView === 'function') setView('jambo'); return; }
-    /* how far the agents may go: a member asks an admin (the tracked ask on
-       Settings, stAskFrom — the record, the admin's Needs you and bell); an
-       admin opens the agents' own settings, where the level is set */
-    if (t.closest('[data-cn-lv-ask]')){ if (typeof stAskFrom === 'function') stAskFrom('agents', _cnT('cn_lv_ask_words')); return; }
+    /* how far the agents may go: a member asks an admin, here (cnLvAsk — the
+       tracked ask, the admin's Needs you and bell); an admin opens the agents'
+       own settings, where the level is set */
+    if (t.closest('[data-cn-lv-ask]')){ cnLvAsk(); return; }
     if (t.closest('[data-cn-lv-change]')){ if (typeof openSettingsAt === 'function') openSettingsAt('company', 'agents'); return; }
     if ((el = t.closest('[data-cn-note]'))){ if (typeof myNotesOpen === 'function') myNotesOpen(el.getAttribute('data-cn-note')); return; }
     if ((el = t.closest('[data-cn-req]'))){ if (typeof intakeGoTo === 'function') intakeGoTo(el.getAttribute('data-cn-req')); return; }
@@ -604,5 +669,5 @@ if (typeof document !== 'undefined' && !window._cnWired){
   });
 }
 
-Object.assign(window, { cnJwPiecesHtml, cnJwLevelsHtml, cnRows, cnNeedShort, counterFollow, CN_JW_MAX, deskShellOn, DK_KEY, DK_SHOW, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskTabsSync, deskTabsHtml, deskTabsPaint, deskTabOpen, deskTabClose, deskGoCounter,
+Object.assign(window, { cnJwPiecesHtml, cnJwLevelsHtml, cnLvAsk, cnLvAskState, counterWorkByAgent, counterOpenWork, cnRows, cnNeedShort, cnReqWhat, CN_REQ_WHAT_RE, counterFollow, CN_JW_MAX, deskShellOn, DK_KEY, DK_SHOW, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskTabsSync, deskTabsHtml, deskTabsPaint, deskTabOpen, deskTabClose, deskGoCounter,
   CN_ROWS, renderCounter, counterHtml, counterRepaint, counterAsk, counterNeedsCount, counterPopRead, counterPopClose });

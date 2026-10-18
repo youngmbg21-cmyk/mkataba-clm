@@ -19,7 +19,7 @@ const { ndaClean, ndaFacts } = require('../js/nda.js');
    the send screen that draws it and this route that mails it (js/sharemail.js). */
 const { shareMailOf, signerTurnMailOf } = require('../js/sharemail.js');
 /* THE CHASE (round 23's gaps, 18 Oct 2026): the reminder the Counter's Look draws, written once */
-const { chaseMailOf } = require('../js/sharemail.js');
+const { chaseMailOf, chaseDayWords } = require('../js/sharemail.js');
 /* One dictionary, two hosts. The server writes email and needs the recipient's
    own language from the SAME table the screens use — a second copy here would
    drift from js/i18n.js without anything noticing, which is the fault the
@@ -15170,12 +15170,9 @@ async function srvChaseSend(req, c, o, to, { firm = false } = {}) {
      2026): the message printed the stored "2026-09-21". A calendar day is read
      as that day (UTC, so no time zone moves it); anything unreadable is left
      as written rather than guessed at. */
-  const dayWords = v => {
-    const iso = String(v || '').slice(0, 10);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return v || '';
-    try { return new Date(iso + 'T00:00:00Z').toLocaleDateString(L === 'sv' ? 'sv-SE' : 'en-GB',
-      { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }); } catch (_) { return iso; }
-  };
+  /* ONE READING WITH THE COUNTER'S LOOK (js/sharemail.js chaseDayWords): the
+     year only where it is not this year's ("14 October", as drawn) */
+  const dayWords = v => chaseDayWords(v, L, now().slice(0, 10));
   const dueWords = dayWords(o.due);
   const vars = { desc: o.desc || '', name: c.name || contractRef(c), id: contractRef(c), due: dueWords };
   /* ---- A DATE THAT DOES NOT EXIST IS NOT WRITTEN INTO A SENTENCE ----

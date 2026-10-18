@@ -249,8 +249,12 @@ function jhLayout(){
   const foot = _jh.look === 1 ? 48 : 16, SH = JH_SHARED_FLOORS.length;
   const floorsFor = cols => SH + Math.ceil(offices.length / cols) + 1;
   const fhFor = cols => Math.floor((_jhFitH - _jhTop - foot) / floorsFor(cols));
-  _jhCols = JH_COLS;
-  if (_jhFitH && fhFor(JH_COLS) < JH_FH_MIN && offices.length > JH_COLS) _jhCols = JH_COLS_MAX;
+  /* AS DRAWN (round 23's gaps, second pass, 18 Oct 2026: "three and four rooms
+     to a floor"): more offices than two floors of three hold stand four and
+     three — five floors in all — so every room keeps its three lines with
+     its agent clear of them; a short window still takes four a floor */
+  _jhCols = offices.length > JH_COLS * 2 ? JH_COLS_MAX : JH_COLS;
+  if (_jhFitH && fhFor(_jhCols) < JH_FH_MIN && offices.length > _jhCols) _jhCols = JH_COLS_MAX;
   _jhF = floorsFor(_jhCols);
   _jhFH = _jhFitH ? Math.max(JH_FH_HARD, Math.min(JH_FH_MAX, fhFor(_jhCols))) : JH_FH_MAX;
   _jhH = _jhTop + _jhF * _jhFH + foot;
@@ -530,6 +534,25 @@ function jhWaitStack(ctx, r, n, mono){
   ctx.fillText(w, x1 - sw - (k - 1) * 3 - 6, y1 - 2);
   ctx.restore();
 }
+/* "5 WAITING FOR YOU" IS THE COUNTER'S OWN COUNT, AND A DOOR TO IT (round 23's
+   gaps, second pass, 18 Oct 2026 — the drawing: Your desk "5 waiting for you"
+   equals the Counter's "5 prepared"; a room's "1 waiting for you" is its
+   piece; each opens the work on the Counter). At rest (the whole book, not
+   one typed contract) the desk, its trays and every room read counterWorkByAgent — the pieces the Counter lists, so
+   the approvals desk (never on the Counter) waits for nobody here either;
+   while a replay plays, the trays fill as the period's own record did. The
+   words are drawn as links: their boxes are kept (_jhLinks) for the press
+   and the pointer, and a press lands on the Counter with the work open
+   (counterOpenWork). */
+function jhWaitNow(){ try { return (typeof counterWorkByAgent === 'function') ? counterWorkByAgent() : null; } catch (_) { return null; } }
+let _jhLinks = [];
+function jhLinkText(ctx, txt, x, y, col, k){
+  const w = ctx.measureText(txt).width, a = ctx.textAlign, x0 = a === 'right' ? x - w : a === 'center' ? x - w / 2 : x;
+  ctx.fillStyle = col; ctx.fillText(txt, x, y);
+  if (_jh.hover === 'wait:' + k) ctx.fillRect(x0, y + 2.5, w, 1.2);
+  if (ctx.canvas && ctx.canvas.id === 'jh-cv') _jhLinks.push({ k, x: x0 - 2, y: y - 14, w: w + 4, h: 19 });
+}
+function jhLinkAt(x, y){ for (const l of _jhLinks) if (x >= l.x && x <= l.x + l.w && y >= l.y && y <= l.y + l.h) return l.k; return null; }
 /* THE OFFICE, IN THE HOUSE'S TWO LOOKS (Floor plan: Geist on cards; Architect's
    drawing: section A–A in ink and IBM Plex Mono). One drawing for both, so the
    two never place a room differently — only the clothes differ. */
@@ -546,7 +569,10 @@ function jhDrawOffice(ctx, pieces, upto, mono){
   const C = _jhC, ink = C.accent, font = (w, s) => mono ? `${w} ${s}px ${JH_MONO}` : `${w} ${s}px Geist, sans-serif`, up = t => mono ? String(t).toUpperCase() : t;
   const topY = jhLY(_jhF - 1) - _jhFH, bot = jhLY(0), X0 = 120, X1 = 1152, mid = (X0 + X1) / 2, tt = _jh.t;
   const pos = _jh.pos || [];
-  let deskTot = 0; const deskOpen = {}; _jhRooms.forEach(r => { deskOpen[r.k] = agPointsTally(r.k, pieces, jhUptoFor(r.k, upto)).open || 0; deskTot += deskOpen[r.k]; });
+  /* a house narrowed to one contract keeps that contract's own record */
+  const W = upto === Infinity && !_jh.one ? jhWaitNow() : null;
+  if (ctx.canvas && ctx.canvas.id === 'jh-cv') _jhLinks = [];
+  let deskTot = 0; const deskOpen = {}; _jhRooms.forEach(r => { deskOpen[r.k] = W ? (W.by[r.k] || 0) : (agPointsTally(r.k, pieces, jhUptoFor(r.k, upto)).open || 0); deskTot += deskOpen[r.k]; });
   const deskSmall = jhCompact(_jhDesk && _jhDesk.card);
   ctx.fillStyle = C.card; ctx.fillRect(0, 0, JH_W, _jhH);
   if (mono){ ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.globalAlpha = .55;
@@ -562,7 +588,8 @@ function jhDrawOffice(ctx, pieces, upto, mono){
     if (f === _jhF - 1 && deskSmall){ /* a short top floor: your desk's title and count stand in the floor column */
       const colW = mono ? 98 : JH_SX - 26 - 26, t1 = up(_jhT('jh_rm_desk')), t2 = up(_jhT('jh_desk_waiting', { n: _jhFmt(deskTot) }));
       ctx.fillStyle = mono ? ink : C.fg; jhFitFont(ctx, t1, colW, z => font(600, z), mono ? 11.5 : 13); ctx.fillText(t1, mono ? 14 : 20, y - _jhFH / 2 - 2);
-      ctx.fillStyle = deskTot ? C.ok : C.muted; jhFitFont(ctx, t2, colW, z => font(500, z), mono ? 10 : 11.5, 7); ctx.fillText(t2, mono ? 14 : 20, y - _jhFH / 2 + 13);
+      jhFitFont(ctx, t2, colW, z => font(500, z), mono ? 10 : 11.5, 7);
+      if (W && deskTot) jhLinkText(ctx, t2, mono ? 14 : 20, y - _jhFH / 2 + 13, C.ok, 'desk'); else { ctx.fillStyle = deskTot ? C.ok : C.muted; ctx.fillText(t2, mono ? 14 : 20, y - _jhFH / 2 + 13); }
     } else ctx.fillText(up(jhFloorWord(f)), mono ? 14 : 20, y - _jhFH / 2 + 4);
     ctx.strokeStyle = mono ? ink : C.line; ctx.lineWidth = 1; ctx.globalAlpha = mono ? .55 : 1;
     [-5, 5].forEach(d => { ctx.beginPath(); ctx.moveTo(JH_SX + 26, jhCorr(f) + d); ctx.lineTo(JH_RX1, jhCorr(f) + d); ctx.stroke(); });
@@ -612,7 +639,8 @@ function jhDrawOffice(ctx, pieces, upto, mono){
     const tot = deskTot, open = deskOpen;
     if (!deskSmall){ ctx.fillStyle = mono ? ink : C.fg; ctx.font = font(600, mono ? 14 : 17); ctx.fillText(up(_jhT('jh_rm_desk')), lx(c), ly1(c) + 2);
       const w0 = ctx.measureText(up(_jhT('jh_rm_desk'))).width; ctx.fillStyle = C.muted; ctx.font = font(400, mono ? 11 : 12.5); ctx.fillText(up(_jhT('jh_rm_desk_sub')), lx(c) + w0 + 12, ly1(c) + 2);
-      ctx.textAlign = 'right'; ctx.fillStyle = tot ? C.ok : C.muted; ctx.font = font(600, mono ? 13 : 15); ctx.fillText(up(_jhT('jh_desk_waiting', { n: _jhFmt(tot) })), c.x + c.w - 14, ly1(c) + 2); }
+      ctx.textAlign = 'right'; ctx.font = font(600, mono ? 13 : 15); const dw = up(_jhT('jh_desk_waiting', { n: _jhFmt(tot) }));
+      if (W && tot) jhLinkText(ctx, dw, c.x + c.w - 14, ly1(c) + 2, C.ok, 'desk'); else { ctx.fillStyle = tot ? C.ok : C.muted; ctx.fillText(dw, c.x + c.w - 14, ly1(c) + 2); } }
     const base = c.y + c.h - (deskSmall ? 14 : 22), room = base - 4 - (c.y + (deskSmall ? 4 : 30));
     _jhRooms.forEach(r => { const t = d.trays[r.k], n = open[r.k]; if (!t) return;
       ctx.save(); if (_jh.sel && _jh.sel !== r.k) ctx.globalAlpha = .35;
@@ -638,8 +666,14 @@ function jhDrawOffice(ctx, pieces, upto, mono){
     let px = nx + 6 + ctx.measureText(nm).width;
     if (agPointsIsNew(r.k)) px += jhPill(ctx, _jhT('jh_new_tag'), px, ny - 1, C.amber) + 4;
     if (agPointsMine(r.k)) jhPill(ctx, _jhT('jh_mine_tag'), px, ny - 1, C.accent);
-    /* the work line only where it clears the seat below it */
-    if (!cp){ ctx.fillStyle = C.muted; ctx.font = font(400, mono ? 11.5 : 13); ctx.fillText(jhClip(ctx, up(jhRoomSub(r, s, pieces, mono)), c.x + c.w - 10 - lx(c)), lx(c), ly2(c)); }
+    /* the work line only where it clears the seat below it: where the agent's
+       face would stand over it (a short room), it starts beside him, as the
+       status line does (round 23's gaps, second pass) */
+    if (!cp){ ctx.fillStyle = C.muted; ctx.font = font(400, mono ? 11.5 : 13);
+      const wx = r.seat.y - 26 >= ly2(c) + 4 ? lx(c) : r.seat.x + 18, room = c.x + c.w - 10 - wx, wn = W ? (W.by[r.k] || 0) : 0;
+      if (wn > 0){ const link = up(_jhT('jh_desk_waiting', { n: _jhFmt(wn) })), head = jhClip(ctx, up(_jhT('ag_' + r.k) + ' · '), Math.max(0, room - ctx.measureText(link).width));
+        ctx.fillText(head, wx, ly2(c)); jhLinkText(ctx, link, wx + ctx.measureText(head).width, ly2(c), C.amber, r.k); }
+      else ctx.fillText(jhClip(ctx, up(jhRoomSub(r, s, pieces, mono)), room), wx, ly2(c)); }
     ctx.textAlign = 'right'; ctx.fillStyle = C.accent; ctx.font = font(600, mono ? 13 : 16); ctx.fillText(ptsTxt, ptsX, ny);
     if (out){ ctx.save(); ctx.strokeStyle = r.col; ctx.globalAlpha = .7; ctx.lineWidth = 1.4; ctx.setLineDash([2.5, 3]); ctx.beginPath(); ctx.arc(r.seat.x, r.seat.y - 12, 10, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
     ctx.textAlign = 'left'; ctx.fillStyle = out ? C.ok : C.muted; ctx.font = font(500, mono ? 10.5 : 11.5);
@@ -1027,6 +1061,7 @@ function jhHouseHtml(){
         </div>
         <div class="jh-stage" id="jh-stage">
           <canvas id="jh-cv" width="${JH_W}" height="${_jhH}" role="img" aria-label="${_jhE(_jhT('jh_house_aria'))}"></canvas>
+          <button type="button" class="sr-only" data-jh-work>${_jhE(_jhT('jh_wait_open'))}</button>
           <div class="jh-tip" id="jh-tip" role="tooltip" hidden></div>
           <div class="jh-end" id="jh-end" hidden><div class="jh-end-card" role="dialog" aria-labelledby="jh-end-t"><button type="button" class="jh-end-x" data-jh-end-x aria-label="${_jhE(_jhT('jh_end_close'))}" title="${_jhE(_jhT('jh_end_close'))}">×</button>${(typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 56, 'jh-end-face') : ''}
             <h3 id="jh-end-t"></h3><p id="jh-end-l"></p><p class="jh-end-r" id="jh-end-r"></p><p class="jh-quiet">${_jhE(_jhT('jh_end_hint'))}</p>
@@ -1081,6 +1116,20 @@ function jhHowHtml(){
     <div class="jh-grid">${card('jh_rule_list_t', 'jh_rule_list')}${card('jh_rule_move_t', 'jh_rule_move')}${card('jh_rule_check_t', 'jh_rule_check')}</div>
   </div>`;
 }
+/* JAMBO FOLDED TO THE RIGHT EDGE BESIDE HIS HOUSE (round 23's gaps, second
+   pass, 18 Oct 2026 — the drawing: "The house itself stays as it is today,
+   with Jambo's panel folded to the right edge beside it", a narrow strip with
+   his face and his count, "Jambo" and ‹). Home's folded strip in its own
+   clothes (.igd-door): his face, the Counter's number his tab carries
+   (counterNeedsCount), his name read top to bottom, ‹. A press opens Jambo
+   beside the page — his window at the right edge, the one Copilot door's own
+   act (openAI); nothing else. The house is not on the phone, nor is this. */
+function jhJamboDoorHtml(){
+  let n = 0; try { n = (typeof counterNeedsCount === 'function') ? Number(counterNeedsCount()) || 0 : 0; } catch (_) { n = 0; }
+  const face = (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 28, 'igd-door-face').replace('<img', '<img data-ink-exempt') : '';
+  const name = _jhT('pd_tab_copilot'), open = _jhT('int_open_panel');
+  return `<aside class="jh-jambo" id="jh-jambo" aria-label="${_jhE(name)}"><button type="button" class="igd-door" data-jh-jambo title="${_jhE(open)}" aria-label="${_jhE(n ? _jhT('pd_tab_n', { name, n }) : open)}"><span class="igd-door-i">${face}${n ? `<span class="pd-tab-n is-warn" data-jh-jambo-n>${n > 99 ? '99+' : n}</span>` : ''}</span><span class="igd-door-w">${_jhE(name)}</span><svg class="igd-door-o" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg></button></aside>`;
+}
 function renderJamboHouse(opts){
   const host = document.getElementById('content'); if (!host) return;
   if (typeof cancelAnimationFrame === 'function' && _jh.raf){ cancelAnimationFrame(_jh.raf); _jh.raf = 0; }
@@ -1094,7 +1143,7 @@ function renderJamboHouse(opts){
     jhLoad().then(() => { if (typeof state !== 'undefined' && state.view === 'jambo') renderJamboHouse({ fromLoad: true }); });
   }
   const body = _jh.tab === 'jobs' ? (_jh.data ? jhJobsHtml() : jhHouseHtml()) : _jh.tab === 'how' ? jhHowHtml() : jhHouseHtml();
-  host.innerHTML = `<style>${JH_CSS}</style><div class="view-enter sap-page jh-page" data-jh-tab-on="${_jh.tab}">${jhBandHtml()}${body}</div>`;
+  host.innerHTML = `<style>${JH_CSS}</style><div class="jh-wrap"><div class="view-enter sap-page jh-page" data-jh-tab-on="${_jh.tab}">${jhBandHtml()}${body}</div>${jhJamboDoorHtml()}</div>`;
   jhWire(host);
   if (typeof setActiveNav === 'function') setActiveNav('jambo');
   if (_jh.tab === 'house' && document.getElementById('jh-cv')){
@@ -1195,6 +1244,8 @@ function jhWire(host){
     if (!t.closest('#jh-days') && !t.closest('#jh-range')) jhDaysClose();
     if (t.closest('[data-jh-end-x]')){ jhEndClose(); return; }
     if (t.closest('[data-jh-points]')){ jhOpenPoints(); return; }
+    if (t.closest('[data-jh-work]')){ if (typeof counterOpenWork === 'function') counterOpenWork(null); return; }
+    if (t.closest('[data-jh-jambo]')){ if (typeof openAI === 'function') openAI(); return; }
     if (t.closest('.jh-end') && !t.closest('.jh-end-card')){ jhEndClose(); return; }
     if (t.closest('[data-jh-days-go]')){ jhDaysGo(); return; }
     if (t.closest('[data-jh-play]')){ if (_jh.playing){ _jh.playing = false; } else { if (_jh.t >= 1){ jhReplayFromStart(true); jhFeedFill(); } else _jh.playing = true; _jh.last = 0; } jhSetPlayWord(); jhKick(); return; }
@@ -1233,7 +1284,7 @@ function jhWire(host){
     const cv = e.target && e.target.id === 'jh-cv' ? e.target : null, tip = document.getElementById('jh-tip');
     if (!cv){ if (_jh.hover){ _jh.hover = null; if (tip) tip.hidden = true; jhKickOnce(); } return; }
     const b = cv.getBoundingClientRect(), x = (e.clientX - b.left) * JH_W / b.width, y = (e.clientY - b.top) * _jhH / b.height;
-    const k = jhRoomAt(x, y);
+    const lk = jhLinkAt(x, y), k = lk ? 'wait:' + lk : jhRoomAt(x, y);
     if (k !== _jh.hover){ _jh.hover = k; jhKickOnce(); }
     cv.style.cursor = k && k !== 'stairs' ? 'pointer' : 'default';
     if (!tip) return; if (!k){ tip.hidden = true; return; }
@@ -1244,7 +1295,11 @@ function jhWire(host){
     tip.style.left = Math.max(8, left) + 'px'; tip.style.top = top + 'px';
   });
   host.addEventListener('mouseleave', () => { if (_jh.hover){ _jh.hover = null; const tip = document.getElementById('jh-tip'); if (tip) tip.hidden = true; jhKickOnce(); } }, true);
-  host.addEventListener('click', e => { if (e.target && e.target.id === 'jh-cv' && _jh.hover && _jhRooms.some(r => r.k === _jh.hover)){
+  host.addEventListener('click', e => {
+    /* "N waiting for you": the work, open on the Counter */
+    if (e.target && e.target.id === 'jh-cv' && String(_jh.hover || '').startsWith('wait:')){ const k = _jh.hover.slice(5);
+      if (typeof counterOpenWork === 'function') counterOpenWork(k === 'desk' ? null : k); return; }
+    if (e.target && e.target.id === 'jh-cv' && _jh.hover && _jhRooms.some(r => r.k === _jh.hover)){
     const b = document.querySelector(`[data-jh-agent="${_jh.hover}"]`); if (b){ b.click(); try { b.scrollIntoView({ block: 'nearest' }); } catch (_) {} } } });
 }
 /* A still house is drawn again once after a hover moved, then waits. */
@@ -1256,6 +1311,7 @@ function jhRoomAt(x, y){
   return null;
 }
 function jhTipHtml(k){
+  if (String(k).startsWith('wait:')) return `<b>${_jhE(_jhT('jh_wait_open'))}</b><p>${_jhE(_jhT('jh_wait_open_p'))}</p>`;
   if (k === 'stairs') return `<b>${_jhE(_jhT('jh_stairs'))}</b><p>${_jhE(_jhT('jh_tip_stairs'))}</p>`;
   if (String(k).startsWith('rm:')){ const id = k.slice(3), n = id === 'desk' || id === 'reception' ? null : jhSheetsIn(id, _jh.t);
     return `<b>${_jhE(_jhT('jh_rm_' + id))}</b><p>${_jhE(_jhT('jh_tip_rm_' + id))}</p>${n != null ? `<p>${_jhE(_jhT('jh_tip_rm_n', { n: _jhFmt(n) }))}</p>` : ''}`; }
@@ -1392,6 +1448,9 @@ const AG_PT_CSS = `
 `;
 const JH_CSS = `
   .jh-page{min-height:var(--view-h);box-sizing:border-box;padding-inline:var(--page-pad-x)}
+  .jh-wrap{display:flex;align-items:flex-start;min-height:var(--view-h)}
+  .jh-wrap > .jh-page{flex:1 1 auto;min-width:0}
+  .jh-jambo{flex:none;width:46px;position:sticky;top:0;height:var(--view-h,calc(100vh - 48px))}
   .jh-page .sap-band{padding-top:var(--page-pad-t);display:flex;flex-direction:column;gap:var(--s-2);padding-bottom:0}
   .jh-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s-3);flex-wrap:wrap}
   .jh-t{margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;line-height:1.2;color:var(--color-text)}
@@ -1535,6 +1594,6 @@ const JH_CSS = `
 /* The menu's face for Jambo's agents takes its picture at load. */
 try { if (typeof jamboFacePaint === 'function') jamboFacePaint(); } catch (_) {}
 
-Object.assign(window, { jhLevelPickHtml, AG_POINTS_LAUNCH, AG_POINTS_START_MINS, AG_POINTS_NEW_MINS, AG_POINTS_FIELDS, agPointsKeys, agPointsStart, agPointsCompany, agPointsMine, agPointsOf,
+Object.assign(window, { jhLevelPickHtml, jhWaitNow, jhLinkAt, jhLinks: () => _jhLinks.slice(), jhJamboDoorHtml, AG_POINTS_LAUNCH, AG_POINTS_START_MINS, AG_POINTS_NEW_MINS, AG_POINTS_FIELDS, agPointsKeys, agPointsStart, agPointsCompany, agPointsMine, agPointsOf,
   agPointsIsNew, agPointsEach, agPointsTally, agPointsSumLine, agPieceSay, agPointsTableHtml, agPointsWire, renderJamboHouse, jhRepaint, jhPlace, jhPlacePut, jhLayout, jhRoomAt, jhFloorCounts, jhGeom, jhFinish, jhUptoFor, jhHoursWords, jhPopsSoft: () => _jh.pops.filter(p => p.soft).length, jhMotionOf: (k, t) => { const r = _jhRooms.find(x => x.k === k); return r ? jhPosAt(r, t) : null; }, jhPopRef, jhRoomQuietWhy, jhRoomStateWords, jhResults, jhUnitWords, jhSheetsIn, JH_ROUTE, _jhPlaying: () => _jh.playing, jhOverlapAudit,
   jhOfficeOf: () => ({ floors: _jhF, desk: _jhDesk && { f: _jhDesk.f, x0: _jhDesk.card.x, x1: _jhDesk.card.x + _jhDesk.card.w }, shared: _jhShared.map(s => ({ id: s.id, f: s.f })), rooms: _jhRooms.map(r => ({ k: r.k, f: r.f, reading: !!r.reading })) }) });

@@ -176,14 +176,25 @@ if (typeof module !== 'undefined' && module.exports) module.exports = SHARE_MAIL
    by `sender`, the person pressing, for `party`, our company on this
    agreement (c.party, else the workspace) — as drawn; with nobody pressing
    the automated notice stands where the name would.
-   o = { t, firm, dated, soon, vars:{ desc, name, id, due, first }, link, sender, party } */
+   o = { t, firm, dated, soon, vars:{ desc, name, id, due, first }, link, sender, party }
+   AS DRAWN (round 23's gaps, second pass, 18 Oct 2026): "This is a reminder
+   about the insurance certificate under our Supply agreement (MK-0368), which
+   was due on 14 October. Could you send it, or let us know when it will
+   come?" — a promise that is a THING is said as one and asked for
+   (mail_ob_chase_thing_*, chaseWhatOf); one written as an ACT keeps its
+   quotation marks and asks where it stands. The agreement is named as ours,
+   unquoted; the day without its year inside the year (chaseDayWords). */
 function chaseMailOf(o){
   const x = o || {};
   const t = typeof x.t === 'function' ? x.t : (k => k);
-  const v = x.vars || {};
+  const w = chaseWhatOf(x.vars && x.vars.desc);
+  const v = { ...(x.vars || {}), about: w.thing ? t('mail_ob_chase_the', { noun: w.noun }) : String((x.vars && x.vars.desc) || '') };
   const firm = !!x.firm, soon = x.dated && x.soon ? '_soon' : '';
+  /* every key written whole, so a search for one finds where it is said */
+  const K = w.thing ? { at: 'mail_ob_chase_thing_line', soon: 'mail_ob_chase_thing_line_soon', none: 'mail_ob_chase_thing_line_nodate' }
+    : { at: 'mail_ob_chase_line', soon: 'mail_ob_chase_line_soon', none: 'mail_ob_chase_line_nodate' };
   const line = firm ? t(x.dated ? 'mail_ob_chase_firm_line' + soon : 'mail_ob_chase_firm_line_nodate', v)
-    : t(x.dated ? 'mail_ob_chase_line' + soon : 'mail_ob_chase_line_nodate', v);
+    : t(!x.dated ? K.none : soon ? K.soon : K.at, v);
   const link = x.link ? String(x.link) : null;
   const who = String(x.sender || '').trim();
   const parts = [{ k: 'hello', t: `${t('mail_hello')},` }, { k: 'say', t: line }];
@@ -193,6 +204,36 @@ function chaseMailOf(o){
   const body = `${parts[0].t}\n\n${line}` + (link ? `\n\n${t('mail_ob_chase_open')}\n${link}` : '') + `\n\n${parts[parts.length - 1].t}`;
   return { subject: t(firm ? 'mail_ob_chase_firm_subject' : 'mail_ob_chase_subject', v), parts, body };
 }
-const CHASE_MAIL_API = { chaseMailOf };
+/* WHAT IS LATE, IN THE LETTER'S OWN GRAMMAR (round 23's gaps, second pass):
+   the drawing's row reads "Their insurance certificate is 5 days late." and
+   its letter "a reminder about the insurance certificate". A promise written
+   as a THING ("Insurance certificate", "the insurance certificate") is said
+   as one — its article dropped, its first letter lowered unless the word is
+   an acronym ("Q3 report", "ISO certificate") — so the row can say "Their …"
+   and the letter "the …". One written as an ACT ("Deliver the Q3 stock
+   report") cannot be theirs or be sent: it stays as typed. Read off the
+   words, nothing rewritten in the record: { thing, noun, desc }. */
+const CHASE_ACT_RE = /^(?:deliver|provide|send|submit|pay|give|notify|inform|maintain|keep|renew|return|complete|perform|procure|obtain|file|report|confirm|arrange|issue|supply|make|ensure|hold|invoice|share|publish|deposit|install|carry|conduct|train|review|update|register|attend|sign|execute|transfer|refund|remit|settle|furnish|produce|prepare|present|schedule|book|order|comply|leverera|skicka|betala|lämna|ge|meddela|upprätthålla|förnya|returnera|utföra|tillhandahålla|ordna|rapportera|bekräfta|underhålla|genomföra|teckna|inkomma|sända|uppdatera|granska|hålla|säkerställa)$/i;
+function chaseWhatOf(desc){
+  const d = String(desc || '').replace(/\s+/g, ' ').trim().replace(/[.;:,\s]+$/, '');
+  if (!d) return { thing: false, noun: '', desc: '' };
+  if (CHASE_ACT_RE.test(d.split(' ')[0].replace(/[^\p{L}-]/gu, ''))) return { thing: false, noun: '', desc: d };
+  let n = d.replace(/^(?:the|a|an|their|our|its)\s+/i, '');
+  if (!n) return { thing: false, noun: '', desc: d };
+  if (/^\p{Lu}[\p{Ll}'’-]*$/u.test(n.split(' ')[0])) n = n.charAt(0).toLowerCase() + n.slice(1);
+  return { thing: true, noun: n, desc: d };
+}
+/* THE DAY IN WORDS, IN THE READER'S LANGUAGE — one reading for the screen and
+   the inbox: a calendar day read as that day (UTC, so no time zone moves it),
+   "14 October" inside the year it is written in, "14 October 2027" outside
+   it; anything unreadable left as written. `today` is the writer's ISO day. */
+function chaseDayWords(v, lang, today){
+  const iso = String(v || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return v || '';
+  const sameYear = String(today || '').slice(0, 4) === iso.slice(0, 4);
+  try { return new Date(iso + 'T00:00:00Z').toLocaleDateString(lang === 'sv' ? 'sv-SE' : 'en-GB',
+    Object.assign({ day: 'numeric', month: 'long', timeZone: 'UTC' }, sameYear ? {} : { year: 'numeric' })); } catch (_){ return iso; }
+}
+const CHASE_MAIL_API = { chaseMailOf, chaseWhatOf, chaseDayWords, CHASE_ACT_RE };
 if (typeof window !== 'undefined') Object.assign(window, CHASE_MAIL_API);
 if (typeof module !== 'undefined' && module.exports) Object.assign(module.exports, CHASE_MAIL_API);
