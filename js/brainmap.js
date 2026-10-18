@@ -265,7 +265,7 @@ const BRAIN_PARTS = [
      # contracts with no model and answers with a card; one press runs the
      product's own act. Agents live on the Board, each with a level. */
   ['copilotask', 'caActOf', 'ai', 1],
-  /* Jambo's map (18 Oct 2026): the thirty commonest tasks in everyday words, matched by MiniSearch, each landing on a door caActOf already has */
+  /* Jambo's map (18 Oct 2026): the thirty-one commonest tasks in everyday words, matched by MiniSearch, each landing on a door caActOf already has */
   ['jambomap', 'jmRead', 'ai', 1],
   /* read without AI since round 4 ("One sheet", 17 Oct 2026): the form's own Find is the spend */
   ['draftcard', 'caDraftRun', 'see', 1],
