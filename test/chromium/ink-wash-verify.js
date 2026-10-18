@@ -20,6 +20,11 @@
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
 
+   RE-RECORDED 17 Oct 2026 (seventh), OWNER-ASKED (the overnight build, same
+   standing yes): Round 9, "Piles" — a Redlines row says who and when and the
+   reason they gave, the reference rides its hover: on the negotiate screen
+   the 12px and 13px counts rose, the 10px count fell, and in dark the counts
+   of colours already in the palette moved. Audited by key: nothing new, nothing gone.
    RE-RECORDED 17 Oct 2026 (sixth), OWNER-ASKED (the overnight build: "Build
    and update record even on new ones"): Round 7, "Read down" — a contract
    brought up is a page of its own on the desk, so the History screen (a
