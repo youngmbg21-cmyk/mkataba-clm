@@ -84,6 +84,7 @@ import './agentruns.js';           // Copilot's agents' engine room: runs, setti
 import './views/agents.js';
 import './views/jambohouse.js';  // Jambo's agents: the house, his jobs and his points, behind Insights (12 Oct 2026)
 import './copilotacts.js';         // Copilot prepares, you press: @ people, # contracts, the send and draft cards (7 Oct 2026)        // Copilot's work: the six agents — what each found, prepared and did (27 Sep 2026)
+import './jambomap.js';            // Jambo's map: the thirty commonest tasks in everyday words, matched by MiniSearch (18 Oct 2026)
 import './paperdesk.js';           // the Paper's desk: Facts · Obligations · Signing · History · Deal beside the paper on Home (8 Oct 2026)
 import './views/register.js';
 import './ocr.js';

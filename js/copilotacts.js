@@ -289,6 +289,10 @@ function caActOf(q){
   const go = caReadPlace(t); if (go) return go;
   const menu = caReadMenu(t); if (menu) return menu;
   if (typeof caReadDraft === 'function'){ const d = caReadDraft(t); if (d){ setTimeout(() => { caDraftRun(d); }, 0); return d; } }
+  /* JAMBO'S MAP (18 Oct 2026, js/jambomap.js): last of all, a sentence in
+     everyday words ("where are the contracts ending soon?") reaches the same
+     doors as the exact words; what it does not know goes on to the model */
+  if (typeof jmRead === 'function'){ const m = jmRead(t); if (m) return m; }
   return null;
 }
 
@@ -308,6 +312,7 @@ function caCardHtml(a, i){
   if (a.kind === 'door') return caDoorCardHtml(a, i);
   if (a.kind === 'menu') return caMenuCardHtml(a, i);
   if (a.kind === 'go') return caGoCardHtml(a, i);
+  if (a.kind === 'map') return (typeof jmCardHtml === 'function') ? jmCardHtml(a, i) : '';
   if (a.kind !== 'send') return '';
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   const B = (act, label, cls) => `<button type="button" class="ui-btn ui-btn-sm${cls === 'lead' ? ' ui-btn-primary' : ''}" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`;
@@ -344,6 +349,7 @@ async function caCardPress(i, act, btn){
   if (a.kind === 'door') return caDoorPress(i, act);
   if (a.kind === 'menu') return caMenuPress(i, act);
   if (a.kind === 'go') return caGoPress(a, act);
+  if (a.kind === 'map') return (typeof jmCardPress === 'function') ? jmCardPress(i, act) : undefined;
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   if (act === 'sendscreen'){ if (c && typeof openShareModal === 'function') openShareModal(c); return; }
   if (act === 'note'){
@@ -1422,6 +1428,8 @@ function caGoSay(a){
   if (!a) return '';
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   if (a.missing) return _caT('ca_go_need', { word: _caT('ca_w_' + a.place) });
+  /* a task of Jambo's map that lands on a narrowed list or a Settings section says where (js/jambomap.js) */
+  if (a.say) return _caT(a.say);
   if (a.place === 'back'){ const p = caTrailTop(); return p ? _caT('ca_go_back', { where: caTrailLabel(p) }) : _caT('ca_go_back_none'); }
   /* a viewer's "upload" is answered with the refusal, once, where they look — not a toast beside it */
   if ((a.place === 'upload' || a.place === 'import') && !caMayAdd()) return _caT('ct_viewers_no_add');
@@ -1440,6 +1448,16 @@ function caGo(a){
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   caTrailPush();
   if (a.missing){ caHomeWall(); caGoRepaint(); return true; }
+  /* JAMBO'S MAP (js/jambomap.js) reaches two doors no single word had: the
+     Contracts place narrowed, as Home's tiles open it (regGoFiltered), and a
+     Settings section, as the Settings finder opens it (stFindGo) */
+  const door = a.reg ? (typeof regGoFiltered === 'function' ? () => regGoFiltered(a.reg) : null)
+    : a.st ? (typeof stFindGo === 'function' ? () => stFindGo(a.st) : null) : undefined;
+  if (door !== undefined){
+    if (!door) return false;
+    try { door(); } catch (e){ if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); return false; }
+    caGoRepaint(); return true;
+  }
   const go = CA_GO[a.place]; if (typeof go !== 'function') return false;
   try { go(c); } catch (e){ if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); return false; }
   caGoRepaint();

@@ -68,3 +68,33 @@ against the real server, so it is what proves the new bytes work.
     # /^[a-z][a-z']*$/, merge the two sets, sort, write one per line.
 
 Then run `node --test test/f422-their-side-mirrors-ours.test.js`, which reads it.
+
+## minisearch-7.2.0.umd.js — MiniSearch 7.2.0, MIT (18 Oct 2026)
+
+- **What it is:** a small full-text search engine with typo-forgiving and
+  prefix matching. Jambo's map (`js/jambomap.js`) uses it to match a sentence
+  in everyday words against the ways people ask for HaTi's thirty commonest
+  tasks.
+- **Where it came from:** the `minisearch@7.2.0` npm package,
+  `dist/umd/index.js` (github.com/lucaong/minisearch).
+- **What was changed:** one line removed, the trailing `sourceMappingURL`
+  comment, as for Chart.js. The UMD file carries no licence banner, so the
+  package's own `LICENSE.txt` is kept beside it, unchanged, as
+  `minisearch-7.2.0.LICENSE.txt` (MIT asks for the notice to travel with the
+  code).
+- **Who loads it:** `js/jambomap.js` asks for it once the page is idle — a
+  `<script>` tag, not an import — and it sets `window.MiniSearch`. Until it
+  has arrived the map answers nothing and an ask goes on as before. 86 KB,
+  about 19 KB compressed. Reached at `/vendor/minisearch-7.2.0.umd.js`, cached
+  hard; a new version is a NEW NAME, never an edit.
+
+### To upgrade it
+
+    npm pack minisearch@<version> --pack-destination /tmp
+    tar xzf /tmp/minisearch-<version>.tgz -C /tmp package/dist/umd/index.js package/LICENSE.txt
+    sed '/^\/\/# sourceMappingURL=/d' /tmp/package/dist/umd/index.js > vendor/minisearch-<version>.umd.js
+    cp /tmp/package/LICENSE.txt vendor/minisearch-<version>.LICENSE.txt
+
+Then change `JM_LIB_SRC` in `js/jambomap.js` and run
+`node --test test/f705-jambos-map.test.js`, which loads it and asks the map
+its exam.
