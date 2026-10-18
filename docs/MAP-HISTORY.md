@@ -30760,3 +30760,29 @@ toggle in the How you like to work drawer (`#pref-nav-all`), its writer
 names it rather than missing it. The phone keeps its own switch in its menu
 (js/mobile.js), where the menu still earns its items (navShowEverything,
 navEarned) — those and their words stay. Tests re-pointed: f193, f691, f725.
+
+
+## KEEPING: A PRIVATE STREAM NO ADMIN CAN SEE (18 Oct 2026)
+
+Round 26 left a question open. A private stream's contracts are read only by
+the people it names, admins too, so where no admin is named, contracts past
+their keeping period were never listed for anybody: nobody was asked, and they
+stayed for ever. Three answers were offered; the owner picked "Prompt admins to
+get named" on 18 Oct 2026.
+
+- Server: `kpUnseen(rules)` reads, for each private stream that has a keeping
+  rule and names no admin, whether anything in it is due (`kpBook(null, fid,
+  [fid])` — kpBook took an optional scope for this; the one place the server
+  looks past the wall, and only to say yes or no). The answer, a list of stream
+  ids and nothing else (no count, no contract's id, name or party), rides the
+  admin's bootstrap (`keeping.unseen`) and GET /api/keeping. A workspace with no
+  rules keeps its old answer, `{ rules, due }`.
+- Browser: `stKpNeedRows` adds a Needs your attention row per stream, "No admin
+  can see it · <stream>", its button the stream's own page (Access), where an
+  admin names an admin, themselves included ("Add me"). Saving the stream reads
+  keeping again (`stKpLoad`) and takes the row out at once (`stSyncAttention`,
+  which removes rows and never adds one under the reader's hand); the page's
+  next paint brings the stream's contracts into that admin's own Ready to delete.
+- Not changed: who may delete. Only an admin named on the stream decides.
+
+Tests: f729 (1–3 red at main), keeping-no-admin-verify (1–3 red at main).

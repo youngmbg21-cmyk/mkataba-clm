@@ -165,6 +165,10 @@ const STRINGS = {
     st_kp_due_none: 'Nothing is due now',
     st_kp_review: 'Review the list',
     st_kp_need_go: 'Review',
+    /* a private stream no admin can see (owner's yes, 18 Oct 2026) */
+    st_kp_need_unseen: 'No admin can see it · {name}',
+    st_kp_need_unseen_sub: 'This private stream has contracts past their keeping period, but names no admin, so nobody is asked. Name one so they can be decided.',
+    st_kp_need_unseen_go: 'Name an admin',
     st_kp_th_contract: 'Contract',
     st_kp_th_party: 'Party',
     st_kp_th_ended: 'Ended',
@@ -17638,6 +17642,10 @@ const STRINGS = {
     st_kp_due_none: 'Inget är dags nu',
     st_kp_review: 'Granska listan',
     st_kp_need_go: 'Granska',
+    /* en privat ström som ingen administratör ser (ägarens ja, 18 okt 2026) */
+    st_kp_need_unseen: 'Ingen administratör ser den · {name}',
+    st_kp_need_unseen_sub: 'Den här privata strömmen har avtal som passerat sin sparandetid, men ingen administratör är namngiven, så ingen tillfrågas. Namnge en så att de kan avgöras.',
+    st_kp_need_unseen_go: 'Namnge en administratör',
     st_kp_th_contract: 'Avtal',
     st_kp_th_party: 'Part',
     st_kp_th_ended: 'Upphörde',

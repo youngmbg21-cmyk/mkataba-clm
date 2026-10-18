@@ -5824,8 +5824,10 @@ async function stPsSave(){
   toast(d.on?i18t('st_ps_saved_private',{name:f.name,named:i18tn('st_ps_who_named',d.ids.length,{n:d.ids.length})})
     :i18t('st_ps_saved_open',{name:f.name}),'ok');
   /* who may open what just moved — this admin's own book may have gained or
-     lost the stream's contracts */
+     lost the stream's contracts, and keeping's Needs rows with them (a stream
+     that now names an admin leaves "No admin can see it") */
   await stPsReloadBook();
+  if(stKpOn()){ _stKp.data=null; await stKpLoad(); stSyncAttention(); }
   stDrawerOpen('folders');
 }
 /* No server: the same record, kept in this browser like every other setting. */
@@ -5891,7 +5893,7 @@ async function stKpLoad(){
 function stKpSync(){
   const d=_stKp.data; if(!d||!d.streams) return;
   const due={}; Object.entries(d.streams).forEach(([fid,s])=>{ if(s.rule&&s.due&&s.due.length) due[fid]={ n:s.due.length, then:s.rule.then }; });
-  state.keeping={ rules:d.rules||{}, due };
+  state.keeping={ rules:d.rules||{}, due, unseen:Array.isArray(d.unseen)?d.unseen:[] };
 }
 const stKpYearsWord=n=>i18tn('st_kp_years',n,{n});
 function stKpHtml(fid){
@@ -5988,7 +5990,14 @@ function stKpNeedRows(){
   return Object.entries(k.due).filter(([fid,x])=>x&&x.n>0&&FOLDERS[fid]).map(([fid,x])=>({ key:'keep:'+fid, dot:'warn',
     text:i18t(x.then==='archive'?'st_kp_need_archive':'st_kp_need_delete',{name:FOLDERS[fid].name}),
     sub:i18tn(x.then==='archive'?'st_kp_need_archive_sub':'st_kp_need_delete_sub',x.n,{n:x.n}),
-    btn:`data-st-panel="stream:${PB_ATTR(fid)}@keeping"`, verb:i18t('st_kp_need_go') }));
+    btn:`data-st-panel="stream:${PB_ATTR(fid)}@keeping"`, verb:i18t('st_kp_need_go') }))
+  /* A PRIVATE STREAM NO ADMIN CAN SEE (owner's yes, 18 Oct 2026): it has
+     contracts past their keeping time and names no admin, so nobody is asked.
+     The row says only that — no count, no names — and its door is the
+     stream's page, where an admin is named (themselves included). */
+    .concat((Array.isArray(k.unseen)?k.unseen:[]).filter(fid=>FOLDERS[fid]).map(fid=>({ key:'keep-unseen:'+fid, dot:'warn',
+      text:i18t('st_kp_need_unseen',{name:FOLDERS[fid].name}), sub:i18t('st_kp_need_unseen_sub'),
+      btn:`data-st-panel="stream:${PB_ATTR(fid)}"`, verb:i18t('st_kp_need_unseen_go') })));
 }
 /* The person's drawer says which private streams name them, each a door back
    to its page — their access to a private stream is set THERE, nowhere else. */
