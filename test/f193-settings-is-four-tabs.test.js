@@ -344,9 +344,10 @@ describe('f193 — the drawer', () => {
     assert.equal(win.document.querySelectorAll('#st-drawer').length, 1);
     assert.equal(win.document.getElementById('st-drawer').parentElement, win.document.body,
       'it survives the page underneath being rebuilt');
-    sb.stDrawerOpen('backup');
+    /* since round 26 Data & backup is a page, so another drawer is opened here */
+    sb.stDrawerOpen('approvals');
     assert.equal(win.document.querySelectorAll('#st-drawer').length, 1, 'opening another reuses the one drawer');
-    assert.ok(win.document.getElementById('st-dbody').innerHTML.includes('bk-export'));
+    assert.equal(win.document.querySelector('#st-dhead .rvd-title').textContent, sb.SET_PANELS.approvals.title());
   });
 
   test('a form drawer offers Save & close and Cancel; a write-on-change panel offers Done', () => {

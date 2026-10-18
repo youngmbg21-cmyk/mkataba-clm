@@ -3973,6 +3973,31 @@
   .st-cr .st-swt.on i{ left:16px; }
   .st-cr .st-swt:focus-visible{ outline:2px solid var(--color-accent); outline-offset:2px; }
   @media (max-width:1180px){ .st-cr .st-sheet{ grid-template-columns:minmax(0,1fr); } .st-cr .st-toc{ display:none; } }
+  /* ROUND 26, "THE SAP WAY" (owner picked it 17 Oct 2026): Contract streams
+     and Data & backup as pages — labelled boxes in a band, then a table */
+  .st-cr .st-sw-band{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px 16px; margin:0 0 var(--s-3); padding:12px 14px; background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); }
+  .st-cr .st-sw-f{ display:flex; flex-direction:column; gap:4px; min-width:0; font-size:var(--t-label); color:var(--color-text); font-weight:var(--w-label); }
+  .st-cr .st-sw-f select, .st-cr .st-sw-f input{ height:var(--ctl-h); min-width:170px; max-width:100%; padding:0 8px; font:inherit; font-size:var(--t-meta); font-weight:400; color:var(--color-text); background-color:var(--color-surface); border:1px solid var(--field-line); border-radius:var(--radius); }
+  .st-cr .st-sw-find input{ min-width:200px; }
+  .st-cr .st-sw-card{ padding:10px 14px 6px; }
+  .st-cr .st-sw-tb .r{ text-align:right; font-variant-numeric:tabular-nums; }
+  .st-cr .st-sw-tb th.r{ text-align:right; }
+  .st-cr .st-sw-row{ cursor:pointer; }
+  .st-cr .st-sw-row:hover td, .st-cr .st-sw-row:focus-visible td{ background:var(--surface-2); }
+  .st-cr .st-sw-row:focus-visible{ outline:2px solid var(--color-accent); outline-offset:-2px; }
+  .st-cr .st-sw-tb .st-fdot{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:8px; vertical-align:1px; }
+  .st-cr .st-sw-tb .st-ps-badge{ margin-left:6px; }
+  .st-cr .st-sw-due{ color:var(--st-amber-fg); font-weight:var(--w-label); }
+  .st-cr .st-sw-tb tbody tr:last-child td{ border-bottom:0; }
+  .st-cr .st-dp-tabs{ display:flex; gap:4px; border-bottom:1px solid var(--color-divider); }
+  .st-cr .st-dp-tab{ appearance:none; border:0; border-bottom:2px solid transparent; background:none; font:inherit; font-size:var(--t-meta); color:var(--color-text); padding:6px 10px; cursor:pointer; margin-bottom:-1px; }
+  .st-cr .st-dp-tab.is-on{ color:var(--accent-ink); font-weight:var(--w-label); border-bottom-color:var(--color-accent); }
+  .st-cr .st-tr-band .st-sw-f{ min-width:150px; }
+  .st-cr .st-sw-f .dp-face{ height:var(--ctl-h); min-width:150px; padding:0 8px; font-size:var(--t-meta); font-weight:400; color:var(--color-text); background:var(--color-surface); border:1px solid var(--field-line); border-radius:var(--radius); }
+  .st-cr .st-tr-go-band{ display:flex; flex-wrap:wrap-reverse; align-items:center; gap:6px 12px; margin:0; padding:0; background:none; border:0; border-radius:0; }
+  .st-cr .st-tr-go-band .st-tr-fig{ flex-basis:100%; font-size:var(--t-label); }
+  .st-cr .st-dp-card .st-tr-past{ margin-top:0; }
+  .st-cr .st-dp-card{ padding:10px 14px 8px; }
 
   /* THE BOARD'S DRAWERS: everyone's limits, the rules still off */
   .st-lim-off{ display:flex; align-items:center; gap:10px; padding:8px 10px; margin:0 0 var(--s-3); border-radius:var(--radius);
