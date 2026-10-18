@@ -541,9 +541,11 @@ function bsLifeData(c){
   const amendRef = ev.from ? bsRef(ev.from) : '';
   if (!bsMoneyOk()) K.value = { n: bsT('bs_k_hidden'), sub: '' };
   else if (!money) K.value = { n: '—', sub: bsT('bs_k_value_nomoney') };
+  /* "As amended by MK-0377-A1 · SEK 3.55 M a year" (round 7 as drawn): what
+     governs the figure first, then what it comes to a year */
   else if (ev.v > 0) K.value = { n: bsMoney(ev.v, c),
-    sub: [yrs >= 1 ? bsT('bs_k_value_year', { v: bsMoney(ev.v / yrs, c) }) : (amendRef ? '' : ((typeof fmtMoneyOf === 'function') ? fmtMoneyOf((typeof effectiveValueView === 'function') ? effectiveValueView(c) : c) : '')),
-      amendRef ? bsT('bs_k_value_amended', { ref: amendRef }) : ''].filter(Boolean).join(' · '),
+    sub: [amendRef ? bsT('bs_k_value_amended', { ref: amendRef }) : '',
+      yrs >= 1 ? bsT('bs_k_value_year', { v: bsMoney(ev.v / yrs, c) }) : (amendRef ? '' : ((typeof fmtMoneyOf === 'function') ? fmtMoneyOf((typeof effectiveValueView === 'function') ? effectiveValueView(c) : c) : ''))].filter(Boolean).join(' · '),
     tip: [yrs >= 1 ? bsT('bs_k_value_year_tip') : '', yrs >= 1 && amendRef ? bsT('bs_k_value_amended', { ref: amendRef }) : ''].filter(Boolean).join(' · ') };
   else K.value = owed.has('value') ? { n: bsT('bs_k_owed'), sub: bsT('bs_k_owed_sub'), tone: 'warn' } : { n: '—', sub: bsT('bs_k_unknown') };
   /* TERM */
@@ -552,7 +554,15 @@ function bsLifeData(c){
   else if (M && M.end) K.term = owed.has('effDate') ? { n: '—', sub: bsT('bs_k_ends_nostart_owed', { d: bsDay(M.end) }), tone: 'warn' } : { n: '—', sub: bsT('bs_k_ends_nostart', { d: bsDay(M.end) }) };
   else K.term = (owed.has('effDate') || owed.has('expiry')) ? { n: bsT('bs_k_owed'), sub: bsT('bs_k_owed_sub'), tone: 'warn' } : { n: '—', sub: bsT('bs_k_nodates') };
   /* NEXT OBLIGATION */
-  if (O.next) K.next = { n: O.next.due ? bsDay(O.next.due) : bsT('bs_ob_nodue'), sub: O.next.what + ' · ' + bsWho(c, O.next), tone: O.next.st === 'overdue' ? 'warn' : '' };
+  /* LATE, AS DRAWN (round 7): the day in the late colour and how late it is
+     where the name of who owes it stood ("Check the September invoice · 7
+     days late"); who owes it is the table's column under it */
+  if (O.next){
+    const lateBy = (O.next.st === 'overdue' && O.next.due) ? Math.max(0, Math.round((_bsDay0(O.today || bsToday()) - _bsDay0(O.next.due)) / _bsDD)) : null;
+    K.next = { n: O.next.due ? bsDay(O.next.due) : bsT('bs_ob_nodue'),
+      sub: O.next.what + ' · ' + (lateBy != null ? bsTn('bs_k_next_late', lateBy, { n: lateBy }) : bsWho(c, O.next)),
+      tip: O.next.what + ' · ' + bsWho(c, O.next), tone: O.next.st === 'overdue' ? 'bad' : '' };
+  }
   else K.next = { n: '—', sub: bsT(O.rows.length ? 'bs_k_next_none' : 'bs_ob_none_short') };
   /* NOTICE BY */
   const rt = Number(meta.renewalTermMonths) || 0;
@@ -647,7 +657,12 @@ function bsStripHtml(st, o){
   const more = `<hr><button type="button" role="menuitem" class="bs-mi" data-hb-analyze="${id}" title="${bsE(bsT('int_analyze_title'))}"><b>${bsE(bsT('int_analyze'))}</b></button>
     <button type="button" role="menuitem" class="bs-mi" data-hb-map="${id}" data-hb-what="${ref}"><b>${bsE(bsT('hb_c_on_map'))}</b></button>`;
   const menu = open ? `<div class="bs-menu" role="menu" id="bs-menu-${id}">${rows}${more}</div>` : '';
-  const pill = `<span class="hb-chip ${bsTone(c.status)}">${bsE((typeof statusLabel === 'function') ? statusLabel(c.status) : c.status)}</span>`;
+  /* THE STAGE AS THE PAPER'S LINE SAYS IT (round 6, and rounds 7 and 12 as
+     drawn): its dot, its words and its round in the stage's own wash
+     (contractStatusTextHtml, igLineRound) — the chip where those are absent */
+  const rnd = (typeof igLineRound === 'function') ? igLineRound(c) : 0;
+  let pill = ''; try { pill = (typeof contractStatusTextHtml === 'function') ? `<span class="bs-stage">${contractStatusTextHtml(c, rnd ? bsT('ig_line_round', { n: rnd }) : '')}</span>` : ''; } catch (_){ pill = ''; }
+  if (!pill) pill = `<span class="hb-chip ${bsTone(c.status)}">${bsE((typeof statusLabel === 'function') ? statusLabel(c.status) : c.status)}</span>`;
   const body = page === 'where' ? `<div class="bs-sec bs-host bs-where" data-hb-own data-bs-host="where" data-bs-cid="${id}" data-ds-cid="${id}"></div>`
     : page === 'hist' ? `<div class="bs-sec bs-host bs-hist" data-hb-own data-bs-host="hist" data-bs-cid="${id}"></div>`
     : page === 'details' ? `<div class="bs-sec bs-host bs-details" data-hb-own data-bs-host="details" data-bs-cid="${id}"></div>`
@@ -655,7 +670,7 @@ function bsStripHtml(st, o){
   /* ON THE DESK THE TAB'S × PUTS IT AWAY (round 7): the card draws none of its own */
   const x = desk ? '' : `<button type="button" class="hb-ib hb-x" data-bs-x="${id}" aria-label="${bsE(bsT('bs_close'))}" title="${bsE(bsT('bs_close'))}">${_bsX}</button>`;
   return `<section class="hb-card bs-strip${desk ? ' bs-on-desk' : ''}${_bsArrive === String(c.id) && !desk ? ' is-new' : ''}${open ? ' is-menu' : ''}" id="bs-strip-${id}" data-bs-id="${id}" data-bs-on="${page}" aria-label="${bsE(bsT('bs_aria', { ref: bsRef(c) }))}">
-    <header class="hb-ch bs-head"><span class="hb-ct">${bsE(c.name || bsRef(c))}</span><span class="bs-ref">${ref}${c.counterparty ? ' · ' + bsE(c.counterparty) : ''}</span>${pill}${crumbs}<span class="hb-grow"></span>
+    <header class="hb-ch bs-head"><span class="hb-ct">${bsE(c.name || bsRef(c))}</span><span class="bs-ref">${(typeof refHtml === 'function') ? refHtml(c) : ref}${c.counterparty ? ' · ' + bsE(c.counterparty) : ''}</span>${pill}${crumbs}<span class="hb-grow"></span>
       <span class="bs-dwrap"><button type="button" class="hb-ib bs-dots${open ? ' is-on' : ''}" data-bs-dots="${id}" aria-haspopup="menu" aria-expanded="${open}" aria-label="${bsE(bsT('bs_more', { ref: bsRef(c) }))}" title="${bsE(bsT('bs_more', { ref: bsRef(c) }))}">⋯</button>${menu}</span>
       ${x}</header>
     ${bsFamHtml(c)}${body}</section>`;
@@ -722,9 +737,13 @@ function bsIdKpiHtml(D){
   if (stream) bits.push(bsE(stream));
   const owner = (typeof contractOwnerName === 'function') ? contractOwnerName(c) : null;
   bits.push(owner ? bsT('bs_id_owner', { who: `<b>${bsE(owner)}</b>` }) : bsE(bsT('bs_id_noowner')));
+  /* A SIGNED CONTRACT SAYS WHEN IT WAS SIGNED (round 7 as drawn: "… · signed
+     28 Apr 2026"); before that, when it was made or uploaded */
+  const signedOn = (typeof window.contractSignedAt === 'function') ? contractSignedAt(c) : null;
   const made = c.createdAt || c._raisedAt || '';
   const up = (typeof isUpload === 'function') ? isUpload(c) : c.source === 'upload';
-  if (made) bits.push(bsE(bsT(up ? 'bs_id_uploaded' : 'bs_id_created', { d: bsDay(String(made).slice(0, 10)) })));
+  if (signedOn && /^\d{4}-\d{2}-\d{2}/.test(String(signedOn))) bits.push(bsE(bsT('bs_id_signed', { d: bsDay(String(signedOn).slice(0, 10)) })));
+  else if (made) bits.push(bsE(bsT(up ? 'bs_id_uploaded' : 'bs_id_created', { d: bsDay(String(made).slice(0, 10)) })));
   const fig = (k, label) => { const x = D.K[k];
     return `<div class="bs-kpi${x.tone ? ' is-' + x.tone : ''}" data-bs-kpi="${k}"><small>${bsE(bsT(label))}</small><b${k === 'role' ? ` title="${bsE(x.n)}"` : ''}>${bsE(x.n)}</b><span title="${bsE(x.tip || x.sub || '')}">${x.subHtml != null ? x.subHtml : bsE(x.sub || '')}</span></div>`; };
   return `<div class="bs-sec"><p class="bs-idline">${bits.join(' · ')}</p>
@@ -1013,6 +1032,9 @@ function bsPaintHosts(){
     } catch (e){ try { console.error('[hati] the strip\'s ' + k + ' did not paint', e); } catch (_){} }
   });
   bsFitWatch();
+  /* Jambo's panel follows the page in front (the redesign's gaps, rounds 7
+     and 12): another page, its History, or none draws the panel again */
+  if (typeof window.pdHeldFollow === 'function') try { window.pdHeldFollow(); } catch (_){}
 }
 function bsPaintWhere(host, c){
   if (typeof standsHtml !== 'function') return;

@@ -8672,6 +8672,98 @@ function histLaneOf(e, ours){
   const who=String(e.actor||'').trim().toLowerCase();
   return (who && ours && ours.has(who)) ? 'ours' : 'mid';
 }
+/* ---- WHAT A CHANGE'S ENTRY SAYS, IN THE READER'S WORDS (round 12, "Two
+   sides", as drawn; the owner's "build all the gaps", 18 Oct 2026) ----
+   The trail's own line for a change ("Per Nordvik (counterparty) proposed
+   #CHG-002 — 60 days") names the person and the change's inside number; in a
+   bubble that already names the person on its top line, the drawing says what
+   happened to which clause: "Proposed a change to clause 11, Payment terms:
+   60 days", "Accepted their change to clause 4, Fees: …". Built from the
+   entry's own parts (its kind, its clause, its side, the change's summary) in
+   the reader's language. THE READING DOES NOT CHANGE: roomHistoryEvents and
+   negoTimeline keep their text for every other caller (the export, the
+   phone, the pop-out record); this is how the bubble DRAWS it. */
+function histClauseWords(label){
+  const s=String(label||'').trim();
+  if(!s||(typeof DS_INSIDE_ID!=='undefined'&&DS_INSIDE_ID.test(s))) return i18t('ds_a_clause');
+  const m=s.match(/^(\d+(?:\.\d+)*)\.?\s+(.+)$/);
+  return m?i18t('ct_hist_clause_nm',{ n:m[1], name:m[2] }):s;
+}
+function histSaysOf(e){
+  if(!e||!e.ch||!(e._k==='proposed'||e._k==='decided'||e._k==='withdrawn')) return String((e&&e.text)||'');
+  const ch=e.ch, cl=histClauseWords(e.clauseLabel);
+  const what=String(ch.summary||'').replace(/\s+/g,' ').trim();
+  const theirs=ch.authorSide==='counterparty';
+  const k=e._k==='withdrawn'?'ct_hist_s_withdrawn'
+    :e._k==='decided'?(e.outcome==='accepted'?'ct_hist_s_acc_':'ct_hist_s_rej_')+(theirs?'theirs':'ours')
+    :ch.counterOf?'ct_hist_s_counter_'+(theirs?'ours':'theirs')
+    :'ct_hist_s_proposed';
+  const say=i18t(k,{ clause:cl });
+  return (what&&e._k!=='withdrawn')?i18t('ct_hist_s_what',{ say, what }):say;
+}
+/* ---- WHERE THE NEGOTIATION STANDS, FOR HISTORY'S HEAD AND JAMBO (round 12)
+   ---- ONE reading: what is still open (their asks and ours, dsOpen's own
+   rule — read RAW, nothing initialised), whose move it is (negWhoseMove, the
+   lists' own answer) and for how long (the day their newest ask came for a
+   move of ours, the day it was handed to them for theirs). Null where no
+   negotiation exists or the contract is signed: nothing is open there. */
+function _histDaysSince(iso){
+  const t=Date.parse(String(iso||'')); if(!isFinite(t)) return null;
+  return Math.max(0,Math.floor((Date.now()-t)/864e5));
+}
+function histMoveOf(c){
+  if(!c||!(c.negotiation||(Array.isArray(c.changes)&&c.changes.length))) return null;
+  if(typeof negoExecuted==='function'&&negoExecuted(c)) return null;
+  const open=(typeof dsOpen==='function')?dsOpen(c)
+    :(Array.isArray(c.changes)?c.changes:[]).filter(x=>x&&x.status==='pending'&&!x.withdrawn);
+  const theirs=open.filter(x=>x.authorSide==='counterparty'), ours=open.filter(x=>x.authorSide!=='counterparty');
+  let w=null; try{ w=(typeof negWhoseMove==='function')?negWhoseMove(c):null; }catch(_){ w=null; }
+  const k=(w&&w.k)||'clear';
+  let days=null;
+  if(k==='you') days=(typeof dsSinceDays==='function')?dsSinceDays(c,'counterparty'):null;
+  else if(k==='them'){ days=_histDaysSince(c.negotiation&&c.negotiation.turnAt); if(days==null&&typeof dsSinceDays==='function') days=dsSinceDays(c,'owner'); }
+  return { k, days, party:String(c.counterparty||'').trim(), open:open.length, theirs, ours };
+}
+/* the clauses a list of changes touches, as people say them: "clauses 7 and
+   11" where they are numbered, else their names; one per clause, a few at most */
+const HIST_SAY_CLAUSES_MAX=4;
+function histClausesSay(list){
+  const seen=new Set(), nums=[], names=[];
+  (list||[]).forEach(ch=>{
+    const key=String((ch&&(ch.clauseId||ch.id))||''); if(seen.has(key)) return; seen.add(key);
+    let raw=String((ch&&(ch.clauseLabel||''))||'');
+    try{ if(raw&&window.negoClauseName) raw=negoClauseName(raw)||raw; }catch(_){ /* the stored label stands */ }
+    const m=raw.match(/^(\d+(?:\.\d+)*)/);
+    if(m) nums.push(m[1]); else names.push(raw||i18t('ds_a_clause'));
+  });
+  const all=nums.length&&!names.length?nums:nums.concat(names);
+  const shown=all.slice(0,HIST_SAY_CLAUSES_MAX), more=all.length-shown.length;
+  let list2=shown.join(', ');
+  try{ list2=new Intl.ListFormat((typeof langLocale==='function')?langLocale():undefined,{ style:'long', type:'conjunction' }).format(more?shown.concat([i18tn('ct_hist_sum_more',more,{ n:more })]):shown); }catch(_){ /* the plain join stands */ }
+  return nums.length&&!names.length?i18tn('ct_hist_sum_clauses',all.length,{ list:list2 }):list2;
+}
+/* ---- HISTORY, SAID IN A FEW LINES (round 12: Jambo's "<ref> · History") ----
+   How many entries the trail holds from the last two weeks, the newest one,
+   and where the negotiation stands (histMoveOf). The trail is the one
+   roomHistoryEvents reads; nothing is filtered, asked or written. */
+const HIST_RECENT_DAYS=14;
+function histSummaryOf(c,now){
+  if(!c) return null;
+  const evs=roomHistoryEvents(c,{});
+  const t0=(now||Date.now())-HIST_RECENT_DAYS*864e5;
+  const recent=evs.filter(e=>{ const t=Date.parse(String(e.at||'')); return isFinite(t)&&t>=t0; }).length;
+  return { total:evs.length, recent, newest:evs.length?evs[evs.length-1]:null, move:histMoveOf(c) };
+}
+/* the newest entry as one short phrase: a change by its side and round
+   ("their round 2"), else its outcome word or its own words */
+function histNewestWords(e){
+  if(!e) return '';
+  if(e._k==='proposed'&&e.round&&(e.side==='counterparty'||e.side==='owner'))
+    return i18t(e.side==='counterparty'?'ct_hist_sum_their_round':'ct_hist_sum_our_round',{ n:e.round });
+  const oc=histOutcome(e);
+  const t=String((oc&&oc.w)||histSaysOf(e)||'').replace(/\s+/g,' ').trim();
+  return t.length>60?t.slice(0,59)+'\u2026':t;
+}
 function roomHistoryHtml(c,f={},opts={}){
   /* ---- NEWEST FIRST (Young ruled 24 Sep 2026: "The way the history is
      chronicled") ----
@@ -8684,7 +8776,7 @@ function roomHistoryHtml(c,f={},opts={}){
      they were written, latest first, which is what newest first means. */
   const q=String(_histQ||'').trim().toLowerCase();
   const evs=roomHistoryEvents(c,f).slice().reverse()
-    .filter(e=>!q||[e.text,e.actor,e.clauseLabel].some(x=>String(x||'').toLowerCase().includes(q)));
+    .filter(e=>!q||[e.text,histSaysOf(e),e.actor,e.clauseLabel].some(x=>String(x||'').toLowerCase().includes(q)));
   /* The total is the UNFILTERED list, counted the same way — merged twins are
      one event in both, so "7 of 11" can never appear over a page that is
      hiding nothing. */
@@ -8764,16 +8856,25 @@ function roomHistoryHtml(c,f={},opts={}){
        the time, the ring, who and the outcome on its top line, the event and
        its wording under it — or, on the middle line, one quiet pill. */
     const lane=histLaneOf(e, ours);
-    const when=`<span class="hist-when">${w.time?`<span class="hist-time">${esc(w.time)}</span>`:`<span class="hist-day">${esc(w.day)}</span>`}</span>`;
+    /* AS DRAWN (round 12): in a bubble the time is followed by a dot of
+       punctuation, not the kind's ring — the kind's name and the entry's
+       round ride the time's hover; its fingerprint too, until "Show the
+       wording" prints it under the entry */
+    const fpTip=(e._also||[]).map(a=>{ const fp=String(a.detail||'').match(/(0x[0-9a-f]{8,})/i); return fp?fp[1]:''; }).filter(Boolean)[0]||'';
+    const whenTip=[m.mark,(e.round!=null&&e.round!=='')?i18t('ct_round_n',{n:e.round}):'',fpTip].filter(Boolean).join(' · ');
+    const when=`<span class="hist-when"${lane!=='mid'&&whenTip?` title="${esc(whenTip)}"`:''}>${w.time?`<span class="hist-time">${esc(w.time)}</span>`:`<span class="hist-day">${esc(w.day)}</span>`}</span>`;
     const whoH=`<span class="hist-who">${e.actor?`${av}<span>${esc(e.actor)}</span>`:''}</span>`;
     const ocH=`<span class="hist-oc">${oc?`<span class="hist-pill is-${oc.t}">${esc(oc.w)}</span>`:''}</span>`;
     const inside=e._k==='opened'||e._k==='access';
     if(lane==='mid') return `<div class="hist-ev is-mid${inside?' is-inside':''}${e._k==='opened'?' is-open':''}" data-hist-at="${esc(e.at||'')}" data-hist-lane="mid">
       <span class="hist-inside">${when}${dot}${whoH}<span class="hist-body"><span class="hist-text">${esc(e.text||'')}${rchip}${cl}</span></span>${ocH}</span>${body?`<div class="hist-mid-more">${body}</div>`:''}</div>`;
+    /* a change's entry says what happened to which clause (histSaysOf); the
+       clause and round chips stay on entries whose words do not name them */
+    const said=histSaysOf(e), named=said!==String(e.text||'');
     return `<div class="hist-ev is-${lane}${e._k==='opened'?' is-open':''}" data-hist-at="${esc(e.at||'')}" data-hist-lane="${lane}">
-      <div class="hist-bub"><div class="hist-top">${when}${dot}${whoH}${ocH}</div>
-      <div class="hist-body"><div class="hist-text">${esc(e.text||'')}${rchip}${cl}</div>
-      ${also?`<div class="hist-meta">${also}</div>`:''}${body}${why}${reply}</div></div></div>`;
+      <div class="hist-bub"><div class="hist-top">${when}<span class="hist-sep" aria-hidden="true">\u00b7</span>${whoH}${ocH}</div>
+      <div class="hist-body"><div class="hist-text">${esc(said)}${named?'':rchip+cl}</div>
+      ${also&&_histDetail?`<div class="hist-meta">${also}</div>`:''}${body}${why}${reply}</div></div></div>`;
   };
   const ours=_histOurPeople();
   /* the lanes' heads: our party, the days, theirs */
@@ -8781,11 +8882,16 @@ function roomHistoryHtml(c,f={},opts={}){
   const lanesHead=`<div class="hist-lh is-l"><i aria-hidden="true"></i>${esc(i18t('ct_hist_lane_ours',{ who:usName }))}</div><div class="hist-lh is-m">${esc(i18t('ct_hist_lane_day'))}</div><div class="hist-lh is-r"><i aria-hidden="true"></i>${esc(i18t('ct_hist_lane_theirs',{ who:c.counterparty||i18t('co_them') }))}</div>`;
   /* THE DAY IS A HEADING OVER ITS ENTRIES, with its count (as drawn). */
   const dayKey=e=>String(e.at||'').slice(0,10);
+  /* THE DAY'S PILL, AS DRAWN (round 12): the day a person would say it —
+     "Thu 15 Oct", the year only where it is not this one — over its entries;
+     how many a day holds is the lanes' to show, the head counts them all */
   const dayLabel=e=>{ const d=new Date(e.at); if(isNaN(d)) return dayKey(e)||'\u2014';
-    try{ return d.toLocaleDateString((typeof langLocale==='function')?langLocale():undefined,{day:'numeric',month:'short',year:'numeric'}); }catch(_){ return dayKey(e); } };
+    const o=d.getFullYear()===new Date().getFullYear()?{weekday:'short',day:'numeric',month:'short'}:{weekday:'short',day:'numeric',month:'short',year:'numeric'};
+    /* the parts with spaces between, no comma ("Thu 15 Oct", as drawn) */
+    try{ return new Intl.DateTimeFormat((typeof langLocale==='function')?langLocale():undefined,o).formatToParts(d).filter(x=>x.type!=='literal').map(x=>x.value).join(' '); }catch(_){ return dayKey(e); } };
   const grouped=()=>{ let out='', k=null, buf=[];
     const flush=()=>{ if(!buf.length) return;
-      out+=`<div class="hist-day-h"><b>${esc(dayLabel(buf[0]))}</b> · ${esc(i18tn('ct_hist_events',buf.length,{n:buf.length}))}</div>${buf.map(row).join('')}`; buf=[]; };
+      out+=`<div class="hist-day-h" title="${esc(i18tn('ct_hist_events',buf.length,{n:buf.length}))}"><b>${esc(dayLabel(buf[0]))}</b></div>${buf.map(row).join('')}`; buf=[]; };
     evs.forEach(e=>{ const kk=dayKey(e); if(kk!==k){ flush(); k=kk; } buf.push(e); }); flush(); return out; };
   /* ---- ONE SWITCH, ONE HANDLE, AND NO LID OVER IT ----
      "Whose asks am I looking at" used to be answered TWICE on this head: a
@@ -8818,11 +8924,17 @@ function roomHistoryHtml(c,f={},opts={}){
      question, and it is the one thing a reader cannot work out from two
      entries. The count joins the sentence rather than wearing a pill of its
      own: it is a fact about the list, not a status. */
+  /* THE HEAD, AS DRAWN (round 12, "Two sides"): "History · Newest first ·
+     our side left, theirs right · 13 events · 2 open changes" on its line,
+     and under it one toolbar — the search, Filter, Show the wording, and ⋯ at
+     its end. The open changes are histMoveOf's own count, the one Jambo's
+     History lines say. */
+  const mvH=histMoveOf(c), openN=mvH?mvH.open:0;
   return `<div class="hist-head">
       <h6 style="margin:0;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading)">${esc(i18t('tab_history'))}</h6>
       <span class="hist-cap">${esc(i18t('ct_hist_reading'))} · ${esc(i18t('ct_hist_lanes_say'))} · ${on?esc(i18t('ct_hist_n_of',{n:evs.length,all}))
-        :esc(i18tn('ct_hist_events',all,{n:all}))}${opensN?` · ${esc(i18tn('ct_hist_opens_n',opensN,{n:opensN}))}`:''}${cutN?` · ${esc(i18tn('ct_hist_opens_cut',cutN,{n:cutN}))}`:''}</span>
-      <span style="flex:1;min-width:4px"></span>
+        :esc(i18tn('ct_hist_events',all,{n:all}))}${openN?` · <span class="hist-open-n">${esc(i18tn('ct_hist_open_n',openN,{n:openN}))}</span>`:''}${opensN?` · ${esc(i18tn('ct_hist_opens_n',opensN,{n:opensN}))}`:''}${cutN?` · ${esc(i18tn('ct_hist_opens_cut',cutN,{n:cutN}))}`:''}</span>
+      <div class="hist-tools">
       <label class="hist-q"><span class="sr-only">${esc(i18t('ct_hist_search'))}</span>${icon('search','w-3.5 h-3.5')}<input id="hist-q" type="search" value="${esc(_histQ)}" placeholder="${esc(i18t('ct_hist_search'))}" autocomplete="off"></label>
       ${''/* THE SIDE SWITCH IS GONE (round 12, "Two sides"): each side is its own
              lane, so "whose step was it" is read by where it stands, not
@@ -8833,11 +8945,14 @@ function roomHistoryHtml(c,f={},opts={}){
              about to go. */}
       <button id="hist-detail" class="ui-btn" aria-pressed="${_histDetail?'true':'false'}"
         title="${esc(_histDetail?i18t('ct_hist_back_short'):i18t('ct_hist_print_wording'))}">${_histDetail?i18t('ct_hist_hide_wording'):i18t('ct_hist_show_wording')}</button>
+      <span class="hist-tools-sp"></span>
+      ${''/* ⋯ AT THE TOOLBAR'S END, AS DRAWN (round 12): the mark alone, its
+             name for a screen reader and on the hover (Verify, export or
+             print this record); the menu's rows still say what each does */}
       <div style="position:relative">
-        <button id="hist-more" class="ui-btn" aria-haspopup="true" aria-expanded="false"
-          title="${esc(i18t('ct_hist_more_title'))}"
-          style="display:inline-flex;align-items:center">
-          ${icon('more')}${i18t('ct_more')}${icon('chevD')}</button>
+        <button id="hist-more" class="ui-btn ui-btn-icon hist-more-btn" aria-haspopup="true" aria-expanded="false"
+          aria-label="${esc(i18t('ct_more'))}" title="${esc(i18t('ct_hist_more_title'))}">
+          ${icon('more')}</button>
         <div id="hist-more-menu" class="room-menu hidden" style="min-width:250px">
           <button type="button" id="ht-verify">${icon('shield','w-3.5 h-3.5')}${esc(i18t('ct_hist_verify'))}<span class="mnote">${i18t('ct_recompute_fingerprints')}</span></button>
           ${''/* Print and Download stood on the Board's own line while the
@@ -8853,6 +8968,7 @@ function roomHistoryHtml(c,f={},opts={}){
           ${histTrailDoorOn()?`<div class="hist-mg">${esc(i18t('ct_hist_trail_group'))}</div>
           <button type="button" id="ht-trail">${icon('download','w-3.5 h-3.5')}${esc(i18t('ct_hist_trail_door'))}<span class="mnote">${esc(i18t('ct_hist_trail_note'))}</span></button>`:''}
         </div>
+      </div>
       </div>
     </div>
     <div id="hist-filters" style="margin-bottom:10px"${(_histFiltersOpen||onF)?'':' hidden'}>${roomHistoryFiltersHtml(c,f)}</div>
@@ -18595,7 +18711,7 @@ Object.assign(window,{docReadLongSplit,DOC_READ_LONG_WORDS,DOC_READ_RUN_MIN,docT
      I walked it on re-rendered the workspace, which measures on the way in. */
   layoutDocResizer,roomChatDoorHtml,ROOM_TABS_HOME,roomTabHome,roomOpenAt,roomMoreMenuHtml,roomMenuWire,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signWhyShort,SIGN_WHY_WORDS,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,uploadReadFile,uploadReadMeta,uploadFromDrop,uploadDropBusy,uploadDropFolder,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,docWorkPreviewOf,formOnHome,formHostEl,formPaperEl,formHeldContract,formRepaint,docTermFill,docNoticeFill,docSyncWrite,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomArrivesOnHome,roomHomeLand,ROOM_ARRIVE_MS,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,checkVerdict,tplFormOpenCount,tplFormOpenFields,detailsOf,detailsSections,blankFormLive,DET_RECORD_KEYS,detHeadHtml,detPaintHead,detailsChanged,detPaintPaperEmpties,detTintEmpties,detBasicsHtml,detNdaRows,detPaintBasics,detMarkOpen,openCompleteDetails,cdRepaintCounts,openCheckPanel,roomHeadHtml,wireRoomHead,
+  ROOM_TABS,docWorkPreviewOf,formOnHome,formHostEl,formPaperEl,formHeldContract,formRepaint,docTermFill,docNoticeFill,docSyncWrite,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomArrivesOnHome,roomHomeLand,ROOM_ARRIVE_MS,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,histClauseWords,histSaysOf,histMoveOf,histClausesSay,HIST_SAY_CLAUSES_MAX,HIST_RECENT_DAYS,histSummaryOf,histNewestWords,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,checkVerdict,tplFormOpenCount,tplFormOpenFields,detailsOf,detailsSections,blankFormLive,DET_RECORD_KEYS,detHeadHtml,detPaintHead,detailsChanged,detPaintPaperEmpties,detTintEmpties,detBasicsHtml,detNdaRows,detPaintBasics,detMarkOpen,openCompleteDetails,cdRepaintCounts,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill,
   /* idea 7 — the plain-English layer. Published because a name read through
      window from another module, or from a test stage, is silence when it is
