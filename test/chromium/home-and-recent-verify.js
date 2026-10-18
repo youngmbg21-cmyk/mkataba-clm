@@ -252,9 +252,11 @@ const CONTRACTS = [
       });
       await shot(page, `home-${vp.width}x${vp.height}`);
       check(`7 ${vp.width}×${vp.height}: the box and Needs you are in view, nothing cut, no sideways scroll`, fit.boxIn && fit.needsIn && fit.cut === 0 && fit.side <= 0, JSON.stringify(fit));
-      await page.evaluate(() => pdOpenOnHome('MK-CN2', 'copilot')); await until(() => pdContract() && document.getElementById('dk-page').textContent.trim() !== 'Home');
+      await page.evaluate(() => pdOpenOnHome('MK-CN2', 'copilot')); await until(() => { const b = document.getElementById('dk-page'); return pdContract() && (!b || b.textContent.trim() !== 'Home'); });
       await openRecent();
-      const rf = await page.evaluate(() => { const m = document.getElementById('dk-recent').getBoundingClientRect(), b = document.getElementById('dk-page'), w = b.querySelector('.dk-page-w');
+      const rf = await page.evaluate(() => { const mm = document.getElementById('dk-recent'), b = document.getElementById('dk-page'), w = b && b.querySelector('.dk-page-w');
+        if (!mm || mm.hidden || !w) return { inView: false, nameWhole: false, side: 0, missing: 'no Recent under a page name in the bar' };
+        const m = mm.getBoundingClientRect();
         return { inView: m.top >= 0 && m.bottom <= innerHeight && m.left >= 0 && m.right <= innerWidth, nameWhole: w.scrollWidth <= w.clientWidth + 1, side: document.documentElement.scrollWidth - innerWidth }; });
       await shot(page, `recent-${vp.width}x${vp.height}`);
       check(`7 ${vp.width}×${vp.height}: Recent opens in view, the page's name whole, no sideways scroll`, rf.inView && rf.nameWhole && rf.side <= 0, JSON.stringify(rf));
@@ -262,7 +264,7 @@ const CONTRACTS = [
     }
     await page.evaluate(() => langSet('sv'));
     await toCounter();
-    const sv = await until(() => { const b = document.getElementById('dk-page'); return b && b.textContent.trim() === 'Hem' && document.getElementById('dk-mark').title === 'Hem' && 'Hem'; });
+    const sv = await until(() => { const b = document.getElementById('dk-page'), mk = document.getElementById('dk-mark'); return b && mk && b.textContent.trim() === 'Hem' && mk.title === 'Hem' && 'Hem'; });
     check('7 in Svenska, Home is Hem', sv === 'Hem', String(sv));
     await page.evaluate(() => langSet('en'));
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
