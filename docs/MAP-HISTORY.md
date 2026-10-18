@@ -30680,3 +30680,13 @@ The owner picked "One sheet" by name in the round 24 artifact (recommended), wit
 - The dropdowns wear HaTi's field (surface, `--field-line` edge), not the browser's grey.
 - Census: ink-wash re-recorded (fifteenth) under the standing yes — settings counts moved; dark adds the hairline, the accent icon stroke and the off switch's `--field-line` fill.
 - Tests: f725 (all red at the parent but (3), which pins what is kept), one-sheet-verify (all red at the parent but 6, likewise); re-pointed: f214 (the brief's writer), f691 (Jambo readies the row), control-room-in-full, settings-tabs, when-youre-away verify.
+
+## SETTINGS → COMPANY, "CONTROL ROOM" — ROUND 25 OF THE REDESIGN (17 Oct 2026)
+
+The owner picked "Control room" by name in the round 25 artifact (recommended): today's page (their pick of 16 Oct) on the new desk, tidied. No questions were asked for this page.
+
+- **NEEDS YOUR ATTENTION, TWO LINES A ROW.** Each row is what it is, then on its own line its kind or state and since when (`stNeedRowHtml` → `.st-need-w` holding `.st-need-t` and `.st-need-s`; the old " · " run-on is gone), its button on the right. The head says what the buttons do (`st_needs_sub`). A clash in who may do what had no second line, so it now says what kind of thing it is (`st_need_kind_clash`). Still four at most, "N more" opens the rest.
+- **NINE EVEN CARDS, THE LADDER UNDER THEM.** People & access is one card like the other eight (no longer two columns wide; its four facts read down one column), three to a row at all three screens. The governance ladder leaves the grid and is drawn across the page after the nine (`stCompanyHtml`), then the access sheet. `ST_CARDS` keeps the ladder's entry so `stCrSync` and the door names hold; it is filtered out of the grid.
+- **A LINE WRAPS, NEVER CUT.** A fact's name and state wrap (no `nowrap`/ellipsis on `.st-fact-n`/`.st-fact-s`), so "Who must say yes before signing · 3 of 7 rules on before signing" reads whole — it was "signi…" at 1440 (noticed in the round 25 drawing's notes; fixed here because the drawing shows it whole).
+- **KEPT, AND WHY.** The drawing put the workspace's name beside "Settings" and drew You/Company as underlined tabs; the bar already names the workspace (round 1), and the face buttons are the owner's 16 Oct pick ("a tab at the top just like in the home page"), so both stay. The drawing's sample rows (Lina Ek's clash, Q4 review, Sales keeping) are the same readings this page already makes.
+- Tests: f726 and company-control-room-verify (all red at the parent but the sideways-scroll check and the console). Re-pointed: f691 (nine cards, ladder after), settings-groups 1e (People one card, ladder across), access-review 1a and keeping 3a (two lines a row). Census unchanged.

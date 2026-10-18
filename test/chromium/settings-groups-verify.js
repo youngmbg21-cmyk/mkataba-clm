@@ -118,11 +118,12 @@ const PAINTED = (sel) => {
       all.want.length > 0 && keys.length === all.want.length && new Set(keys).size === keys.length && all.want.every(k => keys.includes(k)),
       `${keys.length} doors for ${all.want.length} panels`);
     const spans = await page.evaluate(() => {
-      const w = k => { const el = document.querySelector(`.st-cards > [data-st-card="${k}"]`); return el ? el.getBoundingClientRect().width : 0; };
+      const w = k => { const el = document.querySelector(`.st-cards > [data-st-card="${k}"], .st-board > [data-st-card="${k}"]`); return el ? el.getBoundingClientRect().width : 0; };
       return { people: w('people'), ladder: w('ladder'), one: w('signing') };
     });
-    check('1e. People & access and the ladder each take two columns, as drawn',
-      spans.one > 0 && spans.people > spans.one * 1.8 && spans.ladder > spans.one * 1.8, JSON.stringify(spans));
+    /* since round 25 ("Control room"): nine even cards, the ladder across the page under them */
+    check('1e. People & access is one card like the rest; the ladder runs across the page',
+      spans.one > 0 && Math.abs(spans.people - spans.one) < 2 && spans.ladder > spans.one * 2.5, JSON.stringify(spans));
 
     /* ============ 2. NO TAG; THE DOT IS THE STATE ============
        2b ("Required") and 2d (the dot legend) were retired with the rows they

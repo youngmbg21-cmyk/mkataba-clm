@@ -14569,6 +14569,9 @@ const STRINGS = {
     st_grp_plumbing: 'The plumbing',
     st_required: 'Required',
     st_attention: 'Needs your attention',
+    /* round 25, "Control room" (17 Oct 2026) */
+    st_needs_sub: 'each row\u2019s button opens what settles it',
+    st_need_kind_clash: 'a clash in who may do what',
     st_attention_more: 'and {n} more',
     st_search_label: 'Search all settings',
     st_search_ph: 'Search all {n} settings',
@@ -31096,6 +31099,8 @@ const STRINGS = {
     st_grp_plumbing: 'Tekniken',
     st_required: 'Krävs',
     st_attention: 'Kräver din uppmärksamhet',
+    st_needs_sub: 'varje rads knapp öppnar det som löser den',
+    st_need_kind_clash: 'en krock i vem som får göra vad',
     st_attention_more: 'och {n} till',
     st_search_label: 'Sök bland alla inställningar',
     st_search_ph: 'Sök bland alla {n} inställningar',

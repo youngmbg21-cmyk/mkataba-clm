@@ -155,7 +155,10 @@ describe('f691 — the Company board, as drawn', () => {
     const { sb, win } = stage();
     sb.settingsGoTab('company');
     const cards = [...win.document.querySelectorAll('.st-cards > [data-st-card]')].map(c => c.getAttribute('data-st-card'));
-    assert.equal(cards[0], 'people'); assert.equal(cards[cards.length - 1], 'ladder');
+    /* since round 25 ("Control room") the nine cards are even and the ladder is drawn across the page under them */
+    assert.equal(cards[0], 'people'); assert.equal(cards.length, 9); assert.ok(!cards.includes('ladder'));
+    const ladder = win.document.querySelector('.st-board > [data-st-card="ladder"]');
+    assert.ok(ladder && ladder.previousElementSibling.classList.contains('st-cards'), 'the ladder last, after the cards');
     const panels = [...win.document.querySelectorAll('.st-cards > [data-st-card]:not([data-st-card="people"]):not([data-st-card="ladder"]) [data-st-panel]')]
       .map(b => b.getAttribute('data-st-panel')).filter(k => sb.SET_PANELS[k]);
     const expected = Object.keys(sb.SET_PANELS).filter(k => ['platform', 'build'].includes(sb.SET_PANELS[k].tab) && (!sb.SET_PANELS[k].show || sb.SET_PANELS[k].show()));

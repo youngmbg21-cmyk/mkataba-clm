@@ -1025,7 +1025,9 @@ function stNeedsAll(){
     text:i18t('st_need_ask',{who:a.byName||'',what:a.what}), sub:stDay(a.createdAt),
     btn:`data-st-panel="ask:${PB_ATTR(a.id)}"`, verb:i18t('st_need_answer') }));
   /* the clashes in who may do what (piece 7), the red one first */
-  stClashes().forEach(r=>out.push(r));
+  /* each row says on its second line what kind of thing it is (the
+     "Control room", round 25, 17 Oct 2026) */
+  stClashes().forEach(r=>out.push((r.sub||r.subHtml)?r:{ ...r, sub:i18t('st_need_kind_clash') }));
   /* the quarter's access review, until it is done (piece 8) */
   const arRow=stArNeedRow(); if(arRow) out.push(arRow);
   /* contracts past their keeping period, waiting for an admin's yes (piece 10) */
@@ -1055,12 +1057,15 @@ function stNeedsAll(){
     btn:'data-st-page="team"', verb:i18t('st_need_invite_see') });
   return out;
 }
+/* TWO LINES A ROW (round 25, "Control room", owner picked it 17 Oct 2026):
+   what it is, then what kind of thing and since when, the row's own button
+   on the right */
 function stNeedRowHtml(r){
   const dot=r.dot==='quiet'?'var(--st-gray-dot,var(--color-neutral-400))':r.dot==='red'?ST_DOT.red:ST_DOT.warn;
-  const sub=r.subHtml?` <span class="st-need-s">· ${r.subHtml}</span>`:(r.sub?` <span class="st-need-s">· ${esc(r.sub)}</span>`:'');
+  const sub=r.subHtml?`<span class="st-need-s">${r.subHtml}</span>`:(r.sub?`<span class="st-need-s">${esc(r.sub)}</span>`:'');
   return `<div class="st-need" data-st-need="${PB_ATTR(r.key)}">
     <span class="st-dot" style="background:${dot}"></span>
-    <span class="st-need-t">${esc(r.text)}${sub}</span>
+    <span class="st-need-w"><span class="st-need-t">${esc(r.text)}</span>${sub?' '+sub:''}</span>
     <button type="button" class="ui-btn ui-btn-sm st-need-go" ${r.btn}>${esc(r.verb)}</button>
   </div>`;
 }
@@ -1071,7 +1076,7 @@ function stNeedsHtml(){
   const rows=stNeedsAll(); if(!rows.length) return '';
   const shown=_stNeedsAll?rows:rows.slice(0,ST_ATTENTION_MAX), rest=rows.length-Math.min(rows.length,ST_ATTENTION_MAX);
   return `<section class="st-needs" id="st-att" aria-labelledby="st-needs-h">
-    <h3 class="st-needs-h" id="st-needs-h">${esc(i18t('st_attention'))} <span class="st-needs-n">${rows.length}</span></h3>
+    <h3 class="st-needs-h" id="st-needs-h">${esc(i18t('st_attention'))} <span class="st-needs-n">${rows.length}</span><span class="st-needs-sub">${esc(i18t('st_needs_sub'))}</span></h3>
     ${shown.map(stNeedRowHtml).join('')}
     ${rest>0?`<button type="button" class="st-need st-need-more" data-st-needs-all aria-expanded="${_stNeedsAll}">${esc(_stNeedsAll?i18t('st_needs_fewer'):i18tn('st_needs_more',rest,{n:rest}))}</button>`:''}
   </section>`;
@@ -1083,8 +1088,11 @@ function stNeedsHtml(){
    the group's order — and pressing it opens that panel. Every other panel of
    the area is a door under them, so the whole area is still one press away
    and nothing the page held before has gone. */
+/* NINE EVEN CARDS, THE LADDER BELOW THEM (round 25, "Control room"): People
+   & access is one card like the rest, and the ladder is drawn across the page
+   after the nine (stCompanyHtml) — its entry stays here so stCrSync knows it */
 const ST_CARDS=[
-  { key:'people', span:2 },
+  { key:'people' },
   { key:'signing', groups:['signing'], extra:()=>[{ panel:'limits', label:i18t('st_card_limits') }] },
   { key:'agreement', groups:['agreement'], extra:()=>stGatesOff().length?[{ panel:'gates', label:i18t('st_card_gates') }]:[] },
   { key:'links', groups:['links'] },
@@ -1139,7 +1147,7 @@ function stPeopleCardHtml(){
     : fact('data-st-panel="signcap"', esc(i18t('st_pc_caps_off')));
   return `<section class="st-grp st-card st-grp-people" data-st-card="people">
     <h3 class="st-card-h">${esc(i18t('st_cr_people'))}<span class="st-card-sub">${esc(i18t('st_pc_sub'))}</span></h3>
-    <div class="st-card-facts st-card-two">
+    <div class="st-card-facts">
       ${fact('data-st-page="team"', `${i18tn('st_pc_people',users.length,{n:n(users.length)})} · ${i18tn('st_pc_admins',admins,{n:n(admins)})}`)}
       ${caps}
       ${fact('data-st-page="team"', inv?i18tn('st_pc_invited',inv,{n:n(inv)}):esc(i18t('st_pc_all_in')))}
@@ -1503,7 +1511,8 @@ function stCompanyHtml(){
   if(_stPage==='roles') return stRolesPageHtml();
   return `<div class="st-board" id="st-board">
     ${stNeedsHtml()}
-    <div class="st-cards">${ST_CARDS.map(c=>c.key==='people'?stPeopleCardHtml():c.key==='ladder'?stGovLadderHtml():stGroupCardHtml(c)).join('')}</div>
+    <div class="st-cards">${ST_CARDS.filter(c=>c.key!=='ladder').map(c=>c.key==='people'?stPeopleCardHtml():stGroupCardHtml(c)).join('')}</div>
+    ${stGovLadderHtml()}
     ${stSheetCardHtml()}
   </div>`;
 }
