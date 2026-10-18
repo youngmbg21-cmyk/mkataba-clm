@@ -29,6 +29,12 @@
    variables actually repaints the platform. A token nothing reads is not a
    token, and no census of the DEFAULT theme would ever notice.
 
+   RE-RECORDED 17 Oct 2026 (second), OWNER-ASKED (the overnight build: "Build
+   and update record even on new ones"): Round 7, "Read down" — a contract
+   brought up is a page of its own on the desk, so the History screen (a
+   strip on its History page) no longer draws the Board's own furniture
+   around it: colours and counts only went away. Audited as a set
+   difference: nothing new.
    RE-RECORDED 17 Oct 2026, OWNER-ASKED ("Yes, update the record"; then
    "update the colour lists and merge when green"): Rounds 1 and 2 — the left
    menu is not drawn on a computer, so its own three values (the rail's

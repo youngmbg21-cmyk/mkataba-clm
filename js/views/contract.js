@@ -7121,7 +7121,11 @@ function ktFieldCell(c,k,edit,marks){
         const door=(!PORTAL_MODE&&window.bsPayMay&&bsPayMay(c))?` <button type="button" class="ui-link" data-ov-pay-edit="${esc(c.id)}">${esc(i18t('bs_pay_edit'))}</button>`:'';
         return [i18t('ov_f_pay'), `<span class="ov-pay-read">${read||'—'}${door}</span>`];
       }
-      const read=R.monetary?(R.money?mono(R.money):''):esc(i18t('ct_non_monetary'));
+      /* AS AMENDED (round 7, owner's yes, 17 Oct 2026): a signed amendment that
+         set the value governs the figure shown, the signed one said beside it
+         — the same reading as the life line's Value (effectiveTerm) */
+      let am=null; try{ const e=(!edit&&window.effectiveTerm)?effectiveTerm(c,'value'):null; if(e&&e.from&&Number(e.v)>0&&Number(e.v)!==Number(c.value)) am=e; }catch(_){ am=null; }
+      const read=R.monetary?(R.money?(am&&window.effectiveValueView&&window.fmtMoneyOf?`${mono(fmtMoneyOf(effectiveValueView(c)))} <span class="ov-amd">${esc(i18t('ov_value_amended',{ v:R.money }))}</span>`:mono(R.money)):''):esc(i18t('ct_non_monetary'));
       if(!edit) return [i18t('ov_f_value'), read];
       return [i18t('ov_f_value'),
         `<span class="ov-val-edit" style="display:flex;align-items:center;gap:8px">
