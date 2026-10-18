@@ -1174,13 +1174,6 @@ function ceSetNewPlace(afterClauseId){
   ceRenderPaper(); ceScrollToClause();
   return true;
 }
-/* A HELD NEW CLAUSE IS NOT A STEP ON ANY LADDER YET: the paper's step chip
-   counted the unsaved insertion, so it says "new clause" until Save. */
-function ceNewBadge(host){
-  if (!ceIsNew() || !host) return;
-  const rung = host.querySelector(`[data-clause="${CE_NEW_ID}"] .rl-clause-top .rl-rung`);
-  if (rung){ rung.className = 'rl-rung rl-rung-you rl-rung-static ce-new-badge'; rung.textContent = _cet('ng_new_clause_tag'); }
-}
 const ceLockable = () => !!(_ceClauseId && _ceClauseId !== CE_NEW_ID);
 function ceClause(){
   if (!_ceC || !_ceClauseId) return null;
@@ -3365,7 +3358,6 @@ function ceRenderPaper(){
   _ceRendering = true;
   try{
     host.innerHTML = html || `<p class="rl-clause-p">${_cee(_cet('ce_this_clause'))}</p>`;
-    ceNewBadge(host);
     /* THE NOTE MARKS ARE FURNITURE ON THE CANVAS, painted after it and never
        inside the typing box (rlPaintNoteMarks skips the clause being typed). */
     try { if (window.rlPaintNoteMarks && _ceC) rlPaintNoteMarks(host, _ceC, { side: ceSide() }); } catch (e){}

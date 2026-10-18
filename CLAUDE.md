@@ -371,7 +371,7 @@ Tests: f246, f37, f93, f674, redline, flat-rows-and-alerts, send-after-refusal, 
 
 ## THE CLAUSE PANEL AND THE LADDER
 - No pen on the paper ≥1024px (`rlClauseEditPillHtml` the lock sign only); Edit and Edit with Copilot open the clause EDITOR (`rlEditorTakesIt`; too narrow greys `ce_too_narrow`); the clause panel (`rlClausePanelHtml`) is the LADDER only on our seat (`rlCpLadderOnly`); `rlChangeWordingHtml` the ONE "what this change proposed" builder.
-- js/ladder.js `ladderRungs` reads `c.changes` AND `c.negotiation.rounds` RAW, never initialises, no walk-away invented; chip a COUNT (`ladderTallyText`); a rung goes to its clause (`rlLadderGoClause`). THE DEAL BOARD an INSPECTOR (`dealBoardHtml`, `dealBoardGroupOf`, `dealBoardCardHtml` `changedOnly`, `RL_BOARD_FILTERS`), no walk-away, no Accept/Counter/Reject. STALE: `.db-t`.
+- js/ladder.js `ladderRungs` reads `c.changes` AND `c.negotiation.rounds` RAW, never initialises, no walk-away invented; `ladderChip` a reading that COUNTS (`ladderTallyText`); a rung goes to its clause (`rlLadderGoClause`). NOTHING OF THE LADDER ON THE PAPER (owner, 18 Oct 2026; MAP-HISTORY "THE PAPER CARRIES NO LADDER"): no step chip and no ladder line on either seat or in the editor — `rlLadderChipHtml`/`rlBaselineHtml` draw only a pinned rung's reading with its way back; the door is the row's Ladder verb. STALE: `ceNewBadge`, `.ce-new-badge`. THE DEAL BOARD an INSPECTOR (`dealBoardHtml`, `dealBoardGroupOf`, `dealBoardCardHtml` `changedOnly`, `RL_BOARD_FILTERS`), no walk-away, no Accept/Counter/Reject. STALE: `.db-t`.
 Tests: f210, f313, f329, ladder, clause-door verify.
 
 ## THE LAYERED REDLINE, AND TYPING IN THE MARKS

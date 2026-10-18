@@ -7164,89 +7164,40 @@ function rlReadAtHtml(c, clauseId, side){
   return `<div class="nego-body nego-stack rl-read-at" data-rl-read-at="${_ne(r.id)}">${inner}</div>`;
 }
 
-/* ---- THE CHIP ON THE CLAUSE'S OWN HEAD ROW ----
-   What the paper is showing on this clause, in five words, and a door onto
-   everything it is not showing. Drawn only where there is something to say:
-   a clause nobody has touched carries nothing, because a chip reading "no
-   moves" is a fact printed for its own sake.
-   NEVER ON A PREVIEW and never inside the clause editor's own canvas — that
-   page is one clause and the ladder is in its rail. */
+/* ---- NO STEP CHIP ON THE PAPER (owner, 18 Oct 2026) ----
+   The clause's head row used to carry "Step 2 · your ask on their step 1 ·
+   not sent" — printed inside the contract itself, saying again what the
+   Redlines row for that change already says ("Step 2 · yours on their step
+   1"), whose Ladder verb is the door this chip was. The owner ruled it off
+   the paper on both seats and in the clause editor. What stays is the one
+   state the reader CHOSE: while a rung is pinned the paper shows an earlier
+   step, and this says so with the way back to today (rlReadAtRung). The
+   reading itself (ladderChip, js/ladder.js) is unchanged. */
 function rlLadderChipHtml(c, cl, side, opts = {}){
-  if (!cl || !cl.clauseId) return '';
-  /* ---- A CLEAN READING CARRIES NO CHIP, FOR THE PENCIL'S OWN REASON ----
-     Under "As agreed" or "With changes" the clause is drawn with no marks
-     on it, and a chip saying which move the paper is showing would be
-     describing a reading the reader is not in. rlClauseEditPillHtml stands
-     down on the same question (rlReadOnlyReading) and this follows it, so
-     the row is the same row in every reading. The ladder is still reached
-     from the change column's own rows and from the deal board. */
+  if (!cl || !cl.clauseId || opts.pill) return '';
   if (typeof rlReadOnlyReading === 'function' && rlReadOnlyReading()) return '';
-  if (typeof window.ladderChip !== 'function') return '';
   const id = String(cl.clauseId);
-  /* The chip may not say the paper is showing an earlier move while a clean
-     reading is drawing today's wording — see rlReadAtHtml. */
   const at = rlReadMode() === 'marks' ? rlReadAtRung(c, id) : null;
-  if (at){
-    return `<button type="button" class="rl-rung rl-rung-reading" data-rl-read-now="${_ne(id)}"
+  if (!at) return '';
+  return `<button type="button" class="rl-rung rl-rung-reading" data-rl-read-now="${_ne(id)}"
       title="${_nea(i18t('ng_rung_back_title'))}">${_ne(i18t('ng_rung_reading', { n: at.n }))}</button>`;
-  }
-  const chip = ladderChip(c, id, side);
-  if (!chip) return '';
-  /* INSIDE THE CLAUSE EDITOR (opts.pill) the chip is a statement, not a door:
-     that page is one clause and its rail carries the ladder as a tab. */
-  if (opts.pill) return `<span class="rl-rung rl-rung-${_ne(chip.cls)} rl-rung-static">${_ne(chip.text)}</span>`;
-  return `<button type="button" class="rl-rung rl-rung-${_ne(chip.cls)}"
-    data-rl-ladder="${_ne(id)}" aria-expanded="false"
-    title="${_nea(i18t('ng_rung_open_title'))}">${_ne(chip.text)}</button>`;
 }
 
-/* ---- THE LINE UNDER A STACKED CLAUSE (Young ruled 14 Sep 2026: build the
-   artifact's line) ----
-   Under two moves the PLAIN words are the last wording exchanged, and the
-   reader who takes them for the contract signs off on a figure nobody
-   accepted. The column's key says it once for the whole column; this says
-   it on the clause it is true of, with the figure, and puts the agreed
-   figure and the way to read it beside it. Drawn only on a stack (a lone ask
-   is drawn against the agreed text, so there is nothing to say), only in
-   the redlined reading, and never inside the clause editor (opts.pill —
-   that page is one clause and its rail says all of this). While a rung is
-   pinned it says what the paper is showing instead, with the way back.
-   FURNITURE, NOT PAPER: it names no size in the sheet's scale. */
+/* ---- NO LADDER LINE UNDER A CLAUSE (owner, 18 Oct 2026: "this should not
+   be on paper at all") ----
+   Under a stacked clause the paper used to say "Plain text on clause 4 = the
+   agreed wording · Agreed wording = R0" (our seat) or a sentence of it
+   (theirs, 8 Oct). It is gone from the paper on both seats; the Ladder (each
+   Redlines row's verb) says where every step stands. What stays is the line
+   for the state the reader CHOSE: while a rung is pinned it says the paper is
+   reading an earlier step, with the way back. */
 function rlBaselineHtml(c, cl, side, opts = {}){
   if (!cl || !cl.clauseId || opts.pill) return '';
   if (typeof rlReadOnlyReading === 'function' && rlReadOnlyReading()) return '';
-  if (typeof window.ladderBaseline !== 'function') return '';
   const id = String(cl.clauseId);
-  const at = rlReadAtRung(c, id);
-  if (at){
-    return `<div class="rl-baseline" data-rl-baseline="${_ne(id)}"><span>${_ne(i18t('ng_base_reading'))}</span>
+  if (!rlReadAtRung(c, id)) return '';
+  return `<div class="rl-baseline" data-rl-baseline="${_ne(id)}"><span>${_ne(i18t('ng_base_reading'))}</span>
       <button type="button" data-rl-read-now="${_ne(id)}">${_ne(i18t('ng_rung_back'))}</button></div>`;
-  }
-  const b = ladderBaseline(c, id, side);
-  if (!b) return '';
-  const num = (String(cl.label || cl.headingText || '').match(/^\s*(\d+(?:\.\d+)*)/) || [])[1]
-    || (typeof clauseNameShown === 'function' ? clauseNameShown(cl.label || '') : String(cl.label || ''));
-  const u = b.unit;
-  const figOf = n => (n == null || !u) ? '' : ` (${_ne(String(n))} ${_ne(u)})`;
-  const plain = b.below
-    ? _ne(i18t('ng_base_eq_rung', { who: i18t(b.below.who === 'you' ? 'ng_base_your' : 'ng_base_their'), n: b.below.n }))
-      + figOf(b.below.fig) + _ne(i18t('ng_base_not_agreed'))
-    : _ne(i18t('ng_base_eq_agreed'));
-  /* THEIR SEAT READS NO LADDER JARGON (8 Oct 2026): "Plain text on clause 2
-     = the agreed wording · Agreed wording = R0 (30 days)" said nothing a
-     reader outside could use. Where the unmarked words ARE the agreed wording
-     there is nothing to say; otherwise it is said in words, with the agreed
-     figure and no rung number. */
-  if (side === 'counterparty' || (typeof rlOnTheirPage === 'function' && rlOnTheirPage())){
-    if (!b.below) return '';
-    return `<div class="rl-baseline" data-rl-baseline="${_ne(id)}">
-    <span><b>${_ne(i18t('ng_base_plain_theirs', { n: num }))}</b> ${plain}</span>${
-      b.baseFig != null && u ? `
-    <span><b>${_ne(i18t('ng_base_agreed'))}:</b> ${_ne(String(b.baseFig))} ${_ne(u)}</span>` : ''}</div>`;
-  }
-  return `<div class="rl-baseline" data-rl-baseline="${_ne(id)}">
-    <span><b>${_ne(i18t('ng_base_plain', { n: num }))}</b> = ${plain}</span>
-    <span><b>${_ne(i18t('ng_base_agreed'))}</b> = R0${figOf(b.baseFig)}</span></div>`;
 }
 /* ---- THE LADDER ITSELF ----
    Newest at the top, which is the History tab's own order and the order a
