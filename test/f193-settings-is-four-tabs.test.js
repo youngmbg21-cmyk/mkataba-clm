@@ -156,7 +156,8 @@ const OLD_PAGE = [
   // ---- the personal cards (since the full build, 16 Oct 2026: a short card
   //      on the You tab whose door opens the drawer that holds the control) ----
   { name: 'my active sessions', where: 'you', me: 'safety', has: ['sessions-list'] },
-  { name: 'my sidebar preference', where: 'you', me: 'work', has: ['pref-nav-all'] },
+  /* 'my sidebar preference' LEFT 18 Oct 2026 (owner's yes): a computer draws
+     no left sidebar; it is on SET_CLOSURES ('sidebar'), and the phone keeps its own */
   { name: 'my own backup export', where: 'you', sel: '[data-st-you-card="data"] [data-st-backup]' },
   { name: 'what HaTi emails me (read-only, honest)', where: 'you', me: 'told', textKey: 'set_still_emailed' },
 ];
@@ -165,7 +166,7 @@ const OLD_PAGE = [
    home or is named on SET_CLOSURES — never neither. */
 const NON_ADMIN_COULD = [
   { name: 'edit their own job title', home: 'account', me: 'who', has: ['acct-title', 'acct-title-save'] },
-  { name: 'set their sidebar preference', home: 'account', me: 'work', has: ['pref-nav-all'] },
+  { name: 'set their sidebar preference', home: 'closed', closure: 'sidebar' },   /* 18 Oct 2026, owner's yes */
   { name: 'export their own backup', home: 'account', sel: '[data-st-backup]' },
   { name: 'see and revoke their own sessions', home: 'account', me: 'safety', has: ['sessions-list'] },
   { name: 'read what HaTi emails them', home: 'account', me: 'told', textKey: 'set_still_emailed' },
@@ -344,9 +345,10 @@ describe('f193 — the drawer', () => {
     assert.equal(win.document.querySelectorAll('#st-drawer').length, 1);
     assert.equal(win.document.getElementById('st-drawer').parentElement, win.document.body,
       'it survives the page underneath being rebuilt');
-    sb.stDrawerOpen('backup');
+    /* since round 26 Data & backup is a page, so another drawer is opened here */
+    sb.stDrawerOpen('approvals');
     assert.equal(win.document.querySelectorAll('#st-drawer').length, 1, 'opening another reuses the one drawer');
-    assert.ok(win.document.getElementById('st-dbody').innerHTML.includes('bk-export'));
+    assert.equal(win.document.querySelector('#st-dhead .rvd-title').textContent, sb.SET_PANELS.approvals.title());
   });
 
   test('a form drawer offers Save & close and Cancel; a write-on-change panel offers Done', () => {

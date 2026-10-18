@@ -10,6 +10,7 @@ import './roundprep.js';    // Their round came back: one key for an ask of thei
 import './migread.js';      // Archive import: what an imported contract's reading decides, both hosts (27 Sep 2026)
 import './sealtext.js';     // the frozen copy's text, one reading: the server seals with it, Verify reads it (9 Oct 2026)
 import './asks.js';         // one ask record: who was asked, the answer, when and for what — both hosts (4 Oct 2026)
+import './sharemail.js';    // the letter: the share email's words, the send screen and the server alike (round 11, 17 Oct 2026)
 import './nda.js';          // an NDA's two facts: who keeps it secret, and until when — both hosts (17 Oct 2026)
 import './section.js';      // the section grammar: one way of grouping a screen (16 Sep 2026)
 import './core.js';
@@ -1744,7 +1745,7 @@ function renderNewMenu(){
      menu is the commonest way anybody reaches that picker. Dropping the refresh
      with the rows would leave the picker showing yesterday's standards. */
   if(API_MODE()&&window.tplLibRefresh) tplLibRefresh();
-  menu.querySelector('#menu-upload')?.addEventListener('click',()=>{ menu.classList.add('hidden'); openUploadModal(); });
+  menu.querySelector('#menu-upload')?.addEventListener('click',()=>{ menu.classList.add('hidden'); if(typeof pdDropDoor==='function' && pdDropDoor()) return; openUploadModal(); });
   menu.querySelector('#menu-migrate')?.addEventListener('click',()=>{ menu.classList.add('hidden'); setView('migration'); });
   menu.querySelector('#menu-wizard')?.addEventListener('click',()=>{ menu.classList.add('hidden'); openWizard(); });
   /* Read through `window`, the ES-module rule: a stage without js/draft.js gets
@@ -4136,7 +4137,7 @@ function wireShell(){
     const exp=e.target.closest?.('[data-page-export]');
     if(exp){ exportWorkingSetCsv(); return; }
     const up=e.target.closest?.('[data-page-upload]');
-    if(up){ if(window.openUploadModal) openUploadModal(); return; }
+    if(up){ if(typeof pdDropDoor==='function' && pdDropDoor()) return; if(window.openUploadModal) openUploadModal(); return; }
     const nb=e.target.closest?.('[data-page-new]');
     if(nb){
       e.stopPropagation();

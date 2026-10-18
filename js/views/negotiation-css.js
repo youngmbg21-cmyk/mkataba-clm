@@ -6397,6 +6397,18 @@ function redlineLayoutCss(){
     font:inherit;font-weight:var(--w-body,400);letter-spacing:normal;text-transform:none;color:inherit;max-width:none}
   ${''/* Reading an older move is a live state, not decoration: its label keeps the ruby. */}
   .redline-page article.nego-doc .rl-rung.rl-rung-reading{padding:0 4px;border-radius:var(--radius);background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  ${''/* PILES (round 9 of the redesign, 17 Oct 2026): the row says who and when at its right
+         wall, the reference riding its hover; the reason they gave under the change, in their
+         words, two lines at most; what is settled this round folds behind its heading */}
+  .redline-page .rl-card-d .rl-card-id{display:none}
+  .redline-page .rl-card-by{margin-left:auto;flex:none;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap}
+  .redline-page .rl-card-d .rl-card-sumw{grid-column:1 / -1;grid-row:2;min-width:0}
+  .redline-page .rl-card-whyq{margin-top:2px;font-size:var(--t-meta);font-style:italic;line-height:1.45;color:var(--color-neutral-600);
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .redline-page button.rl-band-fold{width:100%;box-sizing:border-box;border-left:0;border-right:0;font-family:inherit;text-align:left;cursor:pointer}
+  .redline-page button.rl-band-fold:hover{color:var(--color-text)}
+  .redline-page button.rl-band-fold i{font-style:normal;flex:none}
+  .redline-page #rl-changes-col:not(.rl-settled-open) .rl-card-quiet{display:none}
   `;
   document.head.appendChild(s);
 }

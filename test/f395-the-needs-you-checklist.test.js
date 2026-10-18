@@ -284,9 +284,13 @@ describe('f395 (4) — the drawing', () => {
     const bare = [...d.querySelector('.ins-h').children].map(x => x.className.split(' ')[0]);
     assert.equal(bare.slice(0, 4).join(' > '), 'ins-eb > ins-cp > ins-need > ins-st', 'with no agreement name it follows the party names');
   });
-  test('4f the Approvals & signing page leaves the signature out on its signing panel, and only there', () => {
+  // Owner's yes, 18 Oct 2026: the amber "Your approval is asked for." line went, so an
+  // approval's panel leaves 'approval' out the way a signing panel leaves 'sign' out.
+  test('4f the Approvals & signing page leaves out what its own row already asks: the signature on a signing panel, the approval on an approval panel', () => {
     const f = code(fnOf(AP, 'apInsPaint'));
-    assert.ok(/needsSkip:tab==='signatures'\?\['sign'\]:\[\]/.test(f), 'the signatures tab passes its skip');
+    assert.ok(/const skip=tab==='signatures'\?\['sign'\]:\['approval'\]/.test(f), 'each tab names its own skip');
+    assert.ok(/needsSkip:skip\b/.test(f), 'the head is handed that skip');
+    assert.ok(/insNeedsLineHtml\(r\.c, skip\)/.test(f), 'and so is the panel\'s line');
     assert.ok(code(fnOf(INS, 'insHeadHtml')).includes('insNeedsHtml(c, o.needsSkip)'), 'the head hands the skip on');
   });
 });

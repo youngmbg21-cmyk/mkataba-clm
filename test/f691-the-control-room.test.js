@@ -155,7 +155,10 @@ describe('f691 — the Company board, as drawn', () => {
     const { sb, win } = stage();
     sb.settingsGoTab('company');
     const cards = [...win.document.querySelectorAll('.st-cards > [data-st-card]')].map(c => c.getAttribute('data-st-card'));
-    assert.equal(cards[0], 'people'); assert.equal(cards[cards.length - 1], 'ladder');
+    /* since round 25 ("Control room") the nine cards are even and the ladder is drawn across the page under them */
+    assert.equal(cards[0], 'people'); assert.equal(cards.length, 9); assert.ok(!cards.includes('ladder'));
+    const ladder = win.document.querySelector('.st-board > [data-st-card="ladder"]');
+    assert.ok(ladder && ladder.previousElementSibling.classList.contains('st-cards'), 'the ladder last, after the cards');
     const panels = [...win.document.querySelectorAll('.st-cards > [data-st-card]:not([data-st-card="people"]):not([data-st-card="ladder"]) [data-st-panel]')]
       .map(b => b.getAttribute('data-st-panel')).filter(k => sb.SET_PANELS[k]);
     const expected = Object.keys(sb.SET_PANELS).filter(k => ['platform', 'build'].includes(sb.SET_PANELS[k].tab) && (!sb.SET_PANELS[k].show || sb.SET_PANELS[k].show()));
@@ -295,7 +298,7 @@ describe('f691 — the You board, as drawn', () => {
     const { sb, win, $ } = stage();
     for (const it of sb.stYouItems().filter(i => i.key !== 'password'))
       assert.ok(win.document.querySelector(`[data-st-you-card="${it.key}"]`), `${it.key} has a card`);
-    for (const [door, ids] of [['me:who', ['acct-title']], ['me:safety', ['ts-toggle', 'sessions-list']], ['me:work', ['pref-nav-all', 'pref-jb-chips', 'pref-opens-on']], ['me:told', []], ['me:password', ['pw-cur', 'pw-new', 'pw-again']]]) {
+    for (const [door, ids] of [['me:who', ['acct-title']], ['me:safety', ['ts-toggle', 'sessions-list']], ['me:work', ['pref-jb-chips', 'pref-opens-on']], ['me:told', []], ['me:password', ['pw-cur', 'pw-new', 'pw-again']]]) {
       sb.stDrawerOpen(door);
       for (const id of ids) assert.ok($(id), `${door} holds #${id}`);
     }
@@ -366,7 +369,8 @@ describe('f691 — Jambo finds, explains and readies; the AI only on a press', (
     const t = ask(S.en.st_jb_c_brief);
     const go = t.querySelector('[data-st-you="told"]');
     assert.ok(go, 'the brief card');
-    assert.match(go.getAttribute('data-st-you-focus'), /weekly/, 'with the weekly answer lit in its drawer');
+    /* since round 24 (One sheet) the brief changes in its row: the readied card lights the row's choice */
+    assert.equal(go.getAttribute('data-st-you-focus'), '[data-st-brief]', 'with the brief\'s choice lit in its row');
     assert.ok(t.textContent.includes(S.en.st_you_brief_weekly) && t.textContent.includes(S.en.st_you_brief_daily), 'it says what it will be and what it is');
     assert.equal(log.api.length, sent, 'nothing was sent');
   });

@@ -15,6 +15,9 @@ const { jxPack, JX_DEFAULT, JURISDICTIONS,
 /* An NDA's two facts — who keeps it secret, and until when — one shape on
    both hosts (owner picked "The tail on the life line", 17 Oct 2026) */
 const { ndaClean, ndaFacts } = require('../js/nda.js');
+/* THE LETTER (round 11, 17 Oct 2026): the share email's words, written once for
+   the send screen that draws it and this route that mails it (js/sharemail.js). */
+const { shareMailOf, signerTurnMailOf } = require('../js/sharemail.js');
 /* One dictionary, two hosts. The server writes email and needs the recipient's
    own language from the SAME table the screens use — a second copy here would
    drift from js/i18n.js without anything noticing, which is the fault the
@@ -13308,9 +13311,9 @@ function kpRules() {
 const kpCutoff = years => { const d = new Date(); d.setFullYear(d.getFullYear() - years); d.setDate(d.getDate() - 1); return isoDay(d); };
 const kpHeld = c => !!(c && c.hold && c.hold.at);
 const kpThenWords = r => `${r.years} year${r.years === 1 ? '' : 's'}, then ${r.then === 'archive' ? 'kept archived' : 'listed for an admin to delete'}`;
-function kpBook(user, onlyFid) {
+function kpBook(user, onlyFid, scopeOver) {
   const rules = kpRules();
-  const f = scopeFrag(folderScopeFor(user));
+  const f = scopeFrag(scopeOver || folderScopeFor(user));
   const rows = db.prepare(`SELECT id, folder, status, expiry, parent_id, seq, version, json FROM contracts ${whereOf(f.sql)}`).all(...f.args)
     .filter(r => !onlyFid || String(r.folder || '') === onlyFid || r.parent_id);
   const parsed = new Map();
@@ -13338,17 +13341,37 @@ function kpBook(user, onlyFid) {
   for (const [fid, rule] of Object.entries(rules)) { const s = S(fid); s.rule = rule; s.cutoff = kpCutoff(rule.years); }
   return { rules, streams, years: KP_YEARS, rows: new Map(rows.map(r => [r.id, r])), parsed };
 }
+/* THE STREAM NO ADMIN CAN SEE (owner's yes, 18 Oct 2026, round 26's open
+   question): a private stream's contracts are read only by the people it
+   names, admins too — so where no admin is named, contracts past their keeping
+   time were never listed for anybody. The server reads that stream on its own
+   (the one place it looks past the wall) and tells admins ONLY that it has
+   contracts due and names no admin: no count, no names, nothing of them. An
+   admin who names an admin there — themselves included — brings them into
+   that admin's own Ready to delete. */
+function kpUnseen(rules) {
+  const all = privateStreamsAll(), out = [];
+  const fids = psPrivateFolders().filter(fid => rules[fid]);
+  if (!fids.length) return out;
+  const admins = new Set(db.prepare("SELECT id FROM users WHERE role = 'admin'").all().map(u => String(u.id)));
+  for (const fid of fids) {
+    if (psIds(all[fid]).some(id => admins.has(id))) continue;
+    const s = kpBook(null, fid, [fid]).streams[fid];
+    if (s && s.due.length) out.push(fid);
+  }
+  return out;
+}
 const kpSummary = user => {
   const rules = kpRules(); if (!Object.keys(rules).length) return { rules, due: {} };
   const b = kpBook(user), due = {};
   for (const [fid, s] of Object.entries(b.streams)) if (s.rule && s.due.length) due[fid] = { n: s.due.length, then: s.rule.then };
-  return { rules, due };
+  return { rules, due, unseen: kpUnseen(rules) };
 };
 const kpRecord = (req, kind, o) => db.prepare(`INSERT INTO keeping_acts (at, by_id, by_name, kind, folder, contract_id, contract_ref, name, counterparty, ended, detail)
   VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run(now(), String(req.user.id || ''), String(req.user.name || ''), kind, o.folder || '', o.id || '', o.ref || '', o.name || '', o.counterparty || '', o.ended || '', o.detail || '');
 app.get('/api/keeping', auth, admin, (req, res) => {
   const b = kpBook(req.user);
-  res.json({ rules: b.rules, years: b.years, streams: b.streams });
+  res.json({ rules: b.rules, years: b.years, streams: b.streams, unseen: kpUnseen(b.rules) });
 });
 /* THE RULE: a period from the list and what then; null takes it away */
 app.put('/api/keeping/:fid', auth, admin, (req, res) => {
@@ -16969,35 +16992,17 @@ function signerTurn(contractId, signerId) {
    share email itself, where the invitation must match the screen the link
    actually opens. */
 function signerTurnEmail({ signer, plan, payload, link, expiresAt, senderLang }) {
-  const cName = (payload && payload.contract && payload.contract.name) || 'a contract';
-  const org = (payload && payload.org) || 'the sender';
-  const total = (plan || []).length;
   /* The counterparty has no account, so no stored language of their own: this
      falls back to the sender's, which is the honest answer — they know who
-     they are writing to. */
+     they are writing to. The words are js/sharemail.js's (the send screen
+     draws the same letter). */
   const L = langForEmail(signer.email, senderLang);
-  const posText = signer.order && total
-    ? tFor(L, 'mail_turn_pos', { n: signer.order, total }) : '';
-  /* THE WHOLE ORDER, NAMED (7 Oct 2026, O-28): who signs before and after
-     them, for which side, so nobody opens a link expecting to sign and finds
-     somebody else's turn. Names and sides only; never an address. */
-  const them = (payload && payload.contract && payload.contract.counterparty) || '';
-  const rows = (plan || []).slice().sort((a, b) => srvSignStep(a) - srvSignStep(b) || (a.order || 0) - (b.order || 0));
-  const orderLine = rows.length > 1 ? '\n\n' + tFor(L, 'mail_turn_order', { list: rows.map((r, i) =>
-    `${i + 1}. ${String(r.id) === String(signer.id) ? tFor(L, 'mail_turn_you') : (r.name || '—')}`
-    + ` (${r.party === 'counterparty' ? (them || '—') : org})`).join(' · ') }) : '';
-  return {
-    subject: tFor(L, 'mail_turn_subject', { name: cName }),
-    body: `${tFor(L, 'mail_hello')}${signer.name ? ' ' + signer.name : ''},\n\n`
-      + tFor(L, 'mail_turn_body', { name: cName, org, pos: posText })
-      + orderLine
-      + `\n\n${tFor(L, 'mail_open_link')}\n${link}\n\n`
-      /* ONLY WHAT IS TRUE (B9, 8 Oct 2026): the code is sent only where this
-         server can send mail (the respond route asks for it exactly then). */
-      + tFor(L, EMAIL_ON() ? 'mail_code_note' : 'mail_link_personal')
-      + (expiresAt ? `\n\n${tFor(L, 'mail_link_expires', { date: String(expiresAt).slice(0, 10) })}` : '')
-      + `\n\n${tFor(L, 'mail_automated_notice')}`,
-  };
+  const m = signerTurnMailOf({ signer, plan,
+    cName: (payload && payload.contract && payload.contract.name) || 'a contract',
+    org: (payload && payload.org) || 'the sender',
+    them: (payload && payload.contract && payload.contract.counterparty) || '',
+    link, expiresAt, t: (k, v) => tFor(L, k, v), codeOn: EMAIL_ON(), stepOf: srvSignStep });
+  return { subject: m.subject, body: m.body };
 }
 
 /* ============================================================
@@ -17741,24 +17746,12 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
       emailError = 'No file was supplied, so nothing was sent.';
       db.prepare('UPDATE shares SET send_error=? WHERE token=?').run(emailError, token);
     } else {
-      const body = histFile ? [
-        `${req.user.name} at ${payload.org || 'HaTi'} has sent you the negotiation history of "${cName}"${rec.name ? `, ${rec.name}` : ''} as a Word file.`,
-        message ? `\nMessage from ${req.user.name}:\n${String(message).slice(0, 1000)}` : '',
-        `\nThe attached document is the record of the negotiation — every change proposed, by whom, and what was decided, with its own integrity check. There is nothing on it to mark up or sign.`,
-        `\nReplies to this email reach ${req.user.name} directly.`,
-      ].filter(Boolean).join('\n') : [
-        `${req.user.name} at ${payload.org || 'HaTi'} has sent you "${cName}"${rec.name ? `, ${rec.name}` : ''} as a Word file.`,
-        message ? `\nMessage from ${req.user.name}:\n${String(message).slice(0, 1000)}` : '',
-        `\nThe attached document carries their proposed changes as Word tracked changes, and their notes as Word comments.`,
-        /* D5 (owner, 9 Oct 2026): nothing reads a reply automatically, so the
-           mail promises only what happens — the file goes back to the sender,
-           who brings it into HaTi. This channel carries no link to send it on. */
-        `\nMark it up in Word and send the file back to ${req.user.name} — they will bring your changes into HaTi.`,
-        `\nReplies to this email reach ${req.user.name} directly.`,
-      ].filter(Boolean).join('\n');
+      /* The words are js/sharemail.js's: the send screen draws this letter. */
+      const mail = shareMailOf({ channel: 'word', purpose: histFile ? 'history' : null, sender: req.user.name,
+        org: payload.org, cName, recName: rec.name, message });
       const r = await sendEmail(email,
-        histFile ? `${req.user.name} sent you the negotiation history of "${cName}"` : `${req.user.name} sent you "${cName}" to mark up`,
-        body, `share as word: ${fname}`,
+        mail.subject,
+        mail.body, `share as word: ${fname}`,
         { attachments: [{ filename: fname, content: b64 }] });
       emailSent = !!r.sent; emailError = r.detail || null;
       if (r.sent) db.prepare('UPDATE shares SET sent_at=?, send_error=NULL WHERE token=?').run(now(), token);
@@ -17767,23 +17760,14 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     }
   } else if (ch === 'email' && !heldForTurn) {
     const cName = (payload.contract && payload.contract.name) || 'a contract';
-    const body = [
-      `${req.user.name} at ${payload.org || 'HaTi'} has shared "${cName}" with you for review${rec.name ? `, ${rec.name}` : ''}.`,
-      message ? `\nMessage from ${req.user.name}:\n${String(message).slice(0, 1000)}` : '',
-      /* The invitation matches the link. A negotiation link opens the room,
-         where the verbs are per-change decisions and "ready to sign" — telling
-         its recipient to "approve & sign" describes a screen they will not
-         see. */
-      purp === 'negotiate'
-        ? `\nOpen the link to work through the proposed changes clause by clause — accept, refuse or discuss each one, and propose your own wording. Nothing is signed there. No account is needed:\n${link}`
-        : `\nOpen the contract to review it and respond — approve & sign, propose changes, or decline. No account is needed:\n${link}`,
-      `\nThis link expires on ${expires.slice(0, 10)}. Replies to this email reach ${req.user.name} directly.`,
-    ].filter(Boolean).join('\n');
+    /* The words are js/sharemail.js's: the send screen draws this letter,
+       word for word, before the press. The invitation matches the link — a
+       negotiation link opens the room, where nothing is signed. */
+    const mail = shareMailOf({ channel: 'email', purpose: purp, sender: req.user.name, org: payload.org,
+      cName, recName: rec.name, message, link, expires });
     const r = await sendEmail(email,
-      purp === 'negotiate'
-        ? `${req.user.name} sent you "${cName}" to negotiate`
-        : `${req.user.name} shared "${cName}" for your review`,
-      body, `share link: ${link}`);
+      mail.subject,
+      mail.body, `share link: ${link}`);
     emailSent = !!r.sent; emailError = r.detail || null;
     /* ---- THE RECORD SAYS WHAT ACTUALLY HAPPENED ----
        This stamped sent_at whatever the provider did, and never wrote
@@ -19973,6 +19957,25 @@ app.put('/api/me/prefs', auth, (req, res) => {
     else if (OPENS_ON_SRV.includes(v)) prefs.opensOn = v;
     else return res.status(400).json({ error: 'opensOn must be one of: ' + ['jambo'].concat(OPENS_ON_SRV).join(', ') });
   }
+  /* EACH PERSON CHOOSES HOW JAMBO WORKS FOR THEM (round 23, owner, 17 Oct
+     2026): per agent, 'ask' (Ask me first) or 'mine' (Leave it to me); null
+     takes that agent back to the company's level. A person may only step
+     DOWN from the company's: "Just do it" stays the admin's to give, so it is
+     refused here. agentLevelFor reads it. */
+  if ('agentLevels' in (req.body || {})) {
+    const v = req.body.agentLevels;
+    if (v === null) delete prefs.agentLevels;
+    else if (typeof v === 'object' && !Array.isArray(v)) {
+      const mine = { ...(prefs.agentLevels && typeof prefs.agentLevels === 'object' ? prefs.agentLevels : {}) };
+      for (const [k, x] of Object.entries(v)) {
+        if (!AGENT_KEYS.includes(k)) return res.status(400).json({ error: 'No such agent: ' + k });
+        if (x === null) { delete mine[k]; continue; }
+        if (!AGENT_PERSON_LEVELS.includes(x)) return res.status(400).json({ error: 'A level must be one of: ' + AGENT_PERSON_LEVELS.join(', ') });
+        mine[k] = x;
+      }
+      if (Object.keys(mine).length) prefs.agentLevels = mine; else delete prefs.agentLevels;
+    } else return res.status(400).json({ error: 'agentLevels must be an object or null' });
+  }
   if ('agentsLook' in (req.body || {})) {
     const v = req.body.agentsLook;
     if (v === null) delete prefs.agentsLook;
@@ -21251,12 +21254,13 @@ async function runLinkWatch() {
        by the agent itself — nothing is sent, the other side's link simply
        keeps working, the trail says so and the owner is told. Asked through
        the SAME refusals as the owner's own press. */
-    if (agentLevel('link') === 'auto') for (const it of items) {
+    /* the owner's own level wins where they stepped down (round 23) */
+    const uOwn = agentLevel('link') === 'auto' ? db.prepare('SELECT * FROM users WHERE id=?').get(String(owner.id)) : null;
+    if (uOwn && agentLevelFor('link', uOwn) === 'auto') for (const it of items) {
       if (!it.kind.startsWith('soon') || !it.token) continue;
       const sh = db.prepare('SELECT * FROM shares WHERE token=?').get(it.token);
       if (!sh || sh.revoked_at || shareExpired(sh) || (sh.response && !sh.durable)) continue;
-      const u0 = db.prepare('SELECT * FROM users WHERE id=?').get(String(owner.id));
-      if (!u0) continue;
+      const u0 = uOwn;
       const no = srvLinkRefusal({ user: u0 }, srvStoredContract(sh.contract_id), sharePurposeOf(sh), { keep: true, contractId: sh.contract_id });
       if (no) { bump('autoRefused'); continue; }
       it.kept = srvShareExtend(sh, SHARE_EXPIRY_DEFAULT_DAYS, 'Jambo (keep links working)');
@@ -22059,6 +22063,16 @@ function agentLevel(k) {
   const v = String(agentCfg(k).level || '');
   if (v === 'auto' && !AGENT_AUTO_OK.includes(k)) return 'ask';
   return AGENT_LEVELS.includes(v) ? v : 'ask';
+}
+/* THE LEVEL FOR ONE PERSON (round 23): their own choice where they made one
+   ('ask' or 'mine' — a person only steps down), else the company's. */
+const AGENT_PERSON_LEVELS = ['ask', 'mine'];
+function agentLevelFor(k, u) {
+  const co = agentLevel(k);
+  let mine = null;
+  try { const p = u ? userPrefs(u) : null; mine = p && p.agentLevels ? p.agentLevels[k] : null; } catch (_) { mine = null; }
+  if (!AGENT_PERSON_LEVELS.includes(mine)) return co;
+  return co === 'mine' ? 'mine' : mine;
 }
 function agentSetCfg(k, patch) {
   if (k === 'renew') {

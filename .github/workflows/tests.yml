@@ -22,9 +22,31 @@
 # keeps a red run meaningful: there is nowhere for a new failure to hide.
 name: tests
 
+# ONE CHECK PER PUSH, AND ONLY THE NEWEST ONE ON A BRANCH (owner-asked 18 Oct
+# 2026: "stop the waste for good"). MEASURED that morning: 50 checks stood in
+# GitHub's line and 15 were worth having. 21 tested a version of a branch that
+# a later push had already replaced — nobody would ever read them, and five
+# were holding machines. 14 were TWINS: this file ran on `push` AND on
+# `pull_request`, so every push to a branch with an open pull request tested
+# the same commit twice. GitHub lends this account about 20 machines and a
+# check takes six, so a check that works for 16 minutes waited up to two hours.
+#
+# PUSH ONLY. A push's checks hang on the commit, and a pull request shows the
+# checks of the commit it points at, so nothing disappears from its page; a
+# branch pushed before its pull request is opened is still checked. What
+# `pull_request` added was a test of the branch as merged into main, and a
+# branch here is brought up to date with main before it merges.
+#
+# A NEWER PUSH ON A BRANCH CANCELS THE OLDER CHECK, waiting or running. MAIN IS
+# THE EXCEPTION: every merge keeps its own check (one group per commit),
+# because main's record is what "red on the base branch too" is measured
+# against.
 on:
   push:
-  pull_request:
+
+concurrency:
+  group: tests-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   # The proofreader runs first and alone: it takes seconds, needs no browser,

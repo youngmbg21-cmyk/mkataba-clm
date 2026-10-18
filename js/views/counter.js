@@ -61,6 +61,8 @@ function deskKeyNow(){
   if (v === 'dashboard'){
     const f = (typeof hbFace === 'function') ? hbFace() : 'board';
     if (f === 'paper'){ const c = (typeof pdContract === 'function') ? pdContract() : null; return c ? 'c:' + c.id : 'home:contracts'; }
+    /* a contract brought up is its own page, on its contract's tab (round 7) */
+    if (f === 'board' && typeof window.bsCardId === 'function'){ const id = window.bsCardId(); if (id) return 'c:' + id; }
     return DK_HOME_FACE[f] || 'home:board';
   }
   if (v === 'workspace' || v === 'doc') return state.activeId ? 'c:' + state.activeId : null;
@@ -98,8 +100,11 @@ function deskTabsSync(){
   _dkNoteT = setTimeout(() => {
     const k = deskKeyNow();
     if (k){
-      const L = dkTabs(); const t = L.find(x => x.k === k);
-      if (t) t.at = Date.now(); else L.push({ k, at: Date.now() });
+      const L = dkTabs(); let t = L.find(x => x.k === k);
+      if (t) t.at = Date.now(); else { t = { k, at: Date.now() }; L.push(t); }
+      /* ONE TAB PER CONTRACT, two ways to read it (round 7): it remembers
+         whether its page or its paper was in front */
+      if (k.startsWith('c:')) t.view = (typeof window.bsCardId === 'function' && window.bsCardId() && state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'board') ? 'card' : 'paper';
       dkSave(L);
     }
     deskTabsPaint();
@@ -162,7 +167,11 @@ function deskTabOpen(k){
     if (f === 'calendar' && typeof hbOpenCalendar === 'function'){ hbOpenCalendar(); return true; }
     if (f === 'explorer' && typeof hbOpenExplorer === 'function'){ hbOpenExplorer(); return true; }
     if (typeof hbS !== 'function') return false;
-    if (state.view === 'dashboard' && typeof hbSetFace === 'function' && document.getElementById('hb-head')){ hbSetFace('board'); deskTabsSync(); return true; }
+    /* the Board tab is the Board, not a contract's page on it (round 7) */
+    const left = (typeof window.bsCardLeave === 'function') && window.bsCardLeave();
+    if (state.view === 'dashboard' && typeof hbSetFace === 'function' && document.getElementById('hb-head')){
+      if (left && hbFace() === 'board' && typeof hbPaintBoard === 'function') hbPaintBoard(); else hbSetFace('board');
+      deskTabsSync(); return true; }
     const s = hbS(); s.face = 'board'; if (typeof hbSave === 'function') hbSave();
     if (typeof setView === 'function') setView('dashboard');
     return true;
@@ -170,6 +179,8 @@ function deskTabOpen(k){
   if (k.startsWith('c:')){
     const c = (typeof getContract === 'function') ? getContract(k.slice(2)) : null;
     if (!c){ deskTabClose(k); return false; }
+    const t = dkTabs().find(x => x.k === k);
+    if (t && t.view === 'card' && typeof hbStripBring === 'function' && hbStripBring(c.id)) return true;
     if (typeof pdOpenOnHome === 'function'){ pdOpenOnHome(c.id, 'copilot'); return true; }
     if (typeof openWorkspace === 'function'){ openWorkspace(c.id); return true; }
     return false;
@@ -185,6 +196,8 @@ function deskTabOpen(k){
 function deskTabClose(k){
   const L = dkTabs(); const i = L.findIndex(t => t.k === k); if (i < 0) return;
   const wasNow = deskKeyNow() === k;
+  /* a contract's page put away is let go, as its own × did (round 7) */
+  if (L[i].view === 'card' && typeof bsStripClose === 'function') bsStripClose(k.slice(2));
   L.splice(i, 1); dkSave(L);
   if (wasNow){
     const next = L.slice().sort((a, b) => (b.at || 0) - (a.at || 0))[0];
@@ -201,6 +214,15 @@ const CN_PICK_UP = 3;       // open pages offered on a quiet day
 /* words Jambo answers with a card beside the page, not a move */
 const CN_ASKS_JAMBO = ['share', 'draft', 'help', 'next'];
 let _cnAll = false;
+/* JAMBO'S WORK OPENS IN PLACE (round 23 of the redesign: the owner picked
+   "Open in place" by name, 17 Oct 2026, and kept the word "Put away"): the
+   first row of Needs you opens where it is — each prepared piece a row (what
+   it is, the contract, one line) with Look · its own acts · Put away, the
+   acts the house's own (agPanelActs → agRunAct, the one runner); Look opens
+   the piece's whole body under its row. The house is one link away. Per
+   sitting; nothing is sent or filed until a press. */
+let _cnJwOpen = false, _cnJwLook = null;
+const CN_JW_MAX = 8;
 let _cnPop = null;          // { rows, on }
 
 function cnNeeds(){ try { return (typeof hbNeedsList === 'function') ? (hbNeedsList() || []) : []; } catch (_){ return []; } }
@@ -218,7 +240,29 @@ function cnFace(size, cls){ return (typeof jamboFaceHtml === 'function') ? jambo
 function cnJwRowHtml(A){
   const n = A.ready || 0;
   const who = [...new Set((A.rows || []).map(r => r.who || r.sum).filter(Boolean))].slice(0, 4);
-  return `<div class="cn-r cn-jw">${cnFace(24, 'cn-r-face')}<div class="cn-w"><b>${_cnE(_cnT('cn_jw'))} <span class="cn-n">· ${_cnE(n ? _cnTn('cn_jw_n', n, { n }) : _cnT('cn_jw_none'))}</span></b><span>${_cnE(n ? who.join(' · ') : _cnT('cn_jw_rest'))}</span></div><button type="button" class="ui-btn ui-btn-sm" data-cn-jw>${_cnE(_cnT('cn_open'))}</button></div>`;
+  const open = _cnJwOpen && n > 0;
+  return `<div class="cn-r cn-jw${open ? ' is-open' : ''}">${cnFace(24, 'cn-r-face')}<div class="cn-w"><b>${_cnE(_cnT('cn_jw'))} <span class="cn-n">· ${_cnE(n ? _cnTn('cn_jw_n', n, { n }) : _cnT('cn_jw_none'))}</span></b><span>${_cnE(open ? _cnT('cn_jw_said') : n ? who.join(' · ') : _cnT('cn_jw_rest'))}</span></div><button type="button" class="ui-btn ui-btn-sm" data-cn-jw aria-expanded="${open ? 'true' : 'false'}">${_cnE(_cnT(open ? 'cn_close' : 'cn_open'))}</button></div>${open ? cnJwPiecesHtml(A) : ''}`;
+}
+function cnJwPiecesHtml(A){
+  const keys = (A.rows || []).flatMap(r => (r.items || []).map(x => x.key));
+  const its = keys.map(k => (typeof agFind === 'function') ? agFind(k) : null).filter(Boolean);
+  const shown = its.slice(0, CN_JW_MAX);
+  const row = it => {
+    let title = '', parts = {}, acts = '', body = '';
+    try { title = (typeof agPanelTitle === 'function') ? agPanelTitle(it) : ''; } catch (_){ title = ''; }
+    try { parts = (typeof agCardParts === 'function') ? agCardParts(it) : {}; } catch (_){ parts = {}; }
+    /* one filled button per area: on the Counter every act is the quiet one */
+    try { acts = (typeof agPanelActs === 'function') ? String(agPanelActs(it) || '').replace(/ui-btn ui-btn-primary/g, 'ui-btn') : ''; } catch (_){ acts = ''; }
+    const look = _cnJwLook === it.key;
+    if (look) try { body = (typeof agPanelBody === 'function') ? agPanelBody(it) : ''; } catch (_){ body = ''; }
+    const ref = it.c ? ((typeof refHtml === 'function') ? refHtml(it.c) : _cnE((typeof contractRef === 'function') ? contractRef(it.c) : it.c.id)) : '';
+    return `<div class="cn-jw-i${look ? ' is-look' : ''}" data-cn-ag-item="${_cnE(it.key)}"><div class="cn-jw-r">
+        <div class="cn-w"><b><span class="cn-jw-tag">${_cnE(_cnT('ag_' + it.agent))}</span> ${_cnE(title || parts.who || '')} ${ref}</b><span title="${_cnE(parts.sum || '')}">${_cnE(parts.sum || parts.who || '')}</span></div>
+        <div class="cn-jw-acts"><button type="button" class="ui-link" data-cn-look="${_cnE(it.key)}" aria-expanded="${look ? 'true' : 'false'}">${_cnE(_cnT(look ? 'cn_jw_look_close' : 'cn_jw_look'))}</button>${acts}</div></div>
+      ${look ? `<div class="cn-jw-body">${body}</div>` : ''}</div>`;
+  };
+  const more = its.length - shown.length;
+  return `<div class="cn-jw-list" id="cn-jw-list">${shown.map(row).join('')}<div class="cn-jw-foot">${more > 0 ? `<span>${_cnE(_cnT('cn_jw_more', { n: more }))}</span>` : ''}<button type="button" class="ui-link" data-cn-house>${_cnE(_cnT('cn_jw_house'))}</button></div></div>`;
 }
 function cnNeedRowHtml(x){
   const c = x.c, it = x.it;
@@ -290,7 +334,7 @@ function counterAsk(text){
     if (m && m.kind === 'go' && !m.missing && !CN_ASKS_JAMBO.includes(m.place) && typeof caGo === 'function' && caGo(m)) return true; }
   if (typeof hbS !== 'function' || typeof setView !== 'function') return false;
   /* drafting is the wall's (where his New agreement card stands); the rest is asked on the Board */
-  const toWall = !!(a && a.place === 'draft') || (typeof CA_DRAFT_RE !== 'undefined' && CA_DRAFT_RE.test(t));
+  const toWall = !!(a && a.place === 'draft') || (typeof caIsDraftAsk === 'function' && caIsDraftAsk(t));
   if (toWall && typeof hbOpenContracts === 'function') hbOpenContracts();
   else { const s = hbS(); s.face = 'board'; if (typeof hbSave === 'function') hbSave(); setView('dashboard'); }
   let tries = 0;
@@ -342,7 +386,12 @@ if (typeof document !== 'undefined' && !window._cnWired){
     if (_cnPop && !t.closest('.cn-wrap')) counterPopClose();
     if ((el = t.closest('[data-cn-send]'))){ const q = document.getElementById('cn-q'); if (q){ const v = q.value; q.value = ''; counterPopClose(); counterAsk(v); } return; }
     if ((el = t.closest('[data-cn-ask]'))){ counterAsk(el.getAttribute('data-cn-ask')); return; }
-    if ((el = t.closest('[data-cn-jw]'))){ if (typeof hbOpenAgent === 'function') hbOpenAgent(); return; }
+    if ((el = t.closest('[data-cn-jw]'))){ _cnJwOpen = !_cnJwOpen; _cnJwLook = null; counterRepaint(); return; }
+    if ((el = t.closest('[data-cn-look]'))){ const k = el.getAttribute('data-cn-look'); _cnJwLook = _cnJwLook === k ? null : k; counterRepaint(); return; }
+    if ((el = t.closest('[data-cn-ag-item] [data-ag-act]'))){ const k = el.closest('[data-cn-ag-item]').getAttribute('data-cn-ag-item');
+      if (typeof agRunAct === 'function'){ let r = null; try { r = agRunAct(k, el.getAttribute('data-ag-act')); } catch (_){ r = null; }
+        Promise.resolve(r).then(() => setTimeout(counterRepaint, 0), () => setTimeout(counterRepaint, 0)); } return; }
+    if ((el = t.closest('[data-cn-house]'))){ if (typeof setView === 'function') setView('jambo'); return; }
     if ((el = t.closest('[data-cn-need]'))){ if (typeof hbNeedsPress === 'function') hbNeedsPress(el.getAttribute('data-cn-need'), el.getAttribute('data-cn-id')); return; }
     if (t.closest('[data-cn-setup]')){ if (typeof hbSetupGo === 'function') hbSetupGo(); return; }
     if ((el = t.closest('[data-cn-co]'))){ if (typeof openSettingsAt === 'function') openSettingsAt('company'); return; }
@@ -372,5 +421,5 @@ if (typeof document !== 'undefined' && !window._cnWired){
   });
 }
 
-Object.assign(window, { deskShellOn, DK_KEY, DK_SHOW, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskTabsSync, deskTabsHtml, deskTabsPaint, deskTabOpen, deskTabClose, deskGoCounter,
+Object.assign(window, { cnJwPiecesHtml, CN_JW_MAX, deskShellOn, DK_KEY, DK_SHOW, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskTabsSync, deskTabsHtml, deskTabsPaint, deskTabOpen, deskTabClose, deskGoCounter,
   CN_ROWS, renderCounter, counterHtml, counterRepaint, counterAsk, counterNeedsCount, counterPopRead, counterPopClose });

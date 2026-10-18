@@ -158,6 +158,9 @@ const OBS = [
   const roomSeen = () => page.evaluate(() => !!window._roomSeen || state.view === 'workspace' || !!document.getElementById('ws-tabs'));
   const toBoard = async () => { await page.evaluate(() => { const s = hbS(); s.face = 'board'; hbSave(); setView('dashboard'); if (hbFace() !== 'board') hbSetFace('board'); });
     await waitFor(page, () => !!document.querySelector('#hb-board .hb-note'), 10000); };
+  /* ROUND 7 ("Read down", 17 Oct 2026): a contract brought up is its own page on
+     the desk; the Board tab still shows every strip standing, below Today's insights */
+  const allOnBoard = () => page.evaluate(() => { bsCardLeave(); hbPaintBoard(); });
   try {
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
@@ -184,9 +187,12 @@ const OBS = [
     const typed = await S('#igd-input');
     if (typed){ await page.fill('#igd-input', ''); await page.type('#igd-input', 'bring up MK-L1', { delay: 8 }); await page.keyboard.press('Enter'); }
     const up1 = await waitFor(page, s => !!document.querySelector(s), 8000, strip('MK-L1'));
+    const onDesk = await page.evaluate(() => ({ card: bsCardId(), key: deskKeyNow(), furniture: !!document.querySelector('#hb-board .hb-prep, #hb-board .hb-note, #hb-board .hb-grid'), present: !!(document.getElementById('hb-present') || {}).hidden }));
+    check('1a0 on the desk it is a page of its own: its contract\'s tab in front, none of the Board\'s furniture (round 7)', onDesk.card === 'MK-L1' && onDesk.key === 'c:MK-L1' && !onDesk.furniture && onDesk.present, JSON.stringify(onDesk));
+    await allOnBoard();
     const order = await page.evaluate(() => { const prep = document.querySelector('#hb-board .hb-prep'), st = document.getElementById('bs-strips');
       return { prep: !!prep, after: !!(prep && st && (prep.compareDocumentPosition(st) & Node.DOCUMENT_POSITION_FOLLOWING)), focus: !!document.querySelector('#hb-focus .hb-dig'), face: hbFace(), view: state.view }; });
-    check('1a "bring up MK-L1" in Jambo\'s box lands the contract as a strip on the Board, below Today\'s insights; no old card', typed && up1 && order.after && !order.focus && order.face === 'board' && order.view === 'dashboard', JSON.stringify(order));
+    check('1a and on the Board tab it stands as a strip below Today\'s insights; no old card', typed && up1 && order.after && !order.focus && order.face === 'board' && order.view === 'dashboard', JSON.stringify(order));
     const said = await page.evaluate(() => { const m = [...document.querySelectorAll('#ig-dock .igd-msg, #ig-dock [class*="msg"]')].map(x => x.textContent).join(' '); return /strip/i.test(m); });
     check('1b Jambo says where it went (a strip; its ⋯ holds Where we are and History)', said);
     await page.evaluate(() => { document.getElementById('cmd-palette')?.remove(); openCommandPalette(); });
@@ -194,11 +200,12 @@ const OBS = [
     await page.type('#cp-input', 'Pallet', { delay: 8 });
     const pressed = await page.evaluate(() => { const i = commandPaletteResults('Pallet').findIndex(r => r.kind === 'contract'); const b = i >= 0 ? document.getElementById('cp-opt-' + i) : null; if (!b) return false; b.click(); return true; });
     const up2 = pressed && await waitFor(page, s => !!document.querySelector(s), 8000, strip('MK-L2'));
-    const stack = await page.evaluate(() => [...document.querySelectorAll('#bs-strips > .bs-strip')].map(x => x.getAttribute('data-bs-id')));
+    /* RE-POINTED (round 7): the page shows the one brought up; the order is the strips' own */
+    const stack = await page.evaluate(() => hbS().strips.map(x => x.id).concat(bsCardId() === 'MK-L2' ? [] : ['not on the page']));
     check('1c ⌘K\'s contract row brings it up too, and the newest strip stands first', up2 && JSON.stringify(stack) === JSON.stringify(['MK-L2', 'MK-L1']), JSON.stringify(stack));
     await page.evaluate(() => openWorkspace('MK-L1'));
     await waitFor(page, () => document.querySelector('#bs-strips > .bs-strip') && document.querySelector('#bs-strips > .bs-strip').getAttribute('data-bs-id') === 'MK-L1', 6000);
-    const stack2 = await page.evaluate(() => [...document.querySelectorAll('#bs-strips > .bs-strip')].map(x => x.getAttribute('data-bs-id')));
+    const stack2 = await page.evaluate(() => hbS().strips.map(x => x.id).concat(bsCardId() === 'MK-L1' ? [] : ['not on the page']));
     check('1d the room\'s old door (openWorkspace) brings the strip up instead, to the top, never twice', JSON.stringify(stack2) === JSON.stringify(['MK-L1', 'MK-L2']) && !(await roomSeen()), JSON.stringify(stack2));
     /* the whole record is fetched behind it (the brief rides it) */
     await waitFor(page, () => { const c = getContract('MK-L1'); return !!(c && c._brief) && !!document.querySelector('#bs-strip-MK-L1 .bs-brief') && !document.querySelector('#bs-strip-MK-L1 .bs-brief .ob-spin'); }, 10000);
@@ -240,7 +247,8 @@ const OBS = [
         tall: el.getBoundingClientRect().height,
       };
     });
-    check('2a the head: title · ref · counterparty · stage · ⋯ · ×', R.head.title === 'Packaging Film Supply Agreement' && /MK-L1 · Nordfilm Packaging AB/.test(R.head.ref) && R.head.pill === 'In Review' && R.head.dots && R.head.x, JSON.stringify(R.head));
+    /* RE-POINTED (round 7): on the desk the tab's × puts the page away, so the head draws none of its own */
+    check('2a the head: title · ref · counterparty · stage · ⋯ (the desk tab\'s × puts it away)', R.head.title === 'Packaging Film Supply Agreement' && /MK-L1 · Nordfilm Packaging AB/.test(R.head.ref) && R.head.pill === 'In Review' && R.head.dots && !R.head.x, JSON.stringify(R.head));
     check('2b who it is with: the counterparty\'s role, the type, the stream, the owner, uploaded', /Nordfilm Packaging AB is the supplier/.test(R.id) && /owned by/.test(R.id) && /uploaded/.test(R.id), R.id);
     check('2c Value is the record\'s, in its own currency, with what it comes to a year over the term', R.value && R.value.n === R.want.value && /a year/.test(R.value.sub), JSON.stringify(R.value) + ' want ' + R.want.value);
     check('2d Term: two years, from the start date on the record', R.term && R.term.n === '2 years' && R.term.sub === 'From ' + R.want.from, JSON.stringify(R.term));
@@ -303,24 +311,26 @@ const OBS = [
     const H1 = await page.evaluate(() => { const host = document.querySelector('#bs-strip-MK-L1 [data-bs-host="hist"]');
       const tr = host.querySelector('.hist-trail');
       return { q: !!host.querySelector('#hist-q'), side: [...host.querySelectorAll('.hist-side [data-ht-side]')].map(b => b.textContent.trim()), sideSel: !!host.querySelector('[data-ht-filter="side"]'),
+        lanes: [...host.querySelectorAll('.hist-trail.is-lanes > .hist-lh')].map(x => x.textContent.trim().split(' · ')[0]),
         filter: !!host.querySelector('#hist-filter-btn'), wording: (host.querySelector('#hist-detail') || {}).textContent, n: host.querySelectorAll('.hist-ev').length,
         scroll: tr ? getComputedStyle(tr).overflowY : '', maxH: tr ? parseFloat(getComputedStyle(tr).maxHeight) : 0, more: !!host.querySelector('#hist-more-menu #ht-verify') }; });
-    check('3f History opens in the strip: search, Side in the open as All sides · Ours · Theirs (no Side box in the fold), Filter, Show the wording',
-      hs && H1.q && JSON.stringify(H1.side) === JSON.stringify(['All sides', 'Ours', 'Theirs']) && !H1.sideSel && H1.filter && /Show the wording/.test(H1.wording || ''), JSON.stringify(H1));
+    /* RE-POINTED 17 Oct 2026 (round 12, the owner picked "Two sides"): the
+       side is the lane — Ours · Day · Theirs — and the switch is gone */
+    check('3f History opens in the strip: search, two lanes (Ours · Day · Theirs, no switch, no Side box), Filter, Show the wording',
+      hs && H1.q && H1.side.length === 0 && JSON.stringify(H1.lanes) === JSON.stringify(['Ours', 'Day', 'Theirs']) && !H1.sideSel && H1.filter && /Show the wording/.test(H1.wording || ''), JSON.stringify(H1));
     check('3g the trail scrolls inside the card, and ⋯ More keeps Verify integrity', H1.scroll === 'auto' && H1.maxH > 0 && H1.maxH <= 480 && H1.more, JSON.stringify({ scroll: H1.scroll, maxH: H1.maxH, more: H1.more }));
-    await page.click(M('.hist-side [data-ht-side="counterparty"]'));
-    await pause(300);
+    /* RE-POINTED 17 Oct 2026 (round 12): their moves stand in the right lane —
+       exactly the trail's own "Theirs" reading, nothing filtered away */
     const H2 = await page.evaluate(() => { const host = document.querySelector('#bs-strip-MK-L1 [data-bs-host="hist"]');
       const evs = roomHistoryEvents(getContract('MK-L1'), { side: 'counterparty' });
-      return { n: host.querySelectorAll('.hist-ev').length, want: evs.length, pressed: (host.querySelector('[data-ht-side][aria-pressed="true"]') || {}).textContent, cap: (host.querySelector('.hist-cap') || {}).textContent }; });
-    check('3h Theirs keeps only their moves (the trail\'s own side filter), the switch says so', H2.pressed === 'Theirs' && H2.n === H2.want && H2.n > 0 && H2.n < H1.n, JSON.stringify(H2) + ' of ' + H1.n);
+      return { n: host.querySelectorAll('.hist-ev.is-theirs').length, want: evs.length, all: host.querySelectorAll('.hist-ev').length }; });
+    check('3h their moves stand in the right lane — the trail\'s own "Theirs" reading — and nothing is hidden', H2.n === H2.want && H2.n > 0 && H2.all === H1.n, JSON.stringify(H2) + ' of ' + H1.n);
     await page.click(M('#hist-detail'));
     await pause(300);
     const H3 = await page.evaluate(() => { const host = document.querySelector('#bs-strip-MK-L1 [data-bs-host="hist"]');
-      return { red: host.querySelectorAll('.hist-redline').length, btn: (host.querySelector('#hist-detail') || {}).textContent, side: (host.querySelector('[data-ht-side][aria-pressed="true"]') || {}).textContent }; });
-    check('3i Show the wording puts each proposal\'s words under it, the side kept', H3.red >= 1 && /Hide the wording/.test(H3.btn) && H3.side === 'Theirs', JSON.stringify(H3));
+      return { red: host.querySelectorAll('.hist-ev.is-theirs .hist-redline').length, btn: (host.querySelector('#hist-detail') || {}).textContent }; });
+    check('3i Show the wording puts each proposal\'s words under it, in its lane', H3.red >= 1 && /Hide the wording/.test(H3.btn), JSON.stringify(H3));
     await shot('3-history-theirs-wording');
-    await page.click(M('.hist-side [data-ht-side=""]'));
     await page.click(M('#hist-detail'));
     await page.click(M('.bs-crumbs [data-bs-page="ov"]'));
     check('3j "‹ Overview" takes the strip back to its chart', await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L1 .bs-chart'), 5000));
@@ -330,8 +340,10 @@ const OBS = [
     const kept = await waitFor(page, () => { const b = document.querySelector('#bs-strip-MK-L1 [data-bs-keep]'); return b && b.disabled && /Kept/.test(b.textContent) && hbS().strips.find(x => x.id === 'MK-L1').kept; }, 4000);
     const toastSaid = await page.evaluate(() => /stays on your Board/.test(document.body.innerText));
     check('4a Keep keeps it (greyed "Kept", said once in a toast)', kept && toastSaid);
+    await allOnBoard();
+    await waitFor(page, s => !!document.querySelector(s), 4000, `${strip('MK-L2')} [data-bs-x]`);
     await page.click(`${strip('MK-L2')} [data-bs-x]`);
-    check('4b × closes that one strip, the other stands', await waitFor(page, () => !document.getElementById('bs-strip-MK-L2') && !!document.getElementById('bs-strip-MK-L1'), 4000));
+    check('4b on the Board, × closes that one strip, the other stands', await waitFor(page, () => !document.getElementById('bs-strip-MK-L2') && !!document.getElementById('bs-strip-MK-L1'), 4000));
     await page.evaluate(() => hbStripBring('MK-L2'));
     await waitFor(page, s => !!document.querySelector(s), 4000, strip('MK-L2'));
     await page.click(`${strip('MK-L2')} [data-bs-letgo]`);
@@ -342,8 +354,10 @@ const OBS = [
     await waitFor(page, s => !!document.querySelector(s), 4000, `${strip('MK-L2')} [data-bs-host="where"]`);
     await page.reload({ waitUntil: 'networkidle' });
     await waitFor(page, () => window.state && state.contracts && state.contracts.length > 0, 15000);
-    const back = await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L2 [data-bs-host="where"] .ds-sheet') && !!document.querySelector('#bs-strip-MK-L1 .bs-chart'), 10000);
-    check('5a a refresh comes back to the same strips on the same pages', back);
+    const back0 = await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L2 [data-bs-host="where"] .ds-sheet') && bsCardId() === 'MK-L2', 10000);
+    await allOnBoard();
+    const back = back0 && await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L2 [data-bs-host="where"] .ds-sheet') && !!document.querySelector('#bs-strip-MK-L1 .bs-chart'), 10000);
+    check('5a a refresh comes back to the same page on the desk, and the same strips on the same pages on the Board', back, JSON.stringify({ back0, now: await page.evaluate(() => ({ card: bsCardId(), sc: hbS().card, face: hbFace(), view: state.view, strips: hbS().strips.map(x => x.id + ':' + x.page), on: [...document.querySelectorAll('#bs-strips > .bs-strip')].map(x => x.id + ':' + x.getAttribute('data-bs-on')), sheet: !!document.querySelector('#bs-strip-MK-L2 .ds-sheet') })) }));
     /* the list is light again: every restored strip asks for the whole record itself, so the brief comes back and the ring stops */
     const briefBack = await waitFor(page, () => { const b = document.querySelector('#bs-strip-MK-L1 .bs-brief'); return !!b && !b.querySelector('.ob-spin') && /Nordfilm supplies packaging film/.test(b.textContent); }, 12000);
     const rb = await page.evaluate(() => { const c = getContract('MK-L1'), b = document.querySelector('#bs-strip-MK-L1 .bs-brief'); return { loaded: !!c._loaded, spin: !!(b && b.querySelector('.ob-spin')), brief: b ? b.textContent.trim().slice(0, 60) : null }; });
@@ -396,6 +410,7 @@ const OBS = [
     /* 10l READ THE BRIEF beside what Jambo read (owner, 15 Oct 2026): over a brief on file, it opens THAT
        contract's brief — two strips standing, each its own — spends nothing, and pressed again shuts it */
     await page.evaluate(() => bsStripPage('MK-L1', 'ov'));
+    await allOnBoard();
     const rbBoth = await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L1 .bs-jb .bs-sec-h [data-bs-go="brief"]') && !!document.querySelector('#bs-strip-MK-L2 .bs-jb .bs-sec-h [data-bs-go="brief"]'), 6000);
     const aiR = h.ai.calls.length;
     const briefShows = src => waitFor(page, src => { const b = document.querySelector('#side-panel #brief-section'); if (!b) return false;

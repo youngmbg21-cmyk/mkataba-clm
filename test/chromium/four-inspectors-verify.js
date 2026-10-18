@@ -136,12 +136,15 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     const ob = await page.evaluate(() => ({
       ins: !!document.querySelector('.obw-ins'),
       rows: document.querySelectorAll('.ob-lt tbody [data-ins-row]').length,
-      groups: [...document.querySelectorAll('.ob-lt tr.ins-grp')].map(g => g.getAttribute('data-ob-win')),
-      order: (window.OB_WINDOWS || []).map(w => w[0]),
+      groups: [...document.querySelectorAll('.ob-lt tr.ins-grp')].map(g => g.getAttribute('data-ob-week')),
+      order: ['overdue', 'w0', 'w1', 'w2', 'w3', 'w4', 'w5', 'later', 'nodate', 'waiting', 'done'],
       head: (document.getElementById('page-head-facts') || {}).textContent || '',
       title: (document.querySelector('#ins-panel h2') || {}).textContent || '' }));
     ok('1a the page is a list and a panel', ob.ins && ob.rows >= 8 && !!ob.title, { rows: ob.rows, title: ob.title });
-    ok('1b its groups are the seven windows, in the drawing\'s order',
+    /* RE-POINTED 18 Oct 2026 (round 16, owner picked "Week by week"): the
+       page's groups are weeks now — Late, this week, next week, the later
+       weeks of six, Later, then No date, Waiting and Completed. */
+    ok('1b its groups are the weeks, in order',
       ob.groups.length >= 5 && ob.groups.every((g, i) => i === 0 || ob.order.indexOf(g) > ob.order.indexOf(ob.groups[i - 1])), ob.groups);
     ok('1c a held-back step sits under Waiting on an earlier step, never under Overdue',
       await page.evaluate(() => { const r = [...document.querySelectorAll('.ob-lt tbody tr')]; let w = '';

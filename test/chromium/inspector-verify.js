@@ -245,7 +245,7 @@ const ok = (name, good, detail) => {
       heads: [...document.querySelectorAll('.reg-table thead th')].map(t => t.textContent.replace(/[▲▼↕]/g, '').trim()),
       widths: [...document.querySelectorAll('.reg-table thead th')].map(t => +t.getBoundingClientRect().width.toFixed(1)),
       moves: [...document.querySelectorAll('#reg-tbody tr[data-row] .reg-ch')].map(x => x.textContent.trim()),
-      waits: [...document.querySelectorAll('#reg-tbody tr[data-row] td:last-child')].map(x => x.textContent.trim()),
+      waits: [...document.querySelectorAll('#reg-tbody tr[data-row] td:nth-last-child(2)')].map(x => x.textContent.trim()),
       bandTabs: [...document.querySelectorAll('.reg-views [data-reg-band]')].map(x => x.textContent.replace(/\d+/g, '').trim()),
       bands: [...document.querySelectorAll('#reg-tbody .ngl-band-k')].map(x => x.textContent.trim()),
       views: !!document.querySelector('[data-reg-view]'),
@@ -254,12 +254,14 @@ const ok = (name, good, detail) => {
     }));
     /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner-approved): the drawing's
        columns — Round, Changes, Waiting — and whose move as tabs and bands. */
-    ok('2a Negotiations draws the list and the panel, with the round, the changes and the wait', ng.ins === '1'
-      && ng.heads.join('|') === 'Ref|Counterparty and agreement|Round|Changes|Waiting', ng.heads.join(' | '));
+    /* RE-POINTED 17 Oct 2026 (round 14, "Whose move"): "What is open", and the
+       Lead column the owner said yes to, after the wait */
+    ok('2a Negotiations draws the list and the panel, with the round, what is open, the wait and the lead', ng.ins === '1'
+      && ng.heads.join('|') === 'Ref|Counterparty and agreement|Round|What is open|Waiting|Lead', ng.heads.join(' | '));
     ok('2b the changes say what they ask of whom, and the wait says how long', ng.moves.some(m => /^\d+ to answer$/.test(m)) && ng.moves.some(m => /^sent \d+ changes?$/.test(m))
       && ng.waits.some(w => /^(\d+ days?|today)$/.test(w)), `${ng.moves.join(' | ')} · ${ng.waits.join(' | ')}`);
     ok('2c only the groups that have rows are drawn, whose move is a tab row, and no Contracts views', !ng.bands.includes('Nothing outstanding') && !ng.views
-      && ng.bandTabs.includes('Your move') && ng.bandTabs.includes('Their move'), `${ng.bands.join(' | ')} · tabs ${ng.bandTabs.join(' | ')}`);
+      && ng.bandTabs.includes('Our move') && ng.bandTabs.includes('Their move'), `${ng.bands.join(' | ')} · tabs ${ng.bandTabs.join(' | ')}`);
     /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner: less clutter): the panel
        draws the drawing's four facts first; the round's detail is Negotiate's. */
     const ngFacts = await page.evaluate(() => [...document.querySelectorAll('#ins-panel .ins-facts [data-ins-fact]')].map(x => x.getAttribute('data-ins-fact')));

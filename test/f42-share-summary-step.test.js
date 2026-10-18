@@ -203,9 +203,15 @@ describe('Share is two steps, and the summary travels', () => {
     assert.deepEqual(picks.slice(0, 3), ['sign', 'negotiate', 'view']);
     assert.ok(picks.includes('advise'), 'and the adviser purpose is on the same row, not a door of its own');
     /* RE-POINTED, SAP pop-ups 10 Oct 2026: the row stands beside "Send by"
-       in the send form, still above the recipient and on the one screen. */
-    assert.ok(m.$('#share-purpose').compareDocumentPosition(m.$('#sh-email')) & 4,
-      'and it is above the recipient, not behind a press');
+       in the send form, still above the recipient and on the one screen.
+       RE-POINTED AGAIN, round 11 (the owner picked "The letter", 17 Oct
+       2026): the screen is the email, so the recipient is its To row and the
+       purpose is the "Sent as" row under it, in the letter's own head — still
+       on the one screen, still never behind a press. */
+    const asRow = m.$('#share-purpose').closest('.sh-lt-as');
+    assert.ok(asRow && m.$('#sh-letter').contains(asRow), 'it is the letter\'s "Sent as" row');
+    assert.ok(m.$('#sh-email').compareDocumentPosition(m.$('#share-purpose')) & 4,
+      'under To, as an email reads');
   });
 
   test('the first question offers the contract and the record, and nothing else', async () => {

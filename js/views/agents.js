@@ -632,12 +632,30 @@ function agQuietItems(cs){
 let _agData = null;
 /* The level an admin set for an agent ('auto' · 'ask' · 'mine'), read off
    the status the page already holds; absent = 'ask'. */
-function agLevelOf(k){
+function agLevelCo(k){
   try {
     const s = (typeof agentsStatus === 'function') ? agentsStatus() : null;
     const a = s && s.agents && s.agents[k];
     return a && a.level ? String(a.level) : 'ask';
   } catch (_){ return 'ask'; }
+}
+/* EACH PERSON CHOOSES (round 23, owner, 17 Oct 2026): a person may step an
+   agent DOWN for themselves — Ask me first or Leave it to me — never up;
+   "Just do it" stays the admin's to give. Their choice lives in their own
+   prefs (PUT /api/me/prefs agentLevels; the server's agentLevelFor is the
+   same reading). Absent = the company's level. */
+const AG_PERSON_LEVELS = ['ask', 'mine'];
+function agLevelMine(k){
+  try {
+    const u = (typeof currentUser === 'function') ? currentUser() : null;
+    const v = u && u.prefs && u.prefs.agentLevels ? u.prefs.agentLevels[k] : null;
+    return AG_PERSON_LEVELS.includes(v) ? v : null;
+  } catch (_){ return null; }
+}
+function agLevelOf(k){
+  const co = agLevelCo(k), mine = agLevelMine(k);
+  if (!mine) return co;
+  return co === 'mine' ? 'mine' : mine;
 }
 /* THE FOUR READING AGENTS SAY WHAT THEY PREPARED (owner, 13 Oct 2026, the
    agents' house): Approvals, Requests (the open ones), Week ahead and Dropped
@@ -1299,7 +1317,7 @@ function agDoor(which){
   if (which === 'agentsettings'){ if (typeof openSettingsAt === 'function') openSettingsAt('platform', 'agents'); return; }
   if (which === 'obligations'){ if (typeof setView === 'function') setView('obligations'); return; }
   if (which === 'import'){ if (typeof setView === 'function') setView('migration'); return; }
-  if (which === 'upload'){ if (typeof openUploadModal === 'function') openUploadModal(); return; }
+  if (which === 'upload'){ if (typeof pdDropDoor === 'function' && pdDropDoor()) return; if (typeof openUploadModal === 'function') openUploadModal(); return; }
 }
 /* WHERE THE READER ENDS UP: the contract, on the tab the item is about — the
    desk's own rule (a late promise lands on Obligations, a renewal and what
@@ -2332,7 +2350,7 @@ async function agFreshLink(key){
   }
 }
 
-Object.assign(window, { agReportPrepared, agPreparedSettled, agWeekKey, AG_REPLY_WAIT_MS, agReplyPrompt, agDraftReply, agUseReply, agLevelOf, AG_READINGS, AG_WEEK_DAYS, AG_QUIET_DAYS, agApproveItems, agRequestItems, agWeekItems, agQuietItems, agApproveBody, agRequestBody, agWeekBody, agQuietBody, agSelKey, AG_KEYS, AG_DEF, AG_RECENT_DAYS, AG_DONE_MAX, agSel, agSetSel, agBook, agentsData, agentsDoorCount,
+Object.assign(window, { agReportPrepared, agPreparedSettled, agWeekKey, AG_REPLY_WAIT_MS, agReplyPrompt, agDraftReply, agUseReply, agLevelOf, agLevelCo, agLevelMine, AG_PERSON_LEVELS, AG_READINGS, AG_WEEK_DAYS, AG_QUIET_DAYS, agApproveItems, agRequestItems, agWeekItems, agQuietItems, agApproveBody, agRequestBody, agWeekBody, agQuietBody, agSelKey, AG_KEYS, AG_DEF, AG_RECENT_DAYS, AG_DONE_MAX, agSel, agSetSel, agBook, agentsData, agentsDoorCount,
   agRoundItems, agRoundDone, agRenewItems, agRenewDone, agLateItems, agLateDone, agPaperItems, agPaperWorking, agPaperDone,
   agImportBatches, agImportItems, agImportDone, agImportWorking, agFind, agCardParts, agCardHtml, agPageHtml, agListHtml,
   agStepsHtml, agFactsHtml, agPanelBody, agPanelActs, agOpenItem, agDrawPanel, agWarmUp, AG_NEEDS_WHOLE, AG_OPEN_WAIT_MS, agRunAct, agPaintHead, agRepaint, renderAgentsPage,

@@ -20,6 +20,97 @@
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
 
+   RE-RECORDED 18 Oct 2026 (sixteenth), OWNER-ASKED (the owner's yes to round
+   24's question: the left-sidebar switch goes from Settings → You): the
+   settings screen lost one row, so its counts fell. Audited by key: settings
+   only, no key new; one key gone in the two dark themes, the off switch's
+   fill (rgb 138,151,149), which was that switch. No colour new.
+   RE-RECORDED 18 Oct 2026 (fifteenth), OWNER-ASKED (the overnight build,
+   same standing yes): Round 24, "One sheet" — Settings → You is one sheet of
+   rows under its headings with a contents list, so the settings screen's
+   counts moved (more 12px small print, fewer 13px card lines). Audited by
+   key: light themes, counts only; dark themes add the rows' hairline and
+   the accent's icon stroke (both already worn on other screens) and the off
+   switch's fill, which is --field-line, the product's control-edge token.
+   No colour new to the product.
+   RE-RECORDED 18 Oct 2026 (fourteenth), OWNER-ASKED (the overnight build,
+   same standing yes): Round 21, "Paper first" — Our paper's book draws an
+   index of templates and the chosen template's own paper, so the ourpaper
+   screen's counts moved and its paper is measured for the first time (the
+   PAPER reading now knows .tpl-pf-sheet, as it knows .pg-sheet). Audited by
+   key: the new keys are the paper's own colours and sizes (the ones every
+   other paper already wears) and the chosen row's accent tint; no colour new
+   to the product.
+   RE-RECORDED 18 Oct 2026 (thirteenth), OWNER-ASKED (the overnight build,
+   same standing yes): Round 17, "Then and now" — Your book is a table (then,
+   today, change, line) and the stage bar is drawn twice, so on the home
+   screen the figures moved from 20 to 16px and the labels' counts rose.
+   Audited by key: sizes only, no colour moved.
+   RE-RECORDED 18 Oct 2026 (twelfth), OWNER-ASKED (the overnight build, same
+   standing yes): Round 16, "Week by week" — the calendar (and Home showing
+   it) opens on this week by the hour and five more weeks instead of the
+   month, so its counts moved and the week's 16px day numbers are new to that
+   screen. Audited by key: no colour new; in dark the month's greyed day
+   numbers (#8B9895) and its filled "today" square left the opening screen
+   with the month (both still drawn on Month).
+   RE-RECORDED 18 Oct 2026 (eleventh), OWNER-ASKED (the overnight build, same
+   standing yes): recorded on Round 15, "One worklist"; the counts that moved
+   (the signing screen's 12 and 13px and dividers, by a few) were Round 10's
+   late route-link fix arriving here — see "eighth, again" — not the worklist,
+   which this census does not draw. Audited by key: no colour new, none gone.
+   RE-RECORDED 18 Oct 2026 (tenth), OWNER-ASKED (the overnight build, same
+   standing yes): Round 13, "Wall of papers" — the Contracts place's papers
+   carry their facts under them (number · value, party, a private stream's
+   lock) and the archive is its own button, so on the contracts screen and the
+   dialog, alerts and toast drawn over it the 13px count and the dividers'
+   counts rose. Audited by key: no colour new, none gone.
+   RE-RECORDED 18 Oct 2026 (ninth), OWNER-ASKED (the overnight build, same
+   standing yes): Round 12, "Two sides" — History reads as two lanes (ours,
+   the days, theirs) with a bubble per entry, so on the History screen the
+   12 and 13px counts and the dividers' counts moved, and in dark the Board's
+   own side pair (#7FA6F0 ours, #B3A2F0 theirs) and two divider tones are new
+   to that screen. Audited by key: only History moved; nothing gone.
+   RE-RECORDED 18 Oct 2026 (eighth, again), OWNER-ASKED (the overnight
+   build, same standing yes): Round 10's late fix — the route's own "Signing
+   paper" link stays drawn while it is not the reader's turn; only the Sign
+   button is held back — so on the signing screen the 12 and 13px counts and
+   the dividers' counts rose by a few. Audited by key: only the signing
+   screen moved; no colour new, none gone.
+   RE-RECORDED 17 Oct 2026 (eighth), OWNER-ASKED (the overnight build, same
+   standing yes): Round 10, "The road" — Before you sign draws its stops
+   (Ready to sign, who signs, sealed and sent) above and around the column, so
+   on the signing screen the 11, 12 and 13px counts rose and, in dark, counts
+   of colours already in the palette. Audited by key: nothing new, nothing gone.
+   RE-RECORDED 17 Oct 2026 (seventh), OWNER-ASKED (the overnight build, same
+   standing yes): Round 9, "Piles" — a Redlines row says who and when and the
+   reason they gave, the reference rides its hover: on the negotiate screen
+   the 12px and 13px counts rose, the 10px count fell, and in dark the counts
+   of colours already in the palette moved. Audited by key: nothing new, nothing gone.
+   RE-RECORDED 17 Oct 2026 (sixth), OWNER-ASKED (the overnight build: "Build
+   and update record even on new ones"): Round 7, "Read down" — a contract
+   brought up is a page of its own on the desk, so the History screen (a
+   strip on its History page) no longer draws the Board's own furniture
+   around it: colours and counts only went away. Audited as a set
+   difference: nothing new.
+   RE-RECORDED 17 Oct 2026 (fifth), OWNER-ASKED (the overnight build: "Build
+   and update record even on new ones"): Round 6, "One line" — the paper's
+   line draws the stage as the house's pill, so on dark screens that show an
+   In Review paper the amber stage wash and its ink (rgb(58,42,15) behind,
+   rgb(235,173,70) ink and underline colour, the palette's own --st-amber-*)
+   are new to those screens' census; elsewhere only counts moved (the bold
+   name, Notes' word, the code-name mark). Audited as a set difference.
+   RE-RECORDED 17 Oct 2026 (fourth), OWNER-ASKED (the overnight build, same
+   standing yes): Round 5, "Jambo's tray" — the drop area gained its one
+   "Several files? Import contracts" link, so on light screens the 12px and
+   13px counts rose by one, on dark screens counts of colours already in the
+   palette. Audited as a set difference: no colour and no text size new.
+   RE-RECORDED 17 Oct 2026 (third), OWNER-ASKED (the overnight build: "Build
+   and update record even on new ones. Complete the job"): Round 3, Jambo's
+   panel "Tabs and faces" — on light screens two text sizes' counts rose
+   (10px: the count on Jambo's tab; 12px: "‹ Jambo"), on dark screens counts
+   of colours already in the palette (the amber count, its ink, the dark
+   surface as its edge). Audited as a set difference: no colour and no text
+   size new to the census.
    RE-RECORDED 17 Oct 2026 (second), OWNER-ASKED ("Yes, update the record";
    then "update the colour lists and merge when green"): Rounds 1 and 2, the
    Counter and the desk tabs — the left menu is not drawn on a computer, so
@@ -224,7 +315,7 @@ const GREYS = () => {
     return sat < .12; };
   const hits = {};
   for (const el of document.querySelectorAll('body *')) {
-    if (el.closest('.pg-sheet, #ig-canvas.rl-paper, svg, script, style, #theme-menu, [data-brand-pick], .hati-ref, .rl-card button, .rl-unsent-go, .rl-decisions-go, #nego-send, [data-ink-exempt]')) continue;
+    if (el.closest('.pg-sheet, #ig-canvas.rl-paper, .tpl-pf-sheet, svg, script, style, #theme-menu, [data-brand-pick], .hati-ref, .rl-card button, .rl-unsent-go, .rl-decisions-go, #nego-send, [data-ink-exempt]')) continue;
     const s = getComputedStyle(el);
     if (s.display === 'none' || s.visibility === 'hidden' || +s.opacity === 0) continue;
     const r = el.getBoundingClientRect(); if (r.width < 1 || r.height < 1) continue;
@@ -243,7 +334,7 @@ const GREYS = () => {
 const CAPS = () => {
   const hits = {};
   for (const el of document.querySelectorAll('body *')) {
-    if (el.closest('.pg-sheet, #ig-canvas.rl-paper, svg, script, style, .hati-ref, kbd, [data-ink-exempt]')) continue;
+    if (el.closest('.pg-sheet, #ig-canvas.rl-paper, .tpl-pf-sheet, svg, script, style, .hati-ref, kbd, [data-ink-exempt]')) continue;
     let own = ''; for (const n of el.childNodes) if (n.nodeType === 3) own += n.nodeValue;
     if (!/[a-z]/i.test(own)) continue;
     const s = getComputedStyle(el);
@@ -261,10 +352,11 @@ const CAPS = () => {
    which shows the desk and follows it — and Home's Document paper, which is
    the same paper drawn without the page-maker's sheet (#ig-canvas.rl-paper,
    Redlined and Clean; added 11 Oct 2026 when the Document tab's paper moved
-   there). */
+   there) — and Our paper's book, which draws the chosen template's own paper
+   (.tpl-pf-sheet; added 18 Oct 2026, round 21, "Paper first"). */
 const PAPER = props => {
   const out = {};
-  for (const root of document.querySelectorAll('.pg-sheet, #ig-canvas.rl-paper')) for (const el of [root, ...root.querySelectorAll('*')]) {
+  for (const root of document.querySelectorAll('.pg-sheet, #ig-canvas.rl-paper, .tpl-pf-sheet')) for (const el of [root, ...root.querySelectorAll('*')]) {
     if (el.closest('.pg-gap')) continue;
     const s = getComputedStyle(el);
     if (s.display === 'none' || s.visibility === 'hidden') continue;
@@ -311,6 +403,10 @@ const diff = (a, b) => {
     await pause(500);
     await page.fill('#li-email', 'admin@example.co.ke');
     await page.fill('#li-pass', 'adminpassword1');
+    /* where Sign in is pressed is where the pointer stays: kept, so History
+       can be measured with the pointer parked and then put back (below) */
+    const goBox = await page.locator('#li-go').boundingBox();
+    const SIGNED_AT = goBox ? { x: goBox.x + goBox.width / 2, y: goBox.y + goBox.height / 2 } : null;
     await page.click('#li-go');
     await page.waitForFunction(() => window.state && Array.isArray(state.contracts) && state.contracts.length > 0);
     await pause(1500);
@@ -400,6 +496,13 @@ const diff = (a, b) => {
         if (name === 'document') await page.waitForSelector('#ig-canvas', { timeout: 10000 }).catch(() => {});
         if (name === 'signing') await page.waitForFunction(id => !!document.querySelector(`#pd-signface .pd-sf[data-pd-sf="${id}"]`) && !!document.querySelector('#ig-paper .pg-sheet.pg-sign'), cid, { timeout: 10000 }).catch(() => {});
         if (name === 'history') await page.waitForFunction(id => { const b = document.querySelector(`#hb-cv-body[data-hb-cv="hist"][data-hb-cv-cid="${id}"]`); return !!b && !b.querySelector('.hb-cv-wait'); }, cid, { timeout: 10000 }).catch(() => {});
+        /* HISTORY IS MEASURED WITH THE POINTER PARKED (18 Oct 2026): the pointer
+           stays where Sign in was pressed, and on GitHub's fonts an event of
+           History's two lanes sat under it and was measured in its hover
+           colour (one background, surface → surface-2, red there and green
+           here). Parked in the bar's empty corner for this screen only and put
+           back after, so every other screen's recorded counts still hold. */
+        if (name === 'history') await page.mouse.move(2, 2);
         await pause(name === 'home' ? 1400 : 800);
         const r = {};
         if (dark) r.all = await page.evaluate(CENSUS, ['body', COLOUR_PROPS]);
@@ -411,6 +514,7 @@ const diff = (a, b) => {
         if (!dark) { r.greys = await page.evaluate(GREYS); r.caps = await page.evaluate(CAPS); }
         if (!SAVE && !dark) await page.screenshot({ path: path.join(OUT, `${tag}-${name}.png`) });
         (isPop ? rec[tag].popups : rec[tag].screens)[name] = r;
+        if (name === 'history' && SIGNED_AT) await page.mouse.move(SIGNED_AT.x, SIGNED_AT.y);
         if (isPop) await closeLayers();
       }
     }

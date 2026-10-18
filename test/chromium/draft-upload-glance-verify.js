@@ -9,10 +9,13 @@
         with "upload a document", then "draft a new agreement"
      2  the chip answers with the Draft card; Open the form opens the ONE form
         (no two-door menu), Create grey with its reason
-     3  "draft an NDA with Volvo" answers with the New agreement card (With:
-        Volvo); Open the form has the template lit and Volvo in its box;
-        Create greys while the stream box holds none; Create lands on the new
-        paper with Fill in beside it
+     3  "draft an NDA with Volvo" brings the one form straight to the desk as
+        one sheet (round 4, the owner picked "One sheet", 17 Oct 2026 — the
+        New agreement card is retired): what was read (With: Volvo) is its
+        first section, the closest paper offered and nothing picked; a pick
+        brings its questions with Volvo in the box; Create greys while no
+        stream is chosen in step 3; Create lands on the new paper with Fill
+        in beside it
      4  a Word file dropped on the drop area goes through the upload's own path
         (never the pop-up) and lands on its paper with Fill in open, named off
         the file; a legacy .doc is refused in the drop area and in a toast
@@ -118,26 +121,27 @@ const word = (lines) => Buffer.from(mkDocx(lines.map(t => para(t)).join('')));
     /* ===== 3. A SENTENCE ===== */
     await wall();
     await say('draft an NDA with Volvo');
-    const nac = await waitFor(page, () => !!document.querySelector('#ig-dock .ca-dr [data-ca-act="form"]'), 8000);
-    const rows = await page.evaluate(() => { const c = [...document.querySelectorAll('#ig-dock .ca-dr')].pop();
-      return { text: c ? c.innerText : '', dts: c ? [...c.querySelectorAll('dt')].map(d => d.textContent) : [], withV: c ? (c.querySelectorAll('dd')[2] || {}).textContent : '' }; });
-    check('3a the New agreement card: What · From · With · Stream, not created yet', nac && rows.dts.join('|') === 'What|From|With|Stream' && /Not created yet/.test(rows.text) && /Change the ask/.test(rows.text), rows.dts);
+    const nac = await waitFor(page, () => !!document.querySelector('#na-root.na-one #na-words'), 8000);
+    const rows = await page.evaluate(() => { const w = document.getElementById('na-words'), said = [...document.querySelectorAll('#ig-dock .ca-dr-said')].pop();
+      return { words: w ? w.innerText : '', withV: w ? ([...w.querySelectorAll('.na-w-c')][1] || { querySelector: () => null }).querySelector('b').textContent : '',
+        said: said ? said.innerText : '', picked: document.querySelectorAll('.na-pick.on').length, closest: document.querySelectorAll('#na-closest .na-pick').length }; });
+    check('3a the sentence brings the one form to the desk, what was read its first section; Jambo says it in a line', nac && /From your words/.test(rows.words) && /draft an NDA with Volvo/.test(rows.words) && /opened a new agreement on the desk/.test(rows.said), rows);
     check('3b With is the counterparty the sentence named', rows.withV === 'Volvo', rows.withV);
-    await shoot('3-new-agreement-card');
-    await page.evaluate(() => { [...document.querySelectorAll('#ig-dock .ca-dr [data-ca-act="form"]')].pop().click(); });
-    await waitFor(page, () => !!document.getElementById('na-root') && !!document.querySelector('#na-form input[id$="-counterparty"]'), 8000);
+    check('3b2 the closest paper is offered, nothing picked for you', rows.closest >= 1 && rows.picked === 0, rows);
+    await shoot('3-the-one-sheet');
+    await page.click('#na-closest .na-pick');
+    await waitFor(page, () => !!document.querySelector('#na-form input[id$="-counterparty"]'), 8000);
     const f1 = await page.evaluate(() => ({ lit: (document.querySelector('.na-pick.on .na-pick-n') || {}).textContent || '',
-      cp: (document.querySelector('#na-form input[id$="-counterparty"]') || {}).value || '', sub: (document.querySelector('.na-sub') || {}).textContent || '',
+      cp: (document.querySelector('#na-form input[id$="-counterparty"]') || {}).value || '',
       create: !document.getElementById('na-create').disabled, why: document.getElementById('na-create').title,
-      stream: (naStreamBox(document.getElementById('na-form')) || {}).value }));
-    check('3c the form has the paper picked and Volvo already in its box', !!f1.lit && f1.cp === 'Volvo', f1);
-    check('3c2 the stream is asked, not taken: none chosen, Create grey with "Choose a stream first."', f1.stream === '' && !f1.create && /Choose a stream first/.test(f1.why || ''), f1);
-    check('3d it says where the answers came from', /draft an NDA with Volvo/.test(f1.sub), f1.sub);
+      stream: (naStreamBox(document.getElementById('na-form')) || {}).value,
+      pressed: document.querySelectorAll('#na-file-seg [aria-pressed="true"]').length }));
+    check('3c the paper pressed brings its questions, Volvo already in its box', !!f1.lit && f1.cp === 'Volvo', f1);
+    check('3c2 the stream is asked, not taken: none chosen, Create grey with "Choose a stream first."', f1.stream === '' && f1.pressed === 0 && !f1.create && /Choose a stream first/.test(f1.why || ''), f1);
     await shoot('3-the-one-form');
-    const sid = await page.evaluate(() => { const s = naStreamBox(document.getElementById('na-form')); return s ? s.id : null; });
-    const picked = !!sid && await choose('#' + sid, 'mktg');
+    const picked = await page.locator('#na-file-seg [data-na-stream="mktg"]').count() > 0 && (await page.click('#na-file-seg [data-na-stream="mktg"]'), true);
     const gate = await page.evaluate(() => { const b = document.getElementById('na-create'); return { dis: b.disabled, why: b.title, stream: naStreamBox(document.getElementById('na-form')).value }; });
-    check('3e a press on the stream (HaTi\'s own list) chooses it, and Create wakes', picked && !gate.dis && gate.stream === 'mktg', gate);
+    check('3e a press on the stream in step 3 chooses it, and Create wakes', picked && !gate.dis && gate.stream === 'mktg', gate);
     const before = await page.evaluate(() => state.contracts.map(c => c.id));
     await page.click('#na-create');
     /* Fill in beside it while anything is owed; an NDA with its counterparty
@@ -151,9 +155,10 @@ const word = (lines) => Buffer.from(mkDocx(lines.map(t => para(t)).join('')));
     /* the Swedish sentence the card offers drafts too */
     await page.evaluate(() => langSet('sv')); await wall();
     await say('skriv ett NDA med Volvo');
-    const sv = await waitFor(page, () => !!document.querySelector('#ig-dock .ca-dr [data-ca-act="form"]'), 8000);
-    const svWith = await page.evaluate(() => { const c = [...document.querySelectorAll('#ig-dock .ca-dr')].pop(); return c ? (c.querySelectorAll('dd')[2] || {}).textContent : ''; });
-    check('3g "skriv ett NDA med Volvo" answers with the Nytt avtal card, Med: Volvo', sv && svWith === 'Volvo', svWith);
+    const sv = await waitFor(page, () => !!document.querySelector('#na-root.na-one #na-words'), 8000);
+    const svWith = await page.evaluate(() => { const w = document.getElementById('na-words'); const c = w && [...w.querySelectorAll('.na-w-c')][1]; return c ? c.querySelector('b').textContent : ''; });
+    check('3g "skriv ett NDA med Volvo" brings the form too, Med: Volvo', sv && svWith === 'Volvo', svWith);
+    await page.evaluate(() => closeModal()); await pause(300);
     await page.evaluate(() => langSet('en'));
 
     /* ===== 4. THE DROP AREA ===== */

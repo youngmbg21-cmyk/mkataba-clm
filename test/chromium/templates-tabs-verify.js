@@ -608,44 +608,48 @@ const BOX = sel => {
        fold) left this tab. What is driven: it draws, it is cut two ways by a
        real press, the press repaints the book and not the page, and each row
        is a door onto the list. */
+    /* RE-POINTED IN PLACE 18 Oct 2026 (round 21, the owner picked "Paper
+       first"): the book is an INDEX of templates on their shelves and the
+       chosen template's own PAPER beside it; its three figures stay in the
+       band. What is driven: it draws, every row is a door onto that
+       template's paper, a press repaints the book and not the page. */
     const bk = !hasBook ? null : await page.evaluate(() => {
       const sec = document.querySelector('[data-tpl-sec="book"]');
       if (!sec) return null;
-      const rows = [...sec.querySelectorAll('.tpl-bk-table tbody tr[data-tpl-ov-bucket]')];
+      const rows = [...sec.querySelectorAll('.tpl-pf-idx [data-tpl-pf]')];
       const gl = [...document.querySelectorAll('[data-tpl-head="book"] .tpl-gl')].map(g => ({
         label: (g.querySelector('.tpl-gl-l') || {}).textContent || '', title: g.getAttribute('title') || '' }));
-      return { h: Math.round(sec.scrollHeight), hidden: sec.hidden,
-        rows: rows.map(r => r.getAttribute('data-tpl-ov-bucket')),
+      const groups = [...sec.querySelectorAll('.tpl-pf-g')].map(g => g.textContent.trim());
+      return { h: Math.round(sec.scrollHeight), hidden: sec.hidden, n: rows.length, groups,
         rowH: rows.length ? Math.round(rows[0].getBoundingClientRect().height) : 0,
-        gl, panels: sec.querySelectorAll('#tpl-ov-attention, #tpl-ov-mostused').length };
+        gl, paper: !!sec.querySelector('.tpl-pf-sheet'), on: (sec.querySelector('.tpl-pf-i.is-on') || {}).getAttribute ? sec.querySelector('.tpl-pf-i.is-on').getAttribute('data-tpl-pf') : null };
     });
-    check('9a · the book is a real tab and it draws', !!bk && !bk.hidden && bk.h > 250 && bk.rowH > 30,
-      bk && { h: bk.h, hidden: bk.hidden, rowH: bk.rowH });
-    /* the drawing's order (SAP batch 2, tplBookHtml SHELF_ORDER): our own
-       paper, HaTi's, the samples, then theirs */
-    check('9b · one row per shelf, in the drawing\u2019s order',
-      !!bk && JSON.stringify(bk.rows) === JSON.stringify(['company', 'builtin', 'sample', 'cp']), bk && bk.rows);
+    check('9a · the book is a real tab and it draws: an index and a paper', !!bk && !bk.hidden && bk.h > 250 && bk.rowH > 30 && bk.paper,
+      bk && { h: bk.h, hidden: bk.hidden, rowH: bk.rowH, paper: bk.paper });
+    check('9b · every template a row, under its shelf, our own paper first',
+      !!bk && bk.n >= 12 && bk.groups.length >= 1 && !/^Counterparty/.test(bk.groups[0] || ''), bk && { n: bk.n, groups: bk.groups });
     check('9e · the glance is three figures in the band, and the caveat rides the rate alone',
       !!bk && bk.gl.length === 3 && bk.gl.filter(g => g.title.trim()).length === 1,
       bk && bk.gl.map(g => g.label.trim() + (g.title.trim() ? ' [hover]' : '')));
-    check('9g · both small cards are drawn', !!bk && bk.panels === 2, bk && bk.panels);
 
     const cut = !hasBook ? null : await page.evaluate(async () => {
       const sec = document.querySelector('[data-tpl-sec="book"]');
       const list = document.querySelector('[data-tpl-sec="list"]');
-      const btn = sec.querySelector('[data-tpl-book-cut="stream"]');
+      const rows = [...sec.querySelectorAll('[data-tpl-pf]')];
+      const btn = rows[1];
       if (!btn) return null;
+      const want = btn.getAttribute('data-tpl-pf');
       btn.click();
       await new Promise(r => setTimeout(r, 320));
       const again = document.querySelector('[data-tpl-sec="book"]');
-      return { rows: again.querySelectorAll('tr[data-tpl-ov-bucket^="stream:"]').length,
+      return { on: (again.querySelector('.tpl-pf-i.is-on') || {}).getAttribute ? again.querySelector('.tpl-pf-i.is-on').getAttribute('data-tpl-pf') : null, want,
+        title: (again.querySelector('.tpl-pf-h h2') || {}).textContent || '', paper: !!again.querySelector('.tpl-pf-sheet'),
         sameSection: sec === again, sameList: list === document.querySelector('[data-tpl-sec="list"]') };
     });
-    check('9h · pressing Value streams cuts the same table by stream',
-      !!cut && cut.rows >= 3, cut);
-    check('9i · and the switch repaints the book, not the page',
+    check('9h · pressing a template in the index brings up its paper',
+      !!cut && cut.on === cut.want && cut.paper && !!cut.title, cut);
+    check('9i · and the press repaints the book, not the page',
       !!cut && cut.sameSection && cut.sameList, cut);
-    if (cut) await page.evaluate(() => { const b = document.querySelector('[data-tpl-book-cut="library"]'); if (b) b.click(); });
 
     /* REVERSED IN PLACE, the same day it was written. This read *"THE OVERVIEW
        WAS LEFT ALONE. The day-before ruling stands."* and hours later the

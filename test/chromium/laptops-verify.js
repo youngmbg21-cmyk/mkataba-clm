@@ -71,7 +71,14 @@ const PROBE = () => {
   /* cal-body JOINED 9 Oct 2026: the owner gave the month fixed day boxes
      ("the page may scroll on a short laptop"), so the calendar's body is now
      a page scroller, meant to scroll. */
-  const SCROLLERS = /content-scroll|doc-scroll|nego-scroll|cal-grid|cal-body|reg-scroll/;
+  /* cal-wk-body JOINED 18 Oct 2026 (round 16): the calendar opens on this
+     week by the hour with five more weeks under it, and the hours scroll
+     inside their own box by design; its one child is the whole day, not a row. */
+  /* tpl-pf-scroll JOINED 18 Oct 2026 (round 21, "paper first"): Our paper
+     shows the chosen template's own paper beside the index, and the paper
+     scrolls inside its own box as every paper does (doc-scroll); its one
+     child is the whole paper, not a row. */
+  const SCROLLERS = /content-scroll|doc-scroll|nego-scroll|cal-grid|cal-body|reg-scroll|cal-wk-body|tpl-pf-scroll/;
   const seen = new Set();
   document.querySelectorAll('#app-shell *').forEach(el => {
     const r = el.getBoundingClientRect();
@@ -136,7 +143,8 @@ const PROBE = () => {
 
     /* THE REPORTED DEFECT, BY NAME. A month that does not show its last week
        is the thing a customer photographed and sent in. */
-    await page.evaluate(() => window.setView('calendar'));
+    /* the calendar opens on this week and five more since round 16 (18 Oct 2026); this check is about the month, so it asks for it */
+    await page.evaluate(() => { window.setView('calendar'); calSetView('month'); });
     await page.waitForTimeout(600);
     const cal = await page.evaluate(() => {
       const g = document.getElementById('cal-grid');
