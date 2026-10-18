@@ -313,6 +313,7 @@ function caCardHtml(a, i){
   if (a.kind === 'menu') return caMenuCardHtml(a, i);
   if (a.kind === 'go') return caGoCardHtml(a, i);
   if (a.kind === 'map') return (typeof jmCardHtml === 'function') ? jmCardHtml(a, i) : '';
+  if (a.kind === 'here') return caHereCardHtml(a, i);
   if (a.kind !== 'send') return '';
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   const B = (act, label, cls) => `<button type="button" class="ui-btn ui-btn-sm${cls === 'lead' ? ' ui-btn-primary' : ''}" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`;
@@ -350,6 +351,7 @@ async function caCardPress(i, act, btn){
   if (a.kind === 'menu') return caMenuPress(i, act);
   if (a.kind === 'go') return caGoPress(a, act);
   if (a.kind === 'map') return (typeof jmCardPress === 'function') ? jmCardPress(i, act) : undefined;
+  if (a.kind === 'here') return caHerePress(a, act);
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   if (act === 'sendscreen'){ if (c && typeof openShareModal === 'function') openShareModal(c); return; }
   if (act === 'note'){
@@ -1474,9 +1476,12 @@ const CA_GO = {
   fill: c => (typeof pdFillOpen === 'function') ? pdFillOpen(c.id) : caRoomTab(c, 'details'),
   oblig: c => c ? pdOpenOnHome(c.id, 'oblig') : (typeof setView === 'function' && setView('obligations')),
   history: c => c ? ((typeof hbOpenView === 'function') ? hbOpenView(c.id, 'hist') : caRoomTab(c, 'history')) : (typeof openPanel === 'function' && openPanel('activity')),
-  /* THE FILE PICKER, NOT THE POP-UP (step 4): the file lands on the paper
-     through the existing upload path (pdDropPick → uploadFromDrop) */
-  upload: () => !caMayAdd() ? false : (typeof pdDropPick === 'function') ? pdDropPick() : (typeof openUploadModal === 'function' && openUploadModal()),
+  /* LAND ON IT (owner, 18 Oct 2026: "upload document … should take you to
+     contracts page" with the place to go lit): on a computer the word lands
+     on Jambo's drop area, lit, Choose files ready — it presses nothing, so
+     the picker no longer opens by itself; the phone keeps the picker */
+  upload: () => !caMayAdd() ? false : (typeof pdDropDoor === 'function' && pdDropDoor()) ? true
+    : (typeof pdDropPick === 'function') ? pdDropPick() : (typeof openUploadModal === 'function' && openUploadModal()),
   /* THE ONE FORM, never the two-door menu (step 3) — a word answers with the
      Draft card (caGoCardHtml); this is for a caller that moves straight on */
   draft: () => caDraftForm(null),
@@ -1517,7 +1522,7 @@ function caGo(a){
   if (a.place === 'help') return true;
   caUseBump(a.place);
   /* share and draft answer with a card in the panel (caGoCardHtml) and move nothing */
-  if (a.place === 'share' || a.place === 'draft' || a.place === 'next') return true;
+  if (a.place !== 'help' && CA_CARD_WORDS.includes(a.place)) return true;
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   caTrailPush();
   if (a.missing){ caHomeWall(); caGoRepaint(); return true; }
@@ -1549,10 +1554,248 @@ function caPlaceRows(q){
 }
 function caPlaceRun(k){
   const word = _caT('ca_w_' + k);
-  if (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof intelAsk === 'function') return intelAsk(word);
+  /* a pressed row names the page: it goes there, even where the screen in
+     front could show the same contracts ("negotiations" on Explorer) — said
+     as "/" says it (caHereRead leaves a "/" word to the page) */
+  if (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof intelAsk === 'function') return intelAsk(caHereRead(word) ? '/' + caSlashWord(k) : word);
   const a = caReadPlace(word); if (!a) return false;
-  if (a.place === 'share' || a.place === 'help' || a.place === 'draft' || a.place === 'next'){ caUseBump(a.place); if (typeof setView === 'function') setView('dashboard'); setTimeout(() => { if (typeof intelAsk === 'function') intelAsk(word); }, 0); return true; }
+  if (CA_CARD_WORDS.includes(a.place)){ caUseBump(a.place); return caHandHome(word, a); }
   return caGo(a);
+}
+
+/* ---- JAMBO, THE SAME ON EVERY PAGE (owner, 18 Oct 2026: "In the calendar I
+   can't use jambo to move to another page as it is only there to support the
+   calendar … Jambo should work with the same powers as the jambo in the home
+   page") ----
+   EVERY Jambo box reads what was typed through the ONE reader Home's box uses
+   first, before its own page's job: a place word, a page's name or a contract
+   number moves the reader there (caGo, the one mover); a word Home's Jambo
+   answers with a card (CA_CARD_WORDS) or an act he prepares from the words
+   alone (send, a job, a door, a Menu row, a draft sentence) is asked of Home's
+   Jambo, beside the Board — the Counter's own way. Answers whether it took the
+   words; only then does a page's own job run (the Calendar plans time,
+   Settings finds a setting, the window answers a question). Spends nothing:
+   no reader here calls a model. */
+const CA_CARD_WORDS = ['share', 'draft', 'help', 'next'];
+function caTakesWords(t){
+  try { if (caReadSend(t) || caReadJob(t) || caReadDoor(t) || caReadMenu(t)) return true; } catch (_){}
+  try { if (typeof caIsDraftAsk === 'function' && caIsDraftAsk(t)) return true; } catch (_){}
+  return false;
+}
+/* hand the words to Home's Jambo: drafting is the wall's, the rest the Board's */
+function caHandHome(t, a){
+  if (typeof hbS !== 'function' || typeof setView !== 'function') return false;
+  const toWall = !!(a && a.place === 'draft') || (typeof caIsDraftAsk === 'function' && caIsDraftAsk(t));
+  if (toWall && typeof hbOpenContracts === 'function') hbOpenContracts();
+  else { const s = hbS(); s.face = 'board'; if (typeof hbSave === 'function') hbSave(); setView('dashboard'); }
+  let tries = 0;
+  const ask = () => {
+    if (document.getElementById('igd-input') && typeof intelAsk === 'function'){ try { intelAsk(t); } catch (_){} return; }
+    if (++tries < 30) setTimeout(ask, 100);
+  };
+  setTimeout(ask, 0);
+  return true;
+}
+/* ---- ANSWER WHERE YOU STAND — ONE RULE, EVERY SCREEN (owner, 18 Oct 2026:
+   the imports trial; then "why do you have to code such a rule in
+   isolation? It should be a simple rule or code to show in your page unless
+   it is not possible or you are instructed to go to another page"; "Yes") ----
+   A request to SEE a group of contracts is tried on the screen in front
+   FIRST, with that screen's own reader — Explorer's map and the Contracts
+   place's list both read words through igConditions. When the reader
+   understands ALL of the words (every condition read, nothing left but
+   everyday words, igLeftover), or the words ask for every contract, it is
+   answered there, and the page that also holds them is a door under the
+   answer, never pressed. Jambo moves only when the page is named outright
+   ("open the import page", "go to contracts", a "/" row), when the words ask
+   for an act another page does ("import old contracts"), or when the
+   screen cannot read them all (a contract's number, "draft…", a fact the
+   reader does not know) — then everything goes on as before. Spends nothing.
+   A screen that shows contracts joins with a line in caHereScreen and its
+   reader; a fact the reader learns is learned once, for every screen.
+   CA_HERE_FACTS is the ONE list of the page that also holds a fact (the
+   door); `imported` keeps its words here too, and the reader reads them
+   from here (igConditions → caHereFact), as the AI's map filter carries the
+   same fact (GRAPH_WHERE_KEYS `imported`, both hosts). */
+const CA_HERE_FACTS = [
+  /* brought in through Import: c.migration, written by the Import page alone */
+  { k: 'imported', page: 'import', also: 'ca_here_also_imported', none: 'ca_here_none_imported', of: c => !!(c && c.migration),
+    re: /(?<!\p{L})(?:imports|imported|migrated|(?:did|have|had)\s+(?:we|i)\s+import|importerade|migrerade|importer|importerna|importerat)(?!\p{L})/iu },
+  /* a live negotiation, whose move it is, stalled: the Negotiations list holds them by whose move */
+  { k: 'nego', page: 'negotiations', also: 'ca_here_also_negotiations' },
+  { k: 'move', page: 'negotiations', also: 'ca_here_also_negotiations' },
+  { k: 'stalled', page: 'negotiations', also: 'ca_here_also_negotiations' },
+  /* suppliers or customers: Parties holds one row per party */
+  { k: 'side', page: 'parties', also: 'ca_here_also_parties' },
+  /* late obligations: the Obligations page holds each one, who owes it, when */
+  { k: 'overdue', page: 'oblig', also: 'ca_here_also_oblig' },
+];
+/* on the map, any other set is also the Contracts place's list, narrowed the same (and every contract, the list at rest) */
+const CA_HERE_LIST = { k: '', page: 'contracts', also: 'ca_here_also_contracts' };
+/* the page itself is asked for: its name with "page", "go to", "open", or a "/" row */
+const CA_HERE_PAGE_RE = /^\s*\/|(?<!\p{L})(?:page|screen|sidan|sida|vyn)(?!\p{L})|^\s*(?:please\s+)?(?:(?:go|take me|bring me|jump|switch)\s+(?:back\s+)?to|open|gå\s+(?:tillbaka\s+)?till|öppna|ta mig till)(?!\p{L})/iu;
+/* an act another page does: a verb first ("draft a contract", "review all",
+   "import old contracts"), even where the verb is also a stage's word */
+const CA_HERE_ACT_RE = /^\s*(?:please\s+)?(?:(?:can|could|would)\s+you\s+)?(?:import|importera|bulk|upload|migrate|bring in|load|ladda upp|flytta in|ta in|draft|write|create|make|prepare|start|sign|review|send|share|redline|negotiate|amend|renew|book|schedule|fill|edit|change|delete|archive|export|download|print|skriv|skapa|upprätta|signera|granska|skicka|dela|förhandla|ändra|förnya|boka|fyll|radera|arkivera|exportera|ladda ner)(?!\p{L})|(?<!\p{L})(?:how (?:do|can|should) (?:i|we)|i want to|we want to|we need to|help me|let me|jag vill|vi vill|hur (?:gör|kan) (?:jag|vi))\s+(?:import|upload|migrate|bring in|importera|ladda upp|flytta in)(?!\p{L})/iu;
+/* the words that ask to see, read away before the reader's leftover is measured */
+const CA_HERE_SEE_RE = /^\s*(?:please\s+)?(?:(?:can|could|would)\s+you\s+)?(?:show|see|list|which|what|find|filter|highlight|display|only|just|give me|get me|bring up|how many|where|visa|vilka|vilket|vilken|vad|hitta|lista|filtrera|markera|hur många|var|ge mig)(?!\p{L})/iu;
+/* every contract: "show me all contracts", "every contract", "contracts", "alla avtal" */
+const CA_HERE_ALL_RE = /^\s*(?:please\s+)?(?:(?:can|could|would)\s+you\s+)?(?:(?:show|list|see|display|give|get|bring up)(?:\s+(?:me|us))?\s+|(?:visa|lista)(?:\s+(?:mig|oss))?\s+)?(?:(?:all|every)(?:\s+(?:of\s+)?(?:the\s+|our\s+)?(?:contracts?|agreements?))?|everything|(?:the\s+)?(?:contracts|agreements)|all of them|the whole (?:book|map)|alla(?:\s+(?:våra\s+)?avtal(?:en)?)?|allt|avtal(?:en)?|hela (?:boken|kartan))(?:\s+(?:again|here|igen|här))?\s*[.!?]*\s*$/iu;
+/* a word for a page that is not a group of contracts ("draft", "list", "sign")
+   is that page's; the pages that ARE a group of contracts the screen in front
+   may answer instead ("contracts", "negotiations", "suppliers", "imports") */
+const CA_HERE_GROUP_PLACES = ['contracts', 'negotiations', 'parties', 'import'];
+/* other things than contracts, asked for without a contract word: the page that holds them ("overdue obligations") */
+const CA_HERE_OTHER_RE = /(?<!\p{L})(?:obligations?|duties|duty|åtaganden?|skyldigheter|approvals?|godkännanden?|requests?|förfrågningar|förfrågan|notes?|anteckningar|templates?|mallar|people|personer|clauses?|klausuler|risks?|risker)(?!\p{L})/iu;
+const CA_HERE_CONTRACT_RE = /(?<!\p{L})(?:contracts?|agreements?|deals?|avtal(?:en|et)?)(?!\p{L})/iu;
+/* everyday words the map's own leftover keeps that ask for nothing ("where are the …", "de importerade";
+   its filler misses the Swedish ones with å, ä or ö: "hur många", "är") */
+const CA_HERE_EXTRA_RE = /(?<!\p{L})(?:where|ones?|de|den|det|dem|en|ett|var|är|många|för|värde|värda|åtaganden?)(?!\p{L})/giu;
+const CA_HERE_MAX = 160;
+/* which screen in front can show a group of contracts: Explorer's map, or the Contracts place's list */
+function caHereScreen(){
+  try {
+    if (typeof state === 'undefined' || !state || state.view !== 'dashboard' || typeof hbFace !== 'function') return '';
+    const f = hbFace();
+    if (f === 'explorer') return 'explorer';
+    if (f === 'paper' && typeof document !== 'undefined' && document.getElementById('ct-place') && !(typeof igPaperUp === 'function' && igPaperUp())) return 'contracts';
+  } catch (_){}
+  return '';
+}
+function caHereFact(k){ return CA_HERE_FACTS.find(f => f.k === k) || null; }
+/* THE RULE: { kind:'here', screen, all, fact, page, also, what } when the
+   screen in front answers the words, else null and they go on as before */
+function caHereRead(q){
+  const t = String(q || '').trim(); if (!t || t.length > CA_HERE_MAX) return null;
+  const screen = caHereScreen(); if (!screen) return null;
+  if (CA_HERE_PAGE_RE.test(t) || CA_HERE_ACT_RE.test(t)) return null;
+  if (CA_HERE_OTHER_RE.test(t) && !CA_HERE_CONTRACT_RE.test(t)) return null;
+  let pl = null; try { pl = caReadPlace(t); } catch (_){ pl = null; }
+  if (pl && !CA_HERE_GROUP_PLACES.includes(pl.place)) return null;
+  const door = d => ({ fact: d ? d.k : '', page: d ? d.page : '', also: d ? d.also : '' });
+  if (CA_HERE_ALL_RE.test(t)) return Object.assign({ kind: 'here', screen, all: true, what: '' }, door(screen === 'explorer' ? CA_HERE_LIST : null));
+  if (typeof igConditions !== 'function' || typeof igLeftover !== 'function') return null;
+  let conds = []; try { conds = igConditions(t) || []; } catch (_){ conds = []; }
+  if (!conds.length) return null;
+  let left = 'x'; try { left = String(igLeftover(t.replace(CA_HERE_SEE_RE, ' '), conds) || ''); } catch (_){ left = 'x'; }
+  if (left.replace(CA_HERE_EXTRA_RE, ' ').trim()) return null;
+  /* on Explorer the map's own recipe answers, so it must read them as a set
+     to show (a narrowing), not a question back ("suppliers": arrange by what?) */
+  if (screen === 'explorer' && typeof igRecipeParse === 'function'){
+    let p = null; try { p = igRecipeParse(t); } catch (_){ p = null; }
+    const acts = (p && p.acts) || [];
+    if (!acts.some(x => x.narrow) || acts.some(x => x.ask || x.unknownFact)) return null;
+  }
+  const d = conds.map(c => caHereFact(c.field)).find(Boolean) || (screen === 'explorer' ? CA_HERE_LIST : null);
+  return Object.assign({ kind: 'here', screen, all: false, what: conds.map(c => c.label).join(' · ') }, door(d));
+}
+/* THE CONTRACTS PLACE: its list narrowed by the reader's own reading of the
+   same words (igConditions → igIdsWhere), so "imported contracts expiring
+   this year" keeps both; none found is said, the list left whole */
+function caHereOnList(here, q){
+  let conds = []; try { conds = (typeof igConditions === 'function') ? igConditions(q) : []; } catch (_){ conds = []; }
+  if (!conds.length) return null;
+  let ids = []; try { ids = (typeof igIdsWhere === 'function') ? igIdsWhere(conds, caContracts()) : []; } catch (_){ ids = []; }
+  const what = conds.map(c => c.label).join(' · ');
+  if (ids.length && typeof regShowOnly === 'function') regShowOnly(ids, what);
+  const f = here.fact ? caHereFact(here.fact) : null;
+  const none = !ids.length && !!(f && f.none && f.of) && !caContracts().some(c => f.of(c));
+  return Object.assign({}, here, { n: ids.length, what, say: ids.length ? _caT('ca_here_list', { n: ids.length, what })
+    : none ? _caT(f.none) : _caT('ca_here_none_match', { what }) });
+}
+function caHereCardHtml(a, i){
+  if (!a || !a.page) return '';
+  const B = (act, label) => `<button type="button" class="ui-btn ui-btn-sm" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`;
+  return `<div class="ca-card ca-here" data-ca-card="${i}"><p class="ca-foot" style="margin-top:0">${_caE(_caT(a.also))}</p>
+    <div class="ca-acts">${B('herepage', _caT('ca_here_open_' + a.page))}</div></div>`;
+}
+/* the door: the page, through the one mover — the Contracts place narrowed to
+   the set the map shows (caGo's `reg`, the doors' own regGoFiltered) */
+function caHerePress(a, act){
+  if (act !== 'herepage') return;
+  if (a.page === 'contracts' && Array.isArray(a.ids) && a.ids.length) return caGo({ kind: 'go', place: 'contracts', reg: { only: { ids: a.ids.slice(), label: String(a.what || '') } }, state: 'ready' });
+  return caGo({ kind: 'go', place: a.page, state: 'ready' });
+}
+function caAskAnywhere(text, opts = {}){
+  const t = String(text || '').trim(); if (!t) return false;
+  /* A REQUEST TO BOOK OR FIND TIME, OR A QUESTION ABOUT ONE'S OWN CALENDAR
+     (owner, 18 Oct 2026: "fix all four"), is the Calendar's Jambo's from every
+     box — the one Jambo who reads a person's events and plans time (igBookAsk
+     → calHandOff). Answers 'cal' so a box can say so in its own words; the
+     Calendar's own box (opts.cal) plans it itself. */
+  if (!opts.cal && typeof igBookAsk === 'function' && typeof calHandOff === 'function'){
+    let b = false; try { b = igBookAsk(t); } catch (_){ b = false; }
+    if (b && calHandOff(t)) return 'cal';
+  }
+  /* on Home his own box is the reader already */
+  if (typeof document !== 'undefined' && document.getElementById('igd-input') && typeof intelAsk === 'function'
+    && typeof state !== 'undefined' && state && state.view === 'dashboard'){
+    /* …and a request to see what the screen in front shows is answered there (caHereRead) */
+    if (!opts.all && !caReadPlace(t) && !caTakesWords(t) && !caHereRead(t)) return false; intelAsk(t); return true; }
+  let a = null; try { a = caReadPlace(t); } catch (_){ a = null; }
+  if (a && a.kind === 'go' && !CA_CARD_WORDS.includes(a.place) && caGo(a)) return true;
+  /* JAMBO'S MAP (js/jambomap.js) on Home's box, where every word is Jambo's
+     (opts.all): everyday words for a page open it as a place word does; a card
+     of his ("which did you mean?") is his beside the Board. A page's own box
+     keeps its own job for the rest. */
+  if (!a && opts.all && typeof jmRead === 'function'){ let m = null; try { m = jmRead(t); } catch (_){ m = null; }
+    if (m && m.kind === 'go' && !m.missing && !CA_CARD_WORDS.includes(m.place) && caGo(m)) return true; }
+  if ((a && a.kind === 'go') || caTakesWords(t) || opts.all) return caHandHome(t, a);
+  return false;
+}
+
+/* ---- "/" IN EVERY JAMBO BOX ----
+   A box marked data-ca-slash lists the places, most used first, the moment it
+   starts with "/" — the same rows Home's and the Counter's lists draw
+   (caSlashRows), less the words that need a contract where none is open. A
+   row is the place's own run (caPlaceRun). Painted fixed above the box, so a
+   panel's own scroller never clips it. */
+const CA_SL_MAX = 40;
+const CA_SL_TALL = 360;   // the Counter's list is as tall; the rest scrolls inside it
+let _caSl = null;   // { inp, rows, on }
+function caSlRead(inp){
+  const m = /^\s*\/([\w\-åäöÅÄÖ'’]*)$/.exec(String(inp.value || ''));
+  if (!m){ caSlClose(); return; }
+  const one = caOpenContract() ? new Set() : new Set(CA_PLACES.filter(p => p.need === 'one').map(p => p.k));
+  const rows = caSlashRows(m[1].toLowerCase(), { max: 99 }).filter(r => !one.has(r.k)).slice(0, CA_SL_MAX);
+  if (!rows.length){ caSlClose(); return; }
+  _caSl = { inp, rows, on: Math.min((_caSl && _caSl.on) || 0, rows.length - 1) };
+  caSlPaint();
+}
+function caSlPaint(){
+  if (!_caSl) return;
+  let el = document.getElementById('ca-slash');
+  if (!el){ el = document.createElement('div'); el.id = 'ca-slash'; el.className = 'ca-pop ca-slash'; document.body.appendChild(el); }
+  el.innerHTML = `<h5>${_caE(_caT('hb_pop_places'))}</h5><div role="listbox">${_caSl.rows.map((r, i) =>
+    `<div class="ca-opt${i === _caSl.on ? ' on' : ''}" role="option" aria-selected="${i === _caSl.on}" data-ca-sl="${i}"><span class="who"><b>${_caE(r.word)}</b>${r.sub ? `<small>${_caE(r.sub)}</small>` : ''}</span></div>`).join('')}</div><p class="ca-hint">${_caE(_caT('hb_pop_keys'))}</p>`;
+  const r = _caSl.inp.getBoundingClientRect();
+  el.style.left = Math.max(8, r.left) + 'px';
+  el.style.width = Math.max(260, r.width) + 'px';
+  el.style.bottom = Math.max(8, innerHeight - r.top + 6) + 'px';
+  el.style.maxHeight = Math.max(160, Math.min(CA_SL_TALL, r.top - 16)) + 'px';
+  const on = el.querySelector('.ca-opt.on'); if (on && on.scrollIntoView) try { on.scrollIntoView({ block: 'nearest' }); } catch (_){}
+}
+function caSlClose(){ _caSl = null; const el = document.getElementById('ca-slash'); if (el) el.remove(); }
+function caSlTake(i){
+  const P = _caSl; const r = P && P.rows[i]; if (!r) return;
+  P.inp.value = ''; caSlClose();
+  caPlaceRun(r.k);
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._caSlWired){
+  document._caSlWired = true;
+  document.addEventListener('input', e => { const t = e.target; if (t && t.matches && t.matches('[data-ca-slash]')) caSlRead(t); });
+  document.addEventListener('keydown', e => {
+    const t = e.target; if (!_caSl || !t || t !== _caSl.inp) return;
+    const n = _caSl.rows.length;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); e.stopPropagation(); _caSl.on = (_caSl.on + (e.key === 'ArrowDown' ? 1 : n - 1)) % n; caSlPaint(); return; }
+    if (e.key === 'Enter' || e.key === 'Tab'){ e.preventDefault(); e.stopPropagation(); caSlTake(_caSl.on); return; }
+    if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); caSlClose(); }
+  }, true);
+  document.addEventListener('mousedown', e => {
+    const o = e.target && e.target.closest ? e.target.closest('[data-ca-sl]') : null;
+    if (o){ e.preventDefault(); caSlTake(Number(o.getAttribute('data-ca-sl'))); return; }
+    if (_caSl && !(e.target && e.target.closest && e.target.closest('#ca-slash, [data-ca-slash]'))) caSlClose();
+  });
 }
 
 /* ---- THE TWO WORDS THAT ANSWER WITH A CARD ----
@@ -1596,7 +1839,8 @@ function caGoCardHtml(a, i){
   return '';
 }
 function caGoPress(a, act){
-  if (a.place === 'draft'){ if (act === 'draftform') caDraftForm(null); else if (act === 'draftupload') CA_GO.upload(); return; }
+  /* "Upload their paper" is the reader's own press: the picker itself */
+  if (a.place === 'draft'){ if (act === 'draftform') caDraftForm(null); else if (act === 'draftupload'){ if (!caMayAdd()) return; if (typeof pdDropPick === 'function') pdDropPick(); else CA_GO.upload(); } return; }
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null; if (!c) return;
   if (String(act).startsWith('next:')){ caNextRun(c, String(act).slice(5)); return; }
   if (act === 'shareout'){ if (typeof openShareModal === 'function') openShareModal(c); return; }
@@ -1617,4 +1861,6 @@ if (typeof document !== 'undefined' && !document._caBackWired){
 }
 Object.assign(window, { CA_PLACES, CA_PLACE_LEAD, CA_PLACE_MAX, CA_PLACE_MIN_TYPED, caPlaceOf, caOnBoard, caReadPlace, CA_USES_KEY, caUses, caUseBump, CA_SLASH, CA_SLASH_MAX, caSlashWord, caSlashRows,
   CA_TRAIL_MAX, caPlaceNow, caTrailPush, caTrailTop, caTrailLabel, caTrailBack, caBackRowHtml, caHomeFace, caHomeWall, caRoomTab, CA_GO, caGoSay, caGo, caGoRepaint,
-  caPlaceRows, caPlaceRun, caGoCardHtml, caGoPress, CA_CHIPS, CA_CHIPS_WALL, CA_CHIP_WALL_WORD, caChipLead });
+  caPlaceRows, caPlaceRun, CA_CARD_WORDS, caTakesWords, caHandHome, caAskAnywhere, CA_SL_MAX, CA_SL_TALL, caSlRead, caSlPaint, caSlClose, caSlTake, caGoCardHtml, caGoPress, CA_CHIPS, CA_CHIPS_WALL, CA_CHIP_WALL_WORD, caChipLead });
+/* ANSWER WHERE YOU STAND (the imports trial): published after its definitions */
+Object.assign(window, { CA_HERE_FACTS, CA_HERE_LIST, CA_HERE_PAGE_RE, CA_HERE_ACT_RE, CA_HERE_SEE_RE, CA_HERE_ALL_RE, CA_HERE_EXTRA_RE, CA_HERE_GROUP_PLACES, CA_HERE_OTHER_RE, CA_HERE_CONTRACT_RE, CA_HERE_MAX, caHereScreen, caHereFact, caHereRead, caHereOnList, caHereCardHtml, caHerePress });

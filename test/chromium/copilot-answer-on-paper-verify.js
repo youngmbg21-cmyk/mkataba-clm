@@ -96,7 +96,11 @@ function answer(body){
       const g = document.querySelector('.rl-glow'); let top = null;
       if (g){ g.scrollIntoView({ block: 'center' }); const r = g.getBoundingClientRect(); const t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); top = !!t && (t === g || g.contains(t)); }
       const sec = document.querySelector('.rl-sug'); const box = document.querySelector('.rl-sug-box');
-      return { glows, top, sug: sec ? [...sec.classList].filter(k => /^rl-sug-/.test(k)).join(' ') : '', box: box ? box.textContent.trim() : '', boxNew: box ? [...box.querySelectorAll('.rl-sug-new')].map(e => e.textContent).join(' ') : '',
+      /* RE-POINTED 18 Oct 2026 (owner: "make the counter changes in the clause
+         itself"): his words are marked inside the clause, no second copy */
+      const ins = [...document.querySelectorAll('.rl-sug .rl-sug-ins')].map(e => e.textContent.trim());
+      const dels = [...document.querySelectorAll('.rl-sug .rl-sug-del')].map(e => e.textContent.trim());
+      return { glows, top, sug: sec ? [...sec.classList].filter(k => /^rl-sug-/.test(k)).join(' ') : '', box: box ? box.textContent.trim() : '', ins, dels,
         notes: [...document.querySelectorAll('.rl-paper .gl-say, .rl-paper [class*="sug-say"]')].length,
         filed: (getContract('MK-CP1').changes || []).length, ring: g ? getComputedStyle(g).boxShadow : '' };
     });
@@ -105,7 +109,7 @@ function answer(body){
     ok('0 the redo is answered', (await redo('Counter at 60 days.')) === 200);
     await openNego();
     let L = await look();
-    ok('1a counter: Copilot\'s wording sits in a dashed box under theirs, 60 marked', /rl-sug-counter/.test(L.sug) && /60 days/.test(L.box) && /60/.test(L.boxNew), JSON.stringify(L));
+    ok('1a counter: Jambo\'s 60 is marked inside the clause, their figure struck in his ink, no second copy of the clause', /rl-sug-counter/.test(L.sug) && L.ins.some(t => /60/.test(t)) && L.dels.length >= 1 && !L.box, JSON.stringify(L));
     ok('1b only Counter glows, and nothing is filed', L.glows.join() === 'counter' && L.top && L.filed === 1, JSON.stringify({ g: L.glows, top: L.top, filed: L.filed }));
     ok('1c no note on the paper: Copilot\'s answer is said once, on the row', L.notes === 0 && /Jambo: counter/.test(await page.evaluate(() => (document.querySelector('.rl-card-prep') || {}).innerText || '')));
     await page.screenshot({ path: path.join(OUT, '1-counter.png') });
@@ -116,8 +120,8 @@ function answer(body){
        Deal DOOR opens the Board's own deal board now; what still asks the
        PAPER for Deal is a walk naming it (the agents' Review), so 1d walks. */
     await page.evaluate(() => { setView('dashboard'); igWalk(['MK-CP1'], 0, { tab: 'deal' }); });
-    const home = await page.waitForFunction(() => document.querySelector('#ig-paper .rl-sug-box') ? { box: document.querySelector('#ig-paper .rl-sug-box').textContent.trim() } : null, null, { timeout: 10000 }).then(h => h.jsonValue(), () => null);
-    ok('1d on Home\'s Document the box is drawn too', !!home && /60 days/.test(home.box), JSON.stringify(home));
+    const home = await page.waitForFunction(() => document.querySelector('#ig-paper .rl-sug-ins') ? { ins: [...document.querySelectorAll('#ig-paper .rl-sug-ins')].map(e => e.textContent.trim()).join(' '), box: !!document.querySelector('#ig-paper .rl-sug-box') } : null, null, { timeout: 10000 }).then(h => h.jsonValue(), () => null);
+    ok('1d on Home\'s Document the marks are drawn in the clause too', !!home && /60/.test(home.ins) && !home.box, JSON.stringify(home));
     await page.screenshot({ path: path.join(OUT, '1d-home.png') });
     await page.evaluate(() => openRedlineWorkbench('MK-CP1'));
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the door lands

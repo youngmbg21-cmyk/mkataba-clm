@@ -88,16 +88,22 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     const up = await page.evaluate(n => { const m = intel.history[intel.history.length - 1] || {};
       return { cards: document.querySelectorAll('#igd-feed [data-ca-menu]').length - n, act: m.act ? { kind: m.act.kind, place: m.act.place } : null }; }, cards0);
     ok('2h typed beside the paper, "I want to upload a pdf" goes to the upload, no PDF card', up.cards === 0 && !!up.act && up.act.kind === 'go' && up.act.place === 'upload', JSON.stringify(up));
+    /* RE-POINTED 18 Oct 2026 (LAND ON IT, the owner's rule): the upload lands on
+       Jambo's drop area on the Contracts place, lit — the paper is left — so the
+       next ask brings the paper back first */
+    ok('2h2 and it lands on the drop area on the Contracts place, lit', await until(page, () => { const d = document.getElementById('pd-drop');
+      return !!d && d.classList.contains('is-landed') && !!document.getElementById('ct-place'); }, null, 6000));
+    const toJambo = async () => { await page.evaluate(() => { setView('dashboard'); igAnalyze('MK-B2'); });
+      await until(page, () => window.intel && intel.paper && intel.paper.id === 'MK-B2' && !!document.querySelector('#ig-dock [data-pd-tab="copilot"]'), null, 10000);
+      await page.click('#ig-dock [data-pd-tab="copilot"]').catch(() => {});
+      return until(page, () => { const i = document.querySelector('#igd-input'); return !!i && i.getBoundingClientRect().width > 0 && !intel.busy; }, null, 8000); };
+    await toJambo();
     await ask('filing');
     await page.evaluate(() => { const cs = document.querySelectorAll('#igd-feed [data-ca-menu]'); const b = cs[cs.length - 1].querySelector('button:not([disabled])'); b.click(); });
     /* the row's own act: Filing and stream opens the contract's Details sheet at its filing rows */
     const landed = await until(page, () => !!document.getElementById('ov-record'), null, 6000);
     ok('2e the press presses the Menu\'s own row (Filing and stream lands on the filing rows)', landed);
     /* back to Jambo beside the paper (the Details sheet left his panel on another tab, as step 3 knows) */
-    const toJambo = async () => { await page.evaluate(() => { setView('dashboard'); igAnalyze('MK-B2'); });
-      await until(page, () => window.intel && intel.paper && intel.paper.id === 'MK-B2' && !!document.querySelector('#ig-dock [data-pd-tab="copilot"]'), null, 10000);
-      await page.click('#ig-dock [data-pd-tab="copilot"]').catch(() => {});
-      return until(page, () => { const i = document.querySelector('#igd-input'); return !!i && i.getBoundingClientRect().width > 0 && !intel.busy; }, null, 8000); };
     ok('2i · Jambo beside the paper again', await toJambo());
     await ask('import from excel');
     ok('2j "import from excel" beside the paper opens the Import page, not the other side\'s file', await until(page, () => state.view === 'migration', null, 6000),

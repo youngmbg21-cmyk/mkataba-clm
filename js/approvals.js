@@ -394,6 +394,10 @@ async function rejectApprovalStep(c, comment){
    this contract, now": the rule step that is next and theirs, else a named
    person's yes asked of them. Null is "nothing" and draws no verb. */
 function approvalDecidableNow(c, u){
+  /* A signed or declined contract asks nobody's yes: an approval left open on
+     it is history, not work (needsYouOf said "Your approval is asked for" on
+     Signed contracts, 9 Oct 2026). */
+  if(!c||c.status==='Signed'||c.status==='Declined') return null;
   let st=null; try{ st=approvalState(c); }catch(_){ st=null; }
   if(!st||!st.required) return null;
   if(st.next && !st.next.sa && st.canApproveNext) return { kind:'rule', step:st.next };

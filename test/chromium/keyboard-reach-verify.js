@@ -134,26 +134,29 @@ async function tabAround(page, sel, n = 25) {
      whole page on every press, so the claim is that the pressed half still
      has focus afterwards — driven with Enter and Space, never read off the
      markup. */
-  /* RE-POINTED 17 Oct 2026 (the owner picked "Desk tabs", Round 2): Home's Board |
-     Explorer switch is the desk's tabs on a computer, and a press redraws the tab
-     row — the same fault in a new home, asked the same way */
+  /* RE-POINTED 18 Oct 2026 (the owner picked "The SAP way"): Home's Board |
+     Explorer switch is a row of Recent, under the page's name in the bar, on a
+     computer. Choosing a row closes the menu it stood in — the same fault in a
+     new home: the keyboard must land back on the page's name, never the top of
+     the page. Driven with Enter and Space. */
   await page.evaluate(() => hbOpenExplorer()); await pause(900);
   await page.evaluate(() => hbOpenHome()); await pause(900);
-  const sw = await page.$('#dk-home [data-dk-go="home:explorer"]');
-  if (sw) {
-    await sw.focus();
+  const nm = await page.$('#dk-page');
+  if (nm) {
+    await nm.focus(); await page.keyboard.press('Enter'); await pause(300);
+    const opened = await page.evaluate(() => { const a = document.activeElement; return { open: !document.getElementById('dk-recent').hidden, inMenu: !!(a && a.closest && a.closest('#dk-recent')) }; });
+    check('Enter on the page\'s name opens Recent, the keyboard in it', opened.open && opened.inMenu, JSON.stringify(opened));
+    await page.focus('#dk-recent [data-dk-go="home:explorer"]').catch(() => {});
     await page.keyboard.press('Enter'); await pause(900);
-    const v = await page.evaluate(() => { const a = document.activeElement;
-      return { at: a ? a.getAttribute('data-dk-go') : null, now: deskKeyNow() }; });
-    check('Enter on Explorer\'s tab really switches to it', v.now === 'home:explorer', JSON.stringify(v));
-    check('and focus stays on the tab that was pressed, not the top of the page', v.at === 'home:explorer', JSON.stringify(v));
-    /* Board's tab, reached by the keyboard, pressed with Space */
-    await page.focus('#dk-home [data-dk-go="home:board"]').catch(() => {});
+    const v = await page.evaluate(() => { const a = document.activeElement; return { at: a ? a.id : null, now: deskKeyNow() }; });
+    check('Enter on Explorer\'s row really switches to it', v.now === 'home:explorer', JSON.stringify(v));
+    check('and the keyboard is back on the page\'s name, not the top of the page', v.at === 'dk-page', JSON.stringify(v));
+    await page.keyboard.press('Space'); await pause(300);
+    await page.focus('#dk-recent [data-dk-go="home:board"]').catch(() => {});
     await page.keyboard.press('Space'); await pause(900);
-    const c = await page.evaluate(() => { const a = document.activeElement;
-      return { at: a ? a.getAttribute('data-dk-go') : null, now: deskKeyNow() }; });
-    check('and Space on Board\'s tab switches back, focus kept again', c.now === 'home:board' && c.at === 'home:board', JSON.stringify(c));
-  } else check('Home\'s tabs are on the page', false, '#dk-home [data-dk-go="home:explorer"] not found');
+    const c = await page.evaluate(() => { const a = document.activeElement; return { at: a ? a.id : null, now: deskKeyNow() }; });
+    check('and Space on Board\'s row switches back, the keyboard kept again', c.now === 'home:board' && c.at === 'dk-page', JSON.stringify(c));
+  } else check('the page\'s name is in the bar', false, '#dk-page not found');
 
   /* ---------- 6 · confirmDialog ---------- */
   {

@@ -353,6 +353,10 @@ describe('f672 (6)(7) the top bar reads the same words; reading spends nothing',
     assert.ok(!/\bapi\(|fetch\(|anthropic/i.test(body.replace(/\/\*[\s\S]*?\*\//g, '')));
     const IG = R('js/views/intelligence.js');
     const ask = IG.slice(IG.indexOf('async function intelAsk('), IG.indexOf('ON HOME THE BOARD\'S FREE READER'));
-    assert.match(ask, /if\(act\.kind==='go'&&typeof window\.caGo==='function'\) caGo\(act\);\s*return;/, 'a word returns before any model is asked');
+    /* RE-POINTED 18 Oct 2026: LAND ON IT lights a card word's card between the move and the return */
+    const after = ask.slice(ask.indexOf("if(act.kind==='go'&&typeof window.caGo==='function') caGo(act);"));
+    assert.ok(after.length > 0, 'the word is moved');
+    const ret = after.slice(0, after.indexOf('return;') + 7);
+    assert.ok(/return;$/.test(ret) && !/intelChatAsk|api\(|fetch\(/.test(ret), 'a word returns before any model is asked');
   });
 });

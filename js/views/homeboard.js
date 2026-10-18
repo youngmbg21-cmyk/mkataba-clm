@@ -1261,6 +1261,9 @@ function hbHelloInner(){
      its own count, a few pixels below. */
   return `<h1>${_hbE(greet)}, ${_hbE(first)}</h1>`;
 }
+/* The Board's Light | Dark, one builder for the two places it stands: Home's
+   head on the phone, the Board's first line on a computer (hbNoteHtml). */
+function hbScrButtonHtml(m){ return `<button type="button" data-hb-screen="${m}" aria-pressed="${hbScreenNow() === m}">${_hbE(i18t('hb_screen_' + m))}</button>`; }
 function hbHeadHtml(groupSel){
   const s = hbS();
   /* the Calendar tab carries the count its menu door carried — the same
@@ -1272,22 +1275,24 @@ function hbHeadHtml(groupSel){
      columns take the widest — so switching language moves nothing. */
   const face = f => `<button type="button" role="tab" data-hb-face="${f}" aria-selected="${s.face === f}">${(typeof icon === 'function') ? icon(HB_FACE_ICON[f], 'hb-face-ic', 2) : ''}${hbFaceWordsHtml(f)}${f === 'calendar' ? (() => { const n = (typeof window.calendarDoorCount === 'function') ? calendarDoorCount() : 0;
     return `<span class="hb-face-n" data-count="calendar" data-count-quiet-zero${n ? ' data-tone="amber"' : ''}>${n ? n : ''}</span>`; })() : ''}</button>`;
-  const scr = m => `<button type="button" data-hb-screen="${m}" aria-pressed="${hbScreenNow() === m}">${_hbE(i18t('hb_screen_' + m))}</button>`;
-  /* ---- THE DESK TABS TAKE THE GREETING'S AND THE FACES' PLACE (the owner
-     picked "Desk tabs", 17 Oct 2026) ---- on a computer the Counter greets,
-     and Board, Workspace, Calendar and Explorer are pages on the desk, each a
-     tab after "‹ The counter" (js/views/counter.js); the same row, so the
-     paper does not move down. The phone keeps its own Home. */
-  const desk = typeof window.deskShellOn === 'function' && window.deskShellOn() && typeof window.deskTabsHtml === 'function';
+  const scr = hbScrButtonHtml;
+  /* ---- NO ROW ABOVE THE PAGE ON A COMPUTER (the owner picked "The SAP
+     way", 18 Oct 2026; reverses "Desk tabs") ---- the top bar names the page
+     and opens Recent (js/views/counter.js), so on a computer this head is
+     drawn empty and hidden: Present is Recent's last row, the Board's Light |
+     Dark and its counting chip stand on the Board's own first line, and
+     Explorer's Group by rides the map's top-right corner (renderIntel). The
+     paper starts right under the bar. The phone keeps its own Home. */
+  const desk = typeof window.deskShellOn === 'function' && window.deskShellOn();
   return `<style>#page-head{background:var(--color-surface)}</style>
-  <header id="hb-head" class="hb-head">
-    ${desk ? `<div class="hb-dk" id="dk-home">${window.deskTabsHtml()}</div>` : `<div class="hb-hello">${hbHelloInner()}</div>
+  <header id="hb-head" class="hb-head"${desk ? ' hidden' : ''}>
+    ${desk ? '' : `<div class="hb-hello">${hbHelloInner()}</div>
     <div class="hb-seg hb-faces" role="tablist" aria-label="${_hbE(i18t('hb_show'))}" style="--hb-fi:${Math.max(0, HB_FACES.indexOf(s.face))};--hb-fn:${HB_FACES.length}"><span class="hb-thumb" aria-hidden="true"></span>${HB_FACES.map(face).join('')}</div>`}
     <span class="hb-grow"></span>
-    <label class="hb-groupby" id="hb-groupby"${s.face === 'explorer' ? '' : ' hidden'}>${_hbE(i18t('hb_group_by'))} ${groupSel || ''}</label>
+    ${desk ? '' : `<label class="hb-groupby" id="hb-groupby"${s.face === 'explorer' ? '' : ' hidden'}>${_hbE(i18t('hb_group_by'))} ${groupSel || ''}</label>
     <span class="hb-counting">${hbCountChipHtml()}</span>
     <button type="button" class="ui-btn ui-btn-sm" id="hb-present" title="${_hbE(i18t('hb_present_tip'))}">${_hbE(i18t('hb_present'))}</button>
-    <div class="hb-seg hb-scr" role="group"${s.face !== 'board' ? ' hidden' : ''} aria-label="${_hbE(i18t('hb_screen_label'))}" title="${_hbE(i18t('hb_screen_tip'))}">${scr('light')}${scr('dark')}</div>
+    <div class="hb-seg hb-scr" role="group"${s.face !== 'board' ? ' hidden' : ''} aria-label="${_hbE(i18t('hb_screen_label'))}" title="${_hbE(i18t('hb_screen_tip'))}">${scr('light')}${scr('dark')}</div>`}
   </header>`;
 }
 /* A face's word in the reader's language, with every other language's word
@@ -5337,11 +5342,11 @@ function hbOpenAgent(k, itemKey){
   s.path = (k && keys.includes(k) && hbAgentsData(null).rows.some(r => r.k === k)) ? ['ag:' + k] : [];
   hbSave();
   if (typeof setView === 'function') setView('dashboard');
-  setTimeout(() => {
-    const el = (itemKey && document.querySelector(`[data-hb-ag-item="${CSS.escape(itemKey)}"]`))
-      || document.querySelector('.hb-ag-works') || document.getElementById('hm-agents');
-    if (el && el.scrollIntoView) try { el.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (_){}
-  }, 120);
+  /* LAND ON IT (owner, 18 Oct 2026): the piece named, else that agent's work,
+     else the Jambo's work card itself — brought into view and lit */
+  const target = () => (itemKey && document.querySelector(`[data-hb-ag-item="${CSS.escape(itemKey)}"]`))
+    || (s.path.length && document.querySelector('.hb-ag-works')) || document.getElementById('hm-agents');
+  if (typeof landOn === 'function') landOn(target, { block: 'start', missing: i18t('hb_land_no_work') });
 }
 function hbWatchFormHtml(k){
   const d = hbBookData('all', { whole: true }); const v = hbFigNumber(d, k);
@@ -5745,11 +5750,11 @@ function hbCountedAt(fresh){
   if (fresh || !_hbCountedAt){ try { _hbCountedAt = new Date().toLocaleTimeString(langLocale(), { hour: '2-digit', minute: '2-digit' }); } catch (_){ _hbCountedAt = ''; } }
   return _hbCountedAt;
 }
-function hbBoardHeadHtml(time, cut, bs, pack){
+function hbBoardHeadHtml(time, cut, bs, pack, deskBits, deskScr){
   const at = cut ? i18t('hb_bh_counted', { time, lens: cut }) : i18t('hb_bh_counted_plain', { time });
   return `<section class="hb-card hb-bhead" id="hb-bhead"><div class="hb-note hb-bh-r"><h2 class="hb-bh-t">${_hbE(i18t('hb_face_board'))}</h2><span class="hb-bh-s">${_hbE(i18t('hb_bh_sub'))}</span>`
-    + `<span class="hb-live"><i></i>${_hbE(i18t('hb_live'))}</span><span class="hb-bh-at">${_hbE('· ' + at)}</span><span class="hb-grow"></span>`
-    + `${pack || ''}${bs.btn}</div>${hbSavedViewChipsHtml()}</section>`;
+    + `<span class="hb-live"><i></i>${_hbE(i18t('hb_live'))}</span><span class="hb-bh-at">${_hbE('· ' + at)}</span>${deskBits || ''}<span class="hb-grow"></span>`
+    + `${pack || ''}${bs.btn}${deskScr || ''}</div>${hbSavedViewChipsHtml()}</section>`;
 }
 /* SAVED VIEWS ARE CHIPS IN THE HEAD (round 17 as drawn; they moved from the
    panel to the Board's head on 15 Oct, behind one button — now each is its
@@ -5809,13 +5814,19 @@ function hbBoardHtml(){
      cannot know; "all contracts" is one they chose. */
   const cut = [hbCountLabel(s.lens), s.lens === 'all' ? '' : i18t('hb_lens_' + s.lens).toLowerCase()].filter(Boolean).join(' · ');
   const bs = hbBoardSumHtml();
-  /* NEEDS YOU AND JAMBO'S WORK LEFT THE BOARD (round 17 as drawn; the
-     owner's yes of 18 Oct 2026, "they live on the Counter"): the Board is
-     only about the book — its head, Your book, Today's insights, the strips
-     and the cards. Jambo's panel says where the work went (hbBoardHelloHtml). */
+  /* NEEDS YOU LEFT THE BOARD (round 17 as drawn; the owner's yes of 18 Oct
+     2026, "it lives on Home"): the Board is the book — its head, Your book,
+     Jambo's work (the owner's answer of 18 Oct: the Board KEEPS it, Home's
+     "Jambo's work" row lands on it), Today's insights, the strips and the
+     cards. Jambo's panel says where Needs you went (hbBoardHelloHtml). */
   /* Make a pack, where the Board keeps a chart: in the head, beside Summarise */
   const pack = s.panels.some(p => p.kind === 'view') ? `<button type="button" class="hb-btn is-sm" data-hb-pack-dl>${_hbE(i18t('hb_pack_btn'))}</button>` : '';
-  return `${hbBoardHeadHtml(time, cut, bs, pack)}
+  /* on a computer the head row is gone (the SAP way, 18 Oct 2026): the
+     counting chip and Light | Dark stand on the Board's own head */
+  const desk = typeof window.deskShellOn === 'function' && window.deskShellOn();
+  const deskBits = desk ? `<span class="hb-counting">${hbCountChipHtml()}</span>` : '';
+  const deskScr = desk ? `<div class="hb-seg hb-seg-sm hb-scr" role="group" aria-label="${_hbE(i18t('hb_screen_label'))}" title="${_hbE(i18t('hb_screen_tip'))}">${hbScrButtonHtml('light')}${hbScrButtonHtml('dark')}</div>` : '';
+  return `${hbBoardHeadHtml(time, cut, bs, pack, deskBits, deskScr)}
     ${bs.box}
     ${hbBookHtml(d, moved, base && base.at)}
     ${hbInsCardHtml(hbInsightsToday())}
@@ -5919,7 +5930,7 @@ function hbPackData(name, lens){
     P.cols = [i18t('hb_pk_col_contract'), money ? i18t('hb_ms_exposure') : i18t('hb_pk_col_risks'), i18t('hb_pk_col_why')];
     P.rows = rows.slice(0, HB_PACK_ROWS).map(r => {
       const sev = r.risks.slice().sort((a, b) => (HB_RISK_WEIGHT[b.sev] || 0) - (HB_RISK_WEIGHT[a.sev] || 0));
-      const why = sev.slice(0, 2).map(it => String(it.title || '').trim()).filter(Boolean);
+      const why = sev.slice(0, 2).map(it => String((typeof riskTitleOf === 'function' ? riskTitleOf(it) : it.title) || '').trim()).filter(Boolean);
       const w = (typeof renewalWindow === 'function') ? (() => { try { return renewalWindow(r.c); } catch (_){ return null; } })() : null;
       /* the wording's reading adds the missing cap unless a finding already says it */
       const unc = i18t('hb_pk_why_uncapped');
@@ -9440,7 +9451,9 @@ function hbPresent(on){
      full screen by itself — which the listener below then read as the reader
      leaving. #content survives the redraw, so the presentation does too. */
   const fsHost = document.getElementById('content') || pg;
-  if (on){ _hbTool = ''; if (fsHost && fsHost.requestFullscreen) fsHost.requestFullscreen().catch(() => {}); }
+  /* full screen is granted later: a Present ended before it arrives leaves it again,
+     or #content would stay over the bar with nothing to take it down */
+  if (on){ _hbTool = ''; if (fsHost && fsHost.requestFullscreen) fsHost.requestFullscreen().then(() => { if (!_hbPresenting && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {}); }).catch(() => {}); }
   else { _hbTool = ''; hbInkClear(); if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {}); }
   hbToolsPaint();
   if (typeof igSyncDockWidth === 'function') setTimeout(() => { try { if (typeof igFitSplit === 'function') igFitSplit(); } catch (_){} }, 60);

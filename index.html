@@ -9107,6 +9107,8 @@
   .ig-link-family{stroke:var(--accent-ink);opacity:.75;stroke-width:1.8}
   .ig-link-chain{stroke:var(--accent-ink);opacity:.75;stroke-width:1.8;stroke-dasharray:5 4}
   .ig-link-party{stroke:var(--color-neutral-400)}
+  /* a link's wide unpainted twin answers the pointer (Explorer stage 1) */
+  .ig-link-hit{fill:none;stroke:transparent;stroke-width:14;pointer-events:stroke;cursor:help}
   /* The legend folded to its head (11 Sep 2026): everything under the head row
      goes, the head stays as the way back. */
   #ig-legend.is-folded > :not([data-ig-legend-head]){display:none}
@@ -9526,7 +9528,6 @@
   /* the importer's door under the drop area, and the drop area lit when a door brings you to it */
   #ig-dock .pd-drop-more{font-size:12px;color:var(--color-neutral-600)}
   #ig-dock .pd-drop-wait{color:var(--st-amber-fg)}
-  #ig-dock .pd-drop.is-called{box-shadow:0 0 0 3px var(--color-accent-100);transition:box-shadow var(--dur-2)}
   /* NEEDS YOU HERE (owner picked "Tabs and faces" by name, round 3, 17 Oct 2026; pdNeedsHtml): the glance's own card grammar above it — a row is what is owed, its line under it, its one button; Jambo's prepared work first with his face */
   #ig-dock .pd-needs .pd-gl-h .pd-pill{height:20px;padding:0 7px}
   #ig-dock .pd-needs .pd-gl-h .pd-pill i{display:none}
@@ -9942,6 +9943,8 @@
   .ig-brain .ig-badge-txt{font-size:9px;font-family:var(--font-body)}
   .ig-brain .ig-node.dim{opacity:.3}
   .ig-brain .ig-note{position:absolute;left:12px;top:10px;z-index:2;max-width:calc(100% - 24px);width:max-content;box-sizing:border-box;padding:4px 10px;font-size:var(--t-meta);line-height:1.5;color:var(--hb-mute,#8FB5AD);background:var(--hb-card,rgba(4,25,26,.82));border:1px solid rgba(var(--hb-ln,160,220,210),.22);border-radius:var(--radius)}
+  /* the head line keeps clear of Group by in the stage's other corner: a long line wraps (Explorer stage 3) */
+  .ig-brain:has(.hb-groupby-stage:not([hidden])) .ig-note{max-width:calc(100% - 250px)}
   .ig-brain .ig-note:empty{display:none}
   .ig-brain .ig-note .text-ink,.ig-brain .ig-note b{color:#FFFFFF}
   .ig-brain .ig-note .text-ink\/60,.ig-brain .ig-note .text-ink\/40,.ig-brain .ig-note .ig-cliff{color:var(--hb-mute,#8FB5AD)}
@@ -9958,6 +9961,46 @@
   .ig-brain .igl .igl-note{font-size:11px;color:var(--hb-mute,#8FB5AD);max-width:190px}
   .ig-brain .igl .igl-more{color:var(--hb-mute,#8FB5AD)}
   .ig-brain .ig-viewbar{position:absolute;right:12px;bottom:12px;z-index:2;display:flex;align-items:center;gap:6px}
+  /* the empty floor's door (Explorer stage 2): the view bar's own clothes, placed under its floor each frame */
+  .ig-brain .ig-floor-door{all:unset;position:absolute;left:0;top:0;z-index:2;cursor:pointer;height:20px;padding:0 8px;font-size:11px;font-weight:500;line-height:20px;white-space:nowrap;color:var(--hb-ink,#E6F2EF);background:var(--hb-fig,rgba(4,25,26,.88));border:1px solid rgba(var(--hb-ln,160,220,210),.22);border-radius:var(--radius);box-sizing:border-box}
+  .ig-brain .ig-floor-door[hidden]{display:none}
+  /* Jambo explains this view (Explorer stage 3): the walk's sentences, each a press; the one being said is lit */
+  .ig-tour{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:4px}
+  .ig-tour-s{all:unset;box-sizing:border-box;display:block;width:100%;cursor:pointer;padding:5px 9px;border-radius:var(--radius);border:1px solid var(--color-divider);font-size:13px;line-height:1.45;color:var(--color-text)}
+  .ig-tour-s:hover{border-color:var(--accent-solid)}
+  .ig-tour-s.is-on{border-color:var(--accent-solid);box-shadow:inset 3px 0 0 var(--accent-solid)}
+  .ig-tour-s.is-attn.is-on{box-shadow:inset 3px 0 0 #F2B24C}
+  .ig-tour-s:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
+  /* sentences that point (stage 3): a part's name in Jambo's sentence lights it; the figures line under it */
+  .ig-point{all:unset;cursor:pointer;color:var(--accent-ink);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
+  .ig-point:hover,.ig-point.is-on{text-decoration-style:solid}
+  .ig-point.is-on{text-decoration-thickness:2px;font-weight:var(--w-strong,600)}
+  .ig-point:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
+  .igd-figs{font-size:12px;color:var(--color-text);opacity:.75;padding:0 4px}
+  .igd-figs.is-off{color:var(--st-amber-fg);opacity:1}
+  /* findings on the map (Explorer stage 4): one card per finding, the work owed first */
+  .ig-fd-list{display:flex;flex-direction:column;gap:10px}
+  .ig-fd{border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:10px 12px;display:flex;flex-direction:column;gap:5px;font-size:13px;line-height:1.45;color:var(--color-text)}
+  .ig-fd.is-open{border-color:var(--accent-solid)}
+  .ig-fd-t{font-weight:var(--w-strong,600)}
+  .ig-fd-m,.ig-fd-empty{font-size:12px;opacity:.75}
+  .ig-fd-ask{font-size:12.5px}
+  .ig-fd-ask.is-owed{background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:var(--radius);padding:4px 8px}
+  .ig-fd-s{border-left:3px solid var(--accent-solid);padding-left:8px}
+  .ig-fd-p{font-size:12px;color:var(--st-amber-fg)}
+  .ig-fd-c ul{margin:4px 0 0;padding-left:16px}
+  .ig-fd-d.is-up,.ig-fd-d.is-down{font-weight:var(--w-strong,600)}
+  .ig-fd-r{display:flex;flex-direction:column;gap:3px;border-top:1px solid var(--color-divider);padding-top:5px}
+  .ig-fd-a{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+  .ig-fd-form{display:flex;flex-direction:column;gap:5px}
+  .ig-fd-l{font-size:12px;font-weight:var(--w-label,500)}
+  .ig-fd-in{box-sizing:border-box;width:100%;font:inherit;font-size:13px;color:var(--color-text);background:transparent;border:1px solid var(--color-divider);border-radius:var(--radius);padding:5px 8px;resize:vertical}
+  .ig-fd-in:focus-visible{outline:2px solid var(--accent-solid);outline-offset:0}
+  .ig-fd select{max-width:100%}
+  .ig-fd-pinform{border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:10px 12px}
+  .ig-brain .ig-floor-door:hover{border-color:#F2B24C}
+  .ig-brain .ig-floor-door:focus-visible{outline:2px solid #F2B24C;outline-offset:1px}
+  #ig-page.hb-light .ig-brain .ig-floor-door{background:rgba(255,255,255,.86);border-color:rgba(14,95,88,.22);color:var(--hb-ink)}
   .ig-brain .ig-seg{display:inline-flex;align-items:center;border:1px solid rgba(var(--hb-ln,160,220,210),.22);border-radius:var(--radius);overflow:hidden;background:var(--hb-fig,rgba(4,25,26,.88))}
   .ig-brain .ig-seg button{all:unset;cursor:pointer;height:var(--ctl-h-sm);padding:0 9px;font-size:12px;font-weight:500;color:var(--hb-mute,#8FB5AD);display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
   .ig-brain .ig-seg button:hover{color:#FFFFFF}
@@ -10042,6 +10085,8 @@
   .hb-seg button[aria-selected="true"],.hb-seg button[aria-pressed="true"]{background:var(--accent-solid,var(--color-accent));color:#fff;font-weight:var(--w-strong)}
   .hb-groupby[hidden]{display:none}
   .hb-groupby{display:flex;align-items:center;gap:var(--s-2);font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600)}
+  /* on a computer it rides the map's top-right corner (the SAP way, 18 Oct 2026); Explorer is always dark */
+  .hb-groupby.hb-groupby-stage{position:absolute;top:12px;right:12px;z-index:6;color:var(--hb-mute,#8FB5AD)}   /* the map note's own quiet ink */
   .hb-counting{display:inline-flex;align-items:center;gap:var(--s-2);font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap}
   /* At rest the chip says nothing (owner, 4 Oct 2026), and a slot with
      nothing in it must take no room: the head row has its own gap, so an
@@ -10059,6 +10104,10 @@
   #hb-page{height:var(--view-h);display:flex;flex-direction:column;min-height:0}
   #hb-page .hb-col{position:relative;flex:1;min-height:0}
   .hb-note{display:flex;align-items:center;gap:var(--s-2);font-size:var(--t-micro);color:var(--hb-mute)}
+  /* the computer's line also carries Light | Dark (the SAP way, 18 Oct 2026): a
+     narrow window wraps it rather than squeezing the switch shut */
+  .hb-note{flex-wrap:wrap;row-gap:var(--s-1)}
+  .hb-note>.hb-seg{flex:none}
   /* ═══ THE CONTRACT'S VIEWS ON THE BOARD (the one-page Home plan, stage 4, the
      owner picked "Views", 14 Oct 2026) ═══ One line: the switch, whose contract,
      and Print · Share · Download for the view shown. A view takes the Board
@@ -14255,15 +14304,19 @@
   .sa-foot{display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-4);flex-wrap:wrap;}
   .sa-foot-note{flex:1 1 200px;font-size:var(--t-meta);color:var(--color-neutral-600);}
   .sa-card{background:var(--color-surface);border:1px solid var(--st-amber-line);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);}
-  /* A LANDING IS SEEN, NOT ANNOUNCED (3 Oct 2026). The approval email's link
-     lands on this card, and for a moment it is ringed so the reader's eye
-     finds it. It costs no layout — a ring is drawn outside the box — and it
-     takes itself off, so nothing permanent is added to a page that is already
-     carrying a decision. Reduced motion gets the ring without the fade. */
-  .sa-card.is-landed{outline:2px solid var(--accent-ink);outline-offset:3px;
-    animation:saLanded var(--dur-3,240ms) ease-out;}
-  @keyframes saLanded{from{outline-color:transparent;}to{outline-color:var(--accent-ink);}}
-  @media (prefers-reduced-motion: reduce){ .sa-card.is-landed{animation:none;} }
+  /* LAND ON IT (owner, 18 Oct 2026) — ONE LIGHT FOR EVERY ARRIVAL: whatever a
+     press sent the reader to (landOn, js/components.js; the approval email's
+     card among them, 3 Oct) pulses for about two seconds and then keeps a soft
+     ring until their next press. It costs no layout — an outline is drawn
+     outside the box, nothing moves — and it is the same ring Jambo's glowing
+     button wears (.rl-glow). Reduced motion gets the ring without the pulse.
+     :not(#_) lifts it past a card's own outline rules. */
+  .is-landed:not(#_), .rl-glow:not(#_){outline:2px solid var(--accent-ink);outline-offset:2px;
+    animation:hatiLand 1s ease-in-out 2;}
+  .is-landed-held:not(#_){animation:none;}
+  @keyframes hatiLand{0%,100%{outline-offset:2px;outline-color:var(--accent-ink);}
+    50%{outline-offset:6px;outline-color:color-mix(in srgb,var(--accent-ink) 30%,transparent);}}
+  @media (prefers-reduced-motion: reduce){ .is-landed:not(#_), .rl-glow:not(#_){animation:none;} }
   .sa-card-h{display:flex;align-items:center;gap:var(--s-2);padding:11px 15px;border-bottom:1px solid var(--st-amber-line);}
   .sa-card-t{font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text);}
   .sa-card-when{margin-left:auto;font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;}
@@ -14451,37 +14504,53 @@
   #side-nav .nav-count[data-tone="teal"]{background:var(--color-accent-100);color:var(--accent-ink);}
   #side-nav .nav-count[data-tone="amber"]{background:var(--st-amber-bg);color:var(--st-amber-fg);padding:0 7px;}
   #app-shell.rail #side-nav .nav-item.active::before{left:-8px;}
-  /* ---- THE COUNTER AND THE DESK TABS (the owner picked "Front desk" and
-     "Desk tabs", 17 Oct 2026; js/views/counter.js) ----
-     The Counter: one column of white cards on the page ground, the box first.
-     The desk tabs: one row of small pills, "‹ The counter" first — drawn in
-     Home's head row (in the place of its greeting and faces, so the paper does
-     not move down) and in the shell's row above every other page. The Ha mark
-     in the bar is the way back to the Counter now the left menu is gone. */
+  /* ---- HOME, RECENT AND BACK IN THE BAR (the owner picked "The SAP way"
+     and the name Home, 18 Oct 2026; reverses "Desk tabs"; js/views/counter.js) ----
+     The Counter (Home): one column of white cards on the page ground, the box
+     first. The bar's left reads ‹ · Ha · the page's name ▾ and nothing sits
+     between the bar and the page: the name opens Recent under it. The page's
+     name takes the place of #shell-title, which shows again only to carry a
+     crumb (shellCrumbHome's "‹ Back to Clauses"). */
   .dk-mark{width:28px;height:28px;border-radius:7px;border:0;background:#fff;color:var(--nav-bg);display:grid;place-items:center;font-weight:700;font-size:12px;letter-spacing:-.02em;flex:none;cursor:pointer;padding:0;margin-right:4px}
   html.dark .dk-mark{background:var(--accent-solid);color:#fff}  /* at night the rail mark's own colours: a white square is a patch on the dark bar */
   .dk-mark[hidden]{display:none}
   .dk-mark:focus-visible{outline:2px solid #fff;outline-offset:2px}
-  .dk-row{flex:none;background:var(--color-surface);padding:8px var(--s-4,16px) 0}
-  .dk-row[hidden]{display:none}
-  .dk-tabs{display:flex;align-items:center;gap:4px;flex-wrap:wrap;min-width:0}
-  .dk-back{height:var(--ctl-h-sm);padding:0 8px 0 2px;border:0;background:none;color:var(--accent-ink);font-size:var(--t-label);font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
-  .dk-back:hover{text-decoration:underline}
-  .dk-tab{display:inline-flex;align-items:center;height:var(--ctl-h-sm);border:1px solid var(--color-divider);border-radius:11px;background:var(--color-surface);max-width:240px;min-width:0}
-  .dk-tab.is-on{background:var(--color-accent-100);border-color:var(--color-accent-100)}
-  .dk-go{border:0;background:none;height:20px;padding:0 4px 0 10px;font-size:var(--t-label);color:var(--color-text);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-  .dk-tab.is-on .dk-go{color:var(--accent-ink);font-weight:var(--w-label)}
-  .dk-x{border:0;background:none;width:18px;height:18px;margin-right:1px;border-radius:9px;color:var(--color-neutral-500);font-size:13px;line-height:1;cursor:pointer;flex:none;padding:0}
-  .dk-x:hover{background:var(--color-neutral-100);color:var(--color-text)}
-  .dk-more-w{position:relative}
-  .dk-more{height:var(--ctl-h-sm);padding:0 10px;border:1px solid var(--color-divider);border-radius:11px;background:var(--color-surface);font-size:var(--t-label);color:var(--accent-ink);cursor:pointer;white-space:nowrap}
-  .dk-menu{position:absolute;top:calc(100% + 4px);left:0;z-index:70;min-width:220px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);padding:4px;display:flex;flex-direction:column}
-  .dk-menu button{border:0;background:none;text-align:left;padding:7px 10px;border-radius:var(--radius);font-size:var(--t-body);color:var(--color-text);cursor:pointer;white-space:nowrap}
-  .dk-menu button:hover{background:var(--color-accent-50)}
-  #hb-head .hb-dk{flex:1 1 auto;min-width:0}
-  /* the tabs stand at one height on every page: Home's head holding them takes the tab row's top (about 9px), not a tall window's 16 */
-  .hb-head:has(> .hb-dk){padding-top:min(var(--page-pad-t), 10px)}
-  .hb-head>.hb-dk{align-self:flex-start}  /* the Board's taller buttons must not centre the tabs lower: a pressed tab never moves */
+  .dk-back-b{width:28px;height:28px;border-radius:7px;border:1px solid var(--bar-line);background:transparent;color:var(--bar-ink);display:grid;place-items:center;flex:none;cursor:pointer;padding:0;margin-left:-8px}
+  .dk-back-b:hover:not(:disabled){background:var(--bar-hover)}
+  .dk-back-b:disabled{opacity:.45;cursor:default}
+  .dk-back-b[hidden]{display:none}
+  .dk-back-b:focus-visible{outline:2px solid #fff;outline-offset:2px}
+  .dk-pg-w{position:relative;display:inline-flex;min-width:0;flex:0 1 auto}
+  .dk-pg-w[hidden]{display:none}
+  .dk-page{display:inline-flex;align-items:center;gap:8px;height:30px;max-width:340px;min-width:0;padding:0 10px 0 12px;border-radius:7px;border:1px solid var(--bar-line);background:var(--bar-well);color:var(--bar-ink);font:inherit;font-size:var(--t-body);font-weight:var(--w-label);cursor:pointer}
+  .dk-page:hover,.dk-page.is-open{background:var(--bar-hover)}
+  .dk-page:focus-visible{outline:2px solid #fff;outline-offset:2px}
+  .dk-page-w{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .dk-page-v{flex:none;opacity:.9}
+  .dk-page.is-open .dk-page-v{transform:rotate(180deg)}
+  /* the page's name stands where #shell-title stood; the title shows again only to carry a crumb */
+  #app-shell.dk-shell #shell-title:not(.is-crumb),#app-shell.dk-shell #top-header .sh-div{display:none}
+  #app-shell.dk-shell #top-header:has(#shell-title.is-crumb) .sh-div{display:block}
+  .dk-recent{position:absolute;top:calc(100% + 8px);left:0;z-index:80;width:340px;max-width:calc(100vw - 24px);max-height:calc(100vh - 72px);overflow:auto;background:var(--color-surface);color:var(--color-text);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);padding:6px;font-size:var(--t-body);font-weight:var(--w-body)}
+  .dk-recent[hidden]{display:none}
+  .dk-r{display:flex;align-items:center;border-radius:var(--radius)}
+  .dk-r.is-on{background:var(--color-accent-50)}
+  .dk-r-go{flex:1;min-width:0;display:grid;grid-template-columns:18px minmax(0,1fr);gap:8px;align-items:center;border:0;background:none;text-align:left;padding:7px 8px;border-radius:var(--radius);color:inherit;font:inherit;cursor:pointer}
+  .dk-r-go:hover{background:var(--color-accent-50)}
+  .dk-r-go:focus-visible,.dk-r-x:focus-visible,.dk-r-act:focus-visible{outline:2px solid var(--color-accent);outline-offset:-2px}
+  .dk-r-tick{display:grid;place-items:center;color:var(--accent-ink)}
+  .dk-r-ic{width:14px;height:14px}
+  .dk-r-w{min-width:0;display:flex;flex-direction:column}
+  .dk-r-t{font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dk-r-w small{font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dk-r-x{flex:none;width:24px;height:24px;margin-right:4px;border:0;background:none;border-radius:12px;color:var(--color-neutral-500);font-size:15px;line-height:1;cursor:pointer;padding:0}
+  .dk-r-x:hover{background:var(--color-neutral-100);color:var(--color-text)}
+  .dk-r-home{margin-bottom:4px;padding-bottom:4px;border-bottom:1px solid var(--color-divider);border-radius:var(--radius) var(--radius) 0 0}
+  .dk-r-h{margin:4px 8px 4px;font-size:var(--t-label);color:var(--color-neutral-600)}
+  .dk-r-none,.dk-r-foot{margin:6px 8px 4px;font-size:var(--t-label);color:var(--color-neutral-600)}
+  .dk-r-act{display:flex;align-items:center;gap:8px;width:100%;margin-top:6px;padding:8px;border:0;border-top:1px solid var(--color-divider);background:none;text-align:left;font:inherit;font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer;border-radius:0 0 var(--radius) var(--radius)}
+  .dk-r-act:hover{background:var(--color-accent-50)}
+  .hb-head[hidden]{display:none}
   /* JAMBO'S HOUSE STAYS AS IT IS TODAY (the owner, Round 23's brief): the house scales to its
      page's width and fits its floors to the window's height. Without the left menu its page grew
      by up to 244px and the desk tabs took 30px of height, so on the 1536×730 laptop its floors
@@ -14517,16 +14586,6 @@
   .cn-n{font-weight:400;color:var(--color-neutral-500)}
   .cn-late{color:var(--st-ruby-fg)}
   .cn-jw{background:var(--color-accent-50)}
-  /* JAMBO'S WORK OPENS IN PLACE (round 23, owner picked it, 17 Oct 2026) */
-  .cn-jw-list{background:color-mix(in srgb,var(--color-accent-50) 55%,var(--color-surface));border-bottom:1px solid var(--color-divider)}
-  .cn-jw-i{border-top:1px solid var(--color-divider);padding:8px 16px 8px 52px}
-  .cn-jw-r{display:flex;align-items:center;gap:12px}
-  .cn-jw-r .cn-w{flex:1;min-width:0}
-  .cn-jw-tag{display:inline-block;margin-right:6px;padding:0 6px;border-radius:3px;background:var(--color-surface);border:1px solid var(--color-divider);font-size:var(--t-micro);font-weight:var(--w-label);color:var(--color-neutral-600);vertical-align:1px}
-  .cn-jw-acts{display:flex;align-items:center;gap:8px;flex:none;flex-wrap:wrap;justify-content:flex-end}
-  .cn-jw-acts .ui-btn{height:var(--ctl-h-sm);padding:0 10px;font-size:var(--t-label)}
-  .cn-jw-body{margin-top:8px;padding:12px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg)}
-  .cn-jw-foot{display:flex;justify-content:flex-end;gap:12px;align-items:center;padding:8px 16px;border-top:1px solid var(--color-divider);font-size:var(--t-meta);color:var(--color-neutral-600)}
   .cn-pill{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:10px;font-size:var(--t-micro);font-weight:400;background:var(--surface-2);color:var(--color-neutral-600);border:1px solid var(--color-divider)}
   .cn-pill-ic{width:11px;height:11px}
   .cn-co-ic{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--color-accent-100);color:var(--accent-ink);flex:none}
@@ -14571,8 +14630,14 @@
   <header id="top-header" style="grid-column:2;grid-row:1;display:flex;align-items:center;gap:var(--s-2);padding:0 var(--s-3) 0 20px;background:var(--nav-bg);color:var(--bar-ink);border-bottom:1px solid var(--nav-line);min-width:0;">
 
 
-    <!-- THE WAY BACK TO THE COUNTER (Round 2, 17 Oct 2026): on a computer the left menu is gone, and this mark is the door home -->
-    <button id="dk-mark" class="dk-mark" type="button" hidden data-dk-counter title="The counter" data-i18n-title="dk_counter" aria-label="The counter" data-i18n-aria="dk_counter">Ha</button>
+    <!-- ‹ · HA · THE PAGE'S NAME (the owner picked "The SAP way", 18 Oct 2026; js/views/counter.js):
+         on a computer ‹ goes back one page, the Ha mark is Home, and the page's name opens Recent -->
+    <button id="dk-back" class="dk-back-b" type="button" hidden disabled data-dk-back title="Back" aria-label="Back"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg></button>
+    <button id="dk-mark" class="dk-mark" type="button" hidden data-dk-counter title="Home" data-i18n-title="dk_counter" aria-label="Home" data-i18n-aria="dk_counter">Ha</button>
+    <span id="dk-pg-w" class="dk-pg-w" hidden>
+      <button id="dk-page" class="dk-page" type="button" data-dk-recent aria-haspopup="menu" aria-expanded="false" aria-controls="dk-recent"><span class="dk-page-w"></span><svg class="dk-page-v" width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true"><path d="M1.5 3.2h7L5 7.3z"/></svg></button>
+      <div id="dk-recent" class="dk-recent" role="menu" hidden></div>
+    </span>
     <div id="brand-block" style="align-items:center;gap:var(--s-2);flex:none;">
       <span id="brand-wordmark" style="font-family:var(--font-heading);font-weight:var(--w-title);font-size:var(--t-body);letter-spacing:-.01em;">HaTi</span>
     </div>
@@ -15086,8 +15151,6 @@
          renderPageHeader fills per view — empty on the dashboard — and the
          panel toggle has moved up beside the bell, where the global chrome
          lives. -->
-    <!-- THE DESK TABS (Round 2, 17 Oct 2026; js/views/counter.js): every page open on the desk, "‹ The counter" first. Home draws its own in its head row. -->
-    <div id="dk-row" class="dk-row" hidden></div>
     <div id="page-head" style="flex:none;"></div>
     <!-- Anchored at body level and positioned under whichever button opened it,
          because the trigger is now re-rendered per view rather than living in a
@@ -15187,7 +15250,7 @@
 
   <footer class="px-5 pb-5 pt-3" style="border-top:1px solid var(--color-divider);background:var(--color-surface);">
     <div class="flex items-center gap-2">
-      <textarea id="ai-input" rows="1" data-i18n-ph="ai_input_ph" placeholder="Search, summarize, or ask about your contracts…  (Shift+Enter for a new line)" class="chat-field flex-1 px-3.5 py-2.5 text-sm outline-none transition" style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);"></textarea>
+      <textarea id="ai-input" rows="1" data-ca-slash data-i18n-ph="ai_input_ph" placeholder="Search, summarize, or ask about your contracts…  (Shift+Enter for a new line)" class="chat-field flex-1 px-3.5 py-2.5 text-sm outline-none transition" style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);"></textarea>
       <button id="ai-send" aria-label="Send to Jambo" data-i18n-aria="sh_ai_send_aria" class="h-10 w-10 shrink-0 grid place-items-center text-white transition" style="background:var(--color-accent);border-radius:var(--radius);" data-ic-big="send"></button>
     </div>
   </footer>

@@ -670,18 +670,13 @@ const SEED = async () => {
        760 is inside the max-height:820 band every laptop lands in. */
     const HEIGHTS8 = [1000, 760];
     const runs8 = {}, tabs8 = {};
-    /* THE DESK TABS' FIRST GLYPH (17 Oct 2026, the owner's "Desk tabs"): Home
-       draws them in its head (#dk-home), every other page above its head
-       (#dk-row); the paper pages draw none. Measured on the ink, as HEAD8. */
+    /* RE-POINTED 18 Oct 2026 (the owner picked "The SAP way"): no tab row —
+       the bar names every page (#dk-page) and nothing stands between the bar
+       and the page. TAB8 reads the name in the bar and asks for any tab row. */
     const TAB8 = () => {
-      const host = [...document.querySelectorAll('#dk-home, #dk-row')].find(e => e.offsetParent !== null && e.getBoundingClientRect().height > 0);
-      if (!host) return null;
-      const bar = document.getElementById('top-header'); const top = bar ? bar.getBoundingClientRect().bottom : 0;
-      const w = document.createTreeWalker(host, NodeFilter.SHOW_TEXT); let ink = null, n;
-      while ((n = w.nextNode())){ if (!n.textContent.trim()) continue;
-        const rg = document.createRange(); rg.selectNodeContents(n); const b = rg.getClientRects()[0];
-        if (b && b.height >= 2 && (ink == null || b.top < ink)) ink = b.top; }
-      return ink == null ? null : Math.round(ink - top);
+      const b = document.getElementById('dk-page');
+      if (!b || !(b.getBoundingClientRect().width > 0)) return null;
+      return { name: b.textContent.trim(), row: !!document.querySelector('#dk-row, #dk-home, .dk-tabs') };
     };
     for (const H of HEIGHTS8){
       await page.setViewportSize({ width: 1500, height: H });
@@ -715,7 +710,7 @@ const SEED = async () => {
     const mode = xs => { const c = {}; xs.forEach(x => { c[x] = (c[x] || 0) + 1; }); return Object.entries(c).sort((a, b) => b[1] - a[1])[0]?.[0]; };
     const size8 = mode(pageHeads8.map(([, h]) => h.size)), weight8 = mode(pageHeads8.map(([, h]) => h.weight));
     check('8 the sweep actually reached the pages', pageHeads8.length >= 8 && Object.keys(tabs8[1000] || {}).length >= 8,
-      `${Object.keys(heads8).length} heads8 read · ${Object.keys(tabs8[1000] || {}).length} tab rows`);
+      `${Object.keys(heads8).length} heads8 read · ${Object.keys(tabs8[1000] || {}).length} names in the bar`);
     const offSize = pageHeads8.filter(([, h]) => h.size !== size8);
     check('8 every page head is one size (the 20px Home set)',
       offSize.length === 0 && size8 === '20px',
@@ -729,20 +724,19 @@ const SEED = async () => {
       others8.filter(([, h]) => h.ink == null).map(([k]) => k).join(' · ') || 'all read');
     for (const H of HEIGHTS8){
       const tt = Object.entries(tabs8[H] || {});
-      const tref = tt.find(([k]) => k === 'Home');
-      const toff = tref ? tt.filter(([, v]) => Math.abs(v - tref[1]) > 1) : [];
-      check(`8 at ${H}px tall, the desk tabs sit where Home's do on every page that draws them`,
-        !!tref && tt.length >= 10 && toff.length === 0 && !tt.some(([k]) => ROOMS.includes(k)),
-        toff.map(([k, v]) => `${k} ${v}px vs Home ${tref && tref[1]}px`).join(' · ') || `all at ${tref && tref[1]}px, ${tt.length} pages`);
+      const toff = tt.filter(([, v]) => !v.name || v.row);
+      check(`8 at ${H}px tall, the bar names every page and no tab row stands under it`,
+        tt.length >= 10 && toff.length === 0,
+        toff.map(([k, v]) => `${k} «${v.name}»${v.row ? ' + a tab row' : ''}`).join(' · ') || `${tt.length} pages named`);
       const hh = Object.entries(runs8[H] || {});
       const shared = hh.filter(([k]) => !ROOMS.includes(k) && !ON_HOME.includes(k));
       const sref = Number(mode(shared.map(([, h]) => h.ink)));
       const soff = shared.filter(([, h]) => Math.abs(h.ink - sref) > 1);
-      check(`8 at ${H}px tall, the first glyph of every shared page head sits at one height under the tabs`,
+      check(`8 at ${H}px tall, the first glyph of every shared page head sits at one height under the bar`,
         shared.length >= 8 && soff.length === 0,
         soff.map(([k, h]) => `${k} ${h.ink}px «${h.inkText}» vs ${sref}px`).join(' · ') || `all at ${sref}px, ${shared.length} pages`);
       const rooms = hh.filter(([k]) => ROOMS.includes(k));
-      check(`8 at ${H}px tall, the two paper heads (no tabs) sit at one height`,
+      check(`8 at ${H}px tall, the two paper heads sit at one height`,
         rooms.length === 2 && Math.abs(rooms[0][1].ink - rooms[1][1].ink) <= 1,
         rooms.map(([k, h]) => `${k} ${h.ink}px`).join(' · '));
     }

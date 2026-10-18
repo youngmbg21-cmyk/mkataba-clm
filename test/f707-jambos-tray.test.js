@@ -72,7 +72,8 @@ describe('f707 (1) one way in: the tray', () => {
     assert.match(d, /window\.innerWidth < 768\)\) return false;/);
     assert.match(d, /if \(!pdDropMay\(\)\)\{[^}]*ct_viewers_no_add/);
     assert.match(d, /hbOpenContracts\(\);/); assert.match(d, /intel\.dockOpen = true/); assert.match(d, /pdSetTab\('copilot'\);/);
-    assert.match(d, /getElementById\('pd-drop'\)[\s\S]*classList\.add\('is-called'\)/, 'the drop area is lit where the door brings you');
+    /* RE-POINTED 18 Oct 2026 (LAND ON IT): lit by the house's one lander, Choose files ready */
+    assert.match(d, /landOn\('#pd-drop', \{ focus: '\[data-pd-drop-pick\]' \}\)/, 'the drop area is lit where the door brings you');
   });
   test('1c several files: the importer\'s one door is under the drop area, with what waits there', () => {
     assert.match(PD, /\$\{pdDropImportHtml\(\)\}`;\n\}/);
