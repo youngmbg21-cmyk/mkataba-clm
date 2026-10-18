@@ -1990,11 +1990,11 @@ function renderDashboard(){
         message:i18t('tri_decline_msg',{name:c.name||(window.contractRef?contractRef(c):c.id)}),
         confirmLabel:i18t('tri_a_decline'), danger:true });
       if(!ok) return;
-      c.status='Declined'; c.lastAction=todayStr();
-      logAudit(c,'Declined','Declined from the triage card — not ours');
+      /* THE ONE ACT (bug log): contractDecline fetches the whole record first,
+         refuses a signed or handed-over contract, writes the trail and says it. */
+      if(!(await contractDecline(c,'Declined from the triage card — not ours'))) return;
       if(window.triageAck) triageAck(c);
-      persist(c); toast(i18t('tri_declined'),'ok'); renderDashboard();
-      if(window.updateSidebarCounts) updateSidebarCounts();
+      renderDashboard();
       return;
     }
     if(window.triageAck) triageAck(c);
