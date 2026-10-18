@@ -3643,7 +3643,7 @@ function docTermSpan(c){
   return { from, to, len:docTermLength(a,b) };
 }
 
-function docBody(c){
+function docBody(c, opts){
   if(isUpload(c)) return uploadDocBody(c);
   if(c.status==='Signed' && c.execution && c.execution.html) return frozenDocBody(c);
   if(c.redlineText) return redlineDocBody(c);
@@ -3685,8 +3685,12 @@ function docBody(c){
   const VAL=`<input ${dis} type="number" value="${c.value||''}" placeholder="0" data-sync="value" data-money="1" class="field field-num"/>`;
   // Presentational clause flags — reuse the app's EXISTING scan findings
   // (openFindings), map each to its clause anchor, keep the worst severity.
+  /* A COPY THAT LEAVES THE LIVE PAPER CARRIES NO SCAN MARK (bug log, 13 Oct;
+     the #253 review, 18 Oct 2026): the sealed copy, the other side's view, an
+     adviser's link, the text Jambo is sent and the amendment's reading of its
+     parent ask { marks:false }, so neither the tag nor the tinted box goes out. */
   const flags={};
-  try{ (window.openFindings?openFindings(c):[]).forEach(x=>{ const a=x.anchor;
+  if(!(opts&&opts.marks===false)) try{ (window.openFindings?openFindings(c):[]).forEach(x=>{ const a=x.anchor;
     /* `c1`…`c4` are the template's own clauses and `s-…` the shared ones —
        every anchor a clause can carry, and nothing else (a finding on the
        recital or on the whole document is not a clause flag). */
@@ -9133,9 +9137,9 @@ function openNegotiationOwnerRoom(c){
           topicLabel:`Change #${ch.id}${ch.clauseLabel?' · '+_ctClauseName(ch.clauseLabel):''}`,
           body:msg.text });
         c._messages=(res&&res.messages)||c._messages||[];
-        toast(`Comment posted on #${ch.id} — ${c.counterparty||'the counterparty'} sees it on the same change. The contract is unchanged.`);
+        toast(i18t('ng_comment_posted',{ id:ch.id, who:c.counterparty||i18t('ng_the_counterparty') }),'ok');
       }catch(e){
-        toast(`Saved on the change, but it could not be sent to ${c.counterparty||'the counterparty'}: ${e.message||'the message channel is unavailable'}`,'err');
+        toast(i18t('ng_comment_not_sent',{ who:c.counterparty||i18t('ng_the_counterparty'), why:e.message||i18t('ng_comment_no_channel') }),'err');
       }
     },
     onPropose(){ openNegoProposeModal(c); },

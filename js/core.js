@@ -2915,7 +2915,7 @@ function renderNegotiationSection(c){
     btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">${i18t('co_sending')}</span>`;
     try{
       const out=await reshareToLastRecipient(c);
-      const who=out.recipient.name||out.recipient.email||out.recipient.phone||'the counterparty';
+      const who=out.recipient.name||out.recipient.email||out.recipient.phone||i18t('ng_the_counterparty');
       /* FIRST, because it outranks every other outcome: if their copy could not
          be reused, the news is not whether an email went — it is that the URL
          they hold has stopped being the contract. */
@@ -2936,7 +2936,7 @@ function renderNegotiationSection(c){
       } else if(out.channel==='whatsapp' && out.recipient.phone){
         // the same route the first share uses — nothing sends WhatsApp for us
         try{ window.open(waShareLink(out.recipient.phone, shareMessageText(c, out.link, '', null)),'_blank'); }catch(_){}
-        toast(`Link updated — WhatsApp opened so you can send it to ${who}`);
+        toast(`Link updated — WhatsApp opened so you can send it to ${who}`,'ok');
       } else {
         reshareNotSentModal(c, out, who);
       }
@@ -4348,7 +4348,7 @@ function freezeContractHtml(c){
     return d.innerHTML;
   }
   const tmp=document.createElement('div');
-  tmp.innerHTML=docBody(c);
+  tmp.innerHTML=docBody(c,{ marks:false });
   tmp.querySelectorAll('.seal-in,[data-anchor="sig"]').forEach(el=>el.remove());
   tmp.querySelectorAll('input,textarea').forEach(inp=>{
     const s=document.createElement('span');
@@ -6175,7 +6175,7 @@ function buildSharePayload(c, docHash, who, opts){
          because a share must not fail over a preview — a missing body is a
          sentence on their page, not a link that never went. */
       viewBody:(!c.redlineText && typeof window!=='undefined' && window.docBody)
-        ? (()=>{ try{ return docBody(c)||undefined; }catch(_){ return undefined; } })()
+        ? (()=>{ try{ return docBody(c,{ marks:false })||undefined; }catch(_){ return undefined; } })()
         : undefined,
       /* ---- AN ADVISER SEES THE CLAUSES THEY WERE ASKED ABOUT (upgrade 9) ----
          The narrowing is done HERE, in the builder, and not on their page: a
@@ -6224,7 +6224,7 @@ function shareAdviceNarrow(out){
 function shareAdviceBody(c, ids){
   if(typeof window==='undefined' || typeof window.clauseSegment!=='function') return '';
   let body='';
-  try{ body = (window.docBody ? docBody(c) : '') || c.redlineText || ''; }catch(_){ body = c.redlineText||''; }
+  try{ body = (window.docBody ? docBody(c,{ marks:false }) : '') || c.redlineText || ''; }catch(_){ body = c.redlineText||''; }
   if(!body) return '';
   let segs=[]; try{ segs=clauseSegment(body)||[]; }catch(_){ return ''; }
   /* THE SAME HANDLE THE PICKER OFFERED — the stored id where a clause has one,
@@ -6438,8 +6438,7 @@ function counterpartyContact(c, shares){
    the seen-state resend, and the one-press send on both the contract tab and
    the workbench. Four copies of this wording would drift, and the one that
    drifted would be the one somebody read. */
-const reshareStrandedLine = who =>
-  `A NEW link was created for ${who}. The link they already have will NOT update — send them the new one.`;
+const reshareStrandedLine = who => i18t('co_reshare_stranded',{ who });
 function shareIsStanding(s){
   if(!s || !s.durable || s.revokedAt) return false;
   if(s.state==='revoked' || s.state==='expired') return false;
@@ -8726,7 +8725,7 @@ async function renderSharesSection(c){
     btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">${i18t('co_sending')}</span>`;
     try{
       const out=await reshareToLastRecipient(c);
-      const who=out.recipient.name||out.recipient.email||out.recipient.phone||'the counterparty';
+      const who=out.recipient.name||out.recipient.email||out.recipient.phone||i18t('ng_the_counterparty');
       /* Their copy could not be reused — see the other caller; same order. */
       if(out.stranded) toast(reshareStrandedLine(who),'err');
       else if(out.delivered) toast(`Sent again to ${who}`,'ok');

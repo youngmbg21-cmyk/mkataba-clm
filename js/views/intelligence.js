@@ -2311,7 +2311,7 @@ function intelGraphApply(q, res, opts){
 function contractPlainText(c){
   try{
     if(isUpload(c)) return (c.upload&&c.upload.extractedText)||'';
-    const host=document.createElement('div'); host.innerHTML=docBody(c);
+    const host=document.createElement('div'); host.innerHTML=docBody(c,{ marks:false });
     host.querySelectorAll('input').forEach(i=>i.replaceWith(document.createTextNode(i.value||i.getAttribute('value')||'')));
     return (host.textContent||'').replace(/\s+/g,' ').trim();
   }catch(e){ return ''; }

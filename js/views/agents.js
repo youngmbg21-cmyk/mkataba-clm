@@ -1028,7 +1028,9 @@ function agForName(it){
     else if (it.kind === 'ours'){
       /* THE PERSON THE EMAIL REACHES: the assignee where that is a member,
          else the contract's owner (below). */
-      const to = (typeof obligationReminderTo === 'function') ? obligationReminderTo(it.ob) : null;
+      const to0 = (typeof obligationReminderTo === 'function') ? obligationReminderTo(it.ob) : null;
+      /* …and only one who can open the stream: the server's sweep skips the rest */
+      const to = (to0 && (!c || typeof canAccessFolder !== 'function' || canAccessFolder(c.folder || '', to0))) ? to0 : null;
       n = (to && to.name) || '';
     }
     else if (it.kind === 'read' || it.kind === 'reading'){

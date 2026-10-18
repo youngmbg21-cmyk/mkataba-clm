@@ -10361,7 +10361,7 @@ function rlBenchOpts(c, o = {}){
       const freed = (!solo && window.negoHeldBackIds) ? negoHeldBackIds(c).length : 0;
       if (solo && window.negoHoldOthers) negoHoldOthers(c, solo);
       else if (window.negoReleaseHold) released = negoReleaseHold(c);
-      const to = c.counterpartyName || c.counterparty || 'the counterparty';
+      const to = c.counterpartyName || c.counterparty || i18t('ng_the_counterparty');
       const btns = [...document.querySelectorAll(`${scope} [data-rl-send], ${scope} [data-rl-blast]`)];
       btns.forEach(b => { b.disabled = true; });
       try{
@@ -10509,9 +10509,9 @@ function rlBenchOpts(c, o = {}){
           topicLabel: `Change #${ch.id}${ch.clauseLabel ? ' · ' + _neClause(ch.clauseLabel) : ''}`,
           body: msg.text });
         c._messages = (res && res.messages) || c._messages || [];
-        if (window.toast) toast(`Comment posted on #${ch.id} — ${c.counterparty || 'the counterparty'} sees it on the same change. The contract is unchanged.`);
+        if (window.toast) toast(i18t('ng_comment_posted', { id: ch.id, who: c.counterparty || i18t('ng_the_counterparty') }), 'ok');
       }catch(e){
-        if (window.toast) toast(`Saved on the change, but it could not be sent to ${c.counterparty || 'the counterparty'}: ${(e && e.message) || 'the message channel is unavailable'}`, 'err');
+        if (window.toast) toast(i18t('ng_comment_not_sent', { who: c.counterparty || i18t('ng_the_counterparty'), why: (e && e.message) || i18t('ng_comment_no_channel') }), 'err');
       }
     },
     /* ---- THE HAND-OFF LIVES HERE NOW ----
@@ -17904,7 +17904,7 @@ async function rlNotesSend(host, c, ch, opts, room, extra = {}){
          Both carry the note's meta, so the other seat reads the anchor and the
          reply exactly as this one does. */
       const sent = (typeof opts.onComment === 'function')
-        ? await opts.onComment(c, home, msg).then(r => (r && r.ok === false) ? r : { ok: true })
+        ? await opts.onComment(c, home, msg, { confirms: true }).then(r => (r && r.ok === false) ? r : { ok: true })
         : await negoPostToChannel(c, home, msg);
       if (sent && sent.ok) msg.sentAt = (window.nowISO ? window.nowISO() : new Date().toISOString());
       if (sent && sent.ok && opts.persist !== false && window.persist) persist(c);

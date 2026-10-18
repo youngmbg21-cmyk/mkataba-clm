@@ -133,3 +133,103 @@ describe('f731 (6) Negotiate\'s solo-send words are in both books', () => {
       assert.equal((I18N.match(new RegExp('\\n    ' + k + ': ', 'g')) || []).length, 2, k + ' in both books');
   });
 });
+
+/* ---------------- the #340 review: every place the same fault appeared ---------------- */
+
+describe('f731 (7) a reminder names only somebody the server would mail', () => {
+  const users = [{ id: 'u1', name: 'Wanjiku Kamau', email: 'wanjiku@x.co.ke' }, { id: 'u2', name: 'Amina Otieno', email: 'amina@x.co.ke' }];
+  const mk = allow => loadViews(['js/obligations.js'], { getUsers: () => users, canAccessFolder: (fid, u) => allow(u), currentUser: () => users[1] });
+  const o = { id: 'o1', desc: 'Pay the deposit', due: '2026-10-25', status: 'open', party: 'ours', assignee: 'Wanjiku Kamau' };
+  const c = { id: 'MK-1', folder: 'proc', counterparty: 'Kabras', obligations: [o], owner: { id: 'u2', name: 'Amina Otieno' } };
+  const line = w => w.obligationReminderLine(o, c).replace(/<[^>]+>/g, '');
+  test('the assignee who cannot open the stream is passed over for the owner; nobody, and it says so', () => {
+    assert.match(line(mk(() => true)), /Wanjiku/, 'both can open: the assignee');
+    const w1 = mk(u => u.id !== 'u1');
+    assert.ok(!/Wanjiku/.test(line(w1)) && /Amina/.test(line(w1)), 'the assignee cannot: the owner, as contractOwnerRecipient');
+    const w0 = mk(() => false);
+    assert.equal(w0.obligationOwnerTo(c), null, 'an owner who cannot open it is nobody\'s reminder either');
+    assert.ok(!/Wanjiku|Amina/.test(line(w0)), 'nobody can: no name is promised');
+  });
+  test('the reminder sentence and the agents page ask the same', () => {
+    const ob = strip(R('js/obligations.js'));
+    assert.equal((ob.match(/const m = obligationReachable\(obligationReminderTo\(o\), c\);/g) || []).length, 2, 'the sentence and the one line');
+    assert.match(fnOf(R('js/views/agents.js'), 'agForName'), /canAccessFolder\(c\.folder \|\| '', to0\)/);
+  });
+});
+
+describe('f731 (8) a copy that leaves the live paper carries no scan mark', () => {
+  test('docBody draws the flags only when not asked for { marks:false }', () => {
+    const f = strip(fnOf(R('js/views/contract.js'), 'docBody'));
+    assert.match(f, /^function docBody\(c, opts\)/);
+    assert.match(f, /if\(!\(opts&&opts\.marks===false\)\) try\{ \(window\.openFindings\?openFindings\(c\):\[\]\)/);
+  });
+  test('the sealed copy, the other side\'s view, the adviser\'s two copies, Jambo\'s text and the amendment\'s reading all ask for it', () => {
+    const core = strip(R('js/core.js'));
+    assert.match(strip(fnOf(R('js/core.js'), 'freezeContractHtml')), /docBody\(c,\{ marks:false \}\)/, 'the seal');
+    assert.match(core, /return docBody\(c,\{ marks:false \}\)\|\|undefined;/, 'the view link');
+    assert.match(strip(fnOf(R('js/core.js'), 'shareAdviceBody')), /docBody\(c,\{ marks:false \}\)/, 'an adviser\'s clauses');
+    assert.match(strip(fnOf(R('js/adviserlink.js'), 'adviserClauses')), /docBody\(c,\{ marks:false \}\)/, 'an adviser\'s link');
+    assert.match(strip(fnOf(R('js/views/intelligence.js'), 'contractPlainText')), /docBody\(c,\{ marks:false \}\)/, 'what Jambo is sent');
+    assert.match(strip(fnOf(R('js/family.js'), 'amendParentHtml')), /docBody\(parent,\{ marks:false \}\)/, 'the amendment\'s parent');
+  });
+});
+
+describe('f731 (9) the short title wherever risks are named', () => {
+  test('the triage strip\'s tile and the health report ask riskTitleOf', () => {
+    assert.match(strip(R('js/triage.js')), /rkOpen\.slice\(0, 2\)\.map\(rkName\)/);
+    assert.match(strip(R('js/views/healthreport.js')), /riskTitleOf\(\{ src:'scan', id:f\.id/);
+  });
+});
+
+describe('f731 (10) closing an unanswered handover declines through the one act', () => {
+  test('outsideCloseDeal reopens, then contractDecline', () => {
+    const f = strip(fnOf(R('js/views/handover.js'), 'outsideCloseDeal'));
+    assert.ok(f.indexOf("outsideAct(c, 'reopen'") > 0 && f.indexOf('await contractDecline(c, why)') > f.indexOf("outsideAct(c, 'reopen'"));
+  });
+});
+
+describe('f731 (11) the words', () => {
+  const I18N = R('js/i18n.js');
+  const both = k => (I18N.match(new RegExp('\\n    ' + k + ': ', 'g')) || []).length;
+  test('no Swedish line calls Jambo "anslutet"', () => assert.ok(!/Jambo är inte anslutet/.test(I18N)));
+  test('the new sentences are in both books', () => {
+    for (const k of ['co_reshare_stranded', 'ng_comment_posted', 'ng_comment_not_sent', 'ng_comment_no_channel', 'srv_member_name_taken'])
+      assert.equal(both(k), 2, k);
+    assert.match(I18N, /'Another member already has that name\.': 'srv_member_name_taken'/, 'the server\'s refusal is translated');
+  });
+  test('the stranded line, the WhatsApp line and the comment lines say themselves, in the reader\'s words', () => {
+    const core = strip(R('js/core.js'));
+    assert.match(core, /const reshareStrandedLine = who => i18t\('co_reshare_stranded',\{ who \}\);/);
+    assert.match(core, /WhatsApp opened so you can send it to \$\{who\}`,'ok'\)/);
+    assert.equal((core.match(/out\.recipient\.phone\|\|i18t\('ng_the_counterparty'\)/g) || []).length, 2, 'both standing-link callers');
+    for (const f of ['js/views/negotiation.js', 'js/views/contract.js']) {
+      const src = strip(R(f));
+      assert.ok(!/toast\(`Comment posted on #/.test(src), f + ': no English comment toast');
+      assert.match(src, /i18t\('ng_comment_posted', ?\{ ?id: ?ch\.id/, f);
+    }
+    assert.match(strip(R('js/views/negotiation.js')), /c\.counterpartyName \|\| c\.counterparty \|\| i18t\('ng_the_counterparty'\)/);
+  });
+  test('one comment, one confirmation: the drawer says it, so the portal\'s handler stays quiet there', () => {
+    assert.match(strip(R('js/views/negotiation.js')), /opts\.onComment\(c, home, msg, \{ confirms: true \}\)/);
+    assert.match(strip(R('js/views/portal.js')), /if\(!\(how&&how\.confirms\)\) toast\(i18t\('di_comment_sent_to'/);
+  });
+});
+
+describe('f731 (12) every Open contract on these pages lands on Home', () => {
+  test('the Requests list\'s second press, as its panel\'s button', () => {
+    assert.match(strip(R('js/views/intake.js')), /else if\(r&&r\.contractId\)\{ if\(!\(typeof pdOpenOnHome==='function'&&pdOpenOnHome\(r\.contractId,'open'\)\)\) openWorkspace\(r\.contractId\); \}/);
+  });
+  test('the narrow Our standards page, as the wide one', () => {
+    const lib = strip(R('js/views/library.js'));
+    assert.match(lib, /\[data-dev-open\]'\)\.forEach\(b=>b\.addEventListener\('click',\(\)=>sdOpenContract\(/);
+    assert.ok(!/\[data-dev-open\]'\)\.forEach\(b=>b\.addEventListener\('click',\(\)=>openWorkspace\(/.test(lib));
+  });
+});
+
+describe('f731 (13) with no server, two members still may not share a name', () => {
+  test('the drawer refuses a new or changed name another member has', () => {
+    const f = strip(fnOf(R('js/views/settings.js'), 'settingsSavePerson'));
+    assert.match(f, /if\(!\(typeof API_MODE==='function'&&API_MODE\(\)\)\)\{/);
+    assert.match(f, /stDrawerRefuse\(i18t\('srv_member_name_taken'\)\)/);
+  });
+});

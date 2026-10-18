@@ -2178,7 +2178,9 @@ function openDerivedLinkDialog(d, org){
    component, and only the room had this — so the reply box on the embedded copy
    reported "comment posted" and posted it nowhere, onto a record thrown away on
    the next repaint. */
-const portalNegoComment = p => async (_c, ch, msg) => {
+/* `how.confirms`: the Notes drawer says "sent" itself (rlNotesSend), so the
+   handler stays quiet there; the change card has no line of its own. */
+const portalNegoComment = p => async (_c, ch, msg, how) => {
   if(!PORTAL_OPTS.token){ toast(i18t('po_no_channel_back'),'err'); return { ok:false }; }
   const author=await portalEnsureResponderName();
   if(!author){ toast(i18t('po_enter_full_name'),'err'); return { ok:false }; }
@@ -2191,7 +2193,7 @@ const portalNegoComment = p => async (_c, ch, msg) => {
         topicLabel: ch ? `Change #${ch.id}${ch.clauseLabel?' · '+ch.clauseLabel:''}` : i18t('di_contract_generally'),
         body:msg.text, meta:(window.negoNoteMeta?negoNoteMeta(msg):undefined) });
     PORTAL_OPTS.messages=(res&&res.messages)||PORTAL_OPTS.messages||[];
-    toast(i18t('di_comment_sent_to',{ who:(p&&p.org)||i18t('di_the_sender') }),'ok');
+    if(!(how&&how.confirms)) toast(i18t('di_comment_sent_to',{ who:(p&&p.org)||i18t('di_the_sender') }),'ok');
     portalNotesAfterPost();
     return { ok:true };
   }catch(e){ toast(portalErrText(e,'Could not send your comment'),'err'); return { ok:false }; }

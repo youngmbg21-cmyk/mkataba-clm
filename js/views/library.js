@@ -3200,7 +3200,8 @@ function renderPlaybookPage(){
   </div>`;
 
   renderClauseLibrary();   // fills #clause-lib and #playbook-view, wires edit/add/remove
-  document.querySelectorAll('[data-dev-open]').forEach(b=>b.addEventListener('click',()=>openWorkspace(b.getAttribute('data-dev-open'))));
+  /* the narrow drawing opens a departure's contract as the wide one does */
+  document.querySelectorAll('[data-dev-open]').forEach(b=>b.addEventListener('click',()=>sdOpenContract(b.getAttribute('data-dev-open'))));
   }
   /* A tab press is CLASS AND HIDDEN FLIPS, never a re-render: the clause
      library holds open editors and scroll the reader is in the middle of,
