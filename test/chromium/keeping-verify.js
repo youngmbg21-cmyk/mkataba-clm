@@ -104,7 +104,7 @@ const K = (id, name, end, over = {}) => ({ ...H.fixtureContract(id, name, 'Rift 
     const need = await until(() => { if (typeof renderTeam === 'function' && !document.querySelector('#st-att [data-st-need="keep:sales"]')) renderTeam();
       const r = document.querySelector('#st-att [data-st-need="keep:sales"]'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : null; });
     check('3a "Ready to delete · Sales & Route-to-Market — 2 contracts past their keeping period, waiting for an admin\'s yes"', !!need
-      && /Ready to delete · Sales & Route-to-Market · 2 contracts past their keeping period, waiting for an admin's yes Review$/.test(need), need);
+      && /Ready to delete · Sales & Route-to-Market 2 contracts past their keeping period, waiting for an admin's yes Review$/ /* two lines a row since round 25 */.test(need), need);
     if (await press('#st-att [data-st-need="keep:sales"] .st-need-go', '3b Review')) {
       const on = await until(() => { const d = document.getElementById('st-drawer'); const t = document.querySelector('#st-ps .st-ps-tab.is-on');
         return d && d.classList.contains('open') && t ? t.getAttribute('data-st-ps-tab') : null; });
