@@ -249,7 +249,7 @@ function landOn(target, opts = {}){
   });
 }
 /* the reader's next press or key puts the light out */
-if (typeof document !== 'undefined' && !document._landWired){
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._landWired){
   document._landWired = true;
   /* the press that sent the reader here came before the light (the lander
      runs after its click), so any press now is the next one */

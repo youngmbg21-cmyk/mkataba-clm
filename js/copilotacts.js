@@ -1568,7 +1568,7 @@ function caSlTake(i){
   P.inp.value = ''; caSlClose();
   caPlaceRun(r.k);
 }
-if (typeof document !== 'undefined' && !document._caSlWired){
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._caSlWired){
   document._caSlWired = true;
   document.addEventListener('input', e => { const t = e.target; if (t && t.matches && t.matches('[data-ca-slash]')) caSlRead(t); });
   document.addEventListener('keydown', e => {
