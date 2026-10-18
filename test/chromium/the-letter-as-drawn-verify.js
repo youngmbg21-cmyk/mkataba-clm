@@ -132,7 +132,7 @@ async function mkUser(h, admin, name, email){
       && JSON.stringify(F1.acts) === JSON.stringify(['Send to Anna', 'Cancel']), JSON.stringify({ t: F1.title, a: F1.acts }));
     check('1d "Before you send" is a face of Jambo\'s panel, its way back in the row, the ask box at its foot, beside the page',
       F1.faceWord === 'Before you send' && F1.back && /^This is the email Anna will get, word for word\./.test(F1.jsay || '') && F1.ask && F1.beside, JSON.stringify(F1));
-    await shot(page, 'the-letter-as-drawn-1440x780');
+    await shot(page, '11-letter-first-1440x780');
 
     /* 2 the letter */
     await page.fill('#sh-summary', NOTE);
@@ -246,7 +246,7 @@ async function mkUser(h, admin, name, email){
         return { send: sr.top >= 0 && sr.bottom <= innerHeight && !!hit && send.contains(hit), title: title.getBoundingClientRect().top >= pn.top,
           beside: pn.right <= dock.left + 1 && letter.right <= dock.left, side: document.documentElement.scrollWidth <= innerWidth + 1 }; });
       check(`7 ${w}×${ht}: the head and Send in view, the letter beside the panel, nothing sideways`, Z.send && Z.title && Z.beside && Z.side, JSON.stringify(Z));
-      await shot(page, `the-letter-as-drawn-${w}x${ht}`);
+      await shot(page, `11-letter-${w}x${ht}`);
       await page.evaluate(() => { try { closeModal(); } catch (_) {} });
     }
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }

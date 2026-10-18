@@ -5243,7 +5243,7 @@ function shareLetterOf(c, st){
      where the company asks for it (the link's own gate, linkCodeCfg). */
   const pc=(s.payload&&s.payload.contract)||{};
   return { ...shareMailOf({ ...base, title:me.title||'', channel:'email', purpose:s.purpose, expires:shareLetterExpires(),
-    round:shareRoundOf(pc.negotiation), answers:shareAnswersOf(pc),
+    round:shareRoundOf(pc.negotiation), answers:shareAnswersOf(pc, c),
     codeOn:!!(typeof linkCodeCfg==='function' && linkCodeCfg().on) }), head:true, letter:true };
 }
 function shareLetterPartsHtml(parts){

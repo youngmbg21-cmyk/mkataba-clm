@@ -18406,7 +18406,9 @@ const RL_SUG_VERB = {
   /* on Home the review door is a row of the panel's Menu tab (15 Oct 2026; the
      paper line's ⋯ went), so the row glows where the tab is open and the tab's
      own button while it is shut */
-  escalate: () => '[data-rl-review], #pd-body .pd-menu [data-ig-review], #ig-dock [data-pd-tab="menu"]',
+  /* … and since round 9 as drawn the Redlines column's own head carries "Ask
+     for review" ([data-rl-review-go]), which is where it glows on the face */
+  escalate: () => '[data-rl-review], [data-rl-review-go]:not(:disabled), #pd-body .pd-menu [data-ig-review], #ig-dock [data-pd-tab="menu"]',
 };
 const _rlGlowDone = new Set();
 /* RAW: their pending asks carrying an answer the reader sent back. */
@@ -18470,7 +18472,7 @@ function rlPaintCopilotAnswers(root, c, opts = {}){
 if (typeof document !== 'undefined' && !document._rlGlowWired){
   document._rlGlowWired = true;
   document.addEventListener('click', e => {
-    const t = e.target && e.target.closest && e.target.closest('[data-nego-accept],[data-nego-reject],[data-rl-cp-editor-change],[data-rl-review]');
+    const t = e.target && e.target.closest && e.target.closest('[data-nego-accept],[data-nego-reject],[data-rl-cp-editor-change],[data-rl-review],[data-rl-review-go]');
     if (!t) return;
     const id = t.getAttribute('data-nego-accept') || t.getAttribute('data-nego-reject') || t.getAttribute('data-rl-cp-editor-change') || t.getAttribute('data-rl-glow-for');
     if (id) _rlGlowDone.add(id);

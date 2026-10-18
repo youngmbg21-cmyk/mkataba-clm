@@ -8,9 +8,9 @@
         turn, the trail; OFF also presses "Copy link — I'll send it myself"
         and measures that THAT is the hand-over;
      B. the send screen, Word-file channel — the same four facts;
-     C. Send all on Negotiate (#nego-send → onSendDirect →
-        reshareToLastRecipient) onto a link made earlier — OFF the link never
-        reached them, so the round hands nothing over; ON it did.
+     C. Send all on Negotiate (#nego-send → the letter, 18 Oct 2026 → its
+        Send onto the link made earlier) — OFF the link never reached them, so
+        the round hands nothing over; ON it did.
 
    Run: node test/chromium/sent-means-sent-verify.js */
 const fs = require('node:fs');
@@ -157,33 +157,37 @@ async function run(mode) {
          this press's own. */
       await page.evaluate(() => { const r = document.getElementById('toast-root'); if (r) r.innerHTML = '';
         document.getElementById('nego-send').click(); });
-      /* SEND ALL SAYS WHAT TRAVELS (the owner's 9 Oct review, A7): a batch
-         send to an address on file asks once, naming the changes, before
-         anything goes. A person answers it; so does this check. */
+      /* RE-POINTED 18 Oct 2026 (round 11's gaps, "The letter": "Every way to
+         send — Share on the paper's line, Send all on Redlines, Jambo's share —
+         opens this same screen"). SEND ALL STILL SAYS WHAT TRAVELS (the owner's
+         9 Oct review, A7) — now as the letter itself, which names the change
+         that goes — and the letter's own Send is the one act, so "sent means
+         sent" is the send screen's rule here too: delivered (ON) it hands over;
+         not delivered (OFF) nothing is handed over, the button says so, and the
+         result box's "Copy link — I'll send it myself" is the person's own
+         hand-over. */
       const asked = await waitFor(page, () => {
-        const ok = document.querySelector('#confirm-overlay #cf-ok');
-        return ok ? (document.getElementById('confirm-overlay').textContent || '').replace(/\s+/g, ' ').trim() : null;
-      }, null, 5000);
-      check(tag('Send all: asks once, naming what travels'), !!asked && /Send 1 change/i.test(asked) && /Each party shall keep/.test(asked), (asked || '').slice(0, 140));
-      if (asked) await page.click('#confirm-overlay #cf-ok');
-      await pause(400);
-      const toastText = await waitFor(page, () => {
-        const t = document.getElementById('toast-root'); const s = t && t.textContent.trim();
-        return s && /Sent|Not sent|turn/i.test(s) ? s : null;
-      });
+        const L = document.getElementById('sh-letter'), b = document.getElementById('share-send');
+        return L && b && !b.disabled ? L.textContent.replace(/\s+/g, ' ').trim() : null;
+      }, null, 10000);
+      check(tag('Send all: opens the letter, naming what travels'), !!asked && /proposes a change of its own/i.test(asked), (asked || '').slice(0, 220));
+      if (asked) await page.evaluate(() => { const ack = document.getElementById('sh-ack'); if (ack) ack.checked = true;
+        document.getElementById('share-send').click(); });
+      const lbl = await waitFor(page, () => {
+        const t = (document.getElementById('sh-send-lbl') || {}).textContent || '';
+        return /Sent|Queued|Not sent/.test(t) ? t : null;
+      }, null, 10000);
       const f = await facts('MK-D3');
       if (on) {
+        check(tag('Send all: the button says Sent'), /Sent/.test(lbl || '') && !/Queued|Not sent/.test(lbl || ''), lbl);
         check(tag('Send all: the round reached them and the move is theirs'), f.turn === 'counterparty', f.turn);
         check(tag('Send all: it left Drafting'), f.status === 'Under Review', f.status);
       } else {
         check(tag('Send all: nothing handed over — the move is still ours'), f.turn !== 'counterparty', String(f.turn));
         check(tag('Send all: still a draft'), f.status === 'Draft', f.status);
-        check(tag('Send all: the toast says it was not sent'), /Not sent/i.test(toastText || ''), toastText);
+        check(tag('Send all: the button says it was not sent'), /Queued|Not sent/i.test(lbl || ''), lbl);
         /* AND ITS ACTION IS THE PERSON'S OWN HAND-OVER (roundReachedByHand). */
-        const pressed = await page.evaluate(() => {
-          const b = [...document.querySelectorAll('#toast-root button')].find(x => /send it/i.test(x.textContent || ''));
-          if (!b) return false; b.click(); return true;
-        });
+        const pressed = await page.evaluate(() => { const b = document.getElementById('share-by-hand'); if (!b) return false; b.click(); return true; });
         const g = pressed ? await waitFor(page, () => {
           const c = state.contracts.find(x => x.id === 'MK-D3');
           return c.negotiation && c.negotiation.turn === 'counterparty' ? c.status : null; }) : null;

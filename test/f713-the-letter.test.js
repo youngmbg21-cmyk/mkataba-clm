@@ -83,8 +83,8 @@ describe('f713 (1) the email\'s words, written once', () => {
        the round, the answers and the sender's title, and mails its HTML part
        beside the text; a link they already hold mails the same letter */
     assert.match(SRV, /const \{ shareMailOf, signerTurnMailOf, shareRoundOf, shareAnswersOf \} = require\('\.\.\/js\/sharemail\.js'\);/);
-    assert.match(SRV, /const mail = shareMailOf\(\{ channel: 'email', purpose: purp, sender: req\.user\.name, title: req\.user\.title \|\| '', org: payload\.org,\n\s+cName, recName: rec\.name, message, link, expires,\n\s+round: shareRoundOf\(pc\.negotiation\), answers: shareAnswersOf\(pc\), codeOn: shareCodeOn\(\) && purp !== 'status' \}\);/);
-    assert.match(SRV, /const mail = shareMailOf\(\{ channel: 'email', purpose: sharePurposeOf\(s\), sender: req\.user\.name,[\s\S]{0,400}?round: shareRoundOf\(pc\.negotiation\), answers: shareAnswersOf\(pc\), codeOn: shareNeedsCode\(s\) \}\);\n\s+const r = await sendEmail\(s\.recipient_email, mail\.subject, mail\.body, `share letter: \$\{link\}`, \{ html: mail\.html \}\);/);
+    assert.match(SRV, /const mail = shareMailOf\(\{ channel: 'email', purpose: purp, sender: req\.user\.name, title: req\.user\.title \|\| '', org: payload\.org,\n\s+cName, recName: rec\.name, message, link, expires,\n\s+round: shareRoundOf\(pc\.negotiation\), answers: shareAnswersOf\(pc, shareId \? srvStoredContract\(shareId\) : null\), codeOn: shareCodeOn\(\) && purp !== 'status' \}\);/);
+    assert.match(SRV, /const mail = shareMailOf\(\{ channel: 'email', purpose: sharePurposeOf\(s\), sender: req\.user\.name,[\s\S]{0,400}?round: shareRoundOf\(pc\.negotiation\), answers: shareAnswersOf\(pc, s\.contract_id \? srvStoredContract\(s\.contract_id\) : null\), codeOn: shareNeedsCode\(s\) \}\);\n\s+const r = await sendEmail\(s\.recipient_email, mail\.subject, mail\.body, `share letter: \$\{link\}`, \{ html: mail\.html \}\);/);
     assert.match(SRV, /const mail = shareMailOf\(\{ channel: 'word', purpose: histFile \? 'history' : null, sender: req\.user\.name,/);
     assert.match(SRV, /const m = signerTurnMailOf\(\{ signer, plan,/);
     const code = strip(SRV);

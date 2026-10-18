@@ -235,6 +235,10 @@ const WATCH = () => { window._walk = {}; const tick = () => {
        ("förhandlingstavla"), a long word: every chip stays on its line, inside
        Jambo's panel, at 1440×780, 1536×730 and 1366×950 */
     if (id) await page.evaluate(i => { if (typeof langSet === 'function') langSet('sv'); pdOpenOnHome(i, 'copilot'); }, id);
+    /* RE-POINTED 18 Oct 2026 (the gaps of rounds 8–11 as drawn): under a face
+       the panel draws no chips; the face still up from the signing above goes
+       back to Jambo first, by its own ‹ Jambo */
+    for (let i = 0; i < 3 && await page.$('#ig-dock [data-pd-back]'); i++){ await page.click('#ig-dock [data-pd-back]').catch(() => {}); await pause(300); }
     for (const [w, hh] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: hh });
       await pause(500);

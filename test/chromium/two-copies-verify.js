@@ -266,7 +266,8 @@ const PAGES = sel => `(() => {
        the Before you sign face is open on it, and the face stays open behind
        another of Jambo's tabs; its × (pdSignClose) puts the working copy back,
        which is how a reader leaves the signing copy on Home. */
-    await page.evaluate(() => { const x = document.querySelector('#pd-signface [data-pd-sf-close]'); if (x) x.click(); else if (window.pdSignClose) pdSignClose(); });
+    /* RE-POINTED 18 Oct 2026: the face's way back is ‹ Jambo in the panel's row (rounds 8–11 as drawn) */
+    await page.evaluate(() => { const x = document.querySelector('#ig-dock [data-pd-back="signing"]'); if (x) x.click(); else if (window.pdSignClose) pdSignClose(); });
     await page.evaluate(id => pdOpenOnHome(id, 'doc'), ID);
     await workUp();
     const workSpots = await page.evaluate(id => ({

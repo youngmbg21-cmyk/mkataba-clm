@@ -753,11 +753,14 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     `amber is ${roundActs.amber}`);
   check('14a with white on it, which accent-700 is chosen for',
     roundActs.ink === 'rgb(255, 255, 255)', roundActs.ink);
-  check('14a all three sit on one line — the row does not wrap',
+  /* RE-POINTED 18 Oct 2026 (round 9's gaps, "Piles" as drawn: "Redlines 4 ·
+     Notes · Here now", then "Round 2 · their asks came 4 days ago", then "Send
+     all · 1 not sent · Ask for review"): the head reads DOWN, one line each */
+  check('14a the head reads down: the name, then the round, then Send all',
     idxHead.title && idxHead.send && idxHead.round
-      && Math.abs(idxHead.title.mid - idxHead.send.mid) < 12
-      && Math.abs(idxHead.send.mid - idxHead.round.mid) < 12,
-    idxHead.title && `mids ${idxHead.title.mid} / ${idxHead.send && idxHead.send.mid} / ${idxHead.round && idxHead.round.mid}`);
+      && idxHead.round.mid - idxHead.title.mid >= 12
+      && idxHead.send.mid - idxHead.round.mid >= 12,
+    idxHead.title && `mids ${idxHead.title.mid} / ${idxHead.round && idxHead.round.mid} / ${idxHead.send && idxHead.send.mid}`);
 
   /* ---- 14b. THE CARD OPENS IN PLACE, AND THAT IS THE RULING ----
      REVERSED IN PLACE, 2 Sep 2026 (owner-ruled): the ⋯ is retired and the
@@ -2544,11 +2547,15 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     const editIn = id => { const card = document.querySelector('[data-nego-card="' + id + '"]');
       return card ? (card.querySelector('.rl-card-verbs .rl-edit.rl-verb-ai') || card.querySelector('.rl-edit.rl-verb-ai')) : null; };
     const e = editIn(o.held), p = panelFor(o.heldClause);
+    const lockCard = document.querySelector('[data-nego-card="' + o.held + '"]');
+    const lockMono = lockCard ? lockCard.querySelector('.rl-card-lock .rl-lock-mono') : null;
     const pb = p ? p.querySelector('.rl-cp-act-ai') : null;
     const mono = e ? e.querySelector('.rl-lock-mono') : null;
     const cs = e ? getComputedStyle(e) : null;
     const fe = editIn(o.free), fp = panelFor(o.freeClause);
     return {
+      lock: lockMono ? { mono: lockMono.textContent.trim(), monoBox: seen(lockMono),
+        say: ((lockCard.querySelector('.rl-card-lock') || {}).textContent || '').replace(/\s+/g, ' ').trim() } : null,
       edit: e ? { mono: mono ? mono.textContent.trim() : null, monoBox: seen(mono),
         disabled: e.disabled === true, text: e.textContent.replace(/\s+/g, ' ').trim(),
         box: seen(e), way: e.hasAttribute('data-rl-cp-editor-row'),
@@ -2608,10 +2615,15 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       !!before.edit && before.edit.way === true && before.freePanel === true,
       JSON.stringify({ edit: before.edit && before.edit.way, box: before.edit && before.edit.box,
         panel: before.freePanel }));
-    check('25l the card\'s Edit wears the monogram as VISIBLE PIXELS',
-      !!after.edit && after.edit.mono === 'RC' && !!after.edit.monoBox &&
-      after.edit.monoBox.w > 0 && after.edit.monoBox.h > 0,
-      JSON.stringify(after.edit && { mono: after.edit.mono, box: after.edit.monoBox }));
+    /* RE-POINTED 18 Oct 2026 (round 9's gaps, "Piles" as drawn: "Erik is
+       editing this clause · Ask for it" on the row, its Counter grey and
+       plain): on our seat the monogram rides the row's own lock line, which
+       names the holder in words, and the Edit beside it is drawn grey without
+       a second monogram. Their seat keeps the monogram on the verb. */
+    check('25l the row\'s lock line wears the monogram as VISIBLE PIXELS, and names who holds it',
+      !!after.lock && after.lock.mono === 'RC' && !!after.lock.monoBox && after.lock.monoBox.w > 0 && after.lock.monoBox.h > 0
+        && /Ruth is editing this clause/.test(after.lock.say) && !!after.edit && after.edit.mono === null,
+      JSON.stringify({ lock: after.lock, editMono: after.edit && after.edit.mono }));
     /* RE-POINTED 15 Sep 2026: the face says the artifact's one word, so the
        locked door says the same word as the free one beside it. THE CLAIM IS
        UNCHANGED and is the whole point of the lock's shape — the column does

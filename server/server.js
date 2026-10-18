@@ -17772,7 +17772,7 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     const pc = (payload && payload.contract) || {};
     const mail = shareMailOf({ channel: 'email', purpose: purp, sender: req.user.name, title: req.user.title || '', org: payload.org,
       cName, recName: rec.name, message, link, expires,
-      round: shareRoundOf(pc.negotiation), answers: shareAnswersOf(pc), codeOn: shareCodeOn() && purp !== 'status' });
+      round: shareRoundOf(pc.negotiation), answers: shareAnswersOf(pc, shareId ? srvStoredContract(shareId) : null), codeOn: shareCodeOn() && purp !== 'status' });
     const r = await sendEmail(email,
       mail.subject,
       mail.body, `share link: ${link}`, { html: mail.html });
@@ -19261,7 +19261,7 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
     if (note) db.prepare('UPDATE shares SET message=? WHERE token=?').run(note, s.token);
     const mail = shareMailOf({ channel: 'email', purpose: sharePurposeOf(s), sender: req.user.name, title: req.user.title || '',
       org: payload.org, cName: pc.name || s.contract_id || 'a contract', recName: String(letter.recName || s.recipient_name || '').slice(0, 120),
-      message: note, link, expires: s.expires_at, round: shareRoundOf(pc.negotiation), answers: shareAnswersOf(pc), codeOn: shareNeedsCode(s) });
+      message: note, link, expires: s.expires_at, round: shareRoundOf(pc.negotiation), answers: shareAnswersOf(pc, s.contract_id ? srvStoredContract(s.contract_id) : null), codeOn: shareNeedsCode(s) });
     const r = await sendEmail(s.recipient_email, mail.subject, mail.body, `share letter: ${link}`, { html: mail.html });
     emailSent = !!r.sent; emailError = r.detail || null;
     if (!emailSent && !emailError) emailError = mailReport(r).emailError;

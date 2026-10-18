@@ -103,6 +103,13 @@ describe('f755 (2) what the send answers', () => {
     assert.deepEqual(a.own.map(o => o.clause), ['Clause 10 · Subcontractors']);
     assert.equal(JSON.stringify(c), before, 'a reading writes nothing');
   });
+  test('2c2 the copy that travels does not carry when an answer was given: the record says it, by id', () => {
+    const copy = { negotiation: { turnAt: T1 }, changes: [{ id: 'R', authorSide: 'counterparty', status: 'rejected', clauseLabel: '4. Fees' }] };
+    assert.deepEqual(M.shareAnswersOf(copy).lines, [], 'from the copy alone nothing can be said');
+    const stored = { changes: [{ id: 'R', resolvedAt: T2 }] };
+    assert.deepEqual(M.shareAnswersOf(copy, stored).lines.map(l => l.clause + ': ' + l.say), ['Clause 4 · Fees: they keep the current wording.']);
+    assert.ok(!('resolvedAt' in copy.changes[0]), 'and the copy is not written to');
+  });
   test('2d a clause\'s label, said one way', () => {
     assert.deepEqual(M.shareClauseParts('11. Payment terms'), { n: '11', name: 'Payment terms' });
     assert.deepEqual(M.shareClauseParts('Clause 7 · Liability cap'), { n: '7', name: 'Liability cap' });
@@ -156,7 +163,7 @@ describe('f755 (4) both routes mail the letter', () => {
     const at = SRV.indexOf("const mail = shareMailOf({ channel: 'email', purpose: purp,");
     assert.ok(at > 0, 'the share route builds the letter');
     const call = SRV.slice(at, SRV.indexOf('});', at) + 3);
-    for (const bit of ["title: req.user.title || ''", 'round: shareRoundOf(pc.negotiation)', 'answers: shareAnswersOf(pc)', "codeOn: shareCodeOn() && purp !== 'status'"])
+    for (const bit of ["title: req.user.title || ''", 'round: shareRoundOf(pc.negotiation)', 'answers: shareAnswersOf(pc, shareId ? srvStoredContract(shareId) : null)', "codeOn: shareCodeOn() && purp !== 'status'"])
       assert.ok(call.includes(bit), bit);
     assert.match(SRV.slice(at, at + 900), /sendEmail\(email,\s*mail\.subject,\s*mail\.body,[\s\S]{0,200}?\{ html: mail\.html \}\)/, 'the inbox gets the button');
   });
@@ -166,7 +173,7 @@ describe('f755 (4) both routes mail the letter', () => {
     const route = SRV.slice(at, SRV.indexOf('\napp.', at + 10));
     assert.match(route, /letter/, 'the route takes a letter');
     assert.match(route, /shareMailOf\(\{ channel: 'email', purpose: sharePurposeOf\(s\)/);
-    assert.match(route, /answers: shareAnswersOf\(pc\), codeOn: shareNeedsCode\(s\)/);
+    assert.match(route, /answers: shareAnswersOf\(pc, s\.contract_id \? srvStoredContract\(s\.contract_id\) : null\), codeOn: shareNeedsCode\(s\)/);
     assert.match(route, /\{ html: mail\.html \}/);
     assert.match(route, /emailSent = !!r\.sent; emailError = r\.detail \|\| null;/, '"sent" means sent');
   });

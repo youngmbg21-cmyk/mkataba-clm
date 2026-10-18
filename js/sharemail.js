@@ -107,13 +107,20 @@ const _smFigSay = (f, bare) => !f ? '' : f.unit === '%' ? f.n + '%' : (f.unit &&
    turnAt), and which of them this send answers (decided since, or countered by
    a change of ours that travels in it); and our own new asks. Nothing is
    written; the same reading on both hosts. */
-function shareAnswersOf(contract){
+/* `stored` (optional): the whole record the copy was made from. The copy that
+   travels does not carry WHEN a change was decided (the payload is an
+   allow-list, and that stays ours), so the day an answer was given is read
+   from the record by id — the copy still decides WHAT travels. */
+function shareAnswersOf(contract, stored){
   const ch = Array.isArray(contract && contract.changes) ? contract.changes.filter(Boolean) : [];
   const at = String(((contract && contract.negotiation) || {}).turnAt || '');
   const byId = new Map(ch.map(x => [String(x.id), x]));
+  const rec = new Map((Array.isArray(stored && stored.changes) ? stored.changes : []).filter(Boolean).map(x => [String(x.id), x]));
+  const decidedAt = x => String(x.resolvedAt || (rec.get(String(x.id)) || {}).resolvedAt || '');
   const ours = x => x && x.authorSide !== 'counterparty';
   const fresh = x => !at || String(x.createdAt || '') > at;
-  const since = x => !!at && String(x.resolvedAt || '') > at;
+  /* never handed over in this record (no turnAt): every answer given is this send's */
+  const since = x => !!decidedAt(x) && (!at || decidedAt(x) > at);
   const theirs = ch.filter(x => x.authorSide === 'counterparty' && !x.withdrawn && x.status !== 'superseded'
     && (x.status === 'pending' || x.status === 'countered' || ((x.status === 'accepted' || x.status === 'rejected') && since(x))));
   const used = new Set();

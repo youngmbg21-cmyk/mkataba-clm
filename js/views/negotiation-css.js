@@ -6433,7 +6433,9 @@ function redlineLayoutCss(){
   .redline-page .rl-head-here .pz-row{height:auto}
   ${''/* EACH PILE ITS OWN BOX: a grey band naming it with its count in a pill,
          the rows under it on hairlines, the settled fold a box of its own. */}
-  .redline-page #rl-changes{padding:4px 12px 12px}
+  ${''/* only round the piles: an empty column keeps the head's one left edge
+         (the owner's 10 Sep alignment, redline-verify 23) */}
+  .redline-page #rl-changes:has(> .rl-pile){padding:4px 12px 12px}
   .redline-page .rl-pile{border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:var(--color-surface);
     margin:0 0 10px;overflow:hidden}
   .redline-page .rl-pile > .rl-band,.redline-page .rl-pile > .rl-band:first-child{display:flex;align-items:center;gap:8px;margin:0;
@@ -6446,7 +6448,7 @@ function redlineLayoutCss(){
   .redline-page .rl-pile.rl-pile-quiet > .rl-band{border-bottom:0;background:var(--color-surface)}
   .redline-page #rl-changes-col.rl-settled-open .rl-pile.rl-pile-quiet > .rl-band{border-bottom:1px solid var(--color-divider)}
   .redline-page .rl-pile > .rl-card-d:last-child{border-bottom:0}
-  .redline-page .rl-pile .rl-card-d,.redline-page .rl-pile .rl-band + .rl-card-d{padding:11px 12px}
+  .redline-page .rl-pile .rl-card-d,.redline-page .rl-pile .rl-band + .rl-card-d{padding:10px 12px}
   ${''/* THE ROW: the clause, "2 notes" beside it, who and when at the wall; the
          changed words with their marks; their reason; the lock line; the verbs
          from the left, as drawn. */}
