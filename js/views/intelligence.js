@@ -1395,6 +1395,9 @@ function igConditions(text){
     if(h) add('expired', c=>(typeof contractExpired==='function')?(live(c)&&contractExpired(c)):(()=>{ const e=_gExpiryDay(c); const d=e?daysUntil(e):null; return d!=null&&d<0; })(), 'expired', h); }
   // the record's own flags
   { const h=hit(/ (?:overdue|late obligations|past due|försenade|förfallna) /); if(h) add('overdue', c=>graphNodeFacts(c).overdue>0, 'overdue', h); }
+  /* brought in through Import (the imports trial, 18 Oct 2026): its words and
+     its reading are the one fact list's (caHereFact, js/copilotacts.js) */
+  { const f=(typeof window.caHereFact==='function')?caHereFact('imported'):null; const m=f&&t.match(f.re); if(m) add('imported', f.of, 'imported', m[0].trim()); }
   { const h=hit(/ (?:waiting on us|our move|mine to answer|väntar på oss|vårt drag) /); if(h) add('waiting on us', c=>{ try{ const w=negWhoseMove(c); return !!w&&w.k==='you'; }catch(_){ return false; } }, 'move', h); }
   { const h=hit(/ (?:waiting on them|their move|with the other side|väntar på dem|deras drag) /); if(h) add('waiting on them', c=>{ try{ const w=negWhoseMove(c); return !!w&&w.k==='them'; }catch(_){ return false; } }, 'move', h); }
   /* DEAL FACTS (5 Oct 2026, the board's Part 8). "Stalled" is said as what
@@ -1973,12 +1976,23 @@ async function intelAsk(qRaw){
     renderIntelDock(); return;
   }
   const tplAsk=IG_TEMPLATE_RE.test(q);
+  /* ANSWER WHERE YOU STAND (the imports trial, owner 18 Oct 2026): a request to
+     SEE contracts the screen in front can show is answered there, and the page
+     that also holds them is a door under the answer (caHereRead). The
+     Contracts place narrows its list now; on Explorer no page word is read,
+     so the map's own reader below narrows the map. */
+  const here=(typeof window.caHereRead==='function')?caHereRead(q):null;
+  if(here&&here.screen==='contracts'&&typeof window.caHereOnList==='function'){
+    const done=caHereOnList(here,q);
+    if(done){ intel.history.push({role:'user', text:q}, {role:'assistant', text:igEsc(done.say), act:done}); renderIntelDock(); return; }
+  }
+  const hereMap=!!(here&&here.screen==='explorer');
   /* ---- COPILOT PREPARES, YOU PRESS (Young, 7 Oct 2026) ----
      Sending a contract to a colleague (@ a person, # a contract) and drafting
      one from a sentence are read here, from the words alone, and answered
      with a card that waits for a press (js/copilotacts.js). Nothing spends,
      nothing is sent; anything else goes on exactly as before. */
-  if(typeof window.caActOf==='function'){
+  if(!hereMap&&typeof window.caActOf==='function'){
     let act=null; try{ act=caActOf(q); }catch(_){ act=null; }
     if(act){
       /* LAND ON IT (owner, 18 Oct 2026): a card a word answers with (draft,
@@ -2027,7 +2041,7 @@ async function intelAsk(qRaw){
     let said=null; if(br){ try{ said=hbAsk(q); }catch(_){ said=null; } }
     if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{})); renderIntelDock(); return; }
   }
-  if(state.view==='dashboard' && !onPaperSide && !tplAsk && typeof window.hbAsk==='function'){
+  if(state.view==='dashboard' && !onPaperSide && !tplAsk && !hereMap && typeof window.hbAsk==='function'){
     let said=null; try{ said=hbAsk(q); }catch(e){ said=null; }
     if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{}, rdOf(), typeof window.hbBoardReplyMeta==='function'?hbBoardReplyMeta():{})); renderIntelDock(); return; }
   }
@@ -2076,6 +2090,9 @@ async function intelAsk(qRaw){
     intel.history.push({role:'assistant', text:'Something went wrong: '+igEsc(e.message), err:true});
   }
   intel.busy=false;
+  /* the page that also holds what the map now shows is a door under the answer */
+  if(hereMap){ const m=intel.history.slice(h0).reverse().find(x=>x&&x.role==='assistant'&&!x.err);
+    if(m&&!m.act) m.act=Object.assign({}, here); }
   rebuildIntelGraph(); renderIntelDock();
   /* ASKED ON HOME'S BOARD, ANSWERED ON THE BOARD (4 Oct 2026): a list that
      came back from Copilot or the map is drawn on the board as well. */
@@ -2134,7 +2151,9 @@ function graphCopilotCard(c){
     parentId:c.parentId||'', relation:c.relation||'',
     move, live, overdue:f.overdue, nextDue:graphNextDue(c)||'',
     offStandard:f.offStandard, risk:c.scan?riskScore(c):null, read:(f.unread==null)?null:!f.unread,
-    archived:!!c.archived, source:c.source||'' };
+    archived:!!c.archived, source:c.source||'',
+    /* brought in through Import: the one fact list's reading (CA_HERE_FACTS) */
+    imported:!!(c&&c.migration) };
   /* a salary carries no deal value, so it never matches a money cut (fxIsPay) */
   if(money&&!(typeof fxIsPay==='function'&&fxIsPay(c))) card.value=Number(c.value||0);
   return card;
@@ -2145,7 +2164,7 @@ function graphCopilotCard(c){
    condition reads the card the model was sent; a card carrying no value never
    matches a money cut (an absence is stated, not guessed). Returns null where
    nothing in `where` narrows. */
-const GRAPH_WHERE_KEYS=['status','folder','kind','counterparty','valueAbove','valueBelow','expiringWithinDays','signedFrom','signedTo','overdueObligations','offStandard','notRead','move','archived'];
+const GRAPH_WHERE_KEYS=['status','folder','kind','counterparty','valueAbove','valueBelow','expiringWithinDays','signedFrom','signedTo','overdueObligations','offStandard','notRead','move','archived','imported'];
 function graphWhereIds(where){
   /* THE PREDICATE IS SHARED (js/graphwhere.js, Copilot audit phase 4): the
      chat's list_portfolio applies the same one on the server over its own

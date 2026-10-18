@@ -41,6 +41,8 @@ function graphWhereHit(k, w, reads){
   if (w.notRead != null){ if (!!w.notRead !== (k.read === false)) return false; }
   if (w.move != null){ const want = fold(w.move); const mv = want === 'mine' || want === 'you' || want === 'us' ? 'you' : want === 'theirs' || want === 'them' ? 'them' : want; if (k.move !== mv) return false; }
   if (w.archived != null){ if (!!w.archived !== !!k.archived) return false; }
+  /* brought in through Import (the imports trial, 18 Oct 2026) */
+  if (w.imported != null){ if (!!w.imported !== !!k.imported) return false; }
   return true;
 }
 const GW_API = { graphWhereNarrow, graphWhereHit };

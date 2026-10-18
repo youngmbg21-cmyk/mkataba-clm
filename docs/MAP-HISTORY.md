@@ -31001,3 +31001,30 @@ WHAT WAS BUILT.
 LEFT ALONE: the Board analyst's date (ai/graph) is still the server's UTC day (BUGLOG). The no-key keyword engine (aiAnswer) unchanged. Templates builder's outline box, draft and amend boxes, Settings' Jambo and the clause editor were checked and needed nothing.
 
 TESTS. f735 (16 claims; every one red at main 25f73d70), jambo-window-follows-the-ask-verify (red at 25f73d70: 1, 2a, 2b, 3a–3d, 4a, 4b, 4d), photographed at 1440×780, 1536×730 and 1366×950 (the window inside the page at all three). Sweeps: none of the 536 everyday task phrases, 99 f705 questions or 144 sentences other browser checks type changes route under the new calendar words, and none of the typed sentences changes the report route. Green alongside: f132, f183, f211, f268, f283, f290, f292, f297, f299, f305, f399, f400, f694, f705, f706, f732, f98, f232, f48, f148, f561, f564, f641; jambo-everywhere, jambo-follows-the-ask, answer-worklist, jambo-guides-through, my-calendar, insights-panels, copilot-reads-every-change verify.
+
+## ANSWER WHERE YOU STAND — THE IMPORTS TRIAL (18 Oct 2026)
+
+THE OWNER'S WORDS: "Now tell me how best to train or code Hati to recognize what a user wants. For instance if I am in explorer and I say show me all imports, it does not take me to another window like the imports page to show me what's there. In essence assessment of current screen vs moving someone to another screen if the information is in multiple locations." Then, on the plan, "yes, build the imports trial" — built on its own branch, main untouched until the owner says merge.
+
+WHAT WAS WRONG, MEASURED IN A BROWSER BEFORE BUILDING (two contracts marked imported, typed into Explorer's box):
+- "show me all imports" and "imports" left Explorer for the Import page: Jambo's map of everyday words (jmRead, asked last in caActOf) read the word as the page's name; nothing asked whether the screen in front could show them.
+- "show me the imported contracts", "show me the migrated contracts", "which contracts were imported?" stayed, went to the model, and came back "Nothing changed on the map": no reader on Explorer knew the fact. c.migration was read only by the Import page.
+- On the Contracts place the same words also jumped to the Import page; "show me the signed contracts" answered with a job card instead of narrowing the list.
+
+THE RULE BUILT (one place, for every screen that shows a group of contracts):
+1. a page named outright ("open the import page", "go to imports") → the page;
+2. an act only that page does ("import old contracts", "bulk upload", "how do I import") → the page;
+3. a request to SEE, on a screen that can show it → shown there, and the page that also holds it offered as a door under the answer, never pressed;
+4. a screen that shows no contracts (Home, the Board, Calendar) → the words go on as before (the page).
+
+THE PARTS.
+- CA_HERE_FACTS (js/copilotacts.js) is the ONE list of such facts; the first is `imported` = c.migration (the mark the Import page writes), its words in both languages (imports, imported, migrated, "did we import", importerade, migrerade, importer…; never "important", never the bare verb).
+- caHereRead reads the screen (caHereScreen: Explorer, or the Contracts place with no paper up) and the words (CA_HERE_PAGE_RE, CA_HERE_ACT_RE, CA_HERE_SEE_RE or four words or fewer). intelAsk asks it right after the booking and template readings, BEFORE caActOf: on Explorer no page word is read, so the map's own reader narrows (igConditions now reads `imported` from the list — "show me all imports" narrows, "which … were imported?" lights, "imports" alone narrows, and it combines with every other fact); the door rides the map's own answer line. On the Contracts place caHereOnList narrows the list by the same reading (igConditions → igIdsWhere over caContracts → regShowOnly), says "The list now shows 2: imported.", and says plainly when none match, leaving the list whole (never an empty narrowing, which would read as "all").
+- The door is a card of kind `here` (caHereCardHtml: "The import files, their batches and what still needs checking are on Import contracts." + Open Import contracts), pressed through the one mover (caHerePress → caGo).
+- The AI's map filter carries the same fact as a field on both hosts: GRAPH_WHERE_KEYS gains `imported` (fifteen keys), the card (graphCopilotCard / copilotCardOf) carries imported: !!c.migration, the shared predicate (js/graphwhere.js) reads it, the schema and list_portfolio's description name it.
+
+A FAULT CAUGHT BEFORE IT SHIPPED: the names were first published on a line ABOVE their definitions; in an ES module that throws as the page loads and would have taken the whole of Jambo's word reader down. Lint did not see it; f560's stage (which evaluates copilotacts.js) did. f736 now pins "published after defined".
+
+TESTS. f736 (16 claims; every one red at main 65dbae50), answer-where-you-stand-verify (red at 65dbae50: 1a–1c, 1e, 2a, 2b, 4a–4d, 6), photographed at 1440×780, 1536×730 and 1366×950 (the answer and its door inside Jambo's panel). Sweeps: no sentence typed by another browser check, no Jambo's-map way, no f705 question and no f427 phrase-book line carries the fact's words. Re-pointed: f560 (5e) and f732 (2) pin the Board-reader line, now `!tplAsk && !hereMap &&`.
+
+NEXT (not built, the owner's call): the same pattern for obligations (Board, Obligations page, a contract's panel), approvals (Approvals page, Needs you, a contract) and dates (Calendar, Obligations, Board) — each a line in CA_HERE_FACTS and its test sentences.
