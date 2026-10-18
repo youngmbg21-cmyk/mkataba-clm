@@ -162,6 +162,101 @@ const busyHtml = text => `<span class="ob-spin" aria-hidden="true"></span>${_bus
 /* a button or line that is now waiting: its ring and its word */
 const busySet = (el, text) => { if (el) el.innerHTML = busyHtml(text); };
 Object.assign(window,{ICONS,icon,plusLed,JAMBO_FACE,jamboFaceHtml,jamboFacePaint,busyHtml,busySet});
+/* ---- LAND ON IT (owner, 18 Oct 2026: "a well crafted rule where you are
+   directed towards what you are looking for exactly so you are not searching
+   across the page") ----
+   THE ONE LANDER every door calls once it has opened the page: it waits,
+   bounded, for the thing the press named (a card, a row, a box, a button —
+   never just a page), brings it into view, LIGHTS it the one way every
+   arrival is lit (.is-landed, index.html: a pulse of about two seconds, then a
+   soft ring) and readies its main button for Enter. It PRESSES NOTHING. The
+   ring stays until the reader's next press or key, and follows the thing
+   through a repaint (the page drew it again under the same name), so a board
+   that refills a moment later does not put it out. A thing that never shows
+   is said where the reader looks (opts.missing), never a silent arrival.
+   Story: MAP-HISTORY "LAND ON IT". */
+const LAND_TRIES = 40, LAND_WAIT = 100, LAND_PULSE_MS = 2000;
+/* the main button: the area's filled one, else its first live one */
+const LAND_MAIN = '.ui-btn-primary:not([disabled]), .hb-btn.is-primary:not([disabled]), .is-primary:not([disabled])';
+const LAND_ANY = 'button:not([disabled]), [href], input:not([type="hidden"]):not([disabled])';
+let _land = null;   // { el, sel, at, obs }
+function landOff(){
+  if (!_land) return;
+  try { if (_land.obs) _land.obs.disconnect(); } catch (_){}
+  try { _land.el.classList.remove('is-landed', 'is-landed-held'); } catch (_){}
+  _land = null;
+}
+function landFind(target){
+  try {
+    if (typeof target === 'function') return target();
+    if (typeof target === 'string') return document.querySelector(target);
+    return target || null;
+  } catch (_){ return null; }
+}
+const landShown = el => !!(el && el.isConnected && el.getClientRects && el.getClientRects().length);
+function landOn(target, opts = {}){
+  if (typeof document === 'undefined') return Promise.resolve(null);
+  return new Promise(resolve => {
+    let n = 0;
+    const tries = opts.tries || LAND_TRIES;
+    const go = () => {
+      const el = landFind(target);
+      if (!landShown(el)){
+        if (++n < tries){ setTimeout(go, opts.wait || LAND_WAIT); return; }
+        if (opts.missing && typeof toast === 'function') toast(opts.missing, 'warn');
+        resolve(null); return;
+      }
+      landOff();
+      try { el.scrollIntoView({ block: opts.block || 'nearest', inline: 'nearest' }); } catch (_){}
+      el.classList.add('is-landed');
+      const L = _land = { el, sel: typeof target === 'string' ? target : null, find: typeof target === 'function' ? target : null, at: Date.now(), obs: null, btn: null };
+      /* ITS MAIN BUTTON, READY: Enter does it. A dropdown is never focused by
+         hand (on an iPad a focused select IS the system picker): fieldFocus. */
+      const ready = host => {
+        if (opts.focus === false || !host) return null;
+        let b = null;
+        try { b = opts.focus ? host.querySelector(opts.focus) : (host.matches && host.matches(LAND_ANY) ? host : (host.querySelector(LAND_MAIN) || host.querySelector(LAND_ANY))); } catch (_){ b = null; }
+        if (!b) return null;
+        if (b.tagName === 'SELECT'){ if (typeof fieldFocus === 'function') try { fieldFocus(b); } catch (_){} }
+        else try { b.focus({ preventScroll: true }); } catch (_){}
+        return b;
+      };
+      L.btn = ready(el);
+      /* THE RING AND THE HAND FOLLOW A REPAINT: the page that drew the target
+         may draw it again under the same name, or redraw what is inside it; the
+         light moves to the new one (without pulsing again once the pulse has
+         had its time), and the button the keyboard was readied on is readied
+         again, unless the reader has put the keyboard somewhere else. */
+      if (typeof MutationObserver === 'function'){
+        L.obs = new MutationObserver(() => {
+          if (_land !== L) return;
+          if (!L.el.isConnected){
+            const nu = L.sel ? landFind(L.sel) : L.find ? landFind(L.find) : null;
+            if (!nu || nu === L.el) return;
+            L.el = nu; nu.classList.add('is-landed');
+            if (Date.now() - L.at > LAND_PULSE_MS) nu.classList.add('is-landed-held');
+          }
+          if (opts.focus !== false && (!L.btn || !L.btn.isConnected)){
+            const a = document.activeElement;
+            if (!a || a === document.body) L.btn = ready(L.el);
+          }
+        });
+        try { L.obs.observe(document.body, { childList: true, subtree: true }); } catch (_){}
+      }
+      resolve(el);
+    };
+    setTimeout(go, opts.delay || 0);
+  });
+}
+/* the reader's next press or key puts the light out */
+if (typeof document !== 'undefined' && !document._landWired){
+  document._landWired = true;
+  /* the press that sent the reader here came before the light (the lander
+     runs after its click), so any press now is the next one */
+  document.addEventListener('pointerdown', () => { if (_land) landOff(); }, true);
+  document.addEventListener('keydown', e => { if (_land && !['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) landOff(); }, true);
+}
+Object.assign(window,{LAND_TRIES,LAND_WAIT,LAND_PULSE_MS,landOn,landOff});
 /* ---- AN EMPTY BOX THAT IS OWED AN ANSWER IS AMBER (owner, 13 Oct 2026:
    "where a field needs to be filled out and it is empty, it should be amber
    ... across the platform ... so users are pulled to that field") ----

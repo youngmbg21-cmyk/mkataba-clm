@@ -2215,12 +2215,11 @@ function redlineLayoutCss(){
   .rl-sug-reject.rl-sug-whole{outline:1.5px dashed var(--color-accent-600);outline-offset:6px}
   .rl-sug-accept :is(ins,.nego-ins):last-of-type::after{content:'\\2713';display:inline-block;margin-left:4px;padding:0 3px;
     border:1.5px dashed var(--color-accent-600);border-radius:3px;color:var(--st-green-fg);background:var(--color-accent-50);text-decoration:none}
-  ${''/* THE BUTTON THAT GLOWS: three slow pulses, then a steady ring until a
-         press; still for anyone with reduced motion. Not a band. */}
-  .rl-glow{box-shadow:0 0 0 2px var(--color-accent-600);background:var(--color-accent-50);border-radius:var(--radius);
-    animation:rl-glow 1.2s ease-in-out 3}
-  @keyframes rl-glow{0%,100%{box-shadow:0 0 0 2px var(--color-accent-600)}50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--color-accent-600) 22%,transparent)}}
-  @media (prefers-reduced-motion:reduce){.rl-glow{animation:none}}
+  ${''/* THE BUTTON THAT GLOWS wears the house's ONE light (LAND ON IT, owner
+         18 Oct 2026: .rl-glow shares .is-landed's rule in index.html) — a
+         pulse, then a steady ring until a press; still under reduced motion.
+         Its own corner and ground stay. Not a band. */}
+  .rl-glow{background:var(--color-accent-50);border-radius:var(--radius)}
   .rl-card-prep .rl-prep-why{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* CLICK, TYPE, SAVE (change 5): the box is the clause; the dashed outline and
      Discard · Save arrive with the first keystroke. */

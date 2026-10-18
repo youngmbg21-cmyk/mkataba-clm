@@ -1415,9 +1415,12 @@ const CA_GO = {
   fill: c => (typeof pdFillOpen === 'function') ? pdFillOpen(c.id) : caRoomTab(c, 'details'),
   oblig: c => c ? pdOpenOnHome(c.id, 'oblig') : (typeof setView === 'function' && setView('obligations')),
   history: c => c ? ((typeof hbOpenView === 'function') ? hbOpenView(c.id, 'hist') : caRoomTab(c, 'history')) : (typeof openPanel === 'function' && openPanel('activity')),
-  /* THE FILE PICKER, NOT THE POP-UP (step 4): the file lands on the paper
-     through the existing upload path (pdDropPick → uploadFromDrop) */
-  upload: () => !caMayAdd() ? false : (typeof pdDropPick === 'function') ? pdDropPick() : (typeof openUploadModal === 'function' && openUploadModal()),
+  /* LAND ON IT (owner, 18 Oct 2026: "upload document … should take you to
+     contracts page" with the place to go lit): on a computer the word lands
+     on Jambo's drop area, lit, Choose files ready — it presses nothing, so
+     the picker no longer opens by itself; the phone keeps the picker */
+  upload: () => !caMayAdd() ? false : (typeof pdDropDoor === 'function' && pdDropDoor()) ? true
+    : (typeof pdDropPick === 'function') ? pdDropPick() : (typeof openUploadModal === 'function' && openUploadModal()),
   /* THE ONE FORM, never the two-door menu (step 3) — a word answers with the
      Draft card (caGoCardHtml); this is for a caller that moves straight on */
   draft: () => caDraftForm(null),
@@ -1525,7 +1528,8 @@ function caGoCardHtml(a, i){
   return '';
 }
 function caGoPress(a, act){
-  if (a.place === 'draft'){ if (act === 'draftform') caDraftForm(null); else if (act === 'draftupload') CA_GO.upload(); return; }
+  /* "Upload their paper" is the reader's own press: the picker itself */
+  if (a.place === 'draft'){ if (act === 'draftform') caDraftForm(null); else if (act === 'draftupload'){ if (!caMayAdd()) return; if (typeof pdDropPick === 'function') pdDropPick(); else CA_GO.upload(); } return; }
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null; if (!c) return;
   if (String(act).startsWith('next:')){ caNextRun(c, String(act).slice(5)); return; }
   if (act === 'shareout'){ if (typeof openShareModal === 'function') openShareModal(c); return; }

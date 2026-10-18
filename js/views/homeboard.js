@@ -5319,11 +5319,11 @@ function hbOpenAgent(k, itemKey){
   s.path = (k && keys.includes(k) && hbAgentsData(null).rows.some(r => r.k === k)) ? ['ag:' + k] : [];
   hbSave();
   if (typeof setView === 'function') setView('dashboard');
-  setTimeout(() => {
-    const el = (itemKey && document.querySelector(`[data-hb-ag-item="${CSS.escape(itemKey)}"]`))
-      || document.querySelector('.hb-ag-works') || document.getElementById('hm-agents');
-    if (el && el.scrollIntoView) try { el.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (_){}
-  }, 120);
+  /* LAND ON IT (owner, 18 Oct 2026): the piece named, else that agent's work,
+     else the Jambo's work card itself — brought into view and lit */
+  const target = () => (itemKey && document.querySelector(`[data-hb-ag-item="${CSS.escape(itemKey)}"]`))
+    || (s.path.length && document.querySelector('.hb-ag-works')) || document.getElementById('hm-agents');
+  if (typeof landOn === 'function') landOn(target, { block: 'start', missing: i18t('hb_land_no_work') });
 }
 function hbWatchFormHtml(k){
   const d = hbBookData('all', { whole: true }); const v = hbFigNumber(d, k);

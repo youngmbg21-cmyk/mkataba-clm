@@ -2598,7 +2598,7 @@ function startApp(){
    A NARROW LIST, like the tab beside it: a word this does not know is simply
    not acted on, and the room opens where it always would. */
 const HASH_GO = { approval: { tab:'sign', sel:'#sa-card' }, moved: { home:true } };
-const HASH_GO_WAIT = 120, HASH_GO_TRIES = 25, HASH_GO_LIT = 2400;
+const HASH_GO_WAIT = 120, HASH_GO_TRIES = 25;
 function openFromHash(){
   /* ASK AN ADMIN's email links here (16 Oct 2026): #settings opens Settings,
      on Company for an admin — nothing secret rides the link */
@@ -2669,17 +2669,11 @@ function openFromHash(){
      never gets one must not leave a timer running for ever. */
   if(go){
     if(!home && go.tab && window.roomGoTab && go.tab!==tab){ try{ roomGoTab(c, go.tab); }catch(_){} }
-    let tries=0;
-    const land=()=>{
-      const el=document.querySelector(go.sel);
-      if(!el){ if(++tries<HASH_GO_TRIES) setTimeout(land, HASH_GO_WAIT); return; }
-      try{ el.scrollIntoView({ block:'center' }); }catch(_){ }
-      /* A LANDING IS SEEN, NOT ANNOUNCED: the card is lit for a moment so the
-         reader's eye finds it, and the mark takes itself off. No band. */
-      el.classList.add('is-landed');
-      setTimeout(()=>el.classList.remove('is-landed'), HASH_GO_LIT);
-    };
-    setTimeout(land, HASH_GO_WAIT);
+    /* A LANDING IS SEEN, NOT ANNOUNCED — and since LAND ON IT (owner, 18 Oct
+       2026) it is the house's one lander: the card brought into view, lit the
+       one way every arrival is, until the reader's next press. No band;
+       bounded; it presses nothing. */
+    if(window.landOn) landOn(go.sel, { block:'center', tries:HASH_GO_TRIES, wait:HASH_GO_WAIT, delay:HASH_GO_WAIT });
   }
   return true;
 }

@@ -1893,6 +1893,8 @@ function intelAskReady(q){
   try{ inp.focus({ preventScroll:true }); inp.setSelectionRange(q.length,q.length); }catch(_){}
   return true;
 }
+/* the words Jambo answers with a card rather than a move (caGoCardHtml) */
+const IG_CARD_PLACES=['draft','share','next','help'];
 async function intelAsk(qRaw){
   const q=(qRaw||'').trim();
   if(!q||intel.busy) return;
@@ -1919,6 +1921,17 @@ async function intelAsk(qRaw){
   if(typeof window.caActOf==='function'){
     let act=null; try{ act=caActOf(q); }catch(_){ act=null; }
     if(act){
+      /* LAND ON IT (owner, 18 Oct 2026): a card a word answers with (draft,
+         share, what's next, help) is drawn ONCE per conversation — a second
+         ask lands on the one already there, lit, its main button ready —
+         and the first is landed on too, so the eye goes straight to it */
+      const cardWord=act.kind==='go'&&IG_CARD_PLACES.includes(act.place)&&!act.missing;
+      const had=cardWord?intel.history.findIndex(m=>m&&m.act&&m.act.kind==='go'&&m.act.place===act.place&&String(m.act.cid||'')===String(act.cid||'')&&!m.act.missing):-1;
+      if(had>=0){
+        renderIntelDock();
+        if(typeof window.landOn==='function') landOn(()=>document.querySelector(`#ig-dock [data-ca-card="${had}"]`));
+        return;
+      }
       intel.history.push({role:'user', text:q});
       /* A WORD (the one-page Home plan, stage 1) is said in one line and the
          reader is moved after the paint: a place opens, work opens its door. */
@@ -1929,6 +1942,8 @@ async function intelAsk(qRaw){
       intel.history.push(m);
       renderIntelDock();
       if(act.kind==='go'&&typeof window.caGo==='function') caGo(act);
+      if(cardWord&&typeof window.landOn==='function'){ const at=intel.history.length-1;
+        landOn(()=>document.querySelector(`#ig-dock [data-ca-card="${at}"]`)); }
       return;
     }
   }

@@ -640,10 +640,15 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
     const pickFile = (trigger, file) => async () => { const ch = page.waitForEvent('filechooser', { timeout: 6000 }).catch(() => null);
       if ((await trigger()) === false) return false; const fc = await ch; if (!fc) return false; await fc.setFiles(file); return true; };
     let ids = await known();
-    await door(D, 'the wall\'s chip "upload a document", a file chosen', { start: onWall,
-      press: pickFile(() => domClick('[data-ig-chips] [data-ca-chip="upload"]'), docx('Census_Chip.docx')), expect: isNew(ids), says: NEWSAYS });
+    /* LAND ON IT (owner, 18 Oct 2026): the chip and the word land on the drop
+       area, lit, and press nothing — Choose a file is the reader's own press */
+    const thenChoose = trigger => async () => { if ((await trigger()) === false) return false;
+      if (!(await waitFor(page, () => { const d = document.getElementById('pd-drop'); return !!d && d.classList.contains('is-landed'); }, 6000))) return false;
+      return domClick('#pd-drop [data-pd-drop-pick]'); };
+    await door(D, 'the wall\'s chip "upload a document" (it lands on the drop area, lit), a file chosen', { start: onWall,
+      press: pickFile(thenChoose(() => domClick('[data-ig-chips] [data-ca-chip="upload"]')), docx('Census_Chip.docx')), expect: isNew(ids), says: NEWSAYS });
     ids = await known();
-    await door(D, 'the word "upload" on the wall, a file chosen', { start: onWall, press: pickFile(say('upload'), docx('Census_Word.docx')), expect: isNew(ids), says: NEWSAYS });
+    await door(D, 'the word "upload" on the wall (it lands on the drop area, lit), a file chosen', { start: onWall, press: pickFile(thenChoose(say('upload')), docx('Census_Word.docx')), expect: isNew(ids), says: NEWSAYS });
     ids = await known();
     await door(D, 'the drop area\'s Choose a file', { start: onWall, press: pickFile(() => domClick('#pd-drop [data-pd-drop-pick]'), docx('Census_Pick.docx')), expect: isNew(ids), says: NEWSAYS });
     ids = await known();

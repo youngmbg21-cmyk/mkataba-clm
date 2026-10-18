@@ -76,7 +76,8 @@ const paperRead = page => page.evaluate(() => {
   const glow = document.querySelector('#pd-redface .rl-glow');
   return { box: box ? box.textContent.replace(/\s+/g, ' ').trim() : null, ins: box ? [...box.querySelectorAll('.rl-sug-new')].map(x => x.textContent.trim()) : [],
     dashed: box ? getComputedStyle(box).borderTopStyle : null, glow: glow ? glow.textContent.trim() : null,
-    glowShadow: glow ? getComputedStyle(glow).boxShadow : null };
+    /* the house's ONE light (LAND ON IT, 18 Oct 2026): a ring drawn as an outline */
+    glowShadow: glow ? getComputedStyle(glow).outlineStyle + ' ' + getComputedStyle(glow).outlineWidth : null };
 });
 
 (async () => {
@@ -155,7 +156,7 @@ const paperRead = page => page.evaluate(() => {
       ? await paperRead(page) : await paperRead(page);
     ok('4a Copilot\'s counter sits under their wording in a dashed box', !!p4.box && /60 days/.test(p4.box) && p4.dashed === 'dashed', JSON.stringify(p4));
     ok('4b the words it adds are marked (60), nothing struck', p4.ins.some(t => /60/.test(t)), JSON.stringify(p4.ins));
-    ok('4c Counter glows', p4.glow === 'Counter' && !!p4.glowShadow && p4.glowShadow !== 'none', p4.glow + ' ' + p4.glowShadow);
+    ok('4c Counter glows', p4.glow === 'Counter' && /solid 2px/.test(String(p4.glowShadow)), p4.glow + ' ' + p4.glowShadow);
     ok('4d nothing was filed: one change on the record, theirs', await page.evaluate(() => getContract('MK-CP1').changes.length === 1));
     await page.screenshot({ path: path.join(OUT, '4-nego.png') });
 
