@@ -74,7 +74,11 @@ const PROBE = () => {
   /* cal-wk-body JOINED 18 Oct 2026 (round 16): the calendar opens on this
      week by the hour with five more weeks under it, and the hours scroll
      inside their own box by design; its one child is the whole day, not a row. */
-  const SCROLLERS = /content-scroll|doc-scroll|nego-scroll|cal-grid|cal-body|reg-scroll|cal-wk-body/;
+  /* tpl-pf-scroll JOINED 18 Oct 2026 (round 21, "paper first"): Our paper
+     shows the chosen template's own paper beside the index, and the paper
+     scrolls inside its own box as every paper does (doc-scroll); its one
+     child is the whole paper, not a row. */
+  const SCROLLERS = /content-scroll|doc-scroll|nego-scroll|cal-grid|cal-body|reg-scroll|cal-wk-body|tpl-pf-scroll/;
   const seen = new Set();
   document.querySelectorAll('#app-shell *').forEach(el => {
     const r = el.getBoundingClientRect();
