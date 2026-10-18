@@ -30786,3 +30786,15 @@ get named" on 18 Oct 2026.
 - Not changed: who may delete. Only an admin named on the stream decides.
 
 Tests: f729 (1–3 red at main), keeping-no-admin-verify (1–3 red at main).
+
+## THE WALL, STANDING — ONE LIST OF WHAT NEVER CROSSES (13 Oct 2026, phase 1 of the best-in-class plan)
+
+The crash course: "internal notes stay internal — a leak here is a serious business harm; test this with a real second account". HaTi walls many things from the other side and each wall had its own check in its own file (f17 the held change, f154–f159 the review, f412 the names, the party rooms in notes-two-rooms-verify). The owner's phase 1 asked for one list and one check that runs on every push.
+
+WHAT IT IS. test/wall-standing.test.js names, in one place, every field that must never reach the other side — the review and who was asked, the review's revisions, internal comments, the trail, colleagues' asks, the risk scan, the brief (record and transport), the company view, the standards check, Jambo's dated windows, the obligations review desk, who read which note, marks on the paper, a named person's yes before signing, who is in the room, the duties, the stream, the owner, the people on the contract, the arrival reading, the desk, the fingerprint and simhash, our notes inside the negotiation — and, on a change, who resolved it, the desk's suggestion, a review on the change, and an internal note on its thread (a colleague's name on a change travels by design). Each carries a sentinel string. The product's own builder (buildSharePayload, loaded from js/core.js as f12 loads it) is run against a contract carrying all of them, for a negotiation, a signing and a status link; then the real route (POST /api/shares) takes the real payload, and the other side's answer (GET /api/shares/:token, anonymous) and the status page (GET /deal/:token) are searched for every sentinel. The status page is also searched for every person's name on the stage and must still name the other party.
+
+THE ALLOW-LISTS. Beside the wall sit PASS_PAYLOAD, PASS_CONTRACT and PASS_CHANGE: the keys the payload carried on 13 Oct 2026 (recorded from the builder as it stood: source, signatures, changes, negotiation, upload, executed, templateForm, branding, docText, viewBody, adviseOn, adviseBody, openPoints, versions; docHash, leadNotice, signingOpen at the top). A key the builder starts carrying tomorrow fails this file until somebody names it there, which is the moment to ask whether it should cross.
+
+THE DAY'S RESULT (main at 6804579): nothing crossed. 5 of 5, 1.4 s.
+
+CARRIED OVER, 18 Oct 2026 (owner: "Tidy up"). Written on 13 Oct in the phase-1 stack (PRs #260–#269), which could no longer merge; brought over on a fresh branch and the stack closed. On main at 9d30154 it passed 5 of 5. Its neighbour in the stack, screens-at-3000-verify (#261), was meant to come too and was left on its branch: three runs here passed 11, 8 and 9 of 11, a different screen failing each time, because the 400-contract paint swung from 10 to 220 ms between runs and the ratio follows it.
