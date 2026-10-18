@@ -85,6 +85,7 @@ import './agentruns.js';           // Copilot's agents' engine room: runs, setti
 import './views/agents.js';
 import './views/jambohouse.js';  // Jambo's agents: the house, his jobs and his points, behind Insights (12 Oct 2026)
 import './copilotacts.js';         // Copilot prepares, you press: @ people, # contracts, the send and draft cards (7 Oct 2026)        // Copilot's work: the six agents — what each found, prepared and did (27 Sep 2026)
+import './jambomap.js';            // Jambo's map: the thirty commonest tasks in everyday words, matched by MiniSearch (18 Oct 2026)
 import './paperdesk.js';           // the Paper's desk: Facts · Obligations · Signing · History · Deal beside the paper on Home (8 Oct 2026)
 import './views/register.js';
 import './ocr.js';
@@ -1808,12 +1809,21 @@ function commandPaletteResults(q){
   }
   /* SETTINGS, IN PLAIN WORDS (the one finder, stFind — the Menu's box and
      Jambo ask it too): first and more of them on Settings, a few elsewhere */
+  let setRows=[];
   if(q&&typeof window.stFindRows==='function'){
     let rows=[]; try{ rows=stFindRows(q)||[]; }catch(_){ rows=[]; }
     const onSettings=state.view==='team';
-    const mapped=rows.slice(0,onSettings?8:3).map(r=>({kind:'setting',id:r.id,title:r.title,sub:r.why?`${r.sub} · ${r.why}`:r.sub,tag:i18t('ap_tag_setting'),ic:'cog'}));
-    if(onSettings) out.unshift(...mapped); else out.push(...mapped);
+    setRows=rows.slice(0,onSettings?8:3).map(r=>({kind:'setting',id:r.id,title:r.title,sub:r.why?`${r.sub} · ${r.why}`:r.sub,tag:i18t('ap_tag_setting'),ic:'cog'}));
   }
+  /* JAMBO'S MAP (18 Oct 2026, js/jambomap.js): a task asked in everyday words
+     ("where do I change my language", "contracts ending soon") after the place
+     words, never one of their doors or the finder's twice */
+  if(q&&typeof window.jmPaletteRows==='function'){
+    const places=out.filter(r=>r.kind==='place').map(r=>r.id);
+    let rows=[]; try{ rows=jmPaletteRows(q,{places,settings:setRows.map(r=>r.id)})||[]; }catch(_){ rows=[]; }
+    out.push(...rows);
+  }
+  if(setRows.length){ if(state.view==='team') out.unshift(...setRows); else out.push(...setRows); }
   if(q){
     folders.filter(f=>f.name.toLowerCase().includes(q)).slice(0,4)
       .forEach(f=>out.push({kind:'folder',id:f.id,title:f.name,get sub(){ return i18t('ap_value_stream'); },ic:f.ic||'folder'}));
@@ -1882,6 +1892,7 @@ function openCommandPalette(prefill){
       return;
     }
     if(it.kind==='place'){ close(); if(window.caPlaceRun) caPlaceRun(it.id); return; }
+    if(it.kind==='task'){ const asked=input.value; close(); if(window.jmRun) jmRun(it.id,asked); return; }
     if(it.kind==='setting'){ close(); if(window.stFindGo) stFindGo(it.id); return; }
     close(); if(it.kind==='folder') openFolder(it.id); else openWorkspace(it.id);
   };
@@ -4067,6 +4078,23 @@ function wireShell(){
       if(!here){ setView('register'); }
       else if(window.renderRegisterBody){ renderRegisterBody(); }
       const rs=document.getElementById('reg-search'); if(rs&&rs!==search) rs.value=q;
+    });
+    /* JAMBO'S MAP (owner, 18 Oct 2026: "wire the map into the top search
+       bar"): words no contract matches are a request, not a search — Enter
+       takes "where do I change my language?" where Jambo's box would
+       (jmRead → jmRunAct). Words that match a contract stay a search. */
+    search.addEventListener('keydown',e=>{
+      if(e.key!=='Enter'||e.isComposing||state.view==='team'||typeof window.jmRead!=='function') return;
+      const q=search.value.trim(); if(!q) return;
+      if(window.regFiltered){ let n=0; try{ n=regFiltered().length; }catch(_){ n=0; } if(n) return; }
+      let a=null; try{ a=jmRead(q); }catch(_){ a=null; } if(!a) return;
+      e.preventDefault();
+      /* the words were a request: off the Contracts list, out of the box */
+      if(window.regSetScope) regSetScope(null);
+      if(window.regState){ const R=regState(); R.query=''; R.page=1; }
+      search.value=''; const rs=document.getElementById('reg-search'); if(rs&&rs!==search) rs.value='';
+      if(window.regPlaceUp&&regPlaceUp()&&window.renderRegisterBody) try{ renderRegisterBody(); }catch(_){}
+      if(window.jmRunAct) jmRunAct(a,q);
     });
     document.addEventListener('keydown',e=>{
       // Cmd/Ctrl+K → global jump palette (works even while typing in a field)
