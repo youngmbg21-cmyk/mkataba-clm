@@ -4030,7 +4030,8 @@ function renderIntel(){
           </select>
           <span style="position:absolute;right:9px;pointer-events:none;color:var(--color-accent);font-size:var(--t-figure)">▼</span>
         </span>`;
-  const headerHtml=onHome ? hbHeadHtml(groupSel) : headStyle+`
+  const hbDeskStage=onHome&&typeof window.deskShellOn==='function'&&window.deskShellOn();
+  const headerHtml=onHome ? hbHeadHtml(hbDeskStage?'':groupSel) : headStyle+`
     <!-- No vertical padding: the tab buttons carry it themselves, so their
          underline lands on the strip's own hairline.
 
@@ -4179,6 +4180,11 @@ function renderIntel(){
                stage's top-left corner the way the legend and the view bar sit in
                theirs, and its row is the map's. */}
         <div id="ig-note" class="ig-note"></div>
+        ${''/* GROUP BY RIDES THE STAGE TOO (the SAP way, 18 Oct 2026): on a
+               computer Home draws no head row, so Explorer's one control sits
+               in the stage's top-right corner, as the head line sits in its
+               top-left. The phone keeps it in Home's head. */}
+        ${hbDeskStage?`<label class="hb-groupby hb-groupby-stage" id="hb-groupby"${(typeof hbFace==='function'&&hbFace()==='explorer')?'':' hidden'}>${igEsc(i18t('hb_group_by'))} ${groupSel}</label>`:''}
         ${''/* THE VIEW BAR — the three views, the zoom and Fold all, in the
                stage's own corner where the old "drag nodes" hint sat. How to
                move the map is machinery, so it lives on the bar's hover. */}
@@ -7733,7 +7739,10 @@ function igPaintPaper(){
      no sheet rule can outrank, so Focus folds it where its own declaration
      lives and puts the markup's own value back — never !important. */
   /* on Home the head row is Home's own (#hb-head, 3 Oct 2026): Focus folds it the same way */
-  const head=document.getElementById('ig-head')||document.getElementById('hb-head'); if(head) head.style.display=focus?'none':'flex';
+  /* Home's head states no display of its own (its sheet does), so Focus gives
+     it back nothing and a head drawn hidden on a computer stays hidden (the
+     SAP way, 18 Oct 2026) */
+  const head=document.getElementById('ig-head')||document.getElementById('hb-head'); if(head) head.style.display=focus?'none':(head.id==='hb-head'?'':'flex');
   if(!up){ host.hidden=true; return; }
   if(host.dataset.for!==igPaperKey(c)){ host.innerHTML=igPaperHtml(c); host.dataset.for=igPaperKey(c); igPaperWire(host);
     /* THE BLANKS ARE MARKED HERE TOO (11 Oct 2026, the Document tab gone): an

@@ -1293,8 +1293,8 @@ function setView(view){
     if(sp && typeof closeModal==='function' && (!_sameView
       || ((view==='workspace'||view==='doc') && sp.dataset.cid && String(sp.dataset.cid)!==String(state.activeId)))){ try{ closeModal(); }catch(_){} } }
   state.view=view;
-  /* the desk tabs' row is drawn before the page, so a page that measures its height measures it with the row in place (Round 2) */
-  if(window.deskTabsPaint) try{ deskTabsPaint(); }catch(_){}
+  /* the bar names the page before the page is drawn (the SAP way, 18 Oct 2026; was the desk tabs' row) */
+  if(window.deskBarPaint) try{ deskBarPaint(); }catch(_){}
   try{
     if(view==='dashboard') renderDashboard();
     else if(view==='folder') renderFolder();
@@ -3033,15 +3033,17 @@ function applyRail(){
      down there the sidebar is a 64px strip by construction. The stored choice
      is read, not written — see railCollapsed — so it is waiting unchanged when
      they are back on a wide screen. */
-  /* ---- THE MENU'S PLACE IS THE DESK TABS' (the owner picked "Desk tabs",
-     17 Oct 2026) ---- on a computer the left menu is not drawn: every page is
-     reached through Jambo's box (its "/" lists the places) and stays as a tab
-     after "‹ The counter" (js/views/counter.js). The Ha mark in the bar is the
-     way back to the Counter. The phone keeps its own screens. */
+  /* ---- THE MENU'S PLACE IS THE BAR'S (the owner picked "The SAP way",
+     18 Oct 2026; was "Desk tabs") ---- on a computer the left menu is not
+     drawn: every page is reached through Jambo's box (its "/" lists the
+     places), and the bar reads ‹ · Ha · the page's name, which opens Recent
+     (js/views/counter.js). The Ha mark is Home. The phone keeps its own
+     screens. */
   const desk=!!(window.deskShellOn&&window.deskShellOn());
   shell.classList.toggle('dk-shell',desk);
   { const nav=document.getElementById('side-nav'); if(nav&&nav.style) nav.style.display=desk?'none':'flex';
-    const mark=document.getElementById('dk-mark'); if(mark) mark.hidden=!desk; }
+    const mark=document.getElementById('dk-mark'); if(mark) mark.hidden=!desk;
+    if(window.deskBarPaint) try{ deskBarPaint(); }catch(_){} }
   if(desk){ shell.classList.remove('rail'); if(shell.style) shell.style.gridTemplateColumns='0px minmax(0,1fr)';
     if(typeof window!=='undefined' && window.rlLayoutResizer) window.rlLayoutResizer(document);
     syncViewHeight(); return; }
