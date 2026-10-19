@@ -637,4 +637,12 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     e.preventDefault(); jamboTalkBack();
   });
 }
-Object.assign(window,{JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});
+/* THE JAMBO TAB'S INSIDE (owner picked "A Jambo tab", 19 Oct 2026): the
+   way back to the conversation on every right-hand panel — a chat glyph over
+   the word, drawn the way the panel's other tabs are */
+function jamboTalkTabInner(){
+  const jb = (typeof i18t === 'function') ? i18t('pd_tab_copilot') : 'Jambo';
+  const e = String(jb).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+  return `<span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-chat"/></svg></span></span><span class="pd-tab-w">${e}</span>`;
+}
+Object.assign(window,{jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});

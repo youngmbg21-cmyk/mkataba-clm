@@ -442,6 +442,8 @@ function stWireDrawerOnce(){
     if(side){ stSideSet(side.getAttribute('data-st-side')); return; }
     /* the side panel folds to the edge; his face brings him back (as drawn) */
     if(t.closest('[data-st-side-fold]')){ stSideFoldSet(!_stSideFold); return; }
+    if(t.closest('[data-st-talk]')){ if(stTalkShows()) stTalkBack(); else stTalkReopen(); return; }
+    if(t.closest('[data-st-overview]')&&stTalkShows()){ stTalkBack(); return; }
     /* Data & backup's chips (round 26 as drawn): the PDF readied — the box
        says PDF and the Download button is lit; the press stays the reader's */
     if(t.closest('[data-st-tr-pdf]')){ stTrailReadyPdf(); return; }
@@ -3328,6 +3330,9 @@ function stJbTalkPaint(){
     if(L) L.hidden=on; if(T) T.hidden=!on;
     feed.classList.toggle('is-stream',!on&&!!_stSwPick&&_stPage==='streams'); }
   const side=document.getElementById('st-side'); if(side) side.classList.toggle('is-talk',on);
+  const ov=document.getElementById('st-side-tab-jambo'), tk=document.querySelector('#st-side [data-st-talk]');
+  if(ov){ ov.classList.toggle('is-off',on); ov.setAttribute('aria-current',String(!on)); }
+  if(tk){ tk.hidden=!stTalkTurns().length; tk.classList.toggle('is-off',!on); tk.setAttribute('aria-current',String(on)); }
   if(typeof deskBarPaint==='function') try{ deskBarPaint(); }catch(_){ }
 }
 /* a turn said in the panel: the conversation view comes up, the landing kept */
@@ -3340,6 +3345,13 @@ function stJbTurnAdd(t){
   if(t&&!T.querySelector(`[data-st-jb-turn="${t.id}"]`)) T.insertAdjacentHTML('beforeend', stJbTurnHtml(t));
   stJbTalkPaint();
   feed.scrollTop=feed.scrollHeight;
+}
+function stTalkReopen(){
+  if(!stTalkTurns().length||typeof jamboTalkOpen!=='function') return false;
+  jamboTalkOpen(stTalkKey(), document.getElementById('st-jb-feed'));
+  stJbTalkPaint();
+  const feed=document.getElementById('st-jb-feed'); if(feed) feed.scrollTop=feed.scrollHeight;
+  return true;
 }
 function stTalkBack(){
   const keep=(typeof jamboTalkClose==='function')?jamboTalkClose():[];
@@ -3401,7 +3413,12 @@ function stSideHeadHtml(){
   if(_stSide==='menu') return `<button type="button" class="st-side-back" data-st-side="jambo">‹ ${esc(i18t('pd_tab_overview'))}</button><span class="st-side-word">${esc(i18t('st_side_menu'))}</span><span class="st-side-sp"></span>${fold}`;
   /* THE PANEL IS THE PAGE'S (owner, 19 Oct 2026): its tab is the landing,
      "Overview"; "Jambo" names only the conversation it flips to */
-  return `<span class="st-side-tab" id="st-side-tab-jambo" aria-current="true">${face}<span>${esc(i18t('pd_tab_overview'))}</span></span><span class="st-side-word" id="st-side-word">${esc(stSideWord())}</span><span class="st-side-sp"></span>${fold}`;
+  /* THE WAY BACK TO THE CONVERSATION (owner picked "A Jambo tab", 19 Oct
+     2026): once a turn was said on this page a "Jambo" tab stands beside
+     Overview; pressed it opens the conversation, pressed again it goes back */
+  const talk=stTalkShows(), has=stTalkTurns().length>0;
+  const jb=esc(i18t('pd_tab_copilot'));
+  return `<span class="st-side-tab${talk?' is-off':''}" id="st-side-tab-jambo" data-st-overview aria-current="${!talk}">${face}<span>${esc(i18t('pd_tab_overview'))}</span></span><button type="button" class="st-side-tab st-side-talk${talk?'':' is-off'}" data-st-talk aria-current="${talk}" title="${jb}"${has?'':' hidden'}><svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-chat"/></svg><span>${jb}</span></button><span class="st-side-word" id="st-side-word">${esc(stSideWord())}</span><span class="st-side-sp"></span>${fold}`;
 }
 function stSideHtml(){
   const face=(typeof jamboFaceHtml==='function')?jamboFaceHtml('hello',26,'st-side-ic'):'';
@@ -9621,6 +9638,6 @@ Object.assign(window,{stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsP
    (PAGE_HEAD_PAINT reads it off window), a form in its row, the stream beside
    the list, Jambo's words for the page in front, your own copy and name and
    email, and the readings the checks ask */
-Object.assign(window,{stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stJbLandHtml,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
+Object.assign(window,{stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
   stSwPickSet,stSwPanelHtml,stSwRows,stJbFeedHtml,stJbFeedRepaint,stJbCompanyWords,stJbDataWords,stJbStreamsWords,stJbNeedPhrase,stSideFoldSet,
   stTrailLeftOut,stHouseFacts,stTrailPastHtml,stYouCardRepaint,stGovLadderHtml,stSheetCardHtml});

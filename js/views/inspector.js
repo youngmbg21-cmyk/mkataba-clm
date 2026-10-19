@@ -1187,6 +1187,7 @@ function jlHeadHtml(){
   const fold = i18t('int_collapse_panel');
   return `<div class="jl-head">
     <button type="button" class="pd-tab on jl-tab" data-jl-home title="${esc(name)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${face}</span><span class="pd-tab-n is-warn" data-jl-n hidden></span></span><span class="pd-tab-w">${esc(name)}</span></button>
+    <button type="button" class="pd-tab jl-tab jl-talk-tab" data-jl-talk title="${esc(i18t('pd_tab_copilot'))}" hidden>${typeof jamboTalkTabInner === 'function' ? jamboTalkTabInner() : esc(i18t('pd_tab_copilot'))}</button>
     <span class="jl-word" data-jl-word></span>
     <span class="jl-sp"></span>
     <button type="button" class="pd-back jl-back" data-jl-back title="${esc(back)}" aria-label="${esc(back)}" hidden><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${esc(name)}</button>
@@ -1355,6 +1356,11 @@ function jlTalkPaint(host){
     if (tr) tr.innerHTML = on && typeof jamboTalkTrailHtml === 'function' ? jamboTalkTrailHtml('list', i18t('pd_tab_overview')) : '';
   }
   host.classList.toggle('is-talk', on);
+  /* THE WAY BACK TO THE CONVERSATION (owner picked "A Jambo tab", 19 Oct
+     2026): the Jambo tab stands once words were said on this page */
+  const tab = host.querySelector('[data-jl-talk]'), home = host.querySelector('[data-jl-home]');
+  if (tab){ tab.hidden = !(_jlAiLen() > _jlTalk.from); tab.classList.toggle('on', on); }
+  if (home) home.classList.toggle('on', !on);
   if (typeof deskBarPaint === 'function') try { deskBarPaint(); } catch (_){}
 }
 /* words asked here: the panel turns to the conversation, the landing kept */
@@ -1573,6 +1579,7 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined' && !window.
     if (!host) return;
     if ((el = t.closest('[data-jl-fold]'))){ jlFoldSet(true); return; }
     if ((el = t.closest('[data-jl-door]'))){ jlFoldSet(false); return; }
+    if ((el = t.closest('[data-jl-talk]'))){ if (jlTalkShows()) jlTalkBack(); else jlTalkOpen(); return; }
     if ((el = t.closest('[data-jl-back]')) || (el = t.closest('[data-jl-home]'))){
       /* the landing's own tab pressed while the panel talks is its way back, as left */
       if (jlTalkShows()){ jlTalkBack(); return; }
