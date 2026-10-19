@@ -4269,7 +4269,13 @@ function wireShell(){
     document.addEventListener('click',e=>{
       const b=e.target&&e.target.closest&&e.target.closest('#hdr-chat');
       if(!b||b.disabled) return;
-      const id=chatContractId(); if(id) openNotesPanel(id);
+      const id=chatContractId(); if(!id) return;
+      /* ONE NOTES DOOR (ONE TRAIL, owner 19 Oct 2026): while Jambo's Redlines
+         face is up beside this paper, the paper's Notes turns the column to the
+         notes in place — the head's own Notes press — never a second drawer */
+      const head=(window.pdRedShows&&pdRedShows())?document.querySelector('#pd-redface [data-rl-notes-all]'):null;
+      if(head){ head.click(); return; }
+      openNotesPanel(id);
     },false);
   }
   try{ paintChatDoor(); }catch(_){}

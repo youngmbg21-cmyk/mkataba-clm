@@ -147,7 +147,9 @@ describe('f705 (3) the way back to Jambo on every face', () => {
     /* RE-POINTED 18 Oct 2026 (round 11's gaps, "The letter" as drawn): the
        send screen is a face of the panel too ("Before you send"), and its way
        back is the screen's own Cancel, asked through its guard. */
-    assert.deepEqual(Object.keys(ctx.PD_BACK_CLOSE).sort(), ['amend', 'fill', 'red', 'send', 'signing']);
+    /* RE-POINTED 19 Oct 2026 (ONE TRAIL): two steps inside Redlines — the
+       notes and the ladder the column turned to — go back to the piles */
+    assert.deepEqual(Object.keys(ctx.PD_BACK_CLOSE).sort(), ['amend', 'fill', 'red', 'red-ladder', 'red-notes', 'send', 'signing']);
     for (const f of ctx.PD_FACE_WORDS) assert.ok(Object.keys(ctx.PD_BACK_CLOSE).includes(f), 'every face has its way back: ' + f);
     const map = PD.slice(PD.indexOf('const PD_BACK_CLOSE'), PD.indexOf('function pdBackHtml'));
     for (const [k, fn] of [['fill', 'pdFillClose'], ['red', 'pdRedClose'], ['signing', 'pdSignClose'], ['amend', 'pdAmendClose']])
@@ -166,16 +168,15 @@ describe('f705 (3) the way back to Jambo on every face', () => {
      amendment's open with ‹ Jambo, the title, then ×; only the Redlines face
      (round 9) and Before you send (round 11) carry ‹ Jambo in the panel's own
      row (pdFaceUp → PD_FACE_ROW, pdFaceBackHtml). */
-  test('3b Fill in, Before you sign and an amendment: ‹ Jambo, the title, then ×; Redlines carries it in the panel\'s row', () => {
-    for (const [fn, face, x] of [['pdFillHeadHtml', 'fill', 'data-pd-ff-close'], ['pdSignHeadHtml', 'signing', 'data-pd-sf-close'], ['pdAmendHeadHtml', 'amend', 'data-pd-am-close']]){
-      const b = fnBody(PD, fn);
-      const i = b.indexOf(`pdBackHtml('${face}')`), t = b.indexOf('<h3>'), k = b.indexOf(x);
-      assert.ok(i > 0 && i < t && t < k, fn + ': ‹ Jambo, the title, then ×');
-    }
-    assert.match(PD, /const PD_FACE_ROW = \['red', 'send'\];/, 'only Redlines and Before you send take the panel\'s row');
+  /* RE-POINTED 19 Oct 2026 — ONE TRAIL (owner): every face's way back is the
+     panel's one trail line, never its own head; the column's head still takes
+     a host's start (the Negotiate page passes none) */
+  test('3b every face: the way back is the trail line, its head carries no ‹ Jambo and no ×', () => {
+    for (const fn of ['pdFillHeadHtml', 'pdSignHeadHtml', 'pdAmendHeadHtml'])
+      assert.doesNotMatch(fnBody(PD, fn).replace(/\/\*[\s\S]*?\*\//g, ''), /pdBackHtml\(|-close title/, fn);
     assert.doesNotMatch(fnBody(PD, 'pdRedOpts'), /headStart|headEnd/, 'the Redlines face passes no ‹ Jambo and no ×');
-    assert.match(fnBody(PD, 'pdFaceBackHtml'), /pdBackHtml\(f\)/, 'one builder for whichever face is up');
-    assert.match(IG.slice(IG.indexOf('function renderIntelDock(')), /pdFaceBackHtml\(\)/, 'drawn in the panel\'s own row');
+    assert.match(fnBody(PD, 'pdTrailHtml'), /class="pd-back" data-pd-back="\$\{_pdE\(t\.back\)\}"/, 'one builder for whichever face is up');
+    assert.match(IG.slice(IG.indexOf('function renderIntelDock(')), /pdTrailHtml\(\)/, 'drawn under the panel\'s tabs');
     const head = NG.slice(NG.indexOf('<div class="rl-idx-top">'), NG.indexOf("${opts.headEnd || ''}"));
     assert.ok(head.indexOf("${opts.headStart || ''}") > 0 && head.indexOf("${opts.headStart || ''}") < head.indexOf('<span class="rl-idx-title">'),
       'the column\'s head takes the host\'s start before its name; the Negotiate page passes none');
