@@ -119,7 +119,13 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         });
         const q = document.getElementById('cu-q');
         return { boxes, ph: q && q.getAttribute('placeholder'), title: (band.querySelector('.cu-t') || {}).textContent || '', sub: (band.querySelector('.cu-hs') || {}).textContent || '',
-          draft: !!band.querySelector('[data-cu-draft]'), hair: getComputedStyle(band.querySelector('.cu-fb')).borderTopStyle };
+          /* RE-POINTED 19 Oct 2026 (the head card's first check: ONE line on every
+             head card): the hairline over the filters is the title row's own foot
+             (.ph-top), drawn by the one rule every head wears — still solid, still
+             right over the filters (nothing between it and their row) */
+          hair: (() => { const t = band.querySelector('.ph-top'), fb = band.querySelector('.cu-fb'); if (!t || !fb) return 'none';
+            const cs = getComputedStyle(t); return Math.abs(t.getBoundingClientRect().bottom - fb.getBoundingClientRect().top) <= 1 && parseFloat(cs.borderBottomWidth) >= 1 ? cs.borderBottomStyle : 'none'; })(),
+          draft: !!band.querySelector('[data-cu-draft]') };
       });
       check('1a each box\'s word is above it: Party name · Status · Stream · Owner · NDA', !!B && JSON.stringify(B.boxes.map(b => b.label)) === JSON.stringify(['Party name', 'Status', 'Stream', 'Owner', 'NDA']) && B.boxes.every(b => b.above), JSON.stringify(B && B.boxes));
       check('1b the find box says "Name or city"; Status opens on Live; a hairline over the filters', !!B && B.ph === 'Name or city' && B.boxes[1] && B.boxes[1].value === 'Live' && B.hair === 'solid', JSON.stringify(B && { ph: B.ph, st: B.boxes[1], hair: B.hair }));

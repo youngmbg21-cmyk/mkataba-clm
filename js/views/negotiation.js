@@ -10047,7 +10047,7 @@ function negoListHeadHtml(shown){
      one filled act. */
   /* THE FACTS ON THE TITLE'S LINE (round 14 as drawn: "Negotiations  7 live ·
      3 waiting on our side"), as every page head now draws them */
-  return `<header class="ngl-head ngl-head-table"><div class="ngl-head-row"><div style="min-width:0">
+  return `<header class="ngl-head ngl-head-table ph-top"><div class="ngl-head-row"><div style="min-width:0">
     <div class="page-title-row ngl-title-row"><h2>${i18t('ng_door_title')}</h2>
     <div class="ngl-live page-facts">${facts.join(' · ')}</div></div>
     ${filtered ? `<p>${_ne(i18t('ngl_sub_filtered', { n, live }))}</p>` : ''}
@@ -10182,9 +10182,13 @@ function renderNegotiationsList(host){
      there is something for a filter to narrow. */
   if (!live.length){
     if (window.regSetScope) regSetScope(null);
+    /* THE HEAD IS THE CARD EVERY PAGE HEAD IS (19 Oct 2026, the head card's
+       first check): with nothing live the page still names itself on the
+       one white card (.ph-card, its title row .ph-top), at the one height
+       and inset every page title has; the empty state is the card under it. */
     el.innerHTML = `<div class="view-enter ngl-wrap">
-      <header class="ngl-head">
-        <h2>${i18t('ng_door_title')}</h2>
+      <header class="ngl-head ph-card">
+        <div class="ph-top"><h2>${i18t('ng_door_title')}</h2></div>
       </header>
       <section class="ngl-empty">
         <h3>${i18t('ng_door_none')}</h3>

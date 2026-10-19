@@ -96,7 +96,7 @@ function myNotesBandHtml(){
   const ctBox = chip ? chip({ attr:'data-mn-f', key:'ct', label:i18t('mn_box_contract'), cur:_mn.ct || '', def:'',
     opts:[['', i18t('mn_box_any')], ...cts.map(c => [c.id, `${_mnRef(c)} · ${_mnCtName(c)}`]), ...(all.some(n => !n.contractId) ? [['-', i18t('mn_no_contract')]] : [])] }) : '';
   return `<div class="sap-band mn-band ph-card">
-    <div class="mn-head2"><div class="mn-hl"><h1 class="mn-t1">${_mnE(i18t('nav_mynotes'))}</h1><span class="mn-hn">${all.length}</span><span class="mn-hs">${_mnLock()}${_mnE(i18t('mn_head_sub'))}</span></div>
+    <div class="mn-head2 ph-top"><div class="mn-hl"><h1 class="mn-t1">${_mnE(i18t('nav_mynotes'))}</h1><span class="mn-hn">${all.length}</span><span class="mn-hs">${_mnLock()}${_mnE(i18t('mn_head_sub'))}</span></div>
       <button type="button" class="ui-btn ui-btn-primary" id="mn-new">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : ''}${_mnE(i18t('mn_new_btn'))}</button></div>
     <div class="reg-tabbar ik-tabbar mn-tabbar">${tabs}<div class="reg-filterbar reg-fb ik-fb">
       <label class="ik-fb-find"><span class="ik-fb-l">${_mnE(i18t('mn_box_note'))}</span><span class="ik-search">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input type="search" id="mn-q" data-mn-q value="${_mnE(_mn.q || '')}" placeholder="${_mnE(i18t('mn_box_note_ph'))}" aria-label="${_mnE(i18t('mn_box_note'))}"></span></label>

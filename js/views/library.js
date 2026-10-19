@@ -3306,7 +3306,10 @@ function renderTemplatesPage(){
   document.getElementById('content').innerHTML=`
   <div class="view-enter sap-page tpl-page" style="padding:var(--page-pad)">
     <div class="sap-band tpl-band ph-card">
-    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px">
+    ${''/* the card's title row (.ph-top, 19 Oct 2026): the 12px and the hairline
+           under it are the one rule every head card wears, so the tabs stand
+           where every head's second row does */}
+    <div class="ph-top" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
       ${''/* THE TITLE'S INK SITS WHERE EVERY OTHER PAGE'S DOES. The row is
             centre-aligned for the acts beside it, and a 20px title centred
             against a 28px button lands 3px lower than the shared header's —

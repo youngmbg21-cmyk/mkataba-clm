@@ -627,9 +627,26 @@ const SEED = async () => {
          their titles and are facts about the workspace, not descriptions of
          the page, and the room heads' fact line is the contract's own. */
       const ph = document.querySelector('#page-head p');
+      /* THE LINE UNDER THE TITLE ROW (19 Oct 2026, the head card's first
+         check): every picked drawing with a second row in its head — tabs,
+         labelled boxes, figures — draws a hairline between it and the title
+         row, 16px in from each card edge. Asked of the head card: is there a
+         second row (in the card, or the shared head's lower half .ph-foot),
+         and where, and how far in, is the line the title row draws. */
+      const vis = e => { if (!e) return false; const r = e.getBoundingClientRect(); return r.width > 2 && r.height > 2 && getComputedStyle(e).display !== 'none'; };
+      const card = h.closest('.ph-card'), row1 = h.closest('.ph-top');
+      let row2 = false, line = null;
+      if (card && row1){
+        let s = row1.nextElementSibling; while (s && !vis(s)) s = s.nextElementSibling;
+        row2 = !!s || (!!card.closest('#page-head') && [...document.querySelectorAll('#content .ph-foot')].some(vis));
+        const rs = getComputedStyle(row1), rr = row1.getBoundingClientRect(), cr = card.getBoundingClientRect();
+        if (parseFloat(rs.borderBottomWidth) >= 1 && rs.borderBottomStyle === 'solid')
+          line = { y: Math.round(rr.bottom - 1 - top), inL: Math.round(rr.left - cr.left), inR: Math.round(cr.right - rr.right) };
+      }
       return { size: cs.fontSize, weight: cs.fontWeight, family: cs.fontFamily.split(',')[0],
         ink: ink == null ? null : Math.round(ink - top), inkText: txt,
         sub: ph ? ph.textContent.trim().slice(0, 40) : null,
+        card: !!card, row2, line,
         text: (h.textContent || '').trim().slice(0, 20) };
     };
     const PAGES8 = [
@@ -735,6 +752,18 @@ const SEED = async () => {
       check(`8 at ${H}px tall, the first glyph of every shared page head sits at one height under the bar`,
         shared.length >= 8 && soff.length === 0,
         soff.map(([k, h]) => `${k} ${h.ink}px «${h.inkText}» vs ${sref}px`).join(' · ') || `all at ${sref}px, ${shared.length} pages`);
+      /* 19 Oct 2026 (the head card's first check): every shared head with a
+         second row draws the ONE line under its title row, 16px in from each
+         card edge (the card's 1px edge + its 16px padding), at ONE height on
+         every page — and a head with no second row draws none */
+      const withRow = shared.filter(([, h]) => h.card && h.row2);
+      const lref = Number(mode(withRow.filter(([, h]) => h.line).map(([, h]) => h.line.y)));
+      const loff = withRow.filter(([, h]) => !h.line || Math.abs(h.line.y - lref) > 1 || h.line.inL !== 17 || h.line.inR !== 17);
+      const lstray = shared.filter(([, h]) => h.card && !h.row2 && h.line);
+      check(`8 at ${H}px tall, every head with a second row draws the one line under its title row, at one height, 16px in`,
+        withRow.length >= 5 && loff.length === 0 && lstray.length === 0,
+        [...loff.map(([k, h]) => `${k} ${h.line ? `line at ${h.line.y}px, in ${h.line.inL}/${h.line.inR}` : 'no line'} vs ${lref}px`),
+         ...lstray.map(([k]) => `${k} draws a line over nothing`)].join(' · ') || `${withRow.length} heads, the line at ${lref}px`);
       const rooms = hh.filter(([k]) => ROOMS.includes(k));
       check(`8 at ${H}px tall, the two paper heads sit at one height`,
         rooms.length === 2 && Math.abs(rooms[0][1].ink - rooms[1][1].ink) <= 1,
@@ -755,6 +784,29 @@ const SEED = async () => {
     check('8 and a short window pulls them all up rather than none of them',
       !!tall8 && !!short8 && short8.ink < tall8.ink,
       `${tall8 && tall8.ink}px at 1000 · ${short8 && short8.ink}px at 760`);
+    /* 19 Oct 2026 (the head card's first check): on a page whose scroller
+       moves, the head card's lower half (.ph-foot) scrolls away under it and
+       the head closes its own card — with the same 12px under its title row
+       as above the line, never its button sitting on the card's edge, and at
+       the same height either way, so nothing under it jumps. Import, with
+       rows enough to scroll (a filler; the seed has no batch). */
+    {
+      await page.evaluate(() => setView('migration'));
+      const ready = await page.waitForFunction(() => !!document.querySelector('#content .ph-foot') && !!document.querySelector('#page-head .ph-card button'), null, { timeout: 8000 }).then(() => true).catch(() => false);
+      const SHUT = () => { const c = document.querySelector('#page-head .ph-card'); if (!c) return null;
+        const b = [...c.querySelectorAll('button')].pop(), cr = c.getBoundingClientRect();
+        return { h: Math.round(cr.height), gap: b ? Math.round(cr.bottom - 1 - b.getBoundingClientRect().bottom) : null,
+          shut: document.getElementById('page-head').classList.contains('ph-scrolled') }; };
+      const open8 = ready ? await page.evaluate(SHUT) : null;
+      if (ready) await page.evaluate(() => { const p = document.querySelector('#content .view-enter'); const d = document.createElement('div');
+        d.id = 'pra-filler'; d.style.cssText = 'height:1600px;flex:none'; p.appendChild(d); document.getElementById('content-scroll').scrollTop = 400; });
+      const shut = ready && await page.waitForFunction(() => document.getElementById('page-head').classList.contains('ph-scrolled'), null, { timeout: 4000 }).then(() => true).catch(() => false);
+      const closed8 = shut ? await page.evaluate(SHUT) : null;
+      await page.evaluate(() => { const d = document.getElementById('pra-filler'); if (d) d.remove(); const s = document.getElementById('content-scroll'); if (s) s.scrollTop = 0; });
+      check('8 a head whose lower half has scrolled away closes its card with 12px under its title row, at the same height',
+        !!open8 && !!closed8 && closed8.gap >= 12 && closed8.h === open8.h,
+        { open: open8, closed: closed8 });
+    }
 
 
     /* ---- 9 · THE HEAD'S FACT VALUES ARE BOLD, ON BOTH HEADS

@@ -2300,7 +2300,8 @@ function renderMigration(){
     <div class="sap-band mig-band ph-foot" id="mig-band">${_migCheck?migCheckBarHtml():migBandHtml()}</div>
     <style>
       .mig-page{padding:0 var(--page-pad-x) var(--s-4);display:flex;flex-direction:column;gap:var(--s-3)}
-      .mig-band{padding-top:var(--s-1);padding-bottom:var(--s-3)}
+      /* the figures 12px under the head card's line and over its foot (19 Oct 2026) */
+      .mig-band{padding-top:var(--s-3);padding-bottom:var(--s-3)}
       .mig-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-3)}
       @media (min-width:640px){ .mig-kpis{grid-template-columns:repeat(5,minmax(0,1fr))} }
       .mig-kpi,.mig-kpi-card{display:flex;flex-direction:column;gap:4px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:12px 14px;text-align:left;font:inherit;color:inherit;min-width:0}

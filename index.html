@@ -2893,6 +2893,10 @@
   .ngl-head h2{ font-family:var(--font-heading); font-weight:var(--w-title); font-size:20px;
     margin:0 0 var(--s-1); line-height:1.2; }
   .ngl-head p{ margin:0 0 18px; font-size:var(--t-body); color:var(--color-neutral-600); }
+  /* with nothing live the head is the one page-head card (.ph-card, 19 Oct
+     2026), its title alone on the title row, the empty state --s-3 under it */
+  .ngl-wrap > .ngl-head.ph-card{ margin:0 0 var(--s-3); }
+  .ngl-head.ph-card > .ph-top h2{ margin:0; }
   .ngl-list{ display:flex; flex-direction:column; gap:var(--s-2); }
   .ngl-row{ display:flex; align-items:center; gap:14px; width:100%; text-align:left;
     font:inherit; cursor:pointer; padding:13px 15px; border-radius:var(--radius);
@@ -3779,10 +3783,13 @@
      16 Oct pill): You · Company as underlined tabs under a rule, the chosen
      one underlined in the accent, Company's count beside its name */
   .st-cr .st-facebar{ border-bottom:1px solid var(--color-divider); padding-bottom:0; }
-  .st-cr .st-faces{ display:flex; align-items:stretch; gap:24px; position:relative; flex:1 1 auto; width:100%; margin-top:10px; padding:0;
-    border-top:1px solid var(--color-divider); background:none; border-radius:0; }
+  /* the rule over them is the title row's own (.ph-top, 19 Oct 2026: the one line on every head card);
+     each tab is the head cards' tab height (38px, as Obligations' and Our paper's, round 25's drawn 37),
+     so its word sits under the line where every head's tab word does */
+  .st-cr .st-faces{ display:flex; align-items:stretch; gap:24px; position:relative; flex:1 1 auto; width:100%; margin-top:0; padding:0;
+    background:none; border-radius:0; }
   .st-cr .st-face{ appearance:none; border:0; border-bottom:2px solid transparent; margin-bottom:-1px; background:none; cursor:pointer; font:inherit; font-size:var(--t-body);
-    height:var(--ctl-h-lg,40px); padding:0 2px; display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    height:38px; padding:0 2px; display:inline-flex; align-items:center; justify-content:center; gap:6px;
     position:relative; color:var(--color-neutral-600); font-weight:var(--w-label); border-radius:0; white-space:nowrap; }
   .st-cr .st-face[aria-selected="true"]{ color:var(--accent-ink); border-bottom-color:var(--color-accent); }
   .st-cr .st-face:focus-visible{ outline:2px solid var(--color-accent); outline-offset:-2px; }
@@ -3955,7 +3962,8 @@
   .st-cr .st-headcard{ position:sticky; top:var(--page-pad-t); z-index:3; }
   .st-cr .st-headcard::before{ content:''; position:absolute; left:-1px; right:-1px; bottom:100%; height:calc(var(--page-pad-t) + 1px); background:var(--color-bg); }
   .st-cr .st-headcard:has(.st-facebar){ padding-bottom:0; }
-  .st-cr .st-hc-top{ display:flex; align-items:baseline; flex-wrap:wrap; column-gap:10px; row-gap:4px; min-height:var(--ctl-h-sm,28px); }
+  /* the card's title row (.ph-top): its height and the hairline under it are the one rule every head card wears (19 Oct 2026) */
+  .st-cr .st-hc-top{ display:flex; align-items:baseline; flex-wrap:wrap; column-gap:10px; row-gap:4px; }
   .st-cr .st-hc-t{ margin:0; font-family:var(--font-heading); font-size:20px; font-weight:var(--w-title); letter-spacing:-.01em; color:var(--color-text); line-height:1.2; }
   .st-cr .st-hc-sp{ flex:1; }
   .st-cr .st-hc-top > .ui-btn{ align-self:center; }
@@ -14704,16 +14712,37 @@
   .ph-card,.ph-foot{background:var(--color-surface);border:1px solid var(--color-divider);}
   .ph-card{border-radius:var(--radius-lg);padding:14px 16px;}
   .ph-foot{border-top:0;border-radius:0 0 var(--radius-lg) var(--radius-lg);}
+  /* THE TITLE ROW AND THE LINE UNDER IT (19 Oct 2026, the head card's first
+     check): every head's title row is .ph-top, one control's height whether
+     or not it holds a button, so whatever comes under it starts at one
+     height. Where a second row follows — the band's own tabs, boxes or
+     figures, or a .ph-foot under the shared head — the drawings put a
+     hairline between the two, 16px in from each card edge (the card's own
+     padding) and 12px under the title row: the title row's own foot, the
+     ONE line on every head (Settings, Parties and People drew their own
+     before). Content-box, so the line's 12px are not taken from the row. */
+  .ph-card > .ph-top{min-height:var(--ctl-h);box-sizing:content-box;}
+  .ph-card > .ph-top:not(:last-child),
+  body:has(#content .ph-foot) #page-head > .ph-card > .ph-top{padding-bottom:var(--s-3);border-bottom:1px solid var(--color-divider);}
   /* the scroller's reserved gutter (measured, --sc-gutter) is kept off the
      card too, so its right edge meets the cards under it */
   #page-head > .ph-card{margin-right:var(--sc-gutter,0px);}
-  body:has(#content .ph-foot) #page-head > .ph-card{border-bottom-width:0;border-bottom-left-radius:0;border-bottom-right-radius:0;padding-bottom:1px;}
-  body:has(#content .ph-foot) #page-head.ph-scrolled > .ph-card{border-bottom-width:1px;border-radius:var(--radius-lg);padding-bottom:0;}
+  body:has(#content .ph-foot) #page-head > .ph-card{border-bottom-width:0;border-bottom-left-radius:0;border-bottom-right-radius:0;padding-bottom:0;}
+  /* closed once its lower half has scrolled away: the line gives its pixel to
+     the card's own edge, so the title row keeps its 12px under it and the
+     head is the same height either way */
+  body:has(#content .ph-foot) #page-head.ph-scrolled > .ph-card{border-bottom-width:1px;border-radius:var(--radius-lg);}
+  body:has(#content .ph-foot) #page-head.ph-scrolled > .ph-card > .ph-top{border-bottom-width:0;}
   .sap-page .sap-band.ph-foot{margin-inline:0;margin-top:0;padding-inline:16px;}
   /* a page that names itself in its band: the band is the card, at the
-     page's one top */
+     page's one top; its rows meet at the line, nothing between them */
   #content .view-enter.sap-page:has(> .sap-band.ph-card){padding-top:var(--page-pad-t);}
-  .sap-page .sap-band.ph-card{margin-inline:0;margin-top:0;padding:14px 16px 0;}
+  .sap-page .sap-band.ph-card{margin-inline:0;margin-top:0;padding:14px 16px 0;row-gap:0;}
+  /* a tab row under the line starts AT the line, on every head card (the
+     2px a tab row keeps elsewhere put Requests, Advice and My notes 2px
+     under Negotiations' and Obligations') */
+  .sap-page .sap-band:is(.ph-foot,.ph-card) > .reg-views,
+  .sap-page .sap-band:is(.ph-foot,.ph-card) > .reg-tabbar > .reg-views{margin-top:0;}
   .sap-page .sap-band .reg-views,.sap-page .sap-band.st-tabs{border-bottom:0;margin-bottom:0;}
   .sap-page .sap-band .reg-vtab{height:40px;}
   /* OBLIGATIONS' BAND IS APPROVALS & SIGNING'S HEIGHT (owner, 9 Oct 2026:
@@ -15088,7 +15117,8 @@
   .tpl-fb .tpl-fb-q .ik-search{width:240px;}
   /* Our standards (SAP benchmark, batch 2): the same white band as the book,
      this page's three tabs on each card's top, the offer an info strip. */
-  .sd-ins.sap-page > .sap-band.sd-band{flex:none;margin-top:0;padding-top:var(--page-pad-t);}
+  /* the head card's lower half (.ph-foot, 19 Oct 2026): its figures 12px under the title row's line, as every head's second row of boxes */
+  .sd-ins.sap-page > .sap-band.sd-band{flex:none;margin-top:0;padding-top:var(--s-3);}
   .sd-band .paper-tabs{border-bottom:0;}
   .sd-subtabs{flex:none;padding:0 var(--s-4);border-bottom:1px solid var(--color-divider);}
   .sd-ins .ins-offer.sd-info{margin:var(--s-3) var(--s-4) 0;border:1px solid color-mix(in srgb,var(--color-accent) 30%,transparent);

@@ -456,7 +456,7 @@ function dirBandHtml(book){
   const loc = (typeof jxLocale === 'function') ? jxLocale() : undefined;
   const sub = [i18t('dir_n_ours', { n: ours }), theirs ? i18tn('dir_head_theirs', parties, { n: theirs, p: parties }) : ''].filter(Boolean).join(' · ');
   return `<div class="sap-band ph-card">
-    <div class="cu-head dir-head"><div class="cu-hl"><h1 class="cu-t dir-t">${_dE(i18t('nav_directory'))}<span class="cu-tn">${_dE(Number(book.length).toLocaleString(loc))}</span></h1><span class="cu-hs page-facts">${_dE(sub)}</span></div></div>
+    <div class="cu-head dir-head ph-top"><div class="cu-hl"><h1 class="cu-t dir-t">${_dE(i18t('nav_directory'))}<span class="cu-tn">${_dE(Number(book.length).toLocaleString(loc))}</span></h1><span class="cu-hs page-facts">${_dE(sub)}</span></div></div>
     ${dirFilterBarHtml(book)}
   </div>`;
 }

@@ -1023,7 +1023,7 @@ function jhBandHtml(){
      the ones that change what this tab shows — the house all four, Jobs its
      period, How points work none. */
   return `<div class="sap-band jh-band ph-card">
-    <div class="jh-head"><div style="min-width:0"><h1 class="jh-t">${_jhE(_jhT('nav_jambo'))}</h1></div>
+    <div class="jh-head ph-top"><div style="min-width:0"><h1 class="jh-t">${_jhE(_jhT('nav_jambo'))}</h1></div>
       <div class="jh-acts"><button type="button" class="ui-btn" data-jh-points>${_jhE(_jhT('jh_change_points'))}</button></div></div>
     <div class="jh-tabbar"><div class="jh-tabs" role="tablist">${JH_TABS.map(t => `<button type="button" role="tab" class="jh-tab" data-jh-tab="${t}" aria-selected="${_jh.tab === t}">${_jhE(_jhT('jh_tab_' + t))}${t === 'jobs' ? ` <span class="jh-quiet">${agPointsKeys().length}</span>` : ''}</button>`).join('')}</div>${jhFiltersHtml()}</div>
   </div>`;

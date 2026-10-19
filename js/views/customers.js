@@ -862,15 +862,16 @@ function lcScrollWire(host, seat){
    box, the find box, the card and its scroller, Columns and the paged foot.
    One string, put on both pages. */
 const LC_CSS = `
-  /* the title at the card's top, as every page head (.ph-card, 19 Oct 2026): the row starts its items there */
-  .sap-band > .cu-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s-3);flex-wrap:wrap;padding-bottom:var(--s-3);}
+  /* the title at the card's top, as every page head (.ph-card, 19 Oct 2026): the row starts its items there;
+     it is the card's title row (.ph-top), so the 12px and the hairline under it are the one rule every head wears */
+  .sap-band > .cu-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s-3);flex-wrap:wrap;}
   .cu-hl{display:flex;align-items:baseline;gap:var(--s-3);min-width:0;flex:1 1 auto;}
   .cu-t{margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;line-height:1.2;color:var(--color-text);white-space:nowrap;}
   .cu-t .cu-tn{margin-left:6px;font-size:var(--t-card);font-weight:var(--w-body);color:var(--color-neutral-600);font-variant-numeric:tabular-nums;}
   .cu-hs{font-size:var(--t-meta);color:var(--color-neutral-700);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .cu-acts{display:flex;align-items:center;gap:var(--s-2);flex:none;min-height:var(--ctl-h);}
-  /* the filters under a hairline, each word above its box */
-  .sap-band > .cu-fb{border-top:1px solid var(--color-divider);padding:var(--s-3) 0;gap:var(--s-2) var(--s-3);}
+  /* the filters under the title row's hairline (.ph-top, the one line every head card draws), each word above its box */
+  .sap-band > .cu-fb{padding:var(--s-3) 0;gap:var(--s-2) var(--s-3);}
   .cu-find{display:flex;flex-direction:column;gap:4px;min-width:0;}
   .cu-find-l{font-size:var(--t-meta);color:var(--color-neutral-600);}
   .cu-find-box{display:flex;align-items:center;gap:6px;height:var(--ctl-h);min-width:200px;padding:0 var(--s-2);border:1px solid var(--chip-edge,var(--btn-edge));border-radius:var(--radius);background:var(--color-surface);color:var(--color-neutral-500);box-sizing:border-box;}
@@ -1042,7 +1043,7 @@ function cuListHtml(INS){
   const meta = i18t(_cu.status === 'live' ? 'cu_list_live' : _cu.status === 'ended' ? 'cu_list_ended' : 'cu_list_sort');
   const card = cuCardHtml({ seat: 'customers', title: i18t('nav_customers'), n: rows.length, meta, right: lcBtnHtml('customers'), table, foot });
   return `<div class="sap-band ph-card">
-      <div class="cu-head">
+      <div class="cu-head ph-top">
         <div class="cu-hl"><h1 class="cu-t">${_cuE(i18t('nav_customers'))}<span class="cu-tn">${_cuE(Number(all.length).toLocaleString(loc))}</span></h1>${headSub ? `<span class="cu-hs page-facts">${_cuE(headSub)}</span>` : ''}</div>
         <div class="cu-acts"><button type="button" class="hm-primary" data-cu-draft="">${(typeof icon === 'function') ? icon('plus', 'w-3.5 h-3.5', 2) : ''} ${_cuE(i18t('home_draft_new'))}</button></div>
       </div>

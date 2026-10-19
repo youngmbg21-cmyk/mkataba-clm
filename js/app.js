@@ -801,9 +801,10 @@ function renderPageHeader(view){
   /* THE HEAD IS THE DRAWN WHITE CARD (19 Oct 2026; the picked drawings of
      rounds 14–26): .ph-card in index.html, the one frame every page head
      wears — this one, the bands that name their own page, Settings' card.
-     A band the page paints under it (.ph-foot) is the card's lower half. */
+     A band the page paints under it (.ph-foot) is the card's lower half, and
+     the title row (.ph-top) then draws the one line between the two. */
   host.innerHTML=`<div class="ph-card">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap">
+    <div class="ph-top" style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap">
       ${''/* THE FACTS ON THE TITLE'S LINE (owner's yes, 18 Oct 2026: every picked
              drawing of rounds 14–26 sets them beside the page's name — "Negotiations
              7 live · 3 waiting on our side"); they wrap under it where the line is full */}

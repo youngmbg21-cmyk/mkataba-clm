@@ -1021,7 +1021,7 @@ function stHeadCardHtml(admin, face){
   const ask=(!admin && typeof API_MODE==='function' && API_MODE())
     ?`<button type="button" class="ui-btn ui-btn-sm" data-st-ask-head="">${esc(i18t('st_ask_go'))}</button>`:'';
   return `<header class="st-headcard ph-card" id="st-headcard">
-    <div class="st-hc-top"><h1 class="st-hc-t">${esc(title)}</h1>${sub?`<span class="st-head-sub" data-st-head-sub>${esc(sub)}</span>`:''}<span class="st-hc-sp"></span>${ask}</div>
+    <div class="st-hc-top ph-top"><h1 class="st-hc-t">${esc(title)}</h1>${sub?`<span class="st-head-sub" data-st-head-sub>${esc(sub)}</span>`:''}<span class="st-hc-sp"></span>${ask}</div>
     ${admin?stFacesHtml(face):''}
   </header>`;
 }
