@@ -23983,6 +23983,12 @@ db.exec(`
 addColumnIfMissing('contracts', 'template_id', 'TEXT');
 addColumnIfMissing('contracts', 'template_version_id', 'TEXT');
 db.exec('CREATE INDEX IF NOT EXISTS idx_contracts_template ON contracts(template_id)');
+/* WHAT A TEMPLATE'S MAKERS SAID NO TO (round 21, check #1, 19 Oct 2026): a
+   standard Jambo proposed on the builder's paper and somebody Skipped. Kept on
+   the TEMPLATE, so a colleague building it — or the same person on another
+   computer — is not offered it again. A JSON list of category names; NULL is
+   "nothing skipped". Its one writer is PUT /api/templates/:id/skipped. */
+addColumnIfMissing('templates', 'skipped_standards', 'TEXT');
 
 /* The document design (DESIGN-contract-designer.md): which of the five fixed
    looks the company publishes under, where the logo sits, and the accent
@@ -24137,7 +24143,12 @@ function tplListView(t) {
     pageCount: t.page_count == null ? null : Number(t.page_count),
     scanned: TPL_IS_SCANNED(t.source_type),
     createdBy: t.created_by || null, createdAt: t.created_at, updatedAt: t.updated_at,
+    skippedStandards: tplSkippedOf(t),
   };
+}
+function tplSkippedOf(t) {
+  let a = []; try { a = JSON.parse((t && t.skipped_standards) || '[]'); } catch (_) { a = []; }
+  return Array.isArray(a) ? a.map(x => String(x)).filter(Boolean).slice(0, 50) : [];
 }
 function tplTouch(id) { db.prepare('UPDATE templates SET updated_at=? WHERE id=?').run(now(), id); }
 
@@ -24221,6 +24232,22 @@ app.patch('/api/templates/:id', auth, templateManager, passwordCurrent, (req, re
   sets.push('updated_at=?'); args.push(now(), req.params.id);
   db.prepare(`UPDATE templates SET ${sets.join(', ')} WHERE id=?`).run(...args);
   res.json({ ok: true, template: tplListView(tplGet(req.params.id)) });
+});
+
+/* A SKIP IS ADDED, NEVER GUESSED (round 21): one standard's name per call,
+   added to the template's list; `undo:true` takes it back off. Whoever may
+   build a template may say no to a proposal on it. */
+app.put('/api/templates/:id/skipped', auth, paperMaker, passwordCurrent, (req, res) => {
+  const t = tplGet(req.params.id);
+  if (!tplVisibleTo(t, req.user)) return res.status(404).json({ error: 'Template not found' });
+  const b = req.body || {};
+  const cat = clean(b.category).slice(0, 120);
+  if (!cat) return res.status(400).json({ error: 'Say which standard was skipped' });
+  let list = tplSkippedOf(t).filter(x => x !== cat);
+  if (!b.undo) list.push(cat);
+  list = list.slice(-50);
+  db.prepare('UPDATE templates SET skipped_standards=? WHERE id=?').run(list.length ? JSON.stringify(list) : null, t.id);
+  res.json({ ok: true, skippedStandards: list });
 });
 
 app.delete('/api/templates/:id', auth, templateManager, passwordCurrent, (req, res) => {

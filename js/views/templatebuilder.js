@@ -229,7 +229,7 @@ async function openTemplateBuilder(tid, vid, opts = {}) {
      arrives with a first move (the one door's start), on Build */
   if (secs.length && !opts.start) _tb.tab = 'outline';
   /* a proposal the reader skipped for this template stays skipped */
-  _tb.decided = { kept: [], left: tbSkippedOf(tid), neg: [] };
+  _tb.decided = { kept: [], left: tbSkippedOf(), neg: [] };
   if (opts.start) tbStartWith(opts.start);
   /* A fresh open is a NAVIGATION and lands at the top of the paper — the place
      tbPaint holds is a repaint's, never another template's. */
@@ -674,7 +674,7 @@ function tbStartWith(st) {
     _tb.tab = 'build';
     _tb.taken = (st.taken || []).map(t => ({ ...t }));
     _tb.negotiated = (st.negotiated || []).slice();
-    _tb.decided = { kept: [], left: tbSkippedOf(_tb.tid), neg: [] };
+    _tb.decided = { kept: [], left: tbSkippedOf(), neg: [] };
   }
 }
 
@@ -904,13 +904,26 @@ function tbCompareFirst(clauseId) {
    blocks are made by tbAddBlock (the one push) and then MOVED, not pushed. */
 function tbAddStandard(category) {
   const lib = tbLibraryFor(category);
+  const at = tbProposalSpot();
   const h = tbAddBlock('heading', category); const w = tbAddBlock('field_group', lib ? lib.preferred : '');
-  const sig = _tb.blocks.findIndex(b => b.blockType === 'signature_block');
-  if (h && w && sig >= 0 && sig < _tb.blocks.indexOf(h)) {
+  if (h && w && at >= 0 && at < _tb.blocks.indexOf(h)) {
     _tb.blocks = _tb.blocks.filter(b => b !== h && b !== w);
-    _tb.blocks.splice(sig, 0, h, w);
+    _tb.blocks.splice(at, 0, h, w);
   }
   tbPaint(); if (h) tbFocus(h._k, { scroll: true });
+}
+/* WHERE A STANDARD GOES (round 21 as drawn: "Jambo proposes ·
+   Confidentiality" sits after Liability and before Governing law). The
+   closing clauses — the law, disputes, the forum — end an agreement, so a
+   proposal and its Add go before the first of them; with none, before the
+   signatures; with neither, -1 (the end). One reading for the paper and Add. */
+const TB_CLOSING_RE = /\b(governing law|applicable law|choice of law|law and jurisdiction|jurisdiction|disputes?|dispute resolution|arbitration|tillämplig lag|lagval|tvist(er)?|skiljeförfarande)\b/i;
+function tbProposalSpot() {
+  const blocks = (_tb && _tb.blocks) || [];
+  const plain = b => String(tbRich(b) ? tbRichInner(b.content) : b.content || '').replace(/<[^>]*>/g, ' ');
+  const sig = blocks.findIndex(b => b.blockType === 'signature_block');
+  const law = blocks.findIndex((b, i) => b.blockType === 'heading' && (sig < 0 || i < sig) && TB_CLOSING_RE.test(plain(b)));
+  return law >= 0 ? law : sig;
 }
 
 /* ---- THE ONE READING OF WHICH SECTION IS IN HAND ---- */
@@ -1255,7 +1268,7 @@ function tbStyleHtml() {
   .tb-strip .tb-back{flex:none;width:30px;padding:0}
   .tb-strip .tb-act{flex:none;white-space:nowrap}
   .tb-head{display:flex;align-items:center;gap:8px;min-width:0;flex:0 1 auto}
-  .tb-tname{display:inline-flex;align-items:center;gap:6px;min-width:0;flex:0 1 auto;background:none;border:0;border-bottom:1px dashed var(--color-neutral-300);border-radius:0;padding:0 0 1px;cursor:pointer;
+  .tb-tname{display:inline-flex;align-items:center;gap:6px;min-width:0;flex:0 1 auto;background:none;border:0;border-bottom:1px dashed transparent;border-radius:0;padding:0 0 1px;cursor:pointer;
     font:inherit;font-size:14px;font-weight:var(--w-title);color:var(--color-text)}
   .tb-tname .v{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
   .tb-tname-i{width:12px;height:12px;flex:none;color:var(--color-neutral-500)}
@@ -1264,6 +1277,8 @@ function tbStyleHtml() {
   .tb-fchip{display:inline-flex;align-items:center;gap:6px;height:var(--ctl-h);padding:0 var(--pad-ctl-x);min-width:0;flex:0 1 auto;white-space:nowrap;cursor:pointer;
     border:1px solid var(--btn-edge,var(--color-divider));border-radius:999px;background:var(--color-surface);font:inherit;font-size:var(--t-body);color:var(--color-text)}
   .tb-fchip .k{flex:none;color:var(--color-neutral-600)}
+  /* round 21's Compare: below 1400 wide the boxes drop their labels, the values stay */
+  @media (max-width:1399px){ .tb-fchip .k{display:none} }
   .tb-fchip .v{min-width:0;overflow:hidden;text-overflow:ellipsis}
   .tb-fchip .sw{width:8px;height:8px;border-radius:2px;flex:none}
   .tb-fchip-c{width:10px;height:10px;flex:none;color:var(--color-neutral-500)}
@@ -1321,7 +1336,9 @@ function tbStyleHtml() {
   .tb-brand{font-size:var(--t-micro);color:var(--color-neutral-600);border-bottom:1px solid var(--color-divider);padding-bottom:8px;margin-bottom:18px}
   .tb-row{position:relative}
   .tb-g{position:absolute;left:-48px;top:1px;display:flex;flex-direction:column;gap:3px;opacity:0;transition:opacity var(--dur-1)}
-  .tb-row:hover>.tb-g,.tb-row:focus-within>.tb-g,.tb-sec.is-on>.tb-row-h>.tb-g{opacity:1}
+  /* the paper is clean, as round 21 draws it: a block's move and remove show
+     under the hand or the caret only (check #1, 19 Oct 2026) */
+  .tb-row:hover>.tb-g,.tb-row:focus-within>.tb-g{opacity:1}
   .tb-g button{width:var(--ctl-h-sm);height:var(--ctl-h-sm);display:grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);
     border-radius:var(--radius);font:inherit;font-size:var(--t-meta);color:var(--color-neutral-600);padding:0;cursor:pointer;line-height:1}
   .tb-g button svg{width:var(--btn-ic);height:var(--btn-ic)}
@@ -1365,6 +1382,9 @@ function tbStyleHtml() {
   .tb-sig .tb-sigline{display:block;border-bottom:1px solid var(--color-neutral-500);height:26px;margin:14px 0 4px}
   .tb-sig small{color:var(--color-neutral-600);font-size:11px}
   .tb-add{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:26px;padding-top:12px;border-top:1px dashed var(--color-divider)}
+  /* the paper ends with its wording (round 21): Add block shows under the hand
+     or the caret on a computer; a touch screen, with no hover, always sees it */
+  @media (hover:hover){ .tb-paper:not(:hover):not(:focus-within) .tb-add{opacity:0} .tb-add{transition:opacity var(--dur-1)} }
   #tb-railslot{min-width:0;min-height:0;display:flex;flex-direction:column}
   /* THE RAIL IS THE ROW'S HEIGHT, never the window's: it fills its slot and
      its lane scrolls inside it (.tb-lane), exactly as the clause editor's. */
@@ -1613,9 +1633,11 @@ function tbPaperHtml() {
       <button type="button" data-tb-del="${i}" title="${i18t('tb_remove_block')}" aria-label="${i18t('tb_remove_block')}">${icon('x')}</button></span>`;
   let html = ''; let open = false; let n = 0; let sigs = false;
   /* ROUND 21: the marks under each section and Jambo's proposals, drawn in
-     place — the proposals where Add will put them, before the signatures */
+     place — the proposals where Add will put them (tbProposalSpot: before
+     Governing law and the closing clauses, else before the signatures) */
   const marksBy = _tb.blocks.length ? tbMarksAll(cov) : new Map();
   const props = tbProposals(cov); let propsDone = !props.length;
+  const propsAt = props.length ? tbProposalSpot() : -1;
   let openK = null;
   const closeSec = () => { if (open) { html += tbMarksHtml(marksBy.get(openK)) + '</div>'; open = false; openK = null; } };
   const putProps = () => { if (!propsDone) { html += `<div class="tb-props">${props.map(tbProposalHtml).join('')}</div>`; propsDone = true; } };
@@ -1637,6 +1659,7 @@ function tbPaperHtml() {
     title();
     if (b.blockType === 'heading') {
       closeSec();
+      if (i === propsAt) putProps();
       /* THE NUMBER THIS HEADING WILL PRINT AS, not its position in the list
          (18 Sep 2026, the third repair). templateFormDocHtml promotes the
          FIRST heading to the document's title, and a title carries no clause
@@ -1653,7 +1676,7 @@ function tbPaperHtml() {
         ? `<${lv} class="tb-h tb-rh lv-${lv.slice(1)}"><span class="tb-ed tb-hed" contenteditable="true" spellcheck="false" data-tb-content="${i}" data-tb-kind="rheading" data-tb-lv="${lv}" data-ph="${i18t('tb_ph_heading')}">${tbRichChipsHtml(tbRichInner(b.content))}</span></${lv}>`
         : `<h3 class="tb-h">${clauseNo ? `<span class="tb-n">${clauseNo}</span>` : ''}<span class="tb-ed tb-hed" contenteditable="true" spellcheck="false" data-tb-content="${i}" data-tb-kind="heading" data-ph="${i18t('tb_ph_heading')}">${esc(b.content)}</span></h3>`;
       html += `<div class="tb-sec${sec && sec.k === _tb.focus ? ' is-on' : ''}${st ? ' is-' + st : ''}${sec && !tbSectionText(sec) ? ' is-empty' : ''}" data-tb-sec="${b._k}">
-        <div class="tb-row tb-row-h" data-tb-row="${i}"><span class="tb-dot"></span>${G(i, fits ? `<button type="button" data-tb-tag="${b._k}" title="${i18t('tb_ask_label')}">✦</button>` : '')}
+        <div class="tb-row tb-row-h" data-tb-row="${i}">${G(i, fits ? `<button type="button" data-tb-tag="${b._k}" title="${i18t('tb_ask_label')}">✦</button>` : '')}
           ${head}</div>
         ${sec && !sec.body.length && tbSectionOwes(sec) ? `<p class="tb-p tb-ph" data-tb-ph="${b._k}">${i18t('tb_ph_empty')}</p>` : ''}`;
       open = true; openK = sec ? sec.k : null; return;
@@ -1997,14 +2020,22 @@ function tbFootHtml() {
    The rail is Jambo's panel, as beside every list: at the window's right
    edge, his face on his tab, "Builder" for what it holds, "‹ Jambo" back to
    his own words (the Build tab with no section in hand), "›" folding it to a
-   strip at the edge (the same remembered fold as the lists' panel, jlFolded).
+   strip at the edge (its own remembered fold, TB_FOLD_KEY).
    Its tabs are Build · Outline · Playbook <met>/<total> · Blanks <n>; the
    Outline lists the sections with their blanks, what meets Our standards and
    what Jambo proposes on the paper. The ask box and its hint stand at the
    foot on every tab; a question asked from another tab is answered on Build. */
-function tbRailFolded() { return typeof jlFolded === 'function' ? !!jlFolded() : false; }
+/* THE BUILDER KEEPS ITS OWN FOLD (check #1, 19 Oct 2026): sharing the list
+   panel's key opened the builder folded after Our paper's panel was folded */
+const TB_FOLD_KEY = 'hati.v1.tbFold';
+let _tbFold = null;
+function tbRailFolded() {
+  if (_tbFold === null) { try { _tbFold = localStorage.getItem(TB_FOLD_KEY) === '1'; } catch (_) { _tbFold = false; } }
+  return !!_tbFold;
+}
 function tbRailFold(on) {
-  if (typeof jlFoldSet === 'function') jlFoldSet(!!on);
+  _tbFold = !!on;
+  try { if (on) localStorage.setItem(TB_FOLD_KEY, '1'); else localStorage.removeItem(TB_FOLD_KEY); } catch (_) {}
   const page = document.getElementById('tb-page'); if (page) page.classList.toggle('is-railfold', !!on);
   tbPaintRail(); tbFitSplit();
 }
@@ -2018,13 +2049,13 @@ function tbRailHtml() {
   const pb = cov && cov.total ? `${cov.met}/${cov.total}` : '';
   const showBack = tab !== 'build' || _tb.focus != null;
   return `<aside class="tb-rail tb-jl${tbRailFolded() ? ' is-folded' : ''}" id="tb-rail" aria-label="${esc(name)}">
-    <button type="button" class="tb-door" data-tb-door title="${esc(i18t('int_open_panel'))}" aria-label="${esc(i18t('int_open_panel'))}"><span class="tb-door-i">${face(28)}</span><span class="tb-door-w">${esc(name)}</span><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg></button>
+    <button type="button" class="tb-door" data-tb-door aria-expanded="false" title="${esc(i18t('int_open_panel'))}" aria-label="${esc(i18t('int_open_panel'))}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg><span class="tb-door-i">${face(28)}</span><span class="tb-door-w">${esc(name)}</span></button>
     <div class="jl-head tb-jh">
       <button type="button" class="pd-tab on jl-tab" data-tb-jambo title="${esc(name)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${face(20)}</span></span><span class="pd-tab-w">${esc(name)}</span></button>
       <span class="jl-word" title="${esc(i18t('tb_jl_word'))}">${esc(i18t('tb_jl_word'))}</span>
       <span class="jl-sp"></span>
       <button type="button" class="pd-back" data-tb-jambo title="${esc(i18t('pd_back_jambo'))}"${showBack ? '' : ' hidden'}><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${esc(name)}</button>
-      <button type="button" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon jl-fold" data-tb-fold title="${esc(i18t('int_collapse_panel'))}" aria-label="${esc(i18t('int_collapse_panel'))}">${typeof icon === 'function' ? icon('chevR') : '›'}</button>
+      <button type="button" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon jl-fold" data-tb-fold aria-expanded="true" title="${esc(i18t('int_collapse_panel'))}" aria-label="${esc(i18t('int_collapse_panel'))}">${typeof icon === 'function' ? icon('chevR') : '›'}</button>
     </div>
     <div class="tb-ah"><span class="tb-tabs" role="tablist">${T('build', i18t('tb_tab_build'))}${T('outline', i18t('tb_tab_outline'))}${T('playbook', i18t('tb_pb_playbook'), pb, cov && cov.met < cov.total ? 'r' : '')}${T('blanks', i18t('tb_tab_blanks'), nb)}</span></div>
     ${tab === 'build' || tab === 'playbook' ? `<div class="tb-disc"><b>✦</b><span>${i18t(tab === 'playbook' ? 'tb_pb_cover_foot' : 'tb_disc')}</span></div>` : ''}
@@ -2065,7 +2096,11 @@ function tbOutlineTabHtml(cov) {
     return `<button type="button" class="tb-ol-r${s.k === _tb.focus ? ' is-sel' : ''}" data-tb-ol="${s.k}"><span class="tb-ol-n">${esc(tbOutlineNo(s, i))}</span><span class="tb-ol-h">${esc(s.head || i18t('tb_untitled'))}</span>${mark}</button>`;
   });
   const props = tbProposals(cov);
-  props.forEach(r => rows.push(`<button type="button" class="tb-ol-r is-prop" data-tb-ol-prop="${esc(r.category)}"><span class="tb-ol-n">+</span><span class="tb-ol-h">${esc(r.category)}</span><span class="tb-ol-pill">${esc(i18t('tb_ol_proposed'))}</span></button>`));
+  /* the proposed rows stand where the paper draws them (tbProposalSpot) */
+  const spot = props.length ? tbProposalSpot() : -1;
+  let at = spot < 0 ? rows.length : secs.findIndex(s => s.headIndex === spot);
+  if (at < 0) at = rows.length;
+  rows.splice(at, 0, ...props.map(r => `<button type="button" class="tb-ol-r is-prop" data-tb-ol-prop="${esc(r.category)}"><span class="tb-ol-n">+</span><span class="tb-ol-h">${esc(r.category)}</span><span class="tb-ol-pill">${esc(i18t('tb_ol_proposed'))}</span></button>`));
   const labels = _tb.fields.map(f => String(f.label || f.fieldKey || '').trim()).filter(Boolean);
   const nb = labels.length;
   const blanks = nb ? i18t('tb_ol_blanks_ask', { list: labels.slice(0, 6).join(' · ') + (nb > 6 ? ' …' : '') }) : i18t('tb_ol_blanks_none');
@@ -2087,19 +2122,32 @@ function tbOutlineTabHtml(cov) {
    wording in (the clause library's, free; tbAddStandard → tbAddBlock, the one
    push); Skip takes the proposal away and Jambo does not propose it again
    for this template. Never added without a press. */
-const TB_SKIP_KEY = 'hati.v1.tbSkipped';
-function tbSkippedOf(tid) {
-  try { const all = JSON.parse(localStorage.getItem(TB_SKIP_KEY) || '{}') || {}; return Array.isArray(all[tid]) ? all[tid].map(String) : []; } catch (_) { return []; }
+/* A SKIP IS KEPT ON THE TEMPLATE (check #1, 19 Oct 2026; it was this
+   browser's alone): PUT /api/templates/:id/skipped, read back as the
+   template's `skippedStandards`. The proposal leaves at once; a refused save
+   puts it back and says so. */
+function tbSkippedOf() {
+  const t = _tb && _tb.template;
+  return t && Array.isArray(t.skippedStandards) ? t.skippedStandards.map(String) : [];
 }
-function tbSkip(category) {
+async function tbSkip(category) {
   if (!_tb) return;
+  const t = _tb.template || (_tb.template = {});
+  const was = tbSkippedOf();
   (_tb.decided = _tb.decided || { kept: [], left: [], neg: [] }).left.push(category);
-  try { const all = JSON.parse(localStorage.getItem(TB_SKIP_KEY) || '{}') || {};
-    all[_tb.tid] = Array.from(new Set([...(Array.isArray(all[_tb.tid]) ? all[_tb.tid] : []), category])); localStorage.setItem(TB_SKIP_KEY, JSON.stringify(all)); } catch (_) {}
+  t.skippedStandards = Array.from(new Set([...was, category]));
+  try {
+    const r = await api(`templates/${_tb.tid}/skipped`, 'PUT', { category }, { quiet: true });
+    if (r && Array.isArray(r.skippedStandards)) t.skippedStandards = r.skippedStandards;
+  } catch (e) {
+    t.skippedStandards = was;
+    _tb.decided.left = _tb.decided.left.filter(x => x !== category);
+    toast(e.message, 'err'); tbPaintPaper(); tbPaintRail({ keep: true });
+  }
 }
 function tbProposals(cov) {
   if (!_tb || !_tb.blocks.length || _tb.outline) return [];
-  const skipped = tbSkippedOf(_tb.tid);
+  const skipped = tbSkippedOf();
   return tbMissingStandards(cov || tbCoverage()).filter(r => !skipped.includes(r.category));
 }
 function tbProposalHtml(r) {
@@ -2167,10 +2215,10 @@ function tbHeadHtml() {
   const caret = icon('chevD', 'tb-fchip-c');
   const chip = (what, key, val, sw) => `<button type="button" class="tb-fchip${val ? '' : ' empty'}" data-tb-meta="${what}"
       title="${esc(val ? i18t('tb_h_chip_title', { k: key, v: val }) : i18t('tb_h_stream_none'))}"><span class="k">${esc(key)}</span>${sw || ''}<span class="v">${esc(val || i18t('tb_h_choose'))}</span>${caret}</button>`;
-  return `<button type="button" class="tb-tname" data-tb-meta="name" title="${esc(i18t('tb_h_rename', { name: h.name }))}"><span class="v">${esc(h.name)}</span>${icon('pencil', 'tb-tname-i')}</button>`
+  return `<button type="button" class="tb-tname" data-tb-meta="name" title="${esc(i18t('tb_h_rename', { name: h.name }))}"><span class="v">${esc(h.name)}</span></button>`
     + `<span class="tb-chipv">${i18t('tb_v_draft', { n: _tb.versionNumber })}</span>`
     + chip('category', i18t('tb_h_category'), h.categoryName)
-    + chip('stream', i18t('tb_h_stream'), h.streamName, h.color ? `<span class="sw" style="background:${esc(h.color)}"></span>` : '');
+    + chip('stream', i18t('tb_h_stream'), h.streamName);
 }
 function tbPaintHead() { const el = document.getElementById('tb-head'); if (el && _tb) el.innerHTML = tbHeadHtml(); }
 /* THE DOOR. The box saves through the template's own PATCH; what comes back
@@ -2923,6 +2971,7 @@ function tbFieldModal(index, presetKey) {
 }
 
 /* ---------- branding panel (org-level, rendered on every template) ---------- */
+let _tbBrandOpen = false;
 async function tbPaintBranding() {
   const host = document.getElementById('tb-branding');
   if (!host) return;
@@ -2930,12 +2979,16 @@ async function tbPaintBranding() {
   try { b = (await api('org/branding')).branding; } catch (_) {}
   b = b || { logoUrl: null, companyName: '', registrationNumber: '', address: '', defaultFooterText: '' };
   const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);height:var(--field-h);padding:0 var(--field-pad-x);font:inherit;font-size:var(--field-size);outline:none';
-  host.innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+  /* ONE LINE UNDER THE PAPER (round 21 draws the paper ending with its
+     wording; check #1, 19 Oct 2026): the company's letterhead is folded to
+     its name until pressed — the same form inside, kept open across repaints */
+  host.innerHTML = `<details class="tb-bf"${_tbBrandOpen ? ' open' : ''}>
+    <summary style="display:flex;align-items:center;gap:10px;cursor:pointer;list-style:none">
       <h4 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);margin:0">${i18t('tb_branding')}</h4>
       <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('tb_org_wide')}</span>
-    </div>
-    <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">
+      <span style="flex:1"></span>${icon('chevD', 'w-3.5 h-3.5')}
+    </summary>
+    <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;margin-top:10px">
       <div style="flex:none;display:flex;flex-direction:column;gap:6px;align-items:center">
         <div style="width:120px;height:64px;border:1px dashed var(--color-divider);border-radius:var(--radius);display:grid;place-items:center;overflow:hidden;background:var(--color-bg)">
           ${b.logoUrl ? `<img src="${b.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">` : `<span style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('tb_no_logo')}</span>`}
@@ -2952,7 +3005,8 @@ async function tbPaintBranding() {
           <button id="tb-b-save" class="ui-btn ui-btn-sm">${i18t('tb_save_branding')}</button>
         </div>
       </div>
-    </div>`;
+    </div></details>`;
+  host.querySelector('details.tb-bf')?.addEventListener('toggle', e => { _tbBrandOpen = !!e.target.open; });
   const save = async (logoUrl) => {
     try {
       await api('org/branding', 'PUT', {
@@ -3001,4 +3055,4 @@ Object.assign(window, { openTemplateBuilder, tbCardWording, TB_BLOCK_META, TB_PB
   tbSectionOwes, tbMissingStandards,
   /* Round 21, "Paper first": Jambo's panel beside the paper, its Outline tab,
      his proposals and the marks on the paper (the book's own readings). */
-  tbRailFolded, tbRailFold, tbOutlineTabHtml, tbOutlineNo, tbBlankKeys, TB_SKIP_KEY, tbSkippedOf, tbSkip, tbProposals, tbProposalHtml, tbMarksAll, tbMarksRepaint });
+  tbRailFolded, tbRailFold, tbOutlineTabHtml, tbOutlineNo, tbBlankKeys, tbSkippedOf, tbSkip, tbProposals, tbProposalSpot, TB_CLOSING_RE, TB_FOLD_KEY, tbProposalHtml, tbMarksAll, tbMarksRepaint });

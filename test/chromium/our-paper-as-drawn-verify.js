@@ -172,7 +172,7 @@ async function SEED(){
         fixed: getComputedStyle(p).position, right: Math.round(p.getBoundingClientRect().right) === innerWidth }; });
     check('5a the head says the template; ‹ Jambo is there', E.word === 'Master services agreement' && E.back, JSON.stringify({ w: E.word, b: E.back }));
     check('5b his words, from the record — nothing spent, with where it came back changed and what it meets',
-      /Master services agreement v1, from the record — nothing spent\./.test(E.said) && /Used 5 times in 12 months\. 2 came back changed: clause 2 Liability twice, clause 3 Payment once\. It meets (all \d+|\d+ of \d+) of Our standards[.;]/.test(E.said), E.said);
+      /Master services agreement v1, from the record — nothing spent\./.test(E.said) && /Used 5 times in 12 months\. 2 came back changed: clause 2 Liability twice, clause 3 Payment once\. It meets (all \d+|\d+ of (the )?\d+)( of Our standards| standards every contract is read against| standards Our standards set for [^.;]+)[.;]/.test(E.said), E.said);
     check('5c Next steps: open it in the builder · draft a contract from it · where it came back changed', E.next === 'Next steps'
       && JSON.stringify(E.chips) === JSON.stringify(['open it in the builder', 'draft a contract from it', 'where it came back changed']), JSON.stringify(E.chips));
     check('5d the ask box and the hint line at the panel\'s foot; the panel at the window\'s edge', E.ph === 'Ask for anything, or type /' && /Typing never signs, sends or files — a press does\./.test(E.hint) && E.right, JSON.stringify({ ph: E.ph, hint: E.hint, right: E.right }));
@@ -236,14 +236,18 @@ async function SEED(){
     const cat = P.props[0] && P.props[0][0];
     const before = await page.evaluate(() => document.querySelectorAll('#tb-paper [data-tb-row]').length);
     await press(`[data-tb-prop-skip="${cat}"]`);
-    const S = await until(c => !document.querySelector(`[data-tb-prop="${c}"]`) && JSON.parse(localStorage.getItem('hati.v1.tbSkipped') || '{}'), cat);
-    check('8c Skip takes the proposal away for this template, kept in this browser', !!S && Object.values(S).some(a => a.includes(cat)) && !(await page.evaluate(c => [...document.querySelectorAll('.tb-ol-r.is-prop')].some(r => r.textContent.includes(c)), cat)), JSON.stringify(S));
-    await page.evaluate(() => localStorage.removeItem('hati.v1.tbSkipped'));
+    /* RE-POINTED (check #1, 19 Oct 2026): a skip is kept ON THE TEMPLATE, on
+       the server, so another computer is not offered it again */
+    await until(c => !document.querySelector(`[data-tb-prop="${c}"]`), cat);
+    const S = await until(async a => { const r = await api('templates/' + a.tid); return (r.template.skippedStandards || []).includes(a.cat) ? r.template.skippedStandards : null; }, { tid: ids.res.tid, cat });
+    check('8c Skip takes the proposal away for this template, kept on the template (the server)', !!S && !(await page.evaluate(() => localStorage.getItem('hati.v1.tbSkipped'))) && !(await page.evaluate(c => [...document.querySelectorAll('.tb-ol-r.is-prop')].some(r => r.textContent.includes(c)), cat)), JSON.stringify(S));
+    await page.evaluate(a => api('templates/' + a.tid + '/skipped', 'PUT', { category: a.cat, undo: true }), { tid: ids.res.tid, cat });
     await page.evaluate(i => openTemplateBuilder(i.tid, i.vid), ids.res);
     await until(() => document.querySelector(`#tb-paper [data-tb-prop-add]`));
     await press('#tb-paper [data-tb-prop-add]');
     const AD = await until(c => { const heads = [...document.querySelectorAll('#tb-paper .tb-hed')].map(h => h.textContent.trim()); return heads.includes(c) ? { n: document.querySelectorAll('#tb-paper [data-tb-row]').length, heads } : null; }, cat);
     check('8d Add puts our standard\'s heading and wording in (the one push)', !!AD && AD.n === before + 2, JSON.stringify(AD));
+    check('8e Add puts it where the proposal stood — before Governing law, as drawn', !!AD && AD.heads.indexOf(cat) >= 0 && AD.heads.indexOf('Governing law') > AD.heads.indexOf(cat), JSON.stringify(AD && AD.heads));
 
     /* 9 OUTLINE ROWS, ‹ JAMBO, FOLD */
     await press('#tb-rail [data-tb-tab="outline"]');

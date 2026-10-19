@@ -1455,7 +1455,10 @@ function openTemplatePreview(tpl){
    versions, delete — the rarer ones behind one … menu per row. */
 /* The pile a reader arrives on is what they can USE. 'all' put the whole
    filing cabinet in front of somebody looking for one piece of paper. */
-let _tplPage={ group:'ready', stream:null, q:'', showAll:false, kind:'all' };
+/* THE TAB'S NUMBER IS THE LIST BEHIND IT (round 21 as drawn, check #1,
+   19 Oct 2026): "Templates 24" beside "The book 24". The Templates tab counts
+   every template and opens on All; Ready is one press away in its rail. */
+let _tplPage={ group:'all', stream:null, q:'', showAll:false, kind:'all' };
 /* ONE NUMBER, BOTH TABS: how many templates either tab shows before it says
    how many more there are. Written twice, the overview would offer "see all
    12 more" over a list that had already shown eight of them. */
@@ -1723,7 +1726,7 @@ function tplPagePaintRows(){
       <button id="tpl-showall" class="ui-link">${i18t('lib_show_all')}${icon('chevR','w-3.5 h-3.5')}</button></div>`:''}`
     :`<div style="padding:28px 14px;text-align:center;font-size:var(--t-meta);color:var(--color-neutral-600)">${i18t('lib_nothing_matches')}</div>`;
   // row verbs (rebound on every paint — the rows are rebuilt wholesale)
-  host.querySelectorAll('[data-tpllib-use]').forEach(b=>b.addEventListener('click',()=>tplLibNewContract(b.getAttribute('data-tpllib-use'))));
+  host.querySelectorAll('[data-tpllib-use]').forEach(b=>b.addEventListener('click',()=>tplDraftFrom(b.getAttribute('data-tpllib-use'))));
   host.querySelectorAll('[data-tpllib-open]').forEach(b=>b.addEventListener('click',()=>openTemplateLibDetail(b.getAttribute('data-tpllib-open'))));
   host.querySelectorAll('[data-tpllib-edit]').forEach(b=>b.addEventListener('click',()=>{
     if(typeof tplLibEdit==='function') tplLibEdit(b.getAttribute('data-tpllib-edit'));
@@ -1826,7 +1829,7 @@ function tplPanelActs(r){
   const more={ k:'more', label:'', icon:'more', title:i18t('lib_more_for',{name:r.name}), run:()=>tplRowMoreMenu(ref) };
   if(r.kind==='company'){
     if(r.draft) acts.push({ k:'edit', kind:'accent', label:i18t('lib_continue_editing'), run:()=>tplLibEdit(r.id) });
-    else { if(canManage) acts.push({ k:'use', kind:'accent', label:i18t('lib_draft_contract'), run:()=>tplLibNewContract(r.id) });
+    else { if(canManage) acts.push({ k:'use', kind:'accent', label:i18t('lib_draft_contract'), run:()=>tplDraftFrom(r.id) });
       if(canManage) acts.push({ k:'edit', label:i18t('act_edit'), run:()=>tplLibEdit(r.id) }); }
     acts.push(more);
   } else if(r.kind==='cp'){
@@ -2794,6 +2797,15 @@ function tplPfFacts(card, st){
    Open in the builder is the template's own edit (tplLibEdit: a draft version
    when one is live, said in its toast). The rest are tplPanelActs' verbs,
    through the same functions; the rarer ⋯ stays on the list. */
+/* ONE DOOR TO DRAFT FROM A COMPANY TEMPLATE (round 21: "Draft from it lands
+   on the New agreement form"; check #1, 19 Oct 2026): the list's "Draft a
+   contract" and the template's own page open the one form with it chosen,
+   as the book's Draft from it does. A stage without the form keeps the
+   essentials door. */
+function tplDraftFrom(id){
+  if (typeof openNewAgreement === 'function') return openNewAgreement({ pick:{ kind:'lib', id } });
+  return tplLibNewContract(id);
+}
 function tplPfVerbs(card){
   const row = { kind:card.kind, id:card.id, i:card.i, name:card.name, draft:card.draft, imported:card.imported };
   let own = []; try { own = (tplPanelActs(row).acts || []).filter(a => !['more', 'use', 'edit'].includes(a.k)); } catch (_){ own = []; }
@@ -2851,22 +2863,31 @@ function tplPfSheetSections(sheet){
   if (!sheet || !sheet.querySelectorAll) return [];
   let heads = [...sheet.querySelectorAll('h1,h2,h3,h4,h5,h6')].filter(h => !h.closest('.tpl-mks') && !h.closest('.rl-paper-head'));
   if (heads.length && heads[0].tagName === 'H1') heads = heads.slice(1);
+  /* THE LAST CLAUSE ENDS AT THE SIGNATURES (check #1, 19 Oct 2026): its
+     marks went under the signature block. The block is the renderer's own
+     paragraph (templateFormDocHtml: "Signed for <party>"), so the first such
+     paragraph after the last heading closes that clause. */
+  const sigAfter = h => [...sheet.querySelectorAll('p')].find(p => TPL_PF_SIG_RE.test(String(p.textContent || '').trim())
+    && (h.compareDocumentPosition(p) & 4) && !p.closest('.tpl-mks')) || null;
   return heads.map((h, i) => {
     const raw = String(h.textContent || '').replace(/\s+/g, ' ').trim();
     const m = /^((?:\d+(?:\.\d+)*|[IVXLC]+))[.)]?\s+(.+)$/.exec(raw);
     const next = heads[i + 1] || null;
+    const end = next || sigAfter(h);
     let text = '';
-    try { const r = document.createRange(); r.setStartAfter(h); if (next) r.setEndBefore(next); else r.setEnd(sheet, sheet.childNodes.length); text = String(r.toString() || '').replace(/\s+/g, ' ').trim(); } catch (_){ text = ''; }
-    return { el:h, next, no:m ? m[1] : '', head:m ? m[2] : raw, text };
+    try { const r = document.createRange(); r.setStartAfter(h); if (end) r.setEndBefore(end); else r.setEnd(sheet, sheet.childNodes.length); text = String(r.toString() || '').replace(/\s+/g, ' ').trim(); } catch (_){ text = ''; }
+    return { el:h, next, end, no:m ? m[1] : '', head:m ? m[2] : raw, text };
   });
 }
+const TPL_PF_SIG_RE = /^Signed for\b/;
 /* where a section's marks go: the end of its own clause wrapper (the
-   renderer's [data-anchor]), else just before the next heading's block, else
-   the end of the sheet */
+   renderer's [data-anchor]), else just before the next heading's block (or,
+   for the last clause, the signatures'), else the end of the sheet */
 function tplPfMarkPlace(sheet, sec){
   const wrap = sec.el.closest('[data-anchor]');
-  if (wrap && sheet.contains(wrap) && !(sec.next && wrap.contains(sec.next))) return { parent:wrap, before:null };
-  if (sec.next){ let top = sec.next; while (top.parentNode && top.parentNode !== sheet && !top.parentNode.contains(sec.el)) top = top.parentNode;
+  const stop = sec.next || sec.end;
+  if (wrap && sheet.contains(wrap) && !(stop && wrap.contains(stop))) return { parent:wrap, before:null };
+  if (stop){ let top = stop; while (top.parentNode && top.parentNode !== sheet && !top.parentNode.contains(sec.el)) top = top.parentNode;
     return { parent:top.parentNode, before:top }; }
   let top = sec.el; while (top.parentNode && top.parentNode !== sheet) top = top.parentNode;
   return { parent:top.parentNode || sheet, before:null };
@@ -2915,9 +2936,17 @@ function tplPfSaid(card, read){
   }
   const cov = R.cov;
   if (cov && cov.total){
-    if (cov.met === cov.total) s += ' ' + i18tn('lib_pf_j_meets_all', cov.total, { n:cov.total });
+    /* ONE NUMBER PER PAGE (check #1, 19 Oct 2026): the Our standards tab
+       counts every standard; a paper is read against the ones set for its
+       kind (resolvePlaybook). Where the two differ the sentence names the
+       kind, so "3 of 4" never reads against the tab's 6. */
+    const differs = cov.total !== paperStandardsCount();
+    const base = differs && tplPfBookKey(card) === '_default';
+    const kind = differs && !base && cov.label ? cov.label : '';
+    const k = base ? '_base' : kind ? '_for' : '';
+    if (cov.met === cov.total) s += ' ' + i18tn('lib_pf_j_meets_all' + k, cov.total, { n:cov.total, kind });
     else { const open = cov.rows.filter(x => x.state !== 'hit').map(x => x.category);
-      s += ' ' + i18t('lib_pf_j_meets_some', { met:cov.met, n:cov.total, list:open.join(', ') }); }
+      s += ' ' + i18t('lib_pf_j_meets_some' + k, { met:cov.met, n:cov.total, list:open.join(', '), kind }); }
   }
   lines.push(_tplEsc(s));
   return lines;
@@ -3311,11 +3340,11 @@ function renderTemplatesPage(){
       }>${(typeof window!=='undefined'&&window.plusLed?window.plusLed(i18t('lib_new_template')):i18t('lib_new_template'))}</button>`:''}
     </div>
     ${INS?`<div data-tpl-head="list" ${tab==='list'?'':'hidden'}>${tplListHeadHtml()}</div>`:''}
-    <div class="st-tabs" role="tablist">
+    <div class="st-tabs tpl-tabs" role="tablist">
       ${''/* "Templates overview" was HERE and is gone (19 Sep 2026). See the
              note on tplHealthData: the card it drew is kept, unreferenced. */}
       <button class="st-tab${tab==='book'?' on':''}" data-tpl-tab="book" role="tab" aria-selected="${tab==='book'?'true':'false'}">${i18t('lib_tab_book')}<span class="st-tab-n">${hf.n}</span></button>
-      <button class="st-tab${tab==='list'?' on':''}" data-tpl-tab="list" role="tab" aria-selected="${tab==='list'?'true':'false'}">${i18t('nav_templates')}<span class="st-tab-n">${pile.ready}</span></button>
+      <button class="st-tab${tab==='list'?' on':''}" data-tpl-tab="list" role="tab" aria-selected="${tab==='list'?'true':'false'}">${i18t('nav_templates')}<span class="st-tab-n">${rows.length}</span></button>
       ${''/* OUR STANDARDS IS THIS PAGE'S THIRD TAB (the process review,
              4 Oct 2026): one door for the paper and its rulebook. The tab is
              the standards page itself, drawn under this page's name — see
@@ -3447,7 +3476,7 @@ const PAPER_TABS=['book','list','standards'];
 function paperStandardsCount(){ try{ return (typeof clauseLibrary==='function')?(clauseLibrary()||[]).length:null; }catch(_){ return null; } }
 function paperTabCounts(){
   let book=null, list=null;
-  try{ const rows=tplPageRows(); book=tplOverviewData().cards.length; list=rows.filter(r=>tplRowPile(r)==='ready').length; }catch(_){}
+  try{ const rows=tplPageRows(); book=tplOverviewData().cards.length; list=rows.length; }catch(_){}
   return { book, list, standards:paperStandardsCount() };
 }
 function paperTabsHtml(lit, tight){
@@ -4396,4 +4425,4 @@ function sdWire(d, mayEdit){
 Object.assign(window,{sdSettledHtml,sdLearnApply,sdLearnProposal,sdLearnChartHtml,sdLearnNewText,sdPanelClauseId,tplPlace,tplPlacePut,pbInsMounted,pbPaintHead,sdData,sdHeads,sdFirm,sdLimitWords,sdLegalLine,sdClausePanelOpts,sdBookPanelOpts,sdDevPanelOpts,sdDevRows,sdDevFilters,SD_DEV_DEF,SD_DEV_CHIPS,SD_WHERE_MAX,sdPaintSection,sdGoTab,sdGoBook,sdGoClause,sdGoDev,sdCheckAgain,sdOpenDraftCompare,
   tplOvFit,HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,_tplSourceLabel,_richSelection,_richReplaceRange,
   templateVersionNo,templateVersions,templateUsage,templateUsageLabel,saveTemplateVersion,
-  PAPER_TABS,paperTabsHtml,paperTabsWire,openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,tplBuiltinKey,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplBookHtml,tplBookShelvesHtml,tplPfHtml,tplPfGroups,tplPfChosen,tplPfPaperHtml,TPL_PF_SHELVES,_tplPf,TPL_PF_DAYS,tplPfShelfOpen,tplPfDocStamp,tplPfTally,tplPfStats,tplPfVersion,tplPfStream,tplPfBookKey,tplPfBlanksHtml,tplPfLabels,tplPfDocLoad,tplPfFacts,tplPfVerbs,tplPfSheetSections,tplPfMarkPlace,tplPfMarksPaint,tplPfTimes,tplPfSaid,tplPfChips,tplPfJamboHtml,tplPfPageSay,tplPfPanelPaint,tplPfHeadFacts,tplPfAfterPaint,paperStandardsCount,paperTabCounts,tplBookRepaint,tplBookWire,tplBookGlanceHtml,TPL_BOOK_SECS,tplOvCardHtml,tplOvPanelsHtml,tplOvRateInk,bucketStreamName,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,tplListIns,tplInsPaint,tplPanelOpts,tplPanelActs,tplReadOf,tplListHeadHtml,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});
+  PAPER_TABS,paperTabsHtml,paperTabsWire,openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,tplBuiltinKey,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplBookHtml,tplBookShelvesHtml,tplPfHtml,tplPfGroups,tplPfChosen,tplPfPaperHtml,TPL_PF_SHELVES,_tplPf,TPL_PF_DAYS,tplPfShelfOpen,tplPfDocStamp,tplPfTally,tplPfStats,tplPfVersion,tplPfStream,tplPfBookKey,tplPfBlanksHtml,tplPfLabels,tplPfDocLoad,tplPfFacts,tplPfVerbs,tplDraftFrom,TPL_PF_SIG_RE,tplPfSheetSections,tplPfMarkPlace,tplPfMarksPaint,tplPfTimes,tplPfSaid,tplPfChips,tplPfJamboHtml,tplPfPageSay,tplPfPanelPaint,tplPfHeadFacts,tplPfAfterPaint,paperStandardsCount,paperTabCounts,tplBookRepaint,tplBookWire,tplBookGlanceHtml,TPL_BOOK_SECS,tplOvCardHtml,tplOvPanelsHtml,tplOvRateInk,bucketStreamName,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,tplListIns,tplInsPaint,tplPanelOpts,tplPanelActs,tplReadOf,tplListHeadHtml,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});

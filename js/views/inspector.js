@@ -1103,14 +1103,16 @@ function jlHeadHtml(){
     <span class="jl-word" data-jl-word></span>
     <span class="jl-sp"></span>
     <button type="button" class="pd-back jl-back" data-jl-back title="${esc(back)}" aria-label="${esc(back)}" hidden><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${esc(name)}</button>
-    <button type="button" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon jl-fold" data-jl-fold title="${esc(fold)}" aria-label="${esc(fold)}">${typeof icon === 'function' ? icon('chevR') : '›'}</button>
+    <button type="button" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon jl-fold" data-jl-fold aria-expanded="true" title="${esc(fold)}" aria-label="${esc(fold)}">${typeof icon === 'function' ? icon('chevR') : '›'}</button>
   </div>`;
 }
 /* the folded strip: his face, his count, his name — and it opens */
 function jlDoorHtml(){
   const face = (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 28, 'igd-door-face').replace('<img', '<img data-ink-exempt') : '';
   const open = i18t('int_open_panel');
-  return `<button type="button" class="igd-door jl-door" data-jl-door title="${esc(open)}" aria-label="${esc(open)}"><span class="igd-door-i">${face}<span class="pd-tab-n is-warn" data-jl-n hidden></span></span><span class="igd-door-w">${esc(i18t('pd_tab_copilot'))}</span><svg class="igd-door-o" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg></button>`;
+  /* PRESS IT AGAIN (check #1, 19 Oct 2026): the strip's arrow stands first,
+     where the head's › stood, so the press that folded it opens it again */
+  return `<button type="button" class="igd-door jl-door" data-jl-door aria-expanded="false" title="${esc(open)}" aria-label="${esc(open)}"><svg class="igd-door-o" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg><span class="igd-door-i">${face}<span class="pd-tab-n is-warn" data-jl-n hidden></span></span><span class="igd-door-w">${esc(i18t('pd_tab_copilot'))}</span></button>`;
 }
 /* THE ASK BOX AND ITS HINT — one builder for the panel beside a list and for
    Import's (#mig-side). One box per page, so its ids are fixed. */

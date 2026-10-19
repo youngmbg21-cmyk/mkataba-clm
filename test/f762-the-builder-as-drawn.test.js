@@ -52,12 +52,15 @@ const RESELLER = [
   ['heading', 'Governing law'], ['field_group', 'This agreement is governed by the laws of Kenya.'],
   ['signature_block', 'Highland Corporate Ltd'],
 ];
+const CALLS = [];
 const stage = async (blocks, fields) => {
   const w = loadViews(['js/fieldlib.js', 'js/clausemodel.js', 'js/playbook.js', 'js/views/templatebuilder.js'], {
     state: { contracts: [], settings: {}, aiConfigured: true, view: 'templates' },
     API_MODE: () => true, canEdit: () => true, copilotAvailable: () => true,
     jamboHintHtml: () => '<p class="jb-hint">Typing never signs, sends or files — a press does.</p>',
-    api: async (p) => {
+    api: async (p, m, body) => {
+      CALLS.push([p, m || 'GET', body || null]);
+      if (p === 'templates/tpl_1/skipped' && m === 'PUT') return { ok: true, skippedStandards: [body.category] };
       if (p === 'templates/tpl_1') return { template: { id: 'tpl_1', name: 'Reseller agreement', category: 'other', folder: 'sales' } };
       if (p === 'templates/tpl_1/versions/tv_1') return VERSION(blocks, fields);
       if (p === 'org/branding') return { branding: { logoUrl: null, companyName: 'Mkataba', registrationNumber: '', address: '', defaultFooterText: '' } };
@@ -86,9 +89,15 @@ describe('f762 (1) Jambo\'s panel beside the paper', () => {
     assert.match((await stage(RESELLER, FIELDS)).rail, /data-tb-tab="outline" aria-selected="true"/);
     assert.match((await stage([])).rail, /data-tb-tab="build" aria-selected="true"/);
   });
-  test('1c the fold is the lists\' own remembered fold, and the page gives the strip its column', () => {
-    assert.match(fnBody(TB, 'tbRailFolded'), /jlFolded\(\)/);
-    assert.match(fnBody(TB, 'tbRailFold'), /jlFoldSet\(!!on\)[\s\S]*classList\.toggle\('is-railfold', !!on\)/);
+  /* RE-POINTED (check #1, 19 Oct 2026): the builder keeps its OWN fold — the
+     lists' key opened the builder folded after Our paper's panel was folded —
+     and the strip's arrow stands first, where the › stood */
+  test('1c the fold is the builder\'s own remembered fold, and the page gives the strip its column', () => {
+    assert.match(TB, /const TB_FOLD_KEY = 'hati\.v1\.tbFold';/);
+    assert.match(fnBody(TB, 'tbRailFolded'), /localStorage\.getItem\(TB_FOLD_KEY\) === '1'/);
+    assert.doesNotMatch(fnBody(TB, 'tbRailFolded') + fnBody(TB, 'tbRailFold'), /jlFold/);
+    assert.match(fnBody(TB, 'tbRailFold'), /localStorage\.setItem\(TB_FOLD_KEY, '1'\)[\s\S]*classList\.toggle\('is-railfold', !!on\)/);
+    assert.match(TB, /class="tb-door" data-tb-door aria-expanded="false"[^>]*><svg[^>]*><use href="#i-left"\/><\/svg><span class="tb-door-i">/, 'the arrow first, where the › stood');
     assert.match(TB, /\.tb-page\.is-railfold\{grid-template-columns:minmax\(0,1fr\) calc\(46px - var\(--page-pad-x\)\)\}/);
     assert.match(TB, /#tb-railslot\{margin:calc\(-1 \* var\(--page-pad-t\)\) calc\(-1 \* var\(--page-pad-x\)\) calc\(-1 \* var\(--page-pad-b\)\) 0\}/, 'the panel stands at the window\'s edge, to the foot');
   });
@@ -99,8 +108,12 @@ describe('f762 (2) the Outline', () => {
     const s = await stage(RESELLER, FIELDS);
     const rows = [...s.rail.matchAll(/<button type="button" class="tb-ol-r[^"]*" data-tb-ol(?:-prop)?="[^"]*"><span class="tb-ol-n">([^<]*)<\/span><span class="tb-ol-h">([^<]*)<\/span>([\s\S]*?)<\/button>/g)]
       .map(m => [m[1], m[2], /1 blank/.test(m[3]) ? 'blank' : /tb-ol-ok/.test(m[3]) ? 'ok' : /proposed/.test(m[3]) ? 'proposed' : '']);
-    assert.deepEqual(rows.slice(0, 5), [['·', 'Parties', 'blank'], ['1', 'Territory', 'blank'], ['2', 'Prices and payment', 'ok'], ['3', 'Liability', 'ok'], ['4', 'Governing law', 'ok']]);
-    assert.ok(rows.slice(5).length >= 1 && rows.slice(5).every(r => r[0] === '+' && r[2] === 'proposed'), JSON.stringify(rows.slice(5)));
+    /* RE-POINTED (check #1, 19 Oct 2026): the proposed rows stand where the
+       paper draws them — before Governing law, as round 21 draws them */
+    assert.deepEqual(rows.slice(0, 4), [['·', 'Parties', 'blank'], ['1', 'Territory', 'blank'], ['2', 'Prices and payment', 'ok'], ['3', 'Liability', 'ok']]);
+    assert.deepEqual(rows[rows.length - 1], ['4', 'Governing law', 'ok']);
+    const mid = rows.slice(4, -1);
+    assert.ok(mid.length >= 1 && mid.every(r => r[0] === '+' && r[2] === 'proposed'), JSON.stringify(rows));
   });
   test('2b what the blanks ask, and how many of Our standards it meets', async () => {
     const s = await stage(RESELLER, FIELDS);
@@ -118,6 +131,9 @@ describe('f762 (3) Jambo proposes on the paper', () => {
     const s = await stage(RESELLER, FIELDS);
     const at = s.paper.indexOf('class="tb-props"'), sig = s.paper.indexOf('class="tb-sigs"');
     assert.ok(at > 0 && sig > at, 'before the signatures');
+    /* RE-POINTED (check #1, 19 Oct 2026): and before Governing law, as drawn */
+    const law = s.paper.indexOf('>Governing law<'), liab = s.paper.indexOf('>Liability<');
+    assert.ok(liab > 0 && liab < at && at < law, JSON.stringify({ liab, at, law }));
     assert.match(s.paper, /<div class="tb-prop" data-tb-prop="([^"]+)" contenteditable="false" data-not-wording>[\s\S]*?<b>Jambo proposes · \1<\/b>[\s\S]*?data-tb-prop-add="\1"[^>]*>Add<\/button>[\s\S]*?data-tb-prop-skip="\1"[^>]*>Skip<\/button><\/div>\s*<p>Our standard: [^<]+\.<\/p>/);
   });
   test('3b Add is our standard\'s own wording through the one push; Skip is kept for this template', async () => {
@@ -125,11 +141,15 @@ describe('f762 (3) Jambo proposes on the paper', () => {
     assert.match(fnBody(TB, 'tbAddStandard'), /const h = tbAddBlock\('heading', category\); const w = tbAddBlock\('field_group', lib \? lib\.preferred : ''\);/);
     const s = await stage(RESELLER, FIELDS);
     const cat = /data-tb-prop="([^"]+)"/.exec(s.paper)[1];
-    s.w.tbSkip(cat); s.w.tbPaintPaper(); s.w.tbPaintRail();
+    CALLS.length = 0;
+    await s.w.tbSkip(cat); s.w.tbPaintPaper(); s.w.tbPaintRail();
     const after = s.read();
     assert.ok(!after.paper.includes(`data-tb-prop="${cat}"`) && !after.rail.includes(`data-tb-ol-prop="${cat}"`), 'gone from the paper and the Outline');
-    assert.deepEqual(JSON.parse(s.w.localStorage.getItem('hati.v1.tbSkipped')), { tpl_1: [cat] });
-    assert.deepEqual(s.w.tbSkippedOf('tpl_1'), [cat], 'and the next open reads it back');
+    /* RE-POINTED (check #1, 19 Oct 2026): a skip is kept ON THE TEMPLATE, on
+       the server — no longer this browser's alone */
+    assert.equal(JSON.stringify(CALLS.filter(c => c[1] === 'PUT')), JSON.stringify([['templates/tpl_1/skipped', 'PUT', { category: cat }]]));
+    assert.equal(s.w.localStorage.getItem('hati.v1.tbSkipped'), null, 'nothing kept in the browser');
+    assert.equal(JSON.stringify(s.w.tbSkippedOf()), JSON.stringify([cat]), 'the template now carries it');
   });
   test('3c marks under the sections that meet a standard, inside the section, never editable', async () => {
     const s = await stage(RESELLER, FIELDS);

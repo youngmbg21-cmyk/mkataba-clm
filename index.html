@@ -13003,6 +13003,9 @@
      chips, the two-line title cell, the owner's initials, the facts line. */
   .st-tab .st-tab-n{margin-left:6px;font-family:var(--font-mono);font-size:var(--t-micro);font-weight:var(--w-body);color:var(--color-neutral-600);background:var(--surface-2);border-radius:var(--radius);padding:1px 5px;line-height:1.3;}
   .st-tab.on .st-tab-n{color:var(--accent-ink);background:color-mix(in srgb,var(--color-accent) 12%,transparent);}
+  /* Our paper's tabs carry plain numbers, as round 21 draws them (no pill) */
+  .paper-tabs .st-tab .st-tab-n,.tpl-tabs .st-tab .st-tab-n{background:none;padding:0;font-family:inherit;color:var(--color-neutral-600);}
+  .paper-tabs .st-tab.on .st-tab-n,.tpl-tabs .st-tab.on .st-tab-n{background:none;color:var(--color-neutral-600);}
   .tpl-origin{display:inline-block;font-size:var(--t-label);font-weight:var(--w-label);padding:2px 8px;border-radius:var(--radius);background:var(--surface-2);color:var(--color-neutral-700);white-space:nowrap;}
   .tpl-origin.is-company{background:var(--st-green-bg);color:var(--st-green-fg);}
   .tpl-origin.is-cp{background:var(--st-amber-bg);color:var(--st-amber-fg);}

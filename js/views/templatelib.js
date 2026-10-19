@@ -229,7 +229,7 @@ async function renderCompanyTemplatesSection() {
   host.querySelectorAll('[data-tpllib-open]').forEach(el =>
     el.addEventListener('click', () => openTemplateLibDetail(el.getAttribute('data-tpllib-open'))));
   host.querySelectorAll('[data-tpllib-use]').forEach(el =>
-    el.addEventListener('click', e => { e.stopPropagation(); tplLibNewContract(el.getAttribute('data-tpllib-use')); }));
+    el.addEventListener('click', e => { e.stopPropagation(); (window.tplDraftFrom || tplLibNewContract)(el.getAttribute('data-tpllib-use')); }));
   /* ONE DOOR (24 Sep 2026): this section has no host on any page today, and if
      one draws it again its two buttons are the one door's two starts — never
      the Copilot conversion and the blank-page dialog they used to open. */
@@ -894,7 +894,7 @@ async function openTemplateLibDetail(id) {
   </div>`;
 
   document.getElementById('tpllib-back')?.addEventListener('click', () => setView('templates'));
-  document.getElementById('tpllib-use')?.addEventListener('click', () => tplLibNewContract(t.id));
+  document.getElementById('tpllib-use')?.addEventListener('click', () => (window.tplDraftFrom || tplLibNewContract)(t.id));
   document.getElementById('tpllib-edit-meta')?.addEventListener('click', () => tplLibMetaModal(t));
   document.getElementById('tpllib-edit-wording')?.addEventListener('click', () => tplLibEdit(t.id));
   document.getElementById('tpllib-archive')?.addEventListener('click', async () => {
