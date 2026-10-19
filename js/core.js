@@ -3766,6 +3766,16 @@ function dlgPageAdopt(root, panel, page){
   head.className='dlg-pg-head';
   head.innerHTML=`${page.crumb?`<div class="dlg-pg-crumb"></div>`:''}<div class="dlg-pg-row"><div class="dlg-pg-title"></div><div class="dlg-pg-acts"></div></div>${page.under?'<div class="dlg-pg-under"></div>':''}`;
   if(page.crumb) head.querySelector('.dlg-pg-crumb').textContent=page.crumb;
+  /* THE WAY BACK TO WHERE IT WAS OPENED ("‹ Requests", round 20 as drawn):
+     the page the form opened from stands under it, so the way back is the
+     form's own Cancel — asked first wherever Cancel asks */
+  if(page.crumb&&page.back){
+    const cr=head.querySelector('.dlg-pg-crumb'); cr.textContent='';
+    const b=document.createElement('button'); b.type='button'; b.className='ui-link dlg-pg-back'; b.setAttribute('data-dlg-pg-back','');
+    b.textContent='‹ '+page.back;
+    b.addEventListener('click',()=>{ const c=panel.querySelector('[data-dlg-cancel]'); if(c) c.click(); });
+    cr.appendChild(b);
+  }
   const h=body.querySelector('h1,h2,h3');
   if(h){ const t=head.querySelector('.dlg-pg-title'); h.style.margin='0'; t.appendChild(h); }
   const acts=head.querySelector('.dlg-pg-acts');
@@ -4235,7 +4245,7 @@ function promptDialog(opts={}){
                  field sideways. */
               `<textarea id="pd-input" rows="3" wrap="soft" placeholder="${esc(placeholder).replace(/"/g,'&quot;')}"
                  style="box-sizing:border-box;width:100%;max-width:100%;min-height:64px;resize:vertical;border:1px solid var(--field-line);background:var(--color-surface);border-radius:var(--radius);padding:8px 10px;font:inherit;font-size:var(--t-body);line-height:1.5;outline:none;white-space:pre-wrap;overflow-wrap:anywhere">${esc(opts.value)}</textarea>`
-            : `<input id="pd-input" type="text" value="${esc(opts.value).replace(/"/g,'&quot;')}" placeholder="${esc(placeholder).replace(/"/g,'&quot;')}"
+            : `<input id="pd-input" type="${opts.date?'date':'text'}"${opts.date&&opts.min?` min="${esc(opts.min)}"`:''} value="${esc(opts.value).replace(/"/g,'&quot;')}" placeholder="${esc(placeholder).replace(/"/g,'&quot;')}"
                  style="box-sizing:border-box;width:100%;border:1px solid var(--field-line);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:32px;padding:0 10px;font-size:var(--field-size)"/>`}
           ${opts.help?`<p style="font-size:var(--t-label);color:var(--color-neutral-600);margin:10px 0 0;line-height:1.45">${esc(opts.help)}</p>`:''}
         </div>
@@ -4269,7 +4279,10 @@ function promptDialog(opts={}){
     ov.querySelector('#pd-cancel').addEventListener('click',()=>done(null));
     ov.querySelector('#pd-ok').addEventListener('click',()=>done(input.value));
     ov.addEventListener('click',e=>{ if(e.target===ov||e.target===ov.firstElementChild) done(null); });
-    input.focus(); if (input.select && !opts.multiline) input.select();
+    /* A DAY IS CHOSEN, NOT TYPED (opts.date — Requests' Promise a day, round
+       20): HaTi's own calendar dresses it, as every date box */
+    if(opts.date && typeof datePickDress==='function'){ try{ datePickDress(ov); }catch(_){} }
+    input.focus(); if (input.select && !opts.multiline && !opts.date) input.select();
   });
 }
 

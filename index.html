@@ -1575,6 +1575,7 @@
   [data-dlg-page] .dlg-pg-head{ flex:none; background:var(--color-surface); border-bottom:1px solid var(--rule-strong);
     padding:var(--page-pad-t,16px) var(--band-pad-x,24px) 14px; display:flex; flex-direction:column; gap:6px; }
   [data-dlg-page] .dlg-pg-crumb{ font-size:var(--t-label); color:var(--color-neutral-600); }
+  [data-dlg-page] .dlg-pg-crumb .dlg-pg-back{ font-size:inherit; }
   [data-dlg-page] .dlg-pg-row{ display:flex; align-items:center; gap:var(--s-3); min-width:0; }
   [data-dlg-page] .dlg-pg-title{ flex:1; min-width:0; }
   [data-dlg-page] .dlg-pg-title > *{ font-family:var(--font-heading); font-size:var(--t-page); font-weight:var(--w-strong); color:var(--color-text); }
@@ -14005,8 +14006,14 @@
     border:1px solid var(--field-line);border-radius:var(--radius);background:var(--color-surface);color:var(--color-neutral-600);}
   .ik-search:focus-within{border-color:var(--color-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 25%,transparent);}
   .ik-search input{flex:1;min-width:0;border:0;background:none;font:inherit;font-size:var(--t-meta);color:var(--color-text);outline:0;}
-  .ik-lt td.ik-pr{white-space:nowrap;text-align:right;}
-  .ik-lt th:last-child{text-align:right;}
+  .ik-lt td.ik-pr{white-space:nowrap;text-align:left;}
+  .ik-lt th:last-child{text-align:left;}
+  /* THE WHOLE TITLE (round 20 as drawn: every request's name and who asked
+     read whole): on the narrower screens a long one wraps inside its cell
+     rather than cutting with an ellipsis */
+  .ik-lt .ins-c2 > b, .ik-lt .ins-c2 > span{white-space:normal;overflow-wrap:anywhere;}
+  /* the tab's number as drawn: a small grey figure after the word, no box */
+  .sap-page .reg-tabbar.ik-tabbar .reg-vtab .n{background:none;padding:0 0 0 2px;}
   .ins-pill-row{margin-top:var(--s-2);}
   /* round 20 as drawn: the verbs at their own width, Start the draft first */
   .ik-ins .ins-panel .ins-acts .ins-lead,.mn-ins .ins-acts .ins-lead{flex:0 1 auto;justify-content:center;}
@@ -14028,6 +14035,14 @@
   .sap-page .reg-tabbar.ik-tabbar{align-items:flex-end;}
   .sap-page .reg-tabbar.ik-tabbar > .reg-views{margin-top:2px;}
   .sap-page .reg-tabbar.ik-tabbar > .reg-fb.ik-fb{align-self:center;}
+  /* ONE ROW AT EVERY SCREEN, IN EITHER LANGUAGE (round 20 as drawn; lane A3's
+     second pass, measured at 1366×950 in Svenska): the row never wraps, the
+     find box gives way first and the boxes' values cut with an ellipsis */
+  .sap-page .reg-tabbar.ik-tabbar{flex-wrap:nowrap;}
+  .sap-page .reg-tabbar.ik-tabbar > .reg-views{flex:0 0 auto;}
+  .sap-page .reg-tabbar.ik-tabbar > .reg-fb.ik-fb{flex:0 1 auto;min-width:0;flex-wrap:nowrap;}
+  .sap-page .reg-tabbar.ik-tabbar .ik-fb-find{flex:0 1 auto;min-width:0;}
+  .sap-page .reg-tabbar.ik-tabbar .ik-fb-find .ik-search{min-width:96px;flex:0 1 176px;}
   .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip:not(.reg-chip-btn){gap:8px;padding:0;border:0;background:none;box-shadow:none;}
   .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip:not(.reg-chip-btn):hover,
   .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip:not(.reg-chip-btn):focus-within{border:0;background:none;box-shadow:none;}

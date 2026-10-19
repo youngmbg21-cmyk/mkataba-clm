@@ -212,8 +212,12 @@ describe('f797 (6) the paper that fits, read without AI; Start the draft chooses
     const fit = x.d.querySelector('#ins-panel .ik-fit');
     assert.ok(fit, 'Jambo\'s line under the attachments');
     assert.equal(fit.getAttribute('data-ik-fit'), 'tid:ND');
-    assert.equal(txt(fit.querySelector('b')), 'Mutual Non-Disclosure Agreement');
-    assert.equal(txt(fit.querySelector('.jl-bub')), 'Our Mutual Non-Disclosure Agreement fits: Wanjiru\'s words name “NDA”, and nothing unusual is asked for. Start the draft opens the New agreement form with it chosen; you check it before anything is made.');
+    /* RE-POINTED 19 Oct 2026 (second pass): the name the New agreement form
+       lists it under, so the panel and the form say one name; the drawing's
+       sentence ("Sara asks for a mutual one, and nothing in her words departs
+       from it") */
+    assert.equal(txt(fit.querySelector('b')), 'NDA');
+    assert.equal(txt(fit.querySelector('.jl-bub')), 'Our NDA fits: Wanjiru asks for “NDA”, and nothing in the ask departs from it. Start the draft opens the New agreement form with it chosen; you check it before anything is made.');
     assert.match(fit.getAttribute('title'), /no Jambo call/, 'it says it spends nothing');
   });
   test('6b none fits: said as none, never guessed', () => {
@@ -307,5 +311,87 @@ describe('f797 (10) a refresh lands at the same spot (PLACE_PARTS.intake)', () =
     assert.equal(b.win.ikFilters().folder, 'sales');
     assert.ok(b.d.querySelector('.ik-tabbar [data-ik-view="all"].is-on, .ik-tabbar [data-ik-view="all"][aria-selected="true"], .ik-tabbar [data-ik-view="all"][aria-current]'), 'the All tab lit');
     assert.match(txt(b.d.querySelector('#ins-panel .ins-eb')), /^REQ-1039 /, 'the chosen row is back');
+  });
+});
+
+/* SECOND PASS (lane A3, 19 Oct 2026), the checker's findings. At the first
+   pass (fc08e7f) every test here FAILS. */
+describe('f797 (11) a tab\'s number is the list it opens; advice reads like a request', () => {
+  const withAdv = () => {
+    const x = world();
+    x.win.state.advice = [{ id: 'AR-101', service: 'review', name: 'Erik Ström', company: 'Procurement', description: 'May they pass our data on?', status: 'Submitted', submittedAt: at(2) },
+      { id: 'AR-102', service: 'review', name: 'Lina Ek', description: 'A question', status: 'Scoping', submittedAt: at(6), assignee: 'Wanjiru Kamau' }];
+    return x;
+  };
+  const tabN = (d, k) => { const n = d.querySelector(`.ik-tabbar [data-ik-view="${k}"] .n`); return n && !n.hidden ? Number(n.textContent) : 0; };
+  test('11a under a Stream box every tab counts what its list shows — advice has no stream', () => {
+    const x = withAdv();
+    x.win.ikFilters().folder = 'proc'; x.win.renderIntake();
+    assert.equal(tabN(x.d, 'open'), x.d.querySelectorAll('.ik-lt [data-ik-row]').length, 'Open');
+    assert.equal(tabN(x.d, 'advice'), 0, 'Advice: none in a stream');
+    x.win.ikFilters().view = 'all'; x.win.renderIntake();
+    assert.equal(tabN(x.d, 'all'), x.d.querySelectorAll('.ik-lt [data-ik-row]').length, 'All');
+  });
+  test('11b With = Nobody yet keeps the advice nobody holds, in the list and on the tab', () => {
+    const x = withAdv();
+    x.win.ikFilters().who = 'nobody'; x.win.renderIntake();
+    const ids = [...x.d.querySelectorAll('.ik-lt [data-ik-row]')].map(r => r.getAttribute('data-ik-row'));
+    assert.ok(ids.includes('adv:AR-101') && !ids.includes('adv:AR-102'), JSON.stringify(ids));
+    assert.equal(tabN(x.d, 'open'), ids.length);
+  });
+  test('11c the find box narrows the tabs\' numbers too', () => {
+    const x = withAdv();
+    x.win.ikFilters().q = 'uganda'; x.win.renderIntake();
+    assert.equal(tabN(x.d, 'open'), 1);
+    assert.equal(tabN(x.d, 'advice'), 0);
+  });
+  test('11d an advice row: How it is handled "Standard", With its holder or "Nobody yet" in amber', () => {
+    const x = withAdv(); x.win.ikFilters().view = 'advice'; x.win.renderIntake();
+    const row = id => x.d.querySelector(`.ik-lt [data-ik-row="adv:${id}"]`);
+    assert.equal(txt(row('AR-101').querySelector('.ik-road')), 'Standard');
+    assert.equal(txt(row('AR-101').querySelector('.ik-with .ins-nobody')), 'Nobody yet');
+    assert.equal(txt(row('AR-102').querySelector('.ik-with')), 'Wanjiru Kamau');
+  });
+  test('11e Jambo counts the advice nobody holds among those nobody holds', () => {
+    const x = withAdv(); x.win.renderIntake();
+    x.win.insLetGo('intake:team'); x.win.renderIntake();
+    const say = txt(x.d.querySelector('#ins-panel .jl-bub'));
+    assert.match(say, /2 nobody holds yet/, say);
+  });
+  test('11f the advice list landing after the first paint paints the list again', () => {
+    const x = world(); x.win.renderIntake();
+    const before = x.d.querySelectorAll('.ik-lt [data-ik-row]').length;
+    x.win.state.advice = [{ id: 'AR-9', name: 'Erik', description: 'x', status: 'Submitted', submittedAt: at(1) }];
+    x.win.rqPaintKindCounts();
+    assert.equal(x.d.querySelectorAll('.ik-lt [data-ik-row]').length, before + 1);
+  });
+});
+
+describe('f797 (12) the panel\'s acts do what they say', () => {
+  test('12a Hand back asks "Hand this request back" and its button says Hand back', () => {
+    const books = I18N.split(/\n  sv: \{/);
+    assert.match(books[0], /ik_decline_title: "Hand this request back",/);
+    assert.match(books[0], /ik_act_decline: "Hand back",/);
+    assert.match(books[1], /ik_act_decline: "Lämna tillbaka",/);
+  });
+  test('12b Promise a day is chosen on a calendar, not typed', () => {
+    const fn = decl(IK, 'intakePromiseAsk');
+    assert.match(fn, /date:true/);
+    assert.match(R('js/core.js'), /type="\$\{opts\.date\?'date':'text'\}"/);
+  });
+  test('12c Open opens the file in a tab of its own (never an SVG or a page), else saves it', () => {
+    const fn = strip(decl(IK, 'intakeFileGet'));
+    assert.match(fn, /window\.open\('', '_blank'\)/);
+    assert.match(fn, /image\\\/\(png\|jpe\?g\|gif\|webp\)/);
+    assert.match(strip(IK), /intakeFileGet\(r\.id, b\.getAttribute\('data-ik-file'\), b\.getAttribute\('data-ik-fname'\), \{ open:true \}\)/);
+  });
+  test('12d Start the draft\'s form carries "‹ Requests" back', async () => {
+    const x = world();
+    const calls = []; x.win.openNewAgreement = o => calls.push(o);
+    x.win.intakePrefillOf = () => ({});
+    await x.win.intakeDraft('REQ-1042');
+    assert.equal(calls[0].backLabel, 'Requests');
+    assert.match(R('js/wizard.js'), /back:o\.backLabel\|\|''/);
+    assert.match(R('js/core.js'), /b\.textContent='‹ '\+page\.back;/);
   });
 });

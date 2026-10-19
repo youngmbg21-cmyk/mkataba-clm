@@ -63,11 +63,17 @@ function mnHit(n, q){
   const c = _mnContract(n.contractId);
   return [n.title, n.body, n.quote, c && _mnRef(c), c && c.name, c && c.counterparty].some(x => String(x || '').toLowerCase().includes(q));
 }
-function myNotesShown(){
+/* THE NOTES THE BOXES LEAVE (Note's words, Contract) — ONE READING for every
+   tab's number and the list under it: the number on a tab is the list it
+   opens (lane A3's second pass) */
+function mnBoxed(){
   const all = typeof mineList === 'function' ? mineList('note') : [];
-  const f = MN_TABS.some(t => t[0] === _mn.filter) ? _mn.filter : 'all';
   const q = String(_mn.q || '').trim().toLowerCase();
-  const list = all.filter(n => mnInTab(n, f) && (!_mn.ct || (_mn.ct === '-' ? !n.contractId : String(n.contractId || '') === _mn.ct)) && mnHit(n, q));
+  return all.filter(n => (!_mn.ct || (_mn.ct === '-' ? !n.contractId : String(n.contractId || '') === _mn.ct)) && mnHit(n, q));
+}
+function myNotesShown(){
+  const f = MN_TABS.some(t => t[0] === _mn.filter) ? _mn.filter : 'all';
+  const list = mnBoxed().filter(n => mnInTab(n, f));
   /* DUE FIRST, THEN NEWEST (the list's own head says so) */
   const rank = n => ({ late:0, today:1, later:2, none:3, done:4 }[myNoteState(n).k]);
   return list.slice().sort((a, b) => rank(a) - rank(b) || (myNoteState(a).k === 'later' ? String(a.reviewBy || '9').localeCompare(String(b.reviewBy || '9')) : 0) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
@@ -84,7 +90,7 @@ const _mnLock = () => (typeof icon === 'function') ? icon('lock', 'mn-lock') : '
 function myNotesBandHtml(){
   const all = typeof mineList === 'function' ? mineList('note') : [];
   const tabs = (typeof insViewTabsHtml === 'function') ? insViewTabsHtml({ attr:'data-mn-tab', cur:_mn.filter, label:i18t('mn_filter'),
-    views:MN_TABS.map(([k, key]) => ({ k, label:i18t(key), n:all.filter(n => mnInTab(n, k)).length })) }) : '';
+    views:MN_TABS.map(([k, key]) => { const boxed = mnBoxed(); return { k, label:i18t(key), n:boxed.filter(n => mnInTab(n, k)).length }; }) }) : '';
   const cts = [...new Set(all.map(n => String(n.contractId || '')).filter(Boolean))].map(id => _mnContract(id)).filter(Boolean);
   const chip = (typeof window.cuChip === 'function') ? window.cuChip : (typeof insChipHtml === 'function' ? insChipHtml : null);
   const ctBox = chip ? chip({ attr:'data-mn-f', key:'ct', label:i18t('mn_box_contract'), cur:_mn.ct || '', def:'',

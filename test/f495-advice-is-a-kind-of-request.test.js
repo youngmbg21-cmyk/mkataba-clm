@@ -62,6 +62,10 @@ function rqWorld(intake, advice){
   /* js/advice.js is not on this stage; its one reading is stood in for, so
      what is measured is the page's ARITHMETIC over the two books. */
   win.adviceActiveCount = () => (advice || []).filter(r => ['Submitted', 'Scoping', 'In Progress'].includes(r.status)).length;
+  /* RE-POINTED 19 Oct 2026 (lane A3's second pass): the team's Advice tab is
+     a cut of the list and counts the list's own rows (ikBase), so the advice
+     book itself is on the stage too, not only the door's count */
+  win.state.advice = (advice || []).map(a => ({ name: 'Faith Njeri', submittedAt: new Date().toISOString(), ...a }));
   return win;
 }
 const REQ = (id, status) => ({ id, title: 'NDA ' + id, need: 'x', status: status || 'open', by: { id: 'u9', name: 'Faith Njeri' },
@@ -188,7 +192,11 @@ describe('f495 (4) the door is the sum of the tabs it opens', () => {
     host.innerHTML = win.rqKindTabsHtml('contracts');
     /* each queue tab counts the list it opens (re-pointed 9 Oct 2026: one row) */
     const c = host.querySelector('[data-ik-view="open"] .n'), a = host.querySelector('[data-rq-n="advice"]');
-    assert.equal(c.hidden, true, 'no queue, no number');
+    /* RE-POINTED 19 Oct 2026 (lane A3's second pass): the Open list holds the
+       open advice requests too, so its tab counts them — the number is the
+       list it opens; Mine (no request of the reader's) prints nothing */
+    assert.equal(c.textContent, '3', 'the Open list\'s own count');
+    assert.equal(host.querySelector('[data-ik-view="mine"] .n').hidden, true, 'no queue of mine, no number');
     assert.equal(a.hidden, false);
     assert.equal(a.textContent, '3');
   });
@@ -201,6 +209,8 @@ describe('f495 (4) the door is the sum of the tabs it opens', () => {
     const a = () => win.document.querySelector('[data-rq-n="advice"]');
     assert.equal(a().hidden, true);
     win.adviceActiveCount = () => 2;
+    /* re-pointed 19 Oct 2026: the advice book lands, the tab counts it */
+    win.state.advice = [{ id: 'A1', status: 'Submitted' }, { id: 'A2', status: 'Scoping' }];
     win.rqPaintKindCounts();
     assert.equal(a().textContent, '2', 'repainted without a page paint');
     assert.equal(a().hidden, false);

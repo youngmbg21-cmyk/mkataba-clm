@@ -186,3 +186,14 @@ describe('f798 (7) a refresh lands at the same spot (PLACE_PARTS.mynotes)', () =
     assert.equal(txt(b.d.querySelector('#ins-panel .ins-cp')), 'Is the price index right', 'the chosen note is back');
   });
 });
+
+describe('f798 (8) a tab\'s number is the list it opens (second pass)', () => {
+  test('8a the Contract box narrows every tab\'s number with the list', async () => {
+    const x = await painted();
+    const sel = x.d.querySelector('select[data-mn-f="ct"]');
+    sel.value = 'MK-A2'; sel.dispatchEvent(new x.win.Event('change', { bubbles: true }));
+    const n = k => { const e = x.d.querySelector(`[data-mn-tab="${k}"] .n`); return e && !e.hidden ? Number(e.textContent) : 0; };
+    assert.equal(n('all'), x.d.querySelectorAll('.mn-t [data-mn-row]').length);
+    assert.equal(n('all'), 2); assert.equal(n('today'), 1); assert.equal(n('later'), 0); assert.equal(n('done'), 0);
+  });
+});

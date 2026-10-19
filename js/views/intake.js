@@ -580,7 +580,7 @@ async function intakeDraft(id){
   if(typeof openNewAgreement!=='function') return;
   const prefill=(typeof window.intakePrefillOf==='function')?window.intakePrefillOf(r):{};
   intakeHoldDraft(r.id);
-  openNewAgreement({ pick:pick?{ kind:pick.kind, id:pick.id }:null, prefill });
+  openNewAgreement({ pick:pick?{ kind:pick.kind, id:pick.id }:null, prefill, backLabel:i18t('nav_intake') });
   /* LAND ON IT: the form opens on the paper chosen, lit */
   if(pick&&typeof landOn==='function') landOn('#na-root .na-pick.on', { block:'nearest' });
   /* The hold belongs to the screen: Create keeps it long enough to land,
@@ -906,13 +906,13 @@ function rqKindTabsHtml(lit){
   const f = ikFilters();
   const V = asker?IK_V_ASKER:IK_V_TEAM;
   const cur = lit==='advice' ? 'advice' : (lit && lit!=='contracts' ? lit : f.view);
-  const all = asker?intakeMine():((_intake&&_intake.list)||[]);
-  const base = asker?all:all.filter(r=>ikPassChips(r,f)).concat(ikAdviceRows());
+  const base = ikBase(f, asker);
   /* For the team the Advice tab is a cut of this list (IK_V_TEAM carries it,
-     SAP batch 2); its count is the open advice requests, the door's half. For
-     somebody who only asks it stays the door onto the advice desk. */
+     SAP batch 2), counted like every other tab from the list behind it. For
+     somebody who only asks it stays the door onto the advice desk, and its
+     number is the open advice requests, the door's half. */
   const tabs = V.map(([k,key])=>({ k, kind:'contracts', label:i18t(key),
-    n:k==='advice'?n.advice:base.filter(r=>ikPassView(r,k,asker)).length }));
+    n:base.filter(r=>ikPassView(r,k,asker)).length }));
   if(asker) tabs.splice(1, 0, { k:'advice', kind:'advice', label:i18t('rq_kind_advice'), n:n.advice });
   return `<div class="reg-views rq-kinds" role="tablist" aria-label="${esc(i18t('rq_kinds_label'))}">${tabs.map(t=>{
     const on = t.k===cur;
@@ -926,8 +926,20 @@ function rqKindTabsHtml(lit){
    the same beat, from the same reading. */
 function rqPaintKindCounts(){
   if(typeof document === 'undefined') return;
+  /* THE ADVICE LIST LANDS AFTER THE FIRST PAINT (lane A3's second pass: seen
+     once after a reload, the tabs counted advice the list did not show): the
+     team's list painted with fewer advice requests than there are now is
+     painted again, so a tab's number and its list stay one reading */
+  const pg = document.querySelector('.ik-ins [data-ik-adv]');
+  if(pg && typeof state !== 'undefined' && state.view === 'intake' && Number(pg.getAttribute('data-ik-adv')) !== ikAdviceRows().length){
+    if(typeof keepScroll === 'function') keepScroll(()=>renderIntake()); else renderIntake();
+    return;
+  }
   const els = document.querySelectorAll('[data-rq-n]'); if(!els.length) return;
   const n = rqKindCounts();
+  /* the team's Advice tab is a cut of the list: its number is the list's
+     own reading under the boxes, as every other tab's (ikBase) */
+  if(typeof canEdit === 'function' && canEdit()) n.advice = ikBase(ikFilters(), false).filter(r=>ikPassView(r,'advice',false)).length;
   els.forEach(el=>{ const v = n[el.getAttribute('data-rq-n')] || 0; el.textContent = String(v); el.hidden = !v; });
 }
 /* A press on the other kind is a page change (the two are two views); a
@@ -1063,7 +1075,7 @@ function ikAdviceRows(){
   const L=(typeof window!=='undefined'&&window.state&&Array.isArray(state.advice))?state.advice:[];
   const svc=k=>(window.ADVICE_SERVICES&&ADVICE_SERVICES[k]&&ADVICE_SERVICES[k].name)||String(k||'');
   return L.map(a=>({ _adv:true, id:a.id, title:svc(a.service), need:a.description==='Seeded as sample data'?'':(a.description||''),
-    by:{ name:a.name||'' }, company:a.company||'', status:a.status, createdAt:a.submittedAt||'', eta:a.eta||'', raw:a }));
+    by:{ name:a.name||'' }, company:a.company||'', status:a.status, createdAt:a.submittedAt||'', eta:a.eta||'', holder:String(a.assignee||'').trim(), raw:a }));
 }
 function ikAdviceFinishedThisMonth(r){
   if(!IK_ADV_DONE.includes(r.status)) return false;
@@ -1087,6 +1099,17 @@ function ikPassView(r, v, asker){
   return true;
 }
 function ikPassChips(r, f){
+  /* AN ADVICE REQUEST under the same boxes (lane A3's second pass: the tab's
+     number and the list behind it are one reading): it has no stream, so a
+     stream narrows it out; With reads the advice desk's own holder (a name) */
+  if(r&&r._adv){
+    if(f.folder!=='all') return false;
+    const me=_ikMe(), mine=!!(me&&r.holder&&r.holder===String(me.name||'').trim());
+    if(f.who==='me'&&!mine) return false;
+    if(f.who==='nobody'&&(r.holder||IK_ADV_DONE.includes(r.status))) return false;
+    if(f.who==='other'&&!(r.holder&&!mine)) return false;
+    return true;
+  }
   if(f.who==='me'&&!ikHeldByMe(r)) return false;
   if(f.who==='nobody'&&((r.assignee&&r.assignee.id)||IK_STOPPED.includes(r.status))) return false;
   if(f.who==='other'&&!(r.assignee&&r.assignee.id&&!ikHeldByMe(r))) return false;
@@ -1256,14 +1279,27 @@ function ikFilesHtml(r, o){
 }
 /* The file comes back through the signed-in session and is handed to the
    browser's own save. */
-async function intakeFileGet(id, fid, name){
+async function intakeFileGet(id, fid, name, o){
+  /* OPEN OPENS IT (round 20 as drawn: the file card's Open): a file the
+     browser can show — a PDF, a photo, plain text — opens in a tab of its
+     own; anything else, or a browser that refuses the tab, is saved. The tab
+     is asked for on the press itself, before the file is fetched, so no
+     pop-up blocker takes it for an unasked window. */
+  const tab=(o&&o.open&&typeof window.open==='function')?window.open('', '_blank'):null;
   try{
     const res=await fetch('api/intake/'+encodeURIComponent(id)+'/files/'+encodeURIComponent(fid),{ credentials:'same-origin' });
     if(!res.ok) throw new Error(i18t('ik_file_get_failed'));
     const blob=await res.blob();
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name||'file';
+    const url=URL.createObjectURL(blob);
+    /* never an SVG or HTML: a file a colleague uploaded must not run as a
+       page of ours (a blob URL is this site's origin) */
+    if(tab && /^(application\/pdf|image\/(png|jpe?g|gif|webp)|text\/plain)(;|$)/.test(blob.type||'')){
+      tab.location.href=url; setTimeout(()=>URL.revokeObjectURL(url), 60000); return;
+    }
+    if(tab){ try{ tab.close(); }catch(_){} }
+    const a=document.createElement('a'); a.href=url; a.download=name||'file';
     document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
-  }catch(e){ toast((e&&e.message)||i18t('ik_file_get_failed'),'err'); }
+  }catch(e){ if(tab){ try{ tab.close(); }catch(_){} } toast((e&&e.message)||i18t('ik_file_get_failed'),'err'); }
 }
 /* "Sent" must mean sent: the page promises an email only where one can go. */
 function ikMails(){
@@ -1360,7 +1396,9 @@ function ikFitOf(r){
   const best=caDraftRank(words, cands, null)[0];
   if(!best || caDraftScore(words, best)<=0) return null;
   const shared=(typeof window.caDraftShared==='function')?caDraftShared(words, best):[];
-  const name=(typeof window.caDraftTitleOf==='function'?caDraftTitleOf(best):'')||best.name;
+  /* the name the New agreement form lists it under (its own row's words), so
+     the panel and the form say the same name */
+  const name=best.name||(typeof window.caDraftTitleOf==='function'?caDraftTitleOf(best):'');
   return { kind:best.kind==='builtin'?'tid':best.kind, id:best.id, name, shared };
 }
 function ikFitHtml(r){
@@ -1373,7 +1411,8 @@ function ikFitHtml(r){
   else {
     const words=fit.shared.map(w=>i18t('ik_quote',{ t:w })).join(', ');
     const k=ikRoadShown(r).k==='routine'?'jl_ik_fit_routine':'jl_ik_fit_closest';
-    html=esc(i18t(k,{ name:MARK, whose, words })).replace(MARK, `<b>${esc(fit.name)}</b>`);
+    const asks=who?i18t('jl_ik_asks',{ first:who }):i18t('jl_ik_asks_you');
+    html=esc(i18t(k,{ name:MARK, whose, words, asks })).replace(MARK, `<b>${esc(fit.name)}</b>`);
   }
   const face=(typeof jamboFaceHtml==='function')?jamboFaceHtml('hello', 24, 'jl-say-face').replace('<img', '<img data-ink-exempt'):'';
   return insSecHtml(i18t('pd_tab_copilot'), '', `<div class="jl-say ik-fit" data-ik-fit="${esc(fit?fit.kind+':'+fit.id:'')}" title="${esc(i18t('jl_ik_fit_src'))}">${face}<div class="jl-bub">${html}</div></div>`, 'ik-fit-sec');
@@ -1426,7 +1465,8 @@ function ikJlSay(openRows, asker, go){
     if(!n) lines.push(esc(i18t('jl_ik_say_none')));
     else {
       lines.push(esc(i18tn('jl_ik_say_open',n,{ n })));
-      const nobody=openRows.filter(r=>!r._adv&&!(r.assignee&&r.assignee.id));
+      const unheld=r=>r._adv?!r.holder:!(r.assignee&&r.assignee.id);
+      const nobody=openRows.filter(unheld);
       if(nobody.length){
         const oldest=nobody.slice().sort((a,b)=>String(a.createdAt||'').localeCompare(String(b.createdAt||'')))[0];
         lines.push(esc(i18tn('jl_ik_say_nobody',nobody.length,{ n:nobody.length, age:ikAgeWords(oldest) })));
@@ -1437,7 +1477,7 @@ function ikJlSay(openRows, asker, go){
       if(over) lines.push(`<span class="late">${esc(i18tn('jl_ik_say_over',over,{ n:over }))}</span>`);
     }
     const chips=[];
-    if(openRows.some(r=>!r._adv&&!(r.assignee&&r.assignee.id))) chips.push({ label:i18t('jl_ik_chip_nobody'), run:()=>go('nobody') });
+    if(openRows.some(r=>r._adv?!r.holder:!(r.assignee&&r.assignee.id))) chips.push({ label:i18t('jl_ik_chip_nobody'), run:()=>go('nobody') });
     chips.push({ label:i18t('jl_ik_chip_ask'), run:()=>openIntakeForm() });
     return { lines:[lines.join(' ')], chips };
   };
@@ -1496,6 +1536,12 @@ function ikPanelOpts(r, asker){
     },
   };
 }
+/* HOW AN ADVICE REQUEST IS HANDLED (round 20 as drawn: "Standard" in the
+   column): a lawyer reads the question, every time — the standard road; its
+   status is said in the panel's pill, not here */
+function ikAdvRoadHtml(){
+  return `<span class="ik-road is-standard" title="${esc(i18t('ik_why_advice'))}">${esc((IK_ROADS.standard||{}).label||'')}</span>`;
+}
 /* AN ADVICE REQUEST'S PANEL, in the contract request's shape: the drawing's
    head, the advice record's own facts, what they asked, and the two doors the
    advice desk already has — its detail (openAdviceModal, where every act on
@@ -1522,6 +1568,7 @@ function ikAdvicePanelOpts(r){
     r.company?{ k:'company', label:i18t('ik_f_company'), v:esc(r.company) }:null,
     a.contractName?{ k:'contract', label:i18t('ik_f_contract'), v:esc(a.contractName) }:null,
     fee?{ k:'fee', label:i18t('ik_f_fee'), v:esc(fee) }:null,
+    { k:'road', label:i18t('ik_f_road'), v:esc(i18t('ik_road_line',{ road:(IK_ROADS.standard||{}).label||'', why:i18t('ik_why_advice') })) },
     { k:'with', label:i18t('ik_f_with'), v:holder?esc(holder):`<span class="ins-nobody">${esc(i18t('ik_with_nobody'))}</span>` },
     { k:'asked', label:i18t('ik_f_asked'), v:asked } ];
   let body=insSecHtml(first?i18t('ik_sec_need',{ first }):i18t('ik_sec_they_asked'), '',
@@ -1555,6 +1602,18 @@ function ikBandBoxesHtml(f, asker, narrowing){
       opts:[['all',i18t('cu_anyone')],['me',i18t('ik_with_you')],['nobody',i18t('ik_c_who_nobody')],['other',i18t('ik_c_who_colleague')]] })}${
     n?`<button type="button" class="ui-link ik-fb-clear" data-ik-clear>${esc(i18tn('ob_clear_n',n,{n}))}</button>`:''}</div>`;
 }
+/* THE LIST BEHIND THE TABS — ONE READING for every tab's number and the list
+   under it (the number on a door matches the list behind it): the boxes,
+   then the find box's words. The view is applied by the caller. */
+function ikHit(r, q){
+  const w=String(q||'').trim().toLowerCase();
+  return !w||[r.id,r.title,r.need,r.counterparty,r.company,r.by&&r.by.name].some(x=>String(x||'').toLowerCase().includes(w));
+}
+function ikBase(f, asker){
+  const all=asker?intakeMine():((_intake&&_intake.list)||[]);
+  const base=asker?all:all.concat(ikAdviceRows()).filter(r=>ikPassChips(r,f));
+  return base.filter(r=>ikHit(r,f.q));
+}
 function renderIntakeInspector(host){
   const may=(typeof canEdit==='function'&&canEdit());
   const asker=!may;
@@ -1565,23 +1624,19 @@ function renderIntakeInspector(host){
   f.road=IK_DEF.road;
   const all=asker?intakeMine():((_intake&&_intake.list)||[]);
   const narrowing=asker?[]:IK_CHIPS.filter(k=>String(f[k])!==String(IK_DEF[k]));
-  /* advice rows ride along only while nothing narrows by a contract-request
-     fact (who holds it, its stream) */
-  const adv=(asker||narrowing.length)?[]:ikAdviceRows();
-  const base=asker?all:all.filter(r=>ikPassChips(r,f)).concat(adv);
+  const base=ikBase(f, asker);
   /* the whole book's open requests, the boxes at rest: the head's "N open"
      and Jambo's words with nothing chosen */
   const openAll=(asker?all:all.concat(ikAdviceRows())).filter(r=>ikPassView(r,'open',asker));
   /* THE DRAWING'S SEARCH BOX: the words a reader would use for a request —
      its title, what was asked, who asked, the counterparty, its reference. */
   const q=String(f.q||'').trim().toLowerCase();
-  const hit=r=>!q||[r.id,r.title,r.need,r.counterparty,r.company,r.by&&r.by.name].some(x=>String(x||'').toLowerCase().includes(q));
   /* OLDEST WAITING FIRST on the team's Open list (round 20 as drawn: "Open
      requests 4 · oldest waiting first" — the longest wait leads); every other
      list, and the asker's, newest first. A late request still says so in red
      in its own Promised by cell. */
   const oldest=!asker&&f.view==='open';
-  const rows=base.filter(r=>ikPassView(r,f.view,asker)&&hit(r))
+  const rows=base.filter(r=>ikPassView(r,f.view,asker))
     .sort((a,b)=>oldest?String(a.createdAt||'').localeCompare(String(b.createdAt||'')):String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
   /* the list behind the tab, nothing narrowed — the foot's "of" */
   const viewAll=(asker?all:all.concat(ikAdviceRows())).filter(r=>ikPassView(r,f.view,asker)).length;
@@ -1598,15 +1653,14 @@ function renderIntakeInspector(host){
   /* the Kind, an outlined pill — round 15's own (ap-kind) */
   const kindPill=k=>`<span class="ap-kind ik-kind">${esc(i18t(k==='advice'?'ik_kind_advice':'ik_kind_contract'))}</span>`;
   const advTr=r=>{
-    const st=(window.adviceStage?adviceStage(r.status):null)||{ label:r.status };
     const left=(window.adviceDaysLeft&&r.eta)?adviceDaysLeft(r.eta):null;
     const late=!IK_ADV_DONE.includes(r.status)&&left!=null&&left<=0;
     return `<tr data-ins-row data-ik-row="${esc('adv:'+r.id)}" tabindex="-1">
       <td><span class="ins-ref">${esc(r.id)}</span></td>
       <td><span class="ins-c2"><b title="${esc(r.title)}">${esc(r.title)}</b><span>${esc([r.by.name, r.company].filter(Boolean).join(' · '))}</span></span></td>
       <td>${kindPill('advice')}</td>
-      <td><span class="ik-road is-standard">${esc(st.label||r.status)}</span></td>
-      <td>${r.assignee?ikWhoHtml(String(r.assignee.name||r.assignee), '', { face:false }):`<span class="ins-quiet">—</span>`}</td>
+      <td>${ikAdvRoadHtml()}</td>
+      <td class="ik-with">${r.holder?esc(r.holder):IK_ADV_DONE.includes(r.status)?`<span class="ins-quiet">—</span>`:`<span class="ins-nobody">${esc(i18t('ik_with_nobody'))}</span>`}</td>
       <td><span class="ins-quiet">—</span></td>
       <td class="ik-ask">${esc(ikDay(r.createdAt))}</td>
       <td class="ik-pr">${r.eta?(left===0&&late?`<span class="ins-late">${esc(i18t('ik_pr_today_word'))}</span>`:`<span class="${late?'ins-late':''}">${esc(ikDay(r.eta,{ weekday:true }))}</span>`):`<span class="ins-quiet">—</span>`}</td>
@@ -1650,7 +1704,7 @@ function renderIntakeInspector(host){
   const foot=asker?i18t('ik_foot_asker'):i18t(f.view==='open'?'ik_foot_n_open':'ik_foot_n',{ n:rows.length, of:viewAll });
   host.innerHTML=`<div class="view-enter sap-page ins-page ik-ins" data-ins-page="intake" data-ins="1">
     <div class="sap-band"><div class="reg-tabbar ik-tabbar">${rqKindTabsHtml('contracts')}${ikBandBoxesHtml(f, asker, narrowing)}</div></div>
-    <div class="ins-body">
+    <div class="ins-body"${asker?'':` data-ik-adv="${ikAdviceRows().length}"`}>
       <section class="ins-card" aria-label="${esc(i18t('nav_intake'))}">
         <div class="ins-cardhead"><h2 class="ins-cardhead-t">${esc(i18t(cardT))} <span class="ap-card-n is-pill ik-card-n">${rows.length}</span> <span class="ik-card-m">${esc(i18t(oldest?'ik_sort_oldest':'ik_sort_newest'))}</span></h2></div>
         <div class="ins-scroll" id="ik-scroll">${table}</div>
@@ -1689,7 +1743,7 @@ function renderIntakeInspector(host){
     if(!r){ insPaintPanel({ seat, empty:asker?i18t('ik_panel_none_asker'):i18t('ik_panel_none'), jlSay:ikJlSay(openAll, asker, go) }); return; }
     insPaintPanel(Object.assign({ seat, jlWord:i18t('jl_w_request'), jlSay:ikJlSay(openAll, asker, go) }, r._adv?ikAdvicePanelOpts(r):ikPanelOpts(r, asker)));
     const pan=document.getElementById('ins-panel'); if(!pan) return;
-    pan.querySelectorAll('[data-ik-file]').forEach(b=>b.addEventListener('click',()=>intakeFileGet(r.id, b.getAttribute('data-ik-file'), b.getAttribute('data-ik-fname'))));
+    pan.querySelectorAll('[data-ik-file]').forEach(b=>b.addEventListener('click',()=>intakeFileGet(r.id, b.getAttribute('data-ik-file'), b.getAttribute('data-ik-fname'), { open:true })));
     /* THE COUNTERPARTY'S NAME opens its contracts on the Contracts place
        (Parties' own Open party) and LANDS on the first of them */
     pan.querySelectorAll('[data-ik-cp]').forEach(b=>b.addEventListener('click',()=>{
@@ -1758,7 +1812,7 @@ async function intakeTakeOver(id){
 async function intakePromiseAsk(id){
   const r=(_intake.list||[]).find(x=>x.id===id); if(!r) return;
   const said=await promptDialog({ title:i18t('ik_promise_title'),
-    message:i18t('ik_promise_msg'), value:r.promisedAt||'',
+    message:i18t('ik_promise_msg'), value:String(r.promisedAt||'').slice(0,10), date:true, min:(typeof todayISO==='function')?todayISO():'',
     confirmLabel:i18t('ik_act_promise'), cancelLabel:i18t('act_cancel') });
   if(said==null) return;
   const d=String(said||'').trim();
