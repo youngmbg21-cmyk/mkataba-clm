@@ -4,6 +4,12 @@
    ============================================================
    RE-POINTED 11 Oct 2026 (the Board as drawn): its own card, Today's insights,
    under Copilot's work; Read more is worded "Ask why" (the same reading).
+   RE-POINTED 18 Oct 2026 (round 17 as drawn, "Then and now"; the owner's
+   "build all the gaps"): the head is its own slim card ("what moved most
+   since <month> · worked out this morning from your book", whoever's the
+   pictures are — each card says whose on its own chip), and the pictures
+   are their own cards, two to a row, up to FOUR; an odd last card takes the
+   row.
    Inside Prepared by Copilot on Home: a row and up to three small pictures of
    what is OUTSIDE ITS NORMAL RANGE — the reader's own contracts first, then
    the company's — each with Keep · Open · Read more · let go.
@@ -80,32 +86,37 @@ const check = (name, pass, detail) => {
       /* the reader owns three of each month's four */
       const me = currentUser(); state.contracts.forEach(c => { const m = /^MK-P\d+-(\d)$/.exec(c.id); if (m) c.owner = Number(m[1]) < 3 ? { id: me.id, name: me.name } : { id: 'u_other', name: 'Someone Else' }; });
       const s = hbS(); s.face = 'board'; s.prep = 'open'; s.ins = null; s.insOff = {}; s.insKept = {}; s.panels = []; s.path = []; hbSave(); setView('dashboard'); });
-    const has = await until(() => typeof hbInsightsToday === 'function' && !!document.querySelector('#hb-board .hb-inscard .hb-shelf')
-      && hbS().ins && hbS().ins.n === hbInsBookSig() && document.querySelectorAll('#hb-board .hb-inscard .hb-shelf .hb-ins:not(.is-plain)').length === hbS().ins.list.length);
+    const has = await until(() => typeof hbInsightsToday === 'function' && !!document.querySelector('#hb-board .hb-shelf-cards')
+      && hbS().ins && hbS().ins.n === hbInsBookSig() && document.querySelectorAll('#hb-board .hb-shelf-cards .hb-ins:not(.is-plain)').length === hbS().ins.list.length);
     if (!has){ check('1a the shelf is drawn in its own card, Today\'s insights', false, 'no .hb-shelf'); throw new Error('no shelf'); }
 
     /* ================= 1. YOURS, MEASURED ================= */
     const s1 = await page.evaluate(() => {
-      const cards = [...document.querySelectorAll('#hb-board .hb-inscard .hb-shelf .hb-ins')];
-      const c = document.querySelector('[data-hb-ins-card="pay.mine"]'), band = c && c.querySelector('.hb-ins-pic .hb-sv-band'), lit = c && c.querySelector('.hb-ins-pic .hb-sv-collit');
+      const cards = [...document.querySelectorAll('#hb-board .hb-shelf-cards .hb-ins')];
+      const c = document.querySelector('[data-hb-ins-card="pay.mine"]'), band = c && c.querySelector('.hb-ins-pic .hb-sv-band'), lit = c && c.querySelector('.hb-ins-pic .hb-ip-bar.is-lit'),
+        val = c && c.querySelector('.hb-ins-pic .hb-ip-val');
       const bb = band && band.getBoundingClientRect();
       return { n: cards.length, ids: cards.map(x => x.getAttribute('data-hb-ins-card')), scope: hbS().ins.scope,
         acts: cards.every(x => x.querySelector('[data-hb-ins="keep"]') && x.querySelector('[data-hb-ins="open"]') && x.querySelector('[data-hb-read-more^="ins:"]') && x.querySelector('[data-hb-ins="go"]')),
-        doorsInside: document.querySelectorAll('#hb-board .hb-inscard .hb-ins-pic [data-hb-dig], #hb-board .hb-inscard .hb-ins-pic [tabindex]').length,
+        doorsInside: document.querySelectorAll('#hb-board .hb-shelf-cards .hb-ins-pic [data-hb-dig], #hb-board .hb-shelf-cards .hb-ins-pic [tabindex]').length,
         chip: c && (c.querySelector('.hb-ins-scope') || {}).textContent, t: c && c.querySelector('.hb-ins-t').textContent, f: c && c.querySelector('.hb-ins-f').textContent,
         why: c && (c.querySelector('.hb-ins-why') || {}).textContent,
         band: bb ? { h: Math.round(bb.height), fill: getComputedStyle(band).fill, stroke: getComputedStyle(band).strokeStyle || getComputedStyle(band).stroke } : null,
-        lit: lit ? getComputedStyle(lit).fill + ' / ' + getComputedStyle(lit).fillOpacity : null,
-        row: ((document.querySelector('#hb-board .hb-inscard > .hb-ch') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
-        calm: ((document.querySelector('#hb-board .hb-inscard .hb-ins-calm') || {}).textContent || '').replace(/\s+/g, ' ').trim() };
+        lit: lit ? getComputedStyle(lit).fill + ' / ' + getComputedStyle(lit).fillOpacity : null, val: val ? val.textContent : null,
+        row: ((document.querySelector('#hb-board .hb-ins-head > .hb-ch') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+        calm: ((document.querySelector('#hb-board .hb-shelf-cards .hb-ins-calm') || {}).textContent || '').replace(/\s+/g, ' ').trim() };
     });
-    check('1a your own contracts come first: the payment-days picture is yours', s1.ids[0] === 'pay.mine' && s1.scope === 'mine' && s1.n <= 3, JSON.stringify(s1.ids));
+    check('1a your own contracts come first: the payment-days picture is yours', s1.ids[0] === 'pay.mine' && s1.scope === 'mine' && s1.n <= 4, JSON.stringify(s1.ids));
     check('1b marked yours, titled by what left its normal', /^Yours · \d+$/.test(s1.chip || '') && /Payment days are above normal/.test(s1.t || ''), `${s1.chip} | ${s1.t}`);
     check('1c it says the month, your normal range and the company\'s figure', /^60 days in .+ · your normal 30–32 days · company \d+ days$/.test(s1.f || ''), s1.f);
     check('1d and why it is here', /Outside the normal range of your own contracts over the past year\./.test(s1.why || ''), s1.why);
-    check('1e the picture draws the normal range and lights its month', !!s1.band && s1.band.h > 0 && s1.band.fill !== 'none' && !!s1.lit && !/none/.test(s1.lit), JSON.stringify({ band: s1.band, lit: s1.lit }));
+    /* RE-POINTED 18 Oct 2026 (round 17 as drawn, pass 3): the card draws no
+       band — the normal range is in its sentence (1c) — and lights its month
+       with the value printed over it */
+    check('1e the picture lights its month and prints its value; the range is said, not drawn', !s1.band && !!s1.lit && !/none/.test(s1.lit) && / 1$/.test(s1.lit) && /^60 days$/.test(s1.val || ''), JSON.stringify({ band: s1.band, lit: s1.lit, val: s1.val }));
     check('1f every picture carries Keep · Open · Read more · let go, and is one press', s1.acts && s1.doorsInside === 0, `${s1.doorsInside} doors inside`);
-    check('1g its row says whose', /Today.s insights\s*\d.*in your contracts, then the company.s/.test(s1.row), s1.row);
+    /* pass 3: Hide stays at its end (the owner's answer 7) */
+    check('1g its head says what moved most since the month six months back (each card says whose), and Hide', /^Today.s insights\s*\d+\s*what moved most since \S+ · worked out this morning from your book\s*Hide$/.test(s1.row), s1.row);
     await page.waitForTimeout(1500);   /* the columns rise in; photograph them risen */
     await page.screenshot({ path: path.join(OUT, '1-yours-measured.png') });
     /* RE-POINTED 11 Oct 2026 (owner: "make it to always be 3 but if the only
@@ -113,11 +124,11 @@ const check = (name, pass, detail) => {
        cards"): a place no finding filled takes a usual picture, plain, after
        the findings — no "nothing else stood out", no switch — and the row is
        cut to the cards it holds */
-    const s1h = await page.evaluate(() => { const sh = document.querySelector('#hb-board .hb-inscard .hb-shelf'); const cs = [...sh.querySelectorAll('.hb-ins')];
+    const s1h = await page.evaluate(() => { const sh = document.querySelector('#hb-board .hb-shelf-cards'); const cs = [...sh.querySelectorAll('.hb-ins')];
       const w = cs.map(x => Math.round(x.getBoundingClientRect().width));
       return { n: cs.length, plainAfter: cs.findIndex(x => x.classList.contains('is-plain')), finds: cs.filter(x => !x.classList.contains('is-plain')).length,
         attr: sh.getAttribute('data-hb-shelf-n'), calm: !!sh.querySelector('.hb-ins-calm'), sw: Math.round(sh.getBoundingClientRect().width), sum: w.reduce((a, x) => a + x, 0) }; });
-    check('1h a place no finding filled takes a usual picture, after the findings, up to three', s1h.n <= 3 && (s1h.n === 3 || s1h.n > s1h.finds) && (s1h.plainAfter === -1 || s1h.plainAfter === s1h.finds) && !s1h.calm, JSON.stringify(s1h));
+    check('1h a place no finding filled takes a usual picture, after the findings, up to four', s1h.n <= 4 && (s1h.n === 4 || s1h.n > s1h.finds) && (s1h.plainAfter === -1 || s1h.plainAfter === s1h.finds) && !s1h.calm, JSON.stringify(s1h));
     check('1i the cards fill the row, no hole', s1h.attr === String(s1h.n) && s1h.sum >= s1h.sw - 4, JSON.stringify(s1h));
 
     /* ================= 2. A REFRESH KEEPS THE DAY'S SHELF ================= */
@@ -125,7 +136,7 @@ const check = (name, pass, detail) => {
        kept only bare shape names, so "yours" left the shelf until tomorrow */
     const before2 = await page.evaluate(() => ({ list: hbS().ins.list.slice(), n: hbS().ins.n }));
     await page.reload({ waitUntil: 'networkidle' });
-    const s2 = await until(() => { if (!(window.hbS && hbS().ins && document.querySelector('#hb-board .hb-inscard .hb-shelf'))) return null;
+    const s2 = await until(() => { if (!(window.hbS && hbS().ins && document.querySelector('#hb-board .hb-shelf-cards'))) return null;
       const c = document.querySelector('[data-hb-ins-card="pay.mine"]');
       return c ? { list: hbS().ins.list.slice(), scope: hbS().ins.scope, chip: (c.querySelector('.hb-ins-scope') || {}).textContent } : null; }, null, 20000);
     check('2a a refresh keeps your own picture on the shelf, marked yours', !!s2 && s2.list.includes('pay.mine') && s2.scope === 'mine' && /^Yours · \d+$/.test(s2.chip || ''), JSON.stringify({ before2, s2 }));
@@ -187,13 +198,13 @@ const check = (name, pass, detail) => {
     /* ================= 7. A QUIET DAY ================= */
     await page.evaluate(() => { state.contracts.forEach(c => { if (/^MK-P1-[0-2]$/.test(c.id)) c.metadata = { ...c.metadata, paymentTerms: '31 days' }; });
       const s = hbS(); s.ins = null; s.insOff = {}; s.panels = []; hbSave(); hbPaintBoard(); });
-    const s7 = await until(() => { const r = document.querySelector('#hb-board .hb-inscard > .hb-ch'); if (!r || !hbS().ins || hbS().ins.list.length) return null;
-      return { row: r.textContent.replace(/\s+/g, ' ').trim(), cards: document.querySelectorAll('#hb-board .hb-inscard .hb-ins').length, btn: (r.querySelector('[data-hb-ins="usual"]') || {}).textContent }; });
+    const s7 = await until(() => { const r = document.querySelector('#hb-board .hb-ins-head > .hb-ch'); if (!r || !hbS().ins || hbS().ins.list.length) return null;
+      return { row: r.textContent.replace(/\s+/g, ' ').trim(), cards: document.querySelectorAll('#hb-board .hb-shelf-cards .hb-ins').length, btn: (r.querySelector('[data-hb-ins="usual"]') || {}).textContent }; });
     check('7a a quiet day: the row says nothing moved outside normal', !!s7 && /nothing moved outside its normal range this morning/.test(s7.row), s7 && s7.row);
     /* RE-POINTED 11 Oct 2026 (owner, as in 1h): a quiet day is SAID in the
        head, and the usual pictures fill the row at once — no switch */
-    check('7b and the usual pictures fill the row, plain, with no switch to press', !!s7 && s7.cards >= 1 && s7.cards <= 3 && !s7.btn
-      && await page.evaluate(n => document.querySelectorAll('#hb-board .hb-inscard .hb-ins.is-plain').length === n && document.querySelector('#hb-board .hb-inscard .hb-shelf').getAttribute('data-hb-shelf-n') === String(n), s7.cards), s7 && `${s7.cards} cards`);
+    check('7b and the usual pictures fill the row, plain, with no switch to press', !!s7 && s7.cards >= 1 && s7.cards <= 4 && !s7.btn
+      && await page.evaluate(n => document.querySelectorAll('#hb-board .hb-shelf-cards .hb-ins.is-plain').length === n && document.querySelector('#hb-board .hb-shelf-cards').getAttribute('data-hb-shelf-n') === String(n), s7.cards), s7 && `${s7.cards} cards`);
     await page.screenshot({ path: path.join(OUT, '7-quiet-day.png') });
 
     /* ================= 8. ON A NARROW WINDOW ================= */

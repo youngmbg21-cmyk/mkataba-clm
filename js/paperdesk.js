@@ -123,14 +123,16 @@ function pdTabCount(t, c){
     /* ONE NUMBER ON ONE DOOR (pass 4, rounds 13, 7 and 12 as drawn: the same
        figure on his tab beside a chosen paper, a page brought up, its History,
        and the wall at rest — as beside a paper): the Counter's own "Needs you"
-       (counterNeedsCount), the list "All N" opens. The Board at rest keeps its
-       card's own number (hbNeedsCount) while that card stands there. */
+       (counterNeedsCount), the list "All N" opens. The Board at rest carries the
+       same Counter number (round 17: the card left the Board). */
     const wall = !onBoard && typeof igHomePaperFace === 'function' && igHomePaperFace() === true && !pdContract();
     if (pdHolds() || wall){
       let k = 0; try { k = (typeof counterNeedsCount === 'function') ? counterNeedsCount() : 0; } catch (_){ k = 0; }
       return k ? { n: k, tone: 'warn' } : null;
     }
-    const n = (onBoard && typeof hbNeedsCount === 'function') ? hbNeedsCount() : 0;
+    /* on the Board: the Counter's own number since round 17 (the card left
+       the Board; his greeting says "What needs you is on the Counter: N things") */
+    const n = !onBoard ? 0 : (typeof counterNeedsCount === 'function') ? counterNeedsCount() : (typeof hbNeedsCount === 'function') ? hbNeedsCount() : 0;
     return n ? { n, tone: 'warn' } : null; }
   if (!c) return null;
   /* WITH A PAPER UP HIS FACE CARRIES THE COUNTER'S OWN NUMBER (owner picked
@@ -1223,7 +1225,12 @@ function pdSignPaperPaint(c){
      room's page arrows ‹ 1/n › and size, scControlsHtml, wired here once per
      paint of the corner) */
   const fit = () => { if (typeof scApplyZoom === 'function') try { scApplyZoom(); } catch (_){}
-    if (typeof scPaintPage === 'function') try { scPaintPage(); } catch (_){} };
+    if (typeof scPaintPage === 'function') try { scPaintPage(); } catch (_){}
+    /* laid out into pages: its clause headings marked again for Follow me
+       (igPaperClauseMarks), and a reader following someone taken again to
+       where they are — the pages moved every clause (presenceReWalk) */
+    if (typeof igPaperClauseMarks === 'function') try { igPaperClauseMarks(c); } catch (_){}
+    if (typeof presenceReWalk === 'function') try { presenceReWalk(); } catch (_){} };
   if (sheet && typeof signCopyWatch === 'function' && !sheet._pgRO){
     try { signCopyWatch(sheet, c, fit); } catch (_){}
   }
@@ -1907,6 +1914,16 @@ const PD_GLANCE = { fill: ['pd_gl_details', 'pd_gl_fill', 'ca_w_fill'], redline:
   std: ['pd_gl_std', 'pd_tab_clauses', '', 'doc'], oblig: ['pd_gl_obls', 'tab_obligations', '', 'oblig'] };
 function pdGlanceRows(c){
   const rows = []; if (!c) return rows;
+  /* THEIR ROUND, AND EACH OF THEIR ASKS (round 6 as drawn): who sent how
+     many and when, "Your move." · Redlines; then one row per ask that waits
+     on us — "Clause 7: they ask for …" · their ask · Go to it — the first
+     PD_GL_ASKS_MAX, the rest said in one line (a cap is a fact) */
+  const asks = pdTheirAsks(c);
+  if (asks.length){
+    rows.push({ k: 'move', n: asks.length });
+    asks.slice(0, PD_GL_ASKS_MAX).forEach(ch => rows.push({ k: 'ask:' + ch.id, kind: 'ask', ch, n: 1 }));
+    if (asks.length > PD_GL_ASKS_MAX) rows.push({ k: 'asks-more', n: asks.length - PD_GL_ASKS_MAX });
+  }
   let d = null; try { d = pdFillDetails(c); } catch (_){ d = null; }
   if (d && d.live && d.left) rows.push({ k: 'fill', n: d.left });
   /* THE RISKS THE REDLINES FACE DRAWS (rlRisksPileHtml): a list only where
@@ -1931,7 +1948,110 @@ function pdGlanceRows(c){
      declined, the Before you sign face reads "Signed", and so does this card */
   let nobody = false; try { nobody = pdSignAhead(c) && (typeof signBlockers === 'function') && signBlockers(c).some(b => b && b.key === 'signers'); } catch (_){ nobody = false; }
   if (nobody) rows.push({ k: 'sign', n: 1 });
+  /* RISKS NOT READ YET (round 3; the owner's answer of 18 Oct 2026: "the
+     row says the read is FREE — it uses HaTi's own rules"): where the risk
+     scan has not run and this person may act on the wording, its press runs
+     the scan (runScanFor: HaTi's own rules, no model), and the row says so
+     before it */
+  let unread = false; try { unread = !c.scan && pdSignAhead(c) && typeof runScanFor === 'function' && (typeof riskMayAct !== 'function' || riskMayAct(c, {})) && (typeof canEdit !== 'function' || canEdit()); } catch (_){ unread = false; }
+  if (unread) rows.push({ k: 'scan', n: 1 });
   return rows;
+}
+/* ---- THE GLANCE AS DRAWN (rounds 3 and 6 of the redesign; the owner's
+   "build all the gaps", 18 Oct 2026) ----
+   Their asks that wait on us, read RAW (negoNeedsYouIds — the reading the
+   Negotiations list bands by — never negoChanges, which would start a
+   negotiation), and each said in plain words from its own stored ops: the
+   words that go and the words that come, quoted, never a sentence invented
+   about what they mean (negoSummariseOps' rule). Reading writes nothing. */
+const PD_GL_ASKS_MAX = 3;
+const PD_GL_QUOTE = 40;
+function pdTheirAsks(c){
+  let ids = []; try { ids = (typeof negoNeedsYouIds === 'function') ? negoNeedsYouIds(c) : []; } catch (_){ ids = []; }
+  const set = new Set(ids.map(String));
+  return (Array.isArray(c && c.changes) ? c.changes : []).filter(x => x && set.has(String(x.id)));
+}
+/* the heading of the clause an ask is on, as recorded (never a negotiation started to find it) */
+function pdAskHeading(c, ch){
+  let label = String((ch && ch.clauseLabel) || '').trim();
+  if (!label && ch && ch.clauseId && typeof negoClauseNowById === 'function'){ try { const k = negoClauseNowById(c, ch.clauseId); label = String((k && (k.heading || k.label)) || '').trim(); } catch (_){ label = ''; } }
+  return label;
+}
+/* "Clause 7" where the clause carries a number, else its name */
+function pdAskClause(c, ch){
+  const label = pdAskHeading(c, ch);
+  let num = ''; try { num = (typeof clauseParseHeading === 'function') ? String((clauseParseHeading(label) || {}).num || '').replace(/[.\s]+$/, '') : ''; } catch (_){ num = ''; }
+  if (num) return _pdT('pd_gl_clause_n', { n: num });
+  let name = label; try { if (typeof clauseNameShown === 'function') name = clauseNameShown(label) || label; } catch (_){}
+  return name || _pdT('ds_a_clause');
+}
+/* THEIR ASK IN WORDS (round 6 as drawn: "Clause 11: they ask for 60 days to
+   pay, up from 30."). Read off the change's own stored ops, never a sentence
+   invented about what it means: the first stretch they changed, widened to
+   whole words; where both sides of it are numbers, what the number is OF —
+   the words that follow it on the paper, up to PD_GL_CONTEXT words and never
+   past a stop — and which way it moved ("up from 30"). Any other change is
+   quoted, whole words, as before. */
+const PD_GL_CONTEXT = 4;
+const PD_GL_DAYS_FOR = { payment: 'pd_gl_days_pay', term: 'pd_gl_days_notice' };
+const PD_GL_GLUE = new Set(['of', 'the', 'a', 'an', 'and', 'or', 'to', 'in', 'on', 'at', 'by', 'for', 'with', 'from', 'than', 'that', 'which', 'per', 'its', 'their', 'our', 'av', 'och', 'eller', 'i', 'på', 'till', 'för', 'med', 'från', 'än', 'som', 'per', 'den', 'det', 'de']);
+const PD_GL_NUM_RE = /^[^\d\s]{0,4}\s?\d[\d\s.,]*\s?(%|percent|per cent|procent)?$/i;
+function pdAskParts(ch){
+  const ops = (Array.isArray(ch && ch.ops) ? ch.ops : []).filter(Boolean);
+  let i = ops.findIndex(op => op.op !== 'keep'); if (i < 0) return null;
+  let b = '', a = '', j = i;
+  for (; j < ops.length && ops[j].op !== 'keep'; j++){ if (ops[j].op === 'del') b += ops[j].text || ''; else a += ops[j].text || ''; }
+  const pre = i > 0 ? String(ops[i - 1].text || '') : '', post = j < ops.length ? String(ops[j].text || '') : '';
+  /* whole words: a change that starts or ends inside a word takes the rest of it */
+  const head = (pre.match(/[^\s.,;:()]+$/) || [''])[0], tail = (post.match(/^[^\s.,;:()]+/) || [''])[0];
+  return { b: head + b + tail, a: head + a + tail, post: post.slice(tail.length) };
+}
+function pdAskSay(c, ch){
+  const clause = pdAskClause(c, ch);
+  if (ch.changeType === 'insertClause') return _pdT('pd_gl_ask_new', { clause });
+  if (ch.changeType === 'deleteClause') return _pdT('pd_gl_ask_del', { clause });
+  const flat = t => String(t || '').replace(/\s+/g, ' ').trim();
+  const cut = t => { const x = flat(t); return x.length > PD_GL_QUOTE ? x.slice(0, PD_GL_QUOTE - 1) + '…' : x; };
+  const P = pdAskParts(ch);
+  if (!P) return _pdT('pd_gl_ask_words', { clause });
+  const b = flat(P.b), a = flat(P.a);
+  const num = t => { const m = String(t).replace(/[^\d.,]/g, '').replace(/,(?=\d{3}\b)/g, '').replace(',', '.'); const n = parseFloat(m); return isFinite(n) ? n : null; };
+  if (b && a && PD_GL_NUM_RE.test(b) && PD_GL_NUM_RE.test(a) && num(a) !== num(b)){
+    /* what the number is of: the words after it, to a stop, without a dangling "of the" */
+    const words = flat(String(P.post).split(/[.;:,()\n]/)[0]).split(' ').filter(Boolean).slice(0, PD_GL_CONTEXT);
+    while (words.length && PD_GL_GLUE.has(words[words.length - 1].toLowerCase())) words.pop();
+    /* DAYS SAID BY WHAT THE CLAUSE IS (round 6 as drawn: "60 days to pay"):
+       a number of days in a payment clause is days to pay, in a termination
+       clause days' notice — read off the clause's own heading (clauseKind,
+       the one reading), never guessed from anything else */
+    let kind = null; try { kind = (typeof clauseKind === 'function') ? clauseKind({ title: pdAskHeading(c, ch) }) : null; } catch (_){ kind = null; }
+    const days = /^(days?|dagar|dag)$/i.test(words[0] || '') && PD_GL_DAYS_FOR[kind];
+    const what = days ? _pdT(days, { n: a }) : cut([a].concat(words).join(' '));
+    return _pdT(num(a) > num(b) ? 'pd_gl_ask_up' : 'pd_gl_ask_down', { clause, what, b });
+  }
+  if (b && a) return _pdT('pd_gl_ask_swap', { clause, a: cut(a), b: cut(b) });
+  if (a) return _pdT('pd_gl_ask_add', { clause, a: cut(a) });
+  if (b) return _pdT('pd_gl_ask_cut', { clause, b: cut(b) });
+  return _pdT('pd_gl_ask_words', { clause });
+}
+/* how long ago their newest ask came */
+function pdGlAgo(iso){
+  const t = Date.parse(String(iso || '')); if (!isFinite(t)) return '';
+  const d = Math.max(0, Math.floor((Date.now() - t) / 864e5));
+  return d === 0 ? _pdT('pd_gl_ago_today') : _pdTn('pd_gl_ago_days', d, { n: d });
+}
+function pdGlMoveSay(c, asks){
+  const at = asks.map(x => String(x.createdAt || x.at || '')).filter(Boolean).sort().pop() || '';
+  const who = String((c && c.counterparty) || '').trim() || _pdT('ng_door_them');
+  return _pdTn('pd_gl_sent', asks.length, { who, n: asks.length, ago: pdGlAgo(at) }).replace(/\s+\./, '.');
+}
+/* "Go to it": their ask on Home's paper — the paper Redlined (the ask is
+   drawn there only) and the clause brought up and lit (igPaperGoClause, the
+   one door Follow me walks through too) */
+function pdGlGoTo(clauseId){
+  const p = (typeof intel !== 'undefined' && intel) ? intel.paper : null;
+  if (p && p.red !== true && p.red !== 'theirs'){ p.red = true; if (typeof igPaintPaper === 'function') try { igPaintPaper(); } catch (_){} }
+  return (typeof igPaperGoClause === 'function') ? igPaperGoClause(clauseId) : null;
 }
 /* the Before you sign face's own "closed" (pdSignState), without its readiness read, and a declined deal */
 function pdSignAhead(c){
@@ -1941,20 +2061,31 @@ function pdSignAhead(c){
 function pdGlanceHtml(c){
   if (!c) return '';
   const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
-  let pill = ''; try { pill = (typeof contractStatusTextHtml === 'function') ? contractStatusTextHtml(c) : ''; } catch (_){ pill = ''; }
+  /* the stage pill with its round, as the paper's line says it (round 6 as drawn: "In negotiation · round 2") */
+  const rn = (typeof igLineRound === 'function') ? igLineRound(c) : 0;
+  let pill = ''; try { pill = (typeof contractStatusTextHtml === 'function') ? contractStatusTextHtml(c, rn ? _pdT('ig_line_round', { n: rn }) : '') : ''; } catch (_){ pill = ''; }
   const shut = k => (k === 'redline' && typeof negoMayStartLine === 'function') ? negoMayStartLine(c) : '';
   const btn = r => { const why = shut(r.k), label = _pdE(_pdT(PD_GLANCE[r.k][1]));
     return why ? `<button type="button" class="ui-btn ui-btn-sm" disabled aria-disabled="true" title="${_pdE(why)}">${label}</button>`
       : `<button type="button" class="ui-btn ui-btn-sm" data-pd-glance="${r.k}">${label}</button>`; };
   const rows = pdGlanceRows(c);
   /* each row's door: the face's word Jambo reads, or this panel's own tab */
-  const btn2 = r => (PD_GLANCE[r.k][3] ? `<button type="button" class="ui-btn ui-btn-sm" data-pd-glance-tab="${PD_GLANCE[r.k][3]}">${_pdE(_pdT(PD_GLANCE[r.k][1]))}</button>` : btn(r));
-  const said = r => r.k === 'sign' ? _pdT(PD_GLANCE.sign[0]) : _pdTn(PD_GLANCE[r.k][0], r.n, { n: r.n });
+  const asks = rows.some(r => r.k === 'move') ? pdTheirAsks(c) : [];
+  const btn2 = r => r.kind === 'ask'
+    ? `<button type="button" class="ui-btn ui-btn-sm" data-pd-gl-go="${_pdE(r.ch.clauseId || '')}">${_pdE(_pdT('pd_gl_go_to_it'))}</button>`
+    : r.k === 'move' || r.k === 'asks-more' ? btn({ k: 'redline' })
+    : r.k === 'scan' ? `<button type="button" class="ui-btn ui-btn-sm" data-pd-gl-scan>${_pdE(_pdT('pd_gl_scan_go'))}</button>`
+    : (PD_GLANCE[r.k][3] ? `<button type="button" class="ui-btn ui-btn-sm" data-pd-glance-tab="${PD_GLANCE[r.k][3]}">${_pdE(_pdT(PD_GLANCE[r.k][1]))}</button>` : btn(r));
+  const said = r => r.kind === 'ask' ? pdAskSay(c, r.ch)
+    : r.k === 'move' ? pdGlMoveSay(c, asks)
+    : r.k === 'asks-more' ? _pdTn('pd_gl_asks_more', r.n, { n: r.n })
+    : r.k === 'scan' ? _pdT('pd_gl_scan')
+    : r.k === 'sign' ? _pdT(PD_GLANCE.sign[0]) : _pdTn(PD_GLANCE[r.k][0], r.n, { n: r.n });
   const done = pdGlanceDone(c, rows, said);
   const doneHtml = done.map(d => `<div class="pd-gl-row is-done" data-pd-gl-done="${_pdE(d.k)}"><i aria-hidden="true">✓</i><span><s>${_pdE(d.text)}</s></span></div>`).join('');
   const body = rows.length
     ? rows.map(r => { const sub = pdGlanceSub(c, r);
-        return `<div class="pd-gl-row" data-pd-gl="${r.k}"><span>${_pdE(said(r))}${sub ? `<small title="${_pdE(sub)}">${_pdE(sub)}</small>` : ''}</span>${btn2(r)}</div>`; }).join('') + doneHtml
+        return `<div class="pd-gl-row" data-pd-gl="${_pdE(r.kind || r.k)}"${r.kind === 'ask' ? ` data-pd-gl-ch="${_pdE(r.ch.id)}"` : ''}><span>${_pdE(said(r))}${sub ? `<small title="${_pdE(sub)}">${_pdE(sub)}</small>` : ''}</span>${btn2(r)}</div>`; }).join('') + doneHtml
     : doneHtml + `<div class="pd-gl-none"><i aria-hidden="true">✓</i><span>${_pdE(_pdT('pd_gl_none'))}</span></div>`;
   return `<div id="pd-glance" class="pd-glance" data-pd-glance-for="${_pdE(c.id)}"><div class="pd-gl-h"><b>${_pdE(_pdT('pd_gl_title', { ref }))}</b><span class="pd-gl-sp"></span>${pill}</div><div class="pd-gl-b">${pdGlanceBriefHtml(c)}${body}</div>${pdGlanceFootHtml(c)}</div>`;
 }
@@ -1969,6 +2100,10 @@ const PD_GL_SUB_MAX = 3;
 function pdGlanceSub(c, r){
   const few = L => { const a = L.filter(Boolean); return a.slice(0, PD_GL_SUB_MAX).join(', ') + (a.length > PD_GL_SUB_MAX ? ' …' : ''); };
   try {
+    if (r.k === 'move') return _pdT('pd_gl_your_move');
+    if (r.kind === 'ask') return _pdT('pd_gl_their_ask');
+    if (r.k === 'sign') return _pdT('pd_gl_signers_sub');
+    if (r.k === 'scan') return _pdT('pd_gl_scan_cost');
     if (r.k === 'fill' && typeof detailsOf === 'function') return few(detailsOf(c).items.filter(x => x.open).map(x => x.label));
     if (r.k === 'redline' && typeof riskOpenOf === 'function') return few(riskOpenOf(c).map(it => (typeof riskTitleOf === 'function') ? riskTitleOf(it) : ''));
     if (r.k === 'std'){
@@ -2019,22 +2154,112 @@ function pdNeedsRows(c, o){
   ((A && A.rows) || []).forEach(r => (r.items || []).forEach(it => {
     if (it && String(it.cid) === String(c.id)) rows.push({ jw: true, k: r.k, key: it.key, sum: it.sum || '', urg: it.urg || '' }); }));
   let L = []; try { L = (typeof needsYouOf === 'function') ? (needsYouOf(c) || []) : []; } catch (_){ L = []; }
-  L.filter(it => it && (keepDetails || it.kind !== 'details')).forEach(it => rows.push({ it }));
+  L = L.filter(it => it && (keepDetails || it.kind !== 'details'));
+  /* THEIR REDLINES are owed after the desk's quiet standard (the owner's
+     answer of 18 Oct 2026: "after 5 quiet days, unchanged"): needsYouOf's own
+     'quiet' row, the same that the checklist, the bell and Home count — never
+     a row of this panel's own before it */
+  const rank = k => { const o = (typeof NEEDS_YOU_ORDER !== 'undefined' && NEEDS_YOU_ORDER) || []; const i = o.indexOf(k); return i < 0 ? 99 : i; };
+  L.map((it, i) => ({ it, i })).sort((x, y) => (Number(!!y.it.urgent) - Number(!!x.it.urgent)) || (rank(x.it.kind) - rank(y.it.kind)) || (x.i - y.i))
+    .forEach(o => rows.push({ it: o.it }));
   return rows;
 }
+/* ---- A NOTE OF YOURS DUE ON THIS CONTRACT (round 3 as drawn: "1 note due
+   today · “Check Nordvik's insurance broker.” · only you · Open note") ----
+   My notes' own reading (mineNotesDue — the rail's count and the bell's),
+   narrowed to the paper in front. PRIVATE: the store answers only for the
+   person signed in (/api/me/items), so only the note's owner ever sees the
+   row. Loaded once if this sitting has not loaded it yet, then the card is
+   painted again in place. Reading writes nothing. */
+let _pdMineAsked = false;
+function pdNoteRows(c){
+  if (!c || typeof mineNotesDue !== 'function') return [];
+  if (typeof mineLoaded === 'function' && !mineLoaded()){
+    if (!_pdMineAsked && typeof mineLoad === 'function'){ _pdMineAsked = true;
+      Promise.resolve(mineLoad()).then(() => { try { pdNeedsRepaint(); } catch (_){} }, () => {}); }
+    return [];
+  }
+  let due = []; try { due = (mineNotesDue() || []).filter(n => n && String(n.contractId || '') === String(c.id)); } catch (_){ due = []; }
+  if (!due.length) return [];
+  due.sort((a, b) => String(a.reviewBy || '').localeCompare(String(b.reviewBy || '')));
+  const today = (typeof todayISO === 'function') ? todayISO() : new Date().toISOString().slice(0, 10);
+  return [{ note: true, n: due.length, first: due[0], late: String(due[0].reviewBy || '') < today }];
+}
+/* the clause numbers their waiting asks are on ("clauses 7 and 11"), or '' */
+function pdAskClausesSay(c){
+  const nums = []; let all = true;
+  pdTheirAsks(c).forEach(ch => { let n = ''; try { n = String(((typeof clauseParseHeading === 'function') ? clauseParseHeading(String(ch.clauseLabel || '')) : {}).num || '').replace(/[.\s]+$/, ''); } catch (_){ n = ''; }
+    if (!n) all = false; else if (!nums.includes(n)) nums.push(n); });
+  if (!nums.length || !all) return '';
+  const list = nums.length > 1 ? nums.slice(0, -1).join(', ') + ' ' + _pdT('pd_nd_and') + ' ' + nums[nums.length - 1] : nums[0];
+  return _pdTn('pd_nd_clause', nums.length, { list });
+}
+/* ---- JAMBO'S WORK HERE, IN THE DRAWING'S WORDS (round 3 as drawn: "Jambo's
+   work · Nordvik's answer" over "Prepared overnight: a counter on each
+   redline", whole) ----
+   Their round came back is named by whose answer it is (the party's first
+   word, as the paper's line and the desk say it), and its line says when it
+   was prepared — the answers are made as their round arrives (runRoundPrep),
+   so the day their asks came is the day — and what: an answer to each
+   redline, to some of them, or, where Jambo answered none, the quick
+   reading's tally. Every word is read off the agent's own piece
+   (agRoundItems); nothing is written. Other agents keep their own name and
+   line. */
+function pdPartyShort(name){
+  const w = String(name || '').trim().split(/\s+/).filter(Boolean);
+  const i = w.length > 1 && /^(the|den|det|de)$/i.test(w[0]) ? 1 : 0;
+  return (w[i] || '').replace(/[,.;:]+$/, '');
+}
+function pdPreparedWhen(iso){
+  const t = Date.parse(String(iso || '')); if (!isFinite(t)) return '';
+  const d = new Date(t), now = new Date(), day = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const gap = Math.round((day(now) - day(d)) / 864e5);
+  if (gap === 0) return d.getHours() < 6 ? _pdT('pd_nd_jw_overnight') : _pdT('pd_nd_jw_today');
+  if (gap === 1 && d.getHours() >= 18) return _pdT('pd_nd_jw_overnight');
+  if (gap === 1) return _pdT('pd_nd_jw_yesterday');
+  let on = ''; try { on = d.toLocaleDateString((typeof langLocale === 'function') ? langLocale() : undefined, { day: 'numeric', month: 'short' }); } catch (_){ on = ''; }
+  return _pdT('pd_nd_jw_on', { day: on });
+}
+function pdJwSay(c, r){
+  if (!c || !r || r.k !== 'round' || typeof agentsData !== 'function') return null;
+  let it = null; try { const D = agentsData(); it = ((D && D.agents && D.agents.round && D.agents.round.ready) || []).find(x => x && String(x.cid) === String(c.id)) || null; } catch (_){ it = null; }
+  if (!it) return null;
+  const who = pdPartyShort(c.counterparty) || _pdT('ng_door_them');
+  const n = Number(it.n) || 0, p = Number(it.prepared) || 0, t = it.tally || {};
+  const tally = [t.accept ? _pdT('ag_t_accept', { n: t.accept }) : '', t.push ? _pdT('ag_t_push', { n: t.push }) : '',
+    t.escalate ? _pdT('ag_t_escalate', { n: t.escalate }) : '', t.review ? _pdT('ag_t_review', { n: t.review }) : ''].filter(Boolean).join(' · ');
+  const what = p && p >= n ? _pdTn('pd_nd_jw_each', n, { n }) : p ? _pdT('pd_nd_jw_some', { p, n }) : tally;
+  const when = pdPreparedWhen(it.since);
+  const sub = what ? _pdT(p ? 'pd_nd_jw_prepared' : 'pd_nd_jw_read', { when: when || _pdT('pd_nd_jw_today'), what }) : '';
+  return { what: _pdT('pd_nd_jw_answer', { who }), sub };
+}
 function pdNeedRowHtml(c, r){
+  if (r.note){
+    const words = String((r.first && (r.first.title || r.first.body)) || '').replace(/\s+/g, ' ').trim();
+    const q = words.length > 60 ? words.slice(0, 59) + '…' : words;
+    let day = ''; try { day = (typeof regDotDate === 'function') ? regDotDate(r.first.reviewBy) : String(r.first.reviewBy || ''); } catch (_){ day = String(r.first.reviewBy || ''); }
+    const title = r.late ? _pdTn('pd_nd_note_late', r.n, { n: r.n, day }) : _pdTn('pd_nd_note', r.n, { n: r.n });
+    const sub = [q ? '\u201c' + q + '\u201d' : '', _pdT('pd_nd_only_you')].filter(Boolean).join(' · ');
+    return `<div class="pd-gl-row pd-nd-row is-note${r.late ? ' is-hot' : ''}" data-pd-nd-kind="mynote"><span><b>${_pdE(title)}</b><small title="${_pdE(sub)}">${_pdE(sub)}</small></span><button type="button" class="ui-btn ui-btn-sm" data-pd-nd-note="${_pdE((r.first && r.first.id) || '')}">${_pdE(_pdT('pd_nd_open_note'))}</button></div>`;
+  }
   if (r.jw){
     const face = (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 22, 'pd-nd-face').replace('<img', '<img data-ink-exempt') : '';
-    const sub = [r.sum, r.urg].filter(Boolean).join(' · ');
-    return `<div class="pd-gl-row pd-nd-row is-jw">${face}<span><b>${_pdE(_pdT('cn_jw'))} · ${_pdE(_pdT('ag_' + r.k))}</b>${sub ? `<small title="${_pdE(sub)}">${_pdE(sub)}</small>` : ''}</span><button type="button" class="ui-btn ui-btn-sm" data-pd-nd-jw="${_pdE(r.k)}" data-pd-nd-key="${_pdE(r.key || '')}">${_pdE(_pdT('pd_nd_see'))}</button></div>`;
+    const J = pdJwSay(c, r);
+    const sub = J ? J.sub : [r.sum, r.urg].filter(Boolean).join(' · ');
+    return `<div class="pd-gl-row pd-nd-row is-jw">${face}<span><b>${_pdE(_pdT('cn_jw'))} · ${_pdE(J ? J.what : _pdT('ag_' + r.k))}</b>${sub ? `<small title="${_pdE(sub)}">${_pdE(sub)}</small>` : ''}</span><button type="button" class="ui-btn ui-btn-sm" data-pd-nd-jw="${_pdE(r.k)}" data-pd-nd-key="${_pdE(r.key || '')}">${_pdE(_pdT('pd_nd_see'))}</button></div>`;
   }
   let w = null; try { w = (typeof insNeedWords === 'function') ? insNeedWords(c, r.it) : null; } catch (_){ w = null; }
-  const verb = (typeof INS_NEED_VERB !== 'undefined' && INS_NEED_VERB[r.it.kind]) ? _pdT(INS_NEED_VERB[r.it.kind]) : _pdT('cn_open');
+  /* their redlines waiting say which clauses and open the redlines (round 3 as drawn: "waiting 4 days · clauses 7 and 11 · Open redlines") */
+  const quiet = r.it.kind === 'quiet';
+  const verb = quiet ? _pdT('pd_nd_open_red') : (typeof INS_NEED_VERB !== 'undefined' && INS_NEED_VERB[r.it.kind]) ? _pdT(INS_NEED_VERB[r.it.kind]) : _pdT('cn_open');
+  const cl = quiet ? pdAskClausesSay(c) : '';
+  const sub = w && w.sub ? w.sub + (cl ? ' · ' + _pdE(cl) : '') : (cl ? _pdE(cl) : '');
+  const plain = [(w && w.plain) || '', cl].filter(Boolean).join(' · ');
   /* insNeedWords' line is HTML already (its late days marked); its words plain on the hover */
-  return `<div class="pd-gl-row pd-nd-row${r.it.urgent ? ' is-hot' : ''}" data-pd-nd-kind="${_pdE(r.it.kind)}"><span><b>${_pdE((w && w.title) || '')}</b>${w && w.sub ? `<small title="${_pdE(w.plain || '')}">${w.sub}</small>` : ''}</span><button type="button" class="ui-btn ui-btn-sm" data-pd-nd="${_pdE(r.it.kind)}" data-pd-nd-id="${_pdE(c.id)}">${_pdE(verb)}</button></div>`;
+  return `<div class="pd-gl-row pd-nd-row${r.it.urgent ? ' is-hot' : ''}" data-pd-nd-kind="${_pdE(r.it.kind)}"><span><b>${_pdE((w && w.title) || '')}</b>${sub ? `<small title="${_pdE(plain)}">${sub}</small>` : ''}</span><button type="button" class="ui-btn ui-btn-sm" data-pd-nd="${_pdE(r.it.kind)}" data-pd-nd-id="${_pdE(c.id)}">${_pdE(verb)}</button></div>`;
 }
 function pdNeedsHtml(c){
-  const rows = pdNeedsRows(c); if (!rows.length) return '';
+  const rows = pdNeedsRows(c).concat(pdNoteRows(c)); if (!rows.length) return '';
   let all = 0; try { all = (typeof counterNeedsCount === 'function') ? counterNeedsCount() : 0; } catch (_){ all = 0; }
   const more = (all && typeof deskGoCounter === 'function')
     ? `<button type="button" class="pd-go pd-nd-all" data-pd-nd-all title="${_pdE(_pdT('pd_nd_all_tip'))}">${_pdE(_pdT('pd_nd_all', { n: all }))}${PD_GO_ARROW}</button>` : '';
@@ -2042,13 +2267,10 @@ function pdNeedsHtml(c){
 }
 /* in place, with the glance, as a face or a save changes what is owed */
 function pdNeedsRepaint(){
-  const glance = (typeof document !== 'undefined') ? document.getElementById('pd-glance') : null; if (!glance) return;
-  const c = pdContract(); if (!c || String(c.id) !== glance.getAttribute('data-pd-glance-for')) return;
-  const el = document.getElementById('pd-needs'), html = pdNeedsHtml(c);
-  if (!html){ if (el){ el.remove(); if (typeof window !== 'undefined' && typeof window.igHintPaint === 'function') try { igHintPaint(); } catch (_){} } return; }
-  const t = document.createElement('div'); t.innerHTML = html;
-  const nu = t.firstElementChild; if (!nu) return;
-  if (!el) glance.before(nu); else if (nu.outerHTML !== el.outerHTML) el.replaceWith(nu);
+  const pin = (typeof document !== 'undefined') ? document.getElementById('pd-pin') : null; if (!pin) return;
+  const c = pdContract(); if (!c || String(c.id) !== pin.getAttribute('data-pd-pin-for')) return;
+  const html = pdNeedsHtml(c);
+  if (pin.innerHTML !== html) pin.innerHTML = html;
   /* the hint line's keys follow Needs you here (round 3: "/ lists the places.") */
   if (typeof window !== 'undefined' && typeof window.igHintPaint === 'function') try { igHintPaint(); } catch (_){}
 }
@@ -2093,11 +2315,21 @@ function pdJamboTopHtml(){
      paper chosen on the wall (round 13), a contract brought up as a page
      (round 7) or its History (round 12) — Jambo says that contract */
   const held = pdHeldTopHtml(); if (held != null) return held;
-  /* ON THE BOARD: his greeting names what needs you (hbNeedsHelloHtml, the
-     "Needs you" card's own reading; owner picked Jambo's note, 15 Oct 2026) */
-  if (typeof igHomePaperFace !== 'function' || igHomePaperFace() !== true) return (typeof hbNeedsHelloHtml === 'function') ? hbNeedsHelloHtml() : '';
+  /* ON THE BOARD: his greeting says the book and where the owed work went
+     (hbBoardHelloHtml, round 17 as drawn: Needs you is Home's now) */
+  if (typeof igHomePaperFace !== 'function' || igHomePaperFace() !== true) return (typeof hbBoardHelloHtml === 'function') ? hbBoardHelloHtml() : '';
   const c = pdContract();
-  return c ? pdNeedsHtml(c) + pdGlanceHtml(c) : pdWallHtml();
+  return c ? pdGlanceHtml(c) : pdWallHtml();
+}
+/* NEEDS YOU HERE STAYS AT THE TOP OF THE TAB (round 3, "Tabs and faces" — the
+   Compare's reason it won over Conversation: "the checklist would scroll
+   away"): drawn above the conversation, outside its scroller, so a question
+   asked and answered never pushes it out of view. The glance and the talk
+   scroll under it. Its host is drawn even empty, so a repaint has a home. */
+function pdJamboPinHtml(){
+  if (typeof igHomePaperFace !== 'function' || igHomePaperFace() !== true) return '';
+  const c = pdContract(); if (!c) return '';
+  return `<div id="pd-pin" class="pd-pin" data-pd-pin-for="${_pdE(c.id)}">${pdNeedsHtml(c)}</div>`;
 }
 /* the presses, delegated once: the panel is redrawn under them */
 if (typeof document !== 'undefined' && !document._pdJamboTopWired){
@@ -2117,11 +2349,26 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
     if (t.closest('[data-pd-drop-import]')){ e.preventDefault(); if (typeof setView === 'function') setView('migration'); return; }
     const back = t.closest('[data-pd-back]');
     if (back){ e.preventDefault(); const go = PD_BACK_CLOSE[back.getAttribute('data-pd-back')]; if (go) go(); return; }
-    if (t.closest('[data-pd-nd-all]')){ e.preventDefault(); if (typeof deskGoCounter === 'function') deskGoCounter(); return; }
+    /* "all N": Home's Needs you, landed on (hbNeedsOpen → landOn) */
+    if (t.closest('[data-pd-nd-all]')){ e.preventDefault(); if (typeof hbNeedsOpen === 'function') hbNeedsOpen(); else if (typeof deskGoCounter === 'function') deskGoCounter(); return; }
     const jw = t.closest('[data-pd-nd-jw]');
     if (jw){ e.preventDefault(); if (typeof hbOpenAgent === 'function') hbOpenAgent(jw.getAttribute('data-pd-nd-jw'), jw.getAttribute('data-pd-nd-key') || null); return; }
     const nd = t.closest('[data-pd-nd]');
     if (nd){ e.preventDefault(); if (typeof needsYouGo === 'function') needsYouGo(nd.getAttribute('data-pd-nd'), nd.getAttribute('data-pd-nd-id')); return; }
+    const nn = t.closest('[data-pd-nd-note]');
+    /* Open note: My notes, on that note's row, lit (LAND ON IT) */
+    if (nn){ e.preventDefault(); const nid = nn.getAttribute('data-pd-nd-note');
+      if (typeof myNotesOpen === 'function') myNotesOpen(nid);
+      if (nid && typeof landOn === 'function') landOn(() => document.querySelector(`[data-mn-row="${CSS.escape(nid)}"]`), { block: 'nearest', focus: false });
+      return; }
+    const gg = t.closest('[data-pd-gl-go]');
+    if (gg){ e.preventDefault(); pdGlGoTo(gg.getAttribute('data-pd-gl-go')); return; }
+    /* Read it: the press that spends — the Clauses tab's own deep read
+       (stkRun, the read its head runs), and the tab opened where the reading
+       is drawn as it comes */
+    if (t.closest('[data-pd-gl-scan]')){ e.preventDefault(); const cc = pdContract();
+      if (cc && typeof runScanFor === 'function') Promise.resolve(runScanFor(getContract(cc.id) || cc)).then(() => { try { pdGlanceRepaint(); pdNeedsRepaint(); } catch (_){} }, () => {});
+      return; }
     const gt = t.closest('[data-pd-glance-tab]');
     if (gt){ e.preventDefault(); pdSetTab(gt.getAttribute('data-pd-glance-tab')); if (typeof renderIntelDock === 'function') renderIntelDock(); return; }
     if (t.closest('[data-pd-gl-brief]')){ e.preventDefault(); const cc = pdContract();
@@ -2820,7 +3067,7 @@ Object.assign(window, { pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAme
   PD_FILL_TRIES, PD_FILL_BEAT_MS, pdFillFor, pdFillShows, pdFillOpen, pdFillSeen, pdFillAway, pdFillClose, pdFillHeadHtml, pdFillDoneHtml, pdFillFaceHtml, pdFillMark, pdFillGroupsPaint, pdFillRows, pdFillRowKey, pdFillFacePaint, pdFillCounts, pdFillKeyOf, pdFillEcho, pdFillWire, pdFillLand, pdFillRefresh,
   pdFillStreamMay, pdFillStreamHtml, pdFillStreamRepaint, pdFillStreamPick,
   PD_DROP_ACCEPT, pdDropMay, pdWallHelloHtml, pdDropInner, pdDropStreams, pdDropStreamNow, pdDropStreamHtml, pdDropHtml, pdDropPaint, pdWallHtml, pdDropInput, pdDropBusyNow, pdDropPick, PD_DROP_TOAST_MS, pdDropToastOff, pdDropTake,
-  PD_GLANCE, PD_GL_SUB_MAX, pdGlanceSub, pdGlanceBriefHtml, pdGlanceFootHtml, pdDropImportHtml, pdDropDoor, pdGlanceRows, pdSignAhead, pdGlanceHtml, pdGlanceRepaint, pdJamboTopHtml, pdNeedsRows, pdNeedRowHtml, pdNeedsHtml, pdNeedsRepaint, pdBackHtml, PD_BACK_CLOSE, PD_GL_DONE_MS, pdGlanceDone,
+  PD_GLANCE, PD_GL_SUB_MAX, pdGlanceSub, pdGlanceBriefHtml, pdGlanceFootHtml, pdDropImportHtml, pdDropDoor, pdGlanceRows, pdSignAhead, PD_GL_ASKS_MAX, pdTheirAsks, pdAskHeading, pdAskClause, PD_GL_CONTEXT, PD_GL_DAYS_FOR, pdAskParts, pdAskSay, pdGlAgo, pdGlMoveSay, pdGlGoTo, pdNoteRows, pdPartyShort, pdPreparedWhen, pdJwSay, pdAskClausesSay, pdGlanceHtml, pdGlanceRepaint, pdJamboTopHtml, pdJamboPinHtml, pdNeedsRows, pdNeedRowHtml, pdNeedsHtml, pdNeedsRepaint, pdBackHtml, PD_BACK_CLOSE, PD_GL_DONE_MS, pdGlanceDone,
   JB_BEAT_MS, JB_HOP_MS, jamboPerchMount, jamboRest, jamboWorkWords, jamboBeat, jamboHop, jamboLookPaint,
   PD_HELD_CHIPS, pdCardNow, pdCardPage, pdHolds, pdHeldContract, pdHeadWord, pdAskPlaceholder, pdAskContractId, pdDaysSince, pdAgoWords, pdShortDay, pdStageWords, pdLastMove,
   pdClauseSaid, PD_CH_CLAUSES_MAX, pdTheirAsksRow, pdTheirAsksRowHtml, pdChosenFacts, pdChosenHtml, pdCardGlanceRows, pdCardGlanceRowHtml, pdCardGlanceHtml, pdHistGlanceHtml, pdHistChanges, pdHistQuestions, pdNeverShared, pdHistAlso, pdListSay, PD_CG_NAMES_MAX, PD_CG_DET_WORD, pdDetWord, PD_HELD_CHIPS_MAX, PD_HELD_CHIP_WORD, pdHeldOwes, PD_CHIP_CLS, pdHeldChips, pdPanelChipsHtml, pdHeldChipsHtml, pdHeldGo, pdHeldOpen, PD_HELD_LAND, PD_HELD_LAND_TRIES, PD_HELD_LAND_STILL, pdHeldLand, pdHeldSig, pdHeldFollow, pdHeldTopHtml });

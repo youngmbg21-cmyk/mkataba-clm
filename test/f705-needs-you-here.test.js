@@ -91,7 +91,8 @@ describe('f705 (1) needs you here, on Jambo\'s tab beside a paper', () => {
     assert.match(html, /pd_nd_title[\s\S]*class="pd-pill is-quiet"><i><\/i>2</, 'two rows, said once in the head');
     assert.match(html, /data-pd-nd-all[^>]*>pd_nd_all\[7\]/, 'All 7 — the Counter\'s own number');
     assert.match(html, /is-jw[\s\S]*cn_jw · ag_round[\s\S]*data-pd-nd-jw="round" data-pd-nd-key="round:MK-1">pd_nd_see</);
-    assert.match(html, /is-hot" data-pd-nd-kind="quiet"[\s\S]*title:quiet[\s\S]*<span class="late">sub:quiet<\/span>[\s\S]*data-pd-nd="quiet" data-pd-nd-id="MK-1">home_verb_answer</);
+    /* round 3 as drawn (18 Oct 2026): their waiting redlines open with "Open redlines" */
+    assert.match(html, /is-hot" data-pd-nd-kind="quiet"[\s\S]*title:quiet[\s\S]*<span class="late">sub:quiet<\/span>[\s\S]*data-pd-nd="quiet" data-pd-nd-id="MK-1">pd_nd_open_red</);
     assert.ok(html.indexOf('data-pd-nd-jw') < html.indexOf('data-pd-nd="quiet"'), 'Jambo\'s work leads');
   });
   test('1c nothing owed here: no card at all', () => {
@@ -103,12 +104,19 @@ describe('f705 (1) needs you here, on Jambo\'s tab beside a paper', () => {
     const html = ctx.pdNeedsHtml(c);
     assert.match(html, /data-pd-nd="note"/); assert.ok(!/data-pd-nd-all/.test(html));
   });
-  test('1e on the paper, the tab opens on Needs you here, then the glance', () => {
+  /* RE-POINTED 18 Oct 2026 (round 3's Compare: "what needs you comes first
+     and stays at the top of the Jambo tab"): Needs you here is PINNED above
+     the conversation (pdJamboPinHtml), so it never scrolls away; the glance
+     opens the conversation under it */
+  test('1e on the paper, the tab opens on Needs you here, pinned above the glance', () => {
     const { ctx } = pdStage({ needs: [{ kind: 'note', n: 1 }] });
-    const top = ctx.pdJamboTopHtml();
-    assert.ok(top.indexOf('id="pd-needs"') >= 0 && top.indexOf('id="pd-needs"') < top.indexOf('id="pd-glance"'));
+    assert.match(ctx.pdJamboPinHtml(), /^<div id="pd-pin"[^>]*><div id="pd-needs"/);
+    assert.match(ctx.pdJamboTopHtml(), /id="pd-glance"/);
+    assert.ok(!/id="pd-needs"/.test(ctx.pdJamboTopHtml()), 'not inside the conversation, where it would scroll away');
+    const feed = R('js/views/intelligence.js');
+    assert.ok(feed.indexOf('pdJamboPinHtml()') > 0 && feed.indexOf('pdJamboPinHtml()') < feed.indexOf('<div id="igd-feed" class="flex-1'), 'drawn before the scroller');
     const wall = pdStage({ paper: null, needs: [{ kind: 'note', n: 1 }] });
-    assert.ok(!/id="pd-needs"/.test(wall.ctx.pdJamboTopHtml()), 'the wall draws no contract\'s card');
+    assert.equal(wall.ctx.pdJamboPinHtml(), '', 'the wall draws no contract\'s card');
   });
   test('1f the presses: a piece opens on Jambo\'s work, an item through needsYouGo, All on the Counter', () => {
     const w = fnBody(PD, 'pdNeedRowHtml');

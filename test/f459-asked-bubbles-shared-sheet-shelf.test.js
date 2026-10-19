@@ -204,12 +204,18 @@ describe('F459 (D) — today\'s insights', () => {
   /* How a finding is chosen moved to f460 (Young picked "Yours, measured",
      4 Oct 2026): against the book's own normal, yours first. What stays here
      is the shelf's furniture. */
+  /* RE-POINTED 18 Oct 2026 (round 17 as drawn, "Then and now"): a usual
+     picture's title is a HEADLINE read off its own columns ("Signing got
+     faster"), and its sentence compares the month it lights with the first
+     month shown — the chart's own numbers, never a claim of its own */
   test('a usual picture is named by what it shows, with the chart\'s own numbers', () => {
     const w = world();
     const c = w.hbInsCandidate('sign');
     assert.ok(c && c.plain);
-    assert.equal(c.title, 'Days to sign by month signed');
-    assert.match(c.say, /^\d+ days → \d+ days over \d+ months$/);
+    assert.match(c.title, /^Signing (got faster|got slower|takes as long as before)$/);
+    assert.match(c.say, /^A contract now takes \d+ days? to sign on average, (against \d+ in|as it did in) \S+\.$/);
+    const S = w.hbInsPicCols(c.C.R, c.lit);
+    assert.equal(S.shown[S.lit].b, c.lit, 'the sentence is about the column the picture lights');
   });
   test('three at most a day, and a shape let go rests for 30 days', () => {
     const w = world();

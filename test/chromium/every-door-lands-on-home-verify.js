@@ -152,6 +152,8 @@ const LAND = () => {
     only: (window.state && state.reg && state.reg.only) ? state.reg.only.ids.length : 0,
     rlList: state.view === 'redline' && !document.getElementById('rl-doc'),
     dialog: !!document.querySelector('.modal-overlay:not(.hidden), #confirm-overlay:not(.hidden), #cmd-palette'),
+    /* the signing route's own editor (round 3's "name a signer" chip opens it, 18 Oct 2026) */
+    route: !!document.getElementById('sr-say'),
     /* the obligation the Board's view has chosen, and the wall's count line */
     obCid: (() => { const h = document.querySelector('#obw-one-host'); return h ? h.getAttribute('data-ins-cid') : null; })(),
     obSel: (() => { const r = document.querySelector('#obw-one-host .is-sel[data-ob-key]'); return r ? r.getAttribute('data-ob-key') : null; })(),
@@ -630,13 +632,16 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
       fill: R1owed ? E.fill('MK-R1') : E.paper('MK-R1'), oblig: E.obTab('MK-R1'),
       /* RE-POINTED 15 Oct 2026: the chips are the next steps now, so "share" is
          drawn; it answers with Jambo's share card and stays on the paper */
-      share: E.paper('MK-R1') };
+      share: E.paper('MK-R1'),
+      /* ROUND 3 AS DRAWN (18 Oct 2026): the owed chips — "answer the redlines"
+         opens the Redlines face, "name a signer" the signing route's editor */
+      answer: E.red('MK-R1'), signer: L => !!L.route };
     /* each chip from the paper with no face open (15 Oct 2026): the chips are
        the next steps now, and an open face (Redlines after the "redline"
        chip) rightly moves them on */
     const onBarePaper = id => async () => { await page.evaluate(() => ['pdFillClose', 'pdRedClose', 'pdSignClose', 'pdAmendClose'].forEach(f => { try { if (typeof window[f] === 'function') window[f](); } catch (_){} })); await onPaper(id)(); };
     for (const k of [...new Set(chips)])
-      await door(D, `the chip "${k}" (on MK-R1)`, { start: onBarePaper('MK-R1'), same: k === 'share', press: () => domClick(`[data-ca-chip="${k}"]`), expect: CHIP[k] || (L => !L.room && !L.negPage), says: CHIP[k] ? 'its place on Home' : 'anywhere but the room' });
+      await door(D, `the chip "${k}" (on MK-R1)`, { start: onBarePaper('MK-R1'), same: k === 'share' || k === 'signer', press: () => domClick(`[data-ca-chip="${k}"]`), expect: CHIP[k] || (L => !L.room && !L.negPage), says: CHIP[k] ? 'its place on Home' : 'anywhere but the room' });
     if (!chips.length) record(D, 'the chips are drawn', false, 'no chip above the box', 'missing');
     /* THE WALL'S TWO WAYS IN (the overnight work order, steps 3 and 4): each
        makes a contract, and lands on ITS paper — Fill in beside it while

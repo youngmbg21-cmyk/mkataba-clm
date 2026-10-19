@@ -47,8 +47,11 @@ const SPILLS = sel => { const out = [];
     await page.evaluate(() => setView('dashboard'));
 
     /* 1. the side list */
-    const fig = await until(page, () => !!document.querySelector('.hb-fig-main[data-hb-dig="f:live"]'), null, 10000);
-    if (fig) await page.click('.hb-fig-main[data-hb-dig="f:live"]');
+    /* RE-POINTED 18 Oct 2026 (round 17 as drawn): Your book's figures open
+       the list behind them on its own page; the side list is opened from the
+       stage bar, whose press it still answers */
+    const fig = await until(page, () => !!document.querySelector('#hb-book .hb-stagebar [data-hb-dig^="st:"]'), null, 10000);
+    if (fig) await page.click('#hb-book .hb-stagebar [data-hb-dig^="st:"]');
     const open = fig && await until(page, () => document.querySelectorAll('.hb-sheet-t tbody tr').length > 0);
     ok('1a a figure opens the side list with its rows', open);
     if (open) {

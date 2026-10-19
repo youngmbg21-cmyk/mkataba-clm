@@ -107,8 +107,10 @@ const DEAL = {
     });
     ok('1a the follower sees the leader\'s face on the negotiate page\'s own head',
       saw && row.btn && row.mono === 'AO', JSON.stringify(row.mono));
+    /* RE-POINTED 18 Oct 2026 (round 6 as drawn, "One line"): the hover names
+       the clause the colleague is on and what a press does */
     ok('1b and it is a real button that says what a press does',
-      row.tag === 'BUTTON' && row.pressed === 'false' && /Walk through it with Amina/.test(row.title),
+      row.tag === 'BUTTON' && row.pressed === 'false' && /^Amina Otieno (is reading (clause \S+|“[^”]+”) now|has this contract open now)\. Press to follow: the paper goes where Amina reads\.$/.test(row.title),
       JSON.stringify(row.title.slice(0, 60)));
     await b.p.screenshot({ path: path.join(OUT, '1-the-face.png') });
 
@@ -127,7 +129,7 @@ const DEAL = {
         bands: document.querySelectorAll('.pz-strip, .pz-band, .pz-notice').length };
     });
     ok('2a the face lights, and says it is following', lit.on && lit.pressed === 'true'
-      && /Following Amina/.test(lit.title) && !!lit.following, JSON.stringify(lit.title));
+      && /^Amina Otieno .* now\. Press to stop following\.$/.test(lit.title) && !!lit.following, JSON.stringify(lit.title));
     ok('2b and NO band, strip or notice appeared for the state',
       lit.bands === 0 && lit.w > 10 && lit.w < 26, JSON.stringify([lit.bands, lit.w]));
 
@@ -183,7 +185,7 @@ const DEAL = {
         title: f ? (f.getAttribute('title') || '') : '' };
     });
     ok('5a the same press stops it', off.on === false && off.following === null
-      && /Walk through it with/.test(off.title), JSON.stringify(off.following));
+      && /Press to follow: the paper goes where Amina reads\.$/.test(off.title), JSON.stringify(off.following));
     /* ---- AND THE PAGE STOPS MOVING, DRIVEN RATHER THAN WAITED OUT ----
        Sitting out two beats would add a minute to this stage for one claim,
        and a test whose answer depends on a sleep is one nobody runs. So the

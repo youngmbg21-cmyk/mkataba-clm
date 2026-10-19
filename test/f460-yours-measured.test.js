@@ -86,13 +86,20 @@ describe('F460 — a finding is a number outside its own normal', () => {
     assert.match(text(w.hbInsRowHtml(I)), /not enough history yet to tell what is normal/);
     assert.match(w.hbShelfHtml(I), /hb-ins is-plain/);
   });
-  test('the picture carries the range and lights the month it is about; its doors are taken off', () => {
+  /* RE-POINTED 18 Oct 2026 (round 17 as drawn): the card draws its own
+     picture (hbInsPicHtml) — the month it is about lit, its value printed
+     over it, the months named under the axis; the normal range is said in
+     the sentence, not drawn as a band */
+  test('the picture lights the month it is about and prints its value; no band; its doors are taken off', () => {
     const w = world({ days: lateAll, mine: 0 });
     const f = w.hbInsFinding('sign', false);
-    const t = w.hbInsThumb(f.C.R);
-    assert.match(t, /class="hb-sv-band"/);
-    assert.match(t, /class="hb-sv-collit"/);
+    const t = w.hbInsPicHtml(f);
+    assert.ok(!/hb-sv-band|hb-ip-band/.test(t), 'no normal band on the card');
+    assert.match(t, /class="hb-ip-(bar is-lit|dot)"/);
+    assert.match(t, /class="hb-ip-val">75 days</, 'the lit month\'s value printed on it');
+    assert.equal((t.match(/class="hb-ip-x"/g) || []).length, w.HB_INS_PIC_M, 'six months named under the axis');
     assert.ok(!/data-hb-dig|tabindex|role="button"/.test(t));
+    assert.match(w.hbInsThumb(f.C.R), /class="hb-sv-collit"/, 'the open chart\'s own drawing still lights it');
     assert.ok(!/hb-sv-band|hb-sv-collit/.test(w.hbInsChart(w.hbInsKey('sign')).R.body), 'the open chart is the board\'s own, untouched');
   });
 });

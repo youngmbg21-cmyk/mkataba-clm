@@ -91,7 +91,8 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     check('1a Needs you here is drawn above the contract at a glance', !!nd && nd.before && nd.title === 'Needs you here', JSON.stringify(nd));
     check('1b Jambo\'s prepared work on this contract leads, with his face', !!nd && nd.firstJw && nd.jwFace, nd && nd.kinds.join(','));
     check('1d its number is its rows', !!nd && Number(nd.n) === nd.rows, nd && (nd.n + ' / ' + nd.rows));
-    check('1e "All N" is the Counter\'s own number', !!nd && nd.all.trim() === 'All ' + nd.counter, nd && nd.all);
+    /* the drawn lower case, "all 7 ›" (round 3 as drawn, 18 Oct 2026) */
+    check('1e "all N" is the Counter\'s own number', !!nd && nd.all.trim() === 'all ' + nd.counter, nd && nd.all);
     check('1f his tab carries the same number', !!nd && Number(nd.badge) === nd.counter, nd && nd.badge);
     await shot(page, 'jambos-panel-1440x780');
 
@@ -101,8 +102,8 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
 
     console.log('\n3 · a row\'s door, and the way back to Jambo');
     if (await press('#pd-needs [data-pd-nd-jw]', '3a Jambo\'s work row')) {
-      const board = await until(() => state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'board' && !!document.querySelector('.hb-ag-works, #hm-agents'), null, 8000);
-      check('3a a prepared piece\'s See it opens on Jambo\'s work, on the Board', !!board);
+      const board = await until(() => state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'board' && !!document.querySelector('.is-landed[data-hb-ag-item], .hb-ag-works.is-landed, #hm-agents.is-landed'), null, 8000);
+      check('3a a prepared piece\'s See it lands on Jambo\'s work, on the Board, lit (hbOpenAgent → landOn)', !!board);
     }
     await page.evaluate(() => pdOpenOnHome('MK-0382', 'fill'));
     {
@@ -130,10 +131,10 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
       check('3e "‹ Jambo" closes Redlines and brings his tab back', !!back);
     }
 
-    console.log('\n4 · "All N" opens the Counter');
-    if (await press('#pd-needs [data-pd-nd-all]', '4a All N')) {
-      const cn = await until(() => state.view === 'counter' && !!document.getElementById('cn-needs'), null, 8000);
-      check('4a "All N" opens the Counter, where the same number stands', !!cn);
+    console.log('\n4 · "all N" lands on Home\'s Needs you');
+    if (await press('#pd-needs [data-pd-nd-all]', '4a all N')) {
+      const cn = await until(() => state.view === 'counter' && !!document.querySelector('#cn-needs.is-landed'), null, 8000);
+      check('4a "all N" opens Home and lands on Needs you, where the same number stands (landOn)', !!cn);
     }
 
     console.log('\n5 · the folded strip');
@@ -158,10 +159,17 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
       const fit = await until(() => { const dock = document.getElementById('ig-dock'), feed = document.getElementById('igd-feed'),
         nd = document.getElementById('pd-needs'), gl = document.getElementById('pd-glance'), box = document.getElementById('igd-input');
         if (!dock || !feed || !nd || !gl || !box) return null;
-        const f = feed.getBoundingClientRect(), g = gl.getBoundingClientRect(), b = box.getBoundingClientRect(), d = dock.getBoundingClientRect();
+        const f = feed.getBoundingClientRect(), g = gl.getBoundingClientRect(), b = box.getBoundingClientRect(), d = dock.getBoundingClientRect(), n = nd.getBoundingClientRect();
         const wide = [...dock.querySelectorAll('#pd-needs *, #pd-glance *')].filter(e => e.getBoundingClientRect().right > d.right + 1).length;
-        return { cards: g.bottom <= f.bottom + 1, box: b.bottom <= innerHeight + 1 && b.top >= 0, wide, scroll: feed.scrollHeight - feed.clientHeight }; }, null, 8000);
-      check(`6 ${w}×${ht}: both cards and the ask box in view, nothing past the panel's edge`, !!fit && fit.cards && fit.box && fit.wide === 0, JSON.stringify(fit));
+        return { top: n.bottom <= f.top + 1 && n.top >= d.top && !feed.contains(nd) && feed.scrollTop === 0, glance: g.top < f.bottom, box: b.bottom <= innerHeight + 1 && b.top >= 0, wide, scroll: feed.scrollHeight - feed.clientHeight }; }, null, 8000);
+      /* RE-POINTED 18 Oct 2026 (rounds 3 and 6 as drawn): the glance now says
+         their round and EACH of their asks, so on a short screen it can be
+         longer than the panel — which then opens at its TOP (Needs you here
+         first, never scrolled past), the glance begins in view, the box
+         stands, and the rest is a scroll away. PASS 3 (round 3's Compare,
+         "it stays at the top"): Needs you here is PINNED above the
+         conversation's scroller (#pd-pin), not inside it */
+      check(`6 ${w}×${ht}: Needs you here at the top, the glance begun, the ask box in view, nothing past the panel's edge`, !!fit && fit.top && fit.glance && fit.box && fit.wide === 0, JSON.stringify(fit));
       await shot(page, `jambos-panel-${w}x${ht}`);
     }
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));

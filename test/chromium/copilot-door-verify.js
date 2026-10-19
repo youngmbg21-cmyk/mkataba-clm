@@ -68,7 +68,9 @@ const check = (name, ok, detail) => {
     await page.evaluate(() => { intel.dockOpen = true; renderIntelDock(); igSyncDockWidth(); });
     /* RE-POINTED 11 Oct 2026 (the Board as drawn): a list figure opens the side
        list; Value under contract still opens its card on the board */
-    await page.click('#hb-board [data-hb-dig="f:value"]');
+    /* RE-POINTED 18 Oct 2026 (round 17 as drawn): the figure opens the
+       Contracts place; the value's card is opened through its own dig */
+    await page.evaluate(() => hbDig('f:value'));
     await until(() => !!document.querySelector('#hb-focus .hb-bigbtn'));
     await page.click('#hb-focus .hb-bigbtn');
     await until(() => !!document.querySelector('.hb-dig-big') && Math.round(document.getElementById('ig-dock').getBoundingClientRect().width) === 46, null, 4000);

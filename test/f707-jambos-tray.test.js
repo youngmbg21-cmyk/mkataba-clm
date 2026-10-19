@@ -102,7 +102,8 @@ describe('f707 (2) what Jambo found, at a glance', () => {
     assert.equal(ctx.pdGlanceSub(c, { k: 'std' }), 'Liability cap, Governing law');
     assert.equal(ctx.pdGlanceSub(c, { k: 'oblig' }), 'pd_gl_obls_split[2,1]', 'theirs and ours, done ones not counted');
     assert.equal(ctx.pdGlanceSub(c, { k: 'fill' }), 'Other party, Value', 'only the boxes still empty');
-    assert.equal(ctx.pdGlanceSub(c, { k: 'sign' }), '');
+    /* round 3 as drawn (18 Oct 2026): "Nobody named to sign for us · Needed before signing" */
+    assert.equal(ctx.pdGlanceSub(c, { k: 'sign' }), 'pd_gl_signers_sub');
     const many = pdStage({ items: ['a', 'b', 'c', 'd', 'e'].map(l => ({ label: l, open: true })) });
     assert.equal(many.ctx.pdGlanceSub(many.c, { k: 'fill' }), 'a, b, c …', 'a cap is said, never a silent trim');
   });

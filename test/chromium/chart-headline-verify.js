@@ -129,8 +129,11 @@ const check = (name, pass, detail) => {
 
     /* 5 — Value under contract */
     await page.evaluate(() => { const s = hbS(); s.path = []; s.digBig = false; hbSave(); hbPaintBoard(); });
+    /* RE-POINTED 18 Oct 2026 (round 17 as drawn): Your book's figure opens
+       the Contracts place now, so the value's own card is opened through its
+       own dig — the card this check is about is unchanged */
     const fv = await until(() => document.querySelector('#hb-board [data-hb-dig="f:value"]') ? true : null);
-    if (fv) await page.click('#hb-board [data-hb-dig="f:value"]');
+    if (fv) await page.evaluate(() => hbDig('f:value'));
     const v5 = fv && await until(() => { const d = document.querySelector('#hb-focus .hb-dig'); const l = d && d.querySelector('.hb-head-line p'); return l ? l.textContent.replace(/\s+/g, ' ').trim() : null; });
     check('5 Value under contract says its point in one line too', !!v5, v5);
 
