@@ -1182,6 +1182,7 @@ function migPaintHead(){
 
 /* ---- THE FIVE FIGURES, in the white band ---- */
 function migBandHtml(){
+  if (_migShow === 'decide') return migDecideBarHtml();
   const k = migKpis();
   const fig = (show, label, n, tone) => {
     const door = n > 0, on = door && show !== 'all' && _migShow === show;
@@ -1258,17 +1259,19 @@ function migWhatOf(r){
 }
 /* a cell that says a fact, or that Jambo was not sure of it (amber) */
 const migCellNotSure = () => `<span class="mig-ns">${esc(i18t('mig_not_sure'))}</span>`;
+/* the row's contract, or what a parked file WOULD be filed as (a reading) */
+const migRowC = r => r.c || (migParked(r) ? migPendingAsContract(r) : null);
 function migValueCell(r){
-  if (!r.c) return '—';
-  const c = r.c, need = r.st.k === 'check';
+  const c = migRowC(r); if (!c) return '—';
+  const need = r.st.k === 'check' && !!r.c;
   if (!isMonetary(c)) return '—';
   const f = migSideFacts(c).find(x => x.k === 'value');
   if (need && f && (f.missing || f.unsure)) return migCellNotSure();
   return Number(c.value) > 0 ? esc(migAmountWithPeriod(c)) : '—';
 }
 function migEndsCell(r){
-  if (!r.c) return '—';
-  const c = r.c, m = c.metadata || {}, need = r.st.k === 'check';
+  const c = migRowC(r); if (!c) return '—';
+  const m = c.metadata || {}, need = r.st.k === 'check' && !!r.c;
   const nda = (typeof ndaClean === 'function') ? ndaClean(c.nda) : null;
   if (nda && nda.ends){
     let mon = nda.ends; try { mon = new Date(nda.ends + 'T00:00:00').toLocaleDateString((typeof langLocale === 'function') ? langLocale() : undefined, { month:'short', year:'numeric' }); } catch (_){}
@@ -1293,8 +1296,9 @@ function migPendingGates(r){
 /* THE SIX MARKS, every row (round 22 as drawn): the sixth — linked or
    standalone — is asked only of a file that reads like a change to another;
    on every other row it is met, said so on its hover */
+const migMarksOf = gates => gates.length === 5 ? gates.concat([{ k:'link', label:i18t('mig_mark_alone'), ok:true }]) : gates;
 function migDotsHtml(gates){
-  if (gates.length === 5) gates = gates.concat([{ k:'link', label:i18t('mig_mark_alone'), ok:true }]);
+  gates = migMarksOf(gates);
   return `<span class="mig-dots">${gates.map(g => `<span class="mig-dot${g.ok ? ' is-ok' : ''}" title="${esc(g.label)}${g.ok ? '' : ' — ' + esc(i18t('mig_side_mark_no'))}"></span>`).join('')}</span>`;
 }
 function migStateCell(r){
@@ -1311,6 +1315,7 @@ function migStateCell(r){
 const migStreamName = f => (FOLDERS[f] && FOLDERS[f].name) || (f ? streamLabel({ folder:f }) : '—');
 /* the stream a row is (or would be) filed under */
 function migStreamOf(r){
+  if (r.c && r.st.k === 'none') return '—';   /* nothing read: no stream was read either (the panel's box still files it) */
   if (r.c) return migStreamName(r.c.folder);
   const p = migParked(r) ? (migState().pending || {})[r.i] : null;
   return p ? migStreamName(migFolderFor(p.manifest, p.meta)) : '—';
@@ -1588,6 +1593,12 @@ function migFoundAt(text, k, c){
    22 as drawn: "SEK 480 K a year"), read off the words after it, never guessed */
 const MIG_PERIOD_RE = /^[^.\n]{0,12}?\b(?:a|per|each|every|i|per)\s+(year|annum|month|quarter|år|månad|kvartal)\b/i;
 const MIG_PERIOD_WORD = { year:'year', annum:'year', 'år':'year', month:'month', 'månad':'month', quarter:'quarter', kvartal:'quarter' };
+/* where the period's word ends, after the amount (the quote under the box) */
+function migPeriodEnd(text, at){
+  if (!at) return 0;
+  const m = MIG_PERIOD_RE.exec(String(text || '').slice(at.e, at.e + 40));
+  return m ? at.e + m[0].length : 0;
+}
 function migPeriodAt(text, at){
   if (!at) return '';
   const m = MIG_PERIOD_RE.exec(String(text || '').slice(at.e, at.e + 40));
@@ -1635,6 +1646,7 @@ function migFormOf(c){
     if (k === 'counterparty') r.val = c.counterparty || m.counterparty || '';
     if (k === 'effectiveDate'){ r.val = eff ? migDay(eff) : ''; r.iso = eff; }
     if (k === 'expiryDate'){ r.val = renews ? i18t('mig_renews') : (ends ? migDay(ends) : ''); r.iso = ends; r.renews = renews; if (renews){ r.need = false; } }
+    if (k === 'value' && at){ const pe = migPeriodEnd(text, at); if (pe) r.quote = migQuoteOf(text, { s:at.s, e:pe }); }
     if (k === 'value'){ r.ro = !money; r.num = Number(c.value) || 0;
       r.val = !money ? i18t('mig_side_no_money') : (r.num > 0 ? migAmountWithPeriod(c, text, at) : ''); }
     if (k === 'folder'){ r.val = c.folder || ''; r.ro = !(typeof mayReFile === 'function' && mayReFile()); r.need = !FOLDERS[c.folder]; }
@@ -1863,7 +1875,7 @@ function migSideRowHtml(r){
       ${''/* ONE VOCABULARY: a filed file says the same six facts the check said (Title · Party · Starts · Ends · Value · Stream), read only */}
       ${migFormHtml(c, { noUse:true })}
       <div class="mig-side-h">${migEsc(i18t('mig_side_marks'))}</div>
-      <ul class="mig-sms">${gates.map(mark).join('')}</ul>
+      <ul class="mig-sms">${migMarksOf(gates).map(mark).join('')}</ul>
       <div class="mig-cf-acts">${link && canEdit() ? `<button type="button" class="ui-btn ui-btn-primary" data-mig-side-link="${esc(c.id)}">${esc(i18t('mig_link_it'))}</button>` : ''}<button type="button" class="ui-btn" data-open="${esc(c.id)}">${esc(i18t('mig_open'))}</button></div>
     </div>`;
   }
@@ -1896,7 +1908,7 @@ function migUnsignedActsHtml(i){
   if (!canEdit()) return '';
   return `<button type="button" class="ui-btn ui-btn-primary" data-mig-unsigned="draft" data-i="${i}">${esc(i18t('mig_unsigned_draft'))}</button>
     <button type="button" class="ui-btn" data-mig-unsigned="signed" data-i="${i}">${esc(i18t('mig_unsigned_signed_b'))}</button>
-    <button type="button" class="ui-btn" data-mig-unsigned="skip" data-i="${i}">${esc(i18t('mig_skip'))}</button>`;
+    <button type="button" class="ui-btn" data-mig-unsigned="skip" data-i="${i}">${esc(i18t('mig_unsigned_leave'))}</button>`;
 }
 function migUnsignedHtml(r){
   const c = migPendingAsContract(r); if (!c) return '';
@@ -1931,7 +1943,7 @@ function migSidePaint(){
   const body = (typeof jlFrame === 'function') ? jlFrame(host, { jlPh:i18t('jl_ph_any') }) : host;
   const row = _migCheck ? migRowByKey(migCheckId()) : (_migPick ? migRowByKey(_migPick) : null);
   const holds = !!row;
-  if (typeof jlHeadPaint === 'function') jlHeadPaint(host, { jlWord:(_migCheck && row && row.c) ? (row.c.name || i18t('mig_side_word')) : i18t('mig_side_word'), jlHome:i18t('mig_side_word') }, holds);
+  if (typeof jlHeadPaint === 'function') jlHeadPaint(host, { jlWord:(_migCheck && row && row.c) ? (((row.c.metadata || {}).contractType) || row.c.name || i18t('mig_side_word')) : i18t('mig_side_word'), jlHome:i18t('mig_side_word') }, holds);
   if (_migCheck) body.innerHTML = migCheckSideHtml(row) + '<div id="jl-feed" class="jl-feed" aria-live="polite"></div>';
   else if (row) body.innerHTML = migSideRowHtml(row) + '<div id="jl-feed" class="jl-feed" aria-live="polite"></div>';
   else body.innerHTML = (typeof jlWordsHtml === 'function') ? jlWordsHtml({ jlSay:migSideSay, empty:i18t('mig_side_none') }) : '';
@@ -2065,8 +2077,9 @@ function migWhyHtml(c){
   const rows = migFormOf(c), by = Object.fromEntries(rows.map(r => [r.k, r]));
   const m = c.metadata || {}, mg = c.migration || {};
   const lines = [], offers = [];
-  /* a file parked because it looks unsigned: that is the question, said first */
-  if (c._parked) lines.push(esc(i18t('mig_cf_say_unsigned')));
+  /* a file parked because it looks unsigned: that is the only question until
+     it is answered (its boxes open once it is a draft or signed) */
+  if (c._parked) return { lines:[esc(i18t('mig_cf_say_unsigned')), esc(i18t('mig_unsigned_after'))], offers:[] };
   const e = by.expiryDate;
   if (e && e.need){
     const rs = migRenewAt(text);
@@ -2165,17 +2178,30 @@ function migCheckHtml(){
     </section>
   </div>`;
 }
-function migCheckBarHtml(){
-  const n = _migCheck.ids.length, i = _migCheck.i, k = migKpis();
-  /* option 1's tabs, as drawn: Check N (here) · Decide N · Filed N — the other
-     two are the list, narrowed to what they count (a zero is not a door) */
-  const tab = (key, word, cnt, on) => (on || cnt)
-    ? `<button type="button" class="mig-ck-tab${on ? ' is-on' : ''}" role="tab" aria-selected="${on ? 'true' : 'false'}"${on ? '' : ` data-mig-ck-tab="${key}"`}>${esc(word)} <span class="mig-ck-tn">${cnt}</span></button>`
+/* OPTION 1'S TABS, as drawn: Check N · Decide N · Filed N — one builder for
+   the walk's bar and the Decide list's: Check opens the walk, Decide and
+   Filed narrow the list to what they count (a zero is not a door) */
+function migTabsHtml(on, nCheck){
+  const k = migKpis();
+  const tab = (key, word, cnt) => (key === on || cnt)
+    ? `<button type="button" class="mig-ck-tab${key === on ? ' is-on' : ''}" role="tab" aria-selected="${key === on ? 'true' : 'false'}"${key === on ? '' : ` data-mig-ck-tab="${key}"`}>${esc(word)} <span class="mig-ck-tn">${cnt}</span></button>`
     : `<span class="mig-ck-tab is-zero" role="tab" aria-disabled="true">${esc(word)} <span class="mig-ck-tn">0</span></span>`;
+  return `<div class="mig-ck-tabs" role="tablist" aria-label="${esc(i18t('mig_ck_tabs'))}">${tab('check', i18t('mig_ck_tab_check'), nCheck != null ? nCheck : k.check)}${tab('decide', i18t('mig_ck_tab_decide'), k.decide)}${tab('filed', i18t('mig_ck_tab_filed'), k.filed)}</div>`;
+}
+/* the Decide list keeps the tab row as its frame, with the way back to all files */
+function migDecideBarHtml(){
+  return `<div class="mig-ck-bar">
+    <button type="button" class="mig-ck-back" data-mig-show="decide">‹ ${esc(i18t('mig_ck_back'))}</button>
+    ${migTabsHtml('decide')}
+    <span class="mig-sp"></span>
+  </div>`;
+}
+function migCheckBarHtml(){
+  const n = _migCheck.ids.length, i = _migCheck.i;
   return `<div class="mig-ck-bar">
     <button type="button" class="mig-ck-back" data-mig-ck-close>‹ ${esc(i18t('mig_ck_back'))}</button>
     <h2 class="sr-only">${esc(i18tn('mig_ck_title', n, { n }))}</h2>
-    <div class="mig-ck-tabs" role="tablist" aria-label="${esc(i18t('mig_ck_tabs'))}">${tab('check', i18t('mig_ck_tab_check'), n, true)}${tab('decide', i18t('mig_ck_tab_decide'), k.decide)}${tab('filed', i18t('mig_ck_tab_filed'), k.filed)}</div>
+    ${migTabsHtml('check', n)}
     <span class="mig-sp"></span>
     <span class="mig-ck-pos">${esc(i18t('mig_ck_pos', { i:i + 1, n }))}</span>
     <button type="button" class="ui-btn ui-btn-sm ui-btn-icon" data-mig-ck-go="-1" aria-label="${esc(i18t('mig_ck_prev'))}" title="${esc(i18t('mig_ck_prev'))}"${i ? '' : ' disabled'}>‹</button>
@@ -2253,6 +2279,12 @@ function migPlacePut(p){
 
 function renderMigration(){
   const M=migState();
+  /* THE ALLOWANCE IS SAID ON ARRIVAL, not only after a batch: read once per
+     sitting, then the cost line and Jambo's words are said again */
+  if(API_MODE()&&!M.aiAsked){ M.aiAsked=true;
+    migLoadAiState().then(()=>{ if(typeof document==='undefined'||!document.querySelector('.mig-page')) return;
+      const cost=document.getElementById('mig-cost'); if(cost) cost.textContent=migCostLine();
+      if(!_migPick&&!_migCheck) migSidePaint(); }).catch(()=>{}); }
   const keep=migFormKeep(document.getElementById('content'));
   /* the check view put back by a refresh: its file among the ones that wait */
   if(_migCheck&&_migCheck.want){ const want=_migCheck.want; if(!migRowByKey(want)) _migCheck=null;
@@ -2328,7 +2360,10 @@ function renderMigration(){
       .mig-td-s,.mig-td-e{font-size:var(--t-meta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       ${''/* the stream's whole name, as its box says it: it wraps rather than being cut */}
       .mig-table .mig-td-s{white-space:normal;line-height:1.35;overflow-wrap:break-word}
-      .mig-table .mig-td-v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      ${''/* nothing in a row is cut: the value with its period, the file's line and the state's reason wrap */}
+      .mig-table .mig-td-v{white-space:normal;line-height:1.35;overflow-wrap:break-word}
+      .mig-table .mig-fr,.mig-table .mig-st-why{white-space:normal;overflow-wrap:break-word}
+      .mig-table .mig-td-v{text-align:right;font-variant-numeric:tabular-nums;overflow:hidden}
       .mig-ns{color:var(--st-amber-fg)}
       .mig-dots{display:inline-flex;gap:4px;align-items:center}
       .mig-dot{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--color-neutral-400);background:var(--color-surface)}
@@ -2512,7 +2547,10 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     if ((el = t.closest('[data-mig-ck-close]'))){ migCheckClose(); return; }
     if ((el = t.closest('[data-mig-ck-go]'))){ migCheckGo(Number(el.getAttribute('data-mig-ck-go'))); return; }
     if ((el = t.closest('[data-mig-ck-to]'))){ migCheckTo(el.getAttribute('data-mig-ck-to')); return; }
-    if ((el = t.closest('[data-mig-ck-tab]'))){ _migCheck = null; _migPick = null; migShowSet(el.getAttribute('data-mig-ck-tab')); migLandFirst(); return; }
+    if ((el = t.closest('[data-mig-ck-tab]'))){
+      const tk = el.getAttribute('data-mig-ck-tab');
+      if (tk === 'check'){ _migShow = 'all'; migCheckOpen(); return; }
+      _migCheck = null; _migPick = null; _migShow = 'all'; migShowSet(tk); migLandFirst(); return; }
     /* A FILE THAT LOOKS UNSIGNED: the person's call — a draft, signed, or left out */
     if ((el = t.closest('[data-mig-unsigned]'))){
       const i = Number(el.getAttribute('data-i')), act = el.getAttribute('data-mig-unsigned'), key = 'q:' + i;
@@ -2606,7 +2644,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   });
 }
 
-Object.assign(window,{migLooksUnsigned,migSignedAt,migIsoIn,migSignedLineHtml,migPartyGuess,migAmountGuess,migNoticeDays,migNoticeWords,migNoticeDay,migPeriodAt,migAmountWithPeriod,migPendingAsContract,migUnsignedHtml,migStreamName,migParked,MIG_DECIDE,
+Object.assign(window,{migMarksOf,migPeriodEnd,migRowC,migTabsHtml,migLooksUnsigned,migSignedAt,migIsoIn,migSignedLineHtml,migPartyGuess,migAmountGuess,migNoticeDays,migNoticeWords,migNoticeDay,migPeriodAt,migAmountWithPeriod,migPendingAsContract,migUnsignedHtml,migStreamName,migParked,MIG_DECIDE,
   migPickSet,migSideHtml:migSideRowHtml,migSideRowHtml,migSideFacts,migSidePaint,migSideSay,migShowPass,migShowSet,MIG_SHOWS,MIG_ROWS_SHOWN,migShown,migRows,migRowByKey,migStateOf,migQueueState,migCheckWhy,migDupeWhy,migKpis,migHeadFacts,migPaintHead,migBandHtml,migCostLine,migCallsOf,migAllowanceWords,migDropCardHtml,migListHtml,migFolderFor,
   migFormOf,migFormHtml,migFormRead,migFormWaits,migWaitWords,migFileIt,migDateRead,migFind,migDateAt,migAmountAt,migRenewAt,migClauseAt,migFoundAt,migFormMarks,
   migCheckOpen,migCheckClose,migCheckGo,migCheckTo,migCheckRekey,migCheckIds,migCheckId,migCheckNext,migCheckHtml,migDocHtml,migWhyHtml,migSheetMenu,migFilesFromDrop,migDropTake,migPlace,migPlacePut,

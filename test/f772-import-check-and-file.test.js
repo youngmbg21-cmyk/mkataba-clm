@@ -93,7 +93,7 @@ function stage(o){
   vm.runInContext(take(['migValidDate', 'migParseDate', 'VALUE_MULT', 'migParseValue', 'migLinkPending', 'migRefOf', 'MIG_K', 'MIG_FACT_WORD', 'migNoneWhy', 'migLinkWhy', 'migCheckWhy', 'migStateOf',
     'MIG_ST_ORDER', 'migRows', 'migFieldLabel', 'migDay', 'migSideFacts', 'MIG_MON', 'migFind', 'migDateAt', 'migAmountAt', 'MIG_RENEW_RE', 'migRenewAt', 'migClauseAt', 'migFoundAt',
     'migQuoteOf', 'MIG_FORM_KEYS', 'MIG_FORM_LABEL', 'MIG_GATE_KEYS', 'migFormOf', 'migFormMarks', 'migReviewOpen', 'migDateRead', 'MIG_RENEWS_RE', 'migFormRead', 'migFormWaits',
-    'migFormWaitsOf', 'migWaitWords', 'migFileIt', 'MIG_PERIOD_RE', 'MIG_PERIOD_WORD', 'migPeriodAt', 'migAmountWithPeriod', 'MIG_NUM_WORD', 'migNoticeDays', 'migNoticeWords', 'migNoticeDay',
+    'migFormWaitsOf', 'migWaitWords', 'migFileIt', 'MIG_PERIOD_RE', 'MIG_PERIOD_WORD', 'migPeriodEnd', 'migPeriodAt', 'migAmountWithPeriod', 'MIG_NUM_WORD', 'migNoticeDays', 'migNoticeWords', 'migNoticeDay',
     'migPartyGuess', 'migAmountGuess', 'migWhyHtml', 'migParked', 'migRowByKey', 'migCheckWaits', 'migCheckIds', 'migCheckId', 'migCheckOpen', 'migCheckGo', 'migCheckNext'])
     + '\nlet _migCheck = null, _migPick = null;\nthis.api = { migFind, migDateAt, migAmountAt, migRenewAt, migClauseAt, migFoundAt, migFormOf, migFormMarks, migDateRead, migFormRead, migFormWaits, migFormWaitsOf, migWaitWords, migFileIt, migWhyHtml, migCheckOpen, migCheckGo, migCheckNext, migCheckId, get check(){ return _migCheck; } };', ctx);
   return ctx;

@@ -83,10 +83,10 @@ function stage(o){
   vm.createContext(ctx);
   vm.runInContext(take(['MIG_DRAFT_RE', 'migLooksUnsigned', 'MIG_SIGNED_SENT_RE', 'migSignedAt', 'migIsoIn', 'MIG_MON', 'MIG_SHOWS', 'MIG_DECIDE', 'migShowPass', 'MIG_ST_ORDER',
     'migLinkPending', 'migRefOf', 'MIG_K', 'MIG_FACT_WORD', 'migNoneWhy', 'migLinkWhy', 'migCheckWhy', 'migStateOf', 'MIG_DUP_WORD', 'migDupeWhy', 'migQueueState', 'migFolderFor',
-    'migRows', 'migRowByKey', 'migKpis', 'migGates', 'migComplete', 'migFieldLabel', 'migDay', 'migSideFacts', 'migDotsHtml', 'migStreamName', 'migParked',
-    'MIG_PERIOD_RE', 'MIG_PERIOD_WORD', 'migPeriodAt', 'migAmountWithPeriod', 'MIG_NUM_WORD', 'migNoticeDays', 'migNoticeWords', 'migNoticeDay', 'migPartyGuess', 'migAmountGuess',
+    'migRows', 'migRowByKey', 'migKpis', 'migGates', 'migComplete', 'migFieldLabel', 'migDay', 'migSideFacts', 'migMarksOf', 'migDotsHtml', 'migStreamName', 'migParked',
+    'MIG_PERIOD_RE', 'MIG_PERIOD_WORD', 'migPeriodEnd', 'migPeriodAt', 'migAmountWithPeriod', 'MIG_NUM_WORD', 'migNoticeDays', 'migNoticeWords', 'migNoticeDay', 'migPartyGuess', 'migAmountGuess',
     'migFind', 'migAmountAt', 'migDateAt', 'MIG_RENEW_RE', 'migRenewAt', 'migFoundAt', 'migSideSay'])
-    + '\nlet _migShow = "all", _migAll = false, _migCheck = null, _migPick = null;\nthis.api = { migLooksUnsigned, migSignedAt, migShowPass, migQueueState, migRows, migKpis, migSideFacts, migDotsHtml, migStreamName, migPeriodAt, migAmountWithPeriod, migNoticeDays, migNoticeWords, migNoticeDay, migPartyGuess, migAmountGuess, migAmountAt, migSideSay };', ctx);
+    + '\nlet _migShow = "all", _migAll = false, _migCheck = null, _migPick = null;\nthis.api = { migPeriodEnd, migLooksUnsigned, migSignedAt, migShowPass, migQueueState, migRows, migKpis, migSideFacts, migDotsHtml, migStreamName, migPeriodAt, migAmountWithPeriod, migNoticeDays, migNoticeWords, migNoticeDay, migPartyGuess, migAmountGuess, migAmountAt, migSideSay };', ctx);
   return ctx;
 }
 const fn = n => { let i = MIG.indexOf('\nfunction ' + n + '('); if (i < 0) i = MIG.indexOf('\nasync function ' + n + '('); return i < 0 ? '' : MIG.slice(i, MIG.indexOf('\n}', i) + 2); };
@@ -196,7 +196,7 @@ describe('f773 (5) tabs, the head, the empty page, the words', () => {
     assert.equal(api.migShowPass({ st:{ k:'dupe' } }, 'decide'), true);
     assert.equal(api.migShowPass({ st:{ k:'none' } }, 'decide'), true);
     assert.equal(api.migShowPass({ st:{ k:'check' } }, 'decide'), false);
-    const bar = fn('migCheckBarHtml');
+    const bar = fn('migTabsHtml'); assert.match(fn('migCheckBarHtml'), /migTabsHtml\('check'/); assert.match(fn('migDecideBarHtml'), /migTabsHtml\('decide'\)/);
     for (const k of ['mig_ck_tab_check', 'mig_ck_tab_decide', 'mig_ck_tab_filed']) assert.match(bar, new RegExp(k));
     assert.match(fn('migPaintHead'), /_migCheck \? 'mig_new_batch'/);
   });
@@ -213,5 +213,30 @@ describe('f773 (5) tabs, the head, the empty page, the words', () => {
       'mig_none_yet2', 'mig_new_batch']){
       assert.ok(BOOKS.en[k], 'en ' + k); assert.ok(BOOKS.sv[k], 'sv ' + k); assert.notEqual(BOOKS.en[k], BOOKS.sv[k], k);
     }
+  });
+});
+
+describe('f773 (6) fix pass 2 (the second check)', () => {
+  test('6a the allowance is read on arrival, once a sitting — not only after a batch', () => {
+    const r = fn('renderMigration');
+    assert.match(r, /if\(API_MODE\(\)&&!M\.aiAsked\)\{ M\.aiAsked=true;\s*migLoadAiState\(\)/);
+  });
+  test('6b the marks list says the six the row draws; the quote under the value carries its period', () => {
+    const { api } = stage();
+    assert.match(fn('migSideRowHtml'), /migMarksOf\(gates\)\.map\(mark\)/);
+    const t = 'The rent is KES 480,000 a year, paid quarterly.';
+    const at = api.migAmountAt(t, 480000);
+    assert.equal(t.slice(at.s, api.migPeriodEnd(t, at)), 'KES 480,000 a year');
+  });
+  test('6c a parked copy\'s row says what was read; a file with no text names no stream in the list', () => {
+    assert.match(MIG, /const migRowC = r => r\.c \|\| \(migParked\(r\) \? migPendingAsContract\(r\) : null\);/);
+    assert.match(fn('migValueCell'), /migRowC\(r\)/); assert.match(fn('migEndsCell'), /migRowC\(r\)/);
+    assert.match(fn('migStreamOf'), /r\.st\.k === 'none'\) return '—'/);
+  });
+  test('6d the held file: one question, "Leave it out" (not a second "Skip"), and the Swedish reason reads', () => {
+    assert.match(fn('migWhyHtml'), /if \(c\._parked\) return \{ lines:/);
+    assert.match(fn('migUnsignedActsHtml'), /mig_unsigned_leave/);
+    assert.ok(BOOKS.en.mig_unsigned_leave && BOOKS.sv.mig_unsigned_leave);
+    assert.equal(BOOKS.sv.mig_why_unsure, 'oklart: {what}');
   });
 });

@@ -236,7 +236,9 @@ const FILES = {
         const onIt = await until(k => migCheckId() === k ? true : null, nkey, 3000) || await page.evaluate(k => { migCheckTo(k); return migCheckId() === k; }, nkey);
         const N = await until(() => { const f = document.getElementById('mig-ck-facts'), d = document.getElementById('mig-ck-doc'); if (!f || !d || !f.querySelector('[data-mig-unsigned]')) return null;
           return { acts: [...f.querySelectorAll('[data-mig-unsigned]')].map(b => b.textContent.trim()), text: !!d.querySelector('.mig-ck-text'), as: (f.querySelector('[data-mig-ff="status"]') || {}).textContent || '' }; }, null, 5000);
-        check('12b in the walk it is a page: its own words, what it would be filed as, and three answers', !!onIt && !!N && N.text && N.acts.join() === 'Import as a draft,Import as signed,Skip' && /not signed: import as a draft\?/.test(N.as), JSON.stringify(N));
+        check('12b in the walk it is a page: its own words, what it would be filed as, and three answers', !!onIt && !!N && N.text && N.acts.join() === 'Import as a draft,Import as signed,Leave it out' && /not signed: import as a draft\?/.test(N.as), JSON.stringify(N));
+        const J = await page.evaluate(() => { const w = document.querySelector('#mig-side .mig-ck-why'); return w ? { t: w.innerText, use: !!w.querySelector('[data-mig-use]') } : null; });
+        check('12b2 Jambo asks only the one question until it is answered — no instruction its read-only boxes cannot follow', !!J && /call it a draft/.test(J.t) && !/write the date|made between/.test(J.t) && !J.use, JSON.stringify(J));
         await shot(page, 'import-drawn-unsigned-1440x780');
         if (N && await press('#mig-ck-facts [data-mig-unsigned="draft"]', '12c Import as a draft')){
           const D = await until(() => { const c = migContracts().find(x => /NDA_Acme/.test((x.upload || {}).fileName || '')); return c ? { id: c.id, status: c.status, hash: c.hash || null, out: !!(c.migration && c.migration.executedOutside), on: migCheckId() } : null; }, null, 10000);
@@ -265,6 +267,21 @@ const FILES = {
       if (await press('[data-mig-ck-close]', '7b ‹ All files')) {
         const lst = await until(() => document.querySelector('.mig-table') && !document.getElementById('mig-ck-facts') ? true : null, null, 4000);
         check('7b ‹ All files goes back to the list', !!lst);
+      }
+      console.log('\n14 · fix pass 2');
+      const cost = await until(() => { const e = document.getElementById('mig-cost'); const t = e && e.textContent; return t && /onboarding allowance \(\d+ of 200 files used\)/.test(t) ? t : null; }, null, 6000);
+      check('14a after a refresh the drop strip says the onboarding allowance open, before any batch', !!cost, String(cost));
+      if (await page.evaluate(() => migCheckOpen())){
+        await until(() => !!document.querySelector('[data-mig-ck-tab="decide"]'), null, 4000);
+        if (await press('[data-mig-ck-tab="decide"]', '14b the Decide tab')){
+          const DB = await until(() => { const on = document.querySelector('#mig-band .mig-ck-tab.is-on'); const rows = [...document.querySelectorAll('.mig-table tbody tr[data-row]')].map(r => r.className.match(/is-(\w+)/)[1]);
+            return on && !document.getElementById('mig-ck-facts') ? { on: on.textContent.replace(/\s+/g, ' ').trim(), rows } : null; }, null, 4000);
+          check('14b Decide keeps the tab row as its frame, Decide lit, the list the files that want a decision', !!DB && /^Decide \d+$/.test(DB.on) && DB.rows.length > 0 && DB.rows.every(k => k === 'dupe' || k === 'none'), JSON.stringify(DB));
+          if (await press('[data-mig-ck-tab="check"]', '14c the Check tab')){
+            check('14c the Check tab opens the walk again', !!(await until(() => !!document.getElementById('mig-ck-facts'), null, 4000)));
+            await page.evaluate(() => migCheckClose());
+          }
+        }
       }
     } else check('5 the lease to choose', false, 'not imported');
 
@@ -318,6 +335,8 @@ const FILES = {
         return { side: s.left >= t.right - 1 && s.right <= innerWidth && s.bottom <= innerHeight + 1, figs: k.top >= 0 && k.bottom < innerHeight, sx: document.scrollingElement.scrollWidth > innerWidth,
           sxc: (sc => sc ? sc.scrollWidth > sc.clientWidth + 1 : false)(document.getElementById('content-scroll')) }; });
       check(`11a ${w}×${hh}: the panel beside the list and in the window, the figures in view, nothing sideways`, L.side && L.figs && !L.sx && !L.sxc, JSON.stringify(L));
+      const cut = await page.evaluate(() => [...document.querySelectorAll('.mig-table .mig-td-v, .mig-table .mig-td-s, .mig-table .mig-fr, .mig-table .mig-st-why')].filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.textContent));
+      check(`14e ${w}×${hh}: nothing in a row is cut — the value with its period, the stream, the file's line, the reason`, !cut.length, JSON.stringify(cut));
       await shot(page, `import-drawn-list-${w}x${hh}`);
       if (await page.evaluate(() => migCheckOpen())) {
         await until(() => !!document.getElementById('mig-ck-facts'), null, 4000); await page.waitForTimeout(250);
