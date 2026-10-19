@@ -149,15 +149,18 @@ async function login(b, base, email, pass, errs){
     const row = await page.evaluate(() => {
       const head = document.querySelector('#ig-dock .igd-head') || document.querySelector('#ig-dock');
       const tabs = [...head.querySelectorAll('[data-pd-tab]')].map(t => t.getAttribute('data-pd-tab'));
-      const word = head.querySelector('[data-pd-face-w]'); const back = head.querySelector('[data-pd-back]');
+      /* RE-POINTED 19 Oct 2026 (ONE TRAIL, owner): the face's word and its one
+         back are the trail line's, under the tabs, which stay */
+      const trail = document.querySelector('#ig-dock > .pd-trail');
+      const word = trail && trail.querySelector('.pd-trail-w b'); const back = trail && trail.querySelector('[data-pd-back]');
       const face = document.getElementById('pd-redface');
       const x = face ? [...face.querySelectorAll('button')].filter(bt => (bt.textContent || '').trim() === '×' && bt.offsetParent).length : -1;
       const chips = document.querySelector('#ig-dock [data-ig-chips]');
       return { tabs, word: word ? word.textContent.trim() : null, back: back ? back.textContent.trim() : null, backFace: back && back.getAttribute('data-pd-back'),
         x, chips: chips ? getComputedStyle(chips).display : 'none' };
     });
-    check('1a the row: only Jambo\'s tab, then the face\'s word "Redlines"', row.tabs.join() === 'copilot' && row.word === 'Redlines', JSON.stringify(row));
-    check('1b "‹ Jambo" at the row\'s end, for this face', /Jambo/.test(row.back || '') && row.backFace === 'red', row.back);
+    check('1a the tabs stay; the trail line names the face "Redlines"', row.tabs.join() === 'copilot,doc,oblig,menu' && row.word === 'Redlines', JSON.stringify(row));
+    check('1b "‹ Jambo" opens the trail line, for this face', /Jambo/.test(row.back || '') && row.backFace === 'red', row.back);
     check('1c the face\'s head draws no ×', row.x === 0, String(row.x));
     check('1d no chips under the face', row.chips === 'none', row.chips);
 

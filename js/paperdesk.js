@@ -449,6 +449,7 @@ function pdFillShows(){
 }
 function pdFillOpen(id, opts){
   const o = opts || {};
+  _pdFillFloor = null;
   _pdFillKey = o.key ? String(o.key) : null;
   return pdOpenOnHome(id, 'fill');
 }
@@ -471,14 +472,10 @@ function pdFillHeadHtml(c){
   const d = pdFillDetails(c) || { all: 0, left: 0 };
   const done = d.all - d.left;
   const pct = d.all ? Math.round(done * 100 / d.all) : 100;
-  const close = _pdT('act_close');
-  /* ROUND 3'S FACE HEAD STAYS (the owner's answer (3), 18 Oct 2026: Fill in
-     and Before you sign keep "‹ Jambo · name · count · ×", not the tab row
-     rounds 8 and 10 draw — only Redlines and Before you send take the
-     panel's row, pdFaceUp) */
-  return `<div class="pd-ff-r">${pdBackHtml('fill')}<h3>${_pdE(_pdT('pd_ff_title'))}</h3><span data-pd-ff-pill>${
-      d.left ? pdPill('warn', _pdTn('det_left_n', d.left, { n: d.left })) : pdPill('ok', _pdT('pd_ff_all_in'))}</span>
-      <button type="button" class="pd-ff-x" data-pd-ff-close title="${_pdE(close)}" aria-label="${_pdE(close)}">×</button></div>
+  /* ONE TRAIL (owner, 19 Oct 2026): the way back is the panel's trail line
+     (pdTrailHtml), so the head is the name and the count — no ‹ Jambo, no × */
+  return `<div class="pd-ff-r">${pdTrailHtml({ inHead: true })}<h3 class="sr-only">${_pdE(_pdT('pd_ff_title'))}</h3><span data-pd-ff-pill>${
+      d.left ? pdPill('warn', _pdTn('det_left_n', d.left, { n: d.left })) : pdPill('ok', _pdT('pd_ff_all_in'))}</span></div>
     <div class="det-bar" aria-hidden="true"><i data-pd-ff-bar style="width:${pct}%"></i></div>
     <span class="pd-ff-n" data-pd-ff-count>${_pdE(_pdT('det_n_of_m', { done, all: d.all }))} · ${_pdE(_pdT('pd_ff_saved'))}</span>${pdFillPrivateHtml(c)}`;
 }
@@ -617,7 +614,18 @@ function pdFillMark(c, all){
     r.setAttribute('data-pd-owed', owed ? '1' : '0');
   });
   pdFillGroupsPaint(c);
+  /* AN ANSWERED BOX NEVER MOVES UNDER THE HAND, AT THE LIST'S END TOO (19 Oct
+     2026, ONE TRAIL took a line of the face's height): while the face stays
+     open its work never gets shorter, so a scroll at the end is not pulled up
+     (and the sheet keeps the browser's scroll anchoring off, #pd-fillface) */
+  const w = host.querySelector('.pd-ff-work');
+  if (w){
+    if (!_pdFillFloor || _pdFillFloor.id !== String(c.id)) _pdFillFloor = { id: String(c.id), h: 0 };
+    _pdFillFloor.h = Math.max(_pdFillFloor.h, w.offsetHeight);
+    w.style.minHeight = _pdFillFloor.h + 'px';
+  }
 }
+let _pdFillFloor = null;     // the face's tallest work this opening (pdFillMark)
 /* the two headings and the document's line, from the marks and the record */
 function pdFillGroupsPaint(c){
   const host = document.getElementById('pd-fillface'); if (!host || !c) return;
@@ -1104,13 +1112,14 @@ function pdRedOpts(c){
   /* ‹ Jambo is the panel's own row now (pdFaceTabHtml, round 9 as drawn) and
      the column's head carries no × (the drawing has none: ‹ Jambo closes);
      no progress pile beside the paper — the head says the round */
-  /* …and nothing under the piles (round 9's gaps, 18 Oct 2026): the column
-     ends with its settled fold, as drawn — the risk list is the clause
-     editor's Risks tab and the glance's own row */
+  /* RISKS TO LOOK AT STAY UNDER THE PILES (owner, 19 Oct 2026: "where are
+     risks cards with the why drop down buttons? … restore them"): round 9's
+     gaps had taken them off this face (noRisks); the risk scan lives in the
+     Redlines card, here as on the Negotiate page */
   /* …and no review banner over the head for what is out with a colleague:
      the "Out for review" pile says it, with Remind and Cancel on its head
      (waitingInPile, round 9's gaps, third pass) */
-  return Object.assign({}, base, { cpPanel: false, noProgress: true, noRisks: true, waitingInPile: true });
+  return Object.assign({}, base, { cpPanel: false, noProgress: true, waitingInPile: true });
 }
 function pdRedFaceHtml(c){
   if (!c || typeof rlColumnHtml !== 'function') return '';
@@ -1295,7 +1304,71 @@ const PD_BACK_CLOSE = { fill: () => pdFillClose(), red: () => pdRedClose(), sign
      round 3"): the letter stays on the desk with what is typed in it; "Before
      you send" waits as a tab of the panel's head (pdSendBack). Cancel on the
      letter is still the way to put the screen away. */
-  send: () => pdSendAway() };
+  send: () => pdSendAway(),
+  /* ONE TRAIL (owner, 19 Oct 2026): one step up inside Redlines — the notes
+     or the ladder the column turned to, back to the piles */
+  'red-notes': () => { if (typeof rlFaceNotesSet === 'function') rlFaceNotesSet(null); pdRedRepaint(); },
+  'red-ladder': () => { if (typeof rlFaceLadderSet === 'function') rlFaceLadderSet(null); pdRedRepaint(); } };
+/* ---- ONE TRAIL (owner picked "One trail" by name, 19 Oct 2026; reverses
+   round 9's and 11's "‹ Jambo at the row's end" and round 3's "‹ Jambo · name
+   · count · ×") ----
+   Every face of Jambo's panel — Fill in, Redlines, Before you sign, an
+   amendment, Before you send — draws ONE line under the panel's tabs (which
+   stay): its one back, always at the line's start and named for where it
+   goes, then where you are ("Jambo / Redlines / Notes"). The back is one step
+   up; Esc and the bar's ‹ press the same (pdTrailBack). ONE reading, pdTrail. */
+function pdTrail(){
+  const send = typeof pdSendShows === 'function' && pdSendShows();
+  const face = send ? 'send' : pdFaceNow();
+  if (!face) return null;
+  const jb = _pdT('pd_tab_copilot');
+  /* signed, Before you sign is the receipt and says so */
+  let word = _pdT(PD_FACE_WORD[face] || 'pd_tab_copilot');
+  if (face === 'signing'){ try { const sc = pdContract(); if (sc && pdSignState(sc).closed) word = _pdT('pd_st_signed'); } catch (_){} }
+  if (face === 'red'){
+    const c = pdContract();
+    const notes = !!(c && typeof rlFaceNotesOn === 'function' && rlFaceNotesOn(c, { side: 'owner' }));
+    const lad = !notes && typeof rlFaceLadderOpen === 'function' && rlFaceLadderOpen();
+    if (notes) return { back: 'red-notes', up: word, path: [jb, word, _pdT('ig_line_notes')] };
+    if (lad) return { back: 'red-ladder', up: word, path: [jb, word, _pdT('ng_row_ladder')] };
+  }
+  return { back: face, up: jb, path: [jb, word] };
+}
+/* THE FACES WITH A HEAD OF THEIR OWN (Fill in, Before you sign, an
+   amendment) carry the trail IN that head, in its title's place — the same
+   spot under the tabs, no extra line (the road and the owed list keep their
+   height); Redlines and Before you send draw it as its own line */
+const PD_TRAIL_IN_HEAD = ['fill', 'signing', 'amend'];
+function pdTrailHtml(o){
+  const t = pdTrail(); if (!t) return '';
+  const inHead = PD_TRAIL_IN_HEAD.includes(t.back);
+  if (!(o && o.inHead) && inHead) return '';
+  if (o && o.inHead && !inHead) return '';
+  const last = t.path.length - 1;
+  const where = t.path.map((w, i) => i === last ? `<b>${_pdE(w)}</b>` : _pdE(w)).join('<i aria-hidden="true"> / </i>');
+  const tip = _pdT('pd_trail_back', { to: t.up });
+  const tag = (o && o.inHead) ? 'span' : 'div';
+  return `<${tag} class="pd-trail${(o && o.inHead) ? ' is-in-head' : ''}" data-pd-trail="${_pdE(t.back)}"><button type="button" class="pd-back" data-pd-back="${_pdE(t.back)}" title="${_pdE(tip)}" aria-label="${_pdE(tip)}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${_pdE(t.up)}</button><span class="pd-trail-w">${where}</span></${tag}>`;
+}
+/* THE LINE FOLLOWS THE FACE IN PLACE: a face opened or turned without the
+   panel being rebuilt (a hand in Fill in keeps it standing) still shows its
+   trail, so nothing under it moves on the next rebuild */
+function pdTrailSync(){
+  const dock = (typeof document !== 'undefined') ? document.getElementById('ig-dock') : null; if (!dock) return;
+  const head = dock.querySelector(':scope > .igd-head'); if (!head) return;
+  const html = pdTrailHtml();
+  const el = dock.querySelector(':scope > .pd-trail');
+  if (!html){ if (el) el.remove(); }
+  else if (el){ if (el.outerHTML !== html) el.outerHTML = html; }
+  else head.insertAdjacentHTML('afterend', html);
+  if (typeof deskBarPaint === 'function') try { deskBarPaint(); } catch (_){}
+}
+/* the trail's back, pressed by Esc and the bar's ‹: true where there was a step */
+function pdTrailBack(){
+  const t = pdTrail(); if (!t) return false;
+  const go = PD_BACK_CLOSE[t.back]; if (!go) return false;
+  go(); return true;
+}
 function pdBackHtml(face){
   const t = _pdT('pd_back_jambo');
   return `<button type="button" class="pd-back" data-pd-back="${_pdE(face)}" title="${_pdE(t)}" aria-label="${_pdE(t)}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${_pdE(_pdT('pd_tab_copilot'))}</button>`;
@@ -1444,12 +1517,10 @@ function pdSignPillHtml(c){
   return pdPill('ok', _pdT('pd_st_ready'));
 }
 function pdSignHeadHtml(c){
-  const close = _pdT('act_close');
   const s = pdSignState(c);
   /* signed, the title says so and the pill would say it twice */
-  /* round 3's face head stays (the owner's answer (3)): ‹ Jambo, the title, × */
-  return `<div class="pd-sf-r">${pdBackHtml('signing')}<h3>${_pdE(_pdT(s.closed ? 'pd_st_signed' : 'pd_sf_title'))}</h3><span data-pd-sf-pill>${s.closed ? '' : pdSignPillHtml(c)}</span>
-      <button type="button" class="pd-sf-x" data-pd-sf-close title="${_pdE(close)}" aria-label="${_pdE(close)}">×</button></div>`;
+  /* the way back is the panel's trail line (ONE TRAIL, owner 19 Oct 2026) */
+  return `<div class="pd-sf-r">${pdTrailHtml({ inHead: true })}<h3 class="sr-only">${_pdE(_pdT(s.closed ? 'pd_st_signed' : 'pd_sf_title'))}</h3><span data-pd-sf-pill>${s.closed ? '' : pdSignPillHtml(c)}</span></div>`;
 }
 /* ONCE BOTH HAVE SIGNED THE FACE IS THE RECEIPT (the owner's yes, decision
    3), and EVERY STEP STARTS THE NEXT (rule 4): what the signature starts —
@@ -2143,10 +2214,8 @@ function pdAmendAdd(el){
   pdAmendRepaint();
 }
 function pdAmendHeadHtml(c){
-  const close = _pdT('act_close');
-  /* round 3's face head (no later drawing moved it; as Fill in and Before you sign, the owner's answer (3)) */
-  return `<div class="pd-sf-r">${pdBackHtml('amend')}<h3>${_pdE(_pdT('pd_am_title', { ref: (typeof contractRef === 'function') ? contractRef(c) : c.id }))}</h3>
-      <button type="button" class="pd-sf-x" data-pd-am-close title="${_pdE(close)}" aria-label="${_pdE(close)}">×</button></div>
+  /* the way back is the panel's trail line (ONE TRAIL, owner 19 Oct 2026) */
+  return `<div class="pd-sf-r">${pdTrailHtml({ inHead: true })}<h3 class="sr-only">${_pdE(_pdT('pd_am_title', { ref: (typeof contractRef === 'function') ? contractRef(c) : c.id }))}</h3></div>
     <p class="pd-am-sub">${_pdE(_pdT('pd_am_sub'))}</p>`;
 }
 function pdAmendItemHtml(it, i){
@@ -2505,7 +2574,7 @@ function pdFaceUp(){
   const f = pdFaceNow();
   return PD_FACE_ROW.includes(f) ? f : '';
 }
-function pdFaceBackHtml(){ const f = pdFaceUp(); return f ? pdBackHtml(f) : ''; }
+/* pdFaceBackHtml (‹ Jambo at the tab row's end) is STALE: ONE TRAIL draws the back (pdTrailHtml) */
 function pdHeadHtml(brain){
   const face = pdFaceUp();
   /* FINDINGS (Explorer stage 4): beside Jambo on Explorer's map, no paper up;
@@ -2513,7 +2582,9 @@ function pdHeadHtml(brain){
   const fd = !face && !pdOnPaper() && typeof igFindingsTabOn === 'function' && igFindingsTabOn();
   /* THE GUIDE (owner picked "On this view", 19 Oct 2026): beside Findings, what the view in front can do */
   const gd = !face && !pdOnPaper() && typeof igGuideTabOn === 'function' && igGuideTabOn();
-  const tabs = face ? ['copilot'] : pdOnPaper() ? PD_TABS : ['copilot'].concat(fd ? ['findings'] : [], gd ? ['guide'] : []);
+  /* THE TABS STAY WHILE A FACE IS UP (ONE TRAIL, owner 19 Oct 2026): the
+     face lives under Jambo's tab; Clauses and back to Jambo brings it back */
+  const tabs = pdOnPaper() ? PD_TABS : ['copilot'].concat(fd ? ['findings'] : [], gd ? ['guide'] : []);
   const lit = face ? 'copilot' : fd && typeof igFindingsShows === 'function' && igFindingsShows() ? 'findings'
     : gd && typeof igGuideShows === 'function' && igGuideShows() ? 'guide' : (tabs.includes(_pdTab) ? _pdTab : 'copilot');
   const c = pdOnPaper() ? pdContract() : null;
@@ -2521,7 +2592,7 @@ function pdHeadHtml(brain){
      2026: "Jambo · New agreement · ›"): beside the one sheet, the agreement
      being drafted */
   const word = (!c && typeof naSheetUp === 'function' && naSheetUp()) ? `<span class="pd-head-word">${_pdE(_pdT('na_title'))}</span>` : '';
-  const faceWord = face ? `<span class="pd-face-w" data-pd-face-w="${_pdE(face)}">${_pdE(_pdT(PD_FACE_WORD[face] || 'pd_tab_copilot'))}</span>` : '';
+  /* the face's word is the trail line's (pdTrailHtml), not the tab row's */
   /* the letter is up and the panel turned to Jambo: "Before you send" waits
      as a tab after Jambo's, one press back (round 11's gaps, second pass) */
   const sendBack = (!face && pdSendHeld()) ? `<button type="button" class="pd-tab pd-tab-face" data-pd-send-back title="${_pdE(_pdT(PD_FACE_WORD.send))}"><span class="pd-tab-w">${_pdE(_pdT(PD_FACE_WORD.send))}</span></button>` : '';
@@ -2530,7 +2601,7 @@ function pdHeadHtml(brain){
     const tip = t === 'copilot' && brain ? name + ' · ' + brain : name;
     const on = t === lit, cnt = pdTabCount(t, c);
     return `<button type="button" role="tab" class="pd-tab${on ? ' on' : ''}" data-pd-tab="${t}" aria-selected="${on}" aria-label="${_pdE(cnt ? _pdT('pd_tab_n', { name, n: cnt.n }) : name)}" title="${_pdE(tip)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${pdTabGlyphHtml(t)}</span>${cnt ? `<span class="pd-tab-n is-${cnt.tone}">${cnt.n > 99 ? '99+' : cnt.n}</span>` : ''}</span><span class="pd-tab-w">${_pdE(name)}</span></button>${t === 'copilot' ? sendBack : ''}`;
-  }).join('') + (faceWord || word);
+  }).join('') + word;
 }
 function pdBodyHtml(c){
   _pdActs.clear();
@@ -2547,6 +2618,7 @@ function pdPaint(c){
   const dock = document.getElementById('ig-dock'); if (!dock) return;
   /* the paper was drawn again: Fill in's marks on it follow (pdFillPaperMarks) */
   try { pdFillPaperMarks(c || pdContract()); } catch (_){}
+  pdTrailSync();
   const head = dock.querySelector('[data-pd-head]');
   const want = pdOnPaper() ? 'paper' : 'off';
   if (head && head.getAttribute('data-pd-head') !== want){ if (typeof renderIntelDock === 'function') renderIntelDock(); return; }
@@ -3947,7 +4019,21 @@ if (typeof document !== 'undefined' && !document._jbWired){
     return true; };
   if (!watch()) document.addEventListener('DOMContentLoaded', watch, { once: true });
 }
-Object.assign(window, { pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdFaceBackHtml, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
+/* ESC IS ONE STEP UP (ONE TRAIL): where nothing above the panel holds the
+   key and nobody is typing, Esc presses the trail's back */
+if (typeof document !== 'undefined' && !document._pdTrailEsc){
+  document._pdTrailEsc = true;
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape' || e.defaultPrevented) return;
+    const a = document.activeElement;
+    if (a && a.matches && a.matches('input, textarea, select, [contenteditable="true"], [contenteditable=""]')) return;
+    if (document.querySelector('[data-top-overlay]')) return;
+    const mr = document.getElementById('modal-root'); if (mr && mr.innerHTML.trim()) return;
+    if (typeof clauseEditorOpen === 'function' && clauseEditorOpen()) return;
+    if (pdTrailBack()) e.preventDefault();
+  });
+}
+Object.assign(window, { PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, PD_RD_CHECKS, pdRoadCheckOf, pdRoadCheckNames, pdDayWord, pdBackDay, pdAwayOf, pdRoadRuleOf, pdRoadRuleTitle, pdRoadRuleSub, pdRoadRuleFramed, pdRoadRuleHtml, pdRoadMovedHtml, pdRoadYesOf, pdRoadYesTitle, pdRoadYesFramed, pdRoadYesFacts, pdRoadYesHtml, pdRoadPress, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,

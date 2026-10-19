@@ -144,7 +144,20 @@ function deskBackTarget(){
   }
   return null;
 }
+/* ONE TRAIL (owner, 19 Oct 2026): the bar's ‹ is one step up first — the
+   clause editor opened from a Redlines row (‹ Redlines, ceRowBack), else the
+   step of Jambo's panel (pdTrailBack) — then the pages walked */
+function deskStepBack(press){
+  const w = typeof window !== 'undefined' ? window : {};
+  if (typeof w.clauseEditorOpen === 'function' && w.clauseEditorOpen()){
+    if (typeof w.ceRowMode === 'function' && w.ceRowMode() && typeof w.ceRowBack === 'function'){ if (press) w.ceRowBack(); return true; }
+    return false;
+  }
+  if (typeof w.pdTrail === 'function' && w.pdTrail()){ if (press) w.pdTrailBack(); return true; }
+  return false;
+}
 function deskGoBack(){
+  if (deskStepBack(true)){ deskBarPaint(); return true; }
   /* while the one sheet is up, ‹ is its way out: asked first, as Cancel asks,
      then back to the page the reader asked from (naSheetBack → deskSheetBackTo) */
   if (deskSheetUp() && typeof window.naSheetBack === 'function'){ window.naSheetBack(); return true; }
@@ -249,7 +262,7 @@ function deskBarPaint(){
   const back = document.getElementById('dk-back'), w = document.getElementById('dk-pg-w'), btn = document.getElementById('dk-page');
   if (back){
     back.hidden = !on;
-    const can = deskSheetUp() || !!deskBackTarget();
+    const can = deskSheetUp() || deskStepBack(false) || !!deskBackTarget();
     back.disabled = !can;
     const tip = can ? _cnT('dk_back') : _cnT('dk_back_none');
     if (back.title !== tip){ back.title = tip; back.setAttribute('aria-label', tip); }
@@ -711,6 +724,6 @@ if (typeof document !== 'undefined' && !window._cnWired){
   });
 }
 
-Object.assign(window, { counterWorkByAgent, cnRows, cnNeedShort, cnWhenWords, cnReqWhat, CN_REQ_WHAT_RE, counterFollow, cnLand,
+Object.assign(window, { deskStepBack, counterWorkByAgent, cnRows, cnNeedShort, cnWhenWords, cnReqWhat, CN_REQ_WHAT_RE, counterFollow, cnLand,
   deskShellOn, DK_KEY, DK_RECENT, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskPageName, deskSheetUp, deskSheetFrom, deskSheetBackTo, deskTabsSync, deskRecentRows, deskRecentHtml, deskBarPaint, deskRecentToggle, deskBackTarget, deskGoBack, deskTabOpen, deskTabClose, deskGoCounter,
   CN_ROWS, renderCounter, counterHtml, counterRepaint, counterAsk, counterNeedsCount, counterPopRead, counterPopClose });

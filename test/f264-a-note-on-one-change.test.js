@@ -726,7 +726,7 @@ describe('f264 (9) — the door, and where it is dead', () => {
        contract and no change named. Pinned as the relation, not the old lines. */
     const at = APP.indexOf("closest('#hdr-chat')");
     assert.ok(at > -1, 'the delegated handler is there');
-    const near = APP.slice(at, at + 260);
+    const near = APP.slice(at, at + 700);  /* RE-POINTED 19 Oct 2026: ONE NOTES DOOR beside the Redlines face sits between */
     assert.match(near, /chatContractId\(\)/, 'it asks which contract, once');
     assert.match(near, /openNotesPanel\(id\)/,
       'openNotesPanel is the one door onto that face; this is the press '

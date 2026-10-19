@@ -7902,7 +7902,7 @@ function renderIntelDock(){
   { const ae=document.activeElement;
     const ff=ae&&ae.closest?ae.closest('#ig-dock #pd-fillface'):null;
     const ffMine=()=>{ const r=ff.querySelector('.pd-ff[data-pd-ff]'); return !!(r&&window.pdFillFor&&r.getAttribute('data-pd-ff')===pdFillFor()); };
-    if(intel.dockOpen&&ae&&ae.closest&&(ff?(window.pdFillShows&&pdFillShows()&&ffMine()):ae.closest('#ig-dock #pd-fill'))) return; }
+    if(intel.dockOpen&&ae&&ae.closest&&(ff?(window.pdFillShows&&pdFillShows()&&ffMine()):ae.closest('#ig-dock #pd-fill'))){ if(window.pdTrailSync) pdTrailSync(); return; } }
   if(!intel.dockOpen){
     /* HIS FACE ON THE FOLDED STRIP (owner picked "Tabs and faces" by name,
        round 3, 17 Oct 2026): Jambo himself with the count his tab carries
@@ -7972,12 +7972,12 @@ function renderIntelDock(){
              hbHeadWord), nothing where it holds his own words */}
       ${(()=>{ const w=(typeof window.pdHeadWord==='function')?pdHeadWord():''; return w?`<span class="igd-head-w" title="${igEsc(w)}">${igEsc(w)}</span>`:''; })()||(()=>{ const w=(typeof window.hbHeadWord==='function')?hbHeadWord():''; return w?`<span class="igd-head-w" title="${igEsc(w)}">${igEsc(w)}</span>`:''; })()}
       <span class="flex-1"></span>
-      ${''/* ‹ JAMBO AT THE ROW'S END WHILE A FACE IS UP (rounds 8–11 as drawn): the face tab's way back, beside the fold */}${(typeof window.pdFaceBackHtml==='function')?pdFaceBackHtml():''}
       ${(()=>{ const b=(typeof copilotBrainInfo==='function')?copilotBrainInfo():{live:true};
         return b.live?'':`<span title="${igEsc(b.hint||'')}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">○ ${igEsc(i18t('int_basic_mode'))}</span>`; })()}
       ${intel.history.length&&!(window.pdShowsDesk&&pdShowsDesk())&&!(window.naSheetUp&&naSheetUp())?`<button id="igd-history-clear" title="${i18t('int_clear_conversation')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon" aria-label="${i18t('int_clear_conversation')}">${icon('trash','w-3.5 h-3.5')}</button>`:''}
       <button id="igd-collapse" title="${i18t('int_collapse_panel')}" aria-label="${i18t('int_collapse_panel')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('chevR')}</button>
     </div>
+    ${''/* ONE TRAIL (owner, 19 Oct 2026): while a face is up, one line under the tabs — its one back, then where you are */}${(typeof window.pdTrailHtml==='function')?pdTrailHtml():''}
     ${intel.lenses.length&&!(window.pdShowsDesk&&pdShowsDesk())?`
     <div class="px-3.5 py-2 border-b border-hair shrink-0 flex flex-wrap items-center gap-1.5">
       ${intel.lenses.map(l=>`
@@ -8080,6 +8080,8 @@ function renderIntelDock(){
      face carries its own acts, so the panel says a face is up and the chips row
      stands down by that scope (#ig-dock.pd-face-up) — Jambo perches on the box */
   dock.classList.toggle('pd-face-up',!!(window.pdFaceUp&&pdFaceUp()));
+  /* the bar's ‹ follows the trail (a face up is a step to go back from) */
+  if(typeof window.deskBarPaint==='function') try{ deskBarPaint(); }catch(_){}
   /* JAMBO, ALIVE (owner, 16 Oct 2026): he takes his seat on the chips row again */
   if(typeof window.jamboPerchMount==='function') try{ jamboPerchMount(dock); }catch(_){ }
   /* a contract number in an answer is a link to it (caRefLinkPaint) */

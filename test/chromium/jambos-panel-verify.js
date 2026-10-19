@@ -113,14 +113,16 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
          answer (3): Fill in keeps round 3's own head, "‹ Jambo · Fill in the
          details · N left · ×", the contract's tabs above it and no face word
          in the row; the row's way is the Redlines face's (3d) */
+      /* RE-POINTED 19 Oct 2026 (ONE TRAIL, owner): the tabs stay; Fill in's
+         head IS its trail — "‹ Jambo  Jambo / Fill in", then the count, no × */
       const ff = await until(() => window.pdFillShows && pdFillShows() && document.querySelector('#pd-fillface .pd-ff-r') && (() => {
-        const r = document.querySelector('#pd-fillface .pd-ff-r'), b = r.querySelector('[data-pd-back="fill"]'), t = r.querySelector('h3'), x = r.querySelector('[data-pd-ff-close]');
+        const r = document.querySelector('#pd-fillface .pd-ff-r'), b = r.querySelector('[data-pd-back="fill"]'), w = r.querySelector('.pd-trail-w'), x = r.querySelector('[data-pd-ff-close]');
         const head = document.querySelector('#ig-dock .igd-head');
-        return { back: !!b && b.textContent.trim(), order: !!(b && t && x) && b.getBoundingClientRect().right <= t.getBoundingClientRect().left + 1 && t.getBoundingClientRect().right <= x.getBoundingClientRect().left + 1,
-          rowWord: !!(head && head.querySelector('[data-pd-face-w]')), rowBack: !!(head && head.querySelector('[data-pd-back]')),
+        return { back: !!b && b.textContent.trim(), order: !!(b && w) && b.getBoundingClientRect().right <= w.getBoundingClientRect().left + 1, where: w ? w.textContent.trim() : '', x: !!x,
+          rowBack: !!(head && head.querySelector('[data-pd-back]')),
           tabs: head ? [...head.querySelectorAll('[data-pd-tab]')].map(t => t.getAttribute('data-pd-tab')).join() : '' }; })(), null, 8000);
-      check('3b Fill in keeps round 3\'s head (the owner\'s answer 3): "‹ Jambo · Fill in … · ×", the contract\'s tabs above it, no face word in the row',
-        !!ff && ff.back === 'Jambo' && ff.order && !ff.rowWord && !ff.rowBack && ff.tabs.split(',').length > 1, JSON.stringify(ff));
+      check('3b Fill in: the tabs stay, its head is the trail "‹ Jambo · Jambo / Fill in", no ×',
+        !!ff && ff.back === 'Jambo' && ff.order && /Jambo \/ Fill in/.test(ff.where) && !ff.x && !ff.rowBack && ff.tabs.split(',').length > 1, JSON.stringify(ff));
       await shot(page, 'jambos-panel-fill-1440x780');
       if (await press('#ig-dock [data-pd-back="fill"]', '3c ‹ Jambo on Fill in')) {
         const back = await until(() => !(window.pdFillShows && pdFillShows()) && !!document.getElementById('pd-glance'), null, 6000);
@@ -128,13 +130,14 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
       }
     }
     await page.evaluate(() => pdOpenOnHome('MK-0382', 'red'));
+    /* RE-POINTED 19 Oct 2026 (ONE TRAIL, owner): the trail line under the tabs reads "‹ Jambo  Jambo / Redlines" */
     const rf = await until(() => { const top = document.querySelector('#pd-redface .rl-idx-top'); if (!top) return null;
-      const r = (() => { const head = document.querySelector('#ig-dock .igd-head'); const w = head && head.querySelector('[data-pd-face-w]'), b = head && head.querySelector('[data-pd-back="red"]');
-        return w && b ? { word: w.textContent.trim(), back: b.textContent.trim(), sameLine: Math.abs(w.getBoundingClientRect().top - b.getBoundingClientRect().top) < 10 } : null; })();
-      if (!r) return null;
-      return Object.assign(r, { headBack: !!top.querySelector('[data-pd-back]'), headX: !!top.querySelector('[data-pd-rf-close]'),
-        first: (top.querySelector('.rl-idx-title') || {}).textContent || '' }); }, null, 10000);
-    check('3d the Redlines face: the panel\'s row reads Redlines · "‹ Jambo"; the column\'s head opens with "Redlines N", no ‹ Jambo, no ×',
+      const tr = document.querySelector('#ig-dock > .pd-trail'); const w = tr && tr.querySelector('.pd-trail-w b'), b = tr && tr.querySelector('[data-pd-back="red"]');
+      if (!(w && b)) return null;
+      return { word: w.textContent.trim(), back: b.textContent.trim(), sameLine: Math.abs(w.getBoundingClientRect().top - b.getBoundingClientRect().top) < 10,
+        headBack: !!top.querySelector('[data-pd-back]'), headX: !!top.querySelector('[data-pd-rf-close]'),
+        first: (top.querySelector('.rl-idx-title') || {}).textContent || '' }; }, null, 10000);
+    check('3d the Redlines face: the trail line reads "‹ Jambo" · Redlines; the column\'s head opens with "Redlines N", no ‹ Jambo, no ×',
       !!rf && rf.word === 'Redlines' && rf.back === 'Jambo' && rf.sameLine && !rf.headBack && !rf.headX && /^Redlines/.test(rf.first.trim()), JSON.stringify(rf));
     await shot(page, 'jambos-panel-redlines-1440x780');
     if (await press('#ig-dock [data-pd-back="red"]', '3e ‹ Jambo on Redlines')) {
