@@ -659,8 +659,62 @@ function familyCheckReport(c){
     k.moved.map(m=>`${String(m.label).toLowerCase()} → ${m.ref||m.id}`).join(', '));
   return out.join('\n');
 }
+/* ---- THE FAMILY'S ACTS, ONE LIST (round 7 as drawn, pass 4) ----
+   The Details page draws Related agreements as the drawing does — each row's
+   ref, what it is, when it was signed, and Bring it up — so the family's
+   acts (Create an amendment, Add a signed document, Check the family, Unlink,
+   File it under another agreement) are offered from the page's ⋯ instead:
+   the same acts, the same handlers (familyActRun), one list of which apply
+   (familyActs) — never a second copy beside the rows. */
+function familyActs(c){
+  if(!c) return [];
+  const out=[], kids=familyChildren(c.id), parent=familyParent(c), ed=(typeof canEdit==='function')&&canEdit();
+  if(ed && !parent){
+    const shut=amendmentShutWhy(c);
+    out.push({ k:'create', label:i18t('fa_create_amendment'), shut:shut||'' });
+    out.push({ k:'add', label:i18t('fa_link_existing') });
+    if(!kids.length) out.push({ k:'link', label:i18t('fa_link_parent') });
+  }
+  if(kids.length||parent) out.push({ k:'check', label:i18t('fa_check_family') });
+  if(ed && parent) out.push({ k:'unlink', label:i18t('fa_unlink') });
+  return out;
+}
+function familyActRun(c, k, again){
+  if(!c) return false;
+  const back=again||(()=>{ renderFamilySection(getContract(c.id),{ bare:true, drawn:true }); });
+  if(k==='create'){ if(amendmentShutWhy(c)) return false; openCreateAmendmentModal(c); return true; }
+  if(k==='add'){ openLinkModal(c, back, {mode:'parent'}); return true; }
+  if(k==='link'){ openLinkModal(c, back, {mode:'child'}); return true; }
+  if(k==='unlink'){ unlinkContract(c, back); return true; }
+  if(k==='check'){
+    let body=''; try{ body=familyCheckReport(c); }catch(_){ body=''; }
+    if(!body) return false;
+    if(window.confirmDialog) confirmDialog({ title:i18t('fa_check_family'), message:body, multiline:true, confirmLabel:i18t('ct_close')||'Close', cancelLabel:'' });
+    else if(window.toast) toast(body,'ok');
+    return true;
+  }
+  return false;
+}
+/* the rows as drawn: "MK-0377-A1 · Amendment No. 1 · signed 28 Sep 2026 ·
+   Bring it up" — the member's ref, what it is in this family, when it was
+   signed (contractSignedLabel), and the one door that brings its page up */
+function familyDrawnRowsHtml(c){
+  const kids=familyChildren(c.id), parent=familyParent(c);
+  const list=parent?[parent]:kids;
+  if(!list.length) return '';
+  const R=(typeof RELATION_LABEL==='object'&&RELATION_LABEL)||{};
+  const seen={};
+  return `<div class="fam-drawn">${list.map(x=>{
+    let what;
+    if(x===parent) what=i18t('bs_fam_original');
+    else { const rel=x.relation||'amendment'; seen[rel]=(seen[rel]||0)+1; what=(typeof bsT==='function'?bsT:i18t)('bs_fam_nth',{ word:R[rel]||R.amendment||'Amendment', n:seen[rel] }); }
+    let signed=''; try{ signed=(window.contractSignedLabel&&contractSignedLabel(x))||''; }catch(_){ signed=''; }
+    if(signed) signed=i18t('fa_signed_on',{ d:signed });
+    return `<div class="fam-drow"><b class="hati-ref">${_famEsc(window.contractRef?contractRef(x):x.id)}</b><span class="fam-dw">${_famEsc([what,signed].filter(Boolean).join(' \u00b7 '))}</span><button type="button" class="ui-btn ui-btn-sm" data-fam-bring="${_famAttr(x.id)}">${_famEsc(i18t('pd_cg_bring'))}</button></div>`; }).join('')}</div>`;
+}
 function renderFamilySection(c,opts){
   const bare=!!(opts&&opts.bare);
+  const drawn=!!(opts&&opts.drawn);
   const host=document.getElementById('family-section'); if(!host) return;
   if(!c){ host.innerHTML=''; return; }
   const kids=familyChildren(c.id), parent=familyParent(c);
@@ -718,6 +772,27 @@ function renderFamilySection(c,opts){
      canEdit, because it writes nothing and spends nothing. */
   if(kids.length||parent)
     acts.push(`<button id="fam-check" style="${btn}">${i18t('fa_check_family')}</button>`);
+  if(drawn){
+    const band=(suggested.length&&!c.parentId&&!c.linkConfirmed)?`
+        <div style="margin-top:10px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:var(--radius);padding:9px 11px">
+          <div style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--st-amber-fg);margin-bottom:3px">${i18t('fa_reads_like_amendment')}</div>
+          <div style="font-size:var(--t-meta);color:var(--st-amber-fg);line-height:1.5">${i18t('fa_hati_proposed',{ids:suggested.map(s=>`<b>${_famEsc(window.contractRef?contractRef(getContract(s.id)):s.id)}</b>`).join(', ')})} <b>${i18t('fa_nothing_linked')}</b>${i18t('fa_confirm_or_standalone')}</div>
+          ${canEdit()?`<div style="display:flex;gap:6px;margin-top:var(--s-2)"><button id="fam-confirm" style="${btn};border-color:var(--color-accent);color:var(--accent-ink)">${i18t('fa_review_suggestion')}</button>
+            <button id="fam-standalone" style="${btn}">${i18t('fa_its_standalone')}</button></div>`:''}
+        </div>`:'';
+    const rows=familyDrawnRowsHtml(c);
+    host.innerHTML=`<div class="fam-drawn-wrap">${amendChangesHtml(c)}${rows||`<p class="fam-none">${_famEsc(i18t('fa_related_none'))}</p>`}${band}</div>`;
+    const againD=()=>{ renderFamilySection(getContract(c.id),{ bare:true, drawn:true }); if(typeof renderAuditSection==='function') renderAuditSection(getContract(c.id)); };
+    host.querySelectorAll('[data-fam-bring]').forEach(b=>b.addEventListener('click',()=>{ const id=b.getAttribute('data-fam-bring');
+      if(typeof hbStripBring==='function'&&!(typeof window!=='undefined'&&window.innerWidth<768)){ if(hbStripBring(id)!==false&&typeof pdHeldLand==='function') pdHeldLand('page',id); } else openWorkspace(id); }));
+    document.getElementById('fam-confirm')?.addEventListener('click',()=>openLinkModal(c, againD, {mode:'child'}));
+    document.getElementById('fam-standalone')?.addEventListener('click',()=>{
+      logLinkDecision(c,false); persist(c); toast(`${(window.contractRef?contractRef(c):c.id)} confirmed as a standalone agreement`,'ok'); againD();
+      if(typeof updateSidebarCounts==='function') updateSidebarCounts();
+    });
+    amendChangesWire(c, againD);
+    return;
+  }
   host.innerHTML=`
     <div style="padding:var(--s-4) 18px">
       <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1)${bare&&!(canEdit()&&parent)?';display:none':''}">
@@ -1353,7 +1428,7 @@ async function unlinkContract(c, onDone){
 }
 
 Object.assign(window,{familyOrder,familyCheck,amendmentShutWhy,amendSetsValue,effectiveExpiryFrom,asAmendedItems,asAmendedHtml,effectiveTerm,effectiveValueView,EFFECTIVE_TERMS,amendSuggestions,amendChangesHtml,amendmentItemHtml,amendParentClauses,amendParentText,amendParentHtml,FAMILY_TERMS,familyAgreement,familyAgreeLine,
-  openLinkModal,unlinkContract,renderFamilySection,
+  openLinkModal,unlinkContract,renderFamilySection,familyActs,familyActRun,familyDrawnRowsHtml,
   openCreateAmendmentModal,createAmendment,amendmentDefaultName,amendmentOrdinal,
   amendmentSkeletonBody,RELATION_DOC_WORD,FAMILY_BLANK_BODY,
   CONTRACT_RELATIONS,RELATION_LABEL,TERM_CHANGING,isRelation,

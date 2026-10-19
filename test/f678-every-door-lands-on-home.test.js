@@ -220,8 +220,10 @@ describe('f678 (3) Open party opens Home\'s Contracts place, narrowed to the par
     assert.equal(v.state.reg.show, 'list');
     for (const junk of [{ ids: 'MK-1' }, { ids: [1, 2] }, { ids: [] }, null]){ v.regPlacePut({ scope: null, st: { only: junk } }); assert.equal(v.state.reg.only, null, JSON.stringify(junk)); }
     v.regPlacePut({ scope: null, st: { show: 'gallery' } }); assert.equal(v.state.reg.show, 'wall', 'an unknown way of looking is the Wall');
-    assert.match(IG, /function igWallPlace\(\)\{ return \{ scope:null, st:\{ \.\.\.\(state\.reg\|\|\{\}\) \} \}; \}/, 'Home\'s pair carries the place\'s own state');
-    assert.match(IG, /function igWallPlacePut\(p\)\{[^\n]*regPlacePut\(\{ scope:null, st:p\.st \}\)/);
+    /* RE-POINTED (round 13 gaps, 18 Oct 2026): the pair carries the paper
+       chosen on the wall and how far it is opened beside the place's state */
+    assert.match(IG, /function igWallPlace\(\)\{ return \{ scope:null, st:\{ \.\.\.\(state\.reg\|\|\{\}\) \}, chosen:/, 'Home\'s pair carries the place\'s own state');
+    assert.match(IG, /function igWallPlacePut\(p\)\{[\s\S]{0,200}?regPlacePut\(\{ scope:null, st:p\.st \}\)/);
   });
   /* THE NUMBER PRESSED IS THE NUMBER READ (the Six Questions' sixth) */
   test('3g narrowed, the count line counts agreements as Parties does, an amendment said beside them, out of the set', () => {
@@ -230,10 +232,16 @@ describe('f678 (3) Open party opens Home\'s Contracts place, narrowed to the par
     const ctx = { Array, i18t: (k, v) => `${k}[${v.k} of ${v.n}]`, i18tn: (k, n) => `${k}#${n}` };
     vm.createContext(ctx); vm.runInContext(IG.slice(a, b) + '\nthis.words=igWallCountWords;', ctx);
     const w = world();
-    assert.equal(ctx.words(w.regFiltered(), { base: w.regRestBase() }), 'igw_count[4 of 4]', 'open: every paper drawn, out of the book at rest');
+    /* RE-POINTED (round 13 gaps, 18 Oct 2026): at rest the line says the book
+       as drawn; RE-POINTED AGAIN (pass 3, 18 Oct 2026: the head's "N live" and
+       this line must be one number) — in the head's unit, an amendment counted
+       with its agreement and the closed among them said; narrowed, "k of n" */
+    /* RE-POINTED AGAIN (pass 4, round 13 as drawn: "48 contracts  newest
+       first"): the agreements, and nothing added to the line */
+    assert.equal(ctx.words(w.regFiltered(), { base: w.regRestBase() }), 'igw_count_all#3', 'open: the agreements, an amendment riding with its own');
     w.regShowOnly(['MK-1', 'MK-3', 'MK-2'], 'Naivas', { party: true });
     const R = w.state.reg;
-    assert.equal(ctx.words(w.regFiltered(), { only: R.only, base: w.regRestBase() }), 'igw_count[2 of 2] · int_dep_amend#1', 'the agreements Parties counted, the amendment beside them');
+    assert.equal(ctx.words(w.regFiltered(), { only: R.only, base: w.regRestBase() }), 'igw_count[2 of 2]', 'the agreements Parties counted');
     R.stage = 'Signed';
     assert.equal(ctx.words(w.regFiltered(), { only: R.only, base: w.regRestBase() }), 'igw_count[1 of 2]', 'a tab narrows k, never n');
     /* ANY OTHER SET IS COUNTED WHOLE (the checkers of step 7: the Board's
@@ -244,7 +252,7 @@ describe('f678 (3) Open party opens Home\'s Contracts place, narrowed to the par
     /* THE ARCHIVE SHELF IS ITS OWN BOOK: "of n" is the shelf, never the book
        at rest that holds none of it */
     w.regGoFiltered({ view: 'archived' });
-    assert.equal(ctx.words(w.regFiltered(), { base: w.regRestBase() }), 'igw_count[1 of 1]', 'the shelf counted against the shelf');
+    assert.equal(ctx.words(w.regFiltered(), { base: w.regRestBase() }), 'igw_count_all#1', 'the shelf counted against the shelf');
   });
   test('3e the place\'s one set chip names the set and is its way out, on the Wall and the List, in both books', () => {
     const REGS = R('js/views/register.js');
