@@ -338,6 +338,26 @@ const BRAIN_PARTS = [
   ['settingsask', 'POST /api/settings-asks', 'wall', 2],
   ['settingsasks', 'GET /api/settings-asks', 'wall', 2],
   ['settingsanswer', 'PATCH /api/settings-asks/:id', 'wall', 2],
+  /* FINDINGS ON THE MAP (Explorer stage 4, 18 Oct 2026): a view kept for
+     colleagues, recounted for each reader inside their access, with replies,
+     and sent to a colleague as a tracked ask */
+  ['findings', 'igFindingsHtml', 'see', 0],
+  ['fdlist', 'GET /api/findings', 'wall', 2],
+  ['fdpin', 'POST /api/findings', 'wall', 2],
+  ['fddel', 'DELETE /api/findings/:id', 'wall', 2],
+  ['fdreply', 'POST /api/findings/:id/notes', 'wall', 2],
+  ['fdsend', 'POST /api/findings/:id/send', 'wall', 2],
+  ['fdseen', 'PATCH /api/findings/sends/:id', 'wall', 2],
+  /* JAMBO EXPLAINS THIS VIEW, HIS WORDS POINT (Explorer stage 3, 18 Oct 2026):
+     the view walked part by part from what the map drew, free; and the names
+     in his sentence lighting their parts, its figures checked */
+  ['mapwalk', 'igTourSteps', 'see', 0],
+  ['pointsay', 'igPointPaint', 'see', 0],
+  /* THEN AND NOW, AND A PICTURE (Explorer stage 5, 18 Oct 2026): the book as
+     it stood on a day against today, from the days the record keeps; and the
+     view on screen as a picture, made from the screen alone */
+  ['thennow', 'igAsOfData', 'see', 0],
+  ['mappicture', 'igPictureBlob', 'see', 0],
   /* JAMBO GUIDES THROUGH THE RULES, NEVER AROUND THEM (17 Oct 2026): one rule
      on every instruction that answers a person, and the rule's own button
      under his answer */
@@ -443,7 +463,7 @@ const BRAIN_FLOWS = [
   { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop', 'roundsettle'], ['ladder'], ['whosemove', 'decidedsend'], ['bell', 'home', 'needsme', 'counter', 'desktabs', 'negpage', 'boardviews', 'stands', 'stale', 'dealpaper', 'onepaper', 'answeronpaper'], ['webhook']] },
   { id: 'sign', steps: [['signface', 'signtab', 'linkcheck'], ['readiness', 'signgate', 'rules', 'paperjobs'], ['approvals', 'namedyes', 'decide', 'undoyes', 'rulestep', 'asks', 'approvalpaper', 'freshen', 'awaycard', 'awayget', 'awayset', 'awayend', 'awayreach', 'awaycovers', 'awayrec', 'awayans'], ['brief', 'playbook', 'blanks'], ['pad'], ['putguard', 'srvseal', 'sealtext'], ['seal', 'frozen', 'issuelinks'], ['obligations', 'renewal', 'calendar', 'mynotes', 'mine', 'myitems', 'myitemsget', 'myitemsput', 'myitemsdel', 'plan', 'keeptab', 'keepread', 'keepset', 'keeprun', 'keepbook', 'keeprec', 'cnrow', 'cnset', 'cndoor', 'cnmask', 'cnrec', 'cnlog'], ['email', 'copies']] },
   { id: 'night', steps: [['reminders', 'lanes', 'agentlevel', 'linkkeep', 'agentpieces', 'agentpoints'], ['renewal', 'renewact'], ['renewprep'], ['model', 'boardjudge', 'bookread'], ['db'], ['obligations'], ['email', 'boardmoved', 'looktell', 'invite'], ['desknight', 'home', 'needsme', 'counter', 'insights', 'readings', 'chasemany', 'draftreply', 'agentoutcome', 'agentprepared', 'agentrebuild', 'piecesget', 'jambohouse']] },
-  { id: 'ask', steps: [['copilotask', 'jambomap', 'onesearch', 'menuask', 'nextsteps', 'reflink', 'menutab', 'strip', 'homepaper', 'breakdown', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook', 'stackview'], ['db', 'dealfacts', 'brainread', 'privwall', 'privopens', 'privmoney', 'privtrail', 'histlanes', 'histsays', 'payread'], ['model', 'settingswhy', 'govrule', 'breakread', 'breakdive', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote', 'citedoor', 'walkset', 'paperdesk'], ['contracts', 'contractsplace', 'chosenpaper', 'customers', 'directory', 'passroute', 'lookask', 'copilotdoors', 'ruledoor'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] },
+  { id: 'ask', steps: [['copilotask', 'jambomap', 'onesearch', 'menuask', 'nextsteps', 'reflink', 'menutab', 'strip', 'homepaper', 'breakdown', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook', 'stackview', 'mapwalk', 'pointsay', 'thennow', 'mappicture', 'findings'], ['db', 'dealfacts', 'brainread', 'privwall', 'privopens', 'privmoney', 'privtrail', 'histlanes', 'histsays', 'payread', 'fdlist', 'fdpin', 'fddel', 'fdseen'], ['model', 'settingswhy', 'govrule', 'breakread', 'breakdive', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote', 'citedoor', 'walkset', 'paperdesk'], ['contracts', 'contractsplace', 'chosenpaper', 'customers', 'directory', 'passroute', 'lookask', 'copilotdoors', 'ruledoor', 'fdsend', 'fdreply'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] },
   /* THE OVERNIGHT REVIEW'S FLOWS (9 Oct 2026): the commonest start, a request,
      the other side's signature, an amendment, the end of a contract, and the
      ways a step can go wrong — none of which the six flows above walked. */
@@ -473,7 +493,7 @@ const BRAIN_LANE_OF = {
     'editor', 'baton', 'askkeep', 'risklist', 'riskwalk', 'stands', 'dealpaper', 'onepaper', 'decidedsend', 'signtab', 'signface', 'pad', 'calendar', 'desknight', 'insights', 'readings',
     'chasemany', 'copilotask', 'jambomap', 'menuask', 'nextsteps', 'reflink', 'menutab', 'amendface', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs',
     'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'contractsplace', 'customers', 'directory', 'cellfold',
-    'readchips', 'nextq', 'newagr', 'essentials', 'tplform', 'details', 'fillface', 'outbyhand', 'amend', 'endpause', 'decline', 'reopen', 'archive', 'hold', 'served', 'obdone', 'inline', 'stackview', 'mynotes', 'breakdown', 'jambohouse', 'onesearch', 'totpcount', 'totpnew'],
+    'readchips', 'nextq', 'mapwalk', 'pointsay', 'thennow', 'mappicture', 'findings', 'newagr', 'essentials', 'tplform', 'details', 'fillface', 'outbyhand', 'amend', 'endpause', 'decline', 'reopen', 'archive', 'hold', 'served', 'obdone', 'inline', 'stackview', 'mynotes', 'breakdown', 'jambohouse', 'onesearch', 'totpcount', 'totpnew'],
   /* HaTi itself: the readings, Copilot, the agents, the server's checks, the mail it sends */
   hati: ['docx', 'clauses', 'putguard', 'db', 'privwall', 'privsave', 'privlist', 'privseen', 'privopens', 'privmoney', 'trailsum', 'traillist', 'trailexport', 'trailrec', 'bzget', 'bzsave', 'bzholder', 'bzrec', 'arread', 'armark', 'ardone', 'arrec', 'awayget', 'awayset', 'awayend', 'awayreach', 'awaycovers', 'awayrec', 'awayans', 'keepread', 'keepset', 'keeprun', 'keepbook', 'keeprec', 'cnset', 'cndoor', 'cnmask', 'cnrec', 'cnlog', 'payread', 'jbpress', 'ndaread', 'triage', 'arrivalowed', 'datedwin', 'brief', 'playbook', 'oblscan', 'risk', 'model', 'blanks', 'laneowner',
     'funnel', 'desk', 'ladder', 'kept', 'asks', 'payload', 'shares', 'linkcheck', 'email', 'sharemail', 'turnmail', 'wordmark', 'whosemove', 'roundauto',
@@ -481,7 +501,7 @@ const BRAIN_LANE_OF = {
     'frozen', 'obligations', 'renewal', 'reminders', 'lanes', 'agentlevel', 'linkkeep', 'renewact', 'renewprep', 'boardjudge', 'bookread',
     'boardmoved', 'looktell', 'draftreply', 'dataguide', 'analyst', 'story', 'quote', 'passroute', 'copilotdoors', 'govrule', 'factsheet', 'dealfacts',
     'boardmarks', 'pdf', 'intake', 'mailroom', 'wordfile', 'issuelinks', 'filesig', 'srvseal', 'copies', 'autorenew', 'leaveguard', 'discard',
-    'freshen', 'sealtext', 'brainread', 'mine', 'myitems', 'myitemsget', 'myitemsput', 'myitemsdel', 'plan', 'breakread', 'breakdive', 'agentpieces', 'roundsettle', 'piecesget', 'agentoutcome', 'agentprepared', 'agentrebuild', 'agentpoints', 'invite', 'settingswhy', 'settingsasks'],
+    'freshen', 'sealtext', 'brainread', 'mine', 'myitems', 'myitemsget', 'myitemsput', 'myitemsdel', 'plan', 'breakread', 'breakdive', 'agentpieces', 'roundsettle', 'piecesget', 'agentoutcome', 'agentprepared', 'agentrebuild', 'agentpoints', 'invite', 'settingswhy', 'settingsasks', 'fdlist', 'fdpin', 'fddel', 'fdreply', 'fdsend', 'fdseen'],
   /* the counterparty: their link, the code that proves it is them */
   them: ['cplink', 'guestcode', 'theirsign']
 };

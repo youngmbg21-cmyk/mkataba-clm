@@ -10046,6 +10046,8 @@
   .ig-brain .ig-badge-txt{font-size:9px;font-family:var(--font-body)}
   .ig-brain .ig-node.dim{opacity:.3}
   .ig-brain .ig-note{position:absolute;left:12px;top:10px;z-index:2;max-width:calc(100% - 24px);width:max-content;box-sizing:border-box;padding:4px 10px;font-size:var(--t-meta);line-height:1.5;color:var(--hb-mute,#8FB5AD);background:var(--hb-card,rgba(4,25,26,.82));border:1px solid rgba(var(--hb-ln,160,220,210),.22);border-radius:var(--radius)}
+  /* the head line keeps clear of Group by in the stage's other corner: a long line wraps (Explorer stage 3) */
+  .ig-brain:has(.hb-groupby-stage:not([hidden])) .ig-note{max-width:calc(100% - 250px)}
   .ig-brain .ig-note:empty{display:none}
   .ig-brain .ig-note .text-ink,.ig-brain .ig-note b{color:#FFFFFF}
   .ig-brain .ig-note .text-ink\/60,.ig-brain .ig-note .text-ink\/40,.ig-brain .ig-note .ig-cliff{color:var(--hb-mute,#8FB5AD)}
@@ -10065,6 +10067,40 @@
   /* the empty floor's door (Explorer stage 2): the view bar's own clothes, placed under its floor each frame */
   .ig-brain .ig-floor-door{all:unset;position:absolute;left:0;top:0;z-index:2;cursor:pointer;height:20px;padding:0 8px;font-size:11px;font-weight:500;line-height:20px;white-space:nowrap;color:var(--hb-ink,#E6F2EF);background:var(--hb-fig,rgba(4,25,26,.88));border:1px solid rgba(var(--hb-ln,160,220,210),.22);border-radius:var(--radius);box-sizing:border-box}
   .ig-brain .ig-floor-door[hidden]{display:none}
+  /* Jambo explains this view (Explorer stage 3): the walk's sentences, each a press; the one being said is lit */
+  .ig-tour{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:4px}
+  .ig-tour-s{all:unset;box-sizing:border-box;display:block;width:100%;cursor:pointer;padding:5px 9px;border-radius:var(--radius);border:1px solid var(--color-divider);font-size:13px;line-height:1.45;color:var(--color-text)}
+  .ig-tour-s:hover{border-color:var(--accent-solid)}
+  .ig-tour-s.is-on{border-color:var(--accent-solid);box-shadow:inset 3px 0 0 var(--accent-solid)}
+  .ig-tour-s.is-attn.is-on{box-shadow:inset 3px 0 0 #F2B24C}
+  .ig-tour-s:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
+  /* sentences that point (stage 3): a part's name in Jambo's sentence lights it; the figures line under it */
+  .ig-point{all:unset;cursor:pointer;color:var(--accent-ink);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
+  .ig-point:hover,.ig-point.is-on{text-decoration-style:solid}
+  .ig-point.is-on{text-decoration-thickness:2px;font-weight:var(--w-strong,600)}
+  .ig-point:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
+  .igd-figs{font-size:12px;color:var(--color-text);opacity:.75;padding:0 4px}
+  .igd-figs.is-off{color:var(--st-amber-fg);opacity:1}
+  /* findings on the map (Explorer stage 4): one card per finding, the work owed first */
+  .ig-fd-list{display:flex;flex-direction:column;gap:10px}
+  .ig-fd{border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:10px 12px;display:flex;flex-direction:column;gap:5px;font-size:13px;line-height:1.45;color:var(--color-text)}
+  .ig-fd.is-open{border-color:var(--accent-solid)}
+  .ig-fd-t{font-weight:var(--w-strong,600)}
+  .ig-fd-m,.ig-fd-empty{font-size:12px;opacity:.75}
+  .ig-fd-ask{font-size:12.5px}
+  .ig-fd-ask.is-owed{background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:var(--radius);padding:4px 8px}
+  .ig-fd-s{border-left:3px solid var(--accent-solid);padding-left:8px}
+  .ig-fd-p{font-size:12px;color:var(--st-amber-fg)}
+  .ig-fd-c ul{margin:4px 0 0;padding-left:16px}
+  .ig-fd-d.is-up,.ig-fd-d.is-down{font-weight:var(--w-strong,600)}
+  .ig-fd-r{display:flex;flex-direction:column;gap:3px;border-top:1px solid var(--color-divider);padding-top:5px}
+  .ig-fd-a{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+  .ig-fd-form{display:flex;flex-direction:column;gap:5px}
+  .ig-fd-l{font-size:12px;font-weight:var(--w-label,500)}
+  .ig-fd-in{box-sizing:border-box;width:100%;font:inherit;font-size:13px;color:var(--color-text);background:transparent;border:1px solid var(--color-divider);border-radius:var(--radius);padding:5px 8px;resize:vertical}
+  .ig-fd-in:focus-visible{outline:2px solid var(--accent-solid);outline-offset:0}
+  .ig-fd select{max-width:100%}
+  .ig-fd-pinform{border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:10px 12px}
   .ig-brain .ig-floor-door:hover{border-color:#F2B24C}
   .ig-brain .ig-floor-door:focus-visible{outline:2px solid #F2B24C;outline-offset:1px}
   #ig-page.hb-light .ig-brain .ig-floor-door{background:rgba(255,255,255,.86);border-color:rgba(14,95,88,.22);color:var(--hb-ink)}

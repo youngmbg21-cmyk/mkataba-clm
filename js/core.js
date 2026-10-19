@@ -2536,6 +2536,8 @@ function startApp(){
   if(API_MODE()){ refreshStats(); refreshShareOverview(); refreshWaitingQuestions(); pollPendingResponses(); refreshAiUsage();
     /* asks to an admin, and their answers, reach the bell from the start */
     if(window.stAsksLoad){ _asksAt=Date.now(); try{ stAsksLoad(); }catch(_){} }
+    /* findings on the map sent to this reader, and replies to their questions (Explorer stage 4) */
+    if(window.igFindingsLoad) try{ igFindingsLoad(); }catch(_){}
     schedulePolling();
     /* Coming back to the tab is when a person expects to be up to date. */
     if(!window._pollFocusBound){
@@ -9852,7 +9854,7 @@ async function pollNow(reason){
   await pollThreadMessages();
   /* ASK AN ADMIN (16 Oct 2026): a colleague's ask reaches an admin's bell, and
      the answer the asker's, during the sitting — read at most every two minutes */
-  if(window.stAsksLoad && t-_asksAt>=ASKS_EVERY_MS){ _asksAt=t; try{ stAsksLoad(); }catch(_){} }
+  if(window.stAsksLoad && t-_asksAt>=ASKS_EVERY_MS){ _asksAt=t; try{ stAsksLoad(); }catch(_){} if(window.igFindingsLoad) try{ igFindingsLoad(); }catch(_){} }
 }
 const ASKS_EVERY_MS=120000;
 let _asksAt=0;
