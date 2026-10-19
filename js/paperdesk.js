@@ -1429,12 +1429,18 @@ function pdTalkSync(dock){
   const len = H.length;
   /* a new page begins where the last page drawn left off: words put in the
      conversation since (a question asked as the page arrived) are this page's */
-  if (jamboTalkLand(k)){ const from = Math.min(len, _pdTalk.last == null ? len : _pdTalk.last); _pdTalk = { from, seen: from }; }
+  /* AN ANSWER STILL ON ITS WAY BELONGS TO THE PAGE THAT ASKED (19 Oct 2026):
+     a page that lands while Jambo is busy marks it stale; the late words (no
+     question of this page's among them) fall before this page's conversation,
+     never turning its panel (jambo-tab-and-back-verify 2a) */
+  if (jamboTalkLand(k)){ const from = Math.min(len, _pdTalk.last == null ? len : _pdTalk.last); _pdTalk = { from, seen: from, stale: !!(typeof intel === 'object' && intel && intel.busy) }; }
   /* A CONVERSATION THAT SHRANK (an exchange put away, the bin, a reset) lost
      words from BEFORE the ones drawn: where this page's words begin moves back
      with them, so what was on screen stays on screen (one-sheet-as-drawn 14) */
   if (_pdTalk.last != null && len < _pdTalk.last){ _pdTalk.from = Math.max(0, _pdTalk.from - (_pdTalk.last - len)); _pdTalk.seen = Math.min(_pdTalk.seen, len); }
   if (len < _pdTalk.from) _pdTalk = { from: len, seen: len };
+  if (_pdTalk.stale && len > _pdTalk.seen){ const H1 = H.slice(_pdTalk.seen); if (!H1.some(m => m && m.role === 'user')) _pdTalk.from = _pdTalk.seen = len; else _pdTalk.stale = false; }
+  if (_pdTalk.stale && !(typeof intel === 'object' && intel && intel.busy)) _pdTalk.stale = false;
   _pdTalk.last = len;
   if (k.indexOf('dock:') !== 0) return false;
   /* NOTHING SAID HERE, NO CONVERSATION VIEW (19 Oct 2026): a conversation
