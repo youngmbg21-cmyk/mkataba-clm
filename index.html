@@ -3970,13 +3970,19 @@
   @media (min-width:981px){
     body:has(#set-page.st-cr) #page-head{ display:none; }
     .st-cr.st-page{ padding-bottom:0; }
-    .st-cr .st-cr-cols{ grid-template-columns:minmax(0,1fr) 380px; column-gap:var(--s-4); }
+    .st-cr .st-cr-cols{ grid-template-columns:minmax(0,1fr) var(--st-side-w,380px); column-gap:var(--s-4); }
     .st-cr .st-side{ top:0; margin:calc(-1 * var(--page-pad-t)) calc(-1 * var(--page-pad-x)) 0 0;
       border:0; border-left:1px solid var(--color-divider); border-radius:0; box-shadow:none; }
     .st-cr.is-side-folded .st-cr-cols{ grid-template-columns:minmax(0,1fr) 46px; }
     .st-cr .st-cr-cols > .st-side.is-folded{ height:var(--st-side-h,560px); }
+    /* THE SLIDER (owner, 19 Oct 2026): the divider's grip (splitHtml, Home's
+       .ig-resizer dress) starts ON the panel's hairline — the seam — and the
+       track beside the board is --st-side-w, which the divider writes on the
+       page (stSplit's apply); where nobody has chosen it rests at the track's
+       own width, 380 here and 344 from 981 to 1400 */
+    .st-cr .st-side > .ig-resizer{ left:-1px; }
   }
-  @media (min-width:981px) and (max-width:1400px){ .st-cr .st-cr-cols{ grid-template-columns:minmax(0,1fr) 344px; } }
+  @media (min-width:981px) and (max-width:1400px){ .st-cr .st-cr-cols{ grid-template-columns:minmax(0,1fr) var(--st-side-w,344px); } }
   /* A CARD'S DOOR OPENS ITS PAGE (round 25 as drawn, the gaps' third pass):
      the one drawer, docked in the page's main column under "‹ Settings" —
      a white card, no scrim, no slide, its own × gone (‹ Settings, Done,
@@ -10451,7 +10457,9 @@
   /* ---- THE DIVIDER BESIDE THE PANEL (27 Sep 2026) ----
      The Document tab's and the Negotiate page's handle, the same values: a
      14px press over the seam, a 4px grip in the quiet grey, the accent under
-     the pointer and while dragging, amber at a floor. */
+     the pointer and while dragging, amber at a floor. Since 19 Oct 2026 it is
+     THE ONE DRESS of every Jambo panel's divider (splitHtml, js/components.js:
+     Home, the panel beside the lists and Import, Settings). */
   .ig-resizer{position:absolute;top:0;bottom:0;width:14px;z-index:6;cursor:col-resize;
     display:flex;align-items:center;justify-content:center;touch-action:none}
   .ig-resizer[hidden]{display:none}
@@ -14013,9 +14021,14 @@
      and width (IG_DOCK_W0, 380), and the page beside it takes the rest — the
      page head and the page's scroller give it their right edge, and the grid
      that held it as a card keeps one column. Folded, it is a 46px strip with
-     his face (Home's own door, .igd-door). */
+     his face (Home's own door, .igd-door).
+     THE SLIDER (owner, 19 Oct 2026: "all the new jambo panels do not have a
+     slider like in the redline page"): its width is ONE value, --jl-w, which
+     the divider writes on the shell (jlSplit's apply, js/views/inspector.js)
+     and the panel, the page head and the page's scroller all read — 380 where
+     nobody has chosen. */
   #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #page-head,
-  #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll{margin-right:380px;}
+  #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll{margin-right:var(--jl-w,380px);}
   #app-shell:has(#content .ins-panel.is-jambo.is-folded):not(:has(#content [hidden] .ins-panel.is-jambo)) #page-head,
   #app-shell:has(#content .ins-panel.is-jambo.is-folded):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll{margin-right:46px;}
   #content :has(> #ins-panel.is-jambo){grid-template-columns:minmax(0,1fr);column-gap:0;}
@@ -14032,9 +14045,13 @@
      19 Oct 2026); the --s-3 below it is the page's. A bare :last-child
      under body:has() made every element's style hang on the :has (home-speed-verify 1). */
   #content .sap-page.ap-page{padding-top:var(--s-3);}
-  #content .ins-panel.is-jambo{position:fixed;right:0;top:var(--jl-top,88px);bottom:0;width:380px;z-index:20;display:flex;flex-direction:column;overflow:hidden;
+  #content .ins-panel.is-jambo{position:fixed;right:0;top:var(--jl-top,88px);bottom:0;width:var(--jl-w,380px);z-index:20;display:flex;flex-direction:column;overflow:hidden;
     border:0;border-left:1px solid var(--color-neutral-300);border-radius:0;box-shadow:-10px 0 28px -20px rgba(43,43,45,.35);background:var(--color-surface);}
   #content .ins-panel.is-jambo.is-folded{width:46px;}
+  /* the divider's grip (splitHtml, Home's .ig-resizer dress): its press strip
+     starts ON the panel's hairline, so the strip's left edge is the seam and
+     the page's own scrollbar beside it stays pressable */
+  #content .ins-panel.is-jambo > .ig-resizer{left:-1px;}
   #content .ins-panel.is-jambo.is-folded > :not(.jl-door){display:none;}
   #content .ins-panel.is-jambo:not(.is-folded) > .jl-door{display:none;}
   #content .ins-panel.is-jambo .jl-door{height:100%;width:100%;display:flex;flex-direction:column;align-items:center;gap:10px;padding-top:14px;background:var(--color-accent-50);border:0;color:var(--accent-ink);cursor:pointer;font:inherit;}

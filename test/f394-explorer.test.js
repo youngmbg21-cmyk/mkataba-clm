@@ -77,12 +77,22 @@ describe('f394 (2) the » is gone; the › is kept', () => {
 });
 
 describe('f394 (3) the divider is the other two pages\' own', () => {
+  /* RE-POINTED 19 Oct 2026 (owner: "all the new jambo panels do not have a
+     slider like in the redline page. They should all have one."): Home's
+     divider was generalised, unchanged, into the ONE builder and wiring every
+     Jambo panel draws (splitHtml · splitFit · splitWire · splitClamp,
+     js/components.js); Home is its client (IG_SPLIT says where its panel
+     stands). Each claim below is the same claim, read where it now lives. */
+  const CMP = read('js/components.js');
+  const IG_HOST = (() => { const i = IG.indexOf('const IG_SPLIT = {'); return i < 0 ? '' : IG.slice(i, IG.indexOf('\n};', i) + 3); })();
   test('a separator stands on the row, named, reachable by keyboard, drawn hidden while the panel is folded', () => {
     const r = region(IG, 'renderIntel');
     assert.match(r, /<div id="ig-row" /);
-    assert.match(r, /<div id="ig-resizer" class="ig-resizer" role="separator" aria-orientation="vertical" tabindex="0"/);
-    assert.match(r, /int_drag_width/);
-    assert.match(r, /intel\.dockOpen\?'':' hidden'/);
+    assert.match(r, /splitHtml\(\{ id:'ig-resizer', min:IG_DOCK_MIN, hidden:!intel\.dockOpen \}\)/);
+    const b = code(region(CMP, 'splitHtml'));
+    assert.match(b, /class="ig-resizer\$\{[^}]*\}" role="separator" aria-orientation="vertical" tabindex="0"/);
+    assert.match(b, /o\.label \|\| 'int_drag_width'/, 'its name is int_drag_width');
+    assert.match(b, /\$\{o\.hidden \? ' hidden' : ''\}/);
     assert.match(r, /igWireSplit\(\);/);
     assert.equal((I18N.match(/^\s*int_drag_width:/mg) || []).length, 2, 'its words in both books');
   });
@@ -94,17 +104,22 @@ describe('f394 (3) the divider is the other two pages\' own', () => {
     assert.match(HTML, /\.ig-resizer:hover span,\.ig-resizer\[data-drag\] span,\.ig-resizer:focus-visible span\{background:var\(--color-accent\)\}/);
   });
   test('the drag is the POINTER\'S POSITION with a grab offset — the clause editor\'s mechanism — and the drag turns the width transition off', () => {
-    const w = code(region(IG, 'igWireSplit'));
+    assert.match(code(region(IG, 'igWireSplit')), /splitWire\(rez, IG_SPLIT\)/);
+    const w = code(region(CMP, 'splitWire'));
     /* RE-POINTED 6 Oct 2026: the strip's left edge is the seam now. */
-    assert.match(w, /grabDx=hb\.left-e\.clientX/);
-    assert.match(w, /r\.right-\(x\+grabDx\)/);
-    assert.match(w, /dock\.style\.transition='none'/);
-    assert.match(w, /rez\.dataset\.igSplitBound/, 'bound once per element');
-    assert.match(w, /'dblclick'[\s\S]*?_igDockSave\(null\)/, 'a double-click forgets the choice');
-    assert.match(w, /e\.key==='Home'\|\|e\.key==='Enter'/);
+    assert.match(w, /grabDx = hb\.left - e\.clientX/);
+    assert.match(w, /h\.edge\(\) - \(x \+ grabDx\)/);
+    assert.match(code(IG_HOST), /edge: \(\) => document\.getElementById\('ig-row'\)\.getBoundingClientRect\(\)\.right/, 'the far edge is the row\'s right');
+    assert.match(w, /h\.dragging\(true\)/);
+    assert.match(code(IG_HOST), /dock\.style\.transition=on\?'none':''/);
+    assert.match(w, /rez\.dataset\.splitBound/, 'bound once per element');
+    assert.match(w, /'dblclick'[\s\S]*?_splitSaveOf\(h, null\)/, 'a double-click forgets the choice');
+    assert.match(w, /e\.key === 'Home' \|\| e\.key === 'Enter'/);
   });
   test('the width rests at 380 where nobody has chosen, and the floors win: the panel 340, the column 420', () => {
     const win = world();
+    /* the one clamp is the builder's: loaded here as the browser loads it */
+    win.eval(CMP);
     assert.equal(win.IG_DOCK_W0, 380);
     assert.equal(win.igDockClamp(null, 1276), 380);
     assert.equal(win.igDockClamp(100, 1276), 340, 'the panel\'s floor');
@@ -115,17 +130,22 @@ describe('f394 (3) the divider is the other two pages\' own', () => {
     assert.match(IG, /const IG_SPLIT_KEY = 'hati\.v1\.igDockW';/);
     const writes = (code(IG).match(/_igDockSave\(/g) || []).length;
     /* RE-POINTED 27 Sep 2026 (c17): plus the one-time carry of the old widen
-       choice, inside _igDockPref. */
-    assert.ok(writes >= 5 && writes === (code(region(IG, 'igWireSplit')).match(/_igDockSave\(/g) || []).length
-      + (code(region(IG, '_igDockPref')).match(/_igDockSave\(/g) || []).length + 1, 'every write is inside the wiring or the one-time carry (plus the definition)');
+       choice, inside _igDockPref. RE-POINTED 19 Oct 2026: the wiring is the
+       one builder's, which writes only through the host's own save. */
+    assert.equal(writes, (code(region(IG, '_igDockPref')).match(/_igDockSave\(/g) || []).length + (code(IG_HOST).match(/save: w => _igDockSave\(w\)/g) || []).length + 1,
+      'every write is the host\'s save (the one wiring\'s door), the one-time carry, or the definition');
+    const sw = (code(region(CMP, 'splitWire')).match(/_splitSaveOf\(/g) || []).length;
+    assert.ok(sw >= 4 && (code(CMP).match(/_splitSaveOf\(/g) || []).length === sw, 'the builder writes only inside its wiring (the drag, the keys, the double-click)');
   });
   /* RE-POINTED 6 Oct 2026 (Young: the divider took presses aimed at the
      scrollbar): the 14px strip lies wholly on the panel's side of the seam. */
   test('the one layout pass: the width, the handle beside the seam, stood down when folded', () => {
-    const f = code(region(IG, 'igFitSplit'));
-    assert.match(f, /dock\.style\.width=w\+'px'/);
-    assert.match(f, /rez\.style\.right=\(w-14\)\+'px'/);
-    assert.match(f, /if\(!intel\.dockOpen\|\|!row\.clientWidth\)\{ rez\.hidden=true; return; \}/);
+    assert.match(code(region(IG, 'igFitSplit')), /splitFit\(rez, IG_SPLIT\)/);
+    const h = code(IG_HOST);
+    assert.match(h, /dock\.style\.width=w\+'px'/);
+    assert.match(h, /rez\.style\.right=\(w-14\)\+'px'/);
+    assert.match(h, /folded: \(\) => !intel\.dockOpen/);
+    assert.match(code(region(CMP, 'splitFit')), /if \(h\.folded\(\) \|\| \(typeof h\.off === 'function' && h\.off\(\)\) \|\| !\(avail > 0\)\)\{ rez\.hidden = true; return w; \}/);
     assert.match(code(region(IG, 'igSyncDockWidth')), /igFitSplit\(\)/, 'the › goes through the same pass');
   });
 });
