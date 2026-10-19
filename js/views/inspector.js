@@ -1227,8 +1227,10 @@ function jlWordsHtml(opt){
     const under = (l && typeof l === 'object' && l.src) ? l.src : (i === 0 ? src : '');
     return `<div class="jl-say">${face}<div class="jl-bub">${html}</div></div>${under ? `<p class="jl-src">${esc(under)}</p>` : ''}`;
   }).join('');
+  /* `say.after`: the caller's own escaped HTML under the chips — round 16's
+     "Jambo may change my calendar", the Calendar's own setting */
   return `<div class="jl-words" data-jl-words>${lines}${_jlChips.length ? `<div class="jl-chips">${_jlChips.map((c, i) =>
-    `<button type="button" class="jl-chip" data-jl-chip="${i}"${c.title ? ` title="${esc(c.title)}"` : ''}>${esc(c.label)}</button>`).join('')}</div>` : ''}</div>
+    `<button type="button" class="jl-chip" data-jl-chip="${i}"${c.title ? ` title="${esc(c.title)}"` : ''}>${esc(c.label)}</button>`).join('')}</div>` : ''}${say.after || ''}</div>
     <div id="jl-feed" class="jl-feed" aria-live="polite"></div>`;
 }
 /* ---- NEEDS YOU, AS ITS OWN SECTION (round 14: "Answer 2 redlines · Clause 7

@@ -160,10 +160,13 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
     const homeHead = await page.evaluate(() => ({ calHead: !!document.querySelector('#hb-cal .cal-head'),
       /* the lit tab is the desk's since 17 Oct 2026 (Round 2): Home's face in front */
       tab: (typeof deskKeyNow === 'function' && deskKeyNow() === 'home:calendar') ? 'calendar' : null,
-      more: !!document.querySelector('#hb-cal .cal-bar1 #cal-more') }));
-    check('1 on Home the calendar draws no second head; Home\'s Calendar tab is the lit one',
-      !homeHead.calHead && homeHead.tab === 'calendar', JSON.stringify(homeHead));
-    check('1 and its ⋯ stands at the end of the calendar\'s first bar', homeHead.more);
+      more: !!document.querySelector('#hb-cal .cal-bar1 #cal-more'), moreHead: !!document.querySelector('#hb-cal .cal-head #cal-more') }));
+    /* RE-POINTED 18 Oct 2026 (lane A4, round 16 as drawn): Home's own head is
+       not drawn on a computer since main's "‹ · HA · the page's name", so the
+       calendar draws its ONE head on Home — and the ⋯ stands at its end */
+    check('1 on Home the calendar draws its one head; Home\'s Calendar face is the one in front',
+      homeHead.calHead && homeHead.tab === 'calendar', JSON.stringify(homeHead));
+    check('1 and its ⋯ stands at the end of that head', homeHead.moreHead);
     check('1 the head prints no decisions line (the drawing has none)', shape.stat === '', shape.stat);
     /* RE-POINTED 10 Oct 2026 (Young: "one calendar" — Month · Week · Horizon) */
     check('1 three views, plain words, no count on the live one',
@@ -199,7 +202,10 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
     /* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2): the drawing's
        key names only the kinds that month carries. A relation, so it holds on
        whatever day this runs: one key entry per kind on the month, no more. */
-    check('1 the key names exactly the kinds on the month', shape.legend.length === shape.kindsOnMonth,
+    /* RE-POINTED 18 Oct 2026 (lane A4, round 16 as drawn): the key is the
+       drawing's five — Ours · Theirs · Contract date · Mine · Jambo's plan —
+       and its three parts are the layers' switches, so it is always drawn whole */
+    check('1 the key names the five as drawn', JSON.stringify(shape.legend) === JSON.stringify(['Ours', 'Theirs', 'Contract date', 'Mine', 'Jambo’s plan']),
       { legend: shape.legend, kinds: shape.kindsOnMonth });
 
     /* ---- 2. THE OWNER'S ONE CONSTRAINT ---- */

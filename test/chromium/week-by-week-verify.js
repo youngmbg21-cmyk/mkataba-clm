@@ -110,7 +110,9 @@ const check = (name, pass, detail) => {
     }, D);
     check('3a it opens on this week by the hour, five more weeks under it, Monday to Friday',
       C.view === 'week' && C.hours && C.rows === 5 && C.days === 5, JSON.stringify({ view: C.view, hours: C.hours, rows: C.rows, days: C.days }));
-    check('3b each later week says how many dates it holds', C.labels[1] === '3 dates' && C.labels[0] === '1 date' && C.labels[2] === 'nothing due', JSON.stringify(C.labels));
+    /* RE-POINTED 18 Oct 2026 (lane A4, round 16 as drawn: "26–30 Oct · 3 due"):
+       a week whose dates are all work owed says "N due", else "N dates" */
+    check('3b each later week says how many dates it holds', C.labels[1] === '3 due' && C.labels[0] === '1 due' && C.labels[2] === 'nothing due', JSON.stringify(C.labels));
     check('3c this week\'s Saturday promise stands on the Friday, saying its own day', C.sat.some(t => t.startsWith(C.satWord + ' · ')), JSON.stringify(C.sat));
     if (OUT) await page.screenshot({ path: path.join(OUT, 'week-by-week-calendar-1440x780.png') });
     await page.click(`#cal-wk-more .cal-wkm-d[data-cal-week="${D.wk2}"]`);

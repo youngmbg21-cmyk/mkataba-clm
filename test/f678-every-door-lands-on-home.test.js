@@ -133,7 +133,10 @@ describe('f678 (2) an Obligations row opens the Board\'s Obligations view', () =
     assert.doesNotMatch(open, /pdOpenOnHome/);
   });
   test('2b every row press hands over its key: double-click and Enter, the narrow row and its Open', () => {
-    assert.match(OB, /onOpen: k => \{ const r = byKey\.get\(k\); if\(r\) obOpenContract\(r\.cid, k\); \}/);
+    /* RE-POINTED 18 Oct 2026 (round 16 as drawn, lane A4): a renewal decision's
+       row opens the renewal card (needsYouGo) before an obligation's row opens
+       its contract's table — the same press, one more kind of row */
+    assert.match(OB, /onOpen: k => \{ const r = byKey\.get\(k\);[^\n]*if\(r\) obOpenContract\(r\.cid, k\); \}/);
     assert.match(OB, /data-obw-row="\$\{_obEsc\(o\.id\)\}" data-obw-cid="\$\{_obEsc\(o\.cid\)\}" data-obw-key="\$\{_obEsc\(okey\)\}"/);
     assert.match(OB, /data-obw-open="\$\{_obEsc\(o\.cid\)\}" data-obw-key="\$\{_obEsc\(okey\)\}"/);
     assert.match(OB, /const okey = obKeyOf\(o\.cid, o, o\._i\);/, 'the same key the inspector\'s rows carry');

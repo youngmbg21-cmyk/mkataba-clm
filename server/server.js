@@ -23847,6 +23847,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_my_items_user ON my_items(user_id, kind);
 `);
 const MY_KINDS = ['event', 'note', 'pref'];
+const MY_CAL_LEVELS = ['auto', 'ask', 'never'];   // "Jambo may change my calendar": On his own · Ask me first · Never
 const myDay = v => (/^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) && !isNaN(Date.parse(v))) ? String(v) : '';
 const myHm = v => /^([01]\d|2[0-3]):[0-5]\d$/.test(String(v || '')) ? String(v) : '';
 const myText = (v, n) => String(v == null ? '' : v).replace(/\u0000/g, '').trim().slice(0, n);
@@ -23876,7 +23877,9 @@ function myItemClean(kind, b, user, prev){
       createdAt: (prev && prev.createdAt) || now() } };
   }
   if (kind === 'pref'){
-    const lv = ['ask', 'auto'].includes(o.copilotLevel) ? o.copilotLevel : 'ask';
+    /* 'never' (round 16, the owner's "build all the gaps", 18 Oct 2026): Jambo
+       answers in words and offers nothing to add (POST /api/ai/plan reads it) */
+    const lv = MY_CAL_LEVELS.includes(o.copilotLevel) ? o.copilotLevel : 'ask';
     const hs = Math.max(0, Math.min(23, Number(o.dayStart) || 8)), he = Math.max(hs + 1, Math.min(24, Number(o.dayEnd) || 17));
     return { item: { copilotLevel: lv, dayStart: hs, dayEnd: he } };
   }
@@ -24031,6 +24034,15 @@ The person asks: ${q}`;
    anything); and every block left out says why (planBlocksCheck `left`). It
    still adds nothing: the browser's Add (or the person's own "Just do it"). */
 const PLAN_HORIZON_DAYS = 120;
+/* THE PERSON'S OWN "JAMBO MAY CHANGE MY CALENDAR" (their pref row): read here,
+   never taken from the body — Never lets him only answer in words. */
+function myCalLevel(userId){
+  try {
+    const row = db.prepare("SELECT json FROM my_items WHERE user_id=? AND kind='pref'").get(String(userId));
+    const j = row ? JSON.parse(row.json || '{}') : {};
+    return MY_CAL_LEVELS.includes(j.copilotLevel) ? j.copilotLevel : 'ask';
+  } catch (_) { return 'ask'; }
+}
 app.post('/api/ai/plan', auth, rlAiDeep, aiFeature('plan'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
@@ -24067,8 +24079,11 @@ app.post('/api/ai/plan', auth, rlAiDeep, aiFeature('plan'), aiBudgetGuard, capAi
           contractId: { type: 'string', description: 'The contract id the block is for, from the dates listed, or empty.' } },
           required: ['date', 'start', 'end', 'title'] } } }, required: ['blocks'] } },
   ];
+  /* NEVER: the person said he may not change their calendar — only words */
+  const never = myCalLevel(req.user.id) === 'never';
+  const useTools = never ? tools.filter(t => t.name === 'answer') : tools;
   const prompt = `You are Jambo, beside ${req.user.name || 'a lawyer'}'s calendar in a contract-management system. Write in ${lang}, plain words, short.
-${AI_GOVERNANCE_RULE}
+${AI_GOVERNANCE_RULE}${never ? '\nThe person has set that you may NEVER change their calendar: call answer only. Where they ask to plan, book or find time, say in words which free times would suit, and that nothing is added.' : ''}
 Today is ${wdOf(today)} ${today}. The days ahead: ${days}.
 Working hours are ${String(hs).padStart(2, '0')}:00 to ${String(he).padStart(2, '0')}:00, Monday to Friday.
 Contract dates (deadlines, expiries, duties) up to ${until}:
@@ -24085,7 +24100,7 @@ DO WHAT THEY ASK, NOTHING ELSE:
 - You cannot move, change or delete something already in the calendar: if asked, call answer, say so, and say that pressing the event opens it to change or delete.
 - Dates after ${until}: you cannot see them. Say so.`;
   try {
-    const resp = await anthropicMessages(key, 'deep', { max_tokens: 2000, tools, tool_choice: { type: 'any' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'plan', who: aiWho(req) });
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 2000, tools: useTools, tool_choice: { type: 'any' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'plan', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(x => x.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });

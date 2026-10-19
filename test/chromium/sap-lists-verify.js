@@ -169,14 +169,18 @@ const wait = async (page, fn, arg, ms = 5000) => {
       const heads = [...document.querySelectorAll('.ob-lt thead th')].map(th => th.textContent.trim());
       const un = document.querySelector('.ob-lt .ins-unassigned');
       const nobody = document.querySelectorAll('.ob-lt .ins-nobody').length;
-      const av = document.querySelectorAll('.ob-lt .ob-id .reg-av').length;
-      return { heads, un: un ? { t: un.textContent.trim(), c: getComputedStyle(un).color } : null, nobody, av,
+      const av = document.querySelectorAll('.ob-lt .ob-id .reg-av, .ob-lt .ob-id .obw-av').length;
+      const ring = document.querySelectorAll('.ob-lt .ob-id .obw-av.is-nobody').length;
+      return { heads, un: un ? { t: un.textContent.trim(), c: getComputedStyle(un).color } : null, nobody, av, ring,
         amber: getComputedStyle(document.documentElement).getPropertyValue('--st-amber-fg').trim() };
     }) : null;
     check('3a no money on the list, no Amount column', !!obs && !obs.heads.some(t => /amount/i.test(t)), obs ? obs.heads.join(' | ') : 'page missing');
-    check('3b an owner-less duty of ours says Unassigned, in grey', !!obs && !!obs.un && obs.un.t === 'Unassigned' && obs.nobody === 0,
-      obs ? JSON.stringify(obs.un) + ' · nobody ' + obs.nobody : 'page missing');
-    check('3c every row carries the counterparty\'s initials', !!obs && obs.av > 0, obs ? String(obs.av) : 'page missing');
+    /* RE-POINTED 18 Oct 2026 (lane A4, round 16 as drawn): the page draws who
+       acts as a face — a grey ring where nobody owns it, and the row's line
+       says "nobody owns it yet" in the quiet grey (never the amber alarm) */
+    check('3b an owner-less duty of ours says so, in grey', !!obs && !!obs.un && obs.un.t === 'nobody owns it yet' && obs.nobody === 0 && obs.ring > 0,
+      obs ? JSON.stringify(obs.un) + ' · nobody ' + obs.nobody + ' · ring ' + obs.ring : 'page missing');
+    check('3c every row carries a face: the other side\'s letters, our colleague\'s initials', !!obs && obs.av > 0, obs ? String(obs.av) : 'page missing');
     if (obUp) {
       await page.evaluate(() => { const r = document.querySelector('.ob-lt tbody tr[data-ins-row]'); if (r) r.click(); });
       await wait(page, () => !!document.querySelector('#ins-panel [data-ob-rem-more]'), null, 4000);
