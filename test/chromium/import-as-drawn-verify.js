@@ -204,8 +204,10 @@ const FILES = {
         check('6a the file\'s own words, its title, numbered where each fact was found', !!V && V.title === 'WAREHOUSE LEASE'
           && JSON.stringify(V.marks.map(m => m[1])) === JSON.stringify(['Bandari Warehousing Ltd', '1 April 2019', 'It renews by itself for a further year at a time unless it is ended three months before the term runs out.', 'KES 480,000'])
           && V.nums.join() === '1,2,3,4', JSON.stringify(V && { marks: V.marks, nums: V.nums }));
-        check('6b the bar: ‹ All files · Check 3 files · File n of 3', !!V && /All files/.test(V.bar) && /Check 3 files/.test(V.bar) && /File \d of 3/.test(V.bar), V && V.bar.replace(/\s+/g, ' '));
-        check('6c Jambo says why he was not sure, in the file\'s own words, and offers renews by itself', !!V && /Why I was not sure of the end: § 3 has no end date\. It reads: “It renews by itself/.test(V.why) && /90 days' notice/.test(V.why) && V.use, V && V.why.slice(0, 200));
+        /* re-pointed (fix pass, 19 Oct 2026): option 1's tabs as drawn — Check 3 · Decide N · Filed N — and Jambo's drawn sentence with the yearly reminder */
+        check('6b the bar: ‹ All files · Check 3 · Decide 1 · Filed 7 · File n of 3', !!V && /All files/.test(V.bar) && /Check 3/.test(V.bar) && /Decide 1/.test(V.bar) && /Filed 7/.test(V.bar) && /File \d of 3/.test(V.bar), V && V.bar.replace(/\s+/g, ' '));
+        check('6c Jambo says why he was not sure, in the file\'s own words, and offers renews by itself', !!V && /Why I was not sure of the end: § 3 has no end date\. It reads: “It renews by itself/.test(V.why)
+          && /3 months' notice\. If you choose that, HaTi will remind you each year before the notice day\./.test(V.why) && V.use, V && V.why.slice(0, 260));
         await shot(page, 'import-drawn-check-1440x780');
         if (await press('#mig-side [data-mig-use="renews"]', '6d Use: renews by itself')) {
           const F = await until(() => { const f = document.getElementById('mig-ck-facts'); const b = f && f.querySelector('[data-mig-file]'); const e = f && f.querySelector('[data-mig-f="expiryDate"]');
@@ -215,11 +217,43 @@ const FILES = {
           await page.click('#mig-ck-facts [data-mig-file]');
           const next = await until(was => { const id = migCheckId(); return id && id !== was ? id : null; }, before, 8000);
           const rec = await page.evaluate(async id => { try { await flushSaves(); } catch (_) {} try { const c = await api('contracts/' + encodeURIComponent(id));
-            return { needs: !!(c.migration && c.migration.needsReview), renew: c.metadata && c.metadata.renewalType, expiry: c.expiry || null, cp: c.counterparty }; } catch (e) { return { err: String(e && e.message) }; } }, lease);
+            const ob = (c.obligations || []).find(o => o.origin === 'renew-notice');
+            /* the notice day: the coming anniversary of 1 April 2019, less 90 days, the first still ahead of today */
+            const t = todayISO(); let want = '';
+            for (let y = 2020; y < 2200 && !want; y++){ const a = new Date(y, 3, 1); a.setDate(a.getDate() - 90); const iso = `${a.getFullYear()}-${String(a.getMonth() + 1).padStart(2, '0')}-${String(a.getDate()).padStart(2, '0')}`; if (iso >= t) want = iso; }
+            return { needs: !!(c.migration && c.migration.needsReview), renew: c.metadata && c.metadata.renewalType, expiry: c.expiry || null, cp: c.counterparty,
+              ob: ob && { due: ob.due, rec: ob.recurring, party: ob.party, ok: ob.due === want } }; } catch (e) { return { err: String(e && e.message) }; } }, lease);
           check('6e File it files it on the server: checked, renews by itself, no end date', rec.needs === false && rec.renew === 'evergreen' && !rec.expiry && rec.cp === 'Bandari Warehousing Ltd', JSON.stringify(rec));
+          check('6e2 and HaTi reminds you each year before the notice day: a yearly obligation of ours, on the server', !!rec.ob && rec.ob.ok && rec.ob.rec === 'annual' && rec.ob.party === 'ours', JSON.stringify(rec.ob));
           check('6f and the next file that waits comes up', !!next && next !== lease, String(next));
         }
       }
+
+      console.log('\n12 · not signed: import as a draft? (fix pass)');
+      const nkey = await page.evaluate(() => { const r = migRows().find(x => x.q && x.q.status === 'unsigned'); return r ? r.key : null; });
+      check('12a the draft NDA is held, not filed: "To check · not signed: import as a draft?"', !!nkey && await page.evaluate(k => { const r = migRowByKey(k); return r.st.k === 'check' && r.st.why === 'not signed: import as a draft?' && !migContracts().some(c => /NDA_Acme/.test((c.upload || {}).fileName || '')); }, nkey), String(nkey));
+      if (nkey){
+        const onIt = await until(k => migCheckId() === k ? true : null, nkey, 3000) || await page.evaluate(k => { migCheckTo(k); return migCheckId() === k; }, nkey);
+        const N = await until(() => { const f = document.getElementById('mig-ck-facts'), d = document.getElementById('mig-ck-doc'); if (!f || !d || !f.querySelector('[data-mig-unsigned]')) return null;
+          return { acts: [...f.querySelectorAll('[data-mig-unsigned]')].map(b => b.textContent.trim()), text: !!d.querySelector('.mig-ck-text'), as: (f.querySelector('[data-mig-ff="status"]') || {}).textContent || '' }; }, null, 5000);
+        check('12b in the walk it is a page: its own words, what it would be filed as, and three answers', !!onIt && !!N && N.text && N.acts.join() === 'Import as a draft,Import as signed,Skip' && /not signed: import as a draft\?/.test(N.as), JSON.stringify(N));
+        await shot(page, 'import-drawn-unsigned-1440x780');
+        if (N && await press('#mig-ck-facts [data-mig-unsigned="draft"]', '12c Import as a draft')){
+          const D = await until(() => { const c = migContracts().find(x => /NDA_Acme/.test((x.upload || {}).fileName || '')); return c ? { id: c.id, status: c.status, hash: c.hash || null, out: !!(c.migration && c.migration.executedOutside), on: migCheckId() } : null; }, null, 10000);
+          check('12c Import as a draft makes a draft — nothing sealed, not signed outside HaTi — and the walk stays on it', !!D && D.status === 'Draft' && !D.hash && !D.out && D.on === D.id, JSON.stringify(D));
+          const U = await until(() => { const b = document.querySelector('#mig-side [data-mig-use="party"]'); return b ? b.textContent : null; }, null, 5000);
+          check('12d no party marked: Jambo offers the one the file is made with — "Use: Acme Ltd"', U === 'Use: Acme Ltd', String(U));
+          if (U){ await page.click('#mig-side [data-mig-use="party"]');
+            const P = await until(() => { const e = document.querySelector('#mig-ck-facts [data-mig-f="counterparty"]'); return e && e.value === 'Acme Ltd' ? true : null; }, null, 3000);
+            check('12e a press fills the box; nothing is filed until File it', !!P && await page.evaluate(() => { const c = getContract(migCheckId()); return !!(c && c.migration && c.migration.needsReview); })); }
+        }
+      }
+      const SL = await page.evaluate(id => { const c = getContract(id); const box = document.createElement('div'); box.innerHTML = migSignedLineHtml(c); return box.textContent; }, lease);
+      check('12f signed where the file says so — never the start date', /^signed in Mombasa, 14 Mar 2019$/.test(SL), SL);
+      const tabs = await page.evaluate(() => [...document.querySelectorAll('.mig-ck-tab')].map(t => t.textContent.replace(/\s+/g, ' ').trim()));
+      check('12g the bar\'s tabs: Check · Decide · Filed', tabs.length === 3 && /^Check \d+$/.test(tabs[0]) && /^Decide \d+$/.test(tabs[1]) && /^Filed \d+$/.test(tabs[2]), JSON.stringify(tabs));
+      const head = await page.evaluate(() => (document.getElementById('mig-choose') || {}).textContent);
+      check('12h while checking, the head\'s button is "New batch"', head === 'New batch', String(head));
 
       console.log('\n7 · a refresh lands on the same file');
       const was = await page.evaluate(() => migCheckId());
@@ -233,6 +267,29 @@ const FILES = {
         check('7b ‹ All files goes back to the list', !!lst);
       }
     } else check('5 the lease to choose', false, 'not imported');
+
+    console.log('\n13 · the list after the fix pass');
+    await page.evaluate(() => { migPickSet(null); const all = document.querySelector('[data-mig-all]'); if (all) all.click(); });
+    const L13 = await page.evaluate(() => {
+      const rows = [...document.querySelectorAll('.mig-table tbody tr[data-row]')];
+      const dots = rows.map(r => r.querySelectorAll('.mig-dot').length).filter(n => n);
+      const lr = migContracts().find(c => /Warehouse/.test((c.upload || {}).fileName || ''));
+      const tr = lr && document.querySelector(`.mig-table tr[data-row="${lr.id}"]`);
+      return { dots, stream: tr && tr.querySelector('.mig-td-s').textContent, want: lr && FOLDERS[lr.folder] && FOLDERS[lr.folder].name, value: tr && tr.querySelector('.mig-td-v').textContent };
+    });
+    check('13a six marks on every row', L13.dots.length > 5 && L13.dots.every(n => n === 6), JSON.stringify(L13.dots));
+    check('13b one name for a stream: the list says it as the stream box does', !!L13.stream && L13.stream === L13.want, JSON.stringify([L13.stream, L13.want]));
+    check('13c the value with the period the file writes: "a year"', /^KES 480K a year$/.test(L13.value || ''), String(L13.value));
+    if (await press('.mig-table tr.is-none .mig-td-f', '13d the file with no text')){
+      const Z = await until(() => { const s = document.getElementById('mig-side'); const v = s && s.querySelector('[data-mig-ff="value"]'); return v ? { v: v.textContent, chip: !!s.querySelector('[data-mig-renews]') } : null; }, null, 4000);
+      check('13d nothing read is nothing known: no "No money passes", no renews chip', !!Z && !/No money passes/.test(Z.v) && !Z.chip, JSON.stringify(Z));
+    }
+    await page.evaluate(() => migPickSet(null));
+    if (await press('.mig-table tr.is-filed .mig-td-f', '13e a filed file')){
+      const FL = await until(() => { const s = document.getElementById('mig-side'); const ls = s && [...s.querySelectorAll('.mig-ff-l')].map(l => l.textContent.trim()); return ls && ls.length ? ls : null; }, null, 4000);
+      check('13e a filed file says the same six facts: Title · Party · Starts · Ends · Value · Stream', !!FL && FL.join() === 'Title,Party,Starts,Ends,Value,Stream', JSON.stringify(FL));
+    }
+    await page.evaluate(() => migPickSet(null));
 
     console.log('\n9 · Review spreadsheet');
     if (await press('#mig-sheet', '9 Review spreadsheet')) {

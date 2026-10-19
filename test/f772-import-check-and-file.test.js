@@ -93,7 +93,8 @@ function stage(o){
   vm.runInContext(take(['migValidDate', 'migParseDate', 'VALUE_MULT', 'migParseValue', 'migLinkPending', 'migRefOf', 'MIG_K', 'MIG_FACT_WORD', 'migNoneWhy', 'migLinkWhy', 'migCheckWhy', 'migStateOf',
     'MIG_ST_ORDER', 'migRows', 'migFieldLabel', 'migDay', 'migSideFacts', 'MIG_MON', 'migFind', 'migDateAt', 'migAmountAt', 'MIG_RENEW_RE', 'migRenewAt', 'migClauseAt', 'migFoundAt',
     'migQuoteOf', 'MIG_FORM_KEYS', 'MIG_FORM_LABEL', 'MIG_GATE_KEYS', 'migFormOf', 'migFormMarks', 'migReviewOpen', 'migDateRead', 'MIG_RENEWS_RE', 'migFormRead', 'migFormWaits',
-    'migFormWaitsOf', 'migWaitWords', 'migFileIt', 'migWhyHtml', 'migCheckIds', 'migCheckId', 'migCheckOpen', 'migCheckGo', 'migCheckNext'])
+    'migFormWaitsOf', 'migWaitWords', 'migFileIt', 'MIG_PERIOD_RE', 'MIG_PERIOD_WORD', 'migPeriodAt', 'migAmountWithPeriod', 'MIG_NUM_WORD', 'migNoticeDays', 'migNoticeWords', 'migNoticeDay',
+    'migPartyGuess', 'migAmountGuess', 'migWhyHtml', 'migParked', 'migRowByKey', 'migCheckWaits', 'migCheckIds', 'migCheckId', 'migCheckOpen', 'migCheckGo', 'migCheckNext'])
     + '\nlet _migCheck = null, _migPick = null;\nthis.api = { migFind, migDateAt, migAmountAt, migRenewAt, migClauseAt, migFoundAt, migFormOf, migFormMarks, migDateRead, migFormRead, migFormWaits, migFormWaitsOf, migWaitWords, migFileIt, migWhyHtml, migCheckOpen, migCheckGo, migCheckNext, migCheckId, get check(){ return _migCheck; } };', ctx);
   return ctx;
 }
@@ -180,7 +181,8 @@ describe('f772 (4) Jambo\'s why and the likely answer', () => {
     const { api } = stage();
     const w = api.migWhyHtml(C('MK-1'));
     assert.match(w.lines[0], /mig_why_end_h/); assert.match(w.lines[0], /§ 3/); assert.match(w.lines[0], /It renews by itself/);
-    assert.match(w.lines[1], /mig_why_end_so_notice .*90/);
+    /* re-pointed (fix pass, 19 Oct 2026): the drawn sentence — its notice in months, and the yearly reminder HaTi now makes */
+    assert.match(w.lines[1], /mig_why_end_so_remind .*mig_notice_months:3/);
     assert.deepEqual(JSON.parse(JSON.stringify(w.offers.map(o => o.k))), ['renews']);
   });
   test('4b nothing to say it renews: no guess is offered', () => {
