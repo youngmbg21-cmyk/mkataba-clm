@@ -8,8 +8,10 @@
      2 nine even cards, People & access one of them, three to a row
      3 the ladder runs across the page under the cards, the access sheet
        under it
-     4 no line on a card is cut short — "Who must say yes before signing"
-       reads whole (it was "signi…" at 1440)
+     4 no line on a card is cut short (it was "signi…" at 1440); The
+       agreement's facts are the drawing's — Approval rules, Internal review
+       (re-pointed 18 Oct 2026, round 25 as drawn: "Who must say yes before
+       signing" is found in the Menu, no longer a fact on the card)
      5 it fits the owner's three screens
    At the parent (round 24's head) every check fails but 5 and the console.
    Waits ask for the state, bounded.
@@ -75,7 +77,7 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       check(`1b ${tag}: the head says what the buttons do`, m.sub === 'each row’s button opens what settles it', m.sub);
       check(`2 ${tag}: nine even cards, People first, three to a row`, m.n === 9 && m.first === 'people' && Math.max(...m.widths) - Math.min(...m.widths) <= 1 && m.rowsOf === 3, JSON.stringify({ n: m.n, w: m.widths, rows: m.rowsOf }));
       check(`3 ${tag}: the ladder across the page under the cards, the access sheet under it`, m.ladder && m.sheet);
-      check(`4 ${tag}: no line cut short; "Who must say yes before signing" whole`, m.cut.length === 0 && m.who.some(x => /^Who must say yes before signing$/.test(x)), JSON.stringify({ cut: m.cut, who: m.who }));
+      check(`4 ${tag}: no line cut short; The agreement's facts as drawn`, m.cut.length === 0 && m.who.join('|') === 'Approval rules|Internal review', JSON.stringify({ cut: m.cut, who: m.who }));
       check(`5 ${tag}: no sideways scroll`, !m.sx);
       await shot(page, `company-control-room-${w}x${hh}`);
     }

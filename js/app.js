@@ -56,6 +56,7 @@ import './signcheck.js';   // where a contract stands at the signing door: one d
 /* Approval before signing: who on a contract needs a named colleague's yes
    before anyone signs it — one reading, loaded by the server too (23 Sep 2026). */
 import './signapproval.js';
+import './clashkeys.js';     // clashes in who may do what: one reading, loaded by the server too (19 Oct 2026)
 import './approvals.js';
 import './review.js';       // internal review: the step between writing a redline and sending it
 import './desk.js';         // the negotiation desk: who works this negotiation, and who may send
@@ -319,7 +320,9 @@ function commandMeta(view){
     case 'mynotes':   return [i18t('nav_mynotes'), ''];   // the drawing's bar says "Calendar", the rail's word (SAP batch 2)
     case 'migration': return [i18t('nav_import'), i18t('pg_import_sub')];
     case 'reports':   return [i18t('pg_reports'), i18t('pg_reports_sub')];
-    case 'team':      return [i18t('pg_team'), i18t('pg_team_sub')];
+    /* a member reads their own settings only, and the head says so (round 24
+       as drawn, the gaps of 18 Oct 2026: "Your settings") */
+    case 'team':      return [(typeof isAdmin==='function'&&!isAdmin())?i18t('st_you_head'):i18t('pg_team'), i18t('pg_team_sub')];
     case 'directory': return [i18t('nav_directory'), ''];
     case 'folder': {
       /* The FOLDER'S OWN NAME is the customer's word and stays as typed; only
@@ -420,6 +423,9 @@ function pageActionHtml(kind){
     icon('plus','w-3.5 h-3.5',2)} ${i18t('home_draft_new')}</button>`;
   return '';
 }
+/* SETTINGS SAYS ITS OWN NAME IN A HEAD CARD BESIDE JAMBO (rounds 24 and 25
+   as drawn, the gaps' third pass, 19 Oct 2026): stHeadCardHtml, in the page;
+   the window's head steps aside there (index.html, by scope). */
 /* PAGES THAT ALREADY STATE THEIR OWN NAME get no header from here — putting
    one above them is the second layer this whole change removes.
 

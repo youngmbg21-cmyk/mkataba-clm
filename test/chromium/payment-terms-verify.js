@@ -581,7 +581,8 @@ const EXTRA = [
          full (owner, 16 Oct 2026): the Menu's row beside it says the setting's
          state, cut short, from the one reading every surface draws. */
       await page.evaluate(() => {
-        const side = document.querySelector('[data-st-side="menu"]'); if (side) side.click();
+        /* the Menu opens from "/" in Jambo's box since rounds 24–26 as drawn (18 Oct 2026) */
+        if (typeof stSideSet === 'function') stSideSet('menu');
         const q = document.getElementById('st-q');
         if (q) { q.value = 'payment'; q.dispatchEvent(new Event('input', { bubbles: true })); }
       });

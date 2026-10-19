@@ -104,19 +104,24 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       const at = await until(() => { const s = document.getElementById('st-you-data'); if (!s) return null; const r = s.getBoundingClientRect();
         const band = (document.querySelector('.st-tabs-pin') || { getBoundingClientRect: () => ({ bottom: 0 }) }).getBoundingClientRect().bottom;
         const toc = document.querySelector('#set-page .st-toc').getBoundingClientRect();
-        return r.top >= band - 1 && r.bottom <= innerHeight + 1 && s.classList.contains('st-lit') ? { top: Math.round(r.top), band: Math.round(band), tocTop: Math.round(toc.top), tocBottom: Math.round(toc.bottom) } : null; }, null, 5000);
+        /* re-pointed 19 Oct 2026 (LAND ON IT, main's rule): lit by the one lander;
+           the tabs are the head card's now, so the band is only where one pins */
+        return r.top >= band - 1 && r.bottom <= innerHeight + 1 && s.classList.contains('is-landed') ? { top: Math.round(r.top), band: Math.round(band), tocTop: Math.round(toc.top), tocBottom: Math.round(toc.bottom) } : null; }, null, 5000);
       check('5a the section comes into view, lit', !!at, JSON.stringify(at));
       check('5b the list stays in view under the tab band', !!at && at.tocTop >= at.band - 1 && at.tocBottom <= 780, JSON.stringify(at));
       const cur = await page.evaluate(() => (document.querySelector('#set-page .st-toc [aria-current="true"]') || {}).getAttribute && document.querySelector('#set-page .st-toc [aria-current="true"]').getAttribute('data-st-toc'));
       check('5c and marks where you are', cur === 'data', String(cur));
     }
 
-    console.log('\n6 · a form with several boxes keeps its door');
+    /* RE-POINTED 18 Oct 2026 (the gaps, round 24 as drawn: "Opens in place"):
+       the form opens IN ITS ROW, the same boxes the drawer had */
+    console.log('\n6 · a form with several boxes opens in its row');
     await toYou();
-    if (await press('[data-st-you-card="safety"] [data-st-panel="me:password"]', '6 Change password')) {
-      const d = await until(() => { const dr = document.getElementById('st-drawer'); return dr && dr.classList.contains('open') && document.getElementById('pw-cur') && document.getElementById('pw-again') ? true : null; }, null, 5000);
-      check('6 Change password opens the drawer with its boxes', !!d);
-      await page.evaluate(() => stDrawerClose());
+    if (await press('[data-st-you-card="safety"] [data-st-rform="me:password"]', '6 Change password')) {
+      const d = await until(() => { const f = document.getElementById('st-rform'); const dr = document.getElementById('st-drawer');
+        return f && f.closest('[data-st-you-card="safety"]') && document.getElementById('pw-cur') && document.getElementById('pw-again') && !(dr && dr.classList.contains('open')) ? true : null; }, null, 5000);
+      check('6 Change password opens its boxes in its row', !!d);
+      await page.evaluate(() => stRowFormClose());
     }
 
     console.log('\n7 · the owner\'s three screens');

@@ -136,7 +136,9 @@ const OLD_PAGE = [
   { name: 'how the work is shaped', where: 'platform', panel: 'workshape', has: ['set-work-word'] },
   { name: 'company design', where: 'platform', panel: 'design', has: ['brand-edit'] },
   { name: 'the signer directory', where: 'platform', panel: 'directory', has: ['dir-import', 'dir-clear'] },
-  { name: 'data & backup', where: 'platform', panel: 'backup', has: ['bk-export'] },
+  /* re-pointed 19 Oct 2026 (the gaps' third pass): every door that says
+     "Data & backup" lands on its first tab, The trail; Backup is a press */
+  { name: 'data & backup', where: 'platform', panel: 'backup', tab: 'backup', has: ['bk-export'] },
   // ---- the Copilot engine, whole ----
   { name: 'the Copilot key', where: 'build', panel: 'engine', has: ['ai-key', 'ai-key-save', 'ai-key-clear'] },
   { name: 'model routing and the global override', where: 'build', panel: 'engine',
@@ -158,7 +160,9 @@ const OLD_PAGE = [
   { name: 'my active sessions', where: 'you', me: 'safety', has: ['sessions-list'] },
   /* 'my sidebar preference' LEFT 18 Oct 2026 (owner's yes): a computer draws
      no left sidebar; it is on SET_CLOSURES ('sidebar'), and the phone keeps its own */
-  { name: 'my own backup export', where: 'you', sel: '[data-st-you-card="data"] [data-st-backup]' },
+  /* re-pointed 18 Oct 2026 (round 24 as drawn): Your data's Download is your
+     own copy, taken by the server and recorded before it leaves */
+  { name: 'my own backup export', where: 'you', sel: '[data-st-you-card="data"] [data-st-mycopy]' },
   { name: 'what HaTi emails me (read-only, honest)', where: 'you', me: 'told', textKey: 'set_still_emailed' },
 ];
 
@@ -167,7 +171,7 @@ const OLD_PAGE = [
 const NON_ADMIN_COULD = [
   { name: 'edit their own job title', home: 'account', me: 'who', has: ['acct-title', 'acct-title-save'] },
   { name: 'set their sidebar preference', home: 'closed', closure: 'sidebar' },   /* 18 Oct 2026, owner's yes */
-  { name: 'export their own backup', home: 'account', sel: '[data-st-backup]' },
+  { name: 'export their own backup', home: 'account', sel: '[data-st-mycopy]' },   /* round 24 as drawn, 18 Oct 2026 */
   { name: 'see and revoke their own sessions', home: 'account', me: 'safety', has: ['sessions-list'] },
   { name: 'read what HaTi emails them', home: 'account', me: 'told', textKey: 'set_still_emailed' },
   { name: 'an Editor may change the company design', home: 'account-legal', me: 'design', has: ['brand-edit'] },
@@ -185,6 +189,7 @@ describe('f193 — half (a): nothing the old page carried was left behind', () =
       if (item.person) sb.settingsPersonDrawer(item.person);
       else if (item.panel) sb.stDrawerOpen(item.panel);
       else if (item.me) sb.stDrawerOpen('me:' + item.me);
+      if (item.tab){ const b = sb.document.querySelector(`[data-st-bk-tab="${item.tab}"]`); if (b) b.dispatchEvent(new sb.document.defaultView.Event('click', { bubbles: true })); }
       const html = (item.person || item.panel || item.me) ? drawerHtml() : pageHtml();
       if (item.sel) assert.ok(sb.document.querySelector(item.sel), `${item.sel} is on the ${item.where} tab`);
       for (const id of item.has || [])
@@ -227,13 +232,26 @@ describe('f193 — half (a): nothing the old page carried was left behind', () =
     /* SINCE THE FULL BUILD (16 Oct 2026) a group's card holds its panels as
        two facts and doors — still each panel once; the People card and the
        ladder hold their own doors and are asked about in f691. */
-    for (const [where, sel] of [['the board\'s cards', '.st-cards > .st-card:not([data-st-card="people"]):not([data-st-card="ladder"]) [data-st-panel]'], ['the Menu', '#st-list .st-mrow[data-st-panel]']]) {
-      const drawn = [...win.document.querySelectorAll(sel)].map(b => b.getAttribute('data-st-panel')).filter(k => sb.SET_PANELS[k]);
-      assert.deepEqual(drawn.slice().sort(), expected.slice().sort(),
-        `${where} draw every company panel and nobody else's`);
-      /* THE COUNT MATTERS AS MUCH AS THE SET: a panel that landed in two
-         groups would pass a set compare and be drawn twice on screen. */
-      assert.equal(drawn.length, expected.length, `${where} draw each panel exactly once`);
+    /* RE-POINTED 18 Oct 2026 (round 25 as drawn, the gaps): each card now
+       carries the drawing's own two facts and doors, not "the rest of its
+       group", so the board's cards no longer hold every panel — the MENU
+       beside it does, each exactly once, and that is where "nothing was left
+       behind" is asked. The cards are asked what still bites there: nothing
+       but company panels, and no panel twice among a card's facts or twice
+       among its doors (a fact and a door naming one drawer is drawn so on
+       Links you send and Going live). */
+    const menu = [...win.document.querySelectorAll('#st-list .st-mrow[data-st-panel]')].map(b => b.getAttribute('data-st-panel')).filter(k => sb.SET_PANELS[k]);
+    assert.deepEqual(menu.slice().sort(), expected.slice().sort(), 'the Menu draws every company panel and nobody else\'s');
+    /* THE COUNT MATTERS AS MUCH AS THE SET: a panel that landed in two
+       groups would pass a set compare and be drawn twice on screen. */
+    assert.equal(menu.length, expected.length, 'the Menu draws each panel exactly once');
+    for (const card of win.document.querySelectorAll('.st-cards > .st-card:not([data-st-card="people"]):not([data-st-card="ladder"]):not([data-st-card="sheet"])')) {
+      const name = card.getAttribute('data-st-card');
+      for (const part of ['.st-card-facts', '.st-card-doors']) {
+        const ks = [...card.querySelectorAll(part + ' [data-st-panel]')].map(b => b.getAttribute('data-st-panel')).filter(k => sb.SET_PANELS[k]);
+        for (const k of ks) assert.ok(expected.includes(k), `${name}: ${k} is a company panel`);
+        assert.equal(new Set(ks).size, ks.length, `${name}: no panel twice among its ${part.slice(9)}`);
+      }
     }
     /* AND EVERY GROUP THAT DRAWS AT ALL IS NAMED — a headless box of rows is
        the flat list again, wearing a gap. */
@@ -325,9 +343,16 @@ describe('f193 — half (b): nobody was locked out quietly', () => {
     assert.match(fn.slice(0, 700), /renderMyAccountPage\(\)/, 'and answers it with a real page');
   });
 
+  /* RE-POINTED 18 Oct 2026 (round 24 as drawn: eight headings on Your
+     settings): Company design is a workspace setting, so it is off the
+     Editor's sheet and found by its name — the Menu lists it and it opens in
+     its drawer — rather than lost */
   test('the Editor keeps a company-design door and an admin keeps theirs', () => {
     const legal = stage({ role: 'legal' });
-    assert.ok(legal.sb.document.querySelector('[data-st-you-card="design"] [data-st-panel="me:design"]'), 'an Editor\'s You board has the design door');
+    assert.ok(!legal.sb.document.querySelector('[data-st-you-card="design"]'), 'not a heading on the Editor\'s sheet (eight, as drawn)');
+    assert.ok(legal.sb.document.querySelector('#st-list [data-st-you="design"]'), 'an Editor\'s Menu still names Company design');
+    legal.sb.stYouGo('design');
+    assert.ok(legal.$('brand-edit'), 'and its door reaches the design step');
     legal.sb.stDrawerOpen('me:design');
     assert.ok(legal.$('brand-edit'), 'and it reaches the design step');
     const viewer = stage({ role: 'viewer' });
@@ -698,7 +723,12 @@ describe('f193 — the tab row does not scroll away', () => {
     assert.ok(RULE, 'the pin is its own rule, keyed on the row');
     const LIB = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'library.js'), 'utf8');
     const SET = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'settings.js'), 'utf8');
-    assert.match(SET, /class="st-tabs st-tabs-pin( sap-band)?( st-facebar)?"/, 'Settings opts in (on the white band since 9 Oct 2026, holding the You · Company pill since 16 Oct)');
+    /* RE-POINTED 19 Oct 2026 (the gaps' third pass, rounds 24 and 25 as
+       drawn): Settings' You · Company tabs live in the head card in the left
+       column, beside Jambo's whole-height panel, and scroll with it — Settings
+       no longer opts in; the pin stays an opt-in for the pages that draw it */
+    assert.doesNotMatch(SET, /class="st-tabs st-tabs-pin[^"]*st-facebar/, 'Settings no longer pins its tabs');
+    assert.match(SET, /<div class="st-facebar">/, 'its tabs are the head card\'s');
     /* Our standards is now a tab of "Our paper" (4 Oct 2026): the page's tab
        row and the standards row are pinned together as ONE opted-in block. */
     assert.match(LIB, /class="st-tabs-pin"[^>]*>\$\{paperTabsHtml\('standards'(?:, true)?\)\}/, 'and so does Our standards');

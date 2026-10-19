@@ -3643,6 +3643,8 @@
     padding:6px 8px; border-bottom:1px solid var(--color-divider); }
   .st-ps-tb td{ padding:7px 8px; border-bottom:1px solid var(--color-divider); color:var(--color-text); vertical-align:top; }
   .st-ps-who{ font-weight:var(--w-strong); }
+  /* Downloads so far: Who is a plain name, the weight of its row (round 26 as drawn) */
+  .st-tr-tb .st-ps-who{ font-weight:var(--w-body); }
   .st-ps-when{ color:var(--color-neutral-600); white-space:nowrap; }
   .st-ps-act{ text-align:right; white-space:nowrap; }
   .st-ps-ghost td, .st-ps-ghost .st-ps-who{ color:var(--color-neutral-600); font-weight:var(--w-body); }
@@ -3768,27 +3770,25 @@
   .st-cr .st-cr-cols{ display:grid; grid-template-columns:minmax(0,1fr) 344px; gap:var(--s-4); align-items:start; }
   .st-cr .st-cr-main{ min-width:0; }
   @media (max-width:1180px){ .st-cr .st-cr-cols{ grid-template-columns:minmax(0,1fr) 300px; } }
-  /* the tab row: the white band holds the pill alone */
-  .st-cr .st-facebar{ border-bottom:1px solid var(--color-divider); padding-bottom:10px; }
-  .st-cr .st-faces{ --st-fi:0; --st-fn:2; display:inline-grid; grid-auto-flow:column; grid-auto-columns:1fr; position:relative;
-    border-radius:var(--radius-lg); padding:3px; background:color-mix(in srgb,var(--color-accent) 8%,var(--color-surface)); }
-  .st-cr .st-face{ appearance:none; border:0; background:none; cursor:pointer; font:inherit; font-size:var(--t-body);
-    height:calc(var(--ctl-h) - 6px); padding:0 var(--s-4); display:inline-flex; align-items:center; justify-content:center; gap:6px;
-    position:relative; z-index:1; color:var(--color-neutral-600); font-weight:var(--w-label); border-radius:calc(var(--radius-lg) - 2px); white-space:nowrap; }
-  .st-cr .st-face[aria-selected="true"]{ color:var(--color-text); }
+  /* THE TAB ROW, AS DRAWN (round 25, the gaps of 18 Oct 2026; reverses the
+     16 Oct pill): You · Company as underlined tabs under a rule, the chosen
+     one underlined in the accent, Company's count beside its name */
+  .st-cr .st-facebar{ border-bottom:1px solid var(--color-divider); padding-bottom:0; }
+  .st-cr .st-faces{ display:flex; align-items:stretch; gap:24px; position:relative; flex:1 1 auto; width:100%; margin-top:10px; padding:0;
+    border-top:1px solid var(--color-divider); background:none; border-radius:0; }
+  .st-cr .st-face{ appearance:none; border:0; border-bottom:2px solid transparent; margin-bottom:-1px; background:none; cursor:pointer; font:inherit; font-size:var(--t-body);
+    height:var(--ctl-h-lg,40px); padding:0 2px; display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    position:relative; color:var(--color-neutral-600); font-weight:var(--w-label); border-radius:0; white-space:nowrap; }
+  .st-cr .st-face[aria-selected="true"]{ color:var(--accent-ink); border-bottom-color:var(--color-accent); }
   .st-cr .st-face:focus-visible{ outline:2px solid var(--color-accent); outline-offset:-2px; }
-  .st-cr .st-thumb{ position:absolute; top:3px; bottom:3px; left:3px; width:calc((100% - 6px) / var(--st-fn,2));
-    border-radius:calc(var(--radius-lg) - 2px); background:var(--color-surface);
-    box-shadow:0 1px 2px rgba(9,25,56,.16),0 0 0 1px rgba(9,25,56,.06);
-    transform:translateX(calc(var(--st-fi,0) * 100%)); transition:transform var(--dur-3) cubic-bezier(.22,.61,.36,1); pointer-events:none; }
-  @media (prefers-reduced-motion:reduce){ .st-cr .st-thumb{ transition:none; } }
+  .st-cr .st-thumb{ display:none; }
   .st-cr .st-face-w{ display:inline-grid; }
   .st-cr .st-face-w > span,.st-cr .st-face-w::before,.st-cr .st-face-w::after{ grid-area:1/1; text-align:center; }
   .st-cr .st-face-w::before{ content:attr(data-w1); visibility:hidden; }
   .st-cr .st-face-w::after{ content:attr(data-w2); visibility:hidden; }
-  .st-cr .st-face-n{ font-size:11px; font-weight:var(--w-strong); font-variant-numeric:tabular-nums; }
+  .st-cr .st-face-n{ font-size:var(--t-label); font-weight:var(--w-label); font-variant-numeric:tabular-nums; color:var(--color-neutral-600); }
   .st-cr .st-face-n:empty{ display:none; }
-  .st-cr .st-face-n[data-tone="amber"]{ color:var(--st-amber-fg); }
+  .st-cr .st-face-n[data-tone="amber"]{ color:var(--color-neutral-600); }
   /* THE BOARD: cards in columns, each as tall as what it holds */
   .st-cr .st-board > .st-att{ margin-bottom:var(--s-4); border-radius:var(--radius-lg); }
   .st-cr .st-cards{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--s-3); margin-bottom:var(--s-4); }
@@ -3925,6 +3925,189 @@
   .st-cr .st-mrow-s{ flex:none; max-width:46%; font-size:var(--t-label); color:var(--color-neutral-600); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .st-cr .st-mrow-s.is-warn{ color:var(--st-amber-fg); }
   /* ============================================================
+     ROUNDS 24, 25 AND 26 AS DRAWN (the gaps, 18 Oct 2026)
+     ============================================================ */
+  /* the page head's fact: "Settings · <the company>" / "Your settings · yours alone" */
+  .st-head-sub{ font-size:var(--t-body); color:var(--color-neutral-600); }
+  /* THE FRAME, AS DRAWN (rounds 24 and 25, the gaps' third pass, 19 Oct
+     2026): the page's head is a white card in the LEFT column, over the
+     board, and Jambo's panel is the whole RIGHT column from under the bar to
+     the window's foot — flush to the edge, a hairline on its left, sticky in
+     the page's one scroller (its height measured by stSideFit). The window's
+     own head steps aside on Settings: the card says the page's name. Below
+     981px the panel follows the board as before. */
+  .st-cr .st-cr-left{ min-width:0; display:flex; flex-direction:column; gap:var(--s-3); padding-bottom:var(--page-pad-b); }
+  /* THE HEAD CARD STAYS WHILE THE PAGE SCROLLS (owner's ruling of 18 Sep
+     2026, "you do not lose the tabs. The body scrolls up behind the tabs
+     line", kept in the drawn frame): sticky in the left column at the page's
+     own top padding, so its first glyph does not move, pinned or not; a
+     shadow of the page's ground covers the air above it, so nothing scrolls
+     through there. Jambo's column is never under it. */
+  .st-cr .st-headcard{ background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:14px 16px 0;
+    position:sticky; top:var(--page-pad-t); z-index:3; }
+  .st-cr .st-headcard::before{ content:''; position:absolute; left:-1px; right:-1px; bottom:100%; height:calc(var(--page-pad-t) + 1px); background:var(--color-bg); }
+  .st-cr .st-headcard:not(:has(.st-facebar)){ padding-bottom:14px; }
+  .st-cr .st-hc-top{ display:flex; align-items:baseline; flex-wrap:wrap; column-gap:10px; row-gap:4px; min-height:var(--ctl-h-sm,28px); }
+  .st-cr .st-hc-t{ margin:0; font-family:var(--font-heading); font-size:20px; font-weight:var(--w-title); letter-spacing:-.01em; color:var(--color-text); line-height:1.2; }
+  .st-cr .st-hc-sp{ flex:1; }
+  .st-cr .st-hc-top > .ui-btn{ align-self:center; }
+  @media (min-width:981px){
+    body:has(#set-page.st-cr) #page-head{ display:none; }
+    .st-cr.st-page{ padding-bottom:0; }
+    .st-cr .st-cr-cols{ grid-template-columns:minmax(0,1fr) 380px; column-gap:var(--s-4); }
+    .st-cr .st-side{ top:0; margin:calc(-1 * var(--page-pad-t)) calc(-1 * var(--page-pad-x)) 0 0;
+      border:0; border-left:1px solid var(--color-divider); border-radius:0; box-shadow:none; }
+    .st-cr.is-side-folded .st-cr-cols{ grid-template-columns:minmax(0,1fr) 46px; }
+    .st-cr .st-cr-cols > .st-side.is-folded{ height:var(--st-side-h,560px); }
+  }
+  @media (min-width:981px) and (max-width:1400px){ .st-cr .st-cr-cols{ grid-template-columns:minmax(0,1fr) 344px; } }
+  /* A CARD'S DOOR OPENS ITS PAGE (round 25 as drawn, the gaps' third pass):
+     the one drawer, docked in the page's main column under "‹ Settings" —
+     a white card, no scrim, no slide, its own × gone (‹ Settings, Done,
+     Cancel and Escape are the ways back), its crumb still saying the group
+     and where in it, its body as tall as it needs. CLIPPED, NOT HIDDEN (the
+     gaps' fourth pass): overflow:hidden made the card its own scroller, so
+     the sticky foot stuck to the card's end and Save could sit below the
+     window on a long page; clip keeps the corners and lets the foot stick to
+     the window's foot (hidden stays first for a browser without clip) */
+  .st-cr .st-drawer.is-docked{ position:static; inset:auto; width:auto; height:auto; transform:none; transition:none; z-index:auto;
+    background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); box-shadow:none; overflow:hidden; overflow:clip; }
+  .st-cr .st-drawer.is-docked .st-dx{ display:none; }
+  .st-cr .st-drawer.is-docked .st-dhead .rvd-head{ padding-right:16px; }
+  .st-cr .st-drawer.is-docked .st-dbody{ overflow:visible; flex:none; }
+  .st-cr .st-drawer.is-docked .st-dfoot{ position:sticky; bottom:0; z-index:1; }
+  .st-cr .st-pg-dock .st-pg-head{ margin-bottom:var(--s-2); }
+  /* a count in a small round tag, as every drawn card head carries */
+  .st-cr .st-pill-n{ display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; padding:0 6px;
+    border-radius:999px; background:var(--surface-2); color:var(--color-neutral-700); font-size:var(--t-label); font-weight:var(--w-label);
+    font-variant-numeric:tabular-nums; vertical-align:1px; }
+  .st-cr .st-pill-n.is-amber{ background:var(--st-amber-bg); color:var(--st-amber-fg); }
+  .st-cr .st-card-ht{ display:inline-flex; align-items:baseline; gap:8px; flex-wrap:wrap; min-width:0; }
+  .st-cr .st-card-sub-l{ margin-left:2px; }
+  /* A PAGE OPENED FROM SETTINGS STARTS AT ITS OWN NAME (round 26 as drawn,
+     the gaps of 18 Oct 2026): the window's Settings head steps aside while a
+     sub-page is up — "‹ Settings" on the page is the way back */
+  body:has(#set-page[data-st-sub]) #page-head{ display:none; }
+  /* A CLASH SAID UNDER THE LIMIT THAT MAKES IT, with the two ways to settle
+     it (round 25's person drawer, as drawn) — the refusal's own dress */
+  .st-clash-say{ display:flex; align-items:flex-start; gap:8px; margin:10px 0 0; padding:8px 10px; border:1px solid var(--st-ruby-line);
+    background:var(--st-ruby-bg); border-radius:var(--radius); font-size:var(--t-meta); line-height:1.45; color:var(--color-text); }
+  .st-clash-say .st-dot{ flex:none; margin-top:6px; }
+  /* THE SIDE PANEL'S HEAD: Jambo, the word for what it holds, the fold */
+  .st-cr .st-side-head{ flex:none; display:flex; align-items:flex-end; gap:10px; padding:4px 8px 0 10px; border-bottom:1px solid var(--color-divider); min-height:50px; }
+  .st-cr .st-side-head .st-side-tab{ flex-direction:column; gap:1px; height:auto; padding:2px 10px 5px; border-radius:0; border-bottom:2px solid var(--color-accent);
+    margin-bottom:-1px; color:var(--color-text); background:none; font-size:var(--t-label); font-weight:var(--w-strong); cursor:default; }
+  .st-cr .st-side-head .st-side-tab:hover{ background:none; }
+  .st-cr .st-side-word{ align-self:center; min-width:0; font-size:var(--t-meta); color:var(--color-text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .st-cr .st-side-sp{ flex:1; }
+  .st-cr .st-side-fold{ align-self:center; appearance:none; border:0; background:none; width:28px; height:28px; border-radius:var(--radius);
+    font:inherit; font-size:18px; line-height:1; color:var(--color-neutral-600); cursor:pointer; }
+  .st-cr .st-side-fold:hover{ background:var(--surface-2); color:var(--color-text); }
+  .st-cr .st-side-back{ align-self:center; appearance:none; border:0; background:none; padding:6px 2px; font:inherit; font-size:var(--t-meta); font-weight:var(--w-label); color:var(--accent-ink); cursor:pointer; }
+  .st-cr .st-side-unfold{ display:none; }
+  /* folded to the right edge: a thin strip, his face brings him back */
+  .st-cr.is-side-folded .st-cr-cols{ grid-template-columns:minmax(0,1fr) 46px; }
+  .st-cr .st-side.is-folded{ height:auto; min-height:120px; }
+  .st-cr .st-side.is-folded > :not(.st-side-unfold){ display:none; }
+  .st-cr .st-side.is-folded .st-side-unfold{ display:flex; align-items:flex-start; justify-content:center; width:100%; padding:10px 0; border:0; background:none; cursor:pointer; }
+  /* A FORM OPEN IN ITS ROW (round 24): under the row that asked for it */
+  .st-cr .st-sr.is-open{ background:color-mix(in srgb,var(--color-accent) 5%,var(--color-surface)); }
+  .st-cr .st-rform{ padding:12px 16px 14px; border-top:1px solid var(--surface-2); background:color-mix(in srgb,var(--color-accent) 3%,var(--color-surface)); }
+  .st-cr .st-rform-sub{ margin:0 0 10px; }
+  .st-cr .st-rform-body{ max-width:680px; }
+  .st-cr .st-rform-body .st-sec{ margin:0; }
+  .st-cr .st-rform-body .st-sec + .st-sec{ margin-top:var(--s-3); }
+  .st-cr .st-rform-foot{ display:flex; flex-direction:column; gap:8px; margin-top:12px; }
+  .st-cr .st-rform-foot .st-refusal[hidden]{ display:none; }
+  .st-cr .st-rform-acts{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .st-cr .st-rform-why{ font-size:var(--t-label); color:var(--st-amber-fg); }
+  .st-cr .st-rform-why:empty{ display:none; }
+  /* whom you answer for, as drawn: a quiet box with its door */
+  .st-cr .st-aw-cover{ display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border:1px solid var(--color-divider);
+    border-radius:var(--radius-lg); background:var(--surface-2); }
+  .st-cr .st-aw-ic{ flex:none; margin-top:2px; color:var(--color-neutral-600); }
+  .st-cr .st-aw-cw{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .st-cr .st-aw-cw .st-aw-for{ color:var(--color-text); font-weight:var(--w-strong); }
+  .st-cr .st-aw-cover > .ui-btn{ flex:none; }
+  /* THE ACCESS SHEET'S SECOND LINES, as drawn */
+  .st-cr .st-sh-sub{ display:block; font-size:var(--t-label); color:var(--color-neutral-600); }
+  .st-cr .st-sh-sub-i{ font-size:var(--t-label); color:var(--color-neutral-600); }
+  .st-cr .st-sh-over{ color:var(--st-ruby-fg); font-weight:var(--w-label); }
+  .st-cr .st-sh-away{ display:inline-block; margin-top:3px; padding:0 8px; border-radius:999px; background:var(--surface-2);
+    font-size:var(--t-label); font-weight:var(--w-body); color:var(--color-neutral-700); white-space:nowrap; }
+  .st-cr .st-sh-who .st-sh-away{ display:block; width:max-content; }
+  .st-cr .st-sheet-card .st-card-h{ align-items:center; }
+  /* THE LADDER, one rung a line (round 25) */
+  .st-cr .st-gov .st-card-h{ align-items:center; }
+  .st-cr .st-gov-rungs{ grid-template-columns:1fr; gap:12px; margin-top:6px; }
+  .st-cr .st-gov-rung .st-gov-bar{ width:88px; }
+  .st-cr .st-gov-line .st-gov-name{ font-weight:var(--w-strong); }
+  .st-cr .st-gov-line .st-gov-gates{ gap:0 6px; align-items:baseline; }
+  .st-cr .st-gov-line .st-gov-g{ color:var(--color-neutral-600); padding:0; }
+  .st-cr .st-gov-line .st-gov-g:hover{ background:none; color:var(--accent-ink); text-decoration:underline; }
+  .st-cr .st-gov-line .st-gov-g.is-next{ color:var(--color-text); font-weight:var(--w-strong); }
+  .st-cr .st-gov-nx{ font-weight:var(--w-body); }
+  .st-cr .st-gov-sep{ color:var(--color-neutral-400); }
+  /* A PAGE INSIDE THE BOARD, AS DRAWN (round 26): one white head card — the
+     page's name, its count and acts, a rule, its labelled boxes */
+  .st-cr .st-pg-card{ margin:0 0 var(--s-3); padding:12px 16px 14px; background:var(--color-surface); border:1px solid var(--color-divider);
+    border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); }
+  .st-cr .st-pg-card > .st-pg-head{ margin:0; padding-bottom:10px; border-bottom:1px solid var(--color-divider); min-height:var(--ctl-h); }
+  .st-cr .st-pg-card > .st-pg-head:last-child{ border-bottom:0; padding-bottom:0; }
+  .st-cr .st-pg-card .st-pg-t{ font-size:18px; }
+  .st-cr .st-pg-card .st-dp-tabs{ border-bottom:0; align-self:stretch; margin-bottom:-11px; }
+  .st-cr .st-pg-card .st-dp-tab{ display:inline-flex; align-items:center; }
+  .st-cr .st-pg-card > .st-sw-band{ margin:12px 0 0; padding:0; border:0; border-radius:0; background:none; box-shadow:none; }
+  .st-cr .st-pg-card .st-tr-band .st-tr-go-band{ display:contents; }
+  .st-cr .st-pg-card .st-tr-band #st-tr-download{ order:1; height:var(--ctl-h); }
+  .st-cr .st-pg-card .st-tr-band .st-tr-fig{ order:2; flex-basis:100%; font-size:var(--t-label); }
+  .st-cr .st-pg-card .st-tr-band .st-tr-err{ order:3; flex-basis:100%; margin:0; }
+  .st-cr .st-pg-card .st-tr-band .st-tr-out{ flex-basis:auto; display:inline; }
+  .st-cr .st-sw-tb .st-note{ display:inline; }
+  /* a form in its row: the row already names it */
+  .st-cr .st-rform-body .st-sec-h{ display:none; }
+  /* the contents list stays level with the sheet (under the tab band, or at
+     the top where a member's page has none), as drawn */
+  .st-cr .st-sheet .st-toc{ top:var(--st-side-top,60px); }
+  .st-cr .st-sw-card .st-card-h{ justify-content:flex-start; align-items:center; }
+  .st-cr .st-sw-row.is-picked td{ background:color-mix(in srgb,var(--color-accent) 8%,var(--color-surface)); }
+  .st-cr .st-sw-row.is-picked td:first-child{ box-shadow:inset 3px 0 0 var(--color-accent); }
+  .st-cr .st-tr-past-h{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-weight:var(--w-strong); color:var(--color-text); }
+  .st-cr .st-tr-tb .r{ text-align:right; font-variant-numeric:tabular-nums; }
+  /* THE STREAM IN THE SIDE PANEL (round 26 as drawn) */
+  .st-cr .st-jb-feed.is-stream{ background:var(--color-surface); padding:12px 14px; gap:0; }
+  .st-cr .st-swp-name{ margin:0 0 6px; font-size:var(--t-body); font-weight:var(--w-strong); color:var(--color-text); }
+  .st-cr .st-swp-facts{ margin:0; }
+  .st-cr .st-swp-f{ display:grid; grid-template-columns:118px minmax(0,1fr); gap:8px; padding:7px 0; border-bottom:1px solid var(--surface-2); font-size:var(--t-label); }
+  .st-cr .st-swp-f dt{ color:var(--color-neutral-600); }
+  .st-cr .st-swp-f dd{ margin:0; color:var(--color-text); min-width:0; overflow-wrap:anywhere; }
+  .st-cr .st-swp-h4{ margin:14px 0 4px; font-size:var(--t-label); font-weight:var(--w-strong); color:var(--color-text); }
+  .st-cr .st-swp-tb{ width:100%; border-collapse:collapse; font-size:var(--t-label); }
+  .st-cr .st-swp-tb th{ text-align:left; font-weight:var(--w-label); color:var(--color-neutral-600); padding:5px 4px; border-bottom:1px solid var(--color-divider); }
+  .st-cr .st-swp-tb td{ padding:6px 4px; border-bottom:1px solid var(--surface-2); vertical-align:top; color:var(--color-text); }
+  .st-cr .st-swp-tb th:first-child, .st-cr .st-swp-tb td:first-child{ padding-left:0; }
+  .st-cr .st-swp-ref{ color:var(--accent-ink); font-variant-numeric:tabular-nums; }
+  .st-cr .st-swp-day{ white-space:nowrap; }
+  .st-cr .st-swp-held{ display:flex; align-items:flex-start; gap:8px; padding:9px 10px; border:1px solid var(--color-divider); border-radius:var(--radius-lg); font-size:var(--t-label); }
+  .st-cr .st-swp-held + .st-swp-held{ margin-top:6px; }
+  .st-cr .st-swp-held .st-ps-lock{ flex:none; margin-top:3px; color:var(--color-neutral-600); }
+  .st-cr .st-swp-hw{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .st-cr .st-swp-held > .ui-btn{ flex:none; }
+  .st-cr .st-swp-shut{ margin:10px 0 0; }
+  /* ONE ROW, AS DRAWN (round 26, the gaps' third pass): Delete these N ·
+     Change keeping, and Close at the same row's right end — never wrapped */
+  .st-cr .st-swp-acts{ display:flex; align-items:center; gap:8px; flex-wrap:nowrap; margin-top:14px; padding-top:12px; border-top:1px solid var(--color-divider); }
+  .st-cr .st-swp-acts > .ui-btn{ flex:none; white-space:nowrap; }
+  /* the acts stay in reach while the panel scrolls a little (round 26 as
+     drawn: at 1440×780 and 1536×730 "its side panel scrolls a little"):
+     Delete these N, Change keeping and Close sit at the panel's foot */
+  .st-cr .st-jb-feed.is-stream .st-swp-acts{ position:sticky; bottom:-12px; margin-bottom:-12px; padding-bottom:12px; background:var(--color-surface); z-index:1; }
+  .st-cr .st-swp-sp{ flex:1; }
+  /* deleting for good is the heaviest act here, and it is drawn filled red —
+     the side panel's and the Keeping tab's one button, dressed alike */
+  .st-cr .ui-btn.ui-btn-danger.is-filled:not(:disabled), .st-drawer .ui-btn.ui-btn-danger.is-filled:not(:disabled){ background:var(--danger); border-color:var(--danger); color:#fff; }
+  .st-cr .ui-btn.ui-btn-danger.is-filled:not(:disabled):hover, .st-drawer .ui-btn.ui-btn-danger.is-filled:not(:disabled):hover{ background:color-mix(in srgb,var(--danger) 88%,#000); }
+  /* ============================================================
      THE COMPANY BOARD, AS DRAWN (16 Oct 2026, the full build)
      ============================================================ */
   /* NEEDS YOU: one card, a row per thing owed, the row's own button on the right */
@@ -4045,7 +4228,9 @@
   .st-cr .st-sv > b + .st-you-sub{ flex-basis:100%; }
   .st-cr .st-sa{ display:flex; gap:14px; align-items:center; justify-content:flex-end; white-space:nowrap; }
   .st-cr .st-sr-door{ font-size:var(--t-meta); }
-  .st-cr .st-sv select{ height:var(--ctl-h-sm); font-size:var(--t-meta); min-width:200px; max-width:100%; padding:0 8px; color:var(--color-text); background-color:var(--color-surface); border:1px solid var(--field-line); border-radius:var(--radius); }
+  /* A QUIET BOX, AS DRAWN (round 24, the gaps' third pass): about 28px tall,
+     a hairline edge (the buttons' own), a thin chevron (stDressPage) */
+  .st-cr .st-sv select{ height:var(--ctl-h); font-size:var(--t-meta); min-width:200px; max-width:100%; padding:0 8px; color:var(--color-text); background-color:var(--color-surface); border:1px solid var(--btn-edge); border-radius:var(--radius); }
   .st-cr .st-yseg{ display:inline-flex; border:1px solid var(--field-line); border-radius:var(--radius); overflow:hidden; }
   .st-cr .st-yseg button{ appearance:none; border:0; border-right:1px solid var(--field-line); background:var(--color-surface); font:inherit; font-size:var(--t-meta); padding:0 14px; height:var(--ctl-h-sm); color:var(--color-text); cursor:pointer; }
   .st-cr .st-yseg button:last-child{ border-right:0; }
@@ -4060,7 +4245,7 @@
      and Data & backup as pages — labelled boxes in a band, then a table */
   .st-cr .st-sw-band{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px 16px; margin:0 0 var(--s-3); padding:12px 14px; background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); }
   .st-cr .st-sw-f{ display:flex; flex-direction:column; gap:4px; min-width:0; font-size:var(--t-label); color:var(--color-text); font-weight:var(--w-label); }
-  .st-cr .st-sw-f select, .st-cr .st-sw-f input{ height:var(--ctl-h); min-width:170px; max-width:100%; padding:0 8px; font:inherit; font-size:var(--t-meta); font-weight:400; color:var(--color-text); background-color:var(--color-surface); border:1px solid var(--field-line); border-radius:var(--radius); }
+  .st-cr .st-sw-f select, .st-cr .st-sw-f input{ height:var(--ctl-h); min-width:170px; max-width:100%; padding:0 8px; font:inherit; font-size:var(--t-meta); font-weight:400; color:var(--color-text); background-color:var(--color-surface); border:1px solid var(--btn-edge); border-radius:var(--radius); }
   .st-cr .st-sw-find input{ min-width:200px; }
   .st-cr .st-sw-card{ padding:10px 14px 6px; }
   .st-cr .st-sw-tb .r{ text-align:right; font-variant-numeric:tabular-nums; }

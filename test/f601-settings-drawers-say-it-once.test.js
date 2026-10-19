@@ -62,8 +62,11 @@ describe('f601 (D6) — the folders row counts folders', () => {
     assert.match(e.text, /i18tn\('st_p_folders_n',n,\{n\}\)/);
     assert.doesNotMatch(e.text.slice(0, e.text.indexOf('body(')), /st_p_folders_count/);
   });
-  test('both books say folder, not contract', () => {
-    assert.equal(BOOKS.en.st_p_folders_n_other, '{n} folders');
-    assert.equal(BOOKS.sv.st_p_folders_n_other, '{n} mappar');
+  /* RE-POINTED 18 Oct 2026 (round 26 as drawn: the page and its forms say
+     "stream"): the count still counts the list, never contracts — in the
+     word the rest of the product uses for it */
+  test('both books say stream, not contract', () => {
+    assert.equal(BOOKS.en.st_p_folders_n_other, '{n} streams');
+    assert.equal(BOOKS.sv.st_p_folders_n_other, '{n} flöden');
   });
 });

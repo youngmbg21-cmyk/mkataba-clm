@@ -66,11 +66,12 @@ const CONTRACTS = [
     console.log('\n1 · the door, and the two tabs');
     const door = await until(() => {
       if (!document.getElementById('set-page') || settingsTab() !== 'company') { setView('team'); settingsGoTab('company'); return null; }
-      const d = document.querySelector('[data-st-card="house"] [data-st-panel="trail"]');
+      /* the door, not the card's fact that opens it too (round 25 as drawn) */
+      const d = document.querySelector('[data-st-card="house"] .st-door[data-st-panel="trail"]');
       return d && d.getBoundingClientRect().width > 0 ? d.textContent.replace(/\s+/g, ' ').trim() : null; }, null, 15000);
     check('1a Housekeeping carries a door, The trail', /^The trail ›$/.test(door || ''), door);
     await shot(page, 'trail-company');
-    if (door) await press('[data-st-card="house"] [data-st-panel="trail"]', '1b the door');
+    if (door) await press('[data-st-card="house"] .st-door[data-st-panel="trail"]', '1b the door');
     /* since round 26 ("The SAP way") Data & backup is a PAGE: The trail · Backup are its tabs */
     const tabs = await until(() => { const pg = document.querySelector('[data-st-pg="data"]');
       if (!pg) return null;
@@ -113,7 +114,8 @@ const CONTRACTS = [
     const told = await until(() => { const t = (document.getElementById('toast-root') || {}).textContent || ''; return /download is now in the trail/.test(t) ? t.trim() : null; });
     check('4b it says so', !!told, told);
     const past = await until(() => { const rows = [...document.querySelectorAll('#st-tr-past tbody tr')]; return rows.length ? rows.map(r => [...r.cells].map(c => c.textContent.trim()).join(' | ')) : null; });
-    check('4c …and the download is listed under Downloads so far: who, the period, PDF', !!past && past.length === 1 && /Amina Otieno/.test(past[0]) && past[0].includes(qWord) && /\| PDF$/.test(past[0]), JSON.stringify(past));
+    /* round 26 as drawn (18 Oct 2026): "PDF, sealed", then the acts it carried */
+    check('4c …and the download is listed under Downloads so far: who, the period, PDF', !!past && past.length === 1 && /Amina Otieno/.test(past[0]) && past[0].includes(qWord) && /\| PDF, sealed \| [\d,]+$/.test(past[0]), JSON.stringify(past));
     await press('[data-st-pg="data"] [data-st-bk-tab="backup"]', '4d the Backup tab');
     const backup = await until(() => document.getElementById('bk-export') ? true : null);
     check('4d the Backup tab still holds the backup', !!backup);

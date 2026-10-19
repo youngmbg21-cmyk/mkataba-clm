@@ -81,9 +81,10 @@ const check = (name, pass, detail) => {
     await counterAsk('where do I change my language?');
     /* Language has no drawer: Settings lights its card on You, where the switch is (stYouGo) */
     const lang = await until(() => { const k = document.querySelector('[data-st-you-card="lang"]');
-      return state.view === 'team' && settingsTab() === 'you' && k && k.classList.contains('st-lit') && k.getBoundingClientRect().height > 0; });
+      /* re-pointed 19 Oct 2026 (lane F's third pass, LAND ON IT): the card is lit by the one lander */
+      return state.view === 'team' && settingsTab() === 'you' && k && k.classList.contains('is-landed') && k.getBoundingClientRect().height > 0; });
     check('1b "where do I change my language?" opens You with the Language card lit', !!lang,
-      await page.evaluate(() => JSON.stringify({ view: state.view, tab: window.settingsTab ? settingsTab() : null, card: !!document.querySelector('[data-st-you-card="lang"].st-lit') })));
+      await page.evaluate(() => JSON.stringify({ view: state.view, tab: window.settingsTab ? settingsTab() : null, card: !!document.querySelector('[data-st-you-card="lang"].is-landed') })));
     await page.screenshot({ path: path.join(OUT, '1b-language-1440x780.png') });
     await page.keyboard.press('Escape'); await page.waitForTimeout(200);
     await toCounter();
@@ -198,7 +199,7 @@ const check = (name, pass, detail) => {
     await page.fill('#cmd-search', 'where do I change my language'); await page.waitForTimeout(300);
     await page.press('#cmd-search', 'Enter');
     const tb = await until(() => { const k = document.querySelector('[data-st-you-card="lang"]');
-      return state.view === 'team' && settingsTab() === 'you' && k && k.classList.contains('st-lit'); });
+      return state.view === 'team' && settingsTab() === 'you' && k && k.classList.contains('is-landed'); });
     check('8a Enter on "where do I change my language" opens You with Language lit', !!tb);
     const left = await page.evaluate(() => ({ box: document.getElementById('cmd-search').value, query: (regSetScope(null), regState().query) }));
     check('8b the words leave the box and the Contracts list', left.box === '' && !left.query, JSON.stringify(left));
