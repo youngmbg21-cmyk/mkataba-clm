@@ -1395,11 +1395,19 @@ function ikFitOf(r){
   if(!cands.length) return null;
   const best=caDraftRank(words, cands, null)[0];
   if(!best || caDraftScore(words, best)<=0) return null;
-  const shared=(typeof window.caDraftShared==='function')?caDraftShared(words, best):[];
+  /* the words said as THE ASK spells them ("plant", not the paper's "Plant") */
+  const askSpelling=w=>{ const m=new RegExp('(^|[^A-Za-z0-9À-ÿ])('+String(w).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')(?=$|[^A-Za-z0-9À-ÿ])','i').exec(words); return m?m[2]:w; };
+  const shared=((typeof window.caDraftShared==='function')?caDraftShared(words, best):[]).map(askSpelling);
+  /* A FIT IS SAID ONLY WHERE THE ASK NAMES THE PAPER ITSELF: a word shared
+     with the paper's own name ("NDA"), not only with its description — one
+     word in common with a blurb is "the closest", never "fits" (lane A3's
+     second check: "plant" made an equipment lease "fit") */
+  const said=new Set((typeof window.caDraftWords==='function')?caDraftWords(words):[]);
+  const strong=(typeof window.caDraftWords==='function')&&caDraftWords(best.name||'').some(w=>said.has(w));
   /* the name the New agreement form lists it under (its own row's words), so
      the panel and the form say the same name */
   const name=best.name||(typeof window.caDraftTitleOf==='function'?caDraftTitleOf(best):'');
-  return { kind:best.kind==='builtin'?'tid':best.kind, id:best.id, name, shared };
+  return { kind:best.kind==='builtin'?'tid':best.kind, id:best.id, name, shared, strong:!!strong };
 }
 function ikFitHtml(r){
   const fit=ikFitOf(r);
@@ -1410,7 +1418,7 @@ function ikFitHtml(r){
   if(!fit) html=esc(i18t('jl_ik_fit_none',{ who:who||i18t('jl_ik_who_you') }));
   else {
     const words=fit.shared.map(w=>i18t('ik_quote',{ t:w })).join(', ');
-    const k=ikRoadShown(r).k==='routine'?'jl_ik_fit_routine':'jl_ik_fit_closest';
+    const k=(fit.strong&&ikRoadShown(r).k==='routine')?'jl_ik_fit_routine':'jl_ik_fit_closest';
     const asks=who?i18t('jl_ik_asks',{ first:who }):i18t('jl_ik_asks_you');
     html=esc(i18t(k,{ name:MARK, whose, words, asks })).replace(MARK, `<b>${esc(fit.name)}</b>`);
   }
@@ -1559,11 +1567,14 @@ function ikAdvicePanelOpts(r){
      it), the doors, what they asked for in their own words quoted, then the
      facts as rows — read off the advice record, nothing new */
   const holder=String(a.assignee||'').trim();
-  const pills=`<span class="reg-stg ins-pill is-${esc(tone)}"><i aria-hidden="true"></i>${esc(st.label||r.status)}</span>`
+  /* the pills as the request's (round 20): how it is handled, then who holds
+     it; where the advice desk has it is a fact row of its own */
+  const pills=ikAdvRoadHtml()
     +(done?'':holder?`<span class="ik-with-chip">${esc(i18t('ik_pill_with',{ who:holder }))}</span>`:`<span class="ik-with-chip is-nobody">${esc(i18t('ik_g_nobody'))}</span>`);
   const first=ikFirst(r.by.name);
   const asked=esc(ikDay(r.createdAt,{ weekday:true }))+(done?'':` · <span class="${left!=null&&left<0?'ins-late':''}">${esc(i18t('ik_promised_by',{ by:r.eta?ikDay(r.eta,{ weekday:true }):'—' }))}</span>`);
   const rows=[
+    { k:'stands', label:i18t('ik_f_stands'), v:`<span class="reg-stg ins-pill is-${esc(tone)}"><i aria-hidden="true"></i>${esc(st.label||r.status)}</span>` },
     { k:'cp', label:i18t('ik_f_customer'), v:esc(r.by.name||'') },
     r.company?{ k:'company', label:i18t('ik_f_company'), v:esc(r.company) }:null,
     a.contractName?{ k:'contract', label:i18t('ik_f_contract'), v:esc(a.contractName) }:null,

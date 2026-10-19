@@ -149,7 +149,8 @@ describe('f797 (4) the request in Jambo\'s panel', () => {
     assert.equal(txt(p.querySelector('.ik-ask-q')), '“Naivas want a two-month pilot. They asked for a mutual NDA first.”');
     const rows = [...p.querySelectorAll('.jl-rows.ik-rows > div')].map(r => [txt(r.querySelector('dt')), txt(r.querySelector('dd'))]);
     assert.deepEqual(rows.map(r => r[0]), ['Counterparty', 'Stream', 'How it is handled', 'With', 'Asked']);
-    assert.equal(rows[2][1], 'Routine — our own template, and nothing unusual asked for');
+    /* re-pointed 19 Oct 2026 (second check): the drawing's words, "our own template, nothing unusual asked" */
+    assert.equal(rows[2][1], 'Routine — our own template, nothing unusual asked');
     assert.equal(rows[3][1], 'Amina Otieno (you), sent by the NDA lane');
     assert.match(rows[4][1], /^\S+ \d{1,2} \S+ · promised by —$/, 'the day it was asked, weekday first, no comma; no promise is a dash');
   });
@@ -199,7 +200,8 @@ describe('f797 (6) the paper that fits, read without AI; Start the draft chooses
   const withRank = x => {
     /* draft-from-a-sentence's own ranking, the real functions */
     const code = ['CA_DRAFT_OPTS', 'caDraftWords', 'caDraftScore', 'caDraftShared', 'caDraftRank', 'caDraftTitleOf'].map(n => decl(CA, n)).join('\n');
-    x.win.eval(code + '\nObject.assign(window,{caDraftScore,caDraftShared,caDraftRank,caDraftTitleOf});');
+    /* caDraftWords published too (second check: a fit needs a word of the paper's own name) */
+    x.win.eval(code + '\nObject.assign(window,{caDraftWords,caDraftScore,caDraftShared,caDraftRank,caDraftTitleOf});');
     x.win.TEMPLATES = { ND: { id: 'ND', name: 'Mutual Non-Disclosure Agreement' }, DA: { id: 'DA', name: 'Distributor Agreement' } };
     x.win.draftCandidates = () => [
       { kind: 'builtin', id: 'DA', name: 'Distributor', blurb: 'Regional route-to-market distributor terms.' },
@@ -393,5 +395,38 @@ describe('f797 (12) the panel\'s acts do what they say', () => {
     assert.equal(calls[0].backLabel, 'Requests');
     assert.match(R('js/wizard.js'), /back:o\.backLabel\|\|''/);
     assert.match(R('js/core.js'), /b\.textContent='‹ '\+page\.back;/);
+  });
+});
+
+describe('f797 (13) second check: a fit is said only where the ask names the paper', () => {
+  const rank = x => {
+    x.win.draftCandidates = () => [
+      { kind: 'builtin', id: 'EL', name: 'Equipment Lease', blurb: 'Lease of plant and machinery.' },
+      { kind: 'builtin', id: 'ND', name: 'NDA', blurb: 'Confidentiality for NPD & vendor onboarding.' } ];
+    x.win.eval(['CA_DRAFT_OPTS', 'caDraftWords', 'caDraftScore', 'caDraftShared', 'caDraftRank', 'caDraftTitleOf'].map(n => decl(CA, n)).join('\n')
+      + '\nObject.assign(window,{caDraftWords,caDraftScore,caDraftShared,caDraftRank,caDraftTitleOf});');
+    return x;
+  };
+  test('13a one word shared with a description is "the closest", never "fits"; the word as the ask spells it', () => {
+    const x = rank(world({ list: [{ id: 'REQ-5', title: 'Cold-chain transport to the Nairobi plant', need: 'Trucks.', status: 'open', createdAt: at(1),
+      by: { id: 'u8', name: 'Achieng Odhiambo' } }] }));
+    x.win.renderIntake();
+    const say = txt(x.d.querySelector('#ins-panel .ik-fit .jl-bub'));
+    assert.match(say, /^Our Equipment Lease is the closest on our paper: Achieng's words name “plant”\./, say);
+    assert.ok(!/departs/.test(say));
+  });
+  test('13b a word in the paper\'s own name is a fit', () => {
+    const x = rank(world());
+    x.win.insSelect('intake:team', 'REQ-1042'); x.win.renderIntake();
+    assert.match(txt(x.d.querySelector('#ins-panel .ik-fit .jl-bub')), /^Our NDA fits: Wanjiru asks for “NDA”, and nothing in the ask departs from it\./);
+  });
+  test('13c an advice request\'s pills read like a request\'s: Standard, then who holds it; where it stands is a row', () => {
+    const x = world();
+    x.win.state.advice = [{ id: 'AR-7', service: 'review', name: 'Erik Ström', description: 'x', status: 'Submitted', submittedAt: at(1) }];
+    x.win.insSelect('intake:team', 'adv:AR-7'); x.win.renderIntake();
+    const p = x.d.getElementById('ins-panel');
+    assert.deepEqual([...p.querySelectorAll('.jl-pills > span')].map(txt).slice(0, 2), ['Standard', 'Nobody holds it yet'], 'as a request nobody holds says it');
+    assert.equal(txt(p.querySelector('[data-ins-fact="stands"] dt')), 'Where it stands');
+    assert.equal(txt(p.querySelector('[data-ins-fact="road"] dt')), 'How it is handled');
   });
 });

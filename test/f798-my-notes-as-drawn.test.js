@@ -197,3 +197,13 @@ describe('f798 (8) a tab\'s number is the list it opens (second pass)', () => {
     assert.equal(n('all'), 2); assert.equal(n('today'), 1); assert.equal(n('later'), 0); assert.equal(n('done'), 0);
   });
 });
+
+describe('f798 (9) second check: a reviewed note\'s verb says what it does', () => {
+  test('9a "Review again", not an Undo days later', async () => {
+    const x = await painted();
+    x.d.querySelector('[data-mn-row="nt_5"]').click();
+    const verbs = [...x.d.querySelectorAll('#ins-panel .ins-h .ins-acts [data-ins-act]')].map(txt);
+    assert.equal(verbs[0], 'Review again');
+    assert.ok(!verbs.includes('Undo'));
+  });
+});

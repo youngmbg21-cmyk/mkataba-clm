@@ -14043,11 +14043,18 @@
   .sap-page .reg-tabbar.ik-tabbar > .reg-fb.ik-fb{flex:0 1 auto;min-width:0;flex-wrap:nowrap;}
   .sap-page .reg-tabbar.ik-tabbar .ik-fb-find{flex:0 1 auto;min-width:0;}
   .sap-page .reg-tabbar.ik-tabbar .ik-fb-find .ik-search{min-width:96px;flex:0 1 176px;}
-  /* a label never gives way ("Ström", "Hos" whole): the box after it does */
-  .sap-page .reg-tabbar.ik-tabbar .reg-fb.ik-fb .reg-chip{min-width:0;flex:0 1 auto;}
+  /* a label and a chosen value never give way ("Ström", "Alla affärsområden"
+     whole): the find box, whose words are the reader's own, gives way first */
+  .sap-page .reg-tabbar.ik-tabbar .reg-fb.ik-fb .reg-chip{flex:none;}
   .sap-page .reg-tabbar.ik-tabbar .reg-fb.ik-fb .reg-chip .reg-f-l,
   .sap-page .reg-tabbar.ik-tabbar .ik-fb-l{flex:none;overflow:visible;text-overflow:clip;}
-  .sap-page .reg-tabbar.ik-tabbar .reg-fb.ik-fb .reg-chip .reg-f-v{flex:0 1 auto;min-width:88px;}
+  .sap-page .reg-tabbar.ik-tabbar .reg-fb.ik-fb .reg-chip .reg-f-v{flex:none;}
+  /* measured at 1366×950 in Svenska (second check): the gaps and the arrow's
+     room give a little so every box's value reads whole */
+  .sap-page .reg-tabbar.ik-tabbar > .reg-fb.ik-fb{gap:var(--s-3);}
+  .sap-page .reg-tabbar.ik-tabbar .reg-fb.ik-fb .reg-chip:not(.reg-chip-btn){gap:6px;}
+  .sap-page .reg-tabbar.ik-tabbar .ik-fb-find{gap:6px;}
+  .sap-page .reg-tabbar.ik-tabbar .reg-fb.ik-fb .reg-chip .reg-f-v{padding-right:24px;}
   .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip:not(.reg-chip-btn){gap:8px;padding:0;border:0;background:none;box-shadow:none;}
   .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip:not(.reg-chip-btn):hover,
   .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip:not(.reg-chip-btn):focus-within{border:0;background:none;box-shadow:none;}
@@ -14079,6 +14086,12 @@
     white-space:nowrap;background:var(--st-gray-bg);color:var(--st-gray-fg);max-width:100%;overflow:hidden;text-overflow:ellipsis;}
   .ik-road.is-routine,.ik-road.is-lane{background:var(--st-green-bg);color:var(--st-green-fg);}
   .ik-road.is-close{background:var(--st-amber-bg);color:var(--st-amber-fg);}
+  /* on the chosen row's tint the grey Standard pill keeps an edge, so it still reads */
+  .ins-lt tbody tr.is-sel .ik-road.is-standard{box-shadow:inset 0 0 0 1px var(--color-divider);}
+  /* a wrapped title and its asker breathe inside their row */
+  .ik-lt .ins-c2{padding:8px 0;}
+  /* "What <asker> asked for": a small grey label over their words, as drawn */
+  #ins-panel .ik-need h3{font-size:var(--t-meta);font-weight:var(--w-body);color:var(--color-neutral-600);}
   .ik-lt.is-team td.ik-with{white-space:nowrap;}
   .ik-who.is-you > span{font-weight:var(--w-strong);color:var(--color-text);}
   .ik-lt.is-team .ik-who{color:var(--color-text);}

@@ -131,7 +131,7 @@ function myNoteParts(n){
   const acts = open
     ? [{ k:'reviewed', kind:'accent', label:i18t('mn_mark_reviewed'), attrs:'data-mn-act="reviewed"' },
        { k:'snooze', label:i18t('mn_snooze'), attrs:'data-mn-act="snooze"' }]
-    : [{ k:'unreview', label:i18t('mn_undo'), attrs:'data-mn-act="unreview" data-mn-undo' }];
+    : [{ k:'unreview', label:i18t('mn_review_again'), attrs:'data-mn-act="unreview" data-mn-undo' }];
   if (c) acts.push({ k:'open', label:i18t('mn_open', { ref:_mnRef(c) }), attrs:'data-mn-act="open"' });
   const day = n.reviewBy ? `${_mnDay(n.reviewBy)}` : '';
   const review = st.k === 'done' ? st.word
@@ -391,7 +391,9 @@ function myNotesCss(){ return `
   .mn-pill{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:var(--w-label);white-space:nowrap;border:1px solid transparent}
   .mn-pill.is-late{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
   .mn-pill.is-today{background:var(--st-amber-bg);color:var(--st-amber-fg)}
-  .mn-pill.is-later{background:var(--color-surface);border-color:var(--color-divider);color:var(--color-neutral-700,var(--color-text))}
+  .mn-pill.is-later{background:var(--color-surface);border-color:var(--color-divider);color:var(--color-neutral-600,var(--color-text))}
+  /* on the chosen row's tint a grey pill keeps an edge, so it still reads */
+  .ins-lt tbody tr.is-sel .mn-pill.is-none{box-shadow:inset 0 0 0 1px var(--color-divider)}
   .mn-pill.is-none{background:var(--st-gray-bg);color:var(--st-gray-fg)}
   .mn-pill.is-done{background:var(--st-green-bg);color:var(--st-green-fg)}
   /* THE NOTE IN JAMBO'S PANEL (and the card's side, narrower) */

@@ -234,7 +234,7 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
         const F = await page.evaluate(s => {
           const tabs = document.querySelector('.reg-tabbar .reg-views'), fb = document.querySelector('.reg-tabbar .ik-fb');
           const tr = tabs && tabs.getBoundingClientRect(), fr = fb && fb.getBoundingClientRect();
-          const labelsCut = [...document.querySelectorAll('.ik-tabbar .reg-f-l, .ik-tabbar .ik-fb-l, .ik-tabbar .reg-vtab')].filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.textContent.trim());
+          const labelsCut = [...document.querySelectorAll('.ik-tabbar .reg-f-l, .ik-tabbar .ik-fb-l, .ik-tabbar .reg-vtab, .ik-tabbar .reg-f-v')].filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.textContent.trim());
           const heads = [...document.querySelectorAll(s + ' thead th')].filter(t => t.scrollWidth > t.clientWidth + 1).map(t => t.textContent.trim());
           const p = document.querySelector('#ins-panel.is-jambo'); const pr = p && p.getBoundingClientRect();
           const verbs = p ? [...p.querySelectorAll('.ins-h .ins-acts [data-ins-act]')] : [];
