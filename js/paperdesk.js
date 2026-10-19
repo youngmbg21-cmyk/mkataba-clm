@@ -41,12 +41,12 @@ const PD_TAB_ALIAS = { deal: 'doc', hist: 'copilot', facts: 'copilot' };
 /* THE ARTIFACT'S SYMBOLS, EXACTLY (owner, 10 Oct 2026: "use the Symbols that
    were in the artifact before not the ones in hati"): typed marks, each held
    to its text face (U+FE0E), never the left menu's drawings. */
-const PD_TAB_GLYPH = { copilot: '\u2726', facts: '\u25A6', doc: '\u25A2', oblig: '\u2691', hist: '\u25F7', deal: '\u21C4', menu: '\u2630' };
+const PD_TAB_GLYPH = { copilot: '\u2726', facts: '\u25A6', doc: '\u25A2', oblig: '\u2691', hist: '\u25F7', deal: '\u21C4', menu: '\u2630', findings: '\u25C7' };
 const PD_TAB_ICON = PD_TAB_GLYPH;
 /* the room's own words for its tabs; Copilot and Deal have no room tab */
 /* THE DOCUMENT TAB IS CALLED CLAUSES (owner, 11 Oct 2026): Home's face is
    "Document" now, and this tab holds the clause list. */
-const PD_TAB_NAME = { copilot: 'pd_tab_copilot', facts: 'tab_overview', doc: 'pd_tab_clauses', oblig: 'tab_obligations', hist: 'tab_history', deal: 'pd_tab_deal', menu: 'pd_tab_menu' };
+const PD_TAB_NAME = { copilot: 'pd_tab_copilot', facts: 'tab_overview', doc: 'pd_tab_clauses', oblig: 'tab_obligations', hist: 'tab_history', deal: 'pd_tab_deal', menu: 'pd_tab_menu', findings: 'pd_tab_findings' };
 const PD_HIST_MAX = 40;          // trail rows drawn; the rest are counted and one press away
 let _pdTab = 'copilot';
 const _pdActs = new Map();       // act id -> function, refilled at every paint (resolved at press time)
@@ -108,6 +108,8 @@ function pdEmpty(title, ic){
    the duties recorded, Deal = their changes still open. Nothing is counted
    that the tab does not draw. */
 function pdTabCount(t, c){
+  /* the Findings tab counts the hand-offs owed this reader, never the list */
+  if (t === 'findings') return typeof igFindingsCount === 'function' ? igFindingsCount() : null;
   /* HIS TAB CARRIES THE COUNT while no paper is up (Jambo's note, 15 Oct
      2026): what needs you, the Board's "Needs you" card's own number */
   /* on the Board only, where the card is: the count walks the book, and
@@ -2227,8 +2229,11 @@ function pdTabGlyphHtml(t){
   return PD_TAB_GLYPH[t] + '\uFE0E';
 }
 function pdHeadHtml(brain){
-  const tabs = pdOnPaper() ? PD_TABS : ['copilot'];
-  const lit = tabs.includes(_pdTab) ? _pdTab : 'copilot';
+  /* FINDINGS (Explorer stage 4): beside Jambo on Explorer's map, no paper up;
+     the tab is the map's own (igFindingsShows), so the paper's tabs never meet it */
+  const fd = !pdOnPaper() && typeof igFindingsTabOn === 'function' && igFindingsTabOn();
+  const tabs = pdOnPaper() ? PD_TABS : (fd ? ['copilot', 'findings'] : ['copilot']);
+  const lit = fd && typeof igFindingsShows === 'function' && igFindingsShows() ? 'findings' : (tabs.includes(_pdTab) ? _pdTab : 'copilot');
   const c = pdOnPaper() ? pdContract() : null;
   /* A WORD FOR WHAT THE PANEL HOLDS (the gaps, round 4 "One sheet", 18 Oct
      2026: "Jambo · New agreement · ›"): beside the one sheet, the agreement
@@ -2391,7 +2396,6 @@ function pdDropImportHtml(){
    the arrivals agent's own door) ask here first; the pop-up stays for what the
    drop hands it (a signed copy coming back) and on the phone. Answers whether
    it took the door. */
-const PD_DROP_CALL_MS = 1600;
 function pdDropDoor(){
   if (typeof window === 'undefined' || (window.innerWidth && window.innerWidth < 768)) return false;
   if (typeof hbOpenContracts !== 'function' || !(typeof deskShellOn !== 'function' || deskShellOn())) return false;
@@ -2400,13 +2404,8 @@ function pdDropDoor(){
   hbOpenContracts();
   if (typeof intel === 'object' && intel && !intel.dockOpen){ intel.dockOpen = true; if (typeof renderIntelDock === 'function') renderIntelDock(); if (typeof igSyncDockWidth === 'function') try { igSyncDockWidth(); } catch (_){} }
   pdSetTab('copilot');
-  let n = 0;
-  const land = () => { const el = document.getElementById('pd-drop');
-    if (el && el.getBoundingClientRect().height > 0){
-      try { el.scrollIntoView({ block: 'nearest' }); } catch (_){}
-      el.classList.add('is-called'); setTimeout(() => el.classList.remove('is-called'), PD_DROP_CALL_MS); return; }
-    if (++n < 30) setTimeout(land, 100); };
-  setTimeout(land, 0);
+  /* LAND ON IT (owner, 18 Oct 2026): the drop area lit, Choose files ready */
+  if (typeof landOn === 'function') landOn('#pd-drop', { focus: '[data-pd-drop-pick]' });
   return true;
 }
 /* ---- THE STREAM IS ASKED AT THE DROP (the fix round, 15 Oct 2026; the
@@ -2820,5 +2819,5 @@ Object.assign(window, { pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAme
   PD_FILL_TRIES, PD_FILL_BEAT_MS, pdFillFor, pdFillShows, pdFillOpen, pdFillSeen, pdFillAway, pdFillClose, pdFillHeadHtml, pdFillDoneHtml, pdFillFaceHtml, pdFillMark, pdFillGroupsPaint, pdFillRows, pdFillRowKey, pdFillFacePaint, pdFillCounts, pdFillKeyOf, pdFillEcho, pdFillWire, pdFillLand, pdFillRefresh,
   pdFillStreamMay, pdFillStreamHtml, pdFillStreamAsk, PD_FF_BOX, pdFillBoxOf, pdFillLabelOf, PD_FF_UNIT, pdFillStdOf, PD_FF_CLAUSE_NUM, pdFillSpotClause, pdFillSpotOf, pdFillExtrasPaint, pdFillStreamRepaint, pdFillStreamPick,
   PD_DROP_ACCEPT, pdDropMay, pdWallHelloHtml, pdDropInner, pdDropStreams, pdDropStreamNow, pdDropStreamHtml, pdDropHtml, pdDropPaint, pdWallHtml, pdDropInput, pdDropBusyNow, pdDropPick, PD_DROP_TOAST_MS, pdDropToastOff, pdDropTake,
-  PD_GLANCE, PD_GL_SUB_MAX, pdGlanceSub, pdGlanceBriefHtml, pdGlanceFootHtml, pdDropImportHtml, pdDropDoor, PD_DROP_CALL_MS, pdGlanceRows, pdSignAhead, pdGlanceHtml, pdGlanceRepaint, pdJamboTopHtml, pdNeedsRows, pdNeedRowHtml, pdNeedsHtml, pdNeedsRepaint, pdBackHtml, PD_BACK_CLOSE, PD_GL_DONE_MS, pdGlanceDone,
+  PD_GLANCE, PD_GL_SUB_MAX, pdGlanceSub, pdGlanceBriefHtml, pdGlanceFootHtml, pdDropImportHtml, pdDropDoor, pdGlanceRows, pdSignAhead, pdGlanceHtml, pdGlanceRepaint, pdJamboTopHtml, pdNeedsRows, pdNeedRowHtml, pdNeedsHtml, pdNeedsRepaint, pdBackHtml, PD_BACK_CLOSE, PD_GL_DONE_MS, pdGlanceDone,
   JB_BEAT_MS, JB_HOP_MS, jamboPerchMount, jamboRest, jamboWorkWords, jamboBeat, jamboHop, jamboLookPaint });

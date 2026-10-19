@@ -457,6 +457,10 @@ function stWireDrawerOnce(){
     const box=document.getElementById('st-jb-q');
     const q=(box&&box.value||'').trim(); if(!q) return;
     box.value='';
+    /* JAMBO, THE SAME ON EVERY PAGE (owner, 18 Oct 2026): a page, a contract's
+       number, a draft or a send is read as Home reads it (caAskAnywhere);
+       finding a setting is this box's own job, for the rest */
+    if(typeof caAskAnywhere==='function'&&caAskAnywhere(q)) return;
     stJbAsk(q);
   });
   /* A dialog opened from inside the drawer owns Escape while it is up: one
@@ -2544,7 +2548,7 @@ function stJamboHtml(){
     </div>
     <form class="st-jb-ask" id="st-jb-form" autocomplete="off">
       <label class="sr-only" for="st-jb-q">${esc(i18t('st_jb_ph'))}</label>
-      <input id="st-jb-q" type="text" maxlength="200" placeholder="${esc(i18t('st_jb_ph'))}">
+      <input id="st-jb-q" type="text" maxlength="200" data-ca-slash autocomplete="off" placeholder="${esc(i18t('st_jb_ph'))}">
       <button type="submit" class="ui-btn ui-btn-primary">${esc(i18t('st_jb_ask'))}</button>
     </form>
   </div>`;
@@ -3649,6 +3653,14 @@ async function settingsSavePerson(existing){
     ? stOverseerPatch(isNew?null:(getUsers()||[]).find(x=>x.id===existing.id), ovr) : { patch:{} };
   if(ovPatch.refuse){ stDrawerRefuse(ovPatch.refuse); return; }
   if(isNew && (getUsers()||[]).some(x=>(x.email||'').toLowerCase()===email)){ stDrawerRefuse(i18t('set_member_exists')); return; }
+  /* TWO MEMBERS MAY NOT SHARE A NAME (a named approver is matched by name where
+     a rule has no id): the server refuses it on POST and PATCH /api/users; with
+     no server this is the wall, asked only of a new or changed name. */
+  if(!(typeof API_MODE==='function'&&API_MODE())){
+    const nm=name.toLowerCase(), changed=isNew||String(existing.name||'').trim().toLowerCase()!==nm;
+    if(changed&&(getUsers()||[]).some(x=>x&&(isNew||String(x.id)!==String(existing.id))&&String(x.name||'').trim().toLowerCase()===nm)){
+      stDrawerRefuse(i18t('srv_member_name_taken')); return; }
+  }
 
   /* Folder access is decided BEFORE the account exists. `null` means every
      stream — the same "no entry in the map" the editor writes — and it is
@@ -7968,7 +7980,7 @@ function renderApprovalRules(){
       </div>
     </div>`).join(''):`<p style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('set_no_approval_rules')}</p>`;
   host.querySelectorAll('[data-ar-edit]').forEach(b=>b.addEventListener('click',()=>openApprovalRuleEditor(Number(b.getAttribute('data-ar-edit')))));
-  host.querySelectorAll('[data-ar-del]').forEach(b=>b.addEventListener('click',()=>{ const rules2=approvalRules().slice(); rules2.splice(Number(b.getAttribute('data-ar-del')),1); saveApprovalRules(rules2); renderApprovalRules(); toast(i18t('set_rule_removed')); }));
+  host.querySelectorAll('[data-ar-del]').forEach(b=>b.addEventListener('click',()=>{ const rules2=approvalRules().slice(); rules2.splice(Number(b.getAttribute('data-ar-del')),1); saveApprovalRules(rules2); renderApprovalRules(); toast(i18t('set_rule_removed'),'ok'); }));
 }
 function openApprovalRuleEditor(idx){
   const rules=approvalRules().slice();
@@ -8050,7 +8062,7 @@ function openApprovalRuleEditor(idx){
     r.approver = apM?{kind:'member',name:apM.name,id:apM.id}:{kind:'role',role:ap[1]};
     r.name = condLabel(cond);
     if(idx>=0) rules[idx]=r; else rules.push(r);
-    saveApprovalRules(rules); closeModal(); renderApprovalRules(); toast(i18t('set_rule_saved'));
+    saveApprovalRules(rules); closeModal(); renderApprovalRules(); toast(i18t('set_rule_saved'),'ok');
   });
 }
 

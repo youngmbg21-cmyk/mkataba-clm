@@ -95,7 +95,8 @@ function healthReportData(){
 
   const risk=(typeof contractRisk==='function')?contractRisk:(()=>0);
   const risky=live.map(c=>({c,r:risk(c)})).filter(x=>x.r>=60).sort((a,b)=>b.r-a.r);
-  const findingsOf=c=>(typeof openFindings==='function'&&c.scan)?openFindings(c).slice(0,2).map(f=>f.title):[];
+  /* named by the ONE short title (riskTitleOf), as the Board's risks pack does */
+  const findingsOf=c=>(typeof openFindings==='function'&&c.scan)?openFindings(c).slice(0,2).map(f=>(typeof riskTitleOf==='function')?riskTitleOf({ src:'scan', id:f.id, kind:f.kind||'', title:String(f.title||'') }):f.title):[];
 
   const _obState=(typeof obState==='function')?obState:(o=>(o&&o.status==='done')?'done':'open');
   const obs=(typeof allObligations==='function')?allObligations().filter(o=>_obState(o)!=='done'):[];

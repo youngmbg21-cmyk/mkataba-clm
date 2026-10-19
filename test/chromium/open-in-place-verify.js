@@ -2,19 +2,21 @@
    "Open in place" by name, 17 Oct 2026; levels "Each person chooses"; the
    button word "Put away"; js/views/counter.js, js/views/jambohouse.js)
 
-   WHAT THIS PINS, driven in a real browser on a seeded workspace
-     1 the Counter's first row opens where it is: the page stays the Counter,
-       one row per prepared piece with Look · its acts · Put away, no filled
-       button among them; Look opens the piece's whole body, Hide shuts it;
-       Close folds the row back
-     2 the house is one link away
+   REVERSED 18 Oct 2026 (LAND ON IT; the owner: "when you click on jambos
+   work, it should take you to the jambos work card in the board", and
+   "remove the in-place list"). WHAT THIS PINS, driven in a real browser on a
+   seeded workspace
+     1 the Counter's first row is one row with Open, and no list opens in
+       place: Open lands on the Board's Jambo's work card, brought into view
+       and lit (.is-landed), a button on it ready
+     2 the house is one link away, on the card ("The agents")
      3 each person chooses: on the agent's card in the house, "For you"
        offers the company's level and the steps below it, never Just do it;
        Leave it to me takes the agent's piece off the Counter, kept on the
        server (a fresh load still has it); the company's brings it back; the
        route refuses a person's Just do it
-     4 Put away takes the piece off the list
-     5 it fits the owner's three screens with the row open
+     4 Put away takes the piece off the Board's list
+     5 the landing holds at the owner's three screens: the card in sight, lit
    Waits ask for the state, bounded; a press on a part that may not exist
    reports instead of waiting out the clock.
    Run: node test/chromium/open-in-place-verify.js */
@@ -59,51 +61,48 @@ CONTRACTS[1].metadata = { ...(CONTRACTS[1].metadata || {}), expiryDate: day(40) 
       await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
       await page.waitForFunction(() => window.state && state.contracts && state.contracts.length === 2, null, { timeout: 20000 });
     };
-    const list = () => page.evaluate(() => { const L = document.getElementById('cn-jw-list');
-      return { view: state.view, open: !!L, rows: L ? L.querySelectorAll('[data-cn-ag-item]').length : 0, keys: L ? [...L.querySelectorAll('[data-cn-ag-item]')].map(x => x.getAttribute('data-cn-ag-item')) : [],
-        filled: L ? L.querySelectorAll('.ui-btn-primary').length : -1, away: L ? L.querySelectorAll('[data-ag-act="away"]').length : 0,
-        look: L ? L.querySelectorAll('[data-cn-look]').length : 0, ready: hbAgentsData(null).ready,
-        btn: ((document.querySelector('[data-cn-jw]') || {}).textContent || '').trim() }; });
+    const landed = () => page.evaluate(() => { const c = document.getElementById('hm-agents'); const r = c ? c.getBoundingClientRect() : null;
+      return { view: state.view, face: window.hbFace ? hbFace() : null, card: !!c, lit: !!(c && c.classList.contains('is-landed')),
+        inView: !!r && r.top >= -2 && r.top < innerHeight - 40, focus: !!(c && document.activeElement && c.contains(document.activeElement)),
+        list: !!document.getElementById('cn-jw-list'), ring: c ? getComputedStyle(c).outlineStyle + ' ' + getComputedStyle(c).outlineWidth : '' }; });
 
     await signIn();
     await toCounter();
 
-    console.log('\n1 · the first row opens where it is');
+    console.log('\n1 · Open lands on the Board\'s card');
     const ready = await page.evaluate(() => hbAgentsData(null).ready);
     check('1 (setup) Jambo has the lease\'s renewal prepared', ready >= 1, String(ready));
-    if (await press('[data-cn-jw]', '1a Open')) {
-      const L = await until(() => document.getElementById('cn-jw-list') ? true : (state.view !== 'counter' ? 'left' : null), null, 4000);
-      const s = await list();
-      check('1a pressing Open keeps the Counter and opens the row in place', L === true && s.view === 'counter', JSON.stringify(s));
-      check('1b one row per prepared piece', s.rows === Math.min(s.ready, await page.evaluate(() => window.CN_JW_MAX || 8)) && s.rows >= 1, JSON.stringify(s));
-      check('1c each piece has Look and Put away', s.look === s.rows && s.away >= 1, JSON.stringify(s));
-      check('1d no filled button among them (one per area)', s.filled === 0, String(s.filled));
-      check('1e the row\'s own button now says Close', s.btn === 'Close', s.btn);
-      await shot(page, 'open-in-place-1440x780');
-      if (await press('[data-cn-look]', '1f Look')) {
-        const body = await until(() => { const b = document.querySelector('#cn-jw-list .cn-jw-body'); return b && b.innerText.trim().length > 10 ? b.innerText.trim().slice(0, 60) : null; }, null, 3000);
-        check('1f Look opens the piece\'s whole body under its row', !!body, body);
-        await press('[data-cn-look]', '1g Hide');
-        const shut = await until(() => !document.querySelector('#cn-jw-list .cn-jw-body'), null, 3000);
-        check('1g Hide shuts it', !!shut);
-      }
+    check('1a the row is one row with Open, nothing drawn in place', await page.evaluate(() => !document.getElementById('cn-jw-list')
+      && ((document.querySelector('[data-cn-jw]') || {}).textContent || '').trim() === 'Open'));
+    if (await press('[data-cn-jw]', '1b Open')) {
+      const L = await until(() => { const c = document.getElementById('hm-agents'); return c && c.classList.contains('is-landed') ? true : null; }, null, 6000);
+      const s = await landed();
+      check('1b Open lands on the Board\'s Jambo\'s work card', L === true && s.view === 'dashboard' && s.face === 'board' && s.card, JSON.stringify(s));
+      check('1c the card is in sight and lit, a ring drawn', s.inView && s.lit && /solid 2px/.test(s.ring), JSON.stringify(s));
+      check('1d a button on it is ready for Enter', s.focus, JSON.stringify(s));
+      await shot(page, 'land-on-work-1440x780');
+      await page.mouse.click(5, 300);
+      const out = await until(() => { const c = document.getElementById('hm-agents'); return c && !c.classList.contains('is-landed') ? true : null; }, null, 3000);
+      check('1e the light goes out at the reader\'s next press', !!out);
     }
 
-    console.log('\n5 · it fits the owner\'s three screens with the row open');
+    console.log('\n5 · the landing holds at the owner\'s three screens');
     for (const [w, hh] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: hh });
-      await page.waitForTimeout(250);
-      const fit = await page.evaluate(() => { const L = document.getElementById('cn-jw-list');
-        return { open: !!L, sx: document.scrollingElement.scrollWidth > innerWidth,
-          past: L ? [...L.querySelectorAll('button, .cn-w b, .cn-w span')].filter(e => { const r = e.getBoundingClientRect(); return r.width && (r.right > innerWidth + 1 || r.right > L.getBoundingClientRect().right + 1); }).length : -1 }; });
-      check(`5 at ${w}×${hh}: open, no sideways scroll, nothing past the edge`, fit.open && !fit.sx && fit.past === 0, JSON.stringify(fit));
+      await toCounter();
+      await press('[data-cn-jw]', '5 Open');
+      await until(() => { const c = document.getElementById('hm-agents'); return c && c.classList.contains('is-landed') ? true : null; }, null, 6000);
+      const s = await landed();
+      check(`5 at ${w}×${hh}: the card is in sight and lit, no sideways scroll`, s.inView && s.lit
+        && !(await page.evaluate(() => document.scrollingElement.scrollWidth > innerWidth)), JSON.stringify(s));
+      await shot(page, `land-on-work-${w}x${hh}`);
     }
     await page.setViewportSize({ width: 1440, height: 780 });
 
     console.log('\n2 · the house is one link away');
-    if (await press('[data-cn-house]', '2 the house link')) {
+    if (await press('#hm-agents [data-hb-agents-page]', '2 the house link')) {
       const v = await until(() => state.view === 'jambo' ? 'jambo' : null, null, 5000);
-      check('2 the link opens Jambo\'s house', v === 'jambo', String(v));
+      check('2 the card\'s "The agents" opens Jambo\'s house', v === 'jambo', String(v));
     }
 
     console.log('\n3 · each person chooses');
@@ -137,14 +136,12 @@ CONTRACTS[1].metadata = { ...(CONTRACTS[1].metadata || {}), expiryDate: day(40) 
     }
 
     console.log('\n4 · Put away');
-    await toCounter();
-    const opened = await page.evaluate(() => !!document.getElementById('cn-jw-list'));
-    if (!opened) await press('[data-cn-jw]', '4 Open');
-    const before = await list();
-    if (before.away && await press('#cn-jw-list [data-ag-act="away"]', '4 Put away')) {
-      const after = await until(n => { const L = document.getElementById('cn-jw-list'); const k = L ? L.querySelectorAll('[data-cn-ag-item]').length : 0; return hbAgentsData(null).ready < n ? { ready: hbAgentsData(null).ready, rows: k } : null; }, before.ready, 5000);
-      check('4 Put away takes the piece off the list', !!after && after.ready === before.ready - 1, JSON.stringify({ before: before.ready, after }));
-    } else check('4 Put away (no piece with Put away)', false, JSON.stringify(before));
+    await page.evaluate(() => hbOpenAgent('renew'));
+    const before = await until(() => document.querySelector('.hb-ag-works [data-ag-act="away"]') ? hbAgentsData(null).ready : null, null, 6000);
+    if (before && await press('.hb-ag-works [data-ag-act="away"]', '4 Put away')) {
+      const after = await until(n => hbAgentsData(null).ready < n ? hbAgentsData(null).ready : null, before, 5000);
+      check('4 Put away takes the piece off the Board\'s list', after === before - 1, JSON.stringify({ before, after }));
+    } else check('4 Put away (no piece with Put away on the Board)', false, String(before));
 
     check('no console errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {

@@ -3244,7 +3244,9 @@ function signCopySheetHtml(c, o){
   const theirs=signCopyTheirs(c);
   const b=(!up&&window.resolveDocBranding)?resolveDocBranding(c):null;
   const P=window.PG_SIGN_PAD||{t:64,r:84,b:88,l:84};
-  const structured=(b&&window.docStructureBodyHtml)?docStructureBodyHtml(b,docBody(c)):docBody(c);
+  /* the copy that is signed and printed carries no scan marks, as the sealed copy does */
+  const body0=docBody(c,{ marks:false });
+  const structured=(b&&window.docStructureBodyHtml)?docStructureBodyHtml(b,body0):body0;
   /* TWO COLUMNS DO NOT GO ONTO THE SIGNING PAGES YET: a page-maker that moves
      whole blocks cannot fill two columns a page at a time, and a column that
      ran the whole length of a long contract is not a page anybody signs. The
@@ -3643,7 +3645,7 @@ function docTermSpan(c){
   return { from, to, len:docTermLength(a,b) };
 }
 
-function docBody(c){
+function docBody(c, opts){
   if(isUpload(c)) return uploadDocBody(c);
   if(c.status==='Signed' && c.execution && c.execution.html) return frozenDocBody(c);
   if(c.redlineText) return redlineDocBody(c);
@@ -3685,8 +3687,12 @@ function docBody(c){
   const VAL=`<input ${dis} type="number" value="${c.value||''}" placeholder="0" data-sync="value" data-money="1" class="field field-num"/>`;
   // Presentational clause flags — reuse the app's EXISTING scan findings
   // (openFindings), map each to its clause anchor, keep the worst severity.
+  /* A COPY THAT LEAVES THE LIVE PAPER CARRIES NO SCAN MARK (bug log, 13 Oct;
+     the #253 review, 18 Oct 2026): the sealed copy, the other side's view, an
+     adviser's link, the text Jambo is sent and the amendment's reading of its
+     parent ask { marks:false }, so neither the tag nor the tinted box goes out. */
   const flags={};
-  try{ (window.openFindings?openFindings(c):[]).forEach(x=>{ const a=x.anchor;
+  if(!(opts&&opts.marks===false)) try{ (window.openFindings?openFindings(c):[]).forEach(x=>{ const a=x.anchor;
     /* `c1`…`c4` are the template's own clauses and `s-…` the shared ones —
        every anchor a clause can carry, and nothing else (a finding on the
        recital or on the whole document is not a clause flag). */
@@ -3709,7 +3715,7 @@ function docBody(c){
     const a=key||('c'+n);
     const p=flags[a]?FLAGPAL[flags[a].sev]:null;
     const wrap=p?` style="background:${p.box};outline:1px solid ${p.line};border-radius:var(--radius);padding:6px 10px;margin-bottom:14px"`:'';
-    const tag=p?`<span style="font-size:var(--t-figure);font-weight:var(--w-title);background:${p.bg};color:${p.fg};padding:1px 6px;border-radius:var(--radius);flex:none">${p.tag}</span>`:'';
+    const tag=p?`<span data-not-wording style="font-size:var(--t-figure);font-weight:var(--w-title);background:${p.bg};color:${p.fg};padding:1px 6px;border-radius:var(--radius);flex:none">${p.tag}</span>`:'';
     /* NO FIXED-SIZE UTILITY ON THE PAPER. These carried `text-[13.5px]` and
        `text-[13px]`, and both LIE: the 22 Aug size sweep moved the compiled
        values to 15px and 14px and left the class NAMES saying 13.5 and 13.
@@ -9076,7 +9082,7 @@ function openNegotiationOwnerRoom(c){
        silence. They are not waiting to be told we accepted something; they
        cannot answer wording they do not know has arrived. */
     async onSendDirect(){
-      const to=c.counterpartyName||c.counterparty||'the counterparty';
+      const to=c.counterpartyName||c.counterparty||i18t('ng_the_counterparty');
       try{
         /* handOver: a round send — where it hands the table to them, one
            "it is your turn" email rides with it (roundTurnMail). */
@@ -9104,7 +9110,7 @@ function openNegotiationOwnerRoom(c){
             : i18t('ng_turn_mail_failed',{who:to, why:out.emailError||''}), out.delivered?'ok':'warn');
         } else
         toast(out.stranded
-          ? `${reshareStrandedLine(to)} It is now their turn.`
+          ? `${reshareStrandedLine(to)}${i18t('ng_solo_turn_end')}`
           : out.quiet
           ? `Sent to ${to} — the new round is on their link, and it is now their turn`
           : out.delivered
@@ -9125,7 +9131,7 @@ function openNegotiationOwnerRoom(c){
        afterwards. It goes down the discussion channel as well, under the
        change's own topic, which is the store their page reads. Same message,
        both stores, one thread on each side's card. */
-    async onComment(_c, ch, msg){
+    async onComment(_c, ch, msg, how){
       if(!API_MODE()||!ch) return;
       try{
         const res=await api('contracts/'+c.id+'/messages','POST',{
@@ -9133,9 +9139,9 @@ function openNegotiationOwnerRoom(c){
           topicLabel:`Change #${ch.id}${ch.clauseLabel?' · '+_ctClauseName(ch.clauseLabel):''}`,
           body:msg.text });
         c._messages=(res&&res.messages)||c._messages||[];
-        toast(`Comment posted on #${ch.id} — ${c.counterparty||'the counterparty'} sees it on the same change. The contract is unchanged.`);
+        if(!(how&&how.confirms)) toast(i18t('ng_comment_posted',{ id:ch.id, who:c.counterparty||i18t('ng_the_counterparty') }),'ok');
       }catch(e){
-        toast(`Saved on the change, but it could not be sent to ${c.counterparty||'the counterparty'}: ${e.message||'the message channel is unavailable'}`,'err');
+        toast(i18t('ng_comment_not_sent',{ who:c.counterparty||i18t('ng_the_counterparty'), why:e.message||i18t('ng_comment_no_channel') }),'err');
       }
     },
     onPropose(){ openNegoProposeModal(c); },

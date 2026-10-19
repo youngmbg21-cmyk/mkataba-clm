@@ -55,7 +55,8 @@ describe('f711 (1) the row', () => {
   });
   test('1c the row draws both; the reason rides with the change line, above the buttons', () => {
     assert.match(NV, /who \? `<span class="rl-card-id">\$\{_ne\(ch\.id\)\}<\/span>\$\{rlRowByHtml\(ch, _short\)\}` : ''/);
-    assert.match(NV, /const why = rlRowWhyHtml\(ch\); return why \? `<div class="rl-card-sumw">\$\{sub\}\$\{why\}<\/div>` : sub;/);
+    /* RE-POINTED 18 Oct 2026: a half-undone counter's lines (f733) ride in the same block */
+    assert.match(NV, /const why = rlRowWhyHtml\(ch\), keeps = rlRowKeepsHtml\(c, ch, side\);\s*return \(why \|\| keeps\) \? `<div class="rl-card-sumw">\$\{sub\}\$\{why\}\$\{keeps\}<\/div>` : sub;/);
     assert.match(CSS, /\.redline-page \.rl-card-d \.rl-card-id\{display:none\}/);
     assert.match(CSS, /\.redline-page \.rl-card-d \.rl-card-sumw\{grid-column:1 \/ -1;grid-row:2;min-width:0\}/);
   });

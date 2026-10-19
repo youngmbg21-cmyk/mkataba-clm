@@ -156,7 +156,9 @@ describe('f679 (2) the wall\'s two ways in are Jambo\'s words, in both books', (
     assert.ok(!/data-ca-act="draftform"/.test(html));
   });
   test('2e the top bar and ⌘K answer "draft" with the card too (caPlaceRun)', () => {
-    assert.match(fnBody(CA, 'caPlaceRun'), /a\.place === 'share' \|\| a\.place === 'help' \|\| a\.place === 'draft'/);
+    /* RE-POINTED 18 Oct 2026: the card words are one list (CA_CARD_WORDS), handed to Home's Jambo */
+    assert.match(fnBody(CA, 'caPlaceRun'), /if \(CA_CARD_WORDS\.includes\(a\.place\)\)\{ caUseBump\(a\.place\); return caHandHome\(word, a\); \}/);
+    assert.match(CA, /const CA_CARD_WORDS = \['share', 'draft', 'help', 'next'\];/);
     assert.match(strip(CA), /draft: \(\) => caDraftForm\(null\)/, 'a caller moving straight on gets the one form');
   });
 });

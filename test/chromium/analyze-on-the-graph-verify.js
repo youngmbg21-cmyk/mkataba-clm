@@ -334,15 +334,21 @@ const deliver = (id, answer, citations) => ({ content: [{ type: 'tool_use', id, 
     /* ================= 5. NO FOCUS ON HOME'S PAPER ======================
        Owner, 8 Oct 2026: "add the removal of the focus button from the paper
        tab". Home's Paper strip carries no Focus, and a focus left stored from
-       an earlier sitting does not fold the page head away. */
+       an earlier sitting does not fold the page head away.
+       RE-POINTED 18 Oct 2026: on a computer Home's head row is gone by design
+       (the SAP way: the bar names the page), so the head is measured with and
+       without a stored focus, and the focus must not change it. */
     const nf = await page.evaluate(() => {
+      const headDisp = () => getComputedStyle(document.getElementById('ig-head')||document.getElementById('hb-head')).display;
+      intel.paper.focus = false; if (window.igPaintPaper) igPaintPaper();
+      const before = headDisp();
       intel.paper.focus = true; if (window.igPaintPaper) igPaintPaper();
       return { btn: !!document.querySelector('#ig-strip [data-ig-focus]'),
         cls: document.getElementById('ig-page').classList.contains('ig-focus'),
-        head: getComputedStyle(document.getElementById('ig-head')||document.getElementById('hb-head')).display };
+        before, head: headDisp() };
     });
     check('5a Home\'s Paper has no Focus button, and a stored focus does not open it full size',
-      !nf.btn && !nf.cls && nf.head !== 'none', JSON.stringify(nf));
+      !nf.btn && !nf.cls && nf.head === nf.before, JSON.stringify(nf));
 
     /* ================= 6. THE BIN ENDS IT ================================== */
     await page.click('#igd-history-clear');

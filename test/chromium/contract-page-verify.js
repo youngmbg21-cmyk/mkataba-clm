@@ -68,10 +68,14 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     const up = await until(() => !!document.querySelector('#bs-strip-MK-0377 .bs-chart') && window.bsCardId && bsCardId() === 'MK-0377');
     const P = await page.evaluate(() => { const el = document.getElementById('bs-strip-MK-0377'), t = el && el.querySelector('.bs-head .hb-ct');
       return { key: deskKeyNow(), furniture: !!document.querySelector('#hb-board .hb-note, #hb-board .hb-prep, #hb-board .hb-grid'), others: document.querySelectorAll('#bs-strips > .bs-strip').length,
-        x: !!(el && el.querySelector('[data-bs-x]')), present: !!(document.getElementById('hb-present') || {}).hidden, desk: !!(el && el.classList.contains('bs-on-desk')), title: t ? parseFloat(getComputedStyle(t).fontSize) : 0,
-        tab: (document.querySelector('#dk-home .dk-tab.is-on .dk-go') || {}).textContent }; });
-    check('1a bring up: a page of its own, its contract\'s tab in front', up && P.key === 'c:MK-0377' && /MK-0377/.test(P.tab || ''), JSON.stringify(P));
-    check('1b none of the Board\'s furniture, one card, no × of its own, Present hidden', !P.furniture && P.others === 1 && !P.x && P.present, JSON.stringify(P));
+        x: !!(el && el.querySelector('[data-bs-x]')), present: (() => { const p = document.getElementById('hb-present'); return !p || p.hidden; })(), desk: !!(el && el.classList.contains('bs-on-desk')), title: t ? parseFloat(getComputedStyle(t).fontSize) : 0,
+        tab: (document.getElementById('dk-page') || {}).textContent }; });
+    /* RE-POINTED 18 Oct 2026 (the SAP way): the bar names the page; Present is Recent's row, and not on a contract's page */
+    await page.click('#dk-page'); await until(() => !document.getElementById('dk-recent').hidden);
+    P.presentRow = await page.evaluate(() => !!document.querySelector('#dk-recent [data-dk-present]'));
+    await page.keyboard.press('Escape');
+    check('1a bring up: a page of its own, its contract named in the bar', up && P.key === 'c:MK-0377' && /MK-0377/.test(P.tab || ''), JSON.stringify(P));
+    check('1b none of the Board\'s furniture, one card, no × of its own, no Present', !P.furniture && P.others === 1 && !P.x && P.present && !P.presentRow, JSON.stringify(P));
     check('1c its head is the page\'s (the name at the page size)', P.desk && P.title >= 18, JSON.stringify(P));
     await shot(page, 'contract-page-1440x780');
 
@@ -80,8 +84,8 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     await page.evaluate(() => pdOpenOnHome('MK-0377', 'copilot'));
     await until(() => window.intel && intel.paper && intel.paper.id === 'MK-0377' && hbFace() === 'paper');
     await page.waitForTimeout(450);
-    const tabs1 = await page.evaluate(() => [...document.querySelectorAll('#dk-home .dk-go')].map(b => b.getAttribute('data-dk-go')));
-    check('2a the paper is on the same tab: one tab per contract', tabs1.filter(k => k === 'c:MK-0377').length === 1, JSON.stringify(tabs1));
+    const tabs1 = await page.evaluate(() => deskRecentRows().map(t => t.k));
+    check('2a the paper is on the same Recent row: one row per contract', tabs1.filter(k => k === 'c:MK-0377').length === 1, JSON.stringify(tabs1));
     await page.evaluate(() => hbStripBring('MK-0377'));
     await until(() => bsCardId() === 'MK-0377');
     await page.waitForTimeout(450);
@@ -96,9 +100,10 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     await page.evaluate(() => hbStripBring('MK-0378'));
     await until(() => bsCardId() === 'MK-0378');
     await kept('c:MK-0378');
-    await page.click('#dk-home [data-dk-x="c:MK-0378"]');
+    await page.click('#dk-page'); await until(() => !!document.querySelector('#dk-recent [data-dk-x="c:MK-0378"]'));
+    await page.click('#dk-recent [data-dk-x="c:MK-0378"]');
     const away = await until(() => !hbS().strips.some(x => x.id === 'MK-0378') && !String(localStorage.getItem(DK_KEY) || '').includes('"c:MK-0378"'));
-    check('3a the tab\'s × puts the page away: the strip goes with it', !!away);
+    check('3a its × in Recent puts the page away: the strip goes with it', !!away);
     await page.evaluate(() => hbStripBring('MK-0378'));
     await until(() => !!document.querySelector('#bs-strip-MK-0378 [data-bs-letgo]'));
     await kept('c:MK-0378');

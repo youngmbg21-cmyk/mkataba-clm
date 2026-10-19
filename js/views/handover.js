@@ -629,10 +629,17 @@ async function outsideCloseDeal(c){
   if (!ok) return;
   try { await outsideAct(c, 'reopen', { why: 'The deal was closed — nothing came back.' }); } catch (e) {
     if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); return; }
-  c.status = 'Declined';
-  if (typeof logAudit === 'function') logAudit(c, 'Closed', 'Closed after nothing came back — the deal is off. A working file that is never signed never takes a contract number.');
-  if (typeof persist === 'function') persist(c);
-  if (typeof toast === 'function') toast(i18t('ho_closed'), 'ok');
+  /* THE ONE ACT (bug log, 13 Oct; the #253 review, 18 Oct 2026): the handover
+     is reopened above, so contractDecline reads the whole record, refuses a
+     signed one, writes the trail, says it and counts the sidebar again. */
+  const why = 'Closed after nothing came back — the deal is off. A working file that is never signed never takes a contract number.';
+  if (typeof contractDecline === 'function') await contractDecline(c, why);
+  else {
+    c.status = 'Declined';
+    if (typeof logAudit === 'function') logAudit(c, 'Closed', why);
+    if (typeof persist === 'function') persist(c);
+    if (typeof toast === 'function') toast(i18t('ho_closed'), 'ok');
+  }
   _hoAfterAct(c);
 }
 

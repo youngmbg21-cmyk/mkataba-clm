@@ -82,7 +82,9 @@ describe('f706 (1) which sentences start a draft', () => {
   test('1c Jambo reads it, and the Counter sends it to the same place', () => {
     assert.ok(ctx.caReadDraft('NDA with Volvo Cars for a pilot'), 'a draft act');
     assert.match(fnBody(CA, 'caReadDraft'), /if \(!caIsDraftAsk\(q\)\) return null;/);
-    assert.match(fnBody(CN, 'counterAsk'), /caIsDraftAsk\(t\)/, 'the Counter\'s box: one reading');
+    /* RE-POINTED 18 Oct 2026: every Jambo box reads through caAskAnywhere, whose hand-off to Home asks it */
+    assert.match(fnBody(CN, 'counterAsk'), /caAskAnywhere\(text, \{ all: true \}\)/, 'the Counter\'s box: one reading');
+    assert.match(fnBody(CA, 'caHandHome'), /caIsDraftAsk\(t\)/, 'the draft sentence goes to the wall');
   });
 });
 

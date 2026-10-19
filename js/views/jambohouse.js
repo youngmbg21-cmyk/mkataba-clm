@@ -628,8 +628,10 @@ function jhDrawOffice(ctx, pieces, upto, mono){
     let px = nx + 6 + ctx.measureText(nm).width;
     if (agPointsIsNew(r.k)) px += jhPill(ctx, _jhT('jh_new_tag'), px, ny - 1, C.amber) + 4;
     if (agPointsMine(r.k)) jhPill(ctx, _jhT('jh_mine_tag'), px, ny - 1, C.accent);
-    /* the work line only where it clears the seat below it */
-    if (!cp){ ctx.fillStyle = C.muted; ctx.font = font(400, mono ? 11.5 : 13); ctx.fillText(jhClip(ctx, up(jhRoomSub(r, s, pieces, mono)), c.x + c.w - 10 - lx(c)), lx(c), ly2(c)); }
+    /* the work line only where it clears the seat below it, measured: a card a
+       little over the compact height (60–70) has the room for its name and the
+       seat, not for the line between them as well */
+    if (!cp && ly2(c) + 4 <= r.seat.y - 25){ ctx.fillStyle = C.muted; ctx.font = font(400, mono ? 11.5 : 13); ctx.fillText(jhClip(ctx, up(jhRoomSub(r, s, pieces, mono)), c.x + c.w - 10 - lx(c)), lx(c), ly2(c)); }
     ctx.textAlign = 'right'; ctx.fillStyle = C.accent; ctx.font = font(600, mono ? 13 : 16); ctx.fillText(ptsTxt, ptsX, ny);
     if (out){ ctx.save(); ctx.strokeStyle = r.col; ctx.globalAlpha = .7; ctx.lineWidth = 1.4; ctx.setLineDash([2.5, 3]); ctx.beginPath(); ctx.arc(r.seat.x, r.seat.y - 12, 10, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
     ctx.textAlign = 'left'; ctx.fillStyle = out ? C.ok : C.muted; ctx.font = font(500, mono ? 10.5 : 11.5);

@@ -195,18 +195,20 @@ const word = (lines) => Buffer.from(mkDocx(lines.map(t => para(t)).join('')));
     check('4e a legacy .doc is refused in the drop area, nothing filed', refused && r4.n === n4 && r4.why.length > 10, r4.why.slice(0, 90));
     await shoot('4-refused');
 
-    /* "upload" typed with a contract on the paper: no drop area to turn, so a toast turns */
+    /* "upload" typed with a contract on the paper. RE-POINTED 18 Oct 2026
+       (LAND ON IT): every upload door on a computer is the drop area, so the
+       word lands there, lit, and presses nothing; Choose a file is the
+       reader's press, and the read turns in the drop area's own ring */
     await page.evaluate(() => pdOpenOnHome('MK-A1', 'plain'));
     await waitFor(page, () => !!document.querySelector('#pd-glance[data-pd-glance-for="MK-A1"]'), 8000);
     const ids4f = await page.evaluate(() => state.contracts.map(c => c.id));
-    await page.evaluate(() => { window._spun = 0; new MutationObserver(() => { if (document.querySelector('#toast-root [data-toast-msg^="Reading "] .ob-spin')) window._spun++; })
-      .observe(document.getElementById('toast-root'), { childList: true, subtree: true }); });
-    const [chooser] = await Promise.all([page.waitForEvent('filechooser', { timeout: 6000 }).catch(() => null), say('upload')]);
+    await say('upload');
+    const lit4f = await waitFor(page, () => { const d = document.getElementById('pd-drop'); return !!d && d.classList.contains('is-landed'); }, 8000);
+    const [chooser] = await Promise.all([page.waitForEvent('filechooser', { timeout: 6000 }).catch(() => null), page.click('#pd-drop [data-pd-drop-pick]').catch(() => {})]);
     if (chooser) await chooser.setFiles({ name: 'Haulage Terms.docx', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       buffer: word(['HAULAGE AGREEMENT', 'This Agreement is made between Parcelway ApS and the Client.', '1. Haulage. The Carrier shall haul the goods.']) });
     const land4f = await waitFor(page, ids => { const p = intel.paper && intel.paper.id; return !!p && !ids.includes(p); }, 20000, ids4f);
-    const t4f = await page.evaluate(() => ({ spun: window._spun, left: !!document.querySelector('#toast-root [data-toast-msg^="Reading "]') }));
-    check('4f "upload" with a contract on the paper: the read turns in a toast, which goes when the file lands', !!chooser && land4f && t4f.spun > 0 && !t4f.left, { chooser: !!chooser, land4f, ...t4f });
+    check('4f "upload" with a contract on the paper lands on the drop area, lit; the file chosen there lands on its paper', !!lit4f && !!chooser && land4f, { lit: !!lit4f, chooser: !!chooser, land4f });
 
     /* ===== 5. THE STREAM IN FILL IN ===== */
     await page.evaluate(id => pdFillOpen(id), upId);
