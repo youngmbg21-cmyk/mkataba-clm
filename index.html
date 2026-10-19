@@ -10254,6 +10254,29 @@
   .hb-ag-work{--color-text:var(--hb-ink);--color-neutral-600:var(--hb-ink-2);--color-neutral-500:var(--hb-mute);--color-neutral-200:rgba(var(--hb-ln),.2);--color-divider:rgba(var(--hb-ln),.16);--rule-strong:rgba(var(--hb-ln),.4);--color-surface:var(--hb-fig);--surface-2:rgba(var(--hb-ln),.06);--accent-ink:var(--hb-glow);--accent-ink-700:var(--hb-glow);
     min-height:0;padding:var(--s-4) var(--s-4) 0;border:1px solid rgba(var(--hb-ln),.28);border-radius:var(--radius-lg);background:var(--hb-fig);box-shadow:var(--hb-shadow);color:var(--hb-ink)}
   .hb-ag-work .ag-p-foot{position:static;bottom:auto;padding-bottom:var(--s-4);background:transparent}
+  /* EACH PIECE FOLDED TO ONE LINE (the owner's answer (18), 19 Oct 2026, round 23's row): one list, a hairline between
+     rows; the agent's tag in its room's colour, what it is, its reference, one sentence; Look · its act · Put away on
+     the right; Look opens the piece under its row. The card's own tokens (--hb-*), so Light | Dark follow. */
+  .hb-ag-works.is-lines{gap:0;border:1px solid rgba(var(--hb-ln),.28);border-radius:var(--radius-lg);background:var(--hb-fig);box-shadow:var(--hb-shadow);overflow:hidden}
+  .hb-ag-work.is-line{padding:10px var(--s-4);border:0;border-radius:0;box-shadow:none;background:transparent}
+  .hb-ag-work.is-line + .hb-ag-work.is-line{border-top:1px solid rgba(var(--hb-ln),.12)}
+  .hb-pc-r{display:flex;align-items:center;gap:var(--s-3)}
+  .hb-pc-w{flex:1;min-width:0}
+  .hb-pc-t{display:block;line-height:1.45;font-weight:var(--w-strong);font-size:var(--t-body);color:var(--hb-ink)}
+  .hb-pc-tag{--hb-pc-c:var(--hb-mute);display:inline-flex;align-items:center;gap:5px;margin-right:8px;font-size:var(--t-micro);font-weight:400;color:var(--hb-mute);white-space:nowrap;vertical-align:1px}
+  .hb-pc-tag i{width:8px;height:8px;border-radius:2px;background:var(--hb-pc-c);flex:none}
+  .hb-pc-name{margin-right:8px}
+  .hb-pc-ref{display:inline-block;font-weight:400;font-size:var(--t-label);color:var(--hb-mute);white-space:nowrap}
+  .hb-pc-line{display:block;margin-top:1px;font-size:var(--t-meta);color:var(--hb-ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hb-ag-work.is-look .hb-pc-line{white-space:normal}
+  .hb-pc-acts{display:flex;align-items:center;gap:8px;flex:none;flex-wrap:wrap;justify-content:flex-end}
+  .hb-pc-acts .ui-btn{height:var(--ctl-h-sm);padding:0 10px;font-size:var(--t-label)}
+  .hb-pc-look.is-on{background:rgba(var(--hb-gw),.12)}
+  .hb-pc-body{margin-top:8px;padding:12px;background:var(--hb-fig);border:1px solid rgba(var(--hb-ln),.16);border-radius:var(--radius-lg)}
+  .hb-pc-body.is-mail{padding:0;border:0;border-radius:0;background:none}
+  .hb-pc-body .ag-mail-foot{margin-top:8px}
+  .hb-pc-body .ag-mail-b{overflow-wrap:anywhere}
+  .hb-pc-more{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
   .hb-done{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;padding:7px var(--s-3);border-bottom:1px solid rgba(var(--hb-ln),.1);font-size:var(--t-meta);color:var(--hb-mute)}
   .hb-done button{border:0;background:none;font:inherit;font-weight:var(--w-strong);color:var(--hb-ink-2);cursor:pointer;padding:1px 5px;border-radius:3px}
   .hb-done button:hover{background:rgba(var(--hb-gw),.12);color:var(--hb-ink)}
@@ -14495,18 +14518,17 @@
   .dk-r-act{display:flex;align-items:center;gap:8px;width:100%;margin-top:6px;padding:8px;border:0;border-top:1px solid var(--color-divider);background:none;text-align:left;font:inherit;font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer;border-radius:0 0 var(--radius) var(--radius)}
   .dk-r-act:hover{background:var(--color-accent-50)}
   .hb-head[hidden]{display:none}
-  /* JAMBO'S HOUSE STAYS AS IT IS TODAY (the owner, Round 23's brief): the house scales to its
-     page's width and fits its floors to the window's height. Without the left menu its page grew
-     by up to 244px and the desk tabs took 30px of height, so on the 1536×730 laptop its floors
-     squeezed until words met (measured: 74 high against today's 107). At 1200px wide its floors
-     are as tall as today's (108) on that laptop. */
-  #app-shell.dk-shell .jh-page{max-width:1200px;margin-inline:auto}
+  /* JAMBO'S HOUSE FILLS ITS PAGE (round 23 as drawn: from the page's left edge to Jambo's folded
+     strip; the 1200px cap and its centring went 19 Oct 2026). Its floors keep their height on the
+     1536×730 laptop because the drawing no longer scales up past three quarters of its logical
+     size: a wider page draws a WIDER house (js/views/jambohouse.js, JH_K_MAX and _jhW). */
   .cn-page{min-height:var(--view-h,calc(100vh - 48px));display:flex;justify-content:center;align-items:safe center;padding:12px var(--s-4,16px) 24px;background:var(--color-bg)}
   .cn-in{width:680px;max-width:100%;display:flex;flex-direction:column;gap:12px}
   .cn-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);min-width:0}
   .cn-ask{padding:16px 20px 14px;text-align:center;display:flex;flex-direction:column;gap:12px}
   .cn-ask .cn-face{margin:0 auto -4px;display:block}
-  .cn-ask h1{font-size:20px;font-weight:var(--w-title);margin:0;color:var(--color-text);letter-spacing:-.01em}
+  /* the greeting as drawn (round 23): large, 26px at the semibold weight */
+  .cn-ask h1{font-size:26px;font-weight:var(--w-strong);margin:0;color:var(--color-text);letter-spacing:-.01em;line-height:1.25}
   .cn-wrap{position:relative}
   .cn-box{display:flex;align-items:center;gap:8px;height:44px;border:1px solid var(--color-accent);border-radius:10px;background:var(--color-surface);padding:0 6px 0 14px;box-shadow:0 0 0 3px var(--color-accent-100);text-align:left}
   .cn-box input{flex:1;min-width:0;border:0;outline:0;background:transparent;font-size:15px;color:var(--color-text);height:40px}
@@ -14529,6 +14551,8 @@
   .cn-n{font-weight:400;color:var(--color-neutral-500)}
   .cn-late{color:var(--st-ruby-fg)}
   .cn-jw{background:var(--color-accent-50)}
+  /* "· 5 prepared · nothing sent or filed until you press": small and grey after the bold name, as drawn */
+  .cn-jw .cn-w b .cn-n{font-size:var(--t-meta)}
   .cn-pill{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:10px;font-size:var(--t-micro);font-weight:400;background:var(--surface-2);color:var(--color-neutral-600);border:1px solid var(--color-divider)}
   .cn-pill-ic{width:11px;height:11px}
   .cn-co-ic{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--color-accent-100);color:var(--accent-ink);flex:none}

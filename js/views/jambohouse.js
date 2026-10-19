@@ -71,6 +71,16 @@ const JH_SPARE = [['#9333ea', 'top'], ['#0891b2', 'safari'], ['#65a30d', 'hard']
 /* The order of the rooms: the work's own path through the house, ground floor
    first — what comes in, what is read, what is negotiated, what is kept. */
 const JH_ORDER = ['request', 'paper', 'import', 'round', 'approve', 'link', 'late', 'ours', 'quiet', 'week', 'renew'];
+/* EACH AGENT'S COLOUR, READ ONCE FOR EVERY DRAWING (round 23; the owner's
+   answer (18), 19 Oct 2026, "Fold to one line"): the Board's Jambo's work card
+   tags each folded piece with its room's colour, as the drawing does, from
+   this table — so a piece and its room are one colour. A new agent takes its
+   spare in JH_ORDER's turn, as the house gives it. */
+function jhAgentColour(k){
+  if (JH_LOOK[k]) return JH_LOOK[k][0];
+  const extra = JH_ORDER.filter(x => !JH_LOOK[x]).indexOf(k);
+  return extra >= 0 ? JH_SPARE[extra % JH_SPARE.length][0] : '';
+}
 
 const _jhE = s => (typeof esc === 'function') ? esc(s)
   : String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
@@ -211,6 +221,15 @@ const jhUptoFor = (k, upto) => jhSoloQuiet(k) ? 0 : upto;
 const JH_FH_MAX = 132, JH_FH_MIN = 92, JH_FH_HARD = 68, JH_FIT_FOOT = 16, JH_FIT_MIN_CSS = 300;
 let _jhFH = JH_FH_MAX, _jhFitH = 0;
 const JH_W = 1160, JH_COLS = 3, JH_COLS_MAX = 4, JH_SX = 160, JH_RX0 = 206, JH_RX1 = 1144, JH_GAP = 12;
+/* THE HOUSE FILLS ITS PAGE, NEVER GROWS (round 23's gaps, 19 Oct 2026: as drawn,
+   the house runs from the page's left edge to Jambo's folded strip, where it was
+   held at 1200px and centred). Past JH_K_MAX the drawing is not scaled up — its
+   floors would shrink to fit the window's height until words met (the reason
+   for the old 1200px) — it is drawn WIDER instead: _jhW, the logical width,
+   grows with the stage and every room's card with it, at today's size. */
+const JH_K_MAX = .75;
+let _jhW = JH_W;
+const jhRX1 = () => _jhW - (JH_W - JH_RX1);
 let _jhTop = 70, _jhF = 1, _jhH = 620, _jhRooms = [], _jhCols = JH_COLS;
 /* JAMBO'S OFFICE (owner, 13 Oct 2026: "make the house an office where all the
    agents have offices and your desk is the big office at the top floor. They
@@ -248,7 +267,7 @@ function jhLayout(){
   _jhF = floorsFor(_jhCols);
   _jhFH = _jhFitH ? Math.max(JH_FH_HARD, Math.min(JH_FH_MAX, fhFor(_jhCols))) : JH_FH_MAX;
   _jhH = _jhTop + _jhF * _jhFH + foot;
-  const cardOf = (f, c, n) => { const w = (JH_RX1 - JH_RX0 - JH_GAP * (n - 1)) / n, x = JH_RX0 + c * (w + JH_GAP);
+  const cardOf = (f, c, n) => { const w = (jhRX1() - JH_RX0 - JH_GAP * (n - 1)) / n, x = JH_RX0 + c * (w + JH_GAP);
     return { x, y: jhLY(f) - _jhFH + 8, w, h: _jhFH - 34 }; };
   _jhShared = [];
   JH_SHARED_FLOORS.forEach((ids, f) => ids.forEach((id, c) => _jhShared.push({ id, f, card: cardOf(f, c, ids.length) })));
@@ -287,7 +306,8 @@ const jhFloorCards = f => [..._jhShared.filter(s => s.f === f).map(s => s.card),
 function jhFitCanvas(){
   const cv = document.getElementById('jh-cv'), stage = document.getElementById('jh-stage');
   if (!cv || !stage) return false;
-  const cssW = stage.clientWidth || JH_W, k = cssW / JH_W;
+  const cssW = stage.clientWidth || JH_W, k = Math.min(cssW / JH_W, JH_K_MAX);
+  _jhW = Math.max(JH_W, Math.round(cssW / k));
   let top = stage.getBoundingClientRect().top;
   for (let p = stage.parentElement; p; p = p.parentElement) top += p.scrollTop || 0;
   const avail = Math.max(JH_FIT_MIN_CSS, (window.innerHeight || 900) - top - JH_FIT_FOOT);
@@ -311,7 +331,7 @@ function jhRefit(force){
 }
 let _jhRefitWin = false;
 if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('resize', () => { _jhRefitWin = true; jhRefit(); });
-const jhGeom = () => ({ top: _jhTop, fh: _jhFH, floors: _jhF, h: _jhH, w: JH_W, cols: _jhCols });
+const jhGeom = () => ({ top: _jhTop, fh: _jhFH, floors: _jhF, h: _jhH, w: _jhW, cols: _jhCols });
 /* EACH JAMBO MOVES ONLY FOR REAL WORK (owner picked C, 13 Oct 2026), NOW AS A
    TRIP THROUGH THE OFFICE (owner, 13 Oct 2026). At each moment his agent
    prepared a piece he leaves his office carrying the paper, walks the
@@ -558,23 +578,23 @@ function jhPile(ctx, x, y, n, col, max){
 }
 function jhDrawOffice(ctx, pieces, upto, mono){
   const C = _jhC, ink = C.accent, font = (w, s) => mono ? `${w} ${s}px ${JH_MONO}` : `${w} ${s}px Geist, sans-serif`, up = t => mono ? String(t).toUpperCase() : t;
-  const topY = jhLY(_jhF - 1) - _jhFH, bot = jhLY(0), X0 = 120, X1 = 1152, mid = (X0 + X1) / 2, tt = _jh.t;
+  const topY = jhLY(_jhF - 1) - _jhFH, bot = jhLY(0), X0 = 120, X1 = _jhW - 8, mid = (X0 + X1) / 2, tt = _jh.t;
   const pos = _jh.pos || [];
   /* a house narrowed to one contract keeps that contract's own record */
   const W = upto === Infinity && !_jh.one ? jhWaitNow() : null;
   if (ctx.canvas && ctx.canvas.id === 'jh-cv') _jhLinks = [];
   let deskTot = 0; const deskOpen = {}; _jhRooms.forEach(r => { deskOpen[r.k] = W ? (W.by[r.k] || 0) : (agPointsTally(r.k, pieces, jhUptoFor(r.k, upto)).open || 0); deskTot += deskOpen[r.k]; });
   const deskSmall = jhCompact(_jhDesk && _jhDesk.card);
-  ctx.fillStyle = C.card; ctx.fillRect(0, 0, JH_W, _jhH);
+  ctx.fillStyle = C.card; ctx.fillRect(0, 0, _jhW, _jhH);
   if (mono){ ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.globalAlpha = .55;
-    for (let x = 0; x < JH_W; x += 20){ ctx.beginPath(); ctx.moveTo(x + .5, 0); ctx.lineTo(x + .5, _jhH); ctx.stroke(); }
-    for (let y = 0; y < _jhH; y += 20){ ctx.beginPath(); ctx.moveTo(0, y + .5); ctx.lineTo(JH_W, y + .5); ctx.stroke(); }
+    for (let x = 0; x < _jhW; x += 20){ ctx.beginPath(); ctx.moveTo(x + .5, 0); ctx.lineTo(x + .5, _jhH); ctx.stroke(); }
+    for (let y = 0; y < _jhH; y += 20){ ctx.beginPath(); ctx.moveTo(0, y + .5); ctx.lineTo(_jhW, y + .5); ctx.stroke(); }
     ctx.globalAlpha = 1; }
   ctx.textAlign = 'left'; ctx.fillStyle = C.fg; ctx.font = font(600, 13); ctx.fillText(up(_jhT(mono ? 'jh_office_drawing_title' : 'jh_office_title')), 20, 30);
   ctx.font = font(400, 12); ctx.fillStyle = C.muted; ctx.fillText(up(jhHouseSub()), 20, 48);
   // the floors, each with its corridor: the track, two thin rails and a dashed centre
   for (let f = 0; f < _jhF; f++){ const y = jhLY(f);
-    if (!mono){ ctx.fillStyle = f % 2 ? C.soft : C.card; ctx.fillRect(0, y - _jhFH, JH_W, _jhFH); ctx.fillStyle = C.line; ctx.fillRect(0, y - 1, JH_W, 1); }
+    if (!mono){ ctx.fillStyle = f % 2 ? C.soft : C.card; ctx.fillRect(0, y - _jhFH, _jhW, _jhFH); ctx.fillStyle = C.line; ctx.fillRect(0, y - 1, _jhW, 1); }
     ctx.fillStyle = C.muted; ctx.font = font(500, mono ? 10.5 : 12); ctx.textAlign = 'left';
     if (f === _jhF - 1 && deskSmall){ /* a short top floor: your desk's title and count stand in the floor column */
       const colW = mono ? 98 : JH_SX - 26 - 26, t1 = up(_jhT('jh_rm_desk')), t2 = up(_jhT('jh_desk_waiting', { n: _jhFmt(deskTot) }));
@@ -583,14 +603,14 @@ function jhDrawOffice(ctx, pieces, upto, mono){
       if (W && deskTot) jhLinkText(ctx, t2, mono ? 14 : 20, y - _jhFH / 2 + 13, C.ok, 'desk'); else { ctx.fillStyle = deskTot ? C.ok : C.muted; ctx.fillText(t2, mono ? 14 : 20, y - _jhFH / 2 + 13); }
     } else ctx.fillText(up(jhFloorWord(f)), mono ? 14 : 20, y - _jhFH / 2 + 4);
     ctx.strokeStyle = mono ? ink : C.line; ctx.lineWidth = 1; ctx.globalAlpha = mono ? .55 : 1;
-    [-5, 5].forEach(d => { ctx.beginPath(); ctx.moveTo(JH_SX + 26, jhCorr(f) + d); ctx.lineTo(JH_RX1, jhCorr(f) + d); ctx.stroke(); });
-    ctx.setLineDash([3, 6]); ctx.globalAlpha = mono ? .35 : .6; ctx.beginPath(); ctx.moveTo(JH_SX + 26, jhCorr(f)); ctx.lineTo(JH_RX1, jhCorr(f)); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; }
+    [-5, 5].forEach(d => { ctx.beginPath(); ctx.moveTo(JH_SX + 26, jhCorr(f) + d); ctx.lineTo(jhRX1(), jhCorr(f) + d); ctx.stroke(); });
+    ctx.setLineDash([3, 6]); ctx.globalAlpha = mono ? .35 : .6; ctx.beginPath(); ctx.moveTo(JH_SX + 26, jhCorr(f)); ctx.lineTo(jhRX1(), jhCorr(f)); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; }
   if (mono){
     ctx.strokeStyle = ink; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(X0 - 26, topY); ctx.lineTo(mid, topY - 62); ctx.lineTo(X1 + 26, topY); ctx.stroke();
     ctx.lineWidth = 1; ctx.globalAlpha = .5; ctx.beginPath(); ctx.moveTo(X0 + 6, topY - 4); ctx.lineTo(mid, topY - 50); ctx.lineTo(X1 - 6, topY - 4); ctx.stroke(); ctx.globalAlpha = 1;
     ctx.lineWidth = 2; ctx.strokeRect(X0, topY, X1 - X0, bot - topY);
-    ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(10, bot + 6); ctx.lineTo(JH_W - 10, bot + 6); ctx.stroke();
-    ctx.globalAlpha = .35; for (let x = 14; x < JH_W - 10; x += 10){ ctx.beginPath(); ctx.moveTo(x, bot + 16); ctx.lineTo(x + 10, bot + 6); ctx.stroke(); } ctx.globalAlpha = 1;
+    ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(10, bot + 6); ctx.lineTo(_jhW - 10, bot + 6); ctx.stroke();
+    ctx.globalAlpha = .35; for (let x = 14; x < _jhW - 10; x += 10){ ctx.beginPath(); ctx.moveTo(x, bot + 16); ctx.lineTo(x + 10, bot + 6); ctx.stroke(); } ctx.globalAlpha = 1;
     for (let f = 0; f < _jhF; f++){ const y = jhLY(f);
       if (f > 0){ ctx.lineWidth = 1.4; [0, 5].forEach(d => { ctx.beginPath(); ctx.moveTo(X0, y + d); ctx.lineTo(JH_SX - 26, y + d); ctx.moveTo(JH_SX + 26, y + d); ctx.lineTo(X1, y + d); ctx.stroke(); }); }
       ctx.lineWidth = 1.2; [194].concat(jhFloorCards(f).slice(1).map(c => c.x - JH_GAP / 2)).forEach(x => { ctx.beginPath(); ctx.moveTo(x, y - _jhFH + 6); ctx.lineTo(x, y); ctx.stroke(); });
@@ -663,8 +683,14 @@ function jhDrawOffice(ctx, pieces, upto, mono){
        waiting, the line says so and is the door to it (round 23's gaps) */
     if (!cp && ly2(c) + 4 <= r.seat.y - 25){ ctx.fillStyle = C.muted; ctx.font = font(400, mono ? 11.5 : 13);
       const wx = lx(c), room = c.x + c.w - 10 - wx, wn = W ? (W.by[r.k] || 0) : 0;
-      if (wn > 0){ const link = up(_jhT('jh_desk_waiting', { n: _jhFmt(wn) })), head = jhClip(ctx, up(_jhT('ag_' + r.k) + ' · '), Math.max(0, room - ctx.measureText(link).width));
-        ctx.fillText(head, wx, ly2(c)); jhLinkText(ctx, link, wx + ctx.measureText(head).width, ly2(c), C.amber, r.k); }
+      /* THE AGENT'S NAME STAYS WHOLE, AS DRAWN ("Their round came back · 1
+         waiting…"): where the line is too long it is the link's end that is
+         cut, never the name or its " · " (round 23's gaps, 19 Oct 2026: the
+         name was cut mid-word and the ellipsis ran into the link) */
+      if (wn > 0){ const head = up(_jhT('ag_' + r.k) + ' · '), hw = ctx.measureText(head).width;
+        if (hw + 24 <= room){ const link = jhClip(ctx, up(_jhT('jh_desk_waiting', { n: _jhFmt(wn) })), room - hw);
+          ctx.fillText(head, wx, ly2(c)); jhLinkText(ctx, link, wx + hw, ly2(c), C.amber, r.k); }
+        else ctx.fillText(jhClip(ctx, up(_jhT('ag_' + r.k)), room), wx, ly2(c)); }
       else ctx.fillText(jhClip(ctx, up(jhRoomSub(r, s, pieces, mono)), room), wx, ly2(c)); }
     ctx.textAlign = 'right'; ctx.fillStyle = C.accent; ctx.font = font(600, mono ? 13 : 16); ctx.fillText(ptsTxt, ptsX, ny);
     if (out){ ctx.save(); ctx.strokeStyle = r.col; ctx.globalAlpha = .7; ctx.lineWidth = 1.4; ctx.setLineDash([2.5, 3]); ctx.beginPath(); ctx.arc(r.seat.x, r.seat.y - 12, 10, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
@@ -686,7 +712,7 @@ function jhLens(ctx, x, y, r, col){ ctx.save(); ctx.fillStyle = _jhC.card; ctx.b
    is a fault. jambo-agents-verify runs it at the owner's shortest screen. */
 function jhOverlapAudit(){
   if (!_jhDesk) return { ok: false, faults: ['no office'] };
-  const cv = document.createElement('canvas'); cv.width = JH_W; cv.height = Math.ceil(_jhH);
+  const cv = document.createElement('canvas'); cv.width = _jhW; cv.height = Math.ceil(_jhH);
   const ctx = cv.getContext('2d'), boxes = [], piles = [], ft = ctx.fillText;
   ctx.fillText = function(t, x, y){ const m = this.measureText(t), w = m.width, a = this.textAlign;
     const asc = m.actualBoundingBoxAscent || 9, dsc = m.actualBoundingBoxDescent || 2;
@@ -763,7 +789,7 @@ function jhDateCard(ctx){
     : cur.toLocaleDateString((typeof langLocale === 'function') ? langLocale() : undefined, { weekday: 'short', day: 'numeric', month: 'short' }) + '  ·  ' + _jhT('jh_day_of', { d: Math.max(1, Math.ceil(_jh.t * _jh.range)), n: _jh.range }); }
   catch (_) { txt = ''; }
   if (!txt) return;
-  ctx.font = '600 13px Geist, sans-serif'; const w = ctx.measureText(txt).width + 22, x = JH_W - w - 16, y = 18;
+  ctx.font = '600 13px Geist, sans-serif'; const w = ctx.measureText(txt).width + 22, x = _jhW - w - 16, y = 18;
   ctx.fillStyle = _jhC.soft; ctx.strokeStyle = _jhC.line; jhRoundRect(ctx, x, y, w, 28, 14); ctx.fill(); ctx.stroke();
   ctx.fillStyle = _jhC.fg; ctx.textAlign = 'left'; ctx.fillText(txt, x + 11, y + 18);
 }
@@ -793,20 +819,20 @@ function jhFrame(now){
       const pAt = Date.parse(p.at || '') || 0;
       if (!pAt || pAt <= a || pAt > b || (p.outcome && p.decidedAt === p.at) || (_jh.sel && p.agent !== _jh.sel)) continue;
       const i = _jhRooms.findIndex(r => r.k === p.agent); if (i < 0) continue;
-      const pos = _jh.lastPos[i] || { x: JH_W / 2, y: _jhH / 2 };
+      const pos = _jh.lastPos[i] || { x: _jhW / 2, y: _jhH / 2 };
       _jh.pops.push({ x: pos.x, y: pos.y - 20, text: _jhT('jh_pop_prep') + jhPopRef(p), col: _jhRooms[i].col, a: 0, soft: true }); if (_jh.pops.length > 80) _jh.pops.shift();
     }
     for (const p of pieces){
       const at = Date.parse(p.decidedAt || '') || 0;
       if (!p.outcome || at <= a || at > b || (_jh.sel && p.agent !== _jh.sel)) continue;
       const i = _jhRooms.findIndex(r => r.k === p.agent); if (i < 0) continue;
-      const pos = _jh.lastPos[i] || { x: JH_W / 2, y: _jhH / 2 }, v = agPointsEach(agPointsOf(p.agent), p.outcome);
+      const pos = _jh.lastPos[i] || { x: _jhW / 2, y: _jhH / 2 }, v = agPointsEach(agPointsOf(p.agent), p.outcome);
       _jh.pops.push({ x: pos.x, y: pos.y - 20, text: (v >= 0 ? '+' : '−') + Math.abs(Math.round(v)) + jhPopRef(p), col: v >= 0 ? _jhRooms[i].col : _jhC.ruby, a: 0 }); if (_jh.pops.length > 80) _jh.pops.shift();
       jhFeedAdd(p);
     }
     if (_jh.t >= 1){ _jh.playing = false; jhFinish(); jhSetPlayWord(); }
   } else _jh.last = now;
-  const ctx = cv.getContext('2d'), kk = cv.width / JH_W;
+  const ctx = cv.getContext('2d'), kk = cv.width / _jhW;
   ctx.setTransform(kk, 0, 0, kk, 0, 0);
   const upto = jhUpto(), atRest = !_jh.playing && _jh.t >= 1;
   _jh.pos = _jhRooms.map(r => atRest || jhSoloQuiet(r.k) ? jhIdle(r) : jhPosAt(r, _jh.t));
@@ -1052,7 +1078,7 @@ function jhHouseHtml(){
           <span class="jh-prog" aria-hidden="true"><i id="jh-prog"></i></span>
         </div>
         <div class="jh-stage" id="jh-stage">
-          <canvas id="jh-cv" width="${JH_W}" height="${_jhH}" role="img" aria-label="${_jhE(_jhT('jh_house_aria'))}"></canvas>
+          <canvas id="jh-cv" width="${_jhW}" height="${_jhH}" role="img" aria-label="${_jhE(_jhT('jh_house_aria'))}"></canvas>
           <button type="button" class="sr-only" data-jh-work>${_jhE(_jhT('jh_wait_open'))}</button>
           <div class="jh-tip" id="jh-tip" role="tooltip" hidden></div>
           <div class="jh-end" id="jh-end" hidden><div class="jh-end-card" role="dialog" aria-labelledby="jh-end-t"><button type="button" class="jh-end-x" data-jh-end-x aria-label="${_jhE(_jhT('jh_end_close'))}" title="${_jhE(_jhT('jh_end_close'))}">×</button>${(typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 56, 'jh-end-face') : ''}
@@ -1275,7 +1301,7 @@ function jhWire(host){
   host.addEventListener('mousemove', e => {
     const cv = e.target && e.target.id === 'jh-cv' ? e.target : null, tip = document.getElementById('jh-tip');
     if (!cv){ if (_jh.hover){ _jh.hover = null; if (tip) tip.hidden = true; jhKickOnce(); } return; }
-    const b = cv.getBoundingClientRect(), x = (e.clientX - b.left) * JH_W / b.width, y = (e.clientY - b.top) * _jhH / b.height;
+    const b = cv.getBoundingClientRect(), x = (e.clientX - b.left) * _jhW / b.width, y = (e.clientY - b.top) * _jhH / b.height;
     const lk = jhLinkAt(x, y), k = lk ? 'wait:' + lk : jhRoomAt(x, y);
     if (k !== _jh.hover){ _jh.hover = k; jhKickOnce(); }
     cv.style.cursor = k && k !== 'stairs' ? 'pointer' : 'default';
@@ -1586,6 +1612,6 @@ const JH_CSS = `
 /* The menu's face for Jambo's agents takes its picture at load. */
 try { if (typeof jamboFacePaint === 'function') jamboFacePaint(); } catch (_) {}
 
-Object.assign(window, { jhLevelPickHtml, jhWaitNow, jhLinkAt, jhLinks: () => _jhLinks.slice(), jhJamboDoorHtml, AG_POINTS_LAUNCH, AG_POINTS_START_MINS, AG_POINTS_NEW_MINS, AG_POINTS_FIELDS, agPointsKeys, agPointsStart, agPointsCompany, agPointsMine, agPointsOf,
+Object.assign(window, { jhAgentColour, jhLevelPickHtml, jhWaitNow, jhLinkAt, jhLinks: () => _jhLinks.slice(), jhJamboDoorHtml, AG_POINTS_LAUNCH, AG_POINTS_START_MINS, AG_POINTS_NEW_MINS, AG_POINTS_FIELDS, agPointsKeys, agPointsStart, agPointsCompany, agPointsMine, agPointsOf,
   agPointsIsNew, agPointsEach, agPointsTally, agPointsSumLine, agPieceSay, agPointsTableHtml, agPointsWire, renderJamboHouse, jhRepaint, jhPlace, jhPlacePut, jhLayout, jhRoomAt, jhFloorCounts, jhGeom, jhFinish, jhUptoFor, jhHoursWords, jhPopsSoft: () => _jh.pops.filter(p => p.soft).length, jhMotionOf: (k, t) => { const r = _jhRooms.find(x => x.k === k); return r ? jhPosAt(r, t) : null; }, jhPopRef, jhRoomQuietWhy, jhRoomStateWords, jhResults, jhUnitWords, jhSheetsIn, JH_ROUTE, _jhPlaying: () => _jh.playing, jhOverlapAudit,
   jhOfficeOf: () => ({ floors: _jhF, desk: _jhDesk && { f: _jhDesk.f, x0: _jhDesk.card.x, x1: _jhDesk.card.x + _jhDesk.card.w }, shared: _jhShared.map(s => ({ id: s.id, f: s.f })), rooms: _jhRooms.map(r => ({ k: r.k, f: r.f, reading: !!r.reading })) }) });

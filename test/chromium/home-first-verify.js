@@ -166,8 +166,10 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
 
     /* ===== 5c. A WORK CARD NAMES ITS CONTRACT (Young, 8 Oct 2026: "no contract number in the card") ===== */
     await page.evaluate(() => hbOpenAgent('late'));
-    await page.waitForSelector('.hb-ag-work .ag-p-sub', { timeout: 8000 }).catch(() => {});
-    const refd = await page.evaluate(() => [...document.querySelectorAll('.hb-ag-work .ag-p-sub')].map(e => (e.querySelector('.hati-ref') || {}).textContent || ''));
+    /* RE-POINTED 19 Oct 2026 (the owner's answer (18), "Fold to one line"): the
+       reference rides each piece's own one-line row, beside what it is */
+    await page.waitForSelector('.hb-ag-work .hb-pc-ref', { timeout: 8000 }).catch(() => {});
+    const refd = await page.evaluate(() => [...document.querySelectorAll('.hb-ag-work .hb-pc-ref')].map(e => (e.querySelector('.hati-ref') || {}).textContent || ''));
     ok('5c Copilot\'s work card leads its contract line with the reference', refd.length > 0 && refd[0] === 'MK-HF4', JSON.stringify(refd));
 
     /* ===== 6. THE ANSWER FIRST ===== */

@@ -1953,11 +1953,54 @@ function agChaseMail(c, o, firm){
   const m = chaseMailOf({ t: T, firm: !!firm, dated: !!(o && o.due), soon, vars, link: null, sender: (me && me.name) || '', party });
   return { to, subject: m.subject, body: m.body, parts: m.parts };
 }
+/* THE LETTER AS IT WILL LEAVE, LINK AND ALL (round 23's gaps, 19 Oct 2026:
+   the checker found the preview always left out the link paragraph the route
+   adds where a link to the agreement stands — the inbox got more than the
+   screen showed). The route's own builder (srvChaseMail) writes it whole, and
+   the preview route (chasePreviewRead, the agents' one door to the server)
+   answers with exactly that, once a
+   sitting for each obligation as it now stands (its day, its address, the
+   firmer one or not). Until it comes, the page's own letter stands — the same
+   words bar the link, the hover saying so — and the piece is drawn again when
+   it lands. A reading: it sends, stamps and writes nothing. */
+const _agChasePv = new Map();
+function agChasePvKey(c, o, firm){ return [c && c.id, o && o.id, firm ? 'firm' : '', o && o.due, o && o.chasedAt, c && c.counterpartyEmail].join('|'); }
+function agChaseFromServer(c, o, firm){
+  if (!c || !o || !o.id || !(typeof API_MODE === 'function' && API_MODE()) || typeof chasePreviewRead !== 'function') return null;
+  const k = agChasePvKey(c, o, firm), got = _agChasePv.get(k);
+  if (got) return got.m;
+  const slot = { m: null };
+  _agChasePv.set(k, slot);   // asked once: the latch stands before the promise does
+  chasePreviewRead(c.id, o.id, firm)
+    .then(r => { if (r && r.ok && r.subject){ slot.m = { to: String(r.to || ''), subject: String(r.subject), body: String(r.body || ''), link: !!r.link, whole: true }; agChaseLanded(); } }, () => {});
+  return null;
+}
+/* the letter came: drawn again wherever it is shown — the Board's card, the house's panel */
+function agChaseLanded(){
+  try { if (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof hbPaintBoard === 'function') hbPaintBoard(); } catch (_){}
+  try { if (_agOpenKey) agPanelRefresh(_agOpenKey); } catch (_){}
+}
 function agChaseMailHtml(c, o, firm){
-  const m = agChaseMail(c, o, firm);
+  const srv = agChaseFromServer(c, o, firm);
+  const m = srv || agChaseMail(c, o, firm);
   if (!m) return '';
-  return `<div class="ag-mail" title="${_agE(_agT('ag_mail_link_note'))}"><dl class="ag-mail-h"><dt>${_agE(_agT('ag_mail_to'))}</dt><dd>${_agE(m.to)}</dd><dt>${
+  return `<div class="ag-mail${srv ? ' is-whole' : ''}"${srv ? '' : ` title="${_agE(_agT('ag_mail_link_note'))}"`}><dl class="ag-mail-h"><dt>${_agE(_agT('ag_mail_to'))}</dt><dd>${_agE(m.to)}</dd><dt>${
     _agE(_agT('ag_mail_subject'))}</dt><dd>${_agE(m.subject)}</dd></dl><div class="ag-mail-b">${_agE(m.body)}</div></div>`;
+}
+
+/* LOOK ON A CHASE SHOWS THE EMAIL WHOLE (round 23; the owner's answer (18),
+   "Fold to one line"): Look on a folded chase opens the letter itself — To,
+   Subject, the body — and under it where it goes and that the press asks once
+   more. The house's panel keeps its facts around the same letter (agChaseBody). */
+function agChaseLookHtml(it){
+  if (!it || !it.c) return '';
+  if (it.noAddress) return `<p class="ag-p-note">${_agE(_agT('ag_chase_noaddr_note'))}</p>`;
+  return agChaseMailHtml(it.c, it.ob || {}, it.kind === 'chase-firm') + `<p class="ag-p-note ag-mail-foot">${_agE(_agT('ag_chase_note'))}</p>`;
+}
+/* WHAT LOOK OPENS UNDER A FOLDED PIECE: the chase's letter, else the piece's whole body */
+function agLookHtml(it){
+  if (it && (it.kind === 'chase' || it.kind === 'chase-firm')) return agChaseLookHtml(it);
+  return agPanelBody(it);
 }
 
 /* ---- AN IMPORT BATCH: the counts, and the contracts NAMED — the ones that
@@ -2095,6 +2138,17 @@ function agActsOf(it){
 function agPanelActs(it){
   return agActsOf(it).map(a => `<button type="button" class="${a.cls === 'lead' ? 'ui-btn ui-btn-primary' : a.cls === 'link' ? 'ui-link' : 'ui-btn'}" data-ag-act="${a.act}">${_agE(a.label)}</button>`).join('');
 }
+/* THE ONE ACT A FOLDED PIECE OFFERS (the owner's answer (18), 19 Oct 2026,
+   "Fold to one line" — round 23's "Look · its own act · Put away"): the act
+   named for what it does (Answer on Redlines, Fill in 3 details, Decide the
+   renewal, Send the chase, Check the 3 files). It is the panel's lead act,
+   save a new contract's read where details are still owed: then Fill in, as
+   drawn. Null where the piece has no act. The piece's other acts are not
+   lost: Look opens the piece whole, and they stand under it. */
+function agRowActOf(it){
+  const L = agActsOf(it).filter(a => a.act !== 'away');
+  return (it.kind === 'read' && L.find(a => a.act === 'fill')) || L.find(a => a.cls === 'lead') || L.find(a => a.cls !== 'link') || null;
+}
 /* the details still owed on a contract, Fill in's own count (detailsOf) */
 function agFillLeft(c){
   if (!c || typeof detailsOf !== 'function') return 0;
@@ -2138,6 +2192,121 @@ function agPoss(name){
   if (typeof langId === 'function' && langId() === 'sv') return AG_POSS_ABBR.test(n) ? n + ':s' : /[sxz]$/i.test(n) ? n : n + 's';
   return (/s$/i.test(n) && /\s/.test(n)) ? n + '\u2019' : n + '\u2019s';
 }
+/* ============================================================
+   A PIECE FOLDED TO ONE LINE (the owner's answer (18), 19 Oct 2026: "Fold to
+   one line", round 23's row) — ON THE BOARD'S JAMBO'S WORK CARD
+   ============================================================
+   Each prepared piece under its agent is one row: the agent's tag in its
+   room's colour, what it is in a few words ("Nordvik Logistik's answer", "A
+   read of Baltic Freight", "The Brightwater Foods memo", "A chase to Kettle &
+   Co", "3 imports to check"), its reference, and one sentence of what it
+   holds, read off the readings the piece already carries — nothing asked of
+   a model, nothing written. A kind with no sentence of its own says the
+   card's line. Drawn by hbAgentWorkHtml (js/views/homeboard.js). */
+function agPieceTitle(it){
+  if (!it) return '';
+  const p = agCardParts(it), who = p.who || '';
+  if (it.kind === 'answer') return _agT('ag_pc_answer', { who, whos: agPoss(who) });
+  if (it.kind === 'read') return _agT('ag_pc_read', { who });
+  if (it.kind === 'renewal') return _agT(it.memo ? 'ag_pc_memo' : 'ag_pc_renewal', { who });
+  if (it.kind === 'notice') return _agT('ag_pc_notice', { who });
+  if (it.kind === 'chase') return _agT('ag_pc_chase', { who });
+  if (it.kind === 'chase-firm') return _agT('ag_pc_chase_firm', { who });
+  if (it.kind === 'import') return _agTn('ag_pc_import', it.review || 0, { n: it.review || 0 });
+  return agPanelTitle(it) || p.kind || '';
+}
+/* its reference: the contract's own (refHtml, the one dress), or an import's day */
+function agPieceRefHtml(it){
+  if (!it) return '';
+  if (it.c) return (typeof refHtml === 'function') ? refHtml(it.c) : _agE(_agRef(it.c));
+  if (it.kind === 'import' && it.at) return _agE(_agT('ag_pc_import_ref', { day: _agDay(it.at) }));
+  return '';
+}
+/* "a, b and c" in the reader's words */
+function _agAnd(list){
+  const L = (list || []).filter(Boolean);
+  if (L.length < 2) return L.join('');
+  return L.slice(0, -1).join(', ') + ' ' + _agT('ag_ln_and') + ' ' + L[L.length - 1];
+}
+/* "clause 7 (Liability cap)" from a clause's own label ("7. Liability cap") */
+function _agClauseSay(label){
+  const l = String(label || '').replace(/\s+/g, ' ').trim();
+  const m = /^(?:clause\s+|article\s+)?(\d+(?:\.\d+)*)\s*[.):·—–-]?\s*(.{1,60})$/i.exec(l);
+  if (m) return _agT('ag_ln_clause', { n: m[1], name: m[2].trim() });
+  if (!l) return _agT('ag_ln_a_clause');
+  /* a clause with no heading of its own is named by its first words, quoted */
+  if (l.length <= 32 && !/[.;:]/.test(l)) return l;
+  const w = l.split(' '), q = w.slice(0, 5).join(' ').replace(/[.,;:]+$/, '');
+  return _agT('ag_ln_clause_q', { q: w.length > 5 ? q + '\u2026' : q });
+}
+/* ONE SENTENCE ENDS ONCE (round 23's gaps, second pass): a Swedish short
+   date already ends in its own full stop ("27 nov."), and "Det löper ut
+   {day}." printed "27 nov.." — the sentence's stop is not added twice */
+const _agStop = s => String(s || '').replace(/(?<!\.)\.\.(?=\s|$)/g, '.');
+function agPieceLine(it){ return _agStop(_agPieceLine(it)); }
+function _agPieceLine(it){
+  if (!it) return '';
+  const p = agCardParts(it);
+  const c = it.c || null;
+  if (it.kind === 'answer'){
+    const plan = Array.isArray(it.plan) ? it.plan : [];
+    const bits = plan.map(r => _agT('ag_ln_v_' + (['accept', 'push', 'escalate', 'review'].includes(r.verdict) ? r.verdict : 'review'), { clause: _agClauseSay(r.clause) }));
+    const n = it.n || plan.length;
+    return bits.length ? _agTn('ag_ln_answer', n, { n, list: bits.join('; ') }) : [p.sum, p.urg].filter(Boolean).join(' · ');
+  }
+  if (it.kind === 'read'){
+    const t = (typeof triageOf === 'function') ? triageOf(c) : (c && c.triage) || null;
+    const st = (t && t.steps) || {};
+    const bits = [];
+    if ((st.brief && st.brief.ok) || (c && (c._brief || c._hasBrief))) bits.push(_agT('ag_ln_brief'));
+    const ob = st.oblig && st.oblig.ok && Array.isArray(st.oblig.found) ? st.oblig.found.length : 0;
+    if (ob) bits.push(_agTn('ag_ln_obs', ob, { n: ob }));
+    const fill = agFillLeft(c);
+    if (fill) bits.push(_agTn('ag_ln_fill', fill, { n: fill }));
+    const pb = st.playbook;
+    const dep = pb && pb.ok ? (pb.dev || 0) + (pb.miss || 0) : 0;
+    if (dep){ const cats = Array.isArray(pb.cats) ? pb.cats.filter(Boolean).map(x => String(x).toLowerCase()).slice(0, 3) : [];
+      bits.push(_agTn(cats.length ? 'ag_ln_dep_cats' : 'ag_ln_dep', dep, { n: dep, cats: cats.join(', ') })); }
+    return bits.length ? _agT('ag_ln_read', { list: _agAnd(bits) }) : _agT('ag_read_nothing');
+  }
+  if (it.kind === 'renewal'){
+    const w = it.w || {};
+    const amended = c && typeof effectiveExpiryFrom === 'function' ? effectiveExpiryFrom(c) : null;
+    const end = (c && typeof effectiveExpiry === 'function' && effectiveExpiry(c)) || w.expiry || '';
+    const out = [];
+    if (end) out.push(_agT(amended ? 'ag_ln_ends_amended' : 'ag_ln_ends', { day: _agDay(end) }));
+    if (w.decideBy) out.push(end && String(w.decideBy).slice(0, 10) === String(end).slice(0, 10) && !w.auto ? _agT('ag_ln_decide_end')
+      : _agT(w.auto ? 'ag_ln_notice_due' : 'ag_ln_decide_due', { day: _agDay(w.decideBy) }));
+    if (it.prepared){
+      const me = (typeof currentUser === 'function') ? currentUser() : null;
+      const owner = c && c.owner ? c.owner : null;
+      const mine = !!(me && owner && String(owner.id) === String(me.id));
+      out.push(mine ? _agT('ag_ln_memo_night_you') : _agT('ag_ln_memo_night', { who: (owner && owner.name) || '' }));
+    } else if (it.memo) out.push(_agT('ag_ln_memo'));
+    return out.length ? out.join(' ') : [p.sum, p.urg].filter(Boolean).join(' · ');
+  }
+  if (it.kind === 'notice' && it.by) return String(p.sum || '').replace(/[.\s]+$/, '') + '. ' + _agT('ag_ln_notice_by', { day: _agDay(it.by) });
+  if (it.kind === 'chase' || it.kind === 'chase-firm'){
+    const desc = String((it.ob && it.ob.desc) || '').trim();
+    const days = Number(it.days) || 0;
+    /* "Their insurance certificate is 5 days late." — a thing is theirs; an
+       act stays in its quotation marks (chaseWhatOf, the letter's own reading) */
+    const w = (typeof chaseWhatOf === 'function') ? chaseWhatOf(desc) : { thing: false };
+    const late = w.thing ? _agTn('ag_ln_late_their', days, { n: days, what: w.noun }) : _agTn('ag_ln_late', days, { n: days, what: desc });
+    if (it.noAddress) return late + ' ' + _agT('ag_ln_chase_noaddr');
+    return late + ' ' + (it.kind === 'chase-firm' ? _agT('ag_ln_chase_firm', { day: _agDay(it.ob && it.ob.chasedAt) }) : _agT('ag_ln_chase_ready'));
+  }
+  if (it.kind === 'import'){
+    const cs = (Array.isArray(it.cs) ? it.cs : []).filter(x => x && x.migration && x.migration.needsReview);
+    const names = cs.map(x => String((x.upload && x.upload.fileName) || x.name || '')).filter(Boolean);
+    const shown = names.slice(0, 3), more = names.length - shown.length;
+    const list = more > 0 ? shown.concat([_agTn('ag_ln_more', more, { n: more })]) : shown;
+    const n = it.review || cs.length;
+    return n ? _agTn('ag_ln_import', n, { n, list: _agAnd(list) }) : [p.sum, p.urg].filter(Boolean).join(' · ');
+  }
+  return [p.sum, p.urg].filter(Boolean).join(' · ');
+}
+
 /* ============================================================
    HOW FAR THE AGENTS MAY GO, IN ONE LINE (round 23, "Open in place": "All
    seven agents: Ask me first · set by Sara for everyone · Ask an admin")
@@ -2298,7 +2467,8 @@ async function agPutAway(it, said){
   agRepaint();
   return true;
 }
-Object.assign(window, { agActsOf, agFillLeft, agAwaySubject, agAwayHeld, agPutAway, AG_AWAY_UNDO_MS, agPoss, AG_ACTING, agLevelsSaid });
+Object.assign(window, { agActsOf, agRowActOf, agFillLeft, agAwaySubject, agAwayHeld, agPutAway, AG_AWAY_UNDO_MS, agPoss, AG_ACTING, agLevelsSaid,
+  agPieceTitle, agPieceRefHtml, agPieceLine, agChaseLookHtml, agLookHtml, agChaseFromServer, agChaseMailHtml });
 async function agRunAct(key, act){
   const it = agFind(key);
   if (!it) return;

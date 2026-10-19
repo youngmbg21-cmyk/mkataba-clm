@@ -19,13 +19,26 @@
        in view without a second press.
    (5) The possessive of a name, in the reader's language (agPoss; Home's
        rows and chips: "Jonas's approval", "Sara's NDA request").
-   (6) The in-place list's own readings are gone (agPieceTitle, agPieceLine,
-       agRowActOf, agLookHtml, the room colour tag) — nothing draws pieces in
-       place any more.
+   (6) RE-POINTED 19 Oct 2026 (the owner's answer (18), "Fold to one line"):
+       the folded piece's readings are back, ON THE BOARD'S CARD (agPieceTitle,
+       agPieceLine, agPieceRefHtml, agRowActOf, agLookHtml, the room colour
+       tag jhAgentColour) — Home still draws no piece in place. Was "the
+       in-place readings are gone".
    (7) The words, in both books, filling the same holes.
+   (8) FOLDED TO ONE LINE (the owner's answer (18)): each piece the card draws
+       is one row — the agent's tag in its room's colour, what it is, its
+       reference, one sentence — with Look · its own act · Put away, and no
+       body until Look is pressed.
+   (9) LOOK opens the piece under its row (a chase: the letter and where it
+       goes; else the piece's body, its other acts under it); pressed again it
+       folds; another piece's Look moves it there. The act is the filled
+       button only while its piece is open (one filled button per area).
+   (10) THE CARD'S HEAD SAYS HOME'S WORDS: "Jambo's work · N prepared ·
+       nothing sent or filed until you press" — one press apart, one wording.
    AT MAIN (a59a692, LAND ON IT without this lane) every test here FAILS but
    3b (main's chase panel already ended in Put away; 3a is the one that
-   asks it of every kind), 6a (an absence) and 7b (it holds over main's words).
+   asks it of every kind) and 7b (it holds over main's words). At this lane's
+   last commit (9cde108) (6), (8), (9), (10) and the re-pointed 3b and 4a FAIL.
    ═══════════════════════════════════════════════════════════════════════════ */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
@@ -66,12 +79,14 @@ function staged(){
 }
 /* the Board's own builder of an agent's work below the card, run in the world
    (the world does not load the Board; its builder is read from the source) */
-function boardWork(win){
-  const defs = ['hbChaseItems', 'hbChaseManyHtml', 'hbAgentWorkHtml'].map(n => fnBody(HB, n)).join('\n');
-  return win.eval(`(function(){ const agLoadWhole = null; const HB_AG_WORK_MAX = 8; const _hbAgLoaded = new Set(); const _hbAgMore = new Map();
+function boardWork(win, look){
+  const defs = ['hbChaseItems', 'hbChaseManyHtml', 'hbAgPieceHtml', 'hbAgentWorkHtml'].map(n => fnBody(HB, n)).join('\n');
+  const make = win.eval(`(function(look){ const agLoadWhole = null; const HB_AG_WORK_MAX = 8; const _hbAgLoaded = new Set(); const _hbAgMore = new Map();
+    let _hbAgLook = look || null;
     const _hbE = s => esc(s); const _hbN = n => String(n || 0);
     ${defs}
-    return hbAgentWorkHtml; })()`);
+    return hbAgentWorkHtml; })`);
+  return make(look);
 }
 const actsOf = (win, it) => win.agActsOf(it).map(a => a.act + ':' + a.label);
 
@@ -116,7 +131,10 @@ describe('f800 (3) Put away on every piece, on the Board\'s card', () => {
     assert.ok(late.length, 'a late promise was prepared');
     const html = work({ key: 'ag:late', items: late.map(i => ({ key: i.key })) });
     assert.equal((html.match(/data-hb-ag-item="/g) || []).length, late.length);
+    /* RE-POINTED 19 Oct 2026 (answer (18)): the folded row draws Put away
+       itself, last, beside Look and the one act — still one per piece */
     assert.equal((html.match(/<button type="button" class="ui-link" data-ag-act="away">Put away<\/button>/g) || []).length, late.length);
+    assert.match(html, /data-ag-act="away">Put away<\/button><\/div><\/div>/, 'the last of the row\'s acts');
   });
 });
 
@@ -124,7 +142,10 @@ describe('f800 (4) a chase shows the email whole on the card', () => {
   test('4a To, Subject, the letter, and where it goes', () => {
     const { win, its } = staged();
     const chase = its.find(i => i.kind === 'chase');
-    const html = boardWork(win)({ key: 'ag:late', items: [{ key: chase.key }] });
+    /* RE-POINTED 19 Oct 2026 (answer (18)): the letter is under its row once
+       Look is pressed — folded, the row says one sentence and no letter */
+    assert.doesNotMatch(boardWork(win)({ key: 'ag:late', items: [{ key: chase.key }] }), /class="ag-mail/);
+    const html = boardWork(win, chase.key)({ key: 'ag:late', items: [{ key: chase.key }] });
     assert.match(html, /class="ag-mail"/);
     assert.match(html, /<dt>To<\/dt><dd>ops@kettle\.example<\/dd>/);
     assert.match(html, /<dt>Subject<\/dt><dd>[^<]*insurance certificate[^<]*<\/dd>/);
@@ -151,12 +172,16 @@ describe('f800 (5) the possessive, in the reader\'s language', () => {
   });
 });
 
-describe('f800 (6) nothing draws pieces in place any more', () => {
-  test('6a the in-place readings are gone', () => {
-    const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '');
-    assert.doesNotMatch(strip(AG), /\b(agPieceTitle|agPieceLine|agPieceRefHtml|agRowActOf|agLookHtml|agChaseLookHtml)\b/);
-    assert.doesNotMatch(strip(R('js/views/jambohouse.js')), /\bjhAgentColour\b/);
-    assert.doesNotMatch(R('index.html'), /\.cn-jw-(list|i|name|tag|body|acts|foot)\b/);
+describe('f800 (6) the folded piece\'s readings, on the Board\'s card (RE-POINTED 19 Oct 2026, answer (18))', () => {
+  test('6a they are back, published, and the Board draws them; Home still lists no piece in place', () => {
+    const { win } = staged();
+    for (const n of ['agPieceTitle', 'agPieceLine', 'agPieceRefHtml', 'agRowActOf', 'agLookHtml', 'agChaseLookHtml'])
+      assert.equal(typeof win[n], 'function', n + ' is published');
+    assert.match(R('js/views/jambohouse.js'), /function jhAgentColour\(k\)\{/, 'each agent\'s room colour, read once');
+    assert.match(fnBody(HB, 'hbAgPieceHtml'), /jhAgentColour\(it\.agent\)/);
+    assert.match(fnBody(HB, 'hbAgentWorkHtml'), /const cards = shown\.map\(hbAgPieceHtml\)\.join\(''\);/);
+    const CN = R('js/views/counter.js').replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.doesNotMatch(CN, /cnJwPiecesHtml|CN_JW_MAX|data-cn-ag-item|data-cn-look/, 'LAND ON IT stands: Home lists no piece in place');
   });
 });
 
@@ -171,7 +196,88 @@ describe('f800 (7) the words', () => {
   });
   test('7b both books fill the same holes on every word this lane says', () => {
     const vars = t => (String(t).match(/\{(\w+)\}/g) || []).sort().join(',');
-    for (const k of Object.keys(BOOKS.en).filter(k => /^(cn_|ag_a_|mail_ob_chase_|jh_wait_)/.test(k)))
+    /* 19 Oct 2026: and the folded piece's own words (ag_pc_, ag_ln_), every one in both books */
+    for (const k of Object.keys(BOOKS.en).filter(k => /^(cn_|ag_a_|ag_pc_|ag_ln_|mail_ob_chase_|jh_wait_)/.test(k))){
+      if (/^ag_(pc|ln)_/.test(k)) assert.ok(BOOKS.sv[k] != null, k + ' sv');
       if (BOOKS.sv[k] != null) assert.equal(vars(BOOKS.sv[k]), vars(BOOKS.en[k]), k);
+    }
+  });
+});
+
+describe('f800 (8) each piece folded to one line (the owner\'s answer (18), 19 Oct 2026)', () => {
+  test('8a tag in its room\'s colour · what it is · its reference · one sentence; Look · its act · Put away; no body', () => {
+    const { win, of } = staged();
+    win.jhAgentColour = k => ({ round: '#6d28d9', late: '#dc2626', paper: '#3b6fd8', import: '#ea580c' }[k] || '');
+    win.refHtml = c => `<span class="hati-ref">${c.id}</span>`;
+    const work = boardWork(win);
+    const row = (k, agent) => work({ key: 'ag:' + agent, items: [{ key: of(k).key }] });
+    const ans = row('answer', 'round');
+    assert.match(ans, /<span class="hb-pc-tag" style="--hb-pc-c:#6d28d9"><i aria-hidden="true"><\/i>Their round came back<\/span><span class="hb-pc-name">Nordvik Logistik’s answer<\/span><span class="hb-pc-ref"><span class="hati-ref">MK-PR-2<\/span><\/span>/);
+    assert.match(ans, /<span class="hb-pc-line" title="Answers to their 2 redlines, read against our standards: [^"]+">/);
+    assert.match(ans, /data-hb-ag-look="answer:MK-PR-2"[^>]*>Look<\/button><button type="button" class="ui-btn ui-btn-sm" data-ag-act="nego">Answer on Redlines<\/button><button type="button" class="ui-link" data-ag-act="away">Put away<\/button>/);
+    assert.doesNotMatch(ans, /hb-pc-body|ag-p-body|ag-p-head/, 'folded: one line, no body');
+    const chase = row('chase', 'late');
+    assert.match(chase, /<span class="hb-pc-name">A chase to Kettle &amp; Co<\/span>/);
+    assert.match(chase, />Their insurance certificate is 5 days late\. The first chase is ready, to the address on the contract\.</);
+    assert.match(chase, /data-ag-act="chase">Send the chase</);
+    const imp = row('import', 'import');
+    assert.match(imp, /<span class="hb-pc-name">3 imports to check<\/span><span class="hb-pc-ref">Import of [^<]+<\/span>/);
+    assert.match(imp, />3 files wait for your check: Lease Göteborg\.pdf, NDA Kettle 2023\.docx and Freight terms scan\.pdf\.</);
+    assert.match(imp, /data-ag-act="import">Check the 3 files</);
+  });
+  test('8b a new contract\'s read: its act is Fill in while details are owed, as drawn', () => {
+    const { win, of } = staged();
+    win.detailsOf = () => ({ left: 3, all: 5, live: true });
+    const html = boardWork(win)({ key: 'ag:paper', items: [{ key: of('read').key }] });
+    assert.match(html, /<span class="hb-pc-name">A read of Baltic Freight<\/span>/);
+    assert.match(html, />Read on arrival: a brief, 2 obligations found, 3 details to fill and 1 departure from our standards \(notice period\)\.</);
+    assert.match(html, /data-ag-act="fill">Fill in 3 details</);
+  });
+  test('8c the dress: one list, a hairline between rows, the line cut at its end until it is opened', () => {
+    const css = R('index.html');
+    assert.match(css, /\.hb-ag-works\.is-lines\{gap:0;/);
+    assert.match(css, /\.hb-ag-work\.is-line \+ \.hb-ag-work\.is-line\{border-top:1px solid rgba\(var\(--hb-ln\),\.12\)\}/);
+    assert.match(css, /\.hb-pc-line\{[^}]*white-space:nowrap;overflow:hidden;text-overflow:ellipsis\}/);
+    assert.match(css, /\.hb-ag-work\.is-look \.hb-pc-line\{white-space:normal\}/);
+    assert.match(css, /\.hb-pc-tag\{--hb-pc-c:var\(--hb-mute\);/);
+    assert.match(css, /\.hb-pc-tag i\{[^}]*background:var\(--hb-pc-c\)/);
+  });
+});
+
+describe('f800 (9) Look opens the piece under its row; pressed again it folds', () => {
+  test('9a open: the chase\'s letter and where it goes; its act filled; Look pressed', () => {
+    const { win, of } = staged();
+    const k = of('chase').key;
+    const html = boardWork(win, k)({ key: 'ag:late', items: [{ key: k }] });
+    assert.match(html, /class="hb-ag-work is-line is-look"/);
+    assert.match(html, /aria-pressed="true" aria-expanded="true">Look</);
+    assert.match(html, /<div class="hb-pc-body is-mail"><div class="ag-mail"/);
+    assert.match(html, /class="ag-p-note ag-mail-foot">It goes to the address on the contract\. You are asked once more before it is sent\.</);
+    assert.match(html, /class="ui-btn ui-btn-sm ui-btn-primary" data-ag-act="chase">Send the chase</, 'the open piece\'s act is the filled one');
+  });
+  test('9b open, any other piece: its body, and its other acts under it — none lost by folding', () => {
+    const { win, of } = staged();
+    win.detailsOf = () => ({ left: 3, all: 5, live: true });
+    const k = of('read').key;
+    const html = boardWork(win, k)({ key: 'ag:paper', items: [{ key: k }] });
+    const body = html.slice(html.indexOf('hb-pc-body'));
+    assert.ok(body.length > 30, 'the body is drawn');
+    for (const act of ['brief', 'overview', 'seen']) assert.match(body, new RegExp('data-ag-act="' + act + '"'), act + ' stands under the piece');
+    assert.doesNotMatch(body, /data-ag-act="fill"|data-ag-act="away"/, 'the row\'s own act and Put away are not drawn twice');
+  });
+  test('9c the press: Look toggles, another Look moves it; the acts run the house\'s own runner', () => {
+    const t = fnBody(HB, 'hbAgLookToggle');
+    assert.match(t, /_hbAgLook = _hbAgLook === key \? null : key;/);
+    assert.match(HB, /if \(\(el = on\('\[data-hb-ag-look\]'\)\)\)\{ e\.stopPropagation\(\); hbAgLookToggle\(el\.getAttribute\('data-hb-ag-look'\)\); return; \}/);
+    assert.match(fnBody(HB, 'hbAgentWorkPress'), /agRunAct\(key, act\.getAttribute\('data-ag-act'\)\)/);
+  });
+});
+
+describe('f800 (10) the card\'s head says Home\'s words', () => {
+  test('10a "N prepared · nothing sent or filed until you press" — one wording one press apart', () => {
+    assert.match(fnBody(HB, 'hbPrepHtml'), /i18tn\('cn_jw_n', A\.ready, \{ n: _hbN\(A\.ready\) \}\) \+ ' · ' \+ i18t\('cn_jw_said'\)/);
+    assert.doesNotMatch(fnBody(HB, 'hbPrepHtml'), /hm_ag_sub/);
+    assert.equal(BOOKS.en.cn_jw_n_other, '{n} prepared');
+    assert.equal(BOOKS.sv.cn_jw_n_other, '{n} förberedda');
   });
 });

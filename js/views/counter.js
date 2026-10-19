@@ -278,7 +278,10 @@ function deskTabClose(k){
 function deskGoCounter(){ _dkMenuOpen = false; if (typeof setView === 'function') setView('counter'); }
 
 /* ---------------- THE COUNTER ---------------- */
-const CN_ROWS = 7;          // rows in sight; "Show N more" brings the rest
+/* THREE ROWS IN SIGHT, AS DRAWN (round 23: Jambo's work, then three owed
+   rows, then "Show 3 more · a note due today · Baltic Freight's 3 details ·
+   Sara's NDA request"); "Show N more" brings the rest, by name */
+const CN_ROWS = 3;
 const CN_POP_MAX = 40;      // every place; the list scrolls, and typing narrows it
 const CN_PICK_UP = 3;       // open pages offered on a quiet day
 let _cnAll = false;
@@ -305,8 +308,11 @@ const _cnWho = n => ({ who: n, whos: (typeof agPoss === 'function') ? agPoss(n) 
    each contract's owed item (hbNeedsList, the checklist's own reading), a
    note of yours that is due (mineNotesDue, My notes' own — the bell's
    note-due) and a request nobody holds yet (intakeAlertRows, the bell's
-   request rows). The urgent first; within that, each list's own order. An
-   approval answered for somebody away carries whom for (approvalAnswersFor). */
+   request rows). An approval answered for somebody away carries whom for
+   (approvalAnswersFor) and LEADS (round 23 as drawn: "Answer an approval for
+   Jonas" above their late redlines, and the lead chip "Jonas's approval"):
+   it is a colleague's work held while they are away, which nobody else will
+   press; then the urgent; within that, each list's own order. */
 function cnRows(){
   const out = cnNeeds().map(x => {
     let fw = null;
@@ -318,7 +324,7 @@ function cnRows(){
   notes.forEach(n => out.push({ k: 'note', kind: 'mynote', urgent: String(n.reviewBy || '') < today, n }));
   let reqs = []; try { reqs = (typeof intakeAlertRows === 'function') ? (intakeAlertRows() || []) : []; } catch (_){ reqs = []; }
   reqs.forEach(r => out.push({ k: 'req', kind: 'request', urgent: false, r }));
-  return out.map((y, i) => ({ y, i })).sort((a, b) => (Number(b.y.urgent) - Number(a.y.urgent)) || (a.i - b.i)).map(o => o.y);
+  return out.map((y, i) => ({ y, i })).sort((a, b) => (Number(!!b.y.fw) - Number(!!a.y.fw)) || (Number(b.y.urgent) - Number(a.y.urgent)) || (a.i - b.i)).map(o => o.y);
 }
 /* WHAT WAITS FOR YOU, BY AGENT — the count of Jambo's work Home's row and
    the Board's Jambo's work card both draw (cnWork = hbAgentsData: the pieces
@@ -366,7 +372,20 @@ function cnNeedTitle(y){
   const x = y.x, it = x.it;
   if (it.kind === 'approval') return y.fw ? _cnT('cn_need_approval_for', { who: _cnFirst(y.fw.name) }) : _cnT('cn_need_approval');
   if (it.kind === 'details') return _cnTn('cn_need_details', it.n || 1, { n: it.n || 1 });
+  /* the act, as drawn ("Decide the renewal") — the renewal piece's own act's
+     words (ag_a_renewal), not the checklist's heading */
+  if (it.kind === 'renewal') return _cnT('ag_a_renewal');
   return (typeof hbNyWhat === 'function') ? hbNyWhat(x) : '';
+}
+/* TIME IN WORDS, NEVER AN ABBREVIATION (round 23 as drawn: "waiting 4 days";
+   the renewal said "in 40d"): how long a row has waited, else how long until
+   its day ("in 40 days"), else its day the way a person says it ("due Friday") */
+function cnWhenWords(x){
+  const it = x.it;
+  if (x.age != null) return x.age > 0 ? _cnT('cn_waiting', { days: (typeof hbNyDays === 'function') ? hbNyDays(x.age) : x.age }) : '';
+  if (it.kind === 'renewal' && it.d != null) return it.d <= 0 ? _cnT('ins_days_today') : _cnTn('ins_need_in', it.d, { n: it.d });
+  const due = String(it.due || '').slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(due) ? _cnT('cn_due', { day: cnDayWords(due) }) : '';
 }
 /* a day said the way a person says it: its weekday within the week, else the date */
 function cnDayWords(iso){
@@ -390,7 +409,7 @@ function cnNeedSub(y, title){
   const party = String((pay && c.metadata && c.metadata.jobTitle) || c.counterparty || '').trim();
   if (party && !String(title).includes(party)) bits.push(_cnE(party));
   if ((it.kind === 'approval' || it.kind === 'sign') && cnMayMoney(c)) bits.push(_cnE(fmtMoneyShortOf(c)));
-  const when = x.age != null ? (x.age > 0 ? _cnT('cn_waiting', { days: (typeof hbNyDays === 'function') ? hbNyDays(x.age) : x.age }) : '') : ((typeof hbNyWhen === 'function') ? hbNyWhen(x) : '');
+  const when = cnWhenWords(x);
   if (when) bits.push(it.urgent ? `<span class="cn-late">${_cnE(when)}</span>` : _cnE(when));
   return bits.join(' · ');
 }
@@ -633,6 +652,6 @@ if (typeof document !== 'undefined' && !window._cnWired){
   });
 }
 
-Object.assign(window, { counterWorkByAgent, cnRows, cnNeedShort, cnReqWhat, CN_REQ_WHAT_RE, counterFollow, cnLand,
+Object.assign(window, { counterWorkByAgent, cnRows, cnNeedShort, cnWhenWords, cnReqWhat, CN_REQ_WHAT_RE, counterFollow, cnLand,
   deskShellOn, DK_KEY, DK_RECENT, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskPageName, deskTabsSync, deskRecentRows, deskRecentHtml, deskBarPaint, deskRecentToggle, deskBackTarget, deskGoBack, deskTabOpen, deskTabClose, deskGoCounter,
   CN_ROWS, renderCounter, counterHtml, counterRepaint, counterAsk, counterNeedsCount, counterPopRead, counterPopClose });

@@ -14,6 +14,13 @@
      3. each pack is a card of its own: a painted edge, and a clear gap before
         the next one;
      4. photographed; no page errors.
+   RE-POINTED 19 Oct 2026 (the owner's answer (18), "Fold to one line",
+   reverses the 11 Oct separate cards): the pieces are ONE LIST, one line each,
+   a painted hairline between them; Look opens one under its row. So (1) reads
+   the folded row's words AND the opened piece's against their ground; (2) the
+   open piece's buttons sit in its row, never sticky, no band; (3a) the list
+   has a painted edge; (3b) rows are divided by a painted hairline (style AND
+   width), not a gap.
    Waits ask for the state, bounded.
    Screenshots: test/chromium/shots/board-agent-work/ (or HATI_SHOT_DIR).
    Run: node test/chromium/board-agent-work-verify.js */
@@ -64,6 +71,9 @@ const check = (name, pass, detail) => {
       const ready = await until(scr => { const pg = document.querySelector('#hb-page, #ig-page'); return !!pg && pg.classList.contains('hb-' + scr) && document.querySelectorAll('.hb-ag-work').length >= 3; }, scr);
       check(`${scr} 0. the packs are drawn below the card`, !!ready);
       if (!ready) continue;
+      /* the first piece opened with its own Look, as a reader would */
+      await page.evaluate(() => { const p = document.querySelector('.hb-ag-work'); if (p && !p.classList.contains('is-look')) { const b = p.querySelector('[data-hb-ag-look]'); if (b) b.click(); } });
+      await until(() => !!document.querySelector('.hb-ag-work.is-look .hb-pc-body'), null, 4000);
       const m = await page.evaluate(() => {
         const rgb = s => { const v = (s.match(/[\d.]+/g) || []).map(Number); return { r: v[0], g: v[1], b: v[2], a: v.length > 3 ? v[3] : 1 }; };
         const over = (f, b) => ({ r: f.r * f.a + b.r * (1 - f.a), g: f.g * f.a + b.g * (1 - f.a), b: f.b * f.a + b.b * (1 - f.a), a: 1 });
@@ -74,20 +84,22 @@ const check = (name, pass, detail) => {
         const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
         const w = [...document.querySelectorAll('.hb-ag-work')];
         const first = w[0]; first.scrollIntoView({ block: 'start' });
-        const words = [...first.querySelectorAll('.ag-p-title, .ag-p-who, .ag-p-body dd, .ag-p-body strong, .ag-p-body p, .ag-p-line')].filter(e => e.textContent.trim());
+        const words = [...document.querySelectorAll('.hb-ag-work .hb-pc-tag, .hb-ag-work .hb-pc-name, .hb-ag-work .hb-pc-ref, .hb-ag-work .hb-pc-line, .hb-ag-work .hb-pc-body dd, .hb-ag-work .hb-pc-body strong, .hb-ag-work .hb-pc-body p, .hb-ag-work .ag-mail-b')].filter(e => e.textContent.trim());
         const worst = words.reduce((lo, e) => { const r = ratio(over(rgb(getComputedStyle(e).color), ground(e)), ground(e)); return r < lo.r ? { r, t: e.textContent.trim().slice(0, 30) } : lo; }, { r: 99, t: '' });
-        const foot = first.querySelector('.ag-p-foot'), fs = getComputedStyle(foot);
-        const footG = ground(foot), cardG = ground(first);
-        const cs = getComputedStyle(first);
-        return { worst, n: words.length, footPos: fs.position, footBand: Math.abs(lum(footG) - lum(cardG)) > 0.1,
-          edge: cs.borderTopStyle + ' ' + cs.borderTopWidth,
-          gap: w[1] ? Math.round(w[1].getBoundingClientRect().top - first.getBoundingClientRect().bottom) : null };
+        const open = document.querySelector('.hb-ag-work.is-look');
+        const acts = open && open.querySelector('.hb-pc-acts'), fs = acts ? getComputedStyle(acts) : { position: '?' };
+        const actsG = acts ? ground(acts) : null, cardG = ground(open || first);
+        const list = document.querySelector('.hb-ag-works.is-lines'), ls = list ? getComputedStyle(list) : null;
+        const second = w[1] ? getComputedStyle(w[1]) : null;
+        return { worst, n: words.length, open: !!open, footPos: fs.position, footBand: !!actsG && Math.abs(lum(actsG) - lum(cardG)) > 0.1,
+          edge: ls ? ls.borderTopStyle + ' ' + ls.borderTopWidth : '',
+          rule: second ? second.borderTopStyle + ' ' + second.borderTopWidth : '' };
       });
-      check(`${scr} 1. the pack's words read against its card (worst ≥ 4.5)`, m.n > 3 && m.worst.r >= 4.5, `${m.worst.r.toFixed(2)} on "${m.worst.t}" of ${m.n}`);
-      check(`${scr} 2a. the buttons' strip is not sticky`, m.footPos !== 'sticky' && m.footPos !== 'fixed', m.footPos);
+      check(`${scr} 1. the pieces' words, folded and opened, read against their ground (worst ≥ 4.5)`, m.open && m.n > 6 && m.worst.r >= 4.5, `${m.worst.r.toFixed(2)} on "${m.worst.t}" of ${m.n}`);
+      check(`${scr} 2a. the open piece's buttons sit in its row, not sticky`, m.footPos !== 'sticky' && m.footPos !== 'fixed', m.footPos);
       check(`${scr} 2b. no band of another colour under the buttons`, !m.footBand);
-      check(`${scr} 3a. each pack has a painted edge`, /^solid /.test(m.edge) && parseFloat(m.edge.split(' ')[1]) >= 1, m.edge);
-      check(`${scr} 3b. a clear gap before the next pack`, m.gap != null && m.gap >= 12, m.gap);
+      check(`${scr} 3a. the list has a painted edge`, /^solid /.test(m.edge) && parseFloat(m.edge.split(' ')[1]) >= 1, m.edge);
+      check(`${scr} 3b. one piece from the next: a painted hairline (style and width), one line each`, /^solid /.test(m.rule) && parseFloat(m.rule.split(' ')[1]) >= 1, m.rule);
       await page.screenshot({ path: path.join(OUT, `${scr}.png`) });
     }
     check('4. no page errors', errors.length === 0, errors.join(' | '));

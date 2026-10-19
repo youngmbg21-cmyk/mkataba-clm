@@ -102,6 +102,12 @@ async function shareKeepOpen(c, token){
   return r;
 }
 async function importQueueRead(items){ return api('import/read', 'POST', { items: items || [] }); }
+/* THE CHASE AS IT WILL LEAVE (round 23's gaps, 19 Oct 2026: "Look shows the
+   email whole"): the route's own letter, link and all, read for Look on a
+   folded chase piece (agChaseFromServer). A reading — it sends nothing. */
+async function chasePreviewRead(cid, obId, firm){
+  return api('contracts/' + encodeURIComponent(cid) + '/chase-preview?obligationId=' + encodeURIComponent(obId) + (firm ? '&firm=1' : ''));
+}
 
 /* ONE ROW FROM THE SERVER, TAKEN INTO THE BOOK — the list's own shape.
    Returns true where something on screen may have moved. */
@@ -190,5 +196,5 @@ function agentsWatch(){
   }, AR_BEAT_MS);
 }
 
-Object.assign(window, { agentsStatus, agentsStatusLoad, agentRunNow, agentSaveCfg, agentSendBack, agentPrepared, agentLevelMineSet, agentAwaySet, shareKeepOpen,
+Object.assign(window, { agentsStatus, agentsStatusLoad, agentRunNow, agentSaveCfg, agentSendBack, agentPrepared, agentLevelMineSet, agentAwaySet, shareKeepOpen, chasePreviewRead,
   importQueueRead, contractsTakeRow, contractsTakeChanged, agentsBeat, agentsWatch, AR_BEAT_MS, AR_REACH_MS });

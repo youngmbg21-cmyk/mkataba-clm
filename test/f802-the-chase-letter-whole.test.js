@@ -20,8 +20,18 @@
        promise that is a thing is said as one (chaseWhatOf), an act keeps its
        quotation marks and asks where it stands; the agreement is ours,
        unquoted; the year only outside this year (chaseDayWords).
+   (5) THIRD PASS (19 Oct 2026; the checker: "the preview always leaves out
+       the link paragraph the route adds when the contract has a live share —
+       the inbox gets more than the screen showed"): ONE BUILDER ON THE SERVER,
+       srvChaseMail, makes the letter for the send AND for GET
+       /api/contracts/:id/chase-preview, which Look on a folded chase reads
+       (agChaseFromServer, through the agents' one door chasePreviewRead). With
+       a standing link the preview carries "…open the agreement" and the link,
+       word for word what the send then mails; the same walls as the send
+       (scope, theirs, open, the stored address); a reading sends and writes
+       nothing.
    AT THE PARENT (8dc306a) every test here FAILS but 1a, the stage (the route
-   sent both chases there too).
+   sent both chases there too). At this lane's last commit (9cde108) (5) FAILS.
    ═══════════════════════════════════════════════════════════════════════════ */
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
@@ -124,5 +134,84 @@ describe('f802 (4) the drawn words', () => {
       assert.equal((I.match(new RegExp('^    ' + k + ':', 'gm')) || []).length, 2, k);
     const at = SRV.indexOf('async function srvChaseSend(');
     assert.match(SRV.slice(at, SRV.indexOf('\napp.', at + 10)), /const dayWords = v => chaseDayWords\(v, L, now\(\)\.slice\(0, 10\)\);/);
+  });
+});
+
+describe('f802 (5) the letter as it will leave, link and all — the preview route', () => {
+  let h, W, before0;
+  const PV = '/api/contracts/MK-CL5/chase-preview?obligationId=';
+  before(async () => {
+    h = await H.startHati(); W = await H.seedWorkspace(h, { approvalRules: [] });
+    const c = H.fixtureContract('MK-CL5', 'Supply agreement', 'Kettle & Co', H.FOLDER_A, 2.4e6, 'Signed', 'Words.');
+    c.counterpartyEmail = 'insurance@kettle.example'; c.party = 'Highland Corporate Ltd';
+    c.obligations = [{ id: 'ob-late', desc: 'the insurance certificate', due: day(-5), party: 'theirs', status: 'open' },
+      { id: 'ob-ours', desc: 'Pay the invoice', due: day(-5), party: 'ours', status: 'open' },
+      { id: 'ob-done', desc: 'the annex', due: day(-9), party: 'theirs', status: 'done' }];
+    await W.admin.json('/api/contracts/MK-CL5', { method: 'PUT', body: { contract: c, baseVersion: 0 } });
+    const b = H.fixtureContract('MK-CL6', 'Listing', 'Naivas', H.FOLDER_B, 1e6, 'Signed', 'Words.');
+    b.counterpartyEmail = 'ops@naivas.example';
+    b.obligations = [{ id: 'ob-b', desc: 'the listing fee', due: day(-3), party: 'theirs', status: 'open' }];
+    await W.admin.json('/api/contracts/MK-CL6', { method: 'PUT', body: { contract: b, baseVersion: 0 } });
+    before0 = await W.admin.json('/api/contracts/MK-CL5');
+  });
+  after(async () => { await h.stop(); });
+  test('5a no standing link: the preview is the letter, signed by the reader, and says no link', async () => {
+    const r = await W.admin.json(PV + 'ob-late');
+    assert.equal(r.ok, true);
+    assert.equal(r.to, 'insurance@kettle.example', 'the address on the contract');
+    assert.equal(r.subject, 'A reminder about the insurance certificate');
+    assert.match(r.body, /^Hello,\n\nThis is a reminder about the insurance certificate under our Supply agreement \(MK-CL5\)/);
+    assert.match(r.body, /\n\nAmina Otieno, Highland Corporate Ltd$/);
+    assert.equal(r.link, false);
+  });
+  test('5b with a standing link: the link paragraph is in the preview, and the send mails exactly that', async () => {
+    await W.admin.json('/api/shares', { method: 'POST', body: { durable: true,
+      payload: { kind: 'hati-share', org: 'Highland Corporate Ltd', contract: { id: 'MK-CL5', name: 'Supply agreement', counterparty: 'Kettle & Co' } },
+      channel: 'email', recipient: { name: 'Kettle Ops', email: 'insurance@kettle.example' } } });
+    const pv = await W.admin.json(PV + 'ob-late');
+    assert.equal(pv.link, true);
+    const lines = pv.body.split('\n\n');
+    assert.equal(lines.length, 4, 'hello · the reminder · the link · the sign-off');
+    assert.match(lines[2], /\nhttps?:\/\/\S+/, 'the link itself, under its sentence');
+    const n0 = ((await W.admin.json('/api/outbox')).items || []).length;
+    await W.admin.json('/api/contracts/MK-CL5/chase', { method: 'POST', body: { obligationId: 'ob-late' } });
+    const box = ((await W.admin.json('/api/outbox')).items || []);
+    assert.equal(box.length, n0 + 1);
+    const sent = box.find(m => m.to_addr === 'insurance@kettle.example' && /insurance certificate/.test(m.body));
+    assert.equal(sent.body, pv.body, 'what Look showed is what the inbox got, word for word');
+  });
+  test('5c the firmer one too', async () => {
+    const pv = await W.admin.json(PV + 'ob-late&firm=1');
+    assert.equal(pv.ok, true);
+    assert.notEqual(pv.subject, 'A reminder about the insurance certificate', 'its own subject');
+  });
+  test('5d the same walls as the send: ours, done, gone, out of scope', async () => {
+    assert.equal((await W.admin.raw(PV + 'ob-ours')).status, 409);
+    assert.equal((await W.admin.raw(PV + 'ob-done')).status, 409);
+    assert.equal((await W.admin.raw(PV + 'nope')).status, 404);
+    assert.equal((await W.restricted.raw('/api/contracts/MK-CL6/chase-preview?obligationId=ob-b')).status, 404, 'a stream they cannot open');
+    const r = await W.restricted.raw(PV + 'ob-late');
+    assert.equal(r.status, 200, 'any member who can open the contract may read it');
+  });
+  test('5e a reading: nothing sent, nothing written', async () => {
+    const n0 = ((await W.admin.json('/api/outbox')).items || []).length;
+    const rec = c => JSON.stringify({ v: c.version != null ? c.version : c._v, obligations: c.obligations, audit: (c.audit || []).length });
+    const v0 = rec(await W.admin.json('/api/contracts/MK-CL5'));
+    await W.admin.json(PV + 'ob-late'); await W.admin.json(PV + 'ob-late&firm=1');
+    assert.equal(((await W.admin.json('/api/outbox')).items || []).length, n0, 'no mail');
+    assert.equal(rec(await W.admin.json('/api/contracts/MK-CL5')), v0, 'the contract untouched: its version, its obligations, its trail');
+    assert.ok(before0 && before0.id === 'MK-CL5', 'the stage stood');
+  });
+  test('5f one builder for both, and the page reads it through the agents\' one door', () => {
+    const mk = SRV.slice(SRV.indexOf('function srvChaseMail('), SRV.indexOf('\napp.', SRV.indexOf('function srvChaseMail(')));
+    assert.match(mk, /chaseMailOf\(\{ t: \(k, v\) => tFor\(L, k, v\), firm, dated: !!o\.due, soon, vars, link: link \|\| null,/);
+    assert.match(SRV.slice(SRV.indexOf('async function srvChaseSend('), SRV.indexOf('function srvChaseMail(')), /const m = srvChaseMail\(req, c, o, to, \{ firm \}\);\n  const r = await sendEmail\(to, m\.subject, m\.body/);
+    const route = SRV.slice(SRV.indexOf("app.get('/api/contracts/:id/chase-preview'"), SRV.indexOf("app.post('/api/contracts/:id/chase'"));
+    assert.match(route, /srvChaseMail\(req, c, o, to, /);
+    assert.doesNotMatch(route, /sendEmail|persist|UPDATE |INSERT /, 'a reading');
+    assert.match(R('js/agentruns.js'), /async function chasePreviewRead\(cid, obId, firm\)\{\n  return api\('contracts\/' \+ encodeURIComponent\(cid\) \+ '\/chase-preview\?obligationId=/);
+    const AG = R('js/views/agents.js');
+    assert.match(AG, /function agChaseMailHtml\(c, o, firm\)\{\n  const srv = agChaseFromServer\(c, o, firm\);\n  const m = srv \|\| agChaseMail\(c, o, firm\);/);
+    assert.match(AG, /_agChasePv\.set\(k, slot\);/, 'asked once: the latch stands before the promise');
   });
 });

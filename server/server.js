@@ -15198,7 +15198,18 @@ app.post('/api/contracts/:id/handover', auth, editor, async (req, res) => {
    chase is the SAME message a person's press sends, word for word. `firm`
    is the second, firmer chase (Young ruled 27 Sep 2026): the same facts,
    and the date the first went. The caller has checked the address. */
+/* THE LETTER, MADE ONCE (round 23's gaps, 19 Oct 2026: "Look shows the email
+   whole"): srvChaseMail writes the chase exactly as it will leave — the words,
+   the standing link where there is one, the sign-off — and both the send
+   below and the preview route (GET …/chase-preview, which Look on a chase
+   draws) take it from here, so the screen never shows less than the inbox
+   gets. It reads; it sends and writes nothing. */
 async function srvChaseSend(req, c, o, to, { firm = false } = {}) {
+  const m = srvChaseMail(req, c, o, to, { firm });
+  const r = await sendEmail(to, m.subject, m.body, `chase: ${c.name || c.id}`);
+  return r;
+}
+function srvChaseMail(req, c, o, to, { firm = false } = {}) {
   const L = langForEmail(to);
   /* THE DAY IN WORDS, IN THE READER'S LANGUAGE (the owner's list, 27 Sep
      2026): the message printed the stored "2026-09-21". A calendar day is read
@@ -15242,9 +15253,28 @@ async function srvChaseSend(req, c, o, to, { firm = false } = {}) {
   if (!party) { try { party = String(((getSetting('org') || {}).name) || '').trim(); } catch (_) { party = ''; } }
   const m = chaseMailOf({ t: (k, v) => tFor(L, k, v), firm, dated: !!o.due, soon, vars, link: link || null,
     sender: (req && req.user && req.user.name) || '', party });
-  const r = await sendEmail(to, m.subject, m.body, `chase: ${c.name || c.id}`);
-  return r;
+  return { ...m, link: !!link };
 }
+/* LOOK ON A CHASE: the letter as the route above will send it, link and all.
+   The same walls as the send — the contract in the reader's scope, the
+   obligation theirs and open, the address the contract's own (never read from
+   the request) — and nothing sent, stamped or written. Any member who can open
+   the contract may read it (its standing link is on the contract's own share
+   list already); only an editor may press Send. */
+app.get('/api/contracts/:id/chase-preview', auth, (req, res) => {
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let c = {}; try { c = JSON.parse(row.json) || {}; } catch (_) { c = {}; }
+  const q = req.query || {};
+  const o = (c.obligations || []).find(x => x && String(x.id) === String(q.obligationId || ''));
+  if (!o) return res.status(404).json({ error: 'That obligation is no longer on the contract.' });
+  if (String(o.party) !== 'theirs') return res.status(409).json({ error: 'That obligation is ours, not theirs — there is nobody to chase about it.', reason: 'ours' });
+  if (o.status === 'done') return res.status(409).json({ error: 'That obligation is already complete.', reason: 'done' });
+  const to = String(c.counterpartyEmail || '').trim();
+  if (!/.+@.+\..+/.test(to)) return res.json({ ok: false, reason: 'no-address', to: null });
+  const m = srvChaseMail(req, c, o, to, { firm: q.firm === '1' || q.firm === 'true' });
+  res.json({ ok: true, to, subject: m.subject, body: m.body, parts: m.parts, link: m.link });
+});
 app.post('/api/contracts/:id/chase', auth, editor, async (req, res) => {
   const b = req.body || {};
   if (b.email || b.to || b.address)

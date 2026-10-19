@@ -33,6 +33,18 @@
     10 Jambo's house says the card's count; its "N waiting for you" lands on
        the Board's card (a room's: that agent's work below it); four and three
        rooms a floor, faces clear of words; Jambo folded to the right edge
+    11 THIRD PASS (19 Oct 2026): the greeting 26px semibold and Jambo's work's
+       tail 12px, as drawn; three owed rows in sight, the approval answered
+       for an away colleague first and so the lead chip; the renewal row says
+       its act and its time in words; the lead chip LANDS ON the approval
+       gate it opens, lit; the Board card's head says Home's words; each piece
+       FOLDED TO ONE LINE (the owner's answer (18)) — tag, what, reference,
+       one sentence, Look · its act · Put away — Look opening it under its row
+       and folding it again; a chase's Look shows the letter as the route will
+       send it, the standing link's paragraph and all; the house fills its
+       page to Jambo's strip, every room's agent name whole.
+   RE-POINTED 19 Oct 2026: section 3 reads the folded rows (.hb-pc-acts) and
+   presses Look to read a chase's letter (answer (18)); 7 reads three rows.
    Waits ask for the state, bounded; a press on a part that may not exist
    reports instead of waiting out the clock.
    Run: node test/chromium/counter-as-drawn-verify.js */
@@ -84,6 +96,10 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
   await W.unrestricted.json('/api/me/away', { method: 'PUT', body: { deputyId: adminId, from: day(0), to: day(3) } });
   await W.admin.json('/api/me/items', { method: 'POST', body: { kind: 'note', item: { body: 'Ask about the Kettle insurance before Friday', reviewBy: day(0) } } });
   await W.restricted.json('/api/intake', { method: 'POST', body: { title: 'NDA with Kettle & Co', need: 'We need a mutual NDA before the pilot.', counterparty: 'Kettle & Co', folder: H.FOLDER_A } });
+  /* a standing link to the chased agreement: the route adds its paragraph, so Look must show it too */
+  await W.admin.json('/api/shares', { method: 'POST', body: { durable: true,
+    payload: { kind: 'hati-share', org: 'Highland Corporate Ltd', contract: { id: 'MK-0368', name: 'Supply agreement', counterparty: 'Kettle & Co' } },
+    channel: 'email', recipient: { name: 'Kettle Insurance', email: 'insurance@kettle.example' } } });
 
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const errors = [];
@@ -148,6 +164,10 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
       && head.chips.slice(1).map(c => c.t).join('|') === 'contracts|calendar|draft a new agreement', JSON.stringify(head.chips));
     check('1c "each row\'s button opens its page"', head.hint === 'each row’s button opens its page', head.hint);
     check('1d the four chips wear one dress, as drawn (the lead is not louder)', head.chips.length === 4 && new Set(head.chips.map(c => c.dress)).size === 1, JSON.stringify(head.chips.map(c => c.dress)));
+    const type = await page.evaluate(() => { const h = document.querySelector('.cn-ask h1'), t = document.querySelector('#cn-needs .cn-jw .cn-w b .cn-n'), b = document.querySelector('#cn-needs .cn-jw .cn-w b');
+      const cs = e => e ? getComputedStyle(e) : null; return { h1: cs(h) && [cs(h).fontSize, cs(h).fontWeight].join(' '), tail: cs(t) && [cs(t).fontSize, cs(t).fontWeight].join(' '), name: cs(b) && cs(b).fontSize }; });
+    check('11g the greeting large as drawn (26px, semibold); Jambo\'s work\'s tail small after its bold name (12px)', type.h1 === '26px 600' && type.tail === '12px 400' && type.name === '14px', JSON.stringify(type));
+    check('11h the approval answered for an away colleague leads, so it is the lead chip: "Unrestricted\'s approval"', head.chips[0] && head.chips[0].t === 'Unrestricted’s approval' && head.chips[0].door === 'approval', JSON.stringify(head.chips[0]));
 
     console.log('\n2 · Home\'s Jambo\'s work row lands on the Board\'s card');
     const jw = await page.evaluate(() => { const r = document.querySelector('#cn-needs .cn-jw');
@@ -176,19 +196,37 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
     for (const k of kinds){
       if (!(await openAgent(k))){ check(`3 the ${k} agent's work opens below the card`, false); continue; }
       pieces.push(...await page.evaluate(() => [...document.querySelectorAll('.hb-ag-works [data-hb-ag-item]')].map(p => ({ key: p.getAttribute('data-hb-ag-item'),
-        acts: [...p.querySelectorAll('.ag-p-acts button')].map(b => ({ act: b.getAttribute('data-ag-act'), t: b.textContent.trim(), cls: b.className })) }))));
+        line: { tag: (p.querySelector('.hb-pc-tag') || {}).textContent || '', name: (p.querySelector('.hb-pc-name') || {}).textContent || '', ref: (p.querySelector('.hb-pc-ref') || {}).textContent || '',
+          say: (p.querySelector('.hb-pc-line') || {}).textContent || '', h: Math.round(((p.querySelector('.hb-pc-line') || { getBoundingClientRect: () => ({ height: 0 }) }).getBoundingClientRect()).height),
+          body: !!p.querySelector('.hb-pc-body, .ag-p-body') },
+        acts: [...p.querySelectorAll('.hb-pc-acts button')].map(b => ({ act: b.getAttribute('data-ag-act') || (b.hasAttribute('data-hb-ag-look') ? 'look' : ''), t: b.textContent.trim(), cls: b.className })) }))));
     }
     const lastAway = pieces.filter(p => p.acts.length && p.acts[p.acts.length - 1].act === 'away' && p.acts[p.acts.length - 1].t === 'Put away' && /\bui-link\b/.test(p.acts[p.acts.length - 1].cls));
     check('3a Put away on EVERY piece the card draws, the last act, the quiet text button', pieces.length >= 5 && lastAway.length === pieces.length,
       JSON.stringify(pieces.map(p => p.key + ':' + p.acts.map(a => a.act).join('/'))));
     check('3b their answer and a request carry it too (the owner\'s "every piece")',
       ['answer:MK-0382', 'request:'].every(k => pieces.some(p => p.key.startsWith(k) && p.acts.some(a => a.act === 'away'))), JSON.stringify(pieces.map(p => p.key)));
-    const lead = k => { const p = pieces.find(x => x.key.startsWith(k)); const a = p && p.acts.find(x => /ui-btn-primary/.test(x.cls)); return a ? a.t : ''; };
+    /* RE-POINTED 19 Oct 2026 (answer (18)): a folded row's own act is its one bordered button */
+    const lead = k => { const p = pieces.find(x => x.key.startsWith(k)); const a = p && p.acts.find(x => /\bui-btn\b/.test(x.cls)); return a ? a.t : ''; };
     const has = (k, t) => { const p = pieces.find(x => x.key.startsWith(k)); return !!(p && p.acts.some(a => a.t === t || (t instanceof RegExp && t.test(a.t)))); };
     check('3c each act named for what it does: Answer on Redlines · Fill in N details · Send the chase · Check the 3 files',
       lead('answer:') === 'Answer on Redlines' && has('read:', /^Fill in \d+ details?$/) && lead('desk:MK-0368') === 'Send the chase' && lead('import:') === 'Check the 3 files',
       JSON.stringify([lead('answer:'), pieces.find(x => x.key.startsWith('read:')), lead('desk:MK-0368'), lead('import:')]));
+    check('11a each piece is ONE LINE: its agent\'s tag, what it is, its reference, one sentence; Look · its act · Put away; no body until Look',
+      pieces.length >= 5 && pieces.every(p => p.line.tag && p.line.name && p.line.say && !p.line.body && p.line.h > 0 && p.line.h < 24
+        && p.acts.length === 3 && p.acts[0].act === 'look' && p.acts[0].t === 'Look' && p.acts[2].act === 'away'),
+      JSON.stringify(pieces.map(p => [p.key, p.line, p.acts.map(a => a.act)])).slice(0, 900));
+    const ans = pieces.find(p => p.key === 'answer:MK-0382');
+    check('11b their answer reads as drawn: "Their round came back · Nordvik Logistik\'s answer · MK-0382 · Answers to their 2 redlines, read against our standards: …"',
+      !!ans && ans.line.tag === 'Their round came back' && ans.line.name === 'Nordvik Logistik’s answer' && ans.line.ref === 'MK-0382' && /^Answers to their 2 redlines, read against our standards: /.test(ans.line.say), JSON.stringify(ans && ans.line));
+    const cardHead = await page.evaluate(() => { const c = document.querySelector('#hm-agents .hb-cs'); return c ? c.textContent : ''; });
+    check('11c the card\'s head says Home\'s words: "N prepared · nothing sent or filed until you press"', /^\d+ prepared · nothing sent or filed until you press$/.test(cardHead), cardHead);
     if (await openAgent('late')) {
+      if (await press('[data-hb-ag-item^="desk:MK-0368"] [data-hb-ag-look]', '11d Look on the chase')) {
+        const lk = await until(() => { const p = document.querySelector('[data-hb-ag-item^="desk:MK-0368"]'); return p && p.classList.contains('is-look') && p.querySelector('.ag-mail.is-whole') ? {
+          pressed: p.querySelector('[data-hb-ag-look]').getAttribute('aria-pressed'), act: (p.querySelector('.hb-pc-acts .ui-btn-primary') || {}).textContent || '' } : null; }, null, 8000);
+        check('11d Look opens the piece under its row: the letter as the route will send it, Look pressed, its act the filled button', !!lk && lk.pressed === 'true' && lk.act === 'Send the chase', JSON.stringify(lk));
+      }
       const mail = await until(() => { const p = document.querySelector('.hb-ag-works [data-hb-ag-item^="desk:MK-0368"]'); const m = p && p.querySelector('.ag-mail');
         if (!m) return null; return { to: (m.querySelector('.ag-mail-h dd') || {}).textContent || '', text: m.innerText.replace(/\s+/g, ' ').trim(), after: p.innerText.replace(/\s+/g, ' ').trim() }; }, null, 5000);
       check('3d a chase shows the email whole: To, Subject, the letter as drawn, the day in words, signed by the sender for our company',
@@ -197,17 +235,26 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
         && /Amina Otieno, Highland Corporate Ltd/.test(mail.text), mail && mail.text.slice(0, 300));
       check('3e and under it: "It goes to the address on the contract. You are asked once more before it is sent."',
         !!mail && /It goes to the address on the contract\. You are asked once more before it is sent\./.test(mail.after), mail && mail.after.slice(-300));
+      check('11e the email WHOLE: with a standing link to the agreement, its paragraph and the link stand between the reminder and the sign-off, as the route will mail them',
+        !!mail && /could you send it, or let us know when it will come\? You can open the agreement here — no account needed: https?:\/\/\S+ Amina Otieno, Highland Corporate Ltd/i.test(mail.text), mail && mail.text.slice(0, 500));
       await page.evaluate(() => { const p = document.querySelector('[data-hb-ag-item^="desk:MK-0368"] .ag-mail'); if (p) p.scrollIntoView({ block: 'center' }); });
       await shot(page, 'main-23-board-chase-email-1440x780');
+      if (await press('[data-hb-ag-item^="desk:MK-0368"] [data-hb-ag-look]', '11f Look again')) {
+        const folded = await until(() => { const p = document.querySelector('[data-hb-ag-item^="desk:MK-0368"]'); return p && !p.classList.contains('is-look') && !p.querySelector('.ag-mail') ? true : null; }, null, 4000);
+        check('11f pressed again, it folds back to its one line', !!folded);
+      }
     }
 
     console.log('\n8 · it fits the owner\'s three screens');
+    await openAgent('late');
+    if (!(await page.evaluate(() => !!document.querySelector('[data-hb-ag-item^="desk:MK-0368"] .ag-mail')))) await press('[data-hb-ag-item^="desk:MK-0368"] [data-hb-ag-look]', '8 Look on the chase');
+    await until(() => !!document.querySelector('[data-hb-ag-item^="desk:MK-0368"] .ag-mail'), null, 4000);
     for (const [w, hh] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: hh });
       await page.waitForTimeout(300);
       const fit = await page.evaluate(() => { const card = document.querySelector('.hb-ag-works'); const r = card ? card.getBoundingClientRect() : null;
         return { open: !!document.querySelector('[data-hb-ag-item^="desk:MK-0368"] .ag-mail'), sx: document.scrollingElement.scrollWidth > innerWidth,
-          past: card ? [...card.querySelectorAll('button, .ag-mail, .ag-p-head, .ag-p-body')].filter(e => { const q = e.getBoundingClientRect(); return q.width && (q.right > innerWidth + 1 || q.right > r.right + 1); }).length : -1 }; });
+          past: card ? [...card.querySelectorAll('button, .ag-mail, .hb-pc-w, .hb-pc-body')].filter(e => { const q = e.getBoundingClientRect(); return q.width && (q.right > innerWidth + 1 || q.right > r.right + 1); }).length : -1 }; });
       check(`8a at ${w}×${hh}: the Board with the chase open — no sideways scroll, nothing past the edge`, fit.open && !fit.sx && fit.past === 0, JSON.stringify(fit));
       await page.evaluate(() => { const p = document.querySelector('[data-hb-ag-item^="desk:MK-0368"] .ag-mail'); if (p) p.scrollIntoView({ block: 'center' }); });
       await shot(page, `main-23-board-chase-email-${w}x${hh}`);
@@ -302,11 +349,15 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
     const needs = await page.evaluate(() => [...document.querySelectorAll('#cn-needs > .cn-r:not(.cn-jw)')].map(r => ({
       title: (r.querySelector('.cn-w b') || {}).innerText || '', sub: (r.querySelector('.cn-w > span') || {}).innerText || '',
       btn: (r.querySelector('button') || {}).textContent || '', door: (r.querySelector('button') || { getAttribute: () => '' }).getAttribute('data-cn-need') || (r.querySelector('[data-cn-note]') ? 'note' : r.querySelector('[data-cn-req]') ? 'req' : '') })));
+    const owed = await page.evaluate(() => [...document.querySelectorAll('#cn-needs > .cn-r:not(.cn-jw):not(.cn-co)')].map(r => ((r.querySelector('.cn-w b') || {}).innerText || '').trim()));
+    check('11i three owed rows in sight, the approval answered for an away colleague first, as drawn', owed.length === 3 && /^Answer an approval for /.test(owed[0]), JSON.stringify(owed));
     const ap = needs.find(n => /^Answer an approval for /.test(n.title));
     check('7a "Answer an approval for Unrestricted" · "for Unrestricted · away until <day>" · name · party · value · Open approval',
       !!ap && /Answer an approval for Unrestricted\s*for Unrestricted · away until \S+/.test(ap.title.replace(/\n/g, ' ')) && /^Power purchase agreement · Helio Energy AB · KES/.test(ap.sub) && ap.btn === 'Open approval',
       JSON.stringify(ap));
-    check('7b "Fill in N details" rows open Fill in', needs.some(n => /^Fill in \d+ details?$/.test(n.title.trim()) && n.btn === 'Fill in'), JSON.stringify(needs.map(n => n.title)));
+    /* RE-POINTED 19 Oct 2026: three rows in sight — a Fill in row may sit behind "Show N more", so it is read off the whole list */
+    const allRows = await page.evaluate(() => { const was = document.querySelector('[data-cn-all]'); return [...cnRows()].map(y => ({ k: y.k, kind: y.kind })); });
+    check('7b "Fill in N details" rows are on the list (they open Fill in)', allRows.some(r => r.kind === 'details'), JSON.stringify(allRows));
     const hidden = await page.evaluate(() => ({ foot: (document.querySelector('#cn-needs .cn-foot') || {}).innerText || '', rows: typeof cnRows === 'function' ? cnRows().map(r => r.k) : [] }));
     check('7c a note of yours due and a request nobody holds are on the list', hidden.rows.includes('note') && hidden.rows.includes('req'), JSON.stringify(hidden.rows));
     check('7d "Show N more · <their names>"', /^Show \d+ more\s+\S/.test(hidden.foot), hidden.foot);
@@ -331,6 +382,9 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
     if (await press('[data-cn-all]', '7e Show more')) {
       const all = await until(() => { const b = document.querySelector('[data-cn-all]'); return b && b.textContent === 'Show fewer' ? [...document.querySelectorAll('#cn-needs [data-cn-note], #cn-needs [data-cn-req]')].map(x => x.textContent) : null; }, null, 3000);
       check('7e the rest come, the note\'s Open note and the request\'s Open request among them', !!all && all.includes('Open note') && all.includes('Open request'), JSON.stringify(all));
+      const ren = await page.evaluate(() => [...document.querySelectorAll('#cn-needs > .cn-r')].map(r => ({ t: ((r.querySelector('.cn-w b') || {}).innerText || '').trim(), sub: (r.querySelector('.cn-w > span') || {}).innerText || '' })).find(r => /renewal/i.test(r.t)));
+      check('11j the renewal row says its act and its time in words: "Decide the renewal" · … · "in N days", never "in 40d"',
+        !!ren && ren.t === 'Decide the renewal' && /· in \d+ days$/.test(ren.sub) && !/\d+d\b/.test(ren.sub), JSON.stringify(ren));
     }
     if (await press('#cn-needs [data-cn-note]', '7i Open note')) {
       const lit = await until(() => { const r = document.querySelector('.is-landed'); return state.view === 'mynotes' && r && r.matches('[data-mn-row]') ? { row: r.getAttribute('data-mn-row') } : null; }, null, 6000);
@@ -344,8 +398,18 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
       check('7j a request\'s door lands ON its row on Requests, lit', !!lit, JSON.stringify(lit || await page.evaluate(() => ({ view: state.view, lit: [...document.querySelectorAll('.is-landed')].map(e => e.outerHTML.slice(0, 80)) }))));
       await shot(page, 'main-23-request-landed-1440x780');
     }
+    await toCounter();
+    if (await press('#cn-chips [data-cn-lead]', '11k the lead chip')) {
+      const lit = await until(() => { const l = document.querySelector('#pd-signface .is-landed'); return l ? { gate: !!l.querySelector('#ap-approve'), stop: l.matches('[data-pd-road-stop]'), sa: l.id === 'sa-card', html: l.outerHTML.slice(0, 120) } : null; }, null, 10000);
+      check('11k the lead chip ("Unrestricted\'s approval") LANDS ON the approval it opens: Before you sign, the Approval gate lit with its Approve', !!lit && (lit.gate || lit.sa || lit.stop), JSON.stringify(lit));
+      await shot(page, 'main-23-approval-landed-1440x780');
+    }
 
     console.log('\n10 · Jambo\'s house says the card\'s count');
+    /* their answer back on the card (taken out of this person's put-away list
+       through its one writer), so the Negotiation room carries its long drawn
+       line, "Their round came back · 1 waiting for you" (11m) */
+    await page.evaluate(async () => { try { await agentAwaySet('answer:MK-0382', null); } catch (_){} });
     /* every word the house paints on its canvas, kept as it is painted (the page's own 2D context, read through window) */
     await page.evaluate(() => { if (window._fillTextKept) return; window._fillTextKept = true; const P = window.CanvasRenderingContext2D.prototype, ft = P.fillText;
       window._jhSaid = []; P.fillText = function(t){ if (this.canvas && this.canvas.id === 'jh-cv') window._jhSaid.push(String(t)); return ft.apply(this, arguments); }; });
@@ -356,7 +420,10 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
         const W = counterWorkByAgent(), said = window._jhSaid.slice(), L = jhLinks();
         const door = document.getElementById('jh-jambo'), dr = door && door.getBoundingClientRect(), n = door && door.querySelector('[data-jh-jambo-n]');
         const ct = document.getElementById('content'), edge = ct ? Math.round(ct.getBoundingClientRect().left + ct.clientWidth) : innerWidth;
+        const pg = document.querySelector('.jh-page'), pr = pg && pg.getBoundingClientRect(), st = document.getElementById('jh-stage'), sr = st && st.getBoundingClientRect(), cr = ct ? ct.getBoundingClientRect() : { left: 0 };
+        const names = L.filter(l => l.k !== 'desk').map(l => ({ k: l.k, whole: said.includes(i18t('ag_' + l.k) + ' · ') }));
         return { ready: W.ready, card: hbAgentsData(null).ready, by: W.by, said, links: L.map(l => l.k), g: jhGeom(), audit: jhOverlapAudit(), sx: document.scrollingElement.scrollWidth > innerWidth, readings: AG_READINGS.slice(),
+          fill: pr && dr ? { pageL: Math.round(pr.left - cr.left), pageR: Math.round(pr.right), strip: Math.round(dr.left), stageL: sr ? Math.round(sr.left - cr.left) : null } : null, names,
           door: door ? { right: Math.round(dr.right), w: Math.round(dr.width), n: n ? n.textContent : '', count: counterNeedsCount(), word: (door.querySelector('.igd-door-w') || {}).textContent || '', edge } : null }; });
       if (v) return v; await page.waitForTimeout(150); } return null; };
     for (const [w, hh] of [[1440, 780], [1536, 730], [1366, 950]]) {
@@ -374,6 +441,10 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
           && H0.door.n === String(H0.door.count) && H0.door.word === 'Jambo', JSON.stringify(H0.door));
       }
       check(`10e at ${w}×${hh}: every agent clear of his room's words, nothing out of its room (the overlap audit), no sideways scroll`, H0.audit.ok && !H0.sx, JSON.stringify(H0.audit.faults.slice(0, 4)));
+      check(`11l at ${w}×${hh}: the house fills its page, from 16px at the left to Jambo's folded strip, no band between`,
+        !!H0.fill && H0.fill.pageL <= 1 && Math.abs(H0.fill.pageR - H0.fill.strip) <= 1 && H0.fill.stageL != null && H0.fill.stageL <= 17, JSON.stringify(H0.fill));
+      check(`11m at ${w}×${hh}: each room's work line keeps its agent's name whole, " · " and all — only the link's end may be cut`,
+        H0.names.length > 0 && H0.names.every(n => n.whole), JSON.stringify(H0.names));
       await shot(page, `main-23-house-${w}x${hh}`);
     }
     await page.setViewportSize({ width: 1440, height: 780 });
