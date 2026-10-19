@@ -7902,7 +7902,7 @@ function renderIntelDock(){
   { const ae=document.activeElement;
     const ff=ae&&ae.closest?ae.closest('#ig-dock #pd-fillface'):null;
     const ffMine=()=>{ const r=ff.querySelector('.pd-ff[data-pd-ff]'); return !!(r&&window.pdFillFor&&r.getAttribute('data-pd-ff')===pdFillFor()); };
-    if(intel.dockOpen&&ae&&ae.closest&&(ff?(window.pdFillShows&&pdFillShows()&&ffMine()):ae.closest('#ig-dock #pd-fill'))) return; }
+    if(intel.dockOpen&&ae&&ae.closest&&(ff?(window.pdFillShows&&pdFillShows()&&ffMine()):ae.closest('#ig-dock #pd-fill'))){ if(window.pdTrailSync) pdTrailSync(); return; } }
   if(!intel.dockOpen){
     /* HIS FACE ON THE FOLDED STRIP (owner picked "Tabs and faces" by name,
        round 3, 17 Oct 2026): Jambo himself with the count his tab carries

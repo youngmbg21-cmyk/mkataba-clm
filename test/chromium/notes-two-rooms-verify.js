@@ -501,6 +501,19 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
     check('it is live on a contract, with what it is on its hover',
       btn.dead === false && /chat/i.test(btn.title || ''), btn.title);
 
+    /* RE-POINTED 19 Oct 2026 (ONE TRAIL, owner: one Notes door): beside the
+       Redlines face the paper's Notes turns the column to the notes in place
+       (measured, then the face put away); with no face up it opens the drawer,
+       which the rest of this file measures as before */
+    const turned = await page.evaluate(async () => {
+      if (!(window.pdRedShows && pdRedShows())) return 'no face';
+      document.getElementById('hdr-chat').click();
+      await new Promise(r => setTimeout(r, 400));
+      const ok = !!document.querySelector('#pd-redface .rl-fn') && !document.querySelector('#context-panel.open');
+      pdRedClose(); await new Promise(r => setTimeout(r, 400));
+      return ok;
+    });
+    check('beside the Redlines face, the paper\'s Notes turns the column, no drawer', turned === true || turned === 'no face', String(turned));
     await page.click('#hdr-chat');
     await page.waitForTimeout(600);
     const chat = await page.evaluate(() => {
@@ -884,6 +897,10 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
        paper's ONE LINE (round 6) — Notes and Share, the house's .ui-btn. The
        claim is unchanged: the row's quiet verb wears that head's own ink and
        no edge of its own. */
+    /* the Redlines face put away for the drawer above comes back for the row's verbs (19 Oct 2026) */
+    await page.evaluate(() => { const c = state.contracts.find(x => x.id === (window.pdContract && pdContract() || {}).id) || state.contracts[0];
+      if (!(window.pdRedShows && pdRedShows()) && c) openRedlineWorkbench(c.id); });
+    await page.waitForFunction(() => !!document.querySelector('#rl-changes .rl-card-face'), null, { timeout: 8000 }).catch(() => {});
     const openEdge = await page.evaluate(() => {
       const open = document.querySelector(
         '#rl-changes .rl-card-face .rl-edit:not(.rl-verb-ai):not(.is-locked)')

@@ -449,6 +449,7 @@ function pdFillShows(){
 }
 function pdFillOpen(id, opts){
   const o = opts || {};
+  _pdFillFloor = null;
   _pdFillKey = o.key ? String(o.key) : null;
   return pdOpenOnHome(id, 'fill');
 }
@@ -613,7 +614,18 @@ function pdFillMark(c, all){
     r.setAttribute('data-pd-owed', owed ? '1' : '0');
   });
   pdFillGroupsPaint(c);
+  /* AN ANSWERED BOX NEVER MOVES UNDER THE HAND, AT THE LIST'S END TOO (19 Oct
+     2026, ONE TRAIL took a line of the face's height): while the face stays
+     open its work never gets shorter, so a scroll at the end is not pulled up
+     (and the sheet keeps the browser's scroll anchoring off, #pd-fillface) */
+  const w = host.querySelector('.pd-ff-work');
+  if (w){
+    if (!_pdFillFloor || _pdFillFloor.id !== String(c.id)) _pdFillFloor = { id: String(c.id), h: 0 };
+    _pdFillFloor.h = Math.max(_pdFillFloor.h, w.offsetHeight);
+    w.style.minHeight = _pdFillFloor.h + 'px';
+  }
 }
+let _pdFillFloor = null;     // the face's tallest work this opening (pdFillMark)
 /* the two headings and the document's line, from the marks and the record */
 function pdFillGroupsPaint(c){
   const host = document.getElementById('pd-fillface'); if (!host || !c) return;
@@ -1325,6 +1337,19 @@ function pdTrailHtml(){
   const where = t.path.map((w, i) => i === last ? `<b>${_pdE(w)}</b>` : _pdE(w)).join('<i aria-hidden="true"> / </i>');
   const tip = _pdT('pd_trail_back', { to: t.up });
   return `<div class="pd-trail" data-pd-trail="${_pdE(t.back)}"><button type="button" class="pd-back" data-pd-back="${_pdE(t.back)}" title="${_pdE(tip)}" aria-label="${_pdE(tip)}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${_pdE(t.up)}</button><span class="pd-trail-w">${where}</span></div>`;
+}
+/* THE LINE FOLLOWS THE FACE IN PLACE: a face opened or turned without the
+   panel being rebuilt (a hand in Fill in keeps it standing) still shows its
+   trail, so nothing under it moves on the next rebuild */
+function pdTrailSync(){
+  const dock = (typeof document !== 'undefined') ? document.getElementById('ig-dock') : null; if (!dock) return;
+  const head = dock.querySelector(':scope > .igd-head'); if (!head) return;
+  const html = pdTrailHtml();
+  const el = dock.querySelector(':scope > .pd-trail');
+  if (!html){ if (el) el.remove(); }
+  else if (el){ if (el.outerHTML !== html) el.outerHTML = html; }
+  else head.insertAdjacentHTML('afterend', html);
+  if (typeof deskBarPaint === 'function') try { deskBarPaint(); } catch (_){}
 }
 /* the trail's back, pressed by Esc and the bar's ‹: true where there was a step */
 function pdTrailBack(){
@@ -2581,6 +2606,7 @@ function pdPaint(c){
   const dock = document.getElementById('ig-dock'); if (!dock) return;
   /* the paper was drawn again: Fill in's marks on it follow (pdFillPaperMarks) */
   try { pdFillPaperMarks(c || pdContract()); } catch (_){}
+  pdTrailSync();
   const head = dock.querySelector('[data-pd-head]');
   const want = pdOnPaper() ? 'paper' : 'off';
   if (head && head.getAttribute('data-pd-head') !== want){ if (typeof renderIntelDock === 'function') renderIntelDock(); return; }
@@ -3995,7 +4021,7 @@ if (typeof document !== 'undefined' && !document._pdTrailEsc){
     if (pdTrailBack()) e.preventDefault();
   });
 }
-Object.assign(window, { pdTrail, pdTrailHtml, pdTrailBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
+Object.assign(window, { pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, PD_RD_CHECKS, pdRoadCheckOf, pdRoadCheckNames, pdDayWord, pdBackDay, pdAwayOf, pdRoadRuleOf, pdRoadRuleTitle, pdRoadRuleSub, pdRoadRuleFramed, pdRoadRuleHtml, pdRoadMovedHtml, pdRoadYesOf, pdRoadYesTitle, pdRoadYesFramed, pdRoadYesFacts, pdRoadYesHtml, pdRoadPress, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,
