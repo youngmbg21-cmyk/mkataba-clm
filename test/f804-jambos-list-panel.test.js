@@ -257,9 +257,11 @@ describe('f804 (7) a party\'s rows read whole in Jambo\'s panel', () => {
     assert.match(html, /title="Open it in Workspace, with the approval pack">Open approval<\/button>/);
     assert.match(html, /<span title="[^"]*">Power purchase agreement<\/span>/, 'a need with no when says only its agreement');
   });
-  test('7a2 our move in a negotiation says its wait, as the list does: "Waiting 4 days"', () => {
+  /* RE-POINTED 19 Oct 2026 (lane A2, check #1): "waiting 4 days" in lower
+     case, as round 19 draws it after the agreement's name */
+  test('7a2 our move in a negotiation says its wait, as the list does: "waiting 4 days"', () => {
     const html = stage().cuPanelNeedsHtml([{ c: { id: 'MK-0382', name: 'Master services agreement' }, it: { kind: 'move' } }]);
-    assert.match(html, />Master services agreement · Waiting 4 days<\/span>/);
+    assert.match(html, />Master services agreement · waiting 4 days<\/span>/);
     assert.match(html, />Open redlines<\/button>/);
   });
   test('7b every door word is short and in both books', () => {
@@ -270,9 +272,14 @@ describe('f804 (7) a party\'s rows read whole in Jambo\'s panel', () => {
       assert.ok(I18N.split(`${k}:`).length >= 3, `${k} in both books`);
     }
   });
-  test('7c the Waiting on you fact runs across the panel and may wrap', () => {
-    assert.match(fnOf(CU, 'cuPaintCustomerPanel'), /\{ k: 'waiting', label: i18t\('cu_col_waiting'\), v: _cuE\(cuNeedsSay\(r\.needs\)\), wide: true \}/);
-    assert.match(HTML, /\.ins-facts \.wide dd\{white-space:normal;\}/);
+  /* RE-POINTED 19 Oct 2026 (lane A2, round 19 as drawn): the party's facts are
+     the drawing's five rows, the label on the left, a value that may wrap
+     (insRowsHtml) — what waits on you is its own section, not a fact */
+  test('7c the party\'s facts are rows that may wrap; what waits is its own section', () => {
+    const p = fnOf(CU, 'cuPaintCustomerPanel');
+    assert.match(p, /insRowsHtml\(\[/);
+    assert.doesNotMatch(p, /k: 'waiting'/);
+    assert.match(HTML, /\.jl-rows dd\{[^}]*overflow-wrap:anywhere;/);
   });
 });
 

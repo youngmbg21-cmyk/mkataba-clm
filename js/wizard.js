@@ -957,7 +957,9 @@ function openNewAgreement(o){
     <div class="na-head"><div><h3>${i18t('na_title')}${one?` <small class="na-not-yet">${esc(i18t('na_not_yet_inline'))}</small>`:''}</h3>${one?'':`<div class="na-sub">`}${
       /* WHERE THE ANSWERS CAME FROM (step 3): opened from Jambo's New
          agreement card, the line under the title says what was asked */
-      one?'':o.asked?esc(i18t('na_sub_asked',{ask:String(o.asked).slice(0,(typeof DRAFT_SENTENCE_MAX==='number')?DRAFT_SENTENCE_MAX:2000)})):i18t('na_sub')}${one?'':'</div>'}</div>
+      one?'':o.asked?esc(i18t('na_sub_asked',{ask:String(o.asked).slice(0,(typeof DRAFT_SENTENCE_MAX==='number')?DRAFT_SENTENCE_MAX:2000)}))
+      /* FROM A PARTY (round 19's "Draft an agreement with Nordvik"): the party it carries is said */
+      :(o.prefill&&String(o.prefill.counterparty||'').trim())?esc(i18t('na_sub_with',{party:String(o.prefill.counterparty).trim()})):i18t('na_sub')}${one?'':'</div>'}</div>
       <button type="button" id="na-x" class="na-x" aria-label="${esc(i18t('act_cancel'))}" title="${esc(i18t('act_cancel'))}">${icon('x','w-4 h-4')}</button></div>
     <div id="na-body" class="na-body">
       ${''/* THE ASK TAKES THE WHOLE TOP LINE (Young, 22-23 Sep 2026: "the

@@ -268,7 +268,10 @@ describe('f809 (7) "Named on" counts in the person\'s own number', () => {
   });
   test('7b both of the panel\'s readers ask the plural', () => {
     const f = fnOf(DIR, 'dirPaintPanel');
-    assert.equal((f.match(/i18tn\('jl_named_n', n, \{ n, live: p\.active \}\)/g) || []).length, 2);
+    /* RE-POINTED 19 Oct 2026 (lane A2, check #1): one of ours says "12
+       contracts · 7 live"; someone on their side "2 contracts", as drawn */
+    assert.equal((f.match(/i18tn\('jl_named_n', n, \{ n, live: p\.active \}\)/g) || []).length, 1);
+    assert.match(f, /i18tn\('dir_n_contracts', n, \{ n \}\)/);
     assert.doesNotMatch(f, /i18t\('jl_named_n'/);
   });
 });

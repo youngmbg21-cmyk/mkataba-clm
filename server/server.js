@@ -4085,6 +4085,9 @@ app.get('/api/bootstrap', auth, (req, res) => {
     /* the quarter's access review, as far as it has got: an admin's (piece 8) */
     accessReview: req.user.role === 'admin' ? arSummary(req.user) : undefined,
     away: awayBoot(req.user),
+    /* a party's own facts — its city and organisation number — for the
+       parties this reader may know of (round 19; prRecordsFor is the wall) */
+    partyRecords: prRecordsFor(req.user),
     keeping: req.user.role === 'admin' ? kpSummary(req.user) : undefined,
     /* the day each clash in who may do what was first seen: an admin's */
     clashSeen: req.user.role === 'admin' ? clashSeenBook() : undefined,
@@ -13448,6 +13451,83 @@ app.delete('/api/me/away', auth, (req, res) => {
 });
 
 /* ============================================================
+   A PARTY'S OWN FACTS: ITS CITY AND ITS ORGANISATION NUMBER (round 19 of the
+   redesign, Parties "The SAP way": the City column, "Gothenburg · with us
+   since March 2024", "Organisation no. 556987-6543"; the owner's "build all
+   the gaps", 18 Oct 2026)
+   ============================================================
+   HaTi has no party record: a party is a READING of the contracts that name
+   it (c.counterparty, keyed as the Parties page keys it — cuKeyOf). A city and
+   an organisation number are on no one contract; they are the party's own,
+   so they get ONE HOME here, keyed by the party's name, and every screen
+   reads them from it. ONE FACT, ONE HOME.
+     · A PERSON FILLS THEM (an editor), through one writer, PUT
+       /api/party-records. A suggestion read off a contract's parties clause is
+       the browser's to offer and never reaches this table without that press.
+       Nothing is guessed.
+     · THE WALL: a reader is told the facts only of parties named on a
+       contract they may open (folderScopeFor), and never of a party that
+       stands only on a confidential deal they are outside of (cnOutsideFor) —
+       the same reach the Parties page itself has. A write to any other name is
+       refused as not found.
+     · Every change is an act in the trail (party_record_log). */
+db.exec(`CREATE TABLE IF NOT EXISTS party_records (pkey TEXT PRIMARY KEY, name TEXT NOT NULL,
+  city TEXT, org_no TEXT, set_by_id TEXT, set_by TEXT, set_at TEXT)`);
+db.exec(`CREATE TABLE IF NOT EXISTS party_record_log (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL,
+  by_id TEXT, by_name TEXT, pkey TEXT, name TEXT, what TEXT)`);
+const PR_CITY_MAX = 80, PR_ORG_MAX = 40;
+/* the Parties page's own key (js/views/customers.js cuKeyOf): one party per
+   name, whatever its case or spacing */
+const prKeyOf = name => String(name == null ? '' : name).trim().replace(/\s+/g, ' ').toLowerCase();
+const prClean = (v, max) => String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
+/* THE ONE READING OF REACH: the parties this reader may know of — every
+   counterparty on a contract in their scope, but a confidential deal's only
+   where they are on its list */
+function prVisibleKeys(user) {
+  const f = scopeFrag(folderScopeFor(user));
+  const out = cnOutsideFor(user);
+  const keys = new Set();
+  for (const r of db.prepare(`SELECT id, counterparty FROM contracts ${whereOf(f.sql)}`).all(...f.args)) {
+    if (out.has(String(r.id))) continue;
+    const k = prKeyOf(r.counterparty);
+    if (k) keys.add(k);
+  }
+  return keys;
+}
+const prShape = r => ({ name: r.name || '', city: r.city || '', orgNo: r.org_no || '', by: r.set_by || '', at: r.set_at || '' });
+function prRecordsFor(user) {
+  const rows = db.prepare('SELECT * FROM party_records').all();
+  if (!rows.length) return {};
+  const see = prVisibleKeys(user), out = {};
+  for (const r of rows) if (see.has(r.pkey)) out[r.pkey] = prShape(r);
+  return out;
+}
+app.get('/api/party-records', auth, (req, res) => res.json({ records: prRecordsFor(req.user) }));
+/* ONE WRITER: a person sets a party's city and organisation number; both
+   empty takes the party's record away. Only what changed is recorded. */
+app.put('/api/party-records', auth, editor, (req, res) => {
+  const b = req.body || {};
+  const name = prClean(b.name, 200), key = prKeyOf(name);
+  if (!key || !prVisibleKeys(req.user).has(key)) return res.status(404).json({ error: 'Party not found' });
+  const city = prClean(b.city, PR_CITY_MAX), orgNo = prClean(b.orgNo, PR_ORG_MAX);
+  const was = db.prepare('SELECT * FROM party_records WHERE pkey=?').get(key) || null;
+  const said = [];
+  const say = (label, a, z) => { if (a === z) return; said.push(!a ? `${label} set to ${z}` : !z ? `${label} removed (was ${a})` : `${label} changed from ${a} to ${z}`); };
+  say('City', (was && was.city) || '', city);
+  say('Organisation no.', (was && was.org_no) || '', orgNo);
+  if (!said.length) return res.json({ record: was ? prShape(was) : null });
+  const at = now(), by = String(req.user.name || req.user.email || '');
+  if (!city && !orgNo) db.prepare('DELETE FROM party_records WHERE pkey=?').run(key);
+  else db.prepare(`INSERT INTO party_records (pkey, name, city, org_no, set_by_id, set_by, set_at) VALUES (?,?,?,?,?,?,?)
+    ON CONFLICT(pkey) DO UPDATE SET name=excluded.name, city=excluded.city, org_no=excluded.org_no, set_by_id=excluded.set_by_id, set_by=excluded.set_by, set_at=excluded.set_at`)
+    .run(key, name, city, orgNo, String(req.user.id || ''), by, at);
+  db.prepare('INSERT INTO party_record_log (at, by_id, by_name, pkey, name, what) VALUES (?,?,?,?,?,?)')
+    .run(at, String(req.user.id || ''), by, key, name, said.join('; '));
+  const after = db.prepare('SELECT * FROM party_records WHERE pkey=?').get(key);
+  res.json({ record: after ? prShape(after) : null });
+});
+
+/* ============================================================
    HOW LONG CONTRACTS ARE KEPT, AND LEGAL HOLD (owner picked "Keeping on each
    stream — the SAP way", 17 Oct 2026; piece 10 of the sensitive contracts
    and governance plan)
@@ -13779,6 +13859,12 @@ function trailRows(ask) {
     const c = byId.get(String(r.contract_id));
     if (c) out.push({ at: r.at, who: String(r.deputy_name || ''), what: 'Answered for someone away', detail: `for ${r.for_name} · ${r.what}`, c });
   }
+  /* a party's city or organisation number set, changed or removed (round 19):
+     said only where the trail reaches a contract with that party */
+  /* never the party of a confidential deal the asker is outside of (piece 11) */
+  const prSeen = new Set([...byId.values()].filter(c => !(ask.cnOut && ask.cnOut.has(String(c.id)))).map(c => prKeyOf(c && c.counterparty)).filter(Boolean));
+  if (prSeen.size) for (const r of db.prepare('SELECT * FROM party_record_log WHERE at >= ? AND at <= ? ORDER BY id').all(lo, hi))
+    if (prSeen.has(r.pkey)) out.push({ at: r.at, who: String(r.by_name || ''), what: 'Party details', detail: `${r.name}: ${r.what}`, c: null });
   /* a hand-over of the record is the company's act, whatever streams were asked */
   for (const r of db.prepare('SELECT * FROM trail_exports WHERE at >= ? AND at <= ? ORDER BY id').all(lo, hi))
     out.push({ at: r.at, who: String(r.user_name || ''), what: 'Exported the trail', detail: `${r.d_from} to ${r.d_to} · ${String(r.fmt || '').toUpperCase()} · ${r.acts} acts`, c: null });

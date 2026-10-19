@@ -14,8 +14,11 @@
        matches lends a job title
      · the tabs, the find box and the three filters, and that the number on a
        tab is the rows behind it
-     · the wall as drawn: a card per person, the one link an address, the
-       A to Z edge with a dead letter dimmed and saying so
+     · RE-POINTED (round 19 "The SAP way", the owner's "build all the gaps",
+       18 Oct 2026, reverses the 13 Oct face cards): the TABLE as drawn — a row
+       per person, Side · Party or company · Job title · In HaTi · Contracts ·
+       Email, the one link an address; ours first, then theirs, by name; no
+       A to Z edge (the drawing has none)
      · the place a refresh puts back, the doors, both books, the brain, the
        Parties panel's door, and the phone keeping its People screen
    ============================================================ */
@@ -167,10 +170,18 @@ describe('f669 — what the tabs and filters leave', () => {
       sb.dirTabCount(book, 'all', f()));
   });
 
-  test('Everyone reads by name; Our people keeps the roster\'s order, admins first', () => {
+  /* RE-POINTED (round 19 as drawn, "ours first, then theirs, by name"): our
+     people — the reader first — then the other side's, then anyone not on a
+     contract, each by name */
+  test('ours first (the reader first), then theirs, then nobody\'s, each by name', () => {
     eq(sb.dirRows(book, 'all', f()).map(p => p.name),
-      ['Amina Otieno', 'Brian Odhiambo', 'Olof Sand', 'Peter Mwangi', 'Susan Achieng', 'Vera Reader', 'Wanjiru Kamau']);
+      ['Amina Otieno', 'Brian Odhiambo', 'Vera Reader', 'Peter Mwangi', 'Susan Achieng', 'Wanjiru Kamau', 'Olof Sand']);
     eq(sb.dirRows(book, 'ours', f()).map(p => p.name), ['Amina Otieno', 'Brian Odhiambo', 'Vera Reader']);
+  });
+
+  test('Role in HaTi narrows to the colleagues who hold it here', () => {
+    eq(sb.dirRows(book, 'all', f({ hati: 'legal' })).map(p => p.name), ['Brian Odhiambo']);
+    eq(sb.dirRows(book, 'all', f({ hati: 'viewer' })).map(p => p.name), ['Vera Reader']);
   });
 
   test('Party narrows to that party\'s people, and the Parties panel\'s door counts the same', () => {
@@ -192,81 +203,70 @@ describe('f669 — what the tabs and filters leave', () => {
     eq(sb.dirRows(book, 'theirs', f({ q: 'amina' })), []);
   });
 
-  test('the place a refresh puts back: the tab, the find box and the three filters, and nothing else', () => {
-    sb.dirPlacePut({ tab: 'theirs', q: 'na', party: 'naivas ltd', role: 'cpsign', stream: 'proc', cust: 'ignored' });
-    eq(sb.dirPlace(), { tab: 'theirs', q: 'na', party: 'naivas ltd', role: 'cpsign', stream: 'proc' });
-    sb.dirPlacePut({ tab: 'nonsense' });
-    eq(sb.dirPlace(), { tab: 'all', q: '', party: 'all', role: 'all', stream: 'all' });
+  /* RE-POINTED (round 19): the four boxes as drawn — Side (the old tab),
+     Party, Role in HaTi, Stream — and the find box */
+  test('the place a refresh puts back: the side, the find box and the three filters, and nothing else', () => {
+    sb.dirPlacePut({ tab: 'theirs', q: 'na', party: 'naivas ltd', hati: 'legal', stream: 'proc', cust: 'ignored', role: 'cpsign' });
+    eq(sb.dirPlace(), { tab: 'theirs', q: 'na', party: 'naivas ltd', hati: 'legal', stream: 'proc' });
+    sb.dirPlacePut({ tab: 'nonsense', hati: 'nonsense' });
+    eq(sb.dirPlace(), { tab: 'all', q: '', party: 'all', hati: 'all', stream: 'all' });
   });
 });
 
 /* ============================================================
-   THE WALL AS DRAWN
+   THE TABLE AS DRAWN (RE-POINTED: round 19 "The SAP way" — the 13 Oct face
+   cards and their A to Z edge are gone; owner's "build all the gaps")
    ============================================================ */
-describe('f669 — the wall of faces', () => {
+describe('f669 — the table, as drawn', () => {
   const { sb, doc } = stage();
   sb.dirPlacePut({ tab: 'all' });
   sb.renderDirectory();
   const cards = [...doc.querySelectorAll('#dir-page [data-dir-row]')];
   const card = n => cards.find(c => c.querySelector('.dir-name').textContent.includes(n));
+  const cell = (row, k) => { const th = [...doc.querySelectorAll('#dir-page thead th')]; const i = th.findIndex(h => h.getAttribute('data-dir-col') === k); return row.children[i]; };
 
-  test('a card per person, under the band every list page wears', () => {
+  test('a row per person, under the band every list page wears', () => {
     assert.equal(cards.length, 7);
+    assert.ok(cards.every(c => c.tagName === 'TR'), 'a table row each');
     assert.ok(doc.querySelector('#dir-page.sap-page .sap-band .dir-t'), 'the page\'s name is in the band');
-    assert.match(doc.querySelector('#dir-page .page-facts').textContent, /dir_count:7/, 'everyone counted');
-    assert.match(doc.querySelector('#dir-page .page-facts').textContent, /cu_n_customers:2/, 'two parties');
+    assert.match(doc.querySelector('#dir-page .dir-t').textContent, /7/, 'everyone counted beside the name');
     assert.match(doc.querySelector('#dir-page .page-facts').textContent, /"n":3/, 'three of ours');
+    assert.match(doc.querySelector('#dir-page .page-facts').textContent, /dir_head_theirs:2/, 'theirs at two parties');
+    eq([...doc.querySelectorAll('#dir-page thead th')].map(h => h.getAttribute('data-dir-col') || 'name'),
+      ['name', 'side', 'party', 'title', 'hati', 'contracts', 'email']);
   });
 
-  test('a card says who, where, what they do and how many contracts; the address is the one link', () => {
+  test('a row says who, which side, which party, the job title, how many contracts; the address is the one link', () => {
     const w = card('Wanjiru Kamau');
-    assert.match(w.querySelector('.dir-sub').textContent, /Naivas Ltd/);
-    assert.match(w.querySelector('.dir-sub').textContent, /Chief Finance Officer/);
-    assert.match(w.querySelector('.dir-role').textContent, /ppl_r_cpsign/, 'the address book\'s own role words');
-    assert.match(w.querySelector('.dir-role').textContent, /ppl_r_negotiate/);
-    assert.match(w.querySelector('.dir-foot').textContent, /cu_n_contracts:1/);
-    assert.match(w.querySelector('.dir-foot').textContent, /dir_n_active/);
+    assert.match(cell(w, 'side').textContent, /dir_side_theirs/);
+    assert.match(cell(w, 'party').textContent, /Naivas Ltd/);
+    assert.match(cell(w, 'title').textContent, /Chief Finance Officer/);
+    assert.equal(cell(w, 'contracts').textContent.trim(), '1');
     const a = w.querySelector('.dir-mail a');
     assert.equal(a.getAttribute('href'), 'mailto:wanjiru@naivas.co.ke');
     const links = [...doc.querySelectorAll('#dir-page a')];
     assert.ok(links.every(l => l.getAttribute('href').startsWith('mailto:')), 'no other link on the page');
   });
 
-  test('a colleague\'s card says their HaTi role and Our side; the reader is marked', () => {
+  test('a colleague\'s row says their HaTi role and Ours; the reader is marked', () => {
     const a = card('Amina Otieno');
-    assert.match(a.querySelector('.dir-role').textContent, /Admin/);
-    assert.match(a.querySelector('.dir-role').textContent, /ppl_r_owner/);
-    assert.match(a.querySelector('.dir-sub').textContent, /dir_our_side/);
+    assert.match(cell(a, 'hati').textContent, /Admin/);
+    assert.match(cell(a, 'side').textContent, /dir_side_ours/);
     assert.ok(a.querySelector('.dir-you'));
     assert.equal(a.getAttribute('data-dir-row'), 'a', 'a colleague\'s key is their id');
   });
 
   test('an absence says so in the one grey both shells share', () => {
     const v = card('Vera Reader');
-    assert.match(v.querySelector('.dir-sub .dir-none').textContent, /dir_no_title/);
-    assert.match(v.querySelector('.dir-foot .dir-none').textContent, /dir_no_contracts/);
+    assert.ok(cell(v, 'title').querySelector('.dir-none'));
+    assert.ok(cell(v, 'contracts').querySelector('.dir-none'));
     const o = card('Olof Sand');
-    assert.match(o.querySelector('.dir-role .dir-none').textContent, /dir_not_named/);
-    assert.match(o.querySelector('.dir-sub').textContent, /dir_imported/);
+    assert.match(cell(o, 'side').textContent, /dir_tab_none/);
+    assert.ok(cell(o, 'party').querySelector('.dir-none'));
   });
 
-  test('the A to Z edge: a letter with somebody behind it is live, one with nobody is dimmed and says so', () => {
-    const az = doc.querySelector('#dir-page .dir-az');
-    assert.ok(az, 'the edge is drawn');
-    const btn = L => az.querySelector(`[data-dir-az="${L}"]`);
-    assert.ok(btn('W') && !btn('W').classList.contains('is-dim'), 'W is live');
-    assert.ok(btn('Z') && btn('Z').classList.contains('is-dim') && btn('Z').getAttribute('aria-disabled') === 'true', 'Z is dimmed');
-    assert.match(btn('Z').getAttribute('title'), /dir_az_none/);
-    assert.equal(az.querySelectorAll('button').length, 26, 'the alphabet, nothing invented');
-    assert.equal(card('Wanjiru Kamau').getAttribute('data-dir-letter'), 'W');
-  });
-
-  test('a first letter outside the alphabet joins the edge, in the reader\'s order', () => {
-    const { sb: s2, doc: d2 } = stage({ imported: [{ name: 'Åsa Lind', email: 'asa@nordkust.se', title: '' }] });
-    s2.renderDirectory();
-    const letters = [...d2.querySelectorAll('.dir-az button')].map(b => b.getAttribute('data-dir-az'));
-    assert.equal(letters.length, 27);
-    assert.equal(letters[26], 'Å');
+  test('no A to Z edge: the drawing has none', () => {
+    assert.equal(doc.querySelector('#dir-page .dir-az'), null);
   });
 
   test('an admin is pointed at Settings → People; a viewer is not', () => {
@@ -295,7 +295,7 @@ describe('f669 — the doors go somewhere', () => {
     const { sb, calls } = stage();
     sb.dirOpenParty('naivas ltd');
     eq(calls.setView, ['directory']);
-    eq(sb.dirPlace(), { tab: 'all', q: '', party: 'naivas ltd', role: 'all', stream: 'all' });
+    eq(sb.dirPlace(), { tab: 'all', q: '', party: 'naivas ltd', hati: 'all', stream: 'all' });
   });
 
   test('a colleague\'s contracts open the Contracts page narrowed to them, by the page\'s own door', () => {
@@ -309,12 +309,16 @@ describe('f669 — the doors go somewhere', () => {
     assert.equal(calls.showOnly.length, 1, 'somebody on nothing opens nothing');
   });
 
-  test('the Parties panel draws the door, only where somebody is named, and the page keeps its place', () => {
+  /* RE-POINTED (round 19 as drawn): the Parties panel draws "People at
+     <party>", each a row that chooses that person here (dirOpenPerson), in
+     place of the 13 Oct "People (n)" door */
+  test('the Parties panel draws its people, only where somebody is named, and the page keeps its place', () => {
     const cu = read('js/views/customers.js');
-    assert.match(cu, /cu_people_door/);
-    assert.match(cu, /dirPeopleOfParty\(r\.key\)/, 'the number on the door is the Directory\'s own reading');
-    assert.match(cu, /dirOpenParty\(x\.id\)/);
-    assert.match(cu, /cuChip \}\);|cuChip\s*\}\)/, 'the one filter-box builder is shared');
+    assert.match(cu, /cu_people_at/);
+    assert.match(cu, /dirPeopleOfParty\(r\.key\)/, 'the people are the Directory\'s own reading');
+    assert.match(cu, /dirOpenPerson\(pp\.getAttribute\('data-cu-pp'\)\)/);
+    /* RE-POINTED (round 19): the shared builders now run on past cuChip in the export */
+    assert.match(cu, /Object\.assign\(window, \{[\s\S]*\bcuChip,[\s\S]*\bcuFindHtml\b[\s\S]*\}\);\s*$/, 'the one filter-box builder is shared, and the find box with it');
     const app = read('js/app.js');
     assert.match(app, /directory:\['dirPlace','dirPlacePut'\]/, 'a refresh lands at the same spot');
     assert.match(app, /case 'directory': return \[i18t\('nav_directory'\)/);
@@ -355,8 +359,8 @@ describe('f669 — both books and the brain', () => {
   test('the Brain names the page, in a lane and in a flow step', () => {
     const b = read('js/brainmap.js');
     assert.match(b, /\['directory', 'renderDirectory', 'see', 0\]/);
-    assert.match(b, /'customers', 'directory', 'cellfold'/, 'in the lane of the person working the contract');
-    assert.match(b, /'customers', 'directory', 'passroute'/, 'on the doors step of the ask flow');
+    assert.match(b, /'customers', 'directory', 'partyrec', 'cellfold'/, 'in the lane of the person working the contract');
+    assert.match(b, /'customers', 'directory', 'partyrec', 'partyrecget', 'partyrecset', 'partyrecdb', 'partyreclog', 'passroute'/, 'on the doors step of the ask flow');
   });
 
   test('the page writes nothing and asks the server nothing', () => {
