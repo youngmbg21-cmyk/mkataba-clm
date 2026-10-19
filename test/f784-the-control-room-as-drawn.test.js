@@ -290,3 +290,57 @@ describe('f784 (8) the third pass: the frame, every card door a page, the facts,
   });
 });
 function fnBody3(name){ const SRC = fs3.readFileSync(path3.join(__dirname, '..', 'js', 'views', 'settings.js'), 'utf8'); const i = SRC.search(new RegExp('function ' + name + '\\(')); return i < 0 ? '' : SRC.slice(i, SRC.indexOf('\n}', i) + 2); }
+
+/* ---- THE GAPS' FOURTH PASS (19 Oct 2026): every door to a company panel is
+   its page, finishing round 25's "every door opens a page with ‹ Settings".
+   The third pass docked the cards' doors only; a panel with no door on any
+   card (reached by the Menu, ⌘K or Jambo) still opened as the old drawer
+   over a dimmed page. AT THE PARENT (019b635) every test here fails (9d
+   because the reading, stDockable, is new; a member was never docked). ---- */
+describe('f784 (9) the Menu\'s rows, ⌘K, Jambo\'s Open and a named door open the panel as a page', () => {
+  const cardKeys = g => new Set(g.qa('#set-page [data-st-card] [data-st-panel]').map(d => d.getAttribute('data-st-panel')));
+  const docked = g => { const dr = g.q('#st-dock > #st-drawer'); return !!(dr && dr.classList.contains('is-docked') && dr.classList.contains('open') && !dr.hidden && g.q('#set-page[data-st-sub="panel"]')); };
+  test('9a a Menu row for a panel with no door on any card opens its page; ‹ Settings lands back on that row', async () => {
+    const landed = [];
+    const g = company({ before: sb => { sb.landOn = (t, o) => { landed.push(typeof t === 'function' ? t() : t); return Promise.resolve(null); }; } });
+    const onCards = cardKeys(g);
+    g.sb.stSideSet('menu');
+    const row = g.qa('#set-page .st-mrow[data-st-panel]').find(r => { const k = r.getAttribute('data-st-panel'); return !onCards.has(k) && g.sb.SET_PANELS[k] && !['trail', 'backup'].includes(k); });
+    assert.ok(row, 'a panel only the Menu reaches');
+    const k = row.getAttribute('data-st-panel');
+    g.click(row);
+    assert.ok(docked(g), k + ': docked as a page, not the drawer over the page');
+    assert.ok(g.$('st-scrim') == null || g.$('st-scrim').hidden, 'no dimmed page behind it');
+    assert.equal(g.text(g.q('#set-page .st-pg-back')), '‹ ' + S.en.pg_team, '‹ Settings is the way back');
+    g.click(g.q('#set-page .st-pg-back')); await g.flush();
+    assert.equal(g.q('#set-page[data-st-sub]'), null, 'back on the board');
+    assert.ok(landed.some(el => el && el.getAttribute && el.getAttribute('data-st-panel') === k && el.classList.contains('st-mrow')), 'landed on the Menu row that was pressed');
+  });
+  test('9b ⌘K\'s row and a door from another page (openSettingsAt) open the panel as its page; a person keeps the drawer', () => {
+    const g = company();
+    g.sb.stFindGo('panel:webhooks');
+    assert.ok(docked(g) && g.sb.settingsPlace().dock === 'webhooks', '⌘K: the page');
+    g.click(g.q('#st-dfoot [data-st-dclose]'));
+    assert.equal(g.q('#set-page[data-st-sub]'), null, 'Done goes back to Settings');
+    g.sb.openSettingsAt('build', 'engine');
+    assert.ok(docked(g) && g.sb.settingsPlace().dock === 'engine', 'a named door from elsewhere: the page');
+    g.sb.stFindGo('person:u_two');
+    const dr = g.$('st-drawer');
+    assert.ok(dr.classList.contains('open') && !dr.classList.contains('is-docked') && dr.parentElement === g.win.document.body, 'a person opens their drawer, as drawn');
+  });
+  test('9c Jambo\'s Open on a setting he found opens its page; the trail and the backup stay Data & backup\'s page', () => {
+    const g = company();
+    g.sb.stJbAsk('events out');
+    const open = g.q('#st-jb-feed [data-st-jb-turn] .st-jb-card [data-st-panel="webhooks"]');
+    assert.ok(open, 'Jambo found it: ' + g.text(g.$('st-jb-feed')).slice(-200));
+    g.click(open);
+    assert.ok(docked(g), 'his Open: the page');
+    assert.equal(g.sb.stDockable('trail'), false); assert.equal(g.sb.stDockable('backup'), false);
+    assert.equal(g.sb.stDockable('person:u_two'), false); assert.equal(g.sb.stDockable('ask:a1'), false);
+    assert.equal(g.sb.stDockable('limits'), true); assert.equal(g.sb.stDockable('gates'), true);
+  });
+  test('9d a member: no Company page to dock on', () => {
+    const g = settingsStage({ role: 'legal' });
+    assert.equal(g.sb.stDockable('webhooks'), false);
+  });
+});

@@ -108,8 +108,14 @@ const signIn = async (page, base, email, pass) => {
     check('3b. Enter opens that rule\'s drawer', !!opened, opened);
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
     /* re-pointed 18 Oct 2026 (rounds 24–26 as drawn): the Menu is no tab;
-       "/" in Jambo's box opens it, and its head carries ‹ Jambo back */
-    await page.fill('#st-jb-q', '/');
+       "/" in Jambo's box opens it, and its head carries ‹ Jambo back.
+       RE-POINTED AGAIN 19 Oct 2026 (lane F's fourth pass): main's rule won —
+       "/" in every Jambo box lists the places (caSlRead) — so the Menu is
+       reached through Jambo's own "Open the Menu", under the answer he gives
+       when he finds no setting */
+    await page.fill('#st-jb-q', 'zzqx nothing here'); await page.keyboard.press('Enter');
+    await until(() => !!document.querySelector('#st-jb-feed [data-st-side="menu"]'));
+    if (await page.locator('#st-jb-feed [data-st-side="menu"]').count()) await page.locator('#st-jb-feed [data-st-side="menu"]').last().click();
     await page.fill('#st-q', 'logo');
     const menu = await until(() => !!document.querySelector('#st-list .st-mrow[data-st-panel="design"]'));
     check('3c. the Menu\'s box finds "logo" as the company design', !!menu);

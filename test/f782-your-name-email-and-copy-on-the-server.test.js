@@ -131,4 +131,34 @@ describe('f782 (4) POST /api/clashes/seen — the day a clash was first seen', (
     assert.equal(r.seen['clash:each:u_1|u_2'], undefined);
     assert.equal(r.seen['<b>'], undefined);
   });
+  /* THE GAPS' FOURTH PASS (19 Oct 2026): the server keeps only what an
+     admin's page can show. A private stream that names no admin is in no
+     admin's book, so its "no rule names this stream" clash is no admin's to
+     see — and its key is not kept either. Named, an admin sees it again.
+     AT THE PARENT (019b635) 4d fails: the server kept the key for a stream
+     nobody who reads the page could open. */
+  test('4d a stream no admin can open keeps no clash day; name an admin and it is kept', async () => {
+    const boot = await w.admin.json('/api/bootstrap');
+    const adminId = String((boot.me || {}).id || '');
+    const U = String(w.users.unrestricted.id);
+    const key = 'clash:nobody:sales';
+    /* the rules are kept stream by stream, and none names Sales, which has a
+       contract still to sign (MK-B2): the clash the page reads */
+    await w.admin.json('/api/settings', { method: 'PUT', body: { ...(boot.settings || {}),
+      approvalRules: [{ id: 'r-proc', name: 'Procurement', order: 1, cond: { type: 'folder', value: 'proc' }, approver: { kind: 'role', role: 'admin' } }] } });
+    const a = await until(v => !!v[key]);
+    assert.ok(a[key], 'a stream no rule names is a clash an admin sees: ' + JSON.stringify(a));
+    /* private, naming only a member: no admin can open it */
+    await w.admin.json('/api/private-streams/sales', { method: 'PUT', body: { on: true, ids: [U] } });
+    const b = await until(v => !v[key]);
+    assert.equal(b[key], undefined, 'a stream no admin can open: no day kept for it');
+    /* an admin named again: the page can show it, so the server keeps it */
+    await w.admin.json('/api/private-streams/sales', { method: 'PUT', body: { on: true, ids: [U, adminId] } });
+    const c = await until(v => !!v[key]);
+    assert.ok(c[key], 'named, the admin sees it, and its day is kept: ' + JSON.stringify(c));
+    /* put back as it was for the tests after this one */
+    await w.admin.json('/api/private-streams/sales', { method: 'PUT', body: { on: false, ids: [] } });
+    const after = await w.admin.json('/api/bootstrap');
+    await w.admin.json('/api/settings', { method: 'PUT', body: { ...(after.settings || {}), approvalRules: [] } });
+  });
 });

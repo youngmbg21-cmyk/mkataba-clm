@@ -167,8 +167,15 @@ const PAINTED = (sel) => {
       crossed, (att.rows || []).join(' · '));
 
     /* ============ 4. ONE BOX OVER ALL OF THEM — the Menu's ============ */
-    /* re-pointed 18 Oct 2026 (rounds 24–26 as drawn): "/" in Jambo's box opens the Menu */
-    await page.fill('#st-jb-q', '/');
+    /* re-pointed 18 Oct 2026 (rounds 24–26 as drawn): "/" in Jambo's box opens the Menu.
+       RE-POINTED AGAIN 19 Oct 2026 (lane F's fourth pass): main's rule won —
+       "/" in every Jambo box lists the places (caSlRead) — so the Menu is
+       reached through Jambo's own door, "Open the Menu", under the answer
+       he gives when he finds no setting */
+    await page.fill('#st-jb-q', 'zzqx nothing here');
+    await page.keyboard.press('Enter');
+    await page.waitForSelector('#st-jb-feed [data-st-side="menu"]', { timeout: 6000 }).catch(() => null);
+    if (await page.locator('#st-jb-feed [data-st-side="menu"]').count()) await page.locator('#st-jb-feed [data-st-side="menu"]').last().click();
     await page.waitForTimeout(300);
     const box = await page.evaluate(PAINTED, '#st-q');
     check('4a. the search box is painted', box.ok, box.why);

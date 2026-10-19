@@ -347,6 +347,9 @@ function settingsGoTab(k){
    admin-only and one place that knows how a tab and a panel are asked for. */
 function openSettingsAt(tab, panel){
   if(typeof isAdmin==='function' && !isAdmin()){ openMyAccount(); return; }
+  /* a company panel's named door is its page, as a card's door is
+     (stDockable, the gaps' fourth pass) */
+  if(panel && stDockable(panel)){ stDockOpen(panel, null); return; }
   const f=stFaceOf(tab); if(f) _stTab=f;
   /* People is a page inside the board now (Team); any other door lands on
      the board itself */
@@ -487,6 +490,12 @@ function stWireDrawerOnce(){
       if(row.hasAttribute('data-st-dock') && k!=='trail' && k!=='backup' && stIsAdmin()){
         const card=row.closest('[data-st-card]'), kind=['st-door','st-fact','st-gov-g'].find(c=>row.classList.contains(c))||'';
         stDockOpen(k, card?{ card:card.getAttribute('data-st-card'), kind }:null); stDrawerFocus(row.getAttribute('data-st-focus')); return; }
+      /* the Menu's rows and Jambo's Open are doors too: the panel is its
+         page, and the way back lands on the row or the card that was pressed */
+      const turn=row.closest('[data-st-jb-turn]');
+      if((row.classList.contains('st-mrow') || turn) && stDockable(k)){
+        const sel=turn?`[data-st-jb-turn="${PB_ATTR(turn.getAttribute('data-st-jb-turn'))}"] [data-st-panel="${PB_ATTR(k)}"]`:`#set-page .st-mrow[data-st-panel="${PB_ATTR(k)}"]`;
+        stDockOpen(k, { sel }); stDrawerFocus(row.getAttribute('data-st-focus')); return; }
       stDrawerOpen(k); stDrawerFocus(row.getAttribute('data-st-focus')); return; }
     const tab=t.closest('[data-st-tab]');
     if(tab){ settingsGoTab(tab.getAttribute('data-st-tab')); return; }
@@ -1501,6 +1510,20 @@ const ST_PAGES=['team','sheet','roles','streams','data','panel'];
 let _stDock=null, _stDockFrom=null;
 const stDockHost=()=>(typeof document!=='undefined'&&_stPage==='panel')?document.getElementById('st-dock'):null;
 const stDrawerDocked=()=>{ const d=(typeof document!=='undefined')&&document.getElementById('st-drawer'); return !!(d&&d.classList.contains('is-docked')); };
+/* EVERY DOOR TO A COMPANY PANEL IS ITS PAGE (the gaps' fourth pass, 19 Oct
+   2026, finishing round 25's "every door opens a page with ‹ Settings"): the
+   Menu's rows, Jambo's Open, ⌘K's rows and a door from another page
+   (openSettingsAt) dock the panel as a card's door does — a panel with no
+   door on any card too. A person, a business role, a colleague's ask, a
+   stream's page and your own drawers keep the drawer, and so do Needs your
+   attention's own buttons and the access sheet's rows, as drawn; the trail
+   and the backup are Data & backup's page; the phone keeps its own. */
+function stDockable(k){
+  k=String(k||'');
+  if(!k || k==='trail' || k==='backup' || !stIsAdmin()) return false;
+  if(typeof window!=='undefined' && typeof window.deskShellOn==='function' && !window.deskShellOn()) return false;
+  return !!SET_PANELS[k] || k==='limits' || k==='gates';
+}
 function stDockPageHtml(){
   return `<div class="st-pg st-pg-dock" data-st-pg="panel" data-st-dock-key="${PB_ATTR(_stDock||'')}">
     ${stPageHeadHtml('', '', '')}
@@ -1545,6 +1568,9 @@ function stDockBack(){
   const was=stDockLeave();
   renderTeam(); stLandTop();
   if(was && typeof landOn==='function'){
+    /* a Menu row or Jambo's Open: back on the very one (it may have scrolled
+       away with the Menu's search, then the page's top is the landing) */
+    if(was.from.sel){ landOn(()=>document.querySelector(was.from.sel),{ block:'nearest', delay:60 }); return; }
     const card=`#set-page [data-st-card="${was.from.card}"]`;
     landOn(()=>document.querySelector(`${card} ${was.from.kind?'.'+was.from.kind:''}[data-st-panel="${was.key}"]`)
       ||document.querySelector(`${card} [data-st-panel="${was.key}"]`)||document.querySelector(card),{ block:'center', delay:60 });

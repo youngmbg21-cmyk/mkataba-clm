@@ -3882,9 +3882,13 @@
      the one drawer, docked in the page's main column under "‹ Settings" —
      a white card, no scrim, no slide, its own × gone (‹ Settings, Done,
      Cancel and Escape are the ways back), its crumb still saying the group
-     and where in it, its body as tall as it needs */
+     and where in it, its body as tall as it needs. CLIPPED, NOT HIDDEN (the
+     gaps' fourth pass): overflow:hidden made the card its own scroller, so
+     the sticky foot stuck to the card's end and Save could sit below the
+     window on a long page; clip keeps the corners and lets the foot stick to
+     the window's foot (hidden stays first for a browser without clip) */
   .st-cr .st-drawer.is-docked{ position:static; inset:auto; width:auto; height:auto; transform:none; transition:none; z-index:auto;
-    background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); box-shadow:none; overflow:hidden; }
+    background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); box-shadow:none; overflow:hidden; overflow:clip; }
   .st-cr .st-drawer.is-docked .st-dx{ display:none; }
   .st-cr .st-drawer.is-docked .st-dhead .rvd-head{ padding-right:16px; }
   .st-cr .st-drawer.is-docked .st-dbody{ overflow:visible; flex:none; }

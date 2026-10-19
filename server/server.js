@@ -13218,10 +13218,19 @@ function srvClashOpenStreams() {
     AND COALESCE(json_extract(json, '$.archived'), 0) = 0
     AND COALESCE(json_extract(json, '$.parentId'), '') = ''`).all().map(r => String(r.folder));
 }
+/* THE SERVER KEEPS ONLY WHAT AN ADMIN'S PAGE CAN SHOW (the gaps' fourth
+   pass): the page reads its own book, which never holds a private stream
+   that does not name the admin reading it — so a stream no admin can open
+   is no admin's clash to see, and its key is not kept either. The union of
+   every admin's scope: what any one of them could be shown. */
+function srvClashAdminSees(open) {
+  const admins = srvClashUsers().filter(u => u.role === 'admin');
+  return (open || []).filter(f => admins.some(a => inScope(folderScopeFor(a), f)));
+}
 function srvClashKeys() {
   const legacy = srvSaLegacyOn();
   return clashFind({ users: srvClashUsers(), capOn: signCapOn(), ruleOf: u => saRuleOf(u, legacy),
-    rules: srvApprovalRules(), canOpen: (f, u) => inScope(folderScopeFor(u), f), openStreams: srvClashOpenStreams() })
+    rules: srvApprovalRules(), canOpen: (f, u) => inScope(folderScopeFor(u), f), openStreams: srvClashAdminSees(srvClashOpenStreams()) })
     .map(x => x.key).filter(k => CLASH_KEY_RE.test(k)).slice(0, CLASH_SEEN_MAX);
 }
 function clashSeenRefresh() {
