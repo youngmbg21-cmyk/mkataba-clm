@@ -177,7 +177,11 @@ describe('f306 (3) — a review row says how long, and offers a nudge', () => {
      — the same test that decides whether Cancel is drawn, because a bystander
      nudging somebody else's reviewer is not a thing this product does. */
   test('Remind is drawn beside Cancel, and only for whoever may cancel', () => {
-    const src = /for \(const rv of st\.waiting\)\{[\s\S]*?\n  \}/.exec(REVIEW);
+    /* RE-POINTED 19 Oct 2026 (round 9 "Piles", lane C2's third pass): on Jambo's
+       Redlines face the "Out for review" pile carries these rows, so the banner's
+       loop stands down there (opts.waitingInPile); everywhere else the row is the
+       same row, Remind beside Cancel, gated alike. */
+    const src = /for \(const rv of \(opts\.waitingInPile \? \[\] : st\.waiting\)\)\{[\s\S]*?\n  \}/.exec(REVIEW);
     assert.ok(src, 'the waiting row exists');
     assert.match(src[0], /rv-remind:' \+ rv\.id/, 'the act names its review');
     assert.match(src[0], /reviewMayCancel\(rv\)/, 'gated by the requester test');
