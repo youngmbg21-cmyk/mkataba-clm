@@ -517,7 +517,11 @@ function stWireDrawerOnce(){
     /* JAMBO, THE SAME ON EVERY PAGE (owner, 18 Oct 2026): a page, a contract's
        number, a draft or a send is read as Home reads it (caAskAnywhere);
        finding a setting is this box's own job, for the rest */
-    if(typeof caAskAnywhere==='function'&&caAskAnywhere(q)) return;
+    /* ONE READER FOR EVERY JAMBO BOX (owner, 19 Oct 2026): a place, a
+       contract ("briefing for contracts mk 345"), a place with a narrowing
+       leave Settings like any box; a Settings section asked here stays the
+       finder's (box 'settings'); a number nobody can see is said here */
+    if(typeof caAskAnywhere==='function'&&caAskAnywhere(q,{ box:'settings', say:line=>stJbSayLine(q,line) })) return;
     stJbAsk(q);
   });
   /* A dialog opened from inside the drawer owns Escape while it is up: one
@@ -2882,8 +2886,11 @@ const ST_JB_CADENCE={ weekly:['weekly','week','vecka','veckan','veckovis'], dail
 const stJbWords=q=>String(q||'').toLowerCase().replace(/['’]s\b/g,'').split(/[^\p{L}\p{N}]+/u).filter(Boolean);
 const stJbTokens=q=>stJbWords(q).filter(t=>!ST_JB_STOP.has(t));
 /* a token finds a word when it IS the word or begins it (4 letters or more) */
+/* …or shares its stem with it (jmStem, Jambo's map's own trim; 19 Oct 2026:
+   "briefing" finds "brief") */
 const stJbHit=(tok,hay)=>{ const ws=hay.split(/[^\p{L}\p{N}]+/u);
-  return ws.some(w=>w===tok || (tok.length>=4 && w.startsWith(tok))); };
+  const stem=(typeof window!=='undefined'&&typeof window.jmStem==='function')?window.jmStem:null, ts=stem&&tok.length>=5?stem(tok):null;
+  return ws.some(w=>w===tok || (tok.length>=4 && w.startsWith(tok)) || (!!ts && w.length>=4 && (stem(w)===ts || w===ts))); };
 /* AN AMOUNT, AS PEOPLE SAY THEM: 5M, 5 million, 5,000,000, 500k, KES 5.5M */
 function stJbAmount(q){
   const m=String(q||'').match(/(\d[\d.,\s]*\d|\d)\s*(m|mn|million|millions|miljon|miljoner|k|thousand|tusen|b|bn|billion|miljard|miljarder)?\b/i);
@@ -3349,8 +3356,11 @@ function stSideHeadHtml(){
 }
 function stSideHtml(){
   const face=(typeof jamboFaceHtml==='function')?jamboFaceHtml('hello',26,'st-side-ic'):'';
+  /* THE SLIDER's grip (splitHtml, the one builder every Jambo panel draws,
+     19 Oct 2026), on the panel's side of the seam; stSplitFit wires and fits it */
+  const grip=(typeof splitHtml==='function')?splitHtml({ id:'st-resizer', min:ST_SIDE_MIN, hidden:_stSideFold }):'';
   return `<aside class="st-side${_stSideFold?' is-folded':''}" id="st-side" aria-label="${esc(i18t('st_side_label'))}">
-    <div class="st-side-head" id="st-side-head">${stSideHeadHtml()}</div>
+    ${grip}<div class="st-side-head" id="st-side-head">${stSideHeadHtml()}</div>
     <div class="st-side-body" id="st-side-jambo"${_stSide==='jambo'?'':' hidden'}>${stJamboHtml()}</div>
     <div class="st-side-body st-side-menu" id="st-side-menu"${_stSide==='menu'?'':' hidden'}>${stMenuHtml()}</div>
     <button type="button" class="st-side-unfold" data-st-side-fold title="${esc(i18t('st_side_unfold'))}" aria-label="${esc(i18t('st_side_unfold'))}">${face}</button>
@@ -3370,7 +3380,50 @@ function stSideFoldSet(on){
   const page=document.getElementById('set-page'), side=document.getElementById('st-side');
   if(page) page.classList.toggle('is-side-folded',_stSideFold);
   if(side) side.classList.toggle('is-folded',_stSideFold);
+  /* folded, the divider stands down; opened, it is back at the seam */
+  try{ stSplitFit(); }catch(_){}
   if(!_stSideFold) try{ stSideFit(); }catch(_){}
+}
+/* ---- THE SLIDER (owner, 19 Oct 2026: "all the new jambo panels do not have
+   a slider like in the redline page. They should all have one.") ----
+   Settings' Jambo panel is a client of the ONE divider (splitHtml ·
+   splitWire · splitFit, js/components.js), Home's own. The width is the
+   board's second grid track, --st-side-w on the page (index.html), resting
+   where nobody has chosen at the track's own width — 380 from 1401px, 344
+   from 981 to 1400 — so a reader who never drags sees the page unchanged.
+   The floors: the panel keeps ST_SIDE_MIN (its cards and doors on one line,
+   Home's panel's floor), the board beside it ST_BOARD_MIN — MEASURED: the
+   narrowest board this stylesheet itself draws with the You sheet's contents
+   list beside its rows and the Company cards three to a row (779px, at a
+   1181px window; one pixel narrower and the window's own rules stack them).
+   At 620 the cards' facts broke word by word. Below 981px the panel follows
+   the board (stacked) and the divider stands down; folded, too. Settings
+   keeps its own key. */
+const ST_SIDE_MIN=340, ST_BOARD_MIN=780;
+const ST_SPLIT_KEY='hati.v1.stSideW';
+const stWide=()=>(typeof matchMedia!=='function')||matchMedia('(min-width:981px)').matches;
+const ST_SPLIT={
+  key:ST_SPLIT_KEY, min:ST_SIDE_MIN, restMin:ST_BOARD_MIN, foldedW:46,
+  w0:()=>((typeof matchMedia==='function')&&matchMedia('(min-width:1401px)').matches)?380:344,
+  folded:()=>_stSideFold||!document.getElementById('st-side'),
+  off:()=>!stWide(),
+  /* the room the board and the panel share: the grid's two tracks (its gap aside) */
+  avail:()=>{ const cols=document.querySelector('#set-page .st-cr-cols'); if(!cols||typeof cols.getBoundingClientRect!=='function') return 0;
+    let gap=0; try{ gap=parseFloat(getComputedStyle(cols).columnGap)||0; }catch(_){ gap=0; }
+    return Math.max(0, Math.round(cols.getBoundingClientRect().width-gap)); },
+  /* the track's right edge (the panel itself bleeds past it into the page's padding) */
+  edge:()=>{ const cols=document.querySelector('#set-page .st-cr-cols'); return cols?cols.getBoundingClientRect().right:0; },
+  /* THE ONE WRITER of the width: the track; folded, the stylesheet's 46 */
+  apply:w=>{ const page=document.getElementById('set-page'); if(!page||_stSideFold) return; page.style.setProperty('--st-side-w', Math.round(w)+'px'); },
+  /* the head card wraps to the new width: the panel's height is measured again */
+  settle:()=>{ try{ stSideFit(); }catch(_){} },
+  resize:()=>{ if(document.getElementById('st-side')) stSplitFit(); }
+};
+function stSplitFit(){
+  if(typeof document==='undefined'||typeof splitWire!=='function') return;
+  const rez=document.getElementById('st-resizer');
+  if(!rez) return;
+  splitWire(rez, ST_SPLIT);
 }
 /* chips are said as the drawings say them: a sentence's first word small */
 const stChipWord=w=>{ const s=String(w||''); return s?s.charAt(0).toLocaleLowerCase(((typeof langLocale==='function')?langLocale():undefined))+s.slice(1):s; };
@@ -3511,6 +3564,13 @@ function stTrailReadyPdf(){
 }
 /* A QUESTION JAMBO ANSWERS FROM WHAT HaTi IS, spending nothing ("what is a
    sealed PDF?") */
+/* A LINE THE ONE READER SAYS HERE ("There is no contract MK-999 that you
+   can see"): a turn with the reader's words and Jambo's one line */
+function stJbSayLine(q, line){
+  const t={ id:++_stJbSeq, q:String(q||'').trim().slice(0,200), force:{ say:String(line||''), cards:[] } };
+  _stJbLog.push(t); if(_stJbLog.length>ST_JB_MAX) _stJbLog=_stJbLog.slice(-ST_JB_MAX);
+  const feed=document.getElementById('st-jb-feed'); if(feed){ feed.insertAdjacentHTML('beforeend', stJbTurnHtml(t)); feed.scrollTop=feed.scrollHeight; }
+}
 function stJbSayFixed(kind, label){
   const said={ sealed:'st_jb_sealed_say' }[String(kind||'')]; if(!said) return;
   const t={ id:++_stJbSeq, q:String(label||'').trim(), force:{ say:i18t(said), cards:[] } };
@@ -8422,8 +8482,10 @@ function stPagePaint(admin){
   /* the window's head stepped aside or came back: the page's height follows */
   if(typeof syncViewHeight==='function') try{ syncViewHeight(); }catch(_){}
   if(_stAsks===null) stAsksLoad();
-  /* measured now, and again once the page's entrance has settled — the
-     view-enter rise moves the panel while it runs */
+  /* the divider first (the width the reader chose — the head card wraps to
+     it), then the panel measured now, and again once the page's entrance has
+     settled — the view-enter rise moves the panel while it runs */
+  stSplitFit();
   stSideFitWire(); stSideFit();
   if(typeof setTimeout==='function') setTimeout(stSideFit, 420);
   /* THE PAGE'S CLOSED DROPDOWNS WEAR HaTi's CLOTHES (round 26 as drawn): a
@@ -9476,7 +9538,7 @@ Object.assign(window,{stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsP
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
   stRulesRows,stPaintRules,stPaintSignFolders,
   openMyAccount,openSettingsAt,settingsGoTab,stUnfinishedCount,stPeopleWire,settingsTab,stLandTop,SET_PANELS,ST_TABS,SET_CLOSURES,ST_GROUPS,ST_ATTENTION_MAX,
-  ST_FACES,ST_GOV_LADDER,stGovRungs,stGovNext,stYouItems,stYouHtml,stYouCardHtml,stYouSheetItems,ST_YOU_SHEET,stChipsSet,stOpensSet,stBriefSet,stMenuHits,stFind,stFindRows,stFindGo,stNeedsAll,settingsGoPage,stYouGo,stPrefSet,stAsksLoad,stAsksOpen,stAsksAnswered,stAskSeen,stAskFrom,stAskDirect,stAskOpenOn,stAdminsSaid,stDay,stJbAnswer,stJbAmount,stJbAsk,stJamboFocus,stSideSet,stSideFit,
+  ST_FACES,ST_GOV_LADDER,stGovRungs,stGovNext,stYouItems,stYouHtml,stYouCardHtml,stYouSheetItems,ST_YOU_SHEET,stChipsSet,stOpensSet,stBriefSet,stMenuHits,stFind,stFindRows,stFindGo,stNeedsAll,settingsGoPage,stYouGo,stPrefSet,stAsksLoad,stAsksOpen,stAsksAnswered,stAskSeen,stAskFrom,stAskDirect,stAskOpenOn,stAdminsSaid,stDay,stJbAnswer,stJbAmount,stJbAsk,stJamboFocus,stSideSet,stSideFit,ST_SIDE_MIN,ST_BOARD_MIN,ST_SPLIT_KEY,ST_SPLIT,stSplitFit,
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
   settingsWriteFolderAccess,settingsExportBackup,stGoLive,stLoadAiCfgOnce,stSampleContracts,stClearSamples,stRunIntegrity,
   stPersonMissing,stPersonSays,stPersonSumHtml,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,
@@ -9488,6 +9550,6 @@ Object.assign(window,{stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsP
    (PAGE_HEAD_PAINT reads it off window), a form in its row, the stream beside
    the list, Jambo's words for the page in front, your own copy and name and
    email, and the readings the checks ask */
-Object.assign(window,{stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
+Object.assign(window,{stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
   stSwPickSet,stSwPanelHtml,stSwRows,stJbFeedHtml,stJbFeedRepaint,stJbCompanyWords,stJbDataWords,stJbStreamsWords,stJbNeedPhrase,stSideFoldSet,
   stTrailLeftOut,stHouseFacts,stTrailPastHtml,stYouCardRepaint,stGovLadderHtml,stSheetCardHtml});

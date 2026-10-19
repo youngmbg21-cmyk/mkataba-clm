@@ -718,40 +718,49 @@ function _igDockPref(){
   return null;
 }
 function _igDockSave(w){ try{ if(w==null) localStorage.removeItem(IG_SPLIT_KEY); else localStorage.setItem(IG_SPLIT_KEY,String(Math.round(w))); }catch(_){ } }
-/* The width the panel takes in a row `avail` wide: the reader's choice or the
-   resting width, clamped by both floors. Pure, so the stage can ask it. */
-function igDockClamp(want, avail){
-  let w=Number(want)||IG_DOCK_W0;
-  if(avail>0){
-    if(avail>=IG_LEFT_MIN+IG_DOCK_MIN) w=Math.min(Math.max(w,IG_DOCK_MIN), avail-IG_LEFT_MIN);
-    else w=Math.max(IG_DOCK_MIN, Math.min(w, avail));
-  } else w=Math.max(w,IG_DOCK_MIN);
-  return Math.round(w);
-}
-function igDockWidth(){
-  if(!intel.dockOpen) return IG_DOCK_FOLDED;
-  const row=(typeof document!=='undefined')?document.getElementById('ig-row'):null;
-  return igDockClamp(_igDockPref()??IG_DOCK_W0, row?row.clientWidth:0);
-}
-/* THE ONE LAYOUT PASS: writes the panel's width and puts the handle on its
-   left edge. Every door calls this and nothing else writes the width. */
-function igFitSplit(){
-  const row=document.getElementById('ig-row'), dock=document.getElementById('ig-dock'), rez=document.getElementById('ig-resizer');
-  if(!row||!dock) return;
-  const w=igDockWidth();
-  dock.style.width=w+'px';
-  if(!rez) return;
-  if(!intel.dockOpen||!row.clientWidth){ rez.hidden=true; return; }
-  rez.hidden=false;
+/* HOME IS A CLIENT OF THE ONE SLIDER (owner, 19 Oct 2026: "all the new
+   jambo panels do not have a slider like in the redline page. They should
+   all have one."). The mechanism this page grew moved, unchanged, into the
+   ONE builder and wiring every Jambo panel draws (splitHtml · splitFit ·
+   splitWire · splitClamp, js/components.js); Home says only where its panel
+   stands: its row, its floors, its own key and the one-time carry, the
+   handle placed from the row's right edge, the width transition off while
+   dragging, and the map re-measured once the width settles. */
+const IG_SPLIT = {
+  key: IG_SPLIT_KEY, w0: IG_DOCK_W0, min: IG_DOCK_MIN, restMin: IG_LEFT_MIN, foldedW: IG_DOCK_FOLDED,
+  pref: () => _igDockPref(), save: w => _igDockSave(w),
+  folded: () => !intel.dockOpen,
+  avail: () => { const row=(typeof document!=='undefined')?document.getElementById('ig-row'):null; return row?row.clientWidth:0; },
+  edge: () => document.getElementById('ig-row').getBoundingClientRect().right,
+  apply: w => { const dock=document.getElementById('ig-dock'); if(dock) dock.style.width=w+'px'; },
   /* THE GRAB STRIP LIES WHOLLY ON THE PANEL'S SIDE OF THE SEAM (Young,
      6 Oct 2026: "a hard time getting my cursor to choose the scroll button as
      opposed to the divider"). Centred on the seam, its left half sat over the
      board's own scrollbar and took every press aimed at it. */
-  rez.style.right=(w-14)+'px';
-  const avail=row.clientWidth;
-  const atMin=w<=IG_DOCK_MIN, atMax=avail>=IG_LEFT_MIN+IG_DOCK_MIN&&w>=avail-IG_LEFT_MIN;
-  if(atMin||atMax) rez.setAttribute('data-at-limit',atMin?'min':'max'); else rez.removeAttribute('data-at-limit');
-  rez.setAttribute('aria-valuenow',String(w));
+  place: (rez, w) => { rez.style.right=(w-14)+'px'; },
+  /* the panel's width transition would make the handle trail the pointer */
+  dragging: on => { const dock=document.getElementById('ig-dock'); if(dock) dock.style.transition=on?'none':''; },
+  settle: () => igSplitSettle(),
+  resize: () => { if(igPageUp()){ igFitSplit(); if(igMapUp()) igNoteMeasure(); } }
+};
+/* The width the panel takes in a row `avail` wide: the reader's choice or the
+   resting width, clamped by both floors — the one clamp's (splitClamp). A
+   stage without the builder gets the resting width and the panel's floor. */
+function igDockClamp(want, avail){
+  if(typeof splitClamp==='function') return splitClamp(want, avail, IG_SPLIT);
+  return Math.round(Math.max(Number(want)||IG_DOCK_W0, IG_DOCK_MIN));
+}
+function igDockWidth(){
+  if(!intel.dockOpen) return IG_DOCK_FOLDED;
+  return igDockClamp(_igDockPref()??IG_DOCK_W0, IG_SPLIT.avail());
+}
+/* THE ONE LAYOUT PASS: the one builder's (splitFit) — it writes the panel's
+   width and puts the handle on its left edge, or stands it down while the
+   panel is folded. Every door calls this and nothing else writes the width. */
+function igFitSplit(){
+  const row=document.getElementById('ig-row'), dock=document.getElementById('ig-dock'), rez=document.getElementById('ig-resizer');
+  if(!row||!dock) return;
+  if(typeof splitFit==='function') splitFit(rez, IG_SPLIT); else dock.style.width=igDockWidth()+'px';
 }
 /* The map re-measures once the width has settled — the same reaction the
    panel's fold has always had (igSyncDockWidth), never on every pointer move. */
@@ -760,38 +769,13 @@ function igSplitSettle(){
   if(_igSplitT) clearTimeout(_igSplitT);
   _igSplitT=setTimeout(()=>{ _igSplitT=0; if(igMapUp()) rebuildIntelGraph(); },280);
 }
+/* THE ONE WIRING (splitWire): the pointer's position with the grab offset,
+   pointerup AND pointercancel let go (Safari may cancel a drag), the keys,
+   the double-click, the window's resize — bound once per grip element */
 function igWireSplit(){
   const row=document.getElementById('ig-row'), dock=document.getElementById('ig-dock'), rez=document.getElementById('ig-resizer');
   if(!row||!dock||!rez) return;
-  igFitSplit();
-  if(rez.dataset.igSplitBound) return;
-  rez.dataset.igSplitBound='1';
-  let grabDx=0;
-  const widthAt=x=>{ const r=row.getBoundingClientRect(); return igDockClamp(r.right-(x+grabDx), row.clientWidth); };
-  const onMove=e=>{ const x=(e.touches&&e.touches[0])?e.touches[0].clientX:e.clientX; _igDockSave(widthAt(x)); igFitSplit(); };
-  const onUp=()=>{ delete rez.dataset.drag; dock.style.transition='';
-    document.body.style.cursor=''; document.body.style.userSelect='';
-    window.removeEventListener('pointermove',onMove); window.removeEventListener('pointerup',onUp); window.removeEventListener('pointercancel',onUp);
-    igSplitSettle(); };
-  rez.addEventListener('pointerdown',e=>{ e.preventDefault(); rez.dataset.drag='1';
-    /* the strip's LEFT edge is the seam (it lies on the panel's side) */
-    const hb=rez.getBoundingClientRect(); grabDx=hb.left-e.clientX;
-    /* The panel's width transition would make the handle trail the pointer. */
-    dock.style.transition='none';
-    document.body.style.cursor='col-resize'; document.body.style.userSelect='none';
-    /* SAFARI MAY CANCEL A DRAG (a system swipe, a second finger): a cancel
-       lets go like a lift, or the divider would keep following the finger */
-    window.addEventListener('pointermove',onMove); window.addEventListener('pointerup',onUp); window.addEventListener('pointercancel',onUp); });
-  rez.addEventListener('keydown',e=>{
-    if(e.key==='Home'||e.key==='Enter'){ e.preventDefault(); _igDockSave(null); igFitSplit(); igSplitSettle(); return; }
-    const step=Math.max(8,Math.round(row.clientWidth*0.02));
-    const d=e.key==='ArrowLeft'?step:e.key==='ArrowRight'?-step:0;   /* left widens the panel */
-    if(!d) return;
-    e.preventDefault(); _igDockSave(igDockClamp(igDockWidth()+d,row.clientWidth)); igFitSplit(); igSplitSettle();
-  });
-  rez.addEventListener('dblclick',()=>{ _igDockSave(null); igFitSplit(); igSplitSettle(); });
-  if(!window._igSplitResizeBound){ window._igSplitResizeBound=true;
-    window.addEventListener('resize',()=>{ if(igPageUp()){ igFitSplit(); if(igMapUp()) igNoteMeasure(); } }); }
+  if(typeof splitWire==='function') splitWire(rez, IG_SPLIT); else igFitSplit();
 }
 window.IG = null;      // live graph model
 window.intelRAF = 0;   // animation token
@@ -1369,7 +1353,7 @@ function igFactOrder(key, labels, count){
    reading, several are ANDed, and each carries the words the lens is named
    with. Nothing understood is null — the reader passes the sentence on. */
 const IG_STATUS_WORDS=[
-  ['Draft',['drafts','draft','drafting','utkast']],
+  ['Draft',['drafts','draft','drafting','utkasten','utkast']],
   ['Under Review',['under review','in review','in negotiation','being negotiated','review','under granskning','granskning','förhandling']],
   ['Signed',['signed ones','signed','executed','active','live ones','signerade','undertecknade','aktiva']],
   ['Declined',['closed','declined','dead','cancelled','stängda','avböjda']]
@@ -1502,7 +1486,12 @@ function igConditions(text){
 const IG_FILLER=/\b(?:show|shows|showing|me|us|all|the|a|an|our|my|your|their|its|contracts?|agreements?|deals?|ones?|obligations?|åtaganden?|value|valued|worth|värde|värda|list|find|give|get|see|please|which|what|who|that|those|these|have|has|had|are|is|were|was|be|in|of|with|for|and|or|to|do|does|did|we|any|every|from|just|only|now|still|currently|there|here|how|many|number|count|visa|alla|avtal|avtalen|vilka|vad|som|har|är|med|för|och|eller|mig|oss|bara|endast|hur|många|antal|lista|hitta)\b/g;
 function igLeftover(text, conds){
   let t=' '+_igNorm(text)+' ';
-  (conds||[]).forEach(x=>{ const h=' '+_igNorm(x.hit||'')+' '; if(h.trim()) t=t.split(h).join(' '); });
+  /* "under draft", "at signing", "i utkast": a word standing before a stage's
+     own word asks for nothing more than the stage (owner, 19 Oct 2026: "show
+     me all the contracts that are under draft" is Draft) */
+  (conds||[]).forEach(x=>{ const h=' '+_igNorm(x.hit||'')+' '; if(!h.trim()) return;
+    if(x.field==='status') ['under','in','at','i','på'].forEach(p=>{ t=t.split(' '+p+h).join(h); });
+    t=t.split(h).join(' '); });
   return t.replace(IG_FILLER,' ').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
 }
 /* AND across fields, OR within one: "Naivas and Carrefour" is either, "signed
@@ -2153,7 +2142,9 @@ function igRecipeRun(parsed, opts){
   if(lensNote) said.push(lensNote);
   if(changed) rebuildIntelGraph();
   for(let i=0;i<said.length;i++) if(typeof said[i]==='function'){ try{ said[i]=said[i](); }catch(_){ said[i]=''; } }
-  intel.history.push({ role:'assistant', text:igEsc(said.filter(Boolean).join(' ')||i18t('int_did_nothing')), choices:choices||null,
+  /* quiet: the words were said already, in one line, by the reader that moved
+     here (caMapNarrow, 19 Oct 2026: "go to explorer and show me the drafts") */
+  if(!(opts&&opts.quiet)) intel.history.push({ role:'assistant', text:igEsc(said.filter(Boolean).join(' ')||i18t('int_did_nothing')), choices:choices||null,
     listIds:list&&list.length?list.slice():null, listTitle:listTitle||null, cardIds:list?list.slice(0,5):[] });
   return opts&&opts.report?{ changed, said }:true;
 }
@@ -2264,6 +2255,27 @@ async function intelAsk(qRaw, opts){
     intel.history.push({role:'user', text:q}, {role:'assistant', text:i18t('ig_cal_handoff')});
     renderIntelDock(); return;
   }
+  /* ONE READER FOR EVERY JAMBO BOX (owner, 19 Oct 2026: "I want hati to do
+     what the user asks in plain language supported by Minisearch"): a place
+     and a narrowing ("go to explorer and show me the drafts"), a contract
+     named and what is asked of it ("briefing for mk 345", "what does mk 345
+     say about termination"), a place named outright ("go to negotiations")
+     are read FIRST (caUnderstand), before the screen in front, the Board's
+     own reader and the map — and done in the panel (caHomeRun). A narrowing
+     that names no place is still answered where you stand when the screen in
+     front reads it whole: the map or the Contracts place (caHereRead), the
+     Board's own list (hbParse). */
+  let und=null; try{ und=(typeof window.caUnderstand==='function')?caUnderstand(q,{ box:'home' }):null; }catch(_){ und=null; }
+  if(und&&und.here){
+    let mine=false;
+    try{ mine=!!(typeof window.caHereRead==='function'&&caHereRead(q)); }catch(_){ mine=false; }
+    try{ if(!mine&&state.view==='dashboard'&&typeof window.hbFace==='function'&&hbFace()==='board'&&typeof window.hbParse==='function'){ const r=hbParse(q); mine=!!(r&&['dig','lens','panel','card','openc'].includes(r.act)); } }catch(_){}
+    if(mine) und=null;
+  }
+  /* a question asked OF a named contract on Explorer is the map's own (its
+     Copilot answers with the passages cited, insights-panels 16a) */
+  try{ if(und&&und.kind==='ask'&&typeof window.caHereScreen==='function'&&caHereScreen()==='explorer') und=null; }catch(_){}
+  if(und&&typeof window.caHomeRun==='function'&&caHomeRun(q,und)) return;
   const tplAsk=IG_TEMPLATE_RE.test(q);
   /* ANSWER WHERE YOU STAND — ONE RULE, EVERY SCREEN (owner, 18 Oct 2026): a
      request to SEE contracts that the screen in front reads whole is answered
@@ -5423,8 +5435,8 @@ function renderIntel(){
           ${''/* the red dot lives on the pointer's veil (hbVeilPaint) */}`:''}
       </div>
       <aside id="ig-dock" class="shrink-0 flex flex-col min-h-0 overflow-hidden" style="width:${igDockWidth()}px;transition:width var(--dur-3) cubic-bezier(.22,.61,.36,1)"></aside>
-      <div id="ig-resizer" class="ig-resizer" role="separator" aria-orientation="vertical" tabindex="0" aria-valuemin="${IG_DOCK_MIN}"
-        aria-label="${igEsc(i18t('int_drag_width'))}" title="${igEsc(i18t('int_drag_width'))}"${intel.dockOpen?'':' hidden'}><span></span></div>
+      ${''/* THE ONE SLIDER's grip (splitHtml, 19 Oct 2026): role=separator,
+             reachable by keyboard, named int_drag_width, hidden while folded */}${typeof splitHtml==='function'?splitHtml({ id:'ig-resizer', min:IG_DOCK_MIN, hidden:!intel.dockOpen }):''}
     </div>
   </div>`;
 
@@ -7846,6 +7858,17 @@ function igPreOn(){ return !!(window.state && state.view==='dashboard' && typeof
 function igPrePaint(){
   const el=document.getElementById('igd-pre'), inp=document.getElementById('igd-input'); if(!el||!inp) return;
   let t=''; try{ t=hbAskPreviewText(hbAskReadingOf(inp.value)); }catch(_){ t=''; }
+  /* THE ONE READER'S OWN READING FIRST (19 Oct 2026), as intelAsk asks it:
+     where it will go, free — or the contract a question is asked of, and
+     what that question carries (its cost, before the press) */
+  try{
+    const v=String(inp.value||'').trim();
+    let u=v&&typeof window.caUnderstand==='function'?caUnderstand(v,{ box:'home' }):null;
+    if(u&&u.here&&typeof window.hbParse==='function'){ const r=hbParse(v); if(r&&['dig','lens','panel','card','openc'].includes(r.act)) u=null; }
+    if(u&&u.kind==='ask'){ const c=getContract(u.cid); const P=c&&typeof igPaperCost==='function'?igPaperCost(c):null;
+      if(c&&P) t=i18t('int_ask_contract_cost',{ ref:(window.contractRef?contractRef(c):c.id), n:Number(P.words||0).toLocaleString() }); }
+    else if(u&&typeof window.caUnderstandSay==='function'){ const s=caUnderstandSay(u); if(s) t=s+' · '+i18t('hb_pre_free'); }
+  }catch(_){}
   el.textContent=t; el.title=t;
 }
 /* THE FOLDED PANEL IS A DOOR THAT LOOKS LIKE ONE (Young, 8 Oct 2026: "there

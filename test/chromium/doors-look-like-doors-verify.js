@@ -74,7 +74,9 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
     if (cd) {
       await page.fill(cp, 'Changed AB'); await page.press(cp, 'Tab');
       await page.fill(val, '5000'); await page.press(val, 'Tab');
-      await pause(300);
+      /* 19 Oct 2026: a fixed 300 ms read the counterparty before it had landed on
+         GitHub's runner; ask for the typed state, bounded */
+      await waitFor(page, i => { const c = getContract(i); return c.counterparty === 'Changed AB' && Number(c.value) === 5000; }, id, 8000);
       const typed = await page.evaluate(i => { const c = getContract(i); return { cp: c.counterparty, v: Number(c.value) }; }, id);
       await page.screenshot({ path: path.join(OUT, '01-complete-typed.png') });
       await page.click('#cd-cancel');

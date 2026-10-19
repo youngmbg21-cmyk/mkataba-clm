@@ -293,6 +293,11 @@
    own dark palette (--hb-gw 56,205,184, its ink and line rgba, the amber
    242,178,76), seen there because History now opens on the Board; gone: the
    ⋯ icon's fill on three screens. No colour new to the product.
+   RE-RECORDED 19 Oct 2026, OWNER-ASKED ("yes"): the slider on every Jambo
+   panel. Audited as a set difference: only Obligations, Our paper and
+   Settings moved, each by the divider and its grip (2 elements, no text);
+   the dark grip's rgb(54,66,63) is Home's existing grip dress, already on
+   record 118 times. No colour new to the product.
      node test/chromium/ink-wash-verify.js          (check)
    ============================================================ */
 const fs = require('node:fs');

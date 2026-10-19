@@ -1,5 +1,5 @@
 /* ============================================================
-   JAMBO'S MAP — HaTi's thirty-one commonest tasks, in the words people use
+   JAMBO'S MAP — HaTi's thirty-two commonest tasks, in the words people use
    (owner, 18 Oct 2026: "Start with MiniSearch and the map for 30 tasks";
    the same day: "add Explorer as the 31st task")
    ============================================================
@@ -45,7 +45,7 @@ const JM_NEAR = 0.6;         // a task this close to the first is offered beside
 const JM_PICKS = 3;          // at most this many on the "which did you mean" card
 const JM_FUZZY_COUNTS = 7;   // a word matched only by a near spelling counts from this length (a typo, not another word)
 
-/* THE THIRTY-ONE TASKS. `to` is the existing door:
+/* THE THIRTY-TWO TASKS (the 32nd, a contract's brief, 19 Oct 2026). `to` is the existing door:
      place  — a CA_PLACES word (need 'one' asks which contract when none is up)
      door   — a CA_DOORS act on a contract; `home` is the place asked "which
               contract?" when none is named or up
@@ -143,8 +143,17 @@ const JM_TASKS = [
   { k: 'explorer', to: { place: 'explorer' }, w: {
     en: ['explore our contracts', 'all contracts on one map', 'contract map', 'see how our contracts connect', 'contracts linked to each other', 'relationships between contracts',
       'visualise the portfolio', 'visualize the portfolio', 'bird\'s eye view', 'contract landscape', 'network of contracts', 'spot the outliers', 'graph of our contracts',
-      'a map of every contract', 'the big picture of our contracts'],
-    sv: ['utforska avtalen', 'avtalskarta', 'alla avtal på en karta', 'hur avtalen hänger ihop', 'samband mellan avtalen', 'visualisera avtalen', 'avtalen som ett nätverk', 'hitta avvikarna', 'helhetsbilden av avtalen'] } },
+      'a map of every contract', 'the big picture of our contracts',
+      /* its own name and the map's (owner, 19 Oct 2026: "take me to explorer") */
+      'explorer', 'the explorer', 'open the explorer', 'the map', 'the contract map'],
+    sv: ['utforska avtalen', 'avtalskarta', 'alla avtal på en karta', 'hur avtalen hänger ihop', 'samband mellan avtalen', 'visualisera avtalen', 'avtalen som ett nätverk', 'hitta avvikarna', 'helhetsbilden av avtalen',
+      'utforskaren', 'öppna utforskaren', 'kartan', 'avtalskartan'] } },
+  /* THE 32nd (owner, 19 Oct 2026: "briefing for contracts mk 345"): a
+     contract's brief, the paper's own "Read the brief" door (CA_PLACES
+     'brief'); a kept brief shown free, none kept Write the brief says its cost */
+  { k: 'brief', to: { place: 'brief' }, w: {
+    en: ['contract brief', 'read the brief', 'the brief of this contract', 'a plain english brief', 'key points of the contract', 'what this contract is about', 'brief me on the contract', 'briefing on this agreement'],
+    sv: ['avtalets sammanfattning', 'läs sammanfattningen', 'sammanfattningen av avtalet', 'kort om avtalet', 'avtalets viktigaste punkter'] } },
   { k: 'team', admin: true, to: { st: 'page:team' }, w: {
     en: ['add a user', 'invite a colleague', 'new user', 'give someone access', 'add a team member', 'remove a user', 'user accounts', 'add someone', 'revoke access for a leaver'],
     sv: ['lägg till en användare', 'bjud in en kollega', 'ny användare', 'ge någon åtkomst', 'ta bort en användare', 'användarkonton'] } },
@@ -206,11 +215,15 @@ const JM_REF_RE = /#?\b([A-Za-z]{2,4}-[A-Za-z0-9]*\d[A-Za-z0-9]*)\b/g;
    crude cut, but the map and the sentence are cut alike, and MiniSearch's
    prefix and one-letter forgiveness cover what it leaves */
 const JM_ENDS = ['ornas', 'arnas', 'ernas', 'orna', 'arna', 'erna', 'ande', 'ing', 'ens', 'ets', 'ed', 'es', 'na', 'en', 'et', 'er', 'ar', 'or', 's'];
+/* A SECOND CUT KEEPS FIVE LETTERS (owner, 19 Oct 2026: "i asked jambo to
+   take me to explorer and it did not"): "explorer" was cut twice to "expl",
+   which no way of asking held; it stops at "explor", the start of "explore" */
+const JM_STEM_MIN2 = 5;
 function jmStem(w){
   let s = w.length >= 6 && w.endsWith('ies') ? w.slice(0, -3) + 'y' : w;
   for (let n = 0; n < 2; n++){
     const e = s.length >= 6 ? JM_ENDS.find(x => s.endsWith(x) && !(x === 's' && s.endsWith('ss'))) : null;
-    if (!e || s.length - e.length < 4) break;
+    if (!e || s.length - e.length < (n ? JM_STEM_MIN2 : 4)) break;
     s = s.slice(0, -e.length);
     /* "scanned" → "scan", "committed" → "commit" */
     if ((e === 'ed' || e === 'ing') && /([b-df-hj-np-tv-z])\1$/.test(s)) s = s.slice(0, -1);
@@ -436,12 +449,13 @@ function jmRunAct(a, q){
 }
 function jmRun(k, q){ return jmRunAct(jmActOf(k, q), q); }
 
-/* the library is asked for once the page is idle, so the first ask finds it */
+/* THE LIBRARY IS ASKED FOR AT START-UP (owner, 19 Oct 2026: "supported by
+   Minisearch"; was on idle, so the first ask after a load found no map): the
+   script is fetched as the app starts, from HaTi itself (86 KB, cached hard) */
 if (typeof window !== 'undefined' && typeof document !== 'undefined'){
-  const kick = () => { try { jmLib(); } catch (_){} };
-  if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(kick, { timeout: 4000 }); else setTimeout(kick, 1500);
+  try { jmLib(); } catch (_){}
 }
 
 if (typeof window !== 'undefined') Object.assign(window, { JM_LIB_SRC, JM_MAX, JM_COVER, JM_LEAD, JM_NEAR, JM_PICKS, JM_FUZZY_COUNTS, JM_TASKS, JM_STOP, JM_SOFT, JM_FACT_RE, JM_WINDOW_RE, JM_COUNT_RE, JM_LIST_RE,
-  jmNorm, jmTerms, jmLib, jmIndex, jmMatch, jmPick, jmTask, jmActOf, jmBoardKeeps, jmRead, jmCardHtml, jmCardPress,
+  jmNorm, JM_STEM_MIN2, jmStem, jmTerms, jmLibNow, jmLib, jmIndex, jmMatch, jmPick, jmTask, jmActOf, jmBoardKeeps, jmRead, jmCardHtml, jmCardPress,
   JM_PALETTE_MAX, jmPaletteRows, JM_CARD_PLACES, jmRunAct, jmRun });

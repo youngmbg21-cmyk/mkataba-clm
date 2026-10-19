@@ -222,7 +222,7 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
     check('4d the paper: an owed blank amber; the three typed answers underlined, dotted', P4.blank === true && P4.pend.join('|') === 'carrier:dotted:underline|lane:dotted:underline|route:dotted:underline', JSON.stringify(P4));
     await page.click('#pd-fillface [data-pd-ff-docfill]');
     const filled = await until(() => { const c = getContract('MK-0410'); const t = ((document.querySelector('#pd-fillface [data-pd-ff-doc]') || {}).innerText || '').replace(/\s+/g, ' ');
-      return !tplFormPending(c) && /Road/.test(c.redlineText || '') ? t : null; }, null, 8000);
+      return !tplFormPending(c) && /Road/.test(c.redlineText || '') ? t : null; }, null, 20000);   /* 19 Oct 2026: 8 s ran out once on GitHub's runner; the wait still asks for the state */
     check('4c pressed: the wording carries them, and the card says so', !!filled && /The answers are in the wording\./.test(filled), filled);
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(350);

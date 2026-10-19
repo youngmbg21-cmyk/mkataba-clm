@@ -129,7 +129,10 @@ describe('f737 (4) the Contracts place answers with its list; other screens answ
 
 describe('f737 (5) every box on Home asks the rule; a pressed place still goes', () => {
   test('the window and the other boxes hand Home\'s Jambo what the screen in front answers', () => {
-    assert.match(fnOf(CA, 'function caAskAnywhere('), /if \(!opts\.all && !caReadPlace\(t\) && !caTakesWords\(t\) && !caHereRead\(t\)\) return false; intelAsk\(t\); return true;/);
+    /* RE-POINTED 19 Oct 2026 (owner: "I want hati to do what the user asks in
+       plain language"): what the one reader reads (caUnderstand, `u`) is
+       handed to Home's own box too, beside the place words and the rule */
+    assert.match(fnOf(CA, 'function caAskAnywhere('), /if \(!opts\.all && !u && !caReadPlace\(t\) && !caTakesWords\(t\) && !caHereRead\(t\)\) return false; intelAsk\(t\); return true;/);
     assert.match(fnOf(AI, 'async function aiSubmit('), /if\(go&&window\.caHereRead&&caHereRead\(q\)\) go=null;/, 'and says no place it did not go to');
   });
   test('a pressed place row ("/", ⌘K) is said as "/" says it, so it goes to the page', () => {

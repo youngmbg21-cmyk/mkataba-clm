@@ -104,6 +104,9 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     if (await press('#st-att .st-need[data-st-need^="clash:cap:"] .st-need-go', '2c the clash\'s button')) {
       const dr = await until(() => { const say = document.querySelector('#st-dbody .st-clash-say'), cap = document.getElementById('tm-cap'), back = document.getElementById('tm-bz-back');
         if (!say || !cap || !back) return null;
+        /* 19 Oct 2026: the lander lights it a beat after the drawer paints; on GitHub's
+           runner the read came first — wait (bounded) for the light too */
+        if (!cap.classList.contains('is-landed')) return null;
         /* re-pointed 19 Oct 2026 (LAND ON IT): lit by the one lander */
         return { lit: cap.classList.contains('is-landed'), say: say.textContent.trim(), back: back.textContent.trim(), shown: !back.hidden && back.getBoundingClientRect().width > 0,
           order: [...document.querySelectorAll('#st-dfoot .st-dfoot-acts > button')].map(b => b.id || (b.hasAttribute('data-st-dclose') ? 'cancel' : '?')) }; });

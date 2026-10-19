@@ -1083,19 +1083,91 @@ function jlOnScreen(){
   }
   return null;
 }
-/* the column the panel takes from the page — 0 where it is not drawn */
+/* the column the panel takes from the page — 0 where it is not drawn; open,
+   it is the width the divider wrote (jlWidthNow) */
 function jlReserved(){
   const h = jlHost(); if (!h) return 0;
   /* a panel in a hidden tab takes nothing (Our paper's Templates tab) */
   if (typeof h.closest === 'function' && h.closest('[hidden]')) return 0;
-  return h.classList.contains('is-folded') ? JL_FOLDED : JL_W;
+  return h.classList.contains('is-folded') ? JL_FOLDED : jlWidthNow();
 }
-/* the panel's top is the page head's top: under the bar and the desk tabs */
+/* ---- THE SLIDER (owner, 19 Oct 2026: "all the new jambo panels do not have
+   a slider like in the redline page. They should all have one.") ----
+   The panel beside the lists and Import's are clients of the ONE divider
+   (splitHtml · splitWire · splitFit, js/components.js), Home's own. Its
+   width is ONE value, --jl-w on the shell, read by the panel, the page head
+   and the page's scroller (index.html) and by insFits (jlReserved) — 380,
+   Home's panel's, where nobody has chosen. The floors: the panel keeps
+   JL_MIN (its cards and doors on one line, Home's panel's floor), the list
+   beside it INS_MIN_W − JL_MIN, so the inspector's own line never flips
+   while the reader drags. Every list page and Import share the one key: one
+   frame, one width. */
+const JL_MIN = 340, JL_LIST_MIN = INS_MIN_W - JL_MIN;
+const JL_SPLIT_KEY = 'hati.v1.jlW';
+/* THE LIST'S OWN FLOOR, MEASURED (19 Oct 2026). A list drawn as a FIXED
+   table (People, Parties, Requests, Approvals) was set for the panel's 380:
+   squeezed past its fixed columns, the one column that takes the rest — the
+   name, the party — fell to nothing and its words broke a letter a line
+   (MEASURED at 1366: People's names gone, Approvals' rows 360px tall at a
+   666px list). So such a list keeps its fixed columns, JL_FLEX_MIN for each
+   column that takes the rest (the party column's floor one-worklist asks),
+   and the page's own padding round the table — never less than JL_LIST_MIN.
+   The reader's stored width is kept; only the room it is given is clamped. */
+const JL_FLEX_MIN = 170;
+function jlListMin(){
+  if (typeof document === 'undefined') return JL_LIST_MIN;
+  const cs = document.getElementById('content-scroll'), content = document.getElementById('content');
+  if (!cs || !content || typeof getComputedStyle !== 'function') return JL_LIST_MIN;
+  let need = JL_LIST_MIN;
+  try {
+    const room = cs.getBoundingClientRect().width;
+    for (const t of Array.from(content.querySelectorAll('table'))){
+      if (t.closest('.ins-panel') || t.closest('[hidden]')) continue;
+      const tw = t.getBoundingClientRect().width;
+      if (!(tw > 0) || getComputedStyle(t).tableLayout !== 'fixed') continue;
+      const cols = Array.from(t.querySelectorAll(':scope > colgroup > col'));
+      if (!cols.length) continue;
+      let fixed = 0, flex = 0;
+      cols.forEach(c => { const px = /^(\d+(?:\.\d+)?)px$/.exec(c.style.width || ''); if (px) fixed += Number(px[1]); else flex++; });
+      need = Math.max(need, Math.ceil(fixed + flex * JL_FLEX_MIN + Math.max(0, room - tw)));
+    }
+  } catch (_){ return need; }
+  return need;
+}
+const jlShell = () => (typeof document === 'undefined') ? null : (document.getElementById('app-shell') || document.documentElement);
+/* the width the panel stands at now: the one the divider wrote, else its rest */
+function jlWidthNow(){
+  const sh = jlShell();
+  let v = 0; try { v = sh ? parseFloat(sh.style.getPropertyValue('--jl-w')) : 0; } catch (_){ v = 0; }
+  return v > 0 ? Math.round(v) : JL_W;
+}
+const JL_SPLIT = {
+  key: JL_SPLIT_KEY, w0: JL_W, min: JL_MIN, foldedW: JL_FOLDED,
+  /* the page beside keeps its floor: the list's own, measured live (jlListMin) */
+  get restMin(){ return jlListMin(); },
+  folded: () => { const h = jlHost(); return !h || h.classList.contains('is-folded'); },
+  /* stood down where the panel is not on screen: a hidden tab's (Our paper's Templates) */
+  off: () => { const h = jlHost(); return !h || (typeof h.closest === 'function' && !!h.closest('[hidden]')); },
+  /* the room the page and the panel share: from the page's left edge to the window's */
+  avail: () => { const h = jlHost(), cs = document.getElementById('content-scroll');
+    if (!h || !cs) return 0;
+    try { return Math.max(0, Math.round(h.getBoundingClientRect().right - cs.getBoundingClientRect().left)); } catch (_){ return 0; } },
+  edge: () => { const h = jlHost(); return h ? h.getBoundingClientRect().right : 0; },
+  /* THE ONE WRITER of the width: folded, the strip is the stylesheet's 46 and the open width is kept */
+  apply: w => { const sh = jlShell(); const h = jlHost();
+    if (!sh || !h || h.classList.contains('is-folded')) return;
+    sh.style.setProperty('--jl-w', Math.round(w) + 'px'); },
+  /* the window's resize is this file's own listener (jlLayout, at the foot) */
+};
+/* the panel's top is the page head's top: under the bar and the desk tabs;
+   and the divider's one pass (the width, the grip at the seam or stood down) */
 function jlLayout(){
   const h = jlHost(); if (!h) return;
   const ph = document.getElementById('page-head');
   let top = 0; try { top = ph ? Math.round(ph.getBoundingClientRect().top) : 0; } catch (_){ top = 0; }
   if (top > 0) h.style.setProperty('--jl-top', top + 'px');
+  const rez = h.querySelector(':scope > #jl-resizer');
+  if (typeof splitWire === 'function') splitWire(rez, JL_SPLIT);
 }
 /* HIS COUNT, the Counter's own number (what needs you), read at most once a
    second — the walk is the book's, and a panel repaints on every row press */
@@ -1147,7 +1219,10 @@ function jlFrame(host, opt){
   host.classList.toggle('is-folded', jlFolded());
   let body = host.querySelector(':scope > .jl-body');
   if (!body){
-    host.innerHTML = `${jlDoorHtml()}${jlHeadHtml()}<div class="jl-body" data-jl-body></div>${jlAskHtml({ placeholder: opt.jlPh })}`;
+    /* THE SLIDER's grip (splitHtml, the one builder, 19 Oct 2026) stands in
+       the frame on the panel's side of the seam; jlLayout wires and fits it */
+    const grip = (typeof splitHtml === 'function') ? splitHtml({ id: 'jl-resizer', min: JL_MIN, hidden: jlFolded() }) : '';
+    host.innerHTML = `${jlDoorHtml()}${grip}${jlHeadHtml()}<div class="jl-body" data-jl-body></div>${jlAskHtml({ placeholder: opt.jlPh })}`;
     body = host.querySelector(':scope > .jl-body');
   }
   const inp = host.querySelector('#jl-q');
@@ -1459,5 +1534,5 @@ Object.assign(window, { INS_MIN_W, INS_ASKS_MAX, INS_LATEST, INS_READ_TONE,
   insHeadHtml, insParties, insPartiesHtml, insNeedsHtml, insNeedsLineHtml, insNeedWords, INS_NEED_VERB, INS_NEED_GO, insPanelHtml, insPanelEmptyHtml, insPaintPanel, insCloseMenu, insMarkRow, insListWire,
   insListOff, insWatchWidth, insActsHtml, insMoreHtml, insDoorActs, insNegoDoorState, insMenuItemHtml, insItemHeadHtml, INS_TONE, insKvHtml, insChipHtml, insViewTabsHtml,
   INS_PAGE_REPAINT, insLetGo, insLetGone, insActBtnHtml, insRowsHtml, JL_READ_ORDER, jlReadsHtml, jlReadSaid,
-  JL_W, JL_FOLDED, jlFolded, jlFoldSet, jlHost, jlOnScreen, jlReserved, jlLayout, jlCount, jlAskHtml, jlFrame, jlHeadPaint, jlWordsHtml, jlNeedsHtml,
+  JL_W, JL_FOLDED, JL_MIN, JL_LIST_MIN, JL_FLEX_MIN, JL_SPLIT_KEY, JL_SPLIT, jlListMin, jlWidthNow, jlFolded, jlFoldSet, jlHost, jlOnScreen, jlReserved, jlLayout, jlCount, jlAskHtml, jlFrame, jlHeadPaint, jlWordsHtml, jlNeedsHtml,
   JL_LAND, jlLand, jlPageWord, jlToWords, jlHeldContract, jlBoardReads, jlAsk, jlMapCard, jlFocus, jlPopRead, jlPopClose, jlPopTake, jlDayWord, jlDayRange, jlAwayOf });

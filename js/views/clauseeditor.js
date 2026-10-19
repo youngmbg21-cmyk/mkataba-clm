@@ -5521,7 +5521,11 @@ async function ceAsk(question, opts = {}){
      here moves there as it does on Home — after this page's own question
      when a draft is unfiled (ceLeaveGuard); anything else is a question about
      these words, as before */
-  const goTo = (typeof window !== 'undefined' && window.caReadPlace) ? (() => { try { return caReadPlace(q); } catch (_){ return null; } })() : null;
+  /* ONE READER FOR EVERY JAMBO BOX (19 Oct 2026): a SURE place or contract
+     ("open mk 345", "go to explorer and show me the drafts") leaves through
+     the same guard; this clause's own words stay this editor's job */
+  const goTo = (typeof window !== 'undefined' && (window.caLeavesFor || window.caReadPlace)) ? (() => { try {
+    return (window.caLeavesFor && caLeavesFor(q, 'editor')) || (window.caReadPlace ? caReadPlace(q) : null); } catch (_){ return null; } })() : null;
   if (goTo && goTo.kind === 'go' && !(window.CA_CARD_WORDS || []).includes(goTo.place) && window.caGo){
     const box = _ceQ('#ce-ask'); if (box){ box.value = ''; try { box.dispatchEvent(new Event('input', { bubbles: true })); } catch (_){} }
     ceLeaveGuard(() => { rlCloseClauseEditor(); caGo(goTo); });
