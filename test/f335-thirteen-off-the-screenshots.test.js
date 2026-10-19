@@ -383,22 +383,27 @@ describe('f335 (9) — fifteen words on the face', () => {
   });
 });
 
-describe('f335 (10) — the tab is Overview, and the sentences say so', () => {
+describe('f335 (10) — the page is Details, and the sentences say so', () => {
+  /* RE-POINTED 19 Oct 2026: the panel's first tab beside a contract is now
+     "Overview", so the old contract Overview page — the Lifeline strip's
+     Details page — is called Details in every sentence that sends you there.
+     The owner, asked "Should the old-Overview labels be renamed to Details?":
+     "Yes". */
   const live = [
-    ['sc_row_blank', /is blank on Overview/],
-    ['sc_fix_btn', /Fix on Overview/],
-    ['rn_from_why', /recorded on Overview/],
-    ['rn_no_notice', /Set it on Overview/],
-    ['rn_no_notice_why', /notice period on Overview/],
-    ['rn_before_filed', /notice period on Overview/],
-    ['pt_empty_why', /typed on Overview/],
+    ['sc_row_blank', /is blank on Details/],
+    ['sc_fix_btn', /Fix on Details/],
+    ['rn_from_why', /recorded on Details/],
+    ['rn_no_notice', /Set it on Details/],
+    ['rn_no_notice_why', /notice period on Details/],
+    ['rn_before_filed', /notice period on Details/],
+    ['pt_empty_why', /typed on Details/],
   ];
   for (const [key, re] of live) {
-    test(key + ' points at the tab that exists', () => {
+    test(key + ' points at the page that exists', () => {
       const m = new RegExp('^    ' + key + ': ["\'](.*)["\'],$', 'm').exec(I18N);
       assert.ok(m, key + ' is in the English book');
-      assert.match(m[1], re, key + ' names Overview');
-      assert.ok(!/Key terms/.test(m[1]), key + ' no longer names a tab that is gone');
+      assert.match(m[1], re, key + ' names Details');
+      assert.ok(!/Key terms|Overview/.test(m[1]), key + ' no longer names a page by its old word');
     });
   }
   /* REVERSED 9 Oct 2026 (overnight run, stream G): the phone's tab says the
@@ -410,9 +415,10 @@ describe('f335 (10) — the tab is Overview, and the sentences say so', () => {
     assert.ok(!/i18t\('tab_key_terms'\)/.test(read('js/mobile-contract.js')));
   });
   test('both books moved together', () => {
-    const en = (I18N.match(/is blank on Overview/g) || []).length;
+    const en = (I18N.match(/is blank on Details/g) || []).length;
     assert.equal(en, 1, 'the English sentence is written once');
-    assert.match(I18N, /är tomt på Översikt/, 'and the Swedish twin moved with it');
+    /* re-pointed 19 Oct 2026 with the owner's "Yes" to Details */
+    assert.match(I18N, /är tomt under Uppgifter/, 'and the Swedish twin moved with it');
   });
   test('the two stale renewal sentences are left inert, not deleted', () => {
     /* Retire a key by leaving it in BOTH books and calling it nowhere. */

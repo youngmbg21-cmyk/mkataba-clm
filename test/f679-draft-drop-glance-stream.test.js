@@ -391,9 +391,18 @@ describe('f679 (5) a contract at a glance', () => {
     assert.match(ctx.pdJamboTopHtml(), /id="pd-drop"/);
     const p = pdStage();
     assert.match(p.ctx.pdJamboTopHtml(), /id="pd-glance"/);
-    const feed = IG.slice(IG.indexOf('<div id="igd-feed" class="flex-1'), IG.indexOf('${typing}', IG.indexOf('<div id="igd-feed" class="flex-1')));
+    /* RE-POINTED 19 Oct 2026 (Jambo as a tab you flip to, and back; the owner:
+       "you land on the page and if you want to chat with jambo it takes you to
+       a new jambo tab but you can go back to the landing side panel"): the
+       landing feed draws the wall or the glance and no conversation; the
+       notebook greeting stands only where nothing stands at the top, and the
+       conversation is the flip's own feed (igd-talk). */
+    const at = IG.indexOf('<div id="igd-feed" class="flex-1');
+    const feed = IG.slice(at, IG.indexOf('SAVED VIEWS LEFT THE PANEL', at));
     assert.match(feed, /pdJamboTopHtml\(\)/);
-    assert.match(feed, /msgs\|\|\(top\?'':/, 'the notebook greeting only where nothing stands at the top');
+    assert.match(feed, /return top\|\|`<div class="ig-welcome/, 'the notebook greeting only where nothing stands at the top');
+    assert.doesNotMatch(feed, /\$\{msgs\}/, 'the landing carries no conversation');
+    assert.match(IG, /talk\?`<div id="igd-feed" class="igd-talk[^`]*>\$\{msgs\}\$\{typing\}<\/div>/, 'the conversation is the flip\'s');
     assert.match(fnBody(PD, 'pdChipsRepaint'), /pdGlanceRepaint\(\)/, 'kept current in place as the counts move');
   });
 });
