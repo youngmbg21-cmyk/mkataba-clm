@@ -762,7 +762,10 @@ async function migProcessFiles(fileList, opts={}){
   await syncBatch(M.cancelled?'stopped':'finished');
   M.ocrError=ocrErrors?ocrLastError:'';
   if(serverQueued) toast(i18tn('mig_server_toast', serverQueued, { n:serverQueued, batch }), 'ok');
-  toast(`Batch ${batch}${M.cancelled?' stopped':''}: ${saved} imported${ocrDocs?`, ${ocrDocs} read by OCR`:''}${ocrErrors?`, ${ocrErrors} scan${ocrErrors===1?'':'s'} could not be read (${ocrLastError})`:''}${flagged?`, ${flagged} possible duplicate${flagged===1?'':'s'} waiting for your call`:''}${dupes?`, ${dupes} identical file${dupes===1?'':'s'} skipped`:''}${words?`, ${words} Word file${words===1?'':'s'} refused (save as PDF)`:''}${errors?`, ${errors} failed`:''}${M.cancelled?`, ${M.queue.filter(q=>q.status==='cancelled').length} cancelled`:''}`);
+  toast(`Batch ${batch}${M.cancelled?' stopped':''}: ${saved} imported${ocrDocs?`, ${ocrDocs} read by OCR`:''}${ocrErrors?`, ${ocrErrors} scan${ocrErrors===1?'':'s'} could not be read (${ocrLastError})`:''}${flagged?`, ${flagged} possible duplicate${flagged===1?'':'s'} waiting for your call`:''}${dupes?`, ${dupes} identical file${dupes===1?'':'s'} skipped`:''}${words?`, ${words} Word file${words===1?'':'s'} refused (save as PDF)`:''}${errors?`, ${errors} failed`:''}${M.cancelled?`, ${M.queue.filter(q=>q.status==='cancelled').length} cancelled`:''}`,
+    /* the queue card that said "finished" went into the one list (round 22
+       as drawn), so the batch's end is said here — a bare toast prints nothing */
+    (errors||words||ocrErrors||M.cancelled)?'warn':'ok');
   renderMigration();
 }
 
@@ -797,7 +800,7 @@ async function openMigReview(c, opts={}){
   const src=(c.upload&&c.upload.textSource)||(c.migration&&c.migration.textSource);
   if(isOcrText(src)) capConfidenceForOcr(meta);
   openMetaReview(meta, m=>{ applyReviewedMeta(c,m); updateSidebarCounts();
-    if(opts.onDone) opts.onDone(true); else renderMigration(); toast(`${(window.contractRef?contractRef(c):c.id)} confirmed`); },
+    if(opts.onDone) opts.onDone(true); else renderMigration(); toast(`${(window.contractRef?contractRef(c):c.id)} confirmed`,'ok'); },
     { saveLabel:opts.saveLabel||'Confirm & save', onCancel:()=>{ if(opts.onDone) opts.onDone(false); },
       ocrNotice: isOcrText(src)?ocrProvenanceLine(c.upload||{}):'' });
 }
