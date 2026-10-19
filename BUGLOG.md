@@ -21027,3 +21027,6 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Noticed, not fixed (18 Oct 2026, Explorer stage 1): on Explorer's Timeline at 1536×730 the axis's date labels end at about 692px and the view bar starts at 695px — three pixels apart before stage 1 touched anything.
 - Noticed, not fixed (18 Oct 2026, Explorer stage 2): Explorer's head line (#ig-note) has no room kept for the Group by box in the stage's top-right corner; a long line (a lens label plus "Highlighted N of T" plus Show everything · Undo · Save view) runs under "Group by" at 1536×730. Its max-width is the whole stage less 24px.
 - Fixed (18 Oct 2026, Explorer stage 3, because its walk's "‹ › Stop" lengthened the line): Explorer's head line now keeps clear of the Group by box and wraps instead of running under it.
+
+## 19 Oct 2026 (trimming the rule book)
+- Fixed (19 Oct 2026, owner-asked trim): CLAUDE.md is back under its "about 80 KB" line — 117,223 → 79,754 bytes; the whole old file is saved word for word in docs/MAP-HISTORY.md ("CLAUDE.md AS IT STOOD ON 19 OCT 2026").
