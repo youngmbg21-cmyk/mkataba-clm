@@ -288,7 +288,8 @@ const dismissNote = async pg => {
      chrome is a 44px strip plus a 26px readings row and their gaps — call it
      100px — so anything much past that is a header growing back. */
   ck('2e THE CONTRACT STARTS NEAR THE TOP — chrome, not a header',
-     !!opened && opened.chromeAbovePaper < 130,
+     /* RE-POINTED 20 Oct 2026 (owner): from a row ONE TRAIL's back stands on its own row above the shelf */
+     !!opened && opened.chromeAbovePaper < (opened.rowMode ? 185 : 130),
      opened && `${opened.chromeAbovePaper}px of chrome, strip ${opened.stripH}px`);
 
   /* ---- REVERSED IN PLACE 2 Sep 2026 (owner-asked: "the sliding panels should
@@ -359,10 +360,10 @@ const dismissNote = async pg => {
       says: !!row.querySelector('#ce-say'), rowMode: page.classList.contains('ce-rowmode'), pageRight: Math.round(page.getBoundingClientRect().right) };
   });
   ck('2h THE STRIP IS ONE ROW at the prototype\'s own height',
-     !!toolStrip && toolStrip.h >= 40 && toolStrip.h <= 52 && toolStrip.offCentre === 0,
+     !!toolStrip && (toolStrip.rowMode ? toolStrip.h <= 100 : (toolStrip.h >= 40 && toolStrip.h <= 52 && toolStrip.offCentre === 0)),
      toolStrip && `${toolStrip.h}px, ${toolStrip.offCentre} off centre`);
   ck('2i the tools lead it and the way out ends it',
-     !!toolStrip && toolStrip.barFirst && toolStrip.exitLast,
+     !!toolStrip && (toolStrip.rowMode ? !toolStrip.exitLast : (toolStrip.barFirst && toolStrip.exitLast)),  /* from a row (owner, 20 Oct 2026): the trail's back leads, no Exit */
      toolStrip && `bar first ${toolStrip.barFirst}, exit last ${toolStrip.exitLast}`);
   ck('2j IT STOPS WHERE THE COPILOT CARD STARTS — the owner\'s own instruction (from a row: at the window\'s edge, as drawn)',
      !!toolStrip && Math.abs(toolStrip.right - toolStrip.railLeft) <= 1,
@@ -451,7 +452,7 @@ const dismissNote = async pg => {
      out.head.length === 0 && out.backBtn === false,
      out.head.length ? out.head.join(', ') : 'none of it drawn');
   ck('2n the way out is the LAST thing on the strip, at the wall',
-     out.exit === true && out.onStrip === true && out.fromRight < 20,
+     out.rowMode ? out.w === 0 : (out.exit === true && out.onStrip === true && out.fromRight < 20),  /* from a row: no Exit, the trail's back is the way out */
      out.exit ? `${out.fromRight}px from the strip's right edge` : 'no exit button');
   /* ---- 2o REVERSED IN PLACE 10 Sep 2026 ----
      It pinned "filled, SQUARE, and named", which was the prototype's shape for
@@ -460,18 +461,18 @@ const dismissNote = async pg => {
      accessible NAME are what this check was always really about and both
      stand. */
   ck('2o …filled and named — and the box now takes the word\'s width',
-     out.exit && out.w > out.h && /rgb/.test(out.filled)
+     out.rowMode ? out.w === 0 : out.exit && out.w > out.h && /rgb/.test(out.filled)
        && !/rgba\(0, 0, 0, 0\)/.test(out.filled) && /work mode|arbetsläget/i.test(out.named),
      out.exit ? `${out.w}x${out.h} ${out.filled} "${out.named}"` : '');
   ck('2q AND IT SAYS THE WORD — visible pixels, not markup behind something',
-     !!(out.word && out.word.painted && out.word.text.length > 0),
+     out.rowMode ? true : !!(out.word && out.word.painted && out.word.text.length > 0),
      out.word ? `"${out.word.text}" ${out.word.w}px wide` : 'no label span');
   /* RE-POINTED 19 Oct 2026 (round 9's gaps, third pass): from a Redlines row
      Exit is the quiet small outlined word, no symbol, as drawn */
   ck('2q2 the symbol stays beside it, and it really resolves (from a row: the word alone)',
      out.rowMode ? out.symbol !== true : out.symbol === true, String(out.symbol));
   ck('2q3 and the label holds one line, so it grows the button not the bar',
-     out.wordLines === 1, `${out.wordLines} line(s)`);
+     out.rowMode ? true : out.wordLines === 1, `${out.wordLines} line(s)`);
   ck('2p and it is the ONE way out — two controls leaving one page is the '
      + 'duplication reported on the contract room',
      out.doors === 1, `${out.doors}`);
