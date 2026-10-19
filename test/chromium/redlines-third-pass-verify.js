@@ -172,7 +172,7 @@ const openFace = async page => {
     }
     check('1b a row\'s "2 notes" opens that change\'s notes in the same panel, not the drawer', !!nv && /Liability cap/.test(nv.only || '') && nv.all && nv.say.length === 2 && !nv.drawer && !nv.ctx, JSON.stringify(nv));
     await shot(page, '9-rownotes-1440x780');
-    await page.click('#pd-redface [data-rl-fn-back]', { timeout: 5000 }).catch(() => {});
+    await page.click('#ig-dock > .pd-trail [data-pd-back="red-notes"]', { timeout: 5000 }).catch(() => {});  /* ONE TRAIL's back (20 Oct 2026) */
     await waitFor(page, () => !document.querySelector('#pd-redface .rl-fn'), 4000);
 
     /* 1c Discard last asks first (owner decision D3, 9 Oct 2026; the drawing's
@@ -255,6 +255,10 @@ const openFace = async page => {
     check('3c Jambo\'s panel holds cards only: no hand-over strip, the checks a card, the stays card', !!lt && !lt.handover && lt.card && !lt.strip && lt.stays, JSON.stringify(lt));
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]){
       await page.setViewportSize({ width: w, height: ht }); await pause(700);
+      /* RE-POINTED 20 Oct 2026 (ONE TRAIL's line under the tabs takes a line of the
+         panel): the card is scrolled to in the panel, then it must sit clear of the box */
+      await page.evaluate(() => { const e = document.getElementById('sh-lt-else'); if (e) e.scrollIntoView({ block: 'end' }); });
+      await pause(200);
       const fit = await page.evaluate(() => { const e = document.getElementById('sh-lt-else'); const box = document.querySelector('#ig-dock .igd-ask, #ig-dock #igd-input');
         const er = e && e.getBoundingClientRect(), br = box && box.getBoundingClientRect();
         const btns = e ? [...e.querySelectorAll('button')].filter(x => x.getClientRects().length).map(x => Math.round(x.getBoundingClientRect().bottom)) : [];
