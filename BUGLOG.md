@@ -21030,3 +21030,5 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 
 ## 19 Oct 2026 (trimming the rule book)
 - Fixed (19 Oct 2026, owner-asked trim): CLAUDE.md is back under its "about 80 KB" line — 117,223 → 79,754 bytes; the whole old file is saved word for word in docs/MAP-HISTORY.md ("CLAUDE.md AS IT STOOD ON 19 OCT 2026").
+- Noticed, not fixed (19 Oct 2026, PR #352's CI): theme-tokens-verify (calendar--light, calendar--dark) and ink-wash-verify (navy-dark calendar) depend on the day they run — the census was re-recorded on Saturday 17 Oct, when the Mon–Fri week view draws no today column; on a weekday `.cal-wk-col.is-today` adds its colour (accent-50 at 45%; dark rgba(53,96,180,.036)) and both checks go red, on main too. The calendar stage should be made independent of the day, not the census re-recorded.
+- Noticed, not fixed (19 Oct 2026, PR #352's CI): doors-look-like-doors-verify A2 ("Cancel puts back what the boxes held") failed once on GitHub — value 5000 came back as 0 — while it passes locally (4/4) and passed on main the night before.
