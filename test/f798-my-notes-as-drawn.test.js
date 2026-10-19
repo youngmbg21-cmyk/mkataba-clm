@@ -166,3 +166,23 @@ describe('f798 (6) the words', () => {
       for (const b of books.slice(0, 2)) assert.ok(new RegExp('\\n\\s+' + k + ': ').test(b), k);
   });
 });
+
+/* SECOND PASS (lane A3, 19 Oct 2026): a refresh lands on the same tab, boxes
+   and note. At the first pass (fc08e7f) every test here FAILS. */
+describe('f798 (7) a refresh lands at the same spot (PLACE_PARTS.mynotes)', () => {
+  test('7a My notes is in the place store', () => {
+    assert.match(R('js/app.js'), /mynotes:\['mnPlace','mnPlacePut'\]/);
+  });
+  test('7b the tab, the boxes and the chosen note come back once the notes are in', async () => {
+    const a = await painted();
+    a.d.querySelector('[data-mn-tab="later"]').click();
+    a.d.querySelector('[data-mn-row="nt_3"]').click();
+    const kept = JSON.parse(JSON.stringify(a.win.mnPlace()));
+    assert.equal(kept.filter, 'later'); assert.equal(kept.sel, 'nt_3');
+    const b = world();
+    b.win.mnPlacePut(kept);
+    await b.win.mineLoad(true); b.win.renderMyNotes();
+    assert.ok(b.d.querySelector('[data-mn-tab="later"][aria-selected="true"], [data-mn-tab="later"].is-on'), 'Later lit');
+    assert.equal(txt(b.d.querySelector('#ins-panel .ins-cp')), 'Is the price index right', 'the chosen note is back');
+  });
+});

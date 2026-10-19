@@ -258,3 +258,54 @@ describe('f797 (8) the words', () => {
     assert.match(books[0], /ik_act_promise: 'Promise a day',/);
   });
 });
+
+/* SECOND PASS (lane A3, 19 Oct 2026): an advice request reads like the
+   request drawn, and a refresh lands on the same tab, boxes and row.
+   At the first pass (fc08e7f) every test here FAILS. */
+describe('f797 (9) an advice request in round 20\'s shape', () => {
+  const adv = () => {
+    const x = world();
+    x.win.state.advice = [{ id: 'AR-101', service: 'review', name: 'Erik Ström', company: 'Procurement', description: 'May Stratos pass our data to a subcontractor?',
+      status: 'In progress', submittedAt: at(3), eta: inDays(1), assignee: 'Wanjiru Kamau' }];
+    x.win.insSelect('intake:team', 'adv:AR-101'); x.win.renderIntake();
+    return x;
+  };
+  test('9a one row of pills (where it stands, who holds it), their words quoted, the facts as rows', () => {
+    const { d } = adv();
+    const p = d.getElementById('ins-panel');
+    assert.match(txt(p.querySelector('.ins-eb')), /^AR-101 · Advice · from Erik Ström · Procurement$/);
+    const pills = p.querySelector('.jl-pills');
+    assert.ok(pills, 'one row of pills, as the request\'s');
+    assert.equal(txt(pills.querySelector('.ik-with-chip')), 'With Wanjiru Kamau');
+    assert.equal(txt(p.querySelector('.ik-need h3')), 'What Erik asked for');
+    assert.ok(p.querySelector('.ik-ask-q'), 'their words quoted');
+    const rows = [...p.querySelectorAll('.jl-rows.ik-rows > div dt')].map(txt);
+    assert.equal(rows[rows.length - 1], 'Asked', 'Asked · promised by closes the rows');
+    assert.ok(rows.includes('With'));
+    assert.equal(p.querySelector('.ins-kv'), null, 'the older two-column grid is gone');
+    assert.match(txt(p.querySelector('[data-ins-fact="asked"] dd')), /· promised by \S+ \d{1,2} \S+$/);
+  });
+});
+
+describe('f797 (10) a refresh lands at the same spot (PLACE_PARTS.intake)', () => {
+  const APP = R('js/app.js');
+  test('10a Requests is in the place store', () => {
+    assert.match(APP, /intake:\['ikPlace','ikPlacePut'\]/);
+  });
+  test('10b the tab, the boxes and the chosen row come back, the row once the list is in', () => {
+    const a = world();
+    a.win.ikFilters().view = 'all'; a.win.ikFilters().folder = 'sales'; a.win.insSelect('intake:team', 'REQ-1039');
+    const kept = JSON.parse(JSON.stringify(a.win.ikPlace()));
+    const b = world();
+    b.win._intakeState.loaded = false;
+    b.win.insSelect('intake:team', null);
+    b.win.ikPlacePut(kept);
+    b.win.renderIntake();                       /* before the list is in: nothing chosen is lost */
+    b.win._intakeState.loaded = true;
+    b.win.renderIntake();
+    assert.equal(b.win.ikFilters().view, 'all');
+    assert.equal(b.win.ikFilters().folder, 'sales');
+    assert.ok(b.d.querySelector('.ik-tabbar [data-ik-view="all"].is-on, .ik-tabbar [data-ik-view="all"][aria-selected="true"], .ik-tabbar [data-ik-view="all"][aria-current]'), 'the All tab lit');
+    assert.match(txt(b.d.querySelector('#ins-panel .ins-eb')), /^REQ-1039 /, 'the chosen row is back');
+  });
+});
