@@ -401,7 +401,9 @@ const PAGE_ACTIONS = {
 /* Obligations left this table 9 Oct 2026 (owner: its head "needs to be the
    same height as" Approvals & signing's, "so remove the we owe xxx place") —
    it paints nothing into the head now, so it reserves no slot for it. */
-const PAGE_HEAD_PAINT = { intake:'ikPaintHead', advice:'adviceHeadPaint', playbook:'pbPaintHead', agents:'agPaintHead', approvals:'apPaintHead' };
+/* Import (round 22 as drawn, 18 Oct 2026): what the batch is beside the name
+   ("Old contracts from … · started … by you · 24 files") and Choose files… */
+const PAGE_HEAD_PAINT = { intake:'ikPaintHead', advice:'adviceHeadPaint', playbook:'pbPaintHead', agents:'agPaintHead', approvals:'apPaintHead', migration:'migPaintHead' };
 function pageActionHtml(kind){
   if(kind==='export') return `<button data-page-export class="ui-btn" title="${i18t('ap_export_working_set')}">`+
     `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>${i18t('ap_export')}</button>`;
@@ -1525,6 +1527,8 @@ const PLACE_PARTS={
   brain:['brPlace','brPlacePut'],
   /* Jambo's agents keeps its tab, period, look and speed (12 Oct 2026) */
   jambo:['jhPlace','jhPlacePut'],
+  /* Import keeps its figure door, Show all, the chosen file and the check view (round 22, 18 Oct 2026) */
+  migration:['migPlace','migPlacePut'],
 };
 const PLACE_ONE_CONTRACT=['workspace','doc','redline'];
 const PLACE_BACK_MS=6000, PLACE_BACK_EVERY=120, PLACE_SAVE_WAIT=250;

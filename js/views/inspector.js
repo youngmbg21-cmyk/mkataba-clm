@@ -1046,10 +1046,12 @@ function jlFoldSet(on){
   const host = jlHost(); if (host) host.classList.toggle('is-folded', !!on);
   jlLayout();
 }
-/* the dressed panel on screen, or null */
+/* the dressed panel on screen, or null — the list inspector's, or Import's
+   (#mig-side wears the same frame since round 22 was built as drawn, 18 Oct
+   2026: THE CLOTHES FOLLOW THE BUILDER) */
 function jlHost(){
   if (typeof document === 'undefined') return null;
-  const h = document.getElementById('ins-panel');
+  const h = document.getElementById('ins-panel') || document.getElementById('mig-side');
   return (h && h.isConnected && h.classList.contains('is-jambo')) ? h : null;
 }
 /* JAMBO'S BOX ON SCREEN: the panel (or Import's) that holds #jl-q, only
@@ -1288,9 +1290,12 @@ function jlToWords(){
   insPaintPanel(Object.assign({}, cur, { c: null, item: null }));
   return true;
 }
-/* the contract the panel holds, where it holds one */
+/* the contract the panel holds, where it holds one — a page that keeps its
+   own choice (Import's chosen file) answers through `host._jlHeld` */
 function jlHeldContract(){
-  const host = jlHost(); const cur = host && host._ins;
+  const host = jlHost();
+  if (host && typeof host._jlHeld === 'function'){ try { return host._jlHeld() || null; } catch (_){ return null; } }
+  const cur = host && host._ins;
   if (cur && cur.c) return cur.c;
   if (cur && cur.jlCid && typeof getContract === 'function') return getContract(cur.jlCid) || null;
   return null;
@@ -1405,6 +1410,8 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined' && !window.
     if ((el = t.closest('[data-jl-fold]'))){ jlFoldSet(true); return; }
     if ((el = t.closest('[data-jl-door]'))){ jlFoldSet(false); return; }
     if ((el = t.closest('[data-jl-back]')) || (el = t.closest('[data-jl-home]'))){
+      /* a page that keeps its own choice lets it go itself (Import's file) */
+      if (typeof host._jlBack === 'function' && host._jlBack()) return;
       const cur = host._ins || {};
       if (cur.c || cur.item) jlToWords(); else { const q = host.querySelector('#jl-q'); if (q) try { q.focus({ preventScroll: true }); } catch (_){} }
       return;
@@ -1436,5 +1443,5 @@ Object.assign(window, { INS_MIN_W, INS_ASKS_MAX, INS_LATEST, INS_READ_TONE,
   insHeadHtml, insParties, insPartiesHtml, insNeedsHtml, insNeedsLineHtml, insNeedWords, INS_NEED_VERB, INS_NEED_GO, insPanelHtml, insPanelEmptyHtml, insPaintPanel, insCloseMenu, insMarkRow, insListWire,
   insListOff, insWatchWidth, insActsHtml, insDoorActs, insNegoDoorState, insMenuItemHtml, insItemHeadHtml, INS_TONE, insKvHtml, insChipHtml, insViewTabsHtml,
   INS_PAGE_REPAINT, insLetGo, insLetGone, insActBtnHtml, insRowsHtml, JL_READ_ORDER, jlReadsHtml, jlReadSaid,
-  JL_W, JL_FOLDED, jlFolded, jlFoldSet, jlHost, jlOnScreen, jlReserved, jlLayout, jlCount, jlAskHtml, jlFrame, jlWordsHtml, jlNeedsHtml,
+  JL_W, JL_FOLDED, jlFolded, jlFoldSet, jlHost, jlOnScreen, jlReserved, jlLayout, jlCount, jlAskHtml, jlFrame, jlHeadPaint, jlWordsHtml, jlNeedsHtml,
   JL_LAND, jlLand, jlPageWord, jlToWords, jlHeldContract, jlBoardReads, jlAsk, jlMapCard, jlFocus, jlPopRead, jlPopClose, jlPopTake, jlDayWord, jlDayRange, jlAwayOf });
