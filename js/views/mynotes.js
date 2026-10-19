@@ -93,7 +93,7 @@ function myNotesTableHtml(list){
   }
   return `<table class="ins-lt mn-t"><colgroup><col><col style="width:34%"><col style="width:150px"><col style="width:84px"></colgroup><thead><tr><th>${_mnE(i18t('mn_col_note'))}</th><th>${_mnE(i18t('mn_col_contract'))}</th><th>${_mnE(i18t('mn_col_review2'))}</th><th>${_mnE(i18t('mn_col_written'))}</th></tr></thead><tbody>${
     list.map(n => { const st = myNoteState(n), c = _mnContract(n.contractId);
-      return `<tr data-mn-row="${_mnE(n.id)}" tabindex="0" class="${String(n.id) === String(_mn.sel) && _mn.mode === 'view' ? 'is-sel' : ''}${String(n.id) === String(_mn.fresh) ? ' is-fresh' : ''}"${String(n.id) === String(_mn.sel) && _mn.mode === 'view' ? ' aria-current="true"' : ''}>
+      return `<tr data-mn-row="${_mnE(n.id)}" data-ins-row="${_mnE(n.id)}" tabindex="0" class="${String(n.id) === String(_mn.sel) && _mn.mode === 'view' ? 'is-sel' : ''}${String(n.id) === String(_mn.fresh) ? ' is-fresh' : ''}"${String(n.id) === String(_mn.sel) && _mn.mode === 'view' ? ' aria-current="true"' : ''}>
         <td class="t"><span title="${_mnE(n.title)}">${_mnE(n.title)}</span></td>
         <td class="c">${c ? `${typeof refHtml === 'function' ? refHtml(c) : _mnE(_mnRef(c))} <span class="cp">${_mnE(_mnCtName(c))}</span>` : '<span class="cp">—</span>'}</td>
         <td>${mnPillHtml(st)}</td>
