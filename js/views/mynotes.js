@@ -16,6 +16,19 @@
    ========================================================================== */
 let _mn = { sel:null, mode:'view', filter:'all', ct:'', q:'', form:null, fresh:null };
 const MN_WHEN = [['tomorrow',1],['week',7],['two',14],['pick',null],['none',null]];
+/* A REFRESH LANDS AT THE SAME SPOT (the owner's rule; PLACE_PARTS.mynotes):
+   the tab, the Note and Contract boxes and the chosen note. A half-written
+   note is not a place: it comes back through its own draft, as before. */
+function mnPlace(){ return { filter:_mn.filter, ct:_mn.ct, q:_mn.q, sel:_mn.mode === 'view' ? _mn.sel : null }; }
+function mnPlacePut(p){
+  if (!p || typeof p !== 'object') return;
+  _mn.filter = MN_TABS.some(t => t[0] === p.filter) ? p.filter : 'all';
+  _mn.ct = p.ct ? String(p.ct) : ''; _mn.q = p.q ? String(p.q) : '';
+  /* the chosen note waits for the list: it is chosen on the first paint
+     that has notes, and only if it is still among them */
+  _mnBack = p.sel ? String(p.sel) : null;
+}
+let _mnBack = null;
 
 const _mnE = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 const _mnToday = () => (typeof todayISO === 'function' ? todayISO() : new Date().toISOString().slice(0, 10));
@@ -196,6 +209,10 @@ function renderMyNotes(){
   const wide = typeof window.insFits === 'function' && insFits() && typeof window.insPaintPanel === 'function';
   const list = myNotesShown();
   const SEAT = 'mynotes';
+  if (_mnBack && (typeof mineLoaded !== 'function' || mineLoaded())){
+    if (list.some(n => String(n.id) === _mnBack)){ _mn.mode = 'view'; _mn.sel = _mnBack; if (typeof insSelect === 'function') insSelect(SEAT, _mnBack); }
+    _mnBack = null;
+  }
   if (_mn.mode === 'view'){
     if (wide && typeof insPick === 'function'){ _mn.sel = insPick(SEAT, list.map(n => String(n.id))); }
     else if (!list.some(n => String(n.id) === String(_mn.sel))) _mn.sel = list[0] ? list[0].id : null;
@@ -413,4 +430,4 @@ function myNotesCss(){ return `
   .mn-when button:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:2px}
 `; }
 
-Object.assign(window, { renderMyNotes, myNotesNew, myNotesOpen, myNoteState, myNotesShown, paintMyNotesCount });
+Object.assign(window, { mnPlace, mnPlacePut, renderMyNotes, myNotesNew, myNotesOpen, myNoteState, myNotesShown, paintMyNotesCount });

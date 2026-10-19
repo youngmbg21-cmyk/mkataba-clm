@@ -969,6 +969,23 @@ const IK_DEF = { view:'open', who:'all', road:'all', folder:'all', q:'' };
 const IK_CHIPS = ['who', 'folder'];
 let _ikF = null;
 function ikFilters(){ if(!_ikF) _ikF={ ...IK_DEF }; return _ikF; }
+/* A REFRESH LANDS AT THE SAME SPOT (the owner's rule; PLACE_PARTS.intake):
+   the tab, the band's boxes and the chosen row on either seat. Put back
+   before the first paint, so nothing is drawn twice; a row no longer on the
+   list falls back to insPick's first row, as a filter would. */
+function ikPlace(){
+  const sel=k=>(typeof insSelected==='function')?insSelected(k):null;
+  return { ...ikFilters(), sel:{ team:sel('intake:team'), asker:sel('intake:asker') } };
+}
+function ikPlacePut(p){
+  if(!p||typeof p!=='object') return;
+  const f=ikFilters();
+  Object.keys(IK_DEF).forEach(k=>{ if(p[k]!=null) f[k]=String(p[k]); });
+  /* the chosen row waits for the list (it is fetched once per sitting) */
+  const s=p.sel||{};
+  _ikBack={ 'intake:team':s.team?String(s.team):null, 'intake:asker':s.asker?String(s.asker):null };
+}
+let _ikBack=null;
 let _ikHead = { facts:'', acts:'' };
 function ikPaintHead(){
   if(typeof document==='undefined') return;
@@ -1491,21 +1508,31 @@ function ikAdvicePanelOpts(r){
   const left=(window.adviceDaysLeft&&r.eta)?adviceDaysLeft(r.eta):null;
   const done=IK_ADV_DONE.includes(r.status);
   const tone=done?'green':left!=null&&left<0?'ruby':left!=null&&left<=1?'amber':'steel';
-  const facts=[
-    { k:'cp', label:i18t('ik_f_customer'), v:r.by.name?`<span class="ik-cp">${typeof window.regAvatarHtml==='function'?regAvatarHtml(r.by.name):''}${esc(r.by.name)}</span>`:'' },
-    { k:'company', label:i18t('ik_f_company'), v:esc(r.company) },
-    { k:'contract', label:i18t('ik_f_contract'), v:esc(a.contractName||'') },
-    { k:'fee', label:i18t('ik_f_fee'), v:esc(fee) },
-    { k:'holder', label:i18t('ik_f_holder'), v:a.assignee?esc(a.assignee):`<span class="ins-nobody">${esc(i18t('ik_with_nobody'))}</span>` },
-    { k:'asked', label:i18t('ik_f_asked_on'), v:esc(ikDay(r.createdAt,{ long:true })) } ];
-  let body=insKvHtml(facts);
-  body+=insSecHtml(i18t('ik_sec_they_asked'), '', r.need?`<p class="ins-p" style="white-space:pre-wrap">${esc(r.need)}</p>`:`<p class="ins-note">${esc(i18t('ik_asked_nothing'))}</p>`, 'ik-need');
+  /* ROUND 20'S SHAPE, the request's own (lane A3's second pass): the
+     eyebrow, the title, one row of pills (where it stands, then who holds
+     it), the doors, what they asked for in their own words quoted, then the
+     facts as rows — read off the advice record, nothing new */
+  const holder=String(a.assignee||'').trim();
+  const pills=`<span class="reg-stg ins-pill is-${esc(tone)}"><i aria-hidden="true"></i>${esc(st.label||r.status)}</span>`
+    +(done?'':holder?`<span class="ik-with-chip">${esc(i18t('ik_pill_with',{ who:holder }))}</span>`:`<span class="ik-with-chip is-nobody">${esc(i18t('ik_g_nobody'))}</span>`);
+  const first=ikFirst(r.by.name);
+  const asked=esc(ikDay(r.createdAt,{ weekday:true }))+(done?'':` · <span class="${left!=null&&left<0?'ins-late':''}">${esc(i18t('ik_promised_by',{ by:r.eta?ikDay(r.eta,{ weekday:true }):'—' }))}</span>`);
+  const rows=[
+    { k:'cp', label:i18t('ik_f_customer'), v:esc(r.by.name||'') },
+    r.company?{ k:'company', label:i18t('ik_f_company'), v:esc(r.company) }:null,
+    a.contractName?{ k:'contract', label:i18t('ik_f_contract'), v:esc(a.contractName) }:null,
+    fee?{ k:'fee', label:i18t('ik_f_fee'), v:esc(fee) }:null,
+    { k:'with', label:i18t('ik_f_with'), v:holder?esc(holder):`<span class="ins-nobody">${esc(i18t('ik_with_nobody'))}</span>` },
+    { k:'asked', label:i18t('ik_f_asked'), v:asked } ];
+  let body=insSecHtml(first?i18t('ik_sec_need',{ first }):i18t('ik_sec_they_asked'), '',
+    r.need?`<blockquote class="ik-ask-q">${esc(i18t('ik_quote',{ t:r.need }))}</blockquote>`:`<p class="ins-note">${esc(i18t('ik_asked_nothing'))}</p>`, 'ik-need');
+  body+=(typeof insRowsHtml==='function')?insRowsHtml(rows, 'ik-rows'):insKvHtml(rows);
   const acts=[
     { k:'open', kind:'accent', label:i18t('ik_act_open_advice'), run:()=>{ if(window.openAdviceModal) openAdviceModal(r.id); } },
     { k:'board', label:i18t('ik_act_advice_board'), run:()=>setView('advice') } ];
   return { item:{ id:'adv:'+r.id },
-    head:{ eyebrow:`<span class="ins-ref">${esc(r.id)}</span> · ${esc(i18t('ik_kind_advice'))} · ${esc(i18t('ik_eb_from',{ name:r.by.name||'' }))}`, title:r.title,
-      pillTone:tone, pill:r.eta&&!done?esc(i18t('ik_pill_promised',{ day:ikDay(r.eta,{ weekday:true }) })):esc(st.label||r.status), acts },
+    head:{ eyebrow:`<span class="ins-ref">${esc(r.id)}</span> · ${esc(i18t('ik_kind_advice'))} · ${esc(i18t('ik_eb_from',{ name:r.by.name||'' }))}${r.company?' · '+esc(r.company):''}`, title:r.title,
+      pills, moreBesidePills:true, acts },
     acts, body };
 }
 /* THE BAND'S BOXES (round 20 as drawn): beside the tabs, each with its label
@@ -1648,6 +1675,9 @@ function renderIntakeInspector(host){
   const idOf=t=>t.getAttribute('data-ik-row');
   const keyOf=r=>r._adv?'adv:'+r.id:r.id;
   const byId=new Map(rows.map(r=>[keyOf(r),r]));
+  if(_ikBack&&_intake.loaded){ const want=_ikBack[seat];
+    if(want&&byId.has(want)&&typeof insSelect==='function') insSelect(seat, want);
+    _ikBack[seat]=null; }
   const id=insPick(seat, rows.map(keyOf));
   if(tb) insMarkRow(tb,'[data-ins-row]',idOf,id);
   /* Jambo's own words with nothing chosen; a chip narrows to what nobody
@@ -1746,7 +1776,7 @@ async function intakeTrackCopy(id){
   catch(_){ try{ window.open(url,'_blank'); }catch(__){ toast(url,'warn'); } }
 }
 
-Object.assign(window,{ikWithListHtml,ikFilesCellHtml,INTAKE_STATUS,IK_LIVE,IK_ROADS,IK_TONE,IK_MEDIAN_MIN,IK_STOPPED,
+Object.assign(window,{ikPlace,ikPlacePut,ikWithListHtml,ikFilesCellHtml,INTAKE_STATUS,IK_LIVE,IK_ROADS,IK_TONE,IK_MEDIAN_MIN,IK_STOPPED,
   ikKnownCounterparty,intakeRoad,intakeStoppedAt,intakeMinutes,
   intakeMedianDays,intakePromise,intakePastDue,intakeTrackUrl,intakeLanes,intakeLaneFor,
   intakeRefresh,intakeSweepStart,IK_SWEEP_MS,intakeFormFields,ikFieldHtml,ikFieldId,intakeTitleFrom,intakeHoldDraft,intakeHeldDraft,intakeClaimDraft,intakeContractSent,intakeGoTo,intakeAlertRows,intakeLaneDraftRows,intakeLaneArrivals,ikShelfOf,IK_HOLD_AFTER_CREATE_MS,ikClockHtml,ikFactHtml,intakePick,intakePromiseAsk,intakeTrackCopy,intakePatch,
