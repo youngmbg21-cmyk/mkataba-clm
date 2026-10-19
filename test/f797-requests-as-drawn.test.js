@@ -252,7 +252,7 @@ describe('f797 (8) the words', () => {
     const books = I18N.split(/\n  sv: \{/);
     assert.equal(books.length >= 2, true);
     for (const k of ['ik_v_finished', 'ik_hf_sub', 'ik_box_request', 'ik_box_request_ph', 'ik_sort_oldest', 'ik_foot_n_open', 'ik_pill_with_you_lane',
-      'ik_with_sent_comma', 'ik_promised_by', 'ik_files_of', 'ik_file_by', 'ik_cp_nda_none', 'ik_cp_nda_inforce', 'jl_ik_fit_routine', 'jl_ik_fit_other',
+      'ik_with_sent_comma', 'ik_promised_by', 'ik_files_of', 'ik_file_by', 'ik_cp_nda_none', 'ik_cp_nda_inforce', 'jl_ik_fit_routine', 'jl_ik_fit_closest',
       'jl_ik_fit_none', 'jl_ik_fit_src', 'jl_ik_say_open_other', 'jl_ik_chip_nobody'])
       for (const b of books.slice(0, 2)) assert.ok(new RegExp('\\n\\s+' + k + ': ').test(b), k);
     assert.match(books[0], /ik_act_promise: 'Promise a day',/);

@@ -282,19 +282,26 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
        piles' order — read off each row's own pile. */
     const ik = await page.evaluate(() => ({ ins: !!document.querySelector('.ik-ins'),
       /* RE-POINTED AGAIN 9 Oct 2026 (the owner: build it the SAP way): one
-         flat list, NEWEST FIRST as drawn — read off each row's own date */
+         flat list — read off each row's own date. RE-POINTED 19 Oct 2026
+         (round 20 as drawn, the owner's yes to build every gap): the Open list
+         is OLDEST WAITING FIRST, as its head says */
       groups: (() => { const at = [...document.querySelectorAll('.ik-lt tbody [data-ik-row]')].map(r => ((_intakeState.list || []).find(x => x.id === r.getAttribute('data-ik-row')) || {}).createdAt || '');
-        return at.length > 1 && at.every((v, i) => !i || at[i - 1] >= v) ? ['newest-first'] : at; })(),
+        return at.length > 1 && at.every((v, i) => !i || at[i - 1] <= v) ? ['oldest-first'] : at; })(),
       head: (document.getElementById('page-head-facts') || {}).textContent || '',
       ask: !!document.querySelector('#page-head-acts #ik-new') }));
-    ok('4a the queue is a list and a panel, newest request first',
-      ik.ins && ik.groups.join(',') === 'newest-first' && ik.ask, ik);
+    ok('4a the queue is a list and a panel, the longest wait first',
+      ik.ins && ik.groups.join(',') === 'oldest-first' && ik.ask, ik);
     await page.click('[data-ik-row="REQ-HELD01"]').catch(() => {}); await page.waitForTimeout(300);
     /* re-pointed 9 Oct 2026: the drawing's panel names the holder as a fact
-       and the promise as the head's pill; take-over lives under ⋯ */
+       and the promise as the head's pill; take-over lives under ⋯.
+       RE-POINTED 19 Oct 2026 (round 20 as drawn): the head's pills say how it
+       is handled and whose it is ("With Amina Otieno"); the promise is said in
+       the Asked row ("Sun 18 Oct · promised by Tue 21 Oct") */
     const heldSays = await page.evaluate(() => ({ holder: (document.querySelector('#ins-panel [data-ins-fact="with"] dd') || {}).textContent || '',
-      pill: (document.querySelector('#ins-panel .ins-pill-row') || {}).textContent || '' }));
-    ok('4b a request a colleague holds names its holder, and its promise', /Amina Otieno/.test(heldSays.holder) && /Promised by/.test(heldSays.pill), heldSays);
+      pill: (document.querySelector('#ins-panel .ik-with-chip') || {}).textContent || '',
+      asked: (document.querySelector('#ins-panel [data-ins-fact="asked"] dd') || {}).textContent || '' }));
+    ok('4b a request a colleague holds names its holder, and its promise', /Amina Otieno/.test(heldSays.holder) && /With Amina Otieno/.test(heldSays.pill)
+      && /promised by \S+ \d/.test(heldSays.asked), heldSays);
     await page.click('#ins-panel [data-ins-more]').catch(() => {}); await page.waitForTimeout(200);
     await page.click('#ins-panel [data-ins-menu] [data-act="pick"]').catch(() => {}); await page.waitForTimeout(500);
     const takeAsk = await page.evaluate(() => { const d = [...document.querySelectorAll('[data-top-overlay], [role="alertdialog"], [role="dialog"]')].pop();

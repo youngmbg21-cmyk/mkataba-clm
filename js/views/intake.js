@@ -1355,7 +1355,7 @@ function ikFitHtml(r){
   if(!fit) html=esc(i18t('jl_ik_fit_none',{ who:who||i18t('jl_ik_who_you') }));
   else {
     const words=fit.shared.map(w=>i18t('ik_quote',{ t:w })).join(', ');
-    const k=ikRoadShown(r).k==='routine'?'jl_ik_fit_routine':'jl_ik_fit_other';
+    const k=ikRoadShown(r).k==='routine'?'jl_ik_fit_routine':'jl_ik_fit_closest';
     html=esc(i18t(k,{ name:MARK, whose, words })).replace(MARK, `<b>${esc(fit.name)}</b>`);
   }
   const face=(typeof jamboFaceHtml==='function')?jamboFaceHtml('hello', 24, 'jl-say-face').replace('<img', '<img data-ink-exempt'):'';
@@ -1567,7 +1567,7 @@ function renderIntakeInspector(host){
      Ref is wide enough for HaTi's own references (REQ-37E60C) to read whole. */
   const cols=asker
     ? [{ t:i18t('ik_col_ref'), w:96 }, { t:i18t('ik_col_request') }, { t:i18t('ik_f_with'), w:170 }, { t:i18t('ik_f_promised'), w:130 }]
-    : [{ t:i18t('ik_col_ref'), w:108 }, { t:i18t('ik_col_request') }, { t:i18t('ik_col_kind'), w:88 }, { t:i18t('ik_f_road'), w:126 }, { t:i18t('ik_f_with'), w:148 }, { t:i18t('ik_col_files'), w:56 }, { t:i18t('ik_col_asked'), w:66 }, { t:i18t('ik_f_promised'), w:100 }];
+    : [{ t:i18t('ik_col_ref'), w:108 }, { t:i18t('ik_col_request') }, { t:i18t('ik_col_kind'), w:88 }, { t:i18t('ik_f_road'), w:140 }, { t:i18t('ik_f_with'), w:148 }, { t:i18t('ik_col_files'), w:56 }, { t:i18t('ik_col_asked'), w:66 }, { t:i18t('ik_f_promised'), w:100 }];
   /* the Kind, an outlined pill — round 15's own (ap-kind) */
   const kindPill=k=>`<span class="ap-kind ik-kind">${esc(i18t(k==='advice'?'ik_kind_advice':'ik_kind_contract'))}</span>`;
   const advTr=r=>{
