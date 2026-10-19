@@ -62,8 +62,12 @@ describe('f722 (2) the one renderer', () => {
 
 describe('f722 (3) the template\'s own doors', () => {
   test('3a the doors are tplPanelActs\' verbs, the menu left to the list', () => {
-    assert.match(fnBody(LIB, 'tplPfHtml'), /acts = \(tplPanelActs\(row\)\.acts \|\| \[\]\)\.filter\(a => a\.k !== 'more'\)/);
-    assert.match(fnBody(LIB, 'tplBookWire'), /const a=\(_tplPf\.acts\|\|\[\]\)\[Number\(b\.getAttribute\('data-tpl-pf-act'\)\)\]; if\(a&&a\.run\) a\.run\(\);/);
+    /* RE-POINTED 19 Oct 2026 (round 21 as drawn, lane D): the head's verbs
+       are "Open in the builder" · "Draft from it" beside the template's own
+       (tplPfVerbs); a greyed one presses nothing */
+    assert.match(fnBody(LIB, 'tplPfVerbs'), /own = \(tplPanelActs\(row\)\.acts \|\| \[\]\)\.filter\(a => !\['more', 'use', 'edit'\]\.includes\(a\.k\)\)/);
+    assert.match(fnBody(LIB, 'tplPfHtml'), /const acts = tplPfVerbs\(card\);/);
+    assert.match(fnBody(LIB, 'tplBookWire'), /const a=\(_tplPf\.acts\|\|\[\]\)\[Number\(b\.getAttribute\('data-tpl-pf-act'\)\)\]; if\(a&&a\.run&&!a\.off\) a\.run\(\);/);
   });
 });
 

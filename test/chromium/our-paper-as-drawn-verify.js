@@ -101,6 +101,8 @@ async function SEED(){
     const until = async (fn, arg, ms = 10000) => { let v; const t0 = Date.now();
       while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(120); }
       return v; };
+    /* a press that reports a missing part rather than waiting out a timeout */
+    const press = sel => page.evaluate(q => { const e = document.querySelector(q); if (!e) return false; e.click(); return true; }, sel);
     const signIn = async () => {
       await until(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-A2'), null, 20000);
       await page.keyboard.press('Escape').catch(() => {});
@@ -137,9 +139,9 @@ async function SEED(){
       && B.rows.length === 2, JSON.stringify(B.shelves));
     check('2b a row says its version, how often used in 12 months and its stream; "2 changed" and "draft" ride beside',
       B.rows.some(r => /Master services agreement\s*v1 · used 5 · Sales\s*2 changed/.test(r)) && B.rows.some(r => /Reseller agreement\s*v1 draft · used 0 · Sales\s*draft/.test(r)), JSON.stringify(B.rows));
-    await page.click('[data-tpl-pf-shelf="builtin"]');
+    await press('[data-tpl-pf-shelf="builtin"]');
     const B2 = await until(() => { const s = document.querySelector('[data-tpl-pf-shelf="builtin"]'); return s && s.getAttribute('aria-expanded') === 'true' ? document.querySelectorAll('[data-tpl-pf]').length : 0; });
-    await page.click('[data-tpl-pf-shelf="builtin"]');
+    await press('[data-tpl-pf-shelf="builtin"]');
     const B3 = await until(() => { const s = document.querySelector('[data-tpl-pf-shelf="builtin"]'); return s && s.getAttribute('aria-expanded') === 'false' ? document.querySelectorAll('[data-tpl-pf]').length : 0; });
     check('2c a shelf\'s line opens it, pressed again it folds', B2 >= 12 && B3 === 2, `${B2} → ${B3}`);
 
@@ -174,10 +176,10 @@ async function SEED(){
     check('5c Next steps: open it in the builder · draft a contract from it · where it came back changed', E.next === 'Next steps'
       && JSON.stringify(E.chips) === JSON.stringify(['open it in the builder', 'draft a contract from it', 'where it came back changed']), JSON.stringify(E.chips));
     check('5d the ask box and the hint line at the panel\'s foot; the panel at the window\'s edge', E.ph === 'Ask for anything, or type /' && /Typing never signs, sends or files — a press does\./.test(E.hint) && E.right, JSON.stringify({ ph: E.ph, hint: E.hint, right: E.right }));
-    await page.click('#ins-panel [data-jl-back]');
+    await press('#ins-panel [data-jl-back]');
     const E2 = await until(() => { const p = document.getElementById('ins-panel'); return p && !p.querySelector('.tpl-pf-jl') && p.querySelector('[data-jl-words]') ? p.querySelector('[data-jl-words]').textContent.replace(/\s+/g, ' ').trim() : null; });
     check('5e ‹ Jambo lets the template go: his words say the book', !!E2 && /Our paper holds \d+ templates/.test(E2) && /contracts were drafted from them in 12 months; 2 came back changed/.test(E2), E2);
-    await page.click('[data-tpl-pf="company:' + ids.msa.tid + '"]');
+    await press('[data-tpl-pf="company:' + ids.msa.tid + '"]');
     const E3 = await until(() => !!document.querySelector('#ins-panel .tpl-pf-jl'));
     check('5f a press on the template holds it again', !!E3);
 
@@ -185,7 +187,7 @@ async function SEED(){
     await page.evaluate(() => { const b = [...document.querySelectorAll('[data-tpl-pf-chip]')].find(x => /came back changed/.test(x.textContent)); if (b) b.click(); });
     const F1 = await until(() => { const m = document.querySelector('.tpl-mk.is-changed.is-landed'); return m ? m.textContent.trim() : null; });
     check('6a "where it came back changed" lands on the mark, lit', F1 === 'Came back changed 2 times', F1);
-    await page.click('.tpl-mk.is-changed');
+    await press('.tpl-mk.is-changed');
     const F2 = await until(() => { if (state.view !== 'register' && state.view !== 'dashboard' && state.view !== 'counter') return null;
       const only = state.reg && state.reg.only; return only && Array.isArray(only.ids) ? only.ids.slice().sort().join(',') : null; }, null, 8000);
     check('6b the mark opens the Contracts list narrowed to the two contracts it counts', !!F2 && F2.split(',').length === 2, F2);
@@ -197,7 +199,7 @@ async function SEED(){
     await page.keyboard.press('Escape').catch(() => {});
     await page.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });
     await page.evaluate(() => { setView('templates'); tplPageSetTab('book'); });
-    await page.click('[data-tpl-pf="company:' + ids.res.tid + '"]');
+    await press('[data-tpl-pf="company:' + ids.res.tid + '"]');
     const F4 = await until(() => { const b = [...document.querySelectorAll('[data-tpl-pf-act]')].find(x => x.textContent.trim() === 'Draft from it'); return b ? { off: b.disabled, why: b.title } : null; });
     check('6d on a draft, Draft from it is greyed with its reason', !!F4 && F4.off && /publish it first/i.test(F4.why), JSON.stringify(F4));
     if (OUT) await page.screenshot({ path: path.join(OUT, 'our-paper-book-1440x780.png') });
@@ -233,29 +235,29 @@ async function SEED(){
     check('8b marks under the sections that meet a standard', P.marks.some(m => /Payment within 30 days/.test(m)) && P.marks.some(m => /Liability cap at 12 months fees/.test(m)), JSON.stringify(P.marks));
     const cat = P.props[0] && P.props[0][0];
     const before = await page.evaluate(() => document.querySelectorAll('#tb-paper [data-tb-row]').length);
-    await page.click(`[data-tb-prop-skip="${cat}"]`);
+    await press(`[data-tb-prop-skip="${cat}"]`);
     const S = await until(c => !document.querySelector(`[data-tb-prop="${c}"]`) && JSON.parse(localStorage.getItem('hati.v1.tbSkipped') || '{}'), cat);
     check('8c Skip takes the proposal away for this template, kept in this browser', !!S && Object.values(S).some(a => a.includes(cat)) && !(await page.evaluate(c => [...document.querySelectorAll('.tb-ol-r.is-prop')].some(r => r.textContent.includes(c)), cat)), JSON.stringify(S));
     await page.evaluate(() => localStorage.removeItem('hati.v1.tbSkipped'));
     await page.evaluate(i => openTemplateBuilder(i.tid, i.vid), ids.res);
     await until(() => document.querySelector(`#tb-paper [data-tb-prop-add]`));
-    await page.click('#tb-paper [data-tb-prop-add]');
+    await press('#tb-paper [data-tb-prop-add]');
     const AD = await until(c => { const heads = [...document.querySelectorAll('#tb-paper .tb-hed')].map(h => h.textContent.trim()); return heads.includes(c) ? { n: document.querySelectorAll('#tb-paper [data-tb-row]').length, heads } : null; }, cat);
     check('8d Add puts our standard\'s heading and wording in (the one push)', !!AD && AD.n === before + 2, JSON.stringify(AD));
 
     /* 9 OUTLINE ROWS, ‹ JAMBO, FOLD */
-    await page.click('#tb-rail [data-tb-tab="outline"]');
+    await press('#tb-rail [data-tb-tab="outline"]');
     await until(() => !!document.querySelector('[data-tb-ol]'));
     const k = await page.evaluate(() => { const r = [...document.querySelectorAll('[data-tb-ol]')].find(x => /Territory/.test(x.textContent)); return r ? r.getAttribute('data-tb-ol') : null; });
-    await page.click(`[data-tb-ol="${k}"]`);
+    await press(`[data-tb-ol="${k}"]`);
     const L = await until(kk => { const s = document.querySelector(`[data-tb-sec="${kk}"]`); return s && s.classList.contains('is-landed') ? { on: (document.querySelector('[data-tb-tab].is-on') || {}).textContent, sel: (document.querySelector('.tb-ol-r.is-sel') || {}).textContent } : null; }, k);
     check('9a an Outline row lands on its section (lit), the Outline stays open with the row lit', !!L && L.on === 'Outline' && /Territory/.test(L.sel || ''), JSON.stringify(L));
-    await page.click('#tb-rail .pd-back[data-tb-jambo]');
+    await press('#tb-rail .pd-back[data-tb-jambo]');
     const J = await until(() => { const on = document.querySelector('[data-tb-tab].is-on'); return on && on.textContent.trim() === 'Build' && !document.querySelector('#tb-paper .tb-sec.is-on') ? true : null; });
     check('9b ‹ Jambo is Build with nothing in hand', !!J);
-    await page.click('#tb-rail [data-tb-fold]');
+    await press('#tb-rail [data-tb-fold]');
     const FO = await until(() => { const r = document.getElementById('tb-rail'); return r && r.classList.contains('is-folded') ? Math.round(r.getBoundingClientRect().width) : null; });
-    await page.click('#tb-rail [data-tb-door]');
+    await press('#tb-rail [data-tb-door]');
     const UN = await until(() => { const r = document.getElementById('tb-rail'); return r && !r.classList.contains('is-folded') ? Math.round(r.getBoundingClientRect().width) : null; });
     check('9c › folds the panel to a strip at the edge; its strip opens it', FO != null && FO <= 48 && UN > 300, `${FO} → ${UN}`);
 

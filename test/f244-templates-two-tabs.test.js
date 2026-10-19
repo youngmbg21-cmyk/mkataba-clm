@@ -524,7 +524,15 @@ describe('f244 (7) — the two tabs work together', () => {
        the book is an index of templates and the chosen one's paper — every
        index row is a door onto that template's paper, and its doors are the
        template's own verbs */
-    assert.ok((bk.match(/data-tpl-pf="/g) || []).length >= 4, 'a row per template, and it is the door to its paper');
+    /* RE-POINTED AGAIN 19 Oct 2026 (round 21 as drawn, lane D): the chosen
+       template's shelf is open and the others are one line each until
+       pressed — so the rows are counted with every shelf opened */
+    assert.ok((bk.match(/data-tpl-pf-shelf="/g) || []).length >= 2, 'each shelf is a line that opens');
+    s._tplPf.open = { company: true, builtin: true, sample: true, cp: true }; s.renderTemplatesPage();
+    const all = s.document.getElementById('content').innerHTML;
+    const opened = all.slice(all.indexOf('data-tpl-sec="book"'), all.indexOf('data-tpl-sec="list"'));
+    s._tplPf.open = {};
+    assert.ok((opened.match(/data-tpl-pf="/g) || []).length >= 4, 'a row per template, and it is the door to its paper');
     assert.match(bk, /class="tpl-pf-paper"/, 'the chosen template\'s paper is drawn beside the index');
     assert.ok((wall(s).match(/data-tpl-ov-bucket=/g) || []).length >= 5,
       'the wall is still built whole — one builder, and the book draws its cards');

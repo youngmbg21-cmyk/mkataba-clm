@@ -222,7 +222,12 @@ describe('f336 (3) — the glance, and the caveat on what it qualifies', () => {
     assert.equal((html.match(/class="tpl-gl"/g) || []).length, 3);
     for (const k of ['lib_bk_have', 'lib_bk_drafted', 'lib_bk_changed'])
       assert.match(fnBody('tplBookGlanceHtml'), new RegExp(k));
-    assert.match(fnBody('renderTemplatesPage'), /tplBookGlanceHtml\(ov\)/, 'drawn once, in the page band');
+    /* RE-POINTED 19 Oct 2026 (round 21 as drawn, lane D): the band carries the
+       page's facts as ONE line beside its name ("N templates · N contracts
+       drafted from them in 12 months · N came back changed", tplPfHeadFacts);
+       the three figures' builder is kept whole, unused by the page */
+    assert.ok(!/tplBookGlanceHtml\(ov\)/.test(fnBody('renderTemplatesPage')), 'the figures are not drawn on the page');
+    assert.match(fnBody('renderTemplatesPage'), /const hf=tplPfHeadFacts\(ov\);[\s\S]*data-tpl-hd-sub/, 'the facts line is, in the page band');
   });
 
   test('the caveat sits on the RATE, and nowhere else', () => {
@@ -270,14 +275,20 @@ describe('f336 (4) — the book is an index and a paper', () => {
     const s = stage();
     const html = book(s);
     const cards = s.tplOverviewData().cards;
-    assert.equal((html.match(/data-tpl-pf="/g) || []).length, cards.length, 'a row per template');
+    /* RE-POINTED 19 Oct 2026 (round 21 as drawn, lane D): the chosen
+       template's shelf is open and the others are one line each until
+       pressed — every template is a row once its shelf is open */
+    assert.ok((html.match(/data-tpl-pf-shelf="/g) || []).length >= 2, 'each shelf is a line');
+    s._tplPf.open = { company: true, builtin: true, sample: true, cp: true };
+    const opened = book(s); s._tplPf.open = {};
+    assert.equal((opened.match(/data-tpl-pf="/g) || []).length, cards.length, 'a row per template');
     assert.match(fnBody('tplPfGroups'), /\.filter\(g => g\.cards\.length\)/, 'a shelf with nothing on it is not a heading');
   });
 
   test('the switch and the rows are wired by the book\'s own wiring', () => {
     assert.match(fnBody('renderTemplatesPage'), /tplBookWire\(document\.querySelector\('\[data-tpl-sec="book"\]'\)\)/);
     assert.match(fnBody('tplBookWire'), /tplGoBucket/);
-    assert.match(fnBody('tplBookWire'), /_tplPf\.pick=b\.getAttribute\('data-tpl-pf'\)/);
+    assert.match(fnBody('tplBookWire'), /const k=b\.getAttribute\('data-tpl-pf'\); _tplPf\.pick=k;/);
     assert.match(fnBody('tplBookWire'), /_tplBookCut=/);
   });
 

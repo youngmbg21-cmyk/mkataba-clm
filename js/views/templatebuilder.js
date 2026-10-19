@@ -1227,7 +1227,7 @@ function tbStyleHtml() {
      (.tb-scroll) and the rail fills the row and cannot move. The rail used to
      be position:sticky inside a slot exactly its own height — a sticky element
      with nowhere to go, which is why it travelled with the page. */
-  .tb-page{display:grid;grid-template-columns:minmax(0,1fr) 380px;grid-template-rows:minmax(0,1fr);gap:16px;align-items:stretch;position:relative;height:var(--view-h);box-sizing:border-box;min-height:0}
+  .tb-page{display:grid;grid-template-columns:minmax(0,1fr) calc(380px - var(--page-pad-x));grid-template-rows:minmax(0,1fr);gap:16px;align-items:stretch;position:relative;height:var(--view-h);box-sizing:border-box;min-height:0}
   .tb-page.no-rail{grid-template-columns:minmax(0,1fr)}
   .tb-page.no-rail > #tb-railslot{display:none}
   /* THE DIVIDER (14 Sep 2026) — the clause editor's handle, value for value,
@@ -1461,7 +1461,9 @@ function tbStyleHtml() {
      .ins-panel.is-jambo), folding to a 46px strip; the divider still moves
      it. On the paper, the marks under a section and Jambo's proposals in
      place — neither is wording (data-not-wording, never editable). */
-  .tb-strip{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:5px 8px;margin-bottom:10px}
+  /* the card is drawn by two rings round the row, never by padding: the row
+     stays its 30px and the paper's first line does not move (refusal 3) */
+  .tb-strip{background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:0 0 0 5px var(--color-surface),0 0 0 6px var(--color-divider)}
   #tb-railslot{margin:calc(-1 * var(--page-pad-t)) calc(-1 * var(--page-pad-x)) calc(-1 * var(--page-pad-b)) 0}
   .tb-rail.tb-jl{border:0;border-left:1px solid var(--color-neutral-300);border-radius:0;box-shadow:-10px 0 28px -20px rgba(43,43,45,.35);background:var(--color-surface);overflow:hidden}
   .tb-page.is-railfold{grid-template-columns:minmax(0,1fr) calc(46px - var(--page-pad-x))}
@@ -2658,7 +2660,7 @@ function tbWire() {
     if ((b = hit('[data-tb-tab]'))) { tbSetTab(b.getAttribute('data-tb-tab')); return; }
     /* JAMBO'S PANEL (round 21): ‹ Jambo / his tab — his own words, nothing in
        hand; › folds the panel to the edge, its strip opens it again */
-    if (hit('[data-tb-jambo]')) { _tb.focus = null; _tb.tab = 'build'; tbPaintRail(); tbPaintFocusFrame(); return; }
+    if (hit('[data-tb-jambo]')) { _tb.tab = 'build'; tbFocus(null); return; }
     if (hit('[data-tb-fold]')) { tbRailFold(true); return; }
     if (hit('[data-tb-door]')) { tbRailFold(false); return; }
     /* an Outline row lands on its section on the paper; a proposed one on

@@ -2720,11 +2720,19 @@ function tplPfLabels(card){
    the draft — and drawn by templateFormDocHtml, the renderer POST /contracts
    uses. Who updated it last is the version's own record (published by), or,
    for a draft never published, who started it. */
+/* the template's own stamp on the list (its last change and newest version):
+   a paper read under another stamp is read again, so a publish or an edit in
+   the builder is what the book shows on the way back */
+function tplPfDocStamp(id){
+  const t = ((((typeof tplLibAll === 'function') ? tplLibAll() : { list:[] }).list) || []).find(x => String(x.id) === String(id)) || {};
+  return String(t.updatedAt || '') + ':' + String(t.latestVersion || '') + ':' + String(t.status || '');
+}
 function tplPfDocLoad(id){
   const was = _tplPf.docs[id];
-  if (was && (was.html != null || was.busy || was.failed)) return;
+  if (was && (was.html != null || was.busy || was.failed) && was.stamp === tplPfDocStamp(id)) return;
   if (typeof api !== 'function' || typeof templateFormDocHtml !== 'function'){ _tplPf.docs[id] = { failed:true }; return; }
-  _tplPf.docs[id] = { busy:true };
+  const stamp = tplPfDocStamp(id);
+  _tplPf.docs[id] = { busy:true, stamp };
   Promise.resolve().then(async () => {
     const d = await api('templates/' + id, 'GET', null, { quiet:true });
     const vs = (d && d.versions) || [];
@@ -2737,7 +2745,7 @@ function tplPfDocLoad(id){
     const meta = v.status === 'published' ? { word:'updated', at:v.publishedAt || t.updatedAt, by:v.publishedBy || '' }
       : { word:'started', at:t.createdAt, by:t.createdBy || '' };
     return { html, meta };
-  }).then(r => { _tplPf.docs[id] = { html:r.html, meta:r.meta }; }, () => { _tplPf.docs[id] = { failed:true }; })
+  }).then(r => { _tplPf.docs[id] = { html:r.html, meta:r.meta, stamp }; }, () => { _tplPf.docs[id] = { failed:true, stamp }; })
     .then(() => {
       const card = tplPfChosen(tplOverviewData());
       if (card && card.kind === 'company' && String(card.id) === String(id) && document.querySelector('[data-tpl-sec="book"]')) tplBookRepaint();
@@ -2746,7 +2754,8 @@ function tplPfDocLoad(id){
 function tplPfPaperHtml(card){
   let html = '';
   if (card.kind === 'company'){
-    const doc = _tplPf.docs[card.id];
+    let doc = _tplPf.docs[card.id];
+    if (doc && !doc.busy && doc.stamp !== tplPfDocStamp(card.id)) doc = null;
     if (!doc || doc.busy){ tplPfDocLoad(card.id);
       return `<p class="tpl-empty tpl-pf-none tpl-pf-busy">${typeof busyHtml === 'function' ? busyHtml(i18t('lib_pf_reading')) : _tplEsc(i18t('lib_pf_reading'))}</p>`; }
     html = doc.failed ? '' : (doc.html || '');
@@ -4387,4 +4396,4 @@ function sdWire(d, mayEdit){
 Object.assign(window,{sdSettledHtml,sdLearnApply,sdLearnProposal,sdLearnChartHtml,sdLearnNewText,sdPanelClauseId,tplPlace,tplPlacePut,pbInsMounted,pbPaintHead,sdData,sdHeads,sdFirm,sdLimitWords,sdLegalLine,sdClausePanelOpts,sdBookPanelOpts,sdDevPanelOpts,sdDevRows,sdDevFilters,SD_DEV_DEF,SD_DEV_CHIPS,SD_WHERE_MAX,sdPaintSection,sdGoTab,sdGoBook,sdGoClause,sdGoDev,sdCheckAgain,sdOpenDraftCompare,
   tplOvFit,HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,_tplSourceLabel,_richSelection,_richReplaceRange,
   templateVersionNo,templateVersions,templateUsage,templateUsageLabel,saveTemplateVersion,
-  PAPER_TABS,paperTabsHtml,paperTabsWire,openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,tplBuiltinKey,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplBookHtml,tplBookShelvesHtml,tplPfHtml,tplPfGroups,tplPfChosen,tplPfPaperHtml,TPL_PF_SHELVES,_tplPf,TPL_PF_DAYS,tplPfShelfOpen,tplPfTally,tplPfStats,tplPfVersion,tplPfStream,tplPfBookKey,tplPfBlanksHtml,tplPfLabels,tplPfDocLoad,tplPfFacts,tplPfVerbs,tplPfSheetSections,tplPfMarkPlace,tplPfMarksPaint,tplPfTimes,tplPfSaid,tplPfChips,tplPfJamboHtml,tplPfPageSay,tplPfPanelPaint,tplPfHeadFacts,tplPfAfterPaint,paperStandardsCount,paperTabCounts,tplBookRepaint,tplBookWire,tplBookGlanceHtml,TPL_BOOK_SECS,tplOvCardHtml,tplOvPanelsHtml,tplOvRateInk,bucketStreamName,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,tplListIns,tplInsPaint,tplPanelOpts,tplPanelActs,tplReadOf,tplListHeadHtml,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});
+  PAPER_TABS,paperTabsHtml,paperTabsWire,openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,tplBuiltinKey,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplBookHtml,tplBookShelvesHtml,tplPfHtml,tplPfGroups,tplPfChosen,tplPfPaperHtml,TPL_PF_SHELVES,_tplPf,TPL_PF_DAYS,tplPfShelfOpen,tplPfDocStamp,tplPfTally,tplPfStats,tplPfVersion,tplPfStream,tplPfBookKey,tplPfBlanksHtml,tplPfLabels,tplPfDocLoad,tplPfFacts,tplPfVerbs,tplPfSheetSections,tplPfMarkPlace,tplPfMarksPaint,tplPfTimes,tplPfSaid,tplPfChips,tplPfJamboHtml,tplPfPageSay,tplPfPanelPaint,tplPfHeadFacts,tplPfAfterPaint,paperStandardsCount,paperTabCounts,tplBookRepaint,tplBookWire,tplBookGlanceHtml,TPL_BOOK_SECS,tplOvCardHtml,tplOvPanelsHtml,tplOvRateInk,bucketStreamName,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,tplListIns,tplInsPaint,tplPanelOpts,tplPanelActs,tplReadOf,tplListHeadHtml,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});

@@ -435,7 +435,9 @@ describe('f306 (9) — every failure speaks, and every string is in both books',
     /* RE-POINTED IN PLACE 26 Sep 2026 (the Compact ladder): the typed ➤ is a
        DRAWN send icon now — rule 5 of the button review, drawn icons only. The
        claim is the greying and the reason on the hover, and neither moved. */
-    assert.match(TB, /\$\{on \? '' : 'disabled'\}>\$\{icon\('send'\)\}/, 'and the send button is greyed with the reason on its hover');
+    /* RE-POINTED 19 Oct 2026 (round 21 as drawn): the send is the word Ask,
+       as on every Jambo box; the greying and the reason did not move */
+    assert.match(TB, /\$\{on \? '' : 'disabled'\}>\$\{esc\(i18t\('int_ask'\)\)\}/, 'and the send button is greyed with the reason on its hover');
     assert.ok(!/>➤</.test(TB), 'and no typed arrow stands in for the icon');
   });
 
@@ -537,13 +539,18 @@ describe('f306 (11) — what the screen prints', () => {
   });
 
   test('the section in hand at open is the first still to write, and the rail names it', async () => {
-    const s = await stage([['heading', 'Parties'], ['field_group', 'This Agreement is made between…'], ['heading', 'Confidentiality']]);
+    /* RE-POINTED 19 Oct 2026 (round 21 as drawn, lane D): the builder opens
+       on the Outline tab of Jambo's panel, the section in hand lit there; the
+       Build tab still names it on its focus card */
+    const s0 = await stage([['heading', 'Parties'], ['field_group', 'This Agreement is made between…'], ['heading', 'Confidentiality']]);
+    assert.match(s0.rail, /class="tb-ol-r is-sel" data-tb-ol="3"[\s\S]{0,200}Confidentiality/, 'the Outline lights the empty one');
+    s0.w.tbSetTab('build'); const s = s0.read();
     assert.ok(s.rail.includes('Section 2 · Confidentiality'), 'the focus card names the empty one');
     assert.ok(s.paper.includes('data-tb-sec="3"') && /data-tb-sec="3"[^>]*is-on|is-on[^>]*data-tb-sec="3"/.test(s.paper), 'and the paper frames it');
   });
 
   test('a section the clause library answers offers it FREE, and says so', async () => {
-    const s = await stage([['heading', 'Confidentiality']]);
+    const s0 = await stage([['heading', 'Confidentiality']]); s0.w.tbSetTab('build'); const s = s0.read();
     assert.ok(/Use our /.test(s.rail), 'the workspace’s own wording is offered as a chip');
     assert.ok(s.rail.includes('no read — this one is in your library'), 'and the chip says it spends nothing');
   });
@@ -561,7 +568,7 @@ describe('f306 (11) — what the screen prints', () => {
      section from the clause library and would not offer the same wording over
      one somebody had drafted freehand. The refinement chips are unchanged. */
   test('a section that already carries wording is told what can be done TO it, and gets the four refinements', async () => {
-    const s = await stage([['heading', 'Confidentiality'], ['field_group', 'Each party shall keep the other’s information secret.']]);
+    const s0 = await stage([['heading', 'Confidentiality'], ['field_group', 'Each party shall keep the other’s information secret.']]); s0.w.tbSetTab('build'); const s = s0.read();
     assert.ok(!s.paper.includes('data-tb-ph='), 'no placeholder under a written section');
     for (const chip of ['Shorter', 'Firmer', 'Make it mutual', 'Plain English']) assert.ok(s.rail.includes(`>${chip}<`), chip);
     assert.ok(!s.rail.includes('Tell me what'), 'it no longer asks what the section should say');
