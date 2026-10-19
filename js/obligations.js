@@ -3700,7 +3700,7 @@ function obwFindsRowHtml(x){
    money adds into no week's sum (private streams' money adds nowhere) */
 function obwRowPrivate(r){
   const c = r && r._c;
-  return !!(c && typeof window.streamIsPrivate === 'function' && streamIsPrivate(c.folder));
+  return !!(c && typeof window.streamIsPrivate === 'function' && window.streamIsPrivate(c.folder));
 }
 /* WHAT AN OPEN WEEK HOLDS, in a few words after its dates: its renewal
    decisions first ("a renewal decision"); else whose it is when one side holds
@@ -3984,7 +3984,7 @@ function renderObligationsInspector(host){
   const narrowing = obwNarrowing(f).filter(k => k !== 'state');
   /* Jambo's finds are rows of this week while the list holds what is open */
   const finds = (f.state === 'open' || f.state === 'all') && !narrowing.length ? obwFindRows() : [];
-  const rows = rows0.concat(finds).sort(obByWhen);
+  const rows = finds.concat(rows0).sort(obByWhen);   // his finds lead their day, as drawn
   const folders = (window.visibleFolders ? visibleFolders() : Object.values(window.FOLDERS || {}));
   const opt = (list) => list.map(([k, key]) => [k, i18t(key)]);
   const chips = obwOnlyChipHtml(f) + [

@@ -325,11 +325,11 @@ function calChipLook(e){
     if(e.done) return { k:'done', text:desc };
     if(e.date<calToday()) return { k:'late', text:i18t('cal_ck_late',{t:desc}) };
     if(e.theirs){ const p=String(e.owner||'').trim().split(/\s+/)[0]||''; return { k:'theirs', text:p?p+': '+desc:desc }; }   /* "Nordvik: insurance cert." — their name first, in any language */
-    const m=(typeof window.obligationReminderTo==='function')?obligationReminderTo({ assignee:e.assignee }):null;
+    const m=(typeof window.obligationReminderTo==='function')?window.obligationReminderTo({ assignee:e.assignee }):null;
     if(!m) return { k:'nobody', text:desc };
-    const me=(typeof window.currentUser==='function')?currentUser():null;
+    const me=(typeof window.currentUser==='function')?window.currentUser():null;
     if(me&&String(m.id)===String(me.id)) return { k:'ours', text:desc };
-    return { k:'ours', text:desc+' · '+((typeof window.obInitials==='function')?obInitials(m.name):'') };
+    return { k:'ours', text:desc+' · '+((typeof window.obInitials==='function')?window.obInitials(m.name):'') };
   }
   if(e.type==='renewal') return { k:'decide', text:i18t('cal_ck_decide',{t:e.cname||e.cref||e.cid}) };
   if(e.type==='expiry') return { k:'ends', text:i18t('cal_ck_ends',{t:e.cname||e.cref||e.cid}) };
@@ -342,7 +342,10 @@ function calCtChipHtml(e, tag, cls){
   const ev=CAL_EVENT[e.type];
   const we=e._we?`<b class="cal-we">${_esc(e._we)}</b> · `:'';
   const title=(e._we?e._we+' · ':'')+ev.label+': '+(e.note||e.cname)+' · '+(e.cref||e.cid);
-  return `<${tag}${tag==='button'?' type="button"':''} class="cal-chip ${cls||''} is-ck-${L.k}${e.done?' is-done':''}" data-cal-ct="${_esc(e.cid)}" title="${_esc(title)}">${we}${_esc(L.text)}</${tag}>`;
+  /* the week's chips keep their own door (data-sel), the month's and the five
+     weeks' theirs (data-cal-ct) — the same contract either way */
+  const door=tag==='button'?'data-sel':'data-cal-ct';
+  return `<${tag}${tag==='button'?' type="button"':''} class="cal-chip ${cls||''} is-ck-${L.k}${e.done?' is-done':''}" ${door}="${_esc(e.cid)}" title="${_esc(title)}">${we}${_esc(L.text)}</${tag}>`;
 }
 
 /* ---- THE CALENDAR FILE ----
@@ -1583,12 +1586,12 @@ function calStyleCss(){ return `
   .cal-key-b[aria-pressed="false"] span{opacity:.5;text-decoration:line-through}
   .cal-key-b:focus-visible{outline:2px solid var(--accent-ink);outline-offset:2px;border-radius:2px}
   .cal-key i{width:10px;height:10px;border-radius:2px;display:block;flex:none}
-  .cal-key i.is-ours{background:var(--color-accent-600)}
+  .cal-key i.is-ours{background:var(--color-accent-400)}
   .cal-key i.is-theirs{background:var(--st-violet-dot)}
   .cal-key i.is-ct{background:var(--st-amber-dot)}
-  .cal-key i.is-mine{background:var(--accent-ink);border-radius:50%}
+  .cal-key i.is-mine{background:var(--color-accent-700);border-radius:50%}
   .cal-key i.is-plan{border:1.5px dashed var(--color-accent-600);background:none}
-  .cal-chip.is-ck-ours{border-left:3px solid var(--color-accent-600);background:var(--color-accent-50);color:var(--accent-ink)}
+  .cal-chip.is-ck-ours{border-left:3px solid var(--color-accent-400);background:var(--color-accent-50);color:var(--accent-ink)}
   .cal-chip.is-ck-theirs{border-left:3px solid var(--st-violet-dot);background:var(--color-surface);color:var(--st-violet-fg);box-shadow:inset 0 0 0 1px var(--st-violet-line)}
   .cal-chip.is-ck-late{border-left:3px solid var(--st-ruby-dot);background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
   .cal-chip.is-ck-decide{border-left:3px solid var(--st-amber-dot);background:var(--st-amber-bg);color:var(--st-amber-fg)}
@@ -1855,11 +1858,15 @@ function calHeadFacts(){
 }
 /* the card's title in Week: "This week, then five more", or the week it
    starts from when the reader has stepped away from this one */
+/* the Monday "this week" names: today's, or the next one on a weekend (the
+   week drawn is Monday to Friday, as calWeekStart opens it) */
+function calThisMonday(){
+  const t=new Date(calToday()+'T00:00:00');
+  return (t.getDay()===6||t.getDay()===0)?calAddDays(t,t.getDay()===6?2:1):calAddDays(t,-((t.getDay()+6)%7));
+}
 function calWeekCardTitle(){
   const a=calWeekStart();
-  const t=new Date(calToday()+'T00:00:00');
-  const mon=(t.getDay()===6||t.getDay()===0)?calAddDays(t,t.getDay()===6?2:1):calAddDays(t,-((t.getDay()+6)%7));
-  if(_isoLocal(a)===_isoLocal(mon)) return i18t('cal_wk_card_this');
+  if(_isoLocal(a)===_isoLocal(calThisMonday())) return i18t('cal_wk_card_this');
   return i18t('cal_wk_card_from',{day:a.toLocaleDateString(langLocale(),{day:'numeric',month:'long'})});
 }
 /* THE KEY, AS DRAWN — Ours · Theirs · Contract date · Mine · Jambo's plan —
@@ -1903,10 +1910,12 @@ function calWeekHtml(contractEvs){
      each saying its own day (Monday to Friday everywhere, round 16) */
   /* LATE WORK STANDS ON TODAY (round 16 as drawn: "Late: Brightwater
      invoice" on Monday): a promise past its day and not done is carried onto
-     today's cell of the week that holds today, as well as its own day */
+     today's cell of this week (on a weekend, this week's Monday), as well as
+     its own day */
+  const lateOn=(today>=from&&today<=to)?today:(from===_isoLocal(calThisMonday())?from:'');
   const onDay=iso=>{ const d=new Date(iso+'T00:00:00');
     const we=d.getDay()===5?[1,2].map(k=>_isoLocal(calAddDays(d,k))):[];
-    const late=iso===today?(contractEvs||[]).filter(e=>e.type==='obligation'&&!e.done&&e.date<today&&!(e.date>=from&&e.date<=to)):[];
+    const late=iso===lateOn?(contractEvs||[]).filter(e=>e.type==='obligation'&&!e.done&&e.date<today&&!(e.date>=from&&e.date<=to)):[];
     return late.concat((contractEvs||[]).filter(e=>e.date===iso)).concat((contractEvs||[]).filter(e=>we.includes(e.date)).map(e=>Object.assign({},e,{ _we:calWeekendWord(e.date) }))); };
   const allDay=days.map(d=>{ const iso=_isoLocal(d);
     const c=onDay(iso).map(e=>{ const ev=CAL_EVENT[e.type];
@@ -2255,4 +2264,4 @@ Object.assign(window,{calendarDoorCount,calOnScreen,calWireOwn,calState,calPlace
   calToday,calChipText,calIcsFor,calUpcoming,calSummaryLines,calMonthGridHtml,calPanelHtml,
   CAL_AGENDA_DAYS,CAL_AGENDA_WINDOWS,CAL_AGENDA_ROWS,calAgendaDays,calSetAgendaDays,
   calSetView,calSetScope,calStep,openCalendarShare,renderCalendar,
-  calLayers,calKeyHtml,calHeadFacts,calWeekCardTitle,calChipLook,calCtChipHtml,calWeekStart,calWeekHtml,calMoreWeeksHtml,calWeekendWord,CAL_WEEKS_SHOWN,CAL_WEEK_DAYS,calOwnEvents,calPlanHtml,calPlanAsk,calPlanAdd,calPlanUndo,CAL_LEVELS,calLevelOf,calLevelSegHtml,calLevelSet,calEventDialog,_calPlanState,calPlanLeftHtml,CAL_PLAN_HORIZON_DAYS,calHandOff});
+  calLayers,calKeyHtml,calHeadFacts,calWeekCardTitle,calThisMonday,calChipLook,calCtChipHtml,calWeekStart,calWeekHtml,calMoreWeeksHtml,calWeekendWord,CAL_WEEKS_SHOWN,CAL_WEEK_DAYS,calOwnEvents,calPlanHtml,calPlanAsk,calPlanAdd,calPlanUndo,CAL_LEVELS,calLevelOf,calLevelSegHtml,calLevelSet,calEventDialog,_calPlanState,calPlanLeftHtml,CAL_PLAN_HORIZON_DAYS,calHandOff});

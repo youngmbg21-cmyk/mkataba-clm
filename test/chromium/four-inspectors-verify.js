@@ -139,8 +139,11 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
       groups: [...document.querySelectorAll('.ob-lt tr.ins-grp')].map(g => g.getAttribute('data-ob-week')),
       order: ['overdue', 'w0', 'w1', 'w2', 'w3', 'w4', 'w5', 'later', 'nodate', 'waiting', 'done'],
       head: (document.getElementById('page-head-facts') || {}).textContent || '',
-      title: (document.querySelector('#ins-panel h2') || {}).textContent || '' }));
-    ok('1a the page is a list and a panel', ob.ins && ob.rows >= 8 && !!ob.title, { rows: ob.rows, title: ob.title });
+      title: (document.querySelector('#ins-panel h2') || {}).textContent || '',
+      word: (document.querySelector('#ins-panel [data-jl-word]') || {}).textContent || '' }));
+    /* RE-POINTED 18 Oct 2026 (lane A4, round 16 as drawn): nothing is chosen on
+       arrival — Jambo's panel says "Your week" until a row is pressed */
+    ok('1a the page is a list and a panel', ob.ins && ob.rows >= 8 && ob.word === 'Your week', { rows: ob.rows, word: ob.word });
     /* RE-POINTED 18 Oct 2026 (round 16, owner picked "Week by week"): the
        page's groups are weeks now — Late, this week, next week, the later
        weeks of six, Later, then No date, Waiting and Completed. */
@@ -151,8 +154,11 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
         for (const t of r) { if (t.classList.contains('ins-grp')) w = t.getAttribute('data-ob-win'); else if (/Pay on delivery to site/.test(t.textContent)) return w === 'waiting'; }
         return false; }));
     /* RE-POINTED 9 Oct 2026 (owner: "remove the we owe xxx place" so the head
-       is as tall as Approvals & signing's) — the money reads on the groups. */
-    ok('1d the head carries no facts line', !ob.head, ob.head);
+       is as tall as Approvals & signing's) — the money reads on the groups.
+       RE-POINTED AGAIN 18 Oct 2026 (lane A4, round 16 as drawn, the owner's
+       "build all the gaps"): the head says "N outstanding · N overdue", the
+       tabs' own counts; the money still reads on the weeks. */
+    ok('1d the head says what is outstanding and what is late, the tabs\' own counts', /^\d+ outstanding · \d+ overdue$/.test(ob.head.trim()), ob.head);
     const rows = await page.$$('.ob-lt tbody [data-ins-row]');
     if (rows.length > 2) {
       await rows[2].click(); await page.waitForTimeout(300);
@@ -170,6 +176,9 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     const overdueN = await page.evaluate(() => document.querySelectorAll('.ob-lt tbody [data-ins-row]').length);
     ok('1g the Overdue view lists what the sidebar door counts', door >= 1 && overdueN === door, { door, overdueN });
     await page.click('[data-obw-view="open"]').catch(() => {}); await page.waitForTimeout(400);
+    /* RE-POINTED 18 Oct 2026 (lane A4): a view that hides the chosen row lets
+       it go (Jambo's "Your week"), so the row is chosen again before Enter */
+    if (!(await page.$('.ob-lt tbody tr.is-sel'))) { await page.click('.ob-lt tbody [data-ins-row] td:nth-child(2)').catch(() => {}); await page.waitForTimeout(300); }
     const sel = await page.$('#ins-panel');
     const selCid = await page.evaluate(() => { const r = document.querySelector('.ob-lt tbody tr.is-sel'); const k = r && r.getAttribute('data-ob-key'); return k ? k.split('::')[0] : null; });
     await page.focus('.ob-lt tbody tr.is-sel').catch(() => {});

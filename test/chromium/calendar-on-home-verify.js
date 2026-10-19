@@ -47,18 +47,23 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
         inDock: vis(document.querySelector('#ig-dock #cal-plan')), panels: document.querySelectorAll('#cal-plan').length,
         homeCopilot: vis(document.getElementById('igd-feed')), cal: vis(document.getElementById('hb-cal')),
         board: vis(document.getElementById('hb-board')), head: !!document.querySelector('#hb-cal .cal-head'),
-        more: !!document.querySelector('#hb-cal .cal-bar1 #cal-more'),
+        more: !!document.querySelector('#hb-cal .cal-bar1 #cal-more'), moreHead: !!document.querySelector('#hb-cal .cal-head #cal-more'),
         nav: (document.querySelector('#side-nav .nav-item.active, #side-nav [aria-current="page"]') || {}).getAttribute?.('data-view') || null };
     });
     ok('3 the Calendar tab draws the calendar on Home', up && at.view === 'dashboard' && at.cal && !at.board, JSON.stringify(at));
     ok('4 ONE Copilot panel: the calendar\'s own, in Home\'s panel, none beside the calendar',
       at.inDock && !at.inStage && at.panels === 1 && !at.homeCopilot);
-    ok('5 Home\'s head is the page head (no second one), and the ⋯ stands on the calendar\'s bar', !at.head && at.more);
+    /* RE-POINTED 18 Oct 2026 (lane A4, round 16 as drawn): Home's own head is
+       not drawn on a computer (main's "‹ · HA · the page's name"), so the
+       calendar draws its head — its name, its six weeks, the views, the scope,
+       New event and the ⋯ — on Home too */
+    ok('5 the calendar draws its one head on Home, and the ⋯ stands in it', at.head && at.moreHead, JSON.stringify(at));
     await page.screenshot({ path: path.join(OUT, '1-month.png') });
 
     /* the calendar's Copilot still answers in Home's panel: Ask me first, its chips */
     ok('6 the panel carries the calendar\'s own controls', await page.evaluate(() =>
-      !!document.querySelector('#ig-dock #cal-plan-level') && !!document.querySelector('#ig-dock [data-cal-plan-q="week"]') && !!document.querySelector('#ig-dock #cal-plan-in')));
+      /* round 16 as drawn: "Jambo may change my calendar" is three buttons (was a dropdown) */
+      document.querySelectorAll('#ig-dock [data-cal-lv]').length === 3 && !!document.querySelector('#ig-dock [data-cal-plan-q="week"]') && !!document.querySelector('#ig-dock #cal-plan-in')));
 
     await page.click('[data-cal-view="week"]');
     ok('7 Week works on the tab', await until(page, () => !!document.querySelector('#hb-cal .cal-wk-card')));
