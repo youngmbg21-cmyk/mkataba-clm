@@ -157,7 +157,7 @@ async function SEED(){
     const D = await page.evaluate(() => { const sh = document.querySelector('[data-tpl-sec="book"] .tpl-pf-sheet');
       const mks = [...sh.querySelectorAll('.tpl-mks')];
       return { inputs: sh.querySelectorAll('input,select,textarea').length, blanks: [...sh.querySelectorAll('.tpl-pf-blank, .hati-field')].map(b => b.textContent.trim()),
-        marks: mks.map(m => m.textContent.replace(/\s+/g, ' ').trim()), notWording: mks.every(m => m.hasAttribute('data-not-wording') && getComputedStyle(m).userSelect === 'none'),
+        marks: mks.map(m => m.textContent.replace(/\s+/g, ' ').trim()), notWording: mks.length > 0 && mks.every(m => m.hasAttribute('data-not-wording') && getComputedStyle(m).userSelect === 'none'),
         under: mks.map(m => { let p = m.previousElementSibling; while (p && !/^H[1-6]$/.test(p.tagName) && !p.querySelector('h1,h2,h3,h4')) p = p.previousElementSibling; return p ? p.textContent.trim() : ''; }) }; });
     check('4a the blanks read as blanks — no form box on the template\'s paper', D.inputs === 0 && D.blanks.includes('Client name'), JSON.stringify(D.blanks));
     check('4b marks under the clause: "✓ Liability cap at 12 months fees" and "Came back changed 2 times" under Liability; "Came back changed once" under Payment',
