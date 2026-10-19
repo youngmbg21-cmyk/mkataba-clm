@@ -372,10 +372,25 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
     await part('10i the person panel as drawn', async () => {
       await page.evaluate(() => setView('directory'));
       await until(() => document.querySelector('[data-dir-row]'), null, 10000);
-      const one = await page.evaluate(() => { const p = dirBook().find(x => x.contracts && x.contracts.length === 1); if (!p) return null; dirSelect(p.key); return p.key; });
-      const N1 = one ? await until(() => { const r = [...document.querySelectorAll('#ins-panel .jl-rows > div')].find(x => /Named on/.test((x.querySelector('dt') || {}).textContent || ''));
-        return r ? r.querySelector('dd').textContent.trim() : null; }) : null;
-      check('10i someone named on one contract: "1 contract · 1 live"', /^1 contract · \d+ live$/.test(N1 || ''), JSON.stringify({ one, N1 }));
+      /* RE-POINTED 19 Oct 2026 (round 19's People scene, lane A2's check #1):
+         "N contracts · K live" is OUR side's Named on (Jonas, drawn "1 contract ·
+         1 live"); someone on their side reads "N contracts" alone, with what they
+         do under it (Henrik). The seed's one person named on one contract is on
+         their side, so both shapes are asked: ours with the fewest contracts, in
+         its own number (the singular is pinned in f809 (7)), and theirs whole */
+      const named = async key => { await page.evaluate(k => dirSelect(k), key);
+        return until(k => { const p = document.getElementById('ins-panel'); if (!p) return null;
+          const r = [...p.querySelectorAll('.jl-rows > div')].find(x => /Named on/.test((x.querySelector('dt') || {}).textContent || ''));
+          return r ? r.querySelector('dd').textContent.trim() : null; }, key); };
+      const pick = await page.evaluate(() => { const B = dirBook();
+        const o = B.filter(x => x.side === 'ours' && x.contracts && x.contracts.length).sort((a, b) => a.contracts.length - b.contracts.length)[0];
+        const t = B.find(x => x.side === 'theirs' && x.contracts && x.contracts.length === 1);
+        return { ours: o ? { key: o.key, n: o.contracts.length } : null, theirs: t ? t.key : null }; });
+      const NO = pick.ours ? await named(pick.ours.key) : null;
+      const want = pick.ours ? new RegExp('^' + pick.ours.n + (pick.ours.n === 1 ? ' contract' : ' contracts') + ' · \\d+ live$') : null;
+      check('10i our side\'s Named on says its number and how many are live: "N contracts · K live"', !!want && want.test(NO || ''), JSON.stringify({ pick, NO }));
+      const NT = pick.theirs ? await named(pick.theirs) : null;
+      check('10i2 their side\'s Named on says the number alone: "1 contract"', NT === '1 contract', JSON.stringify({ pick, NT }));
       await page.evaluate(() => { const f = [...document.querySelectorAll('[data-dir-row]')].find(x => /Jonas Berg/.test(x.textContent)); if (f) f.click(); });
       const D = await until(() => { const p = document.getElementById('ins-panel'); if (!/Jonas Berg/.test(p.textContent)) return null;
         const list = p.querySelector('.jl-ct-list'), cs = list ? getComputedStyle(list) : null;

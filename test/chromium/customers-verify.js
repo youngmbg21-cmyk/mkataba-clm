@@ -137,7 +137,10 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     /* THE NUMBER PRESSED IS THE NUMBER READ (kept from the old chip's "· 2"):
        the row said 2 with Owner on (2e); the wall counts the same two
        agreements, the amendment said beside them */
-    ok('3b2 the wall\'s count reads the row\'s number: 2 of 2 contracts, the amendment beside them', land.count === '2 of 2 contracts · 1 amendment', land.count);
+    /* RE-POINTED 19 Oct 2026 (round 13 as drawn, lane B1's pass 4): the count
+       line counts agreements and no longer says "· 1 amendment" — the amendment
+       rides with its own agreement on the wall (3c keeps it in the set) */
+    ok('3b2 the wall\'s count reads the row\'s number: 2 of 2 contracts, the amendment riding with its agreement', land.count === '2 of 2 contracts', land.count);
     ok('3c the wall is exactly that party\'s two (filters held), and the amendment under the first', land.ids.join() === 'MK-CU0,MK-CU2,MK-CU7', land.ids.join());
     await page.reload({ waitUntil: 'networkidle' });
     await page.waitForFunction(() => typeof state !== 'undefined' && state.view === 'dashboard' && document.querySelectorAll('#ig-wall [data-ig-pick]').length > 0, null, { timeout: 15000 }).catch(() => {});
