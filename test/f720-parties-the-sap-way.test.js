@@ -60,7 +60,9 @@ describe('f720 (2) what waits on you, in words', () => {
   test('2b the column and the panel read the same words', () => {
     const list = fnBody(CU, 'cuListHtml');
     assert.match(list, /const ws = cuNeedsSay\(v\.needs\)/);
-    assert.match(fnBody(CU, 'cuPaintCustomerPanel'), /\{ k: 'waiting', label: i18t\('cu_col_waiting'\), v: _cuE\(cuNeedsSay\(r\.needs\)\) \}/);
+    /* RE-POINTED 18 Oct 2026 (round 19 as drawn): the fact runs across the
+       panel and may wrap — Jambo's 380px panel cut "Your approval is asked f…" */
+    assert.match(fnBody(CU, 'cuPaintCustomerPanel'), /\{ k: 'waiting', label: i18t\('cu_col_waiting'\), v: _cuE\(cuNeedsSay\(r\.needs\)\), wide: true \}/);
     assert.match(fnBody(CU, 'cuView'), /needs: cuNeedsOf\(items\)/);
   });
 });

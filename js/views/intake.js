@@ -1479,8 +1479,9 @@ function renderIntakeInspector(host){
   if(tb) insMarkRow(tb,'[data-ins-row]',idOf,id);
   const paint=k=>{
     const r=byId.get(k);
+    /* Jambo's panel says what it holds: "Request" (round 20; advice is a request) */
     if(!r){ insPaintPanel({ empty:asker?i18t('ik_panel_none_asker'):i18t('ik_panel_none') }); return; }
-    insPaintPanel(r._adv?ikAdvicePanelOpts(r):ikPanelOpts(r, asker));
+    insPaintPanel(Object.assign({ jlWord:i18t('jl_w_request') }, r._adv?ikAdvicePanelOpts(r):ikPanelOpts(r, asker)));
     const pan=document.getElementById('ins-panel'); if(!pan) return;
     pan.querySelectorAll('[data-ik-file]').forEach(b=>b.addEventListener('click',()=>intakeFileGet(r.id, b.getAttribute('data-ik-file'), b.getAttribute('data-ik-fname'))));
   };

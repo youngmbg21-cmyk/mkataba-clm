@@ -2533,6 +2533,7 @@ function stJamboHtml(){
       <input id="st-jb-q" type="text" maxlength="200" data-ca-slash autocomplete="off" placeholder="${esc(i18t('st_jb_ph'))}">
       <button type="submit" class="ui-btn ui-btn-primary">${esc(i18t('st_jb_ask'))}</button>
     </form>
+    ${typeof jamboHintHtml==='function'?jamboHintHtml():''}
   </div>`;
 }
 /* AN ASK IS ADDED WHERE IT IS READ — appended to the feed, the box keeps the

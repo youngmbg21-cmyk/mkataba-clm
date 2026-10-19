@@ -3426,9 +3426,12 @@ function obPanelOpts(o, c, i, ctx){
    moves when it lands — a reader who arrowed on in the meantime is not
    thrown back (the contract panel's own rule for Latest). */
 function obPaintPanel(hostId, o, c, i, ctx, emptyMsg){
-  if(!o || !c){ insPaintPanel({ host: hostId, empty: emptyMsg }); return; }
+  /* Jambo's panel beside the page says what it holds (round 16): "Your week"
+     with nothing chosen, "Obligation" with a row chosen */
+  const jl = ctx === 'page' ? { jlHome: i18t('jl_w_week'), jlWord: i18t('jl_w_obligation') } : {};
+  if(!o || !c){ insPaintPanel(Object.assign({ host: hostId, empty: emptyMsg }, jl)); return; }
   const opts = obPanelOpts(o, c, i, ctx);
-  insPaintPanel(Object.assign({ host: hostId }, opts));
+  insPaintPanel(Object.assign({ host: hostId }, jl, opts));
   const host = document.getElementById(hostId);
   if(!host) return;
   host.querySelector('[data-ob-show]')?.addEventListener('click', () => obligationShowInContract(c.id, o.quote || ''));

@@ -344,7 +344,7 @@ async function approvalUndo(c, ruleId){
   const u=currentUser();
   const step=(approvalState(c).chain||[]).find(q=>q&&!q.sa&&String(q.ruleId)===String(ruleId));
   c.approvalChain=approvalState(c).chain.filter(q=>!q.sa).map(q=>({ ...q }));
-  askRuleFor(c, ruleId, { approver:step&&step.approver });
+  askRuleFor(c, ruleId, { approver:step&&step.approver, stamp:approvalStamp(c) });
   logAudit(c,'Approval undone',`Step "${(step&&step.name)||''}" — ${u.name} took back their approval; it is waiting again`);
   const out=(typeof saveDecision==='function')?await saveDecision(c):(persist(c),{ ok:true });
   try{ renderSignButton(c); renderAuditSection(c); }catch(_){}
@@ -483,7 +483,7 @@ function resubmitApproval(c, note){
      each step, and the writer takes the old answer off the step — this
      chain's own reset, field for field. */
   c.approvalChain=st.chain.filter(s=>!s.sa).map(s=>({ ...s }));
-  back.forEach(s=>askRuleFor(c, s.ruleId, { approver:s.approver }));
+  back.forEach(s=>askRuleFor(c, s.ruleId, { approver:s.approver, stamp:approvalStamp(c) }));
   logAudit(c,'Approval resubmitted',
     `${back.map(s=>`"${s.name}"`).join(', ')} sent back for approval by ${(u&&u.name)||'System'}`
     +(note?` — “${String(note).slice(0,500)}”`:'')
@@ -2466,7 +2466,7 @@ function wireApprovalPanel(c){
    "have they seen it" — it reads shares.first_opened_at, which is stamped once
    on the first real open and never re-counted. */
 
-Object.assign(window,{AP_UNDO_MS,approvalUndoable,approvalUndo,approvalRulesCleared,approvalDecidableNow,approvalRefuseWhy,approvalDecideAsk,signStepOf,signSteps,signStepIndex,signStepDone,signStepOpen,signRowOpen,signStepNow,signOpenRows,overseerCfg,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,saveSignerPlan,signerRouteWindow,signerPlanWhy,signerPlanRefusal,signerIsCompany,signerHasEmail,approvalPanelHtml,approvalChainHtml,APPROVAL_CLEAR_SAYS,approvalClearRows,approvalClearHtml,signerRouteHtml,wireApprovalPanel,
+Object.assign(window,{AP_UNDO_MS,approvalUndoable,approvalUndo,approvalRulesCleared,approvalDecidableNow,approvalRefuseWhy,approvalDecideAsk,signStepOf,signSteps,signStepIndex,signStepDone,signStepOpen,signRowOpen,signStepNow,signOpenRows,overseerCfg,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,approverForOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,saveSignerPlan,signerRouteWindow,signerPlanWhy,signerPlanRefusal,signerIsCompany,signerHasEmail,approvalPanelHtml,approvalChainHtml,APPROVAL_CLEAR_SAYS,approvalClearRows,approvalClearHtml,signerRouteHtml,wireApprovalPanel,
   signApprovalLegacyOn,signApprovalNeeds,signApprovalStateOf,saStepName,saMoney,saDriftWords,SA_CHAIN_STATUS,saChainStep,
   signApprovalDecidable,signApprovalWaitsOn,SA_PAPER_KEYS,signApprovalPaperHolds,signApprovalRequestable,signApprovalRound,
   saFmtDay,saWhen,saShowsLine,signApprovalNotify,saNoticeOf,saDeliveryWords,signApprovalRequest,signApprovalDecide,

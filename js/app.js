@@ -401,7 +401,7 @@ const PAGE_ACTIONS = {
 /* Obligations left this table 9 Oct 2026 (owner: its head "needs to be the
    same height as" Approvals & signing's, "so remove the we owe xxx place") —
    it paints nothing into the head now, so it reserves no slot for it. */
-const PAGE_HEAD_PAINT = { intake:'ikPaintHead', advice:'adviceHeadPaint', playbook:'pbPaintHead', agents:'agPaintHead' };
+const PAGE_HEAD_PAINT = { intake:'ikPaintHead', advice:'adviceHeadPaint', playbook:'pbPaintHead', agents:'agPaintHead', approvals:'apPaintHead' };
 function pageActionHtml(kind){
   if(kind==='export') return `<button data-page-export class="ui-btn" title="${i18t('ap_export_working_set')}">`+
     `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>${i18t('ap_export')}</button>`;
@@ -790,7 +790,10 @@ function renderPageHeader(view){
   host.style.padding='var(--page-pad-t) var(--page-pad-x) 0';
   host.innerHTML=`
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap">
-      <div style="min-width:0">
+      ${''/* THE FACTS ON THE TITLE'S LINE (owner's yes, 18 Oct 2026: every picked
+             drawing of rounds 14–26 sets them beside the page's name — "Negotiations
+             7 live · 3 waiting on our side"); they wrap under it where the line is full */}
+      <div class="page-title-row" style="min-width:0;display:flex;align-items:baseline;column-gap:12px;row-gap:2px;flex-wrap:wrap">
         <h1 style="margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${esc(t)}</h1>
         ${''/* A FACTS LINE, NOT A SUBTITLE (second pass, 21 Sep 2026): the
                Contracts page prints its count and its money here — the

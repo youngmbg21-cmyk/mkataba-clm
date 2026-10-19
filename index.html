@@ -2931,6 +2931,10 @@
      The page's own door sits at the right of its head; the picker lists the
      contracts that may start one. Tokens only. */
   .ngl-head-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:var(--s-3); flex-wrap:wrap; }
+  /* the page's facts on its title's line (round 14 as drawn, 18 Oct 2026) */
+  .ngl-head .ngl-title-row{ display:flex; align-items:baseline; column-gap:12px; row-gap:2px; flex-wrap:wrap; }
+  .ngl-head .ngl-title-row h2{ margin:0; }
+  .page-title-row .page-facts{ margin-top:0; }
   .ngs-n{ margin:var(--s-1) 0 var(--s-2); font-size:var(--t-meta); color:var(--color-neutral-600); }
   .ngs-list{ max-height:min(52vh,420px); overflow:auto; border:1px solid var(--color-divider); border-radius:var(--radius); }
   .ngs-row{ display:flex; align-items:center; gap:var(--s-2); width:100%; padding:var(--s-2) var(--s-3);
@@ -3824,6 +3828,8 @@
   .st-cr .st-jb-ask input{ flex:1; min-width:0; height:var(--ctl-h-lg); border:1px solid var(--field-line); border-radius:var(--radius-lg);
     padding:0 10px; font:inherit; font-size:var(--t-meta); background:var(--color-surface); color:var(--color-text); }
   .st-cr .st-jb-ask input:focus-visible{ outline:2px solid var(--btn-edge); outline-offset:1px; }
+  /* the hint line under Jambo's box (18 Oct 2026), under the box's own left edge */
+  .st-cr .st-jb > .jb-hint{ flex:none; margin:0 12px 10px; }
   .st-cr .st-jb-foot{ flex:none; margin:0; padding:0 12px 10px; font-size:var(--t-label); color:var(--color-neutral-600); }
   /* the Menu's face */
   .st-cr .st-side-menu{ padding:10px 12px 12px; overflow:auto; }
@@ -13284,6 +13290,148 @@
   .ins-kv dd{margin:3px 0 0;font-weight:var(--w-title);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .ins-kv dd.late{color:var(--st-ruby-fg);}
   .ins-holds{margin-top:6px;}
+  /* ═══ JAMBO'S PANEL BESIDE THE LISTS (owner's yes, 18 Oct 2026 — the picked
+     drawings of rounds 14, 15, 16, 19, 20 and 21; js/views/inspector.js,
+     jlFrame). The list inspector dressed as his: it stands at the window's
+     right edge from under the desk tabs to the foot, Home's panel's own place
+     and width (IG_DOCK_W0, 380), and the page beside it takes the rest — the
+     page head and the page's scroller give it their right edge, and the grid
+     that held it as a card keeps one column. Folded, it is a 46px strip with
+     his face (Home's own door, .igd-door). */
+  #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #page-head,
+  #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll{margin-right:380px;}
+  #app-shell:has(#content .ins-panel.is-jambo.is-folded):not(:has(#content [hidden] .ins-panel.is-jambo)) #page-head,
+  #app-shell:has(#content .ins-panel.is-jambo.is-folded):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll{margin-right:46px;}
+  #content :has(> #ins-panel.is-jambo){grid-template-columns:minmax(0,1fr);column-gap:0;}
+  /* THE LIST'S CARD ENDS AFTER ITS LAST ROW (rounds 14 and 15 as drawn): its
+     foot ("Showing 1–7 of 7") right under the rows, the grey ground below; a
+     list longer than the window still scrolls inside its card */
+  #content .reg-body.is-ins:has(> #ins-panel.is-jambo),
+  #content .ap-body.is-ins:has(> #ins-panel.is-jambo){align-items:start;}
+  #content .reg-body.is-ins:has(> #ins-panel.is-jambo) > .reg-card{flex:none;max-height:100%;}
+  #content .ap-body.is-ins:has(> #ins-panel.is-jambo) > .ap-card{max-height:100%;}
+  #content .ap-body.is-ins:has(> #ins-panel.is-jambo) .ap-foot{margin-top:0;}
+  /* round 15: the white head (title, counts, Approval rules), the grey ground,
+     then the list's card — Negotiations' band and ground, the same */
+  body:has(#content .ap-page) #page-head > :last-child{padding-bottom:var(--s-3);}
+  #content .sap-page.ap-page{padding-top:var(--s-3);}
+  #content .ins-panel.is-jambo{position:fixed;right:0;top:var(--jl-top,88px);bottom:0;width:380px;z-index:20;display:flex;flex-direction:column;overflow:hidden;
+    border:0;border-left:1px solid var(--color-neutral-300);border-radius:0;box-shadow:-10px 0 28px -20px rgba(43,43,45,.35);background:var(--color-surface);}
+  #content .ins-panel.is-jambo.is-folded{width:46px;}
+  #content .ins-panel.is-jambo.is-folded > :not(.jl-door){display:none;}
+  #content .ins-panel.is-jambo:not(.is-folded) > .jl-door{display:none;}
+  #content .ins-panel.is-jambo .jl-door{height:100%;width:100%;display:flex;flex-direction:column;align-items:center;gap:10px;padding-top:14px;background:var(--color-accent-50);border:0;color:var(--accent-ink);cursor:pointer;font:inherit;}
+  #content .ins-panel.is-jambo .jl-door:hover{background:var(--color-accent-100);}
+  #content .ins-panel.is-jambo .jl-door:focus-visible{outline:2px solid var(--accent-ink);outline-offset:-3px;}
+  #content .ins-panel.is-jambo .jl-door .igd-door-w{writing-mode:vertical-rl;font-size:var(--t-meta);font-weight:var(--w-strong);letter-spacing:.02em;white-space:nowrap;}
+  #content .ins-panel.is-jambo .jl-door .igd-door-i{position:relative;display:grid;place-items:center;width:28px;height:28px;}
+  #content .ins-panel.is-jambo .jl-door .igd-door-face{width:28px;height:28px;border-radius:50%;}
+  #content .ins-panel.is-jambo .jl-door .igd-door-i .pd-tab-n{left:16px;}
+  .jl-head{flex:none;display:flex;align-items:center;gap:8px;padding:6px 10px 6px 8px;border-bottom:1px solid var(--color-divider);min-width:0;}
+  .jl-head .jl-tab{flex:none;max-width:none;width:56px;}
+  .jl-head .pd-tab.on::after{bottom:-7px;}
+  .jl-word{min-width:0;font-size:var(--t-body);color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .jl-sp{flex:1 1 auto;}
+  .jl-head .pd-back{flex:none;display:inline-flex;align-items:center;gap:3px;height:var(--ctl-h-sm);padding:0 8px 0 5px;border:1px solid var(--btn-edge);border-radius:var(--radius);background:var(--color-surface);color:var(--accent-ink);font:inherit;font-size:12px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap;}
+  .jl-head .pd-back[hidden]{display:none;}
+  .jl-head .pd-back:hover{border-color:var(--accent-ink);}
+  .jl-head .pd-back:focus-visible{outline:2px solid var(--accent-ink);outline-offset:1px;}
+  .jl-head .jl-fold{flex:none;}
+  #content .ins-panel.is-jambo .jl-body{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain;}
+  /* the head of what it holds sits flush under Jambo's head */
+  #content .ins-panel.is-jambo .ins-h{padding:14px 16px 14px;}
+  #content .ins-panel.is-jambo .ins-sec{padding:12px 16px;}
+  #content .ins-panel.is-jambo .ins-facts{padding:14px 16px;}
+  #content .ins-panel.is-jambo .ins-cp{font-size:var(--t-card);}
+  .jl-h .ins-cp{gap:8px;}
+  .jl-st-side{flex:none;display:inline-flex;font-size:var(--t-meta);font-weight:var(--w-label);letter-spacing:0;line-height:var(--lh-tight);}
+  /* rounds 14 and 15: the pill sits right after the party's name ("Nordvik
+     Logistik AB ● Our move · 4 days", "Helio Energy AB [for Jonas]"), not at
+     the panel's far edge — the list head's .ins-st-side pushes it out */
+  .jl-h .ins-cp .jl-st-side{margin-left:0;}
+  .jl-face-row{display:flex;align-items:center;gap:12px;min-width:0;}
+  .jl-face-row .jl-face-w{min-width:0;}
+  .jl-face-row .dir-av,.jl-face-row .jl-av{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:var(--w-strong);background:var(--color-accent-50);color:var(--accent-ink);}
+  /* Jambo's own words: his face, a bubble, the line saying it cost nothing, the page's doors as chips */
+  .jl-words{padding:14px 14px 4px;display:flex;flex-direction:column;gap:8px;}
+  .jl-say{display:flex;align-items:flex-start;gap:10px;}
+  .jl-say .jl-say-face{flex:none;width:24px;height:24px;border-radius:50%;margin-top:4px;}
+  .jl-bub{min-width:0;flex:1 1 auto;padding:10px 12px;border-radius:var(--radius-lg);background:var(--surface-2);color:var(--color-text);line-height:1.5;}
+  .jl-bub b{font-weight:var(--w-strong);}
+  .jl-bub .late{color:var(--st-ruby-fg);font-weight:var(--w-label);}
+  .jl-src{margin:-2px 0 2px 34px;font-size:var(--t-micro);color:var(--color-neutral-600);}
+  .jl-chips{display:flex;flex-wrap:wrap;gap:6px;margin-left:34px;}
+  .jl-chip{border:1px solid var(--color-accent-100);background:var(--color-surface);color:var(--accent-ink);border-radius:999px;padding:3px 10px;font:inherit;font-size:var(--t-meta);cursor:pointer;line-height:1.4;text-align:left;}
+  .jl-chip:hover{background:var(--color-accent-50);border-color:var(--color-accent-300,var(--color-accent-100));}
+  .jl-chip:focus-visible{outline:2px solid var(--accent-ink);outline-offset:1px;}
+  .jl-feed{padding:6px 14px 14px;display:flex;flex-direction:column;gap:12px;}
+  .jl-feed:empty{display:none;}
+  .jl-card .ca-acts{display:flex;flex-wrap:wrap;gap:6px;}
+  /* the foot: the ask box, Ask inside its right end, and the hint under it */
+  .jl-foot{flex:none;padding:10px 12px 10px;border-top:1px solid var(--color-divider);background:var(--color-surface);position:relative;}
+  .jl-ask{position:relative;margin:0;}
+  .jl-box{display:flex;align-items:center;gap:8px;height:40px;border:1px solid var(--color-neutral-300);border-radius:10px;background:var(--color-surface);padding:0 4px 0 12px;}
+  .jl-box:focus-within{border-color:var(--accent-ink);box-shadow:0 0 0 3px var(--color-accent-100);}
+  .jl-box input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:inherit;font-size:var(--t-body);color:var(--color-text);height:36px;}
+  .jl-box input::placeholder{color:var(--color-neutral-500);}
+  .jl-box input:focus-visible{outline:none;box-shadow:none;}
+  .jl-ask .jl-pop{left:0;right:0;bottom:calc(100% + 6px);top:auto;max-height:320px;}
+  .jl-ask .jl-pop[hidden]{display:none;}
+  .jb-hint{margin:6px 2px 0;font-size:var(--t-micro);line-height:1.45;color:var(--color-neutral-600);}
+  /* the floating window's line: a computer only — the phone stays untouched */
+  .ai-hint:empty{display:none;}
+  @media (max-width:767px){ .ai-hint{display:none;} }
+  .jb-keys{white-space:nowrap;}
+  .jb-kbd{display:inline-block;min-width:16px;padding:0 4px;border:1px solid var(--color-neutral-300);border-radius:4px;font:inherit;font-size:var(--t-micro);line-height:1.35;text-align:center;color:var(--color-neutral-700);background:var(--color-surface);}
+  /* Needs you, its own section: one card, a row each, a dot in the row's tone and the row's own verb */
+  .jl-need{border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden;}
+  .jl-need-r{--nd-dot:var(--st-amber-dot);display:grid;grid-template-columns:8px minmax(0,1fr) auto;align-items:center;gap:0 10px;padding:10px 12px;}
+  .jl-need-r.is-ruby{--nd-dot:var(--st-ruby-dot);}
+  .jl-need-r + .jl-need-r{border-top:1px solid var(--color-divider);}
+  .jl-need-dot{width:8px;height:8px;border-radius:50%;background:var(--nd-dot);align-self:start;margin-top:6px;}
+  .jl-need-b{min-width:0;}
+  .jl-need-t{font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .jl-need-s{margin-top:2px;font-size:var(--t-meta);color:var(--color-neutral-600);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .jl-need-s .late{color:var(--st-ruby-fg);font-weight:var(--w-strong);}
+  /* What Jambo read: a full dot where read, a ring where not */
+  .jl-read{display:flex;flex-direction:column;gap:6px;}
+  .jl-rr{display:flex;align-items:center;gap:10px;min-width:0;color:var(--color-text);}
+  .jl-rr span{min-width:0;color:var(--color-text);}
+  .jl-rr span em{font-style:normal;color:var(--color-neutral-600);}
+  .jl-rr.is-amber span em{color:var(--st-amber-fg);}
+  .jl-dot{flex:none;width:10px;height:10px;border-radius:50%;box-sizing:border-box;border:1.5px solid var(--rule-strong);background:transparent;}
+  .jl-dot.is-green{background:var(--st-green-dot);border-color:var(--st-green-dot);}
+  .jl-dot.is-amber{background:var(--st-amber-dot);border-color:var(--st-amber-dot);}
+  .jl-dot.is-ruby{background:var(--st-ruby-dot);border-color:var(--st-ruby-dot);}
+  /* facts as rows, the label on the left (rounds 15 and 19) */
+  .jl-rows{margin:0;padding:6px 16px 4px;border-bottom:1px solid var(--color-divider);}
+  .jl-rows > div{display:grid;grid-template-columns:108px minmax(0,1fr);gap:10px;padding:7px 0;border-top:1px solid var(--color-divider);min-width:0;}
+  .jl-rows > div:first-child{border-top:0;}
+  .jl-rows dt{font-size:var(--t-meta);color:var(--color-neutral-600);font-weight:var(--w-body);padding-top:1px;}
+  .jl-rows dd{margin:0;min-width:0;color:var(--color-text);line-height:1.45;overflow-wrap:anywhere;}
+  .jl-rows dd.none{color:var(--color-neutral-500);}
+  .jl-rows dd.is-ruby{color:var(--st-ruby-fg);font-weight:var(--w-label);}
+  .jl-rows dd.is-amber{color:var(--st-amber-fg);font-weight:var(--w-label);}
+  .jl-rows dd .sub{display:block;font-size:var(--t-meta);color:var(--color-neutral-600);}
+  /* THE LISTS AS DRAWN (rounds 14 and 15): a list's count in a pill on its
+     head, the wait in amber where it waits on the reader, a stand-in's "for
+     Jonas" beside "You", the card's late note and its foot */
+  .reg-tt-n.is-pill,.ap-card-n.is-pill{display:inline-block;margin-left:4px;padding:1px 7px;border-radius:999px;background:var(--color-accent-50);color:var(--accent-ink);
+    font-size:var(--t-micro);font-weight:var(--w-strong);line-height:1.45;vertical-align:1px;font-variant-numeric:tabular-nums;}
+  .reg-table .reg-wait.is-mine{color:var(--st-amber-fg);}
+  .ap-card-h .ap-card-t .ap-card-m{margin-left:6px;font-weight:var(--w-body);}
+  .ap-card-h .ap-card-sp{flex:1 1 auto;}
+  .ap-for,.ap-for-pill{display:inline-flex;align-items:center;gap:3px;border-radius:999px;background:var(--color-accent-50);color:var(--accent-ink);font-size:var(--t-micro);font-weight:var(--w-label);white-space:nowrap;}
+  .ap-for{margin-left:4px;padding:1px 7px;vertical-align:1px;}
+  .ap-for .ap-for-ic,.ap-for-pill .ap-for-ic{width:11px;height:11px;flex:none;}
+  .ap-wl-foot{padding:10px 14px;font-size:var(--t-meta);color:var(--color-neutral-600);border-top:1px solid var(--color-divider);}
+  .jl-answer .ins-acts{margin-top:8px;}
+  .jl-answer .ins-acts:first-of-type{margin-top:0;}
+  .jl-answer .ins-acts .ins-lead{flex:0 1 auto;}
+  .jl-rec{margin-top:10px;line-height:1.45;}
+  .jl-rules{margin:6px 0 0;padding-left:18px;list-style:disc;}
+  .jl-rules li{margin:3px 0;}
+  .jl-sign-rule .ins-acts{margin-top:8px;}
   /* THE APPROVALS PAGE IN THE INSPECTOR'S SHAPE: the page owns its height
      like the register, the list's card and the panel scroll inside
      themselves, and the selected row wears the register's own mark. */
@@ -13310,7 +13458,11 @@
   .ap-table.ap-ins th{position:sticky;top:0;z-index:1;background:var(--color-surface);text-transform:none;letter-spacing:0;
     font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600);}
   .ap-table.ap-ins :is(td,th){white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .ap-table.ap-ins .ap-name,.ap-table.ap-ins .ap-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ap-table.ap-ins .ap-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* the party's name reads whole (round 15; at 1366 beside Jambo's panel a
+     long one takes a second line), the agreement under it keeps its cut */
+  .ap-table.ap-ins .ap-id .ap-name{white-space:normal;overflow-wrap:anywhere;}
+  .ap-table.ap-ins td:not(:has(.ap-id)) .ap-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .ap-table .ap-sub.late{color:var(--st-ruby-fg);}
   .ap-table tbody tr[data-ap-row]:focus{outline:none;}
   .ap-table tbody tr[data-ap-row]:focus-visible td{box-shadow:inset 0 2px 0 var(--focus-color),inset 0 -2px 0 var(--focus-color);}
@@ -14503,6 +14655,9 @@
   .cn-ask .cn-face{margin:0 auto -4px;display:block}
   .cn-ask h1{font-size:20px;font-weight:var(--w-title);margin:0;color:var(--color-text);letter-spacing:-.01em}
   .cn-wrap{position:relative}
+  /* the hint line under the box (owner, 18 Oct 2026, "Every Jambo box"): it
+     hugs the box it speaks of, read from the box's own left edge */
+  .cn-ask > .jb-hint{margin:-6px 2px 0;text-align:left}
   .cn-box{display:flex;align-items:center;gap:8px;height:44px;border:1px solid var(--color-accent);border-radius:10px;background:var(--color-surface);padding:0 6px 0 14px;box-shadow:0 0 0 3px var(--color-accent-100);text-align:left}
   .cn-box input{flex:1;min-width:0;border:0;outline:0;background:transparent;font-size:15px;color:var(--color-text);height:40px}
   .cn-box input::placeholder{color:var(--color-neutral-500)}
@@ -15192,6 +15347,10 @@
       <textarea id="ai-input" rows="1" data-ca-slash data-i18n-ph="ai_input_ph" placeholder="Search, summarize, or ask about your contracts…  (Shift+Enter for a new line)" class="chat-field flex-1 px-3.5 py-2.5 text-sm outline-none transition" style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);"></textarea>
       <button id="ai-send" aria-label="Send to Jambo" data-i18n-aria="sh_ai_send_aria" class="h-10 w-10 shrink-0 grid place-items-center text-white transition" style="background:var(--color-accent);border-radius:var(--radius);" data-ic-big="send"></button>
     </div>
+    <!-- THE HINT LINE UNDER THE BOX (owner, 18 Oct 2026, "Every Jambo box"):
+         painted by the one builder (jamboHintHtml) each time the window opens;
+         the phone, whose full-screen Jambo this same element is, draws none -->
+    <div id="ai-hint" class="ai-hint"></div>
   </footer>
 </section>
 
@@ -15231,21 +15390,23 @@
   #ig-dock .ig-dock-title,#ig-dock .ig-card-name{font-size:var(--t-body)}
   #ai-panel #ai-input,#ig-dock #igd-input{font-size:var(--t-body)}
 }
-#ai-feed .ai-p{margin:0 0 .5em}
-#ai-feed .ai-p:last-child{margin-bottom:0}
-#ai-feed .ai-h{font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);margin:.7em 0 .3em}
-#ai-feed .ai-list{margin:.3em 0 .5em;padding-left:1.15rem}
-#ai-feed ul.ai-list{list-style:disc}
-#ai-feed ol.ai-list{list-style:decimal}
-#ai-feed .ai-list li{margin:.15em 0}
-#ai-feed .ai-quote{border-left:2px solid var(--color-divider);padding-left:.65rem;margin:.4em 0;color:var(--color-neutral-700)}
-#ai-feed .ai-code{background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);
+/* the same answer, said in Jambo's panel beside a list (#jl-feed, 18 Oct 2026): one
+   reading of the turn, so one dress — :is() keeps the id's weight */
+:is(#ai-feed,#jl-feed) .ai-p{margin:0 0 .5em}
+:is(#ai-feed,#jl-feed) .ai-p:last-child{margin-bottom:0}
+:is(#ai-feed,#jl-feed) .ai-h{font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);margin:.7em 0 .3em}
+:is(#ai-feed,#jl-feed) .ai-list{margin:.3em 0 .5em;padding-left:1.15rem}
+:is(#ai-feed,#jl-feed) ul.ai-list{list-style:disc}
+:is(#ai-feed,#jl-feed) ol.ai-list{list-style:decimal}
+:is(#ai-feed,#jl-feed) .ai-list li{margin:.15em 0}
+:is(#ai-feed,#jl-feed) .ai-quote{border-left:2px solid var(--color-divider);padding-left:.65rem;margin:.4em 0;color:var(--color-neutral-700)}
+:is(#ai-feed,#jl-feed) .ai-code{background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);
   padding:.5rem .65rem;overflow-x:auto;font-family:var(--font-mono);font-size:var(--t-label);margin:.4em 0}
-#ai-feed .ai-table-wrap{overflow-x:auto;margin:.45em 0}
-#ai-feed .ai-table{width:100%;border-collapse:collapse;font-size:var(--t-meta)}
-#ai-feed .ai-table th,#ai-feed .ai-table td{border:1px solid var(--color-divider);padding:var(--s-1) 7px;text-align:left}
-#ai-feed .ai-table th{background:var(--color-bg);font-weight:var(--w-strong)}
-#ai-feed hr{border:0;border-top:1px solid var(--color-divider);margin:.6em 0}
+:is(#ai-feed,#jl-feed) .ai-table-wrap{overflow-x:auto;margin:.45em 0}
+:is(#ai-feed,#jl-feed) .ai-table{width:100%;border-collapse:collapse;font-size:var(--t-meta)}
+:is(#ai-feed,#jl-feed) .ai-table th,:is(#ai-feed,#jl-feed) .ai-table td{border:1px solid var(--color-divider);padding:var(--s-1) 7px;text-align:left}
+:is(#ai-feed,#jl-feed) .ai-table th{background:var(--color-bg);font-weight:var(--w-strong)}
+:is(#ai-feed,#jl-feed) hr{border:0;border-top:1px solid var(--color-divider);margin:.6em 0}
 /* THE SAME ANSWER STYLES IN EXPLORER'S PANEL (28 Sep 2026). Its answers go
    through the same renderer as the side panel's, but these rules were written
    for #ai-feed alone, so a list in Explorer drew no bullets and its
@@ -15268,13 +15429,13 @@
    about wording they can no longer necessarily see, so the wording comes with
    the question. Quoted and set in the document face, so it reads as the
    contract's words rather than as the Copilot's. */
-#ai-feed .ai-target{border-left:2px solid var(--color-accent-300);
+:is(#ai-feed,#jl-feed) .ai-target{border-left:2px solid var(--color-accent-300);
   background:var(--color-bg);border-radius:var(--radius);padding:var(--s-2) 11px;margin:0 0 var(--s-2)}
-#ai-feed .ai-target-head{font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;
+:is(#ai-feed,#jl-feed) .ai-target-head{font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;
   color:var(--color-neutral-500);margin-bottom:var(--s-1)}
-#ai-feed .ai-target-body{font-family:var(--font-doc);font-size:var(--t-body);line-height:1.6;
+:is(#ai-feed,#jl-feed) .ai-target-body{font-family:var(--font-doc);font-size:var(--t-body);line-height:1.6;
   color:var(--color-neutral-800);max-height:9.6em;overflow:auto;white-space:pre-wrap}
-#ai-feed .ai-target-ask{font-size:var(--t-body);line-height:1.55}
+:is(#ai-feed,#jl-feed) .ai-target-ask{font-size:var(--t-body);line-height:1.55}
 /* Suggested-question chips: shown on an empty panel only (js/ai.js). */
 .ai-chip{border:1px dashed var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);
   display:inline-flex;align-items:center;min-height:var(--ctl-h-sm);

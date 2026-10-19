@@ -1532,6 +1532,7 @@ function calStyleCss(){ return `
   .cal-cop .cal-plan-ask{padding:0 14px 6px}
   .cal-cop .cal-plan-ask input{height:36px;font-size:var(--t-meta);padding:0 10px}
   .cal-cop .cal-plan-cost{padding:0 14px 12px}
+  .cal-cop .cal-plan-cost + .jb-hint{margin:-8px 14px 12px}
   @media (max-width:980px){
     .cal-stage{grid-template-columns:minmax(0,1fr);grid-template-rows:auto;flex:none}
     .cal-cop{max-height:640px}
@@ -1911,6 +1912,8 @@ function calPlanHtml(){
       nx?`<button type="button" data-cal-plan-q="hour" data-cal-plan-ref="${_esc(nx.ref)}"${off}>${_esc(i18t('cal_plan_q_hour',{ref:nx.ref}))}</button>`:''}</div>
     <div class="cal-plan-ask"><input id="cal-plan-in" type="text" maxlength="600" enterkeyhint="send" data-ca-slash autocomplete="off" placeholder="${_esc(i18t('cal_plan_ph'))}" aria-label="${_esc(i18t('cal_plan_ph'))}"${off}></div>
     <p class="cal-plan-cost">${_esc(i18t(auto?'cal_plan_cost_auto':'cal_plan_cost'))}</p>
+    ${/* THE HINT LINE (owner's "Every Jambo box", 18 Oct 2026; round 16 draws it
+       last under the Calendar's box): the one builder */ typeof window.jamboHintHtml==='function'?jamboHintHtml():''}
   </aside>`;
 }
 /* WHAT WAS LEFT OUT, AND WHY (owner, 18 Oct 2026): each suggestion the check

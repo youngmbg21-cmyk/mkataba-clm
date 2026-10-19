@@ -290,7 +290,10 @@ describe('f395 (4) — the drawing', () => {
     const f = code(fnOf(AP, 'apInsPaint'));
     assert.ok(/const skip=tab==='signatures'\?\['sign'\]:\['approval'\]/.test(f), 'each tab names its own skip');
     assert.ok(/needsSkip:skip\b/.test(f), 'the head is handed that skip');
-    assert.ok(/insNeedsLineHtml\(r\.c, skip\)/.test(f), 'and so is the panel\'s line');
+    /* RE-POINTED 18 Oct 2026 (Jambo's panel, round 15 as drawn): what else is
+       owed is the panel's Needs you section, not a line under the name — and
+       that section reads the same skip (jlNeedsHtml, o.needsSkip) */
+    assert.ok(code(fnOf(INS, 'jlNeedsHtml')).includes('o.needsSkip'), 'and so is the panel\'s Needs you section');
     assert.ok(code(fnOf(INS, 'insHeadHtml')).includes('insNeedsHtml(c, o.needsSkip)'), 'the head hands the skip on');
   });
 });

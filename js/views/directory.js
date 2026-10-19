@@ -76,6 +76,10 @@ function dirPeople(){
 /* ---- SMALL READINGS ---- */
 function dirRoleName(role){ return (typeof roleName === 'function') ? (roleName(role) || '') : _dStr(role); }
 function dirRoleWord(k){ return (typeof participantRoleLabel === 'function') ? participantRoleLabel(k) : _dStr(k); }
+/* a colleague's role said short, as the person's Named on list draws it
+   ("approver", "owner"); a role without a short word keeps its long one */
+const DIR_ROLE_NOUN = { owner: 'jl_role_owner', sign: 'jl_role_sign', approve: 'jl_role_approve', review: 'jl_role_review', contribute: 'jl_role_contribute', read: 'jl_role_read' };
+function dirRoleNoun(k){ return DIR_ROLE_NOUN[k] ? i18t(DIR_ROLE_NOUN[k]) : dirRoleWord(k); }
 function dirRoleWords(p){
   const roles = Array.isArray(p && p.roles) ? p.roles : [];
   return DIR_ROLE_ORDER.filter(k => roles.includes(k)).concat(roles.filter(k => !DIR_ROLE_ORDER.includes(k))).map(dirRoleWord).join(' · ');
@@ -114,6 +118,29 @@ function dirPartyNameOf(c, partyId){
   return list.length && _dStr(list[0].name) ? _dStr(list[0].name) : '';
 }
 
+/* The colleagues a contract names by the rules and the route, RAW: rule
+   steps naming a member (approvalState's chain — a member, never a role),
+   open questions to a person by name (asksOf: an approval → approve, a
+   review or a look → review), and our own rows on the signing route
+   (signerPlan). Reads only; nothing is initialised or written. */
+function dirNamedRoles(c){
+  const out = [];
+  if (!c) return out;
+  const live = c.status !== 'Signed' && c.status !== 'Declined' && !c._codeNamed;
+  if (live){
+    let st = null; try { st = (typeof approvalState === 'function') ? approvalState(c) : null; } catch (_){ st = null; }
+    ((st && st.chain) || []).forEach(x => { const a = x && x.approver;
+      if (x && x.status !== 'approved' && a && a.kind === 'member' && a.id != null) out.push({ memberId: _dStr(a.id), name: _dStr(a.name), role: 'approve', asked: x.status === 'pending' }); });
+    let asks = []; try { asks = (typeof asksOf === 'function') ? (asksOf(c) || []) : []; } catch (_){ asks = []; }
+    asks.forEach(a => { if (a && a.state === 'open' && a.to && !a.to.role && (a.to.id || a.to.name))
+      out.push({ memberId: _dStr(a.to.id), name: _dStr(a.to.name), role: a.kind === 'review' || a.kind === 'look' ? 'review' : 'approve', asked: true }); });
+  }
+  let plan = []; try { plan = (typeof signerPlan === 'function') ? (signerPlan(c) || []) : (Array.isArray(c.signerPlan) ? c.signerPlan : []); } catch (_){ plan = []; }
+  plan.forEach(r => { if (r && r.party !== 'counterparty' && (r.memberId != null || r.email || r.name))
+    out.push({ memberId: _dStr(r.memberId), email: _dStr(r.email), name: _dStr(r.name), role: 'sign' }); });
+  return out;
+}
+
 /* ---- THE BOOK: every person once, with their party, roles and contracts ----
    Read RAW off the loaded list — no reading here creates a negotiation or
    touches a record. Fresh objects every time; nothing is cached across
@@ -126,7 +153,7 @@ function dirBook(){
     let p = book.get(key);
     if (!p){
       p = Object.assign({ key, side: 'none', id: '', name: '', email: '', title: '', role: '', hati: '', you: false,
-        partyName: '', partyKey: '', roles: new Set(), on: new Map() }, seed || {});
+        partyName: '', partyKey: '', roles: new Set(), on: new Map(), asked: new Map() }, seed || {});
       book.set(key, p);
     }
     return p;
@@ -191,6 +218,16 @@ function dirBook(){
     });
     const owner = _dCall('contractOwnerName', c);
     if (owner) named(colleague('', c.owner && c.owner.id, owner), c, 'owner');
+    /* NAMED ON IT IN ANY ROLE, THE APPROVER AND THE SIGNER TOO (round 19's
+       People scene as drawn: "Named on 12 contracts · 7 live", "MK-0391 ·
+       Helio Energy AB · approver"): the rule steps that name a colleague, the
+       questions put to them by name (the one ask list), and our signers on
+       the route — the same readings "Waiting on" reads (dirWaitingOn), so a
+       person waited on is never "named on" nothing. Live work only for the
+       chain; a yes already given is participantsAuto's 'approve'. */
+    dirNamedRoles(c).forEach(x => { const p = colleague(x.email, x.memberId, x.name); named(p, c, x.role);
+      /* what is ASKED of them on it now (round 19: "Approval asked" on the row) */
+      if (p && x.asked && !p.asked.has(c.id)) p.asked.set(c.id, x.role === 'review' ? 'review' : 'approval'); });
   });
   /* 3. THE IMPORTED LIST: a title for somebody already here, or a person
      nobody has named on a contract yet. */
@@ -220,6 +257,7 @@ function dirBook(){
       streams: [...new Set(cts.map(c => c.folder).filter(Boolean))],
       partyNames: [...new Set(cts.map(c => _dStr(c.counterparty)).filter(Boolean))],
       roleOn: id => [...(on.get(id) || [])],
+      askedOn: id => (p.asked && p.asked.get(id)) || null,
     });
   });
 }
@@ -279,6 +317,7 @@ function dirShowContracts(p){
   if (!p || !p.contracts.length || typeof regShowOnly !== 'function') return;
   const ids = (typeof cuIdsOf === 'function') ? cuIdsOf({ items: p.contracts.map(id => ({ id })) }) : p.contracts.slice();
   regShowOnly(ids, `${p.name || p.email} · ${p.contracts.length}`);
+  if (typeof jlLand === 'function') jlLand('list');
 }
 function dirPartyLoaded(p){
   const v = (p && p.partyKey && typeof cuCustomerOf === 'function') ? cuCustomerOf(p.partyKey) : null;
@@ -288,7 +327,8 @@ function dirPartyLoaded(p){
    Document door does. */
 function dirOpenContract(id){
   if (!id) return;
-  if (!(typeof pdOpenOnHome === 'function' && pdOpenOnHome(id, 'open'))) _dCall('openWorkspace', id);
+  if (!(typeof pdOpenOnHome === 'function' && pdOpenOnHome(id, 'open'))) { _dCall('openWorkspace', id); return; }
+  if (typeof jlLand === 'function') jlLand('paper');
 }
 /* The second press (Enter, a double-click, the narrow window's one press). */
 function dirOpenLead(p){
@@ -395,47 +435,131 @@ function dirCardHtml(rows, book){
   </section>`;
 }
 
+/* ---- WHAT WAITS ON A PERSON (round 19, the People scene as drawn: "Waiting
+   on Jonas · Power purchase agreement · Approval · Helio Energy AB · SEK 8.1 M
+   · you may answer for him · Open approval") ----
+   A colleague: the questions on the one ask list put to them by name (a rule
+   step that names them, a named approval, an internal review), the chain's
+   next step where it names them and no question was recorded, and their own
+   turn to sign. Someone on the other side: the negotiations whose move is
+   theirs. Read RAW off the loaded list; nothing is written. */
+const DIR_WAIT_MAX = 4;
+function dirWaitingOn(p){
+  if (!p) return [];
+  const out = [], seen = new Set();
+  const add = (c, kind) => { const k = c.id + ':' + kind; if (seen.has(k)) return; seen.add(k); out.push({ c, kind }); };
+  const live = dirContracts().filter(c => c && !c.archived && !c._codeNamed && c.status !== 'Signed' && c.status !== 'Declined');
+  if (p.side === 'ours' && p.id){
+    const u = { id: p.id, name: p.name };
+    live.forEach(c => {
+      let asks = []; try { asks = (typeof asksOf === 'function') ? asksOf(c) : []; } catch (_){ asks = []; }
+      asks.filter(a => a && a.state === 'open' && a.to && !a.to.role && typeof askSamePerson === 'function' && askSamePerson(a.to, u))
+        .forEach(a => add(c, a.kind === 'review' ? 'review' : a.kind === 'look' ? 'look' : 'approval'));
+      let st = null; try { st = (typeof approvalState === 'function') ? approvalState(c) : null; } catch (_){ st = null; }
+      const nx = st && st.next;
+      if (nx && !nx.sa && nx.approver && nx.approver.kind === 'member' && String(nx.approver.id) === String(p.id)) add(c, 'approval');
+      let ns = null; try { ns = (typeof nextSigner === 'function') ? nextSigner(c) : null; } catch (_){ ns = null; }
+      if (ns && ns.party !== 'counterparty' && !ns.signed && ns.memberId != null && String(ns.memberId) === String(p.id)) add(c, 'sign');
+    });
+  } else if (p.side === 'theirs'){
+    live.filter(c => p.contracts.includes(c.id)).forEach(c => {
+      let m = null; try { m = (typeof negWhoseMove === 'function') ? negWhoseMove(c) : null; } catch (_){ m = null; }
+      if (m && m.k === 'them') add(c, 'move');
+    });
+  }
+  return out;
+}
+const DIR_WAIT_KIND = { approval: 'ap_wl_kind_appr', review: 'jl_kind_review', look: 'jl_kind_look', sign: 'ap_wl_kind_sig', move: 'jl_kind_move' };
+const DIR_WAIT_OPEN = { approval: 'jl_open_approval', review: 'jl_open_review', look: 'jl_open_review', sign: 'jl_open_signing', move: 'jl_open_negotiation' };
+function dirWaitGo(kind, id){
+  const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c) return;
+  /* LAND ON IT: each door arrives on its one thing, lit (jlLand) */
+  const land = (k, a) => { if (typeof jlLand === 'function') jlLand(k, a); };
+  if (kind === 'approval'){ if (typeof insSelect === 'function') insSelect('approvals', c.id); if (typeof setView === 'function') setView('approvals'); land('row', c.id); return; }
+  if (kind === 'sign'){ if (typeof apOpenSigning === 'function') apOpenSigning(c.id, 'road'); return; }
+  if (typeof openRedlineWorkbench === 'function'){ openRedlineWorkbench(c.id, { face: true }); land('redlines'); } else dirOpenContract(c.id);
+}
+/* THE PAGE IN JAMBO'S WORDS (nothing chosen): the directory's own counts,
+   who the reader stands in for; chips are its own tabs */
+function dirSay(){
+  const book = dirBook();
+  const ours = book.filter(p => p.side === 'ours').length, theirs = book.filter(p => p.side === 'theirs').length;
+  const n = book.length;
+  if (!n) return { lines: [_dE(i18t('dir_empty'))] };
+  const lines = [`<b>${_dE(i18tn('jl_dir_say', n, { n }))}</b>${_dE(': ' + i18t('jl_dir_split', { ours, theirs }))}.`];
+  const cov = (typeof state !== 'undefined' && state && state.away && Array.isArray(state.away.covering)) ? state.away.covering : [];
+  cov.forEach(x => { if (x && x.userName) lines.push(_dE(i18t('jl_dir_cover', { who: String(x.userName).split(/\s+/)[0], day: (typeof jlDayWord === 'function') ? jlDayWord(x.to) : x.to }))); });
+  const chips = [];
+  if (ours && _dir.tab !== 'ours') chips.push({ label: i18t('jl_dir_chip_ours'), run: () => { _dir.tab = 'ours'; renderDirectory(); _dCall('placeSave'); } });
+  if (theirs && _dir.tab !== 'theirs') chips.push({ label: i18t('jl_dir_chip_theirs'), run: () => { _dir.tab = 'theirs'; renderDirectory(); _dCall('placeSave'); } });
+  return { lines, chips };
+}
 /* ---- THE PANEL: the chosen person, their contracts and the doors ---- */
+const DIR_JL = { jlHome: () => i18t('nav_directory'), jlPh: () => i18t('jl_ph_any') };
 function dirPaintPanel(p, book){
   if (typeof insPaintPanel !== 'function') return;
-  if (!p){ insPaintPanel({ seat: DIR_SEAT, c: null, item: null, empty: i18t('dir_panel_none') }); return; }
+  if (!p){ insPaintPanel({ seat: DIR_SEAT, c: null, item: null, empty: i18t('dir_panel_none'), jlHome: DIR_JL.jlHome(), jlPh: DIR_JL.jlPh(), jlSay: dirSay }); return; }
   const kv = facts => (typeof insKvHtml === 'function') ? insKvHtml(facts) : '';
   const sec = (t, n, body) => (typeof insSecHtml === 'function') ? insSecHtml(t, n, body) : '';
+  const ic = nm => (typeof icon === 'function') ? icon(nm, 'w-3.5 h-3.5') : '';
   const byId = new Map(dirContracts().map(c => [c.id, c]));
   const n = p.contracts.length;
-  const countWords = n ? `${n} · ${_dE(i18t('dir_n_active', { n: p.active }))}` : '';
   const streams = _dE(p.streams.map(dirStreamName).filter(Boolean).join(' · '));
   const mail = p.email ? `<a href="mailto:${_dE(p.email)}">${_dE(p.email)}</a>` : `<span class="dir-none">${_dE(i18t('dir_no_email'))}</span>`;
-  const named = max => {
-    const ids = max ? p.contracts.slice(0, max) : p.contracts;
-    const rows = ids.map(id => {
-      const c = byId.get(id); if (!c) return '';
-      const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
-      const st = (typeof contractStatusDotHtml === 'function') ? contractStatusDotHtml(c) : _dE(c.status || '');
-      const roles = p.roleOn(id).map(dirRoleWord).join(' · ');
-      const sub = p.side === 'ours' ? [roles, _dStr(c.counterparty)].filter(Boolean).join(' · ') : roles;
-      return `<button type="button" class="dir-ct" data-dir-ct="${_dE(c.id)}" title="${_dE(i18t('ins_door_doc'))}">
-        <span class="dir-ct-n"><span class="dir-ct-ref hati-ref">${_dE(ref)}</span>${_dE(c.name || c.counterparty || '')}</span><span class="dir-ct-st">${st}</span>
-        ${sub ? `<span class="dir-ct-sub">${_dE(sub)}</span>` : ''}</button>`;
-    }).join('');
-    const more = p.contracts.length > ids.length
-      ? `<div class="dir-more">${_dE(i18t('dir_more_contracts', { n: p.contracts.length - ids.length }))}</div>` : '';
-    return rows + more;
-  };
   const peopleRows = list => list.map(o => `<button type="button" class="dir-pp" data-dir-pick="${_dE(o.key)}">${dirAvHtml(o)}<span class="dir-pp-n">${_dE(o.name || o.email)}</span><span class="dir-pp-r">${_dE(dirRoleWords(o))}</span></button>`).join('');
   let head, body;
+  /* JAMBO'S PANEL, THE PERSON AS DRAWN (round 19, the People scene): their
+     initials, name and "Commercial lead · our side"; Show their contracts ·
+     Email; the facts as rows — Email · In HaTi · Streams · Named on · Away;
+     what waits on them, each with its own door; the contracts they are named
+     on with their stage, and "All N on Contracts ›" */
+  const rowsOf = list => (typeof insRowsHtml === 'function') ? insRowsHtml(list) : kv(list);
+  const first = String(p.name || p.email || '').split(/\s+/)[0];
+  const av = `<span class="jl-av" aria-hidden="true">${_dE(dirInitials(p.name || p.email))}</span>`;
+  const mailBtn = p.email ? [{ k: 'email', label: i18t('jl_email'), title: p.email, run: () => { try { window.location.href = 'mailto:' + p.email; } catch (_){} } }] : [];
+  const waits = dirWaitingOn(p);
+  const me = _dCall('currentUser') || {};
+  const covers = p.side === 'ours' && p.id && typeof awayCovers === 'function' && awayCovers(me, p.id);
+  const waitSec = (p.side === 'ours' || p.side === 'theirs') && waits.length ? sec(i18t('jl_waiting_on', { who: first }), waits.length,
+    `<div class="jl-need is-wait">${waits.slice(0, DIR_WAIT_MAX).map(w => {
+      const money = !(typeof canViewValues === 'function' && !canViewValues()) && w.c.value && !(typeof isMonetary === 'function' && !isMonetary(w.c));
+      const sub = [i18t(DIR_WAIT_KIND[w.kind] || 'ap_wl_kind_appr'), _dStr(w.c.counterparty), money && typeof fmtMoneyShortOf === 'function' ? fmtMoneyShortOf(w.c) : '',
+        covers && (w.kind === 'approval' || w.kind === 'review') ? i18t('jl_may_answer') : ''].filter(Boolean).join(' \u00b7 ');
+      return `<div class="jl-need-r is-amber"><div class="jl-need-b"><div class="jl-need-t" title="${_dE(w.c.name || '')}">${_dE(w.c.name || w.c.id)}</div><div class="jl-need-s" title="${_dE(sub)}">${_dE(sub)}</div></div><button type="button" class="ui-btn ui-btn-sm jl-need-go" data-dir-wait="${_dE(w.kind)}" data-dir-wait-id="${_dE(w.c.id)}">${_dE(i18t(DIR_WAIT_OPEN[w.kind] || 'jl_open_approval'))}</button></div>`;
+    }).join('')}</div>${waits.length > DIR_WAIT_MAX ? `<p class="ins-note">${_dE(i18tn('ins_more_asks', waits.length - DIR_WAIT_MAX, { n: waits.length - DIR_WAIT_MAX }))}</p>` : ''}`) : '';
+  const namedJl = max => {
+    /* what is asked of them now comes first (round 19 draws it at the top) */
+    const askOf = id => (typeof p.askedOn === 'function' && p.askedOn(id)) ? 1 : 0;
+    const ids = p.contracts.slice().sort((a, b) => askOf(b) - askOf(a)).slice(0, max);
+    return `<div class="jl-ct-list">${ids.map(id => {
+      const c = byId.get(id); if (!c) return '';
+      const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
+      /* what is asked of them on it now wears its own amber pill ("Approval
+         asked", round 19); otherwise the stage, as everywhere */
+      const ask = p.side === 'ours' && typeof p.askedOn === 'function' ? p.askedOn(id) : null;
+      const st = ask ? `<span class="reg-stg jl-asked" style="color:var(--st-amber-fg);background:var(--st-amber-bg)"><i style="background:var(--st-amber-dot)"></i>${_dE(i18t(ask === 'review' ? 'jl_review_asked' : 'jl_approval_asked'))}</span>`
+        : (typeof contractStatusDotHtml === 'function') ? contractStatusDotHtml(c) : _dE(c.status || '');
+      const roles = p.roleOn(id).map(p.side === 'ours' ? dirRoleNoun : dirRoleWord).join(' · ');
+      const sub = [ref, p.side === 'ours' ? _dStr(c.counterparty) : '', roles].filter(Boolean).join(' · ');
+      return `<button type="button" class="dir-ct jl-ct" data-dir-ct="${_dE(c.id)}" title="${_dE(i18t('ins_door_doc'))}"><span class="dir-ct-n">${_dE(c.name || c.counterparty || '')}</span><span class="dir-ct-st">${st}</span>${sub ? `<span class="dir-ct-sub">${_dE(sub)}</span>` : ''}</button>`;
+    }).join('')}</div>${p.contracts.length > ids.length || p.contracts.length ? `<button type="button" class="ui-link jl-all" data-dir-all>${_dE(i18t('jl_all_on_contracts', { n: p.contracts.length }))}${ic('chevR')}</button>` : ''}`;
+  };
   if (p.side === 'ours'){
-    const admin = _dCall('isAdmin') === true;
-    head = { eyebrow: `${_dE(i18t('dir_our_side'))} · ${p.title ? _dE(p.title) : `<span class="dir-none">${_dE(i18t('dir_no_title'))}</span>`}`,
-      title: p.name || p.email, sub: mail,
-      acts: [{ k: 'contracts', kind: 'accent', iconEnd: 'chevR', label: i18t('dir_show_contracts'), disabled: !n,
-        title: n ? '' : i18t('dir_show_contracts_none'), run: () => dirShowContracts(p) }]
-        .concat(admin ? [{ k: 'manage', label: i18t('dir_manage_settings'), run: () => { if (typeof openSettingsAt === 'function') openSettingsAt('people'); } }] : []) };
-    body = kv([{ k: 'hati', label: i18t('dir_f_in_hati'), v: _dE(p.hati) }, { k: 'contracts', label: i18t('dir_f_contracts'), v: countWords },
-      { k: 'roles', label: i18t('dir_f_roles'), v: _dE(dirRoleWords(p)) }, { k: 'streams', label: i18t('cu_panel_streams'), v: streams }])
-      + sec(i18t('dir_named_on'), n, n ? named(DIR_NAMED_MAX) : `<p class="ins-note">${_dE(i18t('dir_no_contracts'))}</p>`)
-      + (p.partyNames.length ? sec(i18t('dir_works_with'), i18tn('cu_n_customers', p.partyNames.length, { n: p.partyNames.length }),
-        `<div class="dir-chips">${p.partyNames.map(x => `<span>${_dE(x)}</span>`).join('')}</div>`) : '');
+    const aw = (typeof jlAwayOf === 'function') ? jlAwayOf(p.id) : null;
+    const today = (typeof todayISO === 'function') ? todayISO() : '';
+    const away = aw && aw.to && (!today || aw.to >= today) ? `<span class="ap-for jl-away">${ic('clock')}${_dE(i18t('jl_away_until', { day: (typeof jlDayWord === 'function') ? jlDayWord(aw.to, true) : aw.to }))}</span><span class="sub">${_dE(i18t('jl_away_line', {
+      span: (typeof jlDayRange === 'function') ? jlDayRange(aw.from, aw.to) : `${aw.from}–${aw.to}`, who: aw.deputyName || me.name || '' }))}</span>` : '';
+    head = { av, title: p.name || p.email, sub: _dE([p.title, i18t('jl_side_ours')].filter(Boolean).join(' · ')),
+      acts: [{ k: 'contracts', kind: 'accent', label: i18t('dir_show_contracts'), disabled: !n,
+        title: n ? '' : i18t('dir_show_contracts_none'), run: () => dirShowContracts(p) }].concat(mailBtn) };
+    /* ONLY THE DOORS (round 19's People scene as drawn, owner's "build all
+       the gaps", 18 Oct 2026): Show his contracts · Email, no ⋯ — a person's
+       rights are changed on Settings → People, the one place they live */
+    body = rowsOf([{ k: 'email', label: i18t('jl_f_email'), v: mail }, { k: 'hati', label: i18t('dir_f_in_hati'), v: _dE(p.hati) },
+      { k: 'streams', label: i18t('cu_panel_streams'), v: streams }, { k: 'contracts', label: i18t('dir_named_on'), v: n ? _dE(i18tn('jl_named_n', n, { n, live: p.active })) : '' },
+      ...(away ? [{ k: 'away', label: i18t('jl_f_away'), v: away }] : [])])
+      + waitSec
+      + sec(i18t('dir_named_on'), n, n ? namedJl(3) : `<p class="ins-note">${_dE(i18t('dir_no_contracts'))}</p>`);
   } else if (p.side === 'none'){
     head = { eyebrow: `${_dE(i18t('dir_imported'))}${p.title ? ' · ' + _dE(p.title) : ''}`, title: p.name || p.email, sub: mail, acts: [] };
     body = kv([{ k: 'party', label: i18t('cu_col_customer'), v: '' }, { k: 'contracts', label: i18t('dir_f_contracts'), v: '' }])
@@ -449,13 +573,16 @@ function dirPaintPanel(p, book){
         { k: 'draft', label: i18t('home_draft_new'), run: () => { if (typeof cuDraftFor === 'function') cuDraftFor(p.partyName); } },
         { k: 'explorer', label: i18t('cu_open_explorer'), disabled: !loaded,
           title: loaded ? '' : i18t('dir_party_none'), run: () => { if (typeof cuOpenExplorer === 'function') cuOpenExplorer(p.partyKey); } }] };
-    body = kv([{ k: 'party', label: i18t('cu_col_customer'), v: _dE(p.partyName) }, { k: 'contracts', label: i18t('dir_f_contracts'), v: countWords },
-      { k: 'title', label: i18t('dir_col_title'), v: _dE(p.title) }, { k: 'streams', label: i18t('cu_panel_streams'), v: streams }])
-      + sec(i18t('dir_named_on'), n, named())
+    head = Object.assign(head, { av, eyebrow: '', sub: _dE([p.title, p.partyName].filter(Boolean).join(' · ')), acts: head.acts.concat(mailBtn) });
+    body = rowsOf([{ k: 'email', label: i18t('jl_f_email'), v: mail }, { k: 'party', label: i18t('cu_col_customer'), v: _dE(p.partyName) },
+      { k: 'streams', label: i18t('cu_panel_streams'), v: streams }, { k: 'contracts', label: i18t('dir_named_on'), v: n ? _dE(i18tn('jl_named_n', n, { n, live: p.active })) : '' }])
+      + waitSec
+      + sec(i18t('dir_named_on'), n, n ? namedJl(3) : `<p class="ins-note">${_dE(i18t('dir_no_contracts'))}</p>`)
       + sec(i18t('dir_also_at', { party: p.partyName }), others.length,
         others.length ? peopleRows(others) : `<p class="ins-note">${_dE(i18t('dir_nobody_else'))}</p>`);
   }
-  insPaintPanel({ seat: DIR_SEAT, item: { id: p.key }, head, body });
+  insPaintPanel({ seat: DIR_SEAT, item: { id: p.key }, head, body,
+    jlWord: i18t('jl_w_person'), jlHome: DIR_JL.jlHome(), jlPh: DIR_JL.jlPh(), jlSay: dirSay });
   dirPanelWire();
 }
 /* The panel's own rows: a contract opens, a person is chosen. Bound once per
@@ -465,6 +592,10 @@ function dirPanelWire(){
   if (!host || host.dataset.dirBound) return;
   host.dataset.dirBound = '1';
   host.addEventListener('click', e => {
+    const wt = e.target.closest && e.target.closest('[data-dir-wait]');
+    if (wt){ dirWaitGo(wt.getAttribute('data-dir-wait'), wt.getAttribute('data-dir-wait-id')); return; }
+    const all = e.target.closest && e.target.closest('[data-dir-all]');
+    if (all){ const cur = host._ins || {}; const key = cur.item && cur.item.id; const p = key ? dirBook().find(x => x.key === key) : null; if (p) dirShowContracts(p); return; }
     const ct = e.target.closest && e.target.closest('[data-dir-ct]');
     if (ct){ dirOpenContract(ct.getAttribute('data-dir-ct')); return; }
     const pk = e.target.closest && e.target.closest('[data-dir-pick]');
@@ -600,6 +731,20 @@ const DIR_CSS = `
   .dir-ct-ref{font-size:var(--t-meta);color:var(--color-neutral-600);margin-right:6px;}
   .dir-ct-st{white-space:nowrap;}
   .dir-ct-sub{grid-column:1 / -1;font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* NAMED ON, AS DRAWN (round 19's People scene): the rows sit in a bordered
+     white card, the name bold over its line, the stage on the right across
+     both lines */
+  .ins-panel .jl-ct-list{border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:var(--color-surface);overflow:hidden;}
+  .ins-panel .jl-ct-list .dir-ct{padding:9px 12px;border-top:1px solid var(--color-divider);}
+  .ins-panel .jl-ct-list .dir-ct:first-child{border-top:0;padding-top:9px;}
+  .ins-panel .jl-ct-list .dir-ct-n{font-weight:var(--w-strong);}
+  .ins-panel .jl-ct-list .dir-ct-st{grid-column:2;grid-row:1 / span 2;align-self:center;}
+  .ins-panel .jl-ct-list .dir-ct-sub{grid-column:1;}
+  .ins-panel .jl-ct-list + .jl-all{margin-top:8px;}
+  /* WAITING ON <NAME>, AS DRAWN: the work in a card without dots, its line on
+     one line (the whole of it on the hover) */
+  .ins-panel .jl-need.is-wait .jl-need-r{grid-template-columns:minmax(0,1fr) auto;}
+  .ins-panel .jl-need.is-wait .jl-need-s{display:block;white-space:nowrap;text-overflow:ellipsis;}
   .ins-panel .dir-pp{display:flex;align-items:center;gap:var(--s-2);width:100%;padding:6px 0;border:0;border-top:1px solid var(--surface-2);
     background:none;font:inherit;font-size:var(--t-body);color:var(--color-text);text-align:left;cursor:pointer;}
   .ins-panel .dir-pp:first-child{border-top:0;padding-top:0;}
@@ -613,4 +758,5 @@ const DIR_CSS = `
 `;
 
 Object.assign(window, { renderDirectory, dirRepaint, dirPeople, dirBook, dirRows, dirMatches, dirTabCount, dirPeopleOfParty, dirRoleWords,
-  dirFaceHtml, dirAzHtml, dirPlace, dirPlacePut, dirOpenParty, dirShowContracts, dirOpenContract, dirPaintPanel, dirSelect, DIR_TABS });
+  dirFaceHtml, dirAzHtml, dirPlace, dirPlacePut, dirOpenParty, dirShowContracts, dirOpenContract, dirPaintPanel, dirSelect, DIR_TABS,
+  dirWaitingOn, DIR_WAIT_MAX, DIR_WAIT_KIND, DIR_WAIT_OPEN, dirWaitGo, dirSay, dirNamedRoles, DIR_ROLE_NOUN, dirRoleNoun });

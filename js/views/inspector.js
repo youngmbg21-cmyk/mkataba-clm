@@ -56,7 +56,11 @@ function insForce(v){ _insForce = (v === true || v === false) ? v : null; }
 function insFits(){
   if (_insForce !== null) return _insForce;
   const el = (typeof document !== 'undefined') ? document.getElementById('content') : null;
-  const w = el ? el.clientWidth : 0;
+  /* JAMBO'S PANEL STANDS OUTSIDE THE PAGE (18 Oct 2026): at the window's right
+     edge, the page beside it narrowed by its width — so the room the list and
+     its panel share is the page's width plus the column the panel took, the
+     same measure as before it moved (else the panel would take itself away). */
+  const w = el ? el.clientWidth + jlReserved() : 0;
   return w >= INS_MIN_W;
 }
 
@@ -64,14 +68,26 @@ function insFits(){
    two people's screens — or one person's two tabs — open on different
    contracts for no reason they could see. */
 const _insSel = {};
+/* LET GO (Jambo's panel, 18 Oct 2026): "‹ Jambo", his tab, or a question
+   asked in the box puts the chosen row down and the panel says Jambo's own
+   words — until a row is pressed again. Per seat, per sitting. */
+const _insGone = {};
 function insSelected(seat){ return _insSel[seat] || null; }
-function insSelect(seat, id){ _insSel[seat] = id ? String(id) : null; }
+function insSelect(seat, id){ _insSel[seat] = id ? String(id) : null; if (id) _insGone[seat] = false; }
+function insLetGo(seat){ if (!seat) return; _insGone[seat] = true; _insSel[seat] = null; }
+function insLetGone(seat){ return !!_insGone[seat]; }
 /* The selected id if it is still in the list on screen, else the first row.
    A filter that takes the chosen contract off the list must not leave the
-   panel describing a contract the reader can no longer see. */
-function insPick(seat, ids){
+   panel describing a contract the reader can no longer see. A seat let go
+   stays let go; a page that ARRIVES with nothing chosen (`o.none` — round 16's
+   "Your week") chooses nothing until a row is pressed. */
+let _insLastSeat = null;
+function insPick(seat, ids, o){
+  _insLastSeat = seat || null;
   const list = (ids || []).map(String).filter(Boolean);
+  if (_insGone[seat]){ _insSel[seat] = null; return null; }
   const cur = _insSel[seat];
+  if (o && o.none && !(cur && list.includes(cur))){ _insSel[seat] = null; return null; }
   const id = (cur && list.includes(cur)) ? cur : (list[0] || null);
   _insSel[seat] = id;
   return id;
@@ -257,7 +273,43 @@ function insTableHtml(c){
   const more = t.more ? `<p class="ins-note">${esc(i18tn('ins_more_asks', t.more, { n: t.more }))}</p>` : '';
   return insSecHtml(i18t('ins_table'), i18t('ins_table_n', { round: t.round, n: t.n }), rows + more, 'ins-table');
 }
-function insReadsHtml(c){
+/* WHAT JAMBO READ, AS HIS PANEL DRAWS IT (rounds 14 and 15): the four
+   readings in the drawing's order — The brief · Playbook pass · Risk scan ·
+   Obligations — a full dot where it was read, a ring where not, amber where a
+   reading wants a look; the words only where they say something ("· 2 risks",
+   "· 1 departure", "· not read yet"). The reading is the Overview's own
+   (ktReadingsRows), never a second tally; the risks are its open findings. */
+const JL_READ_ORDER = ['brief', 'playbook', 'scan', 'oblig'];
+function jlReadSaid(c, r){
+  if (r.state === 'no') return i18t('jl_read_none');
+  if (r.state === 'stale') return i18t('ov_r_before_round');
+  if (r.k === 'brief') return r.state === 'look' ? r.said : '';
+  if (r.k === 'playbook'){
+    const n = Number((/\d+/.exec(String(r.said || '')) || [0])[0]) || 0;
+    return n ? i18tn('ov_r_departures', n, { n }) : '';
+  }
+  if (r.k === 'scan'){
+    let open = 0; try { open = ((typeof openFindings === 'function' ? openFindings(c) : []) || []).length; } catch (_){ open = 0; }
+    return open ? i18tn('jl_read_risks', open, { n: open }) : '';
+  }
+  if (r.k === 'oblig'){
+    const n = Number((/\d+/.exec(String(r.said || '')) || [0])[0]) || 0;
+    return n ? r.said : '';
+  }
+  return r.said || '';
+}
+function jlReadsHtml(c){
+  const all = insReads(c);
+  const rows = JL_READ_ORDER.map(k => all.find(r => r && r.k === k)).filter(Boolean);
+  if (!rows.length) return '';
+  return insSecHtml(i18t('ins_read'), '', `<div class="ins-read jl-read">${rows.map(r => {
+    const tone = r.state === 'yes' ? 'green' : (r.state === 'look' || r.state === 'stale') ? 'amber' : r.state === 'bad' ? 'ruby' : '';
+    const said = jlReadSaid(c, r);
+    return `<div class="jl-rr${tone ? ' is-' + tone : ''}" data-jl-read="${esc(r.k)}"><i class="jl-dot${tone ? ' is-' + tone : ''}" aria-hidden="true"></i><span data-ins-read="${esc(r.k)}">${esc(r.name)}${said ? ` <em>· ${esc(said)}</em>` : ''}</span></div>`;
+  }).join('')}</div>`, 'ins-reads');
+}
+function insReadsHtml(c, jl){
+  if (jl) return jlReadsHtml(c);
   const rows = insReads(c);
   if (!rows.length) return '';
   const tick = (typeof icon === 'function') ? icon('check2', '', 2.4) : '';
@@ -324,9 +376,11 @@ function insDoorActs(c, opt){
   /* THE DOCUMENT DOOR IS GONE (owner, 15 Oct 2026: "we have 2 buttons to the
      same page so document will simply need to be deleted"): it and Workspace
      both landed on Home's paper. Two doors stay: Negotiation · Workspace. */
-  const nego = { k: 'door-nego', door: true, icon: 'msg', label: i18t('ins_door_nego'),
+  /* THE DOORS WEAR WORDS ONLY (rounds 14 and 19 as drawn, owner's "build all
+     the gaps", 18 Oct 2026): "Negotiation · Workspace", no mark before them */
+  const nego = { k: 'door-nego', door: true, label: i18t('ins_door_nego'),
     disabled: !ns.ok, title: ns.ok ? '' : ns.why, run: () => { if (insNegoDoorState(c).ok) openRedlineWorkbench(c.id, { face: true }); } };   /* Jambo's Redlines face beside Home's paper (stage 3) */
-  const ws = { k: 'door-ws', door: true, icon: 'folderOpen', label: i18t('ins_door_ws'),
+  const ws = { k: 'door-ws', door: true, label: i18t('ins_door_ws'),
     /* THE WORKSPACE OPENS HOME (the overnight work order, step 2, 14 Oct
        2026; was the room, on Details while owed, 12 Oct): Fill in beside the
        paper while anything is owed, else the paper on Jambo's tab — the one
@@ -355,8 +409,10 @@ function insActsHtml(list, menuHtml, moreAria){
       ic(a.icon)}${esc(a.label)}${ic(a.iconEnd)}</button>`;
   };
   /* the page's own verbs, then the three doors in a row of their own
-     (insDoorActs) — the ⋯ ends the last row drawn */
-  const shown = (list || []).filter(a => a && !a.inSub);
+     (insDoorActs) — the ⋯ ends the last row drawn. An act marked `inBody` is
+     drawn by the page inside its own section (insActBtnHtml) — Approvals'
+     "Your answer" — and is still this panel's to press. */
+  const shown = (list || []).filter(a => a && !a.inSub && !a.inBody);
   const acts = shown.filter(a => !a.door).map(btn).join('');
   const doors = shown.filter(a => a.door).map(btn).join('');
   const more = menuHtml ? `<span class="ins-more-wrap">
@@ -365,6 +421,15 @@ function insActsHtml(list, menuHtml, moreAria){
       <div class="ins-menu" data-ins-menu hidden>${menuHtml}</div></span>` : '';
   if (doors) return (acts ? `<div class="ins-acts">${acts}</div>` : '') + `<div class="ins-acts ins-doors">${doors}${more}</div>`;
   return (acts || more) ? `<div class="ins-acts">${acts}${more}</div>` : '';
+}
+/* One act's button, the head's own markup — for a page that draws an act
+   inside a section of its own (an act marked `inBody`). */
+function insActBtnHtml(a){
+  if (!a) return '';
+  const cls = a.kind === 'accent' ? 'ui-btn ui-btn-primary ins-lead' : (a.kind === 'plain' ? 'ui-btn ui-btn-plain' : 'ui-btn');
+  const ic = n => (n && typeof icon === 'function') ? icon(n, 'w-3.5 h-3.5') : '';
+  return `<button type="button" class="${cls}" data-ins-act="${esc(a.k)}"${a.title ? ` title="${esc(a.title)}"` : ''}${a.disabled ? ' disabled' : ''}${a.attrs ? ' ' + a.attrs : ''}>${
+    ic(a.icon)}${esc(a.label)}${ic(a.iconEnd)}</button>`;
 }
 /* One row of the ⋯ menu, in the row menu's own markup (regRowActsHtml), so
    the menus on every page are one menu. `ruby` marks the act that throws
@@ -560,11 +625,26 @@ function insHeadHtml(c, o){
      builder); a page may draw the stage BESIDE the name (`statusBeside`), hand
      in its own stage (`statusHtml`) or its own "needs you" (`needsHtml`), and
      put one act as a link on the sub line (an act with `inSub`). */
-  const av = (!many.length && typeof window.regAvatarHtml === 'function') ? window.regAvatarHtml(cp) : '';
+  /* JAMBO'S PANEL (rounds 14 and 15): the eyebrow is the reference and the
+     agreement's own name, the party under it with its pill beside it — no
+     initials, and the name is not said twice on a sub line. Owed work is its
+     own section further down ('needs'), not a band under the name. */
+  const jl = !!o._jl;
+  const av = (!jl && !many.length && typeof window.regAvatarHtml === 'function') ? window.regAvatarHtml(cp) : '';
   const st = o.statusHtml != null ? o.statusHtml : status;
   const beside = !!o.statusBeside;
   const subAct = (o.acts || []).find(a => a && a.inSub);
   const subLink = subAct ? `<button type="button" class="ui-link ins-sub-act" data-ins-act="${esc(subAct.k)}"${subAct.title ? ` title="${esc(subAct.title)}"` : ''}>${esc(subAct.label)}</button>` : '';
+  if (jl) return `<div class="ins-h jl-h">
+    <div class="ins-eb"><span class="ins-ref">${esc(window.contractRef ? contractRef(c) : c.id)}</span>${title ? ` · <span title="${esc(title)}">${esc(title)}</span>` : (kind ? ` · ${esc(kind)}` : '')}</div>
+    ${many.length
+      ? `<h2 class="ins-cp is-many">${insPartiesHtml(many)}</h2>${beside ? `<div class="ins-st">${st}</div>` : ''}`
+      : `<h2 class="ins-cp" title="${esc(cp)}"><span class="ins-cp-n">${esc(cp)}</span>${beside && st ? `<span class="ins-st-side jl-st-side">${st}</span>` : ''}</h2>`}
+    ${subLink ? `<div class="ins-sub">${subLink}</div>` : ''}
+    ${o.needsHtml != null ? o.needsHtml : ''}
+    ${beside ? '' : `<div class="ins-st">${st}</div>`}
+    ${insActsHtml(o.acts, o.menuHtml, i18t('ins_more', { id: (window.contractRef ? contractRef(c) : c.id) }))}
+  </div>`;
   return `<div class="ins-h">
     <div class="ins-eb"><span class="ins-ref">${esc(window.contractRef ? contractRef(c) : c.id)}</span>${kind ? ` · ${esc(kind)}` : ''}</div>
     ${many.length
@@ -589,6 +669,13 @@ const INS_TONE = ['ruby', 'amber', 'steel', 'green', 'gray'];
 function insItemHeadHtml(o){
   const opt = o || {};
   const tone = INS_TONE.includes(opt.tone) ? opt.tone : '';
+  /* A FACE BESIDE THE NAME (round 19, the person's panel): initials in a
+     circle, the name and one line under it, the doors below */
+  if (opt.av) return `<div class="ins-h jl-h has-face">
+    ${opt.eyebrow ? `<div class="ins-eb">${opt.eyebrow}</div>` : ''}
+    <div class="jl-face-row">${opt.av}<div class="jl-face-w"><h2 class="ins-cp is-item" title="${esc(opt.title || '')}">${esc(opt.title || '—')}${opt.pill ? ` <span class="jl-st-side">${opt.pill}</span>` : ''}</h2>${opt.sub ? `<div class="ins-sub is-item">${opt.sub}</div>` : ''}</div></div>
+    ${insActsHtml(opt.acts, opt.menuHtml, opt.moreAria)}
+  </div>`;
   return `<div class="ins-h">
     ${opt.eyebrow ? `<div class="ins-eb">${opt.eyebrow}</div>` : ''}
     ${opt.statusBeside && opt.status
@@ -632,6 +719,19 @@ function insKvHtml(facts){
       !none && f.plain ? ` title="${esc(f.plain)}"` : ''}>${none ? '—' : f.v}</dd></div>`;
   }).join('')}</dl>`;
 }
+/* FACTS AS ROWS, THE LABEL ON THE LEFT (rounds 15 and 19: the approval's
+   "Why it waits · Asked by · Value · Since last look", the person's "Email ·
+   In HaTi · Streams · Named on · Away"): one hairline between rows, a value
+   may wrap. Caller-built HTML in `v`, as insKvHtml's. */
+function insRowsHtml(facts, cls){
+  const list = (facts || []).filter(Boolean);
+  if (!list.length) return '';
+  return `<dl class="jl-rows${cls ? ' ' + cls : ''}">${list.map(f => {
+    const none = !f.v && f.v !== 0;
+    return `<div${f.k ? ` data-ins-fact="${esc(f.k)}"` : ''}><dt>${esc(f.label)}</dt><dd${none ? ' class="none"' : (f.tone ? ` class="is-${esc(f.tone)}"` : '')}${
+      !none && f.plain ? ` title="${esc(f.plain)}"` : ''}>${none ? '—' : f.v}</dd></div>`;
+  }).join('')}</dl>`;
+}
 /* The whole panel. `o.order` names the sections after the head, in order:
    'lead' (a page's own section, handed in as HTML), 'table', 'facts',
    'reads', 'latest'. */
@@ -641,12 +741,18 @@ function insPanelHtml(c, o){
      name, stream and stage — nothing more reached this browser */
   if (c && c._codeNamed) return insHeadHtml(c, opt) + `<div class="ins-sec"><p class="ins-note">${esc(i18t('cn_panel_note'))}</p></div>`
     + insKvHtml([{ k: 'party', label: i18t('cn_panel_party'), v: esc(i18t('cn_panel_party_v')), wide: true }, { k: 'stage', label: i18t('cn_panel_stage'), v: esc(String(c.status || '')) }]);
-  const order = opt.order || ['facts', 'table', 'reads', 'latest'];
+  let order = opt.order || ['facts', 'table', 'reads', 'latest'];
+  /* Jambo's panel says what is owed as its own section, before what he read */
+  if (opt._jl && !order.includes('needs')){
+    const at = order.indexOf('reads');
+    order = at < 0 ? order.concat('needs') : [...order.slice(0, at), 'needs', ...order.slice(at)];
+  }
   const part = {
     lead: () => opt.lead || '',
     table: () => insTableHtml(c),
     facts: () => (Array.isArray(opt.facts) ? insKvHtml(opt.facts) : insFactsHtml(c, opt.factKeys)),
-    reads: () => insReadsHtml(c),
+    needs: () => jlNeedsHtml(c, opt),
+    reads: () => insReadsHtml(c, !!opt._jl),
     latest: () => insLatestHtml(c, opt.latestState),
   };
   return insHeadHtml(c, opt) + order.map(k => (part[k] ? part[k]() : '')).join('');
@@ -674,9 +780,19 @@ function insPaintPanel(o){
   host._ins = opt;
   const c = opt.c || null;
   const item = c ? null : (opt.item || null);
-  host.innerHTML = c ? insPanelHtml(c, opt)
+  /* JAMBO'S PANEL (18 Oct 2026): the page's list panel is dressed as his —
+     the room's own panels (Obligations tab, Our standards' three) are not */
+  const jl = host.id === 'ins-panel' && !opt.plain;
+  opt._jl = jl;
+  const body = jl ? jlFrame(host, opt) : host;
+  if (jl) jlHeadPaint(host, opt, !!(c || item));
+  body.innerHTML = c ? insPanelHtml(c, opt)
     : item ? (insItemHeadHtml(opt.head || {}) + (opt.body || ''))
-    : insPanelEmptyHtml(opt.empty);
+    : jl ? jlWordsHtml(opt) : insPanelEmptyHtml(opt.empty);
+  /* his conversation, where it was asked here, is said under his words */
+  if (jl && !c && !item && typeof renderAIFeed === 'function' && typeof ai !== 'undefined' && ai && Array.isArray(ai.history) && ai.history.length){
+    try { renderAIFeed(!!ai.busy); if (ai.unread){ ai.unread = false; if (typeof updateAIBadge === 'function') updateAIBadge(); } } catch (_){}
+  }
   const selId = c ? c.id : (item ? String(item.id == null ? '' : item.id) : '');
   if (selId) host.setAttribute('data-ins-id', selId); else host.removeAttribute('data-ins-id');
   if (!host.dataset.insBound){
@@ -896,9 +1012,429 @@ function insWatchWidth(){
   if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('resize', later);
 }
 
+/* ═══ JAMBO'S PANEL BESIDE THE LISTS (owner's yes, 18 Oct 2026: "build all the
+   gaps" — rounds 14, 15, 16, 19, 20 and 21 of the redesign draw it beside
+   every list) ═════════════════════════════════════════════════════════════
+   The list inspector, dressed as Jambo's panel. THE CLOTHES FOLLOW THE
+   BUILDER: every page that draws #ins-panel gets it at once.
+   · THE HEAD: his face on his tab (the Counter's count on it, as beside a
+     paper), a word for what the panel holds ("Negotiation", "Approval",
+     "Person"…), "‹ Jambo" back to his own words while it holds a row, and
+     "›" folding it to the window's edge (pressed again it opens).
+   · THE BODY: the chosen row's panel, as each page builds it; with nothing
+     chosen (let go by ‹ Jambo, his tab or a question; or a page that arrives
+     so) Jambo says the page in words from the page's OWN counts — no AI call,
+     said so — with chips that are the page's own doors; under them his
+     conversation, when one was asked here (ai.js says it in #jl-feed).
+   · THE FOOT: the ask box and the hint line (jamboHintHtml). Words read the
+     way the Counter's box reads them (one reading: a place word or Jambo's
+     map opens its page at once; a card is his; anything else is a question
+     for Jambo, said here) — what a question costs rides the box's hover.
+   · WHERE IT STANDS: at the window's right edge from under the desk tabs to
+     the foot — Home's panel's own place and width (IG_DOCK_W0) — and the page
+     beside it takes the rest (index.html, ".ins-panel.is-jambo"). */
+const JL_W = 380, JL_FOLDED = 46;
+const JL_FOLD_KEY = 'hati.v1.jlFold';
+let _jlFold = null;
+function jlFolded(){
+  if (_jlFold === null){ try { _jlFold = localStorage.getItem(JL_FOLD_KEY) === '1'; } catch (_){ _jlFold = false; } }
+  return !!_jlFold;
+}
+function jlFoldSet(on){
+  _jlFold = !!on;
+  try { if (on) localStorage.setItem(JL_FOLD_KEY, '1'); else localStorage.removeItem(JL_FOLD_KEY); } catch (_){}
+  const host = jlHost(); if (host) host.classList.toggle('is-folded', !!on);
+  jlLayout();
+}
+/* the dressed panel on screen, or null */
+function jlHost(){
+  if (typeof document === 'undefined') return null;
+  const h = document.getElementById('ins-panel');
+  return (h && h.isConnected && h.classList.contains('is-jambo')) ? h : null;
+}
+/* JAMBO'S BOX ON SCREEN: the panel (or Import's) that holds #jl-q, only
+   while the reader can see it — folded counts (its strip is his door), a
+   panel in a hidden tab does not (Our paper's Templates tab sits hidden
+   under the book): the bar's Jambo door and every openAI(prefill) ask this,
+   so a press never lands in a box nobody can see */
+function jlOnScreen(){
+  if (typeof document === 'undefined') return null;
+  const shown = host => {
+    if (!host || (typeof host.closest === 'function' && host.closest('[hidden]'))) return false;
+    try { return typeof host.getClientRects !== 'function' || !!host.getClientRects().length; } catch (_){ return false; }
+  };
+  for (const q of Array.from(document.querySelectorAll('#jl-q'))){
+    const host = q.isConnected ? (q.closest('.ins-panel.is-jambo') || q.closest('#mig-side')) : null;
+    if (shown(host)) return host;
+  }
+  return null;
+}
+/* the column the panel takes from the page — 0 where it is not drawn */
+function jlReserved(){
+  const h = jlHost(); if (!h) return 0;
+  /* a panel in a hidden tab takes nothing (Our paper's Templates tab) */
+  if (typeof h.closest === 'function' && h.closest('[hidden]')) return 0;
+  return h.classList.contains('is-folded') ? JL_FOLDED : JL_W;
+}
+/* the panel's top is the page head's top: under the bar and the desk tabs */
+function jlLayout(){
+  const h = jlHost(); if (!h) return;
+  const ph = document.getElementById('page-head');
+  let top = 0; try { top = ph ? Math.round(ph.getBoundingClientRect().top) : 0; } catch (_){ top = 0; }
+  if (top > 0) h.style.setProperty('--jl-top', top + 'px');
+}
+/* HIS COUNT, the Counter's own number (what needs you), read at most once a
+   second — the walk is the book's, and a panel repaints on every row press */
+let _jlCnt = { at: 0, n: 0 };
+function jlCount(){
+  const now = Date.now();
+  if (now - _jlCnt.at > 1500){ let n = 0; try { n = (typeof counterNeedsCount === 'function') ? Number(counterNeedsCount()) || 0 : 0; } catch (_){ n = 0; } _jlCnt = { at: now, n }; }
+  return _jlCnt.n;
+}
+function jlHeadHtml(){
+  const face = (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 20, 'pd-tab-face').replace('<img', '<img data-ink-exempt') : '';
+  const name = i18t('pd_tab_copilot');
+  const back = i18t('pd_back_jambo');
+  const fold = i18t('int_collapse_panel');
+  return `<div class="jl-head">
+    <button type="button" class="pd-tab on jl-tab" data-jl-home title="${esc(name)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${face}</span><span class="pd-tab-n is-warn" data-jl-n hidden></span></span><span class="pd-tab-w">${esc(name)}</span></button>
+    <span class="jl-word" data-jl-word></span>
+    <span class="jl-sp"></span>
+    <button type="button" class="pd-back jl-back" data-jl-back title="${esc(back)}" aria-label="${esc(back)}" hidden><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${esc(name)}</button>
+    <button type="button" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon jl-fold" data-jl-fold title="${esc(fold)}" aria-label="${esc(fold)}">${typeof icon === 'function' ? icon('chevR') : '›'}</button>
+  </div>`;
+}
+/* the folded strip: his face, his count, his name — and it opens */
+function jlDoorHtml(){
+  const face = (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 28, 'igd-door-face').replace('<img', '<img data-ink-exempt') : '';
+  const open = i18t('int_open_panel');
+  return `<button type="button" class="igd-door jl-door" data-jl-door title="${esc(open)}" aria-label="${esc(open)}"><span class="igd-door-i">${face}<span class="pd-tab-n is-warn" data-jl-n hidden></span></span><span class="igd-door-w">${esc(i18t('pd_tab_copilot'))}</span><svg class="igd-door-o" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg></button>`;
+}
+/* THE ASK BOX AND ITS HINT — one builder for the panel beside a list and for
+   Import's (#mig-side). One box per page, so its ids are fixed. */
+function jlAskHtml(o){
+  const opt = o || {};
+  const ph = opt.placeholder || i18t('jl_ph_any');
+  const cost = i18t('jl_ask_cost');
+  return `<div class="jl-foot">
+    <form class="jl-ask" data-jl-ask autocomplete="off" title="${esc(cost)}">
+      <div class="ca-pop jl-pop" data-jl-pop hidden></div>
+      <div class="jl-box"><input id="jl-q" type="text" maxlength="400" spellcheck="false" placeholder="${esc(ph)}" aria-label="${esc(ph)}"><button type="submit" class="ui-btn ui-btn-primary ui-btn-sm jl-send" data-jl-send title="${esc(cost)}">${esc(i18t('int_ask'))}</button></div>
+    </form>
+    ${typeof jamboHintHtml === 'function' ? jamboHintHtml() : ''}
+  </div>`;
+}
+/* The frame is built ONCE per panel element, so the words in the box and its
+   caret survive every row press; only the body and the head's word move. */
+function jlFrame(host, opt){
+  host.classList.add('is-jambo');
+  host.classList.toggle('is-folded', jlFolded());
+  let body = host.querySelector(':scope > .jl-body');
+  if (!body){
+    host.innerHTML = `${jlDoorHtml()}${jlHeadHtml()}<div class="jl-body" data-jl-body></div>${jlAskHtml({ placeholder: opt.jlPh })}`;
+    body = host.querySelector(':scope > .jl-body');
+  }
+  const inp = host.querySelector('#jl-q');
+  const ph = opt.jlPh || i18t('jl_ph_any');
+  if (inp && inp.getAttribute('placeholder') !== ph){ inp.setAttribute('placeholder', ph); inp.setAttribute('aria-label', ph); }
+  jlLayout();
+  return body;
+}
+function jlHeadPaint(host, opt, holds){
+  const w = host.querySelector('[data-jl-word]');
+  const word = holds ? (opt.jlWord || i18t(opt.c ? 'jl_w_contract' : 'jl_w_item')) : (opt.jlHome || jlPageWord());
+  if (w){ w.textContent = word; w.setAttribute('title', word); }
+  const b = host.querySelector('[data-jl-back]'); if (b) b.hidden = !holds;
+  const n = jlCount();
+  host.querySelectorAll('[data-jl-n]').forEach(el => { el.hidden = !n; el.textContent = n > 99 ? '99+' : String(n); });
+}
+/* A DAY SAID THE WAY A PERSON SAYS IT (rounds 15 and 19: "back Friday",
+   "away until Fri"): the weekday within the coming week, else the date */
+function jlDayWord(iso, short){
+  const s = String(iso || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return '';
+  const d = new Date(s + 'T12:00:00'), t = new Date(); t.setHours(12, 0, 0, 0);
+  const days = Math.round((d - t) / 864e5);
+  if (days >= 0 && days <= 6){
+    try { return d.toLocaleDateString((typeof langLocale === 'function') ? langLocale() : undefined, { weekday: short ? 'short' : 'long' }); } catch (_){}
+  }
+  return (typeof regDotDate === 'function') ? regDotDate(s) : s;
+}
+/* "16–23 Oct" — a span of days said once: the month and year only where they change */
+function jlDayRange(from, to){
+  const a = new Date(String(from || '').slice(0, 10) + 'T12:00:00'), b = new Date(String(to || '').slice(0, 10) + 'T12:00:00');
+  if (isNaN(a) || isNaN(b)) return [from, to].filter(Boolean).join('–');
+  const loc = (typeof langLocale === 'function') ? langLocale() : undefined;
+  const fmt = (d, o) => { try { return d.toLocaleDateString(loc, o); } catch (_){ return d.toISOString().slice(0, 10); } };
+  const yr = new Date().getFullYear();
+  if (a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth())
+    return `${a.getDate()}–${fmt(b, Object.assign({ day: 'numeric', month: 'short' }, b.getFullYear() !== yr ? { year: 'numeric' } : {}))}`;
+  const y = (a.getFullYear() !== b.getFullYear() || b.getFullYear() !== yr) ? { year: 'numeric' } : {};
+  return `${fmt(a, Object.assign({ day: 'numeric', month: 'short' }, y))}–${fmt(b, Object.assign({ day: 'numeric', month: 'short' }, y))}`;
+}
+/* the away rule the reader may see for a colleague: their own, or one the
+   reader stands in for (state.away — the server sends no one else's) */
+function jlAwayOf(personId){
+  if (personId == null || personId === '' || typeof state === 'undefined' || !state || !state.away) return null;
+  const a = state.away, me = (typeof currentUser === 'function') ? currentUser() : null;
+  if (me && String(me.id) === String(personId)) return a.mine || null;
+  return (Array.isArray(a.covering) ? a.covering : []).find(r => r && String(r.userId) === String(personId)) || null;
+}
+/* the page's own name, for the head while Jambo speaks */
+function jlPageWord(){
+  /* the name the bar gives the page (deskPageName, main's "‹ · HA · the
+     page's name"), then the page's own title — never his own name twice */
+  try { const d = (typeof deskPageName === 'function') ? String(deskPageName() || '').trim() : ''; if (d) return d; } catch (_){}
+  try { const v = (typeof state !== 'undefined' && state) ? state.view : '';
+    const m = (typeof commandMeta === 'function') ? commandMeta(v) : null; if (m && m[0]) return String(m[0]); } catch (_){}
+  return i18t('pd_tab_copilot');
+}
+/* how many rows the list beside the panel shows — the default words' count */
+function jlRowCount(){
+  if (typeof document === 'undefined') return 0;
+  const tb = document.querySelector('[data-ins-on="1"]');
+  const L = tb && tb._insList;
+  try { return (tb && L && L.rowSel) ? tb.querySelectorAll(L.rowSel).length : 0; } catch (_){ return 0; }
+}
+/* ---- JAMBO'S OWN WORDS: the page said from its own counts ----
+   `opt.jlSay()` → { lines: [html | {html, src}], src, chips: [{label, run}] };
+   a page that says nothing of its own gets the list's count. The lines are
+   the caller's escaped HTML. */
+let _jlChips = [];
+function jlWordsHtml(opt){
+  let say = null; try { say = (typeof opt.jlSay === 'function') ? opt.jlSay() : null; } catch (_){ say = null; }
+  if (!say || !Array.isArray(say.lines) || !say.lines.length){
+    const n = jlRowCount();
+    /* "Counted from the list" only under a count: the page's own "choose
+       one" words were counted from nothing (check A1 #2) */
+    say = Object.assign({}, say || {}, { lines: [esc(n ? i18tn('jl_say_rows', n, { n }) : (opt.empty || i18t('ins_none')))] }, n ? {} : { src: false });
+  }
+  _jlChips = Array.isArray(say.chips) ? say.chips.filter(c => c && c.label && typeof c.run === 'function') : [];
+  const face = (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 24, 'jl-say-face').replace('<img', '<img data-ink-exempt') : '';
+  const src = say.src === false ? '' : (say.src || i18t('jl_src_list'));
+  const lines = say.lines.map((l, i) => {
+    const html = typeof l === 'string' ? l : (l && l.html) || '';
+    const under = (l && typeof l === 'object' && l.src) ? l.src : (i === 0 ? src : '');
+    return `<div class="jl-say">${face}<div class="jl-bub">${html}</div></div>${under ? `<p class="jl-src">${esc(under)}</p>` : ''}`;
+  }).join('');
+  return `<div class="jl-words" data-jl-words>${lines}${_jlChips.length ? `<div class="jl-chips">${_jlChips.map((c, i) =>
+    `<button type="button" class="jl-chip" data-jl-chip="${i}"${c.title ? ` title="${esc(c.title)}"` : ''}>${esc(c.label)}</button>`).join('')}</div>` : ''}</div>
+    <div id="jl-feed" class="jl-feed" aria-live="polite"></div>`;
+}
+/* ---- NEEDS YOU, AS ITS OWN SECTION (round 14: "Answer 2 redlines · Clause 7
+   Liability cap · clause 11 Payment terms · Answer") ----
+   The page's own rows first (`opt.jlNeedRows(c)`: {k, title, sub, plain,
+   verb, urgent, run, skips}), then the checklist's (needsYouOf, said by
+   insNeedWords, pressed through needsYouGo) less what a page row already says. */
+let _jlNeedRuns = {};
+function jlNeedsHtml(c, opt){
+  const o = opt || {};
+  let rows = []; try { rows = (typeof o.jlNeedRows === 'function') ? (o.jlNeedRows(c) || []) : []; } catch (_){ rows = []; }
+  rows = rows.filter(r => r && r.title);
+  let items = []; try { items = (typeof needsYouOf === 'function') ? (needsYouOf(c) || []) : []; } catch (_){ items = []; }
+  const leave = new Set([...(o.needsSkip || []), ...rows.flatMap(r => r.skips || [])]);
+  items = items.filter(x => x && INS_NEED_VERB[x.kind] && !leave.has(x.kind));
+  _jlNeedRuns = {};
+  if (!rows.length && !items.length) return '';
+  const row = (attr, tone, title, sub, plain, btn) => `<div class="jl-need-r is-${tone}" ${attr}><i class="jl-need-dot" aria-hidden="true"></i><div class="jl-need-b"><div class="jl-need-t" title="${esc(title)}">${esc(title)}</div>${
+    sub ? `<div class="jl-need-s" title="${esc(plain || '')}">${sub}</div>` : ''}</div>${btn}</div>`;
+  const html = rows.map(r => {
+    _jlNeedRuns[r.k] = r.run;
+    return row(`data-jl-need-row="${esc(r.k)}"`, r.urgent ? 'ruby' : 'amber', r.title, r.sub || '', r.plain || '',
+      `<button type="button" class="ui-btn ui-btn-sm jl-need-go" data-jl-need="${esc(r.k)}"${r.go ? ` title="${esc(r.go)}"` : ''}>${esc(r.verb || i18t('home_verb_answer'))}</button>`);
+  }).concat(items.map(it => {
+    const w = insNeedWords(c, it);
+    return row(`data-ins-need-row="${esc(it.kind)}"`, it.urgent ? 'ruby' : 'amber', w.title, w.sub, w.plain,
+      `<button type="button" class="ui-btn ui-btn-sm jl-need-go" data-ins-need="${esc(it.kind)}" title="${esc(i18t(INS_NEED_GO[it.kind]))}">${esc(i18t(INS_NEED_VERB[it.kind]))}</button>`);
+  })).join('');
+  return insSecHtml(i18t('jl_need_head'), '', `<div class="jl-need">${html}</div>`, 'jl-needs');
+}
+/* ---- LAND ON IT (main, 18 Oct 2026): every door Jambo's panel beside a
+   list adds names ONE target and arrives on it through the one lander
+   (landOn) — opened, in view, lit, its main button ready, nothing pressed.
+   The target is read at press time, after the door has opened its page. */
+const JL_LAND = {
+  /* a row of the page in front, by its id */
+  row: id => () => { const q = String(id || ''); if (!q) return null;
+    return [...document.querySelectorAll('[data-ap-row],[data-row],[data-ins-row],[data-ik-row],[data-ob-key]')]
+      .find(r => [r.getAttribute('data-ap-row'), r.getAttribute('data-row'), r.getAttribute('data-ins-row'), r.getAttribute('data-ik-row'), r.getAttribute('data-ob-key')].includes(q)) || null; },
+  /* the list's first row, after a chip narrowed it */
+  first: () => document.querySelector('#reg-tbody tr[data-row], .ap-table tr[data-ap-row], #content tbody tr[data-ins-row]:not([hidden])'),
+  /* Redlines beside the paper: the first card (what waits on you leads) */
+  redlines: '#pd-redface [data-nego-card]',
+  /* Before you sign: an approval's card, else the Sign button, else the stop
+     on the road where it stands */
+  sign: () => document.querySelector('#pd-signface #sa-card') || document.querySelector('#pd-signface #sign-btn')
+    || document.querySelector('#pd-signface .pd-road-stop.is-now') || document.querySelector('#sa-card'),
+  /* the road's stop where it stands (who signs next) */
+  road: () => document.querySelector('#pd-signface .pd-road-stop.is-now') || document.querySelector('#pd-signface [data-pd-road]'),
+  /* Home's paper: its line names the contract */
+  paper: '.ig-line-id',
+  /* the Contracts place narrowed: its first paper or row */
+  list: () => document.querySelector('#ct-place .igw-card, #ct-place tr[data-row], #reg-tbody tr[data-row]'),
+};
+function jlLand(k, arg){
+  const t = JL_LAND[k]; if (!t || typeof landOn !== 'function') return null;
+  return landOn(typeof t === 'function' && t.length ? t(arg) : t, { block: 'nearest' });
+}
+/* ---- LET THE ROW GO: Jambo's own words ---- */
+function jlToWords(){
+  const host = jlHost(); if (!host || !host._ins) return false;
+  const cur = host._ins;
+  /* the seat the page's list chose by (a page that paints without naming it) */
+  const seat = cur.seat || _insLastSeat;
+  if (seat) insLetGo(seat);
+  document.querySelectorAll('[data-ins-on="1"]').forEach(tb => tb.querySelectorAll('.is-sel').forEach(r => { r.classList.remove('is-sel'); r.removeAttribute('aria-current'); }));
+  insPaintPanel(Object.assign({}, cur, { c: null, item: null }));
+  return true;
+}
+/* the contract the panel holds, where it holds one */
+function jlHeldContract(){
+  const host = jlHost(); const cur = host && host._ins;
+  if (cur && cur.c) return cur.c;
+  if (cur && cur.jlCid && typeof getContract === 'function') return getContract(cur.jlCid) || null;
+  return null;
+}
+/* ---- THE ASK: ONE READING, THE COUNTER'S ----
+   0 a word that needs one contract ("redline", "sign", "share"…) takes the
+     row the panel holds;
+   1 THE ONE READER every Jambo box asks first (caAskAnywhere, MAIN 18 Oct
+     2026): a place word opens its page; a draft from a sentence opens the
+     one form; a send, a job, a booking go where they are done — all free;
+   2 Jambo's map (jmRead): a page at once; "which did you mean?" is his card,
+     said here; an act that waits for a press goes where his cards live;
+   3 THE COUNTER'S FREE READINGS (check A1 #2): what the Board's own reader
+     answers free — a figure, a party or contract by name, "ending in 90
+     days" — is handed to the Board, as the Counter's box hands it
+     (jlBoardReads → caHandHome), never a call;
+   4 anything else is a question for Jambo, said here (aiAskWords, one call,
+     its cost on the box's hover before the press). */
+function jlBoardReads(t){
+  if (typeof hbAskReadingOf !== 'function') return false;
+  let A = null; try { A = hbAskReadingOf(t, 'board'); } catch (_){ A = null; }
+  return !!(A && A.road === 'free');
+}
+function jlAsk(text){
+  const t = String(text || '').trim(); if (!t) return false;
+  const cards = (typeof JM_CARD_PLACES !== 'undefined') ? JM_CARD_PLACES : ['share', 'draft', 'help', 'next'];
+  let a = null; try { a = (typeof caReadPlace === 'function') ? caReadPlace(t) : null; } catch (_){ a = null; }
+  if (a && a.kind === 'go' && a.missing){
+    const held = jlHeldContract();
+    if (held){
+      a.cid = held.id; a.missing = false;
+      if (!cards.includes(a.place) && typeof caGo === 'function' && caGo(a)) return 'go';
+      if (typeof jmRunAct === 'function' && jmRunAct(a, t)) return 'card';
+    }
+  }
+  let took = false; try { took = (typeof caAskAnywhere === 'function') ? caAskAnywhere(t) : false; } catch (_){ took = false; }
+  if (took) return took === 'cal' ? 'cal' : 'go';
+  if (!a){
+    let m = null; try { m = (typeof jmRead === 'function') ? jmRead(t) : null; } catch (_){ m = null; }
+    if (m && m.kind === 'map'){ jlMapCard(t, m); return 'card'; }
+    if (m && m.kind === 'go' && !m.missing && !cards.includes(m.place) && typeof caGo === 'function' && caGo(m)) return 'go';
+    if (m && typeof jmRunAct === 'function' && jmRunAct(m, t)) return 'card';
+  }
+  if (jlBoardReads(t) && typeof caHandHome === 'function' && caHandHome(t, null)) return 'board';
+  jlToWords();
+  if (typeof aiAskWords === 'function'){ aiAskWords(t); return 'model'; }
+  if (typeof openAI === 'function'){ openAI(t); return 'model'; }
+  return false;
+}
+/* "Which of these did you mean?" — the map's own card (jm_pick_title, the
+   tasks' own names), said in the one conversation; a press is the task's act */
+function jlMapCard(q, m){
+  jlToWords();
+  if (typeof aiPush !== 'function' || typeof renderAIFeed !== 'function') return;
+  const btns = (m.picks || []).map((k, n) => `<button type="button" class="ui-btn ui-btn-sm${n === 0 ? ' ui-btn-primary' : ''}" data-jl-pick="${esc(k)}" data-jl-q="${esc(q)}">${esc(i18t('jm_t_' + k))}</button>`).join('');
+  aiPush('user', { text: esc(q), raw: q });
+  aiPush('assistant', { text: `<div>${esc(i18t('jm_pick_title'))}</div>`, cards: `<div class="ca-card jl-card" data-jm-card><div class="ca-acts">${btns}</div></div>` });
+  renderAIFeed();
+}
+/* the bar's Jambo door beside a list: the panel opens, the words are put ready */
+function jlFocus(prefill){
+  const host = jlOnScreen();
+  if (!host) return false;
+  if (host.classList.contains('is-folded')) jlFoldSet(false);
+  const inp = host.querySelector('#jl-q'); if (!inp) return false;
+  if (prefill){ inp.value = String(prefill); }
+  try { inp.focus({ preventScroll: true }); const n = inp.value.length; inp.setSelectionRange(n, n); } catch (_){}
+  return true;
+}
+/* ---- "/" — THE PLACES, MOST USED FIRST (the Counter's own list) ---- */
+let _jlPop = null;
+function jlPopRead(inp){
+  const m = /^\s*\/([\w\-åäöÅÄÖ'’]*)$/.exec(String(inp.value || ''));
+  if (!m || typeof caSlashRows !== 'function'){ jlPopClose(); return; }
+  const held = !!jlHeldContract();
+  const one = new Set((typeof CA_PLACES !== 'undefined' ? CA_PLACES : []).filter(p => p.need === 'one').map(p => p.k));
+  const rows = caSlashRows(m[1].toLowerCase(), { max: 99 }).filter(r => held || !one.has(r.k)).slice(0, 8);
+  if (!rows.length){ jlPopClose(); return; }
+  _jlPop = { rows, on: Math.min((_jlPop && _jlPop.on) || 0, rows.length - 1) };
+  jlPopPaint();
+}
+function jlPopPaint(){
+  const el = document.querySelector('[data-jl-pop]'); if (!el || !_jlPop) return;
+  el.innerHTML = `<h5>${esc(i18t('hb_pop_places'))}</h5><div role="listbox">${_jlPop.rows.map((r, i) =>
+    `<div class="ca-opt${i === _jlPop.on ? ' on' : ''}" role="option" aria-selected="${i === _jlPop.on}" data-jl-pop-row="${i}"><span class="who"><b>${esc(r.word)}</b>${r.sub ? `<small>${esc(r.sub)}</small>` : ''}</span></div>`).join('')}</div><p class="ca-hint">${esc(i18t('hb_pop_keys'))}</p>`;
+  el.hidden = false;
+}
+function jlPopClose(){ _jlPop = null; const el = document.querySelector('[data-jl-pop]'); if (el){ el.hidden = true; el.innerHTML = ''; } }
+function jlPopTake(i){
+  const r = _jlPop && _jlPop.rows[i]; if (!r) return;
+  const q = document.getElementById('jl-q'); if (q) q.value = '';
+  jlPopClose(); jlAsk(r.word);
+}
+/* ---- PRESSES, ONE LISTENER EACH, ARMED ONCE AT LOAD; each reads the live
+   panel at press time ---- */
+if (typeof document !== 'undefined' && typeof window !== 'undefined' && !window._jlWired){
+  window._jlWired = true;
+  document.addEventListener('click', e => {
+    const t = e.target; if (!t || !t.closest) return;
+    let el;
+    if ((el = t.closest('[data-jl-pop-row]'))){ jlPopTake(Number(el.getAttribute('data-jl-pop-row'))); return; }
+    if (_jlPop && !t.closest('.jl-ask')) jlPopClose();
+    if ((el = t.closest('[data-jl-pick]'))){
+      const k = el.getAttribute('data-jl-pick'), q = el.getAttribute('data-jl-q') || '';
+      const card = el.closest('[data-jm-card]'); if (card) card.querySelectorAll('button').forEach(b => { b.disabled = true; });
+      const act = (typeof jmActOf === 'function') ? jmActOf(k, q) : null;
+      if (act && typeof jmRunAct === 'function') jmRunAct(act, q);
+      return;
+    }
+    const host = t.closest('.ins-panel.is-jambo');
+    if (!host) return;
+    if ((el = t.closest('[data-jl-fold]'))){ jlFoldSet(true); return; }
+    if ((el = t.closest('[data-jl-door]'))){ jlFoldSet(false); return; }
+    if ((el = t.closest('[data-jl-back]')) || (el = t.closest('[data-jl-home]'))){
+      const cur = host._ins || {};
+      if (cur.c || cur.item) jlToWords(); else { const q = host.querySelector('#jl-q'); if (q) try { q.focus({ preventScroll: true }); } catch (_){} }
+      return;
+    }
+    if ((el = t.closest('[data-jl-chip]'))){ const ch = _jlChips[Number(el.getAttribute('data-jl-chip'))]; if (ch) ch.run(); return; }
+    if ((el = t.closest('[data-jl-need]'))){ const run = _jlNeedRuns[el.getAttribute('data-jl-need')]; if (typeof run === 'function') run(); return; }
+  });
+  document.addEventListener('submit', e => {
+    const f = e.target && e.target.closest ? e.target.closest('[data-jl-ask]') : null; if (!f) return;
+    e.preventDefault();
+    const q = f.querySelector('#jl-q'); if (!q) return;
+    if (_jlPop){ jlPopTake(_jlPop.on); return; }
+    const v = q.value; if (!String(v || '').trim()) return;
+    q.value = ''; jlPopClose(); jlAsk(v);
+  });
+  document.addEventListener('input', e => { if (e.target && e.target.id === 'jl-q') jlPopRead(e.target); });
+  document.addEventListener('keydown', e => {
+    if (!e.target || e.target.id !== 'jl-q' || !_jlPop) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault();
+      const n = _jlPop.rows.length; _jlPop.on = (_jlPop.on + (e.key === 'ArrowDown' ? 1 : n - 1)) % n; jlPopPaint(); return; }
+    if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); jlPopClose(); }
+  });
+  window.addEventListener('resize', () => { try { jlLayout(); } catch (_){} });
+}
+
 Object.assign(window, { INS_MIN_W, INS_ASKS_MAX, INS_LATEST, INS_READ_TONE,
   insForce, insFits, insSelected, insSelect, insPick, insFacts, insMove, insMoveCellHtml,
   insTable, insReads, insLatest, insSecHtml, insFactsHtml, insTableHtml, insReadsHtml, insLatestHtml,
   insHeadHtml, insParties, insPartiesHtml, insNeedsHtml, insNeedsLineHtml, insNeedWords, INS_NEED_VERB, INS_NEED_GO, insPanelHtml, insPanelEmptyHtml, insPaintPanel, insCloseMenu, insMarkRow, insListWire,
   insListOff, insWatchWidth, insActsHtml, insDoorActs, insNegoDoorState, insMenuItemHtml, insItemHeadHtml, INS_TONE, insKvHtml, insChipHtml, insViewTabsHtml,
-  INS_PAGE_REPAINT });
+  INS_PAGE_REPAINT, insLetGo, insLetGone, insActBtnHtml, insRowsHtml, JL_READ_ORDER, jlReadsHtml, jlReadSaid,
+  JL_W, JL_FOLDED, jlFolded, jlFoldSet, jlHost, jlOnScreen, jlReserved, jlLayout, jlCount, jlAskHtml, jlFrame, jlWordsHtml, jlNeedsHtml,
+  JL_LAND, jlLand, jlPageWord, jlToWords, jlHeldContract, jlBoardReads, jlAsk, jlMapCard, jlFocus, jlPopRead, jlPopClose, jlPopTake, jlDayWord, jlDayRange, jlAwayOf });

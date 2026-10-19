@@ -974,6 +974,8 @@ function clauseEditorCss(){
      with what is typed, up to CE_ASK_LINES lines, then scrolls inside. */
   .ce-ask{flex:none; display:flex; gap:var(--s-2); padding:10px 14px;
     border-top:1px solid var(--color-divider); align-items:flex-end}
+  /* the hint line under the box (owner, 18 Oct 2026, "Every Jambo box") */
+  .ce-ask + .jb-hint{flex:none; margin:-4px 14px 8px}
   /* HEADER LINE (Young, 7 Oct 2026): the tag on its own slim line, the
      question under it at the full width. ONE quiet focus mark — a 2px accent
      line along the bottom edge — where there were two rings (the box's own
@@ -1908,7 +1910,9 @@ function clauseEditorHtml(){
             placeholder="${_ceea(_cet('ce_ask_ph'))}"></textarea></div>
           <button type="button" data-ce-act="ask" aria-label="${_ceea(_cet('ce_send'))}"
             title="${_ceea(_cet('ce_send'))}">${CE_SEND_ICON}</button>
-        </div>`}
+        </div>
+        ${''/* THE HINT LINE UNDER THE BOX (owner, 18 Oct 2026, "Every Jambo
+               box"): the one builder; asking files nothing — Apply or Save does */}${typeof jamboHintHtml === 'function' ? jamboHintHtml() : ''}`}
         ${''/* THE SPELLING LIST'S SLOT, directly over the Save it is about
                (28 Sep 2026). Empty unless a Save found something. */}
         <div class="ce-spell" id="ce-spell"></div>

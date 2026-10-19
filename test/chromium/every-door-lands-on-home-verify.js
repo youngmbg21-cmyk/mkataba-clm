@@ -419,7 +419,11 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
     const AP = () => !!document.querySelector('[data-ap-row="MK-A2"]');
     await door(A, 'Approvals row, double-click (MK-A2)', { start: () => goPage('approvals', AP), press: () => dbl('[data-ap-row="MK-A2"]'), expect: E.signing('MK-A2'), says: SAYS.signing });
     await door(A, 'Approvals row, Enter (MK-A2)', { start: () => goPage('approvals', AP), press: () => enter('[data-ap-row="MK-A2"]'), expect: E.signing('MK-A2'), says: SAYS.signing });
-    await threeDoors(A + ' · Approvals', 'approvals', '[data-ap-row="MK-A2"]', 'MK-A2');
+    /* RE-POINTED 18 Oct 2026 (round 15 as drawn, owner's "build all the gaps"):
+       an Approval's panel draws no Negotiation · Workspace — its way to the
+       paper is "Open Before you sign", which lands where the row's own press does */
+    await door(A + ' · Approvals', 'Approval panel, Open Before you sign (MK-A2)', { start: async () => { await goPage('approvals', AP); await selectRow('[data-ap-row="MK-A2"]'); },
+      press: () => panelDoor('gate'), expect: E.signing('MK-A2'), says: SAYS.signing });
     /* Obligations */
     const OBK = n => `MK-A1::ob-a1-${n}`, OBR = n => `.ob-lt tbody tr[data-ob-key="${OBK(n)}"]`;
     const OBROW = OBR(1);

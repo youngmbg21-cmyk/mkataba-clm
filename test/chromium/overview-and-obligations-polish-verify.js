@@ -102,7 +102,13 @@ const SIGNED = { ...H.fixtureContract('MK-P1', 'Warehousing Services', 'Apex Log
           tabs: [...document.querySelectorAll('.sap-band [data-obw-view]')].map(x => x.getAttribute('data-obw-view')) }; }); };
     const ap = await band('approvals');
     const ob = await band('obligations');
-    ok('3a its band ends where Approvals\' does', ap.bottom !== null && ob.bottom !== null && Math.abs(ap.bottom - ob.bottom) <= 1, `${ob.bottom} vs ${ap.bottom}`);
+    /* RE-POINTED 18 Oct 2026 (round 15, "One worklist" as drawn): Approvals
+       draws no band of its own — its two counts and Approval rules stand on the
+       page head's line beside the title — so the two heads are no longer one
+       height to compare; Obligations keeps its band, and Approvals says its
+       counts where the drawing does */
+    ok('3a Approvals says its counts on the title\'s line (no band); Obligations keeps its band',
+      ap.bottom === null && /yours to answer|waiting on others|Nothing/i.test(ap.facts) && ob.bottom !== null, `${ob.bottom} · approvals "${ap.facts}"`);
     ok('3b no "we owe" line under the title', !ob.facts, ob.facts);
 
     console.log('\n4 · All is first');

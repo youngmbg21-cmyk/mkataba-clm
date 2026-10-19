@@ -9987,9 +9987,11 @@ function negoListHeadHtml(shown){
   /* THE DOOR SITS AT THE TOP RIGHT OF THE HEAD (owner-approved SAP benchmark,
      9 Oct 2026: "doors stay at the top"), where every other page keeps its
      one filled act. */
+  /* THE FACTS ON THE TITLE'S LINE (round 14 as drawn: "Negotiations  7 live ·
+     3 waiting on our side"), as every page head now draws them */
   return `<header class="ngl-head ngl-head-table"><div class="ngl-head-row"><div style="min-width:0">
-    <h2>${i18t('ng_door_title')}</h2>
-    <div class="ngl-live page-facts">${facts.join(' · ')}</div>
+    <div class="page-title-row ngl-title-row"><h2>${i18t('ng_door_title')}</h2>
+    <div class="ngl-live page-facts">${facts.join(' · ')}</div></div>
     ${filtered ? `<p>${_ne(i18t('ngl_sub_filtered', { n, live }))}</p>` : ''}
     </div>${ngStartDoorHtml(true)}</div>
   </header>`;
