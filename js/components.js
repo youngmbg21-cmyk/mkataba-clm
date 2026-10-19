@@ -630,7 +630,7 @@ function jamboTalkTrailHtml(host, landing){
   const jb = (typeof i18t === 'function') ? i18t('pd_tab_copilot') : 'Jambo';
   return jamboTrailHtml({ back: host, up: landing, path: [landing, jb] });
 }
-if (typeof document !== 'undefined' && !document._jtWired){
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._jtWired){
   document._jtWired = true;
   document.addEventListener('click', e => {
     const b = e.target && e.target.closest ? e.target.closest('[data-jt-back]') : null; if (!b) return;

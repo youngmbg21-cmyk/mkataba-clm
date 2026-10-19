@@ -298,7 +298,10 @@ describe('f392 (6) the switch, Focus, the bin — and nothing is thrown away', (
     assert.match(BLOCK, /e\.key!=='Escape'/);
   });
   test('the bin ends the analysis with the conversation', () => {
-    assert.match(code(region(IG, 'renderIntelDock')), /intel\.history=\[\]; intel\.compareSel=\[\]; intel\.paper=null; igPaintPaper\(\);/);
+    /* RE-POINTED 19 Oct 2026 (owner: "you land on the page and if you want to chat with jambo it takes you to a new
+       jambo tab but you can go back to the landing side panel"): the bin also shuts the conversation view
+       (pdTalkClose) before the paper is put away, so the landing comes back. */
+    assert.match(code(region(IG, 'renderIntelDock')), /intel\.history=\[\]; intel\.compareSel=\[\]; intel\.paper=null; if\(typeof window\.pdTalkClose==='function'\) pdTalkClose\(\); igPaintPaper\(\);/);
     const w = world([fixture('MK-1')]); const { win } = w; hosts(win);
     win.igAnalyze('MK-1'); win.intel.paper = null; win.igPaintPaper();
     assert.equal(win.document.getElementById('ig-strip').hidden, true);
