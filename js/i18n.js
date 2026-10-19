@@ -12627,6 +12627,7 @@ const STRINGS = {
     pd_ob_find: 'Find in the wording',
     pd_pack_head: 'Your approval is asked for',
     pd_tab_copilot: 'Jambo',
+    pd_tab_overview: 'Overview',
     /* THE FACE TAB (rounds 8–11 as drawn, the gaps of 18 Oct 2026): the face's word beside Jambo's tab */
     pd_face_w_fill: 'Fill in',
     pd_face_w_red: 'Redlines',
@@ -31448,6 +31449,7 @@ const STRINGS = {
     pd_ob_find: 'Hitta i texten',
     pd_pack_head: 'Ditt godkännande efterfrågas',
     pd_tab_copilot: 'Jambo',
+    pd_tab_overview: 'Översikt',
     /* THE FACE TAB (rounds 8–11 as drawn, the gaps of 18 Oct 2026): the face's word beside Jambo's tab */
     pd_face_w_fill: 'Fyll i',
     pd_face_w_red: 'Markeringar',

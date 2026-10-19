@@ -154,6 +154,9 @@ function deskStepBack(press){
     return false;
   }
   if (typeof w.pdTrail === 'function' && w.pdTrail()){ if (press) w.pdTrailBack(); return true; }
+  /* JAMBO AS A TAB YOU FLIP TO (owner, 19 Oct 2026): a conversation beside a
+     list, Import, Settings or the Calendar is one step up from its landing */
+  if (typeof w.jamboTalkUp === 'function' && w.jamboTalkUp()){ if (press) w.jamboTalkBack(); return true; }
   return false;
 }
 function deskGoBack(){

@@ -35,7 +35,11 @@
    pdOpenOnHome(id, 'deal' | 'hist') opens the Board's own (hbOpenView); the
    alias is left for a walk through several contracts on the paper. */
 /* THE OVERVIEW TAB IS GONE FROM HOME'S PANEL (owner, 13 Oct 2026: "delete the
-   overview tab from document page"); a door that named it lands on Jambo */
+   overview tab from document page"); a door that named it lands on the first
+   tab — CALLED "OVERVIEW" SINCE 19 OCT 2026 (owner: "the first tab beside a
+   contract is renamed Overview"; it holds Needs you here, the glance and the
+   chips). Its key stays 'copilot'; "Jambo" now names only the conversation
+   the panel flips to (pdTalkKey, jamboTalkShows). */
 const PD_TABS = ['copilot', 'doc', 'oblig', 'menu'];
 const PD_TAB_ALIAS = { deal: 'doc', hist: 'copilot', facts: 'copilot' };
 /* THE ARTIFACT'S SYMBOLS, EXACTLY (owner, 10 Oct 2026: "use the Symbols that
@@ -46,7 +50,7 @@ const PD_TAB_ICON = PD_TAB_GLYPH;
 /* the room's own words for its tabs; Copilot and Deal have no room tab */
 /* THE DOCUMENT TAB IS CALLED CLAUSES (owner, 11 Oct 2026): Home's face is
    "Document" now, and this tab holds the clause list. */
-const PD_TAB_NAME = { copilot: 'pd_tab_copilot', facts: 'tab_overview', doc: 'pd_tab_clauses', oblig: 'tab_obligations', hist: 'tab_history', deal: 'pd_tab_deal', menu: 'pd_tab_menu', findings: 'pd_tab_findings', guide: 'pd_tab_guide' };
+const PD_TAB_NAME = { copilot: 'pd_tab_overview', facts: 'tab_overview', doc: 'pd_tab_clauses', oblig: 'tab_obligations', hist: 'tab_history', deal: 'pd_tab_deal', menu: 'pd_tab_menu', findings: 'pd_tab_findings', guide: 'pd_tab_guide' };
 const PD_HIST_MAX = 40;          // trail rows drawn; the rest are counted and one press away
 let _pdTab = 'copilot';
 const _pdActs = new Map();       // act id -> function, refilled at every paint (resolved at press time)
@@ -1299,12 +1303,14 @@ function pdSignOpen(id){ return pdOpenOnHome(id, 'signing'); }
 const PD_BACK_CLOSE = { fill: () => pdFillClose(), red: () => pdRedClose(), signing: () => pdSignClose(), amend: () => pdAmendClose(),
   /* the send screen's face: its way back is the screen's own Cancel (the
      letter and its face go together, and its guard is asked) */
-  /* ‹ JAMBO WHILE THE LETTER IS UP TURNS THE PANEL BACK TO JAMBO'S OWN WORDS
-     (round 11's gaps, second pass: "it opens Jambo's panel as designed in
-     round 3"): the letter stays on the desk with what is typed in it; "Before
-     you send" waits as a tab of the panel's head (pdSendBack). Cancel on the
-     letter is still the way to put the screen away. */
+  /* THE BACK WHILE THE LETTER IS UP RETURNS TO THE PANEL IT CAME FROM (owner,
+     19 Oct 2026; was round 11's "turns the panel back to Jambo"): the letter
+     stays on the desk with what is typed in it; "Before you send" waits as a
+     tab of the panel's head (pdSendBack). Cancel on the letter is still the
+     way to put the screen away. */
   send: () => pdSendAway(),
+  /* JAMBO AS A TAB YOU FLIP TO (19 Oct 2026): the conversation's back is the landing, as left */
+  talk: () => pdTalkBack(),
   /* ONE TRAIL (owner, 19 Oct 2026): one step up inside Redlines — the notes
      or the ladder the column turned to, back to the piles */
   'red-notes': () => { if (typeof rlFaceNotesSet === 'function') rlFaceNotesSet(null); pdRedRepaint(); },
@@ -1318,10 +1324,17 @@ const PD_BACK_CLOSE = { fill: () => pdFillClose(), red: () => pdRedClose(), sign
    goes, then where you are ("Jambo / Redlines / Notes"). The back is one step
    up; Esc and the bar's ‹ press the same (pdTrailBack). ONE reading, pdTrail. */
 function pdTrail(){
+  /* JAMBO AS A TAB YOU FLIP TO (owner, 19 Oct 2026): while the panel shows
+     the conversation, the one back returns to the landing it came from */
+  if (pdTalkShows()){ const w = pdLandWord(); return { back: 'talk', up: w, path: [w, _pdT('pd_tab_copilot')] }; }
   const send = typeof pdSendShows === 'function' && pdSendShows();
   const face = send ? 'send' : pdFaceNow();
   if (!face) return null;
-  const jb = _pdT('pd_tab_copilot');
+  /* the faces live under the first tab, Overview (19 Oct 2026; was "Jambo");
+     Before you send goes back to the face it was opened over */
+  const jb = _pdT('pd_tab_overview');
+  if (send){ const f = pdFaceNow(); const under = f ? pdFaceWordOf(f) : jb;
+    return { back: face, up: under, path: (f ? [jb, under] : [jb]).concat([_pdT(PD_FACE_WORD.send)]) }; }
   /* signed, Before you sign is the receipt and says so */
   let word = _pdT(PD_FACE_WORD[face] || 'pd_tab_copilot');
   if (face === 'signing'){ try { const sc = pdContract(); if (sc && pdSignState(sc).closed) word = _pdT('pd_st_signed'); } catch (_){} }
@@ -1344,11 +1357,9 @@ function pdTrailHtml(o){
   const inHead = PD_TRAIL_IN_HEAD.includes(t.back);
   if (!(o && o.inHead) && inHead) return '';
   if (o && o.inHead && !inHead) return '';
-  const last = t.path.length - 1;
-  const where = t.path.map((w, i) => i === last ? `<b>${_pdE(w)}</b>` : _pdE(w)).join('<i aria-hidden="true"> / </i>');
-  const tip = _pdT('pd_trail_back', { to: t.up });
-  const tag = (o && o.inHead) ? 'span' : 'div';
-  return `<${tag} class="pd-trail${(o && o.inHead) ? ' is-in-head' : ''}" data-pd-trail="${_pdE(t.back)}"><button type="button" class="pd-back" data-pd-back="${_pdE(t.back)}" title="${_pdE(tip)}" aria-label="${_pdE(tip)}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${_pdE(t.up)}</button><span class="pd-trail-w">${where}</span></${tag}>`;
+  /* THE CLOTHES FOLLOW THE BUILDER: the one trail builder every Jambo panel
+     draws (jamboTrailHtml, components.js); Home's back answers data-pd-back */
+  return jamboTrailHtml(Object.assign({ attr: 'data-pd-back' }, t), { inHead: !!(o && o.inHead) });
 }
 /* THE LINE FOLLOWS THE FACE IN PLACE: a face opened or turned without the
    panel being rebuilt (a hand in Fill in keeps it standing) still shows its
@@ -1370,9 +1381,80 @@ function pdTrailBack(){
   go(); return true;
 }
 function pdBackHtml(face){
-  const t = _pdT('pd_back_jambo');
-  return `<button type="button" class="pd-back" data-pd-back="${_pdE(face)}" title="${_pdE(t)}" aria-label="${_pdE(t)}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${_pdE(_pdT('pd_tab_copilot'))}</button>`;
+  const t = _pdT('pd_trail_back', { to: _pdT('pd_tab_overview') });
+  return `<button type="button" class="pd-back" data-pd-back="${_pdE(face)}" title="${_pdE(t)}" aria-label="${_pdE(t)}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${_pdE(_pdT('pd_tab_overview'))}</button>`;
 }
+/* ---- JAMBO AS A TAB YOU FLIP TO, AND BACK — HOME'S PANEL (owner, 19 Oct
+   2026: "you land on the page and if you want to chat with jambo it takes
+   you to a new jambo tab but you can go back to the landing side panel") ----
+   The panel lands on its own face (Overview, Redlines, Fill in, Before you
+   sign, an amendment, Before you send; on the Board and Explorer the first
+   tab's own words). Words asked in the box turn it to the conversation —
+   the trail "‹ <landing>  <landing> / Jambo" over it; the back, Esc and the
+   bar's ‹ return to the landing as it was left. ONE record (components.js,
+   jamboTalk*); the page is the key, so a different page, contract, face or
+   tab lands fresh. What is said here is the one conversation
+   (intel.history), drawn from where this page began (_pdTalk.from). */
+let _pdTalk = { from: 0, seen: 0, last: null };
+function pdFaceWordOf(f){
+  if (f === 'signing'){ try { const sc = pdContract(); if (sc && pdSignState(sc).closed) return _pdT('pd_st_signed'); } catch (_){} }
+  return _pdT(PD_FACE_WORD[f] || 'pd_tab_overview');
+}
+/* the landing's name, which the trail's back carries */
+function pdLandWord(){
+  if (typeof pdSendShows === 'function' && pdSendShows()) return _pdT(PD_FACE_WORD.send);
+  const f = pdFaceNow();
+  return f ? pdFaceWordOf(f) : _pdT('pd_tab_overview');
+}
+/* the page Home's panel is for: the paper (its contract, face or tab), else
+   the Home face and what it holds; null off Home */
+function pdTalkKey(){
+  try {
+    if (typeof state === 'undefined' || !state || state.view !== 'dashboard') return null;
+    const face = (typeof hbFace === 'function') ? hbFace() : '';
+    if (face === 'calendar') return 'cal:week';
+    const c = pdOnPaper() ? pdContract() : null;
+    if (c) return 'dock:p:' + c.id + ':' + ((pdSendShows() ? 'send' : pdFaceNow()) || _pdTab);
+    const held = pdHeldContract();
+    const tab = (typeof igFindingsShows === 'function' && igFindingsShows()) ? 'findings' : (typeof igGuideShows === 'function' && igGuideShows()) ? 'guide' : 'copilot';
+    return 'dock:' + face + ':' + pdHolds() + ':' + (held ? held.id : '') + ':' + tab;
+  } catch (_){ return null; }
+}
+function pdTalkShows(){ const k = pdTalkKey(); return !!(k && k.indexOf('dock:') === 0 && typeof jamboTalkShows === 'function' && jamboTalkShows(k)); }
+/* asked by renderIntelDock before it draws: a new page lands fresh; new words
+   in the conversation (asked here, or an answer coming) turn the panel to it */
+function pdTalkSync(dock){
+  const k = pdTalkKey(); if (!k || typeof jamboTalkLand !== 'function') return false;
+  const H = (typeof intel === 'object' && intel && Array.isArray(intel.history)) ? intel.history : [];
+  const len = H.length;
+  /* a new page begins where the last page drawn left off: words put in the
+     conversation since (a question asked as the page arrived) are this page's */
+  if (jamboTalkLand(k)){ const from = Math.min(len, _pdTalk.last == null ? len : _pdTalk.last); _pdTalk = { from, seen: from }; }
+  if (len < _pdTalk.from) _pdTalk = { from: len, seen: len };
+  _pdTalk.last = len;
+  if (k.indexOf('dock:') !== 0) return false;
+  /* THE READER'S HAND WINS: an answer that lands after they went back is kept
+     in the conversation for the next flip, never pulled up over the landing */
+  if (_pdTalk.quiet && len > _pdTalk.seen){ const H2 = H.slice(_pdTalk.seen); if (!H2.some(m => m && m.role === 'user')){ _pdTalk.seen = len; if (!(intel && intel.busy)) _pdTalk.quiet = false; } }
+  if (len > _pdTalk.seen){ _pdTalk.quiet = false; jamboTalkOpen(k, dock); _pdTalk.seen = len; }
+  return jamboTalkShows(k);
+}
+/* where this page's conversation begins in the one conversation */
+function pdTalkFrom(){ return _pdTalk.from; }
+/* the view closed, its words seen; the landing's scrolls handed back */
+function pdTalkClose(){
+  const keep = (typeof jamboTalkClose === 'function') ? jamboTalkClose() : [];
+  _pdTalk.seen = _pdTalk.last = (typeof intel === 'object' && intel && Array.isArray(intel.history)) ? intel.history.length : 0;
+  _pdTalk.quiet = !!(typeof intel === 'object' && intel && intel.busy);
+  return keep;
+}
+function pdTalkBack(){
+  const keep = pdTalkClose();
+  if (typeof renderIntelDock === 'function') renderIntelDock();
+  if (typeof jamboScrollPut === 'function') jamboScrollPut(keep);
+  if (typeof deskBarPaint === 'function') try { deskBarPaint(); } catch (_){}
+}
+if (typeof jamboTalkHost === 'function') jamboTalkHost('dock', pdTalkBack, k => pdTalkKey() === k);
 /* ---- BEFORE YOU SEND, A FACE OF JAMBO'S PANEL (round 11's gaps, 18 Oct
    2026: "The letter" as drawn — the letter on the desk, Jambo's panel beside
    it saying what stays here and why, what they never see, something else to
@@ -1393,13 +1475,13 @@ function pdSendShows(){ return pdSendHeld() && !_pdSend.away; }
 function pdSendAway(){
   if (!_pdSend) return;
   _pdSend.away = true;
-  /* Jambo's own words: a face that stood under the letter (Redlines, from
-     its Send all; Fill in; Before you sign) is put away too, by its own close */
+  /* BACK TO THE PANEL IT CAME FROM (owner, 19 Oct 2026: "Before you send's
+     back returns to the panel it came from (normally Redlines)"; reverses
+     round 11's "turns the panel to Jambo with the letter waiting"): the face
+     that stood under the letter (Redlines, from its Send all; Fill in;
+     Before you sign) stays up and shows again, else Overview; the letter
+     still waits on the desk, "Before you send" one tab away (pdSendBack) */
   _pdTab = 'copilot';
-  try { if (_pdRed) pdRedClose(); } catch (_){}
-  try { if (_pdFill) pdFillClose(); } catch (_){}
-  try { if (_pdSign) pdSignClose(); } catch (_){}
-  try { if (_pdAmend) pdAmendClose(); } catch (_){}
   if (typeof renderIntelDock === 'function') renderIntelDock();
 }
 function pdSendBack(){
@@ -2595,7 +2677,7 @@ function pdHeadHtml(brain){
   /* the face's word is the trail line's (pdTrailHtml), not the tab row's */
   /* the letter is up and the panel turned to Jambo: "Before you send" waits
      as a tab after Jambo's, one press back (round 11's gaps, second pass) */
-  const sendBack = (!face && pdSendHeld()) ? `<button type="button" class="pd-tab pd-tab-face" data-pd-send-back title="${_pdE(_pdT(PD_FACE_WORD.send))}"><span class="pd-tab-w">${_pdE(_pdT(PD_FACE_WORD.send))}</span></button>` : '';
+  const sendBack = (pdSendHeld() && !pdSendShows()) ? `<button type="button" class="pd-tab pd-tab-face" data-pd-send-back title="${_pdE(_pdT(PD_FACE_WORD.send))}"><span class="pd-tab-w">${_pdE(_pdT(PD_FACE_WORD.send))}</span></button>` : '';
   return tabs.map(t => {
     const name = _pdT(PD_TAB_NAME[t]);
     const tip = t === 'copilot' && brain ? name + ' · ' + brain : name;
@@ -2666,8 +2748,13 @@ if (typeof document !== 'undefined' && !document._pdWired){
   document.addEventListener('click', async e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('#ig-dock')) return;
     const tab = t.closest('[data-pd-tab]');
-    if (tab){ pdSetTab(tab.getAttribute('data-pd-tab'));
+    if (tab){
+      /* a tab pressed while the panel talks: the conversation view closes;
+         the landing's own tab pressed is its way back, as it was left */
+      const was = pdTalkShows() ? pdTalkKey() : null, keep = was ? pdTalkClose() : null;
+      pdSetTab(tab.getAttribute('data-pd-tab'));
       if (typeof renderIntelDock === 'function') renderIntelDock();
+      if (keep && pdTalkKey() === was && typeof jamboScrollPut === 'function') jamboScrollPut(keep);
       /* a face left behind another tab gives the paper back (stage 5): the
          paper is drawn again only if its copy moved (igPaperKey) */
       if (typeof igPaintPaper === 'function') try { igPaintPaper(); } catch (_){}
@@ -4030,10 +4117,12 @@ if (typeof document !== 'undefined' && !document._pdTrailEsc){
     if (document.querySelector('[data-top-overlay]')) return;
     const mr = document.getElementById('modal-root'); if (mr && mr.innerHTML.trim()) return;
     if (typeof clauseEditorOpen === 'function' && clauseEditorOpen()) return;
-    if (pdTrailBack()) e.preventDefault();
+    /* JAMBO AS A TAB YOU FLIP TO (19 Oct 2026): a conversation up beside a
+       list, Import, Settings or the Calendar turns back the same way */
+    if (pdTrailBack() || (typeof jamboTalkBack === 'function' && jamboTalkBack())) e.preventDefault();
   });
 }
-Object.assign(window, { PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
+Object.assign(window, { PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdTalkKey, pdTalkShows, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, PD_RD_CHECKS, pdRoadCheckOf, pdRoadCheckNames, pdDayWord, pdBackDay, pdAwayOf, pdRoadRuleOf, pdRoadRuleTitle, pdRoadRuleSub, pdRoadRuleFramed, pdRoadRuleHtml, pdRoadMovedHtml, pdRoadYesOf, pdRoadYesTitle, pdRoadYesFramed, pdRoadYesFacts, pdRoadYesHtml, pdRoadPress, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,

@@ -209,7 +209,10 @@ describe('f674 (7) shown only for its contract, on Jambo\'s tab', () => {
   });
   test('7b another contract, or a question, puts it away; Fill in and Redlines are one at a time', () => {
     assert.match(strip(fnBody(IG, 'igAnalyze')), /pdRedSeen\(id\)/);
-    assert.match(IG, /if\(typeof window\.pdRedAway==='function'\) pdRedAway\(\);/);
+    /* RE-POINTED 19 Oct 2026 — JAMBO AS A TAB YOU FLIP TO (owner: "Let's say
+       the redline cards. You are jumping back and forth between jambo and the
+       panel"): a question keeps the face; the panel flips to the conversation */
+    assert.doesNotMatch(IG, /if\(typeof window\.pdRedAway==='function'\) pdRedAway\(\);/);
     const open = strip(fnBody(PD, 'pdOpenOnHome'));
     assert.match(open, /_pdFill = String\(id\); _pdRed = null;/);
     assert.match(open, /_pdRed = String\(id\); _pdFill = null;/);

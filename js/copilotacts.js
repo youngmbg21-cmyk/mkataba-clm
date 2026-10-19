@@ -1668,8 +1668,11 @@ function caGo(a){
   caGoRepaint();
   return true;
 }
-/* a move that stays on Home repaints the panel so its back row is current */
-function caGoRepaint(){ setTimeout(() => { try { if (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof renderIntelDock === 'function') renderIntelDock(); } catch (_){} }, 0); }
+/* a move that stays on Home repaints the panel so its back row is current.
+   A "GO TO" ASK TAKES YOU THERE (owner, 19 Oct 2026): the place lands on its
+   own panel — the conversation view Home's panel had turned to closes */
+function caGoRepaint(){ try { if (typeof pdTalkShows === 'function' && pdTalkShows() && typeof pdTalkClose === 'function') pdTalkClose(); } catch (_){}
+  setTimeout(() => { try { if (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof renderIntelDock === 'function') renderIntelDock(); } catch (_){} }, 0); }
 /* the top bar's search: the same words, and the same move */
 function caPlaceRows(q){
   const t = String(q || '').trim().toLowerCase().replace(/^\//, '');

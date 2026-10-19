@@ -142,14 +142,19 @@ describe('f705 (3) the way back to Jambo on every face', () => {
   test('3a one builder, the face\'s own close', () => {
     const { ctx } = pdStage();
     const h = ctx.pdBackHtml('red');
-    assert.match(h, /class="pd-back" data-pd-back="red" title="pd_back_jambo" aria-label="pd_back_jambo"/);
-    assert.match(h, /#i-left[\s\S]*pd_tab_copilot<\/button>$/, '‹ and his name');
+    /* RE-POINTED 19 Oct 2026 — JAMBO AS A TAB YOU FLIP TO (owner: "the first
+       tab beside a contract is renamed Overview"; "Jambo" names only the
+       conversation): the faces' back says "‹ Overview" */
+    assert.match(h, /class="pd-back" data-pd-back="red" title="pd_trail_back[^"]*" aria-label="pd_trail_back[^"]*"/);
+    assert.match(h, /#i-left[\s\S]*pd_tab_overview<\/button>$/, '‹ and the first tab\'s name');
     /* RE-POINTED 18 Oct 2026 (round 11's gaps, "The letter" as drawn): the
        send screen is a face of the panel too ("Before you send"), and its way
        back is the screen's own Cancel, asked through its guard. */
     /* RE-POINTED 19 Oct 2026 (ONE TRAIL): two steps inside Redlines — the
        notes and the ladder the column turned to — go back to the piles */
-    assert.deepEqual(Object.keys(ctx.PD_BACK_CLOSE).sort(), ['amend', 'fill', 'red', 'red-ladder', 'red-notes', 'send', 'signing']);
+    /* RE-POINTED 19 Oct 2026 (JAMBO AS A TAB YOU FLIP TO): the conversation
+       the panel flips to has its one back too, to the landing as left */
+    assert.deepEqual(Object.keys(ctx.PD_BACK_CLOSE).sort(), ['amend', 'fill', 'red', 'red-ladder', 'red-notes', 'send', 'signing', 'talk']);
     for (const f of ctx.PD_FACE_WORDS) assert.ok(Object.keys(ctx.PD_BACK_CLOSE).includes(f), 'every face has its way back: ' + f);
     const map = PD.slice(PD.indexOf('const PD_BACK_CLOSE'), PD.indexOf('function pdBackHtml'));
     for (const [k, fn] of [['fill', 'pdFillClose'], ['red', 'pdRedClose'], ['signing', 'pdSignClose'], ['amend', 'pdAmendClose']])
@@ -158,7 +163,11 @@ describe('f705 (3) the way back to Jambo on every face', () => {
        the panel back to Jambo's own words"): on the send face ‹ Jambo turns
        the panel and leaves the letter up; Cancel on the letter is the
        screen's own guarded close */
-    assert.match(map, /send: \(\) => pdSendAway\(\)/, 'send turns the panel to Jambo, the letter stays');
+    /* RE-POINTED 19 Oct 2026 (owner: "Before you send's back returns to the
+       panel it came from (normally Redlines)"): the letter still waits */
+    assert.match(map, /send: \(\) => pdSendAway\(\)/, 'send turns the panel back to the face it came from, the letter stays');
+    assert.doesNotMatch(fnBody(PD, 'pdSendAway').replace(/\/\*[\s\S]*?\*\//g, ''), /pdRedClose|pdFillClose|pdSignClose|pdAmendClose/, 'the face under the letter is not put away');
+    assert.match(map, /talk: \(\) => pdTalkBack\(\)/, 'the conversation\'s back');
     const wiring = PD.slice(PD.indexOf('document._pdJamboTopWired = true'), PD.indexOf('JAMBO, ALIVE'));
     assert.match(wiring, /closest\('\[data-pd-back\]'\)[\s\S]*PD_BACK_CLOSE\[back\.getAttribute\('data-pd-back'\)\]/);
   });
@@ -175,7 +184,11 @@ describe('f705 (3) the way back to Jambo on every face', () => {
     for (const fn of ['pdFillHeadHtml', 'pdSignHeadHtml', 'pdAmendHeadHtml'])
       assert.doesNotMatch(fnBody(PD, fn).replace(/\/\*[\s\S]*?\*\//g, ''), /pdBackHtml\(|-close title/, fn);
     assert.doesNotMatch(fnBody(PD, 'pdRedOpts'), /headStart|headEnd/, 'the Redlines face passes no ‹ Jambo and no ×');
-    assert.match(fnBody(PD, 'pdTrailHtml'), /class="pd-back" data-pd-back="\$\{_pdE\(t\.back\)\}"/, 'one builder for whichever face is up');
+    /* RE-POINTED 19 Oct 2026 (JAMBO AS A TAB YOU FLIP TO): THE CLOTHES FOLLOW
+       THE BUILDER — Home's trail is the one trail builder every Jambo panel
+       draws (jamboTrailHtml, components.js), its back answering data-pd-back */
+    assert.match(fnBody(PD, 'pdTrailHtml'), /jamboTrailHtml\(Object\.assign\(\{ attr: 'data-pd-back' \}, t\)/, 'one builder for whichever face is up');
+    assert.match(R('js/components.js'), /class="pd-back" \$\{attr\}="\$\{e\(t\.back\)\}"/, 'its back carries the step it takes');
     assert.match(IG.slice(IG.indexOf('function renderIntelDock(')), /pdTrailHtml\(\)/, 'drawn under the panel\'s tabs');
     const head = NG.slice(NG.indexOf('<div class="rl-idx-top">'), NG.indexOf("${opts.headEnd || ''}"));
     assert.ok(head.indexOf("${opts.headStart || ''}") > 0 && head.indexOf("${opts.headStart || ''}") < head.indexOf('<span class="rl-idx-title">'),

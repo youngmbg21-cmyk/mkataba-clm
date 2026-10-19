@@ -71,7 +71,9 @@ describe('f804 (1) the list panel is dressed as Jambo\'s, once, by the one build
     const p = b.$('#ins-panel');
     assert.ok(p && p.classList.contains('is-jambo'), 'the panel wears Jambo\'s dress');
     assert.ok(p.querySelector('.jl-head [data-jl-home] .pd-tab-g'), 'his face\'s place on his tab');
-    assert.equal(p.querySelector('.jl-head [data-jl-home] .pd-tab-w').textContent, 'Jambo');
+    /* RE-POINTED 19 Oct 2026 — JAMBO AS A TAB YOU FLIP TO (owner: "the panel is
+       the PAGE's; Jambo is a flip"): the tab is the landing, "Overview" */
+    assert.equal(p.querySelector('.jl-head [data-jl-home] .pd-tab-w').textContent, 'Overview');
     assert.equal(p.querySelector('[data-jl-word]').textContent, 'Contract', 'the word says what it holds');
     assert.equal(p.querySelector('[data-jl-back]').hidden, false, '‹ Jambo while a row is held');
     assert.ok(p.querySelector('[data-jl-fold]'), 'the fold to the edge');
@@ -108,7 +110,9 @@ describe('f804 (2) nothing chosen: the page in Jambo\'s words', () => {
     assert.match(p.querySelector('.jl-src').textContent, /no Jambo call/);
     assert.equal(p.querySelector('[data-jl-back]').hidden, true, 'no ‹ Jambo in his own words');
     assert.equal(b.$$('#reg-tbody tr.is-sel').length, 0, 'the row is let go');
-    assert.ok(p.querySelector('#jl-feed'), 'his conversation has its place under his words');
+    /* RE-POINTED 19 Oct 2026 (JAMBO AS A TAB YOU FLIP TO): his conversation is the panel's flip, beside the landing, out of sight until asked */
+    assert.ok(p.querySelector('.jl-talk[data-jt-talk] #jl-feed'), 'his conversation has its own view');
+    assert.equal(p.querySelector('.jl-talk').hidden, true, 'the landing shows first');
   });
   test('2b let go stays let go through a repaint, until a row is pressed', () => {
     const b = world(list());
@@ -151,7 +155,10 @@ describe('f804 (3) the ask: the Counter\'s one reading, said in the panel', () =
       && at('jlBoardReads(t)') > at('jmRead(t)') && at('aiAskWords(t)') > at('jlBoardReads(t)'), 'held row, the one reader, the map, the Board, then the question');
     assert.match(f, /if \(a && a\.kind === 'go' && a\.missing\)\{\s*const held = jlHeldContract\(\);\s*if \(held\)\{\s*a\.cid = held\.id; a\.missing = false;/, 'the held row is the open contract');
     assert.match(f, /if \(m && m\.kind === 'map'\)\{ jlMapCard\(t, m\); return 'card'; \}/, '"which did you mean?" is said in the panel');
-    assert.match(f, /jlToWords\(\);\s*if \(typeof aiAskWords === 'function'\)\{ aiAskWords\(t\); return 'model'; \}/, 'a question turns the panel to his words, then asks');
+    /* RE-POINTED 19 Oct 2026 (JAMBO AS A TAB YOU FLIP TO): the row the panel
+       holds stays held; the panel turns to the conversation, then asks */
+    assert.match(f, /jlTalkOpen\(\);\s*if \(typeof aiAskWords === 'function'\)\{ aiAskWords\(t\); return 'model'; \}/, 'a question turns the panel to the conversation, then asks');
+    assert.doesNotMatch(code(f), /jlToWords\(\)/, 'the row held is not let go');
   });
   test('3b the cost is said before the press, on the box and its button', () => {
     const f = fnOf(INS, 'jlAskHtml');

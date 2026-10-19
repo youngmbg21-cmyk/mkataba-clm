@@ -91,7 +91,9 @@ describe('f676 (1) the face owns no builder and no writer', () => {
     assert.match(dock, /pdSignShows\(\)/);
     assert.match(dock, /<div id="pd-signface" class="pd-signface flex-1 min-h-0">\$\{pdSignFaceHtml\(pdContract\(\)\)\}<\/div>/);
     assert.match(dock, /pdSignFacePaint\(/);
-    assert.match(strip(IG), /pdSignAway\(\)/);
+    /* RE-POINTED 19 Oct 2026 — JAMBO AS A TAB YOU FLIP TO: a question keeps
+       the face (the panel flips to the conversation over it, f840) */
+    assert.doesNotMatch(strip(fnBody(IG, 'intelAsk')), /pdSignAway\(\)/);
     assert.ok((strip(IG).match(/pdSignSeen\(/g) || []).length >= 2, 'igAnalyze and the paper\'s hold');
   });
 });

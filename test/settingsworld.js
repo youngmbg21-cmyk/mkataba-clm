@@ -92,6 +92,10 @@ function settingsStage(opts = {}) {
   vm.createContext(sb);
   /* a file a commit does not have yet is passed by (a check run against an
      older commit, to prove it red there, reports on the page, not the stage) */
+  /* JAMBO AS A TAB YOU FLIP TO (19 Oct 2026): the one conversation record and
+     trail builder, js/components.js's own region, before settings.js registers its back */
+  { const C = fs.readFileSync(path.join(ROOT, 'js/components.js'), 'utf8'); const i = C.indexOf('var _jt = ');
+    if (i > 0) vm.runInContext(C.slice(i, C.indexOf('Object.assign(window,{JT_BACK', i)), sb, { filename: 'js/components.js#jamboTalk' }); }
   for (const f of FILES) if (fs.existsSync(path.join(ROOT, f))) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sb, { filename: f });
   if (opts.before) opts.before(sb);
   sb.renderTeam();

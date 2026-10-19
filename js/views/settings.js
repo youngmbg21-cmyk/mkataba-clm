@@ -3111,8 +3111,8 @@ function stAskFrom(panel, words){
   _stJbLog.push(t); if(_stJbLog.length>ST_JB_MAX) _stJbLog=_stJbLog.slice(-ST_JB_MAX);
   _stSide='jambo';
   const feed=document.getElementById('st-jb-feed');
-  if(feed && typeof state!=='undefined' && state.view==='team'){ stSideSet('jambo'); feed.insertAdjacentHTML('beforeend', stJbTurnHtml(t)); }
-  else if(typeof setView==='function') setView('team');
+  if(feed && typeof state!=='undefined' && state.view==='team'){ stSideSet('jambo'); stJbTurnAdd(t); }
+  else if(typeof setView==='function'){ setView('team'); stJbTurnAdd(t); }
   const go=()=>{ const f=document.getElementById('st-jb-feed'); if(f) f.scrollTop=f.scrollHeight;
     const box=document.getElementById('st-ask-why-'+t.id); if(box) try{ box.focus({preventScroll:true}); }catch(_){} };
   if(typeof requestAnimationFrame==='function') requestAnimationFrame(go); else go();
@@ -3277,8 +3277,11 @@ async function stJbWhyRun(id){
    in front (stJbFeedHtml, rounds 24–26 as drawn); stJbChips and
    stJbChipsHtml went with the old greeting. */
 function stJamboHtml(){
+  stTalkLand();
+  const on=stTalkShows();
   return `<div class="st-jb">
-    <div class="st-jb-feed${_stSwPick&&_stPage==='streams'?' is-stream':''}" id="st-jb-feed" aria-live="polite">${_stSwPick&&_stPage==='streams'?stSwPanelHtml(_stSwPick):stJbFeedHtml()}</div>
+    <div id="st-jb-trail"${on?'':' hidden'}>${on&&typeof jamboTalkTrailHtml==='function'?jamboTalkTrailHtml('settings',i18t('pd_tab_overview')):''}</div>
+    <div class="st-jb-feed${!on&&_stSwPick&&_stPage==='streams'?' is-stream':''}" id="st-jb-feed" aria-live="polite">${stJbFeedHtml()}</div>
     <form class="st-jb-ask" id="st-jb-form" autocomplete="off">
       <label class="sr-only" for="st-jb-q">${esc(i18t('st_jb_ph'))}</label>
       <input id="st-jb-q" type="text" maxlength="200" data-ca-slash autocomplete="off" placeholder="${esc(i18t('st_jb_ph'))}">
@@ -3291,16 +3294,61 @@ function stJamboHtml(){
    reader's hand; the page underneath does not move. */
 function stJbAsk(q){
   q=String(q||'').trim(); if(!q) return;
-  /* an ask brings Jambo's words back where a stream was shown (round 26) */
-  if(_stSwPick) stSwPickSet(null);
+  /* the stream shown stays the landing, as left (19 Oct 2026; was round 26's
+     "an ask brings Jambo's words back where a stream was shown"): the panel
+     turns to the conversation */
   const t={ id:++_stJbSeq, q };
   _stJbLog.push(t); if(_stJbLog.length>ST_JB_MAX) _stJbLog=_stJbLog.slice(-ST_JB_MAX);
   const feed=document.getElementById('st-jb-feed'); if(!feed) return;
   [...feed.querySelectorAll('[data-st-jb-turn]')].forEach(el=>{
     if(!_stJbLog.some(x=>String(x.id)===el.getAttribute('data-st-jb-turn'))) el.remove(); });
-  feed.insertAdjacentHTML('beforeend', stJbTurnHtml(t));
+  stJbTurnAdd(t);
+}
+/* ---- JAMBO AS A TAB YOU FLIP TO, AND BACK — SETTINGS (owner, 19 Oct 2026:
+   "you land on the page and if you want to chat with jambo it takes you to a
+   new jambo tab but you can go back to the landing side panel") ----
+   The panel lands on the page's own words (or the stream chosen); a turn
+   added turns it to the conversation under the one trail line ("‹ Overview
+   Overview / Jambo", jamboTrailHtml); the back, Esc and the bar's ‹ return to
+   the landing as it was left. The page is the key (You, Company and its
+   page): another begins fresh (turns after _stTalk.from). */
+let _stTalk={ from:0 };
+function stTalkKey(){ const co=stIsAdmin()&&settingsTab()==='company'; return 'settings:'+(co?'company':'you')+':'+(co?(_stPage||''):''); }
+function stTalkLand(){ if(typeof jamboTalkLand==='function'&&jamboTalkLand(stTalkKey())){ _stTalk={ from:_stJbSeq }; return true; } return false; }
+function stTalkShows(){ return typeof jamboTalkShows==='function'&&jamboTalkShows(stTalkKey()); }
+function stTalkTurns(){ return _stJbLog.filter(t=>Number(t.id)>_stTalk.from); }
+/* the trail over the conversation and which of the two views is up */
+function stJbTalkPaint(){
+  stTalkLand();
+  const on=stTalkShows();
+  const tr=document.getElementById('st-jb-trail');
+  if(tr){ tr.innerHTML=on&&typeof jamboTalkTrailHtml==='function'?jamboTalkTrailHtml('settings',i18t('pd_tab_overview')):''; tr.hidden=!on; }
+  const feed=document.getElementById('st-jb-feed');
+  if(feed){ const L=feed.querySelector(':scope > [data-st-jb-land]'), T=feed.querySelector(':scope > [data-st-jb-talk]');
+    if(L) L.hidden=on; if(T) T.hidden=!on;
+    feed.classList.toggle('is-stream',!on&&!!_stSwPick&&_stPage==='streams'); }
+  const side=document.getElementById('st-side'); if(side) side.classList.toggle('is-talk',on);
+  if(typeof deskBarPaint==='function') try{ deskBarPaint(); }catch(_){ }
+}
+/* a turn said in the panel: the conversation view comes up, the landing kept */
+function stJbTurnAdd(t){
+  stTalkLand();
+  if(t&&Number(t.id)<=_stTalk.from) _stTalk.from=Number(t.id)-1;
+  const feed=document.getElementById('st-jb-feed'); if(!feed) return;
+  if(typeof jamboTalkOpen==='function') jamboTalkOpen(stTalkKey(), feed);
+  let T=feed.querySelector(':scope > [data-st-jb-talk]');
+  if(!T){ feed.innerHTML=stJbFeedHtml(); T=feed.querySelector(':scope > [data-st-jb-talk]'); }
+  else if(t&&!T.querySelector(`[data-st-jb-turn="${t.id}"]`)) T.insertAdjacentHTML('beforeend', stJbTurnHtml(t));
+  stJbTalkPaint();
   feed.scrollTop=feed.scrollHeight;
 }
+function stTalkBack(){
+  const keep=(typeof jamboTalkClose==='function')?jamboTalkClose():[];
+  stJbTalkPaint();
+  const feed=document.getElementById('st-jb-feed'); if(feed) feed.scrollTop=0;
+  if(typeof jamboScrollPut==='function') jamboScrollPut(keep);
+}
+if(typeof jamboTalkHost==='function') jamboTalkHost('settings', stTalkBack, k=>k===stTalkKey()&&typeof state!=='undefined'&&state.view==='team'&&!!document.getElementById('st-jb-feed'));
 function stJbDrop(id){
   _stJbLog=_stJbLog.filter(t=>String(t.id)!==String(id));
   document.querySelector(`[data-st-jb-turn="${id}"]`)?.remove();
@@ -3351,8 +3399,10 @@ function stSideWord(){
 function stSideHeadHtml(){
   const face=(typeof jamboFaceHtml==='function')?jamboFaceHtml('hello',22,'st-side-ic'):'';
   const fold=`<button type="button" class="st-side-fold" data-st-side-fold title="${esc(i18t('st_side_fold'))}" aria-label="${esc(i18t('st_side_fold'))}">›</button>`;
-  if(_stSide==='menu') return `<button type="button" class="st-side-back" data-st-side="jambo">‹ ${esc(i18t('st_side_jambo'))}</button><span class="st-side-word">${esc(i18t('st_side_menu'))}</span><span class="st-side-sp"></span>${fold}`;
-  return `<span class="st-side-tab" id="st-side-tab-jambo" aria-current="true">${face}<span>${esc(i18t('st_side_jambo'))}</span></span><span class="st-side-word" id="st-side-word">${esc(stSideWord())}</span><span class="st-side-sp"></span>${fold}`;
+  if(_stSide==='menu') return `<button type="button" class="st-side-back" data-st-side="jambo">‹ ${esc(i18t('pd_tab_overview'))}</button><span class="st-side-word">${esc(i18t('st_side_menu'))}</span><span class="st-side-sp"></span>${fold}`;
+  /* THE PANEL IS THE PAGE'S (owner, 19 Oct 2026): its tab is the landing,
+     "Overview"; "Jambo" names only the conversation it flips to */
+  return `<span class="st-side-tab" id="st-side-tab-jambo" aria-current="true">${face}<span>${esc(i18t('pd_tab_overview'))}</span></span><span class="st-side-word" id="st-side-word">${esc(stSideWord())}</span><span class="st-side-sp"></span>${fold}`;
 }
 function stSideHtml(){
   const face=(typeof jamboFaceHtml==='function')?jamboFaceHtml('hello',26,'st-side-ic'):'';
@@ -3514,8 +3564,16 @@ function stJbFirstChipHtml(){
   return stJbChipBtn(said,first.btn).replace('class="st-jb-chip"','class="st-jb-chip" data-st-jb-first=""');
 }
 function stJbChipsRow(list){ return list.length?`<div class="st-jb-chips">${list.join('')}</div>`:''; }
-/* WHAT JAMBO SAYS FIRST, for the page in front */
+/* THE FEED'S TWO VIEWS (19 Oct 2026): the landing — the page in Jambo's words,
+   or the stream chosen — and the conversation, one shown at a time */
 function stJbFeedHtml(){
+  stTalkLand();
+  const on=stTalkShows();
+  const land=_stSwPick&&_stPage==='streams'?stSwPanelHtml(_stSwPick):stJbLandHtml();
+  return `<div class="st-jb-land" data-st-jb-land data-jt-land${on?' hidden':''}>${land}</div><div class="st-jb-talk" data-st-jb-talk data-jt-talk${on?'':' hidden'}>${stTalkTurns().map(stJbTurnHtml).join('')}</div>`;
+}
+/* WHAT JAMBO SAYS FIRST, for the page in front */
+function stJbLandHtml(){
   const admin=stIsAdmin(), face=admin?settingsTab():'you';
   const chipsOn=(typeof jamboChipsOn!=='function')||jamboChipsOn();
   const ask=q=>`data-st-jb-ask="${esc(q)}"`;
@@ -3545,7 +3603,7 @@ function stJbFeedHtml(){
     if(!admin && apiOn) html+=stJbSayHtml(i18t('st_jb_rules_admin',{ who:stAdminFirstSaid(), to:stAdminFirstSaid(true) }))
       +(chipsOn?stJbChipsRow([stJbChipBtn(i18t('st_ask_go'),'data-st-ask-head=""')]):'');
   }
-  return html+_stJbLog.map(stJbTurnHtml).join('');
+  return html;
 }
 /* THE TRAIL AS A PDF, READIED (round 26's chip "download Q3 as a PDF"): the
    page turns to The trail, its As box says PDF and the Download button is
@@ -3560,7 +3618,7 @@ function stTrailReadyPdf(){
   if(typeof landOn==='function') landOn('#st-tr-download',{ block:'nearest' });
   const t={ id:++_stJbSeq, q:stChipWord(i18t('st_jb_c_tr_pdf',{ period:stTrailPeriodWords(_stTr.from,_stTr.to,true) })), force:{ say:i18t('st_jb_tr_pdf_ready'), cards:[] } };
   _stJbLog.push(t); if(_stJbLog.length>ST_JB_MAX) _stJbLog=_stJbLog.slice(-ST_JB_MAX);
-  const feed=document.getElementById('st-jb-feed'); if(feed){ feed.insertAdjacentHTML('beforeend', stJbTurnHtml(t)); feed.scrollTop=feed.scrollHeight; }
+  stJbTurnAdd(t);
 }
 /* A QUESTION JAMBO ANSWERS FROM WHAT HaTi IS, spending nothing ("what is a
    sealed PDF?") */
@@ -3569,13 +3627,13 @@ function stTrailReadyPdf(){
 function stJbSayLine(q, line){
   const t={ id:++_stJbSeq, q:String(q||'').trim().slice(0,200), force:{ say:String(line||''), cards:[] } };
   _stJbLog.push(t); if(_stJbLog.length>ST_JB_MAX) _stJbLog=_stJbLog.slice(-ST_JB_MAX);
-  const feed=document.getElementById('st-jb-feed'); if(feed){ feed.insertAdjacentHTML('beforeend', stJbTurnHtml(t)); feed.scrollTop=feed.scrollHeight; }
+  stJbTurnAdd(t);
 }
 function stJbSayFixed(kind, label){
   const said={ sealed:'st_jb_sealed_say' }[String(kind||'')]; if(!said) return;
   const t={ id:++_stJbSeq, q:String(label||'').trim(), force:{ say:i18t(said), cards:[] } };
   _stJbLog.push(t); if(_stJbLog.length>ST_JB_MAX) _stJbLog=_stJbLog.slice(-ST_JB_MAX);
-  const feed=document.getElementById('st-jb-feed'); if(feed){ feed.insertAdjacentHTML('beforeend', stJbTurnHtml(t)); feed.scrollTop=feed.scrollHeight; }
+  stJbTurnAdd(t);
 }
 /* the admin a member would ask, by first name where there is one */
 function stAdminFirstSaid(to){
@@ -3587,8 +3645,8 @@ function stAdminFirstSaid(to){
 /* the feed drawn again for the page in front (a page or face turned) */
 function stJbFeedRepaint(){
   const feed=document.getElementById('st-jb-feed'); if(!feed) return;
-  if(_stSwPick && _stPage==='streams'){ feed.classList.add('is-stream'); feed.innerHTML=stSwPanelHtml(_stSwPick); }
-  else { feed.classList.remove('is-stream'); feed.innerHTML=stJbFeedHtml(); }
+  feed.innerHTML=stJbFeedHtml();
+  stJbTalkPaint();
   stSideHeadPaint();
 }
 /* ASK AN ADMIN FROM THE HEAD OR A ROW (round 24 as drawn: "Ask an admin"
@@ -3600,9 +3658,7 @@ function stAskGeneral(about){
   const t={ id:++_stJbSeq, q:about==='role'?i18t('st_ask_role_words'):'', force:{ say:'', cards:[{ k:'askadmin', panel:about==='role'?'me:role':'', free:true }] } };
   _stJbLog.push(t); if(_stJbLog.length>ST_JB_MAX) _stJbLog=_stJbLog.slice(-ST_JB_MAX);
   stSideSet('jambo');
-  if(_stSwPick) stSwPickSet(null);
-  const feed=document.getElementById('st-jb-feed');
-  if(feed){ feed.insertAdjacentHTML('beforeend', stJbTurnHtml(t)); feed.scrollTop=feed.scrollHeight; }
+  stJbTurnAdd(t);
   const box=document.getElementById('st-ask-what-'+t.id);
   if(box) try{ box.focus({preventScroll:true}); box.setSelectionRange(box.value.length,box.value.length); }catch(_){}
 }
@@ -9550,6 +9606,6 @@ Object.assign(window,{stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsP
    (PAGE_HEAD_PAINT reads it off window), a form in its row, the stream beside
    the list, Jambo's words for the page in front, your own copy and name and
    email, and the readings the checks ask */
-Object.assign(window,{stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
+Object.assign(window,{stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stJbLandHtml,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
   stSwPickSet,stSwPanelHtml,stSwRows,stJbFeedHtml,stJbFeedRepaint,stJbCompanyWords,stJbDataWords,stJbStreamsWords,stJbNeedPhrase,stSideFoldSet,
   stTrailLeftOut,stHouseFacts,stTrailPastHtml,stYouCardRepaint,stGovLadderHtml,stSheetCardHtml});

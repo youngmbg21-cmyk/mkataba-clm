@@ -61,7 +61,11 @@ describe('f810 (1) the feed is where the reader looks', () => {
     assert.equal(stage(names, { document: page({ listShown: false }).document, ai: { open: false } }).aiListFeed(), null);
   });
   test('1d "on screen" is the feed\'s scroller, because an empty feed draws nothing of its own', () => {
-    assert.match(code(fnOf(AI, 'aiListFeed')), /const box=f && f\.parentElement;/);
+    /* RE-POINTED 19 Oct 2026 — JAMBO AS A TAB YOU FLIP TO (owner): the feed is
+       the panel's conversation view, out of sight while the panel shows its
+       landing, so "on screen" is the PANEL (a folded one is not); the feed's
+       own scroller stands in where the feed has no panel */
+    assert.match(code(fnOf(AI, 'aiListFeed')), /const box=f && \(\(typeof f\.closest==='function'&&f\.closest\('\.ins-panel\.is-jambo, #mig-side'\)\)\|\|f\.parentElement\);/);
   });
 });
 
@@ -90,7 +94,8 @@ describe('f810 (3) one turn, whichever box asked', () => {
     assert.equal((st.match(/aiFeedEl\(\)/g) || []).length, 2);
     assert.doesNotMatch(st, /getElementById\('ai-feed'\)/);
     assert.match(code(fnOf(AI, 'aiWireProposals')), /const feed = aiFeedEl\(\);/);
-    assert.match(code(fnOf(AI, 'renderAIFeed')), /const sc=inList\?\(feed\.closest\('\.jl-body'\)\|\|feed\):feed; sc\.scrollTop=sc\.scrollHeight;/);
+    /* RE-POINTED 19 Oct 2026 (JAMBO AS A TAB YOU FLIP TO): the conversation's own scroller */
+    assert.match(code(fnOf(AI, 'renderAIFeed')), /const sc=inList\?\(feed\.closest\('\.jl-talk-sc'\)\|\|feed\):feed; sc\.scrollTop=sc\.scrollHeight;/);
     assert.equal((code(AI).match(/getElementById\('ai-feed'\)/g) || []).length, 1, 'the window\'s feed is named once, by aiFeedEl (the sweep asks for the other host by a choice)');
   });
 });

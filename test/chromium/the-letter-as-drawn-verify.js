@@ -228,7 +228,9 @@ async function mkUser(h, admin, name, email){
     await press('#ig-dock [data-pd-back="send"]');
     const away = await waitFor(page, () => !!document.querySelector('#modal-root .modal-in[data-sh-page] #sh-letter') && !document.getElementById('pd-sendface')
       && !!document.querySelector('#ig-dock [data-pd-send-back]') && document.getElementById('sh-summary').value === 'Kept while Jambo talks.', 6000);
-    check('6b ‹ Jambo turns the panel to Jambo; the letter stays with its note', !!away);
+    /* RE-POINTED 19 Oct 2026 (owner: "Before you send's back returns to the panel
+       it came from (normally Redlines)"): the letter still waits with its note */
+    check('6b the back turns the panel to where it came from; the letter stays with its note', !!away);
     await press('#ig-dock [data-pd-send-back]');
     check('6b "Before you send" is one press back', !!(await waitFor(page, () => !!document.querySelector('#pd-sendface #share-step-1'), 6000)));
     await press('#share-close');

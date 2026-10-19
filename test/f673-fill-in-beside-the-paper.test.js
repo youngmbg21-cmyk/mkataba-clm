@@ -121,7 +121,10 @@ describe('f673 (2)(3) the face: one contract, Jambo\'s tab, counted with details
     ctx.pdFillSeen('MK-1'); assert.equal(ctx.pdFillFor(), 'MK-1', 'the same contract keeps it');
     ctx.pdFillSeen('MK-2'); assert.equal(ctx.pdFillFor(), null);
     ctx.pdOpenOnHome('MK-1', 'fill'); ctx.pdFillAway(); assert.equal(ctx.pdFillFor(), null);
-    assert.match(strip(fnBody(IG, 'intelAsk')), /pdFillAway\(\)/);
+    /* RE-POINTED 19 Oct 2026 — JAMBO AS A TAB YOU FLIP TO (owner: "you can go
+       back to the landing side panel"): a question no longer puts the face
+       away; the panel turns to the conversation over it (f840) */
+    assert.doesNotMatch(strip(fnBody(IG, 'intelAsk')), /pdFillAway\(\)/);
     assert.match(strip(IG.slice(IG.indexOf('async function igAnalyze('), IG.indexOf('async function igAnalyze(') + 400)), /pdFillSeen\(id\)/);
   });
   test('3a the head says what is left and how much is done', () => {

@@ -21185,3 +21185,9 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Noticed, not fixed (19 Oct 2026, one reader): when a Board sentence still goes to the model, the model's set is not cross-checked against the conditions HaTi already read for free (the owner's 92 instead of 2 Drafts).
 - Noticed, not fixed (19 Oct 2026, the slider): the template builder's divider straddles the seam instead of lying on the rail's side, and lacks pointercancel and aria-valuenow.
 - Skipped (19 Oct 2026, owner's word): the builders' own browser checks, photos at the three screens and the adversarial checking rounds; GitHub's checks are the browser test this round.
+
+## 19 Oct 2026 (Jambo as a tab you flip to, and back)
+- Noticed, not fixed (19 Oct 2026, Jambo tab): f673 3e is red at bd6a04cb too — it pins a renderIntelDock focus guard that no longer reads as it says (`ae.closest('#ig-dock #pd-fill')` form changed).
+- Noticed, not fixed (19 Oct 2026, Jambo tab): the old History trail's unscoped `.pd-trail::before` (index.html) still draws its grey line at the left of every ONE TRAIL line, Home's and now the others' (one builder, one dress).
+- Noticed, not fixed (19 Oct 2026, Jambo tab): labels still say "Overview" for the old Overview page, now Details — sc_fix_btn, ca_ready_go_terms, pd_edit_facts, ag_a_overview, ins_need_go_terms, the Lifeline strip's 'ov' page (tab_overview) and about 25 sentences in both books; asked of the owner, not renamed.
+- Skipped (19 Oct 2026, owner's word): photos and browser checks beyond the named six and the new one; the colour census (ink-wash) was not run.

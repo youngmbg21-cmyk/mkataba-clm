@@ -160,7 +160,9 @@ async function login(b, base, email, pass, errs){
         x, chips: chips ? getComputedStyle(chips).display : 'none' };
     });
     check('1a the tabs stay; the trail line names the face "Redlines"', row.tabs.join() === 'copilot,doc,oblig,menu' && row.word === 'Redlines', JSON.stringify(row));
-    check('1b "‹ Jambo" opens the trail line, for this face', /Jambo/.test(row.back || '') && row.backFace === 'red', row.back);
+    /* RE-POINTED 19 Oct 2026 — JAMBO AS A TAB YOU FLIP TO (owner: "the first tab
+       beside a contract is renamed Overview"): the faces' back says "‹ Overview" */
+    check('1b "‹ Overview" opens the trail line, for this face', /Overview/.test(row.back || '') && row.backFace === 'red', row.back);
     check('1c the face\'s head draws no ×', row.x === 0, String(row.x));
     check('1d no chips under the face', row.chips === 'none', row.chips);
 
