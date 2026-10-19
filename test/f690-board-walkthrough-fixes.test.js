@@ -101,9 +101,15 @@ describe('F690 (4) — the side list lies outside the board and its door closes 
 
 describe('F690 (5) — the iPad: the divider', () => {
   test('a cancelled drag lets go like a lift', () => {
-    const w = strip(bodyOf(IG, 'igWireSplit'));
-    assert.match(w, /addEventListener\('pointercancel',onUp\)/);
-    assert.match(w, /removeEventListener\('pointercancel',onUp\)/);
+    /* RE-POINTED 19 Oct 2026 (owner: "all the new jambo panels do not have a
+       slider like in the redline page. They should all have one."): Home's
+       divider is a client of the ONE wiring every Jambo panel shares
+       (splitWire, js/components.js); the claim is the same — a cancel lets
+       go like a lift — and it now holds for every panel's divider. */
+    assert.match(strip(bodyOf(IG, 'igWireSplit')), /splitWire\(rez, IG_SPLIT\)/);
+    const w = strip(bodyOf(read('js/components.js'), 'splitWire'));
+    assert.match(w, /addEventListener\('pointercancel', onUp\)/);
+    assert.match(w, /removeEventListener\('pointercancel', onUp\)/);
   });
 });
 

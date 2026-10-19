@@ -425,3 +425,117 @@ function chatFieldReset(el){
 }
 
 Object.assign(window,{CHAT_FIELD_CLASS,chatFieldGrow,chatFieldWire,chatFieldSubmits,chatFieldReset});
+
+/* ═══ THE SLIDER — ONE DIVIDER BESIDE EVERY JAMBO PANEL (owner, 19 Oct 2026:
+   "all the new jambo panels do not have a slider like in the redline page.
+   They should all have one.") ═════════════════════════════════════════════
+   Home's divider (27 Sep 2026, the Document tab's and the Negotiate page's
+   handle) made into the ONE builder and the ONE wiring every Jambo side panel
+   is a client of: Home on every face (igFitSplit), the panel beside the lists
+   and Import (jlFrame) and Settings (stSideHtml). THE CLOTHES FOLLOW THE
+   BUILDER: one look (.ig-resizer in index.html), one drag, one clamp.
+   · THE GRIP: a 14px press strip lying WHOLLY ON THE PANEL'S SIDE of the seam
+     (Young, 6 Oct 2026: the page's own scrollbar beside it stays pressable),
+     a 4px × 72px grip in the quiet grey, the accent under the pointer, while
+     dragging and on keyboard focus, amber at a floor ([data-at-limit]).
+   · THE DRAG follows the POINTER'S POSITION, never the distance travelled,
+     with the grab offset kept so the handle does not jump under the finger
+     (the strip's left edge is the seam); pointerup AND pointercancel let go —
+     Safari may cancel a drag (a system swipe, a second finger).
+   · THE KEYS: ArrowLeft widens the panel, ArrowRight narrows it, a step of
+     max(8px, 2%); Home, Enter and a double-click put the resting width back
+     and forget the choice.
+   · THE FLOORS WIN: the panel keeps `min`, the page beside it `restMin`.
+   · WHAT IS STORED is the panel's WIDTH, in this browser, under the host's
+     own key; nothing stored = nobody has chosen, which is what lets the
+     resting place be a width (`w0`) — the panel's own, on every monitor.
+   A HOST says where its panel stands, read live at every call:
+     { key, w0 (a width, or a function giving one), min, restMin, foldedW,
+       avail() the room the page and the panel share, edge() the panel's far
+       edge on screen, folded(), off() (stacked, hidden, not drawn),
+       apply(w) the ONE writer of the width, place(rez, w)?, dragging(on)?,
+       settle()? once a width has settled, pref()?/save(w)? where a host keeps
+       its store its own way, resize()? its window-resize answer (bound once) }
+   Story: MAP-HISTORY "THE SLIDER ON EVERY JAMBO PANEL". */
+const SPLIT_GRIP = 14;
+function splitHtml(o = {}){
+  const label = (typeof i18t === 'function') ? i18t(o.label || 'int_drag_width') : (o.label || '');
+  return `<div id="${esc(o.id || '')}" class="ig-resizer${o.cls ? ' ' + esc(o.cls) : ''}" role="separator" aria-orientation="vertical" tabindex="0" aria-valuemin="${Math.round(Number(o.min) || 0)}" aria-label="${esc(label)}" title="${esc(label)}"${o.hidden ? ' hidden' : ''}><span></span></div>`;
+}
+/* the reader's stored width, or null; a browser that keeps nothing keeps nothing */
+function splitPref(key){
+  try { const v = Number(localStorage.getItem(key)); if (v > 0 && isFinite(v)) return Math.round(v); } catch (_){ return null; }
+  return null;
+}
+function splitSave(key, w){
+  try { if (w == null) localStorage.removeItem(key); else localStorage.setItem(key, String(Math.round(w))); } catch (_){}
+}
+const splitRest = h => Number(typeof h.w0 === 'function' ? h.w0() : h.w0) || h.min || 0;
+/* The width the panel takes in a room `avail` wide: the reader's choice or
+   the resting width, clamped by both floors. Pure, so a stage can ask it. */
+function splitClamp(want, avail, h){
+  let w = Number(want) || splitRest(h);
+  if (avail > 0){
+    if (avail >= h.restMin + h.min) w = Math.min(Math.max(w, h.min), avail - h.restMin);
+    else w = Math.max(h.min, Math.min(w, avail));
+  } else w = Math.max(w, h.min);
+  return Math.round(w);
+}
+const _splitPrefOf = h => (typeof h.pref === 'function') ? h.pref() : splitPref(h.key);
+const _splitSaveOf = (h, w) => { if (typeof h.save === 'function') h.save(w); else splitSave(h.key, w); };
+function splitWidth(h){
+  if (h.folded()) return h.foldedW;
+  return splitClamp(_splitPrefOf(h) ?? splitRest(h), h.avail(), h);
+}
+/* THE ONE LAYOUT PASS: the host writes the width, the grip is shown at the
+   seam or stood down, its floors marked. Every door asks this and nothing
+   else writes the width. */
+function splitFit(rez, h){
+  const w = splitWidth(h);
+  h.apply(w);
+  if (!rez) return w;
+  const avail = h.avail();
+  if (h.folded() || (typeof h.off === 'function' && h.off()) || !(avail > 0)){ rez.hidden = true; return w; }
+  rez.hidden = false;
+  if (typeof h.place === 'function') h.place(rez, w);
+  const atMin = w <= h.min, atMax = avail >= h.restMin + h.min && w >= avail - h.restMin;
+  if (atMin || atMax) rez.setAttribute('data-at-limit', atMin ? 'min' : 'max'); else rez.removeAttribute('data-at-limit');
+  rez.setAttribute('aria-valuenow', String(w));
+  return w;
+}
+/* THE ONE WIRING, bound once per grip element (a page drawn again draws a
+   new grip, and it is bound in its turn) */
+function splitWire(rez, h){
+  if (!rez) return;
+  splitFit(rez, h);
+  if (rez.dataset.splitBound) return;
+  rez.dataset.splitBound = '1';
+  let grabDx = 0;
+  const settle = () => { if (typeof h.settle === 'function') h.settle(); };
+  const widthAt = x => splitClamp(h.edge() - (x + grabDx), h.avail(), h);
+  const onMove = e => { const x = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX; _splitSaveOf(h, widthAt(x)); splitFit(rez, h); };
+  const onUp = () => { delete rez.dataset.drag; if (typeof h.dragging === 'function') h.dragging(false);
+    document.body.style.cursor = ''; document.body.style.userSelect = '';
+    window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); window.removeEventListener('pointercancel', onUp);
+    settle(); };
+  rez.addEventListener('pointerdown', e => { e.preventDefault(); rez.dataset.drag = '1';
+    /* the strip's LEFT edge is the seam (it lies on the panel's side) */
+    const hb = rez.getBoundingClientRect(); grabDx = hb.left - e.clientX;
+    /* a width transition would make the handle trail the pointer */
+    if (typeof h.dragging === 'function') h.dragging(true);
+    document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none';
+    window.addEventListener('pointermove', onMove); window.addEventListener('pointerup', onUp); window.addEventListener('pointercancel', onUp); });
+  rez.addEventListener('keydown', e => {
+    if (e.key === 'Home' || e.key === 'Enter'){ e.preventDefault(); _splitSaveOf(h, null); splitFit(rez, h); settle(); return; }
+    const avail = h.avail();
+    const step = Math.max(8, Math.round(avail * 0.02));
+    const d = e.key === 'ArrowLeft' ? step : e.key === 'ArrowRight' ? -step : 0;   /* left widens the panel */
+    if (!d) return;
+    e.preventDefault(); _splitSaveOf(h, splitClamp(splitWidth(h) + d, avail, h)); splitFit(rez, h); settle();
+  });
+  rez.addEventListener('dblclick', () => { _splitSaveOf(h, null); splitFit(rez, h); settle(); });
+  if (!h._splitResize && typeof h.resize === 'function' && typeof window !== 'undefined' && window.addEventListener){
+    h._splitResize = true; window.addEventListener('resize', () => { try { h.resize(); } catch (_){} });
+  }
+}
+Object.assign(window,{SPLIT_GRIP,splitHtml,splitPref,splitSave,splitClamp,splitWidth,splitFit,splitWire});
