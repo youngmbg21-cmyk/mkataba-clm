@@ -4372,12 +4372,17 @@ function rebuildIntelGraph(){
   const model=buildGraphModel();
   const key=igKeptKey(window.state&&state.contracts, intel.groupBy, intel.groups, intel.lenses);
   const old=(_igKept.key===key&&_igKept.nodes)?new Map(_igKept.nodes.map(n=>[n.id,n])):null;
+  const prev=IG;
   IG=makeIntelGraph(model); if(!IG) return;
   IG._model=model;
   if(old&&IG.nodes.every(n=>old.has(n.id))){
     /* the same map: every node back where it settled, and the camera kept */
     IG.nodes.forEach(n=>{ const o=old.get(n.id); n.x=o.x; n.y=o.y; n.vx=o.vx||0; n.vy=o.vy||0; });
-    IG._settle=0; IG._kept=true;
+    /* the same map redrawn while it was still settling goes on settling where it was, framing and all
+       (a change that redraws the stage twice stopped the glide half-way, and the picture swelled) */
+    const going=!!(prev&&prev.nodes===_igKept.nodes&&prev._settle>0);
+    IG.wb=going&&prev.wb?{ cx:prev.wb.cx, cy:prev.wb.cy, s:prev.wb.s }:null;
+    IG._settle=going?prev._settle:0; IG._kept=going?!!prev._kept:true;
   } else IG._settle=IG_SETTLE_ROUNDS;
   _igKept={ key, nodes:IG.nodes };
   if(_igSizeWatch){ try{ _igSizeWatch.disconnect(); }catch(_){} _igSizeWatch=null; }

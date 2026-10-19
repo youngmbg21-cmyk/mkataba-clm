@@ -14,13 +14,13 @@
    screen and the framing is carried, so it glides.
      1  on Wiring, a grouping chosen in the head line's dropdown, one asked
         of Jambo, a narrowing and an Undo each go from the picture before to
-        the one they land on without swelling past, or shrinking under, both
-        (by more than a fifth) over the next 1.6 s
+        the one they land on without swelling past both: how much of the stage
+        the dots fill (on whichever side they fill more) never passes the
+        larger of before and after by more than 15% over the next 1.6 s
      2  the same at the owner's three screens
      3  the change still lands: the grouping is the one asked
 
-   Red at the parent: the frames after a grouping swelled to about twice the
-   size of the picture before and of the one it landed on.
+   Red at the parent: the frames after a grouping filled the stage 1.3 to 1.8 times over before easing back.
    Run: node test/chromium/explorer-wiring-holds-still-verify.js */
 'use strict';
 const fs = require('node:fs');
@@ -48,23 +48,25 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
   const until = async (fn, arg, ms = 8000) => { let v; const t0 = Date.now();
     while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(120); }
     return v; };
-  /* on Wiring, a change made by `how`, the picture's width on screen frame by frame for 1.6 s */
+  /* on Wiring, a change made by `how`, frame by frame for 1.6 s: how much of the
+     stage the drawn contracts fill, on whichever side they fill more (a new
+     grouping may honestly be taller or wider; a zoom grows both) */
   const film = how => page.evaluate(async how => {
-    const width = () => { const G = IG; if (!G || !G.pj) return null; let lo = 1e9, hi = -1e9;
-      G.nodes.forEach(n => { if (n.kind !== 'contract') return; const P = G.pj(n.P || n.W3 || [0, 0, 0]); if (P) { lo = Math.min(lo, P[0]); hi = Math.max(hi, P[0]); } });
-      return hi > lo ? hi - lo : null; };
-    const before = width(), w = [];
+    const fill = () => { const G = IG; if (!G || !G.pj || !G.W || !G.H) return null; let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+      G.nodes.forEach(n => { if (n.kind !== 'contract') return; const P = G.pj(n.P || n.W3 || [0, 0, 0]); if (P) { x0 = Math.min(x0, P[0]); x1 = Math.max(x1, P[0]); y0 = Math.min(y0, P[1]); y1 = Math.max(y1, P[1]); } });
+      return x1 > x0 ? Math.max((x1 - x0) / G.W, (y1 - y0) / G.H) : null; };
+    const before = fill(), w = [];
     if (how === 'dropdown') { const s = document.querySelector('#ig-note #ig-group'); s.value = s.value === 'counterparty' ? 'folder' : 'counterparty'; s.dispatchEvent(new Event('change', { bubbles: true })); }
     else if (how === 'undo') intelAsk('undo');
     else intelAsk(how);
     const t0 = performance.now();
-    await new Promise(r => { const f = () => { const x = width(); if (x) w.push(x); if (performance.now() - t0 < 1600) requestAnimationFrame(f); else r(); }; requestAnimationFrame(f); });
+    await new Promise(r => { const f = () => { const x = fill(); if (x) w.push(x); if (performance.now() - t0 < 1600) requestAnimationFrame(f); else r(); }; requestAnimationFrame(f); });
     return { before, first: w[0], end: w[w.length - 1], lo: Math.min(...w), hi: Math.max(...w), groupBy: intel.groupBy, frames: w.length };
   }, how);
-  /* the picture goes from where it was to where it lands without swelling
-     past, or shrinking under, both (a new grouping may honestly have another shape) */
-  const steady = r => !!r && r.before > 0 && r.hi <= 1.2 * Math.max(r.before, r.end) && r.lo >= Math.min(r.before, r.end) / 1.2;
-  const say = r => r && JSON.stringify({ before: Math.round(r.before), first: Math.round(r.first), end: Math.round(r.end), lo: Math.round(r.lo), hi: Math.round(r.hi), groupBy: r.groupBy, frames: r.frames });
+  /* never swelling past the picture before and the one it lands on (the flash
+     filled the stage one and a half to two times over), nor shrinking far under both */
+  const steady = r => !!r && r.before > 0 && r.hi <= 1.15 * Math.max(r.before, r.end) && r.lo >= Math.min(r.before, r.end) / 1.3;
+  const say = r => r && JSON.stringify({ before: +r.before.toFixed(2), first: +r.first.toFixed(2), end: +r.end.toFixed(2), lo: +r.lo.toFixed(2), hi: +r.hi.toFixed(2), groupBy: r.groupBy, frames: r.frames });
   try {
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke');
