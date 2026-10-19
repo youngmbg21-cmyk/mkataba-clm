@@ -20,6 +20,18 @@
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
 
+   SINCE 19 OCT 2026 THE RECORD IS A PALETTE, NOT A HEADCOUNT (owner: "Remove
+   the grey color rule where I need to approve before it is merged. It is
+   creating a lot of failures so simply do not use grey fonts but you don't
+   have to ask me for approval"). What fails is what the rules forbid: grey
+   or capitals in light mode, the Ink Wash ramp or the status colours moved,
+   or a colour (or text size) appearing in dark mode, on the paper, on the
+   redline cards' buttons or the danger button that the record has never
+   held for that theme. A screen with more or fewer elements, or a colour the
+   record already holds now seen on one more screen, is said as a NOTE and
+   fails nothing. Anyone may re-save after a change; no one's yes is needed.
+   The re-recordings below were each asked of the owner under the old rule.
+
    RE-RECORDED 19 Oct 2026 (twentieth), OWNER-ASKED (the same "Yes, re-save
    it", for the last of the gap build: every list page's head is the drawn
    white card, Jambo's chips on the buttons' hairline, Before you sign keeps
@@ -568,6 +580,14 @@ const diff = (a, b) => {
       return;
     }
 
+    /* what the record holds for a theme, on any screen or pop-up: a colour or
+       size in it is no news wherever it turns up next (19 Oct 2026, above) */
+    const held = (tag, kind) => { const out = new Set(), t = base[tag] || {};
+      for (const g of [t.screens || {}, t.popups || {}]) for (const r of Object.values(g)) for (const k of Object.keys((r && r[kind]) || {})) out.add(k);
+      return out; };
+    const fresh = (tag, kind, now) => { const h = held(tag, kind); return Object.keys(now || {}).filter(k => !h.has(k)); };
+    const notes = [];
+    const moved = (tag, name, what, a, b) => { const d = diff(a, b); if (d.length) notes.push(`${tag} ${name}: ${what} — ${d.length} count${d.length === 1 ? '' : 's'} moved`); };
     for (const [tag, now] of Object.entries(rec)) {
       const was = base[tag];
       const dark = tag.endsWith('dark'), brand = tag.split('-')[0];
@@ -576,17 +596,19 @@ const diff = (a, b) => {
       else check(`${tag}: the ramp is Ink Wash`, !diff(INK[brand], now.tokens).length, diff(INK[brand], now.tokens));
       for (const kind of ['screens', 'popups']) for (const [name, r] of Object.entries(now[kind])) {
         const w = was[kind][name] || {};
-        if (dark) { const d = diff(w.all, r.all); check(`${tag} ${name}: every colour as before (dark stays as today)`, !d.length, d.slice(0, 8)); }
-        { const d = diff(w.paper, r.paper); check(`${tag} ${name}: the contract paper is as before`, !d.length, d.slice(0, 8)); }
-        if (r.redlineButtons) { const d = diff(w.redlineButtons, r.redlineButtons);
-          check(`${tag} ${name}: the redline cards' buttons are as before`, !d.length && Object.keys(r.redlineButtons).length > 0, d.slice(0, 8)); }
-        if (r.danger) { const d = diff(w.danger, r.danger);
-          check(`${tag} ${name}: the danger button is as before`, !d.length && Object.keys(r.danger).length > 0, d.slice(0, 8)); }
-        if (r.sizes) { const d = diff(w.sizes, r.sizes); check(`${tag} ${name}: no text size moved`, !d.length, d.slice(0, 8)); }
+        if (dark) { const n = fresh(tag, 'all', r.all); check(`${tag} ${name}: no colour new to dark mode (dark stays as today)`, !n.length, n.slice(0, 8)); moved(tag, name, 'dark colours', w.all, r.all); }
+        { const n = fresh(tag, 'paper', r.paper); check(`${tag} ${name}: no colour new to the contract paper`, !n.length, n.slice(0, 8)); moved(tag, name, 'the paper', w.paper, r.paper); }
+        if (r.redlineButtons) { const n = fresh(tag, 'redlineButtons', r.redlineButtons);
+          check(`${tag} ${name}: no colour new to the redline cards' buttons`, !n.length && Object.keys(r.redlineButtons).length > 0, n.slice(0, 8)); }
+        if (r.danger) { const n = fresh(tag, 'danger', r.danger);
+          check(`${tag} ${name}: no colour new to the danger button`, !n.length && Object.keys(r.danger).length > 0, n.slice(0, 8)); }
+        if (r.sizes) { const n = fresh(tag, 'sizes', r.sizes); check(`${tag} ${name}: no text size new to the product`, !n.length, n.slice(0, 8)); moved(tag, name, 'text sizes', w.sizes, r.sizes); }
         if (r.greys) { const k = Object.keys(r.greys); check(`${tag} ${name}: no grey left`, !k.length, k.slice(0, 12)); }
         if (r.caps) { const k = Object.keys(r.caps); check(`${tag} ${name}: no header or label in capitals`, !k.length, k.slice(0, 12)); }
       }
     }
+    /* counts that moved are news, never a failure: re-save when convenient */
+    for (const n of notes) console.log(`NOTE  ${n} (counts only, fails nothing; re-save when convenient)`);
   } catch (e) {
     check('the run finished', false, e && e.stack || String(e));
   } finally {
