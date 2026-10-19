@@ -138,3 +138,14 @@ describe('f764 (6) the New agreement crumb names where it came from', () => {
     assert.match(WZ, /crumb:`\$\{i18t\(\(typeof state==='object'&&state&&\(state\.view==='templates'\|\|state\.view==='playbook'\)\)\?'nav_tpl_std':'nav_contracts'\)\} › \$\{i18t\('na_title'\)\}`/);
   });
 });
+
+describe('f764 (7) the bar names the builder', () => {
+  test('7a while the builder is in front the bar says "Builder" (round 21\'s tab), and the builder asks the bar to repaint', () => {
+    const CN = R('js/views/counter.js');
+    const i = CN.indexOf('function deskPageName('); const body = CN.slice(i, CN.indexOf('\n}', i));
+    assert.match(body, /if \(typeof window !== 'undefined' && typeof window\.tbOnScreen === 'function' && window\.tbOnScreen\(\)\) return _cnT\('tb_jl_word'\);/);
+    assert.match(TB, /const tbOnScreen = \(\) => typeof document !== 'undefined' && !!document\.getElementById\('tb-page'\);/);
+    assert.match(TB, /tbPaintBranding\(\);\n  if \(typeof window\.deskBarPaint === 'function'\) window\.deskBarPaint\(\);/);
+    assert.equal(BOOKS.en.tb_jl_word, 'Builder');
+  });
+});

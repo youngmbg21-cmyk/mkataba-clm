@@ -937,6 +937,8 @@ const tbSectionNo = sec => { const i = tbSections().findIndex(s => s.k === sec.k
    "Section 1 · Parties" and "Section 6" where the paper and the Outline say
    "·" and "5." — what the reader sees names a section by the Outline's own
    reading (tbOutlineNo); tbSectionNo stays the @-reference's position. */
+/* the builder in front (the bar names it, deskPageName) */
+const tbOnScreen = () => typeof document !== 'undefined' && !!document.getElementById('tb-page');
 const tbPaperNo = sec => { const secs = tbSections(); const i = secs.findIndex(s => s.k === sec.k); if (i < 0) return ''; const n = tbOutlineNo(secs[i], i); return n === '·' ? '' : n; };
 const tbNoHead = (sec, head) => { const n = tbPaperNo(sec); const h = head != null ? head : (sec.head || i18t('tb_untitled')); return n ? `${n} · ${h}` : h; };
 const tbThread = k => (_tb.thread[k] = _tb.thread[k] || []);
@@ -2387,6 +2389,7 @@ function tbPaint(opts = {}) {
       aria-label="${esc(i18t('ng_drag_width'))}" title="${esc(i18t('ng_drag_width'))}"><span></span></div>
   </div>`;
   tbPaintPaper(); tbPaintRail(); tbWire(); tbPaintBranding();
+  if (typeof window.deskBarPaint === 'function') window.deskBarPaint();
   document.getElementById('tb-addfield-strip')?.addEventListener('click', () => tbFieldModal(null));
   tbRestoreScroll(held);
   tbGutter(true);
@@ -3073,4 +3076,4 @@ Object.assign(window, { openTemplateBuilder, tbCardWording, TB_BLOCK_META, TB_PB
   tbSectionOwes, tbMissingStandards,
   /* Round 21, "Paper first": Jambo's panel beside the paper, its Outline tab,
      his proposals and the marks on the paper (the book's own readings). */
-  tbRailFolded, tbRailFold, tbOutlineTabHtml, tbOutlineNo, tbBlankKeys, tbSkippedOf, tbSkip, tbPaperNo, tbNoHead, tbProposals, tbProposalSpot, TB_CLOSING_RE, TB_FOLD_KEY, tbProposalHtml, tbMarksAll, tbMarksRepaint });
+  tbRailFolded, tbRailFold, tbOutlineTabHtml, tbOutlineNo, tbBlankKeys, tbSkippedOf, tbSkip, tbOnScreen, tbPaperNo, tbNoHead, tbProposals, tbProposalSpot, TB_CLOSING_RE, TB_FOLD_KEY, tbProposalHtml, tbMarksAll, tbMarksRepaint });
