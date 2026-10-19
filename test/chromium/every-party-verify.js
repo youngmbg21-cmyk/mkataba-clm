@@ -201,7 +201,7 @@ async function readHead(page, hostSel, sel){
     if (staged.C) {
       await page.evaluate(() => setView('playbook')); await page.waitForTimeout(1200);
       await page.evaluate(({ id }) => sdGoDev({ id }), { id: staged.C }); await page.waitForTimeout(600);
-      s1 = await readHead(page, '#sd-panel-dev', '.ins-sub.is-item');
+      s1 = await readHead(page, '#ins-panel', '.ins-sub.is-item');
     }
     ok('4a Our standards: under the contract\'s name, both outside parties, one line each', !!s1 && s1.box
       && s1.names.join(' | ') === expectNames(staged.cpC) && s1.tops.length === 2 && s1.tops[1] > s1.tops[0] && s1.inside,

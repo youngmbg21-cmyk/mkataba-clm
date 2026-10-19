@@ -15213,6 +15213,8 @@
   .sd-ins .ins-offer.sd-info > .sp{display:none;}
   .sd-ins .ins-offer.sd-info > svg{flex:none;color:var(--accent-ink);}
   .sd-ins .ins-card > .ins-cardhead{border-bottom:1px solid var(--color-divider);}
+  /* the one Jambo panel stands at the right edge (fixed): each list takes its section's width */
+  #content .sd-ins:has(> #ins-panel.is-jambo) > .ins-body{grid-template-columns:minmax(0,1fr);column-gap:0;}
 
   /* ═══ COPILOT'S WORK — THE AGENTS (Young ruled 27 Sep 2026: "Build the
      agents idea", the "Work Board Options" artifact, option 2) ═════════════
