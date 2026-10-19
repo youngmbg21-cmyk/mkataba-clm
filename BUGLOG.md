@@ -21108,3 +21108,31 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Fixed (19 Oct 2026, integration): round-delivery-verify 7 and 8c were a race in the check's own stage — the owner's page collected the readiness claim on its last fast tick before the stale change was filed (measured 4 of 4 side by side). The owner's collection is now held until the change lands, and a stage check says the claim was still uncollected. 4 of 4 green side by side, and green alone.
 - Fixed (19 Oct 2026, integration): notes-two-rooms-verify re-pointed from the retired room's acts row to Home's paper line (round 6) and taken off KNOWN_RED; 93/93.
 - Noticed, not fixed (19 Oct 2026, integration): the colour census (ink-wash-verify 126/170, theme-tokens-verify 28/42) stays red. Audited as a set difference: every change is a lane's picked drawing, no grey and no shade outside the tokens; the re-record was refused by the session's permission check and waits for the owner's yes (and, by the brief, for lanes A2, A3, A4, D and E to join).
+
+## Noticed, not fixed — 19 Oct 2026 (joining the last five areas: A2, A3, A4, D, E)
+- (lanes A2, A3, A4, D) pages-read-alike-verify 8: the People page's head (and Parties', which the sweep does not visit) sits 12px lower under the bar than the shared page heads (People 27px vs 15px at 1000 tall; 21 vs 9 at 760). It was already red at gaps/A1 (d2a4eb4), before any of these lanes.
+- (lane A2) i18n cu_people_door ("People ({n})") is inert since round 19's party panel draws "People at <party>" rows; kept in both books.
+- (lane A2) i18n dir_also_at and dir_nobody_else are inert since their side's person panel draws "On these contracts" without "Also at"; kept in both books.
+- (lane A2) The shared checklist reading (insNeedWords, kind 'details') says "1 detail to fill" while round 19's Parties column draws "… to fill in"; only the Parties column was changed (cu_need_details).
+- (lane A2) HaTi has no home for a contact's company: orgDirectory keeps name, email and title only, so a contact on no contract has no party and round 19's "not on a contract yet" under a party cannot appear (asked of the owner).
+- (lane A2) server.js line 13: lint warning 'fxPrivate is assigned a value but never used' (older than the lane).
+- (lane A3) js/views/intake.js openIntakeForm declares LBL (window.HATI_LBL) and never uses it; a standing lint warning.
+- (lane A3) The list panels' eyebrow sets references in the reference font while the lists' Ref columns use the normal font, on every list page using the shared panel (asked of the owner).
+- (lane A4) Shared inspector CSS: `.ins-c2 > span` outranks `.ins-late` / `.ins-soon` / `.ins-wait`, so those coloured words show grey on every list using the inspector; fixed by scope only on the Obligations week rows.
+- (lane A4) Obligations: Enter on a row (and the panel's open act) narrows the page to one contract in the older table (obwPaintContract: windows, a plain panel with no ‹ Jambo, "Nobody" in amber where the week view draws a dashed ring).
+- (lane A4) Calendar: the renewal decision chip's hover keeps English "decide by" in Svenska (calendarEvents note:'decide by').
+- (lane A4) Calendar: Home's panel resize grip (#ig-resizer) paints a grey bar on the left edge of the Calendar's Jambo panel.
+- (lane A4) calPlanAsk still knows an 'hour' ask (cal_plan_q_hour / cal_plan_p_hour) but no chip sends it since round 16; retire it or give it a door.
+- (lane D) The bar's ‹ back (deskGoBack) leaves the template builder without tbLeave's unsaved-work question; the builder's own ← asks (the work is kept in the browser either way).
+- (lane D) The shared list panel (lane A1) draws a Jambo count badge on its tab and folded strip; round 21's drawing shows none on Our paper.
+- Fixed (lane D): templateUsage never counted contracts drafted from a company template (they carry libraryTemplateId), so every company template read "never used".
+- Fixed (lane D): Our paper showed built-in NDA wording for a company template with no wording of its own; it now fetches and draws the template's own published version.
+- Fixed (lane D): the Templates list showed "—" for a company template's stream (tplPageRows wrote stream:null) while the book and the builder named it.
+- (lane E) Import: migBuildAndSave writes the file's start date into signedAt for a paper signed outside HaTi when the file names no signing day, so the record holds a signing date nobody read (the Import page no longer shows it).
+- (lane E) Import: files parked for a decision (a possible copy, possibly unsigned) live only in this sitting's memory; a refresh drops them from the list (only the server's unfinished-batch note remains).
+- Fixed (19 Oct 2026, the join): f306-build-plan-group-one (3) "Remind is drawn beside Cancel" was red on the branch since lane C2's third pass moved a waiting review into the Redlines face's pile (opts.waitingInPile); the source pin re-pointed, nothing loosened.
+- Fixed (19 Oct 2026, the join): customers-verify 3b2 was red on the branch (measured at 2691ab3) since lane B1's pass 4 took "· 1 amendment" off the wall's count line; re-pointed to round 13's count.
+- Fixed (19 Oct 2026, the join): jambos-list-panel-verify 10i went red when lane A2 drew their side's Named on as "N contracts" (round 19's Henrik); re-pointed to ask both sides (ours "N contracts · K live", theirs "1 contract").
+- Noticed, not fixed (19 Oct 2026, the join): GitHub's job logs for this branch cannot be read from this session (the log host is refused by the session's network policy), so which tests made runs 39218654775 and 39221062864 red (the node suite and all four browser shards) is not known here; the checks run locally for this join are green apart from the colour census.
+- Noticed, not fixed (19 Oct 2026, the join): the colour census stays red (theme-tokens-verify 28/42, ink-wash-verify 119/170); audited as a set difference in MAP-HISTORY "JOINING THE LAST FIVE AREAS" — every new value a house token, ink-wash moved counts only. Not re-saved in this step.
+- Noticed, not fixed (19 Oct 2026, the join): CLAUDE.md is about 95 KB after the five areas' MAP lines (88.7 KB before), past its own "under about 80 KB"; a trim is the owner's to approve.
