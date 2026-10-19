@@ -787,7 +787,9 @@ function insPaintPanel(o){
   const body = jl ? jlFrame(host, opt) : host;
   if (jl) jlHeadPaint(host, opt, !!(c || item));
   body.innerHTML = c ? insPanelHtml(c, opt)
-    : item ? (insItemHeadHtml(opt.head || {}) + (opt.body || ''))
+    /* `head:false` — an item said in Jambo's own words, no head of facts
+       (Our paper's chosen template, round 21) */
+    : item ? ((opt.head === false ? '' : insItemHeadHtml(opt.head || {})) + (opt.body || ''))
     : jl ? jlWordsHtml(opt) : insPanelEmptyHtml(opt.empty);
   /* his conversation, where it was asked here, is said under his words */
   if (jl && !c && !item && typeof renderAIFeed === 'function' && typeof ai !== 'undefined' && ai && Array.isArray(ai.history) && ai.history.length){
