@@ -5467,7 +5467,15 @@ function hbAgentWorkPress(el){
   const host = el.closest('[data-hb-ag-item]'); if (!host) return false;
   const key = host.getAttribute('data-hb-ag-item');
   const act = el.closest('[data-ag-act]');
-  if (act){ if (typeof agRunAct === 'function') agRunAct(key, act.getAttribute('data-ag-act')); return true; }
+  if (act){
+    /* AN ACT WHOSE ANSWER IS WRITTEN IN THE PIECE ITSELF opens the piece
+       first (19 Oct 2026): a drafted reply, or why there is none, is drawn in
+       its body (agQuietBody), and a folded row would leave the press ending
+       in nothing the reader can see — never a silent nothing */
+    if (act.getAttribute('data-ag-act') === 'draftreply') _hbAgLook = key;
+    if (typeof agRunAct === 'function') agRunAct(key, act.getAttribute('data-ag-act'));
+    return true;
+  }
   const sb = el.closest('[data-ag-sb]'); if (!sb) return false;
   const box = sb.querySelector('.ag-sb-box');
   if (el.closest('[data-ag-sb-open]')){ if (box){ box.hidden = false; const n = box.querySelector('textarea'); if (n) n.focus(); } return true; }

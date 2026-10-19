@@ -271,6 +271,9 @@ describe('f800 (9) Look opens the piece under its row; pressed again it folds', 
     assert.match(HB, /if \(\(el = on\('\[data-hb-ag-look\]'\)\)\)\{ e\.stopPropagation\(\); hbAgLookToggle\(el\.getAttribute\('data-hb-ag-look'\)\); return; \}/);
     assert.match(fnBody(HB, 'hbAgentWorkPress'), /agRunAct\(key, act\.getAttribute\('data-ag-act'\)\)/);
   });
+  test('9d Draft a reply opens its piece first: the draft, or why there is none, is never folded out of sight (19 Oct 2026)', () => {
+    assert.match(fnBody(HB, 'hbAgentWorkPress'), /if \(act\.getAttribute\('data-ag-act'\) === 'draftreply'\) _hbAgLook = key;\s*if \(typeof agRunAct === 'function'\) agRunAct/);
+  });
 });
 
 describe('f800 (10) the card\'s head says Home\'s words', () => {

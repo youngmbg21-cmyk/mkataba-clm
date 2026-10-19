@@ -61,9 +61,13 @@ async function login(browser, email, pass) {
   return { ctx, page, errors };
 }
 /* asked through the panel's own composer, from a page that is not Home (on
-   Home Jambo's own panel takes the ask) */
+   Home Jambo's own panel takes the ask)
+   RE-POINTED 19 Oct 2026 (round 15 as drawn: Approvals has Jambo's own panel
+   beside the worklist, and the window's door goes there — jambos-list-panel
+   10h): asked from the Brain, a page with no Jambo box of its own, so the
+   window's composer is still the one that answers. */
 async function ask(page, q) {
-  await page.evaluate(() => { window.setView('approvals'); window.ai.history = []; window.openAI(); });
+  await page.evaluate(() => { window.setView('brain'); window.ai.history = []; window.openAI(); });
   await until(page, () => !!document.getElementById('ai-input'));
   await page.fill('#ai-input', q);
   await page.evaluate(() => window.aiSubmit && window.aiSubmit());

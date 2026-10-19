@@ -444,7 +444,10 @@ describe('f804 (12) the frame as drawn', () => {
     assert.match(HTML, /#content \.ap-body\.is-ins:has\(> #ins-panel\.is-jambo\) \.ap-foot\{margin-top:0;\}/);
   });
   test('12c Approvals: the white head, the ground, the card', () => {
-    assert.match(HTML, /body:has\(#content \.ap-page\) #page-head > :last-child\{padding-bottom:var\(--s-3\);\}/);
+    /* 19 Oct 2026: div:last-child, never a bare :last-child under body:has()
+       (that made a Board to Workspace turn on Home recalculate every
+       element's style; home-speed-verify 1) */
+    assert.match(HTML, /body:has\(#content \.ap-page\) #page-head > div:last-child\{padding-bottom:var\(--s-3\);\}/);
     assert.match(HTML, /#content \.sap-page\.ap-page\{padding-top:var\(--s-3\);\}/);
   });
 });

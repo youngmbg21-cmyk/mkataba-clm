@@ -13995,8 +13995,12 @@
   #content .ap-body.is-ins:has(> #ins-panel.is-jambo) > .ap-card{max-height:100%;}
   #content .ap-body.is-ins:has(> #ins-panel.is-jambo) .ap-foot{margin-top:0;}
   /* round 15: the white head (title, counts, Approval rules), the grey ground,
-     then the list's card — Negotiations' band and ground, the same */
-  body:has(#content .ap-page) #page-head > :last-child{padding-bottom:var(--s-3);}
+     then the list's card — Negotiations' band and ground, the same.
+     div:last-child, never a bare :last-child: a bare one under body:has()
+     made every element's style hang on the :has, and a Board to Workspace
+     turn on Home recalculated styles three times as long (measured 19 Oct
+     2026, 45 against 13 ms at 430 contracts; home-speed-verify 1) */
+  body:has(#content .ap-page) #page-head > div:last-child{padding-bottom:var(--s-3);}
   #content .sap-page.ap-page{padding-top:var(--s-3);}
   #content .ins-panel.is-jambo{position:fixed;right:0;top:var(--jl-top,88px);bottom:0;width:380px;z-index:20;display:flex;flex-direction:column;overflow:hidden;
     border:0;border-left:1px solid var(--color-neutral-300);border-radius:0;box-shadow:-10px 0 28px -20px rgba(43,43,45,.35);background:var(--color-surface);}
