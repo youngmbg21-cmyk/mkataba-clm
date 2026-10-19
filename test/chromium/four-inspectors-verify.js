@@ -143,16 +143,25 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
       word: (document.querySelector('#ins-panel [data-jl-word]') || {}).textContent || '' }));
     /* RE-POINTED 18 Oct 2026 (lane A4, round 16 as drawn): nothing is chosen on
        arrival — Jambo's panel says "Your week" until a row is pressed */
-    ok('1a the page is a list and a panel', ob.ins && ob.rows >= 8 && ob.word === 'Your week', { rows: ob.rows, word: ob.word });
+    /* RE-POINTED 19 Oct 2026 (lane A4, round 16 as drawn: All = Outstanding +
+       Waiting on a step + Completed): the held-back step is no longer an
+       Outstanding row, so the list holds one row fewer */
+    ok('1a the page is a list and a panel', ob.ins && ob.rows >= 7 && ob.word === 'Your week', { rows: ob.rows, word: ob.word });
     /* RE-POINTED 18 Oct 2026 (round 16, owner picked "Week by week"): the
        page's groups are weeks now — Late, this week, next week, the later
        weeks of six, Later, then No date, Waiting and Completed. */
     ok('1b its groups are the weeks, in order',
       ob.groups.length >= 5 && ob.groups.every((g, i) => i === 0 || ob.order.indexOf(g) > ob.order.indexOf(ob.groups[i - 1])), ob.groups);
+    /* RE-POINTED 19 Oct 2026 (lane A4): the held-back step is read on All,
+       since Outstanding no longer lists it (round 16's arithmetic) */
+    const outHasWait = await page.evaluate(() => /Pay on delivery to site/.test((document.querySelector('.obw-ins .ob-lt') || {}).textContent || ''));
+    ok('1c0 Outstanding does not list a step still waiting on an earlier one', !outHasWait);
+    await page.click('[data-obw-view="all"]').catch(() => {}); await page.waitForTimeout(500);
     ok('1c a held-back step sits under Waiting on an earlier step, never under Overdue',
       await page.evaluate(() => { const r = [...document.querySelectorAll('.ob-lt tbody tr')]; let w = '';
         for (const t of r) { if (t.classList.contains('ins-grp')) w = t.getAttribute('data-ob-win'); else if (/Pay on delivery to site/.test(t.textContent)) return w === 'waiting'; }
         return false; }));
+    await page.click('[data-obw-view="open"]').catch(() => {}); await page.waitForTimeout(500);
     /* RE-POINTED 9 Oct 2026 (owner: "remove the we owe xxx place" so the head
        is as tall as Approvals & signing's) — the money reads on the groups.
        RE-POINTED AGAIN 18 Oct 2026 (lane A4, round 16 as drawn, the owner's

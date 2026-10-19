@@ -13562,6 +13562,18 @@
   /* Jambo's finds: one row in its week, in his tint, never a band */
   .obw-wk tr.obw-finds td:not(:first-child){background:var(--color-accent-50);}
   .obw-wk tr.obw-finds .ins-c2 > span{color:var(--color-neutral-600);}
+  .obw-wk tr.obw-finds{cursor:pointer;}
+  /* a word in the day column says its ink (late, soon, waiting), and a
+     longer one ("waiting on step 1") wraps rather than cut */
+  .obw-wk .ins-c2 > span.ins-late{color:var(--st-ruby-fg);}
+  .obw-wk .ins-c2 > span.ins-soon{color:var(--st-amber-fg);}
+  .obw-wk .ins-c2 > span.ins-wait{color:var(--st-steel-fg);}
+  .obw-wk table.obw-wk-lt td:first-child .ins-c2 > span{white-space:normal;}
+  /* Late, as drawn: a bar down its row's left edge; the day and how late on
+     the right, before the act */
+  .obw-wk table.obw-wk-lt tr.obw-late-row td:first-child{box-shadow:inset 3px 0 0 var(--accent-fill);}
+  .obw-late-act{display:inline-flex;align-items:center;justify-content:flex-end;gap:10px;}
+  .obw-late-when{text-align:right;align-items:flex-end;}
   /* the head: "11 outstanding · 1 overdue" beside the name */
   .obw-hf{color:var(--color-neutral-600);font-size:var(--t-body);}
   .obw-hf-late{color:var(--st-ruby-fg);font-weight:var(--w-label);}

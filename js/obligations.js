@@ -2461,6 +2461,12 @@ function obwPass(o, f){
   const only = obwOnly(f);
   if(only && !only._set.has(obKeyOf(o.cid, o, o._i))) return false;
   if(f.state === 'open' && o.st === 'done') return false;
+  /* OUTSTANDING IS WHAT SOMEBODY COULD DO (round 16 as drawn: All 15 =
+     Outstanding 11 + Waiting on a step 1 + Completed 3). A step held back by
+     an earlier one is its own tab, not outstanding — as the contract's tab
+     already counts it apart. A door that narrows to its own keys
+     keeps every one it counted (the number on a door matches its list). */
+  if(f.state === 'open' && !only && o.band === 'waiting') return false;
   /* OVERDUE MEANS LATE WORK SOMEBODY COULD HAVE DONE (26 Sep 2026). It asked
      obState, so a step held back by an earlier one — late by the calendar and
      by nobody's fault — was counted overdue here while the sidebar's own door
@@ -3288,7 +3294,12 @@ function obPanelActs(o, c, i, ctx){
     if(theirs){
       acts.push({ k:'chase', kind:'accent', label: i18t('ob_chase'), icon:'send', title: i18t('ob_chase_title'), run: () => obligationChase(c.id, o.id) });
       acts.push(done);
-    } else acts.push(Object.assign(done, { kind: w === 'waiting' ? '' : 'accent' }));
+    } else {
+      acts.push(Object.assign(done, { kind: w === 'waiting' ? '' : 'accent' }));
+      /* ONE DOOR (round 16's notes): Chase is the same act wherever it is drawn,
+         and only on theirs — on ours the panel greys it with the reason */
+      if(ctx === 'page') acts.push({ k:'chase', label: i18t('ob_chase'), icon:'send', title: i18t('ob_chase_not_ours'), disabled: true });
+    }
   }
   if(ctx === 'tab'){
     if(may && w === 'done') acts.push({ k:'reopen', label: i18t('ob_reopen_cap'), run: () => { const h = obLocate(obKeyOf(c.id, o, i)); if(h) toggleObligation(h.c, h.i, { from:'obligations tab' }); } });
@@ -3416,7 +3427,8 @@ function obPanelOpts(o, c, i, ctx){
     body: insKvHtml(facts) + obDocSectionHtml(o) + obChainSectionHtml(o, c)
       + (ctx === 'page' ? '' : obWordingSectionHtml(o))
       + insSecHtml(i18t('ob_sec_reminders'), '', `<p class="ins-p">${obligationReminderLine(o, c)} <button type="button" class="ui-link" data-ob-rem-more aria-expanded="false">${_obEsc(i18t('ob_rem_how'))}</button></p><p class="ins-p ob-rem-full" data-ob-rem-full hidden>${obligationReminderSay(o, c)}</p>`, 'ins-rem')
-      + (ctx === 'page' ? obWordingSectionHtml(o) : obHistoryHtml(o, c)),
+      + (ctx === 'page' ? obWordingSectionHtml(o) : obHistoryHtml(o, c))
+      + (ctx === 'page' && typeof window.jlReadsHtml === 'function' ? jlReadsHtml(c) : ''),
     onMenu: act => { if(act === 'remove'){ const h = obLocate(obKeyOf(c.id, o, i)); if(h) obligationRemove(h.c, h.i); } },
   };
 }
@@ -3504,9 +3516,12 @@ function obListHtml(rows, ctx, c1){
        face for his finds), what and where, and the row's one act
        (obwRowActHtml). No Whose or Amount column: who is the face and the
        line, the money is the week's. `c1` carries Jambo's finds here. */
-    const wcols = [{ t: i18t('ob_col_when'), w: 112 }, { t: i18t('ob_col_what') }, { t: i18t('ob_col_act'), w: 140, r: true }];
+    const wcols0 = [{ t: i18t('ob_col_when'), w: 112 }, { t: i18t('ob_col_what') }, { t: i18t('ob_col_act'), w: 140, r: true }];
+    /* Late's card has no day column: its day stands beside its act */
+    const lcols = [{ t: i18t('ob_col_what') }, { t: i18t('ob_col_act'), w: 240, r: true }];
     let html = '';
     for(const W of obWeekGroups(rows)){
+      const wcols = W.k === 'overdue' ? lcols : wcols0;
       /* Jambo's finds ride in their week as rows of their own (`_find`), never
          counted as promises and never a band */
       const own = { ...W, rows: W.rows.filter(r => !r._find) };
@@ -3528,7 +3543,7 @@ function obListHtml(rows, ctx, c1){
           money ? `<span class="ins-g-r">${money}</span>` : ''}</span></td></tr>`
         + rowsHtml + '</tbody></table></section>';
     }
-    return { cols: wcols, body, html };
+    return { cols: wcols0, body, html };
   }
   for(const [k, key, tone] of OB_WINDOWS){
     const g = rows.filter(r => r.win === k);
@@ -3765,8 +3780,8 @@ function obwLine2(r, c){
   if(r._dec){ bits.push(_obEsc(i18t('ob_wk_notice'))); return bits.join(' · '); }
   const s = obligationStepNo(r, c);
   if(s) bits.push(_obEsc(i18t('ob_step_low', { n: s.n, of: s.of })));
-  const rep = obRepeatsWord(r, true);
-  if(rep) bits.push(_obEsc(rep));
+  const rk = OB_REPEAT_KEY[String(r.recurring || 'none')];
+  if(rk) bits.push(_obEsc(i18t(rk.replace('ob_rep_', 'ob_wk_rep_'))));   // "monthly", as drawn
   const done = obState(r) === 'done';
   if(obligationIsTheirs(r)){
     bits.push(_obEsc(i18t('ob_wk_theirs_1')));
@@ -3808,6 +3823,12 @@ function obwWeekRowHtml(r, W){
   const sub = (!weekly || W.k === 'w0') ? due.sub : '';
   const cls = weekly ? '' : due.cls;
   const lock = obwRowPrivate(r) ? `<span class="obw-lock" title="${_obEsc(i18t('ob_wk_private'))}">${typeof icon === 'function' ? icon('lock', 'w-3 h-3') : ''}</span>` : '';
+  /* LATE, AS DRAWN: the row starts with who acts; its day and how late it is
+     stand on the right, in the late ink, before its one act */
+  if(W.k === 'overdue') return `<tr data-ins-row data-ob-key="${_obEsc(r._key)}" tabindex="-1" class="obw-late-row">
+      <td><span class="ob-id">${obwRowAvHtml(r, c)}<span class="ins-c2"><b title="${_obEsc(r.desc || '')}">${_obEsc(r.desc || '')}${lock}</b><span>${obwLine2(r, c)}</span></span></span></td>
+      <td class="r obw-act-c"><span class="obw-late-act"><span class="ins-c2 obw-late-when"><b>${_obEsc(due.day)}</b>${sub ? `<span class="${cls}">${_obEsc(sub)}</span>` : ''}</span>${obwRowActHtml(r, c)}</span></td>
+    </tr>`;
   return `<tr data-ins-row data-ob-key="${_obEsc(r._key)}" tabindex="-1"${r._dec ? ' data-obw-dec="1"' : ''}>
       <td><span class="ins-c2"><b>${_obEsc(due.day)}</b>${sub ? `<span class="${cls}">${_obEsc(sub)}</span>` : ''}</span></td>
       <td><span class="ob-id">${obwRowAvHtml(r, c)}<span class="ins-c2"><b title="${_obEsc(r.desc || '')}">${_obEsc(r.desc || '')}${lock}</b><span>${obwLine2(r, c)}</span></span></span></td>
@@ -3830,7 +3851,11 @@ function obwRowAct(k, key, cid){
 if(typeof document !== 'undefined' && typeof window !== 'undefined' && !window._obwActWired){
   window._obwActWired = true;
   document.addEventListener('click', e => {
-    const b = e.target && e.target.closest ? e.target.closest('[data-obw-act]') : null;
+    const b0 = e.target && e.target.closest ? e.target.closest('[data-obw-act]') : null;
+    /* Jambo's finds row is pressed whole: its body is the same door as its
+       Review N (it holds no promise to choose) */
+    const fr = !b0 && e.target && e.target.closest ? e.target.closest('tr.obw-finds') : null;
+    const b = b0 || (fr && fr.querySelector('[data-obw-act="review"]'));
     if(!b || !b.closest('.obw-ins')) return;
     e.stopPropagation();
     obwRowAct(b.getAttribute('data-obw-act'), b.getAttribute('data-obw-key'), b.getAttribute('data-obw-cid'));

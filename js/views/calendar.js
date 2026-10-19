@@ -1574,7 +1574,7 @@ function calStyleCss(){ return `
   .cal-key i.is-ours{background:var(--color-accent-400)}
   .cal-key i.is-theirs{background:var(--st-violet-dot)}
   .cal-key i.is-ct{background:var(--st-amber-dot)}
-  .cal-key i.is-mine{background:var(--color-accent-700);border-radius:50%}
+  .cal-key i.is-mine{background:var(--color-accent-700);border-radius:50%;box-shadow:inset 0 0 0 1px var(--accent-ink)}
   .cal-key i.is-plan{border:1.5px dashed var(--color-accent-600);background:none}
   .cal-chip.is-ck-ours{border-left:3px solid var(--color-accent-400);background:var(--color-accent-50);color:var(--accent-ink)}
   .cal-chip.is-ck-theirs{border-left:3px solid var(--st-violet-dot);background:var(--color-surface);color:var(--st-violet-fg);box-shadow:inset 0 0 0 1px var(--st-violet-line)}
@@ -1886,9 +1886,14 @@ const calMins=hm=>{ const [h,m]=String(hm||'0:0').split(':').map(Number); return
 function calWeekHtml(contractEvs){
   const a=calWeekStart(), days=Array.from({length:CAL_WEEK_DAYS},(_,i)=>calAddDays(a,i));
   const pref=typeof minePref==='function'?minePref():{dayStart:8,dayEnd:17};
-  const H0=Math.max(0,Math.min(pref.dayStart,8)-1), H1=Math.min(24,Math.max(pref.dayEnd,17)+1), ROW=28;
   const today=calToday(), from=_isoLocal(days[0]), to=_isoLocal(days[days.length-1]);
   const own=calOwnEvents(from,to);
+  /* THE PERSON'S OWN HOURS DOWN THE SIDE, as drawn ("09" … "16" for a day of
+     nine to five): no empty hours before or after on a tall window; an event
+     of their own outside them widens the day to hold it */
+  const timed=own.filter(e=>e.start);
+  const ds=Math.max(0,Math.min(23,Number(pref.dayStart)||8)), de=Math.max(ds+1,Math.min(24,Number(pref.dayEnd)||17));
+  const H0=Math.min(ds,...timed.map(e=>Math.floor(calMins(e.start)/60))), H1=Math.min(24,Math.max(de,...timed.map(e=>Math.ceil(calMins(e.end||e.start)/60)))), ROW=28;
   const head=days.map(d=>{ const iso=_isoLocal(d);
     return `<div class="cal-wk-h${iso===today?' is-today':''}${d.getDay()%6===0?' is-we':''}"><span>${_esc(d.toLocaleDateString(langLocale(),{weekday:'short'}))}</span><b>${d.getDate()}</b></div>`; }).join('');
   /* a Saturday's or a Sunday's contract dates stand on the Friday before,
@@ -2204,7 +2209,8 @@ function calWireOwn(){
   if(body&&body.dataset&&!body.dataset.scrolled&&typeof getComputedStyle==='function'){ body.dataset.scrolled='1';
     const first=body.querySelector('.cal-wk-blk'); const pref=typeof minePref==='function'?minePref():{dayStart:8};
     const row=parseFloat(getComputedStyle(body.parentElement).getPropertyValue('--cal-wk-row'))||40;
-    body.scrollTop=first?Math.max(0,first.offsetTop-row):Math.max(0,(pref.dayStart-Math.max(0,Math.min(pref.dayStart,8)-1))*row-4); }
+    const h0=Number(body.querySelector('.cal-wk-t')?.textContent)||0;
+    body.scrollTop=first?Math.max(0,first.offsetTop-row):Math.max(0,((Number(pref.dayStart)||8)-h0)*row); }
   if(document._calOwnWired) return;
   document._calOwnWired=true;
   document.addEventListener('click',e=>{

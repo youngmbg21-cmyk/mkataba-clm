@@ -155,3 +155,20 @@ describe('f794 (4) their tint', () => {
     assert.match(HTML, /\.obw-av\.is-theirs\{background:var\(--st-violet-bg\);color:var\(--st-violet-fg\);\}/);
   });
 });
+
+/* (5) CHECK #1's DIFFERENCES, BUILT (19 Oct 2026, lane A4's second pass).
+   AT THE FIRST PASS (3f6406e) every test here FAILS. */
+describe('f794 (5) the second pass: the person\'s own hours, the key\'s Mine in the dark', () => {
+  const w = fnBody(CAL, 'calWeekHtml');
+  test('5a the hours down the side are the person\'s own day, widened only by an event of theirs outside it', () => {
+    assert.match(w, /const H0=Math\.min\(ds,\.\.\.timed\.map\(e=>Math\.floor\(calMins\(e\.start\)\/60\)\)\)/);
+    assert.match(w, /H1=Math\.min\(24,Math\.max\(de,\.\.\.timed\.map\(e=>Math\.ceil\(calMins\(e\.end\|\|e\.start\)\/60\)\)\)\)/);
+    assert.ok(!/Math\.min\(pref\.dayStart,8\)-1/.test(w), 'no empty hours before the day');
+  });
+  test('5b the week opens at the person\'s day start, read off the first hour drawn', () => {
+    assert.match(CAL, /const h0=Number\(body\.querySelector\('\.cal-wk-t'\)\?\.textContent\)\|\|0;/);
+  });
+  test('5c the key\'s Mine dot carries a ring that reads on a dark ground', () => {
+    assert.match(CAL, /\.cal-key i\.is-mine\{background:var\(--color-accent-700\);border-radius:50%;box-shadow:inset 0 0 0 1px var\(--accent-ink\)\}/);
+  });
+});

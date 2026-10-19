@@ -221,3 +221,54 @@ describe('f791 (6) the page', () => {
     ctx.a(true); assert.equal(ctx.s({ k: 'w0', fold: false }) || ctx.s({ k: 'w2', fold: true }), false, 'Open every week opens them all');
   });
 });
+
+/* (7) CHECK #1's DIFFERENCES, BUILT (19 Oct 2026, lane A4's second pass).
+   AT THE FIRST PASS (3f6406e) every test here FAILS. */
+describe('f791 (7) the second pass: the drawing\'s arithmetic, Late as drawn, the finds row, the panel', () => {
+  const pass = (() => {
+    const ctx = {}; vm.createContext(ctx);
+    vm.runInContext(`const obwOnly = f => f.only ? { _set: new Set(f.only) } : null; const obKeyOf = (cid, o) => o.k;
+      const obligationIsTheirs = () => false; const obligationIsMine = () => true; const obligationReminderTo = () => null;
+      ${fnBody(OB, 'obwPass')}\nthis.p = obwPass;`, ctx);
+    return ctx.p;
+  })();
+  const F = { whose: 'all', side: 'all', folder: 'all', due: 'all' };
+  test('7a All = Outstanding + Waiting on a step + Completed: a held-back step is not outstanding', () => {
+    const rows = [{ k: 'a', st: 'open', band: 'open', win: 'w0' }, { k: 'b', st: 'overdue', band: 'waiting', win: 'waiting' },
+      { k: 'c', st: 'done', band: 'done', win: 'done' }];
+    const n = s => rows.filter(r => pass(r, { ...F, state: s })).length;
+    assert.equal(n('open'), 1);
+    assert.equal(n('waiting'), 1);
+    assert.equal(n('done'), 1);
+    assert.equal(n('all'), n('open') + n('waiting') + n('done'));
+  });
+  test('7b a door narrowed to its own keys keeps every row it counted, a waiting one too', () => {
+    assert.equal(pass({ k: 'b', st: 'overdue', band: 'waiting' }, { ...F, state: 'open', only: ['b'] }), true);
+  });
+  test('7c Late\'s row: no day column; its day and how late stand on the right, before its act', () => {
+    const row = fnBody(OB, 'obwWeekRowHtml');
+    assert.match(row, /if\(W\.k === 'overdue'\) return `<tr data-ins-row[^`]*class="obw-late-row">/);
+    assert.match(row, /<span class="obw-late-act"><span class="ins-c2 obw-late-when">/);
+    assert.match(fnBody(OB, 'obListHtml'), /const wcols = W\.k === 'overdue' \? lcols : wcols0;/);
+  });
+  test('7d the late word wears the late ink on a week\'s row, and a long day word wraps', () => {
+    const H = R('index.html');
+    assert.match(H, /\.obw-wk \.ins-c2 > span\.ins-late\{color:var\(--st-ruby-fg\);\}/);
+    assert.match(H, /\.obw-wk table\.obw-wk-lt td:first-child \.ins-c2 > span\{white-space:normal;\}/);
+    assert.match(H, /\.obw-wk table\.obw-wk-lt tr\.obw-late-row td:first-child\{box-shadow:inset 3px 0 0 var\(--accent-fill\);\}/);
+  });
+  test('7e Jambo\'s finds row is pressed whole: its body is the same door as Review N', () => {
+    assert.match(OB, /const fr = !b0 && e\.target && e\.target\.closest \? e\.target\.closest\('tr\.obw-finds'\) : null;/);
+    assert.match(OB, /const b = b0 \|\| \(fr && fr\.querySelector\('\[data-obw-act="review"\]'\)\);/);
+  });
+  test('7f a recurring row says "monthly", as drawn, in both books', () => {
+    assert.equal(BOOKS.en.ob_wk_rep_monthly, 'monthly');
+    for (const k of ['ob_wk_rep_monthly', 'ob_wk_rep_quarterly', 'ob_wk_rep_annual', 'ob_chase_not_ours'])
+      for (const lang of ['en', 'sv']) assert.ok(BOOKS[lang][k], k + ' ' + lang);
+    assert.match(fnBody(OB, 'obwLine2'), /rk\.replace\('ob_rep_', 'ob_wk_rep_'\)/);
+  });
+  test('7g the chosen obligation\'s panel says What Jambo read; Chase greys on ours with its reason', () => {
+    assert.match(fnBody(OB, 'obPanelOpts'), /ctx === 'page' && typeof window\.jlReadsHtml === 'function' \? jlReadsHtml\(c\) : ''/);
+    assert.match(fnBody(OB, 'obPanelActs'), /if\(ctx === 'page'\) acts\.push\(\{ k:'chase', label: i18t\('ob_chase'\), icon:'send', title: i18t\('ob_chase_not_ours'\), disabled: true \}\);/);
+  });
+});
