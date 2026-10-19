@@ -44,11 +44,12 @@ describe('f711 (1) the row', () => {
   test('1a who and when, the reference on the hover', () => {
     const ctx = stage();
     const now = new Date().toISOString();
-    /* RE-POINTED 18 Oct 2026 (round 9's gaps, "Piles" as drawn: "Anna Holm ·
-       4 days ago", "You · today"): the whole name, and "You" on the reader's
-       own row; a shortener passed in is no longer applied. */
+    /* RE-POINTED 18 Oct 2026 (round 9's gaps, "Piles" as drawn: "You ·
+       today" on the reader's own row) and 19 Oct 2026: the card's shortener
+       passed in IS applied — a name on a change card is first name plus
+       initial (owner, 13 Aug 2026; f188), the whole name on the hover. */
     const h = ctx.rlRowByHtml({ id: 'CHG-001', author: 'Anna Holm', createdAt: now, authorSide: 'counterparty' }, n => n.split(' ')[0] + ' ' + n.split(' ')[1][0] + '.');
-    assert.equal(h, '<span class="rl-card-by" title="Anna Holm · CHG-001">Anna Holm · rl_ago_today</span>');
+    assert.equal(h, '<span class="rl-card-by" title="Anna Holm · CHG-001">Anna H. · rl_ago_today</span>');
     assert.equal(ctx.rlRowByHtml({ id: 'CHG-002', author: 'Maria Lindgren', createdAt: now, authorSide: 'owner' }),
       '<span class="rl-card-by" title="Maria Lindgren · CHG-002">ng_row_you · rl_ago_today</span>');
     const d3 = new Date(Date.now() - 3 * 86400000).toISOString();

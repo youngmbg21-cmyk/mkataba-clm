@@ -92,9 +92,10 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     });
     check('1 the piles: "Waiting on you" leads, our drafts after it', up && /^Waiting on you\s*2/.test(R.bands[0] || '') && R.bands.some(b => /not yet sent/.test(b)), JSON.stringify(R.bands));
     const theirs = R.rows.filter(r => /Anna/.test(r.by || ''));
-    /* RE-POINTED 18 Oct 2026 (round 9's gaps, "Piles" as drawn: "Anna Holm ·
-       4 days ago", "You · today"): the whole name, and "You" on our own row */
-    check('2a a row says who and when at its right wall', theirs.length === 2 && theirs.every(r => /^Anna Holm · today$/.test(r.by))
+    /* RE-POINTED 18 Oct 2026 (round 9's gaps, "Piles" as drawn: "You ·
+       today" on our own row) and 19 Oct 2026 (a name on a change card is first
+       name plus initial, owner 13 Aug 2026; f188 — "Anna H.", as main had it) */
+    check('2a a row says who and when at its right wall', theirs.length === 2 && theirs.every(r => /^Anna H\. · today$/.test(r.by))
       && R.rows.some(r => /^You · today$/.test(r.by || '')), JSON.stringify(R.rows));
     check('2b the reference is not on the row; it rides the hover', R.rows.every(r => !r.idShown && r.byTip.includes(r.id)), JSON.stringify(R.rows));
     check('3 the reason they gave sits under the change, in their words, above the buttons',

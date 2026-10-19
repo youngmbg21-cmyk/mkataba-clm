@@ -13,7 +13,7 @@
        their asks came 4 days ago", "Send all · 1 not sent", "Ask for review"
      3 each pile is a box with its head: "Waiting on you" first, "Lina
        suggests", "Your drafts, not yet sent", "Settled in round 1" folded
-     4 a row: the whole name and when ("Anna Holm · 4 days ago", "You ·
+     4 a row: the name and when ("Anna H. · 4 days ago", "You ·
        today"), "2 notes", the changed words cut around the edit with their
        marks (struck 50%, added 100%), the reason under it
      5 the lock line "Erik is editing this clause" with Ask for it (a press:
@@ -208,7 +208,11 @@ async function login(b, base, email, pass, errs){
       return { seven: said(cardOf(/Liability/i)), eleven: said(cardOf(/Payment/i)), nine: said(cardOf(/Data protection/i)), five: said(cardOf(/Service levels/i)) };
     });
     const r7 = rows.seven || {}, r11 = rows.eleven || {}, r9 = rows.nine || {};
-    check('4a the whole name and when: "Anna Holm · 4 days ago"; ours "You · today"', r7.by === 'Anna Holm · 4 days ago' && r11.by === 'Anna Holm · 4 days ago' && r9.by === 'You · today', JSON.stringify([r7.by, r11.by, r9.by]));
+    /* RE-POINTED 19 Oct 2026: a name on a change card is first name plus
+       initial (owner, 13 Aug 2026; f188) — the drawing's "Anna Holm" is its
+       sample name, and the first build of round 9 (17 Oct) printed "Anna H."
+       too; the whole name rides the hover. Ours still reads "You · today". */
+    check('4a the name and when: "Anna H. · 4 days ago"; ours "You · today"', r7.by === 'Anna H. · 4 days ago' && r11.by === 'Anna H. · 4 days ago' && r9.by === 'You · today', JSON.stringify([r7.by, r11.by, r9.by]));
     check('4b "2 notes" on the clause 7 row', r7.notes === '2 notes', r7.notes);
     check('4c the changed words cut around the edit, with their marks', /^… .*capped at 50% 100% of the fees paid in that year\.$/.test(r7.ex || '') && (r7.del || []).join() === '50%' && (r7.ins || []).join() === '100%', JSON.stringify(r7.ex));
     check('4d the reason they gave under it', /Standard in our contracts\./.test(r7.why || ''), r7.why);
@@ -226,7 +230,7 @@ async function login(b, base, email, pass, errs){
 
     /* 6 Lina's row */
     const r5 = rows.five || {};
-    check('6a Lina\'s row: Adopt · Hand back · Ladder', ['Adopt', 'Hand back', 'Ladder'].every(v => (r5.verbs || []).includes(v)) && r5.by === 'Lina Ek · today', JSON.stringify([r5.verbs, r5.by]));
+    check('6a Lina\'s row: Adopt · Hand back · Ladder', ['Adopt', 'Hand back', 'Ladder'].every(v => (r5.verbs || []).includes(v)) && r5.by === 'Lina E. · today', JSON.stringify([r5.verbs, r5.by]));
     await page.click('#pd-redface [data-rl-pile="suggest"] [data-dk-adopt]');
     const moved = await waitFor(page, () => { const f = document.getElementById('pd-redface');
       const d = f.querySelector('[data-rl-pile="drafts"]'); return !f.querySelector('[data-rl-pile="suggest"]') && d && /Service levels/i.test(d.innerText) ? d.querySelectorAll('[data-nego-card]').length : null; }, 8000);
