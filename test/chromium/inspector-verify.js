@@ -209,7 +209,13 @@ const ok = (name, good, detail) => {
              width while every chip sat at one top (measured). A box with no
              height occupies no line. */
           const chips = bar ? [...bar.children].filter(x => { const r = x.getBoundingClientRect(); return r.width > 0 && r.height > 0; }) : [];
-          const mids = new Set(chips.map(x => { const r = x.getBoundingClientRect(); return Math.round((r.top + r.height / 2) / 6); }));
+          /* RE-MEASURED AT THE INTEGRATION (19 Oct 2026): centres are grouped by
+             their distance, never by rounding into fixed 6px buckets — two
+             centres 0.01px apart (170.99 and 171.00, measured) straddled a
+             bucket's edge and read as two lines. A wrapped line still sits a
+             whole control (28px) lower, far past the 6px kept here. */
+          const cs = chips.map(x => { const r = x.getBoundingClientRect(); return r.top + r.height / 2; }).sort((a, b) => a - b);
+          const mids = new Set(); let line = 0; cs.forEach((y, i) => { if (i && y - cs[i - 1] > 6) line++; mids.add(line); });
           return { ins: document.querySelector('[data-ins-page]')?.getAttribute('data-ins'), lines: chips.length ? mids.size : 0,
             fits: sc ? sc.scrollWidth <= sc.clientWidth + 1 : false, over: document.documentElement.scrollWidth - document.documentElement.clientWidth };
         });

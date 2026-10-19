@@ -89,9 +89,12 @@ const CONTRACTS = [
     await page.evaluate(() => setView('counter'));
     const drawn = await until(page, () => !!document.querySelector('#cn-needs [data-cn-need]'));
     const one = await page.evaluate(() => ({ rows: document.querySelectorAll('#cn-needs [data-cn-need]').length, list: hbNeedsList().length, n: counterNeedsCount(),
-      cnt: Number((document.querySelector('#cn-needs .cn-cnt') || {}).textContent || 0) }));
+      shown: window.CN_ROWS, cnt: Number((document.querySelector('#cn-needs .cn-cnt') || {}).textContent || 0) }));
     ok('1a the Counter lists what is owed', drawn && one.rows > 0, JSON.stringify(one));
-    ok('1b its rows are the checklist\'s own reading over the book, its number the Counter\'s', book >= 4 && one.list === book && one.cnt === one.n && one.rows === Math.min(one.list, 7), JSON.stringify({ book, ...one }));
+    /* RE-POINTED AT THE INTEGRATION (19 Oct 2026): Home draws CN_ROWS rows
+       (3, round 23 as drawn by lane G — "Show 3 more · …" holds the rest),
+       not seven; the number is still the Counter's and the list the book's */
+    ok('1b its rows are the checklist\'s own reading over the book, its number the Counter\'s', book >= 4 && one.list === book && one.cnt === one.n && typeof one.shown === 'number' && one.rows === Math.min(one.list, one.shown), JSON.stringify({ book, ...one }));
     await page.screenshot({ path: path.join(OUT, '1-counter.png') });
 
     /* ===== 2. JAMBO ON THE BOARD SAYS WHERE IT IS ===== */

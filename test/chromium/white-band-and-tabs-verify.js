@@ -339,22 +339,29 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     const homeLine = await page.evaluate(() => {
       const mid = e => { if (!e) return null; const r = e.getBoundingClientRect();
         return { y: r.y + r.height / 2, txt: e.textContent.trim().slice(0, 30), x: Math.round(r.x), h: r.height }; };
-      const cards = [...document.querySelectorAll('#hb-board > .hb-card')];
+      /* RE-POINTED AT THE INTEGRATION (19 Oct 2026; red on lane B2 alone):
+         round 17 as drawn puts the Board's OWN head card first ("Board · Live ·
+         counted … · Summarise", .hb-bhead) — the page's head, not a section
+         card — and Today's insights' slim head card stands alone with no rule
+         (.hb-ins-head; its pictures are their own cards). The section cards
+         keep every claim below. */
+      const cards = [...document.querySelectorAll('#hb-board > .hb-card')].filter(c => !c.classList.contains('hb-bhead'));
       return {
+        bhead: !!document.querySelector('#hb-board > .hb-card.hb-bhead'),
         heads: cards.map(c => mid(c.querySelector('.hb-ch .hb-ct'))),
         acts: cards.map(c => [...c.querySelectorAll('.hb-ch > :not(.hb-ct)')].map(mid)),
         /* RE-POINTED 11 Oct 2026 (the Board as drawn): Your book is no card — its
            strip is — so its head draws no rule; every other card's head does. And
            a head starts at its first item (Copilot's work leads with its fold
            chevron), measured on the card's own margin. */
-        rules: cards.filter(c => !c.classList.contains('hb-book')).map(c => { const h = c.querySelector('.hb-ch'); const cs = h && getComputedStyle(h);
+        rules: cards.filter(c => !c.classList.contains('hb-book') && !c.classList.contains('hb-ins-head')).map(c => { const h = c.querySelector('.hb-ch'); const cs = h && getComputedStyle(h);
           return !!cs && cs.borderBottomStyle !== 'none' && parseFloat(cs.borderBottomWidth) > 0; }),
         margins: cards.map(c => { const t = c.querySelector('.hb-ch > *'); return t ? Math.round(t.getBoundingClientRect().x - c.getBoundingClientRect().x) : null; }),
         book: (typeof i18t === 'function') ? i18t('hb_book') : null,
       };
     });
-    check('4a every card heading really drew, and Your book leads',
-      homeLine.heads.length >= 1 && homeLine.heads.every(h => h && h.h > 0) && homeLine.heads[0].txt === homeLine.book,
+    check('4a every card heading really drew, and Your book leads (under the Board\'s own head card)',
+      homeLine.bhead && homeLine.heads.length >= 1 && homeLine.heads.every(h => h && h.h > 0) && homeLine.heads[0].txt === homeLine.book,
       homeLine.heads.map(h => h && h.txt));
     check('4b each heading sits in a card head that rules itself off',
       homeLine.rules.length > 0 && homeLine.rules.every(Boolean), { rules: homeLine.rules });
