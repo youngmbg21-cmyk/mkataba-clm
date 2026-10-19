@@ -3998,6 +3998,8 @@ function igSetView(v){ igWake(); if(intel.tour&&intel.tour.view!==v) intel.tour=
   igPaintFoldAll();
   /* the legend's grid and timeline rows belong to their view (stage 1) */
   if(was!==cam.view&&IG&&IG._model) renderIntelLegend(IG._model);
+  /* and so do Jambo's suggestions (19 Oct 2026) */
+  if(was!==cam.view) igSugRepaint();
 }
 function igSetZoom(z){
   const cam=igbCam(); cam.zoom=Math.max(IGB_ZOOM_MIN,Math.min(IGB_ZOOM_MAX,Number(z)||1));
@@ -4912,6 +4914,64 @@ const IG_SUGGESTIONS=[
   'Which contracts end in the next 6 months?',
   'Group by customer',
 ];
+/* ---- JAMBO'S SUGGESTIONS FOLLOW THE VIEW (owner, 19 Oct 2026) ----
+   "ensure that the predesigned questions are related to the page you are on
+   and not related to a different explorer view like being in brain and being
+   given questions related to floors." On Explorer the chips under Jambo's
+   greeting belong to the view in front — Brain, Wiring, Floors, Grid or
+   Timeline: two of its own questions, then Explain this view. Each is written
+   in the words that view's reader takes, in the reader's language, and is
+   offered only when that reader reads it here and it would change what is
+   drawn (lobes already shaded by a fact are not offered that fact again;
+   floors already by payment terms are offered other facts). A view change
+   repaints them (igSugRepaint). IG_SUGGESTIONS stays the fallback where no
+   view is in front. */
+/* the facts' names in the reader's language, as the fact reader takes them
+   (IG_FACT_WORDS) — the map's own group labels are English only */
+const IG_SUG_SHADE=['liability','risk','expiry','obligations'];
+const IG_SUG_FLOORS=['payterms','risk','liability','expiry'];
+const IG_SUG_GRID=[['folder','liability'],['folder','risk'],['kind','payterms']];
+function igSugOnMap(){ return !(state.view==='dashboard'&&typeof window.hbFace==='function')||hbFace()==='explorer'; }
+function igViewSuggestions(){
+  const vw=igbCam().view, out=[], G=IG||{};
+  const money=(typeof canViewValues!=='function')||canViewValues();
+  const acts=q=>{ try{ const r=igRecipeParse(q); return (r&&r.acts)||[]; }catch(_){ return []; } };
+  const offer=(q,reads)=>{ if(out.length<2&&q&&reads(q)) out.push(q); };
+  const word=k=>i18t('int_sug_f_'+k), cap=s=>String(s||'').replace(/^./,c=>c.toUpperCase());
+  if(vw===0){
+    const shades=IG_SUG_SHADE.filter(k=>k!==intel.lobeShade), shade=k=>offer(i18t('int_sug_lobe_shade',{ x:word(k) }),q=>acts(q).some(a=>a.lobeShade===k));
+    if(shades.length) shade(shades[0]);
+    if(money&&intel.lobeSize!=='value') offer(i18t('int_sug_lobe_size'),q=>acts(q).some(a=>a.lobeSize==='value'));
+    shades.slice(1).forEach(shade);
+  } else if(vw===1){
+    const n=new Map(); (state.contracts||[]).forEach(c=>{ if(c&&!c.archived&&c.status!=='Declined'&&c.counterparty) n.set(c.counterparty,(n.get(c.counterparty)||0)+1); });
+    const ps=[...n.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0]).slice(0,6).filter(x=>acts(i18t('int_sug_depends',{ x })).some(a=>a.linkedParty===x));
+    if(ps[0]) offer(i18t('int_sug_depends',{ x:ps[0] }),()=>true);
+    /* only where some contract's role is filled in: otherwise nothing can be judged */
+    offer(i18t('int_sug_sole'),q=>!!igSoleRead(q)&&igSoleData(null).judged>0);
+    if(ps[1]) offer(i18t('int_sug_depends',{ x:ps[1] }),()=>true);
+  } else if(vw===2){
+    IG_SUG_FLOORS.filter(k=>k!==G.floorKey).forEach(k=>offer(i18t('int_sug_floors',{ x:word(k) }),q=>acts(q).some(a=>a.role==='floors'&&a.fact===k)));
+  } else if(vw===3){
+    if(money&&intel.shadeBy!=='value') offer(i18t('int_sug_cells'),q=>acts(q).some(a=>a.shadeBy==='value'));
+    IG_SUG_GRID.filter(([a,b])=>!(a===G.colKey&&b===G.floorKey)).forEach(([a,b])=>offer(cap(i18t('int_sug_grid',{ a:word(a), b:word(b) })),q=>{ const A=acts(q);
+      return A.some(x=>x.role==='columns'&&x.fact===a)&&A.some(x=>x.role==='floors'&&x.fact===b); }));
+  } else if(vw===4){
+    offer(i18t('int_sug_until'),q=>{ const r=igUntilRead(q); return !!(r&&r[0]&&r[0].until&&r[0].until!=='none'&&r[0].until!==intel.tlUntil); });
+    offer(i18t('int_sug_asof'),q=>{ const r=igAsOfRead(q); return !!(r&&r[0]&&r[0].asOf&&r[0].asOf!=='none'&&r[0].asOf!==intel.asOf); });
+  }
+  const tour=i18t('int_tour_ask'); if(IG_TOUR_RE.test(tour)) out.push(tour);
+  return out;
+}
+function igSugChipHtml(s){ return `<button data-igsug="${igEsc(s)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${igEsc(s)}</button>`; }
+/* a view change on Explorer puts that view's own chips under the greeting */
+function igSugRepaint(){
+  const box=document.querySelector('#ig-dock [data-ig-chips]'); if(!box||!igSugOnMap()||box.querySelector('[data-ca-chip],[data-ca-next]')) return;
+  /* Fill in and Before you sign draw no chips (the gaps, rounds 8 and 10): the row stays his perch */
+  if(window.pdChipsQuiet&&pdChipsQuiet()) return;
+  box.innerHTML=igViewSuggestions().map(igSugChipHtml).join('');
+  box.querySelectorAll('[data-igsug]').forEach(b=>b.addEventListener('click',()=>intelAsk(b.getAttribute('data-igsug'))));
+}
 /* A FILTER ON THIS PAGE KEEPS THE READER'S PLACE; A TAB DOES NOT, and that is
    the rule rather than an oversight. Switching tab puts entirely different
    content on screen, so a remembered offset would drop the reader at an
@@ -7777,7 +7837,7 @@ function renderIntelDock(){
     <div class="px-3.5 pb-2 shrink-0 flex flex-wrap gap-1.5" data-ig-chips>
       ${/* FILL IN AND BEFORE YOU SIGN DRAW NO CHIPS (the gaps, rounds 8 and 10,
            18 Oct 2026: nothing between the face and the ask box but Jambo
-           perched) — the row stays, empty, as his perch */''}${(window.pdChipsQuiet&&pdChipsQuiet())?'':(typeof window.caChipsHtml==='function'&&caChipsHtml())||((state.view==='dashboard'&&typeof hbSuggestions==='function'&&hbSuggestions())||IG_SUGGESTIONS.slice(0,3)).map(s=>`<button data-igsug="${igEsc(s)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${igEsc(s)}</button>`).join('')}
+           perched) — the row stays, empty, as his perch */''}${(window.pdChipsQuiet&&pdChipsQuiet())?'':(typeof window.caChipsHtml==='function'&&caChipsHtml())||((state.view==='dashboard'&&typeof hbSuggestions==='function'&&hbSuggestions())||(igSugOnMap()?igViewSuggestions():IG_SUGGESTIONS.slice(0,3))).map(igSugChipHtml).join('')}
     </div>`:''; })()}
     ${intel.compareSel.length?`
     <div class="px-3.5 py-2 border-t border-hair shrink-0 flex items-center gap-2 bg-brand-50/40">
@@ -9550,7 +9610,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
 }
 
 Object.assign(window,{igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igHintKeys,igHintPaint,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk,igWallValue,IG_WALL_STEP,igWallLeadOf,igWallShown,igWallMoreReset,igWallKeyOf,igWallShowMore,IG_WALL_SCROLL_NEAR,igWallScrollNear,igWallOrderWords,igWallChosenId,igWallChosen,igWallChosenPaint,igWallChoose,igWallLetGo,igWallOpen,igWallPress,igHeldAskId,igPaperClauseMarks,igSignCopyHtml});
-Object.assign(window,{IG,IG_SUGGESTIONS,IG_ATTN,igAttn,IGB_ATTN_RGB,igLinkHoverShow,igAsOfRead,igAsOfData,igPictureBlob,igPictureSvg,igPictureCopy,igFindingsLoad,igFindingsOwed,igFindingsTabOn,igFindingsShows,igFindingsCount,igFindingGo,igFindingOpen,igPartsNow,igFinding,igDateRead,igDayWord,igUntilRead,igUntilIds,igSoleRead,igSoleData,igObOpenOf,IG_TEMPLATE_RE,IG_BOOK_RE,IG_BOOK_NOT_RE,IG_MYCAL_RE,igBookAsk,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,igCountsDrawn,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTIONS,igViewSuggestions,igSugRepaint,IG_ATTN,igAttn,IGB_ATTN_RGB,igLinkHoverShow,igAsOfRead,igAsOfData,igPictureBlob,igPictureSvg,igPictureCopy,igFindingsLoad,igFindingsOwed,igFindingsTabOn,igFindingsShows,igFindingsCount,igFindingGo,igFindingOpen,igPartsNow,igFinding,igDateRead,igDayWord,igUntilRead,igUntilIds,igSoleRead,igSoleData,igObOpenOf,IG_TEMPLATE_RE,IG_BOOK_RE,IG_BOOK_NOT_RE,IG_MYCAL_RE,igBookAsk,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,igCountsDrawn,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp,IG_PRE_MS,igPreOn,igPrePaint});

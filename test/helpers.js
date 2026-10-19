@@ -470,6 +470,20 @@ function mentionsFolderB(text) {
   return B_MARKERS.filter(m => s.includes(m));
 }
 
+/* THE CALENDAR'S "TODAY" IS SET ASIDE BEFORE A COLOUR CENSUS (19 Oct 2026).
+   The week view runs Monday to Friday, so it marks a today column and a today
+   heading only on a weekday; on Saturday and Sunday it opens the week ahead
+   and marks nothing. A census taken with the marks in therefore read one way
+   on weekdays and another at weekends (recorded on a Saturday, it failed every
+   Monday), which is a test that depends on the day it runs. Every census takes
+   the marks out first, so the calendar is measured as a week with no today in
+   it on any day; the today look itself is checked on its own, with a probe,
+   in theme-tokens-verify. Runs in the page (page.evaluate). */
+const CAL_TODAY_ASIDE = () => {
+  for (const el of document.querySelectorAll('.cal-wk-col.is-today, .cal-wk-h.is-today, .cal-wkm-d.is-today'))
+    el.classList.remove('is-today');
+};
+
 module.exports = { startHati, startAiStub, startScriptedAi, startMailStub, startHatiWithMail,
   seedWorkspace, fixtureContract, FIXTURE_BODY_A1,
-  FIXTURES, FOLDER_A, FOLDER_B, B_MARKERS, mentionsFolderB, nameASigner, Client };
+  FIXTURES, FOLDER_A, FOLDER_B, B_MARKERS, mentionsFolderB, nameASigner, Client, CAL_TODAY_ASIDE };
