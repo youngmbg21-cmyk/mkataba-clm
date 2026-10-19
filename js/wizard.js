@@ -895,11 +895,10 @@ function openNewAgreement(o){
      Parties has none of that name yet), Change the ask, and the form's own Find
      as Jambo's one spend on this screen, its cost on the button. #dr-say keeps
      the sentence, hidden, so that press reads it as Find always has. */
-  /* WHAT THE PRESSES COST, in our own money where it is measured (aiCostWords: the
-     ledger's average, through the admins' dated USD rate), else their count of calls */
-  const naFillCost=()=>(typeof aiCostWords==='function')?aiCostWords(['draft'], i18t('na_words_cost')):i18t('na_words_cost');
-  const naReadCost=()=>{ const m=(typeof aiCostWords==='function')?aiCostWords(['brief','playbook','obligations'], ''):'';
-    return m?i18t('na_file_read_money',{ cost:m }):i18t('na_file_read'); };
+  /* WHAT THE PRESSES COST, said in Jambo calls (owner, 18 Oct 2026: costs stay
+     in calls, never money, no price per call) */
+  const naFillCost=()=>i18t('na_words_cost');
+  const naReadCost=()=>i18t('na_file_read');
   const naCap=t=>{ const x=String(t||'').trim(); return x?x.charAt(0).toUpperCase()+x.slice(1):''; };
   const naWordsHtml=()=>{ const w=o.words||{};
     const who=String(w.who||'').trim(), what=String(w.what||'').trim(), purpose=String(w.purpose||'').trim();
@@ -1023,10 +1022,14 @@ function openNewAgreement(o){
          picker, the ask and the template's questions fill the work area,
          Create draft, Skip and Cancel at the top. See dlgPageAdopt. */
       page:one?{ acts:['na-why','na-create','wz-pick-cancel'],
-          /* ON THE DESK, BESIDE JAMBO (the gaps, round 4): the sheet's head carries the desk's own way
-             back and its tab, and it stands beside his panel, which says what he read */
+          /* ON THE DESK, BESIDE JAMBO (the gaps, round 4): THE WAY BACK IS THE APP'S
+             (the SAP bar, 18 Oct 2026: "‹ · HA · the page's name", no row between the
+             bar and the page) — the bar names this sheet "New agreement" and its ‹
+             takes the reader back to the page they asked from, asking first as Cancel
+             does (deskPageName, deskGoBack → naSheetBack); the sheet draws no crumb of
+             its own. Without the desk's bar the crumb stays words. */
           ...((typeof deskShellOn==='function'&&deskShellOn())
-            ? { crumbHtml:`<nav class="dk-tabs na-crumb" aria-label="${esc(i18t('dk_tabs_label'))}"><button type="button" class="dk-back" data-na-counter>‹ ${esc(i18t('dk_counter'))}</button><span class="dk-tab is-on"><span class="dk-go" aria-current="page">${esc(i18t('na_title'))}</span><button type="button" class="dk-x" data-na-close title="${esc(i18t('act_cancel'))}" aria-label="${esc(i18t('act_cancel'))}">×</button></span></nav>` }
+            ? {}
             : { crumb:`${i18t('nav_contracts')} › ${i18t('na_title')}` }),
           beside:'#ig-dock' }
         : { acts:['na-create','na-skip','wz-pick-cancel'], crumb:`${i18t('nav_contracts')} › ${i18t('na_title')}` },
@@ -1325,18 +1328,23 @@ function openNewAgreement(o){
     if(typeof renderIntelDock==='function') setTimeout(()=>{ try{ renderIntelDock(); }catch(_){ } },0);
     const mroot=document.getElementById('modal-root');
     if(mroot&&typeof MutationObserver==='function'){
-      const mo=new MutationObserver(()=>{ if(document.getElementById('na-root')) return; mo.disconnect();
-        if(typeof renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ } });
+      const mo=new MutationObserver(()=>{ if(document.getElementById('na-root')) return; mo.disconnect(); _naBack=null;
+        if(typeof renderIntelDock==='function') try{ renderIntelDock(); }catch(_){ }
+        /* the bar names the page in front again */
+        if(typeof deskBarPaint==='function') try{ deskBarPaint(); }catch(_){ } });
       mo.observe(mroot,{ childList:true, subtree:true }); }
-    /* the costs, once the ledger's average arrives (aiCostWords) */
-    const costEv=(typeof window.AI_COST_EVENT==='string')?window.AI_COST_EVENT:'';
-    if(costEv){ const onCost=()=>{ if(!root.isConnected){ document.removeEventListener(costEv,onCost); return; }
-        const a=document.getElementById('na-w-cost'); if(a) a.textContent='· '+naFillCost();
-        const b=document.getElementById('na-file-cost'); if(b&&ready) b.textContent=naReadCost(); };
-      document.addEventListener(costEv,onCost); }
-    document.querySelector('[data-na-counter]')?.addEventListener('click',async()=>{ if(!(await naAskLeave())) return; dropHeld(); closeModal();
-      if(typeof deskGoCounter==='function') deskGoCounter(); });
-    document.querySelector('[data-na-close]')?.addEventListener('click', leave);
+    /* THE BAR'S ‹ WHILE THE SHEET IS UP: asked first, as Cancel asks; then the
+       page the reader asked from (deskSheetFrom, noted as the sheet opened) */
+    const from=(typeof deskSheetFrom==='function')?deskSheetFrom():null;
+    _naBack=async()=>{ if(!(await naAskLeave())) return false; dropHeld(); closeModal();
+      if(typeof deskSheetBackTo==='function') deskSheetBackTo(from); return true; };
+    if(typeof deskBarPaint==='function') try{ deskBarPaint(); }catch(_){ }
+    /* NOTHING ARRIVES WEARING A RING (the gaps, round 4, the second check): the
+       dialog's trap readies its first button (Cancel, here), and a sheet opened
+       from a box by Enter drew it ringed; the sheet's title takes the focus
+       instead, so Tab starts at its top and no button is lit */
+    setTimeout(()=>{ const t=document.querySelector('[data-dlg-page] .dlg-pg-title'); if(!t||!naSheetUp()) return;
+      t.setAttribute('tabindex','-1'); try{ t.focus({ preventScroll:true }); }catch(_){ } },0);
     /* what it is for, and the counterparty's mark, follow the reader's typing */
     document.getElementById('na-form')?.addEventListener('input',e=>{ const k=naCarryKey(e.target&&e.target.id);
       if(k==='purpose') naForPaint(); if(k==='counterparty') naFromWordsMark(document.getElementById('na-form')); });
@@ -1391,6 +1399,9 @@ function openNewAgreement(o){
 /* THE ONE SHEET IS ON THE DESK (round 4): read by the panel beside it, which
    says what it holds and asks as drawn while it is up */
 function naSheetUp(){ return typeof document!=='undefined' && !!document.querySelector('#na-root.na-one'); }
+/* the bar's ‹ while the one sheet is up: its own way out (asks, then goes back), set as it opens */
+let _naBack=null;
+function naSheetBack(){ return (naSheetUp()&&typeof _naBack==='function')?_naBack():Promise.resolve(false); }
 const NA_CARRY_SEL='input[id]:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]),textarea[id]';
 const naCarryKey=id=>{ const m=/^(?:wz|ce|tf)-(.+)$/.exec(String(id||'')); return m?m[1]:null; };
 function naCarryRead(host, into){
@@ -1434,4 +1445,4 @@ function naPickFromDraft(pick, prefill){
   return true;
 }
 
-Object.assign(window,{openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naStreamBox,naSheetUp,naCarryRead,naCarryWrite,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_RAIL_W,NA_ROWS_MIN_H,NA_ROWS_FOOT,NA_FRAME_NARROW_W});
+Object.assign(window,{openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naStreamBox,naSheetUp,naSheetBack,naCarryRead,naCarryWrite,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_RAIL_W,NA_ROWS_MIN_H,NA_ROWS_FOOT,NA_FRAME_NARROW_W});

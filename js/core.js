@@ -3627,8 +3627,7 @@ function datePickDress(root){
       lab.addEventListener('click',ev=>{ ev.preventDefault(); face.focus(); }); }
     const paint=()=>{
       const w=datePickWords(_dpValue.get.call(inp));
-      /* an empty face says "Pick a date", or the example its caller set (data-ph: Fill in's owed box, round 8) */
-      face.innerHTML=`<span class="dp-v${w?'':' dp-ph'}">${(w||inp.getAttribute('data-ph')||i18t('dp_pick')).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</span>${typeof icon==='function'?icon('calendar','dp-ic'):''}`;
+      face.innerHTML=`<span class="dp-v${w?'':' dp-ph'}">${(w||i18t('dp_pick')).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</span>${typeof icon==='function'?icon('calendar','dp-ic'):''}`;
       face.disabled=!!inp.disabled;
       /* an owed date is amber on the face the reader sees (needMark) */
       if(inp.hasAttribute('data-need') && typeof needMark==='function') needMark(inp);
@@ -3640,7 +3639,7 @@ function datePickDress(root){
        lands on the face the reader can see. */
     inp.focus=()=>face.focus();
     inp.addEventListener('input',paint); inp.addEventListener('change',paint);
-    try{ new MutationObserver(paint).observe(inp,{ attributes:true, attributeFilter:['disabled','data-ph'] }); }catch(_){}
+    try{ new MutationObserver(paint).observe(inp,{ attributes:true, attributeFilter:['disabled'] }); }catch(_){}
     /* Out of sight IN ITS OWN INLINE STYLE: the box was built with the
        field's inline clothes (width, height), which no sheet rule outranks. */
     inp.classList.add('dp-native'); inp.tabIndex=-1; inp.setAttribute('aria-hidden','true');
@@ -7077,7 +7076,13 @@ function linkRefusal(c, opts={}){
     if(sa) return { kind:'signapproval', why:sa };
   }
   if(asks.has('approval') && !started){
-    const ap=ask(()=>window.approvalState&&approvalState(c));
+    /* THE RULE CHAIN'S READING, ASKED ON window (the gaps, round 10, the second
+       check, 18 Oct 2026): a bare approvalState here is this file's own legacy
+       spend gate (ES modules: a top-level name is the module's), which never
+       sees a chain approved — so every signing link on a contract over its
+       threshold stayed refused after the rule's yes was given, "“approval” is
+       still waiting on an Admin". js/approvals.js's chain is the one reading. */
+    const ap=ask(()=>window.approvalState&&window.approvalState(c));
     if(ap && ap.required && !ap.ok){
       const why=(ap.rejected||[]).length ? i18t('sl_appr_refused')
         : (ap.stale||[]).length ? i18t('sl_appr_stale')

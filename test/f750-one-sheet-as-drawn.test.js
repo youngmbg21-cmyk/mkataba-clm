@@ -97,7 +97,11 @@ describe('f750 (3) the sheet', () => {
     assert.match(WZ, /const wy=document\.getElementById\('na-why'\); if\(wy\) wy\.textContent=on\?'':String\(why\)\.replace\(/);
   });
   test('3b on the desk: its own way back in its head, and it stands beside Jambo\'s panel', () => {
-    assert.match(WZ, /<button type="button" class="dk-back" data-na-counter>‹ \$\{esc\(i18t\('dk_counter'\)\)\}<\/button>/);
+    /* RE-POINTED (the gaps' third pass, 18 Oct 2026; main's SAP bar "‹ · HA · the page's name"
+       took the desk tabs row away): the way back is the app's — the bar names the sheet and its ‹
+       leaves it, asking first (naSheetBack); the sheet draws no crumb of its own (f753 (8)) */
+    assert.doesNotMatch(WZ, /data-na-counter/, 'no retired desk-tab crumb in the sheet');
+    assert.match(WZ, /\? \{\}\s*: \{ crumb:`\$\{i18t\('nav_contracts'\)\} › \$\{i18t\('na_title'\)\}` \}\),/);
     assert.match(WZ, /beside:'#ig-dock' \}/);
     assert.match(CORE, /if\(page\.crumbHtml\) head\.querySelector\('\.dlg-pg-crumb'\)\.innerHTML=page\.crumbHtml;/);
     assert.match(CORE, /frame\.style\.cssText=`position:fixed;top:\$\{Math\.round\(top\)\}px;left:\$\{Math\.round\(r\.left\)\}px;right:\$\{right\}px;bottom:0;z-index:70;display:flex;`;/);

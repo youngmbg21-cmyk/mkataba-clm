@@ -38,6 +38,16 @@
      13 the owner's three screens: the page scrolls at most 32px at 1440×780,
         82px at 1536×730, none at 1366×950 (the drawing's own measure)
      14 a second sentence in the sitting: one exchange in the panel
+   THE THIRD PASS (the checker's second list, 18 Oct 2026; main's SAP bar
+   brought in; node half f753 (4), (8), (9)):
+     1b re-pointed — the way back is the app's: no crumb in the sheet's head,
+        the bar names it "New agreement", its ‹ live, nothing arrives ringed
+     7  re-pointed — the bar's ‹ asks first where something was typed (Keep
+        editing keeps the sheet), then lands on the page asked from
+     10 re-pointed — the owner's answer (4): the costs in Jambo calls, never
+        money, even with a ledger and a dated USD rate on file
+     15 step 3's streams are separate buttons, each its own edge, amber-washed
+        and amber-edged while owed
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/one-sheet-as-drawn-verify.js */
 const fs = require('node:fs');
@@ -108,7 +118,14 @@ const SAY = 'NDA with Volvo Cars for a pilot';
     await page.waitForTimeout(400);
     const S1 = await page.evaluate(SHEET);
     check('1a "New agreement · not created yet"', S1.title === 'New agreement not created yet', S1.title);
-    check('1b the desk\'s way back and its tab, in the sheet\'s head: "‹ The counter · New agreement ×"', S1.crumb === '‹ The counter New agreement ×', S1.crumb);
+    /* RE-POINTED (the third pass, 18 Oct 2026; main's SAP bar "‹ · HA · the page's name"): the way
+       back is the app's — no crumb in the sheet's head, the bar names the sheet, its ‹ is live, and
+       nothing arrives wearing a dark ring */
+    const B1 = await page.evaluate(() => ({ page: ((document.getElementById('dk-page') || {}).innerText || '').trim(), back: !!document.getElementById('dk-back') && !document.getElementById('dk-back').disabled,
+      focus: (document.activeElement || {}).id || (document.activeElement || {}).className, crumbEl: !!document.querySelector('[data-na-counter], .na-crumb'),
+      ring: (() => { const a = document.activeElement; if (!a || a === document.body) return 'none'; const c = getComputedStyle(a); return (c.outlineStyle === 'none' || parseFloat(c.outlineWidth) === 0) && !/0px 0px 0px [1-9]/.test(c.boxShadow) ? 'none' : c.outlineStyle + ' ' + c.outlineWidth + ' ' + c.boxShadow; })() }));
+    check('1b the way back is the bar\'s: no crumb in the sheet\'s head, the bar says "New agreement", its ‹ live, no ring on arrival',
+      S1.crumb === '' && !B1.crumbEl && B1.page === 'New agreement' && B1.back && B1.ring === 'none', JSON.stringify({ crumb: S1.crumb, B1 }));
     check('1c the reason beside Create draft, then Cancel — no "Skip the questions"', S1.acts.join('|') === 'Pick a template first|Create draft|Cancel' && !S1.skip && S1.create, JSON.stringify(S1.acts));
     check('2a the sheet stands on the desk beside Jambo\'s panel', S1.beside, JSON.stringify({ beside: S1.beside, dock: S1.dockVis }));
     check('2b Jambo says in one line what he read, as drawn', S1.said === 'I’ve opened a new agreement on the desk with what I read: an NDA, with Volvo Cars. The closest of our paper is our NDA; you pick. Nothing is created until you press Create.', S1.said);
@@ -126,11 +143,12 @@ const SAY = 'NDA with Volvo Cars for a pilot';
     check('9a the panel\'s head: "Jambo · New agreement · ›", no bin', P9.word === 'New agreement' && !P9.bin && P9.fold, JSON.stringify(P9));
     check('9b its box asks "Ask for a number, a list or a contract…"', P9.ph === 'Ask for a number, a list or a contract…', P9.ph);
     check('9c the party and the paper in bold', P9.bold.join('|') === 'Volvo Cars|NDA', JSON.stringify(P9.bold));
-    /* 10 the costs, in our own money */
-    const C10 = await until(() => { const f = (document.getElementById('na-w-cost') || {}).textContent || '', r = (document.getElementById('na-file-cost') || {}).textContent || '';
-      return /KES/.test(f) && /KES/.test(r) ? { f, r } : null; }, null, 8000);
-    check('10a Let Jambo fill the form says its cost in our money: "about KES 0.10"', !!C10 && C10.f === '· about KES 0.10', JSON.stringify(C10));
-    check('10b creating says what Jambo\'s reading costs: "…, about KES 0.90."', !!C10 && C10.r === 'When it is created, Jambo reads it: the brief, our standards, risks and obligations, about KES 0.90.', JSON.stringify(C10));
+    /* 10 RE-POINTED (the third pass; the owner's answer (4): costs stay in Jambo calls, never money —
+       even with a ledger and a dated USD rate on file, as seeded above) */
+    await page.waitForTimeout(600);
+    const C10 = await page.evaluate(() => ({ f: (document.getElementById('na-w-cost') || {}).textContent || '', r: (document.getElementById('na-file-cost') || {}).textContent || '' }));
+    check('10a Let Jambo fill the form says its cost in calls: "· 1 Jambo call"', C10.f === '· 1 Jambo call', JSON.stringify(C10));
+    check('10b creating says what Jambo\'s reading costs in calls: "… — about three Jambo calls."', C10.r === 'When it is created, Jambo reads it: the brief, our standards, risks and obligations — about three Jambo calls.', JSON.stringify(C10));
     /* 4 Start from */
     check('4a 1 Start from: the three closest on our paper, nothing picked for you; the search and Legal on its line',
       /^1 Start from the three closest on our paper · nothing is picked for you Search all our paper \(\d+\) · None fits\? Ask Legal with a request$/.test(S1.step1), S1.step1);
@@ -162,6 +180,18 @@ const SAY = 'NDA with Volvo Cars for a pilot';
       return row && seg && need && cost ? { needBeside: r(need).left >= r(seg).right - 1 && r(need).top < r(seg).bottom, costRight: r(cost).left >= r(need).right - 1 && r(cost).top < r(seg).bottom,
         newStream: !!row.querySelector('[data-na-stream="__new__"]') } : null; });
     check('12 step 3, one row: the streams, "Needed before Create", the cost — no "+ New stream"', !!R12 && R12.needBeside && R12.costRight && !R12.newStream, JSON.stringify(R12));
+    /* 15 (the third pass) the streams are separate buttons, each its own edge, amber while owed */
+    const B15 = await page.evaluate(() => { const seg = document.querySelector('#na-file .na-seg'), bs = [...document.querySelectorAll('#na-file .na-seg-b')];
+      const cs = el => getComputedStyle(el), edge = el => ['Top', 'Right', 'Bottom', 'Left'].every(k => cs(el)['border' + k + 'Style'] === 'solid' && parseFloat(cs(el)['border' + k + 'Width']) >= 1);
+      const rs = bs.map(b => b.getBoundingClientRect());
+      const apart = rs.every((r, i) => rs.every((q, j) => i === j || r.right <= q.left + 0.5 || q.right <= r.left + 0.5 || r.bottom <= q.top + 0.5 || q.bottom <= r.top + 0.5));
+      return { n: bs.length, box: seg ? parseFloat(cs(seg).borderTopWidth) : null, edges: bs.every(edge), apart,
+        amber: bs.every(b => cs(b).backgroundColor === cs(document.querySelector('#na-file .na-need') ? document.body : document.body).backgroundColor ? false : true),
+        wash: bs.map(b => cs(b).backgroundColor), line: bs.map(b => cs(b).borderTopColor) }; });
+    const AMB = await page.evaluate(() => { const d = document.createElement('i'); d.style.cssText = 'background:var(--need-bg);border:1px solid var(--st-amber-line)'; document.body.appendChild(d);
+      const c = getComputedStyle(d), out = { bg: c.backgroundColor, line: c.borderTopColor }; d.remove(); return out; });
+    check('15 step 3\'s streams are separate buttons — each its own edge, none sharing a box — amber-washed and amber-edged while owed',
+      B15.n >= 2 && B15.box === 0 && B15.edges && B15.apart && B15.wash.every(x => x === AMB.bg) && B15.line.every(x => x === AMB.line), JSON.stringify({ B15, AMB }));
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(450);
       const S = await page.evaluate(() => { const c = document.getElementById('na-create'), r = c && c.getBoundingClientRect();
@@ -188,9 +218,26 @@ const SAY = 'NDA with Volvo Cars for a pilot';
     /* 14 a second sentence in the sitting: the panel holds one exchange */
     const L14 = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .ca-dr-said')].length);
     check('14 a second sheet in the sitting: one exchange in the panel', L14 === 1, String(L14));
-    await page.click('[data-na-counter]');
-    const back = await until(() => !document.getElementById('na-root') && state.view === 'counter', null, 6000);
-    check('7 ‹ The counter in the sheet\'s head goes back to the Counter', !!back);
+    /* RE-POINTED (the third pass): the bar's ‹ is the sheet's way out — asked first where something
+       was typed, as Cancel asks; then the page the reader asked from, named again in the bar */
+    await page.click('#na-closest .na-pick');
+    await until(() => !!document.querySelector('#na-form input'), null, 8000);
+    const typed = await page.evaluate(() => { const i = [...document.querySelectorAll('#na-form input[type="text"], #na-form input[type="email"], #na-form input:not([type])')]
+      .find(x => x.getClientRects().length && !x.readOnly && !x.disabled && !String(x.value || '').trim()); if (!i) return null; i.setAttribute('data-typed-here', ''); return i.id || i.name || 'box'; });
+    if (typed) await page.fill('#na-form [data-typed-here]', 'legal@volvocars.example');
+    await page.click('#dk-back');
+    const askedQ = await until(() => { const o = document.getElementById('confirm-overlay'); return o && o.getClientRects().length ? o.innerText.replace(/\s+/g, ' ').trim() : null; }, null, 4000);
+    const pressIn = word => page.evaluate(w => { const o = document.getElementById('confirm-overlay'); const b = o && [...o.querySelectorAll('button')].find(x => x.textContent.trim() === w); if (b) b.click(); return !!b; }, word);
+    await pressIn('Keep editing'); await page.waitForTimeout(400);
+    const stays = await page.evaluate(() => !!document.getElementById('na-root') && !document.getElementById('confirm-overlay'));
+    check('7a the bar\'s ‹ asks first where something was typed — and keeping on editing keeps the sheet', !!askedQ && /Leave without creating\?/.test(askedQ) && stays, JSON.stringify({ typed, askedQ, stays }));
+    const was = await page.evaluate(() => (window.deskSheetFrom ? deskSheetFrom() : null));
+    await page.click('#dk-back');
+    await until(() => !!document.getElementById('confirm-overlay'), null, 4000);
+    await pressIn('Discard my answers');
+    const back = await until(() => !document.getElementById('na-root') ? { page: ((document.getElementById('dk-page') || {}).innerText || '').trim(), key: window.deskKeyNow ? deskKeyNow() : null, view: state.view } : null, null, 6000);
+    check('7b leaving by the bar\'s ‹ puts the sheet away and lands on the page asked from, named in the bar',
+      !!back && back.page !== 'New agreement' && (was === 'home' ? back.view === 'counter' : back.key === was), JSON.stringify({ was, back }));
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }
   finally {
     check('no page errors', !errors.length, errors.slice(0, 3).join(' | '));

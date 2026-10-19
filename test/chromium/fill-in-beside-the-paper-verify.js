@@ -257,7 +257,10 @@ const FACE = () => {
           headIn: !!(hr && dr && hr.top >= dr.top - 1 && hr.bottom <= innerHeight), boxIn: !!(br && br.bottom <= innerHeight + 1 && br.top > 0),
           sideways: ff ? ff.scrollWidth - ff.clientWidth : null, firstBox: !!(ff && ff.querySelector('[data-kt]') && ff.querySelector('[data-kt]').getBoundingClientRect().top < innerHeight) }; });
       check(`9 ${w}×${hgt}: the head and the box in sight, nothing sideways, the first box on screen`, m.headIn && m.boxIn && m.sideways <= 1 && m.firstBox, JSON.stringify(m));
-      check(`9 ${w}×${hgt}: the paper does not move or shrink when the face opens`, !!before && before.w === m.w && before.top === m.top, JSON.stringify(before) + ' → ' + JSON.stringify({ w: m.w, top: m.top }));
+      /* RE-POINTED (the gaps' third pass, 18 Oct 2026; round 8 "Owed first" as drawn: the size stands
+         on the paper's line while Fill in is open, nothing above the sheet): the paper keeps its width
+         and moves only UP, by the zoom row's room — never down, never narrower */
+      check(`9 ${w}×${hgt}: the paper keeps its width, and moves only up (the zoom row's room) when the face opens`, !!before && before.w === m.w && m.top <= before.top && before.top - m.top <= 40, JSON.stringify(before) + ' → ' + JSON.stringify({ w: m.w, top: m.top }));
       await page.screenshot({ path: path.join(OUT, `9-${w}x${hgt}.png`) });
     }
 

@@ -9453,8 +9453,10 @@ function detailsOf(c){
      writer ndaSet); their one door is ndaEditOpen */
   if(typeof ndaIs === 'function' && ndaIs(c)){
     const rec = (typeof ndaClean === 'function') ? ndaClean(c.nda) : null;
-    add(recSec, 'ndaDir', i18t('det_f_nda_dir'), !(rec && rec.dir), 'nda');
-    add(recSec, 'ndaEnds', i18t('det_f_nda_ends'), !(rec && (rec.ends || rec.forGood)), 'nda');
+    /* ONE FACT, ONE NAME (the gaps, round 8, 18 Oct 2026): the NDA's own editor's
+       words, "Who keeps it secret" · "Secret until" (det_f_nda_dir/_ends inert) */
+    add(recSec, 'ndaDir', i18t('nda_f_dir'), !(rec && rec.dir), 'nda');
+    add(recSec, 'ndaEnds', i18t('nda_f_ends'), !(rec && (rec.ends || rec.forGood)), 'nda');
   }
   const asked = new Set(DET_RECORD_KEYS);
   if(c.templateForm && Array.isArray(c.templateForm.fields)){
@@ -9767,7 +9769,11 @@ function detNdaRows(c, d, box, may){
     const read = w ? esc(w) : `<i>${esc(i18t('det_nda_unsaid'))}</i>`;
     const line = conf ? (N.who ? i18t('nda_confirmed_by', { who: N.who }) : i18t('nda_confirmed')) : i18t(w ? 'det_nda_not_conf' : 'det_nda_set_line');
     const door = may ? ` · <button type="button" class="ui-link" data-det-nda="${esc(c.id)}">${esc(i18t(it.open ? 'det_nda_confirm' : 'det_nda_change'))}</button>` : '';
-    return box(k, it.label, `${at}<span class="det-nda-read det-nda-box">${read}</span><span class="det-nda-line">${esc(line)}${door}</span>`); };
+    /* "· Confirm" STAYS ON ITS LINE (the gaps, round 8, the second check): held to the
+       sentence's last word, so a narrow card wraps the two together, never the door alone */
+    const words = String(line).split(' '), last = words.pop();
+    const lineHtml = door ? `${esc(words.join(' '))}${words.length ? ' ' : ''}<span class="det-nda-tail">${esc(last)}${door}</span>` : esc(line);
+    return box(k, it.label, `${at}<span class="det-nda-read det-nda-box">${read}</span><span class="det-nda-line">${lineHtml}</span>`); };
   return [said('ndaDir', dirW), said('ndaEnds', untilW)];
 }
 if(typeof document!=='undefined') document.addEventListener('click',e=>{

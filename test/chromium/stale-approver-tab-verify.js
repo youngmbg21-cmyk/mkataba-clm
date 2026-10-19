@@ -55,7 +55,11 @@ const until = async (fn, ms = 8000, step = 150) => { const end = Date.now() + ms
     const appr = await login('everything@example.co.ke', 'their-own-pass-9');
     const appr2 = await login('everything@example.co.ke', 'their-own-pass-9');
     await openSigning(appr); await openSigning(appr2);
-    const btn0 = await appr.evaluate(() => (document.getElementById('ap-approve') || {}).textContent || '');
+    /* RE-POINTED (the gaps' third pass, 18 Oct 2026, round 10 "The road" as drawn: each yes at its own
+       stop with its own buttons — the rule's Approve · Refuse… stand on its stop; the column's own
+       #ap-approve folds behind "Show" while a yes is framed). The same act, approveContract. */
+    const RULE_OK = '#pd-signface [data-pd-rd-rule="approved"]';
+    const btn0 = await appr.evaluate(q => (document.querySelector(q) || {}).textContent || '', RULE_OK);
     check('0   the approver sees the step waiting on them', /Approve/.test(btn0), btn0.trim());
 
     /* 1 · REFUSED, WITH A REASON */
@@ -70,10 +74,10 @@ const until = async (fn, ms = 8000, step = 150) => { const end = Date.now() + ms
     check('2   the owner\'s resubmission is on the server', !!s2);
 
     /* 3 · THE APPROVER PRESSES "APPROVE AGAIN" IN THE TAB THEY LEFT OPEN */
-    const stale = await appr.evaluate(() => ({ status: (approvalState(getContract('MK-A2')).next || {}).status, btn: (document.getElementById('ap-approve') || {}).textContent || '' }));
+    const stale = await appr.evaluate(q => ({ status: (approvalState(getContract('MK-A2')).next || {}).status, btn: (document.querySelector(q) || {}).textContent || '' }), RULE_OK);
     check('3a  the tab really is stale: it still shows the refusal', stale.status === 'rejected' && /Approve again/.test(stale.btn), JSON.stringify(stale));
     appr.__toasts.length = 0;
-    await appr.click('#ap-approve');
+    await appr.click(RULE_OK);
     const s3 = await until(async () => { const x = await stored(); return stepOf(x).status === 'approved' ? x : null; });
     await appr.waitForTimeout(600);
     const dlg = await appr.evaluate(() => /Keep mine|Load theirs/.test(document.body.innerText));

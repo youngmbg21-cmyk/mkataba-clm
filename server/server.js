@@ -7277,27 +7277,6 @@ app.get('/api/brain', auth, (req, res) => {
   }
 });
 
-/* ---- WHAT A PRESS COSTS, SAID BEFORE IT (the gaps, round 4 "One sheet", 18
-   Oct 2026: "Let Jambo fill the form · about 0.10 kr") ----
-   MEASURED, NEVER GUESSED: the average one request of each kind cost over the
-   last AI_COST_DAYS days of this workspace's own ledger (ai_spend), in US
-   dollars as the ledger keeps it. A kind with no request in that window is
-   left out, and the press says its count of Jambo calls instead. Only the
-   average leaves the server — never a count, a total, a day or a person
-   (/api/ai/spend stays the admins'). The browser turns it into the workspace's money through
-   the admins' dated USD rate (fxRateFor), and says calls where none is on file. */
-const AI_COST_DAYS = 30;
-app.get('/api/ai/call-cost', auth, (req, res) => {
-  let from = '';
-  try { from = new Date(Date.now() - AI_COST_DAYS * 864e5).toLocaleDateString('en-CA', { timeZone: AI_DAY_TZ }); } catch (_) { from = new Date(Date.now() - AI_COST_DAYS * 864e5).toISOString().slice(0, 10); }
-  const per = {};
-  try {
-    db.prepare('SELECT feature, SUM(requests) AS r, SUM(cost) AS c FROM ai_spend WHERE day>=? GROUP BY feature').all(from)
-      .forEach(x => { const r = Number(x.r) || 0, c = Number(x.c) || 0; if (r > 0 && c > 0) per[String(x.feature)] = { usd: c / r }; });
-  } catch (e) { console.error('[ai] reading the cost of a call failed:', e && e.message); }
-  res.json({ days: AI_COST_DAYS, per });
-});
-
 app.get('/api/ai/config', auth, (req, res) => {
   const k = aiKey();
   res.json({

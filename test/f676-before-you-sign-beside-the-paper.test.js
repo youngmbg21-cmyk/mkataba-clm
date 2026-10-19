@@ -267,8 +267,10 @@ describe('f676 (8) found on the way: the doors into Fill in that now carry the r
 
 describe('f676 (9) what the room\'s Signing tab had, on Home too (found by the re-pointed checks)', () => {
   test('9a the signing copy keeps its page arrows and size — the room\'s controls, finding either paper', () => {
-    /* RE-POINTED (round 10 as drawn): the controls stand on the line, nothing above the paper */
-    assert.match(strip(fnBody(IG, 'igZoomCornerHtml')), /if\(igSignOn\(c\)\) return IG_ZC_HOLD;/); assert.match(IG, /const IG_ZC_HOLD='<div class=\"paper-zc-row\" aria-hidden=\"true\"><\/div>';/, 'the row stays, empty: the paper sits still');
+    /* RE-POINTED (round 10 as drawn): the controls stand on the line, nothing above the paper —
+       RE-POINTED AGAIN (the gaps' second check, 18 Oct 2026): no row at all, not an empty one held,
+       so the signing copy starts higher, never lower */
+    assert.match(strip(fnBody(IG, 'igZoomCornerHtml')), /if\(igSignOn\(c\)\) return '';/); assert.doesNotMatch(IG, /IG_ZC_HOLD/, 'no empty row is held above the signing copy');
     assert.match(strip(fnBody(IG, 'igSignCopyHtml')), /scControlsHtml\(c\)/);
     assert.match(strip(fnBody(IG, 'igPaperHtml')), /zoom:\$\{igSignOn\(c\)\?1:/, 'the reading zoom stays off the signing copy');
     const els = strip(fnBody(CT, 'scEls'));

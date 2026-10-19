@@ -137,9 +137,11 @@ describe('f706 (3) the form, opened from a sentence, is one sheet', () => {
     assert.match(w, /i18t\('na_words_title'\)/); assert.match(w, /<q>\$\{esc\(asked\)\}<\/q>/); assert.match(w, /i18t\('na_words_noai'\)/);
     assert.match(w, /id="na-ask-again"/);
     assert.match(w, /i18t\('na_words_new_party'\)/); assert.match(w, /'is-owed'/);
-    /* RE-POINTED (pass 2): the cost in our own money where it is measured, else its count of calls */
+    /* RE-POINTED (the gaps' third pass, 18 Oct 2026; the owner's answer (4): Jambo's costs stay in
+       CALLS, never money) — the cost is its count of Jambo calls */
     assert.match(w, /id="dr-read"[\s\S]*i18t\('na_words_fill'\)[\s\S]*id="na-w-cost">· \$\{esc\(naFillCost\(\)\)\}/, 'the form\'s own Find, its cost said');
-    assert.match(WZ, /const naFillCost=\(\)=>\(typeof aiCostWords==='function'\)\?aiCostWords\(\['draft'\], i18t\('na_words_cost'\)\)/);
+    assert.match(WZ, /const naFillCost=\(\)=>i18t\('na_words_cost'\);/);
+    assert.doesNotMatch(WZ, /aiCostWords/, 'no cost in money');
     assert.match(w, /<textarea id="dr-say" class="na-say" hidden>\$\{esc\(asked\)\}<\/textarea>/, 'Find reads the sentence as it always has');
     assert.match(WZ, /if\(say && !one && String\(say\.value\|\|''\)\.trim\(\)\) return true;/, 'the ask is not something typed here: leaving asks nothing');
   });

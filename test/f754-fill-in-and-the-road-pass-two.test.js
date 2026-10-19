@@ -81,25 +81,18 @@ describe('f754 (1) our standard, named for the kind; an example in an owed box',
     assert.equal(W2.pdFillStdKind({ id: 'x' }), 'all contracts');
     assert.match(PD, /const what = kind \|\| std\.category\.toLowerCase\(\);/);
   });
-  test('1b a date box "e.g. 1 November 2026", a span "e.g. 6 months" (our standard\'s own where there is one), a figure "A number"', () => {
+  /* RE-POINTED (the gaps' third pass, 18 Oct 2026; the owner's answer (5): "empty owed boxes stay
+     empty with the amber wash — no 'e.g. …' example text") */
+  test('1b an empty owed box stays empty: no example in it, the amber wash says it is owed', () => {
     const W = faceStage();
-    const row = (label, type) => { const d = W.document.createElement('label'); d.innerHTML = `<span>${label}</span><input type="${type}">`; W.document.body.appendChild(d); return d; };
-    const d = row('Start date', 'text'); W.pdFillExample(d, null);
-    assert.equal(d.querySelector('input').placeholder, 'e.g. 1 November 2026', 'the first of the month ahead, on the stage\'s own clock');
-    const n = row('Notice period', 'text'); W.pdFillExample(n, null);
-    assert.equal(n.querySelector('input').placeholder, 'e.g. 6 months');
-    const s = row('Notice period', 'text'); W.pdFillExample(s, { said: '90 days' });
-    assert.equal(s.querySelector('input').placeholder, 'e.g. 90 days');
-    const v = row('Expected yearly value, SEK', 'text'); W.pdFillExample(v, null);
-    assert.equal(v.querySelector('input').placeholder, 'A number');
-    const dt = row('Start date', 'date'); W.pdFillExample(dt, null);
-    assert.equal(dt.querySelector('input').getAttribute('data-ph'), 'e.g. 1 November 2026', 'a dressed date: its face\'s words');
-    const o = row('Carrier', 'text'); W.pdFillExample(o, null);
-    assert.equal(o.querySelector('input').placeholder, '', 'nothing to show by example: left as it was');
+    assert.equal(typeof W.pdFillExample, 'undefined', 'no example writer');
+    assert.doesNotMatch(PD, /pdFillExample|PD_FF_EG_/);
+    for (const l of ['en', 'sv']) { assert.ok(!('pd_ff_eg' in BOOKS[l]), 'pd_ff_eg ' + l); assert.ok(!('pd_ff_eg_num' in BOOKS[l]), 'pd_ff_eg_num ' + l); }
   });
-  test('1c a dressed date face says its caller\'s example while empty (datePickDress reads data-ph)', () => {
-    assert.match(CORE, /\(w\|\|inp\.getAttribute\('data-ph'\)\|\|i18t\('dp_pick'\)\)/);
-    assert.match(CORE, /attributeFilter:\['disabled','data-ph'\]/);
+  test('1c a date face says "Pick a date" while empty — no caller\'s example (data-ph)', () => {
+    assert.match(CORE, /\$\{\(w\|\|i18t\('dp_pick'\)\)\.replace/);
+    assert.doesNotMatch(CORE, /data-ph/);
+    assert.match(CORE, /attributeFilter:\['disabled'\]/);
   });
 });
 
@@ -155,18 +148,22 @@ describe('f754 (3) an NDA\'s facts, pay, a private stream', () => {
     const rows = [...box.querySelectorAll('tbody tr')].map(tr => [...tr.children].map(td => td.textContent));
     assert.deepEqual(rows, [['Base pay', 'Monthly', 'not filled in yet · needed before signing'], ['Bonus', 'Yearly', 'up to 30 % of base pay']]);
     assert.equal(box.querySelector('[data-pd-ff-pay-edit]').textContent, 'Edit pay ›');
-    assert.equal(W.pdFillPayHtml({ id: 'x' }, false).includes('pd-ff-owe'), false, 'not owed: not said owed');
+    /* RE-POINTED (the gaps' third pass): owed is the house's amber pill with its dot, as drawn */
+    assert.ok(box.querySelector('tbody tr.is-base .pd-pill.is-warn > i'), 'base pay owed: an amber pill with a dot');
+    assert.equal(W.pdFillPayHtml({ id: 'x' }, false).includes('pd-pill'), false, 'not owed: not said owed');
     assert.equal(faceStage({ fxIsPay: () => false }).pdFillPayHtml({ id: 'x' }, true), '', 'not pay: no card');
   });
+  /* RE-POINTED (the gaps' third pass; the owner's answer (4): costs stay in Jambo calls, never money) */
   test('3c a private stream says so, and Jambo waits for a press with its cost', () => {
     const W = faceStage({ streamIsPrivate: f => f === 'board', FOLDERS: { board: { name: 'Board' } }, canEdit: () => true,
-      bsReadWait: () => ({ stale: false }), aiCostWords: (k, fb) => 'about SEK 1' });
+      bsReadWait: () => ({ stale: false }), aiCostWords: (k, fb) => 'about SEK 1', jamboFaceHtml: () => '<img class="pd-ff-wait-face">' });
     const box = W.document.createElement('div');
     box.innerHTML = W.pdFillPrivateHtml({ id: 'MK-0399', folder: 'board' });
     assert.equal(box.textContent.trim(), 'Private · Board only the people named on Board see it');
     assert.equal(W.pdFillPrivateHtml({ id: 'x', folder: 'sales' }), '');
     box.innerHTML = W.pdFillWaitHtml({ id: 'MK-0399', folder: 'board' });
-    assert.equal(box.textContent.replace(/\s+/g, ' ').trim(), 'Jambo reads a private stream’s contract only when someone presses. Read it now · about SEK 1');
+    assert.equal(box.textContent.replace(/\s+/g, ' ').trim(), 'Jambo reads a private stream’s contract only when someone presses. Read it now · about three Jambo calls');
+    assert.ok(box.querySelector('.pd-ff-wait-face'), 'Jambo\'s small face beside it, as drawn');
     assert.equal(box.querySelector('[data-pd-ff-read]').getAttribute('data-pd-ff-read'), 'MK-0399');
     assert.match(PD, /if \(typeof bsGo === 'function'\)\{ bsGo\('read', rd\.getAttribute\('data-pd-ff-read'\)\);/, 'the strip\'s own press');
   });
@@ -252,7 +249,8 @@ describe('f754 (6) the signing copy on the line; Sign here; signing their way', 
     const s = strip(IG.slice(IG.indexOf('function igSignCopyHtml('), IG.indexOf('function igApplyZoom(')));
     assert.match(s, /i18t\(sealed\?'sc_signed_copy':'sc_signing_copy'\)/);
     assert.match(s, /scControlsHtml\(c\)/);
-    assert.match(strip(IG.slice(IG.indexOf('function igZoomCornerHtml('), IG.indexOf('function igSignCopyHtml('))), /if\(igSignOn\(c\)\) return IG_ZC_HOLD;/); assert.match(IG, /const IG_ZC_HOLD='<div class=\"paper-zc-row\" aria-hidden=\"true\"><\/div>';/, 'the row stays, empty: the paper sits still');
+    /* RE-POINTED (the gaps' third pass): no row above the signing copy, not even an empty one */
+    assert.match(strip(IG.slice(IG.indexOf('function igZoomCornerHtml('), IG.indexOf('function igSignCopyHtml('))), /if\(igSignOn\(c\)\) return '';/); assert.doesNotMatch(IG, /IG_ZC_HOLD/);
     assert.match(IG, /closest\('#ig-strip \[data-ig-sc\] \[data-sc-zoom\], #ig-strip \[data-ig-sc\] \[data-sc-page\]'\)/, 'one listener for the line\'s controls');
   });
   test('6b "Sign here" only for whoever\'s turn it is', () => {
@@ -268,9 +266,170 @@ describe('f754 (6) the signing copy on the line; Sign here; signing their way', 
 
 describe('f754 (7) the words, in both books', () => {
   test('7a every new key in English and Svenska', () => {
-    for (const k of ['pd_ff_eg', 'pd_ff_eg_num', 'pd_ff_nda', 'pd_ff_nda_n_one', 'pd_ff_nda_n_other', 'pd_ff_pay_owed', 'pd_ff_private', 'pd_ff_private_who', 'pd_ff_wait',
+    for (const k of ['pd_ff_nda', 'pd_ff_nda_n_one', 'pd_ff_nda_n_other', 'pd_ff_pay_owed', 'pd_ff_private', 'pd_ff_private_who', 'pd_ff_wait',
       'det_nda_read_clause', 'det_nda_not_conf', 'det_nda_set_line', 'det_nda_span_end', 'det_nda_span_start', 'det_nda_span_disclosure',
-      'pd_rd_checks_clear_one', 'pd_rd_checks_unclear', 'pd_rd_signed_on', 'pd_sf_waits_on', 'pd_sf_waits_theirs', 'ho_menu_their_way'])
+      'pd_rd_checks_clear_one', 'pd_rd_checks_unclear', 'pd_rd_signed_on', 'pd_sf_waits_on', 'pd_sf_waits_theirs', 'ho_menu_their_way', 'pd_ff_wait_cost'])
       for (const l of ['en', 'sv']) assert.ok(BOOKS[l][k], k + ' ' + l);
+  });
+});
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE THIRD PASS (the checker's second list, 18 Oct 2026; main brought in)
+   ROUND 8
+   (8) The NDA's facts carry its own editor's names ("Secret until"), and
+       "· Confirm" stays on its sentence's line; base pay owed is an amber pill
+       with its dot; a private contract's wait line stands straight under Pay
+       with Jambo's small face; Jambo perches in a row of his own, over nothing;
+       Fill in's size stands on the paper's line, nothing above the sheet; the
+       "clause N" door lands on the paper's spot through the one lander.
+   ROUND 10
+   (9) Each yes at its own stop — a rule's approval beside a named person's
+       yes, with its states and its own buttons; the number on Ready to sign
+       matches what it names; a rule's step nobody approved is off the road once
+       signing has begun; the receipt says "obligations" and draws the record
+       once; the link check reads the rule chain (window.approvalState), so a
+       given yes opens the other signer's link; Open obligations lands through
+       the one lander; beside the signing copy the name stays whole.
+   AT THE PARENT (8dc306a) every test below FAILS.
+   ═══════════════════════════════════════════════════════════════════════════ */
+describe('f754 (8) Fill in, the third pass', () => {
+  test('8a the NDA\'s facts by its own editor\'s names: "Who keeps it secret" · "Secret until"', () => {
+    const r = strip(CT.slice(CT.indexOf("if(typeof ndaIs === 'function' && ndaIs(c)){"), CT.indexOf('const asked = new Set(DET_RECORD_KEYS);')));
+    assert.match(r, /add\(recSec, 'ndaDir', i18t\('nda_f_dir'\)/);
+    assert.match(r, /add\(recSec, 'ndaEnds', i18t\('nda_f_ends'\)/);
+    assert.equal(T('nda_f_ends'), 'Secret until'); assert.equal(BOOKS.sv.nda_f_ends, 'Hemligt till');
+  });
+  test('8b "· Confirm" is held to the sentence\'s last word, never on a line of its own', () => {
+    const r = strip(CT.slice(CT.indexOf('function detNdaRows('), CT.indexOf('function detPaintBasics(')));
+    assert.match(r, /const words = String\(line\)\.split\(' '\), last = words\.pop\(\);/);
+    assert.match(r, /<span class="det-nda-tail">\$\{esc\(last\)\}\$\{door\}<\/span>/);
+    assert.match(IX, /\.det-nda-tail\{white-space:nowrap\}/);
+  });
+  test('8c base pay owed: the amber pill with its dot; the wait line under Pay with Jambo\'s face', () => {
+    assert.match(strip(PD.slice(PD.indexOf('function pdFillPayHtml('), PD.indexOf('function pdFillWaitHtml('))), /\(base && owed\) \? pdPill\('warn', _pdT\('pd_ff_pay_owed'\)\)/);
+    const face = PD.slice(PD.indexOf('function pdFillFaceHtml('), PD.indexOf('function pdFillPrivateHtml('));
+    assert.ok(face.indexOf('data-pd-ff-pay') < face.indexOf('data-pd-ff-wait'), 'the wait host after Pay\'s');
+    assert.match(IX, /#pd-fillface \.pd-ff-work > \.pd-ff-wait\{order:3;/, 'among Pay\'s order, after it');
+    assert.match(strip(PD.slice(PD.indexOf('function pdFillWaitHtml('), PD.indexOf('let _pdFillFolded'))), /jamboFaceHtml\('hello', 22, 'pd-ff-wait-face'\)/);
+  });
+  test('8d Jambo perches in a row of his own beside Fill in and Before you sign — he covers nothing', () => {
+    assert.match(IX, /#ig-dock\.jb-perched:has\(#pd-fillface, #pd-signface\) \[data-ig-chips\]:not\(:has\(button\)\)\{min-height:44px;/);
+    assert.doesNotMatch(IX, /\[data-ig-chips\]:not\(:has\(button\)\) \.jb-perch\{bottom:0\}/);
+  });
+  test('8e Fill in\'s size on the paper\'s line, nothing above the sheet while it is open', () => {
+    assert.match(strip(IG.slice(IG.indexOf('function igStripHtml('), IG.indexOf('function igStripHtml(') + 9000)), /up&&onHome&&!igSignOn\(c\)&&window\.rlTypeStepHtml\?`<span class="ig-zc-line" data-ig-zc-line>\$\{rlTypeStepHtml\(\)\}<\/span>`:''/);
+    assert.match(IX, /#ig-strip \.ig-zc-line\{display:none;flex:none\}/);
+    assert.match(IX, /#ig-page:has\(#pd-fillface\) #ig-strip \.ig-zc-line\{display:inline-flex;align-items:center\}/);
+    assert.match(IX, /#ig-page:has\(#pd-fillface\) #ig-paper-scroll > \.paper-zc-row\{display:none\}/);
+  });
+  test('8f "clause N" lands on the paper\'s spot through the one lander, the hand kept in the box', () => {
+    const landed = [];
+    const W = faceStage({ landOn: (t, o) => { landed.push([t, o]); return Promise.resolve(t); }, intel: { paper: { id: 'MK-0405' } }, igHomePaperFace: () => true,
+      getContract: () => ({ id: 'MK-0405' }), contractFieldLight: () => { throw new Error('the typing echo is not a landing'); } }, "_pdFill = 'MK-0405'; _pdTab = 'copilot';");
+    const doc = W.document, cv = doc.getElementById('ig-canvas'), host = doc.getElementById('pd-fillface');
+    cv.innerHTML = '<span class="hati-field" data-upblank="up_notice">Notice period</span>';
+    host.innerHTML = '<label data-pd-owed="1" data-cd-key="up_notice"><span>Notice period</span><button type="button" data-pd-ff-at>clause 3</button><input type="text"></label>';
+    W.contractFieldPeer = (k, where) => where === 'paper' ? cv.querySelector('[data-upblank="up_notice"]') : null;
+    W.pdFillWire(host);
+    host.querySelector('[data-pd-ff-at]').dispatchEvent(new W.MouseEvent('click', { bubbles: true }));
+    assert.equal(landed.length, 1); assert.equal(landed[0][0], cv.querySelector('[data-upblank]'));
+    assert.deepEqual(J(landed[0][1]), { block: 'center', focus: false });
+    assert.equal(doc.activeElement, host.querySelector('input'), 'the cursor stays in the box');
+  });
+});
+
+/* the road's stage with a rule chain beside the named yes */
+function ruleStage({ rule = { status: 'pending' }, decide = 'rule', sa = null, holds, signed = false, status = 'Under Review', me } = {}){
+  const step = { ruleId: 'r-spend', name: 'Value ≥ KES 5M', approver: { kind: 'role', role: 'admin' }, status: rule.status, by: rule.by || null, at: rule.at || null, comment: rule.comment || null };
+  const S = stage({ holds: holds || [{ kind: 'approval' }, { kind: 'signapproval' }, { kind: 'turn' }], plan: PLAN, sa, signed, status, me });
+  Object.assign(S.ctx, {
+    approvalState: () => ({ required: true, ok: rule.status === 'approved', chain: [step].concat(sa ? [{ sa: true, name: 'Lina Ek\'s contracts', status: 'pending' }] : []) }),
+    approvalDecidableNow: () => (decide === 'rule' && rule.status === 'pending') ? { kind: 'rule', step } : null,
+    approverLabelOf: a => a.role === 'admin' ? 'an Admin' : 'a ' + a.role, approverForOf: () => null,
+  });
+  S.c.value = 8100000;
+  return S;
+}
+const SA_ROW = { status: 'pending', need: { key: 'k-jonas', approverId: 'u-jonas', approverName: 'Jonas Berg' }, req: { id: 'sa1', approverId: 'u-jonas', askedAt: '2026-10-19T08:00:00Z', askedBy: { id: 'u-lina', name: 'Lina Ek' }, shows: {} } };
+
+describe('f754 (9) the road, the third pass', () => {
+  test('9a each yes at its own stop: the rule\'s, then the named person\'s — the pill counts what the road shows', () => {
+    const { ctx, c } = ruleStage({ sa: { rows: [SA_ROW], ok: false, started: false, open: [SA_ROW] } });
+    const R0 = J(ctx.pdRoadStops(c));
+    assert.deepEqual(R0.stops.map(x => x.k), ['ready', 'rule', 'yes', 'step1', 'step2', 'sealed']);
+    assert.equal(R0.stops[1].t, 'An admin’s yes'); assert.equal(R0.stops[2].t, 'Jonas Berg’s yes');
+    assert.equal(R0.cur, 1, 'the rule\'s yes is the open stop'); assert.ok(R0.stops[1].framed);
+    assert.match(ctx.pdSignPillHtml(c), />2 to settle</);
+    const open = R0.stops.filter(x => !x.done && ['rule', 'yes'].includes(x.k)).length;
+    assert.equal(open, 2, 'two yeses wait, two stops say so');
+  });
+  test('9b the rule\'s card: its states, what it covers, Approve · Refuse… for whoever may decide it; one #sa-card', () => {
+    const { ctx, c } = ruleStage({ sa: { rows: [SA_ROW], ok: false, started: false, open: [SA_ROW] } });
+    const R0 = ctx.pdRoadStops(c);
+    vm.runInContext('_pdRdId = false;', ctx);
+    const h = ctx.pdRoadRuleHtml(c, R0.stops[1].rule);
+    const dom = new JSDOM('<div id="x"></div>'); const box = dom.window.document.getElementById('x'); box.innerHTML = h;
+    assert.deepEqual([...box.querySelectorAll('.pd-rd-st')].map(x => x.textContent), ['Waiting', 'Approved', 'Refused', 'Lapsed']);
+    assert.equal(box.querySelector('.pd-rd-facts').textContent, 'The rule “Value ≥ KES 5M” asks an Admin for a yes. It covers the wording as it stands and SEK 8.1 M; a change undoes it.');
+    assert.deepEqual([...box.querySelectorAll('[data-pd-rd-rule]')].map(b => b.textContent + ':' + b.getAttribute('data-pd-rd-rule')), ['Approve:approved', 'Refuse…:refused']);
+    assert.equal(box.querySelector('.pd-rd-card').id, 'sa-card', 'the first yes in road order this reader may give');
+    const y = ctx.pdRoadYesOf(c, SA_ROW);
+    assert.doesNotMatch(ctx.pdRoadYesHtml(c, y), /id="sa-card"/, 'never a second #sa-card on the face');
+    const f = strip(PD.slice(PD.indexOf('async function pdRoadPress('), PD.indexOf('function pdSignFacePaint(')));
+    assert.match(f, /if \(!d \|\| d\.kind !== 'rule' \|\| typeof approvalDecideAsk !== 'function'\)/, 'the lists\' one door, only while it is theirs');
+    assert.match(f, /await approvalDecideAsk\(c, b\.getAttribute\('data-pd-rd-rule'\) === 'approved' \? 'approved' : 'refused'\);/);
+  });
+  test('9c a reader who may not decide it sees who approves and the rule; a refused one is sent back through the column\'s own act', () => {
+    const { ctx, c } = ruleStage({ decide: null, sa: { rows: [SA_ROW], ok: false, started: false, open: [SA_ROW] } });
+    const R0 = J(ctx.pdRoadStops(c));
+    assert.equal(R0.stops[1].sub, 'An Admin approves · Value ≥ KES 5M');
+    const ref = ruleStage({ rule: { status: 'rejected', by: 'Amina Otieno', comment: 'Cap too high' }, holds: [{ kind: 'approval' }, { kind: 'turn' }] });
+    const R1 = ref.ctx.pdRoadStops(ref.c);
+    const h = ref.ctx.pdRoadRuleHtml(ref.c, R1.stops[1].rule);
+    assert.match(h, /Amina Otieno refused it: “Cap too high”\./); assert.match(h, /data-pd-rd-resubmit>Change and send again</);
+    assert.match(strip(PD.slice(PD.indexOf('async function pdRoadPress('), PD.indexOf('function pdSignFacePaint('))), /document\.querySelector\('#pd-signface #ap-resubmit'\)/);
+  });
+  test('9d the number on Ready to sign matches what it names', () => {
+    const { ctx, c } = stage({ plan: PLAN, holds: [{ kind: 'standards-read' }, { kind: 'obligations' }, { kind: 'oblig-gaps' }, { kind: 'brief' }] });
+    assert.equal(ctx.pdRoadStops(c).stops[0].sub, '4 to settle: standards, promises (2), the brief');
+  });
+  test('9e once signing has begun a rule\'s step nobody approved is off the road; one approved stays, with who and when', () => {
+    const off = ruleStage({ holds: [], signed: true });
+    assert.ok(!J(off.ctx.pdRoadStops(off.c)).stops.some(x => x.k === 'rule'));
+    const on = ruleStage({ rule: { status: 'approved', by: 'Amina Otieno', at: '2026-10-15T09:00:00Z' }, holds: [], signed: true, status: 'Signed' });
+    const st = J(on.ctx.pdRoadStops(on.c)).stops.find(x => x.k === 'rule');
+    assert.ok(st && st.done); assert.equal(st.sub, 'Approved by Amina Otieno, 15 Oct');
+  });
+  test('9f the receipt says obligations, as drawn: "6 obligations, the first on 31 Jan 2027"', () => {
+    assert.equal(Tn('pd_sf_next_n', 6, { when: '31 Jan 2027' }), '6 obligations, the first on 31 Jan 2027');
+    assert.equal(T('pd_sf_next_none'), 'No obligations are recorded on this contract.');
+    for (const k of Object.keys(BOOKS.en).filter(k => k.startsWith('pd_sf_next'))) assert.doesNotMatch(BOOKS.en[k], /\bdut(y|ies)\b/i, k);
+  });
+  test('9g the receipt draws who approved and who signed once: the column\'s own record folds away when sealed', () => {
+    const f = strip(PD.slice(PD.indexOf('function pdRoadPaint('), PD.indexOf('function pdSignFaceHtml(')));
+    assert.match(f, /const side = host\.querySelector\('#sign-side'\);\s*if \(side\)\{ const want = R\.closed \? 'none' : 'flex';/);
+  });
+  test('9h the link check reads the rule chain, so a given yes opens the other signer\'s link', () => {
+    const f = strip(CORE.slice(CORE.indexOf('function linkRefusal('), CORE.indexOf('function linkRefusal(') + 6000));
+    assert.match(f, /const ap=ask\(\(\)=>window\.approvalState&&window\.approvalState\(c\)\);/);
+    assert.doesNotMatch(f, /&&approvalState\(c\)/, 'never the file\'s own legacy spend gate');
+  });
+  test('9i Open obligations lands on the contract\'s own obligations through the one lander', () => {
+    const f = strip(PD.slice(PD.indexOf('function pdSignWire('), PD.indexOf('async function pdRoadPress(')));
+    assert.match(f, /hbOpenView\(ob\.getAttribute\('data-pd-sf-oblig'\), 'oblig'\);\s*if \(typeof landOn === 'function'\) landOn\(\(\) => document\.querySelector\('#obw-one-host table, #obw-one-host \.obt, #obw-one-host'\), \{ block: 'start', focus: false \}\);/);
+  });
+  test('9j beside the signing copy the name stays whole: Notes and Share keep their word in their hover on a short line', () => {
+    assert.match(IX, /#ig-strip\{container:igline \/ inline-size\}/);
+    assert.match(IX, /@container igline \(max-width: 1000px\)\{\s*#ig-strip \.ig-sc ~ \.ig-acts :is\(\.ig-notes-w, \.ig-share-w\)\{display:none\}/);
+    assert.match(IG, /<span class="ig-share-w">\$\{igEsc\(i18t\('ct_share'\)\)\}<\/span>/);
+  });
+});
+
+describe('f754 (10) the third pass\'s words, in both books', () => {
+  test('10a every new key in English and Svenska; the retired cost and example keys gone', () => {
+    for (const k of ['pd_rd_ck_n', 'pd_rd_rule_sub', 'pd_rd_rule_facts', 'pd_rd_rule_refused', 'pd_rd_rule_refused_why', 'pd_rd_rule_lapsed', 'pd_ff_wait_cost'])
+      for (const l of ['en', 'sv']) assert.ok(BOOKS[l][k], k + ' ' + l);
+    for (const k of ['na_file_read_money', 'ai_cost_about', 'brn_p_callcost', 'brn_pd_callcost'])
+      for (const l of ['en', 'sv']) assert.ok(!(k in BOOKS[l]), k + ' ' + l);
   });
 });

@@ -8347,7 +8347,7 @@ function igQuoteGo(text,ob){
 function igStripActsHtml(c){
   if(!c||PORTAL_MODE) return '';
   const may=(typeof canEdit!=='function')||canEdit();
-  const share=(may&&c.status!=='Declined')?`<button type="button" id="ws-share" class="ui-btn ui-btn-sm" title="${igEsc(i18t('ct_share_with_cp'))}">${icon('share','w-3.5 h-3.5')}${igEsc(i18t('ct_share'))}</button>`:'';
+  const share=(may&&c.status!=='Declined')?`<button type="button" id="ws-share" class="ui-btn ui-btn-sm" title="${igEsc(i18t('ct_share_with_cp'))}" aria-label="${igEsc(i18t('ct_share'))}">${icon('share','w-3.5 h-3.5')}<span class="ig-share-w">${igEsc(i18t('ct_share'))}</span></button>`:'';
   /* THE ⋯ LEFT THE LINE (owner, 15 Oct 2026: "add these lists in a new tab
      next to obligation called Menu", and yes to one door): its rows are Jambo's
      Menu tab now (pdMenuHtml), wired there (pdMenuWire) */
@@ -8426,7 +8426,10 @@ function igStripHtml(c,p){
        10 Oct ruling that took the word off): "Signing copy", "‹ Page 1 of 3 ›"
        and "− 100% +" in the head card, so nothing is added above the paper —
        the signing copy's own controls (scControlsHtml), pressed through the
-       one listener below */''}${up&&onHome&&igSignOn(c)?igSignCopyHtml(c):''}${/* THE WALK TO THE PLACES TO SIGN stands on this line, the Signing tab
+       one listener below */''}${up&&onHome&&igSignOn(c)?igSignCopyHtml(c):''}${/* THE WORKING COPY'S SIZE, ON THE LINE WHILE FILL IN IS OPEN (the gaps,
+       round 8 "Owed first": "Clean · Redline · Their view · − 100% +" in the
+       head, nothing above the paper): the one zoom's own control, shown only
+       beside Fill in by the sheet's rule; its twin above the sheet hides then */''}${up&&onHome&&!igSignOn(c)&&window.rlTypeStepHtml?`<span class="ig-zc-line" data-ig-zc-line>${rlTypeStepHtml()}</span>`:''}${/* THE WALK TO THE PLACES TO SIGN stands on this line, the Signing tab
        row's twin, while the signing copy is up (signWalkHtml) */''}${up&&onHome&&igSignOn(c)&&window.signWalkHtml?signWalkHtml(c,{ home:true }).replace('class="ui-btn"','class="ui-btn ui-btn-sm"'):''}
     ${up&&onHome&&!igSignOn(c)&&window.pdRedOk&&pdRedOk(c)?(()=>{ const n=c.changes.filter(x=>x&&x.status==='pending').length, red=igRedOn(c);
       const theirs=igTheirsOn(c);
@@ -8656,13 +8659,17 @@ function igPaperHtml(c){
 /* THE PAPER'S ONE ZOOM, OR THE SIGNING COPY'S OWN PAGE ARROWS AND SIZE (stage
    5): the signing copy is laid out at A4 and scaled whole, as the room's
    Signing tab drew it (docZoomCornerHtml), so the reading zoom stays off it */
-const IG_ZC_HOLD='<div class="paper-zc-row" aria-hidden="true"></div>';
 function igZoomCornerHtml(c){
   if(!window.rlPaperZoomHtml) return '';
-  /* the signing copy's pages and size stand on the paper's line (igSignCopyHtml);
-     the row stays, EMPTY, so the paper sits still when Before you sign opens
-     (the working copy's sheet starts under the same room) */
-  if(igSignOn(c)) return IG_ZC_HOLD;
+  /* NOTHING ABOVE THE SIGNING COPY (the gaps, round 10 "The road", the second
+     check, 18 Oct 2026: "the page arrows and size sit in the head card, so
+     nothing is added above the paper … the signing copy starts a little
+     higher than today, never lower"): its pages and size stand on the paper's
+     line (igSignCopyHtml), and no row, empty or not, is kept above the sheet.
+     The working copy's row goes the same way while Fill in is open (round 8):
+     its size stands on the line (.ig-zc-line), the row hidden by the sheet's
+     own rule (#ig-page:has(#pd-fillface)), so no paint has to follow the face. */
+  if(igSignOn(c)) return '';
   return rlPaperZoomHtml();
 }
 /* the signing copy's word and its own controls, for the paper's line */

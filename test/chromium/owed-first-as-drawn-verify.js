@@ -35,6 +35,18 @@
        the people named on <stream> see it"; Pay in a card of its own (Part ·
        How often · Amount, base pay owed said, Edit pay ›); Jambo waits for a
        press, its cost said
+   THE THIRD PASS (the checker's second list, 18 Oct 2026; main brought in;
+   node half f754 (8)):
+     1e re-pointed — "clause N" lands on the paper's spot through the one
+        lander (LAND ON IT), the cursor kept in the box
+     7a re-pointed — the owner's answer (5): no example in an empty owed box
+     8c the NDA editor's own names ("Secret until"); "· Confirm" on its line
+     9c re-pointed — the cost in Jambo calls; 9d base pay owed an amber pill
+        with its dot; 9e the wait line straight under Pay, with Jambo's face
+     10 Jambo perches over nothing of the face, at its top and foot, at the
+        owner's three screens
+     11 the size on the paper's line beside Fill in, nothing above the sheet;
+        back above the sheet once Fill in closes
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/owed-first-as-drawn-verify.js */
 const fs = require('node:fs');
@@ -126,11 +138,13 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
     await page.click('#pd-fillface [data-blankf="up_start_date"]');
     const here = await page.evaluate(() => { const r = document.querySelector('#pd-fillface [data-blankf="up_start_date"]').closest('[data-pd-owed]'); return r.querySelector('[data-pd-ff-at]').innerText.trim(); });
     check('1d the row being typed in: "on the paper · clause 3"', here === 'on the paper · clause 3', here);
-    const atPress = await page.evaluate(() => { const r = [...document.querySelectorAll('#pd-fillface [data-pd-owed]')].find(x => x.querySelector('[data-blankf="up_notice_period"]'));
-      const b = r && r.querySelector('[data-pd-ff-at]'); if (!b) return null; b.click();
-      return { focus: (document.activeElement || {}).getAttribute ? document.activeElement.getAttribute('data-blankf') : null,
-        lit: !!document.querySelector('#ig-canvas .is-fieldlit[data-upblank="up_notice_period"]') }; });
-    check('1e pressed, "clause 3" puts the cursor in the box and lights its spot on the paper', !!atPress && atPress.focus === 'up_notice_period' && atPress.lit, JSON.stringify(atPress));
+    await page.evaluate(() => { const r = [...document.querySelectorAll('#pd-fillface [data-pd-owed]')].find(x => x.querySelector('[data-blankf="up_notice_period"]'));
+      const b = r && r.querySelector('[data-pd-ff-at]'); if (b) b.click(); });
+    /* RE-POINTED (the third pass; main's LAND ON IT): the spot is lit by the one lander (.is-landed) */
+    const atPress = await until(() => { const lit = document.querySelector('#ig-canvas .is-landed[data-upblank="up_notice_period"]'); if (!lit) return null;
+      return { focus: (document.activeElement || {}).getAttribute ? document.activeElement.getAttribute('data-blankf') : null, lit: true,
+        green: !!document.querySelector('#ig-canvas .is-fieldlit[data-upblank="up_notice_period"]') }; }, null, 4000);
+    check('1e pressed, "clause 3" lands on its spot on the paper through the one lander, the cursor kept in the box', !!atPress && atPress.focus === 'up_notice_period' && atPress.lit, JSON.stringify(atPress));
     await shot(page, '8-owed-first-1440x780');
 
     /* 7 (pass 2) an example of the answer in each owed box; nothing over the rows; no chips */
@@ -140,7 +154,10 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
       return { start: ph('up_start_date'), value: ph('up_expected_yearly_value'), notice: ph('up_notice_period'),
         want: 'e.g. ' + d.toLocaleDateString(langLocale(), { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }),
         fillDoc: vis(f.querySelector('#kt-fill')), chips: document.querySelectorAll('#ig-dock [data-ig-chips] button').length }; });
-    check('7a an example of the answer in each owed box: a date, a span, a number', E7.start === E7.want && E7.notice === 'e.g. 90 days' && E7.value === 'A number', JSON.stringify(E7));
+    /* RE-POINTED (the third pass; the owner's answer (5): empty owed boxes stay empty with the amber wash, no "e.g. …") */
+    const EG = await page.evaluate(() => [...document.querySelectorAll('#pd-fillface [data-pd-owed="1"] :is(input, textarea)')].map(x => x.placeholder || '')
+      .concat([...document.querySelectorAll('#pd-fillface [data-pd-owed="1"] .dp-v')].map(x => x.textContent)));
+    check('7a no example in any empty owed box — no "e.g. …", no "A number"; a date says "Pick a date"', E7.start !== E7.want && EG.every(x => !/^e\.g\.|^t\.ex\.|^A number$/.test(x)), JSON.stringify({ E7, EG }));
     check('7b no "Fill from document" over the owed rows, no chips under the face', !E7.fillDoc && E7.chips === 0, JSON.stringify({ fillDoc: E7.fillDoc, chips: E7.chips }));
     /* 2 our standard */
     const N = await page.evaluate(() => { const r = document.querySelector('#pd-fillface [data-blankf="up_notice_period"]').closest('[data-pd-owed]'); const st = r.querySelector('[data-pd-ff-std]');
@@ -230,6 +247,14 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
       return { head: t(f.querySelector('[data-pd-ff-ndh]')), rows: rows.map(r => ({ at: t(r.querySelector('.det-nda-at')), box: t(r.querySelector('.det-nda-box')), line: t(r.querySelector('.det-nda-line')) })),
         inStill: rows.some(r => r.getBoundingClientRect().top < (f.querySelector('[data-pd-ff-owend]') || r).getBoundingClientRect().top && r.getBoundingClientRect().top > (f.querySelector('[data-pd-ff-owh]') || r).getBoundingClientRect().bottom && !!f.querySelector('[data-pd-ff-owh] h4')) }; });
     check('8a an NDA\'s facts in a card of their own: "Confidentiality · 2 to confirm"', N8.head === 'Confidentiality 2 to confirm' && N8.rows.length === 2 && !N8.inStill, JSON.stringify(N8));
+    /* (the third pass) the NDA's own editor's names, and "· Confirm" on its sentence's line */
+    const N8c = await pa.evaluate(() => [...document.querySelectorAll('#pd-fillface [data-pd-ff-card="nda"]')].map(r => { const lab = r.querySelector('.cd-lab, span'), tail = r.querySelector('.det-nda-tail');
+      return { label: (lab ? lab.textContent : '').replace(/\s*\*\s*$/, '').trim(), tail: tail ? tail.textContent.trim() : '', lines: tail ? tail.getClientRects().length : 0,
+        alone: (() => { const b = r.querySelector('[data-det-nda]'), t = tail && tail.firstChild; if (!b || !t) return null;
+          const range = document.createRange(); range.selectNodeContents(t); const tr = range.getBoundingClientRect(), br = b.getBoundingClientRect();
+          return Math.abs((tr.top + tr.bottom) / 2 - (br.top + br.bottom) / 2) > 8; })() }; }));
+    check('8c the facts by the NDA editor\'s own names — "Who keeps it secret", "Secret until" — and "· Confirm" never on a line of its own',
+      N8c.length === 2 && N8c[0].label === 'Who keeps it secret' && N8c[1].label === 'Secret until' && N8c.every(r => r.tail === 'person. · Confirm' && r.lines === 1 && r.alone === false), JSON.stringify(N8c));
     check('8b each "read from clause 5", its reading in a box, "Read from the wording, not yet confirmed by a person. · Confirm"',
       N8.rows.length === 2 && N8.rows.every(r => r.at === 'read from clause 5' && r.line === 'Read from the wording, not yet confirmed by a person. · Confirm')
       && N8.rows[0].box === 'Both sides (mutual)' && N8.rows[1].box === '3 years after the agreement ends', JSON.stringify(N8.rows));
@@ -244,7 +269,46 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
     check('9b Pay in a card of its own: "Pay · kept apart from deal value · never added to a total", Part · How often · Amount, base pay owed, Edit pay ›',
       P9.payHead === 'Pay · kept apart from deal value · never added to a total' && P9.th.join('|') === 'Part|How often|Amount' && P9.base.join('|') === 'Base pay|Monthly|not filled in yet · needed before signing'
       && P9.edit === 'Edit pay ›' && P9.payRow, JSON.stringify(P9));
-    check('9c Jambo waits for a press, its cost said', /^Jambo reads a private stream’s contract only when someone presses\. Read it now · .+$/.test(P9.wait), P9.wait);
+    /* RE-POINTED (the third pass; the owner's answer (4)): the cost in Jambo calls, lower case mid-line */
+    check('9c Jambo waits for a press, its cost said in calls', P9.wait === 'Jambo reads a private stream’s contract only when someone presses. Read it now · about three Jambo calls', P9.wait);
+    /* 9d–9e (the third pass) as drawn: base pay owed an amber pill with its dot; the wait line straight under Pay, with Jambo's face */
+    const P9b = await pa.evaluate(() => { const f = document.getElementById('pd-fillface'), pay = f.querySelector('[data-pd-ff-pay]'), wait = f.querySelector('[data-pd-ff-wait]');
+      const pill = pay && pay.querySelector('tbody tr.is-base .pd-pill.is-warn'), dot = pill && pill.querySelector('i');
+      const cards = [...f.querySelectorAll('.pd-ff-work > *')].filter(el => el.getClientRects().length && el !== wait && el !== pay && el.getBoundingClientRect().height > 8);
+      const pr = pay.getBoundingClientRect(), wr = wait.getBoundingClientRect();
+      const between = cards.filter(el => { const r = el.getBoundingClientRect(); return r.top >= pr.bottom - 1 && r.bottom <= wr.top + 1; }).map(el => el.className);
+      return { pill: pill ? pill.textContent.trim() : null, dot: !!dot && parseFloat(getComputedStyle(dot).width) > 0, under: wr.top >= pr.bottom - 1 && wr.top - pr.bottom < 24, between,
+        face: !!wait.querySelector('img.pd-ff-wait-face, .pd-ff-wait-face') }; });
+    check('9d base pay owed: "● not filled in yet · needed before signing", the amber pill with its dot', P9b.pill === 'not filled in yet · needed before signing' && P9b.dot, JSON.stringify(P9b));
+    check('9e the wait line stands straight under the Pay card, with Jambo\'s small face', P9b.under && !P9b.between.length && P9b.face, JSON.stringify(P9b));
+    /* 10 (the third pass) Jambo perches in empty space: over nothing of the face, at any scroll, at every screen */
+    const perchClear = () => pa.evaluate(() => { const p = document.querySelector('#ig-dock .jb-perch img'); if (!p) return { perch: false };
+      const pr = p.getBoundingClientRect(), f = document.getElementById('pd-fillface');
+      const hits = [...f.querySelectorAll('*')].filter(el => { if (!el.getClientRects().length || el.children.length) return false; const r = el.getBoundingClientRect();
+        const sc = f.closest('.scroll-thin, #igd-body') || f; const vr = sc.getBoundingClientRect();
+        const top = Math.max(r.top, vr.top), bot = Math.min(r.bottom, vr.bottom); if (bot <= top) return false;
+        return r.right > pr.left + 1 && r.left < pr.right - 1 && bot > pr.top + 1 && top < pr.bottom - 1; }).map(el => el.tagName + '.' + el.className);
+      return { perch: true, hits }; });
+    for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
+      await pa.setViewportSize({ width: w, height: ht }); await pa.waitForTimeout(400);
+      const top = await perchClear();
+      await pa.evaluate(() => { let e = document.getElementById('pd-fillface'); while (e && e !== document.body){ if (e.scrollHeight > e.clientHeight + 2 && /auto|scroll/.test(getComputedStyle(e).overflowY)){ e.scrollTop = e.scrollHeight; break; } e = e.parentElement; } });
+      await pa.waitForTimeout(250);
+      const bot = await perchClear();
+      check(`10 ${w}×${ht}: Jambo perches over nothing of the face, at its top and at its foot`, top.perch && bot.perch && !top.hits.length && !bot.hits.length, JSON.stringify({ top: top.hits, bot: bot.hits }));
+      await shot(pa, `8-owed-first-private-${w}x${ht}`);
+    }
+    await pa.setViewportSize({ width: 1440, height: 780 }); await pa.waitForTimeout(300);
+    /* 11 (the third pass) the size on the paper's line beside Fill in, nothing above the sheet; it goes back when Fill in closes */
+    const Z = () => pa.evaluate(() => { const vis = el => !!(el && el.getClientRects().length && getComputedStyle(el).display !== 'none');
+      const strip = document.getElementById('ig-strip'), line = strip && strip.querySelector('.ig-zc-line'), row = document.querySelector('#ig-paper-scroll > .paper-zc-row');
+      const sheet = document.querySelector('#ig-paper .pg-sheet, #ig-paper .ig-sheet, #ig-canvas');
+      return { line: vis(line) ? line.innerText.replace(/\s+/g, ' ').trim() : null, row: vis(row), gap: strip && sheet ? Math.round(sheet.getBoundingClientRect().top - strip.getBoundingClientRect().bottom) : null }; });
+    const Z1 = await Z();
+    check('11a beside Fill in the size stands on the paper\'s line, nothing above the sheet', !!Z1.line && /100%/.test(Z1.line) && !Z1.row && Z1.gap != null && Z1.gap <= 24, JSON.stringify(Z1));
+    await pa.evaluate(() => pdFillClose()); await pa.waitForTimeout(500);
+    const Z2 = await Z();
+    check('11b Fill in closed, the size is the paper\'s own again, above the sheet', !Z2.line && Z2.row, JSON.stringify(Z2));
     await shot(pa, '8-owed-first-private-1440x780');
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }
   finally {
