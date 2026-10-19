@@ -160,6 +160,8 @@ const LAND = () => {
     count: (() => { const n = document.querySelector('#ig-wall .igw-count'); return n ? n.textContent.trim() : null; })(),
     /* Jambo's Share card in the panel (the glance's Share asks his word "share", which answers with it) */
     shareCard: !!document.querySelector('#ig-dock [data-ca-act="shareout"]'),
+    /* the clause editor open on its Risks tab (the glance's risks row, joined at the integration, 19 Oct 2026) */
+    ceRisks: !!document.getElementById('ce-tab-risks') && !!document.querySelector('#clause-editor'),
     /* the contract's Lifeline strip on top of the Board (step 8), and its page */
     strip: (() => { const n = document.querySelector('#bs-strips > .bs-strip'); return n ? n.getAttribute('data-bs-id') : null; })(),
     stripPage: (() => { const n = document.querySelector('#bs-strips > .bs-strip'); return n ? n.getAttribute('data-bs-on') : null; })(),
@@ -687,16 +689,20 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
       await page.evaluate(async i => { const c = getContract(i); const cl = negoClauseList(c)[0]; if (!cl) return;
         const now = negoClauseNowById(c, cl.clauseId); const body = (now && now.bodyHtml) || '<p>' + ((now && now.text) || cl.text || '') + '</p>';
         await negoEditClause(c, cl.clauseId, body.replace(/<\/p>(?![\s\S]*<\/p>)/, ' Both parties shall keep a copy.</p>'), { side: 'owner' }); }, gid);
-      const GL = { fill: [E.fill(gid), SAYS.fill], redline: [E.red(gid), SAYS.red],
+      /* RE-POINTED AT THE INTEGRATION (19 Oct 2026): the dropped contract's
+         "redline" row is its RISKS row, and round 9 as drawn left the Redlines
+         face beside Home's paper with no risk list — so that row's door opens
+         the clause editor's Risks tab (data-pd-gl-risks), where they are */
+      const GL = { fill: [E.fill(gid), SAYS.fill], redline: [L => L.ceRisks, 'the clause editor, on its Risks tab'],
         share: [L => E.paper(gid)(L) && L.shareCard, 'the paper, Jambo\'s Share card'], sign: [E.signing(gid), SAYS.signing] };
       /* the card stands where no face is open: the face the last press opened is put away first */
-      const glanceStart = async () => { await page.evaluate(i => { for (const f of ['pdFillAway', 'pdRedAway', 'pdSignAway']) try { if (typeof window[f] === 'function') window[f](); } catch (_) { /* none open */ }
+      const glanceStart = async () => { await page.evaluate(i => { for (const f of ['rlCloseClauseEditor', 'pdFillAway', 'pdRedAway', 'pdSignAway']) try { if (typeof window[f] === 'function') window[f](); } catch (_) { /* none open */ }
         pdOpenOnHome(i, 'copilot'); if (typeof renderIntelDock === 'function') renderIntelDock(); }, gid);
         await waitFor(page, i => !!document.querySelector(`#pd-glance[data-pd-glance-for="${i}"]`), 8000, gid); };
       for (const k of ['fill', 'redline', 'share', 'sign'])
         await door(D, `the glance's "${k}" button (on the dropped contract)`, { start: glanceStart, same: k === 'share',
           press: async () => { if (!(await waitFor(page, i => !!document.querySelector(`#pd-glance[data-pd-glance-for="${i}"]`), 6000, gid))) return false;
-            return domClick(`#pd-glance [data-pd-glance="${k}"]`); },
+            return domClick(k === 'redline' ? '#pd-glance [data-pd-gl-risks]' : `#pd-glance [data-pd-glance="${k}"]`); },
           expect: GL[k][0], says: GL[k][1] });
     } else record(D, 'the glance\'s buttons', false, 'no dropped contract to read', 'missing');
     /* the draft card's Open the form is the ONE form, never the two-door menu; Create lands on the new paper */
