@@ -1435,6 +1435,11 @@ function pdTalkSync(dock){
   if (k.indexOf('dock:') !== 0) return false;
   /* THE READER'S HAND WINS: an answer that lands after they went back is kept
      in the conversation for the next flip, never pulled up over the landing */
+  /* A GUIDE ROW IS NOT TYPING (19 Oct 2026): a press on Explorer's Guide runs
+     its words through intelAsk, and the map changes while the Guide stays up
+     and reads Showing — the words it put in the conversation are seen, never
+     a turn to the conversation (explorer-guide-tab-verify 3b) */
+  if (k.slice(-6) === ':guide'){ _pdTalk.seen = len; _pdTalk.quiet = false; return false; }
   if (_pdTalk.quiet && len > _pdTalk.seen){ const H2 = H.slice(_pdTalk.seen); if (!H2.some(m => m && m.role === 'user')){ _pdTalk.seen = len; if (!(intel && intel.busy)) _pdTalk.quiet = false; } }
   if (len > _pdTalk.seen){ _pdTalk.quiet = false; jamboTalkOpen(k, dock); _pdTalk.seen = len; }
   return jamboTalkShows(k);
