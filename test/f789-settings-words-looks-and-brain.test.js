@@ -88,8 +88,11 @@ describe('f789 (3) the brain, and what the page publishes', () => {
     const pub = SET.slice(SET.lastIndexOf('Object.assign(window'));
     for (const n of ['stPaintHead', 'stRowFormOpen', 'stRowFormClose', 'stSwPickSet', 'stSwPanelHtml', 'stJbFeedHtml', 'stSideFoldSet', 'stMyCopyDownload'])
       assert.match(pub, new RegExp('\\b' + n + '\\b'), n);
+    /* RE-POINTED (third pass): the head is a card in the page beside Jambo
+       (stHeadCardHtml), so the window's head paints nothing for Settings */
     const app = fs.readFileSync(path.join(ROOT, 'js/app.js'), 'utf8');
-    assert.match(app, /PAGE_HEAD_PAINT\.team\s*=\s*'stPaintHead'/);
+    assert.doesNotMatch(app, /PAGE_HEAD_PAINT\.team\s*=/);
+    assert.match(SET, /function stHeadCardHtml\(admin, face\)/);
   });
 });
 
@@ -126,5 +129,52 @@ describe('f789 (4) the second pass: words, looks, brain', () => {
     assert.ok(p && p.code === 'POST /api/clashes/seen');
     assert.equal(Object.values(BRAIN_LANE_OF).filter(l => l.includes('clashseen')).length, 1);
     assert.ok(new Set(BRAIN_FLOWS.flatMap(f => f.steps.flat())).has('clashseen'));
+  });
+});
+
+/* ---- THE THIRD PASS (19 Oct 2026): the words, the one reading of the
+   clashes on both hosts, and the brain. AT THE PARENT (5aea3f2, main merged
+   in, before this pass) every test below fails. ---- */
+const NEW3 = 'st_cf_capped_one st_cf_capped_other st_cf_day_calls_one st_cf_day_calls_other st_swp_hold_missing st_tr_quarter_short st_dev_other_computer_one st_dev_other_computer_other st_dev_n_ipad_one st_dev_n_ipad_other brn_p_clashfind brn_pd_clashfind'.split(' ');
+describe('f789 (5) the third pass: one reading of the clashes, both hosts; words; the brain', () => {
+  const C = require('../js/clashkeys.js');
+  const ruleOf = u => ({ on: u.overseerOn === 'always', approverId: u.overseerId || '' });
+  test('5a clashFind reads the four clashes, and only those', () => {
+    const users = [{ id: 'a', name: 'Lina Ek', role: 'legal', signCap: 10, overseerOn: 'always', overseerId: 'b' },
+      { id: 'b', name: 'Jonas Berg', role: 'legal', signCap: 5, overseerOn: 'always', overseerId: 'a' },
+      { id: 'c', name: 'Erik Ström', role: 'legal', signCap: 2 }, { id: 'v', name: 'Vic', role: 'viewer' }];
+    const rules = [{ id: 'r1', cond: { type: 'folder', value: 'sales' }, approver: { kind: 'member', id: 'c', name: 'Erik Ström' } }];
+    const keys = C.clashFind({ users, capOn: true, ruleOf, rules, canOpen: () => true, openStreams: new Set(['sales', 'board']) }).map(x => x.key);
+    assert.deepEqual(keys, ['clash:cap:a', 'clash:each:a|b', 'clash:self:r1:c', 'clash:nobody:board']);
+    assert.deepEqual(C.clashFind({ users, capOn: false, ruleOf, rules: [] }).map(x => x.key), ['clash:each:a|b'], 'limits off: no cap clash');
+    assert.equal(C.clashCapRead('none').answered, true); assert.equal(C.clashCapRead('').answered, false);
+    assert.deepEqual([...C.clashOpenStreams([{ folder: 's', status: 'Draft' }, { folder: 'x', status: 'Signed' }, { folder: 'y', status: 'Draft', archived: true }, { folder: 'z', status: 'Draft', parentId: 'p' }])], ['s']);
+  });
+  test('5b the page asks it, the server asks it: one reading, never a second', () => {
+    const fs = require('node:fs'), path = require('node:path');
+    const SRV = fs.readFileSync(path.join(__dirname, '..', 'server', 'server.js'), 'utf8');
+    assert.match(SRV, /const \{ clashFind \} = require\('\.\.\/js\/clashkeys\.js'\);/);
+    assert.match(SRV, /function srvClashKeys\(\) \{[\s\S]*?clashFind\(\{/);
+    assert.match(SRV, /app\.use\('\/api', clashWatch\);/, 'every write asks it to look again');
+    const i = SET.indexOf('function stClashes()'), st = SET.slice(i, SET.indexOf('\n}', i) + 2);
+    assert.match(st, /clashFind\(\{/);
+    assert.doesNotMatch(st, /pairs\.add|users\.forEach/, 'no second reading in the page');
+    assert.match(fs.readFileSync(path.join(__dirname, '..', 'js', 'app.js'), 'utf8'), /import '\.\/clashkeys\.js';/);
+  });
+  test('5c every new word in both books, the same blanks, never at the end of a book', () => {
+    const blanks3 = s => (String(s).match(/\{\w+\}/g) || []).sort().join(',');
+    for (const k of NEW3) {
+      assert.equal(typeof S.en[k], 'string', 'English: ' + k);
+      assert.equal(typeof S.sv[k], 'string', 'Swedish: ' + k);
+      assert.equal(blanks3(S.en[k]), blanks3(S.sv[k]), 'the same blanks: ' + k);
+    }
+    for (const book of ['en', 'sv']) { const tail = new Set(Object.keys(S[book]).slice(-50)); for (const k of NEW3) assert.ok(!tail.has(k), book + ' ' + k); }
+  });
+  test('5d the brain names the one reading: its part, one lane, a flow step, an area', () => {
+    const B = require('../js/brainmap.js');
+    assert.ok(B.BRAIN_PARTS.some(p => p.id === 'clashfind' && p.code === 'clashFind'));
+    assert.equal(Object.keys(B.BRAIN_LANE_OF).filter(k => B.BRAIN_LANE_OF[k].includes('clashfind')).length, 1);
+    assert.ok(B.BRAIN_FLOWS.some(f => f.steps.some(s => s.includes('clashfind'))));
+    assert.ok(B.BRAIN_FILE_REGION.some(([re]) => re.test('js/clashkeys.js')));
   });
 });

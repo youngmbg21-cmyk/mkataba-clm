@@ -104,7 +104,9 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       const at = await until(() => { const s = document.getElementById('st-you-data'); if (!s) return null; const r = s.getBoundingClientRect();
         const band = (document.querySelector('.st-tabs-pin') || { getBoundingClientRect: () => ({ bottom: 0 }) }).getBoundingClientRect().bottom;
         const toc = document.querySelector('#set-page .st-toc').getBoundingClientRect();
-        return r.top >= band - 1 && r.bottom <= innerHeight + 1 && s.classList.contains('st-lit') ? { top: Math.round(r.top), band: Math.round(band), tocTop: Math.round(toc.top), tocBottom: Math.round(toc.bottom) } : null; }, null, 5000);
+        /* re-pointed 19 Oct 2026 (LAND ON IT, main's rule): lit by the one lander;
+           the tabs are the head card's now, so the band is only where one pins */
+        return r.top >= band - 1 && r.bottom <= innerHeight + 1 && s.classList.contains('is-landed') ? { top: Math.round(r.top), band: Math.round(band), tocTop: Math.round(toc.top), tocBottom: Math.round(toc.bottom) } : null; }, null, 5000);
       check('5a the section comes into view, lit', !!at, JSON.stringify(at));
       check('5b the list stays in view under the tab band', !!at && at.tocTop >= at.band - 1 && at.tocBottom <= 780, JSON.stringify(at));
       const cur = await page.evaluate(() => (document.querySelector('#set-page .st-toc [aria-current="true"]') || {}).getAttribute && document.querySelector('#set-page .st-toc [aria-current="true"]').getAttribute('data-st-toc'));

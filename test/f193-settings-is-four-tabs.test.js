@@ -136,7 +136,9 @@ const OLD_PAGE = [
   { name: 'how the work is shaped', where: 'platform', panel: 'workshape', has: ['set-work-word'] },
   { name: 'company design', where: 'platform', panel: 'design', has: ['brand-edit'] },
   { name: 'the signer directory', where: 'platform', panel: 'directory', has: ['dir-import', 'dir-clear'] },
-  { name: 'data & backup', where: 'platform', panel: 'backup', has: ['bk-export'] },
+  /* re-pointed 19 Oct 2026 (the gaps' third pass): every door that says
+     "Data & backup" lands on its first tab, The trail; Backup is a press */
+  { name: 'data & backup', where: 'platform', panel: 'backup', tab: 'backup', has: ['bk-export'] },
   // ---- the Copilot engine, whole ----
   { name: 'the Copilot key', where: 'build', panel: 'engine', has: ['ai-key', 'ai-key-save', 'ai-key-clear'] },
   { name: 'model routing and the global override', where: 'build', panel: 'engine',
@@ -187,6 +189,7 @@ describe('f193 — half (a): nothing the old page carried was left behind', () =
       if (item.person) sb.settingsPersonDrawer(item.person);
       else if (item.panel) sb.stDrawerOpen(item.panel);
       else if (item.me) sb.stDrawerOpen('me:' + item.me);
+      if (item.tab){ const b = sb.document.querySelector(`[data-st-bk-tab="${item.tab}"]`); if (b) b.dispatchEvent(new sb.document.defaultView.Event('click', { bubbles: true })); }
       const html = (item.person || item.panel || item.me) ? drawerHtml() : pageHtml();
       if (item.sel) assert.ok(sb.document.querySelector(item.sel), `${item.sel} is on the ${item.where} tab`);
       for (const id of item.has || [])
@@ -720,7 +723,12 @@ describe('f193 — the tab row does not scroll away', () => {
     assert.ok(RULE, 'the pin is its own rule, keyed on the row');
     const LIB = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'library.js'), 'utf8');
     const SET = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'settings.js'), 'utf8');
-    assert.match(SET, /class="st-tabs st-tabs-pin( sap-band)?( st-facebar)?"/, 'Settings opts in (on the white band since 9 Oct 2026, holding the You · Company pill since 16 Oct)');
+    /* RE-POINTED 19 Oct 2026 (the gaps' third pass, rounds 24 and 25 as
+       drawn): Settings' You · Company tabs live in the head card in the left
+       column, beside Jambo's whole-height panel, and scroll with it — Settings
+       no longer opts in; the pin stays an opt-in for the pages that draw it */
+    assert.doesNotMatch(SET, /class="st-tabs st-tabs-pin[^"]*st-facebar/, 'Settings no longer pins its tabs');
+    assert.match(SET, /<div class="st-facebar">/, 'its tabs are the head card\'s');
     /* Our standards is now a tab of "Our paper" (4 Oct 2026): the page's tab
        row and the standards row are pinned together as ONE opted-in block. */
     assert.match(LIB, /class="st-tabs-pin"[^>]*>\$\{paperTabsHtml\('standards'(?:, true)?\)\}/, 'and so does Our standards');

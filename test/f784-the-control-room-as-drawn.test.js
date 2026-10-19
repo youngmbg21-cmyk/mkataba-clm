@@ -24,8 +24,9 @@ const factSaid = (g, f) => { const n = f.querySelector('.st-fact-n'), st = f.que
 describe('f784 (1) the head and the tabs', () => {
   test('1a "Settings · Highland Corporate Ltd"; You · Company as tabs with Company\'s count', () => {
     const g = company({ capOn: true, more: [{ id: 'u_x', name: 'Ann Holm', role: 'legal', email: 'a@h.t', prefs: { mustChangePassword: true } }] });
-    assert.equal(g.text(g.$('page-head-facts')), 'Highland Corporate Ltd');
-    const tabs = g.qa('#set-page .st-faces [data-st-tab]');
+    /* RE-POINTED (third pass): the head is a card in the left column */
+    assert.equal(g.text(g.q('#st-headcard [data-st-head-sub]')), 'Highland Corporate Ltd');
+    const tabs = g.qa('#st-headcard .st-faces [data-st-tab]');
     assert.deepEqual(tabs.map(t => t.getAttribute('data-st-tab')), ['you', 'company']);
     const n = g.q('#set-page .st-face[data-st-tab="company"] .st-face-n');
     assert.equal(n.textContent, String(g.sb.stNeedsAll().length));
@@ -65,7 +66,9 @@ describe('f784 (3) Jambo says the page', () => {
     const g = company();
     g.run(`stNeedsAll=()=>[{key:'clash:cap:u1',text:'a'},{key:'clash:pair:u1:u2',text:'b'},{key:'clash:rule:r1',text:'c'},{key:'clash:stream:s1',text:'d'},{key:'review',text:'e'}];
       stClashes=()=>[1,2,3,4];`);
-    assert.equal(g.sb.stJbCompanyWords(), 'Five things need you here: a clash in who may sign what, three clashes in who may do what and the quarterly access review. Each row’s button opens what settles it. 4 of them are clashes in who may do what: they warn, nothing is blocked.');
+    /* RE-POINTED (third pass): his words are the drawing's, nothing after
+       them — the clash rows say themselves that they warn */
+    assert.equal(g.sb.stJbCompanyWords(), 'Five things need you here: a clash in who may sign what, three clashes in who may do what and the quarterly access review. Each row’s button opens what settles it.');
   });
   test('3c the panel\'s head says what it holds', () => {
     const g = company();
@@ -89,9 +92,12 @@ describe('f784 (4) the cards as drawn', () => {
   });
   test('4c Jambo: on, and his day limit; his agents, how many and how far they go', () => {
     const g = company({ ai: true, agents: { agents: { a: { on: true, level: 'ask' }, b: { on: true, level: 'ask' } } },
-      before: sb => { sb.state.aiCfg = { limits: { dailySpendLimit: 5 } }; } });
+      before: sb => { sb.state.aiCfg = { limits: { dailySpendLimit: 5, dailyLimit: 5000 } }; } });
     const facts = g.qa('[data-st-card="copilot"] .st-fact').map(f => factSaid(g, f));
-    assert.ok(facts.some(f => /^Jambo · On · \$5 a day at most$/.test(f)), JSON.stringify(facts));
+    /* RE-POINTED (third pass, owner's answer 4): his day limit in CALLS,
+       never money */
+    assert.ok(facts.some(f => /^Jambo · On · 5,000 calls a day at most$/.test(f)), JSON.stringify(facts));
+    assert.ok(!facts.some(f => /\$/.test(f)), 'no money: ' + JSON.stringify(facts));
     assert.ok(facts.some(f => /2 of 2 on, all Ask me first$/.test(f)), JSON.stringify(facts));
   });
   test('4d Housekeeping: keeping on N of M streams, and the last trail download, by whom', () => {
@@ -150,11 +156,14 @@ describe('f784 (6) a clash: since when, whose drawer, the limit lit, back to the
     assert.equal(g.text(go), 'Open Lina Ek');
     assert.equal(go.getAttribute('data-st-focus'), '#tm-cap', 'the limit that clashes is lit');
   });
-  test('6b the page tells the server the clashes it sees, only when that set moved', () => {
+  /* RE-POINTED (third pass): the server finds the clashes itself; the page
+     only asks it to look again when a clash it shows has no day — and sends
+     no list */
+  test('6b the page asks the server to look again only when a clash it shows has no day', () => {
     const g = company({ capOn: true, more: LINA(), state: { clashSeen: {} },
-      reply: (route, method, body) => route === 'clashes/seen' ? { seen: Object.fromEntries(body.keys.map(k => [k, '2026-10-16'])) } : null });
+      reply: route => route === 'clashes/seen' ? { seen: { 'clash:cap:u_y': '2026-10-16' } } : null });
     const told = g.log.api.filter(a => a.route === 'clashes/seen');
-    assert.equal(told.length, 1); assert.deepEqual([...told[0].body.keys], ['clash:cap:u_y']);
+    assert.equal(told.length, 1); assert.equal(told[0].body.keys, undefined, 'no list is sent');
     const quiet = company({ capOn: true, more: LINA(), state: { clashSeen: { 'clash:cap:u_y': '2026-10-14' } } });
     assert.equal(quiet.log.api.filter(a => a.route === 'clashes/seen').length, 0, 'nothing moved, nothing is sent');
   });
@@ -191,7 +200,10 @@ describe('f784 (7) the cards: the drawing\'s facts and doors', () => {
   test('7b Jambo, Housekeeping, Going live & plumbing', () => {
     const g = company();
     assert.deepEqual(doorsOf(g, 'copilot'), ['Jambo’s agents', S.en.st_p_boardwords || doorsOf(g, 'copilot')[1]]);
-    assert.equal(g.q('[data-st-card="copilot"] .st-door').getAttribute('data-st-view'), 'jambo', 'his agents\' page, the house');
+    /* RE-POINTED (third pass): every card door opens its page with ‹ Settings
+       — the agents' own page, not his house */
+    const ag = g.q('[data-st-card="copilot"] .st-door');
+    assert.equal(ag.getAttribute('data-st-panel'), 'agents'); assert.ok(ag.hasAttribute('data-st-dock'), 'a page on the desk');
     const house = g.qa('[data-st-card="house"] .st-door');
     assert.deepEqual(house.map(d => g.text(d).replace(/ ›$/, '')), ['The trail', 'Data & backup', 'Monthly report']);
     assert.equal(house[1].getAttribute('data-st-page'), 'data');
@@ -207,3 +219,74 @@ describe('f784 (7) the cards: the drawing\'s facts and doors', () => {
     assert.equal(g.text(g.q('#st-sheet-card .st-sh-row[data-st-panel="person:u_me"] .st-sh-who')), 'Young Mbagaya');
   });
 });
+
+/* ---- THE THIRD PASS (19 Oct 2026): the checker's differences after main
+   moved on, built. AT THE PARENT (5aea3f2, main merged in, before this pass)
+   every test below fails. ---- */
+const fs3 = require('node:fs');
+const path3 = require('node:path');
+const HTML3 = fs3.readFileSync(path3.join(__dirname, '..', 'index.html'), 'utf8');
+describe('f784 (8) the third pass: the frame, every card door a page, the facts, his words', () => {
+  test('8a the head card leads the left column; Jambo\'s panel is the right column, the whole window tall', () => {
+    const g = company();
+    const left = g.q('#set-page .st-cr-cols > .st-cr-left');
+    assert.ok(left && left.firstElementChild.id === 'st-headcard', 'the head card in the left column');
+    assert.ok(g.q('#st-headcard .st-facebar .st-faces'), 'the You · Company tabs inside it');
+    const wide = /@media \(min-width:981px\)\{([\s\S]*?)\n  \}/.exec(HTML3.slice(HTML3.indexOf('THE FRAME, AS DRAWN (rounds 24 and 25')));
+    assert.ok(wide, 'the frame from 981px');
+    assert.match(wide[1], /\.st-cr \.st-side\{ top:0; margin:calc\(-1 \* var\(--page-pad-t\)\) calc\(-1 \* var\(--page-pad-x\)\) 0 0;/);
+    assert.match(wide[1], /border-left:1px solid var\(--color-divider\); border-radius:0;/);
+    assert.match(fnBody3('stSideFit'), /matchMedia\('\(min-width:981px\)'\)[\s\S]*sc\.clientHeight/, 'its height is the scroller\'s own');
+  });
+  test('8b every panel door on a card, the ladder\'s and Add member open the panel as a PAGE with ‹ Settings; ‹ Settings lands back on the door', async () => {
+    const landed = [];
+    const g = company({ capOn: true, more: LINA(), before: sb => { sb.landOn = (t, o) => { landed.push(typeof t === 'function' ? t() : t); return Promise.resolve(null); }; } });
+    const doors = g.qa('#set-page [data-st-card] .st-door[data-st-panel]').filter(d => !['trail', 'backup'].includes(d.getAttribute('data-st-panel')));
+    assert.ok(doors.length >= 12 && doors.every(d => d.hasAttribute('data-st-dock')), doors.map(d => d.getAttribute('data-st-panel')).join(','));
+    assert.ok(g.q('[data-st-card="people"] .st-door[data-st-panel="person:new"][data-st-dock]'), 'Add member');
+    g.click(g.q('[data-st-card="signing"] .st-door[data-st-panel="limits"]'));
+    const pg = g.q('#set-page[data-st-sub="panel"]');
+    assert.ok(pg, 'a page at its own name');
+    const dr = g.q('#st-dock > #st-drawer');
+    assert.ok(dr && dr.classList.contains('is-docked') && dr.classList.contains('open') && !dr.hidden, 'the one drawer, docked in the page');
+    assert.ok(g.q('#st-dock #st-lim-u_y'), 'its own body — everyone\'s limits');
+    assert.equal(g.text(g.q('#set-page .st-pg-back')), '‹ ' + S.en.pg_team, '‹ Settings is the way back');
+    assert.equal(g.text(g.$('st-side-word')), g.text(g.q('#st-dock .rvd-title')), 'Jambo\'s head names the page');
+    g.click(g.q('#set-page .st-pg-back')); await g.flush();
+    assert.equal(g.q('#set-page[data-st-sub]'), null, 'back on the board');
+    assert.ok(g.$('st-drawer').hidden && g.$('st-drawer').parentElement === g.win.document.body, 'the drawer put away');
+    assert.ok(landed.some(el => el && el.getAttribute && el.getAttribute('data-st-panel') === 'limits' && el.classList.contains('st-door')), 'landed on the door that was pressed');
+  });
+  test('8c Done on a docked page goes back to Settings; Needs your attention\'s own buttons keep the drawer', () => {
+    const g = company({ capOn: true, more: LINA() });
+    g.click(g.q('[data-st-card="links"] .st-door[data-st-panel="linkcode"]'));
+    assert.ok(g.q('#st-dock #st-drawer.is-docked'));
+    g.click(g.q('#st-dfoot [data-st-dclose]'));
+    assert.equal(g.q('#set-page[data-st-sub]'), null);
+    g.click(g.q('#st-att .st-need[data-st-need^="clash:cap:"] .st-need-go'));
+    const dr = g.$('st-drawer');
+    assert.ok(dr.classList.contains('open') && !dr.classList.contains('is-docked') && dr.parentElement === g.win.document.body, '"Open Lina Ek" opens her drawer, as drawn');
+  });
+  test('8d a refresh brings the docked page back', () => {
+    const g = company();
+    g.click(g.q('[data-st-card="copilot"] .st-door[data-st-panel="agents"]'));
+    const place = g.sb.settingsPlace();
+    assert.deepEqual([place.page, place.dock], ['panel', 'agents']);
+    const h = settingsStage({ before: sb => sb.settingsPlacePut(place) });
+    assert.ok(h.q('#st-dock #st-drawer.is-docked'), 'docked again after the refresh');
+  });
+  test('8e "Signing limits · On, N people capped"', () => {
+    const g = company({ capOn: true, more: LINA() });
+    const f = g.qa('[data-st-card="signing"] .st-fact').map(x => factSaid(g, x));
+    assert.ok(f.includes('Signing limits · On, 2 people capped'), JSON.stringify(f));
+    for (const lang of ['en', 'sv']) for (const k of ['st_cf_capped_one', 'st_cf_capped_other', 'st_cf_day_calls_one', 'st_cf_day_calls_other']) assert.equal(typeof S[lang][k], 'string', k + ' ' + lang);
+  });
+  test('8f his first words are the drawing\'s: the list, then "Each row\'s button opens what settles it." and nothing after', () => {
+    const g = company({ capOn: true, more: LINA() });
+    const w = g.text(g.q('#st-jb-feed [data-st-jb-hello] .st-jb-bub'));
+    assert.match(w, /Each row’s button opens what settles it\.$/);
+    assert.doesNotMatch(w, /warns|nothing is blocked/);
+    assert.equal(S.en.st_jb_np_unseen, 'contracts no admin can see waiting in {stream}', 'a stream is named "in <stream>", as drawn');
+  });
+});
+function fnBody3(name){ const SRC = fs3.readFileSync(path3.join(__dirname, '..', 'js', 'views', 'settings.js'), 'utf8'); const i = SRC.search(new RegExp('function ' + name + '\\(')); return i < 0 ? '' : SRC.slice(i, SRC.indexOf('\n}', i) + 2); }

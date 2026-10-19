@@ -56,6 +56,7 @@ import './signcheck.js';   // where a contract stands at the signing door: one d
 /* Approval before signing: who on a contract needs a named colleague's yes
    before anyone signs it — one reading, loaded by the server too (23 Sep 2026). */
 import './signapproval.js';
+import './clashkeys.js';     // clashes in who may do what: one reading, loaded by the server too (19 Oct 2026)
 import './approvals.js';
 import './review.js';       // internal review: the step between writing a redline and sending it
 import './desk.js';         // the negotiation desk: who works this negotiation, and who may send
@@ -422,10 +423,9 @@ function pageActionHtml(kind){
     icon('plus','w-3.5 h-3.5',2)} ${i18t('home_draft_new')}</button>`;
   return '';
 }
-/* SETTINGS PAINTS ITS HEAD'S FACT AND ACT TOO (rounds 24 and 25 as drawn,
-   the gaps of 18 Oct 2026): "Settings · <the company>", or a member's "Your
-   settings · yours alone — nobody else sees them" with Ask an admin. */
-PAGE_HEAD_PAINT.team='stPaintHead';
+/* SETTINGS SAYS ITS OWN NAME IN A HEAD CARD BESIDE JAMBO (rounds 24 and 25
+   as drawn, the gaps' third pass, 19 Oct 2026): stHeadCardHtml, in the page;
+   the window's head steps aside there (index.html, by scope). */
 /* PAGES THAT ALREADY STATE THEIR OWN NAME get no header from here — putting
    one above them is the second layer this whole change removes.
 

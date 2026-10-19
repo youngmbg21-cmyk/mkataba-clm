@@ -167,6 +167,11 @@ describe('f727 (3) Data & backup is a page', () => {
     assert.ok(pg, 'the page is drawn');
     const dw = win.document.getElementById('st-drawer');
     assert.ok(!(dw && dw.classList.contains('open')), 'no drawer');
+    /* RE-POINTED 19 Oct 2026 (the gaps' third pass): "Data & backup" opens
+       on its first tab, The trail, from every door — one name, one landing;
+       Backup is its own tab's press */
+    assert.equal(pg.querySelector('[data-st-bk-tab].is-on').getAttribute('data-st-bk-tab'), 'trail');
+    pg.querySelector('[data-st-bk-tab="backup"]').dispatchEvent(new win.Event('click', { bubbles: true }));
     assert.ok(win.document.getElementById('bk-export'), 'Backup holds the backup');
     sb.stDrawerOpen('trail');
     assert.equal(win.document.querySelector('[data-st-pg="data"] [data-st-bk-tab].is-on').getAttribute('data-st-bk-tab'), 'trail');

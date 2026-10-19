@@ -48,16 +48,21 @@ describe('f788 (1) the panel\'s head', () => {
   });
 });
 
-describe('f788 (2) the Menu, by "/"', () => {
-  test('2a the box says it; "/" opens the Menu; "‹ Jambo" goes back', () => {
+describe('f788 (2) the Menu, and "/"', () => {
+  /* RE-POINTED 19 Oct 2026 (the gaps' third pass; JAMBO, THE SAME ON EVERY
+     PAGE — main's rule): "/" in his box is every box's "/" (data-ca-slash,
+     the places, js/copilotacts.js); the page keeps no "/" of its own. The
+     Menu is still one press away where he finds nothing, with ‹ Jambo back */
+  test('2a the box says it and carries every box\'s "/"; the Menu has ‹ Jambo', () => {
     const g = settingsStage();
     const box = g.$('st-jb-q');
     assert.equal(box.getAttribute('placeholder'), S.en.st_jb_ph);
     assert.equal(S.en.st_jb_ph, 'Ask for anything, or type /');
-    assert.ok(g.$('st-side-menu').hidden, 'the Menu waits');
+    assert.ok(box.hasAttribute('data-ca-slash'), 'the one "/" reader');
     input(g, box, '/');
-    assert.equal(box.value, '', 'the "/" is not left in his box');
-    assert.ok(!g.$('st-side-menu').hidden && g.$('st-side-jambo').hidden, 'the Menu in front');
+    assert.equal(box.value, '/', 'the page keeps no "/" of its own');
+    assert.ok(g.$('st-side-menu').hidden, 'the Menu does not jump in front');
+    g.sb.stSideSet('menu');
     const back = g.q('#st-side-head .st-side-back[data-st-side="jambo"]');
     assert.ok(back, '‹ Jambo');
     assert.equal(g.text(back), '‹ ' + S.en.st_side_jambo);

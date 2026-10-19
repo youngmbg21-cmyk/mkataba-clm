@@ -104,7 +104,8 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     if (await press('#st-att .st-need[data-st-need^="clash:cap:"] .st-need-go', '2c the clash\'s button')) {
       const dr = await until(() => { const say = document.querySelector('#st-dbody .st-clash-say'), cap = document.getElementById('tm-cap'), back = document.getElementById('tm-bz-back');
         if (!say || !cap || !back) return null;
-        return { lit: cap.classList.contains('st-lit'), say: say.textContent.trim(), back: back.textContent.trim(), shown: !back.hidden && back.getBoundingClientRect().width > 0,
+        /* re-pointed 19 Oct 2026 (LAND ON IT): lit by the one lander */
+        return { lit: cap.classList.contains('is-landed'), say: say.textContent.trim(), back: back.textContent.trim(), shown: !back.hidden && back.getBoundingClientRect().width > 0,
           order: [...document.querySelectorAll('#st-dfoot .st-dfoot-acts > button')].map(b => b.id || (b.hasAttribute('data-st-dclose') ? 'cancel' : '?')) }; });
       check('2c the limit that clashes is lit', !!dr && dr.lit);
       check('2d the clash and its two ways forward, said under the limit', !!dr && /^A clash: Restricted may sign more than the person who approves first, Unrestricted Legal\. Lower the limit to the role’s KES 5M, or name an approver who signs up to KES 10M\.$/.test(dr.say), dr && dr.say);
@@ -121,8 +122,10 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
 
     console.log('\n3 · the cards\' doors; Data & backup on The trail; Jambo counts on Backup');
     const doors = await until(() => { const c = document.querySelector('[data-st-card="copilot"] .st-door'), h2 = [...document.querySelectorAll('[data-st-card="house"] .st-door')];
-      return c && h2.length ? { agents: c.getAttribute('data-st-view') + ' ' + c.textContent.trim(), house: h2.map(d => d.textContent.trim().replace(/ ›$/, '')).join(' | ') } : null; });
-    check('3a Jambo\'s agents is his house; Housekeeping: The trail · Data & backup · Monthly report', !!doors && doors.agents === 'jambo Jambo’s agents ›' && doors.house === 'The trail | Data & backup | Monthly report', doors && JSON.stringify(doors));
+      return c && h2.length ? { agents: c.getAttribute('data-st-panel') + (c.hasAttribute('data-st-dock') ? ' dock ' : ' ') + c.textContent.trim(), house: h2.map(d => d.textContent.trim().replace(/ ›$/, '')).join(' | ') } : null; });
+    /* re-pointed 19 Oct 2026 (the gaps' third pass): every card door opens
+       its page with ‹ Settings — Jambo's agents is the agents' own page */
+    check('3a Jambo\'s agents is their page; Housekeeping: The trail · Data & backup · Monthly report', !!doors && doors.agents === 'agents dock Jambo’s agents ›' && doors.house === 'The trail | Data & backup | Monthly report', doors && JSON.stringify(doors));
     if (await press('[data-st-card="house"] .st-door[data-st-page="data"]', '3b Data & backup ›')) {
       const dp = await until(() => { const on = document.querySelector('[data-st-pg="data"] [data-st-bk-tab].is-on'); if (!on) return null;
         return { tab: on.getAttribute('data-st-bk-tab'), head: getComputedStyle(document.getElementById('page-head')).display, tabs: !!document.querySelector('#set-page .st-facebar'),
@@ -162,9 +165,12 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     }
     await until(() => { if (!document.querySelector('#st-jb-feed [data-st-swp-open]')) { const r = document.querySelector('.st-sw-row[data-st-sw-pick="sales"]'); if (r && !r.classList.contains('is-picked')) r.click(); return null; } return true; });
     if (await press('#st-jb-feed [data-st-swp-open]', '4f the held contract\'s Open')) {
-      const held = await until(() => { const s = (typeof hbS === 'function') && (hbS().strips || [])[0];
-        return state.view === 'dashboard' && s && s.id === 'MK-S3' ? s.page : null; }, null, 10000);
-      check('4f a held contract\'s Open lands on its Details', held === 'details', String(held));
+      /* re-pointed 19 Oct 2026 (the gaps' third pass, LAND ON IT): the
+         contract's Menu beside its paper, ON Release hold — where its hold
+         is placed (End or pause) and released */
+      const held = await until(() => { const r = document.querySelector('#pd-body .pd-menu[data-pd-menu="MK-S3"] #ws-hold');
+        return state.view === 'dashboard' && r && r.classList.contains('is-landed') ? r.textContent.trim() : null; }, null, 10000);
+      check('4f a held contract\'s Open lands on Release hold, in its Menu', !!held, String(held));
     }
 
     console.log('\n5 · a member\'s sheet');

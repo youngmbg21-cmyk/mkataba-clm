@@ -583,8 +583,12 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     await page.evaluate(() => window.settingsGoTab('company'));
     await pause(900);
 
+    /* RE-POINTED 19 Oct 2026 (lane F's third pass, rounds 24 and 25 as
+       drawn): the tabs live in the HEAD CARD in the left column, beside
+       Jambo's whole-height panel, and it is the card that stays while the
+       page scrolls — the owner's 18 Sep ruling, kept in the drawn frame */
     const readRow = () => page.evaluate(() => {
-      const row = document.querySelector('.st-tabs'), sc = document.getElementById('content-scroll');
+      const row = document.getElementById('st-headcard') || document.querySelector('.st-tabs'), sc = document.getElementById('content-scroll');
       if (!row || !sc) return null;
       const r = row.getBoundingClientRect(), s = sc.getBoundingClientRect();
       /* the first painted thing on the row is the pill's track (16 Oct 2026) */
@@ -596,6 +600,9 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
         rowTop: Math.round(r.top - s.top), leftGap: Math.round(r.left - s.left),
         bg: getComputedStyle(row).backgroundColor,
         painted: !!(hit && hit.closest && hit.closest('.st-face, .st-tab')),
+        /* the air above the pinned card: the page's ground, never the body */
+        above: (() => { const a = document.elementFromPoint(Math.round(r.left + 30), Math.round(s.top + 2)); return !!(a && a.closest && a.closest('#st-headcard')); })(),
+        padT: parseFloat(getComputedStyle(row).top) || 0,
         scrollTop: sc.scrollTop, canScroll: sc.scrollHeight - sc.clientHeight };
     });
 
@@ -608,7 +615,7 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     check('6d there is more settings than one screen, so the question is real',
       pinRest && pinRest.canScroll > 300, pinRest && { overflow: pinRest.canScroll });
     check('6e the tab row is still on screen after scrolling, and really painted',
-      stScrolled && stScrolled.rowTop === 0 && stScrolled.painted && stScrolled.scrollTop > 0,
+      stScrolled && stScrolled.rowTop === Math.round(stScrolled.padT) && stScrolled.painted && stScrolled.scrollTop > 0,
       stScrolled && { rowTop: stScrolled.rowTop, scrolledBy: stScrolled.scrollTop,
         wordUnderThePointer: stScrolled.painted });
     /* THE FIRST PAINTED GLYPH DOES NOT MOVE — "ONE HEADER TOP", and the row
@@ -627,9 +634,11 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
       { rest: pinRest && pinRest.glyph, scrolled: stScrolled && stScrolled.glyph });
     /* A PINNED ROW HAS TO BE OPAQUE ACROSS THE WHOLE WIDTH or the body shows
        through the gutters beside it. */
-    check('6f2 it is opaque and reaches the page\'s own left edge',
-      stScrolled && stScrolled.leftGap === 0 && !/rgba\(0, 0, 0, 0\)|transparent/.test(stScrolled.bg),
-      stScrolled && { leftGap: stScrolled.leftGap, background: stScrolled.bg });
+    /* re-pointed 19 Oct 2026: a card inset by the page's gutter, as drawn —
+       opaque, and the air above it covered, so nothing scrolls through */
+    check('6f2 it is opaque and nothing of the body shows above it',
+      stScrolled && stScrolled.above && !/rgba\(0, 0, 0, 0\)|transparent/.test(stScrolled.bg),
+      stScrolled && { above: stScrolled.above, background: stScrolled.bg });
 
     /* AND A TAB PRESSED FROM THE BOTTOM LANDS AT THE TOP. Until the row was
        pinned this came for free: reaching a tab meant being at the top already.

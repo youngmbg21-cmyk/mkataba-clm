@@ -32,6 +32,9 @@ const data = (opts = {}) => {
   /* the trail's own door (Housekeeping's "Download the trail"), as the page
      is reached from the board */
   g.sb.stDrawerOpen(opts.door || 'trail');
+  /* RE-POINTED (third pass): every door saying "Data & backup" lands on its
+     first tab, The trail (one name, one landing); Backup is its tab's press */
+  if (opts.door === 'backup') { const b = g.q('[data-st-bk-tab="backup"]'); if (b) g.click(b); }
   return g;
 };
 const settle = async g => { for (let i = 0; i < 4; i++) await g.flush(); };
@@ -85,14 +88,16 @@ describe('f787 (3) Jambo says the trail', () => {
 });
 
 describe('f787 (4) his chips', () => {
-  test('4a "download Q3 2026 as a PDF" readies the page, and downloads nothing', async () => {
+  /* RE-POINTED (third pass): the chip as drawn, "download Q3 as a PDF" (no
+     year for this year's quarter), and Download lit by LAND ON IT's lander */
+  test('4a "download Q3 as a PDF" readies the page, and downloads nothing', async () => {
     const g = data(); await settle(g);
     const chip = g.q('#st-jb-feed [data-st-tr-pdf]');
-    assert.equal(chip.textContent, 'download Q3 2026 as a PDF');
+    assert.equal(chip.textContent, 'download Q3 as a PDF');
     const before = g.log.api.length;
     g.click(chip); await settle(g);
     assert.equal(g.$('st-tr-as-sel').value, 'pdf', 'the As box says PDF');
-    assert.ok(g.$('st-tr-download').classList.contains('st-lit'), 'Download is lit, still the reader\'s press');
+    assert.ok(g.log.landed.some(l => l.t === '#st-tr-download'), 'Download is landed on, still the reader\'s press');
     assert.ok(!g.log.api.slice(before).some(a => /export/.test(a.route)), 'nothing downloaded');
     const bubs = g.qa('#st-jb-feed .st-jb-bub').map(b => g.text(b));
     assert.equal(bubs[bubs.length - 1], S.en.st_jb_tr_pdf_ready);
@@ -103,7 +108,7 @@ describe('f787 (4) his chips', () => {
     g.click(g.q('#st-jb-feed [data-st-tr-pdf]')); await settle(g);
     assert.ok(g.q('[data-st-bk-tab="trail"].is-on'));
     assert.equal(g.$('st-tr-as-sel').value, 'pdf');
-    assert.ok(g.$('st-tr-download').classList.contains('st-lit'), 'still lit after the count is drawn again');
+    assert.ok(g.log.landed.some(l => l.t === '#st-tr-download'), 'Download landed on (the lander follows it through the repaint — the browser check)');
   });
   test('4b "what is a sealed PDF?" is answered from what HaTi is, spending nothing', async () => {
     const g = data(); await settle(g);
@@ -134,14 +139,16 @@ describe('f787 (5) the tabs inside the head card', () => {
 /* ---- THE SECOND PASS (18 Oct 2026): the checker's differences against the
    picked drawing, built. AT THE PARENT (8dc306a) every test below fails. ---- */
 describe('f787 (6) Data & backup opens on The trail; Jambo counts it on either tab', () => {
-  test('6a Housekeeping\'s "Data & backup ›" lands on The trail; a door naming Backup still lands there', async () => {
+  test('6a Housekeeping\'s "Data & backup ›" lands on The trail; so does every door that says Data & backup', async () => {
     const g = settingsStage({ reply: (r) => { if (r === 'trail/exports') return { exports: EXPORTS, total: 7 }; if (/^trail\/summary\?/.test(r)) return SUM; return null; } });
     g.sb.settingsGoTab('company');
     g.click(g.q('[data-st-card="house"] .st-door[data-st-page="data"]')); await settle(g);
     assert.equal(g.q('[data-st-bk-tab].is-on').getAttribute('data-st-bk-tab'), 'trail', 'The trail lit');
     assert.equal(g.q('#set-page').getAttribute('data-st-sub'), 'data', 'the page starts at its own name');
+    /* RE-POINTED (third pass): the Menu's "Data & backup" (the drawer key
+       'backup') lands where the card's door lands — one name, one landing */
     g.sb.settingsGoPage(''); g.sb.stDrawerOpen('backup'); await settle(g);
-    assert.equal(g.q('[data-st-bk-tab].is-on').getAttribute('data-st-bk-tab'), 'backup');
+    assert.equal(g.q('[data-st-bk-tab].is-on').getAttribute('data-st-bk-tab'), 'trail');
   });
   test('6b on Backup, Jambo still says the trail\'s count — it is read whichever tab is in front', async () => {
     const g = data({ door: 'backup' }); await settle(g);
@@ -166,5 +173,28 @@ describe('f787 (6) Data & backup opens on The trail; Jambo counts it on either t
     const g = data(); await settle(g);
     assert.equal(g.text(g.q('#st-tr-stream option[value="all"]')), 'All you can see');
     assert.equal(S.sv.st_tr_all, 'Allt du kan se');
+  });
+});
+
+/* ---- THE THIRD PASS (19 Oct 2026): the checker's differences after main
+   moved on, built. AT THE PARENT (5aea3f2, main merged in, before this pass)
+   every test below fails. ---- */
+describe('f787 (7) the third pass: the chip says "Q3", Who is a plain name, one landing for Data & backup', () => {
+  test('7a this year\'s quarter is "Q3" on the chip; another year\'s keeps its year', async () => {
+    const g = data(); await settle(g);
+    assert.equal(g.sb.stTrailPeriodWords('2026-07-01', '2026-09-30', true), 'Q3');
+    assert.equal(g.sb.stTrailPeriodWords('2025-07-01', '2025-09-30', true), 'Q3 2025');
+    assert.equal(g.sb.stTrailPeriodWords('2026-07-01', '2026-09-30'), 'Q3 2026', 'the table keeps the year');
+    for (const lang of ['en', 'sv']) assert.equal(typeof S[lang].st_tr_quarter_short, 'string');
+  });
+  test('7b Downloads so far: Who in the weight of its row', () => {
+    const HTML = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'index.html'), 'utf8');
+    assert.match(HTML, /\.st-tr-tb \.st-ps-who\{ font-weight:var\(--w-body\); \}/);
+  });
+  test('7c the chip lands on Download through the one lander, and draws no glow of its own', async () => {
+    const g = data(); await settle(g);
+    g.click(g.q('#st-jb-feed [data-st-tr-pdf]')); await settle(g);
+    assert.ok(g.log.landed.some(l => l.t === '#st-tr-download'));
+    assert.ok(!g.$('st-tr-download').classList.contains('st-lit'), 'no st-lit');
   });
 });

@@ -190,10 +190,14 @@ describe('f725 (3) the forms open in their row', () => {
 
 describe('f725 (4) where the reader ends up', () => {
   test('4a the contents list lights the section it jumps to', () => {
-    const { win, click } = stage();
+    const { win, sb, click } = stage();
+    /* RE-POINTED 19 Oct 2026 (LAND ON IT, main's rule): the section is lit by
+       the one lander (js/components.js), not a glow of this page's own */
+    const landed = []; sb.landOn = (t, o) => { landed.push({ t, o }); if (t && t.classList) t.classList.add('is-landed'); return Promise.resolve(t); };
     click(win.document.querySelector('[data-st-toc="told"]'));
     assert.equal(win.document.querySelector('.st-toc [aria-current="true"]').getAttribute('data-st-toc'), 'told');
-    assert.ok(win.document.getElementById('st-you-told').classList.contains('st-lit'));
+    assert.ok(win.document.getElementById('st-you-told').classList.contains('is-landed'));
+    assert.equal(landed.length, 1, 'one landing');
   });
   test('4b Jambo readies your own setting in its row', () => {
     const stg = fnBody(SET, 'stJbYouStage');

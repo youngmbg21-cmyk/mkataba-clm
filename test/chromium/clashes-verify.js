@@ -110,8 +110,12 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     /* RE-POINTED 18 Oct 2026 (round 25 "Control room" as drawn): his first
        words name what needs you ("Six things need you here: …"); the clashes'
        sentence still follows them */
-    const jb = await until(() => { const m = String(document.body.innerText || '').replace(/\s+/g, ' ').match(/things need you here: [^]*?nothing is blocked\./); return m ? m[0] : null; });
-    check('3 Jambo: "4 of them are clashes in who may do what: they warn, nothing is blocked."', /4 of them are clashes in who may do what: they warn, nothing is blocked\./.test(jb || ''), jb);
+    /* RE-POINTED 19 Oct 2026 (lane F's third pass, round 25 as drawn): his
+       words are the drawing's — the clashes named in his list, then "Each
+       row's button opens what settles it." and nothing after; the clash rows
+       say themselves that they warn */
+    const jb = await until(() => { const b = document.querySelector('#st-jb-feed [data-st-jb-hello] .st-jb-bub'); const t = b ? b.textContent.replace(/\s+/g, ' ').trim() : ''; return /things need you here: /.test(t) ? t : null; });
+    check('3 Jambo names the clashes, and says nothing after the drawn sentence', /clash(es)? in who may (do|sign) what/.test(jb || '') && /Each row’s button opens what settles it\.$/.test(jb || '') && !/nothing is blocked/.test(jb || ''), jb);
 
     console.log('\n4 · a clash goes when the rights change');
     /* the same limit as the approver: neither now may sign more than the other */

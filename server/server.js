@@ -33,12 +33,15 @@ const { intakeLaneMatch, intakeAnswersClean, intakeAnswersOnto, intakeLaneOwner 
    before anyone signs it (23 Sep 2026). ONE reading for both hosts — the
    screen and this wall ask the same questions of the same record, so they
    cannot come to different answers about whether a contract may be signed. */
-const { saNeeds, saState, saStamp, saShows, saDrift, saStarted, saMayDecide, saWorkdays,
+const { saNeeds, saState, saStamp, saShows, saDrift, saStarted, saMayDecide, saWorkdays, saRuleOf,
   SA_NOTE_MAX, SA_KEEP, SA_REMIND_WORKDAYS, SA_ESCALATE_WORKDAYS, SA_UNUSED_DAYS } = require('../js/signapproval.js');
 /* The check before signing as a wall (4 Oct 2026): which departures hold on
    each gate, and whether OUR signer has read the brief that stands for this
    wording. ONE reading for both hosts — js/signcheck.js asks the same file. */
 const { sgDepartures, sgBriefReadOwed } = require('../js/signgate.js');
+/* clashes in who may do what: the page's own reading, so the server finds the
+   same clashes and keeps the day each was first seen (owner's answer 12) */
+const { clashFind } = require('../js/clashkeys.js');
 const { SEAL_HASH_PLAIN, sealPlainText } = require('../js/sealtext.js');
 /* ONE ASK RECORD (4 Oct 2026): who was asked, the answer, when and for what,
    across the four kinds of "a colleague must say yes" — the rule steps, a
@@ -3673,6 +3676,20 @@ function cnFrontDoor(req, res, next) {
   next();
 }
 app.use('/api', cnFrontDoor);
+/* A CLASH IS SEEN WHEN IT IS MADE (owner's answer 12; the gaps' third pass):
+   every write that succeeds asks the clash book to look again — soon for a
+   person, a setting, a stream or a role, at most once a minute for a contract
+   (clashSeenSoon, below) — so the day kept is the day the clash began, not
+   the day an admin next opened Settings */
+function clashWatch(req, res, next) {
+  if (req.method !== 'GET' && req.method !== 'HEAD' && req.method !== 'OPTIONS'){
+    /* read now: the path under /api is only this while the request is here */
+    const urgent = CLASH_URGENT_RE.test(req.path || '');
+    res.on('finish', () => { if (res.statusCode < 400) clashSeenSoon(urgent); });
+  }
+  next();
+}
+app.use('/api', clashWatch);
 /* what an insider's reading of the deal carries: its code name and who knows */
 function cnOf(id) {
   const m = cnMap(), e = m.get(String(id || '')); if (!e) return null;
@@ -13169,26 +13186,74 @@ function arUse(people) {
   return out;
 }
 /* ---- THE DAY A CLASH WAS FIRST SEEN (owner's answer 12, 18 Oct 2026) ----
-   A clash in who may do what is worked out live from the gates' own readings
-   (stClashes, js/views/settings.js) and warns; nothing is blocked. HaTi keeps
-   ONE fact about each, so its row in Needs your attention can say "since
-   14 Oct": the day it was first seen. An admin's page sends the clash keys it
-   sees; a key new here is stamped with the server's day, a key still there
-   keeps its day, a key gone is forgotten (the clash went away — come back, it
-   is new again). Ids and days only, no names; an admin's, like the list. */
+   A clash in who may do what warns; nothing is blocked. HaTi keeps ONE fact
+   about each, so its row in Needs your attention can say "since 14 Oct": the
+   day it was first seen. THE SERVER FINDS THEM ITSELF (the gaps' third pass,
+   19 Oct 2026) with the page's own reading, js/clashkeys.js's clashFind, fed
+   the server's inputs — the users table, srvApprovalRules, folderScopeFor and
+   the contracts still to sign — after any write that could make or end one
+   (clashWatch) and whenever an admin's page asks. A key new here is stamped
+   with the server's day, a key still there keeps its day, a key gone is
+   forgotten (the clash went away — come back, it is new again). A list the
+   browser sends is not the source any more: the server is the wall. Ids and
+   days only, no names; an admin's, like the list. */
 const CLASH_KEY_RE = /^clash:[a-z]{2,12}:[^\s<>"'`]{1,200}$/;
 const CLASH_SEEN_MAX = 200;
+/* a person, a setting, a stream or a role: looked at again within a second */
+const CLASH_URGENT_RE = /^\/(users|settings|private-streams|business-roles)\b/;
+const CLASH_CONTRACT_EVERY_MS = 60 * 1000;
 const clashSeenBook = () => { const m = getSetting('clashSeen'); return (m && typeof m === 'object' && !Array.isArray(m)) ? m : {}; };
-app.post('/api/clashes/seen', auth, admin, (req, res) => {
-  const keys = req.body && req.body.keys;
-  if (!Array.isArray(keys)) return res.status(400).json({ error: 'Send the clash keys as a list.' });
-  if (keys.length > CLASH_SEEN_MAX) return res.status(400).json({ error: `At most ${CLASH_SEEN_MAX} clashes at a time.` });
+function srvClashUsers() {
+  return db.prepare('SELECT id, name, role, sign_cap, overseer_id, overseer_on, overseer_backup_id, overseer_when FROM users').all()
+    .map(u => ({ id: u.id, name: u.name, role: u.role,
+      signCap: u.sign_cap == null || u.sign_cap === '' ? null : (u.sign_cap === 'none' ? 'none' : Number(u.sign_cap)),
+      overseerId: u.overseer_id || null, overseerOn: u.overseer_on || null,
+      overseerBackupId: u.overseer_backup_id || null, overseerWhen: u.overseer_when || null }));
+}
+/* the streams with contracts still to sign: not archived, not filed under
+   another, not signed or declined — clashOpenStreams' own test, in the table */
+function srvClashOpenStreams() {
+  return db.prepare(`SELECT DISTINCT folder FROM contracts WHERE folder IS NOT NULL AND folder <> ''
+    AND COALESCE(status, '') NOT IN ('Signed', 'Declined')
+    AND COALESCE(json_extract(json, '$.archived'), 0) = 0
+    AND COALESCE(json_extract(json, '$.parentId'), '') = ''`).all().map(r => String(r.folder));
+}
+function srvClashKeys() {
+  const legacy = srvSaLegacyOn();
+  return clashFind({ users: srvClashUsers(), capOn: signCapOn(), ruleOf: u => saRuleOf(u, legacy),
+    rules: srvApprovalRules(), canOpen: (f, u) => inScope(folderScopeFor(u), f), openStreams: srvClashOpenStreams() })
+    .map(x => x.key).filter(k => CLASH_KEY_RE.test(k)).slice(0, CLASH_SEEN_MAX);
+}
+function clashSeenRefresh() {
+  let keys;
+  try { keys = srvClashKeys(); } catch (e) { console.warn('[clashes]', e && e.message); return clashSeenBook(); }
   const prev = clashSeenBook(), today = isoDay(new Date()), next = {};
-  [...new Set(keys.map(k => String(k == null ? '' : k)))].filter(k => CLASH_KEY_RE.test(k))
-    .forEach(k => { next[k] = /^\d{4}-\d{2}-\d{2}$/.test(String(prev[k] || '')) ? prev[k] : today; });
-  setSetting('clashSeen', next);
-  res.json({ seen: next });
+  [...new Set(keys)].sort().forEach(k => { next[k] = /^\d{4}-\d{2}-\d{2}$/.test(String(prev[k] || '')) ? prev[k] : today; });
+  const same = JSON.stringify(Object.entries(prev).sort()) === JSON.stringify(Object.entries(next).sort());
+  if (!same) setSetting('clashSeen', next);
+  return next;
+}
+/* looked at again soon after a write: one timer at a time, a contract's
+   write at most once a minute (they come in bursts while someone types) */
+let _clashTimer = null, _clashAt = 0, _clashDue = 0;
+function clashSeenSoon(urgent) {
+  const wait = urgent ? 300 : Math.max(300, CLASH_CONTRACT_EVERY_MS - (Date.now() - _clashAt));
+  /* one timer: a sooner ask moves it earlier, a later one waits behind it */
+  if (_clashTimer && _clashDue <= Date.now() + wait) return;
+  if (_clashTimer) clearTimeout(_clashTimer);
+  _clashDue = Date.now() + wait;
+  _clashTimer = setTimeout(() => {
+    _clashTimer = null; _clashAt = Date.now();
+    try { clashSeenRefresh(); } catch (_) { /* the database may be closing: the next write asks again */ }
+  }, wait);
+  if (_clashTimer && typeof _clashTimer.unref === 'function') _clashTimer.unref();
+}
+/* an admin's page asks the server to look again; nothing it sends is kept */
+app.post('/api/clashes/seen', auth, admin, (req, res) => {
+  res.json({ seen: clashSeenRefresh() });
 });
+/* and once when the server starts, for a clash made before this one ran */
+clashSeenSoon(true);
 app.get('/api/access-review', auth, admin, (req, res) => {
   const people = arPeople(req.user);
   res.json({ ...arSummary(req.user), use: arUse(people), idleDays: AR_IDLE_DAYS, now: now() });

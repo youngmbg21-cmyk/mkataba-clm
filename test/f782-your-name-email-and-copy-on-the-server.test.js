@@ -102,24 +102,33 @@ describe('f782 (4) POST /api/clashes/seen — the day a clash was first seen', (
     const mine = await w.restricted.json('/api/bootstrap');
     assert.equal(mine.clashSeen, undefined, 'nor read it');
   });
-  test('4b a new clash is stamped with the server\'s day; one still there keeps it; one gone is forgotten; nonsense is not kept', async () => {
-    const a = await w.admin.json('/api/clashes/seen', { method: 'POST', body: { keys: ['clash:cap:u_1', 'clash:each:u_1|u_2', 'not a clash', '<b>'] } });
-    assert.deepEqual(Object.keys(a.seen).sort(), ['clash:cap:u_1', 'clash:each:u_1|u_2']);
-    /* the server's day: never a stale one, and a run across midnight still holds */
-    const d = a.seen['clash:cap:u_1'];
-    assert.match(d, /^\d{4}-\d{2}-\d{2}$/);
-    assert.ok(Math.abs(Date.parse(d + 'T12:00:00Z') - Date.parse(today() + 'T12:00:00Z')) <= 864e5, 'today, as the server counts it');
-    const b = await w.admin.json('/api/clashes/seen', { method: 'POST', body: { keys: ['clash:cap:u_1'] } });
-    assert.deepEqual(b.seen, { 'clash:cap:u_1': a.seen['clash:cap:u_1'] }, 'kept its day; the other forgotten');
+  /* RE-POINTED (the gaps' third pass, 19 Oct 2026): the server FINDS the
+     clashes itself (js/clashkeys.js's clashFind, the page's own reading) after
+     any write that could make or end one — so a clash made while no admin
+     looks is stamped the day it is made; a list a browser sends is no longer
+     the source (the server is the wall) */
+  const seenNow = async () => (await w.admin.json('/api/bootstrap')).clashSeen || {};
+  const until = async (ok, ms = 5000) => { const end = Date.now() + ms; let v; while (Date.now() < end){ v = await seenNow(); if (ok(v)) return v; await new Promise(r => setTimeout(r, 150)); } return v; };
+  test('4b a clash made by a write is stamped with the server\'s day, with no page open; mended, it is forgotten', async () => {
+    const R = w.users.restricted.id, U = w.users.unrestricted.id, key = 'clash:cap:' + R;
     const boot = await w.admin.json('/api/bootstrap');
-    assert.deepEqual(boot.clashSeen, b.seen, 'the admin\'s bootstrap carries it');
+    await w.admin.json('/api/settings', { method: 'PUT', body: { ...(boot.settings || {}), signCap: { on: true } } });
+    await w.admin.json('/api/users/' + U, { method: 'PATCH', body: { signCap: 5000000 } });
+    await w.admin.json('/api/users/' + R, { method: 'PATCH', body: { signCap: 10000000, overseerOn: 'always', overseerId: U } });
+    const a = await until(v => !!v[key]);
+    assert.ok(a[key], 'stamped without anybody asking: ' + JSON.stringify(a));
+    assert.ok(Math.abs(Date.parse(a[key] + 'T12:00:00Z') - Date.parse(today() + 'T12:00:00Z')) <= 864e5, 'today, as the server counts it');
+    /* a page that asks keeps the day */
+    const b = await w.admin.json('/api/clashes/seen', { method: 'POST', body: {} });
+    assert.equal(b.seen[key], a[key], 'kept its day');
+    await w.admin.json('/api/users/' + R, { method: 'PATCH', body: { signCap: 5000000 } });
+    const c = await until(v => !v[key]);
+    assert.equal(c[key], undefined, 'mended: forgotten');
   });
-  test('4c a list, and not an endless one', async () => {
-    let bad = null;
-    try { await w.admin.json('/api/clashes/seen', { method: 'POST', body: { keys: 'clash:cap:u_1' } }); } catch (e) { bad = e; }
-    assert.equal(bad && bad.status, 400, 'not a list: refused, by the route');
-    let many = null;
-    try { await w.admin.json('/api/clashes/seen', { method: 'POST', body: { keys: Array.from({ length: 201 }, (_, i) => 'clash:cap:u_' + i) } }); } catch (e) { many = e; }
-    assert.equal(many && many.status, 400, 'more than 200: refused, by the route');
+  test('4c a list a browser sends is not kept: the server reads for itself', async () => {
+    const r = await w.admin.json('/api/clashes/seen', { method: 'POST', body: { keys: ['clash:cap:u_1', 'clash:each:u_1|u_2', '<b>'] } });
+    assert.equal(r.seen['clash:cap:u_1'], undefined);
+    assert.equal(r.seen['clash:each:u_1|u_2'], undefined);
+    assert.equal(r.seen['<b>'], undefined);
   });
 });

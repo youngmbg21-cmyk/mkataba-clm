@@ -69,7 +69,9 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     await until(() => { if (!document.getElementById('set-page')) { setView('team'); return null; } if (settingsTab() !== 'company') { settingsGoTab('company'); return null; } return document.querySelector('#st-board .st-cards') ? true : null; }, null, 15000);
 
     console.log('\n1 · the head, the tabs, Jambo\'s word');
-    const head = await until(() => { const f = document.getElementById('page-head-facts'); const sel = document.querySelector('#set-page .st-face[aria-selected="true"]');
+    /* re-pointed 19 Oct 2026 (the gaps' third pass): the head is a card in
+       the page's left column beside Jambo (stHeadCardHtml), as drawn */
+    const head = await until(() => { const f = document.querySelector('#st-headcard [data-st-head-sub]'); const sel = document.querySelector('#set-page .st-face[aria-selected="true"]');
       if (!f || !sel || !f.textContent.trim()) return null;
       const cs = getComputedStyle(sel), n = document.querySelector('#set-page .st-face[data-st-tab="company"] .st-face-n');
       return { facts: f.textContent.trim(), line: cs.borderBottomStyle + ' ' + cs.borderBottomWidth, thumb: (() => { const t = document.querySelector('#set-page .st-thumb'); return t ? getComputedStyle(t).display : 'none'; })(),
@@ -88,11 +90,14 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       const back = await until(() => { const s = document.getElementById('st-side'); return s && !s.classList.contains('is-folded') && s.getBoundingClientRect().width > 200 ? true : null; });
       check('2b his face brings him back', !!back);
     }
-    await page.fill('#st-jb-q', '/').catch(() => null);
-    const menu = await until(() => { const m = document.getElementById('st-side-menu'); return m && !m.hidden && document.querySelector('#st-side-head .st-side-back') ? true : null; }, null, 3000);
-    check('2c "/" opens the Menu, with ‹ Jambo', !!menu);
-    if (menu) { await press('#st-side-head .st-side-back', '2d ‹ Jambo');
-      check('2d ‹ Jambo goes back', !!(await until(() => !document.getElementById('st-side-jambo').hidden ? true : null, null, 3000))); }
+    /* RE-POINTED 19 Oct 2026 (lane F's third pass; JAMBO, THE SAME ON EVERY
+       PAGE — main's rule): "/" in his box is every box's "/", the places
+       listed (data-ca-slash, caSlRead); his panel stays on Jambo */
+    await page.locator('#st-jb-q').click(); await page.keyboard.type('/');
+    const slash = await until(() => { const l = document.getElementById('ca-slash'); return l && l.querySelectorAll('.ca-opt').length ? l.querySelectorAll('.ca-opt').length : null; }, null, 3000);
+    check('2c "/" lists the places, as in every box', !!slash && !!(await page.evaluate(() => !document.getElementById('st-side-jambo').hidden)), String(slash));
+    await page.keyboard.press('Backspace');
+    check('2d and goes when the "/" does', !!(await until(() => !document.getElementById('ca-slash') ? true : null, null, 3000)));
 
     console.log('\n3 · a stream beside its list');
     await page.evaluate(() => settingsGoPage('streams'));
@@ -131,8 +136,9 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       while (Date.now() - t0 < ms) { try { v = await m.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await m.waitForTimeout(120); }
       return v; };
     await mu(() => { if (!document.getElementById('set-page')) { setView('team'); return null; } return document.querySelector('[data-st-you-card="who"]') ? true : null; }, null, 15000);
-    const mh = await mu(() => { const f = document.getElementById('page-head-facts'), a = document.getElementById('page-head-acts'); if (!f || !f.textContent.trim()) return null;
-      return { h1: (document.querySelector('#page-head h1') || {}).textContent || '', facts: f.textContent.trim(), ask: !!(a && a.querySelector('[data-st-ask-head]')) }; });
+    /* re-pointed 19 Oct 2026: the head card in the page, not the window head */
+    const mh = await mu(() => { const c = document.getElementById('st-headcard'), f = c && c.querySelector('[data-st-head-sub]'); if (!f || !f.textContent.trim()) return null;
+      return { h1: (c.querySelector('.st-hc-t') || {}).textContent || '', facts: f.textContent.trim(), ask: !!c.querySelector('[data-st-ask-head]') }; });
     check('5a "Your settings · yours alone — nobody else sees them", and Ask an admin', !!mh && mh.h1.trim() === 'Your settings' && mh.facts === 'yours alone — nobody else sees them' && mh.ask, JSON.stringify(mh));
     const pressM = async (sel, what) => { if (!(await m.locator(sel).count())) { check(what + ' (nothing to press: ' + sel + ')', false); return false; } await m.locator(sel).first().click(); return true; };
     if (await pressM('[data-st-rform="me:name"]', '5b Name · Change')) {

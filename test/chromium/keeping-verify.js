@@ -113,7 +113,13 @@ const K = (id, name, end, over = {}) => ({ ...H.fixtureContract(id, name, 'Rift 
 
     console.log('\n4 · the admin\'s yes');
     await until(() => !!document.querySelector('[data-st-kp-list]'));
-    if (await press('[data-st-kp-list]', '4a Review the list')) {
+    /* RE-POINTED 19 Oct 2026 (lane F's third pass, round 25 as drawn: Review
+       "opens the Sales stream on its Keeping tab, with the two contracts
+       listed"): the list is already open — a press on Review the list would
+       fold it (press it again and it closes); it is opened only if shut */
+    const opened = await page.evaluate(() => { const b = document.querySelector('[data-st-kp-list]'); return b && b.getAttribute('aria-expanded') === 'true'; });
+    check('4 Review lands with the due contracts already listed', opened);
+    if (opened || await press('[data-st-kp-list]', '4a Review the list')) {
       const rows = await until(() => { const r = [...document.querySelectorAll('.st-kp-tb tbody tr')].map(x => x.getAttribute('data-st-kp-row')); return r.length ? r : null; });
       const go = await page.evaluate(() => { const b = document.getElementById('st-kp-go'); return b ? { text: b.textContent.trim(), danger: b.classList.contains('ui-btn-danger') } : null; });
       check('4a the two due, and "Delete these 2" in the danger colour', !!rows && rows.slice().sort().join(',') === 'KP-1,KP-6' && !!go && go.text === 'Delete these 2' && go.danger, JSON.stringify({ rows, go }));

@@ -12,7 +12,7 @@ const vm = require('node:vm');
 const { JSDOM } = require('jsdom');
 
 const ROOT = path.join(__dirname, '..');
-const FILES = ['js/i18n.js', 'js/jurisdiction.js', 'js/templates.js', 'js/views/settings.js'];
+const FILES = ['js/i18n.js', 'js/jurisdiction.js', 'js/templates.js', 'js/clashkeys.js', 'js/views/settings.js'];
 const SET = fs.readFileSync(path.join(ROOT, 'js/views/settings.js'), 'utf8');
 const S = require('../js/i18n.js').STRINGS;
 
@@ -22,7 +22,7 @@ function settingsStage(opts = {}) {
   const win = dom.window;
   const me = { id: 'u_me', name: 'Young Mbagaya', role: opts.role || 'admin', email: 'me@hati.test', title: 'Chief Executive', ...(opts.me || {}) };
   const other = { id: 'u_two', name: 'Asha Kimani', role: 'legal', email: 'asha@hati.test', title: '', ...(opts.otherIs || {}) };
-  const log = { toasts: [], api: [], views: [], opened: [] };
+  const log = { toasts: [], api: [], views: [], opened: [], landed: [] };
   const sb = {
     console, Date, Math, JSON, Number, String, Object, Array, Boolean, RegExp, Set, Map, Error, Intl,
     isNaN, parseInt, parseFloat, encodeURIComponent, decodeURIComponent, Promise, Event: win.Event, URLSearchParams,
@@ -52,6 +52,10 @@ function settingsStage(opts = {}) {
     openModal() {}, closeModal() {}, setActiveNav() {},
     setView: v => { log.views.push(v); if (v === 'team') sb.renderTeam(); },
     regOpenContract: id => log.opened.push(id),
+    /* LAND ON IT's one lander (js/components.js), its light only: the target
+       found now, lit with the house's class, the ask recorded */
+    landOn: (t, o) => { let el = null; try { el = typeof t === 'function' ? t() : typeof t === 'string' ? win.document.querySelector(t) : t; } catch (_) { el = null; }
+      if (el && el.classList) el.classList.add('is-landed'); log.landed.push({ t: typeof t === 'string' ? t : (el && (el.id || el.getAttribute && el.getAttribute('data-st-you-card'))) || null, o: o || {} }); return Promise.resolve(el); },
     confirmDialog: async o => { log.confirm = o; return opts.confirm !== false; }, promptDialog: async () => null,
     lsGet: () => null, lsSet() {},
     downloadFile() {}, clauseLibrary: () => [], getOrg: () => ({ name: 'Highland Corporate Ltd' }),
@@ -86,7 +90,9 @@ function settingsStage(opts = {}) {
   };
   sb.window = sb; sb.globalThis = sb;
   vm.createContext(sb);
-  for (const f of FILES) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sb, { filename: f });
+  /* a file a commit does not have yet is passed by (a check run against an
+     older commit, to prove it red there, reports on the page, not the stage) */
+  for (const f of FILES) if (fs.existsSync(path.join(ROOT, f))) vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sb, { filename: f });
   if (opts.before) opts.before(sb);
   sb.renderTeam();
   const $ = id => win.document.getElementById(id);

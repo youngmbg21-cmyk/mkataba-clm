@@ -108,8 +108,11 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n);
     check('3a an \'ok\': "No Values Legal answers for you from …"', !!told && /No Values Legal answers for you from /.test(told), told);
     card = await until(() => { const c = document.querySelector('[data-st-you-card="away"]'); const t = c && c.textContent.replace(/\s+/g, ' ').trim();
       return t && /answers your approvals/.test(t) ? { text: t, doors: [...c.querySelectorAll('.st-card-doors button, .st-sa button')].map(x => x.textContent.replace(/[›\s]+$/, '').trim()) } : null; });
-    check('3b the card: "On until …", who answers from when to when, ends on its own, each answer "for Unrestricted Legal"; Change · End it now', !!card
-      && /^When you're away On until .+?\s?No Values Legal answers your approvals and internal reviews from .+ to .+\.\s?It ends on its own\. It never covers signing — that stays yours\. Each thing No Values Legal answers says “for Unrestricted Legal”\./.test(card.text)
+    /* re-pointed 19 Oct 2026 (lane F's third pass, round 24 as drawn): the
+       stand-in named whole once, then by first name — "Each thing Maria
+       answers says 'for Jonas'" */
+    check('3b the card: "On until …", who answers from when to when, ends on its own, each answer "for Unrestricted"; Change · End it now', !!card
+      && /^When you're away On until .+?\s?No Values Legal answers your approvals and internal reviews from .+ to .+\.\s?It ends on its own\. It never covers signing — that stays yours\. Each thing No answers says “for Unrestricted”\./.test(card.text)
       && card.doors.join('|') === 'Change|End it now', JSON.stringify(card));
     await shot(page, 'away-card-1440x780');
     await page.evaluate(() => renderTeam());

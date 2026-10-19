@@ -199,3 +199,40 @@ describe('f786 (7) a held contract\'s Open goes where its hold is placed and rel
     assert.equal(g.log.opened.length, 0, 'not the paper');
   });
 });
+
+/* ---- THE THIRD PASS (19 Oct 2026): the checker's differences after main
+   moved on, built. AT THE PARENT (5aea3f2, main merged in, before this pass)
+   every test below fails. ---- */
+describe('f786 (8) the third pass: Review lists what is due, a held Open lands on its release, one row of acts', () => {
+  test('8a Ready to delete → Review: the Keeping tab with the contracts listed, and the reader lands on them', () => {
+    const landed = [];
+    const g = settingsStage({ before: sb => { require('node:vm').runInContext(`_stKp.data=${JSON.stringify(BOOK)}`, sb);
+      sb.state.keeping = { rules: BOOK.rules, due: { sales: { n: 2, then: 'delete' } }, unseen: [] };
+      sb.landOn = (t, o) => { landed.push({ t, o }); return Promise.resolve(null); }; } });
+    g.sb.settingsGoTab('company');
+    g.click(g.q('#st-att .st-need[data-st-need="keep:sales"] .st-need-go'));
+    const rows = g.qa('#st-dbody #st-kp-due tr[data-st-kp-row]').map(r => r.getAttribute('data-st-kp-row'));
+    assert.deepEqual(rows, ['MK-S1', 'MK-S2'], 'the two contracts listed, nothing pressed');
+    assert.ok(landed.some(l => l.t === '#st-dbody #st-kp-due' && l.o.focus === false), 'landed on the list, nothing readied');
+  });
+  test('8b a held contract\'s Open: its paper with Jambo\'s Menu, landed ON Release hold — readying nothing', () => {
+    const asked = [], landed = [];
+    const g = streams({ before: sb => { sb.pdOpenOnHome = (id, tab) => { asked.push([id, tab]); return true; };
+      sb.landOn = (t, o) => { landed.push({ t, o }); return Promise.resolve(null); }; } });
+    pick(g, 'sales');
+    g.click(g.q('#st-jb-feed [data-st-swp-open="MK-S3"]'));
+    assert.deepEqual(asked, [['MK-S3', 'menu']]);
+    assert.equal(landed.length, 1); assert.equal(landed[0].o.focus, false, 'a hold is never released by a stray Enter');
+    /* the target: that contract's Menu row, its group opened */
+    const box = g.win.document.createElement('div'); box.id = 'pd-body';
+    box.innerHTML = '<div class="pd-menu" data-pd-menu="MK-S3"><details class="pd-mn-g"><summary>x</summary><div class="pd-mn-rows"><button id="ws-hold">Release the hold</button></div></details></div>';
+    g.win.document.body.appendChild(box);
+    const el = landed[0].t();
+    assert.equal(el && el.id, 'ws-hold'); assert.ok(el.closest('details').open, 'its group opened');
+    assert.equal(typeof S.sv.st_swp_hold_missing, 'string');
+  });
+  test('8c the acts stay one row: Delete these N · Change keeping, Close at its end', () => {
+    assert.match(HTML, /\.st-cr \.st-swp-acts\{ display:flex; align-items:center; gap:8px; flex-wrap:nowrap;/);
+    assert.match(HTML, /\.st-cr \.st-swp-acts > \.ui-btn\{ flex:none; white-space:nowrap; \}/);
+  });
+});
