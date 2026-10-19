@@ -2931,6 +2931,14 @@ function pdGlanceHtml(c){
     ? `<button type="button" class="ui-btn ui-btn-sm" data-pd-gl-go="${_pdE(r.ch.clauseId || '')}">${_pdE(_pdT('pd_gl_go_to_it'))}</button>`
     : r.k === 'move' || r.k === 'asks-more' ? btn({ k: 'redline' })
     : r.k === 'scan' ? `<button type="button" class="ui-btn ui-btn-sm" data-pd-gl-scan>${_pdE(_pdT('pd_gl_scan_go'))}</button>`
+    /* THE RISKS ROW OPENS WHERE THE RISKS ARE LISTED (joined at the
+       integration, 19 Oct 2026): round 9 as drawn left the Redlines face
+       beside Home's paper with nothing under its piles, so the list is the
+       clause editor's Risks tab (riskEditStart, the risks' one door for edits,
+       on the first open one) — its count is this row's number (riskOpenOf) */
+    : (r.k === 'redline' && r.n) ? (shut('redline')
+      ? `<button type="button" class="ui-btn ui-btn-sm" disabled aria-disabled="true" title="${_pdE(shut('redline'))}">${_pdE(_pdT('ce_tab_risks'))}</button>`
+      : `<button type="button" class="ui-btn ui-btn-sm" data-pd-gl-risks>${_pdE(_pdT('ce_tab_risks'))}</button>`)
     : (PD_GLANCE[r.k][3] ? `<button type="button" class="ui-btn ui-btn-sm" data-pd-glance-tab="${PD_GLANCE[r.k][3]}">${_pdE(_pdT(PD_GLANCE[r.k][1]))}</button>` : btn(r));
   const said = r => r.kind === 'ask' ? pdAskSay(c, r.ch)
     : r.k === 'move' ? pdGlMoveSay(c, asks)
@@ -3220,6 +3228,9 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
       if (typeof myNotesOpen === 'function') myNotesOpen(nid);
       if (nid && typeof landOn === 'function') landOn(() => document.querySelector(`[data-mn-row="${CSS.escape(nid)}"]`), { block: 'nearest', focus: false });
       return; }
+    if (t.closest('[data-pd-gl-risks]')){ e.preventDefault(); const cc = pdContract(); const full = cc && ((typeof getContract === 'function' && getContract(cc.id)) || cc);
+      let first = null; try { first = (full && typeof riskOpenOf === 'function') ? riskOpenOf(full)[0] : null; } catch (_){ first = null; }
+      if (first && typeof riskEditStart === 'function') riskEditStart(full, first.key); return; }
     const gg = t.closest('[data-pd-gl-go]');
     if (gg){ e.preventDefault(); pdGlGoTo(gg.getAttribute('data-pd-gl-go')); return; }
     /* Read it: the press that spends — the Clauses tab's own deep read

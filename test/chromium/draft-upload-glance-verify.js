@@ -276,12 +276,18 @@ const word = (lines) => Buffer.from(mkDocx(lines.map(t => para(t)).join('')));
     await page.evaluate(id => pdOpenOnHome(id, 'plain'), upId);
     await waitFor(page, () => !!document.getElementById('pd-glance'), 6000);
     const rkRow = await page.evaluate(() => { const r = document.querySelector('#pd-glance [data-pd-gl="redline"] span'); return r ? Number((/(\d+)/.exec(r.textContent) || [])[1]) : 0; });
-    await page.evaluate(id => pdRedOpen(id), upId);
-    await waitFor(page, () => !!document.getElementById('pd-redface'), 8000);
-    const rkFace = await page.evaluate(() => { const h = document.querySelector('#pd-redface #rl-risks .rk-h b'); const none = !!document.querySelector('#pd-redface #rl-risks .is-none');
-      return { n: h && !none ? Number((/(\d+)/.exec(h.textContent) || [])[1] || 0) : 0, none }; });
-    check('6g the risk count on the glance is the count the Redlines face lists', rkRow === rkFace.n, { glance: rkRow, face: rkFace });
-    await page.evaluate(() => { if (typeof pdRedClose === 'function') pdRedClose(); });
+    /* RE-POINTED AT THE INTEGRATION (19 Oct 2026; red on lane C2 alone): round
+       9 as drawn leaves the Redlines face beside Home's paper with nothing
+       under its piles, so the risks row's door is where the risks ARE listed —
+       the clause editor's Risks tab, on the first open one — and its count is
+       the row's number. Pressed, never called; a missing door is reported. */
+    const rkPressed = await page.click('#pd-glance [data-pd-gl-risks]', { timeout: 3000 }).then(() => true).catch(() => false);
+    await waitFor(page, () => !!document.getElementById('ce-tab-risks'), 8000);
+    const rkFace = await page.evaluate(() => { const n = document.getElementById('ce-rk-n'); const tab = document.getElementById('ce-tab-risks');
+      return { tab: !!tab, n: n && n.style.display !== 'none' ? Number(n.textContent || 0) : 0 }; });
+    check('6g the risk count on the glance is the count its door lists (the clause editor\'s Risks tab)', rkPressed && rkFace.tab && rkRow > 0 && rkRow === rkFace.n, { pressed: rkPressed, glance: rkRow, editor: rkFace });
+    await page.evaluate(() => { if (typeof rlCloseClauseEditor === 'function') try { rlCloseClauseEditor(); } catch (_){} });
+    await page.waitForTimeout(400);
     /* an executed contract: signing is behind it */
     await page.evaluate(() => pdOpenOnHome('MK-A9', 'plain'));
     const ex = await waitFor(page, () => !!document.querySelector('#pd-glance[data-pd-glance-for="MK-A9"]'), 8000);

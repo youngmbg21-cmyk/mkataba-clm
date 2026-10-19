@@ -342,7 +342,10 @@ describe('f679 (5) a contract at a glance', () => {
     const html = ctx.pdGlanceHtml(ctx.pdContract());
     assert.match(html, /pd_gl_title\[MK-1\]/); assert.match(html, /room-stat/, 'the head\'s own stage pill');
     assert.match(html, /pd_gl_details:3[\s\S]*data-pd-glance="fill"/);
-    assert.match(html, /pd_gl_risks:2[\s\S]*data-pd-glance="redline"/);
+    /* RE-POINTED AT THE INTEGRATION (19 Oct 2026): round 9 as drawn left the
+       Redlines face beside Home's paper with no risk list, so the risks row
+       opens the clause editor's Risks tab (data-pd-gl-risks → riskEditStart) */
+    assert.match(html, /pd_gl_risks:2[\s\S]*data-pd-gl-risks>ce_tab_risks</);
     assert.match(html, /pd_gl_unsent:1[\s\S]*data-pd-glance="share"/);
     assert.match(html, /pd_gl_signers[\s\S]*data-pd-glance="sign"/);
   });
@@ -375,7 +378,7 @@ describe('f679 (5) a contract at a glance', () => {
   });
   test('5d a shut door is grey with its reason; a press asks the face\'s own word', () => {
     const { ctx } = pdStage({ risks: 1, shut: 'This contract is signed.' });
-    assert.match(ctx.pdGlanceHtml(ctx.pdContract()), /disabled aria-disabled="true" title="This contract is signed\.">pd_gl_redlines/);
+    assert.match(ctx.pdGlanceHtml(ctx.pdContract()), /disabled aria-disabled="true" title="This contract is signed\.">ce_tab_risks/);
     assert.deepEqual(J(ctx.PD_GLANCE.fill), ['pd_gl_details', 'pd_gl_fill', 'ca_w_fill']);
     for (const k of ['fill', 'redline', 'share', 'sign']) for (const lang of ['en', 'sv']){
       const w = BOOKS[lang][ctx.PD_GLANCE[k][2]]; assert.ok(w, k + ' ' + lang);

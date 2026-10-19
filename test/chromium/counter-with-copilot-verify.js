@@ -136,9 +136,16 @@ const paperRead = page => page.evaluate(() => {
 
     /* ===== 2. HOME'S ROUND CARD: ASK COPILOT TO REDO THIS ===== */
     await page.evaluate(() => { setView('dashboard'); });
+    /* RE-POINTED AT THE INTEGRATION (19 Oct 2026): the owner's answer (18),
+       "Fold to one line" (lane G) — a piece on the Board's Jambo's work card is
+       one line with Look · its own act · Put away; Look opens it under its row,
+       where "Ask Jambo to redo this" stands with its other acts. So Look is
+       pressed first (once: pressed again it folds). */
     const item = await until(page, () => { if (typeof hbOpenAgent !== 'function') return null; hbOpenAgent('round');
-      const it = [...document.querySelectorAll('[data-hb-ag-item]')].find(x => /MK-CP1/.test(x.getAttribute('data-hb-ag-item')) && x.querySelector('[data-ag-sb-open]'));
-      return it ? it.getAttribute('data-hb-ag-item') : null; }, null, 10000);
+      const it = [...document.querySelectorAll('[data-hb-ag-item]')].find(x => /MK-CP1/.test(x.getAttribute('data-hb-ag-item')));
+      if (!it) return null;
+      if (!it.querySelector('[data-ag-sb-open]')){ const look = it.querySelector('[data-hb-ag-look]'); if (look && look.getAttribute('aria-pressed') !== 'true') look.click(); return null; }
+      return it.getAttribute('data-hb-ag-item'); }, null, 10000);
     ok('2a Home\'s round card offers "Ask Copilot to redo this"', !!item, item);
     let toastSaid = '';
     if (item) {
