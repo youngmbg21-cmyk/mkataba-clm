@@ -8,6 +8,10 @@
    (3) No !important: the figure's clothes are its own class.
    (4) The words, in both books.
    AT THE PARENT (round 21's head) every test here FAILS.
+   RE-POINTED 19 Oct 2026 (lane E, round 22 built as drawn): the figures are
+   Files · Filed · To check · Duplicate? · No readable text over ONE list of
+   the batch's files (migRows, its states); the list says "N of M shown"
+   through migShown; the strip's button is .mig-drop-b.
    The browser half: test/chromium/import-sap-way-verify.js.
    ═══════════════════════════════════════════════════════════════════════════ */
 const { test, describe } = require('node:test');
@@ -28,34 +32,35 @@ const BOOKS = (() => {
 })();
 
 describe('f723 (1) each figure is a door', () => {
-  test('1a the door reads the figures\' own readings; pressed again, all', () => {
+  test('1a the door reads the rows\' own states; pressed again, all', () => {
     let painted = 0;
-    const ctx = { _migShow: 'all', MIG_SHOWS: ['all', 'complete', 'review', 'blocked'], migComplete: c => !!c.done, renderMigration: () => { painted++; } };
+    const ctx = { _migShow: 'all', _migAll: false, MIG_SHOWS: ['all', 'filed', 'check', 'dupe', 'none'], renderMigration: () => { painted++; } };
     vm.createContext(ctx);
-    vm.runInContext(fnBody(MIG, 'migShowPass') + fnBody(MIG, 'migShowSet') + ';this.get=()=>_migShow;', ctx);
-    const cs = [{ migration: { needsReview: true } }, { migration: { blocked: true } }, { migration: {}, done: true }];
-    assert.equal(cs.filter(c => ctx.migShowPass(c, 'review')).length, 1);
-    assert.equal(cs.filter(c => ctx.migShowPass(c, 'blocked')).length, 1);
-    assert.equal(cs.filter(c => ctx.migShowPass(c, 'complete')).length, 1);
-    assert.equal(cs.filter(c => ctx.migShowPass(c, 'all')).length, 3);
-    ctx.migShowSet('review'); assert.equal(ctx.get(), 'review');
-    ctx.migShowSet('review'); assert.equal(ctx.get(), 'all', 'pressed again, all');
+    vm.runInContext(fnBody(MIG, 'migShowPass') + fnBody(MIG, 'migShowSet').replace(/\n\}[\s\S]*$/, '\n}') + ';this.get=()=>_migShow;', ctx);
+    const rows = [{ st: { k: 'check' } }, { st: { k: 'none' } }, { st: { k: 'filed' } }];
+    assert.equal(rows.filter(r => ctx.migShowPass(r, 'check')).length, 1);
+    assert.equal(rows.filter(r => ctx.migShowPass(r, 'none')).length, 1);
+    assert.equal(rows.filter(r => ctx.migShowPass(r, 'filed')).length, 1);
+    assert.equal(rows.filter(r => ctx.migShowPass(r, 'all')).length, 3);
+    ctx.migShowSet('check'); assert.equal(ctx.get(), 'check');
+    ctx.migShowSet('check'); assert.equal(ctx.get(), 'all', 'pressed again, all');
     ctx.migShowSet('nonsense'); assert.equal(ctx.get(), 'all');
     assert.equal(painted, 3);
   });
   test('1b the list draws only what the door lets through, and says so', () => {
-    const r = fnBody(MIG, 'renderMigration');
-    assert.match(r, /\$\{cs\.filter\(c=>migShowPass\(c\)\)\.map\(c=>\{/);
-    assert.match(r, /i18t\('mig_shown_n',\{n:cs\.filter\(c=>migShowPass\(c\)\)\.length,of:cs\.length\}\)/);
-    assert.match(r, /kpi\(k\.review,i18t\('mig_need_review'\), [^,]+, k\.review\?'review':null\)/, 'a figure of zero is not a door');
+    const r = fnBody(MIG, 'migListHtml');
+    assert.match(r, /const sh = migShown\(rows\)/);
+    assert.match(r, /\$\{sh\.list\.map\(migRowHtml\)\.join\(''\)\}/);
+    assert.match(r, /i18t\('mig_shown_n', \{ n:sh\.list\.length, of:sh\.of \}\)/);
+    assert.match(fnBody(MIG, 'migShown'), /const pass = rows\.filter\(r => migShowPass\(r\)\)/);
+    assert.match(fnBody(MIG, 'migBandHtml'), /const door = n > 0/, 'a figure of zero is not a door');
   });
 });
 
 describe('f723 (2) the drop strip', () => {
   test('2a one strip, Choose files at its end', () => {
-    const r = fnBody(MIG, 'renderMigration');
-    assert.match(r, /#mig-drop\{display:flex;align-items:center;/);
-    assert.match(r, /<span class="ui-btn" style="flex:none" aria-hidden="true">\$\{migEsc\(i18t\('mig_choose_files'\)\)\}<\/span>/);
+    assert.match(fnBody(MIG, 'renderMigration'), /#mig-drop\{display:flex;align-items:center;/);
+    assert.match(fnBody(MIG, 'migDropCardHtml'), /<span class="ui-btn mig-drop-b" aria-hidden="true">\$\{esc\(i18t\('mig_choose_files'\)\)\}<\/span>/);
   });
 });
 

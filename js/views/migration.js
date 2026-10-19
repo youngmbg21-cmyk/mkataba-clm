@@ -981,6 +981,8 @@ function migShowSet(k){ _migShow = (!MIG_SHOWS.includes(k) || k === _migShow) ? 
 const migLinkPending = c => !!(c && c.linkSuggestions && c.linkSuggestions.length && !c.parentId && !c.linkConfirmed);
 const migRefOf = id => { const c = getContract(id); return (window.contractRef ? contractRef(c || { id }) : id); };
 /* the word for one of the facts a file is filed with */
+/* the short name each fact's words are keyed by (mig_why_missing_*, mig_wait_*) */
+const MIG_K = { contractType:'title', counterparty:'party', effectiveDate:'starts', expiryDate:'ends', value:'value', folder:'stream' };
 const MIG_FACT_WORD = { contractType:'mig_fw_title', counterparty:'mig_fw_party', effectiveDate:'mig_fw_starts', expiryDate:'mig_fw_ends', value:'mig_fw_value' };
 function migNoneWhy(c){
   const mg = c.migration || {}, u = c.upload || {};
@@ -999,7 +1001,7 @@ function migCheckWhy(c){
   if (scan) parts.push(i18t('mig_why_scan'));
   const miss = ['expiryDate', 'counterparty', 'value', 'effectiveDate', 'contractType'].find(k => by[k] && by[k].missing);
   const uns = ['value', 'expiryDate', 'counterparty', 'effectiveDate', 'contractType'].find(k => by[k] && by[k].unsure);
-  if (miss) parts.push(i18t('mig_why_missing_' + miss));
+  if (miss) parts.push(i18t('mig_why_missing_' + MIG_K[miss]));
   else if (!scan && mg.aiSource !== 'ai' && mg.needsReview) parts.push(i18t('mig_why_rules'));
   else if (uns) parts.push(i18t('mig_why_unsure', { what:i18t(MIG_FACT_WORD[uns]) }));
   else if (mg.needsReview && !scan) parts.push(i18t('mig_why_look'));
@@ -1615,7 +1617,7 @@ function migFormWaits(c, form){
 }
 function migWaitWords(waits){
   if (!waits.length) return '';
-  if (waits.length === 1) return i18t('mig_wait_' + waits[0]);
+  if (waits.length === 1) return i18t('mig_wait_' + MIG_K[waits[0]]);
   return i18t('mig_wait_many', { what:waits.map(k => i18t(MIG_FORM_LABEL[k])).join(', ') });
 }
 /* the same, read off the record before anything is typed */

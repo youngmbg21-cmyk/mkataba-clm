@@ -79,7 +79,11 @@ describe('f805 (2) every Jambo ask box draws it, from the builder', () => {
   });
   test('2c Jambo\'s panel beside a list, and Import\'s panel, which gains the shared box', () => {
     assert.match(fnOf(INS, 'jlAskHtml'), /typeof jamboHintHtml === 'function' \? jamboHintHtml\(\) : ''/);
-    assert.match(fnOf(MIG, 'migSidePaint'), /jlAskHtml\(\{ placeholder: i18t\('jl_ph_any'\) \}\)/);
+    /* RE-POINTED 19 Oct 2026 (lane E, round 22 built as drawn): Import's
+       panel now wears the shared frame itself (jlFrame builds the box with
+       jlAskHtml once), and his conversation is said under the chosen file */
+    assert.match(fnOf(MIG, 'migSidePaint'), /jlFrame\(host, \{ jlPh:i18t\('jl_ph_any'\) \}\)/);
+    assert.match(fnOf(INS, 'jlFrame'), /jlAskHtml\(\{ placeholder: opt\.jlPh \}\)/);
     assert.match(fnOf(MIG, 'migSidePaint'), /<div id="jl-feed" class="jl-feed" aria-live="polite"><\/div>/, 'and his conversation is said in it');
   });
   test('2d the sentence is written nowhere else in the code — every box asks the builder', () => {
