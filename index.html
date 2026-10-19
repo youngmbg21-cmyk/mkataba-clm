@@ -10493,8 +10493,12 @@
   .ig-brain .ig-badge-txt{font-size:9px;font-family:var(--font-body)}
   .ig-brain .ig-node.dim{opacity:.3}
   .ig-brain .ig-note{position:absolute;left:12px;top:10px;z-index:2;max-width:calc(100% - 24px);width:max-content;box-sizing:border-box;padding:4px 10px;font-size:var(--t-meta);line-height:1.5;color:var(--hb-mute,#8FB5AD);background:var(--hb-card,rgba(4,25,26,.82));border:1px solid rgba(var(--hb-ln,160,220,210),.22);border-radius:var(--radius)}
-  /* the head line keeps clear of Group by in the stage's other corner: a long line wraps (Explorer stage 3) */
-  .ig-brain:has(.hb-groupby-stage:not([hidden])) .ig-note{max-width:calc(100% - 250px)}
+  /* GROUP BY IS THE HEAD LINE'S OWN DROPDOWN (owner, 19 Oct 2026): the grouping's word wears a quiet box and a chevron, in the line's own inks */
+  .ig-brain .ig-note .ig-gb{position:relative;display:inline-flex;align-items:center;vertical-align:baseline}
+  .ig-brain .ig-note .ig-gb select{appearance:none;-webkit-appearance:none;-moz-appearance:none;font:inherit;font-weight:var(--w-strong);line-height:1.4;color:#FFFFFF;background:transparent;border:1px solid rgba(var(--hb-ln,160,220,210),.22);border-radius:var(--radius);padding:0 18px 0 6px;margin:0 1px;cursor:pointer}
+  .ig-brain .ig-note .ig-gb select:hover{border-color:#7FE0CF}
+  .ig-brain .ig-note .ig-gb::after{content:'\25BE';position:absolute;right:6px;pointer-events:none;color:#7FE0CF;font-size:var(--t-micro)}
+  #ig-page.hb-light .ig-brain .ig-note .ig-gb select{color:var(--hb-ink);border-color:rgba(14,95,88,.22)}
   .ig-brain .ig-note:empty{display:none}
   .ig-brain .ig-note .text-ink,.ig-brain .ig-note b{color:#FFFFFF}
   .ig-brain .ig-note .text-ink\/60,.ig-brain .ig-note .text-ink\/40,.ig-brain .ig-note .ig-cliff{color:var(--hb-mute,#8FB5AD)}
@@ -10635,8 +10639,6 @@
   .hb-seg button[aria-selected="true"],.hb-seg button[aria-pressed="true"]{background:var(--accent-solid,var(--color-accent));color:#fff;font-weight:var(--w-strong)}
   .hb-groupby[hidden]{display:none}
   .hb-groupby{display:flex;align-items:center;gap:var(--s-2);font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600)}
-  /* on a computer it rides the map's top-right corner (the SAP way, 18 Oct 2026); Explorer is always dark */
-  .hb-groupby.hb-groupby-stage{position:absolute;top:12px;right:12px;z-index:6;color:var(--hb-mute,#8FB5AD)}   /* the map note's own quiet ink */
   .hb-counting{display:inline-flex;align-items:center;gap:var(--s-2);font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap}
   /* At rest the chip says nothing (owner, 4 Oct 2026), and a slot with
      nothing in it must take no room: the head row has its own gap, so an

@@ -162,7 +162,10 @@ const check = (name, pass, detail) => {
     await page.evaluate(async () => { await intelAsk('Colour by status and size by nothing'); });
     await page.evaluate(async () => { await intelAsk('Colour by payment terms'); });
     const coloured = await until(() => { const lg = document.getElementById('ig-legend'); return IG.colourKey === 'payterms' && lg && /payment terms/i.test(lg.textContent) ? { note: document.getElementById('ig-note').textContent.replace(/\s+/g, ' ').trim(), rows: lg.querySelectorAll('[data-ig-colour]').length } : null; });
-    check('5a "colour by payment terms": the dots take the colours, the legend says what they mean, the head line says it was applied', !!coloured && coloured.rows >= 1 && /coloured by payment terms/.test(coloured.note), JSON.stringify(coloured));
+    /* RE-POINTED 19 Oct 2026 (owner, "Drop the extra words"): the head line no
+       longer reads the recipe back — the legend says it, and the line keeps the
+       way back (Undo) */
+    check('5a "colour by payment terms": the dots take the colours, the legend says what they mean, the head line offers Undo', !!coloured && coloured.rows >= 1 && /\bUndo\b/.test(coloured.note) && !/coloured by/i.test(coloured.note), JSON.stringify(coloured));
     await page.evaluate(async () => { await intelAsk('Which contracts are outliers?'); });
     const outl = await until(() => { const l = intel.lenses.find(x => x.action === 'highlight'); if (!l) return null; const n = IG.contracts.find(c => c.badge);
       return { ids: l.ids, badge: n && n.badge, words: n ? n.tag.textContent : '', open: !!document.querySelector('#ig-dock [data-ig-list]') }; });

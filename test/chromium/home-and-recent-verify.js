@@ -225,10 +225,13 @@ const CONTRACTS = [
     check('5d the Board\'s Light | Dark stands on its own first line, and works', scr.onLine && scr.shown && !scr.inHead && !!dark, JSON.stringify(scr));
     await page.locator('#hb-board .hb-note [data-hb-screen="light"]').click().catch(() => {});
     await page.evaluate(() => hbOpenExplorer());
-    const gb = await until(() => { const l = document.getElementById('hb-groupby'), g = document.getElementById('ig-gwrap'); if (!l || !g || hbFace() !== 'explorer') return null;
-      const a = l.getBoundingClientRect(), b = g.getBoundingClientRect();
-      return { shown: a.height > 0, inMap: a.top >= b.top && a.right <= b.right + 1 && a.top - b.top < 40 && b.right - a.right < 40, head: document.getElementById('hb-head').getBoundingClientRect().height }; });
-    check('5e Explorer\'s Group by rides the map\'s top-right corner; no head row', !!gb && gb.shown && gb.inMap && gb.head === 0, JSON.stringify(gb));
+    /* RE-POINTED 19 Oct 2026 (owner: the corner's Group by was redundant): Group by
+       is the head line's own dropdown, in the map's top-left corner; the corner box is gone */
+    const gb = await until(() => { const s = document.getElementById('ig-group'), g = document.getElementById('ig-gwrap'); if (!s || !g || hbFace() !== 'explorer') return null;
+      const a = s.getBoundingClientRect(), b = g.getBoundingClientRect();
+      return { shown: a.height > 0, inLine: !!s.closest('#ig-note'), inMap: a.top >= b.top && a.left >= b.left && a.top - b.top < 40 && a.left - b.left < 160,
+        corner: !!document.getElementById('hb-groupby'), one: document.querySelectorAll('#ig-group').length, head: document.getElementById('hb-head').getBoundingClientRect().height }; });
+    check('5e Explorer\'s Group by is the head line\'s own dropdown in the map\'s top-left corner; no corner box, no head row', !!gb && gb.shown && gb.inLine && gb.inMap && !gb.corner && gb.one === 1 && gb.head === 0, JSON.stringify(gb));
     await shot(page, 'explorer-1440x780');
 
     console.log('\n6 · the phone keeps its own screens');

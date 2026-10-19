@@ -72,8 +72,13 @@ test('f426 (1)(2) one recipe, set back whole; every change leaves one undo point
   win.igRecipeRun({ acts: [{ undo: true }] });
   assert.match(win.eval('intel.history[intel.history.length-1].text'), /nothing to undo/i, 'an empty undo says so');
   const says = code(region(IG, 'igRecipeSays'));
-  ['floorsBy', 'columnsBy', 'colourBy', 'sizeBy', 'labelBy', 'timeBy', 'sortBy'].forEach(k => assert.ok(says.includes('intel.' + k), 'the head line reads ' + k));
-  assert.match(code(region(IG, 'updateIntelNote')), /igRecipeSays\(\)\.forEach/);
+  ['floorsBy', 'columnsBy', 'colourBy', 'sizeBy', 'labelBy', 'timeBy', 'sortBy'].forEach(k => assert.ok(says.includes('intel.' + k), 'the recipe reads ' + k));
+  /* RE-POINTED 19 Oct 2026 (owner, "Drop the extra words"): the recipe's words
+     left the head line, which says the grouping as its own dropdown, Undo and
+     Save view; igRecipeSays still decides whether Save view is offered. */
+  assert.doesNotMatch(code(region(IG, 'updateIntelNote')), /igRecipeSays\(\)\.forEach/);
+  assert.match(code(region(IG, 'updateIntelNote')), /igRecipeSays\(\)\.length/);
+  assert.match(code(region(IG, 'updateIntelNote')), /igGroupSelectHtml\(\)/);
   assert.match(code(region(IG, 'updateIntelNote')), /id="ig-undo"/);
 });
 

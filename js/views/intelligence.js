@@ -4260,6 +4260,17 @@ function igClamp(n,dx,dy){ const hw=n.w/2+2,hh=n.h/2+2,sx=dx?hw/Math.abs(dx):1e9
    A Copilot grouping had no option, so the menu went on naming the reader's
    last pick over Copilot's hubs. It gets a row of its own while it is live,
    named as the caption names it (graphGroupingWord), and loses it after. */
+/* the grouping's choices, one list for every Group by dropdown */
+function igGroupOptsHtml(){
+  const groupOpts=GRAPH_GROUPINGS.map(g=>[g.k,g.label]);   // C-1: ONE list — the tool's enum mirrors it
+  return (intel.groupBy==='custom'?`<option value="custom" selected>${igEsc(graphGroupingWord('custom').replace(/^./,ch=>ch.toUpperCase()))}</option>`:'')
+    +groupOpts.map(([k,l])=>`<option value="${k}"${intel.groupBy===k?' selected':''}>${igEsc(l)}</option>`).join('');
+}
+/* on a computer's Home the head line carries Group by (owner, 19 Oct 2026); the phone keeps its head row */
+function igGroupInLine(){ return !!(window.state&&state.view==='dashboard'&&typeof window.deskShellOn==='function'&&deskShellOn()); }
+function igGroupSelectHtml(){ return `<select id="ig-group" aria-label="${igEsc(i18t('hb_group_by'))}">${igGroupOptsHtml()}</select>`; }
+/* one listener for whichever dropdown carries the grouping: the head line's is redrawn with the line */
+document.addEventListener('change',e=>{ const s=e.target; if(!s||s.id!=='ig-group') return; intel.groupBy=s.value; intel.groups=null; rebuildIntelGraph(); });
 function igPaintGroupSelect(){
   const sel=document.getElementById('ig-group'); if(!sel) return;
   const has=sel.querySelector('option[value="custom"]');
@@ -4389,9 +4400,15 @@ function updateIntelNote(){
   const bits=[];
   if(act.ids&&act.action==='filter') bits.push(`<b class="text-ink">${igEsc(i18t('int_did_showing',{ n:shown, t:total }))}</b>`);
   if(shown>INTEL_CAP) bits.push(`<b class="text-ink">${igEsc(i18t('int_map_capped',{ n:INTEL_CAP, t:shown }))}</b>`);
-  bits.push(`${i18t('int_grouped_by')} <b class="text-ink">${gb}</b>`);
+  /* GROUP BY IS THIS LINE'S OWN DROPDOWN (owner, 19 Oct 2026: "this group by
+     highlighted on the top right is redundant. Simply make the group by on the
+     left hand a drop down as well"): on a computer the grouping's word is the
+     control itself, and the map's corner carries none. */
+  bits.push(`${i18t('int_grouped_by')} ${igGroupInLine()?`<span class="ig-gb">${igGroupSelectHtml()}</span>`:`<b class="text-ink">${gb}</b>`}`);
   if(on.length) bits.push(`<b class="text-brand-700">${on.map(l=>igEsc(l.label)).join(' ∩ ')}</b>${act.action==='filter'?'':` <span class="text-ink/40">${igEsc(i18t('int_did_highlighted',{ n:act.ids?act.ids.size:0, t:total }))}</span>`}`);
-  igRecipeSays().forEach(x=>bits.push(igEsc(x)));
+  /* THE RECIPE'S OTHER WORDS LEFT THE LINE (owner, 19 Oct 2026, "Drop the
+     extra words": floors by…, labelled by…, bubbles at… are seen on the map
+     itself); igRecipeSays still decides Save view and names a kept view. */
   const wk=intel.walk;
   if(intel.tour) bits.push(igTourNoteHtml());
   if(wk){ const k=Math.max(0,Math.min(wk.ids.length,Math.floor((wk.clock-IGB_PULSE_S)/IGB_STEP_S)+1));
@@ -5006,7 +5023,6 @@ function renderIntel(){
   const onHome = state.view==='dashboard' && typeof window.hbHeadHtml==='function';
   if(!onHome && intel.tab==='map' && typeof window.hbOpenExplorer==='function'){ intel.tab=IG_TABS[0]; hbOpenExplorer(); return; }
   if(!onHome && IG_TABS.indexOf(intel.tab)<0) intel.tab=IG_TABS[0];
-  const groupOpts=GRAPH_GROUPINGS.map(g=>[g.k,g.label]);   // C-1: ONE list — the tool's enum mirrors it
   /* UNDERLINE TABS, not pills. Both controls in this strip read the same way:
      the live one is the one with the accent rule under it. The -1px bottom
      margin drops that rule onto the header's own hairline so the two share a
@@ -5071,8 +5087,7 @@ function renderIntel(){
   const groupSel=`<span style="position:relative;display:inline-flex;align-items:center">
           <select id="ig-group" style="appearance:none;-webkit-appearance:none;-moz-appearance:none;border:1.5px solid var(--color-accent);background:var(--st-steel-bg);color:var(--st-steel-fg);font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-body);letter-spacing:0;text-transform:none;padding:5px 26px 5px 11px;border-radius:var(--radius);cursor:pointer;outline:none">
             ${''/* Copilot's own grouping gets its row here too — see igPaintGroupSelect. */}
-            ${intel.groupBy==='custom'?`<option value="custom" selected>${graphGroupingWord('custom').replace(/^./,ch=>ch.toUpperCase())}</option>`:''}
-            ${groupOpts.map(([k,l])=>`<option value="${k}" ${intel.groupBy===k?'selected':''}>${l}</option>`).join('')}
+            ${igGroupOptsHtml()}
           </select>
           <span style="position:absolute;right:9px;pointer-events:none;color:var(--color-accent);font-size:var(--t-figure)">▼</span>
         </span>`;
@@ -5231,7 +5246,7 @@ function renderIntel(){
                computer Home draws no head row, so Explorer's one control sits
                in the stage's top-right corner, as the head line sits in its
                top-left. The phone keeps it in Home's head. */}
-        ${hbDeskStage?`<label class="hb-groupby hb-groupby-stage" id="hb-groupby"${(typeof hbFace==='function'&&hbFace()==='explorer')?'':' hidden'}>${igEsc(i18t('hb_group_by'))} ${groupSel}</label>`:''}
+        ${''/* (19 Oct 2026, owner: redundant) Group by left the corner: it is the head line's own dropdown (igGroupSelectHtml). */}
         ${''/* THE VIEW BAR — the three views, the zoom and Fold all, in the
                stage's own corner where the old "drag nodes" hint sat. How to
                move the map is machinery, so it lives on the bar's hover. */}
@@ -5324,7 +5339,7 @@ function renderIntel(){
 
   // controls
   /* Leaving Copilot's grouping takes its row away (igPaintGroupSelect, on the rebuild). */
-  document.getElementById('ig-group').addEventListener('change',e=>{ intel.groupBy=e.target.value; intel.groups=null; rebuildIntelGraph(); });
+  /* the grouping's change is heard on the document (igGroupSelectHtml): the head line redraws its dropdown */
   document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
 
   // animation loop (stops when leaving intel — or when the tab is not the map;

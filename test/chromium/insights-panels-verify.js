@@ -1028,14 +1028,15 @@ const QUESTION = 'why do I have a big workload runway today?';
       const last = intel.history[intel.history.length - 1] || {};
       const dock = document.getElementById('ig-dock');
       return { hubs: hubs.map(n => n.label).sort(), painted: hubs.map(n => n.g && n.g.querySelector('.ig-lab') ? n.g.querySelector('.ig-lab').getBoundingClientRect().width : 0),
-        note: note ? note.textContent.replace(/\s+/g, ' ').trim() : '', select: sel ? sel.value : null, groupBy: intel.groupBy, groups: intel.groups,
+        /* RE-POINTED 19 Oct 2026: the caption's grouping is its own dropdown (owner) — read as the word it shows */
+        note: (n => { if (!n) return ''; const c = n.cloneNode(true), s = n.querySelector('#ig-group'), w = s && s.options[s.selectedIndex] ? s.options[s.selectedIndex].textContent : ''; c.querySelectorAll('select').forEach(x => x.replaceWith(document.createTextNode(w))); return c.textContent.replace(/\s+/g, ' ').trim(); })(note), select: sel ? sel.value : null, groupBy: intel.groupBy, groups: intel.groups,
         last: last.text || '', onScreen: !!dock && /Grouped \d+ contracts/.test(dock.textContent), lenses: intel.lenses.length };
     }, { hubs: [], painted: [], note: '', select: null, groupBy: null, groups: null, last: '', onScreen: false, lenses: -1 });
     check('18a THE REPORTED FAULT: the hubs on screen ARE the expiry windows — every node moved off its value-stream hub',
       expiryBuckets.length >= 3 && JSON.stringify(g18.hubs) === JSON.stringify(expiryBuckets) && g18.painted.length && g18.painted.every(w => w > 0),
       JSON.stringify({ hubs: g18.hubs, want: expiryBuckets }));
     check('18b the caption says "expiry window", the dropdown agrees, and no Copilot override or lens rides along',
-      /expiry window/.test(g18.note) && g18.select === 'expiry' && g18.groupBy === 'expiry' && g18.groups === null && g18.lenses === 0,
+      /expiry window/i.test(g18.note) && g18.select === 'expiry' && g18.groupBy === 'expiry' && g18.groups === null && g18.lenses === 0,
       JSON.stringify({ note: g18.note, select: g18.select, groupBy: g18.groupBy, lenses: g18.lenses }));
     check('18c the chat line is composed off what the map DID, as visible pixels in the dock — never the model\'s own claim',
       g18.onScreen && /^Grouped \d+ contracts into \d+ groups by expiry window/.test(g18.last) && !/Clustered by expiration date/.test(g18.last), g18.last);
@@ -1060,13 +1061,13 @@ const QUESTION = 'why do I have a big workload runway today?';
     await drive18(async () => { await intelAsk('cluster by moon phase'); }, null);
     await page.waitForTimeout(1200);
     const r18 = await drive18(() => ({ hubs: window.IG ? IG.nodes.filter(n => n.kind === 'hub').map(n => n.label).sort() : [],
-      note: document.getElementById('ig-note').textContent.replace(/\s+/g, ' ').trim(), groupBy: intel.groupBy, groups: intel.groups,
+      note: (n => { if (!n) return ''; const c = n.cloneNode(true), s = n.querySelector('#ig-group'), w = s && s.options[s.selectedIndex] ? s.options[s.selectedIndex].textContent : ''; c.querySelectorAll('select').forEach(x => x.replaceWith(document.createTextNode(w))); return c.textContent.replace(/\s+/g, ' ').trim(); })(document.getElementById('ig-note')), groupBy: intel.groupBy, groups: intel.groups,
       last: (intel.history[intel.history.length - 1] || {}).text || '', dock: /could not group by that/.test(document.getElementById('ig-dock').textContent), lenses: intel.lenses.length }),
       { hubs: [], note: '', groupBy: null, groups: null, last: '', dock: false, lenses: -1 });
     check('18f a grouping the map cannot cut is refused in words, on screen, naming what the map can do',
       r18.dock && /expiry window/.test(r18.last) && /signed quarter/.test(r18.last) && !/moon phase/.test(r18.last), r18.last);
     check('18g and the map is left exactly as it was — value-stream hubs, the caption unmoved, no lens, no "Copilot grouping"',
-      JSON.stringify(r18.hubs) === JSON.stringify(folderHubs) && /value stream/.test(r18.note) && !/Jambo grouping/.test(r18.note) && r18.groupBy === 'folder' && r18.groups === null && r18.lenses === 0,
+      JSON.stringify(r18.hubs) === JSON.stringify(folderHubs) && /value stream/i.test(r18.note) && !/Jambo grouping/.test(r18.note) && r18.groupBy === 'folder' && r18.groups === null && r18.lenses === 0,
       JSON.stringify({ hubs: r18.hubs, note: r18.note, groupBy: r18.groupBy, lenses: r18.lenses }));
     await page.screenshot({ path: path.join(OUT, '18-map-copilot.png') });
     await drive18(() => { intel.lenses = []; intel.groups = null; intel.groupBy = 'folder'; intel.history = []; rebuildIntelGraph(); renderIntelDock(); }, null);
