@@ -246,6 +246,9 @@ const dismissNote = async pg => {
       headInsideColumn: Math.round(head.width) <= Math.round(cr.width) + 1
         && Math.round(head.right) <= Math.round(rr.left) + 1,
       headW: Math.round(head.width),
+      /* FROM A REDLINES ROW (round 9's gaps, third pass, as drawn): the head
+         bar spans the window and both columns start under it */
+      rowMode: page.classList.contains('ce-rowmode'), headBottom: Math.round(head.bottom), pageW: Math.round(r.width),
       /* HOW MUCH CHROME STANDS BETWEEN THE TOP OF THE PAGE AND THE CONTRACT.
          The prototype draws a strip and a readings row and nothing else; a
          header creeping back in shows up here as a number before it shows up
@@ -265,14 +268,19 @@ const dismissNote = async pg => {
        + (opened && (opened.railW/(opened.colW+opened.railW)).toFixed(3)));
   ck('2d and it is on the right, flush with the window edge',
      !!opened && opened.railRight, opened && `right edge`);
-  ck('2d2 THE COPILOT RAIL RUNS THE FULL HEIGHT OF THE WINDOW — top to bottom',
-     !!opened && opened.railFullHeight,
+  /* RE-POINTED 19 Oct 2026 (round 9's gaps, third pass, lane C2 — the picked
+     drawing's "Where Edit lands"): opened from a Redlines row, the head bar
+     spans the window and the rail runs from under it to the floor; opened any
+     other way the rail runs floor to ceiling and the strip keeps to the left
+     column, as the owner first ruled. */
+  ck('2d2 THE COPILOT RAIL RUNS THE FULL HEIGHT OF THE WINDOW — top to bottom (from a row: from under the bar)',
+     !!opened && (opened.rowMode ? (Math.abs(opened.railTop - opened.headBottom) <= 1 && opened.railBottom >= opened.pageBottom - 1) : opened.railFullHeight),
      opened && `rail ${opened.railTop}–${opened.railBottom} of page `
        + `${opened.pageTop}–${opened.pageBottom}`);
   ck('2d3 and the header sits INSIDE the left column, never across both — a '
      + 'full-width header is what pushes the rail down',
-     !!opened && opened.headInsideColumn,
-     opened && `header ${opened.headW}px of a ${opened.colW}px column`);
+     !!opened && (opened.rowMode ? Math.abs(opened.headW - opened.pageW) <= 1 : opened.headInsideColumn),
+     opened && `header ${opened.headW}px of a ${opened.colW}px column${opened.rowMode ? ' (from a row: spans ' + opened.pageW + ')' : ''}`);
   /* REVERSED IN PLACE 28 Aug 2026 — the header went, so "the clause is named
      with four facts under it" is a claim about a thing that is deliberately not
      drawn. What replaces it is the measurement that made the case for removing
@@ -348,7 +356,7 @@ const dismissNote = async pg => {
          the Copilot rail running floor to ceiling. */
       right: Math.round(r.right),
       railLeft: Math.round(page.querySelector('.ce-rail').getBoundingClientRect().left),
-      says: !!row.querySelector('#ce-say') };
+      says: !!row.querySelector('#ce-say'), rowMode: page.classList.contains('ce-rowmode'), pageRight: Math.round(page.getBoundingClientRect().right) };
   });
   ck('2h THE STRIP IS ONE ROW at the prototype\'s own height',
      !!toolStrip && toolStrip.h >= 40 && toolStrip.h <= 52 && toolStrip.offCentre === 0,
@@ -356,8 +364,8 @@ const dismissNote = async pg => {
   ck('2i the tools lead it and the way out ends it',
      !!toolStrip && toolStrip.barFirst && toolStrip.exitLast,
      toolStrip && `bar first ${toolStrip.barFirst}, exit last ${toolStrip.exitLast}`);
-  ck('2j IT STOPS WHERE THE COPILOT CARD STARTS — the owner\'s own instruction',
-     !!toolStrip && Math.abs(toolStrip.right - toolStrip.railLeft) <= 1,
+  ck('2j IT STOPS WHERE THE COPILOT CARD STARTS — the owner\'s own instruction (from a row: at the window\'s edge, as drawn)',
+     !!toolStrip && (toolStrip.rowMode ? Math.abs(toolStrip.right - toolStrip.pageRight) <= 1 : Math.abs(toolStrip.right - toolStrip.railLeft) <= 1),
      toolStrip && `strip ends ${toolStrip.right}, rail starts ${toolStrip.railLeft}`);
   ck('2k and a refusal still has somewhere to be spoken on it',
      !!toolStrip && toolStrip.says === true, toolStrip && `#ce-say on the strip: ${toolStrip.says}`);
@@ -423,6 +431,7 @@ const dismissNote = async pg => {
           painted: r.width > 0 && r.height > 0, w: Math.round(r.width) }; })(),
       /* THE SYMBOL IS STILL THERE, and it still RESOLVES — an <svg> that draws
          nothing paints an empty box in silence. */
+      rowMode: page.classList.contains('ce-rowmode'),
       symbol: (() => { const g = exit.querySelector('svg');
         if (!g) return null; try { const b = g.getBBox();
           return b.width > 0 && b.height > 0; } catch (_) { return null; } })(),
@@ -457,8 +466,10 @@ const dismissNote = async pg => {
   ck('2q AND IT SAYS THE WORD — visible pixels, not markup behind something',
      !!(out.word && out.word.painted && out.word.text.length > 0),
      out.word ? `"${out.word.text}" ${out.word.w}px wide` : 'no label span');
-  ck('2q2 the symbol stays beside it, and it really resolves',
-     out.symbol === true, String(out.symbol));
+  /* RE-POINTED 19 Oct 2026 (round 9's gaps, third pass): from a Redlines row
+     Exit is the quiet small outlined word, no symbol, as drawn */
+  ck('2q2 the symbol stays beside it, and it really resolves (from a row: the word alone)',
+     out.rowMode ? out.symbol !== true : out.symbol === true, String(out.symbol));
   ck('2q3 and the label holds one line, so it grows the button not the bar',
      out.wordLines === 1, `${out.wordLines} line(s)`);
   ck('2p and it is the ONE way out — two controls leaving one page is the '

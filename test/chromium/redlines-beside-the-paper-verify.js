@@ -28,7 +28,8 @@
      8  the word "redline", the bell's row and the list panel's Negotiation
         door open it; the rail's Negotiations door shows the list, and its row
         opens the face (stage 5)
-     9  a row's note count opens the notes drawer on Home on that change (stage 5)
+     9  a row's note count opens that change's notes in the same panel, the
+        face kept (round 9's gaps, third pass)
     10  the owner's three screens: the paper neither moves nor shrinks when
         the face opens; the face fits; its head and foot are in sight
     11  Svenska; the phone carries on to its own page
@@ -230,7 +231,8 @@ const bands = () => [...document.querySelectorAll('#pd-redface .rl-band')].map(b
     await waitFor(page, () => window.negoUnsentAsks && negoUnsentAsks(getContract('MK-R1')).length === 0, 8000);
     await pause(800);
     const s6c = await page.evaluate(() => ({ unsent: negoUnsentAsks(getContract('MK-R1')).length, bands: [...document.querySelectorAll('#pd-redface .rl-band')].map(b => b.textContent.replace(/\s+/g, ' ').trim()) }));
-    check('6c and sends: nothing unsent, the counter is with them', s6c.unsent === 0 && /With the counterparty\s*1/.test(s6c.bands.join('|')), JSON.stringify(s6c));
+    /* RE-POINTED 19 Oct 2026 (round 9's gaps, third pass: "with Nordvik" — the pile named for the party) */
+    check('6c and sends: nothing unsent, the counter is with them', s6c.unsent === 0 && /With Parcelway ApS\s*1/.test(s6c.bands.join('|')), JSON.stringify(s6c));
 
     /* ===== 7. CLEAN STILL WINS; × GOES BACK ===== */
     await page.click('[data-ig-red="0"]'); await pause(500);
@@ -290,10 +292,13 @@ const bands = () => [...document.querySelectorAll('#pd-redface .rl-band')].map(b
     await page.evaluate(() => pdRedOpen('MK-R1'));
     await waitFor(page, () => !!document.querySelector('#pd-redface [data-rl-notes="CHG-003"]'), 6000);
     await page.click('#pd-redface [data-rl-notes="CHG-003"]');
-    const n9 = await waitFor(page, () => state.view === 'dashboard' && !!document.querySelector('#context-panel.open'), 8000);
-    const n9b = await page.evaluate(() => ({ view: state.view, face: !!document.getElementById('pd-redface'),
-      drawer: ((document.querySelector('#context-panel.open') || {}).innerText || '').replace(/\s+/g, ' ').slice(0, 400) }));
-    check('9 a row\'s note count opens the notes drawer on Home on that change, the face kept', n9 && n9b.face && /CHG-003/.test(n9b.drawer) && /finance/.test(n9b.drawer), JSON.stringify(n9b));
+    /* RE-POINTED 19 Oct 2026 (round 9's gaps, third pass: "This opens that
+       change's notes" — in the same panel, one room per side, not the drawer
+       over Jambo's panel) */
+    const n9 = await waitFor(page, () => state.view === 'dashboard' && !!document.querySelector('#pd-redface .rl-fn[data-rl-fn-change="CHG-003"]'), 8000);
+    const n9b = await page.evaluate(() => ({ view: state.view, face: !!document.getElementById('pd-redface'), drawerOpen: !!document.querySelector('#context-panel.open'),
+      notes: ((document.querySelector('#pd-redface .rl-fn') || {}).innerText || '').replace(/\s+/g, ' ').slice(0, 400) }));
+    check('9 a row\'s note count opens that change\'s notes in the panel, the face kept, no drawer', n9 && n9b.face && !n9b.drawerOpen && /finance/.test(n9b.notes), JSON.stringify(n9b));
     await page.evaluate(() => { const x = document.getElementById('panel-close'); if (x) x.click(); });
 
     /* ===== 10. THE OWNER'S THREE SCREENS ===== */

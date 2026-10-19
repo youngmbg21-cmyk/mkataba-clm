@@ -22108,7 +22108,7 @@ function rlSuggestPileLabel(c, list){
    row (reviewCardCancelHtml, which asks first). Our seat, the face only
    (opts.waitingInPile). */
 function rlReviewPileActsHtml(c, rows, opts = {}){
-  if (!opts || !opts.waitingInPile || typeof window.reviewOutFor !== 'function') return '';
+  if (!opts || !opts.waitingInPile || typeof window.reviewOpenFor !== 'function') return '';
   const seen = new Set(), out = [];
   for (const ch of (rows || [])){
     const rv = (typeof window.reviewOpenFor === 'function') ? reviewOpenFor(c, ch) : null;

@@ -6508,6 +6508,10 @@ function redlineLayoutCss(){
   .redline-page .rl-pile .rl-card-d .rl-card-face [data-rl-ladder]:hover,
   .redline-page .rl-pile .rl-card-d .rl-card-face [data-rl-ask-review]:hover,
   .redline-page .rl-pile .rl-card-d .rl-card-face .rl-sg-back:hover{background:var(--color-accent-100);color:var(--accent-ink)}
+  ${''/* …and a dead door keeps the label shade there too (the clause held by a
+         colleague): the same specificity, later in the sheet — scope, not weight */}
+  .redline-page .rl-pile .rl-card-d .rl-card-verbs button.is-locked,
+  html.dark .redline-page .rl-pile .rl-card-d .rl-card-verbs button.is-locked{color:var(--color-neutral-600)}
   ${''/* the settled fold is drawn as its pile's head alone, with its count — no chevron */}
   .redline-page .rl-pile-quiet .rl-band-fold i{display:none}
   ${''/* ---- THE NOTES IN THE SAME PANEL (round 9's gaps, second pass) ----

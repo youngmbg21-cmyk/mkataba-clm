@@ -180,3 +180,70 @@ describe('f758 (4) ‹ Jambo while the letter is up', () => {
     assert.match(fnBody(PD, 'pdSendAway'), /if \(_pdRed\) pdRedClose\(\);/, 'a face under the letter goes too: Jambo\'s own words');
   });
 });
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE THIRD PASS (19 Oct 2026): main's bar (the SAP way: ‹ · Ha · the page's
+   name, Recent) in the desk tabs' place, and the letter that WAITS.
+   (5) The letter in front names the page "Send · MK-0382"; while it waits
+       ("Go to clause N") the paper is in front, the letter is Recent's first
+       row ("Letter, not sent"), and pressing it brings the letter back; going
+       to its own paper does not put it away; the screen stays whole.
+   AT THE PARENT (d47fadb, the merge of main) and AT THE BASE every test here
+   FAILS.
+   ═══════════════════════════════════════════════════════════════════════════ */
+describe('f758 (5) the letter that waits, in main\'s bar', () => {
+  function stage5(){
+    const c = { id: 'MK-1', contractNo: 'MK-0382', counterparty: 'Nordvik Logistik AB' };
+    const did = [], store = {};
+    let waiting = false;
+    const ctx = {
+      state: { view: 'dashboard' }, getContract: id => (id === c.id ? c : null), contractRef: x => x.contractNo,
+      i18t: (k, v) => k + (v ? '[' + Object.values(v).join(',') + ']' : ''), hbFace: () => 'paper', pdContract: () => c,
+      pdSendFor: () => 'MK-1', pdSendIsWaiting: () => waiting, pdSendWaitSet: on => { waiting = !!on; did.push('wait:' + on); return true; },
+      closeModal: () => did.push('close'), closeModalGuarded: () => did.push('guarded'),
+      localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); } },
+      currentUser: () => ({ id: 'u1' }), setTimeout: () => 0, clearTimeout: () => {},
+      document: { getElementById: () => null, querySelector: () => null, querySelectorAll: () => [], addEventListener: () => {} },
+    };
+    ctx.window = ctx;
+    vm.createContext(ctx); vm.runInContext(CN, ctx);
+    return { ctx, did, setWaiting: v => { waiting = v; } };
+  }
+  test('5a up: the bar names the letter; waiting: the paper, and the letter first in Recent, never kept', () => {
+    const { ctx, setWaiting } = stage5();
+    assert.equal(ctx.deskKeyNow(), 'send:MK-1');
+    assert.equal(ctx.deskPageName(), 'dk_send_tab[MK-0382]');
+    setWaiting(true);
+    assert.equal(ctx.deskKeyNow(), 'c:MK-1', 'the paper is in front');
+    const rows = ctx.deskRecentRows();
+    assert.equal(rows[0].k, 'send:MK-1', 'the letter is one row away');
+    assert.equal(rows[0].waiting, true);
+    assert.equal(ctx.dkKindWord('send:MK-1'), 'dk_kind_letter');
+    assert.ok(!JSON.parse(ctx.localStorage.getItem('hati.v1.deskTabs') || '{}').u1, 'nothing kept for it');
+  });
+  test('5b its row brings the letter back; its own paper does not put it away; another page does', () => {
+    const { ctx, did, setWaiting } = stage5();
+    setWaiting(true);
+    ctx.dkLeaveSend('c:MK-1');
+    assert.deepEqual(did, [], 'going to the paper it waits over is not leaving');
+    assert.equal(ctx.deskTabOpen('send:MK-1'), true);
+    assert.deepEqual(did, ['wait:false'], 'Recent\'s row brings it back');
+    ctx.dkLeaveSend('v:approvals');
+    assert.deepEqual(did, ['wait:false', 'close'], 'another page puts it away, its guard asked by the screen');
+    assert.match(fnBody(CN, 'deskTabsSync'), /if \(!\(k && k\.startsWith\(DK_SEND\)\)\) dkTrailNote\(/, 'never on the trail ‹ walks');
+  });
+  test('5c the screen waits whole: out of sight, what is typed kept, its face in the panel saying Back', () => {
+    const { ctx, painted } = pdStage();
+    ctx.pdSendOpen('MK-1', { parentNode: null });
+    assert.equal(ctx.pdSendIsWaiting(), false);
+    ctx.pdSendWaitSet(true);
+    assert.equal(ctx.pdSendIsWaiting(), true);
+    assert.equal(ctx.pdSendFor(), 'MK-1', 'nothing was put away');
+    assert.match(ctx.pdSendFaceHtml(), /class="pd-send-slot is-waiting"/, 'the stays card says Back to the letter');
+    assert.ok(painted.includes('dock'), 'the panel repainted');
+    ctx.pdSendWaitSet(false);
+    assert.doesNotMatch(ctx.pdSendFaceHtml(), /is-waiting/);
+    ctx.pdSendClose();
+    assert.equal(ctx.pdSendWaitSet(true), false, 'no letter, nothing to wait');
+  });
+});

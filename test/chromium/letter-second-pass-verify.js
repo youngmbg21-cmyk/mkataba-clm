@@ -208,7 +208,8 @@ const sharePayload = (id, name) => ({ v: 1, kind: 'hati-share', org: 'Lindqvist 
       const cv = document.getElementById('ig-canvas'); const r = cv ? cv.getBoundingClientRect() : null;
       const hit = r ? document.elementFromPoint(r.left + r.width / 2, r.top + Math.min(200, r.height / 2)) : null;
       return { said, paper: !!(hit && cv.contains(hit)), red: !!document.querySelector('#pd-redface'), face: !!document.getElementById('pd-sendface'),
-        tab: [...document.querySelectorAll('#dk-home .dk-tab')].some(x => /^Send ·/.test(x.textContent)) };
+        /* RE-POINTED 19 Oct 2026 (main's bar): the page's name, not a desk tab */
+        tab: /^Send ·/.test(((document.querySelector('#dk-page .dk-page-w') || {}).textContent || '').trim()) };
     }, 10000);
     check('4b the page closes; the paper is back, Redlines beside it; the Send tab goes', !!after && after.paper && after.red && !after.face && !after.tab, JSON.stringify(after));
     const toastSaid = after && after.said.find(x => /^Sent to /.test(x.t));

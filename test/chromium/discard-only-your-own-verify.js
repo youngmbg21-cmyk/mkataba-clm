@@ -9,8 +9,9 @@
  *   1. the lead files a draft; on the contributor's page its row has no Discard,
  *      and the engine refuses it in red;
  *   2. a PUT from the contributor that removes it is refused by the server;
- *   3. the contributor's own draft carries Discard; the press asks
- *      "Discard #id?" — No keeps it, Yes removes it, and the server agrees.
+ *   3. the contributor's own draft carries Discard; the press asks nothing
+ *      and offers Undo (round 9's drawing, 19 Oct 2026) — Undo keeps it, no
+ *      Undo removes it, and the server agrees each time.
  *
  * Every driven half is guarded, so a missing feature REPORTS rather than times
  * out (the house rule). */
@@ -143,7 +144,15 @@ const DEAL = {
       forged.status === 403 && /only your own drafts/.test(forged.err || ''), JSON.stringify(forged));
     ok('2b and the draft is still on the server', await stored(mate.p, leads.id));
 
-    /* ===== 3. THE CONTRIBUTOR'S OWN DRAFT: ASKED FIRST ===== */
+    /* ===== 3. THE CONTRIBUTOR'S OWN DRAFT: UNDO OVER ASKING ===== */
+    /* RE-POINTED 19 Oct 2026 (round 9's gaps, third pass, lane C2). This part
+       measured "the press asks 'Discard #id?' first — Cancel keeps it". The
+       picked drawing of round 9 says the row's own words instead: "Discard last
+       takes back your latest version of this change; Undo for a few seconds" —
+       on OUR seat the press asks nothing and the confirmation carries Undo
+       (rlDiscardUndo). The counterparty's seat still asks first. What the old
+       check guarded (one press never loses a draft for good) is measured the
+       new way: Undo puts it back, on the server too. */
     await mate.p.reload({ waitUntil: 'networkidle' });
     await until(mate.p, () => typeof getContract === 'function' && !!getContract('MK-D1'), null, 15000);
     const mine = await file(mate.p, 1, 'The cap shall not apply to product recalls.');
@@ -153,19 +162,24 @@ const DEAL = {
     const has = await btn.count();
     ok('3b their own draft carries Discard', has > 0, String(has));
     if (has){
-      await btn.scrollIntoViewIfNeeded(); await btn.click();
-      const asked = await until(mate.p, () => !!document.getElementById('confirm-overlay'), null, 5000);
-      const title = asked ? await mate.p.locator('#confirm-overlay h3').textContent() : '';
-      ok('3c the press asks "Discard #id?" first', asked && new RegExp('Discard #' + mine.id + '\\?').test(title), title);
-      await mate.p.screenshot({ path: path.join(OUT, '2-discard-asks-first.png') });
-      if (asked) await mate.p.click('#cf-cancel');
-      const keptLocal = await mate.p.evaluate(id => (getContract('MK-D1').changes || []).some(x => x.id === id), mine.id);
-      ok('3d "Cancel" keeps the draft', keptLocal);
-      await mate.p.locator(`[data-rl-retract="${mine.id}"]`).first().click();
-      const asked2 = await until(mate.p, () => !!document.getElementById('confirm-overlay'), null, 5000);
-      if (asked2) await mate.p.click('#cf-ok');
+      await btn.scrollIntoViewIfNeeded(); await btn.click({ timeout: 5000 }).catch(() => {});
+      const offered = await until(mate.p, () => [...document.querySelectorAll('#toast-root [data-toast-act]')].some(b => /undo/i.test(b.textContent || '')), null, 5000);
+      const asked = await mate.p.evaluate(() => !!document.getElementById('confirm-overlay'));
+      ok('3c the press asks nothing and the confirmation offers Undo', offered && !asked, JSON.stringify({ offered, asked }));
+      const goneFirst = await mate.p.evaluate(id => !(getContract('MK-D1').changes || []).some(x => x.id === id), mine.id);
+      await mate.p.screenshot({ path: path.join(OUT, '2-discard-offers-undo.png') });
+      if (asked) await mate.p.click('#cf-cancel', { timeout: 3000 }).catch(() => {});
+      if (offered) await mate.p.evaluate(() => { const b = [...document.querySelectorAll('#toast-root [data-toast-act]')].find(x => /undo/i.test(x.textContent || '')); if (b) b.click(); });
+      const back = await until(mate.p, id => (getContract('MK-D1').changes || []).some(x => x.id === id), mine.id, 5000);
+      await mate.p.evaluate(async () => { if (window.flushSaves) await flushSaves(); });
+      ok('3d Undo puts the draft back, on the server too', goneFirst && back && await stored(mate.p, mine.id), JSON.stringify({ goneFirst, back }));
+      await mate.p.evaluate(() => { if (window.toastsClear) toastsClear(); });
+      await mate.p.evaluate(async () => { await openRedlineWorkbench('MK-D1'); await new Promise(r => setTimeout(r, 600)); });
+      await mate.p.locator(`[data-rl-retract="${mine.id}"]`).first().click({ timeout: 5000 }).catch(() => {});
+      const asked2 = await until(mate.p, () => !!document.getElementById('confirm-overlay'), null, 1500);
+      if (asked2) await mate.p.click('#cf-ok', { timeout: 3000 }).catch(() => {});
       const gone = await until(mate.p, id => !(getContract('MK-D1').changes || []).some(x => x.id === id), mine.id, 5000);
-      ok('3e "Discard" removes it', gone);
+      ok('3e Discard without Undo removes it', gone);
       await mate.p.evaluate(async () => { if (window.flushSaves) await flushSaves(); });
       ok('3f and the server took the save', !(await stored(mate.p, mine.id)));
     }

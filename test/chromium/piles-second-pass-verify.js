@@ -178,7 +178,8 @@ async function login(b, base, email, pass, errs){
     check('2d "Write to Internal… type @ to name someone" and Post', !!nv && nv.ph === 'Write to Internal… type @ to name someone' && /^Post$/.test((nv.post || '').trim()), JSON.stringify(nv && [nv.ph, nv.post]));
     await shot(page, '9-notes-1440x780');
     await page.click('#pd-redface .rl-fn [data-rl-fn-clause]');
-    check('2e the clause is a link to it on the paper', !!(await waitFor(page, () => !!document.querySelector('#ig-paper .rl-arrived'), 4000)));
+    /* RE-POINTED 19 Oct 2026 (LAND ON IT, main's rule): the link lands on the clause through the one lander */
+    check('2e the clause is a link to it on the paper', !!(await waitFor(page, () => !!document.querySelector('#ig-paper .is-landed[data-clause]'), 4000)));
     await page.fill('#pd-redface .rl-fn-in', 'Finance can live with 45 days. Not 60.');
     await page.click('#pd-redface [data-rl-fn-post]');
     const posted = await waitFor(page, () => { const v = document.querySelector('#pd-redface .rl-fn'); const c = getContract('MK-0382');
@@ -202,7 +203,7 @@ async function login(b, base, email, pass, errs){
       return { head: (document.getElementById('ce-rowhead') || {}).innerText, bar: [...document.querySelectorAll('#ce-bar [data-rb]')].map(b => b.getAttribute('data-rb')).join(','),
         exit: !!p.querySelector('[data-ce-act="close"]'), ctx: (doc.querySelector('.ce-row-ctx') || {}).textContent,
         shown: shown.map(e => e.querySelector('h4, .rl-clause-h') ? e.querySelector('h4, .rl-clause-h').textContent.trim() : e.getAttribute('data-clause')),
-        step: (doc.querySelector('.ce-row-on .ce-row-step') || {}).textContent, boxEdge: (() => { const b = doc.querySelector('.ce-row-on #ce-clausebody'); return b ? getComputedStyle(b).borderTopStyle : null; })(),
+        step: (doc.querySelector('.ce-row-on .ce-row-is') || {}).textContent, boxEdge: (() => { const b = doc.querySelector('.ce-row-on #ce-clausebody'); return b ? getComputedStyle(b).borderTopStyle : null; })(),
         dim: (() => { const n = doc.querySelector('.ce-row-next'); return n ? Number(getComputedStyle(n).opacity) : null; })(),
         tabs: [...document.querySelectorAll('#ce-tabs [data-ce-tab]')].map(b => b.getAttribute('data-ce-tab')),
         lane: (document.getElementById('ce-lane') || {}).innerText, foot: (document.getElementById('ce-railfoot') || {}).innerText,
@@ -213,7 +214,8 @@ async function login(b, base, email, pass, errs){
     check('3b the short shelf: B I U • 1. ⇤ ⇥', !!ed && ed.bar === 'bold,italic,underline,insertUnorderedList,insertOrderedList,outdent,indent', ed && ed.bar);
     check('3c the context line, then clause 7 alone with clause 8 dimmed', !!ed && ed.ctx === 'Master services agreement · MK-0382 · Nordvik Logistik AB · round 2'
       && ed.shown.length === 2 && /Liability cap/.test(ed.shown[0]) && /Insurance/.test(ed.shown[1]) && ed.dim < 0.8, JSON.stringify(ed && [ed.ctx, ed.shown, ed.dim]));
-    check('3d its box, labelled "Step 2 · your counter · saved as you type, not sent"', !!ed && ed.step === 'Step 2 · your counter · saved as you type, not sent' && ed.boxEdge === 'solid', JSON.stringify(ed && [ed.step, ed.boxEdge]));
+    /* RE-POINTED 19 Oct 2026 (main's rule, owner 18 Oct: nothing of the ladder in the editor): no step number, and only what is true */
+    check('3d its box, labelled "Your counter · nothing is filed until you save"', !!ed && ed.step === 'Your counter · nothing is filed until you save' && ed.boxEdge === 'solid', JSON.stringify(ed && [ed.step, ed.boxEdge]));
     check('3e the rail: Playbook · Risks · Ladder', !!ed && ed.tabs.join() === 'chat,risks,ladder', JSON.stringify(ed && ed.tabs));
     check('3f "What they asked … — Anna Holm" and Ask Jambo with its cost before the press', !!ed && /What they asked\s+“Standard in our contracts\.” — Anna Holm/.test(ed.lane || '')
       && /Ask Jambo\s+For a softer version, or this clause in plain English\./.test(ed.lane || '') && ed.ask && ed.cost === 'about 1 Jambo call', JSON.stringify(ed && [ed.lane, ed.cost]));

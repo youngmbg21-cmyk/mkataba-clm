@@ -120,14 +120,17 @@ async function mkUser(h, admin, name, email){
     await waitFor(page, () => /Anna/.test((document.getElementById('sh-send-lbl') || {}).textContent || ''), 6000);
     const F1 = await page.evaluate(() => {
       const t = s => { const e = document.querySelector(s); return e ? e.textContent.replace(/\s+/g, ' ').trim() : null; };
-      const tabs = [...document.querySelectorAll('#dk-home .dk-tab')].map(x => ({ w: x.textContent.replace(/[×\s]+$/, '').trim(), on: x.classList.contains('is-on') }));
+      /* RE-POINTED 19 Oct 2026 (main's bar, the SAP way: no desk tabs row): the
+         bar names the page in front, the paper waits as a Recent row */
+      const tabs = (typeof deskRecentRows === 'function' ? deskRecentRows() : []).map(t => ({ w: deskTabLabel(t.k), on: t.k === deskKeyNow() }));
+      const barName = ((document.querySelector('#dk-page .dk-page-w') || {}).textContent || '').trim();
       const acts = [...document.querySelectorAll('#modal-root .sh-hd-acts > button')].map(x => x.textContent.replace(/\s+/g, ' ').trim());
       const panel = document.querySelector('#modal-root .modal-in[data-sh-page]').getBoundingClientRect(), dock = document.getElementById('ig-dock').getBoundingClientRect();
-      return { tabs, title: t('#share-lead-title'), acts, faceWord: t('#ig-dock .pd-face-w'), back: !!document.querySelector('#ig-dock .igd-head [data-pd-back="send"]'),
+      return { tabs, barName, title: t('#share-lead-title'), acts, faceWord: t('#ig-dock .pd-face-w'), back: !!document.querySelector('#ig-dock .igd-head [data-pd-back="send"]'),
         jsay: t('#pd-sendface #sh-lt-jsay'), ask: !!document.querySelector('#ig-dock #igd-input'), beside: panel.right <= dock.left + 1 };
     });
-    check('1b the desk tab "Send · MK-0382" is in front; the paper waits in its own tab',
-      F1.tabs.some(x => x.w === 'Send · MK-0382' && x.on) && F1.tabs.some(x => /MK-0382$/.test(x.w) && !/^Send/.test(x.w) && !x.on), JSON.stringify(F1.tabs));
+    check('1b the bar names "Send · MK-0382" in front; the paper waits as its own Recent row',
+      F1.barName === 'Send · MK-0382' && F1.tabs.some(x => x.w === 'Send · MK-0382' && x.on) && F1.tabs.some(x => /MK-0382$/.test(x.w) && !/^Send/.test(x.w) && !x.on), JSON.stringify({ bar: F1.barName, tabs: F1.tabs }));
     check('1c the head: "Send round N to Nordvik Logistik AB · MK-0382", Send to Anna and Cancel', /^Send round \d+ to Nordvik Logistik AB · MK-0382$/.test(F1.title || '')
       && JSON.stringify(F1.acts) === JSON.stringify(['Send to Anna', 'Cancel']), JSON.stringify({ t: F1.title, a: F1.acts }));
     check('1d "Before you send" is a face of Jambo\'s panel, its way back in the row, the ask box at its foot, beside the page',
@@ -181,7 +184,7 @@ async function mkUser(h, admin, name, email){
     const S = await page.evaluate(() => { const card = document.querySelector('#pd-sendface .sh-lt-card.is-stays');
       const never = document.getElementById('sh-lt-never-h');
       return card ? { h: card.querySelector('h4').textContent.trim(), p: card.querySelector('p').textContent.trim(),
-        acts: [...card.querySelectorAll('button')].map(b => b.textContent.trim()), never: never && never.textContent } : null; });
+        acts: [...card.querySelectorAll('button')].filter(b => b.getClientRects().length).map(b => b.textContent.trim()), never: never && never.textContent } : null; });
     check('4a "Clause 7 stays here": Sara named for the one who asked, Remind Sara, Go to clause 7', S && S.h === 'Clause 7 stays here'
       && /^Your counter on the liability cap \(75%\) is with Sara Nyström for internal review\. Nothing under review travels; it goes in your next send once Sara clears it\.$/.test(S.p)
       && JSON.stringify(S.acts) === JSON.stringify(['Remind Sara', 'Go to clause 7']), JSON.stringify(S));
@@ -212,7 +215,7 @@ async function mkUser(h, admin, name, email){
     const html = got && got.body && got.body.html;
     check('5c an HTML part whose button carries the link', typeof html === 'string' && html.includes(`href="${link}"`) && new RegExp(`>Open round ${n}</a>`).test(html), String(html).slice(0, 200));
     await page.evaluate(() => { try { closeModal(); } catch (_) {} });
-    const gone = await waitFor(page, () => !document.querySelector('#modal-root .modal-in') && !document.getElementById('pd-sendface') && !!document.querySelector('#pd-redface') && ![...document.querySelectorAll('#dk-home .dk-tab')].some(x => /^Send ·/.test(x.textContent)), 6000);
+    const gone = await waitFor(page, () => !document.querySelector('#modal-root .modal-in') && !document.getElementById('pd-sendface') && !!document.querySelector('#pd-redface') && !/^Send ·/.test(((document.querySelector('#dk-page .dk-page-w') || {}).textContent || '').trim()), 6000);
     check('6a closed, the page and the face go together; the Redlines face is back; the tab goes', !!gone);
 
     /* 6 the other ways back */
@@ -231,8 +234,11 @@ async function mkUser(h, admin, name, email){
     await press('#share-close');
     await waitFor(page, () => !document.querySelector('#modal-root .modal-in'), 6000);
     await page.evaluate(() => { try { closeModal(); } catch (_) {} });
-    for (const [how, sel] of [['the tab\'s ×', '#dk-home [data-dk-x^="send:"]'], ['Cancel', '#share-close'], ['the paper\'s tab', '#dk-home [data-dk-go="c:MK-0382"]']]) {
+    /* RE-POINTED 19 Oct 2026 (main's bar): the tab's × and the paper's tab are
+       Recent's rows now — the menu is opened from the page's name first */
+    for (const [how, sel] of [['Recent\'s × on the letter', '#dk-recent [data-dk-x^="send:"]'], ['Cancel', '#share-close'], ['the paper\'s Recent row', '#dk-recent [data-dk-go="c:MK-0382"]']]) {
       await openLetter();
+      if (/dk-recent/.test(sel)){ await press('#dk-page'); await waitFor(page, s => !!document.querySelector(s), 3000, sel); }
       await press(sel);
       const back = await waitFor(page, () => !document.querySelector('#modal-root .modal-in') && !document.getElementById('pd-sendface'), 6000);
       check(`6b ${how} puts the page and the face away together`, !!back);

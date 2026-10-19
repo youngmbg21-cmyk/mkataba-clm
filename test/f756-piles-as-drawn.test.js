@@ -348,3 +348,161 @@ describe('f756 (7) where Edit lands from a row, as drawn', () => {
     assert.match(fnBody(CE, 'ceRowGo'), /clauseLockHeldByOther\(_ceC, a\.clauseId\)[\s\S]*ceSay\(why\)/);
   });
 });
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE THIRD PASS (19 Oct 2026): the adversarial checker's differences on the
+   face, the paper and the editor — fitted to main's newer rules (LAND ON IT;
+   nothing of the ladder on the paper or in the editor).
+   AT THE PARENT (d47fadb, the merge of main) and AT THE BASE every test here
+   FAILS. The browser half: test/chromium/redlines-third-pass-verify.js.
+   ═══════════════════════════════════════════════════════════════════════════ */
+const CSSN = R('js/views/negotiation-css.js');
+const PZ = R('js/presence.js');
+const RVJ = R('js/review.js');
+const HTML8 = R('index.html');
+const APP8 = R('js/app.js');
+function stage8(extra = {}){
+  const ctx = { window: {}, JSON, String, Set, Map, Array, Object, Number, Promise,
+    i18t: (k, v) => k + (v ? '[' + Object.entries(v).map(([a, b]) => a + '=' + b).join(',') + ']' : ''),
+    i18tn: (k, n) => k + ':' + n,
+    _ne: x => String(x == null ? '' : x), _nea: x => String(x == null ? '' : x), ...extra };
+  vm.createContext(ctx);
+  return ctx;
+}
+describe('f756 (8) the third pass: the face as drawn', () => {
+  test('8a Ladder opens the clause\'s ladder UNDER ITS ROW on the face, one row at a time, and the same press folds it', () => {
+    const ctx = stage8({ rlLadderSectionHtml: (c, cl, side, o) => `[ladder ${cl.clauseId} ${o && o.editor ? 'reading' : 'acts'}]`,
+      rlPlaybookSecHtml: (c, id) => `[playbook ${id}]` });
+    vm.runInContext(['let _rlFaceLad = null;', fnBody(NV, 'rlFaceLadderOpen'), fnBody(NV, 'rlFaceLadderSet'), fnBody(NV, 'rlFaceLadderHtml'), fnBody(NV, 'rlLadderVerbHtml')].join('\n'), ctx);
+    const c = { id: 'MK-1' }, ch = { id: 'CHG-1', clauseId: 'cl_7' }, other = { id: 'CHG-2', clauseId: 'cl_11' };
+    const face = { hostId: 'pd-redface' };
+    assert.equal(ctx.rlFaceLadderHtml(c, ch, 'owner', face), '', 'shut at rest');
+    assert.match(ctx.rlLadderVerbHtml(ch), /data-rl-ladder="cl_7" data-rl-ladder-ch="CHG-1"\s+aria-expanded="false"/);
+    ctx.rlFaceLadderSet('CHG-1');
+    assert.equal(ctx.rlFaceLadderHtml(c, ch, 'owner', face), '<div class="rl-row-ladder" data-rl-row-ladder="CHG-1">[ladder cl_7 reading][playbook cl_7]</div>',
+      'the clause panel\'s own sections, the steps as a reading (the row carries the verbs), our standard and fallback');
+    assert.equal(ctx.rlFaceLadderHtml(c, other, 'owner', face), '', 'one row at a time');
+    assert.equal(ctx.rlFaceLadderHtml(c, ch, 'owner', { hostId: 'nego-root' }), '', 'the page keeps its clause panel');
+    assert.equal(ctx.rlFaceLadderHtml(c, ch, 'counterparty', face), '', 'our seat only');
+    assert.match(ctx.rlLadderVerbHtml(ch), /aria-expanded="true"/);
+    const h = NV.slice(NV.indexOf("const lad = t.closest('[data-rl-ladder]');"), NV.indexOf('const lscope = lad.closest'));
+    assert.match(h, /lad\.closest\('#pd-redface'\) \? lad\.getAttribute\('data-rl-ladder-ch'\) : null/);
+    assert.match(h, /rlFaceLadderSet\(rlFaceLadderOpen\(\) === faceRow \? null : faceRow\);[\s\S]*pdRedRepaint\(\)/, 'the same press folds it');
+    assert.match(NV, /\$\{rowStrips \? `<div class="rl-card-actions">\$\{deaden\(rowStrips\)\}<\/div>` : ''\}\s*\$\{rlFaceLadderHtml\(c, ch, side, opts\)\}\s*<\/article>/, 'drawn under the row');
+    for (const f of ['pdRedLand', 'pdRedClose']) assert.match(fnBody(PD, f), /rlFaceLadderSet\(null\)/, f + ' lets it go');
+  });
+  test('8b a row\'s "N notes" opens THAT change\'s notes in the same panel, on the room that holds them; Post files under it', () => {
+    const notes = { internal: [{ id: 'n1' }], 'p:nordvik': [{ id: 'n2' }] };
+    const ctx = stage8({ negoNoteRoomList: () => [{ key: 'internal' }, { key: 'p:nordvik', external: true }],
+      rlNpRoomNow: () => 'internal', negoRoomNotes: (c, ch, k) => (ch && ch.id === 'CHG-1' ? [] : []).concat(ch && ch.id === 'CHG-2' && k === 'p:nordvik' ? notes[k] : []) });
+    vm.runInContext(['let _rlFnFor = null;', 'let _rlFnChange = null;', fnBody(NV, 'rlFaceNotesSet'), fnBody(NV, 'rlFaceNotesChange'), fnBody(NV, 'rlFaceNotesRoomFor')].join('\n'), ctx);
+    ctx.rlFaceNotesSet('MK-1', 'CHG-2');
+    assert.equal(ctx.rlFaceNotesChange(), 'CHG-2');
+    assert.equal(ctx.rlFaceNotesRoomFor({}, { id: 'CHG-2' }), 'p:nordvik', 'the room showing holds none of them: the first room that does');
+    assert.equal(ctx.rlFaceNotesRoomFor({}, { id: 'CHG-1' }), 'internal', 'none anywhere: the room showing');
+    ctx.rlFaceNotesSet(null); assert.equal(ctx.rlFaceNotesChange(), null, 'closing lets the narrowing go');
+    const fn = fnBody(NV, 'rlFaceNotesHtml');
+    assert.match(fn, /const mine = x => !only \|\| \(x\.ch && String\(x\.ch\.id\) === String\(only\.id\)\);/);
+    assert.match(fn, /rlChatRows\(c, opts\)\.filter\(mine\)/, 'the rooms count that change\'s notes');
+    assert.match(fn, /rlChatThreads\(c, opts, room\)\.filter\(mine\)/, 'the list is that change\'s');
+    assert.match(fn, /data-rl-fn-change="/);
+    assert.match(fn, /data-rl-fn-all>\$\{_ne\(i18t\('ng_fn_all'\)\)\}/, 'and the way to every note');
+    assert.match(NV, /if \(t\.closest\('\[data-rl-fn-all\]'\)\)\{ e\.preventDefault\(\); rlFaceNotesSet\(_rlFnFor, null\);/);
+    assert.match(NV, /const ch = onCh && Array\.isArray\(c\.changes\)[\s\S]{0,120}\n\s*Promise\.resolve\(rlNotesSend\(root, c, ch,/, 'Post files under the change');
+    const w = fnBody(PD, 'pdRedWire');
+    assert.match(w, /rlFaceNotesSet\(c\.id, ch\.id\)/);
+    assert.match(w, /if \(again\) rlFaceNotesSet\(null\);/, 'pressed again on the same row, the piles come back');
+  });
+  test('8c Discard last discards at once on our seat, Undo for a few seconds; Undo puts back exactly what went, and only if nothing else moved', () => {
+    const said = [], trail = [];
+    let saved = 0;
+    const ctx = stage8();
+    ctx.window.toast = (m, k, o) => said.push([m, k, o]);
+    ctx.window.persist = () => { saved++; };
+    ctx.window.logAudit = (c, a, t) => trail.push(t);
+    ctx.window.currentUser = () => ({ name: 'Maria Lindgren' });
+    ctx.toast = ctx.window.toast; ctx.persist = ctx.window.persist; ctx.logAudit = ctx.window.logAudit;
+    vm.runInContext([constLine(NV, 'RL_DISCARD_UNDO_MS'), fnBody(NV, 'rlDiscardSnap'), fnBody(NV, 'rlDiscardUndo')].join('\n'), ctx);
+    const c = { id: 'MK-1', changes: [{ id: 'CHG-9', newText: 'within 24 hours' }, { id: 'CHG-7' }], negotiation: { round: 2, discarded: [] } };
+    const before = ctx.rlDiscardSnap(c);
+    c.changes = c.changes.filter(x => x.id !== 'CHG-9'); c.negotiation.discarded.push({ id: 'CHG-9' });
+    const after = ctx.rlDiscardSnap(c);
+    assert.equal(ctx.rlDiscardUndo(c, before, after, 'CHG-9'), true);
+    assert.deepEqual(c.changes.map(x => x.id), ['CHG-9', 'CHG-7'], 'the draft is back where it was');
+    assert.deepEqual(c.negotiation.discarded, [], 'and the negotiation\'s record as it stood');
+    assert.equal(saved, 1); assert.match(trail[0], /#CHG-9: Maria Lindgren pressed Undo on the discard/, 'the trail keeps both lines');
+    const b2 = ctx.rlDiscardSnap(c); c.changes = c.changes.slice(1); const a2 = ctx.rlDiscardSnap(c);
+    c.changes.push({ id: 'CHG-12' });
+    assert.equal(ctx.rlDiscardUndo(c, b2, a2, 'CHG-9'), false, 'something moved since: nothing is put back');
+    assert.deepEqual(c.changes.map(x => x.id), ['CHG-7', 'CHG-12']);
+    assert.equal(said[said.length - 1][1], 'warn', 'and it says so');
+    assert.ok(Number(/RL_DISCARD_UNDO_MS = (\d+)/.exec(NV)[1]) >= 5000, 'a few seconds');
+    const h = NV.slice(NV.indexOf("host.querySelectorAll('[data-rl-retract]')"), NV.indexOf('/* ---------- ONE SIDEBAR, TWO MODES'));
+    assert.match(h, /if \(side === 'counterparty' && window\.confirmDialog && !\(await confirmDialog\(/, 'their seat still asks first (D3)');
+    assert.match(h, /const before = side === 'owner' \? rlDiscardSnap\(c\) : null;/);
+    assert.match(h, /action: \{ label: i18t\('ng_discard_undo'\), onClick: \(\) => \{ if \(rlDiscardUndo\(c, before, after, chId\)\) again\(\); \} \}/, 'the toast carries Undo');
+  });
+  test('8d every live verb on a pile wears the accent ink; Reject and Discard last stay red', () => {
+    assert.match(CSSN, /\.redline-page \.rl-pile \.rl-card-d \.rl-card-verbs button\.rl-verb-ai,\s*html\.dark \.redline-page \.rl-pile \.rl-card-d \.rl-card-verbs button\.rl-verb-ai,\s*\.redline-page \.rl-pile \.rl-card-d \.rl-card-face \[data-rl-ladder\],\s*\.redline-page \.rl-pile \.rl-card-d \.rl-card-face \[data-rl-ask-review\],\s*\.redline-page \.rl-pile \.rl-card-d \.rl-card-face \.rl-sg-back\{color:var\(--accent-ink\)\}/);
+    assert.match(CSSN, /\.redline-page \.rl-card-d \.rl-card-face \.rl-rej,\s*\.redline-page \.rl-card-d \.rl-card-face \[data-rl-retract\]\{color:var\(--st-ruby-fg\)\}/);
+    const at = CSSN.indexOf('.redline-page .rl-pile .rl-card-d .rl-card-verbs button.rl-verb-ai,');
+    const dead = CSSN.indexOf('.redline-page .rl-pile .rl-card-d .rl-card-verbs button.is-locked,');
+    assert.ok(at > 0 && dead > at, 'a dead door keeps the label shade in the piles too, later in the sheet at the same weight');
+  });
+  test('8e "Here now": filled circles, one colour per person (the house\'s avatar tone), overlapping, white initials', () => {
+    assert.match(PZ, /const tone = r => \(typeof window\.regAvatarTone === 'function'\) \? window\.regAvatarTone\(r\.name \|\| r\.id \|\| ''\) : 0;/);
+    assert.match(R('js/views/register.js'), /negoBandTabsHtml,regAvatarHtml,regAvatarTone,/, 'the tone reading is published once');
+    assert.match(CSSN, /\.redline-page \.rl-head-here \.pz-face\{width:22px;height:22px;font-size:9\.5px;[^}]*color:#fff;\s*border:2px solid var\(--color-surface\);margin-left:-6px;/);
+    for (let t = 1; t <= 4; t++) assert.match(CSSN, new RegExp('\\.rl-head-here \\.pz-face\\.pz-t-' + t + '\\{background:'), 'tone ' + t);
+  });
+  test('8f a colleague\'s suggestion is marked on the paper with a dashed underline, apart from our draft', () => {
+    assert.match(NV, /const sgCls = \(side !== 'counterparty' && rlIsOpenSuggestion\(c, ch\)\) \? ' rl-sg-marks' : '';/);
+    assert.match(NV, /<div class="nego-body\$\{sgCls\}">\$\{redlineOpsBlocksHtml\(ops, \{ title: tip, who: whoM, shape \}\)\}/);
+    assert.match(CSSN, /\.rl-doc \.rl-sg-marks ins\.rl-us,\.nego-doc \.rl-sg-marks ins\.rl-us\{background:transparent;text-decoration-style:dashed;/);
+  });
+  test('8g "their asks came …" only while the move is ours; once our answer went, the round\'s own day', () => {
+    const ctx = stage8({ rlAgoWords: () => '4 days ago', negoRoundSince: c => c.negotiation.roundAt });
+    ctx.window.negoRoundSince = ctx.negoRoundSince; ctx.window.langLocale = () => 'en-GB';
+    vm.runInContext(fnBody(NV, 'rlRoundLabelHtml'), ctx);
+    const theirs = { authorSide: 'counterparty', status: 'countered', createdAt: '2026-10-15T09:00:00Z' };
+    const ours = ctx.rlRoundLabelHtml({ negotiation: { round: 2, turn: 'owner', roundAt: '2026-10-14T09:00:00Z' }, changes: [theirs] }, {});
+    assert.match(ours, /ng_round_asks_came\[n=2,ago=4 days ago\]/, 'our move: when their asks came');
+    const sent = ctx.rlRoundLabelHtml({ negotiation: { round: 3, turn: 'counterparty', roundAt: '2026-10-19T09:00:00Z' }, changes: [theirs] }, {});
+    assert.match(sent, /ng_round_since\[n=3,day=/, 'with them: the round\'s own day, no "asks came"');
+  });
+  test('8h no review banner over the head on the face: the "Out for review" pile carries Remind (each row its Cancel)', () => {
+    assert.match(fnBody(PD, 'pdRedOpts'), /waitingInPile: true/);
+    assert.match(RVJ, /for \(const rv of \(opts\.waitingInPile \? \[\] : st\.waiting\)\)\{/, 'the banner skips what is out with a colleague there');
+    const ctx = stage8();
+    const rv = { id: 'REV-2', reviewer: { name: 'Sara Nyström' } };
+    ctx.window.reviewOpenFor = () => rv; ctx.reviewOpenFor = ctx.window.reviewOpenFor;
+    ctx.window.reviewMayCancel = () => true; ctx.reviewMayCancel = ctx.window.reviewMayCancel;
+    ctx.window.reviewMaySee = () => true; ctx.reviewMaySee = ctx.window.reviewMaySee;
+    vm.runInContext(fnBody(NV, 'rlReviewPileActsHtml'), ctx);
+    const h = ctx.rlReviewPileActsHtml({}, [{ id: 'CHG-12' }, { id: 'CHG-13' }], { waitingInPile: true });
+    assert.equal(h, '<span class="rl-band-acts"><button type="button" class="rl-band-act" data-rv-act="rv-remind:REV-2">ng_pile_remind_who[who=Sara]</button></span>',
+      'one Remind per review, named where the review lets this reader see, the review\'s own handler');
+    assert.equal(ctx.rlReviewPileActsHtml({}, [{ id: 'CHG-12' }], {}), '', 'the page keeps its banner');
+    ctx.window.reviewMaySee = () => false; ctx.reviewMaySee = ctx.window.reviewMaySee;
+    assert.match(ctx.rlReviewPileActsHtml({}, [{ id: 'CHG-12' }], { waitingInPile: true }), />rv_remind_btn</, 'unnamed where the wall says so');
+    assert.match(NV, /<b>\$\{n\}<\/b>\$\{b === 'review' \? rlReviewPileActsHtml\(c, inBand\(\), opts\) : ''\}<\/div>/);
+  });
+  test('8i the pile with the other side is named for the party: "With Nordvik Logistik AB"', () => {
+    assert.match(NV, /const named = side === 'counterparty' \|\| \(!many && !!String\(c\.counterparty \|\| ''\)\.trim\(\)\);/);
+    assert.match(NV, /\? i18t\(named \? 'ng_band_with_named' : 'ng_band_with', \{ who: otherSide \}\)/);
+  });
+  test('8j the editor from a row: the head bar spans the window, a quiet Exit at its end, no step number', () => {
+    assert.match(CE, /#clause-editor\.ce-rowmode \.ce-grid\{padding-top:45px\}/);
+    assert.match(CE, /#clause-editor\.ce-rowmode #ce-head\{position:absolute; top:0; left:0; right:0; z-index:3\}/);
+    assert.match(CE, /#clause-editor\.ce-rowmode \.ce-exit\{height:var\(--ctl-h-sm\);[^}]*background:var\(--color-surface\);\s*border:1px solid var\(--btn-edge\); color:var\(--color-text\)/);
+    assert.match(CE, /#clause-editor\.ce-rowmode \.ce-exit > svg\{display:none\}/);
+    assert.ok(!/ce-row-step|function ceRowStep\(/.test(CE.replace(/ceRowStep STALE/, '')), 'no step chip in the editor');
+  });
+  test('8k the doors this lane added land through the one lander (LAND ON IT)', () => {
+    assert.match(fnBody(NV, 'rlLandOnClause'), /window\.landOn\(\(\) => rlClauseEl\(clauseId\), \{ block: 'center', focus: false, \.\.\.opts \}\)/);
+    assert.match(fnBody(NV, 'rlClauseEl'), /getElementById\('ig-paper'\)/, 'Home\'s paper first');
+    assert.match(fnBody(NV, 'rlLandOnRow'), /#pd-redface \[data-nego-card="\$\{q\}"\]/);
+    assert.match(fnBody(CE, 'ceRowBack'), /rlLandOnRow\(id, \{ delay: 80 \}\)/, '‹ Redlines lands on the same row');
+    assert.match(NV, /if \(go\)\{ e\.preventDefault\(\); rlLandOnClause\(go\.getAttribute\('data-rl-fn-clause'\)\); return; \}/, 'a note\'s clause link');
+  });
+});
