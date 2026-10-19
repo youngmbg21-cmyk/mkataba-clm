@@ -254,8 +254,9 @@ const check = (name, pass, detail) => {
     const hl = await page.evaluate(() => { const r = id => document.getElementById(id).getBoundingClientRect(),
       hd = document.getElementById('ig-head') || document.getElementById('hb-head'),
       head = (hd && !hd.hidden && hd.getBoundingClientRect().height ? hd : document.getElementById('top-header')).getBoundingClientRect(), st = r('ig-gwrap'), n = r('ig-note');
-      const note = document.getElementById('ig-note'), b = note.querySelector('b');
-      return { headBottom: Math.round(head.bottom), stageTop: Math.round(st.top), inStage: n.left >= st.left && n.top >= st.top && n.right <= st.right && n.bottom <= st.bottom, text: note.textContent.replace(/\s+/g, ' ').trim().slice(0, 60), boldCol: b ? getComputedStyle(b).color : null }; });
+      /* RE-POINTED 19 Oct 2026: the grouping's word is the line's own dropdown (owner) — its ink is measured */
+      const note = document.getElementById('ig-note'), b = note.querySelector('#ig-group') || note.querySelector('b');
+      return { headBottom: Math.round(head.bottom), stageTop: Math.round(st.top), inStage: n.left >= st.left && n.top >= st.top && n.right <= st.right && n.bottom <= st.bottom, text: note.innerText.replace(/\s+/g, ' ').trim().slice(0, 60), boldCol: b ? getComputedStyle(b).color : null }; });
     check('5a the dark map starts straight under the bar (or the tab row) — the head line\'s row is the map\'s now', Math.abs(hl.stageTop - hl.headBottom) <= 1, JSON.stringify(hl));
     check('5b the head line is still there, in the map\'s top corner, its words light on the dark', hl.inStage && /Grouped by/.test(hl.text) && hl.boldCol === 'rgb(255, 255, 255)', JSON.stringify(hl));
     await page.screenshot({ path: path.join(OUT, '5-head-line-on-the-stage.png') });
