@@ -8450,8 +8450,12 @@ function renderKeyTermsSide(c){
       body:`<section id="family-section" class="kt-side-card empty:hidden"></section>` });
   try{ if(window.renderRenewalSection) renderRenewalSection(c); }catch(e){}
   /* RELATED AGREEMENTS AS DRAWN (round 7, pass 4): each member's row with
-     Bring it up; the family's acts are the page's ⋯ (familyActs) */
-  try{ if(window.renderFamilySection) renderFamilySection(c,{bare:true,drawn:true}); }catch(e){}
+     Bring it up; the family's acts are the page's ⋯ (familyActs) — on the
+     desk's page, where that ⋯ is. The room opened by name has no such ⋯, so
+     there the section keeps its own buttons (joined at the integration,
+     19 Oct 2026: Create an amendment never loses its door). */
+  try{ if(window.renderFamilySection){ const fs=document.getElementById('family-section');
+    if(fs&&fs.closest('.bs-strip')) renderFamilySection(c,{bare:true,drawn:true}); else renderFamilySection(c,{bare:true}); } }catch(e){}
   wireKtBriefCard(c);
   /* And the sheet's own Read the brief, which says what the card now says. */
   paintOvBriefBtn(c);
