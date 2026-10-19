@@ -124,7 +124,16 @@ const answerNaming = ids => [{ type: 'tool_use', id: 'tu_wl', name: 'deliver_ans
   /* the Jambo window opens on a page that is not Home (on Home his own panel
      takes the ask): the Contracts page is Home's Contracts place since step 7
      of the overnight work order, so the question is asked from Approvals */
-  await page.evaluate(() => { window.setView('approvals'); window.ai.history = []; window.openAI(); });
+  /* RE-POINTED 19 Oct 2026 (rounds 14, 15 and 19 as drawn, "Jambo's panel
+     beside the lists"): Approvals now has Jambo's own panel beside its list,
+     so the window's door goes to that panel (aiEmbeddedHere → 'list') and the
+     window never comes on screen — the answer's door was drawn off the screen
+     and could not be pressed. The question is asked from Reports, a page
+     with no Jambo of its own, where the window still opens; what is measured
+     (the answer's worklist door and where it lands) is unchanged. Asked for,
+     bounded: the window open before the words are typed. */
+  await page.evaluate(() => { window.setView('reports'); window.ai.history = []; window.openAI(); });
+  await page.waitForFunction(() => document.getElementById('ai-panel').classList.contains('open'), null, { timeout: 5000 }).catch(() => {});
   await page.waitForTimeout(700);
   await page.fill('#ai-input', 'which agreements expire soonest');
   await page.evaluate(() => window.aiSubmit && window.aiSubmit());
@@ -235,7 +244,10 @@ const answerNaming = ids => [{ type: 'tool_use', id: 'tu_wl', name: 'deliver_ans
      (owner's go, 12 Sep 2026 — WORKORDER-copilot-one-figure.md, phase 2) */
   ai.script([{ type: 'tool_use', id: 'tu_wb', name: 'deliver_answer',
     input: { answer: 'You have every contract on the Contracts page.', citations: [], wholeBook: true } }]);
-  await page.evaluate(() => { window.setView('approvals'); window.ai.history = []; window.openAI(); });
+  /* RE-POINTED 19 Oct 2026: from Reports, as section 2 (Approvals has
+     Jambo's panel beside its list now, and the window does not open there) */
+  await page.evaluate(() => { window.setView('reports'); window.ai.history = []; window.openAI(); });
+  await page.waitForFunction(() => document.getElementById('ai-panel').classList.contains('open'), null, { timeout: 5000 }).catch(() => {});
   await page.waitForTimeout(500);
   await page.fill('#ai-input', 'list all the contracts inside hati');
   await page.evaluate(() => window.aiSubmit && window.aiSubmit());

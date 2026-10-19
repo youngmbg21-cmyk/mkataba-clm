@@ -4255,6 +4255,14 @@ function wireNegotiationTab(c, opts = {}){
     const released = letterDoor && window.negoReleaseHold ? !!negoReleaseHold(c) : false;
     const shareOpts = {
       handOver: true,
+      /* A ROUND SEND IS A NEGOTIATION LINK (19 Oct 2026, six-round-audit R6):
+         the direct batch always sent purpose 'negotiate' (onSendDirect →
+         reshareToLastRecipient); through the letter the screen fell back to
+         defaultSharePurpose, which preselects Sign once every change is
+         settled — so handing back our answers opened "Your turn to sign".
+         The letter opens on Negotiate, as round 11 draws it ("a link to
+         negotiate"); the picker still changes it. */
+      purpose: 'negotiate',
       onSent: info => {
         if (!negoHandOver(c, { to, by: opts.by, sentAnyway: released })) return;
         if (opts.persist !== false && window.persist) persist(c);

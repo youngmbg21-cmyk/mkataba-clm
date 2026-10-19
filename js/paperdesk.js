@@ -1369,6 +1369,13 @@ function pdSendClose(){
   const n = _pdSend.node; _pdSend = null;
   if (n && n.parentNode) n.parentNode.removeChild(n);
   if (typeof renderIntelDock === 'function') renderIntelDock();
+  /* THE PAPER UNDER THE LETTER IS DRAWN AGAIN (19 Oct 2026, drafting-stage
+     1e): a send through the letter moves the stage (Draft → Under Review)
+     and the round while the page covers the paper, and the face under it
+     (Redlines) skips its own repaint while it is not showing — so the
+     paper's line still said "Drafting" once the letter went. Put away, the
+     paper reads the record again, as every other face's close does. */
+  if (typeof igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){}
 }
 function pdSendFaceHtml(){ return `<div id="pd-send-slot" class="pd-send-slot${pdSendIsWaiting() ? ' is-waiting' : ''}" data-pd-send="${_pdE(pdSendFor() || '')}"></div>`; }
 /* while the panel shows Jambo's own words the column waits in the panel,
@@ -1830,7 +1837,13 @@ function pdRoadStops(c){
     /* while the yes is framed — the open stop, or the reader's own work — or
        another signer's stop is the open one, the column folds behind Ready to
        sign's "Show" */
-    fold: framed || theirTurn, theirAt: theirTurn ? at : -1, route };
+    /* …ONLY ONCE READY TO SIGN IS TICKED (19 Oct 2026, counterparty-leads 4e;
+       round 10 as drawn: "the current one is open with its buttons" — the
+       drawing's "Show" sits beside "4 checks clear"). While Ready to sign is
+       itself the open stop ("5 to settle: … the brief"), its checks and their
+       buttons — Write the brief, last and mandatory (Young, 21 Sep 2026) —
+       stand open under it, even when a later yes is the reader's to give. */
+    fold: (framed || theirTurn) && !!(stops[0] && stops[0].done), theirAt: theirTurn ? at : -1, route };
 }
 /* the yes on the record: the last approved request per approver, never one withdrawn or replaced */
 function pdRoadYesGiven(c){

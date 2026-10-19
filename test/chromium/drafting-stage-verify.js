@@ -153,11 +153,28 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     /* SEND ALL SAYS WHAT TRAVELS (the owner's 9 Oct review, A7): a batch send
        to an address on file asks once, naming the changes. A person answers
        it; so does this check. */
+    /* RE-POINTED 19 Oct 2026 (round 11 as drawn, "The letter": "Every way to
+       send — Share on the paper's line, Send all on Redlines, Jambo's share —
+       opens this same screen"; its third pass: Send all opens the letter
+       without the review pop-up). The batch send no longer asks in a confirm
+       box: it opens the one send screen, whose email names what travels
+       ("proposes a change of its own: Clause 1 · …"), and the round goes on
+       THAT screen's Send. The claim is kept — asked once, naming what
+       travels, answered by a person. This draft still has empty boxes, so the
+       letter's "Not ready" card asks for its tick first: the same door a
+       person takes, as the fields question above is walked past. */
     {
-      let ok = null;
-      for (let i = 0; i < 20 && !ok; i++){ ok = await page.$('#confirm-overlay #cf-ok'); if (!ok) await pause(150); }
-      check('1c2 Send all asks once, naming what travels, and is answered', !!ok);
-      if (ok) await ok.click();
+      const up = await page.waitForFunction(() => {
+        const s = document.getElementById('share-send');
+        return !!document.querySelector('#modal-root .modal-in[data-sh-page] #sh-letter') && !!s && !s.disabled;
+      }, null, { timeout: 12000 }).then(() => true).catch(() => false);
+      const said = up ? await page.evaluate(() => (document.getElementById('sh-letter') || {}).innerText || '') : '';
+      check('1c2 Send all opens the letter, naming what travels, and is answered',
+        up && /change/i.test(said) && /Clause 1\b/.test(said), up ? said.slice(0, 400) : 'no letter');
+      if (up) await page.evaluate(() => {
+        const ack = document.getElementById('sh-ack'); if (ack && !ack.checked) ack.click();
+        document.getElementById('share-send').click();
+      });
     }
     await pause(4000);
     await page.screenshot({ path: path.join(OUT, '02-after.png') });
