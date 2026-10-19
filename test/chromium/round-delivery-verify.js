@@ -334,6 +334,22 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
        collects this claim within a beat — before the change below that makes
        it stale. The owner steps off it first, so the claim waits for the four
        polls this stage measures. */
+    /* AND THE OWNER'S BROWSER COLLECTS NOTHING UNTIL THE CHANGE HAS LANDED
+       (19 Oct 2026), which REMOVES A RACE rather than re-tuning a clock — the
+       same fix section 3 got. Stepping off the face does not slow the beat at
+       once: the twelve-second timer armed on the face ticks once more before
+       it re-arms at forty-five, and pollNow polls whatever page it is on. On a
+       quiet machine that tick happened to fall before the press or after the
+       change; with four browser checks side by side the stage stretched, the
+       tick landed between them (measured: 4 runs of 4, every one collected the
+       claim about five seconds after the press, while the deal was still
+       settled), the claim was APPLIED rather than refused, and 7 and 8c read
+       red with nothing wrong in the product. So the owner's page is answered
+       "nothing waiting" from just before the press until the stale change is
+       filed — the claim stays on the server, uncollected, which is the stage
+       this section describes — and its real collection is measured below. */
+    const HOLD_COLLECT = /\/api\/shares\/pending(\?|$)/;
+    await own.route(HOLD_COLLECT, r => r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
     await own.evaluate(() => setView('intel'));
     await pause(600);
     const readyBtn = await cp2.evaluate(() => {
@@ -377,10 +393,19 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       persist(c); await flushSaves();
     }, other);
     await pause(1500);
+    /* The change has landed: the owner's page may collect again. Asked first,
+       through the real route (a GET collects nothing), that the stage held —
+       their readiness is still on the server, uncollected — so a miss below
+       reports the stage, never the product. */
+    await own.unroute(HOLD_COLLECT);
+    const heldClaim = await own.evaluate(async id => (await api('shares/pending'))
+      .filter(x => x.response && String(x.response.id) === String(id)).length, other);
+    check('7 the stage holds — their readiness is still uncollected when the change lands',
+      heldClaim === 1, heldClaim + ' waiting for ' + other);
 
     await own.evaluate(() => setView('intel'));
     await pause(1500);
-    check('7 the reader is on a page about no contract at all', 
+    check('7 the reader is on a page about no contract at all',
       (await own.evaluate(() => state.view)) === 'intel');
 
     const seenBoxes = [];

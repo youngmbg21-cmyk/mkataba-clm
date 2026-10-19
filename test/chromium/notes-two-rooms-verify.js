@@ -476,18 +476,27 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
       /* RE-POINTED 11 Oct 2026: the Chat door LEFT THE SHELL BAR on 20 Sep
          2026 — it is roomChatDoorHtml in the contract's own acts row, beside
          More (MAP-HISTORY "ONE PANEL, THREE FACES"). */
-      const more = document.querySelector('.room-head #ws-more, .room-head .ws-more-btn');
-      const row = b.closest('.room-acts') || b.parentElement;
+      /* RE-POINTED AGAIN 19 Oct 2026: the room and its acts row retired on 15
+         Oct (step 8) and every door onto Negotiate lands on Home's paper, so
+         this asked for a More that is no longer drawn there (red since that
+         day, on KNOWN_RED). The same door, roomChatDoorHtml, is drawn on the
+         paper's ONE LINE now (round 6, "One line", 17 Oct 2026: Notes with its
+         word, then Share, and NO ⋯ on the line), so the claim it kept — the
+         door is the contract's, not the shell bar's — is measured there: on
+         the paper's line, beside Share, on the same line. */
+      const line = document.querySelector('#ig-strip');
+      const share = line && line.querySelector('#ws-share');
       return { there: true, painted: r.width > 0 && r.height > 0,
         drawn: !!(box && box.width > 0 && box.height > 0),
-        between: !!b.closest('.room-head') && !b.closest('#app-header, .shell-bar, header.shell')
-          && !!more && row.contains(more) && Math.abs(more.getBoundingClientRect().top - r.top) < 12,
+        between: !!line && line.contains(b) && !b.closest('#app-header, .shell-bar, header.shell')
+          && !!share && b.parentElement === share.parentElement
+          && Math.abs(share.getBoundingClientRect().top - r.top) < 12,
         dead: b.disabled, title: b.title };
     });
     check('the Chat door is drawn on the contract', btn.there && btn.painted);
     check('its SYMBOL really resolves — a missing one paints an empty box in silence',
       btn.drawn === true);
-    check('and it sits in the contract\'s own acts row, beside More (since 20 Sep 2026)',
+    check('and it sits on the paper\'s own line, beside Share (round 6, "One line")',
       btn.between === true);
     check('it is live on a contract, with what it is on its hover',
       btn.dead === false && /chat/i.test(btn.title || ''), btn.title);
@@ -869,11 +878,17 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
        use, and it carries no edge of its own — the artifact's bare coloured
        word. Measured as computed colours on the real page, against the head's
        own .ui-btn, which is why this claim lives in a browser file. */
+    /* RE-POINTED 19 Oct 2026: the head it measured against was the retired
+       room's (#ws-head, gone from Negotiate's door since 15 Oct, step 8); the
+       Redlines column now stands beside Home's paper, whose head is the
+       paper's ONE LINE (round 6) — Notes and Share, the house's .ui-btn. The
+       claim is unchanged: the row's quiet verb wears that head's own ink and
+       no edge of its own. */
     const openEdge = await page.evaluate(() => {
       const open = document.querySelector(
         '#rl-changes .rl-card-face .rl-edit:not(.rl-verb-ai):not(.is-locked)')
         || document.querySelector('#rl-changes .rl-card-face .rl-edit');
-      const head = document.querySelector('#ws-head .ui-btn:not(.ui-btn-primary)');
+      const head = document.querySelector('#ig-strip .ig-acts .ui-btn:not(.ui-btn-primary)');
       if (!open || !head) return { open: !!open, head: !!head };
       const o = getComputedStyle(open), h = getComputedStyle(head);
       return { open: true, head: true, edge: o.borderTopColor, headEdge: h.borderTopColor,
