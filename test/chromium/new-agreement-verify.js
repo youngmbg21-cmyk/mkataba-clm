@@ -25,6 +25,11 @@ let pass = 0, fail = 0;
 const check = (name, ok, detail) => { ok ? pass++ : fail++;
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail != null ? ' — ' + detail : ''}`); };
 
+/* RE-POINTED 19 Oct 2026 (owner: the form stands beside Jambo's panel, as
+   drawn in round 4): where his panel is up at the right edge the work area
+   ends at it; elsewhere it is the window's edge as before. */
+const EDGE_JS = `window.igdEdge = () => { const d = document.getElementById('ig-dock'); const r = d && d.getClientRects().length ? d.getBoundingClientRect() : null;
+  return (r && r.width > 0 && r.right >= window.innerWidth - 40) ? r.left : window.innerWidth; };`;
 const READ = () => {
   const r = document.getElementById('na-root'); if (!r) return { err: 'no pop-up' };
   const q = s => document.querySelector(s);
@@ -32,7 +37,7 @@ const READ = () => {
   const panel = q('.modal-in').getBoundingClientRect();
   return { panelW: Math.round(panel.width),
     /* A PAGE NOW (SAP pop-ups, 10 Oct 2026): the frame is the work area — the window right of the menu. */
-    work: Math.round(window.innerWidth - ((document.getElementById('content-scroll') || document.body).getBoundingClientRect().left)),
+    work: Math.round((window.igdEdge ? window.igdEdge() : window.innerWidth) - ((document.getElementById('content-scroll') || document.body).getBoundingClientRect().left)),
     cols: getComputedStyle(q('#na-body')).gridTemplateColumns.split(' ').length,
     menuOpen: !(document.getElementById('new-menu') || { classList: { contains: () => true } }).classList.contains('hidden'),
     /* RE-POINTED 22 Sep 2026 — proposal C. The doors and the chips became one
@@ -91,6 +96,7 @@ const READ = () => {
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await ctx.newPage();
+  await page.addInitScript(EDGE_JS);
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => { if (m.type() === 'error' && !/favicon|404/i.test(m.text())) errors.push(m.text().slice(0, 140)); });
@@ -316,7 +322,7 @@ const READ = () => {
       return { stack: body.classList.contains('na-stack'), right: !!q('#na-right'),
         cols: getComputedStyle(body).gridTemplateColumns.split(' ').length,
         frameW: Math.round(q('.modal-in').getBoundingClientRect().width),
-        work: Math.round(window.innerWidth - ((document.getElementById('content-scroll') || document.body).getBoundingClientRect().left)),
+        work: Math.round((window.igdEdge ? window.igdEdge() : window.innerWidth) - ((document.getElementById('content-scroll') || document.body).getBoundingClientRect().left)),
         paper: !!q('#na-paper') || !!q('#tf-preview'),
         moreOnScreen: inView(q('.na-more'), body),
         peopleOnScreen: inView(q('#na-people > summary'), body),
