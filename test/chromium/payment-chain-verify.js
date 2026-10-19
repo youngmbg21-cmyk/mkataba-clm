@@ -285,8 +285,25 @@ const day = off => { const d = new Date(); d.setDate(d.getDate() + off);
         stepMeta: [...document.querySelectorAll('.obw-meta')].map(e => e.textContent.trim())
           .filter(t => /Step \d of \d/.test(t)) };
     });
+    /* RE-POINTED 19 Oct 2026 (round 16 as drawn: "Week by week" — All 15 =
+       Outstanding 11 + Waiting on a step 1 + Completed 3). Outstanding is what
+       somebody could do, so the page's opening view (Outstanding) no longer
+       carries a step held back by an earlier one; it is counted apart, and the
+       All view draws it. The claim is kept: the waiting band draws, after
+       Later and before Completed — now on All, where all three can stand —
+       and Outstanding does not draw it. */
+    check('Outstanding leaves the held-back step out — it is not work anybody could do yet',
+      !wl.bands.some(b => /Waiting on an earlier step/i.test(b)), wl.bands.join(' | '));
+    await page.evaluate(() => obwGoFiltered({ state: 'all' }));
+    await page.waitForFunction(() => { const s = document.querySelector('[data-obw-f="state"]');
+      return !!s && s.value === 'all' && document.querySelectorAll('.obw-band').length > 0; }, null, { timeout: 8000 }).catch(() => {});
+    const allBands = await page.evaluate(() => [...document.querySelectorAll('.obw-band')].map(b => b.textContent.replace(/\s+/g, ' ').trim()));
+    const bandAt = re => allBands.findIndex(b => re.test(b));
+    const wAt = bandAt(/^Waiting on an earlier step/i), lAt = bandAt(/^Later/i), dAt = bandAt(/^Completed/i);
     check('the waiting band draws, after Later and before Completed',
-      wl.bands.some(b => /Waiting on an earlier step/i.test(b)), wl.bands.join(' | '));
+      wAt >= 0 && (lAt < 0 || lAt < wAt) && dAt > wAt, allBands.join(' | '));
+    await page.evaluate(() => obwGoFiltered({}));
+    await page.waitForFunction(() => { const s = document.querySelector('[data-obw-f="state"]'); return !!s && s.value === 'open'; }, null, { timeout: 8000 }).catch(() => {});
     /* RE-POINTED IN PLACE (27 Sep 2026, the owner's list): the four figures
        each added money we owe to money owed to us, and "Paid" read 0 whenever
        the page showed only what is outstanding — its opening view. The foot

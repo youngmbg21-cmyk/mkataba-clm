@@ -14797,9 +14797,13 @@
   .ins-pill-row{margin-top:var(--s-2);}
   /* round 20 as drawn: the verbs at their own width, Start the draft first */
   .ik-ins .ins-panel .ins-acts .ins-lead,.mn-ins .ins-acts .ins-lead{flex:0 1 auto;justify-content:center;}
-  /* the three verbs on one line in the panel's 380, as drawn — in Svenska too */
+  /* the three verbs on one line in the panel's 380, as drawn — in Svenska too.
+     The small rung's side padding (19 Oct 2026): at 10px "Mark reviewed ·
+     Snooze a week · Open MK-…" filled 343 of the row's 347px, so a browser
+     whose text set a hair wider (GitHub's Chrome did) broke it onto two
+     lines; at the small rung the row keeps about 16px to spare */
   :is(.mn-ins,.ik-ins) .ins-panel .ins-h .ins-acts{gap:6px;}
-  :is(.mn-ins,.ik-ins) .ins-panel .ins-h .ins-acts .ui-btn{padding-inline:10px;}
+  :is(.mn-ins,.ik-ins) .ins-panel .ins-h .ins-acts .ui-btn{padding-inline:var(--pad-ctl-x-sm);}
   .ik-cp{display:inline-flex;align-items:center;gap:var(--s-2);min-width:0;}
   .ik-file-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;}
   .ik-file-list .ui-link{display:inline-flex;align-items:center;gap:6px;}

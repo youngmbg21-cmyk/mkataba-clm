@@ -1561,7 +1561,11 @@ function hbBoardHelloHtml(){
   let ending = 0; try { ending = hbBookData(hbS().lens || 'all').figs.ending.n; } catch (_){ ending = 0; }
   let views = 0; try { views = (typeof igViewsRead === 'function') ? igViewsRead().length : 0; } catch (_){ views = 0; }
   const book = [ending ? i18tn('hb_jb_ending', ending, { n: ending }) : null, i18t('hb_jb_by_stream'), views ? i18t('hb_jb_views') : null].filter(Boolean);
-  const hello = _hbE(i18t('hb_jb_hello', { time: hbCountedAt() })).replace(_hbE(i18t('hb_bs_btn')), m => `<b>${m}</b>`);
+  /* "counted at <time>" is the HEAD's own time: it wears a mark so a later
+     board paint (which counts again, hbCountedAt(true)) moves it in place —
+     the greeting and the head never name two different minutes */
+  const hello = _hbE(i18t('hb_jb_hello', { time: '\uE000' })).replace(_hbE(i18t('hb_bs_btn')), m => `<b>${m}</b>`)
+    .replace('\uE000', `<span data-hb-jb-at>${_hbE(hbCountedAt())}</span>`);
   let n = 0; try { n = (typeof counterNeedsCount === 'function') ? counterNeedsCount() : hbNeedsCount(); } catch (_){ n = 0; }
   _hbNyDockN = n;
   let work = 0; try { work = hbAgentsData(null).ready || 0; } catch (_){ work = 0; }
@@ -1576,6 +1580,9 @@ let _hbNyDockN = null;
 function hbNyDockFollow(){
   try {
     if (hbS().face !== 'board' || typeof renderIntelDock !== 'function') return;
+    /* the greeting's time follows the head's, in place (nothing redrawn) */
+    const at = hbCountedAt();
+    document.querySelectorAll('[data-hb-jb-at]').forEach(el => { if (el.textContent !== at) el.textContent = at; });
     const n = (typeof counterNeedsCount === 'function') ? counterNeedsCount() : hbNeedsCount(); if (n === _hbNyDockN) return;
     const box = document.getElementById('igd-input');
     if (box && document.activeElement === box) return;
