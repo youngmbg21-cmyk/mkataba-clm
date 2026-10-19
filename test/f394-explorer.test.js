@@ -158,6 +158,8 @@ describe('f394 (5) the Ask button keeps its place in the box', () => {
      inline (the generated sheet holds no new arbitrary classes); it still asks
      for its place with `absolute`, which is what the fix above serves. */
   test('[control] the Ask button still asks for its place with `absolute`, at the foot of a box that grows', () => {
-    assert.match(IG, /id="igd-go" class="ui-btn ui-btn-sm ui-btn-primary absolute" style="right:18px;bottom:20px"/);
+    /* (its offsets moved with the hint line under every Jambo box, 19 Oct
+       2026 — the place it asks for is the claim, not the pixels) */
+    assert.match(IG, /id="igd-go" class="ui-btn ui-btn-sm ui-btn-primary absolute" style="right:\d+px;bottom:\d+px"/);
   });
 });

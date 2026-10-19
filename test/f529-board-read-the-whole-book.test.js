@@ -215,6 +215,10 @@ describe('f529 (6) the drawer', () => {
     assert.match(srv, /AGENT_DEFAULTS\.book = \{ on: true,/);
     const st = read('js/views/settings.js');
     assert.match(st, /st_book_on[\s\S]{0,200}st_book_cost/, 'the cost sits under the switch');
-    assert.match(st, /agents:\{[\s\S]{0,1600}id="st-book"[\s\S]{0,200}wire\(\)\{ stAgentsPaint\(\); stBookLoad\(\); \}/, 'it sits with the overnight agents, not a fifth Copilot row');
+    /* PIN THE REGION, NOT A BYTE COUNT (re-pointed 19 Oct 2026: round 25's
+       fact line and its comment grew the agents panel past the old 1600). */
+    const ag = st.slice(st.indexOf('  agents:{'), st.indexOf('\n  },', st.indexOf('  agents:{')));
+    assert.ok(ag.length > 0, 'the agents panel is there');
+    assert.match(ag, /id="st-book"[\s\S]{0,200}wire\(\)\{ stAgentsPaint\(\); stBookLoad\(\); \}/, 'it sits with the overnight agents, not a fifth Copilot row');
   });
 });

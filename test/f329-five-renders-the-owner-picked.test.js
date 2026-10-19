@@ -166,7 +166,9 @@ describe('f329 (2) — the row is one column, and the verbs have a row of their 
     assert.match(fn, /discard\s*=\s*relabel\(take\(\/data-rl-retract=\\?\/\)/,
       'held out of the middle');
     const held = fn.indexOf('if (discard) out.push(discard);');
-    const ladder = fn.indexOf('data-rl-ladder=');
+    /* the Ladder verb comes from its own builder since round 9's third pass
+       (rlLadderVerbHtml, 19 Oct 2026); the order measured is the same */
+    const ladder = Math.max(fn.indexOf('data-rl-ladder='), fn.indexOf('rlLadderVerbHtml('));
     assert.ok(held > 0 && ladder > 0 && held > ladder, 'and pushed on after Ladder');
   });
   test('and it is ruby, because it is the only press that throws work away', () => {

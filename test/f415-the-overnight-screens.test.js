@@ -14,7 +14,14 @@ const inBoth = k => (I18N.match(new RegExp('\\n    ' + k + ': ', 'g')) || []).le
 const fnOf = (src, head) => { const a = src.indexOf(head); return a < 0 ? '' : src.slice(a, src.indexOf('\n}', a)); };
 
 test('f415 (c1) the Requests page sends its shelf as templates, and the route reads them unscoped', () => {
-  assert.match(R('js/views/intake.js'), /api\('ai\/template','POST',\{ query:`\$\{r\.title\}\\n\\n\$\{r\.need\}`, templates:cands \}\)/);
+  /* RE-POINTED 19 Oct 2026 (round 20 as drawn, owner's yes of 18 Oct): the
+     Requests page READS the paper that fits (ikFitOf, the ranking draft from
+     a sentence uses) and spends no call; the shelf is still every shelf
+     (ikShelfOf), and the route below still reads a shelf sent to it. */
+  const IK = R('js/views/intake.js');
+  assert.ok(!/api\('ai\/template'/.test(IK), 'no silent model call on the press');
+  assert.match(IK, /function ikFitOf\(/, 'the fit is read');
+  assert.match(IK, /function ikShelfOf\(\)\{[\s\S]{0,200}draftCandidates\(\)/, 'over every shelf');
   assert.match(SRV, /Array\.isArray\(req\.body && req\.body\.templates\) && req\.body\.templates\.length/);
 });
 
@@ -111,7 +118,11 @@ test('f415 (h2 h4 h6 h7 h8 h9 h10 h11 h12 h13 h14) Home and the pages around it'
   assert.match(R('js/views/calendar.js'), /\.cal-seg a\.on \.c,\.cal-seg span\.on \.c,\.cal-seg button\.on \.c\{color:#fff;opacity:1\}/);
   assert.match(IDX, /\.obw-f select\{[^}]*border:1px solid var\(--field-line\)/);
   assert.ok(!/set_role_legal: 'Editor — edit &amp; sign'/.test(I18N));
-  assert.match(SRV, /toLocaleDateString\(L === 'sv' \? 'sv-SE' : 'en-GB'/);
+  /* (the day in words is ONE reading with the Counter's look since round
+     23's gaps, 19 Oct 2026: chaseDayWords in js/sharemail.js, asked by the
+     server's chase mail) */
+  assert.match(R('js/sharemail.js'), /toLocaleDateString\(lang === 'sv' \? 'sv-SE' : 'en-GB'/);
+  assert.match(SRV, /const dayWords = v => chaseDayWords\(v, L,/);
   assert.match(SRV, /if \(c && !c\.owner\) c\.owner = \{ id: u\.id, name: u\.name \}/);
   assert.match(R('js/desk.js'), /function deskWaitDays\(st\)\{/);
   for (const f of ['js/views/home.js', 'js/app.js', 'js/mobile-screens.js'])

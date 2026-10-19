@@ -148,14 +148,19 @@ describe('the dialog it opens is the share dialog', () => {
     return { win, $: sel => root.querySelector(sel) };
   }
 
-  test('opened from Send, it warns that the turn will close', async () => {
+  /* Re-pointed 19 Oct 2026 to the owner's pick "The letter" (round 11): the
+     send screen IS the email, and its drawing has no green hand-over box —
+     Jambo's panel beside the letter holds cards only. The turn still moves
+     only on a real send (the tests above: closing moves nothing), and the
+     stage pill says "waiting on them" once it has gone. What stays pinned:
+     the letter opened from Send is the same letter, with no box on it. */
+  test('opened from Send, the letter carries no hand-over box (round 11 as drawn)', async () => {
     const { win } = buildWorld();
     const c = await negotiated(win);
     const m = await openShare(c, { handOver: true });
-    const note = m.$('#share-handover');
-    assert.ok(note, 'the consequence belongs on the screen before the button is pressed');
-    assert.match(note.textContent, /Sending this closes your turn/);
-    assert.match(note.textContent, /Nothing moves if you close this without sending/);
+    assert.ok(m.$('#share-send'), 'the letter, with its Send');
+    assert.equal(m.$('#share-handover'), null,
+      'the drawn letter has no green box saying the turn closes');
   });
 
   test('opened from Share Link, there is no such warning', async () => {

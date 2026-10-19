@@ -21845,7 +21845,10 @@ function rlRowIsMine(ch){
 function rlRowByHtml(ch, short){
   const who = String((ch && ch.author) || '').trim();
   const when = rlAgoWords(ch && (ch.createdAt || ch.at));
-  const words = [who ? (rlRowIsMine(ch) ? i18t('ng_row_you') : who) : '', when].filter(Boolean).join(' · ');
+  /* "You · today" on our own row (round 9 as drawn); anyone else's name in
+     the card's short form, "Anna H." (owner, 13 Aug 2026: a name on a change
+     card is first name plus initial; the whole name stays on the hover) */
+  const words = [who ? (rlRowIsMine(ch) ? i18t('ng_row_you') : (typeof short === 'function' ? short(who) : who)) : '', when].filter(Boolean).join(' · ');
   return words ? `<span class="rl-card-by" title="${_nea([who, ch.id].filter(Boolean).join(' · '))}">${_ne(words)}</span>` : '';
 }
 /* ---- A COUNTER THAT UNDOES ONLY PART OF THEIR ASK SAYS WHAT IT KEEPS (owner,

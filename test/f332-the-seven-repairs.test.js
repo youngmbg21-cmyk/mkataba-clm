@@ -389,7 +389,11 @@ describe('f332 (7) re-filing can be delegated, and is off by default', () => {
     /* RE-POINTED (the overnight work order, step 6, 15 Oct 2026): the move
        itself is one writer now (ktFolderMove), which asks the wall too, and
        Fill in's stream beside the paper is a fourth door, in its own file */
-    assert.equal((CT.match(/mayReFile\(\)/g) || []).length, 3, 'the stream row, the Overview\'s act and the one stream writer');
+    /* RE-POINTED AGAIN 19 Oct 2026 (round 7 as drawn): the Filing section at
+       rest (ovFilingRestHtml) is a fourth door with its Re-file, asking the
+       same reading */
+    assert.equal((CT.match(/mayReFile\(\)/g) || []).length, 4, 'the stream row, the Overview\'s act, the Filing section\'s Re-file and the one stream writer');
+    assert.match(CT.slice(CT.indexOf('function ovFilingRestHtml('), CT.indexOf('function ovFilingRestHtml(') + 600), /mayReFile\(\)/, 'the Filing section asks it');
     assert.match(CT.slice(CT.indexOf('async function ktFolderMove('), CT.indexOf('async function ktFolderMove(') + 400), /mayReFile\(\)/, 'the writer asks it');
     assert.match(read('js/paperdesk.js'), /function pdFillStreamMay\(\)\{\s*return \(typeof mayReFile === 'function'\) && !!mayReFile\(\)/, 'and Fill in\'s stream asks it');
   });
