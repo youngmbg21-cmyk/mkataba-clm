@@ -75,7 +75,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
-const { startHati } = require('../helpers');
+const { startHati, CAL_TODAY_ASIDE } = require('../helpers');
 
 const BASELINE = path.join(__dirname, 'theme-tokens-baseline.json');
 /* THE SAME LADDER EVERY OTHER HARNESS USES: an override, then the dev sandbox's
@@ -120,6 +120,22 @@ const SCREENS = [
   ['menu',      async p => { await p.evaluate(() => { openWorkspace('MK-82', { room: true }); });
                              await p.waitForSelector('#ws-more'); await p.click('#ws-more'); await pause(300); }],
 ];
+
+/* The today probe: a today column and heading put beside plain ones in the
+   week the calendar drew, measured, and taken away again. */
+const CAL_TODAY_PROBE = () => {
+  const host = document.querySelector('.cal-wk-col') && document.querySelector('.cal-wk-col').parentElement;
+  if (!host) return null;
+  const mk = (cls, html) => { const d = document.createElement('div'); d.className = cls; if (html) d.innerHTML = html; host.append(d); return d; };
+  const colPlain = mk('cal-wk-col'), colToday = mk('cal-wk-col is-today');
+  const headPlain = mk('cal-wk-h', '<span>Mon</span><b>19</b>'), headToday = mk('cal-wk-h is-today', '<span>Mon</span><b>19</b>');
+  const ink = mk(''); ink.style.color = 'var(--accent-ink)';
+  const out = { colPlain: getComputedStyle(colPlain).backgroundColor, colToday: getComputedStyle(colToday).backgroundColor,
+    headPlain: getComputedStyle(headPlain.querySelector('b')).color, headToday: getComputedStyle(headToday.querySelector('b')).color,
+    accentInk: getComputedStyle(ink).color };
+  for (const d of [colPlain, colToday, headPlain, headToday, ink]) d.remove();
+  return out;
+};
 
 /* The census. Runs in the page: walks every element, takes the colour-bearing
    properties as the browser resolved them, and tallies. Sorted, so the order
@@ -230,6 +246,7 @@ const CENSUS = () => {
     return { ctx, page };
   }
 
+  const todayLook = {};
   for (const theme of ['light', 'dark']){
     const { ctx, page } = await open();
     if (theme === 'dark'){ await page.evaluate(() => applyTheme('dark')); await pause(300); }
@@ -237,9 +254,25 @@ const CENSUS = () => {
       await go(page);
       await page.addStyleTag({ content:
         '*,*::before,*::after{animation:none!important;transition:none!important}' });
+      /* The week's today marks come out first (they are drawn on weekdays only,
+         see CAL_TODAY_ASIDE), and are looked at by the probe below instead. */
+      await page.evaluate(CAL_TODAY_ASIDE);
       census[`${name}--${theme}`] = await page.evaluate(CENSUS);
+      if (name === 'calendar') todayLook[theme] = await page.evaluate(CAL_TODAY_PROBE);
     }
     await ctx.close();
+  }
+  /* THE TODAY LOOK, CHECKED ON ANY DAY (19 Oct 2026). The census measures the
+     week without its today marks, because a weekend draws none; so the marks
+     are put to the page as probes, a today column and heading beside plain
+     ones, and must still look marked: the column washed, the heading's day in
+     the accent ink. A relation, not a recorded shade. */
+  for (const theme of ['light', 'dark']){
+    const r = todayLook[theme];
+    check(`calendar--${theme} — the today column is washed and its day wears the accent ink (probed, any day)`,
+      !!r && r.colToday !== r.colPlain && r.colToday !== 'rgba(0, 0, 0, 0)'
+        && r.headToday === r.accentInk && r.headPlain !== r.accentInk,
+      r ? JSON.stringify(r) : 'no week drawn');
   }
 
   /* ---- THE POINT OF THE EXERCISE ----
