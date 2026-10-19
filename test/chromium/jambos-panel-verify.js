@@ -109,20 +109,18 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     {
       /* RE-POINTED 18 Oct 2026 (the gaps of rounds 8–11 as drawn: while a face
          is up the panel's row reads Jambo's tab, the face's word, and "‹ Jambo"
-         at its end; the face's own head is its title alone, no ‹ Jambo, no ×) */
-      const rowOf = face => { const head = document.querySelector('#ig-dock .igd-head'); if (!head) return null;
-        const tabs = [...head.querySelectorAll('[data-pd-tab]')].map(t => t.getAttribute('data-pd-tab'));
-        const w = head.querySelector('[data-pd-face-w]'), b = head.querySelector(`[data-pd-back="${face}"]`);
-        if (!w || !b) return null;
-        const wr = w.getBoundingClientRect(), br = b.getBoundingClientRect();
-        return { tabs: tabs.join(), word: w.textContent.trim(), back: b.textContent.trim(), order: wr.right <= br.left,
-          sameLine: Math.abs((wr.top + wr.bottom) / 2 - (br.top + br.bottom) / 2) < 10 }; };
+         at its end) — and AT THE INTEGRATION (19 Oct 2026) by the owner's
+         answer (3): Fill in keeps round 3's own head, "‹ Jambo · Fill in the
+         details · N left · ×", the contract's tabs above it and no face word
+         in the row; the row's way is the Redlines face's (3d) */
       const ff = await until(() => window.pdFillShows && pdFillShows() && document.querySelector('#pd-fillface .pd-ff-r') && (() => {
-        const r = document.querySelector('#pd-fillface .pd-ff-r');
-        return { headX: !!r.querySelector('[data-pd-ff-close], [data-pd-back]'), title: !!r.querySelector('h3') }; })(), null, 8000);
-      const fr = await until(rowOf, 'fill', 6000);
-      check('3b Fill in: the panel\'s row reads Jambo · "Fill in" · "‹ Jambo"; the face\'s head is its title alone',
-        !!ff && !ff.headX && ff.title && !!fr && fr.tabs === 'copilot' && fr.word === 'Fill in' && fr.back === 'Jambo' && fr.order && fr.sameLine, JSON.stringify({ ff, fr }));
+        const r = document.querySelector('#pd-fillface .pd-ff-r'), b = r.querySelector('[data-pd-back="fill"]'), t = r.querySelector('h3'), x = r.querySelector('[data-pd-ff-close]');
+        const head = document.querySelector('#ig-dock .igd-head');
+        return { back: !!b && b.textContent.trim(), order: !!(b && t && x) && b.getBoundingClientRect().right <= t.getBoundingClientRect().left + 1 && t.getBoundingClientRect().right <= x.getBoundingClientRect().left + 1,
+          rowWord: !!(head && head.querySelector('[data-pd-face-w]')), rowBack: !!(head && head.querySelector('[data-pd-back]')),
+          tabs: head ? [...head.querySelectorAll('[data-pd-tab]')].map(t => t.getAttribute('data-pd-tab')).join() : '' }; })(), null, 8000);
+      check('3b Fill in keeps round 3\'s head (the owner\'s answer 3): "‹ Jambo · Fill in … · ×", the contract\'s tabs above it, no face word in the row',
+        !!ff && ff.back === 'Jambo' && ff.order && !ff.rowWord && !ff.rowBack && ff.tabs.split(',').length > 1, JSON.stringify(ff));
       await shot(page, 'jambos-panel-fill-1440x780');
       if (await press('#ig-dock [data-pd-back="fill"]', '3c ‹ Jambo on Fill in')) {
         const back = await until(() => !(window.pdFillShows && pdFillShows()) && !!document.getElementById('pd-glance'), null, 6000);

@@ -76,9 +76,23 @@ describe('f758 (1) one row for every face', () => {
     assert.match(head, /dock\.classList\.toggle\('pd-face-up',!!\(window\.pdFaceUp&&pdFaceUp\(\)\)\)/, 'the panel knows a face is up');
     assert.match(CSS, /#ig-dock\.pd-face-up \[data-ig-chips\]\{display:none\}/, 'no chips under a face');
   });
-  test('1c the faces\' own heads draw neither ‹ Jambo nor ×', () => {
+  /* RE-POINTED AT THE INTEGRATION (19 Oct 2026), by the owner's answer (3):
+     Fill in, Before you sign (and an amendment) keep round 3's own face head
+     with ‹ Jambo and ×; the panel's row carries them for Redlines and Before
+     you send only (PD_FACE_ROW) — with one of those up the contract's tabs
+     stay, and nothing is drawn in the row */
+  test('1c only Redlines and Before you send take the row; Fill in and Before you sign keep their own head', () => {
     for (const fn of ['pdFillHeadHtml', 'pdSignHeadHtml', 'pdAmendHeadHtml'])
-      assert.doesNotMatch(fnBody(PD, fn).replace(/\/\*[\s\S]*?\*\//g, ''), /pdBackHtml\(|-close|>×</, fn);
+      assert.match(fnBody(PD, fn).replace(/\/\*[\s\S]*?\*\//g, ''), /pdBackHtml\([\s\S]*-close[\s\S]*>×</, fn);
+    const { ctx } = pdStage();
+    assert.deepEqual([...ctx.PD_FACE_ROW], ['red', 'send']);
+    const before = tabsOf(ctx.pdHeadHtml());
+    ctx.pdFillOpen && ctx.pdFillOpen('MK-1');
+    if (ctx.pdFillShows && ctx.pdFillShows()){
+      assert.equal(ctx.pdFaceUp(), '', 'Fill in up: no face row');
+      assert.equal(ctx.pdFaceBackHtml(), '', 'no ‹ Jambo in the row');
+      assert.deepEqual(tabsOf(ctx.pdHeadHtml()), before, 'the contract\'s tabs stay');
+    }
   });
 });
 

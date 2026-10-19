@@ -160,16 +160,19 @@ describe('f705 (3) the way back to Jambo on every face', () => {
     const wiring = PD.slice(PD.indexOf('document._pdJamboTopWired = true'), PD.indexOf('JAMBO, ALIVE'));
     assert.match(wiring, /closest\('\[data-pd-back\]'\)[\s\S]*PD_BACK_CLOSE\[back\.getAttribute\('data-pd-back'\)\]/);
   });
-  /* RE-POINTED 18 Oct 2026 (the gaps of rounds 8–11 as drawn: the panel's
-     row while a face is up reads Jambo's tab, the face's word, "‹ Jambo" at
-     its end — and no ×): ‹ Jambo moved from each face's head into the panel's
-     own row (pdFaceBackHtml, drawn by renderIntelDock's head), ONE builder for
-     every face; the faces' heads draw neither it nor ×. */
-  test('3b the panel\'s row carries it for every face; the faces\' heads draw neither it nor ×', () => {
+  /* RE-POINTED AT THE INTEGRATION (19 Oct 2026), by the owner's answer (3)
+     ("Fill in and Before you sign keep round 3's face head — ‹ Jambo · name ·
+     count · × — not the tab row rounds 8 and 10 draw"): those faces and an
+     amendment's open with ‹ Jambo, the title, then ×; only the Redlines face
+     (round 9) and Before you send (round 11) carry ‹ Jambo in the panel's own
+     row (pdFaceUp → PD_FACE_ROW, pdFaceBackHtml). */
+  test('3b Fill in, Before you sign and an amendment: ‹ Jambo, the title, then ×; Redlines carries it in the panel\'s row', () => {
     for (const [fn, face, x] of [['pdFillHeadHtml', 'fill', 'data-pd-ff-close'], ['pdSignHeadHtml', 'signing', 'data-pd-sf-close'], ['pdAmendHeadHtml', 'amend', 'data-pd-am-close']]){
       const b = fnBody(PD, fn);
-      assert.ok(b.indexOf(`pdBackHtml('${face}')`) < 0 && b.indexOf(x) < 0 && b.indexOf('<h3>') > 0, fn + ': the title alone');
+      const i = b.indexOf(`pdBackHtml('${face}')`), t = b.indexOf('<h3>'), k = b.indexOf(x);
+      assert.ok(i > 0 && i < t && t < k, fn + ': ‹ Jambo, the title, then ×');
     }
+    assert.match(PD, /const PD_FACE_ROW = \['red', 'send'\];/, 'only Redlines and Before you send take the panel\'s row');
     assert.doesNotMatch(fnBody(PD, 'pdRedOpts'), /headStart|headEnd/, 'the Redlines face passes no ‹ Jambo and no ×');
     assert.match(fnBody(PD, 'pdFaceBackHtml'), /pdBackHtml\(f\)/, 'one builder for whichever face is up');
     assert.match(IG.slice(IG.indexOf('function renderIntelDock(')), /pdFaceBackHtml\(\)/, 'drawn in the panel\'s own row');

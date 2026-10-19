@@ -472,11 +472,13 @@ function pdFillHeadHtml(c){
   const done = d.all - d.left;
   const pct = d.all ? Math.round(done * 100 / d.all) : 100;
   const close = _pdT('act_close');
-  /* ‹ Jambo and × left this head for the panel's own row (the face tab,
-     pdFaceTabHtml — rounds 8–11 as drawn); `close` stays for its hover */
-  void close;
-  return `<div class="pd-ff-r"><h3>${_pdE(_pdT('pd_ff_title'))}</h3><span data-pd-ff-pill>${
-      d.left ? pdPill('warn', _pdTn('det_left_n', d.left, { n: d.left })) : pdPill('ok', _pdT('pd_ff_all_in'))}</span></div>
+  /* ROUND 3'S FACE HEAD STAYS (the owner's answer (3), 18 Oct 2026: Fill in
+     and Before you sign keep "‹ Jambo · name · count · ×", not the tab row
+     rounds 8 and 10 draw — only Redlines and Before you send take the
+     panel's row, pdFaceUp) */
+  return `<div class="pd-ff-r">${pdBackHtml('fill')}<h3>${_pdE(_pdT('pd_ff_title'))}</h3><span data-pd-ff-pill>${
+      d.left ? pdPill('warn', _pdTn('det_left_n', d.left, { n: d.left })) : pdPill('ok', _pdT('pd_ff_all_in'))}</span>
+      <button type="button" class="pd-ff-x" data-pd-ff-close title="${_pdE(close)}" aria-label="${_pdE(close)}">×</button></div>
     <div class="det-bar" aria-hidden="true"><i data-pd-ff-bar style="width:${pct}%"></i></div>
     <span class="pd-ff-n" data-pd-ff-count>${_pdE(_pdT('det_n_of_m', { done, all: d.all }))} · ${_pdE(_pdT('pd_ff_saved'))}</span>${pdFillPrivateHtml(c)}`;
 }
@@ -1438,8 +1440,9 @@ function pdSignHeadHtml(c){
   const close = _pdT('act_close');
   const s = pdSignState(c);
   /* signed, the title says so and the pill would say it twice */
-  void close;   /* ‹ Jambo and × are the panel's own row now (pdFaceTabHtml) */
-  return `<div class="pd-sf-r"><h3>${_pdE(_pdT(s.closed ? 'pd_st_signed' : 'pd_sf_title'))}</h3><span data-pd-sf-pill>${s.closed ? '' : pdSignPillHtml(c)}</span></div>`;
+  /* round 3's face head stays (the owner's answer (3)): ‹ Jambo, the title, × */
+  return `<div class="pd-sf-r">${pdBackHtml('signing')}<h3>${_pdE(_pdT(s.closed ? 'pd_st_signed' : 'pd_sf_title'))}</h3><span data-pd-sf-pill>${s.closed ? '' : pdSignPillHtml(c)}</span>
+      <button type="button" class="pd-sf-x" data-pd-sf-close title="${_pdE(close)}" aria-label="${_pdE(close)}">×</button></div>`;
 }
 /* ONCE BOTH HAVE SIGNED THE FACE IS THE RECEIPT (the owner's yes, decision
    3), and EVERY STEP STARTS THE NEXT (rule 4): what the signature starts —
@@ -2128,8 +2131,9 @@ function pdAmendAdd(el){
 }
 function pdAmendHeadHtml(c){
   const close = _pdT('act_close');
-  void close;   /* ‹ Jambo and × are the panel's own row now (pdFaceTabHtml) */
-  return `<div class="pd-sf-r"><h3>${_pdE(_pdT('pd_am_title', { ref: (typeof contractRef === 'function') ? contractRef(c) : c.id }))}</h3></div>
+  /* round 3's face head (no later drawing moved it; as Fill in and Before you sign, the owner's answer (3)) */
+  return `<div class="pd-sf-r">${pdBackHtml('amend')}<h3>${_pdE(_pdT('pd_am_title', { ref: (typeof contractRef === 'function') ? contractRef(c) : c.id }))}</h3>
+      <button type="button" class="pd-sf-x" data-pd-am-close title="${_pdE(close)}" aria-label="${_pdE(close)}">×</button></div>
     <p class="pd-am-sub">${_pdE(_pdT('pd_am_sub'))}</p>`;
 }
 function pdAmendItemHtml(it, i){
@@ -2478,9 +2482,15 @@ function pdTabGlyphHtml(t){
    added tomorrow is dressed by the same row; the faces' own heads no longer
    draw ‹ Jambo or ×. */
 const PD_FACE_WORD = { fill: 'pd_face_w_fill', red: 'pd_face_w_red', signing: 'pd_face_w_signing', amend: 'pd_face_w_amend', send: 'pd_face_w_send' };
+/* WHICH FACES TAKE THE PANEL'S ROW: Redlines (round 9) and Before you send
+   (round 11). Fill in, Before you sign and an amendment keep round 3's own
+   head — ‹ Jambo · name · count · × — the owner's answer (3), 18 Oct 2026 —
+   and the contract's tabs stay above them. */
+const PD_FACE_ROW = ['red', 'send'];
 function pdFaceUp(){
   if (typeof pdSendShows === 'function' && pdSendShows()) return 'send';
-  return pdFaceNow();
+  const f = pdFaceNow();
+  return PD_FACE_ROW.includes(f) ? f : '';
 }
 function pdFaceBackHtml(){ const f = pdFaceUp(); return f ? pdBackHtml(f) : ''; }
 function pdHeadHtml(brain){
@@ -3910,7 +3920,7 @@ if (typeof document !== 'undefined' && !document._jbWired){
     return true; };
   if (!watch()) document.addEventListener('DOMContentLoaded', watch, { once: true });
 }
-Object.assign(window, { pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, pdFaceUp, pdFaceBackHtml, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
+Object.assign(window, { pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdFaceBackHtml, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, PD_RD_CHECKS, pdRoadCheckOf, pdRoadCheckNames, pdDayWord, pdBackDay, pdAwayOf, pdRoadRuleOf, pdRoadRuleTitle, pdRoadRuleSub, pdRoadRuleFramed, pdRoadRuleHtml, pdRoadMovedHtml, pdRoadYesOf, pdRoadYesTitle, pdRoadYesFramed, pdRoadYesFacts, pdRoadYesHtml, pdRoadPress, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,
