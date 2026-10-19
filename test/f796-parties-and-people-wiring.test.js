@@ -36,7 +36,7 @@ describe('f796 (1) every new word in both books', () => {
     'cu_owner_you', 'cu_owner_more', 'cu_f_live', 'cu_live_n', 'cu_live_none_one', 'cu_live_none', 'cu_nda_secret', 'cu_nda_secret_cap', 'cu_nda_by_you', 'cu_nda_by',
     'cu_nda_none_long', 'cu_ag_ends', 'cu_ag_ended', 'cu_ag_secret', 'cu_ag_secret_good', 'cu_people_at', 'cu_pp_negotiates', 'cu_pp_signs', 'cu_pp_advises', 'cu_pp_reads',
     'cu_pp_more', 'cu_pp_none', 'cu_draft_with', 'cu_need_request', 'cu_req_someone', 'cu_req_word', 'cu_need_go_request', 'cu_need_redlines_one', 'cu_need_redlines_other',
-    'cu_need_approval_short', 'cu_days_ago_one', 'cu_days_ago_other', 'cu_pr_from', 'cu_pr_use', 'cu_pr_save', 'cu_pr_cancel', 'cu_pr_saved', 'cu_pr_err',
+    'cu_need_approval_short', 'cu_need_approval_for', 'cu_nda_draft_sub', 'cu_days_ago_one', 'cu_days_ago_other', 'cu_pr_from', 'cu_pr_use', 'cu_pr_save', 'cu_pr_cancel', 'cu_pr_saved', 'cu_pr_err',
     'brn_p_partyrec', 'brn_pd_partyrec', 'brn_p_partyrecget', 'brn_pd_partyrecget', 'brn_p_partyrecset', 'brn_pd_partyrecset', 'brn_p_partyrecdb', 'brn_pd_partyrecdb', 'brn_p_partyreclog', 'brn_pd_partyreclog'];
   test('in en and sv, once each', () => {
     const src = read('js/i18n.js');

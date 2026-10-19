@@ -79,6 +79,13 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
   { const st = (await W.admin.json('/api/bootstrap')).settings || {};
     await W.admin.json('/api/settings', { method: 'PUT', body: Object.assign({}, st, { directory: [
       { name: 'Henry Dalu', email: 'henry@kfreight.co.ke', title: 'Head of procurement' }, { name: 'Sofia Lunani', email: 'sofia@kfreight.co.ke', title: 'Legal counsel' }] }) }); }
+  /* an approval the admin answers for Jonas while he is away */
+  { const st = (await W.admin.json('/api/bootstrap')).settings || {};
+    await W.admin.json('/api/settings', { method: 'PUT', body: Object.assign({}, st, { approvalRules: [{ id: 'r1', order: 1, name: 'Over 30 M',
+      cond: { type: 'value', op: '>=', value: 30000000 }, approver: { kind: 'member', id: jonas.id, name: 'Jonas Berg' } }] }) }); }
+  await mk('MK-AP1', 'Power purchase agreement', 'Helio Energy Ltd', H.FOLDER_A, 31000000, 'Draft');
+  { const c = await W.admin.json('/api/contracts/MK-AP1'); const v = c._v; delete c._v; c.status = 'Under Review';
+    await W.admin.raw('/api/contracts/MK-AP1', { method: 'PUT', body: { contract: c, baseVersion: v } }); }
   /* a colleague asks for an NDA with a party: it waits on the admin */
   await W.restricted.json('/api/intake', { method: 'POST', body: { title: 'an NDA with Nandi Dairy', need: 'We share recipes next month.', counterparty: 'Nandi Dairy', folder: H.FOLDER_A } });
 
@@ -189,6 +196,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       check('4e People at Kenya Freight: each with job title and what they do', !!P && /People at Kenya Freight/.test(P.peopleHead) && P.people.some(x => /Henry Dalu.*Head of procurement · negotiates MK-KF1/.test(x)) && P.people.some(x => /Sofia Lunani.*Legal counsel · signs for Kenya Freight/.test(x)), JSON.stringify(P && { h: P.peopleHead, p: P.people }));
       check('4f "Draft an agreement with Kenya Freight"', !!P && P.draft.trim() === 'Draft an agreement with Kenya Freight', P && P.draft);
       await shot('19-party-panel-1440x780.png');
+      const AP = await page.evaluate(() => ((document.querySelector('#cu-tbody [data-cu-cust="helio energy ltd"] td.cu-wait') || {}).textContent || '').trim());
+      check('4i an approval the reader answers for an away colleague: "an approval, for Jonas"', /^an approval, for Jonas( · \+\d+ more)?$/.test(AP), AP);
       /* a colleague's request about a party waits on the reader */
       await page.fill('#cu-q', 'nandi');
       await until(() => document.querySelectorAll('#cu-tbody [data-cu-cust]').length === 1);

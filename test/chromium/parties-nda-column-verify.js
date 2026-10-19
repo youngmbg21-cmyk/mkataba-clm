@@ -93,7 +93,8 @@ CONTRACTS.forEach(c => { if (!c.nda && c.id.startsWith('MK-')) c.expiry = day(40
     ok('1c Naivas (two contracts, one of them the NDA): green "One-way", then "for good"', R['naivas supermarkets'] && R['naivas supermarkets'].text === 'One-way / for good' && R['naivas supermarkets'].tone === 'green', JSON.stringify(R['naivas supermarkets']));
     ok('1d SAP: signed, nobody confirmed — amber "Not confirmed", never the wording\'s guess', R['sap east africa'] && R['sap east africa'].text === 'Not confirmed' && R['sap east africa'].tone === 'amber', JSON.stringify(R['sap east africa']));
     ok('1e Carrefour: its secrecy ran out — "Ended", then "' + month(CK_ENDS) + '", not green', R['carrefour kenya'] && R['carrefour kenya'].text === 'Ended / ' + month(CK_ENDS) && R['carrefour kenya'].tone === 'grey', JSON.stringify(R['carrefour kenya']));
-    ok('1f Krones: only a draft NDA — "Not signed yet"', R['krones east africa'] && R['krones east africa'].text === 'Not signed yet' && R['krones east africa'].st === 'draft', JSON.stringify(R['krones east africa']));
+    /* RE-POINTED 19 Oct 2026 (lane A2, round 19 as drawn: "Not signed yet / draft") */
+    ok('1f Krones: only a draft NDA — "Not signed yet", "draft" under it', R['krones east africa'] && R['krones east africa'].text === 'Not signed yet / draft' && R['krones east africa'].st === 'draft', JSON.stringify(R['krones east africa']));
     ok('1g Kabras: no NDA — "None"', R['kabras sugar'] && R['kabras sugar'].text === 'None' && !R['kabras sugar'].st, JSON.stringify(R['kabras sugar']));
     const gvBg = (R['givaudan east africa'] || {}).bg || '', saBg = (R['sap east africa'] || {}).bg || '';
     ok('1h the pills are painted, green and amber apart', !!gvBg && gvBg !== 'rgba(0, 0, 0, 0)' && !!saBg && saBg !== 'rgba(0, 0, 0, 0)' && gvBg !== saBg, gvBg + ' / ' + saBg);

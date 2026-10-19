@@ -229,7 +229,13 @@ function cuNeedShort(x){
     return n === 0 ? i18t('ins_days_today') : i18tn('ins_days', n, { n }); };
   if (k === 'quiet'){ const w = daysSince(x.it.since); const t = i18tn('cu_need_redlines', x.it.n || 1, { n: x.it.n || 1 }); return w ? `${t} · ${w}` : t; }
   if (k === 'move'){ let w = ''; try { w = (typeof regNegoCols === 'function') ? regNegoCols(x.c).waiting : ''; } catch (_){ w = ''; } return w && w !== '\u2014' ? `${i18t('cu_need_move')} · ${w}` : i18t('cu_need_move'); }
-  if (k === 'approval') return i18t('cu_need_approval_short');
+  /* "an approval, for Jonas" where the reader answers for an away colleague
+     (When you're away: Approvals' own reading, apForWho) */
+  if (k === 'approval'){
+    let fw = null; try { fw = (typeof apForWho === 'function') ? apForWho({ type: 'approval', mine: true, done: false, c: x.c }) : null; } catch (_){ fw = null; }
+    const who = fw && String(fw.name || '').trim().split(/\s+/)[0];
+    return who ? i18t('cu_need_approval_for', { who }) : i18t('cu_need_approval_short');
+  }
   return cuNeedTitle(x);
 }
 function cuNeedsSay(list){
@@ -321,8 +327,9 @@ function cuNdaCellHtml(x){
   const tone = CU_NDA_TONE[x.state];
   const word = x.state === 'inforce' ? (x.dir === 'mutual' ? i18t('cu_nda_mutual') : (x.dir ? i18t('cu_nda_oneway') : i18t('cu_nda_word')))
     : i18t(x.state === 'ended' ? 'cu_nda_ended_w' : x.state === 'unconfirmed' ? 'cu_nda_unconfirmed' : 'cu_nda_draft');
+  /* round 19 as drawn: "Not signed yet / draft" — the second line says where it stands */
   const sub = x.state === 'inforce' ? (x.forGood ? i18t('nda_for_good_lc') : i18t('cu_nda_to', { d: cuNdaMonth(x.ends) }))
-    : x.state === 'ended' ? cuNdaMonth(x.ends) : '';
+    : x.state === 'ended' ? cuNdaMonth(x.ends) : x.state === 'draft' ? i18t('cu_nda_draft_sub') : '';
   return `<span class="reg-stg ins-pill cu-nda${tone ? ' is-' + tone : ''}" data-cu-nda-st="${_cuE(x.state)}" title="${_cuE(cuNdaShort(x))}"><i aria-hidden="true"></i>${_cuE(word)}</span>${
     sub ? `<span class="cu-nda-sub">${_cuE(sub)}</span>` : ''}`;
 }
