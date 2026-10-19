@@ -32173,6 +32173,8 @@ While the gap review's lanes built the picked drawings, the owner answered the q
 - (20) The clause editor keeps saving only on Save; its line keeps the honest words ("nothing is filed until you save"), not "saved as you type".
 - (21) Discard last on our side: "Keep asking first" (19 Oct 2026) — the 9 Oct rule (decision D3) "Discard always asks first" stands; lane C2 took its Undo back out (21147e8).
 - (22) A template's title on Our paper keeps the template's own heading as written (no forced capitals).
+- (23) The colour record (owner, 19 Oct 2026, "Yes, re-save it"): ink-wash-baseline and theme-tokens re-saved once after the last five areas joined, audited as a set difference — no colour new to the palette, only existing tokens on more screens (ink-wash nineteenth, theme-tokens eighth).
+- (24) The redline cards' buttons (owner, 19 Oct 2026, "Design's colours"): the theme's accent ink, Reject and Discard red, as round 9 "Piles" drew — reverses the owner's 9 Oct 2026 "do not change the colors of the redline cards Buttons".
 
 ## JOINING THE FIRST SEVEN LANES (19 Oct 2026)
 
