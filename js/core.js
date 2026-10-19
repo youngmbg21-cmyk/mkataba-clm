@@ -5529,7 +5529,10 @@ function shareStaysHtml(c){
       : i18t(name?'sh_lt_stays_wait_by':'sh_lt_stays_wait', { what, who:name, first });
     const remind=(rv && name && !held && typeof reviewMayCancel==='function' && reviewMayCancel(rv))
       ? `<button type="button" class="ui-btn ui-btn-sm" data-sh-lt-remind="${esc(rv.id)}">${esc(i18t('sh_lt_remind', { who:first }))}</button>` : '';
-    const go=x.clauseId ? `<button type="button" class="ui-btn ui-btn-sm ui-btn-plain" data-sh-lt-goto="${esc(x.clauseId)}">${esc(num?i18t('sh_lt_goto', { n:num }):i18t('sh_lt_goto_it'))}</button>` : '';
+    /* Go to clause N, and while the letter waits for it, Back to the letter
+       in the same place (the slot's is-waiting shows one of the two) */
+    const go=x.clauseId ? `<button type="button" class="ui-btn ui-btn-sm ui-btn-plain" data-sh-lt-goto="${esc(x.clauseId)}">${esc(num?i18t('sh_lt_goto', { n:num }):i18t('sh_lt_goto_it'))}</button>`
+      + `<button type="button" class="ui-btn ui-btn-sm ui-btn-plain" data-sh-lt-back>${esc(i18t('sh_lt_back_letter'))}</button>` : '';
     return `<div class="sh-lt-card is-stays" data-sh-c="${esc(c.id)}" data-sh-lt-stays="${esc(x.id)}"><h4><i class="sh-lt-pause" aria-hidden="true"></i>${esc(num?i18t('sh_lt_stays_h', { clause:i18t('sh_lt_clause_n', { n:num }) }):i18t('sh_lt_stays_h', { clause:label||('#'+x.id) }))}</h4><p>${esc(say)}</p>${
       (remind||go)?`<div class="sh-lt-acts">${remind}${go}</div>`:''}</div>`;
   }).join('');
@@ -5543,9 +5546,20 @@ if(typeof document!=='undefined') document.addEventListener('click',e=>{
     const c=id&&typeof getContract==='function'?getContract(id):null;
     if(c && typeof reviewRemind==='function'){ r.disabled=true; Promise.resolve(reviewRemind(c, { reviewId:r.getAttribute('data-sh-lt-remind') })).finally(()=>{ r.disabled=false; }); }
     return; }
+  if(t.closest('[data-sh-lt-back]')){ e.preventDefault();
+    if(typeof window.pdSendWaitSet==='function') window.pdSendWaitSet(false);
+    return; }
   const g=t.closest('[data-sh-lt-goto]');
   if(g){ e.preventDefault(); const id=g.closest('[data-sh-c]')?.getAttribute('data-sh-c');
     const c=id&&typeof getContract==='function'?getContract(id):null; const cid=g.getAttribute('data-sh-lt-goto');
+    /* THE LETTER WAITS, the paper lands on the clause (round 11's gaps, third
+       pass: nothing typed is lost; the card's own button brings it back) */
+    if(c && typeof window.pdSendFor==='function' && String(window.pdSendFor()||'')===String(c.id) && typeof window.pdSendWaitSet==='function'
+      && window.state && state.view==='dashboard'){
+      window.pdSendWaitSet(true);
+      if(typeof window.rlLandOnClause==='function') window.rlLandOnClause(cid);
+      return;
+    }
     if(typeof closeModal==='function') closeModal();
     if(c && typeof window.pdGoClause==='function' && window.state && state.view==='dashboard') window.pdGoClause(c, cid);
     else if(c && typeof openRedlineWorkbench==='function'){ openRedlineWorkbench(c.id); setTimeout(()=>{ if(typeof rlJumpToClause==='function') try{ rlJumpToClause(cid); }catch(_){} }, 400); }
@@ -5722,7 +5736,11 @@ function shareSummaryStepHtml(c, opts={}){
              paragraph pretending a person wrote it. The manifest above is
              unchanged — the SENDER still sees exactly what is going out. */}
       ${one?'':shareNoteBoxHtml(c, hist)}
-      ${opts.handOver?`<div id="share-handover" style="margin-top:var(--s-3);border:1px solid var(--st-green-line);background:var(--st-green-bg);border-left:3px solid var(--st-green-fg);border-radius:var(--radius);padding:9px var(--s-3);font-size:var(--t-meta);line-height:1.5;color:var(--st-green-fg)">
+      ${''/* NOT ON THE LETTER (round 11's gaps, third pass, as drawn: Jambo's
+             panel beside the letter holds cards only — Jambo's line, what
+             stays here, what they never see, something else to send). The
+             turn moving is said after Send, in its confirmation. */}
+      ${opts.handOver && !opts.letter?`<div id="share-handover" style="margin-top:var(--s-3);border:1px solid var(--st-green-line);background:var(--st-green-bg);border-left:3px solid var(--st-green-fg);border-radius:var(--radius);padding:9px var(--s-3);font-size:var(--t-meta);line-height:1.5;color:var(--st-green-fg)">
         <b>${i18t('co_closes_your_turn')}</b> Once it goes out, this contract shows as waiting on ${esc(c.counterparty||'them')} until they reply. Nothing moves if you close this without sending.</div>`:''}
       ${''/* ---- ONE SCREEN, AND NOTHING ON IT NEEDS A NEXT ---- (owner-approved
              13 Sep 2026.) This step and the recipient step are drawn together
@@ -5857,6 +5875,27 @@ function shareSignerPickHtml(c, sel){
 function readinessPanelHtml(c, o={}){
   const probs=contractReadiness(c);
   if(!probs.length) return '';
+  /* ---- ON THE LETTER, A CARD LIKE ITS NEIGHBOURS (round 11's gaps, third
+     pass: "the panel holds cards only") ----
+     Beside the letter the checks stand in Jambo's panel among its cards, so
+     they wear the card's clothes: a head naming how many, the list open (no
+     fold, no amber strip). A BLOCK is still said first, with its door and the
+     tick that lets the send through (sh-ack), on a ruby edge — the refusal's
+     way forward stays on the screen. Same reading (contractReadiness), same
+     ids. */
+  if(o.card){
+    const blocks=probs.filter(x=>x.severity==='block'), notes=probs.filter(x=>x.severity!=='block');
+    const door=x=>(x.severity==='block' && (x.key==='review'||x.key==='desk') && typeof isAdmin==='function' && isAdmin())
+      ? ` <button type="button" class="ui-link" data-rd-rule="${x.key}">${esc(i18t(x.key==='review'?'sc_rule_review':'sc_rule_desk'))}</button>` : '';
+    const ul=L=>`<ul class="sh-lt-checkl">${L.map(x=>`<li>${esc(x.label)}${door(x)}</li>`).join('')}</ul>`;
+    return `<div id="share-readiness" class="sh-lt-card sh-lt-check${blocks.length?' is-block':''}">
+      <h4>${esc(blocks.length ? i18tn('co_not_ready', blocks.length, { n:blocks.length }) : i18tn('co_worth_checking_n', notes.length, { n:notes.length }))}</h4>
+      ${blocks.length?ul(blocks):''}
+      ${blocks.length && notes.length?`<p class="sh-lt-check-also">${esc(i18t('co_also_worth_knowing'))}</p>`:''}
+      ${notes.length?ul(notes):''}
+      ${blocks.length?`<label class="sh-lt-check-ack"><input id="sh-ack" type="checkbox"/><span>${i18t('co_send_anyway')}</span></label>`:''}
+    </div>`;
+  }
   /* ---- ON ONE SCREEN THE WARNINGS FOLD TO A COUNT ---- (the pop-up diet,
      owner-approved 13 Sep 2026). Amber notes are facts worth a glance, not a
      wall: the head says how many and opens on a press. A BLOCK stays open —
@@ -7576,7 +7615,9 @@ function shareLetterPagePlace(){
   const top=row ? row.getBoundingClientRect().bottom : (bar&&bar.getClientRects().length ? bar.getBoundingClientRect().bottom : 0);
   const right=dock&&dock.getClientRects().length ? Math.max(0, window.innerWidth-dock.getBoundingClientRect().left) : 0;
   const cs=document.getElementById('content-scroll'); const left=cs&&cs.getClientRects().length ? cs.getBoundingClientRect().left : 0;
-  frame.style.cssText=`position:fixed;top:${Math.round(top)}px;left:${Math.round(left)}px;right:${Math.round(right)}px;bottom:0;z-index:70;display:flex;`;
+  /* the letter waiting while the paper shows a clause (pdSendWaitSet): out of sight, kept whole */
+  const waiting=typeof window.pdSendIsWaiting==='function' && window.pdSendIsWaiting();
+  frame.style.cssText=`position:fixed;top:${Math.round(top)}px;left:${Math.round(left)}px;right:${Math.round(right)}px;bottom:0;z-index:70;display:${waiting?'none':'flex'};`;
 }
 function shareLetterPage(c){
   const root=document.getElementById('modal-root'); const panel=root&&root.querySelector('.modal-in'); if(!panel||!c) return false;
@@ -7818,7 +7859,7 @@ async function openShareModal(c, opts={}){
              The readiness list reads the agreement's own blanks and stage; a
              history send carries the record and no agreement, so the fold and
              its tick stand down on the record kind (setKind). */}
-      <div id="share-readiness-wrap">${readinessPanelHtml(c, { fold:true })}</div>
+      <div id="share-readiness-wrap">${readinessPanelHtml(c, { fold:true, card:true })}</div>
       ${''/* EMAIL OFF: one line and the way forward. The four-line version said
              what else could not be delivered on this workspace, which is the
              mail panel's job, not this dialog's. */}

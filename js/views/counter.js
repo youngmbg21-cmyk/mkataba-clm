@@ -66,15 +66,20 @@ const DK_HOME_FACE = { board: 'home:board', calendar: 'home:calendar', explorer:
    on the trail ‹ walks — it goes when the screen goes, and ‹ is the paper */
 const DK_SEND = 'send:';
 function dkSendNow(){ try { const id = (typeof window.pdSendFor === 'function') ? window.pdSendFor() : null; return id ? DK_SEND + id : null; } catch (_){ return null; } }
-/* a press on another page, or Home, puts the send screen away first */
+/* a press on another page, or Home, puts the send screen away first — but
+   not the paper the waiting letter stands over: going to it is not leaving */
+function dkSendWaiting(){ try { return typeof window.pdSendIsWaiting === 'function' && !!window.pdSendIsWaiting(); } catch (_){ return false; } }
 function dkLeaveSend(k){
   const now = dkSendNow(); if (!now || k === now) return;
+  if (dkSendWaiting() && k === 'c:' + now.slice(DK_SEND.length)) return;
   if (typeof closeModal === 'function') try { closeModal(); } catch (_){}
 }
 function deskKeyNow(){
   if (typeof state === 'undefined' || !state || !state.view || state.view === 'counter') return null;
   const v = state.view;
-  if (v === 'dashboard'){ const sk = dkSendNow(); if (sk) return sk; }
+  /* the letter in front names the page; while it waits (Go to clause N) the
+     paper is in front and the letter is Recent's first row */
+  if (v === 'dashboard'){ const sk = dkSendNow(); if (sk && !dkSendWaiting()) return sk; }
   if (v === 'dashboard'){
     const f = (typeof hbFace === 'function') ? hbFace() : 'board';
     if (f === 'paper'){ const c = (typeof pdContract === 'function') ? pdContract() : null; return c ? 'c:' + c.id : 'home:contracts'; }
@@ -169,6 +174,10 @@ function deskRecentRows(){
   if (now && !L.some(t => t.k === now) && deskTabLabel(now)) L = L.concat([{ k: now, at: Date.now() }]);
   L = L.slice().sort((a, b) => (b.at || 0) - (a.at || 0));
   if (now){ const i = L.findIndex(t => t.k === now); if (i > 0) L.unshift(L.splice(i, 1)[0]); }
+  /* THE WAITING LETTER IS ONE ROW AWAY (round 11's gaps, third pass — the
+     drawing's "Send · MK-0382" tab): first, never kept */
+  const sk = dkSendWaiting() ? dkSendNow() : null;
+  if (sk) L = [{ k: sk, at: Date.now(), waiting: true }].concat(L.filter(t => t.k !== sk));
   return L.slice(0, DK_RECENT);
 }
 /* what a row is and when, under its name: "Contract · 25 min ago" */
@@ -181,6 +190,7 @@ function dkAgo(at, on){
   const d = Math.round(h / 24); return d <= 1 ? _cnT('dk_ago_yesterday') : _cnT('dk_ago_days', { n: d });
 }
 function dkKindWord(k){
+  if (k.startsWith(DK_SEND)) return _cnT('dk_kind_letter');
   if (k.startsWith('c:')) return _cnT('dk_kind_contract');
   if (k.startsWith('home:')) return _cnT('dk_counter');
   return '';
@@ -243,7 +253,10 @@ function deskRecentToggle(open){
 /* a row's press: the door that already opens that page */
 function deskTabOpen(k){
   k = String(k || ''); _dkMenuOpen = false;
-  if (k.startsWith(DK_SEND)) return !!dkSendNow();
+  if (k.startsWith(DK_SEND)){
+    if (dkSendWaiting() && typeof window.pdSendWaitSet === 'function'){ window.pdSendWaitSet(false); deskBarPaint(); return true; }
+    return !!dkSendNow();
+  }
   dkLeaveSend(k);
   if (k === 'home'){ deskGoCounter(); return true; }
   if (k.startsWith('home:')){

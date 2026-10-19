@@ -188,7 +188,12 @@ describe('f676 (5) the Negotiate page folds into Home', () => {
   });
   test('5c the page\'s notices and its review door ride the face', () => {
     assert.match(strip(fnBody(PD, 'pdRedFaceHtml')), /rlFloatingNoticesHtml\(c, o\)/);
-    assert.doesNotMatch(strip(fnBody(PD, 'pdRedHeadEndHtml')), /data-pd-rf-nego/, 'no way to the page it folded into');
+    /* RE-POINTED 19 Oct 2026 (round 9's gaps, third pass, lane C2): the
+       column head's × builder (pdRedHeadEndHtml) went with its last caller —
+       ‹ Jambo in the panel's row closes the face — so the face's options are
+       asked: no head end, no way to the page it folded into */
+    assert.ok(!/function pdRedHeadEndHtml\(/.test(PD), 'the stale head-end builder is gone');
+    assert.doesNotMatch(strip(fnBody(PD, 'pdRedOpts')), /headEnd|data-pd-rf-nego/, 'no way to the page it folded into');
     assert.match(strip(HOME), /openRedlineWorkbench\(c\.id, \{ face: true \}\)/, 'a review lands on the face too');
     /* the page's Ask for review and Home's ⋯ row are one door */
     assert.match(strip(NEGO), /rlReviewDoor\(c, \(\) => renderRedline\(\)\)/);

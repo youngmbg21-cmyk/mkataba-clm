@@ -147,7 +147,10 @@ describe('f759 (4) the second pass\'s words, both books, beside their area', () 
     assert.equal(fill(en.ce_row_counter, { clause: '7. Liability cap' }), 'Counter · 7. Liability cap');
     assert.equal(fill(en.ce_row_asks_fig, { who: 'Nordvik', fig: '100%' }) + ' · ' + en.ce_row_lands, 'Nordvik asks 100% · back lands on the same row');
     assert.equal(fill(en.ce_row_ctx, { name: 'Master services agreement', ref: 'MK-0382', party: 'Nordvik Logistik AB', n: 2 }), 'Master services agreement · MK-0382 · Nordvik Logistik AB · round 2');
-    assert.equal(fill(en.ce_row_step_counter, { n: 2 }), 'Step 2 · your counter · saved as you type, not sent');
+    /* RE-POINTED 19 Oct 2026 (third pass, main's rule): the step words are
+       inert in both books; the editor says what the wording is, and only what
+       is true — nothing is filed until Save */
+    assert.equal(en.ce_row_is_counter, 'Your counter · nothing is filed until you save');
     assert.equal(en.ce_row_asked_h, 'What they asked');
     assert.equal(en.ce_row_jambo_p, 'For a softer version, or this clause in plain English.');
     assert.equal(en.ce_row_jambo_go, 'Ask for a softer version');

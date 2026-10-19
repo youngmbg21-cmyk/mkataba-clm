@@ -149,7 +149,9 @@ describe('f756 (3) the piles\' names', () => {
     const sg = fnBody(NV, 'rlIsOpenSuggestion');
     assert.match(sg, /deskSuggestionOpen/, 'the desk\'s own reading of an open suggestion');
     assert.match(sg, /deskEnforced\(\)/, 'while the desk rule holds');
-    assert.match(fnBody(NV, 'rlSuggestFaceHtml'), /data-dk-adopt=[\s\S]*data-dk-return=[\s\S]*data-rl-ladder=/, 'Adopt · Hand back · Ladder, the strip\'s own presses');
+    /* RE-POINTED 19 Oct 2026 (third pass): Ladder is the one verb builder
+       every row shares, so it opens under its row on the face */
+    assert.match(fnBody(NV, 'rlSuggestFaceHtml'), /data-dk-adopt=[\s\S]*data-dk-return=[\s\S]*rlLadderVerbHtml\(ch\)/, 'Adopt · Hand back · Ladder, the strip\'s own presses');
   });
 });
 
@@ -230,7 +232,9 @@ describe('f756 (5) the notes open in the same panel', () => {
     assert.match(fn, /i18t\('ng_fn_ph', \{ room: roomName\(cur\) \}\)/, '"Write to Internal… type @ to name someone"');
     assert.match(fn, /rlNpTagMenuHtml\(c, room, opts\)/, 'the @ list');
     assert.match(fn, /data-rl-fn-post=[\s\S]*i18t\('ng_fn_post'\)/, 'Post');
-    assert.match(NV, /rlNotesSend\(root, c, null, \{ side: 'owner',[\s\S]{0,140}?\}, post\.getAttribute\('data-rl-fn-post'\)\)/, 'Post is the drawer\'s one send');
+    /* RE-POINTED 19 Oct 2026 (third pass): narrowed to one change (a row's
+       "N notes"), Post files under that change; else as before */
+    assert.match(NV, /rlNotesSend\(root, c, ch, \{ side: 'owner',[\s\S]{0,140}?\}, post\.getAttribute\('data-rl-fn-post'\)\)/, 'Post is the drawer\'s one send');
   });
   test('5c each note: the face, "Name · clause N · when", the bubble; the drawer\'s own presses under it', () => {
     const fn = fnBody(NV, 'rlFaceNoteHtml');
@@ -241,7 +245,9 @@ describe('f756 (5) the notes open in the same panel', () => {
     assert.match(fn, /rlNpNoteHtml\(m, room, side, '', \{ \.\.\.\(ctx \|\| \{\}\), actsOnly: true \}\)/, 'the verbs are the drawer\'s own');
     assert.match(NV, /if \(ctx && ctx\.actsOnly\) return acts;/);
     assert.match(fnBody(NV, 'rlFaceNoteClause'), /i18t\('ng_fn_clause', \{ n: num \}\)/, '"clause 11"');
-    assert.match(NV, /closest\('\[data-rl-fn-clause\]'\);\s*if \(go\)\{ e\.preventDefault\(\); if \(typeof rlJumpToClause === 'function'\) rlJumpToClause\(/, 'the link goes to the clause on the paper');
+    /* RE-POINTED 19 Oct 2026 (LAND ON IT, main's rule): the link lands on the
+       clause through the one lander */
+    assert.match(NV, /closest\('\[data-rl-fn-clause\]'\);\s*if \(go\)\{ e\.preventDefault\(\); rlLandOnClause\(go\.getAttribute\('data-rl-fn-clause'\)\);/, 'the link goes to the clause on the paper');
     assert.match(fnBody(NV, 'negoAfterPaint'), /rlPaintNoteMarks[\s\S]*rlFaceNotesWire\(host, c, opts \|\| \{\}\)/, 'wired after every paint, the marks first');
   });
 });
@@ -308,12 +314,14 @@ describe('f756 (7) where Edit lands from a row, as drawn', () => {
     const keys = [...ctx.richBarHtml({ shelf: 'redline' }).matchAll(/data-rb="([^"]+)"/g)].map(m => m[1]);
     assert.deepEqual(keys, ['bold', 'italic', 'underline', 'insertUnorderedList', 'insertOrderedList', 'outdent', 'indent'], 'B I U • 1. ⇤ ⇥');
   });
-  test('7c the paper: the context line, this clause alone in its box with its step, the next one dimmed', () => {
+  test('7c the paper: the context line, this clause alone in its box with what it is, the next one dimmed', () => {
     const dress = fnBody(CE, 'ceRowPaperDress');
     assert.match(dress, /classList\.toggle\('ce-row-off', at >= 0 && i !== at && i !== at \+ 1\)/);
     assert.match(dress, /ctx\.textContent = ceRowContextLine\(\);/);
-    assert.match(dress, /_cet\(st\.counter \? 'ce_row_step_counter' : 'ce_row_step_draft', \{ n: st\.n \}\)/);
-    assert.match(fnBody(CE, 'ceRowStep'), /ladderRungs\(_ceC, String\(_ceClauseId\)\)/, 'the step is the ladder\'s next (RAW)');
+    /* RE-POINTED 19 Oct 2026 (main's rule, owner 18 Oct: nothing of the ladder
+       on the paper or in the editor): no step number, and only what is true */
+    assert.match(dress, /_cet\(ceRowIsCounter\(\) \? 'ce_row_is_counter' : 'ce_row_is_draft'\)/);
+    assert.ok(!/function ceRowStep\(/.test(CE), 'the ladder step reading is gone from the editor');
     assert.match(CE, /#clause-editor\.ce-rowmode #ce-doc \.ce-row-off\{display:none\}/);
     assert.match(CE, /#clause-editor\.ce-rowmode #ce-doc \.ce-row-next\{opacity:\.45\}/);
     assert.match(CE, /#clause-editor\.ce-rowmode #ce-doc \.ce-row-on #ce-clausebody\{border:1px solid var\(--accent-solid\)/);

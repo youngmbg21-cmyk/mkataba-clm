@@ -165,8 +165,14 @@ describe('f674 (5) notes open beside the paper since stage 5', () => {
     const w = strip(fnBody(PD, 'pdRedWire'));
     assert.match(w, /closest\('\[data-rl-notes\]'\)/);
     assert.match(w, /e\.stopPropagation\(\)/, 'the document\'s delegated door does not answer as well');
-    assert.match(w, /openChangeNoteDialog\(c, ch,/, 'the note\'s own window, on our seat');
-    assert.match(w, /openNotesPanel\(c\.id, id\)/, 'else the change\'s thread in the shell\'s drawer');
+    /* RE-POINTED 19 Oct 2026 (round 9's gaps, third pass, lane C2: "This
+       opens that change's notes" in the same panel, one room per side): the
+       count opens the head's notes view narrowed to its change, on the room
+       that holds them — not the note window nor the drawer over Jambo's panel */
+    assert.match(w, /rlFaceNotesSet\(c\.id, ch\.id\)/, 'the change\'s notes, in this panel');
+    assert.match(w, /rlNpSetRoom\(rlFaceNotesRoomFor\(c, ch, pdRedOpts\(c\)\)\)/, 'on the room that holds them');
+    assert.ok(!/openChangeNoteDialog/.test(w), 'not the note window');
+    assert.match(w, /openNotesPanel\(c\.id, id\)/, 'the drawer only where the change is not found');
     assert.ok(!/openRedlineWorkbench/.test(w), 'and never the Negotiate page');
   });
 });

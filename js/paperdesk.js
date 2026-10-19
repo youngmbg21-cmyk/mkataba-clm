@@ -772,8 +772,9 @@ function pdRedOpen(id){
 function pdRedLand(id){
   const phone = typeof window !== 'undefined' && window.innerWidth && window.innerWidth < 768;
   if (phone || typeof igWalk !== 'function') return false;
-  /* the face opens on its piles, never on the notes left open last time */
+  /* the face opens on its piles, never on the notes or a ladder left open last time */
   if (typeof rlFaceNotesSet === 'function') rlFaceNotesSet(null);
+  if (typeof rlFaceLadderSet === 'function') rlFaceLadderSet(null);
   return pdOpenOnHome(id, 'red');
 }
 /* another contract asked for puts the face away (igAnalyze), as Fill in's */
@@ -782,6 +783,7 @@ function pdRedAway(){ _pdRed = null; }
 function pdRedClose(){
   const id = _pdRed; _pdRed = null;
   if (typeof rlFaceNotesSet === 'function') rlFaceNotesSet(null);
+  if (typeof rlFaceLadderSet === 'function') rlFaceLadderSet(null);
   pdPresenceOff(id);
   pdRedPaper(id);
   if (typeof renderIntelDock === 'function') renderIntelDock();
@@ -795,17 +797,9 @@ function pdRedPaper(id, o){
   if (o && o.quiet) return;
   if (typeof igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){}
 }
-/* the face's own way out, at the end of the column's head: × back to the
-   conversation. OPEN NEGOTIATE WENT WITH THE PAGE (stage 5: the Negotiate
-   page folded into Home, the owner's yes to decision 1) — the notes, the
-   notices and the page's own menu are all beside the paper now. */
-function pdRedHeadEndHtml(c){
-  const close = _pdT('act_close');
-  /* siblings of the head's own parts: the sheet puts × at the end of the
-     first line; the break keeps the round's line under it */
-  return `<button type="button" class="pd-rf-x" data-pd-rf-close title="${_pdE(close)}" aria-label="${_pdE(close)}">×</button>`
-    + `<span class="pd-rf-br" aria-hidden="true"></span>`;
-}
+/* pdRedHeadEndHtml (the column head's ×) WENT (round 9's gaps, third pass):
+   ‹ Jambo in the panel's own row closes the face, as drawn; no caller was
+   left. data-pd-rf-close is STALE with it. */
 /* the Negotiate page's own options, this host's repaint and root */
 function pdRedOpts(c){
   const base = (typeof rlBenchOpts === 'function')
@@ -817,7 +811,10 @@ function pdRedOpts(c){
   /* …and nothing under the piles (round 9's gaps, 18 Oct 2026): the column
      ends with its settled fold, as drawn — the risk list is the clause
      editor's Risks tab and the glance's own row */
-  return Object.assign({}, base, { cpPanel: false, noProgress: true, noRisks: true });
+  /* …and no review banner over the head for what is out with a colleague:
+     the "Out for review" pile says it, with Remind and Cancel on its head
+     (waitingInPile, round 9's gaps, third pass) */
+  return Object.assign({}, base, { cpPanel: false, noProgress: true, noRisks: true, waitingInPile: true });
 }
 function pdRedFaceHtml(c){
   if (!c || typeof rlColumnHtml !== 'function') return '';
@@ -904,7 +901,7 @@ function pdRedFacePaint(c, top){
   const sc = host.querySelector('#nego-cards');
   if (sc && keep){ if (typeof rlRestoreScroll === 'function') rlRestoreScroll(sc, keep); else sc.scrollTop = keep; }
 }
-/* the face's own presses, bound once per host: × and a row's note count.
+/* the face's own presses, bound once per host: a row's note count.
    THE NOTE OPENS HERE (stage 5: the Negotiate page folded into Home) — the
    page's own press, done for this face's contract: on our seat the note's own
    window (openChangeNoteDialog), else the change's thread in the shell's
@@ -914,16 +911,24 @@ function pdRedWire(host){
   host.dataset.pdRfBound = '1';
   host.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
-    if (t.closest('[data-pd-rf-close]')){ e.preventDefault(); pdRedClose(); return; }
     const notes = t.closest('[data-rl-notes]');
     if (notes){
       e.preventDefault(); e.stopPropagation();
       const c = pdContract(); const id = notes.getAttribute('data-rl-notes');
       if (!c || !id) return;
       const ch = (typeof negoChangeById === 'function') ? negoChangeById(c, id) : null;
-      if (ch && typeof openChangeNoteDialog === 'function'){
-        const me = (typeof currentUser === 'function' && currentUser()) || null;
-        Promise.resolve(openChangeNoteDialog(c, ch, { author: (me && me.name) || undefined })).then(out => { if (out) pdRedRepaint(); });
+      /* A ROW'S "N notes" OPENS THAT CHANGE'S NOTES IN THIS PANEL (round 9's
+         gaps, third pass: "This opens that change's notes", one room per
+         side) — the head's own notes view, narrowed to the change, on the room
+         that holds them; pressed again on the same row, the piles come back */
+      if (ch && typeof rlFaceNotesSet === 'function'){
+        const again = typeof rlFaceNotesChange === 'function' && rlFaceNotesChange() === String(ch.id);
+        if (again) rlFaceNotesSet(null);
+        else {
+          if (typeof rlFaceNotesRoomFor === 'function' && typeof rlNpSetRoom === 'function') rlNpSetRoom(rlFaceNotesRoomFor(c, ch, pdRedOpts(c)));
+          rlFaceNotesSet(c.id, ch.id);
+        }
+        pdRedRepaint();
         return;
       }
       if (typeof openNotesPanel === 'function') openNotesPanel(c.id, id);
@@ -1045,13 +1050,31 @@ function pdSendOpen(id, node){
   if (typeof igSyncDockWidth === 'function') try { igSyncDockWidth(); } catch (_){}
   return true;
 }
+/* ---- THE LETTER WAITS (round 11's gaps, third pass, 19 Oct 2026: "Go to
+   clause 7 — the paper scrolls to clause 7 and lights it. The letter waits in
+   its desk tab and is one tab away") ----
+   "Go to clause N" on the stays card puts the letter page out of sight, NOT
+   away: the screen, what is typed in it and every choice stay as they were;
+   the paper comes up with the clause landed on; "Before you send" stays in the
+   panel and the card's own button reads "Back to the letter"; the bar's
+   Recent carries the letter as its first row ("Send · MK-0382"). Back brings
+   the page up again where it was. Cancel and Send are still its only ends. */
+function pdSendIsWaiting(){ return !!(_pdSend && _pdSend.waiting); }
+function pdSendWaitSet(on){
+  if (!_pdSend) return false;
+  _pdSend.waiting = !!on;
+  if (typeof shareLetterPagePlace === 'function') try { shareLetterPagePlace(); } catch (_){}
+  if (typeof renderIntelDock === 'function') renderIntelDock();
+  if (typeof deskBarPaint === 'function') try { deskBarPaint(); } catch (_){}
+  return true;
+}
 function pdSendClose(){
   if (!_pdSend) return;
   const n = _pdSend.node; _pdSend = null;
   if (n && n.parentNode) n.parentNode.removeChild(n);
   if (typeof renderIntelDock === 'function') renderIntelDock();
 }
-function pdSendFaceHtml(){ return `<div id="pd-send-slot" class="pd-send-slot" data-pd-send="${_pdE(pdSendFor() || '')}"></div>`; }
+function pdSendFaceHtml(){ return `<div id="pd-send-slot" class="pd-send-slot${pdSendIsWaiting() ? ' is-waiting' : ''}" data-pd-send="${_pdE(pdSendFor() || '')}"></div>`; }
 /* while the panel shows Jambo's own words the column waits in the panel,
    unseen, so every box and choice in it is still in the page for Send */
 function pdSendKeepHtml(){ return (pdSendHeld() && !pdSendShows()) ? `<div hidden data-pd-send-kept>${pdSendFaceHtml()}</div>` : ''; }
@@ -2309,9 +2332,9 @@ if (typeof document !== 'undefined' && !document._jbWired){
     return true; };
   if (!watch()) document.addEventListener('DOMContentLoaded', watch, { once: true });
 }
-Object.assign(window, { pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_FACE_WORD, pdFaceUp, pdFaceBackHtml, pdSendFor, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml,
+Object.assign(window, { pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_FACE_WORD, pdFaceUp, pdFaceBackHtml, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
-  pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedHeadEndHtml, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
+  pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,
   PD_FILL_TRIES, PD_FILL_BEAT_MS, pdFillFor, pdFillShows, pdFillOpen, pdFillSeen, pdFillAway, pdFillClose, pdFillHeadHtml, pdFillDoneHtml, pdFillFaceHtml, pdFillMark, pdFillGroupsPaint, pdFillRows, pdFillRowKey, pdFillFacePaint, pdFillCounts, pdFillKeyOf, pdFillEcho, pdFillWire, pdFillLand, pdFillRefresh,
   pdFillStreamMay, pdFillStreamHtml, pdFillStreamRepaint, pdFillStreamPick,

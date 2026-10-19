@@ -1139,7 +1139,7 @@ function clauseEditorCss(){
   #clause-editor.ce-rowmode #ce-doc .ce-row-next{opacity:.45}
   #clause-editor.ce-rowmode #ce-doc .rl-rung,#clause-editor.ce-rowmode #ce-doc .rl-paper-foot,#clause-editor.ce-rowmode #ce-readbar{display:none}
   #clause-editor .ce-row-ctx{margin:0 0 16px; font-size:var(--t-meta); line-height:1.4; color:var(--color-neutral-600)}
-  #clause-editor .ce-row-step{margin:2px 0 8px; font-size:var(--t-label); line-height:1.4; color:var(--color-neutral-600)}
+  #clause-editor .ce-row-is{margin:2px 0 8px; font-size:var(--t-label); line-height:1.4; color:var(--color-neutral-600)}
   #clause-editor.ce-rowmode #ce-doc .ce-row-on #ce-clausebody{border:1px solid var(--accent-solid); border-radius:var(--radius); padding:10px 12px}
   #clause-editor.ce-rowmode .ce-foot .draft,#clause-editor.ce-rowmode .ce-foot .undo{display:none}
   #clause-editor.ce-rowmode .ce-foot:not(:has(#ce-waiting > *)){display:none}
@@ -1148,6 +1148,22 @@ function clauseEditorCss(){
   ${''/* one row at every screen: the shelf keeps its line, the title gives way (ellipsis) */}
   #clause-editor.ce-rowmode .ce-bar{flex-wrap:nowrap; flex:none}
   #clause-editor.ce-rowmode .ce-barrow{flex-wrap:nowrap}
+  ${''/* ---- FROM A ROW THE HEAD BAR SPANS THE WINDOW (round 9's gaps, third
+         pass, as drawn) ----
+         ‹ Redlines, the title, the shelf and Exit run the whole width above
+         both columns, the rail's tabs sitting below the bar; Exit is the quiet
+         small outlined button at the far right, no icon. Only here: opened any
+         other way the strip keeps to the left column (the owner's own rule
+         for this page). The bar is lifted out of the column's flow onto the
+         grid (absolute, the grid is positioned) and both columns start under
+         it. */}
+  #clause-editor.ce-rowmode .ce-grid{padding-top:45px}
+  #clause-editor.ce-rowmode #ce-head{position:absolute; top:0; left:0; right:0; z-index:3}
+  #clause-editor.ce-rowmode #ce-head .ce-barrow{min-height:45px; height:45px; box-sizing:border-box}
+  #clause-editor.ce-rowmode .ce-exit{height:var(--ctl-h-sm); padding:0 var(--pad-ctl-x-sm); background:var(--color-surface);
+    border:1px solid var(--btn-edge); color:var(--color-text); font-size:var(--t-meta)}
+  #clause-editor.ce-rowmode .ce-exit:hover{border-color:var(--accent-ink); color:var(--accent-ink); background:var(--color-surface)}
+  #clause-editor.ce-rowmode .ce-exit > svg{display:none}
   #clause-editor .ce-row-asked,#clause-editor .ce-row-jb{background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg)}
   #clause-editor .ce-row-asked .q{margin:4px 0 0; font-size:var(--t-meta); line-height:1.5; font-style:italic; color:var(--color-text)}
   #clause-editor .ce-row-asked .by{font-style:italic; color:var(--color-neutral-600)}
@@ -3275,14 +3291,14 @@ function ceRowHeadPaint(){
     + `<span class="ce-rowtitle"><b>${_cee(ceRowTitle())}</b><span>${_cee(ceRowSub())}</span></span>`;
   if (host.innerHTML !== html) host.innerHTML = html;
 }
-/* the step this wording will be on the clause's ladder: the draft's own rung
-   where it is already filed, else the next one (RAW: ladderRungs) */
-function ceRowStep(){
-  let rungs = [];
-  try{ rungs = (window.ladderRungs && _ceC && _ceClauseId) ? ladderRungs(_ceC, String(_ceClauseId)) : []; }catch(_){ rungs = []; }
+/* WHAT THIS WORDING IS, under the clause's head: our counter on their ask,
+   else our draft. NO STEP NUMBER (owner, 18 Oct 2026: nothing of the ladder
+   on the paper or in the editor — main's rule wins over round 9's drawn
+   "Step 2 · …"; the row's Ladder verb says the steps), and only what is true:
+   nothing is filed until Save (round 9's gaps, third pass). ceRowStep STALE. */
+function ceRowIsCounter(){
   const mine = _ceLead && _ceLead.authorSide !== 'counterparty' && _ceLead.status === 'pending';
-  const at = mine ? rungs.find(r => String(r.id) === String(_ceLead.id)) : null;
-  return { n: at ? at.n : rungs.length + 1, counter: !mine && !!ceRowTheirs() };
+  return !mine && !!ceRowTheirs();
 }
 /* "Master services agreement · MK-0382 · Nordvik Logistik AB · round 2" */
 function ceRowContextLine(){
@@ -3291,8 +3307,8 @@ function ceRowContextLine(){
   const ref = window.contractRef ? contractRef(c) : (c.id || '');
   return _cet('ce_row_ctx', { name: c.name || '', ref, party: c.counterparty || '', n });
 }
-/* THE PAPER FROM A ROW: the context line, this clause in its box with its
-   step, the next clause dimmed; the rest of the paper is not drawn (CSS on
+/* THE PAPER FROM A ROW: the context line, this clause in its box with what
+   its wording is (no step), the next clause dimmed; the rest of the paper is not drawn (CSS on
    .ce-rowmode). Marks set after each paint of the paper. */
 function ceRowPaperDress(host){
   if (!host || !ceRowMode()) return;
@@ -3306,15 +3322,14 @@ function ceRowPaperDress(host){
   ctx.textContent = ceRowContextLine();
   const on = at >= 0 ? all[at] : null;
   if (on){
-    let lbl = on.querySelector('.ce-row-step');
+    let lbl = on.querySelector('.ce-row-is');
     if (!lbl){
-      lbl = document.createElement('div'); lbl.className = 'ce-row-step';
+      lbl = document.createElement('div'); lbl.className = 'ce-row-is';
       const top = on.querySelector('.rl-clause-top, .rl-clause-h, h4');
       const anchor = top ? (top.closest('.rl-clause-top') || top) : null;
       if (anchor && anchor.parentElement) anchor.parentElement.insertBefore(lbl, anchor.nextSibling); else on.insertBefore(lbl, on.firstChild);
     }
-    const st = ceRowStep();
-    lbl.textContent = _cet(st.counter ? 'ce_row_step_counter' : 'ce_row_step_draft', { n: st.n });
+    lbl.textContent = _cet(ceRowIsCounter() ? 'ce_row_is_counter' : 'ce_row_is_draft');
   }
 }
 /* THE RAIL'S CARDS FROM A ROW: what they asked (their reason, and who), and
@@ -3366,7 +3381,10 @@ function ceRowBack(){
   ceLeaveGuard(() => {
     const c = _ceC, id = _ceLead ? String(_ceLead.id) : '';
     rlCloseClauseEditor({ repaint: true });
+    /* back on the same row, landed on (LAND ON IT): the pair lit as before,
+       the row brought into view and lit through the one lander */
     if (c && id && window.rlLinkFocus) setTimeout(() => { try{ rlLinkFocus(c, id, 'card'); }catch(_){} }, 60);
+    if (id && window.rlLandOnRow) try{ rlLandOnRow(id, { delay: 80 }); }catch(_){}
   });
 }
 /* What size is the caret in? The stored size nearest the selection, falling
@@ -7604,7 +7622,7 @@ Object.assign(window, {
   ceEditableReading, ceGoClause,
   ceFitSplit, ceWireSplit, ceStacked, ceSplit, ceSplitLeft, CE_LEFT_MIN, CE_RIGHT_MIN, CE_FMIN, CE_FMAX, CE_SPLIT_KEY,
   ceLadderCardHtml, ceLadderLaneHtml, ceLadderRow,
-  ceRowMode, ceRowTheirs, ceRowTitle, ceRowSub, ceRowHeadPaint, ceRowStep, ceRowContextLine, ceRowPaperDress, ceRowCardsHtml, ceRowStdCard, ceRowAsks, ceRowBack, ceRowGo,
+  ceRowMode, ceRowTheirs, ceRowTitle, ceRowSub, ceRowHeadPaint, ceRowIsCounter, ceRowContextLine, ceRowPaperDress, ceRowCardsHtml, ceRowStdCard, ceRowAsks, ceRowBack, ceRowGo,
   ceMarksPaint, ceMarksClear, ceMarksOps, ceMarksMount, ceLiveTextNodes, ceCaretSave, ceCaretRestore, ceAtomSkip, ceAtomAt, ceDraftNow, CE_MARK_ATTR, CE_MARKS_MS, CE_PAINT_SEL,
   ceMarksPlanOf, ceMarksPaintBox, ceAtomWall, ceAtomSkipIn, ceInlineSeed, ceBoxHtml,
 });

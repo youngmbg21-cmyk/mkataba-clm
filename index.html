@@ -1758,7 +1758,13 @@
   [data-share-sap] .sh-lt-btnp{ margin:4px 0 14px; }
   [data-share-sap] .sh-lt-btn{ display:inline-flex; align-items:center; height:36px; padding:0 16px; border-radius:var(--radius); background:var(--accent-fill); color:#fff;
     font-size:var(--t-body); font-weight:var(--w-strong); }
-  [data-share-sap] .sh-lt-foot{ color:var(--color-neutral-600); font-size:var(--t-meta); }
+  [data-share-sap] .sh-lt-foot{ color:var(--color-neutral-600); font-size:var(--t-meta); margin-top:18px; }
+  /* the letter's checks as a card among the panel's cards (readinessPanelHtml, o.card): the list open, a block on a ruby edge with its tick */
+  [data-share-sap] .sh-lt-check .sh-lt-checkl, #pd-sendface .sh-lt-check .sh-lt-checkl{ margin:2px 0 0; padding-left:18px; font-size:var(--t-meta); line-height:1.55; color:var(--color-neutral-700); }
+  [data-share-sap] .sh-lt-check.is-block, #pd-sendface .sh-lt-check.is-block{ border-color:var(--st-ruby-line); }
+  [data-share-sap] .sh-lt-check.is-block h4, #pd-sendface .sh-lt-check.is-block h4{ color:var(--st-ruby-fg); }
+  #pd-sendface .sh-lt-check .sh-lt-check-also{ margin:8px 0 0; font-size:var(--t-label); color:var(--color-neutral-600); }
+  #pd-sendface .sh-lt-check .sh-lt-check-ack{ display:flex; align-items:flex-start; gap:7px; margin-top:8px; font-size:var(--t-meta); color:var(--st-ruby-fg); cursor:pointer; }
   [data-share-sap] #sh-letter.is-letter .sh-lt-note label{ display:inline-block; max-width:100%; vertical-align:top; padding:6px 10px 6px; border:1px dashed color-mix(in srgb, var(--accent-fill) 45%, var(--color-divider));
     border-radius:var(--radius); background:color-mix(in srgb, var(--accent-fill) 5%, var(--color-surface)); }
   [data-share-sap] #sh-letter.is-letter .sh-lt-note #sh-summary-label{ position:static; width:auto; height:auto; overflow:visible; clip:auto; margin:0 0 2px;
@@ -1791,6 +1797,9 @@
   #pd-sendface .sh-lt-card.is-stays{ border-color:var(--st-amber-line); }
   #pd-sendface .sh-lt-card.is-stays h4 .sh-lt-pause{ display:inline-block; width:8px; height:10px; margin-right:7px; border-left:3px solid var(--st-amber-fg); border-right:3px solid var(--st-amber-fg); box-sizing:border-box; }
   #pd-sendface .sh-lt-acts{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  /* Go to clause N, or — while the letter waits for it (pdSendWaitSet) — Back to the letter, in the same place */
+  [data-sh-lt-back], .pd-send-slot.is-waiting [data-sh-lt-goto]{ display:none; }
+  .pd-send-slot.is-waiting [data-sh-lt-back]{ display:inline-flex; }
   #pd-sendface #igd-feed:empty{ display:none; }
   /* ALERTS, AS DRAWN (SAP pop-ups, 10 Oct 2026): a contract under its group. */
   .al-grow{ display:flex; gap:10px; align-items:center; width:100%; padding:8px 2px; border:0; border-bottom:1px solid var(--color-divider);

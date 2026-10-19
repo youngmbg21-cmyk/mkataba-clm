@@ -422,11 +422,15 @@ function presenceRowHtml(c){
   const canWalk = typeof document !== 'undefined'
     && !!(document.getElementById('view-redline') || document.querySelector('.redline-page'))
     && typeof window.rlJumpToClause === 'function';
+  /* EACH PERSON KEEPS ONE TONE (round 9's gaps, third pass: "one colour per
+     person"): the house's own avatar reading (regAvatarTone), so a face reads
+     alike wherever a surface chooses to colour it — the Redlines head does */
+  const tone = r => (typeof window.regAvatarTone === 'function') ? window.regAvatarTone(r.name || r.id || '') : 0;
   const faceHtml = r => {
-    if (!canWalk) return `<span class="pz-face" title="${_pzE(r.name || '')}">${_pzE(presenceInitials(r.name))}</span>`;
+    if (!canWalk) return `<span class="pz-face pz-t-${tone(r)}" title="${_pzE(r.name || '')}">${_pzE(presenceInitials(r.name))}</span>`;
     const on = String(presenceFollowing() || '') === String(r.id);
     const t = on ? i18t('pz_following', { who: r.name || '' }) : i18t('pz_follow', { who: r.name || '' });
-    return `<button type="button" class="pz-face${on ? ' is-following' : ''}" data-pz-follow="${_pzE(r.id)}"
+    return `<button type="button" class="pz-face pz-t-${tone(r)}${on ? ' is-following' : ''}" data-pz-follow="${_pzE(r.id)}"
       aria-pressed="${on ? 'true' : 'false'}" title="${_pzE(t)}">${_pzE(presenceInitials(r.name))}</button>`;
   };
   return `<span class="pz-row" data-pz-here="${here.length}" title="${_pzE(say + (all ? ' — ' + all : ''))}" aria-label="${_pzE(say)}">${

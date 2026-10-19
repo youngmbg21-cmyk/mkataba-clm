@@ -161,9 +161,19 @@ describe('f310 (1) — the send pop-up is laid out as the owner drew it', () => 
     const block = parse(m.win.readinessPanelHtml(contract(), { fold: true }));
     assert.ok(!block.querySelector('details'), 'a block never folds');
     assert.ok(block.querySelector('#sh-ack'), 'it carries the tick that lets the send through, in the open');
-    /* and the real dialog is drawn with the fold asked for */
+    /* and the real dialog is drawn with the fold asked for — RE-POINTED 19 Oct
+       2026 (round 11's gaps, third pass, lane C2): the letter's checks stand in
+       Jambo's panel as a card among its cards (o.card): the list open, a block
+       first with its tick (sh-ack) */
     assert.match(strip(CORE.slice(CORE.indexOf('async function openShareModal'), CORE.indexOf('function reshareNotSentModal'))),
-      /readinessPanelHtml\(c, \{ fold:true \}\)/);
+      /readinessPanelHtml\(c, \{ fold:true, card:true \}\)/);
+    m.win.contractReadiness = () => [{ severity: 'warn', label: 'No effective date is recorded.' }];
+    const card = parse(m.win.readinessPanelHtml(contract(), { fold: true, card: true }));
+    assert.ok(card.querySelector('#share-readiness.sh-lt-card'), 'a card, with the id the send reads');
+    assert.ok(!card.querySelector('details'), 'the list open, no fold');
+    m.win.contractReadiness = () => [{ severity: 'block', label: 'Nobody is named to sign.' }];
+    assert.ok(parse(m.win.readinessPanelHtml(contract(), { fold: true, card: true })).querySelector('#share-readiness.is-block #sh-ack'),
+      'a block keeps its tick on the card');
   });
 
   test('email off is one line with the way forward', () => {

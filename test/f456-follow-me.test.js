@@ -176,7 +176,9 @@ describe('f456 (4) — one at a time, per sitting, and the way out is the way in
 describe('f456 (5) — the face is the control, and there is NO BAND', () => {
   test('each face is a real button, lit while it is the one being followed', () => {
     const fn = MOD.slice(MOD.indexOf('const faceHtml ='), MOD.indexOf('return `<span class="pz-row"'));
-    assert.match(fn, /<button type="button" class="pz-face\$\{on \? ' is-following' : ''\}"/);
+    /* RE-POINTED 19 Oct 2026 (round 9's gaps, third pass, lane C2): each face
+       carries its person's one tone (pz-t-N, the house's avatar reading) */
+    assert.match(fn, /<button type="button" class="pz-face pz-t-\$\{tone\(r\)\}\$\{on \? ' is-following' : ''\}"/);
     assert.match(fn, /aria-pressed="\$\{on \? 'true' : 'false'\}"/,
       'a toggle says which way it is set, or a keyboard reader cannot tell');
     assert.match(fn, /data-pz-follow="/);
@@ -210,7 +212,7 @@ describe('f456 (5) — the face is the control, and there is NO BAND', () => {
     assert.match(fn, /getElementById\('view-redline'\) \|\| document\.querySelector\('\.redline-page'\)/,
       'the walk needs the negotiate page\'s paper');
     assert.match(fn, /typeof window\.rlJumpToClause === 'function'/);
-    assert.match(fn, /if \(!canWalk\) return `<span class="pz-face"/,
+    assert.match(fn, /if \(!canWalk\) return `<span class="pz-face pz-t-/,
       'on the Document tab a button would quietly do nothing — the dead-button '
       + 'fault this codebase names in four other places. Presence is drawn '
       + 'everywhere; Follow me is offered where it works');

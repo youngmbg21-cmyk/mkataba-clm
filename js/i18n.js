@@ -3706,6 +3706,11 @@ const STRINGS = {
     ng_inline_finish_first: 'Save or discard the clause you are typing in first.',
     ng_discard: 'Discard',
     ng_discard_last: 'Discard last',
+    ng_discard_done: 'Your draft on {clause} is discarded.',
+    ng_discard_done_rev: 'Your unsent version of {clause} is discarded; what you sent stands again.',
+    ng_discard_undo: 'Undo',
+    ng_discard_undo_late: 'Something has changed since, so this can no longer be undone.',
+    ng_discard_undone: 'The draft is back.',
     ng_base_plain: 'Plain text on clause {n}',
     ng_base_plain_theirs: 'The unmarked words in clause {n} are',
     ng_base_eq_agreed: 'the agreed wording',
@@ -4111,6 +4116,9 @@ const STRINGS = {
     ce_row_ctx: '{name} \u00b7 {ref} \u00b7 {party} \u00b7 round {n}',
     ce_row_step_counter: 'Step {n} \u00b7 your counter \u00b7 saved as you type, not sent',
     ce_row_step_draft: 'Step {n} \u00b7 your draft \u00b7 saved as you type, not sent',
+    /* third pass: no step number (nothing of the ladder in the editor) and only what is true; ce_row_step_* inert */
+    ce_row_is_counter: 'Your counter \u00b7 nothing is filed until you save',
+    ce_row_is_draft: 'Your draft \u00b7 nothing is filed until you save',
     ce_row_asked_h: 'What they asked',
     ce_row_asked_none: 'No reason was given.',
     ce_row_std_h: 'Our standard for the {topic}',
@@ -4413,6 +4421,7 @@ const STRINGS = {
     ng_fn_clause_title: 'Show this clause on the paper',
     ng_fn_ph: 'Write to {room}\u2026 type @ to name someone',
     ng_fn_post: 'Post',
+    ng_fn_all: 'All notes',
     ng_fn_someone: 'Someone',
     ng_fn_notes_on: 'Notes \u2014 press again to go back to the redlines',
     ng_band_drafts: 'Your drafts, not yet sent',
@@ -4424,6 +4433,7 @@ const STRINGS = {
     ng_band_withdrawn: 'Withdrawn',
     ng_band_answered: 'Your answers, not yet sent',
     ng_band_with_named: 'With {who}',
+    ng_pile_remind_who: 'Remind {who}',
     ng_edit_clause_title: 'Change the wording of this clause',
     /* STALE 2 Sep 2026 — the Decided pile is retired (owner-asked: "Remove
        decided so there are four piles"). Nothing could ever land in it: a
@@ -4912,6 +4922,7 @@ const STRINGS = {
     sh_lt_remind: 'Remind {who}',
     sh_lt_goto: 'Go to clause {n}',
     sh_lt_goto_it: 'Go to it',
+    sh_lt_back_letter: 'Back to the letter',
     sh_lt_change: 'Change',
     sh_lt_note_lbl: 'Your note \u00b7 type here',
     sh_lt_send_to: 'Send to {who}',
@@ -17830,6 +17841,7 @@ const STRINGS = {
     dk_tabs_label: 'Pages on your desk',   // inert since the SAP way (18 Oct 2026): no tab row
     dk_put_away: 'Take {what} off Recent',
     dk_send_tab: 'Send \u00b7 {ref}',
+    dk_kind_letter: 'Letter, not sent',
     dk_more: '+{n} more',                  // inert since the SAP way
     // ---- HOME, RECENT AND BACK IN THE BAR (the owner picked "The SAP way", 18 Oct 2026) ----
     dk_back: 'Back',
@@ -21390,6 +21402,11 @@ const STRINGS = {
     ng_inline_finish_first: 'Spara eller kasta klausulen du skriver i först.',
     ng_discard: 'Kasta',
     ng_discard_last: 'Kasta senaste',
+    ng_discard_done: 'Ditt utkast på {clause} är kastat.',
+    ng_discard_done_rev: 'Din osända version av {clause} är kastad; det du skickade gäller igen.',
+    ng_discard_undo: 'Ångra',
+    ng_discard_undo_late: 'Något har ändrats sedan dess, så det kan inte ångras längre.',
+    ng_discard_undone: 'Utkastet är tillbaka.',
     ng_base_plain: 'Vanlig text i klausul {n}',
     ng_base_plain_theirs: 'De omarkerade orden i klausul {n} är',
     ng_base_eq_agreed: 'den överenskomna lydelsen',
@@ -21766,6 +21783,9 @@ const STRINGS = {
     ce_row_ctx: '{name} \u00b7 {ref} \u00b7 {party} \u00b7 runda {n}',
     ce_row_step_counter: 'Steg {n} \u00b7 ditt motförslag \u00b7 sparas medan du skriver, inte skickat',
     ce_row_step_draft: 'Steg {n} \u00b7 ditt utkast \u00b7 sparas medan du skriver, inte skickat',
+    /* tredje varvet: inget stegnummer (ingenting av stegen i redigeraren) och bara det som är sant */
+    ce_row_is_counter: 'Ditt motförslag \u00b7 inget arkiveras förrän du sparar',
+    ce_row_is_draft: 'Ditt utkast \u00b7 inget arkiveras förrän du sparar',
     ce_row_asked_h: 'Vad de bad om',
     ce_row_asked_none: 'Inget skäl angavs.',
     ce_row_std_h: 'Vår standard för {topic}',
@@ -22013,6 +22033,7 @@ const STRINGS = {
     ng_fn_clause_title: 'Visa klausulen på papperet',
     ng_fn_ph: 'Skriv till {room}\u2026 skriv @ för att nämna någon',
     ng_fn_post: 'Skicka',
+    ng_fn_all: 'Alla anteckningar',
     ng_fn_someone: 'Någon',
     ng_fn_notes_on: 'Anteckningar \u2014 tryck igen för att gå tillbaka till markeringarna',
     ng_band_drafts: 'Era utkast, ännu inte skickade',
@@ -22024,6 +22045,7 @@ const STRINGS = {
     ng_band_withdrawn: 'Tillbakadragna',
     ng_band_answered: 'Era svar, ännu inte skickade',
     ng_band_with_named: 'Hos {who}',
+    ng_pile_remind_who: 'Påminn {who}',
     ng_edit_clause_title: 'Ändra lydelsen i den här klausulen',
     /* STALE 2 Sep 2026 — see the note beside the English key. */
     ng_band_decided: 'Avgjorda',
@@ -22438,6 +22460,7 @@ const STRINGS = {
     sh_lt_remind: 'Påminn {who}',
     sh_lt_goto: 'Gå till klausul {n}',
     sh_lt_goto_it: 'Gå dit',
+    sh_lt_back_letter: 'Tillbaka till brevet',
     sh_lt_change: 'Ändra',
     sh_lt_note_lbl: 'Din anteckning \u00b7 skriv här',
     sh_lt_send_to: 'Skicka till {who}',
@@ -34819,6 +34842,7 @@ const STRINGS = {
     dk_tabs_label: 'Sidor på ditt skrivbord',   // vilande sedan SAP-sättet (18 okt 2026)
     dk_put_away: 'Ta bort {what} från Senaste',
     dk_send_tab: 'Skicka \u00b7 {ref}',
+    dk_kind_letter: 'Brev, inte skickat',
     dk_more: '+{n} till',                       // vilande sedan SAP-sättet
     dk_back: 'Tillbaka',
     dk_back_none: 'Inget att gå tillbaka till än',
