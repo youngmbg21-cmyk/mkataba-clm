@@ -85,8 +85,13 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
       reads.bulk.every(([, m]) => m === null) && reads.theirs.every(([, m]) => m === 'import'), JSON.stringify(reads));
     const cards0 = await page.evaluate(() => document.querySelectorAll('#igd-feed [data-ca-menu]').length);
     await ask('I want to upload a pdf');
+    /* RE-POINTED 19 Oct 2026 (Jambo as a tab you flip to, and back; the owner: "you land on the page and
+       if you want to chat with jambo it takes you to a new jambo tab but you can go back to the landing side
+       panel"): the landing's own cards are not in the conversation view, so the count is of the cards the
+       answer drew — none in the conversation — never the landing's less the conversation's */
     const up = await page.evaluate(n => { const m = intel.history[intel.history.length - 1] || {};
-      return { cards: document.querySelectorAll('#igd-feed [data-ca-menu]').length - n, act: m.act ? { kind: m.act.kind, place: m.act.place } : null }; }, cards0);
+      const talk = document.querySelector('#igd-feed.igd-talk');
+      return { cards: talk ? talk.querySelectorAll('[data-ca-menu]').length : Math.max(0, document.querySelectorAll('#igd-feed [data-ca-menu]').length - n), act: m.act ? { kind: m.act.kind, place: m.act.place } : null }; }, cards0);
     ok('2h typed beside the paper, "I want to upload a pdf" goes to the upload, no PDF card', up.cards === 0 && !!up.act && up.act.kind === 'go' && up.act.place === 'upload', JSON.stringify(up));
     /* RE-POINTED 18 Oct 2026 (LAND ON IT, the owner's rule): the upload lands on
        Jambo's drop area on the Contracts place, lit — the paper is left — so the
