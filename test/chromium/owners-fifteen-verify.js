@@ -147,7 +147,10 @@ const check = (name, pass, detail) => {
     const none = await shown();
     check('4a "hide the names": no contract\'s name or number and no group card is drawn — only the bubbles', before.tags.length + before.nums.length > 0 && before.cards.length > 0
       && none.tags.length === 0 && none.nums.length === 0 && none.cards.length === 0, JSON.stringify({ before: [before.tags.length, before.nums.length, before.cards.length], after: [none.tags.length, none.nums.length, none.cards.length] }));
-    check('4b and the head line says so', await page.evaluate(() => /names hidden/i.test((document.getElementById('ig-note') || {}).textContent || '')));
+    /* RE-POINTED 19 Oct 2026 (owner, "Drop the extra words"): the head line no longer
+       reads the recipe back — Jambo's answer says it, and the line keeps Undo */
+    const said4 = await page.evaluate(() => ({ said: String((intel.history[intel.history.length - 1] || {}).text || ''), note: (document.getElementById('ig-note') || {}).textContent || '', recipe: igRecipeSays() }));
+    check('4b and Jambo\'s answer says so, the recipe holds it, and the head line offers Undo', /name/i.test(said4.said) && said4.recipe.some(x => /names hidden/i.test(x)) && /\bUndo\b/.test(said4.note), JSON.stringify({ said: said4.said.slice(0, 120), recipe: said4.recipe }));
     await page.screenshot({ path: path.join(OUT, '4-names-hidden.png') });
     await askMap('show the names again');
     await page.waitForTimeout(400);

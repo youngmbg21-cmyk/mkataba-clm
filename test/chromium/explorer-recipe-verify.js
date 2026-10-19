@@ -70,7 +70,10 @@ const check = (name, pass, detail) => {
     await ask('divide the floors by payment terms');
     const f1 = await until(() => intel.cam.w[2] > 0.95 && IG.floors ? { floorsBy: intel.floorsBy, floors: IG.floors.map(f => f.label), note: document.getElementById('ig-note').textContent.replace(/\s+/g, ' ').trim(), said: intel.history[intel.history.length - 1].text } : null);
     check('1a "divide the floors by payment terms" makes the floors the payment-terms bands, in order, on the Floors view', !!f1 && f1.floorsBy === 'payterms' && f1.floors[0] === '0–30 days' && f1.floors.includes('No payment terms') && f1.floors[f1.floors.length - 1] === 'No payment terms', JSON.stringify(f1 && f1.floors));
-    check('1b the head line reads the recipe back, and the answer says what was done', !!f1 && /floors by payment terms/.test(f1.note) && /Floors by payment terms/.test(f1.said), f1 && f1.note);
+    /* RE-POINTED 19 Oct 2026 (owner, "Drop the extra words"): the head line no
+       longer reads the recipe back; the answer says what was done, and the line
+       keeps the way back (Undo) and Save view */
+    check('1b the answer says what was done, and the head line offers Undo and Save view without the recipe\'s words', !!f1 && /Floors by payment terms/.test(f1.said) && /\bUndo\b/.test(f1.note) && /Save view/.test(f1.note) && !/floors by payment terms/.test(f1.note.replace(/Payment terms/g, '')), f1 && f1.note);
     check('1c and it spent nothing: no Copilot call was made for it', !!f1 && !/Jambo error|needs an API key/.test(f1.said));
     await page.screenshot({ path: path.join(OUT, '1-floors-by-payment-terms.png') });
 
