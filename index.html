@@ -10568,6 +10568,28 @@
   .ig-fd-in:focus-visible{outline:2px solid var(--accent-solid);outline-offset:0}
   .ig-fd select{max-width:100%}
   .ig-fd-pinform{border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:10px 12px}
+  /* the Guide (owner picked "On this view", 19 Oct 2026): the view in front, its rows, every view's rows, the other views */
+  .ig-gd{display:flex;flex-direction:column;gap:12px;padding:12px 14px 16px;font-size:13px;line-height:1.4;color:var(--color-text)}
+  .ig-gd-here{display:flex;flex-direction:column;gap:2px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:10px 12px}
+  .ig-gd-hn{font-weight:var(--w-strong,600)}
+  .ig-gd-hw,.ig-gd-q,.ig-gd-others span{font-size:12px;opacity:.75}
+  .ig-gd-h{margin:2px 0 -6px;font-size:11px;font-weight:var(--w-label,500);letter-spacing:.06em;text-transform:uppercase;opacity:.75}
+  .ig-gd-rows{display:flex;flex-direction:column;gap:2px}
+  .ig-gd-row{all:unset;box-sizing:border-box;width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 8px;border-radius:var(--radius);cursor:pointer}
+  .ig-gd-row:hover{background:var(--color-accent-50)}
+  .ig-gd-row:focus-visible{outline:2px solid var(--accent-solid);outline-offset:-2px}
+  .ig-gd-row:disabled{cursor:default;opacity:.55}
+  .ig-gd-row:disabled:hover{background:none}
+  .ig-gd-row.is-on{cursor:default}
+  .ig-gd-row.is-on:hover{background:none}
+  .ig-gd-rt{display:flex;flex-direction:column;gap:1px;min-width:0}
+  .ig-gd-go{font-size:12px;font-weight:var(--w-label,500);color:var(--accent-ink);white-space:nowrap}
+  .ig-gd-row.is-on .ig-gd-go{color:var(--st-green-fg,var(--accent-ink))}
+  .ig-gd-others{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .ig-gd-others button{all:unset;box-sizing:border-box;display:flex;flex-direction:column;gap:1px;border:1px solid var(--color-divider);border-radius:var(--radius);padding:6px 9px;cursor:pointer;min-width:0}
+  .ig-gd-others button:hover{border-color:var(--accent-solid)}
+  .ig-gd-others button:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
+  .ig-gd-others b{font-size:12.5px;font-weight:var(--w-strong,600);color:var(--accent-ink)}
   .ig-brain .ig-floor-door:hover{border-color:#F2B24C}
   .ig-brain .ig-floor-door:focus-visible{outline:2px solid #F2B24C;outline-offset:1px}
   #ig-page.hb-light .ig-brain .ig-floor-door{background:rgba(255,255,255,.86);border-color:rgba(14,95,88,.22);color:var(--hb-ink)}
