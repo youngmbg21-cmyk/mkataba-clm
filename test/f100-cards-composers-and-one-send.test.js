@@ -928,8 +928,8 @@ describe('F100g — a card\'s Send sends that card, and only that card', () => {
     win.promptDialog = async () => '';
     win.openAI = () => {}; win.aiPush = () => {}; win.renderAIFeed = () => {};
     win.copilotAvailable = () => false;
-    const post = { reshared: 0, modals: 0 };
-    win.openShareModal = () => { post.modals++; };
+    const post = { reshared: 0, modals: 0, shareOpts: null };
+    win.openShareModal = (_c, o) => { post.modals++; post.shareOpts = o || null; };
     win.counterpartyContact = () => ({ name: 'Erik', email: 'erik@kabras.co.ke', channel: 'email' });
     win.reshareToLastRecipient = async () => { post.reshared++; return { delivered: true }; };
     win.cachedShares = () => [];
@@ -1076,12 +1076,19 @@ describe('F100g — a card\'s Send sends that card, and only that card', () => {
     await p.settle();
     p.again();
     /* The band's "Send all N" is a [data-redline-proxy] door — a batch door —
-       so pressing it must clear the hold and send what was kept back. */
+       so pressing it must clear the hold and send what was kept back.
+       RE-POINTED 18 Oct 2026 (round 11's gaps, "The letter": every way to send
+       opens the one send screen): the batch door now releases the hold and
+       OPENS THE LETTER; the round goes when the letter's own Send reports it
+       sent (its onSent, called here as the screen calls it). */
     p.$('.rl-unsent-go').dispatchEvent(new p.win.Event('click', { bubbles: true }));
     await p.settle();
-    p.again();
-    assert.equal(p.post.reshared, 2, 'a second round went');
+    assert.equal(p.post.modals, 1, 'the batch door opened the letter');
     assert.equal(p.win.negoHeldBackIds(p.c).length, 0, 'nothing is held any more');
+    assert.ok(p.post.shareOpts && typeof p.post.shareOpts.onSent === 'function', 'the letter hands the turn over when it has sent');
+    p.post.shareOpts.onSent({ emailSent: true });
+    await p.settle();
+    p.again();
     assert.equal(p.win.negoUnsentAsks(p.c, 'owner').length, 0, 'nothing reads unsent');
     assert.equal(standsAt(p, b), 'with', 'the once-held draft has gone');
   });

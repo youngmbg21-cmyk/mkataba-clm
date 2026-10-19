@@ -7715,6 +7715,7 @@ function renderIntelDock(){
              hbHeadWord), nothing where it holds his own words */}
       ${(()=>{ const w=(typeof window.pdHeadWord==='function')?pdHeadWord():''; return w?`<span class="igd-head-w" title="${igEsc(w)}">${igEsc(w)}</span>`:''; })()||(()=>{ const w=(typeof window.hbHeadWord==='function')?hbHeadWord():''; return w?`<span class="igd-head-w" title="${igEsc(w)}">${igEsc(w)}</span>`:''; })()}
       <span class="flex-1"></span>
+      ${''/* ‹ JAMBO AT THE ROW'S END WHILE A FACE IS UP (rounds 8–11 as drawn): the face tab's way back, beside the fold */}${(typeof window.pdFaceBackHtml==='function')?pdFaceBackHtml():''}
       ${(()=>{ const b=(typeof copilotBrainInfo==='function')?copilotBrainInfo():{live:true};
         return b.live?'':`<span title="${igEsc(b.hint||'')}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">○ ${igEsc(i18t('int_basic_mode'))}</span>`; })()}
       ${intel.history.length&&!(window.pdShowsDesk&&pdShowsDesk())&&!(window.naSheetUp&&naSheetUp())?`<button id="igd-history-clear" title="${i18t('int_clear_conversation')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon" aria-label="${i18t('int_clear_conversation')}">${icon('trash','w-3.5 h-3.5')}</button>`:''}
@@ -7729,7 +7730,11 @@ function renderIntelDock(){
         </span>`).join('')}
       <button id="igd-clear" class="text-[10.5px] font-600 text-brand-600 hover:text-brand-800 ml-auto">${i18t('int_clear_all')}</button>
     </div>`:''}
-    ${(window.pdShowsDesk&&pdShowsDesk())?`<div id="pd-body" class="pd-body flex-1 min-h-0 overflow-y-auto scroll-thin" role="tabpanel">${pdBodyHtml(pdContract())}</div><div id="igd-feed" hidden></div>`
+    ${''/* BEFORE YOU SEND (round 11's gaps): the send screen's own column, held
+           by the face while the letter is a page on the desk; Jambo's answers
+           under it */}
+    ${(window.pdSendShows&&pdSendShows())?`<div id="pd-sendface" class="pd-sendface flex-1 min-h-0 overflow-y-auto scroll-thin">${pdSendFaceHtml()}<div id="igd-feed" class="px-3.5 pb-3 space-y-3">${msgs}${typing}</div></div>`
+    :(window.pdShowsDesk&&pdShowsDesk())?`<div id="pd-body" class="pd-body flex-1 min-h-0 overflow-y-auto scroll-thin" role="tabpanel">${pdBodyHtml(pdContract())}</div><div id="igd-feed" hidden></div>`
     /* THE FILL IN FACE (the one-page Home plan, stage 2): where the
        conversation stands, the box and the chips kept at the foot */
     :(window.pdFillShows&&pdFillShows())?`<div id="pd-fillface" class="pd-fillface flex-1 min-h-0 overflow-y-auto scroll-thin">${pdFillFaceHtml(pdContract())}</div><div id="igd-feed" hidden></div>`
@@ -7805,12 +7810,17 @@ function renderIntelDock(){
       <button id="igd-go" class="ui-btn ui-btn-sm ui-btn-primary absolute" style="right:6px;bottom:8px">${i18t('int_ask')}</button>
       </div>
       ${typeof window.jamboHintHtml==='function'?jamboHintHtml({ places:igHintKeys() }):''}
-    </div>`}`;
+    </div>`}${''/* the letter's "Before you send" column waits here unseen while
+           ‹ Jambo has turned the panel to Jambo (round 11's gaps, second pass) */}${(window.pdSendKeepHtml&&pdSendKeepHtml())||''}`;
   /* THE NEWEST WORDS IN VIEW — or, with no conversation yet, the TOP: what
      he draws above it (Needs you here, the glance, the Board's greeting) is
      read from its first line, never scrolled past (round 3 as drawn: Needs
      you is the first card, 18 Oct 2026) */
   const feed=document.getElementById('igd-feed'); feed.scrollTop=intel.history.length?feed.scrollHeight:0;
+  /* NO CHIPS UNDER A FACE (rounds 8–11 as drawn, the gaps of 18 Oct 2026): the
+     face carries its own acts, so the panel says a face is up and the chips row
+     stands down by that scope (#ig-dock.pd-face-up) — Jambo perches on the box */
+  dock.classList.toggle('pd-face-up',!!(window.pdFaceUp&&pdFaceUp()));
   /* JAMBO, ALIVE (owner, 16 Oct 2026): he takes his seat on the chips row again */
   if(typeof window.jamboPerchMount==='function') try{ jamboPerchMount(dock); }catch(_){ }
   /* a contract number in an answer is a link to it (caRefLinkPaint) */
@@ -7820,6 +7830,7 @@ function renderIntelDock(){
   /* THE DOCUMENT TAB IS THE CLAUSE LIST (10 Oct 2026): its host is drawn
      empty and filled by the Document tab's own painter. */
   if(window.pdShowsDesk&&pdShowsDesk()&&window.pdTab&&pdTab()==='doc'&&typeof window.docThreadPaint==='function'){ const pc=pdContract(); if(pc) try{ docThreadPaint(pc); }catch(_){ } }
+  if(document.getElementById('pd-send-slot')&&typeof window.pdSendFacePaint==='function') try{ pdSendFacePaint(); }catch(_){ }
   /* the Fill in face's parts, from their own painters (stage 2) */
   if(document.getElementById('pd-fillface')&&typeof window.pdFillFacePaint==='function'){ const pc=pdContract(); if(pc) try{ pdFillFacePaint(pc); }catch(_){ } }
   /* the Redlines face, wired by the Negotiate page's own wiring (stage 3) */
@@ -8220,6 +8231,10 @@ function igAskPlaceholder(){
   if(window.naSheetUp&&naSheetUp()) return i18t('na_ask_ph');
   /* what the panel holds says what the box asks (rounds 13, 7 and 12) */
   if(window.state&&state.view==='dashboard'&&!igPaperUp()&&typeof window.pdAskPlaceholder==='function'){ const h=pdAskPlaceholder(); if(h) return h; }
+  /* BESIDE THE REDLINES FACE THE BOX ASKS AS DRAWN (round 9's gaps, 18 Oct
+     2026): "Ask for a number, a list or a contract…" — the Board's own words;
+     the letter's Before you send and every other face keep "Ask about MK-…" */
+  if(window.pdRedShows&&pdRedShows()&&!(window.pdSendShows&&pdSendShows())) return i18t('hb_ask_ph');
   const c=igPaperUp()?getContract(intel.paper.id):null;
   if(!c && state.view==='dashboard' && typeof window.hbPlaceholder==='function'){ const h=hbPlaceholder(); if(h) return h; }
   return c?i18t('int_ask_contract',{ref:(window.contractRef?contractRef(c):c.id)}):i18t('int_ask_portfolio');

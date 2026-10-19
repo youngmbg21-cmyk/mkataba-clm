@@ -90,9 +90,12 @@ function answer(body){
       await page.waitForTimeout(500);
     };
     /* RE-POINTED 14 Oct 2026 (stage 5): on Home the review door is a row of
-       the paper line's ⋯ menu, so the menu's own button is what glows */
+       the paper line's ⋯ menu, so the menu's own button is what glows.
+       RE-POINTED 18 Oct 2026 (round 9's gaps, "Piles" as drawn): the Redlines
+       column's head carries "Ask for review" ([data-rl-review-go]), and that
+       is the review door that glows on the face */
     const look = () => page.evaluate(() => {
-      const glows = [...document.querySelectorAll('.rl-glow')].map(b => b.getAttribute('data-nego-accept') ? 'accept' : b.getAttribute('data-nego-reject') ? 'reject' : b.hasAttribute('data-rl-cp-editor-change') ? 'counter' : (b.hasAttribute('data-rl-review') || b.hasAttribute('data-ig-review') || b.getAttribute('data-pd-tab') === 'menu') ? 'review' : 'other');
+      const glows = [...document.querySelectorAll('.rl-glow')].map(b => b.getAttribute('data-nego-accept') ? 'accept' : b.getAttribute('data-nego-reject') ? 'reject' : b.hasAttribute('data-rl-cp-editor-change') ? 'counter' : (b.hasAttribute('data-rl-review') || b.hasAttribute('data-rl-review-go') || b.hasAttribute('data-ig-review') || b.getAttribute('data-pd-tab') === 'menu') ? 'review' : 'other');
       const g = document.querySelector('.rl-glow'); let top = null;
       if (g){ g.scrollIntoView({ block: 'center' }); const r = g.getBoundingClientRect(); const t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); top = !!t && (t === g || g.contains(t)); }
       const sec = document.querySelector('.rl-sug'); const box = document.querySelector('.rl-sug-box');

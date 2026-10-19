@@ -180,7 +180,8 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     /* RE-POINTED 14 Oct 2026 (stage 5): section 4 left Before you sign open
        beside Home's paper (the signing copy); "home" is Home's Document, its
        working copy, so the face's own × puts it away first */
-    await page.evaluate(() => { const x = document.querySelector('#pd-signface [data-pd-sf-close]'); if (x) x.click(); });
+    /* RE-POINTED 18 Oct 2026 (the gaps of rounds 8–11 as drawn): the face's way back is ‹ Jambo in the panel's row */
+    await page.evaluate(() => { const x = document.querySelector('#ig-dock [data-pd-back="signing"]'); if (x) x.click(); });
     await until(page, () => !document.querySelector('#pd-signface'), null, 5000);
     await page.evaluate(id => { setView('dashboard'); igAnalyze(id); }, id); await page.waitForTimeout(1500); placed.home = await PLACE();
     /* RE-POINTED 14 Oct 2026 (stage 5): "Negotiate" is the PAGE's own paper,
@@ -207,7 +208,8 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
        stay in the same location as you press to expand as opposed to chasing
        the button"): on Home's paper, two presses of + widen the sheet and the
        + under the pointer does not move */
-    await page.evaluate(() => { const x = document.querySelector('#pd-signface [data-pd-sf-close]'); if (x) x.click(); });
+    /* RE-POINTED 18 Oct 2026 (the gaps of rounds 8–11 as drawn): the face's way back is ‹ Jambo in the panel's row */
+    await page.evaluate(() => { const x = document.querySelector('#ig-dock [data-pd-back="signing"]'); if (x) x.click(); });
     await until(page, () => !document.querySelector('#pd-signface'), null, 5000);
     await page.setViewportSize({ width: 1536, height: 730 });
     await page.evaluate(id => { rlSetDocZoom(80); setView('dashboard'); igAnalyze(id); }, id); await page.waitForTimeout(1500);

@@ -303,9 +303,16 @@ describe('f453 (7) — it is said where the reader is, by one builder', () => {
   test('the presses are delegated, so they work on both surfaces', () => {
     const h = bare(VIEW.slice(VIEW.indexOf("const sgA = t.closest('[data-dk-adopt]')"),
       VIEW.indexOf("const lad = t.closest('[data-rl-ladder]')")));
-    assert.match(h, /rlLadderContract\(\)/,
+    /* RE-POINTED (rounds 9 and 11, "Piles"): the press asks rlPressContract —
+       the Redlines face beside Home's paper names its own contract
+       (data-pd-rf), the Negotiate page falls back to rlLadderContract() —
+       still read at the press, never closed over. */
+    assert.match(h, /rlPressContract\(sgA \|\| sgR\)/,
       'the contract is fetched at the press, never closed over — a listener '
       + 'armed at module load would act on whatever was open when the page drew');
+    const pc = bare(VIEW.slice(VIEW.indexOf('function rlPressContract'), VIEW.indexOf('function rlLadderContract')));
+    assert.match(pc, /closest\('\[data-pd-rf\]'\)/, 'the face it was pressed in names the contract');
+    assert.match(pc, /return rlLadderContract\(\);/, 'else the page\'s own, asked at the press');
     assert.match(h, /deskAdoptSuggestion\(cc, id\)/);
     assert.match(h, /deskReturnSuggestion\(cc, id, why\)/);
     assert.match(h, /promptDialog\(/, 'the reason is asked for, not assumed');

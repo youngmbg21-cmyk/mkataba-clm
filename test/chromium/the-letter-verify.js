@@ -10,8 +10,9 @@
      2 every choice redraws it: the purpose moves the subject and the
        invitation; Word attaches a file; WhatsApp has no subject; a copied
        link sends nothing
-     3 what is typed is what is quoted: the name in the first line, the note
-       under "Message from …" (dim while empty)
+     3 what is typed is what is quoted: the name in the first line ("Hello
+       Anna,"), the note as the email's own paragraph under it (re-pointed 18
+       Oct 2026 to the letter as drawn: no "Message from …" heading)
      4 SENT, IT IS THE SAME EMAIL: the provider receives the subject and the
        words the screen showed, with their real link where the mark stood
      5 "Before you send" beside it: Jambo's line, what they never see,
@@ -65,7 +66,7 @@ const NOTE = 'We can meet you at 45 days on payment.';
     const READ = () => { const L = document.getElementById('sh-letter'); if (!L) return null;
       const t = id => { const e = document.getElementById(id); return e ? e.textContent.replace(/\s+/g, ' ').trim() : null; };
       const rows = [...L.querySelectorAll('.sh-lt-row')].filter(r => r.getClientRects().length).map(r => r.querySelector('.sh-lt-k').textContent.trim());
-      const ps = sel => [...L.querySelectorAll(sel + ' .sh-lt-p')].map(p => (p.querySelector('[data-sh-lt-link]') ? '{LINK}' : p.textContent.trim()));
+      const ps = sel => [...L.querySelectorAll(sel + ' .sh-lt-p')].map(p => (p.querySelector('[data-sh-lt-link]') ? '{LINK}' : p.querySelector('[data-sh-lt-btn]') ? { btn: p.textContent.trim() } : p.textContent.trim()));
       const mh = document.getElementById('sh-lt-msghead');
       return { rows, from: t('sh-lt-from'), subject: document.getElementById('sh-lt-subj-row').classList.contains('hidden') ? null : t('sh-lt-subject'),
         before: ps('#sh-lt-before'), after: ps('#sh-lt-after'), mh: mh && !mh.classList.contains('hidden') ? { t: mh.textContent, off: mh.classList.contains('is-off') } : null,
@@ -84,25 +85,32 @@ const NOTE = 'We can meet you at 45 days on payment.';
     const R1 = await page.evaluate(READ);
     check('1a the letter\'s head: From, To, Subject, Sent as', R1 && JSON.stringify(R1.rows) === JSON.stringify(['From', 'To', 'Subject', 'Sent as']), JSON.stringify(R1 && R1.rows));
     check('1b the two boxes are its To row, the purpose and the channel its "Sent as", the note a box in its words', R1 && R1.toIn && R1.asIn && R1.noteIn, JSON.stringify(R1 && { to: R1.toIn, as: R1.asIn, note: R1.noteIn }));
-    check('1c From names the sender and the workspace', R1 && R1.from && R1.from.startsWith(me.name + ' at ') && /sent through HaTi$/.test(R1.from), R1 && R1.from);
+    /* RE-POINTED 18 Oct 2026 (round 11's gaps, "The letter" as drawn: "Maria
+       Lindgren, Lindqvist & Co AB · sent by HaTi"; the email "Hello Anna,", the
+       note in its dashed box under it, "Round N of the …" and "Open round N") */
+    check('1c From names the sender and the workspace', R1 && R1.from && R1.from.startsWith(me.name + ', ') && / · sent by HaTi$/.test(R1.from), R1 && R1.from);
 
     /* 3 typed is quoted */
     await page.fill('#sh-name', 'Anna Holm'); await page.fill('#sh-email', 'anna.holm@nordvik.example');
     const R2a = await page.evaluate(READ);
-    check('3a an empty note sends nothing, so its heading is dim', R2a && R2a.mh && R2a.mh.off && /^Message from /.test(R2a.mh.t), JSON.stringify(R2a && R2a.mh));
+    const lbl = await page.evaluate(() => ((document.getElementById('sh-summary-label') || {}).textContent || '').trim());
+    check('3a the note is the email\'s own paragraph: a box under "Hello", no "Message from" heading', R2a && !R2a.mh && lbl === 'Your note · type here', JSON.stringify({ mh: R2a && R2a.mh, lbl }));
     await page.fill('#sh-summary', NOTE);
     const R2 = await page.evaluate(READ);
-    check('3b the name is in the first line, as the email writes it', R2 && /with you for review, Anna Holm\.$/.test(R2.before[0] || ''), JSON.stringify(R2 && R2.before));
-    check('3c with a note the heading over it lights', R2 && R2.mh && !R2.mh.off && R2.mh.t === `Message from ${me.name}:`, JSON.stringify(R2 && R2.mh));
+    check('3b the name is in the first line, as the email writes it', R2 && R2.before[0] === 'Hello Anna,', JSON.stringify(R2 && R2.before));
+    check('3c with a note there is still no heading over it, and Send names her', R2 && !R2.mh
+      && await page.evaluate(() => (document.getElementById('share-send') || {}).textContent.trim() === 'Send to Anna'), JSON.stringify(R2 && R2.mh));
     check('3d Jambo says it is word for word, and the note is the only part written', R2 && /This is the email Anna will get, word for word\. Your note is the only part you write\./.test(R2.jsay || ''), R2 && R2.jsay);
 
     /* 2 every choice redraws it */
     await press('[data-share-purpose="negotiate"]');
     const RN = await page.evaluate(READ);
-    check('2a Negotiate: the subject and the invitation say negotiate', RN && /sent you "Master services agreement" to negotiate$/.test(RN.subject || '') && RN.after.some(p => /^Open the link to work through the proposed changes/.test(p)), JSON.stringify(RN && { s: RN.subject, a: RN.after }));
+    check('2a Negotiate: the subject and the button say the round, the promise says negotiate', RN && /^Round 1 of the Master services agreement, from /.test(RN.subject || '')
+      && RN.after.some(p => p && p.btn === 'Open round 1') && RN.after.some(p => /^You can propose changes on your own page\. Nothing can be signed on this link\./.test(p)), JSON.stringify(RN && { s: RN.subject, a: RN.after }));
     await press('[data-share-purpose="view"]');
     const RV = await page.evaluate(READ);
-    check('2b View: the review subject and its invitation', RV && /shared "Master services agreement" for your review$/.test(RV.subject || '') && RV.after.some(p => /^Open the contract to review it/.test(p)), JSON.stringify(RV && RV.subject));
+    check('2b View: the subject and the promise say read', RV && /^The Master services agreement, from /.test(RV.subject || '')
+      && RV.after.some(p => /^You can read it on your own page, and nothing else can be done on this link\./.test(p)), JSON.stringify(RV && { s: RV.subject, a: RV.after }));
     const hasWord = await press('[data-share-ch="word"]');
     if (hasWord) {
       const RW = await page.evaluate(READ);
@@ -124,7 +132,8 @@ const NOTE = 'We can meet you at 45 days on payment.';
       return { head: (side.querySelector('.sh-lt-jb') || {}).textContent, cards, histOff: !!(hist && hist.disabled && hist.title), status: !!(st && !st.disabled),
         beside: b.left >= a.right - 1 && b.top < a.bottom }; });
     check('5a "Before you send" stands beside the letter', S && /Before you send/.test(S.head || '') && S.beside, JSON.stringify(S));
-    check('5b what they never see, and something else to send', S && S.cards.includes('What Nordvik Logistik AB never sees') && S.cards.includes('Something else to send?'), JSON.stringify(S && S.cards));
+    /* RE-POINTED 18 Oct 2026: "What Anna never sees", by the name typed (round 11 as drawn) */
+    check('5b what they never see, and something else to send', S && S.cards.includes('What Anna never sees') && S.cards.includes('Something else to send?'), JSON.stringify(S && S.cards));
     check('5c nothing proposed yet: the history greys with its reason; the Where we are page is offered', S && S.histOff && S.status, JSON.stringify(S));
 
     /* 4 sent, the same email */
@@ -133,12 +142,11 @@ const NOTE = 'We can meet you at 45 days on payment.';
     await press('#share-send');
     const got = await (async () => { const t0 = Date.now(); while (Date.now() - t0 < 10000) { if (h.mail.sent.length) return h.mail.sent[h.mail.sent.length - 1]; await page.waitForTimeout(150); } return null; })();
     const link = got && (/(https?:\/\/\S+)/.exec(got.text) || [])[1];
-    const expect = shown && shown.mh && link && (() => {
+    const expect = shown && link && (() => {
       /* the server's joins (js/sharemail.js): a blank line between parts, the
-         note under its heading, the link under the invitation */
-      const after = []; for (let i = 0; i < shown.after.length; i++){ const p = shown.after[i];
-        if (shown.after[i + 1] === '{LINK}'){ after.push(`${p}\n${link}`); i++; } else after.push(p); }
-      return [shown.before.join('\n\n'), `${shown.mh.t}\n${NOTE}`, ...after].join('\n\n'); })();
+         note as its own paragraph, the real link under the button's words */
+      const after = []; for (const p of shown.after) after.push(p && p.btn ? `${p.btn}:\n${link}` : p);
+      return [shown.before.join('\n\n'), NOTE, ...after].join('\n\n'); })();
     check('4a the provider received the subject the letter showed', got && shown && got.subject === shown.subject, JSON.stringify({ got: got && got.subject, shown: shown && shown.subject }));
     check('4b and its words, word for word, their real link where the mark stood', got && !!link && got.text === expect, JSON.stringify({ got: got && got.text, expect }));
     await page.evaluate(() => { try { closeModal(); } catch (_) {} });

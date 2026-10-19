@@ -196,7 +196,12 @@ describe('f676 (5) the Negotiate page folds into Home', () => {
   });
   test('5c the page\'s notices and its review door ride the face', () => {
     assert.match(strip(fnBody(PD, 'pdRedFaceHtml')), /rlFloatingNoticesHtml\(c, o\)/);
-    assert.doesNotMatch(strip(fnBody(PD, 'pdRedHeadEndHtml')), /data-pd-rf-nego/, 'no way to the page it folded into');
+    /* RE-POINTED 19 Oct 2026 (round 9's gaps, third pass, lane C2): the
+       column head's × builder (pdRedHeadEndHtml) went with its last caller —
+       ‹ Jambo in the panel's row closes the face — so the face's options are
+       asked: no head end, no way to the page it folded into */
+    assert.ok(!/function pdRedHeadEndHtml\(/.test(PD), 'the stale head-end builder is gone');
+    assert.doesNotMatch(strip(fnBody(PD, 'pdRedOpts')), /headEnd|data-pd-rf-nego/, 'no way to the page it folded into');
     assert.match(strip(HOME), /openRedlineWorkbench\(c\.id, \{ face: true \}\)/, 'a review lands on the face too');
     /* the page's Ask for review and Home's ⋯ row are one door */
     assert.match(strip(NEGO), /rlReviewDoor\(c, \(\) => renderRedline\(\)\)/);
@@ -320,7 +325,10 @@ describe('f676 (10) what the Negotiate page did, the Redlines face does too (fou
   test('10a Jambo\'s answer glows on the face: the page\'s after-paint is published, and the review door glows on the menu', () => {
     assert.match(NEGO, /Object\.assign\(window, \{ negoAfterPaint, negoTurnBannerHtml,/);
     /* RE-POINTED 15 Oct 2026: the ⋯ went; the Menu tab's review row, or the tab itself while it is shut, glows */
-    assert.match(NEGO, /escalate: \(\) => '\[data-rl-review\], #pd-body \.pd-menu \[data-ig-review\], #ig-dock \[data-pd-tab="menu"\]'/);
+    /* RE-POINTED 18 Oct 2026 (round 9's gaps, "Piles" as drawn): the Redlines
+       column's own head carries "Ask for review" ([data-rl-review-go]) — on
+       the face that is the review door that glows; the menu rows stay */
+    assert.match(NEGO, /escalate: \(\) => '\[data-rl-review\], \[data-rl-review-go\]:not\(:disabled\), #pd-body \.pd-menu \[data-ig-review\], #ig-dock \[data-pd-tab="menu"\]'/);
   });
   test('10b the live probe and the presence beat run for the face', () => {
     assert.match(strip(fnBody(NEGO, 'rlLiveHere')), /pdRedShows\(\)/);

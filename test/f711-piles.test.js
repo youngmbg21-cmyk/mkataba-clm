@@ -33,16 +33,24 @@ function stage(){
     window: {}, Date, isFinite };
   ctx.window.negoReasonOf = ch => ch.why || '';
   ctx.negoReasonOf = ctx.window.negoReasonOf;
+  /* the reader, for "You" on their own row (round 9's gaps, 18 Oct 2026) */
+  ctx.window.currentUser = () => ({ name: 'Maria Lindgren' });
+  ctx.rlOnTheirPage = () => false;
   vm.createContext(ctx);
-  vm.runInContext(['rlAgoWords', 'rlRowByHtml', 'rlRowWhyHtml'].map(n => fnBody(NV, n)).join('\n'), ctx);
+  vm.runInContext(['rlAgoWords', 'rlRowIsMine', 'rlRowByHtml', 'rlRowWhyHtml'].map(n => fnBody(NV, n)).join('\n'), ctx);
   return ctx;
 }
 describe('f711 (1) the row', () => {
   test('1a who and when, the reference on the hover', () => {
     const ctx = stage();
     const now = new Date().toISOString();
-    const h = ctx.rlRowByHtml({ id: 'CHG-001', author: 'Anna Holm', createdAt: now }, n => n.split(' ')[0] + ' ' + n.split(' ')[1][0] + '.');
-    assert.equal(h, '<span class="rl-card-by" title="Anna Holm · CHG-001">Anna H. · rl_ago_today</span>');
+    /* RE-POINTED 18 Oct 2026 (round 9's gaps, "Piles" as drawn: "Anna Holm ·
+       4 days ago", "You · today"): the whole name, and "You" on the reader's
+       own row; a shortener passed in is no longer applied. */
+    const h = ctx.rlRowByHtml({ id: 'CHG-001', author: 'Anna Holm', createdAt: now, authorSide: 'counterparty' }, n => n.split(' ')[0] + ' ' + n.split(' ')[1][0] + '.');
+    assert.equal(h, '<span class="rl-card-by" title="Anna Holm · CHG-001">Anna Holm · rl_ago_today</span>');
+    assert.equal(ctx.rlRowByHtml({ id: 'CHG-002', author: 'Maria Lindgren', createdAt: now, authorSide: 'owner' }),
+      '<span class="rl-card-by" title="Maria Lindgren · CHG-002">ng_row_you · rl_ago_today</span>');
     const d3 = new Date(Date.now() - 3 * 86400000).toISOString();
     assert.equal(ctx.rlAgoWords(d3), 'rl_ago_days:3');
     assert.equal(ctx.rlAgoWords(new Date(Date.now() - 86400000).toISOString()), 'rl_ago_yesterday');
@@ -55,8 +63,12 @@ describe('f711 (1) the row', () => {
   });
   test('1c the row draws both; the reason rides with the change line, above the buttons', () => {
     assert.match(NV, /who \? `<span class="rl-card-id">\$\{_ne\(ch\.id\)\}<\/span>\$\{rlRowByHtml\(ch, _short\)\}` : ''/);
-    /* RE-POINTED 18 Oct 2026: a half-undone counter's lines (f733) ride in the same block */
-    assert.match(NV, /const why = rlRowWhyHtml\(ch\), keeps = rlRowKeepsHtml\(c, ch, side\);\s*return \(why \|\| keeps\) \? `<div class="rl-card-sumw">\$\{sub\}\$\{why\}\$\{keeps\}<\/div>` : sub;/);
+    /* RE-POINTED 18 Oct 2026 (round 9's gaps): the change line is the changed
+       words where the change carries its ops (rlRowLineHtml), and a held
+       clause's lock line rides with the reason, still above the buttons;
+       RE-POINTED 18 Oct 2026: a half-undone counter's lines (f733) ride in
+       the same block */
+    assert.match(NV, /const why = rlRowWhyHtml\(ch\), keeps = rlRowKeepsHtml\(c, ch, side\), lock = rlRowLockHtml\(c, ch, side\), line = rlRowLineHtml\(ch, sub, fromRiskRow\);\s*return \(why \|\| keeps \|\| lock\) \? `<div class="rl-card-sumw">\$\{line\}\$\{why\}\$\{keeps\}\$\{lock\}<\/div>` : line;/);
     assert.match(CSS, /\.redline-page \.rl-card-d \.rl-card-id\{display:none\}/);
     assert.match(CSS, /\.redline-page \.rl-card-d \.rl-card-sumw\{grid-column:1 \/ -1;grid-row:2;min-width:0\}/);
   });

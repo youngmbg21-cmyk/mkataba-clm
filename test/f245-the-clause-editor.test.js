@@ -1920,9 +1920,15 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
     /* RE-POINTED 6 Oct 2026: the panel's dropdown picking a risk is a door
        out of a draft too (a clause pick goes through ceGoClause's own). */
     /* RE-POINTED 18 Oct 2026 (Jambo, the same on every page): a page's name
-       typed in Jambo's box leaves through the guard too — the seventh door. */
-    assert.equal((CODE.match(/ceLeaveGuard\(/g) || []).length, 8,
-      'seven callers and the declaration \u2014 no eighth door written past it');
+       typed in Jambo's box leaves through the guard too — the seventh door.
+       RE-POINTED 18 Oct 2026 (round 9's gaps, second pass — "where Edit
+       lands" from a Redlines row): two more doors out of a draft, and both
+       ask — "‹ Redlines" (ceRowBack) and the walk over their asks on to
+       another ask (ceRowGo). */
+    assert.equal((CODE.match(/ceLeaveGuard\(/g) || []).length, 10,
+      'nine callers and the declaration \u2014 no tenth door written past it');
+    assert.match(CODE, /function ceRowBack\(\)\{\s*ceLeaveGuard\(\(\) => \{/, '‹ Redlines asks first');
+    assert.match(CODE, /function ceRowGo\(a\)\{[\s\S]{0,1200}?ceLeaveGuard\(\(\) => \{/, 'the walk to another ask asks first');
     assert.match(CODE, /closest\('#pt-nego #rl-side button[\s\S]{0,300}?ceLeaveGuard\(\(\) => \{ ceForgetUnfiled\(\);/,
       'their column\'s press is the fifth, and it asks');
     assert.match(CODE, /case 'ladder-accept': \{[\s\S]{0,400}?ceLeaveGuard\(/,

@@ -120,7 +120,10 @@ describe('F178 — the share dialog arrives once, at its final size', () => {
     assert.match(fn, /const oneScreenHtml=\(pre, o=\{\}\)=>/, 'one builder for the one screen');
     /* 64rem since round 11 (the owner picked "The letter", 17 Oct 2026): the
        letter and "Before you send" stand side by side. */
-    assert.match(fn, /openModal\(oneScreenHtml\(_noPre, \{ opening:true \}\), \{ maxWidth:'64rem' \}\)/,
+    /* RE-POINTED 18 Oct 2026 (round 11's gaps, "The letter" as drawn): on
+       Home beside Jambo's panel the same frame becomes the desk's page, and
+       its onClose gives the panel's face back */
+    assert.match(fn, /openModal\(oneScreenHtml\(_noPre, \{ opening:true \}\), \{ maxWidth:'64rem', onClose:_onDesk\?\(\)=>shareLetterPageOff\(c\):null \}\)/,
       'the first frame IS the one screen, at the width the settled dialog keeps');
     assert.match(fn, /shareFillModal\(oneScreenHtml\(pre\)\)/, 'and the fill draws the same builder with the prefill');
     assert.match(fn, /shareKindStepHtml\(c, purposeSel, \{ hidden:true \}\)/, 'the kind question is folded from the first frame');
@@ -156,7 +159,10 @@ describe('F178 — the share dialog arrives once, at its final size', () => {
        survive the fill. */
     assert.match(CORE, /pending\.purpose = seg\.getAttribute\('data-share-purpose'\)/, 'a purpose press is held');
     assert.match(CORE, /pending\.other = true/, 'so is the quiet door');
-    assert.match(CORE, /if \(_pending\.other && !_pending\.next\) step\('kind'\);/, 'and replayed');
+    /* RE-POINTED (round 11's gaps, second pass): on the letter the history
+       press turns the letter into the history's in place (setKind), elsewhere
+       it opens the kind step as before — replayed either way */
+    assert.match(CORE, /if \(_pending\.other && !_pending\.next\)\{ if\(document\.getElementById\('sh-lt-else'\)\) setKind\('history'\); else step\('kind'\); \}/, 'and replayed');
     assert.match(CORE, /const _held=\{ 'sh-name':fval\('sh-name'\)/, 'what was typed into the first frame is read before the fill');
   });
 

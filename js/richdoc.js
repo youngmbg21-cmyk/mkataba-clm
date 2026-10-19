@@ -1066,8 +1066,20 @@ const _rbA = s => String(s == null ? '' : s)
 const richMarkDefault = kind => kind === 'hl'
   ? 'hati-hl-' + RICH_MARK_HLS[0] : 'hati-ink-' + RICH_MARK_INKS[0];
 
+/* THE DRAWN SHELF FROM A REDLINES ROW (round 9's gaps, second pass: "B I U •
+   1. ⇤ ⇥"): the same buttons, fewer of them, in the drawing's order */
+const RICH_BAR_REDLINE = ['bold', 'italic', 'underline', '|', 'insertUnorderedList', 'insertOrderedList', '|', 'outdent', 'indent'];
 function richBarHtml(opts){
   const o = opts || {};
+  if (o.shelf === 'redline'){
+    const cls = o.cls || 'rb';
+    return RICH_BAR_REDLINE.map(k => {
+      if (k === '|') return `<span class="${cls}-sep"></span>`;
+      const it = RICH_BAR_TOOLS.find(x => x.k === k); if (!it) return '';
+      const tip = _rbA(_rbT(it.tip));
+      return `<button type="button" class="${cls}-btn" data-rb="${it.k}" title="${tip}" aria-label="${tip}" tabindex="-1">${it.glyph || RICH_BAR_ICON[it.icon] || ''}</button>`;
+    }).join('');
+  }
   const full = o.shelf !== 'compact';
   const size = Number(o.size) || 14;
   const cls = o.cls || 'rb';
@@ -1397,7 +1409,7 @@ function richSizeAt(node, fallback){
 }
 
 Object.assign(window,{RICH_TAGS,
-  RICH_BAR_TOOLS,RICH_BAR_ICON,RICH_SHAPE_KEYS,richBarHtml,richBarPress,richBarShape,richMarkSelection,richUnmark,
+  RICH_BAR_TOOLS,RICH_BAR_REDLINE,RICH_BAR_ICON,RICH_SHAPE_KEYS,richBarHtml,richBarPress,richBarShape,richMarkSelection,richUnmark,
   richSizeAt,richMarkDefault,RICH_ATTRS,RICH_FIELD_CLASS,RICH_DROP,RICH_MAP,RICH_BLOCKS,RICH_BLOCKISH,
   RICH_MARK_INKS,RICH_MARK_HLS,RICH_SIZES,RICH_MARK_CLASSES,richSpanClassOk,
   RICH_CLAUSE_ATTR,RICH_CLAUSE_ID_RE,

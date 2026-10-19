@@ -209,10 +209,12 @@ const FACE = () => {
       done.left === 0 && done.line && done.next.some(t => t === 'Send to Parcelway ApS'), JSON.stringify(done));
     await page.screenshot({ path: path.join(OUT, '6-all-in.png') });
 
-    /* ===== 7. × AND THE WORD ===== */
-    await page.click('#pd-fillface [data-pd-ff-close]');
+    /* ===== 7. ‹ JAMBO AND THE WORD ===== */
+    /* RE-POINTED 18 Oct 2026 (the gaps of rounds 8–11 as drawn): the face's head
+       draws no × — its way back is "‹ Jambo" at the end of the panel's own row */
+    await page.click('#ig-dock [data-pd-back="fill"]');
     const closed = await page.evaluate(() => ({ face: !!document.getElementById('pd-fillface'), feed: !!(document.getElementById('igd-feed') && !document.getElementById('igd-feed').hidden), box: !!document.getElementById('igd-input') }));
-    check('7a × goes back to the conversation; the box stays', !closed.face && closed.feed && closed.box, JSON.stringify(closed));
+    check('7a ‹ Jambo goes back to the conversation; the box stays', !closed.face && closed.feed && closed.box, JSON.stringify(closed));
     await page.evaluate(() => intelAsk('fill in'));
     check('7b "fill in" opens the face again', await waitFor(page, () => !!document.getElementById('pd-fillface'), 4000));
 

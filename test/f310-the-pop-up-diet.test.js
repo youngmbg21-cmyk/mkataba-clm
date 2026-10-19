@@ -81,11 +81,17 @@ describe('f310 (1) — the send pop-up is laid out as the owner drew it', () => 
   test('who, then how it goes, then the note, then the checks, then what travels, then Send', async () => {
     const { win } = buildWorld();
     const m = await openShare(await negotiated(win));
-    const order = ['#sh-email', '#share-purpose-wrap', '#share-tabs', '#sh-link-opts', '#sh-summary', '#share-readiness', '#share-manifest-line', '#share-send']
+    /* RE-POINTED 18 Oct 2026 (round 11's gaps, second pass: "Nothing under
+       the letter. Everything about before you send is in Jambo's panel beside
+       it"): the checks stand in the "Before you send" column, not between the
+       note and what travels. */
+    const order = ['#sh-email', '#share-purpose-wrap', '#share-tabs', '#sh-link-opts', '#sh-summary', '#share-manifest-line', '#share-send']
       .map(s => [s, m.$(s)]);
     for (const [s, el] of order) assert.ok(el, s + ' is drawn');
     for (let i = 1; i < order.length; i++)
       assert.ok(before(order[i - 1][1], order[i][1]), `${order[i - 1][0]} comes before ${order[i][0]}`);
+    assert.ok(m.$('#share-readiness'), '#share-readiness is drawn');
+    assert.ok(m.$('#sh-lt-checks').contains(m.$('#share-readiness')), 'the checks stand beside the letter');
   });
 
   test('ONE note box, under the recipient, and it is the one the send reads', async () => {
@@ -95,7 +101,10 @@ describe('f310 (1) — the send pop-up is laid out as the owner drew it', () => 
     assert.equal(boxes.length, 1, 'two boxes for one sentence were one too many');
     assert.equal(boxes[0].id, 'sh-summary');
     assert.ok(!m.$('#sh-msg'), 'the "Personal message" box is gone');
-    assert.match(m.$('#sh-summary-label').textContent, /^Note to Nordfrakt Logistik AB \(optional\)$/);
+    /* RE-POINTED 18 Oct 2026 (round 11's gaps, "The letter" as drawn): the one
+       box sits in the email where the note goes, under the drawing's own label
+       on its dashed edge. Still one box, still the one the send reads. */
+    assert.match(m.$('#sh-summary-label').textContent, /^Your note · type here$/);
     const send = strip(CORE.slice(CORE.indexOf('async function openShareModal')));
     assert.match(send, /fval\('sh-summary'\)/, 'the send still reads the one box');
   });
@@ -152,9 +161,19 @@ describe('f310 (1) — the send pop-up is laid out as the owner drew it', () => 
     const block = parse(m.win.readinessPanelHtml(contract(), { fold: true }));
     assert.ok(!block.querySelector('details'), 'a block never folds');
     assert.ok(block.querySelector('#sh-ack'), 'it carries the tick that lets the send through, in the open');
-    /* and the real dialog is drawn with the fold asked for */
+    /* and the real dialog is drawn with the fold asked for — RE-POINTED 19 Oct
+       2026 (round 11's gaps, third pass, lane C2): the letter's checks stand in
+       Jambo's panel as a card among its cards (o.card): the list open, a block
+       first with its tick (sh-ack) */
     assert.match(strip(CORE.slice(CORE.indexOf('async function openShareModal'), CORE.indexOf('function reshareNotSentModal'))),
-      /readinessPanelHtml\(c, \{ fold:true \}\)/);
+      /readinessPanelHtml\(c, \{ fold:true, card:true \}\)/);
+    m.win.contractReadiness = () => [{ severity: 'warn', label: 'No effective date is recorded.' }];
+    const card = parse(m.win.readinessPanelHtml(contract(), { fold: true, card: true }));
+    assert.ok(card.querySelector('#share-readiness.sh-lt-card'), 'a card, with the id the send reads');
+    assert.ok(!card.querySelector('details'), 'the list open, no fold');
+    m.win.contractReadiness = () => [{ severity: 'block', label: 'Nobody is named to sign.' }];
+    assert.ok(parse(m.win.readinessPanelHtml(contract(), { fold: true, card: true })).querySelector('#share-readiness.is-block #sh-ack'),
+      'a block keeps its tick on the card');
   });
 
   test('email off is one line with the way forward', () => {

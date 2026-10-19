@@ -62,7 +62,7 @@ function pdOnPaper(){
   try { return typeof igHomePaperFace === 'function' && igHomePaperFace() === true && !!pdContract(); } catch (_){ return false; }
 }
 /* the panel shows a contract tab (not Copilot's conversation) */
-function pdShowsDesk(){ return pdOnPaper() && _pdTab !== 'copilot'; }
+function pdShowsDesk(){ return pdOnPaper() && _pdTab !== 'copilot' && !pdSendShows(); }
 function pdContract(){
   const p = (typeof intel === 'object' && intel) ? intel.paper : null;
   return p && typeof getContract === 'function' ? getContract(p.id) : null;
@@ -472,9 +472,11 @@ function pdFillHeadHtml(c){
   const done = d.all - d.left;
   const pct = d.all ? Math.round(done * 100 / d.all) : 100;
   const close = _pdT('act_close');
-  return `<div class="pd-ff-r">${pdBackHtml('fill')}<h3>${_pdE(_pdT('pd_ff_title'))}</h3><span data-pd-ff-pill>${
-      d.left ? pdPill('warn', _pdTn('det_left_n', d.left, { n: d.left })) : pdPill('ok', _pdT('pd_ff_all_in'))}</span>
-      <button type="button" class="pd-ff-x" data-pd-ff-close title="${_pdE(close)}" aria-label="${_pdE(close)}">×</button></div>
+  /* ‹ Jambo and × left this head for the panel's own row (the face tab,
+     pdFaceTabHtml — rounds 8–11 as drawn); `close` stays for its hover */
+  void close;
+  return `<div class="pd-ff-r"><h3>${_pdE(_pdT('pd_ff_title'))}</h3><span data-pd-ff-pill>${
+      d.left ? pdPill('warn', _pdTn('det_left_n', d.left, { n: d.left })) : pdPill('ok', _pdT('pd_ff_all_in'))}</span></div>
     <div class="det-bar" aria-hidden="true"><i data-pd-ff-bar style="width:${pct}%"></i></div>
     <span class="pd-ff-n" data-pd-ff-count>${_pdE(_pdT('det_n_of_m', { done, all: d.all }))} · ${_pdE(_pdT('pd_ff_saved'))}</span>${pdFillPrivateHtml(c)}`;
 }
@@ -1064,6 +1066,9 @@ function pdRedOpen(id){
 function pdRedLand(id){
   const phone = typeof window !== 'undefined' && window.innerWidth && window.innerWidth < 768;
   if (phone || typeof igWalk !== 'function') return false;
+  /* the face opens on its piles, never on the notes or a ladder left open last time */
+  if (typeof rlFaceNotesSet === 'function') rlFaceNotesSet(null);
+  if (typeof rlFaceLadderSet === 'function') rlFaceLadderSet(null);
   return pdOpenOnHome(id, 'red');
 }
 /* another contract asked for puts the face away (igAnalyze), as Fill in's */
@@ -1071,6 +1076,8 @@ function pdRedSeen(id){ if (_pdRed && String(id) !== _pdRed) _pdRed = null; }
 function pdRedAway(){ _pdRed = null; }
 function pdRedClose(){
   const id = _pdRed; _pdRed = null;
+  if (typeof rlFaceNotesSet === 'function') rlFaceNotesSet(null);
+  if (typeof rlFaceLadderSet === 'function') rlFaceLadderSet(null);
   pdPresenceOff(id);
   pdRedPaper(id);
   if (typeof renderIntelDock === 'function') renderIntelDock();
@@ -1084,23 +1091,24 @@ function pdRedPaper(id, o){
   if (o && o.quiet) return;
   if (typeof igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){}
 }
-/* the face's own way out, at the end of the column's head: × back to the
-   conversation. OPEN NEGOTIATE WENT WITH THE PAGE (stage 5: the Negotiate
-   page folded into Home, the owner's yes to decision 1) — the notes, the
-   notices and the page's own menu are all beside the paper now. */
-function pdRedHeadEndHtml(c){
-  const close = _pdT('act_close');
-  /* siblings of the head's own parts: the sheet puts × at the end of the
-     first line; the break keeps the round's line under it */
-  return `<button type="button" class="pd-rf-x" data-pd-rf-close title="${_pdE(close)}" aria-label="${_pdE(close)}">×</button>`
-    + `<span class="pd-rf-br" aria-hidden="true"></span>`;
-}
+/* pdRedHeadEndHtml (the column head's ×) WENT (round 9's gaps, third pass):
+   ‹ Jambo in the panel's own row closes the face, as drawn; no caller was
+   left. data-pd-rf-close is STALE with it. */
 /* the Negotiate page's own options, this host's repaint and root */
 function pdRedOpts(c){
   const base = (typeof rlBenchOpts === 'function')
     ? rlBenchOpts(c, { side: 'owner', hostId: 'pd-redface', again: pdRedRepaint, scope: '#pd-redface' })
     : { side: 'owner', hostId: 'pd-redface', rerender: pdRedRepaint };
-  return Object.assign({}, base, { cpPanel: false, headStart: pdBackHtml('red'), headEnd: pdRedHeadEndHtml(c) });
+  /* ‹ Jambo is the panel's own row now (pdFaceTabHtml, round 9 as drawn) and
+     the column's head carries no × (the drawing has none: ‹ Jambo closes);
+     no progress pile beside the paper — the head says the round */
+  /* …and nothing under the piles (round 9's gaps, 18 Oct 2026): the column
+     ends with its settled fold, as drawn — the risk list is the clause
+     editor's Risks tab and the glance's own row */
+  /* …and no review banner over the head for what is out with a colleague:
+     the "Out for review" pile says it, with Remind and Cancel on its head
+     (waitingInPile, round 9's gaps, third pass) */
+  return Object.assign({}, base, { cpPanel: false, noProgress: true, noRisks: true, waitingInPile: true });
 }
 function pdRedFaceHtml(c){
   if (!c || typeof rlColumnHtml !== 'function') return '';
@@ -1169,6 +1177,9 @@ function pdRedFacePaint(c, top){
      Jambo's answers) and its presence beat, for the face (stage 5) */
   try { if (typeof rlStartLivePoll === 'function') rlStartLivePoll(c); } catch (_){}
   pdPresenceOn(c);
+  /* who is here now, in the column's head as drawn (round 9's gaps): its slot
+     is new with every paint, so it is filled at once, not on the next beat */
+  try { if (typeof presencePaint === 'function') presencePaint(c.id); } catch (_){}
   try { if (typeof rlWireClauseTools === 'function') rlWireClauseTools(c, host, opts); } catch (_){}
   try { if (typeof redlineSyncProxies === 'function') redlineSyncProxies(host); } catch (_){}
   try { if (typeof chatFieldWire === 'function') chatFieldWire(host); } catch (_){}
@@ -1184,7 +1195,7 @@ function pdRedFacePaint(c, top){
   const sc = host.querySelector('#nego-cards');
   if (sc && keep){ if (typeof rlRestoreScroll === 'function') rlRestoreScroll(sc, keep); else sc.scrollTop = keep; }
 }
-/* the face's own presses, bound once per host: × and a row's note count.
+/* the face's own presses, bound once per host: a row's note count.
    THE NOTE OPENS HERE (stage 5: the Negotiate page folded into Home) — the
    page's own press, done for this face's contract: on our seat the note's own
    window (openChangeNoteDialog), else the change's thread in the shell's
@@ -1194,16 +1205,24 @@ function pdRedWire(host){
   host.dataset.pdRfBound = '1';
   host.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
-    if (t.closest('[data-pd-rf-close]')){ e.preventDefault(); pdRedClose(); return; }
     const notes = t.closest('[data-rl-notes]');
     if (notes){
       e.preventDefault(); e.stopPropagation();
       const c = pdContract(); const id = notes.getAttribute('data-rl-notes');
       if (!c || !id) return;
       const ch = (typeof negoChangeById === 'function') ? negoChangeById(c, id) : null;
-      if (ch && typeof openChangeNoteDialog === 'function'){
-        const me = (typeof currentUser === 'function' && currentUser()) || null;
-        Promise.resolve(openChangeNoteDialog(c, ch, { author: (me && me.name) || undefined })).then(out => { if (out) pdRedRepaint(); });
+      /* A ROW'S "N notes" OPENS THAT CHANGE'S NOTES IN THIS PANEL (round 9's
+         gaps, third pass: "This opens that change's notes", one room per
+         side) — the head's own notes view, narrowed to the change, on the room
+         that holds them; pressed again on the same row, the piles come back */
+      if (ch && typeof rlFaceNotesSet === 'function'){
+        const again = typeof rlFaceNotesChange === 'function' && rlFaceNotesChange() === String(ch.id);
+        if (again) rlFaceNotesSet(null);
+        else {
+          if (typeof rlFaceNotesRoomFor === 'function' && typeof rlNpSetRoom === 'function') rlNpSetRoom(rlFaceNotesRoomFor(c, ch, pdRedOpts(c)));
+          rlFaceNotesSet(c.id, ch.id);
+        }
+        pdRedRepaint();
         return;
       }
       if (typeof openNotesPanel === 'function') openNotesPanel(c.id, id);
@@ -1266,10 +1285,96 @@ function pdSignOpen(id){ return pdOpenOnHome(id, 'signing'); }
    Every face's head opens with "‹ Jambo", as a desk tab's crumb opens with
    "‹ The counter"; its × stays at the end. Both do the face's one close (the
    map below, pressed by the one delegated listener) — nothing new is done. */
-const PD_BACK_CLOSE = { fill: () => pdFillClose(), red: () => pdRedClose(), signing: () => pdSignClose(), amend: () => pdAmendClose() };
+const PD_BACK_CLOSE = { fill: () => pdFillClose(), red: () => pdRedClose(), signing: () => pdSignClose(), amend: () => pdAmendClose(),
+  /* the send screen's face: its way back is the screen's own Cancel (the
+     letter and its face go together, and its guard is asked) */
+  /* ‹ JAMBO WHILE THE LETTER IS UP TURNS THE PANEL BACK TO JAMBO'S OWN WORDS
+     (round 11's gaps, second pass: "it opens Jambo's panel as designed in
+     round 3"): the letter stays on the desk with what is typed in it; "Before
+     you send" waits as a tab of the panel's head (pdSendBack). Cancel on the
+     letter is still the way to put the screen away. */
+  send: () => pdSendAway() };
 function pdBackHtml(face){
   const t = _pdT('pd_back_jambo');
   return `<button type="button" class="pd-back" data-pd-back="${_pdE(face)}" title="${_pdE(t)}" aria-label="${_pdE(t)}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${_pdE(_pdT('pd_tab_copilot'))}</button>`;
+}
+/* ---- BEFORE YOU SEND, A FACE OF JAMBO'S PANEL (round 11's gaps, 18 Oct
+   2026: "The letter" as drawn — the letter on the desk, Jambo's panel beside
+   it saying what stays here and why, what they never see, something else to
+   send, with the ask box at its foot) ----
+   IT OWNS NO BUILDER AND NO WRITER: the send screen builds its own column
+   (shareSummaryStepHtml, its ids and listeners) and hands the NODE here
+   (pdSendOpen); the face keeps it across the panel's repaints
+   (pdSendFacePaint) and gives it back when the screen closes (pdSendClose,
+   the screen's onClose). A question asked in the box is answered under it;
+   nothing here sends. Not kept through a refresh: the screen is not. */
+let _pdSend = null;          // { id, node, away } while the send screen is a page beside the panel
+function pdSendFor(){ return _pdSend ? _pdSend.id : null; }
+/* the screen is up (the letter on the desk), whichever face the panel shows */
+function pdSendHeld(){ return !!_pdSend && typeof state !== 'undefined' && !!state && state.view === 'dashboard'; }
+/* the panel shows "Before you send" — not while ‹ Jambo has turned it to
+   Jambo's own words (away) */
+function pdSendShows(){ return pdSendHeld() && !_pdSend.away; }
+function pdSendAway(){
+  if (!_pdSend) return;
+  _pdSend.away = true;
+  /* Jambo's own words: a face that stood under the letter (Redlines, from
+     its Send all; Fill in; Before you sign) is put away too, by its own close */
+  _pdTab = 'copilot';
+  try { if (_pdRed) pdRedClose(); } catch (_){}
+  try { if (_pdFill) pdFillClose(); } catch (_){}
+  try { if (_pdSign) pdSignClose(); } catch (_){}
+  try { if (_pdAmend) pdAmendClose(); } catch (_){}
+  if (typeof renderIntelDock === 'function') renderIntelDock();
+}
+function pdSendBack(){
+  if (!_pdSend) return;
+  _pdSend.away = false;
+  if (typeof renderIntelDock === 'function') renderIntelDock();
+  /* the column was out of sight: the letter's painter fills it again */
+  try { const L = document.getElementById('sh-letter'); if (L && typeof L._shPaint === 'function') L._shPaint(); } catch (_){}
+}
+function pdSendOpen(id, node){
+  if (!id) return false;
+  const keep = _pdSend && _pdSend.id === String(id) ? _pdSend.node : null;
+  if (keep && node && keep !== node && keep.parentNode) keep.parentNode.removeChild(keep);
+  _pdSend = { id: String(id), node: node || keep || null };
+  if (typeof intel === 'object' && intel) intel.dockOpen = true;
+  if (typeof renderIntelDock === 'function') renderIntelDock();
+  if (typeof igSyncDockWidth === 'function') try { igSyncDockWidth(); } catch (_){}
+  return true;
+}
+/* ---- THE LETTER WAITS (round 11's gaps, third pass, 19 Oct 2026: "Go to
+   clause 7 — the paper scrolls to clause 7 and lights it. The letter waits in
+   its desk tab and is one tab away") ----
+   "Go to clause N" on the stays card puts the letter page out of sight, NOT
+   away: the screen, what is typed in it and every choice stay as they were;
+   the paper comes up with the clause landed on; "Before you send" stays in the
+   panel and the card's own button reads "Back to the letter"; the bar's
+   Recent carries the letter as its first row ("Send · MK-0382"). Back brings
+   the page up again where it was. Cancel and Send are still its only ends. */
+function pdSendIsWaiting(){ return !!(_pdSend && _pdSend.waiting); }
+function pdSendWaitSet(on){
+  if (!_pdSend) return false;
+  _pdSend.waiting = !!on;
+  if (typeof shareLetterPagePlace === 'function') try { shareLetterPagePlace(); } catch (_){}
+  if (typeof renderIntelDock === 'function') renderIntelDock();
+  if (typeof deskBarPaint === 'function') try { deskBarPaint(); } catch (_){}
+  return true;
+}
+function pdSendClose(){
+  if (!_pdSend) return;
+  const n = _pdSend.node; _pdSend = null;
+  if (n && n.parentNode) n.parentNode.removeChild(n);
+  if (typeof renderIntelDock === 'function') renderIntelDock();
+}
+function pdSendFaceHtml(){ return `<div id="pd-send-slot" class="pd-send-slot${pdSendIsWaiting() ? ' is-waiting' : ''}" data-pd-send="${_pdE(pdSendFor() || '')}"></div>`; }
+/* while the panel shows Jambo's own words the column waits in the panel,
+   unseen, so every box and choice in it is still in the page for Send */
+function pdSendKeepHtml(){ return (pdSendHeld() && !pdSendShows()) ? `<div hidden data-pd-send-kept>${pdSendFaceHtml()}</div>` : ''; }
+function pdSendFacePaint(){
+  const slot = (typeof document !== 'undefined') ? document.getElementById('pd-send-slot') : null;
+  if (slot && _pdSend && _pdSend.node && _pdSend.node.parentNode !== slot) slot.appendChild(_pdSend.node);
 }
 /* WHICH FACE IS UP, FOR A REFRESH (the owner's rule: a refresh lands at the
    same spot; stage 5 — the Negotiate page a refresh used to land back on
@@ -1333,8 +1438,8 @@ function pdSignHeadHtml(c){
   const close = _pdT('act_close');
   const s = pdSignState(c);
   /* signed, the title says so and the pill would say it twice */
-  return `<div class="pd-sf-r">${pdBackHtml('signing')}<h3>${_pdE(_pdT(s.closed ? 'pd_st_signed' : 'pd_sf_title'))}</h3><span data-pd-sf-pill>${s.closed ? '' : pdSignPillHtml(c)}</span>
-      <button type="button" class="pd-sf-x" data-pd-sf-close title="${_pdE(close)}" aria-label="${_pdE(close)}">×</button></div>`;
+  void close;   /* ‹ Jambo and × are the panel's own row now (pdFaceTabHtml) */
+  return `<div class="pd-sf-r"><h3>${_pdE(_pdT(s.closed ? 'pd_st_signed' : 'pd_sf_title'))}</h3><span data-pd-sf-pill>${s.closed ? '' : pdSignPillHtml(c)}</span></div>`;
 }
 /* ONCE BOTH HAVE SIGNED THE FACE IS THE RECEIPT (the owner's yes, decision
    3), and EVERY STEP STARTS THE NEXT (rule 4): what the signature starts —
@@ -2023,8 +2128,8 @@ function pdAmendAdd(el){
 }
 function pdAmendHeadHtml(c){
   const close = _pdT('act_close');
-  return `<div class="pd-sf-r">${pdBackHtml('amend')}<h3>${_pdE(_pdT('pd_am_title', { ref: (typeof contractRef === 'function') ? contractRef(c) : c.id }))}</h3>
-      <button type="button" class="pd-sf-x" data-pd-am-close title="${_pdE(close)}" aria-label="${_pdE(close)}">×</button></div>
+  void close;   /* ‹ Jambo and × are the panel's own row now (pdFaceTabHtml) */
+  return `<div class="pd-sf-r"><h3>${_pdE(_pdT('pd_am_title', { ref: (typeof contractRef === 'function') ? contractRef(c) : c.id }))}</h3></div>
     <p class="pd-am-sub">${_pdE(_pdT('pd_am_sub'))}</p>`;
 }
 function pdAmendItemHtml(it, i){
@@ -2364,23 +2469,42 @@ function pdTabGlyphHtml(t){
   if (t === 'copilot' && typeof jamboFaceHtml === 'function') return jamboFaceHtml('hello', 20, 'pd-tab-face').replace('<img', '<img data-ink-exempt');   /* a picture carries no ink */
   return PD_TAB_GLYPH[t] + '\uFE0E';
 }
+/* ---- THE FACE TAB (the panel's row while a face is up, as rounds 8, 9, 10
+   and 11 draw it; the gaps, 18 Oct 2026) ----
+   Jambo's own tab, then the face's word — "Fill in", "Redlines", "Before you
+   sign", "Before you send" — and "‹ Jambo" at the row's end beside the fold
+   (pdFaceBackHtml, drawn by renderIntelDock's head). The contract's other
+   tabs come back with the conversation. ONE builder for every face, so a face
+   added tomorrow is dressed by the same row; the faces' own heads no longer
+   draw ‹ Jambo or ×. */
+const PD_FACE_WORD = { fill: 'pd_face_w_fill', red: 'pd_face_w_red', signing: 'pd_face_w_signing', amend: 'pd_face_w_amend', send: 'pd_face_w_send' };
+function pdFaceUp(){
+  if (typeof pdSendShows === 'function' && pdSendShows()) return 'send';
+  return pdFaceNow();
+}
+function pdFaceBackHtml(){ const f = pdFaceUp(); return f ? pdBackHtml(f) : ''; }
 function pdHeadHtml(brain){
+  const face = pdFaceUp();
   /* FINDINGS (Explorer stage 4): beside Jambo on Explorer's map, no paper up;
      the tab is the map's own (igFindingsShows), so the paper's tabs never meet it */
-  const fd = !pdOnPaper() && typeof igFindingsTabOn === 'function' && igFindingsTabOn();
-  const tabs = pdOnPaper() ? PD_TABS : (fd ? ['copilot', 'findings'] : ['copilot']);
-  const lit = fd && typeof igFindingsShows === 'function' && igFindingsShows() ? 'findings' : (tabs.includes(_pdTab) ? _pdTab : 'copilot');
+  const fd = !face && !pdOnPaper() && typeof igFindingsTabOn === 'function' && igFindingsTabOn();
+  const tabs = face ? ['copilot'] : pdOnPaper() ? PD_TABS : (fd ? ['copilot', 'findings'] : ['copilot']);
+  const lit = face ? 'copilot' : fd && typeof igFindingsShows === 'function' && igFindingsShows() ? 'findings' : (tabs.includes(_pdTab) ? _pdTab : 'copilot');
   const c = pdOnPaper() ? pdContract() : null;
   /* A WORD FOR WHAT THE PANEL HOLDS (the gaps, round 4 "One sheet", 18 Oct
      2026: "Jambo · New agreement · ›"): beside the one sheet, the agreement
      being drafted */
   const word = (!c && typeof naSheetUp === 'function' && naSheetUp()) ? `<span class="pd-head-word">${_pdE(_pdT('na_title'))}</span>` : '';
+  const faceWord = face ? `<span class="pd-face-w" data-pd-face-w="${_pdE(face)}">${_pdE(_pdT(PD_FACE_WORD[face] || 'pd_tab_copilot'))}</span>` : '';
+  /* the letter is up and the panel turned to Jambo: "Before you send" waits
+     as a tab after Jambo's, one press back (round 11's gaps, second pass) */
+  const sendBack = (!face && pdSendHeld()) ? `<button type="button" class="pd-tab pd-tab-face" data-pd-send-back title="${_pdE(_pdT(PD_FACE_WORD.send))}"><span class="pd-tab-w">${_pdE(_pdT(PD_FACE_WORD.send))}</span></button>` : '';
   return tabs.map(t => {
     const name = _pdT(PD_TAB_NAME[t]);
     const tip = t === 'copilot' && brain ? name + ' · ' + brain : name;
     const on = t === lit, cnt = pdTabCount(t, c);
-    return `<button type="button" role="tab" class="pd-tab${on ? ' on' : ''}" data-pd-tab="${t}" aria-selected="${on}" aria-label="${_pdE(cnt ? _pdT('pd_tab_n', { name, n: cnt.n }) : name)}" title="${_pdE(tip)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${pdTabGlyphHtml(t)}</span>${cnt ? `<span class="pd-tab-n is-${cnt.tone}">${cnt.n > 99 ? '99+' : cnt.n}</span>` : ''}</span><span class="pd-tab-w">${_pdE(name)}</span></button>`;
-  }).join('') + word;
+    return `<button type="button" role="tab" class="pd-tab${on ? ' on' : ''}" data-pd-tab="${t}" aria-selected="${on}" aria-label="${_pdE(cnt ? _pdT('pd_tab_n', { name, n: cnt.n }) : name)}" title="${_pdE(tip)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${pdTabGlyphHtml(t)}</span>${cnt ? `<span class="pd-tab-n is-${cnt.tone}">${cnt.n > 99 ? '99+' : cnt.n}</span>` : ''}</span><span class="pd-tab-w">${_pdE(name)}</span></button>${t === 'copilot' ? sendBack : ''}`;
+  }).join('') + (faceWord || word);
 }
 function pdBodyHtml(c){
   _pdActs.clear();
@@ -3073,6 +3197,7 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
     if (t.closest('[data-pd-drop-import]')){ e.preventDefault(); if (typeof setView === 'function') setView('migration'); return; }
     const back = t.closest('[data-pd-back]');
     if (back){ e.preventDefault(); const go = PD_BACK_CLOSE[back.getAttribute('data-pd-back')]; if (go) go(); return; }
+    if (t.closest('[data-pd-send-back]')){ e.preventDefault(); pdSendBack(); return; }
     /* "all N": Home's Needs you, landed on (hbNeedsOpen → landOn) */
     if (t.closest('[data-pd-nd-all]')){ e.preventDefault(); if (typeof hbNeedsOpen === 'function') hbNeedsOpen(); else if (typeof deskGoCounter === 'function') deskGoCounter(); return; }
     const jw = t.closest('[data-pd-nd-jw]');
@@ -3723,10 +3848,11 @@ function jamboPerchMount(dock){
   dock.classList.remove('jb-perched', 'jb-perched-ask');
   const on = !!(window.state && state.view === 'dashboard') && !pdShowsDesk() && typeof JAMBO_FACE === 'object';
   const ask = document.getElementById('igd-input');
-  const chips = dock.querySelector('[data-ig-chips]'), feed = dock.querySelector('#igd-feed:not([hidden])');
+  const chips = dock.classList.contains('pd-face-up') ? null : dock.querySelector('[data-ig-chips]'), feed = dock.querySelector('#igd-feed:not([hidden])');
   let host = null;
+  /* a face draws no chips (rounds 8–11 as drawn): he sits on the ask box's edge there too */
   if (on && ask){ if (chips){ host = chips; dock.classList.add('jb-perched'); }
-    else if (feed && ask.parentElement){ host = ask.parentElement; dock.classList.add('jb-perched', 'jb-perched-ask'); } }
+    else if ((feed || pdFaceUp()) && ask.parentElement){ host = ask.parentElement; dock.classList.add('jb-perched', 'jb-perched-ask'); } }
   if (!host){ jamboRest(); if (_jbEl && _jbEl.parentNode) _jbEl.remove(); return false; }
   host.appendChild(jamboPerchEl());
   if (!_jbBeat) _jbBeat = setInterval(jamboBeat, JB_BEAT_MS);
@@ -3784,7 +3910,7 @@ if (typeof document !== 'undefined' && !document._jbWired){
     return true; };
   if (!watch()) document.addEventListener('DOMContentLoaded', watch, { once: true });
 }
-Object.assign(window, { pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml,
+Object.assign(window, { pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, pdFaceUp, pdFaceBackHtml, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedHeadEndHtml, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, PD_RD_CHECKS, pdRoadCheckOf, pdRoadCheckNames, pdDayWord, pdBackDay, pdAwayOf, pdRoadRuleOf, pdRoadRuleTitle, pdRoadRuleSub, pdRoadRuleFramed, pdRoadRuleHtml, pdRoadMovedHtml, pdRoadYesOf, pdRoadYesTitle, pdRoadYesFramed, pdRoadYesFacts, pdRoadYesHtml, pdRoadPress, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,

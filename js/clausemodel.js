@@ -444,6 +444,32 @@ function clauseNameShown(text){
   return t.slice(0, t.length - title.length) + cased;
 }
 
+/* ---------- AS ON THE PAPER (round 9's gaps, second pass, 18 Oct 2026) ----------
+   The picked drawings name a clause the way the paper prints it: "7. Liability
+   cap", "11. Payment terms" — the number the product's way ("7.", as
+   clauseNameShown writes it) and the TITLE AS IT WAS DRAFTED, not re-cased, so
+   the row beside the paper reads the same words as the heading on it. A title
+   that SHOUTS (all capitals) is the one case still re-cased, to sentence case,
+   for the reason the 10 Sep ruling gave: a row must not shout as loudly as its
+   author did. A presenting reading only: nothing stored moves, and
+   clauseNameShown stays the voice of every other screen. A title opening in
+   small letters takes its capital, so a row never opens small either. */
+function clauseNameAsDrafted(text){
+  const t = String(text == null ? '' : text).replace(/\s+/g, ' ').trim();
+  if (!t) return '';
+  const parsed = clauseParseHeading(t);
+  const title = String(parsed.title || '');
+  if (!title || !t.endsWith(title)) return clauseNameShown(t);
+  /* a shouting title in sentence case; one that opens in small letters takes
+     its capital (the 10 Sep ruling's two halves: never shouts, never opens
+     small); otherwise exactly as drafted */
+  const said = _clShouts(title) ? clauseSentenceCase(title)
+    : /^[a-z]/.test(title) ? title.charAt(0).toUpperCase() + title.slice(1) : title;
+  const num = String(parsed.num || '').trim();
+  if (num && _CL_LABELLED.test(t)) return `${num}. ${said}`;
+  return t.slice(0, t.length - title.length) + said;
+}
+
 /* ---------- WHERE A NUMBER IS MISSING ----------
    Asked of ONE number against the numbers a document carries, and deliberately
    not of the whole run at once.
@@ -1489,7 +1515,7 @@ if (typeof window !== 'undefined') Object.assign(window, { clauseSegmentFind,
   CLAUSE_HEADINGS, clauseNewId, clauseParseHeading, clauseLabel, clauseNumberGap,
   CLAUSE_KINDS, clauseKindByKey, clauseKind, ruleKind,
   clauseTitleCase, clauseSentenceCase, clauseCaseTo, clauseHeadingCase, clauseHeadingFor,
-  clauseNameShown,
+  clauseNameShown, clauseNameAsDrafted,
   clauseSegment, clauseFrontMatter, clauseStampIds, clauseCarryIds, clauseList, clauseFindById,
   CLAUSE_FRONT_ID, clauseFrontClause,clauseFrontSplit, clauseFrontParts, clauseReplaceFront,
   clauseReplaceBody, clauseReplaceHeading, clauseRemove, clauseInsert,

@@ -107,26 +107,39 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     }
     await page.evaluate(() => pdOpenOnHome('MK-0382', 'fill'));
     {
+      /* RE-POINTED 18 Oct 2026 (the gaps of rounds 8–11 as drawn: while a face
+         is up the panel's row reads Jambo's tab, the face's word, and "‹ Jambo"
+         at its end; the face's own head is its title alone, no ‹ Jambo, no ×) */
+      const rowOf = face => { const head = document.querySelector('#ig-dock .igd-head'); if (!head) return null;
+        const tabs = [...head.querySelectorAll('[data-pd-tab]')].map(t => t.getAttribute('data-pd-tab'));
+        const w = head.querySelector('[data-pd-face-w]'), b = head.querySelector(`[data-pd-back="${face}"]`);
+        if (!w || !b) return null;
+        const wr = w.getBoundingClientRect(), br = b.getBoundingClientRect();
+        return { tabs: tabs.join(), word: w.textContent.trim(), back: b.textContent.trim(), order: wr.right <= br.left,
+          sameLine: Math.abs((wr.top + wr.bottom) / 2 - (br.top + br.bottom) / 2) < 10 }; };
       const ff = await until(() => window.pdFillShows && pdFillShows() && document.querySelector('#pd-fillface .pd-ff-r') && (() => {
-        const r = document.querySelector('#pd-fillface .pd-ff-r'), kids = [...r.children];
-        return { first: kids[0] && kids[0].matches('[data-pd-back="fill"]'), word: kids[0] ? kids[0].textContent.trim() : '',
-          xLast: kids.indexOf(r.querySelector('[data-pd-ff-close]')) > kids.indexOf(r.querySelector('h3')) }; })(), null, 8000);
-      check('3b Fill in\'s head opens with "‹ Jambo", its × still after the title', !!ff && ff.first && ff.word === 'Jambo' && ff.xLast, JSON.stringify(ff));
+        const r = document.querySelector('#pd-fillface .pd-ff-r');
+        return { headX: !!r.querySelector('[data-pd-ff-close], [data-pd-back]'), title: !!r.querySelector('h3') }; })(), null, 8000);
+      const fr = await until(rowOf, 'fill', 6000);
+      check('3b Fill in: the panel\'s row reads Jambo · "Fill in" · "‹ Jambo"; the face\'s head is its title alone',
+        !!ff && !ff.headX && ff.title && !!fr && fr.tabs === 'copilot' && fr.word === 'Fill in' && fr.back === 'Jambo' && fr.order && fr.sameLine, JSON.stringify({ ff, fr }));
       await shot(page, 'jambos-panel-fill-1440x780');
-      if (await press('#pd-fillface [data-pd-back]', '3c ‹ Jambo on Fill in')) {
+      if (await press('#ig-dock [data-pd-back="fill"]', '3c ‹ Jambo on Fill in')) {
         const back = await until(() => !(window.pdFillShows && pdFillShows()) && !!document.getElementById('pd-glance'), null, 6000);
         check('3c "‹ Jambo" brings his tab back', !!back);
       }
     }
     await page.evaluate(() => pdOpenOnHome('MK-0382', 'red'));
     const rf = await until(() => { const top = document.querySelector('#pd-redface .rl-idx-top'); if (!top) return null;
-      const b = top.querySelector('[data-pd-back="red"]'), t = top.querySelector('.rl-idx-title'), x = top.querySelector('[data-pd-rf-close]');
-      if (!b || !t || !x) return { b: !!b, t: !!t, x: !!x };
-      const br = b.getBoundingClientRect(), tr = t.getBoundingClientRect(), xr = x.getBoundingClientRect();
-      return { order: br.right <= tr.left + 1 && tr.right <= xr.left, sameLine: Math.abs((br.top + br.bottom) / 2 - (tr.top + tr.bottom) / 2) < 8 }; }, null, 10000);
-    check('3d the Redlines face\'s head: "‹ Jambo", Redlines, then ×, on one line', !!rf && rf.order && rf.sameLine, JSON.stringify(rf));
+      const r = (() => { const head = document.querySelector('#ig-dock .igd-head'); const w = head && head.querySelector('[data-pd-face-w]'), b = head && head.querySelector('[data-pd-back="red"]');
+        return w && b ? { word: w.textContent.trim(), back: b.textContent.trim(), sameLine: Math.abs(w.getBoundingClientRect().top - b.getBoundingClientRect().top) < 10 } : null; })();
+      if (!r) return null;
+      return Object.assign(r, { headBack: !!top.querySelector('[data-pd-back]'), headX: !!top.querySelector('[data-pd-rf-close]'),
+        first: (top.querySelector('.rl-idx-title') || {}).textContent || '' }); }, null, 10000);
+    check('3d the Redlines face: the panel\'s row reads Redlines · "‹ Jambo"; the column\'s head opens with "Redlines N", no ‹ Jambo, no ×',
+      !!rf && rf.word === 'Redlines' && rf.back === 'Jambo' && rf.sameLine && !rf.headBack && !rf.headX && /^Redlines/.test(rf.first.trim()), JSON.stringify(rf));
     await shot(page, 'jambos-panel-redlines-1440x780');
-    if (await press('#pd-redface [data-pd-back]', '3e ‹ Jambo on Redlines')) {
+    if (await press('#ig-dock [data-pd-back="red"]', '3e ‹ Jambo on Redlines')) {
       const back = await until(() => !(window.pdRedShows && pdRedShows()) && !!document.getElementById('pd-glance'), null, 6000);
       check('3e "‹ Jambo" closes Redlines and brings his tab back', !!back);
     }

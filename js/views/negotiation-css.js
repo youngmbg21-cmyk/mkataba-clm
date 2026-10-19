@@ -4543,6 +4543,9 @@ function redlineLayoutCss(){
   .rl-doc del.rl-them,.rl-doc del.rl-us,.nego-doc del.rl-them,.nego-doc del.rl-us,.rl-cp-src del.rl-them,.rl-cp-src del.rl-us,.rl-col del.rl-them,.rl-col del.rl-us,.pv-sheet del.rl-them,.pv-sheet del.rl-us{text-decoration:line-through;text-decoration-thickness:1.5px;text-decoration-color:currentColor}
   .rl-doc ins.rl-them>del.rl-us,.nego-doc ins.rl-them>del.rl-us,.rl-cp-src ins.rl-them>del.rl-us{background:transparent;color:var(--rl-del-ink)}
   .rl-doc ins.rl-us>del.rl-them,.nego-doc ins.rl-us>del.rl-them,.rl-cp-src ins.rl-us>del.rl-them{background:transparent;color:var(--rl-del-ink)}
+  ${''/* a colleague's open suggestion: our ink, no wash, a DASHED underline —
+         told apart from our own draft's solid mark on the paper (round 9) */}
+  .rl-doc .rl-sg-marks ins.rl-us,.nego-doc .rl-sg-marks ins.rl-us{background:transparent;text-decoration-style:dashed;text-decoration-thickness:1.5px;text-underline-offset:3px}
   .rl-repl-on{font-size:var(--t-label);color:var(--color-neutral-600);margin:6px 0 0;font-style:italic;line-height:1.45}
   .redline-page .rl-cp-wd{font-size:var(--t-card);line-height:1.6;color:var(--color-text)}
   .redline-page .rl-cp-why{display:block;margin-top:var(--s-1);font-size:var(--t-body);font-style:italic;
@@ -6417,6 +6420,174 @@ function redlineLayoutCss(){
   .redline-page button.rl-band-fold:hover{color:var(--color-text)}
   .redline-page button.rl-band-fold i{font-style:normal;flex:none}
   .redline-page #rl-changes-col:not(.rl-settled-open) .rl-card-quiet{display:none}
+  ${''/* ---- PILES, AS DRAWN (round 9's gaps, 18 Oct 2026) ----
+         THE HEAD: Redlines N with Notes and who is here on its line, the round
+         under it, Send all and Ask for review under that — one flex row that
+         breaks at .rl-idx-br. No accent rule under it: the piles start. */}
+  .redline-page .rl-idx{border-bottom:0;padding-bottom:6px}
+  .redline-page .rl-idx-top{flex-wrap:wrap;row-gap:6px}
+  .redline-page .rl-idx-top > .rl-idx-br{flex-basis:100%;height:0;margin:0;padding:0}
+  .redline-page .rl-idx-top > .rl-idx-br + .rl-idx-br{display:none}
+  .redline-page .rl-idx-top > .rl-idx-br:last-child{display:none}
+  .redline-page .rl-idx-top .rl-round-at{height:auto;line-height:1.4;white-space:normal}
+  .redline-page .rl-head-notes,.redline-page .rl-head-review{flex:none;display:inline-flex;align-items:center;gap:5px;
+    height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);border:1px solid var(--btn-edge);border-radius:var(--radius);
+    background:var(--color-surface);color:var(--color-text);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);
+    white-space:nowrap;cursor:pointer}
+  .redline-page .rl-head-notes:hover,.redline-page .rl-head-review:hover:not(:disabled){border-color:var(--accent-ink);color:var(--accent-ink)}
+  .redline-page .rl-head-review:disabled{opacity:.5;cursor:not-allowed}
+  .redline-page .rl-head-notes svg,.redline-page .rl-head-review svg{width:13px;height:13px;flex:none}
+  .redline-page .rl-head-notes b{min-width:18px;height:18px;padding:0 5px;border-radius:9px;display:inline-grid;place-items:center;
+    background:var(--color-neutral-100);font-weight:var(--w-title);font-size:var(--t-label);font-variant-numeric:tabular-nums}
+  ${''/* "Redlines 4": the count in a small grey pill, as the piles' heads
+         and Notes carry theirs (round 9's gaps, second pass) */}
+  .redline-page .rl-idx-title i{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;margin-left:4px;
+    border-radius:9px;background:var(--color-neutral-100);font-family:inherit;font-size:var(--t-label);font-weight:var(--w-title);
+    font-variant-numeric:tabular-nums;color:var(--color-neutral-600);vertical-align:1px}
+  .redline-page .rl-head-here{flex:none;display:inline-flex;align-items:center;gap:6px;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap}
+  .redline-page .rl-head-here:not(:has(.pz-row)){display:none}
+  .redline-page .rl-head-here .pz-row{height:auto}
+  ${''/* EACH PILE ITS OWN BOX: a grey band naming it with its count in a pill,
+         the rows under it on hairlines, the settled fold a box of its own. */}
+  ${''/* only round the piles: an empty column keeps the head's one left edge
+         (the owner's 10 Sep alignment, redline-verify 23) */}
+  .redline-page #rl-changes:has(> .rl-pile){padding:4px 12px 12px}
+  .redline-page .rl-pile{border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:var(--color-surface);
+    margin:0 0 10px;overflow:hidden}
+  .redline-page .rl-pile > .rl-band,.redline-page .rl-pile > .rl-band:first-child{display:flex;align-items:center;gap:8px;margin:0;
+    padding:8px 12px;background:var(--color-neutral-100);border:0;border-bottom:1px solid var(--color-divider);
+    font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:0;text-transform:none;color:var(--color-text)}
+  .redline-page .rl-pile > .rl-band b{margin-left:auto;min-width:20px;height:18px;padding:0 6px;border-radius:9px;display:inline-grid;place-items:center;
+    font-family:inherit;font-size:var(--t-label);font-weight:var(--w-title);background:var(--color-surface);border:1px solid var(--color-divider);color:var(--color-neutral-600)}
+  .redline-page .rl-pile > .rl-band[data-rl-band="awaiting"]{color:var(--st-amber-fg)}
+  .redline-page .rl-pile > .rl-band[data-rl-band="awaiting"] b{background:var(--st-amber-bg);border-color:var(--st-amber-line);color:var(--st-amber-fg)}
+  .redline-page .rl-pile.rl-pile-quiet > .rl-band{border-bottom:0;background:var(--color-surface)}
+  .redline-page .rl-pile > .rl-band .rl-band-acts{display:inline-flex;align-items:center;gap:10px;flex:none;margin-left:4px}
+  .redline-page .rl-pile > .rl-band .rl-band-act{border:0;background:none;padding:0;font:inherit;font-weight:var(--w-label);
+    color:var(--accent-ink);cursor:pointer;white-space:nowrap}
+  .redline-page .rl-pile > .rl-band .rl-band-act:hover{text-decoration:underline}
+  .redline-page #rl-changes-col.rl-settled-open .rl-pile.rl-pile-quiet > .rl-band{border-bottom:1px solid var(--color-divider)}
+  .redline-page .rl-pile > .rl-card-d:last-child{border-bottom:0}
+  .redline-page .rl-pile .rl-card-d,.redline-page .rl-pile .rl-band + .rl-card-d{padding:10px 12px}
+  ${''/* THE ROW: the clause, "2 notes" beside it, who and when at the wall; the
+         changed words with their marks; their reason; the lock line; the verbs
+         from the left, as drawn. */}
+  .redline-page .rl-pile .rl-card-metarow{gap:8px}
+  .redline-page .rl-pile .rl-card-metarow > .rl-card-meta{flex:0 1 auto}
+  .redline-page .rl-pile .rl-card-metarow > .rl-card-notes{order:1}
+  .redline-page .rl-pile .rl-card-metarow > .rl-card-by{order:2;max-width:55%;overflow:hidden;text-overflow:ellipsis}
+  .redline-page .rl-card-notes .rl-card-notes-w{font-weight:var(--w-label);margin-left:-1px}
+  .redline-page .rl-card-d .rl-card-sum.rl-card-ex{white-space:normal;overflow:visible;text-overflow:clip;
+    color:var(--color-text);font-size:var(--t-meta);line-height:1.5}
+  .redline-page .rl-card-ex del{color:var(--st-ruby-fg);text-decoration:line-through}
+  .redline-page .rl-card-ex ins{color:var(--accent-ink);text-decoration:underline;text-underline-offset:2px}
+  .redline-page .rl-card-ex .rl-card-ex-tag{color:var(--color-neutral-600);font-size:var(--t-label)}
+  .redline-page .rl-card-d.rl-card-quiet .rl-card-sum.rl-card-ex{color:var(--color-neutral-500)}
+  .redline-page .rl-card-lock{display:flex;align-items:center;gap:6px;margin-top:6px;padding:5px 8px;border-radius:var(--radius);
+    background:var(--color-neutral-100);font-size:var(--t-label);color:var(--color-neutral-600)}
+  .redline-page .rl-card-lock .rl-card-lock-i{flex:none}
+  .redline-page .rl-card-lock .rl-lock-mono{flex:none;width:18px;height:18px;border-radius:50%;display:inline-grid;place-items:center;
+    background:var(--st-amber-bg);color:var(--st-amber-fg);font-size:9px;font-weight:var(--w-title)}
+  .redline-page .rl-card-lock .rl-card-lock-say{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .redline-page .rl-card-lock .rl-card-lock-ask{flex:none;border:0;background:none;padding:0;font:inherit;font-weight:var(--w-strong);
+    color:var(--accent-ink);cursor:pointer}
+  .redline-page .rl-card-lock .rl-card-lock-ask:hover{text-decoration:underline}
+  .redline-page .rl-card-lock .rl-card-lock-asked{flex:none;font-weight:var(--w-label)}
+  .redline-page .rl-pile .rl-card-d > .rl-card-side{justify-content:flex-start}
+  .redline-page .rl-card-face .rl-sg-back{color:var(--color-text)}
+  ${''/* EVERY LIVE VERB ON A PILE'S ROW WEARS THE ACCENT INK (round 9's gaps,
+         third pass, as drawn): Counter and Edit leave Jambo's violet (the
+         editor they open says its own costs), Ladder and Review leave the
+         grey; Reject and Discard last stay red. Scoped to the piles, at one
+         more class than the rules they answer, light and dark alike. */}
+  .redline-page .rl-pile .rl-card-d .rl-card-verbs button.rl-verb-ai,
+  html.dark .redline-page .rl-pile .rl-card-d .rl-card-verbs button.rl-verb-ai,
+  .redline-page .rl-pile .rl-card-d .rl-card-face [data-rl-ladder],
+  .redline-page .rl-pile .rl-card-d .rl-card-face [data-rl-ask-review],
+  .redline-page .rl-pile .rl-card-d .rl-card-face .rl-sg-back{color:var(--accent-ink)}
+  .redline-page .rl-pile .rl-card-d .rl-card-face [data-rl-ladder]:hover,
+  .redline-page .rl-pile .rl-card-d .rl-card-face [data-rl-ask-review]:hover,
+  .redline-page .rl-pile .rl-card-d .rl-card-face .rl-sg-back:hover{background:var(--color-accent-100);color:var(--accent-ink)}
+  ${''/* …and a dead door keeps the label shade there too (the clause held by a
+         colleague): the same specificity, later in the sheet — scope, not weight */}
+  .redline-page .rl-pile .rl-card-d .rl-card-verbs button.is-locked,
+  html.dark .redline-page .rl-pile .rl-card-d .rl-card-verbs button.is-locked{color:var(--color-neutral-600)}
+  ${''/* the settled fold is drawn as its pile's head alone, with its count — no chevron */}
+  .redline-page .rl-pile-quiet .rl-band-fold i{display:none}
+  ${''/* ---- THE NOTES IN THE SAME PANEL (round 9's gaps, second pass) ----
+         Notes pressed: the button wears the accent edge; the body is a tab
+         row (a lock on Internal, a count pill on each, ‹ Redlines at its end),
+         the notes as face · line · bubble, and the box with Post. The verbs
+         under a note show on hover or focus, and always on a touch screen. */}
+  .redline-page .rl-head-notes.is-on{border-color:var(--accent-ink);color:var(--accent-ink)}
+  ${''/* "Here now", as drawn (round 9's gaps, third pass): filled circles, one
+         colour per person (the face's pz-t-N, the house's avatar tone),
+         overlapping, white initials; following wears a ring */}
+  .redline-page .rl-head-here .pz-row{margin-left:4px}
+  .redline-page .rl-head-here .pz-face{width:22px;height:22px;font-size:9.5px;font-weight:var(--w-strong);color:#fff;
+    border:2px solid var(--color-surface);margin-left:-6px;background:var(--accent-solid)}
+  .redline-page .rl-head-here .pz-face:first-child{margin-left:0}
+  .redline-page .rl-head-here .pz-face.pz-t-1{background:var(--alt-ink)}
+  .redline-page .rl-head-here .pz-face.pz-t-2{background:var(--st-amber-fg)}
+  .redline-page .rl-head-here .pz-face.pz-t-3{background:#5B3F9A}
+  .redline-page .rl-head-here .pz-face.pz-t-4{background:var(--st-gray-fg)}
+  html.dark .redline-page .rl-head-here .pz-face{color:var(--color-surface)}
+  html.dark .redline-page .rl-head-here .pz-face.pz-t-3{background:#C4B5FD}
+  .redline-page .rl-head-here button.pz-face.is-following{box-shadow:0 0 0 2px var(--accent-solid);border-color:var(--color-surface)}
+  ${''/* the ladder under its row on the face (round 9's gaps, third pass): the
+         clause panel's own sections, inset under the verbs, one row at a time */}
+  .redline-page .rl-row-ladder{margin:8px 0 2px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:var(--color-surface);overflow:hidden}
+  .redline-page .rl-row-ladder .rl-cp-sec{padding:10px 12px}
+  .redline-page .rl-row-ladder .rl-cp-sec:last-child{border-bottom:0}
+  .redline-page .rl-ladder-verb[aria-expanded="true"]{text-decoration:underline;text-underline-offset:3px}
+  .redline-page #nego-cards.is-notes{padding:0}
+  .redline-page .rl-fn{display:block;padding:0 12px 12px}
+  .redline-page .rl-fn-tabs{display:flex;align-items:flex-end;gap:2px;border-bottom:1px solid var(--color-divider);margin:0 0 10px;min-width:0}
+  .redline-page .rl-fn-tab{flex:0 1 auto;min-width:0;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px;
+    border:0;border-bottom:2px solid transparent;margin-bottom:-1px;background:none;font:inherit;font-size:var(--t-meta);
+    font-weight:var(--w-label);color:var(--color-neutral-600);cursor:pointer;white-space:nowrap}
+  .redline-page .rl-fn-tab:hover{color:var(--color-text)}
+  .redline-page .rl-fn-tab.on{color:var(--accent-ink);border-bottom-color:var(--accent-solid);font-weight:var(--w-strong)}
+  .redline-page .rl-fn-tab .rl-np-i{width:12px;height:12px;flex:none}
+  .redline-page .rl-fn-tab-w{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .redline-page .rl-fn-tab b{flex:none;min-width:18px;height:18px;padding:0 5px;border-radius:9px;display:inline-grid;place-items:center;
+    background:var(--color-neutral-100);color:var(--color-neutral-600);font-size:var(--t-label);font-weight:var(--w-title);font-variant-numeric:tabular-nums}
+  .redline-page .rl-fn-sp{flex:1 1 0;min-width:4px}
+  .redline-page .rl-fn-back{flex:none;align-self:center;border:0;background:none;padding:0 2px;font:inherit;font-size:var(--t-meta);
+    color:var(--color-neutral-600);cursor:pointer;white-space:nowrap}
+  .redline-page .rl-fn-back:hover{color:var(--accent-ink)}
+  .redline-page .rl-fn-only{display:flex;align-items:baseline;gap:6px;margin:-4px 0 10px;font-size:var(--t-meta);color:var(--color-neutral-600);min-width:0}
+  .redline-page .rl-fn-only b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-text);font-weight:var(--w-strong)}
+  .redline-page .rl-fn-only span{flex:none}
+  .redline-page .rl-fn-all{margin-left:auto;flex:none;border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);cursor:pointer;white-space:nowrap}
+  .redline-page .rl-fn-all:hover{text-decoration:underline}
+  .redline-page .rl-fn-list{display:block}
+  .redline-page .rl-fn-thread{margin:0 0 10px;padding:0;border:0;background:none}
+  .redline-page .rl-fn-note{display:flex;gap:8px;align-items:flex-start;margin:0 0 8px}
+  .redline-page .rl-fn-note.is-reply{margin-left:28px}
+  .redline-page .rl-fn-face{flex:none;width:20px;height:20px;border-radius:50%;display:inline-grid;place-items:center;margin-top:1px;
+    background:var(--color-accent-100);color:var(--accent-ink-700);font-size:9px;font-weight:var(--w-title)}
+  .redline-page .rl-fn-note.is-them .rl-fn-face{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .redline-page .rl-fn-main{flex:1;min-width:0}
+  .redline-page .rl-fn-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 5px;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5}
+  .redline-page .rl-fn-line b{color:var(--color-text);font-weight:var(--w-strong)}
+  .redline-page .rl-fn-cl{border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);text-decoration:underline;
+    text-underline-offset:2px;cursor:pointer}
+  .redline-page .rl-fn-say{margin-top:4px;padding:8px 10px;border-radius:var(--radius-lg);background:var(--color-neutral-100);
+    font-size:var(--t-meta);line-height:1.5;color:var(--color-text);white-space:pre-wrap;overflow-wrap:anywhere}
+  .redline-page .rl-fn-note.is-new .rl-fn-say{box-shadow:inset 2px 0 0 var(--accent-solid)}
+  .redline-page .rl-fn-acts{display:none;margin-top:4px}
+  .redline-page .rl-fn-note:hover > .rl-fn-main > .rl-fn-acts,.redline-page .rl-fn-note:focus-within > .rl-fn-main > .rl-fn-acts{display:block}
+  @media (hover:none){ .redline-page .rl-fn-acts{display:block} }
+  .redline-page .rl-fn-acts .rl-np-acts{margin:0}
+  .redline-page .rl-fn-empty{padding:14px 2px;font-size:var(--t-meta);color:var(--color-neutral-600)}
+  .redline-page .rl-fn-foot{position:relative;display:flex;align-items:flex-end;gap:6px;margin-top:6px;padding:4px 4px 4px 10px;
+    border:1px solid var(--btn-edge);border-radius:var(--radius-lg);background:var(--color-surface)}
+  .redline-page .rl-fn-foot:focus-within{border-color:var(--accent-ink)}
+  .redline-page .rl-fn-foot .rl-fn-in{flex:1;min-width:0;border:0;outline:0;background:none;resize:none;padding:6px 0;
+    font:inherit;font-size:var(--t-meta);line-height:1.45;min-height:0;max-height:140px}
+  .redline-page .rl-fn-post{flex:none}
+  .redline-page .rl-fn-foot .rl-np-tags{position:absolute;left:0;right:0;bottom:calc(100% + 4px);z-index:5}
   `;
   document.head.appendChild(s);
 }

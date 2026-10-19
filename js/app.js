@@ -962,7 +962,15 @@ function updateSidebarCounts(){
      wolf over an empty queue. */
   const NAV_COUNT_TONE={calendar:'amber',mynotes:'amber',migration:'amber',pipeline:'amber',negotiations:'amber',intake:'amber',obligations:'amber',approvals:'amber',agents:'amber'};
   document.querySelectorAll('[data-count]').forEach(el=>{
-    const k=el.getAttribute('data-count'); const v=counts[k];
+    const k=el.getAttribute('data-count');
+    /* A DOOR'S PILL, NOT ANY ELEMENT THAT HAPPENS TO CARRY THE ATTRIBUTE
+       (19 Oct 2026, found by the letter's history preview — lane C2): the
+       negotiation history (#history-timeline) carries data-count="17" for its
+       own rows, and this sweep wrote '' over it, emptying the history in the
+       letter's preview and in its own window on the next repaint. A key that
+       is no count of ours, outside the rail, is left alone. */
+    if(!Object.prototype.hasOwnProperty.call(counts,k) && !(el.closest && el.closest('.nav-item, #sidebar, nav'))) return;
+    const v=counts[k];
     /* A door that only counts WORK says nothing at zero (the Import door,
        7 Oct 2026): "0 need review" is not news, and a blank is the honest
        picture of an empty queue. */

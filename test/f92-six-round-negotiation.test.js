@@ -62,8 +62,8 @@ async function table(){
     signatures: [], comments: [], redlineText: RICH, format: 'rich' };
 
   /* The transport, stood in for — everything up to it is the product's. */
-  const post = { reshared: 0, modals: 0 };
-  win.openShareModal = () => { post.modals++; };
+  const post = { reshared: 0, modals: 0, shareOpts: null };
+  win.openShareModal = (_c, o) => { post.modals++; post.shareOpts = o || null; };
   win.counterpartyContact = () => ({ name: 'Erik Lindqvist', email: c.counterpartyEmail, channel: 'email' });
   win.reshareToLastRecipient = async () => { post.reshared++; return { delivered: true }; };
   win.cachedShares = () => [];
@@ -166,11 +166,19 @@ describe('F92 — the six-round negotiation, end to end', () => {
        would publish one draft and hold the other, which is F100g's story. The
        "send the lot" act this round needs is the band's Send all, a
        [data-redline-proxy] batch door onto the same postbox. */
+    /* RE-POINTED 18 Oct 2026 (round 11's gaps, "The letter": "Every way to
+       send — Share on the paper's line, Send all on Redlines, Jambo's share —
+       opens this same screen"): Send all opens the one send screen, which
+       draws the email that goes and what stays behind, and the turn moves when
+       ITS Send reports the round sent (its onSent, called here as the screen
+       calls it). Still no confirmation pop-up: the letter is the send. */
     t.$('.rl-unsent-go').dispatchEvent(new win.Event('click', { bubbles: true }));
     await t.pause();
+    assert.equal(t.post.modals, 1, 'Send all opens the one send screen, and nothing else');
+    assert.ok(t.post.shareOpts && t.post.shareOpts.handOver === true, 'which hands the turn over when it has sent');
+    t.post.shareOpts.onSent({ emailSent: true });
+    await t.pause();
     win.renderRedline();
-    assert.equal(t.post.modals, 0, 'zero confirmation pop-ups on the send path');
-    assert.equal(t.post.reshared, 1, 'and the dispatch really happened');
     assert.equal(win.negoTurn(c), 'counterparty', 'the table turned');
     /* RE-POINTED 26 Aug 2026: the status word came off our seat's row once
        every state it could carry had a heading of its own. The claim is the
@@ -429,7 +437,13 @@ describe('F92 — the six-round negotiation, end to end', () => {
     /* ================= ROUND 6 — batch publish, then close the book ================= */
     const blast = t.$('[data-rl-blast]');
     assert.ok(blast && /Send All \(1\) Redline/.test(blast.textContent), 'the flashing batch control');
+    /* RE-POINTED 18 Oct 2026 (round 11's gaps): the batch control opens the
+       letter like every send; its Send hands the turn over (onSent) */
+    const opened = t.post.modals;
     blast.click();
+    await t.pause();
+    assert.equal(t.post.modals, opened + 1, 'the batch control opens the one send screen');
+    t.post.shareOpts.onSent({ emailSent: true });
     await t.pause();
     win.renderRedline();
     assert.equal(win.negoTurn(c), 'counterparty');

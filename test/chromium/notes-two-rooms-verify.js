@@ -82,6 +82,18 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
     const before = await page.evaluate(() => !!document.querySelector('#context-panel.open'));
     await page.click(`#rl-changes [data-rl-notes="${set.ch}"]`);
     await page.waitForTimeout(500);
+    /* ---- RE-POINTED 19 Oct 2026 (round 9's gaps, third pass, lane C2: "This
+       opens that change's notes" — in the same panel, one room per side) ----
+       On Jambo's Redlines face, where openRedlineWorkbench lands since stage
+       5, the row's count opens that change's notes IN THE PANEL, not the
+       drawer over it. The drawer is not retired — it is Chat, with a door of
+       its own (openNotesPanel) — and the rest of this block drives it through
+       that door, as section 6 always did. */
+    const inPanel = await page.evaluate(chId => !!document.querySelector(`#pd-redface .rl-fn[data-rl-fn-change="${chId}"]`)
+      && !document.querySelector('#context-panel.open'), set.ch);
+    check('ON THE FACE THE PRESS OPENS THAT CHANGE\'S NOTES IN THE PANEL — not the drawer over it', inPanel);
+    await page.evaluate(id => { if (window.rlFaceNotesSet) rlFaceNotesSet(null); if (window.rlHeadRepaint) rlHeadRepaint(); openNotesPanel(state.activeId, id); }, set.ch);
+    await page.waitForTimeout(500);
     /* ---- RE-POINTED 11 Sep 2026 (Young: "whenever you want to comment, the
        comments / chat slide panel slides in and you comment there instead").
        The window this block drove is retired: the Notes row opens the DRAWER
@@ -106,7 +118,7 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
         clock: !!(panel && [...panel.querySelectorAll('.rl-np-top span')].some(x => /20\d\d/.test(x.textContent))),
         pin: !!(panel && panel.querySelector('.rl-np-pin')) };
     }, set.ch);
-    check('THE PRESS OPENS THE DRAWER ON THE CHANGE — not a dead press, and no window', dlg.up && dlg.window === false);
+    check('THE DRAWER\'S OWN DOOR OPENS IT ON THE CHANGE — not a dead press, and no window', dlg.up && dlg.window === false);
     check('and it names the change it belongs to', /CHG-/.test(dlg.head || ''), (dlg.head || '').trim());
     check('what you wrote is on the list of its room, with Reply and Done under the notes',
       !!dlg.mine && (dlg.mineRoom !== dlg.roomShown || dlg.list.includes(String(dlg.mine).trim())) && dlg.reply && dlg.done,

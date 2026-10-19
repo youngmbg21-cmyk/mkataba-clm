@@ -58,10 +58,19 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     const shoot = async name => { for (const [w, hh] of SCREENS){ await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(350);
       await page.screenshot({ path: path.join(OUT, `${name}-${w}x${hh}.png`) }); } await page.setViewportSize({ width: 1536, height: 730 }); await page.waitForTimeout(300); };
 
-    /* 1 the Redlines face */
+    /* 1 the Redlines face
+       RE-POINTED 18 Oct 2026 (the gaps of rounds 8–11 as drawn: under a face
+       the panel draws no chips — the face's row, then the face, then the ask
+       box). The next steps are still ONE reading, caNextSteps, which the
+       "what's next" card and the chips beside the paper both print; under the
+       face it is read here directly, and the chips are asked to be out of sight. */
+    const chipsShown = () => page.evaluate(() => [...document.querySelectorAll('#ig-dock [data-ig-chips] [data-ca-chip]')].filter(b => b.getClientRects().length).length);
+    const nextOf = () => page.evaluate(() => caNextSteps(getContract('MK-B2')));
     await page.evaluate(() => { setView('dashboard'); pdRedOpen('MK-B2'); });
-    await until(page, () => !!document.querySelector('#pd-redface') && !!document.querySelector('#ig-dock [data-ig-chips] [data-ca-chip]'), null, 10000);
-    const c0 = await chips();
+    await until(page, () => !!document.querySelector('#pd-redface'), null, 10000);
+    await page.waitForTimeout(300);
+    ok('1 under the face no chips are drawn', (await chipsShown()) === 0);
+    const c0 = await nextOf();
     ok('1a with Redlines open there is no "redline" chip', c0.length > 0 && !c0.includes('redline'), JSON.stringify(c0));
     const own = await page.evaluate(() => !!document.querySelector('#pd-redface [data-rl-edit-first]'));
     ok('1b an empty list shows its own Edit a clause, so no chip repeats it', own && !c0.includes('edit'), JSON.stringify({ own, c0 }));
@@ -70,13 +79,14 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
       let r = null; try { r = await negoEditClause(c, cl.clauseId, (cl.bodyHtml || ('<p>' + cl.text + '</p>')) + '<p>Volumes are reviewed each quarter.</p>', { side: 'owner', author: 'Amina Otieno', why: 'volume' }); } catch (e){ r = 'threw ' + e.message; }
       pdRedRepaint(); return r && (r.id || String(r)); });
     ok('1b2 a change of ours is filed (the setup)', /^CHG-/.test(String(filed)), String(filed));
-    await until(page, () => !document.querySelector('#pd-redface [data-rl-edit-first]') && !!document.querySelector('#ig-dock [data-ig-chips] [data-ca-chip]'), null, 8000);
+    await until(page, () => !document.querySelector('#pd-redface [data-rl-edit-first]'), null, 8000);
     await page.waitForTimeout(400);
-    const c1 = await chips();
+    const c1 = await nextOf();
     ok('1c with a change on the table "edit a clause" is the next step', c1.includes('edit') && !c1.includes('redline'), JSON.stringify(c1));
     await shoot('1-redlines');
     if (c1.includes('edit')){
-      await page.click('#ig-dock [data-ca-next="edit"]');
+      /* the step's own runner — what its chip and its card button press */
+      await page.evaluate(() => caNextRun(getContract('MK-B2'), 'edit'));
       ok('1d its press opens the clause editor', await until(page, () => !!document.querySelector('#clause-editor'), null, 6000));
       await page.keyboard.press('Escape'); await page.waitForTimeout(300);
       await page.evaluate(() => { const b = document.querySelector('#clause-editor [data-ce-act="close"], #clause-editor .ce-close'); if (b) b.click(); });
