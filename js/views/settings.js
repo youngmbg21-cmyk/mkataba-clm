@@ -2598,10 +2598,11 @@ const stAwayDay=iso=>{ const t=Date.parse(iso||''); if(!t) return '';
 const stAwayWeekDay=iso=>{ const t=Date.parse(iso||''); if(!t) return '';
   const bare=/^\d{4}-\d{2}-\d{2}$/.test(String(iso));
   const thisYear=String((typeof todayISO==='function')?todayISO():new Date().toISOString()).slice(0,4)===String(iso).slice(0,4);
-  /* its parts joined by a space, as drawn ("Fri 23 Oct", never "Fri, 23 Oct") */
+  /* its parts joined by a space, as drawn ("Fri 23 Oct", never "Fri, 23 Oct");
+     a month's own full stop ("okt.") is left to the sentence's */
   try{ return new Intl.DateTimeFormat((typeof langLocale==='function')?langLocale():undefined,
     Object.assign({ weekday:'short', day:'numeric', month:'short' }, thisYear?{}:{ year:'numeric' }, bare?{ timeZone:'UTC' }:{}))
-    .formatToParts(new Date(t)).filter(p=>p.type!=='literal').map(p=>p.value).join(' '); }
+    .formatToParts(new Date(t)).filter(p=>p.type!=='literal').map(p=>p.value).join(' ').replace(/\.$/,''); }
   catch(_){ return String(iso).slice(0,10); } };
 /* a person's first name, as the drawings say a colleague in a sentence */
 const stFirstOf=name=>String(name||'').trim().split(/\s+/)[0]||'';
