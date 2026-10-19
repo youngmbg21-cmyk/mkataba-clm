@@ -474,7 +474,7 @@ function pdFillHeadHtml(c){
   const pct = d.all ? Math.round(done * 100 / d.all) : 100;
   /* ONE TRAIL (owner, 19 Oct 2026): the way back is the panel's trail line
      (pdTrailHtml), so the head is the name and the count — no ‹ Jambo, no × */
-  return `<div class="pd-ff-r"><h3>${_pdE(_pdT('pd_ff_title'))}</h3><span data-pd-ff-pill>${
+  return `<div class="pd-ff-r">${pdTrailHtml({ inHead: true })}<h3 class="sr-only">${_pdE(_pdT('pd_ff_title'))}</h3><span data-pd-ff-pill>${
       d.left ? pdPill('warn', _pdTn('det_left_n', d.left, { n: d.left })) : pdPill('ok', _pdT('pd_ff_all_in'))}</span></div>
     <div class="det-bar" aria-hidden="true"><i data-pd-ff-bar style="width:${pct}%"></i></div>
     <span class="pd-ff-n" data-pd-ff-count>${_pdE(_pdT('det_n_of_m', { done, all: d.all }))} · ${_pdE(_pdT('pd_ff_saved'))}</span>${pdFillPrivateHtml(c)}`;
@@ -1321,7 +1321,10 @@ function pdTrail(){
   const send = typeof pdSendShows === 'function' && pdSendShows();
   const face = send ? 'send' : pdFaceNow();
   if (!face) return null;
-  const jb = _pdT('pd_tab_copilot'), word = _pdT(PD_FACE_WORD[face] || 'pd_tab_copilot');
+  const jb = _pdT('pd_tab_copilot');
+  /* signed, Before you sign is the receipt and says so */
+  let word = _pdT(PD_FACE_WORD[face] || 'pd_tab_copilot');
+  if (face === 'signing'){ try { const sc = pdContract(); if (sc && pdSignState(sc).closed) word = _pdT('pd_st_signed'); } catch (_){} }
   if (face === 'red'){
     const c = pdContract();
     const notes = !!(c && typeof rlFaceNotesOn === 'function' && rlFaceNotesOn(c, { side: 'owner' }));
@@ -1331,12 +1334,21 @@ function pdTrail(){
   }
   return { back: face, up: jb, path: [jb, word] };
 }
-function pdTrailHtml(){
+/* THE FACES WITH A HEAD OF THEIR OWN (Fill in, Before you sign, an
+   amendment) carry the trail IN that head, in its title's place — the same
+   spot under the tabs, no extra line (the road and the owed list keep their
+   height); Redlines and Before you send draw it as its own line */
+const PD_TRAIL_IN_HEAD = ['fill', 'signing', 'amend'];
+function pdTrailHtml(o){
   const t = pdTrail(); if (!t) return '';
+  const inHead = PD_TRAIL_IN_HEAD.includes(t.back);
+  if (!(o && o.inHead) && inHead) return '';
+  if (o && o.inHead && !inHead) return '';
   const last = t.path.length - 1;
   const where = t.path.map((w, i) => i === last ? `<b>${_pdE(w)}</b>` : _pdE(w)).join('<i aria-hidden="true"> / </i>');
   const tip = _pdT('pd_trail_back', { to: t.up });
-  return `<div class="pd-trail" data-pd-trail="${_pdE(t.back)}"><button type="button" class="pd-back" data-pd-back="${_pdE(t.back)}" title="${_pdE(tip)}" aria-label="${_pdE(tip)}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${_pdE(t.up)}</button><span class="pd-trail-w">${where}</span></div>`;
+  const tag = (o && o.inHead) ? 'span' : 'div';
+  return `<${tag} class="pd-trail${(o && o.inHead) ? ' is-in-head' : ''}" data-pd-trail="${_pdE(t.back)}"><button type="button" class="pd-back" data-pd-back="${_pdE(t.back)}" title="${_pdE(tip)}" aria-label="${_pdE(tip)}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${_pdE(t.up)}</button><span class="pd-trail-w">${where}</span></${tag}>`;
 }
 /* THE LINE FOLLOWS THE FACE IN PLACE: a face opened or turned without the
    panel being rebuilt (a hand in Fill in keeps it standing) still shows its
@@ -1508,7 +1520,7 @@ function pdSignHeadHtml(c){
   const s = pdSignState(c);
   /* signed, the title says so and the pill would say it twice */
   /* the way back is the panel's trail line (ONE TRAIL, owner 19 Oct 2026) */
-  return `<div class="pd-sf-r"><h3>${_pdE(_pdT(s.closed ? 'pd_st_signed' : 'pd_sf_title'))}</h3><span data-pd-sf-pill>${s.closed ? '' : pdSignPillHtml(c)}</span></div>`;
+  return `<div class="pd-sf-r">${pdTrailHtml({ inHead: true })}<h3 class="sr-only">${_pdE(_pdT(s.closed ? 'pd_st_signed' : 'pd_sf_title'))}</h3><span data-pd-sf-pill>${s.closed ? '' : pdSignPillHtml(c)}</span></div>`;
 }
 /* ONCE BOTH HAVE SIGNED THE FACE IS THE RECEIPT (the owner's yes, decision
    3), and EVERY STEP STARTS THE NEXT (rule 4): what the signature starts —
@@ -2203,7 +2215,7 @@ function pdAmendAdd(el){
 }
 function pdAmendHeadHtml(c){
   /* the way back is the panel's trail line (ONE TRAIL, owner 19 Oct 2026) */
-  return `<div class="pd-sf-r"><h3>${_pdE(_pdT('pd_am_title', { ref: (typeof contractRef === 'function') ? contractRef(c) : c.id }))}</h3></div>
+  return `<div class="pd-sf-r">${pdTrailHtml({ inHead: true })}<h3 class="sr-only">${_pdE(_pdT('pd_am_title', { ref: (typeof contractRef === 'function') ? contractRef(c) : c.id }))}</h3></div>
     <p class="pd-am-sub">${_pdE(_pdT('pd_am_sub'))}</p>`;
 }
 function pdAmendItemHtml(it, i){
@@ -4021,7 +4033,7 @@ if (typeof document !== 'undefined' && !document._pdTrailEsc){
     if (pdTrailBack()) e.preventDefault();
   });
 }
-Object.assign(window, { pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
+Object.assign(window, { PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, PD_RD_CHECKS, pdRoadCheckOf, pdRoadCheckNames, pdDayWord, pdBackDay, pdAwayOf, pdRoadRuleOf, pdRoadRuleTitle, pdRoadRuleSub, pdRoadRuleFramed, pdRoadRuleHtml, pdRoadMovedHtml, pdRoadYesOf, pdRoadYesTitle, pdRoadYesFramed, pdRoadYesFacts, pdRoadYesHtml, pdRoadPress, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,
