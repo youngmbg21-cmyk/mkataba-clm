@@ -2006,6 +2006,7 @@ function docxTrackedParagraphXml(p, state){
      every wrapped line hangs there too. Without the tab stop Word advances to
      its own default and the second column of a whole contract is a few pixels
      out from where the drafter put it. */
+  let ind = '';
   if (!p.list && (p.hang || p.level || p.toc)){
     const level = Math.max(0, Math.min(3, p.level || 0));
     const left = DOCX_STEP * (level + (p.hang ? 1 : 0));
@@ -2020,12 +2021,15 @@ function docxTrackedParagraphXml(p, state){
     if (left) stops.push(`<w:tab w:val="left" w:pos="${left}"/>`);
     if (p.toc) stops.push(`<w:tab w:val="right" w:pos="${DOCX_TOC_STOP}" w:leader="dot"/>`);
     if (stops.length) props.push(`<w:tabs>${stops.join('')}</w:tabs>`);
-    if (left) props.push(`<w:ind w:left="${left}"${p.hang ? ` w:hanging="${DOCX_STEP}"` : ''}/>`);
+    if (left) ind = `<w:ind w:left="${left}"${p.hang ? ` w:hanging="${DOCX_STEP}"` : ''}/>`;
   }
   /* THE FILE SAID NO SPACE AFTER THIS LINE, which is how a label sits above its
      value. Everything else takes the document's own default from the Normal
      style rather than a number repeated on every paragraph. */
   if (p.tight) props.push('<w:spacing w:after="0"/>');
+  /* Word's own order is w:spacing THEN w:ind (CT_PPrBase); the other way
+     round a strict reader refuses the paragraph (bug log). */
+  if (ind) props.push(ind);
   /* ---- A CLAUSE STRUCK WHOLE TAKES ITS PARAGRAPH MARK WITH IT ----
      Word marks the paragraph MARK as deleted separately from the words. Without
      it, accepting a deletion in Word leaves an empty paragraph where the clause

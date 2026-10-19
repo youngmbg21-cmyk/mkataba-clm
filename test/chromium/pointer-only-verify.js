@@ -43,7 +43,9 @@ const spotsOf = page => page.evaluate(() => {
     return r.width > 4 && r.height > 4 ? [Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2)] : null; };
   const fig = document.querySelector('#hb-board .hb-fig-main[data-hb-dig]') || document.querySelector('#hb-board [data-hb-dig]');
   const vis = sel => [...document.querySelectorAll(sel)].find(e => e.getClientRects().length && e.getBoundingClientRect().width > 4);
-  const head = vis('#dk-home .dk-tab');   /* the head's tab (the desk tabs since 17 Oct 2026) */
+  /* RE-POINTED 18 Oct 2026 (the SAP way): no head row on a computer — a control on the page's own
+     first line instead: the Board's Summarise, Explorer's Group by in the map's corner */
+  const head = vis('#hb-board .hb-note button') || vis('#hb-groupby select') || vis('.ig-viewbar button');
   const dock = vis('#igd-input') || vis('#hb-board .hb-ins button, #hb-board [data-hb-ins]') || vis('#hb-board button[data-hb-act]');
   const cv = document.getElementById('ig-cv');
   return { fig: mid(fig), head: mid(head), dock: mid(dock), map: mid(cv) };
@@ -79,17 +81,19 @@ const at = (page, xy) => page.evaluate(([x, y]) => {
         await until(page, () => hbS().face === 'explorer' && !!document.getElementById('ig-cv'), null, 12000);
         await page.waitForTimeout(600);
       }
-      await page.click('#hb-present').catch(() => {});
+      /* Present is Recent's last row (the SAP way, 18 Oct 2026) */
+      await page.click('#dk-page').catch(() => {});
+      await page.click('#dk-recent [data-dk-present]').catch(() => {});
       await until(page, () => document.getElementById('ig-page') && document.getElementById('ig-page').classList.contains('hb-presenting'));
       /* the page settles into the presentation before anything is aimed at */
-      await until(page, () => { const f = document.querySelector('#dk-home .dk-tab'); return f && f.getBoundingClientRect().width > 0 ? true : null; });
+      await until(page, () => { const f = document.querySelector('#hb-board .hb-note button, #hb-groupby:not([hidden]) select'); return f && f.getBoundingClientRect().width > 0 ? true : null; });
       await page.waitForTimeout(500);
       const S = await spotsOf(page);
       await page.click('[data-hb-tool="pointer"]').catch(() => {});
       const on = await until(page, () => !!document.querySelector('.hb-pointing'));
       check(!!on, `${face} 0 Pointer turns on`);
-      const targets = face === 'board' ? [['a figure', S.fig], ['the Board · Explorer tab', S.head], ['a card\'s button', S.dock]]
-        : [['the map', S.map], ['the Board · Explorer tab', S.head]];
+      const targets = face === 'board' ? [['a figure', S.fig], ['a control on the page\'s first line', S.head], ['a card\'s button', S.dock]]
+        : [['the map', S.map], ['a control on the page\'s first line', S.head]];
       for (const [name, xy] of targets){
         if (!xy){ check(false, `${face} 1 ${name} is on the screen to aim at`); continue; }
         await page.mouse.move(xy[0], xy[1], { steps: 3 });

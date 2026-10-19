@@ -172,8 +172,11 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
 
     /* ===== 6. THE ANSWER FIRST ===== */
     const src = fs.readFileSync(path.join(__dirname, '..', '..', 'js', 'views', 'intelligence.js'), 'utf8');
-    ok('6 the map\'s own summary moves to the hover where Copilot wrote the answer',
-/if\(line&&ownHtml&&graphSaysMore\(own,res\.note,parts\[0\]\)\)\{ how=parts\.filter\(x=>x!==capSaid\)/.test(src) && /class="igd-how" title=/.test(src));
+    /* RE-POINTED 18 Oct 2026 (owner: where the map only regroups, HaTi's line is
+       read first): the summary moves to the hover over a SET only (or on the
+       Board); f730 (4) and imported-on-the-map-verify 3b pin the other half */
+    ok('6 the map\'s own summary moves to the hover where Copilot wrote the answer over a set',
+/if\(line&&ownHtml&&graphSaysMore\(own,res\.note,parts\[0\]\)\)\{\s*if\(\(ids&&ids\.length\)\|\|onBoard\)\{ how=parts\.filter\(x=>x!==capSaid\)/.test(src) && /class="igd-how" title=/.test(src));
 
     ok('no page errors', !errs.length, errs.join(' | '));
   } catch (e) {

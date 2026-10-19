@@ -34,9 +34,11 @@ const { STRINGS, I18N_DEFAULT, LANGUAGES } = i18n;
 
 /* Words that are legitimately identical in both languages, so an equal-to-
    English value is a real translation rather than a forgotten one. */
-const SAME_IN_BOTH = new Set([ 'na_tab_hati', 'cal_k_plan', 'pd_tab_copilot', 'stk_by_jambo', 'pd_doc_pdf',
+const SAME_IN_BOTH = new Set([ 'int_tour_part', 'na_tab_hati', 'cal_k_plan', 'pd_tab_copilot', 'stk_by_jambo', 'pd_doc_pdf',
   /* Jambo's words (stage 1 of the one-page Home plan, 14 Oct 2026): "3×", how often a place was used, is a number */
   'hb_pop_used',
+  /* a counter that keeps one of their words (18 Oct 2026): one place is just the word itself */
+  'ng_keeps_n_one',
   /* the Control Room (16 Oct 2026): "Jambo" is his name, and "1 person" and "Person" are the same words in Swedish */
   'st_side_jambo', 'st_cr_people_n_one', 'st_pc_people_one', 'st_sh_person',
   /* Jambo's agents (12 Oct 2026): "1 agent", "Normal" and "Agent" are the same word in Swedish */

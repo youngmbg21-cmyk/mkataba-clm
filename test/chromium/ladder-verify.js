@@ -72,38 +72,36 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
   });
   if (staged.error){ check('stage', false, staged.error); await browser.close(); srv.close(); return; }
 
-  /* 1 · the chip is drawn, says the round and whose move, and is a door */
-  const chip = await page.evaluate(cid => {
-    const sec = document.querySelector(`#rl-doc .rl-clause[data-clause="${CSS.escape(cid)}"]`);
-    const el = sec && sec.querySelector('.rl-rung');
-    if (!el) return null;
-    const r = el.getBoundingClientRect(); const s = getComputedStyle(el);
-    const head = sec.querySelector('.rl-clause-h');
-    const body = sec.querySelector('.nego-body');
-    return { text: el.textContent.trim(), seen: r.width > 0 && r.height > 0, bg: s.backgroundColor,
-      door: el.getAttribute('data-rl-ladder'), inTop: !!el.closest('.rl-clause-top'),
-      aboveBody: body ? r.top < body.getBoundingClientRect().top : null,
-      rightOfHead: head ? r.left >= head.getBoundingClientRect().left : null };
-  }, staged.c4);
-  check('1a the round chip is drawn on the clause head', !!chip && chip.seen && chip.inTop, chip && JSON.stringify(chip));
-  check('1b it says the round, whose move, and what it stands on', !!chip && /Step 3/.test(chip.text) && /step 2/.test(chip.text), chip && chip.text);
-  check('1c it is a door onto the clause panel', !!chip && chip.door === staged.c4);
-  check('1d it takes no line: it sits above the wording, beside the heading', !!chip && chip.aboveBody && chip.rightOfHead);
-  const overlap = await page.evaluate(cid => {
-    const sec = document.querySelector(`#rl-doc .rl-clause[data-clause="${CSS.escape(cid)}"]`);
-    sec.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
-    const chip = sec.querySelector('.rl-rung');
-    const pen = sec.querySelector('.rl-cp-pill, .rl-cp-lock');
-    if (!chip || !pen) return { no: true };
-    const a = chip.getBoundingClientRect(), b = pen.getBoundingClientRect();
-    return { chipRight: Math.round(a.right), penLeft: Math.round(b.left), clear: a.right <= b.left + 1 };
-  }, staged.c4);
-  check('1e the chip does not run under the pinned pencil', overlap.no || overlap.clear, JSON.stringify(overlap));
-  await page.screenshot({ path: OUT + '/01-chip.png' });
+  /* 1 · NO STEP CHIP AND NO LADDER LINE ON THE PAPER (owner, 18 Oct 2026:
+     "Step 2 · your ask on their step 1 · not sent" was "printed inside the
+     contract itself", and the ladder line "should not be on paper at all").
+     The door onto the ladder is the Redlines row's own Ladder verb. */
+  const paper1 = await page.evaluate(o => {
+    const doc = document.querySelector('#rl-doc');
+    const sec = document.querySelector(`#rl-doc .rl-clause[data-clause="${CSS.escape(o.c4)}"]`);
+    const door = document.querySelector(`#rl-changes .rl-card-face [data-rl-ladder="${CSS.escape(o.c4)}"]`);
+    return { sec: !!sec, chips: document.querySelectorAll('#rl-doc .rl-rung').length,
+      lines: document.querySelectorAll('#rl-doc .rl-baseline').length,
+      stepWords: /Step \d/.test(sec ? sec.textContent : ''),
+      jargon: /\bR0\b|Plain text on clause/.test(doc ? doc.textContent : ''),
+      door: !!door && door.tagName === 'BUTTON' };
+  }, { c4: staged.c4 });
+  check('1a the stacked clause is on the paper', paper1.sec, JSON.stringify(paper1));
+  check('1b no step chip anywhere on the paper', paper1.chips === 0 && !paper1.stepWords, JSON.stringify(paper1));
+  check('1c no ladder line anywhere on the paper', paper1.lines === 0 && !paper1.jargon, JSON.stringify(paper1));
+  check('1d the Redlines row\'s Ladder verb is the door onto the ladder', paper1.door, JSON.stringify(paper1));
+  await page.screenshot({ path: OUT + '/01-no-chip.png' });
+  /* THE DOOR, PRESSED: the clause panel covers the column while it is open,
+     so it is shut first and the press is dispatched in the page, as section
+     18's own press is. */
+  const pressLadder = async cid => {
+    await page.evaluate(id => { if (window.rlCpSetShown) rlCpSetShown(document, null);
+      const b = document.querySelector(`#rl-changes .rl-card-face [data-rl-ladder="${CSS.escape(id)}"]`); b && b.click(); }, cid);
+    await pause(400);
+  };
 
-  /* 2 · pressing it opens the panel, and the ladder is in it */
-  await page.click(`#rl-doc .rl-clause[data-clause="${staged.c4}"] .rl-rung`);
-  await pause(350);
+  /* 2 · pressing the row's Ladder opens the panel, and the ladder is in it */
+  await pressLadder(staged.c4);
   const panel = await page.evaluate(() => {
     const p = document.querySelector('#rl-cp');
     const open = p && p.classList.contains('is-open');
@@ -159,9 +157,8 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
      only when it is not already open. */
   const openPanel = async () => {
     const on = await page.evaluate(() => { const p = document.querySelector('#rl-cp'); return !!(p && p.classList.contains('is-open')); });
-    if (!on){ await page.click(`#rl-doc .rl-clause[data-clause="${staged.c4}"] .rl-rung`); await pause(350); }
+    if (!on) await pressLadder(staged.c4);
   };
-  check('3e the chip is a toggle, as every sliding panel on this page is', true);
   await openPanel();
   const cmpBtn = await page.$('[data-rl-rung-compare]');
   if (cmpBtn) await cmpBtn.click();
@@ -280,7 +277,7 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
     const html = redlineDocHtml(window.CONTRACT, { side: 'counterparty', cpSink: [] });
     return { chips: (html.match(/rl-rung/g) || []).length };
   });
-  check('7a the chip draws on their seat too (their colours, their words)', cp.chips > 0, 'chips ' + cp.chips);
+  check('7a their paper carries no step chip either (owner, 18 Oct 2026)', cp.chips === 0, 'chips ' + cp.chips);
 
   /* 8 · the highlight menu still works */
   await page.evaluate(() => { const p = document.querySelector('#rl-cp'); if (p) p.classList.remove('is-open'); });
@@ -305,9 +302,7 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
      counter parks their ask, and negoResolve refuses a decision on a parked
      ask by name, so the press would be refused every time it was offered.
      The rung points at the counter that answers it instead. */
-  await page.evaluate(() => { const p = document.querySelector('#rl-cp'); if (p) p.classList.remove('is-open'); });
-  await page.click(`#rl-doc .rl-clause[data-clause="${staged.c4}"] .rl-rung`);
-  await pause(400);
+  await pressLadder(staged.c4);
   const parked = await page.evaluate(() => {
     const rows = Array.from(document.querySelectorAll('.rl-ladder .rl-rung-row'));
     const tags = rows.map(li => (li.querySelector('.rl-rung-tag') || {}).textContent || '');
@@ -319,17 +314,17 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
   check('10c no press is offered that the model would refuse', parked.accepts === 0, 'accept verbs ' + parked.accepts);
   /* ---- 11 · THE KEYBOARD REACHES THE LADDER ----
      A door that only a mouse can open is half a door. */
-  await page.evaluate(() => { const p = document.querySelector('#rl-cp'); if (p) p.classList.remove('is-open'); });
+  await page.evaluate(() => { if (window.rlCpSetShown) rlCpSetShown(document, null); });
   await pause(200);
   const kb = await page.evaluate(cid => {
-    const chip = document.querySelector(`#rl-doc .rl-clause[data-clause="${CSS.escape(cid)}"] .rl-rung`);
+    const chip = document.querySelector(`#rl-changes .rl-card-face [data-rl-ladder="${CSS.escape(cid)}"]`);
     if (!chip) return { no: true };
     chip.focus();
     const focused = document.activeElement === chip;
     const cs = getComputedStyle(chip);
     return { focused, tag: chip.tagName, aria: chip.getAttribute('aria-expanded'), cursor: cs.cursor };
   }, staged.c4);
-  check('11a the chip is a real button the keyboard can reach', !kb.no && kb.focused && kb.tag === 'BUTTON', JSON.stringify(kb));
+  check('11a the row\'s Ladder verb is a real button the keyboard can reach', !kb.no && kb.focused && kb.tag === 'BUTTON', JSON.stringify(kb));
   await page.keyboard.press('Enter');
   await pause(400);
   check('11b Enter opens the ladder', await page.evaluate(() => {
@@ -349,40 +344,13 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
       setTimeout(() => r({ marks, agreed, back: n() }), 250);
     }, 250));
   });
-  check('12a chips are drawn on the marked reading and nowhere else',
-    clean.marks > 0 && clean.agreed === 0 && clean.back === clean.marks, JSON.stringify(clean));
+  check('12a no chip in any reading (owner, 18 Oct 2026)',
+    clean.marks === 0 && clean.agreed === 0 && clean.back === 0, JSON.stringify(clean));
 
-  /* ---- 13 · THE TWO SIDES ARE TOLD APART IN BOTH THEMES ----
-     The whole feature rests on two colours meaning two people. If they
-     collapse in the dark the key in the column head is a key to nothing. */
-  const themes = {};
-  for (const t of ['light', 'dark']){
-    await page.evaluate(v => { document.documentElement.setAttribute('data-theme', v);
-      document.documentElement.classList.toggle('dark', v === 'dark'); }, t);
-    await pause(250);
-    themes[t] = await page.evaluate(() => {
-      const chip = document.querySelector('#rl-doc .rl-rung');
-      const them = document.querySelector('#rl-doc .rl-rung-them');
-      const cs = el => el ? getComputedStyle(el) : null;
-      const a = cs(chip), b = cs(them);
-      return { you: a ? a.backgroundColor : null, youInk: a ? a.color : null,
-        them: b ? b.backgroundColor : null, themInk: b ? b.color : null };
-    });
-  }
-  await page.evaluate(() => { document.documentElement.removeAttribute('data-theme');
-    document.documentElement.classList.remove('dark'); });
-  await pause(200);
-  /* THE HOME PAPER (owner, 8 Oct 2026: "i am choosing the home paper"): the
-     step line is plain words on every paper, alike in both themes; the WORDS
-     ("your ask" / "their ask") tell the sides apart, and the marks keep their
-     side's colour (15c). */
-  for (const t of ['light', 'dark']){
-    const v = themes[t];
-    check(`13${t === 'light' ? 'a' : 'b'} in ${t}, the step line is plain words, ours and theirs alike`,
-      !!v.you && !!v.them && v.you === v.them && v.youInk === v.themInk, JSON.stringify(v));
-    check(`13${t === 'light' ? 'c' : 'd'} and it lies on the paper with no pill ground in ${t}`,
-      /rgba\(0, 0, 0, 0\)/.test(String(v.you)) && /rgba\(0, 0, 0, 0\)/.test(String(v.them)), JSON.stringify(v));
-  }
+  /* ---- 13 · RETIRED 18 Oct 2026 ----
+     It measured the step chip's ink in both themes; the owner took the chip
+     off the paper, so there is no chip left to colour. The marks keep their
+     side's colour (15). */
 
   /* ---- 14 · THE BOARD IS OUR SEAT'S ----
      It reads our playbook and our own negotiating history — the single most
@@ -398,8 +366,8 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
       precedentInPanel: /db-seen|ladderSettledFigure/.test(panel.join('')) };
   });
   check('14a their seat draws no door onto the deal board', !seat.doorOnPaper);
-  check('14b but the ladder IS on their seat — the record of the negotiation is shared',
-    seat.chips > 0 && seat.ladderInPanel, JSON.stringify(seat));
+  check('14b but the ladder IS on their seat (in the panel) — the record of the negotiation is shared; no chip on their paper',
+    seat.chips === 0 && seat.ladderInPanel, JSON.stringify(seat));
   check('14c and our precedent never reaches it', !seat.precedentInPanel);
 
 
@@ -430,18 +398,13 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
   check('15b an added run is underlined, ours and theirs alike', sides.usUnderlined === true && sides.themUnderlined === true, JSON.stringify(sides));
   check('15c a LONE ask of theirs wears the amber the key promises', sides.loneAmber, JSON.stringify(sides));
 
-  /* 16 · the chip: "not sent", beside the heading */
+  /* 16 · RE-POINTED 18 Oct 2026: the chip said "not sent" beside the heading;
+     the owner took it off the paper. The row's pile says it (18e). */
   const chip16 = await page.evaluate(cid => {
     const sec = document.querySelector(`#rl-doc .rl-clause[data-clause="${CSS.escape(cid)}"]`);
-    const el = sec && sec.querySelector('.rl-rung'); const h = sec && sec.querySelector('.rl-clause-h');
-    if (!el || !h) return null;
-    const a = el.getBoundingClientRect(), b = h.getBoundingClientRect();
-    return { text: el.textContent.trim(), under: Math.round(a.top - b.bottom), left: Math.round(a.left - b.left) };
+    return { sec: !!sec, chip: !!(sec && sec.querySelector('.rl-rung')), notSent: /not sent/i.test(sec ? sec.textContent : '') };
   }, staged.c4);
-  check('16a our unsent top move says so on the chip', !!chip16 && /not sent/i.test(chip16.text), chip16 && chip16.text);
-  /* The Home paper sets the step line under the heading, where the heading's
-     words start (owner, 8 Oct 2026). */
-  check('16b the chip sits right under the heading, where its words start', !!chip16 && chip16.under >= -2 && chip16.under <= 12 && Math.abs(chip16.left) <= 2, JSON.stringify(chip16));
+  check('16a our unsent move says nothing on the paper', chip16.sec && !chip16.chip && !chip16.notSent, JSON.stringify(chip16));
 
   /* 17 · the line under a stacked clause */
   const base17 = await page.evaluate(o => {
@@ -450,7 +413,7 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
     return { text: l ? l.textContent.replace(/\s+/g, ' ').trim() : null, seen: !!l && l.getBoundingClientRect().height > 0,
       lone: !!lone, press: !!(l && l.querySelector('[data-rl-read="agreed"]')) };
   }, { c4: staged.c4, c5: staged.c5 });
-  check('17a the stacked clause carries the line naming what the plain words are', base17.seen && /Plain text on clause/.test(base17.text) && /R0/.test(base17.text), base17.text);
+  check('17a the stacked clause carries no ladder line (owner, 18 Oct 2026)', !base17.seen && base17.text === null, String(base17.text));
   check('17b a lone ask carries no line', !base17.lone);
   /* REVERSED IN PLACE 23 Sep 2026 (Young: "Delete the As agreed and with
      changes pages"): the line still says what the plain words are and what was
@@ -605,10 +568,10 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
       tabs, card: !!card && card.getBoundingClientRect().height > 0,
       cardHeads: card ? [...card.querySelectorAll('.k')].map(k => k.textContent.trim()) : [] };
   }, staged.c4);
-  check('21a the chip is on the editor\'s paper too, as a statement', !!ed21.chip && /Step 3/.test(ed21.chip), ed21.chip);
+  check('21a the editor\'s paper carries no step chip either (owner, 18 Oct 2026)', ed21.chip === null, String(ed21.chip));
   /* RE-POINTED 28 Sep 2026 (Young picked the save symbol): Done is a drawn
      disk named Save, beside the chip, out of sight until something is typed. */
-  check('21b the save symbol sits beside the chip, named Save, hidden until typing', ed21.done === '' && ed21.label === 'Save' && ed21.hidden && ed21.besides, JSON.stringify({ done: ed21.done, label: ed21.label, hidden: ed21.hidden, besides: ed21.besides }));
+  check('21b the save symbol is named Save and hidden until typing', ed21.done === '' && ed21.label === 'Save' && ed21.hidden, JSON.stringify({ done: ed21.done, label: ed21.label, hidden: ed21.hidden }));
   /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy"): Figure and Playbook scan deleted, Ladder last. */
   check('21c the rail has Suggestions · (Risks) · Ladder, Ladder last', ed21.tabs.filter(t => t !== 'risks').join(',') === 'chat,ladder', ed21.tabs.join(','));
   check('21d the ladder card leads the conversation with what moved, the ladder and the precedent', ed21.card && ed21.cardHeads.length >= 3, ed21.cardHeads.join(' · '));
@@ -667,16 +630,17 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
       await new Promise(r => setTimeout(r, 500));
       const sec = document.querySelector(`#rl-doc .rl-clause[data-clause="${CSS.escape(cid)}"]`);
       const el = sec && sec.querySelector('.rl-rung');
-      if (!el) return { drawn: false };
-      const r = el.getBoundingClientRect();
-      return { drawn: r.width > 0 && r.height > 0, text: el.textContent.trim(),
+      /* the paper draws no chip (owner, 18 Oct 2026); the COUNT is the
+         reading's, which the Ladder and f328 still carry */
+      const chip = window.ladderChip(c, cid, 'owner');
+      return { drawn: !!el, text: chip ? chip.text : '',
         rungs: (window.ladderRungs(c, cid) || []).length };
     } catch (e) { return { error: String(e && e.message || e) }; }
   }, staged.c5);
   check('22a the stage really holds one agreed and one refused on one clause',
     mixed.rungs === 2, JSON.stringify(mixed));
-  check('22b the chip is drawn on a clause where nothing is left on the table',
-    mixed.drawn === true, mixed.text);
+  check('22b the paper draws no chip on a settled clause either (owner, 18 Oct 2026)',
+    mixed.drawn === false, mixed.text);
   check('22c and it COUNTS, rather than naming one outcome',
     /2 changes/.test(mixed.text || ''), mixed.text);
   check('22d it says the agreed one', /1 agreed/.test(mixed.text || ''), mixed.text);
@@ -697,8 +661,8 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
      hover works, and the whole feature is a hover. */
   await page.evaluate(() => { try{ rlPeekHide(); rlCpSetShown(document, null); }catch(_){} });
   await pause(200);
-  /* THE PANEL IS OPENED BY ITS OWN FUNCTION rather than by pressing the chip:
-     the chip TOGGLES, section 18 already proves the press, and a toggle whose
+  /* THE PANEL IS OPENED BY ITS OWN FUNCTION rather than by pressing the row's
+     Ladder verb: the press TOGGLES, section 18 already proves the press, and a toggle whose
      starting state depends on what the sections above left behind is a stage
      that can silently be shut. */
   await page.evaluate(id => rlCpSetShown(document, id, { ladder: true }), staged.c4);

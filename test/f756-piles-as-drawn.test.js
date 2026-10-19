@@ -97,7 +97,7 @@ describe('f756 (1) the changed words, cut around the edit', () => {
     assert.match(h, /^<div class="rl-card-sum rl-card-ex" title="Step 1 · theirs · 30 → 60 days">/);
     assert.match(h, /<span class="rl-card-ex-tag">rk_from_scan<\/span><\/div>$/, 'a change from the scan still says so');
     assert.equal(JSON.stringify(ch), before, 'display only');
-    assert.match(NV, /const why = rlRowWhyHtml\(ch\), lock = rlRowLockHtml\(c, ch, side\), line = rlRowLineHtml\(ch, sub, fromRiskRow\);/, 'the row draws it');
+    assert.match(NV, /const why = rlRowWhyHtml\(ch\), keeps = rlRowKeepsHtml\(c, ch, side\), lock = rlRowLockHtml\(c, ch, side\), line = rlRowLineHtml\(ch, sub, fromRiskRow\);/, 'the row draws it');
   });
 });
 

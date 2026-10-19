@@ -1,5 +1,5 @@
 /* ---- ONE FILTER, TWO HOSTS (Copilot audit phase 4, 11 Sep 2026) ----
-   The graph's structured `where` — fourteen keys the model names and HaTi
+   The graph's structured `where` — fifteen keys the model names and HaTi
    applies itself over its own cards — was written once, in
    js/views/intelligence.js, for the graph route. list_portfolio in the chat
    loop offered four filters of its own. Copilot's reach is now the graph's
@@ -41,6 +41,9 @@ function graphWhereHit(k, w, reads){
   if (w.notRead != null){ if (!!w.notRead !== (k.read === false)) return false; }
   if (w.move != null){ const want = fold(w.move); const mv = want === 'mine' || want === 'you' || want === 'us' ? 'you' : want === 'theirs' || want === 'them' ? 'them' : want; if (k.move !== mv) return false; }
   if (w.archived != null){ if (!!w.archived !== !!k.archived) return false; }
+  /* imported = came in through the Import page (the card's `imported`, read off
+     the contract's own import record; owner, 18 Oct 2026); the imports trial reads the same fact */
+  if (w.imported != null){ if (!!w.imported !== !!k.imported) return false; }
   return true;
 }
 const GW_API = { graphWhereNarrow, graphWhereHit };
