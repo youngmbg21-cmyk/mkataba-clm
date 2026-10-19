@@ -117,9 +117,13 @@ const landsOrFirst = (ctx, a) => a && a.kind === 'map' ? a.picks[0] : lands(ctx,
 describe('f705 (1) the map: thirty-one tasks, both languages, each on an existing door', () => {
   const { ctx } = stage();
   const T = ctx.JM_TASKS;
-  test('1a thirty-one tasks, each named once', () => {
-    assert.equal(T.length, 31);
-    assert.equal(new Set(T.map(x => x.k)).size, 31);
+  /* RE-POINTED 19 Oct 2026 (owner: "I want hati to do what the user asks in
+     plain language supported by Minisearch"): the 32nd task is a contract's
+     brief ("briefing for contracts mk 345"), the paper's own Read the brief */
+  test('1a thirty-two tasks, each named once, the brief the 32nd', () => {
+    assert.equal(T.length, 32);
+    assert.equal(new Set(T.map(x => x.k)).size, 32);
+    assert.ok(T.some(x => x.k === 'brief' && x.to.place === 'brief'));
   });
   test('1b every task has at least three ways of asking in each language, and each way has a word the map can read', () => {
     for (const t of T){
@@ -190,6 +194,9 @@ const EXAM = [
   /* the 31st task (owner, 18 Oct 2026): Explorer, every contract on one map */
   ['how are our contracts connected?', 'explorer'], ['show me all our contracts on a map', 'explorer'], ['where can I see the outliers?', 'explorer'],
   ['jag vill utforska alla avtal', 'explorer'], ['visa avtalen på en karta', 'explorer'],
+  /* 19 Oct 2026 (owner: "i asked jambo to take me to explorer and it did not"): its own name, and the 32nd task, the brief */
+  ['I want to open the explorer', 'explorer'], ['öppna utforskaren', 'explorer'],
+  ['I want to read the brief', 'brief'], ['brief me on this contract', 'brief'], ['läs sammanfattningen av avtalet', 'brief'],
   ['how do I add a new user?', 'team'], ['invite my colleague to HaTi', 'team'], ['bjud in en kollega', 'team'],
   ['set the signing limits', 'signcap'], ['how do I limit what Peter can sign?', 'signcap'], ['ändra signeringsgränser', 'signcap'],
   ['how do I make a folder private?', 'folders'], ['change who has access', 'folders'], ['begränsa åtkomst till en mapp', 'folders'],
@@ -201,7 +208,12 @@ const EXAM_NO_PAPER = [
   ['how do I bring in hundreds of old contracts?', 'import'], ['bulk import', 'import'], ['importera gamla avtal', 'import'],
 ];
 /* NOT THE MAP'S: what a contract says, a count, a date, a name, a comparison,
-   a translation, the Board's own reading, words no task knows */
+   a translation, the Board's own reading, words no task knows.
+   RE-POINTED 19 Oct 2026 (owner: "I want hati to do what the user asks in
+   plain language supported by Minisearch"): "summarise MK-9" and "summary of
+   MK-12" are still not the MAP's (jmRead null, below), but they are no longer
+   the model's either — the one reader takes them to that contract's brief
+   (caUnderstand, js/copilotacts.js; pinned in 3f) */
 const NOT_MINE = [
   'what does clause 7 say about liability?', 'summarise MK-9', 'how many contracts expire this year?', 'when does MK-12 expire?',
   'what is the value of the Nordkust deal?', 'which contracts have a liability cap above 10 million?', 'is there an auto-renewal clause in MK-12?',
@@ -270,6 +282,15 @@ describe('f705 (3) what the map leaves alone', () => {
       assert.equal(lands(ctx, ctx.jmRead('where do I change my language?')), 'lang', face + ': a task that is not a list still goes');
     }
     assert.equal(lands(stage().ctx, stage().ctx.jmRead('Which contracts renew soon?')), 'expiring', 'beside a paper the page is the answer');
+  });
+  /* RE-POINTED 19 Oct 2026: two lines of NOT_MINE now land on the brief through the one reader */
+  test('3f "summarise MK-9" and "summary of MK-12" are the contract\'s brief, read by the one reader, not the map', () => {
+    const { ctx } = stage({ paper: null });
+    for (const [q, id] of [['summarise MK-9', 'MK-9'], ['summary of MK-12', 'MK-12']]){
+      assert.equal(ctx.jmRead(q), null, q + ': not the map\'s');
+      const u = J(ctx.caUnderstand(q, { box: 'home' }));
+      assert.equal(u.kind, 'go', q); assert.equal(u.place, 'brief', q); assert.equal(u.cid, id, q);
+    }
   });
   test('3e until MiniSearch has arrived the map answers null, and the ask goes on as before', () => {
     const { ctx } = stage();
@@ -406,7 +427,14 @@ describe('f705 (8) the wiring', () => {
     const any = strip(ACTS).match(/function caAskAnywhere\(text, opts = \{\}\)\{([\s\S]*?)\n\}/)[1];
     const tail = any.slice(any.indexOf('let a = null'));
     assert.ok(tail.indexOf('jmRead(') > tail.indexOf('caReadPlace(') && tail.indexOf('jmRead(') < tail.indexOf('caHandHome('));
-    assert.match(tail, /!a && opts\.all && typeof jmRead === 'function'/, 'Home\'s box only: a page\'s own box keeps its own job');
+    /* RE-POINTED 19 Oct 2026 (owner: "I want hati to do what the user asks in
+       plain language supported by Minisearch without any constraints apart
+       from the limitations set by the settings"): the map is asked from EVERY
+       box, not Home's alone; what a box is FOR stays its own (a Settings
+       section in Settings, the Calendar in the Calendar) */
+    assert.match(tail, /if \(!a && typeof jmRead === 'function'\)/, 'every box asks the map');
+    assert.match(tail, /box === 'settings' && \(!!m\.st \|\| m\.place === 'settings'\)/, 'a Settings section asked in Settings is the finder\'s');
+    assert.match(tail, /box === 'cal' && m\.place === 'calendar'/, 'the Calendar asked in the Calendar is its own');
   });
   test('8d the app loads the map, after Jambo\'s word table; the library is fetched from HaTi itself', () => {
     const app = R('js/app.js');

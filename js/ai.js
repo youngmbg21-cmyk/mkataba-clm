@@ -4369,14 +4369,19 @@ async function aiSubmit(){
      a question or a booking (aiAsksPastCard, 18 Oct 2026) */
   const cardOwns=!!(aiActiveProposal()||aiActiveRephrase()) && !aiAsksPastCard(q);
   if(!cardOwns && typeof window.caAskAnywhere==='function'){
-    let go=null; try{ go=window.caReadPlace?caReadPlace(q):null; }catch(_){ go=null; }
+    /* ONE READER FOR EVERY JAMBO BOX (19 Oct 2026): what the one reading read
+       is what the window says it did — a place with its narrowing, a
+       contract and its act (caUnderstand), else a place word */
+    let go=null; try{ go=(window.caUnderstand?caUnderstand(q,{ box:'window' }):null)||(window.caReadPlace?caReadPlace(q):null); }catch(_){ go=null; }
     /* a request the screen in front answers stays there: no place is said (caHereRead) */
     try{ if(go&&window.caHereRead&&caHereRead(q)) go=null; }catch(_){ }
-    const took=caAskAnywhere(q);
+    let said='';
+    const took=caAskAnywhere(q,{ box:'window', say:line=>{ said=String(line||''); } });
     if(took){
       /* a booking or a question about their own calendar went to the Calendar's Jambo (18 Oct 2026) */
       const say=took==='cal'?i18t('ig_cal_handoff')
-        :(go&&go.kind==='go'&&!(window.CA_CARD_WORDS||[]).includes(go.place)&&window.caGoSay)?caGoSay(go):i18t('ai_handed_home');
+        :took==='said'?said
+        :(go&&go.kind==='go'&&!go.narrowOff&&!(window.CA_CARD_WORDS||[]).includes(go.place)&&window.caGoSay)?caGoSay(go):i18t('ai_handed_home');
       aiPush('user',{text:esc(q), raw:q});
       aiPush('assistant',{text:`<div>${_aiEsc(say)}</div>`});
       renderAIFeed();

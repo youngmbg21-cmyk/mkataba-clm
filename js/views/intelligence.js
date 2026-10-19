@@ -1369,7 +1369,7 @@ function igFactOrder(key, labels, count){
    reading, several are ANDed, and each carries the words the lens is named
    with. Nothing understood is null — the reader passes the sentence on. */
 const IG_STATUS_WORDS=[
-  ['Draft',['drafts','draft','drafting','utkast']],
+  ['Draft',['drafts','draft','drafting','utkasten','utkast']],
   ['Under Review',['under review','in review','in negotiation','being negotiated','review','under granskning','granskning','förhandling']],
   ['Signed',['signed ones','signed','executed','active','live ones','signerade','undertecknade','aktiva']],
   ['Declined',['closed','declined','dead','cancelled','stängda','avböjda']]
@@ -1502,7 +1502,12 @@ function igConditions(text){
 const IG_FILLER=/\b(?:show|shows|showing|me|us|all|the|a|an|our|my|your|their|its|contracts?|agreements?|deals?|ones?|obligations?|åtaganden?|value|valued|worth|värde|värda|list|find|give|get|see|please|which|what|who|that|those|these|have|has|had|are|is|were|was|be|in|of|with|for|and|or|to|do|does|did|we|any|every|from|just|only|now|still|currently|there|here|how|many|number|count|visa|alla|avtal|avtalen|vilka|vad|som|har|är|med|för|och|eller|mig|oss|bara|endast|hur|många|antal|lista|hitta)\b/g;
 function igLeftover(text, conds){
   let t=' '+_igNorm(text)+' ';
-  (conds||[]).forEach(x=>{ const h=' '+_igNorm(x.hit||'')+' '; if(h.trim()) t=t.split(h).join(' '); });
+  /* "under draft", "at signing", "i utkast": a word standing before a stage's
+     own word asks for nothing more than the stage (owner, 19 Oct 2026: "show
+     me all the contracts that are under draft" is Draft) */
+  (conds||[]).forEach(x=>{ const h=' '+_igNorm(x.hit||'')+' '; if(!h.trim()) return;
+    if(x.field==='status') ['under','in','at','i','på'].forEach(p=>{ t=t.split(' '+p+h).join(h); });
+    t=t.split(h).join(' '); });
   return t.replace(IG_FILLER,' ').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
 }
 /* AND across fields, OR within one: "Naivas and Carrefour" is either, "signed
@@ -2153,7 +2158,9 @@ function igRecipeRun(parsed, opts){
   if(lensNote) said.push(lensNote);
   if(changed) rebuildIntelGraph();
   for(let i=0;i<said.length;i++) if(typeof said[i]==='function'){ try{ said[i]=said[i](); }catch(_){ said[i]=''; } }
-  intel.history.push({ role:'assistant', text:igEsc(said.filter(Boolean).join(' ')||i18t('int_did_nothing')), choices:choices||null,
+  /* quiet: the words were said already, in one line, by the reader that moved
+     here (caMapNarrow, 19 Oct 2026: "go to explorer and show me the drafts") */
+  if(!(opts&&opts.quiet)) intel.history.push({ role:'assistant', text:igEsc(said.filter(Boolean).join(' ')||i18t('int_did_nothing')), choices:choices||null,
     listIds:list&&list.length?list.slice():null, listTitle:listTitle||null, cardIds:list?list.slice(0,5):[] });
   return opts&&opts.report?{ changed, said }:true;
 }
@@ -2264,6 +2271,24 @@ async function intelAsk(qRaw, opts){
     intel.history.push({role:'user', text:q}, {role:'assistant', text:i18t('ig_cal_handoff')});
     renderIntelDock(); return;
   }
+  /* ONE READER FOR EVERY JAMBO BOX (owner, 19 Oct 2026: "I want hati to do
+     what the user asks in plain language supported by Minisearch"): a place
+     and a narrowing ("go to explorer and show me the drafts"), a contract
+     named and what is asked of it ("briefing for mk 345", "what does mk 345
+     say about termination"), a place named outright ("go to negotiations")
+     are read FIRST (caUnderstand), before the screen in front, the Board's
+     own reader and the map — and done in the panel (caHomeRun). A narrowing
+     that names no place is still answered where you stand when the screen in
+     front reads it whole: the map or the Contracts place (caHereRead), the
+     Board's own list (hbParse). */
+  let und=null; try{ und=(typeof window.caUnderstand==='function')?caUnderstand(q,{ box:'home' }):null; }catch(_){ und=null; }
+  if(und&&und.here){
+    let mine=false;
+    try{ mine=!!(typeof window.caHereRead==='function'&&caHereRead(q)); }catch(_){ mine=false; }
+    try{ if(!mine&&state.view==='dashboard'&&typeof window.hbFace==='function'&&hbFace()==='board'&&typeof window.hbParse==='function'){ const r=hbParse(q); mine=!!(r&&['dig','lens','panel','card','openc'].includes(r.act)); } }catch(_){}
+    if(mine) und=null;
+  }
+  if(und&&typeof window.caHomeRun==='function'&&caHomeRun(q,und)) return;
   const tplAsk=IG_TEMPLATE_RE.test(q);
   /* ANSWER WHERE YOU STAND — ONE RULE, EVERY SCREEN (owner, 18 Oct 2026): a
      request to SEE contracts that the screen in front reads whole is answered
@@ -7846,6 +7871,17 @@ function igPreOn(){ return !!(window.state && state.view==='dashboard' && typeof
 function igPrePaint(){
   const el=document.getElementById('igd-pre'), inp=document.getElementById('igd-input'); if(!el||!inp) return;
   let t=''; try{ t=hbAskPreviewText(hbAskReadingOf(inp.value)); }catch(_){ t=''; }
+  /* THE ONE READER'S OWN READING FIRST (19 Oct 2026), as intelAsk asks it:
+     where it will go, free — or the contract a question is asked of, and
+     what that question carries (its cost, before the press) */
+  try{
+    const v=String(inp.value||'').trim();
+    let u=v&&typeof window.caUnderstand==='function'?caUnderstand(v,{ box:'home' }):null;
+    if(u&&u.here&&typeof window.hbParse==='function'){ const r=hbParse(v); if(r&&['dig','lens','panel','card','openc'].includes(r.act)) u=null; }
+    if(u&&u.kind==='ask'){ const c=getContract(u.cid); const P=c&&typeof igPaperCost==='function'?igPaperCost(c):null;
+      if(c&&P) t=i18t('int_ask_contract_cost',{ ref:(window.contractRef?contractRef(c):c.id), n:Number(P.words||0).toLocaleString() }); }
+    else if(u&&typeof window.caUnderstandSay==='function'){ const s=caUnderstandSay(u); if(s) t=s+' · '+i18t('hb_pre_free'); }
+  }catch(_){}
   el.textContent=t; el.title=t;
 }
 /* THE FOLDED PANEL IS A DOOR THAT LOOKS LIKE ONE (Young, 8 Oct 2026: "there

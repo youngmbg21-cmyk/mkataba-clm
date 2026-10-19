@@ -1222,10 +1222,16 @@ function regSearchBoxClear(){
    that page's filters and open a register that had never heard of it.
    `open:false` is for a caller that opens the page itself (the phone). */
 function regGoFiltered(patch, opts){
+  /* THE NEGOTIATIONS SEAT TOO (19 Oct 2026, "go to negotiations and show me
+     the drafts"): a door may name it (opts.scope); its own filters, at rest,
+     then the narrowing, then its own door (openNegotiations) */
   regSetScope(null);
+  const nego=!!(opts&&opts.scope==='negotiations'); if(nego) regSetScope('negotiations');
   const R=regFiltersAtRest(regState());
   if(patch) Object.assign(R, patch);
   regSearchBoxClear();
+  if(nego){ regSetScope(null); if(opts.open===false) return R;
+    if(typeof window.openNegotiations==='function') window.openNegotiations({ list:true }); return R; }
   if(opts && opts.open===false) return R;
   if(typeof setView==='function') setView('register'); else renderRegister();
   return R;

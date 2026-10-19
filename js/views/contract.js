@@ -10766,6 +10766,22 @@ function openCheckPanel(c,kind){
      rather than a normal path — but a panel that can open blank will. */
   const backstop=()=>{
     const host=document.getElementById(id);
+    /* NO BRIEF KEPT YET, THE PANEL'S OWN WAY ON (owner, 19 Oct 2026:
+       "briefing for contracts mk 345"; the reader never spends): Write the
+       brief, here, its cost said before the press — one press, one paid call */
+    if(host && !host.innerHTML.trim() && kind==='brief' && window.runContractBrief && (typeof canEdit!=='function'||canEdit())){
+      host.innerHTML=`<p style="margin:0 0 10px;font-size:var(--t-meta);line-height:1.6;color:var(--color-neutral-600)">${esc(i18t('br_none_write'))}</p>
+        <button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-br-write title="${esc(i18t('sc_brief_title'))}">${esc(i18t('br_write'))}</button>`;
+      const b=host.querySelector('[data-br-write]');
+      if(b&&!b.dataset.bound){ b.dataset.bound='1'; b.addEventListener('click',async()=>{
+        if(b.disabled) return; b.disabled=true; (window.busySet?busySet(b,i18t('ct_working')):(b.textContent=i18t('ct_working')));
+        let r=null; try{ r=await runContractBrief(c,{ force:!!c._brief }); }catch(_){ r=null; }
+        const live=(window.getContract&&getContract(c.id))||c;
+        if(r&&document.getElementById(id)){ if(window.renderBriefSection) renderBriefSection(live); }
+        else { b.disabled=false; b.textContent=i18t('br_write'); }
+      }); }
+      return;
+    }
     if(host && !host.innerHTML.trim()){
       host.innerHTML=`<p style="margin:0;font-size:var(--t-meta);line-height:1.6;color:var(--color-neutral-600)">
         Nothing has been ${kind==='playbook'?'reviewed against the playbook':kind==='oblig'?'tracked on this contract':kind==='brief'?'briefed':'scanned'} on this contract yet.

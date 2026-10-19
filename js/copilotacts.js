@@ -56,9 +56,18 @@ function caRef(c){ return (typeof contractRef === 'function') ? contractRef(c) :
    contract the reader can see carries it — "in 2026" stays words, and a number
    nobody can see is left as typed for the honest "not one you can see". The
    ONE normaliser, read by Jambo's words (caActOf) and the Board's (hbParse). */
+/* A NUMBER WRITTEN WITH ITS ZEROS IS THE SAME NUMBER (owner, 19 Oct 2026:
+   "do what the user asks in plain language"): "mk 377" is MK-0377 where the
+   book numbers it so — the letters and the number, the zeros in front let go */
+const caRefCanon = s => String(s || '').toUpperCase().replace(/-0+(?=\d)/, '-');
+const caRefNum = s => String(s || '').replace(/^\D+/, '').replace(/^0+(?=\d)/, '');
 function caRefFix(q){
   const cs = ((typeof state !== 'undefined' && state && Array.isArray(state.contracts)) ? state.contracts : []).filter(c => c && !c.archived);
-  const find = cand => cs.find(x => String(caRef(x)).toUpperCase() === cand || String(x.id).toUpperCase() === cand);
+  /* the zeros let go where the one rule is loaded (caRefCanon, caRefNum); the plain reading where it is not */
+  const canon = (typeof caRefCanon === 'function') ? caRefCanon : (v => String(v || '').toUpperCase());
+  const num = (typeof caRefNum === 'function') ? caRefNum : (v => String(v || '').replace(/^\D+/, ''));
+  const find = cand => cs.find(x => String(caRef(x)).toUpperCase() === cand || String(x.id).toUpperCase() === cand)
+    || cs.find(x => canon(caRef(x)) === canon(cand) || canon(x.id) === canon(cand));
   /* the letters may run into the number ("mkB2"): every split is tried */
   const fit = (a, b) => { const w = (a + b).toUpperCase(); for (const k of [a.length, 2, 3, 4]){ const c = k < w.length && find(w.slice(0, k) + '-' + w.slice(k)); if (c) return c; } return null; };
   let s = String(q || '').replace(/#?\b([A-Za-z]{2,4})([- ]?)([A-Za-z0-9]*\d[A-Za-z0-9]*)\b/g, (m0, a, sep, b) => {
@@ -68,13 +77,13 @@ function caRefFix(q){
     return c2 ? a + sep + caRef(c2) : m0;
   });
   s = s.replace(/\b(?:contract|agreement|avtal(?:et)?)\s+(?:no\.?\s*|number\s+|nr\.?\s*)?#?(\d+)\b/gi, (m0, n) => {
-    const hits = cs.filter(x => String(caRef(x)).replace(/^\D+/, '') === n);
+    const hits = cs.filter(x => num(caRef(x)) === num(n));
     return hits.length === 1 ? caRef(hits[0]) : m0;
   });
   /* the number on its own ("352", the owner's iPad, 15 Oct 2026, drew a chart
      titled "352"): it is the one contract it numbers, when there is one */
   s = s.replace(/^\s*#?(\d+)\s*$/, (m0, n) => {
-    const hits = cs.filter(x => String(caRef(x)).replace(/^\D+/, '') === n);
+    const hits = cs.filter(x => num(caRef(x)) === num(n));
     return hits.length === 1 ? caRef(hits[0]) : m0;
   });
   return s;
@@ -314,6 +323,7 @@ function caCardHtml(a, i){
   if (a.kind === 'go') return caGoCardHtml(a, i);
   if (a.kind === 'map') return (typeof jmCardHtml === 'function') ? jmCardHtml(a, i) : '';
   if (a.kind === 'here') return caHereCardHtml(a, i);
+  if (a.kind === 'cpick') return caPickCardHtml(a, i);
   if (a.kind !== 'send') return '';
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   const B = (act, label, cls) => `<button type="button" class="ui-btn ui-btn-sm${cls === 'lead' ? ' ui-btn-primary' : ''}" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`;
@@ -352,6 +362,7 @@ async function caCardPress(i, act, btn){
   if (a.kind === 'go') return caGoPress(a, act);
   if (a.kind === 'map') return (typeof jmCardPress === 'function') ? jmCardPress(i, act) : undefined;
   if (a.kind === 'here') return caHerePress(a, act);
+  if (a.kind === 'cpick') return caPickPress(i, act);
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   if (act === 'sendscreen'){ if (c && typeof openShareModal === 'function') openShareModal(c); return; }
   if (act === 'note'){
@@ -1368,6 +1379,10 @@ const CA_PLACES = [
   { k: 'fill', need: 'one', w: ['fill', 'fill in', 'fill in the details', 'details', 'fyll i', 'fyll i uppgifterna', 'uppgifter', 'detaljer'] },
   { k: 'oblig', need: 'any', w: ['obligations', 'duties', 'åtaganden', 'skyldigheter'] },
   { k: 'history', need: 'any', w: ['history', 'trail', 'historik', 'historiken'] },
+  /* A CONTRACT'S BRIEF (owner, 19 Oct 2026: "briefing for contracts mk 345"):
+     the paper's own "Read the brief" door (caBriefOpen → openCheckPanel), a
+     kept brief free, none kept says Write the brief and its cost */
+  { k: 'brief', need: 'one', w: ['brief', 'briefing', 'the brief', 'its brief', 'read the brief', 'summary', 'summarise', 'summarize', 'sammanfattning', 'sammanfattningen', 'sammanfatta', 'briefen', 'läs sammanfattningen'] },
   { k: 'board', w: ['board', 'tavla', 'tavlan'] },
   /* "needs me" (Jambo's note, 15 Oct 2026): the Board's Needs you card, every item */
   { k: 'needs', w: ['needs me', 'what needs me', 'needs you', 'what needs you', 'waiting on me', 'what is waiting on me', "what's waiting on me", 'väntar på mig', 'vad väntar på mig', 'behöver mig', 'vad behöver mig'] },
@@ -1413,6 +1428,9 @@ const CA_PLACE_MIN_TYPED = 3;     // letters the top bar's search waits for befo
 function caPlaceOf(q){
   let t = String(q || '').trim(); if (!t || t.length > CA_PLACE_MAX) return null;
   const slash = t[0] === '/'; if (slash) t = t.slice(1);
+  /* THE ONE NORMALISER FIRST (19 Oct 2026): "open mk 345", "mk345" and
+     "contract 345" name MK-345 here as on Home's box (caRefFix) */
+  if (typeof caRefFix === 'function'){ try { t = caRefFix(t); } catch (_){ /* the words as typed */ } }
   let cid = null;
   for (const [label, v] of _caChosen) if (v.kind === 'contract' && t.includes(label)){ cid = cid || v.id; t = t.split(label).join(' '); }
   /* a reference names the contract only when it IS one: "deal-board" is a word */
@@ -1422,6 +1440,8 @@ function caPlaceOf(q){
     cid = cid || c.id; return ' ';
   });
   t = t.toLowerCase().replace(/[’‘]/g, "'").replace(/[?.!]+\s*$/, '').replace(/\s+/g, ' ').trim();
+  /* "please", "now", "for me" at the end ask for nothing (19 Oct 2026: "go to explorer please") */
+  t = t.replace(/(?:[\s,]+(?:please|now|for me|thanks|thank you|tack|snälla|nu))+\s*$/, '').trim();
   /* a place whose own name starts "our" or "the" ("our paper") is read before those are let go */
   const whole = (t + ' ').replace(CA_PLACE_LEAD, '').replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
   t = (t + ' ').replace(CA_PLACE_LEAD, '').replace(/^(?:the|my|our)\s+/, '').replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
@@ -1570,6 +1590,8 @@ const CA_GO = {
   fill: c => (typeof pdFillOpen === 'function') ? pdFillOpen(c.id) : caRoomTab(c, 'details'),
   oblig: c => c ? pdOpenOnHome(c.id, 'oblig') : (typeof setView === 'function' && setView('obligations')),
   history: c => c ? ((typeof hbOpenView === 'function') ? hbOpenView(c.id, 'hist') : caRoomTab(c, 'history')) : (typeof openPanel === 'function' && openPanel('activity')),
+  /* the contract on Home, then its brief through the paper's own door */
+  brief: c => caBriefOpen(c),
   /* LAND ON IT (owner, 18 Oct 2026: "upload document … should take you to
      contracts page" with the place to go lit): on a computer the word lands
      on Jambo's drop area, lit, Choose files ready — it presses nothing, so
@@ -1602,6 +1624,10 @@ function caGoSay(a){
   if (a.missing) return _caT('ca_go_need', { word: _caT('ca_w_' + a.place) });
   /* a task of Jambo's map that lands on a narrowed list or a Settings section says where (js/jambomap.js) */
   if (a.say) return _caT(a.say);
+  /* a place and a narrowing, a party's contracts (caUnderstand): what was read, counted as the place applies it */
+  if (a.narrow) return caNarrowSay(a);
+  /* a brief kept is shown free; none kept, its Write the brief says the cost */
+  if (a.place === 'brief' && c) return _caT(caBriefKept(c) ? 'ca_go_brief' : 'ca_go_brief_none', { ref: caRef(c) });
   if (a.place === 'back'){ const p = caTrailTop(); return p ? _caT('ca_go_back', { where: caTrailLabel(p) }) : _caT('ca_go_back_none'); }
   /* a viewer's "upload" is answered with the refusal, once, where they look — not a toast beside it */
   if ((a.place === 'upload' || a.place === 'import') && !caMayAdd()) return _caT('ct_viewers_no_add');
@@ -1618,8 +1644,15 @@ function caGo(a){
   /* share and draft answer with a card in the panel (caGoCardHtml) and move nothing */
   if (a.place !== 'help' && CA_CARD_WORDS.includes(a.place)) return true;
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
+  /* A CODE-NAMED DEAL STAYS SHUT for somebody outside its list: the door
+     asks first and says why (codeNameStop), whoever's words reached it */
+  if (c && typeof codeNameStop === 'function' && codeNameStop(c)) return false;
+  /* a page that cannot narrow as asked answers with its card (caGoCardHtml) */
+  if (a.narrowOff) return true;
   caTrailPush();
   if (a.missing){ caHomeWall(); caGoRepaint(); return true; }
+  /* A PLACE AND A NARROWING (19 Oct 2026): the place, then its own applier */
+  if (a.narrow){ let ok = false; try { ok = caGoNarrowed(a); } catch (e){ if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); return false; } caGoRepaint(); return ok; }
   /* JAMBO'S MAP (js/jambomap.js) reaches two doors no single word had: the
      Contracts place narrowed, as Home's tiles open it (regGoFiltered), and a
      Settings section, as the Settings finder opens it (stFindGo) */
@@ -1810,6 +1843,416 @@ function caHerePress(a, act){
   if (a.page === 'contracts' && Array.isArray(a.ids) && a.ids.length) return caGo({ kind: 'go', place: 'contracts', reg: { only: { ids: a.ids.slice(), label: String(a.what || '') } }, state: 'ready' });
   return caGo({ kind: 'go', place: a.page, state: 'ready' });
 }
+/* ============================================================
+   ONE READER FOR EVERY JAMBO BOX (owner, 19 Oct 2026: "I want hati to do
+   what the user asks in plain language supported by Minisearch without any
+   constraints apart from the limitations set by the settings")
+   ============================================================
+   caUnderstand(q, {box}) is the ONE reading every Jambo box asks FIRST —
+   Home's own box (intelAsk) and every other box (caAskAnywhere: the Home
+   page, Settings, the Calendar, the panel beside the lists and Import, the
+   window, the builder and the clause editor) — before its own job. It spends
+   nothing and writes nothing, and answers only when it is SURE:
+   - A PLACE AND A NARROWING: "go to explorer and show me the drafts", "draft
+     contracts on the map", "gå till utforskaren och visa utkasten" — the
+     place a lead verb or in / on / at names, the rest read WHOLE by the map's
+     own word reader (igConditions, igLeftover); caGo moves there and the
+     place's own applier narrows it (caGoNarrowed);
+   - A CONTRACT NAMED (caContractOf: its number in any form, its title, its
+     party) and what is asked of it — open, its brief, history, redlines,
+     signing, obligations, details, share, amend — through the doors that
+     already exist; a question about its wording is asked OF it (kind 'ask');
+   - CONTRACTS NARROWED with no place named ("nordfrakt contracts", "the
+     signed ones"): the screen in front answers them where it can read them
+     whole (the Board, Explorer, the Contracts place — `here`), else the
+     Contracts place, narrowed;
+   - A PLACE NAMED with a lead verb ("go to negotiations", "go to explorer
+     please") — on the Board too, where the Board's own panel kept it.
+   What it does not read whole goes on to the box's own job exactly as
+   before. WHAT ONLY SETTINGS MAY STOP is checked at the door, never here:
+   the book it reads is the reader's own (state.contracts, already cut by the
+   server's folderScopeFor and code-name masked), a code-named deal stays
+   shut (caGo → codeNameStop), an admin's task is offered to an admin only
+   (jmRead), a viewer may not add (CA_GO.upload / import). */
+const CA_GO_LEAD = /^\s*(?:(?:please|ok|okay|now|jambo)[\s,]+)*(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?(?:(?:go|take me|bring me|jump|switch|navigate|head|move)\s+(?:back\s+|over\s+|straight\s+)?to|open(?:\s+up)?|gå\s+(?:tillbaka\s+)?till|ta\s+mig\s+till|öppna)\s+/iu;
+/* the words that join a place to what to show there ("and", "with", "och") */
+const CA_AND_JOIN = /^(?:,\s*)?(?:and(?:\s+then|\s+only)?|then|with|where|showing|to\s+see|so\s+(?:that\s+)?(?:i|we)\s+can\s+see|och(?:\s+sedan)?|sedan|med|där)(?=\s|$)\s*/iu;
+/* a place named after "in", "on", "at" at the end ("drafts on the map") */
+const CA_AND_TAIL = /\s(?:in|on|at|inside|within|i|på)\s+/giu;
+/* the places that hold contracts and may be named with a narrowing, and the other words for them */
+const CA_AND_PLACES = ['explorer', 'contracts', 'list', 'wall', 'board', 'negotiations', 'oblig', 'parties', 'approvals', 'requests', 'import', 'calendar', 'people', 'mynotes', 'ourpaper', 'insights', 'counter', 'work', 'needs', 'house', 'settings', 'brain'];
+const CA_AND_WORDS = [['map', 'explorer'], ['the map', 'explorer'], ['contract map', 'explorer'], ['kartan', 'explorer'], ['karta', 'explorer'], ['avtalskartan', 'explorer'],
+  ['contracts page', 'contracts'], ['contracts list', 'contracts'], ['contract list', 'contracts'], ['the contracts', 'contracts'], ['workspace', 'contracts'], ['the workspace', 'contracts'], ['arbetsytan', 'contracts'], ['avtalen', 'contracts'],
+  ['dashboard', 'board'], ['the board', 'board'], ['obligations page', 'oblig'], ['negotiations page', 'negotiations']];
+/* the places whose own applier narrows; any other says so and offers the Contracts place narrowed */
+const CA_AND_NARROWS = ['explorer', 'contracts', 'list', 'wall', 'board', 'negotiations', 'oblig'];
+const CA_AND_SAY_MAX = 60;   // a narrowing named longer than this is cut, and the cut is shown (…)
+let _caAndList = null;
+function caAndList(){
+  if (_caAndList) return _caAndList;
+  const out = [];
+  CA_PLACES.filter(p => CA_AND_PLACES.includes(p.k)).forEach(p => p.w.forEach(w => out.push([w, p.k])));
+  CA_AND_WORDS.forEach(x => out.push(x));
+  _caAndList = out.sort((a, b) => b[0].length - a[0].length);
+  return _caAndList;
+}
+const caAndNorm = s => String(s || '').toLowerCase().replace(/[’‘]/g, "'").replace(/[?!.]+\s*$/, '').replace(/\s+/g, ' ').trim();
+/* the place a stretch of words names, whole or at its start: { k, len } */
+function caAndPlaceAt(s, whole){
+  const t = s.replace(/^(?:the|my|our|den|det|mina|våra)\s+/, ''), cut = s.length - t.length;
+  for (const [w, k] of caAndList()){
+    if (whole ? (t === w || new RegExp('^' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s+(?:page|tab|view|screen|sidan|fliken|vyn)$').test(t))
+      : (t === w || t.startsWith(w + ' ') || t.startsWith(w + ','))) return { k, len: cut + w.length };
+  }
+  return null;
+}
+/* THE REST, READ WHOLE: the conditions the map's own reader finds, with
+   nothing left but everyday words — or every contract — or null */
+function caNarrowOf(rest, place){
+  const r = String(rest || '').trim(); if (!r) return null;
+  const seeRe = (typeof CA_HERE_SEE_RE !== 'undefined') ? CA_HERE_SEE_RE : /^$/;
+  if (typeof CA_HERE_ALL_RE !== 'undefined' && CA_HERE_ALL_RE.test(r)) return { rest: r, all: true, what: '', ids: null, n: null };
+  if (typeof igConditions !== 'function' || typeof igLeftover !== 'function') return null;
+  let conds = []; try { conds = igConditions(r) || []; } catch (_){ conds = []; }
+  let left = 'x';
+  if (conds.length){ try { left = String(igLeftover(r.replace(seeRe, ' '), conds) || ''); } catch (_){ left = 'x'; }
+    if (typeof CA_HERE_EXTRA_RE !== 'undefined') left = left.replace(CA_HERE_EXTRA_RE, ' '); left = left.trim(); }
+  if (conds.length && !left){
+    const book = ((typeof state !== 'undefined' && state && state.contracts) || []).filter(c => c && !c.archived);
+    let ids = []; try { ids = (typeof igIdsWhere === 'function') ? igIdsWhere(conds, book) : []; } catch (_){ ids = []; }
+    return { rest: r, what: conds.map(c => c.label).join(' · '), ids, n: ids.length };
+  }
+  /* on the map its own recipe reads more than a narrowing ("group by stream", "top 10 by value") */
+  if (place === 'explorer' && typeof igRecipeParse === 'function'){
+    let p = null; try { p = igRecipeParse(r); } catch (_){ p = null; }
+    const acts = (p && p.acts) || [];
+    if (acts.length && !p.rest && !acts.some(x => x.ask || x.unknownFact || x.undo || x.save != null || x.open)) return { rest: r, recipe: true, what: caSayCut(r), ids: null, n: null };
+  }
+  /* on the Board its own reader reads what lands on the Board (a figure, a chart) */
+  if (place === 'board' && typeof hbParse === 'function'){
+    let b = null; try { b = hbParse(r); } catch (_){ b = null; }
+    if (b && ['dig', 'lens', 'panel'].includes(b.act)) return { rest: r, board: true, what: caSayCut(r), ids: null, n: null };
+  }
+  return null;
+}
+function caSayCut(s){ const t = String(s || '').replace(/\s+/g, ' ').trim(); return t.length > CA_AND_SAY_MAX ? t.slice(0, CA_AND_SAY_MAX - 1).trimEnd() + '…' : t; }
+/* A PLACE AND A NARROWING, anywhere in the sentence: "go to <place> and
+   <narrowing>", "take me to <place> with <narrowing>", "<narrowing> in / on
+   <place>"; no length limit for this form (it is a sentence by nature) */
+function caReadPlaceAnd(q){
+  const s = caAndNorm(q); if (!s) return null;
+  let place = null, rest = '';
+  const lead = s.match(CA_GO_LEAD);
+  if (lead){
+    const after = s.slice(lead[0].length);
+    const hit = caAndPlaceAt(after, false);
+    if (hit){
+      let tail = after.slice(hit.len).trim().replace(/^(?:page|tab|view|screen|sidan|fliken|vyn)(?=\s|,|$)\s*/, '');
+      const j = tail.match(CA_AND_JOIN);
+      if (j && tail.slice(j[0].length).trim()){ place = hit.k; rest = tail.slice(j[0].length).trim(); }
+    }
+  }
+  if (!place){
+    const cuts = []; let m; CA_AND_TAIL.lastIndex = 0;
+    while ((m = CA_AND_TAIL.exec(s))) cuts.push([m.index, m.index + m[0].length]);
+    for (const [a0, a1] of cuts.reverse()){
+      const hit = caAndPlaceAt(s.slice(a1), true);
+      if (hit){ place = hit.k; rest = s.slice(0, a0).trim(); break; }
+    }
+    /* "take me to <narrowing> in explorer" carries its lead too */
+    if (place && lead && rest.startsWith(lead[0].trim())) rest = rest.slice(lead[0].trim().length).trim();
+  }
+  if (!place || !rest) return null;
+  const N = caNarrowOf(rest, place); if (!N) return null;
+  /* every contract asked for at a place is that place at rest */
+  if (N.all) return { kind: 'go', place, state: 'ready', all: true };
+  const off = !CA_AND_NARROWS.includes(place) || ((N.recipe && place !== 'explorer') || (N.board && place !== 'board'));
+  return Object.assign({ kind: 'go', place, narrow: N, state: 'ready' }, off ? { narrowOff: true } : {});
+}
+/* A PLACE NAMED WITH A LEAD VERB, whole ("go to explorer please"): read
+   before the Board's own reader, which kept "go to negotiations" as its panel */
+function caReadGoPlace(q){
+  const s = caAndNorm(q); const lead = s.match(CA_GO_LEAD); if (!lead) return null;
+  const after = s.slice(lead[0].length).replace(/(?:[\s,]+(?:please|now|for me|thanks|thank you|tack|snälla|nu))+\s*$/, '').trim();
+  const hit = caAndPlaceAt(after, true); if (hit) return { kind: 'go', place: hit.k, state: 'ready' };
+  return null;
+}
+
+/* ---- THE ONE CONTRACT FINDER (caContractOf) ----
+   A contract named in any words: its number in any form (caRefFix: "MK-345",
+   "mk 345", "mk345", "#MK-345", "contract 345", "345" alone, "mk 377" for
+   MK-0377), else its title or its party in a free sentence ("open the
+   warehousing agreement", "take me to the nordfrakt contract"), matched by
+   MiniSearch (jmLib, js/jambomap.js) over the contracts THIS READER can see —
+   state.contracts as the server sent it: cut by folderScopeFor, private
+   streams included only where granted, a code-named deal carrying its code
+   name alone. Answers { c, hit }, { miss: ref } for a number nobody here can
+   see, { party, ids } for one party's several contracts, { picks } for two
+   or three close ones, or null. Never a guess, never the paper that is up. */
+const CA_FIND_PICKS = 3;          // a "which contract?" card offers at most this many
+const CA_FIND_TERMS_MAX = 3;      // a title is a few words; more than this is a sentence for its reader
+const CA_FIND_NOUN = /(?<!\p{L})(?:contracts?|agreements?|deals?|leases?|ndas?|avtal(?:et|en)?|kontrakt(?:et|en)?)(?!\p{L})/iu;
+const CA_FIND_MANY = /(?<!\p{L})(?:contracts|agreements|deals|ndas|avtalen|kontrakten|all|every|alla)(?!\p{L})/iu;
+const CA_FIND_LEAD = /^\s*(?:(?:can|could|would)\s+you\s+)?(?:please\s+)?(?:show(?:\s+me)?|find|bring\s+up|pull\s+up|look\s+at|visa(?:\s+mig)?|hitta|ta\s+fram)\s+/iu;
+/* the words a title is never matched on: the ask's frame, the places, the acts, the stages */
+const CA_FIND_SKIP = new Set(('open show see view find bring pull look take go read get give let want need like would could can please brief briefing summary summarise summarize '
+  + 'history trail redline redlines redlining changes change negotiate negotiation sign signing signature obligations obligation duties details detail fill share send amend amendment '
+  + 'draft drafts drafting signed executed active review reviewing declined closed live overdue expired expiring renewing renewal '
+  + 'say says said about mean means what which who whom whose why when where how does did done has have had is are was were there tell explain question questions '
+  + 'map explorer board page tab screen list wall workspace document paper copy version '
+  + 'sammanfattning sammanfattningen sammanfatta briefen historik signera underteckna åtaganden uppgifter dela skicka visa öppna hitta utkast signerade '
+  + 'vad vilken vilka vem varför när var hur säger står finns').split(/\s+/).filter(Boolean));
+let _caBookIx = null, _caBookSig = '';
+function caBookRows(){ return caContracts(); }
+function caBookIndex(){
+  const MS = (typeof jmLibNow === 'function') ? jmLibNow() : null; if (!MS) return null;
+  const cs = caBookRows();
+  const sig = cs.length + '|' + cs.map(c => c.id + '\u0001' + (c.name || '') + '\u0001' + (c.counterparty || '') + '\u0001' + (c.codeName || '')).join('\u0002');
+  if (_caBookIx && sig === _caBookSig) return _caBookIx;
+  const tok = s => String(s || '').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(w => w.length >= 2);
+  const ix = new MS({ fields: ['name', 'party', 'code'], storeFields: ['id'], tokenize: tok, processTerm: t => (t.length >= 2 ? t : null),
+    searchOptions: { tokenize: tok, combineWith: 'AND', prefix: t => t.length >= 4, fuzzy: t => (t.length >= 6 ? 0.2 : false) } });
+  ix.addAll(cs.map(c => ({ id: c.id, name: String(c.name || ''),
+    /* every party on it: the outside party's name and any other on the record (contractParties) */
+    party: [c.counterparty].concat((() => { try { return (typeof contractParties === 'function' ? (contractParties(c) || []) : []).map(p => p && (p.name || p.label)); } catch (_){ return []; } })()).filter(Boolean).join(' '),
+    /* an insider's record may carry the deal's code name beside the real one; a stub carries the code name as its name */
+    code: String(c.codeName || '') })));
+  _caBookIx = ix; _caBookSig = sig;
+  return ix;
+}
+/* the words a title or a party could be: what is left of the sentence once
+   its frame, its acts, its places, its stages and its read conditions are gone */
+function caFindTerms(t){
+  let s = ' ' + String(t || '').toLowerCase().replace(/[’‘]/g, "'") + ' ';
+  /* a condition the map's reader reads (a stage, a side, a window) is not a name — its party is */
+  try { (typeof igConditions === 'function' ? igConditions(t) : []).forEach(x => { if (x.field !== 'counterparty' && x.hit) s = s.split(' ' + String(x.hit).toLowerCase() + ' ').join(' '); }); } catch (_){}
+  const stop = w => CA_FIND_SKIP.has(w) || (typeof JM_STOP !== 'undefined' && JM_STOP.has(w)) || (typeof JM_SOFT !== 'undefined' && JM_SOFT.has(w))
+    || CA_FIND_NOUN.test(w) || /^\d+$/.test(w) || w.length < 3;
+  return [...new Set(s.split(/[^\p{L}\p{N}'-]+/u).map(w => w.replace(/^'+|'+$/g, '')).filter(w => w && !stop(w)))];
+}
+function caContractOf(q, opts = {}){
+  const raw = String(q || '').trim(); if (!raw) return null;
+  let t = raw; try { t = caRefFix(raw); } catch (_){ t = raw; }
+  /* a contract chosen from the # list */
+  for (const [label, v] of _caChosen) if (v.kind === 'contract' && t.includes(label)){ const c = (typeof getContract === 'function') ? getContract(v.id) : null; if (c) return { c, hit: label, how: 'chosen' }; }
+  const book = ((typeof state !== 'undefined' && state && Array.isArray(state.contracts)) ? state.contracts : []).filter(c => c && !c.archived);
+  /* its number, anywhere in the words */
+  const refRe = /#?\b([A-Za-z]{2,4}-[A-Za-z0-9]*\d[A-Za-z0-9]*)\b/g; let m;
+  while ((m = refRe.exec(t))){
+    const want = caRefCanon(m[1]);
+    const c = book.find(x => caRefCanon(caRef(x)) === want || caRefCanon(x.id) === want);
+    if (c) return { c, hit: m[0], how: 'ref', said: t };
+  }
+  /* a number in the book's own letters that nobody here can see is said so, never guessed */
+  const prefixes = [...new Set(book.map(c => (String(caRef(c)).match(/^([A-Za-z]{2,4})-/) || [])[1]).filter(Boolean).map(p => p.toUpperCase()).concat(['MK', 'RL']))];
+  const miss = new RegExp('(?<![\\p{L}\\p{N}])#?(' + prefixes.join('|') + ')[- ]?(\\d+)(?![\\p{L}\\p{N}])', 'iu').exec(t);
+  if (miss) return { miss: miss[1].toUpperCase() + '-' + miss[2] };
+  if (opts.names === false) return null;
+  /* a title or a party, said in a sentence that asks for a contract */
+  const asks = CA_GO_LEAD.test(t) || CA_FIND_LEAD.test(t) || CA_FIND_NOUN.test(t) || !!caContractActOf(t);
+  if (!asks) return null;
+  const terms = caFindTerms(t);
+  if (!terms.length || terms.length > CA_FIND_TERMS_MAX) return null;
+  const ix = caBookIndex(); if (!ix) return null;
+  let hits = []; try { hits = ix.search(terms.join(' ')); } catch (_){ hits = []; }
+  const cs = hits.map(h => (typeof getContract === 'function') ? getContract(h.id) : null).filter(Boolean);
+  if (!cs.length) return null;
+  if (cs.length === 1) return { c: cs[0], hit: terms, how: 'name', said: t };
+  const parties = [...new Set(cs.map(c => String(c.counterparty || '').trim()))];
+  const many = CA_FIND_MANY.test(t);
+  if (parties.length === 1 && parties[0] && (many || cs.length > CA_FIND_PICKS)) return { party: parties[0], ids: cs.map(c => c.id), hit: terms };
+  if (cs.length <= CA_FIND_PICKS) return { picks: cs.map(c => c.id), hit: terms, said: t };
+  return null;
+}
+/* WHAT IS ASKED OF A NAMED CONTRACT, in the words left once it is named:
+   each the door HaTi already has for it (a CA_PLACES word, or the amend door) */
+const CA_CONTRACT_ACTS = [
+  ['brief', /(?<!\p{L})(?:brief(?:ing|en)?|summar(?:y|ies|i[sz]e)|sammanfatt\p{L}*|what(?:'s| is) it about|vad handlar det om)(?!\p{L})/iu],
+  ['history', /(?<!\p{L})(?:history|trail|audit trail|activity log|historik(?:en)?)(?!\p{L})/iu],
+  ['redline', /(?<!\p{L})(?:redlines?|redlining|changes|negotiat\p{L}*|mark-?up|förhandl\p{L}*|ändringar(?:na)?|rödlinjer(?:na)?)(?!\p{L})/iu],
+  ['sign', /(?<!\p{L})(?:sign|signing|signature|signera|signering|underteckna)(?!\p{L})/iu],
+  ['oblig', /(?<!\p{L})(?:obligations?|duties|duty|åtaganden(?:a)?|skyldigheter(?:na)?)(?!\p{L})/iu],
+  ['fill', /(?<!\p{L})(?:details|fill(?:\s+in)?|uppgifter(?:na)?|fyll\s+i)(?!\p{L})/iu],
+  ['share', /(?<!\p{L})(?:share|send|dela|skicka)(?!\p{L})/iu],
+  ['amend', /(?<!\p{L})(?:amend|amendment|ändra avtalet|tillägg)(?!\p{L})/iu],
+];
+function caContractActOf(s){ const hit = CA_CONTRACT_ACTS.find(([, re]) => re.test(String(s || ''))); return hit ? hit[0] : null; }
+/* the words that only frame an ask about a named contract ("show me", "for", "the") */
+const CA_CONTRACT_FRAME = /(?<!\p{L})(?:please|can|could|would|will|you|i|we|me|my|our|us|the|a|an|this|that|its|it|of|for|on|in|about|to|from|with|show|see|view|open|bring|take|go|get|give|read|let|want|need|like|just|look|at|up|contract|contracts|agreement|agreements|deal|no|number|nr|för|på|i|om|till|av|med|visa|öppna|se|läs|ta|mig|gå|avtal|avtalet|avtalen|kontrakt|kontraktet|den|det|dess|vill|jag|kan|du|tack|snälla|now|thanks)(?!\p{L})/giu;
+/* a question about what a contract SAYS: asked of that contract, never dropped */
+const CA_CONTRACT_ASKS = /^\s*(?:what|which|who|whom|whose|why|when|where|how|is|are|was|were|does|do|did|has|have|can|could|should|would|will|tell me|explain|vad|vilken|vilka|vem|varför|när|var|hur|är|finns|har|kan|ska|förklara)(?!\p{L})/iu;
+/* "bring up MK-…" is the Board's strip (hbBringOf), its own door */
+const CA_CONTRACT_BRING = /^\s*(?:(?:can|could|would)\s+you\s+|please\s+)*(?:bring\s+up|pull\s+up|ta\s+fram)(?!\p{L})/iu;
+function caReadContract(q, opts = {}){
+  const f = caContractOf(q); if (!f) return null;
+  if (f.miss) return { kind: 'noref', ref: f.miss, state: 'ready' };
+  const act0 = caContractActOf(q);
+  if (f.picks) return { kind: 'cpick', picks: f.picks, then: act0 || 'document', state: 'ready' };
+  if (f.party){
+    const book = (f.ids || []).slice();
+    return { kind: 'go', place: 'contracts', narrow: { rest: String(q), what: f.party, ids: book, n: book.length, party: true }, here: true, state: 'ready' };
+  }
+  const c = f.c;
+  /* what is left of the words once the contract is named */
+  let left = ' ' + String(f.said || q) + ' ';
+  if (f.how === 'name') (f.hit || []).forEach(w => { left = left.replace(new RegExp('(?<![\\p{L}\\p{N}])' + String(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\p{L}*(?![\\p{L}\\p{N}])', 'giu'), ' '); });
+  else left = left.split(f.hit).join(' ');
+  left = left.replace(/\s+/g, ' ').trim();
+  if (CA_CONTRACT_BRING.test(left)) return { kind: 'hand', cid: c.id, state: 'ready' };
+  const act = caContractActOf(left);
+  const actRe = act ? (CA_CONTRACT_ACTS.find(x => x[0] === act) || [])[1] : null;
+  const bare = left.replace(actRe ? new RegExp(actRe.source, 'giu') : /$^/, ' ').replace(new RegExp(CA_FIND_NOUN.source, 'giu'), ' ').replace(CA_CONTRACT_FRAME, ' ').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  const asks = CA_CONTRACT_ASKS.test(left);
+  /* a question with words of its own is asked of the contract ("what does it say about termination") */
+  const words = bare.replace(CA_CONTRACT_ASKS, ' ').replace(/(?<!\p{L})(?:what|which|who|why|when|where|how|is|are|does|do|did|there|vad|vilka|vem|hur|är|finns|about|om)(?!\p{L})/giu, ' ').trim();
+  if (asks && words) return { kind: 'ask', cid: c.id, q: String(q), state: 'ready' };
+  if (bare) return null;              // words HaTi does not read: the box's own job
+  if (asks && !act) return null;      // "what about mk-4?" names it and asks nothing: the Board's card
+  if (act === 'amend') return { kind: 'door', door: 'amend', cid: c.id, state: 'ready' };
+  return { kind: 'go', place: act || 'document', cid: c.id, state: 'ready' };
+}
+/* CONTRACTS NARROWED, NO PLACE NAMED ("the signed ones", "nordfrakt
+   contracts"): read whole by the map's own reader; the screen in front keeps
+   them where it can read them (`here`), else the Contracts place */
+/* a fact whose own page holds it (CA_HERE_FACTS: imported, a negotiation's
+   move, a side, a late duty) is that page's: the map's tasks and the box keep it */
+function caReadNarrowOnly(q){
+  const N = caNarrowOf(q, 'contracts'); if (!N || N.all || !N.ids) return null;
+  let conds = []; try { conds = (typeof igConditions === 'function') ? (igConditions(q) || []) : []; } catch (_){ conds = []; }
+  if (!conds.length || conds.some(c => !!caHereFact(c.field))) return null;
+  return { kind: 'go', place: 'contracts', narrow: N, here: true, state: 'ready' };
+}
+/* THE ONE READING. opts.box names the box: 'home' (Home's own box, which
+   keeps "bring up" for the Board's strip), 'cal' (the Calendar keeps its
+   booking words), 'settings', 'list', 'window', 'counter', 'editor',
+   'builder', 'bar'. */
+function caUnderstand(q, opts = {}){
+  const t0 = String(q || '').trim(); if (!t0) return null;
+  let t = t0; try { t = caRefFix(t0); } catch (_){ t = t0; }
+  /* booking or finding time is the Calendar's Jambo's (igBookAsk → calHandOff) */
+  try { if (typeof igBookAsk === 'function' && igBookAsk(t)) return null; } catch (_){}
+  const box = opts.box || '';
+  /* a place named with what to show there is read first: it is the most the words can say */
+  const and = caReadPlaceAnd(t); if (and) return and;
+  /* a send, a job, a door, a Menu row, a draft are read as they always were (caActOf's readers) */
+  try { if (caTakesWords(t)) return null; } catch (_){}
+  const ct = caReadContract(t, opts);
+  if (ct){
+    if (ct.kind === 'hand' && box === 'home') return null;
+    return ct;
+  }
+  const go = caReadGoPlace(t); if (go) return go;
+  return caReadNarrowOnly(t);
+}
+/* A PAGE THAT KEEPS WORK (the clause editor, the builder) is left only for a
+   SURE place or contract: one named with "go to", "open", "take me to", or a
+   contract's number — never a bare narrowing or a title alone, which are as
+   likely to be words for the work itself ("NDA for a supplier") */
+function caLeavesFor(q, box){
+  let u = null; try { u = caUnderstand(q, { box: box || 'editor' }); } catch (_){ u = null; }
+  if (!u || u.kind !== 'go' || u.missing || u.narrowOff || u.here || CA_CARD_WORDS.includes(u.place)) return null;
+  let t = String(q || ''); try { t = caRefFix(t); } catch (_){}
+  return (CA_GO_LEAD.test(t) || /#?\b[A-Za-z]{2,4}-[A-Za-z0-9]*\d/.test(t)) ? u : null;
+}
+/* the line Jambo says for what he read (caGoSay for a move; the rest here) */
+function caUnderstandSay(a){
+  if (!a) return '';
+  if (a.kind === 'go') return caGoSay(a);
+  if (a.kind === 'noref') return _caT('hb_no_ref', { ref: a.ref });
+  if (a.kind === 'cpick') return _caT('ca_cpick_title');
+  const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
+  if (a.kind === 'ask') return c ? _caT('ca_ask_of', { ref: caRef(c) }) : '';
+  if (a.kind === 'door') return _caT('ca_intro_job');
+  return '';
+}
+/* THE PLACE, THEN ITS OWN APPLIER (caGo with a.narrow) */
+function caGoNarrowed(a){
+  const N = a.narrow || {}, rest = String(N.rest || '');
+  const ids = Array.isArray(N.ids) ? N.ids.slice() : null;
+  const onHome = typeof state !== 'undefined' && state && state.view === 'dashboard';
+  if (a.place === 'explorer'){
+    if (onHome && typeof hbSetFace === 'function'){ if (typeof hbFace !== 'function' || hbFace() !== 'explorer') hbSetFace('explorer'); }
+    else if (typeof hbOpenExplorer === 'function') hbOpenExplorer();
+    else return false;
+    caMapNarrow(a);
+    return true;
+  }
+  if (a.place === 'contracts' || a.place === 'list' || a.place === 'wall'){
+    if (a.place !== 'contracts' && typeof regPlaceSet === 'function') regPlaceSet({ show: a.place });
+    if (ids && ids.length && typeof regShowOnly === 'function'){ regShowOnly(ids, N.what || '', N.party ? { party: true } : undefined); return true; }
+    return CA_GO.contracts();
+  }
+  if (a.place === 'board'){
+    caHomeFace('board');
+    if (rest && typeof hbAsk === 'function') setTimeout(() => { try { hbAsk(rest); } catch (_){} }, 0);
+    return true;
+  }
+  if (a.place === 'negotiations'){
+    /* the Negotiations seat's own named set, through the register's one door */
+    if (ids && ids.length && typeof regGoFiltered === 'function'){ regGoFiltered({ only: { ids, label: String(N.what || '') } }, { scope: 'negotiations' }); return true; }
+    return CA_GO.negotiations();
+  }
+  if (a.place === 'oblig'){
+    /* the Obligations page's own `only` chip, keyed its own way (obKeyOf) */
+    if (ids && ids.length && typeof obwGoFiltered === 'function' && typeof obKeyOf === 'function'){
+      const keys = [];
+      ids.forEach(id => { const c = typeof getContract === 'function' ? getContract(id) : null; ((c && c.obligations) || []).forEach((o, i) => { if (o) keys.push(obKeyOf(c.id, o, i)); }); });
+      obwGoFiltered({ only: { keys, label: String(N.what || '') } }); return true;
+    }
+    return typeof setView === 'function' && (setView('obligations'), true);
+  }
+  return false;
+}
+/* the map's own narrowing (its recipe), said in the one line Jambo already said */
+function caMapNarrow(a){
+  const N = a.narrow || {};
+  if (typeof igRecipeRun !== 'function') return false;
+  let parsed = null;
+  if (N.recipe && typeof igRecipeParse === 'function'){ try { parsed = igRecipeParse(N.rest); } catch (_){ parsed = null; } }
+  else if (typeof igConditions === 'function'){
+    let conds = []; try { conds = igConditions(N.rest) || []; } catch (_){ conds = []; }
+    /* none of them on the map: the map stays whole, as the line says */
+    if (conds.length && !(N.ids && !N.ids.length)) parsed = { acts: [{ narrow: { conds, mode: 'only' } }], rest: '' };
+  }
+  if (!parsed) return false;
+  try { igRecipeRun(parsed, { report: true, quiet: true }); } catch (_){ return false; }
+  return true;
+}
+/* WHAT JAMBO SAYS FOR A NARROWING — counted off the same reading the place applies */
+function caNarrowSay(a){
+  const N = a.narrow || {};
+  const page = _caT('ca_w_' + a.place);
+  if (a.narrowOff) return _caT('ca_and_off', { page: page.charAt(0).toUpperCase() + page.slice(1), what: N.what || '' });
+  if (N.party) return _caT('ca_and_party', { who: N.what, n: N.n });
+  if (N.ids && !N.ids.length) return _caT('ca_and_none', { what: N.what, page });
+  if (a.place === 'explorer') return N.n != null ? _caT('ca_and_explorer', { what: N.what, n: N.n }) : _caT('ca_and_explorer_recipe', { what: N.what });
+  if (a.place === 'contracts' || a.place === 'list' || a.place === 'wall') return _caT('ca_and_contracts', { what: N.what, n: N.n });
+  if (a.place === 'board') return _caT('ca_and_board', { what: N.what });
+  if (a.place === 'negotiations') return _caT('ca_and_negotiations', { what: N.what });
+  if (a.place === 'oblig') return _caT('ca_and_oblig', { what: N.what });
+  return caGoSay(Object.assign({}, a, { narrow: null }));
+}
+/* IS THE BRIEF KEPT? The light list carries the fact (_hasBrief); the whole record the brief */
+function caBriefKept(c){ return !!(c && (c._brief || c._hasBrief || (c.brief && typeof c.brief === 'object'))); }
+/* THE BRIEF'S ONE DOOR, ASKED FROM WORDS: the contract on Home, then the
+   paper's own "Read the brief" (openCheckPanel, after ensureFull, as the
+   paper's button does). A kept brief is shown free; none kept, the panel
+   offers Write the brief with its cost — the words never spend */
+function caBriefOpen(c){
+  if (!c) return false;
+  if (typeof pdOpenOnHome === 'function') pdOpenOnHome(c.id, 'copilot');
+  else if (typeof openWorkspace === 'function') openWorkspace(c.id);
+  let tries = 0;
+  const show = async () => {
+    const on = typeof intel !== 'undefined' && intel && intel.paper && String(intel.paper.id) === String(c.id);
+    if (!on && ++tries < 40){ setTimeout(show, 100); return; }
+    const cc = (typeof getContract === 'function' && getContract(c.id)) || c;
+    try { if (cc._light && !cc._loaded && typeof ensureFull === 'function') await ensureFull(cc); } catch (_){}
+    if (typeof openCheckPanel === 'function') openCheckPanel((typeof getContract === 'function' && getContract(c.id)) || cc, 'brief');
+  };
+  setTimeout(show, 0);
+  return true;
+}
 function caAskAnywhere(text, opts = {}){
   const t = String(text || '').trim(); if (!t) return false;
   /* A REQUEST TO BOOK OR FIND TIME, OR A QUESTION ABOUT ONE'S OWN CALENDAR
@@ -1821,19 +2264,33 @@ function caAskAnywhere(text, opts = {}){
     let b = false; try { b = igBookAsk(t); } catch (_){ b = false; }
     if (b && calHandOff(t)) return 'cal';
   }
+  /* the Calendar's own box keeps its booking and planning words (opts.cal) */
+  if (opts.cal){ let b = false; try { b = typeof igBookAsk === 'function' && !!igBookAsk(t); } catch (_){ b = false; } if (b) return false; }
+  /* THE ONE READER (owner, 19 Oct 2026: "do what the user asks in plain
+     language"), the same reading whatever the box (caUnderstand) */
+  const box = opts.box || (opts.cal ? 'cal' : opts.all ? 'counter' : 'page');
+  let u = null; try { u = caUnderstand(t, { box }); } catch (_){ u = null; }
   /* on Home his own box is the reader already */
   if (typeof document !== 'undefined' && document.getElementById('igd-input') && typeof intelAsk === 'function'
     && typeof state !== 'undefined' && state && state.view === 'dashboard'){
     /* …and a request to see what the screen in front shows is answered there (caHereRead) */
-    if (!opts.all && !caReadPlace(t) && !caTakesWords(t) && !caHereRead(t)) return false; intelAsk(t); return true; }
+    if (!opts.all && !u && !caReadPlace(t) && !caTakesWords(t) && !caHereRead(t)) return false; intelAsk(t); return true; }
+  if (u){
+    /* a number nobody here can see is said where it was asked, when the box can say it */
+    if (u.kind === 'noref' && typeof opts.say === 'function'){ opts.say(caUnderstandSay(u)); return 'said'; }
+    if (u.kind === 'go' && !u.missing && !u.narrowOff && !CA_CARD_WORDS.includes(u.place) && caGo(u)) return true;
+    /* a card, a question asked of a contract, "which contract?": Jambo's, beside the Board */
+    return caHandHome(t, u);
+  }
   let a = null; try { a = caReadPlace(t); } catch (_){ a = null; }
   if (a && a.kind === 'go' && !CA_CARD_WORDS.includes(a.place) && caGo(a)) return true;
-  /* JAMBO'S MAP (js/jambomap.js) on Home's box, where every word is Jambo's
-     (opts.all): everyday words for a page open it as a place word does; a card
-     of his ("which did you mean?") is his beside the Board. A page's own box
-     keeps its own job for the rest. */
-  if (!a && opts.all && typeof jmRead === 'function'){ let m = null; try { m = jmRead(t); } catch (_){ m = null; }
-    if (m && m.kind === 'go' && !m.missing && !CA_CARD_WORDS.includes(m.place) && caGo(m)) return true; }
+  /* JAMBO'S MAP (js/jambomap.js) IN EVERY BOX (19 Oct 2026; was Home's box
+     only): everyday words for a page open it as a place word does. What a box
+     is FOR stays its own: a Settings section asked in Settings is the
+     Settings finder's answer, the Calendar asked in the Calendar its own. */
+  if (!a && typeof jmRead === 'function'){ let m = null; try { m = jmRead(t); } catch (_){ m = null; }
+    const own = !!m && ((box === 'settings' && (!!m.st || m.place === 'settings')) || (box === 'cal' && m.place === 'calendar'));
+    if (m && !own && m.kind === 'go' && !m.missing && !CA_CARD_WORDS.includes(m.place) && caGo(m)) return true; }
   if ((a && a.kind === 'go') || caTakesWords(t) || opts.all) return caHandHome(t, a);
   return false;
 }
@@ -1900,6 +2357,13 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
    through the pass Jambo already prepares). HELP: the words, said once. */
 function caGoCardHtml(a, i){
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
+  /* A PAGE THAT CANNOT NARROW AS ASKED says so in the line above, and offers
+     both ways on: the Contracts place narrowed (when any match), or the page */
+  if (a.narrowOff && a.narrow){
+    const N = a.narrow, any = Array.isArray(N.ids) && N.ids.length > 0, page = String(_caT('ca_w_' + a.place));
+    const B = (act, label, lead) => `<button type="button" class="ui-btn ui-btn-sm${lead ? ' ui-btn-primary' : ''}" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`;
+    return `<div class="ca-card" data-ca-card="${i}" data-ca-and><div class="ca-acts">${any ? B('andlist', _caT('ca_and_on_contracts', { n: N.n }), true) : ''}${B('andpage', _caT('ca_and_open_page', { page: page.charAt(0).toUpperCase() + page.slice(1) }), !any)}</div></div>`;
+  }
   if (a.place === 'share' && c && !a.missing){
     const them = String(c.counterparty || '').trim();
     const B = (act, label, lead) => `<button type="button" class="ui-btn ui-btn-sm${lead ? ' ui-btn-primary' : ''}" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`;
@@ -1938,6 +2402,12 @@ function caGoCardHtml(a, i){
 function caGoPress(a, act){
   /* "Upload their paper" is the reader's own press: the picker itself */
   if (a.place === 'draft'){ if (act === 'draftform') caDraftForm(null); else if (act === 'draftupload'){ if (!caMayAdd()) return; if (typeof pdDropPick === 'function') pdDropPick(); else CA_GO.upload(); } return; }
+  /* a page that cannot narrow as asked: the Contracts place narrowed, or the page itself */
+  if (a.narrowOff && a.narrow){
+    if (act === 'andlist') return caGo({ kind: 'go', place: 'contracts', narrow: Object.assign({}, a.narrow), state: 'ready' });
+    if (act === 'andpage') return caGo({ kind: 'go', place: a.place, state: 'ready' });
+    return;
+  }
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null; if (!c) return;
   if (String(act).startsWith('next:')){ caNextRun(c, String(act).slice(5)); return; }
   if (act === 'shareout'){ if (typeof openShareModal === 'function') openShareModal(c); return; }
@@ -1956,6 +2426,75 @@ if (typeof document !== 'undefined' && !document._caBackWired){
     e.preventDefault(); caTrailBack(); caGoRepaint();
   });
 }
+
+/* ---- "WHICH CONTRACT DID YOU MEAN?" — two or three named alike ----
+   Drawn as Jambo's other cards (.ca-card, .ca-acts), one press each, each
+   button the contract's number and name; the press is what was asked of it
+   (its paper, its brief, its history…), moved by caGo. Never a guess. */
+function caPickCardHtml(a, i){
+  if (!a || a.kind !== 'cpick') return '';
+  const title = `<div class="ca-ct">${_caE(_caT('ca_cpick_title'))}</div>`;
+  if (a.state === 'done'){
+    const c = a.chose && typeof getContract === 'function' ? getContract(a.chose) : null;
+    return `<div class="ca-card" data-ca-card="${i}" data-ca-cpick>${title}<p class="ca-said is-ok">${_caE(_caT('ca_cpick_done', { ref: c ? caRef(c) : '' }))}</p></div>`;
+  }
+  const btns = (a.picks || []).map((id, n) => { const c = typeof getContract === 'function' ? getContract(id) : null; if (!c) return '';
+    return `<button type="button" class="ui-btn ui-btn-sm${n === 0 ? ' ui-btn-primary' : ''}" data-ca-act="cpick:${_caE(id)}" data-ca-turn="${i}">${_caE(caRef(c) + ' · ' + (c.name || ''))}</button>`; }).join('');
+  return `<div class="ca-card" data-ca-card="${i}" data-ca-cpick>${title}<div class="ca-acts">${btns}</div></div>`;
+}
+function caPickPress(i, act){
+  const m = caTurn(i); const a = m && m.act; if (!a || a.kind !== 'cpick' || a.state !== 'ready' || !String(act).startsWith('cpick:')) return;
+  const id = String(act).slice(6); if (!(a.picks || []).includes(id)) return;
+  const then = a.then === 'amend' ? 'document' : (CA_PLACES.some(p => p.k === a.then) ? a.then : 'document');
+  const go = { kind: 'go', place: then, cid: id, state: 'ready' };
+  a.state = 'done'; a.chose = id;
+  try { intel.history.push({ role: 'assistant', text: _caE(caGoSay(go)), act: go }); } catch (_){}
+  if (typeof renderIntelDock === 'function') try { renderIntelDock(); } catch (_){}
+  caGo(go);
+}
+/* ---- ON HOME, WHAT THE ONE READER READ IS DONE IN JAMBO'S PANEL ----
+   intelAsk asks this first, before the screen in front's own reader: a move
+   is said in one line and made (caGo); a card waits for its press; a number
+   nobody here can see is said so; a question about a named contract is
+   asked OF that contract — its paper opened on Home and the question put to
+   Jambo with its wording (igPaperAsk, the held ask's own path), the box's
+   Ask press being the press and its cost the box's own line. Answers whether
+   it took the words; "bring up" is the Board's (it answers false). */
+function caHomeRun(q, a){
+  if (!a || typeof intel === 'undefined' || !intel || !Array.isArray(intel.history)) return false;
+  const paint = () => { if (typeof renderIntelDock === 'function') try { renderIntelDock(); } catch (_){} };
+  const land = at => { if (typeof landOn === 'function') try { landOn(() => document.querySelector(`#ig-dock [data-ca-card="${at}"]`)); } catch (_){} };
+  if (a.kind === 'hand') return false;
+  if (a.kind === 'noref'){ intel.history.push({ role: 'user', text: q }, { role: 'assistant', text: _caE(caUnderstandSay(a)) }); paint(); return true; }
+  if (a.kind === 'cpick' || a.kind === 'door'){
+    intel.history.push({ role: 'user', text: q }, { role: 'assistant', text: a.kind === 'door' ? _caE(_caT('ca_intro_job')) : '', act: a });
+    paint(); land(intel.history.length - 1); return true;
+  }
+  if (a.kind === 'ask'){
+    const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null; if (!c) return false;
+    if (typeof codeNameStop === 'function' && codeNameStop(c)) return true;
+    /* the paper up IS this contract: the box's own path asks it (igPaperAsk) */
+    if (typeof igPaperUp === 'function' && igPaperUp() && intel.paper && String(intel.paper.id) === String(c.id)) return false;
+    if (typeof igPaperAsk !== 'function') return false;
+    if (typeof pdOpenOnHome === 'function') try { pdOpenOnHome(c.id, 'copilot'); } catch (_){}
+    intel.history.push({ role: 'user', text: q });
+    intel.busy = true; paint();
+    Promise.resolve().then(() => igPaperAsk(q, c.id))
+      .catch(e => { intel.history.push({ role: 'assistant', err: true, text: _caE((e && e.message) || String(e)) }); })
+      .then(() => { intel.busy = false; paint(); });
+    return true;
+  }
+  if (a.kind !== 'go') return false;
+  const card = (CA_CARD_WORDS.includes(a.place) || !!a.narrowOff) && !a.missing;
+  intel.history.push({ role: 'user', text: q }, { role: 'assistant', text: _caE(caGoSay(a)), act: a });
+  paint();
+  caGo(a);
+  if (card) land(intel.history.length - 1);
+  return true;
+}
+Object.assign(window, { CA_GO_LEAD, CA_AND_JOIN, CA_AND_TAIL, CA_AND_PLACES, CA_AND_WORDS, CA_AND_NARROWS, CA_AND_SAY_MAX, caAndPlaceAt, caNarrowOf, caSayCut, caReadPlaceAnd, caReadGoPlace,
+  caRefCanon, caRefNum, CA_FIND_PICKS, CA_FIND_TERMS_MAX, CA_FIND_NOUN, CA_FIND_MANY, CA_FIND_LEAD, CA_FIND_SKIP, caBookIndex, caFindTerms, caContractOf, CA_CONTRACT_ACTS, caContractActOf, CA_CONTRACT_FRAME, CA_CONTRACT_ASKS, CA_CONTRACT_BRING,
+  caReadContract, caReadNarrowOnly, caUnderstand, caLeavesFor, caUnderstandSay, caGoNarrowed, caMapNarrow, caNarrowSay, caBriefKept, caBriefOpen, caPickCardHtml, caPickPress, caHomeRun });
 Object.assign(window, { CA_PLACES, CA_PLACE_LEAD, CA_PLACE_MAX, CA_PLACE_MIN_TYPED, caPlaceOf, caOnBoard, caReadPlace, CA_USES_KEY, caUses, caUseBump, CA_SLASH, CA_SLASH_MAX, caSlashWord, caSlashRows,
   CA_TRAIL_MAX, caPlaceNow, caTrailPush, caTrailTop, caTrailLabel, caTrailBack, caBackRowHtml, caHomeFace, caHomeWall, caRoomTab, CA_GO, caGoSay, caGo, caGoRepaint,
   caPlaceRows, caPlaceRun, CA_CARD_WORDS, caTakesWords, caHandHome, caAskAnywhere, CA_SL_MAX, CA_SL_TALL, caSlRead, caSlPaint, caSlClose, caSlTake, caGoCardHtml, caGoPress, CA_CHIPS, CA_CHIPS_WALL, CA_CHIP_WALL_WORD, caChipLead });

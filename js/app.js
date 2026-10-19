@@ -1872,7 +1872,13 @@ function commandPaletteResults(q){
       .forEach(f=>out.push({kind:'folder',id:f.id,title:f.name,get sub(){ return i18t('ap_value_stream'); },ic:f.ic||'folder'}));
   }
   let cs=state.contracts.slice();
-  if(q) cs=cs.filter(c=>(c.name+' '+(c.counterparty||'')+' '+c.id+' '+(c.contractNo||'')).toLowerCase().includes(q));
+  /* THE ONE CONTRACT FINDER FIRST (owner, 19 Oct 2026): "mk 345", "mk345",
+     "345", "contract 345", "the warehousing agreement" name a contract here as
+     in every Jambo box (caContractOf); the words typed still find the rest */
+  let named=[];
+  if(q&&typeof window.caContractOf==='function'){ let f=null; try{ f=caContractOf(q); }catch(_){ f=null; }
+    if(f) named=(f.c?[f.c]:(f.picks||f.ids||[]).map(id=>(typeof getContract==='function')?getContract(id):null)).filter(Boolean); }
+  if(q) cs=named.concat(cs.filter(c=>!named.includes(c)&&(c.name+' '+(c.counterparty||'')+' '+c.id+' '+(c.contractNo||'')).toLowerCase().includes(q)));
   else cs=cs.slice().sort((a,b)=>Date.parse(b.lastAction||0)-Date.parse(a.lastAction||0));
   cs.slice(0,q?12:6).forEach(c=>out.push({kind:'contract',id:c.id,
     // an archived row stays findable HERE (filing, not deleting — WO-5) and
@@ -4143,13 +4149,18 @@ function wireShell(){
       if(e.key!=='Enter'||e.isComposing||state.view==='team'||typeof window.jmRead!=='function') return;
       const q=search.value.trim(); if(!q) return;
       if(window.regFiltered){ let n=0; try{ n=regFiltered().length; }catch(_){ n=0; } if(n) return; }
-      let a=null; try{ a=jmRead(q); }catch(_){ a=null; } if(!a) return;
+      /* ONE READER FOR EVERY JAMBO BOX (19 Oct 2026): a contract named any
+         way ("mk 345"), a place with what to show there, read first; else the map */
+      let u=null; try{ u=(typeof window.caUnderstand==='function')?caUnderstand(q,{ box:'bar' }):null; }catch(_){ u=null; }
+      let a=null; try{ a=u?null:jmRead(q); }catch(_){ a=null; } if(!a&&!u) return;
       e.preventDefault();
       /* the words were a request: off the Contracts list, out of the box */
       if(window.regSetScope) regSetScope(null);
       if(window.regState){ const R=regState(); R.query=''; R.page=1; }
       search.value=''; const rs=document.getElementById('reg-search'); if(rs&&rs!==search) rs.value='';
       if(window.regPlaceUp&&regPlaceUp()&&window.renderRegisterBody) try{ renderRegisterBody(); }catch(_){}
+      if(u){ if(u.kind==='go'&&!u.missing&&!u.narrowOff&&!(window.CA_CARD_WORDS||[]).includes(u.place)&&window.caGo&&caGo(u)) return;
+        if(window.caHandHome) caHandHome(q,u); return; }
       if(window.jmRunAct) jmRunAct(a,q);
     });
     document.addEventListener('keydown',e=>{

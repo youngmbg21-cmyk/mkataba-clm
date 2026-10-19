@@ -517,7 +517,11 @@ function stWireDrawerOnce(){
     /* JAMBO, THE SAME ON EVERY PAGE (owner, 18 Oct 2026): a page, a contract's
        number, a draft or a send is read as Home reads it (caAskAnywhere);
        finding a setting is this box's own job, for the rest */
-    if(typeof caAskAnywhere==='function'&&caAskAnywhere(q)) return;
+    /* ONE READER FOR EVERY JAMBO BOX (owner, 19 Oct 2026): a place, a
+       contract ("briefing for contracts mk 345"), a place with a narrowing
+       leave Settings like any box; a Settings section asked here stays the
+       finder's (box 'settings'); a number nobody can see is said here */
+    if(typeof caAskAnywhere==='function'&&caAskAnywhere(q,{ box:'settings', say:line=>stJbSayLine(q,line) })) return;
     stJbAsk(q);
   });
   /* A dialog opened from inside the drawer owns Escape while it is up: one
@@ -2882,8 +2886,11 @@ const ST_JB_CADENCE={ weekly:['weekly','week','vecka','veckan','veckovis'], dail
 const stJbWords=q=>String(q||'').toLowerCase().replace(/['’]s\b/g,'').split(/[^\p{L}\p{N}]+/u).filter(Boolean);
 const stJbTokens=q=>stJbWords(q).filter(t=>!ST_JB_STOP.has(t));
 /* a token finds a word when it IS the word or begins it (4 letters or more) */
+/* …or shares its stem with it (jmStem, Jambo's map's own trim; 19 Oct 2026:
+   "briefing" finds "brief") */
 const stJbHit=(tok,hay)=>{ const ws=hay.split(/[^\p{L}\p{N}]+/u);
-  return ws.some(w=>w===tok || (tok.length>=4 && w.startsWith(tok))); };
+  const stem=(typeof window!=='undefined'&&typeof window.jmStem==='function')?window.jmStem:null, ts=stem&&tok.length>=5?stem(tok):null;
+  return ws.some(w=>w===tok || (tok.length>=4 && w.startsWith(tok)) || (!!ts && w.length>=4 && (stem(w)===ts || w===ts))); };
 /* AN AMOUNT, AS PEOPLE SAY THEM: 5M, 5 million, 5,000,000, 500k, KES 5.5M */
 function stJbAmount(q){
   const m=String(q||'').match(/(\d[\d.,\s]*\d|\d)\s*(m|mn|million|millions|miljon|miljoner|k|thousand|tusen|b|bn|billion|miljard|miljarder)?\b/i);
@@ -3511,6 +3518,13 @@ function stTrailReadyPdf(){
 }
 /* A QUESTION JAMBO ANSWERS FROM WHAT HaTi IS, spending nothing ("what is a
    sealed PDF?") */
+/* A LINE THE ONE READER SAYS HERE ("There is no contract MK-999 that you
+   can see"): a turn with the reader's words and Jambo's one line */
+function stJbSayLine(q, line){
+  const t={ id:++_stJbSeq, q:String(q||'').trim().slice(0,200), force:{ say:String(line||''), cards:[] } };
+  _stJbLog.push(t); if(_stJbLog.length>ST_JB_MAX) _stJbLog=_stJbLog.slice(-ST_JB_MAX);
+  const feed=document.getElementById('st-jb-feed'); if(feed){ feed.insertAdjacentHTML('beforeend', stJbTurnHtml(t)); feed.scrollTop=feed.scrollHeight; }
+}
 function stJbSayFixed(kind, label){
   const said={ sealed:'st_jb_sealed_say' }[String(kind||'')]; if(!said) return;
   const t={ id:++_stJbSeq, q:String(label||'').trim(), force:{ say:i18t(said), cards:[] } };
@@ -9488,6 +9502,6 @@ Object.assign(window,{stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsP
    (PAGE_HEAD_PAINT reads it off window), a form in its row, the stream beside
    the list, Jambo's words for the page in front, your own copy and name and
    email, and the readings the checks ask */
-Object.assign(window,{stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
+Object.assign(window,{stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
   stSwPickSet,stSwPanelHtml,stSwRows,stJbFeedHtml,stJbFeedRepaint,stJbCompanyWords,stJbDataWords,stJbStreamsWords,stJbNeedPhrase,stSideFoldSet,
   stTrailLeftOut,stHouseFacts,stTrailPastHtml,stYouCardRepaint,stGovLadderHtml,stSheetCardHtml});

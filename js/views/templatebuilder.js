@@ -2596,7 +2596,11 @@ function tbSend() {
   /* JAMBO, THE SAME ON EVERY PAGE (owner, 18 Oct 2026): a page's name moves
      there as it does on Home, through this page's own way out (tbLeave keeps
      the work); anything else is drafting, as before */
-  let goTo = null; try { goTo = (typeof caReadPlace === 'function') ? caReadPlace(said) : null; } catch (_) { goTo = null; }
+  /* ONE READER FOR EVERY JAMBO BOX (19 Oct 2026): a SURE place or contract
+     leaves through tbLeave too; drafting words stay this page's job */
+  let goTo = null; try {
+    goTo = ((typeof caLeavesFor === 'function') ? caLeavesFor(said, 'builder') : null) || ((typeof caReadPlace === 'function') ? caReadPlace(said) : null);
+  } catch (_) { goTo = null; }
   if (goTo && goTo.kind === 'go' && !(window.CA_CARD_WORDS || []).includes(goTo.place) && typeof caGo === 'function') {
     if (box) box.value = '';
     tbLeave(() => caGo(goTo)); return;
