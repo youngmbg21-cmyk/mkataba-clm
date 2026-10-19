@@ -281,7 +281,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
-const { startHati, seedWorkspace } = require('../helpers');
+const { startHati, seedWorkspace, CAL_TODAY_ASIDE } = require('../helpers');
 
 const BASELINE = path.join(__dirname, 'ink-wash-baseline.json');
 const OUT = path.join(__dirname, 'shots', 'ink-wash');
@@ -520,6 +520,10 @@ const diff = (a, b) => {
            back after, so every other screen's recorded counts still hold. */
         if (name === 'history') await page.mouse.move(2, 2);
         await pause(name === 'home' ? 1400 : 800);
+        /* The week's today marks are drawn on weekdays only, so they come out
+           before any count is taken (CAL_TODAY_ASIDE); theme-tokens-verify
+           checks their look on any day. */
+        await page.evaluate(CAL_TODAY_ASIDE);
         const r = {};
         if (dark) r.all = await page.evaluate(CENSUS, ['body', COLOUR_PROPS]);
         r.paper = await page.evaluate(PAPER, [...COLOUR_PROPS, 'textTransform', 'letterSpacing']);
