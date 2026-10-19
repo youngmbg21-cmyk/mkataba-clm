@@ -933,6 +933,12 @@ const TB_RAIL_MIN = 1024;
    window (the node harness) draws it. */
 const tbRailFits = () => typeof window === 'undefined' || !window.innerWidth || window.innerWidth >= TB_RAIL_MIN;
 const tbSectionNo = sec => { const i = tbSections().findIndex(s => s.k === sec.k); return i < 0 ? 0 : i + 1; };
+/* THE NUMBER THE PAPER PRINTS (check #2, 19 Oct 2026): the panel said
+   "Section 1 · Parties" and "Section 6" where the paper and the Outline say
+   "·" and "5." — what the reader sees names a section by the Outline's own
+   reading (tbOutlineNo); tbSectionNo stays the @-reference's position. */
+const tbPaperNo = sec => { const secs = tbSections(); const i = secs.findIndex(s => s.k === sec.k); if (i < 0) return ''; const n = tbOutlineNo(secs[i], i); return n === '·' ? '' : n; };
+const tbNoHead = (sec, head) => { const n = tbPaperNo(sec); const h = head != null ? head : (sec.head || i18t('tb_untitled')); return n ? `${n} · ${h}` : h; };
 const tbThread = k => (_tb.thread[k] = _tb.thread[k] || []);
 const tbTurn = (k, t) => { tbThread(k).push(t); return t; };
 function tbNextEmpty(fromK) {
@@ -969,7 +975,7 @@ function tbSetWalk(on) { _tb.walk = !!on; tbPaintRail(); }
 function tbQuestionFor(sec) {
   const intent = (_tb.intent && _tb.intent[sec.k]) || '';
   const std = tbStandardFor(sec.head);
-  const parts = [i18t('tb_walk_q', { n: tbSectionNo(sec), head: sec.head || i18t('tb_untitled') })];
+  const parts = [i18t(tbPaperNo(sec) ? 'tb_walk_q' : 'tb_walk_q_un', { n: tbPaperNo(sec), head: sec.head || i18t('tb_untitled') })];
   if (intent) parts.push(intent);
   parts.push(std ? i18t('tb_walk_std', { std: std.replace(/\.\s*$/, '') }) : i18t('tb_walk_nostd'));
   return parts.join(' ');
@@ -1121,7 +1127,7 @@ async function tbAccept(k, idx) {
   tbDropExtraBody(sec, bi);
   tbTouch();
   a.applied = true;
-  const receipt = i18t('tb_pb_applied', { n: tbSectionNo(sec), head: sec.head || i18t('tb_untitled') });
+  const receipt = i18t(tbPaperNo(sec) ? 'tb_pb_applied' : 'tb_pb_applied_un', { n: tbPaperNo(sec), head: sec.head || i18t('tb_untitled') });
   tbTurn(k, { who: 'ai', receipt });
   tbPaintPaper(); tbPatchDirty();
   tbBlanksRun(k, a.text);
@@ -1346,7 +1352,9 @@ function tbStyleHtml() {
   .tb-g button[data-tb-tag]{color:#5B21B6;border-color:#DDD6FE;background:#F5F3FF;font-size:var(--t-meta)}
   .tb-g button[disabled]{opacity:.35;cursor:default}
   .tb-sec{position:relative;padding:6px 10px 6px 12px;margin:0 -10px 2px -12px;border-radius:0}
-  .tb-sec.is-on{outline:1px dashed color-mix(in srgb,var(--color-text) 34%,transparent);outline-offset:1px}
+  /* the paper arrives clean (round 21; check #2, 19 Oct 2026): the section in
+     hand wears its frame only while the reader is writing in it */
+  .tb-sec.is-on:focus-within{outline:1px dashed color-mix(in srgb,var(--color-text) 34%,transparent);outline-offset:1px}
   .tb-dot{position:absolute;left:-14px;top:14px;width:7px;height:7px;border-radius:50%;background:var(--color-divider)}
   .tb-sec.is-written>.tb-row-h>.tb-dot{background:var(--accent-solid)}
   .tb-sec.is-dev>.tb-row-h>.tb-dot{background:var(--st-ruby-fg)}
@@ -1751,7 +1759,7 @@ function tbProposedRowHtml(k) {
 function tbSectionListHtml(secs) {
   const cov = tbCoverage();
   return `<ul class="tb-rows">${secs.map(s => { const st = tbSecState(s, cov);
-    return `<li><i class="d ${st === 'written' ? 'ok' : st}"></i><span class="g">${tbSectionNo(s)} · ${esc(s.head || i18t('tb_untitled'))}</span>
+    return `<li><i class="d ${st === 'written' ? 'ok' : st}"></i><span class="g">${tbNoHead(s, esc(s.head || i18t('tb_untitled')))}</span>
       <span class="st ${st === 'dev' ? 'dev' : ''}">${st === 'dev' ? i18t('tb_ask_first_dev') : tbSectionText(s) ? i18t('tb_written') : i18t('tb_empty')}</span>
       <button type="button" data-tb-next="${s.k}">${i18t('tb_open_sec')}</button></li>`; }).join('')}</ul>`;
 }
@@ -1925,10 +1933,10 @@ function tbScopeHtml() {
   if (!sec || !_tb.blocks.length || _tb.outline) return '<div id="tb-scope"></div>';
   const txt = tbSectionText(sec);
   const ctx = (_tb.ctx || []).map(k => tbSectionAt(k)).filter(Boolean);
-  return `<div id="tb-scope"><div class="tb-scope"><div class="eb"><b>✎ ${i18t('tb_scope', { n: tbSectionNo(sec), head: esc(sec.head) || i18t('tb_untitled') })}</b><span class="g"></span>
+  return `<div id="tb-scope"><div class="tb-scope"><div class="eb"><b>✎ ${tbPaperNo(sec) ? i18t('tb_scope', { n: tbPaperNo(sec), head: esc(sec.head) || i18t('tb_untitled') }) : (esc(sec.head) || i18t('tb_untitled'))}</b><span class="g"></span>
       <button type="button" class="x" data-tb-step="-1" title="${i18t('tb_prev')}" aria-label="${i18t('tb_prev')}">${icon('chevL','w-3.5 h-3.5')}</button><button type="button" class="x" data-tb-step="1" title="${i18t('tb_next')}" aria-label="${i18t('tb_next')}">${icon('chevR','w-3.5 h-3.5')}</button><button type="button" class="x" data-tb-untag title="${i18t('tb_untag')}" aria-label="${i18t('tb_untag')}">${icon('x','w-3.5 h-3.5')}</button></div>
     <q class="${txt ? '' : 'e'}">${esc(txt ? txt.slice(0, 160) + (txt.length > 160 ? '…' : '') : i18t('tb_not_written'))}</q>
-    ${ctx.map(c => `<span class="ctx">@ ${tbSectionNo(c)} · ${esc(c.head)} — ${i18t('tb_for_context')} <button type="button" data-tb-unctx="${c.k}" title="${i18t('tb_untag')}" aria-label="${i18t('tb_untag')}" style="display:inline-flex;vertical-align:middle">${icon('x','w-3 h-3')}</button></span>`).join('')}</div></div>`;
+    ${ctx.map(c => `<span class="ctx">@ ${tbNoHead(c, esc(c.head))} — ${i18t('tb_for_context')} <button type="button" data-tb-unctx="${c.k}" title="${i18t('tb_untag')}" aria-label="${i18t('tb_untag')}" style="display:inline-flex;vertical-align:middle">${icon('x','w-3 h-3')}</button></span>`).join('')}</div></div>`;
 }
 function tbChipsRowHtml() {
   const chips = [];
@@ -1938,7 +1946,7 @@ function tbChipsRowHtml() {
     if (sec) {
       const txt = tbSectionText(sec); const lib = tbLibraryFor(sec.head);
       const th = tbThread(sec.k); const last = th[th.length - 1];
-      if (last && last.receipt) { const nx = tbNextEmpty(sec.k); if (nx) chips.push([`data-tb-next="${nx.k}"`, i18t('tb_next_sec', { n: tbSectionNo(nx), head: esc(nx.head) }), 'next']); }
+      if (last && last.receipt) { const nx = tbNextEmpty(sec.k); if (nx) chips.push([`data-tb-next="${nx.k}"`, i18t(tbPaperNo(nx) ? 'tb_next_sec' : 'tb_next_sec_un', { n: tbPaperNo(nx), head: esc(nx.head) }), 'next']); }
       /* ---- YOUR OWN WORDING, ON A SECTION THAT IS ALREADY WRITTEN
              (the build plan's upgrade 3, 18 Sep 2026) ----
          The `!txt` guard was the whole of the gap: Copilot would fill an empty
@@ -2110,9 +2118,14 @@ function tbOutlineTabHtml(cov) {
       : i18t('tb_ol_std_some', { met: cov.met, n: cov.total })
         + (props.length ? ' ' + i18tn('tb_ol_std_prop', props.length, { list: props.map(r => r.category).join(i18t('tb_ol_and')) }) : '');
   }
+  /* A SKIP IS SAID WHERE THE STANDARDS ARE COUNTED, with its way back (check
+     #2, 19 Oct 2026): only the standards still missing, each one a press */
+  const skipped = cov && cov.total ? tbSkippedOf().filter(c => (cov.rows || []).some(r => r.category === c && r.state === 'open')) : [];
+  const skipSay = skipped.length ? `<p class="tb-ol-p">${esc(i18t('tb_ol_std_skipped', { list: skipped.join(i18t('tb_ol_and')) }))} ${skipped.map(c =>
+    `<button type="button" class="ui-link" data-tb-unskip="${esc(c)}">${esc(i18t('tb_ol_unskip'))}${skipped.length > 1 ? ' · ' + esc(c) : ''}</button>`).join(' ')}</p>` : '';
   return `<div class="tb-ol">${rows.join('')}</div>
     <p class="tb-ol-sh">${esc(i18t('tb_tab_blanks'))}${nb ? ` <span class="tb-ol-cnt">${nb}</span>` : ''}</p><p class="tb-ol-p">${esc(blanks)}</p>
-    ${std ? `<p class="tb-ol-sh">${esc(i18t('tb_ol_std_h'))}</p><p class="tb-ol-p">${esc(std)}</p>` : ''}`;
+    ${std ? `<p class="tb-ol-sh">${esc(i18t('tb_ol_std_h'))}</p><p class="tb-ol-p">${esc(std)}</p>${skipSay}` : ''}`;
 }
 /* ---- JAMBO PROPOSES, ON THE PAPER (round 21: "Jambo proposes ·
    Confidentiality · Add · Skip · Our standard: …") ----
@@ -2130,18 +2143,20 @@ function tbSkippedOf() {
   const t = _tb && _tb.template;
   return t && Array.isArray(t.skippedStandards) ? t.skippedStandards.map(String) : [];
 }
-async function tbSkip(category) {
+async function tbSkip(category, opts) {
   if (!_tb) return;
+  const undo = !!(opts && opts.undo);
   const t = _tb.template || (_tb.template = {});
   const was = tbSkippedOf();
-  (_tb.decided = _tb.decided || { kept: [], left: [], neg: [] }).left.push(category);
-  t.skippedStandards = Array.from(new Set([...was, category]));
+  const d = (_tb.decided = _tb.decided || { kept: [], left: [], neg: [] });
+  if (undo) d.left = d.left.filter(x => x !== category); else d.left.push(category);
+  t.skippedStandards = undo ? was.filter(x => x !== category) : Array.from(new Set([...was, category]));
   try {
-    const r = await api(`templates/${_tb.tid}/skipped`, 'PUT', { category }, { quiet: true });
+    const r = await api(`templates/${_tb.tid}/skipped`, 'PUT', undo ? { category, undo: true } : { category }, { quiet: true });
     if (r && Array.isArray(r.skippedStandards)) t.skippedStandards = r.skippedStandards;
   } catch (e) {
     t.skippedStandards = was;
-    _tb.decided.left = _tb.decided.left.filter(x => x !== category);
+    d.left = undo ? Array.from(new Set([...d.left, category])) : d.left.filter(x => x !== category);
     toast(e.message, 'err'); tbPaintPaper(); tbPaintRail({ keep: true });
   }
 }
@@ -2213,12 +2228,14 @@ function tbHeadFacts() {
 function tbHeadHtml() {
   const h = tbHeadFacts();
   const caret = icon('chevD', 'tb-fchip-c');
-  const chip = (what, key, val, sw) => `<button type="button" class="tb-fchip${val ? '' : ' empty'}" data-tb-meta="${what}"
-      title="${esc(val ? i18t('tb_h_chip_title', { k: key, v: val }) : i18t('tb_h_stream_none'))}"><span class="k">${esc(key)}</span>${sw || ''}<span class="v">${esc(val || i18t('tb_h_choose'))}</span>${caret}</button>`;
+  const chip = (what, key, val, sw, whole) => `<button type="button" class="tb-fchip${val ? '' : ' empty'}" data-tb-meta="${what}"
+      title="${esc(val ? i18t('tb_h_chip_title', { k: key, v: whole || val }) : i18t('tb_h_stream_none'))}"><span class="k">${esc(key)}</span>${sw || ''}<span class="v">${esc(val || i18t('tb_h_choose'))}</span>${caret}</button>`;
   return `<button type="button" class="tb-tname" data-tb-meta="name" title="${esc(i18t('tb_h_rename', { name: h.name }))}"><span class="v">${esc(h.name)}</span></button>`
     + `<span class="tb-chipv">${i18t('tb_v_draft', { n: _tb.versionNumber })}</span>`
     + chip('category', i18t('tb_h_category'), h.categoryName)
-    + chip('stream', i18t('tb_h_stream'), h.streamName);
+    /* the stream's short name, as Our paper's book says it ("Sales"); its
+       whole name on the hover (check #2, 19 Oct 2026) */
+    + chip('stream', i18t('tb_h_stream'), typeof window.tplShortStream === 'function' ? window.tplShortStream(h.streamName) : h.streamName, '', h.streamName);
 }
 function tbPaintHead() { const el = document.getElementById('tb-head'); if (el && _tb) el.innerHTML = tbHeadHtml(); }
 /* THE DOOR. The box saves through the template's own PATCH; what comes back
@@ -2593,7 +2610,7 @@ function tbSecOf(el) { const s = el.closest ? el.closest('[data-tb-sec]') : null
 function tbPickHtml(q) {
   const secs = tbSections().filter(s => !q || String(s.head || '').toLowerCase().includes(q.toLowerCase()));
   if (!secs.length) return '';
-  return secs.map(s => `<button type="button" data-tb-pick="${s.k}"><i class="d ${tbSectionText(s) ? 'ok' : ''}"></i>${tbSectionNo(s)} · ${esc(s.head || i18t('tb_untitled'))}<small>${tbSectionText(s) ? i18t('tb_written') : i18t('tb_empty')}</small></button>`).join('');
+  return secs.map(s => `<button type="button" data-tb-pick="${s.k}"><i class="d ${tbSectionText(s) ? 'ok' : ''}"></i>${tbNoHead(s, esc(s.head || i18t('tb_untitled')))}<small>${tbSectionText(s) ? i18t('tb_written') : i18t('tb_empty')}</small></button>`).join('');
 }
 function tbWire() {
   document.getElementById('tb-back')?.addEventListener('click', () => tbLeave());
@@ -2625,6 +2642,7 @@ function tbWire() {
     /* Jambo's proposal on the paper: Add puts our standard's own wording where
        the card stood (tbAddStandard, free); Skip takes it away for good */
     if ((b = hit('[data-tb-prop-add]'))) { tbAddStandard(b.getAttribute('data-tb-prop-add')); return; }
+    if ((b = hit('[data-tb-unskip]'))) { tbSkip(b.getAttribute('data-tb-unskip'), { undo: true }); tbPaintPaper(); tbPaintRail({ keep: true }); return; }
     if ((b = hit('[data-tb-prop-skip]'))) { tbSkip(b.getAttribute('data-tb-prop-skip')); tbPaintPaper(); tbPaintRail({ keep: true }); return; }
     if ((b = hit('[data-tb-up]'))) { tbMove(Number(b.getAttribute('data-tb-up')), -1); return; }
     if ((b = hit('[data-tb-down]'))) { tbMove(Number(b.getAttribute('data-tb-down')), +1); return; }
@@ -3055,4 +3073,4 @@ Object.assign(window, { openTemplateBuilder, tbCardWording, TB_BLOCK_META, TB_PB
   tbSectionOwes, tbMissingStandards,
   /* Round 21, "Paper first": Jambo's panel beside the paper, its Outline tab,
      his proposals and the marks on the paper (the book's own readings). */
-  tbRailFolded, tbRailFold, tbOutlineTabHtml, tbOutlineNo, tbBlankKeys, tbSkippedOf, tbSkip, tbProposals, tbProposalSpot, TB_CLOSING_RE, TB_FOLD_KEY, tbProposalHtml, tbMarksAll, tbMarksRepaint });
+  tbRailFolded, tbRailFold, tbOutlineTabHtml, tbOutlineNo, tbBlankKeys, tbSkippedOf, tbSkip, tbPaperNo, tbNoHead, tbProposals, tbProposalSpot, TB_CLOSING_RE, TB_FOLD_KEY, tbProposalHtml, tbMarksAll, tbMarksRepaint });

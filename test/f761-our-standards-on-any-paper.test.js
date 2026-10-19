@@ -106,7 +106,10 @@ describe('f761 (4) Jambo\'s words beside the book', () => {
     const win = lib();
     const lines = win.tplPfSaid({ kind: 'cp', id: 'y', name: 'Reseller agreement' }, { st: { used: 0, changed: 0, byCat: [] },
       cov: { total: 4, met: 3, rows: [{ category: 'Governing law', state: 'hit' }, { category: 'Data protection', state: 'open' }] } });
-    assert.equal(lines[1], 'Nothing has been drafted from it in 12 months. It meets 3 of 4 of Our standards; still to meet: Data protection.');
+    /* RE-POINTED (check #1, 19 Oct 2026): where the paper's set differs from
+       the Our standards tab's count, the sentence says what it is read
+       against — here every contract's baseline */
+    assert.equal(lines[1], 'Nothing has been drafted from it in 12 months. It meets 3 of the 4 standards every contract is read against; still to meet: Data protection.');
   });
   test('4c Next steps are the template\'s own verbs; "where it came back changed" lands on the mark (LAND ON IT)', () => {
     const c = fnBody(LIB, 'tplPfChips');

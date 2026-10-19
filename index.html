@@ -14123,6 +14123,8 @@
   .tpl-pf-sheet .tpl-pf-blank,.tpl-pf-sheet .hati-field{display:inline;padding:0 3px;border-radius:2px;background:var(--st-amber-bg);color:var(--st-amber-fg);border-bottom:1px dashed var(--st-amber-dot);font-style:normal;cursor:default;white-space:normal;}
   .tpl-pf-sheet .tpl-pf-blank.has-v{color:var(--color-doc-text, var(--color-text));}
   .tpl-mks{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px;user-select:none;-webkit-user-select:none;font-family:var(--font-body);}
+  /* the signatures stand apart from the last clause's marks (check #2, 19 Oct 2026) */
+  .tpl-pf-sheet .tpl-mks + p{margin-top:var(--s-6);}
   .tpl-mk{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:999px;font-size:var(--t-micro);line-height:1.6;font-weight:var(--w-label);background:var(--st-green-bg);color:var(--st-green-fg);border:0;font-family:inherit;white-space:nowrap;}
   .tpl-mk.is-dev,.tpl-mk.is-changed{background:var(--st-amber-bg);color:var(--st-amber-fg);}
   button.tpl-mk{cursor:pointer;}

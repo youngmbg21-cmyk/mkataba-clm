@@ -146,7 +146,7 @@ describe('f763 (6) a skip is kept on the template, on the server', () => {
   });
   test('6b the builder reads the template, never this browser', () => {
     assert.doesNotMatch(TB, /hati\.v1\.tbSkipped/);
-    assert.match(fnBody(TB, 'tbSkip'), /await api\(`templates\/\$\{_tb\.tid\}\/skipped`, 'PUT', \{ category \}/);
+    assert.match(fnBody(TB, 'tbSkip'), /await api\(`templates\/\$\{_tb\.tid\}\/skipped`, 'PUT', undo \? \{ category, undo: true \} : \{ category \}/);
     assert.match(fnBody(TB, 'tbSkippedOf'), /t\.skippedStandards/);
   });
 });

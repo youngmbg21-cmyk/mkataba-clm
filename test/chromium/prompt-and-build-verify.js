@@ -120,7 +120,9 @@ const RAIL = () => {
       N >= 4 && s.heads[0] === 'Parties' && s.heads[1] === 'Definitions' && s.heads[2] === 'Payment terms'
         && new Set(s.heads.map(x => x.toLowerCase())).size === N, s.heads);
     check('2c · the first section is in hand, framed on the paper and named on the focus card',
-      /Section 1 · Parties/i.test(s.scope) && s.on.length === 1 && s.on[0] === 'Parties', { scope: s.scope, on: s.on });
+      /* RE-POINTED (lane D check #2, 19 Oct 2026): the panel says the number
+         the PAPER prints — Parties prints unnumbered, so the card says its name */
+      /✎ Parties/i.test(s.scope) && s.on.length === 1 && s.on[0] === 'Parties', { scope: s.scope, on: s.on });
     check('2d · the walk is on and asks its question in HaTi’s own words', /what should it say\?/.test(s.lane) && /Walk me through it · on/.test(s.foot), { foot: s.foot });
     /* RE-POINTED IN PLACE, 24 Sep 2026 (one door to standards). A section the
        list marked "Your library" now arrives WRITTEN — the press that adds it
@@ -136,7 +138,7 @@ const RAIL = () => {
     await tag2.click();
     await pause(400);
     s = await page.evaluate(RAIL);
-    check('3a · ✦ on section 2 puts it in hand: the focus card names it and the frame moves', /Section 2 · Definitions/.test(s.scope) && s.on[0] === 'Definitions', { scope: s.scope, on: s.on });
+    check('3a · ✦ on section 2 puts it in hand: the focus card names it and the frame moves', /Section 1 · Definitions/.test(s.scope) && s.on[0] === 'Definitions', { scope: s.scope, on: s.on });
     check('3b · and the caret is in the ask box', s.active === 'tb-ask', s.active);
 
     /* ================= 4 · TALK ================ */
@@ -162,7 +164,8 @@ const RAIL = () => {
     const nextOwed = await page.evaluate(() => {
       const secs = [...document.querySelectorAll('[data-tb-sec]')].map((e, i) => ({ i, empty: e.classList.contains('is-empty'), head: (e.querySelector('.tb-hed') || {}).textContent || '' }));
       const after = secs.find(x => x.i > 1 && x.empty) || secs.find(x => x.i !== 1 && x.empty);
-      return after ? { n: after.i + 1, head: after.head } : null;
+      /* the paper's own number: the first section prints unnumbered (lane D check #2) */
+      return after ? { n: after.i, head: after.head } : null;
     });
     const wroteBefore = Number((/^(\d+) of/.exec(s.foot.trim()) || [])[1]);
     await page.click('[data-tb-use]');
@@ -170,7 +173,7 @@ const RAIL = () => {
     s = await page.evaluate(RAIL);
     await page.screenshot({ path: path.join(OUT, '04-applied.png') });
     check('5a · Apply puts the wording on the paper, in section 2', /freight within/.test(s.sec2), s.sec2.slice(0, 100));
-    check('5b · the receipt names the section', /Applied to 2 · Definitions/.test(s.lane), s.lane.slice(-160));
+    check('5b · the receipt names the section', /Applied to 1 · Definitions/.test(s.lane), s.lane.slice(-160));
     /* RE-POINTED IN PLACE, 24 Sep 2026: the next EMPTY section is no longer
        section 3, because Payment terms now arrives written from the library.
        The claim was always "the next empty one" — asked of the paper. */

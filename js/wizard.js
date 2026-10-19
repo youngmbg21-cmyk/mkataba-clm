@@ -994,8 +994,10 @@ function openNewAgreement(o){
     </div></div>`, { maxWidth: NA_FRAME_NARROW_W+'px', label: i18t('na_title'),
       /* A PAGE, NOT A POP-UP (SAP pop-ups, owner's go 10 Oct 2026): the
          picker, the ask and the template's questions fill the work area,
-         Create draft, Skip and Cancel at the top. See dlgPageAdopt. */
-      page:{ acts:['na-create','na-skip','wz-pick-cancel'], crumb:`${i18t('nav_contracts')} › ${i18t('na_title')}` },
+         Create draft, Skip and Cancel at the top. See dlgPageAdopt. The
+         crumb names where it was opened from: Our paper's "Draft from it"
+         reads "Our paper › New agreement" (round 21; check #2, 19 Oct 2026). */
+      page:{ acts:['na-create','na-skip','wz-pick-cancel'], crumb:`${i18t((typeof state==='object'&&state&&(state.view==='templates'||state.view==='playbook'))?'nav_tpl_std':'nav_contracts')} › ${i18t('na_title')}` },
       /* ESCAPE AND THE SCRIM ASK TOO (9 Oct 2026) — see naAskLeave below. */
       onBeforeClose: ()=>naAskLeave() });
   /* A STAGE WITHOUT REAL ELEMENTS (a sandbox that only records the markup)
