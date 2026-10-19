@@ -1430,6 +1430,10 @@ function pdTalkSync(dock){
   /* a new page begins where the last page drawn left off: words put in the
      conversation since (a question asked as the page arrived) are this page's */
   if (jamboTalkLand(k)){ const from = Math.min(len, _pdTalk.last == null ? len : _pdTalk.last); _pdTalk = { from, seen: from }; }
+  /* A CONVERSATION THAT SHRANK (an exchange put away, the bin, a reset) lost
+     words from BEFORE the ones drawn: where this page's words begin moves back
+     with them, so what was on screen stays on screen (one-sheet-as-drawn 14) */
+  if (_pdTalk.last != null && len < _pdTalk.last){ _pdTalk.from = Math.max(0, _pdTalk.from - (_pdTalk.last - len)); _pdTalk.seen = Math.min(_pdTalk.seen, len); }
   if (len < _pdTalk.from) _pdTalk = { from: len, seen: len };
   _pdTalk.last = len;
   if (k.indexOf('dock:') !== 0) return false;
