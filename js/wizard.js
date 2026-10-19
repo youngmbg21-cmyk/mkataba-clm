@@ -1022,7 +1022,12 @@ function openNewAgreement(o){
     </div></div>`, { maxWidth: NA_FRAME_NARROW_W+'px', label: i18t('na_title'),
       /* A PAGE, NOT A POP-UP (SAP pop-ups, owner's go 10 Oct 2026): the
          picker, the ask and the template's questions fill the work area,
-         Create draft, Skip and Cancel at the top. See dlgPageAdopt. */
+         Create draft, Skip and Cancel at the top. See dlgPageAdopt. The
+         crumb names where it was opened from: Our paper's "Draft from it"
+         reads "Our paper › New agreement" (round 21; check #2, 19 Oct 2026),
+         and a page that hands its name (Requests' "Start the draft", round 20)
+         is the crumb's way back, "‹ Requests". The one sheet is opened from
+         Jambo's words on Home only, so its crumb stays Contracts. */
       page:one?{ acts:['na-why','na-create','wz-pick-cancel'],
           /* ON THE DESK, BESIDE JAMBO (the gaps, round 4): THE WAY BACK IS THE APP'S
              (the SAP bar, 18 Oct 2026: "‹ · HA · the page's name", no row between the
@@ -1032,9 +1037,9 @@ function openNewAgreement(o){
              its own. Without the desk's bar the crumb stays words. */
           ...((typeof deskShellOn==='function'&&deskShellOn())
             ? {}
-            : { crumb:`${i18t('nav_contracts')} › ${i18t('na_title')}`, back:o.backLabel||'' }),
+            : { crumb:`${i18t('nav_contracts')} › ${i18t('na_title')}` }),
           beside:'#ig-dock' }
-        : { acts:['na-create','na-skip','wz-pick-cancel'], crumb:`${i18t('nav_contracts')} › ${i18t('na_title')}`, back:o.backLabel||'' },
+        : { acts:['na-create','na-skip','wz-pick-cancel'], crumb:`${i18t((typeof state==='object'&&state&&(state.view==='templates'||state.view==='playbook'))?'nav_tpl_std':'nav_contracts')} › ${i18t('na_title')}`, back:o.backLabel||'' },
       /* ESCAPE AND THE SCRIM ASK TOO (9 Oct 2026) — see naAskLeave below. */
       onBeforeClose: ()=>naAskLeave() });
   /* A STAGE WITHOUT REAL ELEMENTS (a sandbox that only records the markup)

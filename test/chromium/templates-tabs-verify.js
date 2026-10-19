@@ -628,9 +628,12 @@ const BOX = sel => {
       bk && { h: bk.h, hidden: bk.hidden, rowH: bk.rowH, paper: bk.paper });
     check('9b · every template a row, under its shelf, our own paper first',
       !!bk && bk.n >= 12 && bk.groups.length >= 1 && !/^Counterparty/.test(bk.groups[0] || ''), bk && { n: bk.n, groups: bk.groups });
-    check('9e · the glance is three figures in the band, and the caveat rides the rate alone',
-      !!bk && bk.gl.length === 3 && bk.gl.filter(g => g.title.trim()).length === 1,
-      bk && bk.gl.map(g => g.label.trim() + (g.title.trim() ? ' [hover]' : '')));
+    /* RE-POINTED 19 Oct 2026 (round 21 as drawn, lane D): the book's facts
+       are ONE line beside the page's name — "N contracts drafted from them in
+       12 months · N came back changed" — where the three figures stood */
+    const facts = await page.evaluate(() => ({ sub: (document.querySelector('[data-tpl-hd-sub]') || {}).textContent || '', gl: document.querySelectorAll('[data-tpl-head="book"] .tpl-gl').length }));
+    check('9e · the book\'s facts are one line beside the page\'s name; the three figures are gone',
+      /^\d+ contracts? drafted from them in 12 months · \d+ came back changed$/.test(facts.sub.trim()) && facts.gl === 0, facts);
 
     const cut = !hasBook ? null : await page.evaluate(async () => {
       const sec = document.querySelector('[data-tpl-sec="book"]');

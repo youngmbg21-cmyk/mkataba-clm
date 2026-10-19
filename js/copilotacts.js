@@ -1873,7 +1873,10 @@ function caSlClose(){ _caSl = null; const el = document.getElementById('ca-slash
 function caSlTake(i){
   const P = _caSl; const r = P && P.rows[i]; if (!r) return;
   P.inp.value = ''; caSlClose();
-  caPlaceRun(r.k);
+  /* A PAGE THAT KEEPS WORK leaves through its own way out (the template
+     builder's tbLeave keeps what was typed): the box names it, `_caLeave` */
+  const leave = P.inp && typeof P.inp._caLeave === 'function' ? P.inp._caLeave : null;
+  if (leave) leave(() => caPlaceRun(r.k)); else caPlaceRun(r.k);
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._caSlWired){
   document._caSlWired = true;

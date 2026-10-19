@@ -119,6 +119,10 @@ function deskPageName(){
   /* THE ONE SHEET IS A PAGE OF ITS OWN WHILE IT IS UP (the gaps, round 4,
      after the SAP bar, 18 Oct 2026): the bar names it "New agreement" */
   if (deskSheetUp()) return _cnT('na_title');
+  /* THE BUILDER IS ITS OWN PAGE (round 21 draws its tab "Builder"; lane D,
+     19 Oct 2026): it paints over the page it was opened from without a view
+     of its own, so the bar asks it before the page underneath */
+  if (typeof window !== 'undefined' && typeof window.tbOnScreen === 'function' && window.tbOnScreen()) return _cnT('tb_jl_word');
   const k = deskKeyNow();
   if (!k) return (typeof state !== 'undefined' && state && state.view === 'counter') ? _cnT('dk_counter') : '';
   return deskTabLabel(k);

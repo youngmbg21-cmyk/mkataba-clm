@@ -361,8 +361,12 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await until(() => state.view === 'templates' ? true : null);
       await page.waitForTimeout(400);
       await page.click('#cmd-ai');
-      const O = await until(() => { const p = document.getElementById('ai-panel'); return p && p.classList.contains('open') ? { open: true, focus: document.activeElement && document.activeElement.id, onScreen: !!(window.jlOnScreen && jlOnScreen()) } : null; }, null, 6000);
-      check('10h a panel in a hidden tab is not on screen, so the bar\'s door opens the window and its box takes the words', !!O && O.focus === 'ai-input' && !O.onScreen, JSON.stringify(O));
+      const O = await until(() => { const p = document.getElementById('ai-panel'); const f = document.activeElement && document.activeElement.id;
+        return (p && p.classList.contains('open')) || f === 'jl-q' ? { open: !!(p && p.classList.contains('open')), focus: f, onScreen: !!(window.jlOnScreen && jlOnScreen()) } : null; }, null, 6000);
+      /* RE-POINTED 19 Oct 2026 (round 21 as drawn, lane D): Our paper's
+         panel is the PAGE's now and stands beside the book, on screen — so the
+         bar's door puts the reader in its box, as beside every list */
+      check('10h the bar\'s door takes the reader to the Jambo box on screen: the page\'s panel beside the book (the window where none is shown)', !!O && ((O.focus === 'ai-input' && !O.onScreen) || (O.focus === 'jl-q' && O.onScreen)), JSON.stringify(O));
       await page.evaluate(() => { if (typeof closeAI === 'function') closeAI(); });
     });
     await part('10i the person panel as drawn', async () => {

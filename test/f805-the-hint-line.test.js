@@ -197,8 +197,10 @@ describe('f805 (7) the Calendar\'s box and the template builder\'s', () => {
     assert.match(fnOf(CAL, 'calPlanHtml'), /const cost=i18t\('jl_ask_cost'\);/);
   });
   test('7b the builder: under its ask row, from the builder', () => {
-    assert.match(fnOf(TB, 'tbAskHtml'), /<div class="tb-pick" id="tb-pick" hidden><\/div><\/div>\$\{[\s\S]{0,300}typeof jamboHintHtml === 'function' \? jamboHintHtml\(\) : ''\}`;/);
-    assert.match(TB, /\.tb-ask \+ \.jb-hint\{flex:none;margin:-4px 14px 8px\}/);
+    /* RE-POINTED 19 Oct 2026 (round 21's builder as drawn, lane D): the box
+       and its line sit together at the foot of Jambo's panel (.tb-foot) */
+    assert.match(fnOf(TB, 'tbAskHtml'), /<div class="tb-pick" id="tb-pick" hidden><\/div><\/div>\$\{[\s\S]{0,300}typeof jamboHintHtml === 'function' \? jamboHintHtml\(\) : ''\}<\/div>`;/);
+    assert.match(TB, /\.tb-foot \.tb-ask \+ \.jb-hint\{margin:6px 0 0\}/);
   });
   test('7c every Jambo ask box in the code asks the builder: Home, Settings, the list panel (and Import), the Counter, the window, the clause editor, the Calendar, the builder', () => {
     const askers = ['js/views/intelligence.js', 'js/views/settings.js', 'js/views/inspector.js', 'js/views/counter.js', 'js/ai.js', 'js/views/clauseeditor.js', 'js/views/calendar.js', 'js/views/templatebuilder.js'];
