@@ -7,8 +7,8 @@
    on the contract.
      1 the face: Ladder opens the clause's ladder under its row and folds on
        the same press; a row's "2 notes" opens that change's notes in the same
-       panel (no drawer); Discard last asks nothing and its Undo brings the
-       draft back; every live verb in the accent ink, Reject and Discard last
+       panel (no drawer); Discard last asks first and Cancel keeps the draft
+       (owner decision D3, kept on 19 Oct 2026); every live verb in the accent ink, Reject and Discard last
        red; "Here now" filled circles, one colour each; Lina's suggestion
        dashed on the paper, our draft solid
      2 the editor from Counter: the head bar spans the window with a quiet
@@ -175,22 +175,19 @@ const openFace = async page => {
     await page.click('#pd-redface [data-rl-fn-back]', { timeout: 5000 }).catch(() => {});
     await waitFor(page, () => !document.querySelector('#pd-redface .rl-fn'), 4000);
 
-    /* 1c Discard last, and Undo */
+    /* 1c Discard last asks first (owner decision D3, 9 Oct 2026; the drawing's
+       Undo was put to the owner on 19 Oct 2026: "Keep asking first") */
     const before = await page.evaluate(() => (getContract('MK-0382').changes || []).filter(x => /24 hours/.test(x.newText || '')).length);
     const dl = page.locator('#pd-redface [data-rl-retract]').first();
-    let dis = null;
+    let asked = null;
     if (await dl.count()){
       await dl.click({ timeout: 5000 }).catch(() => {});
-      dis = await waitFor(page, () => { const t = [...document.querySelectorAll('#toast-root > *')].find(x => x.querySelector('[data-toast-act]'));
-        return t ? { modal: !!document.querySelector('#modal-root .modal-in'), say: t.innerText.replace(/\s+/g, ' '), gone: (getContract('MK-0382').changes || []).filter(x => /24 hours/.test(x.newText || '')).length } : null; }, 4000);
+      asked = await waitFor(page, () => !!document.getElementById('confirm-overlay'), 4000);
+      if (asked) await page.click('#cf-cancel', { timeout: 5000 }).catch(() => {});
     }
-    check('1c Discard last asks nothing, says what went, offers Undo', before === 1 && !!dis && !dis.modal && /discarded/.test(dis.say) && /Undo/.test(dis.say) && dis.gone === 0, JSON.stringify({ before, dis }));
-    if (dis) await page.click('#toast-root [data-toast-act]', { timeout: 5000 }).catch(() => {});
-    /* a pop-up in the way (the parent asked before discarding) is put away, so the walk reports the rest */
-    await page.evaluate(() => { const x = document.querySelector('#modal-root [data-dlg-cancel]'); if (x) x.click(); });
-    const back = await waitFor(page, () => (getContract('MK-0382').changes || []).filter(x => /24 hours/.test(x.newText || '')).length === 1
-      && [...document.querySelectorAll('#pd-redface [data-nego-card] .rl-card-meta')].some(e => /Data protection/.test(e.textContent)), 4000);
-    check('1c Undo brings the draft back, on its row', !!dis && !!back);
+    const kept = await waitFor(page, () => !document.getElementById('confirm-overlay')
+      && (getContract('MK-0382').changes || []).filter(x => /24 hours/.test(x.newText || '')).length === 1, 4000);
+    check('1c Discard last asks first, and Cancel keeps the draft', before === 1 && !!asked && !!kept, JSON.stringify({ before, asked: !!asked, kept: !!kept }));
 
     /* 1d–1f the ink, the faces, the marks */
     const ink = await page.evaluate(() => {

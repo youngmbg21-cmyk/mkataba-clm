@@ -162,13 +162,13 @@ describe('f759 (4) the second pass\'s words, both books, beside their area', () 
 
 /* ═══════════════════════════════════════════════════════════════════════════
    THE THIRD PASS (19 Oct 2026): the words of the checker's differences —
-   "All notes", Discard last's Undo, "Remind Sara" on the Out for review pile,
+   "All notes" (Discard last's Undo was put to the owner, 19 Oct 2026: "Keep asking first"), "Remind Sara" on the Out for review pile,
    the editor's line without a step number (and only what is true), "Back to
    the letter", and the waiting letter's row in Recent.
    AT THE PARENT (d47fadb, the merge of main) and AT THE BASE every test here
    FAILS.
    ═══════════════════════════════════════════════════════════════════════════ */
-const NEW3 = ['ng_fn_all', 'ng_discard_done', 'ng_discard_done_rev', 'ng_discard_undo', 'ng_discard_undo_late', 'ng_discard_undone',
+const NEW3 = ['ng_fn_all',
   'ng_pile_remind_who', 'ce_row_is_counter', 'ce_row_is_draft', 'sh_lt_back_letter', 'dk_kind_letter'];
 describe('f759 (5) the third pass\'s words, both books, beside their area', () => {
   test('5a in English and Swedish, the Swedish its own, once per book', () => {
@@ -196,8 +196,6 @@ describe('f759 (5) the third pass\'s words, both books, beside their area', () =
   test('5c the words say it, and nothing the editor does not do', () => {
     const en = STRINGS.en;
     assert.equal(en.ng_fn_all, 'All notes');
-    assert.equal(fill(en.ng_discard_done, { clause: '9. Data protection' }), 'Your draft on 9. Data protection is discarded.');
-    assert.equal(en.ng_discard_undo, 'Undo');
     assert.equal(fill(en.ng_pile_remind_who, { who: 'Sara' }), 'Remind Sara', 'as the letter\'s card says it');
     assert.equal(en.ce_row_is_counter, 'Your counter · nothing is filed until you save');
     assert.doesNotMatch(en.ce_row_is_counter + en.ce_row_is_draft, /Step|saved as you type/, 'no ladder step; no autosave the editor does not do');

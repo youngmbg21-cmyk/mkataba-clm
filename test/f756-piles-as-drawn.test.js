@@ -418,34 +418,11 @@ describe('f756 (8) the third pass: the face as drawn', () => {
     assert.match(w, /rlFaceNotesSet\(c\.id, ch\.id\)/);
     assert.match(w, /if \(again\) rlFaceNotesSet\(null\);/, 'pressed again on the same row, the piles come back');
   });
-  test('8c Discard last discards at once on our seat, Undo for a few seconds; Undo puts back exactly what went, and only if nothing else moved', () => {
-    const said = [], trail = [];
-    let saved = 0;
-    const ctx = stage8();
-    ctx.window.toast = (m, k, o) => said.push([m, k, o]);
-    ctx.window.persist = () => { saved++; };
-    ctx.window.logAudit = (c, a, t) => trail.push(t);
-    ctx.window.currentUser = () => ({ name: 'Maria Lindgren' });
-    ctx.toast = ctx.window.toast; ctx.persist = ctx.window.persist; ctx.logAudit = ctx.window.logAudit;
-    vm.runInContext([constLine(NV, 'RL_DISCARD_UNDO_MS'), fnBody(NV, 'rlDiscardSnap'), fnBody(NV, 'rlDiscardUndo')].join('\n'), ctx);
-    const c = { id: 'MK-1', changes: [{ id: 'CHG-9', newText: 'within 24 hours' }, { id: 'CHG-7' }], negotiation: { round: 2, discarded: [] } };
-    const before = ctx.rlDiscardSnap(c);
-    c.changes = c.changes.filter(x => x.id !== 'CHG-9'); c.negotiation.discarded.push({ id: 'CHG-9' });
-    const after = ctx.rlDiscardSnap(c);
-    assert.equal(ctx.rlDiscardUndo(c, before, after, 'CHG-9'), true);
-    assert.deepEqual(c.changes.map(x => x.id), ['CHG-9', 'CHG-7'], 'the draft is back where it was');
-    assert.deepEqual(c.negotiation.discarded, [], 'and the negotiation\'s record as it stood');
-    assert.equal(saved, 1); assert.match(trail[0], /#CHG-9: Maria Lindgren pressed Undo on the discard/, 'the trail keeps both lines');
-    const b2 = ctx.rlDiscardSnap(c); c.changes = c.changes.slice(1); const a2 = ctx.rlDiscardSnap(c);
-    c.changes.push({ id: 'CHG-12' });
-    assert.equal(ctx.rlDiscardUndo(c, b2, a2, 'CHG-9'), false, 'something moved since: nothing is put back');
-    assert.deepEqual(c.changes.map(x => x.id), ['CHG-7', 'CHG-12']);
-    assert.equal(said[said.length - 1][1], 'warn', 'and it says so');
-    assert.ok(Number(/RL_DISCARD_UNDO_MS = (\d+)/.exec(NV)[1]) >= 5000, 'a few seconds');
+  test('8c Discard last asks first on BOTH seats (owner decision D3, 9 Oct 2026; kept on 19 Oct 2026: "Keep asking first")', () => {
     const h = NV.slice(NV.indexOf("host.querySelectorAll('[data-rl-retract]')"), NV.indexOf('/* ---------- ONE SIDEBAR, TWO MODES'));
-    assert.match(h, /if \(side === 'counterparty' && window\.confirmDialog && !\(await confirmDialog\(/, 'their seat still asks first (D3)');
-    assert.match(h, /const before = side === 'owner' \? rlDiscardSnap\(c\) : null;/);
-    assert.match(h, /action: \{ label: i18t\('ng_discard_undo'\), onClick: \(\) => \{ if \(rlDiscardUndo\(c, before, after, chId\)\) again\(\); \} \}/, 'the toast carries Undo');
+    assert.match(h, /if \(window\.confirmDialog && !\(await confirmDialog\(\{ danger: true,/, 'every seat is asked before a draft goes');
+    assert.doesNotMatch(h, /side === 'counterparty' && window\.confirmDialog/, 'not their seat only');
+    assert.doesNotMatch(NV, /rlDiscardUndo|rlDiscardSnap|RL_DISCARD_UNDO_MS/, 'no Undo in place of the question');
   });
   test('8d every live verb on a pile wears the accent ink; Reject and Discard last stay red', () => {
     assert.match(CSSN, /\.redline-page \.rl-pile \.rl-card-d \.rl-card-verbs button\.rl-verb-ai,\s*html\.dark \.redline-page \.rl-pile \.rl-card-d \.rl-card-verbs button\.rl-verb-ai,\s*\.redline-page \.rl-pile \.rl-card-d \.rl-card-face \[data-rl-ladder\],\s*\.redline-page \.rl-pile \.rl-card-d \.rl-card-face \[data-rl-ask-review\],\s*\.redline-page \.rl-pile \.rl-card-d \.rl-card-face \.rl-sg-back\{color:var\(--accent-ink\)\}/);

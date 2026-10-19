@@ -12768,17 +12768,14 @@ function rlWireClauseTools(c, host, opts){
     const chId = btn.getAttribute('data-rl-retract');
     if (!window.negoRetractDraft) return;
     const side = (opts && opts.side) === 'counterparty' ? 'counterparty' : 'owner';
+    /* ALWAYS ASKED FIRST (owner decision D3, 9 Oct 2026): one press used to
+       delete a draft with no way back. The round 9 drawing's "Undo for a few
+       seconds" instead was put to the owner on 19 Oct 2026: "Keep asking first". */
     const was = (Array.isArray(c.changes) ? c.changes : []).find(x => x && x.id === chId) || {};
-    /* ASKED FIRST ON THEIR SEAT (owner decision D3, 9 Oct 2026): one press used
-       to delete a draft with no way back. ON OURS, UNDO OVER ASKING (round 9's
-       gaps, third pass, 19 Oct 2026 — the picked drawing: "Discard last takes
-       back your latest version of this change; Undo for a few seconds"): no
-       pop-up; the discard happens and the toast carries Undo (rlDiscardUndo). */
-    if (side === 'counterparty' && window.confirmDialog && !(await confirmDialog({ danger: true,
+    if (window.confirmDialog && !(await confirmDialog({ danger: true,
       title: i18t('ng_discard_confirm_title', { id: chId }),
       message: i18t('ng_discard_confirm_msg', { what: was.summary || was.clauseLabel || chId }),
       confirmLabel: i18t('ng_discard') }))) return;
-    const before = side === 'owner' ? rlDiscardSnap(c) : null;
     /* THE BUTTON AND THE RULE HAVE TO ASK ONE QUESTION. This card is drawn from
        opts.unsentIds where the mount supplies them (the counterparty's page
        does), so the engine is handed the same list rather than deriving a
@@ -12802,44 +12799,12 @@ function rlWireClauseTools(c, host, opts){
        (27 Sep 2026) — the engine put the wording on the table back — and the
        sentence says that rather than "it was never sent". */
     const kept = Array.isArray(c.changes) && c.changes.some(x => x && x.id === chId);
-    if (before && window.toast){
-      const clause = rlRowClauseName(was) || was.clauseLabel || chId;
-      const after = rlDiscardSnap(c);
-      toast(i18t(kept ? 'ng_discard_done_rev' : 'ng_discard_done', { clause }), 'ok', { dwell: RL_DISCARD_UNDO_MS,
-        action: { label: i18t('ng_discard_undo'), onClick: () => { if (rlDiscardUndo(c, before, after, chId)) again(); } } });
-    } else if (window.toast) toast(kept ? i18t('ng_retract_revision', { id: chId })
+    if (window.toast) toast(kept ? i18t('ng_retract_revision', { id: chId })
       : i18t('ng_retract_never_sent', { id: chId }), 'ok');
     again();
   }));
 }
 
-/* ---- DISCARD LAST, AND ITS UNDO (round 9's gaps, third pass, 19 Oct 2026) ----
-   Our seat discards at once and the toast offers Undo for a few seconds. The
-   undo puts back exactly what the discard took — the changes and the
-   negotiation's own record (the chain head, the kept-discarded list), as they
-   stood the moment before — and ONLY IF NOTHING ELSE HAS MOVED since (the
-   record still reads as the discard left it); otherwise it says so and puts
-   nothing back. The trail keeps both lines: the discard and "put back". */
-const RL_DISCARD_UNDO_MS = 8000;
-function rlDiscardSnap(c){
-  try { return JSON.stringify({ changes: (c && c.changes) || [], negotiation: (c && c.negotiation) || null }); } catch (_){ return null; }
-}
-function rlDiscardUndo(c, before, after, chId){
-  if (!c || !before) return false;
-  if (rlDiscardSnap(c) !== after){
-    if (window.toast) toast(i18t('ng_discard_undo_late'), 'warn');
-    return false;
-  }
-  let b = null; try { b = JSON.parse(before); } catch (_){ b = null; }
-  if (!b) return false;
-  c.changes = b.changes; c.negotiation = b.negotiation;
-  if (window.negoInvalidateVerification) try { negoInvalidateVerification(c); } catch (_){}
-  const who = String((window.currentUser && window.currentUser()?.name) || 'System');
-  if (window.logAudit) logAudit(c, 'Negotiation', `#${chId}: ${who} pressed Undo on the discard — the draft is back as it was`);
-  if (window.persist) persist(c);
-  if (window.toast) toast(i18t('ng_discard_undone'), 'ok');
-  return true;
-}
 /* ---------- ONE SIDEBAR, TWO MODES, NEVER BOTH ----------
    The right-hand card shows Tracked Changes OR Discussion — a strict either/
    or, switched by the tabs at its head. The choice is an attribute on the
@@ -22891,7 +22856,7 @@ if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoT
      ending on every screen that draws a document — which is what the shared
      builder was for. */
   rlPaperFootHtml,
-  redlinePanesHtml, rlAgoWords, rlRowClauseName, rlClauseOrderOf, rlCardClausePos, rlRowIsMine, rlRowByHtml, rlRowWhyHtml, RL_EX_BEFORE, RL_EX_AFTER, RL_EX_MID, RL_EX_WHOLE, rlRowExcerptHtml, rlRowLineHtml, rlRowLockHtml, rlIsOpenSuggestion, rlSuggestPileLabel, rlReviewPileActsHtml, RL_DISCARD_UNDO_MS, rlDiscardSnap, rlDiscardUndo, rlFaceLadderOpen, rlFaceLadderSet, rlFaceLadderHtml, rlLadderVerbHtml, rlSuggestFaceHtml, rlSettledAt, rlSettledPileLabel, rlHeadOurs, rlOpenCardCount, rlNotesTotal, rlClauseEl, rlLandOnClause, rlLandOnRow, rlFaceNotesOn, rlFaceNotesSet, rlFaceNotesChange, rlFaceNotesRoomFor, rlFaceNoteClause, rlFaceNoteHtml, rlFaceNotesHtml, rlFaceNotesWire, rlHeadNotesHtml, rlHeadHereHtml, rlHeadReviewHtml, rlHeadRepaint, rlPressContract, rlSettledToggle, rlColumnHtml, rlBenchOpts, rlBenchCatchUp, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, rlCardNotesHtml, negoWhen,
+  redlinePanesHtml, rlAgoWords, rlRowClauseName, rlClauseOrderOf, rlCardClausePos, rlRowIsMine, rlRowByHtml, rlRowWhyHtml, RL_EX_BEFORE, RL_EX_AFTER, RL_EX_MID, RL_EX_WHOLE, rlRowExcerptHtml, rlRowLineHtml, rlRowLockHtml, rlIsOpenSuggestion, rlSuggestPileLabel, rlReviewPileActsHtml, rlFaceLadderOpen, rlFaceLadderSet, rlFaceLadderHtml, rlLadderVerbHtml, rlSuggestFaceHtml, rlSettledAt, rlSettledPileLabel, rlHeadOurs, rlOpenCardCount, rlNotesTotal, rlClauseEl, rlLandOnClause, rlLandOnRow, rlFaceNotesOn, rlFaceNotesSet, rlFaceNotesChange, rlFaceNotesRoomFor, rlFaceNoteClause, rlFaceNoteHtml, rlFaceNotesHtml, rlFaceNotesWire, rlHeadNotesHtml, rlHeadHereHtml, rlHeadReviewHtml, rlHeadRepaint, rlPressContract, rlSettledToggle, rlColumnHtml, rlBenchOpts, rlBenchCatchUp, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, rlCardNotesHtml, negoWhen,
   NOTE_ROOMS, negoNoteRoom, negoRoomNotes, negoNoteCounts, notesMayWrite,
   negoNoteParty, negoNoteRoomKey, negoNoteRoomList, negoRoomIsExternal,
   negoRoomPartyId, negoRoomKey, rlNpRoomsHtml, rlNpRoomNow,
