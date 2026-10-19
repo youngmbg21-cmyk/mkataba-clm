@@ -353,3 +353,62 @@ describe('f739 (7) check #1\'s differences, built', () => {
     assert.match(read('js/views/customers.js'), /:is\(\.cu-page,\.dir-page\) \.ins-sec h3 \.n\{display:inline-block;padding:0 7px;border-radius:999px;/);
   });
 });
+
+/* ═══ (8) CHECK #2'S DIFFERENCES, BUILT (lane A2, 19 Oct 2026) ═══
+   "3 details to fill in" as drawn; the Waiting words regular weight and
+   never cut (two lines at most, Swedish too); Open party and Open on
+   Explorer land lit; an approval in the party's panel lands on its row on
+   Approvals, as the person's panel does; a party with nothing live lists no
+   Agreements, and where a colleague's request about them waits it offers no
+   second "Draft an agreement with …"; the panel's doors at their own width.
+   RED at the first fix (cdc5051). */
+describe('f739 (8) check #2\'s differences, built', () => {
+  const panelOf = sb => { let got = null; sb.insPaintPanel = o => { got = o; };
+    sb.insRowsHtml = list => list.map(f => `<div data-row="${f.k}">${f.label}|${f.v}</div>`).join('');
+    sb.insSecHtml = (t, n, b, cls) => `<section class="${cls || ''}"><h3>${t}<span class="n">${n}</span></h3>${b}</section>`;
+    sb.insMarkRow = () => {}; sb.insListWire = () => {};
+    return () => got; };
+  test('8a details read as drawn: "3 details to fill in"', () => {
+    const { sb } = stage();
+    assert.equal(sb.cuNeedShort({ c: { id: 'A' }, it: { kind: 'details', n: 3 } }), '3 details to fill in');
+    assert.equal(sb.cuNeedShort({ c: { id: 'A' }, it: { kind: 'details', n: 1 } }), '1 detail to fill in');
+  });
+  test('8b the Waiting words: regular weight, at most two lines, never an ellipsis', () => {
+    const src = read('js/views/customers.js');
+    assert.match(src, /\.cu-table td\.cu-wait\.amber,\.cu-table td\.cu-wait\.ruby\{font-weight:var\(--w-body\);\}/);
+    assert.match(src, /\.cu-wait-t\{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;white-space:normal;/);
+  });
+  test('8c Open party and Open on Explorer land lit', () => {
+    const src = read('js/views/customers.js');
+    const f = s => { const i = src.indexOf('function ' + s + '('); return src.slice(i, src.indexOf('\n}', i)); };
+    assert.match(f('cuOpenCustomer'), /jlLand\('list'\)/);
+    assert.match(f('cuOpenExplorer'), /landOn\(\(\) => \{ const l = \(intel\.lenses \|\| \[\]\)\.find\(x => x\.label === v\.name\);[\s\S]*data-lens-hover/);
+  });
+  test('8d an approval in the party\'s panel lands on its row on Approvals (the person panel\'s door)', () => {
+    const { sb } = stage();
+    const went = [];
+    sb.dirWaitGo = (k, id) => went.push(k + ':' + id);
+    sb.needsYouGo = () => went.push('needsYouGo');
+    sb.cuNeedGo('approval', 'MK-AP1');
+    assert.equal(went.join(','), 'approval:MK-AP1');
+  });
+  test('8e a party with nothing live: no Agreements list; a waiting request is the one way to draft', () => {
+    const { sb, doc } = stage({ requests: [{ id: 'REQ-9', title: 'an NDA', counterparty: 'Retired Supplies Ltd', folder: 'proc', status: 'open', by: { id: 'u2', name: 'Sara Nyström' }, createdAt: '2026-10-18T09:00:00Z' }] });
+    const got = panelOf(sb);
+    sb.insPick = () => 'retired supplies ltd';
+    sb.cuPlacePut({ status: 'all' }); sb.renderCustomers();
+    const tb = doc.createElement('tbody'); tb.innerHTML = '<tr data-cu-cust="retired supplies ltd"></tr>';
+    sb.cuPaintCustomerPanel(tb);
+    const o = got();
+    assert.doesNotMatch(o.body, /cu-ags/);
+    assert.doesNotMatch(o.body, /data-cu-draft-with/);
+    assert.match(o.body, /data-cu-need="request"/);
+    sb.insPick = () => 'kenya freight ltd';
+    tb.innerHTML = '<tr data-cu-cust="kenya freight ltd"></tr>';
+    sb.cuPaintCustomerPanel(tb);
+    assert.match(got().body, /cu-ags[\s\S]*data-cu-draft-with/, 'a live party keeps both');
+  });
+  test('8f the panel\'s doors stand at their own width on Parties and People', () => {
+    assert.match(read('js/views/customers.js'), /:is\(\.cu-page,\.dir-page\) \.ins-acts \.ins-lead\{flex:0 1 auto;\}/);
+  });
+});

@@ -248,6 +248,7 @@ function cuNeedShort(x){
   /* "an approval, for Jonas" where the reader answers for an away colleague
      (When you're away: Approvals' own reading, apForWho) */
   if (k === 'approval'){ const who = cuApprovalFor(x.c); return who ? i18t('cu_need_approval_for', { who }) : i18t('cu_need_approval_short'); }
+  if (k === 'details'){ const n = Number(x.it.n) || 1; return i18tn('cu_need_details', n, { n }); }
   return cuNeedTitle(x);
 }
 function cuNeedsSay(list){
@@ -259,6 +260,9 @@ function cuNeedGo(kind, id){
   /* LAND ON IT: the request's own row on Requests, chosen and lit */
   if (kind === 'request'){ if (typeof intakeGoTo === 'function') intakeGoTo(id); if (typeof jlLand === 'function') jlLand('row', id); return; }
   if (kind === 'move'){ if (typeof openRedlineWorkbench === 'function'){ openRedlineWorkbench(id, { face: true }); if (typeof jlLand === 'function') jlLand('redlines'); } return; }
+  /* an approval lands on its row on Approvals, lit — the People panel's own
+     door (dirWaitGo), so the same words lead to the same place */
+  if (kind === 'approval' && typeof dirWaitGo === 'function'){ dirWaitGo('approval', id); return; }
   if (typeof needsYouGo === 'function') needsYouGo(kind, id);
 }
 /* The ids a door carries: the customer's agreements as counted, and every
@@ -429,6 +433,8 @@ function cuOpenCustomer(key){
   if (!v || !v.items.length) return;
   const phone = typeof window !== 'undefined' && ((window.mPhone && mPhone()) || (window.innerWidth && window.innerWidth < 768));
   if (typeof regShowOnly === 'function') regShowOnly(cuIdsOf(v), phone ? `${v.name} · ${v.items.length}` : v.name, { party: true });
+  /* LAND ON IT: the narrowed place's first paper, lit (People's Show their contracts) */
+  if (!phone && typeof jlLand === 'function') jlLand('list');
 }
 /* ONE PARTY FROM ELSEWHERE (People's "Party · Nordvik Logistik AB ›"): the
    Parties list with nothing narrowing it away, that party chosen, and LAND
@@ -469,6 +475,9 @@ function cuOpenExplorer(key){
   Object.defineProperty(groups, '_name', { value: i18t('cu_group_word'), enumerable: false });
   intel.groupBy = 'custom'; intel.groups = groups;
   if (typeof hbOpenExplorer === 'function') hbOpenExplorer(); else if (typeof setView === 'function') setView('dashboard');
+  /* LAND ON IT: the map's own chip for this party, lit */
+  if (typeof landOn === 'function') landOn(() => { const l = (intel.lenses || []).find(x => x.label === v.name);
+    return l ? document.querySelector(`[data-lens-hover="${(typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(String(l.id)) : l.id}"]`) : null; }, { focus: false });
 }
 
 /* ---- A PARTY'S OWN FACTS: ITS CITY AND ITS ORGANISATION NUMBER (round 19
@@ -888,6 +897,7 @@ const LC_CSS = `
   .ap-foot.cu-foot{justify-content:flex-start;gap:4px;flex-wrap:wrap;}
   .ap-foot.cu-foot .lc-shown{white-space:nowrap;}
   /* Jambo's panel on Parties and People: a section's count in its small pill, as drawn */
+  :is(.cu-page,.dir-page) .ins-acts .ins-lead{flex:0 1 auto;}
   :is(.cu-page,.dir-page) .ins-sec h3 .n{display:inline-block;padding:0 7px;border-radius:999px;background:var(--color-accent-50);color:var(--accent-ink);font-size:var(--t-micro);line-height:18px;font-variant-numeric:tabular-nums;}
 `;
 const CU_CSS = `
@@ -915,7 +925,9 @@ const CU_CSS = `
   .cu-nda-go{border:0;background:none;padding:0 0 0 4px;font:inherit;font-weight:var(--w-label);color:var(--color-accent);cursor:pointer;white-space:nowrap;}
   .cu-nda-go:hover{text-decoration:underline;}
   .cu-table td.cu-wait{white-space:nowrap;overflow:hidden;}
-  .cu-wait-t{display:block;overflow:hidden;text-overflow:ellipsis;}
+  .cu-wait-t{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;white-space:normal;line-height:1.3;}
+  /* the drawn words are regular weight, amber or red (round 19) */
+  .cu-table td.cu-wait.amber,.cu-table td.cu-wait.ruby{font-weight:var(--w-body);}
   .cu-wait-more{display:block;margin-top:2px;font-size:var(--t-meta);font-weight:var(--w-body);color:var(--color-neutral-500);}
   /* a need's line wraps whole in the panel ("Master services agreement · /
      waiting 4 days", round 19) */
@@ -1123,9 +1135,14 @@ function cuPaintCustomerPanel(tb){
           { k: 'explorer', label: i18t('cu_open_explorer'), run: x => cuOpenExplorer(x.id) }] },
       body: (_cu.edit === r.key ? cuPrFormHtml(r) : '') + rows
         + (r.needs.length ? sec(i18t('cu_col_waiting'), r.needs.length, cuPanelNeedsHtml(r.needs), 'cu-needs') : '')
-        + (r.items.length ? sec(i18t('cu_panel_agreements'), r.items.length, cuPanelAgreementsHtml(r.items), 'cu-ags') : '')
+        /* AS DRAWN FOR A PARTY WITH NOTHING LIVE (Kettle & Co): Live agreements
+           already names what ended, so no list repeats it; and where a
+           colleague's request about them waits, that request is the way to
+           draft for them (one door), so "Draft an agreement with …" is not
+           offered beside it */
+        + (r.active.length ? sec(i18t('cu_panel_agreements'), r.items.length, cuPanelAgreementsHtml(r.items), 'cu-ags') : '')
         + (people.length ? sec(i18t('cu_people_at', { party: short }), people.length, cuPanelPeopleHtml(people, r), 'cu-people') : '')
-        + `<div class="cu-draft-with"><button type="button" class="ui-btn" data-cu-draft-with="${_cuE(r.key)}">${_cuE(i18t('cu_draft_with', { party: short }))}</button></div>` });
+        + (r.needs.some(x => x.it.kind === 'request') ? '' : `<div class="cu-draft-with"><button type="button" class="ui-btn" data-cu-draft-with="${_cuE(r.key)}">${_cuE(i18t('cu_draft_with', { party: short }))}</button></div>`) });
   };
   paint(id);
   insListWire(tb, { rowSel: '[data-cu-cust]', idOf,

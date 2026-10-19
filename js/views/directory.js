@@ -383,10 +383,10 @@ function dirAwayPillHtml(p){
 function dirColDefs(){
   return [
     { k: 'side', label: i18t('dir_col_side'), w: 66 },
-    { k: 'party', label: i18t('dir_col_party'), w: 164 },
-    { k: 'title', label: i18t('dir_col_title'), w: 150 },
-    { k: 'hati', label: i18t('dir_col_hati'), w: 72 },
-    { k: 'contracts', label: i18t('dir_col_contracts'), r: 1, w: 78 },
+    { k: 'party', label: i18t('dir_col_party'), w: 160 },
+    { k: 'title', label: i18t('dir_col_title'), w: 144 },
+    { k: 'hati', label: i18t('dir_col_hati'), w: 114 },
+    { k: 'contracts', label: i18t('dir_col_contracts'), r: 1, w: 92 },
     { k: 'email', label: i18t('dir_col_email'), w: 168 },
   ];
 }
@@ -399,13 +399,13 @@ function dirOurParty(){
    address each say so") */
 function dirNone(word){ return word ? `<span class="dir-none" title="${_dE(word)}" aria-label="${_dE(word)}">—</span>` : `<span class="dir-none">—</span>`; }
 function dirCellHtml(k, p){
-  if (k === 'side') return `<td>${_dE(p.side === 'ours' ? i18t('dir_side_ours') : p.side === 'theirs' ? i18t('dir_side_theirs') : i18t('dir_tab_none'))}</td>`;
+  if (k === 'side') return `<td class="dir-td-cut dir-td-wrap"><span class="dir-clamp">${_dE(p.side === 'ours' ? i18t('dir_side_ours') : p.side === 'theirs' ? i18t('dir_side_theirs') : i18t('dir_tab_none'))}</span></td>`;
   if (k === 'party'){ const v = p.side === 'ours' ? dirOurParty() : p.side === 'theirs' ? p.partyName : ''; return `<td class="dir-td-cut dir-td-wrap"${v ? ` title="${_dE(v)}"` : ''}>${v ? `<span class="dir-clamp">${_dE(v)}</span>` : dirNone(p.side === 'none' ? i18t('dir_imported') : '')}</td>`; }
   if (k === 'title') return `<td class="dir-td-cut dir-td-wrap"${p.title ? ` title="${_dE(p.title)}"` : ''}>${p.title ? `<span class="dir-clamp">${_dE(p.title)}</span>` : dirNone(i18t('dir_no_title'))}</td>`;
   /* the role, said where a colleague has one here (D-2: who is an admin is stated) */
-  if (k === 'hati') return `<td class="dir-role">${p.side === 'ours' && p.hati ? _dE(p.hati) : dirNone('')}</td>`;
+  if (k === 'hati') return `<td class="dir-role dir-td-cut dir-td-wrap">${p.side === 'ours' && p.hati ? `<span class="dir-clamp">${_dE(p.hati)}</span>` : dirNone('')}</td>`;
   if (k === 'contracts') return `<td class="n">${p.contracts.length ? p.contracts.length : dirNone(i18t('dir_no_contracts'))}</td>`;
-  if (k === 'email') return `<td class="dir-td-cut dir-mail">${p.email ? `<a href="mailto:${_dE(p.email)}" title="${_dE(p.email)}">${_dE(p.email)}</a>` : dirNone(i18t('dir_no_email'))}</td>`;
+  if (k === 'email') return `<td class="dir-td-cut dir-td-wrap dir-mail">${p.email ? `<a class="dir-clamp" href="mailto:${_dE(p.email)}" title="${_dE(p.email)}">${_dE(p.email).replace('@', '@<wbr>')}</a>` : dirNone(i18t('dir_no_email'))}</td>`;
   return '<td></td>';
 }
 /* ONE PERSON, ONE ROW. The hooks the phone and the tests share are kept:
@@ -625,9 +625,13 @@ function dirPaintPanel(p, book){
       + waitSec
       + sec(i18t('dir_named_on'), n, n ? namedJl(3) : `<p class="ins-note">${_dE(i18t('dir_no_contracts'))}</p>`);
   } else if (p.side === 'none'){
-    head = { eyebrow: `${_dE(i18t('dir_imported'))}${p.title ? ' · ' + _dE(p.title) : ''}`, title: p.name || p.email, sub: mail, acts: [] };
-    body = kv([{ k: 'party', label: i18t('cu_col_customer'), v: '' }, { k: 'contracts', label: i18t('dir_f_contracts'), v: '' }])
-      + sec(i18t('dir_named_on'), 0, `<p class="ins-note">${_dE(i18t('dir_not_named_long'))}</p>`);
+    /* SOMEBODY ON NO CONTRACT YET: the same shape as every person (round 19)
+       — initials, name, "title · not on a contract"; Email; the rows; where
+       they would be named, a sentence saying they are not yet */
+    head = { av, title: p.name || p.email, sub: _dE([p.title, i18t('dir_tab_none')].filter(Boolean).join(' · ')), acts: mailBtn };
+    body = rowsOf([{ k: 'email', label: i18t('jl_f_email'), v: mail }, { k: 'phone', label: i18t('dir_f_phone'), v: dirNone(i18t('dir_no_phone')) },
+      { k: 'party', label: i18t('dir_f_party'), v: dirNone(i18t('dir_imported')) }, { k: 'contracts', label: i18t('dir_named_on'), v: dirNone(i18t('dir_no_contracts')) }])
+      + sec(i18t('dir_on_these'), 0, `<p class="ins-note">${_dE(i18t('dir_not_named_long'))}</p>`);
   } else {
     /* SOMEONE ON THEIR SIDE, AS DRAWN (round 19's People scene, Henrik Dahl):
        "Head of procurement · Nordvik Logistik AB"; Show their contracts ·
@@ -815,9 +819,10 @@ const DIR_CSS = `
   /* a party's or a job's name is read whole: a long one takes a second line
      rather than being cut (round 19 draws them whole) */
   .dir-table td.dir-td-cut.dir-td-wrap{white-space:normal;text-overflow:clip;}
-  .dir-clamp{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:1.3;overflow-wrap:anywhere;}
+  .dir-clamp{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:1.3;overflow-wrap:break-word;}
+  .dir-mail .dir-clamp{overflow-wrap:anywhere;}
   .ap-table.dir-table :is(td,th){padding-left:12px;padding-right:12px;}
-  .dir-nm{display:flex;align-items:center;gap:8px;min-width:0;}
+  .dir-nm{display:flex;align-items:center;gap:4px 8px;min-width:0;flex-wrap:wrap;}
   .dir-nm-w{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .dir-tav{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:var(--w-strong);background:var(--color-accent-50);color:var(--accent-ink);border:1px solid var(--color-divider);}
   .dir-table .dir-name{font-weight:var(--w-label);color:var(--color-text);}

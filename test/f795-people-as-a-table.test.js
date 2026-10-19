@@ -233,3 +233,40 @@ describe('f795 (5) someone on their side, as drawn', () => {
       assert.ok(BOOKS.en[k] && BOOKS.sv[k], k + ' in both books');
   });
 });
+
+/* ═══ (6) CHECK #2'S DIFFERENCES, BUILT (lane A2, 19 Oct 2026) ═══
+   Every column's words read whole at the three screens, in Swedish too:
+   Side, In HaTi and Email wrap to a second line rather than being cut (an
+   address breaks after its @); Contracts has the room for its head; an away
+   pill drops under a tight name. Somebody on no contract wears the same panel
+   shape as everyone. RED at the first fix (cdc5051). */
+describe('f795 (6) check #2\'s differences, built', () => {
+  test('6a Side, In HaTi and Email read whole: two lines, never an ellipsis', () => {
+    const { sb } = stage();
+    const ours = sb.dirBook().find(x => x.side === 'ours');
+    assert.match(sb.dirCellHtml('side', ours), /class="dir-td-cut dir-td-wrap"><span class="dir-clamp">/);
+    assert.match(sb.dirCellHtml('hati', ours), /class="dir-role dir-td-cut dir-td-wrap"><span class="dir-clamp">/);
+    assert.match(sb.dirCellHtml('email', ours), /<a class="dir-clamp" href="mailto:a@x\.test" title="a@x\.test">a@<wbr>x\.test<\/a>/);
+  });
+  test('6b the columns have the room for their words (Contracts, Administratör)', () => {
+    const { sb } = stage();
+    const w = Object.fromEntries(sb.dirColDefs().map(c => [c.k, c.w]));
+    assert.ok(w.contracts >= 90, 'Contracts ' + w.contracts);
+    assert.ok(w.hati >= 110, 'In HaTi ' + w.hati);
+    assert.match(read('js/views/directory.js'), /\.dir-nm\{display:flex;align-items:center;gap:4px 8px;min-width:0;flex-wrap:wrap;\}/);
+  });
+  test('6c somebody on no contract: the same shape — initials, "title · Not on a contract", Email, the rows', () => {
+    const st = stage();
+    let got = null;
+    st.sb.insPaintPanel = o => { got = o; };
+    st.sb.insRowsHtml = list => list.map(f => `<div data-row="${f.k}">${f.label}|${f.v}</div>`).join('');
+    st.sb.insSecHtml = (t, n, b) => `<section><h3>${t}<span class="n">${n}</span></h3>${b}</section>`;
+    const p = { key: 'e:olive@k.co', side: 'none', name: 'Olive Kettle', email: 'olive@k.co', title: 'Managing director', contracts: [], streams: [], roles: [], roleOn: () => [], askedOn: () => null };
+    st.sb.dirPaintPanel(p, [p]);
+    assert.ok(got.head.av, 'initials');
+    assert.equal(got.head.sub, 'Managing director · Not on a contract');
+    assert.equal(got.head.acts.map(a => a.k).join(','), 'email');
+    assert.match(got.body, /data-row="email"[\s\S]*data-row="phone"[\s\S]*data-row="party"[\s\S]*data-row="contracts"/);
+    assert.match(got.body, /<h3>On these contracts<span class="n">0<\/span>/);
+  });
+});

@@ -311,6 +311,37 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       }
     });
 
+    /* ---- 9 check #2's differences, built (lane A2, 19 Oct 2026) ---- */
+    await part('9 check #2', async () => {
+      const lit = () => until(() => { const e = document.querySelector('.is-landed, .is-landed-held'); return e ? (e.className + '|' + state.view + '|' + (e.getAttribute('data-ap-row') || '')) : null; }, null, 8000);
+      const choose = async key => { await page.evaluate(() => setView('customers')); await until(() => document.querySelector('#cu-tbody'));
+        await page.evaluate(k => { const r = document.querySelector(`#cu-tbody [data-cu-cust="${k}"]`); if (r) r.click(); }, key); await until(() => document.querySelector('#ins-panel [data-ins-act]')); };
+      await choose('kenya freight ltd');
+      const W = await page.evaluate(() => [...document.querySelectorAll('#ins-panel .ins-acts [data-ins-act]')].map(b => Math.round(b.getBoundingClientRect().width)));
+      check('9a the panel\'s doors stand at their own width', W.length === 2 && W[0] < 150, JSON.stringify(W));
+      await page.click('#ins-panel [data-ins-act="open"]');
+      const O = await lit();
+      check('9b Open party lands on the place\'s first paper, lit', !!O && /igw-card|data-row|ig/.test(O) && /dashboard/.test(O), String(O));
+      await choose('kenya freight ltd');
+      await page.click('#ins-panel [data-ins-act="explorer"]');
+      const E = await lit();
+      check('9c Open on Explorer lands on the party\'s chip on the map, lit', !!E && /ig-lens/.test(E), String(E));
+      await choose('helio energy ltd');
+      const hasAp = await page.evaluate(() => !!document.querySelector('#ins-panel [data-cu-need="approval"]'));
+      if (hasAp){ await page.click('#ins-panel [data-cu-need="approval"]');
+        const A = await lit();
+        check('9d an approval in the party\'s panel lands on its row on Approvals, lit', !!A && /\|approvals\|MK-AP1$/.test(A), String(A)); }
+      else check('9d an approval in the party\'s panel lands on its row on Approvals, lit', false, 'no approval row');
+      await page.evaluate(() => langSet('sv'));
+      for (const v of ['customers', 'directory']){
+        await page.evaluate(x => setView(x), v); await page.waitForTimeout(400);
+        const cut = await page.evaluate(() => [...document.querySelectorAll('.cu-table th, .cu-wait-t, .dir-table th, .dir-table td, .dir-clamp')]
+          .filter(e => e.scrollWidth > e.clientWidth + 1 || (/dir-clamp|cu-wait-t/.test(e.className) && e.scrollHeight > e.clientHeight + 1)).map(e => e.textContent.trim().slice(0, 30)));
+        check(`9e in Swedish nothing on ${v} is cut`, cut.length === 0, JSON.stringify(cut));
+      }
+      await page.evaluate(() => langSet('en'));
+    });
+
     /* ---- 7 the owner's three screens ---- */
     await part('7 three screens', async () => {
       for (const [w, hgt] of SCREENS) {
@@ -327,7 +358,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
           });
           check(`7 ${name} at ${w}×${hgt}: the list and the panel side by side, the filters in view, nothing sideways`, G.side && G.filters && !G.sideways && G.panelIn, JSON.stringify(G));
           /* check #1: the drawn words are read whole — the Waiting column's first item, a party's and a job's name */
-          const cut = await page.evaluate(() => { const els = [...document.querySelectorAll('.cu-wait-t, .dir-clamp')];
+          const cut = await page.evaluate(() => { const els = [...document.querySelectorAll('.cu-wait-t, .dir-clamp, .dir-table th, .cu-table th')];
             return { n: els.length, cut: els.filter(e => e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1).map(e => e.textContent) }; });
           check(`7 ${name} at ${w}×${hgt}: nothing in the Waiting, Party or Job title cells is cut`, cut.n > 0 && cut.cut.length === 0, JSON.stringify(cut));
           if (view === 'customers') await page.click('#cu-tbody [data-cu-cust="kenya freight ltd"]').catch(() => {});
