@@ -382,12 +382,12 @@ function dirAwayPillHtml(p){
 /* the table's columns after the name, in the drawing's order */
 function dirColDefs(){
   return [
-    { k: 'side', label: i18t('dir_col_side'), w: 72 },
-    { k: 'party', label: i18t('dir_col_party'), w: 168 },
-    { k: 'title', label: i18t('dir_col_title'), w: 150 },
-    { k: 'hati', label: i18t('dir_col_hati'), w: 76 },
+    { k: 'side', label: i18t('dir_col_side'), w: 66 },
+    { k: 'party', label: i18t('dir_col_party'), w: 152 },
+    { k: 'title', label: i18t('dir_col_title'), w: 132 },
+    { k: 'hati', label: i18t('dir_col_hati'), w: 72 },
     { k: 'contracts', label: i18t('dir_col_contracts'), r: 1, w: 82 },
-    { k: 'email', label: i18t('dir_col_email'), w: 184 },
+    { k: 'email', label: i18t('dir_col_email'), w: 176 },
   ];
 }
 function dirOurParty(){
@@ -415,7 +415,7 @@ function dirRowHtml(p, keys){
   const ini = _dE(dirInitials(p.name || p.email));
   const you = p.you ? ` <span class="dir-you">${_dE(i18t('dir_you_paren'))}</span>` : '';
   return `<tr data-dir-row="${_dE(p.key)}" data-dir-letter="${_dE(dirLetterOf(p))}" tabindex="-1">
-    <td><span class="dir-nm"><span class="dir-tav" aria-hidden="true">${ini}</span><span class="dir-nm-w"><span class="dir-name">${_dE(p.name || p.email || '—')}</span>${you}${dirAwayPillHtml(p)}</span></span></td>
+    <td><span class="dir-nm"><span class="dir-tav" aria-hidden="true">${ini}</span><span class="dir-nm-w" title="${_dE(p.name || p.email || '')}"><span class="dir-name">${_dE(p.name || p.email || '—')}</span>${you}</span>${dirAwayPillHtml(p)}</span></td>
     ${keys.map(k => dirCellHtml(k, p)).join('')}
   </tr>`;
 }
@@ -768,7 +768,7 @@ const DIR_CSS = `
   .dir-table .dir-mail a{color:var(--color-neutral-600);text-decoration:none;font-size:var(--t-meta);}
   .dir-table .dir-mail a:hover{color:var(--accent-ink);text-decoration:underline;}
   .dir-you{font-size:var(--t-body);color:var(--color-neutral-500);margin-left:2px;font-weight:var(--w-body);}
-  .dir-away{display:inline-flex;align-items:center;gap:3px;margin-left:6px;padding:1px 7px;border-radius:999px;background:var(--st-amber-bg);color:var(--st-amber-fg);
+  .dir-away{flex:none;display:inline-flex;align-items:center;gap:3px;margin-left:2px;padding:1px 7px;border-radius:999px;background:var(--st-amber-bg);color:var(--st-amber-fg);
     font-size:var(--t-micro);font-weight:var(--w-label);vertical-align:1px;white-space:nowrap;}
   .dir-away .ap-for-ic{width:11px;height:11px;flex:none;}
   .dir-empty{padding:28px 14px;}

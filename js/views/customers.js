@@ -829,7 +829,7 @@ const LC_CSS = `
   .cu-card-h{position:relative;}
   /* Columns: the button at the card head's end, its list under it */
   .lc-wrap{position:relative;display:inline-flex;}
-  .lc-pop{position:absolute;right:0;top:calc(100% + 6px);z-index:30;min-width:240px;padding:8px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:var(--color-surface);box-shadow:var(--shadow-pop,0 8px 24px -12px rgba(0,0,0,.35));}
+  .lc-pop{position:absolute;right:0;top:calc(100% + 6px);z-index:30;min-width:240px;padding:8px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:var(--color-surface);box-shadow:var(--shadow-md);}
   .lc-h{margin:2px 4px 6px;font-size:var(--t-meta);color:var(--color-neutral-600);}
   .lc-row{display:flex;align-items:center;gap:4px;padding:2px 4px;border-radius:var(--radius);}
   .lc-row:hover{background:var(--surface-2);}
@@ -961,7 +961,7 @@ function cuListHtml(INS){
     const v = cuView(r);
     const sub = [i18tn('cu_n_agreements', v.items.length, { n: v.items.length }), cuStreamsSay(v)].filter(Boolean).join(' · ');
     return `<tr data-cu-cust="${_cuE(r.key)}" tabindex="-1">
-      <td><span class="ap-name cu-pn" title="${_cuE(r.name)}">${_cuE(r.name)}</span><span class="ap-sub cu-ps">${_cuE(sub)}</span></td>
+      <td><span class="ap-name cu-pn" title="${_cuE(r.name)}">${_cuE(r.name)}</span><span class="ap-sub cu-ps" title="${_cuE(sub)}">${_cuE(sub)}</span></td>
       ${keys.map(k => cuCellHtml(k, r, v, ndas)).join('')}
     </tr>`;
   }).join('');
