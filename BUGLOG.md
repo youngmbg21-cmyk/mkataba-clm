@@ -21176,3 +21176,6 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Fixed (19 Oct 2026, owner-asked): on Explorer's Wiring a grouping change, a narrowing or an Undo made the picture swell to about twice its size and ease back over a second and a half (brightening as the dots crowded) — the new layout started from its seed with an empty framing; it now starts from the dots on screen and the framing follows while it settles. The jump was there at least since 14 Oct.
 - Noticed, not fixed (19 Oct 2026, the Wiring flash): home-speed-verify's "a still, settled Explorer keeps the browser busy under 10%" missed (780 ms of 4000) while eight browser checks ran together; alone it passes (280 ms).
 - Noticed, not fixed (19 Oct 2026, the Wiring flash): explorer-magnitude-verify's 4a3 ("Turning draws every frame", fTurn 28) missed while three browser checks ran together; alone it passes 24/24.
+
+## 19 Oct 2026 (the gap build, merged as PR #357)
+- Removed (19 Oct 2026, round 11 "The letter" as drawn): the green box on the send screen saying "Sending this closes your turn" is gone, because the picked drawing has none. The turn still moves only on a real send, and the stage pill says "waiting on them" once it has gone. The owner was told in the merge summary.
