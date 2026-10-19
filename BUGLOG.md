@@ -21036,3 +21036,12 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Noticed, not fixed (19 Oct 2026, Explorer chips): `graphGroupingWord` returns the map's English group labels in Swedish too (GRAPH_GROUPINGS.label), so Jambo's Swedish sentences that name a fact ("int_says_lobe_shade", the head line's "grupperad efter …") carry English words such as "Liability cap" and "Value stream".
 - Noticed, not fixed (19 Oct 2026, Explorer chips): the single-party reader (IG_SOLE_RE and igSoleRead's filler strip) uses ASCII \b, so Swedish "leverantör" (ends in ö) and "är" (starts with ä) never match — "Var är vi beroende av en enda leverantör?" is not read; the same fault as the IG_FILLER line of 18 Oct.
 - Noticed, not fixed (19 Oct 2026, Explorer chips): the fact words for 'read' (IG_FACT_WORDS) still say "read by copilot" and not "read by Jambo", the group's own label since the rename, so "shade the lobes by read by Jambo" is not read.
+
+## 19 Oct 2026 (segment the contracts any way, on any Explorer view)
+- Fixed (19 Oct 2026, owner-asked): on Explorer "now group the contracts by customers" grouped AND filtered to Customers only — a follow-up's narrowing read the words the grouping had already taken; it now skips them.
+- Fixed (19 Oct 2026, owner-asked): "group the contracts by ownership", "who are the parties to these contracts", "who owns these contracts" and Swedish plural/definite forms ("parterna", "kunderna", "ägarna") now group the map; in Swedish "vilka är kunderna" no longer goes to the Parties page task first.
+- Fixed (19 Oct 2026, owner-asked): on Floors a grouping (asked, or chosen in the head line's dropdown) now moves the floors too, not only the columns.
+- Fixed (19 Oct 2026, owner-asked): past ten floors the rest of the contracts stood on the tenth floor under the tenth label's name, and a grouping with dozens of values drew dozens of Grid columns and Timeline lanes over each other — the rest now share one bucket that says so ("Other (N more)").
+- Fixed (19 Oct 2026, owner-asked): "group by customer and show the names on the edges" now does both; before it only grouped.
+- Noticed, not fixed (19 Oct 2026, Explorer segmenting): the Customer grouping is labelled "Customer" for every counterparty, so "group by supplier" answers "Grouped by customer."
+- Noticed, not fixed (19 Oct 2026, Explorer segmenting): a folded group's bubbles in a Grid cell or Timeline lane that holds several groups (columns by another fact, or the new Other column) are drawn at the same spot, one over another.

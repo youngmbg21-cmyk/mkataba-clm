@@ -1295,7 +1295,7 @@ function igRecipeSays(){
    cannot cut would be a promise it cannot keep (f427 pins every key). */
 const IG_FACT_WORDS={
   folder:['value streams','value stream','business units','business unit','departments','department','functions','function','streams','stream','categories','category','värdeströmmar','värdeström','avdelningar','avdelning','kategorier','kategori'],
-  counterparty:['counterparties','counterparty','customers','customer','clients','client','suppliers','supplier','vendors','vendor','parties','party','partners','partner','motparter','motpart','kunder','kund','leverantörer','leverantör'],
+  counterparty:['counterparties','counterparty','customers','customer','clients','client','suppliers','supplier','vendors','vendor','parties','party','partners','partner','motparterna','motparten','motparter','motpart','parterna','parten','parter','kunderna','kunden','kunder','kund','leverantörerna','leverantören','leverantörer','leverantör'],
   status:['lifecycle stage','lifecycle','statuses','status','stages','stage','phases','phase','steg','fas','faser','skede'],
   valueBand:['contract value','value band','values','value','sizes','size','amounts','amount','worth','money','värde','belopp','storlek'],
   kind:['contract types','contract type','types','type','kinds','kind','avtalstyper','avtalstyp','typer','typ'],
@@ -1310,7 +1310,7 @@ const IG_FACT_WORDS={
   createdMonth:['month created','created month','creation month','skapad månad'],
   liability:['liability caps','liability cap','liability','caps','cap','ansvarsbegränsning','ansvarstak','ansvar'],
   law:['governing law','governing laws','jurisdictions','jurisdiction','law','tillämplig lag','jurisdiktion','lag'],
-  owner:['owners','owner','who owns them','ägare','ansvarig'],
+  owner:['ownership','owners','owner','who owns them','who owns','owned by','ägarskap','ägarna','ägaren','ägare','ansvariga','ansvarig'],
   obligations:['open obligations','obligations','duties','öppna åtaganden','åtaganden','skyldigheter'],
   read:['read by copilot','read or not','whether read','läst eller inte','lästa']
 };
@@ -1776,6 +1776,18 @@ function igAsOfData(iso, kids){
   const grew=parts.filter(p=>p.now>p.then).sort((a,b)=>(b.now-b.then)-(a.now-a.then))[0]||null;
   return { added, signed, unknown, badges, gone, grew, now:kids.length, then:kids.length-added.length };
 }
+/* A QUESTION THAT NAMES ONLY A FACT OF THE CONTRACTS GROUPS BY IT (19 Oct 2026):
+   "who are the parties to these contracts", "what are the payment terms of our
+   contracts", "who owns these contracts" — the map's answer is the book cut by
+   it, so on Explorer it is the map's own words, read before any task card */
+function igWhoFactRead(q0){
+  const q=_igNorm(q0);
+  const wq=q.match(/^(?:who|what|which)\s+(?:are|is|were)\s+(?:the\s+|our\s+|their\s+)?(.+?)(?:\s+(?:to|of|in|for|on|behind|across)\s+(?:these|those|the|our|my|all|them)?\s*(?:contracts?|agreements?|deals?))?$/)
+    ||q.match(/^(?:vilka|vem|vad)\s+(?:är|var)\s+(?:de\s+)?(.+?)(?:\s+(?:i|till|för|på|bakom)\s+(?:dessa|de|våra|alla)?\s*avtal(?:en)?)?$/);
+  const wo=/^(?:who owns|who is responsible for|vem äger)(?:\s+(?:these|those|the|our|all|dessa|våra|alla))?\s+(?:contracts?|agreements?|deals?|avtal(?:en)?)$/.test(q);
+  const f=wo?{ key:'owner', len:0 }:(wq?igFactFind(wq[1]):null);
+  return f&&(wo||_igNorm(wq[1]).length<=f.len+1)?[{ role:'group', fact:f.key }]:null;
+}
 function igRecipeParse(qRaw){
   const q0=String(qRaw||'').trim(); if(!q0) return null;
   const q=_igNorm(q0.replace(/[,;]/g,' and '));
@@ -1796,11 +1808,16 @@ function igRecipeParse(qRaw){
      "make the bubbles be represented by one big bubble"). Read here, free,
      before the roles — "size" and "show" mean something else below. */
   { const t=igLookRead(q); if(t) return { acts:t, rest:'' }; }
+  /* a look asked at the end of a request rides with it: "group by customer and
+     show the names on the edges" groups AND names the edges (19 Oct 2026) */
+  { const lk=q.match(/^(.+?)\s+(?:and|och)\s+(?:then\s+|also\s+|sedan\s+|också\s+)?((?:please\s+)?(?:show|put|add|turn|switch|bring|give|print|write|label|hide|remove|drop|take|clear|visa|sätt|skriv|dölj|göm|ta)\b.+)$/);
+    const t=lk&&igLookRead(lk[2]); if(t){ const head=igRecipeParse(lk[1]); if(head&&head.acts.length&&!head.rest) return { acts:head.acts.concat(t), rest:'' }; } }
   /* a date line, and only-one-of-its-kind (stage 2): read whole, before the roles take "by" */
   /* "as of …" and "since …" (stage 5) before the date line, whose "by" it does not use */
   { const t=igAsOfRead(q0); if(t) return { acts:t, rest:'' }; }
   { const t=igUntilRead(q0); if(t) return { acts:t, rest:'' }; }
   { const t=igSoleRead(q0); if(t) return { acts:t, rest:'' }; }
+  { const t=igWhoFactRead(q); if(t) return { acts:t, rest:'' }; }
   /* follow-ups: narrow what is showing rather than start again */
   let follow=false;
   const fm=q.match(/^(?:and|also|now|then|plus|of (?:those|these|them)|among (?:those|these|them)|from (?:those|these)|och|också|nu|sedan|av (?:dem|dessa)|bland (?:dem|dessa))\b[\s,]*(?:only\s+|just\s+|bara\s+|endast\s+)?/);
@@ -1851,14 +1868,14 @@ function igRecipeParse(qRaw){
   /* roles: "<role word> … by <fact>" */
   const clauses=rest.split(/\s*(?:,|;|\band then\b|\band\b|\bthen\b|\boch\b|\bsedan\b)\s*/).filter(Boolean)
     .flatMap(cl=>cl.split(/\s+(?=(?:colou?r|shade|size|label|tag|floors?|levels?|layers?|columns?|group|cluster|färg|storlek|etikett|våning|nivå|kolumn|gruppera)\w*\s+(?:\w+\s+){0,2}(?:by|per|efter|with|med)\b)/)).filter(Boolean);
-  let unknown=null;
+  let unknown=null; const taken=[];
   clauses.forEach(cl=>{
     const role=(IG_ROLE_RE.find(([,re])=>re.test(cl))||[])[0];
     /* the "by" whose words name a fact: "lanes with colour by owner" reads past "with" */
     const by0=cl.match(IG_BY_RE); let by=by0;
     for(let m=by0; m; m=m[1].match(IG_BY_RE)){ if(igFactFind(m[1])){ by=m; break; } }
     if(role==='size'){ const k=igSizeKeyOf(by?by[1]:cl); if(k){ acts.push({ role:'size', fact:k }); return; } if(by){ unknown=unknown||{ text:by[1], role }; return; } }
-    if(role&&by){ const f=role==='colour'?igColourKeyOf(by[1]):(igFactFind(by[1])||{}).key; if(f){ acts.push({ role, fact:f }); return; } }
+    if(role&&by){ const f=role==='colour'?igColourKeyOf(by[1]):(igFactFind(by[1])||{}).key; if(f){ acts.push({ role, fact:f }); taken.push(cl); return; } }
     /* A ROLE AND A FACT ANYWHERE IN THE WORDS (Young, 28 Sep 2026: "maybe i
        want copilot to create floors of value stream or floors of owners"):
        "show streams as floors", "make the floors value streams", "put owners
@@ -1866,11 +1883,11 @@ function igRecipeParse(qRaw){
        that named nothing are never scanned ("cluster by moon phase" is not
        the stage just because it says "phase") — only the words before it. */
     if(role){ const rre=(IG_ROLE_RE.find(([k])=>k===role)||[])[1], head=by0?cl.slice(0,by0.index):cl; const f=igFactAnywhere(rre?head.replace(new RegExp(rre.source,'g'),' '):head);
-      if(f){ acts.push({ role, fact:role==='colour'&&f.key==='status'?'status':f.key }); return; }
+      if(f){ acts.push({ role, fact:role==='colour'&&f.key==='status'?'status':f.key }); taken.push(cl); return; }
       if(by){ unknown=unknown||{ text:by[1], role }; return; } }
     if(!role&&by&&!/^(?:the\s+)?(?:next|end|this)\b/.test(by[1])&&!IG_VIEW_WORDS.some(([,re])=>re.test(cl))&&!acts.some(a=>a.top||a.sort)&&!/\b(?:top|topp|biggest|largest|slowest|sort|order|rank|sortera)\b/.test(cl)){
       /* a bare "by <fact>" ("contracts by stream", "per counterparty") groups */
-      const f=igFactFind(by[1]); if(f&&!/\b(?:only|just|bara|endast|hide|göm|dölj|which|vilka)\b/.test(cl)){ acts.push({ role:'group', fact:f.key }); return; }
+      const f=igFactFind(by[1]); if(f&&!/\b(?:only|just|bara|endast|hide|göm|dölj|which|vilka)\b/.test(cl)){ acts.push({ role:'group', fact:f.key }); taken.push(cl); return; }
     }
   });
   /* narrowing: only / hide / highlight */
@@ -1881,7 +1898,8 @@ function igRecipeParse(qRaw){
   if(nar){ const c=igConditions(nar[1]); if(c.length) acts.push({ narrow:{ conds:c, mode:follow?'and':'only' } }); }
   else if(hid){ const c=igConditions(hid[1]); if(c.length) acts.push({ narrow:{ conds:c, mode:'hide' } }); }
   else if(hil&&!/\boutliers?\b/.test(hil[1])){ const c=igConditions(hil[1]); if(c.length&&!/\b(say|says|mean|clause|wording|står|säger)\b/.test(hil[1])) acts.push({ narrow:{ conds:c, mode:'highlight' } }); }
-  else if(follow){ const c=igConditions(rest); if(c.length) acts.push({ narrow:{ conds:c, mode:'and' } }); }
+  /* "now group the contracts by customers": the words a grouping took ("by customers") are not also a filter (19 Oct 2026) */
+  else if(follow){ let r=' '+rest+' '; taken.forEach(x=>{ r=r.replace(x,' '); }); const c=r.trim()?igConditions(r):[]; if(c.length) acts.push({ narrow:{ conds:c, mode:'and' } }); }
   else if(/^(?:show(?: me)?|give me|find|list|visa(?: mig)?|hitta|lista)\s+/.test(rest)&&!acts.some(a=>a.role||a.top)){ const c=igConditions(rest); if(c.length) acts.push({ narrow:{ conds:c, mode:'only' } }); }
   views.forEach(([k])=>{ if(!acts.some(a=>a.view!=null)) acts.push({ view:k }); });
   /* floors or columns imply their view */
@@ -1910,6 +1928,17 @@ function igRoleSet(role, fact){
   else if(role==='colour'){ if(fact!=='status'&&!GRAPH_GROUP_KEYS.includes(fact)) return false; intel[f]=fact; }
   else { if(!GRAPH_GROUP_KEYS.includes(fact)) return false; intel[f]=fact; }
   intel.lastRole=role; return true;
+}
+/* A GROUPING SHOWS ON THE VIEW IN FRONT (owner, 19 Oct 2026: "a user can
+   segment the contracts however they want and in any screen"): the Brain and
+   Wiring draw it as lobes, the Timeline as lanes, the Grid as its columns (a
+   columns-by asked earlier steps aside) and Floors as its labelled floors.
+   The ask, Group by in the head line and a view's change all come here. */
+function igGroupShows(fact){
+  if(!GRAPH_GROUP_KEYS.includes(fact)) return;
+  const v=igbCam().view;
+  if(v===2) intel.floorsBy=fact;
+  else if(v===3&&intel.columnsBy&&intel.columnsBy!==fact) intel.columnsBy=null;
 }
 function igRoleSays(role, fact){
   const x=role==='size'?i18t(IGB_SIZE_WORD[fact]):role==='time'?i18t('int_time_'+fact):graphGroupingWord(fact);
@@ -1962,7 +1991,9 @@ function igRecipeRun(parsed, opts){
     if(a.ask){ said.push(i18t('int_ask_role',{ x:graphGroupingWord(a.ask) })); choices=igChoiceButtons(a.ask); continue; }
     if(a.unknownFact){ const role=IG_RECIPE_ROLES.includes(a.role)?a.role:'group'; said.push(i18t('int_fact_unknown',{ x:a.unknownFact }));
       choices=IG_NEAREST[role].map(k=>({ label:igRoleSays(role,k).replace(/\.$/,''), acts:[{ role, fact:k }].concat(role==='floors'?[{ view:2 }]:role==='columns'?[{ view:3 }]:[]) })); continue; }
-    if(a.role){ if(igRoleSet(a.role,a.fact)){ said.push(igRoleSays(a.role,a.fact)); changed=true; } continue; }
+    if(a.role){ if(igRoleSet(a.role,a.fact)){ said.push(igRoleSays(a.role,a.fact)); changed=true;
+      /* a grouping shows on the view in front, unless the same ask named the floors or columns */
+      if(a.role==='group'&&!acts.some(x=>x.role==='floors'||x.role==='columns')) igGroupShows(a.fact); } continue; }
     /* the map's LOOK (4 Oct 2026): names, bubble size, folds — undoable, kept in a saved view */
     if('names' in a){ intel.names=a.names;
       /* names asked for are names shown: a group folded away (small groups
@@ -2063,7 +2094,8 @@ function igRecipeRun(parsed, opts){
     /* "remove the grouping": back to the map's own grouping, every group open, no bundles */
     if(a.ungroup){ intel.groupBy='folder'; intel.groups=null; intel.bundles=null; intel.foldWant='none'; intel.folds={}; intel.cellOpen={};
       igPaintGroupSelect(); said.push(i18t('int_did_ungroup',{ x:graphGroupingWord('folder') })); changed=true; continue; }
-    if(a.view!=null){ igSetView(a.view); changed=true; continue; }
+    /* a grouping asked with its view ("floors grouped by customer") shows on that view, unless the floors were named too */
+    if(a.view!=null){ igSetView(a.view); if(!acts.some(x=>x.role==='floors'||x.role==='columns')&&acts.some(x=>x.role==='group')) igGroupShows(intel.groupBy); changed=true; continue; }
     if(a.sort){ intel.sortBy=a.sort; said.push(i18t('int_says_sort',{ x:igSortWord(a.sort) }).replace(/^./,ch=>ch.toUpperCase())+'.'); changed=true; continue; }
     if(a.narrow){ const n=a.narrow, label=n.conds.map(x=>x.label).join(' · ');
       const hit=igIdsWhere(n.conds);
@@ -2241,7 +2273,7 @@ async function intelAsk(qRaw){
      the whole of their words, so on Explorer the map answers them where the
      reader stands (Jambo's one rule) before any task card */
   const hereMap=!!(here&&here.screen==='explorer');
-  const mapOwn=!hereMap&&typeof window.caHereScreen==='function'&&caHereScreen()==='explorer'&&!!(IG_TOUR_RE.test(q)||IG_PIC_RE.test(q)||igAsOfRead(q)||igUntilRead(q)||igSoleRead(q));
+  const mapOwn=!hereMap&&typeof window.caHereScreen==='function'&&caHereScreen()==='explorer'&&!!(IG_TOUR_RE.test(q)||IG_PIC_RE.test(q)||igAsOfRead(q)||igUntilRead(q)||igSoleRead(q)||igWhoFactRead(q));
   /* ---- COPILOT PREPARES, YOU PRESS (Young, 7 Oct 2026) ----
      Sending a contract to a colleague (@ a person, # a contract) and drafting
      one from a sentence are read here, from the words alone, and answered
@@ -2607,6 +2639,7 @@ function intelGraphApply(q, res, opts){
   if(vw>=0&&vw<IGB_VIEWS.length) igSetView(vw);
   else if(res.floorsBy&&intel.floorsBy===res.floorsBy) igSetView(res.columnsBy?3:2);
   else if(res.columnsBy&&intel.columnsBy===res.columnsBy) igSetView(3);
+  if(groupBy&&!res.floorsBy&&!res.columnsBy) igGroupShows(groupBy);
   if(res.top&&typeof res.top==='object'&&Number(res.top.n)>0){
     const by=IG_TOP_BY[res.top.by]?res.top.by:'value', per=GRAPH_GROUP_KEYS.includes(res.top.per)?res.top.per:null, n=Math.min(200,Math.round(Number(res.top.n))), dir=res.top.dir==='up'?'up':'down';
     const tIds=igTopIds(n,by,per,null,dir); ids=ids&&ids.length?tIds.filter(id=>ids.includes(id)):tIds;
@@ -3215,21 +3248,43 @@ function igbBuckets(key, nodes){
   nodes.forEach(n=>{ const l=lab(n); count[l]=(count[l]||0)+1; });
   return { of:lab, labels:igFactOrder(key,Object.keys(count),count), count };
 }
+/* A CAP IS A FACT, NEVER A SILENT TRIM: past the cap the rest share ONE
+   bucket that says what it holds ("Other (28 more)"), never the name of the
+   last label shown; the fact's "none" bucket keeps its own place (its floor
+   is a door), so the rest sit just above it */
+function igbCapLabels(key, labels, max){
+  if(labels.length<=max) return { shown:labels, rest:null };
+  const g=graphGroupingOf(key), none=g&&g.none, hasNone=!!none&&labels.includes(none);
+  const real=labels.filter(l=>!hasNone||l!==none), keep=real.slice(0,max-1-(hasNone?1:0));
+  const rest=i18t('int_axis_rest',{ n:real.length-keep.length });
+  return { shown:keep.concat([rest],hasNone?[none]:[]), rest };
+}
+/* the grouping's own groups as columns or lanes, under the same cap: past it
+   the smallest groups share one "Other" column or lane that says how many */
+function igbHubsCapped(cs){
+  if(cs.length<=IGB_COLS_MAX) return { shown:cs, rest:[] };
+  const keep=new Set(cs.slice().sort((a,b)=>(b.kids.length-a.kids.length)||(cs.indexOf(a)-cs.indexOf(b))).slice(0,IGB_COLS_MAX-1));
+  return { shown:cs.filter(h=>keep.has(h)), rest:cs.filter(h=>!keep.has(h)) };
+}
 function igbAxes(G, hubs, order){
   const kids=G.nodes.filter(n=>n.kind==='contract');
   /* floors */
   const fKey=intel.floorsBy||'status';
   const fb=fKey==='status'?{ of:n=>igbStatusWord(IGB_FLOOR_STATUS[igbFloorOf(n.c&&n.c.status)]), labels:IGB_FLOOR_STATUS.map(igbStatusWord) }:igbBuckets(fKey,kids);
-  const fl=fb.labels.slice(0,IGB_FLOORS_MAX), nf=Math.max(1,fl.length);
-  G.floors=fl.map((l,i)=>({ label:l, y:nf>1?.78-i*(1.56/(nf-1)):0, col:fKey==='status'?IGB_STATUS_COL[IGB_FLOOR_STATUS[i]]:IGB_PALETTE[i%IGB_PALETTE.length] }));
-  const floorOf=n=>{ const i=fl.indexOf(fb.of(n)); return i<0?nf-1:i; };
+  const fcap=igbCapLabels(fKey,fb.labels,IGB_FLOORS_MAX), fl=fcap.shown, nf=Math.max(1,fl.length), fRest=fl.indexOf(fcap.rest);
+  G.floors=fl.map((l,i)=>({ label:l, y:nf>1?.78-i*(1.56/(nf-1)):0, col:i===fRest?IGB_OTHER:fKey==='status'?IGB_STATUS_COL[IGB_FLOOR_STATUS[i]]:IGB_PALETTE[i%IGB_PALETTE.length], rest:i===fRest||undefined }));
+  const floorOf=n=>{ const i=fl.indexOf(fb.of(n)); return i>=0?i:fRest>=0?fRest:nf-1; };
   /* columns: the grouping's own cards, unless Copilot was asked for another */
   const cKey=intel.columnsBy&&intel.columnsBy!==intel.groupBy?intel.columnsBy:null;
   let cols;
-  if(cKey){ const cb=igbBuckets(cKey,kids); cols=cb.labels.slice(0,IGB_COLS_MAX).map((l,i)=>({ label:l, col:IGB_PALETTE[i%IGB_PALETTE.length], of:cb.of }));
-    const last=cols.length-1; kids.forEach(n=>{ const i=cols.findIndex(c=>c.label===cb.of(n)); n._col=i<0?last:i; }); }
+  if(cKey){ const cb=igbBuckets(cKey,kids), ccap=igbCapLabels(cKey,cb.labels,IGB_COLS_MAX);
+    cols=ccap.shown.map((l,i)=>({ label:l, col:l===ccap.rest?IGB_OTHER:IGB_PALETTE[i%IGB_PALETTE.length], of:cb.of, rest:l===ccap.rest||undefined }));
+    const cRest=cols.findIndex(c=>c.rest), last=cRest>=0?cRest:cols.length-1;
+    kids.forEach(n=>{ const i=cols.findIndex(c=>!c.rest&&c.label===cb.of(n)); n._col=i<0?last:i; }); }
   else { const cs=G.linear?hubs.slice().sort((a,b)=>(a.order??99)-(b.order??99)):order;
-    cols=cs.map(h=>({ label:h.label, col:h.col, hub:h })); cs.forEach((h,i)=>h.kids.forEach(n=>{ n._col=i; })); }
+    const { shown, rest }=igbHubsCapped(cs);
+    cols=shown.map(h=>({ label:h.label, col:h.col, hub:h })); shown.forEach((h,i)=>h.kids.forEach(n=>{ n._col=i; }));
+    if(rest.length){ cols.push({ label:i18t('int_axis_rest',{ n:rest.length }), col:IGB_OTHER, hubs:rest, rest:true }); rest.forEach(h=>h.kids.forEach(n=>{ n._col=cols.length-1; })); } }
   /* FLOORS AND COLUMNS BY ONE FACT say the same thing twice (floors of value
      streams over value-stream columns fill one diagonal), so the floors keep
      the fact and the columns step aside: every floor spreads its contracts
@@ -3290,7 +3345,7 @@ function igbAxes(G, hubs, order){
     G.grid.cells[key]={ n:list.length, v, ci, fi }; });
   /* the timeline: dates along, one lane per group */
   const tKey=IG_TIME_KEYS.includes(intel.timeBy)?intel.timeBy:'decision';
-  const lanes=order, nl=Math.max(1,lanes.length), ly=i=>nl>1?-.78+i*(1.56/(nl-1)):0;
+  const { shown:lanes, rest:restLanes }=igbHubsCapped(order), nl=Math.max(1,lanes.length+(restLanes.length?1:0)), ly=i=>nl>1?-.78+i*(1.56/(nl-1)):0;
   const dated=kids.map(n=>{ const d=igbTimeOf(n.c,tKey); const t=d?Date.parse(d):NaN; return [n,isNaN(t)?null:t]; });
   /* THE TYPED DATE LINE (stage 2) goes with its lens: a lens taken off takes the line off */
   const uLens=intel.tlUntil?intel.lenses.find(l=>l.kind==='until'):null; if(intel.tlUntil&&!uLens) intel.tlUntil=null;
@@ -3311,7 +3366,7 @@ function igbAxes(G, hubs, order){
      another's spot in its lane takes the nearest free spot around its date — a
      small packed cluster, never wider than the lane — so a quarter-end with
      forty renewals LOOKS like forty. */
-  let undated=0; const laneIx=new Map(lanes.map((h,i)=>[h,i]));
+  let undated=0; const laneIx=new Map(lanes.map((h,i)=>[h,i]).concat(restLanes.map(h=>[h,lanes.length])));
   /* across the lane the plane is seen at an angle, so a step there is drawn
      shorter than one along it: it is taken IGB_TL_ZS times longer */
   const laneH=nl>1?1.56/(nl-1):.9, zMax=laneH*.45, S=IGB_TL_DX, SZ=S*IGB_TL_ZS, placed={};
@@ -3349,7 +3404,7 @@ function igbAxes(G, hubs, order){
      count is the lit contracts on the map — the lens's own ids, as drawn */
   let until=null;
   if(!isNaN(uT)&&ts.length){ const on=uLens&&uLens.on?new Set(uLens.ids):new Set(); until={ x:tx(uT), iso:intel.tlUntil, n:kids.filter(n=>on.has(n.id)).length }; }
-  G.tl={ key:tKey, ticks, lanes:lanes.map((h,i)=>({ label:h.label, y:ly(i), col:h.col })), undated, nowX, empty:!ts.length, step:tStep,
+  G.tl={ key:tKey, ticks, lanes:lanes.map((h,i)=>({ label:h.label, y:ly(i), col:h.col })).concat(restLanes.length?[{ label:i18t('int_axis_rest',{ n:restLanes.length }), y:ly(lanes.length), col:IGB_OTHER, rest:true }]:[]), undated, nowX, empty:!ts.length, step:tStep,
     strip, stripMax:strip.reduce((a,x)=>Math.max(a,x.n),0), until };
   /* the cells each group's bubbles stand for, per axis view: where the bubble
      sits (the grid's cell middle; the floors' and timeline's middle of its
@@ -3361,7 +3416,7 @@ function igbAxes(G, hubs, order){
     /* a bubble stays inside its own cell (on the grid a little under the cell's own count), and inside its lane on the timeline */
     if(v===3){ const n0=c.kids[0]; c.at=[gx0+(n0._col+.5)*gcw, 0, gz0+(n0._floor+.6)*gch]; c.cap=[gcw*.42,gch*.36]; return; }
     c.kids.forEach(n=>{ x+=n[P][0]; y+=n[P][1]; z+=n[P][2]; }); c.at=[x/c.kids.length, y/c.kids.length, z/c.kids.length]; c.cap=v===2?[gap*.45,.42]:[.32,laneH*.48]; }); });
-  hubs.forEach(h=>{ const i=laneIx.get(h)||0, cc=cols.find(c=>c.hub===h); h.hLt=[cc?cc.x:0, 1.08, 0]; h.hGt=[cols.findIndex(c=>c.hub===h)>=0?cols.find(c=>c.hub===h).x:0, 1.08, 0]; h.hTt=[-1.3, 0, ly(i)]; });
+  hubs.forEach(h=>{ const i=laneIx.get(h)||0, cc=cols.find(c=>c.hub===h||(c.hubs&&c.hubs.includes(h))); h.hLt=[cc?cc.x:0, 1.08, 0]; h.hGt=[cc?cc.x:0, 1.08, 0]; h.hTt=[-1.3, 0, ly(i)]; });
 }
 /* COLOUR BY: status at rest; any grouping the map knows on Copilot's word.
    Coloured by the grouping it is grouped by, the dots wear their card's colour. */
@@ -4250,7 +4305,7 @@ function igGroupOptsHtml(){
 function igGroupInLine(){ return !!(window.state&&state.view==='dashboard'&&typeof window.deskShellOn==='function'&&deskShellOn()); }
 function igGroupSelectHtml(){ return `<select id="ig-group" aria-label="${igEsc(i18t('hb_group_by'))}">${igGroupOptsHtml()}</select>`; }
 /* one listener for whichever dropdown carries the grouping: the head line's is redrawn with the line */
-document.addEventListener('change',e=>{ const s=e.target; if(!s||s.id!=='ig-group') return; intel.groupBy=s.value; intel.groups=null; rebuildIntelGraph(); });
+document.addEventListener('change',e=>{ const s=e.target; if(!s||s.id!=='ig-group') return; intel.groupBy=s.value; intel.groups=null; igGroupShows(s.value); rebuildIntelGraph(); });
 function igPaintGroupSelect(){
   const sel=document.getElementById('ig-group'); if(!sel) return;
   const has=sel.querySelector('option[value="custom"]');

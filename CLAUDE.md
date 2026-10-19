@@ -124,7 +124,6 @@ For a DESIGN QUESTION (how should it look, a new look, a redesign — an exact i
 Doc Lab is REMOVED — flag any doclab mention as stale. Line numbers drift: grep, never trust a remembered line. Each heading is a short form of its MAP-HISTORY heading: grep it there for the long form, the owner's picks and the STALE names (the 4 Oct and 19 Oct whole copies and each CLAUDE.MD TRIM block).
 
 ## THE MAP — how changes get filed
-
 - ONE funnel files every negotiation change: `negoFileChange()` (js/negotiation.js); guards in order `deskClaimOnFile`, `deskBlockMessage`, then the no-op guard, no empty insertion, the executed-wording freeze (`negoWordingFrozen` = `negoExecuted || negoAnySignature`), the counterparty may not rename our clauses, a counter supersedes a rival, the clause lock. Wrappers `negoEditClause`/`negoInsertClause`/`negoDeleteClause`. Entry paths: direct edit, clause library, Copilot (plus a core.js shortcut — fix in the funnel), Playbook (`rlFilePlaybookProposal`), Word round-trip, the portal side door (ALREADY-FILED changes). A fix touching change objects: `grep -rn "changes.push|negoFileChange(" js/` and account for every hit.
 - Formatting-only changes file with `formattingOnly`. Fingerprints are hashV over the stored rich body verbatim; `NEGO_HASH_VERIFIES` is a SET; NEVER re-sanitise a stored bodyHtml after filing.
 
@@ -143,62 +142,49 @@ Create MINTS A DRAFT AND FILES IT (not value, dates, obligations, signers); why 
 Tests: f170, f176, f193, f544, amendment-journey, amendment-blanks-and-clauses, menu-and-amend verify.
 
 ## THE UPLOAD
-
 - A file becomes a name through `fileTitleOf`/`srvFileTitleOf`; stored names never rewritten. ONE READER, TWO DOORS: `uploadReadFile` for the pop-up and Jambo's drop area (`uploadFromDrop`: one at a time, asks the stream, cost said); one creator `submitUpload`. On a computer every Upload door asks `pdDropDoor` first; `openUploadModal` for a drop's hand-off and the phone; several files → Import.
 - Structure: `extractWordText` the ONE door (`docxExtractRich`); numbering is a WALK, never invented (`docxStyleChain`); a styled heading that is really wording is a paragraph (`docxStyledIsWording`); a structureless file stores no body. PDFs `extractPdfRich` (text identical to `extractPdfText`). Re-read refuses a sealed or edited record, carries ids (`clauseCarryIds`). Sidebar counts amber only above zero (NAV_COUNT_TONE).
 Tests: f257, f286, f233, f366, f370, f679, f707, upload-party, upload-structure, pdf-structure, draft-upload-glance verify.
 
 ## THE LEGAL AND LAUNCH AUDITS' FIXES
-
 - PUT /api/contracts/:id: `status` in EXECUTED_IMMUTABLE; a session signature names the caller; parentId/relation guarded as a difference; the signing cap measures max(prev.value, c.value) in BOTH currencies, a missing rate REFUSES. `SIGNED_WORDING_FROZEN` engages on `anySignatureRow`; where the paper is drawn from the record (`recordDrawnPaper`), `PAPER_TERMS_FROZEN` too (`paperTermsFrozen`).
 - `ADMIN_ONLY_USER_FIELDS`; `/api/ai/spend` admin-only; `/api/ai/config` strips byPerson for non-admins. Colleagues' names DO travel with changes; the review and `resolvedBy` are walled. The sign-in limiter counts WRONG GUESSES. APP_URL and NODE_ENV=production in render.yaml.
 Tests: f202, f204, f226, f396 (1c), test/audit/* (sim-d-server-attacks: 0 of 18).
 
 ## GAP MAP, PHASE 2 AND 3 SERVICES
-
 NUDGE `obligationRecipient` at 7/0/-1 days in their language. DAILY BRIEF `runDailyBriefs` (`briefCadenceOf`, absent = daily). CONTRACT BRIEF POST /api/ai/brief cached per wording hash, a cut-short brief KEPT and flagged `truncated`. ⌘K calls no AI route. ARCHIVE `contractSetArchived`, off default lists, still in FTS. TWO-STEP SIGN-IN (`clearTwoStep` not on yourself). INTAKE is its own record (`intake_requests`). WEBHOOKS `WEBHOOK_EVENTS`, `webhookGuardedLookup`, ids only, admin-only. PRECEDENT `PRECEDENT_MIN` 3, never on their seat. ASSURANCE LADDER (js/assurance.js) weakest wins. Blocked on the owner: BankID broker, WhatsApp Business API, Google sign-in. Tests: f212–f224.
 
 ## MONEY IN ITS OWN CURRENCY
-
 `fmtMoneyShortIn` the ONE shortener (B · M · K). A contract states its own currency (`contractCurrency`, `fmtMoneyOf`); anything that ADDS converts through `fxHome`; NO RATE IS EVER GUESSED (`fxMissing`); rates are an admin's dated claim (`PUT /api/settings/fx-rates`). Stored values never rewritten.
 - PAY IS NOT DEAL VALUE: `fxIsPay(c)` (employment; both hosts) adds nothing (`fxCounted`), is skipped by `fxMissing`, a dash in `fmtMoneyShortOf`. Base pay stays `c.value` (gates, freeze, wall unchanged); period and parts in `c.pay` (`payClean`; the server freezes, masks, restores it); ONE writer `paySet`, ONE door `payEditOpen`; panel `bsPayHtml`.
 Tests: f218, f696, settings-tabs, pay-section verify.
 
 ## "SENT" MUST MEAN SENT, AND NO CHANNEL BACK IS NOT READ-ONLY
-
 `startMailStub`/`startHatiWithMail`; `mailReport`/`mailReportPublic`; the password reset reply is identical either way; `emailHealth()` over the last 10. A link that cannot reach the server is answerable by a pasted code (`portalOfferResponseCode`); a code is not a delivery. Tests: f205, f206.
 
 ## ONE PROPOSAL ON THE TABLE
-
 A counter measured against the standing text SUPERSEDES the rival (`superseded`, `supersededBy`, `counterOf`; insertions exempt); renderers draw a LIST per clause, lead first. `negoResolve` refuses a rival measured alike (`negoMeasuredAlike`); an accepted change a later one stands on cannot reopen; a refusal names the CLAUSE (`negoRefusalClause`). A counter ON TOP of their ask STACKS (THE LAYERED REDLINE). Tests: f207, f208, settled-ask-reopen-verify.
 
 ## THE NEGOTIATION DESK (js/desk.js)
-
 Initiator, Lead (exactly one; the only one who reaches the counterparty), Contributor, Reader; claimed by the first change filed. `deskMayRedline`/`deskMaySend` are true on four escapes (rule off, no desk, nobody signed in, PORTAL_MODE). Admin setting, off by default; gates redlining and sending, NEVER signing. Server `deskRuleOn`, `deskSeatOf`, `rosterMoved`. Tests: f165–f169.
 
 ## TAKE IT IN TURNS — THE LOCK IS A BATON
-
 `l.asked` [{id,name,at}] on a live lock (`clauseLockAsks`, one per person). Asking takes nothing (`POST .../lock {ask:true}`); `{handTo:id}` moves it — the HOLDER only, to somebody who ASKED (`clauseLockHandOver`); a refresh of your own lock KEEPS the queue. Said in three places: "Ask for it", the editor foot (`clauseLockWaitingLine`), a toast once per clause per sitting (`clauseLockMerge`). Tests: f455, take-it-in-turns-verify.
 
 ## FOLLOW ME — WALKING THROUGH IT TOGETHER
-
 A DESTINATION, NOT A MIRROR: one clause id rides presence's beat (`presenceSpotNow`), the follower goes there through `rlJumpToClause`; the server clamps `spot`; `presenceWalk(rows)` moves only on a change. One at a time, per sitting, nothing stored; the face is the control (`data-pz-follow`); NO BAND; another contract drops it. Tests: f456, follow-me-verify.
 
 ## WHO IS IN THE ROOM — "ON THIS CONTRACT"
-
 js/presence.js: `c.here` written ONLY by `POST /api/contracts/:id/here` (never `version`/`updated_at`; a sealed record answers without writing); the PUT keeps the stored map; the share route deletes it. `presenceStart`/`presenceStop`, `PRESENCE_BEAT_MS` 25s, `PRESENCE_GONE_MS` 75s, silent when hidden. `presenceHere(c)` NEVER fetches; slot `[data-pz-slot]`, `PRESENCE_FACES` 4; nothing drawn when alone; it costs the contract nothing (`.pz-row` `height:0`). Tests: f454, who-is-in-the-room-verify 2f.
 
 ## THE SEAT DECIDES — A CONTRIBUTOR PROPOSES, THE LEAD ADOPTS
-
 `ch.suggested` stamped by `deskStampOnFile` in the FUNNEL (contributor's own side, desk rule on). It does not travel (`deskSuggestedIds`, server `dkSuggestedIds`, both RAW). Lead or admin adopts (`deskAdoptSuggestion`) or hands back with a reason (`deskReturnSuggestion`); nobody rules on their own (`deskMayRuleSuggestion`, `dkSuggestionRefusal`); it waits on the lead OR its author (`deskSuggestionsFor`/`deskSuggestionsBackTo`). Builder `deskCardSuggestHtml`; checklist kind `suggest`. Tests: f453, the-seat-decides-verify.
 
 ## STREAM ACCESS, PEOPLE, RE-FILING
-
 The server filters every query (`folderScopeFor`); browser `canAccessFolder`, `visibleFolders()`. A new member is a VIEWER. THE DIRECTORY (`dirBook`) is a READING, nothing filed. Re-filing is an admin's act, delegable (`mayReFile`), guarded as a difference; ONE writer `ktFolderMove`. Category and stream are the COMPANY's lists (`PUT /api/settings/filing`); the stream is asked at every creation door. PRIVATE STREAMS: only the named open them, admins too (ONE writer `PUT /api/private-streams/:fid`; wall `psStreamsFor`); their money adds nowhere (`fxCounted`) while gates read `fxHome`; opens kept (`private_opens`) and drawn in History (`histPrivateEvents`).
 Tests: f1, f160, f200, f202, f326, f330, f669, f695, f688 (3), people-directory, refile-a-contract, private-streams verify.
 
 ## PER-PERSON GRANTS (admin-only, on ADMIN_ONLY_USER_FIELDS)
-
 Signing cap (`signCapOf`, `signCapBlocker`), who is checked (review), sign folders (`signFolders.by`), approval before signing, re-file (`mayReFile`), new paper (`mayMakeNewPaper`, refusal onto Requests `newPaperBlock`), hold contracts (`mayHoldContract`). All off by default; admins are never capped. Tests: f193–f199, f331, f335.
 
 ## THE SHELL — RAIL, BAR, PANELS
@@ -211,7 +197,6 @@ Signing cap (`signCapOf`, `signCapBlocker`), who is checked (review), sign folde
 Tests: f96, f187, f238, f240, f251, f264, f284, f449, f543, f672, f679, f706, f735–f737, home-and-recent, jambo-everywhere, answer-where-you-stand, show-it-here-first, jambo-window-follows-the-ask, alerts-and-activity, home-page, pages-read-alike, language-switch-stays, jambo-pill-and-window verify.
 
 ## THE PHONE
-
 Below 768px js/mobile*.js draws instead: same readings, files NO changes of its own (grep mobile files for `changes.push`/`negoFileChange` → nothing). A fix in a shared FUNCTION reaches both shells; one in a desktop RENDERER does not. The phone BORROWS the desktop's readings (`needsYouOf`+`insNeedWords` in `mNeedsYou`, `roomHistoryEvents`, `signBlockers`, `lookDone`); its paper is read-only (`mDocReadOnly`); an email link's tab via `mHookRoomTab`. Labels floored at 14px by scope (`#m-root`). Tests: phone-verify, f630, f631, phone-fits-verify.
 
 ## HOME — THE BOARD AND THE MAP (js/views/homeboard.js)
@@ -232,11 +217,11 @@ Tests: f447, f448, f482, f483, f496–f504, f511–f521, f524–f543, f549–f55
 Tests: stakes-verify, jambo-pill-and-window 3a, f668, f671, f277.
 
 ## INSIGHTS
-- COUNTING IS NOT DRAWING: a `*Data` + a renderer per panel; `pfPanelData`/`PF_PANEL_DATA` the one door (`get_insights_panel` both hosts); `.igx-fig` the ONE tile; doors → `regShowOnly`; `exposureGridData` (no score, unseen streams never named).
-- EXPLORER: `GRAPH_GROUPINGS`, `buildGraphEdges`, `intelGraphApply` judges Copilot, `INTEL_CAP` said; every view folds; recipe `igRecipeNow`/`igRecipeSet`; `IG_CLAIM_RE`; `imported` = `c.migration` both hosts (js/graphwhere.js); a count prints only if HaTi drew it (`igCountsDrawn`). On Explorer the map's readers beat the task cards (`mapOwn`). Group by is the head line's dropdown (`igGroupSelectHtml`), no recipe words.
-- THE VIEWS SAY MORE (stage 1): totals, the Grid's heat (`intel.shadeBy`), needs-attention from ONE list `IG_ATTN`/`igAttn`, notice tails, the strip (`G.tl.strip`), lobes glow (`h.attn`) or size by value (`h.sizeK`). ASK THE MAP (stage 2): a typed day is READ, never guessed (`igDateRead`) → lens `until`; reach of a party (`igObOpenOf`); single-sourced (`igSoleData`); `payOver`; the "none" floor's door.
-- JAMBO EXPLAINS (stage 3): the walk is written from what the map DREW (`igTourSteps` → `igPaintIds`), free; his map sentence points (`igPointPaint`) and its figures are checked (`igFigsCheck`). FINDINGS (stage 4): `map_findings` on the server; `fdServe` filters every id by folderScopeFor (none visible = not listed; partial said withheld); Open recounts (`igFindingOpen`); notes and sends tracked (bell `finding-*`, `runFindingAskReminders`). THEN AND NOW (stage 5): `igAsOfRead` → lens `asof` (`igAsOfData`); "Copy picture" `igPictureBlob` (`igPictureSvg`).
-- JAMBO'S CHIPS FOLLOW THE VIEW: two of the view's own + Explain this view (`igViewSuggestions`), each only if its reader reads it and it changes the drawing; the view bar repaints them.
+- COUNTING IS NOT DRAWING: a `*Data` + a renderer per panel; `pfPanelData`/`PF_PANEL_DATA` the one door (`get_insights_panel` both hosts); `.igx-fig` the ONE tile; doors → `regShowOnly`; `exposureGridData` (no score; unseen streams unnamed).
+- EXPLORER: `GRAPH_GROUPINGS`, `buildGraphEdges`, `intelGraphApply` judges Copilot, `INTEL_CAP` said; every view folds; recipe `igRecipeNow`/`igRecipeSet`; `IG_CLAIM_RE`; `imported` = `c.migration` both hosts (js/graphwhere.js); a count prints only if drawn (`igCountsDrawn`). On Explorer the map's readers beat task cards (`mapOwn`). Group by = the head line's dropdown (`igGroupSelectHtml`), no recipe words. ANY VIEW SEGMENTS: axis follows (`igGroupShows`); "who are the X" groups (`igWhoFactRead`); past the room ONE "Other (N more)" (`igbCapLabels`, `igbHubsCapped`).
+- THE VIEWS SAY MORE (stage 1): totals, Grid heat (`intel.shadeBy`), needs-attention ONE list `IG_ATTN`/`igAttn`, notice tails, the strip (`G.tl.strip`), lobes glow (`h.attn`) or size (`h.sizeK`). ASK THE MAP (stage 2): a typed day is READ, never guessed (`igDateRead`) → lens `until`; a party's reach (`igObOpenOf`); single-sourced (`igSoleData`); `payOver`; the "none" floor's door.
+- JAMBO EXPLAINS (stage 3): the walk is what the map DREW (`igTourSteps` → `igPaintIds`), free; his sentence points (`igPointPaint`), its figures checked (`igFigsCheck`). FINDINGS (stage 4): `map_findings`; `fdServe` filters ids by folderScopeFor (none visible = unlisted, partial said withheld); Open recounts (`igFindingOpen`); notes, sends tracked (`finding-*`, `runFindingAskReminders`). THEN AND NOW (stage 5): `igAsOfRead` → lens `asof` (`igAsOfData`); "Copy picture" `igPictureBlob` (`igPictureSvg`).
+- CHIPS FOLLOW THE VIEW: its own two + Explain this view (`igViewSuggestions`), each only if read and it changes the drawing; the view bar repaints.
 Tests: f151, f183, f247, f267, f290–f299, f305, f321, f338, f392, f394, f424–f438, f441, f457, f459 (A), f539, f730; insights-*, portfolio-frame, obligations-report, friction-fits-the-screen, explorer-*, imported-on-the-map, analyze-on-the-graph, map-asked-bubbles, owners-fifteen, fold-every-view verify.
 
 ## OBLIGATIONS
@@ -244,7 +229,6 @@ Room tab and worklist page, ONE builder (`obListHtml`/`obPaintPanel`); `obwBook(
 Tests: f253–f255, f259, f260, f262, f263, f308 (7), f390, f554, f678, f718, obligations-tab, four-inspectors, review-desk, amount-and-window, week-by-week verify.
 
 ## THE LIST INSPECTOR
-
 js/views/inspector.js (Negotiations, Approvals & signing, Obligations, Our standards, Requests): a press SELECTS, a second press OPENS; `insFits()` against `INS_MIN_W` 1040, else the full table; everything borrowed, nothing writes. The checklist `insNeedsHtml` draws `needsYouOf(c)`; `needsYouGo(kind, id)` the one door. TWO DOORS on every list panel, Negotiation · Workspace (`insDoorActs`; Negotiation greys via `insNegoDoorState`; Workspace → Home, `roomHomeLand`). Tests: f387, f390, f391, f395, f664, f678, inspector, inspector-checklist verify.
 
 ## THE SAP BENCHMARK, BATCH 1 — THE LISTS (9 Oct)
@@ -280,7 +264,6 @@ Tests: f80, f83, f261, f458, f641, f694, f732, calendar-on-home, calendar-day, c
 PRIVATE: one store `mineLoad`/`mineSave`/`mineDelete` over /api/me/items (`my_items`, every query `user_id`=req.user, `myItemClean`, a contract only where `folderScopeFor` lets the writer see it); static mode keeps them in this browser. Notes due `mineNotesDue` (bell `note-due`). The ledger `renderMyNotes`, `myNotesNew(seed)`. Never on a contract, share or history. Tests: f641, my-notes-verify.
 
 ## SETTINGS & RULES — THE CONTROL ROOM (owner picked it 16 Oct 2026)
-
 - You first; Company admin-only, no tab row for others (`renderTeam()` the gate). Company: Needs you `stNeedsAll` (≤4 two-line rows) · nine cards `ST_CARDS` (`stCardFacts`) · the ladder · access sheet; pages `settingsGoPage`/`ST_PAGES` (`streams` off `stSwRows`; `data` = The trail · Backup). You is ONE SHEET (`ST_YOU_SHEET`; a row changes through its drawer's own writer, e.g. `stChipsSet`, `langSet`). One drawer (`SET_PANELS`, `openSettingsAt`); the page holds still (`stCrSync`).
 - ONE FINDER `stFind` (Menu box and ⌘K, `stFindGo`). Jambo (`stJbAnswer`) finds free; a "why" is AI on a press, cost first (`POST /api/ai/settings-why`). ASK AN ADMIN is a record (`settings_asks`, `stAskSend`; Needs you, bell, reminded).
 - THE TRAIL AS A FILE: `trailRows` inside folderScopeFor (an unseen private stream only counted, `leftOut`); GET /api/trail/export (CSV formula-safe `trailCell`; `trailPdf` sealed with the CSV's SHA-256); a download is recorded before the file leaves.
@@ -291,7 +274,6 @@ PRIVATE: one store `mineLoad`/`mineSave`/`mineDelete` over /api/me/items (`my_it
 Tests: f193, f195, f201, f203, f276, f350, f691, f692, f699–f704, f725–f727, f729; settings-tabs, settings-groups, control-room-in-full, company-control-room, one-sheet, streams-and-data, trail-export, business-roles, clashes, access-review, when-youre-away, keeping, keeping-no-admin, code-names verify.
 
 ## PARTY vs WORKSPACE, AND WHO THE AGREEMENT IS BETWEEN (js/parties.js)
-
 `FIRST_PARTY` = the WORKSPACE; `c.party` = the legal entity on THIS agreement; `contractParty(c)` falls back. `c.counterparty` IS THE FIRST OUTSIDE PARTY'S NAME, ALWAYS (`partiesSet`); `contractParties` derives the pair — no migration. Multi-party controls draw only where `partiesMulti` (a two-party contract is byte-identical). Involvements negotiate · sign · none; one decision per negotiating party (`negoPartyVerdicts`); the deciding party is the LINK's (`respPartyId`); steps `signStepOf`/`srvSignStep`; our email is the owner's (`partyOurEmail`). PEOPLE ON THIS CONTRACT (js/participants.js): a record, not permissions; never travels; `shareSendExtras`. Tests: f354, f355, f359, f369, signers-and-party-verify.
 
 ## THE LIFELINE STRIP, AND THE ROOM RETIRED (js/views/boardstrip.js; step 8)
@@ -329,23 +311,18 @@ Tests: f277, f300, f315, f364, f373, f384, f507, f536, f656, thread, thread-draw
 Tests: f308, f311, f319, f353, f367, f543, f676, f712, signing-flow, sign-beside-the-paper, the-road verify.
 
 ## A LINK LANDS ON WHAT YOU CAME TO DO
-
 THE OWNER REFUSED A ONE-TIME CODE IN THE MAIL: nothing secret goes to our own staff's inbox (app URL, not token). `contractUrl(req, id, tab, go)`; `saSendApprovalMail` passes `'approval'` on ask · remind · escalate only; `HASH_GO` is the narrow table `openFromHash` resolves (an unknown word ignored; terms or stands → the strip). The arrival lands on `#sa-card` through `landOn`, PRESSES NOTHING, costs no layout, bounded (`HASH_GO_TRIES`). Tests: f445, approval-before-signing-verify 4L.
 
 ## A NAMED PERSON'S YES BEFORE ANYONE SIGNS (js/signapproval.js, both hosts)
-
 Per-person rule (`overseerOn`, approver, backup, when). `saRuleOf`, `saNeeds`, `saState` (unasked · pending · approved · refused · lapsed), `saMayDecide` (never the asker). Its own record `c.signApprovals`, lapsing on wording/value/parties drift or `SA_UNUSED_DAYS`. Holds SIGNING only; server `srvSignApprovalMerge`, 409 with a neutral sentence (the counterparty never learns it exists); `/sign-approval-notify`; a reminder sweep. Tests: f375, approval-before-signing-verify.
 
 ## SIGN LINKS, SIGNERS AND THE SIGNING ROUTE
-
 A review link cannot sign (403); a Sign link binds to the stored route. A signer on EACH side opens signing (`signingRouteOpen`); once anyone signed the route is shut (`signingLocked`, `signingRestart`). `saveSignerPlan` is the ONE authority; tests issuing a signing link need `nameASigner`. `notifyInternalSignerTurn` (app URL, not token). The editor is a TIMELINE (`signerRouteWindow`); `signerPlanRefusal` said in `#sr-say`. Tests: f182, f185, f136, f398, sign-links, signing-route-timeline verify.
 
 ## SIGNING ON THE PAPER
-
 A MARK ON THE PAPER IS NOT SIGNING: `c.signSpots` touches no signature, status, seal or freeze and never travels; anchored to a CLAUSE ID; "spots still to fill" joins `signBlockers` (mine only); painted after the canvas (`wireDocCanvas`), never baked into the sealed HTML (no IMG; f256); in EXECUTED_IMMUTABLE. Tests: f256, signing-on-paper-verify.
 
 ## REDLINE HERE, SIGN THERE — A FILE THEY SIGN (js/outside.js, both hosts)
-
 `contractRef(c)` = `c.contractNo || c.id` is PRINTED; `c.id` is the key forever. `signRouteOf` (absent = inside). The handover is route-owned (`POST /api/contracts/:id/handover`: hand · send · chase · check · partial · sendback · live · reopen · filed); while out, wording and route freeze. Filing needs every signature; differing words need the approver or an admin with a reason; a filled blank is not a change (`ohBlankHits`, `ohFillOps`). A copy whose words DIFFER keeps its text (`signedCopy.text`, off the list) and the duties read it (`obligationsText`); their numbering is design (OH_MARKER_RE, `dropNextNumber`), never drawn as a change. Tests: f388, f389, f342 (7)(8), f654, f655, redline-here-sign-there, signed-copy-differs, import-contracts verify.
 
 ## NEGOTIATE — FOLDED INTO HOME, AND ITS PAGE (the engine)
@@ -364,7 +341,6 @@ Tests: f37, f93, f246, f570 (2), f674, f711, f734, redline, flat-rows-and-alerts
 Tests: f210, f313, f329, ladder, clause-door verify.
 
 ## THE LAYERED REDLINE, AND TYPING IN THE MARKS
-
 A counter ON TOP of their ask (`negoEditClause(c,id,html,{onTop})`) PARKS it (`countered`, `bundle`), decided together (`negoBundleFollow`); `negoAdvanceRound` refuses while parked; more marks than words is a REPLACEMENT (`redlineWholesale`); `redlineLayerOps` composes stored ops. In the clause editor the box IS the redline (`ceMarksPaint`, `CE_MARK_ATTR`; struck runs are atoms, never `contenteditable=false`; `ceBoxHtml` strips the paint); the caret lands where you clicked (`ceHoldClickPoint`). A counter that undoes part of theirs says what it keeps (`rlRowKeepsHtml`: `negoKeepsTheirs`, and `negoLawSeatQ` asks — never blocks — when law, seat and chamber disagree). Tests: f207-D, f245 (26), f733, clause-editor-verify 32–35, clause-door-verify.
 
 ## EDIT WITH COPILOT — THE CLAUSE EDITOR (js/views/clauseeditor.js)
@@ -384,27 +360,21 @@ Tests: f248, f264, f266, f302–f304, f309, f443, f444, f446, round-two-comments
 Tests: f180, f181, f189, f191, f237, f422, f423, f426, f439, f440, counterparty-bell, portal-header-verbs, their-side, their-edit-page, where-we-are verify.
 
 ## THE SPELL CHECK (js/spell.js)
-
 Both seats, no route: `spellSuspects` reads NEW words only (null = not checked); contract words (`spellContractText`), names and `SPELL_LEGAL` pass, a capitalised slip is checked (`spellTermSlip`); non-English stands down; `vendor/en-words-1.txt` on demand; doors `ceSaveChecked`, `fileChecked`; while typing a wavy underline marks what Save would list (`spellUnderline`, highlight `hati-spell`). Tests: f422, f427, f428, their-side, their-edit-page verify.
 
 ## A NAMED GUEST'S LINK ASKS WHO IS OPENING IT
-
 ONE CODE, ONE PROOF, TWO GATES (opening and signing) on the existing `share_otp` routes (`/otp`, `/verify-otp`; never a second pair, f358 (7e)). Admin setting, OFF by default (`linkCode.on`, `linkCodeCfg`). `shareNeedsCode(s)`; `shareDoorOtpOk` gates GET /api/shares/:token with 401 `needsCode` + `shareCodeMask`, below the 'gone' answers; a status link is `shareIsReadOnly`. Browser `portalCodeScreen`, `PT_TICKET_KEY`. Tests: f452, named-guest-verify.
 
 ## THE SEND SCREEN
-
 THE SCREEN IS THE LETTER: From · To · Subject · Sent as (purpose `sharePurposePickerHtml`: Sign · Negotiate · View · Adviser; channel), the words with the one note where it goes, "Before you send" beside it (`shareSideHtml`, `readinessPanelHtml`). THE WORDS ARE ONE MODULE, BOTH HOSTS: js/sharemail.js (`shareMailOf`, `signerTurnMailOf`, `shareWaTextOf`) — the route mails it, `shareLetterPaint` draws it; a new email sentence goes THERE. The record ("history") kind never reuses a contract link (409). Word is a channel, never for Adviser. Adviser links (js/adviserlink.js, NOT js/advice.js): chosen clauses, 14 days, notes never reach the counterparty (`MSG_SIDE_ADVISER`). Tests: f17, f42, f307, f310, f333, f713, share-recipient, the-letter verify.
 
 ## THE TEMPLATES PAGE, THE BUILDER, AND NEW STANDARDS
-
 THE BOOK IS PAPER FIRST: templates on their shelves (`TPL_PF_SHELVES`) beside the chosen one's own paper (`tplPfPaperHtml` → `fillPreviewHtml`, the one renderer). ONE door "Our paper": `PAPER_TABS` ['book','list','standards'] (view `playbook` = the standards tab; f481). ONE DOOR TO A STANDARD: `#tpl-new` → `openNewStandard` (scratch · template · contract) → `openTemplateBuilder(tid, vid, {start})`. A template keeps its source document (`format:'rich'`, `tplFormRichSafe`). THE BUILDER (js/views/templatebuilder.js): `tbAccept` the one writer, `tbAddBlock` the only push; work KEPT in the browser (`hati.v1.tbDrafts`), never a route. Built-in templates are real contracts (`DOC_SHARED_CLAUSES`). Tests: f244, f306, f331, f336, f376, f722, templates-tabs, one-door, prompt-and-build, paper-first verify.
 
 ## NEW AGREEMENT, DRAFT FROM A SENTENCE, THE FILL FORMS
-
 A page's "+ Draft new agreement" → `openNewDoors`; Home and Jambo open the ONE form (`caDraftForm` → `openNewAgreement({pick,prefill,asked,streamAsk})`); nothing pre-picked; Create greys until a template AND a stream (`naStreamBox`); mints nothing. From a sentence it is ONE SHEET (`na-one`: your words read WITHOUT AI, the closest `closestHtml`, its questions, the stream). js/draft.js mints nothing: a value only reaches a declared box (`draftApplyPrefill`), "nothing fits" → Requests. Fill forms draw the paper beside (`fillPreviewFits` ≥1000). Tests: f270, f340, f345, f360, f368, f679, f706, new-agreement, form-and-picker, draft-upload-glance verify.
 
 ## COPILOT READS A CONTRACT ON ARRIVAL, AND FILLS ITS BLANKS
-
 `contractArrived(c)` at every creation site; `triageAndPaint(c)` the one launcher; once per WORDING (`triageNeedsRead`, `triageWordingHash` = `playbookHashOf`); `TRIAGE_STEPS` (risk · brief · standards · obligations · fill) each in its own try; nothing filed for the reader; the strip `ktTriageStripHtml` is two lines tall and PERMANENT. js/blanks.js reads blanks OFF THE PAPER (`contractBlanks`); the record answers first (`fillBlanksFromRecord`); `contractBlankSet` the ONE writer. JAMBO BEHIND THE WALL: a private folder's contract is read only on a press (`jamboOnPress(c)`; `triageAndPaint` refuses without `asked`/`again`); the night helpers pass it by (`psFolderPrivate`). Tests: f273, f327, f342, f343, f697, auto-triage, blanks-panel, upload-blanks, jambo-behind-the-wall verify.
 
 ## OVERVIEW 2 — THE TIME MACHINE (js/views/overview2.js)
@@ -419,7 +389,6 @@ js/standards.js reads only (`stdDepartures`, `stdBookFor`). `pbStandardsFor(c)` 
 Tests: f273, f364, f484, f503, f506, f508–f510, f522, f537, risks-in-the-redlines-card, one-door-for-edits, a-risk-finds-its-clause, only-what-needs-wording, risk-card-titles verify.
 
 ## THE AI'S READING RULES
-
 `aiDocChars` (200,000) is the ONE ceiling per contract; a cap is marked and said; `truncated` is not empty; `anthropicMessages` retries ONCE only on a thrown connection. COPILOT READS EVERY CHANGE, WHOLE (`copilotNegotiation` = `negoCopilotRecord`, f47; `changesOmitted` states a cut). `AI_QUOTE_RULE`, `AI_REDLINE_RULE`; commentary is not wording (`AI_MODEL_VOICE`); `metaUnleak` checks a reading before filing; no brace reaches the page (`AI_TONE_RE`). LISTS STAY LISTS (`AI_LIST_RULE`; the net `aiListLines`, breaks only). Tool-name sets and `graphWhereHit` equal on both hosts. Tests: f47, f53, f135, f229–f235, f305, f328, f367, f459 (E), f661, copilot-reads-every-change, copilot-keeps-lists verify.
 
 ## THE POP-UPS, THE SAP WAY
@@ -435,15 +404,12 @@ Tests: sap-popups, negotiate-as-drawn, new-agreement, end-or-pause verify, f390 
 Tests: f96, f238, f310, f312, f377, f385, f386, f458 (9), contrast, button-consistency, theme-tokens, dark-no-white-patches, one-reference-face, ink-wash verify.
 
 ## TWO LANGUAGES ≠ TWO MARKETS
-
 LANGUAGE is the person's (js/i18n.js); MARKET is the company's (js/jurisdiction.js). Months follow the language (`langLocale()`), numbers the market; CONTRACT TEXT IS NEVER TRANSLATED. `i18t()`/`i18tn()`, never `t()`, never inside a regex, never branch on translated words; `srvMsg` translates a server sentence; ordinals `i18ord`. The signing screen reads `sgx_*`. Tests: f148, f677, signing-screen-svenska-verify.
 
 ## WHAT COUNTS AS A CLAUSE (js/clausemodel.js)
-
 `clauseSegment()` the ONE splitter; a HEADING's number may be Roman or a letter (`DOC_READ_HEAD_NUM`, `DOC_READ_ROMAN`), the paragraph rule `DOC_READ_NUM` stays digits; `CLAUSE_KINDS`; `clauseKind` reads the heading only; banners ride the next clause (`_clBanners`); `clauseCarryIds`; `applyNegoProposals` never drops what it cannot place; `redlineHangHtml` the one gutter walk. Tests: f131, f163, f285, f371.
 
 ## DOES MONEY PASS UNDER THIS CONTRACT
-
 `isMonetary(c)` the ONE answer: the record wins, the template answers silence, an upload is assumed to carry money. Tests: nda-carries-no-money-verify.
 
 ## JAMBO'S AGENTS — THE HOUSE AND HIS POINTS (js/views/jambohouse.js)
@@ -461,7 +427,6 @@ Tests: f274, f322–f324, f344, f358, f390, f399, f400, f412, f413, f560, f564, 
 - SEAL ON THE SERVER (`srvSealNow`, `sealPlainText`, `srvSendExecutedCopies`) and the night's paired readings: names in MAP-HISTORY "CLAUDE.MD TRIM, 15 Oct (second)". Tests f570, f580–f626, f651.
 
 ## PERFORMANCE — THE BOOK IS WALKED ONCE
-
 `familyChildren` a map built once (`familyIndexDirty()` raised by every parentId writer); `navCounts` one count per paint, refuses re-entry; list routes decorate from their own ids. Instrument: test/chromium/_audit/perf*.js at 3,000 contracts. A LONG CONTRACT IS READ ONCE: `richReadMemo` (`sanitizeRich`/`richToText`); `clauseSegment` splits once, each caller its OWN copy; `clauseSegmentFind`; `docThreadRowsBy`. Tests: f356, f357, f656, home-speed, long-contract-moves verify.
 
 ## THE OVERNIGHT CLEAN-UP RULES, THE OVERNIGHT RUN, THE OWNER'S OPEN ITEMS (26–28 Sep)
@@ -476,5 +441,4 @@ Tests: f393, f401–f421, their-markers, review-keeps-typed-terms, discard-keeps
 Tests: f460–f495, editor-lock-words, lane-drafts, advice-is-a-request verify.
 
 ## THE WORD FILE WE WRITE, AND THE PAGE MEASURE
-
 DOCX writer: hanging indent = `w:ind` + a left tab stop + a real tab; shape read off the markup (`hati-lv-N`, `rl-hang`, `hati-tight`, `hati-pb`, `hati-toc`); a paragraph only where it carries a visible character or is forced. Fonts, page size, margins, headers, footers, images not carried. `--page-measure` is `none`; the AGREEMENT keeps `--doc-sheet-max`. `rowsThatFit(el,rowH,min,max)` after the paint; counting is never capped, only drawing. Tests: f252, f288, keeps-your-place-verify.
