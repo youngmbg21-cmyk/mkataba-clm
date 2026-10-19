@@ -1811,6 +1811,7 @@ function migCheckTo(id){
   if (!_migCheck) return;
   const i = _migCheck.ids.indexOf(id); if (i < 0) return;
   _migCheck.i = i; renderMigration();
+  if (typeof landOn === 'function') landOn('#mig-ck-facts', { block:'nearest', focus:'.mig-ff.is-need .mig-ff-in, .mig-ff .mig-ff-in' });
 }
 /* after a file is filed: the next that still waits, else back to the list */
 function migCheckNext(){
