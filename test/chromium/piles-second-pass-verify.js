@@ -158,7 +158,8 @@ async function login(b, base, email, pass, errs){
     });
     check('1a inside "Waiting on you" the paper\'s order: 7. Liability cap, then 11. Payment terms', one.names.join('|') === '7. Liability cap|11. Payment terms', JSON.stringify(one.names));
     check('1b "Redlines 4" wears a grey pill', !!one.pill && one.pill.bg !== 'rgba(0, 0, 0, 0)' && one.pill.r >= 8, JSON.stringify(one.pill));
-    check('1c nothing under the settled fold', !one.risks && one.lastPile === 'accepted' && one.after === '', JSON.stringify({ risks: one.risks, last: one.lastPile, after: one.after }));
+    /* RE-POINTED 20 Oct 2026 (owner, 19 Oct: the risk cards back under the piles beside the paper) */
+    check('1c under the settled fold only "Risks to look at"', one.risks && one.lastPile === 'accepted' && /^Risks to look at/.test(one.after), JSON.stringify({ risks: one.risks, last: one.lastPile, after: one.after }));
     check('1d Home\'s paper draws no step chips while Redlines is open', one.rungs === 0, String(one.rungs));
     check('1e the box asks "Ask for a number, a list or a contract…"', one.ph === 'Ask for a number, a list or a contract…', one.ph);
 
@@ -166,13 +167,13 @@ async function login(b, base, email, pass, errs){
     await page.click('#pd-redface [data-rl-notes-all]');
     const nv = await waitFor(page, () => { const v = document.querySelector('#pd-redface .rl-fn'); if (!v) return null;
       return { tabs: [...v.querySelectorAll('.rl-fn-tab')].map(t => ({ t: t.innerText.replace(/\s+/g, ' ').trim(), lock: !!t.querySelector('svg'), on: t.classList.contains('on') })),
-        back: (v.querySelector('[data-rl-fn-back]') || {}).textContent, lines: [...v.querySelectorAll('.rl-fn-line')].map(l => l.innerText.replace(/\s+/g, ' ').trim()),
+        back: ((document.querySelector('#ig-dock > .pd-trail') || {}).textContent || ''),  /* ONE TRAIL: the back is the trail's (20 Oct 2026) */ lines: [...v.querySelectorAll('.rl-fn-line')].map(l => l.innerText.replace(/\s+/g, ' ').trim()),
         say: [...v.querySelectorAll('.rl-fn-say')].map(s => s.textContent.trim()), ph: (v.querySelector('.rl-fn-in') || {}).placeholder,
         post: (v.querySelector('[data-rl-fn-post]') || {}).textContent, piles: !!(document.querySelector('#pd-redface #rl-changes') || {}).hidden,
         drawer: !!(state.panelOpen && panelFace() === 'notes'), pressed: document.querySelector('#pd-redface [data-rl-notes-all]').getAttribute('aria-pressed') }; }, 6000);
     check('2a Notes opens the notes in the column (no drawer), the button pressed', !!nv && nv.piles && !nv.drawer && nv.pressed === 'true', JSON.stringify(nv && { piles: nv.piles, drawer: nv.drawer, pressed: nv.pressed }));
     check('2b the rooms as tabs: "Internal 2" with its lock (on), the party\'s tab, "‹ Redlines"', !!nv && nv.tabs.length === 2 && /^Internal 2$/.test(nv.tabs[0].t) && nv.tabs[0].lock && nv.tabs[0].on
-      && /^Nordvik Logistik AB 0$/.test(nv.tabs[1].t) && /‹ Redlines/.test(nv.back || ''), JSON.stringify(nv && [nv.tabs, nv.back]));
+      && /^Nordvik Logistik AB 0$/.test(nv.tabs[1].t) && /Redlines[\s\S]*Notes/.test(nv.back || ''), JSON.stringify(nv && [nv.tabs, nv.back]));
     check('2c each note "Name · clause 7 · when" with its words in a bubble', !!nv && nv.lines.length === 2 && nv.lines.every(l => /^Maria Lindgren · clause 7 · today$/.test(l))
       && nv.say.join('|') === 'Their cap doubles our exposure.|Ask Sara before we move.', JSON.stringify(nv && [nv.lines, nv.say]));
     check('2d "Write to Internal… type @ to name someone" and Post', !!nv && nv.ph === 'Write to Internal… type @ to name someone' && /^Post$/.test((nv.post || '').trim()), JSON.stringify(nv && [nv.ph, nv.post]));
@@ -187,7 +188,7 @@ async function login(b, base, email, pass, errs){
       return v && own.length === 1 && own[0].visibility !== 'shared' && /Internal 3/.test(v.querySelector('.rl-fn-tab').innerText.replace(/\s+/g, ' '))
         && [...v.querySelectorAll('.rl-fn-say')].some(s => /Finance can live with 45 days/.test(s.textContent)) ? true : null; }, 8000);
     check('2f Post files one internal note through the drawer\'s own send, and it shows', !!posted);
-    await page.click('#pd-redface [data-rl-fn-back]');
+    await page.click('#ig-dock > .pd-trail [data-pd-back="red-notes"]');
     check('2g ‹ Redlines brings the piles back', !!(await waitFor(page, () => !document.querySelector('#pd-redface .rl-fn') && !!document.querySelector('#pd-redface [data-rl-pile="awaiting"]'), 5000)));
     await page.click('#pd-redface [data-rl-notes-all]');
     await waitFor(page, () => !!document.querySelector('#pd-redface .rl-fn'), 5000);
@@ -201,29 +202,30 @@ async function login(b, base, email, pass, errs){
       const doc = document.getElementById('ce-doc');
       const shown = [...doc.querySelectorAll('[data-clause]')].filter(e => e.getClientRects().length && !e.parentElement.closest('[data-clause]'));
       return { head: (document.getElementById('ce-rowhead') || {}).innerText, bar: [...document.querySelectorAll('#ce-bar [data-rb]')].map(b => b.getAttribute('data-rb')).join(','),
-        exit: !!p.querySelector('[data-ce-act="close"]'), ctx: (doc.querySelector('.ce-row-ctx') || {}).textContent,
+        exit: !!(p.querySelector('[data-ce-act="close"]') && p.querySelector('[data-ce-act="close"]').getClientRects().length), ctx: (doc.querySelector('.ce-row-ctx') || {}).textContent,
         shown: shown.map(e => e.querySelector('h4, .rl-clause-h') ? e.querySelector('h4, .rl-clause-h').textContent.trim() : e.getAttribute('data-clause')),
-        step: (doc.querySelector('.ce-row-on .ce-row-is') || {}).textContent, boxEdge: (() => { const b = doc.querySelector('.ce-row-on #ce-clausebody'); return b ? getComputedStyle(b).borderTopStyle : null; })(),
+        step: (doc.querySelector('.ce-row-on .ce-row-is') || {}).textContent, boxEdge: (() => { const b = doc.querySelector('.ce-row-on #ce-clausebody'); return b ? parseFloat(getComputedStyle(b).borderTopWidth) : null; })(),
         dim: (() => { const n = doc.querySelector('.ce-row-next'); return n ? Number(getComputedStyle(n).opacity) : null; })(),
         tabs: [...document.querySelectorAll('#ce-tabs [data-ce-tab]')].map(b => b.getAttribute('data-ce-tab')),
         lane: (document.getElementById('ce-lane') || {}).innerText, foot: (document.getElementById('ce-railfoot') || {}).innerText,
         cost: (document.querySelector('#ce-lane .ce-row-jb .cost') || {}).textContent, ask: !!document.querySelector('#ce-lane .ce-row-jb [data-ce-chip]'),
         rowH: Math.round(document.querySelector('#clause-editor .ce-barrow').getBoundingClientRect().height) }; }, 8000);
-    check('3a the head: ‹ Redlines, "Counter · 7. Liability cap", "Nordvik asks 100% · back lands on the same row", Exit',
-      !!ed && /^‹ Redlines\s+Counter · 7\. Liability cap\s+Nordvik asks 100% · back lands on the same row$/.test((ed.head || '').trim()) && ed.exit, JSON.stringify(ed && ed.head));
-    check('3b the short shelf: B I U • 1. ⇤ ⇥', !!ed && ed.bar === 'bold,italic,underline,insertUnorderedList,insertOrderedList,outdent,indent', ed && ed.bar);
-    check('3c the context line, then clause 7 alone with clause 8 dimmed', !!ed && ed.ctx === 'Master services agreement · MK-0382 · Nordvik Logistik AB · round 2'
-      && ed.shown.length === 2 && /Liability cap/.test(ed.shown[0]) && /Insurance/.test(ed.shown[1]) && ed.dim < 0.8, JSON.stringify(ed && [ed.ctx, ed.shown, ed.dim]));
-    /* RE-POINTED 19 Oct 2026 (main's rule, owner 18 Oct: nothing of the ladder in the editor): no step number, and only what is true */
-    check('3d its box, labelled "Your counter · nothing is filed until you save"', !!ed && ed.step === 'Your counter · nothing is filed until you save' && ed.boxEdge === 'solid', JSON.stringify(ed && [ed.step, ed.boxEdge]));
+    /* RE-POINTED 20 Oct 2026 (owner: the whole contract, the way back the
+       panel's, the old rail, no blue box): from a row the editor is as it was
+       before, with ONE TRAIL's back on its own row above the full shelf */
+    check('3a the head: the trail "‹ Redlines · Jambo / Redlines / Counter · 7. Liability cap", no Exit',
+      !!ed && /Redlines[\s\S]*Jambo\s*\/\s*Redlines\s*\/\s*Counter · 7\. Liability cap/.test(ed.head || '') && !ed.exit, JSON.stringify(ed && [ed.head, ed.exit]));
+    check('3b the full shelf, as before', !!ed && /bold,italic,underline/.test(ed.bar) && ed.bar.split(',').length > 7, ed && ed.bar);
+    check('3c the whole paper: no context line, every clause drawn, none dimmed', !!ed && !ed.ctx && ed.shown.length > 2 && ed.dim == null, JSON.stringify(ed && [ed.ctx, ed.shown.length, ed.dim]));
+    check('3d the clause says "Your counter · nothing is filed until you save", no blue box round it', !!ed && ed.step === 'Your counter · nothing is filed until you save' && !ed.boxEdge, JSON.stringify(ed && [ed.step, ed.boxEdge]));
     check('3e the rail: Playbook · Risks · Ladder', !!ed && ed.tabs.join() === 'chat,risks,ladder', JSON.stringify(ed && ed.tabs));
-    check('3f "What they asked … — Anna Holm" and Ask Jambo with its cost before the press', !!ed && /What they asked\s+“Standard in our contracts\.” — Anna Holm/.test(ed.lane || '')
-      && /Ask Jambo\s+For a softer version, or this clause in plain English\./.test(ed.lane || '') && ed.ask && ed.cost === 'about 1 Jambo call', JSON.stringify(ed && [ed.lane, ed.cost]));
+    check('3f the rail as before: the ladder card leads ("What moved"), no row cards', !!ed && /What moved/.test(ed.lane || '') && !ed.ask, JSON.stringify(ed && ed.lane));
     check('3g the foot: "‹ 1 of 2 of their asks ›" and Save', !!ed && /1 of 2 of their asks/.test(ed.foot || '') && /Save/.test(ed.foot || ''), JSON.stringify(ed && ed.foot));
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]){
       await page.setViewportSize({ width: w, height: ht }); await pause(400);
       const fit = await page.evaluate(() => ({ rowH: Math.round(document.querySelector('#clause-editor .ce-barrow').getBoundingClientRect().height), sideways: document.documentElement.scrollWidth > innerWidth }));
-      check(`4 ${w}×${ht}: the editor's head is one row, nothing sideways`, fit.rowH <= 60 && !fit.sideways, JSON.stringify(fit));
+      /* RE-POINTED 20 Oct 2026: the trail's row above the shelf's — two rows, nothing sideways */
+      check(`4 ${w}×${ht}: the editor's head is the trail row and the shelf's row, nothing sideways`, fit.rowH <= 110 && !fit.sideways, JSON.stringify(fit));
       await shot(page, `9E-counter-${w}x${ht}`);
     }
     await page.setViewportSize({ width: 1440, height: 780 }); await pause(300);

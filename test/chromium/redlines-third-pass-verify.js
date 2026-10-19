@@ -172,7 +172,7 @@ const openFace = async page => {
     }
     check('1b a row\'s "2 notes" opens that change\'s notes in the same panel, not the drawer', !!nv && /Liability cap/.test(nv.only || '') && nv.all && nv.say.length === 2 && !nv.drawer && !nv.ctx, JSON.stringify(nv));
     await shot(page, '9-rownotes-1440x780');
-    await page.click('#pd-redface [data-rl-fn-back]', { timeout: 5000 }).catch(() => {});
+    await page.click('#ig-dock > .pd-trail [data-pd-back="red-notes"]', { timeout: 5000 }).catch(() => {});  /* ONE TRAIL's back (20 Oct 2026) */
     await waitFor(page, () => !document.querySelector('#pd-redface .rl-fn'), 4000);
 
     /* 1c Discard last asks first (owner decision D3, 9 Oct 2026; the drawing's
@@ -210,14 +210,17 @@ const openFace = async page => {
     let ed = null;
     if (await ctr.count()){
       await ctr.click({ timeout: 5000 }).catch(() => {});
+      /* RE-POINTED 20 Oct 2026 (owner): from a row the strip keeps to the
+         paper's column as before; ONE TRAIL's back leads it on its own row,
+         dressed as the panel's; no Exit */
       ed = await waitFor(page, () => { const e = document.getElementById('clause-editor'); const hd = document.getElementById('ce-head'); const x = e && e.querySelector('.ce-exit');
-        const tabs = e && e.querySelector('#ce-tabs'); if (!e || !hd || !x || !tabs || !e.classList.contains('ce-rowmode')) return null;
-        const hr = hd.getBoundingClientRect(), xr = x.getBoundingClientRect(), tr = tabs.getBoundingClientRect(), xs = getComputedStyle(x);
-        return { headW: Math.round(hr.width), vw: innerWidth, exitRight: Math.round(xr.right), exitH: Math.round(xr.height), exitBg: xs.backgroundColor, exitIcon: !!(x.querySelector('svg') && x.querySelector('svg').getClientRects().length),
-          tabsBelow: tr.top >= hr.bottom - 1, step: !!e.querySelector('.ce-row-step'), is: (e.querySelector('.ce-row-is') || {}).textContent }; }, 8000);
+        const back = e && e.querySelector('#ce-rowhead .ce-rowback'), path = e && e.querySelector('#ce-rowhead .ce-rowpath');
+        if (!e || !hd || !back || !e.classList.contains('ce-rowmode')) return null;
+        return { headW: Math.round(hd.getBoundingClientRect().width), vw: innerWidth, exitShown: !!(x && x.getClientRects().length), back: back.textContent.trim(), path: path ? path.textContent.trim() : '',
+          step: !!e.querySelector('.ce-row-step'), is: (e.querySelector('.ce-row-is') || {}).textContent }; }, 8000);
     }
-    check('2a from a row the editor\'s head bar spans the window, the rail\'s tabs below it', !!ed && Math.abs(ed.headW - ed.vw) <= 2 && ed.tabsBelow, JSON.stringify(ed));
-    check('2b Exit is the quiet small outlined button at the far right, no icon', !!ed && ed.exitRight >= ed.vw - 20 && ed.exitBg === 'rgb(255, 255, 255)' && !ed.exitIcon && ed.exitH <= 30, JSON.stringify(ed));
+    check('2a from a row the strip keeps to the paper\'s column, the trail first', !!ed && ed.headW < ed.vw - 100 && ed.back === 'Redlines' && /Jambo \/ Redlines \/ Counter/.test(ed.path), JSON.stringify(ed));
+    check('2b no Exit from a row: the trail\'s back is the way out', !!ed && !ed.exitShown, JSON.stringify(ed));
     check('2c no step number; the line says only what is true', !!ed && !ed.step && ed.is === 'Your counter · nothing is filed until you save', JSON.stringify(ed && ed.is));
     await shot(page, '9E-editor-1440x780');
     await page.click('#ce-rowhead [data-ce-act="row-back"]', { timeout: 5000 }).catch(() => {});
@@ -252,6 +255,10 @@ const openFace = async page => {
     check('3c Jambo\'s panel holds cards only: no hand-over strip, the checks a card, the stays card', !!lt && !lt.handover && lt.card && !lt.strip && lt.stays, JSON.stringify(lt));
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]){
       await page.setViewportSize({ width: w, height: ht }); await pause(700);
+      /* RE-POINTED 20 Oct 2026 (ONE TRAIL's line under the tabs takes a line of the
+         panel): the card is scrolled to in the panel, then it must sit clear of the box */
+      await page.evaluate(() => { const e = document.getElementById('sh-lt-else'); if (e) e.scrollIntoView({ block: 'end' }); });
+      await pause(200);
       const fit = await page.evaluate(() => { const e = document.getElementById('sh-lt-else'); const box = document.querySelector('#ig-dock .igd-ask, #ig-dock #igd-input');
         const er = e && e.getBoundingClientRect(), br = box && box.getBoundingClientRect();
         const btns = e ? [...e.querySelectorAll('button')].filter(x => x.getClientRects().length).map(x => Math.round(x.getBoundingClientRect().bottom)) : [];
