@@ -2297,7 +2297,7 @@ function renderMigration(){
     ${''/* THE WHITE BAR (owner, 9 Oct 2026): the page's name, what the batch is
            and Choose files… on the white head; the five figures (or the check
            view's bar) on the same white band, closed by its rule */}
-    <div class="sap-band mig-band" id="mig-band">${_migCheck?migCheckBarHtml():migBandHtml()}</div>
+    <div class="sap-band mig-band ph-foot" id="mig-band">${_migCheck?migCheckBarHtml():migBandHtml()}</div>
     <style>
       .mig-page{padding:0 var(--page-pad-x) var(--s-4);display:flex;flex-direction:column;gap:var(--s-3)}
       .mig-band{padding-top:var(--s-1);padding-bottom:var(--s-3)}

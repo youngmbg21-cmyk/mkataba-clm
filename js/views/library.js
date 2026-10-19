@@ -3305,7 +3305,7 @@ function renderTemplatesPage(){
      under it would put the same sentence back one line lower. */
   document.getElementById('content').innerHTML=`
   <div class="view-enter sap-page tpl-page" style="padding:var(--page-pad)">
-    <div class="sap-band tpl-band">
+    <div class="sap-band tpl-band ph-card">
     <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px">
       ${''/* THE TITLE'S INK SITS WHERE EVERY OTHER PAGE'S DOES. The row is
             centre-aligned for the acts beside it, and a 20px title centred
@@ -4249,7 +4249,7 @@ function sdPageHtml(tabRow, tab, d){
   const subTabs=`<div class="reg-views sd-subtabs" role="tablist">${PB_PAGE_TABS.map(k=>
     `<button type="button" class="reg-vtab${k===tab?' on':''}${!d.n[k]&&k!==tab?' is-zero':''}" data-pb-tab="${k}" role="tab" aria-selected="${k===tab?'true':'false'}">${esc(i18t(PB_TAB_LABEL[k]))}<span class="n">${d.n[k]}</span></button>`).join('')}</div>`;
   const fig=(label, value, quiet)=>`<div class="tpl-gl"><p class="tpl-gl-l">${esc(label)}</p><p class="tpl-gl-v"${quiet?' style="color:var(--color-neutral-600);font-weight:var(--w-body)"':''}>${esc(value)}</p></div>`;
-  const band=`<div class="sap-band tpl-band sd-band"><div class="tpl-glance">
+  const band=`<div class="sap-band tpl-band sd-band ph-foot"><div class="tpl-glance">
       ${fig(i18t('sd_g_standards'), String(d.lib.length))}
       ${fig(i18t('sd_g_required'), String(d.required))}
       ${fig(i18t('sd_g_checked'), d.book.length?String(d.book.length):i18t('sd_g_none_yet'), !d.book.length)}

@@ -444,10 +444,14 @@ describe('f804 (12) the frame as drawn', () => {
     assert.match(HTML, /#content \.ap-body\.is-ins:has\(> #ins-panel\.is-jambo\) \.ap-foot\{margin-top:0;\}/);
   });
   test('12c Approvals: the white head, the ground, the card', () => {
-    /* 19 Oct 2026: div:last-child, never a bare :last-child under body:has()
-       (that made a Board to Workspace turn on Home recalculate every
-       element's style; home-speed-verify 1) */
-    assert.match(HTML, /body:has\(#content \.ap-page\) #page-head > div:last-child\{padding-bottom:var\(--s-3\);\}/);
+    /* RE-POINTED 19 Oct 2026 (the picked drawings' head card, rounds 14-26):
+       the white head is the shared card (.ph-card, drawn by renderPageHeader)
+       with its own padding under the title line, so no page rule pads the
+       head's last child; the ground and the card below it stay the page's.
+       No bare :last-child under body:has() either way (home-speed-verify 1). */
+    assert.match(fnOf(read('js/app.js'), 'renderPageHeader'), /host\.innerHTML=`<div class="ph-card">/);
+    assert.match(HTML, /\.ph-card\{border-radius:var\(--radius-lg\);padding:14px 16px;\}/);
+    assert.doesNotMatch(HTML, /body:has\(#content \.ap-page\) #page-head > div:last-child/);
     assert.match(HTML, /#content \.sap-page\.ap-page\{padding-top:var\(--s-3\);\}/);
   });
 });

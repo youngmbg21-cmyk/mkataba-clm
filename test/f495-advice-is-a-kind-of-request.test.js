@@ -121,8 +121,10 @@ describe('f495 (2) the kind is the page\'s first tab row', () => {
       const fn = strip(fnBody(IK, name));
       assert.ok(fn, name + ' was found');
       /* RE-POINTED 19 Oct 2026 (round 20 as drawn): on the wide page the tabs
-         share their band row with the labelled boxes beside them */
-      assert.match(fn, /data-ins-page="intake" data-ins="[01]">\s*(<div class="sap-band">)?(<div class="reg-tabbar ik-tabbar">)?\$\{rqKindTabsHtml\('contracts'\)\}/, name + ' draws the row first (the wide page on its white band)');
+         share their band row with the labelled boxes beside them.
+         RE-POINTED 19 Oct 2026 (the picked drawings' head card, rounds 14-26):
+         the band is the head card's lower half (.ph-foot); still the row first */
+      assert.match(fn, /data-ins-page="intake" data-ins="[01]">\s*(<div class="sap-band(?: ph-foot)?">)?(<div class="reg-tabbar ik-tabbar">)?\$\{rqKindTabsHtml\('contracts'\)\}/, name + ' draws the row first (the wide page on its white band)');
       assert.match(fn, /rqKindTabsWire\(host\)/, name + ' wires it');
     }
   });

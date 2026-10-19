@@ -862,7 +862,8 @@ function lcScrollWire(host, seat){
    box, the find box, the card and its scroller, Columns and the paged foot.
    One string, put on both pages. */
 const LC_CSS = `
-  .sap-band > .cu-head{display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);flex-wrap:wrap;padding-bottom:var(--s-3);}
+  /* the title at the card's top, as every page head (.ph-card, 19 Oct 2026): the row starts its items there */
+  .sap-band > .cu-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s-3);flex-wrap:wrap;padding-bottom:var(--s-3);}
   .cu-hl{display:flex;align-items:baseline;gap:var(--s-3);min-width:0;flex:1 1 auto;}
   .cu-t{margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;line-height:1.2;color:var(--color-text);white-space:nowrap;}
   .cu-t .cu-tn{margin-left:6px;font-size:var(--t-card);font-weight:var(--w-body);color:var(--color-neutral-600);font-variant-numeric:tabular-nums;}
@@ -1040,7 +1041,7 @@ function cuListHtml(INS){
   const foot = rows.length ? [lcFootHtml('customers', shown, rows.length), cuPartFoot()].filter(Boolean).join('') : cuPartFoot();
   const meta = i18t(_cu.status === 'live' ? 'cu_list_live' : _cu.status === 'ended' ? 'cu_list_ended' : 'cu_list_sort');
   const card = cuCardHtml({ seat: 'customers', title: i18t('nav_customers'), n: rows.length, meta, right: lcBtnHtml('customers'), table, foot });
-  return `<div class="sap-band">
+  return `<div class="sap-band ph-card">
       <div class="cu-head">
         <div class="cu-hl"><h1 class="cu-t">${_cuE(i18t('nav_customers'))}<span class="cu-tn">${_cuE(Number(all.length).toLocaleString(loc))}</span></h1>${headSub ? `<span class="cu-hs page-facts">${_cuE(headSub)}</span>` : ''}</div>
         <div class="cu-acts"><button type="button" class="hm-primary" data-cu-draft="">${(typeof icon === 'function') ? icon('plus', 'w-3.5 h-3.5', 2) : ''} ${_cuE(i18t('home_draft_new'))}</button></div>

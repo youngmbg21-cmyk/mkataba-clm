@@ -798,7 +798,11 @@ function renderPageHeader(view){
      same header. flex-start makes the title's top the container's padding, with
      or without a subtitle, with or without acts. */
   host.style.padding='var(--page-pad-t) var(--page-pad-x) 0';
-  host.innerHTML=`
+  /* THE HEAD IS THE DRAWN WHITE CARD (19 Oct 2026; the picked drawings of
+     rounds 14–26): .ph-card in index.html, the one frame every page head
+     wears — this one, the bands that name their own page, Settings' card.
+     A band the page paints under it (.ph-foot) is the card's lower half. */
+  host.innerHTML=`<div class="ph-card">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap">
       ${''/* THE FACTS ON THE TITLE'S LINE (owner's yes, 18 Oct 2026: every picked
              drawing of rounds 14–26 sets them beside the page's name — "Negotiations
@@ -820,7 +824,8 @@ function renderPageHeader(view){
              contract", and the one tab row under the head jumped 4px between
              them. */}
       ${acts?`<div style="display:flex;align-items:center;gap:var(--s-2);flex:none;min-height:var(--ctl-h)">${acts}</div>`:''}
-    </div>`;
+    </div></div>`;
+  phScrolledSync();
   /* The header is painted AFTER the view, so the register's first paint found
      no slot; ask the register to fill it now that the slot exists. */
   if(view==='register'&&typeof window.regPaintHeadFacts==='function'){ try{ regPaintHeadFacts(); }catch(_){} }
@@ -838,6 +843,17 @@ function syncViewHeight(){
   /* Both guarded: the node tests render this switch against a cut-down
      document that has neither a scroll container nor a documentElement. */
   if(sc && root && root.style) root.style.setProperty('--view-h', sc.clientHeight+'px');
+  /* THE GUTTER THE SCROLLER KEEPS (scrollbar-gutter:stable), measured, so the
+     head card outside it ends where the cards inside it do (.ph-card) */
+  if(sc && root && root.style) root.style.setProperty('--sc-gutter', Math.max(0,(sc.offsetWidth||0)-(sc.clientWidth||0))+'px');
+}
+/* THE HEAD CLOSES ITS CARD WHEN ITS LOWER HALF HAS SCROLLED AWAY (19 Oct
+   2026): a page whose own scroller moves carries its band (.ph-foot) up
+   under the head; the head then draws its own foot. Same height either way. */
+function phScrolledSync(){
+  if(typeof document==='undefined') return;
+  const sc=document.getElementById('content-scroll'), ph=document.getElementById('page-head');
+  if(sc && ph && ph.classList) ph.classList.toggle('ph-scrolled', (sc.scrollTop||0) > 0);
 }
 /* Kept under its old name because the shell and several views call it. */
 function updateCommandBar(view){ renderPageHeader(view); }
@@ -1619,6 +1635,7 @@ if(typeof window!=='undefined'&&!window._placeWired&&typeof window.addEventListe
   document.addEventListener('visibilitychange',()=>{ if(document.hidden) placeSave(); });
   let _placeT=0;
   document.addEventListener('scroll',()=>{ clearTimeout(_placeT); _placeT=setTimeout(placeSave,PLACE_SAVE_WAIT); },{ capture:true, passive:true });
+  document.addEventListener('scroll',e=>{ if(e.target && e.target.id==='content-scroll') phScrolledSync(); },{ capture:true, passive:true });
 }
 /* ---------- HOW MANY ROWS FIT ON THE READER'S OWN SCREEN ----------
    (owner-reported 29 Aug 2026, off three screenshots: "pages are still not

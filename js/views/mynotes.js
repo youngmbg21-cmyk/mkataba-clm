@@ -95,7 +95,7 @@ function myNotesBandHtml(){
   const chip = (typeof window.cuChip === 'function') ? window.cuChip : (typeof insChipHtml === 'function' ? insChipHtml : null);
   const ctBox = chip ? chip({ attr:'data-mn-f', key:'ct', label:i18t('mn_box_contract'), cur:_mn.ct || '', def:'',
     opts:[['', i18t('mn_box_any')], ...cts.map(c => [c.id, `${_mnRef(c)} · ${_mnCtName(c)}`]), ...(all.some(n => !n.contractId) ? [['-', i18t('mn_no_contract')]] : [])] }) : '';
-  return `<div class="sap-band mn-band">
+  return `<div class="sap-band mn-band ph-card">
     <div class="mn-head2"><div class="mn-hl"><h1 class="mn-t1">${_mnE(i18t('nav_mynotes'))}</h1><span class="mn-hn">${all.length}</span><span class="mn-hs">${_mnLock()}${_mnE(i18t('mn_head_sub'))}</span></div>
       <button type="button" class="ui-btn ui-btn-primary" id="mn-new">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : ''}${_mnE(i18t('mn_new_btn'))}</button></div>
     <div class="reg-tabbar ik-tabbar mn-tabbar">${tabs}<div class="reg-filterbar reg-fb ik-fb">

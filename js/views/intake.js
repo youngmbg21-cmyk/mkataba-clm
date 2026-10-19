@@ -1714,7 +1714,7 @@ function renderIntakeInspector(host){
      tab's list are shown ("4 of 4 open") */
   const foot=asker?i18t('ik_foot_asker'):i18t(f.view==='open'?'ik_foot_n_open':'ik_foot_n',{ n:rows.length, of:viewAll });
   host.innerHTML=`<div class="view-enter sap-page ins-page ik-ins" data-ins-page="intake" data-ins="1">
-    <div class="sap-band"><div class="reg-tabbar ik-tabbar">${rqKindTabsHtml('contracts')}${ikBandBoxesHtml(f, asker, narrowing)}</div></div>
+    <div class="sap-band ph-foot"><div class="reg-tabbar ik-tabbar">${rqKindTabsHtml('contracts')}${ikBandBoxesHtml(f, asker, narrowing)}</div></div>
     <div class="ins-body"${asker?'':` data-ik-adv="${ikAdviceRows().length}"`}>
       <section class="ins-card" aria-label="${esc(i18t('nav_intake'))}">
         <div class="ins-cardhead"><h2 class="ins-cardhead-t">${esc(i18t(cardT))} <span class="ap-card-n is-pill ik-card-n">${rows.length}</span> <span class="ik-card-m">${esc(i18t(oldest?'ik_sort_oldest':'ik_sort_newest'))}</span></h2></div>

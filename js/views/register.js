@@ -3491,7 +3491,7 @@ function renderRegister(opts){
              for the two things still in it. THE VIEWS ARE NEVER DRAWN ON THE
              NEGOTIATIONS SEAT: "Ending in 90 days" and "Archived" are
              questions about the book, not about a live negotiation. */}
-      ${HOME?regHomeHeadHtml(R,fbBoxes,adaptBtn,clearSlot):`<div class="reg-band sap-band">
+      ${HOME?regHomeHeadHtml(R,fbBoxes,adaptBtn,clearSlot):`<div class="reg-band sap-band ph-card">
       ${headHtml}
       <!-- THE FILTERS SIT BESIDE THE TABS (owner, 10 Oct 2026: "move the
            highlighted filters to the empty side on the right ... to optimize

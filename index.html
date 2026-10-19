@@ -3948,10 +3948,13 @@
      own top padding, so its first glyph does not move, pinned or not; a
      shadow of the page's ground covers the air above it, so nothing scrolls
      through there. Jambo's column is never under it. */
-  .st-cr .st-headcard{ background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:14px 16px 0;
-    position:sticky; top:var(--page-pad-t); z-index:3; }
+  /* ITS FRAME IS EVERY PAGE'S HEAD CARD (.ph-card, 19 Oct 2026: the list
+     pages' head card) — white, the hairline, the house radius, 14px over
+     the title — so its title sits at the one height every page head does;
+     only the stay-while-scrolling and the tabs flush on its foot are its own. */
+  .st-cr .st-headcard{ position:sticky; top:var(--page-pad-t); z-index:3; }
   .st-cr .st-headcard::before{ content:''; position:absolute; left:-1px; right:-1px; bottom:100%; height:calc(var(--page-pad-t) + 1px); background:var(--color-bg); }
-  .st-cr .st-headcard:not(:has(.st-facebar)){ padding-bottom:14px; }
+  .st-cr .st-headcard:has(.st-facebar){ padding-bottom:0; }
   .st-cr .st-hc-top{ display:flex; align-items:baseline; flex-wrap:wrap; column-gap:10px; row-gap:4px; min-height:var(--ctl-h-sm,28px); }
   .st-cr .st-hc-t{ margin:0; font-family:var(--font-heading); font-size:20px; font-weight:var(--w-title); letter-spacing:-.01em; color:var(--color-text); line-height:1.2; }
   .st-cr .st-hc-sp{ flex:1; }
@@ -13994,13 +13997,10 @@
   #content .reg-body.is-ins:has(> #ins-panel.is-jambo) > .reg-card{flex:none;max-height:100%;}
   #content .ap-body.is-ins:has(> #ins-panel.is-jambo) > .ap-card{max-height:100%;}
   #content .ap-body.is-ins:has(> #ins-panel.is-jambo) .ap-foot{margin-top:0;}
-  /* round 15: the white head (title, counts, Approval rules), the grey ground,
-     then the list's card — Negotiations' band and ground, the same.
-     div:last-child, never a bare :last-child: a bare one under body:has()
-     made every element's style hang on the :has, and a Board to Workspace
-     turn on Home recalculated styles three times as long (measured 19 Oct
-     2026, 45 against 13 ms at 430 contracts; home-speed-verify 1) */
-  body:has(#content .ap-page) #page-head > div:last-child{padding-bottom:var(--s-3);}
+  /* round 15: the head card (title, counts, Approval rules), the grey ground,
+     then the list's card. The head's own padding is the card's (.ph-card,
+     19 Oct 2026); the --s-3 below it is the page's. A bare :last-child
+     under body:has() made every element's style hang on the :has (home-speed-verify 1). */
   #content .sap-page.ap-page{padding-top:var(--s-3);}
   #content .ins-panel.is-jambo{position:fixed;right:0;top:var(--jl-top,88px);bottom:0;width:380px;z-index:20;display:flex;flex-direction:column;overflow:hidden;
     border:0;border-left:1px solid var(--color-neutral-300);border-radius:0;box-shadow:-10px 0 28px -20px rgba(43,43,45,.35);background:var(--color-surface);}
@@ -14677,13 +14677,43 @@
      .sap-band), the list and its panel on the grey ground below, column
      heads and fact labels in sentence case, and a wider side panel whose
      head carries the initials, the name and the stage on one row. Scoped by
-     the class, so pages not yet redrawn keep their look. */
-  body:has(#content .sap-page) #page-head{background:var(--color-surface);}
+     the class, so pages not yet redrawn keep their look.
+     THE EDGE-TO-EDGE WHITE STRIP IS RETIRED (19 Oct 2026): the head is the
+     drawn card below (.ph-card); a band keeps this dress only where no card
+     is put on it. */
   .sap-page .sap-band{background:var(--color-surface);margin-inline:calc(-1 * var(--page-pad-x));padding-inline:var(--page-pad-x);
     border-bottom:1px solid var(--color-divider);}
   .sap-page[data-ins-page="register"] .sap-band{margin-top:calc(-1 * var(--page-pad-t));padding-top:var(--s-3);gap:var(--s-3);}
-  /* Negotiations draws its own name INSIDE the band, so its first glyph keeps the page's one top (pages-read-alike 8). */
-  .sap-page.ngl-page[data-ins-page="register"] .sap-band{padding-top:var(--page-pad-t);}
+  /* ═══ THE LIST PAGES' HEAD CARD (19 Oct 2026; the picked drawings of
+     rounds 14–26: Negotiations, Approvals, Obligations, Parties and People,
+     Requests and My notes, Our paper, Import, Settings) ════════════════════
+     Every page head is ONE WHITE CARD set in on the grey ground — a hairline
+     edge, the house radius, --page-pad-t under the bar and --page-pad-x in
+     from the side — holding the title line (the title, its facts, the
+     page's main button) and, where the page has them, its tabs and labelled
+     boxes; the list is a second card --s-3 below. ONE RULE, .ph-card, worn
+     by the shared head (#page-head, renderPageHeader), by the band that
+     names its own page (Negotiations, Parties, People, Our paper, My notes,
+     Jambo's house) and by Settings' head card, so every title's first glyph
+     sits at one height (pages-read-alike 8). A band under the shared head
+     (tabs, boxes, figures) is the card's lower half, .ph-foot, flush under
+     it; on a page whose scroller moves, the head closes its own card once
+     that half has scrolled away beneath it (#page-head.ph-scrolled, the
+     same height either way, so nothing jumps). REVERSES 9 Oct's "one white
+     band edge to edge". */
+  .ph-card,.ph-foot{background:var(--color-surface);border:1px solid var(--color-divider);}
+  .ph-card{border-radius:var(--radius-lg);padding:14px 16px;}
+  .ph-foot{border-top:0;border-radius:0 0 var(--radius-lg) var(--radius-lg);}
+  /* the scroller's reserved gutter (measured, --sc-gutter) is kept off the
+     card too, so its right edge meets the cards under it */
+  #page-head > .ph-card{margin-right:var(--sc-gutter,0px);}
+  body:has(#content .ph-foot) #page-head > .ph-card{border-bottom-width:0;border-bottom-left-radius:0;border-bottom-right-radius:0;padding-bottom:1px;}
+  body:has(#content .ph-foot) #page-head.ph-scrolled > .ph-card{border-bottom-width:1px;border-radius:var(--radius-lg);padding-bottom:0;}
+  .sap-page .sap-band.ph-foot{margin-inline:0;margin-top:0;padding-inline:16px;}
+  /* a page that names itself in its band: the band is the card, at the
+     page's one top */
+  #content .view-enter.sap-page:has(> .sap-band.ph-card){padding-top:var(--page-pad-t);}
+  .sap-page .sap-band.ph-card{margin-inline:0;margin-top:0;padding:14px 16px 0;}
   .sap-page .sap-band .reg-views,.sap-page .sap-band.st-tabs{border-bottom:0;margin-bottom:0;}
   .sap-page .sap-band .reg-vtab{height:40px;}
   /* OBLIGATIONS' BAND IS APPROVALS & SIGNING'S HEIGHT (owner, 9 Oct 2026:
@@ -14939,7 +14969,9 @@
   /* Our paper (SAP benchmark, batch 2): one white band carries the name, the
      book's three figures (or the list's filters) and the tabs; the book is a
      shelves table on a card with two small cards beside it. */
-  .tpl-page > .sap-band.tpl-band{margin-top:calc(-1 * var(--page-pad-t));padding-top:var(--page-pad-t);margin-bottom:var(--s-4);}
+  /* its band is the head card now (.ph-card, 19 Oct 2026): at the page's
+     own top, the book --s-3 under it, as on every list page */
+  .tpl-page > .sap-band.tpl-band{margin-bottom:var(--s-3);}
   .tpl-band .st-tabs{border-bottom:0;}
   .tpl-band .tpl-glance{grid-template-columns:repeat(3,max-content);gap:var(--s-2) 40px;padding:0 0 var(--s-3);}
   :root .sap-page .tpl-band .tpl-gl-l{font-size:var(--t-label);font-weight:var(--w-body);letter-spacing:0;text-transform:none;margin:0 0 2px;}

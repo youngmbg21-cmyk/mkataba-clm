@@ -5080,8 +5080,11 @@ function renderIntel(){
      lives inside #content, so it is thrown away the moment the reader leaves
      Insights and cannot quietly repaint the header of a page that has not asked
      for it. It is the register's own precedent, which paints the same element
-     the same way for the same reason. */
-  const headStyle=`<style>#page-head{background:var(--color-surface)}</style>`;
+     the same way for the same reason.
+     ONE CARD STILL, NOW SET IN ON THE GROUND (19 Oct 2026, the list pages'
+     head card): the title line is the shared .ph-card and this strip is its
+     lower half (.ph-foot), so #page-head paints nothing of its own here. */
+  const headStyle=`<style>#ig-head.ph-foot{margin:0 var(--page-pad-x)}</style>`;
   /* THE GROUP-BY SELECT, one builder for both heads that carry it — the map's
      wiring asks for #ig-group by id wherever the map is drawn. */
   const groupSel=`<span style="position:relative;display:inline-flex;align-items:center">
@@ -5105,7 +5108,7 @@ function renderIntel(){
          however tall the caption makes it. The caption keeps its ellipsis and
          is still hidden outright below 899px, so nothing is cut mid-word —
          it is trimmed with a "…" or not shown. Friction has no caption. -->
-    <header id="ig-head" style="flex:none;display:flex;align-items:center;gap:0 14px;padding:0 var(--s-4);background:var(--color-surface);border-bottom:1px solid var(--color-divider)">
+    <header id="ig-head" class="ph-foot" style="flex:none;display:flex;align-items:center;gap:0 14px;padding:0 var(--s-4);background:var(--color-surface);border-bottom:1px solid var(--color-divider)">
       ${tabsHtml}
       ${''/* ════ THE MAP'S CAPTION IS GONE (Young ruled it 19 Sep 2026) ════
              "Remove this highlighted wording." It was a page explaining itself

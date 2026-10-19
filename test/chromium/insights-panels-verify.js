@@ -262,8 +262,15 @@ const QUESTION = 'why do I have a big workload runway today?';
       const sc = document.getElementById('content-scroll');
       const r = el => el ? el.getBoundingClientRect() : null;
       const a = r(h1), b = r(sub), s = r(sc);
+      /* RE-POINTED 19 Oct 2026 (the picked drawings' head card, rounds 14-26):
+         the head is a white card set in on the ground (.ph-card), so its
+         one line of chrome is the card's title row, measured on its own */
+      const row = head && head.querySelector('.ph-card > div');
+      const bar = document.getElementById('top-header');
       return {
         headH: head ? Math.round(r(head).height) : -1,
+        rowH: row ? Math.round(r(row).height) : (head ? Math.round(r(head).height) : -1),
+        underBar: Math.round(innerHeight - (bar ? r(bar).bottom : 0) - (head ? r(head).height : 0)),
         title: h1 ? h1.textContent.trim() : null,
         sub: sub ? sub.textContent.trim() : null,
         /* NEXT TO, not merely present: same line means the two boxes share a
@@ -301,11 +308,15 @@ const QUESTION = 'why do I have a big workload runway today?';
     check('5 the page still says its name', f.title === 'Insights', f.title);
     check('5 and no sentence under it — none of them draws one now',
       f.sub === null, f.sub === null ? 'no <p> in the header' : `still there: ${f.sub}`);
+    /* RE-POINTED 19 Oct 2026 (the picked drawings' head card, rounds 14-26):
+       the one line is the card's title row; the charts take every pixel under
+       the head (the card's own frame is the cost, said to the owner), still
+       more than the 824 they had while the sentence stood */
     check('5 so the header is one line of chrome, not two',
-      f.headH > 0 && f.headH < 48, `${f.headH}px (was 63)`);
+      f.rowH > 0 && f.rowH < 48, `${f.rowH}px title row · ${f.headH}px head (was 63)`);
     check('5 AND THE CHARTS GOT THE DIFFERENCE',
-      f.scrollH >= 845 && f.viewH === f.scrollH,
-      `${f.scrollH}px of chart (was 824) · --view-h ${f.viewH}px`);
+      f.scrollH > 824 && f.viewH === f.scrollH && Math.abs(f.scrollH - f.underBar) <= 1,
+      `${f.scrollH}px of chart (was 824) · --view-h ${f.viewH}px · ${f.underBar}px under the head`);
     /* ACROSS THE THREE TABS, which is what was asked. The header is the shell's
        and the tabs are the page's, so this is really a check that switching
        tabs does not quietly redraw the header a different way. */
@@ -331,8 +342,12 @@ const QUESTION = 'why do I have a big workload runway today?';
     for (const tab of ['frame', 'friction', 'obligations']){
       await page.evaluate(t => { intel.tab = t; renderIntel(); }, tab);
       await page.waitForTimeout(700);
+      /* RE-POINTED 19 Oct 2026 (the picked drawings' head card, rounds 14-26):
+         the one white card is set in on the ground now — the title line is
+         the shared head's card (.ph-card) and the tab strip its lower half
+         (.ph-foot): one colour, nothing between them, the same two edges */
       cards[tab] = await page.evaluate(() => {
-        const head = document.getElementById('page-head');
+        const head = document.querySelector('#page-head > .ph-card') || document.getElementById('page-head');
         const strip = document.querySelector('#content header');
         if (!head || !strip) return null;
         const hb = head.getBoundingClientRect(), sb = strip.getBoundingClientRect();
@@ -341,6 +356,7 @@ const QUESTION = 'why do I have a big workload runway today?';
         return { head: getComputedStyle(head).backgroundColor,
           strip: getComputedStyle(strip).backgroundColor,
           surface, gap: Math.round(sb.top - hb.bottom),
+          edges: Math.abs(hb.left - sb.left) <= 1 && Math.abs(hb.right - sb.right) <= 1,
           transparent: /rgba\(0, 0, 0, 0\)|transparent/.test(getComputedStyle(head).backgroundColor) };
       });
     }
@@ -352,7 +368,7 @@ const QUESTION = 'why do I have a big workload runway today?';
     check('5b and it is the same colour as the tab strip under it',
       c && c.head === c.strip, c && { head: c.head, strip: c.strip });
     check('5b with nothing between them for the grey to come through',
-      c && c.gap === 0, c && c.gap);
+      c && c.gap === 0 && c.edges, c && { gap: c.gap, sameEdges: c.edges });
     check('5b on every tab, because the strip is rebuilt and the header is not',
       ['frame', 'friction', 'obligations'].every(t => cards[t] && cards[t].head === cards[t].strip
         && cards[t].gap === 0),
@@ -390,8 +406,8 @@ const QUESTION = 'why do I have a big workload runway today?';
     await page.waitForTimeout(800);
     const narrow = await page.evaluate(HEAD);
     check('5 and a narrow window has nothing to drop — the header stays one line',
-      narrow.sub === null && narrow.headH > 0 && narrow.headH < 48,
-      `${narrow.headH}px at 820px · sub ${narrow.sub === null ? 'none' : narrow.sub}`);
+      narrow.sub === null && narrow.rowH > 0 && narrow.rowH < 48,
+      `${narrow.rowH}px title row at 820px · sub ${narrow.sub === null ? 'none' : narrow.sub}`);
     await page.setViewportSize({ width: 1500, height: 950 });
     await page.waitForTimeout(600);
 
