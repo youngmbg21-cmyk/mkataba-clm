@@ -1,0 +1,310 @@
+# Round 19, option 3
+
+## scene a
+Ha
+Lindqvist & Co AB
+English
+Svenska
+7
+ML
+‹ The counter
+Parties
+×
+People
+×
+Parties31
+SEK 212 M on paper with live parties
++ Draft new agreement
+Party name
+Name or city
+Status
+Live
+▾
+Stream
+All streams
+▾
+Owner
+Anyone
+▾
+NDA
+Any
+▾
+Parties
+27
+live · sorted by name
+Columns
+Party	City	Live	Ended	On paper	Next to end	Waiting on you	NDA
+Alvarsson Metall AB
+2 agreements · Procurement
+	Västerås	1	1	SEK 2.2 M	31 Dec 2026	—	
+One-way
+for good
+
+Baltic Freight Oy
+1 agreement · Procurement
+	Helsinki	1	—	SEK 950 K	—	3 details to fill in	
+Not signed yet
+draft
+
+Brightwater Foods
+3 agreements · Procurement
+	Malmö	2	1	SEK 3.6 M	31 Mar 2027	—	
+Not confirmed
+
+Helio Energy AB
+2 agreements · Procurement
+	Västerås	2	—	SEK 8.1 M	31 May 2028	an approval, for Jonas	
+Mutual
+to Dec 2027
+
+Kettle & Co
+1 agreement · Sales
+	Malmö	—	1	—	—	Sara asked for an NDA	None
+Nordvik Logistik AB
+3 agreements · Sales
+	Gothenburg	3	—	SEK 6.6 M	31 Mar 2027	2 redlines · 4 days	
+Mutual
+to Feb 2028
+
+Project Falcon 
+Code name
+MK-0412 · Sales · In negotiation
+	—	1	—	—	—	—	hidden
+Rena Städ AB
+1 agreement · Procurement
+	Stockholm	1	—	SEK 480 K	30 Apr 2027	—	None
+Stratos Software
+1 agreement · Sales
+	Uppsala	1	—	SEK 1.1 M	15 Jan 2027	—	
+Ended
+Jun 2026
+
+Tornmark Fastigheter AB
+1 agreement · Sales
+	Stockholm	1	—	SEK 3.6 M	30 Sep 2030	—	None
+10 of 27 shown ·
+Show more
+Jambo
+Party
+‹ Jambo
+›
+Nordvik Logistik AB
+
+Gothenburg · with us since March 2024
+
+Open party
+Open on Explorer
+Organisation no.
+556987-6543
+Owner
+Maria Lindgren (you)
+Live agreements
+3 · SEK 6.6 M on paper
+Next to end
+31 Mar 2027 · Transport agreement
+NDA
+Both sides (mutual) · secret until 29 Feb 2028 · confirmed by you Open the NDA ›
+Waiting on you
+1
+Answer 2 redlines
+Master services agreement ·
+waiting 4 days
+Open redlines
+Agreements
+3
+Master services agreement
+MK-0382 · round 2 · SEK 4.2 M
+In negotiation
+Transport agreement
+MK-0360 · SEK 2.4 M · ends 31 Mar 2027
+Signed
+Mutual NDA
+MK-0310 · secret until 29 Feb 2028
+Signed
+People at Nordvik
+2
+HD
+Henrik Dahl
+Head of procurement · negotiates MK-0382
+SL
+Sofia Lund
+Legal counsel · signs for Nordvik
+Draft an agreement with Nordvik
+Ask for anything, or type /
+Ask
+Typing never signs, sends or files — a press does.
+## scene b
+Ha
+Lindqvist & Co AB
+English
+Svenska
+7
+ML
+‹ The counter
+Parties
+×
+People
+×
+Parties31
+SEK 212 M on paper with live parties
++ Draft new agreement
+Party name
+Name or city
+Status
+Live
+▾
+Stream
+All streams
+▾
+Owner
+Anyone
+▾
+NDA
+Any
+▾
+Parties
+27
+live · sorted by name
+Columns
+Party	City	Live	Ended	On paper	Next to end	Waiting on you	NDA
+Alvarsson Metall AB
+2 agreements · Procurement
+	Västerås	1	1	SEK 2.2 M	31 Dec 2026	—	
+One-way
+for good
+
+Baltic Freight Oy
+1 agreement · Procurement
+	Helsinki	1	—	SEK 950 K	—	3 details to fill in	
+Not signed yet
+draft
+
+Brightwater Foods
+3 agreements · Procurement
+	Malmö	2	1	SEK 3.6 M	31 Mar 2027	—	
+Not confirmed
+
+Helio Energy AB
+2 agreements · Procurement
+	Västerås	2	—	SEK 8.1 M	31 May 2028	an approval, for Jonas	
+Mutual
+to Dec 2027
+
+Kettle & Co
+1 agreement · Sales
+	Malmö	—	1	—	—	Sara asked for an NDA	None
+Nordvik Logistik AB
+3 agreements · Sales
+	Gothenburg	3	—	SEK 6.6 M	31 Mar 2027	2 redlines · 4 days	
+Mutual
+to Feb 2028
+
+Project Falcon 
+Code name
+MK-0412 · Sales · In negotiation
+	—	1	—	—	—	—	hidden
+Rena Städ AB
+1 agreement · Procurement
+	Stockholm	1	—	SEK 480 K	30 Apr 2027	—	None
+Stratos Software
+1 agreement · Sales
+	Uppsala	1	—	SEK 1.1 M	15 Jan 2027	—	
+Ended
+Jun 2026
+
+Tornmark Fastigheter AB
+1 agreement · Sales
+	Stockholm	1	—	SEK 3.6 M	30 Sep 2030	—	None
+10 of 27 shown ·
+Show more
+Jambo
+Party
+‹ Jambo
+›
+Nordvik Logistik AB
+
+Gothenburg · with us since March 2024
+
+Open party
+Open on Explorer
+Organisation no.
+556987-6543
+Owner
+Maria Lindgren (you)
+Live agreements
+3 · SEK 6.6 M on paper
+Next to end
+31 Mar 2027 · Transport agreement
+NDA
+Both sides (mutual) · secret until 29 Feb 2028 · confirmed by you Open the NDA ›
+Waiting on you
+1
+Answer 2 redlines
+Master services agreement ·
+waiting 4 days
+Open redlines
+Agreements
+3
+Master services agreement
+MK-0382 · round 2 · SEK 4.2 M
+In negotiation
+Transport agreement
+MK-0360 · SEK 2.4 M · ends 31 Mar 2027
+Signed
+Mutual NDA
+MK-0310 · secret until 29 Feb 2028
+Signed
+People at Nordvik
+2
+HD
+Henrik Dahl
+Head of procurement · negotiates MK-0382
+SL
+Sofia Lund
+Legal counsel · signs for Nordvik
+Draft an agreement with Nordvik
+Ask for anything, or type /
+Ask
+Typing never signs, sends or files — a press does.
+
+## COMPARE
+Round 19 · Parties and People
+
+This round decides how the two "who" pages look once they land on the desk: Parties (every company we have agreements with) and People (our colleagues and their contacts). Each option draws both; use the small tabs under "‹ The counter", or the S key, to see the other page.
+
+Everything Parties and People do today stays: the NDA column read from confirmed facts, Open party narrowing Contracts, the A–Z of people, ours and theirs. Nothing is built until you pick one by name.
+
+The three ideas
+Option	The idea	When it wins	What it costs
+Shelves	Every party is a card on a wall, its NDA badge in the corner and what waits on you at the foot. People sit on their company's shelf: ours first, then each party's.	When you look for a party by recognising it, and want to see who belongs to whom at a glance.	About 9 parties fit on a screen instead of 12 or more. Comparing NDAs or money across parties is harder, because the facts are not in columns.
+Relationship file	An index on the left; the one party or person you choose fills the page: facts, what waits on you, their agreements, their people. Jambo's panel says what he sees, from the record, at no cost.	When most visits are about one relationship ("what do we have with Nordvik?") rather than the whole list.	The list shrinks to names, so "which parties have no NDA?" needs the filter in the index rather than a glance. The file repeats a short list of the party's agreements that Contracts also shows (each row opens the contract; "All 3 on Contracts" is the one door to the full list).
+The SAP way	Today's pages on the new desk: the white band with labelled filter boxes, a quiet table with the NDA column, the chosen row's facts in Jambo's panel.	When people scan and filter many parties or people at once: "who has no NDA", "who is waiting on me", "who is on Nordvik's side".	The least new. Tables look plainer than cards, and on the phone the table keeps only its key columns.
+My recommendation: The SAP way
+
+Parties and People are lists you scan and filter, and a table answers the common questions in one look, above all "do we have an NDA with them?", the column you picked the SAP way on 17 October. On the new desk the side panel is simply Jambo's panel, so the chosen party's facts, its NDA sentence and what waits on you sit beside the list without a second panel.
+
+From the Relationship file I would borrow one thing for the panel: the "Waiting on you" row with its button, as drawn in the SAP way's panel too.
+
+The page checklist
+Question	Shelves	Relationship file	The SAP way
+Most important thing easiest to see?	Partly: names and NDA badges stand out; numbers are small	Yes for one party: its facts and what waits on you lead	Yes: the NDA and Waiting on you columns read down the list
+Related things grouped?	Yes: people on their company's shelf	Yes: everything about one relationship in one file	Yes: one row per party, the details in the panel
+Each label says what is behind it?	Yes	Yes: "All 3 on Contracts" says where it goes	Yes
+Always know where you are, and the way back?	Same for all three: "‹ The counter" in the head card, and Parties and People stay open as small tabs on the desk. Open party lands on Contracts narrowed to that party, as today.
+What the checks changed
+
+One door. Every option keeps "Open party" as the one way to a party's contracts. The Relationship file shows only the party's few agreements and ends in that same door.
+
+The cheapest channel. Jonas being away is a small pill on his name and a line in his details, not a notice across the page.
+
+Jambo guides through the rule. A deal behind a code name (Project Falcon) appears only by its code name. Its panel says why, who can add you, and offers "Ask an admin". It never shows the party.
+
+Copilot's place. Nothing on these pages spends AI. Jambo's note in the Relationship file is built from the record, and says so.
+
+Fit. At 1536 × 730 every option scrolls inside the desk: the lists are longer than one screen, as they are today. The head card and the panel stay put.
+
+Questions for you
+
+A deal behind a code name, on Parties. I drew Project Falcon as a row showing only its code name, number, stream and stage, the same stand-in Contracts shows to people outside its list. The other choice is to leave it off Parties entirely. Which do you want?
+
+The buttons on this page do not open anything yet. Each one says which round designs the page it leads to.

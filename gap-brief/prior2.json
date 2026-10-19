@@ -1,0 +1,1122 @@
+{
+ "B1": {
+  "passes": [
+   {
+    "label": "fix B1 #2",
+    "built": [
+     "Merged origin/main into gaps/B1 (LAND ON IT, Jambo the same on every page, answer where you stand, the new bar with the Counter named Home). The held-contract guard sits inside main's own pinned code. Every panel door now goes through landOn, and a question asked beside a held contract goes through caAskAnywhere/caHereRead.",
+     "Round 13, the wall: the count line says only the agreements ('N contracts', or 'k of N contracts' when narrowed), never '\u00b7 N amendment' or '\u00b7 K closed'. Scrolling near the wall's foot loads the next twelve papers. The browser check found that a scroll on the wall's own box was never heard, and that is fixed. Jambo's tab carries Home's own Needs-you number on the wall at rest, beside a chosen paper, on a page and on its History. The chosen panel's doors stay whole at 1536\u00d7730.",
+     "Round 7, Jambo's glance beside a page: the private stream's line ('Private \u00b7 <stream>. Only A and B open it; every open is recorded.'), the details still to fill in plain words ('the start date', 'base pay') with Fill in, and 'Nobody is named to sign yet.' with Signing. An amendment is described in its maker's own note. A 'Private \u00b7 <stream>' lock pill sits on the page head and the glance head. The chips follow what the contract owes (fill in \u00b7 pay \u00b7 who can open it), at most three. A signed contract keeps obligations \u00b7 history \u00b7 amend.",
+     "Every door in these panels lands on what it opens, lit: the contract's Obligations table, its History page, Redlines, the first owed box in Fill in, Sign, the pay editor, the stream's access list, the page itself and the paper.",
+     "Round 7, the page: life-line labels are placed so no mark's line runs through a word (Today is placed first, and an amendment's name sits before its diamond). The What Jambo read tiles use the drawn words ('See the risk \u203a', '7 of 8', the obligations' sides with no first-due line). The caption says what the amendment did in its maker's words.",
+     "Round 7, Details in two columns: the value reads 'as amended' with the signed figure under it, both short and whole, and the renewal reads whole. A Filing section holds the Stream with Re-file (for a private stream, 'Private' and an admin's 'Who may open it' door), the Category and the Code name row. People on this contract has its own section. Related agreements are rows (ref \u00b7 what it is \u00b7 signed day \u00b7 Bring it up), and the family's acts moved into the page's \u22ef menu.",
+     "Round 12, History: a private contract's History leads with its wall and how often it was opened lately. A draft that was never sent says 'Nothing has been shared with X yet.'. Jambo offers 'who opened it' and 'what X changed'. The filters list only choices the trail has (Opens only where something was opened; Person reads the whole trail). Clear is greyed at rest on the grey band. Today's day reads 'Today, Sun 18 Oct'. Middle-line pills read 'time \u00b7 person: what' with an eye or a lock, no initials and no outcome. The round chip is gone. A send is told once ('Sent round 1 back to Per Nordvik: 3 answers', 'Their round 2 came back: 2 changes'). The \u22ef menu is as drawn ('This contract' over Verify \u00b7 Export \u00b7 Print, each with its line, then 'Every contract \u00b7 admins only'). Show the wording prints only the marked wording, cut around the edit, with no fingerprint; the fingerprint rides the time's hover.",
+     "Both language books carry every new sentence (English and Swedish)."
+    ],
+    "blocked": [
+     {
+      "gap": "One number on Jambo's tab, 'equal to the bell's'",
+      "why": "The bell counts alerts, which is a different and wider list (notes, nudges, news). Home's Needs you counts work owed. I made the tab show Home's Needs-you number everywhere, which is the number its 'All N' door opens. In the photos the tab reads 14 and the bell reads 9+, so they still differ.",
+      "question": "Should Jambo's tab show the bell's number instead, or should the bell count the same list as Home's Needs you, so that the two always match?"
+     },
+     {
+      "gap": "What an amendment changed, in words ('raised the yearly volume by 10%')",
+      "why": "HaTi only says this when the person who made the amendment wrote a note. It never guesses a purpose. Amendments made without a note show only the value they set or the day they took effect.",
+      "question": "Should 'Create an amendment' ask for one line, 'What does it change?', so every amendment can say it? That adds a question to the dialog, so it needs your yes."
+     }
+    ],
+    "notDoneYet": [
+     "The hint line under Jambo's box and the Needs-you wording on the chosen paper's panel are lane A1's shared builders. I left them for A1.",
+     "The phone's History shares the same reading, so a send is told once there too, but it still prints the trail's own lines rather than the drawing's words. The phone was not in this lane's drawings.",
+     "The Value figure tile on the page still cuts its second line ('As amended by MK-0377-\u2026') at 1366 and 1536 wide. That is the tile's own one-line rule. Details now says it whole.",
+     "In Details at 1366 wide, a Related agreements row wraps to three lines in the narrow left column. It is readable but tight."
+    ],
+    "tests": [
+     "test/f740-wall-chooses-a-paper.test.js (section 6 new; 5a re-pointed; the scroll-listener pin re-pointed to the wall's own box)",
+     "test/f741-jambo-says-the-chosen-paper.test.js (3d re-pointed)",
+     "test/f742-the-page-at-a-glance.test.js (section 5 new, with the sentence words for owed details; 1c/1d re-pointed)",
+     "test/f743-history-as-drawn.test.js (section 6 new; loaders and 3d re-pointed)",
+     "test/f744-ask-about-the-page.test.js (section 5 new; FNS/3c re-pointed)",
+     "test/f709-the-contract-page.test.js, test/f714-two-sides.test.js, test/f651-their-link-renewal-term-and-the-copy-the-server-draws.test.js, test/f442-the-overview-reads-down.test.js, test/f678-every-door-lands-on-home.test.js (re-pointed with reasons)",
+     "test/chromium/home-held-contract-verify.js (pass-4 section 6, 6a\u20136u; new scenes at three screens; the life-line 'no line through a word' check; doors whole and inside the panel; re-pointed 1a, 1e2, 2b, 3d)",
+     "Re-pointed browser checks: test/chromium/contract-page-verify.js 5, history-timeline-verify.js 2a, two-sides-verify.js 4a, history-head-verify.js (press outside), board-strip-verify.js 2q, private-streams-verify.js 7c, code-names-verify.js 1 and 2b, every-door-lands-on-home-verify.js (narrowed count)"
+    ],
+    "testResults": "Lint: 0 errors (137 warnings, unchanged). Node files f232, f48, f561, f564, f740\u2013f744, f709, f714, f442, f651, f678, f677, f688, f483, f560 and f732 all pass (exit 0). Red at dfe908f with the new tests copied in: f740 (6) 3 of 3 plus 5a, f742 (5) 8 of 8, f743 (6) 7 of 7, f744 (5) 2 of 2. The browser check home-held-contract-verify: ALL PASSED. At dfe908f it had 25 failures: every pass-4 stage 6a\u20136u, the 1366\u00d7950 life-line check, and the re-pointed 1a, 2b and 3d. The 1536\u00d7730 doors-whole measure also passes at base; the red-at-base pin for that CSS is f740 6c. Related browser checks after re-pointing: board-strip 67/67, history-timeline 29/29, history-head 36/36, two-sides, contract-page, document-wall 17/17, wall-of-papers, agreement-family 10/10, land-on-it, code-names, private-streams 36/36, every-door-lands-on-home 115/115, edit-keeps-the-card, nda-tail 36/36, pay-section 38/38, details-owes-overview-edits 8/8, keeps-your-page 11/11 and room-head-fold 10/10 all pass. Colour census, not re-recorded: theme-tokens fails history light and dark, both already red at dfe908f. ink-wash had 3 failures at dfe908f and has 18 now. The new ones are History, the Details/overview layout (Filing, People) and one more amber count badge on the contracts, dialog, alerts and toast scenes (Jambo's tab number on the wall).",
+    "censusMoved": true,
+    "commits": [
+     "dfe908f Merge origin/main into gaps/B1: LAND ON IT, Jambo the same on every page, answer where you stand",
+     "699d734 B1 pass 4: the checker's differences on rounds 13, 7 and 12",
+     "de47afd B1 pass 4: the browser check reads the new bar and the pass-4 drawing"
+    ],
+    "shots": [
+     "/home/user/wt-shots/B1/13-chosen-paper-1440x780.png",
+     "/home/user/wt-shots/B1/13-chosen-paper-1536x730.png",
+     "/home/user/wt-shots/B1/13-chosen-paper-1366x950.png",
+     "/home/user/wt-shots/B1/7-page-glance-1440x780.png",
+     "/home/user/wt-shots/B1/7-page-glance-1536x730.png",
+     "/home/user/wt-shots/B1/7-page-glance-1366x950.png",
+     "/home/user/wt-shots/B1/12-history-panel-1440x780.png",
+     "/home/user/wt-shots/B1/12-history-panel-1536x730.png",
+     "/home/user/wt-shots/B1/12-history-panel-1366x950.png",
+     "/home/user/wt-shots/B1/pass4-7-page-private-1440x780.png",
+     "/home/user/wt-shots/B1/pass4-7-page-private-1536x730.png",
+     "/home/user/wt-shots/B1/pass4-7-page-private-1366x950.png",
+     "/home/user/wt-shots/B1/pass4-7-details-1440x780.png",
+     "/home/user/wt-shots/B1/pass4-7-details-1536x730.png",
+     "/home/user/wt-shots/B1/pass4-7-details-1366x950.png",
+     "/home/user/wt-shots/B1/pass4-12-history-two-rounds-1440x780.png",
+     "/home/user/wt-shots/B1/pass4-12-history-two-rounds-1536x730.png",
+     "/home/user/wt-shots/B1/pass4-12-history-two-rounds-1366x950.png",
+     "/home/user/wt-shots/B1/pass4-12-history-private-1440x780.png",
+     "/home/user/wt-shots/B1/pass4-12-history-private-1536x730.png",
+     "/home/user/wt-shots/B1/pass4-12-history-private-1366x950.png",
+     "/home/user/wt-shots/B1/pass4-12-history-wording-1440x780.png"
+    ],
+    "mapLines": "- JAMBO SAYS THE CONTRACT IN FRONT, PASS 4 (rounds 13, 7, 12 as drawn, 18 Oct 2026): his tab = Home's Needs-you number on the wall, a chosen paper, a page, its History (`pdTabCount` \u2192 `counterNeedsCount`); the glance owes first (`pdCardGlanceRows`: private `bsPrivateOf`/`bsPrivatePillHtml`, details `pdDetWord`, signer); chips by what it owes, \u22643 (`pdHeldOwes`, `pdHeldChips`); every door lands (`pdHeldLand`, `PD_HELD_LAND`); the wall loads on scroll (`igWallScrollNear`, the wall's own box heard).\n- Details: Filing `ovFilingRestHtml`, People `ovPeopleRestHtml`, value as amended in short figures (`ktFieldCell`, `ov_value_amended_w`/`ov_value_signed`), Related agreements as rows `familyDrawnRowsHtml`, the family's acts on \u22ef (`familyActs`/`familyActRun`); life-line labels never crossed (the placement in `bsLifeSvg`'s lanes, Today first).\n- History: a send told once (`histSendOf`, `HIST_TURN_RE`/`HIST_CLOSED_RE`, `_k:'handover'`, both shells); filters only what can give results (`histFilterChoices`, `histOutcomeKey`); \"Today, \u2026\" (`ct_hist_day_today`); middle-line pills with no initials; wording cut (`histWordingCut`, `HIST_WORDING_KEEP`); menu \"This contract\" (`ct_hist_menu_*`). STALE: `.hist-rchip`, `.hist-fp`, `bs_jb_ob_first`, `ov_value_amended`.\nTests: f740\u2013f744, home-held-contract-verify (stage 6).",
+    "historyStory": "## JAMBO SAYS THE CONTRACT IN FRONT \u2014 PASS 4 (18 Oct 2026, lane B1)\n\nAfter main moved on (LAND ON IT, the new bar, the Counter named Home), the checker compared rounds 13, 7 and 12 with the drawings again and listed 21 differences. This pass merged main, built each difference and kept the held-contract guard inside main's own pinned code (`!heldId` before `state.view`).\n\nWhat was built and why:\n- Round 13: the count line says the agreements only, because an amendment rides on its agreement's paper. The next papers load on scroll near the foot, as drawn. The browser check found that the wall's own box is the scroller on the desk, and the scroll listener only listened to boxes *around* the wall, so scroll-to-load never fired in real use. It now hears the wall's own box (f740 6a pins it). Jambo's tab carries Home's Needs-you number everywhere a contract is held and on the wall at rest. The bell still counts a different list, and that is asked of the owner.\n- Round 7: the glance says what the page owes first: the private stream's wall, the details still to fill and a missing signer. \"Nothing is late\" is said only where it is true. The details row first read \"1 detail to fill: effective.\" (the table's label). Record boxes now have sentence words (\"the start date\", \"base pay\"). An amendment's purpose is said only in its maker's own note (`relationNote`), never guessed. Details reads the value in short figures, as drawn (\"SEK 7.1 M as amended / 6.4 M signed\"), because full figures were cut in the card; contract-page-verify 5 was re-pointed for this. The family's acts left Related agreements for the page's \u22ef, so the rows match the drawing (ref \u00b7 what \u00b7 signed \u00b7 Bring it up).\n- Round 12: one send writes up to three trail lines (round archived, \"Round N closed by \u2026\", \"Turn handed to \u2026\"). They are now one entry in our lane, and their hand-back is theirs. This is a change to the shared reading `roomHistoryEvents`, so the phone tells a send once too, while still printing the trail's own words. Filters offer only what the trail holds (the owner's 10 Oct rule). Clear greys at rest. The middle line is one quiet pill with no initials. The fingerprint moved to the time's hover. The menu's lines made it about 290px tall, so history-head's \"press outside\" moved to the Ours lane head.\n\nRe-pointed with reasons: contract-page 5, history-timeline 2a, two-sides 4a, history-head (press outside), board-strip 2q, private-streams 7c, code-names 1/2b, every-door-lands-on-home (narrowed count), and f709, f714, f651, f442, f678, f740 5a, f741 3d, f742 1c/1d, f743 3d, f744 3c. Every new check is red at dfe908f and green now. The colour census moved (History, Details, one more amber tab badge on the wall) and was not re-recorded.",
+    "buglog": [],
+    "ownerSummary": "I built all the differences the checker listed for the Contracts wall, a contract's page and its History, after bringing in the latest main version first. Jambo now shows the same \"Needs you\" number on his tab everywhere. Beside a private contract he says who may open it, what details are still missing and that nobody has been named to sign, and his suggestions change with the contract. History now reads as drawn: each send is told once, the filters offer only what is actually there, today says \"Today\" and the wording is cut short around the change. The Details page now has Filing and People sections, shows the value \"as amended\" and in full, and lists related agreements with a \"Bring it up\" button. While checking, I found and fixed two small faults: scrolling the wall did not load more papers, and one missing detail was named by a table label (\"effective\") instead of plain words (\"the start date\"). Two things need your answer. Should Jambo's number match the bell, which counts a wider list? And should creating an amendment ask for one line on what it changes, so it can always be described? Nothing was pushed, and the colour census moved but was not re-recorded."
+   }
+  ],
+  "checks": [
+   {
+    "label": "check B1 #2",
+    "differences": [
+     {
+      "round": "main",
+      "part": "Bringing in the latest main (the brief's MAIN MOVED ON section): LAND ON IT, the shared Jambo reader caAskAnywhere, ANSWER WHERE YOU STAND, and the desk tabs row being gone",
+      "drawn": "Every door this build added lands through the one lander landOn (opened, scrolled into view, lit, presses nothing). Every Jambo box reads through caAskAnywhere first, and a request to see contracts is answered on the screen in front (caHereScreen). Anything tested against the desk tabs row follows the new bar.",
+      "built": "gaps/B1 has not merged origin/main: it is 62 commits behind, and its last commit (17:28) is older than the MAIN MOVED ON note. landOn does not exist on the branch. B1's doors (the chosen panel's Open the paper, Life line and details and Open redlines; the glance's Obligations, Redlines and Bring it up; the chips obligations \u00b7 history \u00b7 amend; History's Redlines and chips) go through igAnalyze, hbStripBring and pdRedOpen, and nothing is lit on arrival. The held-contract ask (igHeldAskId \u2192 igPaperAsk) does not go through caAskAnywhere or caHereScreen. home-held-contract-verify still reads the desk-tab world.",
+      "kind": "different"
+     },
+     {
+      "round": "7",
+      "part": "'<ref> at a glance' for a contract that owes work but has nothing late (the drawing's second desk tab, the CFO agreement)",
+      "drawn": "Rows '2 details to fill: collective agreement and pension provider. \u00b7 Fill in' and 'Nobody is named to sign yet. \u00b7 Signing'",
+      "built": "On MK-W19 and MK-0399 (both drafts, each with 1 detail to fill and no signer named), the glance says '\u2713 Nothing is late, and nothing here waits on you.' The same page says 'Details to fill 1' and 'Signers: Nobody named yet', and the wall tags the paper 'Needs you'. pdCardGlanceRows reads only late, move, amend and notice, so the details row, the signer row and their Fill in and Signing doors are missing, and the sentence it shows instead is false.",
+      "kind": "missing"
+     },
+     {
+      "round": "7",
+      "part": "A private contract's page head and its glance card",
+      "drawn": "Page head 'Employment agreement MK-0399 \u00b7 Chief financial officer [Draft] [\ud83d\udd12 Private \u00b7 Board]'. Glance card head '[Draft] [\ud83d\udd12 Private \u00b7 Board]' with the row 'Private \u00b7 Board. Only Maria and Erik open it; every open is recorded.'",
+      "built": "With MK-0399 in a private stream (Corporate & Compliance, admin named), the page head shows only 'Drafting' and no lock pill. The glance shows only the Drafting pill and 'Nothing is late\u2026', with no private line.",
+      "kind": "missing"
+     },
+     {
+      "round": "7",
+      "part": "Jambo's chips beside a page",
+      "drawn": "Chips change with the contract: the signed MK-0377 gets 'obligations \u00b7 history \u00b7 amend'; the private employment draft gets 'fill in \u00b7 pay \u00b7 who can open it'",
+      "built": "The chips are a fixed set (PD_HELD_CHIPS): 'obligations \u00b7 history \u00b7 amend' when signed, otherwise 'redline \u00b7 history \u00b7 obligations'. The private employment draft with a detail owed gets 'redline \u00b7 history \u00b7 obligations', with no fill in, pay or who can open it.",
+      "kind": "different"
+     },
+     {
+      "round": "12",
+      "part": "'<ref> \u00b7 History' panel for a contract with no negotiation, or a private one (the drawing's CFO tab)",
+      "drawn": "'Private \u00b7 Board. Only Maria and Erik open it; every open is in this History.' / '3 opens in the last two weeks.' / 'Nothing has been shared with Annika Holm yet.' Chips: 'who opened it \u00b7 what Erik changed \u00b7 fill in'.",
+      "built": "MK-0399 (private, opened) shows '4 entries in the last two weeks. Newest: Opened the contract, today.' and one chip, 'redline'. MK-W19 shows the same shape. There is no private line, no opens count, no 'Nothing has been shared with <party> yet.', and none of the drawn chips.",
+      "kind": "missing"
+     },
+     {
+      "round": "12",
+      "part": "History's Filter on a private contract with no negotiation",
+      "drawn": "Only Person (listing Maria Lindgren / Erik Str\u00f6m / Sara Nystr\u00f6m) and Opens (All / Hide them / Only opens). A choice that cannot give results is not listed.",
+      "built": "Clause (only 'All'), Person (only 'All', although Amina Otieno wrote three of the entries), Round (only 'All'), Outcome (Accepted / Rejected / Pending / Withdrawn, none of which occur) and Opens. Empty boxes and choices that give nothing are drawn, against the owner's rule that a filter's choice that cannot give results is not listed.",
+      "kind": "different"
+     },
+     {
+      "round": "12",
+      "part": "History's filter band: Clear",
+      "drawn": "Clear is greyed while no filter is set, on a grey band under the toolbar",
+      "built": "Clear is drawn live (enabled, accent ink, bold) with nothing set, on a white band",
+      "kind": "different"
+     },
+     {
+      "round": "12",
+      "part": "Today's day pill",
+      "drawn": "'Today, Mon 19 Oct'",
+      "built": "'Sun 18 Oct' for today's entries. The word 'Today' is not drawn.",
+      "kind": "different"
+     },
+     {
+      "round": "12",
+      "part": "Middle-line entries (opens, private-stream acts) and round chips",
+      "drawn": "'08:52 \u00b7 Maria Lindgren: opened the contract' with an eye icon, and '10:30 \u00b7 Sara Nystr\u00f6m: named \u2026 on Board' with a lock icon, as dashed pills with no initials and no outcome pill. No round chip anywhere.",
+      "built": "'21:07 \ud83d\udc41 AO Amina Otieno Opened the contract [Opened]' and '21:07 \u25cb AO Amina Otieno Made Corporate & Compliance private [Private]': initials and an outcome pill, and a ring instead of a lock. The negotiation's middle-line entry also draws an 'R1' chip ('\u2026baseline for round 2 [R1] [Sent]').",
+      "kind": "different"
+     },
+     {
+      "round": "12",
+      "part": "A round sent back or closed",
+      "drawn": "One entry in our lane: 'Sent round 1 back to Per Nordvik: 3 answers' [Sent]",
+      "built": "Told twice. A bubble in our lane reads 'Negotiation \u2014 Round 1 closed by Amina Otieno \u2014 1 of 3 changes adopted; the agreed wording is now the baseline for round 2' with the pill 'Negotiation' (the trail's area word, said twice). A middle-line entry reads 'Round 1 closed \u2014 the agreed wording became the baseline for round 2 [R1] [Sent]'. The lane wrote this up as noticed, not fixed, but it is a visible difference from the drawing.",
+      "kind": "different"
+     },
+     {
+      "round": "12",
+      "part": "The toolbar's \u22ef menu",
+      "drawn": "A small section head 'This contract' over Verify integrity / Export history / Print history, each with its line stacked under it ('Work out every fingerprint again and compare', 'A file of its own, with the check inside it', 'The same report, on paper'), then 'Every contract \u00b7 admins only' over 'The whole trail, as a file \u203a' ('Every act in HaTi for a period. Opens Data & backup in Settings'). No icons, about 300px wide.",
+      "built": "No 'This contract' head. The lines read 'recompute every fingerprint', 'standalone file', 'same report, on paper' and sit in a second column beside each title, with icons. At 1440\u00d7780 the titles wrap ('Verify / integrity', 'Print / history', 'The / whole / trail, as a / file \u203a' on four lines).",
+      "kind": "different"
+     },
+     {
+      "round": "12",
+      "part": "Show the wording",
+      "drawn": "Under a change, only its wording with the marks, cut around the edit for a long clause ('\u2026 is limited to fifty one hundred per cent of the fees paid in that year.'). No fingerprint.",
+      "built": "The fingerprint '0xd95cf889f4e6f60f\u2026' is printed under every change, and negoChangeHtml draws the whole clause's ops with no cut around the edit",
+      "kind": "different"
+     },
+     {
+      "round": "13 / 7 / 12",
+      "part": "The number on Jambo's tab",
+      "drawn": "The same number on Jambo's tab in all three rounds (7), equal to the bell's",
+      "built": "With a paper chosen on the wall it shows 16 (counterNeedsCount). Beside a page or its History a minute later it shows 14 (hbNeedsCount). At rest on the wall it shows none, and the bell shows '9+'. One door, three numbers. The lane deferred this to B2.",
+      "kind": "different"
+     },
+     {
+      "round": "13",
+      "part": "Chosen panel at 1536\u00d7730",
+      "drawn": "'Open the paper' and 'Life line and details' whole under Needs you",
+      "built": "With Jambo's work, their redlines and a detail all owed, the two doors are cut by the ask box's top edge: the lower half of both buttons is hidden until the panel is scrolled (photo review2-13-chosen-1536x730.png)",
+      "kind": "overlap-or-cut"
+     },
+     {
+      "round": "7",
+      "part": "The life line at 1366\u00d7950",
+      "drawn": "'Amendment 1' is labelled beside its diamond, clear of 'Today'",
+      "built": "The Today line runs through the label: 'A|mendment No. 1' (photo review2-7-page-top-MK-0377-1366x950.png)",
+      "kind": "overlap-or-cut"
+     },
+     {
+      "round": "7",
+      "part": "Details (behind \u22ef): the Value and Renewal cells",
+      "drawn": "Value 'SEK 7.1 M as amended / SEK 6.4 M signed' and Renewal 'Auto-renew \u00b7 12 months \u00b7 notice 90 days', both whole",
+      "built": "Value is 'KES 7,100,000' then 'as amended \u00b7 KES 6,400,000 signed', and the signed figure is hidden inside the cell's 40px inner scroll: on screen it reads 'as amended \u00b7 KES'. Renewal is cut after 'Auto-renew \u00b7 renews for 12 months \u00b7 notice'. Neither shows an ellipsis.",
+      "kind": "overlap-or-cut"
+     },
+     {
+      "round": "7",
+      "part": "Details: the Filing section and the layout",
+      "drawn": "Two columns. Left: Parties (2), People on this contract, Related agreements. Right: The terms with 'Edit these details', then Filing: Stream 'Procurement' with Re-file, Category 'Supplier', Code name 'None \u00b7 Everyone who may open it sees its real name' with 'Give it a code name'.",
+      "built": "No Filing section and no Stream, Category or Re-file rows on Details (they are only behind \u22ef \u2192 Filing). The code name is a separate row under the Duties map and Renewal. Parties and The terms share one card, and the rest is stacked. The Renewal card leaves a large empty white area.",
+      "kind": "missing"
+     },
+     {
+      "round": "7",
+      "part": "Details: Related agreements",
+      "drawn": "A row 'MK-0377-A1 \u00b7 Amendment 1 \u00b7 signed 28 Sep 2026 \u00b7 Bring it up'",
+      "built": "The row 'MK-0377-A1 Amendment 1 to the Supply agreement \u00b7 28 Sept 2026 \u00b7 Moves the value \u00b7 Amendment' has no Bring it up button. The section adds 'Create an amendment \u00b7 Add a signed document \u00b7 Check the family' and two explanatory paragraphs that are not drawn.",
+      "kind": "different"
+     },
+     {
+      "round": "7",
+      "part": "What Jambo read on upload: the tiles",
+      "drawn": "Risks found '1 \u00b7 The price review has no cap \u00b7 See the risk \u203a'; Our standards '7 of 8 \u00b7 1 differs'; Obligations found '5 \u00b7 3 ours \u00b7 2 theirs \u00b7 Review the obligations \u203a'",
+      "built": "'See the risks \u203a' always (plural for one); '{k} of {n} met' (the extra word 'met'); Obligations found adds a line 'First due 11 Oct 2026' that is not drawn",
+      "kind": "different"
+     },
+     {
+      "round": "7",
+      "part": "What the amendment did, in the glance and the life-line caption",
+      "drawn": "'Amendment 1, signed 28 Sep, raised the volume 10%: the value is SEK 7.1 M as amended.' and the caption 'Amendment 1 (28 Sep 2026) raised the yearly volume by 10%.'",
+      "built": "'Amendment No. 1, signed 28 Sept: the value is KES 7.10M as amended.' and the caption '\u2026took effect on 28 Sept 2026 and set the value to KES 7.10M.' What the amendment did is not said. The lane listed this as not done yet, instead of putting it in blocked with a question for the owner as the brief requires.",
+      "kind": "missing"
+     },
+     {
+      "round": "13",
+      "part": "The wall's count line",
+      "drawn": "'48 contracts  newest first'",
+      "built": "'28 contracts \u00b7 1 amendment  newest first'. The '\u00b7 1 amendment' (and '\u00b7 K closed' where any) is an addition the drawing does not have.",
+      "kind": "different"
+     },
+     {
+      "round": "13",
+      "part": "Show more",
+      "drawn": "The drawing's press says: 'In the full version the next papers follow as you scroll.'",
+      "built": "The next 12 come only on a press of Show more. Scrolling to the end of the wall brings nothing. (Low confidence: depends on how the drawing's sentence is read.)",
+      "kind": "different"
+     }
+    ],
+    "matched": [
+     "Lint: 0 errors (137 warnings, as at the base). Node tests f740\u2013f744 plus the re-pointed f380, f425, f426, f483, f560 and f678 all pass. Browser checks all pass: home-held-contract-verify (ALL PASSED), board-strip, document-wall, history-head, history-timeline, jambo-alive, late-open-stays-put, wall-of-papers, every-door-lands-on-home (115/115).",
+     "R13 page head: 'Contracts  N live \u00b7 KES \u2026 on paper', Archive with its own count, Wall | List, and the labelled boxes Stage \u00b7 Stream \u00b7 Category \u00b7 Quick filters with Adapt filters. No search box and no draft button.",
+     "R13 the wall as one white card: the count line with 'newest first' and the sort icon, six papers to a row, 12 at a time, the foot 'Showing 12 of N \u00b7 Show more'. Each paper has its stage dot and word, 'ref \u00b7 value', the party, a 'Needs you' tag, and the private stream's lock tag. The head's N live, the count line and 'Showing \u2026 of N' agree.",
+     "R13 a press chooses (lit edge, nothing opened). Another paper moves the choice. A press on the page title or on empty space, or Esc, lets it go; a press on Jambo's tab keeps it. A second press, a double-click, Enter or 'Open the paper' opens the paper on Home. 'Open redlines' opens Jambo's Redlines face on that paper. 'Life line and details' brings up the strip page, and the panel turns to '<ref> at a glance'.",
+     "R13 chosen panel: 'Contract' beside Jambo's tab with the \u203a fold; the name; 'ref \u00b7 party'; Stage with its round; Stream (lock where private); Value (as amended; a dash for pay and for an NDA); Ends; Owner 'You'; Last move '<party> sent 2 redlines \u00b7 4 days ago'. Needs you includes 'Answer 2 redlines \u00b7 Clause 3 Liability \u00b7 clause 4 Payment \u00b7 Open redlines' and its rows wrap. Then 'Open the paper' (filled) and 'Life line and details'. No chips. Placeholder 'Ask for a contract, a number or a list\u2026'.",
+     "R7 page: head with the name \u00b7 ref \u00b7 party \u00b7 stage pill \u00b7 \u22ef (Where we are \u00b7 History \u00b7 Details \u00b7 Analyze contract \u00b7 Show on the map, each with its line); Agreement family line; id line ending 'signed <day>'; five figures (Value as amended with 'As amended by \u2026 \u00b7 \u2026 a year', Term, Next obligation in the late colour with '\u00b7 7 days late', Notice by, Whose move); the life line with the legend Term \u00b7 Notice window \u00b7 If it renews \u00b7 Our/Their obligations (n); the caption ending '\u2026, 7 days late.'; Key terms with 'Edit these details \u203a' and its seven rows; Obligations (n) with 'a ours \u00b7 b theirs \u00b7 next first' and the table pills Late then Next, and Done; What Jambo read on upload with the four tiles (private: 'Not read \u00b7 private folder \u00b7 About three Jambo calls \u00b7 Read it now'); foot Open the paper \u00b7 Keep \u00b7 Ask why \u00b7 Let it go \u00b7 'Brought up by you \u00b7 hh:mm'. The employment page has Role \u00b7 Starts \u00b7 Probation ends \u00b7 Notice \u00b7 Whose move and the Pay table 'kept apart from deal value \u00b7 never added to a total \u00b7 Edit pay \u203a'.",
+     "R7 panel beside a signed page: head '<ref> at a glance', the card with its stage pill, '1 obligation is late: \u2026, 7 days.' with 'ours \u00b7 due \u2026' and Obligations (opens the Obligations page), the signed amendment line with Bring it up, 'Notice by \u2026, or it renews for 12 months.', chips obligations \u00b7 history \u00b7 amend right under the card (each opens its own door), placeholder 'Ask about MK-0377\u2026', Jambo perched over the box.",
+     "R12 page: head with the stage pill and round plus '\u2039 Overview \u00b7 History'; 'History  Newest first \u00b7 our side left, theirs right \u00b7 N events \u00b7 N open changes' (and '\u00b7 1 open' on a private contract); one toolbar of search \u00b7 Filter \u00b7 Show the wording (turns to 'Hide the wording', with the marked wording under each change) \u00b7 \u22ef at its end; lanes 'Ours \u00b7 <our party> / Day / Theirs \u00b7 <their party>'; day pills like 'Wed 14 Oct'; bubbles 'time \u00b7 initials \u00b7 name \u00b7 pill' in each side's lane with the edge on the inside; changes in words ('Proposed a change to clause 3, Liability: 50% to 100% of the year's fees', 'Accepted/Rejected their change to clause N, \u2026'); the admin's 'Every contract \u00b7 admins only \u00b7 The whole trail, as a file \u203a'; the trail runs inside the card and the desk scrolls.",
+     "R12 panel: head '<ref> \u00b7 History'; '13 entries in the last two weeks.' with 'Newest: \u2026'; '2 of their changes are still open: clauses 3 and 4.' with 'Your move, 4 days.' and Redlines; chips 'what changed in round 2 \u00b7 who decided clause 2 \u00b7 redline' right under the card; placeholder 'Ask about MK-0382's history\u2026'.",
+     "Three screens (1440\u00d7780, 1536\u00d7730, 1366\u00d7950): no sideways scroll on the wall, the page or History. The panel cards are in view. The wall's Show more line fits at all three.",
+     "New words are in both books: the wall, the chosen panel, the glance and the History panel all render in Svenska."
+    ],
+    "notes": "I ran gaps/B1 (8a6cd2a) on my own seeded server, started from /home/user/wt/B1, and changed nothing in the worktree (git status is clean; the server is stopped). Scripts and logs are in /tmp/claude-0/-home-user-mkataba-clm/835f8077-5605-5fb0-98ee-477c1f55f19a/scratchpad/b1r2x.\n\nThe seed: the lane's own fixtures plus 20 extra papers, 3 archived ones, an NDA (MK-0379) and an employment draft (MK-0399). MK-0382 got a two-round negotiation: round 1 had three changes from them (one accepted, two rejected), the round closed, then round 2 had two changes, dated 4 days ago. Later I made MK-0399 an employment agreement (metadata.category) and put it in a private stream, Corporate & Compliance, with the admin named. That is the drawings' second desk tab, the CFO agreement, which is part of the picked options in rounds 7 and 12.\n\nBackdating made the server append duplicate trail entries ('Round 1 closed' and 'Created \u2014 fixture' appear twice, and 'Newest' became that duplicate). I ignored those as my own doing, and they are not counted in the differences.\n\nNot listed, because the brief rules them out or gives them elsewhere:\n- HaTi's stage words (answer 1).\n- The hint line 'Typing never signs, sends or files \u2014 a press does.', which is still missing under Home's box on all three rounds. It belongs to lane A1's checker under answer (2).\n- The desk tabs and the top bar.\n- Sample data: names, Kenyan amounts, the Kenyan template's Key-terms rows, 'Nordvik' versus 'Nordvik Logistik'.\n- Hover texts on the foot, which differ only slightly from the drawing.\n\nJudged NOT a difference: the chosen panel lists both 'Jambo's work \u00b7 Their round came back' and 'Answer 2 redlines'. Round 3's drawing shows both rows in Needs you here, so this matches the house pattern.\n\nNoticed, not a drawing difference:\n- In Svenska the panels mix 'omg\u00e5ng' (stage pill) and 'runda' (chips, Jambo's work) for 'round'.\n- 'Senast: Round 1 closed by \u2026' keeps the trail's English record words.\n- On the keyboard, Enter on a paper that is focused but not chosen opens it at once, skipping the choose step.\n\nThe colour census was not checked."
+   }
+  ]
+ },
+ "B2": {
+  "passes": [
+   {
+    "label": "fix B2 #2",
+    "built": [
+     "Brought in the latest main with a merge commit (5780bc2, 81 changes behind). Where both sides changed the same lines, both were kept: the Board's head card now also carries main's counting chip and Light | Dark on a computer; the brain's ask flow names main's Explorer parts and this lane's two; \"all N\" opens Home in both books.",
+     "Round 17 / answer 14: the Board keeps Jambo's work again. The card comes back exactly as main draws it, under Your book and above Today's insights, with its fold, its close button and the way back on Your book's head. Home's \"Jambo's work\" Open, and See it in Needs you here, land on that card and light it, through the one lander (landOn). Needs you stays off the Board.",
+     "Round 17 / answer 7: Your book keeps its figure picker. Pressed, it opens; pressed again, it closes. Today's insights keeps Hide, which folds the pictures for this person and keeps the head and its count; Show brings them back.",
+     "Round 17: the number on Today's insights now counts the cards shown under it, not only the findings.",
+     "Round 17: each insight card is drawn as in the drawing (hbInsPicHtml). It has a headline title and a picture of the last six finished months, or this quarter and the four after it. The axis labels are named (May\u2026Oct, Q4 26\u2026Q4 27). Pale bars, the one the card is about lit, with its value printed above it ('53 days', '4'). Days to sign is a line with both ends marked and said ('11 days', '9 days'). One sentence under it, then Open \u00b7 Keep \u00b7 Ask why \u00b7 Let it go. The 'Highest of 12 months counted' chip, the dashed normal band and the orange Today marker are gone from the cards. The open chart keeps its own drawing.",
+     "Round 17: the usual pictures say what they show as a headline. 'Payment days are getting longer' with 'New contracts give the other side 45 days to pay on average, up from 30 in May.' 'Signing got faster' with 'A contract now takes 9 days to sign on average, against 14 in May.' 'N contracts end this quarter' (or 'in Q2 2027') with 'Two of the four have no renewal decision filed yet.' All are read from the same columns the picture draws.",
+     "Round 17: Value by counterparty shows five rows: name, a bar (the first in the accent colour, the rest pale) and the value only, with no count, no currency and no 'N more groups' row. The sentence stays under it.",
+     "Main's rules: every door this lane added now lands through landOn. Go to it and Follow me (igPaperGoClause) replace their own glow. The figure doors land on the Contracts list's 'N of M shown' chip or the Obligations Overdue tab. 'what needs me' and 'all N' land on Home's Needs you card. Open note lands on the note's own row in My notes. Jambo's Board bubble says 'What needs you is on Home: N things'.",
+     "Round 3 / answer 6: 'Risks not read yet \u00b7 Reading is free: HaTi's own rules, no Jambo call \u00b7 Read it'. Read it runs the free rules scan (runScanFor) and the row goes. Pass 2's deep read and its no-key branch are gone.",
+     "Round 3 / answer 8: their redlines count as owed only after the 5 quiet days, unchanged. The panel's own early row is gone (deskWaitingFresh removed; desk.js and inspector.js are back to main's). The card's pill and the Jambo tab now count only what the checklist counts.",
+     "Round 6: 'Clause 11: they ask for 60 days to pay, up from 30.' A number of days in a payment clause is said as 'days to pay', and in a termination clause as 'days' notice'. This is read from the clause's own heading through clauseKind, the one existing reading, so no Jambo call is used. Clauses of other kinds keep their own words.",
+     "Round 3: Jambo's work row in Needs you here is named as drawn, 'Jambo's work \u00b7 Nordvik's answer'. Its line is read from the agent's own piece ('Prepared overnight: an answer to each redline', or 'Read today: 1 to escalate \u00b7 1 to read yourself' when Jambo answered none). It is shown whole and wraps onto two lines, never cut with '\u2026', at all three screens.",
+     "Round 3 (Compare: 'it stays at the top'): Needs you here is now pinned above the conversation (pdJamboPinHtml, #pd-pin), outside the part that scrolls. When something is asked, the talk and the glance scroll under it and the card stays in view.",
+     "Checks put back to the drawing: f450, f459, f460, f705 and f746 re-pointed with reasons. f458 and eleven browser checks restored to main's version, because they had only pinned that the Jambo's work card was missing: agents-page, board-strip, button-consistency, desk-comes-back, five-images, home-first, home-one-list, home-prepared-by-copilot, name-tag-horizon, waiting-on-us-no-desk, and the parts of board-walkthrough-fixes that read the card."
+    ],
+    "blocked": [
+     {
+      "gap": "Round 17 'Signing got faster' card: the drawing's sentence reads 'From sent to signed now takes 9 days, against 14 in May.'",
+      "why": "HaTi's days-to-sign figure is counted from the day a contract was raised (the trail's 'Created', 'Uploaded' or 'Migrated' entry), not from the day it was sent for signature. No 'sent for signature' date is recorded per contract, so 'From sent to signed' would claim something the number does not measure. The card says 'A contract now takes 9 days to sign on average, against 14 in May.' Everything else on the card is as drawn.",
+      "question": "Should the 'Signing got faster' sentence keep HaTi's honest wording ('A contract now takes 9 days to sign\u2026', counted from the day the contract was raised)? Or do you want HaTi to start recording the day each contract is sent for signature, so the drawn 'From sent to signed' can be measured?"
+     }
+    ],
+    "notDoneYet": [
+     "Round 3 'Prepared overnight: a counter on each redline': HaTi says 'an answer to each redline', because Jambo's prepared answers can be accept, push back, escalate or read yourself, not always a counter. 'Overnight' is said when their round arrived after 18:00 the day before or before 06:00 today; otherwise 'today', 'yesterday' or 'on <day>'. The party is shortened to its first word ('Nordvik'), skipping a leading 'The'.",
+     "Insight cards side by side keep their own height (they are not stretched), so 'Ask why' opening in one card grows only that card. Two cards in a row can therefore end a few pixels apart, as before.",
+     "Usual pictures appear only where the book has the data for them. In the browser checks, days to sign is drawn because the seed records the day each contract was raised. A real book with no raised dates shows payment days, endings and value instead.",
+     "Merge care with lane G: hbPrepHtml was restored word for word from main, so G's changes to the Board's Jambo's work card should apply cleanly. G and this lane both touch hbOpenAgent's area and the Counter checks. Merge care with lane B1: both lanes change pdNeedsRows, pdNeedRowHtml, pdJamboTopHtml and pdNeedsRepaint. This lane moved Needs you here into #pd-pin, and pdNeedsRepaint now paints into the pin. Merge care with lane A1: the hint line under Jambo's ask box is A1's; Needs you here now sits above the conversation, not inside it.",
+     "The colour census moved and was not re-recorded (see censusMoved).",
+     "Prior pass's owner question (where the figure picker should live) is settled by answer 7: it stays on Your book."
+    ],
+    "tests": [
+     "test/f745-the-board-as-drawn.test.js: re-pointed (3) to 'Jambo's work stays, Needs you gone, hbOpenAgent lands', (4) to the Home wording, (7a) to Hide and a pill that counts the cards, and (8a) to the picker staying. Added 7c\u20137h (card anatomy, quarters and line, card frame, usual headlines, renewals in words) and (10a) the landOn targets. New words added to (6).",
+     "test/f746-what-each-figure-counts.test.js: (4a) the pill reads hbShelfCards.",
+     "test/f747-a-note-of-yours-here.test.js: (1e) Open note lands on its row; (3) 'all N' lands on Home's Needs you; (5) rewritten to answer 8 (no early row, no deskWaitingFresh); added (6) Jambo's work in the drawn words, shown whole; added (7) the pinned card.",
+     "test/f748-the-glance-and-the-chips.test.js: '60 days to pay' / 'days' notice' by clause kind (the real clauseKind is loaded into the test world); (2b, 2b2, 2c, 4b) re-pointed to the free rules scan.",
+     "test/f749-follow-me-on-home.test.js: (4a, 4c) igPaperGoClause lands through landOn, and no '.ig-arrived' is left.",
+     "Re-pointed, with the reason written in each: test/f450-one-list-one-place.test.js (the Board keeps Jambo's work, Needs you off it, 'needs me' lands), f459 (a usual picture's headline and sentence), f460 (the card's own picture: lit, value printed, no band), f705 (1e: the pinned card). test/f458-the-owners-eleven.test.js was restored to main's version.",
+     "test/chromium/board-as-drawn-verify.js: 3a\u20133c (no Needs you; Jambo's work under Your book; hbOpenAgent lands on it, lit), 5d/5f (Home), 8a/8a2 (count = cards, Hide folds and Show restores), 8d/8e (anatomy, line, lit bar), 9 (five rows, value only), 10/10b (picker opens and closes), 12 (every figure door landed). The seed now has a late promise of theirs and raised dates.",
+     "test/chromium/paper-panel-as-drawn-verify.js: 1e/1e2/1f (no row before the standard, the urgent row after it, counted with the rows), 1g (Jambo's work in drawn words, whole), 1h (pinned card stays in view after a question), 2c ('60 days to pay'), 2e/4 (free scan, no AI call), 3 (Go to it is-landed), 1d (Open note lands on its row).",
+     "Re-pointed browser checks: needs-you-card-verify (Home wording, 'needs me' lands), jambos-panel-verify (pinned card at three screens; See it and 'all N' land), insights-shelf-verify (1e lit with no band, 1g Hide), board-walkthrough-fixes-verify (week pill and Late promises row read from the card again).",
+     "Restored to main's version (they only pinned that the card was missing): agents-page, board-strip, button-consistency, desk-comes-back, five-images, home-first, home-one-list, home-prepared-by-copilot, name-tag-horizon, waiting-on-us-no-desk verify."
+    ],
+    "testResults": "npm run lint: 0 errors. There are 137 warnings, the same as main; one unused import this pass added in f747 was removed. Node: 139 test files that read the changed files (homeboard, paperdesk, intelligence, desk, inspector) ran together: 3,337 tests, 0 failures. f232, f48, f561, f564, f672, f707 and f456 also pass.\n\nRed at the parent (5780bc2, the merge this pass builds on, in a temporary worktree): this pass's node files (f745\u2013f749 plus re-pointed f450, f459, f460, f705) fail 78 of 323. The rest are earlier passes' checks, still standing. board-as-drawn-verify at the parent: 14 FAIL, all of them this pass's new stages (3b, 3c, 5d, 5f, 8a, 8a2, 8d, 8e, 9, 10, 10b, three of 12). paper-panel-as-drawn-verify at the parent: 12 FAIL (1e, 1e2, 1g, 2c, 2e, 3, 4, 1h, 1d, plus 5a/5b/5c, which fail because the parent's Read it switched the panel's tab).\n\nAt the lane base 8dc306a, f745\u2013f749 fail 179 of 190. The 11 that pass are expected: answers 7, 8 and 14 put back what the base already did (Jambo's work card, no early redlines row), or they are 'reading writes nothing' guards.\n\nGreen now: board-as-drawn and paper-panel-as-drawn (ALL PASSED), plus 34 more Home and Board browser checks: needs-you-card, jambos-panel, home-one-list, home-prepared-by-copilot, agents-page, button-consistency, five-images, home-first, name-tag-horizon, waiting-on-us-no-desk, board-strip, desk-comes-back, board-walkthrough-fixes, insights-shelf (25/25 after re-pointing), follow-me, next-step-chips, every-door-lands-on-home, jambo-words, then-and-now, home-board, home-page, keyboard-reach, side-list-columns, chart-headline, charts-that-explain, copilot-door, explorer-recipe, pointer-only, read-then-ask, runway-and-xray, and main's land-on-it, open-in-place, home-and-recent and jambo-everywhere.\n\nFit at 1440\u00d7780, 1536\u00d7730 and 1366\u00d7950: on the Board and in the panel, nothing is past an edge, no headline, sentence or line is cut, there is no sideways scroll, and the ask box is in view. The pinned card stays 107\u2013295px from the top while the talk scrolls under it. The full suite was not run.",
+    "censusMoved": true,
+    "commits": [
+     "5780bc2 Merge origin/main into gaps/B2 (LAND ON IT, Home once the Counter, no desk tabs row)",
+     "11fe258 Home gaps, pass 3 (rounds 17, 3, 6): the owner's answers built, doors land, each insight card as drawn"
+    ],
+    "shots": [
+     "/home/user/wt-shots/B2/17-pass3-board-1440x780.png",
+     "/home/user/wt-shots/B2/17-pass3-board-1536x730.png",
+     "/home/user/wt-shots/B2/17-pass3-board-1366x950.png",
+     "/home/user/wt-shots/B2/17-pass3-board-insights-1440x780.png",
+     "/home/user/wt-shots/B2/17-pass3-board-insights-1536x730.png",
+     "/home/user/wt-shots/B2/17-pass3-board-insights-1366x950.png",
+     "/home/user/wt-shots/B2/17-pass3-board-insights-hidden-1440x780.png",
+     "/home/user/wt-shots/B2/17-pass3-board-insights-hidden-1536x730.png",
+     "/home/user/wt-shots/B2/17-pass3-board-insights-hidden-1366x950.png",
+     "/home/user/wt-shots/B2/17-pass3-board-figure-picker-1440x780.png",
+     "/home/user/wt-shots/B2/17-pass3-board-figure-picker-1536x730.png",
+     "/home/user/wt-shots/B2/17-pass3-board-figure-picker-1366x950.png",
+     "/home/user/wt-shots/B2/17-pass3-board-jambos-work-landed-1440x780.png",
+     "/home/user/wt-shots/B2/17-pass3-board-jambos-work-landed-1536x730.png",
+     "/home/user/wt-shots/B2/17-pass3-board-jambos-work-landed-1366x950.png",
+     "/home/user/wt-shots/B2/17-board-as-drawn-1440x780.png",
+     "/home/user/wt-shots/B2/17-board-as-drawn-1536x730.png",
+     "/home/user/wt-shots/B2/17-board-as-drawn-1366x950.png",
+     "/home/user/wt-shots/B2/17-board-insights-head-1440x780.png",
+     "/home/user/wt-shots/B2/17-board-insights-head-1536x730.png",
+     "/home/user/wt-shots/B2/17-board-insights-head-1366x950.png",
+     "/home/user/wt-shots/B2/17-board-figure-live-1440x780.png",
+     "/home/user/wt-shots/B2/17-board-figure-overdue-1440x780.png",
+     "/home/user/wt-shots/B2/3-pass3-panel-1440x780.png",
+     "/home/user/wt-shots/B2/3-pass3-panel-1536x730.png",
+     "/home/user/wt-shots/B2/3-pass3-panel-1366x950.png",
+     "/home/user/wt-shots/B2/3-pass3-panel-asked-1440x780.png",
+     "/home/user/wt-shots/B2/3-pass3-panel-asked-1536x730.png",
+     "/home/user/wt-shots/B2/3-pass3-panel-asked-1366x950.png",
+     "/home/user/wt-shots/B2/3-panel-asks-past-the-standard-1440x780.png",
+     "/home/user/wt-shots/B2/3-panel-beside-a-paper-1440x780.png",
+     "/home/user/wt-shots/B2/3-panel-beside-a-paper-1536x730.png",
+     "/home/user/wt-shots/B2/3-panel-beside-a-paper-1366x950.png",
+     "/home/user/wt-shots/B2/6-follow-me-signing-copy-1440x780.png",
+     "/home/user/wt-shots/B2/6-follow-me-signing-copy-1536x730.png",
+     "/home/user/wt-shots/B2/6-follow-me-signing-copy-1366x950.png"
+    ],
+    "mapLines": "In HOME \u2014 THE BOARD AND THE MAP, REPLACE pass 1's \"THE BOARD AS DRAWN\" line and pass 2's \"THE BOARD AS DRAWN, PASS 2\" line with:\n- THE BOARD AS DRAWN (round 17 \"Then and now\"; the owner's answers 7 and 14, 18 Oct 2026): ONE head card `hbBoardHeadHtml` (counted `hbCountedAt`, Summarise with its cost, saved views as chips `hbSavedViewChipsHtml`; main's counting chip and Light | Dark on a computer). NEEDS YOU IS OFF THE BOARD (Home's, `hbNeedsOpen` \u2192 landOn '#cn-needs'); JAMBO'S WORK STAYS (`hbPrepHtml` under Your book, `hbOpenAgent` \u2192 landOn). Your book keeps the figure picker; a figure lands on what it counts (`hbFigDoor` \u2192 '#reg-only-chip' / '[data-obw-view=\"overdue\"]'). Tests: f745, f746, f450, board-as-drawn verify.\n- TODAY'S INSIGHTS AS DRAWN: a slim head, pill = the cards drawn (`hbShelfCards`), Hide kept (`s.insFold`); each card draws its own picture `hbInsPicHtml` (`hbInsPicCols`: six finished months or this quarter + 4, lit value printed, axis named; `look:'line'` for days to sign; cp five rows, value only). A headline and one sentence come from the same columns (`hbInsCandidate`, `hb_ins_h_*`/`hb_ins_s_*`, `hbNumWord`). No rank chip, band or Today marker on a card; the why only in your own scope. Tests: f745 (7), f459, f460, insights-shelf verify.\nIn NEEDS YOU HERE, REPLACE pass 2's \"BESIDE A PAPER, PASS 2\" line with:\n- BESIDE A PAPER (rounds 3, 6; answers 6 and 8): PINNED above the conversation (`pdJamboPinHtml`, `#pd-pin`; `pdNeedsRepaint` paints into it); their redlines are owed after the quiet standard only (needsYouOf's 'quiet'; no panel row of its own). Jambo's work row names whose answer it is (`pdJwSay`, `pdPartyShort`, `pdPreparedWhen`), its line whole. Risks not read yet is FREE (`runScanFor`). Days are said by clause kind (`PD_GL_DAYS_FOR` via `clauseKind`, `pdAskHeading`). Open note / \"all N\" land (landOn). STALE: `deskWaitingFresh`, `deskAnswerableBy`, `pdGlReadKeyed`, `.ig-arrived`. Tests: f747, f748, f705, paper-panel-as-drawn verify.\nIn FOLLOW ME, ON HOME: `igPaperGoClause` lands through landOn (block center, focus false); its own glow `.ig-arrived`/`igArrive` is STALE. Tests: f749 (4).",
+    "historyStory": "HOME GAPS, PASS 3: THE OWNER'S ANSWERS, MAIN'S RULES, AND EACH CARD AS DRAWN (lane B2, 18 Oct 2026)\n\nWhat happened. A second checker compared lane B2 with the owner's picks (round 17 \"Then and now\", round 3 \"Tabs and faces\", round 6 \"One line\") and with the owner's evening answers. It found twelve differences. Four were places where pass 2 had done the opposite of an answer. Pass 2 had removed the figure picker and Hide (answer 7: keep both). It had made the risks row cost one Jambo call (answer 6: it is free). It had counted their redlines as owed from the day they arrived (answer 8: after 5 quiet days). And pass 1 had taken Jambo's work off the Board (answer 14: the Board keeps it, and Home's row lands on it). Each was put back the answer's way. Jambo's work card is main's own code, restored word for word so lane G's changes to it still apply. The early redlines row (deskWaitingFresh) is gone, and desk.js and inspector.js are back to main's.\n\nMain had moved on by 81 changes. This pass merged it (a merge commit) and followed its newer rules. Every door this lane had added now lands through the one lander (landOn): Go to it and Follow me (igPaperGoClause, whose own glow was retired), Your book's figures, \"what needs me\", \"all N\" and Open note. The Counter is now called Home in Jambo's words. Main's counting chip and Light | Dark now sit on the Board's own head card, because main took away the row above the page.\n\nEach insight card is now drawn as the drawing shows it. Before, the card reused the chart's own drawing scaled down, with its words hidden, so it had no axis labels and no value on the lit bar. It also kept the rank chip, the normal band and the Today marker. Now each card draws its own small picture from the same columns the chart counts (hbInsPicCols, hbInsPicHtml): the last six finished months, or this quarter and the four after it, pale bars with the one that matters lit and its value printed above it. Days to sign is a line with its two ends said. The usual pictures got headlines and one sentence each, read from those same columns. The renewals sentence counts the decisions not yet filed, in words. Value by counterparty draws five rows, value only. The pill counts the cards it heads.\n\nBeside a paper. The drawn 'Clause 11: they ask for 60 days to pay' had been called impossible without Jambo. It is built with no AI at all: the clause's own heading already tells HaTi what kind of clause it is (clauseKind, the one reading), and days in a payment clause are 'days to pay'. Jambo's work row says whose answer it is and when it was prepared, read from the agent's own piece, and its line wraps instead of being cut. The wrap first lost a cascade fight to a more specific glance rule; it now wins by scope, with no !important. Needs you here is pinned above the conversation, so a question asked never scrolls it away, as the round's Compare promised.\n\nMeasured. At the parent (the merge), 78 of this pass's node tests fail, 14 stages of board-as-drawn fail and 12 of paper-panel-as-drawn fail. All are green now. One check first timed out at the parent pressing a figure picker that did not exist; the press is now guarded, so a missing part reports instead.\n\nRe-pointed. Eleven browser checks and f458 had only pinned that the Jambo's work card was missing (pass 1's re-points to the Counter's in-place pieces, which main has since retired). They were put back to main's versions, and all pass.\n\nNot as drawn, asked. 'From sent to signed' cannot be measured, because HaTi counts days to sign from the day a contract was raised. The card says 'A contract now takes 9 days to sign\u2026' and the owner is asked which way to go.",
+    "buglog": [
+     "Noticed, not fixed (18 Oct 2026, lane B2): landOn readies the first button inside the card it lands on. On the Board's Jambo's work card that is the fold chevron, so pressing Enter right after hbOpenAgent folds the card, and the chevron shows a dark focus ring. A card with no main (primary) button may want focus:false or a named button.",
+     "Noticed, not fixed (18 Oct 2026, lane B2): the days-to-sign measure (hbMeasureOne, daysToSign) counts from the trail's first 'Created/Uploaded/Migrated' entry, the raised day. No 'sent for signature' date is recorded per contract, so the drawn 'From sent to signed' sentence has nothing to read."
+    ],
+    "ownerSummary": "I brought in the latest main and built the twelve differences the checker found. The Board has its \"Jambo's work\" card back, and Home's \"Jambo's work\" button now takes you straight to it, lit up. The figure picker on Your book and \"Hide\" on Today's insights are back, as you asked. Each insight card now looks like the drawing: a headline, a small chart with its months named and the important value printed on it, one sentence, and the four buttons. Beside a contract, \"Needs you here\" now stays at the top of Jambo's panel while you talk to him. The risks row says reading is free, their redlines count as owed only after 5 quiet days, and the payment ask reads \"60 days to pay\". One thing needs your answer: the drawing says \"From sent to signed\", but HaTi counts signing time from the day a contract is raised, so for now the card says \"A contract now takes 9 days to sign\"."
+   }
+  ],
+  "checks": [
+   {
+    "label": "check B2 #2",
+    "differences": [
+     {
+      "round": "17",
+      "part": "Board: Jambo's work card (owner's answer 14)",
+      "drawn": "Answer (14): the Board KEEPS its Jambo's work card. Home's 'Jambo's work' row Open (hbOpenAgent) lands on that card, lit, through landOn. Only Needs you leaves the Board.",
+      "built": "The Board has no Jambo's work card (no #hm-agents / .hb-prep; hbBoardHtml draws only the head, Your book, insights, strips and the grid). hbOpenAgent('late') and the 'See it' button in Needs you here open a dig-in ('Board \u203a Late promises' in #hb-focus) with nothing lit. On origin/main, hbOpenAgent lands on #hm-agents, so after a merge it would find nothing. board-as-drawn-verify 3 and home-prepared-by-copilot-verify 1a still pin 'no work card on the Board'. Photos: review2-board-1440x780.png, review2-board-open-agent-1440x780.png, review2-press-jw-1440x780.png",
+      "kind": "different"
+     },
+     {
+      "round": "17",
+      "part": "Your book: the figure picker (owner's answer 7)",
+      "drawn": "Answer (7): the Board keeps the figure picker on Your book.",
+      "built": "Pass 2 removed the picker button from Your book's head. There is no [data-hb-figpick] on the page; the picker code (_hbFigPick, hbFigsChosen) is still there but nothing can open it. f745 (8/10) and board-as-drawn-verify 10 pin 'no figure picker'.",
+      "kind": "different"
+     },
+     {
+      "round": "17",
+      "part": "Today's insights: Hide (owner's answer 7)",
+      "drawn": "Answer (7): the Board keeps 'Hide' on Today's insights.",
+      "built": "The insights head card (hbInsCardHtml) has no Hide button: its head has no buttons at all, and the code says the old fold s.insFold 'is read no more'. f745 (7) and board-as-drawn-verify 8 pin 'no Hide'.",
+      "kind": "different"
+     },
+     {
+      "round": "3",
+      "part": "At a glance: the 'Risks not read yet' row (owner's answer 6)",
+      "drawn": "Answer (6): the row says the read is FREE (it uses HaTi's own rules), not '1 Jambo call'.",
+      "built": "The row reads 'Risks not read yet \u00b7 Reading costs 1 Jambo call \u00b7 Read it'. Read it runs the Clauses tab's deep read (stkRun, a Jambo read) and opens that tab, not the free rules scan. f748 and paper-panel-as-drawn-verify pin the cost wording. Photo: review2-panel-day0-1440x780.png (the row is at the end of the glance)",
+      "kind": "different"
+     },
+     {
+      "round": "3",
+      "part": "Needs you here: their redlines row before 5 days (owner's answer 8)",
+      "drawn": "Answer (8): their redlines count as owed after 5 quiet days (unchanged), not 4.",
+      "built": "Needs you here lists 'Answer Nordvik Logistik AB's 2 redlines \u00b7 Arrived today \u00b7 clauses 7 and 11 \u00b7 Open redlines' from the day the asks arrive (deskWaitingFresh), and again at 4 days ('Waiting 4 days'). It is counted in the card's pill and in the Jambo tab's number: on day 0 that reads 3 while needsYouOf for the contract holds only 'details'. So beside a paper, their redlines count as owed from day 0, not from day 5. f747 (5) and paper-panel-as-drawn-verify 1e/1f pin this. Photos: review2-panel-day0-1440x780.png, review2-panel-asks-4d-1440x780.png",
+      "kind": "different"
+     },
+     {
+      "round": "17, 3, 6",
+      "part": "MAIN MOVED ON: origin/main not merged; doors do not land through landOn",
+      "drawn": "The brief's MAIN MOVED ON section: merge origin/main (a merge commit). Every door this build added (Go to it, Open redlines, Open note, figure doors, 'what needs me', 'See it') lands through landOn: opened, scrolled into view, lit, pressing nothing. The Counter is now named Home. The desk tabs row is gone.",
+      "built": "gaps/B2 is 66 commits behind origin/main and has no merge, so js/components.js has no landOn. Figure doors open Contracts or Obligations narrowed but light nothing. Go to it uses its own igPaperGoClause glow. 'what needs me' and 'all N' go to the Counter by setView. Jambo's Board bubble still says 'What needs you is on the Counter: N things', and the photos still show the desk tabs row with '\u2039 The counter'. No test number clash with main (f745\u2013f749 are free).",
+      "kind": "different"
+     },
+     {
+      "round": "17",
+      "part": "Today's insights: the count pill against the cards shown",
+      "drawn": "'Today's insights 4 \u00b7 what moved most since April \u2026', then exactly four picture cards. The pill matches the cards under it.",
+      "built": "The pill counts only the findings ('1') while three cards are drawn under it (one finding plus two usual pictures). The number on the head does not match what is behind it. Photo: review2-board-insights-1440x780.png",
+      "kind": "different"
+     },
+     {
+      "round": "17",
+      "part": "Today's insights: each picture card's anatomy",
+      "drawn": "Each card has a headline title ('Payment days are getting longer', '4 contracts end this quarter', 'Signing got faster'), a chart with its axis labels (May\u2026Oct, Q4 26\u2026Q4 27), the highlighted value printed above the lit bar or point ('45 days', '4', '14 days'/'9 days'), one sentence, then Open \u00b7 Keep \u00b7 Ask why \u00b7 Let it go.",
+      "built": "The usual pictures carry the chart's name as their title ('Contracts ending by quarter'), not a headline. No chart has axis labels or a value printed on the lit bar. The finding card has an extra 'Highest of 12 months counted' chip above its title and a dashed normal band. 'Contracts ending by quarter' has an extra orange marker. Open \u00b7 Keep \u00b7 Ask why \u00b7 Let it go are present. Photo: review2-board-insights-1440x780.png, and a close crop at /tmp/claude-0/-home-user-mkataba-clm/835f8077-5605-5fb0-98ee-477c1f55f19a/scratchpad/b2r2/crop-ins.png",
+      "kind": "different"
+     },
+     {
+      "round": "17",
+      "part": "Value by counterparty card",
+      "drawn": "Five rows: party name, a bar (the first in the accent colour, the rest pale) and its value only ('12.5 M'), then the sentence 'No party holds more than 6% of the value: X holds the most.'",
+      "built": "Bars with value AND count ('KES 175M \u00b7 14'), all bars the same dark colour on a pale track, and a sixth row '8 more groups KES 39.98M \u00b7 8' that is not drawn. The sentence is present. Photo: review2-board-insights-1366x950.png",
+      "kind": "different"
+     },
+     {
+      "round": "6",
+      "part": "At a glance: one ask in words",
+      "drawn": "'Clause 11: they ask for 60 days to pay, up from 30.'",
+      "built": "'Clause 11: they ask for 60 days of receipt, up from 30.' The words after the number are copied off the paper, so the sentence reads wrongly. Clause 7 is close to the drawing ('100% of the fees paid, up from 50%').",
+      "kind": "different"
+     },
+     {
+      "round": "3",
+      "part": "Needs you here: Jambo's work row sub-line",
+      "drawn": "'Jambo's work \u00b7 Nordvik's answer', with its sub-line 'Prepared overnight: a counter on each redline' shown whole, wrapped onto two lines.",
+      "built": "'Jambo's work \u00b7 Their round came back'. Its sub-line is cut short with an ellipsis ('2 changes \u00b7 1 to escalate \u00b7 1 to read yourse\u2026') at all three screens (scrollWidth larger than clientWidth). Photos: review2-panel-1440x780.png, review2-panel-1536x730.png, review2-panel-1366x950.png",
+      "kind": "overlap-or-cut"
+     },
+     {
+      "round": "3",
+      "part": "Needs you here stays at the top of the Jambo tab (Compare: 'Needs you is the first card \u2026 stays at the top')",
+      "drawn": "Tabs and faces was picked over Conversation because the checklist does not scroll away. What needs you comes first and stays at the top of the Jambo tab.",
+      "built": "Needs you here and the glance sit inside the conversation feed. Once anything is asked (for example the 'share' chip), the feed scrolls to the newest message and Needs you here scrolls out of view. Low confidence: this comes from the Compare's words, not from the static picture. Photo: review2-follow-pressed-1440x780.png",
+      "kind": "different"
+     }
+    ],
+    "matched": [
+     "Tests: npm run lint has 0 errors (137 warnings, the base's count). The lane's node tests f745, f746, f747, f748 and f749 all pass. board-as-drawn-verify and paper-panel-as-drawn-verify both say ALL PASSED. No new key is missing from either language book (all 174 added lines are paired English/Svenska). No f-number clashes with origin/main.",
+     "R17 Board head as drawn: 'Board \u00b7 your book against six months ago \u00b7 Live \u00b7 counted HH:MM \u00b7 Summarise my board | 1 Jambo call'. Its hover says nothing is spent until you press. Saved views are chips with counts ('Whole book 60 \u00b7 Sales stream 2 \u00b7 Ending this quarter 3'), and a chip opens Explorer.",
+     "R17 the Needs you card is gone from the Board (owner's yes stands).",
+     "R17 Your book: head '18 April against today \u00b7 each figure opens the list behind it'. Columns Figure \u00b7 <then> \u00b7 Today \u00b7 Change \u00b7 Six months. Five rows with sub-lines ('in KES \u00b7 EUR at 140.50 \u00b7 1 in NOK left out, no rate'; '1 has a decision filed' with '+3 to decide'; '1 ours \u00b7 1 theirs'). Today's figures are in ink. Each six-month line is plain with a dot at its end.",
+     "R17 stage bar drawn twice (then above today) with totals, and the key 'Drafting 0 (1) \u00b7 In Review 3 (2) \u00b7 Executed 57 (35) \u00b7 April in brackets' (HaTi's stage names, per answer 1).",
+     "R17 Today's insights head is its own slim card: 'N \u00b7 what moved most since April \u00b7 worked out this morning from your book'. The cards come two to a row, an odd last card spans the row, and each has Open \u00b7 Keep \u00b7 Ask why \u00b7 Let it go. The dashed box under them is gone.",
+     "R17 figure doors: Live, Value, Ending and Past open the Contracts place narrowed to exactly what they count ('Ending in 90 days' gives 3 of 3). Obligations overdue opens the Obligations page on Overdue (2).",
+     "R17 Jambo's Board panel: 'Board' beside his tab. The greeting matches the drawing word for word, counted at the head's time. Chips 'which 3 end in 90 days?' \u00b7 'value by stream' \u00b7 'my saved views' each answer for free. The second bubble 'What needs you is on the Counter: 7 things, Jambo's work first.' has 'what needs me', which opens the Counter. His tab badge equals the Counter's number. No chip row above the box. Placeholder 'Ask for a number, a list or a contract\u2026'.",
+     "Answer (9): 'board' typed into the Counter's box opens the Board and is NOT echoed as a bubble.",
+     "Answer (4): every cost is said in Jambo calls, never in money.",
+     "R17 three screens (1440\u00d7780, 1536\u00d7730, 1366\u00d7950): no sideways scroll and nothing past an edge or cut in the head, the book, the insights head or the panel. The head, all five figures and the stage bar are in view without scrolling at 1440\u00d7780 and 1536\u00d7730.",
+     "R3 Jambo's panel beside a paper: tabs Jambo \u00b7 Clauses \u00b7 Obligations \u00b7 Menu. 'Needs you here N \u00b7 all N \u203a', where 'all N' is the Counter's number. The note row matches the drawing: '1 note due today \u00b7 \u201cCheck Nordvik's insurance broker.\u201d \u00b7 only you \u00b7 Open note', and Open note opens My notes. A colleague on the same paper never sees the note.",
+     "R3 'Answer Nordvik Logistik AB's 2 redlines \u00b7 Waiting 8 days \u00b7 clauses 7 and 11 \u00b7 Open redlines', and Open redlines opens the Redlines face. Placeholder 'Ask about MK-0382\u2026'.",
+     "R3 chips: owed work leads with an accent outline, then 'answer the redlines' and 'name a signer' (which opens the Signing route editor), then share. Never also 'redline' or 'sign'. In this seed 'fill in' leads and 'history' drops out, because details are owed (that depends on the data).",
+     "R6 glance: 'MK-0382 at a glance' with the stage pill and its round. '<party> sent 2 redlines N days ago. \u00b7 Your move. \u00b7 Redlines' opens Redlines. One row per ask with 'their ask \u00b7 Go to it'; Go to it turns the paper to Redline and brings the clause to the middle, lit (ig-arrived on clause 7). 'Nobody has been named to sign yet. \u00b7 Signing' opens Before you sign.",
+     "R6 Follow me on Home's paper: the colleague's face on the paper's line is a button. Its hover says 'X is reading clause 11 now. Press to follow: the paper goes where X reads.' The press lights it, moves the paper to clause 11 and shows 'Following X: the paper goes to clause 11 and moves when they do. Press the face again to stop.' A second press stops it and says 'You stopped following X.' The paper line has no overlap or cut at all three screens.",
+     "R3/R6 three screens: Needs you here, the chips and the ask box are in view with nothing past the panel's edge. The glance continues below and scrolls inside the panel at 1440\u00d7780 and 1536\u00d7730."
+    ],
+    "notes": "Review pass 2 of lane B2: /home/user/wt/B2, branch gaps/B2, base 8dc306a, 4 commits up to f7af70e. I edited, committed and pushed nothing. My scripts and outputs are in /tmp/claude-0/-home-user-mkataba-clm/835f8077-5605-5fb0-98ee-477c1f55f19a/scratchpad/b2r2/ (board.js, paper.js, paper2.js, board-out.txt, paper-out.txt, lint.txt, node.txt, bv-board.txt, bv-paper.txt).\n\nNothing is red. Lint has 0 errors. f745\u2013f749 pass, and both new browser checks say ALL PASSED. But several green tests now pin the OPPOSITE of the owner's evening answers, and the fixer will need to re-point them:\n- f745 (7, 8, 10) and board-as-drawn-verify 3, 8 and 10 pin no Hide, no figure picker and no Jambo's work card on the Board.\n- home-prepared-by-copilot-verify 1a also pins 'no work card on the Board'.\n- f748 and paper-panel-as-drawn-verify pin 'Reading costs 1 Jambo call' and the deep read.\n- f747 (5) and paper-panel-as-drawn-verify 1e/1f pin the redlines row from day 0.\n\nMost important findings:\n- Pass 2 (18:24) came before the owner's second set of answers, and it built the drawing's version of four things the owner later answered the other way: (7) Hide and the figure picker were removed; (6) the risks row costs a Jambo call; (8) their redlines count from day 0 beside a paper; (14) the Board's Jambo's work card is gone. Each is listed as 'different'.\n- The branch never merged origin/main (66 commits behind), so landOn, Home's new name and main's hbOpenAgent landing are all missing.\n\nNot listed because the brief rules them out or gives them to another lane:\n- The hint line and the '/ lists the places' key under the ask box (lane A1).\n- Stage names ('In Review', not 'In negotiation'; answer 1).\n- The top bar and the desk tabs row.\n- Sample data: KES not SEK, counts, names, 'Notes' without a count, 'fill in' leading the chips because details are owed in this seed, and the glance's extra 'fill' row.\n- The drawn 'board' bubble (answer 9; the build correctly does not echo it).\n- The \u22ef menu (round 6 No).\n- Round 6's panel head 'MK-0382 at a glance' in place of the four tabs (the brief takes round 3's tabs).\n- Round 3's 'Their move is answered; yours now' row (the brief takes round 6's glance rows).\n\nHow I checked:\n- Board: seeded a book with 12 months of history (payment days drifting), EUR and NOK contracts, three ending in 90 days (one with a decision), one past end, one late obligation of ours and one of theirs, a round waiting on us, and three saved views. I read and pressed every part at all three screens.\n- Paper: seeded MK-0382 with two asks sent back through a real negotiate link, a note of mine due today, and a colleague (everything@) on the same paper for Follow me.\n- The 4- and 8-day ages were set in the browser's memory only (a reading, not the record), as in pass 1."
+   }
+  ]
+ },
+ "A1": {
+  "passes": [
+   {
+    "label": "fix A1 #2",
+    "built": [
+     "Brought the latest main into the lane (a merge commit, never a rebase): kept main's new behaviour (land on it, Jambo the same on every page, answer where you stand, the bar that names the page) and the lane's drawn parts; the window's box reads through main's one reader first and then hands its words to the lane's one shared turn.",
+     "Renumbered the lane's own tests because main took f730\u2013f737: f730\u2192f804, f731\u2192f805, f732\u2192f806, f733\u2192f807, f734\u2192f808, f735\u2192f809, f736\u2192f810 (the next numbers no lane uses).",
+     "The bar's Jambo button on Our paper opens Jambo again: a Jambo panel hidden inside a tab nobody can see no longer swallows the press or the words handed to Jambo.",
+     "The ask box beside every list now reads exactly the way Home's box does: page names, drafts from a sentence, sends, bookings first, then Jambo's map, then anything the Board can answer for free (a party's name, 'contracts ending in 90 days') goes to the Board free \u2014 only a real question costs one Jambo call.",
+     "Every door Jambo's list panel added now lands on its one target, lit (Answer \u2192 the first redline card, 'our move' chip \u2192 the first row, Open Before you sign \u2192 the approval card / Sign button / the signer's stop, People's rows, Named on, Show their contracts).",
+     "The hint line 'Typing never signs, sends or files \u2014 a press does.' under the Calendar's Jambo box and the template builder's Jambo box (owner's 'Every Jambo box').",
+     "Panel head words as drawn: Obligations 'Your week' (nothing chosen) / 'Obligation' (row chosen), Requests 'Request'; otherwise the page's own name from the bar, never 'Jambo \u00b7 Jambo'; 'Counted from the list \u00b7 no Jambo call' only when something was counted.",
+     "The whose-move pill and the 'for Jonas' pill sit right after the party's name, not at the panel's far edge.",
+     "Approvals: white head (title, counts, Approval rules) then grey ground then the list card; the list card on Approvals and Negotiations ends after its last row with 'Showing \u2026' right under the rows, grey ground below (a long list still scrolls inside the card).",
+     "Approvals at 1366\u00d7950: party names read whole (Ref column narrowed, a long name takes a second line; the Kind pill stays whole).",
+     "Approvals: every signature row says how long it has waited ('today', 'N days') \u2014 since the last yes or signature, else since the last thing on the record; '\u2014' only when the record holds nothing.",
+     "Approvals: a colleague's signature while they are away \u2014 Jambo says only they can sign, a stand-in never does, and if it cannot wait name another signer on Before you sign before anyone has signed (or, once someone signed, that the signers stay), with the Open Before you sign door inside his sentence.",
+     "Approvals: the reader is 'You' \u2014 'You approve', 'Over 10 M: you approve before anyone signs', 'Erik's contracts need your yes'.",
+     "Approvals: 'Approval rules' is shown to everyone as drawn; an admin goes to the rules, anyone else gets Jambo saying each rule and who approves it, with the rule's own door 'Ask an admin' (nothing spent, nothing changed).",
+     "People: 'Named on' is plural-aware ('1 contract \u00b7 1 live'); 'Waiting on Jonas' rows have no dots and keep their line on one line; 'Named on' rows sit in a bordered white card with the stage on the right.",
+     "Finished from last pass: the browser check now also drives 'Since last look' when the value changed after the question was asked ('The value changed since it was asked')."
+    ],
+    "blocked": [],
+    "notDoneYet": [
+     "Three stray log files from the previous pass still sit at the filesystem root (/panel2.txt, /ink.txt, /theme.txt). The safety check refused my removal again; someone should delete them by hand. Nothing else was written outside the worktree and the scratchpad.",
+     "The colour census moved and was NOT re-recorded (rules): ink-wash has 5 more views off baseline than at the merge (green-dark/navy-dark calendar and home, green-light calendar font sizes). Audited as a set difference: each is +1 element from the Calendar's new hint line (one more 11px text, +1 on existing colours); no colour is new. theme-tokens is unchanged by this pass (still only Templates light/dark, as before).",
+     "Approvals and Negotiations draw their head as a full-width white band with grey ground under it (the SAP benchmark band), not as the drawing's bordered rounded head card; the checker only asked for the ground between head and list. If the owner wants the bordered head card, it is a CSS change in one place.",
+     "The list panel's '/' list is still its own (jlPopRead), not main's shared data-ca-slash list; it knows the row the panel holds, which the shared one does not. Two builders for one list \u2014 worth folding into one later.",
+     "Still open from earlier passes, for the owner: the Approval panel draws no Negotiation \u00b7 Workspace doors (the round-15 drawing over the 12 Oct two-doors rule \u2014 one line to put back); rounds 3 and 6 draw different key words under Home's box (built so both hold); 'Show his contracts' is built as 'Show their contracts' (HaTi keeps no gender).",
+     "Small hooks went into files other lanes own: homeboard.js (hbAskReadingOf takes the face it reads on), obligations.js and intake.js (the panel's head words), calendar.js and templatebuilder.js (the hint line), plus last pass's homeboard.js/paperdesk.js/customers.js hooks. Merge them with B2's, A2's, A3's, A4's, D's changes.",
+     "main's jambo-everywhere-verify 4d\u20134e (the list panel's box takes a page name) and jambos-list-panel-verify 5i pass at the merge commit too: they pin behaviour that already existed (a re-point and a coverage gap), not this pass's new claims."
+    ],
+    "tests": [
+     "test/f804-jambos-list-panel.test.js (renumbered from f730; new (8)\u2013(12); (3) re-pointed)",
+     "test/f805-the-hint-line.test.js (renumbered from f731; new (7))",
+     "test/f806-negotiations-as-drawn.test.js (renumbered from f732)",
+     "test/f807-approvals-as-drawn.test.js (renumbered from f733; new (6)\u2013(10); staged helpers added)",
+     "test/f808-a-rule-question-carries-its-stamp.test.js (renumbered from f734)",
+     "test/f809-the-person-panel.test.js (renumbered from f735; new (7)\u2013(9); plural keys)",
+     "test/f810-one-conversation-two-places.test.js (renumbered from f736)",
+     "test/f735-the-jambo-window-follows-the-ask.test.js (main's; (4) re-pointed: the window's turn is shared, aiSubmit + aiAskWords)",
+     "test/chromium/jambos-list-panel-verify.js (new 5i, 10a\u201310j)",
+     "test/chromium/every-jambo-box-verify.js (new 1g Calendar, 1h template builder)",
+     "test/chromium/jambo-everywhere-verify.js (main's; stage 4 re-pointed to the Brain, new 4d\u20134e on the list panel's box)",
+     "test/chromium/one-worklist-verify.js (3b re-pointed: Approval rules is everyone's door; new 3c)"
+    ],
+    "testResults": "npm run lint: 0 errors (137 warnings, as before). Node: f804\u2013f810, f735, f736, f737, f732, f731, f148, f232, f48, f561, f564, f344, f387, f390, f395, f466, f487, f520, f534, f542, f664, f669, f691, f716, f717, f718, f720, f721, f80, f83, f261, f641, f244, f306, f376, f722 \u2014 all pass. Browser: jambos-list-panel (ALL PASSED, 3 screens), every-jambo-box (ALL PASSED, 3 screens), jambo-everywhere, one-worklist, inspector, inspector-checklist, sap-lists, approval-before-signing, every-door-lands-on-home (114/114), jambo-pill-and-window, overview-and-obligations-polish, land-on-it, home-and-recent, negotiations-door (81/81), whose-move, parties-sap-way, people-directory, calendar-on-home, calendar-redesign, prompt-and-build, templates-tabs, import-jambo-panel, answer-where-you-stand, show-it-here-first, week-by-week, requests-sap-way \u2014 all green. Red at the parent: the new node blocks fail at the merge commit f6eb83e (except three controls: f804 8c question\u2192model, f807 8c a colleague still named, f807 9c spends nothing) and all fail at 8dc306a; the new browser stages 10a\u201310j, 1g\u20131h and one-worklist 3b/3c fail at f6eb83e (16 + 6 + 2 FAIL). Census: ink-wash 33 failed vs 28 at the merge (audited above, no new colour); theme-tokens unchanged.",
+    "censusMoved": true,
+    "commits": [
+     "f6eb83e Merge origin/main into gaps/A1 (main moved on: land on it, Jambo the same on every page, answer where you stand, the bar names the page)",
+     "39437f6 Jambo's panel beside the lists, pass 4: the checker's second pass built, on main's rules"
+    ],
+    "shots": [
+     "/home/user/wt-shots/A1/r15-approvals-frame-1440x780.png",
+     "/home/user/wt-shots/A1/r15-approvals-frame-1536x730.png",
+     "/home/user/wt-shots/A1/r15-approvals-frame-1366x950.png",
+     "/home/user/wt-shots/A1/r15-signature-away-1440x780.png",
+     "/home/user/wt-shots/A1/p4-ap-rules-editor-1440x780.png",
+     "/home/user/wt-shots/A1/r15-approvals-1440x780.png",
+     "/home/user/wt-shots/A1/r15-approvals-1536x730.png",
+     "/home/user/wt-shots/A1/r15-approvals-1366x950.png",
+     "/home/user/wt-shots/A1/r15-approval-panel-1440x780.png",
+     "/home/user/wt-shots/A1/r14-negotiations-1440x780.png",
+     "/home/user/wt-shots/A1/r14-negotiations-1536x730.png",
+     "/home/user/wt-shots/A1/r14-negotiations-1366x950.png",
+     "/home/user/wt-shots/A1/r14-negotiation-panel-1440x780.png",
+     "/home/user/wt-shots/A1/p4-ng-frame-1440x780.png",
+     "/home/user/wt-shots/A1/r19-person-1440x780.png",
+     "/home/user/wt-shots/A1/r19-person-1536x730.png",
+     "/home/user/wt-shots/A1/r19-person-1366x950.png",
+     "/home/user/wt-shots/A1/p4-r19-person-procurement-1440x780.png",
+     "/home/user/wt-shots/A1/r16-hint-calendar-1440x780.png",
+     "/home/user/wt-shots/A1/r16-hint-calendar-1536x730.png",
+     "/home/user/wt-shots/A1/r16-hint-calendar-1366x950.png",
+     "/home/user/wt-shots/A1/r21-hint-builder-1440x780.png",
+     "/home/user/wt-shots/A1/r21-hint-builder-1536x730.png",
+     "/home/user/wt-shots/A1/r21-hint-builder-1366x950.png",
+     "/home/user/wt-shots/A1/hint-counter-1440x780.png",
+     "/home/user/wt-shots/A1/hint-window-1440x780.png",
+     "/home/user/wt-shots/A1/hint-clause-editor-1440x780.png",
+     "/home/user/wt-shots/A1/hint-home-needs-1366x950.png",
+     "/home/user/wt-shots/A1/r19-party-panel-1366x950.png"
+    ],
+    "mapLines": "THE LIST INSPECTOR \u2014 add, after \"Tests: f387, \u2026\":\n- JAMBO'S PANEL BESIDE THE LISTS (rounds 14, 15, 19; owner's \"build all the gaps\", 18 Oct 2026): `jlFrame`/`jlHeadPaint`/`jlWordsHtml`/`jlNeedsHtml`; the ask `jlAsk` = the held row \u2192 `caAskAnywhere` \u2192 `jmRead` \u2192 what the Board reads free goes to the Board (`jlBoardReads` = `hbAskReadingOf(q,'board')` \u2192 `caHandHome`) \u2192 `aiAskWords` (one call, cost on the hover). Only a box the reader can SEE is his (`jlOnScreen`: the bar's door, openAI(prefill), `jlFocus`). Every door it adds lands through `JL_LAND`/`jlLand`. Head words `jl_w_week`/`jl_w_obligation`/`jl_w_request`, else `jlPageWord` = `deskPageName`. Tests: f804, jambos-list-panel verify (lane tests renumbered f730\u2013f736 \u2192 f804\u2013f810).\n- APPROVALS, ONE WORKLIST AS DRAWN (pass 4): every signature row's wait `apSignIdle` (last yes/signature, else `_lastAuditAt`; none = \"\u2014\"); an away signer `apSignAway`/`apSignRuleHtml` (the rule + Before you sign door in his sentence, rule 7b); the reader is \"You\" (`apApproverMe`); Approval rules for everyone \u2014 a non-admin hears the rules from Jambo with Ask an admin (`apRulesSay`); beside the panel the list's card ends after its rows (`.reg-body/.ap-body.is-ins:has(> #ins-panel.is-jambo)`). Tests: f807, jambos-list-panel 10b\u201310f, one-worklist 3b\u20133c.\n- PEOPLE'S PERSON PANEL: `jl_named_n_one/_other` (plain key retired); Waiting on `.jl-need.is-wait` (no dots, one line); Named on `.jl-ct-list` card; doors land (`dirWaitGo`, `dirOpenContract`, `dirShowContracts`). Tests: f809.\nTHE HINT LINE (owner's answer (2), \"Every Jambo box\"): `jamboHintHtml` under Home's, Settings', Import's, the list panel's, the Counter's, the window's, the clause editor's, the Calendar's (`calPlanHtml`) and the template builder's (`tbAskHtml`) boxes; in NEEDS YOU HERE \"No hint line under the box (a tip)\" is STALE. Tests: f805, every-jambo-box verify.",
+    "historyStory": "JAMBO'S PANEL BESIDE THE LISTS \u2014 PASS 4 (18 Oct 2026, evening; lane A1 after the checker's second pass)\n\nMAIN MOVED ON. gaps/A1 merged origin/main (705dc90) as a merge commit (f6eb83e). Conflicts kept both sides: aiSubmit now reads through main's caAskAnywhere first and then hands the words to the lane's shared turn aiAskWords (which computes the open-card reading itself, so Jambo's list panel and the window answer alike); components.js publishes main's lander and the lane's hint builder; the Brain's words keep main's thirty-one tasks and the lane's list-panel part; MAP-HISTORY keeps both new sections. Main had taken f730\u2013f737, so the lane's seven tests were renumbered f804\u2013f810. Main's f735 (4) pinned aiSubmit's body and was re-pointed to aiSubmit + aiAskWords; main's jambo-everywhere-verify stage 4 opened the floating window over Approvals, which now has Jambo's own panel, so it was moved to the Brain (a page with no Jambo of its own) and the list panel's box is asked the same (4d\u20134e).\n\nTHE CHECKER'S FIFTEEN. Measured against a seeded server and built: (1) on Our paper the bar's Jambo door did nothing \u2014 a Jambo panel inside the hidden Templates tab counted as \"on screen\"; jlOnScreen now asks for a box the reader can see (a folded panel still counts), and the window opens as at the base. (2) the list panel's box spent a Jambo call on \"Nandi Dairy\", \"contracts ending in 90 days\" and \"draft an NDA with Kabras Sugar\", which the Counter answers free; jlAsk now reads through caAskAnywhere, then Jambo's map, then hands whatever the Board's own reader answers free to the Board, exactly as the Counter does (hbAskReadingOf gained a face argument so the words are read as on the Board). Measured after: no /api/ai request for any of the three. (3) \"1 contracts \u00b7 1 live\" \u2192 plural keys. (4\u20135) the hint line under the Calendar's and the template builder's Jambo boxes. (6) head words \"Your week\"/\"Obligation\"/\"Request\", the bar's page name otherwise; \"Counted from the list\" only under a count. (7) the pill beside the name (a list rule's margin-left:auto pushed it out). (8\u20139) Approvals' head, ground, card; every list card beside the panel ends after its rows (it stretched to the window's foot). (10) party names whole at 1366 (Ref 72px; a long name wraps). (11) a signature's wait read from the last yes/signature, else the light list's _lastAuditAt. (12) an away signer: Jambo says the rule and the proper step, the door in his sentence (rule 7b). (13) Approval rules for everyone; a non-admin hears the rules from Jambo with Ask an admin. (14) People's Waiting on without dots, one line; Named on in a card. (15) the reader is \"You\".\n\nLAND ON IT. Every door this lane's panel added now lands on one target through main's landOn (JL_LAND / jlLand).\n\nRED AT THE PARENT. The new node blocks fail at f6eb83e (three controls pass by design) and all fail at 8dc306a; the new browser stages fail at f6eb83e (10a\u201310j, 1g\u20131h, one-worklist 3b\u20133c).\n\nCENSUS. ink-wash: five more views off baseline than at the merge, each +1 element from the Calendar's hint line (one more 11px text); no colour new; not re-recorded. theme-tokens unchanged.",
+    "buglog": [
+     "Noticed, not fixed (lane A1, 18 Oct 2026): \"how many approvals are late?\" typed to Jambo (the Counter's box, or any box that hands to the Board) is answered by the Board's free reader as \"0 obligations are overdue\" \u2014 the word \"late\" is read as overdue obligations even when the question names approvals."
+    ],
+    "ownerSummary": "I brought in the latest version of HaTi first, then fixed all fifteen things the checker found on Jambo's panel beside the lists. Typing into that panel now works the way the Home box does: page names, drafts and anything the Board can answer are free, and only a real question costs one Jambo call. The Jambo button on the Our paper page works again. On Approvals, the list card now ends after its last row and the page heading has a gap below it. Signature rows say how long they have waited, and you are called \"You\" when you are the approver. Approval rules shows for everyone (non-admins hear the rules from Jambo, with an \"Ask an admin\" button). When a colleague who must sign is away, Jambo explains the rule and what you can do instead. On the people panel, \"Named on\" now reads \"1 contract\", and the Calendar's and template builder's Jambo boxes now have the hint line. Still to do: three leftover log files at the top of the computer's file system need deleting by hand, and the colour check moved slightly because of the new Calendar hint line (no new colours)."
+   }
+  ],
+  "checks": []
+ },
+ "C1": {
+  "passes": [],
+  "checks": [
+   {
+    "label": "check C1 #2",
+    "differences": [
+     {
+      "round": "4, 8, 10",
+      "part": "MAIN MOVED ON (bring in origin/main and follow its rules)",
+      "drawn": "The brief has every lane merge origin/main (a merge commit) and follow its new rules. Under LAND ON IT, every door the build added lands through landOn. The desk tabs row is gone, the Counter is named Home, and every Jambo box reads through caAskAnywhere.",
+      "built": "gaps/C1 has not merged main: it is 66 commits behind origin/main (merge-base cb6290f) and js/components.js has no landOn. So the lane's doors still light with their own classes and never go through the one lander. These are a row's 'clause N' (is-fieldlit), Use it, Ask an admin, Change, What moved, Open obligations and the approval email's frame (is-landed).",
+      "kind": "missing"
+     },
+     {
+      "round": "4",
+      "part": "One sheet: the way back in the sheet's head",
+      "drawn": "The desk's way back as the app has it. Main has now removed the desk tabs row and renamed the Counter to Home, which follows the new bar ('\u2039 \u00b7 HA \u00b7 the page's name').",
+      "built": "The sheet draws its own retired desk-tab crumb, '\u2039 The counter \u00b7 New agreement \u00d7' (data-na-counter / data-na-close), in the row above its title. It uses the old name 'The counter' and the old tab shape. On arrival from the Counter's box, '\u2039 The counter' also wears a dark square focus ring that the drawing does not have.",
+      "kind": "different"
+     },
+     {
+      "round": "4, 8",
+      "part": "Jambo's costs: Let Jambo fill the form, the Create foot, and Fill in's 'Read it now' on a private contract",
+      "drawn": "Owner's answer (4): costs stay in calls ('about 3 Jambo calls'). Never money, no price per call, and owners do not see spend.",
+      "built": "Once a spending ledger and an admin's USD rate exist, money is shown. The press reads 'Let Jambo fill the form \u00b7 about KES 0.10'. The Create foot ends '\u2026risks and obligations, about KES 0.90.'. Fill in's private wait line uses the same reader (aiCostWords in js/wizard.js and js/paperdesk.js). A new route, GET /api/ai/call-cost, sends every signed-in user the average price of one request of each kind. Without a ledger the presses do say calls ('\u00b7 1 Jambo call', '\u2014 about three Jambo calls').",
+      "kind": "different"
+     },
+     {
+      "round": "8",
+      "part": "Fill in: empty owed boxes",
+      "drawn": "Owner's answer (5): empty owed boxes stay empty with the amber wash, with no 'e.g. \u2026' example text.",
+      "built": "Every empty owed box shows an example (pdFillExample). Examples include 'e.g. 1 November 2026' for dates (also in HaTi's own date face through data-ph), 'e.g. 90 days' for spans and 'A number' for values. This was seen on MK-0405, MK-0406, MK-0407 and MK-0410.",
+      "kind": "different"
+     },
+     {
+      "round": "8",
+      "part": "Fill in: Jambo's perched face over the face's cards",
+      "drawn": "Jambo's face sits in empty space at the panel's bottom right and covers nothing.",
+      "built": "Fill in has no chips row (pdChipsQuiet), so the perch floats over the scrolling cards. At 1440\u00d7780 it covers the Filled card's \u25be corner and the Stream card's edge. At 1536\u00d7730 it covers the bottom right of Still to fill and the top of the next card. At 1366\u00d7950 on the private MK-0407 it covers the wait line's words ('\u2026only when someo').",
+      "kind": "overlap-or-cut"
+     },
+     {
+      "round": "10",
+      "part": "Before you sign: Jambo's perched face over the foot",
+      "drawn": "The foot 'Who signs can change until the first signature. \u00b7 Change' is fully visible, with the face clear of it.",
+      "built": "At 1536\u00d7730 the face covers the foot's Change button (only 'Chan' shows). At 1440\u00d7780, when the gate holds, it covers the end of the open checks list ('\u2026is waiting on an Admin').",
+      "kind": "overlap-or-cut"
+     },
+     {
+      "round": "10",
+      "part": "The paper's line at 1366\u00d7950 with the signing copy up",
+      "drawn": "The head names the whole agreement ('Power purchase agreement MK-0391 \u00b7 Helio Energy AB') beside Signing copy, the page arrows and the size.",
+      "built": "'Signing copy', '\u2039 Page 1 of 1 \u203a' and '\u2212 100% +' were moved onto the paper's line. At 1366\u00d7950 the name and the party are now cut to 'Power purchase agree\u2026' and 'Helio\u2026'. At 1440\u00d7780 and 1536\u00d7730 they fit.",
+      "kind": "overlap-or-cut"
+     },
+     {
+      "round": "8, 10",
+      "part": "The row above the paper (the contract's pixels)",
+      "drawn": "Both drawings put the size (and on the signing copy the page arrows) in the head line, with nothing above the paper. The Compare says 'The signing copy starts a little higher than today, never lower \u2026 nothing is added above the paper' (round 10). Round 8 says the paper starts at 144 and its title at 201.",
+      "built": "On Fill in the working copy keeps its own '\u2212 100% +' row above the sheet. On Before you sign the row is kept but EMPTY (IG_ZC_HOLD), so the signing copy starts exactly where it did before this lane. Measured at all three screens: sheet top 241, first clause heading 290, first line 322, the same as base 8dc306a. Nothing above the paper was won back.",
+      "kind": "different"
+     },
+     {
+      "round": "4",
+      "part": "Step 3 'File it in': the stream buttons",
+      "drawn": "One row of separate buttons, each with an amber wash and an amber edge because the stream is owed, then 'Needed before Create', then the cost line.",
+      "built": "One white box with an amber outline. Its segments wrap onto three lines with ragged vertical dividers (some hang at a line's end) and no lines between rows. There is no amber wash on the buttons. Seen at all three screens with the seed's six streams.",
+      "kind": "different"
+     },
+     {
+      "round": "10",
+      "part": "The yes stop when a value rule's approval and the named yes both wait",
+      "drawn": "Each yes the deal waits on is drawn at its own stop with its states and its own buttons. The pill counts what the road shows.",
+      "built": "With a value rule (\u2265 KES 5M, an admin approves) plus 'Lina Ek's contracts need Jonas Berg', the stop is titled generically 'The yes before signing', not 'Jonas Berg's yes'. The pill says '2 to settle', but the road shows only Jonas's yes. The rule's approval has no stop, no state and no Approve/Reject anywhere except inside the column folded behind Show. With no rules saved, the old default of \u2265 5M applies, so most such deals look like this.",
+      "kind": "broken"
+     },
+     {
+      "round": "10",
+      "part": "After the yes: the other signer's open stop",
+      "drawn": "Compare: 'Approved opens signing'. The current stop is open with its working buttons.",
+      "built": "After Jonas's yes, given by Jonas or by his stand-in, Helio's stop correctly reads 'Henrik Dahl \u00b7 their turn now' and the pill says 'Their turn'. But its only act, 'Email their signing link', is greyed with 'This contract needs internal approval \u2026 \u201capproval\u201d is still waiting on an Admin', and it stays dead after a reload. signLinkRefusal says the approval waits while approvalState says it is ok. This is already broken at base 8dc306a (the same refusal comes back there), but on the road it is now the open stop's only button.",
+      "kind": "broken"
+     },
+     {
+      "round": "10",
+      "part": "The receipt: 'What starts now'",
+      "drawn": "'6 obligations, the first on 31 Jan 2027', with Open obligations.",
+      "built": "'6 duties begin. The first, Monthly delivery report 1, is due 30 Jan 2027.' With none recorded it says 'No duties are recorded on this contract.'. The same face's Sealed and sent stop says '6 obligations start'. HaTi's rule is 'Obligations', never duties. Open obligations does land on the Obligations page narrowed to the contract.",
+      "kind": "different"
+     },
+     {
+      "round": "10",
+      "part": "The receipt below the ticked road",
+      "drawn": "The face becomes the receipt: Verify seal \u00b7 Evidence pack, What starts now, who approved, who signed when, the copies.",
+      "built": "Under the receipt, the old column still draws 'This contract is executed and closed\u2026', 'Signing order \u00b7 2 of 2 signed' (each signer with the day signed) and the Signature block. Who signed when is said twice: on the stops and again in that list.",
+      "kind": "different"
+     },
+     {
+      "round": "8",
+      "part": "An NDA's Confidentiality card: the second fact's label",
+      "drawn": "'Secret until', the same word the NDA's own editor uses (nda_f_ends).",
+      "built": "'Kept secret until' (det_f_nda_ends), so the same fact has two names. Also each row's '\u00b7 Confirm' drops onto a line of its own, where the drawing keeps it on the 'Read from the wording, not yet confirmed by a person.' line.",
+      "kind": "different"
+     },
+     {
+      "round": "8",
+      "part": "A private contract's Jambo wait line",
+      "drawn": "Directly under the Pay card, with Jambo's small face: 'Jambo reads a private stream's contract only when someone presses. Read it now \u00b7 about \u2026'.",
+      "built": "The line comes last, below Filled and the Stream card. That is 202px of scroll at 1440\u00d7780, so it is out of view at 1440\u00d7780 and 1536\u00d7730 and covered by the perch at 1366\u00d7950. There is no face, and the cost is capitalised mid-line ('Read it now \u00b7 About three Jambo calls').",
+      "kind": "different"
+     },
+     {
+      "round": "8",
+      "part": "Pay card: base pay owed",
+      "drawn": "An amber pill with a dot: '\u25cf not filled in yet \u00b7 needed before signing'.",
+      "built": "Plain amber text that wraps over two lines in the Amount cell, with no pill or dot.",
+      "kind": "different"
+     },
+     {
+      "round": "10",
+      "part": "Ready to sign when the gate holds: its count against its names",
+      "drawn": "The number on the stop matches what it lists, as in '4 checks clear: wording, standards, promises, details'.",
+      "built": "With the sign check set to require, the stop reads '4 to settle: standards, promises, the brief'. It counts four but names three, because the two promise holds share one name. The pill says '6 to settle'.",
+      "kind": "different"
+     }
+    ],
+    "matched": [
+     "Lint: 0 errors (138 warnings). The lane's node tests f750, f751, f752, f753 and f754 all pass. The node files it re-pointed also pass: f676, f679, f706, f712, f360, plus f232, f48, f561, f564, f392 and f710. f750\u2013f754 do not clash with any test number on origin/main.",
+     "Browser checks all passed in the C1 worktree: one-sheet-as-drawn, owed-first-as-drawn and the-road-as-drawn (the lane's new ones). The re-pointed and related checks also passed: the-road, owed-first, one-sheet, sign-beside-the-paper, fill-in-beside-the-paper, new-agreement, approval-before-signing, draft-upload-glance, fill-the-document, upload-blanks, amendment-blanks-and-clauses, blanks-panel, when-youre-away, paper-line, pay-section and nda-tail.",
+     "Round 4 head: 'New agreement \u00b7 not created yet', the reason beside Create draft ('Pick a template first', then 'Choose a stream first', gone once a stream is chosen), Create draft and Cancel. 'Skip the questions' is gone.",
+     "Round 4 'From your words': the quoted sentence, '\u00b7 read without AI' and Change the ask, which puts the words back in Jambo's box. Below are What ('A non-disclosure agreement'), With in amber ('not in Parties yet \u00b7 Volvo Cars'), What it is for (read from the words) and 'Let Jambo fill the form'.",
+     "Round 4 step 1: 'Start from \u00b7 the three closest on our paper \u00b7 nothing is picked for you'. It shows three radio cards with their shelf facts, the closest marked 'the closest' and nothing picked. 'Search all our paper (12)' opens the search list, and 'None fits? Ask Legal with a request' opens the existing Request form.",
+     "Round 4 step 2: '<template> asks \u00b7 6 questions \u00b7 only Counterparty is needed now' in three columns, Counterparty marked '\u2726 from your words', and 'Who else is on this agreement \u00b7 nobody is emailed until you send'.",
+     "Round 4 step 3: 'File it in \u00b7 the stream decides who can see it', 'Needed before Create' and the cost line. Without a ledger the cost is said in calls.",
+     "Round 4 panel beside the sheet: the Jambo tab, 'New agreement' and the \u203a fold. Then the user's bubble and Jambo's one line naming what he read, with the party and the paper in bold. There are no buttons on the line, and the ask box reads 'Ask for a number, a list or a contract\u2026'.",
+     "Round 4 fit: the sheet scrolls 11\u201317px at 1440\u00d7780, 40\u201345px at 1536\u00d7730 and none at 1366\u00d7950, within the drawing's own 32/82px. Nothing scrolls sideways.",
+     "Round 4 doors: \u2039 The counter goes back to the Counter with its box ready; the tab's \u00d7 and Cancel close the sheet.",
+     "Round 8 head keeps round 3's face head, '\u2039 Jambo \u00b7 Fill in the details \u00b7 N left \u00b7 \u00d7' (owner's answer 3). Below it are the progress bar and 'N of M done \u00b7 saved as you type'.",
+     "Round 8 'Still to fill N' is one card. Rows say 'clause N' and 'on the paper \u00b7 clause N' while typing, and pressing it puts the cursor in the box and lights its spot on the paper. 'Our standard for <book>: 90 days \u00b7 Use it' has the book icon, and Use it fills the box through its own writer.",
+     "Round 8 'Filled N \u00b7 Who we are \u00b7 Other party \u00b7 Carrier address \u25be' folds and unfolds. The Document card reads '3 answers are on the paper as you typed them, not yet in the wording.' with Fill the document. On the paper, owed blanks are amber and unapplied answers are dotted-underlined.",
+     "Round 8 Stream row: 'Stream \u00b7 asked, never owed', then 'Moving a contract to another stream is an admin's act. Ask an admin'. The press sends the Ask-an-admin record and then reads 'Asked Amina Otieno \u00b7 18 Oct', with an ok toast. An admin sees the stream buttons.",
+     "Round 8 other kinds: the NDA's 'Confidentiality \u00b7 2 to confirm' card with 'read from clause 5' and the reading in a box. The employment contract shows 'Private \u00b7 <stream> \u00b7 only the people named on <stream> see it'. Its Pay card has 'Pay \u00b7 kept apart from deal value \u00b7 never added to a total', the columns Part \u00b7 How often \u00b7 Amount, and 'Edit pay \u203a'. No chips row under Fill in.",
+     "Round 10 head keeps round 3's face head, '\u2039 Jambo \u00b7 Before you sign \u00b7 1 to settle \u00b7 \u00d7'. The pill says 'Their turn' after the yes and the head says 'Signed' on the receipt.",
+     "Round 10 road: Ready to sign (folded behind Show, and Show/Hide work), then the named stop 'Jonas Berg's yes' with an amber '!' and a frame. The frame holds the states 'Asked today \u203a Waiting \u203a Approved \u00b7 or Refused, Lapsed', with the current one lit.",
+     "Round 10 stand-in: Jambo's line with his face reads 'Jonas is away until Thursday. You may give their yes for them; their signature still waits for them.' (gender-neutral where the drawing says his/him). It is followed by 'Lina Ek asked. It covers round 1 as it stands, KES 8.10M and the signers below; a change undoes it.'. Approve for Jonas is the lead button, then Refuse\u2026, which opens 'Refuse and send back to Lina Ek' with a required why.",
+     "Round 10 'What moved' is drawn only where the memo has agreed changes. When it is there it opens the list in place ('Clause 3 Price \u2014 \u2026').",
+     "Round 10 signer stops: 'Helio Energy AB signs \u00b7 Henrik Dahl \u00b7 their link opens after the yes' and 'Highland Corporate Ltd signs \u00b7 Jonas Berg \u00b7 back Friday \u00b7 only they can sign'. Then 'Sealed and sent \u00b7 Copies to both sides \u00b7 6 obligations start', and the foot 'Who signs can change until the first signature. \u00b7 Change', which opens the signing route editor.",
+     "Round 10 states: Not asked shows 'Send for approval' (to the lead). Waiting shows 'Remind Jonas' to the asker. Refused shows the reason with 'Change and send again'. Lapsed says what changed with 'Send for approval again'. After the yes the stop reads 'Approved by Amina Otieno for Jonas Berg, today'.",
+     "Round 10 receipt: every stop ticked with the day each signed, Verify seal \u00b7 Evidence pack on top, What starts now with Open obligations (which lands on Obligations narrowed to the contract), and Distribute copies.",
+     "Round 10 'Signing copy' with its page arrows and size sits on the paper's line. 'Sign here' is shown only to whoever's turn it is. The hand-over line is now a Menu row. No chips under the face. Svenska draws the road in its own words.",
+     "No sideways scroll on any of the three screens for the sheet, Fill in or Before you sign."
+    ],
+    "notes": "I reviewed /home/user/wt/C1 at 6523b52 (gaps/C1) and edited, committed and pushed nothing there; git status is clean. Drawings came from D/r4.html (key 2), D/r8.html (key 1, including the Compare's 'same face on two other kinds of contract') and D/r10.html (key 2). None of the three rounds has a second scene.\n\nHow I seeded the states: HaTi was started from the worktree with the seed workspace. For round 4 I asked the Counter's box 'NDA with Volvo Cars for a pilot', once with no ledger and once with a seeded ai_spend ledger and an admin USD rate. For round 8 I used the drawing's freight upload (MK-0405, as Restricted Legal and as admin), a company form with unapplied answers (MK-0410), an NDA (MK-0406) and an employment contract in a private stream (MK-0407). For round 10, Lina leads MK-0391 and needs Jonas's yes, Jonas is away with Amina as stand-in, and MK-0392 is sealed, with 6 obligations in one run. I also drove refused, lapsed, require-gate, rule-plus-named-yes and Svenska states. The probe scripts and text dumps are in /tmp/claude-0/-home-user-mkataba-clm/835f8077-5605-5fb0-98ee-477c1f55f19a/scratchpad/c1r2/.\n\nChecking 'What moved': no test drives it, so I stubbed negoMemo to see the drawing path. I did not see it with real negotiation data.\n\n'Already broken' check: the dead 'Email their signing link' after the yes gives the same signLinkRefusal answer at base 8dc306a (extracted with git archive into the scratch folder, not a worktree). The fixer may treat it as pre-existing and log it in BUGLOG rather than fix it.\n\nNot listed as differences, on purpose:\n- The hint line under Jambo's box in the round 4 and 8 drawings is missing on this branch. Owner's answer (2) gives it to lane A1, so A1's checker owns it.\n- The paper's line on a draft has no Clean | Redline | Their view. That line is round 6, lane B2.\n- 'What it is for' reads 'A pilot' from the words where the drawing says 'Not read yet'. Pass 1 built that reading on purpose, and 'Not read yet' still shows when nothing is read.\n- The stand-in line says their/them instead of his/him, because HaTi holds no gender.\n- 'Who we are' versus 'Our party' is the template's own label.\n- A restricted user's Stream row shows only the stream they can see.\n- Stage words follow owner's answer (1).\n\nThe colour census was not re-checked here. Pass 1 and the fix pass both report it moved on the signing screen (counts only), and integration re-records it, so ink-wash red is not listed."
+   }
+  ]
+ },
+ "C2": {
+  "passes": [],
+  "checks": [
+   {
+    "label": "check C2 #2",
+    "differences": [
+     {
+      "round": "main",
+      "part": "Bringing in main (brief's \"MAIN MOVED ON\")",
+      "drawn": "The brief asks every lane to merge origin/main (merge commit) and follow its new rules; it names Redlines (lane C2) as following \"NOTHING OF THE LADDER ON THE PAPER\" and \"A COUNTER THAT UNDOES PART OF THEIRS SAYS WHAT IT KEEPS\", and every door to land through landOn.",
+      "built": "gaps/C2 (e7927a6) has NOT merged origin/main: no merge commit, origin/main is not an ancestor. Main's 66 changes, including landOn, rlRowKeepsHtml/negoKeepsTheirs, rlSugInline and the ladder-off-the-paper change, are absent. (Lane A1 merged; C2 did not.)",
+      "kind": "missing"
+     },
+     {
+      "round": "9 / main",
+      "part": "The paper beside the Redlines face, under a countered clause",
+      "drawn": "The paper carries only the wording and its marks. Main's owner rule (18 Oct) says nothing of the ladder goes on the paper.",
+      "built": "Once a counter sits on their ask, the paper prints \"Plain text on clause 7 = the agreed wording   Agreed wording = R0\" under clause 7 while Redlines is open (photos review2-11-goto7, review2-11-after-send). This is the exact line the owner said \"should not be on paper at all\".",
+      "kind": "different"
+     },
+     {
+      "round": "9 / main",
+      "part": "Our pending row (a counter that undoes part of their ask)",
+      "drawn": "Main's rule: our pending row says what of their change it keeps (\"Keeps their change: \u2026\") and asks when law and seat disagree (rlRowKeepsHtml, .rl-card-keeps).",
+      "built": "No keeps line or law/seat question on any row of the piles, because main is not merged.",
+      "kind": "missing"
+     },
+     {
+      "round": "9, 11 / main",
+      "part": "Doors this lane added: \u2039 Redlines back to the row, Go to clause 7, a note's clause link",
+      "drawn": "LAND ON IT: every door names one target and lands on it through landOn (.is-landed: a pulse, then a ring).",
+      "built": "Doors use the old hand-made glow (.rl-arrived and the row flash). landOn does not exist on this branch.",
+      "kind": "different"
+     },
+     {
+      "round": "9 (E) / main",
+      "part": "The clause editor's line above the box",
+      "drawn": "The drawing shows \"Step 2 \u00b7 your counter \u00b7 saved as you type, not sent\". Main's newer rule says no step chip or ladder line on either seat or in the editor, and main's rule wins where they collide.",
+      "built": "Builds the drawing's \"Step 2 \u00b7 your counter \u00b7 \u2026\" ladder-step words. This is not fitted to main's rule, and the owner was not asked.",
+      "kind": "different"
+     },
+     {
+      "round": "9",
+      "part": "Ladder verb on every row (Waiting on you, Lina suggests, Your drafts, Settled)",
+      "drawn": "Ladder is a live verb in accent ink: \"Ladder shows what we asked for, what we settle for and what they ask.\"",
+      "built": "On Jambo's Redlines face, pressing Ladder does nothing. The handler calls rlCpSetShown on the face, which has no #rl-cp, so nothing opens, no toast shows and aria-expanded stays false (photos review2-9-ladder, review2-9-ladder2). It is a dead button on every row.",
+      "kind": "broken"
+     },
+     {
+      "round": "9",
+      "part": "A row's \"N notes\" press",
+      "drawn": "\"This opens that change's notes\". The notes open in the same panel, one room per side: Internal N \u00b7 Nordvik N tabs, \"Write to Internal\u2026 type @ to name someone\", Post.",
+      "built": "The head's Notes opens the in-panel notes as drawn. A row's \"2 notes\" instead opens the old notes drawer (#context-panel), which covers Jambo's panel. It has a different design: \"Notes / CHG-007 \u00b7 7. Liability Cap awaiting an answer\", tabs \"Highland Corporate Ltd \u2014 your team (1) / Nordvik Logistik AB (1)\", \"Oldest first\", \"Add note\" (photo review2-9-rownotes).",
+      "kind": "different"
+     },
+     {
+      "round": "9",
+      "part": "Discard last (Your drafts row)",
+      "drawn": "\"Discard last takes back your latest version of this change; Undo for a few seconds.\"",
+      "built": "Opens a danger pop-up titled \"Discard #CHG-009?\". The title shows the raw reference, and the body has doubled quote marks (\u201c\u201c\"without undue delay.\u201d \u2192 \u2026\"\u201d). There is no Undo (photo review2-9-discard).",
+      "kind": "different"
+     },
+     {
+      "round": "9",
+      "part": "Verb colours on the rows",
+      "drawn": "Accept, Counter, Ladder, Adopt, Hand back, Edit, Send and Review in the accent ink with their icons. Reject and Discard last in red.",
+      "built": "Counter and Edit are violet (rgb 109,40,217, the AI colour). Ladder and Review are neutral grey (rgb 90,104,102). They read as quieter or different from the other live verbs.",
+      "kind": "different"
+     },
+     {
+      "round": "9",
+      "part": "\"Here now\" faces in the head",
+      "drawn": "Coloured, filled initials circles (ES, LE), one colour per person, overlapping.",
+      "built": "17px pale-blue chips with 8px dark letters, all the same colour. They are barely legible next to the paper line's 24px faces (photo review2-9-head-zoom).",
+      "kind": "different"
+     },
+     {
+      "round": "9",
+      "part": "The paper's mark for a colleague's suggestion",
+      "drawn": "Lina's suggestion (15%) is marked with a dashed underline, distinct from our own draft's solid mark (\"within 24 hours\u2026\").",
+      "built": "Lina's suggestion wears the same boxed mark as our own draft, so the paper does not tell a suggestion from our draft.",
+      "kind": "different"
+     },
+     {
+      "round": "9",
+      "part": "Head line after our round goes out",
+      "drawn": "\"Round 2 \u00b7 their asks came 4 days ago\": said while their asks of this round wait on us.",
+      "built": "After we send, the head reads \"Round 3 \u00b7 their asks came 4 days ago\". rlRoundLabelHtml counts their parked (countered) round-2 asks, so it claims asks came in a round they have not answered yet (photo review2-11-after-send).",
+      "kind": "different"
+     },
+     {
+      "round": "9",
+      "part": "Strips on the face while a change is out for review",
+      "drawn": "The picked option's rule: no new band. \"Send all \u00b7 N not sent\" is the one strip that stands.",
+      "built": "An amber strip sits above the Redlines head: \"With Sara Nystr\u00f6m for internal review. CHG-012 1 change went to them on 18 Oct 2026, 22:10. Waiting 0 days. Remind \u00b7 Cancel \u00b7 \u00d7\". It shows the raw reference and \"0 days\", and it repeats the built \"Out for review\" pile (photo review2-11-face-before-sendall).",
+      "kind": "different"
+     },
+     {
+      "round": "9",
+      "part": "Pile name for changes with the other side",
+      "drawn": "Compare: piles are \"waiting on you \u00b7 Lina suggests \u00b7 your drafts \u00b7 with Nordvik \u00b7 settled\" (named for the party).",
+      "built": "The pile is headed \"With the counterparty\" (photo review2-11-after-send).",
+      "kind": "different"
+     },
+     {
+      "round": "9 (E)",
+      "part": "Editor head: Exit",
+      "drawn": "A quiet, small outlined \"Exit\" at the far right of a head bar that spans the window. The side panel's tabs sit below the bar.",
+      "built": "A filled dark \"Exit\" button with a full-screen icon, mid-window at the end of the editor column's bar. The side panel's tabs share that row (photos review2-9E-counter-*).",
+      "kind": "different"
+     },
+     {
+      "round": "11",
+      "part": "Send all with a change under review",
+      "drawn": "Send all, like Share, opens the letter. The held change is named in Jambo's panel (\"Clause 7 stays here \u2026 Remind Sara \u00b7 Go to clause 7\"), and Send sends only what is cleared.",
+      "built": "Send all first opens the pop-up \"Some of this is still being looked at \u2026 3 other change(s) are ready to go. #CHG-012 [Wait for the review] [Send the other 3 now]\". It shows a raw reference, says \"change(s)\", and its 3 matches neither the door's \"Send all \u00b7 2 not sent\" nor the 2 changes the letter lists. The letter opens only after \"Send the other 3 now\" (photo review2-11-gate).",
+      "kind": "different"
+     },
+     {
+      "round": "11",
+      "part": "Jambo's panel beside the letter, opened from Send all",
+      "drawn": "In order: Jambo's line, the \"Clause 7 stays here\" card, \"What Anna never sees\", \"Something else to send?\". No strips.",
+      "built": "A green strip comes first: \"Sending this closes your turn. Once it goes out, this contract shows as waiting on Nordvik Logistik AB until they reply. Nothing moves if you close this without sending.\" (opts.handOver on the Send-all path; absent when opened from Share).",
+      "kind": "different"
+     },
+     {
+      "round": "11",
+      "part": "The letter's panel fitting the screen",
+      "drawn": "\"The letter fits at all three screens without scrolling.\"",
+      "built": "Opened from Send all, the green strip and the amber \"1 thing worth checking\" strip push \"Something else to send?\" partly below the ask box at 1440\u00d7780 and 1536\u00d7730. Its two buttons are cut off, so the panel must scroll (photos review2-11-letter-1440x780, review2-11-letter-1536x730). It fits at 1366\u00d7950.",
+      "kind": "overlap-or-cut"
+     },
+     {
+      "round": "11",
+      "part": "Readiness strip in Jambo's panel",
+      "drawn": "No such strip. The panel holds cards only.",
+      "built": "An amber strip \"\u26a0 1 thing worth checking before you send\" sits between the cards and opens to \"No effective date is recorded.\" (shown whenever readiness finds something; photo review2-11-band).",
+      "kind": "different"
+     },
+     {
+      "round": "11",
+      "part": "Go to clause 7 (the \"stays here\" card)",
+      "drawn": "\"The paper scrolls to clause 7 and lights it.\" The letter waits in its desk tab (\"Send \u00b7 MK-0382\") and is one tab away.",
+      "built": "The paper scrolls and lights clause 7, but the letter closes for good: its \"Send \u00b7 MK-0382\" tab disappears, and reopening Share shows an empty note box, so the typed note is lost without asking.",
+      "kind": "different"
+     },
+     {
+      "round": "11",
+      "part": "Letter sign-off spacing",
+      "drawn": "A blank line between the link line and the sign-off \"<name> \u00b7 <title> \u00b7 <company>\".",
+      "built": "The sign-off sits directly under the link line with no gap.",
+      "kind": "different"
+     }
+    ],
+    "matched": [
+     "Round 9 head: \"Redlines 4\" with grey pill, Notes chip with count (5 = Internal 3 + Nordvik 2 once their notes exist), Here now faces, \"Round 2 \u00b7 their asks came 4 days ago\", \"Send all \u00b7 1 not sent\" filled, \"Ask for review\" with eye icon (opens the review's existing door menu, as the brief allows)",
+     "Head Notes opens the notes in the same panel as drawn: tabs \"Internal 3\" (lock) \u00b7 \"Nordvik Logistik AB 2\" \u00b7 \"\u2039 Redlines\", each note \"Name \u00b7 clause N \u00b7 when\" with its words in a bubble, \"Write to Internal\u2026 type @ to name someone\" + Post; pressing Notes again closes them; party room shows their notes",
+     "Piles in paper order: \"Waiting on you 2\" (amber head), \"Lina suggests 1\" (Adopt \u00b7 Hand back \u00b7 Ladder), \"Your drafts, not yet sent 1\" (Edit \u00b7 Send \u00b7 Review \u00b7 Ladder, then Discard last), \"Settled in round 1 \u00b7 6\" folded; press unfolds/folds",
+     "Each row: \"7. Liability cap\" + note icon + \"2 notes\" + \"Anna Holm \u00b7 4 days ago\"; the changed words cut around the edit with del/ins marks; the reason in italic quotes",
+     "Lock line on clause 11: lock icon, ES mark, \"Erik is editing this clause\", \"Ask for it\" \u2192 \"Asked\" + ok toast; Counter greyed with the reason in its title",
+     "Adopt moves Lina's suggestion into Your drafts; Hand back asks \"What needs changing?\"; Accept settles and adds to Send all; row Review opens Ask a colleague to review with that change ticked; row Send sends that one change and says so",
+     "Here now face press follows that person (is-following), press again stops",
+     "Counter/Edit land on the full-window clause editor: \u2039 Redlines, \"Counter \u00b7 7. Liability cap\" / \"Nordvik asks 100% \u00b7 back lands on the same row\", B I U \u2022 1. \u21e4 \u21e5, Exit; context line \"Master services agreement \u00b7 MK-0382 \u00b7 Nordvik Logistik AB \u00b7 round 2\"; clause 7 box with marks, clause 8 dimmed; rail Playbook \u00b7 Risks \u00b7 Ladder; \"What they asked \u2026 \u2014 Anna Holm\"; \"Ask Jambo\" with \"Ask for a softer version \u00b7 about 1 Jambo call\" (calls, per answer 4); foot \"\u2039 1 of 2 of their asks \u203a\" + Save; \u2039 Redlines returns to the face",
+     "Edit on our draft: \"Edit \u00b7 9. Data protection\" / \"Your draft, not yet sent \u00b7 back lands on the same row\"",
+     "Round 11 letter page: \"Send round N to Nordvik Logistik AB \u00b7 MK-0382\", \"Send to Anna\" + Cancel; From \"<name>, <company> \u00b7 sent by HaTi\", To with Change (opens name/email), Subject \"Round N of the Master services agreement, from <company>\", Sent as four dropdowns (purpose, channel, link life, what) each opening its menu and closing on a second press",
+     "Letter body: \"Hello Anna,\", \"Your note \u00b7 type here\" dashed box, \"<company> has answered 1 of your 2 redlines:\", \"Clause 11 \u00b7 Payment terms: they propose 45 days (you asked for 60).\", \"Open round N\" button, link line incl. the one-time-code sentence when the company setting is on, sign-off \"<name> \u00b7 Legal counsel \u00b7 <company>\"; round number is the one HaTi records (answer 13)",
+     "The email sent to Anna matches the screen word for word (subject, note, answered line, button, link line, sign-off); no colleague's name in it",
+     "Jambo's panel \"Before you send\" with \u2039 Jambo: \"This is the email Anna will get, word for word. Your note is the only part you write.\"; amber \"Clause 7 stays here\" card with the review sentence, \"Remind Sara\" (reminder sent, ok toast) and \"Go to clause 7\" (scrolls to and lights clause 7); \"What Anna never sees\"; \"Something else to send?\" with \"The negotiation history\" and \"A Where we are page\" (each switches the letter, title and subject)",
+     "After Send: \"Sent to Anna Holm by email: clause 9, clause 11 and your note. Clause 7 stays here until Sara clears it.\"",
+     "Cancel closes the letter and the paper with the Redlines face comes back",
+     "Svenska: face words translated (Markeringar, Anteckningar, H\u00e4r nu, Runda 2 \u00b7 deras \u00e4ndringar kom f\u00f6r 4 dagar sedan, V\u00e4ntar p\u00e5 dig, Lina f\u00f6resl\u00e5r, Era utkast, Avgjorda i runda 1, verbs)",
+     "Redlines face fits beside the paper at 1440\u00d7780, 1536\u00d7730 and 1366\u00d7950: nothing past the panel edge, no sideways scroll, Send all in view; letter opened from Share fits at 1440\u00d7780",
+     "Tests: npm run lint 0 errors; f755\u2013f759 green; every re-pointed node test (f42, f92, f100, f178, f245, f246, f307, f310, f422, f453, f505, f676, f705, f711, f713) green; all 27 changed/new browser checks (piles-as-drawn, piles-second-pass, the-letter-as-drawn, letter-second-pass and the re-pointed ones) pass; f755\u2013f759 do not collide with main's numbers"
+    ],
+    "notes": "Worktree /home/user/wt/C2 at e7927a6 (gaps/C2), checked against base 8dc306a; nothing edited, committed or pushed. I seeded with seedWorkspace(h, {contracts:[MK-0382], approvalRules:[]}), admin@example.co.ke, then built the drawing's state: desk on (admin leads, Lina contributes), six of ours settled in round 1, their two asks four days old with reasons, their notes through the share's message route (topic 'change:<id>'), our notes, our draft on clause 9, Lina's suggestion on clause 5, Erik's lock on clause 11 and Erik and Lina present. For round 11 I added a counter on 11 at 45 days, a counter on 7 at 75% sent to Sara for review, and the one-time-code setting on for one run. Scripts are in /tmp/claude-0/-home-user-mkataba-clm/835f8077-5605-5fb0-98ee-477c1f55f19a/scratchpad/c2rev2 (seed.js, probeA\u2013E.js, letter*.js, screens.js, faces.js, rowsend.js); drawing captures are in the same folder (r9-unclip.png, r11-unclip.png, r9-says.txt, r11-says.txt).\n\nTest results: npm run lint has 0 errors. f755\u2013f759 and all 15 re-pointed node tests pass. All 27 changed browser checks pass. Nothing is test-red.\n\nNot listed, because they belong elsewhere:\n- The desk tabs row and top bar are out of scope.\n- The hint line under the ask boxes is lane A1's (answer 2).\n- Stage words are kept (answer 1).\n- Costs are said in calls (answer 4).\n- Playbook and Risks counts in the editor's rail depend on data: the seed has no standard for a liability cap.\n- \"Ask for review\" opening the review's existing door menu (Assign contributors / Send for review) is allowed by the brief (\"the same doors as elsewhere\").\n\nThe one-time-code sentence in the link line appears only when the company's link-code setting is on, which is correct. The number on the review gate (\\\"Send the other 3 now\\\") was checked after a real repaint of the face: the door then read \\\"Send all \u00b7 2 not sent\\\" and the letter listed 2 changes."
+   }
+  ]
+ },
+ "F": {
+  "passes": [],
+  "checks": [
+   {
+    "label": "check F #2",
+    "differences": [
+     {
+      "round": "24, 25, 26 (all of lane F)",
+      "part": "MAIN MOVED ON: bring origin/main in and follow its rules",
+      "drawn": "The brief says each lane merges origin/main (a merge commit) before the parts are combined, then follows main's newer rules. The old desk-tabs row is gone (\u2039 \u00b7 HA \u00b7 page name). Every door this build added lands through landOn (opened, scrolled into view, lit, presses nothing). Every Jambo box reads through caAskAnywhere first, with \"/\" (data-ca-slash).",
+      "built": "gaps/F has NOT merged origin/main: `git merge-base --is-ancestor origin/main HEAD` is false, and the branch is 66+ commits behind (origin/main is now a59a692, #348). The Settings pages still draw the old \"\u2039 The counter \u00b7 Settings \u00d7\" row. landOn does not exist on the branch, so the lane's doors use their own setView or drawer calls: Open it, a held contract's Open, Review, Change keeping, the card doors. Settings' Jambo box does not go through caAskAnywhere.",
+      "kind": "missing"
+     },
+     {
+      "round": "24 and 25",
+      "part": "The frame: Jambo's panel beside the page head",
+      "drawn": "Jambo's panel is a full-height column on the right, starting right under the app bar. The page head card (\"Your settings \u00b7 yours alone\u2026\" with Ask an admin, or \"Settings \u00b7 <company>\" with the You \u00b7 Company tabs) spans only the left columns, beside the panel.",
+      "built": "The head band (title, sub, tabs) runs across the whole width, over the panel's column. Jambo's panel is a card that starts below it: y\u2248192 on Company and on the admin's You, y\u2248136 on a member's You. The panel loses the head's height and is no longer beside the head.",
+      "kind": "different"
+     },
+     {
+      "round": "25",
+      "part": "Company at 1440\u00d7780 and 1366\u00d7950: Jambo's panel cut, then hidden under the tabs",
+      "drawn": "Jambo's panel and its ask box sit whole in the window while the long Company page scrolls beside it.",
+      "built": "Measured. At scroll 0 the panel is taller than the window: 1440\u00d7780 panel 192\u2192802, ask box bottom 795 > 780; 1366\u00d7950 panel 204\u2192978, ask box bottom 971 > 950. So the ask box is cut at the bottom. Scrolled to the end, the panel moves up under the sticky Settings head: panel top 146 against tabs bottom 176 at 1440, 152 against 188 at 1366. elementFromPoint on the panel's head then returns .st-faces, so \"Jambo \u00b7 Company settings \u203a\" is covered (photo review2-25-company-1366x950.png). 1536\u00d7730 fits.",
+      "kind": "overlap-or-cut"
+     },
+     {
+      "round": "25",
+      "part": "What a card door opens",
+      "drawn": "Every card door (Team, Who holds what, Roles, Add member, Everyone's signing limits, Who may sign in which stream, Turn a gate on, Who may redline, Link settings, Contract streams, Payment targets, Company design, Renewal reminders, Events out, Jambo's agents, Board words, The trail, Data & backup, Monthly report, Email & outbox, History integrity check, What to turn on next) is drawn as: \"Opens its page on the desk, with \u2039 Settings to come back.\" The Compare checklist also says \"every door opens a page with '\u2039 Settings'\".",
+      "built": "Only six doors open a page with \u2039 Settings: Team, Who holds what, Roles, Contract streams, The trail, Data & backup. Fifteen open a side drawer over a dimmed page: Add member, Everyone's signing limits, Who may sign in which stream, Turn a gate on, Who may redline, Link settings, Payment targets, Company design, Renewal reminders, Events out, Board words, Monthly report, Email & outbox, History integrity check, What to turn on next. \"Jambo's agents \u203a\" leaves Settings for Jambo's house (state.view 'jambo'), with no \u2039 Settings.",
+      "kind": "different"
+     },
+     {
+      "round": "25",
+      "part": "Card \"Before anyone signs\": the Signing limits fact",
+      "drawn": "\"Signing limits \u00b7 On, 8 people capped\"",
+      "built": "\"Signing limits \u00b7 On\". The number of people capped is not said, and no i18n key for it exists. Three people were capped in the seed.",
+      "kind": "missing"
+     },
+     {
+      "round": "25",
+      "part": "Card \"Jambo\": the day limit",
+      "drawn": "\"Jambo \u00b7 On \u00b7 SEK 400 a day at most\" (the market's currency). Owner's answer (4): Jambo's costs are said in CALLS, never in money.",
+      "built": "\"Jambo \u00b7 On \u00b7 $10 a day at most\" (\"h\u00f6gst $10 om dagen\" in Svenska): the engine's dollars. This is neither the drawing's market currency nor the calls answer (4) asks for.",
+      "kind": "different"
+     },
+     {
+      "round": "25",
+      "part": "Jambo's first words on Company",
+      "drawn": "\"Three things need you here: a clash in who may sign what, the quarterly access review, and two contracts ready to delete in Sales. Each row's button opens what settles it.\" Nothing more.",
+      "built": "\"Ten things need you here: a clash in who may sign what, the quarterly access review, two contracts ready to delete in Sales & Route-to-Market, a private stream no admin can see, Marketing & Brand and 6 more. Each row's button opens what settles it. One of them is a clash in who may do what: it warns, nothing is blocked.\" Two things differ. (a) An extra sentence follows the drawn words. (b) The unseen-stream phrase puts the stream's name after a comma (\"\u2026no admin can see, Marketing & Brand and 6 more\"), so it reads as a separate item. The drawing names a stream with \"in <stream>\".",
+      "kind": "different"
+     },
+     {
+      "round": "25",
+      "part": "Needs your attention: \"Ready to delete \u00b7 <stream>\" \u2192 Review",
+      "drawn": "\"Opens the Sales stream on its Keeping tab, with the two contracts listed. Nothing is deleted without your yes.\"",
+      "built": "Opens the stream's drawer on its Keeping tab. That tab shows only a count, \"Due now: 2 contracts \u00b7 Ended before 17 Oct 2016 \u00b7 1 held back by legal hold\", with a \"Review the list\" button. The two contracts are not listed (photo review2-26-change-keeping-1440x780.png).",
+      "kind": "different"
+     },
+     {
+      "round": "24",
+      "part": "Contents list: marks where you are",
+      "drawn": "\"the contents list marks where you are\". At the top of the sheet, \"When you're away\" is lit.",
+      "built": "Correct on load. After scrolling down and back to the very top (scrollTop 0), it lights \"Who you are\", not \"When you're away\" (photo review2-24-toc-top-after-scroll-1440x780.png). The cause is stTocSpy: its reading line is a third of the way down, and the short first section and the second section's heading are both above it, so the last one wins. Nothing treats scrollTop 0 as the first section.",
+      "kind": "broken"
+     },
+     {
+      "round": "24",
+      "part": "Signing in \u00b7 Devices",
+      "drawn": "\"2 signed in \u2014 this laptop and an iPad\": the devices said in words, once.",
+      "built": "Each session is listed one by one, so the same words repeat: \"10 signed in \u2014 this computer, a computer, a computer, a computer, a computer, a computer, a computer, a computer, a computer and a computer\" (admin), \"4 signed in \u2014 this computer, a computer, a computer and a computer\" (member). Devices of one kind are not said once with their count.",
+      "kind": "different"
+     },
+     {
+      "round": "24",
+      "part": "When you're away: the card of the person who is away (Compare's Jonas card)",
+      "drawn": "\"Maria Lindgren answers your approvals and internal reviews from Mon 12 Oct to Fri 23 Oct.\" then \"\u2026 Each thing Maria answers says 'for Jonas'.\"",
+      "built": "\"Amina Otieno answers your approvals and internal reviews from 18 Oct to 23 Oct 2026. \u2026 Each thing Amina Otieno answers says \u201cfor Unrestricted Legal\u201d.\" It uses full names where the drawing uses first names, unlike the Role row, which now says \"set by Amina\".",
+      "kind": "different"
+     },
+     {
+      "round": "24 (also 26's boxes)",
+      "part": "Closed dropdowns: Daily brief, A contract opens on (and the Streams / Data & backup filter boxes)",
+      "drawn": "A quiet box, about 28px tall, with a light hairline edge and a thin chevron.",
+      "built": "HaTi's selFace dress: a blue-grey 1px edge (rgb(113,135,174)) and a solid filled triangle. On the You sheet the box is only 22px tall; on Streams and Data & backup it is 28px.",
+      "kind": "different"
+     },
+     {
+      "round": "26",
+      "part": "Stream side panel: the acts row",
+      "drawn": "One row: \"Delete these 2\" (red) \u00b7 \"Change keeping\", with \"Close\" at the right end of the same row.",
+      "built": "\"Close\" wraps onto its own line under \"Delete these 2 \u00b7 Change keeping\", at all three screens (photos review2-26-streams-sales-*.png).",
+      "kind": "different"
+     },
+     {
+      "round": "26",
+      "part": "A held contract's Open, from the stream's side panel",
+      "drawn": "\"Opens the contract's details, where its hold is placed and released.\"",
+      "built": "Lands on the contract page's Details (Overview sheet). Nothing there shows the legal hold, or where it is released: the page text has no \"hold\", and its \u22ef menu lists only Overview, Where we are, History, Details, Analyze contract, Show on the map. Nothing is lit (photos review2-26-open-held-1440x780.png, review2-26-open-held-menu-1440x780.png).",
+      "kind": "different"
+     },
+     {
+      "round": "26",
+      "part": "Data & backup: Jambo's first chip",
+      "drawn": "\"download Q3 as a PDF\"",
+      "built": "\"download Q3 2026 as a PDF\"",
+      "kind": "different"
+     },
+     {
+      "round": "26",
+      "part": "Data & backup: Downloads so far, Who column",
+      "drawn": "Plain names (\"Sara Nystr\u00f6m\"), the same weight as the other cells.",
+      "built": "The names are bold (\"Amina Otieno\"); the other cells are regular.",
+      "kind": "different"
+     }
+    ],
+    "matched": [
+     "Round 24 head (member): \"Your settings \u00b7 yours alone \u2014 nobody else sees them\" with Ask an admin at the right. Pressing it opens the ask card in Jambo's panel (\"\u2026waits in their Needs you, and the answer comes back to your bell\").",
+     "Round 24: the eight drawn headings, in the drawn order, with When you're away first, for members (Editor) and the admin alike. A contents list on the left stays put while the sheet scrolls, and a press on an entry jumps to its section.",
+     "Round 24 in-row forms: Set it up (away), Name \u00b7 Change, Email \u00b7 Change, Password \u00b7 Change, Two-step \u00b7 Manage, Devices \u00b7 See them and Jambo's points \u00b7 See the table all open INSIDE their row (#st-rform), with no drawer. Away's Save is grey until it can act; Cancel is last.",
+     "Round 24 rows: Role \"Legal counsel \u00b7 Editor \u2014 set by Amina \u00b7 Ask an admin\"; Password \"Changed <day>\"; Two-step pill; Language English | Svenska; \"Dates and money \u00b7 Months follow your language. Numbers and money follow the market: Kenya, KES.\"; Daily brief \"Every morning\" (answer 10), The bell, Email; the Jambo's suggestions switch with \"The chips under his box\", which flips in place with a passing \"Saved \u2014 \u2026\" toast and no drawer; A contract opens on; \"Your own values \u00b7 0 of 11 agents and readings \u2014 the rest use the company's \u00b7 See the table\"; \"A copy of everything you can see \u00b7 One file, to keep. The download is recorded. \u00b7 Download\".",
+     "Round 24 stand-in box, verified live with an approval waiting on the away colleague: \"You answer for Unrestricted Legal until 23 Oct 2026. / Their approvals and internal reviews \u2014 never their signing. 1 waits now: Naivas Supermarkets's approval.\" Open it lands on Approvals & signing with that row chosen.",
+     "Round 24 the away person's own card: \"When you're away \u00b7 On until 23 Oct\", the stand-in sentence, \"It ends on its own. It never covers signing \u2014 that stays yours\u2026\", and Change \u00b7 End it now.",
+     "Round 24 Jambo side: head \"Jambo \u00b7 Your settings \u203a\"; the first message word for word; chips brief me once a week \u00b7 switch to Svenska \u00b7 turn off my suggestions, each preparing the change (\"Ready: \u2026 Not saved yet. Open it to save \u00b7 Discard \u00b7 Found without AI \u00b7 free\"); \"Company rules, such as signing limits, are Amina's to change. I can send Amina your question.\" with the ask an admin chip opening the ask card.",
+     "Round 25 head \"Settings \u00b7 Highland Corporate Ltd\". You \u00b7 Company are underlined tabs, and Company carries the Needs count (10), which equals Needs your attention's tag and Jambo's \"Ten things\".",
+     "Round 25 Needs your attention: two-line rows with dots and the row's own button at the right, under the sub \"each row's button opens what settles it\". The red clash row says \"\u2026may sign up to KES 10M; the approver, Unrestricted Legal, only up to KES 5M / a clash in who may do what \u00b7 since 18 Oct\" with \"Open Restricted Legal\" (answer 12 built: the day is kept on the server). The access review row says \"0 of 4 reviewed \u00b7 asked until the quarter is stamped\". \"6 more\" counts exactly the rows not drawn and opens them, with Show fewer.",
+     "Round 25 \"Open <name>\" (button and Jambo's chip): opens the person's drawer with the business role at the top and the limit lit (.st-lit). The clash and its two ways forward are said under the limit, and \"Back to Restricted's role\" sits beside Save, with Cancel last.",
+     "Round 25 access review Review/Continue: opens Who holds what in review mode (\"Reviewing \u00b7 Q4 2026 \u00b7 0 of 4 reviewed\", Keep \u00b7 Change per person).",
+     "Round 25 nine cards. The facts and door LABELS are as drawn: People & access (\"5 people \u00b7 1 admin \u00b7 2 roles\", \"1 invitation not accepted \u2014 Anna Holm\", Team \u203a Who holds what \u203a Roles \u203a Add member \u203a); Before anyone signs (Everyone's signing limits \u203a Who may sign in which stream \u203a); The agreement (Approval rules, Internal review; Turn a gate on \u203a Who may redline \u203a); Links you send (one fact, Link settings \u203a, answer 11); Your standards (company \u00b7 Kenya \u00b7 KES, \"6 streams \u00b7 1 private\"; Contract streams \u203a Payment targets \u203a Company design \u203a); What comes in; Jambo (Jambo's agents \u203a Board words \u203a); Housekeeping (\"Keeping \u00b7 2 of 6 streams have a period\", \"Last trail download \u00b7 18 Oct, by you\"; The trail \u203a Data & backup \u203a Monthly report \u203a); Going live & plumbing (Before going live, Email delivery; Email & outbox \u203a History integrity check \u203a).",
+     "Round 25 governance ladder: one rung a line with its bar, \"turn rules on in this order, as you grow \u00b7 next: \u2026\", the next gate bold with \"(next)\", and What to turn on next \u203a.",
+     "Round 25 Who holds what: count tag; \"the access sheet \u00b7 a row opens that person, their role at the top\"; See all N people \u203a; the drawn columns; \"any amount / admins are never capped\"; short money \"KES 10M \u00b7 role gives KES 5M\" in red; \"away until \u2026 \u00b7 Amina answers\"; \"N of 6 / not named on Marketing & Brand\"; the admin's row is the bare name.",
+     "Round 25 Jambo side: head \"Company settings\"; chips \"open Restricted Legal\", \"what should I turn on next?\" (answered free: Next: Company & market) and \"who can open Marketing & Brand?\" (1 person, named); the closing \"I find any setting and get a change ready; you press Save. A 'why' is an AI question\u2026\".",
+     "Round 26 Contract streams: \"Contract streams 6 \u00b7 + New stream\" (its own New stream form: \"A stream you add here is the company's\u2026\"); labelled filters Who may open \u00b7 Keeping \u00b7 Find; \"Streams 6 press a row to see it in the side panel\", with the note right after the count; columns Stream \u00b7 Who may open \u00b7 Contracts \u00b7 Kept after they end \u00b7 Due now (amber) \u00b7 On hold; no dots; the private stream with its lock badge, \"1 named \u00b7 not you\", \"not counted\", dashes.",
+     "Round 26 a row press shows the stream in the side panel. Head \"<stream> \u00b7 stream\"; the row lit with its edge bar. Facts: Who may open \u00b7 Contracts \u00b7 \"10 years, then listed to delete\" \u00b7 \"2 contracts \u00b7 ended before 17 Oct 2016\" \u00b7 \"1 \u00b7 held back\". The Due now table (Contract \u00b7 Party \u00b7 Ended; \"\u00b7 with 1 filed under it\") and the held row (\"Ended \u2026 \u00b7 on legal hold since \u2026 \u00b7 Amina Otieno \u00b7 never deleted or archived while held\" with Open). Delete these 2 is red; Change keeping opens the stream's Keeping tab with \u2039 Contract streams; Close brings Jambo back (his streams words); a double press opens the stream's own page. A private stream that does not name the admin shows nothing of its contracts.",
+     "Round 26 Data & backup: Housekeeping's door lands on The trail (tabs The trail | Backup in the head); From \u00b7 To \u00b7 Streams (\"All you can see\") \u00b7 As boxes and Download the trail; the count line with \"Marketing & Brand left out: you are not named\"; \"Downloads so far N \u00b7 each is itself in the trail \u00b7 recorded before the file leaves\"; When \u00b7 Who \u00b7 Period \u00b7 As \u00b7 Acts, with acts recorded on each download (13 for the October PDF). Jambo says the trail's count on both tabs, with chips \"\u2026as a PDF\" and \"what is a sealed PDF?\".",
+     "Three screens (1440\u00d7780, 1536\u00d7730, 1366\u00d7950): no sideways scroll on You, Company, Contract streams or Data & backup. The You sheet's Jambo panel fits whole at all three. The stream panel's acts stay inside the panel; it scrolls a little at 1440\u00d7780 and 1536\u00d7730, which the drawing allows.",
+     "Every new word is in Svenska on all four pages (read live in Svenska).",
+     "Tests: npm run lint has 0 errors (137 warnings). f780\u2013f789: 134/134 pass. settings-as-drawn-verify and settings-as-drawn-2-verify: ALL PASS. The re-pointed and neighbouring node tests f193, f600, f601, f691, f725, f726, f727, f232, f48, f561, f564 pass (399/399). The re-pointed browser checks settings-tabs, streams-and-data, company-control-room, one-sheet, white-band-and-tabs, clashes, access-review, settings-groups, when-youre-away, trail-export, control-room-in-full and payment-terms all exit 0 with 0 FAIL. No page errors in any of my drives."
+    ],
+    "notes": "I ran a real HaTi from /home/user/wt/F (gaps/F at 72f59b7). It used startHati and seedWorkspace(approvalRules: []), with these added:\n- four old Sales contracts: one an amendment filed under another, one on legal hold;\n- a 10-year keeping rule on Sales and on Marketing & Brand;\n- Marketing & Brand made private, naming only Restricted Legal, with an old contract in it;\n- a signing-limit clash with business roles: Sales gives 5M to Restricted, who holds 10M; Legal counsel goes to Unrestricted;\n- Unrestricted Legal away, with the admin as stand-in;\n- two trail downloads (CSV and PDF);\n- an invited member who has not signed in (Anna Holm);\n- later, an approval rule naming the away colleague, so the \"1 waits now\" line could be seen live.\n\nI compared these against the picked drawings: D/r24 option 2, D/r25 option 1, D/r26 option 3 scenes a and b (scene b via [data-sub-set=\"b\"]). I also read each drawn press's data-say text and the Compare tabs. Nothing in the worktree was edited, committed or pushed. My server is stopped.\n\nPrevious checker's 25 differences: all fixed except two, which stay as differences above:\n- the dollar day limit;\n- the held contract's Open, which now reaches Details but still shows nothing of the hold.\n\nNot listed, as the brief rules them out or they are sample data:\n- the hint line under Settings' ask box (A1's job, not merged here);\n- \"Every morning\" with no hour (answer 10);\n- no \"Named guests only\" fact (answer 11);\n- the desk-tabs row itself (out of scope; though see the MAIN MOVED ON difference: main removed it and the lane has not merged main);\n- names, KES vs SEK, dates and counts;\n- \"Back to Restricted's role\" instead of \"Back to her role\" (HaTi does not know gender).\n\nLooked at and judged within the drawing:\n- At 1536\u00d7730 and 1440\u00d7780 the stream panel's sticky acts cover the On legal hold card until the panel is scrolled. The drawing allows \"its side panel scrolls a little\", so this is not listed as a cut.\n\nProbe side effect:\n- My own PUT /api/settings to add the approval rule replaced the whole settings object, and turned signing limits off for a while. I restored them before the clash-drawer checks. Observations made in that window (the Svenska read) show a different set of needs. That is my doing, not the product's.\n\nNoticed, not part of the drawings (candidate BUGLOG lines):\n- In Svenska these pages use three words for \"stream\": \"fl\u00f6de\" (Contract streams, cards), \"aff\u00e4rsomr\u00e5de\" (Data & backup's Streams box and its count line) and \"Str\u00f6mmar\" (the Who holds what column).\n- \"1 namngivna \u00b7 inte du\" uses the plural for one.\n- Pressing the person drawer's limit says \"value streams\" and \"folders\" (\"Sees 2 of 6 value streams\", \"Every folder they can see\"), while Settings now says \"streams\".\n- On the Backup tab, Jambo still offers the trail chip \"download Q3 2026 as a PDF\", which acts on the other tab.\n\nCould not verify live:\n- whether the Company overlap at 1440\u00d7780 and 1366\u00d7950 is new in this lane or was already there at the parent 8dc306a. I did not run the parent."
+   }
+  ]
+ },
+ "G": {
+  "passes": [
+   {
+    "label": "rebuild G on main",
+    "built": [
+     "Merged the latest origin/main (a59a692, LAND ON IT, the new bar, Home's new name, caAskAnywhere) into gaps/G as a merge commit, resolving every conflict with main's behaviour kept.",
+     "Home's Jambo's work row is one row whose Open lands on the Board's Jambo's work card, lit (hbOpenAgent -> landOn), with NO list of pieces under it. The drawn head words stay: 'Jambo's work \u00b7 N prepared \u00b7 nothing sent or filed until you press', with whose work it is underneath.",
+     "Kept on Home as round 23 drew it: 'What do you need, <name>?', the box's words, the chips (the first owed row by its short name, then contracts \u00b7 calendar \u00b7 draft a new agreement, all one dress), 'Needs you \u00b7 N \u00b7 each row's button opens its page'. Needs you also lists your notes that are due and requests nobody holds, plus 'Answer an approval for X \u00b7 for X \u00b7 away until <day>', 'waiting N days' in words, and 'Show N more \u00b7 <names>' as the card's last line.",
+     "A note's 'Open note' and a request's 'Open request' on Home now land ON that row on My notes and on Requests, lit, through the one lander (cnLand -> landOn). If the row has gone, the app says so.",
+     "On the Board's Jambo's work card, where the pieces live now: Put away is the last act on EVERY piece, of every kind. Each act is named for what it does (Answer on Redlines, Fill in N details, Send the chase, Check the 3 files). A chase shows the email whole: To, Subject, the letter with the day in words, signed by the person, then 'It goes to the address on the contract. You are asked once more before it is sent.'",
+     "Under the agents' rows on the Board's card: the levels line 'All seven agents: Ask me first \u00b7 set by <admin> for everyone' (or by group and name where levels differ, and 'you chose \u2026' for a person's own level). An admin gets Change. A member gets Ask an admin, which sends the tracked settings ask from the Board and then says 'Asked <admin> \u00b7 waiting for an answer' where the button stood. The agents' status is fetched once so the line can be drawn.",
+     "Jambo's house: 'N waiting for you' on Your desk and in each room uses the same count as the Board's card and Home. A press lands on the Board's card, or on that agent's work below it for a room. The missing words for that door (jh_wait_open, jh_wait_open_p) were added in both books."
+    ],
+    "blocked": [
+     {
+      "gap": "The 'Look' button on each prepared piece (round 23: Look \u00b7 its act \u00b7 Put away, with Look opening the piece under its one-line row).",
+      "why": "LAND ON IT moved the pieces to the Board's Jambo's work card. That card draws each piece whole, under the owner's 7 Oct 'Below the card' ruling, so a chase's email is already in view and a Look button would open nothing new. Folding the Board's pieces to round 23's one-line rows would reverse that earlier ruling.",
+      "question": "On the Board's Jambo's work card, should each prepared piece fold to round 23's one line (agent tag, what it is, its reference, one sentence) with Look \u00b7 its act \u00b7 Put away? Or should it stay drawn whole as the Board draws it today, with the chase's email already showing?"
+     },
+     {
+      "gap": "'Jambo's house \u203a' at the end of the levels line.",
+      "why": "On the Board's card the house already has a door in the card's head ('The agents'). A second door to the same place on the same card goes against the one-door rule, and the 'Jambo's house \u203a' link was not in the list of parts to carry over.",
+      "question": "Should the levels line on the Board's card also end with 'Jambo's house \u203a' as drawn? Or is the card head's 'The agents' door enough, and if so should that door be renamed 'Jambo's house \u203a'?"
+     }
+    ],
+    "notDoneYet": [
+     "The one-line piece wording from the dropped in-place list ('A chase to Kettle & Co', 'Their insurance certificate is 5 days late. The first chase is ready \u2026') is gone with that list. It comes back only if the owner says yes to the Look question above."
+    ],
+    "tests": [
+     "/home/user/wt/G/test/f800-jambos-work-on-the-board.test.js (rebuilt; renamed from f800-a-piece-in-one-row)",
+     "/home/user/wt/G/test/f801-how-far-the-agents-may-go.test.js (sections 3 and 4 re-pointed to the Board's card, 3h and 5a added)",
+     "/home/user/wt/G/test/f803-the-counter-as-drawn.test.js (5a, 7c, 7d re-pointed; 3e added for the note and request landing)",
+     "/home/user/wt/G/test/f790-put-away-on-every-piece.test.js (unchanged, green)",
+     "/home/user/wt/G/test/f802-the-chase-letter-whole.test.js (unchanged, green)",
+     "/home/user/wt/G/test/f724-open-in-place.test.js (took main's version)",
+     "/home/user/wt/G/test/chromium/counter-as-drawn-verify.js (rebuilt: Home, the Board's card, the house, the three screens)",
+     "/home/user/wt/G/test/chromium/land-on-it-verify.js (re-pointed: 'jambo's work' and 'upload a document' are asked in Home's box, because Home's chips are now the drawing's)"
+    ],
+    "testResults": "npm run lint: 0 errors. Node, all green: f724, f790, f800, f801, f802, f803, f148, f399, f412, f413, f445, f450, f561, f564, f232, f48, f603, f667, f687, f705 (both files), f706, f707, f709, f732. Browser: counter-as-drawn-verify ALL PASS at 1440x780, 1536x730 and 1366x950 (no sideways scroll, nothing past a card edge, and the house's overlap audit clean). Also green: open-in-place-verify ALL PASS, land-on-it-verify ALL PASS after the re-point, agents-do-the-work 25/25, jambo-agents 76/76, home-and-recent all passed, jambo-everywhere ALL PASS, board-walkthrough-fixes 13/13, agents-page 46/46, theme-tokens 40/40. ink-wash is 169/170: its 'home' text-size count moved (12px 92 -> 96, the four parts of the new levels line). Red at unmodified main (a59a692, in a scratch worktree): 75 of 82 node claims in f790/f800-f803 fail. The 7 green there are controls (f801 1a and 1c, f790 4c, f802 1a, f800 3b, 6a, 7b). 23 browser claims fail at main; the green ones are main's own landing and the fit and setup checks. No f-number needed renumbering, because main uses up to f737 and this lane uses f790 and f800-f803.",
+    "censusMoved": true,
+    "commits": [
+     "69d2ac8 Merge origin/main into gaps/G: Jambo's work lands on the Board's card (LAND ON IT)",
+     "170dcd7 Jambo's work on the Board's card as round 23 drew it, rebuilt for LAND ON IT"
+    ],
+    "shots": [
+     "/home/user/wt-shots/G/main-23-home-1440x780.png",
+     "/home/user/wt-shots/G/main-23-home-1536x730.png",
+     "/home/user/wt-shots/G/main-23-home-1366x950.png",
+     "/home/user/wt-shots/G/main-23-home-foot-1440x780.png",
+     "/home/user/wt-shots/G/main-23-home-foot-1536x730.png",
+     "/home/user/wt-shots/G/main-23-home-foot-1366x950.png",
+     "/home/user/wt-shots/G/main-23-board-card-landed-1440x780.png",
+     "/home/user/wt-shots/G/main-23-board-card-1440x780.png",
+     "/home/user/wt-shots/G/main-23-board-card-1536x730.png",
+     "/home/user/wt-shots/G/main-23-board-card-1366x950.png",
+     "/home/user/wt-shots/G/main-23-board-chase-email-1440x780.png",
+     "/home/user/wt-shots/G/main-23-board-chase-email-1536x730.png",
+     "/home/user/wt-shots/G/main-23-board-chase-email-1366x950.png",
+     "/home/user/wt-shots/G/main-23-board-levels-1440x780.png",
+     "/home/user/wt-shots/G/main-23-board-levels-1536x730.png",
+     "/home/user/wt-shots/G/main-23-board-levels-1366x950.png",
+     "/home/user/wt-shots/G/main-23-board-levels-member-1440x780.png",
+     "/home/user/wt-shots/G/main-23-board-asked-member-1440x780.png",
+     "/home/user/wt-shots/G/main-23-note-landed-1440x780.png",
+     "/home/user/wt-shots/G/main-23-request-landed-1440x780.png",
+     "/home/user/wt-shots/G/main-23-house-1440x780.png",
+     "/home/user/wt-shots/G/main-23-house-1536x730.png",
+     "/home/user/wt-shots/G/main-23-house-1366x950.png"
+    ],
+    "mapLines": "REPLACE the MAP line \"- OPEN IN PLACE (round 23) REVERSED by LAND ON IT \u2026\" (keep its EACH PERSON CHOOSES half as it is) and add after it:\n- JAMBO'S WORK ON THE BOARD'S CARD, AS ROUND 23 DREW IT (rebuilt on LAND ON IT, 18 Oct 2026; answer (14)): Put away is the LAST act on EVERY piece (`agActsOf` -> `agPanelActs`; a desk row on the contract `deskDismiss(c,k,{undo})`, any other piece in this person's prefs `agentAwaySet`/`agAwayHeld`/`agAwaySubject`, Undo `AG_AWAY_UNDO_MS`, \"thrown\" only after Undo has passed). Acts are named for what they do (`agFillLeft` \"Fill in N details\", \"Check the N files\"). A chase's piece is the letter whole (`chaseMailOf`, js/sharemail.js, both hosts). Under the agents' rows: the levels line `hbAgLevelsHtml` (over `agLevelsSaid`, server `levelBy`); Ask an admin `hbLvAsk` -> `stAskDirect`/`stAskOpenOn`; status fetched once `hbAgLevelsWanted`. STALE: `cnJwPiecesHtml`, `cnJwLevelsHtml`, `cnLvAsk`, `counterOpenWork`, `agPieceTitle`, `agPieceLine`, `agRowActOf`, `agLookHtml`, `jhAgentColour`, `.cn-jw-*`. Tests: f790, f800, f801, f802, counter-as-drawn verify.\n- HOME AS ROUND 23 DREW IT: the row head \"\u00b7 N prepared \u00b7 nothing sent or filed until you press\" (`cnJwRowHtml`). Needs you whole (`cnRows`: notes due `mineNotesDue`, requests nobody holds `intakeAlertRows`, an approval answered for somebody away `approvalAnswersFor`). Chips: the first owed row (`cnNeedShort`, `cnNeedDoorAttrs`), then contracts \u00b7 calendar \u00b7 draft. \"Show N more \u00b7 <names>\" is the last line. A note or request row lands on its row (`cnLand` -> `landOn`). The house's \"N waiting for you\" (`counterWorkByAgent`, `jhLinkText`) lands on the Board's card (`hbOpenAgent`). Tests: f803, land-on-it verify (chips with no word of their own are asked in Home's box).",
+    "historyStory": "ROUND 23 REBUILT ON LAND ON IT (lane G, 18 Oct 2026, evening)\n\nThe owner reversed round 23's \"Open in place\" with LAND ON IT: \"when you click on jambos work, it should take you to the jambos work card in the board\" and \"remove the in-place list\". Their answer (14) during the gap build kept the Board's Jambo's work card. Lane G had already built the picked drawing whole on Home (then still called the Counter): each prepared piece as one row with Look \u00b7 its act \u00b7 Put away, Look on a chase opening the email, and the levels line under the pieces. So the lane was rebuilt on the latest main, merged in with a merge commit.\n\nWHAT MAIN KEPT. Home's Jambo's work row is one row whose Open lands on the Board's card, lit (hbOpenAgent -> landOn). There is no list under it. f724 took main's version. In jambohouse.js both sides had fixed the same overlap (a room's work line running into the agent's seat). Main's measured rule won: no work line where it would not clear the seat. The lane's \"N waiting for you\" link was fitted inside main's rule.\n\nWHAT MOVED TO THE BOARD'S CARD. The pieces live there now, so round 23's parts went with them. Put away was already the last act on every piece (agActsOf, which the card's agPanelActs draws). A chase's piece already showed the email whole, with the lane's one letter (chaseMailOf) and its foot line. The levels line was re-drawn under the agents' rows (hbAgLevelsHtml), with Ask an admin sent from the Board (hbLvAsk, the same settings_asks record) and Change for an admin. The status is fetched once (hbAgLevelsWanted; the latch is raised before the promise). The house's \"N waiting for you\" now lands on the card, or for a room on that agent's work below it. Those words had been printed raw: jh_wait_open and jh_wait_open_p were missing from both books on the lane's earlier pass, and are added now.\n\nWHAT WAS DROPPED. Everything that drew pieces in place: cnJwPiecesHtml, the Look state, CN_JW_MAX, counterOpenWork, cnStatusWanted, the in-place CSS, and the readings only that list used (agPieceTitle, agPieceRefHtml, agPieceLine, agRowActOf, agLookHtml, agChaseLookHtml, jhAgentColour). About 98 piece-row words (ag_pc_*, ag_ln_* except ag_ln_and) went from both books. None of it was ever on main.\n\nLANDING. Home's rows that this lane added (a note due, a request nobody holds) now land ON their row on My notes and Requests (cnLand -> landOn) and say so when the row has gone.\n\nTWO QUESTIONS LEFT FOR THE OWNER (not built): whether the Board's pieces should fold to round 23's one-line rows with Look (the Board draws them whole under the 7 Oct \"Below the card\" ruling, so the email is already in view); and whether the levels line should also carry \"Jambo's house \u203a\" when the card's head already has \"The agents\".\n\nMEASURED. The levels line is drawn only under the agents' rows. Its hairline is the card head's own (.12), because .1 was a new shade to theme-tokens-verify on four faces in both themes (no agent row had drawn it before). With .12 no colour moved. ink-wash's text-size census on the Board did move: 12px 92 -> 96, the line's four parts. It is left for integration to re-record. Red at main (a59a692): 75 of 82 node claims, 23 browser claims. land-on-it-verify had pressed Home chips that round 23's drawing replaces (\"jambo's work\", \"upload a document\"). It was re-pointed to ask those words in Home's box, the door every chip presses, and its landings are unchanged.",
+    "buglog": [
+     "Two wordings for one count: Home's Jambo's work row says 'N prepared \u00b7 nothing sent or filed until you press' (round 23's drawing) while the Board's card head says 'N ready \u00b7 nothing was sent or filed' (hm_ag_sub) \u2014 noticed while rebuilding lane G, not changed.",
+     "ink-wash-verify's 'no text size moved' counts how many elements wear each size, so any added line of text on the Board (or Home) turns it red until the census is re-recorded \u2014 noticed, not changed."
+    ],
+    "ownerSummary": "I brought the latest main into this lane and followed its new rule. When you press Open on Jambo's work on Home, you now land on the Jambo's work card on the Board, lit, and no list opens on Home. The other parts of round 23 that still fit are kept. On Home: the greeting, the chips, the fuller Needs you list and 'Show 3 more'. On the Board's card: Put away on every piece, a chase showing its whole email, and the line saying how far the agents may go, with Ask an admin. A note or request opened from Home now takes you straight to its row, lit, and the 'waiting for you' words in Jambo's house now take you to the Board's card. Two questions are waiting for you. Should the pieces on the Board fold into one-line rows with a Look button, as round 23 drew them? And should the levels line also have its own 'Jambo's house' link, when the card already has one? All checks pass, except one text-size count that has to be re-recorded when everything is combined."
+   }
+  ],
+  "checks": []
+ }
+}

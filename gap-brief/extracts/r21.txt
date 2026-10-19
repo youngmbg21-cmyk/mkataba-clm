@@ -1,0 +1,234 @@
+# Round 21, option 1
+
+## scene a
+Ha
+Lindqvist & Co AB
+English
+Svenska
+7
+ML
+‹ The counter
+Our paper
+×
+Builder
+×
+Our paper24 templates
+41 contracts drafted from them in 12 months · 9 came back changed
+New standard contract
+The book24
+Templates24
+Our standards6
+Find a template
+Company standard · 8
+Master services agreement
+v4 · used 14 · Sales
+5 changed
+Mutual NDA
+v2 · used 22 · Sales
+Supply agreement
+v3 · used 9 · Procurement
+3 changed
+Data processing agreement
+v2 · used 6 · Sales
+Framework agreement
+v1 · used 3 · Procurement
+Employment agreement
+v2 · used 4 · HR
+Power purchase agreement
+v1 · used 2 · Procurement
+Reseller agreement
+v1 draft · used 0 · Sales
+draft
+HaTi standard · 12
+Samples · 3
+Counterparty paper · 1
+Master services agreement
+v4
+Company standard · Sales · used 14 times in 12 months · 5 came back changed · updated 2 Sep by Maria
+Open in the builder
+Draft from it
+MASTER SERVICES AGREEMENT
+1. Services
+
+The Supplier provides the Services described in each statement of work signed by both parties.
+
+7. Liability
+
+Each party's total liability under this agreement is capped at the fees paid in the 12 months before the claim.
+
+Liability capped at 12 months' feesCame back changed 3 times
+11. Payment
+
+Invoices are payable within 30 days of the invoice date. Late payment carries interest under the Swedish Interest Act.
+
+Payment within 30 daysCame back changed 2 times
+18. Governing law
+
+This agreement is governed by Swedish law. Disputes go to the courts of Stockholm.
+
+Swedish law, Stockholm courts
+Jambo
+Master services agreement
+‹ Jambo
+›
+
+Master services agreement v4, from the record — nothing spent.
+
+Used 14 times in 12 months. 5 came back changed: clause 7 Liability 3 times, clause 11 Payment twice. It meets all 6 of Our standards.
+
+Next steps
+open it in the builder
+draft a contract from it
+where it came back changed
+Ask for anything, or type /
+Ask
+Typing never signs, sends or files — a press does.
+## scene b
+Ha
+Lindqvist & Co AB
+English
+Svenska
+7
+ML
+‹ The counter
+Our paper
+×
+Builder
+×
+Reseller agreement
+v1 draft
+Category
+Commercial
+▾
+Stream
+Sales
+▾
+Save draft
+Publish v1
+RESELLER AGREEMENT
+Parties
+
+This agreement is made between Lindqvist & Co AB, 556123-4567 (“the Supplier”), and reseller name (“the Reseller”).
+
+1. Appointment
+
+The Supplier appoints the Reseller as its non-exclusive reseller of the Products in the Territory. The Reseller buys and resells in its own name.
+
+2. Territory
+
+The Territory is territory. The Reseller shall not actively sell the Products outside the Territory.
+
+3. Orders and delivery
+
+The Reseller places orders in writing. The Supplier delivers within 10 working days of accepting an order.
+
+4. Prices and payment
+
+The Reseller buys at the Supplier's list price less discount per cent. Invoices are payable within 30 days of the invoice date.
+
+Payment within 30 days
+5. Liability
+
+Each party's total liability under this agreement is capped at the fees paid in the 12 months before the claim.
+
+Liability capped at 12 months' fees
+Jambo proposes · Confidentiality
+Add
+Skip
+
+Our standard: mutual, for 3 years after the agreement ends.
+
+Jambo proposes · Term and termination
+Add
+Skip
+
+Our standard: either party may end it on 90 days' written notice.
+
+6. Governing law
+
+This agreement is governed by Swedish law. Disputes go to the courts of Stockholm.
+
+Swedish law, Stockholm courts
+Jambo
+Builder
+‹ Jambo
+›
+Build
+Outline
+Playbook 4/6
+Blanks 3
+·
+Parties
+1 blank
+1
+Appointment
+2
+Territory
+1 blank
+3
+Orders and delivery
+4
+Prices and payment
+1 blank
+5
+Liability
++
+Confidentiality
+proposed
++
+Term and termination
+proposed
+6
+Governing law
+Blanks
+3
+
+Reseller name · territory · discount: asked of whoever drafts from it.
+
+Our standards
+
+4 of 6 met. Confidentiality and Term and termination are proposed on the paper.
+
+Ask for anything, or type /
+Ask
+Typing never signs, sends or files — a press does.
+
+## COMPARE
+Round 21 · Our paper, standards and the template builder
+
+This round decides how Our paper (the templates, the shelves and Our standards) and the template builder look on the desk. Each option draws both; use the small tabs under "‹ The counter", or the S key, to see the other. The builder is shown on a reseller agreement Maria is building from scratch.
+
+Everything stays: the three tabs, the one door to a new standard, the standards every contract is checked against and the playbook that learns, and in the builder Jambo proposing sections (never adding them himself), the playbook check and the blanks.
+
+The three ideas
+Option	The idea	When it wins	What it costs
+Paper first	You always see the paper. In Our paper the chosen template shows its own pages, with each of Our standards marked where it is met and where contracts came back changed. In the builder the paper fills the desk, Jambo's proposals sit on it in place, and the outline is a tab of his panel.	When people judge a template by reading it, and want to see the standards where they apply.	The list of templates becomes a narrow index. Marks on the paper are new to Our paper and need care so they never look like wording.
+Blocks	Everything as blocks you can see and move. Templates are cards on their shelf; Our standards are cards saying what we ask and what we accept, with the playbook's suggestion inside the card. In the builder the sections are the work surface: drag, add, write; the paper reads beside them.	When building and reordering a new template is the main job, and for people who think in structure first.	Cards show fewer templates per screen than a list. The builder's paper preview is narrow, so long clauses are read at a smaller size.
+The SAP way	Our paper is a list report: tabs and labelled filters in the band, a quiet table with "Our standards met" and "Came back changed". The builder has a header that stays one line (with "Show details" to open it), an outline column, the document, and Jambo's panel with the playbook check.	When templates are managed as a library, and the builder should read like every other object page.	The least new. The outline takes a column away from the paper on the iPad.
+My recommendation: The SAP way, with Paper first's marks
+
+Our paper is a library: a table with "Our standards met" and "Came back changed" answers "which template should I trust?" faster than cards or an index. In the builder, the one-line header keeps the paper exactly where it is today, the outline column is always visible, and Jambo's panel holds the playbook check beside the wording.
+
+From Paper first I would borrow the standard marks on the paper ("Payment within 30 days" ticked under its clause), shown in the builder only, so the check is beside the wording it is about.
+
+The page checklist
+Question	Paper first	Blocks	The SAP way
+Most important thing easiest to see?	Yes: the wording	Yes: the sections and what each still needs	Yes: the table's columns; in the builder the paper
+Related things grouped?	Yes: standards marked on their clause	Yes: templates and standards each on their shelf	Yes: outline, paper and check side by side
+Each label says what is behind it?	Yes	Yes	Yes
+Always know where you are, and the way back?	Same for all three: "‹ The counter", and Our paper and the builder both stay open as small tabs, so you can go back to the shelf without losing the template you are building. Draft from it lands on the New agreement form (round 4).
+What the checks changed
+
+The contract's pixels. The builder's header is one line in all three options, so the document's first line sits where it does today. Measured from the top of HaTi's bar: today 138 px at 1440 and 1536, 144 px on the iPad. The options: 137 px in all three options, at 1440, at 1536 and on the iPad, so the wording sits 1 px higher than today on the laptops and 7 px higher on the iPad. To keep it one line below 1400 wide, the Category and Stream boxes drop their labels (the values stay); the SAP way keeps them in "Show details".
+
+One door. New standard contract stays the one way to start a template, with its three starts. Draft from it opens the one New agreement form.
+
+Copilot prepares, a person decides. Jambo's proposed sections are never added without a press on Add. Writing a section's wording with Jambo says its cost first; adding our standard wording costs nothing.
+
+Fit. At 1536 × 730 the head card and Jambo's panel stay put; the template's paper and Our paper's lists scroll inside the desk, as a document and a list do today.
+
+Questions for you
+
+Marks on the paper (Paper first, and borrowed in my recommendation): small tags under a clause saying it meets one of Our standards, or that contracts came back changed there. They are not a band, but they are new words on the paper. Do you want them?
+
+The buttons on this page do not open anything yet. Each one says which round designs the page it leads to.

@@ -1,0 +1,1066 @@
+{
+ "A1": {
+  "passes": [
+   {
+    "label": "main into A1 (resumed)",
+    "built": [
+     "Finished the pass that the machine restart cut short. The merge of origin/main (the merge commit d2a4eb4, Explorer stages 1-5) was already committed. Fetching again showed main has not moved since 806049a, so there was nothing new to merge.",
+     "Checked that the merge fits main. The Brain's ask flow and lane list keep main's new Explorer parts and this lane's list-panel ask ('listask'). Explorer's page publishes main's new names next to this lane's hint-line readers (igHintKeys, igHintPaint). The f232, f561 and f564 checks agree.",
+     "Checked that the earlier passes' fitting still holds after this merge. The panel's doors go through one helper that calls landOn. The list panel's ask box asks caAskAnywhere first. The bar names the page with no desk-tabs row, and the hint line is under every Jambo box.",
+     "Checked main's new Explorer face, which is Home's map, with its new Findings tab beside Jambo. The hint line 'Typing never signs, sends or files \u2014 a press does.' sits right under the ask box, is in view and painted, with nothing scrolling sideways, at all three screens.",
+     "No code had to change in this pass: lint, the node tests and the browser checks were all green on the merged branch, so nothing new was committed."
+    ],
+    "blocked": [],
+    "notDoneYet": [],
+    "tests": [
+     "npm run lint",
+     "test/f804-jambos-list-panel.test.js",
+     "test/f805-the-hint-line.test.js",
+     "test/f806-negotiations-as-drawn.test.js",
+     "test/f807-approvals-as-drawn.test.js",
+     "test/f808-a-rule-question-carries-its-stamp.test.js",
+     "test/f809-the-person-panel.test.js",
+     "test/f810-one-conversation-two-places.test.js",
+     "test/f148-language.test.js",
+     "test/f387-the-list-inspector.test.js",
+     "test/f395-the-needs-you-checklist.test.js",
+     "test/f487-one-ask-record.test.js",
+     "test/f664-three-doors-on-every-list.test.js",
+     "test/f716-whose-move.test.js",
+     "test/f717-one-worklist.test.js",
+     "test/f720-parties-the-sap-way.test.js",
+     "test/f735-the-jambo-window-follows-the-ask.test.js",
+     "test/f232-a-guard-that-is-always-false.test.js",
+     "test/f48-sources-parse.test.js",
+     "test/f561-the-brain-keeps-up.test.js",
+     "test/f563-home-first.test.js",
+     "test/f564-the-lanes-say-the-same.test.js",
+     "test/f705-jambos-map.test.js",
+     "test/f705-needs-you-here.test.js",
+     "test/f730-imported-on-the-map.test.js",
+     "test/f736-answer-where-you-stand.test.js",
+     "test/f737-show-it-here-first.test.js",
+     "test/chromium/jambos-list-panel-verify.js",
+     "test/chromium/every-jambo-box-verify.js",
+     "test/chromium/approval-before-signing-verify.js",
+     "test/chromium/every-door-lands-on-home-verify.js",
+     "test/chromium/inspector-checklist-verify.js",
+     "test/chromium/inspector-verify.js",
+     "test/chromium/jambo-everywhere-verify.js",
+     "test/chromium/jambo-pill-and-window-verify.js",
+     "test/chromium/one-worklist-verify.js",
+     "test/chromium/overview-and-obligations-polish-verify.js",
+     "test/chromium/sap-lists-verify.js",
+     "test/chromium/land-on-it-verify.js",
+     "test/chromium/whose-move-verify.js",
+     "test/chromium/people-directory-verify.js",
+     "test/chromium/import-jambo-panel-verify.js",
+     "test/chromium/parties-sap-way-verify.js",
+     "test/chromium/home-and-recent-verify.js",
+     "test/chromium/answer-where-you-stand-verify.js",
+     "test/chromium/explorer-stage-one-verify.js",
+     "test/chromium/explorer-stage-two-verify.js",
+     "test/chromium/explorer-stage-three-verify.js",
+     "test/chromium/explorer-stage-four-verify.js",
+     "test/chromium/explorer-stage-five-verify.js",
+     "test/chromium/ink-wash-verify.js (census, compared with main)",
+     "test/chromium/theme-tokens-verify.js (census, compared with main)"
+    ],
+    "testResults": "Lint: 0 errors (137 warnings, none new). Node tests: 470 of 470 passed, 0 failed, across 26 files (the lane's f804\u2013f810 plus the existing files for the code it touches and main's new Explorer files). Browser checks: 23 of 23 passed on the merged branch, all with 'no page errors'. These were the lane's jambos-list-panel and every-jambo-box, the touched existing checks listed under tests, and main's explorer-stage-one to five. Colour census, measured against a temporary worktree at main 806049a (removed afterwards). ink-wash: 166/170 on main, 137/170 here. theme-tokens: 38/40 on main, 36/40 here. The differences are counts only on pages that now draw the hint line or the shared panel, plus on the templates page the house's existing #ig-dock shadow rgba(43,43,45,.35) and existing hairline values. There are no new tokens. The 4 ink-wash and 2 theme-tokens failures that are red on main itself are listed in the BUGLOG output. Nothing was re-recorded.",
+    "censusMoved": true,
+    "commits": [
+     "d2a4eb4 Merge origin/main into gaps/A1 (main moved on: Explorer stages 1-5) \u2014 already committed before the restart; this pass found nothing else to change, so no new commit"
+    ],
+    "shots": [
+     "/home/user/wt-shots/A1/main-r14-negotiations-1440x780.png",
+     "/home/user/wt-shots/A1/main-r14-negotiations-1536x730.png",
+     "/home/user/wt-shots/A1/main-r14-negotiations-1366x950.png",
+     "/home/user/wt-shots/A1/main-r14-negotiation-panel-1440x780.png",
+     "/home/user/wt-shots/A1/main-r14-negotiations-ask-1440x780.png",
+     "/home/user/wt-shots/A1/main-r14-negotiations-words-1440x780.png",
+     "/home/user/wt-shots/A1/main-r15-approvals-1440x780.png",
+     "/home/user/wt-shots/A1/main-r15-approvals-1536x730.png",
+     "/home/user/wt-shots/A1/main-r15-approvals-1366x950.png",
+     "/home/user/wt-shots/A1/main-r15-approvals-frame-1440x780.png",
+     "/home/user/wt-shots/A1/main-r15-approvals-frame-1536x730.png",
+     "/home/user/wt-shots/A1/main-r15-approvals-frame-1366x950.png",
+     "/home/user/wt-shots/A1/main-r15-approval-panel-1440x780.png",
+     "/home/user/wt-shots/A1/main-r15-approvals-words-1440x780.png",
+     "/home/user/wt-shots/A1/main-r15-signature-away-1440x780.png",
+     "/home/user/wt-shots/A1/main-r19-person-1440x780.png",
+     "/home/user/wt-shots/A1/main-r19-person-1536x730.png",
+     "/home/user/wt-shots/A1/main-r19-person-1366x950.png",
+     "/home/user/wt-shots/A1/main-r19-person-panel-1440x780.png",
+     "/home/user/wt-shots/A1/main-r19-party-panel-1440x780.png",
+     "/home/user/wt-shots/A1/main-r19-party-panel-1536x730.png",
+     "/home/user/wt-shots/A1/main-r19-party-panel-1366x950.png",
+     "/home/user/wt-shots/A1/main-hint-home-1440x780.png",
+     "/home/user/wt-shots/A1/main-hint-home-1536x730.png",
+     "/home/user/wt-shots/A1/main-hint-home-1366x950.png",
+     "/home/user/wt-shots/A1/main-hint-settings-1440x780.png",
+     "/home/user/wt-shots/A1/main-hint-settings-1536x730.png",
+     "/home/user/wt-shots/A1/main-hint-settings-1366x950.png",
+     "/home/user/wt-shots/A1/main-hint-import-1440x780.png",
+     "/home/user/wt-shots/A1/main-hint-import-1536x730.png",
+     "/home/user/wt-shots/A1/main-hint-import-1366x950.png",
+     "/home/user/wt-shots/A1/main-hint-counter-1440x780.png",
+     "/home/user/wt-shots/A1/main-hint-counter-1536x730.png",
+     "/home/user/wt-shots/A1/main-hint-counter-1366x950.png",
+     "/home/user/wt-shots/A1/main-hint-window-1440x780.png",
+     "/home/user/wt-shots/A1/main-hint-window-1536x730.png",
+     "/home/user/wt-shots/A1/main-hint-window-1366x950.png",
+     "/home/user/wt-shots/A1/main-hint-clause-editor-1440x780.png",
+     "/home/user/wt-shots/A1/main-hint-clause-editor-1536x730.png",
+     "/home/user/wt-shots/A1/main-hint-clause-editor-1366x950.png",
+     "/home/user/wt-shots/A1/main-hint-home-page-1440x780.png",
+     "/home/user/wt-shots/A1/main-hint-home-history-1440x780.png",
+     "/home/user/wt-shots/A1/main-hint-home-needs-1440x780.png",
+     "/home/user/wt-shots/A1/main-r16-hint-calendar-1440x780.png",
+     "/home/user/wt-shots/A1/main-r21-hint-builder-1440x780.png",
+     "/home/user/wt-shots/A1/main-hint-explorer-1440x780.png",
+     "/home/user/wt-shots/A1/main-hint-explorer-1536x730.png",
+     "/home/user/wt-shots/A1/main-hint-explorer-1366x950.png"
+    ],
+    "mapLines": "None this pass. The merge with Explorer stages 1\u20135 changed no lane MAP line. The lane's earlier MAP lines stand: in JAMBO, THE SAME ON EVERY PAGE, the list panel's ask box reads caAskAnywhere first and draws the hint line under it. In the Brain, the part 'listask' sits in the ask flow and the lane list beside main's new Explorer parts (mapwalk, pointsay, thennow, mappicture, findings).",
+    "historyStory": "A1 PASS 5 \u2014 MAIN MOVED ON AGAIN (Explorer stages 1\u20135), 18\u201319 Oct 2026. Origin/main took Explorer's five stages: the views say more, ask the map, Jambo explains, findings on the map, then and now with a picture. The merge (d2a4eb4, a merge commit, never a rebase) collided in two places, and both kept both sides. First, the Brain's 'ask' flow and its lane list carry main's new parts (mapwalk, pointsay, thennow, mappicture, findings, fdlist, fdpin, fddel, fdseen, fdsend, fdreply) and this lane's 'listask'. Second, Explorer's page (js/views/intelligence.js) publishes main's new names beside this lane's hint-line readers (igHintKeys, igHintPaint). A machine restart stopped the pass after the merge. The resumed pass fetched again: main had not moved past 806049a. Lint, 470 node tests and 23 browser checks (including main's five Explorer checks) were green on the merged branch with no change needed. Main's new Findings tab sits beside Jambo on Explorer's panel, and the hint line stays right under the ask box at 1440\u00d7780, 1536\u00d7730 and 1366\u00d7950. The colour census was measured against a temporary worktree at 806049a and audited as a set difference. ink-wash went from 166/170 on main to 137/170 here; theme-tokens from 38/40 to 36/40. Every ink-wash move is a count on a page that now draws the hint line or the shared panel. The templates page newly carries the house's existing #ig-dock shadow (rgba(43,43,45,.35)) and existing hairline values, because Our paper's list now wears the shared Jambo panel. No new token was added. Integration re-records once.",
+    "buglog": [
+     "Noticed, not fixed (A1 pass 5, 19 Oct 2026): ink-wash-verify and theme-tokens-verify are already red on main at 806049a, and neither is on KNOWN_RED. ink-wash fails 4 checks: green-dark and navy-dark home and calendar, 'color rgb(230,236,234) 209\u2192208' and the accent '24\u219225'. theme-tokens fails calendar--light and calendar--dark with one new translucent value each. The census was not re-recorded after a change on main."
+    ],
+    "ownerSummary": "I finished bringing the latest main into this lane's work: Jambo's panel beside the lists, Negotiations, Approvals & signing, People, and the hint line under every Jambo box. The merge with main's five Explorer stages had already been saved before the machine restarted, and main has not changed since. Nothing needed fixing after the merge: the code check, 470 automatic tests and 23 browser checks all passed. New photos at your three screen sizes show the lists, the panels and the hint line. They also show the line under Jambo's box on Explorer, next to the new Findings tab. Two colour checks are already failing on main itself. They are noted for whoever owns the colours, and nothing was re-recorded."
+   }
+  ],
+  "checks": []
+ },
+ "B1": {
+  "passes": [
+   {
+    "label": "main into B1",
+    "built": [
+     "Merged the latest origin/main (812 lines of Explorer stages 3 to 5: Jambo explains the view, findings on the map, then and now, copy picture) into gaps/B1 as merge commit d0b1277. There was nothing uncommitted beforehand: the worktree was clean at de47afd (pass 4).",
+     "Fixed two conflicts by keeping both sides. In js/brainmap.js, the 'ask' flow keeps main's new parts (mapwalk, pointsay, thennow, mappicture, findings, fdlist, fdpin, fddel, fdseen, fdsend, fdreply) and this lane's histsays and chosenpaper.",
+     "Fixed two conflicts in js/views/intelligence.js. Jambo's chips row under the panel still has the lane's held-contract guard (pdPanelChipsHtml: a page's own chips sit under its card, and a chosen paper has none), and it now also has main's Findings guard (!igFindingsShows()). The window exports keep the lane's wall names (igWallChoose, igWallShowMore, igWallLetGo, igHeldAskId, igWallValue and others) and add main's findings and picture names (igFindingsLoad, igFindingsShows, igAsOfRead, igPictureBlob and others).",
+     "Rules checked again after re-reading the merged CLAUDE.md. LAND ON IT and landOn, caAskAnywhere for the held ask box, the bar without the desk tabs row, and Home's new name were all fitted in pass 4. This main adds only Explorer rules, and none of them touches this lane's parts, so no further changes were needed.",
+     "Test numbers: main's highest is f737 (f730 to f737). This lane's f740 to f744 do not clash, so nothing was renumbered.",
+     "Took new photos of the lane's six screens (the chosen paper on the wall, a contract page, its History, a private contract's page and History, Details) at 1440x780, 1536x730 and 1366x950. They are in /home/user/wt-shots/B1/main-*.png (22 files, plus one 1440-only shot of History's wording)."
+    ],
+    "blocked": [],
+    "notDoneYet": [],
+    "tests": [
+     "test/f740-wall-chooses-a-paper.test.js",
+     "test/f741-jambo-says-the-chosen-paper.test.js",
+     "test/f742-the-page-at-a-glance.test.js",
+     "test/f743-history-as-drawn.test.js",
+     "test/f744-ask-about-the-page.test.js",
+     "test/chromium/home-held-contract-verify.js"
+    ],
+    "testResults": "npm run lint: 0 errors (137 warnings, as before). Node tests, all green in one run: f740, f741, f742, f743, f744 (the lane's), plus f148, f232, f380, f425, f426 (both), f442, f48, f483, f560, f561, f563, f564, f651, f678, f705 (both), f709, f714, f732, f736, f737. Browser checks, all green: home-held-contract (the lane's own, every scene at all three screens, no page errors), board-strip 67/67, code-names 11/11, contract-page 18/18, document-wall 17/17, every-door-lands-on-home 115/115, history-head 36/36, history-timeline 29/29, jambo-alive 14/14, late-open-stays-put 9/9, private-streams 36/36, two-sides 14/14, wall-of-papers 11/11. Main's checks for the merged code: explorer-stage-three 18/18, explorer-stage-four 20/20, explorer-stage-five 13/13, land-on-it 22/22, jambo-everywhere 23/23, home-and-recent 46/46. Nothing had to be re-pointed or loosened.",
+    "censusMoved": false,
+    "commits": [
+     "d0b1277 Merge origin/main into gaps/B1: Explorer stages 3 to 5 (findings on the map, then and now)"
+    ],
+    "shots": [
+     "/home/user/wt-shots/B1/main-13-chosen-paper-1440x780.png",
+     "/home/user/wt-shots/B1/main-13-chosen-paper-1536x730.png",
+     "/home/user/wt-shots/B1/main-13-chosen-paper-1366x950.png",
+     "/home/user/wt-shots/B1/main-7-page-glance-1440x780.png",
+     "/home/user/wt-shots/B1/main-7-page-glance-1536x730.png",
+     "/home/user/wt-shots/B1/main-7-page-glance-1366x950.png",
+     "/home/user/wt-shots/B1/main-12-history-panel-1440x780.png",
+     "/home/user/wt-shots/B1/main-12-history-panel-1536x730.png",
+     "/home/user/wt-shots/B1/main-12-history-panel-1366x950.png",
+     "/home/user/wt-shots/B1/main-pass4-7-page-private-1440x780.png",
+     "/home/user/wt-shots/B1/main-pass4-7-page-private-1536x730.png",
+     "/home/user/wt-shots/B1/main-pass4-7-page-private-1366x950.png",
+     "/home/user/wt-shots/B1/main-pass4-7-details-1440x780.png",
+     "/home/user/wt-shots/B1/main-pass4-7-details-1536x730.png",
+     "/home/user/wt-shots/B1/main-pass4-7-details-1366x950.png",
+     "/home/user/wt-shots/B1/main-pass4-12-history-two-rounds-1440x780.png",
+     "/home/user/wt-shots/B1/main-pass4-12-history-two-rounds-1536x730.png",
+     "/home/user/wt-shots/B1/main-pass4-12-history-two-rounds-1366x950.png",
+     "/home/user/wt-shots/B1/main-pass4-12-history-private-1440x780.png",
+     "/home/user/wt-shots/B1/main-pass4-12-history-private-1536x730.png",
+     "/home/user/wt-shots/B1/main-pass4-12-history-private-1366x950.png",
+     "/home/user/wt-shots/B1/main-pass4-12-history-wording-1440x780.png"
+    ],
+    "mapLines": "",
+    "historyStory": "B1, PASS 5: MAIN MOVED ON AGAIN (19 Oct 2026). Main's Explorer stages 3 to 5 were merged into gaps/B1 as a merge commit. There were two conflicts and both kept both sides. The brain's 'ask' flow kept main's map walk, findings and then-and-now parts beside the lane's histsays and chosenpaper. Jambo's chips row kept the lane's held-contract guard (a page's chips under its card, none for a chosen paper) and gained main's Findings guard. Nothing of the lane needed refitting: LAND ON IT, caAskAnywhere, the bar without desk tabs and Home's name were fitted in pass 4, and this main changed only Explorer. Lint, the lane's f740 to f744, the existing tests for the code it touches, and its browser checks were all green without re-pointing. So were main's Explorer stage 3 to 5 checks. The photos were taken again at the three screens (main-*.png).",
+    "buglog": [],
+    "ownerSummary": "I brought the newest version of the main app (the Explorer map updates) into this part of the redesign: the Contracts wall's chosen paper, the contract page and its History. Two spots had been changed on both sides. In each I kept both versions together: the map's new \"findings\" tab and this part's rule that a contract's own suggestion buttons sit under its card. Nothing in this part needed reworking, because the rules main added this time only concern Explorer. Every check passed, including Explorer's new checks. I took new photos on your two laptop sizes and the iPad: no overlaps, nothing cut off and no sideways scrolling."
+   }
+  ],
+  "checks": []
+ },
+ "B2": {
+  "passes": [
+   {
+    "label": "main into B2",
+    "built": [
+     "Brought main in. `git fetch origin main` and `git merge origin/main` said \"Already up to date\": main's tip is still 806049a (PR #351), and the lane's earlier merge commit 5780bc2 already contains it. There were no new conflicts to resolve.",
+     "Re-read the worktree's CLAUDE.md, which includes main's changed rules: LAND ON IT, HOME ONCE THE COUNTER, THE SAP WAY bar (\u2039 \u00b7 Ha \u00b7 page name, Recent), JAMBO THE SAME ON EVERY PAGE (caAskAnywhere), ANSWER WHERE YOU STAND, NOTHING OF THE LADDER ON THE PAPER, and A COUNTER THAT UNDOES PART OF THEIRS. Checked the lane against each one again.",
+     "LAND ON IT: every door this lane drew goes through `landOn` and presses nothing. That covers Go to it and Follow me (`igPaperGoClause`), \"all N\" and \"what needs me\" (`hbNeedsOpen` lands on `#cn-needs`), Open note (lands on the `[data-mn-row]` row), the figure doors, and Jambo's work (`hbOpenAgent` lands on the Board's `#hm-agents` card). Photographed lit at all three screens.",
+     "caAskAnywhere: the lane adds no ask box of its own. Home's panel box is the place caAskAnywhere hands work to, so there was nothing to route.",
+     "Home's new name and the new bar: everything the lane says on screen reads \"Home\" (`hb_jb_counter_*` in both books; the \"all N\" button's hover says \"on Home\"). None of its checks uses the old desk tabs row. On a computer the Board's head carries main's Light | Dark and the counting chip. The photos show main's \u2039 \u00b7 Ha \u00b7 Board \u25be bar.",
+     "Redlines rules: the lane draws nothing of the ladder on the paper and adds no counter rows, so neither Redlines rule touches it.",
+     "Test numbers: the lane's f745\u2013f749 are all above main's highest (f737), so nothing was renumbered.",
+     "Fixed one red. In f747 (6b) the 'Read today' fixture was built from Date.now(). The word reads the hour (before 06:00 counts as the night), so the check failed whenever it ran after midnight. It now uses fixed hours of today: noon must say 'Read today' and 03:00 must say 'Read overnight'. The check is stricter now, not looser. The product code is unchanged.",
+     "New photos at 1440\u00d7780, 1536\u00d7730 and 1366\u00d7950: Board, Board insights, insights hidden, figure picker, Jambo's work landed, panel beside a paper, panel after a question, and Follow me on Home's working paper. Measured at all three sizes: nothing past an edge, nothing cut, no sideways scroll. Follow me arrives on clause 11 with the face pressed (aria-pressed=true, is-following)."
+    ],
+    "blocked": [],
+    "notDoneYet": [
+     "The hint line under Jambo's box ('Typing never signs, sends or files \u2014 a press does.') is not on Home's panel in this lane. Lane A1 builds it through the shared builder; none of this lane's checks says it must be absent, so the two combine cleanly.",
+     "The colour census was not re-recorded (left to integration, as the brief says)."
+    ],
+    "tests": [
+     "test/f745-the-board-as-drawn.test.js",
+     "test/f746-what-each-figure-counts.test.js",
+     "test/f747-a-note-of-yours-here.test.js (6b fixed: fixed hours, not Date.now())",
+     "test/f748-the-glance-and-the-chips.test.js",
+     "test/f749-follow-me-on-home.test.js",
+     "test/chromium/board-as-drawn-verify.js",
+     "test/chromium/paper-panel-as-drawn-verify.js"
+    ],
+    "testResults": "npm run lint: 0 errors (137 warnings, none new). Node tests, 32 files run together (f745\u2013f749 plus f48, f232, f450, f454, f455, f456, f458, f459, f460 \u00d72, f561, f564, f603, f672, f675, f677, f679, f690, f705 \u00d72, f706, f707, f708, f719, f724, f736, f737): one red, f747 (6b), a check that depended on the hour; fixed, and now green (also green with TZ=Africa/Nairobi). Browser checks, 44 files, all PASS: the lane's two new ones (board-as-drawn, paper-panel-as-drawn), its 20 re-pointed ones, the 10 put back to main's, and main's rule checks (land-on-it, home-and-recent, jambo-everywhere, answer-where-you-stand, show-it-here-first, open-in-place, who-is-in-the-room, paper-line, jambo-alive, board-views, one-page-home-walk, draft-upload-glance). Colour census: ink-wash-verify and theme-tokens-verify are red at main's own tip 806049a (home and calendar dark, calendar in theme-tokens). The lane adds more red on top; see censusMoved.",
+    "censusMoved": true,
+    "commits": [
+     "275e973 Home gaps, pass 4: main brought in (already merged at 806049a); f747 no longer depends on the hour it runs"
+    ],
+    "shots": [
+     "/home/user/wt-shots/B2/main-17-board-1440x780.png",
+     "/home/user/wt-shots/B2/main-17-board-1536x730.png",
+     "/home/user/wt-shots/B2/main-17-board-1366x950.png",
+     "/home/user/wt-shots/B2/main-17-board-insights-1440x780.png",
+     "/home/user/wt-shots/B2/main-17-board-insights-1536x730.png",
+     "/home/user/wt-shots/B2/main-17-board-insights-1366x950.png",
+     "/home/user/wt-shots/B2/main-17-board-insights-hidden-1440x780.png",
+     "/home/user/wt-shots/B2/main-17-board-insights-hidden-1536x730.png",
+     "/home/user/wt-shots/B2/main-17-board-insights-hidden-1366x950.png",
+     "/home/user/wt-shots/B2/main-17-board-figure-picker-1440x780.png",
+     "/home/user/wt-shots/B2/main-17-board-figure-picker-1536x730.png",
+     "/home/user/wt-shots/B2/main-17-board-figure-picker-1366x950.png",
+     "/home/user/wt-shots/B2/main-17-board-jambos-work-landed-1440x780.png",
+     "/home/user/wt-shots/B2/main-17-board-jambos-work-landed-1536x730.png",
+     "/home/user/wt-shots/B2/main-17-board-jambos-work-landed-1366x950.png",
+     "/home/user/wt-shots/B2/main-3-panel-1440x780.png",
+     "/home/user/wt-shots/B2/main-3-panel-1536x730.png",
+     "/home/user/wt-shots/B2/main-3-panel-1366x950.png",
+     "/home/user/wt-shots/B2/main-3-panel-asked-1440x780.png",
+     "/home/user/wt-shots/B2/main-3-panel-asked-1536x730.png",
+     "/home/user/wt-shots/B2/main-3-panel-asked-1366x950.png",
+     "/home/user/wt-shots/B2/main-6-follow-me-on-home-1440x780.png",
+     "/home/user/wt-shots/B2/main-6-follow-me-on-home-1536x730.png",
+     "/home/user/wt-shots/B2/main-6-follow-me-on-home-1366x950.png"
+    ],
+    "mapLines": "",
+    "historyStory": "HOME GAPS, LANE B2 \u2014 PASS 4, MAIN BROUGHT IN (19 Oct 2026). When this pass ran, origin/main had not moved since the lane's last merge (5780bc2 had merged 806049a, which is still main's tip), so the merge was already up to date. The lane was then checked against main's new rules once more. Every door it drew lands through landOn: Go to it, Follow me, \"all N\", \"what needs me\", Open note, the figure doors and Jambo's work on the Board. It adds no Jambo box, so caAskAnywhere has nothing new to cover; its words say Home; none of its checks uses the desk tabs row; and its test numbers f745\u2013f749 sit above main's highest, f737. One red turned up, and it came from the lane's own check, not the product. f747 (6b) built its \"read today\" fixture from Date.now(), but the word reads the hour (before 06:00 is the night), so the check failed every night after midnight. The rule \"a test whose answer depends on the day it runs is worse than no test\" covers hours too. The check now uses fixed hours of today and tests both words. Lint, 32 node test files and 44 browser checks are green, and the screens were photographed again at the owner's three sizes. Colour census, compared with main: at 806049a ink-wash is red on home and calendar in the dark themes, and theme-tokens on calendar. The lane adds: text sizes moved on home (the Board's then-and-now table and head), one-element moves on signing, history and negotiate, and in theme-tokens two accent tints, rgba(38,76,158,0.28) and rgba(58,100,196,0.1), replacing four, on dashboard, register, contract and history. Left for integration to audit and re-record.",
+    "buglog": [
+     "Noticed, not fixed (19 Oct 2026): ink-wash-verify and theme-tokens-verify are already red at main's tip 806049a. In the green-dark and navy-dark themes the home and calendar counts each move by one (for example \"color rgb(230,236,234): 209 \u2192 208\"), and theme-tokens is red on calendar light and dark. Main's own change; nobody has re-recorded the census for it yet."
+    ],
+    "ownerSummary": "This round brought the newest version of the main app into the Home work (the Board, Jambo's panel beside a contract, and Follow me). The main app had not changed since the last time we did this, so nothing new had to be fitted in. I checked the Home work against the newest rules again. Every button it added still takes you straight to the right card and lights it. It says \"Home\", not \"the Counter\". Nothing in it relies on the old row of tabs. One of my own checks failed only when run after midnight, because it read the clock. I fixed the check so it gives the same answer at any hour; the product itself did not change. All the checks now pass, and new pictures of the Board, the panel and Follow me are taken at your two laptop sizes and the iPad."
+   }
+  ],
+  "checks": []
+ },
+ "C1": {
+  "passes": [
+   {
+    "label": "fix C1 #2 (resumed)",
+    "built": [
+     "MAIN MOVED ON: finished the interrupted merge of origin/main (806049a) into gaps/C1 as a merge commit. Main's LAND ON IT, SAP bar, Home rename and Explorer stages are kept alongside the lane's drawn parts. The lane's measured-money cost route and its brain line were left out of the merge, as answer (4) asks.",
+     "One sheet (round 4): the sheet no longer draws its own retired '\u2039 The counter \u00b7 New agreement \u00d7' crumb. The app's SAP bar names the page 'New agreement', and its \u2039 is the sheet's way out: if something was typed it asks first (as Cancel does), then returns to the page the reader asked from (deskSheetUp / deskSheetFrom / deskSheetBackTo / naSheetBack). Nothing arrives wearing a dark focus ring, because the sheet's title takes the focus.",
+     "One sheet step 3 'File it in': the streams are now separate buttons, each with its own edge, wrapping as whole buttons. While the stream is owed each button has the amber wash and amber edge.",
+     "Owner's answer (4): Jambo's costs are back in calls everywhere: 'Let Jambo fill the form \u00b7 1 Jambo call', 'When it is created, Jambo reads it: \u2026 \u2014 about three Jambo calls.', and Fill in's 'Read it now \u00b7 about three Jambo calls'. Removed GET /api/ai/call-cost, aiCostWords and AI_COST_EVENT, the callcost brain part and the money words in both books.",
+     "Owner's answer (5): empty owed boxes stay empty with the amber wash. pdFillExample, the 'e.g.' and 'A number' keys and datePickDress's data-ph example are gone; a date face says 'Pick a date'.",
+     "Fill in (round 8): the NDA's two facts carry the NDA editor's own names, 'Who keeps it secret' and 'Secret until' (det_f_nda_dir and det_f_nda_ends are now unused). '\u00b7 Confirm' is held to the sentence's last word, so it never sits on a line of its own.",
+     "Fill in: when base pay is owed it shows as the house's amber pill with its dot ('\u25cf not filled in yet \u00b7 needed before signing').",
+     "Fill in, private contract: the wait line now stands straight under the Pay card, with Jambo's small face, and the cost reads in lower case in the middle of the line.",
+     "Fill in and Before you sign: Jambo's perched face has its own row (the empty chips row keeps 44px). He sits in empty space and covers nothing of the face, at its top or its foot, at all three screens. That includes the foot's 'Change' button.",
+     "Fill in: the paper's size control '\u2212 100% +' stands on the paper's line while Fill in is open (.ig-zc-line), with nothing above the sheet. It goes back above the sheet when Fill in closes. Before you sign: the empty held row (IG_ZC_HOLD) is gone, so the signing copy now starts higher.",
+     "Fill in: the 'clause N' door lands on the paper's spot through the one lander landOn, and the cursor stays in the box.",
+     "Before you sign (round 10): a rule's approval and each named person's yes now each have their own stop, with their own states and buttons. The rule's stop is titled e.g. 'An admin's yes' (states Waiting \u203a Approved \u00b7 or Refused, Lapsed) and says what it covers ('The rule \u201c\u2026\u201d asks an Admin for a yes. It covers the wording as it stands and KES 8.10M; a change undoes it.'). Its buttons are Approve \u00b7 Refuse\u2026, 'Approve again' over a refusal, and 'Change and send again' for an editor, all through the lists' own door approvalDecideAsk. The pill counts what the road shows ('2 to settle'). Only one #sa-card is drawn per face. A rule step nobody approved leaves the road once signing has begun.",
+     "Before you sign: after the yeses are given, the other signer's stop really opens. 'Email their signing link' is live. The browser's link check (linkRefusal in core.js) was calling core.js's own legacy approvalState spend gate, so every contract over the threshold stayed refused with '\u201capproval\u201d is still waiting on an Admin'. It now reads the rule chain (window.approvalState).",
+     "Before you sign: the number on 'Ready to sign' matches what it names. A check that holds twice is named once with its count, e.g. '4 to settle: standards, promises (2), the brief'.",
+     "Receipt: 'What starts now' says obligations as drawn ('2 obligations, the first on 17 Jan 2027'; 'No obligations are recorded on this contract.') in both books. Once sealed, the column's old record ('executed and closed', approval gate, 'Signing order') is not drawn under the ticked road, so who signed when is said once.",
+     "Receipt: 'Open obligations' lands on the contract's own obligations through landOn.",
+     "The paper's line beside the signing copy keeps the name and party whole at 1366\u00d7950. On a line too short for everything, Notes and Share show only their icons; their words stay in the hover (container query on #ig-strip). Checked with a round number in the stage pill at all three screens.",
+     "Re-pointed existing checks, each with a reason in the file: f676, f706, f750, f753 (4), f754 (1b, 1c, 3b, 3c, 6a, 7a), one-sheet-as-drawn (1b, 7, 10), owed-first-as-drawn (1e, 7a, 9c), one-zoom (1a2, 4a\u20134c, 6), owed-first (3), fill-in-beside-the-paper (9), the-road (5a), approvals-reach-the-owner and stale-approver-tab. The last two now press the rule stop's own Approve/Refuse\u2026 instead of the column's buttons, which fold behind Show while a yes is framed."
+    ],
+    "blocked": [],
+    "notDoneYet": [
+     "The hint line 'Typing never signs, sends or files \u2014 a press does.' under the One sheet's Jambo box belongs to lane A1's shared builder (owner's answer (2)). This lane does not draw it.",
+     "Base pay's amber pill wraps onto two lines inside Fill in's Pay card, because the panel is narrower than the drawing's card. The drawing keeps it on one line.",
+     "At 1536\u00d7730 the road with two yeses waiting scrolls inside the panel, with both Approve buttons in view. The drawing's own Compare allows 35\u201341px of scroll there.",
+     "The yes card's money keeps HaTi's one shortener ('KES 8.10M') rather than the drawing's sample spacing ('SEK 8.1 M'). Sample data is out of scope.",
+     "The colour census moved; I did not re-record it. Census owner to audit."
+    ],
+    "tests": [
+     "test/f753-one-sheet-pass-two.test.js: (4) re-pointed to calls, never money; (4e) no route answers with a price; new (8) the sheet's way back is the bar's; new (9) streams as separate amber buttons",
+     "test/f754-fill-in-and-the-road-pass-two.test.js: (1b, 1c, 3b, 3c, 6a, 7a) re-pointed; new (8a\u20138f) Fill in third pass; new (9a\u20139j) the road third pass; new (10a) the words in both books",
+     "test/f750-one-sheet-as-drawn.test.js 3b (re-pointed: no crumb, the bar's way back)",
+     "test/f706-draft-one-sheet.test.js 3b (re-pointed: costs in calls)",
+     "test/f676-before-you-sign-beside-the-paper.test.js 9a (re-pointed: no row held above the signing copy)",
+     "test/chromium/one-sheet-as-drawn-verify.js (1b, 7a, 7b, 10a, 10b re-pointed; new 15)",
+     "test/chromium/owed-first-as-drawn-verify.js (1e, 7a, 9c re-pointed; new 8c, 9d, 9e, 10, 11a, 11b)",
+     "test/chromium/the-road-as-drawn-verify.js (new 8c, 9d\u20139f, 12a\u201312g, 13, 14)",
+     "test/chromium/one-zoom-verify.js (re-pointed 1a2, 4a\u20134c, 6 details/signing)",
+     "test/chromium/owed-first-verify.js 3, test/chromium/fill-in-beside-the-paper-verify.js 9, test/chromium/the-road-verify.js 5a (re-pointed: the paper moves only up when the face opens)",
+     "test/chromium/approvals-reach-the-owner-verify.js, test/chromium/stale-approver-tab-verify.js (re-pointed to the rule stop's own buttons)"
+    ],
+    "testResults": "npm run lint: 0 errors (138 warnings, as at main). Node: f750, f751, f752, f753, f754, f712, f706, f676, f710, f679, f360, f232, f48, f561, f564, f375, f463, f490, f581, f651, f698, f167, f466, f487, f50, f56, f582, f71, f79, f83, f84, f94 all pass. Red at base: copied into a pristine archive of 8dc306a, every new f753/f754 sub-test fails, except the reversal checks (f753 4a, 4c, 4e; f754 1b, 1c). Those were true at base by design, so they were proved red at the previous pass 6523b52, where every third-pass check fails. Browser, in C1: one-sheet-as-drawn, owed-first-as-drawn, the-road-as-drawn ALL PASSED. At base 8dc306a they fail 32, 4 (stopped early) and 21 checks; at 6523b52 they fail 5, 7 and 9 checks (the third-pass stages). Neighbours passing in C1: approval-before-signing, approvals-reach-the-owner 9/9, stale-approver-tab 10/10, blanks-panel, create-lands-clean, details-as-a-form, draft-from-a-sentence, draft-upload-glance, fill-in-beside-the-paper, fill-the-document, home-and-recent, jambo-alive, jambo-everywhere, land-on-it, nda-tail, new-agreement, one-paper-everywhere, one-sheet, one-zoom 26/26, owed-first, pay-section, sign-beside-the-paper 29/29, signing-flow, the-road, when-youre-away. Census checks: theme-tokens 38/40 and ink-wash 4 failures are already so on unmodified main 806049a (calendar and home dark scenes, faint accent wash); in C1 ink-wash has 17 failures, the extra 13 being counts moved in the document, signing and negotiate scenes, with no colour or text size new beyond main's.",
+    "censusMoved": true,
+    "commits": [
+     "07fc6a7 Merge origin/main into gaps/C1 (main moved on: LAND ON IT, the SAP bar, Home, Explorer stages 1-5)",
+     "d4cf843 One sheet, Fill in and Before you sign: the third pass of the gaps (rounds 4, 8, 10)"
+    ],
+    "shots": [
+     "/home/user/wt-shots/C1/4-one-sheet-pass3-sheet-1440x780.png",
+     "/home/user/wt-shots/C1/4-one-sheet-pass3-sheet-1536x730.png",
+     "/home/user/wt-shots/C1/4-one-sheet-pass3-sheet-1366x950.png",
+     "/home/user/wt-shots/C1/4-one-sheet-pass3-sheet-picked-1440x780.png",
+     "/home/user/wt-shots/C1/4-one-sheet-pass3-sheet-picked-1536x730.png",
+     "/home/user/wt-shots/C1/4-one-sheet-pass3-sheet-picked-1366x950.png",
+     "/home/user/wt-shots/C1/4-one-sheet-pass3-sheet-back-ask-1440x780.png",
+     "/home/user/wt-shots/C1/8-owed-first-pass3-fill-admin-MK-0405-1440x780.png",
+     "/home/user/wt-shots/C1/8-owed-first-pass3-fill-admin-MK-0405-1536x730.png",
+     "/home/user/wt-shots/C1/8-owed-first-pass3-fill-admin-MK-0405-1366x950.png",
+     "/home/user/wt-shots/C1/8-owed-first-pass3-fill-admin-MK-0406-1440x780.png",
+     "/home/user/wt-shots/C1/8-owed-first-pass3-fill-admin-MK-0406-1536x730.png",
+     "/home/user/wt-shots/C1/8-owed-first-pass3-fill-admin-MK-0406-1366x950.png",
+     "/home/user/wt-shots/C1/8-owed-first-pass3-fill-admin-MK-0407-1440x780.png",
+     "/home/user/wt-shots/C1/8-owed-first-pass3-fill-admin-MK-0407-1536x730.png",
+     "/home/user/wt-shots/C1/8-owed-first-pass3-fill-admin-MK-0407-1366x950.png",
+     "/home/user/wt-shots/C1/8-owed-first-pass3-fill-admin-MK-0410-1440x780.png",
+     "/home/user/wt-shots/C1/8-owed-first-pass3-fill-admin-MK-0410-1536x730.png",
+     "/home/user/wt-shots/C1/8-owed-first-pass3-fill-admin-MK-0410-1366x950.png",
+     "/home/user/wt-shots/C1/8-owed-first-pass3-fill-restricted-MK-0405-1440x780.png",
+     "/home/user/wt-shots/C1/8-owed-first-pass3-fill-restricted-MK-0405-1536x730.png",
+     "/home/user/wt-shots/C1/8-owed-first-pass3-fill-restricted-MK-0405-1366x950.png",
+     "/home/user/wt-shots/C1/10-the-road-pass3-road-default-waiting-1440x780.png",
+     "/home/user/wt-shots/C1/10-the-road-pass3-road-default-waiting-1536x730.png",
+     "/home/user/wt-shots/C1/10-the-road-pass3-road-default-waiting-1366x950.png",
+     "/home/user/wt-shots/C1/10-the-road-pass3-road-default-afteryes-1440x780.png",
+     "/home/user/wt-shots/C1/10-the-road-pass3-road-default-after2-1440x780.png",
+     "/home/user/wt-shots/C1/10-the-road-pass3-road-default-after2-1536x730.png",
+     "/home/user/wt-shots/C1/10-the-road-pass3-road-default-after2-1366x950.png",
+     "/home/user/wt-shots/C1/10-the-road-pass3-sealed-1440x780.png",
+     "/home/user/wt-shots/C1/10-the-road-pass3-sealed-1536x730.png",
+     "/home/user/wt-shots/C1/10-the-road-pass3-sealed-1366x950.png"
+    ],
+    "mapLines": "NEW AGREEMENT section, add: - THE SHEET'S WAY BACK IS THE BAR'S (the gaps' third pass, 18 Oct 2026): no crumb in the One sheet's head. The bar names it \"New agreement\" (`deskPageName` \u2192 `deskSheetUp`), and its \u2039 is the sheet's way out: asked first as Cancel asks, then the page asked from (`deskGoBack` \u2192 `naSheetBack` \u2192 `deskSheetBackTo(deskSheetFrom())`). The title takes the focus, so nothing arrives ringed. Step 3's streams are separate buttons, amber while owed. Jambo's costs are said in CALLS only (owner's answer (4)); STALE: `aiCostWords`, `AI_COST_EVENT`, GET /api/ai/call-cost, `na_file_read_money`, `ai_cost_about`, `data-na-counter`. Tests: f753 (4)(8)(9), one-sheet-as-drawn verify.\nTHE DETAILS TAB section, add: - FILL IN, THIRD PASS: empty owed boxes stay empty (owner's answer (5); STALE `pdFillExample`, `pd_ff_eg*`, datePickDress's `data-ph`). The NDA rows use the editor's own names `nda_f_dir`/`nda_f_ends` (`det_f_nda_*` unused), and \"\u00b7 Confirm\" stays with the sentence's last word (`.det-nda-tail`). Base pay owed is `pdPill('warn')`; the private wait line sits under Pay (CSS order 3, `pd-ff-wait-face`). Jambo's perch keeps its own 44px row beside Fill in and Before you sign. While Fill in is open, the size control is on the line (`.ig-zc-line`, `#ig-page:has(#pd-fillface)` hides `.paper-zc-row`). \"clause N\" lands via `landOn`. Tests: f754 (8), owed-first-as-drawn verify 8c\u201311.\nSIGNING section, add: - EACH YES AT ITS OWN STOP (round 10, third pass): `pdRoadRuleOf`/`pdRoadRuleHtml` draw the rule chain's next step beside each named yes (`pdRoadYesOf(c,row)`). Decisions go through `approvalDecideAsk` only while `approvalDecidableNow` says 'rule'; one `#sa-card` per face (`_pdRdId`). Ready's count names what it counts (`pdRoadCheckNames(keys,counts)`). The receipt says obligations and folds `#sign-side`. Nothing stands above the signing copy (`igZoomCornerHtml` returns ''); Notes and Share go icon-only on a short line (`@container igline`). Tests: f754 (9), the-road-as-drawn verify 12\u201314.\nSTANDING LESSONS, ES MODULES line, append: core.js still declares a legacy spend-gate `approvalState`, so a bare call inside core.js reaches it, not the rule chain. Ask `window.approvalState(c)` (linkRefusal; f754 9h).",
+    "historyStory": "## THE GAPS, C1 THIRD PASS \u2014 ONE SHEET, FILL IN, BEFORE YOU SIGN (18\u201319 Oct 2026)\n\nThe pass started where a machine restart had stopped the last one: half-way through merging origin/main (806049a). The brain map, Explorer's file and this history book were resolved but not staged, and the cost and example removals were not yet committed. The merge was finished as its own commit. Main's new parts were kept: LAND ON IT, the SAP bar \"\u2039 \u00b7 HA \u00b7 the page's name\", Home, and Explorer stages 1\u20135. The lane's measured-money cost route was not merged back in.\n\nThe checker's second list, built:\n\nROUND 4 \u2014 ONE SHEET. The sheet had been drawing its own copy of the retired desk-tab crumb (\"\u2039 The counter \u00b7 New agreement \u00d7\"). Main removed that row, so the crumb fell back to unstyled text. The way back is now the app's own: the bar names the sheet \"New agreement\", and its \u2039 is the sheet's way out. If something was typed it asks first, as Cancel does, then returns to the page the reader asked from. That page is the trail's last settled page when the sheet opened, so a page already in front is not opened twice. The dialog's focus trap used to ready its first button, which lit Cancel with a dark ring after an Enter; the sheet's title now takes the focus. Step 3's streams became separate buttons, amber while owed. The segmented box had broken across lines with dividers hanging at a line's end.\n\nTHE OWNER'S ANSWERS (4) AND (5). The second pass had built money costs (\"about KES 0.10\") through a ledger route and a dated USD rate, and \"e.g. \u2026\" examples in empty owed boxes. Both were taken out: the route, the reading, the event, the brain part, the words and the date face's data-ph. Costs are said in Jambo calls; owed boxes stay empty with the amber wash.\n\nROUND 8 \u2014 FILL IN. The NDA's facts now use the editor's own names (\"Secret until\"; det_f_nda_* left unused in both books). \"\u00b7 Confirm\" is held to the sentence's last word. Base pay owed is the amber pill with its dot. The private wait line stands under Pay with Jambo's face. The perch had floated over the cards once the chips row was zeroed; the empty row now keeps 44px, so he sits in empty space at every screen.\n\nThe drawn \"size in the head line, nothing above the paper\" is built by a sheet rule, #ig-page:has(#pd-fillface), so no paint has to follow the face. As a result the paper moves up by the zoom row's room (about 31px) when Fill in opens. That reverses round 8's Compare line \"opening the face moves nothing\" and the 11/13 Oct \"ONE ZOOM above the sheet\" ruling, for these two faces only. Round 6's drawing keeps the zoom above the sheet on Jambo's own face. Re-pointed: one-zoom, owed-first 3, fill-in-beside-the-paper 9, the-road 5a. The owner is told in the summary.\n\nROUND 10 \u2014 THE ROAD. With a value rule (the old \u22655M default applies when no rules are saved) and a named yes both waiting, the road had shown one generic stop, and the rule's approval had no stop of its own. Each yes now has its own stop. The rule's stop reads approvalState's chain (its next step), decides through approvalDecideAsk, offers Approve again and Change and send again as the column does, and is framed wherever the reader can act on it. The press for a named yes now finds the row its own stop names, so several approvers each work.\n\nA real fault turned up under the checker's \"already broken at base\". linkRefusal in core.js called a bare approvalState, which in an ES module is core.js's own legacy spend gate. That gate reads only c.approval, which the chain model never sets, so every signing link on a contract over the threshold stayed refused after the yes. It now asks window.approvalState. The server's link check never asked the approval, so only the browser was wrong.\n\nAlso built on the road: Ready's number now matches its names. The receipt says obligations and folds the column's old record. Open obligations lands through landOn. The empty row above the signing copy is gone. Beside the signing copy at 1366\u00d7950 with a round number in the pill, Notes and Share go icon-only (container query) so the name and party stay whole.\n\nLAND ON IT: \"clause N\" and Open obligations land through landOn, and the approval email already lands through main's HASH_GO. \"Use it\", \"Ask an admin\", \"What moved\" and \"Change\" are left as they are. They fill a box, send an ask, unfold in place or open the route editor's dialog; none sends the reader to another place.\n\nRe-pointed with reasons: f676, f706, f750, f753, f754, the three as-drawn checks, one-zoom, owed-first, fill-in-beside-the-paper, the-road, approvals-reach-the-owner, stale-approver-tab. The last two pressed the column's #ap-approve/#ap-reject, which now fold behind Show while the rule's own stop is framed.\n\nRED: every new check fails at 8dc306a. The reversal checks (calls, no examples) were proved red at the previous pass, 6523b52.",
+    "buglog": [
+     "Noticed, not fixed (C1, 18 Oct 2026): js/core.js still declares its own legacy spend-gate approvalState and approveContract and publishes both on window, next to js/approvals.js's rule-chain versions. A bare call inside core.js reaches the legacy one. linkRefusal's single call was fixed in this pass; the legacy approveContract (core.js, near line 1935) and the duplicate window names are left.",
+     "Noticed, not fixed (C1, 18 Oct 2026): theme-tokens-verify fails 'calendar--light/--dark \u2014 every colour unchanged', and ink-wash-verify fails the home and calendar dark scenes with a new faint accent wash (alpha 0.035). Both fail the same way on unmodified main 806049a; the census owner should audit."
+    ],
+    "ownerSummary": "I brought in the latest main and finished all three screens to match your picked drawings. On the new-agreement sheet the way back is now the arrow in the top bar, and the stream choices are separate buttons that show amber until you pick one. Jambo's costs are said in Jambo calls again, never money, and empty boxes you still owe stay plain amber with no \"e.g.\" examples, as you asked. On Before you sign, each approval the deal waits on now has its own step with its own Approve and Refuse buttons. That covers a value rule's approval as well as a named person's yes. I also fixed a real fault: once those approvals were given, the \"Email their signing link\" button stayed greyed out, and now it works. One trade-off to check: on Fill in and Before you sign the page now starts about 30px higher, because the zoom control moved onto the title line as drawn. You earlier ruled that the zoom sits above the paper \u2014 tell me if you want it back there."
+   },
+   {
+    "label": "main into C1",
+    "built": [
+     "Main checked: origin/main is still at 806049a (checked with git ls-remote), and gaps/C1 already holds it through merge 07fc6a7. 'git merge origin/main' said 'Already up to date', so no new merge commit and no conflicts. There was no uncommitted work in /home/user/wt/C1.",
+     "Checked the lane against main's rules: every door this lane drew either lands through landOn or opens a dialog (the questions' 'clause N' links, Open obligations after signing, Needs you's details/approval/refused/sign targets #pd-fillface [data-pd-owed=\"1\"], #sa-card and .pd-road-stop.is-now). The lane added no Jambo ask box of its own, so there was nothing new to route through caAskAnywhere. The sheet goes back through the SAP bar's \u2039 and is named 'New agreement' in the bar; no desk-tabs names are left in its code. The lane's test numbers f750\u2013f754 do not clash with main (main's highest is f737).",
+     "LAND ON IT for the One sheet's 'Change the ask' (a drawn part of round 4). It used to put the sentence back in Jambo's box with its own focus and no light. It now lands on the box through the one lander, by the box's name: landOn('#igd-input',{focus:false}).then(put). The name is needed because the panel draws its box again once the sheet closes. The sentence goes in and the cursor sits at its end.",
+     "Fixed a red language check (f148) caused by two of the road's words: 'N checks clear' is now a complete _one/_other pair (pd_rd_checks_clear \u2192 pd_rd_checks_clear_other in both books). 'pd_rd_ck_n' (\"{name} ({n})\", placeholders only) joins SAME_IN_BOTH.",
+     "Fixed a red f592: on the sheet, the card's count of questions keeps the name n (main's count is now nAll), so f592's pin on the card's words stands unchanged.",
+     "Re-pointed f349 (1d), with the reason written in the test. The one row builder pickRow now also draws the sheet's three closest as cards, and a third argument picks which look. The test now pins (r,best,card) and the list row's go \u00b7 stream. The hover is still asked once, by naCardTitle(r).",
+     "Rewrote the one-sheet-as-drawn check's header notes so they name Home's box and the SAP bar instead of the Counter and the desk tab. Each check still tests the same thing as before."
+    ],
+    "blocked": [],
+    "notDoneYet": [],
+    "tests": [
+     "test/f753-one-sheet-pass-two.test.js (10) \u2014 new: Change the ask lands through landOn('#igd-input') (red against main's and d4cf843's wizard.js)",
+     "test/chromium/one-sheet-as-drawn-verify.js step 16 \u2014 new: Change the ask leaves the sentence in Jambo's box, lit (is-landed), with the cursor at its end (FAIL at d4cf843, run in a temporary worktree; PASS now)",
+     "test/f753-one-sheet-pass-two.test.js 5a \u2014 re-pointed to the count's names n/nAll",
+     "test/f752-the-road-as-drawn.test.js 4c \u2014 re-pointed to pd_rd_checks_clear_other",
+     "test/f349-nine-off-five-images.test.js (1d) \u2014 re-pointed to the builder's card look",
+     "test/f148-language.test.js \u2014 SAME_IN_BOTH gains pd_rd_ck_n (placeholders only)"
+    ],
+    "testResults": "npm run lint: 0 errors (138 warnings, as before). Node tests, all green: f750\u2013f754 plus 69 related files: f4, f5, f8, f48, f71, f79, f83, f106, f116, f117, f126, f135, f140, f148, f150, f167, f170, f220, f232, f311, f325, f331, f332, f335, f344, f345, f349, f351, f360, f367, f368, f375, f390, f408, f445, f461, f463, f466, f487, f490, f561, f564, f56, f592, f650, f672, f673, f674, f676, f677, f678, f679, f691, f692, f694, f696, f698, f705 (both), f706, f707, f709, f710, f712, f724, f731, f736, f737. Before the fixes, f148 (2 checks) and f349 (1d) were red, and f592 became red after the f148 fix; all three are now green. 26 browser checks, all passed: one-sheet-as-drawn (now with step 16), owed-first-as-drawn, the-road-as-drawn, approval-before-signing, approvals-reach-the-owner, blanks-panel, draft-upload-glance, fill-in-beside-the-paper, fill-the-document, one-zoom, owed-first, sign-beside-the-paper, stale-approver-tab, the-road, upload-blanks, amendment-blanks-and-clauses, land-on-it, jambo-everywhere, home-and-recent, new-agreement, signing-flow, create-lands-clean, nda-tail, pay-section, details-as-a-form, jambo-behind-the-wall. After the last wizard.js change, one-sheet-as-drawn and new-agreement were run again and passed. The full suite was not run.",
+    "censusMoved": false,
+    "commits": [
+     "fd42425 One sheet, Fill in and Before you sign: main brought in again, fitted to its rules (rounds 4, 8, 10)"
+    ],
+    "shots": [
+     "/home/user/wt-shots/C1/main-sheet-1440x780.png",
+     "/home/user/wt-shots/C1/main-sheet-1536x730.png",
+     "/home/user/wt-shots/C1/main-sheet-1366x950.png",
+     "/home/user/wt-shots/C1/main-sheet-picked-1440x780.png",
+     "/home/user/wt-shots/C1/main-sheet-picked-1536x730.png",
+     "/home/user/wt-shots/C1/main-sheet-picked-1366x950.png",
+     "/home/user/wt-shots/C1/main-sheet-back-ask-1440x780.png",
+     "/home/user/wt-shots/C1/main-fill-admin-MK-0405-1440x780.png",
+     "/home/user/wt-shots/C1/main-fill-admin-MK-0405-1536x730.png",
+     "/home/user/wt-shots/C1/main-fill-admin-MK-0405-1366x950.png",
+     "/home/user/wt-shots/C1/main-fill-admin-MK-0406-1440x780.png",
+     "/home/user/wt-shots/C1/main-fill-admin-MK-0406-1536x730.png",
+     "/home/user/wt-shots/C1/main-fill-admin-MK-0406-1366x950.png",
+     "/home/user/wt-shots/C1/main-fill-admin-MK-0407-1440x780.png",
+     "/home/user/wt-shots/C1/main-fill-admin-MK-0407-1536x730.png",
+     "/home/user/wt-shots/C1/main-fill-admin-MK-0407-1366x950.png",
+     "/home/user/wt-shots/C1/main-fill-admin-MK-0410-1440x780.png",
+     "/home/user/wt-shots/C1/main-fill-admin-MK-0410-1536x730.png",
+     "/home/user/wt-shots/C1/main-fill-admin-MK-0410-1366x950.png",
+     "/home/user/wt-shots/C1/main-fill-restricted-MK-0405-1440x780.png",
+     "/home/user/wt-shots/C1/main-fill-restricted-MK-0405-1536x730.png",
+     "/home/user/wt-shots/C1/main-fill-restricted-MK-0405-1366x950.png",
+     "/home/user/wt-shots/C1/main-fillline-1440x780.png",
+     "/home/user/wt-shots/C1/main-fillline-1536x730.png",
+     "/home/user/wt-shots/C1/main-fillline-1366x950.png",
+     "/home/user/wt-shots/C1/main-road-default-waiting-1440x780.png",
+     "/home/user/wt-shots/C1/main-road-default-waiting-1536x730.png",
+     "/home/user/wt-shots/C1/main-road-default-waiting-1366x950.png",
+     "/home/user/wt-shots/C1/main-road-default-afteryes-1440x780.png",
+     "/home/user/wt-shots/C1/main-road-default-after2-1440x780.png",
+     "/home/user/wt-shots/C1/main-road-default-after2-1536x730.png",
+     "/home/user/wt-shots/C1/main-road-default-after2-1366x950.png",
+     "/home/user/wt-shots/C1/main-sealed-1440x780.png",
+     "/home/user/wt-shots/C1/main-sealed-1536x730.png",
+     "/home/user/wt-shots/C1/main-sealed-1366x950.png",
+     "/home/user/wt-shots/C1/main-line-1440x780.png",
+     "/home/user/wt-shots/C1/main-line-1536x730.png",
+     "/home/user/wt-shots/C1/main-line-1366x950.png"
+    ],
+    "mapLines": "In NEW AGREEMENT, DRAFT FROM A SENTENCE, THE FILL FORMS, after the ONE SHEET sentence, add: \"Change the ask (`#na-ask-again`) puts the sentence back in Jambo's box and lands on it through `landOn('#igd-input')` by name (the panel draws its box again once the sheet goes). Tests: f753 (10), one-sheet-as-drawn 16.\"",
+    "historyStory": "C1, FOURTH PASS \u2014 MAIN BROUGHT IN AGAIN (19 Oct 2026). origin/main had not moved past 806049a, which gaps/C1 already held (merge 07fc6a7), so the merge said \"Already up to date\". The pass checked the lane's drawn parts against main's newer rules instead. Every door the lane drew already landed through landOn or opened a dialog, and the lane had no Jambo box of its own. One drawn part of round 4 still went its own way: the One sheet's \"Change the ask\" put the sentence back in Jambo's box with a hand-rolled focus and no light. A first fix that passed the element itself to landOn never lit anything: the panel draws its box again once the sheet closes, so the element landOn was given was no longer on the page, and landOn kept waiting for it to appear. Naming the box ('#igd-input') lets landOn find the live box. The new browser step (16) failed at the lane's previous commit d4cf843 and passes now. Running the related node tests also turned up three reds the earlier passes had missed. f148: a plural word without its _other, and a placeholder-only word the same in both books. f592: the sheet's count renamed n1, which broke a pin on the card's words. f349 (1d): pinned the row builder's old two-argument form. All three were fixed or re-pointed with reasons. Nothing was left out.",
+    "buglog": [],
+    "ownerSummary": "Main has not changed since this lane last brought it in, so there was nothing new to merge. I checked the lane's three screens (drafting from a sentence, Fill in, Before you sign) against main's newer rules. One button did not follow them: \"Change the ask\" on the new-agreement sheet put your sentence back in Jambo's box without the light. It now lands on the box and lights it, like every other button. I also fixed three older checks that had gone red: two Swedish/English word entries and two checks that were tied to old code. All the related checks now pass, and I took new photos at your three screen sizes."
+   }
+  ],
+  "checks": []
+ },
+ "C2": {
+  "passes": [
+   {
+    "label": "fix C2 #2",
+    "built": [
+     "Brought main in (merge commit d47fadb) and followed its rules: nothing of the ladder on the paper or in the editor; our pending row says what of their change it keeps (main's keeps line is drawn on the pile rows); every door this lane added lands through landOn (rlLandOnClause, rlLandOnRow: \u2039 Redlines back to the row, Go to clause N, a note's clause link)",
+     "Clause editor from a row: the step chip is gone. A plain line says 'Your counter \u00b7 nothing is filed until you save' (ce_row_is_counter / ce_row_is_draft; ce_row_step_* inert). The head bar spans the window with a small quiet Exit at its far end, and the side panel's tabs sit below it",
+     "Ladder is a live verb on every row of Jambo's Redlines face. A press opens that clause's ladder under its row, one row at a time, and a second press folds it (rlFaceLadderHtml, rlLadderVerbHtml)",
+     "A row's 'N notes' opens that change's notes in the same panel, on the room that holds them. A line names the change, with 'All notes' to widen it again. Post files the note under that change (rlFaceNotesSet, rlFaceNotesRoomFor)",
+     "Discard last on our own side happens straight away, and the confirmation offers Undo for 8 seconds. Undo puts back exactly what went, but only if nothing else moved in the meantime, and the trail records both (rlDiscardUndo, RL_DISCARD_UNDO_MS). The other side's page still asks first",
+     "Verb colours on the piles: Accept, Counter, Ladder, Adopt, Hand back, Edit, Send and Review are in the accent ink. Reject and Discard last stay red. A locked verb keeps its grey",
+     "'Here now' faces in the head are filled circles with white initials, one house colour per person, overlapping (presence uses regAvatarTone)",
+     "A colleague's suggestion is marked on the paper with a dashed underline, apart from our own draft's solid mark",
+     "Head line: 'their asks came N days ago' shows only while the move is ours. Once our answer has gone, the line gives the round's own day",
+     "No review banner over the face's head. The 'Out for review' pile carries one Remind per review in its head, and each row keeps its own Cancel (rlReviewPileActsHtml, waitingInPile)",
+     "The pile with the other side is named for the party ('With Nordvik Logistik AB')",
+     "Send all on our side opens the letter with no review pop-up first. The letter's 'Clause N stays here' card is that answer (Remind \u00b7 Go to clause N)",
+     "Jambo's panel beside the letter holds cards only. The hand-over strip is gone from the letter, and the readiness strip became a card that counts its checks, with the list open and a blocking item keeping its tick box (readinessPanelHtml(c,{card:true}))",
+     "The letter and its panel fit at 1440\u00d7780, 1536\u00d7730 and 1366\u00d7950 without scrolling",
+     "Go to clause N keeps the letter waiting: the paper scrolls to the clause and lights it. The letter becomes the first row in main's Recent menu ('Letter, not sent'), and the card says 'Back to the letter', which brings it back as it was, typed note kept (pdSendWaitSet, deskRecentRows)",
+     "A blank line's gap before the letter's sign-off, as the email has it",
+     "Earlier pass's leftover: the 'Before you send' history preview was empty because the sidebar's count sweep wiped the history timeline's data-count. The sweep now touches only the sidebar's counts (updateSidebarCounts)",
+     "Earlier pass's leftover: pdRedHeadEndHtml (no caller) is retired and f676 was re-pointed",
+     "Both books of words (English and Swedish) for every new sentence, each beside its own area's keys"
+    ],
+    "blocked": [
+     {
+      "gap": "The editor line in the round 9 drawing says 'Step 2 \u00b7 your counter \u00b7 saved as you type, not sent'.",
+      "why": "The clause editor saves nothing until you press Save, and leaving asks first, so 'saved as you type' would be untrue. Main's newer rule also takes the step number away. I built the honest words, 'Your counter \u00b7 nothing is filed until you save'. Making the drawing's words true would mean a change to how the editor saves.",
+      "question": "Should the clause editor keep your counter automatically as you type, which would make the drawing's words true? Or should it keep today's words, 'nothing is filed until you save'?"
+     },
+     {
+      "gap": "Discard last on our own side now acts straight away and offers Undo for a few seconds, as the round 9 drawing says.",
+      "why": "This replaces your 9 Oct 2026 rule that 'Discard always asks first' (decision D3) on our side. The house rule says a part that reverses an earlier ruling of yours is asked before it merges. The other side's page still asks first.",
+      "question": "On your own side, should Discard last happen at once with Undo for a few seconds (as drawn), replacing the 9 Oct rule that Discard always asks first? If not, I will put the question back and keep the Undo off."
+     }
+    ],
+    "notDoneYet": [
+     "The colour censuses moved and were not re-recorded (the integrator re-records). In ink-wash, the Negotiate page's 'redline cards' buttons' checks moved because Counter and Edit went from violet to the accent ink, as the checker asked. Its other 10 reds (dark home, calendar and signing counts, text sizes) were already red at this pass's parent d47fadb. theme-tokens shows the same 4 reds (calendar and negotiate, light and dark) at the parent and now",
+     "notes-two-rooms-verify still has 3 checks red (acts row beside More, row verbs as bare words, quiet one ink). They are red in the same way at the parent, so they are not this lane's",
+     "Sentence-case clause names are only on the Redlines rows and the editor title, as drawn. Other screens keep their title case through clauseNameShown",
+     "The risk list stays off Jambo's Redlines face, as drawn. It is still on the Negotiate page by name, on the Clauses tab and on the editor's Risks tab"
+    ],
+    "tests": [
+     "test/f756-piles-as-drawn.test.js (8) 8a\u20138k: the face's ladder, row notes, Discard Undo, verb ink, Here now faces, suggestion mark, round line, review pile Remind, party pile name, editor head, landOn doors",
+     "test/f757-the-letter-screen.test.js (10) 10a\u201310f: no hand-over strip, readiness card, Send all to the letter, Go to clause keeps the letter, sign-off gap, the history preview keeps its rows",
+     "test/f758-the-face-row-and-the-send-tab.test.js (5) 5a\u20135c: the letter waits in main's bar and Recent menu",
+     "test/f759-piles-and-letter-words.test.js (5) 5a\u20135c: the third pass's words in both books, beside their area",
+     "test/chromium/redlines-third-pass-verify.js (new browser check, parts 0\u20135)",
+     "Re-pointed with a reason: test/chromium/discard-only-your-own-verify.js (section 3: Undo over asking on our seat), clause-editor-verify.js (row-mode head), notes-two-rooms-verify.js, piles-second-pass-verify.js, redlines-beside-the-paper-verify.js, the-letter-as-drawn-verify.js, letter-second-pass-verify.js, f310, f422, f456, f674, f676, f711, f733, f245, f756 (earlier blocks)"
+    ],
+    "testResults": "npm run lint: 0 errors (139 warnings, as before). Node tests f755\u2013f759, f310, f422, f456, f674, f676, f733, f711, f245, f610, f232, f48: 616/616 pass. f561, f564, f236: 26/26 pass. At this pass's parent d47fadb, every new block (f756 (8), f757 (10), f758 (5), f759 (5)) is red: 28 of 80 fail there. Browser checks green now: redlines-third-pass (all; red at the parent), discard-only-your-own 15/15, piles-as-drawn, piles-second-pass, piles, redlines-beside-the-paper 34/34, jambos-panel, who-is-in-the-room 22, follow-me 13, clause-editor 281/281, clause-door 125/125, ladder 91/91, the-letter-as-drawn, letter-second-pass, the-letter, round-delivery 34/34, sent-means-sent 36/36, send-after-refusal 6, share-recipient 52/52, named-guest 28, history-timeline 29, timeline 19/19, nego-redesign 48/48, redline 222/222, the-seat-decides 27, review-desk, review-gate-names 9/9, review-keeps-typed-terms 8/8, take-it-in-turns 27, flat-rows 53/53, risks-in-the-redlines, risk-card-titles, one-page-home-walk 19/19, next-step-chips 15, discard-keeps-sent 6/6, nda-carries-no-money 21/21, parity 42/42, signing-without-the-facts 26/26, six-fixes 30/30. notes-two-rooms 90/93 (the same 3 red at the parent). Colour censuses: theme-tokens 36/40 (the same 4 red at the parent); ink-wash red on its 10 checks that were already red at the parent, plus the Negotiate 'redline cards' buttons' checks, which moved by design.",
+    "censusMoved": true,
+    "commits": [
+     "d47fadb Merge origin/main into gaps/C2 (main moved on: LAND ON IT, the SAP way's bar, the ladder off the paper, a counter says what it keeps)",
+     "94a7e5b Redlines and the letter, third pass (rounds 9 and 11): the checker's differences, fitted to main's rules",
+     "d4789db Redlines and the letter, third pass: the checks, re-pointed checks, a locked verb's shade"
+    ],
+    "shots": [
+     "/home/user/wt-shots/C2/9-p3-face-1440x780.png",
+     "/home/user/wt-shots/C2/9-p3-face-1536x730.png",
+     "/home/user/wt-shots/C2/9-p3-face-1366x950.png",
+     "/home/user/wt-shots/C2/9-p3-ladder-1440x780.png",
+     "/home/user/wt-shots/C2/9-p3-ladder-1536x730.png",
+     "/home/user/wt-shots/C2/9-p3-ladder-1366x950.png",
+     "/home/user/wt-shots/C2/9-p3-rownotes-1440x780.png",
+     "/home/user/wt-shots/C2/9-p3-rownotes-1536x730.png",
+     "/home/user/wt-shots/C2/9-p3-rownotes-1366x950.png",
+     "/home/user/wt-shots/C2/9-p3-discard-undo-1440x780.png",
+     "/home/user/wt-shots/C2/9E-p3-editor-1440x780.png",
+     "/home/user/wt-shots/C2/9E-p3-editor-1536x730.png",
+     "/home/user/wt-shots/C2/9E-p3-editor-1366x950.png",
+     "/home/user/wt-shots/C2/11-p3-face-review-1440x780.png",
+     "/home/user/wt-shots/C2/11-p3-face-review-1536x730.png",
+     "/home/user/wt-shots/C2/11-p3-face-review-1366x950.png",
+     "/home/user/wt-shots/C2/11-p3-letter-1440x780.png",
+     "/home/user/wt-shots/C2/11-p3-letter-1536x730.png",
+     "/home/user/wt-shots/C2/11-p3-letter-1366x950.png",
+     "/home/user/wt-shots/C2/11-p3-goto-waiting-1440x780.png",
+     "/home/user/wt-shots/C2/11-p3-goto-waiting-1536x730.png",
+     "/home/user/wt-shots/C2/11-p3-goto-waiting-1366x950.png",
+     "/home/user/wt-shots/C2/11-p3-recent-1440x780.png",
+     "/home/user/wt-shots/C2/11-p3-history-1440x780.png",
+     "/home/user/wt-shots/C2/11-p3-history-1536x730.png",
+     "/home/user/wt-shots/C2/11-p3-history-1366x950.png"
+    ],
+    "mapLines": "Under THE TRACKED-CHANGES COLUMN (after PILES):\n- THIRD PASS (19 Oct 2026, lane C2): on Jambo's face Ladder opens the clause's ladder UNDER ITS ROW, one at a time, and the same press folds it (`rlFaceLadderHtml`, `rlLadderVerbHtml`); a row's \"N notes\" opens THAT change's notes in the face (`rlFaceNotesSet`, `rlFaceNotesRoomFor`, \"All notes\"); our seat's Discard last asks nothing, the toast carries Undo (`rlDiscardUndo`, `RL_DISCARD_UNDO_MS`, puts back only if nothing else moved; their seat still asks); the review pile carries Remind (`rlReviewPileActsHtml`, `waitingInPile`), no banner on the face; doors land through `rlLandOnClause`/`rlLandOnRow`. `pdRedHeadEndHtml` STALE. Tests: f756 (8), redlines-third-pass, discard-only-your-own verify.\nUnder THE SEND SCREEN (after THE LETTER):\n- Send all on our seat opens the letter (no review pop-up; the stays card answers it); readiness is a card (`readinessPanelHtml(c,{card:true})`), no hand-over strip on the letter; Go to clause N keeps the letter WAITING (`pdSendWaitSet`, first row of Recent `dk_kind_letter`, \"Back to the letter\"). Tests: f757 (10), f758 (5).\nUnder EDIT WITH COPILOT \u2014 THE CLAUSE EDITOR:\n- From a row: no step chip; `ceRowIsCounter` says \"Your counter \u00b7 nothing is filed until you save\" (`ce_row_step_*` inert); the head bar spans the window, a quiet Exit at its end. Tests: f756 8j, f759 (5).\nUnder THE SHELL:\n- The sidebar count sweep touches only the nav's counts (`updateSidebarCounts` skips a [data-count] outside the nav). Tests: f757 10f.",
+    "historyStory": "REDLINES AND THE LETTER, THIRD PASS (19 Oct 2026, lane C2). The second adversarial check found that gaps/C2 had not taken main in, and that 19 parts of rounds 9 and 11 still differed from the picked drawings. Main came in by a merge commit, and its rules (LAND ON IT, nothing of the ladder on the paper, a counter says what of theirs it keeps, the SAP-way bar with Recent) were followed throughout. On Jambo's Redlines face, Ladder now opens the clause's ladder under its own row, and a row's notes count opens that change's notes in the same panel rather than a drawer. Discard last on our side acts at once with Undo for eight seconds, built from a snapshot of the changes and the negotiation record. Undo restores it only if nothing else has moved since, and the trail keeps both lines. This reverses the 9 Oct decision D3 ('Discard always asks first') for our own seat only, and is asked of the owner before merging. The verbs on the piles moved from violet and grey to the accent ink. The 'Here now' faces became filled circles in the house's avatar colours, and a colleague's suggestion now wears a dashed underline on the paper. The 'their asks came' line shows only while the move is ours. The review banner left the face: its Remind moved into the 'Out for review' pile head. The pile with the other side is named for the party. On the letter, Send all now opens the letter instead of a review pop-up, the hand-over strip went, and the readiness strip became a card. Go to clause N keeps the letter waiting as the first row of the Recent menu, with 'Back to the letter' to return to it. The clause editor's 'saved as you type' line in the drawing was not true of the editor, which saves only on Save. Honest words were built ('nothing is filed until you save') and the owner is asked. An earlier leftover was traced: the 'Before you send' history preview was empty because the sidebar's count sweep emptied the history timeline, which also carries a data-count. The sweep now touches only the sidebar's own counts.",
+    "buglog": [
+     "Noticed, not fixed (19 Oct 2026, lane C2): Jambo's perch (jamboPerchMount) sits over the right edge of the Redlines face's rows and covers a pile's count pill at all three screens (seen at 1440\u00d7780 over 'Your drafts, not yet sent').",
+     "Noticed, not fixed (19 Oct 2026, lane C2): js/views/library.js passes the learned-standard Undo as action.run, but toast() only wires action.onClick, so that Undo button does nothing.",
+     "Noticed, not fixed (19 Oct 2026, lane C2): on the counterparty's page, the Discard question still shows the raw '#CHG-\u2026' reference in its title and doubled quote marks around the wording in its body.",
+     "Noticed, not fixed (19 Oct 2026, lane C2): the settled pile can say 'Settled in rounds 1\u20132' after round 3 was sent, even when everything in it settled in round 1.",
+     "Noticed, not fixed (19 Oct 2026, lane C2): main's rlJumpToClause still lights a clause with the old rl-arrived glow, not through landOn.",
+     "Noticed, not fixed (19 Oct 2026, lane C2): shareLetterPagePlace in js/core.js still looks for #dk-home, which main's SAP-way bar no longer draws (a stale reference; the letter still places correctly).",
+     "Noticed, not fixed (19 Oct 2026, lane C2): notes-two-rooms-verify has 3 checks red at the parent and now (acts row beside More, row verbs as bare words, quiet one ink)."
+    ],
+    "ownerSummary": "The Redlines panel beside the contract and the send screen now match your picked drawings, on top of the newest version of main. On the Redlines panel: Ladder opens under its own row, a row's notes open in the same panel, the action buttons share one colour, colleagues' faces are coloured circles, and a colleague's suggestion has a dashed underline on the paper. Discard on your own side now happens straight away with Undo for a few seconds, and Undo puts back exactly what went. On the send screen: Send all opens the letter, the strips became cards, and 'Go to clause 7' keeps your letter waiting, with 'Back to the letter' to return to it. I also fixed the empty history preview in 'Before you send'. Two things need your answer before this merges. First, the drawing says the clause editor saves as you type, but it saves only when you press Save, so I wrote honest words for now. Second, Discard acting at once with Undo replaces your 9 Oct rule that Discard always asks first; is that what you want? Everything is checked, photographed at your three screens, and committed on this lane's branch, not pushed. The colour checks moved because the buttons changed colour, and I did not re-record them."
+   },
+   {
+    "label": "main into C2",
+    "built": [
+     "Nothing new to merge: origin/main is still at 806049a, which was already merged into gaps/C2 in d47fadb. The worktree was clean, so there was nothing to commit first. I re-read the merged CLAUDE.md and checked every part this lane drew against the rules that changed.",
+     "LAND ON IT, the letter's \"Go to clause N\": when the letter is a plain dialog (opened away from Home, not beside Jambo), this button used to wait a fixed 400 ms and do a bare scroll, never landing on the clause. It now puts the dialog away, opens the Redlines (walls first), and lands on the clause through the one lander (rlLandOnClause, which calls landOn). Both ways of opening the letter now land the same way.",
+     "The SAP way's bar: the letter's page placement (shareLetterPagePlace) still looked for #dk-home, the host of the retired desk-tabs row. That lookup is gone and the page now sits straight under the bar.",
+     "Nothing of the ladder on the paper: round 9's own `noRungs` switch for Home's paper is removed, and Home's paper calls redlineDocHtml exactly as main does. Main's rlLadderChipHtml now draws only a pinned rung's reading with its way back, so the switch had become a second guard. It would also have hidden that way back while the paper showed an earlier step.",
+     "Already fitted in the earlier merge, confirmed this pass: Jambo's boxes (this lane added no new Jambo ask box; its only new box is the notes composer to people, so caAskAnywhere does not apply); no desk-tabs row or old \"Counter\" name in this lane's words or checks (the checks read #dk-page and Recent); test numbers f755\u2013f759 do not clash with main (main's highest is f737), so nothing was renumbered.",
+     "Checks: f756 6c re-pointed to main's ladder rule; f676's Their-view line restored to main's exact line; new f757 10g (Go to clause goes through the lander, no fixed pause; the letter page does not look for the desk-tabs row); new part 6 in redlines-third-pass-verify (the letter as a dialog: Go to clause 7 lands on the clause on Home's paper and the dialog is put away). Two unused file reads removed from f756.",
+     "Commit 4a22021 on gaps/C2 (not pushed)."
+    ],
+    "blocked": [],
+    "notDoneYet": [
+     "The \"Go to clause N\" button does not pass a 'missing' sentence to the lander. The clause it names always carries the change, so it is always on the paper. No existing sentence fits, and I did not invent one."
+    ],
+    "tests": [
+     "test/f756-piles-as-drawn.test.js (6c re-pointed)",
+     "test/f757-the-letter-screen.test.js (10g new)",
+     "test/f676-before-you-sign-beside-the-paper.test.js (restored to main's line)",
+     "test/chromium/redlines-third-pass-verify.js (part 6 new)"
+    ],
+    "testResults": "npm run lint: 0 errors (139 warnings; the source ones are main's own, and the lane's two in f756 are fixed). Node, in one run, all green (exit 0): every test file the lane changed against main (f42, f92, f100, f178, f245, f246, f307, f310, f422, f453, f456, f505, f674, f676, f705-needs-you-here, f711, f713, f733, f755\u2013f759), plus f561, f564, f570, f734, f232, f48. Browser, all green: redlines-third-pass (with new part 6), piles-as-drawn, piles-second-pass, the-letter-as-drawn, letter-second-pass, the-letter, piles, redlines-beside-the-paper 34/34, ladder 91/91, copilot-answer-on-paper 14/14, share-recipient 52/52. Red at the previous commit (d4789db, in a throwaway worktree): f756 6c and f757 10g both fail; redlines-third-pass part 6b fails (the clause is never landed, `landed: null`). Photos at 1440\u00d7780, 1536\u00d7730 and 1366\u00d7950: nothing scrolls sideways, nothing runs past Jambo's panel, no page errors.",
+    "censusMoved": false,
+    "commits": [
+     "4a22021 Redlines and the letter, fourth pass: fitted to main's rules (main unchanged since 806049a)"
+    ],
+    "shots": [
+     "/home/user/wt-shots/C2/main-9-face-1440x780.png",
+     "/home/user/wt-shots/C2/main-9-face-1536x730.png",
+     "/home/user/wt-shots/C2/main-9-face-1366x950.png",
+     "/home/user/wt-shots/C2/main-9-ladder-1440x780.png",
+     "/home/user/wt-shots/C2/main-9-ladder-1536x730.png",
+     "/home/user/wt-shots/C2/main-9-ladder-1366x950.png",
+     "/home/user/wt-shots/C2/main-9-rownotes-1440x780.png",
+     "/home/user/wt-shots/C2/main-9-rownotes-1536x730.png",
+     "/home/user/wt-shots/C2/main-9-rownotes-1366x950.png",
+     "/home/user/wt-shots/C2/main-9-discard-undo-1440x780.png",
+     "/home/user/wt-shots/C2/main-9E-editor-1440x780.png",
+     "/home/user/wt-shots/C2/main-9E-editor-1536x730.png",
+     "/home/user/wt-shots/C2/main-9E-editor-1366x950.png",
+     "/home/user/wt-shots/C2/main-11-face-review-1440x780.png",
+     "/home/user/wt-shots/C2/main-11-face-review-1536x730.png",
+     "/home/user/wt-shots/C2/main-11-face-review-1366x950.png",
+     "/home/user/wt-shots/C2/main-11-letter-1440x780.png",
+     "/home/user/wt-shots/C2/main-11-letter-1536x730.png",
+     "/home/user/wt-shots/C2/main-11-letter-1366x950.png",
+     "/home/user/wt-shots/C2/main-11-goto-waiting-1440x780.png",
+     "/home/user/wt-shots/C2/main-11-goto-waiting-1536x730.png",
+     "/home/user/wt-shots/C2/main-11-goto-waiting-1366x950.png",
+     "/home/user/wt-shots/C2/main-11-goto-from-dialog-1440x780.png",
+     "/home/user/wt-shots/C2/main-11-recent-1440x780.png",
+     "/home/user/wt-shots/C2/main-11-history-1440x780.png",
+     "/home/user/wt-shots/C2/main-11-history-1536x730.png",
+     "/home/user/wt-shots/C2/main-11-history-1366x950.png"
+    ],
+    "mapLines": "THE SEND SCREEN, add to THE LETTER line: the stays card's \"Go to clause N\" lands through the one lander (`rlLandOnClause` \u2192 `landOn`) whichever way the letter is open: beside Jambo (the letter waits, `pdSendWaitSet`) or as a plain dialog (put away, `openRedlineWorkbench`, walls first). Never a fixed pause. The letter's page sits straight under the bar (`shareLetterPagePlace`; `#dk-home` STALE there). Tests: f757 10g, redlines-third-pass verify 6.\nTHE CLAUSE PANEL AND THE LADDER, add to the NOTHING OF THE LADDER ON THE PAPER line: Home's paper adds no switch of its own (`noRungs` STALE); `rlLadderChipHtml` is the one decider, and the ladder beside Home's paper (`rlFaceLadderHtml`, `editor:true`) offers no \"Read as it stood\". Tests: f756 6c.",
+    "historyStory": "REDLINES AND THE LETTER, THE FOURTH PASS: FITTED TO MAIN (19 Oct 2026). The owner asked for the latest main to be brought into each lane before the parts are combined. For lane C2 (rounds 9 and 11), origin/main was still at 806049a, already merged in d47fadb, so there was nothing new to merge. The pass re-read the merged CLAUDE.md and checked every part the lane drew against the rules that changed. Three things did not fit. (1) LAND ON IT: the letter's \"Go to clause N\", when the letter was a plain dialog (opened away from Home), still opened the Redlines and jumped to the clause after a fixed 400 ms, with main's old `rl-arrived` glow and not the one lander. It now goes through `rlLandOnClause` (which calls `landOn`), which waits for the clause in a bounded way and lights it the one way. In a real browser at the previous commit (d4789db) the clause was never landed on; now it is, with the dialog put away and the Redlines face beside the paper. (2) THE SAP WAY'S BAR: the letter's page still looked for `#dk-home`, the retired desk-tabs host. Since that row is gone the lookup always came back empty, so it was removed and the page sits under the bar. (3) NOTHING OF THE LADDER ON THE PAPER: round 9 had added a `noRungs` switch to hide step chips on Home's paper. Main's later rule makes `rlLadderChipHtml` draw only a pinned rung's reading with its way back, so the switch had become a second guard. It hid only the chip and not main's baseline line, so if a rung were ever pinned it would have shown an earlier step with no way back. It is removed, and Home's paper calls the renderer exactly as main does. No test numbers clash (lane f755\u2013f759; main's highest is f737). This lane added no new Jambo ask box, so `caAskAnywhere` did not apply.",
+    "buglog": [
+     "Main's own \"Answer\" button on the deal panel (pdGoClause in js/paperdesk.js) and rlJumpToClause (js/views/negotiation.js) still bring a clause up with a hand-rolled glow (`rl-arrived`) and a polling wait, not the one lander `landOn` that LAND ON IT asks for. Noticed while fitting lane C2's \"Go to clause N\"; not fixed (main's doors, not this lane's)."
+    ],
+    "ownerSummary": "There was nothing new to bring in: main has not changed since this part last took it in. So I checked the Redlines column and the letter against main's newer rules and fixed the three places that did not follow them. First, \"Go to clause 7\" on the letter's card now always takes you to the clause and lights it, the same way every other button does, even when the letter was opened somewhere other than Home. Second, the letter no longer looks for the old row of page tabs, which main removed. Third, a leftover switch that hid ladder steps on the paper is gone, because main's own rule now does that job. All the checks pass. I photographed the screens again on your two laptops and the iPad, and nothing overlaps or scrolls sideways."
+   }
+  ],
+  "checks": []
+ },
+ "G": {
+  "passes": [],
+  "checks": [
+   {
+    "label": "check G rebuilt",
+    "differences": [
+     {
+      "round": "23",
+      "part": "Home \u00b7 Needs you \u00b7 how many rows show before the fold",
+      "drawn": "Jambo's work, then only 3 owed rows, then \"Show 3 more \u00b7 a note due today \u00b7 Baltic Freight's 3 details \u00b7 Sara's NDA request\" (Needs you 7 = Jambo's work + 3 shown + 3 folded)",
+      "built": "CN_ROWS = 7: seven owed rows show before \"Show N more\". With the drawing's own state (6 owed rows), every row shows and the \"Show 3 more \u00b7 \u2026\" line never appears",
+      "kind": "different"
+     },
+     {
+      "round": "23",
+      "part": "Home \u00b7 Needs you \u00b7 row order and the lead chip",
+      "drawn": "The approval answered for an away colleague (\"Answer an approval for Jonas\") comes first, above the late redlines row (\"waiting 4 days\" in red). The lead chip is \"Jonas's approval\"",
+      "built": "Urgent rows go first (hbNeedsList then cnRows). When their redlines are late, \"Answer Nordvik Logistik's 2 redlines\" leads and the lead chip becomes \"Nordvik Logistik's 2 redlines\" (seen in counter-as-drawn-verify's own photo)",
+      "kind": "different"
+     },
+     {
+      "round": "23",
+      "part": "Home \u00b7 the greeting heading",
+      "drawn": "\"What do you need, Maria?\" large: 26px, weight 600",
+      "built": "\"What do you need, Amina?\" at 20px, weight 700. Visibly smaller than drawn",
+      "kind": "different"
+     },
+     {
+      "round": "23",
+      "part": "Home \u00b7 Jambo's work row \u00b7 the head's second half",
+      "drawn": "\"Jambo's work\" in bold, then \"\u00b7 5 prepared \u00b7 nothing sent or filed until you press\" small and grey (12px)",
+      "built": "\"\u00b7 N prepared \u00b7 nothing sent or filed until you press\" at the title's own size (14px). Only the colour is quieter",
+      "kind": "different"
+     },
+     {
+      "round": "23",
+      "part": "The Board's Jambo's work card (where the pieces now live) \u00b7 head words",
+      "drawn": "The header over the pieces reads \"Jambo's work \u00b7 5 prepared \u00b7 nothing sent or filed until you press\"",
+      "built": "Home's row says \"6 prepared \u00b7 nothing sent or filed until you press\". Its Open lands on the Board card, which says \"6 ready \u00b7 nothing was sent or filed\" (Swedish: \"6 f\u00f6rberedda\" vs \"6 klara\"). Same count, worded two ways one press apart, and the card holding the pieces does not carry the drawn head words",
+      "kind": "different"
+     },
+     {
+      "round": "23",
+      "part": "Jambo's house (scene b) \u00b7 Negotiation room's work line",
+      "drawn": "\"Their round came back \u00b7 1 waiting\u2026\". The agent's name is whole; only the end of the link is cut",
+      "built": "\"Their round cam\u20261 waiting for you\". The agent's name is cut mid-word and the \" \u00b7 \" is lost, so the ellipsis runs straight into the amber link. Seen at 1440\u00d7780, 1536\u00d7730 and 1366\u00d7950",
+      "kind": "overlap-or-cut"
+     },
+     {
+      "round": "23",
+      "part": "Jambo's house (scene b) \u00b7 page width beside Jambo's folded strip",
+      "drawn": "The house fills the page from the left edge (16px) up to Jambo's folded strip at the right edge, with no gap",
+      "built": "The page is held at about 1200px and centred: at 1440 it runs 92\u20131292 with an empty band to the strip at 1384; at 1536, 140\u20131340 with the strip at 1480. Empty space on both sides, and the strip floats apart from the page",
+      "kind": "different"
+     },
+     {
+      "round": "23",
+      "part": "Home \u00b7 a folded row once shown (the renewal)",
+      "drawn": "Rows say the act, then the agreement, then time in words (\"waiting 4 days\"). The renewal piece's act is \"Decide the renewal\"",
+      "built": "After Show 3 more: \"Renew or exit \u00b7 Supply agreement \u00b7 Brightwater Foods \u00b7 in 40d \u00b7 Decide\". The time is an abbreviation (\"in 40d\", Swedish \"om 40 d\"), not words",
+      "kind": "different"
+     },
+     {
+      "round": "23",
+      "part": "Home \u00b7 lead chip and \"Open approval\" (LAND ON IT)",
+      "drawn": "Each row's button opens its page. A door this build adds lands ON its target, lit",
+      "built": "The lead chip (new in this build) presses the approval row's door, roomOpenAt(id,'sign'). That opens Before you sign beside the paper, but nothing is lit (no landOn): no .is-landed on the approval stop. Fill in does light its box",
+      "kind": "different"
+     },
+     {
+      "round": "23",
+      "part": "Board card \u00b7 a chase piece's email \"whole\"",
+      "drawn": "Look shows the email whole: To, Subject, the body, the sign-off, and \"It goes to the address on the contract. You are asked once more before it is sent.\"",
+      "built": "The preview always leaves out the link paragraph (mail_ob_chase_open + the link) that srvChaseSend adds when the contract has a live share; only a hover title (ag_mail_link_note) says so. In that case the inbox gets more than the screen showed",
+      "kind": "different"
+     }
+    ],
+    "matched": [
+     "Home head: Jambo's face above \"What do you need, <first name>?\", the box's placeholder \"A contract, a party, a place, a draft, a question\u2026 or /\" and Ask; \"/\" opens the places list",
+     "Home chips: the first owed row's short name (it presses that row's own door), then contracts \u00b7 calendar \u00b7 draft a new agreement, all in one dress. contracts lands on the Contracts place, calendar on the Calendar, draft a new agreement on the Draft card (lit)",
+     "Needs you head \"Needs you \u00b7 N \u00b7 each row's button opens its page\"; N equals the rows (Jambo's work + owed rows + the admin's own row)",
+     "Jambo's work row on Home: face, \"Jambo's work \u00b7 N prepared \u00b7 nothing sent or filed until you press\", Open. No pieces in place (cnJwPiecesHtml/CN_JW_MAX gone). Open lands on the Board's Jambo's work card, scrolled to the top and lit (is-landed), for an admin and a member",
+     "Owed rows as drawn: \"Answer an approval for <first name>\" with the pill \"for <name> \u00b7 away until <weekday>\", then name \u00b7 party \u00b7 value and \"Open approval\"; \"Answer <party>'s N redlines\" with \"waiting N days\" in red and \"Open redlines\"; \"Fill in N details\" with \"Fill in\", which lands on Fill in with the box lit; a reference on hover; the Private \u00b7 <stream> pill code is kept",
+     "A note of yours due (\"A note of yours is due today\", quoted, \"only you\", Open note) and a request nobody holds (\"<name>'s request: \u2026\", Open request) are on the list; each lands on its own row, lit",
+     "\"Show N more \u00b7 <names>\" is the card's last line, below the admin's row; names like \"a note due today\", \"<party>'s N details\", \"<name>'s NDA request\"; Show fewer brings it back",
+     "Board card: Put away on EVERY piece (request, their round, renewal, new paper, chase, import) as the last, quiet act, for an admin and a member; Undo; kept per person on the server; a desk piece is put away on the contract; the owed work stays in Needs you",
+     "Acts named for what they do: Answer on Redlines \u00b7 Fill in N details \u00b7 Decide the renewal \u00b7 Send the chase \u00b7 Check the N files",
+     "Chase piece: To, Subject \"A reminder about the insurance certificate\", Hello, the body with the day in words (\"14 October\"), signed \"<sender>, <our company>\", and \"It goes to the address on the contract. You are asked once more before it is sent.\"; the server mails the same words (chaseMailOf in both places)",
+     "Levels line under the card's agents: \"All seven agents: Ask me first \u00b7 set by <admin> for everyone\" (Ask me first in bold), grouped per agent when levels differ, \"you chose \u2026\" where a person picked their own; Ask an admin for a member (the tracked settings_asks record; the member stays on the Board and the line says \"Asked \u2026 \u00b7 waiting for an answer\"); Change for an admin; no extra Jambo's house link (answer 19)",
+     "The word stays \"Put away\" (owner's No to Discard)",
+     "Jambo's house: head \"Jambo's agents\" + Change points; tabs The house \u00b7 Jobs N \u00b7 How points work; How far back \u00b7 contract search \u00b7 Look \u00b7 Speed; Play \u00b7 Start again \u00b7 progress; Jambo's office with five floors and four- and three-room floors; Your desk \"N waiting for you\" equal to Home's and the Board's count, and each room's \"1 waiting for you\" a door landing on the Board's card or that agent's work; points panel with Work log \u00b7 Points; Jambo folded at the right edge with his count, opening his window",
+     "Swedish: Home, the levels line and the card all have words in both books (\"Vad beh\u00f6ver du\u2026\", \"Alla sju agenter: Fr\u00e5ga mig f\u00f6rst \u00b7 satt av Amina f\u00f6r alla\")",
+     "No sideways scroll and nothing past the edge on Home, the Board card and the house at 1440\u00d7780, 1536\u00d7730 and 1366\u00d7950 (apart from the house cut listed)",
+     "Lint: 0 errors (137 warnings). Green: f790, f800, f801, f802, f803, f148, f399, f413, f724, f667, f563, f543 (menu-copilot-board-work-order), f412, f705 (needs-you-here), f561, f564, f232, f48; browser checks counter-as-drawn-verify (ALL PASS), land-on-it-verify (ALL PASS), agents-do-the-work-verify (25/0), open-in-place-verify (ALL PASS), jambo-agents-verify (76/0)",
+     "No test-number clash with main (f790, f800\u2013f803 are free on origin/main)"
+    ],
+    "notes": "I checked gaps/G at 170dcd7 in /home/user/wt/G. I did not edit, commit or push anything. Seeded state: their round on MK-0382, a new-paper read, a renewal, a late chase, an import batch of 3, a request, an approval answered for an away colleague, and a note due today. Signed in as both the admin and a member, and every acting agent's level was moved by the admin so the line reads \"set by Amina\".\n\nNot listed as differences, because the brief rules them out:\n- The pieces are not folded to one line with Look, and there are no room-colour tags (answers 14 and 18).\n- No \"Jambo's house \u203a\" link on the Board card (answer 19).\n- The Jambo strip's number is the same as today (answer 15).\n- The word stays \"Put away\".\n- Sample data and currency.\n- The hint line under Home's box belongs to lane A1 (answer 2; A1's checker verifies it).\n- The \"Company needs you\" row's one-line ellipsis is main's admin row and is not in the drawing.\n\nOutside lane G, noticed only:\n- The Board's Jambo greeting still says \"N things need you; they are at the top of your Board\", but Needs you now lives on Home (answer 14). That is lane B2 or main.\n- The lane has not brought in the latest origin/main. It merged a59a692 (#348), but #349\u2013#351 (Explorer stages 3\u20135, now 806049a) landed before its last commit. A trial merge (git merge-tree) conflicts in js/brainmap.js (BRAIN_PARTS / flow lists), so the next pass must merge main and fix that conflict."
+   }
+  ]
+ },
+ "F": {
+  "passes": [
+   {
+    "label": "fix F #2",
+    "built": [
+     "Merged main into gaps/F (5aea3f2): main's LAND ON IT, the SAP bar (no desk tabs row) and \"/\" in every box (caAskAnywhere, data-ca-slash) now rule Settings too; the lane's own \"/\" opens the Menu handler was removed so main's rule wins.",
+     "Settings frame as drawn: the page head is now a white head card in the left column (title, the organisation's name or 'Your own settings' under it, Ask an admin for members, the You \u00b7 Company tabs for admins), sticky while you scroll, with Jambo's panel beside it at full height (380px, 344px at 1400 and below, no shadow, hairline left edge). The old page head is hidden on Settings on a computer.",
+     "Every card door on Company opens its page IN PLACE of the cards (the drawer docked as a page) with '\u2039 Settings' at its top; back, Escape or '\u2039 Settings' returns to the cards and lands on the door you pressed. The trail and backup doors still go to Data & backup.",
+     "Card facts as drawn: Signing limits counts the people with a limit set ('N capped'); Jambo's card says the day's calls as a number in your language ('N calls a day'); Jambo's card doors are Agents and Board words.",
+     "Clashes found by ONE reading on both sides (new js/clashkeys.js): the page and the server read the four clashes the same way, and the server now stamps the day each clash is first seen itself, as soon as a person, a setting, a private stream or a role changes (and once a minute after a contract changes), not only when an admin opens the page.",
+     "Jambo's company sentence no longer repeats the clash count (the clash rows say it).",
+     "A stream's Keeping tab opens with its list of what is due already shown and lit; 'Review the list' from Needs you lands on it.",
+     "A held contract's 'Open' on the streams page opens the contract's Menu on Home and lands on its Hold row (a plain line says so if the row is missing).",
+     "Stream page acts stay on one row; the trail's 'Who' column is in body weight; filter boxes on the streams page wear the button edge and height.",
+     "The trail's chip says 'Q3' (short) for this year's quarter, and a ready PDF lands on its Download button.",
+     "Contents list on You: at the top of the page the first section is lit, not the second.",
+     "Signed-in devices grouped in words: this one, then 'two other computers', 'an iPad' etc. in both languages.",
+     "When you're away: the line names the stand-in by first name and the days with their weekday ('Mon 19 Oct to Fri 23 Oct'; Swedish 'l\u00f6r 24 okt.' with no doubled full stop); 'Open it' on a waiting answer opens Approvals on that row.",
+     "Quiet dropdowns: Settings' plain choice boxes wear a thin drawn chevron in HaTi's ink, not the heavy one.",
+     "Every 'go to' in Settings (drawer focus, row form focus, You's card jumps, contents jumps, Needs you rows for access review, backup and invite, the limits row) now uses main's landOn so the place is lit and nothing is pressed.",
+     "The Menu's 'Data & backup' lands on Data & backup's first tab (the trail), not the backup tab.",
+     "Brain updated for the new clash reading (part, area, flow step, lane) in the same change.",
+     "New and re-pointed tests: f780, f782, f784, f786, f787, f788, f789 extended; f193, f725, f727 re-pointed; new browser check settings-as-drawn-3-verify; re-pointed browser checks settings-as-drawn, settings-as-drawn-2, one-sheet, jambo-map, white-band-and-tabs 6d-6g, clashes 3, when-youre-away 3b, keeping 4."
+    ],
+    "blocked": [],
+    "notDoneYet": [
+     "The colour census moved (Settings' select borders now wear the button edge; earlier lane passes moved it too) and was NOT re-recorded: ink-wash-verify fails 7 lines and theme-tokens-verify 2 calendar lines. The 2 calendar lines and the home lines fail the same at the merge parent (they came from main). It needs a re-record by whoever owns the palette, with the owner's yes, at integration.",
+     "Settings panels that have no drawn card door (for example some housekeeping drawers) are still reached only through the Menu, Cmd/Ctrl+K and Jambo; they open as the old side drawer, not as a docked page.",
+     "Because '/' in the Settings box now follows main's rule (it lists places), Settings' own Menu face is reached through Jambo's 'nothing found' button and Cmd/Ctrl+K only.",
+     "'Open it' on an answer waiting while you are away landing on the exact Approvals row is checked in the node stage only, not driven in a real browser with a live waiting approval.",
+     "The server's clash keys can include a private stream no admin can see; the keys are only stored as first-seen days and never shown, so nothing leaks, but the set is wider than the page's.",
+     "The hint line under the box (lane A1's) was left alone as the brief says."
+    ],
+    "tests": [
+     "test/f780-settings-frame-and-you.test.js",
+     "test/f782-settings-clashes-first-seen.test.js",
+     "test/f784-settings-company-cards-and-dock.test.js",
+     "test/f786-settings-streams-and-keeping.test.js",
+     "test/f787-settings-data-and-trail.test.js",
+     "test/f788-settings-menu-and-finder.test.js",
+     "test/f789-settings-words-looks-and-brain.test.js",
+     "test/f193 (re-pointed: Data & backup tab press, pin opt-in)",
+     "test/f725 4a (re-pointed: is-landed via landOn)",
+     "test/f727 3a (re-pointed: the trail first)",
+     "test/chromium/settings-as-drawn-3-verify.js (new)",
+     "test/chromium/settings-as-drawn-verify.js, settings-as-drawn-2-verify.js, one-sheet-verify.js, jambo-map-verify.js, white-band-and-tabs-verify.js 6d-6g, clashes-verify.js 3, when-youre-away-verify.js 3b, keeping-verify.js 4 (re-pointed)"
+    ],
+    "testResults": "Lint: 0 errors (137 warnings, as before). Node: f780-f789, f193, f691, f725, f726, f727, f232, f48, f561, f564, f600, f601, f202, f695, f699-f704, f729 all pass (exit 0). Browser: settings-as-drawn 1/2/3, one-sheet, jambo-map, settings-tabs, streams-and-data, company-control-room, white-band-and-tabs, settings-groups, control-room-in-full, clashes, access-review, when-youre-away, trail-export, payment-terms, settings-holds-still, refresh-keeps-your-spot, business-roles, keeping, keeping-no-admin, settings-overnight-fixes, private-streams, land-on-it, jambo-everywhere, shaped-and-weekly, approval-before-signing all pass (exit 0). Census checks: ink-wash-verify 7 fails, theme-tokens-verify 2 fails (calendar lines and home lines fail identically at the parent 5aea3f2; the Settings lines moved by this lane), not re-recorded. Red at parent: every new and re-pointed node test fails at 5aea3f2; the new browser check fails at the parent except 1c, 1e, 8b and 10, which describe behaviour already there. Full suite not run (CLAUDE.md).",
+    "censusMoved": true,
+    "commits": [
+     "5aea3f2 Merge origin/main into gaps/F (main moved on: LAND ON IT, the SAP bar, caAskAnywhere)",
+     "08f078b Settings as drawn, third pass: the head card beside Jambo's whole-height panel, every card door a page with \u2039 Settings, a clash stamped by the server the day it is made, doors that land on what they name",
+     "019b635 Settings as drawn, third pass: a Swedish month's own full stop is left to the sentence (\"l\u00f6r 24 okt.\", never \"okt..\")"
+    ],
+    "shots": [
+     "/home/user/wt-shots/F/25-company-frame-1440x780.png",
+     "/home/user/wt-shots/F/25-company-frame-1536x730.png",
+     "/home/user/wt-shots/F/25-company-frame-1366x950.png",
+     "/home/user/wt-shots/F/25-company-end-1440x780.png",
+     "/home/user/wt-shots/F/25-company-end-1536x730.png",
+     "/home/user/wt-shots/F/25-company-end-1366x950.png",
+     "/home/user/wt-shots/F/25-door-page-1440x780.png",
+     "/home/user/wt-shots/F/25-door-page-1536x730.png",
+     "/home/user/wt-shots/F/25-door-page-1366x950.png",
+     "/home/user/wt-shots/F/25-door-back-1440x780.png",
+     "/home/user/wt-shots/F/25-door-back-1536x730.png",
+     "/home/user/wt-shots/F/25-door-back-1366x950.png",
+     "/home/user/wt-shots/F/25-review-keeping-1440x780.png",
+     "/home/user/wt-shots/F/25-review-keeping-1536x730.png",
+     "/home/user/wt-shots/F/25-review-keeping-1366x950.png",
+     "/home/user/wt-shots/F/24-you-member-1440x780.png",
+     "/home/user/wt-shots/F/24-you-member-1536x730.png",
+     "/home/user/wt-shots/F/24-you-member-1366x950.png",
+     "/home/user/wt-shots/F/24-you-member-lower-1440x780.png",
+     "/home/user/wt-shots/F/24-you-member-lower-1536x730.png",
+     "/home/user/wt-shots/F/24-you-member-lower-1366x950.png",
+     "/home/user/wt-shots/F/26-streams-sales-1440x780.png",
+     "/home/user/wt-shots/F/26-streams-sales-1536x730.png",
+     "/home/user/wt-shots/F/26-streams-sales-1366x950.png",
+     "/home/user/wt-shots/F/26-held-open-1440x780.png",
+     "/home/user/wt-shots/F/26-held-open-1536x730.png",
+     "/home/user/wt-shots/F/26-held-open-1366x950.png",
+     "/home/user/wt-shots/F/26-data-1440x780.png",
+     "/home/user/wt-shots/F/26-data-1536x730.png",
+     "/home/user/wt-shots/F/26-data-1366x950.png"
+    ],
+    "mapLines": "- THE SETTINGS FRAME (gaps' third pass, 19 Oct 2026): the head is a white card in the left column (`stHeadCardHtml`: title, org or \"Your own settings\", Ask an admin, You \u00b7 Company tabs), sticky; Jambo's panel beside it at full height (`stSideFit` measures `#st-headcard`); `#page-head` hidden on Settings \u2265981px; `PAGE_HEAD_PAINT.team` STALE. Tests: f780, settings-as-drawn-3-verify.\n- A CARD DOOR IS A PAGE (third pass): a Company card's door, fact or ladder opens its drawer DOCKED in the cards' place (`data-st-dock`, `stDockOpen`/`stDockPaint`, page 'panel' in `ST_PAGES`), '\u2039 Settings', Esc or back \u2192 `stDockBack` lands on the pressed door; the trail and backup doors still go to Data & backup ('backup' = its first tab). Tests: f784, settings-as-drawn-3-verify.\n- CLASHES ARE ONE READING, BOTH HOSTS: `clashFind` (js/clashkeys.js, with `clashCapRead`, `clashOpenStreams`) under `stClashes` and the server's `srvClashKeys`; the server stamps each key's first day itself (`clashWatch` after `cnFrontDoor`, `clashSeenSoon`: people/settings/private streams/roles at once, contracts each minute); POST /api/clashes/seen only when a shown clash has no day (`stClashSeenSync`). Tests: f782, clashes-verify.\n- SETTINGS LANDS, NEVER PRESSES: every jump in Settings goes through `landOn` (drawer and row focus, `stYouGo`, the contents list, Needs you `data-st-land` \u2192 `ST_PAGE_LAND`, `#st-lim-<id>`, Keeping's `#st-kp-due`, the held row `#ws-hold` via `stHeldOpen`, the trail's `#st-tr-download`); `.st-lit` STALE. Words: `stDevicesSaid`, `stAwayWeekDay`, `st_tr_quarter_short`, `st_cf_capped`, `st_cf_day_calls`. Tests: f786, f787, f789.",
+    "historyStory": "## SETTINGS AS DRAWN, THE THIRD PASS (gaps lane F, 19 Oct 2026)\n\nThe checker's second look at rounds 24, 25 and 26 found sixteen differences between the drawings and the build; this pass built all of them and finished the first pass's leftovers.\n\nMain had moved on (LAND ON IT, the SAP bar with no desk tabs row, \"/\" in every box), so the lane merged it first. One clash came out of that: the lane had taught Settings' box that \"/\" opens Settings' own Menu; main's rule is that \"/\" lists the places in every box. Main's rule won, the lane's handler was removed and its tests re-pointed. Settings' Menu face is still reached from Jambo's \"nothing found\" button and from Cmd/Ctrl+K.\n\nThe frame: the drawings put the page's title in a white card at the top of the left column, with Jambo's panel standing beside it from the top of the window to the bottom. The build had the title in the shared page head above both columns. The head card now carries the title, the organisation's name, Ask an admin and the You \u00b7 Company tabs. The owner's 18 Sep ruling that the tabs stay while you scroll is kept: the card is sticky, and a thin strip of page ground above it stops rows showing through (white-band-and-tabs 6d-6g re-pointed to the card).\n\nCard doors: the drawing shows a card's door opening a page with '\u2039 Settings' at its top, not a side drawer over the cards. The existing drawer is now docked into the cards' place when it is opened from a card, so there is still one drawer and one writer, drawn two ways. Back, Escape and '\u2039 Settings' all return to the cards and land on the door that was pressed. The trail and backup doors were left going to Data & backup, which is their page.\n\nClashes: owner's answer 12 asked that a clash's first day be the day it was made, not the day an admin first opened Settings. Until now only the page stamped it. The four clash rules moved into one pure reading both hosts load (js/clashkeys.js). The server runs it after any change to people, settings, private streams or roles (at once) and after a contract change (at most once a minute), and keeps each key's first day. Two server bugs turned up while proving it: the request path is put back after next(), so the urgency has to be read before; and a waiting slow timer blocked an urgent one until it was rescheduled earlier.\n\nLanding: every \"go to\" in Settings now uses main's landOn, so the place lights up and nothing is pressed. A held contract's Open goes to the contract's Menu on Home and lands on the Hold row. The Keeping list stays open through its own re-draft (it used to reset).\n\nWords: devices in words, the away line with first names and weekdays (a Swedish month's own full stop is not doubled), a Q3 chip, the limits fact counts people capped, Jambo's daily calls in the reader's own number style, and Jambo's company sentence no longer repeats the clash count.\n\nThe colour census moved further (Settings' filter boxes now wear the button edge) and was not re-recorded.",
+    "buglog": [
+     "- Settings (Svenska): the stream word is said three ways on Settings' pages (str\u00f6m / avtalsstr\u00f6m / mapp); noticed in the lane F third pass, not fixed.",
+     "- Settings (Svenska): a private stream's line reads \"1 namngivna \u00b7 inte du\" (plural with one); noticed in the lane F third pass, not fixed.",
+     "- Settings: the person drawer still says \"value streams\" in one line and \"folders\" in another for the same thing; noticed in the lane F third pass, not fixed.",
+     "- index.html: the .st-lit rule is no longer used by Settings (every jump uses landOn's .is-landed); left in place for whoever owns the colour census, not removed."
+    ],
+    "ownerSummary": "Settings now matches its drawings more closely. The page title sits in a white card at the top left with Jambo's panel standing beside it at full height, and pressing a door on a Company card opens that setting as a page in the cards' place with '\u2039 Settings' to go back to the card you pressed. Clashes in who may do what are now found by one shared rule on both the page and the server, so the server notes the day a clash is made even if no admin opens Settings. Every \"go to\" in Settings now lights the place it opens and presses nothing, and small wording fixes went in (devices in words, away days with weekdays, Q3, limits and Jambo's daily calls counted). One thing needs you later: the colour check moved because the filter boxes now wear the standard button edge, and it was left for a proper re-record with your yes. Nothing was pushed."
+   }
+  ],
+  "checks": []
+ },
+ "A2": {
+  "passes": [
+   {
+    "label": "build A2",
+    "built": [
+     "A party's city and organisation number now have ONE home on the server (party_records), saved through one route (PUT /api/party-records) by an editor, read back through GET /api/party-records and the bootstrap (state.partyRecords). The server checks who may see a party: only parties named on contracts the reader may open, and never a party that appears only on a code-named deal the reader is outside of. Every change is recorded in the trail as 'Party details'.",
+     "The city and number are typed in the party's panel on Parties. Two doors open the same two boxes (City, Organisation no.) with Save and Cancel: 'Add the city' (or the city itself) in the line under the name, and 'Add'/'Change' on the Organisation no. row. The address that a contract's parties clause gives (the party's own address row first, then the sentence after its name in the wording) is offered as 'The parties clause of MK-.. says \"P.O. Box 30, Kisumu, Kenya\". Use Kisumu'. The city it offers is the last part of the address that is a place name: never a box, a number, a postcode or a country. The suggestion only fills the box when pressed, and nothing is saved until Save.",
+     "Parties band as drawn: the head 'Parties N' with the count beside it, '<money> on paper with live parties' and '+ Draft new agreement'. Under a hairline, each box's label sits ABOVE it: Party name \u00b7 Status \u00b7 Stream \u00b7 Owner \u00b7 NDA (this reverses the 10 Oct 'label inside' for this band). The find box carries a magnifying glass and the placeholder 'Name or city', and it searches names and cities.",
+     "Status opens on Live and offers Live \u00b7 Ended \u00b7 All. Status now describes the PARTY: Live means something is still running with them, Ended means everything with them has ended. So a live party still counts what has ended with it, as drawn. The head still counts every party.",
+     "The list card as drawn: 'Parties N \u00b7 live \u00b7 sorted by name' with Columns at the right, and the columns Party \u00b7 City \u00b7 Live \u00b7 Ended \u00b7 On paper \u00b7 Next to end \u00b7 Waiting on you \u00b7 NDA. Each party's line reads 'N agreements \u00b7 <stream names>' (no avatar). The list shows ten at a time with '10 of N shown \u00b7 Show more'; Show more, or scrolling to the end, adds the next ten.",
+     "Columns: one shared builder (LC_PAGES / lcBtnHtml) for Parties and People. Readers can show or hide each column and move it up or down; 'As it was' undoes their changes, and each reader's choice is kept in their own browser. Pressing Columns again closes the list, as do Esc and a press outside. The list hangs over the page, so a short card never cuts it off.",
+     "The Waiting on you column uses the drawing's short words: '2 redlines \u00b7 4 days', '3 details to fill', 'an approval', 'an approval, for Jonas' (when the reader stands in for an away colleague, using Approvals' own apForWho), and '<colleague> asked for <request>'. The panel's rows say each item in full.",
+     "A colleague's open request that names a party now waits on the reader who may draft it: requests nobody has picked up that the reader did not raise, or ones the reader holds. These come from the Requests list (intakeQueue). The panel row 'Request \u00b7 <stream> \u00b7 <age> \u00b7 Open request' lands on the request's row, lit.",
+     "The party panel as drawn, built on A1's Jambo panel. It shows the name and '<city> \u00b7 with us since <month year>' (or 'N agreements, all ended'), with Open party and Open on Explorer as the only doors. The facts are rows: Organisation no. \u00b7 Owner ('Amina Otieno (you)', '+N' when several people own its agreements) \u00b7 Live agreements ('2 \u00b7 KES 2.4M on paper', or 'None \u00b7 1 ended (name, year)') \u00b7 Next to end ('date \u00b7 agreement') \u00b7 NDA ('**Both sides (mutual)** \u00b7 secret until \u2026 \u00b7 confirmed by you  Open the NDA \u203a', or '**None** \u2014 no NDA with <party>, signed or in draft'). Below them come Waiting on you, then Agreements (live work first, each with its stage pill and line, e.g. 'MK-.. \u00b7 round 2 \u00b7 KES 4.2M', '\u2026 \u00b7 ends \u2026', '\u2026 \u00b7 secret until \u2026'), then 'People at <short name>' (initials, name, 'job title \u00b7 negotiates MK-.. / signs for <party> / not on a contract yet'), each row landing on that person on People, lit. Last comes 'Draft an agreement with <short name>'. The old Streams section, the Active/Expired facts and the 'People (n)' door are gone, as the drawing has none.",
+     "People as a TABLE (this reverses the 13 Oct face cards): the head 'People N' and '<n> of ours \u00b7 <n> at <n> parties'. The labelled boxes are Name, email or party ('Type to find') \u00b7 Side \u00b7 Party \u00b7 Role in HaTi \u00b7 Stream; the tabs and the A to Z edge are gone. The columns are Name (round initials, '(you)' in grey, an amber 'Away until <day>' pill on an away colleague) \u00b7 Side \u00b7 Party or company \u00b7 Job title \u00b7 In HaTi \u00b7 Contracts \u00b7 Email. The list is sorted 'ours first, then theirs, by name' with the reader first, shows twelve at a time with '12 of N shown \u00b7 Show more', and has Columns. A missing fact shows as a grey dash that still says what is missing on hover. The person panel is A1's.",
+     "The page is named People again in both books (nav_directory 'People' / 'Personer'), as drawn.",
+     "Doors land on their target (LAND ON IT): a person at a party \u2192 dirOpenPerson clears what would hide them, adds rows until they are shown, chooses them and calls landOn on their row. A request \u2192 intakeGoTo + jlLand('row'). Our move \u2192 the Redlines face + jlLand('redlines').",
+     "The Brain names the new door, both routes and both tables (partyrec, partyrecget, partyrecset, partyrecdb, partyreclog), each in one lane, on the doors step of the ask flow, with words in both books."
+    ],
+    "blocked": [],
+    "notDoneYet": [
+     "The drawing's code-named 'Project Falcon' row on Parties is NOT built, on purpose: the owner's round 19 answer 'Leave it off' stands, so a code-named deal is still left off Parties.",
+     "The city is edited in one place only, the party's panel on Parties; it is not also offered on a contract's Overview party rows. The drawing does not show where it is edited, and one door keeps one fact in one home. If the owner wants it on the Overview too, it is the same door (partyRecordOpen).",
+     "Columns lets a reader order columns with up/down buttons, not by dragging.",
+     "pages-read-alike-verify check 8 ('the first glyph of every shared page head sits at one height'): People's head sits 12px lower than the shared heads. It was ALREADY red at gaps/A1 (measured there, 'People 27px \u00abDirectory\u00bb vs 15px') and is left red, with a BUGLOG line."
+    ],
+    "tests": [
+     "test/f738-a-partys-own-facts.test.js (new: the server's one home, one writer, the wall by stream and by code name, cleaning, the trail)",
+     "test/f739-parties-as-drawn.test.js (new: the band, the list, paging, Columns, the city, the standing, the suggestion reader, the panel's pieces, requests)",
+     "test/f795-people-as-a-table.test.js (new: People's band, table, sort, away pill, Side / Role in HaTi, paging, Columns, the name People, dirOpenPerson)",
+     "test/f796-parties-and-people-wiring.test.js (new: both books, the Brain, one writer, the server wall, the panel's order, land on it)",
+     "test/chromium/parties-and-people-verify.js (new: round 19 driven in Chromium, photographs at the owner's three screens)",
+     "re-pointed: test/f202-a-directory-everybody-can-read.test.js (the reader first, then by name; admins still stated in In HaTi; the phone keeps admins first)",
+     "re-pointed: test/f669-the-directory-faces.test.js (the table replaces the faces and the A to Z edge; Role in HaTi; the place keeps hati; People at <party> replaces the People door; Brain lanes)",
+     "re-pointed: test/f720-parties-the-sap-way.test.js (Status is the party's standing and opens on Live; the five facts; the column's short words)",
+     "re-pointed: test/f804-jambos-list-panel.test.js 7c (the party's facts are rows; no Waiting on you fact)",
+     "re-pointed: test/chromium/parties-sap-way-verify.js, parties-nda-column-verify.js, people-directory-verify.js, customers-verify.js (Status on Live, the City column shifting cells, the foot's words, None said whole, 'draft' under an unsigned NDA, the table and Side box, People at <party>)"
+    ],
+    "testResults": "npm run lint: 0 errors (137 warnings, the same as the base). New node tests f738, f739, f795, f796 all pass, and all are red at gaps/A1 (run in a worktree at d2a4eb4). New browser check parties-and-people-verify passes (all checks) and is red at gaps/A1 (22 checks failed there). Node tests for the changed code all pass: f202, f669, f720, f804, f805, f809, f561, f564, f678, f679, f687, f238, f232, f48, f193, f283, f447 (364 + 172 + 11 tests). Browser checks pass: parties-sap-way (ALL PASSED), parties-nda-column (23/23), people-directory (42/42), customers (23/23), jambos-list-panel (ALL PASSED), every-door-lands-on-home (114/114), six-fixes (30/30), every-jambo-box (ALL PASSED). pages-read-alike: 56/58, and the 2 failures (People's head 12px low) are identical at gaps/A1, so they were not caused here. Full suite not run (CLAUDE.md).",
+    "censusMoved": false,
+    "commits": [
+     "2c1ce9f Parties and People as drawn (round 19, The SAP way): a party's own facts, the labelled band, the table, Columns, Show more",
+     "0f66e02 Parties and People as drawn: checks, the column's short words, the Columns list over the page, re-pointed checks",
+     "f57f4ff Parties and People: the away pill stays in view at 1366, sub-lines whole on the hover, the Columns list wears the house shadow",
+     "3ecb408 Parties as drawn: \"an approval, for Jonas\" where the reader stands in, \"draft\" under an unsigned NDA"
+    ],
+    "shots": [
+     "/home/user/wt-shots/A2/19-parties-1440x780.png",
+     "/home/user/wt-shots/A2/19-parties-1536x730.png",
+     "/home/user/wt-shots/A2/19-parties-1366x950.png",
+     "/home/user/wt-shots/A2/19-people-1440x780.png",
+     "/home/user/wt-shots/A2/19-people-1536x730.png",
+     "/home/user/wt-shots/A2/19-people-1366x950.png",
+     "/home/user/wt-shots/A2/19-parties-list-1440x780.png",
+     "/home/user/wt-shots/A2/19-party-panel-1440x780.png",
+     "/home/user/wt-shots/A2/19-party-city-form-1440x780.png",
+     "/home/user/wt-shots/A2/19-parties-columns-1440x780.png"
+    ],
+    "mapLines": "CUSTOMER FOLDERS section: REPLACE the line '- PARTIES, THE SAP WAY (round 19 ...)' with:\n- PARTIES AS DRAWN (round 19 \"The SAP way\", owner's \"build all the gaps\" 18 Oct 2026; reverses the 10 Oct label inside for this band): words ABOVE the boxes under a hairline (`cuFilterBarHtml`, `.cu-fb` outside `.reg-tabbar`, find box `cuFindHtml` \"Name or city\"); Status opens on Live and is the PARTY's standing (`cuStanding`/`cuStatusWants`), never a narrowing; columns Party \u00b7 City \u00b7 Live \u00b7 Ended \u00b7 On paper \u00b7 Next to end \u00b7 Waiting on you \u00b7 NDA (`cuColDefs`, cells `cuCellHtml`); ten at a time \"10 of N shown \u00b7 Show more\" (`CU_PAGE`, `lcFootHtml`); Columns (`LC_PAGES`, `lcBtnHtml`, `lcState`, kept per reader); the column's short words `cuNeedShort` (\"an approval, for Jonas\" via `apForWho`), the panel's whole `cuNeedTitle`; a colleague's request about the party waits too (`cuRequestsOf`, door `intakeGoTo` + jlLand). Code-named deals stay off (\"Leave it off\").\n- THE PARTY PANEL: \"<city> \u00b7 with us since\" (`cuPanelSubHtml`, `cuSinceOf`), facts Organisation no. \u00b7 Owner (`cuOwnerSay`) \u00b7 Live agreements \u00b7 Next to end \u00b7 NDA (`cuNdaFactHtml(x, party)`), Waiting on you, Agreements (`cuAgreementSub`), \"People at <short name>\" (`cuPanelPeopleHtml`, `cuShortName`, rows \u2192 `dirOpenPerson`), \"Draft an agreement with \u2026\". STALE: `cu_people_door` (inert), the Streams section.\n- A PARTY'S OWN FACTS \u2014 ONE HOME: city and organisation no. in `party_records` (key = cuKeyOf), ONE writer PUT /api/party-records (editor; `prVisibleKeys` = folderScopeFor minus cnOutsideFor; 404 otherwise), read GET /api/party-records and bootstrap `partyRecords` \u2192 `state.partyRecords` (`partyRecordOf`, `partyCityOf`); every change in `party_record_log` \u2192 the trail \"Party details\". ONE door `partyRecordOpen` (panel boxes `cuPrFormHtml`, browser writer `partyRecordSet`); the parties clause is a SUGGESTION only (`partyCitySuggest`, `cuAddrAfterName`, `cuCityFromAddress`: never a box, number, postcode or country), filled on its press, saved on Save.\nTests: f720, f738, f739, f796, parties-and-people, parties-sap-way, parties-nda-column, customers verify.\nSTREAM ACCESS, PEOPLE section: REPLACE 'THE DIRECTORY (js/views/directory.js): a READING ... the phone keeps People (`dirPeople`).' with:\nTHE PEOPLE PAGE (js/views/directory.js; round 19 \"The SAP way\", reverses the 13 Oct faces; named People again, `nav_directory`): a READING, nothing filed \u2014 `dirBook`; a TABLE (`dirRowHtml`, `dirColDefs`, `dirCellHtml`: Name \u00b7 Side \u00b7 Party or company \u00b7 Job title \u00b7 In HaTi \u00b7 Contracts \u00b7 Email), words above the boxes Side (`_dir.tab`) \u00b7 Party \u00b7 Role in HaTi (`_dir.hati`) \u00b7 Stream, \"ours first, then theirs, by name\" with the reader first (`dirSort`), the away pill (`dirAwayPillHtml`), twelve at a time (`DIR_PAGE`), Columns (`dirLcReg`); a person from elsewhere `dirOpenPerson` \u2192 landOn; `dirPanelPaint` A1's; the phone keeps People (`dirPeople`). STALE: `dirFaceHtml`, `dirAzHtml`, `.dir-face`, `.dir-az`, `data-dir-tab`. Tests: f202, f669, f795, people-directory-verify.",
+    "historyStory": "## PARTIES AND PEOPLE, \"THE SAP WAY\" \u2014 THE GAPS BUILT (lane A2, 19 Oct 2026)\n\nOn 18 Oct 2026 the owner said \"yes, add the rules and build all the gaps\", which covers every gap between the picked round 19 drawing (\"The SAP way\", both scenes) and HaTi. On 17 Oct the overnight build had left four parts of round 19 out and kept two earlier rulings instead. This lane built all of them on A1's shared Jambo panel.\n\n- **LABELS ABOVE THE BOXES.** The drawing sets each filter's word above its box under a hairline. The band's filters now sit outside `.reg-tabbar`, so the house rule `.sap-page .reg-fb .reg-chip` puts the word above the box. This reverses the 10 Oct \"label inside\" for this band only; Contracts and Negotiations keep theirs.\n- **A CITY NEEDED A HOME, AND GOT ONE.** HaTi kept no city, and no one contract is the right place for a party's city. So a party's own facts (city, organisation no.) now live in one server table, `party_records`, keyed as Parties keys a party (`cuKeyOf`). There is one writer (PUT /api/party-records, an editor's). The wall is `prVisibleKeys`: a reader is told only about parties named on contracts they may open, and never about a party that stands only on a confidential deal they are outside of. A refused write is a 404, as everywhere. Every change goes into `party_record_log` and shows in the trail as \"Party details\", but only where the trail reaches a contract with that party, and never for a code-named deal's party seen from outside. Nothing is guessed. The parties clause is OFFERED under the City box: the party's own address row first, then the sentence after its name. The city it offers is the address's last part that is a place name, never a box, number, postcode or country (the browser's own list of countries, `Intl.DisplayNames`). The suggestion fills the box only when pressed, and nothing is saved until Save.\n- **STATUS IS THE PARTY'S STANDING.** The drawing opens on Live yet still shows a live party's ended agreements, so Status now chooses PARTIES (`cuStanding`) and no longer narrows the contracts a row counts. Stream and Owner still narrow, and the row, its sub-line, the panel and the doors still count the same set.\n- **THE WAITING ON YOU COLUMN SAYS IT SHORT**, as drawn: \"2 redlines \u00b7 4 days\", \"an approval, for Jonas\" (from Approvals' own `apForWho`), \"<colleague> asked for <request>\". A colleague's open request about the party now waits on the reader who may draft it (`cuRequestsOf`, the Requests page's own list, walled by GET /api/intake). The panel's rows say each item in full.\n- **TEN AT A TIME, AND COLUMNS.** \"10 of N shown \u00b7 Show more\" (twelve on People, as drawn). Show more, or scrolling to the end, draws the next page, and the chosen row is always among the rows drawn. Columns is one builder for both pages: show/hide and up/down per reader, kept in this browser, \"As it was\" resets it. It follows PRESS IT AGAIN AND IT CLOSES, and it hangs over the page so a short card cannot cut it off.\n- **PEOPLE IS A TABLE AGAIN, AND IS NAMED PEOPLE.** This reverses the 13 Oct face cards, their A to Z edge and the tabs. The Side box carries the old tabs (`_dir.tab`). Role in HaTi replaces the contract-role box. The table reads \"ours first, then theirs, by name\" with the reader first; the phone keeps the roster order with admins first (`dirPeople`). An absence is a grey dash that still says what is missing on hover, so f202's \"an absence says so\" holds.\n- **THE PARTIES PANEL NAMES ITS PEOPLE.** \"People at <party>\" replaces the 13 Oct \"People (n)\" door, and each row lands on that person in the People table, lit (`dirOpenPerson` \u2192 landOn).\n- **LEFT OUT ON PURPOSE:** the code-named \"Project Falcon\" row (the owner's \"Leave it off\" stands).\n- Measured: pages-read-alike 8 (People's head 12px under the shared heads) was already red at gaps/A1, so it was left red with a BUGLOG line.\n- Tests: f738, f739, f795, f796, parties-and-people-verify (each red at gaps/A1). Re-pointed with reasons: f202, f669, f720, f804 7c, parties-sap-way, parties-nda-column, people-directory, customers verify.",
+    "buglog": [
+     "pages-read-alike-verify 8: the People page's head (and Parties', which the sweep does not visit) sits 12px lower under the bar than the shared page heads (People 27px vs 15px at 1000 tall; 21 vs 9 at 760). It was already red at gaps/A1, before lane A2.",
+     "i18n cu_people_door ('People ({n})') is inert since round 19's panel draws 'People at <party>' rows. It is kept in both books.",
+     "server.js line 13: lint warning 'fxPrivate is assigned a value but never used' (it was there before this lane)."
+    ],
+    "ownerSummary": "I built the Parties and People pages to match the round 19 drawing you picked (\"The SAP way\"). On Parties, each filter's name now sits above its box. The list opens on live parties, has a City column, shows ten at a time with \"Show more\", and has a Columns button to hide or reorder columns. The side panel now shows what the drawing shows: when the party has been with you since, its organisation number, owner, live agreements, the next to end, the NDA sentence, what is waiting on you (including a colleague's request), its agreements, the people at that party, and \"Draft an agreement with\u2026\". A party's city and organisation number are new facts, kept in one place on the server. A person types them in the party's panel. HaTi offers the city from the contract's parties clause, but saves nothing until you press Save. People is a table again with labelled filters, and it is named \"People\" again. I deliberately left out the code-named \"Project Falcon\" row, as you asked, and all checks for these screens pass except one page-height check that was already failing before I started."
+   }
+  ],
+  "checks": []
+ },
+ "A3": {
+  "passes": [
+   {
+    "label": "build A3",
+    "built": [
+     "Requests band: the tabs Open \u00b7 Mine \u00b7 Advice \u00b7 Finished \u00b7 All, each with its count, sit in the white band. The labelled boxes Request (words or a reference), Stream and With sit beside them, out of the card head, level with the Contracts tab row.",
+     "Requests head: 'N open' plus 'what colleagues ask Legal for \u00b7 advice too', with Ask for a contract on the right.",
+     "The Open list puts the request that has waited longest first. The card head shows a count pill and 'oldest waiting first'. The foot says 'N of M open'.",
+     "List columns as drawn: Ref \u00b7 Request (asker \u00b7 stream) \u00b7 Kind pill \u00b7 How it is handled (coloured pill) \u00b7 With (no initials, the lane as a small chip with a drawn icon) \u00b7 Files \u00b7 Asked \u00b7 Promised by. Widths fit English and Swedish.",
+     "Request panel on A1's shared Jambo panel. Eyebrow: ref \u00b7 kind \u00b7 from \u00b7 stream. Then the title, then one row of pills: handling, 'With you \u00b7 by the NDA lane', and the \u22ef at the end of that row. Verbs: Start the draft \u00b7 Promise a day \u00b7 Hand back. Put it down, Withdraw and Copy tracker link stay under \u22ef.",
+     "Panel body: 'What <asker> asked for' with the ask quoted. Facts: Counterparty, with '\u00b7 no NDA with them today' (or in force / ended / draft / unconfirmed) read from the confirmed NDA facts in the book, and the counterparty name opens their party page. Stream. How it is handled, with its explanation. With ('Name (you), sent by the X lane'). Asked \u00b7 promised by (late shown in ruby).",
+     "Attachments section: '1 of 3' and one card per file with its size, who added it and an Open button.",
+     "Jambo's line names the template that fits, read WITHOUT AI from the same word match the draft picker uses. It also says 'Start the draft opens the New agreement form with it chosen'. Start the draft now opens the form with that template chosen and scrolls to it. The old silent template guess (intakeSuggestTemplate) is retired.",
+     "Jambo's words when nothing is chosen: the open, unheld, yours and overdue counts, with chips for 'the ones nobody holds' and 'ask for a contract'.",
+     "My notes (scene b), white band: title, count, a lock with 'private to you \u00b7 Jambo reads them only when you ask', and New note. Tabs All \u00b7 Due today \u00b7 Later \u00b7 Reviewed with counts. Labelled boxes Note (search) and Contract.",
+     "My notes list: due notes first, then newest. Columns Note \u00b7 Contract (ref + party) \u00b7 Review pill (Review today amber, a dated review outlined, No review day grey, Reviewed green, late in ruby) \u00b7 Written. Foot 'N of M'.",
+     "My notes panel on Jambo's shared panel: lock eyebrow 'My note \u00b7 written <day>', the title, pills (review + contract ref), verbs Mark reviewed \u00b7 Snooze a week \u00b7 Open <ref>. Then the note's text, Contract and Review rows, the privacy line and a red-outlined Delete note. New note opens its form in the same panel, and a half-written form comes back. On a narrow screen the old split is kept.",
+     "Shared parts: the inspector item head can carry several pills in one row with \u22ef at its end (moreBesidePills), using one \u22ef builder (insMoreHtml). My notes repaints when the width crosses the line. Days with a weekday read 'Tue 20 Oct' with no comma. caDraftShared says which words a request shares with a template.",
+     "All new words are in both language books. Swedish and dark mode were photographed and checked by eye. The phone is untouched."
+    ],
+    "blocked": [],
+    "notDoneYet": [
+     "In Swedish the request panel's three verbs and My notes' verbs wrap to a second line at the narrower screens, and the band row wraps at 1366 wide. Nothing is cut off.",
+     "The old 'How it is handled' filter box is no longer drawn in the band, because the drawing shows only Request \u00b7 Stream \u00b7 With. The column still shows the handling.",
+     "Requests and My notes keep their tab, box and chosen row through a refresh only as before. They are not yet in PLACE_PARTS (BUGLOG line).",
+     "An advice row's panel still uses its older two-column grid (BUGLOG line)."
+    ],
+    "tests": [
+     "test/f797-requests-as-drawn.test.js (new): band, oldest first, panel as drawn, NDA-today reading, files cards, Jambo's no-AI fit, Start the draft chooses the paper",
+     "test/f798-my-notes-as-drawn.test.js (new): band, tabs, boxes, table, pills, panel, form in the panel, words with nothing chosen",
+     "test/f799-round-twenty-shared-parts.test.js (new): caDraftShared, pills row + \u22ef beside pills, one \u22ef builder, My notes repaint, weekday day, lane icon, landOn after Start the draft",
+     "test/chromium/requests-and-notes-as-drawn-verify.js (new): drives both pages in Chrome. Includes a touch press on the band boxes (one list), Start the draft landing, AI never called (POST watcher), and photos at the three screens",
+     "Re-pointed: f220 (the template choice is now read without a model; slice ends at ikShelfOf)",
+     "Re-pointed: f495 2c (the tab row is now .ik-tabbar beside the boxes)",
+     "Re-pointed: f721 1a/2a (With cell class ik-with; the lane chip carries a drawn icon)",
+     "Re-pointed: f804 10b (Requests passes seat and jlSay to the shared panel)",
+     "Re-pointed: my-notes-verify 4 (the note opens in Jambo's panel #ins-panel)",
+     "Re-pointed: four-inspectors-verify 4a/4b (oldest waiting first; holder named in the With chip, promise in the Asked row)",
+     "Re-pointed: contracts-page-verify 9a (My notes now paints the white head, so the page left to is the Brain)"
+    ],
+    "testResults": "npm run lint: 0 errors. The changed files add no new warning; the one warning in intake.js (unused LBL) was already there at the parent. node --test on f797, f798, f799, f148, f721, f220, f495, f804: 168/168 pass. At the parent (gaps/A1 d2a4eb4), f797, f798 and f799 all fail, and the new browser check fails on everything except its controls. Browser checks passing on this branch: requests-and-notes-as-drawn ALL PASSED, four-inspectors 30/0, advice-is-a-request 23/0, contracts-page 98/0, my-notes ALL PASS, requests-sap-way ALL PASSED, jambos-list-panel ALL PASSED, every-jambo-box ALL PASSED, every-door-lands-on-home 114/114, lane-drafts 20/0, narrow-pages 16/16, six-fixes 30/30, requests-reach-the-team 13/0. pages-read-alike is 56/58: check 8 fails on People ('Directory' 27px vs 15px). It fails the same way at the parent, so it was already broken. Full suite not run (CI runs it).",
+    "censusMoved": false,
+    "commits": [
+     "dd0c5c3 Requests and My notes as drawn (round 20, The SAP way): the band, the list, Jambo's panel",
+     "1e59222 Requests and My notes as drawn: the checks, the note's verbs on one line, a chip lands on a note",
+     "fc08e7f Requests and My notes as drawn: Swedish fits, tab row level, re-pointed checks"
+    ],
+    "shots": [
+     "/home/user/wt-shots/A3/20-requests-1440x780.png",
+     "/home/user/wt-shots/A3/20-requests-1536x730.png",
+     "/home/user/wt-shots/A3/20-requests-1366x950.png",
+     "/home/user/wt-shots/A3/20-requests-start-the-draft-1440x780.png",
+     "/home/user/wt-shots/A3/20-mynotes-1440x780.png",
+     "/home/user/wt-shots/A3/20-mynotes-1536x730.png",
+     "/home/user/wt-shots/A3/20-mynotes-1366x950.png"
+    ],
+    "mapLines": "Under THE SAP BENCHMARK, BATCH 2 (REQUESTS), add:\n- REQUESTS AS DRAWN (round 20 \"The SAP way\", built 19 Oct 2026): band = tabs Open \u00b7 Mine \u00b7 Advice \u00b7 Finished \u00b7 All + labelled boxes Request \u00b7 Stream \u00b7 With (`ikBandBoxesHtml`, `.ik-tabbar`); Open oldest waiting first; road pill `ikRoadShown`/`ikRoadHtml` (lane said in With, `ikLaneChipHtml`, ICONS.lane). Panel on Jambo's list panel (`ikTeamPanelOpts`, `ikHeadPillsHtml`, \u22ef beside the pills `moreBesidePills`/`insMoreHtml`): quote, rows Counterparty (`ikCpHtml`, NDA today `ikCpNdaWords` off `cuNdaOf`) \u00b7 Stream \u00b7 How it is handled \u00b7 With (`ikWithRowHtml`) \u00b7 Asked (`ikAskedHtml`), file cards, words `ikJlSay`.\n- THE PAPER THAT FITS IS READ WITHOUT AI: `ikFitOf` (caDraftRank over ikShelfOf, `caDraftShared` names the words); Start the draft \u2192 `openNewAgreement({pick})` + `landOn('.na-pick.on')`. STALE: `intakeSuggestTemplate`; `ik_suggested` inert. Tests: f797, f799, requests-and-notes-as-drawn-verify.\nUnder MY NOTES AND MY OWN EVENTS, add:\n- AS DRAWN (round 20 scene b, 19 Oct 2026): `myNotesBandHtml` (tabs `MN_TABS` all \u00b7 today \u00b7 later \u00b7 done, boxes Note `#mn-q` and Contract `data-mn-f`), table `myNotesTableHtml`, the note on Jambo's panel (`myNoteParts` \u2192 `insPaintPanel`, `INS_PAGE_REPAINT.mynotes`), words `mnJlSay`; narrow keeps `.mn-split`. STALE: `myNotesBarHtml`, `data-mn-filter`. Tests: f798, requests-and-notes-as-drawn-verify.",
+    "historyStory": "REQUESTS AND MY NOTES AS DRAWN (round 20, \"The SAP way\", lane A3, 19 Oct 2026). Both pages were moved onto A1's shared Jambo list panel and built as the drawing shows.\n\nRequests: the band now carries the five tabs and three labelled boxes (Request, Stream, With). The old 'How it is handled' box went because the drawing does not show it; the column still does. The Open list reads oldest waiting first, since what has waited longest is what is owed.\n\nThe With column dropped the initials and says the lane as a small chip. The 'How it is handled' pill no longer says 'Cleared by a lane', because the lane is already said in With. The road pill column was widened to 140 so Swedish fits.\n\nThe panel follows the drawing: eyebrow, title, one row of pills with \u22ef at its end (a new moreBesidePills option on the shared head, so \u22ef does not wrap under three verbs), then Start the draft \u00b7 Promise a day \u00b7 Hand back. Then the quoted ask and the facts. The Counterparty fact reads the confirmed NDA facts in the book ('no NDA with them today'), never the wording. Then attachments as cards.\n\nJambo's line used to be a silent template guess (intakeSuggestTemplate). It is now read WITHOUT AI from the same word match the draft picker uses (caDraftRank), with the shared words named (caDraftShared). Start the draft opens the New agreement form with that template chosen and lands on it.\n\nMy notes: rebuilt as a white band with tabs and boxes, a table with review pills, and the chosen note on Jambo's panel with Delete note. New note opens its form there and keeps a half-written one. Due today is the same reading as the bell's count (mineNotesDue).\n\nRe-pointed checks: four-inspectors 4a/4b (oldest first, holder in the With chip), contracts-page 9a (My notes now has the white head, so the check leaves to the Brain), f220, f495, f721, f804, my-notes-verify 4.\n\nSwedish: an identical road line was given an en dash in the Swedish book, and jl_ik_fit_other was renamed jl_ik_fit_closest because f148 read the _other ending as a plural.\n\nAt the parent all three new node files and the browser check are red. The colour census was not re-recorded and not measured. Its walks do not visit these pages and the new styles are scoped to them.",
+    "buglog": [
+     "- Requests and My notes are not in PLACE_PARTS: a refresh does not bring back the chosen tab, boxes or chosen row (noticed in lane A3, 19 Oct 2026).",
+     "- pages-read-alike check 8 fails on People ('Directory' head 27px vs 15px at 1000px tall, 21px vs 9px at 760px). It fails identically at gaps/A1 d2a4eb4 (noticed in lane A3, 19 Oct 2026).",
+     "- On Requests, an advice row's panel still uses the older two-column facts grid, not the round-20 rows (noticed in lane A3, 19 Oct 2026).",
+     "- In Swedish, Requests' and My notes' panel verbs wrap to two lines at 1366-1440 wide, and the Requests band row wraps at 1366 (noticed in lane A3, 19 Oct 2026).",
+     "- js/views/intake.js openIntakeForm declares LBL (window.HATI_LBL) and never uses it; a standing lint warning (noticed in lane A3, 19 Oct 2026)."
+    ],
+    "ownerSummary": "Requests and My notes now look like the 'SAP way' drawing you picked in round 20.\n\nOn Requests, the tabs and the three search boxes sit together in the top band, and the open list puts the request that has waited longest first. When you pick a request, Jambo's side panel shows it as drawn: who asked, what they asked for, whether we already have an NDA with that company, the attachments, and three buttons (Start the draft, Promise a day, Hand back).\n\nJambo now names the template that fits by matching the request's words, not by asking the AI, so it costs nothing. Start the draft opens the new-agreement form with that template already chosen.\n\nMy notes now has the same band, tabs and table, and a chosen note opens in Jambo's panel with its review day and a Delete note button.\n\nLeft as is: in Swedish a few buttons wrap onto a second line (nothing is cut off). Also, one older check on the People page fails, and it failed the same way before I started.\n\nAll the checks for these pages pass, and photos at your three screen sizes are saved."
+   }
+  ],
+  "checks": []
+ },
+ "D": {
+  "passes": [
+   {
+    "label": "build D",
+    "built": [
+     "Our paper's book (round 21 scene a): a head row with the page name, its count and a facts line (templates, published, drafts, used in 12 months), in place of the old glance tiles; the tabs carry their counts (Book N, Our standards N).",
+     "The index of templates on its shelves: each shelf a button that folds and unfolds (aria-expanded), its count beside it, rows choose a template (press selects, the panel follows); the chosen template and open shelves are kept through a refresh (tplPlace/tplPlacePut).",
+     "The chosen template's head: its name with a version pill (v4, or 'v1 draft'), its facts (stream, category, our standards book, last changed and by whom), and its own verbs in one row: Open in the builder (tplLibEdit) and Draft from it (openNewAgreement with the template picked; greyed with its reason on a draft).",
+     "The template's own paper: a company template's published wording is fetched and drawn through templateFormDocHtml (busy ring while it reads), so an empty company template no longer shows another template's NDA wording; built-in templates draw their own inputs.",
+     "Blanks on the paper: every fill-in box is drawn as an amber dashed underline with its label as the hover word (tpl-pf-blank / hati-field), never as wording.",
+     "Marks under each clause (one builder tbMarksHtml, data-not-wording, contenteditable=false, user-select none): Meets Our standards with the clause library's own name, a deviation with its figure against ours ('Payment terms: 60 days \u00b7 ours \u2264 45'), and 'Came back changed N times' as a button that opens the Contracts list narrowed to exactly those contracts and lands on the first (regShowOnly + jlLand).",
+     "ONE reading of which of Our standards any paper meets (tbCoverageOf over any list of sections); the builder's tbCoverage is now that same function over its blocks, its answer unchanged.",
+     "Contracts drawn from a company template are now counted as its uses (templateUsage also reads libraryTemplateId), so 'used N times' and 'came back changed' read the real record over 12 months (tplPfTally, TPL_PF_DAYS).",
+     "Jambo's panel beside the book on A1's shared list panel (seat tpl-book): nothing chosen says the book; a chosen template says, from the record and nothing spent, how often it was used, where it came back changed by clause number and name, and which of Our standards it meets or still has to meet; Next steps chips are the template's own verbs plus 'where it came back changed' (landOn the mark); the panel moved to page level so it sits beside both tabs.",
+     "The template builder (scene b) as Jambo's panel: one head with \u2039 Jambo (back to Build), the word 'Builder', a fold to a thin strip (jlFolded/jlFoldSet, the same key as the list panel), the rail fitted to the 380 panel width so the paper fills the desk; the strip of doors on the right edge.",
+     "The builder's panel tabs: Build \u00b7 Outline \u00b7 Our standards (met/total) \u00b7 Blanks; an existing template opens on Outline; Outline lists every section with its number, a '1 blank' pill, a tick where it meets a standard, a deviation pill, and '+ \u2026 proposed' rows; pressing a row lands on that section on the paper without leaving Outline.",
+     "Proposals on the paper: each of Our standards the template does not yet meet is drawn as a proposed clause (with our standard's own guidance) before the signature block, with Add (tbAddStandard, the one writer) and Skip; a skip is remembered for that template.",
+     "The builder's ask box is the same Jambo box as everywhere: '/' finds a place (data-ca-slash), leaving the builder through tbLeave so unsaved work is asked about first (caSlTake honours the box's own leave); one Ask button and the hint line inside the foot.",
+     "Marks are drawn under the builder's sections too and refresh when a section loses focus; both books (English and Swedish) carry every new word beside its area's keys.",
+     "New checks f760 (14), f761 (8), f762 (13) and the browser walk our-paper-as-drawn-verify (book, panel words, marks door, builder head, fold, Outline, proposals, slash, three screens); all red at the base, all green here."
+    ],
+    "blocked": [
+     {
+      "gap": "The drawing sets the template's paper title in capitals (MASTER SERVICES AGREEMENT) in a heavier display face above the wording.",
+      "why": "ONE PAPER EVERYWHERE says every paper draws one look and a designed paper keeps its own type; forcing capitals on Our paper's sheet alone would make this one paper differ from every other paper in HaTi. I kept the paper's own heading as written.",
+      "question": "Should the template's title on Our paper be shown in capitals as drawn (which makes this one paper look different from all the others), or kept as the template writes it?"
+     }
+    ],
+    "notDoneYet": [
+     "Proposed clauses sit before the signature block, not at the exact place the drawing shows (just before Governing law); a smarter place needs a reading of where each standard belongs in a document.",
+     "A Skip on a proposal is remembered in this browser only (hati.v1.tbSkipped), not on the server, so another colleague or another computer still sees the proposal.",
+     "The builder's own dots, left gutter and the Save draft icon were kept as they are today; the drawing shows them lighter.",
+     "The template list panel's 'Draft a contract' button still opens the older wizard/tplLibNewContract door rather than the one New agreement form (logged as a BUGLOG line, not changed on the way past).",
+     "The colour census moved on Our paper (see censusMoved) and was not re-recorded; it needs the owner's yes."
+    ],
+    "tests": [
+     "test/f760-our-paper-book-as-drawn.test.js (new, 14 tests)",
+     "test/f761-our-standards-on-any-paper.test.js (new, 8 tests)",
+     "test/f762-the-builder-as-drawn.test.js (new, 13 tests)",
+     "test/chromium/our-paper-as-drawn-verify.js (new browser walk, checks 0-10 incl. the three screens)",
+     "re-pointed with reasons: test/f244 (7) the glance tiles became the head's facts line; test/f306 (11)(9) tbCoverage is now tbCoverageOf over the builder's sections and focus keeps the Outline tab; test/f336 (3)(4) the panel moved to page level; test/f722 (3a) the paper is the template's own fetched wording; test/f805 (7b) the builder's box carries data-ca-slash and its own leave; test/chromium/paper-first-verify.js (3), templates-tabs-verify.js (9e), jambos-list-panel-verify.js (10h) for the same moves"
+    ],
+    "testResults": "npm run lint: 0 errors (137 warnings, all already there). Node: f760+f761+f762 35/35 pass on gaps/D and 35/35 fail at the base (d2a4eb4); with every re-pointed and related file (f244, f306, f336, f722, f805) 226/226 pass; earlier sweep of every node test reading the changed files 1967/1967 pass. Browser: our-paper-as-drawn-verify ALL PASSED on gaps/D, 39 FAILED at the base (each reported, none timed out); paper-first, templates-tabs, jambos-list-panel pass after re-pointing; contrast-verify 33/33; dark-no-white-patches-verify 9/9. pages-read-alike-verify check 8 fails identically at the base (People page glyph) \u2014 not this lane's. ink-wash-verify: 130 passed, 40 failed here vs 137/33 at the base \u2014 the 7 new failures are all the 'ourpaper' screen (see censusMoved). theme-tokens-verify: 36/40 both here and at the base (calendar and templates already red at the base); the templates set difference changed.",
+    "censusMoved": true,
+    "commits": [
+     "b04542e Our paper and the builder as drawn (round 21, Paper first): Jambo's panel beside the book, the template's head and verbs, blanks and marks on the paper, the builder's panel with its Outline and proposals",
+     "6b753bd Our paper as drawn: its checks (f760-f762, our-paper-as-drawn-verify), re-pointed checks, a company paper read again after it changes",
+     "a179f38 our-paper-as-drawn-verify 4c: the marks must be there before they are checked as not wording (vacuous at the base otherwise)"
+    ],
+    "shots": [
+     "/home/user/wt-shots/D/21-book-1440x780.png",
+     "/home/user/wt-shots/D/21-book-1536x730.png",
+     "/home/user/wt-shots/D/21-book-1366x950.png",
+     "/home/user/wt-shots/D/21-book-jambo-words-1440x780.png",
+     "/home/user/wt-shots/D/21-builder-1440x780.png",
+     "/home/user/wt-shots/D/21-builder-1536x730.png",
+     "/home/user/wt-shots/D/21-builder-1366x950.png",
+     "/home/user/wt-shots/D/21-builder-props-1440x780.png",
+     "/home/user/wt-shots/D/21-templates-list-1440x780.png",
+     "/home/user/wt-shots/D/21-templates-list-1536x730.png",
+     "/home/user/wt-shots/D/21-templates-list-1366x950.png"
+    ],
+    "mapLines": "Under \"## THE TEMPLATES PAGE, THE BUILDER, AND NEW STANDARDS\", after the round 21 sentence, add:\n- PAPER FIRST, AS DRAWN (lane D, 19 Oct 2026): head `.tpl-hd-row` (name, count, facts `tplPfHeadFacts`), tabs counted (`paperTabCounts`); shelves fold (`data-tpl-pf-shelf`, kept by `tplPlace`); the template's head = version pill + facts + its verbs (`tplPfVerbs`: Open in the builder \u00b7 Draft from it \u2192 `openNewAgreement({pick})`); a company paper is its fetched version (`tplPfDocLoad` \u2192 `templateFormDocHtml`); blanks amber underlines (`tplPfBlanksHtml`); uses counted by `libraryTemplateId` too (`templateUsage`, `tplPfTally`, 12 months). ONE reading of Our standards over any paper `tbCoverageOf` (tbCoverage = it over the blocks); marks ONE builder `tbMarksHtml` (met \u00b7 dev \u00b7 \"came back changed\" \u2192 `regShowOnly` + `jlLand`); Jambo's panel seat `tpl-book` (`tplPfPanelPaint`, `tplPfSaid`, `tplPfChips`), from the record, nothing spent.\n- THE BUILDER AS JAMBO'S PANEL: head \u2039 Jambo \u00b7 Builder \u00b7 fold (`tbRailFold`, jlFold key); tabs Build \u00b7 Outline (`tbOutlineTabHtml`) \u00b7 Our standards \u00b7 Blanks; proposals on the paper (`tbProposals`/`tbProposalHtml`, Add = `tbAddStandard`, Skip `tbSkip` per browser `hati.v1.tbSkipped`); its box carries \"/\" and leaves through `tbLeave` (`box._caLeave`, read by `caSlTake`). Tests: f760, f761, f762, our-paper-as-drawn-verify.",
+    "historyStory": "ROUND 21 \"PAPER FIRST\", BUILT AS DRAWN (lane D, 19 Oct 2026). The owner had picked \"Paper first\" for Our paper on 17 Oct, and the first build drew the index and a paper but left most of the drawing's frame: the glance tiles stayed where the drawing has a plain head row, the paper showed built-in NDA wording for a company template that had no wording of its own, the marks under each clause and Jambo's words beside the book were missing, and the builder kept its old rail. This round builds every visible part. The book now opens with one head line (name, count, facts), shelves that fold, the chosen template's version pill, facts and its own two verbs, and the template's real published wording fetched from the server. Blanks are amber underlines; under each clause sit marks saying which of Our standards it meets (in the clause library's own words), where it departs (its figure against ours), and how often contracts drawn from it came back changed there \u2014 that last mark is a door to exactly those contracts. Counting uses needed a fix on the way in: contracts drafted from a company template carry libraryTemplateId, which templateUsage never read, so every company template showed 'never used'. The reading of Our standards was made ONE function (tbCoverageOf) used by both the builder and the book; the builder's old answer was kept identical. Jambo's panel beside the book (A1's shared list panel) speaks only from the record and spends nothing. The builder became Jambo's panel: \u2039 Jambo, Builder, a fold, Outline and Our standards tabs, proposed standard clauses drawn on the paper with Add and Skip, and the same \"/\" box as everywhere, leaving through tbLeave so unsaved work is asked about. Not built as drawn and asked: the paper title in capitals (ONE PAPER EVERYWHERE). Left for later: proposals placed before the signature block rather than before Governing law; Skip kept per browser. The colour census moved on the ourpaper screen: the met and blank marks wear the status green and amber already in the product, the glance tiles' accent colours left; not re-recorded. Checks f760\u2013f762 and our-paper-as-drawn-verify were red at the base (35/35 and 39 reports) and green here.",
+    "buglog": [
+     "- (lane D, 19 Oct 2026) pages-read-alike-verify check 8 is red at gaps/A1 (d2a4eb4) already: the People page's \u00abDirectory\u00bb glyph differs from the other pages' heads. Not this lane's; left red.",
+     "- (lane D, 19 Oct 2026) Our paper's template list panel: 'Draft a contract' still opens the older wizard / tplLibNewContract door, not the one New agreement form (openNewAgreement) the book's 'Draft from it' now uses \u2014 a second door onto one act (Nine flow rules 2). Noticed, not fixed.",
+     "- (lane D, 19 Oct 2026) FIXED IN LANE (it was in the way of the drawing's 'used N times'): templateUsage never counted contracts drafted from a company template (they carry libraryTemplateId, not a template key), so every company template read 'never used'.",
+     "- (lane D, 19 Oct 2026) FIXED IN LANE (part of the drawn paper): Our paper showed built-in NDA wording for a company template with no wording of its own; it now fetches and draws the template's own published version.",
+     "- (lane D, 19 Oct 2026) theme-tokens-verify calendar--light/dark and templates--light/dark are red at gaps/A1 (d2a4eb4) already; this lane changed the templates set difference too (status green/amber marks added, the glance tiles' accent gone). Census not re-recorded."
+    ],
+    "ownerSummary": "Our paper now looks like the \"Paper first\" drawing: a plain head line with counts, shelves that fold, and the chosen template shown as its own real wording with its version, facts and two buttons (Open in the builder, Draft from it). Under each clause small marks say which of your standards it meets, where it departs and how often contracts made from it came back changed there; pressing that last mark opens exactly those contracts. Jambo's panel beside the book explains the template from the record without spending anything, and the template builder now uses the same Jambo panel with Outline and Our standards tabs and proposed standard clauses you can Add or Skip. Two small faults were fixed on the way because the drawing needed them: company templates always said \"never used\", and an empty company template showed another template's wording. One question for you: the drawing shows the template's title in capitals, which would make this paper look different from every other paper in HaTi, so I kept it as written until you say. The colour check moved because the new green and amber marks appear on this page; I did not re-record it without your yes."
+   }
+  ],
+  "checks": []
+ },
+ "A4": {
+  "passes": [
+   {
+    "label": "build A4",
+    "built": [
+     "Obligations: each week is its own card, the way the round 16 drawing ('Week by week') shows it. Each card has a caret, its name, a count, what it holds ('work somebody could do now', '19\u201323 October \u00b7 both theirs', 'a renewal decision', 'nobody owns it yet') and the money it moves ('nothing to pay', 'we pay KES 258K', with private rows left out of the sum). A folded week names its items and marks a private one 'Private'. Every week can fold, Late too.",
+     "Obligations head line: '9 outstanding \u00b7 1 overdue', with Open every week \u00b7 Filter \u00b7 + Add an obligation (obwPaintHead added to PAGE_HEAD_PAINT; this reverses the 9 Oct no-facts-line ruling on the owner's yes). '+ Add an obligation' asks which contract (a search box), then opens that contract's own form (openObligationForm).",
+     "A button on each row, each going through the writer that already exists. Ours: Mark done (openObligationDone \u2192 obligationMarkDone). Theirs: Chase, or 'Chase again' with 'chased 12 Oct' in the line (obligationChase, which asks first). A renewal decision: Decide (needsYouGo('renewal'), which lands lit on the renewal card). A colleague's row has no button. Each row's face says who acts: our initials, their initials in violet, or a dashed ring for 'nobody owns it yet'.",
+     "Renewal decisions show as rows in their week ('Decide whether to renew Office Lease \u00b7 notice deadline'; obwDecisions, key '::~renewal'). They are never stored as obligations. Opening one goes to the renewal card.",
+     "Jambo's finds are a row of this week, at the top of today: 'Jambo found 3 obligations in <contract> \u00b7 none is added until you say \u00b7 Review 3'. It opens the review desk (openObligationsReview) and is counted in no week's number.",
+     "Your week: with no row chosen (nothing is chosen on arrival), Jambo's panel says one sentence counted from the list ('This week: 1 late (yours), 2 due from the other side, and Jambo's 3 finds to review. Next week holds the renewal decision on Office Lease.'), then 'Counted from your list \u00b7 no Jambo call', then the offer, which follows the reader's own setting. Under it are two chips, 'plan my week \u00b7 1 Jambo call' and 'find time for what is due \u00b7 1 call', which hand off to the Calendar's planner (calHandOff \u2192 POST /api/ai/plan). Pressing a row turns the panel to 'Obligation', and '\u2039 Jambo' goes back. The shared list panel (jlWordsHtml) gained `say.after` to carry the setting.",
+     "'Jambo may change my calendar: On his own \u00b7 Ask me first \u00b7 Never' is the Calendar's own setting, drawn by one builder on both pages as three buttons (the old dropdown is gone) with one writer (calLevelSet \u2192 mineSave('pref')). Never is enforced: the panel offers no Add, calPlanAdd refuses, and the server reads the person's own pref row (myCalLevel, never the request body) and lets the planner answer only in words.",
+     "Calendar compared with the round 16 drawing; every difference built. A head on every host: the name, '19 October \u2013 27 November \u00b7 six weeks', Month/Week/Horizon, All dates/Mine, + New event and \u22ef. The card's bar reads 'This week, then five more', and the key (Ours \u00b7 Theirs \u00b7 Contract date \u00b7 Mine \u00b7 Jambo's plan) works as the layers' switches. Chips are coloured by whose turn it is (calChipLook: ours, theirs in violet with their name first, late in red, decide in amber). Late work stands on today, or on this week's Monday at a weekend. Hours read '09'. An empty hour says '+ Add your own' under the pointer. The five weeks below say 'N due'. Jambo's panel beside it is 'Your week' in the same words, with the week's ask box (caAskAnywhere first) and the hint line.",
+     "Tidy-up: the Calendar's old second bar and layer-button styles were removed (they styled nothing any more), along with the 'Find an hour for MK-\u2026' chip, which the drawing does not have.",
+     "Checks: f791\u2013f794 (56 node tests) and test/chromium/week-as-drawn-verify.js (drives both pages, the doors, a scripted Jambo plan with Add and nothing added, and the owner's three screens)."
+    ],
+    "blocked": [],
+    "notDoneYet": [
+     "The colour census moved (see censusMoved). It needs the integration step's audited re-record; it was not re-recorded here.",
+     "The owner's side-by-side (drawn against built, every visible part ticked, pictures at the three screens) is for the integration step before merging. The photos are in /home/user/wt-shots/A4/.",
+     "The phone's Obligations list keeps OB_WINDOWS, as before. Round 16 draws the computer page only."
+    ],
+    "tests": [
+     "test/f791-the-week-as-drawn.test.js",
+     "test/f792-your-week.test.js",
+     "test/f793-jambo-may-change-my-calendar.test.js",
+     "test/f794-the-calendar-as-drawn.test.js",
+     "test/chromium/week-as-drawn-verify.js"
+    ],
+    "testResults": "npm run lint: 0 errors. New checks green on gaps/A4 (3f6406e): f791 20/20, f792 13/13, f793 9/9, f794 14/14, week-as-drawn-verify ALL PASSED, including 3g (the scripted Jambo's plan waits with Add and nothing is added) and the fit at 1440\u00d7780, 1536\u00d7730 and 1366\u00d7950. Red at the parent gaps/A1 (d2a4eb4): f791 0/20, f792 0/13, f794 0/14, week-as-drawn-verify 8 FAILED. f793 is 1/9 at the parent: its 4c pins that 'Ask me first' keeps both planner tools, which is today's behaviour, so it passes there on purpose. Related node tests pass: f148, f232, f253\u2013f263, f387, f390, f411, f415, f431, f436, f458, f48, f554, f561, f564, f641, f664, f678, f694, f717, f718, f732, f735, f80, f804, f805, f83. Browser checks pass: week-by-week, calendar-on-home, calendar-redesign 42/42, calendar-day 11/11, calendar-holds-still 14/14, my-calendar, jambo-follows-the-ask, four-inspectors 30/0, sap-lists 16/16, amount-and-window 29/0, obligations-tab 48/48, payment-chain 36/0, review-desk, jambos-list-panel, every-jambo-box, laptops 21/21, narrow-pages 16/16, every-door-lands-on-home 114/114, obligations-report 41/41, jambo-everywhere, inspector 33, inspector-checklist 26, land-on-it, refresh-keeps-your-spot 14/14. pages-read-alike is 56/58 with the same two failures at the parent (not from this lane). Re-pointed with a reason in each: f390 5a (Obligations now paints its head), f678 2b (a decision row's Open goes to needsYouGo('renewal')), f804 10a (the panel's options come from obPanelJl), f805 7a (the Calendar box's cost is on Ask's hover, the hint last), week-by-week 3b ('1 due' / '3 due'), four-inspectors 1a/1d/1h ('Your week', the head's facts, nothing chosen on arrival), sap-lists 3b/3c (the grey 'Unassigned' is now the face's dashed ring 'nobody owns it yet'), calendar-on-home 5/6 (the head on Home with \u22ef in it; three level buttons), calendar-redesign 1 (the head, the key names five), jambo-follows-the-ask (the level is pressed through [data-cal-lv]). Colour census: theme-tokens-verify is 36/40 here. Its calendar light and dark checks moved further than at the parent: new violet 'theirs', the key's tones, the dashed plan in the accent. Its templates checks moved identically at the parent. ink-wash-verify fails the same 33 checks at the parent and here. Only the obligations and calendar numbers differ (more 13px text, the 16px card titles gone, one 20px head); every other page's numbers are identical to the parent.",
+    "censusMoved": true,
+    "commits": [
+     "3b49007 Obligations and the Calendar as round 16 draws them (Week by week): the week's cards, each row's act, Jambo's finds and decisions as rows, Your week in Jambo's panel",
+     "a26101d Round 16 as drawn: the checks (f791-f794, week-as-drawn-verify), finds lead their day, a weekend carries late work onto this week's Monday",
+     "004396d Round 16: the old bar's and layer buttons' styles go; the week check plans with a scripted Jambo",
+     "3f6406e f793: say that 4c passes at the parent on purpose (it keeps Ask me first as before)"
+    ],
+    "shots": [
+     "/home/user/wt-shots/A4/16-obligations-1440x780.png",
+     "/home/user/wt-shots/A4/16-obligations-1536x730.png",
+     "/home/user/wt-shots/A4/16-obligations-1366x950.png",
+     "/home/user/wt-shots/A4/16-calendar-1440x780.png",
+     "/home/user/wt-shots/A4/16-calendar-1536x730.png",
+     "/home/user/wt-shots/A4/16-calendar-1366x950.png"
+    ],
+    "mapLines": "## OBLIGATIONS \u2014 after the WEEK BY WEEK line, add:\n- THE WEEK AS DRAWN (round 16, lane A4): each week a card (`obListHtml` page, `.obw-wk[data-obw-card]`: caret, count, `obWeekSub`, money `obWeekMoneyHtml` \"we pay/they pay\", private adds nothing; folded `obWeekSaid`+`obWeekOneWho`, `.obw-priv`); every week folds, Late too (`obwWeekShut`). A row's face says who acts (`obwRowAvHtml`) and its ONE act through the old doors (`obwRowActHtml`/`obwRowAct`: Mark done \u2192 openObligationDone \u00b7 Chase / Chase again + \"chased <date>\" \u2192 obligationChase \u00b7 Decide \u2192 needsYouGo('renewal')); renewal decisions are rows, never obligations (`obwDecisions`, key `::~renewal`); Jambo's finds a row leading today (`obwFindRows` \u2192 openObligationsReview, in no week's count).\n- YOUR WEEK: nothing chosen on arrival (`insPick(\u2026,{none:true})`), Jambo's panel (`obPanelJl`) says ONE reading `obYourWeek` \u2192 `obYourWeekSentence` + \"Counted from your list \u00b7 no Jambo call\", the offer by the setting (`obYourWeekOffer`), chips = the planner's two asks (`calHandOff('week'|'due')`), the setting under them (`say.after` in `jlWordsHtml`); the Calendar's panel (`calPlanHtml`) says the same. Head \"N outstanding \u00b7 N overdue\" + Open every week \u00b7 Filter \u00b7 + Add an obligation (`obwPaintHead`, `obwAddOpen` \u2192 openObligationForm). Tests: f791, f792, week-as-drawn-verify.\n\n## THE SAP BENCHMARK, BATCH 1 \u2014 replace \"Obligations: Filter fold, Unassigned in grey, no facts line (not in `PAGE_HEAD_PAINT`; band = Approvals' height), All the first tab\" with:\nObligations: Filter fold, an unowned row's face a dashed ring \"nobody owns it yet\", the facts line \"N outstanding \u00b7 N overdue\" (`obwPaintHead` in `PAGE_HEAD_PAINT`; reverses 9 Oct, owner's yes in round 16), All the first tab (`OBW_VIEWS`, `OBT_VIEWS`).\n\n## CALENDAR \u2014 replace \"the key in the filter row (`.cal-bar2-l`)\" with \"the key in the card's bar\", and add:\n- ROUND 16 AS DRAWN (lane A4): a head on every host (`.cal-head`: `calHeadFacts` \"range \u00b7 six weeks\", views, scope, + New event, \u22ef); the card's bar \"This week, then five more\" (`calWeekCardTitle`) with the key as the layers' switches (`calKeyHtml`, `data-cal-lay`); chips by whose (ONE reading `calChipLook`: ours \u00b7 theirs `--st-violet-*` with their name \u00b7 late \u00b7 decide \u00b7 ends \u00b7 nobody \u00b7 done; ONE builder `calCtChipHtml`); late work on today (this week's Monday at a weekend); \"+ Add your own\" on an empty hour (`data-cal-hint`); a week of dues says \"N due\". STALE: `.cal-bar2`, `.cal-lay`, `calLayerSegHtml`, `calPlanNextRef`, the \"Find an hour\" chip. Tests: f794, week-as-drawn-verify.\n- JAMBO MAY CHANGE MY CALENDAR: On his own \u00b7 Ask me first \u00b7 Never (`CAL_LEVELS`, `calLevelOf`; ONE builder `calLevelSegHtml` on both pages; ONE writer `calLevelSet` \u2192 mineSave('pref')); Never: no Add (`calPlanAdd` refuses), the server reads the person's own row (`myCalLevel`, `MY_CAL_LEVELS`), never the body, and gives the planner `answer` only. STALE: `#cal-plan-level`. Tests: f793.",
+    "historyStory": "## ROUND 16 AS DRAWN \u2014 OBLIGATIONS AND THE CALENDAR, WEEK BY WEEK (lane A4, 19 Oct 2026)\n\nThe owner asked for every gap between the round 16 drawing (\"Week by week\", option 2) and the built pages to be closed. Lane A4 was built on gaps/A1 so that it could use A1's shared Jambo list panel.\n\nWhat was built on Obligations. Each working week became its own card. Its header names the week, counts it, says what it holds (\"work somebody could do now\", \"both theirs\", \"a renewal decision\", \"nobody owns it yet\") and the money it moves (\"nothing to pay\" on this week, \"we pay KES 258K\"). A private stream's money adds into no week's sum, the same as everywhere else (fxCounted). A folded week names its items, and a private one carries a \"Private\" pill. Every week now folds, Late and This week too, because the drawing gives each card a caret.\n\nEach row's face says who acts: our initials, their initials in violet, or a dashed ring for \"nobody owns it yet\". This replaced the grey \"Unassigned\" from the 9 Oct SAP batch, which is why sap-lists 3b/3c were re-pointed.\n\nEach row has its ONE act, and every act goes through the door that already existed:\n- Mark done goes to openObligationDone, which calls obligationMarkDone.\n- Chase, or \"Chase again\" with \"chased 12 Oct\" in the line, goes to obligationChase, which still asks first.\n- Decide goes to needsYouGo('renewal'), which lands lit on the renewal card.\n\nRenewal decisions are drawn as rows of their week. They are a reading of renewalDecisionDate inside RENEWAL_WINDOW_DAYS for the contract's owner, never stored as obligations, so no count or report changed. Jambo's finds (obReviewWaiting) are a row at the top of today that opens the review desk. They are counted in no week, because nothing is added until the reader says.\n\nThe head says \"N outstanding \u00b7 N overdue\". This reverses the 9 Oct \"no facts line\" ruling on the owner's yes in round 16, so obligations joined PAGE_HEAD_PAINT and f390 5a was re-pointed. The head also carries Open every week, Filter (kept: filtered doors land on it) and + Add an obligation, which asks which contract (a search box) and then opens that contract's own form. There is no second form.\n\nYour week. With nothing chosen (insPick none on arrival; four-inspectors 1h now chooses a row before Enter), Jambo's panel says one sentence counted from the list. It costs no call, and says so. The offer follows the reader's own setting. The two chips hand the planner's two asks to the Calendar (calHandOff), which stays the one writer of his blocks. Under them is \"Jambo may change my calendar: On his own \u00b7 Ask me first \u00b7 Never\". This is the Calendar's own setting, now three buttons drawn by one builder, because a dropdown here would also open the iPad's picker. It has one writer, the person's pref row.\n\nNever is enforced, not just drawn: the server reads the person's own row (never the request body), gives the planner only the `answer` tool, and tells him why. The browser offers no Add, and calPlanAdd refuses. f793 4c passes at the parent on purpose: it pins that Ask me first keeps both tools, so Never cannot take them away.\n\nThe Calendar, compared with the same drawing:\n- A head on every host, Home included: the name, \"range \u00b7 six weeks\", the views, the scope, + New event and \u22ef (Month/Week/Horizon and \u22ef were kept).\n- The card's bar reads \"This week, then five more\", and the key works as the layers' switches. The second bar went.\n- Chips are coloured by whose turn it is. The plan's colour became the accent, and \"theirs\" got its own violet tokens, tuned so the key's five tones stay apart (calendar-redesign measures this).\n- Late work stands on today, or on this week's Monday at a weekend.\n- Hours read \"09\", an empty hour says \"+ Add your own\", and the five weeks below say \"N due\".\n- Jambo's panel says Your week in the same words, with the week's ask box (caAskAnywhere first) and the hint line last. The cost moved to Ask's hover, which is why f805 7a was re-pointed.\n\nThe \"Find an hour for MK-\u2026\" chip was removed, because the drawing has two asks. The old second bar's and layer buttons' styles went with it.\n\nChecks: f791\u2013f794 and week-as-drawn-verify. The browser check answers the planner with a scripted Jambo, so the photos show a plan waiting with Add rather than an error. The colour census moved on the Calendar and Obligations pages only. It was left for the integration step's audited re-record.",
+    "buglog": [
+     "- pages-read-alike-verify 8: the People page's head is 27px tall against 15px on the other pages. It is red at gaps/A1 (d2a4eb4) already, not from lane A4.",
+     "- theme-tokens-verify templates--light/dark: new colours on Our paper (round 21) are red at gaps/A1 already. They wait for the integration step's census re-record.",
+     "- calPlanAsk still knows an 'hour' ask (cal_plan_q_hour / cal_plan_p_hour), but since round 16 no chip sends it. It should be retired, or given a door."
+    ],
+    "ownerSummary": "The Obligations page now looks like the round 16 drawing. Each week is its own card that says what it holds and what money it moves. Each row has its one button: Mark done, Chase (or Chase again with the date you last chased), or Decide for a renewal. Jambo's finds and renewal decisions now show up as rows in their week. With nothing chosen, Jambo's panel says \"Your week\" in one sentence counted from your list at no cost. It offers the two planning asks and your setting for whether he may change your calendar (\"On his own \u00b7 Ask me first \u00b7 Never\"). Never is enforced on the server, not just shown. The Calendar was compared with the same drawing and every difference was built: the head, \"This week, then five more\", the colour key, colours by whose turn it is, late work on today, and the same \"Your week\" panel. I removed the \"Find an hour\" chip because the drawing does not have it. The page colours changed on these two pages, so the colour record needs re-recording when the lanes are joined."
+   }
+  ],
+  "checks": []
+ }
+}

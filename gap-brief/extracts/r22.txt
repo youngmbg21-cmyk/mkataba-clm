@@ -1,0 +1,168 @@
+# Round 22, option 3
+
+## scene a
+Ha
+Lindqvist & Co AB
+English
+Svenska
+7
+ML
+‹ The counter
+Import contracts
+×
+Import contracts
+Old contracts from the shared drive · started Fri 16 Oct by you · 24 files
+Choose files…
+Files
+24
+Filed
+19
+To check
+3
+Duplicate?
+1
+No readable text
+1
+Drop old contracts here, or a whole folder
+Word, PDF or scans, up to 25 files a batch. Jambo reads each one: about SEK 0.50 a file from the onboarding allowance (SEK 41 of SEK 200 used). You see the total before it starts.
+Choose files
+Import as
+Signed outside HaTi
+▾
+File under
+Let Jambo suggest
+▾
+A list of what is in them (optional)
+Load a spreadsheet
+· get the empty one
+Files in this batch
+24
+the ones that need you first
+Review spreadsheet
+Check all 3
+File · what Jambo read	Stream	Value	Ends	Done	State
+Hyresavtal_lager_Hamnen_2019.pdf
+Warehouse lease · Hamnens Lager AB
+	Procurement	SEK 480 K a year	not sure	
+	To check
+no end date found
+
+Stadavtal_RenaStad_scan.pdf
+Cleaning services · Rena Städ AB
+	Procurement	not sure	30 Apr 2027	
+	To check
+a scan · value unclear
+
+NDA_Volvo_draft_v2.docx
+Non-disclosure agreement · Volvo Car AB
+	Sales	—	—	
+	To check
+not signed: import as a draft?
+
+Supply_Brightwater_2023_copy.pdf
+Supply agreement · Brightwater Foods
+	Procurement	SEK 3.6 M	31 Mar 2027	
+	Duplicate?
+the same file as MK-0377
+
+Scan_0042.pdf
+Nothing could be read
+	—	—	—	
+	No readable text
+a photo of a page, too faint
+
+NDA_Nordvik_2024.pdf
+Mutual NDA · Nordvik Logistik AB
+	Sales	—	secret to Feb 2028	
+	Filed
+MK-0310
+
+Supply_Alvarsson_2023.pdf
+Supply agreement · Alvarsson Metall AB
+	Procurement	SEK 2.2 M	31 Dec 2026	
+	Filed
+MK-0333
+
+Licens_Stratos_signerad.pdf
+Software licence · Stratos Software
+	Sales	SEK 1.1 M	15 Jan 2027	
+	Filed
+MK-0350
+
+Lease_Tornmark_2020.pdf
+Office lease · Tornmark Fastigheter AB
+	Sales	SEK 3.6 M	30 Sep 2030	
+	Filed
+MK-0200
+9 of 24 shown ·
+Show all 24
+Jambo
+Import
+‹ Jambo
+›
+Hyresavtal_lager_Hamnen_2019.pdf
+Check this file
+
+Jambo read it; one fact needs you before it is filed.
+
+Title
+Warehouse lease
+Party
+Hamnens Lager AB
+Starts
+1 Apr 2019
+Ends
+Jambo was not sure
+§ 3: renews by itself each year unless ended 3 months before.
+Value
+SEK 480 K a year
+Stream
+Procurement
+File it
+Open the file
+
+File it waits for Ends: choose "renews by itself" or a date.
+
+Ask for anything, or type /
+Ask
+Typing never signs, sends or files — a press does.
+
+## COMPARE
+Round 22 · Import
+
+This round decides how bringing in old contracts in bulk looks on the desk: the drop area, the figures, and above all the files Jambo read but was not sure about, which wait for a person to check and file. Each option shows the same batch: 24 old contracts from the shared drive, 19 filed, 3 to check, 1 duplicate, 1 that could not be read.
+
+Everything stays: the allowance and the cost said before a batch starts, "Import as" and "File under", the optional list whose facts win over what Jambo reads (and which lists what it could not read rather than guessing), the duplicate choices, the six marks, and nothing filed for a file that needs you until you press.
+
+The three ideas
+Option	The idea	When it wins	What it costs
+One at a time	The files that need you come first, one at a time: the file's own page on the left, with numbers where each fact was found (in its own language, never translated), and the facts to file on the right. Jambo says why he was not sure and offers the likely answer.	When checking is the real work, and a person wants to see the words a fact came from before filing it.	The batch as a whole is behind two tabs. A fresh batch with nothing to check needs a different first screen.
+Sorted by outcome	The batch as a report: one bar shows how the 24 files ended, then three cards: to check, to decide, filed. Each row carries its own buttons. Jambo sums up the night's work and what it cost.	The morning after a big batch, when you want the whole picture before starting.	Checking a file still opens it somewhere else, so it is one press further from the work. Long batches make long cards.
+The SAP way	Figures across the band (each one narrows the list), the drop area with its choices, a quiet table of files with the six marks and a state, and the chosen file's details in Jambo's panel, ready to file.	When batches are large and mixed, and people filter and work down a list.	The file's own words are one press away (Open the file) rather than beside the facts.
+My recommendation: The SAP way, with One at a time for "Check all 3"
+
+Import is a list job most days: drop files, see the figures, work down what needs you. The SAP way does that in the same grammar as Contracts and Requests, and the figures are doors that narrow the list. Jambo's panel holds the chosen file's facts, with the uncertain one in amber.
+
+When you press "Check all 3", it should open One at a time's view: the file's own page beside the facts, with numbers where each fact was found. That is where checking is fastest and safest.
+
+The page checklist
+Question	One at a time	Sorted by outcome	The SAP way
+Most important thing easiest to see?	Yes: the fact that needs you, in amber, beside its words	Yes: the 3 to check come first	Partly: the figures lead; the 3 are at the top of the table
+Related things grouped?	Yes: the words and the facts side by side	Yes: by outcome	Yes: one row a file, details in the panel
+Each label says what is behind it?	Yes	Yes	Partly: the six marks need their hover to name them
+Always know where you are, and the way back?	Same for all three: "‹ The counter", and the page stays open as a small tab. A filed row's number opens its contract.
+What the checks changed
+
+A button that cannot act is grey with its reason. "File it" waits until Ends has an answer, and says so beside it.
+
+Copilot prepares, a person decides. Jambo offers "renews by itself" as the likely end; a press fills the box, and filing is a second press. A batch's cost is said in the drop area, before anything is read.
+
+The contract's pixels. Today's page shows no contract wording, so no measure applies. One at a time adds the file's own page; nothing it replaces moves down.
+
+Fit. At 1536 × 730 the head card and Jambo's panel stay put; the lists scroll inside the desk.
+
+Questions for you
+
+None. No option adds a band, and none needs a rule lifted.
+
+The buttons on this page do not open anything yet. Each one says which round designs the page it leads to.

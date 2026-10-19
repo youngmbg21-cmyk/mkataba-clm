@@ -1,0 +1,139 @@
+# Round 16, option 2
+
+## scene a
+Ha
+Obligations
+English
+Svenska
+Light
+7
+ML
+‹ The counter
+Obligations
+×
+Calendar
+×
+Obligations 11 outstanding · 1 overdue
+Open every week
+Add an obligation
+All15
+Outstanding11
+Overdue1
+Waiting on a step1
+Completed3
+▾
+Late
+1
+work somebody could do now
+ML
+Check the September invoice against the price list
+Brightwater Foods · MK-0377 · monthly
+Fri 16 Oct
+3 days late
+Mark done
+▾
+This week
+2
+19–23 October · both theirs
+nothing to pay
+Mon 19
+today
+Jambo found 3 obligations in Brightwater's amendment 1
+none is added until you say
+Review 3
+Wed 21
+in 2 days
+NL
+Send a current insurance certificate
+Nordvik Logistik AB · MK-0340 · theirs
+Chase
+Fri 23
+in 4 days
+FA
+Minimum volume evidence
+Fjällmejeriet AB · MK-0371 · theirs · chased 12 Oct
+Chase again
+▾
+Next week
+3
+26–30 October · a renewal decision
+Mon 26
+ML
+Decide whether to renew the office lease
+Kvarnholmen Fastigheter AB · MK-0350 · notice deadline
+Decide
+Tue 27
+NL
+Monthly storage statement
+Nordvik Logistik AB · MK-0340 · theirs
+Chase
+Thu 29
+ES
+Quarterly volume report
+Brightwater Foods · MK-0377 · Erik Ström
+▸
+2–6 November
+2
+Pay the storage fee · Probation review 
+Private
+we pay SEK 258 K
+▸
+9–13 November
+2
+Annual price review · Food safety audit report
+▸
+Later
+1
+Rebate reconciliation · nobody owns it yet
+7
+Jambo
+Your week
+›
+This week: 1 late (yours), 2 due from the other side, and Jambo's 3 finds to review. Next week holds the office lease decision.
+Counted from your list · no Jambo call
+Want me to plan the week? I put blocks around your own events and add nothing until you press Add.
+plan my week · 1 Jambo call
+find time for what is due · 1 call
+Jambo may change my calendar
+On his own
+Ask me first
+Never
+Ask for a number, a list or a contract…
+Ask
+Typing never signs, sends or files — a press does.
+
+## COMPARE
+Round 16 · Obligations and calendar
+
+This round decides how two pages that belong together look once Jambo brings them onto the desk: the obligations worklist and the calendar. They share the same dates, the same people and the same chase. Each option applies ONE idea to both pages; press Obligations or Calendar in the strip (or the page's own tabs under “‹ The counter”) to see each.
+
+Everything that works today stays: tabs with All first, overdue meaning late work somebody could do, unassigned drawn in grey, a chase to the other side, the review desk for what Jambo found, six weeks in the window, Monday to Friday, an empty hour that takes your own event, and Jambo planning the week. Nothing is built until you pick one by name.
+
+The three ideas
+Option	The idea	When it wins	What it costs
+Whose move	Sort by who has to act. We owe (you, colleagues, nobody yet in grey) beside They owe (each with Chase). The calendar colours every date by whose it is.	When the daily question is “what is mine, and whom do I chase?”, and most work is chasing the other side.	Dates are split across two columns, so “what comes next, whoever owes it” takes two looks. Two columns need width: below about 1100 wide they stack.
+Week by week	The week is the unit on both pages. Late on top, this week open day by day, later weeks folded into one line each. The calendar opens this week by the hour and keeps the other five as one row each.	When people plan by the week, and want the list and the calendar to read the same way.	A folded week hides its rows until pressed (its line says what is inside). The calendar shows hours only for one week at a time.
+The SAP way	A white band with labelled filter boxes and a saved-view menu, a quiet table with acts above it, and the selected row's details in the side panel. The calendar is a planning calendar: one row per contract, six weeks of weekdays across.	When people filter a lot, export, and are used to SAP; and to see which contracts are busy in the coming weeks.	The most controls on screen. The planning calendar is good for contracts, weaker for “my day”; at phone width it scrolls sideways inside its card.
+My recommendation: Week by week
+
+It gives both pages one grammar, so moving between the list and the calendar costs nothing: the same weeks, the same order, the same marks. Late work is on top by itself, this week is open, and everything later is one line you can open, which keeps the page calm without hiding anything (each folded line says what is inside and what it costs).
+
+Who acts is still visible on every row (initials for ours, the other party's letters and a Chase button for theirs, a grey ring for nobody). Jambo's finds sit on today's line as one row with “Review 3”, not as a banner. If chasing is most of your day, Whose move is the better pick.
+
+The page checklist
+Question	Whose move	Week by week	The SAP way
+Most important thing easiest to see?	Yes: the late row and Jambo's finds lead We owe	Yes: Late is a card of its own, first	Partly: the late row is first, but the filters come before it
+Related things grouped?	Yes: by who acts	Yes: by week, the same on both pages	Partly: one flat table; the calendar groups by contract
+Each label says what is behind it?	Yes: Chase, Mark done, Give it to…, Review 3	Yes: each folded week names its rows	Yes: Chase greys with its reason on our rows
+Always know where you are, and the way back?	Same for all three: the page head says Obligations or Calendar, both open as tabs under “‹ The counter”, and the counts on the tabs match the rows below.
+Checks that changed what I drew
+The cheapest channel: Jambo's three finds are a row in the list with “Review 3”, never a strip across the page. The review desk itself is unchanged and opens on the desk.
+Jambo's place and cost: “plan my week” says “1 Jambo call” on the button before the press; his blocks are dashed until you press Add; his reading of your week is counted from the list, so it says “no Jambo call”.
+One door: Chase is the same act everywhere it is drawn (row, calendar chip, panel) and only on their obligations; on ours it is greyed with the reason. “Decide” on the lease opens the renewal decision on the contract, not a second one here.
+Rules kept visible: the private employment agreement wears its lock and shows no money; “Waiting on a step” is never counted as late or chased.
+Your three screens: to keep six weeks in the window, each calendar's key sits in its own head row and the month fills whatever height is left. All three calendars fit at 1440×780 and 1366×950. At 1536×730, Whose move fits, Week by week is 6 points short (one hairline), and the SAP way's planning calendar needs a short scroll (about 50 points) because its filter band takes the room. The obligations lists are longer than any window, as today, so they scroll inside the desk; the page head and Jambo's panel stay put.
+Questions for you
+
+Today's month view shows seven days; the week view is Monday to Friday. I drew all three options Monday to Friday everywhere. A date that falls on a weekend would show on the Friday before, with its real date written on it. Is that right for you?
+
+The buttons on this page don't open anything. Each one says what it does, or which round designs the page it leads to.

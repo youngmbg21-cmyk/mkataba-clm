@@ -1,0 +1,208 @@
+# Round 20, option 3
+
+## scene a
+Ha
+Lindqvist & Co AB
+English
+Svenska
+7
+ML
+‹ The counter
+Requests
+×
+My notes
+×
+Requests4 open
+what colleagues ask Legal for · advice too
++ Ask for a contract
+Open4
+Mine
+Advice1
+Finished6
+All10
+Request
+Words or a reference
+Stream
+All streams
+▾
+With
+Anyone
+▾
+Open requests
+4
+oldest waiting first
+Ref	Request	Kind	How it is handled	With	Files	Asked	Promised by
+REQ-1042	Mutual NDA with Kettle & Co
+Sara Nyström · Sales
+	Contract	Routine	You 
+NDA lane	
+1	18 Oct	—
+AR-101	May Stratos pass our data to a subcontractor?
+Erik Ström · Procurement
+	Advice	Standard	Sara Nyström	—	16 Oct	Tue 20 Oct
+REQ-1039	Reseller agreement for Denmark
+Lina Ek · Sales
+	Contract	Standard	Nobody yet	—	15 Oct	—
+REQ-1037	Event venue booking, March kick-off
+Lina Ek · Sales
+	Contract	Close read	Nobody yet	
+2	14 Oct	—
+4 of 4 open
+Jambo
+Request
+‹ Jambo
+›
+REQ-1042 · Contract · from Sara Nyström · Sales
+Mutual NDA with Kettle & Co
+Routine
+With you · by the NDA lane
+Start the draft
+Promise a day
+Hand back
+What Sara asked for
+“Kettle & Co want to start a two-month pilot in November and will share their recipes with us. They asked for a mutual NDA first. Can we use our standard one?”
+Counterparty
+Kettle & Co · no NDA with them today
+Stream
+Sales
+How it is handled
+Routine — our own template, nothing unusual asked
+With
+Maria Lindgren (you), sent by the NDA lane
+Asked
+Sun 18 Oct · promised by —
+Attachments
+1 of 3
+pilot-brief.pdf
+240 KB · added by Sara
+Open
+Jambo
+
+Our Mutual NDA fits: Sara asks for a mutual one, and nothing in her words departs from it. Start the draft opens the New agreement form with it chosen; you check it before anything is made.
+
+Ask for anything, or type /
+Ask
+Typing never signs, sends or files — a press does.
+## scene b
+Ha
+Lindqvist & Co AB
+English
+Svenska
+7
+ML
+‹ The counter
+Requests
+×
+My notes
+×
+Requests4 open
+what colleagues ask Legal for · advice too
++ Ask for a contract
+Open4
+Mine
+Advice1
+Finished6
+All10
+Request
+Words or a reference
+Stream
+All streams
+▾
+With
+Anyone
+▾
+Open requests
+4
+oldest waiting first
+Ref	Request	Kind	How it is handled	With	Files	Asked	Promised by
+REQ-1042	Mutual NDA with Kettle & Co
+Sara Nyström · Sales
+	Contract	Routine	You 
+NDA lane	
+1	18 Oct	—
+AR-101	May Stratos pass our data to a subcontractor?
+Erik Ström · Procurement
+	Advice	Standard	Sara Nyström	—	16 Oct	Tue 20 Oct
+REQ-1039	Reseller agreement for Denmark
+Lina Ek · Sales
+	Contract	Standard	Nobody yet	—	15 Oct	—
+REQ-1037	Event venue booking, March kick-off
+Lina Ek · Sales
+	Contract	Close read	Nobody yet	
+2	14 Oct	—
+4 of 4 open
+Jambo
+Request
+‹ Jambo
+›
+REQ-1042 · Contract · from Sara Nyström · Sales
+Mutual NDA with Kettle & Co
+Routine
+With you · by the NDA lane
+Start the draft
+Promise a day
+Hand back
+What Sara asked for
+“Kettle & Co want to start a two-month pilot in November and will share their recipes with us. They asked for a mutual NDA first. Can we use our standard one?”
+Counterparty
+Kettle & Co · no NDA with them today
+Stream
+Sales
+How it is handled
+Routine — our own template, nothing unusual asked
+With
+Maria Lindgren (you), sent by the NDA lane
+Asked
+Sun 18 Oct · promised by —
+Attachments
+1 of 3
+pilot-brief.pdf
+240 KB · added by Sara
+Open
+Jambo
+
+Our Mutual NDA fits: Sara asks for a mutual one, and nothing in her words departs from it. Start the draft opens the New agreement form with it chosen; you check it before anything is made.
+
+Ask for anything, or type /
+Ask
+Typing never signs, sends or files — a press does.
+
+## COMPARE
+Round 20 · Requests and My notes
+
+This round decides how two worklists look on the desk: Requests (what colleagues ask Legal for, advice included) and My notes (Maria's own private notes). Each option draws both; use the small tabs under "‹ The counter", or the S key, to see the other page.
+
+Everything they do today stays: up to 3 files on a request, lanes that send a request to the right person, how it is handled (routine, standard, close read), Start the draft through the one New agreement form, Hand back with a reason, notes that only you see, and a note due today in your bell.
+
+The three ideas
+Option	The idea	When it wins	What it costs
+Inbox	Like a mail program: a narrow list on the left, the chosen request read in full on the desk (the ask, its files, what has happened), and Jambo beside it saying which template fits.	When asks are long, carry files, and are read once carefully before acting.	The list shows only names and ages, so comparing many requests is slower. The request's facts sit on the desk, so Jambo's panel holds his suggestion, not the facts.
+Pipeline	Columns by where each request stands: waiting to be picked up, with someone, finished this month. Notes the same way by when you look again: today, this week, some day, reviewed.	For whoever runs the team's queue (Sara), who wants to see at once what nobody holds.	Wide: it needs the whole desk, and on the iPad two columns sit side by side. Few requests make thin columns. Filtering is weaker than a table's.
+The SAP way	Today's pages on the new desk: tabs and labelled filters in the white band, a quiet table with "With" and "How it is handled" columns, the chosen row in Jambo's panel.	When you scan, filter and act on many items, and want Requests and My notes to read like every other list in HaTi.	The least new. The ask itself is read in the panel, which is 380 wide, so a long ask scrolls there.
+My recommendation: The SAP way
+
+Requests and My notes are short worklists, and the SAP way makes them read exactly like Contracts, Approvals and Obligations: the same band, the same tabs, the same panel. Maria finds her one routed request at the top, with "With: You · NDA lane" saying why it is hers, and Start the draft one press away in the panel.
+
+From the Pipeline I would borrow the "With" column's plain "Nobody yet" in amber, so a request nobody holds stands out without a column of its own (already drawn).
+
+The page checklist
+Question	Inbox	Pipeline	The SAP way
+Most important thing easiest to see?	Yes: the request you chose, in full	Yes: what nobody holds, in its own column	Yes: the "With" column says whose it is
+Related things grouped?	Yes: the ask, its files and its history together	Yes: by where each stands	Yes: one row each, details in the panel
+Each label says what is behind it?	Yes	Partly: "Some day" means "no review day"; its subtitle says so	Yes
+Always know where you are, and the way back?	Same for all three: "‹ The counter" in the head card; Requests and My notes stay open as small tabs. Start the draft lands on the New agreement form (round 4), with "‹ Requests" to come back.
+What the checks changed
+
+One door. Start the draft opens the one New agreement form with the template chosen; no option makes a contract from the request page itself.
+
+Every hand-off is tracked. Each option says who holds a request ("With"), and the lane that sent it there, so a request is never only an email.
+
+Copilot's place. Jambo's suggestion of a template is read from the request and the record, and says it spends nothing. My notes stay private: Jambo says he reads one only when you ask.
+
+Fit. At 1536 × 730 all three fit without the page scrolling, except the Inbox's reading pane for a request: its last lines (what has happened) scroll inside the desk.
+
+Questions for you
+
+None. No option adds a band, and none needs a rule lifted.
+
+The buttons on this page do not open anything yet. Each one says which round designs the page it leads to.
