@@ -167,7 +167,7 @@ const LAND = () => {
     stripPage: (() => { const n = document.querySelector('#bs-strips > .bs-strip'); return n ? n.getAttribute('data-bs-on') : null; })(),
   };
 };
-const KEY = L => [L.view, L.room, L.negPage, L.face, L.paper, L.pd, L.tab, L.cv, L.wall, L.only, L.place, L.show, L.stage, L.strip, L.stripPage, L.obCid, L.obSel].join('|');
+const KEY = L => [L.view, L.room, L.negPage, L.face, L.paper, L.pd, L.tab, L.cv, L.wall, L.only, L.place, L.show, L.stage, L.strip, L.stripPage, L.obCid, L.obSel, L.ceRisks].join('|');
 const SAY = L => `${L.view}${L.face && L.view === 'dashboard' ? '/' + L.face : ''}${L.paper ? ' paper ' + L.paper : ''}${L.pd ? ' face ' + L.pd : ''}`
   + `${L.view === 'dashboard' && L.face === 'paper' && L.paper && !L.pd ? ' tab ' + L.tab : ''}${L.cv && L.face === 'board' ? ' view ' + L.cv : ''}`
   + `${L.view === 'obligations' && L.obCid ? ' narrowed to ' + L.obCid + (L.obSel ? ' row ' + L.obSel : '') : ''}${L.place && !L.paper && L.face === 'paper' ? ' Contracts ' + (L.show || '?') + (L.stage && L.stage !== 'all' ? ' tab ' + L.stage : '') + (L.only ? ' (' + L.only + ' sent' + (L.wall ? ', "' + L.count + '"' : '') + ')' : '') : ''}${L.obSel && L.face === 'board' ? ' row ' + L.obSel : ''}${L.strip && L.face === 'board' && L.view === 'dashboard' && (!L.cv || /^book:/.test(L.cv)) ? ' strip ' + L.strip + ' (' + L.stripPage + ')' : ''}${L.room ? ' ROOM' : ''}${L.negPage ? ' NEGOTIATE-PAGE' : ''}`;
