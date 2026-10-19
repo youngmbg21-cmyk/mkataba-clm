@@ -21046,3 +21046,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Noticed, not fixed (19 Oct 2026, Explorer segmenting): the Customer grouping is labelled "Customer" for every counterparty, so "group by supplier" answers "Grouped by customer."
 - Noticed, not fixed (19 Oct 2026, Explorer segmenting): a folded group's bubbles in a Grid cell or Timeline lane that holds several groups (columns by another fact, or the new Other column) are drawn at the same spot, one over another.
 - Noticed, not fixed (19 Oct 2026, PR #356's CI): copilot-jobs-verify step 4 finds Home's "Draft a reply" button and then clicks the handle it found; a repaint in between detaches it ("Element is not attached to the DOM") — it failed once on GitHub and passed 3 of 3 locally on the same commit. The check should look the button up again at press time.
+
+## 19 Oct 2026 (the Guide tab on Explorer)
+- Built (19 Oct 2026, owner picked "On this view"): a Guide tab after Findings in Jambo's panel on Explorer — the view in front, three things to do on it, four that work on every view, doors to the other views; each row runs its words like typing them.
+- Noticed, not fixed (19 Oct 2026, the Guide tab): pressing the Findings tab a second time does not give Jambo back (PRESS IT AGAIN AND IT CLOSES); the Guide does.

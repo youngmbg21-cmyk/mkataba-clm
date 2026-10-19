@@ -2227,10 +2227,11 @@ function intelAskReady(q){
   try{ inp.focus({ preventScroll:true }); inp.setSelectionRange(q.length,q.length); }catch(_){}
   return true;
 }
-async function intelAsk(qRaw){
+async function intelAsk(qRaw, opts){
   const q=(qRaw||'').trim();
   if(!q||intel.busy) return;
   intel.fdTab=false;
+  if(!(opts&&opts.guide)) intel.gdTab=false;
   /* a question asked while the Fill in face is up shows its answer there;
      "fill in" opens the face again (caGo) */
   if(typeof window.pdFillAway==='function') pdFillAway();
@@ -4034,7 +4035,7 @@ function igSetView(v){ igWake(); if(intel.tour&&intel.tour.view!==v) intel.tour=
   /* the legend's grid and timeline rows belong to their view (stage 1) */
   if(was!==cam.view&&IG&&IG._model) renderIntelLegend(IG._model);
   /* and so do Jambo's suggestions (19 Oct 2026) */
-  if(was!==cam.view) igSugRepaint();
+  if(was!==cam.view){ igSugRepaint(); igGuideRepaint(); }
 }
 function igSetZoom(z){
   const cam=igbCam(); cam.zoom=Math.max(IGB_ZOOM_MIN,Math.min(IGB_ZOOM_MAX,Number(z)||1));
@@ -4588,6 +4589,73 @@ function igFindingsTabOn(){ try{ return !!(typeof API_MODE==='function'&&API_MOD
 function igFindingsShows(){ return !!(intel.fdTab&&igFindingsTabOn()); }
 /* its count is the work owed, never the list's length */
 function igFindingsCount(){ const o=igFindingsOwed(), n=o.asked.length+o.sent.length+o.answered.length; return n?{ n, tone:o.asked.length?'amber':'brand' }:null; }
+/* ---- THE GUIDE (owner picked "On this view", 19 Oct 2026) ----
+   A third tab beside Jambo and Findings, on Explorer: what the view in front
+   shows and three things to do on it, then what every view can do, then one
+   door to each other view. It follows the view, as the chips do. A row does
+   exactly what typing its words does (intelAsk, the same reader, free); a row
+   whose effect is already drawn reads "Showing" and presses nothing; a row
+   only stands where its words are read. Press the tab again for Jambo. */
+function igGuideTabOn(){ try{ return !!(state.view==='dashboard'&&typeof hbFace==='function'&&hbFace()==='explorer'&&!(window.pdOnPaper&&pdOnPaper())); }catch(_){ return false; } }
+function igGuideShows(){ return !!(intel.gdTab&&igGuideTabOn()); }
+const IG_GD_OTHER=['int_gd_other_0','int_gd_other_1','int_gd_other_2','int_gd_other_3','int_gd_other_4'];
+function igGuideRows(){
+  const vw=igbCam().view, G=IG||{}, mine=[], every=[];
+  const money=(typeof canViewValues!=='function')||canViewValues();
+  const acts=q=>{ try{ const r=igRecipeParse(q); return (r&&r.acts)||[]; }catch(_){ return []; } };
+  const word=k=>i18t('int_sug_f_'+k), cap=s=>String(s||'').replace(/^./,c=>c.toUpperCase());
+  const lensOn=f=>(intel.lenses||[]).some(l=>l.on&&f(l));
+  /* a row: its title, the words it runs, whether they are read, whether their effect is drawn now */
+  const row=(list,t,q,reads,on)=>{ if(q&&reads(q)) list.push({ t:i18t(t), q, on:!!on }); };
+  if(vw===0){
+    row(mine,'int_gd_t_shade',i18t('int_sug_lobe_shade',{ x:word('liability') }),q=>acts(q).some(a=>a.lobeShade==='liability'),intel.lobeShade==='liability');
+    if(money) row(mine,'int_gd_t_size',i18t('int_sug_lobe_size'),q=>acts(q).some(a=>a.lobeSize==='value'),intel.lobeSize==='value');
+    row(mine,'int_gd_t_fold',i18t('int_gd_q_fold'),q=>acts(q).some(a=>a.fold==='all'),typeof igAllFolded==='function'&&igAllFolded());
+  } else if(vw===1){
+    const n=new Map(); (state.contracts||[]).forEach(c=>{ if(c&&!c.archived&&c.status!=='Declined'&&c.counterparty) n.set(c.counterparty,(n.get(c.counterparty)||0)+1); });
+    const x=[...n.entries()].sort((a,b)=>b[1]-a[1]).map(e=>e[0])[0];
+    if(x) row(mine,'int_gd_t_depends',i18t('int_sug_depends',{ x }),q=>acts(q).some(a=>a.linkedParty===x),lensOn(l=>l.label===i18t('int_linked_lens',{ x })));
+    row(mine,'int_gd_t_sole',i18t('int_sug_sole'),q=>!!igSoleRead(q)&&igSoleData(null).judged>0,lensOn(l=>l.kind==='sole'));
+    row(mine,'int_gd_t_bycust',i18t('int_gd_q_bycust'),q=>acts(q).some(a=>a.role==='group'&&a.fact==='counterparty'),intel.groupBy==='counterparty');
+  } else if(vw===2){
+    row(mine,'int_gd_t_payterms',i18t('int_sug_floors',{ x:word('payterms') }),q=>acts(q).some(a=>a.role==='floors'&&a.fact==='payterms'),G.floorKey==='payterms');
+    row(mine,'int_gd_t_custnamed',i18t('int_gd_q_custnamed'),q=>{ const A=acts(q); return A.some(a=>a.role==='group'&&a.fact==='counterparty')&&A.some(a=>a.edgeNames===true); },
+      G.floorKey==='counterparty'&&intel.edgeNames===true);
+    row(mine,'int_gd_t_risk',i18t('int_sug_floors',{ x:word('risk') }),q=>acts(q).some(a=>a.role==='floors'&&a.fact==='risk'),G.floorKey==='risk');
+  } else if(vw===3){
+    if(money) row(mine,'int_gd_t_cells',i18t('int_sug_cells'),q=>acts(q).some(a=>a.shadeBy==='value'),intel.shadeBy==='value');
+    [['int_gd_t_caps','folder','liability'],['int_gd_t_payby','kind','payterms']].forEach(([t,a,b])=>row(mine,t,cap(i18t('int_sug_grid',{ a:word(a), b:word(b) })),
+      q=>{ const A=acts(q); return A.some(x=>x.role==='columns'&&x.fact===a)&&A.some(x=>x.role==='floors'&&x.fact===b); },intel.columnsBy===a&&intel.floorsBy===b));
+  } else if(vw===4){
+    row(mine,'int_gd_t_until',i18t('int_sug_until'),q=>{ const r=igUntilRead(q); return !!(r&&r[0]&&r[0].until&&r[0].until!=='none'); },!!intel.tlUntil);
+    row(mine,'int_gd_t_asof',i18t('int_sug_asof'),q=>{ const r=igAsOfRead(q); return !!(r&&r[0]&&r[0].asOf&&r[0].asOf!=='none'); },!!intel.asOf);
+    row(mine,'int_gd_t_expiry',i18t('int_gd_q_expiry'),q=>acts(q).some(a=>a.role==='time'&&a.fact==='expiry'),intel.timeBy==='expiry');
+  }
+  row(every,'int_gd_t_group',i18t('int_gd_q_group'),q=>acts(q).some(a=>a.role==='group'&&a.fact==='owner'),intel.groupBy==='owner');
+  { const q=i18t('int_gd_q_only'), nar=acts(q).find(a=>a.narrow), lab=nar?nar.narrow.conds.map(x=>x.label).join(' · '):null;
+    row(every,'int_gd_t_only',q,()=>!!nar,!!lab&&lensOn(l=>l.action==='filter'&&l.label===lab)); }
+  row(every,'int_gd_t_tour',i18t('int_tour_ask'),q=>IG_TOUR_RE.test(q),!!intel.tour);
+  row(every,'int_gd_t_undo',i18t('int_gd_q_undo'),q=>acts(q).some(a=>a.undo),false);
+  return { vw, mine, every, undoNone:!(intel.recipeStack&&intel.recipeStack.length) };
+}
+function igGuideHtml(){
+  const R=igGuideRows(), name=i18t('int_view_'+IGB_VIEWS[R.vw]);
+  const said=q=>igEsc(String(q).replace(/^./,c=>c.toUpperCase()));   /* the words as said, each starting with a capital; the press runs them as they are */
+  const rowHtml=r=>{ const dead=r.q===i18t('int_gd_q_undo')&&R.undoNone;
+    return r.on?`<div class="ig-gd-row is-on"><span class="ig-gd-rt"><span class="ig-gd-t">${igEsc(r.t)}</span><span class="ig-gd-q">“${said(r.q)}”</span></span><span class="ig-gd-go">${igEsc(i18t('int_gd_showing'))}</span></div>`
+      :`<button type="button" class="ig-gd-row" data-ig-gd="${igEsc(r.q)}"${dead?` disabled title="${igEsc(i18t('int_undo_none'))}"`:''}><span class="ig-gd-rt"><span class="ig-gd-t">${igEsc(r.t)}</span><span class="ig-gd-q">“${said(r.q)}”</span></span><span class="ig-gd-go">${igEsc(i18t('int_gd_do'))}</span></button>`; };
+  return `<div class="ig-gd" data-ig-gd-view="${R.vw}">
+    <div class="ig-gd-here"><span class="ig-gd-hn">${igEsc(i18t('int_gd_here',{ x:name }))}</span><span class="ig-gd-hw">${igEsc(i18t('int_gd_what_'+R.vw))}</span></div>
+    ${R.mine.length?`<h4 class="ig-gd-h">${igEsc(i18t('int_gd_on',{ x:name }))}</h4><div class="ig-gd-rows">${R.mine.map(rowHtml).join('')}</div>`:''}
+    <h4 class="ig-gd-h">${igEsc(i18t('int_gd_every'))}</h4><div class="ig-gd-rows">${R.every.map(rowHtml).join('')}</div>
+    <h4 class="ig-gd-h">${igEsc(i18t('int_gd_others'))}</h4><div class="ig-gd-others">${IGB_VIEWS.map((v,i)=>i===R.vw?'':`<button type="button" data-ig-gd-view-go="${i}"><b>${igEsc(i18t('int_view_'+v))}</b><span>${igEsc(i18t(IG_GD_OTHER[i]))}</span></button>`).join('')}</div>
+  </div>`;
+}
+/* the guide follows the view and the map: repainted in place, its scroll kept */
+function igGuideRepaint(){ const host=document.getElementById('ig-gd'); if(!host||!igGuideShows()) return; const top=host.scrollTop; host.innerHTML=igGuideHtml(); host.scrollTop=top; }
+document.addEventListener('click',e=>{ const t=e.target&&e.target.closest?e.target:null; if(!t||!t.closest('#ig-gd')) return;
+  const r=t.closest('[data-ig-gd]'); if(r){ if(!r.disabled) intelAsk(r.getAttribute('data-ig-gd'),{ guide:true }); return; }
+  const v=t.closest('[data-ig-gd-view-go]'); if(v){ igSetView(Number(v.getAttribute('data-ig-gd-view-go'))); igGuideRepaint(); } });
 /* every part of the view on screen, with its contracts — what a finding is counted in */
 function igPartsNow(){
   const G=IG; if(!G||!G.nodes) return [];
@@ -4689,7 +4757,10 @@ function igPinFormHtml(i){
 /* the panel's tabs: read in the capture phase, before the paper desk's own
    press redraws the panel (and takes the pressed tab out of the page) */
 document.addEventListener('click',e=>{ const tab=e.target&&e.target.closest?e.target.closest('#ig-dock [data-pd-tab]'):null; if(!tab) return;
-  intel.fdTab=tab.getAttribute('data-pd-tab')==='findings'; if(intel.fdTab) igFindingsLoad(); },true);
+  const k=tab.getAttribute('data-pd-tab');
+  intel.fdTab=k==='findings'; if(intel.fdTab) igFindingsLoad();
+  /* the Guide: pressed again, back to Jambo (PRESS IT AGAIN AND IT CLOSES) */
+  intel.gdTab=k==='guide'?!intel.gdTab:false; },true);
 document.addEventListener('input',e=>{ const id=e.target&&e.target.id; if(id!=='ig-pin-t'&&id!=='ig-pin-n') return;
   const d=intel.fdPinDraft||(intel.fdPinDraft={ t:'', n:'' }); d[id==='ig-pin-t'?'t':'n']=String(e.target.value||''); });
 document.addEventListener('click',async e=>{
@@ -7844,7 +7915,9 @@ function renderIntelDock(){
     :(window.pdAmendShows&&pdAmendShows())?`<div id="pd-amendface" class="pd-signface pd-amendface flex-1 min-h-0">${pdAmendFaceHtml(pdContract())}</div><div id="igd-feed" hidden></div>`
     :(window.pdSignShows&&pdSignShows())?`<div id="pd-signface" class="pd-signface flex-1 min-h-0">${pdSignFaceHtml(pdContract())}</div><div id="igd-feed" hidden></div>`
     /* FINDINGS (Explorer stage 4): the findings colleagues kept on the map, beside Jambo */
-    :igFindingsShows()?`<div id="ig-fd" class="flex-1 min-h-0 overflow-y-auto scroll-thin px-3.5 py-3" role="tabpanel">${igFindingsHtml()}</div><div id="igd-feed" hidden></div>`:`
+    :igFindingsShows()?`<div id="ig-fd" class="flex-1 min-h-0 overflow-y-auto scroll-thin px-3.5 py-3" role="tabpanel">${igFindingsHtml()}</div><div id="igd-feed" hidden></div>`
+    /* THE GUIDE (19 Oct 2026): what the view in front can do */
+    :igGuideShows()?`<div id="ig-gd" class="flex-1 min-h-0 overflow-y-auto scroll-thin" role="tabpanel">${igGuideHtml()}</div><div id="igd-feed" hidden></div>`:`
     ${(state.view==='dashboard'&&typeof window.caBackRowHtml==='function')?caBackRowHtml():''}
     <div id="igd-feed" class="flex-1 min-h-0 overflow-y-auto scroll-thin px-3.5 py-3 space-y-3" style="background:transparent">
       ${(()=>{
@@ -7859,7 +7932,7 @@ function renderIntelDock(){
     ${''/* SAVED VIEWS LEFT THE PANEL (owner, 15 Oct 2026): they stand on the
            Board's head beside Make a pack (hbSavedViewsHtml), and a press
            opens the view on Explorer, where the map is. */}
-    ${(!intel.history.length||igHomePaperFace()===true)&&!(window.pdShowsDesk&&pdShowsDesk())&&!igFindingsShows()&&!(window.jamboChipsOn&&!jamboChipsOn())?`
+    ${(!intel.history.length||igHomePaperFace()===true)&&!(window.pdShowsDesk&&pdShowsDesk())&&!igFindingsShows()&&!igGuideShows()&&!(window.jamboChipsOn&&!jamboChipsOn())?`
     <div class="px-3.5 pb-2 shrink-0 flex flex-wrap gap-1.5" data-ig-chips>
       ${(typeof window.caChipsHtml==='function'&&caChipsHtml())||((state.view==='dashboard'&&typeof hbSuggestions==='function'&&hbSuggestions())||(igSugOnMap()?igViewSuggestions():IG_SUGGESTIONS.slice(0,3))).map(igSugChipHtml).join('')}
     </div>`:''}
@@ -7874,7 +7947,7 @@ function renderIntelDock(){
            clauses and obligations) should not have a copilot prompt entry
            window"). A press elsewhere that puts words in the box goes through
            igAskBox, which turns to the Copilot tab first. */}
-    ${(window.pdShowsDesk&&pdShowsDesk())||igFindingsShows()?'':`<div class="p-3 border-t border-hair shrink-0 relative">
+    ${(window.pdShowsDesk&&pdShowsDesk())||igFindingsShows()||igGuideShows()?'':`<div class="p-3 border-t border-hair shrink-0 relative">
       ${''/* THE BOX SAYS WHICH CONTRACT IT ASKS ABOUT (26 Sep 2026): the reader's
              own switch, read back on the control that carries it — never a
              line above it. The cost of a question rides the hover. */}
@@ -9290,7 +9363,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
 }
 
 Object.assign(window,{igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
-Object.assign(window,{IG,IG_SUGGESTIONS,igViewSuggestions,igSugRepaint,IG_ATTN,igAttn,IGB_ATTN_RGB,igLinkHoverShow,igAsOfRead,igAsOfData,igPictureBlob,igPictureSvg,igPictureCopy,igFindingsLoad,igFindingsOwed,igFindingsTabOn,igFindingsShows,igFindingsCount,igFindingGo,igFindingOpen,igPartsNow,igFinding,igDateRead,igDayWord,igUntilRead,igUntilIds,igSoleRead,igSoleData,igObOpenOf,IG_TEMPLATE_RE,IG_BOOK_RE,IG_BOOK_NOT_RE,IG_MYCAL_RE,igBookAsk,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,igCountsDrawn,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTIONS,igViewSuggestions,igSugRepaint,igGuideTabOn,igGuideShows,igGuideRows,igGuideRepaint,IG_ATTN,igAttn,IGB_ATTN_RGB,igLinkHoverShow,igAsOfRead,igAsOfData,igPictureBlob,igPictureSvg,igPictureCopy,igFindingsLoad,igFindingsOwed,igFindingsTabOn,igFindingsShows,igFindingsCount,igFindingGo,igFindingOpen,igPartsNow,igFinding,igDateRead,igDayWord,igUntilRead,igUntilIds,igSoleRead,igSoleData,igObOpenOf,IG_TEMPLATE_RE,IG_BOOK_RE,IG_BOOK_NOT_RE,IG_MYCAL_RE,igBookAsk,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,igCountsDrawn,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp,IG_PRE_MS,igPreOn,igPrePaint});
