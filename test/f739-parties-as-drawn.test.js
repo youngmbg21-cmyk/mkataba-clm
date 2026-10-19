@@ -240,7 +240,9 @@ describe('f739 (6) a colleague\'s request about the party waits on you', () => {
     const { sb, doc } = stage({ requests: [R('REQ-1', 'u2'), R('REQ-2', 'u1'), R('REQ-3', 'u2', { assignee: { id: 'u9', name: 'Other' } }), R('REQ-4', 'u2', { status: 'accepted', assignee: { id: 'u1', name: 'Amina' } })] });
     assert.equal(JSON.stringify(sb.cuRequestsOf('party 01 ltd').map(x => x.r.id)), JSON.stringify(['REQ-1', 'REQ-4']));
     sb.renderCustomers();
-    assert.equal(doc.querySelector('[data-cu-cust="party 01 ltd"] td.cu-wait').textContent, 'Sara asked for an NDA with Party 01 Ltd · +1 more');
+    /* RE-POINTED 19 Oct 2026 (lane A2, check #1): the first whole, the rest on a quiet second line */
+    assert.equal(doc.querySelector('[data-cu-cust="party 01 ltd"] td.cu-wait .cu-wait-t').textContent, 'Sara asked for an NDA with Party 01 Ltd');
+    assert.equal(doc.querySelector('[data-cu-cust="party 01 ltd"] td.cu-wait .cu-wait-more').textContent, '+1 more');
   });
   test('a reader who may not draft is not asked', () => {
     const { sb } = stage({ canEdit: false, requests: [R('REQ-1', 'u2')] });
@@ -249,5 +251,105 @@ describe('f739 (6) a colleague\'s request about the party waits on you', () => {
   test('its door lands on the request, lit (LAND ON IT)', () => {
     const src = read('js/views/customers.js');
     assert.match(src, /if \(kind === 'request'\)\{ if \(typeof intakeGoTo === 'function'\) intakeGoTo\(id\); if \(typeof jlLand === 'function'\) jlLand\('row', id\); return; \}/);
+  });
+});
+
+/* ═══ (7) CHECK #1'S DIFFERENCES, BUILT (lane A2's second pass, 19 Oct 2026) ═══
+   Against round 19 as drawn: their redlines counted ("2 redlines · 4 days",
+   "Answer 2 redlines"); "An approval, for Jonas" said alike in the panel; the
+   Waiting column whole, any more on a second line; a fact with nothing in it
+   left out of the panel (Kettle & Co); Jambo says the page from the list's
+   own count; People's Party door lands on Parties, the party lit; the NDA and
+   an agreement land lit; the New agreement form says the party it carries.
+   RED at the first pass (3ecb408). */
+describe('f739 (7) check #1\'s differences, built', () => {
+  const panelOf = sb => { let got = null; sb.insPaintPanel = o => { got = o; };
+    sb.insRowsHtml = list => list.map(f => `<div data-row="${f.k}">${f.label}|${f.v}</div>`).join('');
+    sb.insSecHtml = (t, n, b, cls) => `<section class="${cls || ''}"><h3>${t}<span class="n">${n}</span></h3>${b}</section>`;
+    return () => got; };
+  test('7a their redlines are counted: the column "2 redlines · 4 days", the panel "Answer 2 redlines"', () => {
+    const { sb } = stage();
+    sb.negoMoveSay = () => ({ k: 'you', n: 2 });
+    sb.regNegoCols = () => ({ waiting: '4 days' });
+    const x = { c: { id: 'MK-1', name: 'Master services agreement' }, it: { kind: 'move' } };
+    assert.equal(sb.cuNeedShort(x), '2 redlines · 4 days');
+    assert.equal(sb.cuNeedTitle(x), 'Answer 2 redlines');
+    sb.negoMoveSay = () => ({ k: 'you', why: 'decided', n: 2 });
+    assert.equal(sb.cuNeedTitle(x), 'Our move in a negotiation', 'a move for another reason keeps its own words');
+    const html = sb.cuPanelNeedsHtml([x]);
+    assert.match(html, />Master services agreement · waiting 4 days<\/span>/);
+  });
+  test('7b an approval answered for an away colleague reads alike in the column and the panel', () => {
+    const { sb } = stage();
+    sb.apForWho = () => ({ name: 'Jonas Berg' });
+    const x = { c: { id: 'MK-AP' }, it: { kind: 'approval' } };
+    assert.equal(sb.cuNeedShort(x), 'an approval, for Jonas');
+    assert.equal(sb.cuNeedTitle(x), 'An approval, for Jonas');
+  });
+  test('7c the Waiting column says the first whole, the rest on a quiet second line, and has the room', () => {
+    const { sb } = stage();
+    const td = sb.cuCellHtml('waiting', { key: 'k' }, { needs: [{ c: { id: 'A' }, it: { kind: 'details' } }, { c: { id: 'B' }, it: { kind: 'details' } }] }, new Map());
+    assert.match(td, /<span class="cu-wait-t">[^<]+<\/span><span class="cu-wait-more">\+1 more<\/span>/);
+    const w = sb.cuColDefs().find(c => c.k === 'waiting').w;
+    assert.ok(w >= 184, `the column is ${w}px`);
+  });
+  test('7d a fact with nothing in it is left out of the panel, as drawn for Kettle & Co', () => {
+    const { sb, doc } = stage();
+    const got = panelOf(sb);
+    sb.insPick = (seat, ids) => 'retired supplies ltd'; sb.insMarkRow = () => {}; sb.insListWire = () => {};
+    sb.cuPlacePut({ status: 'all' }); sb.renderCustomers();
+    const tb = doc.createElement('tbody'); tb.innerHTML = '<tr data-cu-cust="retired supplies ltd"></tr>';
+    sb.cuPaintCustomerPanel(tb);
+    const o = got();
+    assert.ok(o && o.body, 'the panel painted');
+    assert.doesNotMatch(o.body, /data-row="org"/, 'no Organisation no. row when none is on file');
+    assert.doesNotMatch(o.body, /data-row="next"/, 'no Next to end row when nothing runs');
+    assert.match(o.body, /data-row="owner"[\s\S]*data-row="live"[\s\S]*data-row="nda"/);
+    assert.equal(o.jlSay, sb.cuSay, 'Jambo\'s own words for the page ride the panel');
+  });
+  test('7e Jambo says the page from the list\'s own count, with the page\'s own boxes as chips', () => {
+    const { sb } = stage();
+    sb.cuPlacePut({ status: 'all' });
+    const say = sb.cuSay();
+    assert.match(say.lines[0], /^<b>14 parties on this list<\/b>: 13 live\.$/);
+    assert.ok(say.lines.some(l => /13 live parties have no NDA\./.test(l)));
+    assert.equal(say.chips.map(c => c.label).join('|'), 'no NDA');
+    say.chips[0].run();
+    assert.equal(sb.cuPlace().nda, 'none');
+  });
+  test('7f People\'s Party door lands on Parties, the party chosen and lit', () => {
+    const { sb } = stage();
+    const landed = []; let chosen = null;
+    sb.landOn = t => { landed.push(t); return Promise.resolve(null); };
+    sb.insSelect = (seat, k) => { chosen = [seat, k]; };
+    sb.cuPlacePut({ nda: 'none', q: 'zzz', status: 'live' });
+    sb.cuSelectParty('party 12 ltd');
+    assert.deepEqual(chosen, ['customers', 'party 12 ltd']);
+    assert.equal(sb.cuPlace().q, ''); assert.equal(sb.cuPlace().nda, 'all'); assert.equal(sb.cuPlace().status, 'all');
+    assert.equal(landed[0], '#cu-tbody [data-cu-cust="party 12 ltd"]');
+  });
+  test('7g the NDA lands on its "Secret until" figure; an agreement on Home\'s paper (LAND ON IT)', () => {
+    const { sb } = stage();
+    const landed = []; const opened = [];
+    sb.landOn = t => { landed.push(t); return Promise.resolve(null); };
+    sb.hbStripBring = () => true;
+    sb.dirOpenContract = id => opened.push(id);
+    sb.cuOpenNda('MK-KF2');
+    assert.equal(landed.length, 1);
+    assert.match(read('js/views/customers.js'), /\[data-bs-kpi="value"\]/);
+    sb.cuOpenAgreement('MK-KF1');
+    assert.deepEqual(opened, ['MK-KF1']);
+  });
+  test('7h the New agreement form says the party it carries, in both books', () => {
+    const W = read('js/wizard.js');
+    assert.match(W, /i18t\('na_sub_with',\{party:String\(o\.prefill\.counterparty\)\.trim\(\)\}\)/);
+    const B = require('../js/i18n.js').STRINGS;
+    assert.ok(B.en.na_sub_with && B.sv.na_sub_with);
+    for (const k of ['cu_need_answer_redlines_one', 'cu_need_answer_redlines_other', 'cu_need_approval_for_cap', 'cu_need_waiting', 'cu_say_one', 'cu_say_other', 'cu_say_live',
+      'cu_say_waiting_one', 'cu_say_waiting_other', 'cu_say_no_nda_one', 'cu_say_no_nda_other', 'cu_say_chip_no_nda', 'cu_say_chip_all'])
+      assert.ok(B.en[k] && B.sv[k], k + ' in both books');
+  });
+  test('7i a section\'s count wears its small pill on Parties and People', () => {
+    assert.match(read('js/views/customers.js'), /:is\(\.cu-page,\.dir-page\) \.ins-sec h3 \.n\{display:inline-block;padding:0 7px;border-radius:999px;/);
   });
 });

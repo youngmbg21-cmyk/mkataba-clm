@@ -48,7 +48,7 @@ describe('f720 (2) what waits on you, in words', () => {
     vm.createContext(ctx);
     /* RE-POINTED 19 Oct 2026 (lane A2): the column says each item short (cuNeedShort,
        "2 redlines · 4 days", "an approval"), the panel whole (cuNeedTitle) */
-    vm.runInContext(['cuWaitingOnYou', 'cuNeedsOf', 'cuNeedTitle', 'cuNeedShort', 'cuNeedsSay'].map(n => fnBody(CU, n)).join('\n'), ctx);
+    vm.runInContext(['cuWaitingOnYou', 'cuNeedsOf', 'cuMoveRedlines', 'cuApprovalFor', 'cuNeedTitle', 'cuNeedShort', 'cuNeedsSay'].map(n => fnBody(CU, n)).join('\n'), ctx);
     return ctx;
   };
   test('2a the checklist\'s items, urgent first, then a move of ours it does not name', () => {
@@ -62,7 +62,9 @@ describe('f720 (2) what waits on you, in words', () => {
   test('2b the column and the panel read the same words', () => {
     /* RE-POINTED 19 Oct 2026: the row's cells are one builder (cuCellHtml), so
        a column a reader hides or moves (Columns) draws the same words */
-    assert.match(fnBody(CU, 'cuCellHtml'), /const ws = cuNeedsSay\(v\.needs\)/);
+    /* RE-POINTED 19 Oct 2026 (lane A2, check #1): the first item whole, any
+       more on a quiet second line, so "an approval, for Jonas" is never cut */
+    assert.match(fnBody(CU, 'cuCellHtml'), /const ws = v\.needs\.length \? cuNeedShort\(v\.needs\[0\]\)/);
     /* RE-POINTED 19 Oct 2026 (round 19 as drawn, lane A2): the panel's facts
        are the drawing's five — Organisation no. · Owner · Live agreements ·
        Next to end · NDA; what waits is the panel's own section, its rows the
@@ -101,7 +103,10 @@ describe('f720 (4) the panel\'s two lists', () => {
     assert.match(fnBody(CU, 'cuPanelNeedsHtml'), /data-cu-need="\$\{_cuE\(x\.it\.kind\)\}" data-cu-id=/);
     assert.match(fnBody(CU, 'cuNeedGo'), /needsYouGo\(kind, id\)/);
     /* RE-POINTED 19 Oct 2026: the delegated listener returns after each door */
-    assert.match(CU, /const a = t\.closest\('\[data-cu-ag\]'\); if \(a && typeof regOpenContract === 'function'\)\{ regOpenContract/);
+    /* RE-POINTED 19 Oct 2026 (lane A2, LAND ON IT): an agreement opens Home's
+       paper with its line lit, the People panel's own door (dirOpenContract) */
+    assert.match(CU, /const a = t\.closest\('\[data-cu-ag\]'\); if \(a\)\{ cuOpenAgreement\(/);
+    assert.match(fnBody(CU, 'cuOpenAgreement'), /dirOpenContract\(id\)/);
   });
 });
 

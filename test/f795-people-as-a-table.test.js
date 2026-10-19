@@ -166,3 +166,70 @@ describe('f795 (4) the page\'s name, and a person landed on from elsewhere', () 
     assert.match(landed[0], /#dir-tbody \[data-dir-row="e:buyer11@party11\.co\.ke"\]/);
   });
 });
+
+/* ═══ (5) SOMEONE ON THEIR SIDE, AS DRAWN (check #1, lane A2's second pass,
+   19 Oct 2026; round 19's People scene, Henrik Dahl) ═══
+   Show their contracts · Email (no Open party / Draft / Explorer in the
+   head); Email · Phone (read off the links sent to them, never guessed) ·
+   Party (a door onto the party on Parties) · Named on "2 contracts"; "On
+   these contracts" saying what they do for their party; no "Also at".
+   Their party and job title are read whole (two lines, never cut).
+   RED at the first pass (3ecb408). */
+describe('f795 (5) someone on their side, as drawn', () => {
+  const paint = (extra) => {
+    const st = stage(extra);
+    let got = null;
+    st.sb.insPaintPanel = o => { got = o; };
+    st.sb.insRowsHtml = list => list.map(f => `<div data-row="${f.k}">${f.label}|${f.v}</div>`).join('');
+    st.sb.insSecHtml = (t, n, b) => `<section><h3>${t}<span class="n">${n}</span></h3>${b}</section>`;
+    st.sb.contractStatusDotHtml = c => `<i>${c.status}</i>`;
+    const p = st.sb.dirBook().find(x => x.side === 'theirs' && x.email === 'buyer3@party3.co.ke');
+    st.sb.dirPaintPanel(p, st.sb.dirBook());
+    return Object.assign(st, { p, got: () => got });
+  };
+  test('5a the head: their job and party, Show their contracts · Email', () => {
+    const { got } = paint();
+    const o = got();
+    assert.equal(o.head.acts.map(a => a.k).join(','), 'contracts,email');
+    assert.equal(o.head.acts[0].label, 'Show their contracts');
+  });
+  test('5b the rows: Email · Phone · Party (a door) · Named on "1 contract"', () => {
+    const { got } = paint();
+    const b = got().body;
+    assert.match(b, /data-row="email"[\s\S]*data-row="phone"[\s\S]*data-row="party"[\s\S]*data-row="contracts"/);
+    assert.match(b, /data-row="party">Party\|<button type="button" class="ui-link dir-party-go" data-dir-party="party 03 ltd">Party 03 Ltd/);
+    assert.match(b, /data-row="contracts">Named on\|1 contract</);
+    assert.doesNotMatch(b, /data-row="streams"/);
+    assert.match(b, /data-row="phone">Phone\|<span class="dir-none" title="No link sent to them carried a phone number"/);
+  });
+  test('5c "On these contracts": what they do for their party on each; no "Also at"', () => {
+    const { got, sb } = paint();
+    const b = got().body;
+    assert.match(b, /<h3>On these contracts<span class="n">1<\/span><\/h3>/);
+    assert.match(b, /MK-3 · negotiated for Party 03</);
+    assert.doesNotMatch(b, /Also at|data-dir-all/);
+    assert.equal(sb.dirDoesFor(['negotiate'], { status: 'Under Review' }, 'Nordvik'), 'negotiates for Nordvik');
+    assert.equal(sb.dirDoesFor(['cpsign'], { status: 'Signed' }, 'Nordvik'), 'signed for Nordvik');
+  });
+  test('5d a phone number is read off the newest link sent to them that carried one', () => {
+    const { sb, p } = paint();
+    sb.getContract = id => ({ id });
+    sb.cachedShares = c => c.id === 'MK-3' ? [{ recipientEmail: 'buyer3@party3.co.ke', recipientPhone: '+254 700 111 222', createdAt: '2026-10-01' },
+      { recipientEmail: 'buyer3@party3.co.ke', recipientPhone: '+254 700 999 000', createdAt: '2026-10-10' },
+      { recipientEmail: 'someone@else.co.ke', recipientPhone: '+1 555', createdAt: '2026-10-12' }] : [];
+    assert.equal(sb.dirPhoneOf(p), '+254 700 999 000');
+    sb.cachedShares = () => [];
+    assert.equal(sb.dirPhoneOf(p), null, 'nothing is guessed');
+  });
+  test('5e a party\'s and a job\'s name are read whole: two lines, never cut', () => {
+    const { sb } = stage();
+    const p = sb.dirBook().find(x => x.side === 'theirs');
+    assert.match(sb.dirCellHtml('party', p), /<td class="dir-td-cut dir-td-wrap"[^>]*><span class="dir-clamp">/);
+    assert.match(read('js/views/directory.js'), /\.dir-table td\.dir-td-cut\.dir-td-wrap\{white-space:normal;text-overflow:clip;\}/);
+  });
+  test('5f the words, in both books', () => {
+    for (const k of ['dir_f_phone', 'dir_no_phone', 'dir_n_contracts_one', 'dir_n_contracts_other', 'dir_on_these', 'dir_does_signs', 'dir_does_signed',
+      'dir_does_negotiates', 'dir_does_negotiated', 'dir_does_advises', 'dir_does_advised', 'dir_does_reads', 'dir_does_read'])
+      assert.ok(BOOKS.en[k] && BOOKS.sv[k], k + ' in both books');
+  });
+});

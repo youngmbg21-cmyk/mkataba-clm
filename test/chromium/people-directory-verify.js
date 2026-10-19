@@ -177,23 +177,23 @@ const PAGE = () => {
       await page.click('#dir-page #dir-tbody [data-dir-row]:nth-child(1)');
       await page.waitForTimeout(400);
     }
+    /* RE-POINTED 19 Oct 2026 (lane A2, check #1 against round 19's People
+       scene, Henrik Dahl): someone on their side has the drawn two doors —
+       Show their contracts · Email — and the party is a row of its own whose
+       door lands on Parties with that party chosen and lit */
     const acts = (await page.evaluate(PAGE)).panel.acts;
-    const open = acts.find(a => a.k === 'party');
-    check('the panel offers Open party, Draft new agreement and Open on Explorer',
-      !!open && acts.some(a => a.k === 'draft') && acts.some(a => a.k === 'explorer'), acts.map(a => a.t).join(' · '));
-    check('and Open party is live, because that party\'s contracts are loaded', open && !open.dead);
-    await page.click('#ins-panel [data-ins-act="party"]');
-    /* RE-POINTED 14 Oct 2026 (the overnight work order, step 2; was the
-       Contracts page narrowed by its chip): Open party is Parties' own door
-       (cuOpenCustomer), which lands on Home's wall of paper, nothing chosen,
-       narrowed to that party by its one lit chip. Asked of the state, bounded. */
-    /* since step 7 the set is the Contracts place's own (state.reg), its one chip in the place's head */
-    await page.waitForFunction(() => state.view === 'dashboard' && !!document.querySelector('#ig-wall') && !!document.querySelector('[data-reg-home] #reg-only-chip'), null, { timeout: 8000 }).catch(() => {});
-    const landed = await page.evaluate(() => ({ view: state.view, face: window.hbFace ? hbFace() : null, paper: !!(window.intel && intel.paper),
-      only: !!(state.reg && state.reg.only && state.reg.only.ids.length), chip: !!document.querySelector('[data-reg-home] #reg-only-chip'),
-      cards: document.querySelectorAll('#ig-wall [data-ig-pick]').length }));
-    check('Open party lands on Home\'s wall narrowed to that party', landed.view === 'dashboard' && landed.face === 'paper' && !landed.paper
-      && landed.only && landed.chip && landed.cards >= 1, JSON.stringify(landed));
+    const show = acts.find(a => a.k === 'contracts');
+    check('the panel offers Show their contracts and Email, as drawn', !!show && acts.map(a => a.k).join(',') === 'contracts,email', acts.map(a => a.t).join(' · '));
+    check('and Show their contracts is live, because they are named on contracts', show && !show.dead);
+    const partyKey = await page.evaluate(() => { const b = document.querySelector('#ins-panel [data-dir-party]'); return b ? b.getAttribute('data-dir-party') : null; });
+    check('the Party row is a door onto the party', !!partyKey, String(partyKey));
+    if (partyKey){
+      await page.click('#ins-panel [data-dir-party]');
+      await page.waitForFunction(k => state.view === 'customers' && !!document.querySelector(`#cu-tbody [data-cu-cust="${k}"].is-landed, #cu-tbody [data-cu-cust="${k}"].is-landed-held`), partyKey, { timeout: 8000 }).catch(() => {});
+      const landed = await page.evaluate(k => ({ view: state.view, lit: !!document.querySelector(`#cu-tbody [data-cu-cust="${k}"].is-landed, #cu-tbody [data-cu-cust="${k}"].is-landed-held`),
+        chosen: !!document.querySelector(`#cu-tbody [data-cu-cust="${k}"].is-sel`) }), partyKey);
+      check('the Party row lands on Parties, that party chosen and lit', landed.view === 'customers' && landed.lit && landed.chosen, JSON.stringify(landed));
+    }
 
     /* ---- THE EDGE, AND THE REFRESH ---- */
     await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'people');

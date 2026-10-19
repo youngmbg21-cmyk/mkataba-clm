@@ -196,8 +196,10 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       check('4e People at Kenya Freight: each with job title and what they do', !!P && /People at Kenya Freight/.test(P.peopleHead) && P.people.some(x => /Henry Dalu.*Head of procurement · negotiates MK-KF1/.test(x)) && P.people.some(x => /Sofia Lunani.*Legal counsel · signs for Kenya Freight/.test(x)), JSON.stringify(P && { h: P.peopleHead, p: P.people }));
       check('4f "Draft an agreement with Kenya Freight"', !!P && P.draft.trim() === 'Draft an agreement with Kenya Freight', P && P.draft);
       await shot('19-party-panel-1440x780.png');
-      const AP = await page.evaluate(() => ((document.querySelector('#cu-tbody [data-cu-cust="helio energy ltd"] td.cu-wait') || {}).textContent || '').trim());
-      check('4i an approval the reader answers for an away colleague: "an approval, for Jonas"', /^an approval, for Jonas( · \+\d+ more)?$/.test(AP), AP);
+      /* RE-POINTED 19 Oct 2026 (check #1): the first item whole, not cut; any more under it */
+      const AP = await page.evaluate(() => { const t = document.querySelector('#cu-tbody [data-cu-cust="helio energy ltd"] td.cu-wait .cu-wait-t');
+        return t ? { t: t.textContent.trim(), cut: t.scrollWidth > t.clientWidth + 1 } : null; });
+      check('4i an approval the reader answers for an away colleague: "an approval, for Jonas", whole', !!AP && AP.t === 'an approval, for Jonas' && !AP.cut, JSON.stringify(AP));
       /* a colleague's request about a party waits on the reader */
       await page.fill('#cu-q', 'nandi');
       await until(() => document.querySelectorAll('#cu-tbody [data-cu-cust]').length === 1);
@@ -269,6 +271,46 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       check('6f a person at a party opens People with that person chosen and lit', !!O && /Henry Dalu|Sofia Lunani/.test(O.name) && O.lit && O.panel.trim() === O.name.trim(), JSON.stringify(O));
     });
 
+    /* ---- 8 check #1's differences, built (lane A2's second pass, 19 Oct 2026) ---- */
+    await part('8 check #1', async () => {
+      await page.evaluate(() => setView('customers'));
+      await until(() => document.querySelector('#cu-tbody'));
+      await page.click('#cu-tbody [data-cu-cust="kenya freight ltd"]');
+      await until(() => document.querySelector('#ins-panel .cu-people'));
+      await page.click('#ins-panel .jl-back, #ins-panel [data-jl-back]');
+      const J = await until(() => { const p = document.getElementById('ins-panel'); const b = p && p.querySelector('b');
+        if (!b || !/on this list/.test(b.textContent)) return null;
+        return { said: b.textContent.trim(), head: ((document.querySelector('.cu-card .ap-card-n') || {}).textContent || '').trim() }; });
+      check('8a with nothing chosen Jambo says the list\'s own count, the number on its head', !!J && J.said.startsWith(J.head + ' part'), JSON.stringify(J));
+      await page.click('#cu-tbody [data-cu-cust="kenya freight ltd"]');
+      await until(() => document.querySelector('#ins-panel [data-cu-nda]'));
+      await page.click('#ins-panel [data-cu-nda]');
+      const N = await until(() => document.querySelector('[data-bs-kpi="value"].is-landed, [data-bs-kpi="value"].is-landed-held') ? 'lit' : null, null, 8000);
+      check('8b "Open the NDA ›" lands on the NDA\'s "Secret until" figure, lit', N === 'lit', String(N));
+      await page.evaluate(() => setView('customers'));
+      await until(() => document.querySelector('#cu-tbody [data-cu-cust="kenya freight ltd"]'));
+      await page.click('#cu-tbody [data-cu-cust="kenya freight ltd"]');
+      await until(() => document.querySelector('#ins-panel [data-cu-ag]'));
+      await page.click('#ins-panel [data-cu-ag]');
+      const A = await until(() => document.querySelector('.ig-line-id.is-landed, .ig-line-id.is-landed-held') ? 'lit' : null, null, 8000);
+      check('8c an agreement in the panel lands on Home\'s paper, its line lit', A === 'lit', String(A));
+      await page.evaluate(() => setView('directory'));
+      await until(() => document.querySelector('#dir-tbody'));
+      await page.evaluate(() => { const p = dirBook().find(x => /henry/i.test(x.email || '')); if (p) dirOpenPerson(p.key); });
+      const T = await until(() => { const p = document.getElementById('ins-panel'); if (!p || !/Henry/.test((p.querySelector('.ins-cp') || {}).textContent || '')) return null;
+        return { acts: [...p.querySelectorAll('.ins-h [data-ins-act]')].map(b => b.textContent.trim()), rows: [...p.querySelectorAll('.jl-rows dt')].map(d => d.textContent.trim()),
+          secs: [...p.querySelectorAll('.ins-sec h3')].map(h => h.firstChild.textContent.trim()), subs: [...p.querySelectorAll('.dir-ct-sub')].map(x => x.textContent.trim()),
+          party: !!p.querySelector('[data-dir-party]') }; }, null, 8000);
+      check('8d someone on their side: Show their contracts · Email', !!T && JSON.stringify(T.acts) === JSON.stringify(['Show their contracts', 'Email']), JSON.stringify(T && T.acts));
+      check('8e their rows: Email · Phone · Party (a door) · Named on', !!T && JSON.stringify(T.rows) === JSON.stringify(['Email', 'Phone', 'Party', 'Named on']) && T.party, JSON.stringify(T && T.rows));
+      check('8f "On these contracts", each saying what they do for their party; no "Also at"', !!T && T.secs.includes('On these contracts') && !T.secs.some(x => /^Also at/.test(x)) && T.subs.length && T.subs.every(x => / for Kenya Freight$/.test(x)), JSON.stringify(T && { s: T.secs, u: T.subs }));
+      if (T && T.party){
+        await page.click('#ins-panel [data-dir-party]');
+        const L = await until(() => state.view === 'customers' && document.querySelector('#cu-tbody [data-cu-cust="kenya freight ltd"].is-landed, #cu-tbody [data-cu-cust="kenya freight ltd"].is-landed-held') ? 'lit' : null, null, 8000);
+        check('8g the Party row lands on Parties, the party lit', L === 'lit', String(L));
+      }
+    });
+
     /* ---- 7 the owner's three screens ---- */
     await part('7 three screens', async () => {
       for (const [w, hgt] of SCREENS) {
@@ -284,6 +326,10 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
               sideways: document.documentElement.scrollWidth > innerWidth + 1, panelIn: !!(pr && pr.bottom <= innerHeight + 1) };
           });
           check(`7 ${name} at ${w}×${hgt}: the list and the panel side by side, the filters in view, nothing sideways`, G.side && G.filters && !G.sideways && G.panelIn, JSON.stringify(G));
+          /* check #1: the drawn words are read whole — the Waiting column's first item, a party's and a job's name */
+          const cut = await page.evaluate(() => { const els = [...document.querySelectorAll('.cu-wait-t, .dir-clamp')];
+            return { n: els.length, cut: els.filter(e => e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1).map(e => e.textContent) }; });
+          check(`7 ${name} at ${w}×${hgt}: nothing in the Waiting, Party or Job title cells is cut`, cut.n > 0 && cut.cut.length === 0, JSON.stringify(cut));
           if (view === 'customers') await page.click('#cu-tbody [data-cu-cust="kenya freight ltd"]').catch(() => {});
           await page.waitForTimeout(200);
           await shot(`19-${name}-${w}x${hgt}.png`);

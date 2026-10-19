@@ -383,11 +383,11 @@ function dirAwayPillHtml(p){
 function dirColDefs(){
   return [
     { k: 'side', label: i18t('dir_col_side'), w: 66 },
-    { k: 'party', label: i18t('dir_col_party'), w: 152 },
-    { k: 'title', label: i18t('dir_col_title'), w: 132 },
+    { k: 'party', label: i18t('dir_col_party'), w: 164 },
+    { k: 'title', label: i18t('dir_col_title'), w: 150 },
     { k: 'hati', label: i18t('dir_col_hati'), w: 72 },
-    { k: 'contracts', label: i18t('dir_col_contracts'), r: 1, w: 82 },
-    { k: 'email', label: i18t('dir_col_email'), w: 176 },
+    { k: 'contracts', label: i18t('dir_col_contracts'), r: 1, w: 78 },
+    { k: 'email', label: i18t('dir_col_email'), w: 168 },
   ];
 }
 function dirOurParty(){
@@ -400,8 +400,8 @@ function dirOurParty(){
 function dirNone(word){ return word ? `<span class="dir-none" title="${_dE(word)}" aria-label="${_dE(word)}">—</span>` : `<span class="dir-none">—</span>`; }
 function dirCellHtml(k, p){
   if (k === 'side') return `<td>${_dE(p.side === 'ours' ? i18t('dir_side_ours') : p.side === 'theirs' ? i18t('dir_side_theirs') : i18t('dir_tab_none'))}</td>`;
-  if (k === 'party'){ const v = p.side === 'ours' ? dirOurParty() : p.side === 'theirs' ? p.partyName : ''; return `<td class="dir-td-cut"${v ? ` title="${_dE(v)}"` : ''}>${v ? _dE(v) : dirNone(p.side === 'none' ? i18t('dir_imported') : '')}</td>`; }
-  if (k === 'title') return `<td class="dir-td-cut"${p.title ? ` title="${_dE(p.title)}"` : ''}>${p.title ? _dE(p.title) : dirNone(i18t('dir_no_title'))}</td>`;
+  if (k === 'party'){ const v = p.side === 'ours' ? dirOurParty() : p.side === 'theirs' ? p.partyName : ''; return `<td class="dir-td-cut dir-td-wrap"${v ? ` title="${_dE(v)}"` : ''}>${v ? `<span class="dir-clamp">${_dE(v)}</span>` : dirNone(p.side === 'none' ? i18t('dir_imported') : '')}</td>`; }
+  if (k === 'title') return `<td class="dir-td-cut dir-td-wrap"${p.title ? ` title="${_dE(p.title)}"` : ''}>${p.title ? `<span class="dir-clamp">${_dE(p.title)}</span>` : dirNone(i18t('dir_no_title'))}</td>`;
   /* the role, said where a colleague has one here (D-2: who is an admin is stated) */
   if (k === 'hati') return `<td class="dir-role">${p.side === 'ours' && p.hati ? _dE(p.hati) : dirNone('')}</td>`;
   if (k === 'contracts') return `<td class="n">${p.contracts.length ? p.contracts.length : dirNone(i18t('dir_no_contracts'))}</td>`;
@@ -571,7 +571,6 @@ function dirPaintPanel(p, book){
   const n = p.contracts.length;
   const streams = _dE(p.streams.map(dirStreamName).filter(Boolean).join(' · '));
   const mail = p.email ? `<a href="mailto:${_dE(p.email)}">${_dE(p.email)}</a>` : `<span class="dir-none">${_dE(i18t('dir_no_email'))}</span>`;
-  const peopleRows = list => list.map(o => `<button type="button" class="dir-pp" data-dir-pick="${_dE(o.key)}">${dirAvHtml(o)}<span class="dir-pp-n">${_dE(o.name || o.email)}</span><span class="dir-pp-r">${_dE(dirRoleWords(o))}</span></button>`).join('');
   let head, body;
   /* JAMBO'S PANEL, THE PERSON AS DRAWN (round 19, the People scene): their
      initials, name and "Commercial lead · our side"; Show their contracts ·
@@ -630,25 +629,76 @@ function dirPaintPanel(p, book){
     body = kv([{ k: 'party', label: i18t('cu_col_customer'), v: '' }, { k: 'contracts', label: i18t('dir_f_contracts'), v: '' }])
       + sec(i18t('dir_named_on'), 0, `<p class="ins-note">${_dE(i18t('dir_not_named_long'))}</p>`);
   } else {
+    /* SOMEONE ON THEIR SIDE, AS DRAWN (round 19's People scene, Henrik Dahl):
+       "Head of procurement · Nordvik Logistik AB"; Show their contracts ·
+       Email; Email · Phone · Party (a door onto the party, chosen on Parties)
+       · Named on; then "On these contracts" — each row what they do for their
+       party on it ("negotiates for Nordvik", "signed for Nordvik") */
     const loaded = dirPartyLoaded(p);
-    const others = dirSort(book.filter(o => o.side === 'theirs' && o.partyKey === p.partyKey && o.key !== p.key), 'all');
-    head = { eyebrow: `${_dE(p.partyName || '—')} · ${_dE(dirRoleWords(p))}`, title: p.name || p.email, sub: mail,
-      acts: [{ k: 'party', kind: 'accent', iconEnd: 'chevR', label: i18t('cu_open_customer'), disabled: !loaded,
-          title: loaded ? '' : i18t('dir_party_none'), run: () => { if (typeof cuOpenCustomer === 'function') cuOpenCustomer(p.partyKey); } },
-        { k: 'draft', label: i18t('home_draft_new'), run: () => { if (typeof cuDraftFor === 'function') cuDraftFor(p.partyName); } },
-        { k: 'explorer', label: i18t('cu_open_explorer'), disabled: !loaded,
-          title: loaded ? '' : i18t('dir_party_none'), run: () => { if (typeof cuOpenExplorer === 'function') cuOpenExplorer(p.partyKey); } }] };
-    head = Object.assign(head, { av, eyebrow: '', sub: _dE([p.title, p.partyName].filter(Boolean).join(' · ')), acts: head.acts.concat(mailBtn) });
-    body = rowsOf([{ k: 'email', label: i18t('jl_f_email'), v: mail }, { k: 'party', label: i18t('cu_col_customer'), v: _dE(p.partyName) },
-      { k: 'streams', label: i18t('cu_panel_streams'), v: streams }, { k: 'contracts', label: i18t('dir_named_on'), v: n ? _dE(i18tn('jl_named_n', n, { n, live: p.active })) : '' }])
+    const short = (typeof cuShortName === 'function') ? cuShortName(p.partyName) : p.partyName;
+    head = { av, title: p.name || p.email, sub: _dE([p.title, p.partyName].filter(Boolean).join(' · ')),
+      acts: [{ k: 'contracts', kind: 'accent', label: i18t('dir_show_contracts'), disabled: !n,
+        title: n ? '' : i18t('dir_show_contracts_none'), run: () => dirShowContracts(p) }].concat(mailBtn) };
+    const ph = dirPhoneOf(p);
+    const phone = ph ? `<a href="tel:${_dE(ph.replace(/[^+\d]/g, ''))}">${_dE(ph)}</a>` : dirNone(i18t('dir_no_phone'));
+    const party = !p.partyName ? dirNone('') : loaded
+      ? `<button type="button" class="ui-link dir-party-go" data-dir-party="${_dE(p.partyKey)}">${_dE(p.partyName)}${ic('chevR')}</button>` : _dE(p.partyName);
+    const theirsList = () => {
+      const ids = p.contracts.slice(0, DIR_NAMED_MAX);
+      return `<div class="jl-ct-list">${ids.map(id => {
+        const c = byId.get(id); if (!c) return '';
+        const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
+        const st = (typeof contractStatusDotHtml === 'function') ? contractStatusDotHtml(c) : _dE(c.status || '');
+        const sub = [ref, dirDoesFor(p.roleOn(id), c, short)].filter(Boolean).join(' · ');
+        return `<button type="button" class="dir-ct jl-ct" data-dir-ct="${_dE(c.id)}" title="${_dE(i18t('ins_door_doc'))}"><span class="dir-ct-n">${_dE(c.name || c.counterparty || '')}</span><span class="dir-ct-st">${st}</span><span class="dir-ct-sub">${_dE(sub)}</span></button>`;
+      }).join('')}</div>`;
+    };
+    body = rowsOf([{ k: 'email', label: i18t('jl_f_email'), v: mail }, { k: 'phone', label: i18t('dir_f_phone'), v: phone },
+      { k: 'party', label: i18t('dir_f_party'), v: party }, { k: 'contracts', label: i18t('dir_named_on'), v: n ? _dE(i18tn('dir_n_contracts', n, { n })) : '' }])
       + waitSec
-      + sec(i18t('dir_named_on'), n, n ? namedJl(3) : `<p class="ins-note">${_dE(i18t('dir_no_contracts'))}</p>`)
-      + sec(i18t('dir_also_at', { party: p.partyName }), others.length,
-        others.length ? peopleRows(others) : `<p class="ins-note">${_dE(i18t('dir_nobody_else'))}</p>`);
+      + sec(i18t('dir_on_these'), n, n ? theirsList() : `<p class="ins-note">${_dE(i18t('dir_no_contracts'))}</p>`);
+    dirPhoneAsk(p);
   }
   insPaintPanel({ seat: DIR_SEAT, item: { id: p.key }, head, body,
     jlWord: i18t('jl_w_person'), jlHome: DIR_JL.jlHome(), jlPh: DIR_JL.jlPh(), jlSay: dirSay });
   dirPanelWire();
+}
+/* WHAT SOMEONE ON THEIR SIDE DOES FOR THEIR PARTY ON A CONTRACT (round 19:
+   "negotiates for Nordvik", "signed for Nordvik") — the strongest role named */
+const DIR_DOES = { cpsign: ['dir_does_signs', 'dir_does_signed'], negotiate: ['dir_does_negotiates', 'dir_does_negotiated'],
+  advise: ['dir_does_advises', 'dir_does_advised'], cpread: ['dir_does_reads', 'dir_does_read'] };
+function dirDoesFor(roles, c, party){
+  const k = ['cpsign', 'negotiate', 'advise', 'cpread'].find(x => (roles || []).includes(x));
+  if (!k) return '';
+  const done = !!(c && c.status === 'Signed');
+  return i18t(DIR_DOES[k][done ? 1 : 0], { party: party || '' });
+}
+/* A PHONE NUMBER IS READ, NEVER GUESSED: the newest link this workspace sent
+   to them (by their address, or by their name on a link with no address)
+   that carried a number — the send screen's own record (shares, one cache,
+   cachedShares). Nothing is stored; null where no link carried one. */
+function dirPhoneOf(p){
+  if (!p || typeof cachedShares !== 'function') return null;
+  const mail = _dFold(p.email), nm = _dFold(p.name);
+  const all = [];
+  (p.contracts || []).forEach(id => { const c = (typeof getContract === 'function') ? getContract(id) : { id };
+    (cachedShares(c) || []).forEach(sh => { if (sh && _dStr(sh.recipientPhone)) all.push(sh); }); });
+  const hit = all.filter(sh => mail ? _dFold(sh.recipientEmail) === mail : (!_dStr(sh.recipientEmail) && nm && _dFold(sh.recipientName) === nm))
+    .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))[0];
+  return hit ? _dStr(hit.recipientPhone) : null;
+}
+/* the links on their contracts, asked once each; the panel is drawn again
+   when an answer lands and they are still the one chosen */
+function dirPhoneAsk(p){
+  if (!p || typeof ensureSharesCached !== 'function' || typeof sharesKnown !== 'function') return;
+  const want = (p.contracts || []).slice(0, DIR_NAMED_MAX).map(id => (typeof getContract === 'function') ? getContract(id) : null)
+    .filter(c => c && !sharesKnown(c));
+  if (!want.length) return;
+  Promise.all(want.map(c => ensureSharesCached(c))).then(() => {
+    const sel = (typeof insSelected === 'function') ? insSelected(DIR_SEAT) : null;
+    if (sel !== p.key || typeof state === 'undefined' || state.view !== 'directory' || !dirPhoneOf(p)) return;
+    const q = dirBook().find(x => x.key === p.key); if (q) dirPaintPanel(q, dirBook());
+  }).catch(() => {});
 }
 /* The panel's own rows: a contract opens, a person is chosen. Bound once per
    panel element; it reads the live wall at press time. */
@@ -663,6 +713,8 @@ function dirPanelWire(){
     if (all){ const cur = host._ins || {}; const key = cur.item && cur.item.id; const p = key ? dirBook().find(x => x.key === key) : null; if (p) dirShowContracts(p); return; }
     const ct = e.target.closest && e.target.closest('[data-dir-ct]');
     if (ct){ dirOpenContract(ct.getAttribute('data-dir-ct')); return; }
+    const pg = e.target.closest && e.target.closest('[data-dir-party]');
+    if (pg){ if (typeof cuSelectParty === 'function') cuSelectParty(pg.getAttribute('data-dir-party')); return; }
     const pk = e.target.closest && e.target.closest('[data-dir-pick]');
     if (pk) dirSelect(pk.getAttribute('data-dir-pick'));
   });
@@ -760,6 +812,10 @@ const DIR_CSS = `
   .dir-table tbody tr.is-sel td:first-child{box-shadow:inset 2px 0 0 var(--accent-solid);}
   .dir-table td.n,.dir-table th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
   .dir-table td.dir-td-cut{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0;}
+  /* a party's or a job's name is read whole: a long one takes a second line
+     rather than being cut (round 19 draws them whole) */
+  .dir-table td.dir-td-cut.dir-td-wrap{white-space:normal;text-overflow:clip;}
+  .dir-clamp{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:1.3;overflow-wrap:anywhere;}
   .ap-table.dir-table :is(td,th){padding-left:12px;padding-right:12px;}
   .dir-nm{display:flex;align-items:center;gap:8px;min-width:0;}
   .dir-nm-w{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -808,4 +864,4 @@ const DIR_CSS = `
 
 Object.assign(window, { renderDirectory, dirRepaint, dirPeople, dirBook, dirRows, dirMatches, dirTabCount, dirPeopleOfParty, dirRoleWords,
   dirRowHtml, dirColDefs, dirCellHtml, dirAwayPillHtml, DIR_PAGE, dirOpenPerson, dirPlace, dirPlacePut, dirOpenParty, dirShowContracts, dirOpenContract, dirPaintPanel, dirSelect, DIR_TABS,
-  dirWaitingOn, DIR_WAIT_MAX, DIR_WAIT_KIND, DIR_WAIT_OPEN, dirWaitGo, dirSay, dirNamedRoles, DIR_ROLE_NOUN, dirRoleNoun });
+  dirWaitingOn, dirPhoneOf, dirDoesFor, DIR_DOES, DIR_WAIT_MAX, DIR_WAIT_KIND, DIR_WAIT_OPEN, dirWaitGo, dirSay, dirNamedRoles, DIR_ROLE_NOUN, dirRoleNoun });

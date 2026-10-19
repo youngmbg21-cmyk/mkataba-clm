@@ -208,13 +208,27 @@ function cuRequestsLoad(){
   _cuIkAsked = true;
   Promise.resolve().then(loadIntake).then(() => cuRepaint()).catch(() => {});
 }
+/* THEIR REDLINES, COUNTED (round 19 as drawn: "2 redlines · 4 days",
+   "Answer 2 redlines"): where the move is ours because their asks wait on an
+   answer, the number of them — the Negotiations list's own reading
+   (negoMoveSay); 0 where the move is ours for another reason */
+function cuMoveRedlines(c){
+  let m = null; try { m = (typeof negoMoveSay === 'function') ? negoMoveSay(c) : null; } catch (_){ m = null; }
+  return m && m.k === 'you' && !m.why && Number(m.n) > 0 ? Number(m.n) : 0;
+}
+/* an approval the reader answers for an away colleague: their first name */
+function cuApprovalFor(c){
+  let fw = null; try { fw = (typeof apForWho === 'function') ? apForWho({ type: 'approval', mine: true, done: false, c }) : null; } catch (_){ fw = null; }
+  return (fw && String(fw.name || '').trim().split(/\s+/)[0]) || '';
+}
 function cuNeedTitle(x){
   if (!x) return '';
   if (x.it.kind === 'request'){
     const who = String((x.r.by && x.r.by.name) || '').trim().split(/\s+/)[0] || i18t('cu_req_someone');
     return i18t('cu_need_request', { who, t: String(x.r.title || '').trim() });
   }
-  if (x.it.kind === 'move') return i18t('cu_need_move');
+  if (x.it.kind === 'move'){ const n = cuMoveRedlines(x.c); return n ? i18tn('cu_need_answer_redlines', n, { n }) : i18t('cu_need_move'); }
+  if (x.it.kind === 'approval'){ const who = cuApprovalFor(x.c); if (who) return i18t('cu_need_approval_for_cap', { who }); }
   try { return (typeof insNeedWords === 'function') ? String(insNeedWords(x.c, x.it).title || '') : ''; } catch (_) { return ''; }
 }
 /* THE COLUMN'S SHORT WORDS (round 19 as drawn: "2 redlines · 4 days", "3
@@ -228,14 +242,12 @@ function cuNeedShort(x){
     if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || !t) return ''; const n = Math.max(0, Math.round((Date.parse(t) - Date.parse(d)) / 864e5));
     return n === 0 ? i18t('ins_days_today') : i18tn('ins_days', n, { n }); };
   if (k === 'quiet'){ const w = daysSince(x.it.since); const t = i18tn('cu_need_redlines', x.it.n || 1, { n: x.it.n || 1 }); return w ? `${t} · ${w}` : t; }
-  if (k === 'move'){ let w = ''; try { w = (typeof regNegoCols === 'function') ? regNegoCols(x.c).waiting : ''; } catch (_){ w = ''; } return w && w !== '\u2014' ? `${i18t('cu_need_move')} · ${w}` : i18t('cu_need_move'); }
+  if (k === 'move'){ let w = ''; try { w = (typeof regNegoCols === 'function') ? regNegoCols(x.c).waiting : ''; } catch (_){ w = ''; }
+    const n = cuMoveRedlines(x.c), t = n ? i18tn('cu_need_redlines', n, { n }) : i18t('cu_need_move');
+    return w && w !== '\u2014' ? `${t} · ${w}` : t; }
   /* "an approval, for Jonas" where the reader answers for an away colleague
      (When you're away: Approvals' own reading, apForWho) */
-  if (k === 'approval'){
-    let fw = null; try { fw = (typeof apForWho === 'function') ? apForWho({ type: 'approval', mine: true, done: false, c: x.c }) : null; } catch (_){ fw = null; }
-    const who = fw && String(fw.name || '').trim().split(/\s+/)[0];
-    return who ? i18t('cu_need_approval_for', { who }) : i18t('cu_need_approval_short');
-  }
+  if (k === 'approval'){ const who = cuApprovalFor(x.c); return who ? i18t('cu_need_approval_for', { who }) : i18t('cu_need_approval_short'); }
   return cuNeedTitle(x);
 }
 function cuNeedsSay(list){
@@ -370,7 +382,19 @@ function cuNdaFactHtml(x, party){
    cannot come up, the contract opens as every list opens one */
 function cuOpenNda(id){
   if (!id) return;
-  if (typeof hbStripBring === 'function' && hbStripBring(id)) return;
+  /* LAND ON IT: the NDA brought up on the desk, its "Secret until" figure lit */
+  if (typeof hbStripBring === 'function' && hbStripBring(id)){
+    const q = (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(String(id)) : String(id);
+    if (typeof landOn === 'function') landOn(() => document.querySelector(`#bs-strip-${q} [data-bs-kpi="value"]`) || document.getElementById('bs-strip-' + id), { block: 'nearest', focus: false });
+    return;
+  }
+  cuOpenAgreement(id);
+}
+/* an agreement in the panel: Home's paper on it, its line lit (the People
+   panel's own door, dirOpenContract) */
+function cuOpenAgreement(id){
+  if (!id) return;
+  if (typeof dirOpenContract === 'function'){ dirOpenContract(id); return; }
   if (typeof regOpenContract === 'function') regOpenContract(id);
 }
 if (typeof document !== 'undefined') document.addEventListener('click', e => {
@@ -405,6 +429,20 @@ function cuOpenCustomer(key){
   if (!v || !v.items.length) return;
   const phone = typeof window !== 'undefined' && ((window.mPhone && mPhone()) || (window.innerWidth && window.innerWidth < 768));
   if (typeof regShowOnly === 'function') regShowOnly(cuIdsOf(v), phone ? `${v.name} · ${v.items.length}` : v.name, { party: true });
+}
+/* ONE PARTY FROM ELSEWHERE (People's "Party · Nordvik Logistik AB ›"): the
+   Parties list with nothing narrowing it away, that party chosen, and LAND
+   ON IT — its row, scrolled into view and lit (People's dirOpenPerson) */
+function cuSelectParty(key){
+  if (!key || !cuCustomerOf(key)) return;
+  _cu.stream = 'all'; _cu.owner = 'all'; _cu.nda = 'all'; _cu.status = 'all'; _cu.q = '';
+  const at = cuRowsOf(cuCustomers(), cuNdaMap()).findIndex(r => r.key === key);
+  _cu.shown = at >= 0 ? Math.max(CU_PAGE, at + 1) : 0;
+  if (typeof insSelect === 'function') insSelect('customers', key);
+  if (typeof state !== 'undefined' && state.view !== 'customers' && typeof setView === 'function') setView('customers'); else renderCustomers();
+  if (typeof placeSave === 'function') placeSave();
+  const q = (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(String(key)) : String(key).replace(/"/g, '\\"');
+  if (typeof landOn === 'function') landOn(`#cu-tbody [data-cu-cust="${q}"]`, { focus: false });
 }
 function cuDraftFor(name){
   if (typeof openNewAgreement === 'function') openNewAgreement({ prefill: { counterparty: name } });
@@ -849,6 +887,8 @@ const LC_CSS = `
   /* "10 of 27 shown · Show more" reads as one line at the foot's start */
   .ap-foot.cu-foot{justify-content:flex-start;gap:4px;flex-wrap:wrap;}
   .ap-foot.cu-foot .lc-shown{white-space:nowrap;}
+  /* Jambo's panel on Parties and People: a section's count in its small pill, as drawn */
+  :is(.cu-page,.dir-page) .ins-sec h3 .n{display:inline-block;padding:0 7px;border-radius:999px;background:var(--color-accent-50);color:var(--accent-ink);font-size:var(--t-micro);line-height:18px;font-variant-numeric:tabular-nums;}
 `;
 const CU_CSS = `
   .cu-page{height:var(--view-h);box-sizing:border-box;}
@@ -874,7 +914,12 @@ const CU_CSS = `
   .cu-nda-none{color:var(--color-neutral-500);}
   .cu-nda-go{border:0;background:none;padding:0 0 0 4px;font:inherit;font-weight:var(--w-label);color:var(--color-accent);cursor:pointer;white-space:nowrap;}
   .cu-nda-go:hover{text-decoration:underline;}
-  .cu-table td.cu-wait{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cu-table td.cu-wait{white-space:nowrap;overflow:hidden;}
+  .cu-wait-t{display:block;overflow:hidden;text-overflow:ellipsis;}
+  .cu-wait-more{display:block;margin-top:2px;font-size:var(--t-meta);font-weight:var(--w-body);color:var(--color-neutral-500);}
+  /* a need's line wraps whole in the panel ("Master services agreement · /
+     waiting 4 days", round 19) */
+  .cu-needs .cu-li-b span{white-space:normal;}
   .cu-table td.ruby{color:var(--st-ruby-fg);font-weight:var(--w-strong);}
   .cu-list{border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden;}
   .cu-li{display:flex;align-items:center;gap:var(--s-2);padding:8px 12px;border:0;border-top:1px solid var(--color-divider);background:var(--color-surface);text-align:left;font:inherit;color:inherit;width:100%;box-sizing:border-box;}
@@ -907,12 +952,13 @@ const CU_CSS = `
 function cuColDefs(){
   const money = cuMoney();
   return [
-    { k: 'city', label: i18t('cu_col_city'), w: 108 },
+    { k: 'city', label: i18t('cu_col_city'), w: 94 },
     { k: 'live', label: i18t('cu_col_live'), r: 1, w: 66 },
     { k: 'ended', label: i18t('cu_col_ended'), r: 1, w: 86 },
     ...(money ? [{ k: 'paper', label: i18t('cu_col_paper'), r: 1, w: 92 }] : []),
-    { k: 'next', label: i18t('cu_col_next_end'), w: 102 },
-    { k: 'waiting', label: i18t('cu_col_waiting'), w: 168 },
+    { k: 'next', label: i18t('cu_col_next_end'), w: 108 },
+    /* wide enough for the drawn short words whole ("an approval, for Jonas") */
+    { k: 'waiting', label: i18t('cu_col_waiting'), w: 188 },
     { k: 'nda', label: i18t('cu_col_nda'), w: 128 },
   ];
 }
@@ -936,8 +982,11 @@ function cuCellHtml(k, r, v, ndas){
   if (k === 'paper'){ const ov = cuMoneyWords(v.active); return `<td class="n${ov ? '' : ' quiet'}">${_cuE(ov || '—')}</td>`; }
   if (k === 'next') return `<td class="${v.next ? '' : 'quiet'}">${_cuE(v.next ? cuDay(v.next) : '—')}</td>`;
   if (k === 'waiting'){
-    const ws = cuNeedsSay(v.needs), wAll = v.needs.map(cuNeedTitle).join(' · '), wLate = v.needs.some(x => x.it.urgent);
-    return `<td class="cu-wait${ws ? (wLate ? ' ruby' : ' amber') : ' quiet'}"${ws ? ` title="${_cuE(wAll)}"` : ''}>${_cuE(ws || '—')}</td>`;
+    /* the first, whole, as drawn ("an approval, for Jonas"); any more on a
+       quiet line under it, the way the Party and NDA cells carry a second line */
+    const ws = v.needs.length ? cuNeedShort(v.needs[0]) : '', wAll = v.needs.map(cuNeedTitle).join(' · '), wLate = v.needs.some(x => x.it.urgent);
+    const more = v.needs.length > 1 ? `<span class="cu-wait-more">${_cuE(i18t('cu_pp_more', { n: v.needs.length - 1 }))}</span>` : '';
+    return `<td class="cu-wait${ws ? (wLate ? ' ruby' : ' amber') : ' quiet'}"${ws ? ` title="${_cuE(wAll)}"` : ''}><span class="cu-wait-t">${_cuE(ws || '—')}</span>${more}</td>`;
   }
   if (k === 'nda') return `<td class="cu-nda-td">${cuNdaCellHtml(cuNdaOf(r.key, ndas))}</td>`;
   return '<td></td>';
@@ -1019,6 +1068,27 @@ function cuNextSay(v){
   const c = v.items.find(x => x.status === 'Signed' && cuBucket(x) === 'active' && cuEnds(x) === v.next);
   return [cuDay(v.next), c && c.name].filter(Boolean).join(' · ');
 }
+/* THE PAGE IN JAMBO'S WORDS (nothing chosen): the list's own count — the
+   number the card's head says — what waits on the reader and the live
+   parties without an NDA; each chip is one of the page's own boxes. Counted,
+   no Jambo call. */
+function cuSay(){
+  const all = cuCustomers(), ndas = cuNdaMap();
+  const rows = cuRowsOf(all, ndas);
+  if (!all.length) return { lines: [_cuE(i18t('cu_none_yet'))] };
+  const live = rows.filter(r => cuStanding(r) === 'live').length;
+  const views = rows.map(cuView);
+  const waiting = views.filter(v => v.needs.length).length;
+  const noNda = rows.filter(r => cuStanding(r) === 'live' && cuNdaOf(r.key, ndas).state === 'none').length;
+  const lines = [`<b>${_cuE(i18tn('cu_say', rows.length, { n: rows.length }))}</b>${_cuE(': ' + i18t('cu_say_live', { n: live }))}.`];
+  if (waiting) lines.push(_cuE(i18tn('cu_say_waiting', waiting, { n: waiting }) + '.'));
+  if (noNda) lines.push(_cuE(i18tn('cu_say_no_nda', noNda, { n: noNda }) + '.'));
+  const chips = [];
+  const set = (k, val) => () => { _cu[k] = val; _cu.shown = 0; cuRepaint(); if (typeof placeSave === 'function') placeSave(); };
+  if (noNda && _cu.nda !== 'none') chips.push({ label: i18t('cu_say_chip_no_nda'), run: set('nda', 'none') });
+  if (_cu.status !== 'all') chips.push({ label: i18t('cu_say_chip_all'), run: set('status', 'all') });
+  return { lines, chips };
+}
 function cuPaintCustomerPanel(tb){
   const seat = 'customers';
   const idOf = r => r.getAttribute('data-cu-cust');
@@ -1026,24 +1096,28 @@ function cuPaintCustomerPanel(tb){
   insMarkRow(tb, '[data-cu-cust]', idOf, id);
   const paint = key => {
     const r = key ? cuView(cuCustomerOf(key)) : null;
-    if (!r){ _cu.edit = null; insPaintPanel({ seat, c: null, item: null, empty: i18t('cu_panel_none'), jlHome: i18t('nav_customers'), jlPh: i18t('jl_ph_any') }); return; }
+    if (!r){ _cu.edit = null; insPaintPanel({ seat, c: null, item: null, empty: i18t('cu_panel_none'), jlHome: i18t('nav_customers'), jlPh: i18t('jl_ph_any'), jlSay: cuSay }); return; }
     if (_cu.edit && _cu.edit !== r.key) _cu.edit = null;
     const may = partyRecordMay();
     const org = partyOrgNoOf(r.key);
     const orgHtml = org ? `${_cuE(org)}${may ? ` <button type="button" class="ui-link cu-org-go" data-cu-pr-edit="${_cuE(r.key)}">${_cuE(i18t('cu_pr_change'))}</button>` : ''}`
       : `<span class="cu-none">${_cuE(i18t('cu_org_none'))}</span>${may ? ` <button type="button" class="ui-link cu-org-go" data-cu-pr-edit="${_cuE(r.key)}">${_cuE(i18t('cu_pr_add'))}</button>` : ''}`;
+    /* a fact with nothing in it is left out, as drawn (Kettle & Co: Owner ·
+       Live agreements · NDA); the city's door in the line under the name
+       opens the organisation no. too */
+    const next = cuNextSay(r);
     const rows = (typeof insRowsHtml === 'function') ? insRowsHtml([
-      { k: 'org', label: i18t('cu_f_org'), v: orgHtml },
+      ...(org ? [{ k: 'org', label: i18t('cu_f_org'), v: orgHtml }] : []),
       { k: 'owner', label: i18t('cu_owner'), v: _cuE(cuOwnerSay(r.items)) },
       { k: 'live', label: i18t('cu_f_live'), v: _cuE(cuLiveSay(r)) },
-      { k: 'next', label: i18t('cu_col_next_end'), v: _cuE(cuNextSay(r)) },
+      ...(next ? [{ k: 'next', label: i18t('cu_col_next_end'), v: _cuE(next) }] : []),
       { k: 'nda', label: i18t('cu_col_nda'), v: cuNdaFactHtml(cuNdaOf(key), r.name) },
     ]) : '';
     const people = (typeof dirPeopleOfParty === 'function') ? dirPeopleOfParty(r.key) : [];
     const short = cuShortName(r.name);
     const sec = (t, n, b, cls) => (typeof insSecHtml === 'function' ? insSecHtml(t, n, b, cls) : '');
     /* Jambo's panel (round 19): it holds a party */
-    insPaintPanel({ seat, jlWord: i18t('jl_w_party'), jlHome: i18t('nav_customers'), jlPh: i18t('jl_ph_any'), item: { id: r.key }, head: {
+    insPaintPanel({ seat, jlWord: i18t('jl_w_party'), jlHome: i18t('nav_customers'), jlPh: i18t('jl_ph_any'), jlSay: cuSay, item: { id: r.key }, head: {
         title: r.name, sub: cuPanelSubHtml(r),
         acts: [{ k: 'open', kind: 'accent', label: i18t('cu_open_customer'), run: x => cuOpenCustomer(x.id) },
           { k: 'explorer', label: i18t('cu_open_explorer'), run: x => cuOpenExplorer(x.id) }] },
@@ -1093,7 +1167,7 @@ function cuPanelNeedsHtml(list){
        its agreement — never the landing sentence, which is the hover's */
     let line = '', late = false;
     try {
-      if (x.it.kind === 'move'){ const w = (typeof regNegoCols === 'function') ? regNegoCols(x.c).waiting : ''; if (w && w !== '—'){ line = i18t('ins_need_waiting', { days: w }); late = !!x.it.urgent; } }
+      if (x.it.kind === 'move'){ const w = (typeof regNegoCols === 'function') ? regNegoCols(x.c).waiting : ''; if (w && w !== '—'){ line = i18t('cu_need_waiting', { days: w }); late = !!x.it.urgent; } }
       else if (CU_NEED_LINE.has(x.it.kind) && typeof insNeedWords === 'function'){ line = String(insNeedWords(x.c, x.it).plain || ''); late = !!x.it.urgent; }
     } catch (_){ line = ''; }
     const name = x.c.name || ref;
@@ -1152,7 +1226,7 @@ function cuPanelPeopleHtml(list, v){
 if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('click', e => {
   const t = e.target && e.target.closest ? e.target : null; if (!t) return;
   const n = t.closest('[data-cu-need]'); if (n){ cuNeedGo(n.getAttribute('data-cu-need'), n.getAttribute('data-cu-id')); return; }
-  const a = t.closest('[data-cu-ag]'); if (a && typeof regOpenContract === 'function'){ regOpenContract(a.getAttribute('data-cu-ag')); return; }
+  const a = t.closest('[data-cu-ag]'); if (a){ cuOpenAgreement(a.getAttribute('data-cu-ag')); return; }
   /* a person at the party: the People page, that person chosen and lit */
   const pp = t.closest('[data-cu-pp]'); if (pp){ if (typeof dirOpenPerson === 'function') dirOpenPerson(pp.getAttribute('data-cu-pp')); return; }
   const dw = t.closest('[data-cu-draft-with]'); if (dw){ const v = cuCustomerOf(dw.getAttribute('data-cu-draft-with')); if (v) cuDraftFor(v.name); }
@@ -1204,6 +1278,6 @@ Object.assign(window, { cuNeedsOf, cuNeedTitle, cuNeedsSay, cuNeedGo, cuPanelNee
   cuChip,
   /* round 19 as drawn: a party's own facts, the party's standing, the page's
      find box, Columns and the paged foot — People draws the last three too */
-  cuNeedShort, cuRequestsOf, cuStanding, cuStatusWants, partyRecordOf, partyCityOf, partyOrgNoOf, partyRecordSet, partyRecordOpen, partyCitySuggest, cuCityFromAddress, cuAddrAfterName,
+  cuNeedShort, cuRequestsOf, cuStanding, cuSay, cuMoveRedlines, cuOpenAgreement, cuSelectParty, cuStatusWants, partyRecordOf, partyCityOf, partyOrgNoOf, partyRecordSet, partyRecordOpen, partyCitySuggest, cuCityFromAddress, cuAddrAfterName,
   cuSinceOf, cuShortName, cuOwnerSay, cuAgreementSub, cuPanelPeopleHtml, cuFindHtml, cuCardHtml,
   LC_CSS, LC_PAGES, lcPlace, lcState, lcShown, lcBtnHtml, lcFootHtml, lcScrollWire, CU_PAGE });
