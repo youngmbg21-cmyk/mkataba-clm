@@ -1405,12 +1405,7 @@ function calStyleCss(){ return `
   /* ---- MY CALENDAR, THE WEEK, COPILOT'S PLAN (10 Oct 2026) ---- the week
          card is the month's height, so switching Month and Week moves
          nothing; its hours scroll inside. */
-  .cal-lays{display:inline-flex;gap:4px;flex-wrap:wrap}
-  .cal-lay{display:inline-flex;align-items:center;gap:5px;height:var(--ctl-h-sm);padding:0 8px;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);color:var(--color-neutral-700,var(--color-text));font:inherit;font-size:var(--t-label);font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
-  .cal-lay i{width:8px;height:8px;border-radius:2px}
-  .cal-lay.is-ct i{background:var(--st-ruby-dot)} .cal-lay.is-me i{background:var(--color-accent-600)} .cal-lay.is-cp i{border:1.5px dashed var(--cal-cp)}
-  .cal-lay[aria-pressed="false"]{opacity:.55;text-decoration:line-through}
-  .cal-lay:focus-visible,.cal-wk-slot:focus-visible,.cal-wk-blk:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:1px}
+  .cal-wk-slot:focus-visible,.cal-wk-blk:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:1px}
   .cal-dn[data-cal-week]{cursor:pointer;border-radius:3px}
   .cal-dn[data-cal-week]:hover{background:var(--color-accent-50);color:var(--accent-ink)}
   .cal-chip.cal-own{cursor:pointer}
@@ -1526,16 +1521,6 @@ function calStyleCss(){ return `
   .cal-nav .cal-nb{padding:0 9px}
   .cal-nav .ui-btn:disabled{opacity:.45;cursor:default}
   .cal-title{font-size:17px;font-weight:var(--w-title);margin-right:auto;color:var(--color-text);white-space:nowrap;font-variant-numeric:tabular-nums}
-  .cal-bar2{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;padding:8px 16px;border-bottom:1px solid var(--color-divider)}
-  .cal-bar2-r{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .cal-bar2-l{display:inline-flex;align-items:center;gap:8px 16px;flex-wrap:wrap;min-width:0}
-  .cal-bar2 .cal-legend{padding:0;box-shadow:none;min-height:0;gap:6px 12px;flex-wrap:wrap}
-  .cal-bar2 .cal-legend span{font-size:var(--t-meta);font-weight:var(--w-label);gap:5px;white-space:nowrap}
-  .cal-bar2 .cal-legend i{width:8px;height:8px;border-radius:50%}
-  .cal-bar2 .cal-seg{height:var(--ctl-h-sm)}
-  .cal-bar2 .cal-seg span{font-size:var(--t-meta)}
-  .cal-lay{height:26px;padding:0 9px;border-color:var(--btn-edge, var(--color-divider));font-size:var(--t-meta)}
-  .cal-lay i{width:9px;height:9px}
   .cal-view{flex:1;min-height:0;padding:12px 16px 16px;display:flex;flex-direction:column;overflow:auto}
   .cal-view .cal-month{flex:1;min-height:0;align-self:stretch;min-width:0}
   .cal-view .cal-month > .cal-card{flex:1 1 auto;min-width:0}

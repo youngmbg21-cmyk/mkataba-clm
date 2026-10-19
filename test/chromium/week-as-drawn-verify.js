@@ -56,7 +56,19 @@ const weekOf = () => {
   lease.metadata = { value: 12000000, currency: 'KES', expiryDate: iso(exp), noticePeriodDays: 90, renewalType: 'auto-renew' };
   lease.expiry = iso(exp);
   const emp = H.fixtureContract('MK-C2', 'Employment Agreement', 'Wanjiru Kamau', 'corp', 2400000, 'Signed');
-  const h = await H.startHati({ HATI_AGENTS_AUTO: 'off' });
+  /* a scripted Jambo: the planner's ask gets a plan of two blocks on this
+     week's working days still ahead (any other route gets the stub answer) */
+  const ai = await H.startScriptedAi();
+  const ahead = [0, 1, 2, 3, 4].map(d => W.at(0, d)).filter(d => d >= W.today).slice(0, 2);
+  const planTurn = body => {
+    const names = (body.tools || []).map(t => t.name);
+    if (!names.includes('answer')) return null;
+    if (!names.includes('propose_blocks')) return [{ type: 'tool_use', id: 'tu_ans', name: 'answer', input: { say: 'Tuesday morning is free; nothing is added.' } }];
+    return [{ type: 'tool_use', id: 'tu_plan', name: 'propose_blocks', input: { say: 'Two hours around your own events: chase the certificate, then the late invoice.',
+      blocks: ahead.map((d, i) => ({ date: d, start: i ? '14:00' : '10:00', end: i ? '15:00' : '11:00', title: i ? 'Check the September invoice' : 'Chase the insurance certificate', why: 'Free and before it is due.', contractId: i ? 'MK-A1' : 'MK-A2' })) } }];
+  };
+  ai.script(...Array(40).fill(planTurn));
+  const h = await H.startHati({ HATI_AGENTS_AUTO: 'off', ANTHROPIC_BASE_URL: ai.base });
   const S = await H.seedWorkspace(h, { contracts: H.FIXTURES.concat([lease, emp]), approvalRules: [] });
   const boot = await S.admin.json('/api/bootstrap');
   const me = boot.user || (boot.users || []).find(u => u.email === 'admin@example.co.ke') || {};
@@ -186,6 +198,10 @@ const weekOf = () => {
     await page.click('#ins-panel .jl-chip >> nth=0');
     const cal = await until(() => calOnScreen() && document.querySelector('#cal-plan') ? true : null, null, 12000);
     check('3f "plan my week" opens the Calendar, whose planner takes the ask', !!cal);
+    const plan = await until(() => { const p = [...document.querySelectorAll('#cal-plan [data-cal-prop]')];
+      return p.length && !document.querySelector('#cal-plan .cal-plan-busy') ? { props: p.length, add: document.querySelectorAll('#cal-plan [data-cal-plan-add]').length,
+        mine: (typeof mineList === 'function' ? mineList('event') : []).length } : null; }, null, 15000);
+    check('3g Ask me first: his plan waits as proposals with Add, nothing added to the calendar', !!plan && plan.props === ahead.length && plan.add === ahead.length && plan.mine === 0, plan);
 
     /* ---- 4 the Calendar as drawn ---- */
     await until(() => !!document.querySelector('#cal-wk-more'), null, 10000);
@@ -252,7 +268,7 @@ const weekOf = () => {
     check('the stage ran to the end', false, e.message.split('\n')[0]);
   } finally {
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
-    await browser.close(); await h.stop();
+    await browser.close(); await h.stop(); await ai.stop();
     console.log(failures ? `\n${failures} FAILED` : '\nALL PASSED');
     process.exit(failures ? 1 : 0);
   }
