@@ -3408,7 +3408,9 @@ function stSideWord(){
   return i18t(stIsAdmin()&&settingsTab()==='company'?'st_side_company':'st_side_you');
 }
 function stSideHeadHtml(){
-  const face=(typeof jamboFaceHtml==='function')?jamboFaceHtml('hello',22,'st-side-ic'):'';
+  /* Overview wears a plain mark; his face is the Jambo tab's (19 Oct 2026) */
+  const face=`<span class="st-side-ic st-side-mark" aria-hidden="true">\u25A6\uFE0E</span>`;
+  const jbFace=(typeof jamboFaceHtml==='function')?jamboFaceHtml('hello',22,'st-side-ic'):'';
   const fold=`<button type="button" class="st-side-fold" data-st-side-fold title="${esc(i18t('st_side_fold'))}" aria-label="${esc(i18t('st_side_fold'))}">›</button>`;
   if(_stSide==='menu') return `<button type="button" class="st-side-back" data-st-side="jambo">‹ ${esc(i18t('pd_tab_overview'))}</button><span class="st-side-word">${esc(i18t('st_side_menu'))}</span><span class="st-side-sp"></span>${fold}`;
   /* THE PANEL IS THE PAGE'S (owner, 19 Oct 2026): its tab is the landing,
@@ -3418,7 +3420,7 @@ function stSideHeadHtml(){
      Overview; pressed it opens the conversation, pressed again it goes back */
   const talk=stTalkShows(), has=stTalkTurns().length>0;
   const jb=esc(i18t('pd_tab_copilot'));
-  return `<span class="st-side-tab${talk?' is-off':''}" id="st-side-tab-jambo" data-st-overview aria-current="${!talk}">${face}<span>${esc(i18t('pd_tab_overview'))}</span></span><button type="button" class="st-side-tab st-side-talk${talk?'':' is-off'}" data-st-talk aria-current="${talk}" title="${jb}"${has?'':' hidden'}><svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-chat"/></svg><span>${jb}</span></button><span class="st-side-word" id="st-side-word">${esc(stSideWord())}</span><span class="st-side-sp"></span>${fold}`;
+  return `<span class="st-side-tab${talk?' is-off':''}" id="st-side-tab-jambo" data-st-overview aria-current="${!talk}">${face}<span>${esc(i18t('pd_tab_overview'))}</span></span><button type="button" class="st-side-tab st-side-talk${talk?'':' is-off'}" data-st-talk aria-current="${talk}" title="${jb}"${has?'':' hidden'}>${jbFace}<span>${jb}</span></button><span class="st-side-word" id="st-side-word">${esc(stSideWord())}</span><span class="st-side-sp"></span>${fold}`;
 }
 function stSideHtml(){
   const face=(typeof jamboFaceHtml==='function')?jamboFaceHtml('hello',26,'st-side-ic'):'';

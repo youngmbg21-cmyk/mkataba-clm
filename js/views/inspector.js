@@ -1178,7 +1178,8 @@ function jlCount(){
   return _jlCnt.n;
 }
 function jlHeadHtml(){
-  const face = (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 20, 'pd-tab-face').replace('<img', '<img data-ink-exempt') : '';
+  /* Overview wears a plain mark; his face is the Jambo tab's (19 Oct 2026) */
+  const face = (typeof JAMBO_LAND_GLYPH === 'string') ? JAMBO_LAND_GLYPH : '\u25A6\uFE0E';
   /* THE PANEL IS THE PAGE'S (owner, 19 Oct 2026): its tab is the landing,
      "Overview", as beside a contract; "Jambo" names only the conversation the
      panel flips to (jlTalk*) */

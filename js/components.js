@@ -643,6 +643,12 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 function jamboTalkTabInner(){
   const jb = (typeof i18t === 'function') ? i18t('pd_tab_copilot') : 'Jambo';
   const e = String(jb).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
-  return `<span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-chat"/></svg></span></span><span class="pd-tab-w">${e}</span>`;
+  /* HIS FACE IS ON HIS OWN TAB (owner, 19 Oct 2026: "jambo's emoji or symbol
+     is being placed on top of the overview page as opposed to its one tab that
+     says Jambo"): the Jambo tab wears his face, Overview a plain mark */
+  const face = (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 20, 'pd-tab-face').replace('<img', '<img data-ink-exempt') : '';
+  return `<span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${face || '<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-chat"/></svg>'}</span></span><span class="pd-tab-w">${e}</span>`;
 }
-Object.assign(window,{jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});
+/* the Overview tab's mark on every panel (the grid the room's Overview wore) */
+const JAMBO_LAND_GLYPH = '\u25A6\uFE0E';
+Object.assign(window,{JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});

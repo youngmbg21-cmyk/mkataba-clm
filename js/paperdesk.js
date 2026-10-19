@@ -2674,7 +2674,8 @@ const PD_BODY = { facts: pdFactsHtml, doc: pdDocHtml, oblig: pdObligHtml, menu: 
 /* JAMBO'S OWN TAB WEARS HIS FACE (owner, 12 Oct 2026: "replace where there
    are the copilot symbols with Jambo's symbol"); the other tabs keep their glyph */
 function pdTabGlyphHtml(t){
-  if (t === 'copilot' && typeof jamboFaceHtml === 'function') return jamboFaceHtml('hello', 20, 'pd-tab-face').replace('<img', '<img data-ink-exempt');   /* a picture carries no ink */
+  /* the landing tab, Overview, wears a plain mark; his face is the Jambo tab's (19 Oct 2026) */
+  if (t === 'copilot') return (typeof JAMBO_LAND_GLYPH === 'string') ? JAMBO_LAND_GLYPH : '\u25A6\uFE0E';
   return PD_TAB_GLYPH[t] + '\uFE0E';
 }
 /* ---- THE FACE TAB (the panel's row while a face is up, as rounds 8, 9, 10

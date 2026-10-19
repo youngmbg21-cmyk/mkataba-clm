@@ -2113,7 +2113,8 @@ function calPlanHtml(){
       never&&rows?`<p class="cal-plan-read">${_esc(i18t('cal_lv_never_note'))}</p>`:''}${calPlanLeftHtml()}${read}</div>`
     :'';
   const off=_calPlan.busy?' disabled':'';
-  const face=(window.jamboFaceHtml?jamboFaceHtml('hello',20,'pd-tab-face').replace('<img','<img data-ink-exempt'):'');
+  /* Overview wears a plain mark; his face is the Jambo tab's (19 Oct 2026) */
+  const face=(typeof window.JAMBO_LAND_GLYPH==='string')?JAMBO_LAND_GLYPH:'\u25A6\uFE0E';
   const sayFace=(window.jamboFaceHtml?jamboFaceHtml('hello',24,'jl-say-face').replace('<img','<img data-ink-exempt'):'');
   const n=(typeof window.jlCount==='function')?Number(jlCount())||0:0;
   const week=(typeof window.obYourWeekSentence==='function')?obYourWeekSentence():'';

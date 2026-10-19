@@ -101,6 +101,8 @@ const check = (name, pass, detail) => {
       /* THE JAMBO TAB: none before a word was said here, there once one was */
       const tabUp = () => { const t = document.querySelector('#ig-dock [data-pd-talk]'); return !!t && t.getClientRects().length > 0; };
       check('1j after ‹ Redlines a "Jambo" tab stands beside Overview', await page.evaluate(tabUp));
+      const faces = await page.evaluate(() => ({ jb: !!document.querySelector('#ig-dock [data-pd-talk] img.jambo-face'), ov: !!document.querySelector('#ig-dock [data-pd-tab="copilot"] img.jambo-face') }));
+      check('1j2 his face rides the Jambo tab, never Overview', faces.jb && !faces.ov, JSON.stringify(faces));
       if (await page.evaluate(tabUp)) await page.click('#ig-dock [data-pd-talk]');
       const J1 = await until(() => document.getElementById('ig-dock').classList.contains('is-talk') ? [...document.querySelectorAll('#igd-feed .ai-msg')].map(m => m.textContent).join(' ') : null, null, 5000);
       check('1k pressed, it opens the conversation as it was, without typing', !!J1 && /watch for/.test(J1));
