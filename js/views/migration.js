@@ -1555,7 +1555,9 @@ function migFormRowHtml(c, r, n, o){
   }
   const why = r.need
     ? `<div class="mig-ff-why">${r.val ? `<span>${esc(r.word)}</span>` : ''}${r.quote ? `<span>${r.where ? esc(r.where) + ': ' : ''}“${esc(r.quote.slice(0, 180))}”</span>` : ''}</div>`
-    : (r.k === 'folder' && r.ro ? `<div class="mig-ff-sub">${esc(i18t('mig_stream_admin'))}</div>` : '');
+    : (r.k === 'folder' && r.ro ? `<div class="mig-ff-sub">${esc(i18t('mig_stream_admin'))}</div>`
+      /* the amount as the file writes it, under the box (option 1: "40 000 kronor a month") */
+      : (o && o.marks && r.k === 'value' && r.quote && r.quote !== r.val ? `<div class="mig-ff-sub">${esc(r.quote)}</div>` : ''));
   const use = r.k === 'expiryDate' && r.need && !r.ro && canEdit() && !(o && o.noUse)
     ? `<button type="button" class="mig-ff-use" data-mig-renews>${esc(i18t('mig_use_renews'))}</button>` : '';
   return `<div class="mig-ff${r.need ? ' is-need' : ''}" data-mig-ff="${r.k}">${lab}<div class="mig-ff-c">${ctl}${why}${use}</div></div>`;
@@ -1615,8 +1617,10 @@ function migFormWaits(c, form){
   v.bad.forEach(k => { if (!out.includes(k)) out.push(k); });
   return out;
 }
-function migWaitWords(waits){
+function migWaitWords(waits, short){
   if (!waits.length) return '';
+  /* the check view's foot says it short, beside File it (option 1: "Ends still needs a choice") */
+  if (short) return waits.length === 1 ? i18t('mig_waits_' + MIG_K[waits[0]]) : i18t('mig_waits_many', { what:waits.map(k => i18t(MIG_FORM_LABEL[k])).join(', ') });
   if (waits.length === 1) return i18t('mig_wait_' + MIG_K[waits[0]]);
   return i18t('mig_wait_many', { what:waits.map(k => i18t(MIG_FORM_LABEL[k])).join(', ') });
 }
@@ -1631,9 +1635,9 @@ function migFormWaitsOf(c){
 /* repaint File it and its reason as the boxes change */
 function migFormGatePaint(form){
   const c = getContract(form.getAttribute('data-mig-form')); if (!c) return;
-  const waits = migFormWaits(c, form), say = migWaitWords(waits);
+  const waits = migFormWaits(c, form), say = migWaitWords(waits), short = form.id === 'mig-ck-facts';
   form.querySelectorAll('[data-mig-file]').forEach(b => { b.disabled = !!waits.length; b.title = say || ''; });
-  form.querySelectorAll('[data-mig-wait]').forEach(el => { el.textContent = say; el.hidden = !say; });
+  form.querySelectorAll('[data-mig-wait]').forEach(el => { el.textContent = short ? migWaitWords(waits, true) : say; el.hidden = !say; });
 }
 /* ---- FILE IT: the one writer of a review (applyReviewedMeta) — a person's
    answers, each confirmed, the record's review flag cleared ---- */
@@ -1904,7 +1908,7 @@ function migCheckHtml(){
       <div class="mig-ck-foot">
         ${edit && migReviewOpen(c) ? `<button type="button" class="ui-btn ui-btn-primary" data-mig-file="${esc(c.id)}" data-mig-ck-file${waits.length ? ` disabled title="${esc(say)}"` : ''}>${esc(i18t('mig_file_it'))}</button>` : ''}
         ${edit && !migReviewOpen(c) && migLinkPending(c) ? `<button type="button" class="ui-btn ui-btn-primary" data-mig-side-link="${esc(c.id)}">${esc(i18t('mig_link_it'))}</button>` : ''}
-        <span class="mig-cf-wait" data-mig-wait${say ? '' : ' hidden'}>${esc(say)}</span>
+        <span class="mig-cf-wait" data-mig-wait${say ? '' : ' hidden'}>${esc(migWaitWords(waits, true))}</span>
         <span class="mig-sp"></span>
         ${edit && migReviewOpen(c) ? `<button type="button" class="mig-link" data-mig-review-full="${esc(c.id)}" data-mig-ck-file title="${esc(i18t('mig_all_details_t'))}">${esc(i18t('mig_all_details'))}</button>` : ''}
         ${n > 1 ? `<button type="button" class="ui-btn" data-mig-ck-skip>${esc(i18t('mig_ck_skip'))}</button>` : ''}
