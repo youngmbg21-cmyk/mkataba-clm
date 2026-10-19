@@ -21179,3 +21179,9 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 
 ## 19 Oct 2026 (the gap build, merged as PR #357)
 - Removed (19 Oct 2026, round 11 "The letter" as drawn): the green box on the send screen saying "Sending this closes your turn" is gone, because the picked drawing has none. The turn still moves only on a real send, and the stage pill says "waiting on them" once it has gone. The owner was told in the merge summary.
+
+## 19 Oct 2026 (one reader for every Jambo box; the slider)
+- Noticed, not fixed (19 Oct 2026, one reader): openCheckPanel's "Nothing has been briefed" backstop text is English only (not in the two books).
+- Noticed, not fixed (19 Oct 2026, one reader): when a Board sentence still goes to the model, the model's set is not cross-checked against the conditions HaTi already read for free (the owner's 92 instead of 2 Drafts).
+- Noticed, not fixed (19 Oct 2026, the slider): the template builder's divider straddles the seam instead of lying on the rail's side, and lacks pointercancel and aria-valuenow.
+- Skipped (19 Oct 2026, owner's word): the builders' own browser checks, photos at the three screens and the adversarial checking rounds; GitHub's checks are the browser test this round.
