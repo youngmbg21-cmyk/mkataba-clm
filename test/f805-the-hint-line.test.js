@@ -185,9 +185,13 @@ describe('f805 (6) the line follows what is in front, in place', () => {
    AT THE PARENT (8dc306a) both FAIL. */
 describe('f805 (7) the Calendar\'s box and the template builder\'s', () => {
   const CAL = read('js/views/calendar.js'), TB = read('js/views/templatebuilder.js');
+  /* RE-POINTED 18 Oct 2026 (lane A4, round 16 as drawn): the Calendar's panel
+     is Jambo's "Your week" — his box and Ask (the cost on their hover, the
+     chips saying theirs: "plan my week · 1 Jambo call") at the foot, the hint
+     line last under them, as on every list panel (.jl-foot) */
   test('7a the Calendar: the line last in its Jambo card, under the box and its cost', () => {
-    assert.match(fnOf(CAL, 'calPlanHtml'), /<p class="cal-plan-cost">[^\n]*<\/p>\s*\$\{[\s\S]{0,200}typeof window\.jamboHintHtml==='function'\?jamboHintHtml\(\):''\}\s*<\/aside>/);
-    assert.match(CAL, /\.cal-cop \.cal-plan-cost \+ \.jb-hint\{margin:-8px 14px 12px\}/);
+    assert.match(fnOf(CAL, 'calPlanHtml'), /<div class="jl-box cal-plan-box">[^\n]*title="\$\{_esc\(cost\)\}"[^\n]*<\/div>\s*\$\{[\s\S]{0,200}typeof window\.jamboHintHtml==='function'\?jamboHintHtml\(\):''\}\s*<\/div>\s*<\/aside>/);
+    assert.match(fnOf(CAL, 'calPlanHtml'), /const cost=i18t\('jl_ask_cost'\);/);
   });
   test('7b the builder: under its ask row, from the builder', () => {
     assert.match(fnOf(TB, 'tbAskHtml'), /<div class="tb-pick" id="tb-pick" hidden><\/div><\/div>\$\{[\s\S]{0,300}typeof jamboHintHtml === 'function' \? jamboHintHtml\(\) : ''\}`;/);

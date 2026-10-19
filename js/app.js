@@ -399,9 +399,11 @@ const PAGE_ACTIONS = {
 /* `advice` paints an empty line whose room is held (adviceHeadPaint), so
    the Requests page's tab row sits at one height on both its tabs (gap F). */
 /* Obligations left this table 9 Oct 2026 (owner: its head "needs to be the
-   same height as" Approvals & signing's, "so remove the we owe xxx place") —
-   it paints nothing into the head now, so it reserves no slot for it. */
-const PAGE_HEAD_PAINT = { intake:'ikPaintHead', advice:'adviceHeadPaint', playbook:'pbPaintHead', agents:'agPaintHead', approvals:'apPaintHead' };
+   same height as" Approvals & signing's, "so remove the we owe xxx place") and
+   CAME BACK 18 Oct 2026 (round 16 as drawn, the owner's "build all the gaps"):
+   "Obligations 11 outstanding · 1 overdue" beside the name, Open every week,
+   Filter and + Add an obligation at the right (obwPaintHead). */
+const PAGE_HEAD_PAINT = { intake:'ikPaintHead', advice:'adviceHeadPaint', playbook:'pbPaintHead', agents:'agPaintHead', approvals:'apPaintHead', obligations:'obwPaintHead' };
 function pageActionHtml(kind){
   if(kind==='export') return `<button data-page-export class="ui-btn" title="${i18t('ap_export_working_set')}">`+
     `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>${i18t('ap_export')}</button>`;

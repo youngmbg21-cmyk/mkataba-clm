@@ -937,6 +937,9 @@
        rule reads this one token; an INSERTION still says who by its colour. */
     --rl-del-ink:var(--st-ruby-fg);
     --st-steel-bg:#E6ECF6; --st-steel-fg:#48639A; --st-steel-dot:#6F86BF; --st-steel-line:#BFCBE6;
+    /* THEIRS (round 16 as drawn, 18 Oct 2026): what the other side owes wears its own tint on the
+       Obligations page and the Calendar — their letters, their chips, the key's "Theirs" */
+    --st-violet-bg:#EFEDFA; --st-violet-fg:#5B4BB0; --st-violet-dot:#6B4FBB; --st-violet-line:#CFC8EE;
 
     /* tone tiles (icon tiles: tile-bg / tile-fg) */
     --tile-steel-bg:#E6ECF6;   --tile-steel-fg:#48639A;
@@ -1013,6 +1016,7 @@
     --st-green-bg:#153224;  --st-green-fg:#5CC48E; --st-green-dot:#2E9E63; --st-green-line:rgba(46,158,99,.35);
     --st-ruby-bg:#3F1C19;    --st-ruby-fg:#F0857B;  --st-ruby-dot:#D9453B;  --st-ruby-line:rgba(217,69,59,.35);
     --st-steel-bg:#1D2637;  --st-steel-fg:#8FA8DE; --st-steel-dot:#6F86BF; --st-steel-line:rgba(111,134,191,.35);
+    --st-violet-bg:#221B3A; --st-violet-fg:#B9A4F2; --st-violet-dot:#8F79D8; --st-violet-line:rgba(143,121,216,.35);
 
     --tile-steel-bg:#1D2637;  --tile-steel-fg:#8FA8DE;
     --tile-emerald-bg:#153224;--tile-emerald-fg:#5CC48E;
@@ -13519,6 +13523,76 @@
   .ob-wk-car{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--color-neutral-600);transition:transform .12s;}
   .ins-grp.is-shut .ob-wk-car{transform:rotate(-90deg);}
   .ob-wk-said{min-width:0;font-weight:var(--w-body);color:var(--color-neutral-600);font-size:var(--t-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* THE WEEK AS DRAWN (round 16 "Week by week"; the owner's "build all the
+     gaps", 18 Oct 2026): each week a card of its own on the grey ground — its
+     head (caret, name, count, what it holds, the money it moves), its rows
+     (the day, who acts as a face, what and where, the row's one act). Scoped
+     to the page (.obw-ins); the contract's tab keeps its table. */
+  .obw-ins .ins-card.obw-weeks{background:none;border:0;box-shadow:none;overflow:visible;gap:var(--s-2);}
+  .obw-ins .ins-card.obw-weeks > .ins-bar{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);}
+  .obw-ins .obw-scroll{display:flex;flex-direction:column;gap:var(--s-2);padding-bottom:var(--s-3);}
+  .obw-wk{flex:none;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;}
+  .obw-wk table.obw-wk-lt td{border-bottom:1px solid var(--rule);}
+  .obw-wk table.obw-wk-lt tbody tr:last-child td{border-bottom:0;}
+  .obw-wk.is-shut table.obw-wk-lt tr.ins-grp td{border-bottom:0;}
+  .obw-wk table.obw-wk-lt tr.ins-grp td{height:44px;padding-top:0;background:var(--color-surface);}
+  .obw-wk .ins-g{gap:10px;}
+  .obw-wk .ob-wk-fold{font-weight:var(--w-title);font-size:var(--t-body);}
+  .obw-wk[data-obw-card="overdue"] .ob-wk-fold{color:var(--st-ruby-fg);}
+  .obw-wk .ob-wk-rng{margin-left:0;}
+  .obw-n{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;box-sizing:border-box;
+    background:var(--color-accent-50);color:var(--accent-ink);font-size:var(--t-micro);font-weight:var(--w-strong);font-variant-numeric:tabular-nums;}
+  .ins-g .n.obw-n{color:var(--accent-ink);}
+  .obw-wk[data-obw-card="overdue"] .ins-g .n.obw-n{background:var(--st-ruby-bg);color:var(--st-ruby-fg);}
+  .obw-wk table.obw-wk-lt tr[data-ins-row] td,.obw-wk table.obw-wk-lt tr.obw-finds td{height:54px;}
+  .obw-wk .ins-c2 > b{font-weight:var(--w-label);}
+  .obw-act-c{overflow:visible;}
+  .obw-act{white-space:nowrap;color:var(--accent-ink);}
+  .obw-chase-on{font-size:var(--t-micro);}
+  .obw-lock{display:inline-flex;vertical-align:-1px;margin-left:6px;color:var(--color-neutral-600);}
+  .obw-priv{flex:none;display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border:1px solid var(--color-divider);border-radius:999px;
+    font-size:var(--t-micro);font-weight:var(--w-label);color:var(--color-neutral-700);background:var(--color-surface);}
+  /* who acts, as a face: ours grey, theirs in their tint, nobody a grey ring, Jambo's own face */
+  .obw-av{flex:none;width:22px;height:22px;border-radius:50%;display:inline-grid;place-items:center;font-style:normal;font-size:10px;font-weight:var(--w-title);
+    letter-spacing:.02em;background:var(--surface-2);color:var(--color-neutral-600);box-sizing:border-box;}
+  .obw-av.is-theirs{background:var(--st-violet-bg);color:var(--st-violet-fg);}
+  .obw-av.is-nobody{background:none;border:1.5px dashed var(--rule-strong);}
+  .obw-av.is-jambo{background:none;overflow:hidden;}
+  .obw-av.is-jambo img{width:22px;height:22px;border-radius:50%;}
+  /* Jambo's finds: one row in its week, in his tint, never a band */
+  .obw-wk tr.obw-finds td:not(:first-child){background:var(--color-accent-50);}
+  .obw-wk tr.obw-finds .ins-c2 > span{color:var(--color-neutral-600);}
+  /* the head: "11 outstanding · 1 overdue" beside the name */
+  .obw-hf{color:var(--color-neutral-600);font-size:var(--t-body);}
+  .obw-hf-late{color:var(--st-ruby-fg);font-weight:var(--w-label);}
+  .obw-add-btn{display:inline-flex;align-items:center;gap:6px;}
+  .obw-empty{padding:28px 16px;text-align:center;color:var(--color-neutral-600);}
+  .obw-empty p{margin:0 0 6px;}
+  /* + Add an obligation: which contract */
+  .obw-pick .dlg-h p{margin:4px 0 0;color:var(--color-neutral-600);font-size:var(--t-meta);}
+  .obw-pick-b{padding:12px 20px;display:flex;flex-direction:column;gap:8px;}
+  .obw-pick-b input{height:var(--ctl-h);border:1px solid var(--field-line, var(--color-divider));border-radius:var(--radius);padding:0 10px;font:inherit;background:var(--color-surface);color:var(--color-text);}
+  .obw-pick-l{max-height:min(46vh,360px);overflow:auto;border:1px solid var(--color-divider);border-radius:var(--radius);}
+  .obw-pick-r{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;padding:8px 10px;border:0;border-bottom:1px solid var(--rule);
+    background:var(--color-surface);font:inherit;text-align:left;cursor:pointer;color:var(--color-text);}
+  .obw-pick-r:last-child{border-bottom:0;}
+  .obw-pick-r:hover,.obw-pick-r:focus-visible{background:var(--surface-2);}
+  .obw-pick-r b{font-weight:var(--w-label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .obw-pick-r span:last-child{color:var(--color-neutral-600);font-size:var(--t-meta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;}
+  .obw-pick-r[hidden]{display:none;}
+  .obw-pick-none{margin:0;color:var(--color-neutral-600);font-size:var(--t-meta);}
+  .obw-pick .dlg-f{display:flex;justify-content:flex-end;gap:8px;padding:10px 20px 16px;}
+  /* "Jambo may change my calendar": On his own · Ask me first · Never — the
+     same three buttons beside Obligations and the Calendar */
+  .cal-lv{display:flex;flex-direction:column;gap:6px;margin:6px 0 0;padding-top:12px;border-top:1px solid var(--color-divider);}
+  .cal-lv-t{font-size:var(--t-meta);color:var(--color-text);}
+  .cal-lv-seg{display:inline-flex;align-self:flex-start;border:1px solid var(--btn-edge, var(--color-divider));border-radius:var(--radius);overflow:hidden;}
+  .cal-lv-seg > button{border:0;border-right:1px solid var(--btn-edge, var(--color-divider));background:var(--color-surface);color:var(--color-text);font:inherit;font-size:var(--t-meta);
+    height:var(--ctl-h-sm);padding:0 12px;cursor:pointer;white-space:nowrap;}
+  .cal-lv-seg > button:last-child{border-right:0;}
+  .cal-lv-seg > button:hover{background:var(--surface-2);}
+  .cal-lv-seg > button[aria-pressed="true"]{background:var(--color-accent-50);color:var(--accent-ink);font-weight:var(--w-strong);}
+  .cal-lv-seg > button:focus-visible{outline:2px solid var(--accent-ink);outline-offset:-2px;}
   /* THE EMPTY MESSAGE IS NOT A ROW, SO IT DRAWS NO ROW'S RULE (Young, 7 Oct 2026:
      "the empty obligations page has a line in it for no reason"). */
   .ins-lt tr.ins-empty td{height:120px;text-align:center;color:var(--color-neutral-600);white-space:normal;border-bottom:0;}

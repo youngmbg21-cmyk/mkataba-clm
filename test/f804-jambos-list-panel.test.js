@@ -370,7 +370,11 @@ describe('f804 (10) the head says what it holds on every page', () => {
   const OB = read('js/obligations.js'), IK = read('js/views/intake.js');
   test('10a Obligations: "Your week" with nothing chosen, "Obligation" with a row chosen', () => {
     const f = code(fnOf(OB, 'obPaintPanel'));
-    assert.match(f, /const jl = ctx === 'page' \? \{ jlHome: i18t\('jl_w_week'\), jlWord: i18t\('jl_w_obligation'\) \} : \{\};/);
+    /* RE-POINTED 18 Oct 2026 (lane A4, round 16 as drawn): the page's panel
+       options are one reading, obPanelJl — "Your week" with his own words
+       (obYourWeekSay) and the week's ask box — and a row still says "Obligation" */
+    assert.match(f, /const jl = ctx === 'page' \? Object\.assign\(\{ jlWord: i18t\('jl_w_obligation'\) \}, obPanelJl\(\)\) : \{\};/);
+    assert.match(code(fnOf(OB, 'obPanelJl')), /jlHome: i18t\('jl_w_week'\), jlSay: obYourWeekSay, jlPh: i18t\('jl_ph_week'\)/);
     assert.match(f, /insPaintPanel\(Object\.assign\(\{ host: hostId, empty: emptyMsg \}, jl\)\)/);
     assert.match(f, /insPaintPanel\(Object\.assign\(\{ host: hostId \}, jl, opts\)\)/);
   });
