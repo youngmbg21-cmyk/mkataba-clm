@@ -370,10 +370,22 @@ function jmBoardKeeps(q){
 }
 /* THE ONE ENTRY caActOf (and the Counter's box) call last, before the model:
    an act, a "which did you mean" card, or null */
+/* A SENTENCE THAT ONLY SAYS WHICH CONTRACTS IS A LIST, NEVER A TASK (owner,
+   19 Oct 2026: "it is not moving me around the platform like it previously
+   did"): "show me drafts" from a list's box opened "What should we draft?",
+   "drafting" being a way of asking for new paper. Where the narrowing reader
+   (igConditions) reads every word, the sentence is a request to see those
+   contracts and is answered as one. */
+function jmOnlyNarrows(q){
+  try {
+    if (typeof igConditions !== 'function' || typeof igLeftover !== 'function') return false;
+    const c = igConditions(q); return c.length > 0 && !igLeftover(q, c);
+  } catch (_){ return false; }
+}
 function jmRead(q){
   const t = String(q || '').trim(); if (!t) return null;
   if (!jmLibNow()){ jmLib(); return null; }
-  if (jmBoardKeeps(t)) return null;
+  if (jmBoardKeeps(t) || jmOnlyNarrows(t)) return null;
   const admin = jmIsAdmin();
   const m = jmMatch(t, { skip: k => { const T = jmTask(k); return !!(T && T.admin && !admin); } });
   const p = jmPick(m); if (!p) return null;
@@ -457,5 +469,5 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined'){
 }
 
 if (typeof window !== 'undefined') Object.assign(window, { JM_LIB_SRC, JM_MAX, JM_COVER, JM_LEAD, JM_NEAR, JM_PICKS, JM_FUZZY_COUNTS, JM_TASKS, JM_STOP, JM_SOFT, JM_FACT_RE, JM_WINDOW_RE, JM_COUNT_RE, JM_LIST_RE,
-  jmNorm, JM_STEM_MIN2, jmStem, jmTerms, jmLibNow, jmLib, jmIndex, jmMatch, jmPick, jmTask, jmActOf, jmBoardKeeps, jmRead, jmCardHtml, jmCardPress,
+  jmNorm, JM_STEM_MIN2, jmStem, jmTerms, jmLibNow, jmLib, jmIndex, jmMatch, jmPick, jmTask, jmActOf, jmBoardKeeps, jmOnlyNarrows, jmRead, jmCardHtml, jmCardPress,
   JM_PALETTE_MAX, jmPaletteRows, JM_CARD_PLACES, jmRunAct, jmRun });
