@@ -159,7 +159,9 @@ describe('f744 (3) the box asks about what is held', () => {
   });
   test('3c a question beside a page goes with that contract\'s wording; the Board\'s reader and the map are stepped past', () => {
     const A = fnBody(IG, 'intelAsk');
-    assert.match(A, /const heldId=igHeldAskId\(\);/);
+    assert.match(A, /let heldId=igHeldAskId\(\);/);
+    /* …a question about the BOOK lets the page go first (held-contract-asks, 19 Oct 2026) */
+    assert.match(A, /if\(heldId&&igHeldAsksBook\(q,heldId\)\)\{[\s\S]*?bsCardLeave\(\)[\s\S]*?heldId=null;\s*\}/);
     assert.match(A, /if\(state\.view==='dashboard' && \(onPaperSide\|\|heldId\) && typeof window\.hbBringOf==='function'/);
     /* main's template ask (tplAsk) and ANSWER WHERE YOU STAND (hereMap) kept beside it */
     assert.match(A, /if\(!heldId && state\.view==='dashboard' && !onPaperSide && !tplAsk && !hereMap && typeof window\.hbAsk==='function'\)/);
@@ -168,8 +170,8 @@ describe('f744 (3) the box asks about what is held', () => {
     /* JAMBO, THE SAME ON EVERY PAGE (main, 18 Oct 2026): the screen in front
        (caHereRead) and the words' acts (caActOf) are read before the page's
        question goes with its wording */
-    assert.ok(A.indexOf('caHereRead(q)') > 0 && A.indexOf('caHereRead(q)') < A.indexOf('const heldId=igHeldAskId();'), 'the screen in front first');
-    assert.ok(A.indexOf('caActOf(q)') < A.indexOf('const heldId=igHeldAskId();'), 'the words\' acts next');
+    assert.ok(A.indexOf('caHereRead(q)') > 0 && A.indexOf('caHereRead(q)') < A.indexOf('let heldId=igHeldAskId();'), 'the screen in front first');
+    assert.ok(A.indexOf('caActOf(q)') < A.indexOf('let heldId=igHeldAskId();'), 'the words\' acts next');
     assert.match(A, /else if\(heldId\)\s+await igPaperAsk\(q,heldId\);/);
     const P = fnBody(IG, 'igPaperAsk');
     assert.match(P, /^function igPaperAsk\(q,cid\)\{\n[\s\S]*?const p0=intel\.paper; const c=cid\?getContract\(cid\):\(p0\?getContract\(p0\.id\):null\);/);
