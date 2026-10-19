@@ -311,8 +311,13 @@ describe('f756 (7) where Edit lands from a row, as drawn', () => {
     /* RE-POINTED 19 Oct 2026 (owner: "bring this back to what it was before",
        "‹ Redlines at the top left"): ‹ Redlines alone leads the full shelf,
        the act's title rides its hover */
-    assert.match(head, /data-ce-act="row-back" title="\$\{_ceea\(ceRowTitle\(\) \+ ' · ' \+ ceRowSub\(\)\)\}">‹ \$\{_cee\(_cet\('ce_row_back'\)\)\}/);
-    assert.doesNotMatch(head, /ce-rowtitle/);
+    /* RE-POINTED AGAIN 20 Oct 2026 (owner: "the way you get back … is not the
+       same"): the panel trail's look — the back, then "Jambo / Redlines /
+       <act · clause>", on its own row above the full shelf */
+    assert.match(head, /class="ce-rowback" data-ce-act="row-back"[^>]*><svg[\s\S]*?<\/svg>\$\{_cee\(_cet\('ce_row_back'\)\)\}<\/button>/);
+    assert.match(head, /<span class="ce-rowpath"/);
+    assert.match(head, /<b>\$\{_cee\(ceRowTitle\(\)\)\}<\/b>/);
+    assert.match(CE, /#clause-editor\.ce-rowmode \.ce-rowhead\{display:flex;[^}]*flex:1 0 100%/, 'its own row');
     assert.match(fnBody(CE, 'ceRowTitle'), /_cet\(theirs \? 'ce_row_counter' : 'ce_row_edit', \{ clause \}\)/);
     assert.match(fnBody(CE, 'ceRowTitle'), /clauseNameAsDrafted\(raw\)/, 'as the paper prints it');
     assert.match(fnBody(CE, 'ceRowSub'), /shareFigureOf\(/, 'their figure, the letter\'s own reading');
@@ -326,31 +331,27 @@ describe('f756 (7) where Edit lands from a row, as drawn', () => {
     const keys = [...ctx.richBarHtml({ shelf: 'redline' }).matchAll(/data-rb="([^"]+)"/g)].map(m => m[1]);
     assert.deepEqual(keys, ['bold', 'italic', 'underline', 'insertUnorderedList', 'insertOrderedList', 'outdent', 'indent'], 'B I U • 1. ⇤ ⇥');
   });
-  test('7c the paper: the context line, this clause alone in its box with what it is, the next one dimmed', () => {
+  /* RE-POINTED 20 Oct 2026 (owner: "the paper that appears in the edit page
+     is not the whole contract" … "bring the old one back"): from a row the
+     WHOLE paper stays, the clause boxed with what its wording is; the rail is
+     the editor's own (head, picker, ladder card, chips), the foot's draft
+     time and Undo stay; round 9's cards are kept, not drawn */
+  test('7c the paper: the whole paper, the clause in its box with what it is', () => {
     const dress = fnBody(CE, 'ceRowPaperDress');
-    assert.match(dress, /classList\.toggle\('ce-row-off', at >= 0 && i !== at && i !== at \+ 1\)/);
-    assert.match(dress, /ctx\.textContent = ceRowContextLine\(\);/);
-    /* RE-POINTED 19 Oct 2026 (main's rule, owner 18 Oct: nothing of the ladder
-       on the paper or in the editor): no step number, and only what is true */
+    assert.doesNotMatch(dress, /ce-row-off|ceRowContextLine/);
+    assert.match(dress, /all\.forEach\(\(el, i\) => el\.classList\.toggle\('ce-row-on', i === at\)\);/);
     assert.match(dress, /_cet\(ceRowIsCounter\(\) \? 'ce_row_is_counter' : 'ce_row_is_draft'\)/);
     assert.ok(!/function ceRowStep\(/.test(CE), 'the ladder step reading is gone from the editor');
-    assert.match(CE, /#clause-editor\.ce-rowmode #ce-doc \.ce-row-off\{display:none\}/);
-    assert.match(CE, /#clause-editor\.ce-rowmode #ce-doc \.ce-row-next\{opacity:\.45\}/);
-    assert.match(CE, /#clause-editor\.ce-rowmode #ce-doc \.ce-row-on #ce-clausebody\{border:1px solid var\(--accent-solid\)/);
-    assert.match(CE, /#clause-editor\.ce-rowmode \.ce-foot \.draft,#clause-editor\.ce-rowmode \.ce-foot \.undo\{display:none\}/, '"saved as you type" says what the foot said');
+    assert.doesNotMatch(CE, /ce-rowmode #ce-doc \.ce-row-off|ce-rowmode #ce-readbar|ce-rowmode \.ce-foot \.draft/);
+    assert.doesNotMatch(CE, /ce-row-on #ce-clausebody\{border/, 'no blue box round the clause (owner, 20 Oct 2026)');
   });
-  test('7d the rail: Playbook · Risks · Ladder with counts; our standard, what they asked (and who), Ask Jambo with its cost before the press', () => {
+  test('7d the rail as before: the ladder card leads, chips back, no row cards; the Risks tab always drawn from a row', () => {
     assert.match(fnBody(CE, 'ceRisksOn'), /if \(ceRowMode\(\)\) return true;/, 'the Risks tab always drawn from a row');
-    const cards = fnBody(CE, 'ceRowCardsHtml');
-    assert.match(cards, /_cet\('ce_row_asked_h'\)/);
-    assert.match(cards, /— \$\{_cee\(who\)\}/, 'the person\'s name, not the change id');
-    assert.match(cards, /data-ce-chip="\$\{_ceea\(q\)\}"/, 'the chips\' own ask, through ceAsk');
-    assert.match(cards, /<span class="cost">\$\{_cee\(_cet\('ce_row_jambo_cost'\)\)\}<\/span>/, 'the cost before the press');
-    assert.match(fnBody(CE, 'ceRowStdCard'), /\['fallback', 'preferred', 'draft'\]\.find\(k => !!ceStdWording\(it, k\)\)/, 'the Playbook card, the lead\'s fallback first');
-    assert.match(fnBody(CE, 'ceRenderLane'), /if \(ceRowMode\(\)\)\{[\s\S]*ceRowCardsHtml\(\)/);
-    assert.match(fnBody(CE, 'ceRenderLane'), /ceRowMode\(\) && !_cePrep \? ceLadderCardHtml\(\) : ''/, 'the ladder\'s card goes to the Ladder tab');
-    assert.match(CE, /#clause-editor\.ce-rowmode \.ce-ah \.sp\{display:none\}/);
-    assert.match(CE, /#clause-editor\.ce-rowmode #ce-pick\{display:none\}/);
+    const lane = fnBody(CE, 'ceRenderLane');
+    assert.doesNotMatch(lane, /ceRowCardsHtml\(\)/);
+    assert.match(lane, /lane\.innerHTML = \(_cePrep \? '' : ceLadderCardHtml\(\)\) \+ _ceThread\.map\(ceTurnHtml\)/);
+    assert.doesNotMatch(CE, /const sc = ceRowStdCard\(\)/, 'no standard\'s card pushed at the open');
+    assert.doesNotMatch(CE, /ce-rowmode \.ce-ah \.sp\{display:none\}|ce-rowmode #ce-pick\{display:none\}/);
   });
   test('7e the foot walks their asks: "‹ 1 of 2 of their asks ›" and Save; a held clause is said, the page stays', () => {
     const walk = fnBody(CE, 'ceWalkNow');

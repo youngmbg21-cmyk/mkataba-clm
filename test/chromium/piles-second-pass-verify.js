@@ -209,21 +209,22 @@ async function login(b, base, email, pass, errs){
         lane: (document.getElementById('ce-lane') || {}).innerText, foot: (document.getElementById('ce-railfoot') || {}).innerText,
         cost: (document.querySelector('#ce-lane .ce-row-jb .cost') || {}).textContent, ask: !!document.querySelector('#ce-lane .ce-row-jb [data-ce-chip]'),
         rowH: Math.round(document.querySelector('#clause-editor .ce-barrow').getBoundingClientRect().height) }; }, 8000);
-    check('3a the head: ‹ Redlines, "Counter · 7. Liability cap", "Nordvik asks 100% · back lands on the same row", Exit',
-      !!ed && /^‹ Redlines\s+Counter · 7\. Liability cap\s+Nordvik asks 100% · back lands on the same row$/.test((ed.head || '').trim()) && ed.exit, JSON.stringify(ed && ed.head));
-    check('3b the short shelf: B I U • 1. ⇤ ⇥', !!ed && ed.bar === 'bold,italic,underline,insertUnorderedList,insertOrderedList,outdent,indent', ed && ed.bar);
-    check('3c the context line, then clause 7 alone with clause 8 dimmed', !!ed && ed.ctx === 'Master services agreement · MK-0382 · Nordvik Logistik AB · round 2'
-      && ed.shown.length === 2 && /Liability cap/.test(ed.shown[0]) && /Insurance/.test(ed.shown[1]) && ed.dim < 0.8, JSON.stringify(ed && [ed.ctx, ed.shown, ed.dim]));
-    /* RE-POINTED 19 Oct 2026 (main's rule, owner 18 Oct: nothing of the ladder in the editor): no step number, and only what is true */
-    check('3d its box, labelled "Your counter · nothing is filed until you save"', !!ed && ed.step === 'Your counter · nothing is filed until you save' && ed.boxEdge === 'solid', JSON.stringify(ed && [ed.step, ed.boxEdge]));
+    /* RE-POINTED 20 Oct 2026 (owner: the whole contract, the way back the
+       panel's, the old rail, no blue box): from a row the editor is as it was
+       before, with ONE TRAIL's back on its own row above the full shelf */
+    check('3a the head: the trail "‹ Redlines · Jambo / Redlines / Counter · 7. Liability cap", no Exit',
+      !!ed && /Redlines[\s\S]*Jambo\s*\/\s*Redlines\s*\/\s*Counter · 7\. Liability cap/.test(ed.head || '') && !ed.exit, JSON.stringify(ed && [ed.head, ed.exit]));
+    check('3b the full shelf, as before', !!ed && /bold,italic,underline/.test(ed.bar) && ed.bar.split(',').length > 7, ed && ed.bar);
+    check('3c the whole paper: no context line, every clause drawn, none dimmed', !!ed && !ed.ctx && ed.shown.length > 2 && ed.dim == null, JSON.stringify(ed && [ed.ctx, ed.shown.length, ed.dim]));
+    check('3d the clause says "Your counter · nothing is filed until you save", no blue box round it', !!ed && ed.step === 'Your counter · nothing is filed until you save' && ed.boxEdge !== 'solid', JSON.stringify(ed && [ed.step, ed.boxEdge]));
     check('3e the rail: Playbook · Risks · Ladder', !!ed && ed.tabs.join() === 'chat,risks,ladder', JSON.stringify(ed && ed.tabs));
-    check('3f "What they asked … — Anna Holm" and Ask Jambo with its cost before the press', !!ed && /What they asked\s+“Standard in our contracts\.” — Anna Holm/.test(ed.lane || '')
-      && /Ask Jambo\s+For a softer version, or this clause in plain English\./.test(ed.lane || '') && ed.ask && ed.cost === 'about 1 Jambo call', JSON.stringify(ed && [ed.lane, ed.cost]));
+    check('3f the rail as before: the ladder card leads ("What moved"), no row cards', !!ed && /What moved/.test(ed.lane || '') && !ed.ask, JSON.stringify(ed && ed.lane));
     check('3g the foot: "‹ 1 of 2 of their asks ›" and Save', !!ed && /1 of 2 of their asks/.test(ed.foot || '') && /Save/.test(ed.foot || ''), JSON.stringify(ed && ed.foot));
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]){
       await page.setViewportSize({ width: w, height: ht }); await pause(400);
       const fit = await page.evaluate(() => ({ rowH: Math.round(document.querySelector('#clause-editor .ce-barrow').getBoundingClientRect().height), sideways: document.documentElement.scrollWidth > innerWidth }));
-      check(`4 ${w}×${ht}: the editor's head is one row, nothing sideways`, fit.rowH <= 60 && !fit.sideways, JSON.stringify(fit));
+      /* RE-POINTED 20 Oct 2026: the trail's row above the shelf's — two rows, nothing sideways */
+      check(`4 ${w}×${ht}: the editor's head is the trail row and the shelf's row, nothing sideways`, fit.rowH <= 110 && !fit.sideways, JSON.stringify(fit));
       await shot(page, `9E-counter-${w}x${ht}`);
     }
     await page.setViewportSize({ width: 1440, height: 780 }); await pause(300);

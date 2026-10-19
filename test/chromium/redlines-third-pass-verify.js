@@ -210,14 +210,17 @@ const openFace = async page => {
     let ed = null;
     if (await ctr.count()){
       await ctr.click({ timeout: 5000 }).catch(() => {});
+      /* RE-POINTED 20 Oct 2026 (owner): from a row the strip keeps to the
+         paper's column as before; ONE TRAIL's back leads it on its own row,
+         dressed as the panel's; no Exit */
       ed = await waitFor(page, () => { const e = document.getElementById('clause-editor'); const hd = document.getElementById('ce-head'); const x = e && e.querySelector('.ce-exit');
-        const tabs = e && e.querySelector('#ce-tabs'); if (!e || !hd || !x || !tabs || !e.classList.contains('ce-rowmode')) return null;
-        const hr = hd.getBoundingClientRect(), xr = x.getBoundingClientRect(), tr = tabs.getBoundingClientRect(), xs = getComputedStyle(x);
-        return { headW: Math.round(hr.width), vw: innerWidth, exitRight: Math.round(xr.right), exitH: Math.round(xr.height), exitBg: xs.backgroundColor, exitIcon: !!(x.querySelector('svg') && x.querySelector('svg').getClientRects().length),
-          tabsBelow: tr.top >= hr.bottom - 1, step: !!e.querySelector('.ce-row-step'), is: (e.querySelector('.ce-row-is') || {}).textContent }; }, 8000);
+        const back = e && e.querySelector('#ce-rowhead .ce-rowback'), path = e && e.querySelector('#ce-rowhead .ce-rowpath');
+        if (!e || !hd || !back || !e.classList.contains('ce-rowmode')) return null;
+        return { headW: Math.round(hd.getBoundingClientRect().width), vw: innerWidth, exitShown: !!(x && x.getClientRects().length), back: back.textContent.trim(), path: path ? path.textContent.trim() : '',
+          step: !!e.querySelector('.ce-row-step'), is: (e.querySelector('.ce-row-is') || {}).textContent }; }, 8000);
     }
-    check('2a from a row the editor\'s head bar spans the window, the rail\'s tabs below it', !!ed && Math.abs(ed.headW - ed.vw) <= 2 && ed.tabsBelow, JSON.stringify(ed));
-    check('2b Exit is the quiet small outlined button at the far right, no icon', !!ed && ed.exitRight >= ed.vw - 20 && ed.exitBg === 'rgb(255, 255, 255)' && !ed.exitIcon && ed.exitH <= 30, JSON.stringify(ed));
+    check('2a from a row the strip keeps to the paper\'s column, the trail first', !!ed && ed.headW < ed.vw - 100 && ed.back === 'Redlines' && /Jambo \/ Redlines \/ Counter/.test(ed.path), JSON.stringify(ed));
+    check('2b no Exit from a row: the trail\'s back is the way out', !!ed && !ed.exitShown, JSON.stringify(ed));
     check('2c no step number; the line says only what is true', !!ed && !ed.step && ed.is === 'Your counter · nothing is filed until you save', JSON.stringify(ed && ed.is));
     await shot(page, '9E-editor-1440x780');
     await page.click('#ce-rowhead [data-ce-act="row-back"]', { timeout: 5000 }).catch(() => {});

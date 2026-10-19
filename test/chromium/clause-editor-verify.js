@@ -274,12 +274,12 @@ const dismissNote = async pg => {
      other way the rail runs floor to ceiling and the strip keeps to the left
      column, as the owner first ruled. */
   ck('2d2 THE COPILOT RAIL RUNS THE FULL HEIGHT OF THE WINDOW — top to bottom (from a row: from under the bar)',
-     !!opened && (opened.rowMode ? (Math.abs(opened.railTop - opened.headBottom) <= 1 && opened.railBottom >= opened.pageBottom - 1) : opened.railFullHeight),
+     !!opened && opened.railFullHeight,  /* RE-POINTED 20 Oct 2026 (owner): from a row too the strip keeps to the paper's column */
      opened && `rail ${opened.railTop}–${opened.railBottom} of page `
        + `${opened.pageTop}–${opened.pageBottom}`);
   ck('2d3 and the header sits INSIDE the left column, never across both — a '
      + 'full-width header is what pushes the rail down',
-     !!opened && (opened.rowMode ? Math.abs(opened.headW - opened.pageW) <= 1 : opened.headInsideColumn),
+     !!opened && opened.headInsideColumn,
      opened && `header ${opened.headW}px of a ${opened.colW}px column${opened.rowMode ? ' (from a row: spans ' + opened.pageW + ')' : ''}`);
   /* REVERSED IN PLACE 28 Aug 2026 — the header went, so "the clause is named
      with four facts under it" is a claim about a thing that is deliberately not
@@ -365,7 +365,7 @@ const dismissNote = async pg => {
      !!toolStrip && toolStrip.barFirst && toolStrip.exitLast,
      toolStrip && `bar first ${toolStrip.barFirst}, exit last ${toolStrip.exitLast}`);
   ck('2j IT STOPS WHERE THE COPILOT CARD STARTS — the owner\'s own instruction (from a row: at the window\'s edge, as drawn)',
-     !!toolStrip && (toolStrip.rowMode ? Math.abs(toolStrip.right - toolStrip.pageRight) <= 1 : Math.abs(toolStrip.right - toolStrip.railLeft) <= 1),
+     !!toolStrip && Math.abs(toolStrip.right - toolStrip.railLeft) <= 1,
      toolStrip && `strip ends ${toolStrip.right}, rail starts ${toolStrip.railLeft}`);
   ck('2k and a refusal still has somewhere to be spoken on it',
      !!toolStrip && toolStrip.says === true, toolStrip && `#ce-say on the strip: ${toolStrip.says}`);
