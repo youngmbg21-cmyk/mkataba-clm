@@ -72,7 +72,8 @@ describe('f505 (B) one set of rows', () => {
     /* RE-POINTED 18 Oct 2026 (round 9's gaps, second pass): opened from a
        Redlines row the prepared questions are the Ask Jambo card's one press,
        so the chips row stands down on Playbook there (ceRowMode) */
-    assert.match(tabs, /chips\.style\.display = \(\(_ceTab === 'chat' && !ceRowMode\(\)\) \|\| rk\)/);
+    /* RE-POINTED AGAIN 20 Oct 2026 (owner: "bring the old one back"): from a row the chips row is back */
+    assert.match(tabs, /chips\.style\.display = \(_ceTab === 'chat' \|\| rk\)/);
   });
   /* RE-POINTED 10 Oct 2026 (Young, "one Copilot panel"): ONE foot on every
      tab — ‹ k of n › and Save; the walk's own row is retired and hidden. */

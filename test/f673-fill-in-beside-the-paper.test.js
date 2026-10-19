@@ -163,7 +163,8 @@ describe('f673 (2)(3) the face: one contract, Jambo\'s tab, counted with details
        another contract's Fill in must not leave the last one's face standing */
     assert.match(dock, /const ff=ae&&ae\.closest\?ae\.closest\('#ig-dock #pd-fillface'\):null;/);
     assert.match(dock, /r\.getAttribute\('data-pd-ff'\)===pdFillFor\(\)/);
-    assert.match(dock, /\(ff\?\(window\.pdFillShows&&pdFillShows\(\)&&ffMine\(\)\):ae\.closest\('#ig-dock #pd-fill'\)\)\) return;/);
+    /* RE-POINTED 20 Oct 2026 (ONE TRAIL): the guard keeps the trail line in step before it returns */
+    assert.match(dock, /\(ff\?\(window\.pdFillShows&&pdFillShows\(\)&&ffMine\(\)\):ae\.closest\('#ig-dock #pd-fill'\)\)\)\{ if\(window\.pdTrailSync\) pdTrailSync\(\); return; \}/);
   });
 });
 

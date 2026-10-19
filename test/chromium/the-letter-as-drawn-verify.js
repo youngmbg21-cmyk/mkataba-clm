@@ -126,14 +126,14 @@ async function mkUser(h, admin, name, email){
       const barName = ((document.querySelector('#dk-page .dk-page-w') || {}).textContent || '').trim();
       const acts = [...document.querySelectorAll('#modal-root .sh-hd-acts > button')].map(x => x.textContent.replace(/\s+/g, ' ').trim());
       const panel = document.querySelector('#modal-root .modal-in[data-sh-page]').getBoundingClientRect(), dock = document.getElementById('ig-dock').getBoundingClientRect();
-      return { tabs, barName, title: t('#share-lead-title'), acts, faceWord: t('#ig-dock .pd-face-w'), back: !!document.querySelector('#ig-dock .igd-head [data-pd-back="send"]'),
+      return { tabs, barName, title: t('#share-lead-title'), acts, faceWord: t('#ig-dock > .pd-trail .pd-trail-w b'), back: !!document.querySelector('#ig-dock > .pd-trail [data-pd-back="send"]'),  /* ONE TRAIL (20 Oct 2026) */
         jsay: t('#pd-sendface #sh-lt-jsay'), ask: !!document.querySelector('#ig-dock #igd-input'), beside: panel.right <= dock.left + 1 };
     });
     check('1b the bar names "Send · MK-0382" in front; the paper waits as its own Recent row',
       F1.barName === 'Send · MK-0382' && F1.tabs.some(x => x.w === 'Send · MK-0382' && x.on) && F1.tabs.some(x => /MK-0382$/.test(x.w) && !/^Send/.test(x.w) && !x.on), JSON.stringify({ bar: F1.barName, tabs: F1.tabs }));
     check('1c the head: "Send round N to Nordvik Logistik AB · MK-0382", Send to Anna and Cancel', /^Send round \d+ to Nordvik Logistik AB · MK-0382$/.test(F1.title || '')
       && JSON.stringify(F1.acts) === JSON.stringify(['Send to Anna', 'Cancel']), JSON.stringify({ t: F1.title, a: F1.acts }));
-    check('1d "Before you send" is a face of Jambo\'s panel, its way back in the row, the ask box at its foot, beside the page',
+    check('1d "Before you send" is a face of Jambo\'s panel, its way back on the trail line, the ask box at its foot, beside the page',
       F1.faceWord === 'Before you send' && F1.back && /^This is the email Anna will get, word for word\./.test(F1.jsay || '') && F1.ask && F1.beside, JSON.stringify(F1));
     await shot(page, '11-letter-first-1440x780');
 

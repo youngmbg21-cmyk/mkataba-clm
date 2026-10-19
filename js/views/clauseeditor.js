@@ -1122,35 +1122,26 @@ function clauseEditorCss(){
      offered at all (see clauseEditorFits) — this is the belt to that braces,
      so a window dragged narrow while the page is open stacks rather than
      crushing the rail to nothing. */
-  ${''/* ---- FROM A REDLINES ROW, AS DRAWN (round 9's gaps, second pass) ----
-         The head: ‹ Redlines, then the full shelf (owner, 19 Oct 2026). The paper: the context line, this clause in its box with its
-         step, the next dimmed, nothing else. The left foot's draft time and
-         Undo stand down (the box says "saved as you type"; Undo is the
-         keyboard's), the rail's name and clause picker too; the cards and the
-         walk are the rail's. */}
+  ${''/* ---- FROM A REDLINES ROW, THE EDITOR AS IT WAS BEFORE (owner, 20 Oct 2026:
+         "the paper that appears in the edit page is not the whole contract"
+         … "bring the old one back") ----
+         Round 9's row look stands down: the whole paper, scrolled to the
+         clause, with its reading bar; the rail's head, clause picker, ladder
+         card and chips; the foot's draft time and Undo. What stays from a row:
+         what the clause's wording is (no blue box round it, owner 20 Oct 2026), and ONE TRAIL's back
+         at the strip's start — "‹ Redlines  Jambo / Redlines / Edit · 9. …",
+         dressed as the panel's trail — which lands on the row (ceRowBack);
+         Esc and the bar's ‹ press it; no Exit. */}
   #clause-editor .ce-rowhead[hidden]{display:none}
-  #clause-editor.ce-rowmode .ce-rowhead{display:inline-flex; align-items:center; gap:12px; min-width:0; flex:0 1 auto; margin-right:6px}
-  .ce-rowback{flex:none; height:var(--ctl-h-sm); padding:0 10px; border:1px solid var(--btn-edge); border-radius:var(--radius);
-    background:var(--color-surface); font:inherit; font-size:var(--t-meta); color:var(--color-text); cursor:pointer; white-space:nowrap}
-  .ce-rowback:hover{border-color:var(--accent-ink); color:var(--accent-ink)}
-  #clause-editor.ce-rowmode #ce-doc .ce-row-off{display:none}
-  #clause-editor.ce-rowmode #ce-doc .ce-row-next{opacity:.45}
-  #clause-editor.ce-rowmode #ce-doc .rl-rung,#clause-editor.ce-rowmode #ce-doc .rl-paper-foot,#clause-editor.ce-rowmode #ce-readbar{display:none}
-  #clause-editor .ce-row-ctx{margin:0 0 16px; font-size:var(--t-meta); line-height:1.4; color:var(--color-neutral-600)}
+  #clause-editor.ce-rowmode .ce-barrow{flex-wrap:wrap}
+  #clause-editor.ce-rowmode .ce-rowhead{display:flex; align-items:center; gap:10px; min-width:0; flex:1 0 100%; padding:0 0 8px; margin-bottom:6px; border-bottom:1px solid var(--color-divider)}
+  .ce-rowback{flex:none; display:inline-flex; align-items:center; gap:3px; height:var(--ctl-h-sm); padding:0 8px 0 5px; border:1px solid var(--btn-edge); border-radius:var(--radius);
+    background:var(--color-surface); color:var(--accent-ink); font:inherit; font-size:12px; font-weight:var(--w-label); cursor:pointer; white-space:nowrap}
+  .ce-rowback:hover{border-color:var(--accent-ink)}
+  .ce-rowback:focus-visible{outline:2px solid var(--accent-ink); outline-offset:1px}
+  .ce-rowpath{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:var(--t-meta); color:var(--color-neutral-600)}
+  .ce-rowpath b{font-weight:var(--w-label); color:var(--color-text)}
   #clause-editor .ce-row-is{margin:2px 0 8px; font-size:var(--t-label); line-height:1.4; color:var(--color-neutral-600)}
-  #clause-editor.ce-rowmode #ce-doc .ce-row-on #ce-clausebody{border:1px solid var(--accent-solid); border-radius:var(--radius); padding:10px 12px}
-  #clause-editor.ce-rowmode .ce-foot .draft,#clause-editor.ce-rowmode .ce-foot .undo{display:none}
-  #clause-editor.ce-rowmode .ce-foot:not(:has(#ce-waiting > *)){display:none}
-  #clause-editor.ce-rowmode .ce-ah .sp{display:none}
-  #clause-editor.ce-rowmode #ce-pick{display:none}
-  ${''/* ---- THE STRIP AS IT WAS BEFORE, FROM A ROW TOO (owner, 19 Oct 2026:
-         "bring this back to what it was before" and "‹ Redlines at the top
-         left, to match the panel") ----
-         Round 9's head bar spanning the window, its short shelf and its quiet
-         Exit stand down: the strip keeps to the left column with the full
-         shelf, as opened any other way, and ‹ Redlines is its one way out —
-         the guarded leave that lands on the row (ceRowBack). Opened any other
-         way the strip keeps its Exit. */}
   #clause-editor.ce-rowmode .ce-exit{display:none}
   #clause-editor .ce-row-asked,#clause-editor .ce-row-jb{background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg)}
   #clause-editor .ce-row-asked .q{margin:4px 0 0; font-size:var(--t-meta); line-height:1.5; font-style:italic; color:var(--color-text)}
@@ -2565,7 +2556,9 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
      an empty lane and then filling it is two paints for one arrival. */
   _ceThread.push({ who: 'ai', greeting: true });
   /* from a Redlines row, our standard for this clause is the first card */
-  { const sc = ceRowStdCard(); if (sc) _ceThread.push(sc); }
+  /* the rail as it was before, from a row too (owner, 20 Oct 2026): no
+     standard's card pushed at the open (ceRowStdCard kept, not called) —
+     the ladder card and the chips say it */
   /* ---- THEIR ROUND CAME BACK: COPILOT'S PREPARED COUNTER LEADS THE RAIL
      (27 Sep 2026) ---- Where Counter was pressed on an ask of theirs that
      Copilot answered with a counter when their round arrived, that wording is
@@ -3282,7 +3275,11 @@ function ceRowHeadPaint(){
      2026): the act's title stands down from the bar — the paper's context
      line and the clause's own head say it (ceRowTitle/ceRowSub kept for the
      hover) */
-  const html = `<button type="button" class="ce-rowback" data-ce-act="row-back" title="${_ceea(ceRowTitle() + ' · ' + ceRowSub())}">‹ ${_cee(_cet('ce_row_back'))}</button>`;
+  /* ONE TRAIL (owner, 20 Oct 2026: "the way you get back … is not the
+     same"): the panel trail's own look — the back, then where you are */
+  const where = [_cet('pd_tab_copilot'), _cet('ce_row_back')].map(_cee).join('<i aria-hidden="true"> / </i>') + `<i aria-hidden="true"> / </i><b>${_cee(ceRowTitle())}</b>`;
+  const html = `<button type="button" class="ce-rowback" data-ce-act="row-back" title="${_ceea(_cet('pd_trail_back', { to: _cet('ce_row_back') }))}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${_cee(_cet('ce_row_back'))}</button>`
+    + `<span class="ce-rowpath" title="${_ceea(ceRowSub())}">${where}</span>`;
   if (host.innerHTML !== html) host.innerHTML = html;
   /* the bar's ‹ is ‹ Redlines while this editor stands over a row (ONE TRAIL) */
   if (typeof window.deskBarPaint === 'function') try { window.deskBarPaint(); } catch (_){}
@@ -3303,19 +3300,14 @@ function ceRowContextLine(){
   const ref = window.contractRef ? contractRef(c) : (c.id || '');
   return _cet('ce_row_ctx', { name: c.name || '', ref, party: c.counterparty || '', n });
 }
-/* THE PAPER FROM A ROW: the context line, this clause in its box with what
-   its wording is (no step), the next clause dimmed; the rest of the paper is not drawn (CSS on
-   .ce-rowmode). Marks set after each paint of the paper. */
+/* THE PAPER FROM A ROW: the whole paper, this clause in its box with what
+   its wording is (no step). Marks set after each paint of the paper. */
 function ceRowPaperDress(host){
   if (!host || !ceRowMode()) return;
   const all = [...host.querySelectorAll('[data-clause]')].filter(el => !el.parentElement || !el.parentElement.closest('[data-clause]'));
   const at = all.findIndex(el => String(el.getAttribute('data-clause')) === String(_ceClauseId));
-  all.forEach((el, i) => { el.classList.toggle('ce-row-on', i === at); el.classList.toggle('ce-row-next', at >= 0 && i === at + 1);
-    el.classList.toggle('ce-row-off', at >= 0 && i !== at && i !== at + 1); });
-  const sheet = host.querySelector('.rl-paper, .nego-doc, .doc-surface') || host;
-  let ctx = host.querySelector('.ce-row-ctx');
-  if (!ctx){ ctx = document.createElement('p'); ctx.className = 'ce-row-ctx'; const first = all[0]; if (first && first.parentElement) first.parentElement.insertBefore(ctx, first); else sheet.insertBefore(ctx, sheet.firstChild); }
-  ctx.textContent = ceRowContextLine();
+  /* the WHOLE paper stays (owner, 20 Oct 2026): only the clause is boxed */
+  all.forEach((el, i) => el.classList.toggle('ce-row-on', i === at));
   const on = at >= 0 ? all[at] : null;
   if (on){
     let lbl = on.querySelector('.ce-row-is');
@@ -4448,7 +4440,8 @@ function ceWalkNow(){
       const lead = _ceLead ? String(_ceLead.id) : '';
       let k = asks.findIndex(a => a.id === lead) + 1;
       if (!k) k = asks.findIndex(a => a.clauseId === String(_ceClauseId)) + 1;
-      return { k, n: asks.length, prev: k > 1, next: k < asks.length, asks };
+      /* our own draft is none of their asks: no "– of N" (owner, 20 Oct 2026) */
+      if (k) return { k, n: asks.length, prev: k > 1, next: k < asks.length, asks };
     }
   }
   const ids = cePbWalkIds(); if (!ids.length) return null;
@@ -4947,7 +4940,7 @@ function ceRenderTabs(){
   if (ask) ask.style.display = (_ceTab === 'chat' || rk) ? '' : 'none';
   /* from a Redlines row the prepared questions are the Ask Jambo card's one
      press (ceRowCardsHtml), so the chips row stands down on Playbook */
-  if (chips) chips.style.display = ((_ceTab === 'chat' && !ceRowMode()) || rk) ? '' : 'none';
+  if (chips) chips.style.display = (_ceTab === 'chat' || rk) ? '' : 'none';
   if (scope) scope.style.display = (_ceTab === 'chat' || (rk && !_ceSel && !_ceWhole && !ceIsNew())) ? '' : 'none';
   ceRenderChips(); ceRenderScope();
 }
@@ -4959,9 +4952,7 @@ function ceRiskAsking(){
 function ceRenderLane(){
   if (!clauseEditorOpen()) return;
   const lane = _ceQ('#ce-lane'); if (!lane) return;
-  /* from a Redlines row the ladder's own card (what moved, our ladder, what
-     we settled for, the reply) stands in the Ladder tab, not over the cards */
-  if (_ceTab === 'ladder'){ lane.innerHTML = (ceRowMode() && !_cePrep ? ceLadderCardHtml() : '') + ceLadderLaneHtml(); lane.scrollTop = 0; return; }
+  if (_ceTab === 'ladder'){ lane.innerHTML = ceLadderLaneHtml(); lane.scrollTop = 0; return; }
   if (_ceTab === 'risks'){
     lane.innerHTML = (window.riskLaneHtml && _ceC ? riskLaneHtml(_ceC) : '') + ceRiskAnswerHtml();
     lane.scrollTop = 0; ceRenderRiskFoot(); ceRenderTabs(); ceRenderFull(); return;
@@ -4969,19 +4960,8 @@ function ceRenderLane(){
   /* THE LADDER CARD LEADS THE CONVERSATION (14 Sep 2026): what moved, where
      it sits on our ladder, what we settled for, and the reply that follows —
      worked out, not asked for. */
-  /* FROM A REDLINES ROW, AS DRAWN: our standard's card, what they asked, Ask
-     Jambo — then the conversation; the greeting's rows are what they asked */
-  if (ceRowMode()){
-    const turns = _ceThread.map((t, i) => [t, i]);
-    /* Jambo's own prepared counter (when their round came back) leads, then
-       our standard; the conversation follows the cards */
-    const lead = t => t.rowStd || (Array.isArray(t.cards) && t.cards.some(k => k && k.prepared));
-    lane.innerHTML = turns.filter(([t]) => lead(t) && !t.rowStd).map(([t, i]) => ceTurnHtml(t, i)).join('')
-      + turns.filter(([t]) => t.rowStd).map(([t, i]) => ceTurnHtml(t, i)).join('')
-      + ceRowCardsHtml()
-      + turns.filter(([t]) => !lead(t) && !t.greeting).map(([t, i]) => ceTurnHtml(t, i)).join('')
-      + (_ceBusy ? `<p class="ce-work"><i></i>${_cee(_cet('ce_thinking'))}</p>` : '');
-  } else
+  /* from a Redlines row too (owner, 20 Oct 2026): round 9's cards stand down
+     (ceRowCardsHtml kept, not drawn) */
   lane.innerHTML = (_cePrep ? '' : ceLadderCardHtml()) + _ceThread.map(ceTurnHtml).join('')
     + (_ceBusy ? `<p class="ce-work"><i></i>${_cee(_cet('ce_thinking'))}</p>` : '');
   const last = lane.lastElementChild;
