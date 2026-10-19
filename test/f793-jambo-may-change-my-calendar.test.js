@@ -12,7 +12,8 @@
        the body) and lets the planner only answer in words.
    (4) The server keeps 'never' in the person's pref row and refuses an
        unknown level.
-   AT THE PARENT (gaps/A1, d2a4eb4) every test here FAILS.
+   AT THE PARENT (gaps/A1, d2a4eb4) every test here FAILS but 4c, which
+   pins what Ask me first already did (both tools) so Never cannot take it away.
    ═══════════════════════════════════════════════════════════════════════════ */
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
