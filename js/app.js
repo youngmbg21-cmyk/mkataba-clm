@@ -85,7 +85,7 @@ import './agentruns.js';           // Copilot's agents' engine room: runs, setti
 import './views/agents.js';
 import './views/jambohouse.js';  // Jambo's agents: the house, his jobs and his points, behind Insights (12 Oct 2026)
 import './copilotacts.js';         // Copilot prepares, you press: @ people, # contracts, the send and draft cards (7 Oct 2026)        // Copilot's work: the six agents — what each found, prepared and did (27 Sep 2026)
-import './jambomap.js';            // Jambo's map: the thirty commonest tasks in everyday words, matched by MiniSearch (18 Oct 2026)
+import './jambomap.js';            // Jambo's map: the thirty-one commonest tasks in everyday words, matched by MiniSearch (18 Oct 2026)
 import './paperdesk.js';           // the Paper's desk: Facts · Obligations · Signing · History · Deal beside the paper on Home (8 Oct 2026)
 import './views/register.js';
 import './ocr.js';
@@ -1303,8 +1303,8 @@ function setView(view){
     if(sp && typeof closeModal==='function' && (!_sameView
       || ((view==='workspace'||view==='doc') && sp.dataset.cid && String(sp.dataset.cid)!==String(state.activeId)))){ try{ closeModal(); }catch(_){} } }
   state.view=view;
-  /* the desk tabs' row is drawn before the page, so a page that measures its height measures it with the row in place (Round 2) */
-  if(window.deskTabsPaint) try{ deskTabsPaint(); }catch(_){}
+  /* the bar names the page before the page is drawn (the SAP way, 18 Oct 2026; was the desk tabs' row) */
+  if(window.deskBarPaint) try{ deskBarPaint(); }catch(_){}
   try{
     if(view==='dashboard') renderDashboard();
     else if(view==='folder') renderFolder();
@@ -1358,6 +1358,11 @@ function setView(view){
     }catch(_){}
     if(window.toast) toast(`${VIEW_LABEL[view]||view} could not be drawn${cid?` — check ${cid}`:''}: ${(e&&e.message)||e}`,'err');
   }
+  /* A PAGE THAT SENT THE READER ON while drawing (Insights' map → Home's
+     Explorer, hbOpenExplorer) did it through setView, which recorded and
+     painted the page actually drawn. Going on here would paint this call's
+     page head over it: "Insights", 40px above Home's map. */
+  if(state.view!==view) return;
   /* ---- WHERE THE READER IS STANDING IS RECORDED BEFORE THE PANELS ARE
      PAINTED, AND EACH PAINT IS GUARDED ON ITS OWN (owner-reported 10 Sep 2026:
      "sometimes when i am on one page and i refresh, the page refreshes and
@@ -2250,6 +2255,10 @@ const ALERT_KINDS = [
      cleared once read). Both open Settings, where the ask lives. */
   { k:'settings-ask',    tone:'amber', ic:'&#9881;' },
   { k:'settings-answer', tone:'green', ic:'&#9881;' },
+  /* findings on the map (Explorer stage 4): a question put to you, a finding sent to you, a reply to your question */
+  { k:'finding-ask',     tone:'amber', ic:'&#9671;' },
+  { k:'finding-sent',    tone:'gray',  ic:'&#9671;' },
+  { k:'finding-answer',  tone:'green', ic:'&#9671;' },
   /* THE QUARTER'S ACCESS REVIEW (17 Oct 2026, piece 8 of the sensitive-
      contracts plan): an admin's work owed until the quarter is stamped done */
   { k:'access-review',   tone:'amber', ic:'&#9881;' },
@@ -2796,6 +2805,13 @@ function buildAlerts(){
       push('settings-answer',null,i18t(a.status==='done'?'al_settings_done':'al_settings_no',{what:a.what}),
         ()=>{ if(window.stAskSeen) stAskSeen(a.id); setView('team'); }, { sub:a.note||'' }));
   }catch(e){}
+  /* FINDINGS ON THE MAP (Explorer stage 4): a hand-off lands here until it is answered or opened (flow rule 3) */
+  try{
+    if(typeof window.igFindingsOwed==='function'){ const o=igFindingsOwed(), title=id=>{ const f=window.igFinding&&igFinding(id); return (f&&f.title)||''; };
+      o.asked.forEach(s=>push('finding-ask',null,i18t('al_finding_ask',{ who:s.from.name||'', x:title(s.findingId) }),()=>igFindingGo(s.findingId),{ sub:s.ask||'' }));
+      o.sent.forEach(s=>push('finding-sent',null,i18t('al_finding_sent',{ who:s.from.name||'', x:title(s.findingId) }),()=>igFindingGo(s.findingId)));
+      o.answered.forEach(s=>push('finding-answer',null,i18t('al_finding_answer',{ who:s.to.name||'', x:title(s.findingId) }),()=>igFindingGo(s.findingId))); }
+  }catch(e){}
   try{
     const meS=(typeof currentUser==='function')?currentUser():null;
     (meS&&Array.isArray(meS.streamNews)?meS.streamNews:[]).forEach(n=>{
@@ -3053,15 +3069,17 @@ function applyRail(){
      down there the sidebar is a 64px strip by construction. The stored choice
      is read, not written — see railCollapsed — so it is waiting unchanged when
      they are back on a wide screen. */
-  /* ---- THE MENU'S PLACE IS THE DESK TABS' (the owner picked "Desk tabs",
-     17 Oct 2026) ---- on a computer the left menu is not drawn: every page is
-     reached through Jambo's box (its "/" lists the places) and stays as a tab
-     after "‹ The counter" (js/views/counter.js). The Ha mark in the bar is the
-     way back to the Counter. The phone keeps its own screens. */
+  /* ---- THE MENU'S PLACE IS THE BAR'S (the owner picked "The SAP way",
+     18 Oct 2026; was "Desk tabs") ---- on a computer the left menu is not
+     drawn: every page is reached through Jambo's box (its "/" lists the
+     places), and the bar reads ‹ · Ha · the page's name, which opens Recent
+     (js/views/counter.js). The Ha mark is Home. The phone keeps its own
+     screens. */
   const desk=!!(window.deskShellOn&&window.deskShellOn());
   shell.classList.toggle('dk-shell',desk);
   { const nav=document.getElementById('side-nav'); if(nav&&nav.style) nav.style.display=desk?'none':'flex';
-    const mark=document.getElementById('dk-mark'); if(mark) mark.hidden=!desk; }
+    const mark=document.getElementById('dk-mark'); if(mark) mark.hidden=!desk;
+    if(window.deskBarPaint) try{ deskBarPaint(); }catch(_){} }
   if(desk){ shell.classList.remove('rail'); if(shell.style) shell.style.gridTemplateColumns='0px minmax(0,1fr)';
     if(typeof window!=='undefined' && window.rlLayoutResizer) window.rlLayoutResizer(document);
     syncViewHeight(); return; }

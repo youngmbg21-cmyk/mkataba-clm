@@ -187,7 +187,7 @@ const OBS = [
     const typed = await S('#igd-input');
     if (typed){ await page.fill('#igd-input', ''); await page.type('#igd-input', 'bring up MK-L1', { delay: 8 }); await page.keyboard.press('Enter'); }
     const up1 = await waitFor(page, s => !!document.querySelector(s), 8000, strip('MK-L1'));
-    const onDesk = await page.evaluate(() => ({ card: bsCardId(), key: deskKeyNow(), furniture: !!document.querySelector('#hb-board .hb-prep, #hb-board .hb-note, #hb-board .hb-grid'), present: !!(document.getElementById('hb-present') || {}).hidden }));
+    const onDesk = await page.evaluate(() => ({ card: bsCardId(), key: deskKeyNow(), furniture: !!document.querySelector('#hb-board .hb-prep, #hb-board .hb-note, #hb-board .hb-grid'), present: (() => { const p = document.getElementById('hb-present'); return !p || p.hidden; })() }));   /* no Present on a computer's head since the SAP way (18 Oct 2026) */
     check('1a0 on the desk it is a page of its own: its contract\'s tab in front, none of the Board\'s furniture (round 7)', onDesk.card === 'MK-L1' && onDesk.key === 'c:MK-L1' && !onDesk.furniture && onDesk.present, JSON.stringify(onDesk));
     await allOnBoard();
     const order = await page.evaluate(() => { const prep = document.querySelector('#hb-board .hb-prep'), st = document.getElementById('bs-strips');

@@ -1919,8 +1919,10 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
        (the fifth door, ceForgetUnfiled on "Leave and lose it"). */
     /* RE-POINTED 6 Oct 2026: the panel's dropdown picking a risk is a door
        out of a draft too (a clause pick goes through ceGoClause's own). */
-    assert.equal((CODE.match(/ceLeaveGuard\(/g) || []).length, 7,
-      'six callers and the declaration \u2014 no seventh door written past it');
+    /* RE-POINTED 18 Oct 2026 (Jambo, the same on every page): a page's name
+       typed in Jambo's box leaves through the guard too — the seventh door. */
+    assert.equal((CODE.match(/ceLeaveGuard\(/g) || []).length, 8,
+      'seven callers and the declaration \u2014 no eighth door written past it');
     assert.match(CODE, /closest\('#pt-nego #rl-side button[\s\S]{0,300}?ceLeaveGuard\(\(\) => \{ ceForgetUnfiled\(\);/,
       'their column\'s press is the fifth, and it asks');
     assert.match(CODE, /case 'ladder-accept': \{[\s\S]{0,400}?ceLeaveGuard\(/,

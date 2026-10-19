@@ -2536,6 +2536,8 @@ function startApp(){
   if(API_MODE()){ refreshStats(); refreshShareOverview(); refreshWaitingQuestions(); pollPendingResponses(); refreshAiUsage();
     /* asks to an admin, and their answers, reach the bell from the start */
     if(window.stAsksLoad){ _asksAt=Date.now(); try{ stAsksLoad(); }catch(_){} }
+    /* findings on the map sent to this reader, and replies to their questions (Explorer stage 4) */
+    if(window.igFindingsLoad) try{ igFindingsLoad(); }catch(_){}
     schedulePolling();
     /* Coming back to the tab is when a person expects to be up to date. */
     if(!window._pollFocusBound){
@@ -2598,7 +2600,7 @@ function startApp(){
    A NARROW LIST, like the tab beside it: a word this does not know is simply
    not acted on, and the room opens where it always would. */
 const HASH_GO = { approval: { tab:'sign', sel:'#sa-card' }, moved: { home:true } };
-const HASH_GO_WAIT = 120, HASH_GO_TRIES = 25, HASH_GO_LIT = 2400;
+const HASH_GO_WAIT = 120, HASH_GO_TRIES = 25;
 function openFromHash(){
   /* ASK AN ADMIN's email links here (16 Oct 2026): #settings opens Settings,
      on Company for an admin — nothing secret rides the link */
@@ -2669,17 +2671,11 @@ function openFromHash(){
      never gets one must not leave a timer running for ever. */
   if(go){
     if(!home && go.tab && window.roomGoTab && go.tab!==tab){ try{ roomGoTab(c, go.tab); }catch(_){} }
-    let tries=0;
-    const land=()=>{
-      const el=document.querySelector(go.sel);
-      if(!el){ if(++tries<HASH_GO_TRIES) setTimeout(land, HASH_GO_WAIT); return; }
-      try{ el.scrollIntoView({ block:'center' }); }catch(_){ }
-      /* A LANDING IS SEEN, NOT ANNOUNCED: the card is lit for a moment so the
-         reader's eye finds it, and the mark takes itself off. No band. */
-      el.classList.add('is-landed');
-      setTimeout(()=>el.classList.remove('is-landed'), HASH_GO_LIT);
-    };
-    setTimeout(land, HASH_GO_WAIT);
+    /* A LANDING IS SEEN, NOT ANNOUNCED — and since LAND ON IT (owner, 18 Oct
+       2026) it is the house's one lander: the card brought into view, lit the
+       one way every arrival is, until the reader's next press. No band;
+       bounded; it presses nothing. */
+    if(window.landOn) landOn(go.sel, { block:'center', tries:HASH_GO_TRIES, wait:HASH_GO_WAIT, delay:HASH_GO_WAIT });
   }
   return true;
 }
@@ -2915,14 +2911,14 @@ function renderNegotiationSection(c){
     btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">${i18t('co_sending')}</span>`;
     try{
       const out=await reshareToLastRecipient(c);
-      const who=out.recipient.name||out.recipient.email||out.recipient.phone||'the counterparty';
+      const who=out.recipient.name||out.recipient.email||out.recipient.phone||i18t('ng_the_counterparty');
       /* FIRST, because it outranks every other outcome: if their copy could not
          be reused, the news is not whether an email went — it is that the URL
          they hold has stopped being the contract. */
       if(out.stranded){
         toast(reshareStrandedLine(who),'err');
       } else if(out.delivered){
-        toast(`Updated version emailed to ${who}`,'ok');
+        toast(i18t('co_reshare_emailed',{who}),'ok');
       } else if(out.quiet){
         /* THE SAME LIE, SECOND PLACE. A round published onto a standing link
            sends nothing ON PURPOSE — the link was emailed once, when the
@@ -2932,11 +2928,11 @@ function renderNegotiationSection(c){
            The contract page's own toast has said this correctly all along
            (see the quiet branch in js/views/contract.js); this is the two
            surfaces agreeing rather than a new sentence. */
-        toast(i18t('co_round_on_standing_link',{who:esc(who)}));
+        toast(i18t('co_round_on_standing_link',{who}),'ok');
       } else if(out.channel==='whatsapp' && out.recipient.phone){
         // the same route the first share uses — nothing sends WhatsApp for us
         try{ window.open(waShareLink(out.recipient.phone, shareMessageText(c, out.link, '', null)),'_blank'); }catch(_){}
-        toast(`Link updated — WhatsApp opened so you can send it to ${who}`);
+        toast(i18t('co_reshare_whatsapp',{who}),'ok');
       } else {
         reshareNotSentModal(c, out, who);
       }
@@ -4348,7 +4344,7 @@ function freezeContractHtml(c){
     return d.innerHTML;
   }
   const tmp=document.createElement('div');
-  tmp.innerHTML=docBody(c);
+  tmp.innerHTML=docBody(c,{ marks:false });
   tmp.querySelectorAll('.seal-in,[data-anchor="sig"]').forEach(el=>el.remove());
   tmp.querySelectorAll('input,textarea').forEach(inp=>{
     const s=document.createElement('span');
@@ -6175,7 +6171,7 @@ function buildSharePayload(c, docHash, who, opts){
          because a share must not fail over a preview — a missing body is a
          sentence on their page, not a link that never went. */
       viewBody:(!c.redlineText && typeof window!=='undefined' && window.docBody)
-        ? (()=>{ try{ return docBody(c)||undefined; }catch(_){ return undefined; } })()
+        ? (()=>{ try{ return docBody(c,{ marks:false })||undefined; }catch(_){ return undefined; } })()
         : undefined,
       /* ---- AN ADVISER SEES THE CLAUSES THEY WERE ASKED ABOUT (upgrade 9) ----
          The narrowing is done HERE, in the builder, and not on their page: a
@@ -6224,7 +6220,7 @@ function shareAdviceNarrow(out){
 function shareAdviceBody(c, ids){
   if(typeof window==='undefined' || typeof window.clauseSegment!=='function') return '';
   let body='';
-  try{ body = (window.docBody ? docBody(c) : '') || c.redlineText || ''; }catch(_){ body = c.redlineText||''; }
+  try{ body = (window.docBody ? docBody(c,{ marks:false }) : '') || c.redlineText || ''; }catch(_){ body = c.redlineText||''; }
   if(!body) return '';
   let segs=[]; try{ segs=clauseSegment(body)||[]; }catch(_){ return ''; }
   /* THE SAME HANDLE THE PICKER OFFERED — the stored id where a clause has one,
@@ -6438,8 +6434,7 @@ function counterpartyContact(c, shares){
    the seen-state resend, and the one-press send on both the contract tab and
    the workbench. Four copies of this wording would drift, and the one that
    drifted would be the one somebody read. */
-const reshareStrandedLine = who =>
-  `A NEW link was created for ${who}. The link they already have will NOT update — send them the new one.`;
+const reshareStrandedLine = who => i18t('co_reshare_stranded',{ who });
 function shareIsStanding(s){
   if(!s || !s.durable || s.revokedAt) return false;
   if(s.state==='revoked' || s.state==='expired') return false;
@@ -6914,7 +6909,9 @@ async function roundReachedByHand(c, out, opts={}){
   /* opts.turn===false: a door that never moved the turn on a delivered send
      (the "Send updated version" resends) does not move it here either. */
   if(opts.turn===false) persist(c); else roundHandedOver(c, opts.by||me);
-  if(opts.say!==false) try{ if(typeof toast==='function') toast(i18t('co_by_hand_done',{ who }),'ok'); }catch(_){}
+  /* the record above keeps English; the reader's line names them in the reader's words */
+  const whoSaid=(out.recipient && (out.recipient.name||out.recipient.email)) || c.counterparty || i18t('ng_the_counterparty');
+  if(opts.say!==false) try{ if(typeof toast==='function') toast(i18t('co_by_hand_done',{ who:whoSaid }),'ok'); }catch(_){}
   return true;
 }
 
@@ -8726,12 +8723,12 @@ async function renderSharesSection(c){
     btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">${i18t('co_sending')}</span>`;
     try{
       const out=await reshareToLastRecipient(c);
-      const who=out.recipient.name||out.recipient.email||out.recipient.phone||'the counterparty';
+      const who=out.recipient.name||out.recipient.email||out.recipient.phone||i18t('ng_the_counterparty');
       /* Their copy could not be reused — see the other caller; same order. */
       if(out.stranded) toast(reshareStrandedLine(who),'err');
-      else if(out.delivered) toast(`Sent again to ${who}`,'ok');
+      else if(out.delivered) toast(i18t('co_sent_again',{who}),'ok');
       /* Deliberately quiet, not refused — see the note on the other caller. */
-      else if(out.quiet) toast(i18t('co_round_on_standing_link',{who:esc(who)}));
+      else if(out.quiet) toast(i18t('co_round_on_standing_link',{who}),'ok');
       else reshareNotSentModal(c, out, who);
       renderAuditSection(c); renderSharesSection(c);
     }catch(err){ toast(err.message,'err'); }
@@ -9857,7 +9854,7 @@ async function pollNow(reason){
   await pollThreadMessages();
   /* ASK AN ADMIN (16 Oct 2026): a colleague's ask reaches an admin's bell, and
      the answer the asker's, during the sitting — read at most every two minutes */
-  if(window.stAsksLoad && t-_asksAt>=ASKS_EVERY_MS){ _asksAt=t; try{ stAsksLoad(); }catch(_){} }
+  if(window.stAsksLoad && t-_asksAt>=ASKS_EVERY_MS){ _asksAt=t; try{ stAsksLoad(); }catch(_){} if(window.igFindingsLoad) try{ igFindingsLoad(); }catch(_){} }
 }
 const ASKS_EVERY_MS=120000;
 let _asksAt=0;

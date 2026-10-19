@@ -1174,13 +1174,6 @@ function ceSetNewPlace(afterClauseId){
   ceRenderPaper(); ceScrollToClause();
   return true;
 }
-/* A HELD NEW CLAUSE IS NOT A STEP ON ANY LADDER YET: the paper's step chip
-   counted the unsaved insertion, so it says "new clause" until Save. */
-function ceNewBadge(host){
-  if (!ceIsNew() || !host) return;
-  const rung = host.querySelector(`[data-clause="${CE_NEW_ID}"] .rl-clause-top .rl-rung`);
-  if (rung){ rung.className = 'rl-rung rl-rung-you rl-rung-static ce-new-badge'; rung.textContent = _cet('ng_new_clause_tag'); }
-}
 const ceLockable = () => !!(_ceClauseId && _ceClauseId !== CE_NEW_ID);
 function ceClause(){
   if (!_ceC || !_ceClauseId) return null;
@@ -3365,7 +3358,6 @@ function ceRenderPaper(){
   _ceRendering = true;
   try{
     host.innerHTML = html || `<p class="rl-clause-p">${_cee(_cet('ce_this_clause'))}</p>`;
-    ceNewBadge(host);
     /* THE NOTE MARKS ARE FURNITURE ON THE CANVAS, painted after it and never
        inside the typing box (rlPaintNoteMarks skips the clause being typed). */
     try { if (window.rlPaintNoteMarks && _ceC) rlPaintNoteMarks(host, _ceC, { side: ceSide() }); } catch (e){}
@@ -5252,6 +5244,16 @@ async function ceAsk(question, opts = {}){
   if (ceNoAi()) return;
   const q = String(question == null ? '' : question).trim();
   if (!q || _ceBusy) return;
+  /* JAMBO, THE SAME ON EVERY PAGE (owner, 18 Oct 2026): a page's name typed
+     here moves there as it does on Home — after this page's own question
+     when a draft is unfiled (ceLeaveGuard); anything else is a question about
+     these words, as before */
+  const goTo = (typeof window !== 'undefined' && window.caReadPlace) ? (() => { try { return caReadPlace(q); } catch (_){ return null; } })() : null;
+  if (goTo && goTo.kind === 'go' && !(window.CA_CARD_WORDS || []).includes(goTo.place) && window.caGo){
+    const box = _ceQ('#ce-ask'); if (box){ box.value = ''; try { box.dispatchEvent(new Event('input', { bubbles: true })); } catch (_){} }
+    ceLeaveGuard(() => { rlCloseClauseEditor(); caGo(goTo); });
+    return;
+  }
   /* ---- WHAT THIS QUESTION IS ABOUT, TAKEN NOW ---- (owner-ruled 31 Aug 2026)
      A held passage narrows the question to those words and the answer to a
      replacement for them. TAKEN AT THE PRESS rather than read again when the

@@ -42,6 +42,13 @@ test('f288 — the structure goes out as well as in', async t => {
       + 'second column of an agreement is out of line');
   });
 
+  await t.test('a line both hanging and tight writes spacing BEFORE the indent (Word\'s order)', () => {
+    const x = xmlOf('<p class="rl-hang hati-tight"><span class="rl-marker">2.1\t</span>AIT shall provide.</p>');
+    const sp = x.indexOf('<w:spacing w:after="0"/>'), ind = x.indexOf('<w:ind w:left="720" w:hanging="720"/>');
+    assert.ok(sp > 0 && ind > 0, 'both are written: ' + x.slice(0, 400));
+    assert.ok(sp < ind, 'w:spacing comes before w:ind, as CT_PPrBase orders them');
+  });
+
   await t.test('THE TAB SURVIVES, which is what reaches the stop', () => {
     const x = xmlOf('<p class="rl-hang"><span class="rl-marker">2.1\t</span>AIT shall provide.</p>');
     assert.match(x, /<w:t xml:space="preserve">2\.1<\/w:t><w:tab\/>/,

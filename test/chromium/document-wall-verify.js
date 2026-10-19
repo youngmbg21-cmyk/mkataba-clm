@@ -57,7 +57,8 @@ const check = (name, pass, detail) => {
     await page.waitForFunction(() => window.state && Array.isArray(state.contracts) && state.contracts.length > 0, null, { timeout: 20000 });
 
     await page.evaluate(() => { if (window.intel) intel.paper = null; setView('dashboard'); });
-    await page.waitForSelector('#hb-head', { timeout: 15000 });
+    /* attached, not visible: on a computer Home's head row is gone by design (the SAP way, 18 Oct 2026) */
+    await page.waitForSelector('#hb-head', { state: 'attached', timeout: 15000 });
     await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'paper');
     const up = await wallUp();
     check('0 the Document tab with nothing open shows the wall', up);

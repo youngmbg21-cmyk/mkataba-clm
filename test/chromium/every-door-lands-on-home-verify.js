@@ -388,10 +388,11 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
     /* RE-POINTED 17 Oct 2026 (round 6, "One line"): "‹ Contracts" left the
        paper's line — the way back is the frame's, the Contracts place's own
        desk tab, kept once the place has settled */
-    await door(A, 'the Contracts desk tab (MK-A2 up)', { start: async () => { await toPlace('wall')();
+    /* RE-POINTED 18 Oct 2026 (the SAP way): the desk tab is Recent's row, under the page's name in the bar */
+    await door(A, 'the Contracts row in Recent (MK-A2 up)', { start: async () => { await toPlace('wall')();
         await waitFor(page, () => String(localStorage.getItem(DK_KEY) || '').includes('"home:contracts"'), 4000);
         await onPaperFn('MK-A2'); },
-      press: () => domClick('#dk-home [data-dk-go="home:contracts"]'), expect: E.wall(null), says: SAYS.wall });
+      press: async () => (await domClick('#dk-page')) && domClick('#dk-recent [data-dk-go="home:contracts"]'), expect: E.wall(null), says: SAYS.wall });
     await door(A, 'Contracts place, Wall | List: List', { start: toPlace('wall'), press: () => domClick('[data-reg-home] [data-ct-show="list"]'), expect: E.list(null), says: SAYS.list });
     await door(A, 'Contracts place, Wall | List: Wall', { start: toPlace('list'), press: () => domClick('[data-reg-home] [data-ct-show="wall"]'), expect: E.wall(null), says: SAYS.wall });
     /* RE-POINTED 16 Oct 2026: the place's stages are the Stage box (owner: "take
@@ -640,10 +641,15 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
     const pickFile = (trigger, file) => async () => { const ch = page.waitForEvent('filechooser', { timeout: 6000 }).catch(() => null);
       if ((await trigger()) === false) return false; const fc = await ch; if (!fc) return false; await fc.setFiles(file); return true; };
     let ids = await known();
-    await door(D, 'the wall\'s chip "upload a document", a file chosen', { start: onWall,
-      press: pickFile(() => domClick('[data-ig-chips] [data-ca-chip="upload"]'), docx('Census_Chip.docx')), expect: isNew(ids), says: NEWSAYS });
+    /* LAND ON IT (owner, 18 Oct 2026): the chip and the word land on the drop
+       area, lit, and press nothing — Choose a file is the reader's own press */
+    const thenChoose = trigger => async () => { if ((await trigger()) === false) return false;
+      if (!(await waitFor(page, () => { const d = document.getElementById('pd-drop'); return !!d && d.classList.contains('is-landed'); }, 6000))) return false;
+      return domClick('#pd-drop [data-pd-drop-pick]'); };
+    await door(D, 'the wall\'s chip "upload a document" (it lands on the drop area, lit), a file chosen', { start: onWall,
+      press: pickFile(thenChoose(() => domClick('[data-ig-chips] [data-ca-chip="upload"]')), docx('Census_Chip.docx')), expect: isNew(ids), says: NEWSAYS });
     ids = await known();
-    await door(D, 'the word "upload" on the wall, a file chosen', { start: onWall, press: pickFile(say('upload'), docx('Census_Word.docx')), expect: isNew(ids), says: NEWSAYS });
+    await door(D, 'the word "upload" on the wall (it lands on the drop area, lit), a file chosen', { start: onWall, press: pickFile(thenChoose(say('upload')), docx('Census_Word.docx')), expect: isNew(ids), says: NEWSAYS });
     ids = await known();
     await door(D, 'the drop area\'s Choose a file', { start: onWall, press: pickFile(() => domClick('#pd-drop [data-pd-drop-pick]'), docx('Census_Pick.docx')), expect: isNew(ids), says: NEWSAYS });
     ids = await known();

@@ -294,7 +294,9 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
     check((await page.evaluate(id => (getContract(id).changes || []).length, ID)) === before6, '5b Skip filed nothing');
     check(!!nc && nc.at > 0 && /Limitation of liability/i.test(nc.before) && /Signatures/i.test(nc.after), '5c the window holds the new clause where it will go — after the last clause, before the signatures', nc && JSON.stringify({ at: nc.at, before: nc.before, after: nc.after }));
     check(!!nc && /Injunctive relief/i.test(nc.head) && /interim injunctive relief/.test(nc.head), '5d with its heading and Jambo\'s wording on the paper', nc && nc.head.slice(0, 120));
-    check(!!nc && /^New clause$/i.test(nc.badge.trim()), '5d2 marked "New clause", not as a step on the ladder, until it is saved', nc && nc.badge);
+    /* RE-POINTED 18 Oct 2026: the owner took the step chip off the paper, and
+       the "New clause" label it was turned into went with it. */
+    check(!!nc && nc.badge === '', '5d2 the held new clause carries no chip on the paper', nc && nc.badge);
     check(!!nc && nc.opts.length > 0 && nc.opts.every(o => /^New clause after/.test(o)) && !nc.opts.some(o => /Signatures/.test(o)) && /Never after .*Signatures/.test(nc.never), '5e "Where it goes" offers only places before the signatures', nc && (nc.opts.join(' | ') + ' / ' + nc.never));
     await shot('5b-new-clause.png');
     /* move it: after Confidentiality — chosen BEFORE APPLY (Young, 5 Oct
