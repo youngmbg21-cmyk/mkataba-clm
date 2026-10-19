@@ -153,7 +153,7 @@ describe('f752 (4) the foot, the fold, and reading writes nothing', () => {
     const before = JSON.stringify(c); ctx.pdRoadStops(c); ctx.pdRoadYesHtml(c, ctx.pdRoadYesOf(c)); assert.equal(JSON.stringify(c), before);
   });
   test('4c the words, in both books', () => {
-    for (const k of ['pd_rd_ck_wording', 'pd_rd_ck_standards', 'pd_rd_ck_promises', 'pd_rd_ck_details', 'pd_rd_ck_brief', 'pd_rd_checks_clear', 'pd_rd_show', 'pd_rd_hide',
+    for (const k of ['pd_rd_ck_wording', 'pd_rd_ck_standards', 'pd_rd_ck_promises', 'pd_rd_ck_details', 'pd_rd_ck_brief', 'pd_rd_checks_clear_other', 'pd_rd_show', 'pd_rd_hide',
       'pd_rd_today', 'pd_rd_yes_of', 'pd_rd_yes_admin', 'pd_rd_y_given', 'pd_rd_st_aria', 'pd_rd_st_asked', 'pd_rd_st_unasked', 'pd_rd_st_waiting', 'pd_rd_st_approved',
       'pd_rd_st_or', 'pd_rd_st_refused', 'pd_rd_st_lapsed', 'pd_rd_standin', 'pd_rd_standin_nosign', 'pd_rd_y_facts', 'pd_rd_y_round', 'pd_rd_y_now', 'pd_rd_y_signers',
       'pd_rd_y_and', 'pd_rd_approve', 'pd_rd_approve_for', 'pd_rd_approve_why', 'pd_rd_refuse', 'pd_rd_moved', 'pd_rd_remind', 'pd_rd_send', 'pd_rd_send_again',

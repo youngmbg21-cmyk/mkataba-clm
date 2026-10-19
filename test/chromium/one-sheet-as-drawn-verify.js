@@ -4,10 +4,10 @@
    openNewAgreement, js/copilotacts.js caDraftRank / caDraftWhatOf,
    js/core.js dlgPageAdopt)
 
-   WHAT THIS PINS, driven in a real browser from the Counter's box
-     1 the head: "New agreement · not created yet", the desk's way back and its
-       tab "New agreement ×", the reason beside Create draft, Cancel — and no
-       "Skip the questions"
+   WHAT THIS PINS, driven in a real browser from Home's box (once "the Counter"; code keeps counter)
+     1 the head: "New agreement · not created yet", the reason beside Create
+       draft, Cancel — and no "Skip the questions" (the way back is the SAP
+       bar's: see 1b and 7 below; the desk tabs row is gone on main)
      2 the sheet stands on the desk beside Jambo's panel, which says in one
        line what he read ("… an NDA, with Volvo Cars. The closest of our paper
        is our NDA; you pick. …") — no line before it, no doors back to a sheet
@@ -21,7 +21,7 @@
        now", the counterparty "✦ from your words"; who else says nobody is
        emailed until you send; the cost of reading stands on the stream's row
      6 a stream chosen: the reason goes, Create makes the draft
-     7 ‹ The counter in the sheet's head goes back to the Counter
+     7 the bar's ‹ goes back to the page asked from (Home, or the page named)
      8 the owner's three screens: the head and Create in view, nothing
        sideways
    THE SECOND PASS (the checker's list, 18 Oct 2026; node half f753):
@@ -48,6 +48,8 @@
         money, even with a ledger and a dated USD rate on file
      15 step 3's streams are separate buttons, each its own edge, amber-washed
         and amber-edged while owed
+   THE FOURTH PASS (main brought in again, 19 Oct 2026; node half f753 (10)):
+     16 "Change the ask" lands on Jambo's box through the one lander (LAND ON IT)
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/one-sheet-as-drawn-verify.js */
 const fs = require('node:fs');
@@ -114,7 +116,7 @@ const SAY = 'NDA with Volvo Cars for a pilot';
           return row && cost ? { cost: t(cost), inRow: cost.getBoundingClientRect().top < row.getBoundingClientRect().bottom && cost.getBoundingClientRect().top >= row.getBoundingClientRect().top - 1 } : null; })() }; };
 
     /* 1 + 2 the head, the sheet beside Jambo */
-    check('0 the Counter\'s box brings the sheet and Jambo\'s line', !!(await ask()));
+    check('0 Home\'s box brings the sheet and Jambo\'s line', !!(await ask()));
     await page.waitForTimeout(400);
     const S1 = await page.evaluate(SHEET);
     check('1a "New agreement · not created yet"', S1.title === 'New agreement not created yet', S1.title);
@@ -238,6 +240,15 @@ const SAY = 'NDA with Volvo Cars for a pilot';
     const back = await until(() => !document.getElementById('na-root') ? { page: ((document.getElementById('dk-page') || {}).innerText || '').trim(), key: window.deskKeyNow ? deskKeyNow() : null, view: state.view } : null, null, 6000);
     check('7b leaving by the bar\'s ‹ puts the sheet away and lands on the page asked from, named in the bar',
       !!back && back.page !== 'New agreement' && (was === 'home' ? back.view === 'counter' : back.key === was), JSON.stringify({ was, back }));
+    /* 16 THE FOURTH PASS (main's LAND ON IT): "Change the ask" puts the sentence back in Jambo's
+       box and lands on it through the one lander — lit, the caret in it, the sheet put away */
+    const up16 = await ask();
+    const has16 = up16 && await page.evaluate(() => !!document.getElementById('na-ask-again'));
+    if (has16) await page.click('#na-ask-again');
+    const L16 = has16 ? await until(() => { const i = document.getElementById('igd-input');
+      return !document.getElementById('na-root') && i && i.classList.contains('is-landed') ? { v: i.value, here: document.activeElement === i, end: i.selectionStart === i.value.length } : null; }, null, 6000) : null;
+    const D16 = L16 ? null : await page.evaluate(() => { const i = document.getElementById('igd-input'); return { root: !!document.getElementById('na-root'), box: !!i, v: i && i.value, cls: i && i.className.slice(-60), act: (document.activeElement || {}).id, conf: !!document.getElementById('confirm-overlay') }; });
+    check('16 Change the ask lands on Jambo\'s box: the sentence in it, lit, the caret at its end', !!L16 && L16.v === SAY && L16.here && L16.end, JSON.stringify({ up16: !!up16, has16, L16, D16 }));
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }
   finally {
     check('no page errors', !errors.length, errors.slice(0, 3).join(' | '));

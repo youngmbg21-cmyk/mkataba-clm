@@ -1184,7 +1184,7 @@ function openNewAgreement(o){
       api=(typeof tplLibNewContract==='function')?tplLibNewContract(id, prefill, hostOpts):null; }
     else { const t=mineOf().find(x=>x.id===id); name=t?t.name:id; ver=t?verOf(t):'';
       api=(typeof createFromCustomTemplate==='function')?createFromCustomTemplate(id, prefill, hostOpts):null; }
-    const n=api?api.count:0;
+    const nAll=api?api.count:0;
     dress(host);
     naCarryWrite(host, kept);
     naStreamAsk(host);
@@ -1197,11 +1197,11 @@ function openNewAgreement(o){
        is needed now" — the boxes the form itself marks required, by their labels */
     const needed=one?naNeeded(host):[];
     /* the sheet asks the stream at step 3, so step 2 neither draws nor counts it */
-    const n1=(one&&naStreamBox(host))?Math.max(0,n-1):n;
+    const n=(one&&naStreamBox(host))?Math.max(0,nAll-1):nAll;
     if(one) naQuestionsLay(host);
     if(sb) sb.textContent=`${ver&&!one?ver+' · ':''}${kind==='lib'
-      ? i18tn('na_details', n1, {n:n1})+(follow?' · '+i18tn('na_tpl_q_follow', follow, {n:follow}):'')
-      : i18tn('na_questions', n1, {n:n1})}${needed.length?' · '+i18tn('na_only_needed', needed.length, { names:needed.join(i18t('sa_and')) }):''}`;
+      ? i18tn('na_details', n, {n})+(follow?' · '+i18tn('na_tpl_q_follow', follow, {n:follow}):'')
+      : i18tn('na_questions', n, {n})}${needed.length?' · '+i18tn('na_only_needed', needed.length, { names:needed.join(i18t('sa_and')) }):''}`;
     if(one) naFromWordsMark(host);
     light();
   };
@@ -1358,8 +1358,13 @@ function openNewAgreement(o){
     /* CHANGE THE ASK: the sentence goes back into Jambo's box, to be said again */
     document.getElementById('na-ask-again')?.addEventListener('click',async()=>{ if(!(await naAskLeave())) return; dropHeld(); closeModal();
       const inp=document.getElementById('igd-input'); if(!inp) return;
-      inp.value=asked; try{ inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }catch(_){}
-      if(typeof chatFieldGrow==='function') chatFieldGrow(inp); });
+      /* the sentence in the box, the caret at its end, ready to be said again */
+      const put=el=>{ if(!el) return; if(el.value!==asked){ el.value=asked; if(typeof chatFieldGrow==='function') chatFieldGrow(el); }
+        try{ el.focus({ preventScroll:true }); el.setSelectionRange(el.value.length, el.value.length); }catch(_){} };
+      put(inp);
+      /* LAND ON IT (owner, 18 Oct 2026): on Jambo's box, lit by the one lander —
+         by its name, since the panel draws its box again once the sheet goes */
+      if(typeof landOn==='function') landOn('#igd-input',{ focus:false }).then(put); });
     document.getElementById('na-file')?.addEventListener('click',e=>{ const b=e.target.closest('[data-na-stream]'); if(!b) return;
       const v=b.getAttribute('data-na-stream'), sb=api?naStreamBox(document.getElementById('na-form')):null;
       if(v!=='__new__') streamPicked=v;

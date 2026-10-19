@@ -160,7 +160,8 @@ describe('f753 (5) step 2 and step 3 as drawn', () => {
   test('5a three columns; who we are, the counterparty and their email first; the stream not counted at step 2', () => {
     assert.match(WZ, /grid\.style\.gridTemplateColumns='repeat\(3,minmax\(0,1fr\)\)';/);
     assert.match(WZ, /const party=lab\('party'\), cp=lab\('counterparty'\), mail=lab\('cpemail'\);/);
-    assert.match(WZ, /const n1=\(one&&naStreamBox\(host\)\)\?Math\.max\(0,n-1\):n;/);
+    /* re-pointed (the fourth pass): the count keeps the name n, so f592's pin on the card's words stands */
+    assert.match(WZ, /const n=\(one&&naStreamBox\(host\)\)\?Math\.max\(0,nAll-1\):nAll;/);
     assert.match(IX, /\.na-one \.na-card-b \.field-grid\.na-three > label:first-child\{ grid-column:auto; \}/);
     assert.match(IX, /\.na-one #na-form #wz-err:empty\{ display:none; \}/, 'no empty band under the last row');
   });
@@ -213,5 +214,15 @@ describe('f753 (9) the streams as separate buttons', () => {
     assert.match(IX, /\.na-one \.na-file-b \.na-seg\{ border:0; border-radius:0; overflow:visible; gap:6px; \}/);
     assert.match(IX, /\.na-one \.na-file-b \.na-seg-b\{ border:1px solid var\(--rule-strong\); border-radius:var\(--radius\); \}/);
     assert.match(IX, /\.na-file-b:has\(> \.na-need:not\(\[hidden\]\)\) \.na-seg-b:not\(\.is-new\)\{ background:var\(--need-bg\); border-color:var\(--st-amber-line\); \}/);
+  });
+});
+/* THE FOURTH PASS (main's LAND ON IT, 18 Oct 2026, brought in): the sheet's own
+   door back to Jambo's box ("Change the ask") lands through the one lander. */
+describe('f753 (10) Change the ask lands on Jambo\'s box', () => {
+  test('10a the sentence goes back in the box, lit by landOn, the caret at its end', () => {
+    const f = strip(WZ.slice(WZ.indexOf("getElementById('na-ask-again')?.addEventListener"), WZ.indexOf("getElementById('na-file')?.addEventListener")));
+    assert.match(f, /el\.value=asked;/);
+    assert.match(f, /landOn\('#igd-input',\{ focus:false \}\)\.then\(put\)/, 'the one lander, by the box\'s name (the panel draws it again), never a hand-rolled focus alone');
+    assert.match(f, /setSelectionRange\(el\.value\.length, el\.value\.length\)/);
   });
 });

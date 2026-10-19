@@ -78,7 +78,11 @@ test('F349 (1) — the New agreement card reserves every line it draws', async t
     /* RE-POINTED IN PLACE 17 Oct 2026 (round 4, "One sheet"): the builder
        takes the "best match" mark as a second argument; the hover is asked
        the same way, once. */
-    assert.match(strip(WIZ), /const pickRow=\(r,best\)=>\{ const meta=\[r\.go\|\|'', r\.stream\|\|''\]\.filter\(Boolean\)\.join\(' · '\), hint=naCardTitle\(r\);/);
+    /* RE-POINTED 19 Oct 2026 (the gaps, round 4 "One sheet": the sheet's three closest are
+       cards — a radio and the shelf's facts — drawn by this same builder, a third argument
+       choosing the dress); the hover is still asked once, the list's row keeps go · stream. */
+    assert.match(strip(WIZ), /const pickRow=\(r,best,card\)=>\{ const on=[^\n]*?, hint=naCardTitle\(r\);/);
+    assert.match(strip(WIZ), /:\[r\.go\|\|'', r\.stream\|\|''\]\)\.filter\(Boolean\)\.join\(' · '\);/, "the list's row: go · stream");
     /* ASKED ONCE, BY THE ONE BUILDER — counted inside openNewAgreement, since
        naCardTitle's own definition names the same argument. */
     const na = strip(WIZ).slice(strip(WIZ).indexOf('function openNewAgreement'));

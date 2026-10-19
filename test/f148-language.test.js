@@ -58,6 +58,7 @@ const SAME_IN_BOTH = new Set([ 'int_tour_part', 'na_tab_hati', 'cal_k_plan', 'pd
   'brn_stk_w_route', 'brn_stk_w_server', 'brn_stk_w_sqlite', 'brn_stk_w_stack', 'brn_stk_w_token', 'brn_view_stack',
   'pd_back_copilot',   /* "‹ Copilot": the product's name, alike in both (8 Oct 2026) */
   'ag_wk_range',   /* "{from} – {to}": the week ahead's two dates, placeholders only (7 Oct 2026) */
+  'pd_rd_ck_n',   /* "{name} ({n})": a check's name and how many, placeholders only (the gaps, round 10, 18 Oct 2026) */
   'int_span_days',   /* "{n} d": the day's mark reads alike in both, as int_fact_decide always did */
   'rk_tt_fm',   /* "Force majeure": the same legal term in Swedish (6 Oct 2026) */
   /* the board work order (5 Oct 2026): placeholders and punctuation only */
