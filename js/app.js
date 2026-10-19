@@ -1542,6 +1542,10 @@ const PLACE_PARTS={
   brain:['brPlace','brPlacePut'],
   /* Jambo's agents keeps its tab, period, look and speed (12 Oct 2026) */
   jambo:['jhPlace','jhPlacePut'],
+  /* Requests keeps its tab, band boxes and chosen row; My notes its tab,
+     boxes and chosen note (round 20 as drawn, 19 Oct 2026) */
+  intake:['ikPlace','ikPlacePut'],
+  mynotes:['mnPlace','mnPlacePut'],
 };
 const PLACE_ONE_CONTRACT=['workspace','doc','redline'];
 const PLACE_BACK_MS=6000, PLACE_BACK_EVERY=120, PLACE_SAVE_WAIT=250;

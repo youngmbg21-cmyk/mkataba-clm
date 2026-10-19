@@ -65,7 +65,10 @@ const check = (name, pass, detail) => {
     const says = await until(() => { const p = [...document.querySelectorAll('.mn-form .mn-hint')].map(x => x.textContent).find(t => /bell and on your calendar/.test(t)); return p || null; });
     await page.screenshot({ path: path.join(OUT, '1-form.png') });
     await page.click('#mn-save');
-    const saved = await until(() => { const r = document.querySelector('.mn-t tbody tr'); const side = document.getElementById('mn-side');
+    /* RE-POINTED 19 Oct 2026 (round 20 as drawn, scene "My notes"): where the
+       width holds it the note opens in Jambo's panel beside the list
+       (#ins-panel, its verbs in the panel's head); narrower, the card's side */
+    const saved = await until(() => { const r = document.querySelector('.mn-t tbody tr'); const side = document.querySelector('#ins-panel.is-jambo') || document.getElementById('mn-side');
       return r && /liability cap/.test(r.textContent) && r.classList.contains('is-sel') && side && /Mark reviewed/.test(side.textContent) ? { row: r.textContent.replace(/\s+/g, ' ').trim(), priv: /only you can see/.test(side.textContent) } : null; });
     const onServer = await W.admin.json('/api/me/items?kind=note');
     const stored = onServer.items.find(n => /liability cap/.test(n.body));

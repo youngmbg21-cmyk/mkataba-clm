@@ -330,8 +330,11 @@ const check = (name, ok, detail) => {
        head white ITSELF (Insights' own rule), so the page left to is one that
        paints nothing there — the Calendar. RE-POINTED 11 Oct 2026: the
        Calendar is Home's tab now (and paints it white), so the page left to is
-       My notes, which paints nothing there. */
-    await page.evaluate(() => setView('mynotes'));
+       My notes, which paints nothing there. RE-POINTED 19 Oct 2026 (round 20
+       as drawn): My notes is a white-band list page now (.sap-page, the
+       Requests band), so the page left to is the Brain, which paints nothing
+       there. */
+    await page.evaluate(() => setView('brain'));
     await page.waitForTimeout(1500);
     const left = await page.evaluate(() => {
       const e = document.querySelector('#page-head');

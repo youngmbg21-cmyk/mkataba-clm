@@ -415,12 +415,18 @@ function insActsHtml(list, menuHtml, moreAria){
   const shown = (list || []).filter(a => a && !a.inSub && !a.inBody);
   const acts = shown.filter(a => !a.door).map(btn).join('');
   const doors = shown.filter(a => a.door).map(btn).join('');
-  const more = menuHtml ? `<span class="ins-more-wrap">
+  const more = insMoreHtml(menuHtml, moreAria);
+  if (doors) return (acts ? `<div class="ins-acts">${acts}</div>` : '') + `<div class="ins-acts ins-doors">${doors}${more}</div>`;
+  return (acts || more) ? `<div class="ins-acts">${acts}${more}</div>` : '';
+}
+/* THE ⋯ AND ITS MENU — one builder: after the head's verbs, or (an item head
+   with `moreBesidePills`) at the end of its pill row, where three drawn verbs
+   leave no room beside them (round 20, the request) */
+function insMoreHtml(menuHtml, moreAria){
+  return menuHtml ? `<span class="ins-more-wrap">
       <button type="button" class="ui-btn ui-btn-icon ins-more" data-ins-more aria-haspopup="true" aria-expanded="false"
         title="${esc(i18t('reg_more_actions'))}" aria-label="${esc(moreAria || i18t('reg_more_actions'))}">${typeof icon === 'function' ? icon('more') : ''}</button>
       <div class="ins-menu" data-ins-menu hidden>${menuHtml}</div></span>` : '';
-  if (doors) return (acts ? `<div class="ins-acts">${acts}</div>` : '') + `<div class="ins-acts ins-doors">${doors}${more}</div>`;
-  return (acts || more) ? `<div class="ins-acts">${acts}${more}</div>` : '';
 }
 /* One act's button, the head's own markup — for a page that draws an act
    inside a section of its own (an act marked `inBody`). */
@@ -683,8 +689,10 @@ function insItemHeadHtml(o){
       : `<h2 class="ins-cp is-item" title="${esc(opt.title || '')}">${esc(opt.title || '—')}</h2>`}
     ${opt.sub ? `<div class="ins-sub is-item">${opt.sub}</div>` : ''}
     ${opt.pill ? `<div class="ins-pill-row"><span class="reg-stg ins-pill${INS_TONE.includes(opt.pillTone) ? ' is-' + opt.pillTone : ''}"><i aria-hidden="true"></i>${opt.pill}</span></div>` : ''}
+    ${''/* SEVERAL PILLS IN ONE ROW (round 20, the request: "Routine · ⇉ With you ·
+           by the NDA lane"), caller-built like the eyebrow */}${opt.pills ? `<div class="ins-pill-row jl-pills">${opt.pills}${opt.moreBesidePills ? insMoreHtml(opt.menuHtml, opt.moreAria) : ''}</div>` : ''}
     ${opt.status && !opt.statusBeside ? `<div class="ins-st">${tone ? `<i class="ins-dot2 is-${tone}" aria-hidden="true"></i>` : ''}<span class="ins-st-t">${opt.status}</span></div>` : ''}
-    ${insActsHtml(opt.acts, opt.menuHtml, opt.moreAria)}
+    ${insActsHtml(opt.acts, (opt.pills && opt.moreBesidePills) ? '' : opt.menuHtml, opt.moreAria)}
   </div>`;
 }
 /* ---- ONE FILTER CHIP, THE CONTRACTS PAGE'S OWN (26 Sep 2026) ----
@@ -975,6 +983,8 @@ const INS_PAGE_REPAINT = {
   directory: 'renderDirectory',
   obligations: 'obwRepaint',
   intake: 'renderIntake',
+  /* My notes beside Jambo's panel where it fits (round 20, scene "My notes") */
+  mynotes: 'renderMyNotes',
   /* Not an inspector: the Advice tab of Requests, whose frame follows this
      line so its tab row sits where the Contracts tab's does (gap F). */
   advice: 'renderAdviceDesk',
@@ -1434,7 +1444,7 @@ Object.assign(window, { INS_MIN_W, INS_ASKS_MAX, INS_LATEST, INS_READ_TONE,
   insForce, insFits, insSelected, insSelect, insPick, insFacts, insMove, insMoveCellHtml,
   insTable, insReads, insLatest, insSecHtml, insFactsHtml, insTableHtml, insReadsHtml, insLatestHtml,
   insHeadHtml, insParties, insPartiesHtml, insNeedsHtml, insNeedsLineHtml, insNeedWords, INS_NEED_VERB, INS_NEED_GO, insPanelHtml, insPanelEmptyHtml, insPaintPanel, insCloseMenu, insMarkRow, insListWire,
-  insListOff, insWatchWidth, insActsHtml, insDoorActs, insNegoDoorState, insMenuItemHtml, insItemHeadHtml, INS_TONE, insKvHtml, insChipHtml, insViewTabsHtml,
+  insListOff, insWatchWidth, insActsHtml, insMoreHtml, insDoorActs, insNegoDoorState, insMenuItemHtml, insItemHeadHtml, INS_TONE, insKvHtml, insChipHtml, insViewTabsHtml,
   INS_PAGE_REPAINT, insLetGo, insLetGone, insActBtnHtml, insRowsHtml, JL_READ_ORDER, jlReadsHtml, jlReadSaid,
   JL_W, JL_FOLDED, jlFolded, jlFoldSet, jlHost, jlOnScreen, jlReserved, jlLayout, jlCount, jlAskHtml, jlFrame, jlWordsHtml, jlNeedsHtml,
   JL_LAND, jlLand, jlPageWord, jlToWords, jlHeldContract, jlBoardReads, jlAsk, jlMapCard, jlFocus, jlPopRead, jlPopClose, jlPopTake, jlDayWord, jlDayRange, jlAwayOf });

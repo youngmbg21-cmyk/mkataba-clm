@@ -156,10 +156,17 @@ describe('F220 — the screen, pinned at the source', () => {
     assert.match(src, /logAudit\(c,'Requested'/, 'and the contract records where it came from');
   });
 
-  test('the AI shortens the choice and never owns it', () => {
-    const fn = src.slice(src.indexOf('async function intakeSuggestTemplate'), src.indexOf('async function intakeDraft'));
-    assert.match(fn, /if\(!\(typeof API_MODE==='function'&&API_MODE\(\)\)\|\|!state\.aiConfigured\) return null;/,
-      'no key, no suggestion — and the picker still opens');
+  /* RE-POINTED 19 Oct 2026 (round 20 of the redesign as drawn, the owner's
+     yes to build every gap): the paper Start the draft chooses is READ, never
+     asked of a model — the request panel's Jambo line names it (ikFitOf: the
+     words shared with our paper, caDraftRank) and the press opens the form
+     with THAT one chosen. The silent POST /api/ai/template on the press
+     (intakeSuggestTemplate) is retired; the form's own "Let Jambo fill the
+     form" is where a call is spent, its cost said on it. */
+  test('the choice is read, never asked of a model, and the person still owns it', () => {
+    const fn = src.slice(src.indexOf('async function intakeDraft'), src.indexOf('function intakeContractSent'));
+    assert.match(fn, /const pick=ikFitOf\(r\);/, 'the paper the panel names');
+    assert.ok(!/ai\/template|intakeSuggestTemplate/.test(src.replace(/\/\*[\s\S]*?\*\//g, '')), 'no model is asked from this page (comments aside)');
     /* RE-POINTED 4 Oct 2026: every shelf, company standards first — the
        candidates are draft-from-a-sentence's own, and the drafting screen
        lists them all whatever Copilot said. */
@@ -169,7 +176,8 @@ describe('F220 — the screen, pinned at the source', () => {
   test('every act still asks canEdit, and the form is open to everyone', () => {
     assert.match(src, /async function intakeDraft\(id\)\{\s*\n\s*if\(!canEdit\(\)\)/,
       'drafting is an editor\'s act');
-    const form = src.slice(src.indexOf('function openIntakeForm'), src.indexOf('async function intakeSuggestTemplate'));
+    /* the slice ends where the shelf begins (intakeSuggestTemplate, its old end, retired 19 Oct 2026) */
+    const form = src.slice(src.indexOf('function openIntakeForm'), src.indexOf('function ikShelfOf'));
     assert.ok(!/canEdit/.test(form), 'asking is not — that is the point of the door');
   });
 

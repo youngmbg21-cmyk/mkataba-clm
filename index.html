@@ -1575,6 +1575,7 @@
   [data-dlg-page] .dlg-pg-head{ flex:none; background:var(--color-surface); border-bottom:1px solid var(--rule-strong);
     padding:var(--page-pad-t,16px) var(--band-pad-x,24px) 14px; display:flex; flex-direction:column; gap:6px; }
   [data-dlg-page] .dlg-pg-crumb{ font-size:var(--t-label); color:var(--color-neutral-600); }
+  [data-dlg-page] .dlg-pg-crumb .dlg-pg-back{ font-size:inherit; }
   [data-dlg-page] .dlg-pg-row{ display:flex; align-items:center; gap:var(--s-3); min-width:0; }
   [data-dlg-page] .dlg-pg-title{ flex:1; min-width:0; }
   [data-dlg-page] .dlg-pg-title > *{ font-family:var(--font-heading); font-size:var(--t-page); font-weight:var(--w-strong); color:var(--color-text); }
@@ -14215,7 +14216,9 @@
   .ins-quiet{color:var(--color-neutral-500);}
   .ins-nobody{color:var(--st-amber-fg);font-weight:var(--w-label);}
   /* REQUESTS, THE SAP WAY (round 20): the lane that sent it, the files' clip, the day asked */
-  .ik-lane-chip{display:block;margin:1px 0 0 26px;font-size:var(--t-micro);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ik-lane-chip{display:inline-flex;align-items:center;gap:3px;margin-left:6px;padding:0 7px;height:18px;border:1px solid var(--color-divider);border-radius:999px;
+    font-size:var(--t-micro);color:var(--color-neutral-600);white-space:nowrap;vertical-align:1px;background:var(--color-surface);}
+  .ik-lane-ic{width:11px;height:11px;flex:none;}
   .ik-files-n{display:inline-flex;align-items:center;gap:3px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums;}
   .ik-lt td.ik-ask{white-space:nowrap;font-variant-numeric:tabular-nums;}
   /* Unassigned is a state, not an alarm (SAP benchmark, owner-approved 9 Oct 2026). */
@@ -14678,13 +14681,119 @@
     border:1px solid var(--field-line);border-radius:var(--radius);background:var(--color-surface);color:var(--color-neutral-600);}
   .ik-search:focus-within{border-color:var(--color-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 25%,transparent);}
   .ik-search input{flex:1;min-width:0;border:0;background:none;font:inherit;font-size:var(--t-meta);color:var(--color-text);outline:0;}
-  .ik-lt td.ik-pr{white-space:nowrap;text-align:right;}
-  .ik-lt th:last-child{text-align:right;}
+  .ik-lt td.ik-pr{white-space:nowrap;text-align:left;}
+  .ik-lt th:last-child{text-align:left;}
+  /* THE WHOLE TITLE (round 20 as drawn: every request's name and who asked
+     read whole): on the narrower screens a long one wraps inside its cell
+     rather than cutting with an ellipsis */
+  .ik-lt .ins-c2 > b, .ik-lt .ins-c2 > span{white-space:normal;overflow-wrap:anywhere;}
+  /* the tab's number as drawn: a small grey figure after the word, no box */
+  .sap-page .reg-tabbar.ik-tabbar .reg-vtab .n{background:none;padding:0 0 0 2px;}
   .ins-pill-row{margin-top:var(--s-2);}
-  .ik-ins .ins-panel .ins-acts .ins-lead{flex:1 1 auto;justify-content:center;}
+  /* round 20 as drawn: the verbs at their own width, Start the draft first */
+  .ik-ins .ins-panel .ins-acts .ins-lead,.mn-ins .ins-acts .ins-lead{flex:0 1 auto;justify-content:center;}
+  /* the three verbs on one line in the panel's 380, as drawn — in Svenska too */
+  :is(.mn-ins,.ik-ins) .ins-panel .ins-h .ins-acts{gap:6px;}
+  :is(.mn-ins,.ik-ins) .ins-panel .ins-h .ins-acts .ui-btn{padding-inline:10px;}
   .ik-cp{display:inline-flex;align-items:center;gap:var(--s-2);min-width:0;}
   .ik-file-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;}
   .ik-file-list .ui-link{display:inline-flex;align-items:center;gap:6px;}
+  /* ═══ REQUESTS AND MY NOTES, AS DRAWN (round 20 of the redesign, owner
+     picked "The SAP way"; every drawn part built on the owner's yes of 18 Oct
+     2026; js/views/intake.js, js/views/mynotes.js) ═══
+     The band: the tabs, and beside them each box with its label BEFORE it,
+     outside the box ("Stream [All streams ▾]") — round 20's drawing, scoped to
+     these two pages' band (.ik-fb), so the other bands keep "Stream: All". */
+  .sap-page .reg-tabbar > .reg-fb.ik-fb{gap:var(--s-4);}
+  /* the tabs keep their place on the band's foot, the boxes beside them do not
+     lift them: Requests' row and the Advice board's row stand at one height */
+  .sap-page .reg-tabbar.ik-tabbar{align-items:flex-end;}
+  .sap-page .reg-tabbar.ik-tabbar > .reg-views{margin-top:2px;}
+  .sap-page .reg-tabbar.ik-tabbar > .reg-fb.ik-fb{align-self:center;}
+  /* ONE ROW AT EVERY SCREEN, IN EITHER LANGUAGE (round 20 as drawn; lane A3's
+     second pass, measured at 1366×950 in Svenska): the row never wraps, the
+     find box gives way first and the boxes' values cut with an ellipsis */
+  .sap-page .reg-tabbar.ik-tabbar{flex-wrap:nowrap;}
+  .sap-page .reg-tabbar.ik-tabbar > .reg-views{flex:0 0 auto;}
+  .sap-page .reg-tabbar.ik-tabbar > .reg-fb.ik-fb{flex:0 1 auto;min-width:0;flex-wrap:nowrap;}
+  .sap-page .reg-tabbar.ik-tabbar .ik-fb-find{flex:0 1 auto;min-width:0;}
+  .sap-page .reg-tabbar.ik-tabbar .ik-fb-find .ik-search{min-width:96px;flex:0 1 176px;}
+  /* a label and a chosen value never give way ("Ström", "Alla affärsområden"
+     whole): the find box, whose words are the reader's own, gives way first */
+  .sap-page .reg-tabbar.ik-tabbar .reg-fb.ik-fb .reg-chip{flex:none;}
+  .sap-page .reg-tabbar.ik-tabbar .reg-fb.ik-fb .reg-chip .reg-f-l,
+  .sap-page .reg-tabbar.ik-tabbar .ik-fb-l{flex:none;overflow:visible;text-overflow:clip;}
+  .sap-page .reg-tabbar.ik-tabbar .reg-fb.ik-fb .reg-chip .reg-f-v{flex:none;}
+  /* measured at 1366×950 in Svenska (second check): the gaps and the arrow's
+     room give a little so every box's value reads whole */
+  .sap-page .reg-tabbar.ik-tabbar > .reg-fb.ik-fb{gap:var(--s-3);}
+  .sap-page .reg-tabbar.ik-tabbar .reg-fb.ik-fb .reg-chip:not(.reg-chip-btn){gap:6px;}
+  .sap-page .reg-tabbar.ik-tabbar .ik-fb-find{gap:6px;}
+  .sap-page .reg-tabbar.ik-tabbar .reg-fb.ik-fb .reg-chip .reg-f-v{padding-right:24px;}
+  .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip:not(.reg-chip-btn){gap:8px;padding:0;border:0;background:none;box-shadow:none;}
+  .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip:not(.reg-chip-btn):hover,
+  .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip:not(.reg-chip-btn):focus-within{border:0;background:none;box-shadow:none;}
+  .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip .reg-f-l{font-size:var(--t-meta);margin:0;color:var(--color-neutral-700);}
+  .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip .reg-f-l::after{content:none;}
+  .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip .reg-f-v{display:flex;align-items:center;height:var(--ctl-h);min-width:112px;max-width:170px;padding:0 28px 0 10px;
+    border:1px solid var(--chip-edge);border-radius:var(--radius);background:var(--color-surface);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip:hover .reg-f-v{border:1px solid var(--color-neutral-400);}
+  .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip:focus-within .reg-f-v{border:1px solid var(--color-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 25%,transparent);}
+  .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip.on .reg-f-v{border-color:var(--color-accent);color:var(--accent-ink);}
+  .ik-fb-find{display:flex;align-items:center;gap:8px;margin:0;}
+  .ik-fb-l{font-size:var(--t-meta);color:var(--color-neutral-700);white-space:nowrap;}
+  .ik-fb-find .ik-search{width:176px;}
+  .ik-fb-clear{white-space:nowrap;font-size:var(--t-meta);}
+  /* the head: "Requests 4 open · what colleagues ask Legal for · advice too" */
+  .ik-hf-n{color:var(--color-neutral-600);}
+  .ik-hf-s{margin-left:12px;font-size:var(--t-meta);color:var(--color-neutral-600);}
+  /* the list's head note ("oldest waiting first") and its count's pill */
+  .ins-cardhead-t .ik-card-n{margin-left:2px;}
+  .ins-cardhead-t .ik-card-m{margin-left:6px;font-size:var(--t-meta);font-weight:var(--w-body);color:var(--color-neutral-600);}
+  /* the list's card ends after its last row (as drawn), the foot under it */
+  #content .ik-ins .ins-body:has(> #ins-panel.is-jambo),
+  #content .mn-ins .ins-body:has(> #ins-panel.is-jambo){align-items:start;}
+  #content .ik-ins .ins-body:has(> #ins-panel.is-jambo) > .ins-card,
+  #content .mn-ins .ins-body:has(> #ins-panel.is-jambo) > .ins-card{max-height:100%;}
+  /* How it is handled, a pill in the drawing's tones; With, the name alone,
+     "You" in its own weight */
+  .ik-road{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:var(--w-label);
+    white-space:nowrap;background:var(--st-gray-bg);color:var(--st-gray-fg);max-width:100%;overflow:hidden;text-overflow:ellipsis;}
+  .ik-road.is-routine,.ik-road.is-lane{background:var(--st-green-bg);color:var(--st-green-fg);}
+  .ik-road.is-close{background:var(--st-amber-bg);color:var(--st-amber-fg);}
+  /* on the chosen row's tint the grey Standard pill keeps an edge, so it still reads */
+  .ins-lt tbody tr.is-sel .ik-road.is-standard{box-shadow:inset 0 0 0 1px var(--color-divider);}
+  /* a wrapped title and its asker breathe inside their row */
+  .ik-lt .ins-c2{padding:8px 0;}
+  /* "What <asker> asked for": a small grey label over their words, as drawn */
+  #ins-panel .ik-need h3{font-size:var(--t-meta);font-weight:var(--w-body);color:var(--color-neutral-600);}
+  .ik-lt.is-team td.ik-with{white-space:nowrap;}
+  .ik-who.is-you > span{font-weight:var(--w-strong);color:var(--color-text);}
+  .ik-lt.is-team .ik-who{color:var(--color-text);}
+  .ik-kind{height:20px;}
+  /* THE PANEL: two pills under the title, the ask in their own words, the
+     counterparty's door, the files as cards */
+  .jl-pills{display:flex;flex-wrap:wrap;align-items:center;gap:6px;}
+  .jl-pills .ik-road{height:22px;font-size:var(--t-meta);}
+  .jl-pills > .ins-more-wrap{margin-left:auto;}
+  /* the request's reference line may take two lines: a long stream's name reads whole */
+  .ik-ins #ins-panel .ins-h .ins-eb{white-space:normal;overflow:visible;text-overflow:clip;}
+  .ik-with-chip{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 9px;border:1px solid var(--color-divider);border-radius:999px;
+    font-size:var(--t-meta);color:var(--color-neutral-700);background:var(--color-surface);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
+  .ik-with-chip.is-nobody{color:var(--st-amber-fg);border-color:var(--st-amber-line);}
+  .ik-ask-q{margin:0;padding:10px 14px;border-left:3px solid var(--rule-strong);border-radius:var(--radius);background:var(--surface-2);
+    line-height:1.55;white-space:pre-wrap;color:var(--color-text);overflow-wrap:anywhere;}
+  .ik-cp-go{border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);cursor:pointer;text-align:left;}
+  .ik-cp-go:hover{text-decoration:underline;}
+  .ik-cp-go:focus-visible{outline:2px solid var(--accent-ink);outline-offset:1px;}
+  .ik-cp-nda{color:var(--color-text);}
+  .ik-file-cards{display:flex;flex-direction:column;gap:8px;}
+  .ik-file{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:var(--color-surface);}
+  .ik-file-ic{width:16px;height:16px;flex:none;color:var(--color-neutral-700);}
+  .ik-file-b{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.35;}
+  .ik-file-b b{font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ik-file-b span{font-size:var(--t-meta);color:var(--color-neutral-600);}
+  .ik-fit-sec .jl-say{margin-top:2px;}
   /* The Directory (Faces, 13 Oct 2026) draws its own band, wall and panel
      rows from js/views/directory.js (DIR_CSS). The empty closing band stays
      for the pages that still use it (Import). */

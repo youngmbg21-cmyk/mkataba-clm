@@ -382,7 +382,9 @@ describe('f804 (10) the head says what it holds on every page', () => {
     assert.match(f, /insPaintPanel\(Object\.assign\(\{ host: hostId \}, jl, opts\)\)/);
   });
   test('10b Requests: "Request"', () => {
-    assert.match(code(IK), /insPaintPanel\(Object\.assign\(\{ jlWord:i18t\('jl_w_request'\) \}, r\._adv\?ikAdvicePanelOpts\(r\):ikPanelOpts\(r, asker\)\)\)/);
+    /* RE-POINTED 19 Oct 2026 (lane A3, round 20 as drawn): the panel also
+       names its seat and Jambo's words with nothing chosen */
+    assert.match(code(IK), /insPaintPanel\(Object\.assign\(\{ seat, jlWord:i18t\('jl_w_request'\), jlSay:ikJlSay\(openAll, asker, go\) \}, r\._adv\?ikAdvicePanelOpts\(r\):ikPanelOpts\(r, asker\)\)\)/);
   });
   test('10c the words, both books', () => {
     const books = I18N.split(/\n  sv: \{/);

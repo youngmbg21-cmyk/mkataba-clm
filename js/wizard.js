@@ -1032,9 +1032,9 @@ function openNewAgreement(o){
              its own. Without the desk's bar the crumb stays words. */
           ...((typeof deskShellOn==='function'&&deskShellOn())
             ? {}
-            : { crumb:`${i18t('nav_contracts')} › ${i18t('na_title')}` }),
+            : { crumb:`${i18t('nav_contracts')} › ${i18t('na_title')}`, back:o.backLabel||'' }),
           beside:'#ig-dock' }
-        : { acts:['na-create','na-skip','wz-pick-cancel'], crumb:`${i18t('nav_contracts')} › ${i18t('na_title')}` },
+        : { acts:['na-create','na-skip','wz-pick-cancel'], crumb:`${i18t('nav_contracts')} › ${i18t('na_title')}`, back:o.backLabel||'' },
       /* ESCAPE AND THE SCRIM ASK TOO (9 Oct 2026) — see naAskLeave below. */
       onBeforeClose: ()=>naAskLeave() });
   /* A STAGE WITHOUT REAL ELEMENTS (a sandbox that only records the markup)
