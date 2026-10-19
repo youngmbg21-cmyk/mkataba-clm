@@ -222,6 +222,8 @@ const SAME_IN_BOTH = new Set([ 'st_jb_c_need', 'st_cf_trail_last', 'st_tr_as_csv
      and a count, not one word to translate; and "Import", the Import page's word on
      Jambo's panel (round 22), is the same word in Swedish (as ag_k_import above) */
   'cu_owner_more', 'mig_side_word',
+  /* 19 Oct 2026: the panel's Guide ("Journey") — "Guide" and "Import" are Swedish words too */
+  'gd_title', 'gd_tab', 'gd_p_import',
 ]);
 
 describe('f148 — the two dictionaries stay level', () => {
