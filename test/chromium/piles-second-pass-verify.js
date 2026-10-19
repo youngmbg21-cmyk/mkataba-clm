@@ -153,12 +153,16 @@ async function login(b, base, email, pass, errs){
       return { names, pill: ps ? { bg: ps.backgroundColor, r: parseFloat(ps.borderTopLeftRadius) } : null, risks: !!f.querySelector('#rl-risks'),
         lastPile: [...f.querySelectorAll('#rl-changes > [data-rl-pile]')].map(p => p.getAttribute('data-rl-pile')).pop(),
         after: (() => { const ch = f.querySelector('#rl-changes'); let n = ch && ch.nextElementSibling, t = '';
-          while (n){ if (n.getClientRects().length) t += n.textContent.trim(); n = n.nextElementSibling; } return t.slice(0, 60); })(),
+          while (n){ if (n.getClientRects().length && n.id !== 'rl-risks') t += n.textContent.trim(); n = n.nextElementSibling; } return t.slice(0, 60); })(),
         rungs, ph: (document.getElementById('igd-input') || {}).placeholder };
     });
     check('1a inside "Waiting on you" the paper\'s order: 7. Liability cap, then 11. Payment terms', one.names.join('|') === '7. Liability cap|11. Payment terms', JSON.stringify(one.names));
     check('1b "Redlines 4" wears a grey pill', !!one.pill && one.pill.bg !== 'rgba(0, 0, 0, 0)' && one.pill.r >= 8, JSON.stringify(one.pill));
-    check('1c nothing under the settled fold', !one.risks && one.lastPile === 'accepted' && one.after === '', JSON.stringify({ risks: one.risks, last: one.lastPile, after: one.after }));
+    /* RE-POINTED 19 Oct 2026 (owner: "where are risks cards with the why drop
+       down buttons? … restore them"; CLAUDE.md PILES AS DRAWN, RESTORED): the
+       risk cards stand under the piles beside Home's paper again — nothing
+       else under the settled fold */
+    check('1c nothing under the settled fold but the restored risk cards', one.risks &&one.lastPile === 'accepted' && one.after === '', JSON.stringify({ risks: one.risks, last: one.lastPile, after: one.after }));
     check('1d Home\'s paper draws no step chips while Redlines is open', one.rungs === 0, String(one.rungs));
     check('1e the box asks "Ask for a number, a list or a contract…"', one.ph === 'Ask for a number, a list or a contract…', one.ph);
 
@@ -166,7 +170,10 @@ async function login(b, base, email, pass, errs){
     await page.click('#pd-redface [data-rl-notes-all]');
     const nv = await waitFor(page, () => { const v = document.querySelector('#pd-redface .rl-fn'); if (!v) return null;
       return { tabs: [...v.querySelectorAll('.rl-fn-tab')].map(t => ({ t: t.innerText.replace(/\s+/g, ' ').trim(), lock: !!t.querySelector('svg'), on: t.classList.contains('on') })),
-        back: (v.querySelector('[data-rl-fn-back]') || {}).textContent, lines: [...v.querySelectorAll('.rl-fn-line')].map(l => l.innerText.replace(/\s+/g, ' ').trim()),
+        /* RE-POINTED 19 Oct 2026 (ONE TRAIL, owner picked it: every face draws ONE trail, its
+           one back first, named for where it goes): beside the paper the notes' own back is put
+           away (#pd-redface .rl-fn-back hidden) and "‹ Redlines" is the trail line's back */
+        back: (b => b ? '‹ ' + b.textContent.trim() : null)(document.querySelector('#ig-dock .pd-trail [data-pd-back="red-notes"]')), lines: [...v.querySelectorAll('.rl-fn-line')].map(l => l.innerText.replace(/\s+/g, ' ').trim()),
         say: [...v.querySelectorAll('.rl-fn-say')].map(s => s.textContent.trim()), ph: (v.querySelector('.rl-fn-in') || {}).placeholder,
         post: (v.querySelector('[data-rl-fn-post]') || {}).textContent, piles: !!(document.querySelector('#pd-redface #rl-changes') || {}).hidden,
         drawer: !!(state.panelOpen && panelFace() === 'notes'), pressed: document.querySelector('#pd-redface [data-rl-notes-all]').getAttribute('aria-pressed') }; }, 6000);
@@ -187,7 +194,8 @@ async function login(b, base, email, pass, errs){
       return v && own.length === 1 && own[0].visibility !== 'shared' && /Internal 3/.test(v.querySelector('.rl-fn-tab').innerText.replace(/\s+/g, ' '))
         && [...v.querySelectorAll('.rl-fn-say')].some(s => /Finance can live with 45 days/.test(s.textContent)) ? true : null; }, 8000);
     check('2f Post files one internal note through the drawer\'s own send, and it shows', !!posted);
-    await page.click('#pd-redface [data-rl-fn-back]');
+    /* RE-POINTED 19 Oct 2026 (ONE TRAIL): ‹ Redlines is the trail line's back */
+    await page.click('#ig-dock .pd-trail [data-pd-back="red-notes"]');
     check('2g ‹ Redlines brings the piles back', !!(await waitFor(page, () => !document.querySelector('#pd-redface .rl-fn') && !!document.querySelector('#pd-redface [data-rl-pile="awaiting"]'), 5000)));
     await page.click('#pd-redface [data-rl-notes-all]');
     await waitFor(page, () => !!document.querySelector('#pd-redface .rl-fn'), 5000);
@@ -200,8 +208,8 @@ async function login(b, base, email, pass, errs){
     const ed = await waitFor(page, () => { const p = document.getElementById('clause-editor'); if (!p || !p.classList.contains('ce-rowmode')) return null;
       const doc = document.getElementById('ce-doc');
       const shown = [...doc.querySelectorAll('[data-clause]')].filter(e => e.getClientRects().length && !e.parentElement.closest('[data-clause]'));
-      return { head: (document.getElementById('ce-rowhead') || {}).innerText, bar: [...document.querySelectorAll('#ce-bar [data-rb]')].map(b => b.getAttribute('data-rb')).join(','),
-        exit: !!p.querySelector('[data-ce-act="close"]'), ctx: (doc.querySelector('.ce-row-ctx') || {}).textContent,
+      return { head: (document.getElementById('ce-rowhead') || {}).innerText, hover: (document.querySelector('#ce-rowhead [data-ce-act="row-back"]') || {}).title, bar: [...document.querySelectorAll('#ce-bar [data-rb]')].map(b => b.getAttribute('data-rb')).join(','),
+        exit: (x => !!(x && x.getClientRects().length))(p.querySelector('[data-ce-act="close"]')), ctx: (doc.querySelector('.ce-row-ctx') || {}).textContent,
         shown: shown.map(e => e.querySelector('h4, .rl-clause-h') ? e.querySelector('h4, .rl-clause-h').textContent.trim() : e.getAttribute('data-clause')),
         step: (doc.querySelector('.ce-row-on .ce-row-is') || {}).textContent, boxEdge: (() => { const b = doc.querySelector('.ce-row-on #ce-clausebody'); return b ? getComputedStyle(b).borderTopStyle : null; })(),
         dim: (() => { const n = doc.querySelector('.ce-row-next'); return n ? Number(getComputedStyle(n).opacity) : null; })(),
@@ -209,9 +217,13 @@ async function login(b, base, email, pass, errs){
         lane: (document.getElementById('ce-lane') || {}).innerText, foot: (document.getElementById('ce-railfoot') || {}).innerText,
         cost: (document.querySelector('#ce-lane .ce-row-jb .cost') || {}).textContent, ask: !!document.querySelector('#ce-lane .ce-row-jb [data-ce-chip]'),
         rowH: Math.round(document.querySelector('#clause-editor .ce-barrow').getBoundingClientRect().height) }; }, 8000);
-    check('3a the head: ‹ Redlines, "Counter · 7. Liability cap", "Nordvik asks 100% · back lands on the same row", Exit',
-      !!ed && /^‹ Redlines\s+Counter · 7\. Liability cap\s+Nordvik asks 100% · back lands on the same row$/.test((ed.head || '').trim()) && ed.exit, JSON.stringify(ed && ed.head));
-    check('3b the short shelf: B I U • 1. ⇤ ⇥', !!ed && ed.bar === 'bold,italic,underline,insertUnorderedList,insertOrderedList,outdent,indent', ed && ed.bar);
+    /* RE-POINTED 19 Oct 2026 (owner, of the clause editor's top strip: "bring this back to what it
+       was before", "‹ Redlines at the top left, to match the panel"; MAP-HISTORY "ONE TRAIL, THE RISK
+       CARDS AND THE EDITOR'S STRIP RESTORED"): "‹ Redlines" alone first, the act's title on its
+       hover, no Exit; the full shelf as opened any other way */
+    check('3a the head: ‹ Redlines alone, "Counter · 7. Liability cap · Nordvik asks 100% · back lands on the same row" on its hover, no Exit',
+      !!ed && /^‹ Redlines$/.test((ed.head || '').trim()) && /^Counter · 7\. Liability cap · Nordvik asks 100% · back lands on the same row$/.test(ed.hover || '') && !ed.exit, JSON.stringify(ed && [ed.head, ed.hover, ed.exit]));
+    check('3b the full shelf, B I U • 1. ⇤ ⇥ among it', !!ed && ['bold', 'italic', 'underline', 'insertUnorderedList', 'insertOrderedList', 'outdent', 'indent'].every(k => ed.bar.split(',').includes(k)), ed && ed.bar);
     check('3c the context line, then clause 7 alone with clause 8 dimmed', !!ed && ed.ctx === 'Master services agreement · MK-0382 · Nordvik Logistik AB · round 2'
       && ed.shown.length === 2 && /Liability cap/.test(ed.shown[0]) && /Insurance/.test(ed.shown[1]) && ed.dim < 0.8, JSON.stringify(ed && [ed.ctx, ed.shown, ed.dim]));
     /* RE-POINTED 19 Oct 2026 (main's rule, owner 18 Oct: nothing of the ladder in the editor): no step number, and only what is true */
@@ -228,7 +240,8 @@ async function login(b, base, email, pass, errs){
     }
     await page.setViewportSize({ width: 1440, height: 780 }); await pause(300);
     await page.click('#ce-railfoot [data-ce-act="walk-next"]');
-    const stay = await waitFor(page, () => !!document.getElementById('clause-editor') && /Liability cap/.test((document.getElementById('ce-rowhead') || {}).innerText || '')
+    /* RE-POINTED 19 Oct 2026 (the strip restored, above): the clause the editor stands on is read off the ‹ Redlines hover */
+    const stay = await waitFor(page, () => !!document.getElementById('clause-editor') && /Liability cap/.test((document.querySelector('#ce-rowhead [data-ce-act="row-back"]') || {}).title || '')
       && [...document.querySelectorAll('.toast, [data-toast], #toast-root *')].some(t => /Erik/.test(t.textContent)), 5000);
     check('3h › onto the clause Erik holds is said, and the page stays', !!stay);
     await page.click('#ce-rowhead [data-ce-act="row-back"]');
