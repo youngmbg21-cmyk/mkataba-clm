@@ -184,8 +184,12 @@ test('f299 (5b) Copilot\'s sentence rides as a second line only where it says so
   /* RE-POINTED 8 Oct 2026 (Young, "Home first": the answer's first line is
      always the plain answer): Copilot's sentence IS the answer, and what the
      map did rides the hover of "How this was drawn" (m.how). */
-  assert.match(last(win).text, /^<p class="ai-p">MK-3 and MK-6 are the drafts still to send\.<\/p>$/);
-  assert.equal(last(win).how, 'Grouped 6 contracts into 3 groups by status');
+  /* RE-POINTED 18 Oct 2026 (owner: "when the map only regroups, the first thing
+     you read will be the app's plain line"): over a map that narrowed nothing,
+     HaTi's line leads and the sentence follows it; over a set (below) the
+     sentence still leads and the line rides "How this was drawn". */
+  assert.match(last(win).text, /^Grouped 6 contracts into 3 groups by status<p class="ai-p">MK-3 and MK-6 are the drafts still to send\.<\/p>$/);
+  assert.equal(last(win).how, '');
   // a filter line: showing N of T · label, and the cap is a fact
   win.eval('intel.lenses=[]; intel.groupBy="folder";');
   win.intelGraphApply('leases', { visibleIds: ['MK-1', 'MK-2'], note: 'Leases', action: 'filter', answer: 'Two leases, MK-1 the larger.' }, { capped: { sent: 600, total: 700 } });
