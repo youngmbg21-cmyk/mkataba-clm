@@ -736,8 +736,13 @@ describe('f193 — the tab row does not scroll away', () => {
        an inline margin-bottom the bleed's shorthand would fight. */
     /* re-pointed 9 Oct 2026 (SAP benchmark, batch 2): the row now sits in the
        page's white band and lost its inline margin; still not opted in. */
-    const tplRow = /<div class="st-tabs" role="tablist">/.exec(LIB);
-    assert.ok(tplRow, 'the Templates row still draws without the opt-in');
+    /* RE-POINTED 19 Oct 2026 (round 21 as drawn: "Paper first"): the row now
+       also wears `tpl-tabs`, which only dresses its counts as plain numbers
+       (f763) — so the row is found by its own Templates tab, and the claim is
+       the same: it is the .st-tabs row, and it does not opt into the pin. */
+    const tplRow = /<div class="([^"]*)" role="tablist">(?:(?!<\/div>)[\s\S])*?data-tpl-tab="book"/.exec(LIB);
+    assert.ok(tplRow && /(?:^| )st-tabs(?: |$)/.test(tplRow[1]), 'the Templates row is still the .st-tabs row');
+    assert.ok(!/st-tabs-pin/.test(tplRow[1]), 'the Templates row still draws without the opt-in');
   });
   test('the row is sticky at the top of the scroller, above the rows, opaque', () => {
     assert.ok(RULE, '.st-page > .st-tabs still has a rule of its own');

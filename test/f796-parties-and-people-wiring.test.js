@@ -33,7 +33,7 @@ describe('f796 (1) every new word in both books', () => {
   const KEYS = ['cu_find_city', 'cu_head_on_paper', 'cu_col_city', 'cu_col_live', 'cu_col_ended', 'cu_col_paper', 'cu_list_sort', 'cu_list_live', 'cu_list_ended',
     'cu_shown_n', 'cu_show_more', 'cu_cols', 'cu_cols_title', 'cu_cols_up', 'cu_cols_down', 'cu_cols_reset', 'cu_n_agreements_one', 'cu_n_agreements_other',
     'cu_since', 'cu_all_ended_one', 'cu_all_ended_other', 'cu_city_add', 'cu_city_change_title', 'cu_f_org', 'cu_org_none', 'cu_pr_add', 'cu_pr_change',
-    'cu_owner_you', 'cu_owner_more', 'cu_f_live', 'cu_live_n', 'cu_live_none_one', 'cu_live_none', 'cu_nda_secret', 'cu_nda_secret_cap', 'cu_nda_by_you', 'cu_nda_by',
+    'cu_owner_you', 'cu_owner_more', 'cu_f_live', 'cu_live_n', 'cu_live_one_ended', 'cu_live_none', 'cu_nda_secret', 'cu_nda_secret_cap', 'cu_nda_by_you', 'cu_nda_by',
     'cu_nda_none_long', 'cu_ag_ends', 'cu_ag_ended', 'cu_ag_secret', 'cu_ag_secret_good', 'cu_people_at', 'cu_pp_negotiates', 'cu_pp_signs', 'cu_pp_advises', 'cu_pp_reads',
     'cu_pp_more', 'cu_pp_none', 'cu_draft_with', 'cu_need_request', 'cu_req_someone', 'cu_req_word', 'cu_need_go_request', 'cu_need_redlines_one', 'cu_need_redlines_other',
     'cu_need_approval_short', 'cu_need_approval_for', 'cu_nda_draft_sub', 'cu_days_ago_one', 'cu_days_ago_other', 'cu_pr_from', 'cu_pr_use', 'cu_pr_save', 'cu_pr_cancel', 'cu_pr_saved', 'cu_pr_err',

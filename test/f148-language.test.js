@@ -218,6 +218,10 @@ const SAME_IN_BOTH = new Set([ 'st_jb_c_need', 'st_cf_trail_last', 'st_tr_as_csv
   'cu_col_nda', 'cu_nda_word',
   /* the trail drawer: two days and a dash, and words Swedish shares */
   'st_tr_span', 'st_tr_col_period', 'st_tr_people_one', 'bz_people_one',
+  /* 19 Oct 2026: the Parties panel's owner with more ("{name} · +{n}") is a name, a dot
+     and a count, not one word to translate; and "Import", the Import page's word on
+     Jambo's panel (round 22), is the same word in Swedish (as ag_k_import above) */
+  'cu_owner_more', 'mig_side_word',
 ]);
 
 describe('f148 — the two dictionaries stay level', () => {

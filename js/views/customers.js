@@ -1073,7 +1073,7 @@ function cuLiveSay(v){
   if (v.active.length){ const m = cuMoney() ? cuMoneyWords(v.active) : ''; return m ? i18t('cu_live_n', { n: v.active.length, v: m }) : String(v.active.length); }
   const one = v.expired.length === 1 ? v.expired[0] : null;
   const y = one ? String(cuEnds(one) || '').slice(0, 4) : '';
-  return one && y ? i18t('cu_live_none_one', { name: one.name || cuDay(cuEnds(one)), y }) : i18t('cu_live_none', { n: v.expired.length });
+  return one && y ? i18t('cu_live_one_ended', { name: one.name || cuDay(cuEnds(one)), y }) : i18t('cu_live_none', { n: v.expired.length });
 }
 function cuNextSay(v){
   if (!v.next) return '';

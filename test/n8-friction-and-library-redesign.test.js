@@ -133,7 +133,7 @@ describe('N8 (3) — the templates library page', () => {
   /* The rows render into #tpl-rows (repainted on search without losing the
      shell); the stand-in document keeps that host as its own node, so the
      rows are asserted there — same convention as f103's section host. */
-  test('company paper leads the table, and the pile a reader arrives on is what they can use', () => {
+  test('company paper leads the table, and the Ready to use pile is what they can use (round 21: the tab opens on All)', () => {
     const s = libraryStage(); s.renderTemplatesPage();
     const html = s.document.getElementById('tpl-rows').innerHTML;
     const first = html.indexOf('Wanjiru Standard MSA');
@@ -147,7 +147,16 @@ describe('N8 (3) — the templates library page', () => {
        first screen. It is not hidden: the rail names it, counts it in amber
        and it is one press away. The claim below is the other half of the same
        ruling and is asserted where it is now true. */
-    assert.ok(!html.includes('Continue editing'), 'a draft is not in the Ready to use pile');
+    /* RE-POINTED 19 Oct 2026 (round 21 as drawn: "Paper first", check #1 —
+       the tab's number is the list behind it): the Templates tab now opens on
+       All, so "Templates N" counts exactly the rows a reader arrives on, and the
+       draft is drawn there wearing its Draft mark. Ready to use is one press
+       away in the rail, and a draft is still never in it — asserted off the
+       reading that pile filters by (tplRowPile), not the arrival screen. */
+    assert.match(html, /data-tpllib-edit="tpl_2"/, 'arriving on All, the draft is listed with its one verb');
+    const ready = s.tplPageRows().filter(r => s.tplRowPile(r) === 'ready').map(r => r.id);
+    assert.ok(ready.includes('tpl_1'), 'the published standard is in the Ready to use pile');
+    assert.ok(!ready.includes('tpl_2'), 'a draft is not in the Ready to use pile');
   });
 
   test('and on its own pile a draft says Draft and offers Continue editing', () => {
