@@ -91,7 +91,13 @@ const SHEET_TOP = `(() => {
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
-  await seedWorkspace(h);
+  /* RE-POINTED 19 Oct 2026 (round 10 as drawn: The road): while a yes is the
+     work, Before you sign folds the column — the signing order and the places
+     card — behind Ready to sign's "Show". The fixture is 78M and the seeded
+     rule "Value ≥ KES 5M" put an admin's yes on the road; this file is about
+     places on the paper, not approval rules, so it says the house's way:
+     this workspace has none. */
+  await seedWorkspace(h, { approvalRules: [] });
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const ctx = await browser.newContext({ viewport: { width: 1500, height: 1000 } });
   const page = await ctx.newPage();

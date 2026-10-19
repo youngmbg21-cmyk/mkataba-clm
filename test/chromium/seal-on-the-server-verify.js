@@ -95,6 +95,17 @@ const until = async (fn, ms = 8000, step = 150) => { const end = Date.now() + ms
       const list = Array.isArray(r) ? r : (r.shares || []);
       return list.find(s => String(s.signerId || s.signer_id || '') === 'sg_cp' && !s.revokedAt && !s.revoked_at) || null; });
     check('1b  their signing link is issued once our signature is on file (B8)', !!shares, shares ? 'token ' + String(shares.token).slice(0, 6) : 'none');
+    /* RE-POINTED 19 Oct 2026 (round 10 as drawn: The road): once we have
+       signed, the open stop is THEIR stop, and the column under the road — the
+       signing order with each row's link state — folds behind Ready to sign's
+       "Show". It is unfolded the way a reader does (a real press, asked for
+       the state, bounded), and the claim is read off the same signing order. */
+    await until(async () => page.evaluate(() => {
+      const b = document.querySelector('#pd-signface [data-pd-rd-show]');
+      const body = document.querySelector('#pd-signface .pd-sf-body');
+      return !!b || !!(body && body.style.display !== 'none');
+    }), 6000);
+    if (await page.$('#pd-signface [data-pd-rd-show][aria-expanded="false"]')) await page.click('#pd-signface [data-pd-rd-show]');
     const row = await until(async () => page.evaluate(() => { const t = document.body.innerText;
       return /IN OUTBOX/.test(t) ? { outbox: true, notSent: /NOT SENT YET/.test(t) } : null; }), 6000);
     check('1d  the signing order says their link is issued and its email in the outbox — not "NOT SENT YET" (B8)',

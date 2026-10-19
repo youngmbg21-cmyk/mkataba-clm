@@ -422,29 +422,50 @@ const ROUTE = [
        Signing tab to press; its door (roomGoTab 'sign') opens the Before you
        sign face on Home, which for an executed contract is the receipt
        (.pd-sf.is-closed) and holds the same #sign-side column. */
+    /* RE-POINTED 19 Oct 2026 (round 10 as drawn: The road — "on The road
+       every stop is ticked and the last one, Sealed and sent, opens"): the
+       receipt says who signed when ONCE, on the road's ticked stops, and the
+       column under it (#sign-side, the old signing order card) is no longer
+       drawn on an executed contract. The owner's 22 Aug claim is asked of what
+       is drawn now: the record of how it was signed stays — a stop per signer,
+       every one ticked, each naming its signer and that they signed — it says
+       the contract is executed, in VISIBLE words, and nothing in it presses. */
     await page.evaluate(id => roomGoTab(getContract(id), 'sign'), execId);
-    await page.waitForFunction(id => !!document.querySelector(`#pd-signface .pd-sf[data-pd-sf="${id}"] #sign-side section`), execId, { timeout: 8000 }).catch(() => {});
+    await page.waitForFunction(id => !!document.querySelector(`#pd-signface .pd-sf.is-closed[data-pd-sf="${id}"] [data-pd-road-stop]`), execId, { timeout: 8000 }).catch(() => {});
     const closed = await page.evaluate(id => {
-      const side = document.querySelector('#pd-signface #sign-side') || document.getElementById('sign-side');
+      const face = document.querySelector(`#pd-signface .pd-sf[data-pd-sf="${id}"]`);
+      const road = face && face.querySelector('[data-pd-road]');
+      const side = face && face.querySelector('#sign-side');
       const c = state.contracts.find(x => x.id === id);
-      const r = side && side.getBoundingClientRect();
-      const ctrls = side ? [...side.querySelectorAll('button,select,input,textarea')] : [];
+      const vis = el => { if (!el) return false; const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
+      const stops = road ? [...road.querySelectorAll('[data-pd-road-stop]')] : [];
+      const said = stops.filter(x => /^step/.test(x.getAttribute('data-pd-road-stop')))
+        .map(x => (x.innerText || '').replace(/\s+/g, ' ').trim());
+      const names = (c.signerPlan || []).map(x => x.name);
+      /* whatever of the record a reader can SEE: the road, and the column if drawn */
+      const ctrls = [road, side].filter(Boolean).flatMap(el => [...el.querySelectorAll('button,select,input,textarea')]).filter(vis);
+      const execLine = ((face && face.innerText) || '').split('\n').map(t => t.trim()).find(t => /executed/i.test(t)) || null;
       return { executed: c.status === 'Signed',
-        visible: !!(r && r.width > 0 && r.height > 0),
-        cards: side ? side.querySelectorAll('section').length : 0,
-        saysOrder: !!(side && /Signing order/i.test(side.innerText || '')),
-        note: side && side.querySelector('.sign-closed-note')
-          ? side.querySelector('.sign-closed-note').textContent.replace(/\s+/g, ' ').trim() : null,
+        receipt: !!(face && face.classList.contains('is-closed')),
+        /* the road's holder is display:contents (its stops sit in the face's
+           own column order), so each STOP is asked for its pixels */
+        visible: stops.length > 0 && stops.every(vis),
+        stops: stops.length,
+        ticked: stops.length > 0 && stops.every(x => x.classList.contains('is-done')),
+        signers: names.length > 0 && names.every(n => said.some(t => t.includes(n) && /signed/i.test(t))),
+        said,
+        note: execLine,
         controls: ctrls.length,
         anyLive: ctrls.some(b => !b.disabled),
-        liveLinks: side ? side.querySelectorAll('a[href]').length : 0,
-        addSigner: !!(side && side.querySelector('#sp-add-signer')) };
+        liveLinks: [road, side].filter(Boolean).flatMap(el => [...el.querySelectorAll('a[href]')]).filter(vis).length,
+        addSigner: vis(face && face.querySelector('#sp-add-signer')) || vis(face && face.querySelector('[data-pd-rd-route]')) };
     }, execId);
     check('executed: the fixture really is executed', closed.executed, JSON.stringify(closed));
-    check('executed: the signing column is still drawn',
-      closed.visible && closed.cards >= 1 && closed.saysOrder, JSON.stringify(closed));
-    check('executed: and it says the contract is executed and closed',
-      !!closed.note && /executed and closed/i.test(closed.note), closed.note);
+    check('executed: the record of how it was signed is still drawn — every stop ticked, each signer named as signed',
+      closed.receipt && closed.visible && closed.ticked && closed.signers, JSON.stringify(closed));
+    check('executed: and it says the contract is executed, in visible words',
+      !!closed.note && /executed/i.test(closed.note), closed.note);
     /* NOT "there are controls and none is live": a contract with no approval
        rule and no add-signer button legitimately draws none, and requiring one
        would fail on the quietest record for no reason. The claim is that
