@@ -650,5 +650,5 @@ function jamboTalkTabInner(){
   return `<span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${face || '<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-chat"/></svg>'}</span></span><span class="pd-tab-w">${e}</span>`;
 }
 /* the Overview tab's mark on every panel (the grid the room's Overview wore) */
-const JAMBO_LAND_GLYPH = '\u25A6\uFE0E';
+var JAMBO_LAND_GLYPH = '\u25A6\uFE0E';
 Object.assign(window,{JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});
