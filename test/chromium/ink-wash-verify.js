@@ -20,6 +20,15 @@
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
 
+   RE-RECORDED 19 Oct 2026 (twentieth), OWNER-ASKED (the same "Yes, re-save
+   it", for the last of the gap build: every list page's head is the drawn
+   white card, Jambo's chips on the buttons' hairline, Before you sign keeps
+   Ready to sign's checks open). Audited as a set difference: no colour new
+   to the record, nothing gone; counts moved on Obligations, Our paper,
+   Settings, Home and signing (the card's own edge, the live tab in the
+   theme's ink, the signing column now unfolded); one text size back on the
+   record — 8px, the approval chain's existing step badge (js/approvals.js,
+   on main too), now in view on the signing screen.
    RE-RECORDED 19 Oct 2026 (nineteenth), OWNER-ASKED ("Yes, re-save it",
    after the gap build of every picked redesign drawing). Audited as a set
    difference: no colour new to the palette — new to the record are only
