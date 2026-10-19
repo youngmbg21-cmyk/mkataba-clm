@@ -242,7 +242,8 @@ const answer = body => {
         return { t, lead: [...(p ? p.querySelectorAll('[data-ag-act]') : [])].map(b => b.getAttribute('data-ag-act')) };
       });
       ok('8b nobody named: the panel says the contract\'s owner is the one reminded, and opens the Obligations tab',
-        /Reminded/.test(pan.t) && /Amina Otieno/.test(pan.t) && pan.lead.join(',') === 'oblig', JSON.stringify(pan).slice(0, 400));
+        /* RE-POINTED 18 Oct 2026 (round 23's gaps: Put away is on every piece, the owner's yes): its one act, then Put away */
+        /Reminded/.test(pan.t) && /Amina Otieno/.test(pan.t) && pan.lead.join(',') === 'oblig,away', JSON.stringify(pan.lead) + ' ' + pan.t.slice(0, 300));
       await page.screenshot({ path: path.join(OUT, '7-our-promises.png') });
       await page.keyboard.press('Escape').catch(() => {});
     }

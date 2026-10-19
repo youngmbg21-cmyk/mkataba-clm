@@ -18,6 +18,8 @@ const { ndaClean, ndaFacts } = require('../js/nda.js');
 /* THE LETTER (round 11, 17 Oct 2026): the share email's words, written once for
    the send screen that draws it and this route that mails it (js/sharemail.js). */
 const { shareMailOf, shareMailNameOf, signerTurnMailOf, shareRoundOf, shareAnswersOf } = require('../js/sharemail.js');
+/* THE CHASE (round 23's gaps, 18 Oct 2026): the reminder the Counter's Look draws, written once */
+const { chaseMailOf, chaseDayWords } = require('../js/sharemail.js');
 /* One dictionary, two hosts. The server writes email and needs the recipient's
    own language from the SAME table the screens use — a second copy here would
    drift from js/i18n.js without anything noticing, which is the fault the
@@ -15400,18 +15402,26 @@ app.post('/api/contracts/:id/handover', auth, editor, async (req, res) => {
    chase is the SAME message a person's press sends, word for word. `firm`
    is the second, firmer chase (Young ruled 27 Sep 2026): the same facts,
    and the date the first went. The caller has checked the address. */
+/* THE LETTER, MADE ONCE (round 23's gaps, 19 Oct 2026: "Look shows the email
+   whole"): srvChaseMail writes the chase exactly as it will leave — the words,
+   the standing link where there is one, the sign-off — and both the send
+   below and the preview route (GET …/chase-preview, which Look on a chase
+   draws) take it from here, so the screen never shows less than the inbox
+   gets. It reads; it sends and writes nothing. */
 async function srvChaseSend(req, c, o, to, { firm = false } = {}) {
+  const m = srvChaseMail(req, c, o, to, { firm });
+  const r = await sendEmail(to, m.subject, m.body, `chase: ${c.name || c.id}`);
+  return r;
+}
+function srvChaseMail(req, c, o, to, { firm = false } = {}) {
   const L = langForEmail(to);
   /* THE DAY IN WORDS, IN THE READER'S LANGUAGE (the owner's list, 27 Sep
      2026): the message printed the stored "2026-09-21". A calendar day is read
      as that day (UTC, so no time zone moves it); anything unreadable is left
      as written rather than guessed at. */
-  const dayWords = v => {
-    const iso = String(v || '').slice(0, 10);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return v || '';
-    try { return new Date(iso + 'T00:00:00Z').toLocaleDateString(L === 'sv' ? 'sv-SE' : 'en-GB',
-      { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }); } catch (_) { return iso; }
-  };
+  /* ONE READING WITH THE COUNTER'S LOOK (js/sharemail.js chaseDayWords): the
+     year only where it is not this year's ("14 October", as drawn) */
+  const dayWords = v => chaseDayWords(v, L, now().slice(0, 10));
   const dueWords = dayWords(o.due);
   const vars = { desc: o.desc || '', name: c.name || contractRef(c), id: contractRef(c), due: dueWords };
   /* ---- A DATE THAT DOES NOT EXIST IS NOT WRITTEN INTO A SENTENCE ----
@@ -15424,10 +15434,7 @@ async function srvChaseSend(req, c, o, to, { firm = false } = {}) {
   if (firm) vars.first = dayWords(String(o.chasedAt || '').slice(0, 10));
   /* NOT YET DUE IS "IS DUE ON", NEVER "WAS DUE ON" (B11, 8 Oct 2026): chasing
      early is allowed, and the sentence says what is true on the day it goes. */
-  const soon = o.due && String(o.due).slice(0, 10) > now().slice(0, 10) ? '_soon' : '';
-  const line = firm
-    ? tFor(L, o.due ? 'mail_ob_chase_firm_line' + soon : 'mail_ob_chase_firm_line_nodate', vars)
-    : tFor(L, o.due ? 'mail_ob_chase_line' + soon : 'mail_ob_chase_line_nodate', vars);
+  const soon = !!(o.due && String(o.due).slice(0, 10) > now().slice(0, 10));
   /* ---- THE LINK IS ONE THIS READER CAN OPEN, OR THERE IS NO LINK ----
      This sent `#contract=<id>`, which openFromHash resolves against the
      signed-in reader's own scoped bootstrap — on the far side of the sign-in
@@ -15442,14 +15449,36 @@ async function srvChaseSend(req, c, o, to, { firm = false } = {}) {
        AND (expires_at IS NULL OR expires_at > ?) ORDER BY created_at DESC LIMIT 1`
   ).get(c.id, new Date().toISOString());
   const link = st && st.token ? shareUrl(req, st.token) : '';
-  const r = await sendEmail(to,
-    tFor(L, firm ? 'mail_ob_chase_firm_subject' : 'mail_ob_chase_subject', vars),
-    `${tFor(L, 'mail_hello')},\n\n${line}`
-      + (link ? `\n\n${tFor(L, 'mail_ob_chase_open')}\n${link}` : '')
-      + `\n\n${tFor(L, 'mail_automated_notice')}`,
-    `chase: ${c.name || c.id}`);
-  return r;
+  /* THE WORDS ARE js/sharemail.js's (round 23's gaps, 18 Oct 2026): the
+     Counter's Look draws this letter from the same builder. It is signed by
+     the person pressing, for our company on this agreement (c.party, else the
+     workspace) — the caller is looked up, never read from the body. */
+  let party = String(c.party || '').trim();
+  if (!party) { try { party = String(((getSetting('org') || {}).name) || '').trim(); } catch (_) { party = ''; } }
+  const m = chaseMailOf({ t: (k, v) => tFor(L, k, v), firm, dated: !!o.due, soon, vars, link: link || null,
+    sender: (req && req.user && req.user.name) || '', party });
+  return { ...m, link: !!link };
 }
+/* LOOK ON A CHASE: the letter as the route above will send it, link and all.
+   The same walls as the send — the contract in the reader's scope, the
+   obligation theirs and open, the address the contract's own (never read from
+   the request) — and nothing sent, stamped or written. Any member who can open
+   the contract may read it (its standing link is on the contract's own share
+   list already); only an editor may press Send. */
+app.get('/api/contracts/:id/chase-preview', auth, (req, res) => {
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let c = {}; try { c = JSON.parse(row.json) || {}; } catch (_) { c = {}; }
+  const q = req.query || {};
+  const o = (c.obligations || []).find(x => x && String(x.id) === String(q.obligationId || ''));
+  if (!o) return res.status(404).json({ error: 'That obligation is no longer on the contract.' });
+  if (String(o.party) !== 'theirs') return res.status(409).json({ error: 'That obligation is ours, not theirs — there is nobody to chase about it.', reason: 'ours' });
+  if (o.status === 'done') return res.status(409).json({ error: 'That obligation is already complete.', reason: 'done' });
+  const to = String(c.counterpartyEmail || '').trim();
+  if (!/.+@.+\..+/.test(to)) return res.json({ ok: false, reason: 'no-address', to: null });
+  const m = srvChaseMail(req, c, o, to, { firm: q.firm === '1' || q.firm === 'true' });
+  res.json({ ok: true, to, subject: m.subject, body: m.body, parts: m.parts, link: m.link });
+});
 app.post('/api/contracts/:id/chase', auth, editor, async (req, res) => {
   const b = req.body || {};
   if (b.email || b.to || b.address)
@@ -20426,6 +20455,30 @@ app.put('/api/me/prefs', auth, (req, res) => {
       if (Object.keys(mine).length) prefs.agentLevels = mine; else delete prefs.agentLevels;
     } else return res.status(400).json({ error: 'agentLevels must be an object or null' });
   }
+  /* WHAT THIS PERSON PUT AWAY OF JAMBO'S WORK (round 23's gaps, 18 Oct 2026:
+     Put away on every prepared piece). A piece the desk keeps (a notice, a
+     renewal, a chase) is put away on the contract by an editor, as it always
+     was; every other piece is put away for this person only — their Counter,
+     not a colleague's, and never the work it is about, which stays owed. Per
+     piece: the piece's key and what it was about when it was put away
+     (`on`); a piece about something new comes back. null takes it back out
+     (Undo). Kept to the newest AGENT_AWAY_MAX — A CAP IS A FACT, and an old
+     entry only ever hid work long since done. */
+  if ('agentAway' in (req.body || {})) {
+    const v = req.body.agentAway;
+    if (!v || typeof v !== 'object' || Array.isArray(v)) return res.status(400).json({ error: 'agentAway must be an object' });
+    const mine = { ...(prefs.agentAway && typeof prefs.agentAway === 'object' ? prefs.agentAway : {}) };
+    const ents = Object.entries(v);
+    if (ents.length > 20) return res.status(400).json({ error: 'At most 20 pieces at once' });
+    for (const [k, x] of ents) {
+      if (!AGENT_AWAY_KEY.test(k)) return res.status(400).json({ error: 'Not a piece of Jambo\u2019s work: ' + String(k).slice(0, 40) });
+      if (x === null) { delete mine[k]; continue; }
+      if (!x || typeof x !== 'object' || typeof x.on !== 'string' || x.on.length > 400) return res.status(400).json({ error: 'A piece put away says what it was about (on, at most 400 characters)' });
+      mine[k] = { on: x.on, at: now() };
+    }
+    const keep = Object.entries(mine).sort((a, b) => String(b[1].at || '').localeCompare(String(a[1].at || ''))).slice(0, AGENT_AWAY_MAX);
+    if (keep.length) prefs.agentAway = Object.fromEntries(keep); else delete prefs.agentAway;
+  }
   if ('agentsLook' in (req.body || {})) {
     const v = req.body.agentsLook;
     if (v === null) delete prefs.agentsLook;
@@ -22518,6 +22571,11 @@ function agentLevel(k) {
 /* THE LEVEL FOR ONE PERSON (round 23): their own choice where they made one
    ('ask' or 'mine' — a person only steps down), else the company's. */
 const AGENT_PERSON_LEVELS = ['ask', 'mine'];
+/* A PIECE PUT AWAY FOR ONE PERSON (round 23's gaps): its key, as the page builds it
+   ("answer:MK-1", "read:MK-2", "import:B-7", "week:2026-10-19:u_1", "desk:MK-3:chase:o1"),
+   and the newest this many kept */
+const AGENT_AWAY_KEY = /^[A-Za-z][A-Za-z0-9_-]{0,23}:[^\s]{1,160}$/;
+const AGENT_AWAY_MAX = 300;
 function agentLevelFor(k, u) {
   const co = agentLevel(k);
   let mine = null;
@@ -23086,6 +23144,9 @@ app.get('/api/agents/status', auth, (req, res) => {
     const runs = rows.slice(0, AGENT_RUNS_SHOWN).map(r => agentRunRow(r, money));
     const a = { on: !!cfg.on, level: agentLevel(k), autoOk: AGENT_AUTO_OK.includes(k), next: agentNextRun(k), running: [..._agentBusy].some(b => b.startsWith(k + ':')),
       runs, more: Math.max(0, total - runs.length) };
+    /* who set the level for everyone, and when (a colleague's name travels; the
+       Counter's line reads it) — absent while nobody has moved it from the start */
+    if (cfg.levelBy && cfg.levelBy.name) { a.levelBy = String(cfg.levelBy.name); a.levelById = String(cfg.levelBy.id || ''); a.levelAt = cfg.levelAt || null; }
     if (k === 'late') a.secondAfter = Number(cfg.secondAfter) || 7;
     if (money) { a.cfg = cfg; a.spentToday = agentSpentToday(k); }
     out[k] = a;
@@ -23332,7 +23393,15 @@ app.put('/api/agents/:k/settings', auth, admin, (req, res) => {
   if (b.on !== undefined) patch.on = !!b.on;
   if (b.level !== undefined) {
     const v = String(b.level);
-    if (!AGENT_LEVELS.includes(v) || (v === 'auto' && !AGENT_AUTO_OK.includes(k))) bad.push('level'); else patch.level = v;
+    if (!AGENT_LEVELS.includes(v) || (v === 'auto' && !AGENT_AUTO_OK.includes(k))) bad.push('level');
+    else {
+      patch.level = v;
+      /* WHO SET IT (round 23's gaps, 18 Oct 2026: the Counter says "All seven
+         agents: Ask me first · set by Sara for everyone"): written by the
+         server, only when the level MOVES, from the caller looked up — never
+         from the body, and a Save that leaves the level as it was names nobody. */
+      if (v !== agentLevel(k)) { patch.levelBy = { id: String(req.user.id), name: req.user.name || req.user.email || '' }; patch.levelAt = now(); }
+    }
   }
   if (AGENT_SCHEDULED.includes(k)) int('at', 0, 23);
   if ('max' in AGENT_DEFAULTS[k]) int('max', 1, 500);

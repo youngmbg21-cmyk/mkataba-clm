@@ -1646,7 +1646,13 @@ function lookDone(c){
    waiting on you, the colleague's suggestion, the renewal decision. The face
    is the door's own; this only says where in it the reader arrives. */
 const NEEDS_LAND={
-  approval:'#pd-signface #sa-card, #sa-card',
+  /* a named person's yes is its own card (#sa-card); an approval rule's step
+     is the Approval gate in the column, where its Approve stands (round 23's
+     gaps, 19 Oct 2026: "Open approval" and Home's lead chip opened Before you
+     sign with nothing lit) — else the road's yes stop the column opens under */
+  approval:()=>{ const sa=document.querySelector('#pd-signface #sa-card')||document.getElementById('sa-card'); if(sa) return sa;
+    const ap=document.querySelector('#pd-signface #ap-approve'); if(ap) return ap.closest('section')||ap;
+    return document.querySelector('#pd-signface [data-pd-road-stop="yes"]'); },
   refused:'#pd-signface .pd-road-stop.is-now',
   sign:'#pd-signface #sign-btn',
   details:'#pd-fillface [data-pd-owed="1"]',

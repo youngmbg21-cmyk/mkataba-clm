@@ -406,22 +406,38 @@ describe('f399 (6) — the cards and panels are as full as the drawing, off the 
     assert.equal(m.to, 'ops@kabras.example');
     assert.equal(m.subject, 'A reminder about Deliver the Q3 stock report');
     assert.ok(m.body.startsWith('Hello,'), 'the route\'s greeting');
-    assert.match(m.body, /This is a reminder about "Deliver the Q3 stock report" under our agreement ".+" \(MK-SUP-3\), which was due on \d{4}-\d{2}-\d{2}\./,
-      'the route\'s line, with the due date AS STORED — which is what the route writes');
-    assert.match(m.body, /automated notice from HaTi CLM\.$/);
+    /* RE-POINTED 18 Oct 2026 (round 23's gaps: "Look on a chase shows the
+       email whole"): the day in words, as the route has written it since 28
+       Sep — the page still printed the stored day — and signed by the person
+       who presses, for our company on the agreement, as drawn. */
+    /* RE-POINTED 18 Oct 2026 (round 23's gaps, second pass — the drawn letter:
+       "under our Supply agreement (MK-0368), which was due on 14 October"):
+       the agreement is named as ours, unquoted, and the year is said only
+       outside this year (chaseDayWords, one reading for both hosts). An act
+       ("Deliver …") keeps its quotation marks and asks where it stands. */
+    assert.match(m.body, /This is a reminder about "Deliver the Q3 stock report" under our .+ \(MK-SUP-3\), which was due on \d{1,2} [A-Z][a-z]+( \d{4})?\. Could you let us know where it stands\?/,
+      'the route\'s line, with the due date in words — which is what the route writes');
+    assert.match(m.body, new RegExp(String(win.currentUser().name).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(, .+)?$'), 'signed by the person who presses');
     /* THE RELATION, NOT THE WORDS: the route composes from these keys and these
        facts, so a change to either side has to be made to both. */
     /* RE-POINTED 27 Sep 2026: the route's message is srvChaseSend, lifted out
        so the firmer chase is the same message with its own keys. */
     const at = SRV.indexOf('async function srvChaseSend(');
     const route = SRV.slice(at, SRV.indexOf('\napp.', at + 10));
+    /* RE-POINTED 18 Oct 2026: ONE LETTER, TWO HOSTS — the keys live in
+       js/sharemail.js's chaseMailOf, and the route and the page both build
+       from it */
+    const SM = fs.readFileSync(path.join(__dirname, '..', 'js', 'sharemail.js'), 'utf8');
+    const one = SM.slice(SM.indexOf('function chaseMailOf('), SM.indexOf('const CHASE_MAIL_API'));
     for (const k of ['mail_ob_chase_subject', 'mail_ob_chase_line', 'mail_ob_chase_line_nodate', 'mail_hello', 'mail_automated_notice'])
-      assert.ok(route.includes(k), k + ' is the route\'s own key');
+      assert.ok(one.includes(k), k + ' is the letter\'s own key');
+    assert.match(route, /chaseMailOf\(/, 'the route builds from it');
+    assert.match(CODE, /chaseMailOf\(/, 'and so does the page');
     /* Re-pointed in place 28 Sep 2026: the due date is written in the letter's
        language as words (dueWords), not the stored ISO day. */
     assert.match(route, /name: c\.name \|\| contractRef\(c\), id: contractRef\(c\), due: dueWords/);
     assert.match(route, /langForEmail\(to\)/);
-    assert.match(CODE, /vars = \{ desc: \(o && o\.desc\) \|\| '', name: c\.name \|\| ref, id: ref, due: \(o && o\.due\) \|\| '' \}/, 'the page\'s facts mirror them');
+    assert.match(CODE, /vars = \{ desc: \(o && o\.desc\) \|\| '', name: c\.name \|\| ref, id: ref, due: dayWords\(o && o\.due\) \}/, 'the page\'s facts mirror them');
     const body = win.agPanelBody(L);
     assert.match(body, /class="ag-mail"/);
     assert.match(body, /Whose promise/);

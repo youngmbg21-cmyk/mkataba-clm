@@ -1003,6 +1003,9 @@ function updateSidebarCounts(){
      is exactly when the number can have moved. Nothing marks an alert as seen,
      so it goes down when the work does and never because somebody looked. */
   try{ updateAlertBadge(); }catch(e){}
+  /* …and the Counter's Needs you, where what it lists has moved since it was
+     drawn — a request or a note that arrived after the first paint (round 23's gaps) */
+  try{ if(typeof counterFollow==='function') counterFollow(); }catch(_){}
   /* The "AI Active" and "N Open" nav tags left with the sidebar doors they
      sat on (WO N1): a negotiation waiting on the reader is announced
      on the contract itself — the Negotiate tab's count — and on Home's

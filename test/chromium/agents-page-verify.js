@@ -136,7 +136,12 @@ const ok = (name, good, detail) => {
     ok('1b the old address lands on the Board', atBoard === 'dashboard', atBoard);
     const CARD = '.hb-ag-works .hb-ag-work';
     const pick = async k => { const okk = await page.evaluate(k => { if (typeof hbOpenAgent !== 'function') return false; hbOpenAgent(k); return true; }, k); await page.waitForTimeout(900); return okk; };
-    const openFirst = async () => !!(await page.$(CARD));
+    /* RE-POINTED 19 Oct 2026 (the owner's answer (18), "Fold to one line"):
+       each piece on the Board is one line until its Look is pressed, so what
+       these sections read inside a piece is read with the piece OPEN — Look
+       pressed (hbAgLookToggle, the press's own function), never left folded */
+    const lookAt = sel => page.evaluate(sel => { const p = document.querySelector(sel); if (p && !p.classList.contains('is-look') && typeof hbAgLookToggle === 'function') hbAgLookToggle(p.getAttribute('data-hb-ag-item')); return !!p; }, sel);
+    const openFirst = async () => { if (!(await page.$(CARD))) return false; await lookAt(CARD); await page.waitForTimeout(300); return true; };
     const act = async a => { const b = await page.$(`${CARD} [data-ag-act="${a}"]`); if (!b) return false; await b.click(); await page.waitForTimeout(900); return true; };
     const back = async () => { await page.evaluate(() => setView('dashboard')); await page.waitForTimeout(700); };
 
@@ -390,6 +395,7 @@ const ok = (name, good, detail) => {
          each shown card's whole record itself (hbAgentWorkHtml → agLoadWhole). */
       const CA = `.hb-ag-work[data-hb-ag-item="read:${fresh.a}"]`;
       await pick('paper');
+      await lookAt(CA);
       await page.waitForFunction(sel => { const b = document.querySelector(sel + ' [data-ag-tile="brief"]'); return !!b && /FY2026 external audit/.test(b.textContent); }, CA, { timeout: 8000 }).catch(() => {});
       const opened = await page.evaluate(sel => {
         const t = k => { const x = document.querySelector(`${sel} [data-ag-tile="${k}"]`); return x ? x.textContent.replace(/\s+/g, ' ').trim() : ''; };
@@ -414,6 +420,7 @@ const ok = (name, good, detail) => {
       await page.screenshot({ path: path.join(OUT, '10-brief.png') });
       await page.evaluate(() => { if (document.getElementById('side-panel')) closeModal(); });
       await pick('paper');
+      await lookAt(CA); await page.waitForTimeout(300);
       const ob = await page.$(`${CA} [data-ag-act="obs"]`);
       if (ob) { await ob.click(); await page.waitForTimeout(1200); }
       const review = await page.evaluate(() => ({ dialog: !!document.getElementById('or-add'), text: ((document.getElementById('modal-root') || {}).textContent || '').replace(/\s+/g, ' ').slice(0, 120) }));
@@ -456,6 +463,7 @@ const ok = (name, good, detail) => {
       const CA2 = `.hb-ag-work[data-hb-ag-item="read:${fresh.a}"]`;
       await page.evaluate(() => hbOpenAgent('paper'));
       await page.waitForSelector(CA2, { timeout: 5000 }).catch(() => {});
+      await lookAt(CA2);
       const f2 = await page.evaluate(sel => {
         const b = document.querySelector(sel + ' [data-ag-tile="brief"]'), sk = b && b.querySelector('.ag-skel');
         const st = document.querySelector(sel + ' [data-ag-tile="playbook"]');

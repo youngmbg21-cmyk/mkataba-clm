@@ -45,6 +45,8 @@ const SAME_IN_BOTH = new Set([ 'int_tour_part', 'na_tab_hati', 'cal_k_plan', 'pd
   'jl_w_person', 'jl_read_risks_one',
   /* Jambo's agents (12 Oct 2026): "1 agent", "Normal" and "Agent" are the same word in Swedish */
   'jh_n_agents_one', 'jh_sp_1', 'jh_col_agent', 'jh_pt_col_ex',
+  /* the Counter's levels line (round 23's gaps, 18 Oct 2026): "1 agent:" is the same words in Swedish */
+  'cn_lv_n_one',
   /* the Brain's Stack view (10 Oct 2026): product and service names (Node.js, Render, GitHub…), the
      technical words a developer uses, and the "say this to a developer" lines, kept English in both books on purpose */
   'brn_ov_stack', 'brn_stk_ask_1_s', 'brn_stk_ask_1_say', 'brn_stk_ask_2_s', 'brn_stk_ask_2_say', 'brn_stk_ask_3_s',
