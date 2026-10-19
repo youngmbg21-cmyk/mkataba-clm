@@ -282,9 +282,16 @@ describe('f756 (6) the column and the paper as drawn', () => {
   test('6c nothing under the settled fold beside Home\'s paper; no step chips on Home\'s paper', () => {
     assert.match(fnBody(PD, 'pdRedOpts'), /noProgress: true, noRisks: true/);
     assert.match(fnBody(NV, 'rlColumnHtml'), /\(!opts\.noRisks && !notesOn && typeof window\.rlRisksPileHtml === 'function'\)/);
-    assert.match(fnBody(NV, 'redlineDocHtml'), /const pillFor = cl => \(opts\.noRungs \? '' : rlLadderChipHtml\(c, cl, side, \{ pill: opts\.pill \}\)\)/);
-    assert.match(IGV, /\{ side:'owner', readonly:true, noRungs:true, \.\.\.\(hide\?\{ hiddenIds:hide \}:\{\}\) \}/, 'Home\'s Redline paper');
-    assert.match(IGV, /\{ side:'counterparty', readonly:true, preview:true, noRungs:true \}/, 'and Their view');
+    /* RE-POINTED 19 Oct 2026 (main's "NOTHING OF THE LADDER ON THE PAPER"):
+       the chip itself draws only a pinned rung's reading with its way back,
+       and the ladder beside Home's paper (the editor's rail, no verbs) offers
+       no "Read as it stood" — so no step chip can reach Home's paper, and the
+       round-9 switch that hid it (noRungs) is gone, never a second guard. */
+    assert.match(fnBody(NV, 'redlineDocHtml'), /const pillFor = cl => rlLadderChipHtml\(c, cl, side, \{ pill: opts\.pill \}\)/);
+    assert.match(fnBody(NV, 'rlLadderChipHtml'), /const at = rlReadMode\(\) === 'marks' \? rlReadAtRung\(c, id\) : null;\s*if \(!at\) return '';/);
+    assert.match(fnBody(NV, 'rlFaceLadderHtml'), /rlLadderSectionHtml\(c, \{ clauseId: String\(ch\.clauseId\) \}, side, \{ editor: true \}\)/);
+    assert.match(fnBody(NV, 'rlLadderSectionHtml'), /if \(!inEditor\) acts\.push\(/, 'the editor\'s ladder pins no rung');
+    assert.doesNotMatch(NV + IGV, /noRungs/, 'no second guard');
   });
   test('6d "Redlines 4" in a grey pill; the box asks as drawn beside Redlines, and keeps "Ask about MK-…" beside the letter', () => {
     assert.match(NCSS, /\.redline-page \.rl-idx-title i\{display:inline-grid;[^}]*border-radius:9px;background:var\(--color-neutral-100\)/);
@@ -359,8 +366,6 @@ describe('f756 (7) where Edit lands from a row, as drawn', () => {
 const CSSN = R('js/views/negotiation-css.js');
 const PZ = R('js/presence.js');
 const RVJ = R('js/review.js');
-const HTML8 = R('index.html');
-const APP8 = R('js/app.js');
 function stage8(extra = {}){
   const ctx = { window: {}, JSON, String, Set, Map, Array, Object, Number, Promise,
     i18t: (k, v) => k + (v ? '[' + Object.entries(v).map(([a, b]) => a + '=' + b).join(',') + ']' : ''),

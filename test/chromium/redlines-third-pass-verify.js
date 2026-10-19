@@ -23,7 +23,11 @@
        letter brings it back as it was
      5 after Send: "Round 3 · since …" (their asks did not just come), the
        pile "With Nordvik Logistik AB"
-   At d47fadb (the merge of main, this pass's parent) parts 1–5 FAIL.
+     6 (the fourth pass, fitted to main's LAND ON IT) the letter as a plain
+       dialog away from Home: its Go to clause 7 lands ON the clause on Home's
+       paper through the one lander, the dialog put away
+   At d47fadb (the merge of main, this pass's parent) parts 1–5 FAIL; part 6
+   FAILS at d4789db (the third pass), where that way waited a fixed 400 ms.
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/redlines-third-pass-verify.js
    Photos: HATI_SHOT_DIR=/some/dir node test/chromium/redlines-third-pass-verify.js */
@@ -296,6 +300,25 @@ const openFace = async page => {
     check('5a after Send the head says the round\'s own day, not that their asks just came', !!after && /^Round 3 · since /.test(after.head), JSON.stringify(after));
     check('5b the pile with the other side is named for the party', !!after && after.with === 'With Nordvik Logistik AB', JSON.stringify(after));
     await shot(page, '11-after-send-1440x780');
+
+    /* 6 fitted to main (LAND ON IT, 19 Oct 2026): the letter as a plain dialog
+       (opened away from Home, so not beside Jambo) — its "Go to clause 7" puts
+       the dialog away and lands ON the clause on Home's paper, the one lander's
+       way; at the parent this way only scrolled after a fixed pause */
+    await page.evaluate(() => { setView('approvals'); });
+    await waitFor(page, () => state.view === 'approvals', 4000);
+    await page.evaluate(() => { openShareModal(getContract('MK-0382')); });
+    const dlgGo = await waitFor(page, () => { const g = document.querySelector('#modal-root [data-sh-lt-goto]');
+      return g && !(window.pdSendFor && pdSendFor()) ? g.getAttribute('data-sh-lt-goto') : null; }, 15000);
+    check('6a the letter as a dialog still carries the stays card\'s Go to clause 7', !!dlgGo, String(dlgGo));
+    if (dlgGo){
+      await page.click('#modal-root [data-sh-lt-goto]', { timeout: 5000 }).catch(() => {});
+      const dl = await waitFor(page, (want) => { const l = document.querySelector('.is-landed');
+        return l && l.getAttribute('data-clause') === want ? { onPaper: !!l.closest('#ig-paper'), face: !!document.querySelector('#pd-redface'),
+          dialog: !!document.querySelector('#modal-root .modal-in'), text: l.innerText.slice(0, 40) } : null; }, 8000, dlgGo);
+      check('6b Go to clause 7 from the dialog lands on the clause on Home\'s paper, the dialog put away, Redlines beside it', !!dl && dl.onPaper && dl.face && !dl.dialog && /Liability cap/.test(dl.text), JSON.stringify(dl));
+      await shot(page, '11-goto-from-dialog-1440x780');
+    }
     check('no page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
   } catch (e) { check('the walk ran to its end', false, e && e.stack); }
   finally { await b.close(); await h.stop(); }

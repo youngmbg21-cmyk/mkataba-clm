@@ -318,4 +318,14 @@ describe('f757 (10) the third pass: Jambo\'s panel beside the letter holds cards
     assert.equal(door.textContent, '3', 'a door still counts');
     assert.equal(team.textContent, '', 'a rail pill with no count still empties, as before');
   });
+  test('10g fitted to main (19 Oct 2026): every "Go to clause N" lands through the one lander; the letter\'s page sits under the bar, no desk tabs row', () => {
+    const at = CORE757.indexOf("const g=t.closest('[data-sh-lt-goto]');");
+    assert.ok(at > 0, 'the stays card\'s Go to clause door exists');
+    const door = CORE757.slice(at, CORE757.indexOf('\nfunction shareSideHtml(', at));
+    assert.match(door, /openRedlineWorkbench\(c\.id\)!==false && typeof window\.rlLandOnClause==='function'\) window\.rlLandOnClause\(cid\);/, 'the dialog\'s way lands too, walls first');
+    assert.doesNotMatch(door, /setTimeout|rlJumpToClause|pdGoClause/, 'never a fixed pause, never a hand-rolled glow');
+    const place = CORE757.slice(CORE757.indexOf('function shareLetterPagePlace('), CORE757.indexOf('function shareLetterPage(c)'));
+    assert.doesNotMatch(place, /dk-home|dk-row/, 'the retired desk tabs row is not looked for');
+    assert.match(place, /const top=bar&&bar\.getClientRects\(\)\.length \? bar\.getBoundingClientRect\(\)\.bottom : 0;/, 'straight under the bar');
+  });
 });

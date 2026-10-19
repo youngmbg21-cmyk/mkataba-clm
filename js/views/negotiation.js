@@ -13585,11 +13585,7 @@ function redlineDocHtml(c, opts = {}){
   /* `noPaperPencil` (their landing page, Young ruled 28 Sep 2026): the paper
      carries no pencil — the wording is typed in only after Edit — while a
      caller's own pill (the editor's) is untouched. */
-  /* `noRungs` (round 9's gaps, 18 Oct 2026): Home's paper beside Jambo's
-     Redlines face draws each clause as its heading and its wording — "1 change
-     · 1 agreed", "Step 1 · their ask" are not drawn there; the rows carry the
-     Ladder. The Negotiate page by name and the editor keep theirs. */
-  const pillFor = cl => (opts.noRungs ? '' : rlLadderChipHtml(c, cl, side, { pill: opts.pill }))
+  const pillFor = cl => rlLadderChipHtml(c, cl, side, { pill: opts.pill })
     + ((opts.noPaperPencil && !opts.pill) ? '' : rlClauseEditPillHtml(cl, { c, editable, hasPanel, pill: opts.pill,
     toEditor: editorTakesIt && !opts.pill, inline: editorTakesIt && !opts.pill && !opts.readonly }));
   const cpPush = (cl, chs, cpOpts) => {

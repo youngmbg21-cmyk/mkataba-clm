@@ -8642,7 +8642,7 @@ function igPaperHtml(c){
     if(typeof window.negoEnsureStyle==='function') try{ negoEnsureStyle(); }catch(_){ }
     if(typeof window.redlineLayoutCss==='function') try{ redlineLayoutCss(); }catch(_){ }
     const hide=clean?(Array.isArray(c.changes)?c.changes:[]).filter(x=>x&&x.status!=='accepted').map(x=>x.id):null;
-    let body=''; try{ body=redlineDocHtml(c,igTheirsOn(c)?{ side:'counterparty', readonly:true, preview:true, noRungs:true }:{ side:'owner', readonly:true, noRungs:true, ...(hide?{ hiddenIds:hide }:{}) }); }catch(_){ body=''; }
+    let body=''; try{ body=redlineDocHtml(c,igTheirsOn(c)?{ side:'counterparty', readonly:true, preview:true }:{ side:'owner', readonly:true, ...(hide?{ hiddenIds:hide }:{}) }); }catch(_){ body=''; }
     sheet=`<div class="ig-redpaper nego-onpaper${clean?' is-clean':''}" style="padding:20px 0 40px"><article id="ig-canvas" class="doc-surface rl-paper" style="max-width:var(--doc-sheet-max,860px);margin:0 auto">${body}</article></div>`;
   }
   else if(typeof docSheetHtml==='function') sheet=docSheetHtml(c,{ copy:'work', canvasId:'ig-canvas', readOnly:true });

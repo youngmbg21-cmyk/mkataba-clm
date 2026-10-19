@@ -5560,9 +5560,11 @@ if(typeof document!=='undefined') document.addEventListener('click',e=>{
       if(typeof window.rlLandOnClause==='function') window.rlLandOnClause(cid);
       return;
     }
+    /* every other way (the letter as a dialog): the screen put away, the
+       Redlines up (walls first), and the clause landed on through the one
+       lander, which waits for it bounded (LAND ON IT) — never a fixed pause */
     if(typeof closeModal==='function') closeModal();
-    if(c && typeof window.pdGoClause==='function' && window.state && state.view==='dashboard') window.pdGoClause(c, cid);
-    else if(c && typeof openRedlineWorkbench==='function'){ openRedlineWorkbench(c.id); setTimeout(()=>{ if(typeof rlJumpToClause==='function') try{ rlJumpToClause(cid); }catch(_){} }, 400); }
+    if(c && typeof openRedlineWorkbench==='function' && openRedlineWorkbench(c.id)!==false && typeof window.rlLandOnClause==='function') window.rlLandOnClause(cid);
   }
 });
 function shareSideHtml(c, part){
@@ -7610,9 +7612,10 @@ function shareBesideJambo(){
 function shareLetterPagePlace(){
   const root=document.getElementById('modal-root'); const panel=root&&root.querySelector('.modal-in[data-sh-page]'); if(!panel) return;
   const frame=panel.parentElement, dock=document.getElementById('ig-dock');
-  const tabs=document.getElementById('dk-home'), row=tabs&&tabs.getClientRects().length?(tabs.closest('.hb-head,#hb-head')||tabs):null;
+  /* under the bar: since the SAP way's bar (‹ · HA · the page's name) no row
+     stands between the bar and the page */
   const bar=document.getElementById('top-header');
-  const top=row ? row.getBoundingClientRect().bottom : (bar&&bar.getClientRects().length ? bar.getBoundingClientRect().bottom : 0);
+  const top=bar&&bar.getClientRects().length ? bar.getBoundingClientRect().bottom : 0;
   const right=dock&&dock.getClientRects().length ? Math.max(0, window.innerWidth-dock.getBoundingClientRect().left) : 0;
   const cs=document.getElementById('content-scroll'); const left=cs&&cs.getClientRects().length ? cs.getBoundingClientRect().left : 0;
   /* the letter waiting while the paper shows a clause (pdSendWaitSet): out of sight, kept whole */
