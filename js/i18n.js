@@ -1544,6 +1544,7 @@ const STRINGS = {
     int_pay_std_plane: 'Our standard · {n} days',
     int_legend_pay_over: 'Amber: over our payment standard, each contract against its own',
     int_floor_door: 'Open these {n} ›',
+    int_axis_rest: 'Other ({n} more)',
     int_floor_door_title: 'Open the {n} contracts on “{x}” in the Contracts list',
     /* Explorer stage 3 (18 Oct 2026): Jambo explains this view */
     int_tour_open: 'Explain this view',
@@ -19293,6 +19294,7 @@ const STRINGS = {
     int_pay_std_plane: 'Vår standard · {n} dagar',
     int_legend_pay_over: 'Gult: över vår betalningsstandard, varje avtal mot sin egen',
     int_floor_door: 'Öppna dessa {n} ›',
+    int_axis_rest: 'Övriga ({n} till)',
     int_floor_door_title: 'Öppna de {n} avtalen på ”{x}” i avtalslistan',
     /* Explorer steg 3 (18 okt 2026) */
     int_tour_open: 'Förklara vyn',
