@@ -2272,6 +2272,9 @@ async function intelAsk(qRaw, opts){
     try{ if(!mine&&state.view==='dashboard'&&typeof window.hbFace==='function'&&hbFace()==='board'&&typeof window.hbParse==='function'){ const r=hbParse(q); mine=!!(r&&['dig','lens','panel','card','openc'].includes(r.act)); } }catch(_){}
     if(mine) und=null;
   }
+  /* a question asked OF a named contract on Explorer is the map's own (its
+     Copilot answers with the passages cited, insights-panels 16a) */
+  try{ if(und&&und.kind==='ask'&&typeof window.caHereScreen==='function'&&caHereScreen()==='explorer') und=null; }catch(_){}
   if(und&&typeof window.caHomeRun==='function'&&caHomeRun(q,und)) return;
   const tplAsk=IG_TEMPLATE_RE.test(q);
   /* ANSWER WHERE YOU STAND — ONE RULE, EVERY SCREEN (owner, 18 Oct 2026): a

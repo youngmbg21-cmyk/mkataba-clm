@@ -2061,6 +2061,9 @@ function caContractOf(q, opts = {}){
   const parties = [...new Set(cs.map(c => String(c.counterparty || '').trim()))];
   const many = CA_FIND_MANY.test(t);
   if (parties.length === 1 && parties[0] && (many || cs.length > CA_FIND_PICKS)) return { party: parties[0], ids: cs.map(c => c.id), hit: terms };
+  /* several parties asked for in the plural ("all Juno contracts") is a
+     narrowing for the box's own reader (the Board, the map), never a pick */
+  if (many) return null;
   if (cs.length <= CA_FIND_PICKS) return { picks: cs.map(c => c.id), hit: terms, said: t };
   return null;
 }
@@ -2145,10 +2148,17 @@ function caUnderstand(q, opts = {}){
   if (boardCard && (!ct || ct.kind !== 'go' || ct.place === 'document' || ct.narrow)) return null;
   if (ct){
     if (ct.kind === 'hand' && box === 'home') return null;
+    /* a question the map's tasks read ("how do I get them to sign MK-B2" is
+       the sign-link task) is the map's: the earlier reader wins its own words */
+    if (ct.kind === 'ask' && typeof jmRead === 'function'){ let m = null; try { m = jmRead(t); } catch (_){ m = null; } if (m) return null; }
     return ct;
   }
   const go = caReadGoPlace(t); if (go) return go;
-  return caReadNarrowOnly(t);
+  /* A NARROWING THAT NAMES NO PLACE ("which contracts end this year", "draft",
+     a party's name) is not the reader's: the box's own reader answers it as
+     before (the Board, the map, the draft door, the chat). caReadNarrowOnly
+     stays for a caller that asks for it by name. */
+  return null;
 }
 /* A PAGE THAT KEEPS WORK (the clause editor, the builder) is left only for a
    SURE place or contract: one named with "go to", "open", "take me to", or a
@@ -2276,6 +2286,10 @@ function caAskAnywhere(text, opts = {}){
      language"), the same reading whatever the box (caUnderstand) */
   const box = opts.box || (opts.cal ? 'cal' : opts.all ? 'counter' : 'page');
   let u = null; try { u = caUnderstand(t, { box }); } catch (_){ u = null; }
+  /* a question asked OF a contract is Home's box's (the held ask); in a box
+     that chats (the window, a list's panel, Settings, the Calendar) the box's
+     own Jambo answers it, as it always did */
+  if (u && u.kind === 'ask' && box !== 'counter') u = null;
   /* on Home his own box is the reader already */
   if (typeof document !== 'undefined' && document.getElementById('igd-input') && typeof intelAsk === 'function'
     && typeof state !== 'undefined' && state && state.view === 'dashboard'){
@@ -2295,7 +2309,9 @@ function caAskAnywhere(text, opts = {}){
      is FOR stays its own: a Settings section asked in Settings is the
      Settings finder's answer, the Calendar asked in the Calendar its own. */
   if (!a && typeof jmRead === 'function'){ let m = null; try { m = jmRead(t); } catch (_){ m = null; }
-    const own = !!m && ((box === 'settings' && (!!m.st || m.place === 'settings')) || (box === 'cal' && m.place === 'calendar'));
+    const own = !!m && ((box === 'settings' && (!!m.st || m.place === 'settings')) || (box === 'cal' && m.place === 'calendar')
+      /* the Portfolio Health Report asked by name is the chat's own document (aiWantsHealthReport → openHealthReport) */
+      || (box !== 'counter' && typeof aiWantsHealthReport === 'function' && aiWantsHealthReport(t)));
     if (m && !own && m.kind === 'go' && !m.missing && !CA_CARD_WORDS.includes(m.place) && caGo(m)) return true; }
   if ((a && a.kind === 'go') || caTakesWords(t) || opts.all) return caHandHome(t, a);
   return false;
