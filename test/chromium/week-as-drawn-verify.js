@@ -229,6 +229,37 @@ const weekOf = () => {
     check('4e an empty hour says "+ Add your own" under the hand', /\+ Add your own/.test(hint), hint);
     if (OUT) await page.screenshot({ path: path.join(OUT, '16-calendar-1440x780.png') });
 
+    /* ---- 6 the checks' differences, built (lane A4's second pass, 19 Oct 2026) ---- */
+    await page.evaluate(async D => { const A1 = getContract('MK-A1');
+      A1.obligations.push({ id: 'o9', desc: 'Pay the second instalment', due: D.a13, party: 'us', assignee: currentUser().email, recurring: 'none', status: 'open', after: 'o3' });
+      persist(A1); }, D);
+    await page.waitForTimeout(400);
+    const wt = await until(() => { if (!calOnScreen()) return null;
+      const c = [...document.querySelectorAll('#cal-stage .cal-chip')].find(x => /Pay the second instalment/.test(x.textContent));
+      return c ? { t: c.textContent.trim(), k: (c.className.match(/is-ck-(\w+)/) || [])[1] || '' } : null; }, null, 8000);
+    check('6a the Calendar draws a step held back by an earlier one as "Waiting: …", never due or late', !!wt && wt.k === 'wait' && /^Waiting: /.test(wt.t), wt);
+    const decChip = await page.$('#cal-stage .cal-chip.is-ck-decide');
+    if (decChip) await decChip.click();
+    const decC = await until(() => { const h = document.querySelector('#renewal-host'); return h && state.view === 'dashboard' && (h.classList.contains('is-landed') || h.classList.contains('is-landed-held')) ? true : null; }, null, 12000);
+    check('6b the Calendar\'s Decide chip lands on the renewal card, lit (the list\'s own door)', !!decC);
+    await page.evaluate(() => setView('obligations'));
+    await until(() => document.querySelectorAll('.obw-wk').length >= 4);
+    const O6 = await page.evaluate(() => ({ outstanding: !!document.querySelector('.obw-ins tr[data-ob-key="MK-A1::o9"]'),
+      wait: ((document.querySelector('[data-obw-view="waiting"]') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+      lateInk: (() => { const sp = document.querySelector('tr.obw-late-row .obw-late-when > span'); return sp ? [getComputedStyle(sp).color, getComputedStyle(document.documentElement).getPropertyValue('--st-ruby-fg').trim()] : null; })() }));
+    const rgb = hx => { const m = /^#([0-9a-f]{6})$/i.exec(hx || ''); if (!m) return hx; const n = parseInt(m[1], 16); return `rgb(${n >> 16}, ${(n >> 8) & 255}, ${n & 255})`; };
+    check('6c Outstanding leaves the waiting step out; it is on Waiting on a step', !O6.outstanding && /Waiting on a step\s*1/.test(O6.wait), O6);
+    check('6d Late\'s "3 days late" wears the late ink, on the right of its row', !!O6.lateInk && O6.lateInk[0] === rgb(O6.lateInk[1]), O6.lateInk);
+    await page.click('.obw-wk[data-obw-card="w2"] .ob-wk-said');
+    const w2open = await until(() => document.querySelector('.obw-wk[data-obw-card="w2"]:not(.is-shut)') ? true : null);
+    await page.click('tr[data-ob-key="MK-A2::o6"] td:nth-child(2)');
+    await until(() => (document.querySelector('#ins-panel [data-jl-word]') || {}).textContent === 'Obligation');
+    await page.reload({ waitUntil: 'networkidle' });
+    const kept = await until(() => { if (state.view !== 'obligations' || !document.querySelector('.obw-wk')) return null;
+      return { w2: !!document.querySelector('.obw-wk[data-obw-card="w2"]:not(.is-shut)'), word: (document.querySelector('#ins-panel [data-jl-word]') || {}).textContent || '',
+        sel: !!document.querySelector('tr[data-ob-key="MK-A2::o6"].is-sel') }; }, null, 20000);
+    check('6e a folded week opens on a press on its line; a refresh keeps it open and the chosen row chosen', !!w2open && !!kept && kept.w2 && kept.word === 'Obligation' && kept.sel, { w2open, kept });
+
     /* ---- 5 the owner's three screens ---- */
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht });

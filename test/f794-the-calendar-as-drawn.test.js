@@ -59,7 +59,7 @@ const stage = (extra) => {
     const _isoLocal=d=>\`\${d.getFullYear()}-\${String(d.getMonth()+1).padStart(2,'0')}-\${String(d.getDate()).padStart(2,'0')}\`;
     const calAddDays=(d,n)=>{ const x=new Date(d); x.setDate(x.getDate()+n); return x; };
     const calLayers=()=>({ ct:true, me:false, cp:true });\n`
-    + ['calChipLook', 'calCtChipHtml', 'calWeekStart', 'calHeadFacts', 'calThisMonday', 'calWeekCardTitle', 'calKeyHtml'].map(n => fnBody(CAL, n)).join('\n'), ctx);
+    + ['calChipLook', 'calChipAct', 'calCtChipHtml', 'calWeekStart', 'calHeadFacts', 'calThisMonday', 'calWeekCardTitle', 'calKeyHtml'].map(n => fnBody(CAL, n)).join('\n'), ctx);
   return ctx;
 };
 
@@ -128,7 +128,9 @@ describe('f794 (3) the week', () => {
   });
   test('3b late work is carried onto today (on a weekend, this week\'s Monday)', () => {
     assert.match(w, /const lateOn=\(today>=from&&today<=to\)\?today:\(from===_isoLocal\(calThisMonday\(\)\)\?from:''\);/);
-    assert.match(w, /const late=iso===lateOn\?\(contractEvs\|\|\[\]\)\.filter\(e=>e\.type==='obligation'&&!e\.done&&e\.date<today/);
+    /* RE-POINTED 19 Oct 2026 (lane A4, check 2): a step still waiting on an
+       earlier one is never late, so it is not carried onto today */
+    assert.match(w, /const late=iso===lateOn\?\(contractEvs\|\|\[\]\)\.filter\(e=>e\.type==='obligation'&&!e\.done&&!e\.waiting&&e\.date<today/);
     const sat = stage({ calToday: () => '2026-10-24' });
     assert.equal(sat.calWeekCardTitle(), 'This week, then five more', 'on a Saturday, "this week" is the week ahead');
   });
@@ -170,5 +172,37 @@ describe('f794 (5) the second pass: the person\'s own hours, the key\'s Mine in 
   });
   test('5c the key\'s Mine dot carries a ring that reads on a dark ground', () => {
     assert.match(CAL, /\.cal-key i\.is-mine\{background:var\(--color-accent-700\);border-radius:50%;box-shadow:inset 0 0 0 1px var\(--accent-ink\)\}/);
+  });
+});
+
+/* (6) CHECK #2's DIFFERENCES, BUILT (19 Oct 2026, lane A4's second pass).
+   AT 4ccd566 every test here FAILS. */
+describe('f794 (6) the second check: a waiting step, a chip\'s one door, the five weeks fill their height', () => {
+  const s = stage();
+  test('6a a step held back by an earlier one is "Waiting: …", never late, never due', () => {
+    const L = s.calChipLook({ type: 'obligation', note: 'Pay the second instalment', date: '2026-10-01', waiting: true });
+    assert.equal(L.k + '|' + L.text, 'wait|Waiting: Pay the second instalment');
+    assert.match(CAL, /waiting:!!\(window\.obligationBlocked&&obligationBlocked\(o,c\)\)/);
+    const m = fnBody(CAL, 'calMoreWeeksHtml');
+    assert.match(m, /n\+=ct\.filter\(e=>!e\.waiting\)\.length;/);
+    assert.match(m, /owed\+=ct\.filter\(e=>!e\.waiting&&\(e\.type==='obligation'\|\|e\.type==='renewal'\)\)\.length;/);
+    for (const lang of ['en', 'sv']) for (const k of ['cal_ck_wait', 'cal_ck_chase_title']) assert.ok(BOOKS[lang][k], k + ' ' + lang);
+  });
+  test('6b a chip does what its row does: theirs Chase, a renewal decision Decide; else the contract', () => {
+    assert.equal(s.calChipAct({ type: 'renewal' }, { k: 'decide' }), 'decide');
+    assert.equal(s.calChipAct({ type: 'obligation', theirs: true, obId: 'o1' }, { k: 'theirs' }), 'chase');
+    assert.equal(s.calChipAct({ type: 'obligation', theirs: true, obId: 'o1', waiting: true }, { k: 'wait' }), '', 'a waiting step is never chased');
+    assert.equal(s.calChipAct({ type: 'obligation', theirs: false, obId: 'o1' }, { k: 'ours' }), '');
+    assert.match(s.calCtChipHtml({ type: 'obligation', theirs: true, obId: 'o1', note: 'Cert', owner: 'Nordvik', date: '2026-10-21', cid: 'MK-2' }, 'span'), /data-cal-act="chase" data-cal-ob="o1"/);
+    const go = fnBody(CAL, 'calChipGo');
+    assert.match(go, /obligationChase\(cid,el\.getAttribute\('data-cal-ob'\)\)/);
+    assert.match(go, /needsYouGo\('renewal',cid\)/);
+    assert.match(CAL, /if\(\(el=hit\('\[data-cal-act\]'\)\)&&calChipGo\(el\)\)/);
+  });
+  test('6c the five weeks draw every date and show what the cell\'s height holds ("+N more" counts the hidden)', () => {
+    assert.match(fnBody(CAL, 'calMoreWeeksHtml'), /data-cal-wkm-more="\$\{list\.length\}"/);
+    const fit = fnBody(CAL, 'calWkmFit');
+    assert.match(fit, /more\.textContent=i18t\('cal_n_more',\{n:hid\}\);/);
+    assert.match(CAL, /\.cal-wkm-lab\{display:flex;flex-direction:column;justify-content:flex-start;/);
   });
 });

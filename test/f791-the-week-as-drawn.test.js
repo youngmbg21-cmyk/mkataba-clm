@@ -254,7 +254,7 @@ describe('f791 (7) the second pass: the drawing\'s arithmetic, Late as drawn, th
   test('7d the late word wears the late ink on a week\'s row, and a long day word wraps', () => {
     const H = R('index.html');
     assert.match(H, /\.obw-wk \.ins-c2 > span\.ins-late\{color:var\(--st-ruby-fg\);\}/);
-    assert.match(H, /\.obw-wk table\.obw-wk-lt td:first-child \.ins-c2 > span\{white-space:normal;\}/);
+    assert.match(H, /\.obw-wk table\.obw-wk-lt td:first-child \.ins-c2 > span\{white-space:normal;text-wrap:balance;\}/);
     assert.match(H, /\.obw-wk table\.obw-wk-lt tr\.obw-late-row td:first-child\{box-shadow:inset 3px 0 0 var\(--accent-fill\);\}/);
   });
   test('7e Jambo\'s finds row is pressed whole: its body is the same door as Review N', () => {
@@ -270,5 +270,39 @@ describe('f791 (7) the second pass: the drawing\'s arithmetic, Late as drawn, th
   test('7g the chosen obligation\'s panel says What Jambo read; Chase greys on ours with its reason', () => {
     assert.match(fnBody(OB, 'obPanelOpts'), /ctx === 'page' && typeof window\.jlReadsHtml === 'function' \? jlReadsHtml\(c\) : ''/);
     assert.match(fnBody(OB, 'obPanelActs'), /if\(ctx === 'page'\) acts\.push\(\{ k:'chase', label: i18t\('ob_chase'\), icon:'send', title: i18t\('ob_chase_not_ours'\), disabled: true \}\);/);
+  });
+});
+
+/* (8) CHECK #2's DIFFERENCES, BUILT (19 Oct 2026). AT 4ccd566 every test here FAILS. */
+describe('f791 (8) the second check: a folded line pressed whole, a refresh keeps the spot, Private and Late folded', () => {
+  test('8a a folded week opens on a press anywhere on its line', () => {
+    assert.match(OB, /host\.querySelectorAll\('tr\.ins-grp\.is-fold\[data-ob-week\]'\)/);
+    assert.match(R('index.html'), /\.obw-wk table\.obw-wk-lt tr\.ins-grp\.is-fold\{cursor:pointer;\}/);
+  });
+  test('8b a refresh keeps the chosen row and the weeks opened or folded by hand', () => {
+    const ctx = {}; vm.createContext(ctx);
+    vm.runInContext(`let _obwF = null, _obwOneHold = false; const OBW_DEF = { whose:'all', state:'open' };
+      let _obwWeeksAll = false; const _obwWeeksOpen = new Set(); const _obwWeeksShut = new Set();
+      let picked = null; const window = { insSelected: () => picked, insSelect: (s, id) => { picked = id; } };
+      const insSelected = window.insSelected, insSelect = window.insSelect;
+      ${fnBody(OB, 'obwFilters')}\n${fnBody(OB, 'obwWeeksAll')}\n${fnBody(OB, 'obwPlace')}\n${fnBody(OB, 'obwPlacePut')}
+      _obwWeeksOpen.add('w2'); _obwWeeksShut.add('overdue'); picked = 'MK-1::o1';
+      const kept = JSON.parse(JSON.stringify(obwPlace()));
+      _obwWeeksOpen.clear(); _obwWeeksShut.clear(); picked = null; _obwF = null;
+      obwPlacePut(kept);
+      this.r = JSON.stringify({ open: [..._obwWeeksOpen], shut: [..._obwWeeksShut], picked, f: _obwF });`, ctx);
+    ctx.r = JSON.parse(ctx.r);
+    assert.deepEqual(ctx.r.open, ['w2']);
+    assert.deepEqual(ctx.r.shut, ['overdue']);
+    assert.equal(ctx.r.picked, 'MK-1::o1');
+    assert.ok(!('_pick' in ctx.r.f) && !('_wk' in ctx.r.f), 'the filters carry no place marks');
+  });
+  test('8c "Private" rides only a week folded shut; Late folded names its rows', () => {
+    const L = fnBody(OB, 'obListHtml');
+    assert.match(L, /const said = shut \? obWeekSaid\(own\.rows\) \+ obWeekOneWho\(own\.rows\) : '';/);
+    assert.match(L, /const priv = shut && own\.rows\.some\(obwRowPrivate\)/);
+  });
+  test('8d the day sits level with the title\'s first line', () => {
+    assert.match(R('index.html'), /tr\[data-ins-row\] td:first-child,\.obw-wk table\.obw-wk-lt tr\.obw-finds td:first-child\{vertical-align:top;padding-top:10px;\}/);
   });
 });

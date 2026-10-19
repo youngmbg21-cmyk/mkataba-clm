@@ -13568,7 +13568,13 @@
   .obw-wk .ins-c2 > span.ins-late{color:var(--st-ruby-fg);}
   .obw-wk .ins-c2 > span.ins-soon{color:var(--st-amber-fg);}
   .obw-wk .ins-c2 > span.ins-wait{color:var(--st-steel-fg);}
-  .obw-wk table.obw-wk-lt td:first-child .ins-c2 > span{white-space:normal;}
+  .obw-wk table.obw-wk-lt td:first-child .ins-c2 > span{white-space:normal;text-wrap:balance;}
+  /* the day sits level with the title's first line, as drawn, whether or not
+     the row has a second line under it */
+  .obw-wk table.obw-wk-lt tr[data-ins-row] td:first-child,.obw-wk table.obw-wk-lt tr.obw-finds td:first-child{vertical-align:top;padding-top:10px;}
+  .obw-wk table.obw-wk-lt tr.obw-late-row td:first-child{vertical-align:middle;padding-top:0;}
+  /* a folded week's whole line opens it */
+  .obw-wk table.obw-wk-lt tr.ins-grp.is-fold{cursor:pointer;}
   /* Late, as drawn: a bar down its row's left edge; the day and how late on
      the right, before the act */
   .obw-wk table.obw-wk-lt tr.obw-late-row td:first-child{box-shadow:inset 3px 0 0 var(--accent-fill);}

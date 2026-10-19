@@ -186,7 +186,11 @@ function calendarEvents(){
            this month" — carried neither the obligation's description nor its
            owner, only the contract's name. A row reading "Nandi Dairy ·
            Obligation · MK-2 · 12d" does not tell anybody what to do. */
-        assignee:o.assignee||'', done:o.status==='done' }); });
+        assignee:o.assignee||'', done:o.status==='done',
+        /* A STEP HELD BACK BY AN EARLIER ONE is waiting, never late, never due
+           (round 16: "Waiting on a step is never counted as late or chased") —
+           the Obligations page's own reading */
+        waiting:!!(window.obligationBlocked&&obligationBlocked(o,c)) }); });
 
     /* ---- NEGOTIATION ACTIVITY, THE RENDER'S FOURTH TONE ----
        One event per round that has actually CLOSED, dated by the round's own
@@ -323,6 +327,7 @@ function calChipLook(e){
   if(e.type==='obligation'){
     const desc=String(e.note||CAL_EVENT.obligation.label);
     if(e.done) return { k:'done', text:desc };
+    if(e.waiting) return { k:'wait', text:i18t('cal_ck_wait',{t:desc}) };
     if(e.date<calToday()) return { k:'late', text:i18t('cal_ck_late',{t:desc}) };
     if(e.theirs){ const p=String(e.owner||'').trim().split(/\s+/)[0]||''; return { k:'theirs', text:p?p+': '+desc:desc }; }   /* "Nordvik: insurance cert." — their name first, in any language */
     const m=(typeof window.obligationReminderTo==='function')?window.obligationReminderTo({ assignee:e.assignee }):null;
@@ -335,6 +340,37 @@ function calChipLook(e){
   if(e.type==='expiry') return { k:'ends', text:i18t('cal_ck_ends',{t:e.cname||e.cref||e.cid}) };
   return null;
 }
+/* THE FIVE WEEKS' CELLS SHOW WHAT THEIR HEIGHT HOLDS: every chip is drawn,
+   the ones past the cell's foot hide, and "+N more" counts exactly those —
+   so a tall window shows two where a short one shows one */
+function calWkmFit(){
+  if(typeof document==='undefined') return;
+  document.querySelectorAll('.cal-wkm-d').forEach(cell=>{
+    const more=cell.querySelector('[data-cal-wkm-more]'); if(!more) return;
+    const xs=[...cell.querySelectorAll('[data-cal-wkm-x]')];
+    xs.forEach(x=>{ x.hidden=false; });
+    more.hidden=false;
+    const foot=cell.getBoundingClientRect().bottom-4;
+    let hid=0;
+    for(let k=xs.length-1;k>=0;k--){ if(xs[k].getBoundingClientRect().bottom>foot-(more.offsetHeight||14)){ xs[k].hidden=true; hid++; } }
+    more.textContent=i18t('cal_n_more',{n:hid});
+    more.hidden=!hid;
+  });
+}
+/* WHAT A CHIP'S PRESS DOES, read off its look: Chase on theirs still owed (by
+   id), Decide on a renewal decision, else the contract as before */
+function calChipAct(e,L){
+  if(!e||!L) return '';
+  if(L.k==='decide') return 'decide';
+  if(e.type==='obligation'&&e.theirs&&e.obId&&!e.done&&!e.waiting&&((typeof canEdit!=='function')||canEdit())) return 'chase';
+  return '';
+}
+function calChipGo(el){
+  const cid=el.getAttribute('data-cal-ct')||el.getAttribute('data-sel'), k=el.getAttribute('data-cal-act');
+  if(k==='chase'&&typeof window.obligationChase==='function'){ obligationChase(cid,el.getAttribute('data-cal-ob')); return true; }
+  if(k==='decide'&&typeof window.needsYouGo==='function'){ needsYouGo('renewal',cid); return true; }
+  return false;
+}
 /* a contract date's chip, drawn the one way (calChipLook) where it has a
    look; `tag` is span on the month and the five weeks, button on the week */
 function calCtChipHtml(e, tag, cls){
@@ -345,7 +381,12 @@ function calCtChipHtml(e, tag, cls){
   /* the week's chips keep their own door (data-sel), the month's and the five
      weeks' theirs (data-cal-ct) — the same contract either way */
   const door=tag==='button'?'data-sel':'data-cal-ct';
-  return `<${tag}${tag==='button'?' type="button"':''} class="cal-chip ${cls||''} is-ck-${L.k}${e.done?' is-done':''}" ${door}="${_esc(e.cid)}" title="${_esc(title)}">${we}${_esc(L.text)}</${tag}>`;
+  /* ONE DOOR (round 16's notes): a chip does what its row does — theirs is
+     the same Chase, a renewal decision the same Decide (calChipGo) */
+  const act=calChipAct(e,L);
+  const acts=act?` data-cal-act="${act}" data-cal-ob="${_esc(e.obId||'')}"`:'';
+  const say=act==='chase'?' · '+i18t('cal_ck_chase_title'):act==='decide'?' · '+i18t('ob_wk_decide_title'):'';
+  return `<${tag}${tag==='button'?' type="button"':''} class="cal-chip ${cls||''} is-ck-${L.k}${e.done?' is-done':''}" ${door}="${_esc(e.cid)}"${acts} title="${_esc(title+say)}">${we}${_esc(L.text)}</${tag}>`;
 }
 
 /* ---- THE CALENDAR FILE ----
@@ -1417,9 +1458,10 @@ function calStyleCss(){ return `
   .cal-wkm{flex:none;border-top:1px solid var(--color-divider)}
   .cal-wkm-row{height:var(--cal-wkm-h,44px);border-bottom:1px solid var(--color-divider)}
   .cal-wkm-row:last-child{border-bottom:0}
-  .cal-wkm-lab{display:flex;flex-direction:column;justify-content:center;padding:0 8px;min-width:0}
+  .cal-wkm-lab{display:flex;flex-direction:column;justify-content:flex-start;padding:3px 8px 0;min-width:0}
   .cal-wkm-lab b{font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap}
   .cal-wkm-lab span{font-size:var(--t-micro);color:var(--color-neutral-600);white-space:nowrap}
+  .cal-wkm-d [hidden]{display:none}
   .cal-wkm-d{border-left:1px solid var(--color-divider);padding:3px 4px;display:flex;flex-direction:column;gap:2px;min-width:0;overflow:hidden;cursor:pointer}
   .cal-wkm-d:hover{background:color-mix(in srgb,var(--accent-solid) 6%,transparent)}
   .cal-wkm-d:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:-2px}
@@ -1581,6 +1623,7 @@ function calStyleCss(){ return `
   .cal-chip.is-ck-late{border-left:3px solid var(--st-ruby-dot);background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
   .cal-chip.is-ck-decide{border-left:3px solid var(--st-amber-dot);background:var(--st-amber-bg);color:var(--st-amber-fg)}
   .cal-chip.is-ck-ends{border-left:3px solid var(--st-ruby-dot);background:var(--color-surface);color:var(--st-ruby-fg);box-shadow:inset 0 0 0 1px var(--st-ruby-line)}
+  .cal-chip.is-ck-wait{border-left:3px solid var(--st-steel-dot);background:var(--st-steel-bg);color:var(--st-steel-fg)}
   .cal-chip.is-ck-nobody,.cal-chip.is-ck-done{border-left:3px solid var(--st-gray-line);background:var(--st-gray-bg);color:var(--st-gray-fg)}
   .cal-chip.is-plan{border:1px dashed var(--color-accent-600);border-left-width:3px}
   .cal-wk-hd{border-bottom:0}
@@ -1677,8 +1720,9 @@ function wireCalendar(evs, byDay, p){
   /* [data-sel] is the LIST's and the PANEL's row — never a day cell's chip.
      The chips are spans and fall through to the cell, which is why there is no
      stopPropagation here to keep in step. */
-  document.querySelectorAll('[data-sel]').forEach(b=>b.addEventListener('click',()=>
-    selectContract(b.getAttribute('data-sel'))));
+  document.querySelectorAll('[data-sel]').forEach(b=>b.addEventListener('click',()=>{
+    if(b.hasAttribute('data-cal-act')) return;   // its own act, in the one listener (calChipGo)
+    selectContract(b.getAttribute('data-sel')); }));
 
   /* Completing goes through the shared verb in js/obligations.js, which writes
      the audit line and refreshes every surface that counts them — including
@@ -1905,7 +1949,7 @@ function calWeekHtml(contractEvs){
   const lateOn=(today>=from&&today<=to)?today:(from===_isoLocal(calThisMonday())?from:'');
   const onDay=iso=>{ const d=new Date(iso+'T00:00:00');
     const we=d.getDay()===5?[1,2].map(k=>_isoLocal(calAddDays(d,k))):[];
-    const late=iso===lateOn?(contractEvs||[]).filter(e=>e.type==='obligation'&&!e.done&&e.date<today&&!(e.date>=from&&e.date<=to)):[];
+    const late=iso===lateOn?(contractEvs||[]).filter(e=>e.type==='obligation'&&!e.done&&!e.waiting&&e.date<today&&!(e.date>=from&&e.date<=to)):[];
     return late.concat((contractEvs||[]).filter(e=>e.date===iso)).concat((contractEvs||[]).filter(e=>we.includes(e.date)).map(e=>Object.assign({},e,{ _we:calWeekendWord(e.date) }))); };
   const allDay=days.map(d=>{ const iso=_isoLocal(d);
     const c=onDay(iso).map(e=>{ const ev=CAL_EVENT[e.type];
@@ -1946,13 +1990,16 @@ function calMoreWeeksHtml(a,onDay){
     let n=0, owed=0;
     const cells=Array.from({length:CAL_WEEK_DAYS},(_,i)=>{
       const d=calAddDays(mon,i), iso=_isoLocal(d);
-      const ct=onDay(iso); n+=ct.length;
+      const ct=onDay(iso); n+=ct.filter(e=>!e.waiting).length;
       /* "3 due" where every date is work owed (a promise or a decision), else
-         "3 dates" (round 16 as drawn) */
-      owed+=ct.filter(e=>e.type==='obligation'||e.type==='renewal').length;
+         "3 dates" (round 16 as drawn); a step still waiting on an earlier one
+         is drawn, never counted (the Obligations page lists it apart) */
+      owed+=ct.filter(e=>!e.waiting&&(e.type==='obligation'||e.type==='renewal')).length;
       const mine=own.filter(e=>e.date===iso||(i===CAL_WEEK_DAYS-1&&[1,2].some(k=>_isoLocal(calAddDays(d,k))===e.date)));
       const list=ct.concat(mine);
-      const e=list[0];
+      /* EVERY DATE IS DRAWN; the row shows as many as its height holds and
+         says the rest ("+1 more"), measured after the paint (calWkmFit) */
+      const chips=list.map(e=>{
       const looked=e&&!e.own?calCtChipHtml(e.date!==iso&&!e._we?Object.assign({},e,{ _we:calWeekendWord(e.date) }):e,'span'):'';
       const chip=looked||(e?(()=>{ const ev=CAL_EVENT[e.type];
         const we=e._we||(e.date!==iso?calWeekendWord(e.date):'');
@@ -1963,7 +2010,9 @@ function calMoreWeeksHtml(a,onDay){
         return e.own
           ? `<span class="cal-chip cal-own is-${e.type}" ${e.own} title="${_esc(t)}" style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${th}</span>`
           : `<span class="cal-chip" data-cal-ct="${_esc(e.cid)}" title="${_esc((we?we+' · ':'')+ev.label+': '+(e.note||e.cname))}" style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${th}</span>`; })():'');
-      const more=list.length>1?`<span class="cal-more">${_esc(i18t('cal_n_more',{n:list.length-1}))}</span>`:'';
+      return chip; });
+      const chip=chips.map((h,k)=>k?h.replace(/^<(\w+) class="cal-chip/,'<$1 data-cal-wkm-x class="cal-chip'):h).join('');
+      const more=list.length>1?`<span class="cal-more" data-cal-wkm-more="${list.length}">${_esc(i18t('cal_n_more',{n:list.length-1}))}</span>`:'';
       const dayName=d.toLocaleDateString(langLocale(),{day:'numeric',month:'long',year:'numeric'});
       return `<div class="cal-wkm-d${iso===calToday()?' is-today':''}" role="button" tabindex="0" data-cal-week="${iso}" title="${_esc(i18t('cal_open_week_of',{day:dayName}))}"><span class="cal-wkm-dn">${_esc(d.toLocaleDateString(langLocale(),{weekday:'short'}))} ${d.getDate()}</span>${chip}${more}</div>`;
     }).join('');
@@ -2211,6 +2260,7 @@ function calWireOwn(){
     const row=parseFloat(getComputedStyle(body.parentElement).getPropertyValue('--cal-wk-row'))||40;
     const h0=Number(body.querySelector('.cal-wk-t')?.textContent)||0;
     body.scrollTop=first?Math.max(0,first.offsetTop-row):Math.max(0,((Number(pref.dayStart)||8)-h0)*row); }
+  calWkmFit();
   if(document._calOwnWired) return;
   document._calOwnWired=true;
   document.addEventListener('click',e=>{
@@ -2218,6 +2268,7 @@ function calWireOwn(){
     const t=e.target.closest?e.target:null; if(!t) return;
     const hit=sel=>t.closest(sel);
     let el;
+    if((el=hit('[data-cal-act]'))&&calChipGo(el)){ e.preventDefault(); e.stopPropagation(); return; }
     if((el=hit('[data-cal-ct]'))){ e.preventDefault(); e.stopPropagation(); selectContract(el.getAttribute('data-cal-ct')); return; }
     if((el=hit('[data-cal-mine]'))){ e.preventDefault(); e.stopPropagation(); const it=mineGet(el.getAttribute('data-cal-mine')); if(it) calEventDialog(it); return; }
     if((el=hit('[data-cal-note]'))){ e.preventDefault(); e.stopPropagation(); if(typeof myNotesOpen==='function') myNotesOpen(el.getAttribute('data-cal-note')); return; }
@@ -2255,4 +2306,4 @@ Object.assign(window,{calendarDoorCount,calOnScreen,calWireOwn,calState,calPlace
   calToday,calChipText,calIcsFor,calUpcoming,calSummaryLines,calMonthGridHtml,calPanelHtml,
   CAL_AGENDA_DAYS,CAL_AGENDA_WINDOWS,CAL_AGENDA_ROWS,calAgendaDays,calSetAgendaDays,
   calSetView,calSetScope,calStep,openCalendarShare,renderCalendar,
-  calLayers,calKeyHtml,calHeadFacts,calWeekCardTitle,calThisMonday,calChipLook,calCtChipHtml,calWeekStart,calWeekHtml,calMoreWeeksHtml,calWeekendWord,CAL_WEEKS_SHOWN,CAL_WEEK_DAYS,calOwnEvents,calPlanHtml,calPlanAsk,calPlanAdd,calPlanUndo,CAL_LEVELS,calLevelOf,calLevelSegHtml,calLevelSet,calEventDialog,_calPlanState,calPlanLeftHtml,CAL_PLAN_HORIZON_DAYS,calHandOff});
+  calLayers,calChipAct,calChipGo,calWkmFit,calKeyHtml,calHeadFacts,calWeekCardTitle,calThisMonday,calChipLook,calCtChipHtml,calWeekStart,calWeekHtml,calMoreWeeksHtml,calWeekendWord,CAL_WEEKS_SHOWN,CAL_WEEK_DAYS,calOwnEvents,calPlanHtml,calPlanAsk,calPlanAdd,calPlanUndo,CAL_LEVELS,calLevelOf,calLevelSegHtml,calLevelSet,calEventDialog,_calPlanState,calPlanLeftHtml,CAL_PLAN_HORIZON_DAYS,calHandOff});

@@ -2343,8 +2343,21 @@ const OBW_DEF = { whose:'all', state:'open', side:'all', folder:'all', due:'all'
 /* A REFRESH LANDS WHERE YOU WERE (Young, 28 Sep 2026): what this page keeps
    across a reload, read by placeSave and put back by placeResume (js/app.js)
    BEFORE the first paint. */
-function obwPlace(){ return { ...obwFilters() }; }
-function obwPlacePut(p){ if(p){ _obwF={ ...OBW_DEF, ...p }; if(p.only && p.only.cid) _obwOneHold = true; } }   /* a refresh keeps one contract's narrowing */
+/* A REFRESH LANDS AT THE SAME SPOT: the filters, and (round 16) the row the
+   reader chose and the weeks they opened or folded by hand */
+function obwPlace(){
+  const sel = (typeof window.insSelected === 'function') ? insSelected('obligations') : null;
+  return { ...obwFilters(), _pick: sel || null, _wk: { all: _obwWeeksAll, open: [..._obwWeeksOpen], shut: [..._obwWeeksShut] } };
+}
+function obwPlacePut(p){
+  if(!p) return;
+  const { _pick, _wk, ...f } = p;
+  _obwF = { ...OBW_DEF, ...f };
+  if(f.only && f.only.cid) _obwOneHold = true;   /* a refresh keeps one contract's narrowing */
+  if(_wk){ obwWeeksAll(!!_wk.all); (_wk.open || []).forEach(k => _obwWeeksOpen.add(String(k))); (_wk.shut || []).forEach(k => _obwWeeksShut.add(String(k))); }
+  if(_pick && typeof window.insSelect === 'function') insSelect('obligations', _pick);
+}
+const obwPlaceKeep = () => { if(typeof window.placeSave === 'function') placeSave(); };
 function obwFilters(){
   if(!_obwF) _obwF = { ...OBW_DEF };
   return _obwF;
@@ -3446,9 +3459,10 @@ function obPaintPanel(hostId, o, c, i, ctx, emptyMsg){
   /* Jambo's panel beside the page says what it holds (round 16): "Your week"
      with nothing chosen, "Obligation" with a row chosen */
   const jl = ctx === 'page' ? Object.assign({ jlWord: i18t('jl_w_obligation') }, obPanelJl()) : {};
-  if(!o || !c){ insPaintPanel(Object.assign({ host: hostId, empty: emptyMsg }, jl)); return; }
+  if(!o || !c){ insPaintPanel(Object.assign({ host: hostId, empty: emptyMsg }, jl)); if(ctx === 'page') obwPlaceKeep(); return; }
   const opts = obPanelOpts(o, c, i, ctx);
   insPaintPanel(Object.assign({ host: hostId }, jl, opts));
+  if(ctx === 'page') obwPlaceKeep();   // the chosen row survives a refresh
   const host = document.getElementById(hostId);
   if(!host) return;
   host.querySelector('[data-ob-show]')?.addEventListener('click', () => obligationShowInContract(c.id, o.quote || ''));
@@ -3526,9 +3540,12 @@ function obListHtml(rows, ctx, c1){
          counted as promises and never a band */
       const own = { ...W, rows: W.rows.filter(r => !r._find) };
       const shut = obwWeekShut(W);
-      const said = W.fold ? obWeekSaid(own.rows) + obWeekOneWho(own.rows) : '';
-      const sub = W.fold ? '' : obWeekSub(own);
-      const priv = W.fold && own.rows.some(obwRowPrivate) ? `<span class="obw-priv">${typeof icon === 'function' ? icon('lock', 'w-3 h-3') : ''}${_obEsc(i18t('ob_wk_private'))}</span>` : '';
+      /* a week folded shut says what it holds (Late too); an open one its
+         sub-line. "Private" rides only a shut week's line: open, the row
+         wears its own lock */
+      const said = shut ? obWeekSaid(own.rows) + obWeekOneWho(own.rows) : '';
+      const sub = shut ? '' : obWeekSub(own);
+      const priv = shut && own.rows.some(obwRowPrivate) ? `<span class="obw-priv">${typeof icon === 'function' ? icon('lock', 'w-3 h-3') : ''}${_obEsc(i18t('ob_wk_private'))}</span>` : '';
       const money = obWeekMoneyHtml(own);
       const rng = [W.range, sub].filter(Boolean).join(' · ');
       const head = `<button type="button" class="ob-wk-fold" data-obw-week="${W.k}" aria-expanded="${shut ? 'false' : 'true'}"><i class="ob-wk-car" aria-hidden="true"></i>${_obEsc(W.word)}</button>`;
@@ -4055,7 +4072,12 @@ function renderObligationsInspector(host){
   host.querySelectorAll('[data-obw-f]').forEach(sel => sel.addEventListener('change', () => { f[sel.getAttribute('data-obw-f')] = sel.value; obwRepaint(); }));
   host.querySelectorAll('[data-obw-clear]').forEach(b => b.addEventListener('click', () => { OBW_CHIPS.forEach(k => { f[k] = OBW_DEF[k]; }); f.only = null; obwRepaint(); }));
   host.querySelector('[data-obw-only-clear]')?.addEventListener('click', () => { f.only = null; obwRepaint(); });
-  host.querySelectorAll('[data-obw-week]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); obwWeekToggle(b.getAttribute('data-obw-week')); obwRepaint(); }));
+  host.querySelectorAll('[data-obw-week]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); obwWeekToggle(b.getAttribute('data-obw-week')); obwRepaint(); obwPlaceKeep(); }));
+  /* A FOLDED WEEK IS ONE LINE, pressed anywhere (round 16: "a folded week
+     hides its rows until pressed — its line says what is inside") */
+  host.querySelectorAll('tr.ins-grp.is-fold[data-ob-week]').forEach(g => g.addEventListener('click', e => {
+    if(e.target.closest && e.target.closest('button,a,[data-obw-week]')) return;
+    obwWeekToggle(g.getAttribute('data-ob-week')); obwRepaint(); obwPlaceKeep(); }));
   /* the rows of every week's card are one list to the keyboard and the mouse */
   const tb = host.querySelector('#obw-scroll');
   const idOf = t => t.getAttribute('data-ob-key');
