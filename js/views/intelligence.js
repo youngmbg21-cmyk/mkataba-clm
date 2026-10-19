@@ -3459,7 +3459,10 @@ function igbWiring(G){
   const U=Math.max(1,Math.min(G.W,G.H)*.36*IGB_SCALE[1]);
   const X=Math.max(.4,(G.W/2-110)/U), Y=Math.max(.3,(G.H/2-60)/U);
   const cx=(minX+maxX)/2, cy=(minY+maxY)/2, s=Math.max(1e-3,(maxX-minX)/2/X,(maxY-minY)/2/Y);
-  const b=G.wb; if(!b) G.wb={ cx, cy, s }; else { b.cx+=(cx-b.cx)*.08; b.cy+=(cy-b.cy)*.08; b.s+=(s-b.s)*.08; }
+  /* while a new layout settles the framing follows it exactly, so the
+     picture never swells past the stage and shrinks back as the dots move
+     (19 Oct 2026); at rest it eases, so the drift never shakes the page */
+  const b=G.wb, k=G._settle>0?1:.08; if(!b) G.wb={ cx, cy, s }; else { b.cx+=(cx-b.cx)*k; b.cy+=(cy-b.cy)*k; b.s+=(s-b.s)*k; }
   const w=G.wb;
   G.nodes.forEach(n=>{ if(n._wz==null) n._wz=((igbHash(n.id)%100)/100-.5)*.16; n.W3[0]=(n.x-w.cx)/w.s; n.W3[1]=-(n.y-w.cy)/w.s; n.W3[2]=n._wz; });
 }
@@ -4091,10 +4094,31 @@ function makeIntelGraph(model){
     sorted.forEach((h,i)=>{ h.x=W*(0.12+0.76*(sorted.length>1?i/(sorted.length-1):0.5)); h.y=H/2; h.vx=h.vy=0; h.timeline=true; }); }
   else hubs.forEach((h,i)=>{ const a=i/Math.max(1,hubs.length)*Math.PI*2; h.x=W/2+Math.cos(a)*Math.min(W,H)*0.28; h.y=H/2+Math.sin(a)*Math.min(W,H)*0.28; h.vx=h.vy=0; });
   nodes.filter(n=>n.kind==='contract').forEach(n=>{ const h=byId['hub:'+n.group]||{x:W/2,y:H/2}; n.x=h.x+(rnd()-.5)*120; n.y=h.y+(rnd()-.5)*120; n.vx=n.vy=0; });
+  /* A CHANGE MOVES WHAT IS ON SCREEN, IT NEVER STARTS AGAIN FROM THE SEED
+     (owner, 19 Oct 2026: on Wiring a change "zooms out and back to normal in
+     like a flash ... shines then dims"): a contract the last map drew starts
+     where it stood, a new group at the middle of its contracts (a timeline's
+     groups keep their line), a contract new to the map near its group — and
+     the Wiring's framing is carried below, so the picture glides to the new
+     grouping instead of snapping to the seed's bunched spread and back */
+  const was=IG&&IG.byId&&IG.nodes&&IG.nodes.length?IG.byId:null;
+  if(was){
+    const kept=new Set();
+    nodes.forEach(n=>{ const p=was[n.id]; if(p&&Number.isFinite(p.x)&&Number.isFinite(p.y)&&!(model.linear&&n.kind==='hub')){ n.x=p.x; n.y=p.y; n.vx=n.vy=0; kept.add(n); } });
+    /* a new group stands on a ring inside the picture already drawn (never at
+       its contracts' middle: groups cut from one big group would all stand on
+       one spot and burst apart) */
+    const ks=nodes.filter(n=>n.kind==='contract'&&kept.has(n));
+    if(!model.linear&&ks.length){ let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9; ks.forEach(n=>{ x0=Math.min(x0,n.x); x1=Math.max(x1,n.x); y0=Math.min(y0,n.y); y1=Math.max(y1,n.y); });
+      const cx=(x0+x1)/2, cy=(y0+y1)/2, R=Math.max(60,.3*Math.min(x1-x0,y1-y0));
+      hubs.forEach((h,i)=>{ if(kept.has(h)) return; const a=i/Math.max(1,hubs.length)*Math.PI*2; h.x=cx+Math.cos(a)*R; h.y=cy+Math.sin(a)*R; kept.add(h); }); }
+    nodes.forEach(n=>{ if(n.kind!=='contract'||kept.has(n)) return; const h=byId['hub:'+n.group]||{x:W/2,y:H/2}; n.x=h.x+(rnd()-.5)*120; n.y=h.y+(rnd()-.5)*120; });
+  }
   const adj={}; nodes.forEach(n=>adj[n.id]=new Set()); edges.forEach(e=>{ adj[e.from].add(e.to); adj[e.to].add(e.from); });
   const G={ svg, vp, nodes, edges, byId, adj, W, H, view:{x:0,y:0,k:1}, dragging:null, dragMoved:false, linear:!!model.linear, prev:IG,
     cv:document.getElementById('ig-cv'), ctx:null, sel:(IG&&IG.sel)||null, hover:null, turning:false };
   try{ G.ctx=G.cv&&G.cv.getContext?G.cv.getContext('2d'):null; }catch(_){ G.ctx=null; }
+  if(was&&IG.wb) G.wb={ cx:IG.wb.cx, cy:IG.wb.cy, s:IG.wb.s };   // the Wiring's framing, eased from where it stood (igbWiring)
   igbLayout(G); G.prev=null;   // the old graph is read once, never held
   /* A LINK SAYS WHAT KIND OF LINK IT IS, in its own dress: a family edge is
      the solid accent, a chain edge dashed, a group edge the quiet line from a
