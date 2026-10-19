@@ -1123,8 +1123,7 @@ function clauseEditorCss(){
      so a window dragged narrow while the page is open stacks rather than
      crushing the rail to nothing. */
   ${''/* ---- FROM A REDLINES ROW, AS DRAWN (round 9's gaps, second pass) ----
-         The head: ‹ Redlines, the act's title and their ask, the short shelf,
-         Exit. The paper: the context line, this clause in its box with its
+         The head: ‹ Redlines, then the full shelf (owner, 19 Oct 2026). The paper: the context line, this clause in its box with its
          step, the next dimmed, nothing else. The left foot's draft time and
          Undo stand down (the box says "saved as you type"; Undo is the
          keyboard's), the rail's name and clause picker too; the cards and the
@@ -1134,9 +1133,6 @@ function clauseEditorCss(){
   .ce-rowback{flex:none; height:var(--ctl-h-sm); padding:0 10px; border:1px solid var(--btn-edge); border-radius:var(--radius);
     background:var(--color-surface); font:inherit; font-size:var(--t-meta); color:var(--color-text); cursor:pointer; white-space:nowrap}
   .ce-rowback:hover{border-color:var(--accent-ink); color:var(--accent-ink)}
-  .ce-rowtitle{display:inline-flex; align-items:baseline; gap:8px; min-width:0; white-space:nowrap; overflow:hidden}
-  .ce-rowtitle b{flex:none; font-weight:var(--w-strong); font-size:var(--t-body); color:var(--color-text)}
-  .ce-rowtitle span{min-width:0; overflow:hidden; text-overflow:ellipsis; font-size:var(--t-meta); color:var(--color-neutral-600)}
   #clause-editor.ce-rowmode #ce-doc .ce-row-off{display:none}
   #clause-editor.ce-rowmode #ce-doc .ce-row-next{opacity:.45}
   #clause-editor.ce-rowmode #ce-doc .rl-rung,#clause-editor.ce-rowmode #ce-doc .rl-paper-foot,#clause-editor.ce-rowmode #ce-readbar{display:none}
@@ -1147,25 +1143,15 @@ function clauseEditorCss(){
   #clause-editor.ce-rowmode .ce-foot:not(:has(#ce-waiting > *)){display:none}
   #clause-editor.ce-rowmode .ce-ah .sp{display:none}
   #clause-editor.ce-rowmode #ce-pick{display:none}
-  ${''/* one row at every screen: the shelf keeps its line, the title gives way (ellipsis) */}
-  #clause-editor.ce-rowmode .ce-bar{flex-wrap:nowrap; flex:none}
-  #clause-editor.ce-rowmode .ce-barrow{flex-wrap:nowrap}
-  ${''/* ---- FROM A ROW THE HEAD BAR SPANS THE WINDOW (round 9's gaps, third
-         pass, as drawn) ----
-         ‹ Redlines, the title, the shelf and Exit run the whole width above
-         both columns, the rail's tabs sitting below the bar; Exit is the quiet
-         small outlined button at the far right, no icon. Only here: opened any
-         other way the strip keeps to the left column (the owner's own rule
-         for this page). The bar is lifted out of the column's flow onto the
-         grid (absolute, the grid is positioned) and both columns start under
-         it. */}
-  #clause-editor.ce-rowmode .ce-grid{padding-top:45px}
-  #clause-editor.ce-rowmode #ce-head{position:absolute; top:0; left:0; right:0; z-index:3}
-  #clause-editor.ce-rowmode #ce-head .ce-barrow{min-height:45px; height:45px; box-sizing:border-box}
-  #clause-editor.ce-rowmode .ce-exit{height:var(--ctl-h-sm); padding:0 var(--pad-ctl-x-sm); background:var(--color-surface);
-    border:1px solid var(--btn-edge); color:var(--color-text); font-size:var(--t-meta)}
-  #clause-editor.ce-rowmode .ce-exit:hover{border-color:var(--accent-ink); color:var(--accent-ink); background:var(--color-surface)}
-  #clause-editor.ce-rowmode .ce-exit > svg{display:none}
+  ${''/* ---- THE STRIP AS IT WAS BEFORE, FROM A ROW TOO (owner, 19 Oct 2026:
+         "bring this back to what it was before" and "‹ Redlines at the top
+         left, to match the panel") ----
+         Round 9's head bar spanning the window, its short shelf and its quiet
+         Exit stand down: the strip keeps to the left column with the full
+         shelf, as opened any other way, and ‹ Redlines is its one way out —
+         the guarded leave that lands on the row (ceRowBack). Opened any other
+         way the strip keeps its Exit. */}
+  #clause-editor.ce-rowmode .ce-exit{display:none}
   #clause-editor .ce-row-asked,#clause-editor .ce-row-jb{background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg)}
   #clause-editor .ce-row-asked .q{margin:4px 0 0; font-size:var(--t-meta); line-height:1.5; font-style:italic; color:var(--color-text)}
   #clause-editor .ce-row-asked .by{font-style:italic; color:var(--color-neutral-600)}
@@ -3224,9 +3210,10 @@ function ceRenderBar(){
   /* THE SHARED SHELF AND NOTHING ELSE. The button at the end of the strip is
      the WAY OUT and lives in the markup beside this host rather than inside it,
      because it is not a writing tool and must never grey with them. */
-  /* FROM A REDLINES ROW THE SHELF IS THE DRAWN ONE: B I U · bullets numbers
-     · outdent indent (round 9's gaps, second pass) */
-  host.innerHTML = richBarHtml({ shelf: ceRowMode() ? 'redline' : 'full', size: ceSizeNow() });
+  /* THE FULL SHELF FROM A REDLINES ROW TOO (owner, 19 Oct 2026: "bring this
+     back to what it was before"): round 9's short shelf (RICH_BAR_REDLINE)
+     stands down; the row's way back, ‹ Redlines, leads the strip */
+  host.innerHTML = richBarHtml({ shelf: 'full', size: ceSizeNow() });
   ceRowHeadPaint();
   /* ---- GREYED WHERE THIS PAGE CAN KNOW BEFORE THE PRESS ----
      This product's own rule for exactly that. There is ONE thing it can know:
@@ -3291,9 +3278,14 @@ function ceRowHeadPaint(){
   const host = _ceQ('#ce-rowhead'); if (!host) return;
   if (!ceRowMode()){ host.hidden = true; host.innerHTML = ''; return; }
   host.hidden = false;
-  const html = `<button type="button" class="ce-rowback" data-ce-act="row-back" title="${_ceea(_cet('ce_row_back_title'))}">‹ ${_cee(_cet('ce_row_back'))}</button>`
-    + `<span class="ce-rowtitle"><b>${_cee(ceRowTitle())}</b><span>${_cee(ceRowSub())}</span></span>`;
+  /* ‹ Redlines ALONE, top left of the strip as it was before (owner, 19 Oct
+     2026): the act's title stands down from the bar — the paper's context
+     line and the clause's own head say it (ceRowTitle/ceRowSub kept for the
+     hover) */
+  const html = `<button type="button" class="ce-rowback" data-ce-act="row-back" title="${_ceea(ceRowTitle() + ' · ' + ceRowSub())}">‹ ${_cee(_cet('ce_row_back'))}</button>`;
   if (host.innerHTML !== html) host.innerHTML = html;
+  /* the bar's ‹ is ‹ Redlines while this editor stands over a row (ONE TRAIL) */
+  if (typeof window.deskBarPaint === 'function') try { window.deskBarPaint(); } catch (_){}
 }
 /* WHAT THIS WORDING IS, under the clause's head: our counter on their ask,
    else our draft. NO STEP NUMBER (owner, 18 Oct 2026: nothing of the ladder
@@ -7601,6 +7593,9 @@ if (typeof document !== 'undefined' && !document._ceWired){
     if (document.querySelector('[data-top-overlay]')) return;
     if (ceFullClose()) return;
     if (_ceSel){ ceDetachPassage(); return; }
+    /* ONE TRAIL (owner, 19 Oct 2026): from a Redlines row Esc is ‹ Redlines,
+       one step up, landing on the row it came from */
+    if (ceRowMode()){ ceRowBack(); return; }
     ceLeaveGuard(() => rlCloseClauseEditor());
   });
   /* A window dragged below the width where two columns stop making sense: the

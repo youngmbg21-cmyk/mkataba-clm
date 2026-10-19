@@ -10124,7 +10124,13 @@
   /* THE FACE TAB (rounds 8–11 as drawn, the gaps of 18 Oct 2026): while a face is up the panel's row is
      Jambo's tab and the face's word, with ‹ Jambo at its end beside the fold; no chips under a face */
   #ig-dock .igd-head .pd-face-w{flex:none;align-self:center;margin-left:10px;font-size:var(--t-meta);font-weight:var(--w-label);color:var(--color-text);white-space:nowrap}
-  #ig-dock .igd-head > .pd-back{align-self:center;margin-right:2px}
+  /* ONE TRAIL (owner, 19 Oct 2026): under the tabs, while a face is up — its one back at the start, then where you are */
+  #ig-dock .pd-trail{flex:none;display:flex;align-items:center;gap:10px;min-width:0;padding:8px 14px;border-bottom:1px solid var(--color-divider);background:var(--color-surface)}
+  #ig-dock .pd-trail-w{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--t-meta);color:var(--color-neutral-600)}
+  #ig-dock .pd-trail-w b{font-weight:var(--w-label);color:var(--color-text)}
+  #ig-dock .pd-trail-w i{font-style:normal}
+  /* the notes' own "‹ Redlines" stands down beside the paper: the trail's back is the one way up */
+  #pd-redface .rl-fn-back{display:none}
   #ig-dock.pd-face-up [data-ig-chips]{display:none}
   /* the Negotiate page's notices, above the column since the page folded into Home (stage 5) */
   #pd-redface .rl-face .pd-rf-notices{flex:none;padding:10px 12px 0}

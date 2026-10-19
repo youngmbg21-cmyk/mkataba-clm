@@ -6415,7 +6415,7 @@ function redlineLayoutCss(){
   .redline-page .rl-card-by{margin-left:auto;flex:none;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap}
   .redline-page .rl-card-d .rl-card-sumw{grid-column:1 / -1;grid-row:2;min-width:0}
   .redline-page .rl-card-whyq{margin-top:2px;font-size:var(--t-meta);font-style:italic;line-height:1.45;color:var(--color-neutral-600);
-    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .redline-page button.rl-band-fold{width:100%;box-sizing:border-box;border-left:0;border-right:0;font-family:inherit;text-align:left;cursor:pointer}
   .redline-page button.rl-band-fold:hover{color:var(--color-text)}
   .redline-page button.rl-band-fold i{font-style:normal;flex:none}
@@ -6477,7 +6477,10 @@ function redlineLayoutCss(){
   .redline-page .rl-pile .rl-card-metarow > .rl-card-notes{order:1}
   .redline-page .rl-pile .rl-card-metarow > .rl-card-by{order:2;max-width:55%;overflow:hidden;text-overflow:ellipsis}
   .redline-page .rl-card-notes .rl-card-notes-w{font-weight:var(--w-label);margin-left:-1px}
-  .redline-page .rl-card-d .rl-card-sum.rl-card-ex{white-space:normal;overflow:visible;text-overflow:clip;
+  ${''/* ONE LINE A ROW, EVERY ROW ONE HEIGHT (owner, 19 Oct 2026: "bring back the previous
+         uniform sized redline cards"): the changed words on one line, cut with …, as the
+         argument line was; the paper carries the whole wording, the hover the argument */}
+  .redline-page .rl-card-d .rl-card-sum.rl-card-ex{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
     color:var(--color-text);font-size:var(--t-meta);line-height:1.5}
   .redline-page .rl-card-ex del{color:var(--st-ruby-fg);text-decoration:line-through}
   .redline-page .rl-card-ex ins{color:var(--accent-ink);text-decoration:underline;text-underline-offset:2px}

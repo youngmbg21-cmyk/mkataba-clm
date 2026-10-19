@@ -51,47 +51,41 @@ function pdStage({ paper = 'MK-1' } = {}){
 }
 const tabsOf = h => [...h.matchAll(/data-pd-tab="([a-z]+)"/g)].map(m => m[1]);
 
-describe('f758 (1) one row for every face', () => {
-  test('1a a face up: Jambo\'s tab, then the face\'s word; the contract\'s tabs come back when it goes', () => {
+/* RE-POINTED 19 Oct 2026 — ONE TRAIL (the owner picked "One trail" by name):
+   the panel's tabs stay while a face is up, the face's word and its one back
+   move to ONE trail line under them (pdTrailHtml), for every face alike;
+   rounds 9 and 11's "Jambo's tab alone + ‹ Jambo at the row's end" and round
+   3's "‹ Jambo · name · ×" heads stand down. */
+describe('f758 (1) one trail for every face', () => {
+  test('1a a face up: the contract\'s tabs stay, Jambo\'s lit; no face word in the tab row', () => {
     const { ctx } = pdStage();
     const before = tabsOf(ctx.pdHeadHtml());
     assert.ok(before.length > 1, 'beside a paper: the contract\'s tabs');
     ctx.pdSendOpen('MK-1', null);
     const h = ctx.pdHeadHtml();
-    assert.deepEqual(tabsOf(h), ['copilot'], 'a face up: Jambo\'s tab alone');
-    assert.match(h, /<span class="pd-face-w" data-pd-face-w="send">pd_face_w_send<\/span>$/, 'then the face\'s word');
+    assert.deepEqual(tabsOf(h), before, 'a face up: the tabs stay');
+    assert.doesNotMatch(h, /pd-face-w/, 'the face\'s word is the trail\'s');
     ctx.pdSendClose();
-    assert.deepEqual(tabsOf(ctx.pdHeadHtml()), before, 'the face gone: the tabs are back');
+    assert.deepEqual(tabsOf(ctx.pdHeadHtml()), before);
   });
-  test('1b every face has its word, and "‹ Jambo" is the row\'s, for whichever face is up', () => {
+  test('1b every face has its word; the trail says it with its one back first', () => {
     const { ctx } = pdStage();
     assert.deepEqual(Object.keys(ctx.PD_FACE_WORD).sort(), ['amend', 'fill', 'red', 'send', 'signing']);
     for (const f of ctx.PD_FACE_WORDS) assert.ok(ctx.PD_FACE_WORD[f], 'a word for ' + f);
-    assert.equal(ctx.pdFaceBackHtml(), '', 'no face: nothing');
+    assert.equal(ctx.pdTrailHtml(), '', 'no face: nothing');
     ctx.pdSendOpen('MK-1', null);
     assert.equal(ctx.pdFaceUp(), 'send', 'the send screen wins while it is up');
-    assert.match(ctx.pdFaceBackHtml(), /^<button type="button" class="pd-back" data-pd-back="send"/);
+    assert.match(ctx.pdTrailHtml(), /^<div class="pd-trail" data-pd-trail="send"><button type="button" class="pd-back" data-pd-back="send"[\s\S]*pd_face_w_send<\/b><\/span><\/div>$/);
     const head = IG.slice(IG.indexOf('function renderIntelDock('));
-    assert.match(head, /pdFaceBackHtml\(\)/, 'drawn in the panel\'s own row');
+    assert.match(head, /pdTrailHtml\(\)/, 'drawn under the panel\'s tabs');
+    assert.doesNotMatch(head, /pdFaceBackHtml\(\)/, 'no ‹ Jambo at the row\'s end');
     assert.match(head, /dock\.classList\.toggle\('pd-face-up',!!\(window\.pdFaceUp&&pdFaceUp\(\)\)\)/, 'the panel knows a face is up');
     assert.match(CSS, /#ig-dock\.pd-face-up \[data-ig-chips\]\{display:none\}/, 'no chips under a face');
   });
-  /* RE-POINTED AT THE INTEGRATION (19 Oct 2026), by the owner's answer (3):
-     Fill in, Before you sign (and an amendment) keep round 3's own face head
-     with ‹ Jambo and ×; the panel's row carries them for Redlines and Before
-     you send only (PD_FACE_ROW) — with one of those up the contract's tabs
-     stay, and nothing is drawn in the row */
-  test('1c only Redlines and Before you send take the row; Fill in and Before you sign keep their own head', () => {
-    for (const fn of ['pdFillHeadHtml', 'pdSignHeadHtml', 'pdAmendHeadHtml'])
-      assert.match(fnBody(PD, fn).replace(/\/\*[\s\S]*?\*\//g, ''), /pdBackHtml\([\s\S]*-close[\s\S]*>×</, fn);
-    const { ctx } = pdStage();
-    assert.deepEqual([...ctx.PD_FACE_ROW], ['red', 'send']);
-    const before = tabsOf(ctx.pdHeadHtml());
-    ctx.pdFillOpen && ctx.pdFillOpen('MK-1');
-    if (ctx.pdFillShows && ctx.pdFillShows()){
-      assert.equal(ctx.pdFaceUp(), '', 'Fill in up: no face row');
-      assert.equal(ctx.pdFaceBackHtml(), '', 'no ‹ Jambo in the row');
-      assert.deepEqual(tabsOf(ctx.pdHeadHtml()), before, 'the contract\'s tabs stay');
+  test('1c Fill in, Before you sign and an amendment: the head is the name, no ‹ Jambo, no ×', () => {
+    for (const fn of ['pdFillHeadHtml', 'pdSignHeadHtml', 'pdAmendHeadHtml']){
+      const b = fnBody(PD, fn).replace(/\/\*[\s\S]*?\*\//g, '');
+      assert.doesNotMatch(b, /pdBackHtml\(|>×</, fn);
     }
   });
 });

@@ -279,8 +279,9 @@ describe('f756 (6) the column and the paper as drawn', () => {
     assert.match(fnBody(NV, 'rlRowClauseName'), /clauseNameAsDrafted\(raw\)/);
     assert.match(NV, /const who = _ne\(rlRowClauseName\(ch\)\);/, 'the row reads it');
   });
-  test('6c nothing under the settled fold beside Home\'s paper; no step chips on Home\'s paper', () => {
-    assert.match(fnBody(PD, 'pdRedOpts'), /noProgress: true, noRisks: true/);
+  test('6c beside Home\'s paper: no progress pile, the risk cards stay (owner, 19 Oct 2026); no step chips on Home\'s paper', () => {
+    assert.match(fnBody(PD, 'pdRedOpts'), /noProgress: true/);
+    assert.doesNotMatch(fnBody(PD, 'pdRedOpts'), /noRisks: true/, 'RE-POINTED 19 Oct 2026: the owner asked the risk cards back under the piles');
     assert.match(fnBody(NV, 'rlColumnHtml'), /\(!opts\.noRisks && !notesOn && typeof window\.rlRisksPileHtml === 'function'\)/);
     /* RE-POINTED 19 Oct 2026 (main's "NOTHING OF THE LADDER ON THE PAPER"):
        the chip itself draws only a pinned rung's reading with its way back,
@@ -307,13 +308,17 @@ describe('f756 (7) where Edit lands from a row, as drawn', () => {
   });
   test('7b the head: ‹ Redlines (the page\'s own guarded way out, landing on the row), "Counter · 7. Liability cap", "Nordvik asks 100% · back lands on the same row", the short shelf, Exit', () => {
     const head = fnBody(CE, 'ceRowHeadPaint');
-    assert.match(head, /data-ce-act="row-back"[^>]*>‹ \$\{_cee\(_cet\('ce_row_back'\)\)\}/);
+    /* RE-POINTED 19 Oct 2026 (owner: "bring this back to what it was before",
+       "‹ Redlines at the top left"): ‹ Redlines alone leads the full shelf,
+       the act's title rides its hover */
+    assert.match(head, /data-ce-act="row-back" title="\$\{_ceea\(ceRowTitle\(\) \+ ' · ' \+ ceRowSub\(\)\)\}">‹ \$\{_cee\(_cet\('ce_row_back'\)\)\}/);
+    assert.doesNotMatch(head, /ce-rowtitle/);
     assert.match(fnBody(CE, 'ceRowTitle'), /_cet\(theirs \? 'ce_row_counter' : 'ce_row_edit', \{ clause \}\)/);
     assert.match(fnBody(CE, 'ceRowTitle'), /clauseNameAsDrafted\(raw\)/, 'as the paper prints it');
     assert.match(fnBody(CE, 'ceRowSub'), /shareFigureOf\(/, 'their figure, the letter\'s own reading');
     assert.match(fnBody(CE, 'ceRowSub'), /_cet\('ce_row_lands'\)/);
     assert.match(fnBody(CE, 'ceRowBack'), /ceLeaveGuard\(\(\) => \{[\s\S]*rlCloseClauseEditor\(\{ repaint: true \}\);[\s\S]*rlLinkFocus\(c, id, 'card'\)/);
-    assert.match(CE, /host\.innerHTML = richBarHtml\(\{ shelf: ceRowMode\(\) \? 'redline' : 'full', size: ceSizeNow\(\) \}\);/);
+    assert.match(CE, /host\.innerHTML = richBarHtml\(\{ shelf: 'full', size: ceSizeNow\(\) \}\);/, 'the full shelf, as before');
     const ctx = { window: {} }; vm.createContext(ctx);
     const tools = /const RICH_BAR_TOOLS = \[[\s\S]*?\];/.exec(RD)[0];
     vm.runInContext(tools + '\n' + /const RICH_BAR_REDLINE = [^\n]*/.exec(RD)[0] + '\nconst RICH_BAR_ICON = new Proxy({}, { get: () => "<svg/>" });\nconst _rbT = k => k; const _rbA = s => String(s);\n'
@@ -473,11 +478,14 @@ describe('f756 (8) the third pass: the face as drawn', () => {
     assert.match(NV, /const named = side === 'counterparty' \|\| \(!many && !!String\(c\.counterparty \|\| ''\)\.trim\(\)\);/);
     assert.match(NV, /\? i18t\(named \? 'ng_band_with_named' : 'ng_band_with', \{ who: otherSide \}\)/);
   });
-  test('8j the editor from a row: the head bar spans the window, a quiet Exit at its end, no step number', () => {
-    assert.match(CE, /#clause-editor\.ce-rowmode \.ce-grid\{padding-top:45px\}/);
-    assert.match(CE, /#clause-editor\.ce-rowmode #ce-head\{position:absolute; top:0; left:0; right:0; z-index:3\}/);
-    assert.match(CE, /#clause-editor\.ce-rowmode \.ce-exit\{height:var\(--ctl-h-sm\);[^}]*background:var\(--color-surface\);\s*border:1px solid var\(--btn-edge\); color:var\(--color-text\)/);
-    assert.match(CE, /#clause-editor\.ce-rowmode \.ce-exit > svg\{display:none\}/);
+  /* RE-POINTED 19 Oct 2026 (owner): the strip as it was before, from a row
+     too — no bar spanning the window, no Exit; ‹ Redlines is the way out,
+     and Esc presses it */
+  test('8j the editor from a row: the strip as before, no Exit, Esc is ‹ Redlines, no step number', () => {
+    assert.doesNotMatch(CE, /#clause-editor\.ce-rowmode \.ce-grid\{padding-top:45px\}/);
+    assert.doesNotMatch(CE, /#clause-editor\.ce-rowmode #ce-head\{position:absolute/);
+    assert.match(CE, /#clause-editor\.ce-rowmode \.ce-exit\{display:none\}/);
+    assert.match(CE, /if \(ceRowMode\(\)\)\{ ceRowBack\(\); return; \}/);
     assert.ok(!/ce-row-step|function ceRowStep\(/.test(CE.replace(/ceRowStep STALE/, '')), 'no step chip in the editor');
   });
   test('8k the doors this lane added land through the one lander (LAND ON IT)', () => {
