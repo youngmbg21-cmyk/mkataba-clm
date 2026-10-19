@@ -696,7 +696,13 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
       const GL = { fill: [E.fill(gid), SAYS.fill], redline: [L => L.ceRisks, 'the clause editor, on its Risks tab'],
         share: [L => E.paper(gid)(L) && L.shareCard, 'the paper, Jambo\'s Share card'], sign: [E.signing(gid), SAYS.signing] };
       /* the card stands where no face is open: the face the last press opened is put away first */
+      /* RE-POINTED (19 Oct 2026, owner: "you land on the page and if you want
+         to chat with jambo it takes you to a new jambo tab but you can go back
+         to the landing side panel"): the Share card is now said in the
+         conversation the panel flips to, over the glance; the person's way back
+         to the glance is the trail's ‹ Overview (pdTalkBack), pressed first */
       const glanceStart = async () => { await page.evaluate(i => { for (const f of ['rlCloseClauseEditor', 'pdFillAway', 'pdRedAway', 'pdSignAway']) try { if (typeof window[f] === 'function') window[f](); } catch (_) { /* none open */ }
+        if (typeof pdTalkShows === 'function' && pdTalkShows()) pdTalkBack();
         pdOpenOnHome(i, 'copilot'); if (typeof renderIntelDock === 'function') renderIntelDock(); }, gid);
         await waitFor(page, i => !!document.querySelector(`#pd-glance[data-pd-glance-for="${i}"]`), 8000, gid); };
       for (const k of ['fill', 'redline', 'share', 'sign'])

@@ -21054,7 +21054,7 @@ function runAutoRenewals(nowMs) {
     c.autoRenewed = hist.concat([{ from: end, to, at: now(), months: months || null }]);
     c.audit = (Array.isArray(c.audit) ? c.audit : []).concat([{ at: now(), user: 'HaTi', action: 'Renewed',
       detail: to ? `Renewed itself on ${end} — no notice was served. The end date is now ${to} (a renewal term of ${months} month${months === 1 ? '' : 's'}).`
-        : `The end date ${end} passed with no notice served, so it has probably renewed itself. The renewal term is not recorded, so the new end date is not known — record it on the Overview.` }]);
+        : `The end date ${end} passed with no notice served, so it has probably renewed itself. The renewal term is not recorded, so the new end date is not known — record it on Details.` }]);
     db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(c), row.id);
     renewed++;
     const own = contractOwnerRecipient(c, row.folder);

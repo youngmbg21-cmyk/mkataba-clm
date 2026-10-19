@@ -33,6 +33,9 @@ const CSS = R('index.html');
 const fnBody = (src, name) => { const i = src.indexOf('function ' + name + '('); assert.ok(i >= 0, name + ' exists');
   const j = src.indexOf('\nfunction ', i + 10); return src.slice(i, j > 0 ? j : undefined); };
 
+/* the one trail builder and the conversation's record (components.js, 19 Oct
+   2026): its own region, which the page loads with the paper desk */
+const JT = (() => { const C = R('js/components.js'); const i = C.indexOf('var _jt = '); assert.ok(i > 0, 'the record'); return C.slice(i, C.indexOf('Object.assign(window,{JT_BACK', i)); })();
 function pdStage({ paper = 'MK-1' } = {}){
   const c = { id: 'MK-1', contractNo: 'MK-0382', counterparty: 'Nordvik Logistik AB', folder: 'proc', status: 'Under Review' };
   const painted = [];
@@ -46,7 +49,8 @@ function pdStage({ paper = 'MK-1' } = {}){
     renderIntelDock: () => painted.push('dock'), setTimeout: () => 0,
   };
   ctx.window = ctx;
-  vm.createContext(ctx); vm.runInContext(PD, ctx);
+  /* the one trail builder (components.js, 19 Oct 2026) is in the page with it */
+  vm.createContext(ctx); vm.runInContext(JT, ctx); vm.runInContext(PD, ctx);
   return { ctx, c, painted };
 }
 const tabsOf = h => [...h.matchAll(/data-pd-tab="([a-z]+)"/g)].map(m => m[1]);
@@ -79,7 +83,8 @@ describe('f758 (1) one trail for every face', () => {
     const head = IG.slice(IG.indexOf('function renderIntelDock('));
     assert.match(head, /pdTrailHtml\(\)/, 'drawn under the panel\'s tabs');
     assert.doesNotMatch(head, /pdFaceBackHtml\(\)/, 'no ‹ Jambo at the row\'s end');
-    assert.match(head, /dock\.classList\.toggle\('pd-face-up',!!\(window\.pdFaceUp&&pdFaceUp\(\)\)\)/, 'the panel knows a face is up');
+    /* RE-POINTED 19 Oct 2026 (JAMBO AS A TAB YOU FLIP TO): not while the panel shows the conversation */
+    assert.match(head, /dock\.classList\.toggle\('pd-face-up',!talk&&!!\(window\.pdFaceUp&&pdFaceUp\(\)\)\)/, 'the panel knows a face is up');
     assert.match(CSS, /#ig-dock\.pd-face-up \[data-ig-chips\]\{display:none\}/, 'no chips under a face');
   });
   test('1c Fill in, Before you sign and an amendment: the head is the name, no ‹ Jambo, no ×', () => {
@@ -107,7 +112,10 @@ describe('f758 (2) "Before you send" owns no builder and no writer', () => {
     ctx.pdSendClose();
     assert.equal(ctx.pdSendFor(), null);
   });
-  test('2b ‹ Jambo turns the panel to Jambo and the letter stays; the screen gives the face back on close', () => {
+  /* RE-POINTED 19 Oct 2026 (owner: "Before you send's back returns to the
+     panel it came from (normally Redlines)") — the back is still pdSendAway,
+     which now leaves the face under the letter up; the letter waits */
+  test('2b the back turns the panel to the face it came from and the letter stays; the screen gives the face back on close', () => {
     const map = PD.slice(PD.indexOf('const PD_BACK_CLOSE'), PD.indexOf('function pdBackHtml'));
     /* RE-POINTED 18 Oct 2026 (round 11's gaps, second pass): ‹ Jambo no longer
        puts the letter away — it turns the panel to Jambo's own words
@@ -185,7 +193,10 @@ describe('f758 (4) ‹ Jambo while the letter is up', () => {
     assert.match(IG, /\$\{\(window\.pdSendKeepHtml&&pdSendKeepHtml\(\)\)\|\|''\}`;/);
     assert.match(IG, /if\(document\.getElementById\('pd-send-slot'\)&&typeof window\.pdSendFacePaint==='function'\)/);
     assert.match(PD, /if \(t\.closest\('\[data-pd-send-back\]'\)\)\{ e\.preventDefault\(\); pdSendBack\(\); return; \}/);
-    assert.match(fnBody(PD, 'pdSendAway'), /if \(_pdRed\) pdRedClose\(\);/, 'a face under the letter goes too: Jambo\'s own words');
+    /* RE-POINTED 19 Oct 2026 (owner: "Before you send's back returns to the
+       panel it came from (normally Redlines)"; reverses this pass's "a face
+       under the letter goes too"): the face under the letter stays up */
+    assert.doesNotMatch(fnBody(PD, 'pdSendAway').replace(/\/\*[\s\S]*?\*\//g, ''), /pdRedClose\(\)/, 'the face under the letter stays: the back returns to it');
   });
 });
 

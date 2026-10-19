@@ -193,7 +193,12 @@ const OBS = [
     const order = await page.evaluate(() => { const prep = document.querySelector('#hb-board .hb-prep'), st = document.getElementById('bs-strips');
       return { prep: !!prep, after: !!(prep && st && (prep.compareDocumentPosition(st) & Node.DOCUMENT_POSITION_FOLLOWING)), focus: !!document.querySelector('#hb-focus .hb-dig'), face: hbFace(), view: state.view }; });
     check('1a and on the Board tab it stands as a strip below Today\'s insights; no old card', typed && up1 && order.after && !order.focus && order.face === 'board' && order.view === 'dashboard', JSON.stringify(order));
-    const said = await page.evaluate(() => { const m = [...document.querySelectorAll('#ig-dock .igd-msg, #ig-dock [class*="msg"]')].map(x => x.textContent).join(' '); return /strip/i.test(m); });
+    /* RE-POINTED 19 Oct 2026 (owner: "you land on the page and if you want to chat with jambo it takes you
+       to a new jambo tab but you can go back to the landing side panel"; a "go to" ask takes you there): the
+       bring-up lands on the contract's own panel, so Jambo's sentence is in the conversation (the flip),
+       not drawn over the landing */
+    const said = await page.evaluate(() => { const H = (window.intel && Array.isArray(intel.history)) ? intel.history : [];
+      return H.some(m => m && m.role === 'assistant' && /strip/i.test(String(m.text || '').replace(/<[^>]+>/g, ' '))); });
     check('1b Jambo says where it went (a strip; its ⋯ holds Where we are and History)', said);
     await page.evaluate(() => { document.getElementById('cmd-palette')?.remove(); openCommandPalette(); });
     await waitFor(page, () => !!document.getElementById('cp-input'), 4000);

@@ -121,8 +121,10 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
         return { back: !!b && b.textContent.trim(), order: !!(b && w) && b.getBoundingClientRect().right <= w.getBoundingClientRect().left + 1, where: w ? w.textContent.trim() : '', x: !!x,
           rowBack: !!(head && head.querySelector('[data-pd-back]')),
           tabs: head ? [...head.querySelectorAll('[data-pd-tab]')].map(t => t.getAttribute('data-pd-tab')).join() : '' }; })(), null, 8000);
-      check('3b Fill in: the tabs stay, its head is the trail "‹ Jambo · Jambo / Fill in", no ×',
-        !!ff && ff.back === 'Jambo' && ff.order && /Jambo \/ Fill in/.test(ff.where) && !ff.x && !ff.rowBack && ff.tabs.split(',').length > 1, JSON.stringify(ff));
+      /* RE-POINTED 19 Oct 2026 — JAMBO AS A TAB YOU FLIP TO (owner: "the first tab
+         beside a contract is renamed Overview"): the faces' back says "‹ Overview" */
+      check('3b Fill in: the tabs stay, its head is the trail "‹ Overview · Overview / Fill in", no ×',
+        !!ff && ff.back === 'Overview' && ff.order && /Overview \/ Fill in/.test(ff.where) && !ff.x && !ff.rowBack && ff.tabs.split(',').length > 1, JSON.stringify(ff));
       await shot(page, 'jambos-panel-fill-1440x780');
       if (await press('#ig-dock [data-pd-back="fill"]', '3c ‹ Jambo on Fill in')) {
         const back = await until(() => !(window.pdFillShows && pdFillShows()) && !!document.getElementById('pd-glance'), null, 6000);
@@ -137,8 +139,9 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
       return { word: w.textContent.trim(), back: b.textContent.trim(), sameLine: Math.abs(w.getBoundingClientRect().top - b.getBoundingClientRect().top) < 10,
         headBack: !!top.querySelector('[data-pd-back]'), headX: !!top.querySelector('[data-pd-rf-close]'),
         first: (top.querySelector('.rl-idx-title') || {}).textContent || '' }; }, null, 10000);
-    check('3d the Redlines face: the trail line reads "‹ Jambo" · Redlines; the column\'s head opens with "Redlines N", no ‹ Jambo, no ×',
-      !!rf && rf.word === 'Redlines' && rf.back === 'Jambo' && rf.sameLine && !rf.headBack && !rf.headX && /^Redlines/.test(rf.first.trim()), JSON.stringify(rf));
+    /* RE-POINTED 19 Oct 2026 (JAMBO AS A TAB YOU FLIP TO): "‹ Overview" */
+    check('3d the Redlines face: the trail line reads "‹ Overview" · Redlines; the column\'s head opens with "Redlines N", no ‹ Jambo, no ×',
+      !!rf && rf.word === 'Redlines' && rf.back === 'Overview' && rf.sameLine && !rf.headBack && !rf.headX && /^Redlines/.test(rf.first.trim()), JSON.stringify(rf));
     await shot(page, 'jambos-panel-redlines-1440x780');
     if (await press('#ig-dock [data-pd-back="red"]', '3e ‹ Jambo on Redlines')) {
       const back = await until(() => !(window.pdRedShows && pdRedShows()) && !!document.getElementById('pd-glance'), null, 6000);

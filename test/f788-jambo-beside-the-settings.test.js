@@ -24,7 +24,9 @@ describe('f788 (1) the panel\'s head', () => {
   test('1a Jambo, and the word for what the panel holds, on every face', () => {
     const g = settingsStage({ role: 'legal' });
     assert.ok(g.q('#st-side-head #st-side-tab-jambo'), 'Jambo\'s tab in the head');
-    assert.equal(g.text(g.q('#st-side-tab-jambo')), S.en.st_side_jambo);
+    /* RE-POINTED 19 Oct 2026 — JAMBO AS A TAB YOU FLIP TO (owner): the panel
+       is the page's, its tab the landing, "Overview"; "Jambo" is the conversation */
+    assert.equal(g.text(g.q('#st-side-tab-jambo')), S.en.pd_tab_overview);
     assert.equal(g.text(g.$('st-side-word')), S.en.st_side_you);
     const a = settingsStage();
     assert.equal(g.text(a.$('st-side-word')), S.en.st_side_you, 'an admin on You');
@@ -64,8 +66,9 @@ describe('f788 (2) the Menu, and "/"', () => {
     assert.ok(g.$('st-side-menu').hidden, 'the Menu does not jump in front');
     g.sb.stSideSet('menu');
     const back = g.q('#st-side-head .st-side-back[data-st-side="jambo"]');
-    assert.ok(back, '‹ Jambo');
-    assert.equal(g.text(back), '‹ ' + S.en.st_side_jambo);
+    assert.ok(back, '‹ Overview');
+    /* RE-POINTED 19 Oct 2026 (JAMBO AS A TAB YOU FLIP TO): back to the landing, "Overview" */
+    assert.equal(g.text(back), '‹ ' + S.en.pd_tab_overview);
     g.click(back);
     assert.ok(g.$('st-side-menu').hidden && !g.$('st-side-jambo').hidden);
   });

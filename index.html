@@ -3881,6 +3881,10 @@
   /* Jambo's face */
   .st-cr .st-jb{ flex:1; min-height:0; display:flex; flex-direction:column; }
   .st-cr .st-jb-feed{ flex:1; min-height:0; overflow:auto; background:var(--color-chat-bg); padding:12px; display:flex; flex-direction:column; gap:10px; }
+  /* JAMBO AS A TAB YOU FLIP TO (19 Oct 2026): the feed's two views, the landing and the conversation, one at a time */
+  /* each view is no box of its own (display:contents): its rows sit in the feed's own column exactly as before the flip, so the page paints nothing new */
+  .st-cr .st-jb-feed > .st-jb-land, .st-cr .st-jb-feed > .st-jb-talk{ display:contents; }
+  .st-cr .st-jb-feed > .st-jb-land[hidden], .st-cr .st-jb-feed > .st-jb-talk[hidden], .st-cr #st-jb-trail[hidden]{ display:none; }
   .st-cr .st-jb-msg{ display:flex; gap:8px; align-items:flex-start; }
   .st-cr .st-jb-av{ flex:none; border-radius:50%; background:var(--color-surface); }
   .st-cr .st-jb-bub{ background:var(--color-surface); border:1px solid var(--color-divider); border-radius:10px; padding:8px 11px;
@@ -10130,6 +10134,19 @@
   #ig-dock .pd-trail-w b{font-weight:var(--w-label);color:var(--color-text)}
   #ig-dock .pd-trail-w i{font-style:normal}
   #ig-dock .pd-trail.is-in-head{padding:0;border:0;background:none;flex:1 1 auto}
+  /* JAMBO AS A TAB YOU FLIP TO (owner, 19 Oct 2026): the same trail line over the conversation on every
+     other Jambo panel (beside a list, Import, Settings, the Calendar) — one builder, jamboTrailHtml */
+  .jt-trail{flex:none;display:flex;align-items:center;gap:10px;min-width:0;padding:8px 14px;border-bottom:1px solid var(--color-divider);background:var(--color-surface)}
+  .jt-trail .pd-trail-w{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--t-meta);color:var(--color-neutral-600)}
+  .jt-trail .pd-trail-w b{font-weight:var(--w-label);color:var(--color-text)}
+  .jt-trail .pd-trail-w i{font-style:normal}
+  .jt-trail .pd-back{flex:none;display:inline-flex;align-items:center;gap:3px;height:var(--ctl-h-sm);padding:0 8px 0 5px;border:1px solid var(--btn-edge);border-radius:var(--radius);background:var(--color-surface);color:var(--accent-ink);font:inherit;font-size:12px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
+  .jt-trail .pd-back:hover{border-color:var(--accent-ink)}
+  .jt-trail .pd-back:focus-visible{outline:2px solid var(--accent-ink);outline-offset:1px}
+  [data-jt-land][hidden],[data-jt-talk][hidden],.jt-trail[hidden]{display:none}
+  .jl-talk{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+  .jl-talk-sc{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain}
+  .is-talk > .jl-head .jl-back{display:none}
   /* an answered box never moves under the hand: the browser's scroll anchoring does not shift Fill in's list */
   #pd-fillface{overflow-anchor:none}
   /* the notes' own "‹ Redlines" stands down beside the paper: the trail's back is the one way up */

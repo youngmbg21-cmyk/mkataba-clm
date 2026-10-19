@@ -768,6 +768,12 @@ function buildWorld(opts = {}) {
     files.push(REGISTER_VIEW);
   }
   if (opts.agents) files.push(AGENTS_VIEW);
+  /* JAMBO AS A TAB YOU FLIP TO (19 Oct 2026): the panels' one conversation
+     record and trail builder are js/components.js's — its own region, before
+     the views that register their backs with it (the rest of that file is the
+     shell's, which this stage stands in for) */
+  { const C = fs.readFileSync(path.join(ROOT, 'js/components.js'), 'utf8'); const i = C.indexOf('var _jt = ');
+    if (i > 0) require('node:vm').runInContext(C.slice(i, C.indexOf('Object.assign(window,{JT_BACK', i)), ctx, { filename: 'js/components.js#jamboTalk' }); }
   for (const rel of files) {
     const abs = path.join(ROOT, rel);
     if (!fs.existsSync(abs)) continue;            // docxwrite.js arrives with fix 3

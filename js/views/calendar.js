@@ -2070,6 +2070,17 @@ async function calLevelSet(v){
    offer, the planner's two asks as chips saying their cost ("plan my week · 1
    Jambo call"), the setting as three buttons, then the conversation; at the
    foot his box and Ask (its cost on its hover) and the hint line. */
+const CAL_TALK_KEY='cal:week';
+function calTalkBack(){
+  const keep=(typeof window.jamboTalkClose==='function')?jamboTalkClose():[];
+  if(document.getElementById('cal-plan')){ const pb=document.getElementById('cal-plan-body'); if(pb) pb.scrollTop=0; }
+  if(calOnScreen()) calPlanRepaint(); else if(typeof window.renderIntelDock==='function') renderIntelDock();
+  if(typeof window.jamboScrollPut==='function') jamboScrollPut(keep);
+  if(typeof window.deskBarPaint==='function') try{ deskBarPaint(); }catch(_){ }
+}
+if(typeof window!=='undefined'&&typeof window.jamboTalkHost==='function') jamboTalkHost('cal', calTalkBack, k=>k===CAL_TALK_KEY&&!!document.getElementById('cal-plan'));
+if(typeof document!=='undefined'&&!document._calTalkWired){ document._calTalkWired=true;
+  document.addEventListener('click',e=>{ const b=e.target&&e.target.closest?e.target.closest('[data-cal-talk-back]'):null; if(!b) return; e.preventDefault(); calTalkBack(); }); }
 function calPlanHtml(){
   const lv=calLevelOf();
   const never=lv==='never';
@@ -2102,15 +2113,22 @@ function calPlanHtml(){
   const week=(typeof window.obYourWeekSentence==='function')?obYourWeekSentence():'';
   const offer=(typeof window.obYourWeekOffer==='function')?obYourWeekOffer():'';
   const cost=i18t('jl_ask_cost');
-  return `<aside class="cal-cop" id="cal-plan" aria-label="${_esc(i18t('ce_copilot'))}">
-    <div class="cal-plan-head jl-head"><span class="pd-tab on jl-tab cal-plan-tab"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${face}</span>${n?`<span class="pd-tab-n is-warn">${n>99?'99+':n}</span>`:''}</span><span class="pd-tab-w">${_esc(i18t('pd_tab_copilot'))}</span></span>
+  /* JAMBO AS A TAB YOU FLIP TO (owner, 19 Oct 2026): the panel lands on Your
+     week; an ask turns it to the conversation under the one trail line
+     (jamboTrailHtml), and ‹ Overview, Esc or the bar's ‹ turn it back as left */
+  if(typeof window.jamboTalkLand==='function') jamboTalkLand(CAL_TALK_KEY);
+  const talk=!!(you||answer)&&typeof window.jamboTalkShows==='function'&&jamboTalkShows(CAL_TALK_KEY);
+  const land=i18t('pd_tab_overview');
+  return `<aside class="cal-cop${talk?' is-talk':''}" id="cal-plan" aria-label="${_esc(i18t('ce_copilot'))}">
+    <div class="cal-plan-head jl-head"><span class="pd-tab on jl-tab cal-plan-tab"${talk?' data-cal-talk-back role="button" tabindex="0"':''}><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${face}</span>${n?`<span class="pd-tab-n is-warn">${n>99?'99+':n}</span>`:''}</span><span class="pd-tab-w">${_esc(land)}</span></span>
       <span class="jl-word">${_esc(i18t('jl_w_week'))}</span><span class="jl-sp"></span></div>
+    ${talk&&typeof window.jamboTalkTrailHtml==='function'?jamboTalkTrailHtml('cal',land):''}
     <div class="cal-plan-body scroll-thin" id="cal-plan-body">
-      <div class="jl-words cal-yw">${week?`<div class="jl-say">${sayFace}<div class="jl-bub">${week}</div></div><p class="jl-src">${_esc(i18t('ob_yw_src'))}</p>`:''}${
+      <div class="jl-words cal-yw" data-jt-land${talk?' hidden':''}>${week?`<div class="jl-say">${sayFace}<div class="jl-bub">${week}</div></div><p class="jl-src">${_esc(i18t('ob_yw_src'))}</p>`:''}${
         offer?`<div class="jl-say">${sayFace}<div class="jl-bub">${_esc(offer)}</div></div>`:''}
         <div class="jl-chips cal-yw-chips"><button type="button" class="jl-chip" data-cal-plan-q="week" title="${_esc(i18t('cal_plan_p_week'))}"${off}>${_esc(i18t('ob_yw_chip_week'))}</button><button type="button" class="jl-chip" data-cal-plan-q="due" title="${_esc(i18t('cal_plan_p_due'))}"${off}>${_esc(i18t('ob_yw_chip_due'))}</button></div>
         ${calLevelSegHtml()}</div>
-      ${you||answer?`<div class="cal-plan-talk">${you}${answer}</div>`:''}
+      ${talk?`<div class="cal-plan-talk" data-jt-talk>${you}${answer}</div>`:''}
     </div>
     <div class="jl-foot cal-plan-foot">
       <div class="jl-box cal-plan-box"><input id="cal-plan-in" type="text" maxlength="600" enterkeyhint="send" data-ca-slash autocomplete="off" placeholder="${_esc(i18t('jl_ph_week'))}" aria-label="${_esc(i18t('jl_ph_week'))}" title="${_esc(cost)}"${off}><button type="button" class="ui-btn ui-btn-primary ui-btn-sm jl-send" id="cal-plan-go" title="${_esc(cost)}"${off}>${_esc(i18t('int_ask'))}</button></div>
@@ -2153,6 +2171,8 @@ async function calPlanAsk(q, ref){
     .map(e=>({ date:e.date, title:(e.cref||e.cid)+' · '+(e.type==='obligation'?(e.note||CAL_EVENT[e.type].label):CAL_EVENT[e.type].label)+(e.cname?' ('+e.cname+')':''), contractId:e.cid }));
   const events=(typeof mineList==='function'?mineList('event'):[]).filter(e=>e.date>=from&&e.date<=until).slice(0,200).map(e=>({ date:e.date, start:e.start, end:e.end, title:e.title }));
   const pref=typeof minePref==='function'?minePref():{dayStart:8,dayEnd:17,copilotLevel:'ask'};
+  /* the panel turns to the conversation; Your week is kept as it was left */
+  if(typeof window.jamboTalkOpen==='function') jamboTalkOpen(CAL_TALK_KEY, document.getElementById('cal-plan-body'));
   _calPlan.busy=true; _calPlan.err=''; _calPlan.ask=said; _calPlan.read=null; calPlanRepaint();
   try{
     if(!(typeof API_MODE==='function'&&API_MODE())) throw Object.assign(new Error('needsKey'),{needsKey:true});
@@ -2301,7 +2321,7 @@ if(typeof document!=='undefined'&&typeof window!=='undefined'&&!window._calLvWir
   },true);
 }
 
-Object.assign(window,{calendarDoorCount,calOnScreen,calWireOwn,calState,calPlace,calPlacePut,calMonth,calView,calScope,CAL_VIEWS,CAL_EVENT,CAL_PRIORITY,
+Object.assign(window,{CAL_TALK_KEY,calTalkBack,calendarDoorCount,calOnScreen,calWireOwn,calState,calPlace,calPlacePut,calMonth,calView,calScope,CAL_VIEWS,CAL_EVENT,CAL_PRIORITY,
   calendarEvents,calEventMine,calPeriod,calInPeriod,calLegendHtml,calFitDays,CAL_DAY_MIN,CAL_DAY_MAX,calVisible,calDecisionsThisWeek,calWeekBounds,
   calToday,calChipText,calIcsFor,calUpcoming,calSummaryLines,calMonthGridHtml,calPanelHtml,
   CAL_AGENDA_DAYS,CAL_AGENDA_WINDOWS,CAL_AGENDA_ROWS,calAgendaDays,calSetAgendaDays,

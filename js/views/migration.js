@@ -1944,8 +1944,9 @@ function migSidePaint(){
   const row = _migCheck ? migRowByKey(migCheckId()) : (_migPick ? migRowByKey(_migPick) : null);
   const holds = !!row;
   if (typeof jlHeadPaint === 'function') jlHeadPaint(host, { jlWord:(_migCheck && row && row.c) ? (((row.c.metadata || {}).contractType) || row.c.name || i18t('mig_side_word')) : i18t('mig_side_word'), jlHome:i18t('mig_side_word') }, holds);
-  if (_migCheck) body.innerHTML = migCheckSideHtml(row) + '<div id="jl-feed" class="jl-feed" aria-live="polite"></div>';
-  else if (row) body.innerHTML = migSideRowHtml(row) + '<div id="jl-feed" class="jl-feed" aria-live="polite"></div>';
+  /* the conversation is the panel's flip, beside the body (jlTalkHtml, 19 Oct 2026) */
+  if (_migCheck) body.innerHTML = migCheckSideHtml(row);
+  else if (row) body.innerHTML = migSideRowHtml(row);
   else body.innerHTML = (typeof jlWordsHtml === 'function') ? jlWordsHtml({ jlSay:migSideSay, empty:i18t('mig_side_none') }) : '';
   migFormPut(host, keep);
   if (typeof renderAIFeed === 'function' && typeof ai !== 'undefined' && ai && Array.isArray(ai.history) && ai.history.length) try { renderAIFeed(!!ai.busy); } catch (_){}

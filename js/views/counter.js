@@ -154,13 +154,19 @@ function deskStepBack(press){
     return false;
   }
   if (typeof w.pdTrail === 'function' && w.pdTrail()){ if (press) w.pdTrailBack(); return true; }
+  /* JAMBO AS A TAB YOU FLIP TO (owner, 19 Oct 2026): a conversation beside a
+     list, Import, Settings or the Calendar is one step up from its landing */
+  if (typeof w.jamboTalkUp === 'function' && w.jamboTalkUp()){ if (press) w.jamboTalkBack(); return true; }
   return false;
 }
 function deskGoBack(){
-  if (deskStepBack(true)){ deskBarPaint(); return true; }
   /* while the one sheet is up, ‹ is its way out: asked first, as Cancel asks,
-     then back to the page the reader asked from (naSheetBack → deskSheetBackTo) */
+     then back to the page the reader asked from (naSheetBack → deskSheetBackTo).
+     The sheet is the page in front, so it goes before a step of the panel
+     beside it — the sentence that drafted it stands in Jambo's conversation
+     there (19 Oct 2026, one-sheet-as-drawn 7a) */
   if (deskSheetUp() && typeof window.naSheetBack === 'function'){ window.naSheetBack(); return true; }
+  if (deskStepBack(true)){ deskBarPaint(); return true; }
   const t = deskBackTarget(); if (!t) return false;
   _dkTrail = _dkTrail.slice(0, t.i + 1); _dkMenuOpen = false;
   if (t.k === 'home') deskGoCounter(); else deskTabOpen(t.k);

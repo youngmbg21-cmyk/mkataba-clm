@@ -539,3 +539,102 @@ function splitWire(rez, h){
   }
 }
 Object.assign(window,{SPLIT_GRIP,splitHtml,splitPref,splitSave,splitClamp,splitWidth,splitFit,splitWire});
+
+/* ---- JAMBO AS A TAB YOU FLIP TO, AND BACK (owner, 19 Oct 2026: "when you
+   jump on a page they should be as is, with the panel on the right and an
+   entry field for Jambo at the bottom. When you type on the entry field …
+   it's essentially another tab for jambo where you can converse with Jambo.
+   You then simply click back to go back to … the panel that supports the
+   page") ----
+   ONE record for whichever right-hand panel is on screen (Home's panel, the
+   list panel and Import's, Settings', the Calendar's): `key` names the page
+   it belongs to, `on` is the conversation view, `keep` the scrolls of the
+   landing panel as it was left. A new key is a new page: the conversation
+   view starts closed and fresh (each host keeps its own words and starts
+   them again). The view is the panel's; nothing here draws a page.
+   ONE TRAIL BUILDER (`jamboTrailHtml`) for every host: its one back first,
+   named for where it goes, then where you are — "‹ Redlines  Redlines /
+   Jambo" — the same line Home's faces draw (pdTrailHtml). The back is one
+   step up; Esc and the bar's ‹ press the same (`jamboTalkBack`). */
+/* held across a second load of this file in one page (a stage that loads it
+   whole after its region): the record and the hosts' backs are kept */
+var _jt = (typeof _jt !== 'undefined' && _jt) || { key: null, on: false, keep: null, fresh: true };
+var JT_BACK = (typeof JT_BACK !== 'undefined' && JT_BACK) || {};          // host word -> { back, here } (registered by each host)
+/* `here(key)`: the host's page for that key is the one on screen */
+function jamboTalkHost(host, back, here){ if (host && typeof back === 'function') JT_BACK[host] = { back, here: typeof here === 'function' ? here : null }; }
+/* the page a panel paints for: a new one starts the view closed and fresh;
+   true when this call started it */
+function jamboTalkLand(key){
+  key = String(key || '');
+  if (_jt.key === key) return false;
+  _jt = { key, on: false, keep: null, fresh: true };
+  return true;
+}
+function jamboTalkKey(){ return _jt.key; }
+function jamboTalkShows(key){ return !!_jt.on && (key == null || _jt.key === String(key)); }
+/* every scroller of the landing panel that holds an id, read before the view turns */
+function jamboScrollKeep(root){
+  const out = [];
+  try { if (root && root.querySelectorAll) [root, ...root.querySelectorAll('[id]')].forEach(el => { if (el && el.id && el.scrollTop > 0) out.push({ id: el.id, top: el.scrollTop }); }); } catch (_){}
+  return out;
+}
+function jamboScrollPut(keep){
+  if (!Array.isArray(keep) || !keep.length || typeof document === 'undefined') return;
+  const put = () => keep.forEach(k => { const el = document.getElementById(k.id); if (el) el.scrollTop = k.top; });
+  put();
+  try { requestAnimationFrame(() => { put(); requestAnimationFrame(put); }); } catch (_){}
+}
+/* typing turned the panel to Jambo: the landing's scrolls are kept first */
+function jamboTalkOpen(key, root){
+  if (key != null) jamboTalkLand(key);
+  if (_jt.on) return false;
+  _jt.keep = jamboScrollKeep(root);
+  _jt.on = true; _jt.fresh = false;
+  return true;
+}
+/* the view closed; what the landing's scrolls were, for the host to put back */
+function jamboTalkClose(){
+  const keep = _jt.keep || [];
+  _jt.on = false; _jt.keep = null;
+  return keep;
+}
+/* the conversation view is up on the page in front (the record may name a
+   page left behind: then it is not) */
+function jamboTalkUp(){
+  if (!_jt.on) return false;
+  const h = JT_BACK[String(_jt.key || '').split(':')[0]];
+  if (!h) return false;
+  try { return h.here ? !!h.here(_jt.key) : true; } catch (_){ return false; }
+}
+/* the one back: the host whose page the record is for turns its panel back */
+function jamboTalkBack(){
+  if (!jamboTalkUp()) return false;
+  JT_BACK[String(_jt.key || '').split(':')[0]].back(); return true;
+}
+/* t = { back, up, path: [words], attr } — `attr` is the back's data attribute
+   (Home's panel answers data-pd-back; every other host data-jt-back) */
+function jamboTrailHtml(t, o){
+  if (!t) return '';
+  const e = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  const tr = (k, v) => (typeof i18t === 'function') ? i18t(k, v) : k;
+  const inHead = !!(o && o.inHead);
+  const attr = t.attr || 'data-jt-back';
+  const last = t.path.length - 1;
+  const where = t.path.map((w, i) => i === last ? `<b>${e(w)}</b>` : e(w)).join('<i aria-hidden="true"> / </i>');
+  const tip = tr('pd_trail_back', { to: t.up });
+  const tag = inHead ? 'span' : 'div';
+  return `<${tag} class="pd-trail${inHead ? ' is-in-head' : ''}${t.attr ? '' : ' jt-trail'}" data-pd-trail="${e(t.back)}"><button type="button" class="pd-back" ${attr}="${e(t.back)}" title="${e(tip)}" aria-label="${e(tip)}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${e(t.up)}</button><span class="pd-trail-w">${where}</span></${tag}>`;
+}
+/* the trail line every host draws over its conversation */
+function jamboTalkTrailHtml(host, landing){
+  const jb = (typeof i18t === 'function') ? i18t('pd_tab_copilot') : 'Jambo';
+  return jamboTrailHtml({ back: host, up: landing, path: [landing, jb] });
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._jtWired){
+  document._jtWired = true;
+  document.addEventListener('click', e => {
+    const b = e.target && e.target.closest ? e.target.closest('[data-jt-back]') : null; if (!b) return;
+    e.preventDefault(); jamboTalkBack();
+  });
+}
+Object.assign(window,{JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});

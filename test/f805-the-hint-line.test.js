@@ -84,7 +84,10 @@ describe('f805 (2) every Jambo ask box draws it, from the builder', () => {
        jlAskHtml once), and his conversation is said under the chosen file */
     assert.match(fnOf(MIG, 'migSidePaint'), /jlFrame\(host, \{ jlPh:i18t\('jl_ph_any'\) \}\)/);
     assert.match(fnOf(INS, 'jlFrame'), /jlAskHtml\(\{ placeholder: opt\.jlPh \}\)/);
-    assert.match(fnOf(MIG, 'migSidePaint'), /<div id="jl-feed" class="jl-feed" aria-live="polite"><\/div>/, 'and his conversation is said in it');
+    /* RE-POINTED 19 Oct 2026 — JAMBO AS A TAB YOU FLIP TO: the conversation is
+       the frame's own view (jlTalkHtml), beside Import's body, not in it */
+    assert.match(fnOf(INS, 'jlTalkHtml'), /<div id="jl-feed" class="jl-feed" aria-live="polite"><\/div>/, 'and his conversation is said in it');
+    assert.doesNotMatch(fnOf(MIG, 'migSidePaint'), /id="jl-feed"/, 'not drawn twice');
   });
   test('2d the sentence is written nowhere else in the code — every box asks the builder', () => {
     const walk = (rel, out = []) => { for (const e of fs.readdirSync(path.join(ROOT, rel), { withFileTypes: true })){

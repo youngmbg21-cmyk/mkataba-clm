@@ -2233,12 +2233,10 @@ async function intelAsk(qRaw, opts){
   if(!q||intel.busy) return;
   intel.fdTab=false;
   if(!(opts&&opts.guide)) intel.gdTab=false;
-  /* a question asked while the Fill in face is up shows its answer there;
-     "fill in" opens the face again (caGo) */
-  if(typeof window.pdFillAway==='function') pdFillAway();
-  if(typeof window.pdRedAway==='function') pdRedAway();
-  if(typeof window.pdSignAway==='function') pdSignAway();
-  if(typeof window.pdAmendAway==='function') pdAmendAway();
+  /* A QUESTION KEEPS THE FACE (owner, 19 Oct 2026: "you can go back to the
+     landing side panel"; was: a question put Fill in, Redlines, Before you
+     sign and an amendment away): the panel turns to the conversation over
+     the face, which waits as it was left (pdTalkSync, the trail's back) */
   const readied=!!_igReadyAsk && q===_igReadyAsk; _igReadyAsk='';
   if(readied){
     intel.history.push({role:'user', text:q});
@@ -7945,7 +7943,13 @@ function renderIntelDock(){
   const _keep=_was?_was.value:'', _focus=!!(_was&&document.activeElement===_was);
   /* the Redlines face's column keeps its place across a repaint (stage 3) */
   const _redTop=(typeof window.pdRedScrollOf==='function')?pdRedScrollOf():0;
-  const msgs=intel.history.map(igMsgHTML).join('');
+  /* JAMBO AS A TAB YOU FLIP TO, AND BACK (owner, 19 Oct 2026): the panel lands
+     on its own face; words asked turn it to the conversation (pdTalkSync), a
+     trail over it back to the landing as it was left. A page arrived at begins
+     its conversation fresh (pdTalkFrom): what was said on another is not drawn. */
+  const talk=(typeof window.pdTalkSync==='function')?pdTalkSync(dock):false;
+  const _from=talk&&typeof window.pdTalkFrom==='function'?pdTalkFrom():0;
+  const msgs=talk?intel.history.map((m,i,a)=>i<_from?'':igMsgHTML(m,i,a)).join(''):'';
   const typing=intel.busy?`
     <div class="ai-msg flex gap-2">
       ${igFaceHtml('think')}
@@ -7983,7 +7987,7 @@ function renderIntelDock(){
       <span class="flex-1"></span>
       ${(()=>{ const b=(typeof copilotBrainInfo==='function')?copilotBrainInfo():{live:true};
         return b.live?'':`<span title="${igEsc(b.hint||'')}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">○ ${igEsc(i18t('int_basic_mode'))}</span>`; })()}
-      ${intel.history.length&&!(window.pdShowsDesk&&pdShowsDesk())&&!(window.naSheetUp&&naSheetUp())?`<button id="igd-history-clear" title="${i18t('int_clear_conversation')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon" aria-label="${i18t('int_clear_conversation')}">${icon('trash','w-3.5 h-3.5')}</button>`:''}
+      ${talk&&msgs&&!(window.naSheetUp&&naSheetUp())?`<button id="igd-history-clear" title="${i18t('int_clear_conversation')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon" aria-label="${i18t('int_clear_conversation')}">${icon('trash','w-3.5 h-3.5')}</button>`:''}
       <button id="igd-collapse" title="${i18t('int_collapse_panel')}" aria-label="${i18t('int_collapse_panel')}" class="ui-btn ui-btn-plain ui-btn-sm ui-btn-icon">${icon('chevR')}</button>
     </div>
     ${''/* ONE TRAIL (owner, 19 Oct 2026): while a face is up, one line under the tabs — its one back, then where you are */}${(typeof window.pdTrailHtml==='function')?pdTrailHtml():''}
@@ -7999,7 +8003,8 @@ function renderIntelDock(){
     ${''/* BEFORE YOU SEND (round 11's gaps): the send screen's own column, held
            by the face while the letter is a page on the desk; Jambo's answers
            under it */}
-    ${(window.pdSendShows&&pdSendShows())?`<div id="pd-sendface" class="pd-sendface flex-1 min-h-0 overflow-y-auto scroll-thin">${pdSendFaceHtml()}<div id="igd-feed" class="px-3.5 pb-3 space-y-3">${msgs}${typing}</div></div>`
+    ${talk?`<div id="igd-feed" class="igd-talk flex-1 min-h-0 overflow-y-auto scroll-thin px-3.5 py-3 space-y-3" style="background:transparent" data-jt-talk>${msgs}${typing}</div>${(window.pdSendShows&&pdSendShows())?`<div hidden data-pd-send-kept>${pdSendFaceHtml()}</div>`:''}`
+    :(window.pdSendShows&&pdSendShows())?`<div id="pd-sendface" class="pd-sendface flex-1 min-h-0 overflow-y-auto scroll-thin">${pdSendFaceHtml()}<div id="igd-feed" class="px-3.5 pb-3 space-y-3">${msgs}${typing}</div></div>`
     :(window.pdShowsDesk&&pdShowsDesk())?`<div id="pd-body" class="pd-body flex-1 min-h-0 overflow-y-auto scroll-thin" role="tabpanel">${pdBodyHtml(pdContract())}</div><div id="igd-feed" hidden></div>`
     /* THE FILL IN FACE (the one-page Home plan, stage 2): where the
        conversation stands, the box and the chips kept at the foot */
@@ -8026,8 +8031,8 @@ function renderIntelDock(){
            4 and 5): the wall's greeting and drop area, or the paper's contract
            at a glance — drawn above the conversation, which goes on under it */
         const top=(state.view==='dashboard'&&typeof window.pdJamboTopHtml==='function')?pdJamboTopHtml():'';
-        return top+(msgs||(top?'':`<div class="ig-welcome text-[12.5px] text-ink/50 leading-relaxed pt-2">${i18t('int_notebook_welcome')}</div>`)); })()}
-      ${typing}
+        /* the landing carries no conversation (19 Oct 2026): it is the flip's */
+        return top||`<div class="ig-welcome text-[12.5px] text-ink/50 leading-relaxed pt-2">${i18t('int_notebook_welcome')}</div>`; })()}
     </div>`}
     ${''/* SAVED VIEWS LEFT THE PANEL (owner, 15 Oct 2026): they stand on the
            Board's head as chips (hbSavedViewChipsHtml, round 17), and a press
@@ -8041,7 +8046,7 @@ function renderIntelDock(){
          it holds none of these and the panel's own chips stand */
       const held=(state.view==='dashboard'&&typeof window.pdPanelChipsHtml==='function')?pdPanelChipsHtml():null;
       if(held!==null) return '';
-      return (!intel.history.length||igHomePaperFace()===true)&&!(window.pdShowsDesk&&pdShowsDesk())&&!igFindingsShows()&&!igGuideShows()&&!(window.jamboChipsOn&&!jamboChipsOn())&&!(state.view==='dashboard'&&typeof window.hbBoardHelloOn==='function'&&hbBoardHelloOn())?`
+      return !talk&&!(window.pdShowsDesk&&pdShowsDesk())&&!igFindingsShows()&&!igGuideShows()&&!(window.jamboChipsOn&&!jamboChipsOn())&&!(state.view==='dashboard'&&typeof window.hbBoardHelloOn==='function'&&hbBoardHelloOn())?`
     <div class="px-3.5 pb-2 shrink-0 flex flex-wrap gap-1.5" data-ig-chips>
       ${/* FILL IN AND BEFORE YOU SIGN DRAW NO CHIPS (the gaps, rounds 8 and 10,
            18 Oct 2026: nothing between the face and the ask box but Jambo
@@ -8058,7 +8063,7 @@ function renderIntelDock(){
            clauses and obligations) should not have a copilot prompt entry
            window"). A press elsewhere that puts words in the box goes through
            igAskBox, which turns to the Copilot tab first. */}
-    ${(window.pdShowsDesk&&pdShowsDesk())||igFindingsShows()||igGuideShows()?'':`<div class="p-3 border-t border-hair shrink-0 relative">
+    ${!talk&&((window.pdShowsDesk&&pdShowsDesk())||igFindingsShows()||igGuideShows())?'':`<div class="p-3 border-t border-hair shrink-0 relative">
       ${''/* THE BOX SAYS WHICH CONTRACT IT ASKS ABOUT (26 Sep 2026): the reader's
              own switch, read back on the control that carries it — never a
              line above it. The cost of a question rides the hover. */}
@@ -8084,11 +8089,12 @@ function renderIntelDock(){
      he draws above it (Needs you here, the glance, the Board's greeting) is
      read from its first line, never scrolled past (round 3 as drawn: Needs
      you is the first card, 18 Oct 2026) */
-  const feed=document.getElementById('igd-feed'); feed.scrollTop=intel.history.length?feed.scrollHeight:0;
+  const feed=document.getElementById('igd-feed'); feed.scrollTop=talk?feed.scrollHeight:0;
   /* NO CHIPS UNDER A FACE (rounds 8–11 as drawn, the gaps of 18 Oct 2026): the
      face carries its own acts, so the panel says a face is up and the chips row
      stands down by that scope (#ig-dock.pd-face-up) — Jambo perches on the box */
-  dock.classList.toggle('pd-face-up',!!(window.pdFaceUp&&pdFaceUp()));
+  dock.classList.toggle('pd-face-up',!talk&&!!(window.pdFaceUp&&pdFaceUp()));
+  dock.classList.toggle('is-talk',!!talk);
   /* the bar's ‹ follows the trail (a face up is a step to go back from) */
   if(typeof window.deskBarPaint==='function') try{ deskBarPaint(); }catch(_){}
   /* JAMBO, ALIVE (owner, 16 Oct 2026): he takes his seat on the chips row again */
@@ -8210,7 +8216,7 @@ function renderIntelDock(){
     /* AND THE ANALYSIS GOES WITH THE CONVERSATION (26 Sep 2026): the paper,
        its pins and the strip are the conversation's — the bin is the one act
        that ends them, so no second control was added for it. */
-    intel.history=[]; intel.compareSel=[]; intel.paper=null; igPaintPaper(); igPaintIds(null); renderIntelDock();
+    intel.history=[]; intel.compareSel=[]; intel.paper=null; if(typeof window.pdTalkClose==='function') pdTalkClose(); igPaintPaper(); igPaintIds(null); renderIntelDock();
     if(typeof toast==='function') toast(i18t('int_conversation_deleted'));
   });
   /* the bar's way back to the Clauses tab, on the trip that began there (stage 5) */

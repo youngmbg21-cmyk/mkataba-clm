@@ -1143,9 +1143,11 @@ function aiFaceHtml(mood){
 function aiListFeed(){
   if(typeof document==='undefined') return null;
   const f=document.getElementById('jl-feed');
-  /* on screen = its scroller is (an empty feed draws nothing of its own) */
-  const box=f && f.parentElement;
-  return (f && f.isConnected && box && typeof box.getClientRects==='function' && box.getClientRects().length) ? f : null;
+  /* on screen = its panel is (an empty feed draws nothing of its own). JAMBO AS
+     A TAB YOU FLIP TO (19 Oct 2026): the feed is the panel's conversation view,
+     out of sight while the panel shows its landing — an answer turns it up */
+  const box=f && ((typeof f.closest==='function'&&f.closest('.ins-panel.is-jambo, #mig-side'))||f.parentElement);
+  return (f && f.isConnected && box && typeof box.getClientRects==='function' && box.getClientRects().length && !(box.classList&&box.classList.contains('is-folded'))) ? f : null;
 }
 function aiFeedEl(){
   if(!ai.open){ const f=aiListFeed(); if(f) return f; }
@@ -1158,6 +1160,9 @@ function renderAIFeed(typing=false){
   if(!feed) return;
   const inList=feed.id==='jl-feed';
   { const other=document.getElementById(inList?'ai-feed':'jl-feed'); if(other&&other!==feed) other.innerHTML=''; }
+  /* beside a list the panel turns to the conversation when there is something
+     new in it, and this page's conversation begins where the page did (jlTalkSync) */
+  const _from=(inList&&typeof window.jlTalkSync==='function')?jlTalkSync(typing):0;
   /* A repaint rebuilds every card from state, so anything typed into a live
      card's reason box and not yet captured would be wiped by the very paint
      that follows pressing Edit or a new message landing. Read the boxes back
@@ -1171,7 +1176,7 @@ function renderAIFeed(typing=false){
      conversation shows it in whatever language is being read RIGHT NOW; a
      conversation with anything in it shows the conversation. It is never a
      message, so it never travels to the model and never freezes. */
-  if(!ai.history.length){
+  if(!ai.history.length||(inList&&ai.history.length<=_from&&!typing)){
     /* beside a list Jambo has already said the page in his own words above */
     if(inList){ feed.innerHTML=''; return; }
     feed.innerHTML=`<div class="ai-msg flex gap-2.5">
@@ -1183,7 +1188,8 @@ function renderAIFeed(typing=false){
     if(typeof aiChartSweep==='function') aiChartSweep();
     return;
   }
-  feed.innerHTML=ai.history.map(m=>{
+  feed.innerHTML=ai.history.map((m,i)=>{
+    if(inList&&i<_from) return '';
     if(m.role==='user'){
       return `<div class="ai-msg flex justify-end"><div class="ai-bub max-w-[85%] rounded-2xl rounded-br-md bg-brand-900 text-white px-4 py-2.5 text-sm">${m.text}</div></div>`;
     }
@@ -1205,7 +1211,7 @@ function renderAIFeed(typing=false){
       ${aiFaceHtml('think')}
       <div class="rounded-2xl rounded-tl-md bg-canvas border border-brand-100 px-4 py-3 typing"><span></span><span></span><span></span></div>
     </div>`:'');
-  { const sc=inList?(feed.closest('.jl-body')||feed):feed; sc.scrollTop=sc.scrollHeight; }
+  { const sc=inList?(feed.closest('.jl-talk-sc')||feed):feed; sc.scrollTop=sc.scrollHeight; }
   /* Charts last: the canvases only exist now the feed has painted. The sweep
      first, because this innerHTML assignment has just detached every canvas
      from the previous paint while their Chart instances are still running. */
@@ -2676,7 +2682,7 @@ function aiStreamRenderer(){
       text+=ev.text;
       el.textContent=text;
       const feed=aiFeedEl();
-      if(feed){ const sc=feed.id==='jl-feed'?(feed.closest('.jl-body')||feed):feed; sc.scrollTop=sc.scrollHeight; }
+      if(feed){ const sc=feed.id==='jl-feed'?(feed.closest('.jl-talk-sc')||feed):feed; sc.scrollTop=sc.scrollHeight; }
     }
   };
 }
