@@ -116,7 +116,9 @@ describe('f495 (2) the kind is the page\'s first tab row', () => {
     for (const name of ['renderIntake', 'renderIntakeInspector']){
       const fn = strip(fnBody(IK, name));
       assert.ok(fn, name + ' was found');
-      assert.match(fn, /data-ins-page="intake" data-ins="[01]">\s*(<div class="sap-band">)?\$\{rqKindTabsHtml\('contracts'\)\}/, name + ' draws the row first (the wide page on its white band)');
+      /* RE-POINTED 19 Oct 2026 (round 20 as drawn): on the wide page the tabs
+         share their band row with the labelled boxes beside them */
+      assert.match(fn, /data-ins-page="intake" data-ins="[01]">\s*(<div class="sap-band">)?(<div class="reg-tabbar ik-tabbar">)?\$\{rqKindTabsHtml\('contracts'\)\}/, name + ' draws the row first (the wide page on its white band)');
       assert.match(fn, /rqKindTabsWire\(host\)/, name + ' wires it');
     }
   });

@@ -520,34 +520,26 @@ function openIntakeTracker(url){
   });
 }
 
-/* ---- TURNING A REQUEST INTO PAPER. The AI reads the request and names the
-   paper it thinks fits; the EDITOR presses the button. Where Copilot is not
-   connected the drafting screen still opens on every shelf, so the door works
-   without it — the AI shortens the choice, it does not own it.
+/* ---- TURNING A REQUEST INTO PAPER. The paper that fits is READ, not asked
+   of a model (round 20 as drawn, owner's yes of 18 Oct 2026): ikFitOf ranks
+   our shelves by the words the request shares with each paper — the ranking
+   draft from a sentence uses (caDraftRank, round 4's "read without AI") — and
+   Jambo's line in the panel names that paper; Start the draft opens the form
+   with THAT one chosen, so what the panel says and what the form shows are one
+   reading. The EDITOR presses Create; the form's own "Let Jambo fill the form"
+   is where a call is spent, its cost said on it. (Until 18 Oct an AI pick,
+   POST /api/ai/template, ran silently on the press — intakeSuggestTemplate,
+   retired.)
 
    EVERY SHELF, COMPANY STANDARDS FIRST (4 Oct 2026, the process review's
    Requests stream): it named HaTi's twelve built-ins only, so a workspace
    whose own standard was the right paper was offered the wrong one. The
    candidates are draft-from-a-sentence's own (draftCandidates — standards,
-   then saved, then HaTi's), sent as `kind:id` so the answer names its shelf. */
+   then saved, then HaTi's), as `kind:id` so a pick names its shelf. */
 function ikShelfOf(){
   const all=(typeof window!=='undefined'&&typeof window.draftCandidates==='function')?window.draftCandidates()
     :Object.entries((typeof TEMPLATES!=='undefined'&&TEMPLATES)||{}).map(([id,t])=>({ kind:'builtin', id, name:t.name, blurb:t.blurb||'' }));
   return all.map(c=>({ ...c, key:`${c.kind}:${c.id}` }));
-}
-async function intakeSuggestTemplate(r){
-  const cands=ikShelfOf().slice(0,24).map(c=>({ id:c.key, name:c.name, kind:c.kind, blurb:c.blurb||'' }));
-  if(!cands.length) return null;
-  if(!(typeof API_MODE==='function'&&API_MODE())||!state.aiConfigured) return null;
-  try{
-    /* `templates`, not `candidates`: see the route — a template id is not a
-       contract id, and a stream-limited member's shelf was dropped whole. */
-    const res=await api('ai/template','POST',{ query:`${r.title}\n\n${r.need}`, templates:cands });
-    const top=(res&&Array.isArray(res.ranked)&&res.ranked[0])||null;
-    const hit=top&&top.id?ikShelfOf().find(c=>c.key===top.id):null;
-    if(!hit) return null;
-    return { kind:hit.kind==='builtin'?'tid':hit.kind, id:hit.id, name:hit.name, why:top.reason||top.why||res.answer||'' };
-  }catch(_){ return null; }
 }
 /* ---- DRAFT IT OPENS THE ORDINARY DRAFTING SCREEN (4 Oct 2026) ----
    It opened a one-select dialog of HaTi's built-ins and pressed
@@ -583,16 +575,14 @@ async function intakeClaimDraft(c){
 async function intakeDraft(id){
   if(!canEdit()){ toast(i18t('ap_viewers_no_create'),'err'); return; }
   const r=(_intake.list||[]).find(x=>x.id===id); if(!r) return;
-  const btnBusy=document.querySelector(`[data-ik-draft="${CSS.escape(id)}"]`);
-  if(btnBusy){ btnBusy.disabled=true; (window.busySet?busySet(btnBusy,i18t('ct_working')):(btnBusy.textContent=i18t('ct_working'))); }
-  const pick=await intakeSuggestTemplate(r);
-  const restore=()=>{ const b=document.querySelector(`[data-ik-draft="${CSS.escape(id)}"]`); if(b){ b.disabled=false; b.textContent=i18t('ik_act_draft'); } };
-  restore();
+  /* the paper Jambo's line names (ikFitOf) — read, never asked of a model */
+  const pick=ikFitOf(r);
   if(typeof openNewAgreement!=='function') return;
   const prefill=(typeof window.intakePrefillOf==='function')?window.intakePrefillOf(r):{};
   intakeHoldDraft(r.id);
   openNewAgreement({ pick:pick?{ kind:pick.kind, id:pick.id }:null, prefill });
-  if(pick&&pick.name) toast(i18t('ik_suggested',{name:pick.name}),'ok');
+  /* LAND ON IT: the form opens on the paper chosen, lit */
+  if(pick&&typeof landOn==='function') landOn('#na-root .na-pick.on', { block:'nearest' });
   /* The hold belongs to the screen: Create keeps it long enough to land,
      every other way out drops it. */
   const root=document.getElementById('na-root');
@@ -968,14 +958,18 @@ function rqKindTabsWire(root){
    (intakePick), Promise a date (intakePromiseAsk), Decline and Withdraw
    (intakeSetStatus), Copy the tracker link (intakeTrackCopy). NOTHING HERE
    CALLS A MODEL: looking at a request costs nothing. */
-const IK_V_TEAM = [['open','ik_v_open'],['mine','ik_v_mine'],['advice','rq_kind_advice'],['fin','ik_v_fin'],['all','ik_v_all']];
+/* "Finished" on the tab (round 20 as drawn); the card it opens still says
+   "Finished this month", the pile's own name */
+const IK_V_TEAM = [['open','ik_v_open'],['mine','ik_v_mine'],['advice','rq_kind_advice'],['fin','ik_v_finished'],['all','ik_v_all']];
 const IK_V_ASKER = [['open','ik_v_open'],['fin','ik_v_fin_asker'],['all','ik_v_all']];
 const IK_DEF = { view:'open', who:'all', road:'all', folder:'all', q:'' };
-const IK_CHIPS = ['who', 'road', 'folder'];
+/* THE BAND'S BOXES (round 20 as drawn): Request · Stream · With. How it is
+   handled is read in its own column and no longer narrows the list, so
+   `road` stays at rest ('all') and is not one of the boxes counted */
+const IK_CHIPS = ['who', 'folder'];
 let _ikF = null;
 function ikFilters(){ if(!_ikF) _ikF={ ...IK_DEF }; return _ikF; }
 let _ikHead = { facts:'', acts:'' };
-let _ikFiltersOpen = false;
 function ikPaintHead(){
   if(typeof document==='undefined') return;
   const f=document.getElementById('page-head-facts'); if(f) f.innerHTML=_ikHead.facts;
@@ -990,9 +984,14 @@ function ikDay(iso, o){
   const s=String(iso||''); if(!s) return '';
   const d=new Date(/^\d{4}-\d{2}-\d{2}$/.test(s)?s+'T00:00:00':s);
   if(isNaN(d.getTime())) return '';
-  const opt=Object.assign({ day:'numeric', month:'short' }, (o&&o.weekday)?{ weekday:'short' }:{},
+  const opt=Object.assign({ day:'numeric', month:'short' },
     ((o&&o.long)||d.getFullYear()!==new Date().getFullYear())?{ year:'numeric' }:{});
-  try{ return d.toLocaleDateString(langLocale(), opt); }catch(_){ return s.slice(0,10); }
+  /* THE WEEKDAY BEFORE THE DAY, NO COMMA (round 20 as drawn: "Tue 20 Oct",
+     "Sun 18 Oct"): asked as two parts and set side by side, so the market's
+     own "Tue, 20 Oct" never cuts the Promised by column short */
+  try{ const day=d.toLocaleDateString(langLocale(), opt);
+    return (o&&o.weekday) ? `${d.toLocaleDateString(langLocale(), { weekday:'short' })} ${day}` : day; }
+  catch(_){ return s.slice(0,10); }
 }
 /* How long, in the largest unit that is honest: minutes, hours, days. */
 function ikTookWords(min){
@@ -1107,37 +1106,53 @@ function intakePromiseSay(r){
   return { day, sub:i18tn('ik_pr_in',d,{n:d}), cls: d<=3?'ins-soon':'' };
 }
 function ikInitials(name){ return String(name||'').trim().split(/\s+/).filter(Boolean).map(w=>w[0]).join('').slice(0,2).toUpperCase(); }
-function ikWhoHtml(name, shown){
+/* `o.face===false` (the team's list as drawn in round 20): the name alone, no
+   initials beside it; "You" in the reader's own weight */
+function ikWhoHtml(name, shown, o){
+  if(o&&o.face===false) return `<span class="ins-who ik-who${shown&&shown!==name?' is-you':''}"><span title="${esc(name)}">${esc(shown||name)}</span></span>`;
   return `<span class="ins-who"><i class="ins-av" aria-hidden="true">${esc(ikInitials(name))}</i><span title="${esc(name)}">${esc(shown||name)}</span></span>`;
 }
-function ikWithCellHtml(r, asker){
+function ikWithCellHtml(r, asker, o){
   if(IK_STOPPED.includes(r.status)){
     if(r.status==='declined') return `<span class="ins-quiet">${esc(i18t('ik_st_declined'))}</span>`;
     if(r.status==='withdrawn') return `<span class="ins-quiet">${esc(i18t('ik_st_withdrawn'))}</span>`;
     if(r.lane) return `<span class="ins-ok">${esc(i18t('ik_with_lane'))}</span>`;
     const n=(r.assignee&&r.assignee.name)||r.decidedBy||'';
-    return n?ikWhoHtml(n):`<span class="ins-quiet">—</span>`;
+    return n?ikWhoHtml(n, '', o):`<span class="ins-quiet">—</span>`;
   }
   if(!(r.assignee&&r.assignee.id)) return `<span class="ins-nobody">${esc(i18t('ik_with_nobody'))}</span>`;
-  return ikWhoHtml(r.assignee.name||'', (!asker&&ikHeldByMe(r))?i18t('ik_with_you'):'');
+  return ikWhoHtml(r.assignee.name||'', (!asker&&ikHeldByMe(r))?i18t('ik_with_you'):'', o);
 }
 /* WITH, AS THE TEAM'S LIST SAYS IT (round 20 of the redesign, owner picked
    "The SAP way" for Requests, 17 Oct 2026): who holds it, "You" for the
    reader, "Nobody yet" in amber — the asker's own cell, ONE builder — and,
-   while it is open, the lane that sent it */
+   while it is open, the lane that sent it: a small chip with the lane's mark
+   on the same line ("You ⇉ NDA lane", as drawn), the name without initials */
 function ikWithListHtml(r){
-  const base=ikWithCellHtml(r, false);
-  return r.lane&&!IK_STOPPED.includes(r.status)?`${base} <span class="ik-lane-chip" title="${esc(i18t('ik_why_lane',{name:r.lane}))}">${esc(i18t('ik_lane_chip',{lane:r.lane}))}</span>`:base;
+  const base=ikWithCellHtml(r, false, { face:false });
+  return r.lane&&!IK_STOPPED.includes(r.status)?`${base} ${ikLaneChipHtml(r.lane)}`:base;
+}
+/* the lane's chip — the list's With cell and the panel's head say it alike */
+function ikLaneChipHtml(lane, words){
+  const ic=typeof icon==='function'?icon('lane','ik-lane-ic'):'';
+  return `<span class="ik-lane-chip" title="${esc(i18t('ik_why_lane',{name:lane}))}">${ic}${esc(words||i18t('ik_lane_chip',{lane}))}</span>`;
 }
 /* the files a request carries, as a count with the clip; none is a dash */
 function ikFilesCellHtml(r){
   const n=Array.isArray(r&&r.files)?r.files.length:0;
   return n?`<span class="ik-files-n" title="${esc(i18tn('ik_files_n',n,{n}))}">${typeof icon==='function'?icon('clip','w-3.5 h-3.5'):''}${n}</span>`:`<span class="ins-quiet">—</span>`;
 }
+/* HOW IT IS HANDLED, READ FROM THE WORDS (round 20 as drawn: the NDA lane's
+   request reads "Routine", and the lane is said where it belongs — in With).
+   The road a lane's rule would win (intakeRoad's first line) is left out
+   here; the rest is intakeRoad's own reading, unchanged. */
+function ikRoadShown(r){ return intakeRoad(r&&r.lane?Object.assign({}, r, { lane:'' }):r); }
+/* the road as a pill, in the drawing's tones: routine green, standard grey,
+   a close read amber */
 function ikRoadHtml(r){
-  const road=intakeRoad(r);
+  const road=ikRoadShown(r);
   const rd=IK_ROADS[road.k]||IK_ROADS.standard;
-  return `<span class="ins-road-${road.k}"${road.why?` title="${esc(road.why)}"`:''}>${esc(rd.label)}</span>`;
+  return `<span class="ik-road is-${road.k}"${road.why?` title="${esc(road.why)}"`:''}>${esc(rd.label)}</span>`;
 }
 /* ---- THE PANEL: what they asked for, where it has got to, and the verbs ---- */
 function ikStatusSay(r, asker){
@@ -1174,15 +1189,16 @@ function ikActs(r, asker){
     if(track) acts.push({ k:'track', label:i18t('ik_act_copy_track'), icon:'link', title:i18t('ik_track_title'), run:()=>intakeTrackCopy(r.id) });
     return { acts, menu:'' };
   }
-  /* THE DRAWING'S ROW (SAP benchmark, batch 2): "Start the draft" filled,
-     "Hand back" beside it (the decline, with its reason — the asker is told
-     why), and the rest — pick up, promise a date, withdraw, the tracker
-     link — under ⋯. Every verb is the one it always was. */
+  /* THE DRAWING'S ROW (round 20 as drawn): "Start the draft" filled, then
+     "Promise a day" and "Hand back" (the decline, with its reason — the asker
+     is told why) beside it; the rest — pick up / put down / take over,
+     withdraw, the tracker link — stays under ⋯ ("everything they do today
+     stays", the round's own words). Every verb is the one it always was. */
   if(may&&r.status==='open') acts.push({ k:'draft', kind:'accent', label:i18t('ik_act_draft'), attrs:`data-ik-draft="${esc(r.id)}"`, run:()=>intakeDraft(r.id) });
+  if(may&&live) acts.push({ k:'promise', label:r.promisedAt?i18t('ik_act_repromise'):i18t('ik_act_promise'), title:i18t('ik_promise_msg'), run:()=>intakePromiseAsk(r.id) });
   if(may&&r.status==='open') acts.push({ k:'decline', label:i18t('ik_act_hand_back'), title:i18t('ik_decline_msg'), run:()=>intakeSetStatus(r.id,'declined') });
   if(openAct&&(r.status==='done'||r.status==='drafted')) acts.unshift(...doorActs());
   if(may&&live) menu.push(insMenuItemHtml({ k:'pick', label:intakePickLabel(r) }));
-  if(may&&live) menu.push(insMenuItemHtml({ k:'promise', label:r.promisedAt?i18t('ik_act_repromise'):i18t('ik_act_promise'), says:i18t('ik_promise_msg') }));
   if(live&&(ikIsMine(r)||(typeof isAdmin==='function'&&isAdmin()))) menu.push(insMenuItemHtml({ k:'withdraw', label:i18t('ik_act_withdraw'), says:i18t('ik_withdraw_msg') }));
   if(track) menu.push(insMenuItemHtml({ k:'track', label:i18t('ik_act_copy_track'), icon:'link', says:i18t('ik_track_title') }));
   return { acts, menu:menu.join('') };
@@ -1206,8 +1222,18 @@ function ikHistoryHtml(r, asker){
    IK_FILE_MAX_MB in server/server.js); the server is the wall. */
 const IK_FILES_MAX = 3, IK_FILE_MAX_MB = 5;
 function ikFileSize(n){ const b=Number(n)||0; return b>=1048576?(Math.round(b/104857.6)/10)+' MB':Math.max(1,Math.round(b/1024))+' KB'; }
-function ikFilesHtml(r){
+function ikFilesHtml(r, o){
   const L=Array.isArray(r&&r.files)?r.files:[];
+  /* THE TEAM'S PANEL AS DRAWN (round 20): "Attachments 1 of 3", each file a
+     card — its name, its size and who added it (the person who asked: a
+     request's files arrive with the ask, POST /api/intake), and Open */
+  if(o&&o.cards){
+    const who=ikIsMine(r)?'':String((r.by&&r.by.name)||'').trim().split(/\s+/)[0];
+    const sub=fl=>who?i18t('ik_file_by',{ size:ikFileSize(fl.size), who }):i18t('ik_file_by_you',{ size:ikFileSize(fl.size) });
+    return insSecHtml(i18t('ik_sec_files'), i18t('ik_files_of',{ n:L.length, max:IK_FILES_MAX }), L.length?`<div class="ik-file-cards">${L.map(fl=>`<div class="ik-file">${
+      typeof icon==='function'?icon('file','ik-file-ic'):''}<div class="ik-file-b"><b title="${esc(fl.name)}">${esc(fl.name)}</b><span>${esc(sub(fl))}</span></div><button type="button" class="ui-btn ui-btn-sm" data-ik-file="${esc(fl.id)}" data-ik-fname="${esc(fl.name)}">${esc(i18t('ik_file_open'))}</button></div>`).join('')}</div>`
+      :`<p class="ins-note">${esc(i18t('ik_files_none'))}</p>`, 'ik-files');
+  }
   return insSecHtml(i18t('ik_sec_files'), L.length||'', L.length?`<ul class="ik-file-list">${L.map(fl=>`<li><button type="button" class="ui-link" data-ik-file="${esc(fl.id)}" data-ik-fname="${esc(fl.name)}">${typeof icon==='function'?icon('file','w-3.5 h-3.5'):''}${esc(fl.name)}</button><span class="ins-quiet"> · ${esc(ikFileSize(fl.size))}</span></li>`).join('')}</ul>`
     :`<p class="ins-note">${esc(i18t('ik_files_none'))}</p>`, 'ik-files');
 }
@@ -1228,45 +1254,200 @@ function ikMails(){
     && !(typeof emailOff==='function'&&emailOff())
     && !(typeof emailFailing==='function'&&emailFailing()));
 }
+/* ════════════════════════════════════════════════════════════════════════
+   THE REQUEST IN JAMBO'S PANEL, AS DRAWN (round 20 of the redesign, owner
+   picked "The SAP way" by name, 17 Oct 2026; every drawn part built on the
+   owner's yes of 18 Oct 2026 — "build all the gaps")
+   ════════════════════════════════════════════════════════════════════════
+   REQ-1042 · Contract · from Sara Nyström · Sales / the title / Routine ·
+   "⇉ With you · by the NDA lane" / Start the draft · Promise a day · Hand
+   back / What Sara asked for (her own words, quoted) / Counterparty (and
+   whether an NDA with them stands today, read from the book) · Stream · How
+   it is handled (with its one line) · With · Asked · promised by /
+   Attachments 1 of 3 / Jambo: the paper on our shelves that fits. EVERY
+   READING IS ONE THAT ALREADY EXISTS: intakeRoad, cuNdaOf (the Parties page's
+   NDA column), caDraftRank (draft from a sentence), IK_FILES_MAX. Nothing here
+   asks a model and nothing writes. */
+const ikFirst = n => String(n||'').trim().split(/\s+/)[0]||'';
+/* AN NDA WITH THEM TODAY — the Parties page's own reading (cuNdaOf: the
+   confirmed facts of a signed NDA, never the wording), in a few words */
+function ikCpNdaWords(name){
+  if(!name || typeof window.cuNdaOf!=='function' || typeof window.cuKeyOf!=='function') return '';
+  let x=null; try{ x=cuNdaOf(cuKeyOf(name)); }catch(_){ x=null; }
+  const day=iso=>(typeof regDotDate==='function')?regDotDate(iso):String(iso||'');
+  if(!x || x.state==='none') return i18t('ik_cp_nda_none');
+  if(x.state==='inforce') return i18t('ik_cp_nda_inforce',{ until:x.forGood?i18t('nda_for_good_lc'):i18t('nda_until',{ d:day(x.ends) }) });
+  if(x.state==='ended') return i18t('ik_cp_nda_ended',{ d:day(x.ends) });
+  return i18t(x.state==='unconfirmed'?'ik_cp_nda_unconfirmed':'ik_cp_nda_draft');
+}
+/* The counterparty's name is the door to its contracts on the Contracts place
+   (cuOpenCustomer, Parties' own Open party) where the book holds any; a name
+   the book has never seen is said plainly */
+function ikCpHtml(r){
+  const cp=String((r&&r.counterparty)||'').trim(); if(!cp) return '';
+  let key='', door=false;
+  try{ key=typeof window.cuKeyOf==='function'?cuKeyOf(cp):''; const v=key&&typeof window.cuCustomerOf==='function'?cuCustomerOf(key):null; door=!!(v&&v.items&&v.items.length); }catch(_){ door=false; }
+  const name=door?`<button type="button" class="ik-cp-go" data-ik-cp="${esc(key)}" title="${esc(i18t('ik_cp_go',{ cp }))}">${esc(cp)}</button>`:`<span class="ik-cp-n">${esc(cp)}</span>`;
+  const nda=ikCpNdaWords(cp);
+  return name+(nda?` <span class="ik-cp-nda">· ${esc(nda)}</span>`:'');
+}
+/* With, as a sentence: "Maria Lindgren (you), sent by the NDA lane" */
+function ikWithRowHtml(r){
+  if(IK_STOPPED.includes(r.status)) return esc((r.assignee&&r.assignee.name)||r.decidedBy||'');
+  if(!(r.assignee&&r.assignee.id)) return `<span class="ins-nobody">${esc(i18t('ik_with_nobody'))}</span>`;
+  const n=r.assignee.name||'';
+  const who=ikHeldByMe(r)?i18t('ik_with_you_name',{ name:n }):n;
+  return esc(r.lane?i18t('ik_with_sent_comma',{ who, lane:r.lane }):who);
+}
+/* Asked: "Sun 18 Oct · promised by —", the promise in red once it has passed;
+   a finished one says how long it took */
+function ikAskedHtml(r){
+  const day=ikDay(r.createdAt,{ weekday:true });
+  if(IK_STOPPED.includes(r.status)){ const m=intakeMinutes(r); return esc(m==null?day:i18t('ik_asked_took',{ day, t:ikTookWords(m) })); }
+  const p=intakePromise(r);
+  const by=r.promisedAt?ikDay(String(r.promisedAt).slice(0,10),{ weekday:true }):'—';
+  return `${esc(day)} · <span class="${p&&p.k==='over'?'ins-late':''}">${esc(i18t('ik_promised_by',{ by }))}</span>`;
+}
+/* THE TWO PILLS UNDER THE TITLE: how it is handled, then whose it is ("With
+   you · by the NDA lane"); a request past its promise says so first, in red;
+   a drafted or finished one wears its pile in place of With */
+function ikHeadPillsHtml(r){
+  const out=[];
+  const p=intakePromise(r);
+  if(p&&p.k==='over') out.push(`<span class="reg-stg ins-pill is-ruby"><i aria-hidden="true"></i>${esc(i18t('ik_g_over'))}</span>`);
+  out.push(ikRoadHtml(r));
+  const g=intakeStage(r);
+  if(g==='drafted'||g==='fin'||g==='old'){
+    const G=IK_GROUPS.find(x=>x[0]===g)||[];
+    out.push(`<span class="reg-stg ins-pill is-${esc(G[3]||'gray')}"><i aria-hidden="true"></i>${esc(i18t(G[1]||'ik_g_fin'))}</span>`);
+    return out.join('');
+  }
+  if(!(r.assignee&&r.assignee.id)){ out.push(`<span class="ik-with-chip is-nobody">${esc(i18t('ik_g_nobody'))}</span>`); return out.join(''); }
+  const me=ikHeldByMe(r), who=r.assignee.name||'';
+  const words=me?(r.lane?i18t('ik_pill_with_you_lane',{ lane:r.lane }):i18t('ik_pill_with_you'))
+    :(r.lane?i18t('ik_pill_with_lane',{ who, lane:r.lane }):i18t('ik_pill_with',{ who }));
+  out.push(`<span class="ik-with-chip"${r.lane?` title="${esc(i18t('ik_why_lane',{ name:r.lane }))}"`:''}>${r.lane&&typeof icon==='function'?icon('lane','ik-lane-ic'):''}${esc(words)}</span>`);
+  return out.join('');
+}
+/* THE PAPER THAT FITS, READ WITHOUT AI (round 20 as drawn: "Our Mutual NDA
+   fits: …"): the request's title and words against every shelf of our paper
+   (ikShelfOf = draftCandidates), by draft-from-a-sentence's own ranking
+   (caDraftRank; round 4's "read without AI"). The best counts only where it
+   shares a word with the ask — none is said as none, never guessed. Start
+   the draft chooses THIS one, so the panel and the form cannot disagree. */
+function ikFitOf(r){
+  if(!r || typeof window.caDraftRank!=='function' || typeof window.caDraftScore!=='function') return null;
+  const words=`${r.title||''}\n${r.need||''}`;
+  let cands=[]; try{ cands=ikShelfOf(); }catch(_){ cands=[]; }
+  if(!cands.length) return null;
+  const best=caDraftRank(words, cands, null)[0];
+  if(!best || caDraftScore(words, best)<=0) return null;
+  const shared=(typeof window.caDraftShared==='function')?caDraftShared(words, best):[];
+  const name=(typeof window.caDraftTitleOf==='function'?caDraftTitleOf(best):'')||best.name;
+  return { kind:best.kind==='builtin'?'tid':best.kind, id:best.id, name, shared };
+}
+function ikFitHtml(r){
+  const fit=ikFitOf(r);
+  const who=ikIsMine(r)?'':ikFirst(r.by&&r.by.name);
+  const whose=who?i18t('jl_ik_whose',{ first:who }):i18t('jl_ik_whose_you');
+  const MARK='\u0001';
+  let html;
+  if(!fit) html=esc(i18t('jl_ik_fit_none',{ who:who||i18t('jl_ik_who_you') }));
+  else {
+    const words=fit.shared.map(w=>i18t('ik_quote',{ t:w })).join(', ');
+    const k=ikRoadShown(r).k==='routine'?'jl_ik_fit_routine':'jl_ik_fit_other';
+    html=esc(i18t(k,{ name:MARK, whose, words })).replace(MARK, `<b>${esc(fit.name)}</b>`);
+  }
+  const face=(typeof jamboFaceHtml==='function')?jamboFaceHtml('hello', 24, 'jl-say-face').replace('<img', '<img data-ink-exempt'):'';
+  return insSecHtml(i18t('pd_tab_copilot'), '', `<div class="jl-say ik-fit" data-ik-fit="${esc(fit?fit.kind+':'+fit.id:'')}" title="${esc(i18t('jl_ik_fit_src'))}">${face}<div class="jl-bub">${html}</div></div>`, 'ik-fit-sec');
+}
+function ikTeamPanelOpts(r, o){
+  const { acts, menu, first, mine, stream, stopped }=o;
+  const from=mine?i18t('ik_eb_from_you'):i18t('ik_eb_from',{ name:(r.by&&r.by.name)||'' });
+  const road=ikRoadShown(r);
+  const rd=IK_ROADS[road.k]||IK_ROADS.standard;
+  const val=r.answers&&r.answers.value!=null&&String(r.answers.value).trim()!==''?String(r.answers.value):'';
+  const rows=[
+    { k:'cp', label:i18t('ik_f_cp'), v:ikCpHtml(r) },
+    val?{ k:'value', label:i18t('ik_f_value'), v:esc(val) }:null,
+    { k:'stream', label:i18t('reg_chip_stream'), v:esc(stream) },
+    { k:'road', label:i18t('ik_f_road'), v:esc(road.why?i18t('ik_road_line',{ road:rd.label, why:road.why }):rd.label) },
+    { k:'with', label:i18t('ik_f_with'), v:ikWithRowHtml(r) },
+    { k:'asked', label:i18t('ik_f_asked'), v:ikAskedHtml(r) } ];
+  let body=insSecHtml(mine?i18t('ik_sec_need_you'):i18t('ik_sec_need',{ first }), '',
+    r.need?`<blockquote class="ik-ask-q">${esc(i18t('ik_quote',{ t:r.need }))}</blockquote>`:`<p class="ins-note">${esc(i18t('ik_asked_nothing'))}</p>`, 'ik-need');
+  body+=(typeof insRowsHtml==='function')?insRowsHtml(rows, 'ik-rows'):insKvHtml(rows);
+  if(r.status==='declined') body+=insSecHtml(i18t('ik_sec_declined'), '', r.note?`<blockquote class="ins-q">${esc(r.note)}</blockquote>`:`<p class="ins-note">${esc(i18t('ik_no_reason'))}</p>`, 'ik-why');
+  body+=ikFilesHtml(r, { cards:true });
+  /* Jambo's line belongs to a request still to be drafted: it names the paper
+     Start the draft will choose */
+  if(!stopped&&r.status!=='drafted'&&acts.some(a=>a&&a.k==='draft')) body+=ikFitHtml(r);
+  return {
+    item:{ id:r.id },
+    head:{ eyebrow:`<span class="ins-ref">${esc(r.id)}</span> · ${esc(i18t('ik_eb_kind'))} · ${esc(from)}${stream?' · '+esc(stream):''}`, title:r.title||'',
+      pills:ikHeadPillsHtml(r), moreBesidePills:true, acts, menuHtml:menu, moreAria:i18t('reg_more_actions') },
+    acts, body,
+    onMenu:act=>{
+      if(act==='pick') intakePick(r.id);
+      else if(act==='promise') intakePromiseAsk(r.id);
+      else if(act==='decline') intakeSetStatus(r.id,'declined');
+      else if(act==='withdraw') intakeSetStatus(r.id,'withdrawn');
+      else if(act==='track') intakeTrackCopy(r.id);
+    },
+  };
+}
+/* ---- WITH NOTHING CHOSEN, JAMBO SAYS THE PAGE (A1's shared panel, jlSay):
+   counted from the list, no call; a chip is the page's own door ---- */
+function ikJlSay(openRows, asker, go){
+  return () => {
+    const n=openRows.length;
+    const lines=[];
+    if(asker){
+      lines.push(esc(n?i18tn('jl_ik_say_asker',n,{ n }):i18t('jl_ik_say_none')));
+      return { lines:[lines.join(' ')], chips:[{ label:i18t('jl_ik_chip_ask'), run:()=>openIntakeForm() }] };
+    }
+    if(!n) lines.push(esc(i18t('jl_ik_say_none')));
+    else {
+      lines.push(esc(i18tn('jl_ik_say_open',n,{ n })));
+      const nobody=openRows.filter(r=>!r._adv&&!(r.assignee&&r.assignee.id));
+      if(nobody.length){
+        const oldest=nobody.slice().sort((a,b)=>String(a.createdAt||'').localeCompare(String(b.createdAt||'')))[0];
+        lines.push(esc(i18tn('jl_ik_say_nobody',nobody.length,{ n:nobody.length, age:ikAgeWords(oldest) })));
+      }
+      const yours=openRows.filter(r=>!r._adv&&ikHeldByMe(r)).length;
+      if(yours) lines.push(esc(i18tn('jl_ik_say_yours',yours,{ n:yours })));
+      const over=intakePastDue(openRows.filter(r=>!r._adv));
+      if(over) lines.push(`<span class="late">${esc(i18tn('jl_ik_say_over',over,{ n:over }))}</span>`);
+    }
+    const chips=[];
+    if(openRows.some(r=>!r._adv&&!(r.assignee&&r.assignee.id))) chips.push({ label:i18t('jl_ik_chip_nobody'), run:()=>go('nobody') });
+    chips.push({ label:i18t('jl_ik_chip_ask'), run:()=>openIntakeForm() });
+    return { lines:[lines.join(' ')], chips };
+  };
+}
 function ikPanelOpts(r, asker){
   const first=String((r.by&&r.by.name)||'').trim().split(/\s+/)[0]||'';
   const mine=ikIsMine(r);
   const st=ikStatusSay(r, asker);
   const stream=(r.folder&&window.FOLDERS&&FOLDERS[r.folder])?FOLDERS[r.folder].name:'';
-  const pr=intakePromiseSay(r);
   const withV=IK_STOPPED.includes(r.status)
     ? esc((r.assignee&&r.assignee.name)||'')
     : (r.assignee&&r.assignee.id)?esc(r.assignee.name||'')+(r.lane?` <span class="ins-quiet">${esc(i18t('ik_with_sent_by',{lane:r.lane}))}</span>`:''):`<span class="ins-nobody">${esc(i18t('ik_with_nobody'))}</span>`;
-  const road=intakeRoad(r);
-  const rd=IK_ROADS[road.k]||IK_ROADS.standard;
   const stopped=IK_STOPPED.includes(r.status);
-  const facts=asker
-    ? [ { k:'with', label:i18t('ik_f_with'), v:withV },
-        { k:'promised', label:i18t('ik_f_promised'), v:r.promisedAt?esc(ikDay(String(r.promisedAt).slice(0,10),{long:true})):'' },
-        { k:'cp', label:i18t('ik_f_cp'), v:esc(r.counterparty||'') },
-        { k:'stream', label:i18t('ins_f_stream'), v:esc(stream) } ]
-    : [ { k:'road', label:i18t('ik_f_road'), v:`<span class="ins-road-${road.k}">${esc(rd.label)}</span>` },
-        { k:'with', label:i18t('ik_f_with'), v:withV },
-        { k:'promised', label:i18t('ik_f_promised'), v:r.promisedAt?esc(ikDay(String(r.promisedAt).slice(0,10),{long:true})):'' },
-        stopped ? { k:'took', label:i18t('ik_f_took'), v:(pr&&pr.sub)?esc(ikTookWords(intakeMinutes(r)||0)):'' }
-                : { k:'asked', label:i18t('ik_f_asked'), v:esc(ikAgeWords(r)) },
-        { k:'cp', label:i18t('ik_f_cp'), v:esc(r.counterparty||'') },
-        { k:'stream', label:i18t('ins_f_stream'), v:esc(stream) } ];
-  /* THE TEAM'S PANEL IS THE DRAWING'S (SAP benchmark, batch 2): six facts in
-     two columns, then what they asked. How it is handled is a fact here, not
-     a section; the counterparty's book, the "keep them informed" note and the
-     history are not in the drawing and are not drawn — the tracker link is
-     on ⋯, the contracts with this counterparty are one search away. */
-  const val=r.answers&&r.answers.value!=null&&String(r.answers.value).trim()!==''?String(r.answers.value):'';
-  const teamFacts=[
-    { k:'cp', label:i18t('ik_f_cp'), v:r.counterparty?`<span class="ik-cp">${typeof window.regAvatarHtml==='function'?regAvatarHtml(r.counterparty):''}${esc(r.counterparty)}</span>`:'' },
-    { k:'stream', label:i18t('ins_f_stream'), v:esc(stream) },
-    { k:'value', label:i18t('ik_f_value'), v:esc(val) },
-    { k:'road', label:i18t('ik_f_road'), v:`<span class="ins-road-${road.k}">${esc(rd.label)}</span>` },
-    { k:'with', label:i18t('ik_f_holder'), v:withV },
-    stopped ? { k:'took', label:i18t('ik_f_took'), v:(pr&&pr.sub)?esc(ikTookWords(intakeMinutes(r)||0)):'' }
-            : { k:'asked', label:i18t('ik_f_asked_on'), v:esc(ikDay(r.createdAt,{long:true})) } ];
-  let body=insKvHtml(asker?facts:teamFacts);
+  /* the asker's panel, as it was (round 20 drew the team's) */
+  const facts=[ { k:'with', label:i18t('ik_f_with'), v:withV },
+    { k:'promised', label:i18t('ik_f_promised'), v:r.promisedAt?esc(ikDay(String(r.promisedAt).slice(0,10),{long:true})):'' },
+    { k:'cp', label:i18t('ik_f_cp'), v:esc(r.counterparty||'') },
+    { k:'stream', label:i18t('ins_f_stream'), v:esc(stream) } ];
+  const { acts, menu }=ikActs(r, asker);
+  /* THE TEAM'S PANEL, AS DRAWN (round 20, owner picked "The SAP way"; built
+     whole on the owner's yes of 18 Oct 2026): the head (reference · kind ·
+     who asked · stream, the title, How it is handled and With as two pills,
+     the three verbs), what they asked for in their own words, the facts as
+     rows, the attachments, and Jambo naming the paper that fits — read from
+     the request and our paper, no call. */
+  if(!asker) return ikTeamPanelOpts(r, { acts, menu, first, mine, stream, stopped });
+  let body=insKvHtml(facts);
   body+=insSecHtml((asker||mine)?i18t('ik_sec_need_you'):i18t('ik_sec_need',{first}), '', `<p class="ins-p" style="white-space:pre-wrap">${esc(r.need||'')}</p>`, 'ik-need');
   body+=ikFilesHtml(r);
   if(r.status==='declined') body+=insSecHtml(i18t('ik_sec_declined'), '', r.note?`<blockquote class="ins-q">${esc(r.note)}</blockquote>`:`<p class="ins-note">${esc(i18t('ik_no_reason'))}</p>`, 'ik-why');
@@ -1283,33 +1464,6 @@ function ikPanelOpts(r, asker){
     body+=insSecHtml(i18t('ik_sec_next'), '', `<p class="ins-p">${esc(lead)}${ikMails()?' '+esc(i18t('ik_next_mail')):''}</p>`, 'ik-next');
   }
   if(asker) body+=ikHistoryHtml(r, asker);
-  const { acts, menu }=ikActs(r, asker);
-  if(!asker){
-    /* THE DRAWING'S HEAD: "RQ-114 · Contract · from Wanjiru Kamau", the title,
-       and one pill — the promise where there is one (red once late, amber
-       inside three days), else the pile the request sits in. */
-    const g=intakeStage(r);
-    const gl=(IK_GROUPS.find(x=>x[0]===g)||[])[1];
-    const dd=(r.promisedAt&&!stopped&&typeof daysUntil==='function')?daysUntil(String(r.promisedAt).slice(0,10)):null;
-    const pill=(r.promisedAt&&!stopped)
-      ? { tone: dd!=null&&dd<0?'ruby':dd!=null&&dd<=3?'amber':'steel',
-          text: i18t('ik_pill_promised',{day:ikDay(String(r.promisedAt).slice(0,10),{weekday:true})}) }
-      : { tone: st.tone, text: gl?i18t(gl):'' };
-    const from=mine?i18t('ik_eb_from_you'):i18t('ik_eb_from',{name:(r.by&&r.by.name)||''});
-    return {
-      item:{ id:r.id },
-      head:{ eyebrow:`<span class="ins-ref">${esc(r.id)}</span> · ${esc(i18t('ik_eb_kind'))} · ${esc(from)}`, title:r.title||'',
-        pillTone:pill.tone, pill:pill.text?esc(pill.text):'', acts, menuHtml:menu, moreAria:i18t('reg_more_actions') },
-      acts, body,
-      onMenu:act=>{
-        if(act==='pick') intakePick(r.id);
-        else if(act==='promise') intakePromiseAsk(r.id);
-        else if(act==='decline') intakeSetStatus(r.id,'declined');
-        else if(act==='withdraw') intakeSetStatus(r.id,'withdrawn');
-        else if(act==='track') intakeTrackCopy(r.id);
-      },
-    };
-  }
   const eyebrow=`<span class="ins-ref">${esc(r.id)}</span>${stream?' · '+esc(stream):''}`;
   const sub=(asker||mine)?esc(i18t('ik_sub_you',{date:ikDay(r.createdAt)})):esc(i18t('ik_sub_by',{name:(r.by&&r.by.name)||'',date:ikDay(r.createdAt)}));
   return {
@@ -1354,47 +1508,68 @@ function ikAdvicePanelOpts(r){
       pillTone:tone, pill:r.eta&&!done?esc(i18t('ik_pill_promised',{ day:ikDay(r.eta,{ weekday:true }) })):esc(st.label||r.status), acts },
     acts, body };
 }
+/* THE BAND'S BOXES (round 20 as drawn): beside the tabs, each with its label
+   before it — "Request [Words or a reference]" · "Stream [All streams]" ·
+   "With [Anyone]". The two choices are the band's own filter boxes (cuChip:
+   the word, the value, an invisible <select> HaTi's own list dresses), so a
+   press opens one list on a computer and on an iPad alike. The asker, who
+   sees only their own, has the find box alone. */
+function ikBandBoxesHtml(f, asker, narrowing){
+  const ph=i18t('ik_box_request_ph');
+  const find=`<label class="ik-fb-find"><span class="ik-fb-l">${esc(i18t('ik_box_request'))}</span><span class="ik-search">${typeof icon==='function'?icon('search','w-3.5 h-3.5'):''}<input type="search" data-ik-q value="${esc(f.q||'')}" placeholder="${esc(ph)}" aria-label="${esc(i18t('ik_box_request'))}"></span></label>`;
+  if(asker) return `<div class="reg-filterbar reg-fb ik-fb">${find}</div>`;
+  const chip=(typeof window.cuChip==='function')?window.cuChip:insChipHtml;
+  const folders=(typeof visibleFolders==='function')?visibleFolders():Object.values(window.FOLDERS||{});
+  const n=(narrowing||[]).length;
+  return `<div class="reg-filterbar reg-fb ik-fb">${find}${
+    chip({ attr:'data-ik-f', key:'folder', label:i18t('reg_chip_stream'), cur:f.folder, def:IK_DEF.folder,
+      opts:[['all',i18t('cu_all_streams')],...folders.map(x=>[x.id,x.name])] })}${
+    chip({ attr:'data-ik-f', key:'who', label:i18t('ik_f_with'), cur:f.who, def:IK_DEF.who,
+      opts:[['all',i18t('cu_anyone')],['me',i18t('ik_with_you')],['nobody',i18t('ik_c_who_nobody')],['other',i18t('ik_c_who_colleague')]] })}${
+    n?`<button type="button" class="ui-link ik-fb-clear" data-ik-clear>${esc(i18tn('ob_clear_n',n,{n}))}</button>`:''}</div>`;
+}
 function renderIntakeInspector(host){
   const may=(typeof canEdit==='function'&&canEdit());
   const asker=!may;
   const f=ikFilters();
   const V=asker?IK_V_ASKER:IK_V_TEAM;
   if(!V.some(v=>v[0]===f.view)) f.view='open';
+  /* the road no longer narrows (no box for it): a value left from before rests */
+  f.road=IK_DEF.road;
   const all=asker?intakeMine():((_intake&&_intake.list)||[]);
   const narrowing=asker?[]:IK_CHIPS.filter(k=>String(f[k])!==String(IK_DEF[k]));
   /* advice rows ride along only while nothing narrows by a contract-request
-     fact (who holds it, how it is handled, its stream) */
+     fact (who holds it, its stream) */
   const adv=(asker||narrowing.length)?[]:ikAdviceRows();
   const base=asker?all:all.filter(r=>ikPassChips(r,f)).concat(adv);
+  /* the whole book's open requests, the boxes at rest: the head's "N open"
+     and Jambo's words with nothing chosen */
+  const openAll=(asker?all:all.concat(ikAdviceRows())).filter(r=>ikPassView(r,'open',asker));
   /* THE DRAWING'S SEARCH BOX: the words a reader would use for a request —
      its title, what was asked, who asked, the counterparty, its reference. */
   const q=String(f.q||'').trim().toLowerCase();
   const hit=r=>!q||[r.id,r.title,r.need,r.counterparty,r.company,r.by&&r.by.name].some(x=>String(x||'').toLowerCase().includes(q));
-  /* NEWEST FIRST, as drawn: a late request still says so in red in its own
-     Promised by cell. */
+  /* OLDEST WAITING FIRST on the team's Open list (round 20 as drawn: "Open
+     requests 4 · oldest waiting first" — the longest wait leads); every other
+     list, and the asker's, newest first. A late request still says so in red
+     in its own Promised by cell. */
+  const oldest=!asker&&f.view==='open';
   const rows=base.filter(r=>ikPassView(r,f.view,asker)&&hit(r))
-    .sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
-  /* THE HEAD is the page's name and the one filled act (SAP benchmark,
-     batch 2): the drawing prints no counts under the name — the tabs carry
-     them, and a request past its promise is red in its own row. */
-  _ikHead.facts='';
+    .sort((a,b)=>oldest?String(a.createdAt||'').localeCompare(String(b.createdAt||'')):String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+  /* the list behind the tab, nothing narrowed — the foot's "of" */
+  const viewAll=(asker?all:all.concat(ikAdviceRows())).filter(r=>ikPassView(r,f.view,asker)).length;
+  /* THE HEAD (round 20 as drawn): "Requests 4 open · what colleagues ask Legal
+     for · advice too", and the one filled act */
+  _ikHead.facts=asker?'':`<span class="ik-hf-n">${esc(i18tn('ik_hf_open',openAll.length,{ n:openAll.length }))}</span><span class="ik-hf-s">${esc(i18t('ik_hf_sub'))}</span>`;
   _ikHead.acts=`<button type="button" id="ik-new" class="ui-btn ui-btn-primary">${typeof icon==='function'?icon('plus','w-3.5 h-3.5'):''}${esc(i18t('ik_ask_btn'))}</button>`;
-  const folders=(typeof visibleFolders==='function')?visibleFolders():Object.values(window.FOLDERS||{});
-  const chips=asker?'':[
-    insChipHtml({ attr:'data-ik-f', key:'who', label:i18t('ik_c_who'), cur:f.who, def:IK_DEF.who,
-      opts:[['all',i18t('ik_c_who_all')],['me',i18t('ik_c_who_me')],['nobody',i18t('ik_c_who_nobody')],['other',i18t('ik_c_who_colleague')]] }),
-    insChipHtml({ attr:'data-ik-f', key:'road', label:i18t('ik_f_road'), cur:f.road, def:IK_DEF.road,
-      opts:[['all',i18t('ik_c_road_all')],...['close','standard','routine','lane'].map(k=>[k,IK_ROADS[k].label])] }),
-    insChipHtml({ attr:'data-ik-f', key:'folder', label:i18t('ins_f_stream'), cur:f.folder, def:IK_DEF.folder,
-      opts:[['all',i18t('ob_f_folder_all')],...folders.map(x=>[x.id,x.name])] }),
-  ].join('')+(narrowing.length?`<button type="button" class="ui-link" data-ik-clear>${esc(i18tn('ob_clear_n',narrowing.length,{n:narrowing.length}))}</button>`:'');
-  /* THE DRAWING'S COLUMNS: Ref, Request, How it is handled, Promised by. Who
-     holds it is in the panel (Holder) for the team; the asker keeps it in
-     the list, because "who has my request" is the asker's whole question. */
+  /* THE DRAWING'S COLUMNS. The asker keeps With in the list, because "who has
+     my request" is the asker's whole question; the team's eight are round 20's.
+     Ref is wide enough for HaTi's own references (REQ-37E60C) to read whole. */
   const cols=asker
     ? [{ t:i18t('ik_col_ref'), w:96 }, { t:i18t('ik_col_request') }, { t:i18t('ik_f_with'), w:170 }, { t:i18t('ik_f_promised'), w:130 }]
-    : [{ t:i18t('ik_col_ref'), w:96 }, { t:i18t('ik_col_request') }, { t:i18t('ik_col_kind'), w:88 }, { t:i18t('ik_f_road'), w:120 }, { t:i18t('ik_f_with'), w:132 }, { t:i18t('ik_col_files'), w:56 }, { t:i18t('ik_col_asked'), w:66 }, { t:i18t('ik_f_promised'), w:92 }];
-  const kindPill=k=>`<span class="reg-stg ins-pill"><i aria-hidden="true"></i>${esc(i18t(k==='advice'?'ik_kind_advice':'ik_kind_contract'))}</span>`;
+    : [{ t:i18t('ik_col_ref'), w:108 }, { t:i18t('ik_col_request') }, { t:i18t('ik_col_kind'), w:88 }, { t:i18t('ik_f_road'), w:126 }, { t:i18t('ik_f_with'), w:148 }, { t:i18t('ik_col_files'), w:56 }, { t:i18t('ik_col_asked'), w:66 }, { t:i18t('ik_f_promised'), w:100 }];
+  /* the Kind, an outlined pill — round 15's own (ap-kind) */
+  const kindPill=k=>`<span class="ap-kind ik-kind">${esc(i18t(k==='advice'?'ik_kind_advice':'ik_kind_contract'))}</span>`;
   const advTr=r=>{
     const st=(window.adviceStage?adviceStage(r.status):null)||{ label:r.status };
     const left=(window.adviceDaysLeft&&r.eta)?adviceDaysLeft(r.eta):null;
@@ -1403,8 +1578,8 @@ function renderIntakeInspector(host){
       <td><span class="ins-ref">${esc(r.id)}</span></td>
       <td><span class="ins-c2"><b title="${esc(r.title)}">${esc(r.title)}</b><span>${esc([r.by.name, r.company].filter(Boolean).join(' · '))}</span></span></td>
       <td>${kindPill('advice')}</td>
-      <td>${esc(st.label||r.status)}</td>
-      <td>${r.assignee?ikWhoHtml(String(r.assignee.name||r.assignee)):`<span class="ins-quiet">—</span>`}</td>
+      <td><span class="ik-road is-standard">${esc(st.label||r.status)}</span></td>
+      <td>${r.assignee?ikWhoHtml(String(r.assignee.name||r.assignee), '', { face:false }):`<span class="ins-quiet">—</span>`}</td>
       <td><span class="ins-quiet">—</span></td>
       <td class="ik-ask">${esc(ikDay(r.createdAt))}</td>
       <td class="ik-pr">${r.eta?(left===0&&late?`<span class="ins-late">${esc(i18t('ik_pr_today_word'))}</span>`:`<span class="${late?'ins-late':''}">${esc(ikDay(r.eta,{ weekday:true }))}</span>`):`<span class="ins-quiet">—</span>`}</td>
@@ -1428,32 +1603,31 @@ function renderIntakeInspector(host){
       <td><span class="ins-c2"><b title="${esc(r.title||'')}">${esc(r.title||'')}</b><span>${esc(sub)}</span></span></td>
       ${asker?'':`<td>${kindPill('contract')}</td>`}
       <td>${asker?ikWithCellHtml(r, asker):ikRoadHtml(r)}</td>
-      ${asker?'':`<td>${ikWithListHtml(r)}</td><td>${ikFilesCellHtml(r)}</td><td class="ik-ask">${esc(ikDay(r.createdAt))}</td>`}
+      ${asker?'':`<td class="ik-with">${ikWithListHtml(r)}</td><td>${ikFilesCellHtml(r)}</td><td class="ik-ask">${esc(ikDay(r.createdAt))}</td>`}
       <td class="ik-pr">${prHtml}</td>
     </tr>`;
   };
-  /* ONE LIST, in the piles' order (past its promise, nobody holds it, being
-     worked on, …) but without a heading row per pile — the drawing's flat
-     list; a late one says so in red in its own Promised by cell. */
+  /* ONE LIST, without a heading row per pile — the drawing's flat list; a
+     late one says so in red in its own Promised by cell. */
   let body=rows.map(tr).join('');
   if(!rows.length){
     const msg=asker?i18t('ik_mine_empty'):(narrowing.length||q)?i18t('ik_none_match'):(f.view==='open'?i18t('ik_queue_empty'):i18t('ob_none_here'));
     body=`<tr class="ins-empty"><td colspan="${cols.length}">${esc(msg)}${narrowing.length?`<br><button type="button" class="ui-link" data-ik-clear style="margin-top:8px">${esc(i18t('ob_clear_filters'))}</button>`:''}</td></tr>`;
   }
-  const table=`<table class="ins-lt ik-lt"><colgroup>${cols.map(c=>`<col${c.w?` style="width:${c.w}px"`:''}>`).join('')}</colgroup><thead><tr>${
+  const table=`<table class="ins-lt ik-lt${asker?'':' is-team'}"><colgroup>${cols.map(c=>`<col${c.w?` style="width:${c.w}px"`:''}>`).join('')}</colgroup><thead><tr>${
     cols.map(c=>`<th>${esc(c.t)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
   const cardT={ open:'ik_card_open', mine:'ik_card_mine', advice:'ik_card_advice', fin:'ik_card_fin', all:'ik_card_all' }[f.view]||'ik_card_all';
-  const filtersShown=_ikFiltersOpen||narrowing.length>0;
+  /* THE LIST'S HEAD (round 20 as drawn): its name, its count in a pill, and
+     the order it is in; the foot under the last row says how many of the
+     tab's list are shown ("4 of 4 open") */
+  const foot=asker?i18t('ik_foot_asker'):i18t(f.view==='open'?'ik_foot_n_open':'ik_foot_n',{ n:rows.length, of:viewAll });
   host.innerHTML=`<div class="view-enter sap-page ins-page ik-ins" data-ins-page="intake" data-ins="1">
-    <div class="sap-band">${rqKindTabsHtml('contracts')}</div>
+    <div class="sap-band"><div class="reg-tabbar ik-tabbar">${rqKindTabsHtml('contracts')}${ikBandBoxesHtml(f, asker, narrowing)}</div></div>
     <div class="ins-body">
       <section class="ins-card" aria-label="${esc(i18t('nav_intake'))}">
-        <div class="ins-cardhead"><h2 class="ins-cardhead-t">${esc(i18t(cardT))} <span class="ins-cardhead-n">(${rows.length})</span></h2><span style="flex:1"></span>
-          <label class="ik-search">${typeof icon==='function'?icon('search','w-3.5 h-3.5'):''}<input type="search" data-ik-q value="${esc(f.q||'')}" placeholder="${esc(i18t('ik_search_ph'))}" aria-label="${esc(i18t('ik_search_ph'))}"></label>
-          ${chips?`<button type="button" class="ui-btn ui-btn-plain obw-filter-btn${narrowing.length?' on':''}" data-ik-filters aria-expanded="${filtersShown?'true':'false'}">${typeof icon==='function'?icon('filter','w-3.5 h-3.5'):''}${esc(i18t('ob_filter_btn'))}${narrowing.length?` <span class="obw-filter-n">${narrowing.length}</span>`:''}</button>`:''}</div>
-        ${chips?`<div class="ins-bar reg-filterbar"${filtersShown?'':' hidden'}>${chips}</div>`:''}
+        <div class="ins-cardhead"><h2 class="ins-cardhead-t">${esc(i18t(cardT))} <span class="ap-card-n is-pill ik-card-n">${rows.length}</span> <span class="ik-card-m">${esc(i18t(oldest?'ik_sort_oldest':'ik_sort_newest'))}</span></h2></div>
         <div class="ins-scroll" id="ik-scroll">${table}</div>
-        ${asker?`<div class="ins-foot"><span>${esc(i18t('ik_foot_asker'))}</span></div>`:''}
+        <div class="ins-foot" data-ik-foot><span>${esc(foot)}</span></div>
       </section>
       <aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ik_panel_label'))}"></aside>
     </div>
@@ -1463,7 +1637,6 @@ function renderIntakeInspector(host){
   host.querySelectorAll('[data-ik-view]').forEach(b=>b.addEventListener('click',()=>{ f.view=b.getAttribute('data-ik-view'); again(); }));
   host.querySelectorAll('[data-ik-f]').forEach(s=>s.addEventListener('change',()=>{ f[s.getAttribute('data-ik-f')]=s.value; again(); }));
   host.querySelectorAll('[data-ik-clear]').forEach(b=>b.addEventListener('click',()=>{ IK_CHIPS.forEach(k=>{ f[k]=IK_DEF[k]; }); f.q=''; again(); }));
-  host.querySelector('[data-ik-filters]')?.addEventListener('click',()=>{ _ikFiltersOpen=!_ikFiltersOpen; again(); });
   /* The box is repainted with the list, so the caret is put back where the
      reader was typing. */
   host.querySelector('[data-ik-q]')?.addEventListener('input',e=>{
@@ -1477,13 +1650,20 @@ function renderIntakeInspector(host){
   const byId=new Map(rows.map(r=>[keyOf(r),r]));
   const id=insPick(seat, rows.map(keyOf));
   if(tb) insMarkRow(tb,'[data-ins-row]',idOf,id);
+  /* Jambo's own words with nothing chosen; a chip narrows to what nobody
+     holds (Open, With: Nobody yet) and lands on its first row */
+  const go=k=>{ if(k==='nobody'){ f.view='open'; f.who='nobody'; again(); if(typeof jlLand==='function') jlLand('first'); } };
   const paint=k=>{
     const r=byId.get(k);
     /* Jambo's panel says what it holds: "Request" (round 20; advice is a request) */
-    if(!r){ insPaintPanel({ empty:asker?i18t('ik_panel_none_asker'):i18t('ik_panel_none') }); return; }
-    insPaintPanel(Object.assign({ jlWord:i18t('jl_w_request') }, r._adv?ikAdvicePanelOpts(r):ikPanelOpts(r, asker)));
+    if(!r){ insPaintPanel({ seat, empty:asker?i18t('ik_panel_none_asker'):i18t('ik_panel_none'), jlSay:ikJlSay(openAll, asker, go) }); return; }
+    insPaintPanel(Object.assign({ seat, jlWord:i18t('jl_w_request'), jlSay:ikJlSay(openAll, asker, go) }, r._adv?ikAdvicePanelOpts(r):ikPanelOpts(r, asker)));
     const pan=document.getElementById('ins-panel'); if(!pan) return;
     pan.querySelectorAll('[data-ik-file]').forEach(b=>b.addEventListener('click',()=>intakeFileGet(r.id, b.getAttribute('data-ik-file'), b.getAttribute('data-ik-fname'))));
+    /* THE COUNTERPARTY'S NAME opens its contracts on the Contracts place
+       (Parties' own Open party) and LANDS on the first of them */
+    pan.querySelectorAll('[data-ik-cp]').forEach(b=>b.addEventListener('click',()=>{
+      if(typeof window.cuOpenCustomer==='function'){ cuOpenCustomer(b.getAttribute('data-ik-cp')); if(typeof jlLand==='function') jlLand('list'); } }));
   };
   paint(id);
   /* A SECOND PRESS OPENS THE CONTRACT THE REQUEST BECAME, where it became
@@ -1574,6 +1754,7 @@ Object.assign(window,{ikWithListHtml,ikFilesCellHtml,INTAKE_STATUS,IK_LIVE,IK_RO
   intakeStatusKey,intakePickLabel,intakeTakeOver,intakeStage,intakeFinishedThisMonth,intakePromiseSay,
   ikPaintHead,ikAfterRender,renderIntakeInspector,ikPanelOpts,ikAdvicePanelOpts,ikAdviceRows,ikFilesHtml,intakeFileGet,IK_FILES_MAX,IK_FILE_MAX_MB,ikActs,ikStatusSay,ikFilters,
   IK_V_TEAM,IK_V_ASKER,IK_DEF,IK_CHIPS,IK_GROUPS,ikPassView,ikPassChips,ikSort,ikAgeWords,ikTookWords,ikDay,
-  openIntakeForm,intakeAnswerLine,openIntakeTracker,intakeDraft,intakeSetStatus,renderIntake,ikRowHtml,intakeSuggestTemplate,
+  openIntakeForm,intakeAnswerLine,openIntakeTracker,intakeDraft,intakeSetStatus,renderIntake,ikRowHtml,
+  ikFitOf,ikFitHtml,ikTeamPanelOpts,ikCpHtml,ikCpNdaWords,ikWithRowHtml,ikAskedHtml,ikHeadPillsHtml,ikJlSay,ikRoadShown,ikRoadHtml,ikLaneChipHtml,ikBandBoxesHtml,ikWithCellHtml,
   RQ_KINDS,RQ_KIND_VIEW,rqKindCounts,requestsDoorCount,rqKindTabsHtml,rqPaintKindCounts,rqKindTabsWire,
   _intakeState:_intake});
