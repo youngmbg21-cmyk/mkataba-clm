@@ -140,7 +140,8 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     check('2c her words quoted, the rows, "no NDA with them today", Attachments 1 of 3 with who added it', !!P && /^“Naivas want/.test(P.quote)
       && JSON.stringify(P.rows) === '["Counterparty","Stream","How it is handled","With","Asked"]' && /no NDA with them today/.test(P.cp)
       && /1 of 3/.test(P.files) && /added by Wanjiru/.test(P.file), P && JSON.stringify({ rows: P.rows, cp: P.cp, files: P.files, file: P.file }));
-    check('2d Jambo names the paper that fits, read without a call', !!P && /Non-Disclosure/.test(P.fit || '') && aiCalls.length === 0, JSON.stringify({ fit: P && P.fit, ai: aiCalls }));
+    /* re-pointed 19 Oct 2026 (second pass): the name the New agreement form lists it under */
+    check('2d Jambo names the paper that fits, read without a call', !!P && /^NDA$/.test(P.fit || '') && aiCalls.length === 0, JSON.stringify({ fit: P && P.fit, ai: aiCalls }));
     if (OUT) await page.screenshot({ path: path.join(OUT, '20-requests-1440x780.png') });
 
     /* ---- 3 · Start the draft ---- */
@@ -153,6 +154,13 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
       const cr = document.querySelector('#na-create'); const at = el => { if (!el) return null; const r = el.getBoundingClientRect(); const top = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return !!(top && (el === top || el.contains(top))); };
       return { pick: at(on), create: at(cr), panelHidden: !p || !p.getClientRects().length || !at(p) }; });
     check('3b the form stands in front: its chosen paper and Create are painted, not under Jambo\'s panel', O.pick && O.create !== false, JSON.stringify(O));
+    /* SECOND PASS: the form names the paper as the panel did, and carries
+       "‹ Requests" back (the drawing's Compare: "with ‹ Requests to come back") */
+    const BK = await page.evaluate(() => { const b = document.querySelector('[data-dlg-pg-back]'); const n = document.querySelector('#na-root .na-pick.on .na-pick-n');
+      return { back: b ? b.textContent.trim() : null, name: n ? n.textContent.trim() : null }; });
+    check('3c the form lists the paper by the name Jambo said, and its crumb is "‹ Requests"', !!P && BK.name === P.fit && BK.back === '‹ Requests', JSON.stringify(BK));
+    if (BK.back) { await press('[data-dlg-pg-back]'); await until(() => !document.getElementById('na-root') && state.view === 'intake' ? true : null, null, 4000); }
+    check('3d "‹ Requests" goes back to Requests', await page.evaluate(() => !document.getElementById('na-root') && state.view === 'intake'));
     await page.keyboard.press('Escape').catch(() => {});
     await until(() => !document.getElementById('na-root'), null, 4000);
     await page.evaluate(() => { if (document.getElementById('na-root')) { const b = document.querySelector('#modal-root [data-dlg-cancel], #na-cancel'); if (b) b.click(); } });
@@ -211,6 +219,11 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     await page.evaluate(() => { const t = document.querySelector('[data-mn-tab="all"]'); if (t) t.click(); });
 
     /* ---- 7 · the owner's three screens ---- */
+    /* SECOND PASS (19 Oct 2026): the band's row is measured by overlap, not
+       by a top within 24px (that passed a band broken onto two rows), its
+       labels must read whole, and the round runs again in Svenska */
+    for (const lang of ['en', 'sv']) {
+    if (lang === 'sv') await page.evaluate(() => { if (typeof langSet === 'function') langSet('sv'); });
     for (const [view, sel] of [['intake', '.ik-lt'], ['mynotes', '.mn-t']]) {
       await page.evaluate(v => setView(v), view);
       await until(s => document.querySelector(s) ? true : null, sel);
@@ -220,19 +233,43 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
         await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(450);
         const F = await page.evaluate(s => {
           const tabs = document.querySelector('.reg-tabbar .reg-views'), fb = document.querySelector('.reg-tabbar .ik-fb');
+          const tr = tabs && tabs.getBoundingClientRect(), fr = fb && fb.getBoundingClientRect();
+          const labelsCut = [...document.querySelectorAll('.ik-tabbar .reg-f-l, .ik-tabbar .ik-fb-l, .ik-tabbar .reg-vtab')].filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.textContent.trim());
           const heads = [...document.querySelectorAll(s + ' thead th')].filter(t => t.scrollWidth > t.clientWidth + 1).map(t => t.textContent.trim());
           const p = document.querySelector('#ins-panel.is-jambo'); const pr = p && p.getBoundingClientRect();
           const verbs = p ? [...p.querySelectorAll('.ins-h .ins-acts [data-ins-act]')] : [];
           const cutVerb = verbs.filter(b => b.scrollWidth > b.clientWidth + 1 || b.getBoundingClientRect().right > pr.right + 1).map(b => b.textContent.trim());
           const tops = new Set(verbs.map(b => Math.round(b.getBoundingClientRect().top)));
-          return { side: document.documentElement.scrollWidth <= innerWidth + 1, oneRow: !!(tabs && fb) && Math.abs(tabs.getBoundingClientRect().top - fb.getBoundingClientRect().top) < 24,
+          return { side: document.documentElement.scrollWidth <= innerWidth + 1, oneRow: !!(tr && fr) && fr.top < tr.bottom && fr.bottom > tr.top && fr.left >= tr.right, labelsCut,
             heads, cutVerb, verbsOneLine: tops.size <= 1, panel: !!p && pr.right <= innerWidth + 1 && pr.bottom <= innerHeight + 1 };
         }, sel);
-        check(`7 ${view} ${w}×${ht}: nothing sideways, the band one row, no head cut, the panel's verbs whole on one line`, F.side && F.oneRow && !F.heads.length && !F.cutVerb.length && F.verbsOneLine && F.panel, JSON.stringify(F));
-        if (OUT) await page.screenshot({ path: path.join(OUT, `20-${view === 'intake' ? 'requests' : 'mynotes'}-${w}x${ht}.png`) });
+        check(`7 ${lang} ${view} ${w}×${ht}: nothing sideways, the band one row, its labels whole, no head cut, the panel's verbs whole on one line`, F.side && F.oneRow && !F.labelsCut.length && !F.heads.length && !F.cutVerb.length && F.verbsOneLine && F.panel, JSON.stringify(F));
+        if (OUT) await page.screenshot({ path: path.join(OUT, `20-${view === 'intake' ? 'requests' : 'mynotes'}-${lang}-${w}x${ht}.png`) });
       }
       await page.setViewportSize({ width: 1440, height: 780 });
     }
+    }
+    await page.evaluate(() => { if (typeof langSet === 'function') langSet('en'); });
+    /* ---- 8 · SECOND PASS: a refresh lands at the same spot ---- */
+    await page.evaluate(() => setView('intake'));
+    await until(() => document.querySelector('.ik-lt [data-ik-row]') ? true : null);
+    await press('.ik-tabbar [data-ik-view="all"]');
+    await until(() => document.querySelector('.ik-tabbar [data-ik-view="all"].on') ? true : null);
+    await press(`.ik-lt [data-ik-row="${r2.id}"]`);
+    await until(id => { const p = document.querySelector('#ins-panel'); return p && p.getAttribute('data-ins-id') === id ? true : null; }, r2.id);
+    await page.reload({ waitUntil: 'networkidle' });
+    const K = await until(id => { const on = document.querySelector('.ik-tabbar [data-ik-view].on'); const p = document.querySelector('#ins-panel');
+      return on && p && p.getAttribute('data-ins-id') ? { tab: on.getAttribute('data-ik-view'), row: p.getAttribute('data-ins-id') } : null; }, null, 15000);
+    check('8a Requests after a refresh: the same tab and the same request', !!K && K.tab === 'all' && K.row === r2.id, JSON.stringify(K));
+    await page.evaluate(() => setView('mynotes'));
+    await until(() => document.querySelector('.mn-t [data-mn-row]') ? true : null);
+    await press('[data-mn-tab="later"]');
+    const want = await until(() => { const r = document.querySelector('.mn-t [data-mn-row]'); return r ? r.getAttribute('data-mn-row') : null; });
+    await press(`.mn-t [data-mn-row="${want}"]`);
+    await page.reload({ waitUntil: 'networkidle' });
+    const KN = await until(() => { const on = document.querySelector('[data-mn-tab].on'); const sel = document.querySelector('.mn-t [data-mn-row].is-sel');
+      return on && sel ? { tab: on.getAttribute('data-mn-tab'), row: sel.getAttribute('data-mn-row') } : null; }, null, 15000);
+    check('8b My notes after a refresh: the same tab and the same note', !!KN && KN.tab === 'later' && KN.row === want, JSON.stringify(KN));
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }
   finally {
     check('no page errors', !errors.length, errors.slice(0, 3).join(' | '));

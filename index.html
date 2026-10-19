@@ -14043,6 +14043,11 @@
   .sap-page .reg-tabbar.ik-tabbar > .reg-fb.ik-fb{flex:0 1 auto;min-width:0;flex-wrap:nowrap;}
   .sap-page .reg-tabbar.ik-tabbar .ik-fb-find{flex:0 1 auto;min-width:0;}
   .sap-page .reg-tabbar.ik-tabbar .ik-fb-find .ik-search{min-width:96px;flex:0 1 176px;}
+  /* a label never gives way ("Ström", "Hos" whole): the box after it does */
+  .sap-page .reg-tabbar.ik-tabbar .reg-fb.ik-fb .reg-chip{min-width:0;flex:0 1 auto;}
+  .sap-page .reg-tabbar.ik-tabbar .reg-fb.ik-fb .reg-chip .reg-f-l,
+  .sap-page .reg-tabbar.ik-tabbar .ik-fb-l{flex:none;overflow:visible;text-overflow:clip;}
+  .sap-page .reg-tabbar.ik-tabbar .reg-fb.ik-fb .reg-chip .reg-f-v{flex:0 1 auto;min-width:88px;}
   .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip:not(.reg-chip-btn){gap:8px;padding:0;border:0;background:none;box-shadow:none;}
   .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip:not(.reg-chip-btn):hover,
   .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip:not(.reg-chip-btn):focus-within{border:0;background:none;box-shadow:none;}
