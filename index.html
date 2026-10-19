@@ -14705,10 +14705,8 @@
      Jambo's house) and by Settings' head card, so every title's first glyph
      sits at one height (pages-read-alike 8). A band under the shared head
      (tabs, boxes, figures) is the card's lower half, .ph-foot, flush under
-     it; on a page whose scroller moves, the head closes its own card once
-     that half has scrolled away beneath it (#page-head.ph-scrolled, the
-     same height either way, so nothing jumps). REVERSES 9 Oct's "one white
-     band edge to edge". */
+     it, and it STAYS under it while the list scrolls (below). REVERSES 9
+     Oct's "one white band edge to edge". */
   .ph-card,.ph-foot{background:var(--color-surface);border:1px solid var(--color-divider);}
   .ph-card{border-radius:var(--radius-lg);padding:14px 16px;}
   .ph-foot{border-top:0;border-radius:0 0 var(--radius-lg) var(--radius-lg);}
@@ -14728,12 +14726,20 @@
      card too, so its right edge meets the cards under it */
   #page-head > .ph-card{margin-right:var(--sc-gutter,0px);}
   body:has(#content .ph-foot) #page-head > .ph-card{border-bottom-width:0;border-bottom-left-radius:0;border-bottom-right-radius:0;padding-bottom:0;}
-  /* closed once its lower half has scrolled away: the line gives its pixel to
-     the card's own edge, so the title row keeps its 12px under it and the
-     head is the same height either way */
-  body:has(#content .ph-foot) #page-head.ph-scrolled > .ph-card{border-bottom-width:1px;border-radius:var(--radius-lg);}
-  body:has(#content .ph-foot) #page-head.ph-scrolled > .ph-card > .ph-top{border-bottom-width:0;}
   .sap-page .sap-band.ph-foot{margin-inline:0;margin-top:0;padding-inline:16px;}
+  /* THE CARD STAYS WHOLE WHILE THE LIST SCROLLS (19 Oct 2026, the head card's
+     second check; round 22: "the head card and Jambo's panel stay put; the
+     lists scroll inside the desk", round 16 the same). The lower half used to
+     scroll away with the page, and the title row then closed a short card of
+     its own. Now it holds at the scroller's top — which is the head's own
+     foot — above the rows (z 3, as Settings' card), on a page whose own
+     scroller moves (Import) and on any other. Its shadow is the ground
+     (--color-bg, no blur): --s-3 deep, the page's gap to the list, and 8px
+     past each side, so the rows go out of sight that far under the card and
+     never show in its rounded corners; at rest it covers only ground. Only
+     the list pages' bands (.sap-page, whose gap is --s-3). */
+  .sap-page > .sap-band.ph-foot{position:sticky;top:0;z-index:3;
+    box-shadow:0 var(--s-3) 0 var(--color-bg),-8px var(--s-3) 0 var(--color-bg),8px var(--s-3) 0 var(--color-bg);}
   /* a page that names itself in its band: the band is the card, at the
      page's one top; its rows meet at the line, nothing between them */
   #content .view-enter.sap-page:has(> .sap-band.ph-card){padding-top:var(--page-pad-t);}
@@ -14745,6 +14751,18 @@
   .sap-page .sap-band:is(.ph-foot,.ph-card) > .reg-tabbar > .reg-views{margin-top:0;}
   .sap-page .sap-band .reg-views,.sap-page .sap-band.st-tabs{border-bottom:0;margin-bottom:0;}
   .sap-page .sap-band .reg-vtab{height:40px;}
+  /* THE TABS IN A HEAD ARE ONE CONTROL (19 Oct 2026, the head card's second
+     check; the picked drawings: r14 "All 7", r16 "Outstanding 11", r20 "Open
+     4", r21 "The book 24", r25 "Company 3"). The live tab is the theme's ink
+     at the strong weight — heavier than a resting tab, as drawn — whichever
+     builder drew it (the register's and the inspector's .reg-vtab, Our
+     paper's .st-tab, Settings' .st-face, Import's check tabs); its number is
+     a plain small figure after the word, no box, in its tab's own ink. Scoped
+     by the card, so the Contracts place on Home and a contract's own tab rows
+     keep theirs. The count's list names Our paper's own number rule, so the
+     whole list outranks it (an :is() weighs as its heaviest member). */
+  :is(.ph-card,.ph-foot) :is(.reg-vtab.on,.st-tab.on,.st-face[aria-selected="true"],.mig-ck-tab.is-on){color:var(--accent-ink);font-weight:var(--w-strong);}
+  :is(.ph-card,.ph-foot) :is(.reg-vtab .n,.st-tab .st-tab-n,.st-face .st-face-n,.paper-tabs .st-tab.on .st-tab-n){background:none;padding:0 0 0 2px;color:inherit;font-weight:var(--w-body);}
   /* OBLIGATIONS' BAND IS APPROVALS & SIGNING'S HEIGHT (owner, 9 Oct 2026:
      "needs to be the same height as" it): the tab row sits flush and each
      tab is Approvals' 38px. */

@@ -62,6 +62,14 @@ const KNOWN_RED = {
      checks were re-pointed to Home's paper line (round 6, "One line" — Notes
      beside Share; the row's verbs measured against that line's buttons), and
      it reads 93/93, also with four checks side by side. */
+  /* THE CENSUS IS NOT RE-RECORDED WITHOUT THE OWNER'S WORD (CLAUDE.md, THE
+     COLOUR CENSUS), so the head card's change waits here for it rather than
+     being saved over. Audited as a set difference, 19 Oct 2026: every moved
+     key was already in the record — counts only, no colour and no text size
+     new to it, nothing gone. Take it off the day the owner says re-save it
+     (node test/chromium/ink-wash-verify.js --save), or the day it is green. */
+  'ink-wash-verify.js':
+    'WAITING ON THE OWNER, 19 Oct 2026: the list pages\' head card (one white card under the bar; the tabs in one dress, the live tab in the theme\'s ink, the numbers unboxed) moves counts on three census screens, 7 of 170 checks: light Obligations has one more 13px element (the card itself); dark Obligations, Our paper and Settings move a hairline from one row to the next, gain the card\'s own edge, and draw the live tab in the theme\'s ink (already on the record). No colour or text size new to the record, nothing gone. Re-recorded only on the owner\'s word.',
   'their-edit-page-verify.js':
     'RED ON GITHUB ONLY, 10 Oct 2026: section 4 — typing after a save on THEIR seat — never holds on GitHub\'s runner (the words typed are gone each time); it passes every time locally, even at a 10x CPU throttle. The foot\'s Discard claims (2b, 3a2, 6a2) were re-pointed 11 Oct to the one-panel foot and pass. Logged in BUGLOG (a repaint may be taking a person\'s typing). Take it off when section 4 holds on GitHub.',
   /* NOT LISTED, deliberately: analytics-verify.js. It was two faults wearing

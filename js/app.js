@@ -826,7 +826,6 @@ function renderPageHeader(view){
              them. */}
       ${acts?`<div style="display:flex;align-items:center;gap:var(--s-2);flex:none;min-height:var(--ctl-h)">${acts}</div>`:''}
     </div></div>`;
-  phScrolledSync();
   /* The header is painted AFTER the view, so the register's first paint found
      no slot; ask the register to fill it now that the slot exists. */
   if(view==='register'&&typeof window.regPaintHeadFacts==='function'){ try{ regPaintHeadFacts(); }catch(_){} }
@@ -847,14 +846,6 @@ function syncViewHeight(){
   /* THE GUTTER THE SCROLLER KEEPS (scrollbar-gutter:stable), measured, so the
      head card outside it ends where the cards inside it do (.ph-card) */
   if(sc && root && root.style) root.style.setProperty('--sc-gutter', Math.max(0,(sc.offsetWidth||0)-(sc.clientWidth||0))+'px');
-}
-/* THE HEAD CLOSES ITS CARD WHEN ITS LOWER HALF HAS SCROLLED AWAY (19 Oct
-   2026): a page whose own scroller moves carries its band (.ph-foot) up
-   under the head; the head then draws its own foot. Same height either way. */
-function phScrolledSync(){
-  if(typeof document==='undefined') return;
-  const sc=document.getElementById('content-scroll'), ph=document.getElementById('page-head');
-  if(sc && ph && ph.classList) ph.classList.toggle('ph-scrolled', (sc.scrollTop||0) > 0);
 }
 /* Kept under its old name because the shell and several views call it. */
 function updateCommandBar(view){ renderPageHeader(view); }
@@ -1636,7 +1627,6 @@ if(typeof window!=='undefined'&&!window._placeWired&&typeof window.addEventListe
   document.addEventListener('visibilitychange',()=>{ if(document.hidden) placeSave(); });
   let _placeT=0;
   document.addEventListener('scroll',()=>{ clearTimeout(_placeT); _placeT=setTimeout(placeSave,PLACE_SAVE_WAIT); },{ capture:true, passive:true });
-  document.addEventListener('scroll',e=>{ if(e.target && e.target.id==='content-scroll') phScrolledSync(); },{ capture:true, passive:true });
 }
 /* ---------- HOW MANY ROWS FIT ON THE READER'S OWN SCREEN ----------
    (owner-reported 29 Aug 2026, off three screenshots: "pages are still not

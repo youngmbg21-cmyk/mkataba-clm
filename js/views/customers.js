@@ -872,7 +872,10 @@ const LC_CSS = `
   .cu-acts{display:flex;align-items:center;gap:var(--s-2);flex:none;min-height:var(--ctl-h);}
   /* the filters under the title row's hairline (.ph-top, the one line every head card draws), each word above its box */
   .sap-band > .cu-fb{padding:var(--s-3) 0;gap:var(--s-2) var(--s-3);}
-  .cu-find{display:flex;flex-direction:column;gap:4px;min-width:0;}
+  /* the find box's word stands on the line the other boxes' words do (19 Oct 2026, the head card's second
+     check: it stood 4px higher): built as the register's boxes are (cuChip) — the word inline on the label's
+     own line, the box straight under it — so the two can never part */
+  .cu-find{display:block;min-width:0;}
   .cu-find-l{font-size:var(--t-meta);color:var(--color-neutral-600);}
   .cu-find-box{display:flex;align-items:center;gap:6px;height:var(--ctl-h);min-width:200px;padding:0 var(--s-2);border:1px solid var(--chip-edge,var(--btn-edge));border-radius:var(--radius);background:var(--color-surface);color:var(--color-neutral-500);box-sizing:border-box;}
   .cu-find-box:focus-within{border-color:var(--color-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 25%,transparent);}

@@ -115,7 +115,9 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         const boxes = [...band.querySelectorAll('.cu-fb > *')].map(el => {
           const l = el.querySelector('.reg-f-l, .cu-find-l'), b = el.querySelector('.reg-f-v, .cu-find-box');
           const lr = l && l.getBoundingClientRect(), br = b && b.getBoundingClientRect();
-          return { label: l ? l.textContent.trim() : '', value: b ? b.textContent.trim() : '', above: !!(lr && br && lr.bottom <= br.top + 1 && lr.width > 0) };
+          /* where the word's ink starts (a Range, not the element's line box) */
+          const ink = (() => { if (!l) return null; const rg = document.createRange(); rg.selectNodeContents(l); const q = rg.getClientRects()[0]; return q ? Math.round(q.top * 2) / 2 : null; })();
+          return { label: l ? l.textContent.trim() : '', value: b ? b.textContent.trim() : '', above: !!(lr && br && lr.bottom <= br.top + 1 && lr.width > 0), ink };
         });
         const q = document.getElementById('cu-q');
         return { boxes, ph: q && q.getAttribute('placeholder'), title: (band.querySelector('.cu-t') || {}).textContent || '', sub: (band.querySelector('.cu-hs') || {}).textContent || '',
@@ -128,6 +130,9 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
           draft: !!band.querySelector('[data-cu-draft]') };
       });
       check('1a each box\'s word is above it: Party name · Status · Stream · Owner · NDA', !!B && JSON.stringify(B.boxes.map(b => b.label)) === JSON.stringify(['Party name', 'Status', 'Stream', 'Owner', 'NDA']) && B.boxes.every(b => b.above), JSON.stringify(B && B.boxes));
+      /* 19 Oct 2026 (the head card's second check): the five words stand on ONE
+         line, as drawn — "Party name" stood 4px above the other four */
+      check('1a2 and the five words stand on one line', !!B && B.boxes.length === 5 && B.boxes.every(b => b.ink != null && Math.abs(b.ink - B.boxes[0].ink) <= 1), JSON.stringify(B && B.boxes.map(b => `${b.label}@${b.ink}`)));
       check('1b the find box says "Name or city"; Status opens on Live; a hairline over the filters', !!B && B.ph === 'Name or city' && B.boxes[1] && B.boxes[1].value === 'Live' && B.hair === 'solid', JSON.stringify(B && { ph: B.ph, st: B.boxes[1], hair: B.hair }));
       check('1c the head: "Parties N" and "… on paper with live parties", and + Draft new agreement', !!B && /^Parties\s*\d+$/.test(B.title.trim()) && /on paper with live parties$/.test(B.sub.trim()) && B.draft, JSON.stringify(B && { t: B.title, s: B.sub }));
     });
@@ -249,7 +254,9 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       const D = await page.evaluate(() => {
         const band = document.querySelector('.dir-page .sap-band');
         const boxes = [...band.querySelectorAll('.cu-fb > *')].map(el => { const l = el.querySelector('.reg-f-l, .cu-find-l'), b = el.querySelector('.reg-f-v, .cu-find-box');
-          const lr = l && l.getBoundingClientRect(), br = b && b.getBoundingClientRect(); return { label: l ? l.textContent.trim() : '', above: !!(lr && br && lr.bottom <= br.top + 1) }; });
+          const lr = l && l.getBoundingClientRect(), br = b && b.getBoundingClientRect();
+          const ink = (() => { if (!l) return null; const rg = document.createRange(); rg.selectNodeContents(l); const q = rg.getClientRects()[0]; return q ? Math.round(q.top * 2) / 2 : null; })();
+          return { label: l ? l.textContent.trim() : '', above: !!(lr && br && lr.bottom <= br.top + 1), ink }; });
         return { boxes, ph: document.getElementById('dir-q').getAttribute('placeholder'), title: band.querySelector('.cu-t').textContent.trim(), sub: band.querySelector('.cu-hs').textContent.trim(),
           head: document.querySelector('.dir-card .ap-card-t').textContent.replace(/\s+/g, ' ').trim(),
           cols: [...document.querySelectorAll('.dir-table thead th')].map(t => t.textContent.trim()),
@@ -259,6 +266,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
           first: (document.querySelector('#dir-tbody [data-dir-row] .dir-name') || {}).textContent || '', bar: (document.getElementById('dk-page') || {}).textContent || '' };
       });
       check('6a the words above the boxes: Name, email or party · Side · Party · Role in HaTi · Stream; "Type to find"', JSON.stringify(D.boxes.map(b => b.label)) === JSON.stringify(['Name, email or party', 'Side', 'Party', 'Role in HaTi', 'Stream']) && D.boxes.every(b => b.above) && D.ph === 'Type to find', JSON.stringify(D.boxes));
+      check('6a2 and the five words stand on one line', D.boxes.length === 5 && D.boxes.every(b => b.ink != null && Math.abs(b.ink - D.boxes[0].ink) <= 1), JSON.stringify(D.boxes.map(b => `${b.label}@${b.ink}`)));
       check('6b the page is People: "People N", "<n> of ours · <n> at <n> parties"; no tabs, no A to Z', /^People\s*\d+$/.test(D.title) && /^\d+ of ours · \d+ at \d+ parties$/.test(D.sub) && D.tabs === 0, JSON.stringify({ t: D.title, s: D.sub, tabs: D.tabs, bar: D.bar }));
       check('6c the table as drawn: Name · Side · Party or company · Job title · In HaTi · Contracts · Email; "ours first, then theirs, by name"',
         JSON.stringify(D.cols) === JSON.stringify(['Name', 'Side', 'Party or company', 'Job title', 'In HaTi', 'Contracts', 'Email']) && /ours first, then theirs, by name$/.test(D.head) && /Amina Otieno/.test(D.first), JSON.stringify({ c: D.cols, h: D.head, f: D.first }));
