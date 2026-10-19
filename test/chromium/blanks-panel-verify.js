@@ -69,7 +69,12 @@ const typeInto = async (page, sel, value, ev) => {
   /* A box already answered sits in the "Show N filled" fold (Home's Overview
      tab, 11 Oct 2026): the reader opens the fold first, as a person would. */
   await page.evaluate(x => { const d = document.querySelector(x).closest('details');
-    if (d && !d.open) d.querySelector('summary').click(); }, sel);
+    if (d && !d.open) d.querySelector('summary').click();
+    /* RE-POINTED 18 Oct 2026 (the gaps, round 8 "Owed first", f751): on Fill in
+       the answered rows stand behind the face's own "Filled" fold — every one
+       of them now, the paper's questions too — so it is opened first */
+    const row = document.querySelector(x).closest('[data-pd-owed="0"]'), ff = document.querySelector('#pd-fillface .pd-ff');
+    if (row && ff && !ff.classList.contains('is-filled-open')) { const f = document.querySelector('#pd-fillface [data-pd-ff-fold]'); if (f) f.click(); } }, sel);
   await page.fill(sel, value);
   await page.dispatchEvent(sel, ev);
   await page.waitForTimeout(700);

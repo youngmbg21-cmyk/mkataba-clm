@@ -243,7 +243,8 @@ const word = (lines) => Buffer.from(mkDocx(lines.map(t => para(t)).join('')));
     const ro = await waitFor(p2, () => !!document.querySelector('#pd-fillface [data-pd-ff-stream]'), 10000);
     const r5 = await p2.evaluate(() => ({ may: typeof mayReFile === 'function' && mayReFile(), dis: [...document.querySelectorAll('#pd-fillface [data-pd-stream]')].every(b => b.disabled),
       why: (document.querySelector('#pd-fillface .pd-ff-ro') || {}).textContent || '' }));
-    check('5e a person who may not re-file sees the stream grey, with the reason', ro && !r5.may && r5.dis && /re-file/.test(r5.why), r5);
+    /* RE-POINTED 18 Oct 2026 (the gaps, round 8 "Owed first", f751): the reason as drawn, with the rule's own door */
+    check('5e a person who may not re-file sees the stream grey, with the reason', ro && !r5.may && r5.dis && /an admin’s act\. Ask an admin$/.test(r5.why.trim()), r5);
     await p2.screenshot({ path: path.join(OUT, '5-stream-read-only-1440x780.png') }).catch(() => {});
     await ctx2.close();
 

@@ -442,19 +442,26 @@ async function approvalDecideAsk(c, verdict){
     const why=await approvalRefuseWhy(); if(why==null) return false;
     return !!(await rejectApprovalStep(c, why));
   }
-  if(verdict!=='approved') return openSignApprovalRefuse(c, d.row.req.id);
-  /* An admin deciding in the approver's place says why — signApprovalDecide's
-     own rule, asked here rather than bounced. */
+  return signApprovalDecideAsk(c, d.row, verdict);
+}
+/* ONE NAMED PERSON'S YES, DECIDED: refused through its own window (the
+   reason required), approved at once — and an admin deciding in the
+   approver's place says why, signApprovalDecide's own rule asked here rather
+   than bounced. The lists' door above and Before you sign's road
+   (pdRoadPress) both press it, for the request they name. */
+async function signApprovalDecideAsk(c, row, verdict){
+  if(!c||!row||!row.req) return false;
+  if(verdict!=='approved') return openSignApprovalRefuse(c, row.req.id);
   let note='';
-  if(d.row.as==='admin'){
+  if(row.as==='admin'){
     if(typeof window.promptDialog!=='function') return false;
     const v=await window.promptDialog({ title:i18t('sa_card_approve'), label:i18t('sa_card_note_admin'), multiline:true,
       confirmLabel:i18t('sa_card_approve') });
     if(v==null) return false;
     note=String(v).trim();
-    if(!note){ toast(i18t('sa_admin_needs_why',{who:d.row.req.approverName||i18t('sa_admins')}),'warn'); return false; }
+    if(!note){ toast(i18t('sa_admin_needs_why',{who:row.req.approverName||i18t('sa_admins')}),'warn'); return false; }
   }
-  return signApprovalDecide(c, d.row.req.id, 'approved', note);
+  return signApprovalDecide(c, row.req.id, 'approved', note);
 }
 /* THE WAY OUT OF A REFUSAL.
 
@@ -2471,7 +2478,7 @@ Object.assign(window,{AP_UNDO_MS,approvalUndoable,approvalUndo,approvalRulesClea
   signApprovalDecidable,signApprovalWaitsOn,SA_PAPER_KEYS,signApprovalPaperHolds,signApprovalRequestable,signApprovalRound,
   saFmtDay,saWhen,saShowsLine,signApprovalNotify,saNoticeOf,saDeliveryWords,signApprovalRequest,signApprovalDecide,
   signApprovalWithdraw,signApprovalRemind,saRepaint,signApprovalRows,signApprovalBlockLabel,signApprovalSettledRows,
-  signApprovalHoldsLinks,openSignApprovalDialog,openSignApprovalRefuse,signApprovalAskCardHtml,wireSignApprovalCard});
+  signApprovalHoldsLinks,openSignApprovalDialog,openSignApprovalRefuse,signApprovalDecideAsk,signApprovalAskCardHtml,wireSignApprovalCard});
 
 /* ============================================================
    HOW MUCH MAY THIS PERSON SIGN FOR

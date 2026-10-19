@@ -103,7 +103,10 @@ const DOC = ['POWER PURCHASE AGREEMENT', '', '1. Supply', '', 'The Seller delive
 
     /* 5 the paper and the screens */
     const at1 = await sheetAt();
-    check('5a the paper does not move', at0 != null && at1 === at0, `${at0} → ${at1}`);
+    /* RE-POINTED (the gaps' third pass, 18 Oct 2026; round 10 as drawn: "the page arrows and size sit in
+       the head card, so nothing is added above the paper … the signing copy starts a little higher than
+       today, never lower"): it moves only up, by the zoom row's room */
+    check('5a the paper moves only up — nothing above the signing copy', at0 != null && at1 != null && at1 <= at0 && at0 - at1 <= 40, `${at0} → ${at1}`);
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(400);
       const S = await page.evaluate(() => { const f = document.getElementById('pd-signface'), hd = f && f.querySelector('.pd-sf-h'), st = f && f.querySelector('[data-pd-road-stop]');

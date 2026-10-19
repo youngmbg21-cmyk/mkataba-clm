@@ -62,7 +62,8 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await page.evaluate(id => igAnalyze(id), id);
     const docUp = await until(page, () => !!document.querySelector('#ig-paper .paper-zc .rl-type-step') && !!document.querySelector('#ig-paper .ig-zoom'));
     ok('1a Home\'s Document carries the zoom, on the paper', docUp);
-    ok('1a2 and none on the strip', await page.evaluate(() => !document.querySelector('#ig-strip .rl-type-step')));
+    /* RE-POINTED (the gaps' third pass, 18 Oct 2026): the line holds Fill in's own twin, shown only beside Fill in */
+    ok('1a2 and none showing on the strip', await page.evaluate(() => [...document.querySelectorAll('#ig-strip .rl-type-step')].every(e => !e.getClientRects().length)));
     const d0 = await READ('#ig-paper .ig-zoom');
     ok('1b it reads "− 100% +", and no A⁻ / A⁺ is drawn', d0.ctl === '− 100% +' && !d0.textSize, d0.ctl);
     ok('1c no words-moved count on Home\'s Document', !d0.moved);
@@ -131,20 +132,24 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
        the A4 pages are scaled whole and never re-break). "The tab row" is
        Home's paper line (#ig-strip). */
     await page.evaluate(id => roomGoTab(getContract(id), 'sign'), id);
-    const sgUp = await until(page, () => !!document.querySelector('#pd-signface') && !!document.querySelector('#ig-paper .paper-zc [data-sc-zoom]') && !!document.querySelector('#ig-paper .pg-sheet.pg-sign'), null, 10000);
-    ok('4a the signing copy (Before you sign, Home) carries the zoom, on the paper', sgUp);
-    ok('4a2 and none on the paper\'s line', await page.evaluate(() => !document.querySelector('#ig-strip .rl-type-step, #ig-strip [data-sc-zoom]')));
+    /* RE-POINTED (the gaps of round 10 "The road", 18 Oct 2026; the third pass: "the page arrows and size
+       sit in the head card, so nothing is added above the paper … the signing copy starts a little higher
+       than today, never lower"): the signing copy's "− N% +" stands on the paper's line (igSignCopyHtml),
+       and no row stands above the sheet */
+    const sgUp = await until(page, () => !!document.querySelector('#pd-signface') && !!document.querySelector('#ig-strip [data-ig-sc] [data-sc-zoom]') && !!document.querySelector('#ig-paper .pg-sheet.pg-sign'), null, 10000);
+    ok('4a the signing copy (Before you sign, Home) carries the zoom, on the paper\'s line', sgUp);
+    ok('4a2 and nothing above the paper', await page.evaluate(() => !document.querySelector('#ig-paper .paper-zc, #ig-paper-scroll > .paper-zc-row')));
     if (sgUp) {
       const s0 = await page.evaluate(() => {
-        const st = document.querySelector('#ig-paper .paper-zc [data-sc-zoom]').closest('.sc-step');
-        const z = document.querySelector('#ig-paper .paper-zc').getBoundingClientRect();
+        const st = document.querySelector('#ig-strip [data-ig-sc] [data-sc-zoom]').closest('.sc-step');
+        const z = document.querySelector('#ig-strip [data-ig-sc]').getBoundingClientRect();
         const sh = document.querySelector('#ig-paper .pg-sheet.pg-sign').getBoundingClientRect();
         return { ctl: st.textContent.replace(/\s+/g, ' ').trim(), zb: Math.round(z.bottom), st: Math.round(sh.top), w: Math.round(sh.width),
           textSize: /A⁻|A⁺/.test(document.body.innerText), moved: !!document.querySelector('#ig-paper .rl-moved') };
       });
       ok('4b it reads "− N% +", no A⁻ / A⁺, no words-moved count', /^− \d+% \+$/.test(s0.ctl) && !s0.textSize && !s0.moved, s0.ctl);
-      ok('4c it stands in the grey above the sheet', s0.zb <= s0.st, JSON.stringify({ zb: s0.zb, st: s0.st }));
-      await page.click('#ig-paper .paper-zc [data-sc-zoom="1"]');
+      ok('4c it stands on the line, above the sheet', s0.zb <= s0.st, JSON.stringify({ zb: s0.zb, st: s0.st }));
+      await page.click('#ig-strip [data-ig-sc] [data-sc-zoom="1"]');
       /* "larger" is at least 1% (a step is 9-10%): the sheet's rendered width
          wobbles by under a pixel as Home's paper repaints, which is not a
          page turned larger */
@@ -190,9 +195,14 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await page.evaluate(id => roomGoTab(getContract(id), 'sign'), id);
     await until(page, () => !!document.querySelector('#pd-signface') && !!document.querySelector('#ig-paper .pg-sheet.pg-sign'), null, 10000);
     await page.waitForTimeout(1500); placed.signing = await PLACE();
-    for (const [k, v] of Object.entries(placed))
+    /* RE-POINTED (the gaps' third pass, rounds 8 and 10 as drawn): beside Fill in ("details") and Before
+       you sign ("signing") the size stands on the paper's line and nothing above the sheet — PLACE finds
+       no grey zoom there; Home's Document and Negotiate keep it in the grey */
+    for (const [k, v] of Object.entries(placed)){
+      if (k === 'details' || k === 'signing') { ok(`6 ${k}: no zoom in the grey above the sheet — its size is on the paper's line`, v === null, JSON.stringify(v)); continue; }
       ok(`6 ${k}: the zoom stands 6px inside the grey above the sheet, clear of it, 16px in from the grey area's right edge`,
         !!v && v.top >= 4 && v.top <= 8 && v.clear >= 4 && Math.abs(v.right) <= 2, JSON.stringify(v));
+    }
     /* 6f THE CONTROL STANDS STILL (owner, 15 Oct 2026: "have the zoom button
        stay in the same location as you press to expand as opposed to chasing
        the button"): on Home's paper, two presses of + widen the sheet and the

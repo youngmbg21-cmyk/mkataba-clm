@@ -8855,6 +8855,58 @@
   .na-seg-b.is-new{ color:var(--accent-ink); }
   .na-lock{ width:12px; height:12px; }
   .na-need{ font-size:var(--t-label); color:var(--st-amber-fg); font-weight:var(--w-label); }
+  /* ONE SHEET AS DRAWN (the gaps, 18 Oct 2026): "New agreement · not created yet" with the reason beside
+     Create and Cancel; the three things read as boxes, "What it is for" among them; the three closest as
+     cards with a radio and their shelf's facts, the search and Legal on the step's own line; what is needed
+     now said beside the questions; the cost of reading on the stream's row */
+  .na-not-yet{ font-family:var(--font-body); font-size:var(--t-body); font-weight:400; color:var(--color-neutral-600); margin-left:6px; }
+  .dlg-pg-body .na-one > .na-head{ display:none; }
+  .na-why{ font-size:var(--t-label); color:var(--st-amber-fg); font-weight:var(--w-label); white-space:nowrap; }
+  .na-why:empty{ display:none; }
+  .na-one .na-words{ gap:10px; }
+  .na-one .na-w-h{ padding-bottom:10px; border-bottom:1px solid var(--color-divider); }
+  .na-one .na-w-read{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)) auto; gap:10px; align-items:stretch; }
+  .na-one .na-w-c{ border:1px solid var(--rule-strong); border-radius:var(--radius); padding:8px 12px; background:var(--color-surface); justify-content:center; }
+  .na-one .na-w-c.is-owed{ background:var(--st-amber-bg); border-color:var(--st-amber-line); }
+  .na-one .na-w-c.is-owed span{ color:var(--st-amber-fg); }
+  .na-one .na-w-c b i.is-said{ font-style:normal; font-weight:var(--w-strong); color:var(--color-text); }
+  .na-one .na-w-ai{ align-self:center; margin-left:0; }
+  .na-one .na-step .na-one-more{ margin-left:auto; padding-top:0; }
+  .na-closest .na-pick.na-close{ grid-template-columns:auto minmax(0,max-content) minmax(0,1fr); column-gap:10px; row-gap:2px; border-left-width:1px; padding:10px 12px; border-radius:var(--radius); }
+  .na-closest .na-pick.na-close .na-pick-m{ grid-column:2 / -1; font-family:var(--font-body); font-size:var(--t-label); }
+  .na-close .na-radio{ width:16px; height:16px; border-radius:50%; border:1.5px solid var(--rule-strong); background:var(--color-surface); flex:none; box-sizing:border-box; }
+  .na-close.on .na-radio{ border-color:var(--accent-solid); background:var(--accent-solid); box-shadow:inset 0 0 0 3px var(--color-surface); }
+  .na-one .na-card-h h3{ flex:none; }
+  .na-one .na-card-sub{ flex:1; text-align:left; max-width:none; }
+  .na-from-words{ color:var(--accent-ink); font-weight:var(--w-label); margin-left:4px; }
+  .na-people-sub{ font-weight:400; }
+  .na-file-cost{ margin-left:auto; text-align:right; }
+  [data-dlg-page] .dlg-pg-title[tabindex="-1"]:focus{ outline:none; box-shadow:none; }
+  /* THE SHEET AS DRAWN (the gaps, round 4, 18 Oct 2026): step 2 in three columns with
+     nothing alone on a row; step 3 one row — the streams, "Needed before Create", the cost */
+  .na-one .na-card-b .field-grid.na-three > label:first-child{ grid-column:auto; }
+  .na-one .na-file-b{ flex-wrap:nowrap; align-items:center; }
+  .na-one .na-file-b .na-seg{ flex:0 1 auto; min-width:0; max-width:calc(100% - 440px); }
+  .na-one #na-form #wz-err:empty{ display:none; }
+  .na-one .na-card-b .na-people{ margin-top:0; padding-top:10px; }
+  .na-one .na-file-b .na-need{ flex:none; white-space:nowrap; }
+  .na-one .na-file-b .na-file-cost{ flex:1 1 220px; min-width:0; }
+  #ig-dock .pd-head-word{ margin-left:10px; font-size:var(--t-label); font-weight:var(--w-label); color:var(--color-text); white-space:nowrap; }
+  /* AS DRAWN, SEPARATE BUTTONS (the gaps, round 4, the second check, 18 Oct 2026): the streams are
+     one row of buttons, each its own edge, wrapping as whole buttons — never one box whose segments
+     break across lines with dividers hanging at a line's end */
+  .na-one .na-file-b .na-seg{ border:0; border-radius:0; overflow:visible; gap:6px; }
+  .na-one .na-file-b .na-seg-b{ border:1px solid var(--rule-strong); border-radius:var(--radius); }
+  .na-one .na-file-b .na-seg-b:last-child{ border-right:1px solid var(--rule-strong); }
+  .na-one .na-file-b .na-seg-b[aria-pressed="true"]{ border-color:var(--accent-solid); }
+  /* an empty owed choice is amber, as every owed box is (needAttrs), until a stream is pressed:
+     each button its amber wash and amber edge */
+  .na-file-b:has(> .na-need:not([hidden])) .na-seg-b:not(.is-new){ background:var(--need-bg); border-color:var(--st-amber-line); }
+  @media (max-width:1100px){ .na-one .na-w-read{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  /* while the sheet is up, Jambo's line about it needs no doors back to it */
+  body:has(#na-root.na-one) #ig-dock .ca-dr-said .ca-acts{ display:none; }
+  /* and his panel is the conversation about it, as drawn: the wall's greeting, drop area and next steps stand down */
+  body:has(#na-root.na-one) #ig-dock :is(.pd-hello, #pd-drop, [data-ig-chips]){ display:none; }
   @media (max-width:900px){ .na-closest{ grid-template-columns:minmax(0,1fr); } }
   .tpl-bar{ display:block; width:100%; border:0; background:none; text-align:left; font:inherit;
     color:inherit; cursor:pointer; padding:0; margin-bottom:6px; font-size:var(--t-label); }
@@ -9460,6 +9512,31 @@
   #ig-strip .ig-line-st .room-stat{font-size:var(--t-meta);font-weight:var(--w-label);padding:1px 9px 1px 7px}
   .ig-line-cn{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:10px;border:1px dashed var(--rule-strong);color:var(--color-neutral-600);font-size:var(--t-meta);white-space:nowrap;flex:none}
   .ig-line-faces{display:inline-flex;align-items:center;flex:none}
+  /* THE SIGNING COPY ON THE LINE (the gaps, round 10 "The road"): its word as a
+     quiet pill, then its page arrows and its size, the room's steppers in the
+     line's small height — nothing above the paper */
+  #ig-strip .ig-sc{display:inline-flex;align-items:center;gap:var(--s-2);flex:none}
+  /* FILL IN'S SIZE ON THE LINE (the gaps, round 8, the second check): the one zoom's control on the
+     paper's line while Fill in is open, and no row above the sheet then — the face's host is the switch */
+  /* THE NAME STAYS WHOLE BESIDE THE SIGNING COPY (the gaps, round 10, the second check: at
+     1366×950 the name and party were cut by its page arrows and size): on a line too short for
+     all of it, Notes and Share say their word in their hover only — the name is never cut first */
+  #ig-strip{container:igline / inline-size}
+  @container igline (max-width: 1000px){
+    #ig-strip .ig-sc ~ .ig-acts :is(.ig-notes-w, .ig-share-w){display:none}
+  }
+  #ig-strip .ig-zc-line{display:none;flex:none}
+  #ig-page:has(#pd-fillface) #ig-strip .ig-zc-line{display:inline-flex;align-items:center}
+  #ig-page:has(#pd-fillface) #ig-paper-scroll > .paper-zc-row{display:none}
+  #ig-strip .ig-zc-line .rl-type-step{height:var(--ctl-h-sm)}
+  #ig-strip .ig-zc-line .rl-type-step button{width:22px;height:22px;font-size:var(--t-body)}
+  #ig-strip .ig-sc-word{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;background:var(--st-green-bg);color:var(--st-green-fg);font-size:var(--t-meta);font-weight:var(--w-label);white-space:nowrap}
+  #ig-strip .ig-sc .sc-step{display:inline-flex;align-items:center;gap:2px;flex:none;height:var(--ctl-h-sm);box-sizing:border-box;padding:0 2px;border:1px solid var(--btn-edge);border-radius:var(--radius);background:var(--color-surface)}
+  #ig-strip .ig-sc .sc-step:first-of-type{border-color:transparent;background:transparent}
+  #ig-strip .ig-sc .sc-step button{width:22px;height:22px;display:inline-grid;place-items:center;padding:0;border:0;background:none;border-radius:var(--radius);color:var(--color-neutral-600);font:inherit;font-size:var(--t-body);cursor:pointer}
+  #ig-strip .ig-sc .sc-step button:hover:not(:disabled){background:var(--nav-well);color:var(--color-text)}
+  #ig-strip .ig-sc .sc-step button:disabled{opacity:.4;cursor:default}
+  #ig-strip .ig-sc .sc-step>span{min-width:3.2em;text-align:center;font-size:var(--t-label);color:var(--color-text);font-variant-numeric:tabular-nums;white-space:nowrap;padding:0 3px}
   #ig-strip .ig-line-faces .pz-row{margin-left:0}
   #ig-strip .ig-line-faces .pz-face{width:24px;height:24px;font-size:10px;border-width:2px;margin-left:-5px}
   #ig-strip .ig-line-faces .pz-face:first-child{margin-left:0}
@@ -9564,8 +9641,68 @@
   #pd-fillface .pd-ff-fold small{flex:1;min-width:0;font-size:12px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #pd-fillface .pd-ff-fold i{font-style:normal;color:var(--color-neutral-600)}
   #pd-fillface .pd-ff-fold:focus-visible{outline:2px solid var(--accent-fill);outline-offset:2px;border-radius:var(--radius)}
+  /* OWED FIRST, AS DRAWN (the gaps, 18 Oct 2026): each part a card — "Still to fill" holds its rows between
+     its heading and its edge, then "Filled", the document (its count and Fill the document) and the stream;
+     under an owed box what Our standards says, with Use it; at a row's head where it lands on the paper */
+  #pd-fillface .pd-ff.pd-ff-work{gap:0}
+  #pd-fillface .pd-ff-work > .pd-ff-owh{margin-top:12px;padding:10px 12px;border:1px solid var(--color-divider);border-radius:var(--radius-lg) var(--radius-lg) 0 0}
+  #pd-fillface .pd-ff-work :is(#det-basics, #pd-fill) [data-pd-owed]{position:relative;padding:8px 12px 4px;border:solid var(--color-divider);border-width:0 1px;background:var(--color-surface)}
+  #pd-fillface .pd-ff-work #det-basics .det-card-h{padding:0 12px;border:solid var(--color-divider);border-width:0 1px;margin:0}
+  #pd-fillface .pd-ff-work > .pd-ff-owend{order:2;height:10px;border:1px solid var(--color-divider);border-top:0;border-radius:0 0 var(--radius-lg) var(--radius-lg)}
+  #pd-fillface .pd-ff-work > .pd-ff-fdh{margin-top:12px;padding:10px 12px;border:1px solid var(--color-divider);border-radius:var(--radius-lg)}
+  #pd-fillface .pd-ff-work.is-filled-open > .pd-ff-fdh{border-radius:var(--radius-lg) var(--radius-lg) 0 0}
+  #pd-fillface .pd-ff-work > .pd-ff-fdend{order:5;height:10px;border:1px solid var(--color-divider);border-top:0;border-radius:0 0 var(--radius-lg) var(--radius-lg)}
+  #pd-fillface .pd-ff-work > :is(.pd-ff-owend, .pd-ff-fdend)[hidden]{display:none}
+  #pd-fillface .pd-ff-work > .pd-ff-doc{margin-top:12px;padding:10px 12px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:center}
+  #pd-fillface .pd-ff-doc-t{display:flex;flex-direction:column;gap:2px;min-width:0}
+  #pd-fillface .pd-ff-work #pd-fill [data-tplf-fill]{display:none}
+  #pd-fillface .pd-ff-work > .pd-ff-stream{margin-top:12px;padding:10px 12px;border:1px solid var(--color-divider);border-radius:var(--radius-lg)}
+  #pd-fillface .pd-ff-at{position:absolute;right:12px;top:8px;border:0;background:none;padding:0;font:inherit;font-size:12px;color:var(--accent-ink);cursor:pointer;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
+  #pd-fillface .pd-ff-at .pd-ff-on{display:none}
+  #pd-fillface [data-pd-owed]:focus-within > .pd-ff-at .pd-ff-on{display:inline}
+  #pd-fillface .has-at > :is(.cd-lab, span:first-of-type){padding-right:150px}
+  #pd-fillface .pd-ff-std{display:flex;align-items:center;gap:6px;margin:6px 0 2px;font-size:12px;line-height:1.4;color:var(--color-neutral-700)}
+  #pd-fillface .pd-ff-std svg{flex:none;color:var(--color-neutral-600)}
+  #pd-fillface .pd-ff-use{border:0;background:none;padding:0;font:inherit;font-size:12px;color:var(--accent-ink);cursor:pointer;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
+  #pd-fillface .pd-ff-asked{color:var(--color-neutral-700)}
   .det-nda-read{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;font-size:var(--t-body)}
   .det-nda-sug{font-size:12px;color:var(--color-neutral-600)}
+  /* AN NDA'S FACT AS DRAWN (the gaps, round 8): the reading in a box, the line under it, where it was read */
+  .det-nda-box{display:block;margin-top:2px;padding:6px 10px;border:1px solid var(--rule-strong);border-radius:var(--radius);background:var(--color-surface);color:var(--color-text)}
+  .det-nda-box i{font-style:normal;color:var(--color-neutral-600)}
+  .det-nda-line{display:block;margin-top:4px;font-size:12px;line-height:1.45;color:var(--color-neutral-600)}
+  .det-nda-tail{white-space:nowrap}
+  .det-nda-at{float:right;font-size:12px;color:var(--color-neutral-600)}
+  #pd-fillface .det-nda-at{float:none;position:absolute;right:12px;top:8px}
+  /* FILL IN AS DRAWN, ROUND 8'S GAPS: no "Fill from document" over the owed rows (an AI press with
+     no cost said, not in the drawing — the Overview keeps that door); an NDA's facts and pay each in
+     a card of their own between "Still to fill" and "Filled"; a private stream says so; Jambo waits */
+  #pd-fillface .pd-ff-work #det-basics .det-card-h{display:none}
+  #pd-fillface .pd-ff-work > .pd-ff-ndh{order:3;display:flex;align-items:center;gap:8px;margin-top:12px;padding:10px 12px;border:1px solid var(--color-divider);border-radius:var(--radius-lg) var(--radius-lg) 0 0}
+  #pd-fillface .pd-ff-work > .pd-ff-ndh h4{margin:0;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)}
+  #pd-fillface .pd-ff-work #det-basics .cd-fld[data-pd-ff-card="nda"]{order:3;display:block}
+  #pd-fillface .pd-ff-work > .pd-ff-ndend{order:3;height:10px;border:1px solid var(--color-divider);border-top:0;border-radius:0 0 var(--radius-lg) var(--radius-lg)}
+  #pd-fillface .pd-ff-work > :is(.pd-ff-ndh, .pd-ff-pay, .pd-ff-wait):empty, #pd-fillface .pd-ff-work > .pd-ff-ndend[hidden]{display:none}
+  #pd-fillface .pd-ff-work > .pd-ff-pay{order:3;margin-top:12px;padding:10px 12px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+  #pd-fillface .pd-ff-card-h{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+  #pd-fillface .pd-ff-card-h h4{margin:0;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)}
+  #pd-fillface .pd-ff-note{font-size:12px;color:var(--color-neutral-600)}
+  #pd-fillface .pd-ff-pay-t{width:100%;border-collapse:collapse;font-size:12px}
+  #pd-fillface .pd-ff-pay-t th{text-align:left;font-weight:var(--w-label);color:var(--color-neutral-600);padding:4px 6px 4px 0;border-bottom:1px solid var(--color-divider)}
+  #pd-fillface .pd-ff-pay-t td{padding:5px 6px 5px 0;border-bottom:1px solid var(--color-divider);color:var(--color-text);vertical-align:top}
+  #pd-fillface .pd-ff-pay-t b{font-weight:var(--w-strong)}
+  #pd-fillface .pd-ff-pay-t :is(th, td):is(:first-child, :nth-child(2)){white-space:nowrap}
+  #pd-fillface .pd-ff-owe{color:var(--st-amber-fg)}
+  #pd-fillface .pd-ff-priv{display:block;font-size:12px;color:var(--color-neutral-600)}
+  #pd-fillface .pd-ff-lock{display:inline-flex;align-items:center;gap:4px;margin-right:4px;padding:0 7px;border-radius:999px;background:var(--st-gray-bg);color:var(--st-gray-fg);font-weight:var(--w-label)}
+  #pd-fillface .pd-ff-work > .pd-ff-wait{order:3;margin-top:10px;padding:0 2px;font-size:12px;line-height:1.45;color:var(--color-neutral-600)}
+  #pd-fillface .pd-ff-wait-t{margin:0;display:flex;gap:8px;align-items:flex-start}
+  #pd-fillface .pd-ff-wait-face{flex:none;margin-top:1px}
+  #pd-fillface .pd-ff-pay-t .pd-pill{white-space:normal;height:auto;min-height:22px;padding:2px 9px;line-height:1.35}
+  #pd-fillface .pd-ff-cost{color:var(--color-neutral-600)}
+  /* THE PAPER BESIDE FILL IN: an owed blank amber, an answer not yet in the wording underlined (pdFillPaperMarks) */
+  #ig-canvas .hati-field.pd-ff-owe-mark:not(.is-fieldlit){background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  #ig-canvas .pd-ff-pend{text-decoration:underline dotted var(--accent-ink);text-decoration-thickness:1.5px;text-underline-offset:3px}
   /* THE WALL'S GREETING AND DROP AREA, AND A CONTRACT AT A GLANCE (steps 4 and 5): at the top of Jambo's tab on Home's Document face */
   #ig-dock .pd-wall{display:flex;flex-direction:column;gap:12px}
   #ig-dock .pd-drop{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:22px 16px;border:1px dashed var(--accent-fill);border-radius:var(--radius-lg);background:color-mix(in srgb, var(--accent-fill) 6%, var(--color-surface));color:var(--color-text);font-size:12.5px;transition:background var(--dur-1)}
@@ -9673,6 +9810,10 @@
      goes on; hops when it is done. Still for a reader who asked for less
      motion: the faces and the words still change. */
   #ig-dock.jb-perched [data-ig-chips]{position:relative;padding-right:60px;min-height:46px;align-content:flex-end}
+  /* FILL IN AND BEFORE YOU SIGN DRAW NO CHIPS (the gaps, rounds 8 and 10): the empty row keeps
+     its room, so Jambo perches in empty space at the panel's bottom right and covers nothing of
+     the face above him, at any scroll (the second check, 18 Oct 2026: he sat over the cards) */
+  #ig-dock.jb-perched:has(#pd-fillface, #pd-signface) [data-ig-chips]:not(:has(button)){min-height:44px;padding-top:0;padding-bottom:0}
   #ig-dock.jb-perched-ask #igd-feed{padding-bottom:48px}
   #ig-dock .jb-perch{position:absolute;right:14px;bottom:6px;z-index:2;display:flex;flex-direction:column;align-items:flex-end;pointer-events:none}
   #ig-dock.jb-perched-ask .jb-perch{bottom:100%;margin-bottom:-2px}
@@ -9762,8 +9903,8 @@
   #pd-signface .pd-sf.is-road > .pd-sf-body.sign-one{flex:none;overflow:visible;min-height:auto;margin:0 0 4px 30px;border-left:2px solid var(--st-amber-line)}
   #pd-signface .pd-sf.is-road > .pd-sf-foot{position:static;margin:0 0 4px 30px;border-top:0}
   #pd-signface .pd-road-w{display:contents}
-  #pd-signface .pd-road-stop{display:flex;gap:10px;align-items:flex-start;padding:10px 14px 8px;position:relative}
-  #pd-signface .pd-road-stop::before{content:"";position:absolute;left:24px;top:30px;bottom:-8px;width:2px;background:var(--color-divider)}
+  #pd-signface .pd-road-stop{display:flex;gap:10px;align-items:flex-start;padding:7px 14px 5px;position:relative}
+  #pd-signface .pd-road-stop::before{content:"";position:absolute;left:24px;top:27px;bottom:-7px;width:2px;background:var(--color-divider)}
   #pd-signface .pd-road-stop.is-last::before{display:none}
   #pd-signface .pd-road-stop.is-done::before{background:var(--st-green-line)}
   #pd-signface .pd-road-dot{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:11px;font-weight:var(--w-strong);background:var(--color-surface);border:2px solid var(--color-divider);color:var(--color-neutral-600);position:relative;z-index:1}
@@ -9774,6 +9915,32 @@
   #pd-signface .pd-road-stop.is-later .pd-road-t b{font-weight:var(--w-label);color:var(--color-neutral-700)}
   #pd-signface .pd-road-t small{font-size:12px;color:var(--color-neutral-600);line-height:1.45}
   #pd-signface .pd-sf-foot #sign-wrap > p{margin-bottom:0}
+  /* THE ROAD AS DRAWN (the gaps, 18 Oct 2026): a named person's yes is framed at its own stop — where the
+     approval stands, Jambo's line where the stand-in rule applies, what it covers, and its own acts; the
+     checks fold behind "Show" while the yes is the work; the foot says who signs can change until the first signature */
+  #pd-signface .pd-road-stop.is-framed .pd-road-dot{background:var(--st-amber-bg);border-color:var(--st-amber-line);color:var(--st-amber-fg)}
+  #pd-signface .pd-road-stop.is-framed .pd-road-t{flex:1}
+  #pd-signface .pd-rd-card{margin:4px 0 1px;padding:8px 10px;border:1px solid var(--accent-ink);border-radius:var(--radius-lg);background:var(--color-surface);display:flex;flex-direction:column;gap:6px}
+  #pd-signface .pd-rd-states{display:flex;flex-wrap:wrap;align-items:center;gap:3px 4px;font-size:11px}
+  #pd-signface .pd-rd-states > i{font-style:normal;color:var(--color-neutral-500)}
+  #pd-signface .pd-rd-st{padding:0 7px;border:1px solid var(--color-divider);border-radius:999px;color:var(--color-neutral-600);line-height:17px;white-space:nowrap}
+  #pd-signface .pd-rd-st.is-past{color:var(--color-neutral-700)}
+  #pd-signface .pd-rd-st.is-cur{background:var(--st-amber-bg);border-color:var(--st-amber-line);color:var(--st-amber-fg);font-weight:var(--w-label)}
+  #pd-signface .pd-rd-st.is-ok{background:var(--st-green-bg);border-color:var(--st-green-line);color:var(--st-green-fg);font-weight:var(--w-label)}
+  #pd-signface .pd-rd-st.is-bad{background:var(--st-ruby-bg);border-color:var(--st-ruby-line);color:var(--st-ruby-fg);font-weight:var(--w-label)}
+  #pd-signface .pd-rd-jline{display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border-radius:var(--radius);background:var(--color-bg);font-size:var(--t-meta);line-height:1.45;color:var(--color-text)}
+  #pd-signface .pd-rd-jline .pd-rd-face{flex:none;margin-top:1px}
+
+  #pd-signface .pd-rd-facts, #pd-signface .pd-rd-note{margin:0;font-size:12px;line-height:1.5;color:var(--color-neutral-600);font-weight:var(--w-body)}
+  #pd-signface .pd-rd-note{color:var(--color-neutral-700)}
+  #pd-signface .pd-rd-acts{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+  #pd-signface .pd-rd-lk{border:0;background:none;padding:0;font:inherit;font-size:var(--t-body);color:var(--accent-ink);cursor:pointer;text-decoration:none}
+  #pd-signface .pd-rd-lk:hover{text-decoration:underline;text-underline-offset:2px}
+  #pd-signface .pd-road-t small .pd-rd-lk{font-size:12px}
+  #pd-signface .pd-rd-mv{margin:0;padding:0 0 0 14px;font-size:12px;line-height:1.5;color:var(--color-neutral-700)}
+  #pd-signface .pd-rd-mv b{font-weight:var(--w-strong);color:var(--color-text)}
+  #pd-signface .pd-rd-foot{display:flex;align-items:center;gap:10px;margin:4px 14px 8px;padding-top:8px;border-top:1px solid var(--color-divider);font-size:var(--t-body);color:var(--color-neutral-700)}
+  #pd-signface .pd-rd-foot > span{flex:1;min-width:0}
   #pd-body .pd-ob.is-chosen{box-shadow:inset 3px 0 0 var(--accent-ink);background:var(--color-accent-50)}
   /* AMEND, BESIDE THE PAPER (owner, 15 Oct 2026): the face wears the Before you sign frame; the paper's marks are painted, never stored */
   #pd-amendface .pd-am-sub{margin:4px 0 0;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.45}

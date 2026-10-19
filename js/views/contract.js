@@ -9859,8 +9859,10 @@ function detailsOf(c){
      writer ndaSet); their one door is ndaEditOpen */
   if(typeof ndaIs === 'function' && ndaIs(c)){
     const rec = (typeof ndaClean === 'function') ? ndaClean(c.nda) : null;
-    add(recSec, 'ndaDir', i18t('det_f_nda_dir'), !(rec && rec.dir), 'nda');
-    add(recSec, 'ndaEnds', i18t('det_f_nda_ends'), !(rec && (rec.ends || rec.forGood)), 'nda');
+    /* ONE FACT, ONE NAME (the gaps, round 8, 18 Oct 2026): the NDA's own editor's
+       words, "Who keeps it secret" · "Secret until" (det_f_nda_dir/_ends inert) */
+    add(recSec, 'ndaDir', i18t('nda_f_dir'), !(rec && rec.dir), 'nda');
+    add(recSec, 'ndaEnds', i18t('nda_f_ends'), !(rec && (rec.ends || rec.forGood)), 'nda');
   }
   const asked = new Set(DET_RECORD_KEYS);
   if(c.templateForm && Array.isArray(c.templateForm.fields)){
@@ -10158,11 +10160,26 @@ function detNdaRows(c, d, box, may){
   let N = null; try{ N = (typeof ndaOf === 'function') ? ndaOf(c) : null; }catch(_){ N = null; }
   const dirW = N && N.dir ? i18t('nda_dir_' + N.dir) : '';
   let untilW = ''; try{ untilW = N && typeof ndaUntilWords === 'function' ? (ndaUntilWords(N) || '') : ''; }catch(_){ untilW = ''; }
+  /* no date to count from yet: the wording's own span, as it says it ("3 years after the agreement ends") */
+  if(!untilW && N && N.period && N.period.n > 0){
+    const span = i18tn(N.period.unit === 'month' ? 'pd_ff_u_months' : 'pd_ff_u_years', N.period.n, { n: N.period.n });
+    untilW = i18t(N.period.from === 'disclosure' ? 'det_nda_span_disclosure' : N.period.from === 'start' ? 'det_nda_span_start' : 'det_nda_span_end', { span });
+  }
+  /* AS DRAWN (the gaps, round 8 "Compare: the same face on an NDA", 18 Oct 2026):
+     where it was read ("read from clause 5"), the reading in a box, and under it
+     "Read from the wording, not yet confirmed by a person. · Confirm" — once
+     confirmed, "Confirmed by <who>" with Change */
   const said = (k, w) => { const it = items.find(x => x.key === k); if(!it) return '';
-    const sug = N && !N.confirmed && w;
-    const read = w ? `${esc(w)}${sug ? ` <span class="det-nda-sug">${esc(i18t(N.clause ? 'det_nda_from_clause' : 'det_nda_from_wording', { n: N.clause || '' }))}</span>` : ''}` : `<span class="det-nda-sug">${esc(i18t('det_nda_unsaid'))}</span>`;
-    const door = may ? ` <button type="button" class="ui-link" data-det-nda="${esc(c.id)}">${esc(i18t(it.open ? 'det_nda_confirm' : 'det_nda_change'))}</button>` : '';
-    return box(k, it.label, `<span class="det-nda-read">${read}${door}</span>`); };
+    const conf = !!(N && N.confirmed);
+    const at = (!conf && w) ? `<span class="det-nda-at">${esc(N && N.clause ? i18t('det_nda_read_clause', { n: N.clause }) : i18t('det_nda_from_wording'))}</span>` : '';
+    const read = w ? esc(w) : `<i>${esc(i18t('det_nda_unsaid'))}</i>`;
+    const line = conf ? (N.who ? i18t('nda_confirmed_by', { who: N.who }) : i18t('nda_confirmed')) : i18t(w ? 'det_nda_not_conf' : 'det_nda_set_line');
+    const door = may ? ` · <button type="button" class="ui-link" data-det-nda="${esc(c.id)}">${esc(i18t(it.open ? 'det_nda_confirm' : 'det_nda_change'))}</button>` : '';
+    /* "· Confirm" STAYS ON ITS LINE (the gaps, round 8, the second check): held to the
+       sentence's last word, so a narrow card wraps the two together, never the door alone */
+    const words = String(line).split(' '), last = words.pop();
+    const lineHtml = door ? `${esc(words.join(' '))}${words.length ? ' ' : ''}<span class="det-nda-tail">${esc(last)}${door}</span>` : esc(line);
+    return box(k, it.label, `${at}<span class="det-nda-read det-nda-box">${read}</span><span class="det-nda-line">${lineHtml}</span>`); };
   return [said('ndaDir', dirW), said('ndaEnds', untilW)];
 }
 if(typeof document!=='undefined') document.addEventListener('click',e=>{
@@ -11706,6 +11723,12 @@ function roomActsRowsHtml(c,may){
     rows.push(`<button type="button" id="ws-m-nego"${ok.ok?` title="${esc(i18t('ct_open_negotiate_title'))}"`:dead(window.negoMayStartLine?negoMayStartLine(c):'')}>${icon('columns','w-3.5 h-3.5')}${esc(i18t('ct_start_negotiating'))}</button>`); }
   const executed=(typeof negoExecuted==='function')?negoExecuted(c):c.status==='Signed';
   if(!executed) rows.push(`<button type="button" id="ws-m-signers"${(window.signingLocked&&signingLocked(c))?dead(i18t('py_locked')):''}>${icon('users','w-3.5 h-3.5')}${esc(i18t('ct_add_signers'))}</button>`);
+  /* SIGNING IT THEIR WAY (the gaps, round 10 "The road", 18 Oct 2026): the
+     line under the Sign button left Before you sign ("the foot follows the
+     last stop"), so its one door is this row — offered while the route can
+     still change, on the route inside HaTi; the press is outsideSetRoute's */
+  if(!executed&&window.outsideMayChangeRoute&&outsideMayChangeRoute(c)&&!(window.signRouteOf&&signRouteOf(c)==='outside'))
+    rows.push(`<button type="button" id="ws-m-their-way" title="${esc(i18t('ho_they_sign_q'))}">${icon('send','w-3.5 h-3.5')}${esc(i18t('ho_menu_their_way'))}</button>`);
   if(!c.parentId){
     const shut=(typeof amendmentShutWhy==='function')?amendmentShutWhy(c):(executed?'':i18t('fa_draft_no_amend'));
     rows.push(`<button type="button" id="ws-m-amend"${shut?dead(shut):''}>${icon('filenew','w-3.5 h-3.5')}${esc(i18t('fa_create_amendment'))}</button>`);
@@ -12359,6 +12382,7 @@ function roomMenuWire(c){
   document.getElementById('ws-m-nego')?.addEventListener('click',()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); });
   document.getElementById('ws-m-signers')?.addEventListener('click',()=>{ const k=getContract(c.id)||c; roomGoTab(k,'sign');
     setTimeout(()=>{ if(window.openSignerPlanEditor) openSignerPlanEditor(getContract(c.id)||k); },180); });
+  document.getElementById('ws-m-their-way')?.addEventListener('click',()=>{ if(window.outsideSetRoute) outsideSetRoute(getContract(c.id)||c,'outside'); });
   /* AMEND, BESIDE THE PAPER (owner, 15 Oct 2026): Jambo's Amend face on Home's
      paper; the dialog where Home has no paper (the phone, a stage without it) */
   document.getElementById('ws-m-amend')?.addEventListener('click',()=>{ const k=getContract(c.id)||c; if(!window.amendmentShutWhy||amendmentShutWhy(k)) return;
@@ -17489,7 +17513,11 @@ function renderSignSide(c){
     ${''/* THE APPROVER'S OWN CARD (23 Sep 2026), above everything: for the
            person a personal approval is asked of, deciding it IS the work on
            this tab. Drawn only while there is a request they may decide. */}
-    ${(!closed&&window.signApprovalAskCardHtml)?signApprovalAskCardHtml(c):''}
+    ${''/* BEFORE YOU SIGN'S ROAD DRAWS THE APPROVAL AT ITS OWN STOP (round 10,
+           "The road": the states, the stand-in's line, Approve and Refuse… —
+           pdRoadYesHtml, with this card's id for the email's landing), so on
+           that face the card is not drawn a second time */}
+    ${(!closed&&window.signApprovalAskCardHtml&&!host.closest('#pd-signface'))?signApprovalAskCardHtml(c):''}
     ${''/* THE CHECK, ABOVE THE GATE AND THE ORDER: it is about whether this
            wording should be signed at all, which is a question that comes
            before who signs it and in what order. */}
@@ -18969,7 +18997,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{docReadLongSplit,DOC_READ_LONG_WORDS,DOC_READ_RUN_MIN,docThreadHomeMarks,TH_HOSTS,thHomeLive,ovRenewTermDoorHtml,ovRenewTermAsk,ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFrozen,paperTermFrozenRead,paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,roomHeadRefresh,
+Object.assign(window,{signApprovalRowWhy,docReadLongSplit,DOC_READ_LONG_WORDS,DOC_READ_RUN_MIN,docThreadHomeMarks,TH_HOSTS,thHomeLive,ovRenewTermDoorHtml,ovRenewTermAsk,ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFrozen,paperTermFrozenRead,paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,roomHeadRefresh,
   /* TWO COPIES OF ONE CONTRACT (25 Sep 2026): the sheet's builders and the
      signing copy's controls. The other side's signing link draws the signing
      copy through signCopySheetHtml, so it must be on this list — a name read

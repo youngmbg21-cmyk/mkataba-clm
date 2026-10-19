@@ -41,19 +41,24 @@ describe('f360 (1) the picker is a rail of rows, and there is one builder', () =
       'and neither of the two it replaced');
     /* RE-POINTED 12 Oct 2026 (the Search list): one shelf at a time, a tab
        each, every shelf still drawn through the one builder. */
-    assert.match(NA, /<div class="na-rows">\$\{shown\.map\(pickRow\)\.join\(''\)/,
+    /* RE-POINTED 18 Oct 2026 (the gaps, round 4, f750): the one builder now also dresses the sheet's
+       three closest as cards (card===true), so the list passes the row alone, never map's index */
+    assert.match(NA, /<div class="na-rows">\$\{shown\.map\(r=>pickRow\(r\)\)\.join\(''\)/,
       'every shelf draws through it');
+    assert.match(NA, /closestRows\(\)\.map\(r=>pickRow\(r, !!\(b&&b\.kind===r\.kind&&String\(b\.id\)===String\(r\.id\)\), true\)\)/, 'and so do the closest');
     assert.equal((NA.match(/na-rows/g) || []).length, 1, 'into one container class');
   });
   test('the row carries the attribute the one delegated handler answers', () => {
-    assert.match(NA, /class="na-pick\$\{sel&&sel\.kind===r\.kind&&sel\.id===r\.id\?' on':''\}" data-wz-\$\{r\.kind\}=/);
+    /* RE-POINTED 18 Oct 2026 (the gaps, round 4, f750): the card's dress and its radio state ride the one row */
+    assert.match(NA, /class="na-pick\$\{card===true\?' na-close':''\}\$\{on\?' on':''\}"\$\{card===true\?` role="radio" aria-checked="\$\{on\}"`:''\} data-wz-\$\{r\.kind\}=/);
     /* THE ONE DOOR IS UNCHANGED: the same listener, on the same element, for
        the same three attributes. Nothing here is a second way to pick. */
     assert.match(NA, /root\.querySelector\('#wz-pick'\)\?\.addEventListener\('click',e=>\{/);
     assert.match(NA, /closest\('\[data-wz-lib\],\[data-wz-mine\],\[data-wz-tid\]'\)/);
   });
   test('a row says its name and its figures, and the whole of it rides the hover', () => {
-    assert.match(NA, /const meta=\[r\.go\|\|'', r\.stream\|\|''\]\.filter\(Boolean\)\.join\(' · '\)/,
+    /* RE-POINTED 18 Oct 2026 (the gaps, round 4, f750): the card adds its shelf and its use, as drawn */
+    assert.match(NA, /:\[r\.go\|\|'', r\.stream\|\|''\]\)\.filter\(Boolean\)\.join\(' · '\);/,
       'version, usage and stream — an absent one is dropped, never printed empty');
     assert.match(NA, /hint=naCardTitle\(r\)/);
     assert.match(NA, /\$\{hint\?` title="\$\{esc\(hint\)\}"`:''\}/);

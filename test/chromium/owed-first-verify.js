@@ -110,7 +110,9 @@ const base = (id, name, extra) => Object.assign({ id, name, counterparty: 'Balti
 
     /* 3 the paper holds still */
     const at1 = await page.evaluate(PAPER_AT);
-    check('3 the paper does not move when the face opens', at0 != null && at1 === at0, `${at0} → ${at1}`);
+    /* RE-POINTED (the gaps' third pass, 18 Oct 2026; round 8 as drawn: the size on the paper's line,
+       nothing above the sheet while Fill in is open): it moves only up, by the zoom row's room */
+    check('3 the paper moves only up when the face opens — its zoom row goes to the line', at0 != null && at1 != null && at1 <= at0 && at0 - at1 <= 40, `${at0} → ${at1}`);
 
     /* 4 an NDA's two facts */
     await openFill('MK-0406');

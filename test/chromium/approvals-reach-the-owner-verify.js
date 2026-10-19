@@ -55,7 +55,10 @@ const until = async (fn, ms = 8000, step = 150) => { const end = Date.now() + ms
     const appr = await login('everything@example.co.ke', 'their-own-pass-9');
     await appr.evaluate(async () => { const c = getContract('MK-A2'); await ensureFull(c); openWorkspace(c.id, { room: true });
       await new Promise(r => setTimeout(r, 500)); roomGoTab(c, 'sign'); await new Promise(r => setTimeout(r, 400)); });
-    await appr.click('#ap-reject');
+    /* RE-POINTED (the gaps' third pass, round 10 "The road" as drawn): the rule's own Refuse… on its
+       stop — the column's #ap-reject folds behind "Show" while a yes is framed; the same asker
+       (approvalRefuseWhy) and act (rejectApprovalStep) through approvalDecideAsk */
+    await appr.click('#pd-signface [data-pd-rd-rule="refused"]');
     await appr.waitForSelector('#pd-input', { timeout: 5000 });
     await appr.fill('#pd-input', 'The payment terms need a second look.');
     await appr.click('#pd-ok');

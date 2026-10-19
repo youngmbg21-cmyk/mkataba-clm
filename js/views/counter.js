@@ -95,6 +95,9 @@ function deskTabLabel(k){
 }
 /* the page in front, as the bar names it: Home on Home */
 function deskPageName(){
+  /* THE ONE SHEET IS A PAGE OF ITS OWN WHILE IT IS UP (the gaps, round 4,
+     after the SAP bar, 18 Oct 2026): the bar names it "New agreement" */
+  if (deskSheetUp()) return _cnT('na_title');
   const k = deskKeyNow();
   if (!k) return (typeof state !== 'undefined' && state && state.view === 'counter') ? _cnT('dk_counter') : '';
   return deskTabLabel(k);
@@ -117,10 +120,27 @@ function deskBackTarget(){
   return null;
 }
 function deskGoBack(){
+  /* while the one sheet is up, ‹ is its way out: asked first, as Cancel asks,
+     then back to the page the reader asked from (naSheetBack → deskSheetBackTo) */
+  if (deskSheetUp() && typeof window.naSheetBack === 'function'){ window.naSheetBack(); return true; }
   const t = deskBackTarget(); if (!t) return false;
   _dkTrail = _dkTrail.slice(0, t.i + 1); _dkMenuOpen = false;
   if (t.k === 'home') deskGoCounter(); else deskTabOpen(t.k);
   deskBarPaint(); return true;
+}
+/* THE ONE SHEET AND THE TRAIL: the page settled on when the sheet opened is
+   where its ‹ returns (a page the reader is already on is not opened twice) */
+function deskSheetUp(){ return typeof window !== 'undefined' && typeof window.naSheetUp === 'function' && !!window.naSheetUp(); }
+function deskSheetFrom(){
+  return _dkTrail[_dkTrail.length - 1] || ((typeof state !== 'undefined' && state && state.view === 'counter') ? 'home' : null);
+}
+function deskSheetBackTo(k){
+  if (k){
+    const here = k === 'home' ? (typeof state !== 'undefined' && state && state.view === 'counter') : deskKeyNow() === k;
+    if (!here){ if (k === 'home') deskGoCounter(); else deskTabOpen(k); }
+  }
+  deskBarPaint();
+  return !!k;
 }
 /* Asked after every page is drawn, every face turned and every paper put up.
    The bar is named at once; the page is KEPT in Recent (and on the trail)
@@ -199,7 +219,7 @@ function deskBarPaint(){
   const back = document.getElementById('dk-back'), w = document.getElementById('dk-pg-w'), btn = document.getElementById('dk-page');
   if (back){
     back.hidden = !on;
-    const can = !!deskBackTarget();
+    const can = deskSheetUp() || !!deskBackTarget();
     back.disabled = !can;
     const tip = can ? _cnT('dk_back') : _cnT('dk_back_none');
     if (back.title !== tip){ back.title = tip; back.setAttribute('aria-label', tip); }
@@ -461,5 +481,5 @@ if (typeof document !== 'undefined' && !window._cnWired){
   });
 }
 
-Object.assign(window, { deskShellOn, DK_KEY, DK_RECENT, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskPageName, deskTabsSync, deskRecentRows, deskRecentHtml, deskBarPaint, deskRecentToggle, deskBackTarget, deskGoBack, deskTabOpen, deskTabClose, deskGoCounter,
+Object.assign(window, { deskShellOn, DK_KEY, DK_RECENT, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskPageName, deskSheetUp, deskSheetFrom, deskSheetBackTo, deskTabsSync, deskRecentRows, deskRecentHtml, deskBarPaint, deskRecentToggle, deskBackTarget, deskGoBack, deskTabOpen, deskTabClose, deskGoCounter,
   CN_ROWS, renderCounter, counterHtml, counterRepaint, counterAsk, counterNeedsCount, counterPopRead, counterPopClose });

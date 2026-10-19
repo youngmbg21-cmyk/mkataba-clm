@@ -50,7 +50,8 @@ describe('f712 (1) the stops are a reading', () => {
     const { ctx, c } = stage({ holds: [{ kind: 'standards-read' }, { kind: 'signers' }] });
     const R0 = J(ctx.pdRoadStops(c));
     assert.deepEqual(R0.stops.map(x => x.k), ['ready', 'who', 'sealed']);
-    assert.equal(R0.stops[0].sub, 'sc_n_to_settle:1', 'the checks count leaves the signing holds out');
+    /* RE-POINTED 18 Oct 2026 (the gaps, f752): the count is followed by the checks it names, as drawn */
+    assert.equal(R0.stops[0].sub, 'sc_n_to_settle:1: pd_rd_ck_standards', 'the checks count leaves the signing holds out');
     assert.equal(R0.cur, 0);
     assert.equal(R0.mineAt, -1);
   });
@@ -88,11 +89,15 @@ describe('f712 (2) whose turn', () => {
 describe('f712 (3) where the body and the Sign button stand', () => {
   test('3a placed by order, the foot drawn only in the reader\'s own stop', () => {
     const f = PD.slice(PD.indexOf('function pdRoadPaint('), PD.indexOf('function pdSignFaceHtml('));
-    assert.match(f, /body\.style\.order = String\(2 \* R\.cur \+ 3\);/);
+    /* RE-POINTED 18 Oct 2026 (the gaps, f752): while a named yes is framed the body folds behind Ready to sign's Show */
+    assert.match(f, /body\.style\.order = String\(R\.fold \? 3 : 2 \* R\.cur \+ 3\);/);
     assert.match(f, /const show = R\.mineAt >= 0;/);
-    /* the route's own link keeps the foot when it is not the reader's turn,
-       the Sign button hidden in it (upload-blanks-verify's door, CI 18 Oct) */
-    assert.match(f, /foot\.style\.display = \(show \|\| route\) \? '' : 'none';/);
+    /* RE-POINTED (the gaps, round 10, pass 2, 18 Oct 2026): "the foot follows the last
+       stop" — the route's link ("Signing it their way …") is not drawn on the face; its
+       door is the Menu tab's row (#ws-m-their-way), and the foot stands only for the Sign
+       button in the reader's own stop */
+    assert.match(f, /const paperRoute = foot\.querySelector\('#sign-paper'\); if \(paperRoute\) paperRoute\.style\.display = 'none';/);
+    assert.match(f, /foot\.style\.display = show \? '' : 'none';/);
     assert.match(f, /const btn = foot\.querySelector\('#sign-btn'\); if \(btn\) btn\.style\.display = show \? '' : 'none';/);
     assert.match(PD, /const next = host\.querySelector\('\[data-pd-sf-next\]'\); if \(next\) next\.innerHTML = pdSignNextHtml\(c\);\n\s+pdRoadPaint\(c\);/, 'drawn after every paint of the column');
   });

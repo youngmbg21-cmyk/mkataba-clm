@@ -433,10 +433,15 @@ function caDraftScore(sentence, cand){
   const said = new Set(words(sentence));
   return words(cand.name + ' ' + cand.blurb).reduce((n, w) => n + (said.has(w) ? 1 : 0), 0);
 }
+/* THE THREE CLOSEST, ALWAYS (the gaps, round 4 "One sheet", 18 Oct 2026: "the
+   three closest on our paper · nothing is picked for you"): the papers that
+   share the most words with the sentence first; where fewer than three share
+   one, the next by shelf — company standards, then saved, then HaTi's own
+   (draftCandidates' order). A reading, never a pick: the reader still chooses. */
 function caDraftRank(sentence, cands, bestId){
   const scored = cands.map((c, i) => ({ c, i, n: caDraftScore(sentence, c) }));
   scored.sort((a, b) => (b.c.id === bestId) - (a.c.id === bestId) || b.n - a.n || a.i - b.i);
-  return scored.filter((x, k) => k === 0 || x.n > 0 || x.c.id === bestId).slice(0, CA_DRAFT_OPTS).map(x => x.c);
+  return scored.slice(0, CA_DRAFT_OPTS).map(x => x.c);
 }
 async function caDraftRun(a){
   const paint = () => { if (typeof renderIntelDock === 'function') renderIntelDock(); };
@@ -453,9 +458,26 @@ async function caDraftRun(a){
   a.bestId = null;
   /* ASKING BRINGS THE PAGE: the one form comes straight to the desk; the
      panel says what was read, in a line, with the way back to the form */
-  if (a.options.length && caDraftForm(a)) a.state = 'opened';
+  if (a.options.length && caDraftForm(a)){ a.state = 'opened'; caDraftOneExchange(a); }
   else a.state = a.options.length ? 'ready' : 'none';
   paint();
+}
+/* ONE SHEET, ONE EXCHANGE (the gaps, round 4, 18 Oct 2026: the panel shows
+   only the exchange of the sheet on the desk): a sheet opened from a new
+   sentence puts away the exchanges of the sheets before it — their sheet is
+   gone, and "Nothing is created until you press Create" would speak of a form
+   nobody can press any more. What is not a draft is left exactly as it was. */
+function caDraftOneExchange(a){
+  const h = (typeof intel === 'object' && intel && Array.isArray(intel.history)) ? intel.history : null; if (!h) return 0;
+  const at = h.findIndex(m => m && m.act === a); if (at < 0) return 0;
+  let n = 0;
+  for (let i = at - 1; i >= 0; i--){
+    const m = h[i];
+    if (!(m && m.role === 'assistant' && m.act && m.act.kind === 'draft' && m.act !== a)) continue;
+    const ask = (i > 0 && h[i - 1] && h[i - 1].role === 'user') ? 1 : 0;
+    h.splice(i - ask, 1 + ask); n++; i -= ask;
+  }
+  return n;
 }
 /* ---- THE NEW AGREEMENT CARD (the overnight work order, step 3; the owner's
    "Go" on the demo, 14 Oct 2026) ----
@@ -498,6 +520,56 @@ function caDraftWith(sentence){
   if (who === who.toLowerCase()) who = who.replace(/(^|[\s-])(\p{L})/gu, (_, p, ch) => p + ch.toUpperCase());
   return who;
 }
+/* WHAT THE SENTENCE ASKS FOR, IN ITS OWN WORDS (the gaps, round 4: "with what
+   I read: an NDA, with Volvo Cars"): the words before "with", the verb and a
+   "please" left off — read, never guessed; too long to be a name of an
+   agreement, nothing. English gives it its article ("an NDA", "a supply
+   agreement"); the other book takes the words as they were typed. */
+const CA_DRAFT_WHAT_MAX = 6;
+/* the words themselves, before any article is given them ('' where none name an agreement) */
+function caDraftWhatRaw(sentence){
+  let t = String(sentence || '').trim();
+  const m = /^(.*?)\s+(?:with|med)\s+\S/i.exec(t); if (!m) return '';
+  t = m[1].replace(CA_DRAFT_RE, '').replace(/^\s*(?:please|snälla|vänligen)\s+/i, '').trim();
+  if (!t || t.split(/\s+/).length > CA_DRAFT_WHAT_MAX || !CA_DRAFT_NOUN.test(t)) return '';
+  return t;
+}
+function caDraftWhatOf(sentence){
+  const t = caDraftWhatRaw(sentence); if (!t) return '';
+  let lang = 'en'; try { lang = (typeof langId === 'function') ? (langId() || 'en') : 'en'; } catch (_){ lang = 'en'; }
+  if (lang !== 'en' || /^(?:a|an|the)\s/i.test(t)) return t;
+  const first = t.split(/\s+/)[0];
+  const acronym = first.length > 1 && first === first.toUpperCase() && /^[A-Z]/.test(first);
+  const an = acronym ? /^[AEFHILMNORSX]/.test(first) : /^[aeiou]/i.test(first);
+  return (an ? 'an ' : 'a ') + t;
+}
+/* THE KIND OF AGREEMENT THE WORDS ASK FOR, for the sheet's "What" (the gaps,
+   round 4, 18 Oct 2026: "What · A non-disclosure agreement" — the kind asked
+   for, never the closest paper's title, which is step 1's to offer): a short
+   name the house knows is written out in the reader's language (CA_DRAFT_KINDS,
+   both books); any other is the words as asked, its first letter raised. */
+const CA_DRAFT_KINDS = { nda: 'ca_kind_nda', 'non-disclosure agreement': 'ca_kind_nda', 'non disclosure agreement': 'ca_kind_nda', 'nondisclosure agreement': 'ca_kind_nda',
+  sla: 'ca_kind_sla', msa: 'ca_kind_msa', dpa: 'ca_kind_dpa', sow: 'ca_kind_sow', 'statement of work': 'ca_kind_sow', mou: 'ca_kind_mou', loi: 'ca_kind_loi' };
+function caDraftKindOf(sentence){
+  const raw = caDraftWhatRaw(sentence); if (!raw) return '';
+  const bare = raw.replace(/^(?:a|an|the|en|ett)\s+/i, '').trim();
+  const k = CA_DRAFT_KINDS[bare.toLowerCase()];
+  if (k) return _caT(k);
+  const t = caDraftWhatOf(sentence) || raw;
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+/* WHAT IT IS FOR, READ FROM THE WORDS (the gaps, round 4): "… with Volvo Cars
+   for a pilot" — the words after the party's "for", read as "with" is read,
+   never guessed: a term ("for two years", "for 30 days") is no purpose, and a
+   sentence that does not say is "Not read yet" */
+const CA_DRAFT_FOR = /(?:^|\s)(?:with|med)\s+.+?\s(?:for|för)\s+(.+?)[\s.!?]*$/i;
+const CA_DRAFT_FOR_MAX = 8;
+function caDraftForOf(sentence){
+  const m = CA_DRAFT_FOR.exec(String(sentence || '').trim()); if (!m) return '';
+  const t = m[1].split(/[,;:()\[\]]/)[0].replace(/^["“'‘]+|["”'’.!?]+$/g, '').replace(/\s+/g, ' ').trim();
+  if (!t || t.split(/\s+/).length > CA_DRAFT_FOR_MAX || /\d/.test(t) || CA_DRAFT_TERM_WORD.test(' ' + t)) return '';
+  return t;
+}
 /* the paper the card names: the model's pick, else a name that shares a word with the sentence, else none */
 function caDraftBest(a){
   const opts = (a && a.options) || [];
@@ -528,6 +600,8 @@ function caDraftForm(a){
   const best = caDraftBest(a);
   const prefill = Object.assign({}, (best && typeof draftPrefillFor === 'function') ? draftPrefillFor(best.fields, a.prefill || {}) : {});
   const who = caDraftWho(a); if (who) prefill.counterparty = who;
+  /* what it is for, read from the words: it reaches a paper's own purpose box, where one is declared */
+  const purpose = caDraftForOf(a.sentence); if (purpose && !prefill.purpose) prefill.purpose = purpose;
   /* ONE SHEET (round 4): NOTHING IS PICKED FOR THE READER — the closest of
      our paper are offered at the top of the form, the best marked; what was
      read from the words is the form's first section */
@@ -536,7 +610,7 @@ function caDraftForm(a){
   const known = !!who && ((typeof state === 'object' && state && Array.isArray(state.contracts)) ? state.contracts : []).some(c => c && norm(c.counterparty) === norm(who));
   openNewAgreement({ pick: null, prefill, asked: a.sentence, streamAsk: true,
     closest: (a.options || []).map(key), best: best ? key(best) : null,
-    words: { what: best ? (caDraftTitleOf(best) || best.name) : '', who, known } });
+    words: { what: caDraftKindOf(a.sentence) || (best ? (caDraftTitleOf(best) || best.name) : ''), who, known, purpose } });
   return true;
 }
 function caDraftCardHtml(a, i){
@@ -551,9 +625,16 @@ function caDraftCardHtml(a, i){
   /* THE FORM IS ON THE DESK (round 4, "One sheet"): no card — what was read,
      in his own words, and the form one press away should it have been closed */
   if (a.state === 'opened'){
-    const said = [who ? _caT('ca_dr_opened_with', { who }) : _caT('ca_dr_opened'),
-      best ? _caT('ca_dr_opened_best', { name: best.name }) : '', _caT('ca_dr_opened_tail')].filter(Boolean).join(' ');
-    return `<div class="ca-card ca-dr-said" data-ca-card="${i}"><p class="ca-say">${_caE(said)}</p><div class="ca-acts">${B('form', _caT('ca_dr_open_again'), false)}${B('ask', _caT('ca_dr_change'), false)}</div></div>`;
+    /* as drawn: what was read — the agreement the words name, and with whom */
+    const what = caDraftWhatOf(a.sentence);
+    /* AS DRAWN, THE PARTY AND THE PAPER IN BOLD ("with **Volvo Cars** … our
+       **Mutual NDA**"): marked before the line is escaped, made bold after */
+    const bo = t => '\u0001' + t + '\u0002';
+    const read = what && who ? _caT('ca_dr_opened_what_with', { what, who: bo(who) }) : what ? _caT('ca_dr_opened_what', { what })
+      : who ? _caT('ca_dr_opened_with', { who: bo(who) }) : _caT('ca_dr_opened');
+    const said = [read, best ? _caT('ca_dr_opened_best', { name: bo(best.name) }) : '', _caT('ca_dr_opened_tail')].filter(Boolean).join(' ');
+    const html = _caE(said).replace(/\u0001/g, '<b>').replace(/\u0002/g, '</b>');
+    return `<div class="ca-card ca-dr-said" data-ca-card="${i}"><p class="ca-say">${html}</p><div class="ca-acts">${B('form', _caT('ca_dr_open_again'), false)}${B('ask', _caT('ca_dr_change'), false)}</div></div>`;
   }
   const may = (typeof canEdit !== 'function') || canEdit();
   /* AS THE DEMO DRAWS IT: WHAT is the agreement the paper makes (a HaTi
@@ -1247,7 +1328,7 @@ Object.assign(window, { caDraftReply });
 Object.assign(window, { caRefFix, CA_REF_RE, caRefLinkPaint, caRefOpen, CA_MENU, CA_MENU_INBOUND, CA_MENU_THEIR_FILE, CA_FILE_OUT, CA_FILE_KEEP, CA_MENU_NOT, caReadMenu, caMenuRows, caMenuCardHtml, caMenuPress, CA_DOORS, CA_DOOR_NOT, caReadDoor, caRoomSign, CA_DOOR_GO, CA_DOOR_SHUT, CA_DOOR_NEEDS, caDoorCardHtml, caDoorPress });
 Object.assign(window, { CA_PICK_MAX, CA_NOTE_MAX, CA_SEND_RE, caPeople, caContracts, caOpenContract, caTokenAt, caMatches, caPopHtml, caPopClose, caPopRead, caChoose,
   caFindContract, caFindPerson, caNoteOf, caReadSend, caActOf, caSendBlock, caCardHtml, caCardPress,
-  CA_DRAFT_RE, CA_DRAFT_NOUN, CA_DRAFT_OPTS, CA_DRAFT_BARE, CA_DRAFT_ASKING, caIsDraftAsk, caReadDraft, caDraftScore, caDraftRank, caDraftRun, caDraftCardHtml, caDraftPress, CA_DRAFT_WITH, CA_DRAFT_WITH_MAX, caDraftWith, CA_DRAFT_NOT_PARTY, CA_DRAFT_TERM_WORD, caDraftBest, caDraftTitleOf, caDraftWho, caDraftForm,
+  CA_DRAFT_RE, CA_DRAFT_NOUN, CA_DRAFT_OPTS, CA_DRAFT_BARE, CA_DRAFT_ASKING, caIsDraftAsk, caReadDraft, caDraftScore, caDraftRank, caDraftRun, caDraftCardHtml, caDraftPress, CA_DRAFT_WITH, CA_DRAFT_WITH_MAX, caDraftWith, CA_DRAFT_NOT_PARTY, CA_DRAFT_TERM_WORD, caDraftBest, caDraftTitleOf, caDraftWho, caDraftForm, CA_DRAFT_WHAT_MAX, caDraftWhatRaw, caDraftWhatOf, CA_DRAFT_KINDS, caDraftKindOf, CA_DRAFT_FOR, CA_DRAFT_FOR_MAX, caDraftForOf, caDraftOneExchange,
   CA_JOBS, CA_JOB_RE, caReadJob, caNamedOrUp, caRowsWithQuotes, caRiskList, caObligList, caListCardHtml, caReadyDoor, caJobCardHtml, caJobPress, caMayAdd, caPaperChips, caChipsHtml, caNextSteps, caNextRun, caChipShut, caNextLabel, caEditChipBtn, CA_NEXT_FACE, CA_NEXT_MAX, CA_NEXT_GO, caOwedSteps, CA_OWED_FOR,
   CA_SEL_ACTIONS, caSelKill, caSelClauseId, caSelOpen, caSelPick, CA_RISK_MAX, caRiskMark });
 

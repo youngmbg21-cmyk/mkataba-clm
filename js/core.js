@@ -3743,6 +3743,10 @@ function popupControlsDress(root){
    these changes?" guard are the dialog's own, so every caller keeps working
    and a page that cannot be measured (a stage with no shell) is simply the
    full window. */
+/* the narrowest page that may stand beside a panel; below it the page takes the whole width */
+const DLG_PAGE_BESIDE_MIN=480;
+/* how near the window's right edge the panel must end to be the one standing at the right (its own margin) */
+const DLG_PAGE_BESIDE_EDGE=40;
 function dlgPageAdopt(root, panel, page){
   const frame=panel.parentElement, scrim=root.querySelector('#modal-scrim');
   if(scrim) scrim.style.display='none';
@@ -3753,7 +3757,15 @@ function dlgPageAdopt(root, panel, page){
     const cs=document.getElementById('content-scroll'), bar=document.getElementById('top-header');
     const r=cs&&cs.getClientRects().length ? cs.getBoundingClientRect() : { left:0, top:0 };
     const top=bar&&bar.getClientRects().length ? bar.getBoundingClientRect().bottom : r.top;
-    frame.style.cssText=`position:fixed;top:${Math.round(top)}px;left:${Math.round(r.left)}px;right:0;bottom:0;z-index:70;display:flex;`;
+    /* ---- A PAGE ON THE DESK, BESIDE JAMBO (round 4 "One sheet", the gaps,
+       18 Oct 2026: the drawn sheet stands on the desk with Jambo's panel at its
+       side, saying what he read) ---- page.beside names the panel left in
+       sight: the page ends at its left edge while it stands at the right. */
+    let right=0;
+    const side=page.beside?document.querySelector(page.beside):null;
+    if(side&&side.getClientRects().length){ const sr=side.getBoundingClientRect(); const vw=window.innerWidth||0;
+      if(sr.left>r.left+DLG_PAGE_BESIDE_MIN && sr.right>=vw-DLG_PAGE_BESIDE_EDGE) right=Math.max(0,Math.round(vw-sr.left)); }
+    frame.style.cssText=`position:fixed;top:${Math.round(top)}px;left:${Math.round(r.left)}px;right:${right}px;bottom:0;z-index:70;display:flex;`;
   };
   place(); window.addEventListener('resize',place);
   panel.setAttribute('data-dlg-page','');
@@ -3764,8 +3776,10 @@ function dlgPageAdopt(root, panel, page){
   while(panel.firstChild) body.appendChild(panel.firstChild);
   const head=document.createElement('div');
   head.className='dlg-pg-head';
-  head.innerHTML=`${page.crumb?`<div class="dlg-pg-crumb"></div>`:''}<div class="dlg-pg-row"><div class="dlg-pg-title"></div><div class="dlg-pg-acts"></div></div>${page.under?'<div class="dlg-pg-under"></div>':''}`;
-  if(page.crumb) head.querySelector('.dlg-pg-crumb').textContent=page.crumb;
+  head.innerHTML=`${(page.crumb||page.crumbHtml)?`<div class="dlg-pg-crumb"></div>`:''}<div class="dlg-pg-row"><div class="dlg-pg-title"></div><div class="dlg-pg-acts"></div></div>${page.under?'<div class="dlg-pg-under"></div>':''}`;
+  /* the crumb is words, or the page's own row of doors where it draws one (crumbHtml) */
+  if(page.crumbHtml) head.querySelector('.dlg-pg-crumb').innerHTML=page.crumbHtml;
+  else if(page.crumb) head.querySelector('.dlg-pg-crumb').textContent=page.crumb;
   const h=body.querySelector('h1,h2,h3');
   if(h){ const t=head.querySelector('.dlg-pg-title'); h.style.margin='0'; t.appendChild(h); }
   const acts=head.querySelector('.dlg-pg-acts');
@@ -7062,7 +7076,13 @@ function linkRefusal(c, opts={}){
     if(sa) return { kind:'signapproval', why:sa };
   }
   if(asks.has('approval') && !started){
-    const ap=ask(()=>window.approvalState&&approvalState(c));
+    /* THE RULE CHAIN'S READING, ASKED ON window (the gaps, round 10, the second
+       check, 18 Oct 2026): a bare approvalState here is this file's own legacy
+       spend gate (ES modules: a top-level name is the module's), which never
+       sees a chain approved — so every signing link on a contract over its
+       threshold stayed refused after the rule's yes was given, "“approval” is
+       still waiting on an Admin". js/approvals.js's chain is the one reading. */
+    const ap=ask(()=>window.approvalState&&window.approvalState(c));
     if(ap && ap.required && !ap.ok){
       const why=(ap.rejected||[]).length ? i18t('sl_appr_refused')
         : (ap.stale||[]).length ? i18t('sl_appr_stale')
