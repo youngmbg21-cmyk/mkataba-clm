@@ -39,15 +39,20 @@
 
 /* Per sitting: the tab, the find box and the three filters. A refresh puts
    them back through PLACE_PARTS (dirPlace / dirPlacePut). */
-const _dir = { tab: 'all', q: '', party: 'all', role: 'all', stream: 'all' };
+/* PEOPLE AS A TABLE (round 19, "The SAP way", the People scene; the owner's
+   "build all the gaps", 18 Oct 2026, reverses the 13 Oct face cards): the
+   side is a labelled box now, not tabs (`tab` keeps its name and values);
+   `hati` is the Role in HaTi box; `shown` how many rows the table draws
+   (DIR_PAGE at a time, "12 of 46 shown · Show more"). */
+const _dir = { tab: 'all', q: '', party: 'all', hati: 'all', stream: 'all', shown: 0 };
 const DIR_TABS = ['all', 'ours', 'theirs', 'none'];
+const DIR_PAGE = 12;
 const DIR_SEAT = 'directory';
 /* A colleague's panel lists this many of their contracts; the rest are one
    press away on the Contracts page. */
 const DIR_NAMED_MAX = 6;
 /* The roles in the order a card says them: ours first, then theirs. */
 const DIR_ROLE_ORDER = ['owner', 'sign', 'approve', 'review', 'contribute', 'read', 'cpsign', 'negotiate', 'advise', 'cpread'];
-const DIR_AZ = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
 const _dE = s => (typeof esc === 'function') ? esc(s)
   : String(s == null ? '' : s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
@@ -267,6 +272,8 @@ function dirMatches(p, o){
   const f = o || _dir;
   if (f.party && f.party !== 'all' && p.partyKey !== f.party) return false;
   if (f.role && f.role !== 'all' && !(p.roles || []).includes(f.role)) return false;
+  /* Role in HaTi: a colleague's own role here (Admin · Editor · Viewer) */
+  if (f.hati && f.hati !== 'all' && !(p.side === 'ours' && p.role === f.hati)) return false;
   if (f.stream && f.stream !== 'all' && !(p.streams || []).includes(f.stream)) return false;
   const q = _dFold(f.q);
   if (q){
@@ -276,12 +283,16 @@ function dirMatches(p, o){
   return true;
 }
 function dirOnTab(p, tab){ return tab === 'all' || !tab || p.side === tab; }
+/* "OURS FIRST, THEN THEIRS, BY NAME" (round 19's list head): our people —
+   the reader first — then the other side's, then anyone not on a contract;
+   each by name */
+const DIR_SIDE_RANK = { ours: 0, theirs: 1, none: 2 };
 function dirSort(list, tab){
   const loc = _dLoc();
   const key = p => _dFold(p.name || p.email);
   const cmp = (a, b) => key(a).localeCompare(key(b), loc, { sensitivity: 'base' });
-  if (tab === 'ours') return list.slice().sort((a, b) => ((a.role === 'admin' ? 0 : 1) - (b.role === 'admin' ? 0 : 1)) || cmp(a, b));
-  return list.slice().sort(cmp);
+  const side = p => (p.side in DIR_SIDE_RANK) ? DIR_SIDE_RANK[p.side] : 3;
+  return list.slice().sort((a, b) => (side(a) - side(b)) || ((a.you ? 0 : 1) - (b.you ? 0 : 1)) || cmp(a, b));
 }
 function dirRows(book, tab, o){
   const t = tab || _dir.tab;
@@ -292,13 +303,14 @@ function dirTabCount(book, tab, o){ return (book || []).filter(p => dirOnTab(p, 
 function dirPeopleOfParty(key){ return dirBook().filter(p => p.partyKey === key); }
 
 /* ---- THE PLACE A REFRESH PUTS BACK ---- */
-function dirPlace(){ return { tab: _dir.tab, q: _dir.q, party: _dir.party, role: _dir.role, stream: _dir.stream }; }
+function dirPlace(){ return { tab: _dir.tab, q: _dir.q, party: _dir.party, hati: _dir.hati, stream: _dir.stream }; }
 function dirPlacePut(p){
   if (!p || typeof p !== 'object') return;
   _dir.tab = DIR_TABS.includes(p.tab) ? p.tab : 'all';
   _dir.q = p.q ? String(p.q) : '';
   _dir.party = p.party ? String(p.party) : 'all';
-  _dir.role = p.role ? String(p.role) : 'all';
+  _dir.hati = ['admin', 'legal', 'viewer'].includes(p.hati) ? p.hati : 'all';
+  _dir.shown = 0;
   _dir.stream = p.stream ? String(p.stream) : 'all';
 }
 
@@ -306,10 +318,25 @@ function dirPlacePut(p){
 /* From the Parties panel: this party's people, already narrowed to it. The
    number on that door is the rows this lands on (dirPeopleOfParty). */
 function dirOpenParty(key){
-  _dir.tab = 'all'; _dir.q = ''; _dir.role = 'all'; _dir.stream = 'all';
+  _dir.tab = 'all'; _dir.q = ''; _dir.hati = 'all'; _dir.stream = 'all'; _dir.shown = 0;
   _dir.party = key ? String(key) : 'all';
   if (typeof setView === 'function') setView('directory'); else renderDirectory();
   _dCall('placeSave');
+}
+/* ONE PERSON FROM ELSEWHERE (the Parties panel's "People at …"): the table
+   with nothing narrowing it away, that person chosen, and LAND ON IT — their
+   row, scrolled into view and lit */
+function dirOpenPerson(key){
+  if (!key) return;
+  _dir.tab = 'all'; _dir.q = ''; _dir.party = 'all'; _dir.hati = 'all'; _dir.stream = 'all';
+  const rows = dirRows(dirBook(), 'all');
+  const at = rows.findIndex(p => p.key === key);
+  _dir.shown = at >= 0 ? Math.max(DIR_PAGE, at + 1) : 0;
+  if (typeof insSelect === 'function') insSelect(DIR_SEAT, key);
+  if (typeof state !== 'undefined' && state.view !== 'directory' && typeof setView === 'function') setView('directory'); else renderDirectory();
+  _dCall('placeSave');
+  const q = (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(String(key)) : String(key).replace(/"/g, '\\"');
+  if (typeof landOn === 'function') landOn(`#dir-tbody [data-dir-row="${q}"]`, { focus: false });
 }
 /* A colleague's contracts = the Contracts page narrowed to them, through
    its own "only" chip; amendments ride with their agreement (cuIdsOf). */
@@ -342,41 +369,55 @@ function dirLetterOf(p){
   const ch = _dStr(p && (p.name || p.email)).charAt(0);
   return ch ? ch.toLocaleUpperCase() : '#';
 }
-/* One contact card. The hooks the phone and the tests share with the old
-   table are kept: [data-dir-row] is the person, .dir-name the name, .dir-you
-   the reader's own mark, .dir-role their role words, .dir-mail the one link,
-   .dir-none an absence said in the same grey on both shells. */
-function dirFaceHtml(p){
-  const you = p.you ? ` <span class="dir-you">${_dE(i18t('set_you'))}</span>` : '';
-  const whereText = p.side === 'ours' ? i18t('dir_our_side') : p.side === 'theirs' ? (p.partyName || '—') : i18t('dir_imported');
-  const title = p.title ? _dE(p.title) : `<span class="dir-none">${_dE(i18t('dir_no_title'))}</span>`;
-  const roleWords = dirRoleWords(p);
-  const role = p.side === 'ours' ? [_dE(p.hati), _dE(roleWords)].filter(Boolean).join(' · ')
-    : roleWords ? _dE(roleWords) : `<span class="dir-none">${_dE(i18t('dir_not_named'))}</span>`;
-  const n = p.contracts.length;
-  const count = n ? `${_dE(i18tn('cu_n_contracts', n, { n }))} · ${_dE(i18t('dir_n_active', { n: p.active }))}`
-    : `<span class="dir-none">${_dE(i18t('dir_no_contracts'))}</span>`;
-  const mail = p.email ? `<a href="mailto:${_dE(p.email)}" title="${_dE(p.email)}">${_dE(p.email)}</a>`
-    : `<span class="dir-none">${_dE(i18t('dir_no_email'))}</span>`;
-  const subPlain = [whereText, p.title].filter(Boolean).join(' · ');
-  return `<div class="dir-face" data-dir-row="${_dE(p.key)}" data-dir-letter="${_dE(dirLetterOf(p))}" tabindex="-1" role="option" aria-selected="false">
-    ${dirAvHtml(p)}
-    <span class="dir-name">${_dE(p.name || p.email || '—')}${you}</span>
-    <span class="dir-sub" title="${_dE(subPlain)}">${_dE(whereText)} · ${title}</span>
-    <span class="dir-role">${role}</span>
-    <span class="dir-foot"><span>${count}</span><span class="dir-mail">${mail}</span></span>
-  </div>`;
+/* the name cell as drawn: round initials, the name, "(you)" in grey, and an
+   away colleague's amber "Away until Fri" (their own rule, jlAwayOf) */
+function dirAwayPillHtml(p){
+  if (!p || p.side !== 'ours' || !p.id || typeof jlAwayOf !== 'function') return '';
+  const aw = jlAwayOf(p.id);
+  const today = (typeof todayISO === 'function') ? todayISO() : '';
+  if (!(aw && aw.to && (!today || aw.to >= today))) return '';
+  const ic = (typeof icon === 'function') ? icon('clock', 'ap-for-ic') : '';
+  return ` <span class="dir-away">${ic}${_dE(i18t('jl_away_until', { day: (typeof jlDayWord === 'function') ? jlDayWord(aw.to, true) : aw.to }))}</span>`;
 }
-/* The A to Z edge: the alphabet, plus any first letter on the wall that is
-   not in it (Å, Ä, Ö), in the reader's own order. A letter with nobody behind
-   it is dimmed and says so — never a live button that does nothing. */
-function dirAzHtml(rows){
-  const have = new Set((rows || []).map(dirLetterOf));
-  const loc = _dLoc();
-  const extra = [...have].filter(L => !DIR_AZ.includes(L)).sort((a, b) => a.localeCompare(b, loc));
-  return `<nav class="dir-az" aria-label="${_dE(i18t('dir_az_label'))}">${DIR_AZ.concat(extra).map(L => have.has(L)
-    ? `<button type="button" data-dir-az="${_dE(L)}">${_dE(L)}</button>`
-    : `<button type="button" data-dir-az="${_dE(L)}" class="is-dim" tabindex="-1" aria-disabled="true" title="${_dE(i18t('dir_az_none', { l: L }))}">${_dE(L)}</button>`).join('')}</nav>`;
+/* the table's columns after the name, in the drawing's order */
+function dirColDefs(){
+  return [
+    { k: 'side', label: i18t('dir_col_side'), w: 72 },
+    { k: 'party', label: i18t('dir_col_party'), w: 168 },
+    { k: 'title', label: i18t('dir_col_title'), w: 150 },
+    { k: 'hati', label: i18t('dir_col_hati'), w: 76 },
+    { k: 'contracts', label: i18t('dir_col_contracts'), r: 1, w: 82 },
+    { k: 'email', label: i18t('dir_col_email'), w: 184 },
+  ];
+}
+function dirOurParty(){
+  const f = (typeof window !== 'undefined') ? (window.FIRST_PARTY || '') : '';
+  return _dStr(typeof f === 'function' ? f() : f);
+}
+/* an absence is a grey dash as drawn, and still SAYS what is missing — on the
+   hover and to a screen reader (f202: "a missing job title and a missing
+   address each say so") */
+function dirNone(word){ return word ? `<span class="dir-none" title="${_dE(word)}" aria-label="${_dE(word)}">—</span>` : `<span class="dir-none">—</span>`; }
+function dirCellHtml(k, p){
+  if (k === 'side') return `<td>${_dE(p.side === 'ours' ? i18t('dir_side_ours') : p.side === 'theirs' ? i18t('dir_side_theirs') : i18t('dir_tab_none'))}</td>`;
+  if (k === 'party'){ const v = p.side === 'ours' ? dirOurParty() : p.side === 'theirs' ? p.partyName : ''; return `<td class="dir-td-cut"${v ? ` title="${_dE(v)}"` : ''}>${v ? _dE(v) : dirNone(p.side === 'none' ? i18t('dir_imported') : '')}</td>`; }
+  if (k === 'title') return `<td class="dir-td-cut"${p.title ? ` title="${_dE(p.title)}"` : ''}>${p.title ? _dE(p.title) : dirNone(i18t('dir_no_title'))}</td>`;
+  /* the role, said where a colleague has one here (D-2: who is an admin is stated) */
+  if (k === 'hati') return `<td class="dir-role">${p.side === 'ours' && p.hati ? _dE(p.hati) : dirNone('')}</td>`;
+  if (k === 'contracts') return `<td class="n">${p.contracts.length ? p.contracts.length : dirNone(i18t('dir_no_contracts'))}</td>`;
+  if (k === 'email') return `<td class="dir-td-cut dir-mail">${p.email ? `<a href="mailto:${_dE(p.email)}" title="${_dE(p.email)}">${_dE(p.email)}</a>` : dirNone(i18t('dir_no_email'))}</td>`;
+  return '<td></td>';
+}
+/* ONE PERSON, ONE ROW. The hooks the phone and the tests share are kept:
+   [data-dir-row] is the person, .dir-name the name, .dir-you the reader's own
+   mark, .dir-mail the one link, .dir-none an absence. */
+function dirRowHtml(p, keys){
+  const ini = _dE(dirInitials(p.name || p.email));
+  const you = p.you ? ` <span class="dir-you">${_dE(i18t('dir_you_paren'))}</span>` : '';
+  return `<tr data-dir-row="${_dE(p.key)}" data-dir-letter="${_dE(dirLetterOf(p))}" tabindex="-1">
+    <td><span class="dir-nm"><span class="dir-tav" aria-hidden="true">${ini}</span><span class="dir-nm-w"><span class="dir-name">${_dE(p.name || p.email || '—')}</span>${you}${dirAwayPillHtml(p)}</span></span></td>
+    ${keys.map(k => dirCellHtml(k, p)).join('')}
+  </tr>`;
 }
 function dirPartNote(){
   const api = (typeof API_MODE === 'function') && API_MODE();
@@ -384,33 +425,39 @@ function dirPartNote(){
   const total = Number(state.serverStats.total), have = state.contracts.length;
   return total <= have ? '' : i18t('cu_part_book', { have, total });
 }
-/* The band: the page's name and its facts, the tabs, the find box and the
-   three filter boxes beside them — the clothes Contracts and Parties wear.
-   A filter lists only choices that hold somebody. */
+/* THE BAND'S FILTERS AS DRAWN (round 19's People scene): each box's word
+   above it — Name, email or party · Side · Party · Role in HaTi · Stream — the
+   Parties page's own boxes (cuChip, cuFindHtml). A box lists only choices
+   that hold somebody. */
 function dirFilterBarHtml(book){
   const chip = o => (typeof cuChip === 'function') ? cuChip(o) : '';
   const loc = _dLoc();
   const partyOpts = [...new Map(book.filter(p => p.partyKey).map(p => [p.partyKey, p.partyName])).entries()]
     .sort((a, b) => a[1].localeCompare(b[1], loc, { sensitivity: 'base' }));
-  const roleOpts = DIR_ROLE_ORDER.filter(k => book.some(p => p.roles.includes(k))).map(k => [k, dirRoleWord(k)]);
+  const sideOpts = DIR_TABS.filter(k => k === 'all' || k === _dir.tab || book.some(p => p.side === k)).map(k => [k, i18t('dir_tab_' + k)]);
+  const hatiOpts = ['admin', 'legal', 'viewer'].filter(k => k === _dir.hati || book.some(p => p.side === 'ours' && p.role === k)).map(k => [k, dirRoleName(k)]);
   const streamOpts = [...new Set(book.flatMap(p => p.streams))].map(f => [f, dirStreamName(f)]).filter(x => x[1])
     .sort((a, b) => a[1].localeCompare(b[1], loc, { sensitivity: 'base' }));
-  return `<div class="reg-filterbar reg-fb">
-    <label class="dir-find"><span class="sr-only">${_dE(i18t('dir_find'))}</span><input id="dir-q" type="search" autocomplete="off" placeholder="${_dE(i18t('dir_find_ph'))}" value="${_dE(_dir.q)}"></label>
+  const find = (typeof cuFindHtml === 'function') ? cuFindHtml({ id: 'dir-q', label: i18t('dir_find_ph'), ph: i18t('dir_find_type'), q: _dir.q })
+    : `<label class="dir-find"><input id="dir-q" type="search" autocomplete="off" placeholder="${_dE(i18t('dir_find_ph'))}" value="${_dE(_dir.q)}"></label>`;
+  return `<div class="reg-filterbar reg-fb cu-fb">
+    ${find}
+    ${chip({ label: i18t('dir_f_side'), attr: 'data-dir-f', key: 'tab', cur: _dir.tab, def: 'all', opts: sideOpts })}
     ${chip({ label: i18t('dir_f_party'), attr: 'data-dir-f', key: 'party', cur: _dir.party, def: 'all', opts: [['all', i18t('dir_all_parties')], ...partyOpts] })}
-    ${chip({ label: i18t('dir_f_role'), attr: 'data-dir-f', key: 'role', cur: _dir.role, def: 'all', opts: [['all', i18t('dir_any_role')], ...roleOpts] })}
+    ${chip({ label: i18t('dir_f_hati'), attr: 'data-dir-f', key: 'hati', cur: _dir.hati, def: 'all', opts: [['all', i18t('dir_any_role')], ...hatiOpts] })}
     ${chip({ label: i18t('reg_chip_stream'), title: i18t('reg_value_stream'), attr: 'data-dir-f', key: 'stream', cur: _dir.stream, def: 'all', opts: [['all', i18t('cu_all_streams')], ...streamOpts] })}
   </div>`;
 }
+/* The band: the page's name and its count, "9 of ours · 37 at 31 parties",
+   then the filters under a hairline — the Parties page's own head */
 function dirBandHtml(book){
-  const ours = book.filter(p => p.side === 'ours').length;
+  const ours = book.filter(p => p.side === 'ours').length, theirs = book.filter(p => p.side === 'theirs').length;
   const parties = new Set(book.map(p => p.partyKey).filter(Boolean)).size;
-  const facts = [i18tn('dir_count', book.length, { n: book.length }), i18tn('cu_n_customers', parties, { n: parties }), i18t('dir_n_ours', { n: ours })];
-  const tabs = (typeof insViewTabsHtml === 'function') ? insViewTabsHtml({ label: i18t('dir_tabs_label'), attr: 'data-dir-tab', cur: _dir.tab,
-    views: DIR_TABS.map(k => ({ k, label: i18t('dir_tab_' + k), n: dirTabCount(book, k) })) }) : '';
+  const loc = (typeof jxLocale === 'function') ? jxLocale() : undefined;
+  const sub = [i18t('dir_n_ours', { n: ours }), theirs ? i18tn('dir_head_theirs', parties, { n: theirs, p: parties }) : ''].filter(Boolean).join(' · ');
   return `<div class="sap-band">
-    <div class="dir-head"><div style="min-width:0"><h1 class="dir-t">${_dE(i18t('nav_directory'))}</h1><div class="page-facts">${facts.map(_dE).join(' · ')}</div></div></div>
-    <div class="reg-tabbar">${tabs}${dirFilterBarHtml(book)}</div>
+    <div class="cu-head dir-head"><div class="cu-hl"><h1 class="cu-t dir-t">${_dE(i18t('nav_directory'))}<span class="cu-tn">${_dE(Number(book.length).toLocaleString(loc))}</span></h1><span class="cu-hs page-facts">${_dE(sub)}</span></div></div>
+    ${dirFilterBarHtml(book)}
   </div>`;
 }
 function dirCardHtml(rows, book){
@@ -423,16 +470,34 @@ function dirCardHtml(rows, book){
   const empty = (typeof window !== 'undefined' && typeof window.emptyStateHtml === 'function')
     ? `<div class="dir-empty">${window.emptyStateHtml({ icon: 'users', title: emptyWords })}</div>`
     : `<div class="ap-empty dir-empty">${_dE(emptyWords)}</div>`;
-  const wall = rows.length
-    ? `<div class="dir-wall" id="dir-wall" role="listbox" aria-label="${_dE(i18t('nav_directory'))}">${rows.map(dirFaceHtml).join('')}</div>`
+  /* ONE PAGE AT A TIME, the cap said ("12 of 46 shown · Show more"); the
+     person in the panel is always among the rows drawn */
+  const sel = (typeof insSelected === 'function') ? insSelected(DIR_SEAT) : null;
+  const at = sel ? rows.findIndex(p => p.key === sel) : -1;
+  const shown = Math.min(rows.length, Math.max(_dir.shown || DIR_PAGE, at + 1));
+  const cols = dirColDefs(), byK = Object.fromEntries(cols.map(c => [c.k, c]));
+  const keys = (typeof lcShown === 'function') ? lcShown(DIR_SEAT, cols.map(c => c.k)) : cols.map(c => c.k);
+  const head = [{ t: i18t('dir_col_name') }, ...keys.map(k => Object.assign({ t: byK[k].label }, byK[k]))];
+  const table = rows.length
+    ? `<table class="ap-table ap-ins dir-table"><colgroup>${head.map(h => `<col${h.w ? ` style="width:${h.w}px"` : ''}>`).join('')}</colgroup><thead><tr>${
+      head.map(h => `<th${h.r ? ' class="n"' : ''}${h.k ? ` data-dir-col="${_dE(h.k)}"` : ''}>${_dE(h.t)}</th>`).join('')}</tr></thead><tbody id="dir-tbody">${rows.slice(0, shown).map(p => dirRowHtml(p, keys)).join('')}</tbody></table>`
     : empty;
-  const foot = [i18t('dir_shown_of', { n: rows.length, total: book.length }), dirPartNote()].filter(Boolean).map(_dE).join(' · ');
-  return `<section class="ap-card dir-card">
-    <div class="ap-card-h"><h2 class="ap-card-t">${_dE(i18t('nav_directory'))} <span class="ap-card-n">(${rows.length})</span></h2>
-      ${admin ? `<button type="button" id="dir-manage" class="ui-link">${_dE(i18t('dir_manage_settings'))}${ic('chevR')}</button>` : ''}</div>
-    <div class="dir-stage"><div class="dir-scroll" id="dir-scroll">${wall}</div>${rows.length ? dirAzHtml(rows) : ''}</div>
-    <div class="ap-foot dir-cardfoot"><span>${foot}</span></div>
+  const foot = [rows.length && typeof lcFootHtml === 'function' ? lcFootHtml(DIR_SEAT, shown, rows.length) : '', dirPartNote() ? `<span>${_dE(dirPartNote())}</span>` : ''].filter(Boolean).join(' ');
+  const loc = (typeof jxLocale === 'function') ? jxLocale() : undefined;
+  return `<section class="ap-card cu-card dir-card">
+    <div class="ap-card-h cu-card-h"><h2 class="ap-card-t">${_dE(i18t('nav_directory'))} <span class="ap-card-n is-pill">${_dE(Number(rows.length).toLocaleString(loc))}</span> <span class="ap-card-m">${_dE(i18t('dir_list_sort'))}</span></h2><span class="ap-card-sp"></span>
+      ${admin ? `<button type="button" id="dir-manage" class="ui-link">${_dE(i18t('dir_manage_settings'))}${ic('chevR')}</button>` : ''}${typeof lcBtnHtml === 'function' ? lcBtnHtml(DIR_SEAT) : ''}</div>
+    <div class="cu-scroll dir-scroll" id="dir-scroll" data-lc-scroll="${DIR_SEAT}">${table}</div>
+    ${foot ? `<div class="ap-foot cu-foot dir-cardfoot">${foot}</div>` : ''}
   </section>`;
+}
+/* Columns and Show more, the Parties page's own builder (LC_PAGES): the page
+   says once what it draws and how it draws again */
+function dirLcReg(){
+  const L = (typeof window !== 'undefined') ? window.LC_PAGES : null;
+  if (!L || L[DIR_SEAT]) return;
+  L[DIR_SEAT] = { cols: () => dirColDefs().map(c => ({ k: c.k, label: c.label })), repaint: () => dirRepaint(),
+    more: () => { _dir.shown = Math.max(_dir.shown || DIR_PAGE, DIR_PAGE) + DIR_PAGE; dirRepaint(); } };
 }
 
 /* ---- WHAT WAITS ON A PERSON (round 19, the People scene as drawn: "Waiting
@@ -605,13 +670,19 @@ function dirPanelWire(){
 /* Choose a person from the panel (somebody else at the same party): the
    wall's own selection, and the card scrolled into view. */
 function dirSelect(key){
-  const wall = document.getElementById('dir-wall');
-  const L = wall && wall._insList;
-  if (!wall || !L) return;
-  const face = [...wall.querySelectorAll('[data-dir-row]')].find(f => f.getAttribute('data-dir-row') === key);
-  if (!face) return;
-  L.onSelect(key, face);
-  try { face.scrollIntoView({ block: 'nearest' }); } catch (_) {}
+  let tb = document.getElementById('dir-tbody');
+  let row = tb && [...tb.querySelectorAll('[data-dir-row]')].find(f => f.getAttribute('data-dir-row') === key);
+  /* a person past the rows drawn: draw down to them first */
+  if (tb && !row){
+    if (typeof insSelect === 'function') insSelect(DIR_SEAT, key);
+    renderDirectory();
+    tb = document.getElementById('dir-tbody');
+    row = tb && [...tb.querySelectorAll('[data-dir-row]')].find(f => f.getAttribute('data-dir-row') === key);
+  }
+  const L = tb && tb._insList;
+  if (!tb || !L || !row) return;
+  L.onSelect(key, row);
+  try { row.scrollIntoView({ block: 'nearest' }); } catch (_) {}
 }
 
 /* ---- THE PAGE ---- */
@@ -623,7 +694,8 @@ function renderDirectory(){
   const book = dirBook();
   const rows = dirRows(book, _dir.tab);
   const card = dirCardHtml(rows, book);
-  host.innerHTML = `<style>${DIR_CSS}</style>
+  dirLcReg();
+  host.innerHTML = `<style>${(typeof window !== 'undefined' && window.LC_CSS) || ''}${DIR_CSS}</style>
   <div id="dir-page" class="view-enter sap-page ap-page dir-page${INS ? ' is-ins' : ''}" data-ins-page="directory" data-ins="${INS ? '1' : '0'}">
     ${dirBandHtml(book)}
     ${INS ? `<div class="ap-body is-ins dir-body">${card}<aside id="ins-panel" class="ins-panel" aria-label="${_dE(i18t('dir_panel_label'))}"></aside></div>`
@@ -639,46 +711,33 @@ function dirRepaint(){ if (typeof state !== 'undefined' && state.view === 'direc
 function dirWire(host, INS, book, rows){
   const manage = host.querySelector('#dir-manage');
   if (manage) manage.addEventListener('click', () => { if (typeof openSettingsAt === 'function') openSettingsAt('people'); });
-  host.querySelectorAll('[data-dir-tab]').forEach(b => b.addEventListener('click', () => {
-    _dir.tab = DIR_TABS.includes(b.getAttribute('data-dir-tab')) ? b.getAttribute('data-dir-tab') : 'all';
+  host.querySelectorAll('select[data-dir-f]').forEach(s => s.addEventListener('change', () => {
+    const k = s.getAttribute('data-dir-f'); if (!['tab', 'party', 'hati', 'stream'].includes(k)) return;
+    _dir[k] = (k === 'tab' && !DIR_TABS.includes(s.value)) ? 'all' : (s.value || 'all'); _dir.shown = 0;
     renderDirectory(); _dCall('placeSave');
   }));
-  host.querySelectorAll('select[data-dir-f]').forEach(s => s.addEventListener('change', () => {
-    const k = s.getAttribute('data-dir-f'); if (!['party', 'role', 'stream'].includes(k)) return;
-    _dir[k] = s.value || 'all'; renderDirectory(); _dCall('placeSave');
-  }));
   const q = host.querySelector('#dir-q');
-  if (q) q.addEventListener('input', () => { _dir.q = q.value; renderDirectory(); });
-  /* THE EDGE: a letter puts the first card under it at the top of the wall.
-     The wall scrolls, not the page. */
-  const az = host.querySelector('.dir-az');
-  if (az) az.addEventListener('click', e => {
-    const b = e.target.closest && e.target.closest('[data-dir-az]');
-    if (!b || b.classList.contains('is-dim')) return;
-    const L = b.getAttribute('data-dir-az');
-    const sc = host.querySelector('#dir-scroll');
-    const first = [...host.querySelectorAll('.dir-face')].find(f => f.getAttribute('data-dir-letter') === L);
-    if (sc && first) sc.scrollTop = Math.max(0, first.offsetTop - 12);
-  });
-  const wall = host.querySelector('#dir-wall');
-  if (!wall){ if (INS) dirPaintPanel(null, book); return; }
+  if (q) q.addEventListener('input', () => { _dir.q = q.value; _dir.shown = 0; renderDirectory(); });
+  if (typeof lcScrollWire === 'function') lcScrollWire(host, DIR_SEAT);
+  const tb = host.querySelector('#dir-tbody');
+  if (!tb){ if (INS) dirPaintPanel(null, book); return; }
   const idOf = el => el.getAttribute('data-dir-row');
   const find = key => book.find(p => p.key === key) || null;
   if (INS && typeof insListWire === 'function'){
-    const keys = rows.map(p => p.key);
+    const keys = [...tb.querySelectorAll('[data-dir-row]')].map(idOf);
     const sel = (typeof insPick === 'function') ? insPick(DIR_SEAT, keys) : keys[0];
-    if (typeof insMarkRow === 'function') insMarkRow(wall, '[data-dir-row]', idOf, sel);
+    if (typeof insMarkRow === 'function') insMarkRow(tb, '[data-dir-row]', idOf, sel);
     dirPaintPanel(find(sel), book);
-    insListWire(wall, { rowSel: '[data-dir-row]', idOf,
-      onSelect: key => { if (typeof insSelect === 'function') insSelect(DIR_SEAT, key); if (typeof insMarkRow === 'function') insMarkRow(wall, '[data-dir-row]', idOf, key); dirPaintPanel(find(key), book); },
+    insListWire(tb, { rowSel: '[data-dir-row]', idOf,
+      onSelect: key => { if (typeof insSelect === 'function') insSelect(DIR_SEAT, key); if (typeof insMarkRow === 'function') insMarkRow(tb, '[data-dir-row]', idOf, key); dirPaintPanel(find(key), book); },
       onOpen: key => dirOpenLead(find(key)) });
     return;
   }
   /* Narrow window: no panel, so a press opens. */
-  wall.addEventListener('click', e => {
-    const face = e.target.closest && e.target.closest('[data-dir-row]');
-    if (!face || (e.target.closest && e.target.closest('a'))) return;
-    dirOpenLead(find(idOf(face)));
+  tb.addEventListener('click', e => {
+    const row = e.target.closest && e.target.closest('[data-dir-row]');
+    if (!row || (e.target.closest && e.target.closest('a'))) return;
+    dirOpenLead(find(idOf(row)));
   });
 }
 
@@ -687,41 +746,30 @@ function dirWire(host, INS, book, rows){
    index.html for both shells. */
 const DIR_CSS = `
   .dir-page{height:var(--view-h);box-sizing:border-box;}
-  .dir-page .sap-band{padding-top:var(--page-pad-t);display:flex;flex-direction:column;gap:var(--s-2);}
-  .dir-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s-3);flex-wrap:wrap;}
-  .dir-t{margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;line-height:1.2;color:var(--color-text);}
-  .dir-find input{height:var(--ctl-h);min-width:200px;padding:0 var(--s-2);border:1px solid var(--btn-edge);border-radius:var(--radius);
-    background:var(--color-surface);color:var(--color-text);font:inherit;font-size:var(--t-body);}
-  .dir-find input:focus{outline:0;border-color:var(--color-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 25%,transparent);}
+  .dir-page .sap-band{padding-top:var(--page-pad-t);display:flex;flex-direction:column;gap:0;}
   .dir-body{flex:1;min-height:0;}
   .dir-card{display:flex;flex-direction:column;min-height:0;}
   .dir-page.is-ins .dir-card{overflow:hidden;}
   .dir-page:not(.is-ins) .dir-card{max-height:100%;}
-  .dir-stage{flex:1;min-height:0;display:flex;}
-  .dir-scroll{flex:1;min-width:0;min-height:0;overflow:auto;position:relative;}
-  .dir-wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(188px,1fr));gap:var(--s-2);padding:var(--s-3);}
-  .dir-face{display:flex;flex-direction:column;gap:5px;min-width:0;padding:var(--s-3) var(--s-3) 10px;border:1px solid var(--color-divider);
-    border-radius:var(--radius-lg);background:var(--color-surface);cursor:pointer;text-align:left;}
-  .dir-face:hover{border-color:var(--color-neutral-300);background:var(--surface-2);}
-  .dir-face:focus{outline:none;}
-  .dir-face:focus-visible{box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 35%,transparent);}
-  .dir-face.is-sel{border-color:var(--accent-solid);box-shadow:inset 0 0 0 1px var(--accent-solid);}
-  .dir-face .reg-av{width:34px;height:34px;font-size:12px;}
-  .dir-face .dir-name{font-weight:var(--w-strong);font-size:var(--t-card);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .dir-face .dir-sub{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .dir-face .dir-role{font-size:var(--t-meta);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .dir-face .dir-foot{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);margin-top:3px;padding-top:7px;
-    border-top:1px solid var(--surface-2);font-size:var(--t-meta);color:var(--color-neutral-600);min-width:0;}
-  .dir-face .dir-foot > span:first-child{white-space:nowrap;flex:none;}
-  .dir-face .dir-mail{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;}
-  .dir-face .dir-mail a{color:var(--accent-ink);text-decoration:none;}
-  .dir-you{font-size:var(--t-micro);color:var(--color-neutral-600);background:var(--surface-2);border-radius:var(--radius);padding:0 5px;margin-left:4px;font-weight:var(--w-label);vertical-align:1px;}
-  .dir-az{flex:none;width:30px;display:flex;flex-direction:column;align-items:center;padding:var(--s-2) 0;overflow:hidden;border-left:1px solid var(--surface-2);}
-  .dir-az button{flex:0 1 18px;min-height:11px;width:22px;display:grid;place-items:center;border:0;background:none;padding:0;border-radius:3px;
-    font:inherit;font-size:10px;line-height:1;font-weight:var(--w-strong);color:var(--accent-ink);cursor:pointer;}
-  .dir-az button:hover{background:var(--color-accent-100);}
-  .dir-az button.is-dim{color:var(--color-neutral-300);cursor:default;}
-  .dir-az button.is-dim:hover{background:none;}
+  /* the table as drawn: round initials, the name, "(you)" in grey, an
+     away colleague's amber pill; long cells end in an ellipsis, whole on hover */
+  .dir-table tbody tr[data-dir-row]{cursor:pointer;}
+  .dir-table tbody tr[data-dir-row]:focus{outline:none;}
+  .dir-table tbody tr.is-sel td{background:color-mix(in srgb,var(--color-accent) 8%,transparent);}
+  .dir-table tbody tr.is-sel td:first-child{box-shadow:inset 2px 0 0 var(--accent-solid);}
+  .dir-table td.n,.dir-table th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .dir-table td.dir-td-cut{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0;}
+  .ap-table.dir-table :is(td,th){padding-left:12px;padding-right:12px;}
+  .dir-nm{display:flex;align-items:center;gap:8px;min-width:0;}
+  .dir-nm-w{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .dir-tav{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:var(--w-strong);background:var(--color-accent-50);color:var(--accent-ink);border:1px solid var(--color-divider);}
+  .dir-table .dir-name{font-weight:var(--w-label);color:var(--color-text);}
+  .dir-table .dir-mail a{color:var(--color-neutral-600);text-decoration:none;font-size:var(--t-meta);}
+  .dir-table .dir-mail a:hover{color:var(--accent-ink);text-decoration:underline;}
+  .dir-you{font-size:var(--t-body);color:var(--color-neutral-500);margin-left:2px;font-weight:var(--w-body);}
+  .dir-away{display:inline-flex;align-items:center;gap:3px;margin-left:6px;padding:1px 7px;border-radius:999px;background:var(--st-amber-bg);color:var(--st-amber-fg);
+    font-size:var(--t-micro);font-weight:var(--w-label);vertical-align:1px;white-space:nowrap;}
+  .dir-away .ap-for-ic{width:11px;height:11px;flex:none;}
   .dir-empty{padding:28px 14px;}
   .ins-panel .dir-ct{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;width:100%;padding:7px 0;border:0;border-top:1px solid var(--surface-2);
     background:none;font:inherit;font-size:var(--t-body);color:var(--color-text);text-align:left;cursor:pointer;}
@@ -758,5 +806,5 @@ const DIR_CSS = `
 `;
 
 Object.assign(window, { renderDirectory, dirRepaint, dirPeople, dirBook, dirRows, dirMatches, dirTabCount, dirPeopleOfParty, dirRoleWords,
-  dirFaceHtml, dirAzHtml, dirPlace, dirPlacePut, dirOpenParty, dirShowContracts, dirOpenContract, dirPaintPanel, dirSelect, DIR_TABS,
+  dirRowHtml, dirColDefs, dirCellHtml, dirAwayPillHtml, DIR_PAGE, dirOpenPerson, dirPlace, dirPlacePut, dirOpenParty, dirShowContracts, dirOpenContract, dirPaintPanel, dirSelect, DIR_TABS,
   dirWaitingOn, DIR_WAIT_MAX, DIR_WAIT_KIND, DIR_WAIT_OPEN, dirWaitGo, dirSay, dirNamedRoles, DIR_ROLE_NOUN, dirRoleNoun });

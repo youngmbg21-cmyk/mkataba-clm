@@ -270,9 +270,14 @@ describe('f804 (7) a party\'s rows read whole in Jambo\'s panel', () => {
       assert.ok(I18N.split(`${k}:`).length >= 3, `${k} in both books`);
     }
   });
-  test('7c the Waiting on you fact runs across the panel and may wrap', () => {
-    assert.match(fnOf(CU, 'cuPaintCustomerPanel'), /\{ k: 'waiting', label: i18t\('cu_col_waiting'\), v: _cuE\(cuNeedsSay\(r\.needs\)\), wide: true \}/);
-    assert.match(HTML, /\.ins-facts \.wide dd\{white-space:normal;\}/);
+  /* RE-POINTED 19 Oct 2026 (lane A2, round 19 as drawn): the party's facts are
+     the drawing's five rows, the label on the left, a value that may wrap
+     (insRowsHtml) — what waits on you is its own section, not a fact */
+  test('7c the party\'s facts are rows that may wrap; what waits is its own section', () => {
+    const p = fnOf(CU, 'cuPaintCustomerPanel');
+    assert.match(p, /insRowsHtml\(\[/);
+    assert.doesNotMatch(p, /k: 'waiting'/);
+    assert.match(HTML, /\.jl-rows dd\{[^}]*overflow-wrap:anywhere;/);
   });
 });
 
