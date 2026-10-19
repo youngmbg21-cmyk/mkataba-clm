@@ -177,8 +177,16 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
 
     console.log('\n5 · Ready to delete → Review');
     if (await press('#st-att .st-need[data-st-need^="keep:"] .st-need-go', '5a Review')) {
-      const kp = await until(() => { const d = document.getElementById('st-kp-due'); const rows = d ? d.querySelectorAll('tr[data-st-kp-row]').length : 0;
-        return d && rows ? { rows, landed: d.classList.contains('is-landed'), tab: (document.querySelector('.st-ps-tab.is-on') || {}).textContent } : null; }, null, 8000);
+      /* THE WAIT ASKS FOR THE WHOLE STATE (19 Oct 2026): the lander tries again
+         every LAND_WAIT, so the list can be painted a beat before its light is
+         on (measured: rows at 79 ms, lit at 163 ms); a read inside that beat
+         said "not landed" on GitHub's runner. Wait for the rows AND the light,
+         bounded; when the clock runs out, report what stood there. */
+      const kpRead = () => { const d = document.getElementById('st-kp-due'); const rows = d ? d.querySelectorAll('tr[data-st-kp-row]').length : 0;
+        return d && rows ? { rows, landed: d.classList.contains('is-landed'), tab: (document.querySelector('.st-ps-tab.is-on') || {}).textContent } : null; };
+      await until(() => { const d = document.getElementById('st-kp-due');
+        return d && d.querySelector('tr[data-st-kp-row]') && d.classList.contains('is-landed') ? true : null; }, null, 8000);
+      const kp = await page.evaluate(kpRead);
       check('5a the Keeping tab, the contracts listed, landed on', !!kp && kp.rows === 2 && kp.landed, JSON.stringify(kp));
       await shot(page, '25-review-keeping-1440x780');
       await press('#st-dfoot [data-st-dclose]', 'close'); await until(() => !document.querySelector('#st-drawer.open'));

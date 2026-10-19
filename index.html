@@ -14048,7 +14048,13 @@
   .jl-bub .late{color:var(--st-ruby-fg);font-weight:var(--w-label);}
   .jl-src{margin:-2px 0 2px 34px;font-size:var(--t-micro);color:var(--color-neutral-600);}
   .jl-chips{display:flex;flex-wrap:wrap;gap:6px;margin-left:34px;}
-  .jl-chip{border:1px solid var(--color-accent-100);background:var(--color-surface);color:var(--accent-ink);border-radius:999px;padding:3px 10px;font:inherit;font-size:var(--t-meta);cursor:pointer;line-height:1.4;text-align:left;}
+  /* a resting chip wears the ONE light edge every outlined control does
+     (--btn-edge; owner, 13 Oct 2026 "the previous thin grey outline") — round
+     16's drawing paints "plan my week" on the very edge of Mark done and Open
+     every week; the accent comes only on hover. Dark mode keeps the edge the
+     colour census recorded (owner: "Dark mode should stay as is today") */
+  .jl-chip{border:1px solid var(--btn-edge,var(--color-divider));background:var(--color-surface);color:var(--accent-ink);border-radius:999px;padding:3px 10px;font:inherit;font-size:var(--t-meta);cursor:pointer;line-height:1.4;text-align:left;}
+  html.dark .jl-chip:not(:hover){border-color:var(--color-accent-100);}
   .jl-chip:hover{background:var(--color-accent-50);border-color:var(--color-accent-300,var(--color-accent-100));}
   .jl-chip:focus-visible{outline:2px solid var(--accent-ink);outline-offset:1px;}
   .jl-feed{padding:6px 14px 14px;display:flex;flex-direction:column;gap:12px;}

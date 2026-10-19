@@ -109,7 +109,13 @@ const SIGNED = { ...H.fixtureContract('MK-P1', 'Warehousing Services', 'Apex Log
        counts where the drawing does */
     ok('3a Approvals says its counts on the title\'s line (no band); Obligations keeps its band',
       ap.bottom === null && /yours to answer|waiting on others|Nothing/i.test(ap.facts) && ob.bottom !== null, `${ob.bottom} · approvals "${ap.facts}"`);
-    ok('3b no "we owe" line under the title', !ob.facts, ob.facts);
+    /* RE-POINTED 19 Oct 2026 (round 16 as drawn: "Obligations 11 outstanding ·
+       1 overdue" — the owner's yes reversed 9 Oct's no-facts-line ruling): the
+       title's line now carries the drawing's two counts, read off this
+       fixture's three open duties, one of them late. The real claim stays:
+       the old "we owe …" place is gone and nothing else rides there. */
+    ok('3b no "we owe" line — the title says the drawing\'s counts only',
+      /^3 outstanding · 1 overdue$/.test(ob.facts) && !/we owe/i.test(ob.facts), ob.facts);
 
     console.log('\n4 · All is first');
     ok('4a on the Obligations page', ob.tabs[0] === 'all', ob.tabs.join(','));
