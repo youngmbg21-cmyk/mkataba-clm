@@ -155,8 +155,8 @@ const check = (name, pass, detail) => {
     /* ---- 5 Settings ---- */
     await part('5', async () => {
       await page.evaluate(() => setView('team'));
-      await until(() => document.getElementById('st-jb-q') && document.querySelector('#st-jb-feed [data-st-jb-land]'), null, 8000);
-      const S0 = await page.evaluate(() => ({ trail: !document.getElementById('st-jb-trail').hidden, land: !document.querySelector('#st-jb-feed [data-st-jb-land]').hidden,
+      await until(() => document.getElementById('st-jb-q') && document.querySelector('#st-jb-feed > *'), null, 8000);
+      const S0 = await page.evaluate(() => ({ trail: !document.getElementById('st-jb-trail').hidden, land: !document.querySelector('#st-jb-feed [data-st-jb-talk]') || !document.querySelector('#st-jb-feed [data-st-jb-land]').hidden,
         tab: (document.querySelector('#st-side-tab-jambo') || {}).textContent }));
       check('5a Settings lands on its own words, its tab "Overview"', !S0.trail && S0.land && /Overview/.test(S0.tab || ''), JSON.stringify(S0));
       await ask('#st-jb-q', 'what is a sealed PDF?');

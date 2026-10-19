@@ -1671,7 +1671,12 @@ function caGo(a){
 /* a move that stays on Home repaints the panel so its back row is current.
    A "GO TO" ASK TAKES YOU THERE (owner, 19 Oct 2026): the place lands on its
    own panel — the conversation view Home's panel had turned to closes */
-function caGoRepaint(){ try { if (typeof pdTalkShows === 'function' && pdTalkShows() && typeof pdTalkClose === 'function') pdTalkClose(); } catch (_){}
+function caGoRepaint(){ try {
+    /* the go's own words were said on the page left behind (the view may
+       already be another, so pdTalkShows reads false there): Home's panel
+       counts them as heard, and the destination lands fresh (19 Oct 2026) */
+    const k = (typeof jamboTalkKey === 'function') ? String(jamboTalkKey() || '') : '';
+    if (((typeof pdTalkShows === 'function' && pdTalkShows()) || k.indexOf('dock:') === 0) && typeof pdTalkClose === 'function') pdTalkClose(); } catch (_){}
   setTimeout(() => { try { if (typeof state !== 'undefined' && state && state.view === 'dashboard' && typeof renderIntelDock === 'function') renderIntelDock(); } catch (_){} }, 0); }
 /* the top bar's search: the same words, and the same move */
 function caPlaceRows(q){

@@ -3336,9 +3336,8 @@ function stJbTurnAdd(t){
   if(t&&Number(t.id)<=_stTalk.from) _stTalk.from=Number(t.id)-1;
   const feed=document.getElementById('st-jb-feed'); if(!feed) return;
   if(typeof jamboTalkOpen==='function') jamboTalkOpen(stTalkKey(), feed);
-  let T=feed.querySelector(':scope > [data-st-jb-talk]');
-  if(!T){ feed.innerHTML=stJbFeedHtml(); T=feed.querySelector(':scope > [data-st-jb-talk]'); }
-  else if(t&&!T.querySelector(`[data-st-jb-turn="${t.id}"]`)) T.insertAdjacentHTML('beforeend', stJbTurnHtml(t));
+  const T=stJbTalkWrap(feed);
+  if(t&&!T.querySelector(`[data-st-jb-turn="${t.id}"]`)) T.insertAdjacentHTML('beforeend', stJbTurnHtml(t));
   stJbTalkPaint();
   feed.scrollTop=feed.scrollHeight;
 }
@@ -3570,7 +3569,23 @@ function stJbFeedHtml(){
   stTalkLand();
   const on=stTalkShows();
   const land=_stSwPick&&_stPage==='streams'?stSwPanelHtml(_stSwPick):stJbLandHtml();
-  return `<div class="st-jb-land" data-st-jb-land data-jt-land${on?' hidden':''}>${land}</div><div class="st-jb-talk" data-st-jb-talk data-jt-talk${on?'':' hidden'}>${stTalkTurns().map(stJbTurnHtml).join('')}</div>`;
+  /* landed and never turned: the page's words stand in the feed bare — no
+     wrapper, no empty conversation (the colour census counts what is drawn);
+     the two views are made the first time a turn is said (stJbTalkWrap) */
+  if(!on) return land;
+  return stJbLandWrapHtml(land,true)+stJbTalkWrapHtml(false);
+}
+function stJbLandWrapHtml(land, hide){ return `<div class="st-jb-land" data-st-jb-land data-jt-land${hide?' hidden':''}>${land}</div>`; }
+function stJbTalkWrapHtml(hide){ return `<div class="st-jb-talk" data-st-jb-talk data-jt-talk${hide?' hidden':''}>${stTalkTurns().map(stJbTurnHtml).join('')}</div>`; }
+/* the landing as left goes into its own view (nothing redrawn, so an open
+   row and its scrolls stay), the conversation beside it */
+function stJbTalkWrap(feed){
+  let T=feed.querySelector(':scope > [data-st-jb-talk]'); if(T) return T;
+  let L=feed.querySelector(':scope > [data-st-jb-land]');
+  if(!L){ L=document.createElement('div'); L.className='st-jb-land'; L.setAttribute('data-st-jb-land',''); L.setAttribute('data-jt-land','');
+    while(feed.firstChild) L.appendChild(feed.firstChild); feed.appendChild(L); }
+  feed.insertAdjacentHTML('beforeend', stJbTalkWrapHtml(true));
+  return feed.querySelector(':scope > [data-st-jb-talk]');
 }
 /* WHAT JAMBO SAYS FIRST, for the page in front */
 function stJbLandHtml(){

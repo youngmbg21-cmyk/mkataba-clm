@@ -180,7 +180,9 @@ describe('f840 (2) Home\'s panel', () => {
     assert.match(f, /return top\|\|`<div class="ig-welcome/, 'the landing: its own words only');
     assert.match(f, /return !talk&&!\(window\.pdShowsDesk&&pdShowsDesk\(\)\)/, 'chips only on the landing');
     assert.match(f, /\$\{!talk&&\(\(window\.pdShowsDesk&&pdShowsDesk\(\)\)\|\|igFindingsShows\(\)\|\|igGuideShows\(\)\)\?'':`<div class="p-3 border-t/, 'the box on both views');
-    assert.match(code(fnOf(CA, 'caGoRepaint')), /pdTalkShows\(\) && typeof pdTalkClose === 'function'\) pdTalkClose\(\);/, 'a "go to" lands on the place\'s own panel');
+    /* (19 Oct 2026) the go's words count as heard even when the view has
+       already moved (pdTalkShows reads false off Home): the record's dock key */
+    assert.match(code(fnOf(CA, 'caGoRepaint')), /pdTalkShows\(\)\) \|\| k\.indexOf\('dock:'\) === 0\) && typeof pdTalkClose === 'function'\) pdTalkClose\(\);/, 'a "go to" lands on the place\'s own panel');
   });
 });
 
@@ -229,8 +231,9 @@ describe('f840 (4) Settings', () => {
     const { settingsStage } = require('./settingsworld.js');
     const g = settingsStage();
     assert.ok(g.$('st-jb-trail').hidden, 'lands on its own words');
-    const land = g.q('#st-jb-feed [data-st-jb-land]'), talk = g.q('#st-jb-feed [data-st-jb-talk]');
-    assert.ok(land && talk && !land.hidden && talk.hidden);
+    /* landed, never turned: the page's words stand bare, no conversation
+       drawn yet (the colour census counts what is drawn) */
+    assert.ok(g.q('#st-jb-feed > *') && !g.q('#st-jb-feed [data-st-jb-talk]'), 'its own words, no conversation drawn');
     g.sb.stJbAsk('what is a sealed PDF?');
     assert.ok(g.q('#st-jb-feed [data-st-jb-land]').hidden, 'the landing out of sight');
     assert.ok(!g.q('#st-jb-feed [data-st-jb-talk]').hidden, 'the conversation in front');
@@ -243,7 +246,8 @@ describe('f840 (4) Settings', () => {
     assert.ok(g.$('st-jb-trail').hidden);
     g.sb.stJbAsk('again');
     g.sb.settingsGoTab('company');
-    assert.ok(g.q('#st-jb-feed [data-st-jb-talk]').hidden, 'another page lands on its own panel');
+    const tk = g.q('#st-jb-feed [data-st-jb-talk]');
+    assert.ok(!tk || tk.hidden, 'another page lands on its own panel');
     assert.equal(g.q('#st-jb-feed [data-st-jb-talk] [data-st-jb-turn]'), null, 'fresh');
   });
   test('4b an ask no longer lets the stream shown go: it stays the landing', () => {
