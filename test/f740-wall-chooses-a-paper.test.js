@@ -272,14 +272,18 @@ describe('f740 (6) pass 4: as you scroll, one number, the doors whole', () => {
     /* the wall's own box is the scroller on the desk (the browser check found the box around it never scrolls): heard there too */
     assert.match(IG, /document\.addEventListener\('scroll',e=>\{[^\n]*\n\s+if\(sc&&\(sc\.id==='ig-wall'\|\|\(sc\.querySelector&&sc\.querySelector\('#ig-wall'\)\)\)\) igWallScrollNear\(sc\); \},true\);/, 'a reader\'s scroll, heard on the wall\'s own box and on its way down');
   });
-  test('6b his tab: the Counter\'s own number beside a chosen paper, a page, its History and the wall at rest; the Board at rest keeps its card\'s', () => {
+  /* RE-POINTED AT THE INTEGRATION (19 Oct 2026): this pinned the Board at rest
+     carrying its own Needs you card's number (hbNeedsCount). Round 17 as drawn
+     (lane B2, the owner's yes) took that card off the Board — Needs you lives on
+     Home — so the Board at rest carries Home's own number too, as everywhere. */
+  test('6b his tab: the Counter\'s own number beside a chosen paper, a page, its History, the wall at rest and the Board at rest', () => {
     const ctx = { Array, Number, String, Object, state: { view: 'dashboard' }, face: 'board', holds: '', contract: null, paper: false,
       counterNeedsCount: () => 16, hbNeedsCount: () => 14 };
     ctx.window = ctx;
     ctx.hbFace = () => ctx.face; ctx.pdHolds = () => ctx.holds; ctx.pdContract = () => ctx.contract; ctx.igHomePaperFace = () => (ctx.face === 'paper' ? true : null);
     vm.createContext(ctx); vm.runInContext(fnBody(PD, 'pdTabCount'), ctx);
     const n = () => { const r = ctx.pdTabCount('copilot', null); return r ? r.n : 0; };
-    assert.equal(n(), 14, 'the Board at rest: its own Needs you card');
+    assert.equal(n(), 16, 'the Board at rest: Home\'s own number (round 17: the card left the Board)');
     ctx.holds = 'card'; assert.equal(n(), 16, 'a page brought up');
     ctx.holds = 'hist'; assert.equal(n(), 16, 'its History');
     ctx.face = 'paper'; ctx.holds = 'chosen'; assert.equal(n(), 16, 'a paper chosen on the wall');

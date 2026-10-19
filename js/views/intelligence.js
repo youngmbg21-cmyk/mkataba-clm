@@ -7710,7 +7710,7 @@ function renderIntelDock(){
              rounds 13, 7 and 12 — "Contract", "<ref> at a glance", "<ref> ·
              History", pdHeadWord; round 17 — "Board" beside Jambo on the Board,
              hbHeadWord), nothing where it holds his own words */}
-      ${(()=>{ const w=((typeof window.pdHeadWord==='function')?pdHeadWord():'')||((typeof window.hbHeadWord==='function')?hbHeadWord():''); return w?`<span class="igd-head-w" title="${igEsc(w)}">${igEsc(w)}</span>`:''; })()}
+      ${(()=>{ const w=(typeof window.pdHeadWord==='function')?pdHeadWord():''; return w?`<span class="igd-head-w" title="${igEsc(w)}">${igEsc(w)}</span>`:''; })()||(()=>{ const w=(typeof window.hbHeadWord==='function')?hbHeadWord():''; return w?`<span class="igd-head-w" title="${igEsc(w)}">${igEsc(w)}</span>`:''; })()}
       <span class="flex-1"></span>
       ${(()=>{ const b=(typeof copilotBrainInfo==='function')?copilotBrainInfo():{live:true};
         return b.live?'':`<span title="${igEsc(b.hint||'')}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">○ ${igEsc(i18t('int_basic_mode'))}</span>`; })()}

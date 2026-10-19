@@ -2269,9 +2269,11 @@ function pdNeedsHtml(c){
 function pdNeedsRepaint(){
   const pin = (typeof document !== 'undefined') ? document.getElementById('pd-pin') : null; if (!pin) return;
   const c = pdContract(); if (!c || String(c.id) !== pin.getAttribute('data-pd-pin-for')) return;
-  const html = pdNeedsHtml(c);
-  if (pin.innerHTML !== html) pin.innerHTML = html;
-  /* the hint line's keys follow Needs you here (round 3: "/ lists the places.") */
+  const html = pdNeedsHtml(c), was = pin.innerHTML;
+  if (was !== html) pin.innerHTML = html;
+  /* the hint line's keys follow Needs you here (round 3: "/ lists the places."),
+     emptying as well as filling */
+  if (!html){ if (was && typeof window !== 'undefined' && typeof window.igHintPaint === 'function') try { igHintPaint(); } catch (_){} return; }
   if (typeof window !== 'undefined' && typeof window.igHintPaint === 'function') try { igHintPaint(); } catch (_){}
 }
 /* ---- A ROW THAT GOES IS TICKED OFF FIRST (owner picked "Alive" by name, 16
