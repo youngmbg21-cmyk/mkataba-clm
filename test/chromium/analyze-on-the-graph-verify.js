@@ -351,6 +351,12 @@ const deliver = (id, answer, citations) => ({ content: [{ type: 'tool_use', id, 
       !nf.btn && !nf.cls && nf.head === nf.before, JSON.stringify(nf));
 
     /* ================= 6. THE BIN ENDS IT ================================== */
+    /* RE-POINTED 19 Oct 2026 (Jambo as a tab you flip to, and back). The owner: "you land on the page
+       and if you want to chat with jambo it takes you to a new jambo tab but you can go back to the
+       landing side panel". The bin is the conversation's, so it stands in the conversation view: a
+       question asked turns the panel there, and the bin still ends the analysis with it. */
+    await page.evaluate(() => intelAsk('what does clause 7 say?'));
+    await page.waitForFunction(() => !intel.busy && !!document.getElementById('igd-history-clear'), null, { timeout: 15000 }).catch(() => {});
     await page.click('#igd-history-clear');
     await page.waitForTimeout(500);
     const gone = await page.evaluate(() => ({ paper: intel.paper, strip: document.getElementById('ig-strip').hidden, canvas: !!document.getElementById('ig-canvas'), host: document.getElementById('ig-paper').hidden }));

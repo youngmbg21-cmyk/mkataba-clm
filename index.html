@@ -3882,8 +3882,8 @@
   .st-cr .st-jb{ flex:1; min-height:0; display:flex; flex-direction:column; }
   .st-cr .st-jb-feed{ flex:1; min-height:0; overflow:auto; background:var(--color-chat-bg); padding:12px; display:flex; flex-direction:column; gap:10px; }
   /* JAMBO AS A TAB YOU FLIP TO (19 Oct 2026): the feed's two views, the landing and the conversation, one at a time */
-  .st-cr .st-jb-feed > .st-jb-land, .st-cr .st-jb-feed > .st-jb-talk{ display:flex; flex-direction:column; gap:10px; }
-  .st-cr .st-jb-feed.is-stream > .st-jb-land{ gap:0; }
+  /* each view is no box of its own (display:contents): its rows sit in the feed's own column exactly as before the flip, so the page paints nothing new */
+  .st-cr .st-jb-feed > .st-jb-land, .st-cr .st-jb-feed > .st-jb-talk{ display:contents; }
   .st-cr .st-jb-feed > .st-jb-land[hidden], .st-cr .st-jb-feed > .st-jb-talk[hidden], .st-cr #st-jb-trail[hidden]{ display:none; }
   .st-cr .st-jb-msg{ display:flex; gap:8px; align-items:flex-start; }
   .st-cr .st-jb-av{ flex:none; border-radius:50%; background:var(--color-surface); }

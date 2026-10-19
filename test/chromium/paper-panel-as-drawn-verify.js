@@ -186,14 +186,22 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
       check('4 Read it runs the free scan (HaTi\'s own rules), its row goes, and no Jambo call is made', !!read && asked.length === 0, JSON.stringify({ read, asked }));
     } else check('4 Read it (nothing to press)', false);
 
-    console.log('\n1h · Needs you here stays at the top while the talk goes on');
+    /* RE-POINTED 19 Oct 2026 (Jambo as a tab you flip to, and back). The owner: "you land on the page and if
+       you want to chat with jambo it takes you to a new jambo tab but you can go back to the landing side
+       panel". The talk is its own view now, so Needs you here no longer rides above it: it stays on the
+       landing, and the back returns there with it pinned at the top as before. */
+    console.log('\n1h · asking flips to the conversation; the back lands on Needs you here, pinned at the top');
     await page.evaluate(() => intelAsk('what does clause 7 say?'));
-    const pinned = await until(() => { const nd = document.getElementById('pd-needs'), feed = document.getElementById('igd-feed'), pin = document.getElementById('pd-pin'); if (!nd || !feed || !pin) return null;
-      if (feed.scrollHeight <= feed.clientHeight + 4 && !(intel.history || []).length) return null;
-      const n = nd.getBoundingClientRect(), f = feed.getBoundingClientRect();
-      return { inPin: pin.contains(nd), outOfFeed: !feed.contains(nd), above: n.bottom <= f.top + 1, inView: n.top >= 0 && n.bottom <= innerHeight, talk: (intel.history || []).length }; }, null, 10000);
-    check('1h asked something, the conversation scrolls under it and Needs you here stays in view, pinned above it', !!pinned && pinned.inPin && pinned.outOfFeed && pinned.above && pinned.inView && pinned.talk > 0, JSON.stringify(pinned));
+    const flipped = await until(() => { if (!(window.pdTalkShows && pdTalkShows()) || !(intel.history || []).length || intel.busy) return null;
+      const nd = document.getElementById('pd-needs'), r = nd && nd.getBoundingClientRect();
+      return { talk: (intel.history || []).length, needsShown: !!(r && r.width > 0 && r.height > 0), back: !!document.querySelector('#ig-dock .pd-trail [data-pd-back]') }; }, null, 10000);
+    check('1h asked something: the panel turns to the conversation under its trail, Needs you here kept on the landing', !!flipped && flipped.talk > 0 && !flipped.needsShown && flipped.back, JSON.stringify(flipped));
     await shot(page, '3-panel-asked-1440x780');
+    if (flipped && flipped.back) await page.click('#ig-dock .pd-trail [data-pd-back]');
+    const pinned = await until(() => { const nd = document.getElementById('pd-needs'), feed = document.getElementById('igd-feed'), pin = document.getElementById('pd-pin'); if (!nd || !feed || !pin || (window.pdTalkShows && pdTalkShows())) return null;
+      const n = nd.getBoundingClientRect(), f = feed.getBoundingClientRect();
+      return { inPin: pin.contains(nd), outOfFeed: !feed.contains(nd), above: n.bottom <= f.top + 1, inView: n.top >= 0 && n.bottom <= innerHeight }; }, null, 10000);
+    check('1h2 the back: the landing again, Needs you here pinned at the top, in view', !!pinned && pinned.inPin && pinned.outOfFeed && pinned.above && pinned.inView, JSON.stringify(pinned));
     await page.evaluate(() => { intel.history = []; renderIntelDock(); });
 
     console.log('\n5 · the chips');

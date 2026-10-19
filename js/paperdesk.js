@@ -1433,6 +1433,10 @@ function pdTalkSync(dock){
   if (len < _pdTalk.from) _pdTalk = { from: len, seen: len };
   _pdTalk.last = len;
   if (k.indexOf('dock:') !== 0) return false;
+  /* NOTHING SAID HERE, NO CONVERSATION VIEW (19 Oct 2026): a conversation
+     cleared under an open view puts the landing back — an empty talk is never
+     what the panel shows (home-held-contract-verify 3g) */
+  if (len <= _pdTalk.from && !(typeof intel === 'object' && intel && intel.busy) && jamboTalkShows(k) && typeof jamboTalkClose === 'function'){ jamboTalkClose(); _pdTalk.seen = len; }
   /* THE READER'S HAND WINS: an answer that lands after they went back is kept
      in the conversation for the next flip, never pulled up over the landing */
   /* A GUIDE ROW IS NOT TYPING (19 Oct 2026): a press on Explorer's Guide runs
