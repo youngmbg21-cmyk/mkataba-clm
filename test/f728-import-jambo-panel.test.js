@@ -12,6 +12,11 @@
        and Enter on a chosen row still open it.
    (4) The words, in both books; no !important.
    AT THE PARENT (main before this change) every test here FAILS.
+   RE-POINTED 19 Oct 2026 (lane E, round 22 built as drawn): a row of the
+   batch may be a file that did not become a contract (its key 'q:<n>'); the
+   row press is one listener armed at load; the panel's doors are the drawn
+   ones (File it · Open the file · Link it · All the details); the panel is
+   Jambo's shared frame (f772).
    The browser half: test/chromium/import-jambo-panel-verify.js.
    ═══════════════════════════════════════════════════════════════════════════ */
 const { test, describe } = require('node:test');
@@ -40,7 +45,8 @@ describe('f728 (1) a chosen file\'s facts', () => {
         { k: 'expiryDate', label: 'Expiry date' }, { k: 'value', label: 'Value' }] };
     ctx.window = ctx;
     vm.createContext(ctx);
-    vm.runInContext(constLine(MIG, 'migFieldLabel') + constLine(MIG, 'migDay') + fnBody(MIG, 'migSideFacts') + ';this.facts=migSideFacts;', ctx);
+    ctx.migDay = d => 'D:' + d;
+    vm.runInContext(constLine(MIG, 'migFieldLabel') + fnBody(MIG, 'migSideFacts') + ';this.facts=migSideFacts;', ctx);
     return ctx;
   };
   test('1a the review window\'s five, labelled as it labels them', () => {
@@ -64,31 +70,32 @@ describe('f728 (1) a chosen file\'s facts', () => {
 describe('f728 (2) choosing', () => {
   test('2a a press chooses, pressed again it is let go, a gone file is never chosen', () => {
     let painted = 0;
-    const ctx = { _migPick: null, getContract: id => (id === 'MK-1' || id === 'MK-2') ? { id } : null, migSidePaint: () => { painted++; },
-      document: { querySelectorAll: () => [] } };
+    const ctx = { _migPick: null, getContract: id => (id === 'MK-1' || id === 'MK-2') ? { id, _light: false } : null, migSidePaint: () => { painted++; },
+      migState: () => ({ queue: [{ name: 'copy.pdf', status: 'dupe' }] }), document: { querySelectorAll: () => [] } };
     vm.createContext(ctx);
     vm.runInContext(fnBody(MIG, 'migPickSet') + ';this.get=()=>_migPick;', ctx);
     ctx.migPickSet('MK-1'); assert.equal(ctx.get(), 'MK-1');
     ctx.migPickSet('MK-2'); assert.equal(ctx.get(), 'MK-2', 'another row moves it there');
     ctx.migPickSet('MK-2'); assert.equal(ctx.get(), null, 'pressed again, let go');
     ctx.migPickSet('MK-9'); assert.equal(ctx.get(), null, 'a file that is gone is never chosen');
-    assert.equal(painted, 4);
+    ctx.migPickSet('q:0'); assert.equal(ctx.get(), 'q:0', 'a file that did not become a contract is chosen too');
+    ctx.migPickSet('q:7'); assert.equal(ctx.get(), null);
+    assert.equal(painted, 6);
   });
 });
 
 describe('f728 (3) a row press chooses', () => {
   test('3a the row chooses; a double-click, and Enter on a chosen row, open', () => {
-    const r = fnBody(MIG, 'renderMigration');
-    assert.match(r, /el\.addEventListener\('click',\(\)=>migPickSet\(el\.getAttribute\('data-row'\)\)\)/);
-    assert.match(r, /el\.addEventListener\('dblclick',\(\)=>selectContract\(el\.getAttribute\('data-row'\)\)\)/);
-    assert.match(r, /if\(e\.key==='Enter'&&id===_migPick\) selectContract\(id\)/);
-    assert.ok(!/\.forEach\(el=>el\.addEventListener\('click',\(\)=>selectContract/.test(r), 'a row press no longer opens');
-    assert.match(r, /<aside class="mig-side" id="mig-side"/);
+    assert.match(MIG, /if \(\(el = t\.closest\('\.mig-table tbody tr\[data-row\]'\)\)\)\{ migPickSet\(el\.getAttribute\('data-row'\)\); return; \}/);
+    assert.match(MIG, /const id = tr\.getAttribute\('data-row'\); if \(getContract\(id\)\) selectContract\(id\);/, 'a double-click opens');
+    assert.match(MIG, /if \(e\.key === 'Enter' && id === _migPick && getContract\(id\)\) selectContract\(id\); else migPickSet\(id\);/);
+    assert.ok(!/addEventListener\('click',\s*\(\)\s*=>\s*selectContract/.test(MIG), 'a row press does not open');
+    assert.match(fnBody(MIG, 'renderMigration'), /<aside class="ins-panel mig-side" id="mig-side"/);
   });
-  test('3b the panel\'s doors are the row\'s own: Review, Link, Open', () => {
-    const f = fnBody(MIG, 'migSideFileHtml');
-    assert.match(f, /data-mig-side-review=/); assert.match(f, /data-mig-side-link=/); assert.match(f, /data-open=/);
-    assert.match(MIG, /const rv = t\.closest\('\[data-mig-side-review\]'\); if \(rv\) \{ const c = getContract\(rv\.getAttribute\('data-mig-side-review'\)\); if \(c\) openMigReview\(c\);/);
+  test('3b the panel\'s doors as drawn: File it, Open the file, Link it, and the whole review kept', () => {
+    const f = fnBody(MIG, 'migSideRowHtml');
+    assert.match(f, /data-mig-file=/); assert.match(f, /data-mig-check-one=/); assert.match(f, /data-mig-side-link=/); assert.match(f, /data-open=/); assert.match(f, /data-mig-review-full=/);
+    assert.match(MIG, /openMigReview\(c, \{ onDone:ok => /);
   });
 });
 
@@ -103,6 +110,6 @@ describe('f728 (4) the words and the clothes', () => {
   });
   test('4b no !important', () => {
     assert.ok(!/!important/.test(fnBody(MIG, 'renderMigration')));
-    assert.ok(!/!important/.test(fnBody(MIG, 'migSideHtml') + fnBody(MIG, 'migSideFileHtml') + fnBody(MIG, 'migSideBatchHtml')));
+    assert.ok(!/!important/.test(fnBody(MIG, 'migSideRowHtml') + fnBody(MIG, 'migSidePaint') + fnBody(MIG, 'migSideSay')));
   });
 });

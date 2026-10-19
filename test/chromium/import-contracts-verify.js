@@ -19,6 +19,13 @@
      6  A PERSON CONFIRMS: Review opens the details, Confirm & save clears it.
      7  A REFRESH KEEPS IT ALL, and the filed contract is on the Contracts list.
 
+   RE-POINTED 19 Oct 2026 (lane E, round 22 built as drawn): there is no queue
+   card any more — the batch is ONE list of its files (.mig-list), each with
+   its state in words (Left out · Not imported · To check · Filed); the
+   customer's list says how much matched in its own box (.mig-list-box); a
+   person confirms through Jambo's panel ("All the details…" opens the same
+   review window, #mr-save).
+
    No Copilot on this stage: the pattern reader is the path every workspace
    without a key takes. A section that cannot be staged reports its failure
    rather than timing out.
@@ -124,7 +131,7 @@ const MANIFEST = [
       const M = migState();
       return M.queue.map(q => ({ name: q.name, status: q.status, note: q.note || '', id: q.id || '' }));
     });
-    const qtext = await page.evaluate(() => (document.getElementById('mig-queue') || {}).innerText || '');
+    const qtext = await page.evaluate(() => (document.getElementById('mig-list') || {}).innerText || '');
     await page.screenshot({ path: path.join(OUT, '3-batch.png'), fullPage: true });
     const row = n => rows.find(r => r.name === n) || {};
     const acmeId = row('acme_supply_2024.txt').id;
@@ -133,12 +140,14 @@ const MANIFEST = [
         && new Set(rows.filter(r => r.id).map(r => r.id)).size === 3, JSON.stringify(rows.map(r => r.name + ':' + r.status)));
     check('3b an identical copy is skipped and names the contract it matched — never silently',
       row('acme_supply_COPY.txt').status === 'duplicate' && /identical to/.test(row('acme_supply_COPY.txt').note)
-        && /Duplicate/.test(qtext), row('acme_supply_COPY.txt').note);
+        && /acme_supply_COPY\.txt[\s\S]{0,200}Left out[\s\S]{0,40}the same file as MK-/.test(qtext), row('acme_supply_COPY.txt').note);
     check('3c an empty file fails, saying why', row('empty.txt').status === 'error' && /empty file/.test(row('empty.txt').note), row('empty.txt').note);
     check('3d an old .doc Word file is refused before anything is filed', row('old_contract.doc').status === 'word' && !row('old_contract.doc').id
-      && /Word — not read/.test(qtext), row('old_contract.doc').note);
-    check('3e the queue says the batch finished, with every file accounted for', /Batch B-[A-Z0-9]+ finished/.test(qtext) && /6\/6/.test(qtext),
-      qtext.split('\n').slice(0, 2).join(' | '));
+      && /old_contract\.doc[\s\S]{0,200}Not imported[\s\S]{0,40}an old Word \.doc file/.test(qtext), row('old_contract.doc').note);
+    const files6 = await page.evaluate(() => (document.querySelector('.mig-kpi[data-mig-show="all"]') || {}).innerText || '');
+    check('3e the list accounts for every file of the batch: Files 6, each named with its state', /Files\s*6/.test(files6)
+      && ['acme_supply_2024.txt', 'office_lease.txt', 'board_consultancy.txt', 'acme_supply_COPY.txt', 'empty.txt', 'old_contract.doc'].every(n => qtext.includes(n)),
+      files6.replace(/\s+/g, ' ') + ' | ' + qtext.split('\n').slice(0, 2).join(' | '));
 
     /* ===== 4. WHAT WAS FILED — read back from the SERVER ===== */
     const rec = await page.evaluate(async id => {
@@ -157,29 +166,33 @@ const MANIFEST = [
       return tr ? { text: tr.innerText.replace(/\s+/g, ' '), missing: [...tr.querySelectorAll('span[title$="— missing"]')].map(s => s.getAttribute('title')) } : null; }, leaseId);
     check('4c the date it could not read stays empty on the record, and its row shows the end-date gate as missing',
       leaseRow && leaseRow.missing.some(t => /expiry|evergreen|end/i.test(t)), JSON.stringify(leaseRow).slice(0, 220));
-    const tableRows = await page.evaluate(() => document.querySelectorAll('.mig-table tbody tr[data-row]').length);
+    const tableRows = await page.evaluate(() => document.querySelectorAll('.mig-table tbody tr[data-row]:not([data-row^="q:"])').length);
     check('4d the imported list on the page carries exactly the three imported contracts', tableRows === 3, String(tableRows));
 
     /* ===== 5. RECONCILIATION ===== */
     const p5 = await page.evaluate(() => document.getElementById('content').innerText.replace(/\s+/g, ' '));
-    check('5a the figures say how much of the list was matched', /2\/3 Manifest matched/i.test(p5), (p5.match(/\d+\/\d+ Manifest matched/i) || [''])[0]);
+    const listBox = await page.evaluate(() => (document.querySelector('.mig-list-box') || {}).innerText || '');
+    check('5a the list\'s own box says how much of it was matched', /manifest\.csv/.test(listBox) && /2 of 3 matched/.test(listBox), listBox.replace(/\s+/g, ' '));
     check('5b the list row with no file is named', /1 manifest row with no file received/.test(p5) && /never_sent\.pdf/.test(p5));
     check('5c the file with no list row is counted', /1 imported file had no manifest row/.test(p5));
 
     /* ===== 6. A PERSON CONFIRMS ===== */
-    const toReview = await page.evaluate(() => { const b = document.querySelector('[data-mig-review]'); return b ? b.getAttribute('data-mig-review') : ''; });
+    const toReview = await page.evaluate(() => { const r = migRows().find(x => x.c && x.st.k === 'check' && x.c.migration.needsReview); return r ? r.key : ''; });
     check('6 · stage: at least one imported contract is waiting for a person to confirm it', !!toReview);
     if (toReview) {
-      await page.click(`[data-mig-review="${toReview}"]`);
+      await page.evaluate(id => migPickSet(id), toReview);
+      await page.waitForSelector('#mig-side [data-mig-review-full]', { timeout: 6000 }).catch(() => {});
+      await page.click('#mig-side [data-mig-review-full]');
       const opened = await page.waitForSelector('#mr-save', { timeout: 8000 }).then(() => true).catch(() => false);
       check('6a Review opens the details for a person to check', opened);
       if (opened) { await page.click('#mr-save'); await page.waitForTimeout(1500); }
       const after = await page.evaluate(async id => {
         try { await flushSaves(); } catch (_) {}
         const c = await api('contracts/' + encodeURIComponent(id));
-        return { needs: !!(c.migration && c.migration.needsReview), btn: !!document.querySelector(`[data-mig-review="${id}"]`) };
+        const tr = [...document.querySelectorAll('.mig-table tr[data-row]')].find(r => r.getAttribute('data-row') === id);
+        return { needs: !!(c.migration && c.migration.needsReview), filed: !!(tr && tr.classList.contains('is-filed')) };
       }, toReview);
-      check('6b Confirm & save clears it — on the server, and its Review button goes', !after.needs && !after.btn, JSON.stringify(after));
+      check('6b Confirm & save clears it — on the server, and its row says Filed', !after.needs && after.filed, JSON.stringify(after));
     }
 
     /* ===== 7. A REFRESH KEEPS IT ALL ===== */
@@ -187,7 +200,7 @@ const MANIFEST = [
     await page.waitForTimeout(2000);
     await openImport();
     await page.waitForTimeout(800);
-    const kept = await page.evaluate(() => document.querySelectorAll('.mig-table tbody tr[data-row]').length);
+    const kept = await page.evaluate(() => document.querySelectorAll('.mig-table tbody tr[data-row]:not([data-row^="q:"])').length);
     await page.screenshot({ path: path.join(OUT, '7-after-refresh.png'), fullPage: true });
     check('7a after a refresh the three imported contracts are still listed', kept === 3, String(kept));
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));

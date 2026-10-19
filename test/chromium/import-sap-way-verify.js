@@ -10,6 +10,9 @@
        it still opens the file chooser
      4 the owner's three screens: the figures, the strip and the list's head
        in view, nothing sideways
+   RE-POINTED 19 Oct 2026 (lane E, round 22 built as drawn): the figure is
+   "To check" (data-mig-show="check") over the batch's one list, and the
+   list's foot says "N of M shown" (.mig-foot).
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/import-sap-way-verify.js */
 const fs = require('node:fs');
@@ -61,19 +64,19 @@ const body = (title, party) => `${title}\n\nThis Agreement is made between Highl
     /* the run's own last paint lands after migState().running goes false (it
        waits on the server first), so the figure is pressed BY NAME: a handle
        taken now can be a button that paint has already replaced */
-    const door = await page.$('.mig-kpi[data-mig-show="review"]');
-    if (door) await page.click('.mig-kpi[data-mig-show="review"]');
-    const R1 = await until(() => { const b = document.querySelector('.mig-kpi[data-mig-show="review"]'); if (!b || b.getAttribute('aria-pressed') !== 'true') return null;
-      return { ids: [...document.querySelectorAll('.mig-table tbody [data-row]')].map(r => r.getAttribute('data-row')), note: (document.querySelector('.mig-shown') || {}).textContent || '' }; });
+    const door = await page.$('.mig-kpi[data-mig-show="check"]');
+    if (door) await page.click('.mig-kpi[data-mig-show="check"]');
+    const R1 = await until(() => { const b = document.querySelector('.mig-kpi[data-mig-show="check"]'); if (!b || b.getAttribute('aria-pressed') !== 'true') return null;
+      return { ids: [...document.querySelectorAll('.mig-table tbody [data-row]')].map(r => r.getAttribute('data-row')), note: (document.querySelector('.mig-foot') || {}).textContent || '' }; });
     const want = await page.evaluate(() => migContracts().filter(c => c.migration.needsReview).map(c => c.id).sort());
-    check('1 Need review narrows the list to the ones it counts, and says how many of how many', !!R1 && JSON.stringify(R1.ids.slice().sort()) === JSON.stringify(want) && /2 of 3 shown/.test(R1.note),
+    check('1 To check narrows the list to the ones it counts, and says how many of how many', !!R1 && JSON.stringify(R1.ids.slice().sort()) === JSON.stringify(want) && /2 of 3 shown/.test(R1.note),
       JSON.stringify({ R0, R1, want }));
     if (OUT) await page.screenshot({ path: path.join(OUT, 'import-sap-way-1440x780.png') });
 
     /* ---- 2 pressed again, the whole list ---- */
-    if (door) await page.click('.mig-kpi[data-mig-show="review"]');
+    if (door) await page.click('.mig-kpi[data-mig-show="check"]');
     const R2 = await until(n => { const ids = [...document.querySelectorAll('.mig-table tbody [data-row]')].map(r => r.getAttribute('data-row'));
-      return ids.length === n && !document.querySelector('.mig-shown') ? ids : null; }, R0.length);
+      return ids.length === n && new RegExp(n + ' of ' + n + ' shown').test((document.querySelector('.mig-foot') || {}).textContent || '') ? ids : null; }, R0.length);
     check('2 pressed again, the whole list is back', !!R2, JSON.stringify(R2));
 
     /* ---- 3 the strip ---- */

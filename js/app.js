@@ -406,7 +406,9 @@ const PAGE_ACTIONS = {
    CAME BACK 18 Oct 2026 (round 16 as drawn, the owner's "build all the gaps"):
    "Obligations 11 outstanding · 1 overdue" beside the name, Open every week,
    Filter and + Add an obligation at the right (obwPaintHead). */
-const PAGE_HEAD_PAINT = { intake:'ikPaintHead', advice:'adviceHeadPaint', playbook:'pbPaintHead', agents:'agPaintHead', approvals:'apPaintHead', obligations:'obwPaintHead' };
+/* Import (round 22 as drawn, 18 Oct 2026): what the batch is beside the name
+   ("Old contracts from … · started … by you · 24 files") and Choose files… */
+const PAGE_HEAD_PAINT = { intake:'ikPaintHead', advice:'adviceHeadPaint', playbook:'pbPaintHead', agents:'agPaintHead', approvals:'apPaintHead', obligations:'obwPaintHead', migration:'migPaintHead' };
 function pageActionHtml(kind){
   if(kind==='export') return `<button data-page-export class="ui-btn" title="${i18t('ap_export_working_set')}">`+
     `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>${i18t('ap_export')}</button>`;
@@ -1548,6 +1550,8 @@ const PLACE_PARTS={
      boxes and chosen note (round 20 as drawn, 19 Oct 2026) */
   intake:['ikPlace','ikPlacePut'],
   mynotes:['mnPlace','mnPlacePut'],
+  /* Import keeps its figure door, Show all, the chosen file and the check view (round 22, 18 Oct 2026) */
+  migration:['migPlace','migPlacePut'],
 };
 const PLACE_ONE_CONTRACT=['workspace','doc','redline'];
 const PLACE_BACK_MS=6000, PLACE_BACK_EVERY=120, PLACE_SAVE_WAIT=250;
