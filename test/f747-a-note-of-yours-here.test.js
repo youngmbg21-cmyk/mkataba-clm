@@ -188,8 +188,14 @@ describe('f747 (6) Jambo\'s work here, in the drawing\'s words', () => {
     assert.match(html, /data-pd-nd-jw="round" data-pd-nd-key="answer:MK-1">See it</);
   });
   test('6b where Jambo answered none, the quick reading\'s tally, said whole', () => {
-    const { ctx, c } = stage({ round: { n: 2, prepared: 0, tally: { escalate: 1, review: 1 }, since: ago(0) } });
+    /* fixed hours of today, never "now": the word reads the hour it was
+       read (before 06:00 is the night), so a check built on Date.now() went
+       red whenever it ran after midnight */
+    const at = h => { const d = new Date(); d.setHours(h, 0, 0, 0); return d.toISOString(); };
+    const { ctx, c } = stage({ round: { n: 2, prepared: 0, tally: { escalate: 1, review: 1 }, since: at(12) } });
     assert.match(ctx.pdNeedsHtml(c), /<small title="Read today: 1 to escalate · 1 to read yourself">/);
+    const s0 = stage({ round: { n: 2, prepared: 0, tally: { escalate: 1, review: 1 }, since: at(3) } });
+    assert.match(s0.ctx.pdNeedsHtml(s0.c), /<small title="Read overnight: 1 to escalate · 1 to read yourself">/);
     const s1 = stage({ round: { n: 3, prepared: 1, tally: {}, since: ago(3) } });
     assert.match(s1.ctx.pdNeedsHtml(s1.c), /Prepared on [^:]+: answers to 1 of the 3 redlines/);
   });
