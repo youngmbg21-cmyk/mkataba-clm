@@ -21,6 +21,12 @@
        the Parties panel's People door lands here narrowed to the party
      · the phone still draws its People list under More, not a hand-off
 
+   RE-POINTED 19 Oct 2026 (lane A2: round 19 "The SAP way", the People scene;
+   the owner's "build all the gaps" reverses the 13 Oct face cards): the wall
+   is a TABLE, the tabs are the Side box, the reader comes first then everyone
+   by name, there is no A to Z edge, and the Parties panel names its people
+   ("People at <party>"), each row choosing that person here, lit.
+
    Run: node test/chromium/people-directory-verify.js */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
@@ -60,20 +66,23 @@ const signIn = async (page, base, email, pass) => {
   await page.waitForTimeout(2400);
 };
 
-/* What the wall is showing, read off the rendered DOM. */
+/* What the table is showing, read off the rendered DOM. */
 const PAGE = () => {
   const cards = [...document.querySelectorAll('#dir-page [data-dir-row]')];
   const txt = (el, sel) => { const x = el.querySelector(sel); return x ? x.textContent.replace(/\s+/g, ' ').trim() : ''; };
+  const heads = [...document.querySelectorAll('#dir-page thead th')].map(t => t.getAttribute('data-dir-col') || 'name');
+  const col = (c, k) => { const i = heads.indexOf(k); const td = i >= 0 ? c.children[i] : null; return td ? td.textContent.replace(/\s+/g, ' ').trim() : ''; };
+  const side = document.querySelector('#dir-page select[data-dir-f="tab"]');
   return {
     n: cards.length,
     names: cards.map(c => txt(c, '.dir-name')),
-    roles: cards.map(c => txt(c, '.dir-role')),
-    subs: cards.map(c => txt(c, '.dir-sub')),
+    roles: cards.map(c => col(c, 'hati')),
+    subs: cards.map(c => col(c, 'party')),
     mails: cards.map(c => { const a = c.querySelector('.dir-mail a'); return a ? a.getAttribute('href') : null; }),
     words: (document.getElementById('dir-page') || {}).textContent || '',
     manage: !!document.getElementById('dir-manage'),
-    tab: (document.querySelector('#dir-page [data-dir-tab].on') || {}).getAttribute ? document.querySelector('#dir-page [data-dir-tab].on').getAttribute('data-dir-tab') : null,
-    tabs: [...document.querySelectorAll('#dir-page [data-dir-tab]')].map(t => ({ k: t.getAttribute('data-dir-tab'), n: Number((t.querySelector('.n') || {}).textContent || 0) })),
+    tab: side ? side.value : null,
+    tabs: (typeof dirTabCount === 'function') ? DIR_TABS.map(k => ({ k, n: dirTabCount(dirBook(), k) })) : [],
     links: [...document.querySelectorAll('#dir-page a')].map(a => a.getAttribute('href')),
     panel: { id: (document.getElementById('ins-panel') || {}).getAttribute ? document.getElementById('ins-panel').getAttribute('data-ins-id') : null,
       name: txt(document.getElementById('ins-panel') || document.body, '.ins-cp'),
@@ -123,23 +132,24 @@ const PAGE = () => {
     await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'people');
     await page.waitForTimeout(1200);
     const card = await page.evaluate(VISIBLE, '#dir-page .dir-card');
-    check('pressing it lands on a page with the wall on it', card.ok, card.why);
-    const firstFace = await page.evaluate(VISIBLE, '#dir-page .dir-face');
-    check('and a card is a painted thing, not a row', firstFace.ok, firstFace.why);
+    check('pressing it lands on a page with the table on it', card.ok, card.why);
+    const firstFace = await page.evaluate(VISIBLE, '#dir-page #dir-tbody tr[data-dir-row]');
+    check('and a person is a painted row of the table', firstFace.ok, firstFace.why);
 
     const all = await page.evaluate(PAGE);
     const boot = await W.restricted.json('/api/bootstrap');
-    check('Everyone is the tab it opens on', all.tab === 'all', all.tab);
+    check('the Side box opens on Everyone', all.tab === 'all', all.tab);
     const sum = all.tabs.filter(t => t.k !== 'all').reduce((s, t) => s + t.n, 0);
     check('the three sides add up to Everyone, and Everyone is the cards on the wall',
       sum === all.n && (all.tabs.find(t => t.k === 'all') || {}).n === all.n, JSON.stringify(all.tabs) + ' vs ' + all.n);
 
-    /* ---- OUR PEOPLE: the roster, as it was ---- */
-    await page.click('#dir-page [data-dir-tab="ours"]');
+    /* ---- OUR PEOPLE: the roster, the reader first ---- */
+    await page.selectOption('#dir-page select[data-dir-f="tab"]', 'ours');
     await page.waitForTimeout(700);
     const p = await page.evaluate(PAGE);
-    check('Our people is every colleague', p.n === boot.users.length, `${p.n} cards for ${boot.users.length} people`);
-    check('and the admin is named, first', /Amina Otieno/.test(p.names[0]) && /Admin/i.test(p.roles[0]), `${p.names[0]} · ${p.roles[0]}`);
+    check('Our people is every colleague', p.n === boot.users.length, `${p.n} rows for ${boot.users.length} people`);
+    const ai = p.names.findIndex(n => /Amina Otieno/.test(n));
+    check('the reader first, then by name; the admin\'s row says Admin', /Restricted Legal/.test(p.names[0]) && ai > 0 && /Admin/i.test(p.roles[ai]), `${p.names[0]} · ${p.names[ai]} ${p.roles[ai]}`);
     check('each address is a mailto, so the wall can be acted on',
       p.mails.filter(Boolean).length === p.n && p.mails.every(m => !m || m.startsWith('mailto:')), p.mails[0]);
     check('a job title an admin set is printed', /Commercial Counsel/.test(p.words));
@@ -151,20 +161,20 @@ const PAGE = () => {
     check('a non-admin is offered no door to Settings, because they have none', !p.manage);
 
     /* ---- THEIR PEOPLE: the other side, with their party ---- */
-    await page.click('#dir-page [data-dir-tab="theirs"]');
+    await page.selectOption('#dir-page select[data-dir-f="tab"]', 'theirs');
     await page.waitForTimeout(700);
     const t = await page.evaluate(PAGE);
-    check('Their people names at least one outside person', t.n >= 1, `${t.n} cards`);
-    check('each with the party they belong to on the card', t.subs.every(s => s.length > 3 && !/Our side/.test(s)), t.subs[0]);
+    check('Their people names at least one outside person', t.n >= 1, `${t.n} rows`);
+    check('each with the party they belong to on the row', t.subs.every(s => s.length > 3 && !/Highland/.test(s)), t.subs[0]);
     const panel0 = t.panel;
     check('the first card is chosen and the panel describes that person',
       !!panel0.id && panel0.name === t.names[0], `${panel0.name} vs ${t.names[0]}`);
     if (t.n >= 2){
-      await page.click('#dir-page [data-dir-row]:nth-child(2)');
+      await page.click('#dir-page #dir-tbody [data-dir-row]:nth-child(2)');
       await page.waitForTimeout(500);
       const t2 = await page.evaluate(PAGE);
       check('pressing another card moves the panel to them', t2.panel.name === t2.names[1], `${t2.panel.name} vs ${t2.names[1]}`);
-      await page.click('#dir-page [data-dir-row]:nth-child(1)');
+      await page.click('#dir-page #dir-tbody [data-dir-row]:nth-child(1)');
       await page.waitForTimeout(400);
     }
     const acts = (await page.evaluate(PAGE)).panel.acts;
@@ -189,34 +199,15 @@ const PAGE = () => {
     await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'people');
     await page.waitForTimeout(1000);
     const back = await page.evaluate(PAGE);
-    check('the rail brings you back to the tab you were on', back.tab === 'theirs', back.tab);
-    await page.click('#dir-page [data-dir-tab="all"]');
-    await page.waitForTimeout(600);
-    const edge = await page.evaluate(() => {
-      const live = [...document.querySelectorAll('#dir-page .dir-az button:not(.is-dim)')];
-      const dim = document.querySelectorAll('#dir-page .dir-az button.is-dim').length;
-      return { live: live.map(b => b.getAttribute('data-dir-az')), dim, total: live.length + dim };
-    });
-    check('the A to Z edge is drawn, live where somebody is behind the letter, dimmed where nobody is',
-      edge.total >= 26 && edge.live.length >= 1 && edge.dim >= 1, `${edge.live.join('')} live · ${edge.dim} dim`);
-    const last = edge.live[edge.live.length - 1];
-    const moved = await page.evaluate(L => {
-      const sc = document.getElementById('dir-scroll');
-      const before = sc.scrollTop;
-      document.querySelector(`#dir-page .dir-az [data-dir-az="${L}"]`).click();
-      const first = [...document.querySelectorAll('#dir-page .dir-face')].find(f => f.getAttribute('data-dir-letter') === L);
-      const top = first.getBoundingClientRect().top - sc.getBoundingClientRect().top;
-      return { before, after: sc.scrollTop, top: Math.round(top), fits: sc.scrollHeight > sc.clientHeight };
-    }, last);
-    check('pressing a letter puts the first card under it at the top of the wall (or the wall already fits)',
-      !moved.fits || (moved.top >= 0 && moved.top < 40), JSON.stringify(moved));
-    await page.click('#dir-page [data-dir-tab="theirs"]');
-    await page.waitForTimeout(500);
+    check('the rail brings you back to the side you were on', back.tab === 'theirs', back.tab);
+    /* RE-POINTED 19 Oct 2026: the drawing draws no A to Z edge; the table pages
+       instead ("N of M shown · Show more") */
+    const edge = await page.evaluate(() => ({ az: !!document.querySelector('#dir-page .dir-az'), foot: ((document.querySelector('#dir-page .dir-cardfoot') || {}).textContent || '').trim() }));
+    check('no A to Z edge; the foot says how many are shown', !edge.az && /^\d+ of \d+ shown/.test(edge.foot), JSON.stringify(edge));
     await page.reload({ waitUntil: 'networkidle' });
     await page.waitForTimeout(2200);
-    const kept = await page.evaluate(() => ({ view: state.view, tab: (document.querySelector('#dir-page [data-dir-tab].on') || {}).getAttribute
-      ? document.querySelector('#dir-page [data-dir-tab].on').getAttribute('data-dir-tab') : null }));
-    check('a refresh lands on the Directory, on the same tab', kept.view === 'directory' && kept.tab === 'theirs', JSON.stringify(kept));
+    const kept = await page.evaluate(() => ({ view: state.view, tab: (document.querySelector('#dir-page select[data-dir-f="tab"]') || {}).value || null }));
+    check('a refresh lands on People, on the same side', kept.view === 'directory' && kept.tab === 'theirs', JSON.stringify(kept));
 
     await ctx.close();
 
@@ -229,11 +220,12 @@ const PAGE = () => {
     check('a Viewer has the place too', vDoor === 'people', String(vDoor));
     await pv.evaluate(w => { setView('counter'); counterAsk(w); }, 'people');
     await pv.waitForTimeout(1200);
-    await pv.click('#dir-page [data-dir-tab="ours"]');
+    await pv.selectOption('#dir-page select[data-dir-f="tab"]', 'ours');
     await pv.waitForTimeout(600);
     const vp = await pv.evaluate(PAGE);
-    check('and gets the whole roster — reading who is here is their level of access', vp.n >= 5, `${vp.n} cards`);
-    check('marked on their own card', vp.names.some(n => /Vera Reader/.test(n) && /\(you\)|you/i.test(n)), vp.names.find(n => /Vera/.test(n)));
+    check('and gets the whole roster — reading who is here is their level of access', vp.n >= 5, `${vp.n} rows`);
+    const vr = await pv.evaluate(() => { const r = [...document.querySelectorAll('#dir-page [data-dir-row]')].find(x => /Vera Reader/.test(x.textContent)); return r ? r.textContent.replace(/\s+/g, ' ').trim() : ''; });
+    check('marked on their own row', /Vera Reader \(you\)/.test(vr), vr);
     check('a Viewer is offered no door to Settings', !vp.manage);
     await ctxV.close();
 
@@ -276,17 +268,15 @@ const PAGE = () => {
     check('a party with people named is on the Parties page', !!party, party && `${party.key} · ${party.n}`);
     if (party){
       await pa.waitForTimeout(600);
-      const doorP = await pa.evaluate(() => {
-        const b = [...document.querySelectorAll('#ins-panel [data-ins-act]')].find(x => x.getAttribute('data-ins-act') === 'people');
-        return b ? { text: b.textContent.trim(), vis: !!b.offsetParent } : null;
-      });
-      check('its panel carries a People door with the number behind it', !!doorP && doorP.vis && doorP.text.includes(String(party.n)), doorP && doorP.text);
-      await pa.click('#ins-panel [data-ins-act="people"]');
-      await pa.waitForTimeout(1200);
-      const here = await pa.evaluate(() => ({ view: state.view, n: document.querySelectorAll('#dir-page [data-dir-row]').length,
-        party: (document.querySelector('#dir-page select[data-dir-f="party"]') || {}).value || null }));
-      check('and the door lands on the Directory narrowed to that party, with exactly that many cards',
-        here.view === 'directory' && here.n === party.n && here.party === party.key, JSON.stringify(here));
+      /* RE-POINTED 19 Oct 2026 (round 19 as drawn): "People at <party>", a row
+         each; pressing one lands on People with that person chosen and lit */
+      const sec = await pa.evaluate(() => { const s = document.querySelector('#ins-panel .cu-people'); return s ? { head: (s.querySelector('h3') || {}).textContent || '', rows: s.querySelectorAll('[data-cu-pp]').length } : null; });
+      check('its panel names the people at the party, the number on its head the rows under it', !!sec && sec.rows === party.n && sec.head.includes(String(party.n)), JSON.stringify(sec));
+      const who = await pa.evaluate(() => (document.querySelector('#ins-panel [data-cu-pp]') || {}).getAttribute('data-cu-pp'));
+      await pa.click('#ins-panel [data-cu-pp]');
+      await pa.waitForFunction(k => state.view === 'directory' && !!document.querySelector('#dir-tbody tr.is-sel'), who, { timeout: 8000 }).catch(() => {});
+      const here = await pa.evaluate(() => { const r = document.querySelector('#dir-tbody tr.is-sel'); return { view: state.view, sel: r ? r.getAttribute('data-dir-row') : null, lit: !!(r && r.classList.contains('is-landed')) }; });
+      check('and a row lands on People with that person chosen and lit', here.view === 'directory' && here.sel === who && here.lit, JSON.stringify(here));
     }
     await ctxA.close();
 

@@ -704,6 +704,7 @@ function renderDirectory(){
   const sc = document.getElementById('dir-scroll'); if (sc && keep) sc.scrollTop = keep;
   dirWire(host, INS, book, rows);
   if (typing){ const q = document.getElementById('dir-q'); if (q){ q.focus(); const len = q.value.length; try { q.setSelectionRange(len, len); } catch (_) {} } }
+  if (typeof lcPlace === 'function') lcPlace(DIR_SEAT);
   if (INS && typeof insWatchWidth === 'function') insWatchWidth();
   if (typeof setActiveNav === 'function') setActiveNav('directory');
 }

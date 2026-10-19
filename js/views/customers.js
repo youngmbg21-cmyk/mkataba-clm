@@ -217,9 +217,24 @@ function cuNeedTitle(x){
   if (x.it.kind === 'move') return i18t('cu_need_move');
   try { return (typeof insNeedWords === 'function') ? String(insNeedWords(x.c, x.it).title || '') : ''; } catch (_) { return ''; }
 }
+/* THE COLUMN'S SHORT WORDS (round 19 as drawn: "2 redlines · 4 days", "3
+   details to fill", "an approval", "Sara asked for an NDA"): the row already
+   names the party, so the column says the work and how long it has waited;
+   the panel's rows keep the whole title (cuNeedTitle) */
+function cuNeedShort(x){
+  if (!x) return '';
+  const k = x.it.kind;
+  const daysSince = iso => { const d = String(iso || '').slice(0, 10), t = (typeof todayISO === 'function') ? todayISO() : '';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || !t) return ''; const n = Math.max(0, Math.round((Date.parse(t) - Date.parse(d)) / 864e5));
+    return n === 0 ? i18t('ins_days_today') : i18tn('ins_days', n, { n }); };
+  if (k === 'quiet'){ const w = daysSince(x.it.since); const t = i18tn('cu_need_redlines', x.it.n || 1, { n: x.it.n || 1 }); return w ? `${t} · ${w}` : t; }
+  if (k === 'move'){ let w = ''; try { w = (typeof regNegoCols === 'function') ? regNegoCols(x.c).waiting : ''; } catch (_){ w = ''; } return w && w !== '\u2014' ? `${i18t('cu_need_move')} · ${w}` : i18t('cu_need_move'); }
+  if (k === 'approval') return i18t('cu_need_approval_short');
+  return cuNeedTitle(x);
+}
 function cuNeedsSay(list){
   if (!list || !list.length) return '';
-  const t = cuNeedTitle(list[0]);
+  const t = cuNeedShort(list[0]);
   return list.length > 1 ? i18t('cu_need_more', { t, n: list.length - 1 }) : t;
 }
 function cuNeedGo(kind, id){
@@ -721,9 +736,23 @@ function lcPopHtml(seat){
     <div class="lc-foot"><button type="button" class="ui-link" data-lc-reset="${_cuE(seat)}">${_cuE(i18t('cu_cols_reset'))}</button></div>
   </div>`;
 }
+/* the list hangs under its button, over the page — never cut by the card a
+   short list ends early (the card clips what overflows it) */
+function lcPlace(seat){
+  const b = document.querySelector(`[data-lc-btn="${seat}"]`), pop = document.querySelector(`[data-lc-pop="${seat}"]`);
+  if (!b || !pop) return;
+  const r = b.getBoundingClientRect();
+  pop.style.position = 'fixed';
+  pop.style.top = Math.round(r.bottom + 6) + 'px';
+  pop.style.right = Math.max(8, Math.round(window.innerWidth - r.right)) + 'px';
+  pop.style.left = 'auto';
+  pop.style.maxHeight = Math.max(160, window.innerHeight - r.bottom - 16) + 'px';
+  pop.style.overflow = 'auto';
+}
 function lcRepaint(seat, focusSel){
   const pg = LC_PAGES[seat]; if (!pg) return;
   pg.repaint();
+  if (_lcOpen === seat) lcPlace(seat);
   if (focusSel){ const el = document.querySelector(focusSel); if (el) try { el.focus({ preventScroll: true }); } catch (_){} }
 }
 if (typeof document !== 'undefined' && document.addEventListener){
@@ -810,6 +839,9 @@ const LC_CSS = `
   .lc-mv:disabled{opacity:.35;cursor:default;}
   .lc-foot{border-top:1px solid var(--color-divider);margin-top:6px;padding:6px 4px 2px;}
   .lc-more{font-size:inherit;}
+  /* "10 of 27 shown · Show more" reads as one line at the foot's start */
+  .ap-foot.cu-foot{justify-content:flex-start;gap:4px;flex-wrap:wrap;}
+  .ap-foot.cu-foot .lc-shown{white-space:nowrap;}
 `;
 const CU_CSS = `
   .cu-page{height:var(--view-h);box-sizing:border-box;}
@@ -869,12 +901,12 @@ function cuColDefs(){
   const money = cuMoney();
   return [
     { k: 'city', label: i18t('cu_col_city'), w: 108 },
-    { k: 'live', label: i18t('cu_col_live'), r: 1, w: 54 },
-    { k: 'ended', label: i18t('cu_col_ended'), r: 1, w: 60 },
+    { k: 'live', label: i18t('cu_col_live'), r: 1, w: 66 },
+    { k: 'ended', label: i18t('cu_col_ended'), r: 1, w: 86 },
     ...(money ? [{ k: 'paper', label: i18t('cu_col_paper'), r: 1, w: 92 }] : []),
     { k: 'next', label: i18t('cu_col_next_end'), w: 102 },
     { k: 'waiting', label: i18t('cu_col_waiting'), w: 168 },
-    { k: 'nda', label: i18t('cu_col_nda'), w: 116 },
+    { k: 'nda', label: i18t('cu_col_nda'), w: 128 },
   ];
 }
 /* the party's sub-line: "2 agreements · Procurement" — its streams by name */
@@ -1133,6 +1165,7 @@ function renderCustomers(){
   const sc = host.querySelector('.cu-scroll'); if (sc && keep) sc.scrollTop = keep;
   cuWire(host, INS);
   if (typing){ const q = document.getElementById('cu-q'); if (q){ q.focus(); const n = q.value.length; try { q.setSelectionRange(n, n); } catch (_) {} } }
+  if (_lcOpen === 'customers') lcPlace('customers');
   if (editing){ const f = document.getElementById(editing); if (f) try { f.focus({ preventScroll: true }); } catch (_){} }
   if (INS && typeof insWatchWidth === 'function') insWatchWidth();
   if (typeof setActiveNav === 'function') setActiveNav('customers');
@@ -1164,6 +1197,6 @@ Object.assign(window, { cuNeedsOf, cuNeedTitle, cuNeedsSay, cuNeedGo, cuPanelNee
   cuChip,
   /* round 19 as drawn: a party's own facts, the party's standing, the page's
      find box, Columns and the paged foot — People draws the last three too */
-  cuRequestsOf, cuStanding, cuStatusWants, partyRecordOf, partyCityOf, partyOrgNoOf, partyRecordSet, partyRecordOpen, partyCitySuggest, cuCityFromAddress, cuAddrAfterName,
+  cuNeedShort, cuRequestsOf, cuStanding, cuStatusWants, partyRecordOf, partyCityOf, partyOrgNoOf, partyRecordSet, partyRecordOpen, partyCitySuggest, cuCityFromAddress, cuAddrAfterName,
   cuSinceOf, cuShortName, cuOwnerSay, cuAgreementSub, cuPanelPeopleHtml, cuFindHtml, cuCardHtml,
-  LC_CSS, LC_PAGES, lcState, lcShown, lcBtnHtml, lcFootHtml, lcScrollWire, CU_PAGE });
+  LC_CSS, LC_PAGES, lcPlace, lcState, lcShown, lcBtnHtml, lcFootHtml, lcScrollWire, CU_PAGE });

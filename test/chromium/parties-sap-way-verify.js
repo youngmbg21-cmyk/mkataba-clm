@@ -55,8 +55,11 @@ const check = (name, pass, detail) => {
       await page.selectOption('select[data-cu-f="status"]', 'ended');
       S1 = await until(() => { const rows = [...document.querySelectorAll('#cu-tbody [data-cu-cust]')].map(r => r.getAttribute('data-cu-cust')); return rows.length ? rows : null; });
     }
-    check('1 a Status box (All · Live · Ended); Ended narrows to the parties with an ended agreement',
-      JSON.stringify(S0.opts) === JSON.stringify(['all', 'live', 'ended']) && JSON.stringify(S1) === JSON.stringify(['retired supplies ab']), JSON.stringify({ S0, S1 }));
+    /* RE-POINTED 19 Oct 2026 (lane A2, round 19 as drawn): the box opens on
+       Live and lists Live · Ended · All; Ended is the parties everything with
+       has ended (the party's standing, cuStanding) */
+    check('1 a Status box (Live · Ended · All); Ended narrows to the parties everything with has ended',
+      JSON.stringify(S0.opts) === JSON.stringify(['live', 'ended', 'all']) && JSON.stringify(S1) === JSON.stringify(['retired supplies ab']), JSON.stringify({ S0, S1 }));
     if (S0.opts.length){
       await page.selectOption('select[data-cu-f="status"]', 'all');
       await until(n => document.querySelectorAll('#cu-tbody [data-cu-cust]').length === n, S0.n);
@@ -68,10 +71,16 @@ const check = (name, pass, detail) => {
     check('2a "Waiting on you" says what waits, in words', waits.length > 0 && waits.every(r => /[a-z]/i.test(r.w) && !/^\d+$/.test(r.w)), JSON.stringify(W));
     const key = (waits[0] || {}).k;
     await page.click(`#cu-tbody [data-cu-cust="${key}"]`);
+    /* RE-POINTED 19 Oct 2026 (lane A2, round 19 as drawn): the panel's facts are
+       the drawing's five, and what waits is its own section — its first row is
+       the column's first item, said whole (cuNeedTitle; the column says it
+       short, cuNeedShort) */
     const P = await until(k => { const p = document.getElementById('ins-panel'); if (!p || !p.querySelector('.cu-needs')) return null;
-      return { fact: (p.querySelector('[data-ins-fact="waiting"] dd') || {}).textContent || '', needs: p.querySelectorAll('[data-cu-need]').length, ags: p.querySelectorAll('[data-cu-ag]').length,
+      const v = cuView(cuCustomerOf(k));
+      return { first: ((p.querySelector('.cu-needs .cu-li b') || {}).textContent || '').trim(), want: cuNeedTitle(v.needs[0]), col: cuNeedsSay(v.needs),
+        needs: p.querySelectorAll('[data-cu-need]').length, ags: p.querySelectorAll('[data-cu-ag]').length,
         kind: (p.querySelector('[data-cu-need]') || {}).getAttribute ? p.querySelector('[data-cu-need]').getAttribute('data-cu-need') : '' }; }, key);
-    check('2b the panel says the same words', !!P && P.fact === (waits[0] || {}).w, JSON.stringify(P));
+    check('2b the panel\'s Waiting on you begins with the column\'s first item', !!P && P.first === P.want && P.col === (waits[0] || {}).w, JSON.stringify(P));
     check('3a the panel lists what waits, each with its door, and the agreements', !!P && P.needs > 0 && P.ags > 0, JSON.stringify(P));
     if (OUT) await page.screenshot({ path: path.join(OUT, 'parties-sap-way-1440x780.png') });
 

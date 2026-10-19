@@ -114,7 +114,10 @@ CONTRACTS.forEach(c => { if (!c.nda && c.id.startsWith('MK-')) c.expiry = day(40
     if (box){
       await pick('inforce');
       ok('2b In force leaves Givaudan and Naivas', (await keys()) === 'givaudan east africa, naivas supermarkets', await keys());
-      ok('2c …and the foot counts the same: 2 of 6 parties', /^2 of 6 parties/.test((await readList()).foot), (await readList()).foot);
+      /* RE-POINTED 19 Oct 2026 (lane A2, round 19 as drawn): the card's head
+         counts the rows ("Parties 2"), the foot how many of them are drawn */
+      ok('2c …and the list counts the same: "Parties 2", "2 of 2 shown"', /^2 of 2 shown/.test((await readList()).foot)
+        && await page.evaluate(() => (document.querySelector('.cu-card .ap-card-n') || {}).textContent) === '2', (await readList()).foot);
       await pick('unconfirmed');
       ok('2d Not confirmed leaves SAP East Africa', (await keys()) === 'sap east africa', await keys());
       await pick('none');
@@ -139,7 +142,8 @@ CONTRACTS.forEach(c => { if (!c.nda && c.id.startsWith('MK-')) c.expiry = day(40
     const sa = await panelOf('sap east africa');
     ok('3b SAP\'s panel says, in amber, that nobody has confirmed it — and still opens it', !!sa && /nobody has confirmed/.test(sa.text) && sa.amber && sa.door, JSON.stringify(sa));
     const ks = await panelOf('kabras sugar');
-    ok('3c Kabras\'s panel says None, with no door', !!ks && /^NDA ?None$/.test(ks.text) && !ks.door, JSON.stringify(ks));
+    /* RE-POINTED 19 Oct 2026 (round 19 as drawn: "None — no NDA with Kettle & Co, signed or in draft") */
+    ok('3c Kabras\'s panel says None, in the drawing\'s sentence, with no door', !!ks && /^NDA ?None — no NDA with Kabras Sugar, signed or in draft$/.test(ks.text) && !ks.door, JSON.stringify(ks));
     await panelOf('givaudan east africa');
     if (await press('#ins-panel [data-cu-nda]', '3d the door to the NDA')) {
       await page.waitForFunction(() => state.view === 'dashboard' && !!document.querySelector('#bs-strip-ND-GV'), null, { timeout: 8000 }).catch(() => {});

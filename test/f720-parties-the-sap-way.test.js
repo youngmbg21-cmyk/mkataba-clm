@@ -46,14 +46,16 @@ describe('f720 (2) what waits on you, in words', () => {
       needsYouOf: c => c.needs || [], insNeedWords: (c, it) => ({ title: it.kind + ':' + c.id }),
       regMoveWord: c => (c.ours ? { k: 'you' } : null) };
     vm.createContext(ctx);
-    vm.runInContext(['cuWaitingOnYou', 'cuNeedsOf', 'cuNeedTitle', 'cuNeedsSay'].map(n => fnBody(CU, n)).join('\n'), ctx);
+    /* RE-POINTED 19 Oct 2026 (lane A2): the column says each item short (cuNeedShort,
+       "2 redlines · 4 days", "an approval"), the panel whole (cuNeedTitle) */
+    vm.runInContext(['cuWaitingOnYou', 'cuNeedsOf', 'cuNeedTitle', 'cuNeedShort', 'cuNeedsSay'].map(n => fnBody(CU, n)).join('\n'), ctx);
     return ctx;
   };
   test('2a the checklist\'s items, urgent first, then a move of ours it does not name', () => {
     const ctx = stage();
     const list = ctx.cuNeedsOf([{ id: 'A', needs: [{ kind: 'details' }, { kind: 'nope' }] }, { id: 'B', needs: [{ kind: 'approval', urgent: true }] }, { id: 'C', ours: true }]);
     assert.deepEqual(JSON.parse(JSON.stringify(list.map(x => x.it.kind + ':' + x.c.id))), ['approval:B', 'details:A', 'move:C']);
-    assert.equal(ctx.cuNeedsSay(list), 'approval:B · +2 more');
+    assert.equal(ctx.cuNeedsSay(list), 'cu_need_approval_short · +2 more');
     assert.equal(ctx.cuNeedsSay([]), '');
     assert.equal(ctx.cuNeedTitle(list[2]), 'cu_need_move');
   });
