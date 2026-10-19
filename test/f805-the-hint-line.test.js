@@ -116,7 +116,10 @@ describe('f805 (3) both books', () => {
    AT THE PARENT (8dc306a) and before this pass (14b2f8a) these FAIL. */
 describe('f805 (4) the last three boxes: the Counter, the Jambo window, the clause editor', () => {
   test('4a the Counter\'s box: the line right under it, from the builder', () => {
-    assert.match(fnOf(CN, 'counterHtml'), /<div class="ca-pop cn-pop" id="cn-pop" hidden><\/div><\/div>\s*\$\{''\/\*[\s\S]*?\*\/\}\$\{typeof jamboHintHtml === 'function' \? jamboHintHtml\(\) : ''\}\s*<div class="cn-chips">/);
+    assert.match(fnOf(CN, 'counterHtml'), /<div class="ca-pop cn-pop" id="cn-pop" hidden><\/div><\/div>\s*\$\{''\/\*[\s\S]*?\*\/\}\$\{typeof jamboHintHtml === 'function' \? jamboHintHtml\(\) : ''\}\s*<div class="cn-chips"[ >]/);
+    /* RE-POINTED AT THE INTEGRATION (19 Oct 2026): lane G gave the chips row an
+       id (id="cn-chips", repainted in place); the line still sits between the
+       box and the chips */
     assert.match(HTML, /\.cn-ask > \.jb-hint\{margin:-6px 2px 0;text-align:left\}/);
   });
   test('4b the floating window: a host under its box, painted from the builder on every open; off on the phone', () => {

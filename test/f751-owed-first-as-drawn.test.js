@@ -139,14 +139,18 @@ describe('f751 (3) the document\'s card, the fold, the count line', () => {
 describe('f751 (4) the stream: the rule\'s own door', () => {
   test('4a "Moving a contract to another stream is an admin\'s act." with Ask an admin, or when and whom it was asked of', () => {
     assert.equal(BOOKS.en.pd_ff_stream_admin, 'Moving a contract to another stream is an admin’s act.');
-    assert.match(PD, /stAskOpenFor\('refile:' \+ c\.id\)/);
+    /* RE-POINTED AT THE INTEGRATION (19 Oct 2026): lanes C1 and G each wrote
+       the one-press ask; they are ONE function now — stAskDirect(panel, what,
+       why) and its reader stAskOpenOn — for Fill in's row and the Board's card */
+    assert.match(PD, /stAskOpenOn\('refile:' \+ c\.id\)/);
     assert.match(PD, /data-pd-ff-ask>\$\{_pdE\(_pdT\('st_ask_go'\)\)\}<\/button>/);
   });
   test('4b sent by the Ask-an-admin record\'s one route, its reminders and bell as every ask', () => {
-    const f = ST.slice(ST.indexOf('async function stAskDirect('), ST.indexOf('const stAskOpenFor='));
-    assert.match(f, /await api\('settings-asks','POST',\{ what:words, why:'', panel:String\(panel\|\|''\) \}\);/);
+    const f = ST.slice(ST.indexOf('async function stAskDirect('), ST.indexOf('const stAskOpenOn='));
+    assert.match(f, /^async function stAskDirect\(panel, what, why\)\{/);
+    assert.match(f, /await api\('settings-asks','POST',\{ what:words, why:String\(why\|\|''\)\.slice\(0,600\), panel:String\(panel\|\|''\) \}\);/);
     assert.match(f, /await stAsksLoad\(\);/);
-    assert.match(PD, /await stAskDirect\(_pdT\('pd_ff_ask_words', \{ ref, name: String\(c\.name \|\| ''\)\.trim\(\) \}\)/);
+    assert.match(PD, /await stAskDirect\('refile:' \+ c\.id, _pdT\('pd_ff_ask_words', \{ ref, name: String\(c\.name \|\| ''\)\.trim\(\) \}\)/);
   });
   test('4c the words, in both books', () => {
     for (const k of ['pd_ff_saved', 'pd_ff_doc_n_one', 'pd_ff_doc_n_other', 'pd_ff_std', 'pd_ff_use', 'pd_ff_u_days_one', 'pd_ff_u_days_other', 'pd_ff_u_months_one',

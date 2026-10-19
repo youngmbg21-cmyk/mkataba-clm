@@ -827,7 +827,7 @@ function pdFillStreamHtml(c){
      sent, when and whom it was asked of, until an admin answers */
   let ro = '';
   if (!may){
-    const asked = (typeof stAskOpenFor === 'function') ? stAskOpenFor('refile:' + c.id) : null;
+    const asked = (typeof stAskOpenOn === 'function') ? stAskOpenOn('refile:' + c.id) : null;
     const who = (typeof stAdminsSaid === 'function') ? stAdminsSaid() : '';
     const door = (typeof stAskDirect === 'function' && !(typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE));
     ro = `<span class="pd-ff-ro">${_pdE(_pdT('pd_ff_stream_admin'))}${asked
@@ -844,7 +844,7 @@ function pdFillStreamHtml(c){
 async function pdFillStreamAsk(){
   const c = pdContract(); if (!c || typeof stAskDirect !== 'function') return null;
   const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
-  const a = await stAskDirect(_pdT('pd_ff_ask_words', { ref, name: String(c.name || '').trim() }).replace(/\s+/g, ' ').trim(), 'refile:' + c.id);
+  const a = await stAskDirect('refile:' + c.id, _pdT('pd_ff_ask_words', { ref, name: String(c.name || '').trim() }).replace(/\s+/g, ' ').trim(), '');
   pdFillStreamRepaint((typeof getContract === 'function' && getContract(c.id)) || c);
   return a;
 }
