@@ -58,7 +58,10 @@ describe('f716 (2) who leads it', () => {
     assert.equal(regNegoLeadOf({}).short, '—', 'nobody named: a dash');
   });
   test('2b one reading for the panel\'s fact and the column', () => {
-    assert.match(fnBody(REG, 'regNegoFacts'), /const lead=regNegoLeadOf\(c\)\.name;/);
+    /* RE-POINTED 18 Oct 2026 (Jambo's panel, round 14 as drawn: "Lead · You"):
+       the panel says "You" for the reader's own deal, as the column does —
+       still the one reading */
+    assert.match(fnBody(REG, 'regNegoFacts'), /const ld=regNegoLeadOf\(c\), lead=ld\.mine\?ld\.short:ld\.name;/);
     assert.match(REG, /const ld=regNegoLeadOf\(c\);\n\s+CELL\.lead=`<td class="reg-lead" title="\$\{esc\(ld\.name\)\}">\$\{esc\(ld\.short\)\}<\/td>`;/);
     assert.match(REG, /const REG_COL_KEYS_NEGO_INS = \['mk','counterparty','round','changes','waiting','lead'\];/);
   });

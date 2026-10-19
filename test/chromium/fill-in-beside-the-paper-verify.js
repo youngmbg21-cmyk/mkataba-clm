@@ -180,7 +180,8 @@ const FACE = () => {
     const pre = await page.evaluate(() => { const c = getContract(intel.paper.id); return { paper: /Avenyn 12/.test(document.getElementById('ig-canvas').textContent), stored: /Avenyn 12/.test(c.redlineText || ''), owed: tplFormPending(c) }; });
     check('5a the answer shows on the paper while the stored wording waits for the press', up5 && pre.paper && !pre.stored && pre.owed, JSON.stringify(pre));
     await page.screenshot({ path: path.join(OUT, '5-company-preview.png') });
-    await page.click('#pd-fillface [data-tplf-fill]');
+    /* RE-POINTED 18 Oct 2026 (the gaps, round 8, f751): the press is in the document's own card, as drawn */
+    await page.click('#pd-fillface [data-pd-ff-docfill]');
     await waitFor(page, () => { const c = getContract(intel.paper.id); return /Avenyn 12/.test(c.redlineText || ''); }, 3000);
     const post = await page.evaluate(() => { const c = getContract(intel.paper.id); return { stored: /Avenyn 12/.test(c.redlineText || ''), owed: tplFormPending(c) }; });
     check('5b Fill the document writes it into the wording', post.stored && !post.owed, JSON.stringify(post));
@@ -208,10 +209,12 @@ const FACE = () => {
       done.left === 0 && done.line && done.next.some(t => t === 'Send to Parcelway ApS'), JSON.stringify(done));
     await page.screenshot({ path: path.join(OUT, '6-all-in.png') });
 
-    /* ===== 7. × AND THE WORD ===== */
-    await page.click('#pd-fillface [data-pd-ff-close]');
+    /* ===== 7. ‹ JAMBO AND THE WORD ===== */
+    /* RE-POINTED 18 Oct 2026 (the gaps of rounds 8–11 as drawn): the face's head
+       draws no × — its way back is "‹ Jambo" at the end of the panel's own row */
+    await page.click('#ig-dock [data-pd-back="fill"]');
     const closed = await page.evaluate(() => ({ face: !!document.getElementById('pd-fillface'), feed: !!(document.getElementById('igd-feed') && !document.getElementById('igd-feed').hidden), box: !!document.getElementById('igd-input') }));
-    check('7a × goes back to the conversation; the box stays', !closed.face && closed.feed && closed.box, JSON.stringify(closed));
+    check('7a ‹ Jambo goes back to the conversation; the box stays', !closed.face && closed.feed && closed.box, JSON.stringify(closed));
     await page.evaluate(() => intelAsk('fill in'));
     check('7b "fill in" opens the face again', await waitFor(page, () => !!document.getElementById('pd-fillface'), 4000));
 
@@ -256,7 +259,10 @@ const FACE = () => {
           headIn: !!(hr && dr && hr.top >= dr.top - 1 && hr.bottom <= innerHeight), boxIn: !!(br && br.bottom <= innerHeight + 1 && br.top > 0),
           sideways: ff ? ff.scrollWidth - ff.clientWidth : null, firstBox: !!(ff && ff.querySelector('[data-kt]') && ff.querySelector('[data-kt]').getBoundingClientRect().top < innerHeight) }; });
       check(`9 ${w}×${hgt}: the head and the box in sight, nothing sideways, the first box on screen`, m.headIn && m.boxIn && m.sideways <= 1 && m.firstBox, JSON.stringify(m));
-      check(`9 ${w}×${hgt}: the paper does not move or shrink when the face opens`, !!before && before.w === m.w && before.top === m.top, JSON.stringify(before) + ' → ' + JSON.stringify({ w: m.w, top: m.top }));
+      /* RE-POINTED (the gaps' third pass, 18 Oct 2026; round 8 "Owed first" as drawn: the size stands
+         on the paper's line while Fill in is open, nothing above the sheet): the paper keeps its width
+         and moves only UP, by the zoom row's room — never down, never narrower */
+      check(`9 ${w}×${hgt}: the paper keeps its width, and moves only up (the zoom row's room) when the face opens`, !!before && before.w === m.w && m.top <= before.top && before.top - m.top <= 40, JSON.stringify(before) + ' → ' + JSON.stringify({ w: m.w, top: m.top }));
       await page.screenshot({ path: path.join(OUT, `9-${w}x${hgt}.png`) });
     }
 

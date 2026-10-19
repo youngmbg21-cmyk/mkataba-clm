@@ -229,7 +229,7 @@ async function renderCompanyTemplatesSection() {
   host.querySelectorAll('[data-tpllib-open]').forEach(el =>
     el.addEventListener('click', () => openTemplateLibDetail(el.getAttribute('data-tpllib-open'))));
   host.querySelectorAll('[data-tpllib-use]').forEach(el =>
-    el.addEventListener('click', e => { e.stopPropagation(); tplLibNewContract(el.getAttribute('data-tpllib-use')); }));
+    el.addEventListener('click', e => { e.stopPropagation(); (window.tplDraftFrom || tplLibNewContract)(el.getAttribute('data-tpllib-use')); }));
   /* ONE DOOR (24 Sep 2026): this section has no host on any page today, and if
      one draws it again its two buttons are the one door's two starts — never
      the Copilot conversion and the blank-page dialog they used to open. */
@@ -894,7 +894,7 @@ async function openTemplateLibDetail(id) {
   </div>`;
 
   document.getElementById('tpllib-back')?.addEventListener('click', () => setView('templates'));
-  document.getElementById('tpllib-use')?.addEventListener('click', () => tplLibNewContract(t.id));
+  document.getElementById('tpllib-use')?.addEventListener('click', () => (window.tplDraftFrom || tplLibNewContract)(t.id));
   document.getElementById('tpllib-edit-meta')?.addEventListener('click', () => tplLibMetaModal(t));
   document.getElementById('tpllib-edit-wording')?.addEventListener('click', () => tplLibEdit(t.id));
   document.getElementById('tpllib-archive')?.addEventListener('click', async () => {
@@ -1158,6 +1158,21 @@ function tplFormPending(c) {
   if (tplFormSig(form) === form.filledSig) return false;
   try { return templateFormDocHtml(form) !== String(c.redlineText || ''); } catch (_) { return false; }
 }
+/* WHICH ANSWERS THE WORDING DOES NOT CARRY YET (the gaps, round 8 "Owed
+   first", 18 Oct 2026: "3 answers are on the paper as you typed them, not yet
+   in the wording"): the boxes whose answer moved since the wording was last
+   filled (filledSig), read only while tplFormPending says something is owed,
+   so the count and the press can never disagree. */
+function tplFormPendingKeys(c) {
+  if (!tplFormPending(c)) return [];
+  const form = c.templateForm;
+  let was = [];
+  try { was = JSON.parse(form.filledSig) || []; } catch (_) { was = []; }
+  const prev = new Map((Array.isArray(was) ? was : []).filter(x => Array.isArray(x)).map(([k, v]) => [String(k), String(v == null ? '' : v)]));
+  const now = form.values || {};
+  const keys = new Set([...prev.keys(), ...Object.keys(now)]);
+  return [...keys].filter(k => (prev.has(k) ? prev.get(k) : '') !== String(now[k] == null ? '' : now[k]));
+}
 function tplFormPaintFill(c) {
   const fh = window.formHostEl ? formHostEl() : document.getElementById('tplform-section');
   const btn = fh && fh.querySelector('[data-tplf-fill]');
@@ -1319,7 +1334,7 @@ Object.assign(window, { tplFormInputHtml, newPaperBlocked, newPaperBlockLine, ne
   openTemplateLibDetail, tplLibEdit, tplLibCanManage, tplLibCancelPending,
   tplLibSheetHtml, tplLibRestore, tplLibArchivedAsk,
   tplLibNewContract, renderTemplateFormSection, openTemplateConfirm,
-  tplFormPending, tplFormApply, tplFormSig,
+  tplFormPending, tplFormPendingKeys, tplFormApply, tplFormSig,
   tplFormCommit, tplFormBlankClick,
   TPLLIB_CATEGORIES, TPLLIB_STATUS, templateCategories, tplCategoryName, tplCatSaved, tplLibStreamPick,
   addTemplateCategory, renameTemplateCategory, removeTemplateCategory,

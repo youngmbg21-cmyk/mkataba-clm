@@ -14,81 +14,161 @@
    never on a contract, a share, the history or a colleague's screen.
    Copilot reads them only when the person asks.
    ========================================================================== */
-let _mn = { sel:null, mode:'view', filter:'all', form:null, fresh:null };
+let _mn = { sel:null, mode:'view', filter:'all', ct:'', q:'', form:null, fresh:null };
 const MN_WHEN = [['tomorrow',1],['week',7],['two',14],['pick',null],['none',null]];
+/* A REFRESH LANDS AT THE SAME SPOT (the owner's rule; PLACE_PARTS.mynotes):
+   the tab, the Note and Contract boxes and the chosen note. A half-written
+   note is not a place: it comes back through its own draft, as before. */
+function mnPlace(){ return { filter:_mn.filter, ct:_mn.ct, q:_mn.q, sel:_mn.mode === 'view' ? _mn.sel : null }; }
+function mnPlacePut(p){
+  if (!p || typeof p !== 'object') return;
+  _mn.filter = MN_TABS.some(t => t[0] === p.filter) ? p.filter : 'all';
+  _mn.ct = p.ct ? String(p.ct) : ''; _mn.q = p.q ? String(p.q) : '';
+  /* the chosen note waits for the list: it is chosen on the first paint
+     that has notes, and only if it is still among them */
+  _mnBack = p.sel ? String(p.sel) : null;
+}
+let _mnBack = null;
 
 const _mnE = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 const _mnToday = () => (typeof todayISO === 'function' ? todayISO() : new Date().toISOString().slice(0, 10));
 const _mnAdd = (iso, n) => { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
-const _mnDay = iso => { try{ return new Date(iso + 'T00:00:00').toLocaleDateString(langLocale(), { weekday:'short', day:'numeric', month:'short' }); }catch(_){ return iso; } };
+/* "Tue 20 Oct" — the weekday, then the day, no comma (round 20 as drawn) */
+const _mnDay = iso => { try{ const d = new Date(iso + 'T00:00:00'); return `${d.toLocaleDateString(langLocale(), { weekday:'short' })} ${d.toLocaleDateString(langLocale(), { day:'numeric', month:'short' })}`; }catch(_){ return iso; } };
 const _mnShort = iso => { try{ return new Date(iso + 'T00:00:00').toLocaleDateString(langLocale(), { day:'numeric', month:'short' }); }catch(_){ return iso; } };
 
-/* WHERE A NOTE STANDS: one reading for the row's pill, the panel and the
-   filters. */
+/* WHERE A NOTE STANDS: one reading for the row's pill, the panel, the tabs
+   and Jambo's words (round 20 as drawn: "Review today", "Review Tue 20 Oct",
+   "No review day", "Reviewed 14 Oct"). DUE is the bell's own reading
+   (mineNotesDue: a review day on or before today, not yet reviewed) — a day
+   past is "late" inside it; LATER is a day still ahead. */
 function myNoteState(n){
   if (!n) return { k:'later', word:'' };
   if (n.reviewedAt) return { k:'done', word:i18t('mn_reviewed_on', { d:_mnShort(String(n.reviewedAt).slice(0, 10)) }) };
-  if (!n.reviewBy) return { k:'none', word:i18t('mn_no_date') };
+  if (!n.reviewBy) return { k:'none', word:i18t('mn_no_day') };
   const t = _mnToday();
   if (n.reviewBy < t) return { k:'late', word:i18t('mn_overdue', { d:_mnShort(n.reviewBy) }) };
-  if (n.reviewBy <= _mnAdd(t, 7)) return { k:'soon', word:i18t('mn_review_on', { d:_mnShort(n.reviewBy) }) };
-  return { k:'later', word:i18t('mn_review_on', { d:_mnShort(n.reviewBy) }) };
+  if (n.reviewBy === t) return { k:'today', word:i18t('mn_pill_today') };
+  return { k:'later', word:i18t('mn_review_on', { d:_mnDay(n.reviewBy) }) };
+}
+/* THE TABS (round 20 as drawn): All · Due today · Later · Reviewed, each
+   with the count of the list it opens */
+const MN_TABS = [['all','mn_tab_all'],['today','mn_tab_today'],['later','mn_tab_later'],['done','mn_tab_done']];
+const mnInTab = (n, k) => { const st = myNoteState(n).k;
+  return k === 'today' ? (st === 'today' || st === 'late') : k === 'later' ? st === 'later' : k === 'done' ? st === 'done' : true; };
+/* the find box's words: a note's title and words, the passage it holds, and
+   the contract it names */
+function mnHit(n, q){
+  if (!q) return true;
+  const c = _mnContract(n.contractId);
+  return [n.title, n.body, n.quote, c && _mnRef(c), c && c.name, c && c.counterparty].some(x => String(x || '').toLowerCase().includes(q));
+}
+/* THE NOTES THE BOXES LEAVE (Note's words, Contract) — ONE READING for every
+   tab's number and the list under it: the number on a tab is the list it
+   opens (lane A3's second pass) */
+function mnBoxed(){
+  const all = typeof mineList === 'function' ? mineList('note') : [];
+  const q = String(_mn.q || '').trim().toLowerCase();
+  return all.filter(n => (!_mn.ct || (_mn.ct === '-' ? !n.contractId : String(n.contractId || '') === _mn.ct)) && mnHit(n, q));
 }
 function myNotesShown(){
-  const all = typeof mineList === 'function' ? mineList('note') : [];
-  const f = _mn.filter;
-  const list = f === 'due' ? all.filter(n => ['late', 'soon'].includes(myNoteState(n).k))
-    : f === 'done' ? all.filter(n => !!n.reviewedAt)
-    : f.startsWith('c:') ? all.filter(n => String(n.contractId || '') === f.slice(2))
-    : all;
-  const rank = n => ({ late:0, soon:1, later:2, none:3, done:4 }[myNoteState(n).k]);
-  return list.slice().sort((a, b) => rank(a) - rank(b) || String(a.reviewBy || '9').localeCompare(String(b.reviewBy || '9')) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+  const f = MN_TABS.some(t => t[0] === _mn.filter) ? _mn.filter : 'all';
+  const list = mnBoxed().filter(n => mnInTab(n, f));
+  /* DUE FIRST, THEN NEWEST (the list's own head says so) */
+  const rank = n => ({ late:0, today:1, later:2, none:3, done:4 }[myNoteState(n).k]);
+  return list.slice().sort((a, b) => rank(a) - rank(b) || (myNoteState(a).k === 'later' ? String(a.reviewBy || '9').localeCompare(String(b.reviewBy || '9')) : 0) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
 }
 const _mnContract = id => (id && typeof getContract === 'function') ? getContract(id) : null;
 const _mnRef = c => c ? (c.contractNo || c.id) : '';
 function _mnCtName(c){ return c ? String(c.counterparty || c.name || '') : ''; }
+const _mnLock = () => (typeof icon === 'function') ? icon('lock', 'mn-lock') : '';
 
-function myNotesBarHtml(){
+/* THE BAND (round 20 as drawn): "My notes 5 · 🔒 private to you · Jambo reads
+   them only when you ask", + New note at its end; the tabs, and beside them
+   "Note [Words in a note]" and "Contract [Any]" — the Requests band's own
+   boxes (.ik-fb), the contract a filter box instead of a chip per contract */
+function myNotesBandHtml(){
   const all = typeof mineList === 'function' ? mineList('note') : [];
-  const due = all.filter(n => ['late', 'soon'].includes(myNoteState(n).k)).length;
-  const cts = [...new Set(all.map(n => String(n.contractId || '')).filter(Boolean))].slice(0, 6);
-  const chip = (k, w) => `<button type="button" class="mn-chip${_mn.filter === k ? ' on' : ''}" data-mn-filter="${_mnE(k)}" aria-pressed="${_mn.filter === k}">${w}</button>`;
-  return `<div class="mn-bar">
-    <div class="mn-chips" role="group" aria-label="${_mnE(i18t('mn_filter'))}">${chip('all', _mnE(i18t('mn_all', { n:all.length })))}${chip('due', _mnE(i18t('mn_due', { n:due })))}${chip('done', _mnE(i18t('mn_done')))}${
-      cts.map(id => { const c = _mnContract(id); return c ? chip('c:' + id, _mnE(_mnRef(c))) : ''; }).join('')}</div>
-    <span class="g"></span>
-    <button type="button" class="ui-btn ui-btn-sm ui-btn-primary" id="mn-new"${_mn.mode === 'new' ? ' disabled' : ''}>${_mnE(i18t('mn_new'))}</button>
+  const tabs = (typeof insViewTabsHtml === 'function') ? insViewTabsHtml({ attr:'data-mn-tab', cur:_mn.filter, label:i18t('mn_filter'),
+    views:MN_TABS.map(([k, key]) => { const boxed = mnBoxed(); return { k, label:i18t(key), n:boxed.filter(n => mnInTab(n, k)).length }; }) }) : '';
+  const cts = [...new Set(all.map(n => String(n.contractId || '')).filter(Boolean))].map(id => _mnContract(id)).filter(Boolean);
+  const chip = (typeof window.cuChip === 'function') ? window.cuChip : (typeof insChipHtml === 'function' ? insChipHtml : null);
+  const ctBox = chip ? chip({ attr:'data-mn-f', key:'ct', label:i18t('mn_box_contract'), cur:_mn.ct || '', def:'',
+    opts:[['', i18t('mn_box_any')], ...cts.map(c => [c.id, `${_mnRef(c)} · ${_mnCtName(c)}`]), ...(all.some(n => !n.contractId) ? [['-', i18t('mn_no_contract')]] : [])] }) : '';
+  return `<div class="sap-band mn-band ph-card">
+    <div class="mn-head2 ph-top"><div class="mn-hl"><h1 class="mn-t1">${_mnE(i18t('nav_mynotes'))}</h1><span class="mn-hn">${all.length}</span><span class="mn-hs">${_mnLock()}${_mnE(i18t('mn_head_sub'))}</span></div>
+      <button type="button" class="ui-btn ui-btn-primary" id="mn-new">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : ''}${_mnE(i18t('mn_new_btn'))}</button></div>
+    <div class="reg-tabbar ik-tabbar mn-tabbar">${tabs}<div class="reg-filterbar reg-fb ik-fb">
+      <label class="ik-fb-find"><span class="ik-fb-l">${_mnE(i18t('mn_box_note'))}</span><span class="ik-search">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input type="search" id="mn-q" data-mn-q value="${_mnE(_mn.q || '')}" placeholder="${_mnE(i18t('mn_box_note_ph'))}" aria-label="${_mnE(i18t('mn_box_note'))}"></span></label>
+      ${ctBox}</div></div>
   </div>`;
 }
+/* the review pill: today amber, a day ahead quiet, none grey, done green, late red */
+const mnPillHtml = st => `<span class="mn-pill is-${st.k}">${_mnE(st.word)}</span>`;
 function myNotesTableHtml(list){
   if (!list.length){
     const t = (typeof mineList === 'function' && mineList('note').length) ? i18t('mn_none_here') : i18t('mn_empty');
     return typeof emptyStateHtml === 'function' ? emptyStateHtml({ title:t, sub:i18t('mn_empty_sub') }) : `<p class="mn-empty">${_mnE(t)}</p>`;
   }
-  return `<table class="mn-t"><thead><tr><th>${_mnE(i18t('mn_col_note'))}</th><th>${_mnE(i18t('mn_col_contract'))}</th><th>${_mnE(i18t('mn_col_review'))}</th><th>${_mnE(i18t('mn_col_written'))}</th></tr></thead><tbody>${
+  return `<table class="ins-lt mn-t"><colgroup><col><col style="width:32%"><col style="width:184px"><col style="width:84px"></colgroup><thead><tr><th>${_mnE(i18t('mn_col_note'))}</th><th>${_mnE(i18t('mn_col_contract'))}</th><th>${_mnE(i18t('mn_col_review2'))}</th><th>${_mnE(i18t('mn_col_written'))}</th></tr></thead><tbody>${
     list.map(n => { const st = myNoteState(n), c = _mnContract(n.contractId);
-      return `<tr data-mn-row="${_mnE(n.id)}" tabindex="0" class="${String(n.id) === String(_mn.sel) && _mn.mode === 'view' ? 'is-sel' : ''}${String(n.id) === String(_mn.fresh) ? ' is-fresh' : ''}">
-        <td class="t">${_mnE(n.title)}</td>
-        <td>${c ? `${typeof refHtml === 'function' ? refHtml(c) : _mnE(_mnRef(c))} <span class="cp">${_mnE(_mnCtName(c))}</span>` : '<span class="cp">—</span>'}</td>
-        <td><span class="mn-pill is-${st.k}">${_mnE(st.word)}</span></td>
+      return `<tr data-mn-row="${_mnE(n.id)}" data-ins-row="${_mnE(n.id)}" tabindex="0" class="${String(n.id) === String(_mn.sel) && _mn.mode === 'view' ? 'is-sel' : ''}${String(n.id) === String(_mn.fresh) ? ' is-fresh' : ''}"${String(n.id) === String(_mn.sel) && _mn.mode === 'view' ? ' aria-current="true"' : ''}>
+        <td class="t"><span title="${_mnE(n.title)}">${_mnE(n.title)}</span></td>
+        <td class="c">${c ? `${typeof refHtml === 'function' ? refHtml(c) : _mnE(_mnRef(c))} <span class="cp">${_mnE(_mnCtName(c))}</span>` : '<span class="cp">—</span>'}</td>
+        <td>${mnPillHtml(st)}</td>
         <td class="w">${_mnE(_mnShort(String(n.createdAt || '').slice(0, 10)))}</td></tr>`; }).join('')
   }</tbody></table>`;
 }
-function myNoteViewHtml(n){
-  if (!n) return `<p class="mn-side-empty">${_mnE(i18t('mn_pick'))}</p>`;
+/* THE NOTE, AS DRAWN (round 20, scene "My notes"): "🔒 My note · written 15
+   Oct", its title, the review pill and the contract's reference, Mark
+   reviewed · Snooze a week · Open MK-…, its words, Contract and Review as
+   rows ("Today, Mon 19 Oct · in your bell"), the private line, Delete note.
+   ONE BUILDER for Jambo's panel (a wide window) and the card's own side (a
+   narrow one). */
+function myNoteParts(n){
   const st = myNoteState(n), c = _mnContract(n.contractId);
   const open = !n.reviewedAt;
-  return `<h3 class="mn-h">${_mnE(n.title)}</h3>
-    <div class="mn-meta">${c ? `${typeof refHtml === 'function' ? refHtml(c) : _mnE(_mnRef(c))} ${_mnE(_mnCtName(c))}` : _mnE(i18t('mn_no_contract'))}</div>
-    ${n.quote ? `<q class="mn-q">${_mnE(n.quote)}</q>` : ''}
-    <p class="mn-body">${_mnE(n.body)}</p>
-    <div class="mn-meta"><span class="mn-pill is-${st.k}">${_mnE(st.word)}</span><span>${_mnE(i18t('mn_written', { d:_mnShort(String(n.createdAt || '').slice(0, 10)) }))}</span></div>
-    <div class="mn-acts">${open
-      ? `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-mn-act="reviewed">${_mnE(i18t('mn_mark_reviewed'))}</button><button type="button" class="ui-btn ui-btn-sm" data-mn-act="snooze">${_mnE(i18t('mn_snooze'))}</button>`
-      : `<button type="button" class="ui-btn ui-btn-sm mn-undo" data-mn-act="unreview">${_mnE(i18t('mn_undo'))}</button>`}
-      ${c ? `<button type="button" class="ui-btn ui-btn-sm" data-mn-act="open">${_mnE(i18t('mn_open', { ref:_mnRef(c) }))}</button>` : ''}
-      <span class="g"></span><button type="button" class="ui-btn ui-btn-sm mn-del" data-mn-act="delete">${_mnE(i18t('mn_delete'))}</button></div>
-    <p class="mn-priv">${_mnE(i18t('mn_private'))}</p>`;
+  const acts = open
+    ? [{ k:'reviewed', kind:'accent', label:i18t('mn_mark_reviewed'), attrs:'data-mn-act="reviewed"' },
+       { k:'snooze', label:i18t('mn_snooze'), attrs:'data-mn-act="snooze"' }]
+    : [{ k:'unreview', label:i18t('mn_review_again'), attrs:'data-mn-act="unreview" data-mn-undo' }];
+  if (c) acts.push({ k:'open', label:i18t('mn_open', { ref:_mnRef(c) }), attrs:'data-mn-act="open"' });
+  const day = n.reviewBy ? `${_mnDay(n.reviewBy)}` : '';
+  const review = st.k === 'done' ? st.word
+    : st.k === 'none' ? i18t('mn_rv_none')
+    : st.k === 'today' ? i18t('mn_rv_today', { d:day })
+    : st.k === 'late' ? i18t('mn_rv_late', { d:day })
+    : i18t('mn_rv_on', { d:day });
+  const ctLine = c ? [_mnRef(c), c.name || '', c.counterparty || ''].filter(Boolean).join(' · ') : '';
+  const pills = mnPillHtml(st) + (c ? `<span class="mn-ref-chip">${_mnE(_mnRef(c))}</span>` : '');
+  const rows = [{ k:'contract', label:i18t('mn_row_contract'), v:c ? _mnE(ctLine) : '' }, { k:'review', label:i18t('mn_row_review'), v:_mnE(review), tone:st.k === 'late' ? 'ruby' : '' }];
+  const body = `<div class="mn-note">
+      ${n.quote ? `<q class="mn-q">${_mnE(n.quote)}</q>` : ''}
+      <p class="mn-body">${_mnE(n.body)}</p></div>
+    ${typeof insRowsHtml === 'function' ? insRowsHtml(rows, 'mn-rows') : ''}
+    <div class="mn-foot2"><p class="mn-priv">${_mnLock()}<span>${_mnE(i18t('mn_private_all'))}</span></p>
+      <button type="button" class="ui-btn ui-btn-sm mn-del" data-mn-act="delete">${_mnE(i18t('mn_delete_note'))}</button></div>`;
+  return { head:{ eyebrow:`<span class="mn-eb">${_mnLock()}${_mnE(i18t('mn_eb', { d:_mnShort(String(n.createdAt || '').slice(0, 10)) }))}</span>`, title:n.title || '', pills, acts }, body };
+}
+function myNoteViewHtml(n){
+  if (!n) return `<p class="mn-side-empty">${_mnE(i18t('mn_pick'))}</p>`;
+  const p = myNoteParts(n);
+  return (typeof insItemHeadHtml === 'function' ? insItemHeadHtml(p.head) : `<h3 class="mn-h">${_mnE(n.title)}</h3>`) + p.body;
+}
+/* WITH NOTHING CHOSEN, Jambo says the ledger in words counted from it (no
+   call), and that he reads a note only when asked; a chip is the page's own
+   door */
+function mnJlSay(){
+  const all = typeof mineList === 'function' ? mineList('note') : [];
+  const n = all.length, due = all.filter(x => mnInTab(x, 'today')).length, later = all.filter(x => mnInTab(x, 'later')).length;
+  const lines = [n ? i18tn('jl_mn_say_n', n, { n }) : i18t('jl_mn_say_none')];
+  if (due) lines.push(i18tn('jl_mn_say_due', due, { n:due }));
+  if (later) lines.push(i18tn('jl_mn_say_later', later, { n:later }));
+  lines.push(i18t('jl_mn_say_priv'));
+  const chips = [];
+  if (due) chips.push({ label:i18t('jl_mn_chip_due'), run:() => { _mn.filter = 'today'; _mn.mode = 'view'; renderMyNotes(); if (typeof jlLand === 'function') jlLand('first'); } });
+  chips.push({ label:i18t('jl_mn_chip_new'), run:() => myNotesNew() });
+  return { lines:[_mnE(lines.join(' '))], chips, src:i18t('jl_mn_src') };
 }
 function _mnWhenDate(f){
   const w = MN_WHEN.find(x => x[0] === f.when);
@@ -96,14 +176,15 @@ function _mnWhenDate(f){
   if (w[0] === 'pick') return f.date || '';
   return w[1] == null ? '' : _mnAdd(_mnToday(), w[1]);
 }
-function myNoteFormHtml(f){
+function myNoteFormHtml(f, o){
   const ok = !!String(f.body || '').trim();
   const dd = _mnWhenDate(f), c = _mnContract(f.contractId);
   const q = String(f.query || '').toLowerCase();
   const hits = (state.contracts || []).filter(x => !x.archived && (!q || [x.contractNo, x.id, x.name, x.counterparty].join(' ').toLowerCase().includes(q))).slice(0, 8);
   const whenWord = k => i18t('mn_when_' + k);
-  return `<div class="mn-form">
-    <h3 class="mn-h">${_mnE(i18t('mn_new_title'))}</h3>
+  /* in Jambo's panel the head already says "New note" */
+  return `<div class="mn-form${o && o.panel ? ' is-panel' : ''}">
+    ${o && o.panel ? '' : `<h3 class="mn-h">${_mnE(i18t('mn_new_title'))}</h3>`}
     <label for="mn-body">${_mnE(i18t('mn_f_note'))}<textarea id="mn-body" rows="5" maxlength="4000" placeholder="${_mnE(i18t('mn_f_note_ph'))}">${_mnE(f.body || '')}</textarea></label>
     <label for="mn-title">${_mnE(i18t('mn_f_title'))} <span class="mn-hint">${_mnE(i18t('mn_f_title_hint'))}</span><input id="mn-title" type="text" maxlength="120" value="${_mnE(f.title || '')}"></label>
     <div class="mn-field"><label for="mn-ct">${_mnE(i18t('mn_f_contract'))} <span class="mn-hint">${_mnE(i18t('mn_optional'))}</span></label>
@@ -122,21 +203,52 @@ function myNoteFormHtml(f){
     <p class="mn-priv">${_mnE(i18t('mn_private'))}</p>
   </div>`;
 }
+/* TWO SHAPES, ONE PAGE (round 20 as drawn): where the width holds Jambo's
+   panel (insFits, the lists' own rule) the note opens in HIS panel at the
+   window's edge — the list inspector's (insPaintPanel), "Note" in its head,
+   the ask box at its foot; narrower, in the card's own side as before. The
+   band, the table and the note's builder are one in both. */
 function renderMyNotes(){
   const host = document.getElementById('content'); if (!host) return;
   if (typeof mineLoaded === 'function' && !mineLoaded() && typeof mineLoad === 'function')
     mineLoad().then(() => { if (state.view === 'mynotes') renderMyNotes(); });
+  const wide = typeof window.insFits === 'function' && insFits() && typeof window.insPaintPanel === 'function';
   const list = myNotesShown();
-  if (_mn.mode === 'view' && !list.some(n => String(n.id) === String(_mn.sel))) _mn.sel = list[0] ? list[0].id : null;
+  const SEAT = 'mynotes';
+  if (_mnBack && (typeof mineLoaded !== 'function' || mineLoaded())){
+    if (list.some(n => String(n.id) === _mnBack)){ _mn.mode = 'view'; _mn.sel = _mnBack; if (typeof insSelect === 'function') insSelect(SEAT, _mnBack); }
+    _mnBack = null;
+  }
+  if (_mn.mode === 'view'){
+    if (wide && typeof insPick === 'function'){ _mn.sel = insPick(SEAT, list.map(n => String(n.id))); }
+    else if (!list.some(n => String(n.id) === String(_mn.sel))) _mn.sel = list[0] ? list[0].id : null;
+  }
   const n = _mn.sel ? (typeof mineGet === 'function' ? mineGet(_mn.sel) : null) : null;
   const keep = document.activeElement && document.activeElement.id && document.activeElement.closest && document.activeElement.closest('#mn-page') ? document.activeElement.id : '';
   const caret = keep ? document.activeElement.selectionStart : null;
-  host.innerHTML = `<div class="view-enter mn-page" id="mn-page"><style>${myNotesCss()}</style>
-    <div class="mn-head"><span class="ttl">${_mnE(i18t('nav_mynotes'))}</span><span class="mn-sub">${_mnE(i18t('mn_sub'))}</span></div>
-    <section class="mn-card">${myNotesBarHtml()}
-      <div class="mn-split"><div class="mn-wrap scroll-thin">${myNotesTableHtml(list)}</div>
-        <aside class="mn-side scroll-thin" id="mn-side">${_mn.mode === 'new' ? myNoteFormHtml(_mn.form) : myNoteViewHtml(n)}</aside></div>
-    </section></div>`;
+  const all = typeof mineList === 'function' ? mineList('note') : [];
+  const cardT = i18t({ today:'mn_card_today', later:'mn_card_later', done:'mn_card_done' }[_mn.filter] || 'mn_card');
+  const card = `<section class="ins-card mn-card2" aria-label="${_mnE(i18t('nav_mynotes'))}">
+      <div class="ins-cardhead"><h2 class="ins-cardhead-t">${_mnE(cardT)} <span class="ap-card-n is-pill ik-card-n">${list.length}</span> <span class="ik-card-m">${_mnE(i18t('mn_sort'))}</span></h2></div>
+      ${wide ? `<div class="ins-scroll mn-wrap scroll-thin" id="mn-scroll">${myNotesTableHtml(list)}</div>`
+        : `<div class="mn-split"><div class="mn-wrap scroll-thin" id="mn-scroll">${myNotesTableHtml(list)}</div>
+          <aside class="mn-side scroll-thin" id="mn-side">${_mn.mode === 'new' ? myNoteFormHtml(_mn.form) : myNoteViewHtml(n)}</aside></div>`}
+      <div class="ins-foot" data-mn-foot><span>${_mnE(i18t('mn_foot', { n:list.length, of:all.length }))}</span></div>
+    </section>`;
+  host.innerHTML = `<div class="view-enter sap-page ins-page mn-page mn-ins${wide ? '' : ' is-narrow'}" id="mn-page" data-ins-page="mynotes" data-ins="${wide ? 1 : 0}"><style>${myNotesCss()}</style>
+    ${myNotesBandHtml()}
+    <div class="ins-body">${card}${wide ? `<aside id="ins-panel" class="ins-panel" aria-label="${_mnE(i18t('mn_panel_label'))}"></aside>` : ''}</div></div>`;
+  if (wide){
+    const tb = host.querySelector('.mn-t tbody'); if (tb) tb.setAttribute('data-ins-on', '1');
+    /* Jambo's panel: the note ("Note"), the new note's form ("New note"), or
+       his own words with nothing chosen */
+    const base = { seat:SEAT, jlSay:mnJlSay, jlWord:i18t('jl_w_note') };
+    if (_mn.mode === 'new' && _mn.form) insPaintPanel(Object.assign(base, { jlWord:i18t('mn_new_title'), item:{ id:'new' },
+      head:{ eyebrow:`<span class="mn-eb">${_mnLock()}${_mnE(i18t('mn_eb_new'))}</span>`, title:i18t('mn_new_title') },
+      body:`<div class="mn-side mn-side-panel" id="mn-side">${myNoteFormHtml(_mn.form, { panel:true })}</div>` }));
+    else if (n){ const p = myNoteParts(n); insPaintPanel(Object.assign(base, { item:{ id:n.id }, head:p.head, acts:p.head.acts, body:`<div class="mn-side mn-side-panel" id="mn-side">${p.body}</div>` })); }
+    else insPaintPanel(Object.assign(base, { empty:i18t('mn_pick') }));
+  }
   /* THE CARET GOES TO THE NOTE BOX when the form first draws (asked of the
      paint itself, not of a timer racing it); later repaints keep it where the
      reader had it. */
@@ -144,6 +256,7 @@ function renderMyNotes(){
   else if (keep && document.getElementById(keep)){ const el = document.getElementById(keep); el.focus(); try{ if (caret != null) el.setSelectionRange(caret, caret); }catch(_){} }
   myNotesWire();
   if (typeof setActiveNav === 'function') setActiveNav('mynotes');
+  if (typeof insWatchWidth === 'function') insWatchWidth();
 }
 /* A NEW NOTE, from + New note, a contract's ⋯ menu or a highlight on the
    paper (the contract and the words already filled in). */
@@ -151,11 +264,12 @@ function myNotesNew(seed){
   const s = seed || {};
   _mn.mode = 'new';
   _mn.form = { body:'', title:'', contractId:s.contractId || '', quote:s.quote || '', clauseId:s.clauseId || '', when:'week', date:'', query:'', listOpen:false, focus:true };
-  _mn.filter = 'all';
+  _mn.filter = 'all'; _mn.ct = ''; _mn.q = '';
   if (state.view !== 'mynotes' && typeof setView === 'function') setView('mynotes'); else renderMyNotes();
 }
 function myNotesOpen(id){
-  _mn.mode = 'view'; _mn.sel = id; _mn.filter = 'all'; _mn.form = null;
+  _mn.mode = 'view'; _mn.sel = id; _mn.filter = 'all'; _mn.ct = ''; _mn.q = ''; _mn.form = null;
+  if (typeof insSelect === 'function') insSelect('mynotes', id);
   if (state.view !== 'mynotes' && typeof setView === 'function') setView('mynotes'); else renderMyNotes();
 }
 async function myNoteSave(){
@@ -164,6 +278,7 @@ async function myNoteSave(){
   try{
     const it = await mineSave('note', { body:f.body, title:f.title, contractId:f.contractId || '', quote:f.quote || '', clauseId:f.clauseId || '', reviewBy });
     _mn.mode = 'view'; _mn.sel = it.id; _mn.fresh = it.id; _mn.form = null;
+    if (typeof insSelect === 'function') insSelect('mynotes', it.id);
     renderMyNotes();
     if (typeof toast === 'function') toast(reviewBy ? i18t('mn_saved_on', { d:_mnDay(reviewBy) }) : i18t('mn_saved'), 'ok');
   }catch(e){ if (typeof toast === 'function') toast(String((e && (e.error || e.message)) || i18t('mn_not_saved')), 'err'); }
@@ -190,10 +305,12 @@ function myNotesWire(){
     if (state.view !== 'mynotes') return;
     const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('#mn-page')) return;
     const hit = s => t.closest(s); let el;
-    if ((el = hit('#mn-new'))){ myNotesNew(); return; }
+    /* a note being written is kept: + New note brings its form back (after
+       ‹ Jambo put his own words in the panel) rather than starting it again */
+    if ((el = hit('#mn-new'))){ if (_mn.mode === 'new' && _mn.form){ if (typeof insSelect === 'function') insSelect('mynotes', 'new'); renderMyNotes(); return; } myNotesNew(); return; }
     if ((el = hit('#mn-cancel'))){ _mn.mode = 'view'; _mn.form = null; renderMyNotes(); return; }
     if ((el = hit('#mn-save'))){ if (!el.disabled) myNoteSave(); return; }
-    if ((el = hit('[data-mn-filter]'))){ _mn.filter = el.getAttribute('data-mn-filter'); if (_mn.mode === 'view') _mn.sel = null; renderMyNotes(); return; }
+    if ((el = hit('[data-mn-tab]'))){ _mn.filter = el.getAttribute('data-mn-tab'); renderMyNotes(); return; }
     if ((el = hit('[data-mn-when]'))){ _mn.form.when = el.getAttribute('data-mn-when'); renderMyNotes(); if (_mn.form.when === 'pick'){ const d = document.getElementById('mn-date'); if (d) d.focus(); } return; }
     if ((el = hit('[data-mn-ct]'))){ _mn.form.contractId = el.getAttribute('data-mn-ct'); _mn.form.listOpen = false; renderMyNotes(); return; }
     if ((el = hit('[data-mn-act="ct-clear"]'))){ _mn.form.contractId = ''; _mn.form.query = ''; _mn.form.listOpen = true; renderMyNotes(); const i = document.getElementById('mn-ct'); if (i) i.focus(); return; }
@@ -201,11 +318,22 @@ function myNotesWire(){
     if ((el = hit('[data-mn-act]'))){ myNoteAct(el.getAttribute('data-mn-act')); return; }
     if ((el = hit('[data-mn-row]'))){
       if (_mn.mode === 'new' && _mn.form && String(_mn.form.body || '').trim()){ if (typeof toast === 'function') toast(i18t('mn_finish_first'), 'warn'); return; }
-      _mn.mode = 'view'; _mn.form = null; _mn.sel = el.getAttribute('data-mn-row'); _mn.fresh = null; renderMyNotes(); return; }
+      _mn.mode = 'view'; _mn.form = null; _mn.sel = el.getAttribute('data-mn-row'); _mn.fresh = null;
+      if (typeof insSelect === 'function') insSelect('mynotes', _mn.sel);
+      renderMyNotes(); return; }
     if (_mn.form && _mn.form.listOpen && !hit('.mn-picker')){ _mn.form.listOpen = false; renderMyNotes(); }
   });
+  /* the band's Contract box (HaTi's own list dresses its select) */
+  document.addEventListener('change', e => {
+    if (state.view !== 'mynotes') return;
+    const sel = e.target && e.target.closest ? e.target.closest('[data-mn-f]') : null;
+    if (!sel || !sel.closest('#mn-page')) return;
+    if (sel.getAttribute('data-mn-f') === 'ct'){ _mn.ct = sel.value || ''; renderMyNotes(); }
+  });
   document.addEventListener('input', e => {
-    if (state.view !== 'mynotes' || !_mn.form) return;
+    if (state.view !== 'mynotes') return;
+    if (e.target && e.target.id === 'mn-q'){ _mn.q = e.target.value; renderMyNotes(); return; }
+    if (!_mn.form) return;
     const id = e.target && e.target.id;
     if (id === 'mn-body'){ const had = !!String(_mn.form.body || '').trim(); _mn.form.body = e.target.value; if (had !== !!_mn.form.body.trim()) renderMyNotes(); }
     else if (id === 'mn-title') _mn.form.title = e.target.value;
@@ -217,6 +345,11 @@ function myNotesWire(){
     if (e.key === 'Escape' && _mn.form && _mn.form.listOpen){ _mn.form.listOpen = false; renderMyNotes(); return; }
     const row = e.target && e.target.closest ? e.target.closest('[data-mn-row]') : null;
     if (row && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); row.click(); }
+    /* the arrows walk the rows, as on every list beside Jambo's panel */
+    if (row && (e.key === 'ArrowDown' || e.key === 'ArrowUp')){
+      const to = e.key === 'ArrowDown' ? row.nextElementSibling : row.previousElementSibling;
+      if (to && to.hasAttribute('data-mn-row')){ e.preventDefault(); to.click(); const again = document.querySelector(`[data-mn-row="${CSS.escape(to.getAttribute('data-mn-row'))}"]`); if (again) again.focus({ preventScroll:false }); }
+    }
   });
 }
 /* THE RAIL'S COUNT follows the store (mineChanged → here). */
@@ -224,47 +357,68 @@ function paintMyNotesCount(){
   if (typeof updateSidebarCounts === 'function'){ try{ if (typeof navCountsClear === 'function') navCountsClear(); updateSidebarCounts(); }catch(_){} }
 }
 function myNotesCss(){ return `
-  .mn-page{height:var(--view-h, 100%);display:flex;flex-direction:column;min-height:0}
-  .mn-head{flex:none;display:flex;flex-direction:column;gap:2px;background:var(--color-surface);padding:var(--page-pad-t, 16px) var(--s-6) var(--s-3);box-shadow:inset 0 -1px var(--color-divider)}
-  .mn-head .ttl{font-size:var(--t-h2, 20px);font-weight:var(--w-title)}
-  .mn-sub{font-size:var(--t-meta);color:var(--color-neutral-600)}
-  .mn-card{flex:1;min-height:0;margin:var(--s-4) var(--s-6) 20px;display:flex;flex-direction:column;border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:var(--color-surface);overflow:hidden}
-  .mn-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:var(--s-3) var(--s-4);border-bottom:1px solid var(--color-divider)}
-  .mn-bar .g{flex:1}
-  .mn-chips{display:flex;flex-wrap:wrap;gap:6px}
-  .mn-chip{height:var(--ctl-h-sm);padding:0 10px;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);color:var(--color-neutral-700,var(--color-text));font:inherit;font-size:var(--t-label);font-weight:var(--w-label);cursor:pointer}
-  .mn-chip.on{background:var(--color-accent-50);border-color:var(--color-accent-100);color:var(--accent-ink)}
+  .mn-page{min-height:0}
+  /* THE BAND (round 20 as drawn): the page's name, its count and the private
+     line, + New note at the end; the tabs and the two labelled boxes */
+  .mn-ins .sap-band{padding-top:var(--page-pad-t);display:flex;flex-direction:column;gap:var(--s-2)}
+  .mn-head2{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s-3);flex-wrap:wrap}
+  .mn-hl{display:flex;align-items:baseline;gap:6px 10px;flex-wrap:wrap;min-width:0}
+  .mn-t1{margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;line-height:1.2;color:var(--color-text)}
+  .mn-hn{color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
+  .mn-hs{display:inline-flex;align-items:center;gap:5px;font-size:var(--t-meta);color:var(--color-neutral-600)}
+  .mn-lock{width:12px;height:12px;flex:none}
+  .mn-ins.is-narrow .ins-body{grid-template-columns:minmax(0,1fr)}
+  .mn-ins.is-narrow .mn-card2{min-height:0}
   .mn-split{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 380px}
   .mn-wrap{min-width:0;overflow:auto}
   .mn-side{border-left:1px solid var(--color-divider);padding:var(--s-4);overflow:auto;display:flex;flex-direction:column;gap:10px;min-width:0}
-  @media (max-width:1039px){ .mn-split{grid-template-columns:minmax(0,1fr)} .mn-side{border-left:0;border-top:1px solid var(--color-divider)} .mn-page{height:auto} }
-  .mn-t{width:100%;border-collapse:collapse;font-size:var(--t-meta)}
-  .mn-t th{position:sticky;top:0;background:var(--color-surface);text-align:left;font-weight:400;font-size:var(--t-micro);letter-spacing:.06em;text-transform:uppercase;color:var(--cap-ink, var(--color-neutral-600));padding:8px 12px;border-bottom:1px solid var(--color-divider)}
-  .mn-t td{padding:9px 12px;border-bottom:1px solid var(--color-divider);vertical-align:top}
-  .mn-t tr{cursor:pointer}
-  .mn-t tr:hover td{background:var(--surface-2, var(--color-neutral-50))}
-  .mn-t tr.is-sel td{background:var(--color-accent-50)}
+  .mn-side.mn-side-panel{border-left:0;padding:0;overflow:visible;gap:0}
+  @media (max-width:1039px){ .mn-split{grid-template-columns:minmax(0,1fr)} .mn-side{border-left:0;border-top:1px solid var(--color-divider)} }
+  /* THE LIST: the lists' own table, a row a line, the review as a pill */
+  .mn-t tbody tr{cursor:pointer}
+  /* a row a line, as drawn: a note's title, its contract, its review day */
+  .ins-lt.mn-t tbody td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:37px}
+  .mn-t tbody tr:hover td{background:var(--surface-2, var(--color-neutral-50))}
+  .mn-t tbody tr.is-sel td{background:color-mix(in srgb,var(--color-accent) 8%,transparent)}
+  .mn-t tbody tr.is-sel td:first-child{box-shadow:inset 2px 0 0 var(--accent-solid)}
   .mn-t tr.is-fresh td{animation:mnFresh 1.6s ease-out}
   @keyframes mnFresh{from{background:var(--st-green-bg)}to{background:transparent}}
   @media (prefers-reduced-motion:reduce){ .mn-t tr.is-fresh td{animation:none} }
-  .mn-t td.t{font-weight:var(--w-label)}
+  .mn-t td.t{color:var(--color-text)}
   .mn-t .cp,.mn-t td.w{color:var(--color-neutral-600)}
-  .mn-t tr:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:-2px}
-  .mn-pill{display:inline-block;padding:1px 7px;border-radius:3px;font-size:var(--t-label);font-weight:var(--w-label);white-space:nowrap}
+  .mn-t tr:focus{outline:none}
+  .mn-t tr:focus-visible td{box-shadow:inset 0 2px 0 var(--focus-color),inset 0 -2px 0 var(--focus-color)}
+  .mn-pill{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:var(--w-label);white-space:nowrap;border:1px solid transparent}
   .mn-pill.is-late{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
-  .mn-pill.is-soon{background:var(--st-amber-bg);color:var(--st-amber-fg)}
-  .mn-pill.is-later,.mn-pill.is-none{background:var(--surface-2, var(--color-neutral-100));color:var(--color-neutral-700,var(--color-text))}
+  .mn-pill.is-today{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .mn-pill.is-later{background:var(--color-surface);border-color:var(--color-divider);color:var(--color-neutral-600,var(--color-text))}
+  /* on the chosen row's tint a grey pill keeps an edge, so it still reads */
+  .ins-lt tbody tr.is-sel .mn-pill.is-none{box-shadow:inset 0 0 0 1px var(--color-divider)}
+  .mn-pill.is-none{background:var(--st-gray-bg);color:var(--st-gray-fg)}
   .mn-pill.is-done{background:var(--st-green-bg);color:var(--st-green-fg)}
+  /* THE NOTE IN JAMBO'S PANEL (and the card's side, narrower) */
+  .mn-eb{display:inline-flex;align-items:center;gap:5px}
+  .mn-ref-chip{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;background:var(--color-accent-50);color:var(--accent-ink);
+    font-family:var(--font-ref, var(--font-code));font-size:var(--t-label);white-space:nowrap}
+  .mn-note{padding:12px 16px 4px;display:flex;flex-direction:column;gap:10px}
+  .mn-side:not(.mn-side-panel) .mn-note{padding:0}
+  .mn-rows{border-bottom:0}
+  .mn-foot2{padding:8px 16px 16px;display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+  .mn-side:not(.mn-side-panel) .mn-foot2{padding:0}
   .mn-h{margin:0;font-size:var(--t-h3, 16px);font-weight:var(--w-strong)}
   .mn-meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:var(--t-label);color:var(--color-neutral-600)}
   .mn-q{display:block;font-style:italic;font-size:var(--t-meta);border-left:2px solid var(--color-accent-600);padding-left:8px;color:var(--color-neutral-700,var(--color-text))}
-  .mn-body{margin:0;font-size:var(--t-body);line-height:1.6;white-space:pre-wrap}
+  .mn-body{margin:0;font-size:var(--t-body);line-height:1.6;white-space:pre-wrap;color:var(--color-text)}
   .mn-acts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
   .mn-acts .g{flex:1}
-  .mn-del{color:var(--st-ruby-fg)}
-  .mn-undo{background:var(--st-amber-bg);border-color:var(--st-amber-line);color:var(--st-amber-fg)}
-  .mn-priv,.mn-side-empty,.mn-hint{margin:0;font-size:var(--t-label);font-weight:400;color:var(--color-neutral-600)}
+  .mn-del{color:var(--st-ruby-fg);border-color:var(--st-ruby-line, var(--st-ruby-fg))}
+  .mn-del:hover{background:var(--st-ruby-bg)}
+  [data-mn-undo]{background:var(--st-amber-bg);border-color:var(--st-amber-line);color:var(--st-amber-fg)}
+  .mn-priv{display:flex;align-items:flex-start;gap:6px;margin:0;font-size:var(--t-label);font-weight:400;color:var(--color-neutral-600);line-height:1.45}
+  .mn-priv .mn-lock{margin-top:2px}
+  .mn-side-empty,.mn-hint{margin:0;font-size:var(--t-label);font-weight:400;color:var(--color-neutral-600)}
   .mn-form{display:flex;flex-direction:column;gap:12px}
+  .mn-form.is-panel{padding:14px 16px}
   .mn-form label,.mn-lab{display:flex;flex-direction:column;gap:4px;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700,var(--color-text))}
   .mn-form label .mn-hint{display:inline}
   .mn-form textarea,.mn-form input[type=text],.mn-form input[type=date]{font:inherit;font-size:var(--t-body);font-weight:400;padding:7px 9px;border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);color:var(--color-text);width:100%}
@@ -281,7 +435,7 @@ function myNotesCss(){ return `
   .mn-when{display:flex;flex-wrap:wrap;gap:6px}
   .mn-when button{height:var(--ctl-h-sm);padding:0 10px;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);color:var(--color-neutral-700,var(--color-text));font:inherit;font-size:var(--t-label);font-weight:var(--w-label);cursor:pointer}
   .mn-when button[aria-pressed="true"]{background:var(--color-accent-700);border-color:var(--color-accent-700);color:#fff}
-  .mn-chip:focus-visible,.mn-when button:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:2px}
+  .mn-when button:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:2px}
 `; }
 
-Object.assign(window, { renderMyNotes, myNotesNew, myNotesOpen, myNoteState, myNotesShown, paintMyNotesCount });
+Object.assign(window, { mnPlace, mnPlacePut, renderMyNotes, myNotesNew, myNotesOpen, myNoteState, myNotesShown, paintMyNotesCount });

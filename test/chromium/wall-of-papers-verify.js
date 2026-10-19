@@ -73,6 +73,9 @@ const check = (name, pass, detail) => {
     /* 2 private and kept to its list */
     const P = await page.evaluate(CARD, 'MK-W1');
     check('2a a contract on a private stream wears a lock with its stream\'s name', !!P && !!folder && P.lock === folder, JSON.stringify({ lock: P && P.lock, folder }));
+    /* the stand-in is the book's last paper: the wall draws twelve at a time
+       since 18 Oct 2026 (round 13 as drawn), so Show more brings it */
+    while (!(await page.$('#ig-wall .igw-card[data-ig-pick="MK-0412"]')) && await page.$('#ig-wall [data-ig-wall-more]')) { await page.click('#ig-wall [data-ig-wall-more]'); await page.waitForTimeout(250); }
     const C = await page.evaluate(CARD, 'MK-0412');
     check('2b a deal kept to its list: a hatched paper with its code name, its stream for a value, "Kept to its list"',
       !!C && C.coded && /repeating-linear-gradient/.test(C.bg) && /Project Falcon/.test(C.t) && C.ref === `MK-0412 · ${folder}` && C.nm === 'Kept to its list' && !C.lock, JSON.stringify(C));
@@ -92,8 +95,9 @@ const check = (name, pass, detail) => {
     check('3b one press shows the shelf — the archived, and only them', !!A1 && JSON.stringify(A1.ids) === JSON.stringify(['MK-AR1']), JSON.stringify(A1));
     await page.click('[data-reg-home] [data-ct-archive]');
     const A2 = await until(() => { const b = document.querySelector('[data-reg-home] [data-ct-archive]'); if (!b || b.getAttribute('aria-pressed') !== 'false') return null;
-      return { n: document.querySelectorAll('#ig-wall .igw-card').length, arch: !!document.querySelector('#ig-wall .igw-card[data-ig-pick="MK-AR1"]') }; });
-    check('3c pressed again, the live book is back', !!A2 && A2.n === A0.live && !A2.arch, JSON.stringify(A2));
+      return { n: document.querySelectorAll('#ig-wall .igw-card').length, want: Math.min(12, regFiltered().length), arch: !!document.querySelector('#ig-wall .igw-card[data-ig-pick="MK-AR1"]') }; });
+    /* the live book's first twelve again: a new narrowing starts at twelve (round 13 as drawn) */
+    check('3c pressed again, the live book is back', !!A2 && A2.n === A2.want && A2.n >= Math.min(12, A0.live) && !A2.arch, JSON.stringify(A2));
 
     /* 4 the owner's three screens */
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {

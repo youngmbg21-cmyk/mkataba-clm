@@ -331,7 +331,10 @@ describe('f442 (4) the map is drawn as the redesign draws it', () => {
     assert.match(html, /#ov-map \.ov-map-stage\{ flex:none; height:calc\(\(100cqw - 354px\) \* 310 \/ 900\); \}/, 'the old full-width picture\'s height');
     assert.match(html, /\.ov-map-side\{[^}]*contain:size;/, 'its words never stretch the row');
     assert.match(html, /\.ov-map-pane\{[^}]*overflow-y:auto;/, 'it scrolls');
-    assert.match(html, /\.ov-map-side\{ contain:none; height:420px; \}/, 'stacked, it keeps one height');
+    /* RE-POINTED (pass 4, round 7 gaps: a short Renewal panel left a wide
+       empty card on Details): stacked, it is as tall as what it holds, up to
+       the old 420px, and scrolls past that */
+    assert.match(html, /\.ov-map-side\{ contain:none; height:auto; max-height:420px; \}/, 'stacked, as tall as it holds, at most 420px');
     assert.ok(/pane\.scrollTop=0/.test(strip(fnBody(CONTRACT, 'ovMapWire'))), 'each new reading starts at its top');
   });
 

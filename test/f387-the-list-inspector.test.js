@@ -156,7 +156,10 @@ describe('f387 (2) the Contracts list in the inspector’s shape', () => {
     assert.equal(sel.getAttribute('aria-current'), 'true');
     assert.equal(b.$('#ins-panel').getAttribute('data-ins-id'), 'MK-1');
     assert.match(b.$('#ins-panel .ins-cp').textContent, /Aleph Group/);
-    assert.equal(b.$('#ins-panel .ins-sub').textContent.trim(), 'Digital & Influencer Campaign', 'an ampersand prints as one');
+    /* RE-POINTED 18 Oct 2026 (Jambo's panel, round 14 as drawn: "MK-0382 ·
+       Master services agreement"): the agreement's name is the eyebrow's, beside
+       the reference, no longer a sub line under the party */
+    assert.match(b.$('#ins-panel .ins-eb').textContent, /· Digital & Influencer Campaign$/, 'an ampersand prints as one');
   });
 
   test('2c a press SELECTS and opens nothing; a double-click, Enter and the panel’s button open', () => {
@@ -306,7 +309,9 @@ describe('f387 (3) the Negotiations list in the inspector’s shape', () => {
        "What is open", and who leads each deal is its own column (owner's yes). */
     assert.deepEqual(heads, ['Ref', 'Counterparty and agreement', 'Round', 'What is open', 'Waiting', 'Lead']);
     const moves = b.$$('#reg-tbody tr[data-row] .reg-ch').map(x => x.textContent.trim());
-    assert.ok(moves.length === 2 && moves.every(m => /^1 to answer$/.test(m)), moves.join('|'));
+    /* RE-POINTED 18 Oct 2026 (round 14 as drawn, owner's "build all the
+       gaps"): "What is open" says what is open — "1 redline to answer" */
+    assert.ok(moves.length === 2 && moves.every(m => /^1 redline to answer$/.test(m)), moves.join('|'));
     const bands = b.$$('#reg-tbody tr.ngl-band .ngl-band-k').map(x => x.textContent.trim());
     assert.deepEqual(bands, ['Waiting on our side'], 'an empty group is not drawn');
     assert.equal(b.$('[data-reg-view]'), null, 'the Contracts views are not drawn on this page');
@@ -339,7 +344,10 @@ describe('f387 (3) the Negotiations list in the inspector’s shape', () => {
     /* 15 Oct 2026 (owner): the Document door went — Negotiation · Workspace */
     assert.deepEqual(acts, ['door-nego', 'door-ws']);
     assert.ok(b.$('#ins-panel [data-ins-act="door-nego"]').classList.contains('ui-btn-primary'), 'the lead act is the filled one');
-    assert.equal(b.$$('#ins-panel .ui-btn-primary').length, 1, 'one filled button');
+    /* RE-POINTED 18 Oct 2026: the panel's ask box (its foot, round 14 as
+       drawn) carries its own filled Ask — one filled button per AREA, so the
+       count is the panel's body, where the doors are */
+    assert.equal(b.$$('#ins-panel .jl-body .ui-btn-primary').length, 1, 'one filled button');
     b.$('#reg-tbody tr[data-row="MK-7"]').dispatchEvent(evt(b.win, 'dblclick'));
     assert.deepEqual(b.calls.pop(), ['nego', 'MK-7']);
   });
@@ -457,7 +465,11 @@ describe('f387 (5) the Approvals & signing page', () => {
     /* RE-POINTED 11 Oct 2026 (owner): Open contract lands on Home's Document, the room as the fallback */
     /* RE-POINTED 12 Oct 2026 (owner): the three doors every list draws,
        none filled — this page's filled button is its own verb */
-    assert.match(c, /const open=insDoorActs\(r\.c\);/);
+    /* RE-POINTED 18 Oct 2026 (round 15 as drawn, owner's "build all the
+       gaps"): the Approval's panel draws no doors — straight into Why it
+       waits, "Open Before you sign" its way to the paper; a signature's panel
+       keeps the two */
+    assert.match(c, /const open=tab==='approvals'\?\[\]:insDoorActs\(r\.c\);/);
   });
   test('5c [wall] the page still decides nothing', () => {
     const c = code(AP);

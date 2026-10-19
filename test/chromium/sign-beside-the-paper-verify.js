@@ -63,8 +63,11 @@ const FACE = () => {
     chip: ((document.querySelector('#ig-strip .ig-copy-chip') || {}).textContent || '').trim(),
     toggle: !!document.querySelector('#ig-strip [data-ig-red]'),
     track: !!(document.getElementById('ig-spine') && !document.getElementById('ig-spine').hidden),
-    pages: ((document.querySelector('#ig-paper #sc-page-out') || {}).textContent || '').trim(),
-    pageBtns: document.querySelectorAll('#ig-paper [data-sc-page]').length };
+    /* RE-POINTED (the gaps, round 10 "The road", pass 2, 18 Oct 2026): the
+       signing copy's page arrows and size stand on the paper's line now
+       ("Signing copy" · ‹ 1 of N › · − 100% +, igSignCopyHtml), not above it */
+    pages: ((document.querySelector('#ig-strip [data-ig-sc] #sc-page-out') || {}).textContent || '').trim(),
+    pageBtns: document.querySelectorAll('#ig-strip [data-ig-sc] [data-sc-page]').length };
 };
 
 (async () => {
@@ -140,10 +143,12 @@ const FACE = () => {
     } else { check('3b the pad opens with its intent line', false, 'not ready'); check('3c the signature is on the server\'s record, and the face stays', false, 'not ready'); }
 
     /* ===== 4. × ===== */
-    if (await page.$('#pd-signface [data-pd-sf-close]')) await page.click('#pd-signface [data-pd-sf-close]');
+    /* RE-POINTED 18 Oct 2026 (the gaps of rounds 8–11 as drawn): the face's head
+       draws no × — its way back is "‹ Jambo" at the end of the panel's own row */
+    if (await page.$('#ig-dock [data-pd-back="signing"]')) await page.click('#ig-dock [data-pd-back="signing"]');
     const gone = await waitFor(page, () => !document.getElementById('pd-signface') && !!document.getElementById('igd-input'), 5000);
     const f4 = await page.evaluate(FACE);
-    check('4 × goes back to the conversation and the paper to the working copy', gone && !f4.copy && !f4.chip, JSON.stringify(f4));
+    check('4 ‹ Jambo goes back to the conversation and the paper to the working copy', gone && !f4.copy && !f4.chip, JSON.stringify(f4));
 
     /* ===== 5. THE RECEIPT ===== */
     await page.evaluate(() => { if (window.pdSignOpen) pdSignOpen('MK-A1'); });
@@ -178,6 +183,11 @@ const FACE = () => {
     const acts = await page.evaluate(() => ({ chat: !!document.querySelector('#ig-strip .ig-acts #hdr-chat'), share: !!document.querySelector('#ig-strip .ig-acts #ws-share'), more: !!document.querySelector('#ig-strip .ig-acts #ws-more') }));
     /* RE-POINTED 15 Oct 2026 (owner, answer B): the ⋯ left the paper's line; its rows are the panel's Menu tab */
     check('7a the paper\'s line carries Notes · Share, and no ⋯', acts.chat && acts.share && !acts.more, JSON.stringify(acts));
+    /* RE-POINTED 18 Oct 2026: while a face is up the panel's row is Jambo's tab
+       and the face's word only (rounds 8–11 as drawn); ‹ Jambo brings the
+       contract's tabs back, the Menu among them */
+    if (await page.$('#ig-dock [data-pd-back]')) await page.click('#ig-dock [data-pd-back]').catch(() => {});
+    await waitFor(page, () => !!document.querySelector('#ig-dock [data-pd-tab="menu"]'), 4000);
     await page.click('#ig-dock [data-pd-tab="menu"]').catch(() => {});
     const mt = await waitFor(page, () => { const m = document.querySelector('#pd-body .pd-menu'); return !!m && m.querySelectorAll('.pd-mn-rows button').length > 2; }, 4000);
     check('7b the Menu tab holds the contract\'s menu rows', mt);
@@ -197,7 +207,8 @@ const FACE = () => {
         if (!f) return { dock: Math.round(document.getElementById('ig-dock') ? document.getElementById('ig-dock').getBoundingClientRect().width : -1), up: false };
         const fr = f.getBoundingClientRect();
         const r = s => { const e = f.querySelector(s); return e ? e.getBoundingClientRect() : null; };
-        const head = r('.pd-sf-h'), x = r('[data-pd-sf-close]'), btn = r('#sign-btn');
+        /* RE-POINTED 18 Oct 2026: the way back is the panel row's ‹ Jambo (no × in the face's head) */
+        const head = r('.pd-sf-h'), xe = document.querySelector('#ig-dock [data-pd-back="signing"]'), x = xe ? xe.getBoundingClientRect() : null, btn = r('#sign-btn');
         const body = f.querySelector('.pd-sf-body');
         return { dock: Math.round(document.getElementById('ig-dock').getBoundingClientRect().width),
           headIn: !!head && head.top >= fr.top - 1 && head.bottom <= fr.bottom, xIn: !!x && x.right <= fr.right + 1,
@@ -207,7 +218,7 @@ const FACE = () => {
       });
       /* RE-POINTED 17 Oct 2026 (round 10, "The road"; the owner's yes): the Sign button stands only in the stop
          of the person whose turn it is — in sight for them, drawn for nobody else */
-      check(`8 ${w}×${hh}: the face fits — head and × in sight, Sign in sight where it is the reader's turn (else not drawn), nothing sideways`, m.headIn && m.xIn && (m.mine ? m.btnIn : m.btnHidden) && m.sideways <= 1 && m.docW <= 0, JSON.stringify(m));
+      check(`8 ${w}×${hh}: the face fits — head and ‹ Jambo in sight, Sign in sight where it is the reader's turn (else not drawn), nothing sideways`, m.headIn && m.xIn && (m.mine ? m.btnIn : m.btnHidden) && m.sideways <= 1 && m.docW <= 0, JSON.stringify(m));
       check(`8 ${w}×${hh}: the panel keeps its width when the face opens`, before === m.dock, `${before} → ${m.dock}`);
       await page.screenshot({ path: path.join(OUT, `8-${w}x${hh}.png`) });
     }

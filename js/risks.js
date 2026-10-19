@@ -1023,10 +1023,10 @@ function rkEnsureStyle(){
      ruby (Young, 5 Oct 2026: "dismiss should actually say discard"). It still
      only sets the risk aside — Bring back returns it. */
   .rk-verb.is-no{color:var(--st-ruby-fg)}
-  /* Jambo's own door wears Jambo's violet, as the redline row's Edit does
-     (.rl-card-verbs .rl-verb-ai in negotiation-css.js, the same two values). */
-  .rk-verb.is-ai{color:#6d28d9}
-  html.dark .rk-verb.is-ai{color:#c4b5fd}
+  /* Jambo's own door wears what the redline row's Edit wears (Young, 5 Oct
+     2026). Round 9 as drawn (lane C2, 19 Oct 2026) took the piles' Counter
+     and Edit out of Jambo's violet into the accent ink, so this one follows
+     (joined at the integration): .rk-verb's own accent ink, light and dark. */
   .rk-verb.is-no:hover{background:var(--st-ruby-bg)}
   .rk-verb-i{flex:none;width:var(--btn-ic, 15px);height:var(--btn-ic, 15px)}
   .rk-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px;margin-top:4px}

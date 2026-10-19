@@ -440,6 +440,10 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         cardMetaWt: cs('.rl-card-d:not(.rl-card-quiet) .rl-card-meta') && cs('.rl-card-d:not(.rl-card-quiet) .rl-card-meta').fontWeight,
         cardWordingWt: cs('.rl-card-d:not(.rl-card-quiet) .rl-card-sum') && cs('.rl-card-d:not(.rl-card-quiet) .rl-card-sum').fontWeight,
         cap: cs('.rl-idx-title') && cs('.rl-idx-title').fontSize,
+        capW: cs('.rl-idx-title') && cs('.rl-idx-title').fontWeight,
+        /* the largest type anywhere else in the head, to say the title is not out-sized */
+        headMax: Math.max(0, ...[...document.querySelectorAll('.rl-idx-top *')].filter(e => !e.closest('.rl-idx-title') && e.getClientRects().length)
+          .map(e => parseFloat(getComputedStyle(e).fontSize) || 0)),
         capRule: cs('.rl-idx-title') && cs('.rl-idx-title').borderBottomWidth,
         capRuleColor: cs('.rl-idx-title') && cs('.rl-idx-title').borderBottomColor,
         filterText: (document.getElementById('rl-cardfilter') || {}).textContent || '',
@@ -489,10 +493,14 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        its absence is still asserted. */
     /* RE-POINTED 21 Sep 2026 (the reference's .rl .t / .rl .a): the clause is
        body size at strong weight, the argument one rung down at body weight. */
-    check('5 the clause leads at body size and strong weight, the argument one rung down',
+    /* RE-POINTED 18 Oct 2026 (round 9's gaps, "Piles" as drawn): the line
+       under the clause is the CHANGED WORDS ("… capped at 50% 100% of the
+       fees"), set in the paper's own ink with their marks in ruby and the
+       accent — so the clause leads by size and weight, and ink no longer
+       separates the two lines. */
+    check('5 the clause leads at body size and strong weight, the changed words one rung down',
       parseFloat(col.cardMeta) > parseFloat(col.cardWording)
-      && parseFloat(col.cardMetaWt) > parseFloat(col.cardWordingWt)
-      && col.cardMetaC !== col.cardWordingC
+      && parseFloat(col.cardMetaW) > parseFloat(col.cardWordingW)
       && !col.oldPreview,
       `${col.cardMeta} ${col.cardMetaW} ${col.cardMetaC} / ${col.cardWording} ${col.cardWordingW} ${col.cardWordingC}`);
     /* RE-POINTED 24 Aug 2026 — the caption is the change index's title and the
@@ -518,9 +526,13 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        whole of what marks this as the column's name". */
     /* RE-POINTED 21 Sep 2026: the 2px accent rule is the HEAD's own bottom
        edge now (the reference's .nego-col-h), under the whole row. */
-    check('5 the index names itself, by its rule rather than its size',
-      parseFloat(col.headRule) >= 2 && !/^rgba\(0, 0, 0, 0\)$/.test(col.headRuleColor || ''),
-      `rule ${col.headRule} ${col.headRuleColor} · cap ${col.cap}`);
+    /* RE-POINTED 18 Oct 2026 (round 9's gaps, "Piles" as drawn): no rule
+       under the head — the piles' own boxes start under it — so the column
+       names itself by its title, at title weight, with nothing in the head set
+       larger. */
+    check('5 the index names itself, by its title\'s weight; no rule, the piles start',
+      parseFloat(col.headRule) === 0 && parseFloat(col.capW) >= 600 && col.headMax <= parseFloat(col.cap) + 0.5,
+      `rule ${col.headRule} · cap ${col.cap} ${col.capW} · largest else ${col.headMax}`);
     check('5 and the whose-asks filter is gone from the head',
       !col.filter, String(col.filter));
     /* AND THE VERBS ARE BARE WORDS ON THIS COLUMN, so there is no button box

@@ -91,7 +91,8 @@ describe('f705 (1) needs you here, on Jambo\'s tab beside a paper', () => {
     assert.match(html, /pd_nd_title[\s\S]*class="pd-pill is-quiet"><i><\/i>2</, 'two rows, said once in the head');
     assert.match(html, /data-pd-nd-all[^>]*>pd_nd_all\[7\]/, 'All 7 — the Counter\'s own number');
     assert.match(html, /is-jw[\s\S]*cn_jw · ag_round[\s\S]*data-pd-nd-jw="round" data-pd-nd-key="round:MK-1">pd_nd_see</);
-    assert.match(html, /is-hot" data-pd-nd-kind="quiet"[\s\S]*title:quiet[\s\S]*<span class="late">sub:quiet<\/span>[\s\S]*data-pd-nd="quiet" data-pd-nd-id="MK-1">home_verb_answer</);
+    /* round 3 as drawn (18 Oct 2026): their waiting redlines open with "Open redlines" */
+    assert.match(html, /is-hot" data-pd-nd-kind="quiet"[\s\S]*title:quiet[\s\S]*<span class="late">sub:quiet<\/span>[\s\S]*data-pd-nd="quiet" data-pd-nd-id="MK-1">pd_nd_open_red</);
     assert.ok(html.indexOf('data-pd-nd-jw') < html.indexOf('data-pd-nd="quiet"'), 'Jambo\'s work leads');
   });
   test('1c nothing owed here: no card at all', () => {
@@ -103,12 +104,19 @@ describe('f705 (1) needs you here, on Jambo\'s tab beside a paper', () => {
     const html = ctx.pdNeedsHtml(c);
     assert.match(html, /data-pd-nd="note"/); assert.ok(!/data-pd-nd-all/.test(html));
   });
-  test('1e on the paper, the tab opens on Needs you here, then the glance', () => {
+  /* RE-POINTED 18 Oct 2026 (round 3's Compare: "what needs you comes first
+     and stays at the top of the Jambo tab"): Needs you here is PINNED above
+     the conversation (pdJamboPinHtml), so it never scrolls away; the glance
+     opens the conversation under it */
+  test('1e on the paper, the tab opens on Needs you here, pinned above the glance', () => {
     const { ctx } = pdStage({ needs: [{ kind: 'note', n: 1 }] });
-    const top = ctx.pdJamboTopHtml();
-    assert.ok(top.indexOf('id="pd-needs"') >= 0 && top.indexOf('id="pd-needs"') < top.indexOf('id="pd-glance"'));
+    assert.match(ctx.pdJamboPinHtml(), /^<div id="pd-pin"[^>]*><div id="pd-needs"/);
+    assert.match(ctx.pdJamboTopHtml(), /id="pd-glance"/);
+    assert.ok(!/id="pd-needs"/.test(ctx.pdJamboTopHtml()), 'not inside the conversation, where it would scroll away');
+    const feed = R('js/views/intelligence.js');
+    assert.ok(feed.indexOf('pdJamboPinHtml()') > 0 && feed.indexOf('pdJamboPinHtml()') < feed.indexOf('<div id="igd-feed" class="flex-1'), 'drawn before the scroller');
     const wall = pdStage({ paper: null, needs: [{ kind: 'note', n: 1 }] });
-    assert.ok(!/id="pd-needs"/.test(wall.ctx.pdJamboTopHtml()), 'the wall draws no contract\'s card');
+    assert.equal(wall.ctx.pdJamboPinHtml(), '', 'the wall draws no contract\'s card');
   });
   test('1f the presses: a piece opens on Jambo\'s work, an item through needsYouGo, All on the Counter', () => {
     const w = fnBody(PD, 'pdNeedRowHtml');
@@ -136,21 +144,38 @@ describe('f705 (3) the way back to Jambo on every face', () => {
     const h = ctx.pdBackHtml('red');
     assert.match(h, /class="pd-back" data-pd-back="red" title="pd_back_jambo" aria-label="pd_back_jambo"/);
     assert.match(h, /#i-left[\s\S]*pd_tab_copilot<\/button>$/, '‹ and his name');
-    assert.deepEqual(Object.keys(ctx.PD_BACK_CLOSE).sort(), ['amend', 'fill', 'red', 'signing']);
-    assert.deepEqual(Object.keys(ctx.PD_BACK_CLOSE).sort(), [...ctx.PD_FACE_WORDS].sort(), 'every face has its way back');
+    /* RE-POINTED 18 Oct 2026 (round 11's gaps, "The letter" as drawn): the
+       send screen is a face of the panel too ("Before you send"), and its way
+       back is the screen's own Cancel, asked through its guard. */
+    assert.deepEqual(Object.keys(ctx.PD_BACK_CLOSE).sort(), ['amend', 'fill', 'red', 'send', 'signing']);
+    for (const f of ctx.PD_FACE_WORDS) assert.ok(Object.keys(ctx.PD_BACK_CLOSE).includes(f), 'every face has its way back: ' + f);
     const map = PD.slice(PD.indexOf('const PD_BACK_CLOSE'), PD.indexOf('function pdBackHtml'));
     for (const [k, fn] of [['fill', 'pdFillClose'], ['red', 'pdRedClose'], ['signing', 'pdSignClose'], ['amend', 'pdAmendClose']])
       assert.match(map, new RegExp(k + ': \\(\\) => ' + fn + '\\(\\)'), k + ' closes through ' + fn);
+    /* RE-POINTED 18 Oct 2026 (round 11's gaps, second pass: "‹ Jambo turns
+       the panel back to Jambo's own words"): on the send face ‹ Jambo turns
+       the panel and leaves the letter up; Cancel on the letter is the
+       screen's own guarded close */
+    assert.match(map, /send: \(\) => pdSendAway\(\)/, 'send turns the panel to Jambo, the letter stays');
     const wiring = PD.slice(PD.indexOf('document._pdJamboTopWired = true'), PD.indexOf('JAMBO, ALIVE'));
     assert.match(wiring, /closest\('\[data-pd-back\]'\)[\s\S]*PD_BACK_CLOSE\[back\.getAttribute\('data-pd-back'\)\]/);
   });
-  test('3b each head opens with it, its × kept at the end', () => {
+  /* RE-POINTED AT THE INTEGRATION (19 Oct 2026), by the owner's answer (3)
+     ("Fill in and Before you sign keep round 3's face head — ‹ Jambo · name ·
+     count · × — not the tab row rounds 8 and 10 draw"): those faces and an
+     amendment's open with ‹ Jambo, the title, then ×; only the Redlines face
+     (round 9) and Before you send (round 11) carry ‹ Jambo in the panel's own
+     row (pdFaceUp → PD_FACE_ROW, pdFaceBackHtml). */
+  test('3b Fill in, Before you sign and an amendment: ‹ Jambo, the title, then ×; Redlines carries it in the panel\'s row', () => {
     for (const [fn, face, x] of [['pdFillHeadHtml', 'fill', 'data-pd-ff-close'], ['pdSignHeadHtml', 'signing', 'data-pd-sf-close'], ['pdAmendHeadHtml', 'amend', 'data-pd-am-close']]){
       const b = fnBody(PD, fn);
       const i = b.indexOf(`pdBackHtml('${face}')`), t = b.indexOf('<h3>'), k = b.indexOf(x);
       assert.ok(i > 0 && i < t && t < k, fn + ': ‹ Jambo, the title, then ×');
     }
-    assert.match(fnBody(PD, 'pdRedOpts'), /headStart: pdBackHtml\('red'\), headEnd: pdRedHeadEndHtml\(c\)/);
+    assert.match(PD, /const PD_FACE_ROW = \['red', 'send'\];/, 'only Redlines and Before you send take the panel\'s row');
+    assert.doesNotMatch(fnBody(PD, 'pdRedOpts'), /headStart|headEnd/, 'the Redlines face passes no ‹ Jambo and no ×');
+    assert.match(fnBody(PD, 'pdFaceBackHtml'), /pdBackHtml\(f\)/, 'one builder for whichever face is up');
+    assert.match(IG.slice(IG.indexOf('function renderIntelDock(')), /pdFaceBackHtml\(\)/, 'drawn in the panel\'s own row');
     const head = NG.slice(NG.indexOf('<div class="rl-idx-top">'), NG.indexOf("${opts.headEnd || ''}"));
     assert.ok(head.indexOf("${opts.headStart || ''}") > 0 && head.indexOf("${opts.headStart || ''}") < head.indexOf('<span class="rl-idx-title">'),
       'the column\'s head takes the host\'s start before its name; the Negotiate page passes none');

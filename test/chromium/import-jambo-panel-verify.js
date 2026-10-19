@@ -14,6 +14,12 @@
      5 the owner's three screens: the panel beside the list, in the window,
        nothing sideways
    At the parent (main before this change) every check fails but the console.
+   RE-POINTED 19 Oct 2026 (lane E, round 22 built as drawn): the panel is
+   Jambo's shared frame; his chip "check the 2 files" opens the check view;
+   a chosen file to check reads "Check this file" with its facts in boxes
+   (.mig-ff) and the drawn doors File it · Open the file; the marks in words
+   are a filed file's; Review is "All the details…"; ‹ Jambo lets it go; the
+   panel stands at the window's right edge from under the bar.
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/import-jambo-panel-verify.js */
 const fs = require('node:fs');
@@ -65,55 +71,61 @@ const body = (title, party) => `${title}\n\nThis Agreement is made between Highl
     console.log('\n1 · Jambo says the batch');
     const batch = await until(() => { const s = document.getElementById('mig-side'); if (!s) return null;
       const t = s.textContent.replace(/\s+/g, ' ').trim();
-      return /3 contracts have been brought in/.test(t) ? { t, chip: (s.querySelector('[data-mig-side-show="review"]') || {}).textContent || '' } : null; }, null, 6000);
+      return /3 files are in this batch/.test(t) ? { t } : null; }, null, 6000);
     check('1a beside the list, Jambo says the batch in words', !!batch && /These need you: 2 to check/.test(batch.t), batch && batch.t.slice(0, 160));
-    if (await press('#mig-side [data-mig-side-show="review"]', '1b the chip')) {
-      const rows = await until(() => { const r = document.querySelectorAll('.mig-table tbody tr[data-row]').length; return r === 2 ? r : null; }, null, 4000);
-      check('1b his chip narrows the list to the two to check', rows === 2, String(rows));
-      await page.evaluate(() => migShowSet('all'));
-    }
+    const chip = await page.evaluate(() => [...document.querySelectorAll('#mig-side [data-jl-chip]')].findIndex(b => /^check the 2 files$/.test(b.textContent.trim())));
+    if (chip >= 0){
+      await page.locator('#mig-side [data-jl-chip]').nth(chip).click();
+      const ck = await until(() => document.getElementById('mig-ck-facts') ? migCheckIds().length : null, null, 4000);
+      check('1b his chip "check the 2 files" opens the check view on the two', ck === 2, String(ck));
+      await page.evaluate(() => migCheckClose()); await page.evaluate(() => migPickSet(null));
+    } else check('1b his chip "check the 2 files"', false, 'not drawn');
     await shot(page, 'import-jambo-batch-1440x780');
 
     console.log('\n2 · a press chooses a file');
     const pick = await page.evaluate(() => { const c = migContracts().find(x => x.migration.needsReview); return c ? c.id : null; });
-    if (pick && await press(`.mig-table tbody tr[data-row="${pick}"] td:nth-child(2)`, '2 the row')) {
+    if (pick && await press(`.mig-table tbody tr[data-row="${pick}"] td:nth-child(1)`, '2 the row')) {
       const f = await until(id => { const s = document.getElementById('mig-side'); const tr = document.querySelector(`.mig-table tr[data-row="${id}"]`);
         if (!s || !tr || !tr.classList.contains('is-picked')) return null;
-        return { lit: tr.getAttribute('aria-selected'), name: (s.querySelector('.mig-side-name b') || {}).textContent || '', facts: s.querySelectorAll('.mig-sf').length,
-          need: s.querySelectorAll('.mig-sf.is-need').length, marks: [...s.querySelectorAll('.mig-sms li')].map(li => li.textContent.replace(/\s+/g, ' ').trim()),
-          doors: [...s.querySelectorAll('.mig-side-acts button')].map(b => b.textContent.trim()), view: state.view }; }, pick, 4000);
+        return { lit: tr.getAttribute('aria-selected'), name: (s.querySelector('.mig-cf-t') || {}).textContent || '', facts: s.querySelectorAll('.mig-ff').length,
+          need: s.querySelectorAll('.mig-ff.is-need').length,
+          doors: [...s.querySelectorAll('.mig-cf-acts button')].map(b => b.textContent.trim()), view: state.view }; }, pick, 4000);
       check('2a the row is lit and the page stays on Import', !!f && f.lit === 'true' && f.view === 'migration', JSON.stringify(f && { lit: f.lit, view: f.view }));
-      check('2b the panel says that file: its name and the facts the review asks for', !!f && f.name.length > 0 && f.facts >= 6, JSON.stringify(f && { name: f.name, facts: f.facts }));
+      check('2b the panel says that file: "Check this file" and the facts it is filed with', !!f && f.name === 'Check this file' && f.facts >= 6, JSON.stringify(f && { name: f.name, facts: f.facts }));
       check('2c a fact not found is amber', !!f && f.need >= 1, String(f && f.need));
-      check('2d the marks are said in words', !!f && f.marks.length >= 5 && f.marks.some(m => /missing|done/.test(m)), JSON.stringify(f && f.marks));
-      check('2e the row\'s own doors: Review and Open', !!f && f.doors.includes('Review') && f.doors.includes('Open'), JSON.stringify(f && f.doors));
+      check('2e the drawn doors: File it and Open the file', !!f && f.doors.includes('File it') && f.doors.includes('Open the file'), JSON.stringify(f && f.doors));
+      const filed = await page.evaluate(() => (migContracts().find(c => !c.migration.needsReview) || {}).id);
+      await page.evaluate(id => migPickSet(id), filed);
+      const marks = await until(() => { const li = [...document.querySelectorAll('#mig-side .mig-sms li')].map(x => x.textContent.replace(/\s+/g, ' ').trim()); return li.length >= 5 ? li : null; }, null, 4000);
+      check('2d the marks are said in words (a filed file)', !!marks && marks.some(m => /missing|done/.test(m)), JSON.stringify(marks));
+      await page.evaluate(id => migPickSet(id), pick);
       await shot(page, 'import-jambo-file-1440x780');
 
       console.log('\n3 · Review, and letting it go');
-      if (await press('#mig-side [data-mig-side-review]', '3a Review')) {
+      if (await press('#mig-side [data-mig-review-full]', '3a All the details…')) {
         const dlg = await until(() => { const m = document.querySelector('#modal-root .modal, .modal-backdrop, [role="dialog"]'); return m && m.textContent.length > 20 ? true : null; }, null, 6000);
-        check('3a Review in the panel opens the review window', !!dlg);
+        check('3a "All the details…" in the panel opens the whole review window', !!dlg);
         await page.keyboard.press('Escape').catch(() => {}); await page.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });
       }
-      await page.locator(`.mig-table tbody tr[data-row="${pick}"] td:nth-child(2)`).click();
+      await page.locator(`.mig-table tbody tr[data-row="${pick}"] td:nth-child(1)`).click();
       const let1 = await until(id => { const tr = document.querySelector(`.mig-table tr[data-row="${id}"]`); const s = document.getElementById('mig-side');
-        return tr && !tr.classList.contains('is-picked') && s && /brought in/.test(s.textContent) ? true : null; }, pick, 4000);
+        return tr && !tr.classList.contains('is-picked') && s && /in this batch/.test(s.textContent) ? true : null; }, pick, 4000);
       check('3b pressed again, the row is let go and Jambo says the batch', !!let1);
-      await page.locator(`.mig-table tbody tr[data-row="${pick}"] td:nth-child(2)`).click();
-      await until(() => !!document.querySelector('#mig-side .mig-side-back'), null, 3000);
-      if (await press('#mig-side .mig-side-back', '3c ‹ All files')) {
-        const back = await until(() => !document.querySelector('.mig-table tr.is-picked') && /brought in/.test(document.getElementById('mig-side').textContent) ? true : null, null, 3000);
-        check('3c "‹ All files" goes back to the batch', !!back);
+      await page.locator(`.mig-table tbody tr[data-row="${pick}"] td:nth-child(1)`).click();
+      await until(() => { const b = document.querySelector('#mig-side [data-jl-back]'); return b && !b.hidden ? true : null; }, null, 3000);
+      if (await press('#mig-side [data-jl-back]', '3c ‹ Jambo')) {
+        const back = await until(() => !document.querySelector('.mig-table tr.is-picked') && /in this batch/.test(document.getElementById('mig-side').textContent) ? true : null, null, 3000);
+        check('3c "‹ Jambo" goes back to the batch', !!back);
       }
 
       console.log('\n4 · open');
-      await page.locator(`.mig-table tbody tr[data-row="${pick}"] td:nth-child(2)`).click();
-      if (await press('#mig-side .mig-side-acts [data-open]', '4a Open')) {
+      await page.evaluate(() => { const c = migContracts().find(x => !x.migration.needsReview); if (c) migPickSet(c.id); });
+      if (await press('#mig-side .mig-cf-acts [data-open]', '4a Open')) {
         const opened = await until(() => state.view !== 'migration' ? state.view : null, null, 6000);
         check('4a the panel\'s Open opens the contract', !!opened, String(opened));
       }
       await toImport();
-      await page.locator(`.mig-table tbody tr[data-row="${pick}"] td:nth-child(2)`).dblclick();
+      await page.locator(`.mig-table tbody tr[data-row="${pick}"] td:nth-child(1)`).dblclick();
       const opened2 = await until(() => state.view !== 'migration' ? state.view : null, null, 6000);
       check('4b a double-click on a row opens it', !!opened2, String(opened2));
       await toImport();
@@ -125,9 +137,9 @@ const body = (title, party) => `${title}\n\nThis Agreement is made between Highl
       await toImport(); await page.waitForTimeout(250);
       await page.evaluate(id => { if (id) migPickSet(id); }, pick);
       await page.waitForTimeout(150);
-      const fit = await page.evaluate(() => { const s = document.getElementById('mig-side'), m = document.querySelector('.mig-main');
-        const R = s.getBoundingClientRect(), M = m.getBoundingClientRect();
-        return { beside: R.left >= M.right - 1 && Math.abs(R.top - M.top) < 4, inWin: R.right <= innerWidth && R.bottom <= innerHeight + 1 && R.top >= 0,
+      const fit = await page.evaluate(() => { const s = document.getElementById('mig-side'), m = document.querySelector('.mig-list');
+        const R = s.getBoundingClientRect(), M = m.getBoundingClientRect(), P = document.getElementById('page-head').getBoundingClientRect();
+        return { beside: R.left >= M.right - 1 && Math.abs(R.top - P.top) < 4, inWin: R.right <= innerWidth && R.bottom <= innerHeight + 1 && R.top >= 0,
           sx: document.scrollingElement.scrollWidth > innerWidth, w: Math.round(R.width) }; });
       check(`5 at ${w}×${hh}: the panel beside the list, in the window, nothing sideways`, fit.beside && fit.inWin && !fit.sx, JSON.stringify(fit));
       await shot(page, `import-jambo-${w}x${hh}`);

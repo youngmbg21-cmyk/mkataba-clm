@@ -91,7 +91,8 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     check('1a Needs you here is drawn above the contract at a glance', !!nd && nd.before && nd.title === 'Needs you here', JSON.stringify(nd));
     check('1b Jambo\'s prepared work on this contract leads, with his face', !!nd && nd.firstJw && nd.jwFace, nd && nd.kinds.join(','));
     check('1d its number is its rows', !!nd && Number(nd.n) === nd.rows, nd && (nd.n + ' / ' + nd.rows));
-    check('1e "All N" is the Counter\'s own number', !!nd && nd.all.trim() === 'All ' + nd.counter, nd && nd.all);
+    /* the drawn lower case, "all 7 ›" (round 3 as drawn, 18 Oct 2026) */
+    check('1e "all N" is the Counter\'s own number', !!nd && nd.all.trim() === 'all ' + nd.counter, nd && nd.all);
     check('1f his tab carries the same number', !!nd && Number(nd.badge) === nd.counter, nd && nd.badge);
     await shot(page, 'jambos-panel-1440x780');
 
@@ -101,39 +102,50 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
 
     console.log('\n3 · a row\'s door, and the way back to Jambo');
     if (await press('#pd-needs [data-pd-nd-jw]', '3a Jambo\'s work row')) {
-      const board = await until(() => state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'board' && !!document.querySelector('.hb-ag-works, #hm-agents'), null, 8000);
-      check('3a a prepared piece\'s See it opens on Jambo\'s work, on the Board', !!board);
+      const board = await until(() => state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'board' && !!document.querySelector('.is-landed[data-hb-ag-item], .hb-ag-works.is-landed, #hm-agents.is-landed'), null, 8000);
+      check('3a a prepared piece\'s See it lands on Jambo\'s work, on the Board, lit (hbOpenAgent → landOn)', !!board);
     }
     await page.evaluate(() => pdOpenOnHome('MK-0382', 'fill'));
     {
+      /* RE-POINTED 18 Oct 2026 (the gaps of rounds 8–11 as drawn: while a face
+         is up the panel's row reads Jambo's tab, the face's word, and "‹ Jambo"
+         at its end) — and AT THE INTEGRATION (19 Oct 2026) by the owner's
+         answer (3): Fill in keeps round 3's own head, "‹ Jambo · Fill in the
+         details · N left · ×", the contract's tabs above it and no face word
+         in the row; the row's way is the Redlines face's (3d) */
       const ff = await until(() => window.pdFillShows && pdFillShows() && document.querySelector('#pd-fillface .pd-ff-r') && (() => {
-        const r = document.querySelector('#pd-fillface .pd-ff-r'), kids = [...r.children];
-        return { first: kids[0] && kids[0].matches('[data-pd-back="fill"]'), word: kids[0] ? kids[0].textContent.trim() : '',
-          xLast: kids.indexOf(r.querySelector('[data-pd-ff-close]')) > kids.indexOf(r.querySelector('h3')) }; })(), null, 8000);
-      check('3b Fill in\'s head opens with "‹ Jambo", its × still after the title', !!ff && ff.first && ff.word === 'Jambo' && ff.xLast, JSON.stringify(ff));
+        const r = document.querySelector('#pd-fillface .pd-ff-r'), b = r.querySelector('[data-pd-back="fill"]'), t = r.querySelector('h3'), x = r.querySelector('[data-pd-ff-close]');
+        const head = document.querySelector('#ig-dock .igd-head');
+        return { back: !!b && b.textContent.trim(), order: !!(b && t && x) && b.getBoundingClientRect().right <= t.getBoundingClientRect().left + 1 && t.getBoundingClientRect().right <= x.getBoundingClientRect().left + 1,
+          rowWord: !!(head && head.querySelector('[data-pd-face-w]')), rowBack: !!(head && head.querySelector('[data-pd-back]')),
+          tabs: head ? [...head.querySelectorAll('[data-pd-tab]')].map(t => t.getAttribute('data-pd-tab')).join() : '' }; })(), null, 8000);
+      check('3b Fill in keeps round 3\'s head (the owner\'s answer 3): "‹ Jambo · Fill in … · ×", the contract\'s tabs above it, no face word in the row',
+        !!ff && ff.back === 'Jambo' && ff.order && !ff.rowWord && !ff.rowBack && ff.tabs.split(',').length > 1, JSON.stringify(ff));
       await shot(page, 'jambos-panel-fill-1440x780');
-      if (await press('#pd-fillface [data-pd-back]', '3c ‹ Jambo on Fill in')) {
+      if (await press('#ig-dock [data-pd-back="fill"]', '3c ‹ Jambo on Fill in')) {
         const back = await until(() => !(window.pdFillShows && pdFillShows()) && !!document.getElementById('pd-glance'), null, 6000);
         check('3c "‹ Jambo" brings his tab back', !!back);
       }
     }
     await page.evaluate(() => pdOpenOnHome('MK-0382', 'red'));
     const rf = await until(() => { const top = document.querySelector('#pd-redface .rl-idx-top'); if (!top) return null;
-      const b = top.querySelector('[data-pd-back="red"]'), t = top.querySelector('.rl-idx-title'), x = top.querySelector('[data-pd-rf-close]');
-      if (!b || !t || !x) return { b: !!b, t: !!t, x: !!x };
-      const br = b.getBoundingClientRect(), tr = t.getBoundingClientRect(), xr = x.getBoundingClientRect();
-      return { order: br.right <= tr.left + 1 && tr.right <= xr.left, sameLine: Math.abs((br.top + br.bottom) / 2 - (tr.top + tr.bottom) / 2) < 8 }; }, null, 10000);
-    check('3d the Redlines face\'s head: "‹ Jambo", Redlines, then ×, on one line', !!rf && rf.order && rf.sameLine, JSON.stringify(rf));
+      const r = (() => { const head = document.querySelector('#ig-dock .igd-head'); const w = head && head.querySelector('[data-pd-face-w]'), b = head && head.querySelector('[data-pd-back="red"]');
+        return w && b ? { word: w.textContent.trim(), back: b.textContent.trim(), sameLine: Math.abs(w.getBoundingClientRect().top - b.getBoundingClientRect().top) < 10 } : null; })();
+      if (!r) return null;
+      return Object.assign(r, { headBack: !!top.querySelector('[data-pd-back]'), headX: !!top.querySelector('[data-pd-rf-close]'),
+        first: (top.querySelector('.rl-idx-title') || {}).textContent || '' }); }, null, 10000);
+    check('3d the Redlines face: the panel\'s row reads Redlines · "‹ Jambo"; the column\'s head opens with "Redlines N", no ‹ Jambo, no ×',
+      !!rf && rf.word === 'Redlines' && rf.back === 'Jambo' && rf.sameLine && !rf.headBack && !rf.headX && /^Redlines/.test(rf.first.trim()), JSON.stringify(rf));
     await shot(page, 'jambos-panel-redlines-1440x780');
-    if (await press('#pd-redface [data-pd-back]', '3e ‹ Jambo on Redlines')) {
+    if (await press('#ig-dock [data-pd-back="red"]', '3e ‹ Jambo on Redlines')) {
       const back = await until(() => !(window.pdRedShows && pdRedShows()) && !!document.getElementById('pd-glance'), null, 6000);
       check('3e "‹ Jambo" closes Redlines and brings his tab back', !!back);
     }
 
-    console.log('\n4 · "All N" opens the Counter');
-    if (await press('#pd-needs [data-pd-nd-all]', '4a All N')) {
-      const cn = await until(() => state.view === 'counter' && !!document.getElementById('cn-needs'), null, 8000);
-      check('4a "All N" opens the Counter, where the same number stands', !!cn);
+    console.log('\n4 · "all N" lands on Home\'s Needs you');
+    if (await press('#pd-needs [data-pd-nd-all]', '4a all N')) {
+      const cn = await until(() => state.view === 'counter' && !!document.querySelector('#cn-needs.is-landed'), null, 8000);
+      check('4a "all N" opens Home and lands on Needs you, where the same number stands (landOn)', !!cn);
     }
 
     console.log('\n5 · the folded strip');
@@ -158,10 +170,17 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
       const fit = await until(() => { const dock = document.getElementById('ig-dock'), feed = document.getElementById('igd-feed'),
         nd = document.getElementById('pd-needs'), gl = document.getElementById('pd-glance'), box = document.getElementById('igd-input');
         if (!dock || !feed || !nd || !gl || !box) return null;
-        const f = feed.getBoundingClientRect(), g = gl.getBoundingClientRect(), b = box.getBoundingClientRect(), d = dock.getBoundingClientRect();
+        const f = feed.getBoundingClientRect(), g = gl.getBoundingClientRect(), b = box.getBoundingClientRect(), d = dock.getBoundingClientRect(), n = nd.getBoundingClientRect();
         const wide = [...dock.querySelectorAll('#pd-needs *, #pd-glance *')].filter(e => e.getBoundingClientRect().right > d.right + 1).length;
-        return { cards: g.bottom <= f.bottom + 1, box: b.bottom <= innerHeight + 1 && b.top >= 0, wide, scroll: feed.scrollHeight - feed.clientHeight }; }, null, 8000);
-      check(`6 ${w}×${ht}: both cards and the ask box in view, nothing past the panel's edge`, !!fit && fit.cards && fit.box && fit.wide === 0, JSON.stringify(fit));
+        return { top: n.bottom <= f.top + 1 && n.top >= d.top && !feed.contains(nd) && feed.scrollTop === 0, glance: g.top < f.bottom, box: b.bottom <= innerHeight + 1 && b.top >= 0, wide, scroll: feed.scrollHeight - feed.clientHeight }; }, null, 8000);
+      /* RE-POINTED 18 Oct 2026 (rounds 3 and 6 as drawn): the glance now says
+         their round and EACH of their asks, so on a short screen it can be
+         longer than the panel — which then opens at its TOP (Needs you here
+         first, never scrolled past), the glance begins in view, the box
+         stands, and the rest is a scroll away. PASS 3 (round 3's Compare,
+         "it stays at the top"): Needs you here is PINNED above the
+         conversation's scroller (#pd-pin), not inside it */
+      check(`6 ${w}×${ht}: Needs you here at the top, the glance begun, the ask box in view, nothing past the panel's edge`, !!fit && fit.top && fit.glance && fit.box && fit.wide === 0, JSON.stringify(fit));
       await shot(page, `jambos-panel-${w}x${ht}`);
     }
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));

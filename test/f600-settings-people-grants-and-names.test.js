@@ -80,8 +80,12 @@ describe('f600 (D3) — a rename sticks and the approval rules follow', () => {
     const r = await W.admin.raw('/api/users/' + W.users.novalues.id, { method: 'PATCH', body: { name: '  ' } });
     assert.equal(r.status, 400);
   });
-  test('a colleague cannot rename themselves (only their title is theirs)', async () => {
-    const r = await W.restricted.raw('/api/users/' + W.users.restricted.id, { method: 'PATCH', body: { name: 'Somebody Else' } });
+  /* RE-POINTED 18 Oct 2026 (round 24 "One sheet" as drawn, the owner's yes to
+     the gaps): Your settings draws "Name · Change", so a colleague now renames
+     THEMSELVES — never anybody else, and the name still unique, recorded in
+     the trail (f782). What stays walled is a colleague's name. */
+  test('a colleague cannot rename somebody else (their own name is theirs since round 24)', async () => {
+    const r = await W.restricted.raw('/api/users/' + W.users.unrestricted.id, { method: 'PATCH', body: { name: 'Somebody Else' } });
     assert.equal(r.status, 403);
   });
   test('the browser sends the name and no longer keeps it only in memory', () => {

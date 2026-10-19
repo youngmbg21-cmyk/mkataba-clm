@@ -127,7 +127,10 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   /* ============ 1. THE LIST IN THE REDLINES CARD ============ */
   await page.evaluate(id => openWorkspace(id, { room: true }), ID);
   await until(page, () => !!document.querySelector('[data-room-check="risk"]'), null, 8000);
-  await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);
+  /* RE-POINTED (round 9's gaps, second pass): the room's Redlines door lands
+     on Jambo's face beside the paper, which draws the piles only, as drawn;
+     the risk list is the Negotiate page's, opened by name. */
+  await page.evaluate(id => openRedlineWorkbench(id, { page: true }), ID);
   await until(page, () => !!document.querySelector('.redline-page #rl-changes'), null, 8000);
   const pile = await until(page, () => {
     const p = document.getElementById('rl-risks');
@@ -170,7 +173,10 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   check(!!go && go.draft === 0 && !go.look, '2a the open marked clause draws no marks list and no "Draft a redline" (one door for edits)', go && JSON.stringify(go));
   check(!!go && go.notes === 0 && !/Add a note/.test(go.text), '2b and no "Add a note" (removed 5 Oct 2026)', go && go.text);
   await page.screenshot({ path: path.join(OUT, '02-thread.png') });
-  await page.evaluate(id => openRedlineWorkbench(id), ID);   /* from Home (section 2) */
+  /* RE-POINTED (round 9's gaps, second pass): Jambo's Redlines face beside
+     Home's paper draws the piles only, as drawn — the risk list stays on the
+     Negotiate page, opened by name, which is what this check is about. */
+  await page.evaluate(id => openRedlineWorkbench(id, { page: true }), ID);
   await until(page, () => !!document.querySelector('#rl-risks [data-rk-key="s:t-pay"] [data-rk-act="edit-ce"]'));
   await press(page, '#rl-risks [data-rk-key="s:t-pay"] [data-rk-act="edit-ce"]');
   const open = await until(page, () => {

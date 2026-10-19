@@ -1446,7 +1446,10 @@ function reviewBannerHtml(c, opts = {}){
   }
   /* 2. WHAT IS OUT WITH SOMEBODY ELSE — only the ones I am entitled to know
      about, and the Cancel only where I could actually use it. */
-  for (const rv of st.waiting){
+  /* ON JAMBO'S REDLINES FACE the "Out for review" pile says this, its head
+     carrying Remind and each row its Cancel (rlReviewPileActsHtml; round 9's
+     gaps, third pass: no band over the column) — opts.waitingInPile */
+  for (const rv of (opts.waitingInPile ? [] : st.waiting)){
     if (!reviewMaySee(rv)) continue;
     const p = st.progress(rv);
     /* ---- AND WHETHER THEY WERE ACTUALLY TOLD ----

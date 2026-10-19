@@ -140,6 +140,14 @@ const OPEN = ['', 'show me ', 'give me ', 'can you draw ', 'I want to see '];
     check(one.strip === 'MK-BP2' && !/^c:/.test(one.key || ''), '2a "show me MK-BP2" opens the contract (its strip)', JSON.stringify(one));
     const two = await ask('bring up Tundra Cold Chain Ltd');
     check(two.strip === 'MK-BP1' && !/^c:/.test(two.key || ''), '2b "bring up <one name>" opens the contract (its strip)', JSON.stringify(two));
+    /* RE-POINTED 19 Oct 2026 (rounds 7 and 12 as drawn: a contract brought
+       up is a page on the desk, and while it is up the box asks about THAT
+       contract — "Ask about MK-0377…" — so the Board's own reader steps
+       aside): the reader turns back to the Board through its own row
+       (deskTabOpen('home:board'), the page let go, the strip kept), and the
+       chart question is typed there. */
+    await page.evaluate(() => deskTabOpen('home:board'));
+    await until(page, () => !hbS().card && hbS().face === 'board' && !!document.getElementById('igd-input'));
     const three = await ask('show me Tundra Cold Chain Ltd by month');
     check(!/^c:/.test(three.key || '') && three.moved && three.strip === 'MK-BP1', '2c the same name WITH chart words draws a chart, not another contract', JSON.stringify(three));
     await page.evaluate(() => { hbS().face = 'board'; });

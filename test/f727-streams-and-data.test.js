@@ -111,12 +111,17 @@ describe('f727 (1) Contract streams is a page', () => {
     assert.ok(pg, 'the page is drawn');
     assert.deepEqual([...pg.querySelectorAll('.st-sw-band .st-sw-f > span')].map(x => x.textContent), [S.en.st_sw_f_who, S.en.st_sw_f_keep, S.en.st_sw_f_find]);
     assert.deepEqual([...pg.querySelectorAll('.st-sw-tb thead th')].map(x => x.textContent),
-      ['st_sw_c_stream', 'st_sw_c_who', 'st_sw_c_contracts', 'st_sw_c_kept', 'st_sw_c_due', 'st_sw_c_held'].map(k => S.en[k]));
+      /* re-pointed 18 Oct 2026 (round 26 as drawn): the last column says "On hold" */
+      ['st_sw_c_stream', 'st_sw_c_who', 'st_sw_c_contracts', 'st_sw_c_kept', 'st_sw_c_due', 'st_sw_c_onhold'].map(k => S.en[k]));
     const rows = [...pg.querySelectorAll('.st-sw-row')];
     assert.equal(rows.length, fids(sb).length);
-    assert.ok(rows.every(r => /^stream:/.test(r.getAttribute('data-st-panel'))), 'a row opens the stream\'s own page');
-    const add = pg.querySelector('.st-pg-head [data-st-panel="folders"]');
-    assert.ok(add && add.getAttribute('data-st-focus') === '#st-folder-new', '+ New stream opens the add box');
+    /* re-pointed 18 Oct 2026 (round 26 as drawn): a press SHOWS the stream in
+       the side panel; Enter or a double press opens its page (f781) */
+    assert.ok(rows.every(r => fids(sb).includes(r.getAttribute('data-st-sw-pick'))), 'a row shows its stream beside the list');
+    /* re-pointed 18 Oct 2026 (round 26 as drawn: "a new stream opens its
+       form"): its own form, the hand in its name */
+    const add = pg.querySelector('.st-pg-head [data-st-panel="stream:new"]');
+    assert.ok(add && add.getAttribute('data-st-focus') === '#st-stream-name', '+ New stream opens its form');
   });
   test('1b the row reads the stream\'s own readings: private, keeping, due, held', () => {
     const { sb } = stage();
@@ -162,6 +167,11 @@ describe('f727 (3) Data & backup is a page', () => {
     assert.ok(pg, 'the page is drawn');
     const dw = win.document.getElementById('st-drawer');
     assert.ok(!(dw && dw.classList.contains('open')), 'no drawer');
+    /* RE-POINTED 19 Oct 2026 (the gaps' third pass): "Data & backup" opens
+       on its first tab, The trail, from every door — one name, one landing;
+       Backup is its own tab's press */
+    assert.equal(pg.querySelector('[data-st-bk-tab].is-on').getAttribute('data-st-bk-tab'), 'trail');
+    pg.querySelector('[data-st-bk-tab="backup"]').dispatchEvent(new win.Event('click', { bubbles: true }));
     assert.ok(win.document.getElementById('bk-export'), 'Backup holds the backup');
     sb.stDrawerOpen('trail');
     assert.equal(win.document.querySelector('[data-st-pg="data"] [data-st-bk-tab].is-on').getAttribute('data-st-bk-tab'), 'trail');

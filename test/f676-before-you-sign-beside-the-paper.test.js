@@ -106,13 +106,21 @@ describe('f676 (2) the paper beside it is the signing copy', () => {
   });
   test('2b the places to sign and the signatures given are the Signing tab\'s own painters', () => {
     const pp = strip(fnBody(PD, 'pdSignPaperPaint'));
-    ['signSpotsPaint(c, cv)', 'pagesSignFlags(cv, 0)', 'pagesSignMarks(cv, pagesSignRows(c, c.signatures || []))', 'signCopyWatch(', 'scApplyZoom()', 'scPaintPage()', 'scWireControls(zc)'].forEach(w =>
+    /* RE-POINTED (the gaps, round 10 "The road", 18 Oct 2026): the page arrows and
+       size stand on the paper's line now (igSignCopyHtml), so the paper's own
+       scroller is watched through scWireControls(host), which finds no buttons there */
+    ['signSpotsPaint(c, cv)', 'pagesSignFlags(cv, 0)', 'pagesSignMarks(cv, pagesSignRows(c, c.signatures || []))', 'signCopyWatch(', 'scApplyZoom()', 'scPaintPage()', 'scWireControls(host)'].forEach(w =>
       assert.ok(pp.includes(w), w));
     assert.match(strip(fnBody(CT, 'signSpotsPaint')), /function signSpotsPaint\(c, ?cv\)/, 'the painter takes the canvas it marks');
   });
-  test('2c no banner word over the signing copy (the owner\'s 10 Oct 2026 ruling), and no Clean | Redline', () => {
+  /* RE-POINTED (the gaps, round 10 "The road", 18 Oct 2026): the owner's picked
+     drawing puts "Signing copy" on the paper's line with its page arrows and size,
+     which reverses the 10 Oct 2026 "no banner words" ruling for this line — the
+     word is the copy's own pill in the head card, never a band over the paper */
+  test('2c the signing copy says so on the paper\'s line (round 10 as drawn), and no Clean | Redline', () => {
     const s = strip(fnBody(IG, 'igStripHtml'));
-    assert.doesNotMatch(s, /ig-copy-chip|int_sign_copy|sc_signing_copy/);
+    assert.match(s, /igSignOn\(c\)\?igSignCopyHtml\(c\)/, 'the word and its controls on the line');
+    assert.match(strip(fnBody(IG, 'igSignCopyHtml')), /sc_signed_copy':'sc_signing_copy'/);
     assert.match(s, /!igSignOn\(c\)&&window\.pdRedOk/, 'no Clean | Redline while the signing copy shows');
   });
   test('2d no Track beside the signing copy: its pages are scaled, a clause\'s line would sit beside the wrong words', () => {
@@ -188,7 +196,12 @@ describe('f676 (5) the Negotiate page folds into Home', () => {
   });
   test('5c the page\'s notices and its review door ride the face', () => {
     assert.match(strip(fnBody(PD, 'pdRedFaceHtml')), /rlFloatingNoticesHtml\(c, o\)/);
-    assert.doesNotMatch(strip(fnBody(PD, 'pdRedHeadEndHtml')), /data-pd-rf-nego/, 'no way to the page it folded into');
+    /* RE-POINTED 19 Oct 2026 (round 9's gaps, third pass, lane C2): the
+       column head's × builder (pdRedHeadEndHtml) went with its last caller —
+       ‹ Jambo in the panel's row closes the face — so the face's options are
+       asked: no head end, no way to the page it folded into */
+    assert.ok(!/function pdRedHeadEndHtml\(/.test(PD), 'the stale head-end builder is gone');
+    assert.doesNotMatch(strip(fnBody(PD, 'pdRedOpts')), /headEnd|data-pd-rf-nego/, 'no way to the page it folded into');
     assert.match(strip(HOME), /openRedlineWorkbench\(c\.id, \{ face: true \}\)/, 'a review lands on the face too');
     /* the page's Ask for review and Home's ⋯ row are one door */
     assert.match(strip(NEGO), /rlReviewDoor\(c, \(\) => renderRedline\(\)\)/);
@@ -259,7 +272,11 @@ describe('f676 (8) found on the way: the doors into Fill in that now carry the r
 
 describe('f676 (9) what the room\'s Signing tab had, on Home too (found by the re-pointed checks)', () => {
   test('9a the signing copy keeps its page arrows and size — the room\'s controls, finding either paper', () => {
-    assert.match(strip(fnBody(IG, 'igZoomCornerHtml')), /if\(igSignOn\(c\)&&typeof window\.scControlsHtml==='function'\) return rlPaperZoomHtml\('', scControlsHtml\(c\)\);/);
+    /* RE-POINTED (round 10 as drawn): the controls stand on the line, nothing above the paper —
+       RE-POINTED AGAIN (the gaps' second check, 18 Oct 2026): no row at all, not an empty one held,
+       so the signing copy starts higher, never lower */
+    assert.match(strip(fnBody(IG, 'igZoomCornerHtml')), /if\(igSignOn\(c\)\) return '';/); assert.doesNotMatch(IG, /IG_ZC_HOLD/, 'no empty row is held above the signing copy');
+    assert.match(strip(fnBody(IG, 'igSignCopyHtml')), /scControlsHtml\(c\)/);
     assert.match(strip(fnBody(IG, 'igPaperHtml')), /zoom:\$\{igSignOn\(c\)\?1:/, 'the reading zoom stays off the signing copy');
     const els = strip(fnBody(CT, 'scEls'));
     assert.match(els, /getElementById\('doc-signwrap'\)/);
@@ -308,7 +325,10 @@ describe('f676 (10) what the Negotiate page did, the Redlines face does too (fou
   test('10a Jambo\'s answer glows on the face: the page\'s after-paint is published, and the review door glows on the menu', () => {
     assert.match(NEGO, /Object\.assign\(window, \{ negoAfterPaint, negoTurnBannerHtml,/);
     /* RE-POINTED 15 Oct 2026: the ⋯ went; the Menu tab's review row, or the tab itself while it is shut, glows */
-    assert.match(NEGO, /escalate: \(\) => '\[data-rl-review\], #pd-body \.pd-menu \[data-ig-review\], #ig-dock \[data-pd-tab="menu"\]'/);
+    /* RE-POINTED 18 Oct 2026 (round 9's gaps, "Piles" as drawn): the Redlines
+       column's own head carries "Ask for review" ([data-rl-review-go]) — on
+       the face that is the review door that glows; the menu rows stay */
+    assert.match(NEGO, /escalate: \(\) => '\[data-rl-review\], \[data-rl-review-go\]:not\(:disabled\), #pd-body \.pd-menu \[data-ig-review\], #ig-dock \[data-pd-tab="menu"\]'/);
   });
   test('10b the live probe and the presence beat run for the face', () => {
     assert.match(strip(fnBody(NEGO, 'rlLiveHere')), /pdRedShows\(\)/);

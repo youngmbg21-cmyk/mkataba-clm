@@ -87,10 +87,26 @@ const check = (name, pass, detail) => {
       return { want: want.length, got: got.length, same: JSON.stringify(want) === JSON.stringify(got), below,
         count: document.querySelector('.igw-count').textContent.trim(), list: !!document.querySelector('#ig-paper .ig-pick-list') };
     });
-    check('1a every contract the tab can read stands on the wall, in the List\'s own order (newest work first) — no cap',
-      all.want > 12 && all.got === all.want && all.same && !all.list, JSON.stringify(all));
+    /* RE-POINTED 18 Oct 2026 (round 13 as drawn, the owner's "build all the
+       gaps"): the wall draws twelve papers at a time, in the List's own order,
+       its foot saying "Showing 12 of N" with Show more for the rest; at rest
+       the count line says the book ("24 contracts · newest first") */
+    const first = await page.evaluate(() => {
+      const want = regFiltered().map(c => contractRef(c)).slice(0, 12);
+      const got = [...document.querySelectorAll('#ig-paper .igw-card')].map(b => b.querySelector('.igw-ref').textContent.trim());
+      return { got: got.length, same: JSON.stringify(want) === JSON.stringify(got), foot: ((document.querySelector('#ig-wall .igw-shown') || {}).textContent || '').trim() };
+    });
+    check('1a the first twelve stand on the wall, in the List\'s own order (newest work first), the foot saying how many of all',
+      all.want > 12 && first.got === 12 && first.same && first.foot === `Showing 12 of ${all.want}` && !all.list, JSON.stringify({ all, first }));
+    while (await page.$('#ig-wall [data-ig-wall-more]')) { await page.click('#ig-wall [data-ig-wall-more]'); await page.waitForTimeout(250); }
+    const every = await page.evaluate(() => {
+      const want = regFiltered().map(c => contractRef(c));
+      const got = [...document.querySelectorAll('#ig-paper .igw-card')].map(b => b.querySelector('.igw-ref').textContent.trim());
+      return { n: got.length, same: JSON.stringify(want) === JSON.stringify(got) };
+    });
+    check('1a2 Show more brings the rest, in the same order, until every contract stands', every.n === all.want && every.same, JSON.stringify(every));
     check('1b each contract\'s number sits below its paper', all.below);
-    check('1c the count says how many are shown of how many', new RegExp(`^${all.want} of ${all.want} `).test(all.count), all.count);
+    check('1c at rest the count says the book', new RegExp(`^${all.want} contracts$`).test(all.count), all.count);
 
     /* ================= 2. SIX A LINE ON A THINKPAD, SMALL, PAINTED ========= */
     const fit = await page.evaluate(() => {
@@ -164,7 +180,8 @@ const check = (name, pass, detail) => {
       await page.selectOption('#ig-paper [data-reg-home] #reg-stage-sel', 'all');
       await page.waitForTimeout(400);
       const back = await page.evaluate(() => ({ n: document.querySelectorAll('#ig-paper .igw-card').length, stage: state.reg.stage }));
-      check('5c All lets it go — every paper again', back.stage === 'all' && back.n === all.want, JSON.stringify(back));
+      /* a new narrowing starts again at twelve (round 13 as drawn) */
+      check('5c All lets it go — the first twelve papers again', back.stage === 'all' && back.n === Math.min(12, all.want), JSON.stringify(back));
     } else check('5b a stage to choose', false, JSON.stringify(chips));
 
     /* ================= 6. A REFRESH KEEPS THE SORT ======================== */
@@ -176,9 +193,12 @@ const check = (name, pass, detail) => {
 
     /* ================= 7. A PRESS OPENS THE PAPER ========================= */
     const pick = await page.evaluate(() => document.querySelector('#ig-paper .igw-card').getAttribute('data-ig-pick'));
+    /* RE-POINTED 18 Oct 2026 (round 13 as drawn): a press CHOOSES the paper,
+       a second press opens it */
+    await page.click(`#ig-paper .igw-card[data-ig-pick="${pick}"]`);
     await page.click(`#ig-paper .igw-card[data-ig-pick="${pick}"]`);
     const opened = await page.waitForFunction(id => window.intel && intel.paper && String(intel.paper.id) === String(id) && !document.querySelector('#ig-paper #ig-wall'), pick, { timeout: 15000 }).then(() => true, () => false);
-    check('7a pressing a paper opens that contract on the Document tab', opened, pick);
+    check('7a pressing a paper twice (choose, then open) opens that contract on the Document tab', opened, pick);
     await page.screenshot({ path: path.join(OUT, '2-opened.png') });
 
     check('8 no page errors', errors.length === 0, errors.join(' | '));

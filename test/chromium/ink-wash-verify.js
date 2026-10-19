@@ -20,6 +20,23 @@
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
 
+   RE-RECORDED 19 Oct 2026 (twentieth), OWNER-ASKED (the same "Yes, re-save
+   it", for the last of the gap build: every list page's head is the drawn
+   white card, Jambo's chips on the buttons' hairline, Before you sign keeps
+   Ready to sign's checks open). Audited as a set difference: no colour new
+   to the record, nothing gone; counts moved on Obligations, Our paper,
+   Settings, Home and signing (the card's own edge, the live tab in the
+   theme's ink, the signing column now unfolded); one text size back on the
+   record — 8px, the approval chain's existing step badge (js/approvals.js,
+   on main too), now in view on the signing screen.
+   RE-RECORDED 19 Oct 2026 (nineteenth), OWNER-ASKED ("Yes, re-save it",
+   after the gap build of every picked redesign drawing). Audited as a set
+   difference: no colour new to the palette — new to the record are only
+   existing tokens on more screens (the violet and green status pills, 6%
+   washes of the two brand accents on a lit row); the redline cards' buttons
+   moved from violet and grey to the accent ink (round 9 "Piles", the owner's
+   "Design's colours", reversing 9 Oct); text sizes: 13.5px new to the record
+   (the glance head's existing rule, now on History), 8px and 12.35px gone.
    RE-RECORDED 18 Oct 2026 (eighteenth), OWNER-ASKED ("The SAP way, and call
    it Home"): no tab row above the page; the bar reads ‹ · Ha · the page's
    name ▾ and opens Recent. Audited by key: counts moved on every screen (the

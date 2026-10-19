@@ -237,13 +237,19 @@ const DEAL = {
       const box = a ? a.getBoundingClientRect() : null;
       const hit = box ? document.elementFromPoint(Math.round(box.left + box.width / 2),
         Math.round(box.top + box.height / 2)) : null;
+      /* RE-POINTED 18 Oct 2026 (round 9's gaps, "Piles" as drawn): on the
+         lead's seat a suggestion is a pile of its own, named for who suggested
+         it ("Lina suggests"), and its row carries Adopt · Hand back on its own
+         face — the strip, whose words and two presses repeated both, is drawn
+         only where the suggestion came back (its author's seat). */
+      const pile = document.querySelector(`[data-rl-pile="suggest"] .rl-band`);
       return { adopt: !!a, hand: !!document.querySelector(`[data-dk-return="${id}"]`),
-        text: strip ? strip.textContent.replace(/\s+/g, ' ').trim() : '',
+        text: strip ? strip.textContent.replace(/\s+/g, ' ').trim() : (pile ? pile.textContent.replace(/\s+/g, ' ').trim() : ''),
         pressable: !!(a && hit && (hit === a || a.contains(hit))) };
     }, sug.id);
     ok('4c the lead\'s card carries both acts, and the button is really pressable',
       leadSees.adopt && leadSees.hand && leadSees.pressable, JSON.stringify(leadSees.pressable));
-    ok('4d and the strip names who suggested it',
+    ok('4d and the pile names who suggested it',
       /Suggest/i.test(leadSees.text) && /Unrestricted/i.test(leadSees.text), JSON.stringify(leadSees.text));
     await lead.p.screenshot({ path: path.join(OUT, '2-the-lead.png') });
 

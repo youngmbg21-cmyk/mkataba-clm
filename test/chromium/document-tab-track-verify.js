@@ -14,7 +14,9 @@
      3. pressing a label glides the paper and opens the Clauses list
      4. the Signing tab draws no Track
      5. on both tabs the paper's buttons stand on the tab line, no bar under
-        the tabs, no "Signing copy" or "Executed and locked" words
+        the tabs, no "Signing copy" or "Executed and locked" words (re-pointed
+        19 Oct 2026: round 10 draws the signing copy's own pill with its page
+        arrows and size on that line — see 5c, 5d)
      6. at 900px wide the buttons take their own line under the tabs and
         never overlap them
      7. no page errors
@@ -147,12 +149,33 @@ const check = (name, pass, detail) => {
     /* RE-POINTED 11 Oct 2026 (owner: the zoom "inside the page area"): the signing
        copy's page arrows and zoom left the tab line for the paper's own ground;
        what stays on the line (the walk, when there is one) still stands on it. */
-    check('5c Signing: no bar, no words; what is on the tab line stands on it', s.strip && s.same && !s.bar && !s.words, JSON.stringify(s));
-    const zc = await page.evaluate(() => {
-      const z = document.querySelector('#ig-paper .paper-zc'), st = document.getElementById('ig-strip');
-      return { zoom: !!z && !(st && st.contains(z)), arrows: !!document.querySelector('#ig-paper [data-sc-page]') };
+    /* RE-POINTED 19 Oct 2026 (round 10 as drawn: The road — "The page arrows
+       and size sit in the head card, so nothing is added above the paper"):
+       the drawing puts a "Signing copy" pill, "‹ Page 1 of 3 ›" and "− 100% +"
+       on the paper's head line (#ig-strip [data-ig-sc], igSignCopyHtml). That
+       reverses the 10 Oct "no words" and the 11 Oct "zoom inside the page
+       area" for the signing copy; the owner's "build all the gaps" is the yes.
+       What still holds: no bar under the line, everything on it stands on it,
+       and no banner words beyond the copy's own name in its pill. */
+    const pill = await page.evaluate(() => {
+      const st = document.getElementById('ig-strip'); const sc = st && st.querySelector('[data-ig-sc]');
+      const w = sc && sc.querySelector('.ig-sc-word');
+      const cl = st ? st.cloneNode(true) : null; if (cl) cl.querySelectorAll('[data-ig-sc]').forEach(x => x.remove());
+      const rest = cl ? (cl.textContent || '') : '';
+      return { word: w ? w.textContent.trim() : '', restBanner: /Signing copy|Signed copy|Executed and locked|agreed in round|as drafted|rebuilt from their file/.test(rest.replace(/\s+/g, ' ')) };
     });
-    check('5d Signing: the page arrows and the zoom stand on the paper', zc.zoom && zc.arrows, JSON.stringify(zc));
+    check('5c Signing: no bar; what is on the paper\'s line stands on it; the only words are the copy\'s own pill',
+      s.strip && s.same && !s.bar && (!s.words || (s.words === pill.word && !pill.restBanner)), JSON.stringify({ ...s, pill }));
+    const zc = await page.evaluate(() => {
+      const st = document.getElementById('ig-strip'); const sc = st && st.querySelector('[data-ig-sc]');
+      const seen = el => !!el && el.getClientRects().length > 0 && el.getBoundingClientRect().width > 0;
+      const zoomOnPaper = [...document.querySelectorAll('#ig-paper .paper-zc')].filter(seen).length;
+      return { zoom: !!sc && sc.querySelectorAll('[data-sc-zoom]').length === 2 && seen(sc.querySelector('[data-sc-zoom]')),
+        arrows: !!sc && sc.querySelectorAll('[data-sc-page]').length === 2 && seen(sc.querySelector('[data-sc-page]')),
+        oneZoom: zoomOnPaper === 0 };
+    });
+    check('5d Signing: the page arrows and the size stand in the paper\'s head line, beside the pill — one size control, none also on the paper',
+      zc.zoom && zc.arrows && zc.oneZoom, JSON.stringify(zc));
     await page.screenshot({ path: path.join(OUT, '3-signing.png') });
 
     console.log('\n6 · a narrow window');

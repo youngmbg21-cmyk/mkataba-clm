@@ -209,7 +209,13 @@ const ok = (name, good, detail) => {
              width while every chip sat at one top (measured). A box with no
              height occupies no line. */
           const chips = bar ? [...bar.children].filter(x => { const r = x.getBoundingClientRect(); return r.width > 0 && r.height > 0; }) : [];
-          const mids = new Set(chips.map(x => { const r = x.getBoundingClientRect(); return Math.round((r.top + r.height / 2) / 6); }));
+          /* RE-MEASURED AT THE INTEGRATION (19 Oct 2026): centres are grouped by
+             their distance, never by rounding into fixed 6px buckets — two
+             centres 0.01px apart (170.99 and 171.00, measured) straddled a
+             bucket's edge and read as two lines. A wrapped line still sits a
+             whole control (28px) lower, far past the 6px kept here. */
+          const cs = chips.map(x => { const r = x.getBoundingClientRect(); return r.top + r.height / 2; }).sort((a, b) => a - b);
+          const mids = new Set(); let line = 0; cs.forEach((y, i) => { if (i && y - cs[i - 1] > 6) line++; mids.add(line); });
           return { ins: document.querySelector('[data-ins-page]')?.getAttribute('data-ins'), lines: chips.length ? mids.size : 0,
             fits: sc ? sc.scrollWidth <= sc.clientWidth + 1 : false, over: document.documentElement.scrollWidth - document.documentElement.clientWidth };
         });
@@ -249,7 +255,9 @@ const ok = (name, good, detail) => {
       bandTabs: [...document.querySelectorAll('.reg-views [data-reg-band]')].map(x => x.textContent.replace(/\d+/g, '').trim()),
       bands: [...document.querySelectorAll('#reg-tbody .ngl-band-k')].map(x => x.textContent.trim()),
       views: !!document.querySelector('[data-reg-view]'),
-      first: document.getElementById('ins-panel') ? [...document.getElementById('ins-panel').children].map(x => x.className)[1] : null,
+      /* RE-POINTED 18 Oct 2026: the panel is Jambo's — its head, then the body
+         holding what it says — so the sections are read inside the body */
+      first: document.getElementById('ins-panel') ? [...(document.querySelector('#ins-panel .jl-body') || document.getElementById('ins-panel')).children].map(x => x.className)[1] : null,
       table: document.querySelector('#ins-panel .ins-table') ? document.querySelector('#ins-panel .ins-table').innerText : '',
     }));
     /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner-approved): the drawing's
@@ -258,7 +266,7 @@ const ok = (name, good, detail) => {
        Lead column the owner said yes to, after the wait */
     ok('2a Negotiations draws the list and the panel, with the round, what is open, the wait and the lead', ng.ins === '1'
       && ng.heads.join('|') === 'Ref|Counterparty and agreement|Round|What is open|Waiting|Lead', ng.heads.join(' | '));
-    ok('2b the changes say what they ask of whom, and the wait says how long', ng.moves.some(m => /^\d+ to answer$/.test(m)) && ng.moves.some(m => /^sent \d+ changes?$/.test(m))
+    ok('2b the changes say what they ask of whom, and the wait says how long', /* RE-POINTED 18 Oct 2026 (round 14 as drawn): "N redlines to answer", "N sent, no answer yet" */ ng.moves.some(m => /^\d+ redlines? to answer$/.test(m)) && ng.moves.some(m => /^\d+ sent, no answer yet$/.test(m))
       && ng.waits.some(w => /^(\d+ days?|today)$/.test(w)), `${ng.moves.join(' | ')} · ${ng.waits.join(' | ')}`);
     ok('2c only the groups that have rows are drawn, whose move is a tab row, and no Contracts views', !ng.bands.includes('Nothing outstanding') && !ng.views
       && ng.bandTabs.includes('Our move') && ng.bandTabs.includes('Their move'), `${ng.bands.join(' | ')} · tabs ${ng.bandTabs.join(' | ')}`);
@@ -330,7 +338,14 @@ const ok = (name, good, detail) => {
       await page.click('#ins-panel [data-ins-act="door-ws"]'); await page.waitForTimeout(1200);
       const r = await page.evaluate(HOMED);
       ok('3d Approvals: the Workspace door lands on Home, on that contract', r.view === 'dashboard' && r.id === apPid, JSON.stringify(r));
-    } else ok('3d Approvals: the Workspace door lands on Home', false, 'no panel or no Workspace door');
+    } else if (apPid && await page.$('#ins-panel [data-ins-act="gate"]')) {
+      /* RE-POINTED 18 Oct 2026 (round 15 as drawn, owner's "build all the
+         gaps"): an Approval's panel draws no doors — "Open Before you sign" is
+         its way to the paper, and it lands on Home, on that contract */
+      await page.click('#ins-panel [data-ins-act="gate"]'); await page.waitForTimeout(1200);
+      const r = await page.evaluate(HOMED);
+      ok('3d Approvals: an Approval\'s "Open Before you sign" lands on Home, on that contract', r.view === 'dashboard' && r.id === apPid, JSON.stringify(r));
+    } else ok('3d Approvals: the panel\'s way to the paper lands on Home', false, 'no panel, no Workspace door, no Open Before you sign');
     const obCid = await page.evaluate(() => { const c = state.contracts.find(x => !x.archived); if (!c) return null;
       c.obligations = (c.obligations || []).concat([{ id: 'ob-ins-3e', desc: 'Send the quarterly report', due: todayISO(), party: 'us', status: 'open' }]); return c.id; });
     await page.evaluate(() => setView('obligations')); await page.waitForTimeout(1200);

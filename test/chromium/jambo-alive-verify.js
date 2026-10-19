@@ -72,7 +72,8 @@ const check = (name, pass, detail) => {
     const w = await perch();
     check('1a on the wall he sits at the end of the chips row, over no chip, breathing',
       w.on && w.inChips && !w.overChip && w.anim === 'jbBreathe' && w.hidden === 'true', JSON.stringify(w));
-    await page.click('[data-ig-pick="MK-B2"]');
+    /* RE-POINTED 18 Oct 2026 (round 13 as drawn): a press chooses the paper, a second opens it */
+    await page.click('[data-ig-pick="MK-B2"]'); await page.click('[data-ig-pick="MK-B2"]');
     await until(() => intel.paper && intel.paper.id === 'MK-B2' && document.getElementById('pd-glance'));
     await atRest();
     const p1 = await perch();
@@ -131,7 +132,7 @@ const check = (name, pass, detail) => {
     /* opening another paper ticks nothing off: its rows are not the last one's */
     await page.evaluate(() => hbOpenContracts());
     await until(() => !!document.querySelector('#ct-place [data-ig-pick="MK-A2"]'));
-    await page.click('[data-ig-pick="MK-A2"]');
+    await page.click('[data-ig-pick="MK-A2"]'); await page.click('[data-ig-pick="MK-A2"]');
     await until(() => intel.paper && intel.paper.id === 'MK-A2' && document.getElementById('pd-glance'));
     await page.waitForTimeout(300);
     check('4c another contract ticks nothing off', await page.evaluate(() => !document.querySelector('#pd-glance .pd-gl-row.is-done')));

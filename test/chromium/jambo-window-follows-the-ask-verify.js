@@ -56,8 +56,13 @@ const deliver = answer => [{ type: 'tool_use', id: 'tu_w', name: 'deliver_answer
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-B2'), null, { timeout: 20000 });
     await page.waitForTimeout(600);
-    /* the window opens on a page that is not Home (on Home his own panel takes the ask) */
-    const toWindow = async () => { await page.evaluate(() => { setView('approvals'); ai.history = []; openAI(); });
+    /* the window opens on a page that is not Home (on Home his own panel takes the ask)
+       RE-POINTED 19 Oct 2026 (round 15 as drawn: Approvals has Jambo's own
+       panel beside the worklist, and the window's door goes there, as
+       jambos-list-panel-verify 10h pins): the window is opened on the Brain,
+       a page with no Jambo box of its own, so the window is still the one
+       that answers. */
+    const toWindow = async () => { await page.evaluate(() => { setView('brain'); ai.history = []; openAI(); });
       return until(() => document.getElementById('ai-panel').classList.contains('open') && !!document.getElementById('ai-input') && !ai.busy); };
     const winAsk = async q => { await page.fill('#ai-input', q); await page.evaluate(() => aiSubmit()); };
     const lastSaid = () => page.evaluate(() => { const m = ai.history.filter(x => x.role === 'assistant').slice(-1)[0]; return m ? String(m.text || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : ''; });

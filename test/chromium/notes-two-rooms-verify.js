@@ -82,6 +82,18 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
     const before = await page.evaluate(() => !!document.querySelector('#context-panel.open'));
     await page.click(`#rl-changes [data-rl-notes="${set.ch}"]`);
     await page.waitForTimeout(500);
+    /* ---- RE-POINTED 19 Oct 2026 (round 9's gaps, third pass, lane C2: "This
+       opens that change's notes" — in the same panel, one room per side) ----
+       On Jambo's Redlines face, where openRedlineWorkbench lands since stage
+       5, the row's count opens that change's notes IN THE PANEL, not the
+       drawer over it. The drawer is not retired — it is Chat, with a door of
+       its own (openNotesPanel) — and the rest of this block drives it through
+       that door, as section 6 always did. */
+    const inPanel = await page.evaluate(chId => !!document.querySelector(`#pd-redface .rl-fn[data-rl-fn-change="${chId}"]`)
+      && !document.querySelector('#context-panel.open'), set.ch);
+    check('ON THE FACE THE PRESS OPENS THAT CHANGE\'S NOTES IN THE PANEL — not the drawer over it', inPanel);
+    await page.evaluate(id => { if (window.rlFaceNotesSet) rlFaceNotesSet(null); if (window.rlHeadRepaint) rlHeadRepaint(); openNotesPanel(state.activeId, id); }, set.ch);
+    await page.waitForTimeout(500);
     /* ---- RE-POINTED 11 Sep 2026 (Young: "whenever you want to comment, the
        comments / chat slide panel slides in and you comment there instead").
        The window this block drove is retired: the Notes row opens the DRAWER
@@ -106,7 +118,7 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
         clock: !!(panel && [...panel.querySelectorAll('.rl-np-top span')].some(x => /20\d\d/.test(x.textContent))),
         pin: !!(panel && panel.querySelector('.rl-np-pin')) };
     }, set.ch);
-    check('THE PRESS OPENS THE DRAWER ON THE CHANGE — not a dead press, and no window', dlg.up && dlg.window === false);
+    check('THE DRAWER\'S OWN DOOR OPENS IT ON THE CHANGE — not a dead press, and no window', dlg.up && dlg.window === false);
     check('and it names the change it belongs to', /CHG-/.test(dlg.head || ''), (dlg.head || '').trim());
     check('what you wrote is on the list of its room, with Reply and Done under the notes',
       !!dlg.mine && (dlg.mineRoom !== dlg.roomShown || dlg.list.includes(String(dlg.mine).trim())) && dlg.reply && dlg.done,
@@ -464,18 +476,27 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
       /* RE-POINTED 11 Oct 2026: the Chat door LEFT THE SHELL BAR on 20 Sep
          2026 — it is roomChatDoorHtml in the contract's own acts row, beside
          More (MAP-HISTORY "ONE PANEL, THREE FACES"). */
-      const more = document.querySelector('.room-head #ws-more, .room-head .ws-more-btn');
-      const row = b.closest('.room-acts') || b.parentElement;
+      /* RE-POINTED AGAIN 19 Oct 2026: the room and its acts row retired on 15
+         Oct (step 8) and every door onto Negotiate lands on Home's paper, so
+         this asked for a More that is no longer drawn there (red since that
+         day, on KNOWN_RED). The same door, roomChatDoorHtml, is drawn on the
+         paper's ONE LINE now (round 6, "One line", 17 Oct 2026: Notes with its
+         word, then Share, and NO ⋯ on the line), so the claim it kept — the
+         door is the contract's, not the shell bar's — is measured there: on
+         the paper's line, beside Share, on the same line. */
+      const line = document.querySelector('#ig-strip');
+      const share = line && line.querySelector('#ws-share');
       return { there: true, painted: r.width > 0 && r.height > 0,
         drawn: !!(box && box.width > 0 && box.height > 0),
-        between: !!b.closest('.room-head') && !b.closest('#app-header, .shell-bar, header.shell')
-          && !!more && row.contains(more) && Math.abs(more.getBoundingClientRect().top - r.top) < 12,
+        between: !!line && line.contains(b) && !b.closest('#app-header, .shell-bar, header.shell')
+          && !!share && b.parentElement === share.parentElement
+          && Math.abs(share.getBoundingClientRect().top - r.top) < 12,
         dead: b.disabled, title: b.title };
     });
     check('the Chat door is drawn on the contract', btn.there && btn.painted);
     check('its SYMBOL really resolves — a missing one paints an empty box in silence',
       btn.drawn === true);
-    check('and it sits in the contract\'s own acts row, beside More (since 20 Sep 2026)',
+    check('and it sits on the paper\'s own line, beside Share (round 6, "One line")',
       btn.between === true);
     check('it is live on a contract, with what it is on its hover',
       btn.dead === false && /chat/i.test(btn.title || ''), btn.title);
@@ -857,11 +878,17 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
        use, and it carries no edge of its own — the artifact's bare coloured
        word. Measured as computed colours on the real page, against the head's
        own .ui-btn, which is why this claim lives in a browser file. */
+    /* RE-POINTED 19 Oct 2026: the head it measured against was the retired
+       room's (#ws-head, gone from Negotiate's door since 15 Oct, step 8); the
+       Redlines column now stands beside Home's paper, whose head is the
+       paper's ONE LINE (round 6) — Notes and Share, the house's .ui-btn. The
+       claim is unchanged: the row's quiet verb wears that head's own ink and
+       no edge of its own. */
     const openEdge = await page.evaluate(() => {
       const open = document.querySelector(
         '#rl-changes .rl-card-face .rl-edit:not(.rl-verb-ai):not(.is-locked)')
         || document.querySelector('#rl-changes .rl-card-face .rl-edit');
-      const head = document.querySelector('#ws-head .ui-btn:not(.ui-btn-primary)');
+      const head = document.querySelector('#ig-strip .ig-acts .ui-btn:not(.ui-btn-primary)');
       if (!open || !head) return { open: !!open, head: !!head };
       const o = getComputedStyle(open), h = getComputedStyle(head);
       return { open: true, head: true, edge: o.borderTopColor, headEdge: h.borderTopColor,

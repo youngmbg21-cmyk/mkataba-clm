@@ -88,12 +88,19 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     const readList = () => page.evaluate(() => [...document.querySelectorAll('tr[data-cu-cust]')].map(tr => ({
       key: tr.getAttribute('data-cu-cust'), sub: ((tr.querySelector('.ap-sub') || {}).textContent || '').trim(),
       cells: [...tr.querySelectorAll('td')].map(td => td.textContent.trim()) })));
+    /* RE-POINTED 19 Oct 2026 (lane A2, round 19 as drawn): the list opens on
+       Live — Siginon, whose one contract was declined, is a party everything
+       with has ended, so it waits under Status · All; the cells after the
+       party are City · Live · Ended · … (City first) */
+    const live = await readList();
+    ok('2a the rail door opens the list, on its live parties', opened && live.length === 2 && !live.some(r => r.key === 'siginon logistics'), `${live.length} rows`);
+    await page.evaluate(() => { const s = document.querySelector('select[data-cu-f="status"]'); s.value = 'all'; s.dispatchEvent(new Event('change', { bubbles: true })); });
+    await page.waitForFunction(() => document.querySelectorAll('tr[data-cu-cust]').length === 3, null, { timeout: 4000 }).catch(() => {});
     const list = await readList();
-    ok('2a the rail door opens the list', opened && list.length === 3, `${list.length} rows`);
     const nv = list.find(r => r.key === 'naivas supermarkets');
-    ok('2b Naivas: 3 active and 1 expired (a term that ran out is Expired)', !!nv && nv.cells[1] === '3' && nv.cells[2] === '1', nv && nv.cells.join(' | '));
+    ok('2b Naivas: 3 live and 1 ended (a term that ran out has ended)', !!nv && nv.cells[2] === '3' && nv.cells[3] === '1', nv && nv.cells.join(' | '));
     const sg = list.find(r => r.key === 'siginon logistics');
-    ok('2c a declined contract sits with Expired', !!sg && sg.cells[1] === '0' && sg.cells[2] === '1', sg && sg.cells.join(' | '));
+    ok('2c a declined contract sits with Ended', !!sg && sg.cells[2] === '—' && sg.cells[3] === '1', sg && sg.cells.join(' | '));
     await page.click('tr[data-cu-cust="naivas supermarkets"]').catch(() => {});
     await page.waitForFunction(() => /Naivas/.test((document.querySelector('#ins-panel') || {}).textContent || ''), null, { timeout: 4000 }).catch(() => {});
     const panelText = () => page.evaluate(() => ((document.querySelector('#ins-panel') || {}).textContent || '').replace(/\s+/g, ' ').trim());
@@ -103,8 +110,8 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     const own = (await readList()).find(r => r.key === 'naivas supermarkets');
     await page.waitForFunction(() => /Naivas/.test((document.querySelector('#ins-panel') || {}).textContent || ''), null, { timeout: 4000 }).catch(() => {});
     const ownPanel = await panelText();
-    ok('2e with Owner on, the row says 2 active, 0 expired, and its sub-line 2 contracts', !!own && own.cells[1] === '2' && own.cells[2] === '—' && /^2 contracts · 2 streams$/.test(own.sub), own && (own.cells.join(' | ') + ' / ' + own.sub));
-    ok('2f …and the side panel says the same: 2 contracts, Active 2, Expired 0', /2 contracts · 2 streams/.test(ownPanel) && /Active\s*2/.test(ownPanel) && /Expired\s*0/.test(ownPanel), ownPanel.slice(0, 200));
+    ok('2e with Owner on, the row says 2 live, none ended, and its sub-line 2 agreements in their streams', !!own && own.cells[2] === '2' && own.cells[3] === '—' && /^2 agreements · .+ · .+$/.test(own.sub), own && (own.cells.join(' | ') + ' / ' + own.sub));
+    ok('2f …and the side panel says the same: Live agreements 2, and its two agreements', /Live agreements\s*2 · /.test(ownPanel) && /Agreements\s*2/.test(ownPanel), ownPanel.slice(0, 300));
 
     console.log('\n3 · Open party lands on Home\'s wall, narrowed');
     /* RE-POINTED 14 Oct 2026 (the overnight work order, step 2; owner's "Go";
@@ -130,7 +137,10 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     /* THE NUMBER PRESSED IS THE NUMBER READ (kept from the old chip's "· 2"):
        the row said 2 with Owner on (2e); the wall counts the same two
        agreements, the amendment said beside them */
-    ok('3b2 the wall\'s count reads the row\'s number: 2 of 2 contracts, the amendment beside them', land.count === '2 of 2 contracts · 1 amendment', land.count);
+    /* RE-POINTED 19 Oct 2026 (round 13 as drawn, lane B1's pass 4): the count
+       line counts agreements and no longer says "· 1 amendment" — the amendment
+       rides with its own agreement on the wall (3c keeps it in the set) */
+    ok('3b2 the wall\'s count reads the row\'s number: 2 of 2 contracts, the amendment riding with its agreement', land.count === '2 of 2 contracts', land.count);
     ok('3c the wall is exactly that party\'s two (filters held), and the amendment under the first', land.ids.join() === 'MK-CU0,MK-CU2,MK-CU7', land.ids.join());
     await page.reload({ waitUntil: 'networkidle' });
     await page.waitForFunction(() => typeof state !== 'undefined' && state.view === 'dashboard' && document.querySelectorAll('#ig-wall [data-ig-pick]').length > 0, null, { timeout: 15000 }).catch(() => {});
@@ -177,7 +187,10 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     await page.waitForFunction(() => !!document.querySelector('[data-cu-screen]'), null, { timeout: 15000 }).catch(() => {});
     const back = await page.evaluate(() => ({ screen: (document.querySelector('[data-cu-screen]') || {}).getAttribute?.('data-cu-screen'),
       stream: (document.querySelector('select[data-cu-f="stream"]') || {}).value, rows: document.querySelectorAll('tr[data-cu-cust]').length }));
-    ok('5a the list, with its stream filter still on', back.screen === 'list' && back.stream === H.FOLDER_A && back.rows === 2, JSON.stringify(back));
+    /* RE-POINTED 19 Oct 2026 (lane A2): the page opens on Live, so the stream's
+       live party (Naivas) is listed and Siginon, whose one contract ended,
+       waits under Status · All */
+    ok('5a the list, with its stream filter still on', back.screen === 'list' && back.stream === H.FOLDER_A && back.rows === 1, JSON.stringify(back));
     await page.evaluate(() => { const s = document.querySelector('select[data-cu-f="stream"]'); s.value = 'all'; s.dispatchEvent(new Event('change', { bubbles: true })); });
 
     console.log('\n6 · Contracts and Negotiations');

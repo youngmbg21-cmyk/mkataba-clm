@@ -35,8 +35,16 @@ const SIGNED = { ...H.fixtureContract('MK-R1', 'Refined Sugar Supply', 'Kabras S
     { id: 'o1', desc: 'Deliver monthly volumes report', due: day(-3), party: 'theirs', status: 'open' },
     { id: 'o2', desc: 'Pay invoice within 30 days', due: day(5), party: 'ours', status: 'open' },
   ],
+  /* RE-POINTED 19 Oct 2026 (round 12 as drawn: Two sides): an entry by one of
+     OUR people sits in our lane as a bubble with its outcome tag; a line by
+     someone HaTi cannot place on either side (not a member of this workspace,
+     or HaTi itself) sits on the middle line as one quiet pill with no tag
+     (histLaneOf). The approver was a name no member carries, so both of this
+     fixture's lines fell to the middle and no tag could be asked of them; the
+     approval is now given by a member of the seeded workspace, as an approval
+     always is. */
   audit: [
-    { at: day(-30) + 'T09:12:00Z', user: 'Grace Njeri', action: 'Approved', detail: '"Value ≥ KES 5M" approved' },
+    { at: day(-30) + 'T09:12:00Z', user: 'Amina Otieno', action: 'Approved', detail: '"Value ≥ KES 5M" approved' },
     { at: day(-29) + 'T11:41:00Z', user: 'System', action: 'Sealed', detail: 'The signed copy was sealed' },
   ] };
 const LIVE = { ...H.fixtureContract('MK-R2', 'Raw Milk Collection', 'Nandi Dairy Co-operative', H.FOLDER_A, 36000000, 'Under Review'),

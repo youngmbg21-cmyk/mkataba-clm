@@ -3743,6 +3743,10 @@ function popupControlsDress(root){
    these changes?" guard are the dialog's own, so every caller keeps working
    and a page that cannot be measured (a stage with no shell) is simply the
    full window. */
+/* the narrowest page that may stand beside a panel; below it the page takes the whole width */
+const DLG_PAGE_BESIDE_MIN=480;
+/* how near the window's right edge the panel must end to be the one standing at the right (its own margin) */
+const DLG_PAGE_BESIDE_EDGE=40;
 function dlgPageAdopt(root, panel, page){
   const frame=panel.parentElement, scrim=root.querySelector('#modal-scrim');
   if(scrim) scrim.style.display='none';
@@ -3753,7 +3757,15 @@ function dlgPageAdopt(root, panel, page){
     const cs=document.getElementById('content-scroll'), bar=document.getElementById('top-header');
     const r=cs&&cs.getClientRects().length ? cs.getBoundingClientRect() : { left:0, top:0 };
     const top=bar&&bar.getClientRects().length ? bar.getBoundingClientRect().bottom : r.top;
-    frame.style.cssText=`position:fixed;top:${Math.round(top)}px;left:${Math.round(r.left)}px;right:0;bottom:0;z-index:70;display:flex;`;
+    /* ---- A PAGE ON THE DESK, BESIDE JAMBO (round 4 "One sheet", the gaps,
+       18 Oct 2026: the drawn sheet stands on the desk with Jambo's panel at its
+       side, saying what he read) ---- page.beside names the panel left in
+       sight: the page ends at its left edge while it stands at the right. */
+    let right=0;
+    const side=page.beside?document.querySelector(page.beside):null;
+    if(side&&side.getClientRects().length){ const sr=side.getBoundingClientRect(); const vw=window.innerWidth||0;
+      if(sr.left>r.left+DLG_PAGE_BESIDE_MIN && sr.right>=vw-DLG_PAGE_BESIDE_EDGE) right=Math.max(0,Math.round(vw-sr.left)); }
+    frame.style.cssText=`position:fixed;top:${Math.round(top)}px;left:${Math.round(r.left)}px;right:${right}px;bottom:0;z-index:70;display:flex;`;
   };
   place(); window.addEventListener('resize',place);
   panel.setAttribute('data-dlg-page','');
@@ -3764,8 +3776,20 @@ function dlgPageAdopt(root, panel, page){
   while(panel.firstChild) body.appendChild(panel.firstChild);
   const head=document.createElement('div');
   head.className='dlg-pg-head';
-  head.innerHTML=`${page.crumb?`<div class="dlg-pg-crumb"></div>`:''}<div class="dlg-pg-row"><div class="dlg-pg-title"></div><div class="dlg-pg-acts"></div></div>${page.under?'<div class="dlg-pg-under"></div>':''}`;
-  if(page.crumb) head.querySelector('.dlg-pg-crumb').textContent=page.crumb;
+  head.innerHTML=`${(page.crumb||page.crumbHtml)?`<div class="dlg-pg-crumb"></div>`:''}<div class="dlg-pg-row"><div class="dlg-pg-title"></div><div class="dlg-pg-acts"></div></div>${page.under?'<div class="dlg-pg-under"></div>':''}`;
+  /* the crumb is words, or the page's own row of doors where it draws one (crumbHtml) */
+  if(page.crumbHtml) head.querySelector('.dlg-pg-crumb').innerHTML=page.crumbHtml;
+  else if(page.crumb) head.querySelector('.dlg-pg-crumb').textContent=page.crumb;
+  /* THE WAY BACK TO WHERE IT WAS OPENED ("‹ Requests", round 20 as drawn):
+     the page the form opened from stands under it, so the way back is the
+     form's own Cancel — asked first wherever Cancel asks */
+  if(page.crumb&&page.back){
+    const cr=head.querySelector('.dlg-pg-crumb'); cr.textContent='';
+    const b=document.createElement('button'); b.type='button'; b.className='ui-link dlg-pg-back'; b.setAttribute('data-dlg-pg-back','');
+    b.textContent='‹ '+page.back;
+    b.addEventListener('click',()=>{ const c=panel.querySelector('[data-dlg-cancel]'); if(c) c.click(); });
+    cr.appendChild(b);
+  }
   const h=body.querySelector('h1,h2,h3');
   if(h){ const t=head.querySelector('.dlg-pg-title'); h.style.margin='0'; t.appendChild(h); }
   const acts=head.querySelector('.dlg-pg-acts');
@@ -3785,6 +3809,11 @@ function openModal(html, opts={}){
   const replacing=!!(root && root.querySelector('[role="dialog"]'));
   const opener=(replacing && _modalOpener) || document.activeElement;
   if(_modalRelease){ try{ _modalRelease(); }catch(e){} _modalRelease=null; }
+  /* WHAT A CLOSE MUST ALSO PUT AWAY (opts.onClose; the send screen's face of
+     Jambo's panel, round 11's gaps): a dialog replaced by another is closed
+     too, so its own put-away runs first */
+  modalOnCloseRun();
+  _modalOnClose=(typeof opts.onClose==='function')?opts.onClose:null;
   const maxw=opts.maxWidth||DLG_W.m;
   // Given an explicit height the panel becomes a fill-the-window shell: it stops
   // scrolling itself and whatever is inside takes charge of its own overflow.
@@ -3876,7 +3905,8 @@ async function closeModalGuarded(){
     if(ok===false) return; }
   closeModal();
 }
-let _modalOpener=null, _modalRelease=null, _modalDrag=null, _modalPin=null;
+let _modalOpener=null, _modalRelease=null, _modalDrag=null, _modalPin=null, _modalOnClose=null;
+function modalOnCloseRun(){ const f=_modalOnClose; _modalOnClose=null; if(f){ try{ f(); }catch(_){} } }
 /* ---- A DIALOG'S BUTTONS STAY IN VIEW WHILE ITS BODY SCROLLS (the Compact
    ladder, 26 Sep 2026 — rule 8 of the button review: "always in view while the
    body scrolls") ----
@@ -4045,6 +4075,7 @@ function closeModal(){
   if(_modalDrag){ try{ _modalDrag(); }catch(e){} _modalDrag=null; }
   if(_modalPin){ try{ _modalPin(); }catch(e){} _modalPin=null; }
   document.getElementById('modal-root').innerHTML='';
+  modalOnCloseRun();
   if(_modalOpener && _modalOpener.isConnected) fieldFocus(_modalOpener,{preventScroll:true});
   _modalOpener=null;
 }
@@ -4235,7 +4266,7 @@ function promptDialog(opts={}){
                  field sideways. */
               `<textarea id="pd-input" rows="3" wrap="soft" placeholder="${esc(placeholder).replace(/"/g,'&quot;')}"
                  style="box-sizing:border-box;width:100%;max-width:100%;min-height:64px;resize:vertical;border:1px solid var(--field-line);background:var(--color-surface);border-radius:var(--radius);padding:8px 10px;font:inherit;font-size:var(--t-body);line-height:1.5;outline:none;white-space:pre-wrap;overflow-wrap:anywhere">${esc(opts.value)}</textarea>`
-            : `<input id="pd-input" type="text" value="${esc(opts.value).replace(/"/g,'&quot;')}" placeholder="${esc(placeholder).replace(/"/g,'&quot;')}"
+            : `<input id="pd-input" type="${opts.date?'date':'text'}"${opts.date&&opts.min?` min="${esc(opts.min)}"`:''} value="${esc(opts.value).replace(/"/g,'&quot;')}" placeholder="${esc(placeholder).replace(/"/g,'&quot;')}"
                  style="box-sizing:border-box;width:100%;border:1px solid var(--field-line);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:32px;padding:0 10px;font-size:var(--field-size)"/>`}
           ${opts.help?`<p style="font-size:var(--t-label);color:var(--color-neutral-600);margin:10px 0 0;line-height:1.45">${esc(opts.help)}</p>`:''}
         </div>
@@ -4269,7 +4300,10 @@ function promptDialog(opts={}){
     ov.querySelector('#pd-cancel').addEventListener('click',()=>done(null));
     ov.querySelector('#pd-ok').addEventListener('click',()=>done(input.value));
     ov.addEventListener('click',e=>{ if(e.target===ov||e.target===ov.firstElementChild) done(null); });
-    input.focus(); if (input.select && !opts.multiline) input.select();
+    /* A DAY IS CHOSEN, NOT TYPED (opts.date — Requests' Promise a day, round
+       20): HaTi's own calendar dresses it, as every date box */
+    if(opts.date && typeof datePickDress==='function'){ try{ datePickDress(ov); }catch(_){} }
+    input.focus(); if (input.select && !opts.multiline && !opts.date) input.select();
   });
 }
 
@@ -5209,8 +5243,11 @@ function shareLetterWho(c){
 function shareLetterOf(c, st){
   const s=st||{}, ch=s.ch||'email';
   const me=(typeof currentUser==='function' && currentUser())||{};
+  /* a code-named deal: the letter names its code and number only (round 11's
+     gaps, second pass), the same reading the server mails (srvMailCodeOf) */
+  const cn=c&&c._codeName&&c._codeName.code?{ code:c._codeName.code, ref:(typeof contractRef==='function')?contractRef(c):c.id }:{};
   const base={ sender:me.name||'', org:FIRST_PARTY, cName:c.name, recName:String(fval('sh-name')||'').trim(),
-    message:String(fval('sh-summary')||'').trim(), link:null };
+    message:String(fval('sh-summary')||'').trim(), link:null, ...cn };
   if(ch==='link') return { none:true, parts:[] };
   if(ch==='whatsapp') return { ...shareWaTextOf({ ...base, expires:API_MODE()?shareLetterExpires():null }), wa:true };
   if(ch==='word') return { ...shareMailOf({ ...base, channel:'word', purpose:s.purpose==='history'?'history':null }), file:true, head:true };
@@ -5225,15 +5262,147 @@ function shareLetterOf(c, st){
         them:c.counterparty||'', link:null, expiresAt:shareLetterExpires(), t:(k,v)=>i18t(k,v),
         codeOn:!emailOff(), stepOf:window.signStepOf }), turn:true };
   }
-  return { ...shareMailOf({ ...base, channel:'email', purpose:s.purpose, expires:shareLetterExpires() }), head:true };
+  /* THE LETTER AS DRAWN (round 11's gaps, 18 Oct 2026): the round this send
+     opens and what it answers are read off the copy that travels — the
+     payload this screen will send (st.payload), the same one the route reads —
+     and the sign-off is the sender's own job title; the one-time code is said
+     where the company asks for it (the link's own gate, linkCodeCfg). */
+  const pc=(s.payload&&s.payload.contract)||{};
+  return { ...shareMailOf({ ...base, title:me.title||'', channel:'email', purpose:s.purpose, expires:shareLetterExpires(),
+    round:shareRoundOf(pc.negotiation), answers:shareAnswersOf(pc, c),
+    codeOn:!!(typeof linkCodeCfg==='function' && linkCodeCfg().on) }), head:true, letter:true };
 }
 function shareLetterPartsHtml(parts){
-  return parts.filter(p=>p.k!=='msgHead' && p.k!=='msg').map(p=>p.k==='link'
-    ? `<p class="sh-lt-p"><span class="sh-lt-link" data-sh-lt-link>${esc(i18t('sh_lt_link'))}</span></p>`
-    : `<p class="sh-lt-p sh-lt-${p.k}">${esc(p.t)}</p>`).join('');
+  const out=[];
+  const list=parts.filter(p=>p.k!=='msgHead' && p.k!=='msg');
+  for(let i=0;i<list.length;i++){
+    const p=list[i];
+    if(p.k==='ans'){
+      /* what this round answers, one line each, quoted as the email quotes them */
+      const run=[]; while(i<list.length && list[i].k==='ans'){ run.push(list[i]); i++; } i--;
+      out.push(`<div class="sh-lt-ans">${run.map(r=>`<p class="sh-lt-p sh-lt-ansl"><b>${esc(r.clause)}${r.rest?':':'.'}</b>${r.rest?' '+esc(r.rest):''}</p>`).join('')}</div>`);
+    } else if(p.k==='btn'){
+      /* the button is their link, made when Send is pressed */
+      out.push(`<p class="sh-lt-p sh-lt-btnp"><span class="sh-lt-btn" data-sh-lt-btn title="${esc(i18t('sh_lt_link'))}">${esc(p.t)}</span></p>`);
+    } else if(p.k==='link'){
+      if(!list.some(x=>x.k==='btn')) out.push(`<p class="sh-lt-p"><span class="sh-lt-link" data-sh-lt-link>${esc(i18t('sh_lt_link'))}</span></p>`);
+    } else out.push(`<p class="sh-lt-p sh-lt-${p.k}${p.list?' is-lead':''}">${esc(p.t)}</p>`);
+  }
+  return out.join('');
+}
+/* THE CHIPS OF "SENT AS" SAY WHERE EACH CHOICE STANDS, from the controls
+   themselves (the lit segment, the box, the choice), so a chip and the list
+   behind it cannot disagree. */
+function shareLetterAsPaint(c, st){
+  const host=document.getElementById('sh-as-chips'); if(!host) return;
+  const s=st||{}, set=(k,v)=>{ const w=host.querySelector(`[data-sh-as-w="${k}"]`); if(w && w.textContent!==v) w.textContent=v; };
+  const show=(k,on)=>{ const e=host.querySelector(`[data-sh-as="${k}"]`); if(e) e.classList.toggle('hidden', !on); };
+  const p=s.purpose||'negotiate', hist=p==='history';
+  set('purpose', i18t('sh_as_p_'+(['negotiate','sign','view','advise','status'].includes(p)?p:'view')));
+  show('purpose', !hist);
+  const ch=s.ch||'email';
+  set('ch', i18t('sh_as_c_'+ch));
+  const opts=document.getElementById('sh-link-opts');
+  show('link', !!opts && !opts.classList.contains('hidden') && ch!=='word');
+  const dur=document.getElementById('sh-durable');
+  set('link', dur && dur.checked ? i18t('sh_as_l_whole') : i18t('sh_as_l_days', { n:Math.min(90, Math.max(1, Number(fval('sh-exp'))||14)) }));
+  const pc=(s.payload&&s.payload.contract)||{};
+  const live=!!(pc.negotiation || (c && c.negotiation));
+  set('what', hist ? i18t('sh_as_w_history') : p==='status' ? i18t('sh_as_w_status')
+    : live ? i18t('sh_as_w_round', { n:shareRoundOf(pc.negotiation || (c && c.negotiation)) }) : i18t('sh_as_w_contract'));
+  const row=(k,lbl)=>{ const b=host.querySelector(`[data-sh-as-what="${k}"]`); if(!b) return;
+    const src=k==='history'?document.getElementById('share-other'):document.querySelector(`[data-sh-lt-else="${k}"]`);
+    if(b.textContent!==lbl) b.textContent=lbl;
+    const now=(k==='contract'&&!hist&&p!=='status')||(k==='history'&&hist)||(k==='status'&&p==='status');
+    b.setAttribute('aria-current', now?'true':'false');
+    const dead=!now && !!(src && src.disabled);
+    b.disabled=dead; if(dead && src.title) b.title=src.title; else b.removeAttribute('title'); };
+  row('contract', live ? i18t('sh_as_w_round', { n:shareRoundOf(pc.negotiation || (c && c.negotiation)) }) : i18t('sh_as_w_contract'));
+  row('history', i18t('sh_as_w_history'));
+  row('status', i18t('sh_as_w_status'));
+}
+/* the chips' lists open and close, bound once per panel: a chip opens its own
+   list and closes the others; a choice inside it puts it away; a press
+   outside or Esc puts it away; "Change" on the To line opens the boxes */
+function shareLetterAsWire(panel){
+  if(!panel || panel.dataset.shAsWired) return;
+  panel.dataset.shAsWired='1';
+  const closeAll=except=>panel.querySelectorAll('.sh-as.is-open').forEach(x=>{ if(x!==except){ x.classList.remove('is-open');
+    const b=x.querySelector('[data-sh-as-go]'); if(b) b.setAttribute('aria-expanded','false'); } });
+  panel.addEventListener('click',e=>{
+    const t=e.target&&e.target.closest?e.target:null; if(!t) return;
+    const go=t.closest('[data-sh-as-go]');
+    if(go){ e.preventDefault(); const box=go.closest('.sh-as'); const open=!box.classList.contains('is-open');
+      closeAll(box); box.classList.toggle('is-open', open); go.setAttribute('aria-expanded', String(open)); return; }
+    const what=t.closest('[data-sh-as-what]');
+    if(what){ e.preventDefault(); closeAll(null); if(what.disabled || what.getAttribute('aria-current')==='true') return;
+      const k=what.getAttribute('data-sh-as-what');
+      const src=k==='history'?document.getElementById('share-other'):document.querySelector(`[data-sh-lt-else="${k}"]`);
+      if(src && !src.disabled) src.click(); return; }
+    if(t.closest('.sh-as-pop [data-share-purpose], .sh-as-pop [data-share-ch]')){ setTimeout(()=>closeAll(null),0); return; }
+    if(t.closest('#sh-lt-change')){ e.preventDefault(); const L=document.getElementById('sh-letter');
+      if(L) L.setAttribute('data-sh-to','open'); const tw=document.getElementById('sh-lt-tosay'); if(tw) tw.classList.add('hidden');
+      const w=panel.querySelector('.sh-lt-who'); if(w) w.classList.remove('hidden');
+      const em=document.getElementById('sh-email'); if(em && typeof fieldFocus==='function') fieldFocus(em,{preventScroll:true}); return; }
+    if(!t.closest('.sh-as')) closeAll(null);
+  });
+  panel.addEventListener('change',e=>{ if(e.target && (e.target.id==='sh-durable'||e.target.id==='sh-exp')){ const L=document.getElementById('sh-letter'); if(L && L._shAsPaint) L._shAsPaint(); } });
+  panel.addEventListener('keydown',e=>{ if(e.key==='Escape' && panel.querySelector('.sh-as.is-open')){ e.preventDefault(); e.stopPropagation(); closeAll(null); } });
+}
+/* THE NOTE'S BOX HUGS ITS WORDS (round 11's gaps, second pass: "the dashed
+   box hugs its text, about two thirds of the letter's width, no resize
+   grip"): as wide as its longest line (or its label), never past two thirds
+   of the letter, and as tall as its lines. A measurement after the paint,
+   display only; the words are untouched. */
+function shareLetterNoteFit(){
+  const ta=document.getElementById('sh-summary'), L=document.getElementById('sh-letter');
+  if(!ta || !L || !L.classList.contains('is-letter') || !ta.getClientRects().length) return;
+  const body=L.querySelector('.sh-lt-b') || L;
+  const cap=Math.max(160, Math.floor(body.clientWidth*0.66) - 22);
+  const cs=getComputedStyle(ta);
+  const cv=shareLetterNoteFit._cv || (shareLetterNoteFit._cv=document.createElement('canvas'));
+  const g=cv.getContext && cv.getContext('2d');
+  let w=0;
+  if(g){ g.font=`${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    const text=String(ta.value||ta.placeholder||'');
+    for(const line of text.split('\n')) w=Math.max(w, g.measureText(line).width); }
+  const lab=document.getElementById('sh-summary-label');
+  const lw=lab ? Math.ceil(lab.scrollWidth) : 0;
+  ta.style.width=Math.min(cap, Math.max(lw, Math.ceil(w)+6, 120))+'px';
+  ta.style.height='auto';
+  ta.style.height=ta.scrollHeight+'px';
+}
+/* THE CHECKS GO BESIDE THE LETTER (round 11's gaps, second pass): the
+   readiness fold (#share-readiness-wrap) and the email-off line (#sh-noemail)
+   are moved, ids and listeners with them, into the "Before you send" column's
+   slot, so nothing stands under the letter. Where there is no slot (the older
+   screens) they stay where they were. */
+function shareLetterChecksPlace(){
+  const slot=document.getElementById('sh-lt-checks'); if(!slot) return false;
+  ['share-readiness-wrap','sh-noemail'].forEach(id=>{ const n=document.getElementById(id); if(n && n.parentElement!==slot) slot.appendChild(n); });
+  return true;
+}
+/* WHO IT GOES TO, AS A LINE (round 11's gaps): a recipient HaTi already knows
+   — both boxes filled when the screen opened — is said "Anna Holm ·
+   anna.holm@nordvik.se" with Change; the boxes open where it is empty, after
+   Change, or on WhatsApp (which asks for a number) */
+function shareLetterToPaint(ch){
+  const L=document.getElementById('sh-letter'); if(!L) return;
+  const tw=document.getElementById('sh-lt-tosay'), who=L.querySelector('.sh-lt-who'), say=document.getElementById('sh-lt-towho');
+  const n=String(fval('sh-name')||'').trim(), em=String(fval('sh-email')||'').trim();
+  const folded=L.getAttribute('data-sh-to')==='folded' && ch!=='whatsapp' && !!em && /@/.test(em);
+  if(tw) tw.classList.toggle('hidden', !folded);
+  if(who) who.classList.toggle('hidden', folded);
+  if(say){ const v=[n, em].filter(Boolean).join(' · '); if(say.textContent!==v) say.textContent=v; }
 }
 function shareLetterPaint(c, st){
   const host=document.getElementById('sh-letter'); if(!host) return;
+  host._shAsPaint=()=>shareLetterAsPaint(c, st);
+  /* the whole letter again, from where every choice stood last (Jambo's face
+     coming back, pdSendBack) */
+  host._shPaint=()=>{ try{ shareLetterPaint(c, st); }catch(_){} };
+  /* the checks stand beside the letter, whichever paint comes first */
+  shareLetterChecksPlace();
   const L=shareLetterOf(c, st);
   const me=(typeof currentUser==='function' && currentUser())||{};
   const who=shareLetterWho(c);
@@ -5243,10 +5412,12 @@ function shareLetterPaint(c, st){
   const subj=document.getElementById('sh-lt-subj-row');
   if(subj) subj.classList.toggle('hidden', !L.subject);
   set('sh-lt-subject', L.subject||'');
-  /* THE NOTE SITS WHERE THE EMAIL PUTS IT: after the first line, under its
-     own heading — dim while the box is empty, because an empty note sends
-     neither. A signing email carries none; a copied link carries no letter. */
-  const lead=L.parts.findIndex(p=>p.k==='lead');
+  /* THE NOTE SITS WHERE THE EMAIL PUTS IT: after the first line — under its
+     own heading on a file or a signing email; straight after "Hello Anna," on
+     the letter, where the email carries it with no heading (as drawn), the box
+     saying "Your note · type here". A signing email carries none; a copied
+     link carries no letter. */
+  const lead=L.turn ? -1 : L.parts.findIndex(p=>p.k==='lead'||p.k==='hello');
   const before=lead>=0 ? L.parts.slice(0, lead+1) : L.parts;
   const after=lead>=0 ? L.parts.slice(lead+1) : [];
   const b=document.getElementById('sh-lt-before'), a=document.getElementById('sh-lt-after');
@@ -5257,11 +5428,39 @@ function shareLetterPaint(c, st){
   const mh=document.getElementById('sh-lt-msghead');
   if(mh){
     const typed=!!String(fval('sh-summary')||'').trim();
-    mh.textContent = L.turn ? i18t('sh_lt_no_note') : L.wa ? '' : shareMailNoteHead(me.name||'');
-    mh.classList.toggle('hidden', !!L.none || !!L.wa);
+    mh.textContent = L.turn ? i18t('sh_lt_no_note') : (L.wa||L.letter) ? '' : shareMailNoteHead(me.name||'');
+    mh.classList.toggle('hidden', !!L.none || !!L.wa || !!L.letter);
     mh.classList.toggle('is-off', !!L.turn || !typed);
   }
+  host.classList.toggle('is-letter', !!L.letter);
+  const nl=document.getElementById('sh-summary-label');
+  if(nl && L.letter){ const v=i18t('sh_lt_note_lbl'); if(nl.textContent!==v) nl.textContent=v; }
+  /* on the letter the dashed box is the note's frame, so the box inside it
+     goes bare (its field clothes are inline: kept, and put back elsewhere) */
+  const ta=document.getElementById('sh-summary');
+  if(ta){
+    if(ta.dataset.shLtCss==null) ta.dataset.shLtCss=ta.style.cssText;
+    /* AS DRAWN (round 11's gaps, second pass): the box hugs its words — no
+       grip, no empty rows under them (shareLetterNoteFit sizes it) */
+    const bare='border:0;background:transparent;padding:0;box-shadow:none;min-height:0;resize:none;overflow:hidden;outline:none;display:block;';
+    if(L.letter && !ta.dataset.shLtBare){ ta.style.cssText=bare; ta.dataset.shLtBare='1'; ta.rows=1; }
+    else if(!L.letter && ta.dataset.shLtBare){ ta.style.cssText=ta.dataset.shLtCss; delete ta.dataset.shLtBare; ta.rows=3; }
+    /* its frame (the label) hugs it too: the label's own inline block stands down on the letter */
+    const fr=ta.closest('label');
+    if(fr) fr.style.display=L.letter?'':'block';
+  }
+  /* the label is small and grey on the letter ("Your note · type here"): its
+     own inline dress stands down there, so the letter's rule dresses it */
+  if(nl){
+    if(nl.dataset.shLtCss==null) nl.dataset.shLtCss=nl.style.cssText;
+    if(L.letter && !nl.dataset.shLtBare){ nl.style.cssText=''; nl.dataset.shLtBare='1'; }
+    else if(!L.letter && nl.dataset.shLtBare){ nl.style.cssText=nl.dataset.shLtCss; delete nl.dataset.shLtBare; }
+  }
+  shareLetterNoteFit();
   set('sh-lt-jsay', i18t(L.none?'sh_lt_jsay_link':L.wa?'sh_lt_jsay_wa':L.turn?'sh_lt_jsay_turn':'sh_lt_jsay_mail', { who }));
+  /* what they never see, named for who will read it (round 11's gaps: "What
+     Anna never sees") */
+  set('sh-lt-never-h', i18t('sh_lt_never_h', { who }));
   /* Something else to send: the other two kinds of link, whichever is not
      this one; a "Where we are" page has nothing else to offer here. */
   const hist=st && st.purpose==='history';
@@ -5269,29 +5468,145 @@ function shareLetterPaint(c, st){
   document.querySelector('[data-sh-lt-else="history"]')?.classList.toggle('hidden', hist);
   document.querySelector('[data-sh-lt-else="contract"]')?.classList.toggle('hidden', !hist);
   set('sh-lt-else-p', i18t(hist?'sh_lt_else_hist_p':'sh_lt_else_p'));
+  shareLetterToPaint(st && st.ch);
+  shareLetterAsPaint(c, st);
+  /* SEND IS NAMED FOR WHO IT GOES TO (round 11's gaps: "Send to Anna"), on
+     email, while it is not mid-send; the other channels keep their words */
+  const sb=document.getElementById('share-send'), lbl=document.getElementById('sh-send-lbl');
+  if(lbl && sb && !sb.dataset.busy && (!st || !st.ch || st.ch==='email')){
+    const first=String(fval('sh-name')||'').trim().split(/\s+/)[0];
+    const v=first ? i18t('sh_lt_send_to', { who:first }) : i18t('co_send_by_email');
+    if(lbl.textContent!==v && !/^(Sending|Sent)/.test(lbl.textContent)) lbl.textContent=v;
+  }
 }
-/* WHAT STAYS HERE, AND WHY: the changes the internal review keeps out of this
-   send (reviewWithheldIds, the set buildSharePayload subtracts), by clause.
-   No names: who reviews is the review's own business (reviewMaySee). */
-function shareStaysHtml(c){
+/* ---- WHAT STAYS HERE, AND WHY (round 11's gaps, 18 Oct 2026: "Clause 7
+   stays here · Your counter on the liability cap (75%) is with Sara Nyström
+   for internal review. Nothing under review travels; it goes in your next
+   send once she clears it. · Remind Sara · Go to clause 7") ----
+   The changes the internal review keeps out of this send (reviewWithheldIds,
+   the set buildSharePayload subtracts), by clause. THE REVIEWER IS NAMED ONLY
+   WHERE reviewMaySee ALLOWS (the review's own wall) — and never in the email,
+   which says nothing of a review. Remind is the review's own reminder
+   (reviewRemind), offered to whoever may raise it (reviewMayCancel); Go to
+   the clause leaves the letter for the change on the paper. */
+/* ONE READING OF WHAT STAYS HERE, asked by the card and by the confirmation
+   after Send (shareSentWords): each change the review keeps out, with who
+   holds it where the review lets this reader see (reviewMaySee) */
+function shareStaysRows(c){
   let back=null; try{ back=(typeof reviewWithheldIds==='function')?reviewWithheldIds(c):null; }catch(_){ back=null; }
-  if(!back || !back.size) return '';
-  const s=(typeof negoChangeSummary==='function')?negoChangeSummary(c):null;
+  if(!back || !back.size) return [];
   const all=(window.negoUnsentAsks?negoUnsentAsks(c,'owner'):[]);
+  let sum=null; try{ sum=(typeof negoChangeSummary==='function')?negoChangeSummary(c):null; }catch(_){ sum=null; }
   return all.filter(x=>back.has(x.id)).map(x=>{
-    const line=s && s.lines ? s.lines.find(l=>String(l.id)===String(x.id)) : null;
     const held=(typeof reviewHeld==='function') && reviewHeld(x);
-    return `<div class="sh-lt-card is-stays" data-sh-lt-stays="${esc(x.id)}"><h4>${esc(i18t('sh_lt_stays_h', { clause:(line&&line.clause)||('#'+x.id) }))}</h4><p>${
-      esc(i18t(held?'sh_lt_stays_held':'sh_lt_stays_wait'))}</p></div>`;
+    const rv=(!held && typeof reviewOpenFor==='function') ? reviewOpenFor(c, x) : null;
+    const seen=rv && typeof reviewMaySee==='function' && reviewMaySee(rv);
+    const name=held ? ((typeof reviewVerdictByFor==='function' && reviewVerdictByFor(x, null, c)) || '')
+      : (seen && rv.reviewer && rv.reviewer.name) || '';
+    const first=String(name||'').trim().split(/\s+/)[0];
+    const line=sum && Array.isArray(sum.lines) ? sum.lines.find(l=>String(l.id)===String(x.id)) : null;
+    const label=String(x.clauseLabel||(line&&line.clause)||'');
+    const cp=shareClauseParts(label);
+    return { x, held, rv, name, first, label, num:cp.n, topic:String(cp.name||'').toLowerCase() };
+  });
+}
+/* ---- AFTER SEND, HOW IT WENT (round 11's gaps, second pass, 18 Oct 2026:
+   "Sent to Anna Holm by email: clause 11 and your note. Clause 7 stays here
+   until Sara clears it.") ----
+   Said in a confirmation as the letter goes and the paper comes back. What
+   went is read off the copy that travelled (shareAnswersOf — the letter's own
+   reading), what stayed off shareStaysRows; a reviewer is named only where
+   the review lets this reader see. A send that did not reach them never comes
+   here: its box stays on the letter with its way forward. */
+function shareSentWords(c, o){
+  const x=o||{};
+  const who=String(x.name||'').trim()||String(x.email||'').trim()||(c&&c.counterparty)||'';
+  const purpose=x.purpose||'negotiate';
+  const items=[];
+  if(purpose==='history') items.push(i18t('sh_sent_history'));
+  else if(purpose==='status') items.push(i18t('sh_sent_status'));
+  else {
+    let A=null; try{ A=shareAnswersOf((x.payload&&x.payload.contract)||{}, c); }catch(_){ A=null; }
+    const nums=[];
+    for(const l of [...((A&&A.lines)||[]), ...((A&&A.own)||[])]){
+      const k=shareClauseParts(String(l.clause||'').replace(/^Clause\s+/i,'')).n;
+      if(k && !nums.includes(k)) nums.push(k);
+    }
+    nums.sort((a,b)=>parseFloat(a)-parseFloat(b)).forEach(n=>items.push(i18t('sh_sent_clause',{ n })));
+  }
+  if(x.msg) items.push(i18t('sh_sent_note'));
+  const join=L=>L.length<=1 ? (L[0]||'') : i18t('sh_sent_and',{ a:L.slice(0,-1).join(', '), b:L[L.length-1] });
+  const out=[items.length ? i18t('sh_sent_by_email',{ who, what:join(items) }) : i18t('sh_sent_by_email_bare',{ who })];
+  if(purpose!=='history' && purpose!=='status'){
+    let rows=[]; try{ rows=shareStaysRows(c); }catch(_){ rows=[]; }
+    for(const r of rows){ if(!r.num) continue;
+      out.push(r.first ? i18t('sh_sent_stays_by',{ n:r.num, who:r.first }) : i18t('sh_sent_stays',{ n:r.num })); }
+  }
+  return out.join(' ');
+}
+function shareStaysHtml(c){
+  const raw=Array.isArray(c.changes)?c.changes:[];
+  return shareStaysRows(c).map(({ x, held, rv, name, first, label, num, topic })=>{
+    const theirs=raw.find(t=>t && t.authorSide==='counterparty' && (String(t.counteredBy||'')===String(x.id) || String(x.counterOf||'')===String(t.id)));
+    const fig=theirs ? shareFigureOf(x.newText, theirs.oldText) : shareFigureOf(x.newText, x.oldText);
+    const figSay=fig?` (${fig.unit==='%'?fig.n+'%':fig.n+(fig.unit?' '+fig.unit:'')})`:'';
+    const what=topic ? i18t(theirs?'sh_lt_stays_counter':'sh_lt_stays_change', { topic, fig:figSay })
+      : i18t(theirs?'sh_lt_stays_counter_x':'sh_lt_stays_change_x', { fig:figSay });
+    const say=held ? i18t(name?'sh_lt_stays_held_by':'sh_lt_stays_held', { what, who:name })
+      : i18t(name?'sh_lt_stays_wait_by':'sh_lt_stays_wait', { what, who:name, first });
+    const remind=(rv && name && !held && typeof reviewMayCancel==='function' && reviewMayCancel(rv))
+      ? `<button type="button" class="ui-btn ui-btn-sm" data-sh-lt-remind="${esc(rv.id)}">${esc(i18t('sh_lt_remind', { who:first }))}</button>` : '';
+    /* Go to clause N, and while the letter waits for it, Back to the letter
+       in the same place (the slot's is-waiting shows one of the two) */
+    const go=x.clauseId ? `<button type="button" class="ui-btn ui-btn-sm ui-btn-plain" data-sh-lt-goto="${esc(x.clauseId)}">${esc(num?i18t('sh_lt_goto', { n:num }):i18t('sh_lt_goto_it'))}</button>`
+      + `<button type="button" class="ui-btn ui-btn-sm ui-btn-plain" data-sh-lt-back>${esc(i18t('sh_lt_back_letter'))}</button>` : '';
+    return `<div class="sh-lt-card is-stays" data-sh-c="${esc(c.id)}" data-sh-lt-stays="${esc(x.id)}"><h4><i class="sh-lt-pause" aria-hidden="true"></i>${esc(num?i18t('sh_lt_stays_h', { clause:i18t('sh_lt_clause_n', { n:num }) }):i18t('sh_lt_stays_h', { clause:label||('#'+x.id) }))}</h4><p>${esc(say)}</p>${
+      (remind||go)?`<div class="sh-lt-acts">${remind}${go}</div>`:''}</div>`;
   }).join('');
 }
+/* the stays card's two presses, delegated once: the review's own reminder,
+   and the change on the paper (the send screen put away first) */
+if(typeof document!=='undefined') document.addEventListener('click',e=>{
+  const t=e.target&&e.target.closest?e.target:null; if(!t) return;
+  const r=t.closest('[data-sh-lt-remind]');
+  if(r){ e.preventDefault(); const id=r.closest('[data-sh-c]')?.getAttribute('data-sh-c');
+    const c=id&&typeof getContract==='function'?getContract(id):null;
+    if(c && typeof reviewRemind==='function'){ r.disabled=true; Promise.resolve(reviewRemind(c, { reviewId:r.getAttribute('data-sh-lt-remind') })).finally(()=>{ r.disabled=false; }); }
+    return; }
+  if(t.closest('[data-sh-lt-back]')){ e.preventDefault();
+    if(typeof window.pdSendWaitSet==='function') window.pdSendWaitSet(false);
+    return; }
+  const g=t.closest('[data-sh-lt-goto]');
+  if(g){ e.preventDefault(); const id=g.closest('[data-sh-c]')?.getAttribute('data-sh-c');
+    const c=id&&typeof getContract==='function'?getContract(id):null; const cid=g.getAttribute('data-sh-lt-goto');
+    /* THE LETTER WAITS, the paper lands on the clause (round 11's gaps, third
+       pass: nothing typed is lost; the card's own button brings it back) */
+    if(c && typeof window.pdSendFor==='function' && String(window.pdSendFor()||'')===String(c.id) && typeof window.pdSendWaitSet==='function'
+      && window.state && state.view==='dashboard'){
+      window.pdSendWaitSet(true);
+      if(typeof window.rlLandOnClause==='function') window.rlLandOnClause(cid);
+      return;
+    }
+    /* every other way (the letter as a dialog): the screen put away, the
+       Redlines up (walls first), and the clause landed on through the one
+       lander, which waits for it bounded (LAND ON IT) — never a fixed pause */
+    if(typeof closeModal==='function') closeModal();
+    if(c && typeof openRedlineWorkbench==='function' && openRedlineWorkbench(c.id)!==false && typeof window.rlLandOnClause==='function') window.rlLandOnClause(cid);
+  }
+});
 function shareSideHtml(c, part){
   const them=esc(c.counterparty||i18t('co_them'));
   if(part==='top') return `<div class="sh-lt-jb">${(typeof aiFaceHtml==='function')?aiFaceHtml():''}<b>${esc(i18t('sh_lt_before'))}</b></div>
     <p class="sh-lt-say" id="sh-lt-jsay"></p>`;
   const histOk=(()=>{ try{ const s=negoChangeSummary(c); return !!(s && s.lines && s.lines.length); }catch(_){ return false; } })();
   return `${shareStaysHtml(c)}
-    <div class="sh-lt-card"><h4>${i18t('sh_lt_never_h', { who:them })}</h4><p>${esc(i18t('sh_lt_never', { org:FIRST_PARTY }))}</p></div>
+    ${''/* WHAT IS WORTH CHECKING STANDS HERE, NOT UNDER THE LETTER (round 11's
+           gaps, second pass: "Nothing under the letter. Everything about
+           before you send is in Jambo's panel beside it"). The readiness fold
+           and the email-off line are the screen's own nodes, moved into this
+           slot after the paint (shareLetterChecksPlace) with their ids. */}
+    <div class="sh-lt-checks" id="sh-lt-checks"></div>
+    <div class="sh-lt-card"><h4 id="sh-lt-never-h">${i18t('sh_lt_never_h', { who:them })}</h4><p>${esc(i18t('sh_lt_never', { org:FIRST_PARTY }))}</p></div>
     <div class="sh-lt-card" id="sh-lt-else"><h4>${esc(i18t('sh_lt_else_h'))}</h4><p id="sh-lt-else-p"></p>
       <div class="sh-lt-acts">
         <button type="button" class="ui-btn ui-btn-sm" id="share-other" data-sh-lt-else="history"${histOk?'':` disabled title="${esc(i18t('sh_lt_else_hist_none'))}"`}>${esc(i18t('sh_lt_else_hist'))}</button>
@@ -5301,18 +5616,22 @@ function shareSideHtml(c, part){
 }
 /* THE TITLE SAYS WHAT IS GOING OUT (Young, 13 Sep 2026: "fix the title so it
    says the history is being sent"). One reading for the builder and for the
-   kind switch, so the heading and the screen under it cannot disagree. */
+   kind switch, so the heading and the screen under it cannot disagree.
+   AS DRAWN (round 11's gaps, 18 Oct 2026): "Send round 2" and, quieter beside
+   it, "to Nordvik Logistik AB · MK-0382" — the round the send opens, the one
+   reading the subject uses (shareRoundOf). */
 function shareLeadTitle(c, s, purposeSel){
   const who = esc(c.counterparty||i18t('co_them'));
-  if (purposeSel==='history') return i18t('co_send_history_to', { who });
-  return (s && s.lines.length)
-    ? i18t('co_send_round_to', { n:s.round, who })
-    : i18t('co_send_to_who', { who });
+  const ref = esc((typeof contractRef==='function')?contractRef(c):c.id);
+  const main = purposeSel==='history' ? i18t('sh_hd_history')
+    : purposeSel==='status' ? i18t('sh_hd_status')
+    : (s && s.lines.length) ? i18t('sh_hd_round', { n:shareRoundOf(c.negotiation) })
+    : i18t('sh_hd_contract');
+  return `${esc(main)} <span class="sh-hd-to">${i18t('sh_hd_to', { who, ref })}</span>`;
 }
 function shareLeadHeadHtml(c, purposeSel){
   const s = (typeof negoChangeSummary==='function') ? negoChangeSummary(c) : null;
-  return `<div class="dlg-h sh-hd"><h2 id="share-lead-title">${shareLeadTitle(c, s, purposeSel)}</h2><p>${
-    esc([typeof contractRef==='function'?contractRef(c):c.id, c.name].filter(Boolean).join(' · '))}</p></div>`;
+  return `<div class="dlg-h sh-hd"><h2 id="share-lead-title">${shareLeadTitle(c, s, purposeSel)}</h2><div class="sh-hd-acts"></div></div>`;
 }
 function shareSummaryStepHtml(c, opts={}){
   const s = (typeof negoChangeSummary==='function') ? negoChangeSummary(c) : null;
@@ -5446,7 +5765,11 @@ function shareSummaryStepHtml(c, opts={}){
              paragraph pretending a person wrote it. The manifest above is
              unchanged — the SENDER still sees exactly what is going out. */}
       ${one?'':shareNoteBoxHtml(c, hist)}
-      ${opts.handOver?`<div id="share-handover" style="margin-top:var(--s-3);border:1px solid var(--st-green-line);background:var(--st-green-bg);border-left:3px solid var(--st-green-fg);border-radius:var(--radius);padding:9px var(--s-3);font-size:var(--t-meta);line-height:1.5;color:var(--st-green-fg)">
+      ${''/* NOT ON THE LETTER (round 11's gaps, third pass, as drawn: Jambo's
+             panel beside the letter holds cards only — Jambo's line, what
+             stays here, what they never see, something else to send). The
+             turn moving is said after Send, in its confirmation. */}
+      ${opts.handOver && !opts.letter?`<div id="share-handover" style="margin-top:var(--s-3);border:1px solid var(--st-green-line);background:var(--st-green-bg);border-left:3px solid var(--st-green-fg);border-radius:var(--radius);padding:9px var(--s-3);font-size:var(--t-meta);line-height:1.5;color:var(--st-green-fg)">
         <b>${i18t('co_closes_your_turn')}</b> Once it goes out, this contract shows as waiting on ${esc(c.counterparty||'them')} until they reply. Nothing moves if you close this without sending.</div>`:''}
       ${''/* ---- ONE SCREEN, AND NOTHING ON IT NEEDS A NEXT ---- (owner-approved
              13 Sep 2026.) This step and the recipient step are drawn together
@@ -5581,6 +5904,27 @@ function shareSignerPickHtml(c, sel){
 function readinessPanelHtml(c, o={}){
   const probs=contractReadiness(c);
   if(!probs.length) return '';
+  /* ---- ON THE LETTER, A CARD LIKE ITS NEIGHBOURS (round 11's gaps, third
+     pass: "the panel holds cards only") ----
+     Beside the letter the checks stand in Jambo's panel among its cards, so
+     they wear the card's clothes: a head naming how many, the list open (no
+     fold, no amber strip). A BLOCK is still said first, with its door and the
+     tick that lets the send through (sh-ack), on a ruby edge — the refusal's
+     way forward stays on the screen. Same reading (contractReadiness), same
+     ids. */
+  if(o.card){
+    const blocks=probs.filter(x=>x.severity==='block'), notes=probs.filter(x=>x.severity!=='block');
+    const door=x=>(x.severity==='block' && (x.key==='review'||x.key==='desk') && typeof isAdmin==='function' && isAdmin())
+      ? ` <button type="button" class="ui-link" data-rd-rule="${x.key}">${esc(i18t(x.key==='review'?'sc_rule_review':'sc_rule_desk'))}</button>` : '';
+    const ul=L=>`<ul class="sh-lt-checkl">${L.map(x=>`<li>${esc(x.label)}${door(x)}</li>`).join('')}</ul>`;
+    return `<div id="share-readiness" class="sh-lt-card sh-lt-check${blocks.length?' is-block':''}">
+      <h4>${esc(blocks.length ? i18tn('co_not_ready', blocks.length, { n:blocks.length }) : i18tn('co_worth_checking_n', notes.length, { n:notes.length }))}</h4>
+      ${blocks.length?ul(blocks):''}
+      ${blocks.length && notes.length?`<p class="sh-lt-check-also">${esc(i18t('co_also_worth_knowing'))}</p>`:''}
+      ${notes.length?ul(notes):''}
+      ${blocks.length?`<label class="sh-lt-check-ack"><input id="sh-ack" type="checkbox"/><span>${i18t('co_send_anyway')}</span></label>`:''}
+    </div>`;
+  }
   /* ---- ON ONE SCREEN THE WARNINGS FOLD TO A COUNT ---- (the pop-up diet,
      owner-approved 13 Sep 2026). Amber notes are facts worth a glance, not a
      wall: the head says how many and opens on a press. A BLOCK stays open —
@@ -6101,6 +6445,9 @@ function buildSharePayload(c, docHash, who, opts){
          would then point at a clause that does not exist on their screen. */
       negotiation: c.negotiation ? { round:c.negotiation.round||1,
         turn:c.negotiation.turn||'owner', turnAt:c.negotiation.turnAt||null,
+        /* when this round began: the letter names the round a send opens
+           (shareRoundOf) from the copy that travels, on both hosts */
+        roundAt:c.negotiation.roundAt||null, startedAt:c.negotiation.startedAt||null,
         chainHead:c.negotiation.chainHead||null, chainSeq:c.negotiation.chainSeq||0,
         seq:c.negotiation.seq||0, hashV:c.negotiation.hashV||null,
         /* Who has signalled they are ready to sign, and when. Both sides', not
@@ -7062,7 +7409,13 @@ function linkRefusal(c, opts={}){
     if(sa) return { kind:'signapproval', why:sa };
   }
   if(asks.has('approval') && !started){
-    const ap=ask(()=>window.approvalState&&approvalState(c));
+    /* THE RULE CHAIN'S READING, ASKED ON window (the gaps, round 10, the second
+       check, 18 Oct 2026): a bare approvalState here is this file's own legacy
+       spend gate (ES modules: a top-level name is the module's), which never
+       sees a chain approved — so every signing link on a contract over its
+       threshold stayed refused after the rule's yes was given, "“approval” is
+       still waiting on an Admin". js/approvals.js's chain is the one reading. */
+    const ap=ask(()=>window.approvalState&&window.approvalState(c));
     if(ap && ap.required && !ap.ok){
       const why=(ap.rejected||[]).length ? i18t('sl_appr_refused')
         : (ap.stale||[]).length ? i18t('sl_appr_stale')
@@ -7257,7 +7610,9 @@ function shareWireOpening(pending, c, get, set, signal, alive){
       if (wrap) wrap.innerHTML = sharePurposePickerHtml(c, get(), { compact:true });
       return;
     }
-    if (t.closest('#share-other')){ pending.other = true; pending.next = false; fold(true); return; }
+    /* on the letter the history press turns the letter in place once the
+       screen is filled (setKind) — the kind step is never shown there */
+    if (t.closest('#share-other')){ pending.other = true; pending.next = false; if (!root.querySelector('#sh-lt-else')) fold(true); return; }
     if (t.closest('#share-kind-next')){ pending.next = true; pending.other = false; fold(false); return; }
     if (t.closest('#share-close-kind') || t.closest('#share-close')) closeModal();
   }, signal ? { signal } : false);
@@ -7267,6 +7622,69 @@ function shareWireOpening(pending, c, get, set, signal, alive){
    animation — a dialog that arrives, and then arrives again, is a worse answer
    to "it comes with a delay" than the delay was. Falls back to opening one if
    the frame is not there, so this is safe for any caller. */
+/* ---- THE LETTER AS A PAGE ON THE DESK, BESIDE JAMBO (round 11's gaps,
+   18 Oct 2026: the picked drawing's frame) ----
+   On Home, with Jambo's panel beside the paper, the send screen takes the
+   paper's place under the desk tabs ("Send · MK-0382" in front, the paper's
+   own tab waiting), with "Send round 2 to Nordvik … · MK-0382", Send and
+   Cancel in its head, and "Before you send" as a face of Jambo's panel
+   (pdSendOpen) — the same node, its ids and listeners, moved beside it.
+   NOTHING ELSE CHANGES: the dialog's markup, wiring, Escape and guard are
+   the dialog's own, and closing it puts the face away (openModal's onClose).
+   Everywhere else (the phone, a page with no panel) it stays the dialog. */
+function shareBesideJambo(){
+  if(typeof window==='undefined' || !window.state || state.view!=='dashboard') return false;
+  if(typeof window.deskShellOn==='function' && !window.deskShellOn()) return false;
+  if(window.innerWidth<1024) return false;
+  if(typeof window.hbFace==='function' && window.hbFace()==='calendar') return false;
+  const dock=document.getElementById('ig-dock');
+  /* drawn on the desk: a box the browser lays out (a stand-in without one is not) */
+  let shown=false; try{ shown=!!(dock && typeof dock.getClientRects==='function' && dock.getClientRects().length); }catch(_){ shown=false; }
+  return shown && typeof window.pdSendOpen==='function';
+}
+function shareLetterPagePlace(){
+  const root=document.getElementById('modal-root'); const panel=root&&root.querySelector('.modal-in[data-sh-page]'); if(!panel) return;
+  const frame=panel.parentElement, dock=document.getElementById('ig-dock');
+  /* under the bar: since the SAP way's bar (‹ · HA · the page's name) no row
+     stands between the bar and the page */
+  const bar=document.getElementById('top-header');
+  const top=bar&&bar.getClientRects().length ? bar.getBoundingClientRect().bottom : 0;
+  const right=dock&&dock.getClientRects().length ? Math.max(0, window.innerWidth-dock.getBoundingClientRect().left) : 0;
+  const cs=document.getElementById('content-scroll'); const left=cs&&cs.getClientRects().length ? cs.getBoundingClientRect().left : 0;
+  /* the letter waiting while the paper shows a clause (pdSendWaitSet): out of sight, kept whole */
+  const waiting=typeof window.pdSendIsWaiting==='function' && window.pdSendIsWaiting();
+  frame.style.cssText=`position:fixed;top:${Math.round(top)}px;left:${Math.round(left)}px;right:${Math.round(right)}px;bottom:0;z-index:70;display:${waiting?'none':'flex'};`;
+}
+function shareLetterPage(c){
+  const root=document.getElementById('modal-root'); const panel=root&&root.querySelector('.modal-in'); if(!panel||!c) return false;
+  const frame=panel.parentElement, scrim=root.querySelector('#modal-scrim');
+  if(scrim) scrim.style.display='none';
+  panel.setAttribute('data-dlg-page',''); panel.setAttribute('data-sh-page','');
+  Object.assign(panel.style,{ width:'100%', maxWidth:'none', height:'100%', maxHeight:'none', borderRadius:'0',
+    boxShadow:'none', border:'0', background:'var(--desk-ground, var(--color-bg))', overflowY:'auto' });
+  const sap=panel.querySelector('[data-share-sap]'); if(sap) sap.style.padding='0';
+  /* Send, then Cancel (Cancel last), in the page's head */
+  const acts=panel.querySelector('.sh-hd-acts');
+  const send=document.getElementById('share-send'), cancel=document.getElementById('share-close');
+  if(acts){ if(send && send.parentElement!==acts) acts.appendChild(send); if(cancel && cancel.parentElement!==acts) acts.appendChild(cancel); }
+  /* "Before you send" goes beside it, as a face of Jambo's panel */
+  /* the panel's own column (a fill draws a new one; the face lets the old go) */
+  const side=panel.querySelector('#share-step-1');
+  if(side && typeof window.pdSendOpen==='function') window.pdSendOpen(c.id, side);
+  shareLetterPagePlace();
+  if(!frame._shPlace){
+    frame._shPlace=()=>{ if(!frame.isConnected){ window.removeEventListener('resize',frame._shPlace); if(frame._shRo) frame._shRo.disconnect(); return; } shareLetterPagePlace(); };
+    window.addEventListener('resize',frame._shPlace);
+    const dock=document.getElementById('ig-dock');
+    if(dock && typeof ResizeObserver==='function'){ frame._shRo=new ResizeObserver(()=>frame._shPlace()); frame._shRo.observe(dock); }
+  }
+  if(typeof window.deskBarPaint==='function') try{ window.deskBarPaint(); }catch(_){}
+  return true;
+}
+function shareLetterPageOff(){
+  if(typeof window.pdSendClose==='function') window.pdSendClose();
+  if(typeof window.deskBarPaint==='function') try{ window.deskBarPaint(); }catch(_){}
+}
 function shareFillModal(html){
   const panel=document.querySelector('#modal-root .modal-in');
   if(panel){ panel.innerHTML=html; return; }
@@ -7388,6 +7806,11 @@ async function openShareModal(c, opts={}){
                hidden — a name missing from a list is a question; a name with
                a sentence beside it is an answer. */}
         <div id="sh-party">${(typeof sharePartyBoxHtml==='function')?sharePartyBoxHtml(c):''}</div>
+        ${''/* WHO IT GOES TO, SAID AS THE EMAIL SAYS IT (round 11's gaps, 18 Oct
+               2026: "Anna Holm · anna.holm@nordvik.se · Change"): a recipient
+               HaTi already knows is a line with Change; Change opens the two
+               boxes, which are the same boxes either way. */}
+        <div class="sh-lt-tosay hidden" id="sh-lt-tosay"><span id="sh-lt-towho"></span><button type="button" class="sh-lt-change" id="sh-lt-change">${i18t('sh_lt_change')}</button></div>
         ${''/* Where the address came from rides as an attribute on the box —
                a test-facing fact — and is no longer a sentence above it: a
                filled box says it is filled. */}
@@ -7404,19 +7827,26 @@ async function openShareModal(c, opts={}){
       </div></div>
       <div class="sh-lt-row" id="sh-lt-subj-row"><span class="sh-lt-k">${i18t('sh_lt_subject')}</span><b id="sh-lt-subject"></b></div>
       <div class="sh-lt-row sh-lt-as"><span class="sh-lt-k">${i18t('sh_lt_as')}</span><div class="sh-lt-v">
-      ${''/* WHAT IT IS FOR AND HOW IT GOES, SIDE BY SIDE (SAP pop-ups, 10 Oct
-             2026): two short choices of four segments each sit on one row as
-             drawn; a narrow window stacks them. */}
-      <div class="sh-pick-row">
-      <div id="share-purpose-wrap"${purposeSel==='history'?' class="hidden"':''}>${sharePurposePickerHtml(c, purposeSel, { compact:true })}</div>
+      ${''/* "SENT AS" READS AS A SENTENCE OF SMALL CHOICES (round 11's gaps, 18
+             Oct 2026: "a link to negotiate ▾ · by email ▾ · open for the whole
+             negotiation ▾ · the contract, round 2 ▾"). Each chip opens its own
+             list, and the list holds the controls this screen always had —
+             the same segments, box and choice, the same ids and the same
+             wiring — so a choice made in it is the choice made before; the
+             chip says where it stands (shareLetterAsPaint). A press again, a
+             press outside or Esc puts the list away. */}
+      <div class="sh-as-chips" id="sh-as-chips">
+      <span class="sh-as" data-sh-as="purpose"><button type="button" class="sh-as-go" data-sh-as-go="purpose" aria-expanded="false"><span data-sh-as-w="purpose"></span>${icon('chevD','w-3 h-3')}</button><div class="sh-as-pop" data-sh-as-pop="purpose">
+      <div id="share-purpose-wrap"${purposeSel==='history'?' class="hidden"':''}>${sharePurposePickerHtml(c, purposeSel, { compact:true })}</div></div></span>
+      <span class="sh-as" data-sh-as="ch"><button type="button" class="sh-as-go" data-sh-as-go="ch" aria-expanded="false"><span data-sh-as-w="ch"></span>${icon('chevD','w-3 h-3')}</button><div class="sh-as-pop" data-sh-as-pop="ch">
       <div class="sh-by"><span class="sap-lbl">${i18t('co_send_by')}</span>
       <div id="share-tabs" class="sh-segs">${tab('email','Email',true)}${tab('whatsapp','WhatsApp',false)}${
         (server&&window.docxExportTracked)?tab('word',i18t('co_ch_word'),false):''}${tab('link',i18t('co_copy_link'),false)}</div>
       ${''/* Spoken only where the channel costs something (a file has no page,
              a copied link mails nothing); empty for email and WhatsApp. */}
       <div id="sh-ch-note" style="font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);margin:5px 0 0"></div>
-      </div></div>
-      ${server?`<div id="sh-link-opts" class="sap-row">
+      </div></div></span>
+      ${server?`<span class="sh-as" data-sh-as="link"><button type="button" class="sh-as-go" data-sh-as-go="link" aria-expanded="false"><span data-sh-as-w="link"></span>${icon('chevD','w-3 h-3')}</button><div class="sh-as-pop" data-sh-as-pop="link"><div id="sh-link-opts" class="sap-row">
           <div class="sap-f"><span class="sap-lbl">${i18t('co_link_stays_open')}</span>
           <label class="sh-durable-box">
             ${''/* A SIGNING LINK OPENS ONE-SHOT: a signature has to bind exactly
@@ -7429,7 +7859,12 @@ async function openShareModal(c, opts={}){
           <label class="sap-f"><span class="sap-lbl">${i18t('co_link_expires')}</span>
           <select id="sh-exp" style="${FLD}">
             ${[7,14,30,60].map(d=>`<option value="${d}" ${d===14?'selected':''}>${i18t('co_in_n_days',{n:d})}</option>`).join('')}
-          </select></label></div>`:''}
+          </select></label></div></div></span>`:''}
+      <span class="sh-as" data-sh-as="what"><button type="button" class="sh-as-go" data-sh-as-go="what" aria-expanded="false"><span data-sh-as-w="what"></span>${icon('chevD','w-3 h-3')}</button><div class="sh-as-pop sh-as-menu" data-sh-as-pop="what" role="menu">
+        <button type="button" role="menuitem" data-sh-as-what="contract"></button>
+        <button type="button" role="menuitem" data-sh-as-what="history"></button>
+        <button type="button" role="menuitem" data-sh-as-what="status"></button></div></span>
+      </div>
       </div></div>
       </div>
       <div class="sh-lt-b">
@@ -7460,7 +7895,7 @@ async function openShareModal(c, opts={}){
              The readiness list reads the agreement's own blanks and stage; a
              history send carries the record and no agreement, so the fold and
              its tick stand down on the record kind (setKind). */}
-      <div id="share-readiness-wrap">${readinessPanelHtml(c, { fold:true })}</div>
+      <div id="share-readiness-wrap">${readinessPanelHtml(c, { fold:true, card:true })}</div>
       ${''/* EMAIL OFF: one line and the way forward. The four-line version said
              what else could not be delivered on this workspace, which is the
              mail panel's job, not this dialog's. */}
@@ -7511,7 +7946,17 @@ async function openShareModal(c, opts={}){
      width the buttons sat below the fold. */
   /* The letter and its column side by side (round 11): wider than the
      46rem the one-column screen took. */
-  openModal(oneScreenHtml(_noPre, { opening:true }), { maxWidth:'64rem' });
+  /* ON HOME, BESIDE JAMBO, THE LETTER IS A PAGE ON THE DESK (round 11's gaps,
+     18 Oct 2026, the picked drawing's frame): it takes the paper's place (the
+     paper waits in the desk's tabs, "Send · MK-0382" in front), Send and
+     Cancel stand in its head, and "Before you send" is a face of Jambo's
+     panel beside it (shareLetterPage). Everywhere else — the phone, a page
+     with no panel — it stays the dialog it was. Same markup, ids and wiring. */
+  const _onDesk=shareBesideJambo();
+  let _shSent=null;   // what the last press sent, for the confirmation after Send
+  openModal(oneScreenHtml(_noPre, { opening:true }), { maxWidth:'64rem', onClose:_onDesk?()=>shareLetterPageOff(c):null });
+  shareLetterChecksPlace();
+  if(_onDesk) shareLetterPage(c);
   try{ shareLetterPaint(c, { purpose:purposeSel, ch:'email' }); }catch(_){}
   shareWireOpening(_pending, c, () => purposeSel,
     k => { purposeSel = k === 'history' ? 'history'
@@ -7606,14 +8051,21 @@ async function openShareModal(c, opts={}){
   const _held={ 'sh-name':fval('sh-name'), 'sh-email':fval('sh-email'), 'sh-phone':fval('sh-phone'), 'sh-summary':fval('sh-summary') };
   shareFillModal(oneScreenHtml(pre));
   Object.keys(_held).forEach(id=>{ const el=document.getElementById(id); if(el && _held[id]) el.value=_held[id]; });
+  /* a recipient HaTi already knows is said as a line with Change (round 11's
+     gaps); the chips of "Sent as" open their lists; on the desk, the page and
+     Jambo's face are laid out again over the filled markup */
+  document.getElementById('sh-letter')?.setAttribute('data-sh-to', (pre.email && !_held['sh-email']) ? 'folded' : 'open');
+  shareLetterAsWire(document.querySelector('#modal-root .modal-in'));
+  shareLetterChecksPlace();
+  if(_onDesk) shareLetterPage(c);
   /* THE LETTER IS PAINTED FROM WHERE EVERY CHOICE STANDS (round 11): each
      painter below ends by repainting it, and so does every keystroke in the
      boxes it quotes. Bound once per panel (a dataset flag). */
-  function letterPaint(){ try{ shareLetterPaint(c, { purpose:purposeSel, ch, signerSel }); }catch(_){} }
+  function letterPaint(){ try{ shareLetterPaint(c, { purpose:purposeSel, ch, signerSel, payload:payloadObj }); }catch(_){} }
   { const pn=document.querySelector('#modal-root .modal-in');
     if(pn && !pn.dataset.shLetter){ pn.dataset.shLetter='1';
       pn.addEventListener('input', e=>{ const id=(e.target && e.target.id)||''; if(/^sh-(name|email|phone|summary)$/.test(id)) letterPaint(); });
-      pn.addEventListener('change', e=>{ if(e.target && e.target.id==='sh-exp') letterPaint(); }); } }
+      pn.addEventListener('change', e=>{ if(e.target && (e.target.id==='sh-exp'||e.target.id==='sh-durable')) letterPaint(); }); } }
   /* Both steps are built once and toggled, rather than re-rendered. The send
      form wires a dozen listeners to elements it looks up by id; rebuilding it
      on Next would mean wiring them all a second time, and the first one to be
@@ -7829,8 +8281,12 @@ async function openShareModal(c, opts={}){
   document.getElementById('share-next')?.addEventListener('click',()=>step(2));
   document.getElementById('share-back')?.addEventListener('click',()=>step(1));
   document.getElementById('share-back-kind')?.addEventListener('click',()=>step('kind'));
-  /* THE RARER QUESTION, ON THE WAY OUT RATHER THAN IN THE WAY. */
-  document.getElementById('share-other')?.addEventListener('click',()=>step('kind'));
+  /* THE RARER QUESTION, ON THE WAY OUT RATHER THAN IN THE WAY. On the letter
+     (round 11) "The negotiation history" turns the letter into the history's
+     letter in place (setKind, below), as "A Where we are page" turns it into
+     the status letter — never the old "What are you sharing?" step (the
+     second pass of round 11's gaps). */
+  if(!document.getElementById('sh-lt-else')) document.getElementById('share-other')?.addEventListener('click',()=>step('kind'));
   /* SOMETHING ELSE TO SEND (the letter's column, round 11). The history is
      the rare question's own step, opened on the history; the contract comes
      back in one press; a "Where we are" page is that link's own door (the
@@ -7880,7 +8336,7 @@ async function openShareModal(c, opts={}){
      dialog that is fully wired. */
   if (_pending.kind) setKind(_pending.kind);
   if (_pending.purpose && purposeSel!=='history') paintPurpose();
-  if (_pending.other && !_pending.next) step('kind');
+  if (_pending.other && !_pending.next){ if(document.getElementById('sh-lt-else')) setKind('history'); else step('kind'); }
   if (_pending.next) step(1);
   const setCh=k=>{ ch=k;
     const word=k==='word';
@@ -8173,7 +8629,9 @@ async function openShareModal(c, opts={}){
       const pyPick=(typeof sharePartyPick==='function')?sharePartyPick(c):null;
       try{
         r = reuse
-          ? await api('shares/'+reuse.token+'/payload','PUT',{ payload:payloadObj })
+          /* the letter the screen shows is the email that goes, on the link
+             they already hold too (round 11's gaps): the note and the name */
+          ? await api('shares/'+reuse.token+'/payload','PUT',{ payload:payloadObj, letter:{ message:msg, recName:name } })
           : await api('shares','POST',{ payload:payloadObj, channel:ch, message:msg,
               recipient:{ name, email, phone }, expiryDays:Number(fval('sh-exp'))||14,
               durable:wantDurable, purpose:payloadObj.purpose,
@@ -8353,6 +8811,8 @@ async function openShareModal(c, opts={}){
             emailSent:!!r.emailSent, emailConfigured:!!r.emailConfigured }); }catch(e){}
       };
       if(reached){
+        /* what the confirmation after Send says (round 11's gaps, second pass) */
+        _shSent={ ch, name, email, msg, purpose:payloadObj.purpose, payload:payloadObj, mailed:!!(r.emailSent||r.alreadySentAt) };
         await handOver(`${reuse?`Published to ${rcptLabel}'s existing link`:`Sent to ${rcptLabel}`}${addr} via ${ch==='link'?'link':ch}${purposeSel==='sign'?' (signing link)':''}${msg?' with a message':''}`);
         return true;
       }
@@ -8408,6 +8868,7 @@ async function openShareModal(c, opts={}){
      the sender can fix the reason and press again. */
   const shareSendBtn=document.getElementById('share-send');
   shareSendBtn.addEventListener('click',async()=>{
+    _shSent=null;
     if(shareSendBtn.dataset.busy) return;
     const lbl=document.getElementById('sh-send-lbl');
     const was=lbl?lbl.textContent:'';
@@ -8424,6 +8885,21 @@ async function openShareModal(c, opts={}){
         shareSendBtn.disabled=false; shareSendBtn.style.opacity='1'; delete shareSendBtn.dataset.busy; },2500);
       else shareSendBtn.style.opacity='1';
     } else if(ok){
+      /* ---- THE LETTER WENT: SAY HOW, AND GIVE THE PAPER BACK (round 11's
+         gaps, second pass: "Sent to Anna Holm by email: clause 11 and your
+         note. Clause 7 stays here until Sara clears it." — "the paper comes
+         back when you send or cancel") ----
+         On the desk beside Jambo, an email the provider took (or a link they
+         already had, mailed) puts the letter away — Jambo's face goes with it
+         — and a confirmation says what went and what stayed. Every other
+         outcome keeps its box on the letter with its way forward. */
+      const went=_shSent;
+      if(_onDesk && went && went.ch==='email' && went.mailed){
+        const words=shareSentWords(c, went);
+        closeModal();
+        if(typeof toast==='function') toast(words,'ok');
+        return;
+      }
       if(lbl) lbl.textContent='Sent ✓';
       setTimeout(()=>{ if(lbl) lbl.textContent=was;
         shareSendBtn.disabled=false; shareSendBtn.style.opacity='1'; delete shareSendBtn.dataset.busy; },2500);
@@ -9980,4 +10456,4 @@ function endOrPauseOpen(c, opts = {}){
 }
 Object.assign(window,{END_ANSWERS,endOrPauseAnswers,endOrPauseOffered,endOrPauseOpen});
 
-Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,fieldFocus,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,selectFaceDress,datePickDress,datePickOpen,dlgPageAdopt,datePickClose,datePickWords,popupControlsDress,DATE_PICK_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,dateFmtOf,sigImageSrc,contractOnScreen,contractOverviewShown,contractOnHome,userById,OPENS_ON,jamboChipsOn,contractOpensOn,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});
+Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,closeModalGuarded,modalOnCloseRun,shareBesideJambo,shareLetterPage,shareLetterPagePlace,shareLetterPageOff,shareLetterAsPaint,shareLetterAsWire,shareLetterToPaint,shareLetterChecksPlace,shareSentWords,shareLetterNoteFit,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,fieldFocus,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,selectFaceDress,datePickDress,datePickOpen,dlgPageAdopt,datePickClose,datePickWords,popupControlsDress,DATE_PICK_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,dateFmtOf,sigImageSrc,contractOnScreen,contractOverviewShown,contractOnHome,userById,OPENS_ON,jamboChipsOn,contractOpensOn,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});

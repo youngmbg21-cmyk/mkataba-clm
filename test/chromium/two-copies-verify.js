@@ -208,14 +208,19 @@ const PAGES = sel => `(() => {
     check('3e a slim running head on every page after the first, and none on page one',
       !!(sign && sign.n >= 2 && sign.runs.length === sign.n - 1 && sign.runs.every(r => r === DESIGN.companyName)),
       sign ? JSON.stringify(sign.runs) : '—');
+    /* RE-POINTED AT THE INTEGRATION (19 Oct 2026; red on lane C1 alone): round
+       10 "The road" as drawn (lane C1, f754 6b) flags the lines to sign ONLY
+       for whoever's turn it is (pdSignMine). The places to sign are still on
+       the copy; the flags and "Sign here" follow the turn, both ways. */
     const spots = await page.evaluate(() => ({
+      turn: !!(window.pdSignMine && pdSignMine(getContract(state.activeId))),
       sign: document.querySelectorAll('#ig-signwrap .sig-spot').length,
       flags: document.querySelectorAll('#ig-signwrap .rl-sigline[data-pg-flag]').length,
       mine: (() => { const m = document.querySelector('#ig-signwrap .rl-sigline.pg-mine[data-pg-flag]');
         return m ? getComputedStyle(m, '::before').content : null; })() }));
-    check('3f the places to sign are marked ON the signing copy (5A)', spots.sign >= 1 && spots.flags >= 2,
+    check('3f the places to sign are ON the signing copy (5A), flagged only on the reader\'s turn', spots.sign >= 1 && (spots.turn ? spots.flags >= 2 : spots.flags === 0),
       JSON.stringify(spots));
-    check('3g our own line says "Sign here" from the margin', /Sign here|Signera/.test(String(spots.mine)),
+    check('3g our own line says "Sign here" from the margin on our turn, and nothing when it is not', spots.turn ? /Sign here|Signera/.test(String(spots.mine)) : spots.mine === null,
       String(spots.mine));
     await page.screenshot({ path: path.join(OUT, '03-signing-copy.png') });
 
@@ -240,7 +245,10 @@ const PAGES = sel => `(() => {
        zoom corner (.paper-zc), and the reading zoom stays off it — the pages
        are laid out once at A4 and scaled whole, as the Signing tab did. */
     const z0 = await page.evaluate(PAGES(SIGN));
-    const zBtn = await page.$('#ig-paper .paper-zc [data-sc-zoom="1"]') || await page.$('#doc-zc-slot [data-sc-zoom="1"]');
+    /* RE-POINTED AT THE INTEGRATION (19 Oct 2026): round 10 as drawn (lane C1)
+       stands the signing copy's size and page arrows on the paper's line
+       (igSignCopyHtml, [data-ig-sc]) — nothing above the sheet */
+    const zBtn = await page.$('#ig-strip [data-ig-sc] [data-sc-zoom="1"]') || await page.$('#ig-paper .paper-zc [data-sc-zoom="1"]') || await page.$('#doc-zc-slot [data-sc-zoom="1"]');
     if (zBtn) { await zBtn.click(); await page.waitForTimeout(700); }
     const z1 = await page.evaluate(PAGES(SIGN));
     const zOut = await page.evaluate(() => (document.getElementById('sc-zoom-out') || {}).textContent || null);
@@ -266,7 +274,8 @@ const PAGES = sel => `(() => {
        the Before you sign face is open on it, and the face stays open behind
        another of Jambo's tabs; its × (pdSignClose) puts the working copy back,
        which is how a reader leaves the signing copy on Home. */
-    await page.evaluate(() => { const x = document.querySelector('#pd-signface [data-pd-sf-close]'); if (x) x.click(); else if (window.pdSignClose) pdSignClose(); });
+    /* RE-POINTED 18 Oct 2026: the face's way back is ‹ Jambo in the panel's row (rounds 8–11 as drawn) */
+    await page.evaluate(() => { const x = document.querySelector('#ig-dock [data-pd-back="signing"]'); if (x) x.click(); else if (window.pdSignClose) pdSignClose(); });
     await page.evaluate(id => pdOpenOnHome(id, 'doc'), ID);
     await workUp();
     const workSpots = await page.evaluate(id => ({

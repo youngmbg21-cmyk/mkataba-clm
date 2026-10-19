@@ -152,18 +152,22 @@ const LAND = () => {
     only: (window.state && state.reg && state.reg.only) ? state.reg.only.ids.length : 0,
     rlList: state.view === 'redline' && !document.getElementById('rl-doc'),
     dialog: !!document.querySelector('.modal-overlay:not(.hidden), #confirm-overlay:not(.hidden), #cmd-palette'),
+    /* the signing route's own editor (round 3's "name a signer" chip opens it, 18 Oct 2026) */
+    route: !!document.getElementById('sr-say'),
     /* the obligation the Board's view has chosen, and the wall's count line */
     obCid: (() => { const h = document.querySelector('#obw-one-host'); return h ? h.getAttribute('data-ins-cid') : null; })(),
     obSel: (() => { const r = document.querySelector('#obw-one-host .is-sel[data-ob-key]'); return r ? r.getAttribute('data-ob-key') : null; })(),
     count: (() => { const n = document.querySelector('#ig-wall .igw-count'); return n ? n.textContent.trim() : null; })(),
     /* Jambo's Share card in the panel (the glance's Share asks his word "share", which answers with it) */
     shareCard: !!document.querySelector('#ig-dock [data-ca-act="shareout"]'),
+    /* the clause editor open on its Risks tab (the glance's risks row, joined at the integration, 19 Oct 2026) */
+    ceRisks: !!document.getElementById('ce-tab-risks') && !!document.querySelector('#clause-editor'),
     /* the contract's Lifeline strip on top of the Board (step 8), and its page */
     strip: (() => { const n = document.querySelector('#bs-strips > .bs-strip'); return n ? n.getAttribute('data-bs-id') : null; })(),
     stripPage: (() => { const n = document.querySelector('#bs-strips > .bs-strip'); return n ? n.getAttribute('data-bs-on') : null; })(),
   };
 };
-const KEY = L => [L.view, L.room, L.negPage, L.face, L.paper, L.pd, L.tab, L.cv, L.wall, L.only, L.place, L.show, L.stage, L.strip, L.stripPage, L.obCid, L.obSel].join('|');
+const KEY = L => [L.view, L.room, L.negPage, L.face, L.paper, L.pd, L.tab, L.cv, L.wall, L.only, L.place, L.show, L.stage, L.strip, L.stripPage, L.obCid, L.obSel, L.ceRisks].join('|');
 const SAY = L => `${L.view}${L.face && L.view === 'dashboard' ? '/' + L.face : ''}${L.paper ? ' paper ' + L.paper : ''}${L.pd ? ' face ' + L.pd : ''}`
   + `${L.view === 'dashboard' && L.face === 'paper' && L.paper && !L.pd ? ' tab ' + L.tab : ''}${L.cv && L.face === 'board' ? ' view ' + L.cv : ''}`
   + `${L.view === 'obligations' && L.obCid ? ' narrowed to ' + L.obCid + (L.obSel ? ' row ' + L.obSel : '') : ''}${L.place && !L.paper && L.face === 'paper' ? ' Contracts ' + (L.show || '?') + (L.stage && L.stage !== 'all' ? ' tab ' + L.stage : '') + (L.only ? ' (' + L.only + ' sent' + (L.wall ? ', "' + L.count + '"' : '') + ')' : '') : ''}${L.obSel && L.face === 'board' ? ' row ' + L.obSel : ''}${L.strip && L.face === 'board' && L.view === 'dashboard' && (!L.cv || /^book:/.test(L.cv)) ? ' strip ' + L.strip + ' (' + L.stripPage + ')' : ''}${L.room ? ' ROOM' : ''}${L.negPage ? ' NEGOTIATE-PAGE' : ''}`;
@@ -383,8 +387,13 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
     await door(A, 'Contracts place, List row ⋯ Workspace (MK-A2)', { start: atList,
       press: async () => (await click(LROW + ' [data-menu="MK-A2"]')) && click(LROW + ' [data-act="open"][data-id="MK-A2"]'),
       expect: await wsExpect('MK-A2'), says: (await owedFor('MK-A2')) ? SAYS.fill : SAYS.copilot });
-    await door(A, 'Contracts place, a paper on the Wall (MK-A2)', { start: async () => { await toPlace('wall')(); await waitFor(page, s => !!document.querySelector(s), 6000, WCARD); },
-      press: () => click(WCARD), expect: E.paper('MK-A2'), says: SAYS.paper });
+    /* RE-POINTED 18 Oct 2026 (round 13 as drawn): a press on a paper chooses
+       it (Jambo's panel says it), a second press opens it; and so does the
+       panel's own Open the paper */
+    await door(A, 'Contracts place, a paper on the Wall, pressed twice (MK-A2)', { start: async () => { await toPlace('wall')(); await waitFor(page, s => !!document.querySelector(s), 6000, WCARD); },
+      press: async () => (await click(WCARD)) && click(WCARD), expect: E.paper('MK-A2'), says: SAYS.paper });
+    await door(A, 'Contracts place, a paper on the Wall, then Jambo\'s Open the paper (MK-A2)', { start: async () => { await toPlace('wall')(); await waitFor(page, s => !!document.querySelector(s), 6000, WCARD); },
+      press: async () => (await click(WCARD)) && (await waitFor(page, () => !!document.querySelector('#ig-dock [data-pd-ch-open="MK-A2"]'), 4000)) && click('#ig-dock [data-pd-ch-open="MK-A2"]'), expect: E.paper('MK-A2'), says: SAYS.paper });
     /* RE-POINTED 17 Oct 2026 (round 6, "One line"): "‹ Contracts" left the
        paper's line — the way back is the frame's, the Contracts place's own
        desk tab, kept once the place has settled */
@@ -419,7 +428,11 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
     const AP = () => !!document.querySelector('[data-ap-row="MK-A2"]');
     await door(A, 'Approvals row, double-click (MK-A2)', { start: () => goPage('approvals', AP), press: () => dbl('[data-ap-row="MK-A2"]'), expect: E.signing('MK-A2'), says: SAYS.signing });
     await door(A, 'Approvals row, Enter (MK-A2)', { start: () => goPage('approvals', AP), press: () => enter('[data-ap-row="MK-A2"]'), expect: E.signing('MK-A2'), says: SAYS.signing });
-    await threeDoors(A + ' · Approvals', 'approvals', '[data-ap-row="MK-A2"]', 'MK-A2');
+    /* RE-POINTED 18 Oct 2026 (round 15 as drawn, owner's "build all the gaps"):
+       an Approval's panel draws no Negotiation · Workspace — its way to the
+       paper is "Open Before you sign", which lands where the row's own press does */
+    await door(A + ' · Approvals', 'Approval panel, Open Before you sign (MK-A2)', { start: async () => { await goPage('approvals', AP); await selectRow('[data-ap-row="MK-A2"]'); },
+      press: () => panelDoor('gate'), expect: E.signing('MK-A2'), says: SAYS.signing });
     /* Obligations */
     const OBK = n => `MK-A1::ob-a1-${n}`, OBR = n => `.ob-lt tbody tr[data-ob-key="${OBK(n)}"]`;
     const OBROW = OBR(1);
@@ -447,7 +460,9 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
        agreements (three, the closed one too); the wall says the same three,
        its amendment beside them */
     const naivasN = await page.evaluate(() => (typeof cuView === 'function') ? cuView(cuCustomerOf('naivas supermarkets')).items.length : 0);
-    const naivasSaid = `${naivasN} of ${naivasN} contracts · 1 amendment`;
+    /* RE-POINTED (B1 pass 4, round 13 as drawn: the count line says the agreements, "N of M contracts", never "· 1 amendment"
+       or "· K closed" after it — the amendment rides on its agreement's paper) */
+    const naivasSaid = `${naivasN} of ${naivasN} contracts`;
     const PARTY = E.party(naivas, naivasSaid), PSAYS = SAYS.wall + ', narrowed to the party, reading "' + naivasSaid + '"';
     await door(A, 'Parties row, double-click (Naivas)', { start: () => goPage('customers', s => !!document.querySelector(s), CU), press: () => dbl(CU), expect: PARTY, says: PSAYS });
     await door(A, 'Parties row, Enter (Naivas)', { start: () => goPage('customers', s => !!document.querySelector(s), CU), press: () => enter(CU), expect: PARTY, says: PSAYS });
@@ -619,13 +634,16 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
       fill: R1owed ? E.fill('MK-R1') : E.paper('MK-R1'), oblig: E.obTab('MK-R1'),
       /* RE-POINTED 15 Oct 2026: the chips are the next steps now, so "share" is
          drawn; it answers with Jambo's share card and stays on the paper */
-      share: E.paper('MK-R1') };
+      share: E.paper('MK-R1'),
+      /* ROUND 3 AS DRAWN (18 Oct 2026): the owed chips — "answer the redlines"
+         opens the Redlines face, "name a signer" the signing route's editor */
+      answer: E.red('MK-R1'), signer: L => !!L.route };
     /* each chip from the paper with no face open (15 Oct 2026): the chips are
        the next steps now, and an open face (Redlines after the "redline"
        chip) rightly moves them on */
     const onBarePaper = id => async () => { await page.evaluate(() => ['pdFillClose', 'pdRedClose', 'pdSignClose', 'pdAmendClose'].forEach(f => { try { if (typeof window[f] === 'function') window[f](); } catch (_){} })); await onPaper(id)(); };
     for (const k of [...new Set(chips)])
-      await door(D, `the chip "${k}" (on MK-R1)`, { start: onBarePaper('MK-R1'), same: k === 'share', press: () => domClick(`[data-ca-chip="${k}"]`), expect: CHIP[k] || (L => !L.room && !L.negPage), says: CHIP[k] ? 'its place on Home' : 'anywhere but the room' });
+      await door(D, `the chip "${k}" (on MK-R1)`, { start: onBarePaper('MK-R1'), same: k === 'share' || k === 'signer', press: () => domClick(`[data-ca-chip="${k}"]`), expect: CHIP[k] || (L => !L.room && !L.negPage), says: CHIP[k] ? 'its place on Home' : 'anywhere but the room' });
     if (!chips.length) record(D, 'the chips are drawn', false, 'no chip above the box', 'missing');
     /* THE WALL'S TWO WAYS IN (the overnight work order, steps 3 and 4): each
        makes a contract, and lands on ITS paper — Fill in beside it while
@@ -671,16 +689,20 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
       await page.evaluate(async i => { const c = getContract(i); const cl = negoClauseList(c)[0]; if (!cl) return;
         const now = negoClauseNowById(c, cl.clauseId); const body = (now && now.bodyHtml) || '<p>' + ((now && now.text) || cl.text || '') + '</p>';
         await negoEditClause(c, cl.clauseId, body.replace(/<\/p>(?![\s\S]*<\/p>)/, ' Both parties shall keep a copy.</p>'), { side: 'owner' }); }, gid);
-      const GL = { fill: [E.fill(gid), SAYS.fill], redline: [E.red(gid), SAYS.red],
+      /* RE-POINTED AT THE INTEGRATION (19 Oct 2026): the dropped contract's
+         "redline" row is its RISKS row, and round 9 as drawn left the Redlines
+         face beside Home's paper with no risk list — so that row's door opens
+         the clause editor's Risks tab (data-pd-gl-risks), where they are */
+      const GL = { fill: [E.fill(gid), SAYS.fill], redline: [L => L.ceRisks, 'the clause editor, on its Risks tab'],
         share: [L => E.paper(gid)(L) && L.shareCard, 'the paper, Jambo\'s Share card'], sign: [E.signing(gid), SAYS.signing] };
       /* the card stands where no face is open: the face the last press opened is put away first */
-      const glanceStart = async () => { await page.evaluate(i => { for (const f of ['pdFillAway', 'pdRedAway', 'pdSignAway']) try { if (typeof window[f] === 'function') window[f](); } catch (_) { /* none open */ }
+      const glanceStart = async () => { await page.evaluate(i => { for (const f of ['rlCloseClauseEditor', 'pdFillAway', 'pdRedAway', 'pdSignAway']) try { if (typeof window[f] === 'function') window[f](); } catch (_) { /* none open */ }
         pdOpenOnHome(i, 'copilot'); if (typeof renderIntelDock === 'function') renderIntelDock(); }, gid);
         await waitFor(page, i => !!document.querySelector(`#pd-glance[data-pd-glance-for="${i}"]`), 8000, gid); };
       for (const k of ['fill', 'redline', 'share', 'sign'])
         await door(D, `the glance's "${k}" button (on the dropped contract)`, { start: glanceStart, same: k === 'share',
           press: async () => { if (!(await waitFor(page, i => !!document.querySelector(`#pd-glance[data-pd-glance-for="${i}"]`), 6000, gid))) return false;
-            return domClick(`#pd-glance [data-pd-glance="${k}"]`); },
+            return domClick(k === 'redline' ? '#pd-glance [data-pd-gl-risks]' : `#pd-glance [data-pd-glance="${k}"]`); },
           expect: GL[k][0], says: GL[k][1] });
     } else record(D, 'the glance\'s buttons', false, 'no dropped contract to read', 'missing');
     /* the draft card's Open the form is the ONE form, never the two-door menu; Create lands on the new paper */

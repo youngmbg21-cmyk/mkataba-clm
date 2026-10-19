@@ -61,7 +61,10 @@ const BOOK = FIXTURES.concat(Array.from({ length: 20 }, (_, i) => {
     await waitFor(page, () => !!document.querySelector('#hb-board [data-hb-dig="f:live"]'), 10000);
 
     /* 1 the side list */
-    const tile = page.locator('#hb-board [data-hb-dig="f:live"]').first();
+    /* RE-POINTED 18 Oct 2026 (round 17 as drawn): Your book's figures open
+       the list behind them on its own page (Contracts, Obligations); the side
+       list is opened from the stage bar's own door, the press it still answers */
+    const tile = page.locator('#hb-board .hb-stagebar [data-hb-dig^="st:"]').first();
     await tile.tap();
     const opened = await waitFor(page, () => !!document.querySelector('.hb-sheet'), 6000);
     const geo = opened ? await page.evaluate(() => {
@@ -76,15 +79,17 @@ const BOOK = FIXTURES.concat(Array.from({ length: 20 }, (_, i) => {
     check('1c the tile that opened it puts it away', await waitFor(page, () => !document.querySelector('.hb-sheet'), 4000));
 
     /* 3 the week's pill, 4 the value tile */
+    /* the value's line is the value row's own (round 17 as drawn, 18 Oct 2026);
+       Jambo's work card stays on the Board (the owner's answer of 18 Oct) */
     const fig = await page.evaluate(() => ({
       week: (document.querySelector('[data-hm-agent-row="week"] .hb-pill') || {}).textContent || null,
-      left: (document.querySelector('#hb-board .hb-fig-left') || {}).textContent || null }));
+      left: (document.querySelector('#hb-board [data-hb-fig="value"] .hb-fig-left') || {}).textContent || null }));
     check('3 the Week ahead pill counts its dates', fig.week != null && Number(fig.week) > 1, JSON.stringify(fig));
     check('4 the value tile names the currency it leaves out', /USD/.test(fig.left || ''), JSON.stringify(fig));
 
     /* 8 the late duties, one job each (owner, 16 Oct 2026) */
     const late = await page.evaluate(() => ({ ours: !!document.querySelector('[data-hm-agent-row="ours"]'),
-      split: (document.querySelector('#hb-board .hb-fig-left.is-split') || {}).textContent || null }));
+      split: (document.querySelector('#hb-board [data-hb-fig="overdue"] .hb-fig-left') || {}).textContent || null }));
     check('8a Our promises is no longer a row on the Board', !late.ours, JSON.stringify(late));
     check('8b the Obligations overdue figure says how it splits, ours and theirs', /^\s*20 ours · 20 theirs\s*$/.test(late.split || ''), JSON.stringify(late));
 
@@ -108,7 +113,10 @@ const BOOK = FIXTURES.concat(Array.from({ length: 20 }, (_, i) => {
 
     /* 7 theirs carries no "nobody owns this" */
     await page.evaluate(() => { document.querySelector('#hb-board').scrollTop = 0; });
-    await page.locator('#hb-board [data-hb-dig="f:overdue"]').first().tap();
+    /* RE-POINTED 18 Oct 2026 (round 17 as drawn): Your book's overdue figure
+       opens the Obligations page; the Board's own overdue card — the list 8c
+       asks Jambo for — is opened through its own dig */
+    await page.evaluate(() => hbDig('f:overdue'));
     await waitFor(page, () => !!document.querySelector('#hb-focus .hb-row'), 8000);
     const rows = await page.evaluate(() => [...document.querySelectorAll('#hb-focus .hb-row')].map(r => r.innerText.replace(/\s+/g, ' ')));
     const theirs = rows.filter(r => /Pay invoice/.test(r)), ours = rows.filter(r => /Monthly report/.test(r));

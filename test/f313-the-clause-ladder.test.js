@@ -501,7 +501,11 @@ describe('f313 — the clause ladder', () => {
     /* THE TOGGLE IS THE CLAUSE, NEVER THE POSTURE. A press opens the ladder
        and a press shuts the panel — the owner's standing rule about a sliding
        panel, which a posture inside the toggle would have cost a press. */
-    const h = nego.slice(nego.indexOf("const lad = t.closest('[data-rl-ladder]');"));
+    /* (since round 9's third pass, 19 Oct 2026, Jambo's Redlines face folds
+       its own ladder under the row first and returns; the panel's press is
+       the branch after it, from `lscope` on) */
+    const h0 = nego.slice(nego.indexOf("const lad = t.closest('[data-rl-ladder]');"));
+    const h = h0.slice(h0.indexOf('const lscope = '));
     const press = h.slice(0, h.indexOf('return;') + 7);
     assert.match(press, /rlCpSetShown\(lscope, rlCpOpenId\(\) === lid \? null : lid, \{ ladder: true \}\);/,
       'one press opens it narrowed, the next shuts it');

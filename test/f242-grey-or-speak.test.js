@@ -140,9 +140,12 @@ describe('f242 · the seven that grey out', () => {
        press. What WAS wrong on that screen is every confirmation being a bare
        toast, which is the next block. Asserted so a later change that makes
        them unconditional fails here rather than shipping. */
+    /* RE-POINTED 19 Oct 2026 (lane E, round 22 built as drawn): "Review all"
+       is "Check all N" and the re-read is "Read N again with Jambo" — both
+       still drawn only where there is work */
     const src = read('js/views/migration.js');
-    assert.match(src, /canEdit\(\)&&k\.review\?`<button id="mig-review-all"/);
-    assert.match(src, /canEdit\(\)&&heur&&API_MODE\(\)&&state\.aiConfigured\?`<button id="mig-rerun"/);
+    assert.match(src, /canEdit\(\) && k\.check \? `<button type="button" id="mig-check-all"/);
+    assert.match(src, /canEdit\(\) && heur && API_MODE\(\) && state\.aiConfigured \? `<button type="button" id="mig-rerun"/);
   });
 });
 

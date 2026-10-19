@@ -313,10 +313,12 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
        the List switch, which is where the reader counts them */
     /* RE-POINTED 11 Oct 2026 (the Board as drawn): the figure opens its list in
        the side list on the right; its foot's "Open these" opens the register */
-    const listed = await page.evaluate(() => document.querySelectorAll('.hb-sheet [data-hb-sheet-c]').length);
+    /* RE-POINTED 18 Oct 2026 (round 17 as drawn, "Then and now"): the
+       figure opens the Contracts place itself, narrowed to exactly what it
+       counts — no side list between them */
+    const listed = await page.evaluate(() => ((regState().only || {}).ids || []).length);
     /* the door lands on Home's Contracts place (step 7); its List is where the rows are counted */
-    await page.evaluate(() => { if (window.state && state.reg) state.reg.show = 'list'; });
-    await page.click('.hb-sheet [data-hb-open]').catch(() => {});
+    await page.evaluate(() => { if (window.state && state.reg) state.reg.show = 'list'; if (typeof regRepaint === 'function') regRepaint(); });
     await page.waitForTimeout(1500);
     const landed = await page.evaluate(() => ({
       view: state.view, place: !!document.querySelector('[data-reg-home]'),

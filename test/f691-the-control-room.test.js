@@ -159,21 +159,30 @@ describe('f691 — the Company board, as drawn', () => {
     assert.equal(cards[0], 'people'); assert.equal(cards.length, 9); assert.ok(!cards.includes('ladder'));
     const ladder = win.document.querySelector('.st-board > [data-st-card="ladder"]');
     assert.ok(ladder && ladder.previousElementSibling.classList.contains('st-cards'), 'the ladder last, after the cards');
+    /* RE-POINTED 18 Oct 2026 (round 25 as drawn, the gaps): each card holds
+       the drawing's two facts and its doors — no longer every panel of its
+       group. Every company panel is still one press away in the Menu beside
+       the board (each once; f193 asks it), and the cards hold nothing else */
     const panels = [...win.document.querySelectorAll('.st-cards > [data-st-card]:not([data-st-card="people"]):not([data-st-card="ladder"]) [data-st-panel]')]
       .map(b => b.getAttribute('data-st-panel')).filter(k => sb.SET_PANELS[k]);
     const expected = Object.keys(sb.SET_PANELS).filter(k => ['platform', 'build'].includes(sb.SET_PANELS[k].tab) && (!sb.SET_PANELS[k].show || sb.SET_PANELS[k].show()));
-    assert.deepEqual(panels.slice().sort(), expected.slice().sort(), 'every company panel is a fact or a door on its card');
-    assert.equal(panels.length, expected.length, 'and each one once');
+    for (const k of panels) assert.ok(expected.includes(k), `${k} on a card is a company panel`);
+    const menu = [...win.document.querySelectorAll('#st-list .st-mrow[data-st-panel]')].map(b => b.getAttribute('data-st-panel')).filter(k => sb.SET_PANELS[k]);
+    assert.deepEqual(menu.slice().sort(), expected.slice().sort(), 'every company panel is in the Menu beside the board');
     for (const card of win.document.querySelectorAll('.st-cards > [data-st-card]:not([data-st-card="people"]):not([data-st-card="ladder"])'))
       assert.ok(card.querySelectorAll('.st-fact').length <= 2, `${card.getAttribute('data-st-card')}: two facts at most`);
     assert.ok(win.document.getElementById('st-sheet-card'), 'and the access sheet under them');
   });
-  test('the people with gaps lead the access sheet; an amber cell opens what fills it', () => {
+  /* RE-POINTED 18 Oct 2026 (round 25 as drawn, the gaps): the board's sheet
+     lists everyone in the workspace's order, admins too, six at most — no
+     longer the people with gaps first; a gap is still its amber cell */
+  test('the access sheet lists everyone, admins too; an amber cell opens what fills it', () => {
     const { sb, win } = stage({ capOn: true, more: [{ id: 'u_three', name: 'Wanjiru Otieno', role: 'legal', email: 'w@hati.test', signCap: 9000 }] });
     sb.settingsGoTab('company');
-    const first = win.document.querySelector('#st-sheet-card .st-sh-row');
-    assert.match(first.getAttribute('data-st-panel'), /u_two/, 'Asha (any amount) leads');
-    assert.ok(first.querySelector('.st-amber-btn[data-st-panel="limits"]'), 'and her amber cell opens everyone\'s limits');
+    const rows = [...win.document.querySelectorAll('#st-sheet-card .st-sh-row')].map(r => r.getAttribute('data-st-panel'));
+    assert.deepEqual(rows, sb.REMOTE.users.slice(0, 6).map(u => 'person:' + u.id), 'everyone, in order');
+    const asha = win.document.querySelector('#st-sheet-card .st-sh-row[data-st-panel="person:u_two"]');
+    assert.ok(asha.querySelector('.st-amber-btn[data-st-panel="limits"]'), 'and her amber cell opens everyone\'s limits');
   });
   test('Team and Who holds what are pages inside the board, with the way back', () => {
     const { sb, win, click } = stage();
@@ -416,9 +425,15 @@ describe('f691 — Jambo finds, explains and readies; the AI only on a press', (
       if (role === 'admin') { sb.settingsGoTab('company'); }
       const chips = [...sb.document.querySelectorAll('.st-jb-chip')];
       assert.ok(chips.length >= 3, `${lang}/${role}: chips are offered`);
-      if (lang === 'sv') assert.ok(chips.some(c => c.textContent === S.sv[role === 'admin' ? 'st_jb_c_next' : 'st_jb_c_brief']), 'in the reader\'s language');
+      /* RE-POINTED 18 Oct 2026 (rounds 24–25 as drawn): a chip's first word is
+         small ("what should I turn on next?"), and a chip may be a DOOR — the
+         first need's own button, or Ask an admin — rather than an ask */
+      const small = w => w.charAt(0).toLowerCase() + w.slice(1);
+      if (lang === 'sv') assert.ok(chips.some(c => c.textContent === small(S.sv[role === 'admin' ? 'st_jb_c_next' : 'st_jb_c_brief'])), 'in the reader\'s language');
       for (const c of chips) {
-        const t = ask(c.getAttribute('data-st-jb-ask'));
+        const q = c.getAttribute('data-st-jb-ask');
+        if (q == null) { assert.ok(c.matches('[data-st-panel],[data-st-page],[data-st-ask-head],[data-st-resend]'), `${lang}/${role}: "${c.textContent}" is a door`); continue; }
+        const t = ask(q);
         assert.ok(t.querySelector('.st-jb-card'), `${lang}/${role}: "${c.textContent}" finds something`);
       }
     }

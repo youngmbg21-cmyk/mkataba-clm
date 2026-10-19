@@ -122,7 +122,9 @@ test('F347 — the second five images', async t => {
     /* RE-POINTED IN PLACE 17 Oct 2026 (round 4 of the redesign, "One sheet"):
        the one row builder also takes the "best match" mark, so it names a
        second argument; still ONE builder. */
-    assert.match(WIZ, /const pickRow=\(r,best\)=>\{/, 'a row builder took its place');
+    /* (and a third, `card`, since round 4's gaps pass, 19 Oct 2026: the three
+       closest drawn as choices — still ONE builder) */
+    assert.match(WIZ, /const pickRow=\(r,best(?:,card)?\)=>\{/, 'a row builder took its place');
     assert.match(CSS, /\.na-pick-n\{[^}]*white-space:nowrap[^}]*\}/, 'the name is still cut, not wrapped');
     assert.match(WIZ, /hint=naCardTitle\(r\)/, 'and the whole of it still rides the hover');
   });

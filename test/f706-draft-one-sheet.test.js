@@ -97,9 +97,14 @@ describe('f706 (2) asking brings the page, read without AI', () => {
     const form = calls.find(c => c[0] === 'form'); assert.ok(form, 'the form came');
     const o = form[1];
     assert.equal(o.pick, null, 'nothing is picked for you');
-    assert.deepEqual(o.closest, [{ kind: 'tid', id: 'NDA' }]);
+    /* RE-POINTED 18 Oct 2026 (the gaps, round 4, f750): the three closest always — those sharing a word
+       first, then the next by shelf (here the only other paper there is) */
+    assert.deepEqual(o.closest, [{ kind: 'tid', id: 'NDA' }, { kind: 'tid', id: 'lease' }]);
     assert.deepEqual(o.best, { kind: 'tid', id: 'NDA' });
-    assert.deepEqual(o.words, { what: 'Mutual Non-Disclosure Agreement', who: 'Volvo Cars', known: false });
+    /* RE-POINTED (the gaps, round 4, pass 2, 18 Oct 2026): What is the kind the words ask for, written
+       out ("A non-disclosure agreement"), and What it is for is read from the words ("a pilot") */
+    assert.deepEqual(o.words, { what: o.words.what, who: 'Volvo Cars', known: false, purpose: 'a pilot' });
+    assert.notEqual(o.words.what, 'Mutual Non-Disclosure Agreement', 'never the closest paper\'s title');
     assert.equal(o.prefill.counterparty, 'Volvo Cars'); assert.equal(o.asked, 'NDA with Volvo Cars for a pilot'); assert.equal(o.streamAsk, true);
     assert.equal(a.state, 'opened');
   });
@@ -113,7 +118,9 @@ describe('f706 (2) asking brings the page, read without AI', () => {
     const a = { kind: 'draft', sentence: 'NDA with Volvo Cars', state: 'opened', options: ctx.caDraftRank('NDA with Volvo Cars', cands, null), prefill: {} };
     const html = ctx.caDraftCardHtml(a, 0);
     assert.match(html, /class="ca-card ca-dr-said"/);
-    assert.match(html, /opened a new agreement on the desk with what I read: with Volvo Cars\. The closest of our paper is NDA; you pick\. Nothing is created until you press Create\./);
+    /* RE-POINTED 18 Oct 2026 (the gaps, round 4, f750): the line as drawn — what the words name, and "our" paper */
+    /* RE-POINTED (pass 2): the party and the paper in bold, as drawn */
+    assert.match(html, /opened a new agreement on the desk with what I read: an NDA, with <b>Volvo Cars<\/b>\. The closest of our paper is our <b>NDA<\/b>; you pick\. Nothing is created until you press Create\./);
     assert.ok(!/<dl/.test(html) && !/ca-dr"/.test(html), 'the New agreement card is not drawn');
     assert.match(html, /data-ca-act="form"[^>]*>Open the form</); assert.match(html, /data-ca-act="ask"[^>]*>Change the ask</);
   });
@@ -130,14 +137,19 @@ describe('f706 (3) the form, opened from a sentence, is one sheet', () => {
     assert.match(w, /i18t\('na_words_title'\)/); assert.match(w, /<q>\$\{esc\(asked\)\}<\/q>/); assert.match(w, /i18t\('na_words_noai'\)/);
     assert.match(w, /id="na-ask-again"/);
     assert.match(w, /i18t\('na_words_new_party'\)/); assert.match(w, /'is-owed'/);
-    assert.match(w, /id="dr-read"[\s\S]*i18t\('na_words_fill'\)[\s\S]*i18t\('na_words_cost'\)/, 'the form\'s own Find, its cost said');
+    /* RE-POINTED (the gaps' third pass, 18 Oct 2026; the owner's answer (4): Jambo's costs stay in
+       CALLS, never money) — the cost is its count of Jambo calls */
+    assert.match(w, /id="dr-read"[\s\S]*i18t\('na_words_fill'\)[\s\S]*id="na-w-cost">· \$\{esc\(naFillCost\(\)\)\}/, 'the form\'s own Find, its cost said');
+    assert.match(WZ, /const naFillCost=\(\)=>i18t\('na_words_cost'\);/);
+    assert.doesNotMatch(WZ, /aiCostWords/, 'no cost in money');
     assert.match(w, /<textarea id="dr-say" class="na-say" hidden>\$\{esc\(asked\)\}<\/textarea>/, 'Find reads the sentence as it always has');
     assert.match(WZ, /if\(say && !one && String\(say\.value\|\|''\)\.trim\(\)\) return true;/, 'the ask is not something typed here: leaving asks nothing');
   });
   test('3c 1 Start from: the closest, the best marked, nothing picked, the whole list one press away, Ask Legal', () => {
     assert.match(WZ, /const closestHtml=\(\)=>/);
     assert.match(WZ, /\$\{best===true\?`<span class="na-best">/, 'the best marked (an index from .map is never "best")');
-    assert.match(WZ, /<div class="na-closest" id="na-closest">\$\{closestHtml\(\)\}<\/div>/);
+    /* RE-POINTED 18 Oct 2026 (the gaps, round 4, f750): the three are a group of radios, as drawn */
+    assert.match(WZ, /<div class="na-closest" id="na-closest" role="radiogroup" aria-label="\$\{esc\(i18t\('na_start'\)\)\}">\$\{closestHtml\(\)\}<\/div>/);
     assert.match(WZ, /id="na-all" aria-expanded="false">\$\{esc\(i18t\('na_all_paper',\{n:rows\(\)\.length\}\)\)\}/);
     assert.match(WZ, /<div id="na-search" hidden>/);
     assert.match(WZ, /getElementById\('na-legal'\)[\s\S]{0,260}openIntakeForm\(\{ need:asked/);
@@ -152,11 +164,12 @@ describe('f706 (3) the form, opened from a sentence, is one sheet', () => {
     assert.match(f, /naStreamBox\(document\.getElementById\('na-form'\)\)/, 'the one writer');
     assert.match(f, /f\.hidden=true; f\.style\.display='none';/);
     assert.match(f, /streamIsPrivate\(id\)\)\?icon\('lock'/, 'a private stream wears its lock');
-    assert.match(f, /data-na-stream="__new__"/, 'a new stream keeps its way in');
+    /* RE-POINTED (pass 2): as drawn, the streams alone — a new stream is made in Settings · Contract streams */
+    assert.doesNotMatch(f, /data-na-stream="__new__"/, 'no + New stream on the sheet');
     const press = WZ.slice(WZ.indexOf("getElementById('na-file')?.addEventListener"), WZ.indexOf('let _q=null;'));
     assert.match(press, /if\(v!=='__new__'\) streamPicked=v;/);
     assert.match(press, /sb\.value=v; try\{ sb\.dispatchEvent\(new Event\('change',\{ bubbles:true \}\)\); \}catch\(_\)\{\}/, 'as a person\'s choice is told');
-    assert.match(WZ, /i18t\(ready\?'na_file_read':'na_file_read_noai'\)/, 'what reading on creation costs, or that it waits');
+    assert.match(WZ, /esc\(ready\?naReadCost\(\):i18t\('na_file_read_noai'\)\)/, 'what reading on creation costs, or that it waits');
   });
   test('3f the new words, in English and Svenska', () => {
     for (const k of ['ca_dr_opened', 'ca_dr_opened_with', 'ca_dr_opened_best', 'ca_dr_opened_tail', 'ca_dr_open_again', 'na_words_title', 'na_words_noai', 'na_words_what', 'na_words_with',

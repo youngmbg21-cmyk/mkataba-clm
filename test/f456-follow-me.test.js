@@ -176,7 +176,9 @@ describe('f456 (4) — one at a time, per sitting, and the way out is the way in
 describe('f456 (5) — the face is the control, and there is NO BAND', () => {
   test('each face is a real button, lit while it is the one being followed', () => {
     const fn = MOD.slice(MOD.indexOf('const faceHtml ='), MOD.indexOf('return `<span class="pz-row"'));
-    assert.match(fn, /<button type="button" class="pz-face\$\{on \? ' is-following' : ''\}"/);
+    /* RE-POINTED 19 Oct 2026 (round 9's gaps, third pass, lane C2): each face
+       carries its person's one tone (pz-t-N, the house's avatar reading) */
+    assert.match(fn, /<button type="button" class="pz-face pz-t-\$\{tone\(r\)\}\$\{on \? ' is-following' : ''\}"/);
     assert.match(fn, /aria-pressed="\$\{on \? 'true' : 'false'\}"/,
       'a toggle says which way it is set, or a keyboard reader cannot tell');
     assert.match(fn, /data-pz-follow="/);
@@ -184,7 +186,10 @@ describe('f456 (5) — the face is the control, and there is NO BAND', () => {
 
   test('and the sentence is on it, because a face alone cannot say what a press does', () => {
     const fn = MOD.slice(MOD.indexOf('const faceHtml ='), MOD.indexOf('return `<span class="pz-row"'));
-    assert.match(fn, /i18t\('pz_following'[\s\S]{0,60}i18t\('pz_follow'/);
+    /* RE-POINTED 18 Oct 2026 (round 6 as drawn, pass 2): one sentence-maker
+       for both states, naming the clause the colleague is on
+       (presenceFollowWords) */
+    assert.match(fn, /presenceFollowWords\(r, on \? 'pz_following' : 'pz_follow', c\)/);
     for (const k of ['pz_follow', 'pz_following'])
       assert.ok(I18N.split(k + ':').length - 1 >= 2, k + ' is missing from one of the two books');
   });
@@ -194,9 +199,17 @@ describe('f456 (5) — the face is the control, and there is NO BAND', () => {
     assert.ok(!/pz-strip|pz-band|pz-bar|pz-notice/.test(MOD + HTML),
       'a strip saying "Following Amina · Stop" would say what the lit face '
       + 'already says. The owner\'s standing rule: a band is asked for first');
-    assert.ok(!/toast\(/.test(MOD),
+    /* RE-POINTED 18 Oct 2026 (round 6 as drawn, "One line" — the owner's
+       "build all the gaps"): the drawing has the PRESS say once what it did
+       ("Following Lina Ek: the paper goes to clause 11 …") and the press
+       that stops say so. An ARRIVAL still says nothing: the toast lives in
+       presenceFollowSay, asked by presenceFollow only, never by the walk. */
+    const walk = MOD.slice(MOD.indexOf('function presenceWalk('), MOD.indexOf('function presenceCanWalk('));
+    assert.ok(!/toast\(|presenceFollowSay/.test(walk),
       'and a toast on every arrival would be the loudest possible way to say '
       + '"the page moved", about a page the reader is watching move');
+    assert.equal((MOD.match(/toast\(/g) || []).length, 1, 'one toast, the press\'s own');
+    assert.match(MOD.slice(MOD.indexOf('function presenceFollow('), MOD.indexOf('function presenceRowOf(')), /presenceFollowSay\(/);
   });
 
   test('the lit face keeps the face\'s exact size', () => {
@@ -205,12 +218,20 @@ describe('f456 (5) — the face is the control, and there is NO BAND', () => {
     assert.match(HTML, /button\.pz-face\.is-following\{ background:var\(--accent-solid\)/);
   });
 
+  /* RE-POINTED 18 Oct 2026 (round 6 as drawn, the owner's "build all the
+     gaps"): the walk works on Home's paper too, so where it can work is one
+     reading, presenceCanWalk — the negotiate page's paper, or Home's
+     (presenceHomePaper, walked through igPaperGoClause) */
   test('and it is a button ONLY where the walk can work', () => {
     const fn = MOD.slice(MOD.indexOf('const canWalk ='), MOD.indexOf('return `<span class="pz-row"'));
-    assert.match(fn, /getElementById\('view-redline'\) \|\| document\.querySelector\('\.redline-page'\)/,
+    assert.match(fn, /const canWalk = presenceCanWalk\(\);/);
+    const can = MOD.slice(MOD.indexOf('function presenceCanWalk('), MOD.indexOf('/* ---- THE ROW ----'));
+    assert.match(can, /getElementById\('view-redline'\) \|\| document\.querySelector\('\.redline-page'\)/,
       'the walk needs the negotiate page\'s paper');
-    assert.match(fn, /typeof window\.rlJumpToClause === 'function'/);
-    assert.match(fn, /if \(!canWalk\) return `<span class="pz-face"/,
+    assert.match(can, /typeof window\.rlJumpToClause === 'function'/);
+    /* RE-POINTED 18 Oct 2026 (pass 2): Home's paper only while it carries clause marks to walk to */
+    assert.match(can, /const sc = presenceHomePaper\(\);\s*return !!sc && typeof window\.igPaperGoClause === 'function' && /, '…or Home\'s paper and its own door');
+    assert.match(fn, /if \(!canWalk\) return `<span class="pz-face pz-t-/,
       'on the Document tab a button would quietly do nothing — the dead-button '
       + 'fault this codebase names in four other places. Presence is drawn '
       + 'everywhere; Follow me is offered where it works');

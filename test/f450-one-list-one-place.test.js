@@ -15,6 +15,13 @@
    reads the checklist's own reading (needsYouOf), presses its own door
    (needsYouGo). Browser check: test/chromium/needs-you-card-verify.js.
 
+   MOVED 18 Oct 2026, by the owner's yes to round 17 as drawn ("Then and
+   now"): Needs you LEAVES THE BOARD — it lives on Home, once the Counter
+   (cnNeeds over hbNeedsList) — and Jambo's Board greeting says where
+   (hbBoardHelloHtml). THE BOARD KEEPS JAMBO'S WORK (the owner's answer of
+   18 Oct 2026, after LAND ON IT): Home's "Jambo's work" row lands on it.
+   Section (1) is re-pointed to that.
+
    THE RETIRED WORDS of the 4 Oct merged card stay inert in both books.
    The full story is in docs/MAP-HISTORY.md under this heading.
    ============================================================ */
@@ -43,7 +50,8 @@ const ITEMS = HOME.slice(HOME.indexOf('function hmDecisionItems'),
 const code = s => s.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
 const BOARD_CODE = code(BOARD);
 
-describe('f450 (1) — Jambo\'s work draws none of it; the Needs you card is its own', () => {
+describe('f450 (1) — the Board keeps Jambo\'s work and draws no Needs you card; Home draws Needs you (round 17, 18 Oct 2026)', () => {
+  const BOARD_FN = BOARD_CODE.slice(BOARD_CODE.indexOf('function hbBoardHtml('), BOARD_CODE.indexOf('function hbSetupLeft('));
   test('Jambo\'s work is Copilot\'s, and it is the only name over it', () => {
     assert.match(CARD, /i18t\('hm_ag_title'\)/, 'the heading stays Copilot\'s own');
     assert.doesNotMatch(code(CARD), /hb_work_title/,
@@ -55,22 +63,25 @@ describe('f450 (1) — Jambo\'s work draws none of it; the Needs you card is its
       assert.ok(!code(CARD).includes(gone), gone + ' is in Jambo\'s work card');
   });
 
+  test('the Board draws Jambo\'s work (the owner\'s answer of 18 Oct) and never the Needs you card', () => {
+    assert.match(BOARD_FN, /hbPrepHtml\(A, base && base\.at\)/, 'Jambo\'s work is drawn on the Board');
+    for (const gone of ['hbNeedsHtml', 'hb-needs', 'data-hb-ny'])
+      assert.ok(!BOARD_FN.includes(gone), gone + ' is still drawn on the Board');
+    assert.ok(!/function hbNeedsHtml\(/.test(BOARD_CODE), 'the Needs you card\'s builder is gone, not left unused');
+  });
+
   test('the 4 Oct merged card\'s reading and signs stay gone', () => {
     for (const gone of ['hbNeedsData', 'HB_NEED_IC', 'HB_NEED_MAX', 'data-hb-need='])
       assert.ok(!BOARD_CODE.includes(gone), gone + ' is back in js/views/homeboard.js');
   });
 
-  test('the Needs you card stands first, above Jambo\'s work', () => {
-    const body = BOARD_CODE.slice(BOARD_CODE.indexOf('function hbBoardHtml('));
-    const i = body.indexOf('hbNeedsHtml()'), j = body.indexOf('hbPrepHtml(A');
-    assert.ok(i > 0 && j > i, 'hbNeedsHtml() is drawn before hbPrepHtml(A, …)');
-  });
-
-  test('it reads the checklist\'s own reading and presses the checklist\'s own door', () => {
-    const NY = code(BOARD.slice(BOARD.indexOf('function hbNeedsList('), BOARD.indexOf('function hbPrepHtml(')));
+  test('one reading, one door: the Counter lists hbNeedsList and presses hbNeedsPress', () => {
+    const NY = code(BOARD.slice(BOARD.indexOf('function hbNeedsList('), BOARD.indexOf('function hbNyWhat(')));
     assert.match(NY, /needsYouOf\(c\)/, 'one reading: needsYouOf over the book');
-    assert.match(NY, /needsYouGo\(kind, c\.id\)/, 'one door: needsYouGo');
-    assert.match(BOARD_CODE, /\[data-hb-ny-done\][\s\S]{0,300}lookDone\(c\)/, 'a colleague\'s look is answered by its own Done (lookDone)');
+    assert.match(code(BOARD.slice(BOARD.indexOf('function hbNeedsPress('), BOARD.indexOf('function hbNeedsPress(') + 600)), /needsYouGo\(kind, c\.id\)/, 'one door: needsYouGo');
+    const CN = read('js/views/counter.js');
+    assert.match(CN, /hbNeedsList\(\)/, 'the Counter draws the one reading');
+    assert.match(CN, /hbNeedsPress\(/, 'and presses the one door');
     assert.ok(!/negoChanges\(|negoRound\(|negoProgress\(|api\(|fetch\(/.test(NY), 'reading writes nothing and spends nothing');
   });
 
@@ -84,6 +95,14 @@ describe('f450 (1) — Jambo\'s work draws none of it; the Needs you card is its
     const back = BOARD.slice(BOARD.indexOf('data-hb-prep="open"'), BOARD.indexOf('data-hb-prep="open"') + 300);
     assert.match(back, /hbAgentsData\(null\)\.ready/, 'the pill is the agents\' count');
     assert.ok(!/hbNeedsData|hbNeedsCount/.test(back), 'and nothing is added to it');
+  });
+
+  test('"needs me" lands on Home\'s Needs you, and Jambo on the Board says so', () => {
+    const open = code(BOARD.slice(BOARD.indexOf('function hbNeedsOpen('), BOARD.indexOf('function hbNeedsPress(')));
+    assert.match(open, /deskGoCounter\(\)/);
+    assert.match(open, /landOn\('#cn-needs'/, 'LAND ON IT: the one lander, on the card');
+    assert.match(code(BOARD.slice(BOARD.indexOf('function hbBoardHelloHtml('), BOARD.indexOf('function hbBoardHelloHtml(') + 2400)), /counterNeedsCount\(\)/,
+      'his number is Home\'s own');
   });
 });
 

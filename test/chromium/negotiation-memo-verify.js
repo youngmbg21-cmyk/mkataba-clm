@@ -107,8 +107,15 @@ const visible = (page, sel) => page.evaluate(s => {
   await page.evaluate(id => openRedlineWorkbench(id), built.id);
   /* RE-POINTED 15 Oct 2026 (owner, answer B): the ⋯ left the paper's line;
      its rows, the memo's among them, are the panel's Menu tab */
-  await page.waitForFunction(() => state.view === 'dashboard' && !!document.querySelector('#pd-redface [data-nego-card]') && !!document.querySelector('#ig-dock [data-pd-tab="menu"]'), null, { timeout: 10000 }).catch(() => {});
-  await page.waitForTimeout(600);
+  /* RE-POINTED 19 Oct 2026 (round 9 as drawn, "Piles": while the Redlines
+     face is up the panel's row is "Jambo · Redlines · ‹ Jambo" — the drawing
+     has no Menu tab there; the contract's other tabs come back with ‹ Jambo,
+     PD_FACE_ROW/pdFaceUp). So the reader takes ‹ Jambo first, as drawn, and
+     the Menu tab — with the memo row in it — is on the row again. Each wait
+     asks for the state, bounded. */
+  await page.waitForFunction(() => state.view === 'dashboard' && !!document.querySelector('#pd-redface [data-nego-card]') && !!document.querySelector('#ig-dock [data-pd-back="red"]'), null, { timeout: 10000 }).catch(() => {});
+  await page.evaluate(() => { const b = document.querySelector('#ig-dock [data-pd-back="red"]'); if (b) b.click(); });
+  await page.waitForFunction(() => !document.getElementById('pd-redface') && !!document.querySelector('#ig-dock [data-pd-tab="menu"]'), null, { timeout: 6000 }).catch(() => {});
   const MEMO = '#pd-body .pd-menu [data-ig-memo]', MORE = '#ig-dock [data-pd-tab="menu"]';
 
   /* ============ 1. THE ROW IS IN THE MENU, AND ON SCREEN ============ */

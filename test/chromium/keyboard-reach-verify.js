@@ -353,10 +353,12 @@ async function tabAround(page, sel, n = 25) {
     if (fig) {
       await fig.focus();
       await page.keyboard.press('Enter'); await pause(600);
-      /* RE-POINTED 11 Oct 2026 (the Board as drawn): a figure opens its list in the side list */
-      const dig = await page.evaluate(() => ({ open: !!document.querySelector('.hb-sheet [data-hb-sheet-c]'),
-        kept: !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('.hb-sheet')) }));
-      check('and Enter on a figure opens its list on the right, with the keyboard on it', dig.open && dig.kept, JSON.stringify(dig));
+      /* RE-POINTED 18 Oct 2026 (round 17 as drawn, "Then and now"): a
+         contract figure opens the Contracts place narrowed to the contracts
+         it counts — Enter lands where the click lands */
+      const dig = await page.evaluate(() => { const o = regState().only; return { only: !!(o && o.ids && o.ids.length),
+        place: !!document.getElementById('ct-place'), label: o ? o.label : '' }; });
+      check('and Enter on a figure opens the list behind it — Contracts, narrowed to what it counts', dig.only && dig.place && dig.label === 'Live contracts', JSON.stringify(dig));
       const open = await page.$('.hb-sheet [data-hb-open]');
       if (open) { await open.focus(); await page.keyboard.press('Enter'); await pause(900); }
       const landed = await page.evaluate(() => ({ view: state.view, place: !!document.querySelector('[data-reg-home]'),

@@ -471,11 +471,25 @@ const CONTRACT = (id, over) => Object.assign({
       await page.waitForTimeout(2000);
       return true;
     };
-    const toTheirs = await pressRoute('#sign-paper');
+    /* RE-POINTED (the gaps, round 10 "The road", pass 2, 18 Oct 2026): the line under
+       the Sign button left Before you sign ("the foot follows the last stop"); its one
+       door is the Menu tab's row now (#ws-m-their-way, roomActsRowsHtml) — the same
+       press, outsideSetRoute(c, 'outside') */
+    const pressMenuRoute = async () => {
+      await page.evaluate(x => pdOpenOnHome(x, 'menu'), up.id);
+      await page.waitForFunction(() => !!document.querySelector('#pd-body #ws-m-their-way'), null, { timeout: 8000 }).catch(() => {});
+      if (!(await page.evaluate(() => !!document.querySelector('#pd-body #ws-m-their-way')))) return false;
+      await page.click('#pd-body #ws-m-their-way');
+      await page.waitForTimeout(600);
+      if (await page.evaluate(() => !!document.getElementById('cf-ok'))) await page.click('#cf-ok');
+      await page.waitForTimeout(2000);
+      return true;
+    };
+    const toTheirs = await pressMenuRoute();
     const route1 = await page.evaluate(() => (getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId) || {}).signRoute || 'inside');
     check('9a GATE — the Signing tab\'s own door moved this contract to their signing',
       toTheirs && route1 === 'outside' && drew9,
-      (toTheirs ? 'pressed' : 'no #sign-paper door') + ' · route ' + route1
+      (toTheirs ? 'pressed' : 'no #ws-m-their-way door') + ' · route ' + route1
         + ' · marked before: ' + m9.markKeys.length + ', boxes before: ' + m9.boxKeys.length);
     const tile1 = await tileHead();
     await openRoom(page, up.id);

@@ -104,7 +104,10 @@ const HP = '#bs-strips [data-bs-host="hist"]';
     /* 4 the admin's door */
     await page.click(HP + ' #hist-more');
     const M = await until(page, () => { const m = document.getElementById('hist-more-menu'); if (!m || m.classList.contains('hidden')) return null;
-      return { group: (m.querySelector('.hist-mg') || {}).textContent || '', door: (m.querySelector('#ht-trail') || {}).textContent || '' }; });
+      /* RE-POINTED (B1 pass 4, round 12's menu as drawn: "This contract" heads the menu, then "Every contract · admins only"
+         over the trail door): the group that stands over the door */
+      const t = m.querySelector('#ht-trail'); let g = t && t.previousElementSibling; while (g && !g.classList.contains('hist-mg')) g = g.previousElementSibling;
+      return { group: (g || {}).textContent || '', door: (t || {}).textContent || '' }; });
     check('4a an admin finds the whole trail under "Every contract · admins only"', M && /Every contract · admins only/.test(M.group) && /The whole trail, as a file/.test(M.door), JSON.stringify(M));
     await page.click('#ht-trail');
     const landed = await until(page, () => { const t = document.querySelector('[data-st-bk-tab="trail"]');

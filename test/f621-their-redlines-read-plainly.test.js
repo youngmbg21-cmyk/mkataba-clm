@@ -66,8 +66,13 @@ describe('f621 (2) — a figure that did not move is not printed as a move', () 
     const c = contract(); w.win.negoInit(c);
     await w.win.negoEditClause(c, clause2(w.win, c).clauseId, '<p>2. Invoices are payable within forty-five (45) days.</p>',
       { side: 'owner', author: ME.name, by: ME.name, summary: 'Net-45' });
-    const t = text(w.win.redlineChangeCardsHtml(c, { side: 'owner' }));
-    assert.match(t, /30 → 45/, t);
+    /* Re-pointed 19 Oct 2026 to the owner's pick "Piles" (round 9 as drawn):
+       the row's line under its name shows the changed words themselves,
+       struck and inserted; the figure move "30 → 45" rides that line's hover. */
+    const h = w.win.redlineChangeCardsHtml(c, { side: 'owner' });
+    const line = (h.match(/<div class="rl-card-sum rl-card-ex"[^>]*>[\s\S]*?<\/div>/) || [''])[0];
+    assert.match(line, /<del>thirty \(30\)<\/del>\s*<ins>forty-five \(45\)<\/ins>/, line);
+    assert.match(line, /title="[^"]*30 → 45[^"]*"/, 'the figure move rides the hover: ' + line);
   });
 });
 

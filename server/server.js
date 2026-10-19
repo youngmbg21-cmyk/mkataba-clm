@@ -17,7 +17,9 @@ const { jxPack, JX_DEFAULT, JURISDICTIONS,
 const { ndaClean, ndaFacts } = require('../js/nda.js');
 /* THE LETTER (round 11, 17 Oct 2026): the share email's words, written once for
    the send screen that draws it and this route that mails it (js/sharemail.js). */
-const { shareMailOf, signerTurnMailOf } = require('../js/sharemail.js');
+const { shareMailOf, shareMailNameOf, signerTurnMailOf, shareRoundOf, shareAnswersOf } = require('../js/sharemail.js');
+/* THE CHASE (round 23's gaps, 18 Oct 2026): the reminder the Counter's Look draws, written once */
+const { chaseMailOf, chaseDayWords } = require('../js/sharemail.js');
 /* One dictionary, two hosts. The server writes email and needs the recipient's
    own language from the SAME table the screens use — a second copy here would
    drift from js/i18n.js without anything noticing, which is the fault the
@@ -33,12 +35,15 @@ const { intakeLaneMatch, intakeAnswersClean, intakeAnswersOnto, intakeLaneOwner 
    before anyone signs it (23 Sep 2026). ONE reading for both hosts — the
    screen and this wall ask the same questions of the same record, so they
    cannot come to different answers about whether a contract may be signed. */
-const { saNeeds, saState, saStamp, saShows, saDrift, saStarted, saMayDecide, saWorkdays,
+const { saNeeds, saState, saStamp, saShows, saDrift, saStarted, saMayDecide, saWorkdays, saRuleOf,
   SA_NOTE_MAX, SA_KEEP, SA_REMIND_WORKDAYS, SA_ESCALATE_WORKDAYS, SA_UNUSED_DAYS } = require('../js/signapproval.js');
 /* The check before signing as a wall (4 Oct 2026): which departures hold on
    each gate, and whether OUR signer has read the brief that stands for this
    wording. ONE reading for both hosts — js/signcheck.js asks the same file. */
 const { sgDepartures, sgBriefReadOwed } = require('../js/signgate.js');
+/* clashes in who may do what: the page's own reading, so the server finds the
+   same clashes and keeps the day each was first seen (owner's answer 12) */
+const { clashFind } = require('../js/clashkeys.js');
 const { SEAL_HASH_PLAIN, sealPlainText } = require('../js/sealtext.js');
 /* ONE ASK RECORD (4 Oct 2026): who was asked, the answer, when and for what,
    across the four kinds of "a colleague must say yes" — the rule steps, a
@@ -346,12 +351,16 @@ const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role,
      rule is decided. */
   overseerOn: u.overseer_on || null,
   overseerBackupId: u.overseer_backup_id || null,
-  overseerWhen: u.overseer_when || null });
+  overseerWhen: u.overseer_when || null,
+  /* the person's own facts on You (round 24): their password's day and who
+     set their role — null where nothing was recorded */
+  pwAt: u.pw_at || null,
+  roleBy: u.role_by || null });
 /* The facts on that record that are ONE PERSON'S OWN and an admin's business,
    and nobody else's. Stripped from every colleague's copy at the bootstrap —
    see the note there. A new per-person setting belongs on this list the day it
    is added; f202 fails if one of these ever reaches a non-admin again. */
-const ADMIN_ONLY_USER_FIELDS = ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId', 'overseerOn', 'overseerBackupId', 'overseerWhen', 'twoStep', 'newPaper', 'reFile', 'holdContracts'];
+const ADMIN_ONLY_USER_FIELDS = ['folderAccess', 'signCap', 'reviewChecked', 'reviewerId', 'overseerId', 'overseerOn', 'overseerBackupId', 'overseerWhen', 'twoStep', 'newPaper', 'reFile', 'pwAt', 'roleBy', 'holdContracts'];
 
 /* ---------- per-contract storage (scales to large portfolios) ----------
    Each contract is its own row with its own version. Lists return a light
@@ -624,6 +633,12 @@ addColumnIfMissing('users', 'overseer_when', 'TEXT');
 addColumnIfMissing('users', 'totp_secret', 'TEXT');
 addColumnIfMissing('users', 'totp_pending', 'TEXT');
 addColumnIfMissing('users', 'totp_recovery', 'TEXT');
+/* YOUR SETTINGS, AS DRAWN (round 24, the gaps, 18 Oct 2026): when this
+   person's password last changed ("Changed 2 Aug 2026" — absent until a
+   change after this column came, said as absent, never guessed), and who set
+   their role ("— set by Sara"; absent for a role set before it came). */
+addColumnIfMissing('users', 'pw_at', 'TEXT');
+addColumnIfMissing('users', 'role_by', 'TEXT');
 addColumnIfMissing('sessions', 'expires_at', 'TEXT');
 addColumnIfMissing('sessions', 'last_seen', 'TEXT');
 addColumnIfMissing('sessions', 'ip', 'TEXT');
@@ -1939,8 +1954,10 @@ function srvAsksMerge(prev, c, user) {
         const rule = ruleOf(e);
         if (!rule || !(srvRuleMatches(rule, c) || (prev && srvRuleMatches(rule, prev))))
           return { status: 403, error: 'No approval rule asks that of this contract.' };
+        /* stamped by the server from the record being saved, never the body's
+           own stamp: what the question covers is the record's fact */
         b = { id, kind: 'rule', of: [String(rule.id)], by: null, to: askRuleTo(rule.approver), at: now(), due: null,
-          state: 'open', answeredAt: null, answeredBy: null, why: null, note: null, stamp: null };
+          state: 'open', answeredAt: null, answeredBy: null, why: null, note: null, stamp: srvApprovalStamp(c) };
       } else {
         const m = fromMirrors.get(id);
         if (!m || m.kind !== e.kind)
@@ -3663,12 +3680,36 @@ function cnFrontDoor(req, res, next) {
   next();
 }
 app.use('/api', cnFrontDoor);
+/* A CLASH IS SEEN WHEN IT IS MADE (owner's answer 12; the gaps' third pass):
+   every write that succeeds asks the clash book to look again — soon for a
+   person, a setting, a stream or a role, at most once a minute for a contract
+   (clashSeenSoon, below) — so the day kept is the day the clash began, not
+   the day an admin next opened Settings */
+function clashWatch(req, res, next) {
+  if (req.method !== 'GET' && req.method !== 'HEAD' && req.method !== 'OPTIONS'){
+    /* read now: the path under /api is only this while the request is here */
+    const urgent = CLASH_URGENT_RE.test(req.path || '');
+    res.on('finish', () => { if (res.statusCode < 400) clashSeenSoon(urgent); });
+  }
+  next();
+}
+app.use('/api', clashWatch);
 /* what an insider's reading of the deal carries: its code name and who knows */
 function cnOf(id) {
   const m = cnMap(), e = m.get(String(id || '')); if (!e) return null;
   const k = db.prepare('SELECT * FROM code_names WHERE contract_id=?').get(e.root) || {};
   const names = new Map(db.prepare('SELECT id, name, email FROM users').all().map(u => [String(u.id), u.name || u.email || '']));
   return { code: e.code, inherited: e.root !== String(id), people: [...e.people].map(pid => ({ id: pid, name: names.get(pid) || '' })), by: k.set_by || '', at: k.set_at || '' };
+}
+/* A CODE-NAMED DEAL'S LETTER TO THE OTHER SIDE names its code and number only
+   (round 11's gaps, second pass: "Round 2 of Project Falcon (MK-0412)"); the
+   words are js/sharemail.js's (shareMailNameOf). Empty where it has none. */
+function srvMailCodeOf(id) {
+  const cn = id ? cnOf(id) : null;
+  if (!cn || !cn.code) return {};
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(String(id));
+  let c = {}; try { c = row ? (JSON.parse(row.json) || {}) : {}; } catch (_) { c = {}; }
+  return { code: cn.code, ref: contractRef(c) || String(id) };
 }
 /* the text of an email, for the person it goes to */
 function cnMailMask(to, parts) {
@@ -3790,8 +3831,10 @@ app.post('/api/setup', rlSetup, (req, res) => {
   // account that could never be given a job title — the setup form did not ask.
   const u = { id: 'u_' + rid(8), name, email, role: 'admin', title, salt, hash: hashPw(password, salt), created_at: now() };
   setSetting('org', { name: org, createdAt: now() });
-  db.prepare('INSERT INTO users (id,name,email,role,title,salt,hash,created_at) VALUES (?,?,?,?,?,?,?,?)')
-    .run(u.id, u.name, u.email, u.role, u.title, u.salt, u.hash, u.created_at);
+  /* the founder chose this password themself: its day is the day it was set */
+  u.pw_at = u.created_at;
+  db.prepare('INSERT INTO users (id,name,email,role,title,salt,hash,created_at,pw_at) VALUES (?,?,?,?,?,?,?,?,?)')
+    .run(u.id, u.name, u.email, u.role, u.title, u.salt, u.hash, u.created_at, u.pw_at);
   if (data && Array.isArray(data.contracts)) {   // seed per-contract
     let seq = 0;
     txn(() => {
@@ -4002,7 +4045,10 @@ app.get('/api/bootstrap', auth, (req, res) => {
     org: getSetting('org'),
     /* streamNews: who named themself on a private stream that names this
        person, since they last looked (psNewsFor) — the bell's to say */
-    me: { ...publicUser(req.user), streamNews: psNewsFor(req.user) },
+    /* their own business role's name and who last set their role (You, round
+       24 as drawn: "Legal counsel · Editor — set by Sara") — the person's own,
+       never a colleague's */
+    me: { ...publicUser(req.user), streamNews: psNewsFor(req.user), ...meRoleFacts(req.user) },
     /* M-3, second half. Stripping folderAccess from the settings blob above
        achieved nothing while this list handed the same map back one record at a
        time — every member's scope, to every signed-in member. A non-admin gets
@@ -4039,7 +4085,12 @@ app.get('/api/bootstrap', auth, (req, res) => {
     /* the quarter's access review, as far as it has got: an admin's (piece 8) */
     accessReview: req.user.role === 'admin' ? arSummary(req.user) : undefined,
     away: awayBoot(req.user),
+    /* a party's own facts — its city and organisation number — for the
+       parties this reader may know of (round 19; prRecordsFor is the wall) */
+    partyRecords: prRecordsFor(req.user),
     keeping: req.user.role === 'admin' ? kpSummary(req.user) : undefined,
+    /* the day each clash in who may do what was first seen: an admin's */
+    clashSeen: req.user.role === 'admin' ? clashSeenBook() : undefined,
     /* Whether this workspace can send email at all. The server has always known
        it and reported it on individual screens — creating a share, opening a
        link, requesting a signing code — which meant the answer only ever
@@ -6090,7 +6141,7 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
         const tmp = { ...c, asks: list };
         const open = list.some(a => a && a.kind === 'rule' && a.state === 'open' && String(a.of && a.of[0]) === String(due.ruleId));
         const rule = srvApprovalRules().find(r => r && r.id === due.ruleId);
-        if (!open && rule) askRuleFor(tmp, due.ruleId, { approver: rule.approver, keepStep: true, at: now() });
+        if (!open && rule) askRuleFor(tmp, due.ruleId, { approver: rule.approver, keepStep: true, at: now(), stamp: srvApprovalStamp(c) });
         list.splice(0, list.length, ...tmp.asks);
       }
     } catch (_) { /* the save is the thing that matters */ }
@@ -13151,6 +13202,84 @@ function arUse(people) {
   }
   return out;
 }
+/* ---- THE DAY A CLASH WAS FIRST SEEN (owner's answer 12, 18 Oct 2026) ----
+   A clash in who may do what warns; nothing is blocked. HaTi keeps ONE fact
+   about each, so its row in Needs your attention can say "since 14 Oct": the
+   day it was first seen. THE SERVER FINDS THEM ITSELF (the gaps' third pass,
+   19 Oct 2026) with the page's own reading, js/clashkeys.js's clashFind, fed
+   the server's inputs — the users table, srvApprovalRules, folderScopeFor and
+   the contracts still to sign — after any write that could make or end one
+   (clashWatch) and whenever an admin's page asks. A key new here is stamped
+   with the server's day, a key still there keeps its day, a key gone is
+   forgotten (the clash went away — come back, it is new again). A list the
+   browser sends is not the source any more: the server is the wall. Ids and
+   days only, no names; an admin's, like the list. */
+const CLASH_KEY_RE = /^clash:[a-z]{2,12}:[^\s<>"'`]{1,200}$/;
+const CLASH_SEEN_MAX = 200;
+/* a person, a setting, a stream or a role: looked at again within a second */
+const CLASH_URGENT_RE = /^\/(users|settings|private-streams|business-roles)\b/;
+const CLASH_CONTRACT_EVERY_MS = 60 * 1000;
+const clashSeenBook = () => { const m = getSetting('clashSeen'); return (m && typeof m === 'object' && !Array.isArray(m)) ? m : {}; };
+function srvClashUsers() {
+  return db.prepare('SELECT id, name, role, sign_cap, overseer_id, overseer_on, overseer_backup_id, overseer_when FROM users').all()
+    .map(u => ({ id: u.id, name: u.name, role: u.role,
+      signCap: u.sign_cap == null || u.sign_cap === '' ? null : (u.sign_cap === 'none' ? 'none' : Number(u.sign_cap)),
+      overseerId: u.overseer_id || null, overseerOn: u.overseer_on || null,
+      overseerBackupId: u.overseer_backup_id || null, overseerWhen: u.overseer_when || null }));
+}
+/* the streams with contracts still to sign: not archived, not filed under
+   another, not signed or declined — clashOpenStreams' own test, in the table */
+function srvClashOpenStreams() {
+  return db.prepare(`SELECT DISTINCT folder FROM contracts WHERE folder IS NOT NULL AND folder <> ''
+    AND COALESCE(status, '') NOT IN ('Signed', 'Declined')
+    AND COALESCE(json_extract(json, '$.archived'), 0) = 0
+    AND COALESCE(json_extract(json, '$.parentId'), '') = ''`).all().map(r => String(r.folder));
+}
+/* THE SERVER KEEPS ONLY WHAT AN ADMIN'S PAGE CAN SHOW (the gaps' fourth
+   pass): the page reads its own book, which never holds a private stream
+   that does not name the admin reading it — so a stream no admin can open
+   is no admin's clash to see, and its key is not kept either. The union of
+   every admin's scope: what any one of them could be shown. */
+function srvClashAdminSees(open) {
+  const admins = srvClashUsers().filter(u => u.role === 'admin');
+  return (open || []).filter(f => admins.some(a => inScope(folderScopeFor(a), f)));
+}
+function srvClashKeys() {
+  const legacy = srvSaLegacyOn();
+  return clashFind({ users: srvClashUsers(), capOn: signCapOn(), ruleOf: u => saRuleOf(u, legacy),
+    rules: srvApprovalRules(), canOpen: (f, u) => inScope(folderScopeFor(u), f), openStreams: srvClashAdminSees(srvClashOpenStreams()) })
+    .map(x => x.key).filter(k => CLASH_KEY_RE.test(k)).slice(0, CLASH_SEEN_MAX);
+}
+function clashSeenRefresh() {
+  let keys;
+  try { keys = srvClashKeys(); } catch (e) { console.warn('[clashes]', e && e.message); return clashSeenBook(); }
+  const prev = clashSeenBook(), today = isoDay(new Date()), next = {};
+  [...new Set(keys)].sort().forEach(k => { next[k] = /^\d{4}-\d{2}-\d{2}$/.test(String(prev[k] || '')) ? prev[k] : today; });
+  const same = JSON.stringify(Object.entries(prev).sort()) === JSON.stringify(Object.entries(next).sort());
+  if (!same) setSetting('clashSeen', next);
+  return next;
+}
+/* looked at again soon after a write: one timer at a time, a contract's
+   write at most once a minute (they come in bursts while someone types) */
+let _clashTimer = null, _clashAt = 0, _clashDue = 0;
+function clashSeenSoon(urgent) {
+  const wait = urgent ? 300 : Math.max(300, CLASH_CONTRACT_EVERY_MS - (Date.now() - _clashAt));
+  /* one timer: a sooner ask moves it earlier, a later one waits behind it */
+  if (_clashTimer && _clashDue <= Date.now() + wait) return;
+  if (_clashTimer) clearTimeout(_clashTimer);
+  _clashDue = Date.now() + wait;
+  _clashTimer = setTimeout(() => {
+    _clashTimer = null; _clashAt = Date.now();
+    try { clashSeenRefresh(); } catch (_) { /* the database may be closing: the next write asks again */ }
+  }, wait);
+  if (_clashTimer && typeof _clashTimer.unref === 'function') _clashTimer.unref();
+}
+/* an admin's page asks the server to look again; nothing it sends is kept */
+app.post('/api/clashes/seen', auth, admin, (req, res) => {
+  res.json({ seen: clashSeenRefresh() });
+});
+/* and once when the server starts, for a clash made before this one ran */
+clashSeenSoon(true);
 app.get('/api/access-review', auth, admin, (req, res) => {
   const people = arPeople(req.user);
   res.json({ ...arSummary(req.user), use: arUse(people), idleDays: AR_IDLE_DAYS, now: now() });
@@ -13236,7 +13365,21 @@ const awayForOf = (u, personId) => {
 /* what u answers for others, today and to come */
 const awayCovering = u => db.prepare(`SELECT * FROM away_rules WHERE deputy_id=? AND ended_at IS NULL AND d_to>=? ORDER BY d_from`)
   .all(String((u && u.id) || ''), awayToday()).map(awayShape);
-const awayBoot = u => ({ today: awayToday(), mine: awayShape(awayRuleOf(u && u.id)), covering: awayCovering(u) });
+/* EVERYONE'S STAND-IN, FOR AN ADMIN (round 25 as drawn, the gaps of 18 Oct
+   2026: Who holds what says "away until Fri · Maria answers" under a name).
+   An admin's to see, as every other per-person fact on the access sheet. */
+const awayEveryone = () => db.prepare(`SELECT * FROM away_rules WHERE ended_at IS NULL AND d_to>=? ORDER BY d_from`).all(awayToday()).map(awayShape);
+/* the person's own role facts for You: their business role's name, and who
+   last set their role — the column, else the last business-role change */
+function meRoleFacts(u) {
+  if (!u || !u.id) return {};
+  let bizRole = null, by = u.role_by || null;
+  try { const book = bzBook(); bizRole = bzName(book, book.of[String(u.id)]) || null; } catch (_) { bizRole = null; }
+  if (!by) { const r = db.prepare('SELECT by_name FROM role_changes WHERE user_id=? ORDER BY id DESC LIMIT 1').get(String(u.id)); by = (r && r.by_name) || null; }
+  return { bizRole, roleBy: by };
+}
+const awayBoot = u => ({ today: awayToday(), mine: awayShape(awayRuleOf(u && u.id)), covering: awayCovering(u),
+  ...(u && u.role === 'admin' ? { everyone: awayEveryone() } : {}) });
 /* ONE RECORD OF EACH ANSWER GIVEN FOR SOMEONE AWAY — asked as a difference
    on the one ask list (c.asks), whose `answeredFor` and part `for` the
    server itself wrote (srvAsksMerge) */
@@ -13308,6 +13451,83 @@ app.delete('/api/me/away', auth, (req, res) => {
 });
 
 /* ============================================================
+   A PARTY'S OWN FACTS: ITS CITY AND ITS ORGANISATION NUMBER (round 19 of the
+   redesign, Parties "The SAP way": the City column, "Gothenburg · with us
+   since March 2024", "Organisation no. 556987-6543"; the owner's "build all
+   the gaps", 18 Oct 2026)
+   ============================================================
+   HaTi has no party record: a party is a READING of the contracts that name
+   it (c.counterparty, keyed as the Parties page keys it — cuKeyOf). A city and
+   an organisation number are on no one contract; they are the party's own,
+   so they get ONE HOME here, keyed by the party's name, and every screen
+   reads them from it. ONE FACT, ONE HOME.
+     · A PERSON FILLS THEM (an editor), through one writer, PUT
+       /api/party-records. A suggestion read off a contract's parties clause is
+       the browser's to offer and never reaches this table without that press.
+       Nothing is guessed.
+     · THE WALL: a reader is told the facts only of parties named on a
+       contract they may open (folderScopeFor), and never of a party that
+       stands only on a confidential deal they are outside of (cnOutsideFor) —
+       the same reach the Parties page itself has. A write to any other name is
+       refused as not found.
+     · Every change is an act in the trail (party_record_log). */
+db.exec(`CREATE TABLE IF NOT EXISTS party_records (pkey TEXT PRIMARY KEY, name TEXT NOT NULL,
+  city TEXT, org_no TEXT, set_by_id TEXT, set_by TEXT, set_at TEXT)`);
+db.exec(`CREATE TABLE IF NOT EXISTS party_record_log (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL,
+  by_id TEXT, by_name TEXT, pkey TEXT, name TEXT, what TEXT)`);
+const PR_CITY_MAX = 80, PR_ORG_MAX = 40;
+/* the Parties page's own key (js/views/customers.js cuKeyOf): one party per
+   name, whatever its case or spacing */
+const prKeyOf = name => String(name == null ? '' : name).trim().replace(/\s+/g, ' ').toLowerCase();
+const prClean = (v, max) => String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
+/* THE ONE READING OF REACH: the parties this reader may know of — every
+   counterparty on a contract in their scope, but a confidential deal's only
+   where they are on its list */
+function prVisibleKeys(user) {
+  const f = scopeFrag(folderScopeFor(user));
+  const out = cnOutsideFor(user);
+  const keys = new Set();
+  for (const r of db.prepare(`SELECT id, counterparty FROM contracts ${whereOf(f.sql)}`).all(...f.args)) {
+    if (out.has(String(r.id))) continue;
+    const k = prKeyOf(r.counterparty);
+    if (k) keys.add(k);
+  }
+  return keys;
+}
+const prShape = r => ({ name: r.name || '', city: r.city || '', orgNo: r.org_no || '', by: r.set_by || '', at: r.set_at || '' });
+function prRecordsFor(user) {
+  const rows = db.prepare('SELECT * FROM party_records').all();
+  if (!rows.length) return {};
+  const see = prVisibleKeys(user), out = {};
+  for (const r of rows) if (see.has(r.pkey)) out[r.pkey] = prShape(r);
+  return out;
+}
+app.get('/api/party-records', auth, (req, res) => res.json({ records: prRecordsFor(req.user) }));
+/* ONE WRITER: a person sets a party's city and organisation number; both
+   empty takes the party's record away. Only what changed is recorded. */
+app.put('/api/party-records', auth, editor, (req, res) => {
+  const b = req.body || {};
+  const name = prClean(b.name, 200), key = prKeyOf(name);
+  if (!key || !prVisibleKeys(req.user).has(key)) return res.status(404).json({ error: 'Party not found' });
+  const city = prClean(b.city, PR_CITY_MAX), orgNo = prClean(b.orgNo, PR_ORG_MAX);
+  const was = db.prepare('SELECT * FROM party_records WHERE pkey=?').get(key) || null;
+  const said = [];
+  const say = (label, a, z) => { if (a === z) return; said.push(!a ? `${label} set to ${z}` : !z ? `${label} removed (was ${a})` : `${label} changed from ${a} to ${z}`); };
+  say('City', (was && was.city) || '', city);
+  say('Organisation no.', (was && was.org_no) || '', orgNo);
+  if (!said.length) return res.json({ record: was ? prShape(was) : null });
+  const at = now(), by = String(req.user.name || req.user.email || '');
+  if (!city && !orgNo) db.prepare('DELETE FROM party_records WHERE pkey=?').run(key);
+  else db.prepare(`INSERT INTO party_records (pkey, name, city, org_no, set_by_id, set_by, set_at) VALUES (?,?,?,?,?,?,?)
+    ON CONFLICT(pkey) DO UPDATE SET name=excluded.name, city=excluded.city, org_no=excluded.org_no, set_by_id=excluded.set_by_id, set_by=excluded.set_by, set_at=excluded.set_at`)
+    .run(key, name, city, orgNo, String(req.user.id || ''), by, at);
+  db.prepare('INSERT INTO party_record_log (at, by_id, by_name, pkey, name, what) VALUES (?,?,?,?,?,?)')
+    .run(at, String(req.user.id || ''), by, key, name, said.join('; '));
+  const after = db.prepare('SELECT * FROM party_records WHERE pkey=?').get(key);
+  res.json({ record: after ? prShape(after) : null });
+});
+
+/* ============================================================
    HOW LONG CONTRACTS ARE KEPT, AND LEGAL HOLD (owner picked "Keeping on each
    stream — the SAP way", 17 Oct 2026; piece 10 of the sensitive contracts
    and governance plan)
@@ -13362,7 +13582,10 @@ function kpBook(user, onlyFid, scopeOver) {
     const c = parsed.get(r.id) || {};
     const s = S(fid);
     s.contracts++;
-    if (kpHeld(c)) s.held.push({ id: r.id, ref: contractRef(c) || r.id, name: c.name || '', since: c.hold.at, by: c.hold.by || '' });
+    /* the party and the day it ended (as amended) travel with a held row —
+       the stream's side panel says them (round 26 as drawn, the gaps) */
+    if (kpHeld(c)) s.held.push({ id: r.id, ref: contractRef(c) || r.id, name: c.name || '', since: c.hold.at, by: c.hold.by || '',
+      counterparty: c.counterparty || '', ended: eff(r) || null });
     const rule = rules[fid];
     if (!rule || r.parent_id) continue;
     const end = eff(r);
@@ -13474,6 +13697,65 @@ app.post('/api/keeping/:fid/run', auth, admin, (req, res) => {
 });
 
 /* ============================================================
+   YOUR OWN ACCOUNT, CHANGED BY YOU (the gaps, 18 Oct 2026: round 24 "One
+   sheet" draws Name · Change, Email · Change and "Your data · A copy of
+   everything you can see · The download is recorded")
+   ============================================================
+   Three acts a person does on their own account, each kept as a row the
+   trail reads (trailRows): a name changed (by them or an admin), an email
+   changed (by them, with their current password), and their own copy taken.
+   THE SERVER IS THE WALL: the email route looks the person up by their
+   session, never by the body; a wrong password counts as a wrong guess
+   (rlNoteAuthFailure, the sign-in bucket); an address another member uses is
+   refused. The copy is what this person may read and nothing more — their
+   stream wall (folderScopeFor), their money (visibleContract) and a code
+   name for a deal they are not on (cnFrontDoor masks the JSON) — and it is
+   recorded BEFORE the file leaves, as the trail's own download is. */
+db.exec(`CREATE TABLE IF NOT EXISTS account_acts (id INTEGER PRIMARY KEY AUTOINCREMENT,
+  at TEXT NOT NULL, by_id TEXT, by_name TEXT, user_id TEXT, user_name TEXT, kind TEXT NOT NULL, detail TEXT)`);
+const ACCT_KINDS = { name: 'Name changed', email: 'Email changed', copy: 'Took a copy of what they can see' };
+function acctRecord(by, user, kind, detail) {
+  if (!ACCT_KINDS[kind]) return;
+  db.prepare('INSERT INTO account_acts (at, by_id, by_name, user_id, user_name, kind, detail) VALUES (?,?,?,?,?,?,?)')
+    .run(now(), String((by && by.id) || ''), String((by && (by.name || by.email)) || ''), String((user && user.id) || ''),
+      String((user && (user.name || user.email)) || ''), kind, String(detail || '').slice(0, 300));
+}
+app.post('/api/me/email', rlAuth, auth, (req, res) => {
+  const b = req.body || {};
+  const u = db.prepare('SELECT * FROM users WHERE id=?').get(req.user.id);
+  if (!u) return res.status(404).json({ error: 'User not found' });
+  if (userPrefs(u).mustChangePassword)
+    return res.status(403).json({ error: 'Set your own password before making changes', mustChangePassword: true });
+  if (!safeEq(hashPw(String(b.current || ''), u.salt), u.hash)) {
+    rlNoteAuthFailure(req);
+    return res.status(400).json({ error: 'Your current password is incorrect' });
+  }
+  const email = cleanEmail(b.email);
+  if (!validEmail(email)) return res.status(400).json({ error: 'Enter a valid email address' });
+  if (email === String(u.email || '').toLowerCase()) return res.status(400).json({ error: 'That is already your email' });
+  if (db.prepare('SELECT id FROM users WHERE lower(email)=? AND id<>?').get(email, u.id))
+    return res.status(409).json({ error: 'Another member already uses that email' });
+  db.prepare('UPDATE users SET email=? WHERE id=?').run(email, u.id);
+  acctRecord(u, u, 'email', `${u.email} to ${email}`);
+  res.json({ ok: true, user: publicUser(db.prepare('SELECT * FROM users WHERE id=?').get(u.id)) });
+});
+app.get('/api/me/copy', auth, (req, res) => {
+  const f = scopeFrag(folderScopeFor(req.user));
+  const contracts = [];
+  for (const r of db.prepare(`SELECT id, folder, json FROM contracts ${whereOf(f.sql)} ORDER BY seq`).all(...f.args)) {
+    let c; try { c = dropSittingKeys(JSON.parse(r.json)); } catch (_) { continue; }
+    if (!c) continue;
+    psRecordOpen(r.folder, r.id, req.user);   // a private stream's contract taken is an open, kept
+    contracts.push(visibleContract(c, req.user));
+  }
+  const items = db.prepare('SELECT * FROM my_items WHERE user_id=? ORDER BY updated_at DESC').all(String(req.user.id)).map(myRow);
+  acctRecord(req.user, req.user, 'copy', `${contracts.length} contract${contracts.length === 1 ? '' : 's'} · ${items.length} of their own notes and events`);
+  const day = now().slice(0, 10);
+  res.setHeader('Content-Disposition', `attachment; filename="hati-my-copy-${day}.json"`);
+  res.json({ kind: 'hati-copy', v: 1, takenAt: now(), org: (getSetting('org') || {}).name || '', me: publicUser(req.user), contracts, items });
+});
+
+/* ============================================================
    THE TRAIL, AS A FILE (owner picked "Export drawer — the SAP way",
    17 Oct 2026; piece 5 of the sensitive contracts and governance plan)
    ============================================================
@@ -13540,6 +13822,10 @@ function trailRows(ask) {
   /* a person's business role changing is the company's act too (piece 6) */
   for (const r of db.prepare('SELECT * FROM role_changes WHERE at >= ? AND at <= ? ORDER BY id').all(lo, hi))
     out.push({ at: r.at, who: String(r.by_name || ''), what: 'Business role changed', detail: `${r.user_name}: ${r.from_role || 'none'} to ${r.to_role || 'none'}`, c: null });
+  /* a person's own account: name, email, their copy taken (round 24, the gaps) */
+  for (const r of db.prepare('SELECT * FROM account_acts WHERE at >= ? AND at <= ? ORDER BY id').all(lo, hi))
+    out.push({ at: r.at, who: String(r.by_name || ''), what: ACCT_KINDS[r.kind] || r.kind,
+      detail: r.by_id && r.by_id === r.user_id ? String(r.detail || '') : `${r.user_name}: ${r.detail || ''}`, c: null });
   /* the quarter's access review, stamped done (piece 8) */
   for (const r of db.prepare('SELECT * FROM access_reviews WHERE done_at >= ? AND done_at <= ?').all(lo, hi))
     out.push({ at: r.done_at, who: String(r.done_by_name || ''), what: 'Access review done', detail: `${r.quarter} · ${r.people} people: ${r.kept} kept, ${r.changed} changed`, c: null });
@@ -13573,6 +13859,12 @@ function trailRows(ask) {
     const c = byId.get(String(r.contract_id));
     if (c) out.push({ at: r.at, who: String(r.deputy_name || ''), what: 'Answered for someone away', detail: `for ${r.for_name} · ${r.what}`, c });
   }
+  /* a party's city or organisation number set, changed or removed (round 19):
+     said only where the trail reaches a contract with that party */
+  /* never the party of a confidential deal the asker is outside of (piece 11) */
+  const prSeen = new Set([...byId.values()].filter(c => !(ask.cnOut && ask.cnOut.has(String(c.id)))).map(c => prKeyOf(c && c.counterparty)).filter(Boolean));
+  if (prSeen.size) for (const r of db.prepare('SELECT * FROM party_record_log WHERE at >= ? AND at <= ? ORDER BY id').all(lo, hi))
+    if (prSeen.has(r.pkey)) out.push({ at: r.at, who: String(r.by_name || ''), what: 'Party details', detail: `${r.name}: ${r.what}`, c: null });
   /* a hand-over of the record is the company's act, whatever streams were asked */
   for (const r of db.prepare('SELECT * FROM trail_exports WHERE at >= ? AND at <= ? ORDER BY id').all(lo, hi))
     out.push({ at: r.at, who: String(r.user_name || ''), what: 'Exported the trail', detail: `${r.d_from} to ${r.d_to} · ${String(r.fmt || '').toUpperCase()} · ${r.acts} acts`, c: null });
@@ -15196,18 +15488,26 @@ app.post('/api/contracts/:id/handover', auth, editor, async (req, res) => {
    chase is the SAME message a person's press sends, word for word. `firm`
    is the second, firmer chase (Young ruled 27 Sep 2026): the same facts,
    and the date the first went. The caller has checked the address. */
+/* THE LETTER, MADE ONCE (round 23's gaps, 19 Oct 2026: "Look shows the email
+   whole"): srvChaseMail writes the chase exactly as it will leave — the words,
+   the standing link where there is one, the sign-off — and both the send
+   below and the preview route (GET …/chase-preview, which Look on a chase
+   draws) take it from here, so the screen never shows less than the inbox
+   gets. It reads; it sends and writes nothing. */
 async function srvChaseSend(req, c, o, to, { firm = false } = {}) {
+  const m = srvChaseMail(req, c, o, to, { firm });
+  const r = await sendEmail(to, m.subject, m.body, `chase: ${c.name || c.id}`);
+  return r;
+}
+function srvChaseMail(req, c, o, to, { firm = false } = {}) {
   const L = langForEmail(to);
   /* THE DAY IN WORDS, IN THE READER'S LANGUAGE (the owner's list, 27 Sep
      2026): the message printed the stored "2026-09-21". A calendar day is read
      as that day (UTC, so no time zone moves it); anything unreadable is left
      as written rather than guessed at. */
-  const dayWords = v => {
-    const iso = String(v || '').slice(0, 10);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return v || '';
-    try { return new Date(iso + 'T00:00:00Z').toLocaleDateString(L === 'sv' ? 'sv-SE' : 'en-GB',
-      { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }); } catch (_) { return iso; }
-  };
+  /* ONE READING WITH THE COUNTER'S LOOK (js/sharemail.js chaseDayWords): the
+     year only where it is not this year's ("14 October", as drawn) */
+  const dayWords = v => chaseDayWords(v, L, now().slice(0, 10));
   const dueWords = dayWords(o.due);
   const vars = { desc: o.desc || '', name: c.name || contractRef(c), id: contractRef(c), due: dueWords };
   /* ---- A DATE THAT DOES NOT EXIST IS NOT WRITTEN INTO A SENTENCE ----
@@ -15220,10 +15520,7 @@ async function srvChaseSend(req, c, o, to, { firm = false } = {}) {
   if (firm) vars.first = dayWords(String(o.chasedAt || '').slice(0, 10));
   /* NOT YET DUE IS "IS DUE ON", NEVER "WAS DUE ON" (B11, 8 Oct 2026): chasing
      early is allowed, and the sentence says what is true on the day it goes. */
-  const soon = o.due && String(o.due).slice(0, 10) > now().slice(0, 10) ? '_soon' : '';
-  const line = firm
-    ? tFor(L, o.due ? 'mail_ob_chase_firm_line' + soon : 'mail_ob_chase_firm_line_nodate', vars)
-    : tFor(L, o.due ? 'mail_ob_chase_line' + soon : 'mail_ob_chase_line_nodate', vars);
+  const soon = !!(o.due && String(o.due).slice(0, 10) > now().slice(0, 10));
   /* ---- THE LINK IS ONE THIS READER CAN OPEN, OR THERE IS NO LINK ----
      This sent `#contract=<id>`, which openFromHash resolves against the
      signed-in reader's own scoped bootstrap — on the far side of the sign-in
@@ -15238,14 +15535,36 @@ async function srvChaseSend(req, c, o, to, { firm = false } = {}) {
        AND (expires_at IS NULL OR expires_at > ?) ORDER BY created_at DESC LIMIT 1`
   ).get(c.id, new Date().toISOString());
   const link = st && st.token ? shareUrl(req, st.token) : '';
-  const r = await sendEmail(to,
-    tFor(L, firm ? 'mail_ob_chase_firm_subject' : 'mail_ob_chase_subject', vars),
-    `${tFor(L, 'mail_hello')},\n\n${line}`
-      + (link ? `\n\n${tFor(L, 'mail_ob_chase_open')}\n${link}` : '')
-      + `\n\n${tFor(L, 'mail_automated_notice')}`,
-    `chase: ${c.name || c.id}`);
-  return r;
+  /* THE WORDS ARE js/sharemail.js's (round 23's gaps, 18 Oct 2026): the
+     Counter's Look draws this letter from the same builder. It is signed by
+     the person pressing, for our company on this agreement (c.party, else the
+     workspace) — the caller is looked up, never read from the body. */
+  let party = String(c.party || '').trim();
+  if (!party) { try { party = String(((getSetting('org') || {}).name) || '').trim(); } catch (_) { party = ''; } }
+  const m = chaseMailOf({ t: (k, v) => tFor(L, k, v), firm, dated: !!o.due, soon, vars, link: link || null,
+    sender: (req && req.user && req.user.name) || '', party });
+  return { ...m, link: !!link };
 }
+/* LOOK ON A CHASE: the letter as the route above will send it, link and all.
+   The same walls as the send — the contract in the reader's scope, the
+   obligation theirs and open, the address the contract's own (never read from
+   the request) — and nothing sent, stamped or written. Any member who can open
+   the contract may read it (its standing link is on the contract's own share
+   list already); only an editor may press Send. */
+app.get('/api/contracts/:id/chase-preview', auth, (req, res) => {
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let c = {}; try { c = JSON.parse(row.json) || {}; } catch (_) { c = {}; }
+  const q = req.query || {};
+  const o = (c.obligations || []).find(x => x && String(x.id) === String(q.obligationId || ''));
+  if (!o) return res.status(404).json({ error: 'That obligation is no longer on the contract.' });
+  if (String(o.party) !== 'theirs') return res.status(409).json({ error: 'That obligation is ours, not theirs — there is nobody to chase about it.', reason: 'ours' });
+  if (o.status === 'done') return res.status(409).json({ error: 'That obligation is already complete.', reason: 'done' });
+  const to = String(c.counterpartyEmail || '').trim();
+  if (!/.+@.+\..+/.test(to)) return res.json({ ok: false, reason: 'no-address', to: null });
+  const m = srvChaseMail(req, c, o, to, { firm: q.firm === '1' || q.firm === 'true' });
+  res.json({ ok: true, to, subject: m.subject, body: m.body, parts: m.parts, link: m.link });
+});
 app.post('/api/contracts/:id/chase', auth, editor, async (req, res) => {
   const b = req.body || {};
   if (b.email || b.to || b.address)
@@ -15851,7 +16170,7 @@ async function runRuleStepReminders() {
         const fresh = db.prepare('SELECT json FROM contracts WHERE id=?').get(String(c.id));
         const cj = fresh ? JSON.parse(fresh.json) : null;
         if (rule && cj && !asksDerive(cj).some(a => a.kind === 'rule' && a.state === 'open' && String(a.of && a.of[0]) === String(step.ruleId))) {
-          askRuleFor(cj, step.ruleId, { approver: rule.approver, keepStep: true, at: now() });
+          askRuleFor(cj, step.ruleId, { approver: rule.approver, keepStep: true, at: now(), stamp: srvApprovalStamp(cj) });
           db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(cj), String(c.id));
         }
       } catch (_) { /* the mail is the thing that matters */ }
@@ -16172,9 +16491,9 @@ app.post('/api/users', auth, admin, async (req, res) => {
   // Without that, a signature attributed to a colleague is not attributable —
   // the admin knows the credential that produced it.
   const u = { id: 'u_' + rid(8), name, email, role, title, salt, hash: hashPw(password, salt), created_at: now(),
-    prefs: JSON.stringify({ mustChangePassword: true }) };
-  db.prepare('INSERT INTO users (id,name,email,role,title,salt,hash,created_at,prefs) VALUES (?,?,?,?,?,?,?,?,?)')
-    .run(u.id, u.name, u.email, u.role, u.title, u.salt, u.hash, u.created_at, u.prefs);
+    prefs: JSON.stringify({ mustChangePassword: true }), role_by: String(req.user.name || req.user.email || '') };
+  db.prepare('INSERT INTO users (id,name,email,role,title,salt,hash,created_at,prefs,role_by) VALUES (?,?,?,?,?,?,?,?,?,?)')
+    .run(u.id, u.name, u.email, u.role, u.title, u.salt, u.hash, u.created_at, u.prefs, u.role_by);
   /* "SENT" USED TO MEAN "WE HAVE A KEY". This answered emailSent: EMAIL_ON()
      without waiting to see what the provider did with it, so an admin whose
      sending domain is not verified — the commonest real mail failure there is —
@@ -16514,9 +16833,13 @@ app.patch('/api/users/:id', auth, (req, res) => {
   if (!hasRole && !hasValues && !hasTitle && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasSa && !hasClear2 && !hasPaper && !hasReFile && !hasHold && !hasName)
     return res.status(400).json({ error: 'Nothing to change' });
   const self = req.params.id === req.user.id;
-  // Only a title may be set by a non-admin, and only on their own account.
+  /* Only a title — and, since the gaps of 18 Oct 2026 (round 24 "One sheet":
+     Name · Change on a person's own You), their own NAME — may be set by a
+     non-admin, and only on their own account. A name stays unique (below),
+     and every change of one is recorded in the trail (acctRecord). An admin's
+     change of someone else's name stays as it was. */
   if (req.user.role !== 'admin'
-    && !(self && hasTitle && !hasRole && !hasValues && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasSa && !hasClear2 && !hasPaper && !hasReFile && !hasHold && !hasName))
+    && !(self && (hasTitle || hasName) && !hasRole && !hasValues && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasSa && !hasClear2 && !hasPaper && !hasReFile && !hasHold))
     return res.status(403).json({ error: 'Admin access required' });
   if (userPrefs(req.user).mustChangePassword)
     return res.status(403).json({ error: 'Set your own password before making changes', mustChangePassword: true });
@@ -16540,6 +16863,7 @@ app.patch('/api/users/:id', auth, (req, res) => {
     if (clash) return res.status(409).json({ error: 'Another member already has that name.' });
     if (nm !== target.name) {
       db.prepare('UPDATE users SET name=? WHERE id=?').run(nm, req.params.id);
+      acctRecord(req.user, target, 'name', `${target.name || ''} to ${nm}`);
       /* The approval rules follow the person: a rule that names them by their
          old name is repointed, and from now on carries their id too. */
       const st = getSetting('appSettings');
@@ -16556,7 +16880,8 @@ app.patch('/api/users/:id', auth, (req, res) => {
     }
   }
   if (hasTitle) db.prepare('UPDATE users SET title=? WHERE id=?').run(clean(b.title).slice(0, 120), req.params.id);
-  if (hasRole) db.prepare('UPDATE users SET role=? WHERE id=?').run(b.role, req.params.id);
+  /* who set it, said on the person's own You (round 24: "— set by Sara") */
+  if (hasRole && b.role !== target.role) db.prepare('UPDATE users SET role=?, role_by=? WHERE id=?').run(b.role, String(req.user.name || req.user.email || ''), req.params.id);
   if (hasClear2) db.prepare('UPDATE users SET totp_secret=NULL, totp_pending=NULL, totp_recovery=NULL WHERE id=?').run(req.params.id);
   if (hasCap) {
     /* null clears the decision, 'none' IS a decision, a number is the ceiling.
@@ -17949,7 +18274,7 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     } else {
       /* The words are js/sharemail.js's: the send screen draws this letter. */
       const mail = shareMailOf({ channel: 'word', purpose: histFile ? 'history' : null, sender: req.user.name,
-        org: payload.org, cName, recName: rec.name, message });
+        org: payload.org, cName, recName: rec.name, message, ...srvMailCodeOf(shareId) });
       const r = await sendEmail(email,
         mail.subject,
         mail.body, `share as word: ${fname}`,
@@ -17964,11 +18289,20 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     /* The words are js/sharemail.js's: the send screen draws this letter,
        word for word, before the press. The invitation matches the link — a
        negotiation link opens the room, where nothing is signed. */
-    const mail = shareMailOf({ channel: 'email', purpose: purp, sender: req.user.name, org: payload.org,
-      cName, recName: rec.name, message, link, expires });
+    /* THE LETTER AS DRAWN (round 11's gaps, 18 Oct 2026): the round this send
+       opens and what it answers are READ off the copy that travels (the
+       payload the other side receives — the screen reads the same), the
+       sign-off is the sender's own name and job title, and the one-time code
+       is said where this company asks for it (shareCodeOn, the link's own
+       gate). The inbox that draws HTML gets the same words with a button. */
+    const pc = (payload && payload.contract) || {};
+    const mail = shareMailOf({ channel: 'email', purpose: purp, sender: req.user.name, title: req.user.title || '', org: payload.org,
+      cName, recName: rec.name, message, link, expires,
+      round: shareRoundOf(pc.negotiation), answers: shareAnswersOf(pc, shareId ? srvStoredContract(shareId) : null), codeOn: shareCodeOn() && purp !== 'status',
+      ...srvMailCodeOf(shareId) });
     const r = await sendEmail(email,
       mail.subject,
-      mail.body, `share link: ${link}`);
+      mail.body, `share link: ${link}`, { html: mail.html });
     emailSent = !!r.sent; emailError = r.detail || null;
     /* ---- THE RECORD SAYS WHAT ACTUALLY HAPPENED ----
        This stamped sent_at whatever the provider did, and never wrote
@@ -19433,9 +19767,39 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
   const notify = notifyRaw !== false;
   const link = shareUrl(req, s.token);
   let emailSent = false, emailError = null, mailTried = false;
-  if (!silent && notify && (s.channel || 'link') === 'email' && s.recipient_email) {
+  /* ---- THE SEND SCREEN'S LETTER, ON THE LINK THEY ALREADY HOLD (round 11's
+     gaps, 18 Oct 2026) ----
+     The send screen draws the email the other side will get, word for word,
+     and a round sent to somebody who already holds a negotiation link travels
+     on THIS route — so the screen's letter is what this route mails when the
+     screen sent it (`letter`): the same words (js/sharemail.js), the same
+     link they hold, their note. The note is the only part the body supplies
+     (clamped as on the first send) and is kept on the row as the first send
+     keeps it; the round and what it answers are read off the copy that
+     travels; WHO SENT IT is the signed-in person; the code is said where this
+     link asks for one (shareNeedsCode). Sent by email whatever the row's
+     first channel was — the sender chose email on the screen. */
+  const letterIn = (req.body || {}).letter;
+  const letter = (!silent && letterIn && typeof letterIn === 'object' && !Array.isArray(letterIn)) ? letterIn : null;
+  if (letter && s.recipient_email) {
     mailTried = true;
-    const cName = (payload.contract && payload.contract.name) || s.contract_id || 'a contract';
+    const pc = payload.contract || {};
+    const note = String(letter.message || '').slice(0, 1000);
+    if (note) db.prepare('UPDATE shares SET message=? WHERE token=?').run(note, s.token);
+    const mail = shareMailOf({ channel: 'email', purpose: sharePurposeOf(s), sender: req.user.name, title: req.user.title || '',
+      org: payload.org, cName: pc.name || s.contract_id || 'a contract', recName: String(letter.recName || s.recipient_name || '').slice(0, 120),
+      message: note, link, expires: s.expires_at, round: shareRoundOf(pc.negotiation), answers: shareAnswersOf(pc, s.contract_id ? srvStoredContract(s.contract_id) : null), codeOn: shareNeedsCode(s),
+      ...srvMailCodeOf(s.contract_id) });
+    const r = await sendEmail(s.recipient_email, mail.subject, mail.body, `share letter: ${link}`, { html: mail.html });
+    emailSent = !!r.sent; emailError = r.detail || null;
+    if (!emailSent && !emailError) emailError = mailReport(r).emailError;
+    if (r.sent) db.prepare('UPDATE shares SET sent_at=?, send_error=NULL WHERE token=?').run(now(), s.token);
+    else db.prepare('UPDATE shares SET send_error=? WHERE token=?')
+      .run(String(emailError || (EMAIL_ON() ? 'The email provider refused the message.' : 'Email is not configured on this server — the message is in the outbox.')).slice(0, 300), s.token);
+  } else if (!silent && notify && (s.channel || 'link') === 'email' && s.recipient_email) {
+    mailTried = true;
+    /* a code-named deal is named by its code and number here too (round 11's gaps) */
+    const cName = shareMailNameOf(srvMailCodeOf(s.contract_id)) || (payload.contract && payload.contract.name) || s.contract_id || 'a contract';
     const cnt = k => { const n = Math.floor(Number(((req.body || {}).turn || {})[k])); return Number.isFinite(n) && n > 0 ? Math.min(n, 999) : 0; };
     const moved = turnMail ? srvTurnMovedLine(cnt('changes'), cnt('notes')) : '';
     const body = (turnMail ? [
@@ -20177,6 +20541,30 @@ app.put('/api/me/prefs', auth, (req, res) => {
       if (Object.keys(mine).length) prefs.agentLevels = mine; else delete prefs.agentLevels;
     } else return res.status(400).json({ error: 'agentLevels must be an object or null' });
   }
+  /* WHAT THIS PERSON PUT AWAY OF JAMBO'S WORK (round 23's gaps, 18 Oct 2026:
+     Put away on every prepared piece). A piece the desk keeps (a notice, a
+     renewal, a chase) is put away on the contract by an editor, as it always
+     was; every other piece is put away for this person only — their Counter,
+     not a colleague's, and never the work it is about, which stays owed. Per
+     piece: the piece's key and what it was about when it was put away
+     (`on`); a piece about something new comes back. null takes it back out
+     (Undo). Kept to the newest AGENT_AWAY_MAX — A CAP IS A FACT, and an old
+     entry only ever hid work long since done. */
+  if ('agentAway' in (req.body || {})) {
+    const v = req.body.agentAway;
+    if (!v || typeof v !== 'object' || Array.isArray(v)) return res.status(400).json({ error: 'agentAway must be an object' });
+    const mine = { ...(prefs.agentAway && typeof prefs.agentAway === 'object' ? prefs.agentAway : {}) };
+    const ents = Object.entries(v);
+    if (ents.length > 20) return res.status(400).json({ error: 'At most 20 pieces at once' });
+    for (const [k, x] of ents) {
+      if (!AGENT_AWAY_KEY.test(k)) return res.status(400).json({ error: 'Not a piece of Jambo\u2019s work: ' + String(k).slice(0, 40) });
+      if (x === null) { delete mine[k]; continue; }
+      if (!x || typeof x !== 'object' || typeof x.on !== 'string' || x.on.length > 400) return res.status(400).json({ error: 'A piece put away says what it was about (on, at most 400 characters)' });
+      mine[k] = { on: x.on, at: now() };
+    }
+    const keep = Object.entries(mine).sort((a, b) => String(b[1].at || '').localeCompare(String(a[1].at || ''))).slice(0, AGENT_AWAY_MAX);
+    if (keep.length) prefs.agentAway = Object.fromEntries(keep); else delete prefs.agentAway;
+  }
   if ('agentsLook' in (req.body || {})) {
     const v = req.body.agentsLook;
     if (v === null) delete prefs.agentsLook;
@@ -20421,7 +20809,8 @@ app.post('/api/password/change', auth, (req, res) => {
   if (String(password) === String(current)) return res.status(400).json({ error: 'Choose a password you have not used here before' });
   const salt = rid(16);
   const prefs = userPrefs(u); delete prefs.mustChangePassword;
-  db.prepare('UPDATE users SET salt=?, hash=?, prefs=? WHERE id=?').run(salt, hashPw(password, salt), JSON.stringify(prefs), u.id);
+  /* pw_at: the day You's Signing in row says (round 24) */
+  db.prepare('UPDATE users SET salt=?, hash=?, prefs=?, pw_at=? WHERE id=?').run(salt, hashPw(password, salt), JSON.stringify(prefs), now(), u.id);
   // every other session for this user is invalidated; this one keeps working
   db.prepare('DELETE FROM sessions WHERE user_id=? AND token<>?').run(u.id, req.token);
   res.json({ ok: true });
@@ -20437,7 +20826,7 @@ app.post('/api/password/reset', (req, res) => {
   const salt = rid(16);
   const ru = db.prepare('SELECT * FROM users WHERE id=?').get(row.user_id);
   const rprefs = ru ? userPrefs(ru) : {}; delete rprefs.mustChangePassword;
-  db.prepare('UPDATE users SET salt=?, hash=?, prefs=? WHERE id=?').run(salt, hashPw(password, salt), JSON.stringify(rprefs), row.user_id);
+  db.prepare('UPDATE users SET salt=?, hash=?, prefs=?, pw_at=? WHERE id=?').run(salt, hashPw(password, salt), JSON.stringify(rprefs), now(), row.user_id);
   db.prepare('UPDATE resets SET used=1 WHERE id=?').run(id);
   db.prepare('DELETE FROM sessions WHERE user_id=?').run(row.user_id); // force re-login everywhere
   res.json({ ok: true });
@@ -22268,6 +22657,11 @@ function agentLevel(k) {
 /* THE LEVEL FOR ONE PERSON (round 23): their own choice where they made one
    ('ask' or 'mine' — a person only steps down), else the company's. */
 const AGENT_PERSON_LEVELS = ['ask', 'mine'];
+/* A PIECE PUT AWAY FOR ONE PERSON (round 23's gaps): its key, as the page builds it
+   ("answer:MK-1", "read:MK-2", "import:B-7", "week:2026-10-19:u_1", "desk:MK-3:chase:o1"),
+   and the newest this many kept */
+const AGENT_AWAY_KEY = /^[A-Za-z][A-Za-z0-9_-]{0,23}:[^\s]{1,160}$/;
+const AGENT_AWAY_MAX = 300;
 function agentLevelFor(k, u) {
   const co = agentLevel(k);
   let mine = null;
@@ -22836,6 +23230,9 @@ app.get('/api/agents/status', auth, (req, res) => {
     const runs = rows.slice(0, AGENT_RUNS_SHOWN).map(r => agentRunRow(r, money));
     const a = { on: !!cfg.on, level: agentLevel(k), autoOk: AGENT_AUTO_OK.includes(k), next: agentNextRun(k), running: [..._agentBusy].some(b => b.startsWith(k + ':')),
       runs, more: Math.max(0, total - runs.length) };
+    /* who set the level for everyone, and when (a colleague's name travels; the
+       Counter's line reads it) — absent while nobody has moved it from the start */
+    if (cfg.levelBy && cfg.levelBy.name) { a.levelBy = String(cfg.levelBy.name); a.levelById = String(cfg.levelBy.id || ''); a.levelAt = cfg.levelAt || null; }
     if (k === 'late') a.secondAfter = Number(cfg.secondAfter) || 7;
     if (money) { a.cfg = cfg; a.spentToday = agentSpentToday(k); }
     out[k] = a;
@@ -23082,7 +23479,15 @@ app.put('/api/agents/:k/settings', auth, admin, (req, res) => {
   if (b.on !== undefined) patch.on = !!b.on;
   if (b.level !== undefined) {
     const v = String(b.level);
-    if (!AGENT_LEVELS.includes(v) || (v === 'auto' && !AGENT_AUTO_OK.includes(k))) bad.push('level'); else patch.level = v;
+    if (!AGENT_LEVELS.includes(v) || (v === 'auto' && !AGENT_AUTO_OK.includes(k))) bad.push('level');
+    else {
+      patch.level = v;
+      /* WHO SET IT (round 23's gaps, 18 Oct 2026: the Counter says "All seven
+         agents: Ask me first · set by Sara for everyone"): written by the
+         server, only when the level MOVES, from the caller looked up — never
+         from the body, and a Save that leaves the level as it was names nobody. */
+      if (v !== agentLevel(k)) { patch.levelBy = { id: String(req.user.id), name: req.user.name || req.user.email || '' }; patch.levelAt = now(); }
+    }
   }
   if (AGENT_SCHEDULED.includes(k)) int('at', 0, 23);
   if ('max' in AGENT_DEFAULTS[k]) int('max', 1, 500);
@@ -23442,6 +23847,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_my_items_user ON my_items(user_id, kind);
 `);
 const MY_KINDS = ['event', 'note', 'pref'];
+const MY_CAL_LEVELS = ['auto', 'ask', 'never'];   // "Jambo may change my calendar": On his own · Ask me first · Never
 const myDay = v => (/^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) && !isNaN(Date.parse(v))) ? String(v) : '';
 const myHm = v => /^([01]\d|2[0-3]):[0-5]\d$/.test(String(v || '')) ? String(v) : '';
 const myText = (v, n) => String(v == null ? '' : v).replace(/\u0000/g, '').trim().slice(0, n);
@@ -23471,7 +23877,9 @@ function myItemClean(kind, b, user, prev){
       createdAt: (prev && prev.createdAt) || now() } };
   }
   if (kind === 'pref'){
-    const lv = ['ask', 'auto'].includes(o.copilotLevel) ? o.copilotLevel : 'ask';
+    /* 'never' (round 16, the owner's "build all the gaps", 18 Oct 2026): Jambo
+       answers in words and offers nothing to add (POST /api/ai/plan reads it) */
+    const lv = MY_CAL_LEVELS.includes(o.copilotLevel) ? o.copilotLevel : 'ask';
     const hs = Math.max(0, Math.min(23, Number(o.dayStart) || 8)), he = Math.max(hs + 1, Math.min(24, Number(o.dayEnd) || 17));
     return { item: { copilotLevel: lv, dayStart: hs, dayEnd: he } };
   }
@@ -23626,6 +24034,15 @@ The person asks: ${q}`;
    anything); and every block left out says why (planBlocksCheck `left`). It
    still adds nothing: the browser's Add (or the person's own "Just do it"). */
 const PLAN_HORIZON_DAYS = 120;
+/* THE PERSON'S OWN "JAMBO MAY CHANGE MY CALENDAR" (their pref row): read here,
+   never taken from the body — Never lets him only answer in words. */
+function myCalLevel(userId){
+  try {
+    const row = db.prepare("SELECT json FROM my_items WHERE user_id=? AND kind='pref'").get(String(userId));
+    const j = row ? JSON.parse(row.json || '{}') : {};
+    return MY_CAL_LEVELS.includes(j.copilotLevel) ? j.copilotLevel : 'ask';
+  } catch (_) { return 'ask'; }
+}
 app.post('/api/ai/plan', auth, rlAiDeep, aiFeature('plan'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
@@ -23662,8 +24079,11 @@ app.post('/api/ai/plan', auth, rlAiDeep, aiFeature('plan'), aiBudgetGuard, capAi
           contractId: { type: 'string', description: 'The contract id the block is for, from the dates listed, or empty.' } },
           required: ['date', 'start', 'end', 'title'] } } }, required: ['blocks'] } },
   ];
+  /* NEVER: the person said he may not change their calendar — only words */
+  const never = myCalLevel(req.user.id) === 'never';
+  const useTools = never ? tools.filter(t => t.name === 'answer') : tools;
   const prompt = `You are Jambo, beside ${req.user.name || 'a lawyer'}'s calendar in a contract-management system. Write in ${lang}, plain words, short.
-${AI_GOVERNANCE_RULE}
+${AI_GOVERNANCE_RULE}${never ? '\nThe person has set that you may NEVER change their calendar: call answer only. Where they ask to plan, book or find time, say in words which free times would suit, and that nothing is added.' : ''}
 Today is ${wdOf(today)} ${today}. The days ahead: ${days}.
 Working hours are ${String(hs).padStart(2, '0')}:00 to ${String(he).padStart(2, '0')}:00, Monday to Friday.
 Contract dates (deadlines, expiries, duties) up to ${until}:
@@ -23680,7 +24100,7 @@ DO WHAT THEY ASK, NOTHING ELSE:
 - You cannot move, change or delete something already in the calendar: if asked, call answer, say so, and say that pressing the event opens it to change or delete.
 - Dates after ${until}: you cannot see them. Say so.`;
   try {
-    const resp = await anthropicMessages(key, 'deep', { max_tokens: 2000, tools, tool_choice: { type: 'any' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'plan', who: aiWho(req) });
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 2000, tools: useTools, tool_choice: { type: 'any' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'plan', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(x => x.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Jambo returned no structured result' });
@@ -23981,6 +24401,12 @@ db.exec(`
 addColumnIfMissing('contracts', 'template_id', 'TEXT');
 addColumnIfMissing('contracts', 'template_version_id', 'TEXT');
 db.exec('CREATE INDEX IF NOT EXISTS idx_contracts_template ON contracts(template_id)');
+/* WHAT A TEMPLATE'S MAKERS SAID NO TO (round 21, check #1, 19 Oct 2026): a
+   standard Jambo proposed on the builder's paper and somebody Skipped. Kept on
+   the TEMPLATE, so a colleague building it — or the same person on another
+   computer — is not offered it again. A JSON list of category names; NULL is
+   "nothing skipped". Its one writer is PUT /api/templates/:id/skipped. */
+addColumnIfMissing('templates', 'skipped_standards', 'TEXT');
 
 /* The document design (DESIGN-contract-designer.md): which of the five fixed
    looks the company publishes under, where the logo sits, and the accent
@@ -24135,7 +24561,12 @@ function tplListView(t) {
     pageCount: t.page_count == null ? null : Number(t.page_count),
     scanned: TPL_IS_SCANNED(t.source_type),
     createdBy: t.created_by || null, createdAt: t.created_at, updatedAt: t.updated_at,
+    skippedStandards: tplSkippedOf(t),
   };
+}
+function tplSkippedOf(t) {
+  let a = []; try { a = JSON.parse((t && t.skipped_standards) || '[]'); } catch (_) { a = []; }
+  return Array.isArray(a) ? a.map(x => String(x)).filter(Boolean).slice(0, 50) : [];
 }
 function tplTouch(id) { db.prepare('UPDATE templates SET updated_at=? WHERE id=?').run(now(), id); }
 
@@ -24219,6 +24650,22 @@ app.patch('/api/templates/:id', auth, templateManager, passwordCurrent, (req, re
   sets.push('updated_at=?'); args.push(now(), req.params.id);
   db.prepare(`UPDATE templates SET ${sets.join(', ')} WHERE id=?`).run(...args);
   res.json({ ok: true, template: tplListView(tplGet(req.params.id)) });
+});
+
+/* A SKIP IS ADDED, NEVER GUESSED (round 21): one standard's name per call,
+   added to the template's list; `undo:true` takes it back off. Whoever may
+   build a template may say no to a proposal on it. */
+app.put('/api/templates/:id/skipped', auth, paperMaker, passwordCurrent, (req, res) => {
+  const t = tplGet(req.params.id);
+  if (!tplVisibleTo(t, req.user)) return res.status(404).json({ error: 'Template not found' });
+  const b = req.body || {};
+  const cat = clean(b.category).slice(0, 120);
+  if (!cat) return res.status(400).json({ error: 'Say which standard was skipped' });
+  let list = tplSkippedOf(t).filter(x => x !== cat);
+  if (!b.undo) list.push(cat);
+  list = list.slice(-50);
+  db.prepare('UPDATE templates SET skipped_standards=? WHERE id=?').run(list.length ? JSON.stringify(list) : null, t.id);
+  res.json({ ok: true, skippedStandards: list });
 });
 
 app.delete('/api/templates/:id', auth, templateManager, passwordCurrent, (req, res) => {

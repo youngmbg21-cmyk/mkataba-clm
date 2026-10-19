@@ -77,12 +77,37 @@ async function agentLevelMineSet(k, v){
   }
   return true;
 }
+/* A PREPARED PIECE PUT AWAY FOR THIS PERSON (round 23's gaps, 18 Oct 2026:
+   Put away on every piece). `on` is what the piece was about when it was put
+   away (agAwaySubject); null takes it back out (Undo). Kept in their own
+   prefs, so it follows them to another browser; the agents page reads it
+   through agAwayHeld and never talks to the server itself (f413 7d). */
+async function agentAwaySet(key, on){
+  const u = (typeof currentUser === 'function') ? currentUser() : null; if (!u || !key) return false;
+  const was = u.prefs && u.prefs.agentAway ? { ...u.prefs.agentAway } : {};
+  const next = { ...was }; if (on != null) next[key] = { on: String(on), at: new Date().toISOString() }; else delete next[key];
+  /* the reading follows at once; the server's answer then replaces it */
+  u.prefs = { ...(u.prefs || {}), agentAway: next };
+  if (typeof API_MODE === 'function' && API_MODE()){
+    try {
+      const r = await api('me/prefs', 'PUT', { agentAway: { [key]: on != null ? { on: String(on) } : null } });
+      if (r && r.prefs) u.prefs = r.prefs;
+    } catch (e){ u.prefs = { ...(u.prefs || {}), agentAway: was }; throw e; }
+  } else if (typeof saveUsers === 'function' && typeof getUsers === 'function') saveUsers(getUsers());
+  return true;
+}
 async function shareKeepOpen(c, token){
   const r = await api('shares/' + encodeURIComponent(token) + '/extend', 'POST', {});
   if (c && typeof reachTake === 'function') reachTake(c, r);
   return r;
 }
 async function importQueueRead(items){ return api('import/read', 'POST', { items: items || [] }); }
+/* THE CHASE AS IT WILL LEAVE (round 23's gaps, 19 Oct 2026: "Look shows the
+   email whole"): the route's own letter, link and all, read for Look on a
+   folded chase piece (agChaseFromServer). A reading — it sends nothing. */
+async function chasePreviewRead(cid, obId, firm){
+  return api('contracts/' + encodeURIComponent(cid) + '/chase-preview?obligationId=' + encodeURIComponent(obId) + (firm ? '&firm=1' : ''));
+}
 
 /* ONE ROW FROM THE SERVER, TAKEN INTO THE BOOK — the list's own shape.
    Returns true where something on screen may have moved. */
@@ -171,5 +196,5 @@ function agentsWatch(){
   }, AR_BEAT_MS);
 }
 
-Object.assign(window, { agentsStatus, agentsStatusLoad, agentRunNow, agentSaveCfg, agentSendBack, agentPrepared, agentLevelMineSet, shareKeepOpen,
+Object.assign(window, { agentsStatus, agentsStatusLoad, agentRunNow, agentSaveCfg, agentSendBack, agentPrepared, agentLevelMineSet, agentAwaySet, shareKeepOpen, chasePreviewRead,
   importQueueRead, contractsTakeRow, contractsTakeChanged, agentsBeat, agentsWatch, AR_BEAT_MS, AR_REACH_MS });

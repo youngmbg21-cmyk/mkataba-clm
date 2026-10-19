@@ -56,6 +56,7 @@ import './signcheck.js';   // where a contract stands at the signing door: one d
 /* Approval before signing: who on a contract needs a named colleague's yes
    before anyone signs it — one reading, loaded by the server too (23 Sep 2026). */
 import './signapproval.js';
+import './clashkeys.js';     // clashes in who may do what: one reading, loaded by the server too (19 Oct 2026)
 import './approvals.js';
 import './review.js';       // internal review: the step between writing a redline and sending it
 import './desk.js';         // the negotiation desk: who works this negotiation, and who may send
@@ -319,7 +320,9 @@ function commandMeta(view){
     case 'mynotes':   return [i18t('nav_mynotes'), ''];   // the drawing's bar says "Calendar", the rail's word (SAP batch 2)
     case 'migration': return [i18t('nav_import'), i18t('pg_import_sub')];
     case 'reports':   return [i18t('pg_reports'), i18t('pg_reports_sub')];
-    case 'team':      return [i18t('pg_team'), i18t('pg_team_sub')];
+    /* a member reads their own settings only, and the head says so (round 24
+       as drawn, the gaps of 18 Oct 2026: "Your settings") */
+    case 'team':      return [(typeof isAdmin==='function'&&!isAdmin())?i18t('st_you_head'):i18t('pg_team'), i18t('pg_team_sub')];
     case 'directory': return [i18t('nav_directory'), ''];
     case 'folder': {
       /* The FOLDER'S OWN NAME is the customer's word and stays as typed; only
@@ -399,9 +402,13 @@ const PAGE_ACTIONS = {
 /* `advice` paints an empty line whose room is held (adviceHeadPaint), so
    the Requests page's tab row sits at one height on both its tabs (gap F). */
 /* Obligations left this table 9 Oct 2026 (owner: its head "needs to be the
-   same height as" Approvals & signing's, "so remove the we owe xxx place") —
-   it paints nothing into the head now, so it reserves no slot for it. */
-const PAGE_HEAD_PAINT = { intake:'ikPaintHead', advice:'adviceHeadPaint', playbook:'pbPaintHead', agents:'agPaintHead' };
+   same height as" Approvals & signing's, "so remove the we owe xxx place") and
+   CAME BACK 18 Oct 2026 (round 16 as drawn, the owner's "build all the gaps"):
+   "Obligations 11 outstanding · 1 overdue" beside the name, Open every week,
+   Filter and + Add an obligation at the right (obwPaintHead). */
+/* Import (round 22 as drawn, 18 Oct 2026): what the batch is beside the name
+   ("Old contracts from … · started … by you · 24 files") and Choose files… */
+const PAGE_HEAD_PAINT = { intake:'ikPaintHead', advice:'adviceHeadPaint', playbook:'pbPaintHead', agents:'agPaintHead', approvals:'apPaintHead', obligations:'obwPaintHead', migration:'migPaintHead' };
 function pageActionHtml(kind){
   if(kind==='export') return `<button data-page-export class="ui-btn" title="${i18t('ap_export_working_set')}">`+
     `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>${i18t('ap_export')}</button>`;
@@ -420,6 +427,9 @@ function pageActionHtml(kind){
     icon('plus','w-3.5 h-3.5',2)} ${i18t('home_draft_new')}</button>`;
   return '';
 }
+/* SETTINGS SAYS ITS OWN NAME IN A HEAD CARD BESIDE JAMBO (rounds 24 and 25
+   as drawn, the gaps' third pass, 19 Oct 2026): stHeadCardHtml, in the page;
+   the window's head steps aside there (index.html, by scope). */
 /* PAGES THAT ALREADY STATE THEIR OWN NAME get no header from here — putting
    one above them is the second layer this whole change removes.
 
@@ -788,9 +798,17 @@ function renderPageHeader(view){
      same header. flex-start makes the title's top the container's padding, with
      or without a subtitle, with or without acts. */
   host.style.padding='var(--page-pad-t) var(--page-pad-x) 0';
-  host.innerHTML=`
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap">
-      <div style="min-width:0">
+  /* THE HEAD IS THE DRAWN WHITE CARD (19 Oct 2026; the picked drawings of
+     rounds 14–26): .ph-card in index.html, the one frame every page head
+     wears — this one, the bands that name their own page, Settings' card.
+     A band the page paints under it (.ph-foot) is the card's lower half, and
+     the title row (.ph-top) then draws the one line between the two. */
+  host.innerHTML=`<div class="ph-card">
+    <div class="ph-top" style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap">
+      ${''/* THE FACTS ON THE TITLE'S LINE (owner's yes, 18 Oct 2026: every picked
+             drawing of rounds 14–26 sets them beside the page's name — "Negotiations
+             7 live · 3 waiting on our side"); they wrap under it where the line is full */}
+      <div class="page-title-row" style="min-width:0;display:flex;align-items:baseline;column-gap:12px;row-gap:2px;flex-wrap:wrap">
         <h1 style="margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${esc(t)}</h1>
         ${''/* A FACTS LINE, NOT A SUBTITLE (second pass, 21 Sep 2026): the
                Contracts page prints its count and its money here — the
@@ -807,7 +825,7 @@ function renderPageHeader(view){
              contract", and the one tab row under the head jumped 4px between
              them. */}
       ${acts?`<div style="display:flex;align-items:center;gap:var(--s-2);flex:none;min-height:var(--ctl-h)">${acts}</div>`:''}
-    </div>`;
+    </div></div>`;
   /* The header is painted AFTER the view, so the register's first paint found
      no slot; ask the register to fill it now that the slot exists. */
   if(view==='register'&&typeof window.regPaintHeadFacts==='function'){ try{ regPaintHeadFacts(); }catch(_){} }
@@ -825,6 +843,9 @@ function syncViewHeight(){
   /* Both guarded: the node tests render this switch against a cut-down
      document that has neither a scroll container nor a documentElement. */
   if(sc && root && root.style) root.style.setProperty('--view-h', sc.clientHeight+'px');
+  /* THE GUTTER THE SCROLLER KEEPS (scrollbar-gutter:stable), measured, so the
+     head card outside it ends where the cards inside it do (.ph-card) */
+  if(sc && root && root.style) root.style.setProperty('--sc-gutter', Math.max(0,(sc.offsetWidth||0)-(sc.clientWidth||0))+'px');
 }
 /* Kept under its old name because the shell and several views call it. */
 function updateCommandBar(view){ renderPageHeader(view); }
@@ -959,7 +980,15 @@ function updateSidebarCounts(){
      wolf over an empty queue. */
   const NAV_COUNT_TONE={calendar:'amber',mynotes:'amber',migration:'amber',pipeline:'amber',negotiations:'amber',intake:'amber',obligations:'amber',approvals:'amber',agents:'amber'};
   document.querySelectorAll('[data-count]').forEach(el=>{
-    const k=el.getAttribute('data-count'); const v=counts[k];
+    const k=el.getAttribute('data-count');
+    /* A DOOR'S PILL, NOT ANY ELEMENT THAT HAPPENS TO CARRY THE ATTRIBUTE
+       (19 Oct 2026, found by the letter's history preview — lane C2): the
+       negotiation history (#history-timeline) carries data-count="17" for its
+       own rows, and this sweep wrote '' over it, emptying the history in the
+       letter's preview and in its own window on the next repaint. A key that
+       is no count of ours, outside the rail, is left alone. */
+    if(!Object.prototype.hasOwnProperty.call(counts,k) && !(el.closest && el.closest('.nav-item, #sidebar, nav'))) return;
+    const v=counts[k];
     /* A door that only counts WORK says nothing at zero (the Import door,
        7 Oct 2026): "0 need review" is not news, and a blank is the honest
        picture of an empty queue. */
@@ -986,6 +1015,9 @@ function updateSidebarCounts(){
      is exactly when the number can have moved. Nothing marks an alert as seen,
      so it goes down when the work does and never because somebody looked. */
   try{ updateAlertBadge(); }catch(e){}
+  /* …and the Counter's Needs you, where what it lists has moved since it was
+     drawn — a request or a note that arrived after the first paint (round 23's gaps) */
+  try{ if(typeof counterFollow==='function') counterFollow(); }catch(_){}
   /* The "AI Active" and "N Open" nav tags left with the sidebar doors they
      sat on (WO N1): a negotiation waiting on the reader is announced
      on the contract itself — the Negotiate tab's count — and on Home's
@@ -1522,6 +1554,12 @@ const PLACE_PARTS={
   brain:['brPlace','brPlacePut'],
   /* Jambo's agents keeps its tab, period, look and speed (12 Oct 2026) */
   jambo:['jhPlace','jhPlacePut'],
+  /* Requests keeps its tab, band boxes and chosen row; My notes its tab,
+     boxes and chosen note (round 20 as drawn, 19 Oct 2026) */
+  intake:['ikPlace','ikPlacePut'],
+  mynotes:['mnPlace','mnPlacePut'],
+  /* Import keeps its figure door, Show all, the chosen file and the check view (round 22, 18 Oct 2026) */
+  migration:['migPlace','migPlacePut'],
 };
 const PLACE_ONE_CONTRACT=['workspace','doc','redline'];
 const PLACE_BACK_MS=6000, PLACE_BACK_EVERY=120, PLACE_SAVE_WAIT=250;

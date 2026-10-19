@@ -93,6 +93,13 @@ const DOC = ['RAW MATERIAL SUPPLY AGREEMENT', '', '1. Supply', '', 'The Supplier
     const live = await page.evaluate(() => { const b = document.querySelector('.rl-unsent-go[data-rl-decided]'); return b ? { disabled: b.disabled, title: b.title } : null; });
     if (go) await page.click('.rl-unsent-go[data-rl-decided]', { timeout: 5000 }).catch(() => {});
     const conf = await page.$('#prompt-overlay #pd-ok, [data-confirm-ok]'); if (conf) await conf.click().catch(() => {});
+    /* RE-POINTED 18 Oct 2026 (round 11's gaps, "The letter": every way to send
+       opens the one send screen): the press opens the letter, which says what
+       our answers are; its own Send hands the round back */
+    const letter = await page.waitForFunction(() => { const L = document.getElementById('sh-letter'), b = document.getElementById('share-send');
+      return L && b && !b.disabled ? L.textContent.replace(/\s+/g, ' ').trim() : null; }, null, { timeout: 10000 }).then(x => x.jsonValue(), () => null);
+    ok('4a the press opens the letter, saying our answer goes back', !!letter && /has answered/.test(letter), (letter || '').slice(0, 900));
+    if (letter) await page.evaluate(() => document.getElementById('share-send').click());
     const handed = await page.waitForFunction(() => { const c = getContract('MK-SR1'); return c.negotiation && c.negotiation.turn === 'counterparty'; }, null, { timeout: 10000 }).then(() => true, () => false);
     await page.waitForTimeout(600);
     const gone = await page.evaluate(() => !document.querySelector('.rl-unsent-go[data-rl-decided]'));

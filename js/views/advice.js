@@ -81,12 +81,14 @@ function renderAdviceDesk(){
      two moves nothing but the page under the row. That page draws at the
      top of the page area where the inspector fits and below the page's own
      top padding where it does not — so this frame reads the same width line
-     (insFits) and is repainted when a resize crosses it (INS_PAGE_REPAINT). */
+     (insFits) and is repainted when a resize crosses it (INS_PAGE_REPAINT).
+     THE TAB ROW IS THE HEAD CARD'S LOWER HALF where the inspector page is
+     (19 Oct 2026, .ph-foot), as on Requests; the plain page keeps its own. */
   const fits=(typeof window.insFits==='function')&&!!insFits();
   document.getElementById('content').innerHTML=`
   <div class="view-enter sap-page" data-ins-page="advice" data-ins="${fits?'1':'0'}" style="height:var(--view-h);box-sizing:border-box;padding:${fits?'0':'var(--page-pad-t)'} var(--page-pad-x) var(--s-4);display:flex;flex-direction:column;gap:var(--s-3)">
     ${''/* the Requests page's one tab row, on the same white band (SAP benchmark, batch 2) */}
-    <div class="sap-band">${typeof window.rqKindTabsHtml==='function'?rqKindTabsHtml('advice'):''}</div>
+    <div class="sap-band${fits?' ph-foot':''}">${typeof window.rqKindTabsHtml==='function'?rqKindTabsHtml('advice'):''}</div>
     <style>
       .q-card{transition:border-color var(--dur-1) ease,box-shadow var(--dur-1) ease}
       .q-card:hover{border-color:var(--color-accent)!important;box-shadow:var(--shadow-md)!important}

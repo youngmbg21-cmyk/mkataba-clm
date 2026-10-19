@@ -627,9 +627,45 @@ const SEED = async () => {
          their titles and are facts about the workspace, not descriptions of
          the page, and the room heads' fact line is the contract's own. */
       const ph = document.querySelector('#page-head p');
+      /* THE LINE UNDER THE TITLE ROW (19 Oct 2026, the head card's first
+         check): every picked drawing with a second row in its head — tabs,
+         labelled boxes, figures — draws a hairline between it and the title
+         row, 16px in from each card edge. Asked of the head card: is there a
+         second row (in the card, or the shared head's lower half .ph-foot),
+         and where, and how far in, is the line the title row draws. */
+      const vis = e => { if (!e) return false; const r = e.getBoundingClientRect(); return r.width > 2 && r.height > 2 && getComputedStyle(e).display !== 'none'; };
+      const card = h.closest('.ph-card'), row1 = h.closest('.ph-top');
+      let row2 = false, line = null;
+      if (card && row1){
+        let s = row1.nextElementSibling; while (s && !vis(s)) s = s.nextElementSibling;
+        row2 = !!s || (!!card.closest('#page-head') && [...document.querySelectorAll('#content .ph-foot')].some(vis));
+        const rs = getComputedStyle(row1), rr = row1.getBoundingClientRect(), cr = card.getBoundingClientRect();
+        if (parseFloat(rs.borderBottomWidth) >= 1 && rs.borderBottomStyle === 'solid')
+          line = { y: Math.round(rr.bottom - 1 - top), inL: Math.round(rr.left - cr.left), inR: Math.round(cr.right - rr.right) };
+      }
+      /* THE HEAD'S TABS (19 Oct 2026, the head card's second check): the live
+         tab and a resting one in the card or its lower half, as DRAWN — ink,
+         weight, and whether its number wears a box — beside the theme's own
+         ink (--accent-ink, resolved) */
+      let tab = null;
+      if (card){
+        const hosts = [card, ...(card.closest('#page-head') ? [...document.querySelectorAll('#content .ph-foot')] : [])];
+        const tabs = hosts.flatMap(x => [...x.querySelectorAll('[role="tab"], [data-ig-tab]')]).filter(vis);
+        const on = tabs.find(t => t.getAttribute('aria-selected') === 'true' || t.classList.contains('on'));
+        const off = tabs.find(t => t !== on && !t.classList.contains('is-zero'));
+        if (on){
+          const probe = document.createElement('span'); probe.style.color = 'var(--accent-ink)'; document.body.appendChild(probe);
+          const accent = getComputedStyle(probe).color; probe.remove();
+          const boxed = tabs.map(t => t.querySelector('.n, .st-tab-n, .st-face-n')).filter(vis)
+            .filter(n => { const ns = getComputedStyle(n); return ns.backgroundColor !== 'rgba(0, 0, 0, 0)' || parseFloat(ns.paddingRight) > 0; }).length;
+          tab = { word: on.textContent.trim().slice(0, 16), c: getComputedStyle(on).color, w: getComputedStyle(on).fontWeight,
+            restW: off ? getComputedStyle(off).fontWeight : null, accent, boxed };
+        }
+      }
       return { size: cs.fontSize, weight: cs.fontWeight, family: cs.fontFamily.split(',')[0],
         ink: ink == null ? null : Math.round(ink - top), inkText: txt,
         sub: ph ? ph.textContent.trim().slice(0, 40) : null,
+        card: !!card, row2, line, tab,
         text: (h.textContent || '').trim().slice(0, 20) };
     };
     const PAGES8 = [
@@ -735,10 +771,38 @@ const SEED = async () => {
       check(`8 at ${H}px tall, the first glyph of every shared page head sits at one height under the bar`,
         shared.length >= 8 && soff.length === 0,
         soff.map(([k, h]) => `${k} ${h.ink}px «${h.inkText}» vs ${sref}px`).join(' · ') || `all at ${sref}px, ${shared.length} pages`);
+      /* 19 Oct 2026 (the head card's first check): every shared head with a
+         second row draws the ONE line under its title row, 16px in from each
+         card edge (the card's 1px edge + its 16px padding), at ONE height on
+         every page — and a head with no second row draws none */
+      const withRow = shared.filter(([, h]) => h.card && h.row2);
+      const lref = Number(mode(withRow.filter(([, h]) => h.line).map(([, h]) => h.line.y)));
+      const loff = withRow.filter(([, h]) => !h.line || Math.abs(h.line.y - lref) > 1 || h.line.inL !== 17 || h.line.inR !== 17);
+      const lstray = shared.filter(([, h]) => h.card && !h.row2 && h.line);
+      check(`8 at ${H}px tall, every head with a second row draws the one line under its title row, at one height, 16px in`,
+        withRow.length >= 5 && loff.length === 0 && lstray.length === 0,
+        [...loff.map(([k, h]) => `${k} ${h.line ? `line at ${h.line.y}px, in ${h.line.inL}/${h.line.inR}` : 'no line'} vs ${lref}px`),
+         ...lstray.map(([k]) => `${k} draws a line over nothing`)].join(' · ') || `${withRow.length} heads, the line at ${lref}px`);
       const rooms = hh.filter(([k]) => ROOMS.includes(k));
       check(`8 at ${H}px tall, the two paper heads sit at one height`,
         rooms.length === 2 && Math.abs(rooms[0][1].ink - rooms[1][1].ink) <= 1,
         rooms.map(([k, h]) => `${k} ${h.ink}px`).join(' · '));
+    }
+    /* THE TABS IN A HEAD ARE ONE CONTROL (19 Oct 2026, the head card's second
+       check; the picked drawings r14 "All 7", r16 "Outstanding 11", r20 "Open
+       4", r21 "The book 24", r25 "Company 3"): on every head that has tabs the
+       live one is the theme's ink at ONE weight, heavier than a resting tab,
+       and no tab's number wears a box. Settings drew its live tab in the
+       theme's ink at 500 while the others drew theirs near-black at 600, and
+       Negotiations' and Obligations' numbers sat in tinted boxes. */
+    {
+      const withTabs = Object.entries(heads8).filter(([, h]) => h.tab);
+      const tw = mode(withTabs.map(([, h]) => h.tab.w));
+      const toff = withTabs.filter(([, h]) => h.tab.c !== h.tab.accent || h.tab.w !== tw || !(Number(h.tab.w) > Number(h.tab.restW)) || h.tab.boxed > 0);
+      check('8 every head\'s live tab is the theme\'s ink at one weight, heavier than a resting one, and no tab number wears a box',
+        withTabs.length >= 3 && toff.length === 0,
+        toff.map(([k, h]) => `${k} «${h.tab.word}» ${h.tab.c}/${h.tab.w} (rest ${h.tab.restW}, theme ${h.tab.accent}, ${h.tab.boxed} boxed)`).join(' · ')
+          || `${withTabs.length} heads: ${withTabs.map(([k]) => k).join(', ')} at ${tw}`);
     }
     /* ---- NO PAGE HEADER EXPLAINS ITSELF (owner-asked 25 Aug 2026) ----
        Swept across every page rather than checked on the one that was
@@ -755,6 +819,45 @@ const SEED = async () => {
     check('8 and a short window pulls them all up rather than none of them',
       !!tall8 && !!short8 && short8.ink < tall8.ink,
       `${tall8 && tall8.ink}px at 1000 · ${short8 && short8.ink}px at 760`);
+    /* RE-POINTED 19 Oct 2026 (the head card's second check; round 22: "the
+       head card and Jambo's panel stay put; the lists scroll inside the
+       desk", round 16 the same): on a page whose scroller moves, the head
+       card's lower half (.ph-foot) STAYS under its title row — it used to
+       scroll away, the title row closing a short card of its own with the
+       tabs or figures hanging under it as a strip, then gone. Import, with
+       rows enough to scroll (a filler; the seed has no batch), at 6px, 20px
+       and 500px: the half's top meets the card's foot, its figures are all
+       still in view, and the head is the same height either way. Then
+       Obligations the same way (its list scrolls inside its own card; the
+       filler makes the page itself move, the case the checker drove). */
+    for (const [pg, go] of [['Import', () => setView('migration')], ['Obligations', () => setView('obligations')]]) {
+      await page.evaluate(go);
+      const ready = await page.waitForFunction(() => !!document.querySelector('#content .ph-foot') && !!document.querySelector('#page-head .ph-card'), null, { timeout: 8000 }).then(() => true).catch(() => false);
+      const HOLD = () => { const c = document.querySelector('#page-head .ph-card'), f = document.querySelector('#content .ph-foot'); if (!c || !f) return null;
+        const cr = c.getBoundingClientRect(), fr = f.getBoundingClientRect(), sc = document.getElementById('content-scroll');
+        /* every figure or tab in the half, painted where it stands (not under the scroller's edge) */
+        const parts = [...f.querySelectorAll('.mig-kpi, .mig-kpi-card, [role="tab"]')].filter(e => e.getBoundingClientRect().width > 0);
+        const shown = parts.filter(e => { const r = e.getBoundingClientRect(); const hit = document.elementFromPoint(r.left + r.width / 2, r.top + Math.min(8, r.height / 2)); return !!hit && (hit === e || e.contains(hit)); }).length;
+        return { y: sc ? Math.round(sc.scrollTop) : null, card: [Math.round(cr.top), Math.round(cr.bottom)], foot: [Math.round(fr.top), Math.round(fr.bottom)], parts: parts.length, shown }; };
+      const rest8 = ready ? await page.evaluate(HOLD) : null;
+      const moved8 = [];
+      if (ready) {
+        await page.evaluate(() => { const p = document.querySelector('#content .view-enter'); const d = document.createElement('div');
+          d.id = 'pra-filler'; d.style.cssText = 'height:1600px;flex:none'; p.appendChild(d); });
+        for (const y of [6, 20, 500]) {
+          await page.evaluate(y => { document.getElementById('content-scroll').scrollTop = y; }, y);
+          await page.waitForFunction(y => Math.abs(document.getElementById('content-scroll').scrollTop - y) <= 1, y, { timeout: 3000 }).catch(() => {});
+          await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+          moved8.push(await page.evaluate(HOLD));
+        }
+        await page.screenshot({ path: path.join(OUT, `08-${pg.toLowerCase()}-scrolled.png`), clip: { x: 0, y: 0, width: 1200, height: 260 } });
+      }
+      await page.evaluate(() => { const d = document.getElementById('pra-filler'); if (d) d.remove(); const s = document.getElementById('content-scroll'); if (s) s.scrollTop = 0; });
+      const bad8 = moved8.filter(m => !m || !rest8 || m.y < 1 || Math.abs(m.foot[0] - m.card[1]) > 1 || m.card[0] !== rest8.card[0] || m.card[1] !== rest8.card[1] || m.foot[1] !== rest8.foot[1] || m.shown !== m.parts || m.parts < 1);
+      check(`8 ${pg}: the head card stays whole while the page scrolls — its lower half under the title row, every figure or tab in view, the same height`,
+        !!rest8 && moved8.length === 3 && bad8.length === 0,
+        { rest: rest8, scrolled: moved8 });
+    }
 
 
     /* ---- 9 · THE HEAD'S FACT VALUES ARE BOLD, ON BOTH HEADS

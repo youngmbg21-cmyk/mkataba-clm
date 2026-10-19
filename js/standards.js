@@ -567,10 +567,42 @@ function stdOpenToChange(c){
   return true;
 }
 
+/* ---- WHAT OUR STANDARD SAYS FOR ONE FACT (the gaps, round 8 "Owed first",
+   18 Oct 2026: the drawn "Our standard for freight: 6 months · Use it" under an
+   owed box) ----
+   A box is matched to a standard only where its own label NAMES the fact the
+   standard's figure is about — a notice period, payment terms, a liability
+   cap, a confidentiality period — through this explicit table, never by a
+   guess about what a box might mean. The figure is read off OUR STANDARD'S
+   OWN PREFERRED WORDING (the clause library: what the Our standards page
+   shows) by precedent's one figure reader for that topic, which already
+   knows "ninety (90) days' written notice". A box asking for a date, a
+   standard without a figure, or a label that names none of these: null, and
+   nothing is offered. COUNTING, NOT MODELLING — no route, no model. */
+const STD_FACT_OF = [
+  ['term', /\bnotice\b/i],
+  ['payment', /\bpayment\b|\bpay(?:able)? within\b|\bdays? to pay\b/i],
+  ['liability', /\bliabilit/i],
+  ['conf', /\bconfidential/i],
+];
+const STD_FACT_NOT = /\b(?:date|until|from|dated|start|end)\b/i;
+function stdValueFor(label){
+  const t = String(label == null ? '' : label).trim();
+  if (!t || STD_FACT_NOT.test(t)) return null;
+  const hit = STD_FACT_OF.find(([, re]) => re.test(t)); if (!hit) return null;
+  const topic = (typeof precedentTopicByKey === 'function') ? precedentTopicByKey(hit[0]) : null;
+  if (!topic || !topic.unit || typeof topic.num !== 'function') return null;
+  const cl = _stdLib().find(x => x && ((topic.clause && x.id === topic.clause) || _stdSame(x.category, topic.category)));
+  if (!cl || !String(cl.preferred || '').trim()) return null;
+  let n = null; try { n = topic.num(String(cl.preferred)); } catch (_) { n = null; }
+  if (n == null || !Number.isFinite(Number(n))) return null;
+  return { figure: Number(n), unit: topic.unit, category: String(cl.category || topic.category || ''), clause: String(cl.id || '') };
+}
+
 Object.assign(window, { stdRoundsFor, stdKeptQuiet, STD_KEEP_DAYS, stdNumberWords, stdSwapFigure, STD_WINDOW_DAYS, STD_MIN_ROUNDS, STD_DRAFT_MIN, STD_DRAFT_SHARE,
   STD_STANCE_RANK, STD_DRAFT_SUBJECTS, STD_DRAFT_UNREADABLE,
   stdStanceOf, stdFigureIn, stdFallbackOf, stdPreferredFigure,
   stdWindow, stdHeld, stdHistoryFor, stdLearned, stdSignedBook, stdDraftFromSigned,
   stdUsingDefaults, stdDraftWorthOffering,
   STD_DEPART_STATUSES, stdCheckedBook, stdDepartures, stdMeets, stdNeedsLegal, stdBookOf,
-  stdDepartsFrom, stdBookContracts, STD_LINE_RANK, stdBookLines, stdBookFor, stdOpenToChange });
+  stdDepartsFrom, stdBookContracts, STD_LINE_RANK, stdBookLines, stdBookFor, stdOpenToChange, STD_FACT_OF, STD_FACT_NOT, stdValueFor });

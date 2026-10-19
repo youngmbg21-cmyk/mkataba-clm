@@ -29,6 +29,16 @@
    variables actually repaints the platform. A token nothing reads is not a
    token, and no census of the DEFAULT theme would ever notice.
 
+   RE-RECORDED 19 Oct 2026 (eighth), OWNER-ASKED ("Yes, re-save it", after
+   the gap build: every visible part of the picked redesign drawings; and
+   "Design's colours" for the redline buttons). Audited as a set difference
+   against the 18 Oct record: every colour new to the record is an existing
+   token now drawn on more screens — the violet and green status pills
+   (--st-violet-*, the green status pair), --st-amber-line (Redlines' "Waiting
+   on you" edge), the Board's own hairline and glow washes (B2's round 17
+   Board), the .ca-pop shadow under the list panel's ask box. Gone: the
+   redline verbs' violet (#6d28d9/#c4b5fd, now the accent ink by the owner's
+   yes) and the Board furniture History no longer draws.
    RE-RECORDED 18 Oct 2026 (seventh), OWNER-ASKED ("The SAP way, and call it
    Home"): no tab row above the page; the bar reads ‹ · Ha · the page's name
    and opens Recent. Audited as a set difference: no colour new; one gone, on

@@ -220,9 +220,19 @@ const WATCH = () => { window._walk = {}; const tick = () => {
     /* at once, on the face still open — not only when the panel is drawn again */
     if (stored) await waitFor(page, () => !document.querySelector('[data-ig-chips] [data-ca-chip="redline"]'), 4000);
     const chips5 = await page.evaluate(() => [...document.querySelectorAll('[data-ig-chips] [data-ca-chip]')].map(b => b.getAttribute('data-ca-chip')));
-    check('5c once signed, at once, the chips no longer offer "redline"; obligations takes its place — the face still open',
-      /* three since the deal chip went (15 Oct 2026) */
-      stored >= 1 && chips5.length === 3 && !chips5.includes('redline') && chips5.includes('oblig') && await page.evaluate(() => !!document.getElementById('pd-signface')), JSON.stringify(chips5));
+    /* RE-POINTED AT THE INTEGRATION (19 Oct 2026): rounds 8 and 10 as drawn
+       (lanes C1 and C2) draw NO chips under Fill in or Before you sign — the
+       face carries its own acts (pdChipsQuiet). So at once, with the face
+       still open, nothing offers "redline"; and back on Jambo's own words
+       (the face's ‹ Jambo) obligations has taken its place. */
+    const faceOpen = await page.evaluate(() => !!document.getElementById('pd-signface'));
+    if (stored) await page.click('#ig-dock [data-pd-back="signing"]').catch(() => {});
+    const back5 = stored ? await waitFor(page, () => !document.getElementById('pd-signface') && document.querySelectorAll('[data-ig-chips] [data-ca-chip]').length > 0, 6000) : false;
+    const chips5b = await page.evaluate(() => [...document.querySelectorAll('[data-ig-chips] [data-ca-chip]')].map(b => b.getAttribute('data-ca-chip')));
+    const nextMax = await page.evaluate(() => window.CA_NEXT_MAX);
+    check('5c once signed, at once, nothing offers "redline" (no chips under the face, as drawn); back on Jambo, obligations takes its place',
+      /* as many as CA_NEXT_MAX (four since round 3 as drawn, lane B2: "answer the redlines · name a signer · share · history") */
+      stored >= 1 && faceOpen && !chips5.includes('redline') && back5 && typeof nextMax === 'number' && chips5b.length === nextMax && !chips5b.includes('redline') && chips5b.includes('oblig'), JSON.stringify({ underFace: chips5, faceOpen, back: chips5b, nextMax }));
     await shot('5c-chips-after-signing');
 
     /* ===== 6. SHARE ===== */
@@ -239,6 +249,10 @@ const WATCH = () => { window._walk = {}; const tick = () => {
        ("förhandlingstavla"), a long word: every chip stays on its line, inside
        Jambo's panel, at 1440×780, 1536×730 and 1366×950 */
     if (id) await page.evaluate(i => { if (typeof langSet === 'function') langSet('sv'); pdOpenOnHome(i, 'copilot'); }, id);
+    /* RE-POINTED 18 Oct 2026 (the gaps of rounds 8–11 as drawn): under a face
+       the panel draws no chips; the face still up from the signing above goes
+       back to Jambo first, by its own ‹ Jambo */
+    for (let i = 0; i < 3 && await page.$('#ig-dock [data-pd-back]'); i++){ await page.click('#ig-dock [data-pd-back]').catch(() => {}); await pause(300); }
     for (const [w, hh] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: hh });
       await pause(500);

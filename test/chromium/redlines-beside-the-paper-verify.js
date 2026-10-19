@@ -28,7 +28,8 @@
      8  the word "redline", the bell's row and the list panel's Negotiation
         door open it; the rail's Negotiations door shows the list, and its row
         opens the face (stage 5)
-     9  a row's note count opens the notes drawer on Home on that change (stage 5)
+     9  a row's note count opens that change's notes in the same panel, the
+        face kept (round 9's gaps, third pass)
     10  the owner's three screens: the paper neither moves nor shrinks when
         the face opens; the face fits; its head and foot are in sight
     11  Svenska; the phone carries on to its own page
@@ -136,10 +137,18 @@ const bands = () => [...document.querySelectorAll('#pd-redface .rl-band')].map(b
     check('2b each of their rows carries Accept · Reject · Counter · Ladder', col.rows.length === 3 && col.rows.every(r => ['Accept', 'Reject', 'Counter', 'Ladder'].every(v => r.some(t => t.endsWith(v)))), JSON.stringify(col.rows[0]));
     /* RE-POINTED 14 Oct 2026 (stage 5): the page folded into Home, so the
        head has no way back to it */
-    check('2c the head carries ×, and no Open Negotiate', col.x && col.nego === '', col.nego);
+    /* RE-POINTED 18 Oct 2026 (round 9's gaps, "Piles" as drawn): the head
+       carries no × either — the face's way back is "‹ Jambo" at the end of the
+       panel's own row */
+    const back2 = await page.evaluate(() => !!document.querySelector('#ig-dock .igd-head [data-pd-back="red"]'));
+    check('2c no × and no Open Negotiate in the head; ‹ Jambo is the panel row\'s', !col.x && col.nego === '' && back2, JSON.stringify({ x: col.x, nego: col.nego, back2 }));
     /* RE-POINTED 15 Oct 2026 (owner: "these need to go to the menu as well"):
        with changes in the column the foot's three acts live on the Menu tab */
-    check('2d Risks to look at, and no foot: the three acts went to the Menu tab', col.risks && col.foot.length === 0, JSON.stringify(col.foot));
+    /* RE-POINTED 18 Oct 2026 (round 9's gaps, second pass: "The column ends
+       with the fold. Nothing is drawn under it"): beside the paper the risk
+       list is not drawn under the piles — it is read in the Clauses tab and
+       acted on in the editor's Risks tab (the Negotiate page by name keeps it) */
+    check('2d nothing under the piles, and no foot: the three acts went to the Menu tab', !col.risks && col.foot.length === 0, JSON.stringify(col.foot));
     check('2e the same column the Negotiate page draws (one builder)', await page.evaluate(() => !!document.querySelector('#pd-redface .redline-page.rl-face #rl-side.rl-col #rl-changes-col #nego-cards')));
 
     /* ===== 3. A ROW AND ITS CLAUSE ARE ONE THING SHOWN TWICE ===== */
@@ -205,28 +214,39 @@ const bands = () => [...document.querySelectorAll('#pd-redface .rl-band')].map(b
     check('6a the counter lands under "Your drafts", Send all · 1 not sent, at the same spot',
       /Your drafts, not yet sent\s*1/.test(s6.bands.join('|')) && s6.send === 'Send all · 1 not sent' && s6.top === at6 && /nine months/.test(s6.ours[0] || ''), JSON.stringify(s6) + ' want ' + at6);
     await shot('6-drafted');
+    /* RE-POINTED 18 Oct 2026 (round 11's gaps, "The letter": "Every way to
+       send — Share on the paper's line, Send all on Redlines, Jambo's share —
+       opens this same screen"): Send all opens the letter, which says what
+       travels; its own Send sends */
     await page.click('#pd-redface .rl-unsent-go');
-    const asked = await waitFor(page, () => !!document.querySelector('#confirm-overlay #cf-ok'), 5000);
-    const q6 = await page.evaluate(() => ((document.getElementById('confirm-overlay') || {}).innerText || '').replace(/\s+/g, ' '));
-    check('6b Send all asks the Negotiate page\'s own question', asked && /Send 1 change to Parcelway ApS/.test(q6), q6.slice(0, 120));
-    await page.click('#confirm-overlay #cf-ok');
+    const asked = await waitFor(page, () => { const s = document.getElementById('share-send'); return !!document.getElementById('sh-letter') && s && !s.disabled; }, 10000);
+    const q6 = await page.evaluate(() => ((document.getElementById('sh-letter') || {}).innerText || '').replace(/\s+/g, ' '));
+    check('6b Send all opens the letter, saying what goes, to their address', asked && /parcelway/i.test(q6) && /has answered|of its own/.test(q6), q6.slice(0, 400));
+    await page.evaluate(() => { const ack = document.getElementById('sh-ack'); if (ack) ack.checked = true; });
+    await page.click('#share-send');
+    /* sent, the screen says so in its own box; it is put away as a reader puts it away */
+    await waitFor(page, () => /Sent|Queued|Not sent/.test((document.getElementById('sh-send-lbl') || {}).textContent || ''), 10000);
+    await page.evaluate(() => { if (window.closeModal) closeModal(); });
+    await waitFor(page, () => !document.getElementById('sh-letter') && !!document.getElementById('pd-redface'), 6000);
     await waitFor(page, () => window.negoUnsentAsks && negoUnsentAsks(getContract('MK-R1')).length === 0, 8000);
     await pause(800);
     const s6c = await page.evaluate(() => ({ unsent: negoUnsentAsks(getContract('MK-R1')).length, bands: [...document.querySelectorAll('#pd-redface .rl-band')].map(b => b.textContent.replace(/\s+/g, ' ').trim()) }));
-    check('6c and sends: nothing unsent, the counter is with them', s6c.unsent === 0 && /With the counterparty\s*1/.test(s6c.bands.join('|')), JSON.stringify(s6c));
+    /* RE-POINTED 19 Oct 2026 (round 9's gaps, third pass: "with Nordvik" — the pile named for the party) */
+    check('6c and sends: nothing unsent, the counter is with them', s6c.unsent === 0 && /With Parcelway ApS\s*1/.test(s6c.bands.join('|')), JSON.stringify(s6c));
 
     /* ===== 7. CLEAN STILL WINS; × GOES BACK ===== */
     await page.click('[data-ig-red="0"]'); await pause(500);
     const c7 = await page.evaluate(FACE);
     check('7a a press on Clean while the face is open still wins; the face stays', !c7.red && c7.up, JSON.stringify(c7));
-    await page.click('#pd-redface [data-pd-rf-close]'); await pause(500);
+    /* RE-POINTED 18 Oct 2026: the face's way back is ‹ Jambo in the panel's row */
+    await page.click('#ig-dock [data-pd-back="red"]'); await pause(500);
     const x7 = await page.evaluate(() => ({ face: !!document.getElementById('pd-redface'), feed: !!document.querySelector('#igd-feed:not([hidden])'),
       red: igRedOn(getContract('MK-R1')), box: !!document.getElementById('igd-input') }));
-    check('7b × goes back to the conversation, and the paper stays as it was before the face', !x7.face && x7.feed && x7.box && !x7.red, JSON.stringify(x7));
+    check('7b ‹ Jambo goes back to the conversation, and the paper stays as it was before the face', !x7.face && x7.feed && x7.box && !x7.red, JSON.stringify(x7));
     /* opened from Clean, closed: Clean again (decision 1) */
     await page.evaluate(() => pdRedOpen('MK-R1')); await waitFor(page, () => !!document.getElementById('pd-redface'), 5000);
     const o7 = await page.evaluate(FACE);
-    await page.click('#pd-redface [data-pd-rf-close]'); await pause(400);
+    await page.click('#ig-dock [data-pd-back="red"]'); await pause(400);
     const z7 = await page.evaluate(FACE);
     check('7c opened from Clean it turns Redlined, and closing puts Clean back', o7.red && !z7.red, `${o7.red} → ${z7.red}`);
     /* THEIR VIEW (stage 5, 14 Oct 2026): the Negotiate page's Internal |
@@ -272,10 +292,13 @@ const bands = () => [...document.querySelectorAll('#pd-redface .rl-band')].map(b
     await page.evaluate(() => pdRedOpen('MK-R1'));
     await waitFor(page, () => !!document.querySelector('#pd-redface [data-rl-notes="CHG-003"]'), 6000);
     await page.click('#pd-redface [data-rl-notes="CHG-003"]');
-    const n9 = await waitFor(page, () => state.view === 'dashboard' && !!document.querySelector('#context-panel.open'), 8000);
-    const n9b = await page.evaluate(() => ({ view: state.view, face: !!document.getElementById('pd-redface'),
-      drawer: ((document.querySelector('#context-panel.open') || {}).innerText || '').replace(/\s+/g, ' ').slice(0, 400) }));
-    check('9 a row\'s note count opens the notes drawer on Home on that change, the face kept', n9 && n9b.face && /CHG-003/.test(n9b.drawer) && /finance/.test(n9b.drawer), JSON.stringify(n9b));
+    /* RE-POINTED 19 Oct 2026 (round 9's gaps, third pass: "This opens that
+       change's notes" — in the same panel, one room per side, not the drawer
+       over Jambo's panel) */
+    const n9 = await waitFor(page, () => state.view === 'dashboard' && !!document.querySelector('#pd-redface .rl-fn[data-rl-fn-change="CHG-003"]'), 8000);
+    const n9b = await page.evaluate(() => ({ view: state.view, face: !!document.getElementById('pd-redface'), drawerOpen: !!document.querySelector('#context-panel.open'),
+      notes: ((document.querySelector('#pd-redface .rl-fn') || {}).innerText || '').replace(/\s+/g, ' ').slice(0, 400) }));
+    check('9 a row\'s note count opens that change\'s notes in the panel, the face kept, no drawer', n9 && n9b.face && !n9b.drawerOpen && /finance/.test(n9b.notes), JSON.stringify(n9b));
     await page.evaluate(() => { const x = document.getElementById('panel-close'); if (x) x.click(); });
 
     /* ===== 10. THE OWNER'S THREE SCREENS ===== */
@@ -290,13 +313,14 @@ const bands = () => [...document.querySelectorAll('#pd-redface .rl-band')].map(b
       const fit = await page.evaluate(() => {
         const f = document.getElementById('pd-redface'); const fr = f.getBoundingClientRect();
         const head = f.querySelector('.rl-idx-top').getBoundingClientRect(), footEl = f.querySelector('.pd-rf-foot'), foot = footEl ? footEl.getBoundingClientRect() : fr;
-        const x = f.querySelector('[data-pd-rf-close]').getBoundingClientRect();
+        /* RE-POINTED 18 Oct 2026: the way back is ‹ Jambo in the panel's own row (no × in the head) */
+        const xe = document.querySelector('#ig-dock .igd-head [data-pd-back="red"]'); const x = xe ? xe.getBoundingClientRect() : { right: Infinity };
         const box = document.getElementById('igd-input').getBoundingClientRect();
         const wide = [...f.querySelectorAll('*')].filter(n => n.getBoundingClientRect().right > fr.right + 1 && n.getClientRects().length).map(n => n.className || n.tagName).slice(0, 3);
         return { headIn: head.top >= fr.top - 1 && head.bottom <= fr.bottom, footIn: foot.top >= fr.top && foot.bottom <= fr.bottom + 1, xIn: x.right <= fr.right + 1,
           boxIn: box.bottom <= innerHeight + 1, wide, docW: document.documentElement.scrollWidth - document.documentElement.clientWidth };
       });
-      check(`10b ${w}×${hh}: the face fits — head, × (and a foot where drawn) in sight, the box at the panel's foot, nothing wider than the panel`,
+      check(`10b ${w}×${hh}: the face fits — head, ‹ Jambo (and a foot where drawn) in sight, the box at the panel's foot, nothing wider than the panel`,
         fit.headIn && fit.footIn && fit.xIn && fit.boxIn && !fit.wide.length && fit.docW <= 0, JSON.stringify(fit));
       await shot(`10-${w}x${hh}`);
     }
@@ -307,7 +331,7 @@ const bands = () => [...document.querySelectorAll('#pd-redface .rl-band')].map(b
     await page.evaluate(() => { if (!document.getElementById('pd-redface')) pdRedOpen('MK-R1'); });
     await waitFor(page, () => !!document.getElementById('pd-redface'), 5000);
     const s11 = await page.evaluate(() => ({ nego: ((document.querySelector('#pd-redface [data-pd-rf-nego]') || {}).textContent || '').trim(),
-      title: ((document.querySelector('#pd-redface .rl-idx-title') || {}).textContent || '').trim(), x: (document.querySelector('#pd-redface [data-pd-rf-close]') || {}).title }));
+      title: ((document.querySelector('#pd-redface .rl-idx-title') || {}).textContent || '').trim(), x: (document.querySelector('#ig-dock [data-pd-back="red"]') || {}).title }));
     check('11a Svenska: the face speaks the reader\'s language', !s11.nego && !/Redlines/.test(s11.title) && !/Close/.test(s11.x || ''), JSON.stringify(s11));
     await shot('11-svenska');
     const en2 = await page.$('.lang-btn[data-lang="en"]'); if (en2) { await en2.click(); await pause(500); }

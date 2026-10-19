@@ -80,7 +80,9 @@ describe('f487 (2) every flow writes through the one writer', () => {
     assert.match(AP, /askRuleFor\(x, step\.ruleId, \{ approver:step\.approver, keepStep:true \}\);\s*askAnswer\(x, ask\.id, \{ state:'yes'/);
     /* …and says whom it was for where a stand-in answered (17 Oct 2026, When you're away) */
     assert.match(AP, /askAnswer\(x, ask\.id, \{ state:'no', by:u, why:comment\|\|null(, for:fw)? \}\)/);
-    assert.match(AP, /back\.forEach\(s=>askRuleFor\(c, s\.ruleId, \{ approver:s\.approver \}\)\)/);
+    /* …and since 18 Oct 2026 the reopened question carries what it covers
+       (its approval stamp — Approvals' "Since last look", round 15) */
+    assert.match(AP, /back\.forEach\(s=>askRuleFor\(c, s\.ruleId, \{ approver:s\.approver(, stamp:approvalStamp\(c\))? \}\)\)/);
     assert.ok(!/status:'approved', by:u\.name|status:'rejected', by:u\.name|status:'pending', by:null, at:null/.test(AP),
       'no step is decided or reset by hand any more');
   });

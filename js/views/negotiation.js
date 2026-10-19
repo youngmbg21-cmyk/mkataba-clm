@@ -1875,6 +1875,8 @@ function negoVerifyPill(c, ch){
    briefly. */
 function negoAfterPaint(c, opts, host){
   try { if (host && c) rlPaintNoteMarks(host, c, opts || {}); } catch (e){}
+  /* the column's own notes view, wired after its paint (round 9's gaps) */
+  try { if (host && c && typeof rlFaceNotesWire === 'function') rlFaceNotesWire(host, c, opts || {}); } catch (e){}
   try { if (host && c) rlPaintCopilotAnswers(host, c, opts || {}); } catch (e){}
   try { if (host && c) rlPaginate(host, c); } catch (e){}
   if (!host || !window.negoRefreshVerification) return;
@@ -4175,7 +4177,14 @@ function wireNegotiationTab(c, opts = {}){
        So it asks, once, and names who is holding it. Answering "send the rest"
        leaves those changes behind exactly as a hold would; there is no third
        state and nothing new to remember. */
-    if (window.reviewSendWarning){
+    /* …EXCEPT WHERE SEND ALL OPENS THE LETTER (round 11's gaps, third pass,
+       as drawn: "Send all, like Share, opens the letter. The held change is
+       named in Jambo's panel… and Send sends only what is cleared"): the
+       letter's "Clause N stays here" card is this question's answer, said
+       beside the email that goes, so no pop-up comes first. What is under
+       review stays behind either way (reviewWithheldIds, buildSharePayload). */
+    const toLetter = side === 'owner' && !_rlSoloSendId && typeof window.openShareModal === 'function';
+    if (window.reviewSendWarning && !toLetter){
       let warn = null; try{ warn = reviewSendWarning(c); }catch(_){ warn = null; }
       if (warn && !_rlSendAcked(c, warn)){
         reviewConfirmSend(c, warn, {
@@ -4199,7 +4208,15 @@ function wireNegotiationTab(c, opts = {}){
     const live = (window.counterpartyContact && window.cachedShares)
       ? counterpartyContact(c, cachedShares(c)) : null;
     const contact = (live && live.email) ? live : opts.contact;
-    if (side === 'owner' && contact && contact.email
+    /* ---- SEND ALL OPENS THE LETTER (round 11's gaps, 18 Oct 2026: "Every way
+       to send — Share on the paper's line, Send all on Redlines, Jambo's share
+       — opens this same screen") ----
+       On our seat a batch send opens the one send screen, which draws the email
+       that goes and says what stays behind; the screen's own send hands the turn
+       over (onSent below). A card's own Send (one change) still goes on the
+       press, as before. */
+    const letterDoor = toLetter;
+    if (!letterDoor && side === 'owner' && contact && contact.email
         && typeof opts.onSendDirect === 'function'){
       /* ---- SEND ALL SAYS WHAT TRAVELS (the 9 Oct 2026 review) ----
          A card's own Send is one change and goes on the press. A BATCH send
@@ -4232,10 +4249,22 @@ function wireNegotiationTab(c, opts = {}){
        endpoint here and deliberately never will be. */
     const to = side === 'owner' ? 'counterparty' : 'owner';
     const who = to === 'counterparty' ? (c.counterparty || 'the counterparty') : 'the owner';
+    /* A BATCH THROUGH THE LETTER STILL RELEASES A SOLO SEND'S HOLD, as the
+       direct batch always did (onSendDirect): the drafts a card's own Send
+       kept back travel with it, and the hand-over is told they went */
+    const released = letterDoor && window.negoReleaseHold ? !!negoReleaseHold(c) : false;
     const shareOpts = {
       handOver: true,
+      /* A ROUND SEND IS A NEGOTIATION LINK (19 Oct 2026, six-round-audit R6):
+         the direct batch always sent purpose 'negotiate' (onSendDirect →
+         reshareToLastRecipient); through the letter the screen fell back to
+         defaultSharePurpose, which preselects Sign once every change is
+         settled — so handing back our answers opened "Your turn to sign".
+         The letter opens on Negotiate, as round 11 draws it ("a link to
+         negotiate"); the picker still changes it. */
+      purpose: 'negotiate',
       onSent: info => {
-        if (!negoHandOver(c, { to, by: opts.by })) return;
+        if (!negoHandOver(c, { to, by: opts.by, sentAnyway: released })) return;
         if (opts.persist !== false && window.persist) persist(c);
         if (window.toast) toast(info && info.emailSent
           ? i18t('ng_sent_their_turn', { who })
@@ -5001,8 +5030,11 @@ function wireNegotiationTab(c, opts = {}){
        beside it already states. */
     host.querySelectorAll('[data-rl-cp-editor-row]').forEach(btn => btn.addEventListener('click', ev => {
       ev.preventDefault(); ev.stopPropagation();
+      /* a ROW's Counter or Edit lands on the editor as drawn from Redlines
+         (round 9's gaps, second pass: ‹ Redlines, the act's title, this clause
+         alone, the walk over their asks) — fromRow */
       openEditor(btn.getAttribute('data-rl-cp-editor-row'),
-        { changeId: btn.getAttribute('data-rl-cp-editor-change') || '' });
+        { changeId: btn.getAttribute('data-rl-cp-editor-change') || '', fromRow: !!btn.closest('[data-nego-card]') });
     }));
     /* ---- THE PAPER'S OWN PENCIL, WIRED WHERE THE ROW'S DOOR IS WIRED ----
        (owner-reported 29 Aug 2026: "when i click on the pencil i would go
@@ -6148,7 +6180,19 @@ function rlRoundLabelHtml(c, opts = {}){
       catch(_){ day = String(since).slice(0, 10); }
     }
   }
-  const words = day ? i18t('ng_round_since', { n: round, day }) : i18t('ng_round_n', { n: round });
+  /* WHEN THEIR ASKS CAME (round 9's gaps, 18 Oct 2026: "Round 2 · their asks
+     came 4 days ago"): the newest of the other side's asks still on the table,
+     read RAW off the record — said ONLY WHILE THE MOVE IS OURS (third pass,
+     19 Oct 2026): once our answer has gone to them (the turn is theirs) an ask
+     our counter parked did not "come" in the round now open, and the round's
+     own day is said instead */
+  const ours = n.turn !== 'counterparty';
+  const asks = !ours ? [] : (Array.isArray(c.changes) ? c.changes : []).filter(x => x && x.authorSide === 'counterparty' && !x.withdrawn
+    && (x.status === 'pending' || x.status === 'countered'));
+  const came = asks.map(x => String(x.createdAt || '')).filter(Boolean).sort().pop();
+  const ago = came ? rlAgoWords(came) : '';
+  const words = ago ? i18t('ng_round_asks_came', { n: round, ago })
+    : day ? i18t('ng_round_since', { n: round, day }) : i18t('ng_round_n', { n: round });
   return `<span class="rl-round-at" title="${_nea(i18t('ng_round_since_title'))}">${_ne(words)}</span>`;
 }
 
@@ -6402,10 +6446,13 @@ function rlLockMineSignHtml(c, clauseId){
 
    THE NAME IS ON THE HOVER because two colleagues can share a monogram, and on
    aria-label because a screen reader is offered no hover at all. */
-function rlLockedBtn(sign, cls, label){
+function rlLockedBtn(sign, cls, label, o){
+  /* o.mono false: a row whose own lock line names the holder draws the verb
+     grey and plain (round 9's gaps, 18 Oct 2026) */
+  const mono = !(o && o.mono === false);
   return `<button type="button" class="${cls} is-locked" disabled
-    title="${_nea(sign.title)}" aria-label="${_nea(sign.title)}"><b class="rl-lock-mono"
-    aria-hidden="true">${_ne(sign.mono)}</b>${label ? ' ' + _ne(label) : ''}</button>`;
+    title="${_nea(sign.title)}" aria-label="${_nea(sign.title)}">${mono ? `<b class="rl-lock-mono"
+    aria-hidden="true">${_ne(sign.mono)}</b>` : ''}${label ? ' ' + _ne(label) : ''}</button>`;
 }
 
 /* ---- THE MARK BESIDE THE WORD (Young ruled 17 Sep 2026, off the "option C"
@@ -6433,13 +6480,16 @@ function rlLockedBtn(sign, cls, label){
 const RL_FACE_MARKS = [
   [/data-nego-accept=/, 'check'],
   [/data-nego-reject=/, 'x'],
-  [/data-rl-retract=/, 'bin'],
+  [/data-rl-retract=/, 'undo'],
   [/data-rl-send=|data-rl-sendcopy=/, 'out'],
   [/data-rl-ladder=/, 'ladder'],
   [/data-rl-ask-review=/, 'people'],
   [/data-nego-undo=|data-nego-redecide=|data-nego-withdraw=|data-rv-cancel=/, 'undo'],
   [/data-rl-cp-open=/, 'panel'],
   [/data-rl-cp-editor-row=|data-rl-edit=|rl-verb-ai is-locked/, 'edit'],
+  /* a colleague's suggestion on its own row (round 9's gaps): Adopt · Hand back */
+  [/data-dk-adopt=/, 'check'],
+  [/data-dk-return=/, 'left'],
 ];
 /* A LOCKED DOOR TAKES THE MARK TOO, and that is measured rather than tidy.
    It is the SAME door — the pencil is what it is, whoever is holding the
@@ -7408,6 +7458,14 @@ function rlLadderTrackHtml(track){
    be open when the page first drew. redlineHeldId is the negotiation page's
    own record of which contract it is showing — the same reading the Copilot
    brief and the plain-English painter already use. */
+/* THE CONTRACT A PRESS IN THE COLUMN IS ABOUT: Jambo's Redlines face names
+   its own (data-pd-rf), the Negotiate page the one it holds */
+function rlPressContract(el){
+  const f = el && el.closest ? el.closest('[data-pd-rf]') : null;
+  const id = f ? f.getAttribute('data-pd-rf') : null;
+  if (id && window.state && Array.isArray(state.contracts)){ const x = state.contracts.find(y => y && String(y.id) === String(id)); if (x) return x; }
+  return rlLadderContract();
+}
 function rlLadderContract(){
   if (typeof window === 'undefined') return null;
   if (window.PORTAL_MODE && (typeof PORTAL_MODE === 'function' ? PORTAL_MODE() : PORTAL_MODE)) return null;
@@ -9987,9 +10045,11 @@ function negoListHeadHtml(shown){
   /* THE DOOR SITS AT THE TOP RIGHT OF THE HEAD (owner-approved SAP benchmark,
      9 Oct 2026: "doors stay at the top"), where every other page keeps its
      one filled act. */
-  return `<header class="ngl-head ngl-head-table"><div class="ngl-head-row"><div style="min-width:0">
-    <h2>${i18t('ng_door_title')}</h2>
-    <div class="ngl-live page-facts">${facts.join(' · ')}</div>
+  /* THE FACTS ON THE TITLE'S LINE (round 14 as drawn: "Negotiations  7 live ·
+     3 waiting on our side"), as every page head now draws them */
+  return `<header class="ngl-head ngl-head-table ph-top"><div class="ngl-head-row"><div style="min-width:0">
+    <div class="page-title-row ngl-title-row"><h2>${i18t('ng_door_title')}</h2>
+    <div class="ngl-live page-facts">${facts.join(' · ')}</div></div>
     ${filtered ? `<p>${_ne(i18t('ngl_sub_filtered', { n, live }))}</p>` : ''}
     </div>${ngStartDoorHtml(true)}</div>
   </header>`;
@@ -10122,9 +10182,13 @@ function renderNegotiationsList(host){
      there is something for a filter to narrow. */
   if (!live.length){
     if (window.regSetScope) regSetScope(null);
+    /* THE HEAD IS THE CARD EVERY PAGE HEAD IS (19 Oct 2026, the head card's
+       first check): with nothing live the page still names itself on the
+       one white card (.ph-card, its title row .ph-top), at the one height
+       and inset every page title has; the empty state is the card under it. */
     el.innerHTML = `<div class="view-enter ngl-wrap">
-      <header class="ngl-head">
-        <h2>${i18t('ng_door_title')}</h2>
+      <header class="ngl-head ph-card">
+        <div class="ph-top"><h2>${i18t('ng_door_title')}</h2></div>
       </header>
       <section class="ngl-empty">
         <h3>${i18t('ng_door_none')}</h3>
@@ -12248,6 +12312,31 @@ function rlCardNeedsYou(verbs){
    retired; see the note above rlCardForgetPins. The clause panel (rlCp*, and
    rlClausePanelBodyHtml for the bodies) is the one reading surface now. */
 
+/* ---- THE DOORS THIS COLUMN ADDED LAND THROUGH THE ONE LANDER (LAND ON IT,
+   owner 18 Oct 2026; round 9 and 11's gaps, third pass) ----
+   A note's "clause 11", the letter's "Go to clause 7" and the editor's
+   "‹ Redlines" name ONE target — the clause on the paper in front (Home's,
+   else the Negotiate page's), or the change's row in the column — and arrive
+   on it through landOn: opened, scrolled into view, lit the one way
+   everywhere, pressing nothing. */
+function rlClauseEl(clauseId){
+  if (clauseId == null || typeof document === 'undefined') return null;
+  const q = (window.CSS && CSS.escape) ? CSS.escape(String(clauseId)) : String(clauseId);
+  const sel = `[data-clause="${q}"]`;
+  const home = document.getElementById('ig-paper');
+  return (home && home.querySelector(sel)) || document.querySelector('#view-redline #rl-doc ' + sel)
+    || document.querySelector('.redline-page ' + sel) || null;
+}
+function rlLandOnClause(clauseId, opts = {}){
+  if (typeof window.landOn !== 'function') return Promise.resolve(rlJumpToClause(clauseId));
+  return window.landOn(() => rlClauseEl(clauseId), { block: 'center', focus: false, ...opts });
+}
+function rlLandOnRow(changeId, opts = {}){
+  if (typeof window.landOn !== 'function' || changeId == null) return Promise.resolve(null);
+  const q = (window.CSS && CSS.escape) ? CSS.escape(String(changeId)) : String(changeId);
+  return window.landOn(() => document.querySelector(`#pd-redface [data-nego-card="${q}"]`) || document.querySelector(`#rl-changes [data-nego-card="${q}"]`),
+    { block: 'center', focus: false, ...opts });
+}
 function rlLinkFocus(c, changeId, source){
   const page = document.getElementById('view-redline')
     || document.querySelector('.redline-page.rl-embed')
@@ -12694,7 +12783,8 @@ function rlWireClauseTools(c, host, opts){
     if (!window.negoRetractDraft) return;
     const side = (opts && opts.side) === 'counterparty' ? 'counterparty' : 'owner';
     /* ALWAYS ASKED FIRST (owner decision D3, 9 Oct 2026): one press used to
-       delete a draft with no way back. */
+       delete a draft with no way back. The round 9 drawing's "Undo for a few
+       seconds" instead was put to the owner on 19 Oct 2026: "Keep asking first". */
     const was = (Array.isArray(c.changes) ? c.changes : []).find(x => x && x.id === chId) || {};
     if (window.confirmDialog && !(await confirmDialog({ danger: true,
       title: i18t('ng_discard_confirm_title', { id: chId }),
@@ -13647,10 +13737,14 @@ function redlineDocHtml(c, opts = {}){
        draws where nothing is marked — never re-derived here, so a marked
        clause and an unmarked one cannot disagree about the document. */
     const shape = rlClauseShape(cl);
+    /* A COLLEAGUE'S SUGGESTION IS MARKED APART FROM OUR DRAFT (round 9's gaps,
+       third pass, as drawn): the same marks, a dashed underline — our seat
+       only, where the suggestion lives (rlIsOpenSuggestion) */
+    const sgCls = (side !== 'counterparty' && rlIsOpenSuggestion(c, ch)) ? ' rl-sg-marks' : '';
     if (window.redlineOpsBlocksHtml && Array.isArray(ops) && ops.length)
-      return `<div class="nego-body">${redlineOpsBlocksHtml(ops, { title: tip, who: whoM, shape })}</div>`;
+      return `<div class="nego-body${sgCls}">${redlineOpsBlocksHtml(ops, { title: tip, who: whoM, shape })}</div>`;
     if (window.redlineOpsHtml && ops)
-      return `<div class="nego-body"><p>${redlineOpsHtml(ops, { title: tip, who: whoM })}</p></div>`;
+      return `<div class="nego-body${sgCls}"><p>${redlineOpsHtml(ops, { title: tip, who: whoM })}</p></div>`;
     return `<div class="nego-body"><p>${_ne(which === 'del' ? (ch.oldText || '') : (ch.proposedText || ch.newText || ''))}</p></div>`;
   };
   /* The added clause itself. Marked as an addition and never as settled text:
@@ -14292,7 +14386,9 @@ function rlCardNotesCountHtml(c, ch, opts = {}, side = 'owner'){
   return `<button type="button" class="rl-card-notes" data-rl-notes="${_nea(ch.id)}"
     title="${_nea(i18t('ng_card_notes_n', { n: n.total }))}"
     aria-label="${_nea(i18t('ng_card_notes_n', { n: n.total }))}"
-    ><svg viewBox="0 0 16 16" aria-hidden="true"><use href="#i-chat"/></svg><b>${n.total}</b></button>`;
+    ><svg viewBox="0 0 16 16" aria-hidden="true"><use href="#i-chat"/></svg><b>${n.total}</b><span class="rl-card-notes-w">${
+      /* "2 notes", as drawn (round 9's gaps, 18 Oct 2026) */
+      _ne(i18tn('ng_row_notes_w', n.total))}</span></button>`;
 }
 /* ---------- WHAT OPEN REVEALS (owner-ruled 2 Sep 2026) ----------
 
@@ -14619,7 +14715,10 @@ function rlCardMoreHtml(c, ch, opts = {}, side = 'owner', st = {}){
    under what awaits them — the pair is "what you owe" and "what you have
    answered and not sent" — and it is the pile the Send all beside the column's
    name empties. Our seat never holds a decision, so it never draws it. */
-const RL_CARD_BANDS = ['refused', 'awaiting', 'answered', 'drafts', 'review', 'held',
+/* 'suggest' (round 9's gaps, 18 Oct 2026): a colleague's open suggestion is
+   its own pile ("Lina suggests"), after what waits on you and before our own
+   drafts, as drawn — our seat only (rlCardBand). */
+const RL_CARD_BANDS = ['refused', 'awaiting', 'answered', 'suggest', 'drafts', 'review', 'held',
   'with', 'accepted', 'withdrawn'];
 /* WHICH OF THEM ARE FINISHED BUSINESS. It decides which pile a change lands in
    and what the open card calls its wording ("was agreed" rather than "they
@@ -14694,6 +14793,7 @@ function rlCardBand(ch, side, unsent, held, c){
        filed as finished. */
   }
   if (theirs) return 'awaiting';
+  if (side !== 'counterparty' && c && rlIsOpenSuggestion(c, ch)) return 'suggest';
   if (!(unsent && unsent.has && unsent.has(ch.id))) return 'with';
   /* OURS, AND STILL HERE. Which of the three drafts bands is the review's own
      reading, asked exactly as the card asks it — see rvHeld / rvOut in
@@ -14724,7 +14824,37 @@ function rlCardSort(list, held, band){
      first pass at the bands walked straight into. */
   if (!band || !band.banded) return ranked;
   const at = ch => RL_CARD_BANDS.indexOf(rlCardBand(ch, band.side, band.unsent, held, band.c));
-  return ranked.sort((a, b) => at(a) - at(b));
+  /* ---- INSIDE A PILE, THE PAPER'S ORDER (round 9's gaps, second pass, 18 Oct
+     2026: "7. Liability cap" over "11. Payment terms", as drawn) ----
+     A pile reads down the contract the way the paper beside it does; where two
+     rows stand on one clause the rank and newest-first above still decide.
+     RAW: the clause positions are read off the negotiation's stored baseline
+     (rlClauseOrderOf), never negoClauseList, so sorting creates nothing. */
+  const pos = rlClauseOrderOf(band.c);
+  const where = ch => rlCardClausePos(ch, pos);
+  return ranked.sort((a, b) => (at(a) - at(b)) || (where(a) - where(b)));
+}
+/* WHERE EACH CLAUSE STANDS ON THE PAPER: clause id -> its place, off the
+   round's stored baseline. Empty where the contract carries no negotiation
+   yet — nothing is initialised to find out. */
+function rlClauseOrderOf(c){
+  const map = new Map();
+  const body = c && c.negotiation && c.negotiation.baselineBody;
+  if (!body || typeof window.clauseSegment !== 'function') return map;
+  let list = [];
+  try { list = clauseSegment(body) || []; } catch (_){ list = []; }
+  list.forEach((cl, i) => { if (cl && cl.clauseId != null) map.set(String(cl.clauseId), i); });
+  return map;
+}
+/* a change's place: its clause's; a new clause just after the one it follows;
+   a place nobody can read goes last, keeping the order above */
+function rlCardClausePos(ch, pos){
+  if (!ch || !pos || !pos.size) return 0;
+  const id = String(ch.clauseId || '');
+  if (pos.has(id)) return pos.get(id);
+  const after = String(ch.afterClauseId || '');
+  if (after && pos.has(after)) return pos.get(after) + 0.5;
+  return 1e9;
 }
 /* ---- ONE READING OF THE BAND, FOR BOTH LISTS ----
    Whether this seat draws bands at all, and which of our asks have not left the
@@ -17078,6 +17208,11 @@ function rlNpNoteHtml(m, room, side, org, ctx = null){
       ${(ctx.mayWrite && authored) ? `<button type="button" class="rl-np-act-b g" data-rl-np-delete="${_nea(key)}"${delWhy ? ` disabled title="${_nea(delWhy)}"` : ''}>${i18t('ng_np_delete')}</button>` : ''}
     </div>${factBits.length ? `<div class="rl-np-facts">${
       factBits.join('<span class="rl-np-fsep" aria-hidden="true">·</span>')}</div>` : ''}` : '';
+  /* THE VERBS AND THE FACTS ALONE (ctx.actsOnly): the Redlines column's own
+     notes view (round 9's gaps, second pass) draws its rows its own way and
+     asks this one builder for the presses under each, so their attributes and
+     wiring (rlNpWireActs) are the drawer's own */
+  if (ctx && ctx.actsOnly) return acts;
   const rbox = (ctx && ctx.replyOpen) ? rlNpReplyBoxHtml((ctx && ctx.replyRoot) || m, ctx) : '';
   /* ---- AND WHETHER IT IS NEW TO THIS READER ---- (13 Sep 2026, group 5)
      A dot, on the note itself, where the reading happens — the bell counts
@@ -18318,7 +18453,9 @@ const RL_SUG_VERB = {
   /* on Home the review door is a row of the panel's Menu tab (15 Oct 2026; the
      paper line's ⋯ went), so the row glows where the tab is open and the tab's
      own button while it is shut */
-  escalate: () => '[data-rl-review], #pd-body .pd-menu [data-ig-review], #ig-dock [data-pd-tab="menu"]',
+  /* … and since round 9 as drawn the Redlines column's own head carries "Ask
+     for review" ([data-rl-review-go]), which is where it glows on the face */
+  escalate: () => '[data-rl-review], [data-rl-review-go]:not(:disabled), #pd-body .pd-menu [data-ig-review], #ig-dock [data-pd-tab="menu"]',
 };
 const _rlGlowDone = new Set();
 /* RAW: their pending asks carrying an answer the reader sent back. */
@@ -18469,7 +18606,7 @@ function rlPaintCopilotAnswers(root, c, opts = {}){
 if (typeof document !== 'undefined' && !document._rlGlowWired){
   document._rlGlowWired = true;
   document.addEventListener('click', e => {
-    const t = e.target && e.target.closest && e.target.closest('[data-nego-accept],[data-nego-reject],[data-rl-cp-editor-change],[data-rl-review]');
+    const t = e.target && e.target.closest && e.target.closest('[data-nego-accept],[data-nego-reject],[data-rl-cp-editor-change],[data-rl-review],[data-rl-review-go]');
     if (!t) return;
     const id = t.getAttribute('data-nego-accept') || t.getAttribute('data-nego-reject') || t.getAttribute('data-rl-cp-editor-change') || t.getAttribute('data-rl-glow-for');
     if (id) _rlGlowDone.add(id);
@@ -19403,7 +19540,9 @@ function redlineChangeCardsHtml(c, opts = {}){
          loses nothing by moving up one place; Discard beside Send is the
          mistake that cannot be taken back. */
       out.push(relabel(door, i18t('act_edit')), take(/data-rl-send=/));
-      discard = relabel(take(/data-rl-retract=/), i18t('ng_discard'));
+      /* "Discard last", as drawn (round 9's gaps, 18 Oct 2026): the latest
+         unsent wording goes. The drawing is our seat's; their page keeps its word. */
+      discard = relabel(take(/data-rl-retract=/), i18t(side === 'counterparty' ? 'ng_discard' : 'ng_discard_last'));
       /* THE REVIEW ASK STAYS ON THE FACE (reversed the same day, 21 Sep 2026).
          It was taken off here for the artifact's four-verb row, and that was
          this pass's own reading, not the owner's word: the artifact has no
@@ -19416,8 +19555,7 @@ function redlineChangeCardsHtml(c, opts = {}){
     for (const v of list) if (!seen.has(v)) out.push(v);
     if (tail) out.push(tail);
     if (ch.clauseId && typeof window.ladderRungs === 'function' && ladderRungs(c, String(ch.clauseId)).length)
-      out.push(`<button type="button" class="rl-edit" data-rl-ladder="${_nea(ch.clauseId)}"
-        title="${_nea(i18t('ng_rung_open_title'))}">${_ne(i18t('ng_row_ladder'))}</button>`);
+      out.push(rlLadderVerbHtml(ch));
     if (discard) out.push(discard);
     const kept = out.filter(Boolean).map(rlFaceMark);
     /* IT WEARS BOTH CLASSES. `rl-card-face` is the artifact's own dressing for
@@ -19470,15 +19608,24 @@ function redlineChangeCardsHtml(c, opts = {}){
     const otherSide = side === 'counterparty'
       ? (opts.org || window.FIRST_PARTY || i18t('ng_the_counterparty'))
       : (c.counterparty || i18t('ng_the_counterparty'));
+    const inBand = () => shown.filter(x => rlCardBand(x, side, unsent, heldIds, c) === b);
+    /* our seat names the party too ("With Nordvik Logistik AB", round 9's
+       gaps, third pass), where the record holds one other party; several, or
+       none named, keep the generic word */
+    const many = side !== 'counterparty' && typeof window.partiesMulti === 'function' && window.partiesMulti(c);
+    const named = side === 'counterparty' || (!many && !!String(c.counterparty || '').trim());
     const label = b === 'with'
-      ? i18t(side === 'counterparty' ? 'ng_band_with_named' : 'ng_band_with', { who: otherSide })
+      ? i18t(named ? 'ng_band_with_named' : 'ng_band_with', { who: otherSide })
+      /* the pile names its colleague, and the settled fold its round (round 9's gaps) */
+      : b === 'suggest' ? rlSuggestPileLabel(c, inBand())
+      : b === 'accepted' ? rlSettledPileLabel(c, inBand())
       : i18t('ng_band_' + b);
     /* SETTLED, FOLDED (round 9, "Piles"): what is finished this round stands
        behind its own heading, a press opens it and a press again shuts it */
     if (RL_QUIET_BANDS.includes(b)) return `<button type="button" class="rl-band rl-band-fold" data-rl-band="${_nea(b)}" data-rl-settled-fold aria-expanded="${_rlSettledOpen ? 'true' : 'false'}"><span>${
       _ne(label)}</span><b>${n}</b><i aria-hidden="true">${_rlSettledOpen ? '▴' : '▾'}</i></button>`;
     return `<div class="rl-band" role="presentation" data-rl-band="${_nea(b)}"><span>${
-      _ne(label)}</span><b>${n}</b></div>`;
+      _ne(label)}</span><b>${n}</b>${b === 'review' ? rlReviewPileActsHtml(c, inBand(), opts) : ''}</div>`;
   };
   /* The card itself, unchanged in every branch below. Lifted out of the map so
      the band heading can be prefixed in ORDER — bandHead remembers the band it
@@ -19619,7 +19766,10 @@ function redlineChangeCardsHtml(c, opts = {}){
        already splits mine from theirs, and a sentence removed from a slot must
        stay findable — so they moved into this line's HOVER (the tip below),
        not out of the product. */
-    const who = _ne(_neClause(ch.clauseLabel || ch.clauseId || ''));
+    /* AS ON THE PAPER (round 9's gaps, second pass, 18 Oct 2026): the row
+       names its clause the way the paper beside it prints it — "7. Liability
+       cap" — through clauseNameAsDrafted (js/clausemodel.js), not re-cased */
+    const who = _ne(rlRowClauseName(ch));
     /* The same tooltip the marked wording in the document carries, so hovering
        either one answers the same question with the same words. */
     /* The person who last MOVED the wording, which is the reviser where there is
@@ -19878,8 +20028,10 @@ function redlineChangeCardsHtml(c, opts = {}){
          carries the same attribute ours does and lands on the same page — but
          it wears the plain verb's clothes: no sparkle, no violet and no word
          about Copilot, because the page it opens has none for them. */
+      /* ON THE ROW THE LOCK LINE NAMES WHO (round 9's gaps): the verb goes
+         grey without the monogram, as drawn; their seat keeps it */
       verbs.push(editLock
-        ? rlLockedBtn(editLock, 'rl-edit rl-verb-ai', i18t('ng_cp_copilot'))
+        ? rlLockedBtn(editLock, 'rl-edit rl-verb-ai', i18t('ng_cp_copilot'), { mono: side === 'counterparty' })
         : (ceTakesIt && side === 'counterparty')
         ? `<button class="rl-edit" data-rl-cp-editor-row="${_nea(ch.clauseId)}" data-rl-cp-editor-change="${_nea(ch.id)}"
         title="${_nea(i18t('ng_edit_clause_title'))}">${i18t('act_edit')}</button>`
@@ -20247,6 +20399,10 @@ function redlineChangeCardsHtml(c, opts = {}){
          and the summary the funnel wrote. Every figure is js/ladder.js's own
          reading; nothing here initialises. */
       const sub = rlRowSubHtml(c, ch, side, sum);
+      /* the row's second line is the changed words as drawn (round 9's gaps);
+         a change the risk list filed still says so on it */
+      const fromRiskRow = side !== 'counterparty' && !rlOnTheirPage()
+        && typeof window.riskFromScan === 'function' && !!window.riskFromScan(c, ch);
       /* ---- WHO HAS ANSWERED, ON A CONTRACT WITH TWO NEGOTIATING PARTIES ----
          (22 Sep 2026.) `negoPartyLine` returns NULL on every ordinary
          contract, so this line is not drawn there and the row is byte-
@@ -20268,7 +20424,10 @@ function redlineChangeCardsHtml(c, opts = {}){
          verb like any other and rode in the body's bar until the body went. */
       /* Copilot's answer to this ask lights its verb AFTER the render
          (rlPaintCopilotAnswers) — the one glow; nothing is written here. */
-      const face = rlRowFaceVerbs(verbs, ch, theirs, rvCancel);
+      /* A COLLEAGUE'S SUGGESTION, TO WHOEVER RULES ON IT: Adopt · Hand back ·
+         Ladder on the row (round 9's gaps, 18 Oct 2026) */
+      const sgRules = band === 'suggest' && !opts.readonly && typeof window.deskMayRuleSuggestion === 'function' && window.deskMayRuleSuggestion(c, ch);
+      const face = sgRules ? rlSuggestFaceHtml(c, ch) : rlRowFaceVerbs(verbs, ch, theirs, rvCancel);
       /* `info` is the caution captions; the other three are the sentences and
          buttons that used to ride in the body's action bar. Built above, in the
          one place that decides them, and only re-homed here. */
@@ -20276,8 +20435,13 @@ function redlineChangeCardsHtml(c, opts = {}){
        the desk's "instead" line — it is about the same thing those two are:
        what this card is waiting on, and who can move it. One builder, both
        renderers (js/desk.js). */
-    const dkSuggest = window.deskCardSuggestHtml ? deskCardSuggestHtml(c, ch, opts) : '';
-    const rowStrips = [info, noCopyBlock, rvStuckBlock, dkInstead, dkSuggest, rvVerbs]
+    /* in its own pile the suggestion says itself: the ruler's strip only
+       where it was handed back (its reason), and without the two presses the
+       row's face now carries; the "drafted by" caption is the pile's name */
+    const dkSuggest0 = window.deskCardSuggestHtml ? deskCardSuggestHtml(c, ch, opts) : '';
+    const dkSuggest = !sgRules ? dkSuggest0
+      : (((window.deskSuggestion && deskSuggestion(ch)) || {}).returnedAt ? dkSuggest0.replace(/<div class="dk-sg-verbs">[\s\S]*?<\/div>/, '') : '');
+    const rowStrips = [band === 'suggest' ? info.replace(dkBy, '') : info, noCopyBlock, rvStuckBlock, dkInstead, dkSuggest, rvVerbs]
         .filter(Boolean).join('');
       return `<article class="rl-card rl-card-d${
         RL_SETTLED_BANDS.includes(band) ? ' rl-card-done' : ''}${
@@ -20322,8 +20486,8 @@ function redlineChangeCardsHtml(c, opts = {}){
                   quiet, in the data face; the clause still leads. */}${
             who ? `<span class="rl-card-id">${_ne(ch.id)}</span>${rlRowByHtml(ch, _short)}` : ''}${
             rlCardNotesCountHtml(c, ch, opts, side)}</div>
-          ${(() => { const why = rlRowWhyHtml(ch), keeps = rlRowKeepsHtml(c, ch, side);
-            return (why || keeps) ? `<div class="rl-card-sumw">${sub}${why}${keeps}</div>` : sub; })()}${pySub}${prepSub}
+          ${(() => { const why = rlRowWhyHtml(ch), keeps = rlRowKeepsHtml(c, ch, side), lock = rlRowLockHtml(c, ch, side), line = rlRowLineHtml(ch, sub, fromRiskRow);
+            return (why || keeps || lock) ? `<div class="rl-card-sumw">${line}${why}${keeps}${lock}</div>` : line; })()}${pySub}${prepSub}
         </div>
         ${''/* ---- AND THE OPEN BUTTON IS GONE WITH THE BODY IT UNFOLDED
                (Young ruled 15 Sep 2026) ----
@@ -20370,6 +20534,7 @@ function redlineChangeCardsHtml(c, opts = {}){
                bar with a hole in it and the explanation elsewhere is worse than
                either: that is why the verdict buttons travel with them. */}
         ${rowStrips ? `<div class="rl-card-actions">${deaden(rowStrips)}</div>` : ''}
+        ${rlFaceLadderHtml(c, ch, side, opts)}
       </article>`;
     }
     /* ---- THE RECEIPT AND THE BOXED CARD ARE RETIRED WITH THE SEAT THAT KEPT
@@ -20382,7 +20547,18 @@ function redlineChangeCardsHtml(c, opts = {}){
        `.rl-receipt`, `.rl-open-btn` on a change row and `.rl-card-diff` are
        STALE — flag any mention. */
   };
-  return shown.map(ch => bandHead(ch) + oneCard(ch)).join('');
+  /* ---- EACH PILE IS ITS OWN BOX (round 9's gaps, 18 Oct 2026): its heading
+     and its rows inside one frame, as drawn. The heading and the rows are the
+     same markup; only the frame around them is new. */
+  if (!banded) return shown.map(ch => bandHead(ch) + oneCard(ch)).join('');
+  let out = '', open = false;
+  for (const ch of shown){
+    const h = bandHead(ch);
+    if (h){ if (open) out += '</section>';
+      out += `<section class="rl-pile${RL_QUIET_BANDS.includes(lastBand) ? ' rl-pile-quiet' : ''}" data-rl-pile="${_nea(lastBand)}">${h}`; open = true; }
+    out += oneCard(ch);
+  }
+  return out + (open ? '</section>' : '');
 }
 
 /* The design's single banner. It replaces the engine's two (mode + turn) at the
@@ -21244,13 +21420,15 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
     const askBtn = t.closest('[data-rl-lock-ask]');
     if (askBtn){
       ev.preventDefault(); ev.stopPropagation();
-      const cc = rlLadderContract();
+      const cc = rlPressContract(askBtn);
       const cid = askBtn.getAttribute('data-rl-lock-ask');
       if (!cc || !cid || !window.clauseLockAsk) return;
       const sign = window.clauseLockSign ? clauseLockSign(cc, cid) : null;
       if (!clauseLockAsk(cc, cid)) return;
       if (window.toast) toast(i18t('cl_asked_done', { who: (sign && sign.name) || i18t('cl_a_colleague') }), 'ok');
-      if (document.getElementById('view-redline') && window.renderRedline) renderRedline();
+      /* the row's own "Ask for it" beside Home's paper (round 9's gaps) repaints its face */
+      if (askBtn.closest('#pd-redface') && window.pdRedRepaint) pdRedRepaint();
+      else if (document.getElementById('view-redline') && window.renderRedline) renderRedline();
       else if (window.renderWorkspace) renderWorkspace();
       return;
     }
@@ -21282,13 +21460,15 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
     const sgA = t.closest('[data-dk-adopt]'), sgR = t.closest('[data-dk-return]');
     if (sgA || sgR){
       ev.preventDefault(); ev.stopPropagation();
-      const cc = rlLadderContract();
+      const cc = rlPressContract(sgA || sgR);
       const id = (sgA || sgR).getAttribute(sgA ? 'data-dk-adopt' : 'data-dk-return');
       if (!cc || !id) return;
-      /* Repaint whichever surface the reader is on — the negotiate page, the
-         room if it is open, the workspace behind it either way. The one helper
-         three other acts on this page already use. */
+      const onFace = !!(sgA || sgR).closest('#pd-redface');
+      /* Repaint whichever surface the reader is on — Jambo's Redlines face
+         beside Home's paper (round 9's gaps), the negotiate page, the room if
+         it is open, the workspace behind it either way. */
       const repaint = () => {
+        if (onFace && window.pdRedRepaint){ pdRedRepaint(); return; }
         if (document.getElementById('view-redline') && window.renderRedline){ renderRedline(); return; }
         let painted = false;
         try{ painted = !!(window.negoRepaintOpenRoom && negoRepaintOpenRoom(cc)); }catch(_){}
@@ -21319,6 +21499,19 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
     if (lad){
       ev.preventDefault(); ev.stopPropagation();
       const lid = lad.getAttribute('data-rl-ladder');
+      /* ON JAMBO'S REDLINES FACE the ladder opens under its row, and the same
+         press folds it (rlFaceLadderHtml — the face has no clause panel) */
+      const faceRow = lad.closest('#pd-redface') ? lad.getAttribute('data-rl-ladder-ch') : null;
+      if (faceRow){
+        rlFaceLadderSet(rlFaceLadderOpen() === faceRow ? null : faceRow);
+        if (window.pdRedRepaint) window.pdRedRepaint();
+        const open = rlFaceLadderOpen();
+        if (open) requestAnimationFrame(() => {
+          const el = document.querySelector(`#pd-redface [data-rl-row-ladder="${window.CSS && CSS.escape ? CSS.escape(open) : open}"]`);
+          if (el && el.scrollIntoView) try { el.scrollIntoView({ block: 'nearest' }); } catch (_){}
+        });
+        return;
+      }
       const lscope = lad.closest('.redline-page') || document;
       /* THE TOGGLE IS THE CLAUSE, NOT THE POSTURE (15 Sep 2026). A first
          draft made this press NARROW a panel already open in full rather than
@@ -21643,11 +21836,32 @@ function rlAgoWords(iso){
   if (n === 1) return i18t('rl_ago_yesterday');
   return (typeof i18tn === 'function') ? i18tn('rl_ago_days', n, { n }) : n + ' days ago';
 }
+/* THE ROW'S CLAUSE NAME, AS ON THE PAPER (round 9's gaps, second pass): the
+   stamped label through clauseNameAsDrafted; where that reading is not loaded,
+   the product's one presenting voice as before */
+function rlRowClauseName(ch){
+  const raw = String((ch && (ch.clauseLabel || ch.clauseId)) || '');
+  return (typeof window.clauseNameAsDrafted === 'function') ? clauseNameAsDrafted(raw) : _neClause(raw);
+}
+/* WHO AND WHEN, AS DRAWN (round 9's gaps, 18 Oct 2026): the whole name —
+   "Anna Holm · 4 days ago", "Lina Ek · yesterday" — and "You" on the
+   reader's own change; the reference and the name ride the hover. `short` is
+   no longer applied (the drawing names people in full); it stays in the
+   signature so a caller passing it is untouched. */
+function rlRowIsMine(ch){
+  if (!ch || ch.authorSide === 'counterparty' || rlOnTheirPage()) return false;
+  const me = (typeof window.currentUser === 'function') ? window.currentUser() : null;
+  const a = String(ch.author || '').trim().toLowerCase(), n = String((me && me.name) || '').trim().toLowerCase();
+  return !!(a && n && a === n);
+}
 function rlRowByHtml(ch, short){
   const who = String((ch && ch.author) || '').trim();
   const when = rlAgoWords(ch && (ch.createdAt || ch.at));
-  const words = [who ? (typeof short === 'function' ? short(who) : who) : '', when].filter(Boolean).join(' \u00b7 ');
-  return words ? `<span class="rl-card-by" title="${_nea([who, ch.id].filter(Boolean).join(' \u00b7 '))}">${_ne(words)}</span>` : '';
+  /* "You · today" on our own row (round 9 as drawn); anyone else's name in
+     the card's short form, "Anna H." (owner, 13 Aug 2026: a name on a change
+     card is first name plus initial; the whole name stays on the hover) */
+  const words = [who ? (rlRowIsMine(ch) ? i18t('ng_row_you') : (typeof short === 'function' ? short(who) : who)) : '', when].filter(Boolean).join(' · ');
+  return words ? `<span class="rl-card-by" title="${_nea([who, ch.id].filter(Boolean).join(' · '))}">${_ne(words)}</span>` : '';
 }
 /* ---- A COUNTER THAT UNDOES ONLY PART OF THEIR ASK SAYS WHAT IT KEEPS (owner,
    18 Oct 2026, over MK-369: "In the governing law clause, you have changed
@@ -21738,8 +21952,449 @@ function rlRowKeepsHtml(c, ch, side){
 }
 function rlRowWhyHtml(ch){
   const w = String((typeof window.negoReasonOf === 'function') ? negoReasonOf(ch) : ((ch && ch.why) || '')).trim();
-  return w ? `<div class="rl-card-whyq" title="${_nea(w)}">\u201c${_ne(w)}\u201d</div>` : '';
+  return w ? `<div class="rl-card-whyq" title="${_nea(w)}">“${_ne(w)}”</div>` : '';
 }
+/* ---- THE CHANGED WORDS, CUT AROUND THE EDIT (round 9's gaps, 18 Oct 2026:
+   "… capped at 50% 100% of the fees paid in that year") ----
+   A READING over the change's STORED ops — the same ops the paper draws its
+   marks from — so the row quotes exactly what the paper shows: a few words
+   before the first mark, the marks themselves, and the words after the last
+   one to the end of their sentence. Display only; nothing is filed, nothing
+   re-derived. A long untouched run between two marks is shortened in the
+   middle, and a cut is always said with "…". Empty where a change carries no
+   ops, and the row keeps its argument line then. */
+const RL_EX_BEFORE = 4;     // words before the first mark
+const RL_EX_AFTER = 8;      // words after the last mark at most, where no sentence ends first
+const RL_EX_MID = 8;        // an untouched run between two marks longer than this is shortened
+const RL_EX_WHOLE = 12;     // words of a whole clause added or struck
+function _rlExTokens(s){ return String(s == null ? '' : s).split(/(\s+)/).filter(x => x !== ''); }
+const _rlExWord = t => !/^\s+$/.test(t);
+/* the last n words of a text (and whether anything before them was cut) */
+function _rlExHead(text, n){
+  const tk = _rlExTokens(text); const out = []; let w = 0;
+  for (let i = tk.length - 1; i >= 0; i--){
+    if (_rlExWord(tk[i])){ if (w === n) return { cut: true, s: out.reverse().join('') }; w++; }
+    out.push(tk[i]);
+  }
+  return { cut: false, s: out.reverse().join('') };
+}
+/* the first words of a text, to the end of their sentence or n words */
+function _rlExTail(text, n){
+  const tk = _rlExTokens(text); const out = []; let w = 0;
+  for (let i = 0; i < tk.length; i++){
+    out.push(tk[i]);
+    if (_rlExWord(tk[i])){
+      w++;
+      const rest = tk.slice(i + 1).some(_rlExWord);
+      if (/[.;:!?]["”’)]?$/.test(tk[i]) || w >= n) return { cut: rest, s: out.join('') };
+    }
+  }
+  return { cut: false, s: out.join('') };
+}
+function _rlExMid(text){
+  const words = _rlExTokens(text).filter(_rlExWord);
+  if (words.length <= RL_EX_MID) return _ne(text);
+  return `${_ne(_rlExTail(text, 3).s.replace(/\s+$/, ''))} … ${_ne(_rlExHead(text, 3).s.replace(/^\s+/, ''))}`;
+}
+function rlRowExcerptHtml(ch){
+  if (!ch) return '';
+  const whole = (t, tag) => { const r = _rlExTail(String(t || '').replace(/\s+/g, ' ').trim(), RL_EX_WHOLE);
+    return r.s.trim() ? `<div class="rl-card-ex"><${tag}>${_ne(r.s.trim())}</${tag}>${r.cut ? ' …' : ''}</div>` : ''; };
+  if (ch.changeType === 'insertClause') return whole(ch.newText || ch.text || '', 'ins');
+  if (ch.changeType === 'deleteClause') return whole(ch.oldText || '', 'del');
+  const ops = Array.isArray(ch.ops) ? ch.ops.filter(o => o && typeof o.text === 'string') : [];
+  const marked = o => o.op === 'ins' || o.op === 'del';
+  const first = ops.findIndex(marked);
+  if (first < 0) return '';
+  let last = first; ops.forEach((o, i) => { if (marked(o)) last = i; });
+  const head = _rlExHead(ops.slice(0, first).map(o => o.text).join(''), RL_EX_BEFORE);
+  const tail = _rlExTail(ops.slice(last + 1).map(o => o.text).join(''), RL_EX_AFTER);
+  let mid = '';
+  for (let i = first; i <= last; i++){
+    const o = ops[i];
+    /* a struck run met by its replacement reads "50% 100%": a real space
+       between the two, so a copy and a screen reader say two words */
+    const gap = o.op === 'ins' && i > first && ops[i - 1].op === 'del' && !/\s$/.test(ops[i - 1].text) && !/^\s/.test(o.text) ? ' ' : '';
+    mid += o.op === 'del' ? `<del>${_ne(o.text)}</del>` : o.op === 'ins' ? `${gap}<ins>${_ne(o.text)}</ins>` : _rlExMid(o.text);
+  }
+  return `<div class="rl-card-ex">${head.cut ? '… ' : ''}${_ne(head.s.replace(/^\s+/, ''))}${mid}${_ne(tail.s.replace(/\s+$/, ''))}${tail.cut ? ' …' : ''}</div>`;
+}
+/* THE LINE THE ROW SHOWS UNDER ITS NAME: the changed words where the change
+   carries its ops, in the argument line's own slot and class (.rl-card-sum,
+   so its type and place are the line's), the argument itself ("Step 1 ·
+   theirs · 30 → 60 days", a clause's whole ladder) riding the hover; the
+   argument line itself where no excerpt can be read. */
+function _rlPlain(h){
+  return String(h || '').replace(/<[^>]*>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'").replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+}
+function rlRowLineHtml(ch, sub, fromRisk){
+  const ex = rlRowExcerptHtml(ch);
+  if (!ex) return sub || '';
+  const arg = _rlPlain(sub);
+  const tag = fromRisk ? ` <span class="rl-card-ex-tag">${_ne(i18t('rk_from_scan'))}</span>` : '';
+  return ex.replace('<div class="rl-card-ex">', `<div class="rl-card-sum rl-card-ex"${arg ? ` title="${_nea(arg)}"` : ''}>`).replace(/<\/div>$/, tag + '</div>');
+}
+/* ---- WHO IS HOLDING THIS CLAUSE, ON ITS OWN ROW (round 9's gaps: "Erik is
+   editing this clause · Ask for it") ----
+   The sign the paper's pencil already draws (clauseLockSign, the ONE reading
+   of a held clause), said on the row whose Counter it greys, with its own way
+   forward: "Ask for it" is the paper's own press (data-rl-lock-ask, the one
+   delegated handler), "Asked" once asked. Our seat only, and only where a
+   colleague holds the clause. */
+function rlRowLockHtml(c, ch, side){
+  if (!c || !ch || !ch.clauseId || side === 'counterparty' || rlOnTheirPage()) return '';
+  const s = rlLockSign(c, ch.clauseId);
+  if (!s) return '';
+  const first = String(s.name || '').trim().split(/\s+/)[0] || i18t('cl_a_colleague');
+  const ask = s.mayAsk
+    ? `<button type="button" class="rl-card-lock-ask" data-rl-lock-ask="${_nea(s.clauseId)}" title="${_nea(i18t('cl_ask_title', { who: s.name || i18t('cl_a_colleague') }))}">${_ne(i18t('cl_ask'))}</button>`
+    : (s.asked ? `<span class="rl-card-lock-asked" title="${_nea(i18t('cl_asked_title'))}">${_ne(s.askedSay || i18t('cl_asked_said'))}</span>` : '');
+  return `<div class="rl-card-lock" title="${_nea(s.title)}"><svg class="rl-card-lock-i" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true" focusable="false"><rect x="3.5" y="7" width="9" height="6.5" rx="1"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg><b class="rl-lock-mono" aria-hidden="true">${_ne(s.mono)}</b><span class="rl-card-lock-say">${_ne(i18t('ng_row_lock_editing', { who: first }))}</span>${ask}</div>`;
+}
+/* ---- A COLLEAGUE'S SUGGESTION IS ITS OWN PILE (round 9's gaps: "Lina
+   suggests" · Adopt · Hand back · Ladder) ----
+   ONE READING: an open suggestion (js/desk.js deskSuggestionOpen) of our own
+   side, while the desk rule holds an open desk. It never travels and never
+   draws on their seat (rlCardBand asks it for our side only). */
+function rlIsOpenSuggestion(c, ch){
+  if (!c || !ch || ch.authorSide === 'counterparty' || ch.status !== 'pending' || ch.withdrawn) return false;
+  if (typeof window.deskSuggestionOpen !== 'function' || !window.deskSuggestionOpen(ch)) return false;
+  return !!(typeof window.deskEnforced === 'function' && window.deskEnforced()
+    && typeof window.deskIsOpen === 'function' && window.deskIsOpen(c));
+}
+/* the pile's name: "Lina suggests" from one colleague, "Colleagues suggest"
+   from several, and on the author's own seat whose turn it is */
+function rlSuggestPileLabel(c, list){
+  const L = list || [];
+  if (L.length && L.every(ch => rlRowIsMine(ch))){
+    const lead = (typeof window.deskLead === 'function' && window.deskLead(c)) || {};
+    return i18t('ng_band_suggest_mine', { who: String(lead.name || '').trim().split(/\s+/)[0] || i18t('cl_a_colleague') });
+  }
+  const by = [...new Set(L.map(ch => { const g = (typeof window.deskSuggestion === 'function') ? window.deskSuggestion(ch) : null;
+    return String((g && g.by) || ch.author || '').trim(); }).filter(Boolean))];
+  return by.length === 1 ? i18t('ng_band_suggest_by', { who: by[0].split(/\s+/)[0] }) : i18t('ng_band_suggest_many');
+}
+/* ---- "OUT FOR REVIEW" CARRIES ITS OWN REMIND (round 9's gaps, third pass,
+   19 Oct 2026) ----
+   On Jambo's Redlines face the review's waiting banner is not drawn above the
+   head (the picked option's rule: no new band — "Send all · N not sent" is the
+   one strip that stands, and the pile already says what is out). Its Remind
+   comes to the pile's own head, for the review its rows are in, offered only
+   where the banner offered it (reviewMayCancel), pressed through the review's
+   own handler (reviewWireCards, data-rv-act); its Cancel is already on each
+   row (reviewCardCancelHtml, which asks first). Our seat, the face only
+   (opts.waitingInPile). */
+function rlReviewPileActsHtml(c, rows, opts = {}){
+  if (!opts || !opts.waitingInPile || typeof window.reviewOpenFor !== 'function') return '';
+  const seen = new Set(), out = [];
+  for (const ch of (rows || [])){
+    const rv = (typeof window.reviewOpenFor === 'function') ? reviewOpenFor(c, ch) : null;
+    if (!rv || !rv.id || seen.has(rv.id)) continue;
+    seen.add(rv.id);
+    if (typeof window.reviewMayCancel === 'function' && !reviewMayCancel(rv)) continue;
+    const who = String((rv.reviewer && rv.reviewer.name) || '').trim().split(/\s+/)[0];
+    const mayName = typeof window.reviewMaySee !== 'function' || reviewMaySee(rv);
+    out.push(`<button type="button" class="rl-band-act" data-rv-act="rv-remind:${_nea(rv.id)}">${_ne(mayName && who ? i18t('ng_pile_remind_who', { who }) : i18t('rv_remind_btn'))}</button>`);
+  }
+  return out.length ? `<span class="rl-band-acts">${out.join('')}</span>` : '';
+}
+/* ---- LADDER ON A ROW OF JAMBO'S REDLINES FACE (round 9's gaps, third pass,
+   19 Oct 2026: "Ladder shows what we asked for, what we settle for and what
+   they ask") ----
+   The Negotiate page opens the clause panel narrowed to its ladder; the face
+   has no clause panel, so the press opened nothing there. On the face the
+   ladder opens UNDER ITS ROW — the clause panel's own sections, the steps
+   (rlLadderSectionHtml, drawn as the clause editor's rail draws it, no verbs:
+   the row carries them) and our standard with its fallback (rlPlaybookSecHtml)
+   — one row at a time, and the same press folds it again. A reading: nothing
+   is filed, nothing initialised (ladderRungs RAW). Per sitting, not kept. */
+let _rlFaceLad = null;
+function rlFaceLadderOpen(){ return _rlFaceLad; }
+function rlFaceLadderSet(id){ _rlFaceLad = id ? String(id) : null; }
+function rlFaceLadderHtml(c, ch, side, opts = {}){
+  if (!c || !ch || !ch.clauseId || !_rlFaceLad || String(ch.id) !== _rlFaceLad) return '';
+  if (!opts || opts.hostId !== 'pd-redface' || side === 'counterparty') return '';
+  const lad = rlLadderSectionHtml(c, { clauseId: String(ch.clauseId) }, side, { editor: true });
+  if (!lad) return '';
+  return `<div class="rl-row-ladder" data-rl-row-ladder="${_nea(ch.id)}">${lad}${rlPlaybookSecHtml(c, String(ch.clauseId), side)}</div>`;
+}
+/* the row's Ladder verb: the clause it reads, the row it opens under, and
+   whether it is open (the same press folds it) */
+function rlLadderVerbHtml(ch){
+  const on = !!(_rlFaceLad && String(ch.id) === _rlFaceLad);
+  return `<button type="button" class="rl-edit rl-ladder-verb" data-rl-ladder="${_nea(ch.clauseId)}" data-rl-ladder-ch="${_nea(ch.id)}"
+    aria-expanded="${on ? 'true' : 'false'}" title="${_nea(i18t('ng_rung_open_title'))}">${_ne(i18t('ng_row_ladder'))}</button>`;
+}
+/* the ruler's row: Adopt · Hand back · Ladder — the strip's own two presses,
+   handled by the one delegated listener */
+function rlSuggestFaceHtml(c, ch){
+  const v = [`<button type="button" class="rl-accept" data-dk-adopt="${_nea(ch.id)}">${_ne(i18t('dk_sg_adopt'))}</button>`,
+    `<button type="button" class="rl-reject rl-sg-back" data-dk-return="${_nea(ch.id)}">${_ne(i18t('dk_sg_return'))}</button>`];
+  if (ch.clauseId && typeof window.ladderRungs === 'function' && ladderRungs(c, String(ch.clauseId)).length)
+    v.push(rlLadderVerbHtml(ch));
+  return `<span class="rl-card-face rl-card-verbs">${v.map(rlFaceMark).join('')}</span>`;
+}
+/* ---- SETTLED, NAMED FOR ITS ROUND (round 9's gaps: "Settled in round 1") ----
+   A change decided before this round began (decided before the round's own
+   start, negoRoundSince) was settled in an earlier round; one decided since,
+   this round. RAW: the negotiation is read as it stands, nothing written. */
+function rlSettledAt(ch){ return String((ch && (ch.resolvedAt || (ch.withdrawn && ch.withdrawn.at))) || ''); }
+function rlSettledPileLabel(c, list){
+  const n = c && c.negotiation; const round = (n && Number(n.round) > 0) ? Number(n.round) : 1;
+  const since = String((typeof window.negoRoundSince === 'function' ? window.negoRoundSince(c) : (n && n.roundAt)) || '');
+  const L = list || [];
+  const earlier = L.filter(ch => since && rlSettledAt(ch) && rlSettledAt(ch) < since).length;
+  if (!earlier || round < 2) return i18t('ng_band_accepted');
+  if (earlier === L.length) return round === 2 ? i18t('ng_band_settled_in', { n: 1 }) : i18t('ng_band_settled_upto', { n: round - 1 });
+  return i18t('ng_band_settled_upto', { n: round });
+}
+/* ---- THE COLUMN'S HEAD, AS DRAWN (round 9's gaps, 18 Oct 2026) ----
+   "Redlines 4 · Notes 5 · Here now (faces)", "Round 2 · their asks came 4
+   days ago", "Send all · 1 not sent · Ask for review". Each part is an
+   existing reading or an existing door: the notes drawer (openNotesPanel, the
+   paper line's Notes), presence's own slot (presencePaint), the review's own
+   door (rlReviewDoor). Our seat only; their seat keeps its head. */
+function rlHeadOurs(opts){
+  return (opts.side === 'counterparty' ? 'counterparty' : 'owner') === 'owner' && !rlOnTheirPage() && !opts.preview;
+}
+/* HOW MANY ROWS STAND OUTSIDE THE SETTLED FOLD: the number "Redlines N"
+   says — the rows the reader sees with the fold shut. The cards' own list
+   (redlineCardIds) and their own band reading (rlCardBand). */
+function rlOpenCardCount(c, opts = {}){
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  const ids = (typeof redlineCardIds === 'function') ? redlineCardIds(c, opts) : [];
+  const byId = new Map((Array.isArray(c && c.changes) ? c.changes : []).map(x => [String(x && x.id), x]));
+  const bo = rlBandOpts(c, opts, side);
+  const held = new Set(opts.holdsDecisions ? (opts.heldDecisionIds || []) : []);
+  return ids.filter(id => { const ch = byId.get(String(id)); return !ch || !RL_QUIET_BANDS.includes(rlCardBand(ch, side, bo.unsent, held, c)); }).length;
+}
+/* every note this seat may read on the contract and on its live changes —
+   the drawer's own reading (negoRoomNotes), summed */
+function rlNotesTotal(c, opts = {}){
+  if (typeof negoRoomNotes !== 'function') return 0;
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  let n = 0;
+  try { n += negoRoomNotes(c, null, null, opts, side).length; } catch (_){}
+  for (const ch of (Array.isArray(c && c.changes) ? c.changes : [])){
+    if (!ch || ch.status === 'superseded') continue;
+    try { n += negoRoomNotes(c, ch, null, opts, side).length; } catch (_){}
+  }
+  return n;
+}
+function rlHeadNotesHtml(c, opts = {}){
+  if (!c || !rlHeadOurs(opts)) return '';
+  const n = rlNotesTotal(c, opts);
+  /* PRESSED WHILE THE NOTES ARE OPEN IN THE COLUMN (round 9's gaps, second
+     pass): the same press shuts them, as every opener in HaTi does */
+  const on = rlFaceNotesOn(c, opts);
+  return `<button type="button" class="rl-head-notes${on ? ' is-on' : ''}" data-rl-notes-all="${_nea(c.id)}" aria-pressed="${on ? 'true' : 'false'}" title="${_nea(i18t(on ? 'ng_fn_notes_on' : 'ng_chat_title'))}"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true" focusable="false"><use href="#i-chat"/></svg><span>${_ne(i18t('ig_line_notes'))}</span>${n ? `<b>${n}</b>` : ''}</button>`;
+}
+function rlHeadHereHtml(c, opts = {}){
+  if (!c || !rlHeadOurs(opts)) return '';
+  return `<span class="rl-head-here"><span class="rl-head-here-w">${_ne(i18t('ng_here_now'))}</span><span data-pz-slot="redlines"></span></span>`;
+}
+function rlHeadReviewHtml(c, opts = {}){
+  if (!c || !rlHeadOurs(opts) || opts.readonly || typeof window.reviewState !== 'function') return '';
+  if (typeof canEdit === 'function' && !canEdit()) return '';
+  if (typeof negoExecuted === 'function' && negoExecuted(c)) return '';
+  const d = rlReviewDoorState(c);
+  return `<button type="button" class="rl-head-review" data-rl-review-go="${_nea(c.id)}"${d.nobody ? ` disabled aria-disabled="true" title="${_nea(i18t('rv_no_colleagues'))}"` : ` title="${_nea(i18t('rv_head_title'))}"`}><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true" focusable="false"><path d="M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8s-2.4 4.5-6.5 4.5S1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/></svg><span>${_ne(d.label)}</span></button>`;
+}
+/* the column's host repaints after a press in its head: Jambo's Redlines face,
+   else the Negotiate page */
+function rlHeadRepaint(){
+  if (typeof window.pdRedShows === 'function' && window.pdRedShows() && typeof window.pdRedRepaint === 'function'){ window.pdRedRepaint(); return; }
+  if (document.getElementById('view-redline') && typeof window.renderRedline === 'function') window.renderRedline();
+}
+/* ============================================================
+   THE NOTES OPEN IN THE SAME PANEL (round 9's gaps, second pass, 18 Oct 2026:
+   "The notes open in the same panel, one room per side")
+   ============================================================
+   Notes in the column's head turns the column's body from the piles to the
+   contract's notes, the head staying where it is: a tab per room ("Internal"
+   with its lock, then each outside party), "‹ Redlines" at the row's end, each
+   note as "Name · clause N · when" with its words in a bubble, and a box
+   "Write to Internal… type @ to name someone" with Post. A press on Notes
+   again, or on ‹ Redlines, brings the piles back.
+   IT OWNS NO READING AND NO WRITER. The rooms are negoNoteRoomList, the room
+   showing rlNpRoomNow (the drawer's own state, shared on purpose), the threads
+   rlChatThreads, the verbs under a note rlNpNoteHtml(…{actsOnly}) wired by rlNpWireActs,
+   the @ list rlNpTagMenuHtml / rlNpTagWire, and Post is rlNotesSend — the
+   drawer's one send, with its confirm on a note that leaves the building.
+   Per sitting, one contract at a time, nothing stored. */
+let _rlFnFor = null;
+/* A ROW'S "2 notes" OPENS THAT CHANGE'S NOTES (round 9's gaps, third pass,
+   19 Oct 2026: "This opens that change's notes" — in the same panel, one room
+   per side, not the old drawer over Jambo's panel): the same view, narrowed to
+   the one change, its rooms counting that change's notes, the room with any
+   of them showing, and Post files under that change. "All notes" lets the
+   narrowing go; Notes in the head and ‹ Redlines shut the view as before. */
+let _rlFnChange = null;
+function rlFaceNotesOn(c, opts = {}){
+  return !!(c && _rlFnFor && String(c.id) === _rlFnFor && rlHeadOurs(opts));
+}
+function rlFaceNotesSet(id, change){ _rlFnFor = id ? String(id) : null; _rlFnChange = (id && change) ? String(change) : null; }
+function rlFaceNotesChange(){ return _rlFnChange; }
+/* the room a change's notes open on: the one showing if it holds any of them,
+   else the first room that does (RAW: the rooms' own notes, nothing written) */
+function rlFaceNotesRoomFor(c, ch, opts = {}){
+  const side = 'owner';
+  const rooms = negoNoteRoomList(c, opts, side);
+  const now = rlNpRoomNow(c, opts, side);
+  const has = k => negoRoomNotes(c, ch, k, opts, side).length > 0;
+  if (has(now)) return now;
+  const r = rooms.find(x => has(x.key));
+  return r ? r.key : now;
+}
+/* "clause 11": the clause a note stands on — its change's, else the words it
+   was pinned to — as a link to that clause on the paper; null where neither */
+function rlFaceNoteClause(c, ch, m){
+  const id = String((ch && ch.clauseId) || (m && m.anchor && m.anchor.clauseId) || '');
+  if (!id) return null;
+  let label = ch ? String(ch.clauseLabel || '') : '';
+  if (!label) label = rlNpClauseLabel(c, id) || '';
+  const parsed = (typeof window.clauseParseHeading === 'function') ? clauseParseHeading(label) : { num: '' };
+  const num = String(parsed.num || (label.match(/^\s*(\d+(?:\.\d+)*)/) || [])[1] || '');
+  const say = num ? i18t('ng_fn_clause', { n: num })
+    : ((typeof window.clauseNameAsDrafted === 'function' ? clauseNameAsDrafted(label) : label) || '');
+  return say ? { id, say } : null;
+}
+/* one note, as drawn: the face, the line, the bubble — and under it the
+   drawer's own verbs, shown on hover or focus (always on a touch screen) */
+function rlFaceNoteHtml(c, ch, m, room, side, ctx){
+  const who = String(m.who || '').trim() || i18t('ng_fn_someone');
+  const mono = (typeof window.deskInitials === 'function') ? deskInitials(who) : who.slice(0, 2).toUpperCase();
+  const cl = rlFaceNoteClause(c, ch, m);
+  const when = (typeof rlAgoWords === 'function') ? rlAgoWords(m.at) : '';
+  const theirs = negoRoomIsExternal(room) && m.side && m.side !== side;
+  const fresh = !!(c && !PORTAL_MODE && window.negoNoteUnread && negoNoteUnread(c, m));
+  const line = [`<b>${_ne(who)}</b>`,
+    cl ? `<button type="button" class="rl-fn-cl" data-rl-fn-clause="${_nea(cl.id)}" title="${_nea(i18t('ng_fn_clause_title'))}">${_ne(cl.say)}</button>` : '',
+    when ? `<span class="rl-fn-when" title="${_nea(typeof negoWhenFull === 'function' ? negoWhenFull(m.at) : '')}">${_ne(when)}</span>` : ''
+  ].filter(Boolean).join('<span class="rl-fn-dot" aria-hidden="true">·</span>');
+  const acts = rlNpNoteHtml(m, room, side, '', { ...(ctx || {}), actsOnly: true });
+  const rbox = (ctx && ctx.replyOpen) ? rlNpReplyBoxHtml((ctx && ctx.replyRoot) || m, ctx) : '';
+  return `<div class="rl-fn-note${theirs ? ' is-them' : ''}${(ctx && !ctx.root) ? ' is-reply' : ''}${fresh ? ' is-new' : ''}" data-rl-np-key="${_nea(negoNoteKey(m))}">
+    <span class="rl-fn-face" aria-hidden="true">${_ne(mono)}</span>
+    <div class="rl-fn-main"><div class="rl-fn-line">${line}</div>
+      <div class="rl-fn-say">${rlNpMarkMentions(_ne(String(m.text || '')), m)}</div>
+      ${acts ? `<div class="rl-fn-acts">${acts}</div>` : ''}${rbox}</div>
+  </div>`;
+}
+function rlFaceNotesHtml(c, opts = {}){
+  const side = 'owner';
+  const rooms = negoNoteRoomList(c, opts, side);
+  const room = rlNpRoomNow(c, opts, side);
+  const ext = negoRoomIsExternal(room);
+  /* narrowed to one change (a row's "N notes"), where that change still stands */
+  const only = _rlFnChange && Array.isArray(c.changes) ? (c.changes.find(x => x && String(x.id) === _rlFnChange) || null) : null;
+  const mine = x => !only || (x.ch && String(x.ch.id) === String(only.id));
+  const all = rlChatRows(c, opts).filter(mine);
+  const byRoom = {};
+  for (const r of rooms) byRoom[r.key] = 0;
+  for (const { m } of all){ const k = negoNoteRoomKey(c, m); byRoom[k] = (byRoom[k] || 0) + 1; }
+  const roomName = r => r.external ? (r.name || i18t('ng_np_tab_ext')) : i18t('ng_fn_internal');
+  const tabs = rooms.map(r => `<button type="button" role="tab" class="rl-fn-tab${r.key === room ? ' on' : ''}${r.external ? ' is-ext' : ''}"
+      data-rl-fn-room="${_nea(r.key)}" aria-selected="${r.key === room}" title="${_nea(r.external
+        ? i18t('ng_np_room_t_ext', { who: r.name || '' }) : i18t('ng_np_room_t_int'))}">${r.external ? '' : RL_NP_LOCK}<span class="rl-fn-tab-w">${_ne(roomName(r))}</span><b>${byRoom[r.key] || 0}</b></button>`).join('');
+  const mayWrite = notesMayWrite(c, opts);
+  const threads = rlChatThreads(c, opts, room).filter(mine);
+  const openT = threads.filter(x => !x.th.done), doneT = threads.filter(x => x.th.done);
+  const one = ({ ch, th }) => {
+    const key = negoNoteKey(th.root);
+    const ctx = { c, ch, acts: true, mayWrite, ext };
+    const under = k => _rlNpReplyTo === key && (_rlNpReplyUnder || key) === k;
+    return `<div class="rl-fn-thread rl-np-thread${th.done ? ' is-done' : ''}" data-rl-np-home="${_nea(ch ? ch.id : '')}" data-rl-np-root="${_nea(key)}">
+      ${rlFaceNoteHtml(c, ch, th.root, room, side, { ...ctx, root: true, rootKey: key, replyRoot: th.root, replyCount: th.replies.length, replyOpen: under(key) })}
+      ${th.replies.map(r => rlFaceNoteHtml(c, ch, r, room, side, { ...ctx, root: false, rootKey: key, replyRoot: th.root, replyOpen: under(negoNoteKey(r)) })).join('')}
+    </div>`;
+  };
+  const cur = rooms.find(r => r.key === room) || rooms[0] || { external: false };
+  const list = threads.length
+    ? openT.map(one).join('') + (doneT.length ? `<button type="button" class="rl-np-donefold" data-rl-np-donefold aria-expanded="${_rlNpDoneOpen ? 'true' : 'false'}">${
+        i18tn('ng_np_done_n', doneT.length, { n: doneT.length })}</button>${_rlNpDoneOpen ? doneT.map(one).join('') : ''}` : '')
+    : `<div class="rl-fn-empty">${ext ? i18t('ng_chat_none_ext', { who: _ne(roomName(cur)) }) : i18t('ng_chat_none_int')}</div>`;
+  const pin = rlNpPinFor(c, null);
+  const foot = mayWrite
+    ? `<div class="rl-fn-foot${ext ? ' out' : ''}">
+        <textarea class="chat-field rl-np-in rl-fn-in" rows="1" placeholder="${_nea(i18t('ng_fn_ph', { room: roomName(cur) }))}"
+          aria-label="${_nea(i18t('ng_fn_ph', { room: roomName(cur) }))}">${_ne(pin ? (pin.drafts[room] || '') : '')}</textarea>
+        ${rlNpTagMenuHtml(c, room, opts)}
+        <button type="button" class="ui-btn ui-btn-sm ui-btn-primary rl-fn-post" data-rl-fn-post="${_nea(room)}">${_ne(i18t('ng_fn_post'))}</button>
+      </div>`
+    : `<div class="rl-np-no">${RL_NP_LOCK}<span>${i18t('ng_np_viewer')}</span></div>`;
+  /* which change the view is narrowed to, as its row names it, with the way
+     to every note (a label of what is shown, not a band) */
+  const onlyHtml = only ? (() => {
+    const lab = (typeof rlRowClauseName === 'function') ? rlRowClauseName(only) : (only.clauseLabel || '');
+    const n = all.length;
+    return `<div class="rl-fn-only" data-rl-fn-only="${_nea(only.id)}"><b>${_ne(lab)}</b><span>${n} ${_ne(i18tn('ng_row_notes_w', n))}</span><button type="button" class="rl-fn-all" data-rl-fn-all>${_ne(i18t('ng_fn_all'))}</button></div>`;
+  })() : '';
+  return `<div class="rl-fn rl-np" data-rl-fn="${_nea(c.id)}"${only ? ` data-rl-fn-change="${_nea(only.id)}"` : ''}>
+    <div class="rl-fn-tabs" role="tablist">${tabs}<span class="rl-fn-sp"></span><button type="button" class="rl-fn-back" data-rl-fn-back title="${_nea(i18t('ng_fn_back_title'))}">‹ ${_ne(i18t('ng_fn_back'))}</button></div>
+    ${onlyHtml}
+    <div class="rl-fn-list">${list}</div>
+    ${foot}
+  </div>`;
+}
+/* after a paint: the drawer's own wiring on the notes view's markup — the
+   verbs (rlNpWireActs), the @ list, Enter to post. Bound to fresh markup on
+   every paint, so nothing stacks. */
+function rlFaceNotesWire(host, c, opts = {}){
+  const root = host && host.querySelector ? host.querySelector('.rl-fn[data-rl-fn]') : null;
+  if (!root || !c) return;
+  const box = root.querySelector('.rl-fn-in');
+  if (box){
+    box.addEventListener('keydown', e => {
+      if (window.chatFieldSubmits ? chatFieldSubmits(e) : (e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), true))){
+        const b = root.querySelector('[data-rl-fn-post]'); if (b) b.click();
+      }
+    });
+    if (typeof rlNpTagWire === 'function') rlNpTagWire(root, box);
+  }
+  rlNpWireActs(root, c, null, { ...opts, side: 'owner' }, rlHeadRepaint);
+  try { if (typeof negoMarkChatSeen === 'function') negoMarkChatSeen(c, opts); } catch (_){}
+}
+if (typeof document !== 'undefined') document.addEventListener('click', e => {
+  const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+  const nb = t.closest('[data-rl-notes-all]');
+  /* Notes in the column's head opens the notes IN the column, and shuts them
+     on the same press (round 9's gaps, second pass) */
+  if (nb){
+    e.preventDefault();
+    const id = nb.getAttribute('data-rl-notes-all');
+    rlFaceNotesSet(_rlFnFor === String(id) ? null : id);
+    rlHeadRepaint();
+    return;
+  }
+  if (t.closest('[data-rl-fn-back]')){ e.preventDefault(); rlFaceNotesSet(null); rlHeadRepaint(); return; }
+  if (t.closest('[data-rl-fn-all]')){ e.preventDefault(); rlFaceNotesSet(_rlFnFor, null); rlHeadRepaint(); return; }
+  const rt = t.closest('[data-rl-fn-room]');
+  if (rt){ e.preventDefault(); rlNpSetRoom(rt.getAttribute('data-rl-fn-room')); rlHeadRepaint(); return; }
+  const go = t.closest('[data-rl-fn-clause]');
+  if (go){ e.preventDefault(); rlLandOnClause(go.getAttribute('data-rl-fn-clause')); return; }
+  const post = t.closest('[data-rl-fn-post]');
+  if (post){
+    e.preventDefault();
+    const root = post.closest('.rl-fn[data-rl-fn]');
+    const c = root && typeof getContract === 'function' ? getContract(root.getAttribute('data-rl-fn')) : null;
+    if (!c) return;
+    const me = (typeof currentUser === 'function' && currentUser()) || null;
+    /* narrowed to one change, a note posted here is that change's */
+    const onCh = root.getAttribute('data-rl-fn-change');
+    const ch = onCh && Array.isArray(c.changes) ? (c.changes.find(x => x && String(x.id) === onCh) || null) : null;
+    Promise.resolve(rlNotesSend(root, c, ch, { side: 'owner', author: (me && me.name) || undefined, messages: c._messages }, post.getAttribute('data-rl-fn-post')))
+      .then(ok => { if (ok) rlHeadRepaint(); }).catch(() => {});
+    return;
+  }
+  const rb = t.closest('[data-rl-review-go]');
+  if (rb && !rb.disabled){
+    e.preventDefault();
+    const c = (typeof getContract === 'function') ? getContract(rb.getAttribute('data-rl-review-go')) : null;
+    if (c) rlReviewDoor(c, rlHeadRepaint);
+  }
+});
 function rlSettledToggle(){
   _rlSettledOpen = !_rlSettledOpen;
   document.querySelectorAll('#rl-changes-col').forEach(col => col.classList.toggle('rl-settled-open', _rlSettledOpen));
@@ -21769,6 +22424,13 @@ function rlColumnHtml(c, opts = {}){
      drift again. */
   const changeTotal = (typeof redlineCardIds === 'function')
     ? redlineCardIds(c, { ...opts, hiddenIds: [...tabHidden] }).length : 0;
+  /* "REDLINES N" COUNTS THE ROWS IN SIGHT (round 9's gaps, 18 Oct 2026: the
+     drawing's "Redlines 4" over six settled behind their fold): what is
+     settled this round or before folds away and is counted on its fold, so
+     the name says what the reader has in front of them. changeTotal stays the
+     whole stack for the hidden proxies below. */
+  const openTotal = rlOpenCardCount(c, { ...opts, hiddenIds: [...tabHidden] });
+  const notesOn = rlFaceNotesOn(c, opts);
   return `<aside class="rl-col rl-side${rlReadOnlyReading() ? ' is-reading' : ''}" id="rl-side" aria-label="${_nea(i18t('ng_tracked_changes'))}">
         ${''/* ---- THE COLUMN STANDS DOWN ON A READING (owner-asked 24 Aug
                2026) ---- On 'As agreed' and 'With changes' the paper is drawn
@@ -21849,9 +22511,18 @@ function rlColumnHtml(c, opts = {}){
               ${''/* A HOST'S OWN WAY BACK (round 3, "Tabs and faces"): Jambo's
                      Redlines face opens its head with "‹ Jambo"; the
                      Negotiate page passes nothing. */}${opts.headStart || ''}<span class="rl-idx-title">${
-                _ne(i18t('ng_redlines_head_n', { n: changeTotal }))
+                _ne(i18t('ng_redlines_head_n', { n: openTotal }))
                   .replace(/\s*\(?(\d+)\)?\s*$/, ' <i>$1</i>')}</span>
               <span class="rl-idx-sp"></span>
+              ${''/* THE HEAD AS DRAWN (round 9's gaps, 18 Oct 2026): Notes with its
+                     count and who is here now on the name's line; the round
+                     under it; then Send all with Ask for review beside it.
+                     One flex row that breaks (.rl-idx-br), so every part is
+                     still inside .rl-idx-top where the checks look for it. */}
+              ${rlHeadNotesHtml(c, opts)}${rlHeadHereHtml(c, opts)}
+              <span class="rl-idx-br" aria-hidden="true"></span>
+              ${rlRoundLabelHtml(c, opts)}
+              <span class="rl-idx-br" aria-hidden="true"></span>
               ${''/* ---- SEND ALL, AT THE OPPOSITE END OF THE COLUMN'S NAME
                      (owner-asked 26 Aug 2026, ringing this exact slot) ----
                      The spacer above has pushed this to the right wall since
@@ -21867,7 +22538,7 @@ function rlColumnHtml(c, opts = {}){
                      page head, where it appeared only once the round was
                      already settled and therefore said nothing about rounds
                      until the moment you no longer needed telling. */}
-              ${rlRoundLabelHtml(c, opts)}
+              ${rlHeadReviewHtml(c, opts)}
               ${''/* A HOST'S OWN WAY OUT (stage 3): Jambo's Redlines face puts
                      its Open Negotiate and its × here, at the end of the head
                      it shares; the Negotiate page passes nothing. */}${opts.headEnd || ''}
@@ -22006,11 +22677,23 @@ function rlColumnHtml(c, opts = {}){
           ${''/* cpPanel: this mount renders the clause panel a few lines below,
                  so the rows may draw their Open door onto it. A caller that
                  renders cards with no panel (none today) draws no door. */}
-          <div class="nego-index-scroll rl-cards" id="nego-cards">${negoLinkedBarHtml()}<div id="rl-changes">${redlineChangeCardsHtml(c, { ...opts, cpPanel: opts.cpPanel !== false })}</div>${rlProgressPileHtml(c, p, side)}${
+          ${''/* THE NOTES OPEN IN THE SAME PANEL (round 9's gaps, second pass):
+                 while the head's Notes is pressed the column's body is the
+                 notes; the piles stay mounted and unseen, so every proxy and
+                 wiring that reaches for them still finds them */}
+          <div class="nego-index-scroll rl-cards${notesOn ? ' is-notes' : ''}" id="nego-cards">${notesOn ? rlFaceNotesHtml(c, opts) : ''}${negoLinkedBarHtml()}<div id="rl-changes"${notesOn ? ' hidden' : ''}>${redlineChangeCardsHtml(c, { ...opts, cpPanel: opts.cpPanel !== false })}</div>${
+            /* NO PROGRESS PILE BESIDE THE PAPER (round 9's gaps, 18 Oct 2026):
+               Jambo's Redlines face draws none — its head says the round and
+               each pile its own count, as drawn; the Negotiate page by name
+               and their page keep theirs */
+            (opts.noProgress || notesOn) ? '' : rlProgressPileHtml(c, p, side)}${
             /* RISKS TO LOOK AT (Young picked it 4 Oct 2026): the risk scan's
                findings and the brief's watchouts, read here one by one. Our
                seat only — js/risks.js decides, and draws nothing elsewhere. */
-            (typeof window.rlRisksPileHtml === 'function') ? window.rlRisksPileHtml(c, { ...opts, side }) : ''}</div>
+            /* …except beside Home's paper (round 9's gaps, 18 Oct 2026): the
+               face ends with the settled fold, as drawn; the risk list is the
+               clause editor's Risks tab and Home's own glance row */
+            (!opts.noRisks && !notesOn && typeof window.rlRisksPileHtml === 'function') ? window.rlRisksPileHtml(c, { ...opts, side }) : ''}</div>
         </div>
       </aside>`;
 }
@@ -22190,7 +22873,7 @@ if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoT
      ending on every screen that draws a document — which is what the shared
      builder was for. */
   rlPaperFootHtml,
-  redlinePanesHtml, rlAgoWords, rlRowByHtml, rlRowWhyHtml, rlSettledToggle, rlColumnHtml, rlBenchOpts, rlBenchCatchUp, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, rlCardNotesHtml, negoWhen,
+  redlinePanesHtml, rlAgoWords, rlRowClauseName, rlClauseOrderOf, rlCardClausePos, rlRowIsMine, rlRowByHtml, rlRowWhyHtml, RL_EX_BEFORE, RL_EX_AFTER, RL_EX_MID, RL_EX_WHOLE, rlRowExcerptHtml, rlRowLineHtml, rlRowLockHtml, rlIsOpenSuggestion, rlSuggestPileLabel, rlReviewPileActsHtml, rlFaceLadderOpen, rlFaceLadderSet, rlFaceLadderHtml, rlLadderVerbHtml, rlSuggestFaceHtml, rlSettledAt, rlSettledPileLabel, rlHeadOurs, rlOpenCardCount, rlNotesTotal, rlClauseEl, rlLandOnClause, rlLandOnRow, rlFaceNotesOn, rlFaceNotesSet, rlFaceNotesChange, rlFaceNotesRoomFor, rlFaceNoteClause, rlFaceNoteHtml, rlFaceNotesHtml, rlFaceNotesWire, rlHeadNotesHtml, rlHeadHereHtml, rlHeadReviewHtml, rlHeadRepaint, rlPressContract, rlSettledToggle, rlColumnHtml, rlBenchOpts, rlBenchCatchUp, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, rlCardNotesHtml, negoWhen,
   NOTE_ROOMS, negoNoteRoom, negoRoomNotes, negoNoteCounts, notesMayWrite,
   negoNoteParty, negoNoteRoomKey, negoNoteRoomList, negoRoomIsExternal,
   negoRoomPartyId, negoRoomKey, rlNpRoomsHtml, rlNpRoomNow,

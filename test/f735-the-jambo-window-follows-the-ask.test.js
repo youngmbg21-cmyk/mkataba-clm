@@ -114,7 +114,10 @@ describe('f735 (4) a question goes past an open rewrite card', () => {
       assert.ok(!past.past(q), 'an instruction: ' + q);
   });
   test('the window gives the card only what asks for a change', () => {
-    const sub = fnOf(AIJS, 'async function aiSubmit(');
+    /* re-pointed (lane A1, 18 Oct 2026): the window's turn is shared with
+       Jambo's panel beside the lists — aiSubmit takes the box's words and
+       hands them to aiAskWords, which reads the card the same way */
+    const sub = fnOf(AIJS, 'async function aiSubmit(') + fnOf(AIJS, 'async function aiAskWords(');
     assert.match(sub, /const cardOwns=!!\(aiActiveProposal\(\)\|\|aiActiveRephrase\(\)\) && !aiAsksPastCard\(q\);/);
     assert.match(sub, /const live=cardOwns\?aiActiveProposal\(\):null;/);
     assert.match(sub, /const session=cardOwns && !live && aiActiveRephrase\(\);/);

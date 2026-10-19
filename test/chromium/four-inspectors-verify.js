@@ -139,20 +139,35 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
       groups: [...document.querySelectorAll('.ob-lt tr.ins-grp')].map(g => g.getAttribute('data-ob-week')),
       order: ['overdue', 'w0', 'w1', 'w2', 'w3', 'w4', 'w5', 'later', 'nodate', 'waiting', 'done'],
       head: (document.getElementById('page-head-facts') || {}).textContent || '',
-      title: (document.querySelector('#ins-panel h2') || {}).textContent || '' }));
-    ok('1a the page is a list and a panel', ob.ins && ob.rows >= 8 && !!ob.title, { rows: ob.rows, title: ob.title });
+      title: (document.querySelector('#ins-panel h2') || {}).textContent || '',
+      word: (document.querySelector('#ins-panel [data-jl-word]') || {}).textContent || '' }));
+    /* RE-POINTED 18 Oct 2026 (lane A4, round 16 as drawn): nothing is chosen on
+       arrival — Jambo's panel says "Your week" until a row is pressed */
+    /* RE-POINTED 19 Oct 2026 (lane A4, round 16 as drawn: All = Outstanding +
+       Waiting on a step + Completed): the held-back step is no longer an
+       Outstanding row, so the list holds one row fewer */
+    ok('1a the page is a list and a panel', ob.ins && ob.rows >= 7 && ob.word === 'Your week', { rows: ob.rows, word: ob.word });
     /* RE-POINTED 18 Oct 2026 (round 16, owner picked "Week by week"): the
        page's groups are weeks now — Late, this week, next week, the later
        weeks of six, Later, then No date, Waiting and Completed. */
     ok('1b its groups are the weeks, in order',
       ob.groups.length >= 5 && ob.groups.every((g, i) => i === 0 || ob.order.indexOf(g) > ob.order.indexOf(ob.groups[i - 1])), ob.groups);
+    /* RE-POINTED 19 Oct 2026 (lane A4): the held-back step is read on All,
+       since Outstanding no longer lists it (round 16's arithmetic) */
+    const outHasWait = await page.evaluate(() => /Pay on delivery to site/.test((document.querySelector('.obw-ins .ob-lt') || {}).textContent || ''));
+    ok('1c0 Outstanding does not list a step still waiting on an earlier one', !outHasWait);
+    await page.click('[data-obw-view="all"]').catch(() => {}); await page.waitForTimeout(500);
     ok('1c a held-back step sits under Waiting on an earlier step, never under Overdue',
       await page.evaluate(() => { const r = [...document.querySelectorAll('.ob-lt tbody tr')]; let w = '';
         for (const t of r) { if (t.classList.contains('ins-grp')) w = t.getAttribute('data-ob-win'); else if (/Pay on delivery to site/.test(t.textContent)) return w === 'waiting'; }
         return false; }));
+    await page.click('[data-obw-view="open"]').catch(() => {}); await page.waitForTimeout(500);
     /* RE-POINTED 9 Oct 2026 (owner: "remove the we owe xxx place" so the head
-       is as tall as Approvals & signing's) — the money reads on the groups. */
-    ok('1d the head carries no facts line', !ob.head, ob.head);
+       is as tall as Approvals & signing's) — the money reads on the groups.
+       RE-POINTED AGAIN 18 Oct 2026 (lane A4, round 16 as drawn, the owner's
+       "build all the gaps"): the head says "N outstanding · N overdue", the
+       tabs' own counts; the money still reads on the weeks. */
+    ok('1d the head says what is outstanding and what is late, the tabs\' own counts', /^\d+ outstanding · \d+ overdue$/.test(ob.head.trim()), ob.head);
     const rows = await page.$$('.ob-lt tbody [data-ins-row]');
     if (rows.length > 2) {
       await rows[2].click(); await page.waitForTimeout(300);
@@ -170,6 +185,9 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     const overdueN = await page.evaluate(() => document.querySelectorAll('.ob-lt tbody [data-ins-row]').length);
     ok('1g the Overdue view lists what the sidebar door counts', door >= 1 && overdueN === door, { door, overdueN });
     await page.click('[data-obw-view="open"]').catch(() => {}); await page.waitForTimeout(400);
+    /* RE-POINTED 18 Oct 2026 (lane A4): a view that hides the chosen row lets
+       it go (Jambo's "Your week"), so the row is chosen again before Enter */
+    if (!(await page.$('.ob-lt tbody tr.is-sel'))) { await page.click('.ob-lt tbody [data-ins-row] td:nth-child(2)').catch(() => {}); await page.waitForTimeout(300); }
     const sel = await page.$('#ins-panel');
     const selCid = await page.evaluate(() => { const r = document.querySelector('.ob-lt tbody tr.is-sel'); const k = r && r.getAttribute('data-ob-key'); return k ? k.split('::')[0] : null; });
     await page.focus('.ob-lt tbody tr.is-sel').catch(() => {});
@@ -282,19 +300,26 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
        piles' order — read off each row's own pile. */
     const ik = await page.evaluate(() => ({ ins: !!document.querySelector('.ik-ins'),
       /* RE-POINTED AGAIN 9 Oct 2026 (the owner: build it the SAP way): one
-         flat list, NEWEST FIRST as drawn — read off each row's own date */
+         flat list — read off each row's own date. RE-POINTED 19 Oct 2026
+         (round 20 as drawn, the owner's yes to build every gap): the Open list
+         is OLDEST WAITING FIRST, as its head says */
       groups: (() => { const at = [...document.querySelectorAll('.ik-lt tbody [data-ik-row]')].map(r => ((_intakeState.list || []).find(x => x.id === r.getAttribute('data-ik-row')) || {}).createdAt || '');
-        return at.length > 1 && at.every((v, i) => !i || at[i - 1] >= v) ? ['newest-first'] : at; })(),
+        return at.length > 1 && at.every((v, i) => !i || at[i - 1] <= v) ? ['oldest-first'] : at; })(),
       head: (document.getElementById('page-head-facts') || {}).textContent || '',
       ask: !!document.querySelector('#page-head-acts #ik-new') }));
-    ok('4a the queue is a list and a panel, newest request first',
-      ik.ins && ik.groups.join(',') === 'newest-first' && ik.ask, ik);
+    ok('4a the queue is a list and a panel, the longest wait first',
+      ik.ins && ik.groups.join(',') === 'oldest-first' && ik.ask, ik);
     await page.click('[data-ik-row="REQ-HELD01"]').catch(() => {}); await page.waitForTimeout(300);
     /* re-pointed 9 Oct 2026: the drawing's panel names the holder as a fact
-       and the promise as the head's pill; take-over lives under ⋯ */
+       and the promise as the head's pill; take-over lives under ⋯.
+       RE-POINTED 19 Oct 2026 (round 20 as drawn): the head's pills say how it
+       is handled and whose it is ("With Amina Otieno"); the promise is said in
+       the Asked row ("Sun 18 Oct · promised by Tue 21 Oct") */
     const heldSays = await page.evaluate(() => ({ holder: (document.querySelector('#ins-panel [data-ins-fact="with"] dd') || {}).textContent || '',
-      pill: (document.querySelector('#ins-panel .ins-pill-row') || {}).textContent || '' }));
-    ok('4b a request a colleague holds names its holder, and its promise', /Amina Otieno/.test(heldSays.holder) && /Promised by/.test(heldSays.pill), heldSays);
+      pill: (document.querySelector('#ins-panel .ik-with-chip') || {}).textContent || '',
+      asked: (document.querySelector('#ins-panel [data-ins-fact="asked"] dd') || {}).textContent || '' }));
+    ok('4b a request a colleague holds names its holder, and its promise', /Amina Otieno/.test(heldSays.holder) && /With Amina Otieno/.test(heldSays.pill)
+      && /promised by \S+ \d/.test(heldSays.asked), heldSays);
     await page.click('#ins-panel [data-ins-more]').catch(() => {}); await page.waitForTimeout(200);
     await page.click('#ins-panel [data-ins-menu] [data-act="pick"]').catch(() => {}); await page.waitForTimeout(500);
     const takeAsk = await page.evaluate(() => { const d = [...document.querySelectorAll('[data-top-overlay], [role="alertdialog"], [role="dialog"]')].pop();

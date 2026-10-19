@@ -330,8 +330,11 @@ const check = (name, ok, detail) => {
        head white ITSELF (Insights' own rule), so the page left to is one that
        paints nothing there — the Calendar. RE-POINTED 11 Oct 2026: the
        Calendar is Home's tab now (and paints it white), so the page left to is
-       My notes, which paints nothing there. */
-    await page.evaluate(() => setView('mynotes'));
+       My notes, which paints nothing there. RE-POINTED 19 Oct 2026 (round 20
+       as drawn): My notes is a white-band list page now (.sap-page, the
+       Requests band), so the page left to is the Brain, which paints nothing
+       there. */
+    await page.evaluate(() => setView('brain'));
     await page.waitForTimeout(1500);
     const left = await page.evaluate(() => {
       const e = document.querySelector('#page-head');
@@ -832,7 +835,15 @@ const check = (name, ok, detail) => {
       /* What is painted behind the page's name, at the head's right. */
       const probe = document.createElement('div'); probe.style.background = 'var(--color-bg)';
       document.body.appendChild(probe); const ground = getComputedStyle(probe).backgroundColor; probe.remove();
-      const hp = head ? atPoint(Math.min(head.right, innerWidth) - 3, head.top + 4) : null;
+      /* RE-POINTED 19 Oct 2026 (the picked drawings' head card, rounds 14-26):
+         the head is a white card set in on the ground, so the grey shows at
+         its edges by design; what is asked is what is painted behind the
+         NAME itself — the card's white, not the ground and not the list's
+         card. The name's own box, read at its middle. */
+      const nm = document.querySelector('.ct-head .ct-h, #page-head h1, .ngl-head h2');
+      const nr = nm ? nm.getBoundingClientRect() : null;
+      const hp = nr && nr.width > 0 ? atPoint(Math.round(nr.right - 3), Math.round(nr.top + nr.height / 2))
+        : (head ? atPoint(Math.min(head.right, innerWidth) - 3, head.top + 4) : null);
       const place = box('#ct-place');
       return { headRight: head && head.right, bandRight: band.right, win: innerWidth,
         placeRight: place ? place.right : null,

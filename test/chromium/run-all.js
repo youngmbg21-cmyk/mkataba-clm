@@ -58,8 +58,10 @@ const KNOWN_RED = {
      written and needs re-pointing by someone who owns that screen. Listed so
      the run is an alarm again rather than a list. Take a file off the day it
      goes green. */
-  'notes-two-rooms-verify.js':
-    'MEASURED 15 Oct 2026: 88/92, the same four red at unmodified main — all about the contract room\'s acts row (Chat beside More, the drawer edge against the paper, the row\'s bare verbs and their ink), which retired with the room on 15 Oct (step 8); they need re-pointing to Home\'s paper line by whoever owns that screen. The drawer\'s close is RULED by the owner (15 Oct 2026: "leave it as it is and you can simply just click the x to exit") and now pressed through its ×, which passes.',
+  /* notes-two-rooms-verify.js CAME OFF 19 Oct 2026: its three room-row
+     checks were re-pointed to Home's paper line (round 6, "One line" — Notes
+     beside Share; the row's verbs measured against that line's buttons), and
+     it reads 93/93, also with four checks side by side. */
   'their-edit-page-verify.js':
     'RED ON GITHUB ONLY, 10 Oct 2026: section 4 — typing after a save on THEIR seat — never holds on GitHub\'s runner (the words typed are gone each time); it passes every time locally, even at a 10x CPU throttle. The foot\'s Discard claims (2b, 3a2, 6a2) were re-pointed 11 Oct to the one-panel foot and pass. Logged in BUGLOG (a repaint may be taking a person\'s typing). Take it off when section 4 holds on GitHub.',
   /* NOT LISTED, deliberately: analytics-verify.js. It was two faults wearing

@@ -335,19 +335,64 @@ function presenceLeaveSoon(cid){
    pencil was last pressed, which is where the reader WAS. Measured off the
    painted page (elementFromPoint), because a rect is not a painted pixel.
    READS ONLY, and answers null anywhere there is no paper. */
+/* ON HOME'S PAPER TOO (round 6 as drawn, 18 Oct 2026): the paper beside
+   Jambo is where a contract is read now, so a reader there sends where they
+   are — the paper's own scroller, while it is up and drawn. */
+function presenceHomePaper(){
+  if (typeof document === 'undefined') return null;
+  const host = document.getElementById('ig-paper'), sc = document.getElementById('ig-paper-scroll');
+  if (!host || host.hidden || !sc) return null;
+  if (typeof window.igPaperUp === 'function' && !window.igPaperUp()) return null;
+  return sc;
+}
 function presenceSpotNow(){
   if (typeof document === 'undefined') return null;
   const doc = document.getElementById('rl-doc')
     || document.querySelector('#view-redline #rl-doc, .redline-page #rl-doc');
-  const box = doc || document.getElementById('doc-scroll');
+  const box = doc || presenceHomePaper() || document.getElementById('doc-scroll');
   if (!box || !box.getBoundingClientRect) return null;
   const r = box.getBoundingClientRect();
   if (!r.width || !r.height) return null;
   const x = Math.round(r.left + r.width / 2);
   const y = Math.round(Math.max(r.top, 0) + Math.min(r.height, (window.innerHeight || r.height)) / 2);
+  /* AT THE FOOT OF HOME'S PAPER (round 6 as drawn, Follow me): when the
+     paper's own end is in view its last clause can never rise to the centre
+     line, so a reader who went to it — "Go to it", or following someone
+     there — is on the last clause whose top is in view. Home's paper only
+     (#ig-canvas); the Negotiate page reads as before. */
+  const end = box.querySelector ? box.querySelector('#ig-canvas') : null;
+  if (end && end.getBoundingClientRect().bottom <= r.bottom + 2){
+    let last = null;
+    (box.querySelectorAll ? box.querySelectorAll('[data-clause], [data-pz-clause]') : []).forEach(k => {
+      const q = k.getBoundingClientRect(); if (q.height && q.top >= r.top && q.top <= r.bottom) last = k; });
+    if (last) return last.getAttribute('data-clause') || last.getAttribute('data-pz-clause') || null;
+  }
   const el = document.elementFromPoint(x, y);
   const cl = el && el.closest ? el.closest('[data-clause]') : null;
-  return cl ? (cl.getAttribute('data-clause') || null) : null;
+  if (cl) return cl.getAttribute('data-clause') || null;
+  /* A GAP IS NOT NOWHERE (18 Oct 2026, Follow me on Home): the centre can fall
+     between two clauses, or below the last one a paper cannot scroll past —
+     the reader is on the clause nearest the centre line, measured off the
+     painted clauses inside the paper's own box. */
+  let best = null, gap = Infinity;
+  (box.querySelectorAll ? box.querySelectorAll('[data-clause]') : []).forEach(k => {
+    const q = k.getBoundingClientRect(); if (!q.height || q.bottom < r.top || q.top > r.bottom) return;
+    const d = y < q.top ? q.top - y : y > q.bottom ? y - q.bottom : 0;
+    if (d < gap){ gap = d; best = k; }
+  });
+  if (best) return gap <= r.height / 2 ? (best.getAttribute('data-clause') || null) : null;
+  /* A PAPER THAT MARKS ONLY ITS HEADINGS (the signing copy beside Before you
+     sign, igPaperClauseMarks): the reader is in the clause whose heading is
+     the last one at or above the centre line — or the first heading in view,
+     when the centre is still above it. */
+  let at = null, first = null;
+  (box.querySelectorAll ? box.querySelectorAll('[data-pz-clause]') : []).forEach(k => {
+    const q = k.getBoundingClientRect(); if (!q.height) return;
+    if (q.top <= y) at = k;
+    else if (!first && q.top <= r.bottom) first = k;
+  });
+  const h = at || first;
+  return h ? (h.getAttribute('data-pz-clause') || null) : null;
 }
 /* Per sitting, in memory, and one at a time: following two people would be two
    pages fighting over one scroll. */
@@ -355,11 +400,65 @@ let _pzFollow = null, _pzWent = null;
 function presenceFollowing(){ return _pzFollow; }
 function presenceFollow(id){
   const to = String(id || '');
+  const was = _pzFollow;
   _pzFollow = (to && _pzFollow !== to) ? to : null;
   _pzWent = null;
   if (_pzCid) presencePaint(_pzCid);
-  if (_pzFollow && _pzCid) presenceSay(_pzCid);
+  /* THE PAPER GOES AT ONCE (round 6 as drawn: "the paper goes to clause
+     11"): to where the last beat saw them — a beat already on its way would
+     leave the press waiting for the next one — then the beat asks again */
+  if (_pzFollow && _pzCid){
+    const rows = presenceHere(_pzCid);
+    if (rows.some(r => String(r.id) === _pzFollow)) presenceWalk(rows);
+    presenceSay(_pzCid);
+  }
+  /* THE PRESS SAYS WHAT IT DID (round 6 as drawn, "One line"; the owner's
+     "build all the gaps", 18 Oct 2026): once, on the press — "Following Lina
+     Ek: the paper goes to clause 11 and moves when they do. Press the face
+     again to stop." — and once on the press that stops. Never on an arrival:
+     the walk itself stays silent (presenceWalk), the page moving is the news. */
+  presenceFollowSay(_pzFollow || was, !!_pzFollow);
   return _pzFollow;
+}
+/* the colleague's row on the contract in front: their name, and where they are */
+function presenceRowOf(id){
+  const cid = _pzCid || (window.intel && window.intel.paper ? window.intel.paper.id : '');
+  return presenceHere(cid).find(r => String(r.id) === String(id || '')) || null;
+}
+/* WHERE A COLLEAGUE IS, IN WORDS: "clause 11" — the clause their spot names,
+   read RAW off the record's clause list (the negotiation's baseline, as the
+   Negotiate page's own numbering reads it; never negoClauseList, which would
+   start a negotiation), by its number, else its name. '' where it cannot be
+   said, and the sentence then says only that they have it open. */
+function presenceClauseWord(c, spot){
+  const id = String(spot || ''); if (!id || !c) return '';
+  const base = c.negotiation && c.negotiation.baselineBody;
+  let k = null;
+  try { k = (base && typeof window.clauseSegmentFind === 'function') ? window.clauseSegmentFind(base, id) : null; } catch (_){ k = null; }
+  if (!k && typeof document !== 'undefined'){
+    /* not on the record's list (a paper drawn from its template's own marks): its heading on the paper */
+    const q = (window.CSS && CSS.escape) ? CSS.escape(id) : id;
+    const el = document.querySelector(`#ig-paper [data-clause="${q}"] .rl-clause-h, #ig-paper [data-pz-clause="${q}"], #rl-doc [data-clause="${q}"] .rl-clause-h`);
+    const t = el ? String(el.textContent || '').replace(/\s+/g, ' ').trim() : '';
+    if (t){ try { k = (typeof window.clauseParseHeading === 'function') ? (window.clauseParseHeading(t) || null) : null; } catch (_){ k = null; } if (!k) k = { title: t }; }
+  }
+  if (!k) return '';
+  const num = String(k.num || '').replace(/[.)\s]+$/, '');
+  if (num) return i18t('pz_clause_n', { n: num });
+  const name = String(k.title || '').trim();
+  return name ? i18t('pz_clause_named', { name }) : '';
+}
+function presenceFirstName(name){ return String(name || '').trim().split(/\s+/)[0] || String(name || ''); }
+/* one sentence per state, the hover's and the press's */
+function presenceFollowWords(r, kind, c){
+  if (!c) c = (typeof window.getContract === 'function' && _pzCid) ? window.getContract(_pzCid) : null;
+  const who = String((r && r.name) || ''), where = presenceClauseWord(c, r && r.spot);
+  return i18t(kind + (where ? '' : '_open'), { who, first: presenceFirstName(who), where });
+}
+function presenceFollowSay(id, on){
+  if (!id || typeof window.toast !== 'function') return;
+  const r = presenceRowOf(id); if (!r) return;
+  try { window.toast(on ? presenceFollowWords(r, 'pz_follow_said') : i18t('pz_follow_stopped', { who: r.name || '' }), 'ok'); } catch (_){}
 }
 /* ---- AND THE WALK ----
    Asked after every beat, and it moves the page only when the leader's spot
@@ -380,8 +479,39 @@ function presenceWalk(rows){
   const spot = lead.spot ? String(lead.spot) : '';
   if (!spot || spot === _pzWent) return false;
   _pzWent = spot;
+  return !!presenceGo(spot);
+}
+/* THE WALK'S ONE DOOR: Home's paper where it is up (igPaperGoClause — round 6
+   as drawn, Follow me on Home), else the Negotiate page's own
+   (rlJumpToClause). Either moves the page; neither writes. */
+function presenceGo(spot){
+  if (presenceHomePaper() && typeof window.igPaperGoClause === 'function'){
+    try{ return window.igPaperGoClause(spot); }catch(_){ return null; }
+  }
   if (typeof window.rlJumpToClause !== 'function') return false;
-  try{ return !!window.rlJumpToClause(spot); }catch(_){ return false; }
+  try{ return window.rlJumpToClause(spot); }catch(_){ return false; }
+}
+/* THE PAPER LAID OUT AGAIN WHILE FOLLOWING (the signing copy is set into its
+   pages after it is drawn, which moves every clause down the paper): the walk
+   goes again to where the one followed was last seen. Nothing when not
+   following. */
+function presenceReWalk(){
+  if (!_pzFollow || !_pzCid) return false;
+  const rows = presenceHere(_pzCid);
+  if (!rows.some(r => String(r.id) === _pzFollow)) return false;
+  _pzWent = null;
+  return presenceWalk(rows);
+}
+/* where the walk can work: the Negotiate page, or Home's paper — and Home's
+   paper only while it carries clause marks to walk to (the redline's
+   sections, or the headings igPaperClauseMarks marked on a paper drawn
+   without them, the signing copy among them). A paper with none keeps the
+   faces as faces: a button there would be a dead one. */
+function presenceCanWalk(){
+  if (typeof document === 'undefined') return false;
+  if ((document.getElementById('view-redline') || document.querySelector('.redline-page')) && typeof window.rlJumpToClause === 'function') return true;
+  const sc = presenceHomePaper();
+  return !!sc && typeof window.igPaperGoClause === 'function' && !!(sc.querySelector && sc.querySelector('[data-clause], [data-pz-clause]'));
 }
 
 /* ---- THE ROW ----
@@ -419,14 +549,21 @@ function presenceRowHtml(c){
      fault this codebase names in four other places. Presence (idea 5) is drawn
      everywhere; Follow me (idea 14) is offered where it works, and the row is
      the same width either way. */
-  const canWalk = typeof document !== 'undefined'
-    && !!(document.getElementById('view-redline') || document.querySelector('.redline-page'))
-    && typeof window.rlJumpToClause === 'function';
+  /* …AND ON HOME'S PAPER (round 6 as drawn, 18 Oct 2026): the faces on the
+     paper's line are pressable there, the walk going through Home's own
+     door (presenceGo → igPaperGoClause) */
+  const canWalk = presenceCanWalk();
+  /* EACH PERSON KEEPS ONE TONE (round 9's gaps, third pass: "one colour per
+     person"): the house's own avatar reading (regAvatarTone), so a face reads
+     alike wherever a surface chooses to colour it — the Redlines head does */
+  const tone = r => (typeof window.regAvatarTone === 'function') ? window.regAvatarTone(r.name || r.id || '') : 0;
   const faceHtml = r => {
-    if (!canWalk) return `<span class="pz-face" title="${_pzE(r.name || '')}">${_pzE(presenceInitials(r.name))}</span>`;
+    if (!canWalk) return `<span class="pz-face pz-t-${tone(r)}" title="${_pzE(r.name || '')}">${_pzE(presenceInitials(r.name))}</span>`;
     const on = String(presenceFollowing() || '') === String(r.id);
-    const t = on ? i18t('pz_following', { who: r.name || '' }) : i18t('pz_follow', { who: r.name || '' });
-    return `<button type="button" class="pz-face${on ? ' is-following' : ''}" data-pz-follow="${_pzE(r.id)}"
+    /* the hover names where they are (round 6 as drawn): "Lina Ek is reading
+       clause 11 now. Press to follow: the paper goes where Lina reads." */
+    const t = presenceFollowWords(r, on ? 'pz_following' : 'pz_follow', c);
+    return `<button type="button" class="pz-face pz-t-${tone(r)}${on ? ' is-following' : ''}" data-pz-follow="${_pzE(r.id)}"
       aria-pressed="${on ? 'true' : 'false'}" title="${_pzE(t)}">${_pzE(presenceInitials(r.name))}</button>`;
   };
   return `<span class="pz-row" data-pz-here="${here.length}" title="${_pzE(say + (all ? ' — ' + all : ''))}" aria-label="${_pzE(say)}">${
@@ -483,4 +620,6 @@ Object.assign(window, {
   presenceMyAsks, presenceKeepAsks, presenceLeave,
   presenceInitials, presenceRowHtml, presencePaint,
   presenceSpotNow, presenceFollow, presenceFollowing, presenceWalk,
+  presenceHomePaper, presenceGo, presenceCanWalk,
+  presenceRowOf, presenceClauseWord, presenceFirstName, presenceFollowWords, presenceFollowSay, presenceReWalk,
 });

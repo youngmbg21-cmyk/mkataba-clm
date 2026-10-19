@@ -136,9 +136,16 @@ const paperRead = page => page.evaluate(() => {
 
     /* ===== 2. HOME'S ROUND CARD: ASK COPILOT TO REDO THIS ===== */
     await page.evaluate(() => { setView('dashboard'); });
+    /* RE-POINTED AT THE INTEGRATION (19 Oct 2026): the owner's answer (18),
+       "Fold to one line" (lane G) — a piece on the Board's Jambo's work card is
+       one line with Look · its own act · Put away; Look opens it under its row,
+       where "Ask Jambo to redo this" stands with its other acts. So Look is
+       pressed first (once: pressed again it folds). */
     const item = await until(page, () => { if (typeof hbOpenAgent !== 'function') return null; hbOpenAgent('round');
-      const it = [...document.querySelectorAll('[data-hb-ag-item]')].find(x => /MK-CP1/.test(x.getAttribute('data-hb-ag-item')) && x.querySelector('[data-ag-sb-open]'));
-      return it ? it.getAttribute('data-hb-ag-item') : null; }, null, 10000);
+      const it = [...document.querySelectorAll('[data-hb-ag-item]')].find(x => /MK-CP1/.test(x.getAttribute('data-hb-ag-item')));
+      if (!it) return null;
+      if (!it.querySelector('[data-ag-sb-open]')){ const look = it.querySelector('[data-hb-ag-look]'); if (look && look.getAttribute('aria-pressed') !== 'true') look.click(); return null; }
+      return it.getAttribute('data-hb-ag-item'); }, null, 10000);
     ok('2a Home\'s round card offers "Ask Copilot to redo this"', !!item, item);
     let toastSaid = '';
     if (item) {
@@ -182,7 +189,10 @@ const paperRead = page => page.evaluate(() => {
     const e5 = ed ? await page.evaluate(() => {
       const lane = document.querySelector('#ce-lane');
       const paper = document.querySelector('#clause-editor #ce-doc') || document.querySelector('#clause-editor');
-      return { cards: lane.querySelectorAll('.ce-card').length, name: (lane.querySelector('.ce-card .n span') || {}).textContent || '',
+      /* RE-POINTED 18 Oct 2026 (round 9's gaps, second pass — "where Edit
+         lands" from a row): the rail also draws "What they asked" and "Ask
+         Jambo" under it, as drawn; ONE suggestion card (.ce-sug), and it leads */
+      return { cards: lane.querySelectorAll('.ce-sug').length, name: (lane.querySelector('.ce-card .n span') || {}).textContent || '',
         inBox: !!lane.querySelector('.ce-inbox'), applies: lane.querySelectorAll('[data-ce-apply]').length,
         restsTwice: /Rests on:\s*Rests on:/.test(lane.textContent), rests: (lane.querySelector('.ce-card .r') || {}).textContent || '',
         boxHas60: [...paper.querySelectorAll('ins')].some(x => /60/.test(x.textContent)),

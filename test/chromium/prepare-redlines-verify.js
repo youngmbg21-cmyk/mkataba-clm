@@ -55,7 +55,14 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
 const MENU = '#pd-body .pd-menu .pd-mn-rows [data-rl-prepare]';
 const COLUMN = '#pd-redface .rl-cards-empty [data-rl-prepare]';
 const pressIn = (page, sel) => page.evaluate(s => { const b = document.querySelector(s); if (!b || b.disabled) return false; b.closest('details') && (b.closest('details').open = true); b.click(); return true; }, sel);
+/* RE-POINTED 19 Oct 2026 (round 9 as drawn, "Piles"): while the Redlines face
+   is up the panel's row is "Jambo · Redlines · ‹ Jambo" — the drawing has no
+   Menu tab there; the contract's tabs come back with ‹ Jambo (PD_FACE_ROW,
+   pdFaceUp). So a reader on the face takes ‹ Jambo first, then the Menu tab,
+   and the row is there as before. Asked for, bounded. */
 const menuOpen = async page => {
+  await page.evaluate(() => { const b = document.querySelector('#ig-dock [data-pd-back="red"]'); if (b && !document.querySelector('#ig-dock [data-pd-tab="menu"]')) b.click(); });
+  await page.waitForFunction(() => !!document.querySelector('#ig-dock [data-pd-tab="menu"]'), null, { timeout: 6000 }).catch(() => {});
   await page.evaluate(() => { const t = document.querySelector('#ig-dock [data-pd-tab="menu"]'); if (t && !document.querySelector('#pd-body .pd-menu')) t.click(); });
   await page.waitForFunction(m => !!document.querySelector(m), MENU, { timeout: 6000 }).catch(() => {});
   await new Promise(r => setTimeout(r, 300));

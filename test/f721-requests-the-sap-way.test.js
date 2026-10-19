@@ -33,17 +33,20 @@ describe('f721 (1) the team\'s columns', () => {
     const r = fnBody(IK, 'renderIntakeInspector');
     assert.match(r, /\{ t:i18t\('ik_f_road'\), w:\d+ \}, \{ t:i18t\('ik_f_with'\), w:\d+ \}, \{ t:i18t\('ik_col_files'\), w:\d+ \}, \{ t:i18t\('ik_col_asked'\), w:\d+ \}, \{ t:i18t\('ik_f_promised'\), w:\d+ \}\]/);
     assert.match(r, /\? \[\{ t:i18t\('ik_col_ref'\), w:96 \}, \{ t:i18t\('ik_col_request'\) \}, \{ t:i18t\('ik_f_with'\), w:170 \}, \{ t:i18t\('ik_f_promised'\), w:130 \}\]/, 'the asker\'s list is as it was');
-    assert.match(r, /\$\{asker\?'':`<td>\$\{ikWithListHtml\(r\)\}<\/td><td>\$\{ikFilesCellHtml\(r\)\}<\/td><td class="ik-ask">/);
+    /* RE-POINTED 19 Oct 2026 (round 20 as drawn): the With cell carries its class (the name and the lane on one line) */
+    assert.match(r, /\$\{asker\?'':`<td class="ik-with">\$\{ikWithListHtml\(r\)\}<\/td><td>\$\{ikFilesCellHtml\(r\)\}<\/td><td class="ik-ask">/);
   });
 });
 
 describe('f721 (2) With and Files', () => {
   const stage = () => { const ctx = { esc: s => String(s), i18t: (k, o) => k + (o ? ':' + JSON.stringify(o) : ''), i18tn: (k, n) => k + ':' + n,
     IK_STOPPED: ['done', 'declined', 'withdrawn'], ikWithCellHtml: (r) => r.assignee ? '[' + r.assignee.name + ']' : '[nobody]', icon: () => '<svg/>' };
-    vm.createContext(ctx); vm.runInContext(fnBody(IK, 'ikWithListHtml') + fnBody(IK, 'ikFilesCellHtml'), ctx); return ctx; };
+    vm.createContext(ctx); vm.runInContext(fnBody(IK, 'ikWithListHtml') + fnBody(IK, 'ikLaneChipHtml') + fnBody(IK, 'ikFilesCellHtml'), ctx); return ctx; };
+  /* RE-POINTED 19 Oct 2026 (round 20 as drawn: "You ⇉ NDA lane"): the lane is
+     a chip with its own mark, one builder (ikLaneChipHtml) the panel's head shares */
   test('2a the asker\'s own cell, then the lane while it is open', () => {
     const c = stage();
-    assert.match(c.ikWithListHtml({ status: 'open', assignee: { name: 'Maria' }, lane: 'NDA' }), /^\[Maria\] <span class="ik-lane-chip"[^>]*>ik_lane_chip:\{"lane":"NDA"\}<\/span>$/);
+    assert.match(c.ikWithListHtml({ status: 'open', assignee: { name: 'Maria' }, lane: 'NDA' }), /^\[Maria\] <span class="ik-lane-chip"[^>]*><svg\/>ik_lane_chip:\{"lane":"NDA"\}<\/span>$/);
     assert.equal(c.ikWithListHtml({ status: 'open' }), '[nobody]');
     assert.equal(c.ikWithListHtml({ status: 'done', assignee: { name: 'Maria' }, lane: 'NDA' }), '[Maria]', 'a finished one says no lane');
   });

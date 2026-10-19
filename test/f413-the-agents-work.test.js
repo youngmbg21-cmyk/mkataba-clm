@@ -302,7 +302,9 @@ describe('f413 (3) — late promises: prepared, told, never sent by itself', () 
     assert.match(m.subject, /^Second reminder: Send the insurance certificate/);
     /* Re-pointed on the merge (28 Sep 2026): the chase letter writes its days
        in words in the reader's language ("21 September 2026"), not ISO. */
-    assert.match(m.body, /We wrote to you on \d{1,2} [A-Z][a-z]+ \d{4} about "Send the insurance certificate"/);
+    /* RE-POINTED 18 Oct 2026 (round 23's gaps, second pass): the day is said as drawn ("14 October"),
+       its year only outside this year — one reading for the screen and the inbox (chaseDayWords) */
+    assert.match(m.body, /We wrote to you on \d{1,2} [A-Z][a-z]+( \d{4})? about "Send the insurance certificate"/);
   });
   test('3c a save from an older copy cannot undo a chase that is on file', async () => {
     const full = await W.admin.json('/api/contracts/MK-LC-1');

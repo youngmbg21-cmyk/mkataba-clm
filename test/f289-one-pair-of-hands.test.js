@@ -637,7 +637,9 @@ test('f289 (44) all three doors are marked, and the reading-only one is NOT', ()
   assert.ok(!/rlLockedBtn\(ceLock, 'rl-cp-editor-btn', ''\)/.test(NEG),
     'the boxed card\'s one-glyph door is gone with the card');
   /* The card's Edit, in the body. */
-  assert.ok(/rlLockedBtn\(editLock, 'rl-edit rl-verb-ai', i18t\('ng_cp_copilot'\)\)/.test(NEG),
+  /* (a fourth argument, the monogram on their seat, rides since round 9's
+     gaps, 19 Oct 2026 — the verb is unchanged) */
+  assert.ok(/rlLockedBtn\(editLock, 'rl-edit rl-verb-ai', i18t\('ng_cp_copilot'\)[,)]/.test(NEG),
     'the card keeps its verb so the shared verb column does not move');
   /* The clause panel's Copilot button. */
   assert.ok(/rlLockedBtn\(rlLockSign\(c, cl\.clauseId\), 'rl-cp-act rl-cp-act-ai'/.test(NEG),

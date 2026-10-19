@@ -565,6 +565,12 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
     assert.match(b.$('.ngl-empty').textContent, /Start a negotiation/,
       'and it names the door it wants pressed');
     assert.ok(b.$('.ngl-empty [data-ngl-start]'), 'and the door is there to press');
+    /* 19 Oct 2026 (the head card's first check): with nothing live the page
+       still names itself on the one page-head card every list page wears —
+       the card (.ph-card), its title row (.ph-top) — so its title stands at
+       the height and inset every page title does; it was drawn bare on the
+       ground, 15px above the rest. */
+    assert.ok(b.$('.ngl-wrap > .ngl-head.ph-card > .ph-top h2'), 'the empty page\'s name is on the head card, in its title row');
   });
 
   test('the sidebar door is its own view, not one borrowing Contracts', () => {

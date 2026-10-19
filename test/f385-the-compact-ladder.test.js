@@ -193,7 +193,10 @@ describe('f385 (5) one filled button per area; a repeated row takes the accent\'
   });
   test('a list of rows never carries a fill on each row', () => {
     assert.match(read('js/desk.js'), /class="ui-btn ui-btn-sm ui-btn-accent" data-dk-approve=/, 'the desk\'s join requests');
-    assert.match(read('js/views/migration.js'), /data-mig-review="\$\{c\.id\}" class="ui-btn ui-btn-sm ui-btn-accent"/, 'the import queue');
+    /* RE-POINTED 19 Oct 2026 (lane E, round 22 built as drawn): the import
+       list's rows carry no button at all — Jambo's panel holds the acts */
+    { const M = read('js/views/migration.js'); const a = M.indexOf('function migRowHtml('); const row = M.slice(a, M.indexOf('\n}', a));
+      assert.ok(a > 0 && !/<button/.test(row), 'the import list'); }
     const nego = read('js/views/negotiation.js');
     const card = nego.slice(nego.indexOf('data-pbr-verbs='), nego.indexOf('data-pbr-verbs=') + 3000);
     assert.ok(!/data-pbr-(go|draft|fit|fb|skip)="\$\{i\}" class="[^"]*ui-btn-primary/.test(card), 'the playbook review\'s cards');

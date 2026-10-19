@@ -98,12 +98,23 @@ const ROUTE = [
        named step so every caller below still reads as a journey, and still
        presses the button where the two-screen shape survives behind the quiet
        door. */
+    const pickCh = async k => {
+      if (!await page.$(`[data-sh-as="ch"].is-open`)) await page.click('[data-sh-as="ch"] [data-sh-as-go]');
+      await page.click(`[data-share-ch="${k}"]`);
+    };
     const toSendForm = async () => {
       await page.evaluate(() => { const b = document.getElementById('share-next'); if (b) b.click(); });
       await page.waitForTimeout(700);
     };
 
+    /* RE-POINTED 18 Oct 2026 (round 11's gaps, "The letter" as drawn): a
+       recipient HaTi already knows is ONE line on the letter, "name · address"
+       with Change, and Change opens the same two boxes — so the box is read
+       after Change, where a reader who wants to see or change it looks; and a
+       channel is chosen in the "Sent as" list it lives in. */
     const readBox = () => page.evaluate(() => {
+      const L = document.getElementById('sh-letter'), ch = document.getElementById('sh-lt-change');
+      if (L && L.getAttribute('data-sh-to') === 'folded' && ch) ch.click();
       const e = document.getElementById('sh-email'), n = document.getElementById('sh-name');
       /* The source rides on the box since the pop-up diet (13 Sep 2026); the
          sentence that used to say it is not drawn, and `said` is what the
@@ -289,13 +300,21 @@ const ROUTE = [
 
     /* The history journey, pressed for real, on a contract whose address
        already holds a standing negotiate link (built in the set-up above). */
+    const kindStepThrough = async () => {
+      const shown = await page.evaluate(() => { const b = document.querySelector('[data-share-kind="history"]');
+        if (!b) return false; const r = b.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
+      if (shown){ await page.click('[data-share-kind="history"]'); await page.click('#share-kind-next'); }
+      await page.waitForTimeout(300);
+    };
     await page.click('#share-other');
     await page.waitForTimeout(200);
     const cardLive = await page.evaluate(() => { const b = document.querySelector('[data-share-kind="history"]'); return !!b && !b.disabled; });
     check('4b. the history card is a live choice on a contract with a record', cardLive);
-    if (cardLive) await page.click('[data-share-kind="history"]');
-    await page.click('#share-kind-next');
-    await page.waitForTimeout(300);
+    /* RE-POINTED (round 11's gaps, second pass): on the letter the history
+       press turns the letter into the history's own in place, as drawn — no
+       kind step to pass through. Where that step is still drawn (the phone's
+       older frame) it is pressed through as before. */
+    await kindStepThrough();
     const hist = await page.evaluate(() => {
       const root = document.getElementById('modal-root');
       const vis = sel => { const el = root.querySelector(sel); if (!el) return null;
@@ -317,7 +336,7 @@ const ROUTE = [
     const before = await page.evaluate(async id => (await api('contracts/' + id + '/shares')).shares
       .map(s => ({ token: s.token, purpose: s.purpose, email: s.recipientEmail })), cid);
     await page.evaluate(gmail => { document.getElementById('sh-email').value = gmail; }, GMAIL);
-    await page.click('[data-share-ch="link"]');
+    await pickCh('link');
     await page.click('#share-send');
     await page.waitForTimeout(1500);
     const after = await page.evaluate(async id => (await api('contracts/' + id + '/shares')).shares
@@ -353,7 +372,7 @@ const ROUTE = [
     await page.waitForTimeout(300);
     await page.evaluate(gmail => { document.getElementById('sh-email').value = gmail;
       const d = document.getElementById('sh-durable'); if (d) d.checked = true; }, GMAIL);
-    await page.click('[data-share-ch="link"]');
+    await pickCh('link');
     await page.click('#share-send');
     await page.waitForTimeout(1500);
     const vAfter = await page.evaluate(async id => (await api('contracts/' + id + '/shares')).shares
@@ -377,10 +396,8 @@ const ROUTE = [
     await page.waitForTimeout(1500);
     await page.click('#share-other');
     await page.waitForTimeout(200);
-    await page.click('[data-share-kind="history"]');
-    await page.click('#share-kind-next');
-    await page.waitForTimeout(300);
-    await page.click('[data-share-ch="word"]');
+    await kindStepThrough();
+    await pickCh('word');
     await page.waitForTimeout(200);
     const wordNote = await page.evaluate(() => (document.getElementById('sh-ch-note') || {}).textContent || '');
     check('4b. on the record the Word line says it is the history report', /negotiation history/i.test(wordNote) && !/changes tracked|answer comes back/i.test(wordNote), wordNote);

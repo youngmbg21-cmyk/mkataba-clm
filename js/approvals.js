@@ -64,6 +64,26 @@ const _apByFor=s=>(typeof awayByLabel==='function')?awayByLabel(s&&s.by,s&&s.for
 function approverForOf(a, u){
   return (a&&a.kind==='member'&&a.id!=null&&a.id!==''&&u&&String(a.id)!==String(u.id)&&typeof awayForOf==='function') ? awayForOf(u,a.id) : null;
 }
+/* WHOM THIS READER ANSWERS FOR ON THE APPROVAL WAITING ON THEM (round 23's
+   gaps, 18 Oct 2026: the Counter's row "Answer an approval for Jonas · for
+   Jonas · away until Friday"): the person they stand in for on the step that
+   is theirs to answer now — a rule step's named approver, or a named yes's
+   approver or backup — and the last day of that person's away rule. Null
+   where they answer as themself. The approvals' own readings; nothing kept. */
+function approvalAnswersFor(c, u){
+  u=u||(typeof currentUser==='function'?currentUser():null);
+  if(!c||!u) return null;
+  let d=null; try{ d=approvalDecidableNow(c, u); }catch(_){ d=null; }
+  if(!d) return null;
+  let fw=null;
+  if(d.kind==='rule'&&d.step) fw=approverForOf(d.step.approver, u);
+  else if(d.kind==='sa'&&d.row&&d.row.req&&typeof awayForOf==='function') fw=awayForOf(u, d.row.req.approverId)||awayForOf(u, d.row.req.backupId);
+  if(!fw) return null;
+  const a=(typeof state!=='undefined'&&state&&state.away)||null;
+  const r=(a&&Array.isArray(a.covering)?a.covering:[]).find(x=>x&&String(x.userId)===String(fw.id));
+  return { id:fw.id, name:fw.name||'', until:(r&&r.to)||null };
+}
+Object.assign(window,{approvalAnswersFor});
 function userCanApprove(a, u){
   if(!u) return false;
   /* …or the member's stand-in while they are away (piece 9, awayCovers) */
@@ -344,7 +364,7 @@ async function approvalUndo(c, ruleId){
   const u=currentUser();
   const step=(approvalState(c).chain||[]).find(q=>q&&!q.sa&&String(q.ruleId)===String(ruleId));
   c.approvalChain=approvalState(c).chain.filter(q=>!q.sa).map(q=>({ ...q }));
-  askRuleFor(c, ruleId, { approver:step&&step.approver });
+  askRuleFor(c, ruleId, { approver:step&&step.approver, stamp:approvalStamp(c) });
   logAudit(c,'Approval undone',`Step "${(step&&step.name)||''}" — ${u.name} took back their approval; it is waiting again`);
   const out=(typeof saveDecision==='function')?await saveDecision(c):(persist(c),{ ok:true });
   try{ renderSignButton(c); renderAuditSection(c); }catch(_){}
@@ -442,19 +462,26 @@ async function approvalDecideAsk(c, verdict){
     const why=await approvalRefuseWhy(); if(why==null) return false;
     return !!(await rejectApprovalStep(c, why));
   }
-  if(verdict!=='approved') return openSignApprovalRefuse(c, d.row.req.id);
-  /* An admin deciding in the approver's place says why — signApprovalDecide's
-     own rule, asked here rather than bounced. */
+  return signApprovalDecideAsk(c, d.row, verdict);
+}
+/* ONE NAMED PERSON'S YES, DECIDED: refused through its own window (the
+   reason required), approved at once — and an admin deciding in the
+   approver's place says why, signApprovalDecide's own rule asked here rather
+   than bounced. The lists' door above and Before you sign's road
+   (pdRoadPress) both press it, for the request they name. */
+async function signApprovalDecideAsk(c, row, verdict){
+  if(!c||!row||!row.req) return false;
+  if(verdict!=='approved') return openSignApprovalRefuse(c, row.req.id);
   let note='';
-  if(d.row.as==='admin'){
+  if(row.as==='admin'){
     if(typeof window.promptDialog!=='function') return false;
     const v=await window.promptDialog({ title:i18t('sa_card_approve'), label:i18t('sa_card_note_admin'), multiline:true,
       confirmLabel:i18t('sa_card_approve') });
     if(v==null) return false;
     note=String(v).trim();
-    if(!note){ toast(i18t('sa_admin_needs_why',{who:d.row.req.approverName||i18t('sa_admins')}),'warn'); return false; }
+    if(!note){ toast(i18t('sa_admin_needs_why',{who:row.req.approverName||i18t('sa_admins')}),'warn'); return false; }
   }
-  return signApprovalDecide(c, d.row.req.id, 'approved', note);
+  return signApprovalDecide(c, row.req.id, 'approved', note);
 }
 /* THE WAY OUT OF A REFUSAL.
 
@@ -483,7 +510,7 @@ function resubmitApproval(c, note){
      each step, and the writer takes the old answer off the step — this
      chain's own reset, field for field. */
   c.approvalChain=st.chain.filter(s=>!s.sa).map(s=>({ ...s }));
-  back.forEach(s=>askRuleFor(c, s.ruleId, { approver:s.approver }));
+  back.forEach(s=>askRuleFor(c, s.ruleId, { approver:s.approver, stamp:approvalStamp(c) }));
   logAudit(c,'Approval resubmitted',
     `${back.map(s=>`"${s.name}"`).join(', ')} sent back for approval by ${(u&&u.name)||'System'}`
     +(note?` — “${String(note).slice(0,500)}”`:'')
@@ -2466,12 +2493,12 @@ function wireApprovalPanel(c){
    "have they seen it" — it reads shares.first_opened_at, which is stamped once
    on the first real open and never re-counted. */
 
-Object.assign(window,{AP_UNDO_MS,approvalUndoable,approvalUndo,approvalRulesCleared,approvalDecidableNow,approvalRefuseWhy,approvalDecideAsk,signStepOf,signSteps,signStepIndex,signStepDone,signStepOpen,signRowOpen,signStepNow,signOpenRows,overseerCfg,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,saveSignerPlan,signerRouteWindow,signerPlanWhy,signerPlanRefusal,signerIsCompany,signerHasEmail,approvalPanelHtml,approvalChainHtml,APPROVAL_CLEAR_SAYS,approvalClearRows,approvalClearHtml,signerRouteHtml,wireApprovalPanel,
+Object.assign(window,{AP_UNDO_MS,approvalUndoable,approvalUndo,approvalRulesCleared,approvalDecidableNow,approvalRefuseWhy,approvalDecideAsk,signStepOf,signSteps,signStepIndex,signStepDone,signStepOpen,signRowOpen,signStepNow,signOpenRows,overseerCfg,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,approverForOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,saveSignerPlan,signerRouteWindow,signerPlanWhy,signerPlanRefusal,signerIsCompany,signerHasEmail,approvalPanelHtml,approvalChainHtml,APPROVAL_CLEAR_SAYS,approvalClearRows,approvalClearHtml,signerRouteHtml,wireApprovalPanel,
   signApprovalLegacyOn,signApprovalNeeds,signApprovalStateOf,saStepName,saMoney,saDriftWords,SA_CHAIN_STATUS,saChainStep,
   signApprovalDecidable,signApprovalWaitsOn,SA_PAPER_KEYS,signApprovalPaperHolds,signApprovalRequestable,signApprovalRound,
   saFmtDay,saWhen,saShowsLine,signApprovalNotify,saNoticeOf,saDeliveryWords,signApprovalRequest,signApprovalDecide,
   signApprovalWithdraw,signApprovalRemind,saRepaint,signApprovalRows,signApprovalBlockLabel,signApprovalSettledRows,
-  signApprovalHoldsLinks,openSignApprovalDialog,openSignApprovalRefuse,signApprovalAskCardHtml,wireSignApprovalCard});
+  signApprovalHoldsLinks,openSignApprovalDialog,openSignApprovalRefuse,signApprovalDecideAsk,signApprovalAskCardHtml,wireSignApprovalCard});
 
 /* ============================================================
    HOW MUCH MAY THIS PERSON SIGN FOR

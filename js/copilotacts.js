@@ -428,15 +428,33 @@ function caReadDraft(q){
   return { kind: 'draft', sentence: String(q).slice(0, (typeof DRAFT_SENTENCE_MAX === 'number') ? DRAFT_SENTENCE_MAX : 2000), state: 'reading', options: null, prefill: {}, why: '', ai: false };
 }
 /* How many of the sentence's words a candidate's name and purpose share. */
+const caDraftWords = s => String(s || '').toLowerCase().split(/[^a-z0-9à-ÿ]+/).filter(w => w.length > 2 && !['the', 'and', 'for', 'with', 'from', 'agreement', 'contract'].includes(w));
 function caDraftScore(sentence, cand){
-  const words = s => String(s || '').toLowerCase().split(/[^a-z0-9à-ÿ]+/).filter(w => w.length > 2 && !['the', 'and', 'for', 'with', 'from', 'agreement', 'contract'].includes(w));
-  const said = new Set(words(sentence));
-  return words(cand.name + ' ' + cand.blurb).reduce((n, w) => n + (said.has(w) ? 1 : 0), 0);
+  const said = new Set(caDraftWords(sentence));
+  return caDraftWords(cand.name + ' ' + cand.blurb).reduce((n, w) => n + (said.has(w) ? 1 : 0), 0);
 }
+/* WHICH WORDS THEY SHARE — the same reading as the score, said once each in
+   the candidate's own spelling ("NDA", not "nda"): what a request's panel
+   names when it says why a paper fits (round 20, Requests as drawn) */
+function caDraftShared(sentence, cand){
+  const said = new Set(caDraftWords(sentence));
+  const out = [], seen = new Set();
+  for (const raw of String((cand && cand.name) || '' ).concat(' ', (cand && cand.blurb) || '').split(/[^A-Za-z0-9À-ÿ]+/)){
+    const w = raw.toLowerCase();
+    if (!w || seen.has(w) || !said.has(w) || !caDraftWords(raw).length) continue;
+    seen.add(w); out.push(raw);
+  }
+  return out;
+}
+/* THE THREE CLOSEST, ALWAYS (the gaps, round 4 "One sheet", 18 Oct 2026: "the
+   three closest on our paper · nothing is picked for you"): the papers that
+   share the most words with the sentence first; where fewer than three share
+   one, the next by shelf — company standards, then saved, then HaTi's own
+   (draftCandidates' order). A reading, never a pick: the reader still chooses. */
 function caDraftRank(sentence, cands, bestId){
   const scored = cands.map((c, i) => ({ c, i, n: caDraftScore(sentence, c) }));
   scored.sort((a, b) => (b.c.id === bestId) - (a.c.id === bestId) || b.n - a.n || a.i - b.i);
-  return scored.filter((x, k) => k === 0 || x.n > 0 || x.c.id === bestId).slice(0, CA_DRAFT_OPTS).map(x => x.c);
+  return scored.slice(0, CA_DRAFT_OPTS).map(x => x.c);
 }
 async function caDraftRun(a){
   const paint = () => { if (typeof renderIntelDock === 'function') renderIntelDock(); };
@@ -453,9 +471,26 @@ async function caDraftRun(a){
   a.bestId = null;
   /* ASKING BRINGS THE PAGE: the one form comes straight to the desk; the
      panel says what was read, in a line, with the way back to the form */
-  if (a.options.length && caDraftForm(a)) a.state = 'opened';
+  if (a.options.length && caDraftForm(a)){ a.state = 'opened'; caDraftOneExchange(a); }
   else a.state = a.options.length ? 'ready' : 'none';
   paint();
+}
+/* ONE SHEET, ONE EXCHANGE (the gaps, round 4, 18 Oct 2026: the panel shows
+   only the exchange of the sheet on the desk): a sheet opened from a new
+   sentence puts away the exchanges of the sheets before it — their sheet is
+   gone, and "Nothing is created until you press Create" would speak of a form
+   nobody can press any more. What is not a draft is left exactly as it was. */
+function caDraftOneExchange(a){
+  const h = (typeof intel === 'object' && intel && Array.isArray(intel.history)) ? intel.history : null; if (!h) return 0;
+  const at = h.findIndex(m => m && m.act === a); if (at < 0) return 0;
+  let n = 0;
+  for (let i = at - 1; i >= 0; i--){
+    const m = h[i];
+    if (!(m && m.role === 'assistant' && m.act && m.act.kind === 'draft' && m.act !== a)) continue;
+    const ask = (i > 0 && h[i - 1] && h[i - 1].role === 'user') ? 1 : 0;
+    h.splice(i - ask, 1 + ask); n++; i -= ask;
+  }
+  return n;
 }
 /* ---- THE NEW AGREEMENT CARD (the overnight work order, step 3; the owner's
    "Go" on the demo, 14 Oct 2026) ----
@@ -498,6 +533,56 @@ function caDraftWith(sentence){
   if (who === who.toLowerCase()) who = who.replace(/(^|[\s-])(\p{L})/gu, (_, p, ch) => p + ch.toUpperCase());
   return who;
 }
+/* WHAT THE SENTENCE ASKS FOR, IN ITS OWN WORDS (the gaps, round 4: "with what
+   I read: an NDA, with Volvo Cars"): the words before "with", the verb and a
+   "please" left off — read, never guessed; too long to be a name of an
+   agreement, nothing. English gives it its article ("an NDA", "a supply
+   agreement"); the other book takes the words as they were typed. */
+const CA_DRAFT_WHAT_MAX = 6;
+/* the words themselves, before any article is given them ('' where none name an agreement) */
+function caDraftWhatRaw(sentence){
+  let t = String(sentence || '').trim();
+  const m = /^(.*?)\s+(?:with|med)\s+\S/i.exec(t); if (!m) return '';
+  t = m[1].replace(CA_DRAFT_RE, '').replace(/^\s*(?:please|snälla|vänligen)\s+/i, '').trim();
+  if (!t || t.split(/\s+/).length > CA_DRAFT_WHAT_MAX || !CA_DRAFT_NOUN.test(t)) return '';
+  return t;
+}
+function caDraftWhatOf(sentence){
+  const t = caDraftWhatRaw(sentence); if (!t) return '';
+  let lang = 'en'; try { lang = (typeof langId === 'function') ? (langId() || 'en') : 'en'; } catch (_){ lang = 'en'; }
+  if (lang !== 'en' || /^(?:a|an|the)\s/i.test(t)) return t;
+  const first = t.split(/\s+/)[0];
+  const acronym = first.length > 1 && first === first.toUpperCase() && /^[A-Z]/.test(first);
+  const an = acronym ? /^[AEFHILMNORSX]/.test(first) : /^[aeiou]/i.test(first);
+  return (an ? 'an ' : 'a ') + t;
+}
+/* THE KIND OF AGREEMENT THE WORDS ASK FOR, for the sheet's "What" (the gaps,
+   round 4, 18 Oct 2026: "What · A non-disclosure agreement" — the kind asked
+   for, never the closest paper's title, which is step 1's to offer): a short
+   name the house knows is written out in the reader's language (CA_DRAFT_KINDS,
+   both books); any other is the words as asked, its first letter raised. */
+const CA_DRAFT_KINDS = { nda: 'ca_kind_nda', 'non-disclosure agreement': 'ca_kind_nda', 'non disclosure agreement': 'ca_kind_nda', 'nondisclosure agreement': 'ca_kind_nda',
+  sla: 'ca_kind_sla', msa: 'ca_kind_msa', dpa: 'ca_kind_dpa', sow: 'ca_kind_sow', 'statement of work': 'ca_kind_sow', mou: 'ca_kind_mou', loi: 'ca_kind_loi' };
+function caDraftKindOf(sentence){
+  const raw = caDraftWhatRaw(sentence); if (!raw) return '';
+  const bare = raw.replace(/^(?:a|an|the|en|ett)\s+/i, '').trim();
+  const k = CA_DRAFT_KINDS[bare.toLowerCase()];
+  if (k) return _caT(k);
+  const t = caDraftWhatOf(sentence) || raw;
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+/* WHAT IT IS FOR, READ FROM THE WORDS (the gaps, round 4): "… with Volvo Cars
+   for a pilot" — the words after the party's "for", read as "with" is read,
+   never guessed: a term ("for two years", "for 30 days") is no purpose, and a
+   sentence that does not say is "Not read yet" */
+const CA_DRAFT_FOR = /(?:^|\s)(?:with|med)\s+.+?\s(?:for|för)\s+(.+?)[\s.!?]*$/i;
+const CA_DRAFT_FOR_MAX = 8;
+function caDraftForOf(sentence){
+  const m = CA_DRAFT_FOR.exec(String(sentence || '').trim()); if (!m) return '';
+  const t = m[1].split(/[,;:()\[\]]/)[0].replace(/^["“'‘]+|["”'’.!?]+$/g, '').replace(/\s+/g, ' ').trim();
+  if (!t || t.split(/\s+/).length > CA_DRAFT_FOR_MAX || /\d/.test(t) || CA_DRAFT_TERM_WORD.test(' ' + t)) return '';
+  return t;
+}
 /* the paper the card names: the model's pick, else a name that shares a word with the sentence, else none */
 function caDraftBest(a){
   const opts = (a && a.options) || [];
@@ -528,6 +613,8 @@ function caDraftForm(a){
   const best = caDraftBest(a);
   const prefill = Object.assign({}, (best && typeof draftPrefillFor === 'function') ? draftPrefillFor(best.fields, a.prefill || {}) : {});
   const who = caDraftWho(a); if (who) prefill.counterparty = who;
+  /* what it is for, read from the words: it reaches a paper's own purpose box, where one is declared */
+  const purpose = caDraftForOf(a.sentence); if (purpose && !prefill.purpose) prefill.purpose = purpose;
   /* ONE SHEET (round 4): NOTHING IS PICKED FOR THE READER — the closest of
      our paper are offered at the top of the form, the best marked; what was
      read from the words is the form's first section */
@@ -536,7 +623,7 @@ function caDraftForm(a){
   const known = !!who && ((typeof state === 'object' && state && Array.isArray(state.contracts)) ? state.contracts : []).some(c => c && norm(c.counterparty) === norm(who));
   openNewAgreement({ pick: null, prefill, asked: a.sentence, streamAsk: true,
     closest: (a.options || []).map(key), best: best ? key(best) : null,
-    words: { what: best ? (caDraftTitleOf(best) || best.name) : '', who, known } });
+    words: { what: caDraftKindOf(a.sentence) || (best ? (caDraftTitleOf(best) || best.name) : ''), who, known, purpose } });
   return true;
 }
 function caDraftCardHtml(a, i){
@@ -551,9 +638,16 @@ function caDraftCardHtml(a, i){
   /* THE FORM IS ON THE DESK (round 4, "One sheet"): no card — what was read,
      in his own words, and the form one press away should it have been closed */
   if (a.state === 'opened'){
-    const said = [who ? _caT('ca_dr_opened_with', { who }) : _caT('ca_dr_opened'),
-      best ? _caT('ca_dr_opened_best', { name: best.name }) : '', _caT('ca_dr_opened_tail')].filter(Boolean).join(' ');
-    return `<div class="ca-card ca-dr-said" data-ca-card="${i}"><p class="ca-say">${_caE(said)}</p><div class="ca-acts">${B('form', _caT('ca_dr_open_again'), false)}${B('ask', _caT('ca_dr_change'), false)}</div></div>`;
+    /* as drawn: what was read — the agreement the words name, and with whom */
+    const what = caDraftWhatOf(a.sentence);
+    /* AS DRAWN, THE PARTY AND THE PAPER IN BOLD ("with **Volvo Cars** … our
+       **Mutual NDA**"): marked before the line is escaped, made bold after */
+    const bo = t => '\u0001' + t + '\u0002';
+    const read = what && who ? _caT('ca_dr_opened_what_with', { what, who: bo(who) }) : what ? _caT('ca_dr_opened_what', { what })
+      : who ? _caT('ca_dr_opened_with', { who: bo(who) }) : _caT('ca_dr_opened');
+    const said = [read, best ? _caT('ca_dr_opened_best', { name: bo(best.name) }) : '', _caT('ca_dr_opened_tail')].filter(Boolean).join(' ');
+    const html = _caE(said).replace(/\u0001/g, '<b>').replace(/\u0002/g, '</b>');
+    return `<div class="ca-card ca-dr-said" data-ca-card="${i}"><p class="ca-say">${html}</p><div class="ca-acts">${B('form', _caT('ca_dr_open_again'), false)}${B('ask', _caT('ca_dr_change'), false)}</div></div>`;
   }
   const may = (typeof canEdit !== 'function') || canEdit();
   /* AS THE DEMO DRAWS IT: WHAT is the agreement the paper makes (a HaTi
@@ -969,7 +1063,7 @@ function caChipLead(c){
    own reason. */
 const CA_CHIPS_MORE = ['oblig', 'share'];
 function caChipShut(c, k){
-  if (k === 'redline') return typeof negoMayStart === 'function' && !negoMayStart(c).ok;
+  if (k === 'redline' || k === 'answer') return typeof negoMayStart === 'function' && !negoMayStart(c).ok;
   /* NO BUTTON THAT TAKES YOU NOWHERE (owner, 15 Oct 2026): nothing is left to
      sign on an executed or expired agreement; an amendment asks its own one
      answer (amendmentShutWhy); "edit a clause" only where the Edit a clause
@@ -1008,7 +1102,28 @@ function caEditChipBtn(c){
      amend), and never a door this contract has shut (caChipShut).
    Read live, spends nothing, writes nothing. */
 const CA_NEXT_FACE = { fill: 'fill', red: 'redline', signing: 'sign', amend: 'amend' };
-const CA_NEXT_MAX = 3;
+/* FOUR, AS ROUND 3 DRAWS THEM ("answer the redlines · name a signer · share ·
+   history"; the owner's "build all the gaps", 18 Oct 2026) */
+const CA_NEXT_MAX = 4;
+/* ---- WHAT IS OWED HERE, FIRST (round 3 as drawn) ----
+   The checklist's lead (caChipLead) and the two owed facts the glance says
+   beside the paper: their asks waiting on us (negoNeedsYouIds, RAW) — the
+   redline chip then says "answer the redlines" and opens them — and nobody
+   named to sign while signing is ahead (signBlockers' own 'signers') — "name
+   a signer", the route editor's own door. Read live; writes nothing. */
+function caOwedSteps(c){
+  const out = []; if (!c) return out;
+  const lead = caChipLead(c);
+  let asks = 0; try { asks = (typeof negoNeedsYouIds === 'function') ? negoNeedsYouIds(c).length : 0; } catch (_){ asks = 0; }
+  if (lead && !(lead === 'redline' && asks)) out.push(lead);
+  if (asks) out.push('answer');
+  let nobody = false;
+  try { nobody = (typeof pdSignAhead !== 'function' || pdSignAhead(c)) && typeof signBlockers === 'function' && signBlockers(c).some(b => b && b.key === 'signers'); } catch (_){ nobody = false; }
+  if (nobody) out.push('signer');
+  return out;
+}
+/* the owed step that stands for a ladder step: answering is redlining, naming a signer is the way to signing */
+const CA_OWED_FOR = { answer: 'redline', signer: 'sign' };
 function caNextSteps(c){
   if (!c) return [];
   const face = (typeof pdFaceNow === 'function') ? pdFaceNow() : '';
@@ -1017,14 +1132,16 @@ function caNextSteps(c){
   const ladder = executed ? ['oblig', 'amend', 'history']
     : face === 'red' ? ['edit', 'sign', 'share']
     : ['redline', 'share', 'sign'];
-  const lead = caChipLead(c);
-  return (lead ? [lead] : []).concat(ladder, ['history', 'oblig', 'share'])
-    .filter((k, i, all) => all.indexOf(k) === i && k !== here && !caChipShut(c, k))
+  const owed = executed ? [] : caOwedSteps(c);
+  const covered = new Set(owed.map(k => CA_OWED_FOR[k]).filter(Boolean));
+  return owed.concat(ladder, ['history', 'oblig', 'share'])
+    .filter((k, i, all) => all.indexOf(k) === i && k !== here && CA_OWED_FOR[k] !== here && !covered.has(k) && !caChipShut(c, k))
     .slice(0, CA_NEXT_MAX);
 }
-/* a step's words: a place word Jambo reads (ca_w_*), or the two that press
-   their own row (edit a clause, amend) */
-const CA_NEXT_GO = ['edit', 'amend'];
+/* a step's words: a place word Jambo reads (ca_w_*), or the ones that press
+   their own row (edit a clause, amend) or door (answer the redlines → the
+   Redlines face; name a signer → the route editor) */
+const CA_NEXT_GO = ['edit', 'amend', 'answer', 'signer'];
 function caNextLabel(k){ return CA_NEXT_GO.includes(k) ? _caT('ca_next_' + k) : _caT('ca_w_' + k); }
 /* a step pressed: a place is asked as its word (one path with typing,
    caReadPlace); edit and amend press the act their row presses */
@@ -1032,6 +1149,8 @@ function caNextRun(c, k){
   if (!c) return false;
   if (k === 'edit'){ const b = caEditChipBtn(c); return b ? rlEditClausePress(getContract(c.id) || c, b) : false; }
   if (k === 'amend') return (typeof pdAmendOpen === 'function') ? pdAmendOpen(c.id) : false;
+  if (k === 'answer') return CA_GO.redline(c);
+  if (k === 'signer') return (typeof openSignerPlanEditor === 'function') ? (openSignerPlanEditor(getContract(c.id) || c), true) : CA_GO.sign(c);
   if (typeof intelAsk === 'function') return intelAsk(_caT('ca_w_' + k));
   return false;
 }
@@ -1042,17 +1161,19 @@ function caPaperChips(){
   const c = caOpenContract();
   /* a viewer adds nothing: the upload chip steps aside, as a shut door's chip does on a paper (caChipShut) */
   if (!c) return CA_CHIPS_WALL.filter(k => k !== 'upload' || caMayAdd()).map(k => ({ ask: _caT(CA_CHIP_WALL_WORD[k] || ('ca_w_' + k)), k }));
-  const lead = caChipLead(c);
-  return caNextSteps(c).map(k => CA_NEXT_GO.includes(k) ? { go: k, label: caNextLabel(k), k } : { ask: _caT('ca_w_' + k), k, owed: k === lead });
+  /* work owed leads, in the accent's outline (the first owed step; round 3 as drawn) */
+  const lead = (caOwedSteps(c)[0]) || caChipLead(c);
+  return caNextSteps(c).map(k => CA_NEXT_GO.includes(k) ? { go: k, label: caNextLabel(k), k, owed: k === lead } : { ask: _caT('ca_w_' + k), k, owed: k === lead });
 }
 function caChipsHtml(){
   /* the person turned Jambo's suggestions off (You · How you like to work) */
   if (typeof jamboChipsOn === 'function' && !jamboChipsOn()) return '';
   const L = caPaperChips(); if (!L) return '';
   return L.map(x => x.go
-    ? `<button type="button" data-ca-next="${_caE(x.go)}" data-ca-chip="${_caE(x.k)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${_caE(x.label)}</button>`
+    ? (x.owed ? `<button type="button" data-ca-next="${_caE(x.go)}" data-ca-chip="${_caE(x.k)}" class="ca-chip-owed text-[10.5px] rounded-full bg-canvas hover:bg-brand-50 px-2.5 py-1 transition text-left">${_caE(x.label)}</button>`
+      : `<button type="button" data-ca-next="${_caE(x.go)}" data-ca-chip="${_caE(x.k)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${_caE(x.label)}</button>`)
     : x.owed
-    ? `<button type="button" data-igsug="${_caE(x.ask)}" data-ca-chip="${_caE(x.k)}" class="ca-chip-owed text-[10.5px] rounded-full px-2.5 py-1 transition text-left">${_caE(x.ask)}</button>`
+    ? `<button type="button" data-igsug="${_caE(x.ask)}" data-ca-chip="${_caE(x.k)}" class="ca-chip-owed text-[10.5px] rounded-full bg-canvas hover:bg-brand-50 px-2.5 py-1 transition text-left">${_caE(x.ask)}</button>`
     : x.fill
     ? `<button type="button" data-ca-fill="${_caE(x.fill)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${_caE(x.label)}</button>`
     : `<button type="button" data-igsug="${_caE(x.ask)}"${x.k ? ` data-ca-chip="${_caE(x.k)}"` : ''} class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${_caE(x.ask)}</button>`).join('');
@@ -1220,8 +1341,8 @@ Object.assign(window, { caDraftReply });
 Object.assign(window, { caRefFix, CA_REF_RE, caRefLinkPaint, caRefOpen, CA_MENU, CA_MENU_INBOUND, CA_MENU_THEIR_FILE, CA_FILE_OUT, CA_FILE_KEEP, CA_MENU_NOT, caReadMenu, caMenuRows, caMenuCardHtml, caMenuPress, CA_DOORS, CA_DOOR_NOT, caReadDoor, caRoomSign, CA_DOOR_GO, CA_DOOR_SHUT, CA_DOOR_NEEDS, caDoorCardHtml, caDoorPress });
 Object.assign(window, { CA_PICK_MAX, CA_NOTE_MAX, CA_SEND_RE, caPeople, caContracts, caOpenContract, caTokenAt, caMatches, caPopHtml, caPopClose, caPopRead, caChoose,
   caFindContract, caFindPerson, caNoteOf, caReadSend, caActOf, caSendBlock, caCardHtml, caCardPress,
-  CA_DRAFT_RE, CA_DRAFT_NOUN, CA_DRAFT_OPTS, CA_DRAFT_BARE, CA_DRAFT_ASKING, caIsDraftAsk, caReadDraft, caDraftScore, caDraftRank, caDraftRun, caDraftCardHtml, caDraftPress, CA_DRAFT_WITH, CA_DRAFT_WITH_MAX, caDraftWith, CA_DRAFT_NOT_PARTY, CA_DRAFT_TERM_WORD, caDraftBest, caDraftTitleOf, caDraftWho, caDraftForm,
-  CA_JOBS, CA_JOB_RE, caReadJob, caNamedOrUp, caRowsWithQuotes, caRiskList, caObligList, caListCardHtml, caReadyDoor, caJobCardHtml, caJobPress, caMayAdd, caPaperChips, caChipsHtml, caNextSteps, caNextRun, caNextLabel, caEditChipBtn, CA_NEXT_FACE, CA_NEXT_MAX, CA_NEXT_GO,
+  CA_DRAFT_RE, CA_DRAFT_NOUN, CA_DRAFT_OPTS, CA_DRAFT_BARE, CA_DRAFT_ASKING, caIsDraftAsk, caReadDraft, caDraftWords, caDraftScore, caDraftShared, caDraftRank, caDraftRun, caDraftCardHtml, caDraftPress, CA_DRAFT_WITH, CA_DRAFT_WITH_MAX, caDraftWith, CA_DRAFT_NOT_PARTY, CA_DRAFT_TERM_WORD, caDraftBest, caDraftTitleOf, caDraftWho, caDraftForm, CA_DRAFT_WHAT_MAX, caDraftWhatRaw, caDraftWhatOf, CA_DRAFT_KINDS, caDraftKindOf, CA_DRAFT_FOR, CA_DRAFT_FOR_MAX, caDraftForOf, caDraftOneExchange,
+  CA_JOBS, CA_JOB_RE, caReadJob, caNamedOrUp, caRowsWithQuotes, caRiskList, caObligList, caListCardHtml, caReadyDoor, caJobCardHtml, caJobPress, caMayAdd, caPaperChips, caChipsHtml, caNextSteps, caNextRun, caChipShut, caNextLabel, caEditChipBtn, CA_NEXT_FACE, CA_NEXT_MAX, CA_NEXT_GO, caOwedSteps, CA_OWED_FOR,
   CA_SEL_ACTIONS, caSelKill, caSelClauseId, caSelOpen, caSelPick, CA_RISK_MAX, caRiskMark });
 
 /* ============================================================
@@ -1752,7 +1873,10 @@ function caSlClose(){ _caSl = null; const el = document.getElementById('ca-slash
 function caSlTake(i){
   const P = _caSl; const r = P && P.rows[i]; if (!r) return;
   P.inp.value = ''; caSlClose();
-  caPlaceRun(r.k);
+  /* A PAGE THAT KEEPS WORK leaves through its own way out (the template
+     builder's tbLeave keeps what was typed): the box names it, `_caLeave` */
+  const leave = P.inp && typeof P.inp._caLeave === 'function' ? P.inp._caLeave : null;
+  if (leave) leave(() => caPlaceRun(r.k)); else caPlaceRun(r.k);
 }
 if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._caSlWired){
   document._caSlWired = true;

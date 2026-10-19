@@ -937,6 +937,9 @@
        rule reads this one token; an INSERTION still says who by its colour. */
     --rl-del-ink:var(--st-ruby-fg);
     --st-steel-bg:#E6ECF6; --st-steel-fg:#48639A; --st-steel-dot:#6F86BF; --st-steel-line:#BFCBE6;
+    /* THEIRS (round 16 as drawn, 18 Oct 2026): what the other side owes wears its own tint on the
+       Obligations page and the Calendar — their letters, their chips, the key's "Theirs" */
+    --st-violet-bg:#F2EDFA; --st-violet-fg:#6A3AA8; --st-violet-dot:#7A44B8; --st-violet-line:#D9CBEF;
 
     /* tone tiles (icon tiles: tile-bg / tile-fg) */
     --tile-steel-bg:#E6ECF6;   --tile-steel-fg:#48639A;
@@ -1013,6 +1016,7 @@
     --st-green-bg:#153224;  --st-green-fg:#5CC48E; --st-green-dot:#2E9E63; --st-green-line:rgba(46,158,99,.35);
     --st-ruby-bg:#3F1C19;    --st-ruby-fg:#F0857B;  --st-ruby-dot:#D9453B;  --st-ruby-line:rgba(217,69,59,.35);
     --st-steel-bg:#1D2637;  --st-steel-fg:#8FA8DE; --st-steel-dot:#6F86BF; --st-steel-line:rgba(111,134,191,.35);
+    --st-violet-bg:#261B3A; --st-violet-fg:#C9A5F2; --st-violet-dot:#B07FE6; --st-violet-line:rgba(176,127,230,.35);
 
     --tile-steel-bg:#1D2637;  --tile-steel-fg:#8FA8DE;
     --tile-emerald-bg:#153224;--tile-emerald-fg:#5CC48E;
@@ -1575,6 +1579,7 @@
   [data-dlg-page] .dlg-pg-head{ flex:none; background:var(--color-surface); border-bottom:1px solid var(--rule-strong);
     padding:var(--page-pad-t,16px) var(--band-pad-x,24px) 14px; display:flex; flex-direction:column; gap:6px; }
   [data-dlg-page] .dlg-pg-crumb{ font-size:var(--t-label); color:var(--color-neutral-600); }
+  [data-dlg-page] .dlg-pg-crumb .dlg-pg-back{ font-size:inherit; }
   [data-dlg-page] .dlg-pg-row{ display:flex; align-items:center; gap:var(--s-3); min-width:0; }
   [data-dlg-page] .dlg-pg-title{ flex:1; min-width:0; }
   [data-dlg-page] .dlg-pg-title > *{ font-family:var(--font-heading); font-size:var(--t-page); font-weight:var(--w-strong); color:var(--color-text); }
@@ -1724,6 +1729,83 @@
   [data-share-sap] .sh-lt-card.is-stays{ border-color:var(--st-amber-line); background:var(--st-amber-bg); }
   [data-share-sap] .sh-lt-card.is-stays :is(h4, p){ color:var(--st-amber-fg); }
   [data-share-sap] .sh-lt-acts{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  /* THE LETTER AS DRAWN (round 11's gaps, 18 Oct 2026): "Send round 2" with "to Nordvik … · MK-0382"
+     quieter beside it; To said as a line with Change; "Sent as" a sentence of small choices, each opening
+     its own list (the same controls); the email's own parts — Hello, the note in its dashed box with
+     "Your note · type here", what the round answers quoted, the button, the link's promise, the sign-off */
+  [data-share-sap] .sh-hd h2{ display:flex; align-items:baseline; flex-wrap:wrap; column-gap:8px; row-gap:2px; }
+  [data-share-sap] .sh-hd .sh-hd-to{ font-size:var(--t-body); font-weight:var(--w-body); color:var(--color-neutral-600); }
+  [data-share-sap] .sh-hd-acts:empty{ display:none; }
+  [data-share-sap] .sh-lt-tosay{ display:flex; align-items:center; gap:10px; min-height:30px; }
+  [data-share-sap] .sh-lt-tosay #sh-lt-towho{ flex:1; min-width:0; font-weight:var(--w-label); font-size:var(--t-body); overflow-wrap:anywhere; }
+  [data-share-sap] .sh-lt-change{ flex:none; border:0; background:none; padding:0; font:inherit; font-size:var(--t-meta); font-weight:var(--w-label); color:var(--accent-ink); cursor:pointer; }
+  [data-share-sap] .sh-lt-change:hover{ text-decoration:underline; }
+  [data-share-sap] .sh-as-chips{ display:flex; flex-wrap:wrap; gap:6px; padding:2px 0; }
+  [data-share-sap] .sh-as{ position:relative; }
+  [data-share-sap] .sh-as-go{ display:inline-flex; align-items:center; gap:4px; height:26px; padding:0 8px; border:1px solid var(--btn-edge); border-radius:var(--radius);
+    background:var(--color-surface); font:inherit; font-size:var(--t-meta); font-weight:var(--w-label); color:var(--accent-ink); cursor:pointer; white-space:nowrap; }
+  [data-share-sap] .sh-as-go:hover, [data-share-sap] .sh-as.is-open .sh-as-go{ border-color:var(--accent-ink); }
+  [data-share-sap] .sh-as-pop{ display:none; position:absolute; top:calc(100% + 4px); left:0; z-index:20; width:max-content; min-width:280px; max-width:min(440px,80vw);
+    padding:10px 12px; background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); }
+  [data-share-sap] .sh-as.is-open .sh-as-pop{ display:block; }
+  [data-share-sap] .sh-as-pop .sh-segs{ flex-wrap:wrap; }
+  [data-share-sap] .sh-as-pop #sh-link-opts{ display:grid; grid-template-columns:minmax(0,1fr); gap:8px; margin:0; }
+  [data-share-sap] .sh-as-menu{ padding:4px; min-width:220px; }
+  [data-share-sap] .sh-as-menu button{ display:block; width:100%; text-align:left; border:0; background:none; padding:7px 10px; border-radius:var(--radius);
+    font:inherit; font-size:var(--t-body); color:var(--color-text); cursor:pointer; }
+  [data-share-sap] .sh-as-menu button:hover:not(:disabled){ background:var(--color-neutral-100); }
+  [data-share-sap] .sh-as-menu button[aria-current="true"]{ font-weight:var(--w-strong); color:var(--accent-ink); }
+  [data-share-sap] .sh-as-menu button:disabled{ opacity:.5; cursor:not-allowed; }
+  [data-share-sap] .sh-lt-p.is-lead{ margin-bottom:6px; }
+  [data-share-sap] .sh-lt-ans{ margin:0 0 12px; padding:2px 0 2px 12px; border-left:3px solid var(--color-divider); }
+  [data-share-sap] .sh-lt-ans .sh-lt-p{ margin:0 0 4px; }
+  [data-share-sap] .sh-lt-ans b{ font-weight:var(--w-strong); }
+  [data-share-sap] .sh-lt-btnp{ margin:4px 0 14px; }
+  [data-share-sap] .sh-lt-btn{ display:inline-flex; align-items:center; height:36px; padding:0 16px; border-radius:var(--radius); background:var(--accent-fill); color:#fff;
+    font-size:var(--t-body); font-weight:var(--w-strong); }
+  [data-share-sap] .sh-lt-foot{ color:var(--color-neutral-600); font-size:var(--t-meta); margin-top:18px; }
+  /* the letter's checks as a card among the panel's cards (readinessPanelHtml, o.card): the list open, a block on a ruby edge with its tick */
+  [data-share-sap] .sh-lt-check .sh-lt-checkl, #pd-sendface .sh-lt-check .sh-lt-checkl{ margin:2px 0 0; padding-left:18px; font-size:var(--t-meta); line-height:1.55; color:var(--color-neutral-700); }
+  [data-share-sap] .sh-lt-check.is-block, #pd-sendface .sh-lt-check.is-block{ border-color:var(--st-ruby-line); }
+  [data-share-sap] .sh-lt-check.is-block h4, #pd-sendface .sh-lt-check.is-block h4{ color:var(--st-ruby-fg); }
+  #pd-sendface .sh-lt-check .sh-lt-check-also{ margin:8px 0 0; font-size:var(--t-label); color:var(--color-neutral-600); }
+  #pd-sendface .sh-lt-check .sh-lt-check-ack{ display:flex; align-items:flex-start; gap:7px; margin-top:8px; font-size:var(--t-meta); color:var(--st-ruby-fg); cursor:pointer; }
+  [data-share-sap] #sh-letter.is-letter .sh-lt-note label{ display:inline-block; max-width:100%; vertical-align:top; padding:6px 10px 6px; border:1px dashed color-mix(in srgb, var(--accent-fill) 45%, var(--color-divider));
+    border-radius:var(--radius); background:color-mix(in srgb, var(--accent-fill) 5%, var(--color-surface)); }
+  [data-share-sap] #sh-letter.is-letter .sh-lt-note #sh-summary-label{ position:static; width:auto; height:auto; overflow:visible; clip:auto; margin:0 0 2px;
+    font-family:inherit; font-size:var(--t-label); font-weight:var(--w-body); letter-spacing:0; color:var(--color-neutral-600); }
+  [data-share-sap] #sh-letter.is-letter .sh-lt-note textarea{ border:0; background:transparent; padding:0; min-height:0; box-shadow:none; resize:none; overflow:hidden; }
+  /* what goes is the letter itself now: the side no longer lists it (the manifest stays in the markup for the record kind's swap) */
+  .sh-lt-side > #share-manifest-line, .sh-lt-side > #share-manifest{ display:none; }
+  [data-share-sap] .sh-lt-card h4 .sh-lt-pause{ display:inline-block; width:8px; height:10px; margin-right:7px; border-left:3px solid currentColor; border-right:3px solid currentColor; box-sizing:border-box; vertical-align:-1px; }
+  /* THE LETTER AS A PAGE ON THE DESK, beside Jambo (shareLetterPage): its head is the paper line's band, Send and Cancel at its end;
+     the letter stands centred on the desk's ground under it */
+  #modal-root .modal-in[data-sh-page] > [data-share-sap]{ min-height:100%; }
+  #modal-root .modal-in[data-sh-page] .sh-hd{ position:sticky; top:0; z-index:4; margin:0; padding:12px 20px; display:flex; align-items:center; gap:12px;
+    background:var(--color-surface); border-bottom:1px solid var(--color-divider); }
+  #modal-root .modal-in[data-sh-page] .sh-hd h2{ flex:1; min-width:0; margin:0; font-size:20px; font-weight:var(--w-strong); color:var(--color-text); }
+  #modal-root .modal-in[data-sh-page] .sh-hd-acts{ display:flex; gap:8px; flex:none; }
+  #modal-root .modal-in[data-sh-page] .sh-lt-grid{ display:block; padding:16px 20px 28px; }
+  #modal-root .modal-in[data-sh-page] .sh-lt-grid > *{ max-width:780px; margin-left:auto; margin-right:auto; }
+  #modal-root .modal-in[data-sh-page] > [data-share-sap] > .dlg-foot{ display:none; }
+  /* BEFORE YOU SEND, AS A FACE OF JAMBO'S PANEL (pdSendOpen): Jambo's line as his bubble, the cards under it */
+  #pd-sendface{ display:flex; flex-direction:column; }
+  #pd-sendface .sh-lt-side{ display:grid; grid-template-columns:28px minmax(0,1fr); gap:10px; align-items:start; padding:12px 14px 4px; }
+  #pd-sendface .sh-lt-side > *{ grid-column:1 / -1; margin:0; }
+  #pd-sendface .sh-lt-side > .sh-lt-jb{ grid-column:1; }
+  #pd-sendface .sh-lt-side > .sh-lt-jb b{ display:none; }
+  #pd-sendface .sh-lt-side > #sh-lt-jsay{ grid-column:2; padding:8px 12px; border-radius:var(--radius-lg); background:var(--color-neutral-100);
+    font-size:var(--t-meta); line-height:1.5; color:var(--color-text); }
+  #pd-sendface .sh-lt-card{ border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:12px 14px; background:var(--color-surface); }
+  #pd-sendface .sh-lt-card h4{ display:flex; align-items:center; margin:0 0 4px; font-size:var(--t-body); font-weight:var(--w-strong); color:var(--color-text); }
+  #pd-sendface .sh-lt-card p{ margin:0; font-size:var(--t-meta); line-height:1.5; color:var(--color-neutral-700); }
+  #pd-sendface .sh-lt-card.is-stays{ border-color:var(--st-amber-line); }
+  #pd-sendface .sh-lt-card.is-stays h4 .sh-lt-pause{ display:inline-block; width:8px; height:10px; margin-right:7px; border-left:3px solid var(--st-amber-fg); border-right:3px solid var(--st-amber-fg); box-sizing:border-box; }
+  #pd-sendface .sh-lt-acts{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  /* Go to clause N, or — while the letter waits for it (pdSendWaitSet) — Back to the letter, in the same place */
+  [data-sh-lt-back], .pd-send-slot.is-waiting [data-sh-lt-goto]{ display:none; }
+  .pd-send-slot.is-waiting [data-sh-lt-back]{ display:inline-flex; }
+  #pd-sendface #igd-feed:empty{ display:none; }
   /* ALERTS, AS DRAWN (SAP pop-ups, 10 Oct 2026): a contract under its group. */
   .al-grow{ display:flex; gap:10px; align-items:center; width:100%; padding:8px 2px; border:0; border-bottom:1px solid var(--color-divider);
     background:transparent; text-align:left; cursor:pointer; color:var(--color-text); font:inherit; }
@@ -2811,6 +2893,10 @@
   .ngl-head h2{ font-family:var(--font-heading); font-weight:var(--w-title); font-size:20px;
     margin:0 0 var(--s-1); line-height:1.2; }
   .ngl-head p{ margin:0 0 18px; font-size:var(--t-body); color:var(--color-neutral-600); }
+  /* with nothing live the head is the one page-head card (.ph-card, 19 Oct
+     2026), its title alone on the title row, the empty state --s-3 under it */
+  .ngl-wrap > .ngl-head.ph-card{ margin:0 0 var(--s-3); }
+  .ngl-head.ph-card > .ph-top h2{ margin:0; }
   .ngl-list{ display:flex; flex-direction:column; gap:var(--s-2); }
   .ngl-row{ display:flex; align-items:center; gap:14px; width:100%; text-align:left;
     font:inherit; cursor:pointer; padding:13px 15px; border-radius:var(--radius);
@@ -2931,6 +3017,10 @@
      The page's own door sits at the right of its head; the picker lists the
      contracts that may start one. Tokens only. */
   .ngl-head-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:var(--s-3); flex-wrap:wrap; }
+  /* the page's facts on its title's line (round 14 as drawn, 18 Oct 2026) */
+  .ngl-head .ngl-title-row{ display:flex; align-items:baseline; column-gap:12px; row-gap:2px; flex-wrap:wrap; }
+  .ngl-head .ngl-title-row h2{ margin:0; }
+  .page-title-row .page-facts{ margin-top:0; }
   .ngs-n{ margin:var(--s-1) 0 var(--s-2); font-size:var(--t-meta); color:var(--color-neutral-600); }
   .ngs-list{ max-height:min(52vh,420px); overflow:auto; border:1px solid var(--color-divider); border-radius:var(--radius); }
   .ngs-row{ display:flex; align-items:center; gap:var(--s-2); width:100%; padding:var(--s-2) var(--s-3);
@@ -3562,6 +3652,8 @@
     padding:6px 8px; border-bottom:1px solid var(--color-divider); }
   .st-ps-tb td{ padding:7px 8px; border-bottom:1px solid var(--color-divider); color:var(--color-text); vertical-align:top; }
   .st-ps-who{ font-weight:var(--w-strong); }
+  /* Downloads so far: Who is a plain name, the weight of its row (round 26 as drawn) */
+  .st-tr-tb .st-ps-who{ font-weight:var(--w-body); }
   .st-ps-when{ color:var(--color-neutral-600); white-space:nowrap; }
   .st-ps-act{ text-align:right; white-space:nowrap; }
   .st-ps-ghost td, .st-ps-ghost .st-ps-who{ color:var(--color-neutral-600); font-weight:var(--w-body); }
@@ -3687,27 +3779,28 @@
   .st-cr .st-cr-cols{ display:grid; grid-template-columns:minmax(0,1fr) 344px; gap:var(--s-4); align-items:start; }
   .st-cr .st-cr-main{ min-width:0; }
   @media (max-width:1180px){ .st-cr .st-cr-cols{ grid-template-columns:minmax(0,1fr) 300px; } }
-  /* the tab row: the white band holds the pill alone */
-  .st-cr .st-facebar{ border-bottom:1px solid var(--color-divider); padding-bottom:10px; }
-  .st-cr .st-faces{ --st-fi:0; --st-fn:2; display:inline-grid; grid-auto-flow:column; grid-auto-columns:1fr; position:relative;
-    border-radius:var(--radius-lg); padding:3px; background:color-mix(in srgb,var(--color-accent) 8%,var(--color-surface)); }
-  .st-cr .st-face{ appearance:none; border:0; background:none; cursor:pointer; font:inherit; font-size:var(--t-body);
-    height:calc(var(--ctl-h) - 6px); padding:0 var(--s-4); display:inline-flex; align-items:center; justify-content:center; gap:6px;
-    position:relative; z-index:1; color:var(--color-neutral-600); font-weight:var(--w-label); border-radius:calc(var(--radius-lg) - 2px); white-space:nowrap; }
-  .st-cr .st-face[aria-selected="true"]{ color:var(--color-text); }
+  /* THE TAB ROW, AS DRAWN (round 25, the gaps of 18 Oct 2026; reverses the
+     16 Oct pill): You · Company as underlined tabs under a rule, the chosen
+     one underlined in the accent, Company's count beside its name */
+  .st-cr .st-facebar{ border-bottom:1px solid var(--color-divider); padding-bottom:0; }
+  /* the rule over them is the title row's own (.ph-top, 19 Oct 2026: the one line on every head card);
+     each tab is the head cards' tab height (38px, as Obligations' and Our paper's, round 25's drawn 37),
+     so its word sits under the line where every head's tab word does */
+  .st-cr .st-faces{ display:flex; align-items:stretch; gap:24px; position:relative; flex:1 1 auto; width:100%; margin-top:0; padding:0;
+    background:none; border-radius:0; }
+  .st-cr .st-face{ appearance:none; border:0; border-bottom:2px solid transparent; margin-bottom:-1px; background:none; cursor:pointer; font:inherit; font-size:var(--t-body);
+    height:38px; padding:0 2px; display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    position:relative; color:var(--color-neutral-600); font-weight:var(--w-label); border-radius:0; white-space:nowrap; }
+  .st-cr .st-face[aria-selected="true"]{ color:var(--accent-ink); border-bottom-color:var(--color-accent); }
   .st-cr .st-face:focus-visible{ outline:2px solid var(--color-accent); outline-offset:-2px; }
-  .st-cr .st-thumb{ position:absolute; top:3px; bottom:3px; left:3px; width:calc((100% - 6px) / var(--st-fn,2));
-    border-radius:calc(var(--radius-lg) - 2px); background:var(--color-surface);
-    box-shadow:0 1px 2px rgba(9,25,56,.16),0 0 0 1px rgba(9,25,56,.06);
-    transform:translateX(calc(var(--st-fi,0) * 100%)); transition:transform var(--dur-3) cubic-bezier(.22,.61,.36,1); pointer-events:none; }
-  @media (prefers-reduced-motion:reduce){ .st-cr .st-thumb{ transition:none; } }
+  .st-cr .st-thumb{ display:none; }
   .st-cr .st-face-w{ display:inline-grid; }
   .st-cr .st-face-w > span,.st-cr .st-face-w::before,.st-cr .st-face-w::after{ grid-area:1/1; text-align:center; }
   .st-cr .st-face-w::before{ content:attr(data-w1); visibility:hidden; }
   .st-cr .st-face-w::after{ content:attr(data-w2); visibility:hidden; }
-  .st-cr .st-face-n{ font-size:11px; font-weight:var(--w-strong); font-variant-numeric:tabular-nums; }
+  .st-cr .st-face-n{ font-size:var(--t-label); font-weight:var(--w-label); font-variant-numeric:tabular-nums; color:var(--color-neutral-600); }
   .st-cr .st-face-n:empty{ display:none; }
-  .st-cr .st-face-n[data-tone="amber"]{ color:var(--st-amber-fg); }
+  .st-cr .st-face-n[data-tone="amber"]{ color:var(--color-neutral-600); }
   /* THE BOARD: cards in columns, each as tall as what it holds */
   .st-cr .st-board > .st-att{ margin-bottom:var(--s-4); border-radius:var(--radius-lg); }
   .st-cr .st-cards{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--s-3); margin-bottom:var(--s-4); }
@@ -3824,6 +3917,8 @@
   .st-cr .st-jb-ask input{ flex:1; min-width:0; height:var(--ctl-h-lg); border:1px solid var(--field-line); border-radius:var(--radius-lg);
     padding:0 10px; font:inherit; font-size:var(--t-meta); background:var(--color-surface); color:var(--color-text); }
   .st-cr .st-jb-ask input:focus-visible{ outline:2px solid var(--btn-edge); outline-offset:1px; }
+  /* the hint line under Jambo's box (18 Oct 2026), under the box's own left edge */
+  .st-cr .st-jb > .jb-hint{ flex:none; margin:0 12px 10px; }
   .st-cr .st-jb-foot{ flex:none; margin:0; padding:0 12px 10px; font-size:var(--t-label); color:var(--color-neutral-600); }
   /* the Menu's face */
   .st-cr .st-side-menu{ padding:10px 12px 12px; overflow:auto; }
@@ -3841,6 +3936,193 @@
   .st-cr .st-dot-you{ background:var(--color-divider); }
   .st-cr .st-mrow-s{ flex:none; max-width:46%; font-size:var(--t-label); color:var(--color-neutral-600); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .st-cr .st-mrow-s.is-warn{ color:var(--st-amber-fg); }
+  /* ============================================================
+     ROUNDS 24, 25 AND 26 AS DRAWN (the gaps, 18 Oct 2026)
+     ============================================================ */
+  /* the page head's fact: "Settings · <the company>" / "Your settings · yours alone" */
+  .st-head-sub{ font-size:var(--t-body); color:var(--color-neutral-600); }
+  /* THE FRAME, AS DRAWN (rounds 24 and 25, the gaps' third pass, 19 Oct
+     2026): the page's head is a white card in the LEFT column, over the
+     board, and Jambo's panel is the whole RIGHT column from under the bar to
+     the window's foot — flush to the edge, a hairline on its left, sticky in
+     the page's one scroller (its height measured by stSideFit). The window's
+     own head steps aside on Settings: the card says the page's name. Below
+     981px the panel follows the board as before. */
+  .st-cr .st-cr-left{ min-width:0; display:flex; flex-direction:column; gap:var(--s-3); padding-bottom:var(--page-pad-b); }
+  /* THE HEAD CARD STAYS WHILE THE PAGE SCROLLS (owner's ruling of 18 Sep
+     2026, "you do not lose the tabs. The body scrolls up behind the tabs
+     line", kept in the drawn frame): sticky in the left column at the page's
+     own top padding, so its first glyph does not move, pinned or not; a
+     shadow of the page's ground covers the air above it, so nothing scrolls
+     through there. Jambo's column is never under it. */
+  /* ITS FRAME IS EVERY PAGE'S HEAD CARD (.ph-card, 19 Oct 2026: the list
+     pages' head card) — white, the hairline, the house radius, 14px over
+     the title — so its title sits at the one height every page head does;
+     only the stay-while-scrolling and the tabs flush on its foot are its own. */
+  .st-cr .st-headcard{ position:sticky; top:var(--page-pad-t); z-index:3; }
+  .st-cr .st-headcard::before{ content:''; position:absolute; left:-1px; right:-1px; bottom:100%; height:calc(var(--page-pad-t) + 1px); background:var(--color-bg); }
+  .st-cr .st-headcard:has(.st-facebar){ padding-bottom:0; }
+  /* the card's title row (.ph-top): its height and the hairline under it are the one rule every head card wears (19 Oct 2026) */
+  .st-cr .st-hc-top{ display:flex; align-items:baseline; flex-wrap:wrap; column-gap:10px; row-gap:4px; }
+  .st-cr .st-hc-t{ margin:0; font-family:var(--font-heading); font-size:20px; font-weight:var(--w-title); letter-spacing:-.01em; color:var(--color-text); line-height:1.2; }
+  .st-cr .st-hc-sp{ flex:1; }
+  .st-cr .st-hc-top > .ui-btn{ align-self:center; }
+  @media (min-width:981px){
+    body:has(#set-page.st-cr) #page-head{ display:none; }
+    .st-cr.st-page{ padding-bottom:0; }
+    .st-cr .st-cr-cols{ grid-template-columns:minmax(0,1fr) 380px; column-gap:var(--s-4); }
+    .st-cr .st-side{ top:0; margin:calc(-1 * var(--page-pad-t)) calc(-1 * var(--page-pad-x)) 0 0;
+      border:0; border-left:1px solid var(--color-divider); border-radius:0; box-shadow:none; }
+    .st-cr.is-side-folded .st-cr-cols{ grid-template-columns:minmax(0,1fr) 46px; }
+    .st-cr .st-cr-cols > .st-side.is-folded{ height:var(--st-side-h,560px); }
+  }
+  @media (min-width:981px) and (max-width:1400px){ .st-cr .st-cr-cols{ grid-template-columns:minmax(0,1fr) 344px; } }
+  /* A CARD'S DOOR OPENS ITS PAGE (round 25 as drawn, the gaps' third pass):
+     the one drawer, docked in the page's main column under "‹ Settings" —
+     a white card, no scrim, no slide, its own × gone (‹ Settings, Done,
+     Cancel and Escape are the ways back), its crumb still saying the group
+     and where in it, its body as tall as it needs. CLIPPED, NOT HIDDEN (the
+     gaps' fourth pass): overflow:hidden made the card its own scroller, so
+     the sticky foot stuck to the card's end and Save could sit below the
+     window on a long page; clip keeps the corners and lets the foot stick to
+     the window's foot (hidden stays first for a browser without clip) */
+  .st-cr .st-drawer.is-docked{ position:static; inset:auto; width:auto; height:auto; transform:none; transition:none; z-index:auto;
+    background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); box-shadow:none; overflow:hidden; overflow:clip; }
+  .st-cr .st-drawer.is-docked .st-dx{ display:none; }
+  .st-cr .st-drawer.is-docked .st-dhead .rvd-head{ padding-right:16px; }
+  .st-cr .st-drawer.is-docked .st-dbody{ overflow:visible; flex:none; }
+  .st-cr .st-drawer.is-docked .st-dfoot{ position:sticky; bottom:0; z-index:1; }
+  .st-cr .st-pg-dock .st-pg-head{ margin-bottom:var(--s-2); }
+  /* a count in a small round tag, as every drawn card head carries */
+  .st-cr .st-pill-n{ display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; padding:0 6px;
+    border-radius:999px; background:var(--surface-2); color:var(--color-neutral-700); font-size:var(--t-label); font-weight:var(--w-label);
+    font-variant-numeric:tabular-nums; vertical-align:1px; }
+  .st-cr .st-pill-n.is-amber{ background:var(--st-amber-bg); color:var(--st-amber-fg); }
+  .st-cr .st-card-ht{ display:inline-flex; align-items:baseline; gap:8px; flex-wrap:wrap; min-width:0; }
+  .st-cr .st-card-sub-l{ margin-left:2px; }
+  /* A PAGE OPENED FROM SETTINGS STARTS AT ITS OWN NAME (round 26 as drawn,
+     the gaps of 18 Oct 2026): the window's Settings head steps aside while a
+     sub-page is up — "‹ Settings" on the page is the way back */
+  body:has(#set-page[data-st-sub]) #page-head{ display:none; }
+  /* A CLASH SAID UNDER THE LIMIT THAT MAKES IT, with the two ways to settle
+     it (round 25's person drawer, as drawn) — the refusal's own dress */
+  .st-clash-say{ display:flex; align-items:flex-start; gap:8px; margin:10px 0 0; padding:8px 10px; border:1px solid var(--st-ruby-line);
+    background:var(--st-ruby-bg); border-radius:var(--radius); font-size:var(--t-meta); line-height:1.45; color:var(--color-text); }
+  .st-clash-say .st-dot{ flex:none; margin-top:6px; }
+  /* THE SIDE PANEL'S HEAD: Jambo, the word for what it holds, the fold */
+  .st-cr .st-side-head{ flex:none; display:flex; align-items:flex-end; gap:10px; padding:4px 8px 0 10px; border-bottom:1px solid var(--color-divider); min-height:50px; }
+  .st-cr .st-side-head .st-side-tab{ flex-direction:column; gap:1px; height:auto; padding:2px 10px 5px; border-radius:0; border-bottom:2px solid var(--color-accent);
+    margin-bottom:-1px; color:var(--color-text); background:none; font-size:var(--t-label); font-weight:var(--w-strong); cursor:default; }
+  .st-cr .st-side-head .st-side-tab:hover{ background:none; }
+  .st-cr .st-side-word{ align-self:center; min-width:0; font-size:var(--t-meta); color:var(--color-text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .st-cr .st-side-sp{ flex:1; }
+  .st-cr .st-side-fold{ align-self:center; appearance:none; border:0; background:none; width:28px; height:28px; border-radius:var(--radius);
+    font:inherit; font-size:18px; line-height:1; color:var(--color-neutral-600); cursor:pointer; }
+  .st-cr .st-side-fold:hover{ background:var(--surface-2); color:var(--color-text); }
+  .st-cr .st-side-back{ align-self:center; appearance:none; border:0; background:none; padding:6px 2px; font:inherit; font-size:var(--t-meta); font-weight:var(--w-label); color:var(--accent-ink); cursor:pointer; }
+  .st-cr .st-side-unfold{ display:none; }
+  /* folded to the right edge: a thin strip, his face brings him back */
+  .st-cr.is-side-folded .st-cr-cols{ grid-template-columns:minmax(0,1fr) 46px; }
+  .st-cr .st-side.is-folded{ height:auto; min-height:120px; }
+  .st-cr .st-side.is-folded > :not(.st-side-unfold){ display:none; }
+  .st-cr .st-side.is-folded .st-side-unfold{ display:flex; align-items:flex-start; justify-content:center; width:100%; padding:10px 0; border:0; background:none; cursor:pointer; }
+  /* A FORM OPEN IN ITS ROW (round 24): under the row that asked for it */
+  .st-cr .st-sr.is-open{ background:color-mix(in srgb,var(--color-accent) 5%,var(--color-surface)); }
+  .st-cr .st-rform{ padding:12px 16px 14px; border-top:1px solid var(--surface-2); background:color-mix(in srgb,var(--color-accent) 3%,var(--color-surface)); }
+  .st-cr .st-rform-sub{ margin:0 0 10px; }
+  .st-cr .st-rform-body{ max-width:680px; }
+  .st-cr .st-rform-body .st-sec{ margin:0; }
+  .st-cr .st-rform-body .st-sec + .st-sec{ margin-top:var(--s-3); }
+  .st-cr .st-rform-foot{ display:flex; flex-direction:column; gap:8px; margin-top:12px; }
+  .st-cr .st-rform-foot .st-refusal[hidden]{ display:none; }
+  .st-cr .st-rform-acts{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .st-cr .st-rform-why{ font-size:var(--t-label); color:var(--st-amber-fg); }
+  .st-cr .st-rform-why:empty{ display:none; }
+  /* whom you answer for, as drawn: a quiet box with its door */
+  .st-cr .st-aw-cover{ display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border:1px solid var(--color-divider);
+    border-radius:var(--radius-lg); background:var(--surface-2); }
+  .st-cr .st-aw-ic{ flex:none; margin-top:2px; color:var(--color-neutral-600); }
+  .st-cr .st-aw-cw{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .st-cr .st-aw-cw .st-aw-for{ color:var(--color-text); font-weight:var(--w-strong); }
+  .st-cr .st-aw-cover > .ui-btn{ flex:none; }
+  /* THE ACCESS SHEET'S SECOND LINES, as drawn */
+  .st-cr .st-sh-sub{ display:block; font-size:var(--t-label); color:var(--color-neutral-600); }
+  .st-cr .st-sh-sub-i{ font-size:var(--t-label); color:var(--color-neutral-600); }
+  .st-cr .st-sh-over{ color:var(--st-ruby-fg); font-weight:var(--w-label); }
+  .st-cr .st-sh-away{ display:inline-block; margin-top:3px; padding:0 8px; border-radius:999px; background:var(--surface-2);
+    font-size:var(--t-label); font-weight:var(--w-body); color:var(--color-neutral-700); white-space:nowrap; }
+  .st-cr .st-sh-who .st-sh-away{ display:block; width:max-content; }
+  .st-cr .st-sheet-card .st-card-h{ align-items:center; }
+  /* THE LADDER, one rung a line (round 25) */
+  .st-cr .st-gov .st-card-h{ align-items:center; }
+  .st-cr .st-gov-rungs{ grid-template-columns:1fr; gap:12px; margin-top:6px; }
+  .st-cr .st-gov-rung .st-gov-bar{ width:88px; }
+  .st-cr .st-gov-line .st-gov-name{ font-weight:var(--w-strong); }
+  .st-cr .st-gov-line .st-gov-gates{ gap:0 6px; align-items:baseline; }
+  .st-cr .st-gov-line .st-gov-g{ color:var(--color-neutral-600); padding:0; }
+  .st-cr .st-gov-line .st-gov-g:hover{ background:none; color:var(--accent-ink); text-decoration:underline; }
+  .st-cr .st-gov-line .st-gov-g.is-next{ color:var(--color-text); font-weight:var(--w-strong); }
+  .st-cr .st-gov-nx{ font-weight:var(--w-body); }
+  .st-cr .st-gov-sep{ color:var(--color-neutral-400); }
+  /* A PAGE INSIDE THE BOARD, AS DRAWN (round 26): one white head card — the
+     page's name, its count and acts, a rule, its labelled boxes */
+  .st-cr .st-pg-card{ margin:0 0 var(--s-3); padding:12px 16px 14px; background:var(--color-surface); border:1px solid var(--color-divider);
+    border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); }
+  .st-cr .st-pg-card > .st-pg-head{ margin:0; padding-bottom:10px; border-bottom:1px solid var(--color-divider); min-height:var(--ctl-h); }
+  .st-cr .st-pg-card > .st-pg-head:last-child{ border-bottom:0; padding-bottom:0; }
+  .st-cr .st-pg-card .st-pg-t{ font-size:18px; }
+  .st-cr .st-pg-card .st-dp-tabs{ border-bottom:0; align-self:stretch; margin-bottom:-11px; }
+  .st-cr .st-pg-card .st-dp-tab{ display:inline-flex; align-items:center; }
+  .st-cr .st-pg-card > .st-sw-band{ margin:12px 0 0; padding:0; border:0; border-radius:0; background:none; box-shadow:none; }
+  .st-cr .st-pg-card .st-tr-band .st-tr-go-band{ display:contents; }
+  .st-cr .st-pg-card .st-tr-band #st-tr-download{ order:1; height:var(--ctl-h); }
+  .st-cr .st-pg-card .st-tr-band .st-tr-fig{ order:2; flex-basis:100%; font-size:var(--t-label); }
+  .st-cr .st-pg-card .st-tr-band .st-tr-err{ order:3; flex-basis:100%; margin:0; }
+  .st-cr .st-pg-card .st-tr-band .st-tr-out{ flex-basis:auto; display:inline; }
+  .st-cr .st-sw-tb .st-note{ display:inline; }
+  /* a form in its row: the row already names it */
+  .st-cr .st-rform-body .st-sec-h{ display:none; }
+  /* the contents list stays level with the sheet (under the tab band, or at
+     the top where a member's page has none), as drawn */
+  .st-cr .st-sheet .st-toc{ top:var(--st-side-top,60px); }
+  .st-cr .st-sw-card .st-card-h{ justify-content:flex-start; align-items:center; }
+  .st-cr .st-sw-row.is-picked td{ background:color-mix(in srgb,var(--color-accent) 8%,var(--color-surface)); }
+  .st-cr .st-sw-row.is-picked td:first-child{ box-shadow:inset 3px 0 0 var(--color-accent); }
+  .st-cr .st-tr-past-h{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-weight:var(--w-strong); color:var(--color-text); }
+  .st-cr .st-tr-tb .r{ text-align:right; font-variant-numeric:tabular-nums; }
+  /* THE STREAM IN THE SIDE PANEL (round 26 as drawn) */
+  .st-cr .st-jb-feed.is-stream{ background:var(--color-surface); padding:12px 14px; gap:0; }
+  .st-cr .st-swp-name{ margin:0 0 6px; font-size:var(--t-body); font-weight:var(--w-strong); color:var(--color-text); }
+  .st-cr .st-swp-facts{ margin:0; }
+  .st-cr .st-swp-f{ display:grid; grid-template-columns:118px minmax(0,1fr); gap:8px; padding:7px 0; border-bottom:1px solid var(--surface-2); font-size:var(--t-label); }
+  .st-cr .st-swp-f dt{ color:var(--color-neutral-600); }
+  .st-cr .st-swp-f dd{ margin:0; color:var(--color-text); min-width:0; overflow-wrap:anywhere; }
+  .st-cr .st-swp-h4{ margin:14px 0 4px; font-size:var(--t-label); font-weight:var(--w-strong); color:var(--color-text); }
+  .st-cr .st-swp-tb{ width:100%; border-collapse:collapse; font-size:var(--t-label); }
+  .st-cr .st-swp-tb th{ text-align:left; font-weight:var(--w-label); color:var(--color-neutral-600); padding:5px 4px; border-bottom:1px solid var(--color-divider); }
+  .st-cr .st-swp-tb td{ padding:6px 4px; border-bottom:1px solid var(--surface-2); vertical-align:top; color:var(--color-text); }
+  .st-cr .st-swp-tb th:first-child, .st-cr .st-swp-tb td:first-child{ padding-left:0; }
+  .st-cr .st-swp-ref{ color:var(--accent-ink); font-variant-numeric:tabular-nums; }
+  .st-cr .st-swp-day{ white-space:nowrap; }
+  .st-cr .st-swp-held{ display:flex; align-items:flex-start; gap:8px; padding:9px 10px; border:1px solid var(--color-divider); border-radius:var(--radius-lg); font-size:var(--t-label); }
+  .st-cr .st-swp-held + .st-swp-held{ margin-top:6px; }
+  .st-cr .st-swp-held .st-ps-lock{ flex:none; margin-top:3px; color:var(--color-neutral-600); }
+  .st-cr .st-swp-hw{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .st-cr .st-swp-held > .ui-btn{ flex:none; }
+  .st-cr .st-swp-shut{ margin:10px 0 0; }
+  /* ONE ROW, AS DRAWN (round 26, the gaps' third pass): Delete these N ·
+     Change keeping, and Close at the same row's right end — never wrapped */
+  .st-cr .st-swp-acts{ display:flex; align-items:center; gap:8px; flex-wrap:nowrap; margin-top:14px; padding-top:12px; border-top:1px solid var(--color-divider); }
+  .st-cr .st-swp-acts > .ui-btn{ flex:none; white-space:nowrap; }
+  /* the acts stay in reach while the panel scrolls a little (round 26 as
+     drawn: at 1440×780 and 1536×730 "its side panel scrolls a little"):
+     Delete these N, Change keeping and Close sit at the panel's foot */
+  .st-cr .st-jb-feed.is-stream .st-swp-acts{ position:sticky; bottom:-12px; margin-bottom:-12px; padding-bottom:12px; background:var(--color-surface); z-index:1; }
+  .st-cr .st-swp-sp{ flex:1; }
+  /* deleting for good is the heaviest act here, and it is drawn filled red —
+     the side panel's and the Keeping tab's one button, dressed alike */
+  .st-cr .ui-btn.ui-btn-danger.is-filled:not(:disabled), .st-drawer .ui-btn.ui-btn-danger.is-filled:not(:disabled){ background:var(--danger); border-color:var(--danger); color:#fff; }
+  .st-cr .ui-btn.ui-btn-danger.is-filled:not(:disabled):hover, .st-drawer .ui-btn.ui-btn-danger.is-filled:not(:disabled):hover{ background:color-mix(in srgb,var(--danger) 88%,#000); }
   /* ============================================================
      THE COMPANY BOARD, AS DRAWN (16 Oct 2026, the full build)
      ============================================================ */
@@ -3962,7 +4244,9 @@
   .st-cr .st-sv > b + .st-you-sub{ flex-basis:100%; }
   .st-cr .st-sa{ display:flex; gap:14px; align-items:center; justify-content:flex-end; white-space:nowrap; }
   .st-cr .st-sr-door{ font-size:var(--t-meta); }
-  .st-cr .st-sv select{ height:var(--ctl-h-sm); font-size:var(--t-meta); min-width:200px; max-width:100%; padding:0 8px; color:var(--color-text); background-color:var(--color-surface); border:1px solid var(--field-line); border-radius:var(--radius); }
+  /* A QUIET BOX, AS DRAWN (round 24, the gaps' third pass): about 28px tall,
+     a hairline edge (the buttons' own), a thin chevron (stDressPage) */
+  .st-cr .st-sv select{ height:var(--ctl-h); font-size:var(--t-meta); min-width:200px; max-width:100%; padding:0 8px; color:var(--color-text); background-color:var(--color-surface); border:1px solid var(--btn-edge); border-radius:var(--radius); }
   .st-cr .st-yseg{ display:inline-flex; border:1px solid var(--field-line); border-radius:var(--radius); overflow:hidden; }
   .st-cr .st-yseg button{ appearance:none; border:0; border-right:1px solid var(--field-line); background:var(--color-surface); font:inherit; font-size:var(--t-meta); padding:0 14px; height:var(--ctl-h-sm); color:var(--color-text); cursor:pointer; }
   .st-cr .st-yseg button:last-child{ border-right:0; }
@@ -3977,7 +4261,7 @@
      and Data & backup as pages — labelled boxes in a band, then a table */
   .st-cr .st-sw-band{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px 16px; margin:0 0 var(--s-3); padding:12px 14px; background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); }
   .st-cr .st-sw-f{ display:flex; flex-direction:column; gap:4px; min-width:0; font-size:var(--t-label); color:var(--color-text); font-weight:var(--w-label); }
-  .st-cr .st-sw-f select, .st-cr .st-sw-f input{ height:var(--ctl-h); min-width:170px; max-width:100%; padding:0 8px; font:inherit; font-size:var(--t-meta); font-weight:400; color:var(--color-text); background-color:var(--color-surface); border:1px solid var(--field-line); border-radius:var(--radius); }
+  .st-cr .st-sw-f select, .st-cr .st-sw-f input{ height:var(--ctl-h); min-width:170px; max-width:100%; padding:0 8px; font:inherit; font-size:var(--t-meta); font-weight:400; color:var(--color-text); background-color:var(--color-surface); border:1px solid var(--btn-edge); border-radius:var(--radius); }
   .st-cr .st-sw-find input{ min-width:200px; }
   .st-cr .st-sw-card{ padding:10px 14px 6px; }
   .st-cr .st-sw-tb .r{ text-align:right; font-variant-numeric:tabular-nums; }
@@ -4149,6 +4433,13 @@
   .room-menu button:hover{ background:var(--color-neutral-100); }
   /* a group's small head inside a menu (History's "Every contract · admins only", round 12) */
   .room-menu .hist-mg{ margin:6px 4px 2px; padding-top:6px; border-top:1px solid var(--color-divider); font-size:var(--t-label); color:var(--color-neutral-600); }
+  /* HISTORY'S ⋯ AS DRAWN (round 12 gaps, pass 4): about 300px, "This contract"
+     over its acts, each title with its line stacked under it, no symbols */
+  .room-menu.hist-menu{ width:300px; min-width:0; }
+  .room-menu.hist-menu .hist-mg.is-first{ margin-top:2px; padding-top:0; border-top:0; }
+  .room-menu.hist-menu button{ flex-direction:column; align-items:flex-start; gap:1px; white-space:normal; }
+  .room-menu.hist-menu button b{ font-weight:var(--w-label); }
+  .room-menu.hist-menu button small{ font-size:var(--t-label); color:var(--color-neutral-600); line-height:1.4; }
   /* "Draft new agreement" drops its two doors as a menu (SAP's menu button,
      10 Oct 2026; openNewDoors in js/wizard.js). */
   .nd-menu{ position:fixed; z-index:72; width:320px; padding:4px; background:var(--color-surface);
@@ -4981,6 +5272,39 @@
   #ov-ess .ov-ess-g .sec-f-v{ display:block; line-height:20px; max-height:40px; overflow-y:auto;
     overscroll-behavior:contain; scrollbar-width:thin; }
   #ov-ess .ov-ess-g .sec-f-v > .sec-f-c{ margin-left:6px; }
+  /* AS DRAWN (round 7, pass 4): the value as amended on one line, the signed
+     figure on the next; the renewal's day is the page's Key terms', not this
+     narrow cell's */
+  #ov-ess .ov-amd-signed{ display:block; }
+  #ov-ess .ov-rn-by{ display:none; }
+  /* DETAILS AS DRAWN (round 7, pass 4): under the terms card, two columns —
+     People and Related agreements | Filing */
+  .ov-det2{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,2fr); background:var(--color-surface);
+    border:1px solid var(--color-divider); border-radius:var(--radius-lg); }
+  .ov-det2-l{ padding:14px 16px; border-right:1px solid var(--color-divider); min-width:0; display:flex; flex-direction:column; gap:14px; }
+  .ov-det2-r{ padding:14px 16px; min-width:0; }
+  .ov-det2 #kt-side{ background:none; border:0; border-radius:0; }
+  .ov-det2 #kt-side .sec-box{ border-top:0; }
+  .ov-det2 #kt-side .sec-head{ padding:0 0 6px; }
+  .ov-det2 #kt-side .fam-drawn-wrap{ padding:0; }
+  .ov-sec-h{ display:flex; align-items:baseline; gap:10px; margin-bottom:6px; }
+  .ov-sec-h h5{ margin:0; font-size:var(--t-card); font-weight:var(--w-strong); color:var(--color-text); }
+  .ov-sec-note{ font-size:var(--t-label); color:var(--color-neutral-600); }
+  .ov-sec-none{ margin:0; font-size:var(--t-meta); color:var(--color-neutral-600); }
+  .ov-prow{ display:flex; align-items:center; gap:10px; padding:7px 0; border-top:1px solid var(--color-divider); }
+  .ov-av{ flex:none; width:26px; height:26px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
+    font-size:var(--t-micro); font-weight:var(--w-strong); background:var(--surface-2); color:var(--color-neutral-700); border:1px solid var(--color-divider); }
+  .ov-pw{ display:flex; flex-direction:column; min-width:0; font-size:var(--t-meta); }
+  .ov-pw b{ font-weight:var(--w-label); color:var(--color-text); }
+  .ov-pw span{ color:var(--color-neutral-600); }
+  .ov-frow{ display:grid; grid-template-columns:150px minmax(0,1fr) auto; gap:12px; align-items:baseline; padding:9px 0; border-top:1px solid var(--color-divider); font-size:var(--t-meta); }
+  .ov-fk{ color:var(--color-neutral-600); }
+  .ov-fv{ min-width:0; color:var(--color-text); display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; }
+  .ov-fv b{ font-weight:var(--w-label); }
+  .ov-fs{ flex-basis:100%; font-size:var(--t-label); color:var(--color-neutral-600); }
+  .ov-fa{ justify-self:end; }
+  .ov-filing .ov-cn{ margin:0; padding:9px 0; border:0; border-top:1px solid var(--color-divider); border-radius:0; background:none; }
+  @media (max-width:900px){ .ov-det2{ grid-template-columns:minmax(0,1fr); } .ov-det2-l{ border-right:0; border-bottom:1px solid var(--color-divider); } }
   /* THE TERMS CARD: THE LABEL IS BOLD, THE ANSWER IS NOT (owner picked "Headed"
      by name, 10 Oct 2026, over real pictures of the card). This card only: the
      20 Sep "a field's name is not bold" rule stands everywhere else. Weight
@@ -5176,7 +5500,10 @@
   #ov-map .ov-map-stage{ flex:none; height:calc((100cqw - 354px) * 310 / 900); }
   @container ovpane (max-width:1100px){
     .ov-map-grid{ grid-template-columns:minmax(0,1fr); }
-    .ov-map-side{ contain:none; height:420px; }
+    /* stacked under the map, the panel is as tall as what it holds, up to
+       420px (round 7 gaps, pass 4: a short Renewal panel left a wide empty
+       card on Details) */
+    .ov-map-side{ contain:none; height:auto; max-height:420px; }
     #ov-map .ov-map-stage{ height:calc((100cqw - 2px) * 310 / 900); }
   }
   .ov-map-top{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding:10px 12px; border-bottom:1px solid var(--color-divider); }
@@ -5622,6 +5949,7 @@
   .hist-ev.is-inside .hist-inside{ border-style:dashed; border-color:var(--rule-strong); }
   .hist-inside .hist-text{ font-size:var(--t-meta); font-weight:var(--w-body); line-height:18px; color:inherit; }
   .hist-inside .hist-body{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .hist-inside .hist-lock{ display:inline-flex; color:var(--color-neutral-600); }
   .hist-mid-more{ max-width:560px; width:100%; }
   @media (max-width:700px){ .hist-trail.is-lanes{ grid-template-columns:minmax(0,1fr); }
     .hist-trail.is-lanes::before, .hist-lh.is-m{ display:none; }
@@ -5629,6 +5957,14 @@
   .hist-head{ display:flex; align-items:center; gap:10px; flex-wrap:wrap;
     padding:10px var(--s-4); border-bottom:1px solid var(--color-divider); }
   .hist-cap{ font-size:var(--t-label); color:var(--color-neutral-600); }
+  /* THE TOOLBAR UNDER THE HEAD, AS DRAWN (round 12): the search, Filter, Show
+     the wording, and ⋯ at the row's end; the bubble's time and its person
+     are joined by a dot of punctuation, the kind's ring left to the hover */
+  .hist-tools{ flex:1 0 100%; display:flex; align-items:center; gap:8px; min-width:0; }
+  .hist-tools .hist-q{ width:240px; }
+  .hist-tools-sp{ flex:1; min-width:4px; }
+  .hist-more-btn{ display:inline-grid; place-items:center; }
+  .hist-sep{ color:var(--color-neutral-500); }
   /* THE SIDE, IN THE OPEN (step 8, 15 Oct 2026): All sides · Ours · Theirs,
      one switch beside the search; the other four filters stay behind Filter */
   .hist-side{ display:inline-flex; flex:none; height:var(--ctl-h); border:1px solid var(--color-divider); border-radius:var(--radius); overflow:hidden; }
@@ -5699,8 +6035,10 @@
   .hist-fp{ font-family:var(--font-mono); font-size:var(--t-label); color:var(--color-neutral-400); }
   /* The redline itself, under the event that made it — the same green-added /
      red-removed convention the exported report prints. */
-  .hist-redline{ border:1px solid var(--color-divider); border-radius:var(--radius); padding:var(--s-2) 10px;
-    margin-top:6px; font-size:var(--t-meta); line-height:1.6; background:var(--color-surface); }
+  /* AS DRAWN (round 12 gaps, pass 4): the wording under a change sits on the
+     page's grey with a rule at its start, cut around the edit */
+  .hist-redline{ border:0; border-left:3px solid var(--color-divider); border-radius:0 var(--radius) var(--radius) 0; padding:var(--s-2) 10px;
+    margin-top:6px; font-size:var(--t-meta); line-height:1.6; background:var(--surface-2); max-width:70ch; }
   .hist-redline ins{ background:var(--st-green-bg); color:var(--st-green-fg); text-decoration:underline; }
   .hist-redline del{ background:var(--st-ruby-bg); color:var(--st-ruby-fg); }
   .hist-note{ font-size:var(--t-label); color:var(--color-neutral-700); margin-top:5px;
@@ -5720,7 +6058,7 @@
      one. Same 12px sentence-case label, same control metrics. The row is inset
      and ruled like the head above it, because the pane no longer pads itself. */
   .hist-filters{ display:flex; gap:var(--s-2) var(--s-3); flex-wrap:wrap; align-items:flex-end;
-    padding:10px var(--s-4); border-bottom:1px solid var(--color-divider); }
+    padding:10px var(--s-4); border-bottom:1px solid var(--color-divider); background:var(--surface-2); }
   #hist-filters{ margin:0; }
   /* ---- THE FIVE FILTERS TAKE THE ROW (owner-reported 25 Aug 2026: "space out
      the filters and make them longer since there is enough space so that when
@@ -5733,7 +6071,7 @@
      above; the old 150px ceiling is gone, because a ceiling is what left the
      surplus unused. min-width is the floor at which they stop shrinking and
      the row wraps instead — the wrap is the narrow-window answer and is kept. */
-  .hist-f{ display:flex; flex-direction:column; flex:1 1 0; min-width:132px; }
+  .hist-f{ display:flex; flex-direction:column; flex:1 1 0; min-width:132px; max-width:260px; }
   .hist-f > span{ font-size:var(--t-label); font-weight:var(--w-body); letter-spacing:0; text-transform:none;
     color:var(--color-neutral-600); margin-bottom:3px; white-space:nowrap; }
   .hist-f select{ font:inherit; font-size:var(--field-size); font-weight:var(--w-body); text-transform:none;
@@ -8795,6 +9133,58 @@
   .na-seg-b.is-new{ color:var(--accent-ink); }
   .na-lock{ width:12px; height:12px; }
   .na-need{ font-size:var(--t-label); color:var(--st-amber-fg); font-weight:var(--w-label); }
+  /* ONE SHEET AS DRAWN (the gaps, 18 Oct 2026): "New agreement · not created yet" with the reason beside
+     Create and Cancel; the three things read as boxes, "What it is for" among them; the three closest as
+     cards with a radio and their shelf's facts, the search and Legal on the step's own line; what is needed
+     now said beside the questions; the cost of reading on the stream's row */
+  .na-not-yet{ font-family:var(--font-body); font-size:var(--t-body); font-weight:400; color:var(--color-neutral-600); margin-left:6px; }
+  .dlg-pg-body .na-one > .na-head{ display:none; }
+  .na-why{ font-size:var(--t-label); color:var(--st-amber-fg); font-weight:var(--w-label); white-space:nowrap; }
+  .na-why:empty{ display:none; }
+  .na-one .na-words{ gap:10px; }
+  .na-one .na-w-h{ padding-bottom:10px; border-bottom:1px solid var(--color-divider); }
+  .na-one .na-w-read{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)) auto; gap:10px; align-items:stretch; }
+  .na-one .na-w-c{ border:1px solid var(--rule-strong); border-radius:var(--radius); padding:8px 12px; background:var(--color-surface); justify-content:center; }
+  .na-one .na-w-c.is-owed{ background:var(--st-amber-bg); border-color:var(--st-amber-line); }
+  .na-one .na-w-c.is-owed span{ color:var(--st-amber-fg); }
+  .na-one .na-w-c b i.is-said{ font-style:normal; font-weight:var(--w-strong); color:var(--color-text); }
+  .na-one .na-w-ai{ align-self:center; margin-left:0; }
+  .na-one .na-step .na-one-more{ margin-left:auto; padding-top:0; }
+  .na-closest .na-pick.na-close{ grid-template-columns:auto minmax(0,max-content) minmax(0,1fr); column-gap:10px; row-gap:2px; border-left-width:1px; padding:10px 12px; border-radius:var(--radius); }
+  .na-closest .na-pick.na-close .na-pick-m{ grid-column:2 / -1; font-family:var(--font-body); font-size:var(--t-label); }
+  .na-close .na-radio{ width:16px; height:16px; border-radius:50%; border:1.5px solid var(--rule-strong); background:var(--color-surface); flex:none; box-sizing:border-box; }
+  .na-close.on .na-radio{ border-color:var(--accent-solid); background:var(--accent-solid); box-shadow:inset 0 0 0 3px var(--color-surface); }
+  .na-one .na-card-h h3{ flex:none; }
+  .na-one .na-card-sub{ flex:1; text-align:left; max-width:none; }
+  .na-from-words{ color:var(--accent-ink); font-weight:var(--w-label); margin-left:4px; }
+  .na-people-sub{ font-weight:400; }
+  .na-file-cost{ margin-left:auto; text-align:right; }
+  [data-dlg-page] .dlg-pg-title[tabindex="-1"]:focus{ outline:none; box-shadow:none; }
+  /* THE SHEET AS DRAWN (the gaps, round 4, 18 Oct 2026): step 2 in three columns with
+     nothing alone on a row; step 3 one row — the streams, "Needed before Create", the cost */
+  .na-one .na-card-b .field-grid.na-three > label:first-child{ grid-column:auto; }
+  .na-one .na-file-b{ flex-wrap:nowrap; align-items:center; }
+  .na-one .na-file-b .na-seg{ flex:0 1 auto; min-width:0; max-width:calc(100% - 440px); }
+  .na-one #na-form #wz-err:empty{ display:none; }
+  .na-one .na-card-b .na-people{ margin-top:0; padding-top:10px; }
+  .na-one .na-file-b .na-need{ flex:none; white-space:nowrap; }
+  .na-one .na-file-b .na-file-cost{ flex:1 1 220px; min-width:0; }
+  #ig-dock .pd-head-word{ margin-left:10px; font-size:var(--t-label); font-weight:var(--w-label); color:var(--color-text); white-space:nowrap; }
+  /* AS DRAWN, SEPARATE BUTTONS (the gaps, round 4, the second check, 18 Oct 2026): the streams are
+     one row of buttons, each its own edge, wrapping as whole buttons — never one box whose segments
+     break across lines with dividers hanging at a line's end */
+  .na-one .na-file-b .na-seg{ border:0; border-radius:0; overflow:visible; gap:6px; }
+  .na-one .na-file-b .na-seg-b{ border:1px solid var(--rule-strong); border-radius:var(--radius); }
+  .na-one .na-file-b .na-seg-b:last-child{ border-right:1px solid var(--rule-strong); }
+  .na-one .na-file-b .na-seg-b[aria-pressed="true"]{ border-color:var(--accent-solid); }
+  /* an empty owed choice is amber, as every owed box is (needAttrs), until a stream is pressed:
+     each button its amber wash and amber edge */
+  .na-file-b:has(> .na-need:not([hidden])) .na-seg-b:not(.is-new){ background:var(--need-bg); border-color:var(--st-amber-line); }
+  @media (max-width:1100px){ .na-one .na-w-read{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  /* while the sheet is up, Jambo's line about it needs no doors back to it */
+  body:has(#na-root.na-one) #ig-dock .ca-dr-said .ca-acts{ display:none; }
+  /* and his panel is the conversation about it, as drawn: the wall's greeting, drop area and next steps stand down */
+  body:has(#na-root.na-one) #ig-dock :is(.pd-hello, #pd-drop, [data-ig-chips]){ display:none; }
   @media (max-width:900px){ .na-closest{ grid-template-columns:minmax(0,1fr); } }
   .tpl-bar{ display:block; width:100%; border:0; background:none; text-align:left; font:inherit;
     color:inherit; cursor:pointer; padding:0; margin-bottom:6px; font-size:var(--t-label); }
@@ -9254,20 +9644,43 @@
   }
   .ct-wall .igw-line{margin-bottom:12px;flex-wrap:nowrap}
   .ct-wall .igw-line .igw-count{margin-left:0;margin-right:auto}
+  /* THE WALL AS DRAWN (round 13 gaps, the owner's "build all the gaps", 18
+     Oct 2026): the papers stand in ONE white card under the head — its count
+     ("48 contracts") and order ("newest first") over the papers, twelve at a
+     time, and a foot saying how many are drawn with Show more; the card ends
+     where its papers do. The name and its facts line read on one line. A paper
+     chosen with one press wears the accent's edge; its panel says it. */
+  .ct-place .ig-wall.ct-wall{flex:0 1 auto;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:12px 16px 0}
+  .ct-wall .igw-line .igw-count{margin-right:0;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)}
+  .ct-wall .igw-line .igw-order{margin-right:auto;font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap}
+  .ct-wall .igw-grid{padding-bottom:16px;grid-template-columns:repeat(6,minmax(0,1fr))}
+  @container ctplace (max-width:760px){ .ct-wall .igw-grid{grid-template-columns:repeat(4,minmax(0,1fr))} }
+  @container ctplace (max-width:540px){ .ct-wall .igw-grid{grid-template-columns:repeat(3,minmax(0,1fr))} }
+  @container ctplace (max-width:400px){ .ct-wall .igw-grid{grid-template-columns:repeat(2,minmax(0,1fr))} }
+  .igw-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 -16px;padding:10px 16px;border-top:1px solid var(--color-divider);font-size:var(--t-meta);color:var(--color-neutral-600)}
+  /* the edge drawn inside the sheet, and the card a breath taller at its top:
+     a paper's lift (hover, focus) and its edge are not clipped by the card's
+     own paint containment (content-visibility) */
+  .igw-card.is-chosen .igw-sheet{border-color:var(--accent-fill);box-shadow:inset 0 0 0 1px var(--accent-fill)}
+  .ct-wall .igw-card{padding-top:3px}
+  .ct-name{max-width:none;flex:1 1 auto;flex-direction:row;align-items:baseline;gap:12px}
+  .ct-name .ct-h{flex:none}
+  .ct-name .ct-facts{min-width:0}
   .reg-own-name{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* COPILOT PREPARES, YOU PRESS (7 Oct 2026): the @ / # list over the ask box,
      and the card an act answers with. */
   #ig-dock{position:relative;background:var(--color-bg);border-left:1px solid var(--color-neutral-300);box-shadow:-10px 0 28px -20px rgba(43,43,45,.35)}
-  /* THE FOLDED PANEL IS A DOOR THAT LOOKS LIKE ONE (8 Oct 2026): tinted, the mark in the accent, "Ask Copilot" readable top to bottom */
-  #ig-dock .igd-door{height:100%;width:100%;display:flex;flex-direction:column;align-items:center;gap:10px;padding-top:14px;background:var(--color-accent-50);border:0;border-left:1px solid var(--color-accent-100);color:var(--accent-ink);cursor:pointer;transition:background var(--dur-2)}
-  #ig-dock .igd-door:hover{background:var(--color-accent-100)}
-  #ig-dock .igd-door:focus-visible{outline:2px solid var(--accent-ink);outline-offset:-3px}
-  #ig-dock .igd-door-w{writing-mode:vertical-rl;font-size:var(--t-meta);font-weight:var(--w-strong);letter-spacing:.02em;white-space:nowrap}
+  /* THE FOLDED PANEL IS A DOOR THAT LOOKS LIKE ONE (8 Oct 2026): tinted, the mark in the accent, "Ask Copilot" readable top to bottom;
+     the same clothes on Jambo's house, where he stands folded beside it (round 23's gaps, #jh-jambo) */
+  :is(#ig-dock,#jh-jambo) .igd-door{height:100%;width:100%;display:flex;flex-direction:column;align-items:center;gap:10px;padding-top:14px;background:var(--color-accent-50);border:0;border-left:1px solid var(--color-accent-100);color:var(--accent-ink);cursor:pointer;transition:background var(--dur-2)}
+  :is(#ig-dock,#jh-jambo) .igd-door:hover{background:var(--color-accent-100)}
+  :is(#ig-dock,#jh-jambo) .igd-door:focus-visible{outline:2px solid var(--accent-ink);outline-offset:-3px}
+  :is(#ig-dock,#jh-jambo) .igd-door-w{writing-mode:vertical-rl;font-size:var(--t-meta);font-weight:var(--w-strong);letter-spacing:.02em;white-space:nowrap}
   /* his face on the folded strip, with the count his tab carries (round 3, "Tabs and faces") */
-  #ig-dock .igd-door-i{position:relative;display:grid;place-items:center;width:28px;height:28px}
-  #ig-dock .igd-door-face{width:28px;height:28px;border-radius:50%}
-  #ig-dock .igd-door-i .pd-tab-n{left:16px}
-  #ig-dock .igd-door-o{flex:none;opacity:.8}
+  :is(#ig-dock,#jh-jambo) .igd-door-i{position:relative;display:grid;place-items:center;width:28px;height:28px}
+  :is(#ig-dock,#jh-jambo) .igd-door-face{width:28px;height:28px;border-radius:50%}
+  :is(#ig-dock,#jh-jambo) .igd-door-i .pd-tab-n{left:16px}
+  :is(#ig-dock,#jh-jambo) .igd-door-o{flex:none;opacity:.8}
   .ca-pop{position:absolute;left:12px;right:12px;z-index:30;background:var(--color-surface);border:1px solid var(--color-neutral-300);border-radius:var(--radius-lg);box-shadow:0 10px 28px rgba(0,0,0,.16);padding:6px;max-height:60%;overflow:auto}
   .ca-pop h5{margin:4px 8px 6px;font-size:11px;color:var(--cap-ink);font-weight:400}
   .ca-opt{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:7px 8px;border-radius:var(--radius);font-size:13px;cursor:pointer;color:var(--color-text)}
@@ -9290,9 +9703,10 @@
   .ca-dr .ca-dr-sp{flex:1}
   .ca-dr .ca-dr-owed{color:var(--st-amber-fg)}
   .ca-dr .ca-dr-quiet{color:var(--color-neutral-600)}
-  /* JAMBO'S WORDS (the one-page Home plan, stage 1): the chip for work owed wears amber; the way back is a bold link above the conversation */
-  .ca-chip-owed{background:var(--st-amber-bg);border:1px solid var(--st-amber-line);color:var(--st-amber-fg);font-weight:var(--w-label)}
-  .ca-chip-owed:hover{border-color:var(--st-amber-dot)}
+  /* JAMBO'S WORDS (the one-page Home plan, stage 1): the chip for work owed leads; the way back is a bold link above the conversation.
+     AS DRAWN (round 3, "Tabs and faces"; the owner's "build all the gaps", 18 Oct 2026): the lead chip wears the accent's outline and the label weight, its ground the other chips' own */
+  .ca-chip-owed{border:1px solid var(--accent-solid);color:var(--accent-ink);font-weight:var(--w-label)}
+  .ca-chip-owed:hover{border-color:var(--accent-solid-hover)}
   .ca-back{flex-shrink:0;align-self:flex-start;margin:8px 14px 0;padding:2px 0;border:0;background:none;font-size:12.5px;font-weight:var(--w-strong);color:var(--accent-ink);cursor:pointer;white-space:nowrap;max-width:calc(100% - 28px);overflow:hidden;text-overflow:ellipsis}
   .ca-back:hover{text-decoration:underline;text-underline-offset:3px}
   /* HOME FIRST (8 Oct 2026): an answer's doors, the walk through a set, the Paper's desk */
@@ -9377,6 +9791,31 @@
   #ig-strip .ig-line-st .room-stat{font-size:var(--t-meta);font-weight:var(--w-label);padding:1px 9px 1px 7px}
   .ig-line-cn{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:10px;border:1px dashed var(--rule-strong);color:var(--color-neutral-600);font-size:var(--t-meta);white-space:nowrap;flex:none}
   .ig-line-faces{display:inline-flex;align-items:center;flex:none}
+  /* THE SIGNING COPY ON THE LINE (the gaps, round 10 "The road"): its word as a
+     quiet pill, then its page arrows and its size, the room's steppers in the
+     line's small height — nothing above the paper */
+  #ig-strip .ig-sc{display:inline-flex;align-items:center;gap:var(--s-2);flex:none}
+  /* FILL IN'S SIZE ON THE LINE (the gaps, round 8, the second check): the one zoom's control on the
+     paper's line while Fill in is open, and no row above the sheet then — the face's host is the switch */
+  /* THE NAME STAYS WHOLE BESIDE THE SIGNING COPY (the gaps, round 10, the second check: at
+     1366×950 the name and party were cut by its page arrows and size): on a line too short for
+     all of it, Notes and Share say their word in their hover only — the name is never cut first */
+  #ig-strip{container:igline / inline-size}
+  @container igline (max-width: 1000px){
+    #ig-strip .ig-sc ~ .ig-acts :is(.ig-notes-w, .ig-share-w){display:none}
+  }
+  #ig-strip .ig-zc-line{display:none;flex:none}
+  #ig-page:has(#pd-fillface) #ig-strip .ig-zc-line{display:inline-flex;align-items:center}
+  #ig-page:has(#pd-fillface) #ig-paper-scroll > .paper-zc-row{display:none}
+  #ig-strip .ig-zc-line .rl-type-step{height:var(--ctl-h-sm)}
+  #ig-strip .ig-zc-line .rl-type-step button{width:22px;height:22px;font-size:var(--t-body)}
+  #ig-strip .ig-sc-word{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;background:var(--st-green-bg);color:var(--st-green-fg);font-size:var(--t-meta);font-weight:var(--w-label);white-space:nowrap}
+  #ig-strip .ig-sc .sc-step{display:inline-flex;align-items:center;gap:2px;flex:none;height:var(--ctl-h-sm);box-sizing:border-box;padding:0 2px;border:1px solid var(--btn-edge);border-radius:var(--radius);background:var(--color-surface)}
+  #ig-strip .ig-sc .sc-step:first-of-type{border-color:transparent;background:transparent}
+  #ig-strip .ig-sc .sc-step button{width:22px;height:22px;display:inline-grid;place-items:center;padding:0;border:0;background:none;border-radius:var(--radius);color:var(--color-neutral-600);font:inherit;font-size:var(--t-body);cursor:pointer}
+  #ig-strip .ig-sc .sc-step button:hover:not(:disabled){background:var(--nav-well);color:var(--color-text)}
+  #ig-strip .ig-sc .sc-step button:disabled{opacity:.4;cursor:default}
+  #ig-strip .ig-sc .sc-step>span{min-width:3.2em;text-align:center;font-size:var(--t-label);color:var(--color-text);font-variant-numeric:tabular-nums;white-space:nowrap;padding:0 3px}
   #ig-strip .ig-line-faces .pz-row{margin-left:0}
   #ig-strip .ig-line-faces .pz-face{width:24px;height:24px;font-size:10px;border-width:2px;margin-left:-5px}
   #ig-strip .ig-line-faces .pz-face:first-child{margin-left:0}
@@ -9481,8 +9920,68 @@
   #pd-fillface .pd-ff-fold small{flex:1;min-width:0;font-size:12px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #pd-fillface .pd-ff-fold i{font-style:normal;color:var(--color-neutral-600)}
   #pd-fillface .pd-ff-fold:focus-visible{outline:2px solid var(--accent-fill);outline-offset:2px;border-radius:var(--radius)}
+  /* OWED FIRST, AS DRAWN (the gaps, 18 Oct 2026): each part a card — "Still to fill" holds its rows between
+     its heading and its edge, then "Filled", the document (its count and Fill the document) and the stream;
+     under an owed box what Our standards says, with Use it; at a row's head where it lands on the paper */
+  #pd-fillface .pd-ff.pd-ff-work{gap:0}
+  #pd-fillface .pd-ff-work > .pd-ff-owh{margin-top:12px;padding:10px 12px;border:1px solid var(--color-divider);border-radius:var(--radius-lg) var(--radius-lg) 0 0}
+  #pd-fillface .pd-ff-work :is(#det-basics, #pd-fill) [data-pd-owed]{position:relative;padding:8px 12px 4px;border:solid var(--color-divider);border-width:0 1px;background:var(--color-surface)}
+  #pd-fillface .pd-ff-work #det-basics .det-card-h{padding:0 12px;border:solid var(--color-divider);border-width:0 1px;margin:0}
+  #pd-fillface .pd-ff-work > .pd-ff-owend{order:2;height:10px;border:1px solid var(--color-divider);border-top:0;border-radius:0 0 var(--radius-lg) var(--radius-lg)}
+  #pd-fillface .pd-ff-work > .pd-ff-fdh{margin-top:12px;padding:10px 12px;border:1px solid var(--color-divider);border-radius:var(--radius-lg)}
+  #pd-fillface .pd-ff-work.is-filled-open > .pd-ff-fdh{border-radius:var(--radius-lg) var(--radius-lg) 0 0}
+  #pd-fillface .pd-ff-work > .pd-ff-fdend{order:5;height:10px;border:1px solid var(--color-divider);border-top:0;border-radius:0 0 var(--radius-lg) var(--radius-lg)}
+  #pd-fillface .pd-ff-work > :is(.pd-ff-owend, .pd-ff-fdend)[hidden]{display:none}
+  #pd-fillface .pd-ff-work > .pd-ff-doc{margin-top:12px;padding:10px 12px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:center}
+  #pd-fillface .pd-ff-doc-t{display:flex;flex-direction:column;gap:2px;min-width:0}
+  #pd-fillface .pd-ff-work #pd-fill [data-tplf-fill]{display:none}
+  #pd-fillface .pd-ff-work > .pd-ff-stream{margin-top:12px;padding:10px 12px;border:1px solid var(--color-divider);border-radius:var(--radius-lg)}
+  #pd-fillface .pd-ff-at{position:absolute;right:12px;top:8px;border:0;background:none;padding:0;font:inherit;font-size:12px;color:var(--accent-ink);cursor:pointer;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
+  #pd-fillface .pd-ff-at .pd-ff-on{display:none}
+  #pd-fillface [data-pd-owed]:focus-within > .pd-ff-at .pd-ff-on{display:inline}
+  #pd-fillface .has-at > :is(.cd-lab, span:first-of-type){padding-right:150px}
+  #pd-fillface .pd-ff-std{display:flex;align-items:center;gap:6px;margin:6px 0 2px;font-size:12px;line-height:1.4;color:var(--color-neutral-700)}
+  #pd-fillface .pd-ff-std svg{flex:none;color:var(--color-neutral-600)}
+  #pd-fillface .pd-ff-use{border:0;background:none;padding:0;font:inherit;font-size:12px;color:var(--accent-ink);cursor:pointer;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
+  #pd-fillface .pd-ff-asked{color:var(--color-neutral-700)}
   .det-nda-read{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;font-size:var(--t-body)}
   .det-nda-sug{font-size:12px;color:var(--color-neutral-600)}
+  /* AN NDA'S FACT AS DRAWN (the gaps, round 8): the reading in a box, the line under it, where it was read */
+  .det-nda-box{display:block;margin-top:2px;padding:6px 10px;border:1px solid var(--rule-strong);border-radius:var(--radius);background:var(--color-surface);color:var(--color-text)}
+  .det-nda-box i{font-style:normal;color:var(--color-neutral-600)}
+  .det-nda-line{display:block;margin-top:4px;font-size:12px;line-height:1.45;color:var(--color-neutral-600)}
+  .det-nda-tail{white-space:nowrap}
+  .det-nda-at{float:right;font-size:12px;color:var(--color-neutral-600)}
+  #pd-fillface .det-nda-at{float:none;position:absolute;right:12px;top:8px}
+  /* FILL IN AS DRAWN, ROUND 8'S GAPS: no "Fill from document" over the owed rows (an AI press with
+     no cost said, not in the drawing — the Overview keeps that door); an NDA's facts and pay each in
+     a card of their own between "Still to fill" and "Filled"; a private stream says so; Jambo waits */
+  #pd-fillface .pd-ff-work #det-basics .det-card-h{display:none}
+  #pd-fillface .pd-ff-work > .pd-ff-ndh{order:3;display:flex;align-items:center;gap:8px;margin-top:12px;padding:10px 12px;border:1px solid var(--color-divider);border-radius:var(--radius-lg) var(--radius-lg) 0 0}
+  #pd-fillface .pd-ff-work > .pd-ff-ndh h4{margin:0;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)}
+  #pd-fillface .pd-ff-work #det-basics .cd-fld[data-pd-ff-card="nda"]{order:3;display:block}
+  #pd-fillface .pd-ff-work > .pd-ff-ndend{order:3;height:10px;border:1px solid var(--color-divider);border-top:0;border-radius:0 0 var(--radius-lg) var(--radius-lg)}
+  #pd-fillface .pd-ff-work > :is(.pd-ff-ndh, .pd-ff-pay, .pd-ff-wait):empty, #pd-fillface .pd-ff-work > .pd-ff-ndend[hidden]{display:none}
+  #pd-fillface .pd-ff-work > .pd-ff-pay{order:3;margin-top:12px;padding:10px 12px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+  #pd-fillface .pd-ff-card-h{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+  #pd-fillface .pd-ff-card-h h4{margin:0;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)}
+  #pd-fillface .pd-ff-note{font-size:12px;color:var(--color-neutral-600)}
+  #pd-fillface .pd-ff-pay-t{width:100%;border-collapse:collapse;font-size:12px}
+  #pd-fillface .pd-ff-pay-t th{text-align:left;font-weight:var(--w-label);color:var(--color-neutral-600);padding:4px 6px 4px 0;border-bottom:1px solid var(--color-divider)}
+  #pd-fillface .pd-ff-pay-t td{padding:5px 6px 5px 0;border-bottom:1px solid var(--color-divider);color:var(--color-text);vertical-align:top}
+  #pd-fillface .pd-ff-pay-t b{font-weight:var(--w-strong)}
+  #pd-fillface .pd-ff-pay-t :is(th, td):is(:first-child, :nth-child(2)){white-space:nowrap}
+  #pd-fillface .pd-ff-owe{color:var(--st-amber-fg)}
+  #pd-fillface .pd-ff-priv{display:block;font-size:12px;color:var(--color-neutral-600)}
+  #pd-fillface .pd-ff-lock{display:inline-flex;align-items:center;gap:4px;margin-right:4px;padding:0 7px;border-radius:999px;background:var(--st-gray-bg);color:var(--st-gray-fg);font-weight:var(--w-label)}
+  #pd-fillface .pd-ff-work > .pd-ff-wait{order:3;margin-top:10px;padding:0 2px;font-size:12px;line-height:1.45;color:var(--color-neutral-600)}
+  #pd-fillface .pd-ff-wait-t{margin:0;display:flex;gap:8px;align-items:flex-start}
+  #pd-fillface .pd-ff-wait-face{flex:none;margin-top:1px}
+  #pd-fillface .pd-ff-pay-t .pd-pill{white-space:normal;height:auto;min-height:22px;padding:2px 9px;line-height:1.35}
+  #pd-fillface .pd-ff-cost{color:var(--color-neutral-600)}
+  /* THE PAPER BESIDE FILL IN: an owed blank amber, an answer not yet in the wording underlined (pdFillPaperMarks) */
+  #ig-canvas .hati-field.pd-ff-owe-mark:not(.is-fieldlit){background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  #ig-canvas .pd-ff-pend{text-decoration:underline dotted var(--accent-ink);text-decoration-thickness:1.5px;text-underline-offset:3px}
   /* THE WALL'S GREETING AND DROP AREA, AND A CONTRACT AT A GLANCE (steps 4 and 5): at the top of Jambo's tab on Home's Document face */
   #ig-dock .pd-wall{display:flex;flex-direction:column;gap:12px}
   #ig-dock .pd-drop{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:22px 16px;border:1px dashed var(--accent-fill);border-radius:var(--radius-lg);background:color-mix(in srgb, var(--accent-fill) 6%, var(--color-surface));color:var(--color-text);font-size:12.5px;transition:background var(--dur-1)}
@@ -9531,12 +10030,53 @@
   #ig-dock .pd-needs .pd-gl-h .pd-pill{height:20px;padding:0 7px}
   #ig-dock .pd-needs .pd-gl-h .pd-pill i{display:none}
   #ig-dock .pd-nd-all{padding:2px 4px;font-size:12px}
+  /* pinned above the conversation, never scrolled away; a long list scrolls inside its own share of the column */
+  #ig-dock .pd-pin{flex:none;max-height:45%;overflow-y:auto;padding:12px 14px 4px}
+  #ig-dock .pd-pin:empty{display:none}
+  #ig-dock .pd-pin>.pd-needs{margin:0}
   #ig-dock .pd-nd-row>span{display:flex;flex-direction:column;gap:1px}
   #ig-dock .pd-nd-row b{font-weight:var(--w-label);overflow:hidden;text-overflow:ellipsis}
-  #ig-dock .pd-nd-row small{font-size:11.5px;line-height:1.4;color:var(--color-neutral-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* a row's line is read whole, wrapped (round 3 as drawn: "Prepared overnight: a counter on each redline" on two lines) */
+  #ig-dock .pd-needs .pd-nd-row small{font-size:11.5px;line-height:1.4;color:var(--color-neutral-600);white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
   #ig-dock .pd-nd-row small .late{color:var(--st-amber-fg);font-weight:var(--w-label)}
   #ig-dock .pd-nd-row.is-jw{margin:-4px -8px;padding:6px 8px;border-radius:var(--radius);background:var(--color-accent-50)}
+  /* ROWS RULED APART, as rounds 3 and 6 draw both cards (18 Oct 2026): a hairline between one owed thing and the next */
+  #ig-dock .pd-glance .pd-gl-b>.pd-gl-row+.pd-gl-row{border-top:1px solid var(--color-divider);padding-top:8px}
+  /* a note's own words wrap to two lines, as round 3 draws them — never cut to one */
+  #ig-dock .pd-needs .pd-nd-row.is-note small{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   #ig-dock .pd-nd-face{flex:none;width:22px;height:22px;border-radius:50%}
+  /* THE CONTRACT IN FRONT, SAID BY JAMBO (the redesign's gaps, rounds 13, 7
+     and 12, 18 Oct 2026; pdChosenHtml, pdCardGlanceHtml, pdHistGlanceHtml):
+     the head says what the panel holds beside his tab; a paper chosen on the
+     wall reads as its name, its facts in two columns, what it asks, and its
+     two doors; a page brought up and its History read as the glance's card */
+  #ig-dock .igd-head-w{flex:0 1 auto;min-width:0;margin-left:10px;font-size:13px;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #ig-dock .pd-chosen{display:flex;flex-direction:column;gap:2px;font-size:12.5px;color:var(--color-text)}
+  #ig-dock .pd-ch-name{margin:0;font-size:15px;line-height:1.3;font-weight:var(--w-title);color:var(--color-text)}
+  #ig-dock .pd-ch-ref{margin:0 0 10px;font-size:12px;color:var(--color-neutral-600)}
+  #ig-dock .pd-ch-facts{margin:0 0 12px;display:flex;flex-direction:column}
+  #ig-dock .pd-ch-f{display:grid;grid-template-columns:minmax(84px,38%) minmax(0,1fr);gap:10px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--color-divider)}
+  #ig-dock .pd-ch-f dt{font-size:12px;color:var(--color-neutral-600)}
+  #ig-dock .pd-ch-f dd{margin:0;min-width:0;display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 6px;font-size:13px}
+  #ig-dock .pd-ch-f dd small{font-size:11.5px;color:var(--color-neutral-600)}
+  #ig-dock .pd-ch-dot{flex:none;width:7px;height:7px;border-radius:50%;align-self:center}
+  #ig-dock .pd-ch-lock{display:inline-flex;align-self:center;color:var(--color-neutral-600)}
+  #ig-dock .pd-ch-h{margin:4px 0 6px;font-size:12px;font-weight:var(--w-label);color:var(--color-neutral-700)}
+  #ig-dock .pd-ch-needs{margin-bottom:12px}
+  /* a row's second line wraps, never cut (pass 3, round 13 as drawn: "Clause 7
+     Liability cap · clause 11 / Payment terms"); its button stays at the top */
+  #ig-dock .pd-ch-needs .pd-nd-row{align-items:flex-start}
+  #ig-dock .pd-ch-needs .pd-nd-row small{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:break-word}
+  /* the two doors stay whole under Needs you (pass 4, round 13 at 1536×730):
+     where the panel is taller than its window they hold to its foot, above
+     the ask box, on the panel's own ground */
+  #ig-dock .pd-ch-acts{display:flex;flex-wrap:wrap;gap:8px;position:sticky;bottom:0;z-index:1;padding:8px 0 4px;background:var(--color-surface)}
+  #ig-dock .pd-ch-rule{margin:0;padding:8px 10px;border-radius:var(--radius);background:var(--color-neutral-100);font-size:12.5px;line-height:1.5;color:var(--color-text)}
+  /* a page's chips right under its card (pass 3, rounds 7 and 12 as drawn) */
+  #ig-dock .pd-held-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  #ig-dock .pd-cglance .pd-gl-row, #ig-dock .pd-hglance .pd-gl-row{align-items:flex-start}
+  #ig-dock .pd-cglance .pd-gl-row + .pd-gl-row, #ig-dock .pd-hglance .pd-gl-row + .pd-gl-row{padding-top:8px;border-top:1px solid var(--color-divider)}
+  #ig-dock .pd-cglance .pd-gl-row > span, #ig-dock .pd-hglance .pd-gl-row > span{line-height:1.5}
   /* THE WAY BACK TO JAMBO at the start of every face's head (pdBackHtml): a crumb, as "‹ The counter" is on the desk */
   #ig-dock .pd-back{flex:none;display:inline-flex;align-items:center;gap:3px;height:var(--ctl-h-sm);padding:0 8px 0 5px;border:1px solid var(--btn-edge);border-radius:var(--radius);background:var(--color-surface);color:var(--accent-ink);font:inherit;font-size:12px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap}
   #ig-dock .pd-back:hover{border-color:var(--accent-ink)}
@@ -9549,6 +10089,10 @@
      goes on; hops when it is done. Still for a reader who asked for less
      motion: the faces and the words still change. */
   #ig-dock.jb-perched [data-ig-chips]{position:relative;padding-right:60px;min-height:46px;align-content:flex-end}
+  /* FILL IN AND BEFORE YOU SIGN DRAW NO CHIPS (the gaps, rounds 8 and 10): the empty row keeps
+     its room, so Jambo perches in empty space at the panel's bottom right and covers nothing of
+     the face above him, at any scroll (the second check, 18 Oct 2026: he sat over the cards) */
+  #ig-dock.jb-perched:has(#pd-fillface, #pd-signface) [data-ig-chips]:not(:has(button)){min-height:44px;padding-top:0;padding-bottom:0}
   #ig-dock.jb-perched-ask #igd-feed{padding-bottom:48px}
   #ig-dock .jb-perch{position:absolute;right:14px;bottom:6px;z-index:2;display:flex;flex-direction:column;align-items:flex-end;pointer-events:none}
   #ig-dock.jb-perched-ask .jb-perch{bottom:100%;margin-bottom:-2px}
@@ -9570,11 +10114,12 @@
   #pd-redface .rl-face{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--color-surface)}
   #pd-redface .rl-face #nego-root{flex:1;min-height:0;display:flex;flex-direction:column}
   #pd-redface .rl-face #rl-side.rl-col{flex:1;min-height:0;border:0;border-radius:0;box-shadow:none;margin:0;width:auto;max-width:none}
-  #pd-redface .rl-face .rl-idx-top{flex-wrap:wrap;row-gap:4px}
-  #pd-redface .rl-face .rl-idx-top>.pd-rf-x{order:2;width:26px;height:26px;border:0;border-radius:var(--radius);background:none;color:var(--color-neutral-600);font-size:18px;line-height:1;cursor:pointer;flex:none}
-  #pd-redface .rl-face .rl-idx-top>.pd-rf-x:hover{background:var(--color-bg);color:var(--color-text)}
-  #pd-redface .rl-face .rl-idx-top>.pd-rf-br{order:3;flex-basis:100%;height:0}
-  #pd-redface .rl-face .rl-idx-top>.rl-round-at{order:4}
+  #pd-redface .rl-face .rl-idx-top{flex-wrap:wrap;row-gap:6px}
+  /* THE FACE TAB (rounds 8–11 as drawn, the gaps of 18 Oct 2026): while a face is up the panel's row is
+     Jambo's tab and the face's word, with ‹ Jambo at its end beside the fold; no chips under a face */
+  #ig-dock .igd-head .pd-face-w{flex:none;align-self:center;margin-left:10px;font-size:var(--t-meta);font-weight:var(--w-label);color:var(--color-text);white-space:nowrap}
+  #ig-dock .igd-head > .pd-back{align-self:center;margin-right:2px}
+  #ig-dock.pd-face-up [data-ig-chips]{display:none}
   /* the Negotiate page's notices, above the column since the page folded into Home (stage 5) */
   #pd-redface .rl-face .pd-rf-notices{flex:none;padding:10px 12px 0}
   #pd-redface .rl-face .pd-rf-notices .rl-notices{margin:0}
@@ -9638,8 +10183,8 @@
   #pd-signface .pd-sf.is-road > .pd-sf-body.sign-one{flex:none;overflow:visible;min-height:auto;margin:0 0 4px 30px;border-left:2px solid var(--st-amber-line)}
   #pd-signface .pd-sf.is-road > .pd-sf-foot{position:static;margin:0 0 4px 30px;border-top:0}
   #pd-signface .pd-road-w{display:contents}
-  #pd-signface .pd-road-stop{display:flex;gap:10px;align-items:flex-start;padding:10px 14px 8px;position:relative}
-  #pd-signface .pd-road-stop::before{content:"";position:absolute;left:24px;top:30px;bottom:-8px;width:2px;background:var(--color-divider)}
+  #pd-signface .pd-road-stop{display:flex;gap:10px;align-items:flex-start;padding:7px 14px 5px;position:relative}
+  #pd-signface .pd-road-stop::before{content:"";position:absolute;left:24px;top:27px;bottom:-7px;width:2px;background:var(--color-divider)}
   #pd-signface .pd-road-stop.is-last::before{display:none}
   #pd-signface .pd-road-stop.is-done::before{background:var(--st-green-line)}
   #pd-signface .pd-road-dot{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:11px;font-weight:var(--w-strong);background:var(--color-surface);border:2px solid var(--color-divider);color:var(--color-neutral-600);position:relative;z-index:1}
@@ -9650,6 +10195,32 @@
   #pd-signface .pd-road-stop.is-later .pd-road-t b{font-weight:var(--w-label);color:var(--color-neutral-700)}
   #pd-signface .pd-road-t small{font-size:12px;color:var(--color-neutral-600);line-height:1.45}
   #pd-signface .pd-sf-foot #sign-wrap > p{margin-bottom:0}
+  /* THE ROAD AS DRAWN (the gaps, 18 Oct 2026): a named person's yes is framed at its own stop — where the
+     approval stands, Jambo's line where the stand-in rule applies, what it covers, and its own acts; the
+     checks fold behind "Show" while the yes is the work; the foot says who signs can change until the first signature */
+  #pd-signface .pd-road-stop.is-framed .pd-road-dot{background:var(--st-amber-bg);border-color:var(--st-amber-line);color:var(--st-amber-fg)}
+  #pd-signface .pd-road-stop.is-framed .pd-road-t{flex:1}
+  #pd-signface .pd-rd-card{margin:4px 0 1px;padding:8px 10px;border:1px solid var(--accent-ink);border-radius:var(--radius-lg);background:var(--color-surface);display:flex;flex-direction:column;gap:6px}
+  #pd-signface .pd-rd-states{display:flex;flex-wrap:wrap;align-items:center;gap:3px 4px;font-size:11px}
+  #pd-signface .pd-rd-states > i{font-style:normal;color:var(--color-neutral-500)}
+  #pd-signface .pd-rd-st{padding:0 7px;border:1px solid var(--color-divider);border-radius:999px;color:var(--color-neutral-600);line-height:17px;white-space:nowrap}
+  #pd-signface .pd-rd-st.is-past{color:var(--color-neutral-700)}
+  #pd-signface .pd-rd-st.is-cur{background:var(--st-amber-bg);border-color:var(--st-amber-line);color:var(--st-amber-fg);font-weight:var(--w-label)}
+  #pd-signface .pd-rd-st.is-ok{background:var(--st-green-bg);border-color:var(--st-green-line);color:var(--st-green-fg);font-weight:var(--w-label)}
+  #pd-signface .pd-rd-st.is-bad{background:var(--st-ruby-bg);border-color:var(--st-ruby-line);color:var(--st-ruby-fg);font-weight:var(--w-label)}
+  #pd-signface .pd-rd-jline{display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border-radius:var(--radius);background:var(--color-bg);font-size:var(--t-meta);line-height:1.45;color:var(--color-text)}
+  #pd-signface .pd-rd-jline .pd-rd-face{flex:none;margin-top:1px}
+
+  #pd-signface .pd-rd-facts, #pd-signface .pd-rd-note{margin:0;font-size:12px;line-height:1.5;color:var(--color-neutral-600);font-weight:var(--w-body)}
+  #pd-signface .pd-rd-note{color:var(--color-neutral-700)}
+  #pd-signface .pd-rd-acts{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+  #pd-signface .pd-rd-lk{border:0;background:none;padding:0;font:inherit;font-size:var(--t-body);color:var(--accent-ink);cursor:pointer;text-decoration:none}
+  #pd-signface .pd-rd-lk:hover{text-decoration:underline;text-underline-offset:2px}
+  #pd-signface .pd-road-t small .pd-rd-lk{font-size:12px}
+  #pd-signface .pd-rd-mv{margin:0;padding:0 0 0 14px;font-size:12px;line-height:1.5;color:var(--color-neutral-700)}
+  #pd-signface .pd-rd-mv b{font-weight:var(--w-strong);color:var(--color-text)}
+  #pd-signface .pd-rd-foot{display:flex;align-items:center;gap:10px;margin:4px 14px 8px;padding-top:8px;border-top:1px solid var(--color-divider);font-size:var(--t-body);color:var(--color-neutral-700)}
+  #pd-signface .pd-rd-foot > span{flex:1;min-width:0}
   #pd-body .pd-ob.is-chosen{box-shadow:inset 3px 0 0 var(--accent-ink);background:var(--color-accent-50)}
   /* AMEND, BESIDE THE PAPER (owner, 15 Oct 2026): the face wears the Before you sign frame; the paper's marks are painted, never stored */
   #pd-amendface .pd-am-sub{margin:4px 0 0;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.45}
@@ -10223,9 +10794,8 @@
   .hb-fig:first-child{border-left:0}
   .hb-fig:has(.hb-fig-main:not(:disabled):hover){background:rgba(var(--hb-gw),.06)}
   .hb-spark{display:block;width:100%;height:26px;margin-top:2px}
-  .hb-spark-a{fill:var(--hb-glow);opacity:.08}
   .hb-spark-l{fill:none;stroke:var(--hb-glow);stroke-width:1.6;vector-effect:non-scaling-stroke}
-  .hb-spark-e{fill:var(--hb-glow)}
+  .hb-spark-e{fill:none;stroke:var(--hb-glow);stroke-width:5;stroke-linecap:round;vector-effect:non-scaling-stroke}
   .hb-fig-main{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-width:0;width:100%}
   .hb-fig-main:disabled{cursor:default}
   .hb-fig-main:focus-visible{outline:2px solid var(--hb-glow);outline-offset:2px;border-radius:2px}
@@ -10277,9 +10847,36 @@
   .hb-ag-work{--color-text:var(--hb-ink);--color-neutral-600:var(--hb-ink-2);--color-neutral-500:var(--hb-mute);--color-neutral-200:rgba(var(--hb-ln),.2);--color-divider:rgba(var(--hb-ln),.16);--rule-strong:rgba(var(--hb-ln),.4);--color-surface:var(--hb-fig);--surface-2:rgba(var(--hb-ln),.06);--accent-ink:var(--hb-glow);--accent-ink-700:var(--hb-glow);
     min-height:0;padding:var(--s-4) var(--s-4) 0;border:1px solid rgba(var(--hb-ln),.28);border-radius:var(--radius-lg);background:var(--hb-fig);box-shadow:var(--hb-shadow);color:var(--hb-ink)}
   .hb-ag-work .ag-p-foot{position:static;bottom:auto;padding-bottom:var(--s-4);background:transparent}
+  /* EACH PIECE FOLDED TO ONE LINE (the owner's answer (18), 19 Oct 2026, round 23's row): one list, a hairline between
+     rows; the agent's tag in its room's colour, what it is, its reference, one sentence; Look · its act · Put away on
+     the right; Look opens the piece under its row. The card's own tokens (--hb-*), so Light | Dark follow. */
+  .hb-ag-works.is-lines{gap:0;border:1px solid rgba(var(--hb-ln),.28);border-radius:var(--radius-lg);background:var(--hb-fig);box-shadow:var(--hb-shadow);overflow:hidden}
+  .hb-ag-work.is-line{padding:10px var(--s-4);border:0;border-radius:0;box-shadow:none;background:transparent}
+  .hb-ag-work.is-line + .hb-ag-work.is-line{border-top:1px solid rgba(var(--hb-ln),.12)}
+  .hb-pc-r{display:flex;align-items:center;gap:var(--s-3)}
+  .hb-pc-w{flex:1;min-width:0}
+  .hb-pc-t{display:block;line-height:1.45;font-weight:var(--w-strong);font-size:var(--t-body);color:var(--hb-ink)}
+  .hb-pc-tag{--hb-pc-c:var(--hb-mute);display:inline-flex;align-items:center;gap:5px;margin-right:8px;font-size:var(--t-micro);font-weight:400;color:var(--hb-mute);white-space:nowrap;vertical-align:1px}
+  .hb-pc-tag i{width:8px;height:8px;border-radius:2px;background:var(--hb-pc-c);flex:none}
+  .hb-pc-name{margin-right:8px}
+  .hb-pc-ref{display:inline-block;font-weight:400;font-size:var(--t-label);color:var(--hb-mute);white-space:nowrap}
+  .hb-pc-line{display:block;margin-top:1px;font-size:var(--t-meta);color:var(--hb-ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hb-ag-work.is-look .hb-pc-line{white-space:normal}
+  .hb-pc-acts{display:flex;align-items:center;gap:8px;flex:none;flex-wrap:wrap;justify-content:flex-end}
+  .hb-pc-acts .ui-btn{height:var(--ctl-h-sm);padding:0 10px;font-size:var(--t-label)}
+  .hb-pc-look.is-on{background:rgba(var(--hb-gw),.12)}
+  .hb-pc-body{margin-top:8px;padding:12px;background:var(--hb-fig);border:1px solid rgba(var(--hb-ln),.16);border-radius:var(--radius-lg)}
+  .hb-pc-body.is-mail{padding:0;border:0;border-radius:0;background:none}
+  .hb-pc-body .ag-mail-foot{margin-top:8px}
+  .hb-pc-body .ag-mail-b{overflow-wrap:anywhere}
+  .hb-pc-more{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
   .hb-done{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;padding:7px var(--s-3);border-bottom:1px solid rgba(var(--hb-ln),.1);font-size:var(--t-meta);color:var(--hb-mute)}
   .hb-done button{border:0;background:none;font:inherit;font-weight:var(--w-strong);color:var(--hb-ink-2);cursor:pointer;padding:1px 5px;border-radius:3px}
   .hb-done button:hover{background:rgba(var(--hb-gw),.12);color:var(--hb-ink)}
+  /* HOW FAR THE AGENTS MAY GO, under the agents' rows (round 23's levels line, on the card since LAND ON IT): quiet words, the level in the card's ink, its door after; the card head's own hairline (.12) above it */
+  .hb-ag-lv{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;padding:7px var(--s-3);border-top:1px solid rgba(var(--hb-ln),.12);font-size:var(--t-meta);color:var(--hb-mute)}
+  .hb-ag-lv b{font-weight:var(--w-strong);color:var(--hb-ink)}
+  .hb-ag-lv-asked{color:var(--hb-ink-2)}
   /* TODAY'S INSIGHTS — the shelf (Young picked "Shelf" by name, 4 Oct 2026):
      three small pictures under their row, inside Prepared by Copilot. Each
      picture is the board's own chart drawn small, its words left out (they
@@ -10470,6 +11067,16 @@
   .bs-mi b{display:block;font-weight:var(--w-label)}
   .bs-mi small{display:block;font-size:var(--t-meta);color:var(--hb-mute)}
   .bs-mi:hover,.bs-mi:focus-visible,.bs-mi.is-here{background:rgba(var(--hb-gw),.1)}
+  .bs-menu .bs-mg{padding:4px 10px 2px;font-size:var(--t-label);color:var(--hb-mute)}
+  .bs-mi:disabled{cursor:default;color:var(--hb-mute)}
+  .bs-mi:disabled:hover{background:none}
+  /* RELATED AGREEMENTS AS DRAWN (round 7, pass 4): ref · what it is · signed · Bring it up */
+  .fam-drawn{display:flex;flex-direction:column}
+  .fam-drow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--color-divider)}
+  .fam-drow .hati-ref{flex:none;font-size:var(--t-label)}
+  .fam-drow .fam-dw{flex:1;min-width:0;font-size:var(--t-meta);color:var(--color-neutral-700)}
+  .fam-drow .ui-btn{flex:none}
+  .fam-none{margin:0;font-size:var(--t-meta);color:var(--color-neutral-600)}
   .bs-mi.is-here b{font-weight:var(--w-strong)}
   .bs-menu hr{border:0;border-top:1px solid rgba(var(--hb-ln),.18);margin:4px 2px}
   .bs-sec{padding:16px 20px;border-top:1px solid rgba(var(--hb-ln),.14);min-width:0}
@@ -10500,6 +11107,19 @@
   .bs-kpi b{display:block;font-size:var(--t-page);font-weight:var(--w-strong);font-variant-numeric:tabular-nums;line-height:1.25;color:var(--hb-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .bs-kpi span{display:block;margin-top:2px;font-size:var(--t-meta);color:var(--hb-mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .bs-kpi.is-warn b{color:var(--hb-amber)}
+  /* late, as drawn (round 7): the next obligation's day in the late colour */
+  .bs-kpi.is-bad b{color:var(--hb-ruby)}
+  /* the stage on a page's head is the paper line's own pill (round 7) */
+  .bs-head .bs-stage{flex:none;display:inline-flex}
+  /* a glance's head wraps its pills under its title rather than squeezing it (pass 4) */
+  #ig-dock .pd-cglance .pd-gl-h{flex-wrap:wrap;row-gap:4px}
+  #ig-dock .pd-cglance .pd-gl-h > b{flex:1 0 auto;max-width:100%}
+  /* a private contract's lock, beside its stage (round 7 as drawn, pass 4;
+     bsPrivatePillHtml, the one builder: the page's head and Jambo's glance) */
+  .bs-lockp{flex:none;display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:10px;font-size:var(--t-label);font-weight:var(--w-body);
+    white-space:nowrap;background:var(--surface-2);color:var(--color-neutral-600);border:1px solid var(--color-divider)}
+  /* the obligations on a page read as a quiet table, no box round it (round 7) */
+  .bs-on-desk .bs-obs{border:0;border-radius:0;padding:0}
   /* a job title is words, not a figure: a size down, so a role reads whole */
   .bs-kpi[data-bs-kpi="role"] b{font-size:var(--t-card);line-height:1.8}
   .bs-lg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:var(--t-meta);color:var(--hb-ink-2)}
@@ -10627,6 +11247,10 @@
      trail scrolls inside the card so the strip never grows with it */
   .bs-host{padding:12px 16px}
   .bs-hist .hist-trail{max-height:430px;overflow:auto;border:1px solid rgba(var(--hb-ln),.16);border-radius:var(--radius-lg)}
+  /* A CONTRACT'S PAGE ON THE DESK (pass 3, round 12 as drawn): the lanes run
+     inside the History card under the toolbar's one hairline, and the desk
+     scrolls the page — no box of its own, no fixed height, no scroll inside */
+  .bs-on-desk .bs-hist .hist-trail{max-height:none;overflow:visible;border:0;border-radius:0}
   @container bsstrips (max-width:780px){
     .bs-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
     .bs-kpi:nth-child(4){border-left:0}
@@ -11357,6 +11981,77 @@
   .hb-sheet-def{margin:0 0 6px;font-size:var(--t-label);line-height:1.45;color:var(--hb-ink-2)}
   .hb-fig-left{display:block;font-size:var(--t-micro);line-height:1.35;color:var(--hb-amber);margin:-2px 0 4px}
   .hb-fig-left.is-split{color:var(--hb-ink-2)}
+  /* ═══ THE BOARD AS DRAWN (round 17, "Then and now"; the owner's "build all
+     the gaps", 18 Oct 2026) ═══ A head card — "Board", what it is, the live
+     dot and when it was counted, Summarise my board with its cost — and the
+     saved views as chips with their counts under it; Your book is ONE card
+     (its head, the table, the two stage bars); Today's insights says its
+     count as a pill. Doubled classes outrank the 11 Oct "no card of its own"
+     rules above by scope. */
+  .hb-bhead.hb-card{flex:none;padding:12px var(--s-4)}
+  .hb-bh-r.hb-note{gap:var(--s-2);flex-wrap:wrap;row-gap:6px;font-size:var(--t-meta);color:var(--hb-mute)}
+  .hb-bh-t{margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);line-height:var(--lh-tight);letter-spacing:-.01em;color:var(--hb-ink);white-space:nowrap}
+  .hb-bh-s{font-size:var(--t-body);color:var(--hb-ink-2);white-space:nowrap;margin-right:var(--s-2)}
+  .hb-bh-at{white-space:nowrap;margin-left:-4px}
+  .hb-bs-cost{display:inline-flex;align-items:center;align-self:stretch;margin:0 -9px 0 4px;padding:0 9px;border-left:1px solid var(--btn-edge,var(--color-divider));font-size:var(--t-micro);font-weight:var(--w-label);color:var(--hb-mute)}
+  .hb-bh-views{display:flex;align-items:center;flex-wrap:wrap;gap:6px var(--s-2);margin-top:12px;padding-top:12px;border-top:1px solid rgba(var(--hb-ln),.12)}
+  .hb-bh-l{font-size:var(--t-meta);color:var(--hb-ink-2);margin-right:4px;white-space:nowrap}
+  .hb-sv-chip{display:inline-flex;align-items:center;gap:6px;height:var(--ctl-h-sm);padding:0 10px;border-radius:999px;border:1px solid var(--chip-edge,var(--color-divider));background:var(--color-surface);color:var(--accent-ink,var(--hb-glow));font:inherit;font-size:var(--t-label);font-weight:var(--w-label);cursor:pointer;white-space:nowrap;max-width:280px}
+  .hb-sv-chip:hover{border-color:var(--accent-solid,var(--hb-glow))}
+  .hb-sv-n{overflow:hidden;text-overflow:ellipsis}
+  .hb-sv-chip b{font-weight:var(--w-label);color:var(--hb-mute);font-variant-numeric:tabular-nums}
+  .hb-board .hb-book.hb-card{background:var(--hb-card);border:1px solid rgba(var(--hb-ln),.18);box-shadow:var(--hb-shadow)}
+  .hb-board .hb-book.hb-card>.hb-ch{border-bottom:1px solid rgba(var(--hb-ln),.12);padding:10px 12px 10px var(--s-4);min-height:40px}
+  .hb-board .hb-book.hb-card>.hb-cb{padding:0 0 14px}
+  .hb-board .hb-book .hb-figs.hb-tn.hb-tn{border:0;border-radius:0;background:none}
+  .hb-board .hb-book .hb-figs.hb-tn.hb-tn>.hb-fig:last-child{border-bottom:1px solid rgba(var(--hb-ln),.12)}
+  .hb-board .hb-book .hb-tn-h>span:first-child,.hb-board .hb-book .hb-tn .hb-fig-lw{padding-left:var(--s-4)}
+  .hb-board .hb-book .hb-stagerows{padding:14px var(--s-4) 0}
+  .hb-board .hb-book .hb-stagerows+.hb-stagekey{padding:10px var(--s-4) 0 calc(var(--s-4) + 86px)}
+  .hb-board .hb-book .hb-cb>.hb-quiet{padding:8px var(--s-4) 0}
+  .hb-ins-n.hb-pill{flex:none;margin-right:2px}
+  .hb-jb-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  /* TODAY'S FIGURES IN INK (round 17 as drawn): only the Change column carries colour */
+  .hb-board .hb-book .hb-tn .hb-fig .hb-fig-n{color:var(--hb-ink)}
+  /* TODAY'S INSIGHTS AS DRAWN: the head its own slim card, its line whole (it wraps before it is ever cut) */
+  .hb-board .hb-inscard.hb-ins-head{flex:none}
+  .hb-board .hb-ins-head>.hb-ch{border-bottom:0;padding:10px var(--s-4);min-height:0;flex-wrap:wrap;row-gap:2px}
+  .hb-board .hb-ins-head>.hb-ch .hb-ct{flex:none}
+  .hb-board .hb-ins-head>.hb-ch .hb-cs{flex:1 1 auto;white-space:normal;overflow:visible;text-overflow:clip;color:var(--hb-ink-2)}
+  /* …and each picture its own card, two to a row; an odd last card takes the row */
+  .hb-board .hb-shelf.hb-shelf-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:0;border:0;align-items:start}
+  .hb-board .hb-shelf.hb-shelf-cards>.hb-ins:last-child:nth-child(odd){grid-column:1/-1}
+  .hb-board .hb-shelf-cards>.hb-ins{background:var(--hb-card);border:1px solid rgba(var(--hb-ln),.18);border-radius:var(--radius-lg);box-shadow:var(--hb-shadow);padding:14px var(--s-4) 0;gap:8px}
+  .hb-board .hb-shelf-cards .hb-ins-t{font-size:15px;min-height:0}
+  .hb-board .hb-shelf-cards .hb-ins-pic .hb-svg{height:120px}
+  .hb-board .hb-shelf-cards .hb-ins-pic .hb-blocks,.hb-board .hb-shelf-cards .hb-ins-pic .hb-bars{max-height:124px}
+  .hb-board .hb-shelf-cards .hb-ins-pic .hb-chart-bars{pointer-events:none;gap:2px;margin:0}
+  .hb-board .hb-shelf-cards .hb-ins-pic .hb-cbar{min-height:22px;padding:0;grid-template-columns:minmax(0,150px) minmax(0,1fr) minmax(64px,auto);gap:var(--s-2);text-align:left}
+  .hb-board .hb-shelf-cards .hb-ins-pic .hb-cbar-t{font-size:var(--t-meta);color:var(--hb-ink)}
+  .hb-board .hb-shelf-cards .hb-ins-pic .hb-cbar-tr{height:10px}
+  .hb-board .hb-shelf-cards .hb-ins-pic .hb-cbar-n{font-size:var(--t-meta)}
+  .hb-board .hb-shelf-cards .hb-ins-f{font-size:var(--t-body);color:var(--hb-ink);-webkit-line-clamp:3;line-clamp:3}
+  .hb-board .hb-shelf-cards .hb-ins-acts{margin:auto calc(-1 * var(--s-4)) 0;padding:8px var(--s-4);border-top:1px solid rgba(var(--hb-ln),.12)}
+  /* each card's own picture, as drawn (hbInsPicHtml): pale bars, the one it is
+     about lit with its value above it, the months under the axis; a line with
+     its two ends marked; the party bars with their value only, the first lit */
+  .hb-ins-pic .hb-ip{display:block;width:100%;height:auto;max-height:150px;margin:0;pointer-events:none;overflow:visible}
+  .hb-ins-pic .hb-ip-axis{stroke:rgba(var(--hb-ln),.28);stroke-width:1}
+  .hb-ins-pic .hb-ip-x{font-size:12px;fill:var(--hb-mute)}
+  .hb-ins-pic .hb-ip-val{font-size:12px;font-weight:var(--w-strong);fill:var(--hb-ink)}
+  .hb-ins-pic .hb-ip-bar{fill:var(--hb-glow);fill-opacity:.14}
+  .hb-ins-pic .hb-ip-bar.is-lit{fill-opacity:1}
+  .hb-ins-pic .hb-ip-line{fill:none;stroke:var(--hb-glow);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+  .hb-ins-pic .hb-ip-dot{fill:var(--hb-glow)}
+  .hb-ins-pic .hb-ip-bars{display:flex;flex-direction:column;gap:7px;padding:2px 0;pointer-events:none;text-align:left}
+  .hb-ins-pic .hb-ip-br{display:grid;grid-template-columns:minmax(0,150px) minmax(0,1fr) auto;align-items:center;gap:var(--s-3)}
+  .hb-ins-pic .hb-ip-bn{font-size:var(--t-meta);color:var(--hb-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hb-ins-pic .hb-ip-bt{display:block;height:10px;min-width:0}
+  .hb-ins-pic .hb-ip-bt>i{display:block;height:100%;border-radius:2px;background:var(--hb-glow);opacity:.18}
+  .hb-ins-pic .hb-ip-bt>i.is-lit{opacity:1}
+  .hb-ins-pic .hb-ip-bv{font-size:var(--t-meta);color:var(--hb-ink);font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right;min-width:48px}
+  .hb-board .hb-empty.is-setup{border:0;padding:0;text-align:left}
+  #ig-dock .igd-head-w{flex:0 1 auto;min-width:0;margin-left:10px;font-size:13px;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #ig-page:has(#hb-board[hidden]) #hb-sheet-host,#hb-page:has(#hb-board[hidden]) #hb-sheet-host{display:none}
   /* the Copilot panel's resize handle lives in another layer and showed through the side list (the stray amber bar) */
   #ig-page:has(.hb-sheet) .ig-resizer{visibility:hidden}
@@ -13021,6 +13716,9 @@
      chips, the two-line title cell, the owner's initials, the facts line. */
   .st-tab .st-tab-n{margin-left:6px;font-family:var(--font-mono);font-size:var(--t-micro);font-weight:var(--w-body);color:var(--color-neutral-600);background:var(--surface-2);border-radius:var(--radius);padding:1px 5px;line-height:1.3;}
   .st-tab.on .st-tab-n{color:var(--accent-ink);background:color-mix(in srgb,var(--color-accent) 12%,transparent);}
+  /* Our paper's tabs carry plain numbers, as round 21 draws them (no pill) */
+  .paper-tabs .st-tab .st-tab-n,.tpl-tabs .st-tab .st-tab-n{background:none;padding:0;font-family:inherit;color:var(--color-neutral-600);}
+  .paper-tabs .st-tab.on .st-tab-n,.tpl-tabs .st-tab.on .st-tab-n{background:none;color:var(--color-neutral-600);}
   .tpl-origin{display:inline-block;font-size:var(--t-label);font-weight:var(--w-label);padding:2px 8px;border-radius:var(--radius);background:var(--surface-2);color:var(--color-neutral-700);white-space:nowrap;}
   .tpl-origin.is-company{background:var(--st-green-bg);color:var(--st-green-fg);}
   .tpl-origin.is-cp{background:var(--st-amber-bg);color:var(--st-amber-fg);}
@@ -13308,6 +14006,155 @@
   .ins-kv dd{margin:3px 0 0;font-weight:var(--w-title);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .ins-kv dd.late{color:var(--st-ruby-fg);}
   .ins-holds{margin-top:6px;}
+  /* ═══ JAMBO'S PANEL BESIDE THE LISTS (owner's yes, 18 Oct 2026 — the picked
+     drawings of rounds 14, 15, 16, 19, 20 and 21; js/views/inspector.js,
+     jlFrame). The list inspector dressed as his: it stands at the window's
+     right edge from under the desk tabs to the foot, Home's panel's own place
+     and width (IG_DOCK_W0, 380), and the page beside it takes the rest — the
+     page head and the page's scroller give it their right edge, and the grid
+     that held it as a card keeps one column. Folded, it is a 46px strip with
+     his face (Home's own door, .igd-door). */
+  #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #page-head,
+  #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll{margin-right:380px;}
+  #app-shell:has(#content .ins-panel.is-jambo.is-folded):not(:has(#content [hidden] .ins-panel.is-jambo)) #page-head,
+  #app-shell:has(#content .ins-panel.is-jambo.is-folded):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll{margin-right:46px;}
+  #content :has(> #ins-panel.is-jambo){grid-template-columns:minmax(0,1fr);column-gap:0;}
+  /* THE LIST'S CARD ENDS AFTER ITS LAST ROW (rounds 14 and 15 as drawn): its
+     foot ("Showing 1–7 of 7") right under the rows, the grey ground below; a
+     list longer than the window still scrolls inside its card */
+  #content .reg-body.is-ins:has(> #ins-panel.is-jambo),
+  #content .ap-body.is-ins:has(> #ins-panel.is-jambo){align-items:start;}
+  #content .reg-body.is-ins:has(> #ins-panel.is-jambo) > .reg-card{flex:none;max-height:100%;}
+  #content .ap-body.is-ins:has(> #ins-panel.is-jambo) > .ap-card{max-height:100%;}
+  #content .ap-body.is-ins:has(> #ins-panel.is-jambo) .ap-foot{margin-top:0;}
+  /* round 15: the head card (title, counts, Approval rules), the grey ground,
+     then the list's card. The head's own padding is the card's (.ph-card,
+     19 Oct 2026); the --s-3 below it is the page's. A bare :last-child
+     under body:has() made every element's style hang on the :has (home-speed-verify 1). */
+  #content .sap-page.ap-page{padding-top:var(--s-3);}
+  #content .ins-panel.is-jambo{position:fixed;right:0;top:var(--jl-top,88px);bottom:0;width:380px;z-index:20;display:flex;flex-direction:column;overflow:hidden;
+    border:0;border-left:1px solid var(--color-neutral-300);border-radius:0;box-shadow:-10px 0 28px -20px rgba(43,43,45,.35);background:var(--color-surface);}
+  #content .ins-panel.is-jambo.is-folded{width:46px;}
+  #content .ins-panel.is-jambo.is-folded > :not(.jl-door){display:none;}
+  #content .ins-panel.is-jambo:not(.is-folded) > .jl-door{display:none;}
+  #content .ins-panel.is-jambo .jl-door{height:100%;width:100%;display:flex;flex-direction:column;align-items:center;gap:10px;padding-top:14px;background:var(--color-accent-50);border:0;color:var(--accent-ink);cursor:pointer;font:inherit;}
+  #content .ins-panel.is-jambo .jl-door:hover{background:var(--color-accent-100);}
+  #content .ins-panel.is-jambo .jl-door:focus-visible{outline:2px solid var(--accent-ink);outline-offset:-3px;}
+  #content .ins-panel.is-jambo .jl-door .igd-door-w{writing-mode:vertical-rl;font-size:var(--t-meta);font-weight:var(--w-strong);letter-spacing:.02em;white-space:nowrap;}
+  #content .ins-panel.is-jambo .jl-door .igd-door-i{position:relative;display:grid;place-items:center;width:28px;height:28px;}
+  #content .ins-panel.is-jambo .jl-door .igd-door-face{width:28px;height:28px;border-radius:50%;}
+  #content .ins-panel.is-jambo .jl-door .igd-door-i .pd-tab-n{left:16px;}
+  .jl-head{flex:none;display:flex;align-items:center;gap:8px;padding:6px 10px 6px 8px;border-bottom:1px solid var(--color-divider);min-width:0;}
+  .jl-head .jl-tab{flex:none;max-width:none;width:56px;}
+  .jl-head .pd-tab.on::after{bottom:-7px;}
+  .jl-word{min-width:0;font-size:var(--t-body);color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .jl-sp{flex:1 1 auto;}
+  .jl-head .pd-back{flex:none;display:inline-flex;align-items:center;gap:3px;height:var(--ctl-h-sm);padding:0 8px 0 5px;border:1px solid var(--btn-edge);border-radius:var(--radius);background:var(--color-surface);color:var(--accent-ink);font:inherit;font-size:12px;font-weight:var(--w-label);cursor:pointer;white-space:nowrap;}
+  .jl-head .pd-back[hidden]{display:none;}
+  .jl-head .pd-back:hover{border-color:var(--accent-ink);}
+  .jl-head .pd-back:focus-visible{outline:2px solid var(--accent-ink);outline-offset:1px;}
+  .jl-head .jl-fold{flex:none;}
+  #content .ins-panel.is-jambo .jl-body{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain;}
+  /* the head of what it holds sits flush under Jambo's head */
+  #content .ins-panel.is-jambo .ins-h{padding:14px 16px 14px;}
+  #content .ins-panel.is-jambo .ins-sec{padding:12px 16px;}
+  #content .ins-panel.is-jambo .ins-facts{padding:14px 16px;}
+  #content .ins-panel.is-jambo .ins-cp{font-size:var(--t-card);}
+  .jl-h .ins-cp{gap:8px;}
+  .jl-st-side{flex:none;display:inline-flex;font-size:var(--t-meta);font-weight:var(--w-label);letter-spacing:0;line-height:var(--lh-tight);}
+  /* rounds 14 and 15: the pill sits right after the party's name ("Nordvik
+     Logistik AB ● Our move · 4 days", "Helio Energy AB [for Jonas]"), not at
+     the panel's far edge — the list head's .ins-st-side pushes it out */
+  .jl-h .ins-cp .jl-st-side{margin-left:0;}
+  .jl-face-row{display:flex;align-items:center;gap:12px;min-width:0;}
+  .jl-face-row .jl-face-w{min-width:0;}
+  .jl-face-row .dir-av,.jl-face-row .jl-av{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:var(--w-strong);background:var(--color-accent-50);color:var(--accent-ink);}
+  /* Jambo's own words: his face, a bubble, the line saying it cost nothing, the page's doors as chips */
+  .jl-words{padding:14px 14px 4px;display:flex;flex-direction:column;gap:8px;}
+  .jl-say{display:flex;align-items:flex-start;gap:10px;}
+  .jl-say .jl-say-face{flex:none;width:24px;height:24px;border-radius:50%;margin-top:4px;}
+  .jl-bub{min-width:0;flex:1 1 auto;padding:10px 12px;border-radius:var(--radius-lg);background:var(--surface-2);color:var(--color-text);line-height:1.5;}
+  .jl-bub b{font-weight:var(--w-strong);}
+  .jl-bub .late{color:var(--st-ruby-fg);font-weight:var(--w-label);}
+  .jl-src{margin:-2px 0 2px 34px;font-size:var(--t-micro);color:var(--color-neutral-600);}
+  .jl-chips{display:flex;flex-wrap:wrap;gap:6px;margin-left:34px;}
+  /* a resting chip wears the ONE light edge every outlined control does
+     (--btn-edge; owner, 13 Oct 2026 "the previous thin grey outline") — round
+     16's drawing paints "plan my week" on the very edge of Mark done and Open
+     every week; the accent comes only on hover. Dark mode keeps the edge the
+     colour census recorded (owner: "Dark mode should stay as is today") */
+  .jl-chip{border:1px solid var(--btn-edge,var(--color-divider));background:var(--color-surface);color:var(--accent-ink);border-radius:999px;padding:3px 10px;font:inherit;font-size:var(--t-meta);cursor:pointer;line-height:1.4;text-align:left;}
+  html.dark .jl-chip:not(:hover){border-color:var(--color-accent-100);}
+  .jl-chip:hover{background:var(--color-accent-50);border-color:var(--color-accent-300,var(--color-accent-100));}
+  .jl-chip:focus-visible{outline:2px solid var(--accent-ink);outline-offset:1px;}
+  .jl-feed{padding:6px 14px 14px;display:flex;flex-direction:column;gap:12px;}
+  .jl-feed:empty{display:none;}
+  .jl-card .ca-acts{display:flex;flex-wrap:wrap;gap:6px;}
+  /* the foot: the ask box, Ask inside its right end, and the hint under it */
+  .jl-foot{flex:none;padding:10px 12px 10px;border-top:1px solid var(--color-divider);background:var(--color-surface);position:relative;}
+  .jl-ask{position:relative;margin:0;}
+  .jl-box{display:flex;align-items:center;gap:8px;height:40px;border:1px solid var(--color-neutral-300);border-radius:10px;background:var(--color-surface);padding:0 4px 0 12px;}
+  .jl-box:focus-within{border-color:var(--accent-ink);box-shadow:0 0 0 3px var(--color-accent-100);}
+  .jl-box input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:inherit;font-size:var(--t-body);color:var(--color-text);height:36px;}
+  .jl-box input::placeholder{color:var(--color-neutral-500);}
+  .jl-box input:focus-visible{outline:none;box-shadow:none;}
+  .jl-ask .jl-pop{left:0;right:0;bottom:calc(100% + 6px);top:auto;max-height:320px;}
+  .jl-ask .jl-pop[hidden]{display:none;}
+  .jb-hint{margin:6px 2px 0;font-size:var(--t-micro);line-height:1.45;color:var(--color-neutral-600);}
+  /* the floating window's line: a computer only — the phone stays untouched */
+  .ai-hint:empty{display:none;}
+  @media (max-width:767px){ .ai-hint{display:none;} }
+  .jb-keys{white-space:nowrap;}
+  .jb-kbd{display:inline-block;min-width:16px;padding:0 4px;border:1px solid var(--color-neutral-300);border-radius:4px;font:inherit;font-size:var(--t-micro);line-height:1.35;text-align:center;color:var(--color-neutral-700);background:var(--color-surface);}
+  /* Needs you, its own section: one card, a row each, a dot in the row's tone and the row's own verb */
+  .jl-need{border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden;}
+  .jl-need-r{--nd-dot:var(--st-amber-dot);display:grid;grid-template-columns:8px minmax(0,1fr) auto;align-items:center;gap:0 10px;padding:10px 12px;}
+  .jl-need-r.is-ruby{--nd-dot:var(--st-ruby-dot);}
+  .jl-need-r + .jl-need-r{border-top:1px solid var(--color-divider);}
+  .jl-need-dot{width:8px;height:8px;border-radius:50%;background:var(--nd-dot);align-self:start;margin-top:6px;}
+  .jl-need-b{min-width:0;}
+  .jl-need-t{font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .jl-need-s{margin-top:2px;font-size:var(--t-meta);color:var(--color-neutral-600);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .jl-need-s .late{color:var(--st-ruby-fg);font-weight:var(--w-strong);}
+  /* What Jambo read: a full dot where read, a ring where not */
+  .jl-read{display:flex;flex-direction:column;gap:6px;}
+  .jl-rr{display:flex;align-items:center;gap:10px;min-width:0;color:var(--color-text);}
+  .jl-rr span{min-width:0;color:var(--color-text);}
+  .jl-rr span em{font-style:normal;color:var(--color-neutral-600);}
+  .jl-rr.is-amber span em{color:var(--st-amber-fg);}
+  .jl-dot{flex:none;width:10px;height:10px;border-radius:50%;box-sizing:border-box;border:1.5px solid var(--rule-strong);background:transparent;}
+  .jl-dot.is-green{background:var(--st-green-dot);border-color:var(--st-green-dot);}
+  .jl-dot.is-amber{background:var(--st-amber-dot);border-color:var(--st-amber-dot);}
+  .jl-dot.is-ruby{background:var(--st-ruby-dot);border-color:var(--st-ruby-dot);}
+  /* facts as rows, the label on the left (rounds 15 and 19) */
+  .jl-rows{margin:0;padding:6px 16px 4px;border-bottom:1px solid var(--color-divider);}
+  .jl-rows > div{display:grid;grid-template-columns:108px minmax(0,1fr);gap:10px;padding:7px 0;border-top:1px solid var(--color-divider);min-width:0;}
+  .jl-rows > div:first-child{border-top:0;}
+  .jl-rows dt{font-size:var(--t-meta);color:var(--color-neutral-600);font-weight:var(--w-body);padding-top:1px;}
+  .jl-rows dd{margin:0;min-width:0;color:var(--color-text);line-height:1.45;overflow-wrap:anywhere;}
+  .jl-rows dd.none{color:var(--color-neutral-500);}
+  .jl-rows dd.is-ruby{color:var(--st-ruby-fg);font-weight:var(--w-label);}
+  .jl-rows dd.is-amber{color:var(--st-amber-fg);font-weight:var(--w-label);}
+  .jl-rows dd .sub{display:block;font-size:var(--t-meta);color:var(--color-neutral-600);}
+  /* THE LISTS AS DRAWN (rounds 14 and 15): a list's count in a pill on its
+     head, the wait in amber where it waits on the reader, a stand-in's "for
+     Jonas" beside "You", the card's late note and its foot */
+  .reg-tt-n.is-pill,.ap-card-n.is-pill{display:inline-block;margin-left:4px;padding:1px 7px;border-radius:999px;background:var(--color-accent-50);color:var(--accent-ink);
+    font-size:var(--t-micro);font-weight:var(--w-strong);line-height:1.45;vertical-align:1px;font-variant-numeric:tabular-nums;}
+  .reg-table .reg-wait.is-mine{color:var(--st-amber-fg);}
+  .ap-card-h .ap-card-t .ap-card-m{margin-left:6px;font-weight:var(--w-body);}
+  .ap-card-h .ap-card-sp{flex:1 1 auto;}
+  .ap-for,.ap-for-pill{display:inline-flex;align-items:center;gap:3px;border-radius:999px;background:var(--color-accent-50);color:var(--accent-ink);font-size:var(--t-micro);font-weight:var(--w-label);white-space:nowrap;}
+  .ap-for{margin-left:4px;padding:1px 7px;vertical-align:1px;}
+  .ap-for .ap-for-ic,.ap-for-pill .ap-for-ic{width:11px;height:11px;flex:none;}
+  .ap-wl-foot{padding:10px 14px;font-size:var(--t-meta);color:var(--color-neutral-600);border-top:1px solid var(--color-divider);}
+  .jl-answer .ins-acts{margin-top:8px;}
+  .jl-answer .ins-acts:first-of-type{margin-top:0;}
+  .jl-answer .ins-acts .ins-lead{flex:0 1 auto;}
+  .jl-rec{margin-top:10px;line-height:1.45;}
+  .jl-rules{margin:6px 0 0;padding-left:18px;list-style:disc;}
+  .jl-rules li{margin:3px 0;}
+  .jl-sign-rule .ins-acts{margin-top:8px;}
   /* THE APPROVALS PAGE IN THE INSPECTOR'S SHAPE: the page owns its height
      like the register, the list's card and the panel scroll inside
      themselves, and the selected row wears the register's own mark. */
@@ -13334,7 +14181,11 @@
   .ap-table.ap-ins th{position:sticky;top:0;z-index:1;background:var(--color-surface);text-transform:none;letter-spacing:0;
     font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600);}
   .ap-table.ap-ins :is(td,th){white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .ap-table.ap-ins .ap-name,.ap-table.ap-ins .ap-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ap-table.ap-ins .ap-sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* the party's name reads whole (round 15; at 1366 beside Jambo's panel a
+     long one takes a second line), the agreement under it keeps its cut */
+  .ap-table.ap-ins .ap-id .ap-name{white-space:normal;overflow-wrap:anywhere;}
+  .ap-table.ap-ins td:not(:has(.ap-id)) .ap-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .ap-table .ap-sub.late{color:var(--st-ruby-fg);}
   .ap-table tbody tr[data-ap-row]:focus{outline:none;}
   .ap-table tbody tr[data-ap-row]:focus-visible td{box-shadow:inset 0 2px 0 var(--focus-color),inset 0 -2px 0 var(--focus-color);}
@@ -13391,6 +14242,94 @@
   .ob-wk-car{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--color-neutral-600);transition:transform .12s;}
   .ins-grp.is-shut .ob-wk-car{transform:rotate(-90deg);}
   .ob-wk-said{min-width:0;font-weight:var(--w-body);color:var(--color-neutral-600);font-size:var(--t-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* THE WEEK AS DRAWN (round 16 "Week by week"; the owner's "build all the
+     gaps", 18 Oct 2026): each week a card of its own on the grey ground — its
+     head (caret, name, count, what it holds, the money it moves), its rows
+     (the day, who acts as a face, what and where, the row's one act). Scoped
+     to the page (.obw-ins); the contract's tab keeps its table. */
+  .obw-ins .ins-card.obw-weeks{background:none;border:0;box-shadow:none;overflow:visible;gap:var(--s-2);}
+  .obw-ins .ins-card.obw-weeks > .ins-bar{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);}
+  .obw-ins .obw-scroll{display:flex;flex-direction:column;gap:var(--s-2);padding-bottom:var(--s-3);}
+  .obw-wk{flex:none;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;}
+  .obw-wk table.obw-wk-lt td{border-bottom:1px solid var(--rule);}
+  .obw-wk table.obw-wk-lt tbody tr:last-child td{border-bottom:0;}
+  .obw-wk.is-shut table.obw-wk-lt tr.ins-grp td{border-bottom:0;}
+  .obw-wk table.obw-wk-lt tr.ins-grp td{height:44px;padding-top:0;background:var(--color-surface);}
+  .obw-wk .ins-g{gap:10px;}
+  .obw-wk .ob-wk-fold{font-weight:var(--w-title);font-size:var(--t-body);}
+  .obw-wk[data-obw-card="overdue"] .ob-wk-fold{color:var(--st-ruby-fg);}
+  .obw-wk .ob-wk-rng{margin-left:0;}
+  .obw-n{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;box-sizing:border-box;
+    background:var(--color-accent-50);color:var(--accent-ink);font-size:var(--t-micro);font-weight:var(--w-strong);font-variant-numeric:tabular-nums;}
+  .ins-g .n.obw-n{color:var(--accent-ink);}
+  .obw-wk[data-obw-card="overdue"] .ins-g .n.obw-n{background:var(--st-ruby-bg);color:var(--st-ruby-fg);}
+  .obw-wk table.obw-wk-lt tr[data-ins-row] td,.obw-wk table.obw-wk-lt tr.obw-finds td{height:54px;}
+  .obw-wk .ins-c2 > b{font-weight:var(--w-label);}
+  .obw-act-c{overflow:visible;}
+  .obw-act{white-space:nowrap;color:var(--accent-ink);}
+  .obw-chase-on{font-size:var(--t-micro);}
+  .obw-lock{display:inline-flex;vertical-align:-1px;margin-left:6px;color:var(--color-neutral-600);}
+  .obw-priv{flex:none;display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border:1px solid var(--color-divider);border-radius:999px;
+    font-size:var(--t-micro);font-weight:var(--w-label);color:var(--color-neutral-700);background:var(--color-surface);}
+  /* who acts, as a face: ours grey, theirs in their tint, nobody a grey ring, Jambo's own face */
+  .obw-av{flex:none;width:22px;height:22px;border-radius:50%;display:inline-grid;place-items:center;font-style:normal;font-size:10px;font-weight:var(--w-title);
+    letter-spacing:.02em;background:var(--surface-2);color:var(--color-neutral-600);box-sizing:border-box;}
+  .obw-av.is-theirs{background:var(--st-violet-bg);color:var(--st-violet-fg);}
+  .obw-av.is-nobody{background:none;border:1.5px dashed var(--rule-strong);}
+  .obw-av.is-jambo{background:none;overflow:hidden;}
+  .obw-av.is-jambo img{width:22px;height:22px;border-radius:50%;}
+  /* Jambo's finds: one row in its week, in his tint, never a band */
+  .obw-wk tr.obw-finds td:not(:first-child){background:var(--color-accent-50);}
+  .obw-wk tr.obw-finds .ins-c2 > span{color:var(--color-neutral-600);}
+  .obw-wk tr.obw-finds{cursor:pointer;}
+  /* a word in the day column says its ink (late, soon, waiting), and a
+     longer one ("waiting on step 1") wraps rather than cut */
+  .obw-wk .ins-c2 > span.ins-late{color:var(--st-ruby-fg);}
+  .obw-wk .ins-c2 > span.ins-soon{color:var(--st-amber-fg);}
+  .obw-wk .ins-c2 > span.ins-wait{color:var(--st-steel-fg);}
+  .obw-wk table.obw-wk-lt td:first-child .ins-c2 > span{white-space:normal;text-wrap:balance;}
+  /* the day sits level with the title's first line, as drawn, whether or not
+     the row has a second line under it */
+  .obw-wk table.obw-wk-lt tr[data-ins-row] td:first-child,.obw-wk table.obw-wk-lt tr.obw-finds td:first-child{vertical-align:top;padding-top:10px;}
+  .obw-wk table.obw-wk-lt tr.obw-late-row td:first-child{vertical-align:middle;padding-top:0;}
+  /* a folded week's whole line opens it */
+  .obw-wk table.obw-wk-lt tr.ins-grp.is-fold{cursor:pointer;}
+  /* Late, as drawn: a bar down its row's left edge; the day and how late on
+     the right, before the act */
+  .obw-wk table.obw-wk-lt tr.obw-late-row td:first-child{box-shadow:inset 3px 0 0 var(--accent-fill);}
+  .obw-late-act{display:inline-flex;align-items:center;justify-content:flex-end;gap:10px;}
+  .obw-late-when{text-align:right;align-items:flex-end;}
+  /* the head: "11 outstanding · 1 overdue" beside the name */
+  .obw-hf{color:var(--color-neutral-600);font-size:var(--t-body);}
+  .obw-hf-late{color:var(--st-ruby-fg);font-weight:var(--w-label);}
+  .obw-add-btn{display:inline-flex;align-items:center;gap:6px;}
+  .obw-empty{padding:28px 16px;text-align:center;color:var(--color-neutral-600);}
+  .obw-empty p{margin:0 0 6px;}
+  /* + Add an obligation: which contract */
+  .obw-pick .dlg-h p{margin:4px 0 0;color:var(--color-neutral-600);font-size:var(--t-meta);}
+  .obw-pick-b{padding:12px 20px;display:flex;flex-direction:column;gap:8px;}
+  .obw-pick-b input{height:var(--ctl-h);border:1px solid var(--field-line, var(--color-divider));border-radius:var(--radius);padding:0 10px;font:inherit;background:var(--color-surface);color:var(--color-text);}
+  .obw-pick-l{max-height:min(46vh,360px);overflow:auto;border:1px solid var(--color-divider);border-radius:var(--radius);}
+  .obw-pick-r{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;padding:8px 10px;border:0;border-bottom:1px solid var(--rule);
+    background:var(--color-surface);font:inherit;text-align:left;cursor:pointer;color:var(--color-text);}
+  .obw-pick-r:last-child{border-bottom:0;}
+  .obw-pick-r:hover,.obw-pick-r:focus-visible{background:var(--surface-2);}
+  .obw-pick-r b{font-weight:var(--w-label);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .obw-pick-r span:last-child{color:var(--color-neutral-600);font-size:var(--t-meta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;}
+  .obw-pick-r[hidden]{display:none;}
+  .obw-pick-none{margin:0;color:var(--color-neutral-600);font-size:var(--t-meta);}
+  .obw-pick .dlg-f{display:flex;justify-content:flex-end;gap:8px;padding:10px 20px 16px;}
+  /* "Jambo may change my calendar": On his own · Ask me first · Never — the
+     same three buttons beside Obligations and the Calendar */
+  .cal-lv{display:flex;flex-direction:column;gap:6px;margin:6px 0 0;padding-top:12px;border-top:1px solid var(--color-divider);}
+  .cal-lv-t{font-size:var(--t-meta);color:var(--color-text);}
+  .cal-lv-seg{display:inline-flex;align-self:flex-start;border:1px solid var(--btn-edge, var(--color-divider));border-radius:var(--radius);overflow:hidden;}
+  .cal-lv-seg > button{border:0;border-right:1px solid var(--btn-edge, var(--color-divider));background:var(--color-surface);color:var(--color-text);font:inherit;font-size:var(--t-meta);
+    height:var(--ctl-h-sm);padding:0 12px;cursor:pointer;white-space:nowrap;}
+  .cal-lv-seg > button:last-child{border-right:0;}
+  .cal-lv-seg > button:hover{background:var(--surface-2);}
+  .cal-lv-seg > button[aria-pressed="true"]{background:var(--color-accent-50);color:var(--accent-ink);font-weight:var(--w-strong);}
+  .cal-lv-seg > button:focus-visible{outline:2px solid var(--accent-ink);outline-offset:-2px;}
   /* THE EMPTY MESSAGE IS NOT A ROW, SO IT DRAWS NO ROW'S RULE (Young, 7 Oct 2026:
      "the empty obligations page has a line in it for no reason"). */
   .ins-lt tr.ins-empty td{height:120px;text-align:center;color:var(--color-neutral-600);white-space:normal;border-bottom:0;}
@@ -13412,7 +14351,9 @@
   .ins-quiet{color:var(--color-neutral-500);}
   .ins-nobody{color:var(--st-amber-fg);font-weight:var(--w-label);}
   /* REQUESTS, THE SAP WAY (round 20): the lane that sent it, the files' clip, the day asked */
-  .ik-lane-chip{display:block;margin:1px 0 0 26px;font-size:var(--t-micro);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ik-lane-chip{display:inline-flex;align-items:center;gap:3px;margin-left:6px;padding:0 7px;height:18px;border:1px solid var(--color-divider);border-radius:999px;
+    font-size:var(--t-micro);color:var(--color-neutral-600);white-space:nowrap;vertical-align:1px;background:var(--color-surface);}
+  .ik-lane-ic{width:11px;height:11px;flex:none;}
   .ik-files-n{display:inline-flex;align-items:center;gap:3px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums;}
   .ik-lt td.ik-ask{white-space:nowrap;font-variant-numeric:tabular-nums;}
   /* Unassigned is a state, not an alarm (SAP benchmark, owner-approved 9 Oct 2026). */
@@ -13766,15 +14707,84 @@
      .sap-band), the list and its panel on the grey ground below, column
      heads and fact labels in sentence case, and a wider side panel whose
      head carries the initials, the name and the stage on one row. Scoped by
-     the class, so pages not yet redrawn keep their look. */
-  body:has(#content .sap-page) #page-head{background:var(--color-surface);}
+     the class, so pages not yet redrawn keep their look.
+     THE EDGE-TO-EDGE WHITE STRIP IS RETIRED (19 Oct 2026): the head is the
+     drawn card below (.ph-card); a band keeps this dress only where no card
+     is put on it. */
   .sap-page .sap-band{background:var(--color-surface);margin-inline:calc(-1 * var(--page-pad-x));padding-inline:var(--page-pad-x);
     border-bottom:1px solid var(--color-divider);}
   .sap-page[data-ins-page="register"] .sap-band{margin-top:calc(-1 * var(--page-pad-t));padding-top:var(--s-3);gap:var(--s-3);}
-  /* Negotiations draws its own name INSIDE the band, so its first glyph keeps the page's one top (pages-read-alike 8). */
-  .sap-page.ngl-page[data-ins-page="register"] .sap-band{padding-top:var(--page-pad-t);}
+  /* ═══ THE LIST PAGES' HEAD CARD (19 Oct 2026; the picked drawings of
+     rounds 14–26: Negotiations, Approvals, Obligations, Parties and People,
+     Requests and My notes, Our paper, Import, Settings) ════════════════════
+     Every page head is ONE WHITE CARD set in on the grey ground — a hairline
+     edge, the house radius, --page-pad-t under the bar and --page-pad-x in
+     from the side — holding the title line (the title, its facts, the
+     page's main button) and, where the page has them, its tabs and labelled
+     boxes; the list is a second card --s-3 below. ONE RULE, .ph-card, worn
+     by the shared head (#page-head, renderPageHeader), by the band that
+     names its own page (Negotiations, Parties, People, Our paper, My notes,
+     Jambo's house) and by Settings' head card, so every title's first glyph
+     sits at one height (pages-read-alike 8). A band under the shared head
+     (tabs, boxes, figures) is the card's lower half, .ph-foot, flush under
+     it, and it STAYS under it while the list scrolls (below). REVERSES 9
+     Oct's "one white band edge to edge". */
+  .ph-card,.ph-foot{background:var(--color-surface);border:1px solid var(--color-divider);}
+  .ph-card{border-radius:var(--radius-lg);padding:14px 16px;}
+  .ph-foot{border-top:0;border-radius:0 0 var(--radius-lg) var(--radius-lg);}
+  /* THE TITLE ROW AND THE LINE UNDER IT (19 Oct 2026, the head card's first
+     check): every head's title row is .ph-top, one control's height whether
+     or not it holds a button, so whatever comes under it starts at one
+     height. Where a second row follows — the band's own tabs, boxes or
+     figures, or a .ph-foot under the shared head — the drawings put a
+     hairline between the two, 16px in from each card edge (the card's own
+     padding) and 12px under the title row: the title row's own foot, the
+     ONE line on every head (Settings, Parties and People drew their own
+     before). Content-box, so the line's 12px are not taken from the row. */
+  .ph-card > .ph-top{min-height:var(--ctl-h);box-sizing:content-box;}
+  .ph-card > .ph-top:not(:last-child),
+  body:has(#content .ph-foot) #page-head > .ph-card > .ph-top{padding-bottom:var(--s-3);border-bottom:1px solid var(--color-divider);}
+  /* the scroller's reserved gutter (measured, --sc-gutter) is kept off the
+     card too, so its right edge meets the cards under it */
+  #page-head > .ph-card{margin-right:var(--sc-gutter,0px);}
+  body:has(#content .ph-foot) #page-head > .ph-card{border-bottom-width:0;border-bottom-left-radius:0;border-bottom-right-radius:0;padding-bottom:0;}
+  .sap-page .sap-band.ph-foot{margin-inline:0;margin-top:0;padding-inline:16px;}
+  /* THE CARD STAYS WHOLE WHILE THE LIST SCROLLS (19 Oct 2026, the head card's
+     second check; round 22: "the head card and Jambo's panel stay put; the
+     lists scroll inside the desk", round 16 the same). The lower half used to
+     scroll away with the page, and the title row then closed a short card of
+     its own. Now it holds at the scroller's top — which is the head's own
+     foot — above the rows (z 3, as Settings' card), on a page whose own
+     scroller moves (Import) and on any other. Its shadow is the ground
+     (--color-bg, no blur): --s-3 deep, the page's gap to the list, and 8px
+     past each side, so the rows go out of sight that far under the card and
+     never show in its rounded corners; at rest it covers only ground. Only
+     the list pages' bands (.sap-page, whose gap is --s-3). */
+  .sap-page > .sap-band.ph-foot{position:sticky;top:0;z-index:3;
+    box-shadow:0 var(--s-3) 0 var(--color-bg),-8px var(--s-3) 0 var(--color-bg),8px var(--s-3) 0 var(--color-bg);}
+  /* a page that names itself in its band: the band is the card, at the
+     page's one top; its rows meet at the line, nothing between them */
+  #content .view-enter.sap-page:has(> .sap-band.ph-card){padding-top:var(--page-pad-t);}
+  .sap-page .sap-band.ph-card{margin-inline:0;margin-top:0;padding:14px 16px 0;row-gap:0;}
+  /* a tab row under the line starts AT the line, on every head card (the
+     2px a tab row keeps elsewhere put Requests, Advice and My notes 2px
+     under Negotiations' and Obligations') */
+  .sap-page .sap-band:is(.ph-foot,.ph-card) > .reg-views,
+  .sap-page .sap-band:is(.ph-foot,.ph-card) > .reg-tabbar > .reg-views{margin-top:0;}
   .sap-page .sap-band .reg-views,.sap-page .sap-band.st-tabs{border-bottom:0;margin-bottom:0;}
   .sap-page .sap-band .reg-vtab{height:40px;}
+  /* THE TABS IN A HEAD ARE ONE CONTROL (19 Oct 2026, the head card's second
+     check; the picked drawings: r14 "All 7", r16 "Outstanding 11", r20 "Open
+     4", r21 "The book 24", r25 "Company 3"). The live tab is the theme's ink
+     at the strong weight — heavier than a resting tab, as drawn — whichever
+     builder drew it (the register's and the inspector's .reg-vtab, Our
+     paper's .st-tab, Settings' .st-face, Import's check tabs); its number is
+     a plain small figure after the word, no box, in its tab's own ink. Scoped
+     by the card, so the Contracts place on Home and a contract's own tab rows
+     keep theirs. The count's list names Our paper's own number rule, so the
+     whole list outranks it (an :is() weighs as its heaviest member). */
+  :is(.ph-card,.ph-foot) :is(.reg-vtab.on,.st-tab.on,.st-face[aria-selected="true"],.mig-ck-tab.is-on){color:var(--accent-ink);font-weight:var(--w-strong);}
+  :is(.ph-card,.ph-foot) :is(.reg-vtab .n,.st-tab .st-tab-n,.st-face .st-face-n,.paper-tabs .st-tab.on .st-tab-n){background:none;padding:0 0 0 2px;color:inherit;font-weight:var(--w-body);}
   /* OBLIGATIONS' BAND IS APPROVALS & SIGNING'S HEIGHT (owner, 9 Oct 2026:
      "needs to be the same height as" it): the tab row sits flush and each
      tab is Approvals' 38px. */
@@ -13875,13 +14885,123 @@
     border:1px solid var(--field-line);border-radius:var(--radius);background:var(--color-surface);color:var(--color-neutral-600);}
   .ik-search:focus-within{border-color:var(--color-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 25%,transparent);}
   .ik-search input{flex:1;min-width:0;border:0;background:none;font:inherit;font-size:var(--t-meta);color:var(--color-text);outline:0;}
-  .ik-lt td.ik-pr{white-space:nowrap;text-align:right;}
-  .ik-lt th:last-child{text-align:right;}
+  .ik-lt td.ik-pr{white-space:nowrap;text-align:left;}
+  .ik-lt th:last-child{text-align:left;}
+  /* THE WHOLE TITLE (round 20 as drawn: every request's name and who asked
+     read whole): on the narrower screens a long one wraps inside its cell
+     rather than cutting with an ellipsis */
+  .ik-lt .ins-c2 > b, .ik-lt .ins-c2 > span{white-space:normal;overflow-wrap:anywhere;}
+  /* the tab's number as drawn: a small grey figure after the word, no box */
+  .sap-page .reg-tabbar.ik-tabbar .reg-vtab .n{background:none;padding:0 0 0 2px;}
   .ins-pill-row{margin-top:var(--s-2);}
-  .ik-ins .ins-panel .ins-acts .ins-lead{flex:1 1 auto;justify-content:center;}
+  /* round 20 as drawn: the verbs at their own width, Start the draft first */
+  .ik-ins .ins-panel .ins-acts .ins-lead,.mn-ins .ins-acts .ins-lead{flex:0 1 auto;justify-content:center;}
+  /* the three verbs on one line in the panel's 380, as drawn — in Svenska too.
+     The small rung's side padding (19 Oct 2026): at 10px "Mark reviewed ·
+     Snooze a week · Open MK-…" filled 343 of the row's 347px, so a browser
+     whose text set a hair wider (GitHub's Chrome did) broke it onto two
+     lines; at the small rung the row keeps about 16px to spare */
+  :is(.mn-ins,.ik-ins) .ins-panel .ins-h .ins-acts{gap:6px;}
+  :is(.mn-ins,.ik-ins) .ins-panel .ins-h .ins-acts .ui-btn{padding-inline:var(--pad-ctl-x-sm);}
   .ik-cp{display:inline-flex;align-items:center;gap:var(--s-2);min-width:0;}
   .ik-file-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;}
   .ik-file-list .ui-link{display:inline-flex;align-items:center;gap:6px;}
+  /* ═══ REQUESTS AND MY NOTES, AS DRAWN (round 20 of the redesign, owner
+     picked "The SAP way"; every drawn part built on the owner's yes of 18 Oct
+     2026; js/views/intake.js, js/views/mynotes.js) ═══
+     The band: the tabs, and beside them each box with its label BEFORE it,
+     outside the box ("Stream [All streams ▾]") — round 20's drawing, scoped to
+     these two pages' band (.ik-fb), so the other bands keep "Stream: All". */
+  .sap-page .reg-tabbar > .reg-fb.ik-fb{gap:var(--s-4);}
+  /* the tabs keep their place on the band's foot, the boxes beside them do not
+     lift them: Requests' row and the Advice board's row stand at one height */
+  .sap-page .reg-tabbar.ik-tabbar{align-items:flex-end;}
+  .sap-page .reg-tabbar.ik-tabbar > .reg-views{margin-top:2px;}
+  .sap-page .reg-tabbar.ik-tabbar > .reg-fb.ik-fb{align-self:center;}
+  /* ONE ROW AT EVERY SCREEN, IN EITHER LANGUAGE (round 20 as drawn; lane A3's
+     second pass, measured at 1366×950 in Svenska): the row never wraps, the
+     find box gives way first and the boxes' values cut with an ellipsis */
+  .sap-page .reg-tabbar.ik-tabbar{flex-wrap:nowrap;}
+  .sap-page .reg-tabbar.ik-tabbar > .reg-views{flex:0 0 auto;}
+  .sap-page .reg-tabbar.ik-tabbar > .reg-fb.ik-fb{flex:0 1 auto;min-width:0;flex-wrap:nowrap;}
+  .sap-page .reg-tabbar.ik-tabbar .ik-fb-find{flex:0 1 auto;min-width:0;}
+  .sap-page .reg-tabbar.ik-tabbar .ik-fb-find .ik-search{min-width:96px;flex:0 1 176px;}
+  /* a label and a chosen value never give way ("Ström", "Alla affärsområden"
+     whole): the find box, whose words are the reader's own, gives way first */
+  .sap-page .reg-tabbar.ik-tabbar .reg-fb.ik-fb .reg-chip{flex:none;}
+  .sap-page .reg-tabbar.ik-tabbar .reg-fb.ik-fb .reg-chip .reg-f-l,
+  .sap-page .reg-tabbar.ik-tabbar .ik-fb-l{flex:none;overflow:visible;text-overflow:clip;}
+  .sap-page .reg-tabbar.ik-tabbar .reg-fb.ik-fb .reg-chip .reg-f-v{flex:none;}
+  /* measured at 1366×950 in Svenska (second check): the gaps and the arrow's
+     room give a little so every box's value reads whole */
+  .sap-page .reg-tabbar.ik-tabbar > .reg-fb.ik-fb{gap:var(--s-3);}
+  .sap-page .reg-tabbar.ik-tabbar .reg-fb.ik-fb .reg-chip:not(.reg-chip-btn){gap:6px;}
+  .sap-page .reg-tabbar.ik-tabbar .ik-fb-find{gap:6px;}
+  .sap-page .reg-tabbar.ik-tabbar .reg-fb.ik-fb .reg-chip .reg-f-v{padding-right:24px;}
+  .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip:not(.reg-chip-btn){gap:8px;padding:0;border:0;background:none;box-shadow:none;}
+  .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip:not(.reg-chip-btn):hover,
+  .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip:not(.reg-chip-btn):focus-within{border:0;background:none;box-shadow:none;}
+  .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip .reg-f-l{font-size:var(--t-meta);margin:0;color:var(--color-neutral-700);}
+  .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip .reg-f-l::after{content:none;}
+  .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip .reg-f-v{display:flex;align-items:center;height:var(--ctl-h);min-width:112px;max-width:170px;padding:0 28px 0 10px;
+    border:1px solid var(--chip-edge);border-radius:var(--radius);background:var(--color-surface);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip:hover .reg-f-v{border:1px solid var(--color-neutral-400);}
+  .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip:focus-within .reg-f-v{border:1px solid var(--color-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 25%,transparent);}
+  .sap-page .reg-tabbar .reg-fb.ik-fb .reg-chip.on .reg-f-v{border-color:var(--color-accent);color:var(--accent-ink);}
+  .ik-fb-find{display:flex;align-items:center;gap:8px;margin:0;}
+  .ik-fb-l{font-size:var(--t-meta);color:var(--color-neutral-700);white-space:nowrap;}
+  .ik-fb-find .ik-search{width:176px;}
+  .ik-fb-clear{white-space:nowrap;font-size:var(--t-meta);}
+  /* the head: "Requests 4 open · what colleagues ask Legal for · advice too" */
+  .ik-hf-n{color:var(--color-neutral-600);}
+  .ik-hf-s{margin-left:12px;font-size:var(--t-meta);color:var(--color-neutral-600);}
+  /* the list's head note ("oldest waiting first") and its count's pill */
+  .ins-cardhead-t .ik-card-n{margin-left:2px;}
+  .ins-cardhead-t .ik-card-m{margin-left:6px;font-size:var(--t-meta);font-weight:var(--w-body);color:var(--color-neutral-600);}
+  /* the list's card ends after its last row (as drawn), the foot under it */
+  #content .ik-ins .ins-body:has(> #ins-panel.is-jambo),
+  #content .mn-ins .ins-body:has(> #ins-panel.is-jambo){align-items:start;}
+  #content .ik-ins .ins-body:has(> #ins-panel.is-jambo) > .ins-card,
+  #content .mn-ins .ins-body:has(> #ins-panel.is-jambo) > .ins-card{max-height:100%;}
+  /* How it is handled, a pill in the drawing's tones; With, the name alone,
+     "You" in its own weight */
+  .ik-road{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:var(--w-label);
+    white-space:nowrap;background:var(--st-gray-bg);color:var(--st-gray-fg);max-width:100%;overflow:hidden;text-overflow:ellipsis;}
+  .ik-road.is-routine,.ik-road.is-lane{background:var(--st-green-bg);color:var(--st-green-fg);}
+  .ik-road.is-close{background:var(--st-amber-bg);color:var(--st-amber-fg);}
+  /* on the chosen row's tint the grey Standard pill keeps an edge, so it still reads */
+  .ins-lt tbody tr.is-sel .ik-road.is-standard{box-shadow:inset 0 0 0 1px var(--color-divider);}
+  /* a wrapped title and its asker breathe inside their row */
+  .ik-lt .ins-c2{padding:8px 0;}
+  /* "What <asker> asked for": a small grey label over their words, as drawn */
+  #ins-panel .ik-need h3{font-size:var(--t-meta);font-weight:var(--w-body);color:var(--color-neutral-600);}
+  .ik-lt.is-team td.ik-with{white-space:nowrap;}
+  .ik-who.is-you > span{font-weight:var(--w-strong);color:var(--color-text);}
+  .ik-lt.is-team .ik-who{color:var(--color-text);}
+  .ik-kind{height:20px;}
+  /* THE PANEL: two pills under the title, the ask in their own words, the
+     counterparty's door, the files as cards */
+  .jl-pills{display:flex;flex-wrap:wrap;align-items:center;gap:6px;}
+  .jl-pills .ik-road{height:22px;font-size:var(--t-meta);}
+  .jl-pills > .ins-more-wrap{margin-left:auto;}
+  /* the request's reference line may take two lines: a long stream's name reads whole */
+  .ik-ins #ins-panel .ins-h .ins-eb{white-space:normal;overflow:visible;text-overflow:clip;}
+  .ik-with-chip{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 9px;border:1px solid var(--color-divider);border-radius:999px;
+    font-size:var(--t-meta);color:var(--color-neutral-700);background:var(--color-surface);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
+  .ik-with-chip.is-nobody{color:var(--st-amber-fg);border-color:var(--st-amber-line);}
+  .ik-ask-q{margin:0;padding:10px 14px;border-left:3px solid var(--rule-strong);border-radius:var(--radius);background:var(--surface-2);
+    line-height:1.55;white-space:pre-wrap;color:var(--color-text);overflow-wrap:anywhere;}
+  .ik-cp-go{border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);cursor:pointer;text-align:left;}
+  .ik-cp-go:hover{text-decoration:underline;}
+  .ik-cp-go:focus-visible{outline:2px solid var(--accent-ink);outline-offset:1px;}
+  .ik-cp-nda{color:var(--color-text);}
+  .ik-file-cards{display:flex;flex-direction:column;gap:8px;}
+  .ik-file{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:var(--color-surface);}
+  .ik-file-ic{width:16px;height:16px;flex:none;color:var(--color-neutral-700);}
+  .ik-file-b{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.35;}
+  .ik-file-b b{font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ik-file-b span{font-size:var(--t-meta);color:var(--color-neutral-600);}
+  .ik-fit-sec .jl-say{margin-top:2px;}
   /* The Directory (Faces, 13 Oct 2026) draws its own band, wall and panel
      rows from js/views/directory.js (DIR_CSS). The empty closing band stays
      for the pages that still use it (Import). */
@@ -13918,7 +15038,9 @@
   /* Our paper (SAP benchmark, batch 2): one white band carries the name, the
      book's three figures (or the list's filters) and the tabs; the book is a
      shelves table on a card with two small cards beside it. */
-  .tpl-page > .sap-band.tpl-band{margin-top:calc(-1 * var(--page-pad-t));padding-top:var(--page-pad-t);margin-bottom:var(--s-4);}
+  /* its band is the head card now (.ph-card, 19 Oct 2026): at the page's
+     own top, the book --s-3 under it, as on every list page */
+  .tpl-page > .sap-band.tpl-band{margin-bottom:var(--s-3);}
   .tpl-band .st-tabs{border-bottom:0;}
   .tpl-band .tpl-glance{grid-template-columns:repeat(3,max-content);gap:var(--s-2) 40px;padding:0 0 var(--s-3);}
   :root .sap-page .tpl-band .tpl-gl-l{font-size:var(--t-label);font-weight:var(--w-body);letter-spacing:0;text-transform:none;margin:0 0 2px;}
@@ -13972,6 +15094,41 @@
   .tpl-pf-sheet{max-width:var(--doc-sheet-max, 720px);margin:0 auto;background:var(--color-doc-warm);border:1px solid var(--color-doc-warm-line);padding:28px 36px;font-size:13px;user-select:text;}
   .tpl-pf-none{padding:16px;}
   @media (max-width:1023px){ .tpl-pf{grid-template-columns:minmax(0,1fr);height:auto;} }
+  /* ROUND 21 AS DRAWN (owner's "build all the gaps", 18 Oct 2026): the page's
+     count beside its name and its facts on the same line; a shelf is a line
+     that opens; a blank on a template's own paper reads as a blank (amber,
+     a dotted line under it) and never as a box; and the small marks under a
+     clause — what it meets of Our standards, where it came back changed —
+     sit on the paper but are never its wording (no selection, no copy). */
+  .tpl-hd-row{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 14px;}
+  .tpl-hd-row h1{display:inline-flex;align-items:baseline;gap:8px;}
+  .tpl-hd-n{font-family:var(--font-body);font-size:var(--t-body);font-weight:var(--w-body);color:var(--color-neutral-600);letter-spacing:0;}
+  .tpl-hd-sub{font-size:var(--t-meta);color:var(--color-neutral-600);}
+  .tpl-pf-list > .tpl-pf-g{display:flex;align-items:center;gap:6px;width:100%;padding:9px 12px;border:0;border-top:1px solid var(--color-divider);background:none;font:inherit;font-size:var(--t-micro);color:var(--color-neutral-600);text-align:left;cursor:pointer;}
+  .tpl-pf-list > .tpl-pf-g:first-child{border-top:0;}
+  .tpl-pf-list > .tpl-pf-g span{flex:1;min-width:0;}
+  .tpl-pf-list > .tpl-pf-g:hover{background:var(--surface-2);color:var(--color-text);}
+  .tpl-pf-list > .tpl-pf-g:focus-visible{outline:2px solid var(--accent-ink);outline-offset:-2px;}
+  .tpl-pf-g-c{flex:none;color:var(--color-neutral-500);}
+  .tpl-pf-acts .ui-btn[disabled]{opacity:.5;cursor:not-allowed;}
+  .tpl-pf-sheet .tpl-pf-blank,.tpl-pf-sheet .hati-field{display:inline;padding:0 3px;border-radius:2px;background:var(--st-amber-bg);color:var(--st-amber-fg);border-bottom:1px dashed var(--st-amber-dot);font-style:normal;cursor:default;white-space:normal;}
+  .tpl-pf-sheet .tpl-pf-blank.has-v{color:var(--color-doc-text, var(--color-text));}
+  .tpl-mks{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px;user-select:none;-webkit-user-select:none;font-family:var(--font-body);}
+  /* the signatures stand apart from the last clause's marks (check #2, 19 Oct 2026) */
+  .tpl-pf-sheet .tpl-mks + p{margin-top:var(--s-6);}
+  .tpl-mk{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:999px;font-size:var(--t-micro);line-height:1.6;font-weight:var(--w-label);background:var(--st-green-bg);color:var(--st-green-fg);border:0;font-family:inherit;white-space:nowrap;}
+  .tpl-mk.is-dev,.tpl-mk.is-changed{background:var(--st-amber-bg);color:var(--st-amber-fg);}
+  button.tpl-mk{cursor:pointer;}
+  button.tpl-mk:hover{text-decoration:underline;}
+  button.tpl-mk:focus-visible{outline:2px solid var(--accent-ink);outline-offset:1px;}
+  .tpl-mk-i{flex:none;}
+  .jl-next-h{margin:6px 0 0;font-size:var(--t-meta);color:var(--color-neutral-600);}
+  .jl-chips.is-flush{margin-left:0;}
+  .tpl-pf-jl .jl-bub p{margin:0;}
+  .tpl-pf-jl .jl-bub p + p{margin-top:8px;}
+  /* ONE PANEL FOR THE PAGE: Jambo's panel stands outside both tabs, so the
+     list's card takes the whole width the page gives it */
+  .tpl-page .ins-body.tpl-ins{grid-template-columns:minmax(0,1fr);}
   /* THE DRAWING'S BOOK (SAP benchmark, owner 9 Oct 2026): the shelves card runs
      to the foot of the page, the small cards stay their own height, a touch
      more air between the figures and the tabs, Most used at reading size. */
@@ -14000,7 +15157,8 @@
   .tpl-fb .tpl-fb-q .ik-search{width:240px;}
   /* Our standards (SAP benchmark, batch 2): the same white band as the book,
      this page's three tabs on each card's top, the offer an info strip. */
-  .sd-ins.sap-page > .sap-band.sd-band{flex:none;margin-top:0;padding-top:var(--page-pad-t);}
+  /* the head card's lower half (.ph-foot, 19 Oct 2026): its figures 12px under the title row's line, as every head's second row of boxes */
+  .sd-ins.sap-page > .sap-band.sd-band{flex:none;margin-top:0;padding-top:var(--s-3);}
   .sd-band .paper-tabs{border-bottom:0;}
   .sd-subtabs{flex:none;padding:0 var(--s-4);border-bottom:1px solid var(--color-divider);}
   .sd-ins .ins-offer.sd-info{margin:var(--s-3) var(--s-4) 0;border:1px solid color-mix(in srgb,var(--color-accent) 30%,transparent);
@@ -14514,19 +15672,21 @@
   .dk-r-act{display:flex;align-items:center;gap:8px;width:100%;margin-top:6px;padding:8px;border:0;border-top:1px solid var(--color-divider);background:none;text-align:left;font:inherit;font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer;border-radius:0 0 var(--radius) var(--radius)}
   .dk-r-act:hover{background:var(--color-accent-50)}
   .hb-head[hidden]{display:none}
-  /* JAMBO'S HOUSE STAYS AS IT IS TODAY (the owner, Round 23's brief): the house scales to its
-     page's width and fits its floors to the window's height. Without the left menu its page grew
-     by up to 244px and the desk tabs took 30px of height, so on the 1536×730 laptop its floors
-     squeezed until words met (measured: 74 high against today's 107). At 1200px wide its floors
-     are as tall as today's (108) on that laptop. */
-  #app-shell.dk-shell .jh-page{max-width:1200px;margin-inline:auto}
+  /* JAMBO'S HOUSE FILLS ITS PAGE (round 23 as drawn: from the page's left edge to Jambo's folded
+     strip; the 1200px cap and its centring went 19 Oct 2026). Its floors keep their height on the
+     1536×730 laptop because the drawing no longer scales up past three quarters of its logical
+     size: a wider page draws a WIDER house (js/views/jambohouse.js, JH_K_MAX and _jhW). */
   .cn-page{min-height:var(--view-h,calc(100vh - 48px));display:flex;justify-content:center;align-items:safe center;padding:12px var(--s-4,16px) 24px;background:var(--color-bg)}
   .cn-in{width:680px;max-width:100%;display:flex;flex-direction:column;gap:12px}
   .cn-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);min-width:0}
   .cn-ask{padding:16px 20px 14px;text-align:center;display:flex;flex-direction:column;gap:12px}
   .cn-ask .cn-face{margin:0 auto -4px;display:block}
-  .cn-ask h1{font-size:20px;font-weight:var(--w-title);margin:0;color:var(--color-text);letter-spacing:-.01em}
+  /* the greeting as drawn (round 23): large, 26px at the semibold weight */
+  .cn-ask h1{font-size:26px;font-weight:var(--w-strong);margin:0;color:var(--color-text);letter-spacing:-.01em;line-height:1.25}
   .cn-wrap{position:relative}
+  /* the hint line under the box (owner, 18 Oct 2026, "Every Jambo box"): it
+     hugs the box it speaks of, read from the box's own left edge */
+  .cn-ask > .jb-hint{margin:-6px 2px 0;text-align:left}
   .cn-box{display:flex;align-items:center;gap:8px;height:44px;border:1px solid var(--color-accent);border-radius:10px;background:var(--color-surface);padding:0 6px 0 14px;box-shadow:0 0 0 3px var(--color-accent-100);text-align:left}
   .cn-box input{flex:1;min-width:0;border:0;outline:0;background:transparent;font-size:15px;color:var(--color-text);height:40px}
   .cn-box input::placeholder{color:var(--color-neutral-500)}
@@ -14536,7 +15696,6 @@
   .cn-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
   .cn-chip{height:26px;padding:0 10px;border:1px solid var(--color-divider);border-radius:13px;background:var(--color-surface);color:var(--accent-ink);font-size:var(--t-label);cursor:pointer;white-space:nowrap}
   .cn-chip:hover{border-color:var(--color-accent)}
-  .cn-chip.is-lead{border-color:var(--color-accent);font-weight:var(--w-label)}
   .cn-h{display:flex;align-items:center;gap:8px;padding:10px 12px 10px 16px;border-bottom:1px solid var(--color-divider);min-height:40px}
   .cn-t{font-weight:var(--w-strong);font-size:var(--t-body);color:var(--color-text);white-space:nowrap}
   .cn-cnt{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:18px;padding:0 6px;border-radius:9px;background:var(--color-accent-100);color:var(--accent-ink);font-size:var(--t-micro);font-weight:var(--w-strong)}
@@ -14549,11 +15708,15 @@
   .cn-n{font-weight:400;color:var(--color-neutral-500)}
   .cn-late{color:var(--st-ruby-fg)}
   .cn-jw{background:var(--color-accent-50)}
+  /* "· 5 prepared · nothing sent or filed until you press": small and grey after the bold name, as drawn */
+  .cn-jw .cn-w b .cn-n{font-size:var(--t-meta)}
   .cn-pill{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:10px;font-size:var(--t-micro);font-weight:400;background:var(--surface-2);color:var(--color-neutral-600);border:1px solid var(--color-divider)}
   .cn-pill-ic{width:11px;height:11px}
   .cn-co-ic{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--color-accent-100);color:var(--accent-ink);flex:none}
   .cn-co-ic .cn-pill-ic{width:14px;height:14px}
-  .cn-foot{padding:8px 16px;border-top:1px solid var(--color-divider)}
+  .cn-foot{display:flex;align-items:center;gap:12px;padding:8px 16px;border-bottom:1px solid var(--color-divider)}
+  .cn-foot:last-child{border-bottom:0}
+  .cn-foot-said{flex:1;min-width:0;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 </style>
 
 
@@ -15216,6 +16379,10 @@
       <textarea id="ai-input" rows="1" data-ca-slash data-i18n-ph="ai_input_ph" placeholder="Search, summarize, or ask about your contracts…  (Shift+Enter for a new line)" class="chat-field flex-1 px-3.5 py-2.5 text-sm outline-none transition" style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);"></textarea>
       <button id="ai-send" aria-label="Send to Jambo" data-i18n-aria="sh_ai_send_aria" class="h-10 w-10 shrink-0 grid place-items-center text-white transition" style="background:var(--color-accent);border-radius:var(--radius);" data-ic-big="send"></button>
     </div>
+    <!-- THE HINT LINE UNDER THE BOX (owner, 18 Oct 2026, "Every Jambo box"):
+         painted by the one builder (jamboHintHtml) each time the window opens;
+         the phone, whose full-screen Jambo this same element is, draws none -->
+    <div id="ai-hint" class="ai-hint"></div>
   </footer>
 </section>
 
@@ -15255,21 +16422,23 @@
   #ig-dock .ig-dock-title,#ig-dock .ig-card-name{font-size:var(--t-body)}
   #ai-panel #ai-input,#ig-dock #igd-input{font-size:var(--t-body)}
 }
-#ai-feed .ai-p{margin:0 0 .5em}
-#ai-feed .ai-p:last-child{margin-bottom:0}
-#ai-feed .ai-h{font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);margin:.7em 0 .3em}
-#ai-feed .ai-list{margin:.3em 0 .5em;padding-left:1.15rem}
-#ai-feed ul.ai-list{list-style:disc}
-#ai-feed ol.ai-list{list-style:decimal}
-#ai-feed .ai-list li{margin:.15em 0}
-#ai-feed .ai-quote{border-left:2px solid var(--color-divider);padding-left:.65rem;margin:.4em 0;color:var(--color-neutral-700)}
-#ai-feed .ai-code{background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);
+/* the same answer, said in Jambo's panel beside a list (#jl-feed, 18 Oct 2026): one
+   reading of the turn, so one dress — :is() keeps the id's weight */
+:is(#ai-feed,#jl-feed) .ai-p{margin:0 0 .5em}
+:is(#ai-feed,#jl-feed) .ai-p:last-child{margin-bottom:0}
+:is(#ai-feed,#jl-feed) .ai-h{font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-card);margin:.7em 0 .3em}
+:is(#ai-feed,#jl-feed) .ai-list{margin:.3em 0 .5em;padding-left:1.15rem}
+:is(#ai-feed,#jl-feed) ul.ai-list{list-style:disc}
+:is(#ai-feed,#jl-feed) ol.ai-list{list-style:decimal}
+:is(#ai-feed,#jl-feed) .ai-list li{margin:.15em 0}
+:is(#ai-feed,#jl-feed) .ai-quote{border-left:2px solid var(--color-divider);padding-left:.65rem;margin:.4em 0;color:var(--color-neutral-700)}
+:is(#ai-feed,#jl-feed) .ai-code{background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);
   padding:.5rem .65rem;overflow-x:auto;font-family:var(--font-mono);font-size:var(--t-label);margin:.4em 0}
-#ai-feed .ai-table-wrap{overflow-x:auto;margin:.45em 0}
-#ai-feed .ai-table{width:100%;border-collapse:collapse;font-size:var(--t-meta)}
-#ai-feed .ai-table th,#ai-feed .ai-table td{border:1px solid var(--color-divider);padding:var(--s-1) 7px;text-align:left}
-#ai-feed .ai-table th{background:var(--color-bg);font-weight:var(--w-strong)}
-#ai-feed hr{border:0;border-top:1px solid var(--color-divider);margin:.6em 0}
+:is(#ai-feed,#jl-feed) .ai-table-wrap{overflow-x:auto;margin:.45em 0}
+:is(#ai-feed,#jl-feed) .ai-table{width:100%;border-collapse:collapse;font-size:var(--t-meta)}
+:is(#ai-feed,#jl-feed) .ai-table th,:is(#ai-feed,#jl-feed) .ai-table td{border:1px solid var(--color-divider);padding:var(--s-1) 7px;text-align:left}
+:is(#ai-feed,#jl-feed) .ai-table th{background:var(--color-bg);font-weight:var(--w-strong)}
+:is(#ai-feed,#jl-feed) hr{border:0;border-top:1px solid var(--color-divider);margin:.6em 0}
 /* THE SAME ANSWER STYLES IN EXPLORER'S PANEL (28 Sep 2026). Its answers go
    through the same renderer as the side panel's, but these rules were written
    for #ai-feed alone, so a list in Explorer drew no bullets and its
@@ -15292,13 +16461,13 @@
    about wording they can no longer necessarily see, so the wording comes with
    the question. Quoted and set in the document face, so it reads as the
    contract's words rather than as the Copilot's. */
-#ai-feed .ai-target{border-left:2px solid var(--color-accent-300);
+:is(#ai-feed,#jl-feed) .ai-target{border-left:2px solid var(--color-accent-300);
   background:var(--color-bg);border-radius:var(--radius);padding:var(--s-2) 11px;margin:0 0 var(--s-2)}
-#ai-feed .ai-target-head{font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;
+:is(#ai-feed,#jl-feed) .ai-target-head{font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;
   color:var(--color-neutral-500);margin-bottom:var(--s-1)}
-#ai-feed .ai-target-body{font-family:var(--font-doc);font-size:var(--t-body);line-height:1.6;
+:is(#ai-feed,#jl-feed) .ai-target-body{font-family:var(--font-doc);font-size:var(--t-body);line-height:1.6;
   color:var(--color-neutral-800);max-height:9.6em;overflow:auto;white-space:pre-wrap}
-#ai-feed .ai-target-ask{font-size:var(--t-body);line-height:1.55}
+:is(#ai-feed,#jl-feed) .ai-target-ask{font-size:var(--t-body);line-height:1.55}
 /* Suggested-question chips: shown on an empty panel only (js/ai.js). */
 .ai-chip{border:1px dashed var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);
   display:inline-flex;align-items:center;min-height:var(--ctl-h-sm);

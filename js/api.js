@@ -103,7 +103,12 @@ async function loadBootstrap(){
   /* the quarter's access review, as far as it has got: an admin's only (piece 8) */
   state.accessReview=b.accessReview||null;
   state.away=b.away||null;
+  /* a party's own facts (its city, its organisation number), for the parties
+     this reader may know of — the server's wall decides which (round 19) */
+  state.partyRecords=(b.partyRecords&&typeof b.partyRecords==='object')?b.partyRecords:{};
   state.keeping=b.keeping||null;
+  /* the day each clash in who may do what was first seen: an admin's only */
+  state.clashSeen=b.clashSeen||null;
   /* ---- THE COMPANY'S OWN VALUE STREAMS JOIN FOLDERS HERE ----
      js/templates.js builds FOLDERS at module load, long before anybody has
      signed in, so the shared list cannot be read there — this is the first

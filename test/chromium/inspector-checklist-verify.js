@@ -146,20 +146,32 @@ const ok = (name, good, detail) => {
       await row.click(); await page.waitForTimeout(450);
       return page.evaluate(i => (document.getElementById('ins-panel') || { getAttribute: () => null }).getAttribute('data-ins-id') === i, id);
     };
+    /* RE-POINTED 18 Oct 2026 (Jambo's panel, round 14 "Whose move" as drawn —
+       the owner's "build all the gaps" covers moving the 27 Sep checklist): what
+       is owed is the panel's own "Needs you" SECTION after the facts — a quiet
+       card, a dot in each row's tone, the title on one line and its line under
+       it on at most two, the row's own verb — no longer a coloured band under
+       the name. The same reading (needsYouOf, insNeedWords) and the same door
+       (needsYouGo). */
     const read = () => page.evaluate(() => {
       const p = document.getElementById('ins-panel');
-      const n = p && p.querySelector('.ins-need');
+      const sec = p && p.querySelector('.jl-needs');
+      const n = sec && sec.querySelector('.jl-need');
       const hd = p && p.querySelector('.ins-h');
+      const body = p && (p.querySelector('.jl-body') || p);
       const lh = el => { const cs = getComputedStyle(el); return parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.5; };
       return {
         head: hd ? [...hd.children].map(x => x.className.split(' ')[0]) : [],
+        order: body ? [...body.children].map(x => x.className.split(' ').filter(k => /^(ins-h|ins-facts|jl-needs|ins-reads|jl-rows|ins-lead)$/.test(k))[0] || x.className.split(' ')[0]) : [],
         drawn: !!n, frame: n ? n.className : null,
-        count: n ? n.querySelector('.ins-need-h').innerText.trim() : null,
-        rows: n ? [...n.querySelectorAll('.ins-need-r')].map(r => ({ kind: r.getAttribute('data-ins-need-row'), tone: /is-ruby/.test(r.className) ? 'ruby' : (/is-amber/.test(r.className) ? 'amber' : ''),
-          title: r.querySelector('.ins-need-t').innerText.trim(), sub: (r.querySelector('.ins-need-s') || { innerText: '' }).innerText.trim(),
-          hover: (r.querySelector('.ins-need-s') || { title: '' }).title,
-          oneLine: [r.querySelector('.ins-need-t'), r.querySelector('.ins-need-s')].filter(Boolean).every(el => el.getBoundingClientRect().height <= lh(el) * 1.4),
-          verb: r.querySelector('[data-ins-need]').innerText.trim() })) : [],
+        name: sec ? (sec.querySelector('h3') || { innerText: '' }).innerText.trim() : null,
+        count: n ? n.querySelectorAll('.jl-need-r').length : null,
+        rows: n ? [...n.querySelectorAll('.jl-need-r')].map(r => ({ kind: r.getAttribute('data-ins-need-row') || r.getAttribute('data-jl-need-row'), tone: /is-ruby/.test(r.className) ? 'ruby' : (/is-amber/.test(r.className) ? 'amber' : ''),
+          title: r.querySelector('.jl-need-t').innerText.trim(), sub: (r.querySelector('.jl-need-s') || { innerText: '' }).innerText.trim(),
+          hover: (r.querySelector('.jl-need-s') || { title: '' }).title,
+          oneLine: (() => { const t = r.querySelector('.jl-need-t'), u = r.querySelector('.jl-need-s');
+            return t.getBoundingClientRect().height <= lh(t) * 1.4 && (!u || u.getBoundingClientRect().height <= lh(u) * 2.4); })(),
+          verb: (r.querySelector('[data-ins-need]') || r.querySelector('[data-jl-need]')).innerText.trim() })) : [],
         /* RE-POINTED 9 Oct 2026 (SAP benchmark): the list's panel no longer
            draws the asks table, so its number is asked of the same reading the
            table drew from (insTable), oldest ask first. */
@@ -176,11 +188,11 @@ const ok = (name, good, detail) => {
     const a = on149 ? await read() : { head: [], rows: [] };
     /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner-approved): the stage sits
        beside the name, so the head has no status row of its own. */
-    ok('1a the checklist sits under the name block and above the acts — the party names and the agreement stay together',
-      a.drawn && a.head.join(' > ') === 'ins-eb > ins-cp > ins-sub > ins-need > ins-acts', a.head.join(' > '));
-    ok('1b the head counts what is owed', a.drawn && /^2 things need you$/i.test(a.count || ''), a.count);
-    ok('1c the late item leads and is ruby; the frame takes the worst row\'s colour',
-      a.drawn && a.rows.map(r => r.kind + ':' + r.tone).join(',') === 'quiet:ruby,review:amber' && /is-ruby/.test(a.frame || ''),
+    ok('1a the head is the reference and the agreement, the party and the doors; Needs you is its own section after the facts, before what Jambo read',
+      a.drawn && a.head.join(' > ') === 'ins-eb > ins-cp > ins-acts' && a.order.join(' > ') === 'ins-h > ins-facts > jl-needs > ins-reads', a.head.join(' > ') + ' · ' + a.order.join(' > '));
+    ok('1b the section is named "Needs you" and holds a row for each thing owed', a.drawn && a.name === 'Needs you' && a.count === 2, `${a.name} · ${a.count}`);
+    ok('1c the late item leads and is ruby; the card itself stays quiet (the dot carries the tone)',
+      a.drawn && a.rows.map(r => r.kind + ':' + r.tone).join(',') === 'quiet:ruby,review:amber' && !/is-ruby|is-amber/.test(a.frame || ''),
       a.rows.map(r => r.kind + ':' + r.tone).join(',') + ' · ' + a.frame);
     const quiet = (a.rows || []).find(r => r.kind === 'quiet');
     const oldest = (a.table.match(/from [^·\n]+· (\d+) days?/) || [])[1];
@@ -192,11 +204,11 @@ const ok = (name, good, detail) => {
     const rev = (a.rows || []).find(r => r.kind === 'review');
     ok('1f the review names who asked, how many, and by when', !!rev && /Review 2 changes for Amina Otieno/.test(rev.title) && /^Due /.test(rev.sub),
       rev ? `${rev.title} / ${rev.sub}` : 'no row');
-    ok('1g every row is one line, with its own verb', a.drawn && a.rows.every(r => r.oneLine && r.verb) && a.rows.map(r => r.verb).join(',') === 'Answer,Review',
-      a.rows.map(r => `${r.kind}:${r.oneLine ? 'one line' : 'WRAPS'}:${r.verb}`).join(' · '));
+    ok('1g every row\'s title is one line, its line under it at most two, with its own verb', a.drawn && a.rows.every(r => r.oneLine && r.verb) && a.rows.map(r => r.verb).join(',') === 'Answer,Review',
+      a.rows.map(r => `${r.kind}:${r.oneLine ? 'fits' : 'WRAPS'}:${r.verb}`).join(' · '));
     ok('1h the panel does not grow sideways', a.drawn && a.over <= 1, `${a.over}px${a.drawn ? '' : ' (no checklist drawn)'}`);
     const edge = await page.evaluate(() => {
-      const b = document.querySelector('#ins-panel .ins-need-r.is-ruby [data-ins-need]');
+      const b = document.querySelector('#ins-panel .jl-need-r.is-ruby [data-ins-need]');
       if (!b) return null;
       const tok = (prop, v) => { const e = document.createElement('i'); e.style.cssText = 'position:absolute;' + prop + ':var(' + v + ')'; document.body.appendChild(e); const c = getComputedStyle(e)[prop === 'color' ? 'color' : 'borderTopColor']; e.remove(); return c; };
       const cs = getComputedStyle(b);
@@ -278,7 +290,7 @@ const ok = (name, good, detail) => {
     await toContracts();
     const j = (await pick('MK-149')) ? await read() : { rows: [] };
     ok('4a a join request is a third row, after the two older kinds, with the reason in their own words',
-      j.drawn && /^3 things need you$/i.test(j.count || '') && j.rows.map(x => x.kind).join(',') === 'quiet,review,join'
+      j.drawn && j.count === 3 && j.rows.map(x => x.kind).join(',') === 'quiet,review,join'
       && /Peter Kamau wants to join this negotiation/.test(j.rows[2] && j.rows[2].title) && /I handle the Carrefour account/.test(j.rows[2] && j.rows[2].sub),
       j.rows ? j.rows.map(x => `${x.kind}: ${x.title} / ${x.sub}`).join(' · ') : 'none');
     await page.screenshot({ path: path.join(OUT, '4-three-things.png') });
@@ -303,8 +315,9 @@ const ok = (name, good, detail) => {
     const arow = await page.$('.ap-table tbody tr[data-ap-row="MK-158"]');
     if (arow) { await arow.click(); await page.waitForTimeout(450); }
     const ap = arow ? await page.evaluate(() => { const p = document.getElementById('ins-panel');
-      return { id: p && p.getAttribute('data-ins-id'), need: !!(p && p.querySelector('.ins-need')), sign: !!(p && p.querySelector('[data-ins-need-row="sign"]')),
-        lead: !!(p && p.querySelector('.ins-lead')) }; }) : null;
+      /* RE-POINTED 18 Oct 2026 (round 15 as drawn): a signature's panel says what stands before it in its rows and its holds */
+      return { id: p && p.getAttribute('data-ins-id'), need: !!(p && p.querySelector('.jl-needs')), sign: !!(p && p.querySelector('[data-ins-need-row="sign"]')),
+        lead: !!(p && (p.querySelector('.ins-lead') || p.querySelector('.jl-rows [data-ins-fact="why"]'))) }; }) : null;
     ok('5b the Approvals & signing page\'s signing panel leaves the signature out — its own lead already says what stands before signing',
       /* GATED on the one reading owing the signature for this very contract
          (the Contracts panel that drew it went at step 7) — or "left out" is
@@ -319,17 +332,23 @@ const ok = (name, good, detail) => {
     await page.evaluate(() => { if (typeof setDark === 'function') setDark(true); });
     await toContracts();
     const dark = (await pick('MK-149')) ? await page.evaluate(() => {
-      const n = document.querySelector('#ins-panel .ins-need');
+      /* RE-POINTED 18 Oct 2026: the late row's dot takes the ruby token's night
+         answer, and the section's name reads on the panel at 4.5:1 or better */
+      const n = document.querySelector('#ins-panel .jl-needs');
       if (!n) return null;
       const tok = v => { const e = document.createElement('i'); e.style.cssText = 'position:absolute;color:var(' + v + ')'; document.body.appendChild(e); const c = getComputedStyle(e).color; e.remove(); return c; };
-      const head = n.querySelector('.ins-need-h');
+      const dot = n.querySelector('.jl-need-r.is-ruby .jl-need-dot');
+      const bgOf = el => { for (let x = el; x; x = x.parentElement){ const b = getComputedStyle(x).backgroundColor; if (b && !/rgba\(0, 0, 0, 0\)|transparent/.test(b)) return b; } return 'rgb(255, 255, 255)'; };
+      const head = n.querySelector('h3');
       const lum = rgb => { const m = rgb.match(/\d+(\.\d+)?/g).map(Number).slice(0, 3).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]; };
       const ratio = (f, b) => { const a = lum(f), c = lum(b); return (Math.max(a, c) + 0.05) / (Math.min(a, c) + 0.05); };
       const hcs = getComputedStyle(head);
-      return { headInk: hcs.color, rubyFg: tok('--st-ruby-fg'), headBg: hcs.backgroundColor, contrast: +ratio(hcs.color, hcs.backgroundColor).toFixed(2) };
+      const dotBg = dot ? getComputedStyle(dot).backgroundColor : null;
+      return { dot: dotBg, rubyDot: (() => { const e = document.createElement('i'); e.style.cssText = 'position:absolute;background:var(--st-ruby-dot)'; document.body.appendChild(e); const c = getComputedStyle(e).backgroundColor; e.remove(); return c; })(),
+        headInk: hcs.color, headBg: bgOf(head), contrast: +ratio(hcs.color, bgOf(head)).toFixed(2), rubyFg: tok('--st-ruby-fg') };
     }) : null;
-    ok('7a at night the checklist takes the ruby tokens\' own night answers, and its head reads at 4.5:1 or better',
-      !!dark && dark.headInk === dark.rubyFg && dark.contrast >= 4.5, JSON.stringify(dark));
+    ok('7a at night the late row\'s dot takes the ruby token\'s own night answer, and the section\'s name reads at 4.5:1 or better',
+      !!dark && !!dark.dot && dark.dot === dark.rubyDot && dark.contrast >= 4.5, JSON.stringify(dark));
     await page.screenshot({ path: path.join(OUT, '7-night.png') });
     await page.evaluate(() => { if (typeof setDark === 'function') setDark(false); });
 

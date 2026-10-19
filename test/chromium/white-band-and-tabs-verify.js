@@ -339,22 +339,29 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     const homeLine = await page.evaluate(() => {
       const mid = e => { if (!e) return null; const r = e.getBoundingClientRect();
         return { y: r.y + r.height / 2, txt: e.textContent.trim().slice(0, 30), x: Math.round(r.x), h: r.height }; };
-      const cards = [...document.querySelectorAll('#hb-board > .hb-card')];
+      /* RE-POINTED AT THE INTEGRATION (19 Oct 2026; red on lane B2 alone):
+         round 17 as drawn puts the Board's OWN head card first ("Board · Live ·
+         counted … · Summarise", .hb-bhead) — the page's head, not a section
+         card — and Today's insights' slim head card stands alone with no rule
+         (.hb-ins-head; its pictures are their own cards). The section cards
+         keep every claim below. */
+      const cards = [...document.querySelectorAll('#hb-board > .hb-card')].filter(c => !c.classList.contains('hb-bhead'));
       return {
+        bhead: !!document.querySelector('#hb-board > .hb-card.hb-bhead'),
         heads: cards.map(c => mid(c.querySelector('.hb-ch .hb-ct'))),
         acts: cards.map(c => [...c.querySelectorAll('.hb-ch > :not(.hb-ct)')].map(mid)),
         /* RE-POINTED 11 Oct 2026 (the Board as drawn): Your book is no card — its
            strip is — so its head draws no rule; every other card's head does. And
            a head starts at its first item (Copilot's work leads with its fold
            chevron), measured on the card's own margin. */
-        rules: cards.filter(c => !c.classList.contains('hb-book')).map(c => { const h = c.querySelector('.hb-ch'); const cs = h && getComputedStyle(h);
+        rules: cards.filter(c => !c.classList.contains('hb-book') && !c.classList.contains('hb-ins-head')).map(c => { const h = c.querySelector('.hb-ch'); const cs = h && getComputedStyle(h);
           return !!cs && cs.borderBottomStyle !== 'none' && parseFloat(cs.borderBottomWidth) > 0; }),
         margins: cards.map(c => { const t = c.querySelector('.hb-ch > *'); return t ? Math.round(t.getBoundingClientRect().x - c.getBoundingClientRect().x) : null; }),
         book: (typeof i18t === 'function') ? i18t('hb_book') : null,
       };
     });
-    check('4a every card heading really drew, and Your book leads',
-      homeLine.heads.length >= 1 && homeLine.heads.every(h => h && h.h > 0) && homeLine.heads[0].txt === homeLine.book,
+    check('4a every card heading really drew, and Your book leads (under the Board\'s own head card)',
+      homeLine.bhead && homeLine.heads.length >= 1 && homeLine.heads.every(h => h && h.h > 0) && homeLine.heads[0].txt === homeLine.book,
       homeLine.heads.map(h => h && h.txt));
     check('4b each heading sits in a card head that rules itself off',
       homeLine.rules.length > 0 && homeLine.rules.every(Boolean), { rules: homeLine.rules });
@@ -539,6 +546,10 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
       const s = getComputedStyle(t);
       return { padding: s.padding, widths: faces.map(f => Math.round(f.getBoundingClientRect().width)),
         thumbUnder: !!(thumb && live) && Math.abs(thumb.getBoundingClientRect().left - live.getBoundingClientRect().left) <= 1,
+        thumbShown: !!thumb && getComputedStyle(thumb).display !== 'none',
+        /* a line is painted only when its style draws one AND its ink shows */
+        lines: faces.map(f => { const cs = getComputedStyle(f), ink = !/rgba\(\d+, \d+, \d+, 0\)|transparent/.test(cs.borderBottomColor) && cs.borderBottomStyle !== 'none' && parseFloat(cs.borderBottomWidth) > 0;
+          return (f.getAttribute('aria-selected') === 'true' ? 'live:' : 'other:') + (ink ? cs.borderBottomStyle + ' ' + cs.borderBottomWidth : 'none'); }),
         inParsedSheet: (() => {
           for (const sheet of document.styleSheets){
             let rules; try { rules = sheet.cssRules; } catch (_) { continue; }
@@ -551,11 +562,15 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     check('6a THE RULE IS IN THE PARSED STYLESHEET — no comment swallowed it',
       stBox && stBox.inParsedSheet && stBox.padding !== '0px',
       stBox && { inSheet: stBox.inParsedSheet, padding: stBox.padding });
-    check('6b the two tabs are one width, as Home\'s are',
-      stBox && stBox.widths.length === 2 && stBox.widths[0] === stBox.widths[1],
-      stBox && stBox.widths);
-    check('6c and the white pill sits under the live one',
-      stBox && stBox.thumbUnder, stBox && stBox.thumbUnder);
+    /* RE-POINTED 18 Oct 2026 (round 25 "Control room" as drawn, the owner's
+       yes reversing the 16 Oct pill): You · Company are UNDERLINED TABS, each
+       as wide as its word — a painted line under the live one, no sliding
+       pill */
+    check('6b the two tabs, a painted line under the live one only',
+      stBox && stBox.widths.length === 2 && stBox.lines.some(l => l === 'live:solid 2px') && stBox.lines.filter(l => /^other:/.test(l)).every(l => l === 'other:none'),
+      stBox && stBox.lines);
+    check('6c and no sliding pill',
+      stBox && !stBox.thumbShown, stBox && stBox.thumbShown);
 
     /* ---- 6d-6g THE ROW STAYS WHILE THE PAGE SCROLLS (Young ruled it 18 Sep
        2026: "for the team & settings page, make that when you scroll, you do
@@ -575,8 +590,12 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     await page.evaluate(() => window.settingsGoTab('company'));
     await pause(900);
 
+    /* RE-POINTED 19 Oct 2026 (lane F's third pass, rounds 24 and 25 as
+       drawn): the tabs live in the HEAD CARD in the left column, beside
+       Jambo's whole-height panel, and it is the card that stays while the
+       page scrolls — the owner's 18 Sep ruling, kept in the drawn frame */
     const readRow = () => page.evaluate(() => {
-      const row = document.querySelector('.st-tabs'), sc = document.getElementById('content-scroll');
+      const row = document.getElementById('st-headcard') || document.querySelector('.st-tabs'), sc = document.getElementById('content-scroll');
       if (!row || !sc) return null;
       const r = row.getBoundingClientRect(), s = sc.getBoundingClientRect();
       /* the first painted thing on the row is the pill's track (16 Oct 2026) */
@@ -588,6 +607,9 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
         rowTop: Math.round(r.top - s.top), leftGap: Math.round(r.left - s.left),
         bg: getComputedStyle(row).backgroundColor,
         painted: !!(hit && hit.closest && hit.closest('.st-face, .st-tab')),
+        /* the air above the pinned card: the page's ground, never the body */
+        above: (() => { const a = document.elementFromPoint(Math.round(r.left + 30), Math.round(s.top + 2)); return !!(a && a.closest && a.closest('#st-headcard')); })(),
+        padT: parseFloat(getComputedStyle(row).top) || 0,
         scrollTop: sc.scrollTop, canScroll: sc.scrollHeight - sc.clientHeight };
     });
 
@@ -600,7 +622,7 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
     check('6d there is more settings than one screen, so the question is real',
       pinRest && pinRest.canScroll > 300, pinRest && { overflow: pinRest.canScroll });
     check('6e the tab row is still on screen after scrolling, and really painted',
-      stScrolled && stScrolled.rowTop === 0 && stScrolled.painted && stScrolled.scrollTop > 0,
+      stScrolled && stScrolled.rowTop === Math.round(stScrolled.padT) && stScrolled.painted && stScrolled.scrollTop > 0,
       stScrolled && { rowTop: stScrolled.rowTop, scrolledBy: stScrolled.scrollTop,
         wordUnderThePointer: stScrolled.painted });
     /* THE FIRST PAINTED GLYPH DOES NOT MOVE — "ONE HEADER TOP", and the row
@@ -609,15 +631,21 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
        number typed here. */
     const padT = await page.evaluate(() =>
       parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--page-pad-t')) || 0);
+    /* RE-POINTED 18 Oct 2026 (round 25 as drawn): the head "Settings ·
+       <the company>" sits above the tabs and carries the page's first glyph
+       (ONE HEADER TOP is the head's now); the tab row's own glyph still does
+       not move, pinned or not */
+    void padT;
     check('6f and the first glyph sits where it always sat, pinned or not',
-      pinRest && stScrolled && pinRest.glyph === stScrolled.glyph
-        && Math.abs(pinRest.glyph - padT) <= 1,
-      { rest: pinRest && pinRest.glyph, scrolled: stScrolled && stScrolled.glyph, pageTopToken: padT });
+      pinRest && stScrolled && pinRest.glyph === stScrolled.glyph,
+      { rest: pinRest && pinRest.glyph, scrolled: stScrolled && stScrolled.glyph });
     /* A PINNED ROW HAS TO BE OPAQUE ACROSS THE WHOLE WIDTH or the body shows
        through the gutters beside it. */
-    check('6f2 it is opaque and reaches the page\'s own left edge',
-      stScrolled && stScrolled.leftGap === 0 && !/rgba\(0, 0, 0, 0\)|transparent/.test(stScrolled.bg),
-      stScrolled && { leftGap: stScrolled.leftGap, background: stScrolled.bg });
+    /* re-pointed 19 Oct 2026: a card inset by the page's gutter, as drawn —
+       opaque, and the air above it covered, so nothing scrolls through */
+    check('6f2 it is opaque and nothing of the body shows above it',
+      stScrolled && stScrolled.above && !/rgba\(0, 0, 0, 0\)|transparent/.test(stScrolled.bg),
+      stScrolled && { above: stScrolled.above, background: stScrolled.bg });
 
     /* AND A TAB PRESSED FROM THE BOTTOM LANDS AT THE TOP. Until the row was
        pinned this came for free: reaching a tab meant being at the top already.

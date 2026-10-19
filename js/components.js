@@ -98,6 +98,8 @@ const ICONS = {
   close:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
   logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
   userplus:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/>',
+  /* one person — "for Jonas", a stand-in's answer (round 15) */
+  user:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
   history:'<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
   leaf:'<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/>',
   /* a code name's tag (round 13: a deal kept to its list, on the wall) */
@@ -106,6 +108,8 @@ const ICONS = {
   archive:'<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>',
   /* a request's attachments, as the Requests list counts them (round 20) */
   clip:'<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
+  /* a lane that sends a request on (round 20: "⇉ NDA lane") — two arrows side by side */
+  lane:'<path d="M3 8h13M13 5l3 3-3 3M3 16h13M13 13l3 3-3 3"/>',
   box:'<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
   factory:'<path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1M12 18h1M7 18h1"/>',
   wrench:'<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.9 6.91a2.12 2.12 0 0 1-3-3l6.91-6.9a6 6 0 0 1 7.94-7.94l-3.76 3.76Z"/>',
@@ -149,6 +153,21 @@ function jamboFacePaint(root){
     const want = JAMBO_FACE[img.getAttribute('data-jambo-face')] || JAMBO_FACE.hello;
     if (img.getAttribute('src') !== want) img.setAttribute('src', want); }); }catch(_){}
 }
+/* ---- THE HINT LINE UNDER EVERY JAMBO ASK BOX (owner's yes, 18 Oct 2026:
+   every picked drawing draws it, rounds 3–26) ----
+   "Typing never signs, sends or files — a press does." — ONE builder for
+   Home's panel, Settings' Jambo side, Import's panel and Jambo's panel beside
+   the lists, so the words cannot drift apart. `places` adds the keys Home's
+   box answers ("/ places · Esc closes", rounds 6–9 and 12); 'lists' says it
+   the way round 3 did ("/ lists the places."). */
+const jamboHintHtml = (o = {}) => {
+  const t = (k) => (typeof i18t === 'function') ? i18t(k) : k;
+  const kbd = x => `<kbd class="jb-kbd">${esc(x)}</kbd>`;
+  /* the keys are one unit: where the line is short they go down together */
+  const tail = o.places === 'lists' ? ` <span class="jb-keys">${kbd('/')} ${esc(t('jb_hint_lists'))}</span>`
+    : o.places ? ` <span class="jb-keys">${kbd('/')} ${esc(t('jb_hint_places'))} · ${kbd('Esc')} ${esc(t('jb_hint_closes'))}</span>` : '';
+  return `<p class="jb-hint" data-jb-hint>${esc(t('jb_hint'))}${tail}</p>`;
+};
 /* ---- WHEN SOMETHING IS LOADING, SOMETHING MOVES (owner, 11 Oct 2026: "when
    something is loading, there should be some type of movement on screen so
    you know it is loading, as a rule") ----
@@ -161,7 +180,7 @@ const _busyEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&
 const busyHtml = text => `<span class="ob-spin" aria-hidden="true"></span>${_busyEsc(text)}`;
 /* a button or line that is now waiting: its ring and its word */
 const busySet = (el, text) => { if (el) el.innerHTML = busyHtml(text); };
-Object.assign(window,{ICONS,icon,plusLed,JAMBO_FACE,jamboFaceHtml,jamboFacePaint,busyHtml,busySet});
+Object.assign(window,{ICONS,icon,plusLed,JAMBO_FACE,jamboFaceHtml,jamboFacePaint,jamboHintHtml,busyHtml,busySet});
 /* ---- LAND ON IT (owner, 18 Oct 2026: "a well crafted rule where you are
    directed towards what you are looking for exactly so you are not searching
    across the page") ----

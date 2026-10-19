@@ -83,7 +83,9 @@ describe('f709 (2) the line and the value', () => {
   test('2c Details reads the value as amended, the signed figure beside it', () => {
     const v = fnBody(CT, 'ktFieldCell');
     assert.match(v, /effectiveTerm\(c,'value'\):null; if\(e&&e\.from&&Number\(e\.v\)>0&&Number\(e\.v\)!==Number\(c\.value\)\) am=e;/);
-    assert.match(v, /fmtMoneyOf\(effectiveValueView\(c\)\)\)\} <span class="ov-amd">\$\{esc\(i18t\('ov_value_amended',\{ v:R\.money \}\)\)\}<\/span>/);
+    /* RE-POINTED (pass 4, round 7 as drawn: "SEK 7.1 M as amended / SEK 6.4 M
+       signed", both whole): the short figures, the signed one on its own line */
+    assert.match(v, /\$\{mono\(shortOf\(effectiveValueView\(c\)\)\)\} <span class="ov-amd">\$\{esc\(i18t\('ov_value_amended_w'\)\)\}<\/span><span class="ov-amd ov-amd-signed">\$\{esc\(i18t\('ov_value_signed',\{ v:shortOf\(c\) \}\)\)\}<\/span>/);
   });
   test('2d the new words, in both books', () => {
     for (const k of ['bs_lg_renews', 'bs_t_amend', 'bs_t_amend_value', 'bs_cap_amend', 'bs_cap_amend_value', 'bs_cap_amend_more_one', 'bs_cap_amend_more_other', 'ov_value_amended'])

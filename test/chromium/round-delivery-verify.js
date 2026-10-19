@@ -334,6 +334,22 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
        collects this claim within a beat — before the change below that makes
        it stale. The owner steps off it first, so the claim waits for the four
        polls this stage measures. */
+    /* AND THE OWNER'S BROWSER COLLECTS NOTHING UNTIL THE CHANGE HAS LANDED
+       (19 Oct 2026), which REMOVES A RACE rather than re-tuning a clock — the
+       same fix section 3 got. Stepping off the face does not slow the beat at
+       once: the twelve-second timer armed on the face ticks once more before
+       it re-arms at forty-five, and pollNow polls whatever page it is on. On a
+       quiet machine that tick happened to fall before the press or after the
+       change; with four browser checks side by side the stage stretched, the
+       tick landed between them (measured: 4 runs of 4, every one collected the
+       claim about five seconds after the press, while the deal was still
+       settled), the claim was APPLIED rather than refused, and 7 and 8c read
+       red with nothing wrong in the product. So the owner's page is answered
+       "nothing waiting" from just before the press until the stale change is
+       filed — the claim stays on the server, uncollected, which is the stage
+       this section describes — and its real collection is measured below. */
+    const HOLD_COLLECT = /\/api\/shares\/pending(\?|$)/;
+    await own.route(HOLD_COLLECT, r => r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
     await own.evaluate(() => setView('intel'));
     await pause(600);
     const readyBtn = await cp2.evaluate(() => {
@@ -377,10 +393,19 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       persist(c); await flushSaves();
     }, other);
     await pause(1500);
+    /* The change has landed: the owner's page may collect again. Asked first,
+       through the real route (a GET collects nothing), that the stage held —
+       their readiness is still on the server, uncollected — so a miss below
+       reports the stage, never the product. */
+    await own.unroute(HOLD_COLLECT);
+    const heldClaim = await own.evaluate(async id => (await api('shares/pending'))
+      .filter(x => x.response && String(x.response.id) === String(id)).length, other);
+    check('7 the stage holds — their readiness is still uncollected when the change lands',
+      heldClaim === 1, heldClaim + ' waiting for ' + other);
 
     await own.evaluate(() => setView('intel'));
     await pause(1500);
-    check('7 the reader is on a page about no contract at all', 
+    check('7 the reader is on a page about no contract at all',
       (await own.evaluate(() => state.view)) === 'intel');
 
     const seenBoxes = [];
@@ -468,8 +493,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
         recipient: { name: 'Saw Sawa LLC', email: 'ola@sawsawa.se' } });
       c.lastShareRecipient = { name: 'Saw Sawa LLC', email: 'ola@sawsawa.se',
         channel: 'link', token: mint.token };
-      /* AND AN ADDRESS ON THE RECORD, which is what makes the send take the
-         direct route rather than opening the share dialog. That is the
+      /* AND AN ADDRESS ON THE RECORD (since 18 Oct 2026 every send opens the
+         letter, which reads the address from here; before, it made the send
+         take the direct route rather than opening the share dialog). That is the
          product's own rule — the dialog is the FORM that collects a missing
          address, not a confirmation step — and this check is about the send
          that happens once there is one. */
@@ -496,40 +522,37 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       } catch (e){ dbg = 'threw: ' + e.message; }
       return { pressed: false, dbg }; }
       b.click();
-      /* SEND ALL NAMES WHAT TRAVELS AND ASKS ONCE (9 Oct 2026): the yes is
-         pressed, and the route below is still the direct one. */
-      for (let i = 0; i < 30 && !document.getElementById('cf-ok'); i++) await new Promise(r => setTimeout(r, 50));
-      const yes = document.getElementById('cf-ok'); if (yes) yes.click();
-      /* POLLED, NOT SLEPT. An 'ok' toast dwells 2600ms and clears itself, so a
-         fixed wait long enough for the send to finish is also long enough to
-         miss the box entirely — which is how this check first reported "no
-         toast" on a send that had worked. */
-      let box = null;
-      for (let i = 0; i < 120 && !box; i++){
+      /* RE-POINTED 18 Oct 2026 (round 11's gaps, "The letter": every way to
+         send opens the one send screen): Send all opens the letter, which
+         names what travels (the 9 Oct "asks once"), and its own Send is the
+         one press — onto the link they already hold.
+         AND WHAT IS TOLD MOVES WITH IT: the letter is the send now, so it is
+         the LETTER that says what happened — its own button ("Sent ✓"), and
+         its box: the link they already have ("… already had a link to this
+         contract, so that link now shows this version"), no second link; the
+         email's own fate is said as it is (this stage has no mail provider,
+         so the letter itself did not leave — sent means sent). Polled, not
+         slept. */
+      let letter = false;
+      for (let i = 0; i < 100 && !letter; i++){ await new Promise(r => setTimeout(r, 100));
+        const sb = document.getElementById('share-send'); letter = !!(document.getElementById('sh-letter') && sb && !sb.disabled); }
+      if (letter){ const ack = document.getElementById('sh-ack'); if (ack) ack.checked = true; document.getElementById('share-send').click(); }
+      let res = null, lblSeen = '';
+      for (let i = 0; i < 120 && !(res && lblSeen); i++){
         await new Promise(r => setTimeout(r, 100));
-        box = document.querySelector('#toast-root > *');
+        const l = (document.getElementById('sh-send-lbl') || {}).textContent || ''; if (/Sent/.test(l)) lblSeen = l;
+        const m = document.getElementById('modal-root'); const t = m ? m.innerText.replace(/\s+/g, ' ') : '';
+        if (/already had a link/.test(t)) res = t;
       }
-      const kinds = k => { const d = document.createElement('div');
-        d.style.background = k; document.body.appendChild(d);
-        const out = getComputedStyle(d).backgroundColor; d.remove(); return out; };
-      return { pressed: true,
-        /* AND NO DIALOG: with an address on the record the send takes the
-           direct route, which is the path this branch is about. */
-        modal: (document.getElementById('modal-root') || {}).innerHTML ? 'open' : 'none',
-        text: box ? (box.textContent || '').replace(/\s+/g, ' ').trim() : null,
-        bg: box ? getComputedStyle(box).backgroundColor : null,
-        ok: kinds('var(--color-accent-900)'), warn: kinds('#b45309'),
-        action: box ? !!box.querySelector('button') : null };
+      return { pressed: true, letter, res, lblSeen };
     });
-    check('9 the round really went, from the column\'s own act',
-      sent.pressed && !!sent.text && sent.modal === 'none',
-      `${sent.modal === 'none' ? 'direct' : 'the DIALOG opened'} — "${sent.text}"`);
-    check('9 and it reads as delivered, not as a mail failure',
-      sent.bg === sent.ok && sent.bg !== sent.warn,
-      `${sent.bg} (ok ${sent.ok} / warn ${sent.warn}) — "${sent.text}"`);
-    check('9 it says the link they already have, and hands over no second one',
-      /already have|redan har/.test(sent.text || '') && sent.action === false,
-      `action button: ${sent.action} — "${sent.text}"`);
+    check('9 the round really went, from the column\'s own act through the letter',
+      sent.pressed && sent.letter && /Sent/.test(sent.lblSeen || ''), `${sent.letter ? 'the letter' : 'no letter'} — button "${sent.lblSeen}"`);
+    check('9 the letter says it is on the link they already have, and hands over no second one',
+      /already had a link to this contract, so that link now shows this version/.test(sent.res || '') && /No second link was created/.test(sent.res || ''),
+      (sent.res || '').slice(0, 300));
+    check('9 and the move is theirs',
+      await own.evaluate(id => { const c = getContract(id); return !!(c && c.negotiation && c.negotiation.turn === 'counterparty'); }, cid), '');
     await own.evaluate(() => { const r = document.getElementById('toast-root');
       if (r) r.innerHTML = ''; });
 

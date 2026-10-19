@@ -365,12 +365,18 @@ const seen = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
     const back = await cornerNow();
     journey.push(['pressed Overview', back]);
     await page.screenshot({ path: path.join(OUT, '04-tabrow.png') });
+    /* RE-POINTED 19 Oct 2026 (round 10 as drawn: The road — "The page arrows
+       and size sit in the head card, so nothing is added above the paper"):
+       the signing copy's size control stands in the paper's head line, in the
+       "Signing copy" pill's group (#ig-strip [data-ig-sc], igSignCopyHtml),
+       not in the paper's corner. The claim is the same: after switching to
+       Before you sign it is there, as visible pixels. */
     await page.evaluate(id => roomGoTab(getContract(id), 'sign'), built.id);
-    await page.waitForFunction(() => { const z = document.querySelector('#pd-signface') && document.querySelector('#ig-paper .paper-zc [data-sc-zoom="1"], #ig-paper .paper-zc [data-rl-type="1"]'); return !!z && z.getBoundingClientRect().width > 0; }, null, { timeout: 6000 }).catch(() => {});
-    const onSign = await page.evaluate(([s]) => ({ stepper: eval(s)(document.querySelector('#ig-paper .paper-zc [data-sc-zoom="1"], #ig-paper .paper-zc [data-rl-type="1"]')) }), [seen]);
+    await page.waitForFunction(() => { const z = document.querySelector('#pd-signface') && document.querySelector('#ig-strip [data-ig-sc] [data-sc-zoom="1"]'); return !!z && z.getBoundingClientRect().width > 0; }, null, { timeout: 6000 }).catch(() => {});
+    const onSign = await page.evaluate(([s]) => ({ stepper: eval(s)(document.querySelector('#ig-strip [data-ig-sc] [data-sc-zoom="1"]')) }), [seen]);
     journey.push(['opened Before you sign', onSign]);
 
-    check('the size control is visible pixels on the signing copy\'s paper (Before you sign, Home), after switching to it',
+    check('the size control is visible pixels on the signing copy\'s paper head line (Before you sign, Home), after switching to it',
       !!onSign.stepper && onSign.stepper.on, JSON.stringify(onSign.stepper));
     check('and Open Negotiate is visible pixels on the Overview tab - the corner the reader found empty',
       !!back.toNego && back.toNego.on, JSON.stringify(back.toNego));

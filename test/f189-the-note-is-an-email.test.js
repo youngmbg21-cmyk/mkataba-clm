@@ -86,8 +86,13 @@ describe('f189 — the server stops handing the note to the counterparty', () =>
     const ob = await W.admin.json('/api/outbox');
     const mail = (ob.items || []).find(m => String(m.to_addr) === 'guliz@brutafrica.example');
     assert.ok(mail, 'the counterparty was written to');
-    assert.match(String(mail.body), /Message from/i, 'under its own heading');
-    assert.ok(String(mail.body).includes(NOTE), 'with the sender\'s words in it');
+    /* RE-POINTED 19 Oct 2026 to the owner's pick "The letter" (round 11 as
+       drawn): the note is the letter's own words, straight under "Hello
+       Guliz," — no "Message from" heading — and the sender signs at the foot. */
+    const body = String(mail.body);
+    assert.match(body, /^Hello Guliz,/, 'the letter opens on the greeting');
+    assert.ok(body.includes(NOTE), 'with the sender\'s words in it');
+    assert.ok(body.indexOf(NOTE) < body.search(/https?:\/\//), 'the note comes before the link, where the drawing writes it');
   });
 
   test('the OWNER\'s own side of the link is untouched', async () => {

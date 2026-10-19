@@ -2273,9 +2273,12 @@ function regRowsHtml(cs){
     if(neg&&insOn){ const nc=regNegoCols(c);
       CELL.round=`<td class="reg-num">${esc(nc.round)}</td>`;
       CELL.changes=`<td class="reg-ch" title="${esc(nc.say)}">${esc(nc.changes)}</td>`;
-      CELL.waiting=`<td style="text-align:right;white-space:nowrap">${esc(nc.waiting)}</td>`;
       const ld=regNegoLeadOf(c);
-      CELL.lead=`<td class="reg-lead" title="${esc(ld.name)}">${esc(ld.short)}</td>`; }
+      CELL.lead=`<td class="reg-lead" title="${esc(ld.name)}">${esc(ld.short)}</td>`;
+      /* AMBER WHERE IT WAITS ON THE READER (round 14, "Whose move" as drawn):
+         our move, on a deal the reader leads — the one wait that is theirs */
+      const onMe=ld.mine&&c._ngBand==='you'&&nc.waiting!=='\u2014';
+      CELL.waiting=`<td class="reg-wait${onMe?' is-mine':''}" style="text-align:right;white-space:nowrap">${esc(nc.waiting)}</td>`; }
     /* ---- THE `stream` CELL IS GONE FROM BOTH SEATS (24 Sep 2026) ----
           Owner-ruled with the filter kept. DELETED RATHER THAN STUBBED, for
           the `name` column's reason below. regStreamName stays: the sort by
@@ -2325,6 +2328,8 @@ function regRowsHtml(cs){
 function regListTitle(cs){
   const name=i18t(regScope()==='negotiations'?'nav_negotiations':'nav_contracts');
   const n=(Array.isArray(cs)?cs.length:0).toLocaleString(jxLocale());
+  /* the count in its pill on Negotiations (round 14 as drawn: "Negotiations 7") */
+  if(regScope()==='negotiations') return `${esc(name)} <span class="reg-tt-n is-pill">${n}</span>`;
   return `${esc(name)} <span class="reg-tt-n">(${n})</span>`;
 }
 function regAggregate(cs){ return cs.filter(c=>c.status!=='Declined'&&!c.archived&&isMonetary(c)).reduce((s,c)=>s+(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)),0); }
@@ -2376,11 +2381,13 @@ function renderRegisterBody(){
    answer for a main act that is not the page's one. */
 /* Whose move as the panel's pill, in the stage pill's own dress (.reg-stg):
    amber when it is ours, grey when it is theirs, the stage where neither. */
-function regMovePillHtml(c){
+function regMovePillHtml(c, o){
   const m=(typeof insMove==='function')?insMove(c):null;
   if(!m||m.k==='clear') return null;
   const tone=m.k==='you'?'amber':'gray';
-  const word=i18t(m.k==='you'?'reg_pill_your_move':'reg_pill_their_move');
+  /* the wait beside the word in Jambo's panel (round 14: "Our move · 4 days") */
+  let wait=''; if(o&&o.days){ try{ const w=regNegoCols(c).waiting; if(w&&w!=='\u2014') wait=w; }catch(_){ wait=''; } }
+  const word=i18t(m.k==='you'?'reg_pill_your_move':'reg_pill_their_move')+(wait?' \u00b7 '+wait:'');
   return `<span class="reg-stg" style="color:var(--st-${tone}-fg);background:var(--st-${tone}-bg)" title="${esc(m.word||'')}"><i style="background:var(--st-${tone}-dot)"></i>${esc(word)}</span>`;
 }
 /* The drawing's three Negotiations columns, read off the record RAW (no
@@ -2393,8 +2400,12 @@ function regNegoCols(c){
   const ch=Array.isArray(c&&c.changes)?c.changes:[];
   const ours=ch.filter(x=>x&&x.authorSide!=='counterparty'&&(x.status==='pending'||!x.status)).length;
   let changes;
+  /* the drawing's words (round 14): "2 redlines to answer", "2 answers
+     decided, not sent", "1 sent, no answer yet", "All agreed · out to sign" */
   if(m.k==='you'&&!m.why) changes=i18tn('ngl_ch_to_answer',m.n||0,{n:m.n||0});
-  else if(m.k==='them'&&m.why!=='handover') changes=i18tn('ngl_ch_sent',ours,{n:ours});
+  else if(m.why==='decided') changes=i18tn('ngl_ch_decided',m.n||0,{n:m.n||0});
+  else if(m.why==='handover') changes=i18t('ngl_ch_out');
+  else if(m.k==='them') changes=i18tn('ngl_ch_sent',ours,{n:ours});
   else if(m.k==='clear') changes=ch.length?i18t('ngl_ch_settled'):i18t('ngl_ch_none');
   else changes=m.say||'';
   const at=Date.parse(n.turnAt||c.lastAction||'');
@@ -2419,18 +2430,75 @@ function regNegoLeadOf(c){
 function regNegoFacts(c){
   const f=(typeof insFacts==='function')?insFacts(c):[];
   const val=f.find(x=>x.k==='value');
-  const lead=regNegoLeadOf(c).name;
+  /* "You" for the reader's own deal, as the column and the drawing say it */
+  const ld=regNegoLeadOf(c), lead=ld.mine?ld.short:ld.name;
   const theirs=(Array.isArray(c.changes)?c.changes:[]).filter(x=>x&&x.authorSide==='counterparty');
   const open=theirs.filter(x=>x.status==='pending'||!x.status).length, agreed=theirs.filter(x=>x.status==='accepted').length;
   const rounds=(c.negotiation&&Array.isArray(c.negotiation.rounds))?c.negotiation.rounds:[];
-  const last=rounds.length?rounds[rounds.length-1].at:'';
-  const day=last?(typeof regDotDate==='function'?regDotDate(last):String(last).slice(0,10)):'';
+  const lastR=rounds.length?rounds[rounds.length-1]:null;
+  const last=lastR?lastR.at:'';
+  const d0=last?(typeof regDotDate==='function'?regDotDate(last):String(last).slice(0,10)):'';
+  /* "9 Oct · round 1" (round 14): the day, and the round that went */
+  const day=d0?i18t('jl_sent_round',{day:d0,n:Number(lastR.n)||rounds.length}):'';
   return [
     ...(val?[{ k:'value', label:val.label, v:val.v?esc(val.v):'' }]:[]),
     { k:'lead', label:i18t('ins_f_lead'), v:esc(lead) },
     { k:'theirs', label:i18t('ins_f_their_changes'), v:theirs.length?esc(i18t('ins_f_open_agreed',{open,agreed})):'' },
     { k:'sent', label:i18t('ins_f_last_sent'), v:esc(day) },
   ];
+}
+/* THE PAGE IN JAMBO'S WORDS (round 14), counted from the page's own book
+   (regNegoBase: every filter but the tab, the tabs' own numbers) — no AI.
+   The chips are the page's own doors: the Our move tab, Start a negotiation. */
+function regNegoSay(){
+  let book=[]; try{ book=regNegoBase(); }catch(_){ book=[]; }
+  const n=negoBandCounts(book), all=book.length;
+  if(!all) return { lines:[esc(i18t('jl_ng_none'))], chips:typeof ngStartPickerOpen==='function'?[{ label:i18t('jl_ng_chip_start'), run:()=>ngStartPickerOpen() }]:[] };
+  const parts=[n.you?i18tn('jl_ng_ours',n.you,{n:n.you}):'', n.them?i18tn('jl_ng_theirs',n.them,{n:n.them}):'', n.out?i18tn('jl_ng_out',n.out,{n:n.out}):''].filter(Boolean);
+  const list=parts.length>1?parts.slice(0,-1).join(', ')+i18t('jl_and')+parts[parts.length-1]:(parts[0]||'');
+  const lines=[`<b>${esc(i18tn('jl_ng_live',all,{n:all}))}</b>${list?esc(': '+list):''}.`];
+  /* the longest wait on our side, by its own reading (regNegoCols) */
+  const ours=book.filter(c=>c._ngBand==='you').map(c=>({ c, at:Date.parse((c.negotiation&&c.negotiation.turnAt)||c.lastAction||'') }))
+    .filter(x=>Number.isFinite(x.at)).sort((a,b)=>a.at-b.at);
+  if(ours.length){ const c=ours[0].c; let w=''; try{ w=regNegoCols(c).waiting; }catch(_){ w=''; }
+    if(w&&w!=='\u2014') lines.push(esc(i18t('jl_ng_oldest',{ref:(window.contractRef?contractRef(c):c.id),party:c.counterparty||'\u2014',wait:w}))); }
+  const R=regState(), chips=[];
+  if(n.you&&(R.band||'')!=='you') chips.push({ label:i18t('jl_ng_chip_ours'), run:()=>{ R.band='you'; R.page=1; regRepaint(); if(typeof jlLand==='function') jlLand('first'); } });
+  if(typeof ngStartPickerOpen==='function') chips.push({ label:i18t('jl_ng_chip_start'), run:()=>ngStartPickerOpen() });
+  return { lines, chips };
+}
+/* A CLAUSE SAID THE WAY THE DRAWING SAYS IT (round 14): "Clause 7 Liability
+   cap", the next "clause 11 Payment terms" — the heading's own number and its
+   name in the ONE presenting reading (clauseNameShown via negoClauseName),
+   never a number invented: a heading without one is said by its name. */
+function regClauseSaid(raw, lower){
+  const shown=(typeof negoClauseName==='function')?negoClauseName(raw):String(raw||'');
+  let p=null; try{ p=(typeof clauseParseHeading==='function')?clauseParseHeading(String(shown||'')):null; }catch(_){ p=null; }
+  const num=p&&String(p.num||'').trim().replace(/[.)]+$/,''), title=p&&String(p.title||'').trim();
+  if(!num||!title) return String(shown||'');
+  return i18t(lower?'jl_need_clause_lc':'jl_need_clause',{n:num,name:title});
+}
+/* NEEDS YOU, FIRST ROW (round 14: "Answer 2 redlines · Clause 7 Liability cap ·
+   clause 11 Payment terms · Answer"): their asks still standing, read RAW, the
+   clauses named as the asks table names them; only while the move is ours.
+   It says what the checklist's quiet-ask row would, so that row steps aside. */
+function regNegoNeedRows(c){
+  if(!c||!c.negotiation||!Array.isArray(c.changes)) return [];
+  const m=(typeof insMove==='function')?insMove(c):null; if(!m||m.k!=='you') return [];
+  /* past the desk's standard the checklist's own row says it, in ruby, with
+     the wait and the standard (needsYouOf 'quiet'); this row is the drawing's
+     for the ordinary case */
+  let late=false; try{ late=(typeof needsYouOf==='function'?(needsYouOf(c)||[]):[]).some(x=>x&&x.kind==='quiet'); }catch(_){ late=false; }
+  if(late) return [];
+  const pend=c.changes.filter(x=>x&&x.status==='pending'&&!x.withdrawn&&x.authorSide==='counterparty');
+  if(!pend.length) return [];
+  const names=[...new Set(pend.map(ch=>ch.clauseLabel||ch.headingText||ch.clauseId||'').filter(Boolean))].map((raw,i)=>regClauseSaid(raw,i>0));
+  const shown=names.slice(0,3), more=names.length-shown.length;
+  const sub=esc(shown.join(' \u00b7 '))+(more?' \u00b7 '+esc(i18tn('ins_more_asks',more,{n:more})):'');
+  const ok=typeof insNegoDoorState==='function'?insNegoDoorState(c).ok:true;
+  return [{ k:'answer', title:i18tn('jl_need_answer',pend.length,{n:pend.length}), sub, plain:names.join(' \u00b7 '),
+    verb:i18t('home_verb_answer'), go:i18t('ins_need_go_nego'),
+    run:()=>{ if(ok&&typeof openRedlineWorkbench==='function'){ openRedlineWorkbench(c.id,{ face:true }); if(typeof jlLand==='function') jlLand('redlines'); } } }];
 }
 function regInsSeat(){ return regScope()==='negotiations' ? 'negotiations' : 'contracts'; }
 function regInsActs(c){
@@ -2466,13 +2534,17 @@ function regInsPaint(){
   insMarkRow(tb,'[data-row]',idOf,id);
   const paint=pid=>{
     const c=pid?getContract(pid):null;
-    let menu=''; if(c){ try{ menu=regRowActsHtml(c,['open']); }catch(_){ menu=''; } }
+    /* ONLY THE DOORS ON NEGOTIATIONS (round 14 as drawn, owner's "build all
+       the gaps", 18 Oct 2026): no ⋯ in Jambo's panel there — share, scan,
+       PDF, end or pause and delete are the paper's Menu tab's, one press
+       through Workspace; the Contracts seat keeps its row menu */
+    let menu=''; if(c&&seat!=='negotiations'){ try{ menu=regRowActsHtml(c,['open']); }catch(_){ menu=''; } }
     insPaintPanel({ seat, c, acts:regInsActs(c), menuHtml:menu,
       onMenu:(act,cid)=>regRunRowAct(act,cid),
       moveSuffix:true,
       /* The stage — on Negotiations, whose move — beside the name (SAP benchmark). */
       statusBeside:true,
-      statusHtml:(seat==='negotiations'&&c)?regMovePillHtml(c):null,
+      statusHtml:(seat==='negotiations'&&c)?regMovePillHtml(c,{days:true}):null,
       /* On Negotiations what is on the table leads — it is what that page is
          for; on Contracts the facts lead. The drawing's own order. */
       /* THE DRAWING'S PANEL (SAP benchmark, owner: "hati has more information
@@ -2481,7 +2553,14 @@ function regInsPaint(){
       order:['facts','reads'],
       factKeys:['value','owner','stream','ends'],
       facts:(seat==='negotiations'&&c)?regNegoFacts(c):null,
-      empty:i18t('ins_none_rows') });
+      empty:i18t('ins_none_rows'),
+      /* JAMBO'S PANEL (round 14, "Whose move" as drawn): "Negotiation", the
+         page in his words with nothing chosen, "Answer N redlines" first */
+      jlWord:i18t(seat==='negotiations'?'jl_w_negotiation':'jl_w_contract'),
+      jlHome:i18t(seat==='negotiations'?'nav_negotiations':'nav_contracts'),
+      jlPh:i18t('jl_ph_list'),
+      jlSay:seat==='negotiations'?regNegoSay:null,
+      jlNeedRows:seat==='negotiations'?regNegoNeedRows:null });
   };
   paint(id);
   insListWire(tb,{ rowSel:'[data-row]', idOf,
@@ -2500,9 +2579,10 @@ function regInsPaint(){
 /* SORT AS A SMALL ICON ON THE LIST'S HEAD (SAP benchmark, 9 Oct 2026): the
    same select, the same id and listener; only its face is the ⇅ mark, with
    its name on the hover and for a screen reader. */
-function regSortIconHtml(opts){
+function regSortIconHtml(opts, id){
   const t=i18t('reg_sort');
-  return `<label class="reg-f reg-chip reg-ico" title="${esc(t)}"><span class="reg-f-l">${typeof icon==='function'?icon('sort','w-4 h-4'):''}<span class="sr-only">${esc(t)}</span></span><select id="reg-sort" class="reg-chip-sel" title="${esc(t)}" aria-label="${esc(t)}">${opts}</select></label>`;
+  /* one sort control for every list that draws one (Approvals' too, round 15) */
+  return `<label class="reg-f reg-chip reg-ico" title="${esc(t)}"><span class="reg-f-l">${typeof icon==='function'?icon('sort','w-4 h-4'):''}<span class="sr-only">${esc(t)}</span></span><select id="${esc(id||'reg-sort')}" class="reg-chip-sel" title="${esc(t)}" aria-label="${esc(t)}">${opts}</select></label>`;
 }
 function regDisplayHtml(neg){
   const R=regState();
@@ -3411,7 +3491,7 @@ function renderRegister(opts){
              for the two things still in it. THE VIEWS ARE NEVER DRAWN ON THE
              NEGOTIATIONS SEAT: "Ending in 90 days" and "Archived" are
              questions about the book, not about a live negotiation. */}
-      ${HOME?regHomeHeadHtml(R,fbBoxes,adaptBtn,clearSlot):`<div class="reg-band sap-band">
+      ${HOME?regHomeHeadHtml(R,fbBoxes,adaptBtn,clearSlot):`<div class="reg-band sap-band ph-card">
       ${headHtml}
       <!-- THE FILTERS SIT BESIDE THE TABS (owner, 10 Oct 2026: "move the
            highlighted filters to the empty side on the right ... to optimize
@@ -3807,7 +3887,7 @@ Object.assign(window,{regOpenContract,regPlace,regPlacePut,regSignedOn,regSigned
   regRowActsHtml,regRunRowAct,regOpenRow,regDisplayHtml,regCloseDisplay,REG_SOON_DAYS,regEndsSay,
   regColWidths,regColSetWidths,regColReset,regColDefaults,regColTrade,regColApply,regWireColResize,
   REG_CMP,REG_SORT_DEFDIR,regBlanksLast,regStreamName,regRefParts,regNarrowed,regClearHtml,regPaintClear,
-  REG_BAR_FILTERS,REG_BAR_DEFAULT,regListTitle,regSortIconHtml,regMovePillHtml,regNegoCols,regNegoBase,negoBandTabsHtml,regAvatarHtml,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,regViewCount,REG_SAVED_KEY,REG_SAVED_FIELDS,regSavedViews,regSaveView,regForgetView,regApplySaved,regSavedMatches,regHeadFactsHtml,regPaintHeadFacts,regPaintViewCounts,regMoveWord,regOwnerCell,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regMode,regSetMode,regViewTabsHtml,regStageTabsHtml,regStageBase,regStageTabsWire,REG_STAGE_TABS,regViewOptsHtml,regSaveViewAsk,regForgetViewAsk,regSegHtml,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regMenuFit,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,REG_FILTER_REST,regFiltersAtRest,regSearchBoxClear,regGoFiltered,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
+  REG_BAR_FILTERS,REG_BAR_DEFAULT,regListTitle,regSortIconHtml,regMovePillHtml,regNegoCols,regNegoBase,regNegoSay,regNegoNeedRows,negoBandTabsHtml,regAvatarHtml,regAvatarTone,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,regViewCount,REG_SAVED_KEY,REG_SAVED_FIELDS,regSavedViews,regSaveView,regForgetView,regApplySaved,regSavedMatches,regHeadFactsHtml,regPaintHeadFacts,regPaintViewCounts,regMoveWord,regOwnerCell,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regMode,regSetMode,regViewTabsHtml,regStageTabsHtml,regStageBase,regStageTabsWire,REG_STAGE_TABS,regViewOptsHtml,regSaveViewAsk,regForgetViewAsk,regSegHtml,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regMenuFit,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,REG_FILTER_REST,regFiltersAtRest,regSearchBoxClear,regGoFiltered,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
   regScope,regSetScope,regRepaint,regPageSize,regFitBandOffset,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,negoBandRowHtml,
   /* the Contracts place on Home (the overnight work order, step 7) */
   REG_SHOWS,REG_COL_KEYS_HOME,REG_COL_W_HOME,REG_COL_KEYS_HOME_NARROW,REG_COL_W_HOME_NARROW,REG_HOME_NARROW_W,regHomeNarrow,regHomeWatch,regPlaceSet,regPlaceUp,regHome,regRestBase,regHomeHeadHtml,regHomeWallHtml,regBookSig,regHomeStale});

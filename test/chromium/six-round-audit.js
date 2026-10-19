@@ -140,6 +140,45 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     await pause(700);
   };
   const ownerFlush = async () => { await owner.evaluate(() => flushSaves()); };
+  /* SEND ALL OPENS THE LETTER.
+     RE-POINTED 19 Oct 2026 (round 11 as drawn, "The letter": "Every way to
+     send — Share on the paper's line, Send all on Redlines, Jambo's share —
+     opens this same screen"; its third pass: Send all opens the letter
+     without the review pop-up). The batch send no longer asks "Send 1 change
+     to …?" in a confirm box: it opens the one send screen, whose email names
+     what travels, and the round goes on THAT screen's Send — a person reads
+     it and presses Send. Where the letter's checks hold it ("Not ready"), its
+     own "Send it anyway" tick is the door a person takes. On the Negotiate
+     page (opened by name, off Home's desk) the send screen stays up after
+     its Send ("Sent ✓", ready for another recipient), so the person closes
+     it with its own Cancel. Each wait asks for the state, bounded; a send
+     that never left reports what was on screen. */
+  const ownerSendAll = async () => {
+    const pressed = await owner.evaluate(() => {
+      const b = document.getElementById('nego-send');
+      if (!b) return 'no send button';
+      b.click(); return 'ok';
+    });
+    if (pressed !== 'ok') return pressed;
+    const up = await owner.waitForFunction(() => { const s = document.getElementById('share-send'); return !!s && !s.disabled; },
+      null, { timeout: 10000 }).then(() => true, () => false);
+    if (!up) return 'no letter: ' + await owner.evaluate(() => ((document.getElementById('modal-root') || {}).innerText || '').slice(0, 200));
+    const label = await owner.evaluate(() => {
+      const ack = document.getElementById('sh-ack'); if (ack && !ack.checked) ack.click();
+      const was = (document.getElementById('sh-send-lbl') || {}).textContent || '';
+      document.getElementById('share-send').click();
+      return was;
+    });
+    /* the press has its outcome when the button stops saying Sending…:
+       Sent ✓, or (no mail provider on this server) "Queued, not sent" — the
+       outbox the email counts below read */
+    const went = await owner.waitForFunction(was => { const l = ((document.getElementById('sh-send-lbl') || {}).textContent || '').trim();
+      return !document.getElementById('share-send') || (l && l !== was.trim() && !/…$/.test(l)); }, label, { timeout: 12000 }).then(() => true, () => false);
+    if (!went) return 'no outcome: ' + await owner.evaluate(() => ((document.getElementById('sh-result') || document.getElementById('modal-root') || {}).innerText || '').slice(0, 200));
+    await owner.evaluate(() => { const x = document.getElementById('share-close'); if (x) x.click(); });
+    const shut = await owner.waitForFunction(() => !document.getElementById('share-send'), null, { timeout: 6000 }).then(() => true, () => false);
+    return shut ? 'ok' : 'the send screen did not close';
+  };
 
   /* File a clause edit through the REAL controls on whichever page.
      RE-POINTED 16 Aug 2026. This pressed the clause's Direct Edit, which NO
@@ -278,15 +317,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     });
     await pause(300);
 
-    const sent = await owner.evaluate(() => {
-      const b = document.getElementById('nego-send');
-      if (!b) return 'no send button';
-      b.click(); return 'ok';
-    });
+    /* RE-POINTED 19 Oct 2026 (round 11 as drawn): pressed, and sent from
+       the letter it opens (ownerSendAll) */
+    const sent = await ownerSendAll();
     check(1, 'the batch send is on the page and pressed', sent === 'ok', sent);
-    /* The send names what travels and asks once ("Send 1 change to …?"),
-       as the later rounds' sends below already answer. */
-    await pause(400); await owner.evaluate(() => { const ok = document.getElementById('cf-ok'); if (ok) ok.click(); });
     await pause(1500); await ownerFlush(); await pause(400);
 
     const shares = (await admin.json(`/api/contracts/${CID}/shares`)).shares || [];
@@ -355,9 +389,8 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       'sixty \\(60\\) days', 'thirty (30) days');
     check(3, 'and asks for shorter notice', r3 === 'ok', r3);
     await pause(400);
-    await owner.evaluate(() => { const b = document.getElementById('nego-send'); if (b) b.click(); });
-    /* Send all names what travels and asks once (9 Oct 2026). */
-    await pause(400); await owner.evaluate(() => { const ok = document.getElementById('cf-ok'); if (ok) ok.click(); });
+    /* Send all opens the letter, and its Send sends (round 11 as drawn; RE-POINTED 19 Oct 2026 — ownerSendAll) */
+    await ownerSendAll();
     await pause(1500); await ownerFlush(); await pause(300);
 
     const shares = (await admin.json(`/api/contracts/${CID}/shares`)).shares || [];
@@ -541,9 +574,8 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
         negoResolve(c, ch.id, 'accepted', { side: 'owner', by: 'Wanjiru Kamau' });
       persist(c); renderRedline();
     });
-    await owner.evaluate(() => { const b = document.getElementById('nego-send'); if (b) b.click(); });
-    /* Send all names what travels and asks once (9 Oct 2026). */
-    await pause(400); await owner.evaluate(() => { const ok = document.getElementById('cf-ok'); if (ok) ok.click(); });
+    /* Send all opens the letter, and its Send sends (round 11 as drawn; RE-POINTED 19 Oct 2026 — ownerSendAll) */
+    await ownerSendAll();
     await pause(1200); await ownerFlush();
 
     await cpOpen(token);

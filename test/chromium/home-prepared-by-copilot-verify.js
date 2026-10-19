@@ -120,9 +120,13 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
       rows.want.length >= 2 && rows.got.join(',') === rows.want.join(','), JSON.stringify(rows));
     ok('2b the rows are the staged agents, and Our promises is not on the Board (owner, 16 Oct 2026)', ['round', 'late'].every(k => rows.got.some(g => g.startsWith(k + ':'))) && !rows.got.some(g => g.startsWith('ours:')), rows.got.join(','));
     /* COPILOT'S WORK LIVES ON THE BOARD (Young, 7 Oct 2026): no rail door, so
-       the head's count is the one number. */
+       the head's count is the one number.
+       RE-POINTED 19 Oct 2026 (round 23 as drawn: the head reads "· 5 prepared
+       · nothing sent or filed until you press", the same words as Home's
+       Jambo's work row): the count is still hbAgentsData's ready, now said
+       as "N prepared" instead of "N ready". */
     ok('2c the head counts what Copilot\'s work counts, and there is no second door in the side menu',
-      new RegExp('^' + rows.ready + ' ready').test(rows.sub.trim()) && rows.rail === ''
+      new RegExp('^' + rows.ready + ' prepared · nothing sent or filed until you press').test(rows.sub.trim()) && rows.rail === ''
         && !(await page.$('#sidebar [data-view="agents"], nav [data-view="agents"]')), JSON.stringify({ sub: rows.sub, rail: rows.rail, ready: rows.ready }));
     const lateRow = await page.evaluate(() => { const r = document.querySelector('[data-hm-agent-row="late"]'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : ''; });
     ok('2d a row says the agent and its first item', /Late promises/.test(lateRow) && lateRow.length > 20, lateRow);

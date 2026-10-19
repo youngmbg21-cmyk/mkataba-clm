@@ -61,6 +61,14 @@ const check = (name, pass, detail) => {
   const now = () => page.evaluate(() => ({ view: state.view, face: hbS().face, paper: intel.paper ? intel.paper.id : null,
     wall: !!document.getElementById('ct-place') && !intel.paper }));
   const onWall = () => until(() => !!(document.querySelector('#ct-place [data-ig-pick]') && !intel.paper));
+  /* RE-POINTED 18 Oct 2026 (round 13 as drawn): a press on a paper CHOOSES it
+     and a second press opens it, and the wall draws twelve at a time — so the
+     paper is brought into the wall (Show more) and pressed twice */
+  const pressOpen = async id => {
+    const sel = `#ig-wall .igw-card[data-ig-pick="${id}"]`;
+    for (let i = 0; i < 6 && !(await page.$(sel)) && await page.$('#ig-wall [data-ig-wall-more]'); i++){ await page.click('#ig-wall [data-ig-wall-more]'); await page.waitForTimeout(200); }
+    await page.click(sel); await page.click(sel);
+  };
   try {
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke');
@@ -75,7 +83,7 @@ const check = (name, pass, detail) => {
 
     /* 1a: the press shows that it worked — the paper wears the turning ring */
     slow = new Set(['MK-L3']);
-    await page.click('[data-ig-pick="MK-L3"]');
+    await pressOpen('MK-L3');
     await page.waitForTimeout(400);
     const ring = await page.evaluate(() => { const b = document.querySelector('[data-ig-pick="MK-L3"]');
       return b ? { busy: b.getAttribute('aria-busy'), spin: !!b.querySelector('.igw-opening .ob-spin'), word: (b.querySelector('.igw-opening') || {}).textContent || '' } : null; });
@@ -92,12 +100,12 @@ const check = (name, pass, detail) => {
     await page.evaluate(() => hbOpenContracts());
     await onWall();
     slow = new Set(['MK-L5']);
-    await page.click('[data-ig-pick="MK-L5"]');
+    await pressOpen('MK-L5');
     await page.waitForTimeout(300);
     /* the reader thinks nothing happened and presses back to the wall, then another paper */
     await page.evaluate(() => hbOpenContracts());
     await onWall();
-    await page.click('[data-ig-pick="MK-L6"]');
+    await pressOpen('MK-L6');
     const c1 = await until(() => intel.paper && intel.paper.id === 'MK-L6');
     await page.waitForTimeout(SLOW + 800);
     const c2 = await now();
@@ -107,7 +115,7 @@ const check = (name, pass, detail) => {
     await page.evaluate(() => hbOpenContracts());
     await onWall();
     slow = new Set(['MK-L8']);
-    await page.click('[data-ig-pick="MK-L8"]');
+    await pressOpen('MK-L8');
     const d1 = await until(() => intel.paper && intel.paper.id === 'MK-L8', null, SLOW + 6000);
     const cleared = await page.evaluate(() => !document.querySelector('.igw-card.is-opening') && !intel.opening);
     check('1d a paper the reader waits for opens, and its ring is gone', !!d1 && cleared, JSON.stringify(await now()));
@@ -120,7 +128,7 @@ const check = (name, pass, detail) => {
     /* 2a: back on the wall by the Contracts door while the paper is read again */
     await page.evaluate(() => hbOpenContracts()); await onWall();
     slow = new Set();
-    await page.click('[data-ig-pick="MK-L10"]');
+    await pressOpen('MK-L10');
     await until(() => intel.paper && intel.paper.id === 'MK-L10');
     slow = new Set(['MK-L10']);
     await reload();
@@ -134,7 +142,7 @@ const check = (name, pass, detail) => {
 
     /* 2b: the reader's hand on the wall (a scroll) while the paper is read again */
     await page.evaluate(() => hbOpenContracts()); await onWall();
-    await page.click('[data-ig-pick="MK-L11"]');
+    await pressOpen('MK-L11');
     await until(() => intel.paper && intel.paper.id === 'MK-L11', null, SLOW + 6000);
     slow = new Set(['MK-L11']);
     await reload();
@@ -147,7 +155,7 @@ const check = (name, pass, detail) => {
 
     /* 2c: a refresh the reader does not touch still brings the paper back */
     await page.evaluate(() => hbOpenContracts()); await onWall();
-    await page.click('[data-ig-pick="MK-L12"]');
+    await pressOpen('MK-L12');
     await until(() => intel.paper && intel.paper.id === 'MK-L12', null, SLOW + 6000);
     slow = new Set(['MK-L12']);
     await reload();

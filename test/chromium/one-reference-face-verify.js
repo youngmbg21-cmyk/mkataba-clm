@@ -102,7 +102,45 @@ const geist = f => /^"?Geist Mono"?/.test(f || '');
     const val = await page.evaluate(() => { const td = document.querySelector('#content td.r.mono'); return td ? getComputedStyle(td).fontFamily : null; });
     check(val === null || !/^"?Geist Mono/.test(val), 'Approvals: the value beside it keeps its own face', val);
     await pageCheck('Obligations', () => setView('obligations'), () => /MK-RF1/.test(document.getElementById('content').textContent), '#content');
-    await pageCheck('Calendar', () => setView('calendar'), () => /MK-RF1/.test(document.getElementById('content').textContent), '#content');
+    /* RE-POINTED 19 Oct 2026 (round 16 as drawn, "Week by week": the
+       Calendar's chips speak in words — "Ends: Norrsken licence", "Nordvik:
+       insurance cert." — and the "Find an hour for MK-…" chip went, as the
+       drawing has two asks): the Week view's chips no longer print a
+       reference; each chip carries it in its hover. Guarded — the page must
+       really draw this contract's chips, the reference in their hover and
+       NOT on their face, so an empty Calendar still reports.
+       The claim itself is measured where the Calendar still PRINTS
+       references: its Horizon view (one press on Month | Week | Horizon)
+       names each contract's reference beside its counterparty. There, as
+       before: at least one, MK-RF1 among them, Geist Mono, one line, not cut
+       at 1024. A Horizon that prints none REPORTS. */
+    try { await page.evaluate(() => setView('calendar')); } catch (e) { check(false, 'Calendar opens', e.message); }
+    const calChips = await until(page, () => { const xs = [...document.querySelectorAll('#content .cal-chip')].filter(x => /MK-RF1/.test(x.title || ''));
+      return xs.length ? xs.map(x => ({ t: x.textContent.trim(), title: x.title })) : null; }, null, 10000);
+    await shot('calendar.png');
+    check(!!calChips && calChips.every(x => x.t && !/MK-RF1/.test(x.t)), 'Calendar: MK-RF1\'s chips are drawn in words, the reference in their hover, not on their face',
+      calChips ? JSON.stringify(calChips.slice(0, 2)) : 'no chip for MK-RF1');
+    const RC = await refsOn(page, '#content');
+    const badC = (RC || []).filter(x => !geist(x.face) || !x.oneLine || x.cut);
+    check(!!RC && !badC.length, `Calendar (Week): any reference it prints wears Geist Mono, on one line (${(RC || []).length})`,
+      badC.length ? JSON.stringify(badC.slice(0, 3)) : 'ok');
+    let hzOpen = true;
+    try { await page.evaluate(() => calSetView('horizon')); } catch (e) { hzOpen = false; check(false, 'Calendar: Horizon opens', e.message); }
+    if (hzOpen){
+      const hzRows = await until(page, () => document.querySelectorAll('#content .cal-hz-row').length || null, null, 10000);
+      check(!!hzRows, 'Calendar: Horizon draws its rows', hzRows ? String(hzRows) : 'no .cal-hz-row');
+      await shot('calendar-horizon.png');
+      const RH = await refsOn(page, '#content');
+      check(!!RH && RH.some(x => x.ref === 'MK-RF1'), `Calendar (Horizon) prints references to measure, MK-RF1 among them (${(RH || []).length})`,
+        RH && RH.length ? RH.map(x => x.ref).join(' ') : 'none found');
+      if (RH && RH.length){
+        const badF = RH.filter(x => !geist(x.face));
+        check(!badF.length, `Calendar (Horizon): every printed reference wears Geist Mono (${RH.length})`, badF.length ? JSON.stringify(badF.slice(0, 3)) : RH[0].face.slice(0, 30));
+        const brokenH = RH.filter(x => !x.oneLine || x.cut);
+        check(!brokenH.length, 'Calendar (Horizon): each reference on one line, not cut off', brokenH.length ? JSON.stringify(brokenH.slice(0, 3)) : 'ok');
+      }
+      try { await page.evaluate(() => calSetView('week')); } catch (_){ /* the next stage opens its own page */ }
+    }
     await pageCheck('the room head', () => openWorkspace('MK-RF2', { room: true }), () => !!document.querySelector('.room-head'), '.room-head');
     await pageCheck('Negotiate', () => roomGoTab(getContract('MK-RF2'), 'redline'), () => !!document.querySelector('.redline-page'), '#content');
     await pageCheck('the search palette', () => { setView('contracts'); if (typeof window.openPalette === 'function') window.openPalette('MK-RF'); else document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true })); },

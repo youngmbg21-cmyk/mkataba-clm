@@ -525,6 +525,14 @@ function bsNdaTile(c, N){
     : `<span class="bs-nda-mark is-still">${bsE(words)}</span>`;
   return { n, sub: words, subHtml: mark };
 }
+/* how many days an obligation is late (null where it is not): ONE reading for
+   the Next obligation figure and the line's caption (pass 3, round 7 as drawn:
+   "Next up: Check the September invoice (…), 7 days late.") */
+function bsLateDays(O, r){
+  if (!r || r.st !== 'overdue' || !r.due) return null;
+  const a = _bsDay0((O && O.today) || bsToday()), b = _bsDay0(r.due);
+  return (a && b) ? Math.max(0, Math.round((a - b) / _bsDD)) : null;
+}
 function bsLifeData(c){
   let M = null; try { M = (typeof ov2Model === 'function') ? ov2Model(c) : null; } catch (_){ M = null; }
   const owed = bsOwedKeys(c);
@@ -541,9 +549,11 @@ function bsLifeData(c){
   const amendRef = ev.from ? bsRef(ev.from) : '';
   if (!bsMoneyOk()) K.value = { n: bsT('bs_k_hidden'), sub: '' };
   else if (!money) K.value = { n: '—', sub: bsT('bs_k_value_nomoney') };
+  /* "As amended by MK-0377-A1 · SEK 3.55 M a year" (round 7 as drawn): what
+     governs the figure first, then what it comes to a year */
   else if (ev.v > 0) K.value = { n: bsMoney(ev.v, c),
-    sub: [yrs >= 1 ? bsT('bs_k_value_year', { v: bsMoney(ev.v / yrs, c) }) : (amendRef ? '' : ((typeof fmtMoneyOf === 'function') ? fmtMoneyOf((typeof effectiveValueView === 'function') ? effectiveValueView(c) : c) : '')),
-      amendRef ? bsT('bs_k_value_amended', { ref: amendRef }) : ''].filter(Boolean).join(' · '),
+    sub: [amendRef ? bsT('bs_k_value_amended', { ref: amendRef }) : '',
+      yrs >= 1 ? bsT('bs_k_value_year', { v: bsMoney(ev.v / yrs, c) }) : (amendRef ? '' : ((typeof fmtMoneyOf === 'function') ? fmtMoneyOf((typeof effectiveValueView === 'function') ? effectiveValueView(c) : c) : ''))].filter(Boolean).join(' · '),
     tip: [yrs >= 1 ? bsT('bs_k_value_year_tip') : '', yrs >= 1 && amendRef ? bsT('bs_k_value_amended', { ref: amendRef }) : ''].filter(Boolean).join(' · ') };
   else K.value = owed.has('value') ? { n: bsT('bs_k_owed'), sub: bsT('bs_k_owed_sub'), tone: 'warn' } : { n: '—', sub: bsT('bs_k_unknown') };
   /* TERM */
@@ -552,7 +562,15 @@ function bsLifeData(c){
   else if (M && M.end) K.term = owed.has('effDate') ? { n: '—', sub: bsT('bs_k_ends_nostart_owed', { d: bsDay(M.end) }), tone: 'warn' } : { n: '—', sub: bsT('bs_k_ends_nostart', { d: bsDay(M.end) }) };
   else K.term = (owed.has('effDate') || owed.has('expiry')) ? { n: bsT('bs_k_owed'), sub: bsT('bs_k_owed_sub'), tone: 'warn' } : { n: '—', sub: bsT('bs_k_nodates') };
   /* NEXT OBLIGATION */
-  if (O.next) K.next = { n: O.next.due ? bsDay(O.next.due) : bsT('bs_ob_nodue'), sub: O.next.what + ' · ' + bsWho(c, O.next), tone: O.next.st === 'overdue' ? 'warn' : '' };
+  /* LATE, AS DRAWN (round 7): the day in the late colour and how late it is
+     where the name of who owes it stood ("Check the September invoice · 7
+     days late"); who owes it is the table's column under it */
+  if (O.next){
+    const lateBy = bsLateDays(O, O.next);
+    K.next = { n: O.next.due ? bsDay(O.next.due) : bsT('bs_ob_nodue'),
+      sub: O.next.what + ' · ' + (lateBy != null ? bsTn('bs_k_next_late', lateBy, { n: lateBy }) : bsWho(c, O.next)),
+      tip: O.next.what + ' · ' + bsWho(c, O.next), tone: O.next.st === 'overdue' ? 'bad' : '' };
+  }
   else K.next = { n: '—', sub: bsT(O.rows.length ? 'bs_k_next_none' : 'bs_ob_none_short') };
   /* NOTICE BY */
   const rt = Number(meta.renewalTermMonths) || 0;
@@ -619,6 +637,31 @@ const _bsChev = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" str
 /* two arrows, each way: who keeps it secret, said beside the words */
 const _bsBoth = '<svg class="bs-nda-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h15l-4-4M20 15H5l4 4"/></svg>';
 const _bsX = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg>';
+/* ---- A PRIVATE CONTRACT SAYS SO IN ITS HEAD (round 7 as drawn, pass 4:
+   "[Draft] [🔒 Private · Board]") ----
+   ONE reading of the private stream a contract is kept in and who is named on
+   it (privateStreamsMap / privateStreamIds, the wall's own record), and ONE
+   pill drawn from it, on the page's head and Jambo's glance. A code-named
+   deal adds nothing to what its stand-in says. */
+function bsPrivateOf(c){
+  if (!c || c._codeNamed || typeof streamIsPrivate !== 'function' || !streamIsPrivate(c.folder)) return null;
+  const fid = String(c.folder || '');
+  let stream = ''; try { stream = (typeof regStreamName === 'function') ? regStreamName(c) : ''; } catch (_){ stream = ''; }
+  if (!stream) stream = ((typeof FOLDERS === 'object' && FOLDERS && FOLDERS[fid]) || {}).name || fid;
+  const p = (typeof privateStreamsMap === 'function') ? (privateStreamsMap()[fid] || {}) : {};
+  const ids = (typeof privateStreamIds === 'function') ? privateStreamIds(p) : [];
+  const users = (typeof getUsers === 'function') ? (getUsers() || []) : [];
+  const people = Array.isArray(p.people) ? p.people : [];
+  const names = ids.map(id => { const u = users.find(x => x && String(x.id) === id) || people.find(x => x && String(x.id) === id);
+    return String((u && u.name) || '').trim(); }).filter(Boolean);
+  return { fid, stream, names, first: names.map(n => n.split(/\s+/)[0]) };
+}
+function bsPrivatePillHtml(c, o){
+  const P = bsPrivateOf(c); if (!P) return '';
+  /* beside the stream's own name (Details' Filing) it says only "Private" */
+  const word = (o && o.short) ? bsT('bs_private_pill_short') : bsT('bs_private_pill', { s: P.stream });
+  return `<span class="bs-lockp" title="${bsE(bsT('igw_private_title', { s: P.stream }))}">${(typeof icon === 'function') ? icon('lock', 'w-3 h-3') : ''}${bsE(word)}</span>`;
+}
 function bsTone(st){ return st === 'Signed' ? 'is-good' : st === 'Under Review' ? 'is-warn' : st === 'Declined' ? 'is-bad' : ''; }
 function bsStripsHtml(){
   const list = bsStrips(); if (!list.length) return '';
@@ -646,17 +689,33 @@ function bsStripHtml(st, o){
      Show on the map, the Board's own doors (data-hb-analyze, data-hb-map) */
   const more = `<hr><button type="button" role="menuitem" class="bs-mi" data-hb-analyze="${id}" title="${bsE(bsT('int_analyze_title'))}"><b>${bsE(bsT('int_analyze'))}</b></button>
     <button type="button" role="menuitem" class="bs-mi" data-hb-map="${id}" data-hb-what="${ref}"><b>${bsE(bsT('hb_c_on_map'))}</b></button>`;
-  const menu = open ? `<div class="bs-menu" role="menu" id="bs-menu-${id}">${rows}${more}</div>` : '';
-  const pill = `<span class="hb-chip ${bsTone(c.status)}">${bsE((typeof statusLabel === 'function') ? statusLabel(c.status) : c.status)}</span>`;
+  /* THE FAMILY'S ACTS (round 7 as drawn, pass 4): Related agreements on
+     Details draws only its rows, so Create an amendment, Add a signed
+     document, Check the family and the rest are offered here (familyActs, the
+     one list; familyActRun, their own handlers) — a shut one greys with why */
+  let famActs = []; try { famActs = (open && typeof familyActs === 'function') ? familyActs(c) : []; } catch (_){ famActs = []; }
+  const fam = famActs.length ? `<hr><div class="bs-mg">${bsE(bsT('bs_fam_acts'))}</div>` + famActs.map(a => `<button type="button" role="menuitem" class="bs-mi" data-bs-famact="${bsE(a.k)}" data-bs-id="${id}"${a.shut ? ` disabled title="${bsE(a.shut)}"` : ''}><b>${bsE(a.label)}</b>${a.shut ? `<small>${bsE(a.shut)}</small>` : ''}</button>`).join('') : '';
+  const menu = open ? `<div class="bs-menu" role="menu" id="bs-menu-${id}">${rows}${fam}${more}</div>` : '';
+  /* THE STAGE AS THE PAPER'S LINE SAYS IT (round 6, and rounds 7 and 12 as
+     drawn): its dot, its words and its round in the stage's own wash
+     (contractStatusTextHtml, igLineRound) — the chip where those are absent */
+  const rnd = (typeof igLineRound === 'function') ? igLineRound(c) : 0;
+  let pill = ''; try { pill = (typeof contractStatusTextHtml === 'function') ? `<span class="bs-stage">${contractStatusTextHtml(c, rnd ? bsT('ig_line_round', { n: rnd }) : '')}</span>` : ''; } catch (_){ pill = ''; }
+  if (!pill) pill = `<span class="hb-chip ${bsTone(c.status)}">${bsE((typeof statusLabel === 'function') ? statusLabel(c.status) : c.status)}</span>`;
+  pill += bsPrivatePillHtml(c);
   const body = page === 'where' ? `<div class="bs-sec bs-host bs-where" data-hb-own data-bs-host="where" data-bs-cid="${id}" data-ds-cid="${id}"></div>`
     : page === 'hist' ? `<div class="bs-sec bs-host bs-hist" data-hb-own data-bs-host="hist" data-bs-cid="${id}"></div>`
     : page === 'details' ? `<div class="bs-sec bs-host bs-details" data-hb-own data-bs-host="details" data-bs-cid="${id}"></div>`
     : bsLifeHtml(c, st);
+  /* ONE ⋯ ON HISTORY (pass 3, round 12 as drawn): the History page's own
+     toolbar ends with its ⋯ (Verify · Export · Print · the whole trail), so
+     the head draws none — "‹ Overview" is the way to the page's others */
+  const dots = page === 'hist' ? '' : `<span class="bs-dwrap"><button type="button" class="hb-ib bs-dots${open ? ' is-on' : ''}" data-bs-dots="${id}" aria-haspopup="menu" aria-expanded="${open}" aria-label="${bsE(bsT('bs_more', { ref: bsRef(c) }))}" title="${bsE(bsT('bs_more', { ref: bsRef(c) }))}">⋯</button>${menu}</span>`;
   /* ON THE DESK THE TAB'S × PUTS IT AWAY (round 7): the card draws none of its own */
   const x = desk ? '' : `<button type="button" class="hb-ib hb-x" data-bs-x="${id}" aria-label="${bsE(bsT('bs_close'))}" title="${bsE(bsT('bs_close'))}">${_bsX}</button>`;
   return `<section class="hb-card bs-strip${desk ? ' bs-on-desk' : ''}${_bsArrive === String(c.id) && !desk ? ' is-new' : ''}${open ? ' is-menu' : ''}" id="bs-strip-${id}" data-bs-id="${id}" data-bs-on="${page}" aria-label="${bsE(bsT('bs_aria', { ref: bsRef(c) }))}">
-    <header class="hb-ch bs-head"><span class="hb-ct">${bsE(c.name || bsRef(c))}</span><span class="bs-ref">${ref}${c.counterparty ? ' · ' + bsE(c.counterparty) : ''}</span>${pill}${crumbs}<span class="hb-grow"></span>
-      <span class="bs-dwrap"><button type="button" class="hb-ib bs-dots${open ? ' is-on' : ''}" data-bs-dots="${id}" aria-haspopup="menu" aria-expanded="${open}" aria-label="${bsE(bsT('bs_more', { ref: bsRef(c) }))}" title="${bsE(bsT('bs_more', { ref: bsRef(c) }))}">⋯</button>${menu}</span>
+    <header class="hb-ch bs-head"><span class="hb-ct">${bsE(c.name || bsRef(c))}</span><span class="bs-ref">${(typeof refHtml === 'function') ? refHtml(c) : ref}${c.counterparty ? ' · ' + bsE(c.counterparty) : ''}</span>${pill}${crumbs}<span class="hb-grow"></span>
+      ${dots}
       ${x}</header>
     ${bsFamHtml(c)}${body}</section>`;
 }
@@ -722,9 +781,13 @@ function bsIdKpiHtml(D){
   if (stream) bits.push(bsE(stream));
   const owner = (typeof contractOwnerName === 'function') ? contractOwnerName(c) : null;
   bits.push(owner ? bsT('bs_id_owner', { who: `<b>${bsE(owner)}</b>` }) : bsE(bsT('bs_id_noowner')));
+  /* A SIGNED CONTRACT SAYS WHEN IT WAS SIGNED (round 7 as drawn: "… · signed
+     28 Apr 2026"); before that, when it was made or uploaded */
+  const signedOn = (typeof window.contractSignedAt === 'function') ? contractSignedAt(c) : null;
   const made = c.createdAt || c._raisedAt || '';
   const up = (typeof isUpload === 'function') ? isUpload(c) : c.source === 'upload';
-  if (made) bits.push(bsE(bsT(up ? 'bs_id_uploaded' : 'bs_id_created', { d: bsDay(String(made).slice(0, 10)) })));
+  if (signedOn && /^\d{4}-\d{2}-\d{2}/.test(String(signedOn))) bits.push(bsE(bsT('bs_id_signed', { d: bsDay(String(signedOn).slice(0, 10)) })));
+  else if (made) bits.push(bsE(bsT(up ? 'bs_id_uploaded' : 'bs_id_created', { d: bsDay(String(made).slice(0, 10)) })));
   const fig = (k, label) => { const x = D.K[k];
     return `<div class="bs-kpi${x.tone ? ' is-' + x.tone : ''}" data-bs-kpi="${k}"><small>${bsE(bsT(label))}</small><b${k === 'role' ? ` title="${bsE(x.n)}"` : ''}>${bsE(x.n)}</b><span title="${bsE(x.tip || x.sub || '')}">${x.subHtml != null ? x.subHtml : bsE(x.sub || '')}</span></div>`; };
   return `<div class="bs-sec"><p class="bs-idline">${bits.join(' · ')}</p>
@@ -789,10 +852,18 @@ function bsCaption(D){
     : bsT('bs_cap_notice', { d: bsDay(M.noticeBy) }));
   /* the family's signed amendments, said as the line marks them (round 7) */
   const am = bsAmendMarks(D.c);
-  am.slice(0, 2).forEach(a => out.push(a.value ? bsT('bs_cap_amend_value', { w: a.label, d: bsDay(a.d), v: a.value }) : bsT('bs_cap_amend', { w: a.label, d: bsDay(a.d) })));
+  /* WHAT IT DID (pass 4, round 7 as drawn: "Amendment 1 (28 Sep 2026) raised
+     the yearly volume by 10%."): the note its maker wrote (relationNote, never
+     a purpose guessed), else the value it set, else the day it took effect */
+  const noteOf = a => { const k = (typeof getContract === 'function') ? getContract(a.id) : null; return String((k && k.relationNote) || '').replace(/\s+/g, ' ').trim().slice(0, 140); };
+  am.slice(0, 2).forEach(a => { const note = noteOf(a);
+    out.push(note ? bsT('bs_cap_amend_note', { w: a.label, d: bsDay(a.d), what: note })
+      : a.value ? bsT('bs_cap_amend_value', { w: a.label, d: bsDay(a.d), v: a.value }) : bsT('bs_cap_amend', { w: a.label, d: bsDay(a.d) })); });
   if (am.length > 2) out.push(bsTn('bs_cap_amend_more', am.length - 2, { n: am.length - 2 }));
-  const nx = D.O.next;
-  out.push(nx ? (nx.due ? bsT('bs_cap_next', { what: nx.what, who: bsWho(D.c, nx), d: bsDay(nx.due) }) : bsT('bs_cap_next_nodue', { what: nx.what, who: bsWho(D.c, nx) })) : bsT('bs_cap_next_none'));
+  const nx = D.O.next, late = bsLateDays(D.O, nx);
+  /* a late one says how late, never "by" a day already gone */
+  out.push(nx ? (late != null ? bsTn('bs_cap_next_late', late, { what: nx.what, who: bsWho(D.c, nx), n: late })
+    : nx.due ? bsT('bs_cap_next', { what: nx.what, who: bsWho(D.c, nx), d: bsDay(nx.due) }) : bsT('bs_cap_next_nodue', { what: nx.what, who: bsWho(D.c, nx) })) : bsT('bs_cap_next_none'));
   /* A CAP IS A FACT: what the legend counts but the line cannot draw is said */
   if (D.life.undated) out.push(bsTn('bs_cap_undated', D.life.undated, { n: D.life.undated }));
   return out.join(' ');
@@ -861,16 +932,37 @@ function bsChartSvg(D, W0){
   amd.forEach(a => marks.push({ d: a.d, l: a.label, amd: a }));
   const today = { d: M.today, l: bsT('bs_m_today'), today: 1 };
   const all = [today].concat(marks).filter(m => m.d >= t0 && m.d <= t1).sort((a, b) => a.d - b.d);
-  const laneEnd = new Array(BS_LANES).fill(-Infinity), cw = 6.4;
-  const lanes = all.map(m => {
+  const cw = 6.4;
+  /* NO LINE THROUGH A WORD (pass 4, round 7 as drawn: at 1366 wide the Today
+     line ran through "A|mendment No. 1"). A mark's line runs from its label
+     down to the bar, through every lane under it; so a label is placed where
+     it neither overlaps another label in its lane, nor spans the line of a
+     mark labelled above it, nor has its own line run through a label below
+     it. Today is placed first (it is always said), then the marks in date
+     order; an amendment's name sits before its diamond where there is room,
+     as drawn. A mark that fits nowhere keeps its tick and its hover. */
+  const placed = [];
+  const fits = (L, lane) => !placed.some(o => o.lane >= 0 && (
+    (o.lane === lane && !(o.s1 + 6 < L.s0 || L.s1 + 6 < o.s0))
+    || (o.lane < lane && o.x >= L.s0 - 2 && o.x <= L.s1 + 2)
+    || (o.lane > lane && L.x >= o.s0 - 2 && L.x <= o.s1 + 2)));
+  const order = all.map((m, i) => ({ m, i })).sort((a, b) => (Number(!!b.m.today) - Number(!!a.m.today)) || (a.i - b.i));
+  const at = new Map();
+  order.forEach(({ m }) => {
     const x = X(m.d), w = m.l.length * cw + 6;
-    const anchorEnd = x + w > W - pad;
-    const s0 = anchorEnd ? x - w : x, s1 = anchorEnd ? x : x + w;
-    let lane = -1;
-    for (let i = 0; i < BS_LANES; i++) if (laneEnd[i] < s0 - 6){ lane = i; break; }
-    if (lane >= 0) laneEnd[lane] = s1;
-    return { m, x, lane, anchorEnd };
+    const right = x + w <= W - pad, left = x - w >= pad;
+    const ways = (m.amd ? [left ? 'end' : '', right ? 'start' : ''] : [right ? 'start' : '', left ? 'end' : '']).filter(Boolean);
+    if (!ways.length) ways.push('end');
+    let got = null;
+    for (const way of ways){
+      const L = { x, s0: way === 'end' ? x - w : x, s1: way === 'end' ? x : x + w };
+      for (let i = 0; i < BS_LANES && !got; i++) if (fits(L, i)) got = Object.assign(L, { lane: i, anchorEnd: way === 'end' });
+      if (got) break;
+    }
+    const row = got || { x, s0: x, s1: x, lane: -1, anchorEnd: false };
+    row.m = m; placed.push(row); at.set(m, row);
   });
+  const lanes = all.map(m => at.get(m));
   const LY = [20, 44, 68];
   const labelSvg = lanes.map(({ m, x, lane, anchorEnd }) => {
     const tick = `<line class="bs-tick${m.today ? ' is-today' : ''}" x1="${x.toFixed(1)}" y1="${lane >= 0 ? LY[lane] + 5 : BAR - 8}" x2="${x.toFixed(1)}" y2="${m.today ? DOT + 10 : BAR - 2}"><title>${bsE(m.l)}</title></line>`;
@@ -915,7 +1007,7 @@ function bsTermsObsHtml(D){
   });
   const edit = (typeof canEdit !== 'function' || canEdit()) ? `<button type="button" class="hb-link" data-bs-page="details" data-bs-id="${bsE(c.id)}">${bsE(bsT('bs_t_edit'))}</button>` : `<button type="button" class="hb-link" data-bs-page="details" data-bs-id="${bsE(c.id)}">${bsE(bsT('bs_t_more'))}</button>`;
   const O = D.O;
-  const obRows = O.rows.map(r => `<tr${r === O.next ? ' class="is-next"' : ''}${r.st === 'done' ? ' data-done' : ''}><td>${bsE(r.what)}${r === O.next ? `<span class="bs-nx">${bsE(bsT('bs_ob_next'))}</span>` : ''}${r.st === 'overdue' ? `<span class="bs-late">${bsE(bsT('bs_ob_late'))}</span>` : ''}${r.st === 'done' ? `<span class="bs-done">${bsE(bsT('bs_ob_done'))}</span>` : ''}</td>
+  const obRows = O.rows.map(r => `<tr${r === O.next ? ' class="is-next"' : ''}${r.st === 'done' ? ' data-done' : ''}><td>${bsE(r.what)}${''/* LATE FIRST, THEN NEXT (pass 3, round 7 as drawn: "Check the September invoice [Late]", [Next] under it) */}${r.st === 'overdue' ? `<span class="bs-late">${bsE(bsT('bs_ob_late'))}</span>` : ''}${r === O.next ? `<span class="bs-nx">${bsE(bsT('bs_ob_next'))}</span>` : ''}${r.st === 'done' ? `<span class="bs-done">${bsE(bsT('bs_ob_done'))}</span>` : ''}</td>
     <td class="bs-who"><i class="bs-dot ${r.theirs ? 'is-theirs' : 'is-ours'}" aria-hidden="true"></i>${bsE(bsWho(c, r))}</td><td class="bs-d">${r.due ? bsE(bsDay(r.due)) : bsE(bsT('bs_ob_nodue'))}</td></tr>`).join('');
   const obs = O.rows.length
     ? `<div class="bs-obs" tabindex="0" role="region" aria-label="${bsE(bsT('bs_ob_aria'))}"><table class="bs-ob"><thead><tr><th>${bsE(bsT('bs_ob_col_what'))}</th><th>${bsE(bsT('bs_ob_col_who'))}</th><th>${bsE(bsT('bs_ob_col_due'))}</th></tr></thead><tbody>${obRows}</tbody></table></div>`
@@ -945,7 +1037,7 @@ function bsJamboHtml(D){
   /* risks: the one count and the first titles, worst first */
   const titles = D.risks.slice(0, 3).map(it => { try { return (typeof riskTitleOf === 'function') ? riskTitleOf(it) : String(it.title || it.label || ''); } catch (_){ return ''; } }).filter(Boolean);
   const risks = unread ? cell('risks', 'bs_jb_risks', '—', '', [bsT('jb_not_read')], '', '')
-    : cell('risks', 'bs_jb_risks', String(D.riskN), D.riskN ? 'warn' : '', D.riskN ? titles : [bsT('bs_jb_risks_none')], D.riskN ? 'risks' : '', 'bs_jb_risks_go');
+    : cell('risks', 'bs_jb_risks', String(D.riskN), D.riskN ? 'warn' : '', D.riskN ? titles : [bsT('bs_jb_risks_none')], D.riskN ? 'risks' : '', D.riskN === 1 ? 'bs_jb_risk_go' : 'bs_jb_risks_go');
   /* our standards: met · missing · differs, and "all met" only over a finished check */
   const dv = D.dev;
   const met = dv ? Math.max(0, dv.total - dv.dev - dv.miss) : 0;
@@ -958,8 +1050,10 @@ function bsJamboHtml(D){
   const dt = D.det, left = dt && dt.live ? dt.left : 0;
   const labels = dt && dt.live ? dt.items.filter(x => x.open).slice(0, 3).map(x => x.label) : [];
   const det = cell('det', 'bs_jb_det', String(left), left ? 'warn' : '', left ? labels : [bsT('bs_jb_det_none')], left ? 'fill' : '', 'bs_jb_det_go');
-  const O = D.O, first = O.rows.filter(r => r.due && r.st !== 'done').map(r => r.due).sort()[0];
-  const ob = cell('ob', 'bs_jb_ob', String(O.rows.length), '', O.rows.length ? [bsT('bs_jb_ob_sides', { a: O.ours, b: O.theirs }), first ? bsT('bs_jb_ob_first', { d: bsDay(first) }) : ''].filter(Boolean) : [bsT('bs_jb_ob_none')], 'oblig', 'bs_jb_ob_go');
+  /* AS DRAWN (round 7, pass 4): "5 · 3 ours · 2 theirs · Review the
+     obligations ›" — the first due day is the figures' and the table's, not this tile's */
+  const O = D.O;
+  const ob = cell('ob', 'bs_jb_ob', String(O.rows.length), '', O.rows.length ? [bsT('bs_jb_ob_sides', { a: O.ours, b: O.theirs })] : [bsT('bs_jb_ob_none')], 'oblig', 'bs_jb_ob_go');
   /* READ THE BRIEF, BESIDE THE SECTION'S TITLE (owner, 15 Oct 2026: "Add the
      brief button on what Jambo read on upload"). On the LEFT, because the brief
      opens in the 500px side panel on the right, which would cover a button at
@@ -1013,6 +1107,9 @@ function bsPaintHosts(){
     } catch (e){ try { console.error('[hati] the strip\'s ' + k + ' did not paint', e); } catch (_){} }
   });
   bsFitWatch();
+  /* Jambo's panel follows the page in front (the redesign's gaps, rounds 7
+     and 12): another page, its History, or none draws the panel again */
+  if (typeof window.pdHeldFollow === 'function') try { window.pdHeldFollow(); } catch (_){}
 }
 function bsPaintWhere(host, c){
   if (typeof standsHtml !== 'function') return;
@@ -1255,6 +1352,8 @@ if (typeof document !== 'undefined' && !document._bsWired){
     if ((el = t.closest('[data-bs-x]'))){ take(); bsStripClose(el.getAttribute('data-bs-x')); return; }
     /* a member of the agreement family brings its own card up (the one door) */
     if ((el = t.closest('[data-bs-fam]'))){ take(); hbStripBring(el.getAttribute('data-bs-fam')); return; }
+    if ((el = t.closest('[data-bs-famact]'))){ take(); if (el.disabled) return; const fc = bsContract(el.getAttribute('data-bs-id')); _bsMenu = null; bsRepaint();
+      if (fc && typeof familyActRun === 'function') familyActRun(fc, el.getAttribute('data-bs-famact'), () => bsRepaint()); return; }
     if ((el = t.closest('[data-bs-keep]'))){ take(); if (!el.disabled) bsStripKeep(el.getAttribute('data-bs-keep')); return; }
     if ((el = t.closest('[data-bs-letgo]'))){ take(); bsStripLetGo(el.getAttribute('data-bs-letgo')); return; }
     /* Open: the contract on Home's paper — the one landing every Workspace door shares */
@@ -1303,11 +1402,11 @@ if (typeof document !== 'undefined' && !document._bsWired){
   }, true);
 }
 
-if (typeof window !== 'undefined') Object.assign(window, { bsFamRows, bsFamHtml,
-  bsIsPay, bsJobTiles, bsNoticeWords, bsPayEvery, payBaseLine, bsPayLock, bsPayMay, payAmountRead, paySet, payEditOpen, bsPayHtml, bsPaintPay,
+if (typeof window !== 'undefined') Object.assign(window, { bsPrivateOf, bsPrivatePillHtml, bsFamRows, bsFamHtml,
+  bsIsPay, bsJobTiles, bsNoticeWords, bsPayEvery, bsPayMoney, bsReadWait, bsGo, payBaseLine, bsPayLock, bsPayMay, payAmountRead, paySet, payEditOpen, bsPayHtml, bsPaintPay,
   bsIsNda, bsNda, ndaMay, ndaDirWords, ndaUntilWords, ndaReminderOf, ndaSet, ndaEditOpen, bsNdaTile, bsNdaCaption, bsPaintNda,
   BS_PAGES, BS_MENU_PAGES, BS_MAX,
   bsCardOn, bsCardId, bsCardLeave, bsAmendMarks,
   hbStripBring, bsStrips, bsStrip, bsStripPage, bsStripClose, bsStripKeep, bsStripLetGo, bsRefresh, bsRepaint,
-  roomRetiredLand, bsLifeData, bsObRows, bsCaption, bsStripsHtml, bsStripHtml, bsLifeHtml, bsChartSvg, bsPaintHosts, bsDay,
+  roomRetiredLand, bsLateDays, bsLifeData, bsObRows, bsCaption, bsStripsHtml, bsStripHtml, bsLifeHtml, bsChartSvg, bsPaintHosts, bsDay,
 });

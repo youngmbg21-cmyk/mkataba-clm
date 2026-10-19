@@ -114,8 +114,12 @@ async function login(browser, email, pass, errors) {
     await O.page.waitForTimeout(1200);
     const row = O.page.locator('#reg-tbody tr[data-row="MK-A2"]').first();
     if (await row.count()) { await row.click(); await O.page.waitForTimeout(1000); }
+    /* RE-POINTED 19 Oct 2026 (round 14 as drawn, "Jambo's panel beside the
+       lists": Needs you is its own section of Jambo's panel, jlNeedsHtml —
+       the same reading, needsYouOf said by insNeedWords and pressed through
+       needsYouGo — drawn as .jl-need in place of the old .ins-need box) */
     const panel = await O.page.evaluate(() => {
-      const box = document.querySelector('.ins-need');
+      const box = document.querySelector('#ins-panel .jl-need');
       return { drawn: !!box, text: box ? box.textContent.replace(/\s+/g, ' ').trim() : '' };
     });
     check('2d and the side panel\'s checklist on its list page asks for an answer',

@@ -73,7 +73,9 @@ const check = (name, pass, detail) => {
     await page.evaluate(() => { window.__asked.length = 0; window.__planNext = { kind: 'answer', say: 'Two dates are coming up before Christmas.',
       points: ['Tue 15 Dec: MK-A1 notice deadline', 'Fri 18 Dec: MK-A2 renewal'] }; });
     /* "Just do it", chosen the way the panel's own choice saves it */
-    const setLevel = v => page.evaluate(v => { const lv = document.getElementById('cal-plan-level'); lv.value = v; lv.dispatchEvent(new Event('change', { bubbles: true })); }, v);
+    /* RE-POINTED 18 Oct 2026 (lane A4, round 16 as drawn): "Jambo may change
+       my calendar" is three buttons, On his own · Ask me first · Never */
+    const setLevel = v => page.evaluate(v => { const b = document.querySelector(`[data-cal-lv="${v}"]`); if (b) b.click(); }, v);
     await setLevel('auto');
     check('1 · "Just do it" is on', !!(await until(() => minePref().copilotLevel === 'auto' && !!document.getElementById('cal-plan-in'))));
     const before = await page.evaluate(() => (mineList('event') || []).length);

@@ -104,12 +104,17 @@ describe('f202 — a restricted member sees every colleague', () => {
     assert.ok(a && a.getAttribute('href').startsWith('mailto:'), 'mailto');
   });
 
-  test('admins are listed first, then everybody by name — on the Our people tab, the roster\'s own order', () => {
+  /* RE-POINTED 19 Oct 2026 (round 19's People table as drawn: "ours first,
+     then theirs, by name", the reader first): who is an admin is still stated
+     on every row (D-2), in the In HaTi column; the phone keeps the roster's
+     own order, admins first (dirPeople) */
+  test('the reader first, then everybody by name — on the Our people side', () => {
     const ours = stage(boot.users, boot.me, { tab: 'ours' });
     const names = [...ours.doc.querySelectorAll('.dir-name')].map(n => n.textContent.trim());
-    assert.match(names[0], /Amina Otieno/, 'the admin');
+    assert.equal(names[0], boot.me.name, 'the reader');
     const rest = names.slice(1).map(s => s.toLowerCase());
     assert.deepEqual(Array.from(rest), Array.from(rest.slice().sort()), 'and the rest alphabetically');
+    assert.match(read('js/mobile.js'), /dirPeople\(\)/, 'the phone keeps the roster\'s order');
   });
 
   test('nothing on it writes — a press chooses a card, switches a tab or narrows; the one link leaves the app', () => {

@@ -116,9 +116,11 @@ describe('f726 (1) Needs your attention, two lines a row', () => {
     const h = win.document.getElementById('st-needs-h');
     assert.ok(h && h.querySelector('.st-needs-sub') && h.querySelector('.st-needs-sub').textContent === S.en.st_needs_sub);
   });
+  /* RE-POINTED 18 Oct 2026 (owner's answer 12): the kind is still said, and
+     since the day HaTi first saw the clash where the server holds it */
   test('1c a clash says what kind of thing it is', () => {
     const SET = fs.readFileSync(path.join(ROOT, 'js/views/settings.js'), 'utf8');
-    assert.match(SET, /stClashes\(\)\.forEach\(r=>out\.push\(\(r\.sub\|\|r\.subHtml\)\?r:\{ \.\.\.r, sub:i18t\('st_need_kind_clash'\) \}\)\)/);
+    assert.match(SET, /stClashes\(\)\.forEach\(r=>\{ const seen=stClashSeenDay\(r\.key\);\s*out\.push\(\(r\.sub\|\|r\.subHtml\)\?r:\{ \.\.\.r, sub:seen\?i18t\('st_need_kind_clash_since',\{ day:seen \}\):i18t\('st_need_kind_clash'\) \}\); \}\);/);
   });
 });
 

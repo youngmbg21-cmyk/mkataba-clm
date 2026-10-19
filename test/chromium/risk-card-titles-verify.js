@@ -119,7 +119,14 @@ async function shot(page, name){ try{ await page.screenshot({ path: path.join(OU
     if (!(await page.evaluate(() => typeof riskItemsOf === 'function'))) throw new Error('this build has no risk list');
     await until(page, id => !!(typeof getContract === 'function' && getContract(id)), ID, 15000);
     await page.evaluate(id => openWorkspace(id, { room: true }), ID);
-    await page.evaluate(({ id, BRIEF }) => { const c = getContract(id); c._brief = BRIEF; c._hasBrief = true; roomGoTab(c, 'redline'); }, { id: ID, BRIEF });
+    /* the room settles first (its whole record read), so its late paint does
+       not land over the Negotiate page opened next */
+    await until(page, () => !!document.querySelector('[data-room-check]'), null, 8000);
+    /* RE-POINTED (round 9's gaps, second pass): Jambo's Redlines face beside
+       Home's paper draws the piles only, as drawn; the risk list stays on the
+       Negotiate page, opened by name — its column (#rl-risks) and its own
+       paper (#view-redline #rl-doc). Every repaint below is the page's. */
+    await page.evaluate(({ id, BRIEF }) => { const c = getContract(id); c._brief = BRIEF; c._hasBrief = true; openRedlineWorkbench(id, { page: true }); }, { id: ID, BRIEF });
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
        'redline' door now lands on Jambo's Redlines face beside Home's paper —
        the column (and its Risks to look at) in #pd-redface, the paper Home's
@@ -127,7 +134,7 @@ async function shot(page, name){ try{ await page.screenshot({ path: path.join(OU
        repaint (renderRedline) would draw the Negotiate PAGE over Home's
        #content, so every repaint below is the face's host's (pdRedRepaint),
        and section 4 reads the paper on Home. */
-    await until(page, () => !!document.querySelector('#pd-redface #rl-changes'), null, 10000);
+    await until(page, () => !!document.querySelector('#view-redline #rl-changes'), null, 10000);
     await new Promise(r => setTimeout(r, 1500));
     /* A redline of ours on clause 4 covers the records risk — filed once the
        page has settled, as a reader would. */
@@ -139,10 +146,10 @@ async function shot(page, name){ try{ await page.screenshot({ path: path.join(OU
       if (c._brief == null) c._brief = null;
       return r && r.id ? r.id : null;
     }, { id: ID, DATA_Q });
-    await until(page, () => { if (window.pdRedRepaint) pdRedRepaint(); return (getContract(state.activeId).changes || []).length > 0; });
+    await until(page, () => { if (document.getElementById('view-redline') && window.renderRedline) renderRedline(); return (getContract(state.activeId).changes || []).length > 0; });
     if (!staged) console.log('  note — the covering redline could not be staged');
     const listed = await until(page, () => {
-      if (window.pdRedRepaint) pdRedRepaint();
+      if (document.getElementById('view-redline') && window.renderRedline) renderRedline();
       return document.querySelectorAll('#rl-risks .rk-row[data-rk-key]').length >= 3;
     });
     check(!!listed, '0 the Redlines card has its "Risks to look at"');
@@ -154,7 +161,7 @@ async function shot(page, name){ try{ await page.screenshot({ path: path.join(OU
 
     for (const width of [1366, 1024]){
       await page.setViewportSize({ width, height: 900 });
-      await page.evaluate(() => { if (window.pdRedRepaint) pdRedRepaint(); });
+      await page.evaluate(() => { if (document.getElementById('view-redline') && window.renderRedline) renderRedline(); });
       await until(page, () => !!document.getElementById('rl-risks'));
       const m = await page.evaluate(() => {
         const list = document.getElementById('rl-risks');
@@ -175,7 +182,7 @@ async function shot(page, name){ try{ await page.screenshot({ path: path.join(OU
       check(!!(painted && painted.sev && painted.why), `1c (${width}) severity and Why are painted on a long-title card`, JSON.stringify(painted));
     }
     await page.setViewportSize({ width: 1366, height: 900 });
-    await page.evaluate(() => { if (window.pdRedRepaint) pdRedRepaint(); });
+    await page.evaluate(() => { if (document.getElementById('view-redline') && window.renderRedline) renderRedline(); });
     await until(page, () => !!document.getElementById('rl-risks'));
 
     /* 2 — the titles */
@@ -214,9 +221,9 @@ async function shot(page, name){ try{ await page.screenshot({ path: path.join(OU
     if (hasDoor){
       await page.evaluate(k => document.querySelector('#rl-risks .rk-row[data-rk-key="' + CSS.escape(k) + '"]').scrollIntoView({ block: 'center' }), kTerm);
       await page.click(`#rl-risks .rk-row[data-rk-key="${kTerm}"] .rk-head .rk-t`);
-      /* RE-POINTED 14 Oct 2026 (stage 5): the paper beside the face is Home's */
+      /* RE-POINTED 14 Oct 2026 (stage 5), and again in round 9's second pass: the Negotiate page's own paper */
       const at = await until(page, () => {
-        const doc = document.getElementById('ig-paper'); if (!doc) return null;
+        const doc = document.querySelector('#view-redline #rl-doc'); if (!doc) return null;
         const flash = doc.querySelector('span.anchor-flash'); if (!flash) return null;
         const cl = flash.closest('[data-clause]');
         const r = flash.getBoundingClientRect();
@@ -228,7 +235,7 @@ async function shot(page, name){ try{ await page.screenshot({ path: path.join(OU
       check(!!at && at.shown, '4b those words are in view on the paper (elementFromPoint)');
       const ring = await page.evaluate(k => {
         const row = document.querySelector('#rl-risks .rk-row[data-rk-key="' + CSS.escape(k) + '"]');
-        const cl = [...document.querySelectorAll('#ig-paper [data-clause]')].find(x => /Termination/.test(x.textContent));
+        const cl = [...document.querySelectorAll('#view-redline #rl-doc [data-clause]')].find(x => /Termination/.test(x.textContent));
         const cs = cl ? getComputedStyle(cl) : null;
         return { linked: !!(row && row.classList.contains('is-linked')), ring: row ? getComputedStyle(row).boxShadow : '',
           outline: cs ? (cs.outlineStyle === 'none' || cs.outlineWidth === '0px') : true };
@@ -237,8 +244,10 @@ async function shot(page, name){ try{ await page.screenshot({ path: path.join(OU
       check(ring.outline, '4d the paper draws no outline on the clause');
       await shot(page, '3-went-to-its-clause.png');
 
-      const scroller = () => { let n = document.getElementById('ig-canvas'); while (n && n !== document.body){ const s = getComputedStyle(n); if (/(auto|scroll)/.test(s.overflowY) && n.scrollHeight > n.clientHeight) return n; n = n.parentElement; } return document.scrollingElement; };
-      const top0 = await page.evaluate(`(${scroller})().scrollTop`);
+      const scroller = () => { let n = document.querySelector('#view-redline #rl-doc [data-clause]'); while (n && n !== document.body){ const s = getComputedStyle(n); if (/(auto|scroll)/.test(s.overflowY) && n.scrollHeight > n.clientHeight) return n; n = n.parentElement; } return document.scrollingElement; };
+      /* the press above scrolls smoothly; read the paper once it has come to rest (bounded) */
+      let top0 = await page.evaluate(`(${scroller})().scrollTop`);
+      for (let i = 0; i < 20; i++){ await new Promise(r => setTimeout(r, 150)); const t = await page.evaluate(`(${scroller})().scrollTop`); if (t === top0) break; top0 = t; }
       await page.evaluate(k => document.querySelector('#rl-risks .rk-row[data-rk-key="' + CSS.escape(k) + '"] [data-rk-act="why"]').click(), kPapers);
       await new Promise(r => setTimeout(r, 500));
       const top1 = await page.evaluate(`(${scroller})().scrollTop`);
@@ -248,7 +257,7 @@ async function shot(page, name){ try{ await page.screenshot({ path: path.join(OU
       await page.evaluate(() => { document.querySelectorAll('.anchor-flash').forEach(n => n.classList.remove('anchor-flash')); });
       await page.focus(`#rl-risks .rk-row[data-rk-key="${kDeliv}"] .rk-head`);
       await page.keyboard.press('Enter');
-      const viaKey = await until(page, () => { const f = document.querySelector('#ig-paper span.anchor-flash'); const cl = f && f.closest('[data-clause]'); return cl ? /Delivery/.test(cl.textContent) : null; }, null, 6000);
+      const viaKey = await until(page, () => { const f = document.querySelector('#view-redline #rl-doc span.anchor-flash'); const cl = f && f.closest('[data-clause]'); return cl ? /Delivery/.test(cl.textContent) : null; }, null, 6000);
       check(!!viaKey, '4f Enter on the focused head does what a press does');
 
       const missing = await page.evaluate(() => { const r = [...document.querySelectorAll('#rl-risks .rk-row')].find(x => /injunctive/i.test(x.textContent + ' ' + ((x.querySelector('.rk-t') || {}).title || '')));
@@ -270,7 +279,7 @@ async function shot(page, name){ try{ await page.screenshot({ path: path.join(OU
       check(!!cov && cov.door, '4i a covered row\'s head is a door', cov ? JSON.stringify(cov) : covWhy);
       if (cov && cov.door){
         await page.click(`#rl-risks .rk-row.is-covered[data-rk-key="${kRec}"] .rk-head .rk-t`);
-        const went = await until(page, to => { const cl = document.querySelector('#ig-paper [data-clause="' + CSS.escape(to) + '"]'); if (!cl) return null;
+        const went = await until(page, to => { const cl = document.querySelector('#view-redline #rl-doc [data-clause="' + CSS.escape(to) + '"]'); if (!cl) return null;
           const r = cl.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; }, cov.to, 4000);
         check(!!went, '4j it goes where its "Go to change" link goes', cov.to);
       }
@@ -316,3 +325,4 @@ async function shot(page, name){ try{ await page.screenshot({ path: path.join(OU
   console.log(failures ? `\n${failures} FAILED` : '\nall passed');
   process.exit(failures ? 1 : 0);
 })();
+

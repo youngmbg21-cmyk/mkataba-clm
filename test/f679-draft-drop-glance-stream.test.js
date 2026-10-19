@@ -227,11 +227,14 @@ describe('f679 (3) a sentence answers with the New agreement card', () => {
     ctx.caDraftForm(a);
     const best = { kind: 'tid', id: 'NDA' };
     assert.deepEqual(J(calls), [['form', { pick: null, prefill: { purpose: 'A promotion', counterparty: 'Volvo' }, asked: 'draft an NDA with Volvo', streamAsk: true,
-      closest: J(a.options).map(o => ({ kind: o.kind === 'builtin' ? 'tid' : o.kind, id: o.id })), best, words: { what: J(calls)[0][1].words.what, who: 'Volvo', known: false } }]]);
-    assert.ok(J(calls)[0][1].words.what, 'What is the closest paper\'s title');
+      closest: J(a.options).map(o => ({ kind: o.kind === 'builtin' ? 'tid' : o.kind, id: o.id })), best, words: { what: J(calls)[0][1].words.what, who: 'Volvo', known: false, purpose: '' } }]]);
+    /* RE-POINTED (the gaps, round 4, 18 Oct 2026): What is the KIND the words ask for
+       ("A non-disclosure agreement"), not the closest paper's title, and What it is for
+       is read from the words where they say it ("… for a pilot"; here they do not) */
+    assert.ok(J(calls)[0][1].words.what, 'What is the kind the words ask for');
     calls.length = 0;
     ctx.caDraftForm({ sentence: 'draft a lease with Mumias', options: [], prefill: {} });
-    assert.deepEqual(J(calls), [['form', { pick: null, prefill: { counterparty: 'Mumias' }, asked: 'draft a lease with Mumias', streamAsk: true, closest: [], best: null, words: { what: '', who: 'Mumias', known: false } }]], 'no paper named: the counterparty waits for the pick');
+    assert.deepEqual(J(calls), [['form', { pick: null, prefill: { counterparty: 'Mumias' }, asked: 'draft a lease with Mumias', streamAsk: true, closest: [], best: null, words: { what: 'A lease', who: 'Mumias', known: false, purpose: '' } }]], 'no paper named: the counterparty waits for the pick');
   });
   test('3e the one form greys Create until a stream is in its box, and says where the answers came from', () => {
     const light = WZ.slice(WZ.indexOf('const light=()=>'), WZ.indexOf('const dress=host=>'));
@@ -339,7 +342,10 @@ describe('f679 (5) a contract at a glance', () => {
     const html = ctx.pdGlanceHtml(ctx.pdContract());
     assert.match(html, /pd_gl_title\[MK-1\]/); assert.match(html, /room-stat/, 'the head\'s own stage pill');
     assert.match(html, /pd_gl_details:3[\s\S]*data-pd-glance="fill"/);
-    assert.match(html, /pd_gl_risks:2[\s\S]*data-pd-glance="redline"/);
+    /* RE-POINTED AT THE INTEGRATION (19 Oct 2026): round 9 as drawn left the
+       Redlines face beside Home's paper with no risk list, so the risks row
+       opens the clause editor's Risks tab (data-pd-gl-risks → riskEditStart) */
+    assert.match(html, /pd_gl_risks:2[\s\S]*data-pd-gl-risks>ce_tab_risks</);
     assert.match(html, /pd_gl_unsent:1[\s\S]*data-pd-glance="share"/);
     assert.match(html, /pd_gl_signers[\s\S]*data-pd-glance="sign"/);
   });
@@ -372,7 +378,7 @@ describe('f679 (5) a contract at a glance', () => {
   });
   test('5d a shut door is grey with its reason; a press asks the face\'s own word', () => {
     const { ctx } = pdStage({ risks: 1, shut: 'This contract is signed.' });
-    assert.match(ctx.pdGlanceHtml(ctx.pdContract()), /disabled aria-disabled="true" title="This contract is signed\.">pd_gl_redlines/);
+    assert.match(ctx.pdGlanceHtml(ctx.pdContract()), /disabled aria-disabled="true" title="This contract is signed\.">ce_tab_risks/);
     assert.deepEqual(J(ctx.PD_GLANCE.fill), ['pd_gl_details', 'pd_gl_fill', 'ca_w_fill']);
     for (const k of ['fill', 'redline', 'share', 'sign']) for (const lang of ['en', 'sv']){
       const w = BOOKS[lang][ctx.PD_GLANCE[k][2]]; assert.ok(w, k + ' ' + lang);
@@ -410,7 +416,9 @@ describe('f679 (6) the stream in Fill in', () => {
     const { ctx, c } = pdStage({ refile: false });
     const html = ctx.pdFillStreamHtml(c);
     assert.match(html, /disabled aria-disabled="true" title="pd_ff_stream_ro"/);
-    assert.match(html, /class="pd-ff-ro">pd_ff_stream_ro</);
+    /* RE-POINTED 18 Oct 2026 (the gaps, round 8 "Owed first", f751): the line as drawn, whose act it is (the reason stays on each button's hover) */
+    assert.match(html, /class="pd-ff-ro">pd_ff_stream_admin/);
+    assert.match(html, /title="pd_ff_stream_ro"/);
   });
   test('6d a press moves it through the one stream writer, which asks first, records, and draws no room', async () => {
     const { ctx } = pdStage(); const moved = [];

@@ -62,12 +62,16 @@ const REAL = 'Exclusive Distribution — Carrefour Kenya', PARTY = 'Carrefour Ke
       return v; };
     const press = async (sel, what) => { if (!(await page.locator(sel).count())) { check(what + ' (nothing to press: ' + sel + ')', false); return false; } await page.locator(sel).first().click(); return true; };
     const line = () => until(() => { const r = document.querySelector('#kt-codename [data-cn-row]'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : null; }, null, 15000);
+    /* RE-POINTED (B1 pass 4, round 7 as drawn: the code name is a row of Filing — "Code name · None · Everyone who may open it
+       sees its real name · [Give it a code name]"): the row read by its parts, the key, the value, the line under it, its button */
+    const parts = () => until(() => { const r = document.querySelector('#kt-codename [data-cn-row]'); if (!r) return null; const t = el => el ? el.textContent.replace(/\s+/g, ' ').trim() : '';
+      return { k: t(r.querySelector('.ov-fk')), v: t(r.querySelector('.ov-fv b')), sub: t(r.querySelector('.ov-fv .ov-fs')), btn: t(r.querySelector('[data-cn-edit]')) }; }, null, 15000);
 
     console.log('\n1 · the line on Details');
     await page.evaluate(() => roomOverviewOpen(getContract('FAL-1')));
-    const l1 = await line();
-    check('1 "Code name · None — everyone who may open it sees its real name · Give it a code name ›"',
-      l1 === 'Code name None — everyone who may open it sees its real name Give it a code name ›', l1);
+    const l1 = await parts();
+    check('1 "Code name · None · Everyone who may open it sees its real name. · Give it a code name"',
+      !!l1 && l1.k === 'Code name' && l1.v === 'None' && l1.sub === 'Everyone who may open it sees its real name.' && l1.btn === 'Give it a code name', JSON.stringify(l1));
 
     console.log('\n2 · the dialog');
     if (await press('#kt-codename [data-cn-edit]', '2a Give it a code name')) {
@@ -84,10 +88,11 @@ const REAL = 'Exclusive Distribution — Carrefour Kenya', PARTY = 'Carrefour Ke
       await page.evaluate(id => { const i = document.querySelector(`#cn-people input[value="${id}"]`); if (i) i.checked = true; }, N.id);
       await press('#cn-save', '2b Save');
       const told = await until(() => { const t = (document.getElementById('toast-root') || {}).textContent || ''; return /know the real name/.test(t) ? t.replace(/\s+/g, ' ').trim() : null; });
-      const l2 = await until(() => { const r = document.querySelector('#kt-codename [data-cn-row]'); const t = r && r.textContent.replace(/\s+/g, ' ').trim(); return t && /Project Falcon/.test(t) ? t : null; });
-      check('2b an \'ok\'; the line: "Code name Project Falcon · who knows the real name: No Values Legal, Unrestricted Legal · Change ›"', !!told
+      await until(() => { const r = document.querySelector('#kt-codename [data-cn-row]'); return r && /Project Falcon/.test(r.textContent) ? true : null; });
+      const l2 = await parts();
+      check('2b an \'ok\'; the row: "Code name · Project Falcon · who knows the real name: No Values Legal, Unrestricted Legal · Change"', !!told
         && /Project Falcon: 2 people know the real name\./.test(told)
-        && l2 === 'Code name Project Falcon · who knows the real name: No Values Legal, Unrestricted Legal Change ›', `${told} / ${l2}`);
+        && !!l2 && l2.k === 'Code name' && l2.v === 'Project Falcon' && l2.sub === 'who knows the real name: No Values Legal, Unrestricted Legal' && l2.btn === 'Change', `${told} / ${JSON.stringify(l2)}`);
       await shot(page, 'code-name-line-1440x780');
     }
     const owner = page;

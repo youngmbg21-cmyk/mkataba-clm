@@ -132,10 +132,17 @@ describe('f188 (2) — both card renderers write the short form', () => {
        which stays one hover away. Reverses 16 Aug's "prints none at all" for
        the row; the rule this block exists for — a printed name is the short
        form — holds here too. */
+    /* RE-POINTED AGAIN 19 Oct 2026 (round 9 as drawn: our own row reads
+       "You · today"). The short form is measured on a colleague's row, seen
+       from my seat; my own row says "You", and neither prints a whole name. */
     const { w, c } = await staged();
+    const mine = w.win.redlineChangeCardsHtml(c, { side: 'owner' });
+    assert.ok(!/Young Mbagaya/.test(mine.replace(/\s(?:title|aria-label)="[^"]*"/g, '')), 'never the whole name as visible text on the row');
+    assert.match(mine, /class="rl-card-by"[^>]*>You · /, 'my own row says "You" (round 9 as drawn)');
+    w.win.currentUser = () => BOSS;
     const html = w.win.redlineChangeCardsHtml(c, { side: 'owner' });
     const seen = html.replace(/\s(?:title|aria-label)="[^"]*"/g, '');
-    assert.ok(!/Young Mbagaya/.test(seen), 'never the whole name as visible text on the row');
+    assert.ok(!/Young Mbagaya/.test(seen), 'never the whole name as visible text on a colleague\'s row');
     assert.match(html, /class="rl-card-by"[^>]*>Young M\./, 'the short form, on the row\'s who-and-when line');
     assert.match(html, /title="[^"]*Young Mbagaya/,
       'NOTHING IS LOST: the whole name is one hover away');

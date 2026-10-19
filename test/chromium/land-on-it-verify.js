@@ -69,10 +69,17 @@ CONTRACTS[1].metadata = { ...(CONTRACTS[1].metadata || {}), expiryDate: day(40) 
       return v; };
     const shot = n => page.screenshot({ path: path.join(OUT, n + '.png') }).catch(() => {});
     const toCounter = async () => { await page.evaluate(() => setView('counter')); return until(() => !!document.getElementById('cn-q')); };
+    /* RE-POINTED 18 Oct 2026 (round 23's gaps, rebuilt on LAND ON IT): Home's
+       chips are the picked drawing's — the first owed row, contracts,
+       calendar, draft a new agreement — so a word with no chip of its own
+       ("jambo's work", "upload a document") is asked in Home's own box, the
+       door every chip presses (counterAsk); the landing it pins is the same */
     const chip = async word => {
-      const ok = await page.evaluate(w => { const b = [...document.querySelectorAll('#cn-page [data-cn-ask]')].find(x => x.getAttribute('data-cn-ask') === w); if (!b) return false; b.click(); return true; }, word);
-      if (!ok) check(`(the Counter has no "${word}" chip)`, false);
-      return ok;
+      const how = await page.evaluate(w => { const b = [...document.querySelectorAll('#cn-page [data-cn-ask]')].find(x => x.getAttribute('data-cn-ask') === w);
+        if (b){ b.click(); return 'chip'; } return document.getElementById('cn-q') ? 'box' : ''; }, word);
+      if (how === 'box'){ await page.fill('#cn-q', word); await page.press('#cn-q', 'Enter'); }
+      if (!how) check(`(Home has no "${word}" chip and no box to ask it in)`, false);
+      return !!how;
     };
     /* what is lit, and is it in sight, ringed, with a button ready */
     const LIT = () => { const L = [...document.querySelectorAll('.is-landed')];

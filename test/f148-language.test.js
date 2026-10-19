@@ -34,15 +34,19 @@ const { STRINGS, I18N_DEFAULT, LANGUAGES } = i18n;
 
 /* Words that are legitimately identical in both languages, so an equal-to-
    English value is a real translation rather than a forgotten one. */
-const SAME_IN_BOTH = new Set([ 'int_tour_part', 'na_tab_hati', 'cal_k_plan', 'pd_tab_copilot', 'pd_tab_guide', 'stk_by_jambo', 'pd_doc_pdf',
+const SAME_IN_BOTH = new Set([ 'st_jb_c_need', 'st_cf_trail_last', 'st_tr_as_csv', 'int_tour_part', 'na_tab_hati', 'cal_k_plan', 'pd_tab_copilot', 'pd_tab_guide', 'stk_by_jambo', 'pd_doc_pdf',
   /* Jambo's words (stage 1 of the one-page Home plan, 14 Oct 2026): "3×", how often a place was used, is a number */
   'hb_pop_used',
   /* a counter that keeps one of their words (18 Oct 2026): one place is just the word itself */
   'ng_keeps_n_one',
   /* the Control Room (16 Oct 2026): "Jambo" is his name, and "1 person" and "Person" are the same words in Swedish */
   'st_side_jambo', 'st_cr_people_n_one', 'st_pc_people_one', 'st_sh_person',
+  /* Jambo's panel beside the lists (18 Oct 2026): "Person" and "1 risk" are the same words in Swedish */
+  'jl_w_person', 'jl_read_risks_one',
   /* Jambo's agents (12 Oct 2026): "1 agent", "Normal" and "Agent" are the same word in Swedish */
   'jh_n_agents_one', 'jh_sp_1', 'jh_col_agent', 'jh_pt_col_ex',
+  /* the Counter's levels line (round 23's gaps, 18 Oct 2026): "1 agent:" is the same words in Swedish */
+  'cn_lv_n_one',
   /* the Brain's Stack view (10 Oct 2026): product and service names (Node.js, Render, GitHub…), the
      technical words a developer uses, and the "say this to a developer" lines, kept English in both books on purpose */
   'brn_ov_stack', 'brn_stk_ask_1_s', 'brn_stk_ask_1_say', 'brn_stk_ask_2_s', 'brn_stk_ask_2_say', 'brn_stk_ask_3_s',
@@ -58,6 +62,7 @@ const SAME_IN_BOTH = new Set([ 'int_tour_part', 'na_tab_hati', 'cal_k_plan', 'pd
   'brn_stk_w_route', 'brn_stk_w_server', 'brn_stk_w_sqlite', 'brn_stk_w_stack', 'brn_stk_w_token', 'brn_view_stack',
   'pd_back_copilot',   /* "‹ Copilot": the product's name, alike in both (8 Oct 2026) */
   'ag_wk_range',   /* "{from} – {to}": the week ahead's two dates, placeholders only (7 Oct 2026) */
+  'pd_rd_ck_n',   /* "{name} ({n})": a check's name and how many, placeholders only (the gaps, round 10, 18 Oct 2026) */
   'int_span_days',   /* "{n} d": the day's mark reads alike in both, as int_fact_decide always did */
   'rk_tt_fm',   /* "Force majeure": the same legal term in Swedish (6 Oct 2026) */
   /* the board work order (5 Oct 2026): placeholders and punctuation only */
@@ -213,6 +218,10 @@ const SAME_IN_BOTH = new Set([ 'int_tour_part', 'na_tab_hati', 'cal_k_plan', 'pd
   'cu_col_nda', 'cu_nda_word',
   /* the trail drawer: two days and a dash, and words Swedish shares */
   'st_tr_span', 'st_tr_col_period', 'st_tr_people_one', 'bz_people_one',
+  /* 19 Oct 2026: the Parties panel's owner with more ("{name} · +{n}") is a name, a dot
+     and a count, not one word to translate; and "Import", the Import page's word on
+     Jambo's panel (round 22), is the same word in Swedish (as ag_k_import above) */
+  'cu_owner_more', 'mig_side_word',
 ]);
 
 describe('f148 — the two dictionaries stay level', () => {

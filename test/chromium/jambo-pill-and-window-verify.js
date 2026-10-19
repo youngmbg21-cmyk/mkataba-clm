@@ -76,8 +76,11 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     ok('4a on Home the window does not appear; the cursor goes to Home\'s Jambo', !home.open && home.focus === 'igd-input', JSON.stringify(home));
 
     /* ---- 5 the window ---- */
-    /* a page that is not Home: Contracts is Home's Contracts place since step 7, so Approvals */
-    await page.evaluate(() => setView('approvals'));
+    /* a page that is not Home: Contracts is Home's Contracts place since step 7, so Approvals —
+       RE-POINTED 18 Oct 2026: Approvals now has Jambo's panel beside its list (round 15 as
+       drawn), and the door goes to the Jambo already on the page (aiGoEmbedded 'list'), so the
+       window is checked on a page with no Jambo of its own: the Brain */
+    await page.evaluate(() => setView('brain'));
     await page.click('#cmd-ai');
     await until(page, () => document.getElementById('ai-panel').classList.contains('open'));
     const first = await page.evaluate(() => { const p = document.getElementById('ai-panel'), r = p.getBoundingClientRect();
@@ -113,7 +116,7 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await page.evaluate(() => setView('dashboard'));
     const aside = await until(page, () => getComputedStyle(document.getElementById('ai-panel')).visibility === 'hidden', null, 4000);
     ok('6a on Home it steps aside', aside);
-    await page.evaluate(() => setView('approvals'));
+    await page.evaluate(() => setView('brain'));
     const back = await until(page, () => getComputedStyle(document.getElementById('ai-panel')).visibility === 'visible', null, 4000);
     r = await (await page.$('#ai-panel')).boundingBox();
     ok('6b leaving Home, it comes back where it was', back && Math.round(r.x) === before.x && Math.round(r.y) === before.y, `${Math.round(r.x)},${Math.round(r.y)}`);

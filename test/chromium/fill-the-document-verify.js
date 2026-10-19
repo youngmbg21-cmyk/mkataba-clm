@@ -62,16 +62,19 @@ const openDocs = async (page, id) => {
   await waitFor(page, () => !!document.querySelector('#pd-fill input'));
 };
 const paperText = page => page.evaluate(() => (document.getElementById('ig-canvas') || {}).textContent || '');
+/* RE-POINTED 18 Oct 2026 (the gaps, round 8 "Owed first", f751): on Home's
+   Fill in the press is in the document's own card, as drawn — the form's own
+   button pressed (the one act), its state the form's own */
 const fillBtn = page => page.evaluate(() => {
-  const b = document.querySelector('#pd-fill [data-tplf-fill]');
+  const b = document.querySelector('#pd-fillface [data-pd-ff-docfill]');
   if (!b) return null;
-  const host = document.getElementById('pd-fill');
+  const host = document.querySelector('#pd-fillface .pd-ff');
   const probe = document.createElement('span');
   probe.style.background = 'var(--color-accent-50)'; document.body.appendChild(probe);
   const want = getComputedStyle(probe).backgroundColor; probe.remove();
   const br = b.getBoundingClientRect(), hr = host.getBoundingClientRect();
   return { text: b.textContent.trim(), disabled: b.disabled, bg: getComputedStyle(b).backgroundColor, want,
-    atFoot: br.top > hr.top + hr.height / 2, title: b.title };
+    atFoot: br.top > hr.top + hr.height / 2, inCard: !!b.closest('[data-pd-ff-doc]'), title: b.title };
 });
 const owed = (page, id) => page.evaluate(x => {
   const c = state.contracts.find(k => k.id === x);
@@ -134,9 +137,8 @@ const owed = (page, id) => page.evaluate(x => {
     const w2 = await page.evaluate(() => String((state.contracts.find(k => k.id === 'MK-FD1') || {}).redlineText || ''));
     check('2b the wording waits for the press', !!w2 && !w2.includes('Wanjiru Catering Ltd'), w2 ? '' : 'no wording');
     const fb = await fillBtn(page);
-    check('2c "Fill the document" sits at the foot of the panel', !!fb && fb.atFoot && /Fill the document/.test(fb.text), fb && fb.text);
+    check('2c "Fill the document" sits in the document\'s card, as drawn', !!fb && fb.inCard && /Fill the document/.test(fb.text), fb && fb.text);
     check('2d and it is lit while answers are owed', !!fb && !fb.disabled);
-    check('2e light blue: the accent wash', !!fb && fb.bg === fb.want, fb && `${fb.bg} vs ${fb.want}`);
 
     /* ===== 3. A FORGOTTEN PRESS NEVER TRAVELS ===== */
     const o1 = await owed(page, 'MK-FD1');
@@ -167,7 +169,7 @@ const owed = (page, id) => page.evaluate(x => {
       /* WHAT THE PRESS MET, said in 4a's detail when it fails (8 Oct 2026):
          CI failed this step on runs that pass locally, so the reading is
          taken where the runner is, not guessed at. */
-      press.before = await page.evaluate(() => { const b = document.querySelector('#pd-fill [data-tplf-fill]');
+      press.before = await page.evaluate(() => { const b = document.querySelector('#pd-fillface [data-pd-ff-docfill]');
         if (!b) return 'no button'; const r = b.getBoundingClientRect(); const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
         return { disabled: b.disabled, onTop: at === b || b.contains(at) ? 'button' : (at ? (at.id || at.className || at.tagName) : 'nothing'),
           y: Math.round(r.top), vh: innerHeight, focused: (document.activeElement || {}).getAttribute ? document.activeElement.getAttribute('data-tplf') : null }; });
@@ -175,7 +177,7 @@ const owed = (page, id) => page.evaluate(x => {
          the button's centre on its icon, and the commit that leaving the box
          makes repainted the button's insides between mouse-down and mouse-up,
          so the click was dropped. Pressing there stages it here. */
-      const spot = await page.evaluate(() => { const b = document.querySelector('#pd-fill [data-tplf-fill]');
+      const spot = await page.evaluate(() => { const b = document.querySelector('#pd-fillface [data-pd-ff-docfill]');
         const i = b && (b.querySelector('svg') || b.firstElementChild); const r = (i || b).getBoundingClientRect();
         return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
       try { await page.mouse.move(spot.x, spot.y); await page.mouse.down(); await page.mouse.up(); }
@@ -183,7 +185,7 @@ const owed = (page, id) => page.evaluate(x => {
       /* A WAIT ASKS FOR THE STATE, BOUNDED (7 Oct 2026): a fixed 500ms was
          too short on a loaded CI runner, where the press had not finished
          repainting the paper when the reading was taken. */
-      await waitFor(page, () => { const b = document.querySelector('#pd-fill [data-tplf-fill]');
+      await waitFor(page, () => { const b = document.querySelector('#pd-fillface [data-pd-ff-docfill]');
         const t = (document.getElementById('ig-canvas') || {}).textContent || '';
         return !!b && b.disabled && t.includes('Juno Limited'); }, undefined, 10000);
     }

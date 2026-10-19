@@ -47,20 +47,161 @@ function _smJoin(parts){
    box even while the box is empty (an empty note sends neither). */
 function shareMailNoteHead(sender){ return `Message from ${sender || ''}:`; }
 
+/* ============================================================
+   THE LETTER AS DRAWN (round 11's gaps, 18 Oct 2026: the owner's "build all
+   the gaps", and "1. Keep it.": the note is still the only part the sender
+   writes; HaTi's part may say more, as drawn)
+   ============================================================
+   "Hello Anna," · the note · what this round answers ("Lindqvist & Co AB has
+   answered 1 of your 2 redlines:" and a line per answer) · the button ("Open
+   round 2") · what the link lets them do, and the one-time code where the
+   company asks for it · the sender's sign-off ("Maria Lindgren · Legal
+   counsel · Lindqvist & Co AB"). The subject names the round and who it is
+   from: "Round 2 of the Master services agreement, from Lindqvist & Co AB".
+   Every fact arrives in the argument; the answers are READ off the copy that
+   travels (shareAnswersOf over the payload's own contract), so the screen,
+   which reads the same payload, and the inbox say the same. */
+const _smFirst = n => String(n || '').trim().split(/\s+/)[0] || '';
+/* "the Master services agreement": a name that brings its own article keeps it */
+function _smThe(name, cap, coded){
+  const n = String(name || '').trim() || 'contract';
+  if (coded) return n;
+  const t = /^(the|a|an)\s/i.test(n) ? n.replace(/^The\s/, 'the ') : 'the ' + n;
+  return cap ? t.charAt(0).toUpperCase() + t.slice(1) : t;
+}
+/* THE ROUND THIS SEND OPENS: a send that hands the table over after the round
+   on it was already sent once starts the next one (negoHandOver's own rule,
+   negoRoundWasSent) — read off the negotiation the copy carries */
+function shareRoundOf(neg){
+  const n = neg || {};
+  const round = Number(n.round) > 0 ? Number(n.round) : 1;
+  const rs = Array.isArray(n.rounds) ? n.rounds : [];
+  const since = String(n.roundAt || (round > 1 && rs.length ? ((rs[rs.length - 1] || {}).at || '') : '') || n.startedAt || '');
+  const sent = !!n.turnAt && String(n.turnAt) > since;
+  return (n.turn !== 'counterparty' && sent) ? round + 1 : round;
+}
+/* "Clause 11 · Payment terms" from a clause's own label ("11. Payment terms") */
+function shareClauseParts(label){
+  const l = String(label || '').replace(/\s+/g, ' ').trim();
+  const m = /^(?:clause\s+)?(\d+(?:\.\d+)*)\s*[.):·—–-]?\s*(.+)$/i.exec(l);
+  return m ? { n: m[1], name: m[2].trim() } : { n: '', name: l };
+}
+function shareClauseSay(label){
+  const p = shareClauseParts(label);
+  return p.n ? `Clause ${p.n} · ${p.name}` : (p.name || 'A clause');
+}
+/* THE FIGURE A CHANGE MOVES: the first number in `text` that `base` does not
+   carry, with the word that follows it ("45 days", "75%"); null where none */
+const _SM_FIG = /(\d+(?:[.,]\d+)?)(\s*%|\s+[A-Za-zÀ-ɏ]+)?/g;
+function shareFigureOf(text, base){
+  const had = new Set([...String(base || '').matchAll(_SM_FIG)].map(m => m[1]));
+  for (const m of String(text || '').matchAll(_SM_FIG)){
+    if (had.has(m[1])) continue;
+    const u = String(m[2] || '').trim();
+    return { n: m[1], unit: u === '%' ? '%' : u.toLowerCase() };
+  }
+  return null;
+}
+const _smFigSay = (f, bare) => !f ? '' : f.unit === '%' ? f.n + '%' : (f.unit && !bare) ? f.n + ' ' + f.unit : f.n;
+/* WHAT THIS SEND ANSWERS, read off the copy that travels: their asks on the
+   table this round (open, or decided since the table last changed hands —
+   turnAt), and which of them this send answers (decided since, or countered by
+   a change of ours that travels in it); and our own new asks. Nothing is
+   written; the same reading on both hosts. */
+/* `stored` (optional): the whole record the copy was made from. The copy that
+   travels does not carry WHEN a change was decided (the payload is an
+   allow-list, and that stays ours), so the day an answer was given is read
+   from the record by id — the copy still decides WHAT travels. */
+function shareAnswersOf(contract, stored){
+  const ch = Array.isArray(contract && contract.changes) ? contract.changes.filter(Boolean) : [];
+  const at = String(((contract && contract.negotiation) || {}).turnAt || '');
+  const byId = new Map(ch.map(x => [String(x.id), x]));
+  const rec = new Map((Array.isArray(stored && stored.changes) ? stored.changes : []).filter(Boolean).map(x => [String(x.id), x]));
+  const decidedAt = x => String(x.resolvedAt || (rec.get(String(x.id)) || {}).resolvedAt || '');
+  const ours = x => x && x.authorSide !== 'counterparty';
+  const fresh = x => !at || String(x.createdAt || '') > at;
+  /* never handed over in this record (no turnAt): every answer given is this send's */
+  const since = x => !!decidedAt(x) && (!at || decidedAt(x) > at);
+  const theirs = ch.filter(x => x.authorSide === 'counterparty' && !x.withdrawn && x.status !== 'superseded'
+    && (x.status === 'pending' || x.status === 'countered' || ((x.status === 'accepted' || x.status === 'rejected') && since(x))));
+  const used = new Set();
+  const lines = [];
+  for (const t of theirs){
+    const clause = shareClauseSay(t.clauseLabel || t.clauseId);
+    if ((t.status === 'accepted' || t.status === 'rejected') && since(t)){
+      lines.push({ id: t.id, clause, say: t.status === 'accepted' ? 'they accept your change.' : 'they keep the current wording.' });
+      continue;
+    }
+    const k = t.status === 'countered' ? byId.get(String(t.counteredBy || '')) : null;
+    if (k && ours(k) && k.status === 'pending' && fresh(k)){
+      used.add(String(k.id));
+      const mine = shareFigureOf(k.newText, t.oldText), hers = shareFigureOf(t.newText, t.oldText);
+      const said = mine && hers ? `they propose ${_smFigSay(mine)} (you asked for ${_smFigSay(hers, hers.unit === mine.unit && hers.unit !== '%')}).` : 'they propose new wording.';
+      lines.push({ id: t.id, clause, say: said });
+    }
+  }
+  let asked = theirs.length;
+  /* a counter that SUPERSEDED their ask carries its id (counterOf); the ask
+     itself does not travel, so it is counted here */
+  for (const k of ch){
+    if (!ours(k) || k.status !== 'pending' || !fresh(k) || !k.counterOf || used.has(String(k.id))) continue;
+    if (theirs.some(t => String(t.id) === String(k.counterOf))) continue;
+    used.add(String(k.id)); asked++;
+    lines.push({ id: k.counterOf, clause: shareClauseSay(k.clauseLabel || k.clauseId), say: 'they propose new wording.' });
+  }
+  const own = ch.filter(k => ours(k) && k.status === 'pending' && fresh(k) && !used.has(String(k.id)))
+    .map(k => ({ id: k.id, clause: shareClauseSay(k.clauseLabel || k.clauseId) }));
+  const num = x => { const m = /^Clause (\d+)/.exec(x.clause); return m ? Number(m[1]) : 1e9; };
+  lines.sort((a, b) => num(a) - num(b)); own.sort((a, b) => num(a) - num(b));
+  return { asked, lines, own };
+}
+/* the words a link of each kind is introduced with, opened with and promises */
+const SHARE_MAIL_KIND = {
+  negotiate: { subj: (o, n) => `Round ${n} of ${_smThe(o.cName)}, from ${o.org}`, btn: n => `Open round ${n}`,
+    line: 'You can propose changes on your own page. Nothing can be signed on this link.' },
+  sign: { subj: o => `${_smThe(o.cName, true, o.coded)} to sign, from ${o.org}`, btn: () => 'Open it to sign',
+    line: 'You sign this exact wording on your own page.' },
+  view: { subj: o => `${_smThe(o.cName, true, o.coded)}, from ${o.org}`, btn: () => 'Open it',
+    line: 'You can read it on your own page, and nothing else can be done on this link.' },
+  advise: { subj: o => `Your advice on ${_smThe(o.cName, false, o.coded)}, from ${o.org}`, btn: () => 'Open the clauses',
+    line: 'You see only the clauses you were asked about, and can leave notes. Nothing can be signed or changed on this link.' },
+  status: { subj: o => `Where we stand on ${_smThe(o.cName, false, o.coded)}, from ${o.org}`, btn: () => 'See where we stand',
+    line: 'The page shows where the deal stands: the journey, whose move it is, what is settled and what is open. It carries no wording and nothing to press.' },
+  history: { subj: o => `The negotiation history of ${_smThe(o.cName, false, o.coded)}, from ${o.org}`, btn: () => 'Open the history',
+    line: 'The page is the record of the negotiation: every change proposed, by whom, and what was decided. There is nothing on it to sign.' },
+  /* a link stored before its kind was asked: what every such page lets them do */
+  any: { subj: o => `${_smThe(o.cName, true, o.coded)}, from ${o.org}`, btn: () => 'Open it',
+    line: 'You can read it and answer on your own page.' },
+};
+const SHARE_MAIL_CODE = 'Before the page opens, we send a one-time code to this address.';
 /* The share email (channel email) and the Word email (channel word).
-   o = { channel, purpose, sender, org, cName, recName, message, link, expires } */
+   o = { channel, purpose, sender, title, org, cName, recName, message, link,
+         expires, round, answers, codeOn } — `answers` is shareAnswersOf's
+   reading of the copy that travels, `round` shareRoundOf's. */
+/* A CODE-NAMED DEAL IS NAMED BY ITS CODE AND NUMBER (round 11's gaps, second
+   pass, 18 Oct 2026, the Compare's rule in every option: "the email names only
+   the code name and number, for example Subject: Round 2 of Project Falcon
+   (MK-0412)"). `x.code` is the deal's code name and `x.ref` its number, passed
+   by both hosts from their own reading (server cnOf, browser c._codeName);
+   where they are given, the real name appears nowhere in the letter. */
+function shareMailNameOf(x){
+  const code = String((x && x.code) || '').trim();
+  if (!code) return null;
+  const ref = String((x && x.ref) || '').trim();
+  return ref ? `${code} (${ref})` : code;
+}
 function shareMailOf(o){
   const x = o || {};
   const sender = String(x.sender || '');
   const org = x.org || 'HaTi';
-  const cName = x.cName || 'a contract';
+  const coded = shareMailNameOf(x);
+  const cName = coded || x.cName || 'a contract';
   const rec = x.recName ? `, ${x.recName}` : '';
   const msg = x.message ? String(x.message).slice(0, SHARE_MAIL_NOTE_MAX) : '';
   const link = x.link == null ? null : String(x.link);
   const parts = [];
-  const note = () => { if (msg){ parts.push({ k: 'msgHead', t: shareMailNoteHead(sender) }); parts.push({ k: 'msg', t: msg }); } };
-  let subject;
   if (x.channel === 'word'){
+    const note = () => { if (msg){ parts.push({ k: 'msgHead', t: shareMailNoteHead(sender) }); parts.push({ k: 'msg', t: msg }); } };
     const hist = x.purpose === 'history';
     parts.push({ k: 'lead', t: hist
       ? `${sender} at ${org} has sent you the negotiation history of "${cName}"${rec} as a Word file.`
@@ -72,22 +213,73 @@ function shareMailOf(o){
       parts.push({ k: 'say', t: `Mark it up in Word and send the file back to ${sender} — they will bring your changes into HaTi.` });
     }
     parts.push({ k: 'foot', t: `Replies to this email reach ${sender} directly.` });
-    subject = hist ? `${sender} sent you the negotiation history of "${cName}"` : `${sender} sent you "${cName}" to mark up`;
-  } else {
-    const neg = x.purpose === 'negotiate';
-    parts.push({ k: 'lead', t: `${sender} at ${org} has shared "${cName}" with you for review${rec}.` });
-    note();
-    /* The invitation matches the link. A negotiation link opens the room,
-       where the verbs are per-change decisions and "ready to sign" — telling
-       its recipient to "approve & sign" describes a screen they will not see. */
-    parts.push({ k: 'say', t: neg
-      ? 'Open the link to work through the proposed changes clause by clause — accept, refuse or discuss each one, and propose your own wording. Nothing is signed there. No account is needed:'
-      : 'Open the contract to review it and respond — approve & sign, propose changes, or decline. No account is needed:' });
-    parts.push({ k: 'link', t: link, at: true });
-    parts.push({ k: 'foot', t: `This link expires on ${String(x.expires || '').slice(0, 10)}. Replies to this email reach ${sender} directly.` });
-    subject = neg ? `${sender} sent you "${cName}" to negotiate` : `${sender} shared "${cName}" for your review`;
+    const subject = hist ? `${sender} sent you the negotiation history of "${cName}"` : `${sender} sent you "${cName}" to mark up`;
+    return { subject, parts, body: _smJoin(parts) };
   }
-  return { subject, parts, body: _smJoin(parts.map(p => p.k === 'link' && p.t == null ? { ...p, t: '' } : p)) };
+  const kind = SHARE_MAIL_KIND[x.purpose] || SHARE_MAIL_KIND.any;
+  const round = Number(x.round) > 0 ? Number(x.round) : 1;
+  const first = _smFirst(x.recName);
+  parts.push({ k: 'hello', t: first ? `Hello ${first},` : 'Hello,' });
+  if (msg) parts.push({ k: 'msg', t: msg });
+  const A = (x.purpose === 'negotiate' && x.answers) ? x.answers : null;
+  if (A && A.lines && A.lines.length){
+    const k = A.lines.length, m = Math.max(A.asked || 0, k);
+    parts.push({ k: 'say', t: m === 1 ? `${org} has answered your redline:` : `${org} has answered ${k} of your ${m} redlines:`, list: 'ans' });
+    for (const l of A.lines) parts.push({ k: 'ans', t: `${l.clause}: ${l.say}`, clause: l.clause, rest: l.say });
+  }
+  if (A && A.own && A.own.length){
+    const n = A.own.length;
+    parts.push({ k: 'say', t: `${org} ${A.lines && A.lines.length ? 'also ' : ''}proposes ${n === 1 ? 'a change' : n + ' changes'} of its own:`, list: 'own' });
+    for (const l of A.own) parts.push({ k: 'ans', t: `${l.clause}.`, clause: l.clause, rest: '' });
+  }
+  parts.push({ k: 'btn', t: kind.btn(round) });
+  parts.push({ k: 'link', t: link, at: true });
+  parts.push({ k: 'say', t: kind.line + (x.codeOn && x.purpose !== 'status' ? ' ' + SHARE_MAIL_CODE : '') });
+  parts.push({ k: 'foot', t: [sender, String(x.title || '').trim(), org].filter(Boolean).join(' · ') });
+  /* a code-named deal: the code and number only, as drawn ("Round 2 of
+     Project Falcon (MK-0412)") — a proper name takes no "the" */
+  const subject = coded
+    ? (x.purpose === 'negotiate' ? `Round ${round} of ${coded}` : kind.subj({ cName: coded, org, coded: true }, round))
+    : kind.subj({ cName, org }, round);
+  return { subject, parts, body: _smLetterJoin(parts), html: _smLetterHtml(parts) };
+}
+/* THE LETTER'S JOINS: a blank line between its blocks; the answers under
+   their line; the address under the button's words */
+function _smLetterJoin(parts){
+  const out = [];
+  for (const p of parts){
+    const t = p.t == null ? '' : p.t;
+    if (p.k === 'ans' || p.k === 'link') out.push('\n' + t);
+    else if (p.k === 'btn') out.push((out.length ? '\n\n' : '') + t + ':');
+    else out.push((out.length ? '\n\n' : '') + t);
+  }
+  return out.join('');
+}
+/* AND THE SAME LETTER AS HTML, for the inbox that draws one: the button a
+   button. A standalone document carries no :root — literal values only. */
+function _smLetterHtml(parts){
+  const e = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const link = (parts.find(p => p.k === 'link') || {}).t;
+  const out = [];
+  for (let i = 0; i < parts.length; i++){
+    const p = parts[i];
+    if (p.k === 'link') continue;
+    if (p.k === 'ans'){
+      const run = [];
+      while (i < parts.length && parts[i].k === 'ans'){ run.push(parts[i]); i++; }
+      i--;
+      out.push(`<div style="margin:0 0 14px;padding:2px 0 2px 12px;border-left:3px solid #d0d5dd">${run.map(r =>
+        `<p style="margin:0 0 4px"><b>${e(r.clause)}${r.rest ? ':' : '.'}</b>${r.rest ? ' ' + e(r.rest) : ''}</p>`).join('')}</div>`);
+    } else if (p.k === 'btn'){
+      out.push(link ? `<p style="margin:0 0 14px"><a href="${e(link)}" style="display:inline-block;background:#0b7a5f;color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:6px;font-weight:600">${e(p.t)}</a></p>`
+        : `<p style="margin:0 0 14px"><b>${e(p.t)}</b></p>`);
+    } else if (p.k === 'msg'){
+      out.push(`<p style="margin:0 0 14px;white-space:pre-wrap">${e(p.t)}</p>`);
+    } else if (p.k === 'foot'){
+      out.push(`<p style="margin:18px 0 0;color:#667085">${e(p.t)}</p>`);
+    } else out.push(`<p style="margin:0 0 ${p.list ? 6 : 14}px">${e(p.t)}</p>`);
+  }
+  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.55;color:#1f2933;max-width:600px">${out.join('')}</div>`;
 }
 
 /* The text a WhatsApp send opens with (the browser composes it; the server
@@ -154,6 +346,87 @@ function signerTurnMailOf(o){
   return { subject: t('mail_turn_subject', { name: cName }), parts, body };
 }
 
-const SHARE_MAIL_API = { SHARE_MAIL_NOTE_MAX, shareMailNoteHead, shareMailOf, shareWaTextOf, signerTurnMailOf };
+const SHARE_MAIL_API = { SHARE_MAIL_NOTE_MAX, shareMailNoteHead, shareMailNameOf, shareMailOf, shareWaTextOf, signerTurnMailOf,
+  shareRoundOf, shareClauseParts, shareClauseSay, shareFigureOf, shareAnswersOf, SHARE_MAIL_KIND, SHARE_MAIL_CODE };
 if (typeof window !== 'undefined') Object.assign(window, SHARE_MAIL_API);
 if (typeof module !== 'undefined' && module.exports) module.exports = SHARE_MAIL_API;
+
+/* ============================================================
+   THE CHASE — A REMINDER ABOUT A PROMISE OF THEIRS, WRITTEN ONCE
+   (round 23's gaps, 18 Oct 2026, the owner's "build all the gaps": Look on
+   a chase shows the email whole — To, Subject, the body, signed by the
+   person who sends it)
+   ============================================================
+   The Counter's Look draws the chase the other side will get, and POST
+   /api/contracts/:id/chase mails it (srvChaseSend). One letter, two hosts,
+   so the screen cannot promise one sentence while the inbox receives
+   another. The words are the books' (mail_ob_chase_*): `t` is the host's
+   translator for the RECIPIENT's language, and the days arrive already in
+   words in that language. `dated` says whether the promise has a due day
+   at all (an undated one has its own sentence); `soon` that the day has
+   not come yet ("is due on", never "was due on"). `link` is the standing
+   link they already hold (null where none: no line). The letter is signed
+   by `sender`, the person pressing, for `party`, our company on this
+   agreement (c.party, else the workspace) — as drawn; with nobody pressing
+   the automated notice stands where the name would.
+   o = { t, firm, dated, soon, vars:{ desc, name, id, due, first }, link, sender, party }
+   AS DRAWN (round 23's gaps, second pass, 18 Oct 2026): "This is a reminder
+   about the insurance certificate under our Supply agreement (MK-0368), which
+   was due on 14 October. Could you send it, or let us know when it will
+   come?" — a promise that is a THING is said as one and asked for
+   (mail_ob_chase_thing_*, chaseWhatOf); one written as an ACT keeps its
+   quotation marks and asks where it stands. The agreement is named as ours,
+   unquoted; the day without its year inside the year (chaseDayWords). */
+function chaseMailOf(o){
+  const x = o || {};
+  const t = typeof x.t === 'function' ? x.t : (k => k);
+  const w = chaseWhatOf(x.vars && x.vars.desc);
+  const v = { ...(x.vars || {}), about: w.thing ? t('mail_ob_chase_the', { noun: w.noun }) : String((x.vars && x.vars.desc) || '') };
+  const firm = !!x.firm, soon = x.dated && x.soon ? '_soon' : '';
+  /* every key written whole, so a search for one finds where it is said */
+  const K = w.thing ? { at: 'mail_ob_chase_thing_line', soon: 'mail_ob_chase_thing_line_soon', none: 'mail_ob_chase_thing_line_nodate' }
+    : { at: 'mail_ob_chase_line', soon: 'mail_ob_chase_line_soon', none: 'mail_ob_chase_line_nodate' };
+  const line = firm ? t(x.dated ? 'mail_ob_chase_firm_line' + soon : 'mail_ob_chase_firm_line_nodate', v)
+    : t(!x.dated ? K.none : soon ? K.soon : K.at, v);
+  const link = x.link ? String(x.link) : null;
+  const who = String(x.sender || '').trim();
+  const parts = [{ k: 'hello', t: `${t('mail_hello')},` }, { k: 'say', t: line }];
+  if (link) parts.push({ k: 'say', t: t('mail_ob_chase_open'), open: true }, { k: 'link', t: link });
+  parts.push(who ? { k: 'sign', t: [who, String(x.party || '').trim()].filter(Boolean).join(', ') }
+    : { k: 'foot', t: t('mail_automated_notice') });
+  const body = `${parts[0].t}\n\n${line}` + (link ? `\n\n${t('mail_ob_chase_open')}\n${link}` : '') + `\n\n${parts[parts.length - 1].t}`;
+  return { subject: t(firm ? 'mail_ob_chase_firm_subject' : 'mail_ob_chase_subject', v), parts, body };
+}
+/* WHAT IS LATE, IN THE LETTER'S OWN GRAMMAR (round 23's gaps, second pass):
+   the drawing's row reads "Their insurance certificate is 5 days late." and
+   its letter "a reminder about the insurance certificate". A promise written
+   as a THING ("Insurance certificate", "the insurance certificate") is said
+   as one — its article dropped, its first letter lowered unless the word is
+   an acronym ("Q3 report", "ISO certificate") — so the row can say "Their …"
+   and the letter "the …". One written as an ACT ("Deliver the Q3 stock
+   report") cannot be theirs or be sent: it stays as typed. Read off the
+   words, nothing rewritten in the record: { thing, noun, desc }. */
+const CHASE_ACT_RE = /^(?:deliver|provide|send|submit|pay|give|notify|inform|maintain|keep|renew|return|complete|perform|procure|obtain|file|report|confirm|arrange|issue|supply|make|ensure|hold|invoice|share|publish|deposit|install|carry|conduct|train|review|update|register|attend|sign|execute|transfer|refund|remit|settle|furnish|produce|prepare|present|schedule|book|order|comply|leverera|skicka|betala|lämna|ge|meddela|upprätthålla|förnya|returnera|utföra|tillhandahålla|ordna|rapportera|bekräfta|underhålla|genomföra|teckna|inkomma|sända|uppdatera|granska|hålla|säkerställa)$/i;
+function chaseWhatOf(desc){
+  const d = String(desc || '').replace(/\s+/g, ' ').trim().replace(/[.;:,\s]+$/, '');
+  if (!d) return { thing: false, noun: '', desc: '' };
+  if (CHASE_ACT_RE.test(d.split(' ')[0].replace(/[^\p{L}-]/gu, ''))) return { thing: false, noun: '', desc: d };
+  let n = d.replace(/^(?:the|a|an|their|our|its)\s+/i, '');
+  if (!n) return { thing: false, noun: '', desc: d };
+  if (/^\p{Lu}[\p{Ll}'’-]*$/u.test(n.split(' ')[0])) n = n.charAt(0).toLowerCase() + n.slice(1);
+  return { thing: true, noun: n, desc: d };
+}
+/* THE DAY IN WORDS, IN THE READER'S LANGUAGE — one reading for the screen and
+   the inbox: a calendar day read as that day (UTC, so no time zone moves it),
+   "14 October" inside the year it is written in, "14 October 2027" outside
+   it; anything unreadable left as written. `today` is the writer's ISO day. */
+function chaseDayWords(v, lang, today){
+  const iso = String(v || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return v || '';
+  const sameYear = String(today || '').slice(0, 4) === iso.slice(0, 4);
+  try { return new Date(iso + 'T00:00:00Z').toLocaleDateString(lang === 'sv' ? 'sv-SE' : 'en-GB',
+    Object.assign({ day: 'numeric', month: 'long', timeZone: 'UTC' }, sameYear ? {} : { year: 'numeric' })); } catch (_){ return iso; }
+}
+const CHASE_MAIL_API = { chaseMailOf, chaseWhatOf, chaseDayWords, CHASE_ACT_RE };
+if (typeof window !== 'undefined') Object.assign(window, CHASE_MAIL_API);
+if (typeof module !== 'undefined' && module.exports) Object.assign(module.exports, CHASE_MAIL_API);

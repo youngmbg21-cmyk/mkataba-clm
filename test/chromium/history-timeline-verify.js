@@ -89,6 +89,11 @@ const PROBE = `(() => {
       at: r.getAttribute('data-hist-at'),
       when: (r.querySelector('.hist-when') || {}).textContent || '',
       head: hd ? hd.textContent.replace(/\s+/g, ' ').trim() : null,
+      headTip: hd ? (hd.getAttribute('title') || '') : null,
+      sep: !!r.querySelector('.hist-top .hist-sep'),
+      bubBg: (() => { const b = r.querySelector('.hist-bub'); return b ? getComputedStyle(b).backgroundColor : null; })(),
+      whenTip: (r.querySelector('.hist-when') || { getAttribute: () => '' }).getAttribute('title') || '',
+      pill: (() => { const p = r.querySelector('.hist-pill'); return p ? { cls: p.className, bg: getComputedStyle(p).backgroundColor } : null; })(),
       day: day ? day.textContent.trim() : null,
       time: time ? time.textContent.trim() : null,
       stacked: day && time ? time.getBoundingClientRect().top >= day.getBoundingClientRect().bottom - 1 : null,
@@ -230,34 +235,44 @@ const PROBE = `(() => {
     /* RE-POINTED 9 Oct 2026 (SAP batch 3, "build exactly the drawings"): the
        DAY is a heading over its entries — the whole date, as drawn, with its
        count — and each row carries its time. Reverses 24 Sep's day-over-time. */
-    const full = await page.evaluate(i => { const c = getContract(i);
+    /* RE-POINTED 18 Oct 2026 (round 12, "Two sides", as drawn): the day's
+       pill says the day as a person says it — "Thu 15 Oct", the year only
+       where it is not this one — and its count rides the pill's hover */
+    const full = await page.evaluate(i => { const c = getContract(i), now = new Date();
       const loc = typeof langLocale === 'function' ? langLocale() : undefined;
-      const f = s => new Date((c.audit || []).find(a => a.detail === s).at).toLocaleDateString(loc, { day: 'numeric', month: 'short', year: 'numeric' });
+      const f = s => { const d = new Date((c.audit || []).find(a => a.detail === s).at);
+        const o = d.getFullYear() === now.getFullYear() ? { weekday: 'short', day: 'numeric', month: 'short' } : { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
+        return new Intl.DateTimeFormat(loc, o).formatToParts(d).filter(x => x.type !== 'literal').map(x => x.value).join(' '); };
       return { today: f('today'), earlier: f('three days ago'), year: f('a year ago') }; }, id);
-    ok('2a today\'s entry sits under a heading naming its whole date', !!rT.head && rT.head.startsWith(full.today),
-      `${JSON.stringify(rT.head)} · expected ${JSON.stringify(full.today)}`);
+    /* RE-POINTED (B1 pass 4, round 12 as drawn: "Today, Mon 19 Oct"): today's pill says so before the day */
+    ok('2a today\'s entry sits under a pill naming its day, "Today, <day>"', !!rT.head && rT.head === `Today, ${full.today}`,
+      `${JSON.stringify(rT.head)} · expected ${JSON.stringify('Today, ' + full.today)}`);
     ok('2b and the row carries its time, in the product\'s one clock', rT.time === expect.today.time
       && /\d{1,2}[:.]\d{2}/.test(rT.time || ''), `${JSON.stringify(rT.time)} · expected ${JSON.stringify(expect.today.time)}`);
-    ok('2c an earlier day has its own heading', !!rE.head && rE.head.startsWith(full.earlier) && rE.time === expect.earlier.time,
+    ok('2c an earlier day has its own heading', !!rE.head && rE.head === full.earlier && rE.time === expect.earlier.time,
       `${JSON.stringify(rE.head)} ${JSON.stringify(rE.time)}`);
     ok('2d a day from another year carries its year', !!rY.head && rY.head.includes(expect.yearNo), JSON.stringify(rY.head));
-    ok('2e the heading counts its entries', !!rT.head && /event/i.test(rT.head), JSON.stringify(rT.head));
+    ok('2e the heading counts its entries, on its hover', !!rT.headTip && /event/i.test(rT.headTip) && !/event/i.test(rT.head || ''), JSON.stringify({ head: rT.head, tip: rT.headTip }));
     ok('2f no row prints the raw record date', rows.every(r => !/\d{4}-\d{2}-\d{2}/.test(r.when)),
       rows.map(r => r.when.replace(/\s+/g, ' ').trim()).slice(0, 4).join(' | '));
 
     /* ================= 3. A RING IN THE KIND'S TONE ================= */
-    const dots = rows.map(r => r.dot).filter(Boolean);
-    ok('3a every entry carries a ring: a hollow disc in the page\'s own surface',
-      dots.length === rows.length && dots.every(d => d.fill === m.surface && d.ringW >= 2),
-      dots.slice(0, 3).map(d => `${d.w}px fill ${d.fill} ring ${d.ringW}px`).join(' | ') + ' · surface ' + m.surface + ' · ' + dots.length + ' rings on ' + rows.length + ' rows');
+    /* RE-POINTED 18 Oct 2026 (round 12, "Two sides", as drawn: "16:24 · PN Per
+       Nordvik"): in a bubble the time is followed by a dot of punctuation, not
+       the kind's ring — the kind's name rides the time's hover, and the tone
+       that says a refusal is the outcome's own pill. An entry on the middle
+       line keeps its ring, a hollow disc in the page's surface. */
+    const bubbles = rows.filter(r => r.lane === 'ours' || r.lane === 'theirs'), mids = rows.filter(r => r.lane === 'mid');
+    ok('3a a bubble\'s time is followed by a dot of punctuation, its kind on the hover; the middle line keeps its ring',
+      bubbles.length > 0 && bubbles.every(r => r.sep && !r.dot && r.whenTip) && mids.every(r => r.dot && r.dot.fill === m.surface && r.dot.ringW >= 2),
+      JSON.stringify({ bubbles: bubbles.map(r => [r.sep, !!r.dot, r.whenTip]).slice(0, 3), mids: mids.map(r => r.dot && r.dot.fill) }) + ' · surface ' + m.surface);
     const toneSet = Object.values(m.tones || {});
-    ok('3b and the ring carries one of the kinds\' own tones, never a colour nobody chose',
-      dots.length === rows.length && dots.every(d => toneSet.includes(d.ring)),
-      dots.slice(0, 3).map(d => d.ring).join(' | '));
+    ok('3b and a ring that stands carries one of the kinds\' own tones, never a colour nobody chose',
+      mids.every(r => r.dot && toneSet.includes(r.dot.ring)), mids.map(r => r.dot && r.dot.ring).join(' | '));
     const refused = rows.find(x => /rejected/i.test(x.text));
-    ok('3c the refusal still reads as a refusal (the ruby tone, not green)',
-      !!(refused && refused.dot && m.tones && refused.dot.ring === m.tones['--st-ruby-dot']),
-      refused && refused.dot ? `${refused.dot.ring} · ruby ${m.tones && m.tones['--st-ruby-dot']}` : 'none');
+    ok('3c the refusal still reads as a refusal (its pill in the ruby tone, not green)',
+      !!(refused && refused.pill && /\bis-r\b/.test(refused.pill.cls)),
+      refused && refused.pill ? JSON.stringify(refused.pill) : 'none');
 
     /* ================= 4. ROWS, AND ONE LINE PER DAY (12 Oct 2026) =================
        The drawing rules each entry off from the next; the rings of one day are
@@ -287,12 +302,15 @@ const PROBE = `(() => {
       rows.map(r => r.lane + ':' + r.edge).join(','));
 
     /* ================= 5. THE ROUND AT THE RIGHT WALL ================= */
-    const r1 = rows.find(r => r.round && /^R1$/.test(r.round.text));
-    ok('5a a round reads "R1"', !!r1, rows.map(r => r.round ? r.round.text : '∅').join(' · '));
-    ok('5b with the round\'s whole name on the hover', !!r1 && /round 1/i.test(r1.round.hover),
-      r1 ? JSON.stringify(r1.round.hover) : 'no R1');
-    ok('5c at the product\'s strong weight', !!r1 && r1.round.weight === m.strong,
-      r1 ? `${r1.round.weight} · strong ${m.strong}` : 'no R1');
+    /* RE-POINTED 18 Oct 2026 (round 12, "Two sides", as drawn): a change's
+       entry says what happened to which clause in words ("Proposed a change to
+       clause 1, …: Net-30"), so no clause or round chip trails it; the round's
+       whole name rides the time's hover */
+    const ch1 = rows.find(r => /^Proposed a change to clause/.test(r.text) && /Net-30/.test(r.text));
+    ok('5a a change\'s entry says what happened to which clause, in words', !!ch1, rows.map(r => r.text).slice(0, 4).join(' · '));
+    ok('5b with the round\'s whole name on the time\'s hover', !!ch1 && /round 1/i.test(ch1.whenTip), ch1 ? JSON.stringify(ch1.whenTip) : 'none');
+    ok('5c and no chip trails words that already name the clause', !!ch1 && ch1.round === null, ch1 ? JSON.stringify(ch1.round) : 'none');
+    void m.strong;
     ok('5d an entry that belongs to no round carries no chip', rT.round === null, JSON.stringify(rT.round));
 
     /* ================= 6. THE SENTENCE IN BLACK ================= */
@@ -340,9 +358,12 @@ const PROBE = `(() => {
     const dRows = d.rows || [];
     ok('8a CONTROL at night the sentence takes the night ink', dRows.length > 0 && dRows.every(r => r.title && r.title.color === d.ink),
       dRows.length && dRows[0].title ? `${dRows[0].title.color} · ink ${d.ink}` : 'none');
-    ok('8b and the ring is filled with the night surface',
-      dRows.length > 0 && dRows.every(r => r.dot && r.dot.fill === d.surface),
-      dRows.length && dRows[0].dot ? `${dRows[0].dot.fill} · surface ${d.surface}` : 'none');
+    /* RE-POINTED 18 Oct 2026: a bubble wears no ring (3a); what stood in the
+       page's surface by night is the bubble itself, and any ring that stands */
+    const dBub = dRows.filter(r => r.lane === 'ours' || r.lane === 'theirs'), dMid = dRows.filter(r => r.lane === 'mid');
+    ok('8b and at night each bubble, and any ring that stands, is the night surface',
+      dBub.length > 0 && dBub.every(r => r.bubBg === d.surface) && dMid.every(r => r.dot && r.dot.fill === d.surface),
+      dBub.length ? `${dBub[0].bubBg} · surface ${d.surface}` : 'none · lanes ' + dRows.map(r => r.lane).join(','));
     await shot('03-history-dark.png');
     await page.evaluate(() => { if (typeof setDark === 'function') setDark(false); });
 

@@ -345,8 +345,11 @@ describe('f390 (5) — the shared frame', () => {
     for (const [v, fn] of [['intake', 'ikPaintHead'], ['playbook', 'pbPaintHead']])
       assert.match(m[1], new RegExp(v + "\\s*:\\s*'" + fn + "'"), v);
     /* RE-POINTED 9 Oct 2026 (owner: the Obligations head is as tall as
-       Approvals & signing's, no "we owe" line) — it paints no head slot. */
-    assert.ok(!/\bobligations\s*:/.test(m[1]), 'obligations reserves no head slot');
+       Approvals & signing's, no "we owe" line) — it painted no head slot.
+       RE-POINTED AGAIN 18 Oct 2026 (round 16 as drawn, the owner's "build all
+       the gaps"): "Obligations 11 outstanding · 1 overdue" and its acts are
+       back in the head, painted by the page's own painter. */
+    assert.match(m[1], /obligations\s*:\s*'obwPaintHead'/, 'obligations paints its head');
   });
   test('5b a width that crosses the line repaints each page in its other shape', () => {
     const m = /const INS_PAGE_REPAINT = \{([\s\S]*?)\n\};/.exec(INS);
