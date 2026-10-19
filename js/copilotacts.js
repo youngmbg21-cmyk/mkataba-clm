@@ -2136,7 +2136,13 @@ function caUnderstand(q, opts = {}){
   const and = caReadPlaceAnd(t); if (and) return and;
   /* a send, a job, a door, a Menu row, a draft are read as they always were (caActOf's readers) */
   try { if (caTakesWords(t)) return null; } catch (_){}
+  /* ON THE BOARD, A CONTRACT BROUGHT UP IS ITS STRIP CARD (f447 (3),
+     board-says-it-plain 2a/2b): "show me MK-1", "bring up <name>" stay the
+     Board's own reading; a named act (brief, history, redlines…) still moves */
+  let boardCard = false;
+  try { boardCard = box === 'home' && typeof caOnBoard === 'function' && caOnBoard() && typeof hbParse === 'function' && (hbParse(t) || {}).act === 'card'; } catch (_){ boardCard = false; }
   const ct = caReadContract(t, opts);
+  if (boardCard && (!ct || ct.kind !== 'go' || ct.place === 'document' || ct.narrow)) return null;
   if (ct){
     if (ct.kind === 'hand' && box === 'home') return null;
     return ct;
