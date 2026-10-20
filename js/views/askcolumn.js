@@ -287,7 +287,8 @@ async function askColOpen(seed){
   const f = { question: '', name: '', askId: null, force: false, kept: 0, ...(seed || {}) };
   AC.form = f; AC.chosen = null;
   askColPaintPanel();
-  if (!AC.team) { await askColTeam(); if (AC.form === f) askColPaintPanel(); }
+  /* the team's questions, fresh each time the form opens (a colleague's, or one asked a moment ago) */
+  await askColTeam(); if (AC.form === f) askColPaintPanel();
   if (f.askId && !f.force) await askColKept(f);
   setTimeout(() => { const q = document.getElementById('ac-q'); if (q && !q.value) q.focus(); }, 0);
 }
