@@ -33,7 +33,7 @@ const fnOf = (src, name) => { const i = src.indexOf('function ' + name + '('); i
 
 describe('f841 (1) a face of the one panel', () => {
   test('1a guide is a face of PANEL_FACES; the panel holds one tab row, painted by panelTabsPaint', () => {
-    assert.match(APP, /const PANEL_FACES = \['activity', 'alerts', 'notes', 'guide'\];/);
+    assert.match(APP, /const PANEL_FACES = \['guide', 'alerts', 'notes', 'activity'\];/);
     assert.match(IDX, /<nav id="panel-tabs" class="pt-tabs" role="tablist"[^>]*hidden><\/nav>\s*<div id="panel-body"/);
     assert.match(code(fnOf(APP, 'renderContextPanel')), /panelTabsPaint\(face\);/);
   });
