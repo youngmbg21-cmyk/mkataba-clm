@@ -129,10 +129,12 @@ const check = (name, pass, detail) => {
     const ask = await page.evaluate(() => {
       /* RE-POINTED 20 Oct 2026 (owner picked "Two-row card"): the send sits inside the CARD, on its own row under the words, at the card's right end */
       const t = document.getElementById('igd-input'), i = (t.closest('.jb-card') || t).getBoundingClientRect(), r = document.getElementById('igd-go').getBoundingClientRect();
-      const row = r.top >= t.getBoundingClientRect().bottom - 1;
-      return { inside: r.left >= i.left && r.right <= i.right && r.top >= i.top && r.bottom <= i.bottom, row, gapRight: Math.round(i.right - r.right) };
+      /* RE-POINTED 20 Oct 2026 (owner: "one line field … when you need to text wrap it is when it becomes bigger"): at rest the tag rides the one line before the words; tall, it rides the row under them */
+      const tr = t.getBoundingClientRect(), tall = t.parentElement.classList.contains('is-tall');
+      const row = tall ? r.top >= tr.bottom - 1 : (r.left >= tr.right - 1 && Math.abs((r.top + r.bottom) / 2 - (tr.top + tr.bottom) / 2) <= 4);
+      return { inside: r.left >= i.left && r.right <= i.right && r.top >= i.top && r.bottom <= i.bottom, tall, row, gapRight: Math.round(i.right - r.right) };
     });
-    check('2f the Ask button sits inside the ask card, on the row under the words, at the card\'s right end',
+    check('2f the Ask button sits inside the ask card at its right end: on the words\' line at rest, under them once tall',
       ask.inside && ask.row && ask.gapRight >= 0 && ask.gapRight <= 12, JSON.stringify(ask));
 
     /* ================= 3. THE » IS GONE, THE › IS KEPT ===================== */

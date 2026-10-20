@@ -5478,6 +5478,12 @@ function ceAskFit(box){
   const want = box.scrollHeight + (parseFloat(cs.borderTopWidth) || 0) + (parseFloat(cs.borderBottomWidth) || 0);
   box.style.height = Math.min(most, Math.ceil(want)) + 'px';
   box.style.overflowY = want > most ? 'auto' : 'hidden';
+  /* the two-row card's shape: one line until the words wrap (20 Oct 2026) */
+  if (typeof jamboCardGrow === 'function' && box.closest && box.closest('.jb-card')){
+    const card = box.closest('.jb-card'), was = card.classList.contains('is-tall');
+    jamboCardGrow(box);
+    if (was !== card.classList.contains('is-tall')) ceAskFit(box);
+  }
 }
 /* ONE ASK BOX, TWO TABS: on the Risks tab a typed ask asks Copilot about the
    risk in front of the reader (riskWalkPress 'send'); everywhere else it is

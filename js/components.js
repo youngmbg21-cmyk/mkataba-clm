@@ -388,6 +388,9 @@ function chatFieldGrow(el){
   if (!el.scrollHeight) return;
   const max = parseFloat(el.dataset.chatMax || '0');
   el.style.height = Math.min(el.scrollHeight, max > 0 ? max : Infinity) + 'px';
+  /* a field inside the two-row card also takes the card's shape (one line
+     until the words wrap) when the page puts words in it */
+  if (el.closest && el.closest('.jb-card') && typeof jamboCardGrow === 'function') jamboCardGrow(el);
 }
 function chatFieldWire(root){
   const scope = root || document;

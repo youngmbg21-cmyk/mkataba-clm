@@ -14198,16 +14198,16 @@
      back to one line when emptied. ONE builder, jamboCardHtml (components.js). */
   .jb-card{display:flex;flex-direction:row;align-items:center;gap:4px;min-width:0;text-align:left;border:1px solid var(--color-neutral-300);border-radius:20px;background:var(--color-surface);padding:4px 5px 4px 6px;transition:border-color .15s,box-shadow .15s}
   .jb-card > textarea{order:3;flex:1 1 auto}
-  .jb-card .jb-row{display:contents}
-  .jb-card .jb-row > .jb-plus{order:1}
-  .jb-card .jb-row > :not(.jb-plus):not(.jb-sp):not(.jb-send){order:2;flex:0 1 auto;min-width:0}
-  .jb-card .jb-row > .jb-sp{display:none}
-  .jb-card .jb-row > .jb-send{order:4}
+  .jb-card:not(.is-tall) .jb-row{display:contents}
+  .jb-card:not(.is-tall) .jb-row > .jb-plus{order:1}
+  .jb-card:not(.is-tall) .jb-row > :not(.jb-plus):not(.jb-sp):not(.jb-send){order:2;flex:none;min-width:0}
+  .jb-card > textarea{min-width:72px}
+  .jb-card:not(.is-tall) .jb-row > .jb-sp{display:none}
+  .jb-card:not(.is-tall) .jb-row > .jb-send{order:4}
   .jb-card.is-tall{flex-direction:column;align-items:stretch;gap:0;border-radius:16px;padding:7px 6px 4px 12px}
   .jb-card.is-tall > textarea{order:0;flex:none}
   .jb-card.is-tall .jb-row{display:flex;order:1}
-  .jb-card.is-tall .jb-row > *{order:0}
-  .jb-card.is-tall .jb-row > .jb-sp{display:block}
+  .jb-card.is-tall .jb-row > .jb-sp{display:block}   /* the rest rules are :not(.is-tall), so nothing to undo here */
   .jb-card:focus-within{border-color:var(--accent-ink);box-shadow:0 0 0 3px var(--color-accent-100)}
   .jb-card > textarea{display:block;width:100%;min-width:0;margin:0;padding:3px 6px 3px 4px;border:0;outline:0;background:transparent;box-shadow:none;resize:none;font:inherit;font-size:var(--t-body);line-height:1.5;color:var(--color-text);min-height:24px;height:auto;max-height:calc(1.5em * 6 + 4px);overflow-y:auto;white-space:pre-wrap;overflow-wrap:anywhere;scrollbar-width:thin;scrollbar-color:var(--color-divider) transparent}
   .jb-card > textarea.chat-field{max-height:calc(1.5em * 6 + 4px)}   /* past textarea.chat-field's 7.5em, by scope */
