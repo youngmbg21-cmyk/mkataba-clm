@@ -108,15 +108,17 @@ describe('f705 (1) needs you here, on Jambo\'s tab beside a paper', () => {
      and stays at the top of the Jambo tab"): Needs you here is PINNED above
      the conversation (pdJamboPinHtml), so it never scrolls away; the glance
      opens the conversation under it */
-  test('1e on the paper, the tab opens on Needs you here, pinned above the glance', () => {
+  test('1e on the paper, the tab opens on the dossier: Still owed is its own card, nothing pinned above it', () => {
+    /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): Needs you here's
+       rows are the dossier's Still owed card, under the spine and What Jambo
+       read — one list, so the pin above the conversation is retired */
     const { ctx } = pdStage({ needs: [{ kind: 'note', n: 1 }] });
-    assert.match(ctx.pdJamboPinHtml(), /^<div id="pd-pin"[^>]*><div id="pd-needs"/);
-    assert.match(ctx.pdJamboTopHtml(), /id="pd-glance"/);
-    assert.ok(!/id="pd-needs"/.test(ctx.pdJamboTopHtml()), 'not inside the conversation, where it would scroll away');
-    const feed = R('js/views/intelligence.js');
-    assert.ok(feed.indexOf('pdJamboPinHtml()') > 0 && feed.indexOf('pdJamboPinHtml()') < feed.indexOf('<div id="igd-feed" class="flex-1'), 'drawn before the scroller');
+    assert.equal(ctx.pdJamboPinHtml(), '', 'nothing is pinned above the dossier');
+    const top = ctx.pdJamboTopHtml();
+    assert.match(top, /id="pd-glance"/);
+    assert.ok(top.indexOf('class="ds-spine') < top.indexOf('data-pd-ds-card="read"') && top.indexOf('data-pd-ds-card="read"') < top.indexOf('id="pd-needs"'), 'spine, then What Jambo read, then Still owed');
     const wall = pdStage({ paper: null, needs: [{ kind: 'note', n: 1 }] });
-    assert.equal(wall.ctx.pdJamboPinHtml(), '', 'the wall draws no contract\'s card');
+    assert.ok(!/id="pd-needs"/.test(wall.ctx.pdJamboTopHtml()), 'the wall draws no contract\'s card');
   });
   test('1f the presses: a piece opens on Jambo\'s work, an item through needsYouGo, All on the Counter', () => {
     const w = fnBody(PD, 'pdNeedRowHtml');
@@ -133,7 +135,8 @@ describe('f705 (2) the two cards do not say it twice', () => {
   test('2a details owed stay the glance\'s row; Needs you here leaves them to it', () => {
     const { ctx, c } = pdStage({ left: 3, needs: [{ kind: 'details', n: 3 }, { kind: 'note', n: 1 }] });
     assert.deepEqual(J(ctx.pdNeedsRows(c)).map(r => r.it.kind), ['note'], 'the checklist\'s details item is not drawn here');
-    assert.match(ctx.pdGlanceHtml(c), /data-pd-glance="fill"/, 'the glance still says it, with its own Fill in');
+    /* RE-POINTED 20 Oct 2026: the dossier's Still owed says each empty box, with Fill in › onto that box */
+    assert.match(ctx.pdGlanceHtml(c), /data-pd-ds-fill=/, 'Still owed says it, with its own Fill in');
     assert.equal(pdStage({ left: 3, needs: [{ kind: 'details', n: 3 }] }).ctx.pdNeedsHtml(c), '', 'details alone: no card, the glance says it');
   });
 });
@@ -146,7 +149,8 @@ describe('f705 (3) the way back to Jambo on every face', () => {
        tab beside a contract is renamed Overview"; "Jambo" names only the
        conversation): the faces' back says "‹ Overview" */
     assert.match(h, /class="pd-back" data-pd-back="red" title="pd_trail_back[^"]*" aria-label="pd_trail_back[^"]*"/);
-    assert.match(h, /#i-left[\s\S]*pd_tab_overview<\/button>$/, '‹ and the first tab\'s name');
+    /* RE-POINTED 20 Oct 2026: beside a paper the first tab is the Dossier */
+    assert.match(h, /#i-left[\s\S]*pd_tab_dossier<\/button>$/, '‹ and the first tab\'s name');
     /* RE-POINTED 18 Oct 2026 (round 11's gaps, "The letter" as drawn): the
        send screen is a face of the panel too ("Before you send"), and its way
        back is the screen's own Cancel, asked through its guard. */

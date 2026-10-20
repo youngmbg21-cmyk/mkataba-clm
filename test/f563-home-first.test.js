@@ -48,7 +48,9 @@ describe('f563 (2) — no Signing tab; an approval opens where it is decided', (
     /* no Deal and no History tab (owner, 11 Oct 2026) */
     /* RE-POINTED 13 Oct 2026: the Overview tab is gone from Home's panel (owner); its old doors land on Jambo */
     /* the Menu tab, drawn as "Next up", stands beside Obligations (owner, 15 Oct 2026) */
-    assert.deepEqual([...v('PD_TABS')], ['copilot', 'doc', 'oblig', 'menu']);
+    /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the Menu tab is retired into the dossier's All acts fold */
+    assert.deepEqual([...v('PD_TABS')], ['copilot', 'doc', 'oblig']);
+    assert.equal(v('PD_TAB_ALIAS').menu, 'copilot', 'an old Menu door lands on the dossier');
     assert.equal(v('PD_TAB_NAME').doc, 'pd_tab_clauses', 'the Document tab is called Clauses');
     assert.ok(!('sign' in v('PD_BODY')));
     /* Findings, beside Jambo on Explorer's map only (Explorer stage 4, 18 Oct 2026) */

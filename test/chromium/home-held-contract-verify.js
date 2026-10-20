@@ -263,7 +263,8 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
         idline: (st.querySelector('.bs-idline') || {}).textContent || '',
         next: (() => { const k = st.querySelector('[data-bs-kpi="next"]'); return k ? { sub: k.querySelector('span').textContent, bad: k.classList.contains('is-bad'), col: getComputedStyle(k.querySelector('b')).color } : null; })(),
         value: ((st.querySelector('[data-bs-kpi="value"] span') || {}).textContent || ''),
-        sfoot: [...st.querySelectorAll('.bs-foot button')].map(b => b.textContent.trim())[0] }; }, null, 15000);
+        /* RE-POINTED 20 Oct 2026 (4b): Open stands in the head as "Open in Workspace ›" */
+        sfoot: ((st.querySelector('.bs-head [data-bs-open]') || {}).textContent || '').trim() }; }, null, 15000);
     check('2a Life line and details brings up its page, and Jambo says "MK-0377 at a glance" beside it, with its stage pill', !!P7 && P7.card === 'MK-0377' && P7.word === 'MK-0377 at a glance' && P7.head === 'MK-0377 at a glance' && P7.pill, JSON.stringify(P7 && { card: P7.card, word: P7.word, head: P7.head }));
     const rk = P7 ? P7.rows.map(r => r.k) : [];
     check('2b the rows: the obligation late (→ Obligations), the signed amendment (→ Bring it up), the notice day',
@@ -271,8 +272,8 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
       /* RE-POINTED (pass 4, round 7 as drawn: "Amendment 1, signed 28 Sep, raised the volume 10%"): what it did, in its maker's words, then the value */
       && /^Amendment No\. 1, signed .*: “raised the yearly volume by 10%” — the value is KES 7\.10M as amended\.$/.test(P7.rows[1].t) && P7.rows[1].b === 'Bring it up' && /^Notice by .*, or it renews for 12 months\.$/.test(P7.rows[2].t), JSON.stringify(P7 && P7.rows));
     check('2c chips obligations · history · amend, and the box asks about MK-0377', !!P7 && JSON.stringify(P7.chips) === JSON.stringify(['obligations', 'history', 'amend']) && P7.ph === 'Ask about MK-0377…', JSON.stringify(P7 && { chips: P7.chips, ph: P7.ph }));
-    check('2d the page as drawn: the stage pill, "signed <day>", "As amended by" first, a late next obligation in the late colour saying how late, "Open the paper"',
-      !!P7 && P7.stage === 'Executed' && /· signed \d/.test(P7.idline) && /^As amended by MK-0377-A1/.test(P7.value) && P7.next && P7.next.bad && /· 7 days late$/.test(P7.next.sub) && P7.sfoot === 'Open the paper',
+    check('2d the page as drawn: the stage pill, "signed <day>", "As amended by" first, a late next obligation in the late colour saying how late, "Open in Workspace ›"',
+      !!P7 && P7.stage === 'Executed' && /· signed \d/.test(P7.idline) && /^As amended by MK-0377-A1/.test(P7.value) && P7.next && P7.next.bad && /· 7 days late$/.test(P7.next.sub) && P7.sfoot === 'Open in Workspace ›',
       JSON.stringify(P7 && { stage: P7.stage, idline: P7.idline, value: P7.value, next: P7.next, foot: P7.sfoot }));
     check('5d a page\'s chips sit right under its card, none in the panel\'s foot row', !!P7 && P7.under != null && P7.under >= 0 && P7.under <= 24 && P7.foot === 0, JSON.stringify(P7 && { under: P7.under, foot: P7.foot }));
     check('5e the caption says how late ("…, 7 days late."); the table says Late before Next', !!P7 && /Next up: Check the September invoice \([^)]+\), 7 days late\./.test(P7.cap) && JSON.stringify(P7.pills) === JSON.stringify(['Late', 'Next']), JSON.stringify(P7 && { cap: P7.cap, pills: P7.pills }));

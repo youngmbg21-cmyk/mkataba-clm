@@ -76,7 +76,7 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     await page.evaluate(() => { setView('dashboard'); pdOpenOnHome('MK-D1', 'copilot'); });
     const nx = await until(page, () => { const n = document.querySelector('#ig-dock .pd-nx'); if (!n) return null;
       const cards = [...n.querySelectorAll('[data-pd-mn-go]')]; const g = document.getElementById('pd-glance');
-      return { cards: cards.map(c => (c.querySelector('b') || {}).textContent), shown: cards.every(c => c.getBoundingClientRect().height > 0),
+      return { cards: cards.map(c => ((c.querySelector('b') || c).textContent || '').trim()), shown: cards.every(c => c.getBoundingClientRect().height > 0),
         under: !!g && (g.compareDocumentPosition(n) & 4) > 0, lead: (n.querySelector('.pd-mn-lead') || {}).textContent || '' }; }, null, 12000);
     check('2a the Overview carries the Next up cards, on screen', !!nx && nx.cards.length >= 1 && nx.shown, JSON.stringify(nx));
     check('2b … under the paper\'s "at a glance"', !!nx && nx.under);
@@ -86,10 +86,10 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     const ask = await until(page, () => !!document.getElementById('cf-ok'), null, 6000);
     check('2d the card does its row\'s act (the confirm before drafting)', !!ask);
     if (ask) await page.click('#cf-cancel');
-    await page.evaluate(() => { pdSetTab('menu'); renderIntelDock(); });
-    const menu = await until(page, () => { const m = document.querySelector('#pd-body .pd-menu'); return m ? { cards: m.querySelectorAll('.pd-mn-card').length, rows: m.querySelectorAll('.pd-mn-rows button').length } : null; }, null, 8000);
-    check('2e the Menu keeps its rows and no longer the cards', !!menu && menu.cards === 0 && menu.rows > 0, JSON.stringify(menu));
-    await page.evaluate(() => { pdSetTab('copilot'); renderIntelDock(); });
+    /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the Menu tab is
+       retired into the dossier's All acts fold — the rows drawn once, there */
+    const menu = await until(page, () => { const m = document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'); return m ? { acts: m.querySelectorAll('[data-pd-mn-go]').length, rows: m.querySelectorAll('.pd-mn-rows button').length, tab: !!document.querySelector('#ig-dock [data-pd-tab="menu"]') } : null; }, null, 8000);
+    check('2e All acts folds the rows (no Menu tab, the act buttons stand above it)', !!menu && menu.acts === 0 && menu.rows > 0 && !menu.tab, JSON.stringify(menu));
 
     console.log('\n3 · "draft a new agreement", pressed again');
     const press = async () => {

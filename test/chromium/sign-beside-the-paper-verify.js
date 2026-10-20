@@ -187,10 +187,9 @@ const FACE = () => {
        and the face's word only (rounds 8–11 as drawn); ‹ Jambo brings the
        contract's tabs back, the Menu among them */
     if (await page.$('#ig-dock [data-pd-back]')) await page.click('#ig-dock [data-pd-back]').catch(() => {});
-    await waitFor(page, () => !!document.querySelector('#ig-dock [data-pd-tab="menu"]'), 4000);
-    await page.click('#ig-dock [data-pd-tab="menu"]').catch(() => {});
-    const mt = await waitFor(page, () => { const m = document.querySelector('#pd-body .pd-menu'); return !!m && m.querySelectorAll('.pd-mn-rows button').length > 2; }, 4000);
-    check('7b the Menu tab holds the contract\'s menu rows', mt);
+    /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the menu rows are the dossier's All acts fold */
+    const mt = await waitFor(page, () => { const m = document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'); return !!m && m.querySelectorAll('.pd-mn-rows button').length > 2; }, 6000);
+    check('7b the dossier\'s All acts holds the contract\'s menu rows', mt);
     await page.click('#ig-dock [data-pd-tab="copilot"]').catch(() => {});
 
     /* ===== 8. THE OWNER'S THREE SCREENS ===== */

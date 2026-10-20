@@ -115,8 +115,11 @@ const visible = (page, sel) => page.evaluate(s => {
      asks for the state, bounded. */
   await page.waitForFunction(() => state.view === 'dashboard' && !!document.querySelector('#pd-redface [data-nego-card]') && !!document.querySelector('#ig-dock [data-pd-back="red"]'), null, { timeout: 10000 }).catch(() => {});
   await page.evaluate(() => { const b = document.querySelector('#ig-dock [data-pd-back="red"]'); if (b) b.click(); });
-  await page.waitForFunction(() => !document.getElementById('pd-redface') && !!document.querySelector('#ig-dock [data-pd-tab="menu"]'), null, { timeout: 6000 }).catch(() => {});
-  const MEMO = '#pd-body .pd-menu [data-ig-memo]', MORE = '#ig-dock [data-pd-tab="menu"]';
+  /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the Menu tab is
+     retired; the memo row stands in the dossier's All acts fold */
+  await page.waitForFunction(() => !document.getElementById('pd-redface') && !!document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'), null, { timeout: 6000 }).catch(() => {});
+  const MEMO = '#ig-dock .ds-fold [data-ig-memo]', MORE = '#ig-dock [data-pd-tab="copilot"]';
+  const openAll = () => page.evaluate(() => { const f = document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'); if (f) f.open = true; });
 
   /* ============ 1. THE ROW IS IN THE MENU, AND ON SCREEN ============ */
   /* EVERY DRIVEN HALF BELOW IS GUARDED. A build without the feature must
@@ -124,6 +127,7 @@ const visible = (page, sel) => page.evaluate(s => {
      its target — a probe that throws proves nothing, and a crash reads as an
      infrastructure problem rather than as a missing feature. */
   if (await page.locator(MORE).count()) await page.click(MORE);
+  await openAll();
   await page.waitForFunction(m => !!document.querySelector(m), MEMO, { timeout: 6000 }).catch(() => {});
   await page.evaluate(m => { const r = document.querySelector(m); if (r && r.closest('details')) r.closest('details').open = true; }, MEMO);
   const hasRow = await page.locator(MEMO).count() === 1;
@@ -375,7 +379,7 @@ const visible = (page, sel) => page.evaluate(s => {
   check(stillThere === 'dashboard', '6b and leaves the reader on the negotiation', String(stillThere));
 
   if (hasRow){
-    await page.click(MORE); await page.waitForTimeout(300);
+    await page.click(MORE); await page.waitForTimeout(300); await openAll();
     await page.click(MEMO); await page.waitForTimeout(700);
   }
   const reopened = await page.locator('#side-panel').count() === 1;
@@ -395,7 +399,7 @@ const visible = (page, sel) => page.evaluate(s => {
      promises, and the one that lets the whole journey be driven end to end and
      the message read back. */
   if (hasRow){
-    await page.click(MORE); await page.waitForTimeout(300);
+    await page.click(MORE); await page.waitForTimeout(300); await openAll();
     await page.click(MEMO); await page.waitForTimeout(700);
   }
   const panelText = await page.evaluate(() => {

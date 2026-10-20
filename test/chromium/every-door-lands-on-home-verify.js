@@ -708,7 +708,8 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
       for (const k of ['fill', 'redline', 'share', 'sign'])
         await door(D, `the glance's "${k}" button (on the dropped contract)`, { start: glanceStart, same: k === 'share',
           press: async () => { if (!(await waitFor(page, i => !!document.querySelector(`#pd-glance[data-pd-glance-for="${i}"]`), 6000, gid))) return false;
-            return domClick(k === 'redline' ? '#pd-glance [data-pd-gl-risks]' : `#pd-glance [data-pd-glance="${k}"]`); },
+            /* RE-POINTED 20 Oct 2026 (the dossier): Still owed's Fill in › is each empty box's own door */
+            return domClick(k === 'redline' ? '#pd-glance [data-pd-gl-risks]' : k === 'fill' ? '#pd-glance [data-pd-ds-fill]' : `#pd-glance [data-pd-glance="${k}"]`); },
           expect: GL[k][0], says: GL[k][1] });
     } else record(D, 'the glance\'s buttons', false, 'no dropped contract to read', 'missing');
     /* the draft card's Open the form is the ONE form, never the two-door menu; Create lands on the new paper */
@@ -772,13 +773,15 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
     lap('Jambo');
     /* ================= E · THE PAPER'S ⋯ MENU ================= */
     /* RE-POINTED 15 Oct 2026 (owner, answer B): the paper's ⋯ went; its rows are the panel's Menu tab */
-    const EM = 'E the panel\'s Menu tab';
-    const MN = '#pd-body .pd-menu .pd-mn-rows';
-    const menuOpen = id => async () => { await onPaper(id)(); await domClick('#ig-dock [data-pd-tab="menu"]');
-      await waitFor(page, () => !!(document.querySelector('#pd-body .pd-menu') || {}).dataset?.wired, 4000);
-      await page.evaluate(() => document.querySelectorAll('#pd-body .pd-mn-g').forEach(d => { d.open = true; })); };
+    /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the Menu tab is retired into the dossier's All acts fold */
+    const EM = 'E the dossier\'s All acts';
+    const MN = '#ig-dock .ds-fold .pd-mn-rows';
+    const menuOpen = id => async () => { await onPaper(id)();
+      await page.evaluate(x => { ['pdFillClose', 'pdSignClose', 'pdRedClose'].forEach(f => { if (typeof window[f] === 'function') try { window[f](); } catch (_){} }); pdOpenOnHome(x, 'copilot'); }, id);
+      await waitFor(page, () => !!(document.querySelector('#ig-dock .ds-nx') || {}).dataset?.wired, 4000);
+      await page.evaluate(() => document.querySelectorAll('#ig-dock .ds-fold').forEach(d => { d.open = true; })); };
     const items = await (async () => { await menuOpen('MK-A2')(); return page.evaluate(m => [...document.querySelectorAll(m + ' button')].map(b => b.id).filter(Boolean), MN); })();
-    console.log(`  the Menu tab on Home's paper holds: ${items.join(' ')}`);
+    console.log(`  the dossier's All acts on Home's paper holds: ${items.join(' ')}`);
     await door(EM, 'Filing and stream (MK-A2)', { start: menuOpen('MK-A2'), press: () => domClick(MN + ' #ws-filing'), expect: E.strip('MK-A2', 'details'), says: SAYS.stripDetails + ', its filing rows' });
     await door(EM, 'Delete (MK-DEL)', { start: menuOpen('MK-DEL'),
       press: async () => { if (!(await domClick(MN + ' #ws-delete'))) return false;
