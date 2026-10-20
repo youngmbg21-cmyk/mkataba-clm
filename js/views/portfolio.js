@@ -523,7 +523,6 @@ function portfolioFrameHtml(){
      gives it (flex basis 0), and three or more rows spread down their card. */
   return `<style>
     .pf-ov{--pf-made:var(--color-accent-600)}
-    html.dark .pf-ov{--pf-made:var(--color-accent-400)}
     .pf-hl{display:grid;gap:2px;align-content:start}
     .pf-hr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 12px;align-items:baseline;width:100%;padding:6px 6px 8px;border:0;border-radius:var(--radius);background:none;text-align:left;font:inherit;font-size:var(--t-body);color:var(--color-text);cursor:pointer}
     .pf-hr:hover{background:var(--color-accent-50)}

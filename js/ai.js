@@ -980,11 +980,10 @@ function openAI(prefill,opts){
   document.getElementById('ai-scrim').classList.toggle('open',!ai.docked && !aiFloatOn());
   ai.open=true;
   try{ aiFloatWire(); aiFloatSync(); }catch(_){}   /* a cut-down stage has no box model */
-  /* his face takes the header's tile once the chat is opened — the closed
-     drawer keeps today's sparkle, so nothing changes on a page that never
-     opens it */
+  /* his face takes the header's tile once the chat is opened ON THE PHONE —
+     on a computer the tile keeps the ✦ mark (Chambers, 20 Oct 2026) */
   try{ const tile=document.querySelector('#ai-panel > header .ai-head-tile');
-    if(tile && !tile.classList.contains('has-face') && typeof jamboFaceHtml==='function'){ tile.innerHTML=jamboFaceHtml('hello',36); tile.classList.add('has-face');
+    if(tile && !tile.classList.contains('has-face') && typeof jamboFaceHtml==='function' && typeof window.mPhone==='function' && window.mPhone()){ tile.innerHTML=jamboFaceHtml('hello',36); tile.classList.add('has-face');
       tile.style.background='color-mix(in srgb,#fff 82%,var(--color-accent))'; tile.style.borderRadius='50%'; } }catch(_){}
   ai.minimized=false; ai.unread=false; updateAIBadge();   // opening clears the glow
   if(typeof updateAiBrainPill==='function') updateAiBrainPill();   // show which brain is live
@@ -992,17 +991,8 @@ function openAI(prefill,opts){
   if(!aiFloatOn()) try{ toggleAIExpand(!!(typeof lsGet==='function'&&lsGet('hati.v1.aiExpanded'))); }catch(_){}
   aiSyncDock();
   renderAIFeed(); renderAISuggest();
-  aiHintPaint();
   const inp=document.getElementById('ai-input');
   if(prefill){ inp.value=prefill; aiSubmit(); } else inp.focus();
-}
-/* THE HINT LINE UNDER THE WINDOW'S BOX (owner, 18 Oct 2026, "Every Jambo
-   box"): the one builder, painted on every open so it speaks the reader's
-   language of the moment; CSS keeps it off the phone */
-function aiHintPaint(){
-  const el=document.getElementById('ai-hint');
-  if(!el||typeof window.jamboHintHtml!=='function') return;
-  try{ el.innerHTML=window.jamboHintHtml(); }catch(_){}
 }
 function closeAI(){
   document.getElementById('ai-panel').classList.remove('open');
@@ -5363,6 +5353,8 @@ function aiDoorFace(){
   const b=document.getElementById('cmd-ai');
   /* a stage that stands a bare object in for the page has no dataset/querySelector */
   if(!b || !b.dataset || typeof b.querySelector!=='function' || b.dataset.face || typeof jamboFaceHtml!=='function') return;
+  /* on a computer the door keeps the ✦ mark (Chambers, 20 Oct 2026): the bird is the phone's */
+  if(!(typeof window.mPhone==='function' && window.mPhone())) return;
   const svg=b.querySelector('svg'); if(!svg) return;
   svg.outerHTML=jamboFaceHtml('hello',24,'cmd-ai-face').replace('<img','<img data-ink-exempt');   /* a picture carries no ink */ b.dataset.face='1';
   }catch(_){}

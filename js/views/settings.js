@@ -2533,7 +2533,6 @@ async function stNameSave(){
   if(typeof settingsMirrorDirectory==='function') try{ settingsMirrorDirectory(u.name,u.email,u.title||''); }catch(_){}
   toast(i18t('st_you_name_saved'),'ok');
   stDrawerClose(); stYouCardRepaint('who');
-  if(typeof paintAppearance==='function') try{ paintAppearance(); }catch(_){}
 }
 /* ---- YOUR EMAIL, CHANGED BY YOU, WITH YOUR CURRENT PASSWORD (round 24 as
    drawn: "Email · Change") ----
@@ -3293,7 +3292,6 @@ function stJamboHtml(){
       <label class="sr-only" for="st-jb-q">${esc(i18t('st_jb_ph'))}</label>
       ${_stJbCard({ field: `<textarea id="st-jb-q" rows="1" maxlength="200" data-ca-slash data-jb-enter autocomplete="off" placeholder="${esc(i18t('st_jb_ph'))}"></textarea>`, send: _stJbSend('', i18t('st_jb_ask'), { submit: true }) })}
     </form>
-    ${typeof jamboHintHtml==='function'?jamboHintHtml():''}
   </div>`;
 }
 /* AN ASK IS ADDED WHERE IT IS READ — appended to the feed, the box keeps the

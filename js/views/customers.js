@@ -866,7 +866,7 @@ const LC_CSS = `
      it is the card's title row (.ph-top), so the 12px and the hairline under it are the one rule every head wears */
   .sap-band > .cu-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s-3);flex-wrap:wrap;}
   .cu-hl{display:flex;align-items:baseline;gap:var(--s-3);min-width:0;flex:1 1 auto;}
-  .cu-t{margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;line-height:1.2;color:var(--color-text);white-space:nowrap;}
+  .cu-t{margin:0;font-family:var(--font-title);font-size:20px;font-weight:var(--w-title-serif);letter-spacing:-.01em;line-height:1.2;color:var(--color-text);white-space:nowrap;}
   .cu-t .cu-tn{margin-left:6px;font-size:var(--t-card);font-weight:var(--w-body);color:var(--color-neutral-600);font-variant-numeric:tabular-nums;}
   .cu-hs{font-size:var(--t-meta);color:var(--color-neutral-700);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .cu-acts{display:flex;align-items:center;gap:var(--s-2);flex:none;min-height:var(--ctl-h);}

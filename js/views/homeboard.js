@@ -53,7 +53,6 @@ const HB_FACES = ['board', 'paper', 'calendar', 'explorer'];
 /* each face's drawn icon, from the shared ICONS (components.js) */
 const HB_FACE_ICON = { board: 'grid', paper: 'file', calendar: 'calendar', explorer: 'network' };
 const HB_LENSES = ['all', 'suppliers', 'customers'];
-const HB_SCREENS = ['dark', 'light'];
 const HB_PREP = ['open', 'folded', 'closed'];
 /* The six headline figures, in the order the board draws them. `tone` is the
    colour of the meaning edge when the figure is above zero. */
@@ -129,7 +128,7 @@ let _hbS = null, _hbSUid = null;
    hbSave reads it */
 let _hbCv = { v: 'book', id: null };
 function hbFresh(){
-  return { face: 'board', lens: 'all', panels: [], path: [], prep: 'open', screen: null, scrPick: 0,
+  return { face: 'board', lens: 'all', panels: [], path: [], prep: 'open',
     watches: [], chartWatches: [], seen: null, saved: [], seq: 0, found: null, recipe: {}, digBig: false,
     ins: null, insKept: {}, insOff: {}, keptSent: '', why: {}, undo: [], undoSeq: 0, an: {}, sy: {}, refs: {}, myq: [], strips: [] };
 }
@@ -145,13 +144,6 @@ function hbS(){
   if (v && typeof v === 'object'){
     if (HB_FACES.includes(v.face)) s.face = v.face;
     if (HB_LENSES.includes(v.lens)) s.lens = v.lens;
-    /* THE BOARD FOLLOWS DAY AND NIGHT (Young, 7 Oct 2026, "Follow dark
-       mode", refining 6 Oct's "the board lands light"): with no screen of
-       the reader's own the board is Light by day and Dark when the app is
-       dark (hbScreenNow). A press on the board's Light | Dark is the
-       reader's choice and is kept (scrPick); a screen saved before this
-       ruling carries no scrPick and is not kept. */
-    if (HB_SCREENS.includes(v.screen) && v.scrPick === 1){ s.screen = v.screen; s.scrPick = 1; }
     if (HB_PREP.includes(v.prep)) s.prep = v.prep;
     /* a kept view is a question (q:) or a card Copilot built (cd:, its set in `which`) */
     if (Array.isArray(v.panels)) s.panels = v.panels.filter(p => p && (HB_KINDS[p.kind] || (p.kind === 'view' && typeof p.key === 'string' && /^(q|cd):/.test(p.key))))
@@ -1261,9 +1253,6 @@ function hbHelloInner(){
      its own count, a few pixels below. */
   return `<h1>${_hbE(greet)}, ${_hbE(first)}</h1>`;
 }
-/* The Board's Light | Dark, one builder for the two places it stands: Home's
-   head on the phone, the Board's first line on a computer (hbNoteHtml). */
-function hbScrButtonHtml(m){ return `<button type="button" data-hb-screen="${m}" aria-pressed="${hbScreenNow() === m}">${_hbE(i18t('hb_screen_' + m))}</button>`; }
 function hbHeadHtml(groupSel){
   const s = hbS();
   /* the Calendar tab carries the count its menu door carried — the same
@@ -1275,7 +1264,6 @@ function hbHeadHtml(groupSel){
      columns take the widest — so switching language moves nothing. */
   const face = f => `<button type="button" role="tab" data-hb-face="${f}" aria-selected="${s.face === f}">${(typeof icon === 'function') ? icon(HB_FACE_ICON[f], 'hb-face-ic', 2) : ''}${hbFaceWordsHtml(f)}${f === 'calendar' ? (() => { const n = (typeof window.calendarDoorCount === 'function') ? calendarDoorCount() : 0;
     return `<span class="hb-face-n" data-count="calendar" data-count-quiet-zero${n ? ' data-tone="amber"' : ''}>${n ? n : ''}</span>`; })() : ''}</button>`;
-  const scr = hbScrButtonHtml;
   /* ---- NO ROW ABOVE THE PAGE ON A COMPUTER (the owner picked "The SAP
      way", 18 Oct 2026; reverses "Desk tabs") ---- the top bar names the page
      and opens Recent (js/views/counter.js), so on a computer this head is
@@ -1291,8 +1279,7 @@ function hbHeadHtml(groupSel){
     <span class="hb-grow"></span>
     ${desk ? '' : `<label class="hb-groupby" id="hb-groupby"${s.face === 'explorer' ? '' : ' hidden'}>${_hbE(i18t('hb_group_by'))} ${groupSel || ''}</label>
     <span class="hb-counting">${hbCountChipHtml()}</span>
-    <button type="button" class="ui-btn ui-btn-sm" id="hb-present" title="${_hbE(i18t('hb_present_tip'))}">${_hbE(i18t('hb_present'))}</button>
-    <div class="hb-seg hb-scr" role="group"${s.face !== 'board' ? ' hidden' : ''} aria-label="${_hbE(i18t('hb_screen_label'))}" title="${_hbE(i18t('hb_screen_tip'))}">${scr('light')}${scr('dark')}</div>`}
+    <button type="button" class="ui-btn ui-btn-sm" id="hb-present" title="${_hbE(i18t('hb_present_tip'))}">${_hbE(i18t('hb_present'))}</button>`}
   </header>`;
 }
 /* A face's word in the reader's language, with every other language's word
@@ -1557,7 +1544,7 @@ function hbBoardHelloHtml(){
   if (!hbBoardHelloOn()) return '';
   const face = (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 24, 'ai-face shrink-0 mt-0.5') : '';
   const bub = (say, chips) => `<div class="ai-msg flex gap-2 pd-hello hb-jb-hello">${face}<div class="min-w-0 flex-1"><div class="ai-bub rounded-2xl rounded-tl-md border px-3.5 py-2 text-[13px] leading-relaxed bg-canvas border-brand-100 text-brand-900">${say}</div>`
-    + (chips.length ? `<div class="hb-jb-chips">${chips.map(c => `<button type="button" data-igsug="${_hbE(c)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${_hbE(c)}</button>`).join('')}</div>` : '') + '</div></div>';
+    + (chips.length ? `<div class="hb-jb-chips">${chips.map(c => `<button type="button" data-igsug="${_hbE(c)}" class="jb-chip">${_hbE(c)}</button>`).join('')}</div>` : '') + '</div></div>';
   let ending = 0; try { ending = hbBookData(hbS().lens || 'all').figs.ending.n; } catch (_){ ending = 0; }
   let views = 0; try { views = (typeof igViewsRead === 'function') ? igViewsRead().length : 0; } catch (_){ views = 0; }
   const book = [ending ? i18tn('hb_jb_ending', ending, { n: ending }) : null, i18t('hb_jb_by_stream'), views ? i18t('hb_jb_views') : null].filter(Boolean);
@@ -1940,8 +1927,8 @@ const HB_ATTENTION_RE = /^(move|owner|overdue|not read yet|off standard|liabilit
    2026): one set for the light board, one for the dark, each passing the five
    palette checks (lightness, strength, colour-blind and normal separation,
    contrast). The first four are the checked set; the tail is for a fifth
-   series and later. The first hue follows the brand: Blue leads with its
-   blue, Green with its teal (the same four, swapped — no new colour). Status
+   series and later. Blue leads, as it did for nearly every reader before
+   the Blue / Green switch left with the Chambers design (20 Oct 2026). Status
    colours never move (hmStageTone). */
 const HB_HUES_LIGHT = ['#2F5FC4', '#1A9C8A', '#B87A0F', '#9A5CC8', '#C4503A', '#5E7A1F', '#C2457E', '#5B6B7F'];
 const HB_HUES_DARK = ['#4F82E6', '#1C9E8B', '#C08518', '#9E68D2', '#E07A63', '#86A83A', '#E0709F', '#8C9BB0'];
@@ -1949,9 +1936,7 @@ const HB_HUES = HB_HUES_DARK;
 const HB_TILE_INK = '#021011';
 function hbHues(){
   let dark = true; try { dark = hbScreenNow() !== 'light'; } catch (_){ dark = true; }
-  const set = (dark ? HB_HUES_DARK : HB_HUES_LIGHT).slice();
-  if (document.documentElement.getAttribute('data-brand') !== 'navy'){ const t = set[0]; set[0] = set[1]; set[1] = t; }
-  return set;
+  return (dark ? HB_HUES_DARK : HB_HUES_LIGHT).slice();
 }
 function hbHueOf(field, g, i){
   if (field === 'status' && typeof hmStageTone === 'function') return hmStageTone(g);
@@ -5938,11 +5923,11 @@ function hbCountedAt(fresh){
   if (fresh || !_hbCountedAt){ try { _hbCountedAt = new Date().toLocaleTimeString(langLocale(), { hour: '2-digit', minute: '2-digit' }); } catch (_){ _hbCountedAt = ''; } }
   return _hbCountedAt;
 }
-function hbBoardHeadHtml(time, cut, bs, pack, deskBits, deskScr){
+function hbBoardHeadHtml(time, cut, bs, pack, deskBits){
   const at = cut ? i18t('hb_bh_counted', { time, lens: cut }) : i18t('hb_bh_counted_plain', { time });
   return `<section class="hb-card hb-bhead" id="hb-bhead"><div class="hb-note hb-bh-r"><h2 class="hb-bh-t">${_hbE(i18t('hb_face_board'))}</h2><span class="hb-bh-s">${_hbE(i18t('hb_bh_sub'))}</span>`
     + `<span class="hb-live"><i></i>${_hbE(i18t('hb_live'))}</span><span class="hb-bh-at">${_hbE('· ' + at)}</span>${deskBits || ''}<span class="hb-grow"></span>`
-    + `${pack || ''}${bs.btn}${deskScr || ''}</div>${hbSavedViewChipsHtml()}</section>`;
+    + `${pack || ''}${bs.btn}</div>${hbSavedViewChipsHtml()}</section>`;
 }
 /* SAVED VIEWS ARE CHIPS IN THE HEAD (round 17 as drawn; they moved from the
    panel to the Board's head on 15 Oct, behind one button — now each is its
@@ -6011,11 +5996,11 @@ function hbBoardHtml(){
   /* Make a pack, where the Board keeps a chart: in the head, beside Summarise */
   const pack = s.panels.some(p => p.kind === 'view') ? `<button type="button" class="hb-btn is-sm" data-hb-pack-dl>${_hbE(i18t('hb_pack_btn'))}</button>` : '';
   /* on a computer the head row is gone (the SAP way, 18 Oct 2026): the
-     counting chip and Light | Dark stand on the Board's own head */
+     counting chip stands on the Board's own head. Its Light | Dark went with
+     dark mode (owner, 20 Oct 2026). */
   const desk = typeof window.deskShellOn === 'function' && window.deskShellOn();
   const deskBits = desk ? `<span class="hb-counting">${hbCountChipHtml()}</span>` : '';
-  const deskScr = desk ? `<div class="hb-seg hb-seg-sm hb-scr" role="group" aria-label="${_hbE(i18t('hb_screen_label'))}" title="${_hbE(i18t('hb_screen_tip'))}">${hbScrButtonHtml('light')}${hbScrButtonHtml('dark')}</div>` : '';
-  return `${hbBoardHeadHtml(time, cut, bs, pack, deskBits, deskScr)}
+  return `${hbBoardHeadHtml(time, cut, bs, pack, deskBits)}
     ${bs.box}
     ${hbBookHtml(d, moved, base && base.at)}
     ${hbPrepHtml(A, base && base.at)}
@@ -7126,9 +7111,6 @@ function hbPaintBoard(opts){
   hbRcMenuPlace(host);
   hbFitMeasure();
   hbFitWatch(host);
-  /* the hint line under Jambo's box names the keys while a contract is up as
-     a page here (rounds 7, 12): it follows the card in place */
-  if (typeof window.igHintPaint === 'function') try { igHintPaint(); } catch (_){}
 }
 /* THE BOARD'S OWN WIDTH (owner, 11 Oct 2026: a chart's words grew huge): the
    board narrows and widens without the window moving — the Copilot panel
@@ -7175,11 +7157,9 @@ function hbPaintHead(){
   document.querySelectorAll('[data-hb-face]').forEach(b => b.setAttribute('aria-selected', String(b.getAttribute('data-hb-face') === s.face)));
   /* the pill slides: the track carries the chosen face's place */
   const track = document.querySelector('#hb-head .hb-faces'); if (track) track.style.setProperty('--hb-fi', String(Math.max(0, HB_FACES.indexOf(s.face))));
-  document.querySelectorAll('[data-hb-screen]').forEach(b => b.setAttribute('aria-pressed', String(b.getAttribute('data-hb-screen') === hbScreenNow())));
   const gb = document.getElementById('hb-groupby'); if (gb) gb.hidden = s.face !== 'explorer';
   /* a contract's page on the desk (round 7) is not the Board: its screen and Present are the Board's */
   const card = s.face === 'board' && typeof window.bsCardId === 'function' && !!window.bsCardId();
-  const scr = document.querySelector('#hb-head .hb-scr'); if (scr) scr.hidden = s.face !== 'board' || card;
   const pres = document.getElementById('hb-present'); if (pres) pres.hidden = card;
   const pg0 = hbPage(); if (pg0) pg0.classList.toggle('hb-on-card', card);
   const chip = document.querySelector('.hb-counting');
@@ -7188,29 +7168,19 @@ function hbPaintHead(){
   if (typeof window.deskTabsSync === 'function') window.deskTabsSync();
 }
 /* EXPLORER IS ALWAYS DARK (Young, 6 Oct 2026: "no option to make it
-   light"): the Light/Dark choice is the Board's alone, and its buttons are
-   not drawn on Explorer's face. */
-/* Explorer is always dark; the board is the reader's own screen when they
-   pressed one, else the app's day or night (see hbS). */
+   light"), and since dark mode left HaTi (owner, 20 Oct 2026: "Only dark
+   theme will be on the explorer and brain as designed today") it is the ONLY
+   dark face: the Board, the Workspace and the Calendar are light, and the
+   Board's own Light | Dark switch is gone. A screen a reader pressed before
+   is not read. */
 function hbScreenNow(){
-  const s = hbS(); if (s.face === 'explorer') return 'dark';
-  /* the paper follows the app's own day or night, never the board's screen */
-  if (s.face !== 'paper' && s.screen && HB_SCREENS.includes(s.screen)) return s.screen;
-  let night = false; try { night = (typeof darkNow === 'function') ? !!darkNow() : document.documentElement.classList.contains('dark'); } catch (_){ night = false; }
-  return night ? 'dark' : 'light';
+  const s = hbS();
+  return s.face === 'explorer' ? 'dark' : 'light';
 }
 function hbApplyScreen(){
   const pg = hbPage(); if (!pg) return;
   pg.classList.toggle('hb-light', hbScreenNow() === 'light');
   pg.classList.toggle('hb-dark', hbScreenNow() !== 'light');
-}
-/* The app turning dark or light while Home is open repaints the board's
-   screen at once (only when the reader has not chosen one of their own). */
-if (typeof document !== 'undefined' && typeof MutationObserver === 'function' && !document._hbNightWired){
-  document._hbNightWired = true;
-  try { new MutationObserver(() => { try { const s = hbS(); if (!s.scrPick){ hbApplyScreen();
-      document.querySelectorAll('[data-hb-screen]').forEach(b => b.setAttribute('aria-pressed', String(b.getAttribute('data-hb-screen') === hbScreenNow()))); } } catch (_){} })
-    .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] }); } catch (_){}
 }
 function hbApplyFace(){
   const s = hbS(), host = hbHost(); if (!host) return;
@@ -9437,7 +9407,7 @@ function hbAsk(q){
   }
   if (r.act === 'noref') return say(_hbE(i18t('hb_no_ref', { ref: r.ref })), { noPaint: true });
   if (r.act === 'reset'){
-    const keep = { screen: s.screen, scrPick: s.scrPick, watches: s.watches, chartWatches: s.chartWatches, saved: s.saved, seen: s.seen, seq: s.seq, undo: s.undo, undoSeq: s.undoSeq };
+    const keep = { watches: s.watches, chartWatches: s.chartWatches, saved: s.saved, seen: s.seen, seq: s.seq, undo: s.undo, undoSeq: s.undoSeq };
     Object.assign(s, hbFresh(), keep); hbSave(); hbLensOnMap();
     hbMount();
     return say(_hbE(i18t('hb_reset_said')), { noPaint: true });
@@ -10123,7 +10093,6 @@ function hbOnClick(e){
   if ((el = on('[data-hb-ag-look]'))){ e.stopPropagation(); hbAgLookToggle(el.getAttribute('data-hb-ag-look')); return; }
   if (on('[data-hb-ag-item]') && hbAgentWorkPress(t)){ e.stopPropagation(); return; }
   if ((el = on('[data-hb-face]'))){ hbSetFace(el.getAttribute('data-hb-face')); return; }
-  if ((el = on('[data-hb-screen]'))){ const m = el.getAttribute('data-hb-screen'); if (HB_SCREENS.includes(m)){ hbS().screen = m; hbS().scrPick = 1; hbSave(); hbApplyScreen(); hbPaintHead(); if (typeof igRender === 'function') try { igRender(); } catch (_){} } return; }
   if ((el = on('[data-hb-lens]'))){ hbSetLens(el.getAttribute('data-hb-lens')); return; }
   if (on('#hb-present')){ hbPresent(!_hbPresenting); return; }
   if ((el = on('[data-hb-tool]'))){ const k = el.getAttribute('data-hb-tool');
@@ -10798,7 +10767,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { hbThenDay, hbThenWord, HB_STAGE_FIG, hbStageThen, HB_FIG_TO_CONTRACTS, hbFigDoor, hbEmptyHtml, hbSetupLeft, hbSetupGo, hbNeedsList, hbNeedsCount, hbNyWhat, hbNyDays, hbNyWhen, hbNyOldestSay, HB_VIEWS_ASK_RE, hbSavedViewsSay, hbHeadWord, hbValueSay, hbEndingDecided, hbBoardHelloOn, hbBoardHelloHtml, hbCountedAt, hbBoardHeadHtml, hbSavedViewChipsHtml, hbViewsChanged, hbNeedsOpen, hbNeedsPress, hbOpenSavedView, hbOpenCalendar, hbOpenContracts, hbOpenHome, HB_CVIEWS, HB_CV_WORD, HB_CV_ROOM_TAB, hbCvNow, hbCvSet, hbCvCounts, hbCvReady, hbCvSwitchHtml, hbCvBodyHtml, hbCvPaint, hbOpenView, hbCvPick, hbCvReportOf, hbCvPrint, hbCvDownload, hbCvShareFormHtml, hbCvGive, hbCvGiftValid, hbCvGiftHtml, hbGiftSeen, hbCvGiftOpen, hbGiftsSeenSay, hbGiftAlerts, hbAngleOf, hbAngleText, HB_ANGLE, HB_SLASH_PLACES, HB_ASKPOP_LONG, hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgPieceHtml, hbAgLookToggle, hbAgentWorkPress, hbOpenAgent, hbAgLevelsHtml, hbLvAsk, hbLvAskState, hbAgLevelsWanted, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, HB_FOUND_TITLE_MAX, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_FACE_ICON, hbFaceWordsHtml, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
+Object.assign(window, { hbThenDay, hbThenWord, HB_STAGE_FIG, hbStageThen, HB_FIG_TO_CONTRACTS, hbFigDoor, hbEmptyHtml, hbSetupLeft, hbSetupGo, hbNeedsList, hbNeedsCount, hbNyWhat, hbNyDays, hbNyWhen, hbNyOldestSay, HB_VIEWS_ASK_RE, hbSavedViewsSay, hbHeadWord, hbValueSay, hbEndingDecided, hbBoardHelloOn, hbBoardHelloHtml, hbCountedAt, hbBoardHeadHtml, hbSavedViewChipsHtml, hbViewsChanged, hbNeedsOpen, hbNeedsPress, hbOpenSavedView, hbOpenCalendar, hbOpenContracts, hbOpenHome, HB_CVIEWS, HB_CV_WORD, HB_CV_ROOM_TAB, hbCvNow, hbCvSet, hbCvCounts, hbCvReady, hbCvSwitchHtml, hbCvBodyHtml, hbCvPaint, hbOpenView, hbCvPick, hbCvReportOf, hbCvPrint, hbCvDownload, hbCvShareFormHtml, hbCvGive, hbCvGiftValid, hbCvGiftHtml, hbGiftSeen, hbCvGiftOpen, hbGiftsSeenSay, hbGiftAlerts, hbAngleOf, hbAngleText, HB_ANGLE, HB_SLASH_PLACES, HB_ASKPOP_LONG, hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgPieceHtml, hbAgLookToggle, hbAgentWorkPress, hbOpenAgent, hbAgLevelsHtml, hbLvAsk, hbLvAskState, hbAgLevelsWanted, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, HB_FOUND_TITLE_MAX, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_FACE_ICON, hbFaceWordsHtml, HB_LENSES, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbOpenRef, HB_OPEN_REF_LEAD, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,

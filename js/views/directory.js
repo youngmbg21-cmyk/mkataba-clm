@@ -601,7 +601,7 @@ function dirPaintPanel(p, book){
       /* what is asked of them on it now wears its own amber pill ("Approval
          asked", round 19); otherwise the stage, as everywhere */
       const ask = p.side === 'ours' && typeof p.askedOn === 'function' ? p.askedOn(id) : null;
-      const st = ask ? `<span class="reg-stg jl-asked" style="color:var(--st-amber-fg);background:var(--st-amber-bg)"><i style="background:var(--st-amber-dot)"></i>${_dE(i18t(ask === 'review' ? 'jl_review_asked' : 'jl_approval_asked'))}</span>`
+      const st = ask ? `<span class="reg-stg jl-asked" style="color:var(--st-amber-fg)"><i style="background:var(--st-amber-dot)"></i>${_dE(i18t(ask === 'review' ? 'jl_review_asked' : 'jl_approval_asked'))}</span>`
         : (typeof contractStatusDotHtml === 'function') ? contractStatusDotHtml(c) : _dE(c.status || '');
       const roles = p.roleOn(id).map(p.side === 'ours' ? dirRoleNoun : dirRoleWord).join(' · ');
       const sub = [ref, p.side === 'ours' ? _dStr(c.counterparty) : '', roles].filter(Boolean).join(' · ');
@@ -824,7 +824,7 @@ const DIR_CSS = `
   .ap-table.dir-table :is(td,th){padding-left:12px;padding-right:12px;}
   .dir-nm{display:flex;align-items:center;gap:4px 8px;min-width:0;flex-wrap:wrap;}
   .dir-nm-w{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .dir-tav{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:var(--w-strong);background:var(--color-accent-50);color:var(--accent-ink);border:1px solid var(--color-divider);}
+  .dir-tav{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:var(--w-strong);background:transparent;color:var(--color-neutral-600);border:1px solid var(--rule-strong);}  /* outlined (Chambers, 20 Oct 2026) */
   .dir-table .dir-name{font-weight:var(--w-label);color:var(--color-text);}
   .dir-table .dir-mail a{color:var(--color-neutral-600);text-decoration:none;font-size:var(--t-meta);}
   .dir-table .dir-mail a:hover{color:var(--accent-ink);text-decoration:underline;}

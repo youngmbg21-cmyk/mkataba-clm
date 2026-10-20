@@ -713,12 +713,6 @@ function renderPageHeader(view){
   /* BEFORE the early return below, because that return fires for exactly the
      views this matters most to — the ones that draw their own head band. */
   paintScrollGutter(view);
-  /* THE SWATCHES ASK WHO IS SIGNED IN, AND AT BOOT NOBODY IS. wireThemeMenu
-     runs once, before the sign-in wall, so brandPickerVisible answered false
-     for everybody and an admin never saw the pair. Repainted here because this
-     runs on every view change, which is the first thing that happens after a
-     successful sign-in. */
-  paintAppearance();
   paintSearchFace(view);
   const host=document.getElementById('page-head'); if(!host) return;
   if(PAGE_OWNS_HEADER.includes(view)){ host.innerHTML=''; host.style.padding='0'; syncViewHeight(); return; }
@@ -810,7 +804,7 @@ function renderPageHeader(view){
              drawing of rounds 14–26 sets them beside the page's name — "Negotiations
              7 live · 3 waiting on our side"); they wrap under it where the line is full */}
       <div class="page-title-row" style="min-width:0;display:flex;align-items:baseline;column-gap:12px;row-gap:2px;flex-wrap:wrap">
-        <h1 style="margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${esc(t)}</h1>
+        <h1 style="margin:0;font-family:var(--font-title);font-size:20px;font-weight:var(--w-title-serif);letter-spacing:-.005em;color:var(--color-text);line-height:1.2">${esc(t)}</h1>
         ${''/* A FACTS LINE, NOT A SUBTITLE (second pass, 21 Sep 2026): the
                Contracts page prints its count and its money here — the
                Calendar's counts and Home's date line are the precedent, a
@@ -872,7 +866,6 @@ function onShellResize(){
     // applyRail owns the sidebar's inline column and reads the floating
     // breakpoint, so crossing 1500 in either direction has to re-ask it.
     applyRail();
-    placeLanguageSwitch();
     // A window dragged back to full width must not leave the drawer stranded
     // open over a sidebar that is already on screen.
     if(!navDrawerActive()) closeNavDrawer();
@@ -1426,7 +1419,6 @@ function setView(view){
   viewPaint('updateCommandBar', ()=>updateCommandBar(view));
   viewPaint('updateSidebarCounts', ()=>updateSidebarCounts());
   viewPaint('applyPanelLayout', ()=>applyPanelLayout());
-  viewPaint('placeLanguageSwitch', ()=>placeLanguageSwitch());
   viewPaint('renderContextPanel', ()=>renderContextPanel());
   /* the page just drawn is a tab on the desk (Round 2, 17 Oct 2026) */
   viewPaint('deskTabsSync', ()=>{ if(window.deskTabsSync) deskTabsSync(); });
@@ -3450,40 +3442,6 @@ function setNavDrawer(open){
   paintRailToggle();
 }
 function closeNavDrawer(){ setNavDrawer(false); }
-/* ---- THE LANGUAGE TOGGLE HAS TO STAY REACHABLE ----
-   This used to relocate the jurisdiction flags. The market moved to Settings
-   (it is the company's, and admin-only), and the toggle took its place in the
-   header — so the same job now serves the language.
-
-   Hiding a control at a narrow width is not an option: below 900 the header
-   has no room at any size, so the toggle MOVES into the nav drawer, above the
-   Copilot launcher, where its full words fit again. The node is relocated,
-   not rebuilt, so the click listener bound in wireLanguagePicker keeps
-   working exactly as it did. */
-/* ---- AND IT GOES BACK WHERE IT CAME FROM (work order "Home speed", Part
-   8, owner-asked 8 Oct 2026: "Move it back to where it was") ----
-   Coming back from the drawer it was put after the logo (#brand-block), so
-   once a window had been narrower than 900px the switch sat at the bar's top
-   left for the rest of the sitting. Its own place in the bar — the node it
-   stood before, beside the theme switch — is read once, before the first
-   move, and it returns there. */
-let _langHome=null;
-function placeLanguageSwitch(){
-  const sw=document.getElementById('lang-switch');
-  const drawerHome=document.querySelector('#side-nav .nav-foot');
-  const headerHome=document.getElementById('brand-block');
-  if(!sw||!drawerHome||!headerHome||!headerHome.parentElement) return;
-  /* the menu is not drawn on a computer since 17 Oct 2026 (Round 2): the switch stays in the bar */
-  const wantDrawer=navHeaderTight()&&!(window.deskShellOn&&window.deskShellOn());
-  const inDrawer=sw.parentElement===drawerHome.parentElement;
-  if(!inDrawer&&!_langHome) _langHome={ parent:sw.parentElement, next:sw.nextSibling };
-  if(wantDrawer&&!inDrawer) drawerHome.parentElement.insertBefore(sw,drawerHome);
-  else if(!wantDrawer&&inDrawer){
-    const h=_langHome;
-    if(h&&h.parent&&h.parent.isConnected&&(!h.next||h.next.parentNode===h.parent)) h.parent.insertBefore(sw,h.next);
-    else headerHome.parentElement.insertBefore(sw,headerHome.nextSibling);
-  }
-}
 /* WHICH OF THE TWO THE PANEL IS SHOWING — 'activity' or 'alerts'. One panel,
    two contents; the heading says which, and pressing the other icon swaps it
    rather than opening a second layer. */
@@ -3891,236 +3849,16 @@ function alertsPanelHtml(given){
       </div>`;
 }
 
-/* ============================================================ THEME + JURISDICTION (shell header) */
-/* Light / dark via the `dark` class on <html> (Tailwind darkMode:'class' and
-   the html.dark token block in index.html). A tiny head script applies the
-   saved choice before first paint, so this only handles the live toggle. */
-/* Guarded rather than assumed: this module is evaluated on a cut-down stage in
-   the node tests, where document.documentElement does not exist. */
-/* ---------- THREE THEMES, NOT A TWO-POSITION SWITCH ----------
-   Green and Navy are the same platform in two colours; Dark is the same
-   platform with the lights off. All three are one personal choice.
-
-   THEY ARE NOT THE COMPANY'S BRAND COLOUR. That already exists and is a
-   different thing: the design step sets an accent that dresses the DOCUMENT —
-   the letterhead, the PDF, what the counterparty receives — and it accepts any
-   colour, navy among its presets. This picks the colour of the tool you work
-   in. Wiring the two together would mean a company whose brand is claret gets a
-   claret platform built from a ramp nobody designed, and a personal preference
-   would silently restyle every contract that left the building.
-
-   TWO AXES UNDERNEATH, THREE OPTIONS ON TOP. The brand rides a data attribute
-   and the lights ride the `dark` class, which are independent — so navy-at-
-   night already works in the stylesheet and is one row away in the menu if
-   anybody asks. The menu offers three because three is what was asked for and
-   three is what is easy to explain. */
-/* Blue first since 7 Oct 2026 (HaTi lands on Blue); Dark keeps whichever
-   brand is worn rather than writing one (brand:null → brandNow()). */
-const THEMES = [
-  { k:'navy',  get label(){ return i18t('ap_theme_navy'); },       get note(){ return i18t('ap_theme_navy_note'); },   brand:'navy', dark:false },
-  { k:'green', get label(){ return i18t('ap_theme_green'); },      get note(){ return i18t('ap_theme_green_note'); },        brand:'green', dark:false },
-  { k:'dark',  get label(){ return i18t('ap_theme_dark'); },       get note(){ return i18t('ap_theme_dark_note'); },         brand:null,   dark:true  },
-];
-const THEME_KEY = 'hati-theme';
-/* 'light' and 'dark' are what the old two-position switch wrote, and they are
-   still in people's browsers. Read them rather than resetting somebody who has
-   been on dark for a month. */
-/* THE WHOLE-THEME NAME IS DERIVED FROM THE PAIR, never stored beside it. The
-   phone's More sheet prints this and presses toggleTheme, so a second stored
-   copy is how the two shells come to disagree about which theme is on. The
-   legacy key answers only while neither half of the pair has been written. */
-function themeNow(){
-  const b=brandRead(BRAND_KEY), d=brandRead(DARK_KEY);
-  let v=''; try{ v=localStorage.getItem(THEME_KEY)||''; }catch(e){}
-  /* the move to Blue writes the brand key for everyone, so an old Dark that
-     never wrote 'hati-dark' still answers while that half is silent */
-  if(b!==null || d!==null) return (d==='1' || (d===null && v==='dark')) ? 'dark' : (b==='green' ? 'green' : 'navy');
-  if(v==='light') v='green';
-  return THEMES.some(t=>t.k===v) ? v : 'navy';      /* HaTi lands on Blue (7 Oct 2026) */
-}
-/* applyTheme still answers to a WHOLE-THEME name because boot and several
-   callers pass one. It writes through the pair below rather than keeping its
-   own reading, so there is one painter and it cannot drift. */
-function applyTheme(mode){
-  const t=THEMES.find(x=>x.k===mode);
-  if(t){ brandWrite(BRAND_KEY, t.brand||brandNow()); brandWrite(DARK_KEY, t.dark?'1':'0'); }
-  applyAppearance();
-}
-function setTheme(mode){
-  const t=THEMES.find(x=>x.k===mode); if(!t) return;
-  /* The legacy key is still written so a browser that downgrades, or any
-     reader that has not been repointed, finds what it expects. */
-  try{ localStorage.setItem(THEME_KEY, t.k); }catch(e){}
-  brandWrite(BRAND_KEY, t.brand||brandNow());
-  brandWrite(DARK_KEY, t.dark?'1':'0');
-  applyAppearance();
-  repaintForAppearance();
-}
-/* Kept because the phone shell and older callers press it. It steps through
-   the same three rather than flipping a switch that no longer exists. */
-function toggleTheme(){
-  const cur = darkNow() ? 'dark' : brandNow();
-  const i=THEMES.findIndex(t=>t.k===cur);
-  setTheme(THEMES[(i<0?0:i+1)%THEMES.length].k);
-}
-/* The swatch on each row is drawn from the theme's OWN values rather than from
-   a list of colours kept here — a second list is a second thing to update, and
-   the day it disagrees with the stylesheet the menu starts lying. */
-/* ---- BRAND AND THEME ARE TWO AXES, NOT THREE STATES (24 Aug 2026) ----
-   The old control was a menu of three mutually-exclusive themes — Green, Navy,
-   Dark — so a reader on Navy who wanted night lost their brand, and there was
-   no way back to a navy workspace after dark. The enterprise design separates
-   them and it is the better model: the BRAND belongs to the workspace (green
-   or navy), the THEME belongs to the person (light or dark), and four
-   combinations replace three states.
-
-   NOTHING STORED IN ANYBODY'S BROWSER MOVES. The two readings below fall back
-   to the single legacy key, so 'navy' still opens a navy workspace and 'dark'
-   still opens a dark one; the pair is written the first time either is
-   pressed. setTheme survives with its three keys because the phone shell, the
-   settings page and several tests press it by name — it maps onto the pair
-   rather than keeping a second model alive beside it. */
-const BRAND_KEY='hati-brand', DARK_KEY='hati-dark';
-const BRANDS=['green','navy'];
-/* ---- THESE ARE brandRead / brandWrite AND NOT lsGet / lsSet (26 Aug 2026) ----
-   They were called lsGet and lsSet, and that ONE fact broke returning to the
-   page you were on for every reader of this product.
-
-   core.js publishes lsGet/lsSet, which JSON-encode; these two are deliberately
-   PLAIN because the brand and dark keys hold bare strings ('green', '1') and
-   have done since before either pair existed — encoding them would rewrite
-   what is already in every reader's browser, which this section's own promise
-   forbids. Both correct on their own. But a `function` declaration is hoisted
-   over the whole module, so from the day these were written every bare lsSet
-   ANYWHERE in js/app.js resolved to the string one — including setView's, 500
-   lines above, which stores {view, activeId, folderId}. It wrote the literal
-   text "[object Object]", core.js's lsGet could not parse it, the resume read
-   null, and every refresh landed on the dashboard however deep in the product
-   the reader was.
-
-   NOTHING FAILED AND NOTHING LOGGED, which is why it survived: the write
-   succeeded, the read succeeded and returned null, and null is exactly what a
-   first visit looks like. The names are the whole fix — renamed, the bare call
-   in setView reaches the published pair again and the stored position is
-   readable. See f238 for the net: no module may re-declare a name core.js
-   publishes. */
-function brandRead(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
-function brandWrite(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
-function brandNow(){
-  const v=brandRead(BRAND_KEY);
-  if(BRANDS.includes(v)) return v;
-  return themeNow()==='green' ? 'green' : 'navy';    /* legacy key, read never written; Blue otherwise */
-}
-/* ---- EVERYONE MOVES TO BLUE ONCE (Young, 7 Oct 2026) ---- the pre-paint
-   script at the top of index.html does this before the first frame; this is
-   the same switch for a page that loads the app without that script. A Green
-   pressed afterwards is stored and stands, because the marker stays. */
-const BRAND_BLUE_ONCE_KEY='hati-brand-blue-once';
-function brandBlueOnce(){
-  try{ if(!localStorage.getItem(BRAND_BLUE_ONCE_KEY)){ localStorage.setItem(BRAND_KEY,'navy'); localStorage.setItem(BRAND_BLUE_ONCE_KEY,'1'); } }catch(e){}
-}
-brandBlueOnce();
-/* THEIR PAGE KEEPS ITS OWN LIGHT AND DARK (Young, 3 Oct 2026): a share or
-   adviser link reads and writes its own key and never falls back to ours —
-   the pre-paint script in index.html asks the same question. */
-const DARK_KEY_GUEST='hati-dark-guest';
-function darkGuest(){ try{ return /^#(share=|advice)/.test(location.hash||'') || !!(window.PORTAL_MODE===true); }catch(e){ return false; } }
-function darkKey(){ return darkGuest() ? DARK_KEY_GUEST : DARK_KEY; }
-function darkNow(){
-  const v=brandRead(darkKey());
-  if(v==='1') return true;
-  if(v==='0') return false;
-  if(darkGuest()) return false;                      /* their page: light unless they chose */
-  return themeNow()==='dark';                        /* legacy key */
-}
-/* THE ONE PAINTER. Both setters and the boot path call it, so the attribute
-   and the class can never be set from two different readings. */
-function applyAppearance(){
-  const root=document.documentElement;
-  if(!root||!root.classList) return;
-  root.classList.toggle('dark', darkNow());
-  if(brandNow()==='navy') root.setAttribute('data-brand','navy');
-  else root.removeAttribute('data-brand');
-}
-/* A repaint, not a re-render of one control: inline-styled chips and
-   render-time SVG colours do not answer a class flip, which is why every
-   appearance change has always redrawn the view. */
-function repaintForAppearance(){
-  paintAppearance();
-  if(window.setView && state && state.view) setView(state.view);
-  if(window.mAppActive && window.mRender && mAppActive()) mRender();
-}
-function setBrand(b){
-  if(!BRANDS.includes(b)) return;
-  brandWrite(BRAND_KEY,b); applyAppearance(); repaintForAppearance();
-}
-function setDark(on){
-  brandWrite(darkKey(), on?'1':'0'); applyAppearance(); repaintForAppearance();
-}
-function toggleDark(){ setDark(!darkNow()); }
-/* THE SWATCHES ARE ADMIN-ONLY (owner-ruled 24 Aug 2026). Light/dark and
-   language change what this reader sees; the brand changes what everyone in
-   the company sees. Asked of the role, and drawn rather than merely dimmed —
-   a control whose only outcome is a refusal is furniture. */
-function brandPickerVisible(){
-  try{ const u=window.currentUser && currentUser(); return !!(u && u.role==='admin'); }
-  catch(e){ return false; }
-}
-/* EVERY DOM CALL BEYOND THE BASICS IS GUARDED, which is this codebase's own
-   standing rule and was paid for once already by a toast that took an act down
-   with it. Test stages stand a minimal element in for a real one: it has a
-   textContent and nothing else, so a bare `el.dataset` threw and took the
-   whole shell's wiring — and therefore five unrelated views — with it. */
-function paintAppearance(){
-  const dark=darkNow(), brand=brandNow(), show=brandPickerVisible();
-  BRANDS.forEach(b=>{
-    const el=document.getElementById('brand-'+b);
-    if(!el) return;
-    try{
-      el.hidden=!show;
-      if(el.setAttribute) el.setAttribute('aria-pressed', String(b===brand));
-      el.title=(b==='navy'?i18t('ap_theme_navy'):i18t('ap_theme_green'));
-    }catch(e){}
-  });
-  const t=document.getElementById('theme-btn');
-  if(t) try{
-    t.textContent=dark?i18t('ap_theme_dark'):i18t('ap_theme_light');
-    if(t.setAttribute) t.setAttribute('aria-pressed', String(dark));
-    t.title=i18t('sh_theme')+' — '+t.textContent;
-  }catch(e){}
-}
-/* Bound once per element, because this runs from wireShell AND from every
-   repaint that calls renderThemeMenu — a second binding toggles the theme
-   twice on one press, which lands back where it started and reads as a dead
-   control. */
-function bindOnce(el,fn){
-  if(!el||!el.addEventListener) return;
-  if(el.dataset){ if(el.dataset.apBound) return; el.dataset.apBound='1'; }
-  else { if(el._apBound) return; el._apBound=1; }
-  el.addEventListener('click',fn);
-}
-function wireThemeMenu(){
-  /* ---- THE ONE PAINTER RUNS AT BOOT TOO (10 Sep 2026) ----
-     applyAppearance had exactly TWO callers and both were inside the setters,
-     so NOTHING in the product ever applied the appearance on a fresh load —
-     the inline script at the top of index.html was the only thing that had
-     ever painted it, and when that script fell behind the keys the setters
-     write, the wrong theme was permanent rather than corrected.
-
-     It runs here because wireShell calls this once at load. It is free: it
-     toggles a class and an attribute and renders nothing — repaintForAppearance
-     is the expensive one and is deliberately NOT called. With the inline script
-     mirroring brandNow/darkNow exactly the two agree and this changes no pixel;
-     what it buys is that the MODULE is the authority, so the day the duplicate
-     drifts again the reader sees a corrected theme rather than a wrong one. */
-  applyAppearance();
-  paintAppearance();
-  bindOnce(document.getElementById('theme-btn'),toggleDark);
-  BRANDS.forEach(b=>bindOnce(document.getElementById('brand-'+b),()=>setBrand(b)));
-}
-/* Kept for the callers that name a whole theme: the phone shell, the settings
-   page and the three-key preference somebody may still have stored. */
-function renderThemeMenu(){ paintAppearance(); }
+/* ============================================================ JURISDICTION (shell header) */
+/* ---- ONE LOOK: NO DARK MODE, NO BRAND SWITCH (owner, 20 Oct 2026) ----
+   "Let's not implement the dark theme. Remove it from HaTi. Only dark theme
+   will be on the explorer and brain as designed today." With the Chambers
+   design HaTi has one appearance, so the theme button, the Blue / Green
+   swatches, the stored light-or-dark and brand keys, and every reader of them
+   went together (the pre-paint script at the top of index.html clears what a
+   browser kept). Explorer's map and the Brain draw their own dark stage
+   (`.ig-brain`, `#ig-page.hb-dark`, brain.js's own sheet); nothing here
+   decides it. */
 
 /* ---------- Jurisdiction switcher (top header) ----------
    This control existed and did nothing: it set a data attribute and told the
@@ -4438,8 +4176,7 @@ function wireShell(){
   /* The bell is wired with the panel toggle above — see openPanel. It used to
      be wired HERE, to a handler that clicked the other button. */
 
-  // theme toggle + jurisdiction switcher (top header)
-  wireThemeMenu();
+  // jurisdiction switcher (top header)
   // closeNavDrawer because below 900 this control lives INSIDE the sidebar
   /* The stored JURISDICTION is the truth, not this control's own key: a
      workspace that set its market on another device (it rides on the org
@@ -4449,39 +4186,10 @@ function wireShell(){
      it sets data-region on the root, which the stylesheets and the compliance
      badge read. Silent, because nothing is being changed here. */
   setRegion(regionCodeFor(window.jxId?jxId():'kenya'),{silent:true});
-  wireLanguagePicker();
-}
-
-/* ---------- THE LANGUAGE TOGGLE ----------
-   Built from js/i18n.js rather than the markup, so adding a language grows the
-   row by itself. Each option is written IN its own language — a control that
-   offers "Swedish" to a Swedish speaker is offering it in English.
-
-   Two labels per button: the full name, and a two-letter code that takes over
-   below 1180px. The words go, the button does not, so the tap target survives
-   a narrow window. */
-function wireLanguagePicker(){
-  const host=document.getElementById('lang-switch');
-  if(!host||typeof langList!=='function') return;
-  const paint=()=>{
-    const now=langId();
-    host.innerHTML=langList().map(l=>
-      `<button type="button" class="lang-btn" data-lang="${l.id}" aria-pressed="${l.id===now}"`
-      + ` title="${l.name}"><span class="lang-long">${l.name}</span>`
-      + `<span class="lang-code">${l.id.toUpperCase()}</span></button>`).join('');
-  };
-  paint();
-  host.addEventListener('click',e=>{
-    const b=e.target.closest('[data-lang]');
-    if(!b) return;
-    if(b.getAttribute('data-lang')===langId()) return;   // already there; do not repaint for nothing
-    langSet(b.getAttribute('data-lang'));
-    closeNavDrawer();   // below 900 this control lives inside the sidebar
-  });
-  /* Re-painted on every language change too, so the pressed state follows a
-     switch made from anywhere else — the Settings screen, or a second tab. */
-  window.repaintLanguagePicker=paint;
-  applyLanguage({repaint:false});   // paint the static shell before the first render
+  /* THE LANGUAGE IS SET IN SETTINGS › YOU (Chambers, 20 Oct 2026: the
+     switch left the bar). The static shell is still painted in the reader's
+     language before the first render. */
+  if(typeof applyLanguage==='function') try{ applyLanguage({repaint:false}); }catch(_){}
 }
 
 /* WHAT REDRAWS WHEN THE LANGUAGE CHANGES. js/i18n.js rewrites the static markup
@@ -4494,7 +4202,6 @@ function wireLanguagePicker(){
    work. */
 if(typeof window!=='undefined') window.onLanguageChange=function(){
   try{
-    window.repaintLanguagePicker && repaintLanguagePicker();
     /* The SIDEBAR'S OWN FURNITURE, which no view redraws: the profile line
        carries the reader's role, and the folder list its counts. Without this
        the role under your own name stayed in whatever language you signed in
@@ -4636,5 +4343,5 @@ if (typeof window !== 'undefined' && window.addEventListener){
 }
 
 Object.assign(window,{shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,
-  buildAlerts,alertCount,updateAlertBadge,GUIDE_STAGES,guidePanelHtml,guideGo,guideCountOf,guideHereKey,panelTabsPaint,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
+  buildAlerts,alertCount,updateAlertBadge,GUIDE_STAGES,guidePanelHtml,guideGo,guideCountOf,guideHereKey,panelTabsPaint,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

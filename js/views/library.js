@@ -3316,7 +3316,7 @@ function renderTemplatesPage(){
             MEASURED, and it is exactly the spread the owner reported on
             25 Aug. Home answers this the same way, by taking one element out
             of the row's alignment rather than by moving the row. */}
-      <div class="tpl-hd-row" style="min-width:0;align-self:flex-start"><h1 style="margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${i18t('nav_tpl_std')}<span class="tpl-hd-n">${esc(i18tn('lib_pf_h_n',hf.n,{n:hf.n}))}</span></h1>
+      <div class="tpl-hd-row" style="min-width:0;align-self:flex-start"><h1 style="margin:0;font-family:var(--font-title);font-size:20px;font-weight:var(--w-title-serif);letter-spacing:-.005em;color:var(--color-text);line-height:1.2">${i18t('nav_tpl_std')}<span class="tpl-hd-n">${esc(i18tn('lib_pf_h_n',hf.n,{n:hf.n}))}</span></h1>
       ${''/* ROUND 21 AS DRAWN (the owner's "build all the gaps", 18 Oct 2026):
              the page's facts are ONE LINE beside its name — "41 contracts
              drafted from them in 12 months · 9 came back changed" — where the

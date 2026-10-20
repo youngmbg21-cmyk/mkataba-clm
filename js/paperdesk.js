@@ -3717,7 +3717,6 @@ function pdOgRepaint(){
   if (a && a.closest && a.closest('#pd-og, #pd-kt') && typeof a.blur === 'function') a.blur();
   pdGlanceRepaint();
   try { pdFillPaperMarks(pdContract()); } catch (_){}
-  if (typeof window.igHintPaint === 'function') try { igHintPaint(); } catch (_){}
 }
 /* the next row still owed takes the hand (EVERY STEP STARTS THE NEXT) */
 function pdOgNext(after){
@@ -4125,15 +4124,11 @@ function pdNeedsHtml(c){
 /* in place, with the glance, as a face or a save changes what is owed */
 function pdNeedsRepaint(){
   /* Still owed is a card of the dossier: it repaints with it */
-  if (typeof document !== 'undefined' && document.getElementById('pd-glance') && !document.getElementById('pd-pin')){ pdGlanceRepaint(); if (typeof window !== 'undefined' && typeof window.igHintPaint === 'function') try { igHintPaint(); } catch (_){} return; }
+  if (typeof document !== 'undefined' && document.getElementById('pd-glance') && !document.getElementById('pd-pin')){ pdGlanceRepaint(); return; }
   const pin = (typeof document !== 'undefined') ? document.getElementById('pd-pin') : null; if (!pin) return;
   const c = pdContract(); if (!c || String(c.id) !== pin.getAttribute('data-pd-pin-for')) return;
-  const html = pdNeedsHtml(c), was = pin.innerHTML;
-  if (was !== html) pin.innerHTML = html;
-  /* the hint line's keys follow Needs you here (round 3: "/ lists the places."),
-     emptying as well as filling */
-  if (!html){ if (was && typeof window !== 'undefined' && typeof window.igHintPaint === 'function') try { igHintPaint(); } catch (_){} return; }
-  if (typeof window !== 'undefined' && typeof window.igHintPaint === 'function') try { igHintPaint(); } catch (_){}
+  const html = pdNeedsHtml(c);
+  if (pin.innerHTML !== html) pin.innerHTML = html;
 }
 /* ---- A ROW THAT GOES IS TICKED OFF FIRST (owner picked "Alive" by name, 16
    Oct 2026: "when something is done he hops, and the row in the at a glance
@@ -4153,7 +4148,6 @@ function pdGlanceDone(c, rows, said){
     let went = false;
     _pdGlWas.rows.forEach((text, k) => { if (!keys.has(k) && !_pdGlDone.has(k)){ _pdGlDone.set(k, { k, text, until: now + PD_GL_DONE_MS }); went = true; } });
     if (went){
-      if (typeof window !== 'undefined' && typeof window.jamboHop === 'function') try { jamboHop(); } catch (_){}
       setTimeout(pdGlanceRepaint, PD_GL_DONE_MS + 40);
     }
   }
@@ -4715,7 +4709,7 @@ function pdHistQuestions(c){
    paper chosen on the wall, as drawn). A page's chips press their own door
    (data-pd-held-chip); a question is put in the box for the reader to ask,
    its cost on the box (data-ca-fill, the house's own way). */
-const PD_CHIP_CLS = 'text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left';
+const PD_CHIP_CLS = 'jb-chip';
 /* THE CHIPS CHANGE WITH THE CONTRACT (pass 4, round 7 as drawn: the signed
    supply agreement "obligations · history · amend", the private employment
    draft "fill in · pay · who can open it"): what it owes leads — details to
@@ -4919,105 +4913,9 @@ if (typeof document !== 'undefined' && !document._pdHeldWired){
     if (ch){ e.preventDefault(); pdHeldGo(pdCardNow(), ch.getAttribute('data-pd-held-chip')); }
   });
 }
-/* ============================================================
-   JAMBO, ALIVE (owner picked "Alive" by name, 16 Oct 2026: "how we can make
-   jambo more engaging ... it is mostly stagnant and not moving")
-   ============================================================
-   He sits at the end of the chips row on his own tab of Home's panel (or on
-   the ask box where no chips are drawn) and:
-   - BREATHES while he waits (.jb-bird, CSS; still for a reader who asked for
-     less motion);
-   - TURNS to the paper when the reader chooses words on it (selectionchange);
-   - WORKS where work is going on: his thinking face, and over him the turning
-     ring with the words the screen already says ("Opening…", "Sending…"), or
-     "Thinking…" while he answers — read off the house's one busy marker
-     (.ob-spin) and intel.busy, nothing of his own to keep in step;
-   - HOPS when something is done: an answer landing, a wait ending, an 'ok'
-     confirmation, a row of the at-a-glance card ticked off (jamboHop).
-   Nothing here writes, spends or sends; he draws nothing on the paper and
-   takes no line of the panel's own (the chips row keeps room for him). He is
-   decorative — the words he mirrors are on the screen already — so he is
-   hidden from screen readers. */
-const JB_BEAT_MS = 400, JB_HOP_MS = 650, JB_BUSY_SEL = '#ig-dock .ob-spin, #ig-paper .ob-spin, #ig-strip .ob-spin, #toast-root .ob-spin';
-let _jbEl = null, _jbBeat = 0, _jbWorking = '', _jbHopT = 0;
-function jamboPerchEl(){
-  if (_jbEl) return _jbEl;
-  const d = document.createElement('div');
-  d.className = 'jb-perch'; d.setAttribute('aria-hidden', 'true');
-  d.innerHTML = '<span class="jb-say" hidden></span><img class="jb-bird" alt="" draggable="false" width="36" height="36">';
-  const img = d.querySelector('img'); if (img && typeof JAMBO_FACE === 'object') img.src = JAMBO_FACE.hello;
-  _jbEl = d; return d;
-}
-/* where he sits: the chips row; else on the ask box over the conversation;
-   on a face with no chips row (a reader who turned the chips off) he stays
-   away rather than cover its controls */
-function jamboPerchMount(dock){
-  if (!dock || typeof document === 'undefined') return false;
-  dock.classList.remove('jb-perched', 'jb-perched-ask');
-  const on = !!(window.state && state.view === 'dashboard') && !pdShowsDesk() && typeof JAMBO_FACE === 'object';
-  const ask = document.getElementById('igd-input');
-  const chips = dock.classList.contains('pd-face-up') ? null : dock.querySelector('[data-ig-chips]'), feed = dock.querySelector('#igd-feed:not([hidden])');
-  let host = null;
-  /* a face draws no chips (rounds 8–11 as drawn): he sits on the ask box's edge there too */
-  if (on && ask){ if (chips){ host = chips; dock.classList.add('jb-perched'); }
-    else if ((feed || pdFaceUp()) && ask.parentElement){ host = ask.parentElement; dock.classList.add('jb-perched', 'jb-perched-ask'); } }
-  if (!host){ jamboRest(); if (_jbEl && _jbEl.parentNode) _jbEl.remove(); return false; }
-  host.appendChild(jamboPerchEl());
-  if (!_jbBeat) _jbBeat = setInterval(jamboBeat, JB_BEAT_MS);
-  /* his first look round waits for the panel's paint to finish: read inside
-     it, the busy marker's layout check would make the browser lay the
-     freshly drawn panel out twice (home-speed's Board ⇄ Paper switch) */
-  setTimeout(jamboBeat, 0);
-  return true;
-}
-function jamboRest(){ if (_jbBeat){ clearInterval(_jbBeat); _jbBeat = 0; } _jbWorking = ''; }
-/* what is being worked on now, in the screen's own words ('' when nothing) */
-function jamboWorkWords(){
-  if (window.intel && intel.busy) return _pdT('jb_thinking');
-  const spin = [...document.querySelectorAll(JB_BUSY_SEL)].find(x => !x.closest('.jb-perch') && x.offsetParent !== null);
-  if (!spin) return '';
-  const t = String((spin.parentElement && spin.parentElement.textContent) || '').replace(/\s+/g, ' ').trim();
-  return t || _pdT('jb_thinking');
-}
-function jamboBeat(){
-  const el = _jbEl;
-  if (!el || !el.isConnected){ jamboRest(); return; }
-  if (document.hidden) return;
-  const w = jamboWorkWords(), was = _jbWorking;
-  if (w === was) return;
-  _jbWorking = w;
-  const img = el.querySelector('.jb-bird'), say = el.querySelector('.jb-say');
-  if (img && typeof JAMBO_FACE === 'object') img.src = w ? JAMBO_FACE.think : JAMBO_FACE.hello;
-  el.classList.toggle('is-working', !!w);
-  if (say){ say.hidden = !w; say.innerHTML = w && typeof busyHtml === 'function' ? busyHtml(w) : _pdE(w); }
-  /* a wait that ends is a thing done */
-  if (was && !w) jamboHop();
-}
-function jamboHop(){
-  const el = _jbEl; if (!el || !el.isConnected) return false;
-  el.classList.remove('is-hop'); void el.offsetWidth; el.classList.add('is-hop');
-  clearTimeout(_jbHopT); _jbHopT = setTimeout(() => { if (_jbEl) _jbEl.classList.remove('is-hop'); }, JB_HOP_MS);
-  return true;
-}
-/* he turns to the paper while words on it are chosen */
-function jamboLookPaint(){
-  const el = _jbEl; if (!el || !el.isConnected) return;
-  let on = false;
-  try { const s = window.getSelection && getSelection();
-    const n = s && !s.isCollapsed && s.anchorNode; const e = n && (n.nodeType === 1 ? n : n.parentElement);
-    on = !!(e && e.closest && e.closest('#ig-paper')); } catch (_){ on = false; }
-  el.classList.toggle('is-look', on);
-}
-if (typeof document !== 'undefined' && !document._jbWired){
-  document._jbWired = true;
-  document.addEventListener('selectionchange', jamboLookPaint);
-  /* an 'ok' confirmation — an act that left the building — is a thing done */
-  const watch = () => { const root = document.getElementById('toast-root'); if (!root || root._jbWatched || typeof MutationObserver !== 'function') return !!(root && root._jbWatched);
-    root._jbWatched = true;
-    new MutationObserver(ms => { ms.forEach(m => m.addedNodes.forEach(n => { if (n && n.dataset && n.dataset.toastKind === 'ok') jamboHop(); })); }).observe(root, { childList: true });
-    return true; };
-  if (!watch()) document.addEventListener('DOMContentLoaded', watch, { once: true });
-}
+/* JAMBO, ALIVE (16 Oct 2026) — the bird that perched on the chips row — left
+   with the bird on a computer when the owner picked Chambers (20 Oct 2026):
+   Jambo is the ✦ mark there (jamboFaceHtml). */
 /* ESC IS ONE STEP UP (ONE TRAIL): where nothing above the panel holds the
    key and nobody is typing, Esc presses the trail's back */
 if (typeof document !== 'undefined' && !document._pdTrailEsc){
@@ -5043,6 +4941,5 @@ Object.assign(window, { pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdO
   pdFillStreamMay, pdFillStreamHtml, pdFillStreamAsk, PD_FF_BOX, pdFillBoxOf, pdFillLabelOf, PD_FF_UNIT, pdFillStdOf, PD_FF_CLAUSE_NUM, pdFillSpotClause, pdFillSpotOf, pdFillExtrasPaint, pdFillStreamRepaint, pdFillStreamPick,
   PD_DROP_ACCEPT, pdDropMay, pdWallHelloHtml, pdDropInner, pdDropStreams, pdDropStreamNow, pdDropStreamHtml, pdDropHtml, pdDropPaint, pdWallHtml, pdDropInput, pdDropBusyNow, pdDropPick, PD_DROP_TOAST_MS, pdDropToastOff, pdDropTake,
   PD_GLANCE, PD_GL_SUB_MAX, pdGlanceSub, pdGlanceBriefHtml, pdGlanceFootHtml, pdDropImportHtml, pdDropDoor, pdGlanceRows, pdSignAhead, PD_GL_ASKS_MAX, pdTheirAsks, pdAskHeading, pdAskClause, PD_GL_CONTEXT, PD_GL_DAYS_FOR, pdAskParts, pdAskSay, pdGlAgo, pdGlMoveSay, pdGlGoTo, pdNoteRows, pdPartyShort, pdPreparedWhen, pdJwSay, pdAskClausesSay, pdGlanceHtml, pdGlanceRepaint, pdJamboTopHtml, pdJamboPinHtml, pdNeedsRows, pdNeedRowHtml, pdNeedsHtml, pdNeedsRepaint, pdBackHtml, PD_BACK_CLOSE, PD_GL_DONE_MS, pdGlanceDone,
-  JB_BEAT_MS, JB_HOP_MS, jamboPerchMount, jamboRest, jamboWorkWords, jamboBeat, jamboHop, jamboLookPaint,
   PD_HELD_CHIPS, pdCardNow, pdCardPage, pdHolds, pdHeldContract, pdHeadWord, pdAskPlaceholder, pdAskContractId, pdDaysSince, pdAgoWords, pdShortDay, pdStageWords, pdLastMove,
   pdClauseSaid, PD_CH_CLAUSES_MAX, pdTheirAsksRow, pdTheirAsksRowHtml, pdChosenFacts, pdChosenHtml, pdCardGlanceRows, pdCardGlanceRowHtml, pdCardGlanceHtml, pdHistGlanceHtml, pdHistChanges, pdHistQuestions, pdNeverShared, pdHistAlso, pdListSay, PD_CG_NAMES_MAX, PD_CG_DET_WORD, pdDetWord, PD_HELD_CHIPS_MAX, PD_HELD_CHIP_WORD, pdHeldOwes, PD_CHIP_CLS, pdHeldChips, pdPanelChipsHtml, pdHeldChipsHtml, pdHeldGo, pdHeldOpen, PD_HELD_LAND, PD_HELD_LAND_TRIES, PD_HELD_LAND_STILL, pdHeldLand, pdHeldSig, pdHeldFollow, pdHeldTopHtml });

@@ -1038,7 +1038,7 @@ function insWatchWidth(){
      so) Jambo says the page in words from the page's OWN counts — no AI call,
      said so — with chips that are the page's own doors; under them his
      conversation, when one was asked here (ai.js says it in #jl-feed).
-   · THE FOOT: the ask box and the hint line (jamboHintHtml). Words read the
+   · THE FOOT: the ask box (the hint line under it left with Chambers, 20 Oct 2026). Words read the
      way the Counter's box reads them (one reading: a place word or Jambo's
      map opens its page at once; a card is his; anything else is a question
      for Jambo, said here) — what a question costs rides the box's hover.
@@ -1219,7 +1219,6 @@ function jlAskHtml(o){
       <div class="ca-pop jl-pop" data-jl-pop hidden></div>
       ${_jlJbCard({ field: `<textarea id="jl-q" rows="1" maxlength="400" spellcheck="false" data-jb-enter placeholder="${esc(ph)}" aria-label="${esc(ph)}"></textarea>`, send: _jlJbSend('data-jl-send', i18t('int_ask'), { submit: true, cls: 'jl-send', title: cost }) })}
     </form>
-    ${typeof jamboHintHtml === 'function' ? jamboHintHtml() : ''}
   </div>`;
 }
 /* The frame is built ONCE per panel element, so the words in the box and its

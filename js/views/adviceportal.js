@@ -50,12 +50,12 @@ async function adviceEntry(param){
 
 const advicePortalShell = inner => `
   <div style="min-height:100vh;background:var(--color-bg);">
-    <header style="background:var(--color-accent-900);color:#fff;padding:14px var(--s-6);">
+    <header style="background:var(--color-surface);color:var(--color-text);border-bottom:1px solid var(--color-divider);padding:14px var(--s-6);">
       <div style="max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:var(--s-3);">
-        <div style="width:34px;height:34px;background:var(--color-accent);color:#fff;display:grid;place-items:center;font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-card);letter-spacing:.02em;border-radius:var(--radius);flex:none;">HT</div>
+        <div style="width:34px;height:34px;background:transparent;border:1px solid var(--rule-strong);color:var(--color-text);display:grid;place-items:center;font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-card);letter-spacing:.02em;border-radius:var(--radius);flex:none;">HT</div>
         <div style="line-height:1.25;min-width:0;">
           <div style="font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-card);">${pesc(ADVICE_PORTAL.org)} · Legal Advice Desk</div>
-          <div style="font-size:var(--t-label);color:var(--color-accent-200);font-family:var(--font-mono);">${i18t('apo_tagline')}</div>
+          <div style="font-size:var(--t-label);color:var(--color-neutral-600);font-family:var(--font-mono);">${i18t('apo_tagline')}</div>
         </div>
       </div>
     </header>

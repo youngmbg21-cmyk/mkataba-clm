@@ -1471,7 +1471,7 @@ const JH_CSS = `
   .jh-jambo{flex:none;width:46px;position:sticky;top:0;height:var(--view-h,calc(100vh - 48px))}
   .jh-page .sap-band{padding-top:var(--page-pad-t);display:flex;flex-direction:column;gap:var(--s-2);padding-bottom:0}
   .jh-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s-3);flex-wrap:wrap}
-  .jh-t{margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;line-height:1.2;color:var(--color-text)}
+  .jh-t{margin:0;font-family:var(--font-title);font-size:20px;font-weight:var(--w-title-serif);letter-spacing:-.01em;line-height:1.2;color:var(--color-text)}
   .jh-acts{display:flex;align-items:center;gap:var(--s-2);flex:none}
   .jh-tabbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0 var(--s-4)}
   .jh-tabs{display:flex;gap:4px;overflow-x:auto;flex:0 1 auto;min-width:0}

@@ -351,7 +351,7 @@ function apSignRuleHtml(r, acts){
     door.length?`<div class="ins-acts">${door.map(insActBtnHtml).join('')}</div>`:''}</section>`;
 }
 function apApprovedPillHtml(){
-  return `<span class="reg-stg" style="color:var(--st-green-fg);background:var(--st-green-bg)"><i style="background:var(--st-green-dot)"></i>${esc(i18t('ap_pg_approved'))}</span>`;
+  return `<span class="reg-stg" style="color:var(--st-green-fg)"><i style="background:var(--st-green-dot)"></i>${esc(i18t('ap_pg_approved'))}</span>`;
 }
 function apDoneLineHtml(){
   return `<p class="ins-need-line is-green" data-ap-done-line><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><use href="#i-check"/></svg><span><b>${esc(i18t('ap_pg_done_line'))}</b></span></p>`;

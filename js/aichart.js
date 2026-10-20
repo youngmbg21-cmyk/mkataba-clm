@@ -139,8 +139,7 @@ function _acRefreshPalette(){
   AC_GOOD   = _acVar('--st-green-dot', '#10b981');
   AC_WARN   = _acVar('--st-amber-dot', '#f59e0b');
   AC_BAD    = _acVar('--st-ruby-dot', '#f43f5e');
-  const dark = !!(document.documentElement.classList && document.documentElement.classList.contains('dark'));
-  _acGrid.color = dark ? 'rgba(148,163,184,.14)' : 'rgba(38,55,74,.08)';
+  _acGrid.color = 'rgba(38,55,74,.08)';   /* one look, no dark mode (20 Oct 2026) */
   /* SQUARE CORNERS EVERYWHERE (owner-asked 20 Aug 2026) reached ~810 radii
      in CSS and could not reach a canvas, so nine bar charts kept a 4px
      corner. Chart.js takes it as a number, not a stylesheet. */

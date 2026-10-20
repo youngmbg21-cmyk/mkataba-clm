@@ -21,73 +21,16 @@
      :root, so the colour is a literal: the teal brand's accent. -->
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23264C9E'/%3E%3Ctext x='16' y='21.5' font-family='system-ui,-apple-system,Segoe UI,sans-serif' font-size='15' font-weight='600' fill='%23fff' text-anchor='middle'%3EHa%3C/text%3E%3C/svg%3E" />
 <script>
-  // Apply the saved appearance BEFORE first paint. This runs ahead of the
-  // stylesheet on purpose: set it any later and every visitor on Navy or Dark
-  // gets one frame of green first, which reads as a flicker on every load.
-  //
-  // Deliberately duplicated from js/app.js rather than shared — nothing is
-  // loaded yet, so there is nothing to share with. What it MIRRORS is
-  // brandNow() and darkNow(), line for line, quirks included: a duplicate that
-  // reasons for itself is a duplicate that drifts.
-  //
-  // ---- IT READ ONE KEY THE CONTROLS STOPPED WRITING (owner-reported
-  // 10 Sep 2026: the navy workspace goes green on refresh) ----
-  // The appearance became TWO AXES on 24 Aug 2026 — the brand belongs to the
-  // workspace, light/dark belongs to the person — and setBrand/setDark write
-  // 'hati-brand' and 'hati-dark'. This script went on reading only the single
-  // legacy 'hati-theme', which those two setters never touch. So pressing the
-  // navy swatch stored navy and painted navy, and the very next load ignored
-  // it: MEASURED, hati-brand was still 'navy' in the browser while
-  // data-brand was gone. The reader's choice was never forgotten — it was
-  // never read. The same was true of dark. The phone's own toggle survived a
-  // refresh because it goes through setTheme, which does write the legacy key,
-  // and that asymmetry is what named the fault.
-  //
-  // AND THE TWO QUESTIONS ARE ASKED INDEPENDENTLY. This used to be
-  // `if dark … else if navy` — an ELSE, so a dark workspace could never also
-  // be navy. That is the three-states-not-two-axes fault the app itself fixed
-  // in August and this script was never told about, so navy-at-night could not
-  // survive a load however the keys were written.
-  //
-  // 'light' is what the old two-position switch wrote and is still in
-  // people's browsers; it means green.
-  // THEIR PAGE KEEPS ITS OWN LIGHT AND DARK (Young, 3 Oct 2026: "when i go
-  // dark mode on owner side it impacts counterparty"). Both pages are one
-  // site, so one browser shared one 'hati-dark'. A share or adviser link reads
-  // 'hati-dark-guest' and never the legacy key: our reader's choice is ours.
-  // js/app.js darkKey() is the same question, asked line for line.
-  // ---- HaTi LANDS ON BLUE, AND EVERYONE MOVES TO BLUE ONCE (Young, 7 Oct
-  // 2026: "Move everyone to Blue once. On the next visit, everyone switches to
-  // Blue, even if they had picked Green. They can still press Green again
-  // afterwards.") ---- A browser without the marker is switched to Blue and
-  // marked; a Green pressed afterwards is stored as usual and stands. A browser
-  // that cannot store anything lands on Blue. js/app.js brandBlueOnce() is the
-  // same switch, line for line.
-  document.documentElement.setAttribute('data-brand', 'navy');
+  // ONE LOOK, NO DARK MODE (owner, 20 Oct 2026: "Let's not implement the dark
+  // theme. Remove it from HaTi. Only dark theme will be on the explorer and
+  // brain as designed today."). HaTi has one appearance — Chambers — so
+  // nothing is read before the first paint any more. What a browser kept from
+  // the old switches is cleared once, so an old "dark" lands on light: the
+  // reader's own key and the counterparty's, the legacy single key, and the
+  // brand (Blue / Green) the swatches used to write. Explorer's map and the
+  // Brain draw their own dark stage; they never read these keys.
   try{
-    if (!localStorage.getItem('hati-brand-blue-once')) {
-      localStorage.setItem('hati-brand', 'navy');
-      localStorage.setItem('hati-brand-blue-once', '1');
-    }
-  }catch(e){}
-  try{
-    var guest  = /^#(share=|advice)/.test(location.hash || '');
-    var brand  = localStorage.getItem('hati-brand');
-    var dark   = localStorage.getItem(guest ? 'hati-dark-guest' : 'hati-dark');
-    var legacy = guest ? '' : (localStorage.getItem('hati-theme') || '');
-    if (legacy === 'light') legacy = 'green';
-    // themeNow(): the pair answers as a whole the moment EITHER half is
-    // written, and the legacy key answers only while both are silent.
-    var name = (brand !== null || dark !== null)
-      ? (dark === '1' || (dark === null && legacy === 'dark') ? 'dark' : (brand === 'green' ? 'green' : 'navy'))
-      : legacy;
-    // brandNow() / darkNow(): each half prefers its own key and falls back to
-    // that name — never to the other half's key.
-    var isNavy = (brand === 'green' || brand === 'navy') ? brand === 'navy' : name !== 'green';
-    var isDark = dark === '1' ? true : (dark === '0' ? false : name === 'dark');
-    if (isDark) document.documentElement.classList.add('dark');
-    if (isNavy) document.documentElement.setAttribute('data-brand', 'navy');
-    else document.documentElement.removeAttribute('data-brand');
+    ['hati-dark','hati-dark-guest','hati-theme','hati-brand','hati-brand-blue-once'].forEach(function(k){ localStorage.removeItem(k); });
   }catch(e){}
 </script>
 <script>
@@ -274,7 +217,7 @@
        exactly). #f8fafc is slate-50 — a BLUE near-white, the last of the blue
        family left behind by the ink retune. The design's page is #F4F6F6, a
        neutral grey, and it is what every white panel sits on. */
-    --color-bg:#F4F8F7;   /* INK WASH (owner, 9 Oct 2026): every light-mode grey is black + the theme colour; was #F4F6F5. Blue's values are in :root[data-brand="navy"]:not(.dark). */
+    --color-bg:#F4F2ED;   /* CHAMBERS (owner picked it by name, 20 Oct 2026): the warm paper ground. Was #F4F8F7 (Ink Wash, 9 Oct). */
     --color-surface:#ffffff;
     /* ---- TWO SURFACES BETWEEN THE PAGE AND WHITE ---- (25 Aug 2026)
        The audit's "boxes separated by borders instead of shade" complaint has
@@ -289,7 +232,7 @@
        DEFINED HERE AND ADOPTED DELIBERATELY, never swept: every adoption
        changes a colour on screen, so each one is a decision somebody has to
        look at. */
-    --surface-2:#F0F5F4;
+    --surface-2:#EFECE5;
     /* the ground the Paper's lifted panel stands on (Lifted, 8 Oct 2026) */
     --desk-ground:var(--surface-2);
     --surface-3:#ffffff;
@@ -300,7 +243,7 @@
        apart from the page it floats over and apart from the white cards and
        the panel's own header and footer, so the conversation reads as a
        surface rather than as a hole. */
-    --color-chat-bg:#F0F5F4;
+    --color-chat-bg:#F8F6F1;
     /* ---- THE INK IS THE DESIGN'S, NOT SLATE (owner-asked 22 Aug 2026: "the
        colors of the fonts") ----
        Every text colour was a blue-leaning slate (#1e293b and the slate-400..900
@@ -326,7 +269,7 @@
        BOTH themes, re-measured with the WCAG formula rather than carried over:
        light 8.21->9.30 (doc muted), 5.40->6.31 (label), 2.71->2.96 (quiet);
        dark, on the panel, 14.35->15.39, 11.43->11.53, 6.52->7.79, 3.26->4.29. */
-    --color-text:#032E2A;
+    --color-text:#161512;
     /* The one-word accent IS step 600 of the ramp — the two were the same
        colour typed twice, which is how a theme moves one and forgets the other. */
     --color-accent:var(--color-accent-600);
@@ -334,9 +277,9 @@
        --line:#DFE4E3 for a rule inside one. HaTi has a single divider and it
        was the blue #e2e8f0; it takes the design's stronger of the two, because
        this token draws card edges as well as inner rules. */
-    --color-divider:#DCE9E6;
+    --color-divider:#E4E0D7;
 
-    --color-neutral-100:#F0F5F4; --color-neutral-200:#DCE9E6; --color-neutral-300:#BED6D1;
+    --color-neutral-100:#F0EDE6; --color-neutral-200:#E4E0D7; --color-neutral-300:#CFC9BC;
     /* FOUR SHADES CARRY ALL READING TEXT, and this ramp is how (22 Aug 2026,
        from the design's own typography note, owner-reported twice as "still
        not meeting the dark sharp fonts"). The note is explicit: #1B2A28
@@ -364,12 +307,12 @@
        against 39 text uses, so it is the one step in this ramp that is not a
        type token, and the rulebook's "re-hueing the neutrals is safe" argument
        does not cover it. */
-    --color-neutral-400:#547974; --color-neutral-500:#3A5F5A; --color-neutral-600:#3A5F5A;
-    --color-neutral-700:#032E2A; --color-neutral-800:#032E2A; --color-neutral-900:#032E2A;
+    --color-neutral-400:#6F6A5E; --color-neutral-500:#5E5A51; --color-neutral-600:#5E5A51;
+    --color-neutral-700:#161512; --color-neutral-800:#161512; --color-neutral-900:#161512;
 
-    --color-accent-100:#E3F3EF; --color-accent-200:#BCE2D9; --color-accent-300:#9CCFC6;
-    --color-accent-400:#5EC2B3; --color-accent-500:#2E8C82; --color-accent-600:#12796D;
-    --color-accent-700:#0E5F58; --color-accent-800:#093733; --color-accent-900:#062825;
+    --color-accent-100:#DCE7E1; --color-accent-200:#B5CDC1; --color-accent-300:#8DB2A2;
+    --color-accent-400:#5E8E7A; --color-accent-500:#3A6B57; --color-accent-600:#1F4D3B;
+    --color-accent-700:#173C2E; --color-accent-800:#10291F; --color-accent-900:#0A1C15;
     /* ---- THE SAME RAMP, AS CHANNELS ----
        Tailwind compiles `bg-brand-600` to `rgb(var(--color-accent-600-rgb)/var(--tw-bg-opacity))`
        so that `/60` opacity modifiers work. A hex cannot go inside that; the
@@ -377,20 +320,20 @@
        what makes 493 utility classes follow the theme instead of ignoring it.
        They are the SAME colours as the hex ramp above — change both together,
        or the platform will disagree with itself about what its colour is. */
-    --color-accent-50:#F1F9F7;
-    --color-accent-50-rgb:241 249 247;   --color-accent-100-rgb:227 243 239;
-    --color-accent-200-rgb:188 226 217;  --color-accent-300-rgb:156 207 198;
-    --color-accent-400-rgb:94 194 179;   --color-accent-500-rgb:46 140 130;
-    --color-accent-600-rgb:18 121 109;    --color-accent-700-rgb:14 95 88;
-    --color-accent-800-rgb:9 55 51;      --color-accent-900-rgb:6 40 37;
+    --color-accent-50:#EEF3F0;
+    --color-accent-50-rgb:238 243 240;   --color-accent-100-rgb:220 231 225;
+    --color-accent-200-rgb:181 205 193;  --color-accent-300-rgb:141 178 162;
+    --color-accent-400-rgb:94 142 122;   --color-accent-500-rgb:58 107 87;
+    --color-accent-600-rgb:31 77 59;     --color-accent-700-rgb:23 60 46;
+    --color-accent-800-rgb:16 41 31;     --color-accent-900-rgb:10 28 21;
 
     /* solid brand fills that must NOT flip with the theme (nav active, primary
        buttons, the Copilot header) — always teal, always white-on-top */
-    --accent-solid:var(--color-accent-600); --accent-solid-hover:#0E6A5F;
+    --accent-solid:#161512; --accent-solid-hover:#000000;  /* Chambers: what is filled is the ink, black (20 Oct 2026) */
     /* The gradient's second colour is a cyan that is not on the accent ramp —
        it is the brand's companion hue, so it gets a name of its own rather than
        being hidden inside a gradient nobody can find. */
-    --brand-cyan:#06b6d4; --brand-cyan-600:#0891b2;
+    --brand-cyan:#3A6B57; --brand-cyan-600:#2D5A48;
     /* The dashboard's welcome band. It was a gradient typed into the middle of
        the markup — the single most brand-defining thing on the platform, and
        the one place a colour change could not reach. */
@@ -399,14 +342,14 @@
        --nav-bg goes darker under the dark theme and this band never did. The
        verifier caught it as one shade on one screen. A colour that happens to
        match is not the same colour. */
-    --brand-hero-deep:#0b3d3a;
+    --brand-hero-deep:#0A1C15;
     --brand-hero:linear-gradient(120deg,var(--brand-hero-deep) 0%,var(--color-accent-600) 62%,var(--brand-cyan-700) 100%);
     /* The band's second line. It was #bde7e1 typed into the dashboard's
        markup — a pale TEAL, which is why it went on reading green on the navy
        platform, and the same reason the band itself is a token: a brand colour
        nobody can find is a brand colour that cannot be changed. */
-    --brand-hero-sub:#bde7e1;
-    --brand-cyan-700:#0aa2b8;
+    --brand-hero-sub:#B5CDC1;
+    --brand-cyan-700:#24503F;
     --brand-grad:linear-gradient(135deg,var(--color-accent-600),var(--brand-cyan));
 
     /* HOW TALL A FULL-HEIGHT VIEW MAY BE. The views that fill the window —
@@ -539,8 +482,13 @@
        --font-doc-serif, so nothing already signed changes how it looks. A
        design's own face still wins on our paper; a Word file's own face still
        wins on its signing copy. */
-    --font-doc:'Geist','IBM Plex Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif;
+    --font-doc:'Source Serif 4','IBM Plex Serif',Georgia,'Times New Roman',serif;  /* CHAMBERS: the paper you read is the serif again (20 Oct 2026; was Clean Sans, 6 Oct) */
     --font-doc-serif:'Source Serif 4','IBM Plex Serif',Georgia,'Times New Roman',serif;
+    /* CHAMBERS (owner picked it by name, 20 Oct 2026): page titles, the Home
+       question and dialog heads are set in the paper's serif at a book weight;
+       everything else stays Geist. A token of its own, never --font-heading,
+       which buttons and labels read too. */
+    --font-title:'Source Serif 4','IBM Plex Serif',Georgia,'Times New Roman',serif; --w-title-serif:500;
     --font-doc-mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
 
     /* Document text colour. A solid token, deliberately NOT an opacity
@@ -790,9 +738,9 @@
        structural hairline colours across the product, three of them the same
        rule asked at 6%, 7% and 8%. */
     --rule:var(--color-divider);
-    --rule-strong:#BED6D1;   /* where one REGION ends: head band, tab baseline */
-    --rule-faint:#F0F5F4;    /* repeated rules inside one dense table */
-    --field-line:#70958F;    /* WCAG 1.4.11 wants 3:1 on a control's boundary */
+    --rule-strong:#CFC9BC;   /* where one REGION ends: head band, tab baseline */
+    --rule-faint:#F0EDE6;    /* repeated rules inside one dense table */
+    --field-line:#8E887B;    /* WCAG 1.4.11 wants 3:1 on a control's boundary */
     --border-w:1px; --border-w-strong:2px;
 
     /* ═══ LAYERS ═══ 78 hand-typed z-index values and no ladder, which is how
@@ -851,11 +799,11 @@
 
        True circles use border-radius:50% (or .rounded-full) and are not this
        token: a circle is not a corner. */
-    --radius:4px; --radius-sm:4px; --radius-md:6px; --radius-lg:8px;
+    --radius:2px; --radius-sm:2px; --radius-md:2px; --radius-lg:3px;  /* Chambers: hairline corners (20 Oct 2026) */
 
-    --shadow-sm:0 1px 2px rgba(10,40,36,.06), 0 1px 3px rgba(10,40,36,.04);
-    --shadow-md:0 8px 24px rgba(10,40,36,.10), 0 2px 6px rgba(10,40,36,.06);
-    --shadow-lg:0 24px 64px rgba(10,40,36,.18), 0 4px 12px rgba(10,40,36,.08);
+    --shadow-sm:none;   /* Chambers: a card is a hairline, never a lift (20 Oct 2026) */
+    --shadow-md:0 8px 24px rgba(22,21,18,.08);
+    --shadow-lg:0 16px 40px rgba(22,21,18,.12);
 
     /* Elevation aliases. --sh1..4 and --ring had ZERO consumers and are gone;
        --shadow-sm/md/lg are the ladder and are used 109 times between them. */
@@ -928,10 +876,10 @@
        composited pair, and "Your turn — propose changes" tripped it). #A24E07
        and #1A6F45 are the nearest steps that clear it (5.06 and 5.29) and are
        still the reference's hues. The washes, dots and lines are untouched. */
-    --st-gray-bg:#F0F5F4;  --st-gray-fg:#3A5F5A;  --st-gray-dot:#84A8A3;  --st-gray-line:#BED6D1;
-    --st-amber-bg:#FBEEDB; --st-amber-fg:#A24E07; --st-amber-dot:#E8A317; --st-amber-line:#EBCB8E;
-    --st-green-bg:#DFF2E7; --st-green-fg:#1A6F45; --st-green-dot:#2E9E63; --st-green-line:#A9D6BC;
-    --st-ruby-bg:#FBE5E3;  --st-ruby-fg:#B3261E;  --st-ruby-dot:#D9453B;  --st-ruby-line:#ECBAB5;
+    --st-gray-bg:#F0EDE6;  --st-gray-fg:#5E5A51;  --st-gray-dot:#A8A295;  --st-gray-line:#CFC9BC;
+    --st-amber-bg:#FBEEDB; --st-amber-fg:#8A5A0A; --st-amber-dot:#C98A14; --st-amber-line:#EBCB8E;
+    --st-green-bg:#DFF2E7; --st-green-fg:#1F4D3B; --st-green-dot:#3A8A62; --st-green-line:#A9D6BC;
+    --st-ruby-bg:#FBE5E3;  --st-ruby-fg:#8F2A22;  --st-ruby-dot:#C2453B;  --st-ruby-line:#ECBAB5;
     /* A STRUCK WORD IS RED, ours or theirs, the words and the line (Young,
        7 Oct 2026: "just like in word documents"): every del.rl-us / del.rl-them
        rule reads this one token; an INSERTION still says who by its colour. */
@@ -943,9 +891,9 @@
 
     /* tone tiles (icon tiles: tile-bg / tile-fg) */
     --tile-steel-bg:#E6ECF6;   --tile-steel-fg:#48639A;
-    --tile-emerald-bg:#DFF2E7; --tile-emerald-fg:#1A6F45;
-    --tile-amber-bg:#FBEEDB;   --tile-amber-fg:#A24E07;
-    --tile-ruby-bg:#FBE5E3;    --tile-ruby-fg:#B3261E;
+    --tile-emerald-bg:#DFF2E7; --tile-emerald-fg:#1F4D3B;
+    --tile-amber-bg:#FBEEDB;   --tile-amber-fg:#8A5A0A;
+    --tile-ruby-bg:#FBE5E3;    --tile-ruby-fg:#8F2A22;
 
     /* tone gradients (hero stat cards only) */
     --grad-steel:linear-gradient(135deg,var(--color-accent-500),var(--brand-cyan-600));
@@ -964,65 +912,6 @@
      Anything reading these tokens inherits a coherent dark
      automatically.
      ============================================================ */
-  html.dark{
-    --color-bg:#0E1312;
-    --color-surface:#151B1A;
-    /* UP from the panel at night: on a dark ground the nearer layer is the
-       lighter one, which is the opposite of daylight and is why these are two
-       tokens rather than one with an alpha. */
-    --surface-2:#1B2221;
-    --desk-ground:var(--color-bg);
-    --surface-3:#212A28;
-    /* Dark had the same fault and worse: page and feed were both #020617, the
-       darkest tone in the theme, so the panel simply merged with the page.
-       Lifted BETWEEN the page and the panel's surface — raised enough to read
-       as a layer without becoming a light patch in a dark room. */
-    --color-chat-bg:#111716;
-    --color-text:#E6ECEA;
-    --color-divider:#26302E;
-
-    --color-doc-text:#E8E6DF;
-    --color-doc-muted:#A0ACA9;
-    --color-doc-rule:#36423F;
-    --color-doc-surface:#151B1A;
-    /* No cream in the dark: warm paper on a dark page is a stain. The sheet is
-       the surface it always was, and the hairline is the divider. */
-    --color-doc-warm:#1B1F1D; --color-doc-warm-line:#2C3230;
-    /* The drafter's own marks against dark paper. The inks lift, the washes
-       become translucent so the light ink on top of them still reads. */
-    --mk-ink-blue:#93c5fd;  --mk-ink-violet:#c4b5fd; --mk-ink-plum:#f0abfc;
-    --mk-ink-ochre:#fcd34d; --mk-ink-grey:#94a3b8;
-    --mk-hl-yellow:rgba(250,204,21,.30); --mk-hl-blue:rgba(96,165,250,.30);
-    --mk-hl-violet:rgba(167,139,250,.30); --mk-hl-grey:rgba(148,163,184,.30);
-    --shadow-paper:0 1px 2px rgba(0,0,0,.4), 0 18px 44px -22px rgba(0,0,0,.6);
-    /* The working copy's page is the dark sheet it always was; the SIGNING
-       copy pins itself back to white (see .pg-sign), because it is the page
-       that gets signed and printed. */
-    --color-page:#1B1F1D; --color-page-line:#2C3230; --color-page-mark:#56615F;
-    --shadow-page:0 1px 2px rgba(0,0,0,.4), 0 14px 34px -18px rgba(0,0,0,.6);
-
-    --color-neutral-100:#1B2221; --color-neutral-200:#26302E; --color-neutral-300:#36423F;
-    /* The design's dark ramp, step for step (tokens.css html.dark): ink
-       #EAF1EF, ink2 #C6D4D0, ink3 #9FB0AC, ink4 #6F817C. */
-    --color-neutral-400:#8B9895; --color-neutral-500:#A0ACA9; --color-neutral-600:#A0ACA9;
-    --color-neutral-700:#E6ECEA; --color-neutral-800:#E6ECEA; --color-neutral-900:#F2F6F5;
-
-    --shadow-sm:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -12px rgba(0,0,0,.55);
-    --shadow-md:0 4px 10px rgba(0,0,0,.45), 0 18px 40px -14px rgba(0,0,0,.6);
-    --shadow-lg:0 12px 32px rgba(0,0,0,.6);
-
-    --st-gray-bg:rgba(160,172,169,.14);  --st-gray-fg:#A0ACA9;  --st-gray-dot:#6D7A77;  --st-gray-line:rgba(160,172,169,.3);
-    --st-amber-bg:#3A2A0F;  --st-amber-fg:#EBAD46; --st-amber-dot:#E8A317; --st-amber-line:rgba(232,163,23,.35);
-    --st-green-bg:#153224;  --st-green-fg:#5CC48E; --st-green-dot:#2E9E63; --st-green-line:rgba(46,158,99,.35);
-    --st-ruby-bg:#3F1C19;    --st-ruby-fg:#F0857B;  --st-ruby-dot:#D9453B;  --st-ruby-line:rgba(217,69,59,.35);
-    --st-steel-bg:#1D2637;  --st-steel-fg:#8FA8DE; --st-steel-dot:#6F86BF; --st-steel-line:rgba(111,134,191,.35);
-    --st-violet-bg:#261B3A; --st-violet-fg:#C9A5F2; --st-violet-dot:#B07FE6; --st-violet-line:rgba(176,127,230,.35);
-
-    --tile-steel-bg:#1D2637;  --tile-steel-fg:#8FA8DE;
-    --tile-emerald-bg:#153224;--tile-emerald-fg:#5CC48E;
-    --tile-amber-bg:#3A2A0F;  --tile-amber-fg:#EBAD46;
-    --tile-ruby-bg:#3F1C19;    --tile-ruby-fg:#F0857B;
-  }
 
   *,*::before,*::after{box-sizing:border-box;}
   .hidden{display:none!important;}
@@ -1307,18 +1196,6 @@
      should still source the CSS variables directly.
      ============================================================ */
   /* surfaces */
-  html.dark .bg-white{background-color:var(--color-surface);}
-  html.dark .bg-canvas,html.dark .bg-docbg,html.dark .bg-slate-50{background-color:var(--color-bg);}
-  html.dark .bg-canvas\/60,html.dark .bg-slate-50\/60{background-color:color-mix(in srgb,var(--color-bg) 60%,transparent);}
-  html.dark .bg-slate-200{background-color:var(--color-neutral-200);}
-  html.dark .bg-brand-50,html.dark .bg-brand-50\/30,html.dark .bg-brand-50\/40,html.dark .bg-brand-50\/50{background-color:rgb(var(--color-accent-500-rgb)/.08);}
-  html.dark .bg-brand-100{background-color:rgb(var(--color-accent-500-rgb)/.16);}
-  html.dark .bg-emerald-50,html.dark .bg-green-100{background-color:var(--st-green-bg);}
-  html.dark .bg-rose-50,html.dark .bg-red-100{background-color:var(--st-ruby-bg);}
-  html.dark .bg-blue-50{background-color:rgba(59,130,246,.15);}
-  html.dark .bg-indigo-100{background-color:rgba(99,102,241,.18);}
-  html.dark .from-brand-50{--tw-gradient-from:rgb(var(--color-accent-500-rgb)/.10) var(--tw-gradient-from-position);--tw-gradient-to:rgb(var(--color-accent-500-rgb)/0) var(--tw-gradient-to-position);}
-  html.dark .to-white{--tw-gradient-to:var(--color-surface) var(--tw-gradient-to-position);}
   /* ink — THE LIGHT SIDE, and it has to be written HERE (22 Aug 2026, owner-reported
      "the black fonts are darker in the html than in HaTi"). .text-ink is a COMPILED
      Tailwind class and its value is the OLD slate rgb(30 41 59) baked into the blob,
@@ -1349,41 +1226,10 @@
   .text-ink\/65,.text-ink\/60,.text-ink\/55,
   .text-ink\/50,.text-ink\/45,.text-ink\/40{color:var(--color-neutral-600);}
   /* ink */
-  html.dark .text-ink,html.dark .text-brand-900,html.dark .text-brand-800{color:var(--color-text);}
-  html.dark .text-brand-800\/85{color:color-mix(in srgb,var(--color-text) 85%,transparent);}
   /* The same collapse at night: --color-neutral-600 answers #93A09E under
      html.dark, 6.60:1 on the dark surface. */
-  html.dark .text-brand-800\/80,html.dark .text-ink\/80,
-  html.dark .text-brand-800\/70,html.dark .text-ink\/70{color:var(--color-text);}
-  html.dark .text-brand-800\/65,html.dark .text-ink\/65,
-  html.dark .text-brand-800\/60,html.dark .text-ink\/60,
-  html.dark .text-ink\/55,html.dark .text-ink\/50,
-  html.dark .text-brand-800\/45,html.dark .text-ink\/45,
-  html.dark .text-ink\/40{color:var(--color-neutral-600);}
-  html.dark .text-brand-800\/35{color:color-mix(in srgb,var(--color-text) 42%,transparent);}
-  html.dark .text-brand-700,html.dark .text-brand-600{color:var(--color-accent-400);}
-  html.dark .text-gold-600{color:var(--st-amber-fg);}
-  html.dark .text-emerald-700,html.dark .text-green-800{color:var(--st-green-fg);}
-  html.dark .text-rose-600,html.dark .text-rose-700,html.dark .text-rose-800,html.dark .text-rose-700\/80,html.dark .text-red-800{color:var(--st-ruby-fg);}
-  html.dark .text-blue-900{color:#93c5fd;}
-  html.dark .text-indigo-800{color:#a5b4fc;}
   /* hairlines */
-  html.dark .border-hair,html.dark .border-line,html.dark .border-inputln,
-  html.dark .border-slate-200,html.dark .border-slate-300,
-  html.dark .border-brand-100,html.dark .border-brand-100\/50,html.dark .border-brand-100\/60,
-  html.dark .border-brand-200{border-color:var(--color-divider);}
-  html.dark .border-brand-300{border-color:rgb(var(--color-accent-500-rgb)/.4);}
-  html.dark .border-emerald-200{border-color:var(--st-green-line);}
-  html.dark .border-rose-200{border-color:var(--st-ruby-line);}
-  html.dark .border-blue-200{border-color:rgba(59,130,246,.35);}
   /* interactive states */
-  html.dark .hover\:bg-brand-50:hover,html.dark .hover\:bg-brand-50\/50:hover,html.dark .hover\:bg-brand-50\/60:hover{background-color:rgb(var(--color-accent-500-rgb)/.12);}
-  html.dark .hover\:bg-slate-50:hover{background-color:var(--color-neutral-100);}
-  html.dark .hover\:bg-rose-50:hover{background-color:var(--st-ruby-bg);}
-  html.dark .hover\:text-brand-800:hover,html.dark .hover\:text-brand-900:hover{color:var(--color-accent-300);}
-  html.dark .hover\:text-ink:hover{color:var(--color-text);}
-  html.dark .hover\:text-ink\/70:hover{color:color-mix(in srgb,var(--color-text) 72%,transparent);}
-  html.dark .hover\:border-indigo-300:hover{border-color:rgba(99,102,241,.5);}
 
   /* buttons */
   /* ---- THREE LEVELS, ONE RULE, EVERY SCREEN (owner-asked 22 Aug 2026: "the
@@ -1461,8 +1307,7 @@
      THE NIGHT ANSWER IS NOT THE DAY'S TOKEN FOLLOWED INTO THE DARK: --rule is
      #26302E at night and all but vanishes on the dark ground, so the dark edge
      stays the visible #36423F it was (--rule-strong's night value). */
-  :root{ --btn-edge:var(--color-divider); }
-  html.dark{ --btn-edge:var(--rule-strong); }
+  :root{ --btn-edge:var(--rule-strong); }
   /* ---- SAID TO A SCREEN READER, DRAWN FOR NOBODY ---- (25 Aug 2026)
      A keyboard affordance nobody is told about is one nobody uses, and some
      of those sentences have no visible home — the KPI row's Alt+Arrow reorder
@@ -1540,7 +1385,7 @@
      decision row) — those are two lines by design and none is a labelled
      button. */
   :is(.ui-btn,.ui-link,.hm-rverb,.hm-tri-b,.hm-cz,.sc-stage-act,.cg,.sec-f-n,.reg-chip,.reg-seg,.cal-seg,.cal-link,
-      .tpl-btn-xs,.std-open,.sh-theme,.nav-section-head,.rl-btn,.rl-livelist,.rl-pb-btn){white-space:nowrap;}
+      .tpl-btn-xs,.std-open,.nav-section-head,.rl-btn,.rl-livelist,.rl-pb-btn){white-space:nowrap;}
   /* A LINK THAT IS A SENTENCE WRAPS (Young, 8 Oct 2026: "When narrowing the
      panel, wrap the words so they do not disappear on the sides"). The rule
      above is for a labelled button; a question with its act in it ("Signing it
@@ -1582,7 +1427,7 @@
   [data-dlg-page] .dlg-pg-crumb .dlg-pg-back{ font-size:inherit; }
   [data-dlg-page] .dlg-pg-row{ display:flex; align-items:center; gap:var(--s-3); min-width:0; }
   [data-dlg-page] .dlg-pg-title{ flex:1; min-width:0; }
-  [data-dlg-page] .dlg-pg-title > *{ font-family:var(--font-heading); font-size:var(--t-page); font-weight:var(--w-strong); color:var(--color-text); }
+  [data-dlg-page] .dlg-pg-title > *{ font-family:var(--font-title); font-size:var(--t-page); font-weight:var(--w-title-serif); color:var(--color-text); }
   [data-dlg-page] .dlg-pg-acts{ flex:none; display:flex; align-items:center; gap:var(--s-2); }
   [data-dlg-page] .dlg-pg-body{ flex:1; min-height:0; overflow:auto; }
   [data-dlg-page] .na-foot{ display:none; }   /* its buttons moved to the head */
@@ -1625,7 +1470,7 @@
      dialog are the drawings' 32px. */
   .modal-in[data-dlg-sap]{ --field-h:32px; }
   .modal-in[data-dlg-sap] .dlg-h{ padding:14px 18px 12px; border-bottom:1px solid var(--color-divider); }
-  .modal-in[data-dlg-sap] .dlg-h :is(h1,h2,h3){ font-family:var(--font-heading); font-size:16px; font-weight:var(--w-strong); line-height:1.3; margin:0; }
+  .modal-in[data-dlg-sap] .dlg-h :is(h1,h2,h3){ font-family:var(--font-title); font-size:17px; font-weight:var(--w-title-serif); line-height:1.3; margin:0; }
   .modal-in[data-dlg-sap] .dlg-h > p{ font-size:12.5px; line-height:1.45; color:var(--color-neutral-600); margin:2px 0 0; }
   [data-dlg-own-frame] .dlg-b{ padding:16px 18px; }
   .modal-in[data-dlg-own-frame] .dlg-f[class]{ margin-top:0; }
@@ -1714,7 +1559,7 @@
   [data-share-sap] .sh-lt-note textarea{ border-style:dashed; border-color:color-mix(in srgb, var(--accent-fill) 45%, var(--color-divider));
     background:color-mix(in srgb, var(--accent-fill) 5%, var(--color-surface)); }
   [data-share-sap] .sh-lt-link{ display:inline-flex; align-items:center; height:30px; padding:0 12px; border-radius:var(--radius);
-    background:var(--accent-fill); color:#fff; font-size:var(--t-label); font-weight:var(--w-label); }
+    background:#0b7a5f; color:#fff; font-size:var(--t-label); font-weight:var(--w-label); }
   [data-share-sap] .sh-lt-file{ display:inline-flex; align-items:center; gap:6px; height:28px; padding:0 10px; border:1px solid var(--color-divider);
     border-radius:var(--radius); font-size:var(--t-label); }
   [data-share-sap] .sh-lt-none{ color:var(--color-neutral-600); }
@@ -1775,7 +1620,9 @@
   [data-share-sap] .sh-lt-ans .sh-lt-p{ margin:0 0 4px; }
   [data-share-sap] .sh-lt-ans b{ font-weight:var(--w-strong); }
   [data-share-sap] .sh-lt-btnp{ margin:4px 0 14px; }
-  [data-share-sap] .sh-lt-btn{ display:inline-flex; align-items:center; height:36px; padding:0 16px; border-radius:var(--radius); background:var(--accent-fill); color:#fff;
+  /* the letter's button is drawn as the EMAIL draws it (js/sharemail.js, a literal: an email carries no :root),
+     so the preview never shows a black button the counterparty will receive green (Chambers, 20 Oct 2026) */
+  [data-share-sap] .sh-lt-btn{ display:inline-flex; align-items:center; height:36px; padding:0 16px; border-radius:var(--radius); background:#0b7a5f; color:#fff;
     font-size:var(--t-body); font-weight:var(--w-strong); }
   [data-share-sap] .sh-lt-foot{ color:var(--color-neutral-600); font-size:var(--t-meta); margin-top:18px; }
   /* the letter's checks as a card among the panel's cards (readinessPanelHtml, o.card): the list open, a block on a ruby edge with its tick */
@@ -1797,7 +1644,7 @@
   #modal-root .modal-in[data-sh-page] > [data-share-sap]{ min-height:100%; }
   #modal-root .modal-in[data-sh-page] .sh-hd{ position:sticky; top:0; z-index:4; margin:0; padding:12px 20px; display:flex; align-items:center; gap:12px;
     background:var(--color-surface); border-bottom:1px solid var(--color-divider); }
-  #modal-root .modal-in[data-sh-page] .sh-hd h2{ flex:1; min-width:0; margin:0; font-size:20px; font-weight:var(--w-strong); color:var(--color-text); }
+  #modal-root .modal-in[data-sh-page] .sh-hd h2{ flex:1; min-width:0; margin:0; font-family:var(--font-title); font-size:20px; font-weight:var(--w-title-serif); color:var(--color-text); }
   #modal-root .modal-in[data-sh-page] .sh-hd-acts{ display:flex; gap:8px; flex:none; }
   #modal-root .modal-in[data-sh-page] .sh-lt-grid{ display:block; padding:16px 20px 28px; }
   #modal-root .modal-in[data-sh-page] .sh-lt-grid > *{ max-width:780px; margin-left:auto; margin-right:auto; }
@@ -2170,13 +2017,11 @@
   .nav-item:hover{background:var(--color-neutral-100);color:var(--color-text);}
   .nav-item:hover svg{opacity:1;}
   .nav-item.active{background:color-mix(in srgb,var(--accent-solid) 10%,transparent);color:var(--accent-ink-700);border-color:color-mix(in srgb,var(--accent-solid) 20%,transparent);font-weight:var(--w-title);letter-spacing:-0.01em;}
-  html.dark .nav-item.active{color:var(--color-accent-400);}
   .nav-item.active svg{opacity:1;}
   /* Portfolio Intel keeps the accent whether or not it is the current page —
      the reference tints this one glyph on purpose, because the contract graph
      is the thing it wants a reader's eye to find in the list. */
   .nav-item[data-view="intel"] svg{color:var(--accent-solid);opacity:1;}
-  html.dark .nav-item[data-view="intel"] svg{color:var(--color-accent-400);}
   .nav-item[data-view="intel"].active svg{color:inherit;}
   /* Nav counts as tinted pills (the design's "AI Active" / "3 Open" tags):
      teal for portfolio totals, amber for work waiting on someone, neutral
@@ -2185,13 +2030,10 @@
   .nav-count{flex:none;font-size:var(--t-label);font-family:var(--font-mono);font-weight:var(--w-title);padding:1px 7px;border-radius:var(--radius);background:var(--color-neutral-100);color:var(--color-neutral-500);white-space:nowrap;}
   .nav-count:empty{display:none;}
   .nav-count[data-tone="teal"]{background:color-mix(in srgb,var(--accent-solid) 14%,transparent);color:var(--accent-ink-700);}
-  html.dark .nav-count[data-tone="teal"]{color:var(--color-accent-400);}
   .nav-count[data-tone="amber"]{background:rgba(245,158,11,.18);color:#b45309;}
-  html.dark .nav-count[data-tone="amber"]{color:#fcd34d;}
   /* the design's right-aligned tag on a nav row ("2 Open" on Redline) */
   .nav-badge{margin-left:auto;flex:none;font-size:var(--t-figure);font-weight:var(--w-title);padding:1px 6px;border-radius:var(--radius);
     background:rgba(245,158,11,.2);color:#b45309;white-space:nowrap;}
-  html.dark .nav-badge{color:#fcd34d;}
   /* Collapsible nav sections: the group label is a +/- toggle that shows or
      hides its tabs. Only ADMINISTRATION folds now — its header is the one
      button left carrying data-section-toggle and the +/− glyph; every other
@@ -2311,51 +2153,12 @@
      Deeper than the accent ramp reaches, and it always was: a navigation column
      is a ground, not an accent. Four values, named here so a theme sets them in
      one place instead of four files finding their own dark green. */
-  :root{ --nav-bg:#12796D; --nav-line:#0E6A5F; --nav-ink:#9fd8d1; --nav-ink-strong:#ffffff;
-         --nav-deep:#0f4c46; }
+  /* CHAMBERS (20 Oct 2026): the bar is white (its own --bar-bg); what still
+     reads --nav-bg — the lit tab's underline, the history dot's ring — reads
+     the ink. */
+  :root{ --nav-bg:#161512; --nav-line:#E4E0D7; --nav-ink:#5E5A51; --nav-ink-strong:#161512;
+         --nav-deep:#0A1C15; }
 
-  /* ============================================================
-     NAVY — the second brand, and the ONLY thing it changes is colour
-     ============================================================
-     Every value below has a twin in the green ramp above and nothing else
-     here: no spacing, no radius, no rule about what is bold. A theme that
-     could change more than colour would eventually be used to, and then two
-     themes would be two layouts to maintain.
-
-     It sets the same names, so nothing downstream knows which brand it is
-     wearing. That is the whole return on gathering the colours into one place:
-     493 utility classes, every chip, every gradient and every icon follow from
-     this one block.
-
-     WHAT IS NOT HERE is as deliberate: no --st-green, no --st-ruby, no
-     --n-ins/--n-del. Accepted stays green and rejected stays red on a navy
-     platform, because those two are not brand — they are the redline's
-     grammar, and a lawyer reads them before they read anything else. */
-  :root[data-brand="navy"]{
-    --color-accent-50:#f0f4fb;   --color-accent-100:#e1e9f7;
-    --color-accent-200:#b6c8eb;  --color-accent-300:#8aa8e2;
-    --color-accent-400:#5b82cf;  --color-accent-500:#3560b4;
-    --color-accent-600:#264c9e;  --color-accent-700:#1c3872;
-    --color-accent-800:#16295a;  --color-accent-900:#111f45;
-    --color-accent-50-rgb:240 244 251;   --color-accent-100-rgb:225 233 247;
-    --color-accent-200-rgb:182 200 235;  --color-accent-300-rgb:138 168 226;
-    --color-accent-400-rgb:91 130 207;   --color-accent-500-rgb:53 96 180;
-    --color-accent-600-rgb:38 76 158;    --color-accent-700-rgb:28 56 114;
-    --color-accent-800-rgb:22 41 90;     --color-accent-900-rgb:17 31 69;
-    /* The companion hue and the hero's deep stop, stepped to match: on green
-       these lean cyan, on navy they lean a lighter, cleaner blue. */
-    --brand-cyan:#3f7ac4; --brand-cyan-600:#2f63a8; --brand-cyan-700:#2b5c9e;
-    --brand-hero-deep:#0f2447;
-    /* The bar's ground. Since 7 Oct 2026 it is the brand's own bright blue,
-       the same colour as the main button (Young, off the HaTi Platform mockup:
-       "more vibrant"); white on it is 8.1:1. */
-    --accent-solid-hover:#1F4088;
-    --nav-bg:#264C9E; --nav-line:#1F4088; --nav-ink:#a5bde0; --nav-deep:#17376b;
-    /* Navy wore the green band's pale teal second line, because that colour was
-       typed into the dashboard rather than named. Now that it has a name, navy
-       answers it. */
-    --brand-hero-sub:#c3d6f2;
-  }
   /* Accent text that stays READABLE in both themes. The deep teal that reads
      well on white is 2.4:1 on the dark surface — the app's existing answer for
      accent words in the dark is accent-400, so this token carries it. Use it
@@ -2373,6 +2176,9 @@
      WRITTEN IN HaTi'S OWN SHEET, NEVER THE BLOB, which regenerates — the
      font-600 lesson. One id-free class selector each, later in source than
      the blob, so they win on order with nothing shouted. */
+  /* THE SEAL CARD'S WASH FOLLOWS THE ACCENT (Chambers, 20 Oct 2026): the compiled
+     .from-brand-50 starts at a literal teal; written here, after the blob, at its own weight */
+  .from-brand-50{--tw-gradient-from:var(--color-accent-50) var(--tw-gradient-from-position);--tw-gradient-to:rgb(var(--color-accent-50-rgb)/0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from),var(--tw-gradient-to)}
   .text-ink\/80,.text-ink\/70{ color:var(--color-text); }
   .text-ink\/65,.text-ink\/60,.text-ink\/55,
   .text-ink\/50,.text-ink\/45,.text-ink\/40{ color:var(--color-neutral-600); }
@@ -2416,9 +2222,8 @@
      --accent-solid ITSELF IS DELIBERATELY UNTOUCHED: it is the nav's fill and
      a brand colour this rulebook records as one that must not flip. This is a
      second token for a second job, not a redefinition of the first. */
-  :root{ --accent-fill:var(--color-accent-600); } /* 7 Oct 2026: accent-600 is the bright #12796D (5.3:1 under white; navy #264C9E 8.1:1); see .ui-btn-primary */
-  :root{ --accent-ink:var(--color-accent-700); --accent-ink-700:var(--color-accent-700); }
-  html.dark{ --accent-ink:var(--color-accent-400); --accent-ink-700:var(--color-accent-400); }
+  :root{ --accent-fill:var(--accent-solid); } /* CHAMBERS (20 Oct 2026): a filled control is the ink, black (18.3:1 under white); was accent-600 (7 Oct). See .ui-btn-primary */
+  :root{ --accent-ink:var(--color-accent-600); --accent-ink-700:var(--color-accent-700); }  /* Chambers: the deep green, 9.6:1 on white */
 
   /* ═══ AND THE TWO PALE RUNGS, WHICH CARRY A SURFACE ══════════════════════
      (owner-reported 4 Oct 2026, off two screenshots: "when in dark mode you
@@ -2446,10 +2251,6 @@
      patch. :root.dark matches that weight and wins on order, in both brands.
      THE MID RUNGS ARE LEFT ALONE: accent-200 and accent-300 read as mint, not
      as white, and they carry borders as often as fills. */
-  :root.dark{
-    --color-accent-50:rgb(var(--color-accent-500-rgb)/.08);
-    --color-accent-100:rgb(var(--color-accent-500-rgb)/.16);
-  }
 
   /* ═══ THE BRIGHT BRAND, AND ITS HELPER COLOUR (Young, 7 Oct 2026, off the
      HaTi Platform mockup) ══════════════════════════════════════════════════
@@ -2460,18 +2261,6 @@
      informational marks — the stream tag, an information count — so a page has
      two colours without inventing a third. -soft is its wash, -ink its text. */
   :root{ --alt:#3A64C4; --alt-soft:#E9EFFB; --alt-ink:#24488F; }
-  :root[data-brand="navy"]{ --alt:#12796D; --alt-soft:#E3F3EF; --alt-ink:#0E5F58; }
-  /* INK WASH, BLUE (owner, 9 Oct 2026): Blue's own inks — black + navy,
-     softened with a navy wash. Before this Blue wore Green's greys, because
-     the ramp was declared once and never answered per brand. :not(.dark)
-     because this selector outranks html.dark — dark stays as today. */
-  :root[data-brand="navy"]:not(.dark){ --color-bg:#F3F6FB;
-    --color-text:#091938; --color-divider:#DAE2F1; --surface-2:#EEF2F9; --color-chat-bg:#EEF2F9;
-    --color-neutral-100:#EEF2F9; --color-neutral-200:#DAE2F1; --color-neutral-300:#BAC8E4;
-    --color-neutral-400:#50648A; --color-neutral-500:#374A6D; --color-neutral-600:#374A6D;
-    --color-neutral-700:#091938; --color-neutral-800:#091938; --color-neutral-900:#091938;
-    --rule-strong:#BAC8E4; --rule-faint:#EEF2F9; --field-line:#7187AE;
-    --st-gray-bg:#EEF2F9; --st-gray-fg:#374A6D; --st-gray-dot:#7F94BC; --st-gray-line:#BAC8E4; }
   /* WHAT INK WASH LEAVES ALONE, pinned to the values it had before (owner,
      9 Oct 2026). THE CONTRACT PAPER ("this should not impact the paper
      contract") — its wording reads --color-text and its ground --color-bg —
@@ -2488,14 +2277,10 @@
     --color-neutral-700:#141F1D; --color-neutral-800:#141F1D; --color-neutral-900:#141F1D;
     --rule-strong:#CBD3D0; --rule-faint:#EEF2F0; --field-line:#8A9795;
     --st-gray-bg:#EEF2F0; --st-gray-fg:#5A6866; --st-gray-dot:#8C9895; --st-gray-line:#CBD3D0; }
-  :root.dark{ --alt:#7C9BE0; --alt-soft:rgba(124,155,224,.16); --alt-ink:#A9C0F0; }
-  :root.dark[data-brand="navy"]{ --alt:#5EC2B3; --alt-soft:rgba(94,194,179,.16); --alt-ink:#8FD9CC; }
   /* BLUE AT NIGHT (7 Oct 2026, now that HaTi lands on Blue): the brand block
      outranks html.dark, so Blue kept its bright bar and its accent-400 words
      at night — 3.96:1 and 4.33:1, under AA. It takes Green's night answer: the
      near-black bar, and accent words one rung lighter. */
-  :root.dark[data-brand="navy"]{ --nav-bg:#0B1220; --nav-line:#232D3D; --nav-deep:#111B2E;
-    --accent-ink:var(--color-accent-300); --accent-ink-700:var(--color-accent-300); }
 
   /* ═══ THREE MORE TOKENS THAT CARRY INK OR A RULE AND HAD NO DARK ANSWER ══
      MEASURED on the night panel (#0f172a):
@@ -2506,14 +2291,6 @@
      The two rules have ZERO consumers today, which is why nobody had seen
      them; they are given answers now so adopting them in Phase C cannot
      quietly paint two near-white lines across every dense table at night. */
-  html.dark{
-    --field-line:#8A9795;    /* dark stays as today (owner, 9 Oct 2026): Ink Wash is light only */
-    --danger:#F0857B;        /* 6.9:1 on the panel */
-    --danger-hover:#F6A59D;
-    --red-tint:rgba(240,133,123,.14);
-    --rule-strong:#36423F;   /* a division you can see, not a highlight */
-    --rule-faint:#1B2221;
-  }
 
   /* ============ THE CONTRACT ROOM ============
      ONE style, TWO shells. The Docs page and the negotiation workbench are
@@ -2647,7 +2424,7 @@
      pages you were standing on. 15/600 is the one that was approved against a
      render, so it is the one that wins. .redline-page's own block still states
      it for that page; the two now agree rather than disagreeing. */
-  .room-head h1{ font-family:var(--font-heading); font-weight:var(--w-strong); margin:0; line-height:1.2;
+  .room-head h1{ font-family:var(--font-title); font-weight:var(--w-title-serif); margin:0; line-height:1.2;
     font-size:var(--t-card); min-width:0;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .room-head .room-sub{ font-size:var(--t-meta); color:var(--color-neutral-600); margin-top:3px;
@@ -2731,10 +2508,11 @@
   /* Status as words. The tone comes inline from STATUS_META, so this rule
      carries only the shape — see contractStatusTextHtml. */
   .room-stat{ font-size:var(--t-body); font-weight:var(--w-title); white-space:nowrap; flex:none; }
-  /* THE HEAD'S STATUS IS A PILL (Young, 7 Oct 2026, off the mockup): the stage's
-     wash and dot, the word at 600 — the same dress as the list's stage. */
-  :root .room-stat{ display:inline-flex; align-items:center; gap:6px; padding:2px 10px 2px 8px; border-radius:999px;
-    font-weight:var(--w-strong); line-height:var(--lh-tight); vertical-align:middle; }
+  /* THE HEAD'S STATUS IS A DOT AND A WORD (Chambers, owner picked it by name,
+     20 Oct 2026; a pill with the stage's wash from 7 Oct): the same dress as
+     the list's stage, the word at the label weight. */
+  :root .room-stat{ display:inline-flex; align-items:center; gap:6px; padding:0; border-radius:0;
+    font-weight:var(--w-label); line-height:var(--lh-tight); vertical-align:middle; }
   .room-stat > i{ width:7px; height:7px; border-radius:50%; flex:none; }
   /* ---- THE FACT ROW ----
      Label above value, divided by hairlines, four across. The same treatment
@@ -2904,7 +2682,7 @@
   /* 700, not 600 — Home sets the tone at 20/700 and every page head matches it
      (owner-asked 25 Aug 2026). The SIZE was already right here; only the weight
      was a shade light against the rest. */
-  .ngl-head h2{ font-family:var(--font-heading); font-weight:var(--w-title); font-size:20px;
+  .ngl-head h2{ font-family:var(--font-title); font-weight:var(--w-title-serif); font-size:20px;
     margin:0 0 var(--s-1); line-height:1.2; }
   .ngl-head p{ margin:0 0 18px; font-size:var(--t-body); color:var(--color-neutral-600); }
   /* with nothing live the head is the one page-head card (.ph-card, 19 Oct
@@ -3907,11 +3685,10 @@
   .st-cr .st-jb-me{ align-self:flex-end; max-width:88%; background:var(--accent-solid,var(--color-accent)); color:#fff;
     border-radius:10px; padding:7px 11px; font-size:var(--t-meta); line-height:1.45; overflow-wrap:anywhere; }
   .st-cr .st-jb-turn{ display:flex; flex-direction:column; gap:8px; }
-  .st-cr .st-jb-chips{ display:flex; flex-wrap:wrap; gap:6px; padding-left:36px; }
-  .st-cr .st-jb-chip{ appearance:none; font:inherit; font-size:var(--t-label); cursor:pointer; text-align:left;
-    border:1px solid var(--color-divider); background:var(--color-surface); color:var(--accent-ink);
-    border-radius:999px; padding:4px 11px; line-height:1.35; }
-  .st-cr .st-jb-chip:hover{ border-color:var(--color-accent); }
+  .st-cr .st-jb-chips{ display:flex; flex-wrap:wrap; gap:4px 12px; padding-left:36px; }
+  /* a suggestion is a link (Chambers, 20 Oct 2026; see .jb-chip) */
+  .st-cr .st-jb-chip{ appearance:none; border:0; background:none; padding:1px 0; border-radius:0; height:auto; min-height:0; font:inherit; font-size:12.5px; font-weight:var(--w-body); line-height:1.45; color:var(--accent-ink); text-decoration:underline; text-decoration-color:var(--color-accent-200); text-underline-offset:3px; cursor:pointer; text-align:left; }
+  .st-cr .st-jb-chip:hover{ text-decoration-color:currentColor; color:var(--accent-ink-700); }
   .st-cr .st-jb-card{ margin-left:36px; background:var(--color-surface); border:1px solid var(--color-divider); border-radius:10px; overflow:hidden; }
   .st-cr .st-jb-ch{ display:flex; align-items:center; gap:7px; flex-wrap:wrap; padding:8px 11px; font-weight:var(--w-strong);
     font-size:var(--t-meta); color:var(--color-text); border-bottom:1px solid var(--surface-2); }
@@ -3938,7 +3715,6 @@
     padding:0 10px; font:inherit; font-size:var(--t-meta); background:var(--color-surface); color:var(--color-text); }
   .st-cr .st-jb-ask input:focus-visible{ outline:2px solid var(--btn-edge); outline-offset:1px; }
   /* the hint line under Jambo's box (18 Oct 2026), under the box's own left edge */
-  .st-cr .st-jb > .jb-hint{ flex:none; margin:0 12px 10px; }
   .st-cr .st-jb-foot{ flex:none; margin:0; padding:0 12px 10px; font-size:var(--t-label); color:var(--color-neutral-600); }
   /* the Menu's face */
   .st-cr .st-side-menu{ padding:10px 12px 12px; overflow:auto; }
@@ -3984,7 +3760,7 @@
   .st-cr .st-headcard:has(.st-facebar){ padding-bottom:0; }
   /* the card's title row (.ph-top): its height and the hairline under it are the one rule every head card wears (19 Oct 2026) */
   .st-cr .st-hc-top{ display:flex; align-items:baseline; flex-wrap:wrap; column-gap:10px; row-gap:4px; }
-  .st-cr .st-hc-t{ margin:0; font-family:var(--font-heading); font-size:20px; font-weight:var(--w-title); letter-spacing:-.01em; color:var(--color-text); line-height:1.2; }
+  .st-cr .st-hc-t{ margin:0; font-family:var(--font-title); font-size:20px; font-weight:var(--w-title-serif); letter-spacing:-.005em; color:var(--color-text); line-height:1.2; }
   .st-cr .st-hc-sp{ flex:1; }
   .st-cr .st-hc-top > .ui-btn{ align-self:center; }
   @media (min-width:981px){
@@ -4535,9 +4311,6 @@
   /* On the dark paper accent-800 is a near-black green. The ramp inverts for
      the reason every other token does: the mark has to sit ON the ground, not
      sink into it. */
-  html.dark .room-menu button svg,
-  html.dark .room-menu button:hover svg,
-  html.dark .reg-act svg{ color:var(--color-accent-300); }
   .room-menu .mgroup{ font-size:var(--t-figure); font-weight:var(--w-title);  
     color:var(--color-neutral-500); padding:7px 10px var(--s-1); }
   .room-menu hr{ border:0; border-top:1px solid var(--color-divider); margin:5px var(--s-1); }
@@ -4692,7 +4465,6 @@
     color:var(--color-doc-text); background:var(--st-steel-bg);
     border-bottom:1.5px solid var(--color-accent-400); border-radius:var(--radius);
     padding:0 var(--s-1); }
-  html.dark .field-frozen{ background:rgb(var(--color-accent-500-rgb)/.15); border-bottom-color:var(--color-accent-500); }
   .field-frozen[title]{ background:var(--st-amber-bg); border-bottom-color:var(--st-amber-dot);
     color:var(--st-amber-fg); font-weight:var(--w-title); }
 
@@ -4996,7 +4768,6 @@
   /* AT NIGHT THE INK LIGHTENS AND THIS GROUND DID NOT (the owner's list, 27 Sep
      2026): 1.96:1, measured by contrast-verify. The night ground is the steel
      wash every other chip on this row already wears after dark. */
-  html.dark .py-chip-inv{ background:var(--st-steel-bg); }
   .py-chip-inv[data-inv="sign"]{ background:var(--st-steel-bg); color:var(--st-steel-fg); }
   .py-chip-inv[data-inv="none"]{ background:var(--st-gray-bg); color:var(--st-gray-fg); }
   /* The involvement picker in the party dialog: one row per answer, the
@@ -6461,20 +6232,6 @@
      rather than typed, so Navy would get a navy glow if it ever went dark.
      GREEN IS NOT BANISHED, it is demoted from ground to accent: the active
      door, the Copilot launcher and every status colour are untouched. */
-  html.dark{
-    /* THE WHITE COLUMN'S HOVER AND LIVE-DOOR GROUND NEEDS A NIGHT ANSWER.
-       --nav-well is #EFF3F3 in :root, and left undefined here the live door
-       drew a near-white block behind near-white text — the one row you are
-       standing on was the one row you could not read. The classic fault: a
-       colour whose only definition works in one theme. */
-    --nav-well:#1B2221;
-    --nav-bg:#0B1514; --nav-line:#26302E; --nav-deep:#12211F;
-    --nav-ink:#A0ACA9; --nav-ink-strong:#F2F6F5;
-    --brand-hero-deep:#060c18;
-    --brand-hero:linear-gradient(120deg,var(--brand-hero-deep) 0%,#0d1a2b 55%,
-      color-mix(in srgb,var(--color-accent-600) 34%,#0d1a2b) 100%);
-    --brand-hero-sub:#9fb3c8;
-  }
   /* The band's corner light. A 16% white bloom is a highlight on a saturated
      teal and a grey smudge on near-black, so the dark theme turns it most of
      the way down rather than off — the band keeps its top-right lift without
@@ -6629,45 +6386,23 @@
   .hdr-icon-btn{position:relative;width:var(--ctl-h);height:var(--ctl-h);display:grid;place-items:center;border:1px solid transparent;background:transparent;border-radius:var(--radius);color:var(--color-neutral-500);cursor:pointer;transition:background var(--dur-1),color var(--dur-1);}
   .hdr-icon-btn:hover{background:var(--color-neutral-100);color:var(--color-text);}
 
-  /* ---- THE SHELL BAR'S OWN CHROME (24 Aug 2026) ----
-     Everything in a 44px bar on a dark ground: 32px controls, white ink, and a
-     hover that lightens the ground rather than tinting the glyph. Scoped to
-     #top-header so .hdr-icon-btn keeps its light-ground treatment everywhere
-     else it draws — the class is used well outside this bar. */
-  #top-header .hdr-icon-btn{width:var(--ctl-h);height:var(--ctl-h);color:#fff;flex:none;}
-  #top-header .hdr-icon-btn:hover{background:rgba(255,255,255,.12);color:#fff;}
-  #top-header .sh-div{flex:none;width:1px;height:18px;background:rgba(255,255,255,.24);margin:0 var(--s-1);}
+  /* ---- THE SHELL BAR'S OWN CHROME (24 Aug 2026; white since Chambers,
+     20 Oct 2026) ---- Scoped to #top-header so .hdr-icon-btn keeps its own
+     treatment everywhere else it draws; the colours are the bar's tokens. */
+  #top-header .hdr-icon-btn{width:var(--ctl-h);height:var(--ctl-h);color:var(--bar-ink-2);flex:none;}
+  #top-header .hdr-icon-btn:hover{background:var(--bar-hover);color:var(--bar-ink);}
+  #top-header .sh-div{flex:none;width:1px;height:18px;background:var(--bar-line);margin:0 var(--s-1);}
 
   #top-header #cmd-k-hint{flex:none;font-size:var(--t-micro);font-family:var(--font-code);
-    border:1px solid rgba(255,255,255,.28);background:none;color:rgba(255,255,255,.8);
+    border:1px solid var(--bar-line);background:none;color:var(--bar-ink-2);
     padding:1px 5px;border-radius:var(--radius);cursor:pointer;}
-  #top-header #cmd-k-hint:hover{background:rgba(255,255,255,.14);}
+  #top-header #cmd-k-hint:hover{background:var(--bar-hover);}
 
-  /* ONE BORDERED GROUP PER QUESTION — language, then appearance. Both are
-     26px, which is the bar's own control height and the one size the design
-     allows below 32. */
-  #top-header .sh-grp{flex:none;display:flex;align-items:center;border:1px solid rgba(255,255,255,.24);}
-  #top-header .sh-grp > *{height:26px;border:0;background:none;cursor:pointer;color:#fff;font:inherit;}
-  #top-header .sh-grp > *:focus-visible{outline:2px solid #fff;outline-offset:-2px;}
-  #top-header .sh-grp button{font-size:var(--t-label);font-weight:var(--w-strong);padding:0 9px;}
-  #top-header .sh-grp button:hover{background:rgba(255,255,255,.12);}
-  #top-header .sh-grp button[aria-pressed="true"]{background:rgba(255,255,255,.16);}
-  /* TWO CLASSES, because `#top-header .sh-grp button` sets a 9px side padding
-     and scores one class plus one type — MEASURED, it won, and the swatch drew
-     an 8px stripe inside a 26px button with the pressed ring covering most of
-     it. Never !important: that wins this fight and hides the next. */
-  #top-header .sh-grp .sh-sw{width:26px;padding:0;}
-  #top-header .sh-sw i{display:block;width:100%;height:100%;}
-  #top-header .sh-sw[hidden]{display:none;}
-  /* The chosen brand is marked by a ring INSIDE the swatch, so the colour
-     itself is never covered by the thing announcing it. */
-  #top-header .sh-sw[aria-pressed="true"] i{box-shadow:inset 0 0 0 2px var(--nav-bg),inset 0 0 0 4px rgba(255,255,255,.9);}
 
   #top-header #side-avatar{width:32px;height:32px;border-radius:50%;
-    border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.14);color:#fff;
+    border:1px solid var(--rule-strong);background:var(--color-neutral-200);color:var(--bar-ink);
     display:grid;place-items:center;font-size:var(--t-micro);font-weight:var(--w-title);
     font-family:var(--font-heading);flex:none;}
-  #top-header #rail-avatar:hover #side-avatar{background:rgba(255,255,255,.24);}
   #top-header #hdr-notify-dot{position:absolute;top:2px;right:1px;min-width:14px;height:14px;
     padding:0 2px;box-sizing:border-box;border-radius:var(--radius);background:var(--st-amber-dot);
     color:#2A1B04;border:0;font:inherit;font-size:var(--t-figure);font-weight:var(--w-title);line-height:14px;
@@ -6687,58 +6422,8 @@
     text-align:center;font-variant-numeric:tabular-nums;}
   #top-header #hdr-chat-dot[hidden]{display:none;}
 
-  /* THE LANGUAGE TOGGLE. It took the top-bar space the jurisdiction flags used
-     to hold — the market is a workspace setting an admin picks once and it
-     lives in Settings now, while this is a personal one somebody flips
-     whenever they like, which is what earns a place in the strip your eye
-     crosses all day.
-
-     A segmented pair rather than a dropdown: with two languages the choice and
-     its current state are the same glance, and a <select> hides the second
-     option behind a click. It degrades by dropping the words, not the control,
-     so the tap target survives a narrow window. */
-  .lang-toggle{display:inline-flex;align-items:center;background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:var(--radius);padding:3px;gap:2px;flex:none;}
-  .lang-btn{border:0;background:none;font:inherit;font-family:var(--font-body);font-size:var(--t-label);font-weight:var(--w-strong);padding:var(--s-1) 11px;border-radius:var(--radius);cursor:pointer;color:var(--color-neutral-500);transition:background var(--dur-1),color var(--dur-1);white-space:nowrap;}
-  .lang-btn:hover{color:var(--color-text);}
-  .lang-btn[aria-pressed="true"]{background:var(--accent-fill);color:#fff;box-shadow:0 1px 4px rgba(15,23,42,.18);}
-  .lang-btn:focus-visible{outline:2px solid var(--color-accent-500);outline-offset:1px;}
-  /* Below 1180 the words go and the two-letter codes carry it; the button
-     itself never shrinks below something a thumb can hit. */
-  .lang-btn .lang-long{display:inline;}
-  .lang-btn .lang-code{display:none;font-weight:var(--w-title);letter-spacing:.04em;}
-  @media (max-width:1180px){ .lang-btn .lang-long{display:none;} .lang-btn .lang-code{display:inline;} }
-
-  /* theme toggle: both glyphs live in the button; html.dark picks which shows */
-  /* The theme control. Its face is a swatch of the theme you are wearing —
-     the shortest possible answer to "which one am I on", readable without
-     opening anything. The rows below carry their own swatch for the same
-     reason: naming a colour is slower than showing it. */
-  #theme-swatch{ width:15px; height:15px; border-radius:var(--radius); display:block;
-    background:var(--brand-grad); border:1px solid rgb(0 0 0/.14); }
-  html.dark #theme-swatch{ background:var(--color-neutral-800); border-color:rgb(255 255 255/.22); }
-  #theme-menu button{ display:flex; align-items:center; gap:10px; width:100%; text-align:left;
-    border:0; background:none; cursor:pointer; font:inherit; font-size:var(--t-body); font-weight:var(--w-body);
-    color:var(--color-text); border-radius:var(--radius); padding:var(--s-2) 10px; }
-  #theme-menu button:hover{ background:var(--color-neutral-100); }
-  #theme-menu .tsw{ width:16px; height:16px; border-radius:var(--radius); flex:none;
-    border:1px solid rgb(0 0 0/.16); }
-  html.dark #theme-menu .tsw{ border-color:rgb(255 255 255/.2); }
-  #theme-menu .tnote{ display:block; font-size:var(--t-label); font-weight:var(--w-body);
-    color:var(--color-neutral-500); }
-  #theme-menu .ttick{ margin-left:auto; flex:none; color:var(--accent-ink-700); font-weight:var(--w-title); }
-  html.dark #theme-menu .ttick{ color:var(--color-accent-300); }
   #side-copilot:hover{filter:brightness(1.07);}
-  /* narrow shells: shed the language words first, then the global search and
-     the profile text. Below 900 the toggle itself moves into the nav drawer
-     (placeLanguageSwitch, js/app.js), where the full words fit again. */
-  @media (max-width:899px){
-    #side-nav #lang-switch{margin:0 var(--s-3) var(--s-1);align-self:stretch;justify-content:center;}
-    /* The drawer has room the header did not, so the words come back even
-       though the window is narrow — the 1180 rule is about the header's
-       crowding, not about the size of the screen. */
-    #side-nav #lang-switch .lang-long{display:inline;}
-    #side-nav #lang-switch .lang-code{display:none;}
-  }
+  /* narrow shells: shed the global search and the profile text. */
   /* Retuned. The old single step at 1000 fired too late: at 1024 the right-hand
      actions were still 504px wide, which left the brand block 117px of the
      137px it needs and clipped "HaTi" itself. The profile text and the Copilot
@@ -6889,11 +6574,6 @@
        opened and there is room for them again. It also STACKS: side by side
        even the two-letter pair measures 86px, so the pair runs down the strip
        the way every other thing in a 64px rail does. */
-    #app-shell.rail #side-nav:not(.open) #lang-switch{ margin:0 auto var(--s-1); align-self:center;
-      flex-direction:column; }
-    #app-shell.rail #side-nav:not(.open) #lang-switch .lang-btn{ padding:var(--s-1) var(--s-2); }
-    #app-shell.rail #side-nav:not(.open) #lang-switch .lang-long{ display:none!important; }
-    #app-shell.rail #side-nav:not(.open) #lang-switch .lang-code{ display:inline!important; }
     #nav-scrim:not([hidden]){
       display:block; position:fixed; inset:64px 0 0 0; z-index:54;
       background:color-mix(in srgb,#020617 45%,transparent);
@@ -7037,7 +6717,7 @@
      "ONE HEADER TOP" beside #page-head. Left to inherit, this was a 28px line
      box on a 20px face, so its glyphs sat 2px lower than the nine pages whose
      title sets 1.2: same padding, different-looking gap. */
-  .hm-greet h1{margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);
+  .hm-greet h1{margin:0;font-family:var(--font-title);font-size:20px;font-weight:var(--w-title-serif);
     line-height:var(--lh-tight);
     letter-spacing:-.01em;color:var(--color-text);}
   /* ITS LEADING IS STATED FOR THE TITLE'S SAKE, not its own. This row is
@@ -7074,8 +6754,6 @@
      2.5:1 and a filled act has no edge of its own to stand on; halfway to
      accent-500 the same teal measures over 3:1 against the page and keeps the
      white label over 4.5:1 (accent-500 itself drops the label to 4.05). */
-  html.dark .hm-primary{background:color-mix(in srgb,var(--color-accent-600),var(--color-accent-500));border-color:color-mix(in srgb,var(--color-accent-600),var(--color-accent-500));}
-  html.dark .hm-primary:hover{background:var(--color-accent-400);border-color:var(--color-accent-400);color:var(--color-neutral-900);}
 
   /* A SECTION HEADING IS A WORD, A RULE AND — where there is one — its own
      act at the far end. Customize sits on My work's line because that is the
@@ -7139,7 +6817,6 @@
      legend names what its colour means. */
   .hm-map{ --map-made:var(--color-accent-600); --map-due:var(--st-amber-dot); --map-later:var(--color-neutral-300);
     --map-win:color-mix(in srgb,var(--color-accent-400) 8%,var(--color-surface)); --map-gap:6px; }
-  html.dark .hm-map{ --map-made:var(--color-accent-400); }
   /* The sub-line gives before the switch does, and says where it was cut. */
   .hm-map .hm-sec .hm-map-sub{ flex:0 1 auto; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   /* THE SEGMENTED CONTROL IS THE PRODUCT'S OWN (.doc-read-seg); only its width is
@@ -7606,7 +7283,6 @@
      inverts to the ink colour, which in dark is a near-white block. In dark it
      takes the accent's own wash and ink instead; the coloured chips keep
      their dark status washes. */
-  html.dark .doc-th-chip:not(.is-ruby,.is-amber,.is-steel)[aria-pressed="true"]{ background:var(--color-accent-50); border-color:var(--accent-ink); color:var(--accent-ink); }
   .doc-th-chip[aria-disabled="true"]{ opacity:.5; cursor:default; }
   /* HOME'S PAPER: the filter at the far left of its own row, "Go to document"
      at the far right (owner, 10 Oct 2026). */
@@ -9650,7 +9326,7 @@
   .ct-page .sap-band.ct-head{display:flex;flex-direction:column;gap:0;padding-top:12px}
   .sap-page .reg-tabbar.ct-top{flex-wrap:nowrap;align-items:flex-start;gap:var(--s-3);padding-bottom:6px}
   .ct-name{flex:none;max-width:40%;min-width:0;display:flex;flex-direction:column}
-  .ct-h{margin:0;font-size:var(--t-page);font-weight:var(--w-title);line-height:1.25;color:var(--color-text)}
+  .ct-h{margin:0;font-family:var(--font-title);font-size:var(--t-page);font-weight:var(--w-title-serif);line-height:1.25;color:var(--color-text)}
   .ct-facts{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .ct-cohort:empty{display:none}
   /* Wall | List wears the page's own switch (.reg-seg — the clothes follow
@@ -9743,8 +9419,17 @@
   .ca-dr .ca-dr-quiet{color:var(--color-neutral-600)}
   /* JAMBO'S WORDS (the one-page Home plan, stage 1): the chip for work owed leads; the way back is a bold link above the conversation.
      AS DRAWN (round 3, "Tabs and faces"; the owner's "build all the gaps", 18 Oct 2026): the lead chip wears the accent's outline and the label weight, its ground the other chips' own */
-  .ca-chip-owed{border:1px solid var(--accent-solid);color:var(--accent-ink);font-weight:var(--w-label)}
-  .ca-chip-owed:hover{border-color:var(--accent-solid-hover)}
+  /* CHAMBERS (owner picked it by name, 20 Oct 2026): A SUGGESTION IS A LINK,
+     NOT A CHIP — every row of next steps under a Jambo box is a line of
+     underlined words in the accent ink (.jb-chip: Home's panel, a held
+     contract's, the Board's hello; .cn-chip, .jl-chip, .st-jb-chip, .ai-chip
+     and .ac-chip read the same). The lead one, for work owed, is the same link
+     at the strong weight (was the accent outline, 18 Oct). */
+  .jb-chip{border:0;background:none;padding:1px 0;border-radius:0;height:auto;min-height:0;font:inherit;font-size:12.5px;font-weight:var(--w-body);line-height:1.45;color:var(--accent-ink);text-decoration:underline;text-decoration-color:var(--color-accent-200);text-underline-offset:3px;cursor:pointer;text-align:left}
+  .jb-chip:hover,.jb-chip:focus-visible{text-decoration-color:currentColor;color:var(--accent-ink-700)}
+  .jb-chip:focus-visible{outline:2px solid var(--focus-color);outline-offset:2px}
+  .ca-chip-owed{font-weight:var(--w-strong)}
+  #ig-dock [data-ig-chips],#ig-dock .pd-held-chips,.hb-jb-chips{column-gap:12px;row-gap:4px}
   .ca-back{flex-shrink:0;align-self:flex-start;margin:8px 14px 0;padding:2px 0;border:0;background:none;font-size:12.5px;font-weight:var(--w-strong);color:var(--accent-ink);cursor:pointer;white-space:nowrap;max-width:calc(100% - 28px);overflow:hidden;text-overflow:ellipsis}
   .ca-back:hover{text-decoration:underline;text-underline-offset:3px}
   /* HOME FIRST (8 Oct 2026): an answer's doors, the walk through a set, the Paper's desk */
@@ -9766,9 +9451,9 @@
      work waits, the count of the list behind it; the lit one is underlined in the bar's colour */
   .pd-tabs{display:flex;align-items:center;gap:2px;padding:6px 8px;border-bottom:1px solid var(--color-neutral-200);flex:none}
   .pd-tab{border:0;background:none;flex:1 1 auto;min-width:0;max-width:80px;padding:5px 1px 4px;color:var(--color-neutral-700);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;border-radius:var(--radius);position:relative}
-  .pd-tab:hover{color:var(--color-text);background:var(--color-accent-50)}
+  .pd-tab:hover{color:var(--color-text);background:var(--color-neutral-100)}
   .pd-tab:focus-visible{outline:2px solid var(--accent-ink);outline-offset:-2px}
-  .pd-tab.on{color:var(--accent-ink)}
+  .pd-tab.on{color:var(--color-text)}  /* Chambers: the lit tab is the ink, underlined in the ink (20 Oct 2026) */
   .pd-tab.on::after{content:"";position:absolute;left:16%;right:16%;bottom:-7px;height:2px;border-radius:2px;background:var(--nav-bg)}
   .pd-tab-i{position:relative;display:grid;place-items:center;width:22px;height:22px}
   .pd-tab-w{font-size:10px;letter-spacing:-.01em;font-weight:var(--w-label);line-height:1.15;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -9826,7 +9511,7 @@
   /* the party gives way first: the name is the thing read */
   .ig-line-p{color:var(--color-neutral-600);min-width:3em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 6 auto}
   .ig-line-st{flex:none;display:inline-flex}
-  #ig-strip .ig-line-st .room-stat{font-size:var(--t-meta);font-weight:var(--w-label);padding:1px 9px 1px 7px}
+  #ig-strip .ig-line-st .room-stat{font-size:var(--t-meta);font-weight:var(--w-label);padding:0}
   .ig-line-cn{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:10px;border:1px dashed var(--rule-strong);color:var(--color-neutral-600);font-size:var(--t-meta);white-space:nowrap;flex:none}
   .ig-line-faces{display:inline-flex;align-items:center;flex:none}
   /* THE SIGNING COPY ON THE LINE (the gaps, round 10 "The road"): its word as a
@@ -9883,7 +9568,6 @@
   :is(#doc-paper-col,#ig-paper) .pg-sheet.pg-work:not([data-doc-body]){box-shadow:var(--n-shadow-card,0 1px 2px rgba(38,55,74,.06),0 4px 14px rgba(38,55,74,.07))}
   :is(#doc-paper-col,#ig-paper) .pg-sheet.pg-work .pg-corner{display:none}
   :is(#doc-paper-col,#ig-paper) .pg-sheet.pg-work:not([data-doc-body]) .doc-surface{font-size:calc(14px * var(--doc-scale,1));line-height:1.72;color:#222a33}
-  html.dark :is(#doc-paper-col,#ig-paper) .pg-sheet.pg-work:not([data-doc-body]) .doc-surface{color:var(--color-doc-text)}
   :is(#doc-paper-col,#ig-paper) .pg-sheet.pg-work:not([data-doc-body]) .doc-surface h1{font-size:calc(20px * var(--doc-scale,1));
     font-weight:var(--w-strong);letter-spacing:-.01em;line-height:1.72;margin:10px 0 13px;text-align:center}
   :is(#doc-paper-col,#ig-paper) .pg-sheet.pg-work:not([data-doc-body]) .doc-surface h1:first-of-type + :is(h2,h3,h4){margin-top:33px}
@@ -9894,7 +9578,6 @@
   :is(#doc-paper-col,#ig-paper) .pg-sheet.pg-work:not([data-doc-body]) .doc-surface :is(h2,h3,h4){font-size:calc(14px * var(--doc-scale,1));
     font-weight:var(--w-title);letter-spacing:-.01em;line-height:1.72;margin:42px 0 0}
   :is(#doc-paper-col,#ig-paper) .pg-sheet.pg-work:not([data-doc-body]) .doc-surface p{font-size:calc(14px * var(--doc-scale,1));line-height:1.72;margin:0;color:#222a33}
-  html.dark :is(#doc-paper-col,#ig-paper) .pg-sheet.pg-work:not([data-doc-body]) .doc-surface p{color:var(--color-doc-text)}
   .pd-chg span{min-width:0}
   /* LIFTED TABS: each opens the same way — its name and a status pill, then bordered
      lists whose rows end in a link; the one filled button comes last */
@@ -10022,7 +9705,7 @@
   #ig-canvas .pd-ff-pend{text-decoration:underline dotted var(--accent-ink);text-decoration-thickness:1.5px;text-underline-offset:3px}
   /* THE WALL'S GREETING AND DROP AREA, AND A CONTRACT AT A GLANCE (steps 4 and 5): at the top of Jambo's tab on Home's Document face */
   #ig-dock .pd-wall{display:flex;flex-direction:column;gap:12px}
-  #ig-dock .pd-drop{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:22px 16px;border:1px dashed var(--accent-fill);border-radius:var(--radius-lg);background:color-mix(in srgb, var(--accent-fill) 6%, var(--color-surface));color:var(--color-text);font-size:12.5px;transition:background var(--dur-1)}
+  #ig-dock .pd-drop{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:22px 16px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:transparent;color:var(--color-text);font-size:12.5px;transition:background var(--dur-1)}  /* Chambers: a hairline box, no wash (20 Oct 2026) */
   /* A SHORT WINDOW (a 1080p laptop at 150%: about 590px of page) keeps the whole drop area
      inside Jambo's feed: the same words and the same cost line, less air around them */
   @media (max-height:640px){ #ig-dock .pd-drop{padding:12px 14px;gap:4px} }
@@ -10053,8 +9736,9 @@
   #ig-dock .ac-why{font-size:12px;color:var(--st-amber-fg)}
   #ig-dock .ac-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   #ig-dock .ac-foot{justify-content:flex-end;border-top:1px solid var(--color-divider);padding-top:10px}
-  #ig-dock .ac-chips{display:flex;flex-wrap:wrap;gap:6px}
-  #ig-dock .ac-chip{border:1px solid var(--color-neutral-300);border-radius:999px;padding:3px 10px;font:inherit;font-size:12px;color:var(--accent-ink);background:var(--color-surface);cursor:pointer}
+  #ig-dock .ac-chips{display:flex;flex-wrap:wrap;gap:4px 12px}
+  #ig-dock .ac-chip{border:0;background:none;padding:1px 0;border-radius:0;height:auto;min-height:0;font:inherit;font-size:12.5px;font-weight:var(--w-body);line-height:1.45;color:var(--accent-ink);text-decoration:underline;text-decoration-color:var(--color-accent-200);text-underline-offset:3px;cursor:pointer;text-align:left}
+  #ig-dock .ac-chip:hover{text-decoration-color:currentColor;color:var(--accent-ink-700)}
   #ig-dock .ac-chip:focus-visible,#ig-dock .ac-link:focus-visible{outline:2px solid var(--accent-solid);outline-offset:2px}
   #ig-dock .ac-link{border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
   #ig-dock .ac-ckline{font-size:12.5px}
@@ -10161,31 +9845,7 @@
   #ig-dock .pd-back:hover{border-color:var(--accent-ink)}
   #ig-dock .pd-back:focus-visible{outline:2px solid var(--accent-ink);outline-offset:1px}
   #pd-redface .rl-face .rl-idx-top .pd-back{margin-right:4px}
-  /* JAMBO, ALIVE (owner picked "Alive" by name, 16 Oct 2026; jamboPerchMount):
-     he sits at the end of the chips row — which keeps room for him — or on
-     the ask box's edge where no chips are drawn; breathes; turns to the paper
-     while words on it are chosen; thinks under the turning ring while work
-     goes on; hops when it is done. Still for a reader who asked for less
-     motion: the faces and the words still change. */
-  #ig-dock.jb-perched [data-ig-chips]{position:relative;padding-right:60px;min-height:46px;align-content:flex-end}
-  /* FILL IN AND BEFORE YOU SIGN DRAW NO CHIPS (the gaps, rounds 8 and 10): the empty row keeps
-     its room, so Jambo perches in empty space at the panel's bottom right and covers nothing of
-     the face above him, at any scroll (the second check, 18 Oct 2026: he sat over the cards) */
-  #ig-dock.jb-perched:has(#pd-fillface, #pd-signface) [data-ig-chips]:not(:has(button)){min-height:44px;padding-top:0;padding-bottom:0}
-  #ig-dock.jb-perched-ask #igd-feed{padding-bottom:48px}
-  #ig-dock .jb-perch{position:absolute;right:14px;bottom:6px;z-index:2;display:flex;flex-direction:column;align-items:flex-end;pointer-events:none}
-  #ig-dock.jb-perched-ask .jb-perch{bottom:100%;margin-bottom:-2px}
-  #ig-dock .jb-say{position:absolute;right:0;bottom:calc(100% + 4px);display:inline-flex;align-items:center;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);padding:2px 8px;font-size:12px;line-height:1.5;color:var(--color-neutral-600)}
-  #ig-dock .jb-say[hidden]{display:none}
-  #ig-dock .jb-say .ob-spin{width:9px;height:9px;margin-right:5px;border-width:1.5px;flex:none}
-  #ig-dock .jb-bird{display:block;width:36px;height:36px;border-radius:50%;transform-origin:50% 90%;animation:jbBreathe 3.4s ease-in-out infinite;transition:transform .35s ease}
-  #ig-dock .jb-perch.is-look .jb-bird{animation:none;transform:rotate(-10deg) translateX(-3px)}
-  #ig-dock .jb-perch.is-working .jb-bird{animation-duration:1.6s}
-  #ig-dock .jb-perch.is-hop .jb-bird{animation:jbHop .65s cubic-bezier(.3,.7,.4,1) 1}
-  @keyframes jbBreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.035,1.05)}}
-  @keyframes jbHop{0%{transform:translateY(0)}35%{transform:translateY(-12px) scale(1.04)}70%{transform:translateY(0) scale(1.06,.94)}100%{transform:none}}
   @media (prefers-reduced-motion:reduce){
-    #ig-dock .jb-bird,#ig-dock .jb-perch.is-hop .jb-bird,#ig-dock .jb-perch.is-working .jb-bird{animation:none;transition:none}
     #ig-dock .pd-gl-row.is-done{animation:none}
   }
   /* REDLINES, BESIDE THE PAPER (the one-page Home plan, stage 3; owner picked "Column", 14 Oct 2026): the Negotiate page's own column as a face of Jambo's tab — the panel is its frame, the rows scroll under its head, and the head takes a second line at the panel's width: Redlines · Send all · ×, then the round · Open Negotiate */
@@ -10659,6 +10319,9 @@
      rules above by scope, never by !important. Literal colours: the canvas
      under the words reads no tokens, and a word must wear its dot's colour. */
   .ig-brain{background:radial-gradient(ellipse at 52% 44%,#0B312C 0%,#05201D 45%,#021011 100%);overflow:hidden}
+  /* EXPLORER'S STAGE KEEPS ITS OWN CORNERS (owner, 20 Oct 2026: "Only dark theme will be on the explorer
+     and brain as designed today"): Chambers' hairline corners stop at the map's edge */
+  .ig-brain{--radius:4px;--radius-sm:4px;--radius-md:6px;--radius-lg:8px}
   .ig-brain #ig-cv{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:block}
   /* A drag is a turn: the map's words are not selectable, or a drag that
      starts on selected text becomes the browser's own text drag and cancels
@@ -10786,36 +10449,29 @@
      shell, the head row and the Copilot panel stay on the platform's. Dark
      is Explorer's own stage, literal for literal; Light is "Frosted", picked
      by name off the "HaTi Live Board" artifact. */
+  /* EXPLORER'S DARK STAGE, AS IT WAS DESIGNED (owner, 20 Oct 2026: "Only
+     dark theme will be on the explorer and brain as designed today"). These
+     are the Blue workspace's values — what nearly every reader saw, since
+     HaTi landed on Blue on 7 Oct — folded in here when the Blue / Green
+     switch left with the Chambers design, so the map looks exactly as it did.
+     The status colours (amber, ruby, green) do not move: they mean something. */
   #ig-page.hb-dark,#hb-page.hb-dark{
-    --hb-stage:radial-gradient(circle,rgba(143,181,173,.10) 1px,transparent 1.2px) 0 0/26px 26px,radial-gradient(ellipse at 52% 44%,#0B312C 0%,#05201D 45%,#021011 100%);
-    --hb-ink:#E6F2EF;--hb-ink-2:#A9C7C0;--hb-mute:#8FB5AD;--hb-glow:#38CDB8;
-    --hb-amber:#F2B24C;--hb-ruby:#F0726A;--hb-green:#62D291;
-    --hb-ln:160,220,210;--hb-gw:56,205,184;
-    --hb-card:rgba(4,25,26,.82);--hb-fig:rgba(4,25,26,.9);--hb-menu:#0A2422;--hb-blur:6px;
-    --hb-shadow:0 14px 34px -20px rgba(0,0,0,.8);--hb-on-glow:#021011}
-  #ig-page.hb-light,#hb-page.hb-light{
-    --hb-stage:radial-gradient(circle,rgba(14,95,88,.11) 1px,transparent 1.2px) 0 0/26px 26px,radial-gradient(ellipse at 50% 30%,#FFFFFF 0%,#EAF4F1 48%,#D3E7E2 100%);
-    --hb-ink:#032E2A;--hb-ink-2:#3A5F5A;--hb-mute:#3A5F5A;--hb-glow:#0E5F58;  /* Ink Wash (9 Oct 2026) */
-    --hb-amber:#A24E07;--hb-ruby:#B3261E;--hb-green:#1A6F45;
-    --hb-ln:14,95,88;--hb-gw:19,140,128;
-    --hb-card:rgba(255,255,255,.62);--hb-fig:rgba(255,255,255,.74);--hb-menu:#FFFFFF;--hb-blur:10px;
-    --hb-shadow:0 16px 34px -24px rgba(14,95,88,.55);--hb-on-glow:#FFFFFF}
-  /* ---- THE BOARD WEARS THE BRAND (Young, 7 Oct 2026: "when changing colors
-     the theme ... the under tones in terms of colors should change in the board
-     screen"; Explorer follows, owner's yes) ---- the same names, a blue answer
-     on the Blue workspace: the dotted ground, the stage's gradient, the glow,
-     the lines, the card washes and the shadow tint. The status colours
-     (amber, ruby, green) do not move — they mean something. */
-  :root[data-brand="navy"] #ig-page.hb-dark,:root[data-brand="navy"] #hb-page.hb-dark{
     --hb-stage:radial-gradient(circle,rgba(143,165,215,.10) 1px,transparent 1.2px) 0 0/26px 26px,radial-gradient(ellipse at 52% 44%,#102748 0%,#0A1A33 45%,#050C1A 100%);
     --hb-ink:#E6EDF8;--hb-ink-2:#A9BBDA;--hb-mute:#8FA5CC;--hb-glow:#6F9BEA;
+    --hb-amber:#F2B24C;--hb-ruby:#F0726A;--hb-green:#62D291;
     --hb-ln:160,190,235;--hb-gw:111,155,234;
-    --hb-card:rgba(5,14,32,.82);--hb-fig:rgba(5,14,32,.9);--hb-menu:#0B1730;--hb-on-glow:#050C1A}
-  :root[data-brand="navy"] #ig-page.hb-light,:root[data-brand="navy"] #hb-page.hb-light{
-    --hb-stage:radial-gradient(circle,rgba(38,76,158,.11) 1px,transparent 1.2px) 0 0/26px 26px,radial-gradient(ellipse at 50% 30%,#FFFFFF 0%,#EDF1F9 48%,#D8E1F1 100%);
-    --hb-ink:#091938;--hb-ink-2:#374A6D;--hb-mute:#374A6D;  /* Ink Wash, Blue (9 Oct 2026) */
-    --hb-glow:#264C9E;--hb-ln:38,76,158;--hb-gw:58,100,196;
-    --hb-shadow:0 16px 34px -24px rgba(38,76,158,.55)}
+    --hb-card:rgba(5,14,32,.82);--hb-fig:rgba(5,14,32,.9);--hb-menu:#0B1730;--hb-blur:6px;
+    --hb-shadow:0 14px 34px -20px rgba(0,0,0,.8);--hb-on-glow:#050C1A}
+  /* THE LIGHT SCREEN IS CHAMBERS' (20 Oct 2026): the Board, the Workspace and
+     the Calendar faces sit on the warm paper ground, ink near-black, the deep
+     green for lines and glow. */
+  #ig-page.hb-light,#hb-page.hb-light{
+    --hb-stage:radial-gradient(circle,rgba(31,77,59,.09) 1px,transparent 1.2px) 0 0/26px 26px,radial-gradient(ellipse at 50% 30%,#FFFFFF 0%,#F4F2ED 48%,#E9E5DC 100%);
+    --hb-ink:#161512;--hb-ink-2:#5E5A51;--hb-mute:#5E5A51;--hb-glow:#1F4D3B;
+    --hb-amber:#8A5A0A;--hb-ruby:#8F2A22;--hb-green:#1F4D3B;
+    --hb-ln:31,77,59;--hb-gw:58,107,87;
+    --hb-card:rgba(255,255,255,.62);--hb-fig:rgba(255,255,255,.74);--hb-menu:#FFFFFF;--hb-blur:10px;
+    --hb-shadow:0 16px 34px -24px rgba(22,21,18,.35);--hb-on-glow:#FFFFFF}
   /* Light also lightens the map's stage, its corner panels and its words; the
      dots keep their colours, which carry the meaning. LITERAL VALUES, like
      Dark's: the platform's tokens flip with the platform's theme, and this
@@ -10846,7 +10502,7 @@
   .hb-hello span{min-width:0;overflow:hidden;text-overflow:ellipsis}
   @media (max-width:1366px){ .hb-head{gap:var(--s-2) var(--s-3)} }
   @media (max-width:1180px){ .hb-head{flex-wrap:wrap} .hb-head>.hb-hello{flex-basis:100%} }
-  .hb-hello h1{margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);line-height:var(--lh-tight);letter-spacing:-.01em;color:var(--color-text);white-space:nowrap}
+  .hb-hello h1{margin:0;font-family:var(--font-title);font-size:20px;font-weight:var(--w-title-serif);line-height:var(--lh-tight);letter-spacing:-.01em;color:var(--color-text);white-space:nowrap}
   .hb-hello span{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap}
   .hb-grow{flex:1 1 auto}
   .hb-seg{display:inline-flex;border:1px solid var(--btn-edge,var(--color-divider));border-radius:var(--radius);overflow:hidden;background:var(--color-surface)}
@@ -11329,7 +10985,7 @@
   .bs-seg-renew{stroke:rgba(var(--hb-gw),.55);stroke-width:1;stroke-dasharray:3 2}
   .bs-chart .bs-amd{fill:var(--hb-menu);stroke:var(--hb-glow);stroke-width:1.6}
   .bs-on-desk .bs-head{padding-top:14px;padding-bottom:14px}
-  .bs-on-desk .bs-head .hb-ct{font-size:var(--t-page);font-weight:var(--w-title)}
+  .bs-on-desk .bs-head .hb-ct{font-family:var(--font-title);font-size:var(--t-page);font-weight:var(--w-title-serif)}
   .bs-on-desk .bs-head .bs-ref{font-size:var(--t-body)}
   .ov-amd{display:block;color:var(--color-neutral-600);font-size:var(--t-meta)}
   .bs-occ{stroke:var(--hb-menu);stroke-width:2}
@@ -11640,8 +11296,7 @@
   .hb-dig.is-full>*{flex-shrink:0}
   .hb-dig.is-full>.hb-cb{flex:1 0 auto;display:flex;flex-direction:column;justify-content:center}
   .hb-board:has(.hb-dig.is-full){z-index:95}
-  .hb-dark .hb-dig.is-full{background:#06171A}
-  [data-brand="navy"] .hb-dark .hb-dig.is-full{background:#06101F}
+  .hb-dark .hb-dig.is-full{background:#06101F}
   .hb-dig-big #ig-resizer{display:none}
   /* THE RECIPE ROW: four dropdowns and the trend switch under the card's title */
   .hb-recipe{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid rgba(var(--hb-ln),.12)}
@@ -11872,8 +11527,6 @@
      The beads keep their own meaning (amber = to review). */
   :root{ --stk-r1:#2563C9; --stk-r2:#0E8A78; --stk-r3:#C2416B; --stk-r4:#7048C8; --stk-r5:#4F7D1E;
     --stk-r6:#4A5A8A; --stk-r7:#B4552B; --stk-r8:#1F7FA6; --stk-r9:#8A4F9E; --stk-r10:#5E6B2A; }
-  html.dark{ --stk-r1:#6E9CF0; --stk-r2:#3FC2AE; --stk-r3:#EE7BA0; --stk-r4:#A88BF0; --stk-r5:#98C45E;
-    --stk-r6:#9AA8D2; --stk-r7:#E99A70; --stk-r8:#6CC0E2; --stk-r9:#C99ADB; --stk-r10:#B8C472; }
   .stk-r1{--stk:var(--stk-r1)} .stk-r2{--stk:var(--stk-r2)} .stk-r3{--stk:var(--stk-r3)} .stk-r4{--stk:var(--stk-r4)} .stk-r5{--stk:var(--stk-r5)}
   .stk-r6{--stk:var(--stk-r6)} .stk-r7{--stk:var(--stk-r7)} .stk-r8{--stk:var(--stk-r8)} .stk-r9{--stk:var(--stk-r9)} .stk-r10{--stk:var(--stk-r10)}
   .stk-head{padding:10px 14px 12px;border-bottom:1px solid var(--color-divider);display:grid;gap:8px}
@@ -11983,8 +11636,7 @@
      own (its strip is). Copilot's work reads kind · who and what · when · act.
      Cards carry no coloured top edge; a card's headline is its first line,
      not a band. Dark keeps Explorer's stage. */
-  #ig-page.hb-light .hb-board,#hb-page.hb-light .hb-board{background:#F0F5F4;--hb-card:#FFFFFF;--hb-fig:#FFFFFF;--hb-blur:0px;--hb-shadow:none}
-  :root[data-brand="navy"] #ig-page.hb-light .hb-board,:root[data-brand="navy"] #hb-page.hb-light .hb-board{background:#EEF2F9}
+  #ig-page.hb-light .hb-board,#hb-page.hb-light .hb-board{background:#F4F2ED;--hb-card:#FFFFFF;--hb-fig:#FFFFFF;--hb-blur:0px;--hb-shadow:none}
   .hb-board{gap:var(--s-4)}
   .hb-book.hb-card{background:none;border:0;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
   .hb-book>.hb-ch{border-bottom:0;padding:0 2px var(--s-2);min-height:0}
@@ -12187,7 +11839,7 @@
      rules above by scope. */
   .hb-bhead.hb-card{flex:none;padding:12px var(--s-4)}
   .hb-bh-r.hb-note{gap:var(--s-2);flex-wrap:wrap;row-gap:6px;font-size:var(--t-meta);color:var(--hb-mute)}
-  .hb-bh-t{margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);line-height:var(--lh-tight);letter-spacing:-.01em;color:var(--hb-ink);white-space:nowrap}
+  .hb-bh-t{margin:0;font-family:var(--font-title);font-size:20px;font-weight:var(--w-title-serif);line-height:var(--lh-tight);letter-spacing:-.01em;color:var(--hb-ink);white-space:nowrap}
   .hb-bh-s{font-size:var(--t-body);color:var(--hb-ink-2);white-space:nowrap;margin-right:var(--s-2)}
   .hb-bh-at{white-space:nowrap;margin-left:-4px}
   .hb-bs-cost{display:inline-flex;align-items:center;align-self:stretch;margin:0 -9px 0 4px;padding:0 9px;border-left:1px solid var(--btn-edge,var(--color-divider));font-size:var(--t-micro);font-weight:var(--w-label);color:var(--hb-mute)}
@@ -12314,10 +11966,6 @@
   .exp-r2{background:var(--color-accent-200);color:var(--color-accent-700)}
   .exp-r3{background:var(--color-accent-300);color:var(--color-text)}
   .exp-r4{background:var(--color-accent-600);color:#fff}
-  html.dark .exp-r1{background:rgb(var(--color-accent-500-rgb)/.18);color:var(--color-accent-300)}
-  html.dark .exp-r2{background:rgb(var(--color-accent-500-rgb)/.32);color:var(--color-accent-200)}
-  html.dark .exp-r3{background:rgb(var(--color-accent-500-rgb)/.55);color:var(--color-text)}
-  html.dark .exp-r4{background:var(--color-accent-400);color:var(--color-bg)}
   .exp-pg-tot{font:inherit;font-size:var(--t-meta);text-align:right;font-variant-numeric:tabular-nums;align-self:stretch;display:flex;align-items:center;justify-content:flex-end;padding:0 2px 0 8px;white-space:nowrap;border:0;background:none;color:var(--color-neutral-600);border-radius:2px}
   .exp-pg-tot b{font-weight:var(--w-strong);color:var(--color-text)}
   button.exp-pg-tot{cursor:pointer}
@@ -12350,9 +11998,6 @@
   .field:focus{background:#fff;border-bottom-color:var(--color-accent);box-shadow:0 2px 0 0 var(--color-accent),0 0 0 2px color-mix(in srgb,var(--color-accent) 18%,transparent);}
   /* On the dark paper the solid mint ramp would sit as a light chip; a
      translucent teal wash reads as the same affordance on both themes. */
-  html.dark .field{background:rgb(var(--color-accent-500-rgb)/.16);color:var(--color-accent-300);border-bottom-color:rgb(var(--color-accent-400-rgb)/.55);}
-  html.dark .field:hover{background:rgb(var(--color-accent-500-rgb)/.28);}
-  html.dark .field:focus{background:var(--color-surface);}
   .field.field-date{min-width:140px;} .field.field-num{text-align:right;min-width:130px;}
   .field:disabled{color:var(--color-text);background:transparent;border-bottom:1.5px solid var(--color-divider);-webkit-text-fill-color:var(--color-text);opacity:1;cursor:default;font-weight:var(--w-strong);}
 
@@ -12852,8 +12497,9 @@
      below possible at all: an inline background cannot be beaten by a class
      rule without !important — the same trap this product already paid for with
      91 inline `outline:none` declarations defeating its one focus rule. */
-  #hdr-notify-dot{background:var(--st-amber-dot);color:#1c1206;}
-  #hdr-notify.is-news #hdr-notify-dot{background:var(--st-green-dot);color:#04231a;}
+  /* CHAMBERS (20 Oct 2026): the count is the ink at rest, the deep green while there is news */
+  #hdr-notify-dot{background:var(--color-text);color:#fff;}
+  #hdr-notify.is-news #hdr-notify-dot{background:var(--color-accent-600);color:#fff;}
   #hdr-notify.is-news{animation:hdr-bell-news 1s ease-in-out 0s 3;}
   @keyframes hdr-bell-news{
     0%,100%{background:transparent;}
@@ -12892,7 +12538,7 @@
      ground a hovered or live door sits on. */
   /* the menu is 244 since 7 Oct 2026 (Young: "there should be no text wrap in the
      nav panel so extend the nav panel") — "Approvals & signing" and its count fit one line */
-  :root{ --shell-head-h:48px; --nav-w:244px; --nav-well:#EEF2F0; }
+  :root{ --shell-head-h:48px; --nav-w:244px; --nav-well:#EFECE5; }
   #panel-scrim{
     position:fixed;left:0;right:0;bottom:0;top:var(--shell-head-h,64px);z-index:45;
     background:color-mix(in srgb,#020617 45%,transparent);
@@ -12947,7 +12593,14 @@
   img.jambo-face{border-radius:50%;object-fit:cover;flex:none;align-self:flex-start;aspect-ratio:1/1;background:color-mix(in srgb,var(--color-accent) 12%,var(--color-surface));user-select:none}
   /* his face on his own doors sits on the door's own ground, no tinted disc (owner, 12 Oct 2026) */
   #cmd-ai img.jambo-face,.pd-tab-g img.jambo-face{background:transparent}
+  /* CHAMBERS (owner, 20 Oct 2026): on a computer Jambo is the ✦ mark
+     (jamboFaceHtml draws it) — the accent ink, no disc behind it. */
+  svg.jambo-mark{flex:none;display:inline-block;vertical-align:middle;color:var(--accent-ink);background:none}
   #ai-panel > header .ai-head-tile.has-face{overflow:hidden}
+  /* CHAMBERS (20 Oct 2026): Jambo's window head is white with one hairline, his
+     name in the title serif, the ✦ in the accent ink, the buttons the page's grey. */
+  #ai-panel > header .ai-head-name{font-family:var(--font-title);font-weight:var(--w-title-serif);font-size:17px;color:var(--color-text)}
+  #ai-panel > header .ai-head-btn:hover{background:var(--color-neutral-100);color:var(--color-text)}
   #ai-panel .ai-rz{display:none;position:absolute;z-index:3;touch-action:none}
   #ai-panel.floating .ai-rz{display:block}
   #ai-panel .ai-rz-n,#ai-panel .ai-rz-s{left:12px;right:12px;height:8px;cursor:ns-resize}
@@ -13353,7 +13006,7 @@
        not themed. Every token the document surfaces read is pinned back to
        its measured light value here, so a dark-mode session prints the same
        page a light-mode session does. */
-    html.dark,html.dark #print-root,#print-root{
+    #print-root{
       --color-doc-text:#1B2A28; --color-doc-muted:#43524F; --color-doc-rule:#c9ccd1;
       --color-doc-surface:#fff; --color-bg:#fff; --color-surface:#fff;
       /* Paper prints white, warm or not — cream is a screen affordance and an
@@ -13756,36 +13409,26 @@
      green workspace, the navy one and the dark theme each compose their own
      and no rule here names a colour twice. MEASURED on both brands: the quiet
      ink composes to about 9.8:1 and the strong ink is white. */
+  /* CHAMBERS (owner picked it by name, 20 Oct 2026): THE BAR IS WHITE with
+     one hairline under it, the page's own ink and greys; the wells are the
+     paper ground. Same names, so every rule under it follows. */
   #top-header{
-    --bar-ink:#fff;
-    --bar-ink-2:rgba(255,255,255,.82);
-    --bar-line:rgba(255,255,255,.22);
-    --bar-well:rgba(255,255,255,.10);
-    --bar-hover:rgba(255,255,255,.15);
+    --bar-bg:#FFFFFF;
+    --bar-edge:var(--color-divider);
+    --bar-ink:var(--color-text);
+    --bar-ink-2:var(--color-neutral-600);
+    --bar-line:var(--color-divider);
+    --bar-well:var(--color-bg);
+    --bar-hover:var(--color-neutral-100);
   }
-  /* ---- ON THE BRIGHT BRAND, A WELL GOES DEEPER, NOT PALER (7 Oct 2026) ----
-     The bar moved from the deep brand ground to the bright one (Young, off the
-     HaTi Platform mockup), and a white veil over #12796D lifts it to about
-     3.6:1 under white text — under AA (contrast-verify). So by day a well and
-     a hover DARKEN the ground, the quiet ink comes up to .94 (4.8:1 on the
-     green), and a pressed choice (English, Light) is the mockup's white pill
-     with the page's own ink. At night the bar is near-black and keeps the
-     white veils above. */
-  :root:not(.dark) #top-header{
-    --bar-ink-2:rgba(255,255,255,.94);
-    --bar-well:rgba(0,0,0,.12);
-    --bar-hover:rgba(0,0,0,.16);
-  }
-  :root:not(.dark) #top-header .sh-grp button[aria-pressed="true"],
-  :root:not(.dark) #top-header .lang-btn[aria-pressed="true"]{background:#fff;color:var(--color-text);}
   #top-header .hdr-icon-btn{width:var(--ctl-h);height:var(--ctl-h);color:var(--bar-ink-2);border-radius:var(--radius);}
   #top-header .hdr-icon-btn:hover{background:var(--bar-hover);color:var(--bar-ink);}
   /* ---- THE MENU BUTTON AND THE ONE COPILOT DOOR (Young, 7 Oct 2026, work
      order W-1/W-3, off the HaTi Platform mockup) ---- ☰ sits at the bar's left
      edge at every width and hides the whole menu; the Copilot spark is bigger
      and in the bar's full ink, because it is now the only Copilot door. */
-  #top-header #cmd-ai{width:36px;height:36px;color:var(--bar-ink);}
-  #top-header #cmd-ai svg{width:20px;height:20px;}
+  #top-header #cmd-ai{width:36px;height:36px;color:var(--bar-ink-2);}  /* Chambers: the ✦ in the bar's quiet ink (20 Oct 2026) */
+  #top-header #cmd-ai svg{width:17px;height:17px;}
   #side-nav .nav-foot{flex:none;border-top:1px solid var(--color-divider);padding:6px 10px;}
   #side-nav #cmd-rail{width:100%;height:36px;display:flex;align-items:center;gap:10px;padding:0 10px;border:0;border-radius:var(--radius);background:transparent;color:var(--nav-ink-rest,var(--color-neutral-600));font-weight:var(--w-label);font-size:var(--t-body);cursor:pointer;white-space:nowrap;}
   #side-nav #cmd-rail:hover{background:var(--nav-well);color:var(--color-text);}
@@ -13806,7 +13449,7 @@
      shell-bar standard: a solid field with one 1px edge and no glow — white
      with the page's ink by day, the page's dark surface with light ink by
      night. The ⌘K hint and the placeholder follow the field. */
-  #top-header .cmd-search{flex:0 1 360px;min-width:120px;height:var(--ctl-h);padding:0 9px;gap:7px;background:var(--bar-well);border:1px solid transparent;color:var(--bar-ink-2);border-radius:var(--radius);box-shadow:none;}
+  #top-header .cmd-search{flex:0 1 360px;min-width:120px;height:var(--ctl-h);padding:0 9px;gap:7px;background:var(--bar-well);border:1px solid var(--bar-line);color:var(--bar-ink-2);border-radius:var(--radius);box-shadow:none;}
   #top-header .cmd-search:hover{background:var(--bar-hover);}
   #top-header .cmd-search input{font-size:var(--t-meta);color:var(--bar-ink);}
   #top-header .cmd-search input::placeholder{color:var(--bar-ink-2);}
@@ -13815,35 +13458,16 @@
   #top-header .cmd-search input:focus-visible{box-shadow:none;outline:0;}
   #top-header .cmd-search:focus-within input::placeholder{color:var(--color-neutral-500);}
   #top-header .cmd-search:focus-within #cmd-k-hint{background:none;border-color:var(--color-divider);color:var(--color-neutral-600);}
-  :root.dark #top-header .cmd-search:focus-within{background:var(--color-surface);border-color:var(--color-accent-400);}
   #top-header #cmd-k-hint{border-color:var(--bar-line);color:var(--bar-ink-2);background:var(--bar-well);}
   #top-header #cmd-k-hint:hover{background:var(--bar-hover);color:var(--bar-ink);}
-  #top-header .sh-grp{border-color:var(--bar-line);border-radius:var(--radius);overflow:hidden;height:30px;}
-  #top-header .sh-grp > *{height:28px;color:var(--bar-ink-2);}
-  #top-header .sh-grp > *:focus-visible{outline:2px solid #fff;outline-offset:-2px;}
-  #top-header .sh-grp button:hover{background:var(--bar-hover);color:var(--bar-ink);}
-  #top-header .sh-grp button[aria-pressed="true"]{background:rgba(255,255,255,.2);color:var(--bar-ink);font-weight:var(--w-strong);box-shadow:none;}
-  /* The language switch carries its own class and its own pressed fill (an
-     accent one), which on this ground would be the bar's colour on the bar. It
-     reads the group's answer here and nowhere else — the same control still
-     sits in the nav drawer under 900px on a white ground and is untouched. */
-  #top-header .lang-btn{color:var(--bar-ink-2);}
-  #top-header .lang-btn:hover{color:var(--bar-ink);}
-  #top-header .lang-btn[aria-pressed="true"]{background:rgba(255,255,255,.2);color:var(--bar-ink);box-shadow:none;}
-  #top-header .lang-btn:focus-visible{outline:2px solid #fff;outline-offset:-2px;}
-  /* The lit swatch's ring is drawn in the GROUND it sits on, so it reads as a
-     gap round the colour rather than as a second colour beside it. */
-  #top-header .sh-sw[aria-pressed="true"] i{box-shadow:inset 0 0 0 2px var(--nav-bg),inset 0 0 0 4px rgba(255,255,255,.92);}
-  #top-header #side-avatar{width:28px;height:28px;border:1px solid var(--bar-line);background:var(--bar-well);color:var(--bar-ink);}
-  html.dark #top-header #side-avatar{background:var(--bar-well);}
-  #top-header #rail-avatar:hover #side-avatar{background:var(--bar-hover);}
-  html.dark #top-header #rail-avatar:hover #side-avatar{background:var(--bar-hover);}
-  #top-header #rail-avatar:focus-visible,#top-header .hdr-icon-btn:focus-visible{outline:2px solid #fff;outline-offset:-2px;}
+  #top-header #side-avatar{width:28px;height:28px;border:1px solid var(--rule-strong);background:var(--color-neutral-200);color:var(--bar-ink);}
+  #top-header #rail-avatar:hover #side-avatar{background:var(--color-neutral-300);}
+  #top-header #rail-avatar:focus-visible,#top-header .hdr-icon-btn:focus-visible{outline:2px solid var(--focus-color);outline-offset:-2px;}
   /* THE CRUMB IS IN THIS BAR, so it takes this bar's ink. Its three parts keep
      the relation they had on white — the separator quietest, the door quiet,
      where you are strong — written at the bar's own scope so the rules above
      (which the head's own crumb also reads) are left exactly as they are. */
-  #top-header #shell-title .crumb-sep{color:rgba(255,255,255,.55);}
+  #top-header #shell-title .crumb-sep{color:var(--color-neutral-400);}
   #top-header #shell-title .crumb-door,
   #top-header #shell-title .room-crumb-back.in-crumb{color:var(--bar-ink-2);}
   #top-header #shell-title .crumb-door:hover,
@@ -13904,14 +13528,12 @@
      buttons back to the previous thin grey outline that was changed earlier
      today"): 12 Oct's accent edge is undone; by night the stronger rule so
      the edge stays visible. The accent still lights an edge on hover. */
-  :root{ --btn-lift:rgba(10,20,40,.18); --btn-edge:var(--color-divider); }
-  html.dark{ --btn-lift:rgba(0,0,0,.45); --btn-edge:var(--rule-strong); }
+  :root{ --btn-lift:transparent; --btn-edge:var(--rule-strong); }  /* Chambers: no lift; the edge is the strong hairline */
   /* A FILTER IS NOT A BUTTON: on the Contracts filter bar the accent edge is
      what says a filter is IN FORCE, so a resting chip keeps the hairline
      (--chip-edge, the old grey by day and night) and only an active one wears
      the accent. Focus still lights it. */
-  :root{ --chip-edge:var(--color-divider); }
-  html.dark{ --chip-edge:var(--rule-strong); }
+  :root{ --chip-edge:var(--rule-strong); }
   .hb-btn{border-radius:var(--radius-lg);border-color:var(--btn-edge);color:var(--accent-ink);background:var(--color-surface);}
   .hb-btn:hover{background:color-mix(in srgb,var(--accent-solid) 8%,var(--color-surface));border-color:var(--accent-solid);}
   .hb-btn.is-primary{background:var(--accent-fill);border-color:var(--accent-fill);color:#fff;box-shadow:0 1px 2px var(--btn-lift);}
@@ -14044,18 +13666,14 @@
   .reg-filterbar .reg-chip-btn{font:inherit;font-size:var(--t-body);font-weight:var(--w-label);color:var(--accent-ink);padding:0 var(--pad-ctl-x);align-self:auto;display:inline-flex;align-items:center;gap:var(--btn-gap);}
   .reg-filterbar .reg-chip-btn > svg{width:var(--btn-ic);height:var(--btn-ic);flex:none;}
   .reg-table td.reg-cell-title{line-height:1.3;padding-top:3px;padding-bottom:3px;}
-  /* THE COUNTERPARTY'S INITIALS (Young, 7 Oct 2026): a soft square, one of five
-     washes picked by the name (regAvatarTone), each with a night answer. */
+  /* THE COUNTERPARTY'S INITIALS: an OUTLINED square in the page's ink
+     (Chambers, owner picked it by name, 20 Oct 2026; five washes picked by
+     the name from 7 Oct). regAvatarTone still names a tone; the box wears one. */
   .reg-table .reg-id{display:flex;align-items:center;gap:10px;min-width:0;}
   .reg-table .reg-id-txt{display:block;min-width:0;flex:1;}
   .reg-av{flex:none;width:28px;height:28px;border-radius:var(--radius);display:grid;place-items:center;
     font-size:11px;font-weight:var(--w-strong);letter-spacing:.02em;line-height:1;font-family:var(--font-body);}
-  .reg-av.av-0{background:var(--color-accent-100);color:var(--accent-ink);}
-  .reg-av.av-1{background:var(--alt-soft);color:var(--alt-ink);}
-  .reg-av.av-2{background:var(--st-amber-bg);color:var(--st-amber-fg);}
-  .reg-av.av-3{background:#F1ECFA;color:#5B3F9A;}
-  .reg-av.av-4{background:var(--st-gray-bg);color:var(--st-gray-fg);}
-  html.dark .reg-av.av-3{background:rgba(167,139,250,.16);color:#C4B5FD;}
+  .reg-av,.reg-av.av-0,.reg-av.av-1,.reg-av.av-2,.reg-av.av-3,.reg-av.av-4{background:transparent;border:1px solid var(--rule-strong);color:var(--color-neutral-600);font-weight:var(--w-label);}
   .reg-table .reg-sub{display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   /* The Negotiations seat's Type column (21 Sep 2026). It reads at the
      sub-line's own size and shade, because it IS the sub-line's words, moved
@@ -14140,11 +13758,11 @@
   .ins-cp-p + .ins-cp-p{margin-top:2px;}
   .ins-cp-r{flex:none;font-size:var(--t-meta);font-weight:var(--w-label);letter-spacing:0;color:var(--color-neutral-600);white-space:nowrap;}
   .ins-st{display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap;min-width:0;}
-  /* THE STAGE IS A PALE PILL OF ITS OWN TONE (Young, 7 Oct 2026, off the HaTi
-     Platform mockup): contractStatusDotHtml's dot and word stay, its own wash
-     (inline, from the stage's meta) goes behind them. Here rather than in the
-     register's sheet because the inspector panel draws it on six pages. */
-  .reg-stg{padding:2px 9px 2px 7px;border-radius:999px;max-width:100%;box-sizing:border-box;}
+  /* THE STAGE IS ITS DOT AND ITS WORD (Chambers, owner picked it by name,
+     20 Oct 2026; a pale pill of its own tone from 7 Oct): no wash behind. Here
+     rather than in the register's sheet because the inspector panel draws it
+     on six pages. */
+  .reg-stg{padding:0;border-radius:0;max-width:100%;box-sizing:border-box;}
   .ins-mv{font-weight:var(--w-label);white-space:nowrap;}
   .ins-mv.is-you{color:var(--st-amber-fg);}
   .ins-mv.is-them{color:var(--color-neutral-600);}
@@ -14310,8 +13928,8 @@
   .jl-say .jl-say-face{flex:none;width:24px;height:24px;border-radius:50%;margin-top:4px;}
   /* NO FACE IN THE THREAD (owner, 20 Oct 2026): on a computer, Jambo's small
      face beside his words is not drawn in any side panel's conversation —
-     Home's panel, the list panels, Import, Settings, the Jambo window; he
-     stays standing on the ask box's edge (.jb-bird) and on his tab. */
+     Home's panel, the list panels, Import, Settings, the Jambo window; his
+     ✦ mark stays on his tab (Chambers, 20 Oct 2026). */
   @media (min-width:768px){
     :is(#ig-dock, #jl-feed, #ai-feed) .ai-face, .jl-say .jl-say-face, .st-jb-msg .st-jb-av{ display:none; }
   }
@@ -14319,16 +13937,16 @@
   .jl-bub b{font-weight:var(--w-strong);}
   .jl-bub .late{color:var(--st-ruby-fg);font-weight:var(--w-label);}
   .jl-src{margin:-2px 0 2px 34px;font-size:var(--t-micro);color:var(--color-neutral-600);}
-  .jl-chips{display:flex;flex-wrap:wrap;gap:6px;margin-left:34px;}
+  .jl-chips{display:flex;flex-wrap:wrap;gap:4px 12px;margin-left:34px;}
   /* a resting chip wears the ONE light edge every outlined control does
      (--btn-edge; owner, 13 Oct 2026 "the previous thin grey outline") — round
      16's drawing paints "plan my week" on the very edge of Mark done and Open
      every week; the accent comes only on hover. Dark mode keeps the edge the
      colour census recorded (owner: "Dark mode should stay as is today") */
-  .jl-chip{border:1px solid var(--btn-edge,var(--color-divider));background:var(--color-surface);color:var(--accent-ink);border-radius:999px;padding:3px 10px;font:inherit;font-size:var(--t-meta);cursor:pointer;line-height:1.4;text-align:left;}
-  html.dark .jl-chip:not(:hover){border-color:var(--color-accent-100);}
-  .jl-chip:hover{background:var(--color-accent-50);border-color:var(--color-accent-300,var(--color-accent-100));}
-  .jl-chip:focus-visible{outline:2px solid var(--accent-ink);outline-offset:1px;}
+  /* a suggestion is a link (Chambers, 20 Oct 2026; see .jb-chip) */
+  .jl-chip{border:0;background:none;padding:1px 0;border-radius:0;height:auto;min-height:0;font:inherit;font-size:12.5px;font-weight:var(--w-body);line-height:1.45;color:var(--accent-ink);text-decoration:underline;text-decoration-color:var(--color-accent-200);text-underline-offset:3px;cursor:pointer;text-align:left;}
+  .jl-chip:hover{text-decoration-color:currentColor;color:var(--accent-ink-700);}
+  .jl-chip:focus-visible{outline:2px solid var(--focus-color);outline-offset:2px;}
   .jl-feed{padding:6px 14px 14px;display:flex;flex-direction:column;gap:12px;}
   .jl-feed:empty{display:none;}
   .jl-card .ca-acts{display:flex;flex-wrap:wrap;gap:6px;}
@@ -14342,9 +13960,7 @@
   .jl-box input:focus-visible{outline:none;box-shadow:none;}
   .jl-ask .jl-pop{left:0;right:0;bottom:calc(100% + 6px);top:auto;max-height:320px;}
   .jl-ask .jl-pop[hidden]{display:none;}
-  .jb-hint{margin:6px 2px 0;font-size:var(--t-micro);line-height:1.45;color:var(--color-neutral-600);}
   /* the floating window's line: a computer only — the phone stays untouched */
-  .ai-hint:empty{display:none;}
   /* ---- THE TWO-ROW CARD: EVERY JAMBO BOX (owner picked "Two-row card",
      20 Oct 2026) ---- ONE LINE AT REST (owner, 20 Oct 2026: "It is supposed
      to be one line field but if you enter more information and you need to
@@ -14354,7 +13970,7 @@
      words the whole width, + and "Asking about" left and the send right on
      the row under them. Grows to six lines, then a thin bar with no arrows;
      back to one line when emptied. ONE builder, jamboCardHtml (components.js). */
-  .jb-card{display:flex;flex-direction:row;align-items:center;gap:4px;min-width:0;text-align:left;border:1px solid var(--color-neutral-300);border-radius:20px;background:var(--color-surface);padding:4px 5px 4px 6px;transition:border-color .15s,box-shadow .15s}
+  .jb-card{display:flex;flex-direction:row;align-items:center;gap:4px;min-width:0;text-align:left;border:1px solid var(--rule-strong);border-radius:var(--radius);background:var(--color-surface);padding:4px 5px 4px 6px;transition:border-color .15s,box-shadow .15s}  /* Chambers: a hairline box with square-ish corners (20 Oct 2026; was a 20px pill) */
   .jb-card > textarea{order:3;flex:1 1 auto}
   .jb-card:not(.is-tall) .jb-row{display:contents}
   .jb-card:not(.is-tall) .jb-row > .jb-plus{order:1}
@@ -14362,7 +13978,7 @@
   .jb-card > textarea{min-width:72px}
   .jb-card:not(.is-tall) .jb-row > .jb-sp{display:none}
   .jb-card:not(.is-tall) .jb-row > .jb-send{order:4}
-  .jb-card.is-tall{flex-direction:column;align-items:stretch;gap:0;border-radius:16px;padding:7px 6px 4px 12px}
+  .jb-card.is-tall{flex-direction:column;align-items:stretch;gap:0;border-radius:var(--radius);padding:7px 6px 4px 12px}
   .jb-card.is-tall > textarea{order:0;flex:none}
   .jb-card.is-tall .jb-row{display:flex;order:1}
   .jb-card.is-tall .jb-row > .jb-sp{display:block}   /* the rest rules are :not(.is-tall), so nothing to undo here */
@@ -14380,7 +13996,7 @@
   .jb-card.is-tall > textarea{padding:2px 6px 2px 0}
   .jb-sp{flex:1 1 auto;min-width:0}
   .jb-plus{flex:none;width:28px;height:28px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--color-neutral-600);display:grid;place-items:center;cursor:pointer}
-  .jb-plus:hover{background:var(--color-accent-100);color:var(--color-text)}
+  .jb-plus:hover{background:var(--color-neutral-100);color:var(--color-text)}
   .jb-plus[disabled]{opacity:.4;cursor:default;background:transparent}
   .jb-send{flex:none;width:28px;height:28px;padding:0;border:0;border-radius:50%;background:var(--accent-fill);color:#fff;display:grid;place-items:center;cursor:pointer;transition:opacity .15s,background .15s}
   .jb-send:hover{filter:brightness(.92)}
@@ -14389,9 +14005,6 @@
   .jb-card:has(> textarea:placeholder-shown) .jb-send{opacity:.45}
   .jb-card + .ca-pop{z-index:30}
   @media (prefers-reduced-motion:reduce){ .jb-card,.jb-send{transition:none} }
-  @media (max-width:767px){ .ai-hint{display:none;} }
-  .jb-keys{white-space:nowrap;}
-  .jb-kbd{display:inline-block;min-width:16px;padding:0 4px;border:1px solid var(--color-neutral-300);border-radius:4px;font:inherit;font-size:var(--t-micro);line-height:1.35;text-align:center;color:var(--color-neutral-700);background:var(--color-surface);}
   /* Needs you, its own section: one card, a row each, a dot in the row's tone and the row's own verb */
   .jl-need{border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden;}
   .jl-need-r{--nd-dot:var(--st-amber-dot);display:grid;grid-template-columns:8px minmax(0,1fr) auto;align-items:center;gap:0 10px;padding:10px 12px;}
@@ -15135,12 +14748,12 @@
   .ins-item-row{display:flex;align-items:flex-start;gap:var(--s-2);}
   .ins-item-row .ins-cp{flex:1;min-width:0;}
   .ins-item-row .ins-st-side{margin-top:8px;}
-  .ins-pill{color:var(--st-gray-fg);background:var(--st-gray-bg);font-size:var(--t-meta);}
+  .ins-pill{color:var(--st-gray-fg);background:none;font-size:var(--t-meta);}  /* dot and word, no wash (Chambers, 20 Oct 2026) */
   .ins-pill i{background:var(--st-gray-dot);}
-  .ins-pill.is-ruby{color:var(--st-ruby-fg);background:var(--st-ruby-bg);} .ins-pill.is-ruby i{background:var(--st-ruby-dot);}
-  .ins-pill.is-amber{color:var(--st-amber-fg);background:var(--st-amber-bg);} .ins-pill.is-amber i{background:var(--st-amber-dot);}
-  .ins-pill.is-green{color:var(--st-green-fg);background:var(--st-green-bg);} .ins-pill.is-green i{background:var(--st-green-dot);}
-  .ins-pill.is-steel{color:var(--st-steel-fg);background:var(--st-steel-bg);} .ins-pill.is-steel i{background:var(--st-steel-dot);}
+  .ins-pill.is-ruby{color:var(--st-ruby-fg);} .ins-pill.is-ruby i{background:var(--st-ruby-dot);}
+  .ins-pill.is-amber{color:var(--st-amber-fg);} .ins-pill.is-amber i{background:var(--st-amber-dot);}
+  .ins-pill.is-green{color:var(--st-green-fg);} .ins-pill.is-green i{background:var(--st-green-dot);}
+  .ins-pill.is-steel{color:var(--st-steel-fg);} .ins-pill.is-steel i{background:var(--st-steel-dot);}
   .ins-pill .ins-late,.ins-pill .ins-soon,.ins-pill .ins-wait{color:inherit;}
   .sap-page .ins-panel .ins-cp .reg-av{width:28px;height:28px;}
   /* "needs you" as one callout: a warning mark, the words, the door at the end */
@@ -15838,7 +15451,6 @@
   #side-nav .rail-user{flex:none;display:flex;align-items:center;gap:10px;padding:12px 14px;border-top:1px solid var(--color-divider);min-width:0;}
   #side-nav .rail-user-av{flex:none;width:30px;height:30px;border-radius:50%;background:var(--color-accent-100);color:var(--accent-ink);
     display:inline-grid;place-items:center;font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:.02em;}
-  html.dark #side-nav .rail-user-av{background:color-mix(in srgb,var(--accent-solid) 22%,transparent);}
   #side-nav .rail-user-txt{display:flex;flex-direction:column;min-width:0;line-height:1.35;}
   #side-nav .rail-user-name{font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   #side-nav .rail-user-role{font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.3;}
@@ -15898,7 +15510,6 @@
      rule stands), the brand's soft wash on the lit door. Rows 36px so the
      column breathes like the mockup's; type sizes unchanged. */
   :root{ --nav-ink-rest:var(--color-neutral-600); }  /* Ink Wash (9 Oct 2026); was #44524F */
-  html.dark{ --nav-ink-rest:#C3CCCA; }
   #side-nav .nav-item{min-height:36px;position:relative;color:var(--nav-ink-rest);white-space:nowrap;}
   #side-nav .nav-item .nav-lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
   #side-nav .nav-item:hover{background:var(--surface-2);color:var(--color-text);}
@@ -15920,20 +15531,22 @@
      between the bar and the page: the name opens Recent under it. The page's
      name takes the place of #shell-title, which shows again only to carry a
      crumb (shellCrumbHome's "‹ Back to Clauses"). */
-  .dk-mark{width:28px;height:28px;border-radius:7px;border:0;background:#fff;color:var(--nav-bg);display:grid;place-items:center;font-weight:700;font-size:12px;letter-spacing:-.02em;flex:none;cursor:pointer;padding:0;margin-right:4px}
-  html.dark .dk-mark{background:var(--accent-solid);color:#fff}  /* at night the rail mark's own colours: a white square is a patch on the dark bar */
+  /* CHAMBERS (20 Oct 2026): the mark is the word "HaTi" in the paper's serif,
+     no tile; ‹ and the page's name stand on the white bar without boxes. */
+  .dk-mark{width:auto;height:28px;border-radius:var(--radius);border:0;background:transparent;color:var(--bar-ink);display:grid;place-items:center;font-family:var(--font-title);font-weight:600;font-size:19px;letter-spacing:0;flex:none;cursor:pointer;padding:0 6px;margin-right:12px}
+  .dk-mark:hover{background:var(--bar-hover)}
   .dk-mark[hidden]{display:none}
-  .dk-mark:focus-visible{outline:2px solid #fff;outline-offset:2px}
-  .dk-back-b{width:28px;height:28px;border-radius:7px;border:1px solid var(--bar-line);background:transparent;color:var(--bar-ink);display:grid;place-items:center;flex:none;cursor:pointer;padding:0;margin-left:-8px}
+  .dk-mark:focus-visible{outline:2px solid var(--focus-color);outline-offset:2px}
+  .dk-back-b{width:28px;height:28px;border-radius:var(--radius);border:1px solid transparent;background:transparent;color:var(--bar-ink);display:grid;place-items:center;flex:none;cursor:pointer;padding:0;margin-left:-8px}
   .dk-back-b:hover:not(:disabled){background:var(--bar-hover)}
   .dk-back-b:disabled{opacity:.45;cursor:default}
   .dk-back-b[hidden]{display:none}
-  .dk-back-b:focus-visible{outline:2px solid #fff;outline-offset:2px}
+  .dk-back-b:focus-visible{outline:2px solid var(--focus-color);outline-offset:2px}
   .dk-pg-w{position:relative;display:inline-flex;min-width:0;flex:0 1 auto}
   .dk-pg-w[hidden]{display:none}
-  .dk-page{display:inline-flex;align-items:center;gap:8px;height:30px;max-width:340px;min-width:0;padding:0 10px 0 12px;border-radius:7px;border:1px solid var(--bar-line);background:var(--bar-well);color:var(--bar-ink);font:inherit;font-size:var(--t-body);font-weight:var(--w-label);cursor:pointer}
+  .dk-page{display:inline-flex;align-items:center;gap:8px;height:30px;max-width:340px;min-width:0;padding:0 10px 0 12px;border-radius:var(--radius);border:1px solid transparent;background:transparent;color:var(--bar-ink);font:inherit;font-size:var(--t-body);font-weight:var(--w-body);cursor:pointer}
   .dk-page:hover,.dk-page.is-open{background:var(--bar-hover)}
-  .dk-page:focus-visible{outline:2px solid #fff;outline-offset:2px}
+  .dk-page:focus-visible{outline:2px solid var(--focus-color);outline-offset:2px}
   .dk-page-w{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   .dk-page-v{flex:none;opacity:.9}
   .dk-page.is-open .dk-page-v{transform:rotate(180deg)}
@@ -15967,14 +15580,14 @@
   .cn-page{min-height:var(--view-h,calc(100vh - 48px));display:flex;justify-content:center;align-items:safe center;padding:12px var(--s-4,16px) 24px;background:var(--color-bg)}
   .cn-in{width:680px;max-width:100%;display:flex;flex-direction:column;gap:12px}
   .cn-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);min-width:0}
-  .cn-ask{padding:16px 20px 14px;text-align:center;display:flex;flex-direction:column;gap:12px}
-  .cn-ask .cn-face{margin:0 auto -4px;display:block}
+  /* CHAMBERS (owner picked it by name, 20 Oct 2026): the question reads from the left — the ✦, the serif question, the box, the links */
+  .cn-ask{padding:26px 30px 22px;text-align:left;display:flex;flex-direction:column;gap:12px}
+  .cn-ask .cn-face{margin:0 0 -6px;display:block}
   /* the greeting as drawn (round 23): large, 26px at the semibold weight */
-  .cn-ask h1{font-size:26px;font-weight:var(--w-strong);margin:0;color:var(--color-text);letter-spacing:-.01em;line-height:1.25}
+  .cn-ask h1{font-family:var(--font-title);font-size:28px;font-weight:var(--w-title-serif);margin:0;color:var(--color-text);letter-spacing:-.005em;line-height:1.25}
   .cn-wrap{position:relative}
   /* the hint line under the box (owner, 18 Oct 2026, "Every Jambo box"): it
      hugs the box it speaks of, read from the box's own left edge */
-  .cn-ask > .jb-hint{margin:-6px 2px 0;text-align:left}
   .cn-box{display:flex;align-items:flex-end;gap:8px;min-height:44px;border:1px solid var(--color-accent);border-radius:10px;background:var(--color-surface);padding:1px 6px 1px 14px;box-shadow:0 0 0 3px var(--color-accent-100);text-align:left}
   .cn-box textarea{flex:1;min-width:0;border:0;outline:0;background:transparent;font:inherit;font-size:15px;line-height:22px;color:var(--color-text);height:40px;max-height:120px;padding:9px 0;margin:0;resize:none;overflow-y:auto;white-space:pre-wrap;overflow-wrap:anywhere;display:block}
   .cn-box > .ui-btn{margin-bottom:6px;flex:none}
@@ -15982,13 +15595,13 @@
   .cn-box textarea:focus-visible{outline:none;box-shadow:none}   /* the box wears its own ring */
   .cn-wrap .cn-pop{left:0;right:0;top:calc(100% + 4px);max-height:340px;text-align:left}
   .cn-wrap .cn-pop[hidden]{display:none}
-  .cn-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
-  .cn-chip{height:26px;padding:0 10px;border:1px solid var(--color-divider);border-radius:13px;background:var(--color-surface);color:var(--accent-ink);font-size:var(--t-label);cursor:pointer;white-space:nowrap}
-  .cn-chip:hover{border-color:var(--color-accent)}
+  /* CHAMBERS (20 Oct 2026): the suggestions under Home's question are links, left-aligned under the box (see .jb-chip) */
+  .cn-chips{display:flex;flex-wrap:wrap;gap:4px 12px;justify-content:flex-start}
+  .cn-chip{border:0;background:none;padding:1px 0;border-radius:0;height:auto;min-height:0;font:inherit;font-size:12.5px;font-weight:var(--w-body);line-height:1.45;color:var(--accent-ink);text-decoration:underline;text-decoration-color:var(--color-accent-200);text-underline-offset:3px;cursor:pointer;text-align:left;white-space:nowrap}
+  .cn-chip:hover{text-decoration-color:currentColor;color:var(--accent-ink-700)}
   .cn-h{display:flex;align-items:center;gap:8px;padding:10px 12px 10px 16px;border-bottom:1px solid var(--color-divider);min-height:40px}
   .cn-t{font-weight:var(--w-strong);font-size:var(--t-body);color:var(--color-text);white-space:nowrap}
   .cn-cnt{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:18px;padding:0 6px;border-radius:9px;background:var(--color-accent-100);color:var(--accent-ink);font-size:var(--t-micro);font-weight:var(--w-strong)}
-  .cn-hint{flex:1;min-width:0;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .cn-r{display:flex;align-items:center;gap:12px;padding:7px 16px;border-bottom:1px solid var(--color-divider)}
   .cn-r:last-child{border-bottom:0}
   .cn-w{flex:1;min-width:0}
@@ -16042,13 +15655,15 @@
        The ground is stated HERE, on the element, because an inline style is
        what the rest of this bar's geometry is stated in and a stylesheet rule
        could not have reached past it. -->
-  <header id="top-header" style="grid-column:2;grid-row:1;display:flex;align-items:center;gap:var(--s-2);padding:0 var(--s-3) 0 20px;background:var(--nav-bg);color:var(--bar-ink);border-bottom:1px solid var(--nav-line);min-width:0;">
+  <header id="top-header" style="grid-column:2;grid-row:1;display:flex;align-items:center;gap:var(--s-2);padding:0 var(--s-3) 0 20px;background:var(--bar-bg);color:var(--bar-ink);border-bottom:1px solid var(--bar-edge);min-width:0;">
 
 
-    <!-- ‹ · HA · THE PAGE'S NAME (the owner picked "The SAP way", 18 Oct 2026; js/views/counter.js):
-         on a computer ‹ goes back one page, the Ha mark is Home, and the page's name opens Recent -->
+    <!-- ‹ · HaTi · THE PAGE'S NAME (the owner picked "The SAP way", 18 Oct 2026; js/views/counter.js):
+         on a computer ‹ goes back one page, the HaTi mark is Home, and the page's name opens Recent.
+         CHAMBERS (owner, 20 Oct 2026): the bar is white with one hairline; the language
+         (Settings › You) and the Blue / Green / Dark switches left it. -->
     <button id="dk-back" class="dk-back-b" type="button" hidden disabled data-dk-back title="Back" aria-label="Back"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg></button>
-    <button id="dk-mark" class="dk-mark" type="button" hidden data-dk-counter title="Home" data-i18n-title="dk_counter" aria-label="Home" data-i18n-aria="dk_counter">Ha</button>
+    <button id="dk-mark" class="dk-mark" type="button" hidden data-dk-counter title="Home" data-i18n-title="dk_counter" aria-label="Home" data-i18n-aria="dk_counter">HaTi</button>
     <span id="dk-pg-w" class="dk-pg-w" hidden>
       <button id="dk-page" class="dk-page" type="button" data-dk-recent aria-haspopup="menu" aria-expanded="false" aria-controls="dk-recent"><span class="dk-page-w"></span><svg class="dk-page-v" width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true"><path d="M1.5 3.2h7L5 7.3z"/></svg></button>
       <div id="dk-recent" class="dk-recent" role="menu" hidden></div>
@@ -16073,34 +15688,9 @@
 
     <span style="flex:1 1 auto;min-width:8px;"></span>
 
-    <!-- WHICH LANGUAGE YOU READ THE APP IN — a person's own setting, and it
-         sits beside the other two for that reason. The enterprise design draws
-         no language control at all; HaTi is bilingual, so it needs one, and
-         this bordered group is where a per-person preference belongs. -->
-    <div id="lang-switch" class="sh-grp" role="group" aria-label="Language"></div>
-
-    <!-- ---- APPEARANCE: TWO AXES, NOT THREE THEMES ----
-         The old control was a menu of three mutually-exclusive themes — Green,
-         Navy, Dark — so a reader on Navy who wanted night lost their brand.
-         The design separates them, and it is the better model: the BRAND is
-         the workspace's (green or navy) and the THEME is the person's (light
-         or dark), which is four combinations rather than three states.
-         setBrand and setDark write them separately; setTheme still answers to
-         the three old keys, so nothing stored in anybody's browser moves.
-
-         THE TWO SWATCHES ARE ADMIN-ONLY (owner-ruled). Light/dark and language
-         change what YOU see; the brand changes what everyone in the company
-         sees, and a control that repaints the whole workspace does not belong
-         one stray click from the search box for every member. -->
-    <div class="sh-grp" role="group" aria-label="Appearance">
-      <!-- Blue first: HaTi lands on Blue (Young, 7 Oct 2026) -->
-      <button id="brand-navy" class="sh-sw" type="button" data-brand-pick="navy" hidden><i style="background:#264c9e"></i></button>
-      <button id="brand-green" class="sh-sw" type="button" data-brand-pick="green" hidden><i style="background:#12796D"></i></button>
-      <button id="theme-btn" class="sh-theme" type="button" aria-pressed="false" title="Theme" data-i18n-title="sh_theme"></button>
-    </div>
 
     <button id="cmd-ai" class="hdr-icon-btn" title="Ask Jambo" data-i18n-title="sh_ask_copilot" style="position:relative;">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-spark"/></svg>
+      <svg width="16" height="16" viewBox="-1 -1 18 18" fill="currentColor" aria-hidden="true"><path d="M8 1C8.5 5.2 10.8 7.5 15 8C10.8 8.5 8.5 10.8 8 15C7.5 10.8 5.2 8.5 1 8C5.2 7.5 7.5 5.2 8 1Z"/></svg>
       <span id="cmd-ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:3px;right:3px;width:8px;height:8px;border-radius:50%;background:#f59e0b;"></span>
     </button>
 
@@ -16641,17 +16231,17 @@
 <!-- ================= Copilot ASSISTANT (slide-over) ================= -->
 <div id="ai-scrim" class="fixed inset-0 z-40" style="background:color-mix(in srgb,#020617 45%,transparent);"></div>
 <section id="ai-panel" class="hati-copilot-panel fixed top-0 right-0 bottom-0 w-full z-50 flex flex-col" style="max-width:430px;background:var(--color-surface);border-left:1px solid var(--color-divider);">
-  <header class="px-5 py-4 flex items-center gap-3" data-i18n-title="ai_float_move" title="Drag to move. Pull an edge or corner to resize." style="background:var(--color-accent-900);color:#fff;">
-    <div class="h-9 w-9 grid place-items-center shrink-0 ai-head-tile" style="background:var(--color-accent);color:#fff;border-radius:var(--radius);" data-ic-big="sparkle"></div>
+  <header class="px-5 py-4 flex items-center gap-3" data-i18n-title="ai_float_move" title="Drag to move. Pull an edge or corner to resize." style="background:var(--color-surface);color:var(--color-text);border-bottom:1px solid var(--color-divider);">
+    <div class="h-9 w-9 grid place-items-center shrink-0 ai-head-tile" style="background:transparent;color:var(--accent-ink);border-radius:var(--radius);"><svg width="22" height="22" viewBox="-1 -1 18 18" fill="currentColor" aria-hidden="true"><path d="M8 1C8.5 5.2 10.8 7.5 15 8C10.8 8.5 8.5 10.8 8 15C7.5 10.8 5.2 8.5 1 8C5.2 7.5 7.5 5.2 8 1Z"/></svg></div>
     <div class="flex-1 leading-tight">
-      <div class="font-display font-600">Jambo</div>
-      <div id="ai-brain-sub" class="text-[11px] flex items-center gap-1.5" style="color:var(--color-accent-200);"><span class="h-1.5 w-1.5 rounded-full live-dot" style="background:var(--st-green-dot);"></span><span data-i18n="ai_searching_live">Searching your live contract data</span></div>
+      <div class="ai-head-name">Jambo</div>
+      <div id="ai-brain-sub" class="text-[11px] flex items-center gap-1.5" style="color:var(--color-neutral-600);"><span class="h-1.5 w-1.5 rounded-full live-dot" style="background:var(--st-green-dot);"></span><span data-i18n="ai_searching_live">Searching your live contract data</span></div>
     </div>
-    <button id="ai-dock-home" title="Back to the right edge" data-i18n-title="ai_dock_home" aria-label="Back to the right edge" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg></button>
-    <button id="ai-expand" title="Expand the panel" data-i18n-title="ai_expand_panel" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5"/><path d="M18 17l-5-5 5-5"/></svg></button>
-    <button id="ai-clear" title="Delete conversation" data-i18n-title="ai_delete_conversation" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);" data-ic-big="trash"></button>
-    <button id="ai-min" title="Minimize — you'll be notified when an answer arrives" data-i18n-title="ai_minimize_hint" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);" data-ic-big="minus"></button>
-    <button id="ai-close" title="Close" data-i18n-title="act_close" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);" data-ic-big="x"></button>
+    <button id="ai-dock-home" title="Back to the right edge" data-i18n-title="ai_dock_home" aria-label="Back to the right edge" class="h-8 w-8 grid place-items-center rounded transition ai-head-btn" style="color:var(--color-neutral-600);"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg></button>
+    <button id="ai-expand" title="Expand the panel" data-i18n-title="ai_expand_panel" class="h-8 w-8 grid place-items-center rounded transition ai-head-btn" style="color:var(--color-neutral-600);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5"/><path d="M18 17l-5-5 5-5"/></svg></button>
+    <button id="ai-clear" title="Delete conversation" data-i18n-title="ai_delete_conversation" class="h-8 w-8 grid place-items-center rounded transition ai-head-btn" style="color:var(--color-neutral-600);" data-ic-big="trash"></button>
+    <button id="ai-min" title="Minimize — you'll be notified when an answer arrives" data-i18n-title="ai_minimize_hint" class="h-8 w-8 grid place-items-center rounded transition ai-head-btn" style="color:var(--color-neutral-600);" data-ic-big="minus"></button>
+    <button id="ai-close" title="Close" data-i18n-title="act_close" class="h-8 w-8 grid place-items-center rounded transition ai-head-btn" style="color:var(--color-neutral-600);" data-ic-big="x"></button>
   </header>
 
   <div id="ai-feed" class="flex-1 overflow-y-auto scroll-thin px-5 py-4 space-y-4" style="background:var(--color-chat-bg);"></div>
@@ -16672,10 +16262,6 @@
       <textarea id="ai-input" rows="1" data-ca-slash data-i18n-ph="ai_input_ph" placeholder="Search, summarize, or ask about your contracts…  (Shift+Enter for a new line)" class="chat-field"></textarea>
       <div class="jb-row"><button type="button" class="jb-plus" data-jb-file aria-label="Add a file" data-i18n-aria="jb_add_file" title="Add a file"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg></button><span class="jb-sp"></span><button type="button" id="ai-send" aria-label="Send to Jambo" data-i18n-aria="sh_ai_send_aria" class="jb-send"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/></svg></button></div>
     </div>
-    <!-- THE HINT LINE UNDER THE BOX (owner, 18 Oct 2026, "Every Jambo box"):
-         painted by the one builder (jamboHintHtml) each time the window opens;
-         the phone, whose full-screen Jambo this same element is, draws none -->
-    <div id="ai-hint" class="ai-hint"></div>
   </footer>
 </section>
 
@@ -16762,11 +16348,9 @@
   color:var(--color-neutral-800);max-height:9.6em;overflow:auto;white-space:pre-wrap}
 :is(#ai-feed,#jl-feed) .ai-target-ask{font-size:var(--t-body);line-height:1.55}
 /* Suggested-question chips: shown on an empty panel only (js/ai.js). */
-.ai-chip{border:1px dashed var(--color-divider);background:var(--color-surface);color:var(--color-neutral-700);
-  display:inline-flex;align-items:center;min-height:var(--ctl-h-sm);
-  font-size:var(--t-meta);font-weight:var(--w-body);border-radius:var(--radius);padding:0 var(--pad-ctl-x-sm);cursor:pointer;
-  transition:border-color var(--dur-1),color var(--dur-1),background var(--dur-1)}
-.ai-chip:hover{border-color:var(--color-accent);color:var(--accent-ink);border-style:solid;background:var(--color-surface)}
+/* a suggestion is a link (Chambers, 20 Oct 2026; see .jb-chip); the phone's own rule keeps its 44px target */
+.ai-chip{border:0;background:none;padding:1px 0;border-radius:0;height:auto;min-height:0;font:inherit;font-size:12.5px;font-weight:var(--w-body);line-height:1.45;color:var(--accent-ink);text-decoration:underline;text-decoration-color:var(--color-accent-200);text-underline-offset:3px;cursor:pointer;text-align:left;display:inline-flex;align-items:center;margin-right:10px}
+.ai-chip:hover{text-decoration-color:currentColor;color:var(--accent-ink-700)}
 .ai-tone{font-weight:var(--w-strong);border-radius:var(--radius);padding:0 3px}
 .ai-tone-pos{color:var(--st-green-fg);background:var(--st-green-bg)}
 .ai-tone-neg{color:var(--st-ruby-fg);background:var(--st-ruby-bg)}

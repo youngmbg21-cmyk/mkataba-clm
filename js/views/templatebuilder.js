@@ -1426,7 +1426,7 @@ function tbStyleHtml() {
   .tb-card .pv ins{color:var(--st-green-fg);text-decoration:none;font-weight:var(--w-strong)} .tb-card .pv del{color:var(--st-ruby-fg);text-decoration:line-through}
   .tb-card .av{display:flex;gap:var(--s-2);margin-top:9px;flex-wrap:wrap;align-items:center}
   .tb-card .av button{height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);background:var(--color-surface);color:var(--accent-ink);border:1px solid var(--color-divider);cursor:pointer}
-  .tb-card .av button.p{background:var(--color-accent-700);border-color:var(--accent-ink-700);color:#fff}
+  .tb-card .av button.p{background:var(--accent-fill);border-color:var(--accent-fill);color:#fff}
   .tb-card .av button:hover{border-color:var(--accent-solid)} .tb-card .av button[disabled]{opacity:.45;cursor:default}
   .tb-card .av .cost{margin-left:auto;font-size:var(--t-micro);color:var(--color-neutral-500)}
   .tb-card.rcpt{background:var(--color-surface)} .tb-card.rcpt .n{font-size:var(--t-meta);color:var(--st-green-fg)}
@@ -1471,10 +1471,9 @@ function tbStyleHtml() {
   .tb-ask textarea{flex:1;min-width:0;height:74px;min-height:74px;max-height:200px;padding:9px 11px;font:inherit;font-size:var(--t-meta);line-height:1.5;resize:none;
     white-space:pre-wrap;overflow-wrap:break-word;background:var(--color-surface);border:1px solid var(--color-divider);color:var(--color-text);outline:none}
   .tb-ask textarea:focus{box-shadow:var(--focus)} .tb-ask textarea[disabled]{background:var(--color-neutral-100)}
-  .tb-ask button{flex:none;display:inline-grid;place-items:center;width:var(--ctl-h);height:var(--ctl-h);padding:0;background:var(--color-accent-700);border:1px solid var(--color-accent-700);color:#fff;cursor:pointer}
+  .tb-ask button{flex:none;display:inline-grid;place-items:center;width:var(--ctl-h);height:var(--ctl-h);padding:0;background:var(--accent-fill);border:1px solid var(--color-accent-700);color:#fff;cursor:pointer}
   .tb-ask button svg{width:var(--btn-ic);height:var(--btn-ic)}
-  .tb-ask button:hover{background:var(--accent-ink);border-color:var(--accent-ink)} .tb-ask button[disabled]{opacity:.45;cursor:default}
-  .tb-ask + .jb-hint{flex:none;margin:-4px 14px 8px}
+  .tb-ask button:hover{background:var(--accent-solid-hover);border-color:var(--accent-solid-hover)} .tb-ask button[disabled]{opacity:.45;cursor:default}
   .tb-pick{position:absolute;left:14px;bottom:92px;width:min(280px,calc(100% - 28px));background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);padding:4px 0;z-index:5;max-height:220px;overflow:auto}
   .tb-pick button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:5px 10px;border:0;background:none;font:inherit;font-size:var(--t-label);cursor:pointer;color:var(--color-text)}
   .tb-pick button:hover{background:var(--color-neutral-100)} .tb-pick small{margin-left:auto;color:var(--color-neutral-500)}
@@ -1517,12 +1516,10 @@ function tbStyleHtml() {
   .tb-foot .tb-ask textarea:focus{box-shadow:none}
   .tb-foot .tb-ask textarea[disabled]{background:transparent}
   .tb-foot .tb-ask button{width:auto;height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);border-radius:var(--radius);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong)}
-  .tb-foot .tb-ask + .jb-hint{margin:6px 0 0}
   .tb-foot .tb-pick{bottom:46px;left:0}
   /* the two-row card (20 Oct 2026): its pick list rides above it */
   .tb-foot .jb-card{position:relative}
   .tb-foot .jb-card .tb-pick{bottom:calc(100% + 6px)}
-  .tb-foot .jb-card + .jb-hint{margin:6px 0 0}
   .tb-ol{border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden}
   .tb-ol-r{display:flex;align-items:center;gap:10px;width:100%;min-height:34px;padding:6px 12px;border:0;border-top:1px solid var(--color-divider);background:none;font:inherit;font-size:var(--t-body);color:var(--color-text);text-align:left;cursor:pointer}
   .tb-ol-r:first-child{border-top:0}
@@ -1995,10 +1992,7 @@ function tbAskHtml() {
   /* THE TWO-ROW CARD (owner picked it, 20 Oct 2026): the one builder */
   return `<div class="tb-foot">${_tbJbCard({ id: 'tb-askrow', field: `<textarea id="tb-ask" rows="1" maxlength="${TB_ASK_MAX}" data-ca-slash placeholder="${esc(ph2)}" title="${esc(ph)}" aria-label="${i18t('tb_ask_label')}" ${on ? '' : 'disabled'}>${esc(draft)}</textarea>`,
     send: _tbJbSend(`data-tb-send ${on ? '' : 'disabled'}`, i18t('int_ask'), { title: on ? i18t('tb_pb_one_read') : i18t('tb_pb_nokey') }),
-    tail: `<div class="tb-pick" id="tb-pick" hidden></div>` })}${
-    /* THE HINT LINE (owner's "Every Jambo box", 18 Oct 2026; round 21 draws it
-       under the builder's box): the one builder; asking files nothing */
-    typeof jamboHintHtml === 'function' ? jamboHintHtml() : ''}</div>`;
+    tail: `<div class="tb-pick" id="tb-pick" hidden></div>` })}</div>`;
 }
 function tbFootHtml() {
   const secs = tbSections();

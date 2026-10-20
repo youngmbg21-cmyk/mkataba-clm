@@ -1284,13 +1284,13 @@ function caChipsHtml(){
   if (typeof jamboChipsOn === 'function' && !jamboChipsOn()) return '';
   const L = caPaperChips(); if (!L) return '';
   return L.map(x => x.go
-    ? (x.owed ? `<button type="button" data-ca-next="${_caE(x.go)}" data-ca-chip="${_caE(x.k)}" class="ca-chip-owed text-[10.5px] rounded-full bg-canvas hover:bg-brand-50 px-2.5 py-1 transition text-left">${_caE(x.label)}</button>`
-      : `<button type="button" data-ca-next="${_caE(x.go)}" data-ca-chip="${_caE(x.k)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${_caE(x.label)}</button>`)
+    ? (x.owed ? `<button type="button" data-ca-next="${_caE(x.go)}" data-ca-chip="${_caE(x.k)}" class="jb-chip ca-chip-owed">${_caE(x.label)}</button>`
+      : `<button type="button" data-ca-next="${_caE(x.go)}" data-ca-chip="${_caE(x.k)}" class="jb-chip">${_caE(x.label)}</button>`)
     : x.owed
-    ? `<button type="button" data-igsug="${_caE(x.ask)}" data-ca-chip="${_caE(x.k)}" class="ca-chip-owed text-[10.5px] rounded-full bg-canvas hover:bg-brand-50 px-2.5 py-1 transition text-left">${_caE(x.ask)}</button>`
+    ? `<button type="button" data-igsug="${_caE(x.ask)}" data-ca-chip="${_caE(x.k)}" class="jb-chip ca-chip-owed">${_caE(x.ask)}</button>`
     : x.fill
-    ? `<button type="button" data-ca-fill="${_caE(x.fill)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${_caE(x.label)}</button>`
-    : `<button type="button" data-igsug="${_caE(x.ask)}"${x.k ? ` data-ca-chip="${_caE(x.k)}"` : ''} class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${_caE(x.ask)}</button>`).join('');
+    ? `<button type="button" data-ca-fill="${_caE(x.fill)}" class="jb-chip">${_caE(x.label)}</button>`
+    : `<button type="button" data-igsug="${_caE(x.ask)}"${x.k ? ` data-ca-chip="${_caE(x.k)}"` : ''} class="jb-chip">${_caE(x.ask)}</button>`).join('');
 }
 if (typeof document !== 'undefined') document.addEventListener('keydown', e => {
   if (e.key !== 'Enter' && e.key !== ' ') return;
