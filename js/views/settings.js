@@ -3332,7 +3332,7 @@ function stJbTalkPaint(){
   const side=document.getElementById('st-side'); if(side) side.classList.toggle('is-talk',on);
   const ov=document.getElementById('st-side-tab-jambo'), tk=document.querySelector('#st-side [data-st-talk]');
   if(ov){ ov.classList.toggle('is-off',on); ov.setAttribute('aria-current',String(!on)); }
-  if(tk){ tk.hidden=!stTalkTurns().length; tk.classList.toggle('is-off',!on); tk.setAttribute('aria-current',String(on)); }
+  if(tk){ tk.hidden=false; tk.classList.toggle('is-off',!on); tk.setAttribute('aria-current',String(on)); }
   if(typeof deskBarPaint==='function') try{ deskBarPaint(); }catch(_){ }
 }
 /* a turn said in the panel: the conversation view comes up, the landing kept */
@@ -3347,7 +3347,7 @@ function stJbTurnAdd(t){
   feed.scrollTop=feed.scrollHeight;
 }
 function stTalkReopen(){
-  if(!stTalkTurns().length||typeof jamboTalkOpen!=='function') return false;
+  if(typeof jamboTalkOpen!=='function') return false;
   jamboTalkOpen(stTalkKey(), document.getElementById('st-jb-feed'));
   stJbTalkPaint();
   const feed=document.getElementById('st-jb-feed'); if(feed) feed.scrollTop=feed.scrollHeight;
@@ -3418,9 +3418,9 @@ function stSideHeadHtml(){
   /* THE WAY BACK TO THE CONVERSATION (owner picked "A Jambo tab", 19 Oct
      2026): once a turn was said on this page a "Jambo" tab stands beside
      Overview; pressed it opens the conversation, pressed again it goes back */
-  const talk=stTalkShows(), has=stTalkTurns().length>0;
+  const talk=stTalkShows();
   const jb=esc(i18t('pd_tab_copilot'));
-  return `<span class="st-side-tab${talk?' is-off':''}" id="st-side-tab-jambo" data-st-overview aria-current="${!talk}">${face}<span>${esc(i18t('pd_tab_overview'))}</span></span><button type="button" class="st-side-tab st-side-talk${talk?'':' is-off'}" data-st-talk aria-current="${talk}" title="${jb}"${has?'':' hidden'}>${jbFace}<span>${jb}</span></button><span class="st-side-word" id="st-side-word">${esc(stSideWord())}</span><span class="st-side-sp"></span>${fold}`;
+  return `<span class="st-side-tab${talk?' is-off':''}" id="st-side-tab-jambo" data-st-overview aria-current="${!talk}">${face}<span>${esc(i18t('pd_tab_overview'))}</span></span><button type="button" class="st-side-tab st-side-talk${talk?'':' is-off'}" data-st-talk aria-current="${talk}" title="${jb}">${jbFace}<span>${jb}</span></button><span class="st-side-word" id="st-side-word">${esc(stSideWord())}</span><span class="st-side-sp"></span>${fold}`;
 }
 function stSideHtml(){
   const face=(typeof jamboFaceHtml==='function')?jamboFaceHtml('hello',26,'st-side-ic'):'';

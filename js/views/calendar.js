@@ -2124,10 +2124,10 @@ function calPlanHtml(){
      week; an ask turns it to the conversation under the one trail line
      (jamboTrailHtml), and ‹ Overview, Esc or the bar's ‹ turn it back as left */
   if(typeof window.jamboTalkLand==='function') jamboTalkLand(CAL_TALK_KEY);
-  const talk=!!(you||answer)&&typeof window.jamboTalkShows==='function'&&jamboTalkShows(CAL_TALK_KEY);
+  const talk=typeof window.jamboTalkShows==='function'&&jamboTalkShows(CAL_TALK_KEY);
   const land=i18t('pd_tab_overview');
   return `<aside class="cal-cop${talk?' is-talk':''}" id="cal-plan" aria-label="${_esc(i18t('ce_copilot'))}">
-    <div class="cal-plan-head jl-head"><span class="pd-tab${talk?'':' on'} jl-tab cal-plan-tab"${talk?' data-cal-talk-back role="button" tabindex="0"':''}><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${face}</span>${n?`<span class="pd-tab-n is-warn">${n>99?'99+':n}</span>`:''}</span><span class="pd-tab-w">${_esc(land)}</span></span>${/* THE WAY BACK TO THE CONVERSATION (owner picked "A Jambo tab", 19 Oct 2026) */(you||answer)?`<button type="button" class="pd-tab jl-tab${talk?' on':''}" data-cal-talk title="${_esc(i18t('pd_tab_copilot'))}">${typeof window.jamboTalkTabInner==='function'?jamboTalkTabInner():_esc(i18t('pd_tab_copilot'))}</button>`:''}
+    <div class="cal-plan-head jl-head"><span class="pd-tab${talk?'':' on'} jl-tab cal-plan-tab"${talk?' data-cal-talk-back role="button" tabindex="0"':''}><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${face}</span>${n?`<span class="pd-tab-n is-warn">${n>99?'99+':n}</span>`:''}</span><span class="pd-tab-w">${_esc(land)}</span></span>${/* THE WAY BACK TO THE CONVERSATION (owner picked "A Jambo tab", 19 Oct 2026) */true?`<button type="button" class="pd-tab jl-tab${talk?' on':''}" data-cal-talk title="${_esc(i18t('pd_tab_copilot'))}">${typeof window.jamboTalkTabInner==='function'?jamboTalkTabInner():_esc(i18t('pd_tab_copilot'))}</button>`:''}
       <span class="jl-word">${_esc(i18t('jl_w_week'))}</span><span class="jl-sp"></span></div>
     ${talk&&typeof window.jamboTalkTrailHtml==='function'?jamboTalkTrailHtml('cal',land):''}
     <div class="cal-plan-body scroll-thin" id="cal-plan-body">

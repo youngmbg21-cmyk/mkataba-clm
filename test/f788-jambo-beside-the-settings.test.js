@@ -41,8 +41,9 @@ describe('f788 (1) the panel\'s head', () => {
   test('1b the fold: to the right edge, his face brings him back; a refresh keeps it', () => {
     const g = settingsStage();
     /* RE-POINTED 19 Oct 2026 (the Jambo tab, owner): it waits hidden until a word is said here */
-    assert.equal(g.qa('#st-side-head .st-side-tab:not([hidden])').length, 1, 'one tab: Overview, no Menu tab');
-    assert.ok(g.q('#st-side-head [data-st-talk][hidden]'), 'the Jambo tab waits hidden until a word is said');
+    assert.equal(g.qa('#st-side-head .st-side-tab:not([hidden])').length, 2, 'two tabs: Overview and Jambo, no Menu tab');
+    /* RE-POINTED 20 Oct 2026 (owner: "jambo keeps disappearing from the top of the panel"): the Jambo tab always stands */
+    assert.ok(g.q('#st-side-head [data-st-talk]:not([hidden])'), 'the Jambo tab always stands beside Overview');
     g.click(g.q('#st-side-head [data-st-side-fold]'));
     assert.ok(g.$('set-page').classList.contains('is-side-folded') && g.$('st-side').classList.contains('is-folded'));
     assert.equal(g.sb.settingsPlace().fold, true, 'kept for a refresh');

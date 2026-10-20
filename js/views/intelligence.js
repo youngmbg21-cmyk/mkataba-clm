@@ -8003,7 +8003,7 @@ function renderIntelDock(){
     ${''/* BEFORE YOU SEND (round 11's gaps): the send screen's own column, held
            by the face while the letter is a page on the desk; Jambo's answers
            under it */}
-    ${talk?`<div id="igd-feed" class="igd-talk flex-1 min-h-0 overflow-y-auto scroll-thin px-3.5 py-3 space-y-3" style="background:transparent" data-jt-talk>${msgs}${typing}</div>${(window.pdSendShows&&pdSendShows())?`<div hidden data-pd-send-kept>${pdSendFaceHtml()}</div>`:''}`
+    ${talk?`<div id="igd-feed" class="igd-talk flex-1 min-h-0 overflow-y-auto scroll-thin px-3.5 py-3 space-y-3" style="background:transparent" data-jt-talk>${(msgs&&String(msgs).trim())||typing?msgs:`<div class="ig-welcome text-[12.5px] text-ink/50 leading-relaxed pt-2">${i18t('int_notebook_welcome')}</div>`}${typing}</div>${(window.pdSendShows&&pdSendShows())?`<div hidden data-pd-send-kept>${pdSendFaceHtml()}</div>`:''}`
     :(window.pdSendShows&&pdSendShows())?`<div id="pd-sendface" class="pd-sendface flex-1 min-h-0 overflow-y-auto scroll-thin">${pdSendFaceHtml()}<div id="igd-feed" class="px-3.5 pb-3 space-y-3">${msgs}${typing}</div></div>`
     :(window.pdShowsDesk&&pdShowsDesk())?`<div id="pd-body" class="pd-body flex-1 min-h-0 overflow-y-auto scroll-thin" role="tabpanel">${pdBodyHtml(pdContract())}</div><div id="igd-feed" hidden></div>`
     /* THE FILL IN FACE (the one-page Home plan, stage 2): where the

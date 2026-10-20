@@ -259,7 +259,9 @@ describe('f840 (4) Settings', () => {
 describe('f840 (5) the Calendar\'s panel, and (6) every host\'s back', () => {
   test('5a an ask opens the conversation view; the trail goes back; the tab is Overview', () => {
     const f = code(fnOf(CAL, 'calPlanHtml'));
-    assert.match(f, /const talk=!!\(you\|\|answer\)&&typeof window\.jamboTalkShows==='function'&&jamboTalkShows\(CAL_TALK_KEY\);/);
+    // RE-POINTED 20 Oct 2026 (owner: "jambo keeps disappearing from the top of the panel"):
+    // the Jambo tab stands before any word, so the talk no longer waits on you||answer.
+    assert.match(f, /const talk=typeof window\.jamboTalkShows==='function'&&jamboTalkShows\(CAL_TALK_KEY\);/);
     assert.match(f, /jamboTalkTrailHtml\('cal',land\)/);
     assert.match(f, /<div class="jl-words cal-yw" data-jt-land\$\{talk\?' hidden':''\}>/, 'Your week kept, out of sight');
     assert.match(code(fnOf(CAL, 'calPlanAsk')), /jamboTalkOpen\(CAL_TALK_KEY, document\.getElementById\('cal-plan-body'\)\);/);

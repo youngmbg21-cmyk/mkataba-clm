@@ -402,7 +402,10 @@ describe('f679 (5) a contract at a glance', () => {
     assert.match(feed, /pdJamboTopHtml\(\)/);
     assert.match(feed, /return top\|\|`<div class="ig-welcome/, 'the notebook greeting only where nothing stands at the top');
     assert.doesNotMatch(feed, /\$\{msgs\}/, 'the landing carries no conversation');
-    assert.match(IG, /talk\?`<div id="igd-feed" class="igd-talk[^`]*>\$\{msgs\}\$\{typing\}<\/div>/, 'the conversation is the flip\'s');
+    /* RE-POINTED 20 Oct 2026 (owner: "jambo keeps disappearing from the top of
+       the panel"): the Jambo tab opens before a word, so an empty flip says
+       the notebook welcome in place of an empty feed. */
+    assert.match(IG, /talk\?`<div id="igd-feed" class="igd-talk[^`]*>\$\{\(msgs&&String\(msgs\)\.trim\(\)\)\|\|typing\?msgs:`<div class="ig-welcome[^]*?\$\{typing\}<\/div>/, 'the conversation is the flip\'s');
     assert.match(fnBody(PD, 'pdChipsRepaint'), /pdGlanceRepaint\(\)/, 'kept current in place as the counts move');
   });
 });
