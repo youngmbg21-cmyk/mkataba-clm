@@ -53,6 +53,9 @@ const check = (name, pass, detail) => {
       state.settings = state.settings || {}; state.settings.privateStreams = { [c.folder]: { on: true, ids: [currentUser().id] } };
       state.contracts.push({ id: 'MK-0412', contractNo: 'MK-0412', name: 'Project Falcon', counterparty: '', folder: c.folder, status: 'Under Review', _codeNamed: true, _light: true });
       return ((FOLDERS || {})[c.folder] || {}).name || ''; });
+    /* 20 Oct 2026 (owner: "make the contracts landing page be on list as opposed to paper"): the Contracts
+       place lands on the List now; this check is about the Wall, so it picks Wall as a reader would */
+    await page.evaluate(() => { if (window.regPlaceSet) regPlaceSet({ show: 'wall' }); });
     await page.evaluate(() => setView('register'));
     await until(() => document.querySelectorAll('#ig-wall .igw-card').length > 8, null, 10000);
     const CARD = id => { const b = document.querySelector(`#ig-wall .igw-card[data-ig-pick="${id}"]`); if (!b) return null;

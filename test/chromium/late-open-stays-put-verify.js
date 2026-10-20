@@ -77,7 +77,10 @@ const check = (name, pass, detail) => {
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-L7'), null, { timeout: 15000 });
 
     /* ============ 1. A PAPER PRESSED ON THE WALL, READ SLOWLY ============ */
-    await page.evaluate(() => hbOpenContracts());
+    /* 20 Oct 2026 (owner: "make the contracts landing page be on list as opposed to paper"): the Contracts
+       place lands on the List now; this check is about the Wall, so it picks Wall as a reader would */
+    await page.evaluate(() => { if (window.regPlaceSet) regPlaceSet({ show: 'wall' }); });
+    await page.evaluate(() => { if (window.regPlaceSet) regPlaceSet({ show: 'wall' }); hbOpenContracts(); });
     const w0 = await onWall();
     check('1-  the Contracts place shows its wall of papers', !!w0);
 
@@ -97,13 +100,13 @@ const check = (name, pass, detail) => {
     check('1b a read that comes back after the reader went to the Board leaves them on the Board', b1.face === 'board' && !b1.paper, JSON.stringify(b1));
 
     /* 1c: two papers pressed — the older, slower read does not replace the newer */
-    await page.evaluate(() => hbOpenContracts());
+    await page.evaluate(() => { if (window.regPlaceSet) regPlaceSet({ show: 'wall' }); hbOpenContracts(); });
     await onWall();
     slow = new Set(['MK-L5']);
     await pressOpen('MK-L5');
     await page.waitForTimeout(300);
     /* the reader thinks nothing happened and presses back to the wall, then another paper */
-    await page.evaluate(() => hbOpenContracts());
+    await page.evaluate(() => { if (window.regPlaceSet) regPlaceSet({ show: 'wall' }); hbOpenContracts(); });
     await onWall();
     await pressOpen('MK-L6');
     const c1 = await until(() => intel.paper && intel.paper.id === 'MK-L6');
@@ -112,7 +115,7 @@ const check = (name, pass, detail) => {
     check('1c the newer paper stays up when the older read comes back', !!c1 && c2.paper === 'MK-L6', JSON.stringify(c2));
 
     /* 1d: and a press the reader waits on still opens its paper */
-    await page.evaluate(() => hbOpenContracts());
+    await page.evaluate(() => { if (window.regPlaceSet) regPlaceSet({ show: 'wall' }); hbOpenContracts(); });
     await onWall();
     slow = new Set(['MK-L8']);
     await pressOpen('MK-L8');
@@ -126,7 +129,7 @@ const check = (name, pass, detail) => {
       await page.waitForFunction(() => window.state && state.contracts && state.contracts.length > 20 && window.hbS && window.intel, null, { timeout: 15000 });
     };
     /* 2a: back on the wall by the Contracts door while the paper is read again */
-    await page.evaluate(() => hbOpenContracts()); await onWall();
+    await page.evaluate(() => { if (window.regPlaceSet) regPlaceSet({ show: 'wall' }); hbOpenContracts(); }); await onWall();
     slow = new Set();
     await pressOpen('MK-L10');
     await until(() => intel.paper && intel.paper.id === 'MK-L10');
@@ -134,14 +137,14 @@ const check = (name, pass, detail) => {
     await reload();
     await page.waitForTimeout(500);
     const a0 = await now();
-    await page.evaluate(() => hbOpenContracts());
+    await page.evaluate(() => { if (window.regPlaceSet) regPlaceSet({ show: 'wall' }); hbOpenContracts(); });
     await page.waitForTimeout(SLOW + 1200);
     const a1 = await now();
     await page.screenshot({ path: path.join(OUT, '2a-stays-on-wall.png') });
     check('2a after a refresh, the Contracts door keeps the reader on the wall when the read comes back', !a0.paper && !a1.paper && a1.face === 'paper', JSON.stringify({ a0, a1 }));
 
     /* 2b: the reader's hand on the wall (a scroll) while the paper is read again */
-    await page.evaluate(() => hbOpenContracts()); await onWall();
+    await page.evaluate(() => { if (window.regPlaceSet) regPlaceSet({ show: 'wall' }); hbOpenContracts(); }); await onWall();
     await pressOpen('MK-L11');
     await until(() => intel.paper && intel.paper.id === 'MK-L11', null, SLOW + 6000);
     slow = new Set(['MK-L11']);
@@ -154,7 +157,7 @@ const check = (name, pass, detail) => {
     check('2b after a refresh, a scroll on the wall keeps the reader there when the read comes back', !!w2 && !b2.paper, JSON.stringify(b2));
 
     /* 2c: a refresh the reader does not touch still brings the paper back */
-    await page.evaluate(() => hbOpenContracts()); await onWall();
+    await page.evaluate(() => { if (window.regPlaceSet) regPlaceSet({ show: 'wall' }); hbOpenContracts(); }); await onWall();
     await pressOpen('MK-L12');
     await until(() => intel.paper && intel.paper.id === 'MK-L12', null, SLOW + 6000);
     slow = new Set(['MK-L12']);

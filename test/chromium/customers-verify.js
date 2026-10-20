@@ -124,6 +124,9 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     const pressOpen = async label => page.evaluate(label => {
       const b = [...document.querySelectorAll('#ins-panel button')].find(x => x.textContent.trim().startsWith(label));
       if (b) b.click(); return !!b; }, label);
+    /* 20 Oct 2026 (owner: "make the contracts landing page be on list as opposed to paper"): the place lands on
+       the List now; this section reads the Wall, so the reader picks Wall first */
+    await page.evaluate(() => { if (window.regPlaceSet) regPlaceSet({ show: 'wall' }); });
     ok('3a the panel carries Open party', await pressOpen('Open party'));
     /* since step 7 the set is the Contracts place's own, its one chip in the head over the Wall and the List */
     await page.waitForFunction(() => state.view === 'dashboard' && !!document.querySelector('#ig-wall') && !!document.querySelector('[data-reg-home] #reg-only-chip'), null, { timeout: 8000 }).catch(() => {});
