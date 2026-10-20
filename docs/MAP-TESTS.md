@@ -190,6 +190,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE SEND SCREEN
 - f17, f42, f307, f310, f333, f713, f755, f757, f758, share-recipient, the-letter, the-letter-as-drawn verify.
+- A colleague: f843, f562, send-to-a-colleague verify, a-pass-is-a-hand-off verify.
 
 ## THE TEMPLATES PAGE, THE BUILDER, AND NEW STANDARDS
 - f481 (view `playbook` = the standards tab)

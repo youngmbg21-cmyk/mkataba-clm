@@ -2327,7 +2327,7 @@ async function intelAsk(qRaw, opts){
       /* A SENTENCE THAT DRAFTS IS ANSWERED IN ONE LINE (round 4 "One sheet", the
          gaps, 18 Oct 2026): the card says what was read and that the form is on
          the desk, so no line in front of it says it first (ca_intro_draft inert) */
-      const m={role:'assistant', text:act.kind==='go'&&typeof window.caGoSay==='function'?caGoSay(act):act.kind==='draft'?'':i18t(act.kind==='send'?'ca_intro_send':'ca_intro_job'), act};
+      const m={role:'assistant', text:act.kind==='go'&&typeof window.caGoSay==='function'?caGoSay(act):act.kind==='draft'||(act.kind==='send'&&act.screen)?'':i18t(act.kind==='send'?'ca_intro_send':'ca_intro_job'), act};
       /* a card that lists passages (risks, obligations) carries them as the
          message's own quotes, so each row is a door onto the paper */
       if(Array.isArray(act.quotes)&&act.quotes.length&&act.cid){ m.paperId=act.cid; m.quotes=act.quotes; m.citesInline=true; }
@@ -8096,7 +8096,7 @@ function renderIntelDock(){
       ${''/* THE TWO-ROW CARD (owner picked it, 20 Oct 2026: "Ask" sat over the
              words): the words the whole width, + and the round send under them */}
       ${_igJbCard({ cls: 'igd-askbox', field: `<textarea id="igd-input" rows="1" placeholder="${igEsc(igAskPlaceholder())}" title="${igEsc(igAskCost())}" class="chat-field"></textarea>`, send: _igJbSend('id="igd-go"', i18t('int_ask')) })}
-      ${typeof window.jamboHintHtml==='function'?jamboHintHtml({ places:igHintKeys() }):''}
+      ${typeof window.jamboHintHtml==='function'?jamboHintHtml({ places:igHintKeys(), people:!!igHintKeys() }):''}
     </div>`}${''/* the letter's "Before you send" column waits here unseen while
            ‹ Jambo has turned the panel to Jambo (round 11's gaps, second pass) */}${(window.pdSendKeepHtml&&pdSendKeepHtml())||''}`;
   /* THE NEWEST WORDS IN VIEW — or, with no conversation yet, the TOP: what
@@ -8426,7 +8426,7 @@ function igHintKeys(){
 function igHintPaint(){
   if(typeof document==='undefined'||typeof window.jamboHintHtml!=='function') return;
   const el=document.querySelector('#ig-dock .igd-askbox + .jb-hint'); if(!el) return;
-  const t=document.createElement('div'); t.innerHTML=jamboHintHtml({ places:igHintKeys() });
+  const t=document.createElement('div'); t.innerHTML=jamboHintHtml({ places:igHintKeys(), people:!!igHintKeys() });
   const nu=t.firstElementChild; if(nu&&nu.outerHTML!==el.outerHTML) el.replaceWith(nu);
 }
 function igPaperText(c){ return (typeof contractPlainText==='function')?contractPlainText(c):''; }

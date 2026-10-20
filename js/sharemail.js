@@ -346,7 +346,40 @@ function signerTurnMailOf(o){
   return { subject: t('mail_turn_subject', { name: cName }), parts, body };
 }
 
-const SHARE_MAIL_API = { SHARE_MAIL_NOTE_MAX, shareMailNoteHead, shareMailNameOf, shareMailOf, shareWaTextOf, signerTurnMailOf,
+/* ---- THE EMAIL TO A COLLEAGUE (owner picked "The Send Screen" by name, 20
+   Oct 2026: "send the above summary to @Young" opens the send screen as "a
+   colleague", Jambo's summary as the note) ----
+   ONE LETTER FOR ONE ACT: the pass route (POST /api/contracts/:id/pass) mails
+   it, whichever door pressed — Jambo's send card or the send screen — and the
+   screen draws it word for word. A colleague opens the contract INSIDE HaTi:
+   the link is the app's own address, never a guest link. In the colleague's
+   language: `t(key, vars)` is the host's translator (the server's tFor for
+   the address, the screen's i18t), the books' mail_* words.
+   o = { t, sender, title, org, recName, ref, cName, code, note, review, link, fromJambo } */
+const PASS_NOTE_MAX = 2000;
+function passMailOf(o){
+  const x = o || {};
+  const t = typeof x.t === 'function' ? x.t : (k => k);
+  const sender = String(x.sender || '');
+  const ref = String(x.ref || '');
+  const cName = shareMailNameOf({ code: x.code, ref }) || x.cName || ref || 'a contract';
+  const first = _smFirst(x.recName);
+  const note = x.note ? String(x.note).slice(0, PASS_NOTE_MAX) : '';
+  /* the note straight after "Hello Young," — where the screen draws its box */
+  const parts = [{ k: 'hello', t: first ? `${t('mail_hello')} ${first},` : `${t('mail_hello')},` }];
+  if (note) parts.push({ k: 'msg', t: note });
+  parts.push({ k: 'say', t: t(x.review ? 'mail_pass_line_review' : 'mail_pass_line', { who: sender, ref, name: cName }) });
+  parts.push({ k: 'btn', t: t('mail_pass_btn', { ref: ref || cName }) });
+  parts.push({ k: 'link', t: x.link == null ? null : String(x.link), at: true });
+  parts.push({ k: 'say', t: t('mail_pass_inside') });
+  parts.push({ k: 'foot', t: [sender, String(x.title || '').trim(), x.org || ''].filter(Boolean).join(' · ') });
+  const subject = x.fromJambo
+    ? t('mail_pass_subject_jambo', { ref: ref || cName, who: _smFirst(sender) || sender })
+    : t('mail_pass_subject', { who: sender, name: cName });
+  return { subject, parts, body: _smLetterJoin(parts), html: _smLetterHtml(parts) };
+}
+
+const SHARE_MAIL_API = { PASS_NOTE_MAX, passMailOf, SHARE_MAIL_NOTE_MAX, shareMailNoteHead, shareMailNameOf, shareMailOf, shareWaTextOf, signerTurnMailOf,
   shareRoundOf, shareClauseParts, shareClauseSay, shareFigureOf, shareAnswersOf, SHARE_MAIL_KIND, SHARE_MAIL_CODE };
 if (typeof window !== 'undefined') Object.assign(window, SHARE_MAIL_API);
 if (typeof module !== 'undefined' && module.exports) module.exports = SHARE_MAIL_API;

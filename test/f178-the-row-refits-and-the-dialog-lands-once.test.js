@@ -123,7 +123,9 @@ describe('F178 — the share dialog arrives once, at its final size', () => {
     /* RE-POINTED 18 Oct 2026 (round 11's gaps, "The letter" as drawn): on
        Home beside Jambo's panel the same frame becomes the desk's page, and
        its onClose gives the panel's face back */
-    assert.match(fn, /openModal\(oneScreenHtml\(_noPre, \{ opening:true \}\), \{ maxWidth:'64rem', onClose:_onDesk\?\(\)=>shareLetterPageOff\(c\):null \}\)/,
+    /* RE-POINTED 20 Oct 2026 ("Sent as: a colleague"): the close also lifts the
+       colleague attribute, then gives the panel's face back on the desk */
+    assert.match(fn, /openModal\(oneScreenHtml\(_noPre, \{ opening:true \}\), \{ maxWidth:'64rem', onClose:\(\)=>\{ shareColAttr\(false\); if\(_onDesk\) shareLetterPageOff\(c\); \} \}\)/,
       'the first frame IS the one screen, at the width the settled dialog keeps');
     assert.match(fn, /shareFillModal\(oneScreenHtml\(pre\)\)/, 'and the fill draws the same builder with the prefill');
     assert.match(fn, /shareKindStepHtml\(c, purposeSel, \{ hidden:true \}\)/, 'the kind question is folded from the first frame');

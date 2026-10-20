@@ -71,7 +71,7 @@ describe('f805 (2) every Jambo ask box draws it, from the builder', () => {
   test('2a Home\'s panel: under its box, with the keys while a paper is up', () => {
     /* RE-POINTED 18 Oct 2026 (pass 3, the checker against rounds 3, 7 and
        12): which keys the line names is ONE reading, igHintKeys — see (4) */
-    assert.match(IG, /jamboHintHtml\(\{ places:igHintKeys\(\) \}\)/);
+    assert.match(IG, /jamboHintHtml\(\{ places:igHintKeys\(\), people:!!igHintKeys\(\) \}\)/ /* RE-POINTED 20 Oct 2026: "@ people" where the keys are */);
     /* RE-POINTED 20 Oct 2026 (owner picked "Two-row card" for every Jambo box): the words the whole width, + and the round send on their own row under them, drawn by the one builder (jamboCardHtml) */
     assert.match(IG, /_igJbCard\(\{ cls: 'igd-askbox'[\s\S]{0,400}send: _igJbSend\('id="igd-go"'/, 'the box and Ask in their own frame, so the line never moves the button');
   });
@@ -184,7 +184,7 @@ describe('f805 (6) the line follows what is in front, in place', () => {
   test('6a one painter, the one builder, called where the Board paints and where Needs you here repaints', () => {
     const f = fnOf(IG, 'igHintPaint');
     assert.match(f, /document\.querySelector\('#ig-dock \.igd-askbox \+ \.jb-hint'\)/);
-    assert.match(f, /jamboHintHtml\(\{ places:igHintKeys\(\) \}\)/);
+    assert.match(f, /jamboHintHtml\(\{ places:igHintKeys\(\), people:!!igHintKeys\(\) \}\)/ /* RE-POINTED 20 Oct 2026: "@ people" where the keys are */);
     assert.match(fnOf(read('js/views/homeboard.js'), 'hbPaintBoard'), /if \(typeof window\.igHintPaint === 'function'\) try \{ igHintPaint\(\); \} catch \(_\)\{\}\n\}$/);
     /* three since the Dossier (20 Oct 2026): Still owed repainting with the dossier, then filling and emptying */
     assert.equal((fnOf(read('js/paperdesk.js'), 'pdNeedsRepaint').match(/igHintPaint\(\)/g) || []).length, 3, 'the dossier, filling and emptying');

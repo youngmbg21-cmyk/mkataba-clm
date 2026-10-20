@@ -1741,6 +1741,20 @@
   [data-share-sap] .sh-lt-change{ flex:none; border:0; background:none; padding:0; font:inherit; font-size:var(--t-meta); font-weight:var(--w-label); color:var(--accent-ink); cursor:pointer; }
   [data-share-sap] .sh-lt-change:hover{ text-decoration:underline; }
   [data-share-sap] .sh-as-chips{ display:flex; flex-wrap:wrap; gap:6px; padding:2px 0; }
+  /* "SENT AS: A COLLEAGUE" (owner picked "The Send Screen", 20 Oct 2026): To is the colleagues picked, with
+     "type @ to add a colleague"; what belongs to the other side (their name and address, the channel, the
+     link's life, what travels, what they never see, something else to send) stands down while it is chosen */
+  [data-share-sap] .sh-col{ display:none; position:relative; }
+  html[data-sh-col] [data-share-sap] .sh-col{ display:block; }
+  html[data-sh-col] [data-share-sap] :is(.sh-lt-who, #sh-lt-tosay, #sh-party, [data-sh-as="ch"], [data-sh-as="link"], [data-sh-as="what"], #sh-msg-where, #sh-more){ display:none; }
+  html[data-sh-col] :is(#sh-lt-checks, #share-readiness-wrap, .sh-lt-card){ display:none; }
+  [data-share-sap] .sh-col-in{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; min-height:var(--field-h); padding:3px 8px; border:1px solid var(--field-line, var(--color-divider)); border-radius:var(--radius); background:var(--color-surface); }
+  [data-share-sap] .sh-col-in:focus-within{ border-color:var(--accent-ink); }
+  [data-share-sap] .sh-col-chip{ display:inline-flex; align-items:center; gap:4px; height:24px; padding:0 4px 0 2px; border-radius:999px; background:var(--color-accent-100); color:var(--accent-ink); font-size:var(--t-meta); font-weight:var(--w-label); white-space:nowrap; }
+  [data-share-sap] .sh-col-chip .av{ width:20px; height:20px; border-radius:50%; display:grid; place-items:center; font-size:10px; background:var(--accent-fill); color:#fff; }
+  [data-share-sap] .sh-col-chip button{ border:0; background:none; padding:0 2px; font:inherit; color:inherit; cursor:pointer; line-height:1; }
+  [data-share-sap] #sh-col-q{ flex:1; min-width:160px; border:0; outline:0; background:transparent; font:inherit; font-size:var(--t-body); color:var(--color-text); padding:4px 2px; }
+  [data-share-sap] .sh-col-pop{ position:absolute; left:0; right:0; top:calc(100% + 4px); bottom:auto; max-height:280px; }
   [data-share-sap] .sh-as{ position:relative; }
   [data-share-sap] .sh-as-go{ display:inline-flex; align-items:center; gap:4px; height:26px; padding:0 8px; border:1px solid var(--btn-edge); border-radius:var(--radius);
     background:var(--color-surface); font:inherit; font-size:var(--t-meta); font-weight:var(--w-label); color:var(--accent-ink); cursor:pointer; white-space:nowrap; }
@@ -9706,6 +9720,15 @@
   .ca-opt small{display:block;color:var(--color-neutral-600);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .ca-opt em{font-style:normal;font-size:11px;color:var(--cap-ink)}
   .ca-none,.ca-hint{margin:6px 8px 4px;font-size:11.5px;color:var(--color-neutral-600)}
+  /* WHO CAN OPEN IT (owner picked "The Send Screen", 20 Oct 2026): a colleague who cannot open the contract is drawn greyed, the reason in place of the address, no press */
+  .ca-opt.is-off{cursor:not-allowed;opacity:.6}
+  .ca-opt.is-off:hover{background:transparent}
+  /* what the send screen's press did, said in Jambo's conversation: "Sent to Young Mbagaya at 14:02. Recorded in MK-451's history." */
+  .ca-card.is-said p{margin:0 0 8px}
+  .ca-done{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border:1px solid var(--st-green-line);border-radius:var(--radius-lg);background:var(--st-green-bg);font-size:12.5px;color:var(--color-text)}
+  .ca-done.is-warn{border-color:var(--st-amber-line);background:var(--st-amber-bg)}
+  .ca-done .ca-tick{color:var(--st-green-fg);font-weight:var(--w-title)}
+  .ca-done.is-warn .ca-tick{color:var(--st-amber-fg)}
   .ca-card{background:var(--color-surface);border:1px solid var(--color-neutral-300);border-radius:var(--radius-lg);padding:12px 14px;font-size:12.5px;color:var(--color-text)}
   .ca-ct{font-size:13.5px;font-weight:var(--w-title);margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .ca-dl{display:grid;grid-template-columns:92px 1fr;gap:5px 10px;margin:0 0 10px}

@@ -24,7 +24,7 @@
    ============================================================ */
 
 const CA_PICK_MAX = 6;            // rows the @ / # list draws; the rest are narrowed by typing
-const CA_NOTE_MAX = 600;          // the note the server keeps (the pass route's own cap)
+const CA_NOTE_MAX = 2000;         // the note the server keeps: the pass route's own cap, PASS_NOTE_MAX (js/sharemail.js)
 const CA_SEND_RE = /^\s*(?:please\s+)?(?:send|share|pass|forward|give)\b/i;
 const CA_NOTE_RE = /\b(?:note|message|saying|and say|tell (?:him|her|them))\s*[:\-–—]?\s*/i;
 
@@ -44,6 +44,23 @@ function caPeople(c){
   if (cp && !out.some(p => p.name.toLowerCase() === cp.toLowerCase()))
     out.push({ kind: 'theirs', id: '', name: cp, email: String(c.counterpartyEmail || ''), sub: String(c.counterparty || '') });
   return out;
+}
+/* WHO CAN OPEN IT (owner picked "The Send Screen", 20 Oct 2026: "People who
+   can open MK-451", one who cannot greyed with the reason): a colleague whose
+   streams leave the contract out is offered greyed, never hidden — the
+   browser's reading (canAccessFolder) is cosmetics; the pass route refuses it
+   too (no-access). `why` is the sentence; empty when they can. */
+function caPeopleFor(c){
+  const ref = c ? caRef(c) : '';
+  return caPeople(c).map(p => {
+    if (p.kind !== 'colleague' || !c || !c.folder || typeof canAccessFolder !== 'function' || typeof getUsers !== 'function') return p;
+    let u = null; try { u = (getUsers() || []).find(x => x && String(x.id) === p.id) || null; } catch (_){ u = null; }
+    let ok = true; try { ok = !u || canAccessFolder(c.folder, u); } catch (_){ ok = true; }
+    if (ok) return p;
+    /* a stream with no name of its own reads as a dash: the shorter sentence then */
+    const stream = String((typeof streamLabel === 'function') ? streamLabel(c.folder) : '').replace(/^[\s—–-]+$/, '');
+    return Object.assign({}, p, { why: _caT(stream ? 'ca_cannot_open_in' : 'ca_cannot_open', { ref, stream }) });
+  });
 }
 function caContracts(){
   const cs = (typeof state !== 'undefined' && state && Array.isArray(state.contracts)) ? state.contracts : [];
@@ -157,7 +174,7 @@ function caTokenAt(text, caret){
 function caMatches(sigil, q, c){
   const t = String(q || '').trim().toLowerCase();
   if (sigil === '@'){
-    const all = caPeople(c);
+    const all = caPeopleFor(c);
     return all.filter(p => !t || p.name.toLowerCase().split(/\s+/).some(w => w.startsWith(t)) || p.name.toLowerCase().startsWith(t));
   }
   const open = caOpenContract();
@@ -170,14 +187,22 @@ function caMatches(sigil, q, c){
 
 /* ---- THE LIST ABOVE THE BOX ---- */
 let _caPop = null;   // { sigil, q, start, rows, on }
+/* ONE ROW FOR A PERSON, wherever a person is picked (Jambo's @ list, the
+   send screen's "a colleague"): the clothes follow the builder. `attr` is the
+   press's data attribute; a greyed row carries its reason and no press. */
+function caPersonRowHtml(r, i, on, attr){
+  const off = !!r.why;
+  return `<div class="ca-opt${on ? ' on' : ''}${off ? ' is-off' : ''}" role="option" aria-selected="${on}"${off ? ' aria-disabled="true"' : ''} ${attr || 'data-ca-pick'}="${i}">
+        <span class="av" aria-hidden="true">${_caE(r.name.split(/\s+/).map(w => w[0] || '').join('').slice(0, 2).toUpperCase())}</span>
+        <span class="who"><b>${_caE(r.name)}</b><small>${_caE(off ? r.why : [r.sub, r.email].filter(Boolean).join(' · '))}</small></span>
+        <em>${_caE(off ? '' : _caT(r.kind === 'theirs' ? 'ca_on_contract' : 'ca_colleague'))}</em></div>`;
+}
 function caPopHtml(P){
   const rows = P.rows.slice(0, CA_PICK_MAX);
-  const head = _caT(P.sigil === '@' ? 'ca_pop_people' : 'ca_pop_contracts', { q: P.q });
+  const open = P.sigil === '@' ? caOpenContract() : null;
+  const head = open ? _caT('ca_pop_people_on', { ref: caRef(open) }) : _caT(P.sigil === '@' ? 'ca_pop_people' : 'ca_pop_contracts', { q: P.q });
   const body = rows.length ? rows.map((r, i) => P.sigil === '@'
-    ? `<div class="ca-opt${i === P.on ? ' on' : ''}" role="option" aria-selected="${i === P.on}" data-ca-pick="${i}">
-        <span class="av" aria-hidden="true">${_caE(r.name.split(/\s+/).map(w => w[0] || '').join('').slice(0, 2).toUpperCase())}</span>
-        <span class="who"><b>${_caE(r.name)}</b><small>${_caE([r.sub, r.email].filter(Boolean).join(' · '))}</small></span>
-        <em>${_caE(_caT(r.kind === 'theirs' ? 'ca_on_contract' : 'ca_colleague'))}</em></div>`
+    ? caPersonRowHtml(r, i, i === P.on)
     : `<div class="ca-opt${i === P.on ? ' on' : ''}" role="option" aria-selected="${i === P.on}" data-ca-pick="${i}">
         <span class="ref hati-ref">${_caE(caRef(r))}</span>
         <span class="who"><b>${_caE(r.name || '')}</b><small>${_caE([r.counterparty, (typeof statusLabel === 'function') ? statusLabel(r.status) : r.status].filter(Boolean).join(' · '))}</small></span><em></em></div>`).join('')
@@ -202,14 +227,16 @@ function caPopRead(inp){
   const tok = caTokenAt(inp.value, inp.selectionStart);
   if (!tok){ caPopClose(); return; }
   const rows = caMatches(tok.sigil, tok.q, caOpenContract());
-  _caPop = { sigil: tok.sigil, q: tok.q, start: tok.start, rows, on: 0 };
+  /* the light starts on the first row that can be chosen (a greyed one cannot) */
+  const first = rows.slice(0, CA_PICK_MAX).findIndex(r => !r.why);
+  _caPop = { sigil: tok.sigil, q: tok.q, start: tok.start, rows, on: Math.max(0, first) };
   caPopPaint(inp);
 }
 /* A choice replaces "@Ja" with "@Jane Mwangi " and remembers who that is. */
 const _caChosen = new Map();   // "@Jane Mwangi" / "#MK-447" -> { kind, id, name }
 function caChoose(inp, i){
   const P = _caPop; if (!P) return;
-  const r = P.rows[i]; if (!r) return;
+  const r = P.rows[i]; if (!r || r.why) return;
   const label = P.sigil === '@' ? '@' + r.name : '#' + caRef(r);
   _caChosen.set(label, P.sigil === '@' ? { kind: r.kind, id: r.id, name: r.name } : { kind: 'contract', id: r.id, name: caRef(r) });
   const v = inp.value, caret = inp.selectionStart;
@@ -280,11 +307,81 @@ function caNoteOf(q){
   if (!m) return '';
   return String(q).slice(m.index + m[0].length).trim().replace(/^["“]|["”]$/g, '').slice(0, CA_NOTE_MAX);
 }
+/* "SEND THE ABOVE SUMMARY TO @YOUNG" (owner picked "The Send Screen", 20 Oct
+   2026): what Jambo said last becomes the note, and the ONE send screen opens
+   as "a colleague" with the person and the note filled in. Nothing is sent
+   here; the screen's Send by email is the press (POST …/pass, caPassSend). */
+const CA_SUMMARY_RE = /\b(?:summary|summari[sz]e|recap|the above|above|this answer|that answer|your answer|what you (?:said|wrote|found)|sammanfattning(?:en)?|ovan)\b/i;
+function caSummaryText(before){
+  let H = []; try { H = intel.history || []; } catch (_){ H = []; }
+  const end = Number.isInteger(before) ? before : H.length;
+  for (let k = end - 1; k >= 0; k--){
+    const m = H[k];
+    if (!m || m.role !== 'assistant' || m.err || m.act || !m.text) continue;
+    if (typeof document === 'undefined') return String(m.text);
+    const d = document.createElement('div'); d.innerHTML = String(m.text);
+    d.querySelectorAll('li').forEach(li => { li.insertBefore(document.createTextNode('- '), li.firstChild); li.appendChild(document.createTextNode('\n')); });
+    d.querySelectorAll('p, div, ul, ol, br').forEach(el => el.appendChild(document.createTextNode('\n')));
+    const t = String(d.textContent || '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+    if (t) return t;
+  }
+  return '';
+}
 function caReadSend(q){
   if (!CA_SEND_RE.test(q) || !/@/.test(q)) return null;
   const person = caFindPerson(q);
   const c = caFindContract(q);
-  return { kind: 'send', person, cid: c ? c.id : null, note: caNoteOf(q), review: /\breview\b/i.test(q), state: 'ready' };
+  const a = { kind: 'send', person, cid: c ? c.id : null, note: caNoteOf(q), review: /\breview\b/i.test(q), state: 'ready' };
+  if (CA_SUMMARY_RE.test(q) && !a.note){
+    a.screen = true; a.note = caSummaryText();
+    if (person && person.kind === 'colleague' && c && a.note && !caSendBlock(a)) setTimeout(() => caSummaryOpen(a), 0);
+  }
+  return a;
+}
+/* the screen, opened on "a colleague" with Jambo's words as the note; the
+   turn that asked is told what the press did (caScreenSent) */
+function caSummaryOpen(a){
+  const c = a && a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
+  if (!c || typeof openShareModal !== 'function') return false;
+  openShareModal(c, { purpose: 'colleague', colleagues: [{ id: a.person.id, name: a.person.name }], note: a.note, fromJambo: true,
+    onColleagueSent: r => caScreenSent(a, r) });
+  /* AS DRAWN: beside the screen, Jambo's conversation stays in front (his
+     line saying the screen is open); "Before you send" is one tab away */
+  if (typeof pdTalkReopen === 'function') try { pdTalkReopen(); } catch (_){}
+  return true;
+}
+function caScreenSent(a, r){
+  if (!a || !r) return;
+  a.state = r.state; a.why = r.why || ''; a.sentTo = r.names || (a.person ? a.person.name : '');
+  try { a.at = new Date().toLocaleTimeString((typeof langLocale === 'function') ? langLocale() : undefined, { hour: '2-digit', minute: '2-digit' }); } catch (_){ a.at = ''; }
+  /* AS DRAWN: the screen gone, his conversation is in front with what went */
+  if (typeof pdTalkReopen === 'function') try { pdTalkReopen(); } catch (_){}
+  if (typeof renderIntelDock === 'function') renderIntelDock();
+}
+/* ONE PRESS, BOTH DOORS: Jambo's send card and the send screen's "a colleague"
+   send through here — the pass route, the server's ask and History line taken
+   onto the copy on screen, the outcome said in one word (sent · outbox ·
+   asked · mailfail · failed) and one sentence. o = { review, fromJambo, door } */
+async function caPassSend(c, person, note, o){
+  const x = o || {};
+  let r = null;
+  try { r = await api('contracts/' + encodeURIComponent(c.id) + '/pass', 'POST', { memberId: person.id, note: note || '', review: !!x.review, fromJambo: !!x.fromJambo, door: x.door || 'jambo' }); }
+  catch (e){ const why = (e && e.message) || String(e); return { state: 'failed', why, said: why }; }
+  let state, why = '';
+  if (!r || !r.asked){ state = 'failed'; why = _caT('ca_failed', { who: person.name }); }
+  else if (r.emailSent) state = 'sent';
+  else if (!r.told) state = 'asked';
+  else if (!r.emailConfigured) state = 'outbox';
+  else { state = 'mailfail'; why = r.emailError || ''; }
+  const live = (typeof getContract === 'function' && getContract(c.id)) || c;
+  if (r && Array.isArray(r.asks)) live.asks = (typeof asksTakeServer === 'function') ? asksTakeServer(live.asks, r.asks) : r.asks;
+  if (r && r.audit && Array.isArray(live.audit)) live.audit = live.audit.concat([r.audit]);
+  const said = state === 'sent' ? _caT('ca_sent', { who: person.name })
+    : state === 'asked' ? _caT('ca_no_address', { who: person.name })
+    : state === 'outbox' ? _caT('ca_outbox', { who: person.name })
+    : state === 'mailfail' ? _caT('ca_mail_failed', { who: person.name, why })
+    : why;
+  return { state, why, said };
 }
 /* THE ONE ENTRY intelAsk calls before anything else: an act Copilot can
    prepare from the words alone, or null (and the question goes on as before). */
@@ -325,6 +422,7 @@ function caCardHtml(a, i){
   if (a.kind === 'here') return caHereCardHtml(a, i);
   if (a.kind === 'cpick') return caPickCardHtml(a, i);
   if (a.kind !== 'send') return '';
+  if (a.screen) return caScreenCardHtml(a, i);
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   const B = (act, label, cls) => `<button type="button" class="ui-btn ui-btn-sm${cls === 'lead' ? ' ui-btn-primary' : ''}" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`;
   const blocked = caSendBlock(a);
@@ -352,6 +450,23 @@ function caCardHtml(a, i){
     ${dl}${acts ? `<div class="ca-acts">${acts}</div>` : ''}${foot}
     ${a.state === 'ready' && !blocked ? `<p class="ca-foot">${_caE(_caT('ca_send_foot'))}</p>` : ''}</div>`;
 }
+/* "SEND THE ABOVE SUMMARY TO @…": Jambo says the screen is open (or why it
+   is not), and after the press what went — "Sent to Young Mbagaya at 14:02.
+   Recorded in MK-451's history." with Show what was sent (the History page) */
+function caScreenCardHtml(a, i){
+  const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
+  const B = (act, label, cls) => `<button type="button" class="ui-btn ui-btn-sm${cls === 'lead' ? ' ui-btn-primary' : ''}" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`;
+  const blocked = a.person && a.person.kind === 'theirs' ? caSendBlock(a) : (!a.note ? { why: _caT('ca_summary_none'), fix: '' } : caSendBlock(a));
+  if (blocked) return `<div class="ca-card is-said" data-ca-card="${i}"><p class="ca-why">${_caE(blocked.why)}</p>${blocked.fix === 'sendscreen' ? `<div class="ca-acts">${B('sendscreen', _caT('ca_a_sendscreen'), 'lead')}</div>` : ''}</div>`;
+  const ref = c ? caRef(c) : '';
+  const who = a.sentTo || (a.person ? a.person.name : '');
+  if (a.state === 'sent' || a.state === 'outbox' || a.state === 'asked' || a.state === 'mailfail'){
+    const k = a.state === 'sent' ? 'ca_scr_sent' : a.state === 'outbox' ? 'ca_scr_outbox' : a.state === 'asked' ? 'ca_scr_asked' : 'ca_scr_mailfail';
+    return `<div class="ca-done${a.state === 'sent' ? '' : ' is-warn'}" data-ca-card="${i}"><span class="ca-tick" aria-hidden="true">${a.state === 'sent' ? '✓' : '!'}</span><span>${_caE(_caT(k, { who, at: a.at || '', ref, why: a.why || '' }))} <button type="button" class="ui-link" data-ca-act="history" data-ca-turn="${i}">${_caE(_caT('ca_scr_show'))}</button></span></div>`;
+  }
+  if (a.state === 'failed') return `<div class="ca-card is-said" data-ca-card="${i}"><p class="ca-said is-bad">${_caE(a.why || _caT('ca_failed', { who }))}</p><div class="ca-acts">${B('reopen', _caT('ca_scr_reopen'), 'lead')}</div></div>`;
+  return `<div class="ca-card is-said" data-ca-card="${i}"><p>${_caE(_caT('ca_scr_open', { who }))}</p><div class="ca-acts">${B('reopen', _caT('ca_scr_reopen'), '')}</div></div>`;
+}
 function caTurn(i){ try { return intel.history[i] || null; } catch (_){ return null; } }
 async function caCardPress(i, act, btn){
   const m = caTurn(i); const a = m && m.act; if (!a) return;
@@ -364,6 +479,8 @@ async function caCardPress(i, act, btn){
   if (a.kind === 'here') return caHerePress(a, act);
   if (a.kind === 'cpick') return caPickPress(i, act);
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
+  if (a.screen && act === 'reopen'){ caSummaryOpen(a); return; }
+  if (a.screen && act === 'history'){ if (c && typeof hbStripBring === 'function') hbStripBring(c.id, 'hist'); return; }
   if (act === 'sendscreen'){ if (c && typeof openShareModal === 'function') openShareModal(c); return; }
   if (act === 'note'){
     if (typeof promptDialog !== 'function') return;
@@ -375,27 +492,13 @@ async function caCardPress(i, act, btn){
   }
   if (act !== 'send' || a.state !== 'ready' || caSendBlock(a) || !c) return;
   a.state = 'sending'; if (typeof renderIntelDock === 'function') renderIntelDock();
-  let r = null;
-  try { r = await api('contracts/' + encodeURIComponent(c.id) + '/pass', 'POST', { memberId: a.person.id, note: a.note || '', review: !!a.review }); }
-  catch (e){ a.state = 'failed'; a.why = (e && e.message) || String(e); if (typeof renderIntelDock === 'function') renderIntelDock(); if (typeof toast === 'function') toast(a.why, 'err'); return; }
+  const out = await caPassSend(c, a.person, a.note, { review: a.review });
+  a.state = out.state; a.why = out.why;
   /* A PASS IS A HAND-OFF, AND THE SERVER KEEPS ITS RECORD (8 Oct 2026, the
      nine flow rules 3 and 8): the route opened a `look` question for the
      colleague and wrote the History line itself, whether or not the email
-     went. Nothing is written to the record here; what the server wrote is
-     taken onto the copy on screen so the trail and the list show it now. */
-  if (!r || !r.asked){ a.state = 'failed'; a.why = _caT('ca_failed', { who: a.person.name }); }
-  else if (r.emailSent) a.state = 'sent';
-  else if (!r.told) a.state = 'asked';
-  else if (!r.emailConfigured) a.state = 'outbox';
-  else { a.state = 'mailfail'; a.why = r.emailError || ''; }
-  const live = (typeof getContract === 'function' && getContract(c.id)) || c;
-  if (r && Array.isArray(r.asks)) live.asks = (typeof asksTakeServer === 'function') ? asksTakeServer(live.asks, r.asks) : r.asks;
-  if (r && r.audit && Array.isArray(live.audit)) live.audit = live.audit.concat([r.audit]);
-  const said = a.state === 'sent' ? _caT('ca_sent', { who: a.person.name })
-    : a.state === 'asked' ? _caT('ca_no_address', { who: a.person.name })
-    : a.state === 'outbox' ? _caT('ca_outbox', { who: a.person.name })
-    : a.state === 'mailfail' ? _caT('ca_mail_failed', { who: a.person.name, why: a.why || '' })
-    : a.why;
+     went (caPassSend takes both onto the copy on screen). */
+  const said = out.said;
   if (typeof toast === 'function') toast(said, a.state === 'sent' ? 'ok' : a.state === 'failed' ? 'err' : 'warn');
   if (typeof renderIntelDock === 'function') renderIntelDock();
 }
@@ -1350,6 +1453,7 @@ async function caDraftReply(prompt, cid){
 }
 Object.assign(window, { caDraftReply });
 Object.assign(window, { caRefFix, CA_REF_RE, caRefLinkPaint, caRefOpen, CA_MENU, CA_MENU_INBOUND, CA_MENU_THEIR_FILE, CA_FILE_OUT, CA_FILE_KEEP, CA_MENU_NOT, caReadMenu, caMenuRows, caMenuCardHtml, caMenuPress, CA_DOORS, CA_DOOR_NOT, caReadDoor, caRoomSign, CA_DOOR_GO, CA_DOOR_SHUT, CA_DOOR_NEEDS, caDoorCardHtml, caDoorPress });
+Object.assign(window, { CA_SUMMARY_RE, caSummaryText, caSummaryOpen, caScreenSent, caPassSend, caPeopleFor, caPersonRowHtml, caScreenCardHtml });
 Object.assign(window, { CA_PICK_MAX, CA_NOTE_MAX, CA_SEND_RE, caPeople, caContracts, caOpenContract, caTokenAt, caMatches, caPopHtml, caPopClose, caPopRead, caChoose,
   caFindContract, caFindPerson, caNoteOf, caReadSend, caActOf, caSendBlock, caCardHtml, caCardPress,
   CA_DRAFT_RE, CA_DRAFT_NOUN, CA_DRAFT_OPTS, CA_DRAFT_BARE, CA_DRAFT_ASKING, caIsDraftAsk, caReadDraft, caDraftWords, caDraftScore, caDraftShared, caDraftRank, caDraftRun, caDraftCardHtml, caDraftPress, CA_DRAFT_WITH, CA_DRAFT_WITH_MAX, caDraftWith, CA_DRAFT_NOT_PARTY, CA_DRAFT_TERM_WORD, caDraftBest, caDraftTitleOf, caDraftWho, caDraftForm, CA_DRAFT_WHAT_MAX, caDraftWhatRaw, caDraftWhatOf, CA_DRAFT_KINDS, caDraftKindOf, CA_DRAFT_FOR, CA_DRAFT_FOR_MAX, caDraftForOf, caDraftOneExchange,
