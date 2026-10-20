@@ -106,7 +106,7 @@ describe('f742 (1) Jambo beside a page: "<ref> at a glance"', () => {
   });
   test('1d the panel says it beside the page, follows the page, and its doors are the page\'s own', () => {
     assert.match(fnBody(PD, 'pdHolds'), /return pdCardPage\(c\) === 'hist' \? 'hist' : 'card';/);
-    assert.match(fnBody(PD, 'pdHeldTopHtml'), /k === 'hist' \? pdHistGlanceHtml\(c\) : k === 'card' \? pdCardGlanceHtml\(c\) : pdChosenHtml\(c\)/);
+    assert.match(fnBody(PD, 'pdHeldTopHtml'), /k === 'hist' \? pdHistGlanceHtml\(c\) : k === 'card' \? pdCardDossierHtml\(c\) : pdChosenHtml\(c\)/);
     /* RE-POINTED (pass 4): the door opens (pdHeldOpen), then lands on its
        target through the one lander (pdHeldGo → pdHeldLand) */
     assert.match(fnBody(PD, 'pdHeldGo'), /const done = pdHeldOpen\(c, w\);\n\s+if \(done && c\) pdHeldLand\(w, c\.id\);/);
@@ -324,8 +324,12 @@ describe('f742 (5) pass 4: the page owes what it owes, and says it as drawn', ()
     assert.match(fnBody(FAM, 'familyDrawnRowsHtml'), /data-fam-bring="\$\{_famAttr\(x\.id\)\}">\$\{_famEsc\(i18t\('pd_cg_bring'\)\)\}<\/button>/);
     assert.match(CT, /renderFamilySection\(c,\{bare:true,drawn:true\}\)/);
     assert.match(fnBody(FAM, 'familyActs'), /k:'create'[\s\S]*k:'add'[\s\S]*k:'check'[\s\S]*k:'unlink'/);
-    assert.match(BS, /data-bs-famact="\$\{bsE\(a\.k\)\}"/);
-    assert.match(BS, /familyActRun\(fc, el\.getAttribute\('data-bs-famact'\)/);
+    /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier" with 4b): the family's
+       acts left the strip's ⋯ for the dossier's Family fold beside the paper */
+    const PDS = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js', 'paperdesk.js'), 'utf8');
+    assert.ok(!/data-bs-famact=/.test(BS), 'the strip\'s ⋯ draws no family acts');
+    assert.match(PDS, /data-pd-ds-famact="\$\{_pdE\(a\.k\)\}"/);
+    assert.match(PDS, /familyActRun\(cc, dfa\.getAttribute\('data-pd-ds-famact'\)/);
   });
   test('5h both books', () => {
     for (const k of ['pd_cg_private', 'pd_cg_private_plain', 'pd_cg_details_one', 'pd_cg_details_other', 'pd_cg_details_plain_one', 'pd_cg_details_plain_other', 'pd_cg_fill', 'pd_cg_signer', 'pd_cg_signing',

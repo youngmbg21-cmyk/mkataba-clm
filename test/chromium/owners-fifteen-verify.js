@@ -216,18 +216,17 @@ const check = (name, pass, detail) => {
     await page.evaluate(() => { intel.paper = null; const st = hbS(); st.face = 'board'; hbSave(); setView('dashboard'); });
     await until(() => hbS().face === 'board' && document.querySelectorAll('#hb-board .hb-fig').length === 6);
     await page.fill('#igd-input', 'bring up MK-A2'); await page.keyboard.press('Enter');
-    /* RE-POINTED 15 Oct 2026 (the overnight work order, step 8): the contract
-       card is the Lifeline strip now; Analyze contract is one press away in
-       its ⋯, the Board's own door (data-hb-analyze) */
-    if (await until(() => !!document.querySelector('#bs-strip-MK-A2 [data-bs-dots]'))) await page.click('#bs-strip-MK-A2 [data-bs-dots]');
-    const cardBtn = await until(() => !!document.querySelector('#bs-strip-MK-A2 .bs-menu [data-hb-analyze="MK-A2"]'));
-    check('13a the Board\'s contract strip carries "Analyze contract" (its ⋯)', !!cardBtn,
-      await page.evaluate(() => [...document.querySelectorAll('#bs-strip-MK-A2 .bs-menu button')].map(b => b.textContent.trim()).join(' | ')));
-    if (cardBtn) await page.click('#bs-strip-MK-A2 .bs-menu [data-hb-analyze="MK-A2"]');
-    /* the paper has its own side on Home (Young, 7–8 Oct 2026: Board · Paper · Explorer) — hbAnalyze lands there */
+    /* RE-POINTED 20 Oct 2026 (4b, the owner picked "The Dossier" with its
+       Board card): "Analyze contract" left the strip's ⋯ — the card's head
+       carries "Open in Workspace ›", the same door onto the paper, one press
+       and in plain view; Jambo's box stands beside the paper for the question */
+    const cardBtn = await until(() => !!document.querySelector('#bs-strip-MK-A2 .bs-head [data-bs-open="MK-A2"]'));
+    check('13a the Board\'s contract strip carries "Open in Workspace ›" in its head', !!cardBtn,
+      await page.evaluate(() => [...document.querySelectorAll('#bs-strip-MK-A2 .bs-head button')].map(b => b.textContent.trim()).join(' | ')));
+    if (cardBtn) await page.click('#bs-strip-MK-A2 .bs-head [data-bs-open="MK-A2"]');
     const up = await until(() => { const p = document.getElementById('ig-paper'); return hbS().face === 'paper' && intel.paper && intel.paper.id === 'MK-A2' && p && !p.hidden && !!p.querySelector('.pg-sheet'); }, null, 10000);
     check('13b pressed, Home\'s Paper side opens with that contract\'s paper up', !!up);
-    check('13c and the question box is ready for the first question', await until(() => document.activeElement && document.activeElement.id === 'igd-input', null, 3000));
+    check('13c and the question box is there, beside the paper', await until(() => { const b = document.getElementById('igd-input'); return !!b && b.getBoundingClientRect().height > 0; }, null, 3000));
     await page.screenshot({ path: path.join(OUT, '13-analyze-from-board.png') });
     /* asked in words, from the board */
     await page.evaluate(() => { intel.paper = null; igPaintPaper(); hbSetFace('board'); });

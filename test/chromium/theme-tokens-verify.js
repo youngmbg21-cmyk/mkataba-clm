@@ -29,6 +29,10 @@
    variables actually repaints the platform. A token nothing reads is not a
    token, and no census of the DEFAULT theme would ever notice.
 
+   RE-RECORDED 20 Oct 2026 (tenth), OWNER-ASKED ("build the dossier and the
+   4b"): the Board's card carries the stage's act in its head, so History's
+   light screen wears --btn-lift (rgba(10,20,40,0.18)), an existing token.
+   Audited as a set difference: nothing else new, nothing gone.
    RE-RECORDED 20 Oct 2026 (ninth), OWNER-ASKED ("fix all of them"):
    Contracts opens on the List (REG_STATE_DEF show 'list'), and the panel's
    tabs came back. Audited as a set difference: every colour new is an

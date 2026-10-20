@@ -40,8 +40,9 @@
    contract is renamed Overview"; it holds Needs you here, the glance and the
    chips). Its key stays 'copilot'; "Jambo" now names only the conversation
    the panel flips to (pdTalkKey, jamboTalkShows). */
-const PD_TABS = ['copilot', 'doc', 'oblig', 'menu'];
-const PD_TAB_ALIAS = { deal: 'doc', hist: 'copilot', facts: 'copilot' };
+/* the Menu tab is retired into the dossier's All acts fold (owner, 20 Oct 2026) */
+const PD_TABS = ['copilot', 'doc', 'oblig'];
+const PD_TAB_ALIAS = { deal: 'doc', hist: 'copilot', facts: 'copilot', menu: 'copilot' };
 /* THE ARTIFACT'S SYMBOLS, EXACTLY (owner, 10 Oct 2026: "use the Symbols that
    were in the artifact before not the ones in hati"): typed marks, each held
    to its text face (U+FE0E), never the left menu's drawings. */
@@ -59,6 +60,9 @@ const _pdE = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '
 const _pdT = (k, v) => (typeof i18t === 'function') ? i18t(k, v) : k;
 const _pdTn = (k, n, v) => (typeof i18tn === 'function') ? i18tn(k, n, v) : k;
 
+/* THE LANDING TAB'S NAME: beside a paper it is the contract's Dossier
+   (owner picked "The Dossier", 20 Oct 2026); elsewhere on Home, Overview */
+function pdLandName(){ return _pdT(pdOnPaper() ? 'pd_tab_dossier' : 'pd_tab_overview'); }
 function pdSetTab(t){ t = PD_TAB_ALIAS[t] || t; if (PD_TABS.includes(t)) _pdTab = t; }
 function pdTab(){ return _pdTab; }
 /* the contract's tabs are drawn only while Home's Paper holds a contract */
@@ -1332,7 +1336,7 @@ function pdTrail(){
   if (!face) return null;
   /* the faces live under the first tab, Overview (19 Oct 2026; was "Jambo");
      Before you send goes back to the face it was opened over */
-  const jb = _pdT('pd_tab_overview');
+  const jb = pdLandName();
   if (send){ const f = pdFaceNow(); const under = f ? pdFaceWordOf(f) : jb;
     return { back: face, up: under, path: (f ? [jb, under] : [jb]).concat([_pdT(PD_FACE_WORD.send)]) }; }
   /* signed, Before you sign is the receipt and says so */
@@ -1381,8 +1385,8 @@ function pdTrailBack(){
   go(); return true;
 }
 function pdBackHtml(face){
-  const t = _pdT('pd_trail_back', { to: _pdT('pd_tab_overview') });
-  return `<button type="button" class="pd-back" data-pd-back="${_pdE(face)}" title="${_pdE(t)}" aria-label="${_pdE(t)}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${_pdE(_pdT('pd_tab_overview'))}</button>`;
+  const t = _pdT('pd_trail_back', { to: pdLandName() });
+  return `<button type="button" class="pd-back" data-pd-back="${_pdE(face)}" title="${_pdE(t)}" aria-label="${_pdE(t)}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-left"/></svg>${_pdE(pdLandName())}</button>`;
 }
 /* ---- JAMBO AS A TAB YOU FLIP TO, AND BACK — HOME'S PANEL (owner, 19 Oct
    2026: "you land on the page and if you want to chat with jambo it takes
@@ -1398,13 +1402,13 @@ function pdBackHtml(face){
 let _pdTalk = { from: 0, seen: 0, last: null };
 function pdFaceWordOf(f){
   if (f === 'signing'){ try { const sc = pdContract(); if (sc && pdSignState(sc).closed) return _pdT('pd_st_signed'); } catch (_){} }
-  return _pdT(PD_FACE_WORD[f] || 'pd_tab_overview');
+  return (PD_FACE_WORD[f] ? _pdT(PD_FACE_WORD[f]) : pdLandName());
 }
 /* the landing's name, which the trail's back carries */
 function pdLandWord(){
   if (typeof pdSendShows === 'function' && pdSendShows()) return _pdT(PD_FACE_WORD.send);
   const f = pdFaceNow();
-  return f ? pdFaceWordOf(f) : _pdT('pd_tab_overview');
+  return f ? pdFaceWordOf(f) : pdLandName();
 }
 /* the page Home's panel is for: the paper (its contract, face or tab), else
    the Home face and what it holds; null off Home */
@@ -2615,31 +2619,57 @@ function pdMenuGroups(c){
   groups.filter(x => x.rows.length).forEach(x => { const same = out.find(o => o.key === x.key); if (same) same.rows.push(...x.rows); else out.push(x); });
   return out.map(x => ({ key: x.key, title: _pdT(x.key), rows: x.rows }));
 }
-/* ---- "NEXT UP" STANDS ON THE OVERVIEW (owner, 20 Oct 2026: "the highlighted
-   buttons should be in the overview page and not hidden") ----
-   The three suggestion cards the Menu tab led with are drawn under the
-   paper's "at a glance" on Overview; the Menu keeps its folded rows. A card
-   still presses its row: the rows it names travel with it, hidden, wired by
-   the Menu's own wiring (pdMenuWire over this root), so a card does exactly
-   what the row does and nothing is decided twice. */
-function pdNextUpHtml(c){
-  if (!c) return '';
-  const groups = pdMenuGroups(c); if (!groups.length) return '';
-  /* the suggestions read the rows as drawn: a grey row is never suggested */
+/* ---- ACTS IN DAYLIGHT (the dossier, owner 20 Oct 2026) ----
+   The stage's own acts as buttons (the first filled), then the contract's
+   whole ⋯ list folded under one line that names what is in it, then the
+   family with Where we are and History. The rows are the room ⋯ menu's own
+   (pdMenuGroups) and are drawn ONCE, in the fold; an act button presses its
+   row there (pdMenuWire over this root), so a press does exactly what the
+   row does and nothing is decided twice. The Menu tab is retired into this. */
+const DOSSIER_ACTS_MAX = 3;
+const DOSSIER_ROW_ATTRS = ['data-rl-prepare', 'data-rl-edit-clause', 'data-rl-add-clause', 'data-rl-edit-first', 'data-ig-review', 'data-ig-pbreview', 'data-ig-memo'];
+function dossierRowKey(b){ return b.id ? '#' + b.id : DOSSIER_ROW_ATTRS.map(a => b.hasAttribute(a) ? `[${a}]` : '').find(Boolean) || ''; }
+function dossierRowWord(b){ const x = b.cloneNode(true); x.querySelectorAll('[aria-hidden="true"], svg, .mnote').forEach(n => n.remove()); return x.textContent.replace(/\s+/g, ' ').trim(); }
+/* the stage's acts: PD_MENU_NEXT's picks for the stage, then the first live rows */
+function dossierActsPick(c, groups){
+  const G = groups || pdMenuGroups(c); if (!G.length || typeof document === 'undefined') return [];
   const box = document.createElement('div');
-  box.innerHTML = groups.map(g => g.rows.join('')).join('');
+  box.innerHTML = G.map(g => g.rows.join('')).join('');
   const st = (typeof negoExecuted === 'function' && negoExecuted(c)) ? 'Signed' : (PD_MENU_NEXT[c.status] ? c.status : 'Draft');
   const picked = [];
-  const take = sel => { const b = box.querySelector(sel); if (b && !b.disabled && !picked.includes(b) && picked.length < 3) picked.push(b); };
-  PD_MENU_NEXT[st].forEach(take);
-  if (picked.length < 3) [...box.querySelectorAll('button')].forEach(b => { if (!b.disabled && !picked.includes(b) && picked.length < 3) picked.push(b); });
-  const key = b => b.id ? '#' + b.id : ['data-rl-prepare', 'data-rl-edit-clause', 'data-rl-add-clause', 'data-rl-edit-first', 'data-ig-review', 'data-ig-pbreview', 'data-ig-memo'].map(a => b.hasAttribute(a) ? `[${a}]` : '').find(Boolean) || '';
-  const word = b => { const x = b.cloneNode(true); x.querySelectorAll('[aria-hidden="true"], svg, .mnote').forEach(n => n.remove()); return x.textContent.replace(/\s+/g, ' ').trim(); };
-  const shown = picked.filter(b => key(b));
-  if (!shown.length) return '';
-  const cards = shown.map((b, i) => `<button type="button" class="pd-mn-card${i === 0 ? ' is-lead' : ''}" data-pd-mn-go="${_pdE(key(b))}"><b>${_pdE(word(b))}</b>${b.title ? `<small>${_pdE(b.title)}</small>` : ''}<span class="pd-mn-go">${_pdE(_pdT(i === 0 ? 'pd_menu_start' : 'pd_menu_open'))}</span></button>`).join('');
-  const stWord = (typeof statusLabel === 'function') ? statusLabel(st === 'Signed' ? 'Signed' : c.status) : '';
-  return `<div class="pd-menu pd-nx" data-pd-menu="${_pdE(c.id)}"><div class="pd-mn-lead">${_pdE(_pdT('pd_menu_next', { stage: String(stWord) }))}</div><div class="pd-mn-cards">${cards}</div><div class="pd-mn-rows room-menu" hidden>${shown.map(b => b.outerHTML).join('')}</div></div>`;
+  const take = b => { if (b && !b.disabled && !picked.includes(b) && picked.length < DOSSIER_ACTS_MAX && dossierRowKey(b)) picked.push(b); };
+  PD_MENU_NEXT[st].forEach(sel => take(box.querySelector(sel)));
+  if (picked.length < DOSSIER_ACTS_MAX) [...box.querySelectorAll('button')].forEach(take);
+  return picked.map(b => ({ key: dossierRowKey(b), word: dossierRowWord(b), tip: b.title || '' }));
+}
+function pdNextUpHtml(c){
+  if (!c) return '';
+  const groups = pdMenuGroups(c);
+  const acts = groups.length ? dossierActsPick(c, groups) : [];
+  const stWord = (typeof statusLabel === 'function') ? statusLabel((typeof negoExecuted === 'function' && negoExecuted(c)) ? 'Signed' : c.status) : '';
+  const btns = acts.map((a, i) => `<button type="button" class="ui-btn ui-btn-sm${i === 0 ? ' ui-btn-primary' : ''}" data-pd-mn-go="${_pdE(a.key)}"${a.tip ? ` title="${_pdE(a.tip)}"` : ''}>${_pdE(a.word)}</button>`).join('');
+  const actsCard = acts.length ? `<div class="pd-glance ds-card ds-acts" data-pd-ds-card="acts"><div class="pd-gl-h"><b>${_pdE(_pdT('dos_acts', { stage: String(stWord) }))}</b><span class="pd-gl-sp"></span></div><div class="ds-acts-b">${btns}</div></div>` : '';
+  /* ALL ACTS, FOLDED: the line names the first few, the count is the rows' */
+  const all = groups.reduce((n, g) => n + g.rows.length, 0);
+  let names = [];
+  if (all){ const box = document.createElement('div'); box.innerHTML = groups.map(g => g.rows.join('')).join('');
+    names = [...box.querySelectorAll('button')].map(dossierRowWord).filter(Boolean).slice(0, 3).map(w => w.charAt(0).toLowerCase() + w.slice(1)); }
+  const allFold = all ? `<details class="ds-fold" data-ds-fold="acts"><summary><span>${_pdE(_pdT('dos_all_acts', { list: names.join(', ') }))}</span><span class="pd-mn-n">${all}</span></summary>
+    ${groups.map(g => `<div class="pd-mn-g"><div class="ds-fold-h">${_pdE(g.title)}</div><div class="pd-mn-rows room-menu">${g.rows.join('')}</div></div>`).join('')}</details>` : '';
+  return `<div class="pd-menu pd-nx ds-nx" data-pd-menu="${_pdE(c.id)}">${actsCard}${allFold}${dossierFamilyFoldHtml(c)}</div>`;
+}
+/* THE FAMILY, WHERE WE ARE AND HISTORY, folded under one line */
+function dossierFamilyFoldHtml(c){
+  let rows = []; try { rows = (typeof bsFamRows === 'function') ? bsFamRows(c) : []; } catch (_){ rows = []; }
+  const kids = Math.max(0, rows.length - 1);
+  const said = rows.length ? _pdTn('dos_fam_n', kids, { n: kids }) : _pdT('dos_fam_none');
+  const fam = rows.length ? `<div class="ds-fam">${rows.map(r => String(r.c.id) === String(c.id)
+      ? `<span class="ds-fam-p is-here">${_pdE((typeof contractRef === 'function') ? contractRef(r.c) : r.c.id)} · ${_pdE(r.label)}</span>`
+      : `<button type="button" class="ds-fam-p" data-pd-ds-fam="${_pdE(r.c.id)}">${_pdE((typeof contractRef === 'function') ? contractRef(r.c) : r.c.id)} · ${_pdE(r.label)}</button>`).join('<span aria-hidden="true">→</span>')}</div>` : '';
+  let acts = []; try { acts = (typeof familyActs === 'function') ? familyActs(c) : []; } catch (_){ acts = []; }
+  const actsHtml = acts.map(a => `<button type="button" class="ui-btn ui-btn-sm" data-pd-ds-famact="${_pdE(a.k)}"${a.shut ? ` disabled aria-disabled="true" title="${_pdE(a.shut)}"` : ''}>${_pdE(a.label)}</button>`).join('');
+  const reads = `<button type="button" class="ui-btn ui-btn-sm" data-pd-ds-page="where">${_pdE(_pdT('tab_where_we_are'))}</button><button type="button" class="ui-btn ui-btn-sm" data-pd-ds-page="hist">${_pdE(_pdT('tab_history'))}</button>`;
+  return `<details class="ds-fold" data-ds-fold="family"><summary><span>${_pdE(_pdT('dos_fam_line', { fam: said }))}</span></summary>${fam}<div class="ds-acts-b">${actsHtml}${reads}</div></details>`;
 }
 function pdMenuHtml(c){
   if (!c) return '';
@@ -2676,10 +2706,14 @@ function pdMenuWire(c, root){
 const PD_MENU_PRESS_TRIES = 40;
 function pdMenuPress(id, sel){
   if (!id || !sel || typeof pdOpenOnHome !== 'function') return false;
-  if (pdOpenOnHome(id, 'menu') === false) return false;
+  /* the rows stand in the dossier's All acts fold: the landing is brought up first
+     (a conversation or a face over it is put away, as a tab press does) */
+  ['pdFillAway', 'pdRedAway', 'pdSignAway'].forEach(f => { if (typeof window !== 'undefined' && typeof window[f] === 'function') try { window[f](); } catch (_){} });
+  if (pdTalkShows()) try { pdTalkBack(); } catch (_){}
+  if (pdOpenOnHome(id, 'copilot') === false) return false;
   let n = 0;
   const tryPress = () => {
-    const m = document.querySelector(`#pd-body .pd-menu[data-pd-menu="${CSS.escape(String(id))}"]`);
+    const m = document.querySelector(`#ig-dock .pd-nx[data-pd-menu="${CSS.escape(String(id))}"]`);
     const row = m && m.dataset.wired ? m.querySelector('.pd-mn-rows ' + sel) : null;
     if (row){ if (!row.disabled){ row.closest('details')?.setAttribute('open', ''); row.click(); } return; }
     if (++n < PD_MENU_PRESS_TRIES) setTimeout(tryPress, 50);
@@ -2740,7 +2774,7 @@ function pdHeadHtml(brain){
      as a tab after Jambo's, one press back (round 11's gaps, second pass) */
   const sendBack = (pdSendHeld() && !pdSendShows()) ? `<button type="button" class="pd-tab pd-tab-face" data-pd-send-back title="${_pdE(_pdT(PD_FACE_WORD.send))}"><span class="pd-tab-w">${_pdE(_pdT(PD_FACE_WORD.send))}</span></button>` : '';
   return tabs.map(t => {
-    const name = _pdT(PD_TAB_NAME[t]);
+    const name = t === 'copilot' ? pdLandName() : _pdT(PD_TAB_NAME[t]);
     const tip = t === 'copilot' && brain ? name + ' · ' + brain : name;
     const on = t === lit, cnt = pdTabCount(t, c);
     return `<button type="button" role="tab" class="pd-tab${on ? ' on' : ''}" data-pd-tab="${t}" aria-selected="${on}" aria-label="${_pdE(cnt ? _pdT('pd_tab_n', { name, n: cnt.n }) : name)}" title="${_pdE(tip)}"><span class="pd-tab-i"><span class="pd-tab-g" aria-hidden="true">${pdTabGlyphHtml(t)}</span>${cnt ? `<span class="pd-tab-n is-${cnt.tone}">${cnt.n > 99 ? '99+' : cnt.n}</span>` : ''}</span><span class="pd-tab-w">${_pdE(name)}</span></button>${t === 'copilot' ? sendBack : ''}`;
@@ -3150,44 +3184,180 @@ function pdSignAhead(c){
   if (!c || c.status === 'Signed' || c.status === 'Declined') return false;
   return !(typeof negoExecuted === 'function' && negoExecuted(c));
 }
+/* ---- THE DOSSIER (owner picked "The Dossier" by name, with 4b, the Board's
+   card as its mirror, 20 Oct 2026: "build the dossier and the 4b") ----
+   ONE reading of where a contract stands, for the panel beside the paper and
+   the Board's card alike (dossierOf): the six stages it walks, what Jambo has
+   read of it, and everything still owed on it in one list. Every figure is a
+   reading the record already holds — detailsOf, signBlockers, the asks that
+   wait on us (pdTheirAsks), the unsent count, needsYouOf, riskOpenOf,
+   deviationSummary, the obligations Jambo found (triageHeldObligations),
+   contractBlanks — nothing is asked, spent or written. A stage's number is
+   the count of owed rows filed under it, so the number on the spine is the
+   list under it. */
+const DOSSIER_STAGES = ['arrive', 'read', 'fill', 'nego', 'sign', 'live'];
+const DOSSIER_FILL_MAX = 4;
+const DOSSIER_ASKS_MAX = 3;
+/* which stage each owed kind belongs to (Needs you's own kinds, insNeedWords') */
+const DOSSIER_STAGE_OF = { late: 'live', fill: 'fill', signer: 'fill', details: 'fill', ask: 'nego', share: 'nego', quiet: 'nego', review: 'nego',
+  join: 'nego', suggest: 'nego', note: 'nego', look: 'nego', approval: 'sign', sign: 'sign', refused: 'sign', renewal: 'live' };
+function dossierNowStage(c){
+  if (!c) return 'arrive';
+  if (c.status === 'Signed' || c.status === 'Declined' || (typeof negoExecuted === 'function' && negoExecuted(c))) return 'live';
+  if (c.status === 'Under Review'){
+    let signing = false; try { signing = typeof negoAnySignature === 'function' && !!negoAnySignature(c); } catch (_){ signing = false; }
+    return signing ? 'sign' : 'nego';
+  }
+  return 'fill';
+}
+/* the blanks are read off the paper, which draws the paper: once per wording */
+const _dossierBlanks = new Map();
+function dossierBlanks(c){
+  if (!c || typeof contractBlanks !== 'function') return null;
+  const key = String(c.id) + ':' + String(c.version || c.updatedAt || '') + ':' + String((c.fields && JSON.stringify(c.fields).length) || 0);
+  if (_dossierBlanks.has(key)) return _dossierBlanks.get(key);
+  let L = []; try { L = contractBlanks(c) || []; } catch (_){ L = []; }
+  const r = L.length ? { total: L.length, filled: L.filter(b => String((b && b.value) || '').trim()).length } : null;
+  if (_dossierBlanks.size > 40) _dossierBlanks.clear();
+  _dossierBlanks.set(key, r);
+  return r;
+}
+/* WHAT JAMBO READ: the arrival reading's own facts, each said only where it ran */
+function dossierRead(c){
+  const t = (c && c.triage) || null;
+  const read = !!(t && t.at) && ((typeof triageReadAnything !== 'function') || !!triageReadAnything(c));
+  let stale = false; try { stale = read && typeof triageReadingStale === 'function' && ['brief', 'playbook', 'oblig'].some(k => triageReadingStale(c, k)); } catch (_){ stale = false; }
+  const bd = (c && ((c._brief && c._brief.data) || (c._briefLite && c._briefLite.data))) || null;
+  const brief = String((bd && bd.overview) || '').trim();
+  let risks = null;
+  try { if (c.scan && typeof riskOpenOf === 'function') { const L = riskOpenOf(c); risks = { n: L.length, titles: L.slice(0, 3).map(it => (typeof riskTitleOf === 'function') ? riskTitleOf(it) : '').filter(Boolean) }; } } catch (_){ risks = null; }
+  let mayScan = false; try { mayScan = !c.scan && typeof runScanFor === 'function' && (typeof riskMayAct !== 'function' || riskMayAct(c, {})) && (typeof canEdit !== 'function' || canEdit()); } catch (_){ mayScan = false; }
+  let std = null; try { std = (typeof deviationSummary === 'function') ? deviationSummary(c) : null; } catch (_){ std = null; }
+  let found = []; try { found = (typeof triageHeldObligations === 'function') ? (triageHeldObligations(c) || []) : []; } catch (_){ found = []; }
+  let tally = null; try { tally = (found.length && typeof obReviewTally === 'function') ? obReviewTally(c, found) : null; } catch (_){ tally = null; }
+  const recorded = (Array.isArray(c.obligations) ? c.obligations : []).filter(Boolean).length;
+  return { read, stale, at: read ? t.at : null, brief, risks, mayScan, std: (std && std.total) ? std : null,
+    obl: (found.length || recorded) ? { found: found.length, recorded, left: tally ? tally.left : 0 } : null,
+    blanks: dossierBlanks(c) };
+}
+/* STILL OWED, ONE LIST: the details still empty, a signer nobody named, their
+   asks that wait on us, our changes not sent, then everything Needs you here
+   counts (Jambo's prepared work, looks, approvals, notes …) — said once each */
+function dossierOwed(c){
+  const out = []; if (!c) return out;
+  let d = null; try { d = (typeof detailsOf === 'function') ? detailsOf(c) : null; } catch (_){ d = null; }
+  const open = (d && d.live) ? d.items.filter(x => x && x.open) : [];
+  open.slice(0, DOSSIER_FILL_MAX).forEach(x => out.push({ k: 'fill:' + x.key, kind: 'fill', key: x.key, label: x.label }));
+  /* what is owed but not drawn as its own row is said as a count (a cap is a fact) */
+  const rest = Math.max(open.length, (d && d.live && d.left) || 0) - Math.min(open.length, DOSSIER_FILL_MAX);
+  if (rest > 0) out.push({ k: 'fill-more', kind: 'fill', more: rest, n: rest });
+  let nobody = false; try { nobody = pdSignAhead(c) && (typeof signBlockers === 'function') && signBlockers(c).some(b => b && b.key === 'signers'); } catch (_){ nobody = false; }
+  if (nobody) out.push({ k: 'signer', kind: 'signer' });
+  const needs = (pdNeedsRows(c) || []).concat(pdNoteRows(c) || []);
+  const quiet = needs.some(r => r && r.it && r.it.kind === 'quiet');
+  const asks = pdTheirAsks(c);
+  if (asks.length && !quiet){
+    asks.slice(0, DOSSIER_ASKS_MAX).forEach(ch => out.push({ k: 'ask:' + ch.id, kind: 'ask', ch }));
+    if (asks.length > DOSSIER_ASKS_MAX) out.push({ k: 'asks-more', kind: 'ask', more: asks.length - DOSSIER_ASKS_MAX, n: asks.length - DOSSIER_ASKS_MAX });
+  }
+  let un = 0; try { un = (c.negotiation && typeof rlUnsentCount === 'function') ? rlUnsentCount(c, {}) : 0; } catch (_){ un = 0; }
+  if (un) out.push({ k: 'share', kind: 'share', n: un });
+  /* AN OBLIGATION PAST ITS DAY (the Board card's own reading, bsObRows): one row, the first named */
+  let late = []; try { late = (typeof bsObRows === 'function') ? (((bsObRows(c) || {}).rows) || []).filter(r => r && r.st === 'overdue') : []; } catch (_){ late = []; }
+  if (late.length) out.push({ k: 'late', kind: 'late', n: late.length, what: late[0].what, days: pdDaysSince(late[0].due) });
+  needs.forEach((r, i) => out.push({ k: 'need:' + (r.note ? 'mynote' : r.jw ? 'jw:' + r.k + ':' + (r.key || i) : (r.it && r.it.kind) || i), kind: r.note ? 'note' : r.jw ? 'jw' : ((r.it && r.it.kind) || 'ask'), need: r }));
+  return out;
+}
+/* the row count a row stands for (a "and N more" row stands for N) */
+function dossierRowN(r){ return r && r.more ? r.more : 1; }
+function dossierOf(c){
+  if (!c) return null;
+  const owed = dossierOwed(c), now = dossierNowStage(c), read = dossierRead(c);
+  const n = {}; DOSSIER_STAGES.forEach(k => { n[k] = 0; });
+  owed.forEach(r => { const s = DOSSIER_STAGE_OF[r.kind] || now; n[s] = (n[s] || 0) + dossierRowN(r); });
+  const at = DOSSIER_STAGES.indexOf(now);
+  const stages = DOSSIER_STAGES.map((k, i) => {
+    if (k === 'read') return { k, state: read.read ? 'done' : (n[k] ? 'on' : 'later'), n: n[k] };
+    if (k === 'arrive') return { k, state: 'done', n: 0 };
+    if (n[k]) return { k, state: 'on', n: n[k] };
+    return { k, state: i < at ? 'done' : i === at ? 'now' : 'later', n: 0 };
+  });
+  return { c, now, stages, read, owed, owedN: owed.reduce((s, r) => s + dossierRowN(r), 0) };
+}
+/* ONE SPINE, two hosts (the panel's dossier and the Board's card) */
+function dossierSpineHtml(D, o){
+  if (!D) return '';
+  const cls = (o && o.cls) || '';
+  return `<div class="ds-spine${cls ? ' ' + cls : ''}" role="list" aria-label="${_pdE(_pdT('dos_spine'))}">${D.stages.map(s => {
+    const mark = s.state === 'done' ? '✓' : s.n ? String(s.n > 99 ? '99+' : s.n) : s.state === 'now' ? '•' : '·';
+    const tip = _pdT('dos_st_' + s.k) + (s.n ? ' · ' + _pdTn('dos_st_n', s.n, { n: s.n }) : s.state === 'done' ? ' · ' + _pdT('dos_st_done') : '');
+    return `<span class="ds-st is-${s.state}${s.n ? ' has-n' : ''}" role="listitem" data-ds-st="${s.k}" title="${_pdE(tip)}"><i aria-hidden="true">${_pdE(mark)}</i>${_pdE(_pdT('dos_st_' + s.k))}</span>`;
+  }).join('')}</div>`;
+}
+/* the reading's day in the reader's words */
+function dossierDay(iso){
+  const at = new Date(iso); if (isNaN(at)) return '';
+  const loc = (typeof langLocale === 'function') ? langLocale() : undefined;
+  try { return at.toDateString() === new Date().toDateString() ? at.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' }) : at.toLocaleDateString(loc, { day: 'numeric', month: 'short' }); } catch (_){ return String(iso).slice(0, 10); }
+}
+const PD_GO_TXT = ' ›';
+function dossierGo(attr, word, extra){ return `<button type="button" class="pd-go ds-go" ${attr}${extra || ''}>${_pdE(word)}${PD_GO_TXT}</button>`; }
+function dossierReadHtml(c, D){
+  const R = D.read, may = (typeof canEdit !== 'function') || !!canEdit();
+  const head = R.read
+    ? `<span class="ds-when">${_pdE(_pdT(R.stale ? 'dos_read_stale' : 'dos_read_same', { when: dossierDay(R.at) }))}</span>${R.stale && may ? `<button type="button" class="ui-btn ui-btn-sm" data-pd-ds-read title="${_pdE(_pdT('jb_read_cost'))}">${_pdE(_pdT('dos_read_again'))}</button>` : ''}`
+    : `<span class="ds-when">${_pdE(_pdT('dos_read_not'))}</span>${may ? `<button type="button" class="ui-btn ui-btn-sm" data-pd-ds-read title="${_pdE(_pdT('jb_read_cost'))}">${_pdE(_pdT('jb_read_now'))}</button>` : ''}`;
+  const row = (k, html, door) => `<div class="pd-gl-row ds-row" data-pd-ds="${k}"><span>${html}</span>${door || ''}</div>`;
+  const rows = [];
+  const clip = (t, n) => { const x = String(t || '').replace(/\s+/g, ' ').trim(); return x.length > n ? x.slice(0, n - 1) + '…' : x; };
+  rows.push(R.brief ? row('brief', `<i class="ds-ok" aria-hidden="true">✓</i> ${_pdE(_pdT('dos_brief', { line: clip(R.brief, 70) }))}`, dossierGo('data-pd-gl-brief', _pdT('dos_go_read')))
+    : row('brief', _pdE(_pdT('dos_brief_none'))));
+  /* a door this contract has shut is grey with its reason (the Redlines face's own rule, negoMayStartLine) */
+  let shut = ''; try { shut = (typeof negoMayStartLine === 'function') ? (negoMayStartLine(c) || '') : ''; } catch (_){ shut = ''; }
+  const risksGo = shut ? `<button type="button" class="pd-go ds-go" disabled aria-disabled="true" title="${_pdE(shut)}">${_pdE(_pdT('dos_go_open'))}${PD_GO_TXT}</button>` : dossierGo('data-pd-gl-risks', _pdT('dos_go_open'));
+  if (R.risks) rows.push(R.risks.n ? row('risks', `<b>${R.risks.n}</b> ${_pdE(_pdTn('dos_risks', R.risks.n, { n: R.risks.n }))}${R.risks.titles.length ? ' — ' + _pdE(R.risks.titles.join(', ')) : ''}`, risksGo)
+    : row('risks', `<i class="ds-ok" aria-hidden="true">✓</i> ${_pdE(_pdT('dos_risks_none'))}`));
+  else if (R.mayScan) rows.push(row('risks', _pdE(_pdT('dos_risks_unread')), `<button type="button" class="ui-btn ui-btn-sm" data-pd-gl-scan title="${_pdE(_pdT('pd_gl_scan_cost'))}">${_pdE(_pdT('pd_gl_scan_go'))}</button>`));
+  if (R.std){ const s = R.std, off = s.dev + s.miss, met = Math.max(0, s.total - off);
+    rows.push(s.ok && s.complete ? row('std', `<i class="ds-ok" aria-hidden="true">✓</i> ${_pdE(_pdT('dos_std_all', { n: s.total }))}`, dossierGo('data-pd-ds-std', _pdT('dos_go_open')))
+      : row('std', `<b>${_pdE(_pdT('dos_k_of_n', { k: met, n: s.total }))}</b> ${_pdE(_pdT('dos_std_met'))}${off ? ' — ' + _pdE(_pdTn('dos_std_off', off, { n: off })) : ''}`, dossierGo('data-pd-ds-std', _pdT('dos_go_open')))); }
+  if (R.obl){ const o = R.obl;
+    rows.push(row('oblig', `<b>${o.found}</b> ${_pdE(_pdT('dos_obl', { r: o.recorded }))}`, o.left ? dossierGo('data-pd-ds-obl', _pdT('dos_go_review')) : dossierGo('data-pd-glance-tab="oblig"', _pdT('dos_go_open')))); }
+  if (R.blanks){ const b = R.blanks;
+    rows.push(row('blanks', `<b>${b.total}</b> ${_pdE(_pdT('dos_blanks', { f: b.filled }))}`, b.filled < b.total ? dossierGo('data-pd-ds-fill=""', _pdT('dos_go_fill')) : '')); }
+  return `<div class="pd-glance ds-card ds-read" data-pd-ds-card="read"><div class="pd-gl-h"><b>${_pdE(_pdT('dos_read_title'))}</b><span class="pd-gl-sp"></span>${head}</div><div class="pd-gl-b">${rows.join('')}</div></div>`;
+}
+function dossierOwedHtml(c, D){
+  const said = r => r.kind === 'fill' ? (r.more ? _pdTn('dos_fill_more', r.more, { n: r.more }) : _pdT('dos_owed_empty', { label: r.label }))
+    : r.kind === 'signer' ? _pdT('dos_owed_signer')
+    : r.k === 'asks-more' ? _pdTn('pd_gl_asks_more', r.more, { n: r.more })
+    : r.ch ? pdAskSay(c, r.ch)
+    : r.kind === 'share' ? _pdTn('pd_gl_unsent', r.n, { n: r.n })
+    : r.kind === 'late' ? _pdTn('dos_late', r.n, { n: r.n, what: r.what, days: r.days }) : '';
+  const mine = D.owed.filter(r => !r.need);
+  const done = pdGlanceDone(c, mine, said);
+  const rowHtml = r => {
+    if (r.need) return pdNeedRowHtml(c, r.need);
+    const amb = (r.kind === 'fill' && !r.more) ? `<span class="ds-owed-l">${_pdE(r.label)}</span> ${_pdE(_pdT('dos_owed_empty_w'))}`
+      : r.kind === 'signer' ? `<span class="ds-owed-l">${_pdE(_pdT('dos_signer'))}</span> ${_pdE(_pdT('dos_signer_w'))}` : _pdE(said(r));
+    const sub = r.ch ? `<small>${_pdE(_pdT('dos_waits', { ago: pdGlAgo(r.ch.createdAt || r.ch.at) }))}</small>` : '';
+    const door = r.kind === 'fill' ? dossierGo(`data-pd-ds-fill="${_pdE(r.key || '')}"`, _pdT('dos_go_fill_in'))
+      : r.kind === 'signer' ? dossierGo('data-pd-glance="sign"', _pdT('dos_go_name'))
+      : r.kind === 'ask' ? dossierGo('data-pd-glance="redline"', _pdT('dos_go_reply'))
+      : r.kind === 'share' ? dossierGo('data-pd-glance="share"', _pdT('dos_go_send'))
+      : r.kind === 'late' ? dossierGo('data-pd-glance-tab="oblig"', _pdT('dos_go_open')) : '';
+    return `<div class="pd-gl-row ds-row" data-pd-gl="${_pdE(r.kind === 'signer' ? 'sign' : r.kind)}"${r.ch ? ` data-pd-gl-ch="${_pdE(r.ch.id)}"` : ''}><span>${amb}${sub}</span>${door}</div>`;
+  };
+  /* a ticked-off row names its kind (fill · signer · ask · share), as the old glance's did */
+  const doneHtml = done.map(d => `<div class="pd-gl-row is-done" data-pd-gl-done="${_pdE(String(d.k).split(':')[0].replace(/-more$/, '').replace(/^signer$/, 'sign'))}"><i aria-hidden="true">✓</i><span><s>${_pdE(d.text)}</s></span></div>`).join('');
+  const body = D.owed.length ? D.owed.map(rowHtml).join('') + doneHtml
+    : doneHtml + `<div class="pd-gl-none"><i aria-hidden="true">✓</i><span>${_pdE(_pdT('dos_owed_none'))}</span></div>`;
+  return `<div id="pd-needs" class="pd-glance ds-card ds-owed" data-pd-ds-card="owed" data-pd-needs-for="${_pdE(c.id)}"><div class="pd-gl-h"><b>${_pdE(_pdT('dos_owed_title', { n: D.owedN }))}</b><span class="pd-gl-sp"></span><span class="ds-when">${_pdE(_pdT('dos_owed_sub'))}</span></div><div class="pd-gl-b">${body}</div></div>`;
+}
 function pdGlanceHtml(c){
   if (!c) return '';
-  const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
-  /* the stage pill with its round, as the paper's line says it (round 6 as drawn: "In negotiation · round 2") */
-  const rn = (typeof igLineRound === 'function') ? igLineRound(c) : 0;
-  let pill = ''; try { pill = (typeof contractStatusTextHtml === 'function') ? contractStatusTextHtml(c, rn ? _pdT('ig_line_round', { n: rn }) : '') : ''; } catch (_){ pill = ''; }
-  const shut = k => (k === 'redline' && typeof negoMayStartLine === 'function') ? negoMayStartLine(c) : '';
-  const btn = r => { const why = shut(r.k), label = _pdE(_pdT(PD_GLANCE[r.k][1]));
-    return why ? `<button type="button" class="ui-btn ui-btn-sm" disabled aria-disabled="true" title="${_pdE(why)}">${label}</button>`
-      : `<button type="button" class="ui-btn ui-btn-sm" data-pd-glance="${r.k}">${label}</button>`; };
-  const rows = pdGlanceRows(c);
-  /* each row's door: the face's word Jambo reads, or this panel's own tab */
-  const asks = rows.some(r => r.k === 'move') ? pdTheirAsks(c) : [];
-  const btn2 = r => r.kind === 'ask'
-    ? `<button type="button" class="ui-btn ui-btn-sm" data-pd-gl-go="${_pdE(r.ch.clauseId || '')}">${_pdE(_pdT('pd_gl_go_to_it'))}</button>`
-    : r.k === 'move' || r.k === 'asks-more' ? btn({ k: 'redline' })
-    : r.k === 'scan' ? `<button type="button" class="ui-btn ui-btn-sm" data-pd-gl-scan>${_pdE(_pdT('pd_gl_scan_go'))}</button>`
-    /* THE RISKS ROW OPENS WHERE THE RISKS ARE LISTED (joined at the
-       integration, 19 Oct 2026): round 9 as drawn left the Redlines face
-       beside Home's paper with nothing under its piles, so the list is the
-       clause editor's Risks tab (riskEditStart, the risks' one door for edits,
-       on the first open one) — its count is this row's number (riskOpenOf) */
-    : (r.k === 'redline' && r.n) ? (shut('redline')
-      ? `<button type="button" class="ui-btn ui-btn-sm" disabled aria-disabled="true" title="${_pdE(shut('redline'))}">${_pdE(_pdT('ce_tab_risks'))}</button>`
-      : `<button type="button" class="ui-btn ui-btn-sm" data-pd-gl-risks>${_pdE(_pdT('ce_tab_risks'))}</button>`)
-    : (PD_GLANCE[r.k][3] ? `<button type="button" class="ui-btn ui-btn-sm" data-pd-glance-tab="${PD_GLANCE[r.k][3]}">${_pdE(_pdT(PD_GLANCE[r.k][1]))}</button>` : btn(r));
-  const said = r => r.kind === 'ask' ? pdAskSay(c, r.ch)
-    : r.k === 'move' ? pdGlMoveSay(c, asks)
-    : r.k === 'asks-more' ? _pdTn('pd_gl_asks_more', r.n, { n: r.n })
-    : r.k === 'scan' ? _pdT('pd_gl_scan')
-    : r.k === 'sign' ? _pdT(PD_GLANCE.sign[0]) : _pdTn(PD_GLANCE[r.k][0], r.n, { n: r.n });
-  const done = pdGlanceDone(c, rows, said);
-  const doneHtml = done.map(d => `<div class="pd-gl-row is-done" data-pd-gl-done="${_pdE(d.k)}"><i aria-hidden="true">✓</i><span><s>${_pdE(d.text)}</s></span></div>`).join('');
-  const body = rows.length
-    ? rows.map(r => { const sub = pdGlanceSub(c, r);
-        return `<div class="pd-gl-row" data-pd-gl="${_pdE(r.kind || r.k)}"${r.kind === 'ask' ? ` data-pd-gl-ch="${_pdE(r.ch.id)}"` : ''}><span>${_pdE(said(r))}${sub ? `<small title="${_pdE(sub)}">${_pdE(sub)}</small>` : ''}</span>${btn2(r)}</div>`; }).join('') + doneHtml
-    : doneHtml + `<div class="pd-gl-none"><i aria-hidden="true">✓</i><span>${_pdE(_pdT('pd_gl_none'))}</span></div>`;
-  return `<div id="pd-glance" class="pd-glance" data-pd-glance-for="${_pdE(c.id)}"><div class="pd-gl-h"><b>${_pdE(_pdT('pd_gl_title', { ref }))}</b><span class="pd-gl-sp"></span>${pill}</div><div class="pd-gl-b">${pdGlanceBriefHtml(c)}${body}</div>${pdGlanceFootHtml(c)}</div>`;
+  const D = dossierOf(c);
+  return `<div id="pd-glance" class="pd-dossier" data-pd-glance-for="${_pdE(c.id)}">${dossierSpineHtml(D)}${dossierReadHtml(c, D)}${dossierOwedHtml(c, D)}</div>`;
 }
 /* ---- WHAT JAMBO FOUND, SAID WHERE IT IS (owner picked "Jambo's tray" by
    name, round 5, 17 Oct 2026) ----
@@ -3370,6 +3540,8 @@ function pdNeedsHtml(c){
 }
 /* in place, with the glance, as a face or a save changes what is owed */
 function pdNeedsRepaint(){
+  /* Still owed is a card of the dossier: it repaints with it */
+  if (typeof document !== 'undefined' && document.getElementById('pd-glance') && !document.getElementById('pd-pin')){ pdGlanceRepaint(); if (typeof window !== 'undefined' && typeof window.igHintPaint === 'function') try { igHintPaint(); } catch (_){} return; }
   const pin = (typeof document !== 'undefined') ? document.getElementById('pd-pin') : null; if (!pin) return;
   const c = pdContract(); if (!c || String(c.id) !== pin.getAttribute('data-pd-pin-for')) return;
   const html = pdNeedsHtml(c), was = pin.innerHTML;
@@ -3432,9 +3604,8 @@ function pdJamboTopHtml(){
    asked and answered never pushes it out of view. The glance and the talk
    scroll under it. Its host is drawn even empty, so a repaint has a home. */
 function pdJamboPinHtml(){
-  if (typeof igHomePaperFace !== 'function' || igHomePaperFace() !== true) return '';
-  const c = pdContract(); if (!c) return '';
-  return `<div id="pd-pin" class="pd-pin" data-pd-pin-for="${_pdE(c.id)}">${pdNeedsHtml(c)}</div>`;
+  /* THE DOSSIER CARRIES STILL OWED (owner, 20 Oct 2026): nothing is pinned above it */
+  return '';
 }
 /* the presses, delegated once: the panel is redrawn under them */
 if (typeof document !== 'undefined' && !document._pdJamboTopWired){
@@ -3483,6 +3654,30 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
     if (gt){ e.preventDefault(); pdSetTab(gt.getAttribute('data-pd-glance-tab')); if (typeof renderIntelDock === 'function') renderIntelDock(); return; }
     if (t.closest('[data-pd-gl-brief]')){ e.preventDefault(); const cc = pdContract();
       if (cc && typeof openCheckPanel === 'function') openCheckPanel(getContract(cc.id) || cc, 'brief'); return; }
+    /* THE DOSSIER'S DOORS (owner, 20 Oct 2026): each lands where its work is done */
+    const full = () => { const cc = pdContract(); return cc && ((typeof getContract === 'function' && getContract(cc.id)) || cc); };
+    const dsf = t.closest('[data-pd-ds-fill]');
+    if (dsf){ e.preventDefault(); const cc = full(); const key = dsf.getAttribute('data-pd-ds-fill') || '';
+      if (cc) pdFillOpen(cc.id, key ? { key } : {}); return; }
+    if (t.closest('[data-pd-ds-obl]')){ e.preventDefault(); const cc = full();
+      let found = []; try { found = (cc && typeof triageHeldObligations === 'function') ? triageHeldObligations(cc) : []; } catch (_){ found = []; }
+      if (cc && found.length && typeof openObligationsReview === 'function') openObligationsReview(cc, found, () => { try { pdGlanceRepaint(); } catch (_){} });
+      return; }
+    if (t.closest('[data-pd-ds-std]')){ e.preventDefault(); const cc = full(); if (cc && typeof openCheckPanel === 'function') openCheckPanel(cc, 'playbook'); return; }
+    const dsr = t.closest('[data-pd-ds-read]');
+    if (dsr){ e.preventDefault(); const cc = full(); if (!cc || dsr.disabled || typeof triageAndPaint !== 'function') return;
+      dsr.disabled = true; if (typeof busySet === 'function') try { busySet(dsr, true); } catch (_){}
+      Promise.resolve((cc._light && !cc._loaded && typeof ensureFull === 'function') ? ensureFull(cc) : null).catch(() => {})
+        .then(() => triageAndPaint(getContract(cc.id) || cc, { asked: true, again: true })).catch(() => {})
+        .then(() => { try { pdGlanceRepaint(); } catch (_){} });
+      return; }
+    const dfam = t.closest('[data-pd-ds-fam]');
+    if (dfam){ e.preventDefault(); if (typeof hbStripBring === 'function') hbStripBring(dfam.getAttribute('data-pd-ds-fam')); return; }
+    const dfa = t.closest('[data-pd-ds-famact]');
+    if (dfa){ e.preventDefault(); if (dfa.disabled) return; const cc = full();
+      if (cc && typeof familyActRun === 'function') familyActRun(cc, dfa.getAttribute('data-pd-ds-famact'), () => { if (typeof renderIntelDock === 'function') renderIntelDock(); }); return; }
+    const dpg = t.closest('[data-pd-ds-page]');
+    if (dpg){ e.preventDefault(); const cc = full(); if (cc && typeof hbStripBring === 'function') hbStripBring(cc.id, dpg.getAttribute('data-pd-ds-page')); return; }
     const g = t.closest('[data-pd-glance]');
     if (g && !g.disabled){ e.preventDefault(); const row = PD_GLANCE[g.getAttribute('data-pd-glance')]; if (row && typeof intelAsk === 'function') intelAsk(_pdT(row[2])); }
   });
@@ -3542,7 +3737,7 @@ function pdHeadWord(){
   const k = pdHolds(); if (!k) return '';
   if (k === 'chosen') return _pdT('pd_ch_head');
   const c = pdCardNow(); const ref = c ? ((typeof contractRef === 'function') ? contractRef(c) : c.id) : '';
-  return k === 'hist' ? _pdT('pd_hg_head', { ref }) : _pdT('pd_gl_title', { ref });
+  return k === 'hist' ? _pdT('pd_hg_head', { ref }) : _pdT('dos_held_head', { ref });
 }
 /* the ask box's words: which contract a question goes with */
 function pdAskPlaceholder(){
@@ -4037,7 +4232,7 @@ function pdHeldFollow(){
   _pdHeldWas = sig;
   const k = pdHolds(), c = pdHeldContract(); if (!k || !c) return;
   const el = document.querySelector('#ig-dock [data-pd-held-for], #ig-dock #pd-chosen');
-  const html = k === 'hist' ? pdHistGlanceHtml(c) : k === 'card' ? pdCardGlanceHtml(c) : pdChosenHtml(c);
+  const html = k === 'hist' ? pdHistGlanceHtml(c) : k === 'card' ? pdCardDossierHtml(c) : pdChosenHtml(c);
   if (!el){ if (typeof renderIntelDock === 'function') renderIntelDock(); return; }
   const t = document.createElement('div'); t.innerHTML = html;
   let card = el;
@@ -4052,7 +4247,59 @@ function pdHeldFollow(){
 function pdHeldTopHtml(){
   _pdHeldWas = pdHeldSig();
   const k = pdHolds(), c = pdHeldContract(); if (!k || !c) return null;
-  return (k === 'hist' ? pdHistGlanceHtml(c) : k === 'card' ? pdCardGlanceHtml(c) : pdChosenHtml(c)) + pdHeldChipsHtml();
+  return (k === 'hist' ? pdHistGlanceHtml(c) : k === 'card' ? pdCardDossierHtml(c) : pdChosenHtml(c)) + pdHeldChipsHtml();
+}
+/* ---- THE DOSSIER BESIDE THE BOARD'S CARD (owner, 20 Oct 2026: "yes make it
+   the dossier") ----
+   A contract brought up on the Board: Jambo's panel draws the same dossier as
+   beside its paper (pdGlanceHtml, pdNextUpHtml — one builder, a second host),
+   so the card and the panel say one thing. THE BOARD REVIEWS, THE WORKSPACE
+   ACTS: any press inside it first opens the contract beside its paper, then
+   presses the same door on the paper's own dossier — never a second copy of
+   an act wired here. */
+const PD_HELD_DOS_TRIES = 40;
+function pdCardDossierHtml(c){
+  const g = pdGlanceHtml(c).replace('<div id="pd-glance" class="pd-dossier"', '<div id="pd-glance" class="pd-dossier" data-pd-held-dossier');
+  const nx = pdNextUpHtml(c).replace('class="pd-menu pd-nx ds-nx"', 'class="pd-menu ds-nx" data-pd-held-dossier');
+  /* A PRIVATE CONTRACT SAYS WHO MAY OPEN IT FIRST, as the card did (bsPrivateOf, the card's own row) */
+  let P = null; try { P = (typeof bsPrivateOf === 'function') ? bsPrivateOf(c) : null; } catch (_){ P = null; }
+  const priv = P ? `<div class="pd-glance ds-card ds-private" data-pd-ds-card="private"><div class="pd-gl-b">${pdCardGlanceRowHtml(c, { k: 'private', P })}</div></div>` : '';
+  /* one holder, so the panel follows the page in place (pdHeldFollow) */
+  return `<div class="pd-held-dos" data-pd-held-for="${_pdE(c.id)}">${priv}${g}${nx}</div>`;
+}
+/* the same door on the paper's dossier: its id, else its first data-* mark */
+function pdHeldDoorSel(b){
+  if (b.id) return '#' + CSS.escape(b.id);
+  const a = [...b.attributes].find(x => /^data-(pd|ig|rl)-/.test(x.name));
+  return a ? `[${a.name}="${CSS.escape(a.value)}"]` : '';
+}
+if (typeof document !== 'undefined' && !document._pdHeldDosWired){
+  document._pdHeldDosWired = true;
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    const host = t.closest('[data-pd-held-dossier]'); if (!host) return;
+    const b = t.closest('button'); if (!b || !host.contains(b)) return;
+    /* the Board's own readings (a family member, Where we are, History) stay on the Board */
+    if (b.closest('summary') || b.matches('[data-pd-ds-fam], [data-pd-ds-page], [data-pd-cg-go]')) return;
+    e.preventDefault(); e.stopPropagation();
+    if (b.disabled) return;
+    const id = host.getAttribute('data-pd-glance-for') || host.getAttribute('data-pd-menu'), sel = pdHeldDoorSel(b);
+    if (!id || !sel) return;
+    /* the dossier itself, not a face left up over it */
+    ['pdFillAway', 'pdRedAway', 'pdSignAway'].forEach(f => { if (typeof window[f] === 'function') try { window[f](); } catch (_){} });
+    if (pdTalkShows()) try { pdTalkBack(); } catch (_){}
+    if (pdOpenOnHome(id, 'copilot') === false) return;
+    let n = 0;
+    const press = () => {
+      const on = document.querySelector(`#ig-dock #pd-glance[data-pd-glance-for="${CSS.escape(String(id))}"]:not([data-pd-held-dossier])`);
+      const nx = document.querySelector(`#ig-dock .pd-nx[data-pd-menu="${CSS.escape(String(id))}"]`);
+      const root = on && (on.querySelector(sel) ? on : (nx && nx.dataset.wired ? nx : null));
+      const row = root ? root.querySelector(sel) : null;
+      if (row){ if (!row.disabled) row.click(); return; }
+      if (++n < PD_HELD_DOS_TRIES) setTimeout(press, 50);
+    };
+    setTimeout(press, 0);
+  }, true);
 }
 if (typeof document !== 'undefined' && !document._pdHeldWired){
   document._pdHeldWired = true;
@@ -4187,7 +4434,8 @@ if (typeof document !== 'undefined' && !document._pdTrailEsc){
     if (pdTrailBack() || (typeof jamboTalkBack === 'function' && jamboTalkBack())) e.preventDefault();
   });
 }
-Object.assign(window, { PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdTalkKey, pdTalkShows, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
+Object.assign(window, { pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
+  PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdTalkKey, pdTalkShows, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, PD_RD_CHECKS, pdRoadCheckOf, pdRoadCheckNames, pdDayWord, pdBackDay, pdAwayOf, pdRoadRuleOf, pdRoadRuleTitle, pdRoadRuleSub, pdRoadRuleFramed, pdRoadRuleHtml, pdRoadMovedHtml, pdRoadYesOf, pdRoadYesTitle, pdRoadYesFramed, pdRoadYesFacts, pdRoadYesHtml, pdRoadPress, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,

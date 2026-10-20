@@ -51,15 +51,15 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
 
     /* 1 the Menu tab */
     await page.evaluate(() => { setView('dashboard'); igAnalyze('MK-B2'); });
-    await until(page, () => !!document.querySelector('#ig-dock [data-pd-tab="menu"]'), null, 10000);
+    /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the Menu tab is retired into the dossier's All acts fold */
+    await until(page, () => !!document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'), null, 10000);
     ok('1a no ⋯ on the paper\'s line', await page.evaluate(() => !document.querySelector('#ig-strip #ws-more')));
-    await page.click('#ig-dock [data-pd-tab="menu"]');
-    await until(page, () => !!(document.querySelector('#pd-body .pd-menu') || {}).dataset?.wired, null, 8000);
-    const menu = await page.evaluate(() => ({ cards: document.querySelectorAll('#pd-body .pd-mn-card').length,
-      groups: [...document.querySelectorAll('#pd-body .pd-mn-g summary')].map(x => x.textContent.trim()),
-      rows: ['#ws-pdf', '#ws-word', '#ws-filing', '#ws-import'].filter(s => document.querySelector('#pd-body .pd-mn-rows ' + s)) }));
-    /* RE-POINTED 20 Oct 2026 (owner: "the highlighted buttons should be in the overview page"): the suggestions stand on the Overview; the Menu tab is the ⋯ rows in their groups */
-    ok('1b the Menu tab: the ⋯ rows in their groups, the suggestions on the Overview', menu.cards === 0 && menu.groups.length >= 3 && menu.rows.length === 4, JSON.stringify(menu));
+    await page.evaluate(() => { const f = document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'); if (f) f.open = true; });
+    await until(page, () => !!(document.querySelector('#ig-dock .ds-nx') || {}).dataset?.wired, null, 8000);
+    const menu = await page.evaluate(() => ({ tab: !!document.querySelector('#ig-dock [data-pd-tab="menu"]'),
+      groups: [...document.querySelectorAll('#ig-dock .ds-fold[data-ds-fold="acts"] .ds-fold-h')].map(x => x.textContent.trim()),
+      rows: ['#ws-pdf', '#ws-word', '#ws-filing', '#ws-import'].filter(s => document.querySelector('#ig-dock .ds-fold .pd-mn-rows ' + s)) }));
+    ok('1b All acts: the ⋯ rows in their groups, no Menu tab', !menu.tab && menu.groups.length >= 3 && menu.rows.length === 4, JSON.stringify(menu));
     await page.screenshot({ path: path.join(OUT, '1-menu.png') });
 
     /* 2 Jambo's words for a Menu act */
@@ -178,11 +178,10 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     /* 5 Amend, beside the paper */
     ok('5a not offered on an agreement still being written', await page.evaluate(() => pdAmendOpen('MK-B2') === false && !document.querySelector('#pd-amendface')));
     await page.evaluate(() => { setView('dashboard'); igAnalyze('MK-B1'); });
-    await until(page, () => !!document.querySelector('#ig-dock [data-pd-tab="menu"]'), null, 10000);
-    await page.click('#ig-dock [data-pd-tab="menu"]');
-    await until(page, () => !!(document.querySelector('#pd-body .pd-menu') || {}).dataset?.wired, null, 8000);
-    await page.evaluate(() => { const b = document.querySelector('#pd-body .pd-mn-rows #ws-m-amend'); b.closest('details').open = true; b.click(); });
-    ok('5b the Menu row opens Amend beside the paper', await until(page, () => !!document.querySelector('#pd-amendface'), null, 5000));
+    /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the row stands in the dossier's All acts fold */
+    await until(page, () => !!(document.querySelector('#ig-dock .ds-nx') || {}).dataset?.wired && intel.paper && intel.paper.id === 'MK-B1', null, 10000);
+    await page.evaluate(() => { const b = document.querySelector('#ig-dock .ds-fold .pd-mn-rows #ws-m-amend'); if (!b) return; b.closest('details').open = true; b.click(); });
+    ok('5b the All acts row opens Amend beside the paper', await until(page, () => !!document.querySelector('#pd-amendface'), null, 5000));
     await page.waitForTimeout(400);
     const signedBefore = await page.evaluate(() => JSON.stringify([getContract('MK-B1').redlineText || '', getContract('MK-B1').status, (getContract('MK-B1').signatures || []).length]));
     await page.locator('#ig-canvas [data-anchor="c1"]').first().click({ position: { x: 30, y: 8 } });

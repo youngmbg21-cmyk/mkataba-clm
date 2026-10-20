@@ -121,11 +121,11 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     const k4 = await lastCard();
     ok('4b asking for an amendment says why, with no button', !!k4 && /expired/i.test(k4.why) && k4.btns.length === 0, JSON.stringify(k4));
     await shoot('4-expired-amend');
-    await page.click('#ig-dock [data-pd-tab="menu"]');
-    await until(page, () => !!(document.querySelector('#pd-body .pd-menu') || {}).dataset?.wired, null, 8000);
-    const row = await page.evaluate(() => { const b = document.querySelector('#pd-body .pd-mn-rows #ws-m-amend'); return b ? { grey: b.disabled, why: b.title } : null; });
-    ok('4c the Menu\'s amend row is grey with the same reason', !!row && row.grey && /expired/i.test(row.why), JSON.stringify(row));
+    /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the Menu tab's rows stand in the dossier's All acts fold */
     await page.click('#ig-dock [data-pd-tab="copilot"]');
+    await until(page, () => { const f = document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'); if (!f) return null; f.open = true; return !!(document.querySelector('#ig-dock .ds-nx') || {}).dataset?.wired; }, null, 8000);
+    const row = await page.evaluate(() => { const b = document.querySelector('#ig-dock .ds-fold .pd-mn-rows #ws-m-amend'); return b ? { grey: b.disabled, why: b.title } : null; });
+    ok('4c All acts\' amend row is grey with the same reason', !!row && row.grey && /expired/i.test(row.why), JSON.stringify(row));
     await until(page, () => !!document.querySelector('#igd-input'), null, 5000);
 
     /* 5 an answer about the contract already open */
