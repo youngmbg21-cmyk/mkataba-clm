@@ -32588,3 +32588,6 @@ The owner, with two pictures: "Image 1, so much space is lost here. Optimize thi
 
 ## ONE PANEL, FOUR FACES — THE TABS' ORDER (20 Oct 2026)
 The owner, on a picture of the side panel's tabs: "in the tabs, guide should be first then alerts, notes and activity last". `PANEL_FACES` and `panelTabsPaint` now read Guide · Alerts · (Notes, with a contract in front) · Activity. Which face opens by default is unchanged. Tests re-pointed: f841 1a, guide-panel-verify 1a and 5a.
+
+## THE POP-UPS, THE SAP WAY — THE PAGE FOLLOWS THE PANEL (20 Oct 2026)
+The owner sent a picture of New agreement with Home showing through a wide strip on the right: the page had been placed beside Jambo's panel (`page.beside:'#ig-dock'`) and `dlgPageAdopt` measured that gap only on open and on a window resize, so when Home changed under the page the gap stayed. `dlgPageAdopt` now watches the work column and the panel with a ResizeObserver (`ro`), re-placing whenever the panel moves, resizes, hides or leaves, and a hidden panel (visibility) no longer counts. Measured at 1918 wide: at the parent the page kept ending at 1528 after the panel was hidden or removed; now it takes the whole width and comes back beside the panel when it returns. Test: one-sheet-as-drawn verify 2d.

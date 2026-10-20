@@ -132,6 +132,16 @@ const SAY = 'NDA with Volvo Cars for a pilot';
     check('2a the sheet stands on the desk beside Jambo\'s panel', S1.beside, JSON.stringify({ beside: S1.beside, dock: S1.dockVis }));
     check('2b Jambo says in one line what he read, as drawn', S1.said === 'I’ve opened a new agreement on the desk with what I read: an NDA, with Volvo Cars. The closest of our paper is our NDA; you pick. Nothing is created until you press Create.', S1.said);
     check('2c no line in front of it, no doors back to a sheet that is up, no wall furniture', !S1.lines.some(l => /carry this/.test(l)) && !S1.saidActs && !S1.wall, JSON.stringify({ lines: S1.lines, acts: S1.saidActs, wall: S1.wall }));
+    /* 2d THE PAGE FOLLOWS THE PANEL (owner's picture, 20 Oct 2026): when Jambo's panel
+       leaves, the sheet takes the room it held; when it comes back, the sheet stands
+       beside it again. At the parent the gap stayed and Home showed through it. */
+    const frameEdge = () => page.evaluate(() => { const f = document.querySelector('#modal-root [data-dlg-page]'); return f ? Math.round(f.parentElement.getBoundingClientRect().right) : null; });
+    const e0 = await frameEdge();
+    await page.evaluate(() => { document.getElementById('ig-dock').style.display = 'none'; });
+    const e1 = await until(() => { const f = document.querySelector('#modal-root [data-dlg-page]'); const r = f && Math.round(f.parentElement.getBoundingClientRect().right); return r === window.innerWidth ? r : null; }, null, 3000);
+    await page.evaluate(() => { document.getElementById('ig-dock').style.display = ''; });
+    const e2 = await until(() => { const f = document.querySelector('#modal-root [data-dlg-page]'), d = document.getElementById('ig-dock'); const r = f && Math.round(f.parentElement.getBoundingClientRect().right); return d && r === Math.round(d.getBoundingClientRect().left) ? r : null; }, null, 3000);
+    check('2d Jambo\'s panel gone, the sheet takes its room; back, the sheet stands beside it again', e0 != null && e0 < 1440 && e1 === 1440 && e2 === e0, JSON.stringify({ e0, e1, e2 }));
     /* 3 From your words */
     const W3 = S1.words.map(w => w.t);
     /* RE-POINTED (pass 2, 18 Oct 2026): What is the KIND the words ask for, What it is for read from the words */

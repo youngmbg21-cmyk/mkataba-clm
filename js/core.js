@@ -3750,8 +3750,13 @@ const DLG_PAGE_BESIDE_EDGE=40;
 function dlgPageAdopt(root, panel, page){
   const frame=panel.parentElement, scrim=root.querySelector('#modal-scrim');
   if(scrim) scrim.style.display='none';
+  /* THE PAGE FOLLOWS THE PANEL (20 Oct 2026): the gap left for Jambo's panel is
+     measured again whenever that panel moves, resizes or leaves (Home changing
+     under the page), not only when the window resizes, so no strip of the page
+     behind is left showing. */
+  let ro=null, seen=null;
   const place=()=>{
-    if(!frame.isConnected){ window.removeEventListener('resize',place); return; }
+    if(!frame.isConnected){ window.removeEventListener('resize',place); if(ro) ro.disconnect(); return; }
     /* Under the top bar, beside the menu: the bar's bottom edge and the work
        column's left edge (a page head above the work column is covered). */
     const cs=document.getElementById('content-scroll'), bar=document.getElementById('top-header');
@@ -3763,10 +3768,12 @@ function dlgPageAdopt(root, panel, page){
        sight: the page ends at its left edge while it stands at the right. */
     let right=0;
     const side=page.beside?document.querySelector(page.beside):null;
-    if(side&&side.getClientRects().length){ const sr=side.getBoundingClientRect(); const vw=window.innerWidth||0;
+    if(ro&&side!==seen){ if(seen) ro.unobserve(seen); if(side) ro.observe(side); seen=side; }
+    if(side&&side.getClientRects().length&&getComputedStyle(side).visibility!=='hidden'){ const sr=side.getBoundingClientRect(); const vw=window.innerWidth||0;
       if(sr.left>r.left+DLG_PAGE_BESIDE_MIN && sr.right>=vw-DLG_PAGE_BESIDE_EDGE) right=Math.max(0,Math.round(vw-sr.left)); }
     frame.style.cssText=`position:fixed;top:${Math.round(top)}px;left:${Math.round(r.left)}px;right:${right}px;bottom:0;z-index:70;display:flex;`;
   };
+  if(page.beside&&typeof ResizeObserver==='function'){ ro=new ResizeObserver(()=>place()); const cs=document.getElementById('content-scroll'); if(cs) ro.observe(cs); }
   place(); window.addEventListener('resize',place);
   panel.setAttribute('data-dlg-page','');
   Object.assign(panel.style,{ width:'100%', maxWidth:'none', height:'100%', maxHeight:'none', borderRadius:'0',
