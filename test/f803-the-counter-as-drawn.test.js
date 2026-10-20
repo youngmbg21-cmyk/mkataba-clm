@@ -90,7 +90,7 @@ function counter(rows, extra){
   ctx.window = ctx;
   vm.createContext(ctx);
   const names = ['cnDayWords', 'cnMayMoney', 'cnNeedVerb', 'cnNeedTitle', 'cnWhenWords', 'cnNeedSub', 'cnNeedRowHtml', 'cnNoteRowHtml', 'cnReqRowHtml', 'cnReqWhat', 'cnNeedShort', 'cnNeedDoorAttrs', 'cnChipsHtml', 'cnFace', 'counterHtml'];
-  vm.runInContext(['_cnE', '_cnT', '_cnTn', '_cnFirst', '_cnWho', '_cnToday', '_cnPill', 'CN_ROWS', 'CN_PICK_UP', 'CN_REQ_WHAT_RE'].map(n => constLine(CN, n)).join('\n') + '\nlet _cnAll = false, _cnSig = "";\n'
+  vm.runInContext(['_cnE', '_cnT', '_cnTn', '_cnFirst', '_cnWho', '_cnToday', '_cnPill', '_cnJbCard', '_cnJbSend', 'CN_ROWS', 'CN_PICK_UP', 'CN_REQ_WHAT_RE'].map(n => constLine(CN, n)).join('\n') + '\nlet _cnAll = false, _cnSig = "";\n'
     + constBlock(CN, 'CN_NEED_GO') + '\n' + names.map(n => fnBody(CN, n)).join('\n'), ctx);
   return ctx;
 }
