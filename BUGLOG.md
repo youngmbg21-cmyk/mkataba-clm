@@ -21209,3 +21209,5 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - 20 Oct 2026 (PR #376's CI, noticed, not fixed): requests-sap-way-verify failed once on GitHub at 3898c6c8 but passed on the run before at 70d83a73 (same code) and passes locally (ALL PASSED). A timing flake on the runner; the failing step was not read.
 
 - 20 Oct 2026 — Noticed, not fixed: test f187 (1) "ONE PANEL, THREE CONTENTS" still pins `PANEL_FACES = ['activity', 'alerts', 'notes']`; the side-panel tabs change (Guide, Alerts, Notes, Activity, #376) made it four faces, so the node suite is red on main. Fix: update the pinned list in f187 to the four faces.
+
+- 20 Oct 2026 — Noticed, not fixed: on the Board, a timeline (gantt) chart in full screen draws contract chips whose names run past the right edge of the card (e.g. "MK-R90 · AIT Worldwide Logist…" cut by the edge), and its note says "full screen shows all 123" while full screen shows about 20.

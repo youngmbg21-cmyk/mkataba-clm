@@ -11481,6 +11481,13 @@
   .hb-ctab th{text-align:left;font-weight:400;color:var(--hb-mute);font-size:11px;padding:6px 8px;border-bottom:1px solid rgba(var(--hb-ln),.2)}
   .hb-ctab td{padding:6px 8px;border-bottom:1px solid rgba(var(--hb-ln),.1);color:var(--hb-ink);font-variant-numeric:tabular-nums}
   .hb-dig.is-full{position:fixed;inset:16px;z-index:95;overflow:auto;max-width:none;margin:0;box-shadow:0 12px 48px rgba(0,0,0,.35);background:#FFFFFF;backdrop-filter:none}
+  /* IN THE MIDDLE OF THE WINDOW (owner, 20 Oct 2026: "In full screen, at least
+     bring the chart in the middle of the page as opposed to leaving blank
+     space"): a picture shorter than the window (a list of bars, a grid) shares
+     the spare height above and below instead of leaving it all underneath */
+  .hb-dig.is-full{display:flex;flex-direction:column}
+  .hb-dig.is-full>*{flex-shrink:0}
+  .hb-dig.is-full>.hb-cb{flex:1 0 auto;display:flex;flex-direction:column;justify-content:center}
   .hb-board:has(.hb-dig.is-full){z-index:95}
   .hb-dark .hb-dig.is-full{background:#06171A}
   [data-brand="navy"] .hb-dark .hb-dig.is-full{background:#06101F}
