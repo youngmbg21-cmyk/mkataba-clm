@@ -2930,7 +2930,7 @@ function redlineLayoutCss(){
          button HERE ONLY; the More menu's row keeps it, untouched, and the
          filled face is what tells the two apart. Presentation, in the second
          home, exactly as the dressing above it is. */}
-  .redline-page .rl-empty-acts button[data-rl-prepare] > span[aria-hidden]{display:none}
+  .redline-page .rl-empty-acts button[data-rl-prepare] > span[aria-hidden]:not(.ob-spin){display:none}
   .redline-page .rl-empty-acts button[data-rl-prepare]:hover:not(:disabled){filter:brightness(1.08)}
   .redline-page .rl-empty-acts .rl-empty-edit{border:1px solid var(--btn-edge);
     background:transparent;color:var(--accent-ink)}

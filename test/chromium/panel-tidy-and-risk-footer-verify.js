@@ -120,7 +120,8 @@ const LIAB_NEW = 'Each party\'s total liability under this Agreement shall not e
         pillBg: tag ? getComputedStyle(tag).backgroundColor : '', pillInk: tag ? getComputedStyle(tag).color : '', boxBg: getComputedStyle(box).backgroundColor,
         x: x ? Math.round(x.getBoundingClientRect().width) : 0 };
     });
-    check(!!a && a.line && /Asking about/.test(a.words), 'A1 the tag sits on the control row, "Asking about"', a && a.words);
+    /* RE-POINTED 20 Oct 2026 (owner: "Remove the wording highlighted and just leave the blue button"): the chip alone, no "Asking about" */
+    check(!!a && a.line && !/Asking about/.test(a.words) && a.words.length > 0, 'A1 the tag sits on the control row, the blue chip alone (no "Asking about")', a && a.words);
     /* RE-POINTED 20 Oct 2026 (owner: "one line field … when you need to text wrap it is when it becomes bigger"): at rest the tag rides the one line before the words; tall, it rides the row under them */
     check(!!a && a.tagBefore, 'A2 at rest the tag sits on the one line, before the words', a && JSON.stringify({ tagBefore: a.tagBefore, taLeft: a.taLeft }));
     check(!!a && a.pillBg !== a.boxBg && !/rgba\(0, 0, 0, 0\)/.test(a.pillBg) && a.pillInk === 'rgb(255, 255, 255)' && a.x >= 16, 'A3 the tag is a filled pill with a × the hand can find', a && JSON.stringify({ pill: a.pillBg, ink: a.pillInk, x: a.x }));
