@@ -3115,7 +3115,7 @@ function stAskFrom(panel, words){
   const feed=document.getElementById('st-jb-feed');
   if(feed && typeof state!=='undefined' && state.view==='team'){ stSideSet('jambo'); stJbTurnAdd(t); }
   else if(typeof setView==='function'){ setView('team'); stJbTurnAdd(t); }
-  const go=()=>{ const f=document.getElementById('st-jb-feed'); if(f) f.scrollTop=f.scrollHeight;
+  const go=()=>{ const f=document.getElementById('st-jb-feed'); stJbLand(f);
     const box=document.getElementById('st-ask-why-'+t.id); if(box) try{ box.focus({preventScroll:true}); }catch(_){} };
   if(typeof requestAnimationFrame==='function') requestAnimationFrame(go); else go();
 }
@@ -3339,6 +3339,11 @@ function stJbTalkPaint(){
   if(tk){ tk.hidden=false; tk.classList.toggle('is-off',!on); tk.setAttribute('aria-current',String(on)); }
   if(typeof deskBarPaint==='function') try{ deskBarPaint(); }catch(_){ }
 }
+/* the newest turn read from its first line (jamboFeedLand, owner 20 Oct 2026) */
+function stJbLand(feed){
+  if(!feed) return;
+  if(typeof jamboFeedLand==='function') jamboFeedLand(feed, jamboFeedLast(feed,'[data-st-jb-turn]')); else feed.scrollTop=feed.scrollHeight;
+}
 /* a turn said in the panel: the conversation view comes up, the landing kept */
 function stJbTurnAdd(t){
   stTalkLand();
@@ -3348,13 +3353,13 @@ function stJbTurnAdd(t){
   const T=stJbTalkWrap(feed);
   if(t&&!T.querySelector(`[data-st-jb-turn="${t.id}"]`)) T.insertAdjacentHTML('beforeend', stJbTurnHtml(t));
   stJbTalkPaint();
-  feed.scrollTop=feed.scrollHeight;
+  stJbLand(feed);
 }
 function stTalkReopen(){
   if(typeof jamboTalkOpen!=='function') return false;
   jamboTalkOpen(stTalkKey(), document.getElementById('st-jb-feed'));
   stJbTalkPaint();
-  const feed=document.getElementById('st-jb-feed'); if(feed) feed.scrollTop=feed.scrollHeight;
+  stJbLand(document.getElementById('st-jb-feed'));
   return true;
 }
 function stTalkBack(){

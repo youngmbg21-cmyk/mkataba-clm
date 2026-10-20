@@ -10034,8 +10034,8 @@
   #ig-dock .pd-glance .pd-gl-row > span{display:flex;flex-direction:column;gap:1px}
   #ig-dock .pd-glance .pd-gl-row small{font-size:11.5px;line-height:1.4;color:var(--color-neutral-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #ig-dock .pd-gl-brief{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;border:0;border-radius:var(--radius);background:var(--color-neutral-100);padding:8px 10px;font:inherit;font-size:12.5px;line-height:1.5;color:var(--color-text);cursor:pointer}
-  #ig-dock .pd-gl-brief:hover{background:var(--color-accent-50)}
-  #ig-dock .pd-gl-brief em{font-style:normal;font-size:11.5px;font-weight:var(--w-label);color:var(--color-neutral-600)}
+  #ig-dock .pd-gl-brief{gap:6px}
+  #ig-dock .pd-gl-brief .pd-gl-brief-b{align-self:flex-start}
   #ig-dock .pd-gl-brief span{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
   #ig-dock .pd-gl-foot{padding:0 14px 10px;font-size:11.5px;color:var(--color-neutral-600)}
   /* the importer's door under the drop area, and the drop area lit when a door brings you to it */
@@ -10170,16 +10170,18 @@
      folded groups. The rows keep .room-menu's own look; only its layer
      (absolute, shadow, border) is taken off, since here it sits in the panel. */
   #pd-body .pd-menu{display:grid;gap:10px;padding:12px 14px 16px}
-  #pd-body .pd-menu .pd-mn-lead{font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600)}
-  #pd-body .pd-menu .pd-mn-cards{display:grid;gap:8px}
-  #pd-body .pd-menu .pd-mn-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;text-align:left;width:100%;
+  /* the Overview's "Next up" (owner, 20 Oct 2026): the same cards under the paper's glance */
+  #ig-dock .pd-nx{display:grid;gap:8px;margin-top:10px}
+  #ig-dock .pd-mn-lead{font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600)}
+  #ig-dock .pd-mn-cards{display:grid;gap:8px}
+  #ig-dock .pd-mn-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;text-align:left;width:100%;
     border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:var(--color-surface);padding:9px 12px;font:inherit;color:var(--color-text);cursor:pointer}
-  #pd-body .pd-menu .pd-mn-card:hover{border-color:var(--accent-ink)}
-  #pd-body .pd-menu .pd-mn-card:focus-visible{outline:2px solid var(--accent-fill);outline-offset:2px}
-  #pd-body .pd-menu .pd-mn-card.is-lead{border-color:var(--accent-ink);box-shadow:inset 3px 0 0 var(--accent-ink)}
-  #pd-body .pd-menu .pd-mn-card b{font-weight:var(--w-strong);font-size:var(--t-body)}
-  #pd-body .pd-menu .pd-mn-card small{grid-column:1;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.4}
-  #pd-body .pd-menu .pd-mn-go{grid-column:2;grid-row:1 / span 2;color:var(--accent-ink);font-weight:var(--w-strong);font-size:var(--t-label);white-space:nowrap}
+  #ig-dock .pd-mn-card:hover{border-color:var(--accent-ink)}
+  #ig-dock .pd-mn-card:focus-visible{outline:2px solid var(--accent-fill);outline-offset:2px}
+  #ig-dock .pd-mn-card.is-lead{border-color:var(--accent-ink);box-shadow:inset 3px 0 0 var(--accent-ink)}
+  #ig-dock .pd-mn-card b{font-weight:var(--w-strong);font-size:var(--t-body)}
+  #ig-dock .pd-mn-card small{grid-column:1;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.4}
+  #ig-dock .pd-mn-go{grid-column:2;grid-row:1 / span 2;color:var(--accent-ink);font-weight:var(--w-strong);font-size:var(--t-label);white-space:nowrap}
   #pd-body .pd-menu .pd-mn-g{border-top:1px solid var(--color-divider);padding-top:6px}
   #pd-body .pd-menu .pd-mn-g > summary{display:flex;justify-content:space-between;align-items:center;cursor:pointer;list-style:none;
     font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600);padding:4px 2px}
@@ -11481,6 +11483,13 @@
   .hb-ctab th{text-align:left;font-weight:400;color:var(--hb-mute);font-size:11px;padding:6px 8px;border-bottom:1px solid rgba(var(--hb-ln),.2)}
   .hb-ctab td{padding:6px 8px;border-bottom:1px solid rgba(var(--hb-ln),.1);color:var(--hb-ink);font-variant-numeric:tabular-nums}
   .hb-dig.is-full{position:fixed;inset:16px;z-index:95;overflow:auto;max-width:none;margin:0;box-shadow:0 12px 48px rgba(0,0,0,.35);background:#FFFFFF;backdrop-filter:none}
+  /* IN THE MIDDLE OF THE WINDOW (owner, 20 Oct 2026: "In full screen, at least
+     bring the chart in the middle of the page as opposed to leaving blank
+     space"): a picture shorter than the window (a list of bars, a grid) shares
+     the spare height above and below instead of leaving it all underneath */
+  .hb-dig.is-full{display:flex;flex-direction:column}
+  .hb-dig.is-full>*{flex-shrink:0}
+  .hb-dig.is-full>.hb-cb{flex:1 0 auto;display:flex;flex-direction:column;justify-content:center}
   .hb-board:has(.hb-dig.is-full){z-index:95}
   .hb-dark .hb-dig.is-full{background:#06171A}
   [data-brand="navy"] .hb-dark .hb-dig.is-full{background:#06101F}

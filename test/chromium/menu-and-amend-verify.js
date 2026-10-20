@@ -58,7 +58,8 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     const menu = await page.evaluate(() => ({ cards: document.querySelectorAll('#pd-body .pd-mn-card').length,
       groups: [...document.querySelectorAll('#pd-body .pd-mn-g summary')].map(x => x.textContent.trim()),
       rows: ['#ws-pdf', '#ws-word', '#ws-filing', '#ws-import'].filter(s => document.querySelector('#pd-body .pd-mn-rows ' + s)) }));
-    ok('1b the Menu tab: suggestions first, then the ⋯ rows in their groups', menu.cards >= 1 && menu.cards <= 3 && menu.groups.length >= 3 && menu.rows.length === 4, JSON.stringify(menu));
+    /* RE-POINTED 20 Oct 2026 (owner: "the highlighted buttons should be in the overview page"): the suggestions stand on the Overview; the Menu tab is the ⋯ rows in their groups */
+    ok('1b the Menu tab: the ⋯ rows in their groups, the suggestions on the Overview', menu.cards === 0 && menu.groups.length >= 3 && menu.rows.length === 4, JSON.stringify(menu));
     await page.screenshot({ path: path.join(OUT, '1-menu.png') });
 
     /* 2 Jambo's words for a Menu act */

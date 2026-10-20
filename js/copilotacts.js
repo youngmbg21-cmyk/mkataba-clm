@@ -1419,6 +1419,12 @@ const CA_PLACES = [
   { k: 'house', w: ["jambo's agents", 'agents', "jambo's house", 'house', 'jambos agenter', 'agenter', 'jambos hus'] },
   { k: 'settings', w: ['settings', 'settings and rules', 'setup', 'inställningar'] },
   { k: 'brain', w: ['brain', 'hjärnan', 'hjärna'] },
+  /* THE RIGHT-HAND PANEL'S TABS (owner, 20 Oct 2026: "when i ask jambo to show
+     me the guide or activitiy and so on, it should do so"): Guide, Alerts and
+     Activity open the panel on that tab (caPanelShow); "notes" stays My notes */
+  { k: 'guide', w: ['guide', 'the guide', 'user guide', 'guiden', 'vägledning', 'vägledningen'] },
+  { k: 'alerts', w: ['alerts', 'alert', 'my alerts', 'notifications', 'my notifications', 'the bell', 'aviseringar', 'mina aviseringar', 'notiser', 'notifieringar', 'varningar'] },
+  { k: 'activity', w: ['activity', 'recent activity', 'activity feed', 'aktivitet', 'aktiviteter', 'senaste aktivitet'] },
   { k: 'next', need: 'one', w: ['next', 'next step', 'next steps', "what's next", 'whats next', 'what is next', 'what next', 'what now', 'nästa', 'nästa steg', 'vad är nästa steg', 'vad händer nu', 'vad nu'] },
 ];
 /* "go to", "open", "show me", "take me back to", "gå till", "öppna", "visa" */
@@ -1482,7 +1488,7 @@ function caUseBump(k){
    these rows first, and on the Board its chart moves after them. Ties keep
    this order, which is the plan's order of a working day. */
 const CA_SLASH = ['redline', 'needs', 'sign', 'board', 'document', 'share', 'oblig', 'history', 'fill', 'calendar', 'explorer', 'draft', 'upload',
-  'work', 'negotiations', 'approvals', 'requests', 'parties', 'people', 'ourpaper', 'mynotes', 'insights', 'import', 'house', 'settings', 'brain', 'counter'];
+  'work', 'negotiations', 'approvals', 'requests', 'parties', 'people', 'ourpaper', 'mynotes', 'insights', 'import', 'house', 'settings', 'brain', 'counter', 'guide', 'alerts', 'activity'];
 const CA_SLASH_MAX = 8;
 function caSlashWord(k){ return String(_caT('ca_w_' + k)).trim().replace(/\s+/g, '-'); }
 function caSlashRows(w, opts = {}){
@@ -1606,6 +1612,9 @@ const CA_GO = {
   work: () => typeof hbOpenAgent === 'function' && hbOpenAgent(),
   negotiations: () => (typeof openNegotiations === 'function') ? openNegotiations({ list: true }) : setView('redline'),
   approvals: () => setView('approvals'),
+  guide: () => caPanelShow('guide'),
+  alerts: () => caPanelShow('alerts'),
+  activity: () => caPanelShow('activity'),
   requests: () => setView('intake'),
   parties: () => setView('customers'),
   people: () => setView('directory'),
@@ -1666,6 +1675,14 @@ function caGo(a){
   const go = CA_GO[a.place]; if (typeof go !== 'function') return false;
   try { go(c); } catch (e){ if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); return false; }
   caGoRepaint();
+  return true;
+}
+/* the right-hand panel on one tab: opened there, never closed by the ask
+   (openPanel closes a panel pressed open on the same tab) */
+function caPanelShow(face){
+  if (typeof openPanel !== 'function') return false;
+  const shown = typeof state !== 'undefined' && state && state.panelOpen && typeof panelFace === 'function' && panelFace() === face;
+  if (!shown) openPanel(face);
   return true;
 }
 /* a move that stays on Home repaints the panel so its back row is current.

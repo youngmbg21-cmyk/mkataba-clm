@@ -15343,7 +15343,27 @@ function rlPbOutcomeSay(rev){
   if (done === false) return { text: i18t('ng_pb_partly_checked', { k: Number(rev.checked || 0), n: Number(rev.standards || 0) }), kind: 'warn' };
   return { text: i18t('ng_pb_all_aligned_old'), kind: 'ok' };
 }
+/* ---- WHEN SOMETHING LOADS, SOMETHING MOVES (owner, 20 Oct 2026: "when you
+   press to draft from our standards, you do not see anything happening …
+   Add some movement so that someone does not think it is frozen") ----
+   From the yes until the drafts are filed, every Draft from our standards
+   button on the screen wears the turning ring and says Jambo is drafting,
+   greyed so a second press cannot start a second run; whatever the run ends
+   in, a button the repaint did not replace is put back as it was. */
+function rlPrepareBusy(){
+  if (typeof document === 'undefined') return () => {};
+  const was = [...document.querySelectorAll('[data-rl-prepare], [data-pd-mn-go="[data-rl-prepare]"]')].map(b => ({ b, html: b.innerHTML, dis: b.disabled }));
+  was.forEach(({ b }) => { b.disabled = true; b.setAttribute('aria-busy', 'true');
+    if (typeof busySet === 'function') busySet(b, i18t('ng_prepare_busy')); else b.textContent = i18t('ng_prepare_busy'); });
+  return () => was.forEach(({ b, html, dis }) => { if (!b.isConnected) return;
+    b.innerHTML = html; b.disabled = dis; b.removeAttribute('aria-busy'); });
+}
 async function rlPrepareRedlines(c, again){
+  let done = null;
+  try { return await rlPrepareRedlinesRun(c, again, () => { done = rlPrepareBusy(); }); }
+  finally { if (done) done(); }
+}
+async function rlPrepareRedlinesRun(c, again, onYes){
   if (!window.runPlaybookReview || !window.confirmDialog || !window.rlPlaybookProposals){
     if (window.toast) toast(i18t('ng_playbook_not_loaded'), 'err');
     return null;
@@ -15362,6 +15382,7 @@ async function rlPrepareRedlines(c, again){
     message: i18t(stored ? 'ng_prepare_ask_stored' : 'ng_prepare_ask'),
     confirmLabel: i18t('ng_prepare_go') });
   if (!go) return null;
+  if (onYes) onYes();
   /* THE WHOLE RECORD, never a light row: the runner reads an upload's extracted
      text and a light row does not carry it — and nothing is ever saved from a
      light record (persist's own rule). */

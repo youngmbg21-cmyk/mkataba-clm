@@ -360,7 +360,7 @@ function stkDiveHtml(c, b, i){
       ${sec('stk_h_trade', (p.trade || []).length ? `<div class="stk-trade">${p.trade.map(t => `<div><span><em>${_bdE(i18t('stk_give'))}</em>${_bdE(t.give)}</span><span class="stk-arw" aria-hidden="true">→</span><span><em>${_bdE(i18t('stk_get'))}</em>${_bdE(t.get)}</span></div>`).join('')}</div>` : '')}
       ${p.ask ? `<div class="stk-ask"><span>${_bdE(i18t('stk_ask'))}</span><p>${_bdE(p.ask)}</p></div>` : ''}
       ${sec('stk_h_links', links.length ? `<div class="stk-links">${links.map(at => `<button type="button" data-stk-dive="${at}">${_bdE(shown[at].title)}</button>`).join('')}</div>` : '')}
-      <div class="stk-acts"><button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-stk-redline>${_bdE(i18t('stk_redline'))}</button>
+      <div class="stk-acts">${(why => `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-stk-redline${why ? ` disabled aria-disabled="true" title="${_bdE(why)}"` : ''}>${_bdE(i18t('stk_redline'))}</button>`)(stkRedlineWhy(c))}
         <button type="button" class="ui-btn ui-btn-sm" data-stk-ask="${i}">${_bdE(i18t('stk_ask_jambo'))}</button></div>
     </div></div></div>`;
 }
@@ -382,7 +382,23 @@ function stkDivePaint(c, card){
    nothing filed or sent until a person presses. It remembers where the
    reader came from — this contract's deep dive, its point and its filters —
    so "‹ Back to clauses" returns to the same point (stkResume). */
+/* ---- WHY THIS READER MAY NOT REDLINE IT, OR '' (owner, 20 Oct 2026: "it
+   should be greyed out if you have no editing access or access to edit a
+   particular contract") ----
+   The house's own readings, in order: a viewer cannot edit at all (canEdit),
+   the negotiation's desk seats its own redliners (deskMayRedline, its words
+   deskBlockMessage), and a signature freezes the wording (negoWordingFrozen).
+   Greyed with the reason; "Ask Jambo about this" then asks on Home's box. */
+function stkRedlineWhy(c){
+  if (!c) return '';
+  if (typeof canEdit === 'function' && !canEdit()) return i18t('stk_redline_viewer');
+  try { if (typeof deskMayRedline === 'function' && !deskMayRedline(c))
+    return (typeof deskBlockMessage === 'function' && deskBlockMessage(c)) || i18t('dk_reading', { who: ((typeof deskLead === 'function' && deskLead(c)) || {}).name || '' }); } catch (_){}
+  if (typeof negoWordingFrozen === 'function' && negoWordingFrozen(c)) return i18t('ce_wording_frozen');
+  return '';
+}
 function stkRedlineGo(c, opts){
+  if (stkRedlineWhy(c)) return;
   const b = stkOf(c), p = b && _stk.dive >= 0 ? stkShown(c, b)[_stk.dive] : null;
   let clauseId = '';
   if (p && !p.missing && _stk.rows){
@@ -471,7 +487,7 @@ if (typeof document !== 'undefined' && !document._stkWired){
            nothing in the contract, or a window too narrow for the editor,
            asks on Home as before. */
         const fits = typeof clauseEditorFits === 'function' && clauseEditorFits();
-        if (!p.missing && fits) stkRedlineGo(c, { question: q });
+        if (!p.missing && fits && !stkRedlineWhy(c)) stkRedlineGo(c, { question: q });
         else if (typeof intelAskReady === 'function') intelAskReady(q);
       } }
   }, true);

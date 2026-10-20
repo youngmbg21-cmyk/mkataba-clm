@@ -2309,10 +2309,17 @@ async function intelAsk(qRaw, opts){
          and the first is landed on too, so the eye goes straight to it */
       const cardWord=act.kind==='go'&&Array.isArray(window.CA_CARD_WORDS)&&CA_CARD_WORDS.includes(act.place)&&!act.missing;
       const had=cardWord?intel.history.findIndex(m=>m&&m.act&&m.act.kind==='go'&&m.act.place===act.place&&String(m.act.cid||'')===String(act.cid||'')&&!m.act.missing):-1;
+      /* …ON SCREEN (owner, 20 Oct 2026: "some times when i press on the draft
+         new agreement it does not work"): once the panel had gone back to its
+         landing, the card was in the conversation but not on screen, so the
+         press lit nothing. The conversation is brought back first; a card it
+         still cannot show is drawn again, never a press that does nothing. */
       if(had>=0){
-        renderIntelDock();
-        if(typeof window.landOn==='function') landOn(()=>document.querySelector(`#ig-dock [data-ca-card="${had}"]`));
-        return;
+        if(!(typeof window.pdTalkShows==='function'&&pdTalkShows())&&typeof window.pdTalkReopen==='function') pdTalkReopen(); else renderIntelDock();
+        if(document.querySelector(`#ig-dock [data-ca-card="${had}"]`)){
+          if(typeof window.landOn==='function') landOn(()=>document.querySelector(`#ig-dock [data-ca-card="${had}"]`));
+          return;
+        }
       }
       intel.history.push({role:'user', text:q});
       /* A WORD (the one-page Home plan, stage 1) is said in one line and the
@@ -8093,7 +8100,9 @@ function renderIntelDock(){
      he draws above it (Needs you here, the glance, the Board's greeting) is
      read from its first line, never scrolled past (round 3 as drawn: Needs
      you is the first card, 18 Oct 2026) */
-  const feed=document.getElementById('igd-feed'); feed.scrollTop=talk?feed.scrollHeight:0;
+  /* …the newest turn read from its FIRST line, never pushed to its end (jamboFeedLand, owner 20 Oct 2026) */
+  const feed=document.getElementById('igd-feed');
+  if(!talk) feed.scrollTop=0; else if(typeof jamboFeedLand==='function') jamboFeedLand(feed, jamboFeedLast(feed)); else feed.scrollTop=feed.scrollHeight;
   /* NO CHIPS UNDER A FACE (rounds 8–11 as drawn, the gaps of 18 Oct 2026): the
      face carries its own acts, so the panel says a face is up and the chips row
      stands down by that scope (#ig-dock.pd-face-up) — Jambo perches on the box */
@@ -8121,6 +8130,8 @@ function renderIntelDock(){
   /* the Overview tab's fill form, drawn by the room's own builder (owner, 11 Oct 2026) */
   if(window.pdShowsDesk&&pdShowsDesk()&&window.pdTab&&pdTab()==='facts'&&typeof window.pdFillPaint==='function'){ const pc=pdContract(); if(pc) try{ pdFillPaint(pc); }catch(_){ } }
   if(window.pdShowsDesk&&pdShowsDesk()&&window.pdTab&&pdTab()==='menu'&&typeof window.pdMenuWire==='function'){ const pc=pdContract(); if(pc) try{ pdMenuWire(pc); }catch(_){ } }
+  /* "Next up" on the Overview, wired by the Menu's own wiring (owner, 20 Oct 2026) */
+  { const nx=dock.querySelector('.pd-nx'); if(nx&&typeof window.pdMenuWire==='function'){ const pc=pdContract(); if(pc) try{ pdMenuWire(pc, nx); }catch(_){ } } }
   // charts in dock answers come back to life after every repaint
   if(typeof aiHydrateCharts==='function'){
     const blocks=intel.history.flatMap(m=>(m&&m.blocks)||[]);

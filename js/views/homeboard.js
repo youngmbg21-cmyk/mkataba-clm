@@ -1978,7 +1978,20 @@ function hbStepH(step){
   return HB_STEP_H.board;
 }
 function hbFW(){ return _hbFit ? _hbFit.w : 1000; }
-function hbFH(def){ return _hbFit ? hbStepH(_hbFit.step) : def; }
+/* MAKE BIGGER ALWAYS MAKES IT BIGGER (owner, 20 Oct 2026: "When you press to
+   expand or make smaller the frequently do not work accordingly"): a card
+   made bigger was only made wider, so a card already the row's width (alone
+   on its row, or a one-column board) changed nothing, and an opened chart kept
+   its height. A grown card is now drawn TALLER too: on the board at the
+   opened height, opened at HB_GROWN_VH of the window (never past full screen) */
+const HB_GROWN_VH = 0.55;
+function hbGrownH(step){
+  const vh = (typeof window !== 'undefined' && window.innerHeight) || 800;
+  if (step === 'board') return hbStepH('open');
+  if (step === 'open') return Math.min(hbStepH('full'), Math.max(hbStepH('open'), Math.round(vh * HB_GROWN_VH)));
+  return hbStepH(step);
+}
+function hbFH(def){ return _hbFit ? (_hbFit.grow ? hbGrownH(_hbFit.step) : hbStepH(_hbFit.step)) : def; }
 /* gridlines: three on the board, four once opened (Instrument) */
 function hbGridN(){ return _hbFit && _hbFit.step === 'board' ? 3 : 4; }
 function hbFitMeasure(){
@@ -2060,6 +2073,16 @@ function hbAngleOf(labels, step, fs, drawn){
   const w = Math.min(HB_ANGLE_MAX, Math.max(0, ...(drawn || labels).map(l => _hbTextW(l, HB_ANGLE_FS))));
   const r = HB_ANGLE * Math.PI / 180;
   return { fs: HB_ANGLE_FS, w, up: Math.ceil(w * Math.sin(r)) + HB_ANGLE_FS, out: Math.ceil(w * Math.cos(r)) };
+}
+/* THE ROOM ON THE LEFT IS WHAT THE NAMES REALLY HANG OUT (owner, 20 Oct
+   2026: "some graphs do not go in the middle or do not use the space wisely"):
+   a slanted name ending under its column hangs left by its OWN width, so
+   only the first few can reach past the axis; the room was the LONGEST
+   name's, wherever it stood, and left a blank strip beside the chart.
+   `dx`: how far right of the column's middle the name ends */
+function hbAngleLeft(labels, A, step, dx){
+  const c = Math.cos(HB_ANGLE * Math.PI / 180);
+  return Math.ceil(Math.max(0, ...labels.map((t, i) => Math.min(A.w, _hbTextW(_hbFitText(t, A.w, A.fs), A.fs)) * c - (i + 0.5) * step - (dx || 0))));
 }
 /* `anchor` 'start': the name rises to the right from (x, y) — over a grid;
    'end': it ends at (x, y) — under an axis */
@@ -3624,7 +3647,7 @@ function hbStackSvg(D, cs, P){
      to the left that they need (hbAngleOf) */
   const A = X.time ? null : hbAngleOf(cells.map(x => colWord(x.col)), (W - 64 - R) / n, 12, cells.map(x => colWord(x.col, true)));
   /* the slanted names take their height UNDER the chart, never out of it */
-  const L = A ? Math.max(64, Math.ceil(A.out - (W - 64 - R) / n / 2) + 6) : 64, B = A ? 20 + A.up : 52, H = hbFH(340) + B - 52, base = H - B, step = (W - L - R) / n;
+  const L = A ? Math.max(64, hbAngleLeft(cells.map(x => colWord(x.col, true)), A, (W - 64 - R) / n, 3) + 6) : 64, B = A ? 20 + A.up : 52, H = hbFH(340) + B - 52, base = H - B, step = (W - L - R) / n;
   const top = hbAxisTop(Math.max(...tops, 0) * 1.1, m !== 'rounds', hbGridN());
   const Y = v => Tp + (base - Tp) * (1 - Math.max(0, v) / top);
   const fmtAxis = v => m === 'value' ? _hbM(v) : m === 'rounds' ? hbMeasureFmt(m, v) : _hbN(Math.round(v));
@@ -3915,14 +3938,20 @@ function hbWaterfallSvg(D, cs0, P){
     dataLines: ['Waterfall (step: ' + (money ? 'value' : 'contracts') + ', contracts):'].concat(X.parts.map(p => `- ${p.word}: ${Math.round(p.y * 10) / 10}, ${p.list.length}`)),
     lead: `<b>${_hbE(fmt(E.y))}</b> ${_hbE(i18t('hb_wf_lead', { d: _hbDayWord(X.T) }))}` };
 }
+const HB_FN_ROW_FULL = 96;
 function hbFunnelSvg(D, cs, P){
   const X = hbExtraSets('fn', P, cs), money = X.money, fmt = v => money ? _hbM(v) : _hbN(Math.round(v));
-  const W = hbFW(), H = hbFH(260), n = X.parts.length, rowH = Math.min(64, (H - 16) / n), bh = Math.round(rowH * 0.62);
+  /* IN THE MIDDLE OF ITS ROOM (owner, 20 Oct 2026: "at least bring the chart
+     in the middle of the page as opposed to leaving blank space"): the rows
+     grow up to HB_FN_ROW_FULL in full screen, and whatever height is left
+     over is shared above and below them, never all under */
+  const W = hbFW(), H = hbFH(260), n = X.parts.length, rowH = Math.min(_hbFit && _hbFit.step === 'full' ? HB_FN_ROW_FULL : 64, (H - 16) / n), bh = Math.round(rowH * 0.62);
+  const top = 8 + Math.max(0, Math.floor((H - 16 - n * rowH) / 2));
   const L = Math.min(200, Math.round(W * 0.26)), Rr = Math.min(130, Math.round(W * 0.16)), room = W - L - Rr, cx = L + room / 2;
   const max = Math.max(1, X.parts[0].y);
   let g = '';
   X.parts.forEach((p, i) => {
-    const y = 8 + i * rowH, w = Math.max(p.y ? 4 : 0, room * p.y / max), last = i === n - 1;
+    const y = top + i * rowH, w = Math.max(p.y ? 4 : 0, room * p.y / max), last = i === n - 1;
     const say = p.word + ': ' + (money ? _hbM(p.y) + ' · ' : '') + _hbN(p.list.length) + ' ' + i18tn('hb_contracts_word', p.list.length, { n: p.list.length });
     const kept = i ? (X.parts[i - 1].y > 0 ? Math.round(p.y / X.parts[i - 1].y * 100) : null) : null;
     const dig = p.list.length ? 'qx:' + D.key + HB_KEY_SEP + 'fn' + HB_KEY_SEP + p.k : '';
@@ -4404,7 +4433,7 @@ function hbChartHtml(D, cs0, big){
   if (!cs0.length && P.measure !== 'live') return `<div class="hb-quiet">${_hbE(i18t('hb_none_here'))}</div>`;
   /* the card this chart sits in, its step and its measured width (O-22) */
   const at = _hbFitAt;
-  if (at) _hbFit = { key: at.key, step: at.step, w: _hbFitW.get(at.key + '|' + at.step) || (at.step === 'board' ? (at.big ? 1100 : 540) : 1100) };
+  if (at) _hbFit = { key: at.key, step: at.step, grow: !!at.grow, w: _hbFitW.get(at.key + '|' + at.step) || (at.step === 'board' ? (at.big ? 1100 : 540) : 1100) };
   let run;
   try { run = hbChartRun(D, cs0, P); } finally { _hbFit = null; }
   const { R, cs } = run;
@@ -5553,7 +5582,7 @@ function hbFocusHtml(){
   /* the body first: it stashes what the head's edge draws (as drawn, 11 Oct 2026) */
   _hbEdgeMeta.delete('focus');
   const bodyHtml = hbFocusBodyHtml(D, s);
-  const tools = D.kind === 'list' ? hbEdgeHtml(D, 'focus', 'focus') : grows ? `${hbBigBtnHtml(s.digBig, 'data-hb-digbig')}` : '';
+  const tools = D.kind === 'list' ? hbEdgeHtml(D, 'focus', 'focus') : grows && !_hbFull ? `${hbBigBtnHtml(s.digBig, 'data-hb-digbig')}` : '';
   const FM = _hbEdgeMeta.get('focus') || {};
   return `<div class="hb-focus" id="hb-focus"><nav class="hb-trail" aria-label="${_hbE(i18t('hb_trail'))}"><button type="button" data-hb-crumb="-1">${_hbE(i18t('hb_face_board'))}</button><span aria-hidden="true">›</span>${crumbs}${hbFuStepsHtml(path[path.length - 1])}</nav>
     <section class="hb-card hb-dig${_hbFocusNew ? ' is-new' : ''}${s.digBig && grows ? ' is-big' : ''}${_hbFull && grows ? ' is-full' : ''}"><header class="hb-ch">${hbStartBtnHtml(path[0], true)}<span class="hb-ch-l"><span class="hb-ct">${_hbE(title)}</span>${hbVerBadgeHtml((s.panels || []).find(x => x.key === path[path.length - 1]))}${FM.by ? `<span class="hb-cs">${_hbE(FM.by)}</span>` : ''}</span><span class="hb-grow"></span>${tools}${eye}
@@ -5564,7 +5593,7 @@ function hbFocusHtml(){
 /* the opened card is step two, or three in full screen (O-22, O-25) */
 function hbFocusBodyHtml(D, s){
   if (_hbFull && !(D.kind === 'list' || D.kind === 'stages')) _hbFull = false;
-  _hbFitAt = { key: 'focus', step: _hbFull ? 'full' : 'open', big: true };
+  _hbFitAt = { key: 'focus', step: _hbFull ? 'full' : 'open', big: true, grow: !!s.digBig && !_hbFull };
   try { return hbDigBodyHtml(D, s.lens, !!s.digBig); } finally { _hbFitAt = null; }
 }
 let _hbFocusNew = false, _hbWatchForm = null, _hbGiveForm = null, _hbNewPanel = null;
@@ -5812,7 +5841,8 @@ function hbEdgeHtml(D, akey, where, p, gift){
   /* THE MOST USED FIRST, THE ONE THAT TAKES AWAY LAST (owner, 12 Oct 2026):
      Make bigger and Full screen lead the menu; Remove from the board stays
      at the foot, on its own, where a slip cannot reach it */
-  const items = (board ? _hbMi('data-hb-act="big"', _HB_MI.big, i18t(p && p.big ? 'hb_p_small' : 'hb_p_big')) : _hbMi('data-hb-digbig', _HB_MI.big, i18t(hbS().digBig ? 'hb_p_small' : 'hb_p_big')))
+  /* full screen is the biggest a chart gets: there, its way back is Back to opened */
+  const items = (board ? _hbMi('data-hb-act="big"', _HB_MI.big, i18t(p && p.big ? 'hb_p_small' : 'hb_p_big')) : _hbFull ? '' : _hbMi('data-hb-digbig', _HB_MI.big, i18t(hbS().digBig ? 'hb_p_small' : 'hb_p_big')))
     + (board ? _hbMi(`data-hb-fullkey="${k}"`, _HB_MI.full, i18t('hb_full_screen')) : _hbMi(`data-hb-full aria-pressed="${_hbFull}"`, _HB_MI.full, i18t(_hbFull ? 'hb_full_back' : 'hb_full_screen')))
     + '<hr>'
     + _hbMi(`data-hb-mwhy="${k}"`, _HB_MI.why, i18t('hb_cx_btn'))
@@ -7836,7 +7866,7 @@ function hbViewPanelHtml(p, lens, gift){
   if (p.recipe) hbCardSet(p.key, p.recipe, { seed: true });
   const D = hbDigData(p.key, lens);
   _hbEdgeMeta.delete(p.id);
-  _hbFitAt = { key: p.id, step: 'board', big: !!p.big };
+  _hbFitAt = { key: p.id, step: 'board', big: !!p.big, grow: !!p.big };
   let inner; try { inner = D ? hbDigBodyHtml(D, lens, !!p.big) : ''; } finally { _hbFitAt = null; }
   /* THE CARD IS CLEAN (11 Oct 2026, as drawn): no recipe sentence on the card —
      its choices are under How this is drawn ▾ on the head (hbEdgeHtml) */

@@ -1942,10 +1942,11 @@ function clauseEditorHtml(){
         ${ceNoAi() ? '' : `<div class="ce-chips" id="ce-chips"></div>
         ${''/* THE TWO-ROW CARD (owner picked it, 20 Oct 2026: "these need to
                change as well" — the send stood outside the box): the words the
-               whole width; under them +, "Asking about" (the tag ceRenderScope
-               paints) and the round send, all inside the one card */}
+               whole width; under them +, the tag ceRenderScope paints (its blue chip
+               alone: the words "Asking about" beside it were taken off, owner,
+               20 Oct 2026) and the round send, all inside the one card */}
         <div class="ce-askwrap">${_ceJbCard({ id: 'ce-askrow', field: `<textarea id="ce-ask" rows="1" aria-label="${_ceea(_cet('ce_ask_label'))}" placeholder="${_ceea(_cet('ce_ask_ph'))}"></textarea>`,
-          ctx: `<div class="ce-tagline" id="ce-tagline"><span class="ce-tag-k">${_cee(_cet('ce_tag_about'))}</span><span class="ce-tag" id="ce-scope"></span></div>`,
+          ctx: `<div class="ce-tagline" id="ce-tagline"><span class="ce-tag" id="ce-scope"></span></div>`,
           send: _ceJbSend('data-ce-act="ask"', _cet('ce_send')) })}</div>
         ${''/* THE HINT LINE UNDER THE BOX (owner, 18 Oct 2026, "Every Jambo
                box"): the one builder; asking files nothing — Apply or Save does */}${typeof jamboHintHtml === 'function' ? jamboHintHtml() : ''}`}

@@ -171,14 +171,21 @@ function folderLegendHtml(opts={}){
   </div>`;
 }
 // <option> list for any "file under" select — includes a create sentinel
-function folderOptionsHtml(selectedId, includeAuto){
+function folderOptionsHtml(selectedId, includeAuto, o={}){
   const opts=visibleFolders();
   /* The stream a record is ALREADY in stays on the list even when it is out of
      reach, or reopening that record silently re-files it under whatever
-     happened to be first. */
-  if(selectedId && selectedId!=='auto' && selectedId!=='__new__'
+     happened to be first.
+     A NEW CONTRACT HAS NO STREAM YET (owner, 20 Oct 2026: "only the value
+     stream you have access to should be in the dropdown"): a creation door
+     passes `o.reach`, and a template's own stream the reader cannot open is
+     not offered — the box keeps only the streams they can. */
+  if(!o.reach && selectedId && selectedId!=='auto' && selectedId!=='__new__'
      && FOLDERS[selectedId] && !opts.some(f=>f.id===selectedId)) opts.unshift(FOLDERS[selectedId]);
-  return (includeAuto?`<option value="auto" ${selectedId==='auto'?'selected':''}>${i18t('fo_auto_route')}</option>`:'')
+  /* …and the box then starts on none, never on a stream nobody chose */
+  const shut=!!(o.reach && selectedId && selectedId!=='auto' && FOLDERS[selectedId] && !opts.some(f=>f.id===selectedId));
+  return (shut?`<option value="" selected disabled data-na-ask>${i18t('na_stream_choose')}</option>`:'')
+    + (includeAuto?`<option value="auto" ${selectedId==='auto'?'selected':''}>${i18t('fo_auto_route')}</option>`:'')
     + opts.map(f=>`<option value="${esc(f.id)}" ${selectedId===f.id?'selected':''}>${esc(f.name)}</option>`).join('')
     + `<option value="__new__">${i18t('fo_create_new')}</option>`;
 }

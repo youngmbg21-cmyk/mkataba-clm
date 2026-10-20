@@ -1553,6 +1553,14 @@ function redlineLayoutCss(){
      the button belongs under the sentence rather than squeezed beside it. */
   .rl-notices .dk-notice{flex-wrap:wrap}
   .rl-notices .dk-notice .dk-notice-txt{flex:1 1 100%;min-width:0}
+  /* THE ASK RIDES THE TOP LINE (owner, 20 Oct 2026: "The ask to join could be
+     at the top as well so space is not wasted at the bottom of the banner"):
+     the tag, then Ask to join and the × at the right of the same line, the
+     sentence the whole width under them; no line of its own for the button */
+  .rl-notices .dk-notice .dk-notice-tag{order:1}
+  .rl-notices .dk-notice .dk-notice-btn,.rl-notices .dk-notice .dk-notice-said{order:2;margin-left:auto}
+  .rl-notices .dk-notice .dk-notice-x{order:3;align-self:center}
+  .rl-notices .dk-notice .dk-notice-txt{order:4}
   .rl-notices .rv-banner [data-rv-act]{white-space:nowrap}
   /* ---- THE BELL AND THE HIDE CHIP ----
      The alerts fold to one small button (see rlFloatingNoticesHtml). Amber,
@@ -2930,7 +2938,7 @@ function redlineLayoutCss(){
          button HERE ONLY; the More menu's row keeps it, untouched, and the
          filled face is what tells the two apart. Presentation, in the second
          home, exactly as the dressing above it is. */}
-  .redline-page .rl-empty-acts button[data-rl-prepare] > span[aria-hidden]{display:none}
+  .redline-page .rl-empty-acts button[data-rl-prepare] > span[aria-hidden]:not(.ob-spin){display:none}
   .redline-page .rl-empty-acts button[data-rl-prepare]:hover:not(:disabled){filter:brightness(1.08)}
   .redline-page .rl-empty-acts .rl-empty-edit{border:1px solid var(--btn-edge);
     background:transparent;color:var(--accent-ink)}

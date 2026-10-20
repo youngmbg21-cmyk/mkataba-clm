@@ -534,7 +534,7 @@ function openContractEssentials(opts){
     if (f.type==='stream') return `<label style="display:block">
       <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${esc(f.label)}</span>
       <select id="ce-${f.key}" style="${ST}">${
-        (typeof folderOptionsHtml==='function') ? folderOptionsHtml(f.def||null, false) : ''}</select></label>`;
+        (typeof folderOptionsHtml==='function') ? folderOptionsHtml(f.def||null, false, { reach:true }) : ''}</select></label>`;
     /* The same control the wizard's answer step draws for a select, so the two
        creation doors ask this question in one shape. */
     if (f.type==='select') return `<label style="display:block">
