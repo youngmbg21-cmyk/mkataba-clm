@@ -20,6 +20,12 @@
        conversation ("‹ Overview  Overview / Jambo"), the row still held;
        the back returns
      5 SETTINGS: a question turns the panel; the back returns to its words
+     6 THE WAY BACK TO THE CONVERSATION (owner picked "A Jambo tab", 19 Oct
+       2026): once words were said on a page, a "Jambo" tab stands beside
+       Overview (none before); pressed it opens the conversation as it was,
+       pressed again it goes back — on Home's panel (1j–1l), a list panel
+       (4d–4f), Settings (5d–5f) and the Calendar (6a–6c). Red at the parent:
+       no such tab anywhere.
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/jambo-tab-and-back-verify.js */
 const fs = require('node:fs');
@@ -92,6 +98,17 @@ const check = (name, pass, detail) => {
       const D2 = await page.evaluate(DOCK);
       check('1f ‹ Redlines returns to the same cards at the same scroll', !!D2 && !D2.talk && D2.cards === D0.cards && Math.abs(D2.top - keptTop) <= 2,
         JSON.stringify(D2 && { talk: D2.talk, cards: D2.cards, top: D2.top, kept: keptTop }));
+      /* THE JAMBO TAB: none before a word was said here, there once one was */
+      const tabUp = () => { const t = document.querySelector('#ig-dock [data-pd-talk]'); return !!t && t.getClientRects().length > 0; };
+      check('1j after ‹ Redlines a "Jambo" tab stands beside Overview', await page.evaluate(tabUp));
+      const faces = await page.evaluate(() => ({ jb: !!document.querySelector('#ig-dock [data-pd-talk] img.jambo-face'), ov: !!document.querySelector('#ig-dock [data-pd-tab="copilot"] img.jambo-face') }));
+      check('1j2 his face rides the Jambo tab, never Overview', faces.jb && !faces.ov, JSON.stringify(faces));
+      if (await page.evaluate(tabUp)) await page.click('#ig-dock [data-pd-talk]');
+      const J1 = await until(() => document.getElementById('ig-dock').classList.contains('is-talk') ? [...document.querySelectorAll('#igd-feed .ai-msg')].map(m => m.textContent).join(' ') : null, null, 5000);
+      check('1k pressed, it opens the conversation as it was, without typing', !!J1 && /watch for/.test(J1));
+      if (await page.evaluate(tabUp)) await page.click('#ig-dock [data-pd-talk]');
+      const J2 = await until(() => !document.getElementById('ig-dock').classList.contains('is-talk') && document.querySelectorAll('#pd-redface [data-nego-card]').length >= 2, null, 5000);
+      check('1l pressed again, it goes back to the cards', !!J2);
       await ask('#igd-input', 'and the payment terms?');
       await until(() => document.getElementById('ig-dock').classList.contains('is-talk') && document.querySelectorAll('#igd-feed .ai-msg').length > 2, null, 10000);
       const D3 = await page.evaluate(DOCK);
@@ -150,6 +167,14 @@ const check = (name, pass, detail) => {
       await page.click('#ins-panel .jl-talk .pd-back');
       const L2 = await until(() => { const p = document.getElementById('ins-panel'); return p && !p.querySelector('.jl-body').hidden && p.querySelector('.jl-talk').hidden ? p.getAttribute('data-ins-id') : null; }, null, 5000);
       check('4c ‹ Overview returns to the row\'s panel as left', L2 === L0.id, JSON.stringify({ was: L0.id, now: L2 }));
+      const lt = () => { const t = document.querySelector('#ins-panel [data-jl-talk]'); return !!t && !t.hidden; };
+      check('4d a "Jambo" tab stands beside Overview', await page.evaluate(lt));
+      if (await page.evaluate(lt)) await page.click('#ins-panel [data-jl-talk]');
+      const L3 = await until(() => { const p = document.getElementById('ins-panel'); return p && !p.querySelector('.jl-talk').hidden && /not moved/.test(p.querySelector('.jl-talk').textContent); }, null, 5000);
+      check('4e pressed, the conversation comes back, the question in it', !!L3);
+      if (await page.evaluate(lt)) await page.click('#ins-panel [data-jl-talk]');
+      const L4 = await until(() => { const p = document.getElementById('ins-panel'); return p && p.querySelector('.jl-talk').hidden && !p.querySelector('.jl-body').hidden; }, null, 5000);
+      check('4f pressed again, back to the row\'s panel', !!L4);
     });
 
     /* ---- 5 Settings ---- */
@@ -167,6 +192,33 @@ const check = (name, pass, detail) => {
       await page.click('#st-jb-trail .pd-back');
       const S2 = await until(() => document.getElementById('st-jb-trail').hidden && !document.querySelector('#st-jb-feed [data-st-jb-land]').hidden, null, 5000);
       check('5c the back returns to Jambo\'s words for the page', !!S2);
+      const st = () => { const t = document.querySelector('#st-side [data-st-talk]'); return !!t && !t.hidden; };
+      check('5d a "Jambo" tab stands beside Overview', await page.evaluate(st));
+      if (await page.evaluate(st)) await page.click('#st-side [data-st-talk]');
+      const S3 = await until(() => !document.getElementById('st-jb-trail').hidden && /sealed PDF/.test(document.querySelector('#st-jb-feed [data-st-jb-talk]').textContent), null, 5000);
+      check('5e pressed, the conversation comes back, the question in it', !!S3);
+      if (await page.evaluate(st)) await page.click('#st-side [data-st-talk]');
+      const S4 = await until(() => document.getElementById('st-jb-trail').hidden && !document.querySelector('#st-jb-feed [data-st-jb-land]').hidden, null, 5000);
+      check('5f pressed again, back to Jambo\'s words for the page', !!S4);
+    });
+
+    /* ---- 6 the Calendar ---- */
+    await part('6', async () => {
+      await page.evaluate(() => hbOpenCalendar());
+      await until(() => document.getElementById('cal-plan-in'), null, 8000);
+      const ct = () => !!document.querySelector('#cal-plan [data-cal-talk]');
+      const C0 = await page.evaluate(ct);
+      await ask('#cal-plan-in', 'what is due this week?');
+      await until(() => document.querySelector('#cal-plan.is-talk'), null, 8000);
+      await page.evaluate(() => { const b = document.querySelector('#cal-plan .pd-trail .pd-back'); if (b) b.click(); });
+      await until(() => document.querySelector('#cal-plan') && !document.querySelector('#cal-plan.is-talk'), null, 5000);
+      check('6a no "Jambo" tab before a word, one after', !C0 && await page.evaluate(ct));
+      if (await page.evaluate(ct)) await page.click('#cal-plan [data-cal-talk]');
+      const C1 = await until(() => { const c = document.querySelector('#cal-plan.is-talk'); return !!c && /due this week/.test(c.textContent); }, null, 5000);
+      check('6b pressed, the conversation comes back, the question in it', !!C1);
+      if (await page.evaluate(ct)) await page.click('#cal-plan [data-cal-talk]');
+      const C2 = await until(() => document.querySelector('#cal-plan') && !document.querySelector('#cal-plan.is-talk'), null, 5000);
+      check('6c pressed again, back to Your week', !!C2);
     });
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } finally {

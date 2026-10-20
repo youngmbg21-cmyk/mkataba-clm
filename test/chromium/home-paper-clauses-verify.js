@@ -100,7 +100,8 @@ const until = async (page, fn, arg, ms = 8000) => page.waitForFunction(fn, arg, 
     /* RE-POINTED 13 Oct 2026 (owner: "delete the overview tab from document page") */
 /* RE-POINTED 15 Oct 2026 (owner): the Menu tab ("Next up") stands beside Obligations */
     ok('3a no Overview, Signing, Deal or History tab: Copilot · Clauses · Obligations · Menu', tabs.map(t => t.k).join(',') === 'copilot,doc,oblig,menu', JSON.stringify(tabs.map(t => t.k)));
-    ok('3b the symbols are the artifact\'s marks, Jambo\'s tab his face (owner, 12 Oct 2026)', tabs.map(t => t.g).join('') === 'FACE▢⚑☰', tabs.map(t => t.g).join(' '));
+    /* RE-POINTED 19 Oct 2026 (owner): his face is on the Jambo tab; Overview wears ▦ */
+    ok('3b the symbols are the artifact\'s marks, Overview ▦ (his face is the Jambo tab\'s)', tabs.map(t => t.g).join('') === '▦▢⚑☰', tabs.map(t => t.g).join(' '));
 
     /* ===== 4. WHITE, UNDER THE GREETING ROW ===== */
     const lay = await page.evaluate(() => { const R = e => e.getBoundingClientRect();

@@ -26,7 +26,8 @@ describe('f788 (1) the panel\'s head', () => {
     assert.ok(g.q('#st-side-head #st-side-tab-jambo'), 'Jambo\'s tab in the head');
     /* RE-POINTED 19 Oct 2026 — JAMBO AS A TAB YOU FLIP TO (owner): the panel
        is the page's, its tab the landing, "Overview"; "Jambo" is the conversation */
-    assert.equal(g.text(g.q('#st-side-tab-jambo')), S.en.pd_tab_overview);
+    /* RE-POINTED 19 Oct 2026: Overview wears a plain mark (▦), his face is the Jambo tab's — the word is read */
+    assert.equal(g.text(g.q('#st-side-tab-jambo > span:last-child')), S.en.pd_tab_overview);
     assert.equal(g.text(g.$('st-side-word')), S.en.st_side_you);
     const a = settingsStage();
     assert.equal(g.text(a.$('st-side-word')), S.en.st_side_you, 'an admin on You');
@@ -39,7 +40,9 @@ describe('f788 (1) the panel\'s head', () => {
   });
   test('1b the fold: to the right edge, his face brings him back; a refresh keeps it', () => {
     const g = settingsStage();
-    assert.equal(g.qa('#st-side-head .st-side-tab').length, 1, 'one tab: Jambo, no Menu tab');
+    /* RE-POINTED 19 Oct 2026 (the Jambo tab, owner): it waits hidden until a word is said here */
+    assert.equal(g.qa('#st-side-head .st-side-tab:not([hidden])').length, 1, 'one tab: Overview, no Menu tab');
+    assert.ok(g.q('#st-side-head [data-st-talk][hidden]'), 'the Jambo tab waits hidden until a word is said');
     g.click(g.q('#st-side-head [data-st-side-fold]'));
     assert.ok(g.$('set-page').classList.contains('is-side-folded') && g.$('st-side').classList.contains('is-folded'));
     assert.equal(g.sb.settingsPlace().fold, true, 'kept for a refresh');

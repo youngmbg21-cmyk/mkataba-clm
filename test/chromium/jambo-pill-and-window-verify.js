@@ -140,7 +140,8 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     const tab = await page.evaluate(() => { const t = document.querySelector('#ig-dock [data-pd-tab="copilot"]'); return t ? { face: !!t.querySelector('img.jambo-face'), word: (t.querySelector('.pd-tab-w') || {}).textContent } : null; });
     /* RE-POINTED 19 Oct 2026 — JAMBO AS A TAB YOU FLIP TO (owner: the panel's
        first tab is "Overview"; "Jambo" names only the conversation it flips to) */
-    ok('11c the panel\'s first tab shows his face, named "Overview"', !!tab && tab.face && tab.word === 'Overview', JSON.stringify(tab));
+    /* RE-POINTED 19 Oct 2026 (owner: his face belongs on "its one tab that says Jambo"): Overview wears ▦ */
+    ok('11c the panel\'s first tab is "Overview", a plain mark, not his face', !!tab && !tab.face && tab.word === 'Overview', JSON.stringify(tab));
     /* 11d re-pointed 13 Oct 2026: the Breakdown face and its panel are gone, so
        its panel cannot carry an ask box; the reading's Clauses tab carries none */
     const noAsk = await page.evaluate(() => ({ lens: typeof window.bdLensHtml, ask: !!document.querySelector('#pd-thread #igd-input') }));

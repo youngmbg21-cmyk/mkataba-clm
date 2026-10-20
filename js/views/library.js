@@ -3654,6 +3654,9 @@ function renderPlaybookPage(){
     /* The Inspector's head says what THIS tab holds and carries its own act
        (Add clause · Reset / Add contract type · none). Classic paints nothing. */
     if(typeof pbPaintHead==='function') pbPaintHead();
+    /* THE ONE JAMBO PANEL (19 Oct 2026): the three lists share #ins-panel, so
+       the tab turned paints its own chosen row there */
+    if(document.querySelector('.sd-ins #ins-panel')&&typeof sdWireList==='function') sdWireList(k);
     /* AND IT LANDS AT THE TOP OF THE TAB IT OPENED. Until the row was pinned
        this came for free: reaching a tab meant already being at the top. Now a
        tab can be pressed from the bottom of a long clause library, and a press
@@ -4017,7 +4020,7 @@ function sdClausePanelOpts(cl, d, mayEdit){
   acts.push({ k:'pos', label:i18t('std_change_position'), run:()=>sdGoBook(stdBookFor(cl.category)) });
   const menu=mayEdit?insMenuItemHtml({ k:'remove', label:i18t('sd_remove'), ruby:true, icon:'trash', says:i18t('sd_remove_says') }):'';
   return {
-    item:{ id:String(cl.id) }, host:'sd-panel-clauses',
+    item:{ id:String(cl.id) },
     head:{ eyebrow:`${esc(cl.category||'')} · ${esc(i18t('lib_clause_library'))}`, title:cl.name||cl.category||'',
       sub:esc([f.sentence, sdLegalLine(cl.category)].filter(Boolean).join(' ')), statusBeside:true, status:esc(f.word), statusShort:esc(f.word), tone:'gray', acts, menuHtml:menu, moreAria:i18t('reg_more_actions') },
     acts, body,
@@ -4077,7 +4080,7 @@ function sdBookPanelOpts(key, d, mayEdit){
     ?insMenuItemHtml({ k:'reset', label:i18t('set_reset_defaults2'), ruby:true, says:i18t('sd_reset_says') })
     :insMenuItemHtml({ k:'remove', label:i18t('sd_remove_type'), ruby:true, icon:'trash', says:i18t('set_remove_type_msg') });
   return {
-    item:{ id:key }, host:'sd-panel-books',
+    item:{ id:key },
     head:{ eyebrow:`${esc(i18t('lib_negotiation_playbook'))} · ${esc(i18t(base?'sd_eb_book_base':'sd_eb_book_type'))}`, title:b.label||key,
       sub:esc(sub), tone, status, acts, menuHtml:menu, moreAria:i18t('reg_more_actions') },
     acts, body,
@@ -4171,7 +4174,7 @@ function sdDevPanelOpts(c, d){
      the counterparty they drew. */
   const many=(typeof insParties==='function')?insParties(c):[];
   return {
-    item:{ id:c.id }, host:'sd-panel-dev',
+    item:{ id:c.id },
     head:{ eyebrow:`<span class="ins-ref">${esc(sdRef(c))}</span>${kind?' · '+esc(kind):''} · ${esc(stage)}`, title:c.name||'',
       sub:many.length?insPartiesHtml(many):esc(c.counterparty||''), tone:legal?'ruby':'amber', status, acts, menuHtml:menu, moreAria:i18t('reg_more_actions') },
     acts, body,
@@ -4267,14 +4270,12 @@ function sdPageHtml(tabRow, tab, d){
           <label class="ik-search">${typeof icon==='function'?icon('search','w-3.5 h-3.5'):''}<input type="search" data-sd-q placeholder="${esc(i18t('sd_search_ph'))}" aria-label="${esc(i18t('sd_search_ph'))}"></label></div>
         <div class="ins-scroll" id="sd-scroll-clauses">${sdClauseListHtml(d)}</div>
       </section>
-      <aside id="sd-panel-clauses" class="ins-panel" aria-label="${esc(i18t('sd_panel_clause'))}"></aside>
     </div>
     <div class="ins-body" data-pb-sec="playbook"${tab==='playbook'?'':' hidden'}>
       <section class="ins-card" aria-label="${esc(i18t('lib_negotiation_playbook'))}">
         ${subTabs}
         <div class="ins-scroll" id="sd-scroll-books">${sdBookListHtml(d)}</div>
       </section>
-      <aside id="sd-panel-books" class="ins-panel" aria-label="${esc(i18t('sd_panel_book'))}"></aside>
     </div>
     <div class="ins-body" data-pb-sec="deviations"${tab==='deviations'?'':' hidden'}>
       <section class="ins-card" aria-label="${esc(i18t('lib_portfolio_deviations'))}">
@@ -4283,8 +4284,12 @@ function sdPageHtml(tabRow, tab, d){
         <div class="ins-scroll" id="sd-scroll-dev">${sdDevListHtml(d, rows)}</div>
         <div class="ins-foot"><span data-sd-foot>${esc(i18t('sd_showing',{n:rows.length,of:d.off.length}))}</span></div>
       </section>
-      <aside id="sd-panel-dev" class="ins-panel" aria-label="${esc(i18t('sd_panel_dev'))}"></aside>
     </div>
+    ${''/* JAMBO'S PANEL ON OUR STANDARDS (owner, 19 Oct 2026: "our paper page in
+           the our standards tab does not have jambo"): the three lists share the
+           ONE list panel every list page draws (#ins-panel, jlFrame) — it was
+           three bare panels, one per list, never dressed as his */}
+    <aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('sd_panel_clause'))}"></aside>
   </div>`;
 }
 /* ONE TAB'S LIST AND PANEL, painted from the readings of THIS paint. A filter,
@@ -4334,15 +4339,15 @@ function sdWireList(tab){
     clauses:{ seat:'std:clauses', attr:'data-sd-row', ids:()=>d.lib.map(cl=>String(cl.id)),
       panel:id=>{ const cl=d.lib.find(x=>String(x.id)===id); return cl?sdClausePanelOpts(cl,d,mayEdit):null; },
       open:id=>{ if(!mayEdit) return; const i=clauseLibrary().findIndex(x=>String(x.id)===id); if(i>=0) openClauseEditor(i); },
-      host:'sd-panel-clauses', empty:'sd_panel_none_clause' },
+      host:'ins-panel', empty:'sd_panel_none_clause' },
     playbook:{ seat:'std:books', attr:'data-sd-book', ids:()=>d.keys.slice(),
       panel:id=>(d.pb[id]?sdBookPanelOpts(id,d,mayEdit):null),
       open:id=>{ if(mayEdit) openPlaybookEditor(id); },
-      host:'sd-panel-books', empty:'sd_panel_none_book' },
+      host:'ins-panel', empty:'sd_panel_none_book' },
     deviations:{ seat:'std:dev', attr:'data-sd-dev', ids:()=>sdDevRows(d, sdDevFilters()).sort((a,b)=>(stdOpenToChange(b)-stdOpenToChange(a))||sdDevSort(a,b)).map(c=>c.id),
       panel:id=>{ const c=d.off.find(x=>x.id===id); return c?sdDevPanelOpts(c,d):null; },
       open:id=>sdOpenContract(id),
-      host:'sd-panel-dev', empty:'sd_panel_none_dev' },
+      host:'ins-panel', empty:'sd_panel_none_dev' },
   }[tab];
   if(!spec) return;
   const sec=document.querySelector(`.sd-ins [data-pb-sec="${tab}"]`); if(!sec) return;
@@ -4351,6 +4356,8 @@ function sdWireList(tab){
   const id=insPick(spec.seat, spec.ids());
   if(tb) insMarkRow(tb,'[data-ins-row]',idOf,id);
   const paint=k=>{
+    /* ONE PANEL FOR THREE LISTS (19 Oct 2026): only the list on show paints it */
+    if(sec.hidden) return;
     const o=k?spec.panel(k):null;
     if(!o){ insPaintPanel({ host:spec.host, empty:i18t(spec.empty) }); return; }
     insPaintPanel(o);
