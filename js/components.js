@@ -165,8 +165,11 @@ const jamboHintHtml = (o = {}) => {
   const t = (k) => (typeof i18t === 'function') ? i18t(k) : k;
   const kbd = x => `<kbd class="jb-kbd">${esc(x)}</kbd>`;
   /* the keys are one unit: where the line is short they go down together */
-  const tail = o.places === 'lists' ? ` <span class="jb-keys">${kbd('/')} ${esc(t('jb_hint_lists'))}</span>`
-    : o.places ? ` <span class="jb-keys">${kbd('/')} ${esc(t('jb_hint_places'))} · ${kbd('Esc')} ${esc(t('jb_hint_closes'))}</span>` : '';
+  /* `people` adds "@ people" where the box's @ list works (owner picked "The
+     Send Screen", 20 Oct 2026: "/ places · @ people · Esc closes") */
+  const ppl = o.people ? ` · ${kbd('@')} ${esc(t('jb_hint_people'))}` : '';
+  const tail = o.places === 'lists' ? ` <span class="jb-keys">${kbd('/')} ${esc(t('jb_hint_lists'))}${ppl}</span>`
+    : o.places ? ` <span class="jb-keys">${kbd('/')} ${esc(t('jb_hint_places'))}${ppl} · ${kbd('Esc')} ${esc(t('jb_hint_closes'))}</span>` : '';
   return `<p class="jb-hint" data-jb-hint>${esc(t('jb_hint'))}${tail}</p>`;
 };
 /* ---- WHEN SOMETHING IS LOADING, SOMETHING MOVES (owner, 11 Oct 2026: "when

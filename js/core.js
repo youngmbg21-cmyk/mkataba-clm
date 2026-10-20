@@ -4942,6 +4942,11 @@ const SHARE_PURPOSE_COPY={
      language, which is this file's own named trap. */
   status:{ get label(){ return i18t('co_purpose_status_label'); }, get title(){ return i18t('co_purpose_status'); },
     get blurb(){ return i18t('co_purpose_status_sub'); }, get line(){ return i18t('co_purpose_status_line'); } },
+  /* A COLLEAGUE (owner picked "The Send Screen", 20 Oct 2026): the one send
+     screen also reaches our own people — no guest link, the pass route, in
+     their list until they mark it done. Getters, like its siblings. */
+  colleague:{ get label(){ return i18t('co_purpose_colleague_label'); }, get title(){ return i18t('co_purpose_colleague'); },
+    get blurb(){ return i18t('co_purpose_colleague_sub'); }, get line(){ return i18t('co_purpose_colleague_line'); } },
 };
 /* THE ONE-SCREEN ROW SAYS ONE LINE UNDER THE CHOSEN PURPOSE (the pop-up diet,
    owner-approved 13 Sep 2026): the promise about what the other side can DO,
@@ -5093,7 +5098,7 @@ function sharePurposePickerHtml(c, sel, o={}){
            row goes to the COUNTERPARTY. That was a second door onto one act —
            "make a link for somebody" — and two doors drift. It is a segment
            here, and the More-menu row is a PROXY that presses this one. */}
-      <div class="sh-segs">${seg('sign')}${seg('negotiate')}${seg('view')}${seg('advise')}</div>
+      <div class="sh-segs">${seg('sign')}${seg('negotiate')}${seg('view')}${seg('advise')}${seg('colleague')}</div>
       <div id="share-purpose-say" data-compact="1" style="margin-top:5px;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600)">${esc(m.line)}</div>
     </div>`;
   }
@@ -5126,7 +5131,7 @@ function sharePurposePickerHtml(c, sel, o={}){
          with no third door on the screen to take instead. That is the
          duplication rule walked again: a control that exists on one shell and
          not the other. It is last because it is the rarest of the three. */}
-    <div style="display:flex;gap:var(--s-2);flex-wrap:wrap">${btn('sign')}${btn('negotiate')}${btn('view')}${btn('advise')}</div>
+    <div style="display:flex;gap:var(--s-2);flex-wrap:wrap">${btn('sign')}${btn('negotiate')}${btn('view')}${btn('advise')}${btn('colleague')}</div>
   </div>`;
 }
 
@@ -5243,6 +5248,7 @@ function shareLetterExpires(){
   return new Date(Date.now()+d*86400000).toISOString();
 }
 function shareLetterWho(c){
+  if(shareColOn()){ const p=_shCol.picks[0]; return p ? (String(p.name).trim().split(/\s+/)[0]||p.name) : i18t('co_purpose_colleague_label'); }
   const n=String(fval('sh-name')||'').trim();
   return n ? n.split(/\s+/)[0] : (c.counterparty||i18t('co_them'));
 }
@@ -5257,6 +5263,14 @@ function shareLetterOf(c, st){
   const cn=c&&c._codeName&&c._codeName.code?{ code:c._codeName.code, ref:(typeof contractRef==='function')?contractRef(c):c.id }:{};
   const base={ sender:me.name||'', org:FIRST_PARTY, cName:c.name, recName:String(fval('sh-name')||'').trim(),
     message:String(fval('sh-summary')||'').trim(), link:null, ...cn };
+  /* A COLLEAGUE: the pass route's own letter (js/sharemail.js passMailOf),
+     the words the server mails, the colleague's link made by the press */
+  if(s.purpose==='colleague'){
+    const p=_shCol.picks[0];
+    return { ...passMailOf({ t:(k,v)=>i18t(k,v), sender:me.name||'', title:me.title||'', org:FIRST_PARTY, recName:p?p.name:'',
+      ref:(typeof contractRef==='function')?contractRef(c):c.id, cName:c.name, code:cn.code, note:base.message, link:null,
+      fromJambo:_shCol.fromJambo }), head:true, letter:true, colleague:true };
+  }
   if(ch==='link') return { none:true, parts:[] };
   if(ch==='whatsapp') return { ...shareWaTextOf({ ...base, expires:API_MODE()?shareLetterExpires():null }), wa:true };
   if(ch==='word') return { ...shareMailOf({ ...base, channel:'word', purpose:s.purpose==='history'?'history':null }), file:true, head:true };
@@ -5307,12 +5321,17 @@ function shareLetterAsPaint(c, st){
   const s=st||{}, set=(k,v)=>{ const w=host.querySelector(`[data-sh-as-w="${k}"]`); if(w && w.textContent!==v) w.textContent=v; };
   const show=(k,on)=>{ const e=host.querySelector(`[data-sh-as="${k}"]`); if(e) e.classList.toggle('hidden', !on); };
   const p=s.purpose||'negotiate', hist=p==='history';
-  set('purpose', i18t('sh_as_p_'+(['negotiate','sign','view','advise','status'].includes(p)?p:'view')));
+  set('purpose', i18t('sh_as_p_'+(['negotiate','sign','view','advise','status','colleague'].includes(p)?p:'view')));
   show('purpose', !hist);
   const ch=s.ch||'email';
   set('ch', i18t('sh_as_c_'+ch));
   const opts=document.getElementById('sh-link-opts');
-  show('link', !!opts && !opts.classList.contains('hidden') && ch!=='word');
+  /* a colleague's email has no channel to choose, no link to keep open and
+     nothing else to send instead: those chips stand down (the html's own
+     data-sh-col hides them too, for the painters that come after) */
+  const col=p==='colleague';
+  show('ch', !col); show('what', !col);
+  show('link', !col && !!opts && !opts.classList.contains('hidden') && ch!=='word');
   const dur=document.getElementById('sh-durable');
   set('link', dur && dur.checked ? i18t('sh_as_l_whole') : i18t('sh_as_l_days', { n:Math.min(90, Math.max(1, Number(fval('sh-exp'))||14)) }));
   const pc=(s.payload&&s.payload.contract)||{};
@@ -5404,6 +5423,106 @@ function shareLetterToPaint(ch){
   if(who) who.classList.toggle('hidden', folded);
   if(say){ const v=[n, em].filter(Boolean).join(' · '); if(say.textContent!==v) say.textContent=v; }
 }
+/* ============================================================
+   "SENT AS: A COLLEAGUE" (owner picked "The Send Screen" by name, 20 Oct
+   2026: "We already have a send email share feature to send emails. Why
+   create a new feature when you can use the share feature")
+   ============================================================
+   The one send screen also reaches our own people. To is the colleagues
+   picked — the people list Jambo's @ draws (caPeopleFor, caPersonRowHtml),
+   one who cannot open the contract greyed with the reason — and "type @ to
+   add a colleague". The letter is the pass route's own (passMailOf), the
+   note the only part the sender writes (Jambo's summary where he opened it).
+   Send by email presses the pass route once per colleague (caPassSend): no
+   guest link, the address the server's, a question in their list and bell
+   until they mark it done, the History line the server's.
+   What belongs to the other side stands down while it is chosen, by one
+   attribute on the page (data-sh-col) the screen's rules read, so a painter
+   that shows a row again cannot bring it back under "a colleague". */
+let _shCol = { cid:null, picks:[], fromJambo:false, onSent:null, on:0, open:false };
+function shareColReset(c, o){
+  const x=o||{};
+  _shCol = { cid:c?String(c.id):null, picks:(Array.isArray(x.colleagues)?x.colleagues:[]).filter(p=>p&&p.id).map(p=>({ id:String(p.id), name:String(p.name||'') })),
+    fromJambo:!!x.fromJambo, onSent:typeof x.onColleagueSent==='function'?x.onColleagueSent:null, on:0, open:false };
+  shareColAttr(false);
+}
+function shareColOn(){ return typeof document!=='undefined' && document.documentElement.hasAttribute('data-sh-col'); }
+function shareColAttr(on){ try{ document.documentElement.toggleAttribute('data-sh-col', !!on); }catch(_){} }
+function shareColBoxHtml(){
+  return `<div class="sh-col" id="sh-col"><div class="sh-col-in"><span id="sh-col-chips"></span><input id="sh-col-q" type="text" autocomplete="off" aria-label="${esc(i18t('sh_col_add'))}" placeholder="${esc(i18t('sh_col_add'))}"/></div>
+    <div class="ca-pop sh-col-pop hidden" id="sh-col-pop"></div></div>`;
+}
+/* the colleagues the list offers: ours only, not one already picked, matched
+   on the start of any word of the name as typed (an @ is optional) */
+function shareColRows(){
+  const c=(typeof getContract==='function')?getContract(_shCol.cid):null;
+  const q=String(fval('sh-col-q')||'').replace(/^@/,'').trim().toLowerCase();
+  const all=(typeof caPeopleFor==='function')?caPeopleFor(c):[];
+  return all.filter(p=>p.kind==='colleague' && !_shCol.picks.some(x=>x.id===p.id)
+    && (!q || p.name.toLowerCase().startsWith(q) || p.name.toLowerCase().split(/\s+/).some(w=>w.startsWith(q))));
+}
+function shareColPaint(c, on){
+  shareColAttr(on);
+  const chips=document.getElementById('sh-col-chips');
+  if(chips){ const h=_shCol.picks.map(p=>`<span class="sh-col-chip" data-sh-col-chip="${esc(p.id)}"><span class="av" aria-hidden="true">${esc(String(p.name).split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase())}</span>${esc(p.name)}<button type="button" data-sh-col-x="${esc(p.id)}" aria-label="${esc(i18t('sh_col_remove', { who:p.name }))}" title="${esc(i18t('sh_col_remove', { who:p.name }))}">×</button></span>`).join('');
+    if(chips.innerHTML!==h) chips.innerHTML=h; }
+  const pop=document.getElementById('sh-col-pop');
+  if(pop){
+    if(!on || !_shCol.open){ pop.classList.add('hidden'); }
+    else {
+      const rows=shareColRows().slice(0, (typeof CA_PICK_MAX==='number')?CA_PICK_MAX:6);
+      if(_shCol.on>=rows.length || (rows[_shCol.on] && rows[_shCol.on].why)) _shCol.on=Math.max(0, rows.findIndex(r=>!r.why));
+      const ref=c?((typeof contractRef==='function')?contractRef(c):c.id):'';
+      pop.innerHTML=`<h5>${esc(i18t('ca_pop_people_on', { ref }))}</h5><div role="listbox">${rows.length
+        ? rows.map((r,i)=>caPersonRowHtml(r, i, i===_shCol.on, 'data-sh-col-pick')).join('')
+        : `<p class="ca-none">${esc(i18t('ca_pop_none'))}</p>`}</div><p class="ca-hint">${esc(i18t('sh_col_keys'))}</p>`;
+      pop.classList.remove('hidden');
+    }
+  }
+  /* the title names who it goes to: "Send the contract to Young Mbagaya · MK-451" */
+  const t=document.getElementById('share-lead-title');
+  if(t && c){ const to=t.querySelector('.sh-hd-to');
+    if(on){ if(!t.dataset.shColWas) t.dataset.shColWas=to?to.innerHTML:'';
+      const who=_shCol.picks.map(p=>p.name).join(', ')||i18t('co_purpose_colleague_label');
+      const v=i18t('sh_hd_to', { who:esc(who), ref:esc((typeof contractRef==='function')?contractRef(c):c.id) });
+      if(to && to.innerHTML!==v) to.innerHTML=v; }
+    else if(t.dataset.shColWas!=null){ if(to) to.innerHTML=t.dataset.shColWas; delete t.dataset.shColWas; } }
+}
+function shareColPick(r){
+  if(!r || r.why || _shCol.picks.some(x=>x.id===r.id)) return;
+  _shCol.picks.push({ id:r.id, name:r.name });
+  const q=document.getElementById('sh-col-q'); if(q){ q.value=''; }
+  _shCol.on=0;
+  const L=document.getElementById('sh-letter'); if(L && L._shPaint) L._shPaint();
+}
+function shareColDrop(id){
+  _shCol.picks=_shCol.picks.filter(x=>x.id!==String(id));
+  const L=document.getElementById('sh-letter'); if(L && L._shPaint) L._shPaint();
+}
+/* the box's keys and presses, delegated once at module load: the screen is
+   built afresh on every open, the listener resolves the live box */
+if(typeof document!=='undefined' && !document._shColWired){
+  document._shColWired=true;
+  const repaint=()=>{ const c=(typeof getContract==='function')?getContract(_shCol.cid):null; shareColPaint(c, shareColOn()); };
+  document.addEventListener('input',e=>{ if(!e.target||e.target.id!=='sh-col-q') return; _shCol.open=true; _shCol.on=0; repaint(); });
+  document.addEventListener('focusin',e=>{ if(!e.target||e.target.id!=='sh-col-q') return; _shCol.open=true; repaint(); });
+  document.addEventListener('keydown',e=>{
+    const t=e.target; if(!t||t.id!=='sh-col-q') return;
+    const rows=shareColRows().slice(0, (typeof CA_PICK_MAX==='number')?CA_PICK_MAX:6);
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){ if(!rows.length) return; e.preventDefault(); _shCol.open=true;
+      _shCol.on=(_shCol.on+(e.key==='ArrowDown'?1:rows.length-1))%rows.length; repaint(); return; }
+    if(e.key==='Enter'){ e.preventDefault(); if(_shCol.open && rows[_shCol.on]) shareColPick(rows[_shCol.on]); return; }
+    if(e.key==='Escape' && _shCol.open){ e.preventDefault(); e.stopPropagation(); _shCol.open=false; repaint(); return; }
+    if(e.key==='Backspace' && !t.value && _shCol.picks.length){ shareColDrop(_shCol.picks[_shCol.picks.length-1].id); }
+  }, true);
+  document.addEventListener('mousedown',e=>{
+    const o=e.target&&e.target.closest?e.target.closest('[data-sh-col-pick]'):null;
+    if(o){ e.preventDefault(); const rows=shareColRows().slice(0, (typeof CA_PICK_MAX==='number')?CA_PICK_MAX:6); shareColPick(rows[Number(o.getAttribute('data-sh-col-pick'))]); return; }
+    const x=e.target&&e.target.closest?e.target.closest('[data-sh-col-x]'):null;
+    if(x){ e.preventDefault(); shareColDrop(x.getAttribute('data-sh-col-x')); return; }
+    if(_shCol.open && !(e.target&&e.target.closest&&e.target.closest('#sh-col'))){ _shCol.open=false; repaint(); }
+  });
+}
 function shareLetterPaint(c, st){
   const host=document.getElementById('sh-letter'); if(!host) return;
   host._shAsPaint=()=>shareLetterAsPaint(c, st);
@@ -5442,8 +5561,9 @@ function shareLetterPaint(c, st){
     mh.classList.toggle('is-off', !!L.turn || !typed);
   }
   host.classList.toggle('is-letter', !!L.letter);
+  shareColPaint(c, !!L.colleague);
   const nl=document.getElementById('sh-summary-label');
-  if(nl && L.letter){ const v=i18t('sh_lt_note_lbl'); if(nl.textContent!==v) nl.textContent=v; }
+  if(nl && L.letter){ const v=i18t(L.colleague && _shCol.fromJambo ? 'sh_lt_note_lbl_jambo' : 'sh_lt_note_lbl'); if(nl.textContent!==v) nl.textContent=v; }
   /* on the letter the dashed box is the note's frame, so the box inside it
      goes bare (its field clothes are inline: kept, and put back elsewhere) */
   const ta=document.getElementById('sh-summary');
@@ -6090,7 +6210,7 @@ function shareVersions(c, org){
 
    'view' and 'history' are both read-only passes, and both are enforced by the
    server rather than by the screen (shareIsReadOnly, server/server.js). */
-const SHARE_PURPOSE = p => (['sign','negotiate','view','history','advise','status'].includes(p) ? p : null);
+const SHARE_PURPOSE = p => (['sign','negotiate','view','history','advise','status','colleague'].includes(p) ? p : null);
 /* ---- NAMED GUESTS: WHETHER A LINK ASKS WHO IS OPENING IT (idea 8, 4 Oct
    2026) ----
    An admin's rule, OFF by default, kept in the same blob every other wall
@@ -7734,6 +7854,7 @@ async function openShareModal(c, opts={}){
      placeholder's own handler moves it, and the payload below is built from
      wherever it has got to by then. */
   let purposeSel = SHARE_PURPOSE(opts.purpose) || defaultSharePurpose(c);
+  shareColReset(c, opts);
   const _pending = { kind: null, next: false, other: false, purpose: null };
   const _openAbort = (typeof AbortController === 'function') ? new AbortController() : null;
   /* WO N4's one-question quick send is RETIRED (Young, 02 Aug 2026): it let a
@@ -7833,6 +7954,7 @@ async function openShareModal(c, opts={}){
             `<option value="${attr(r.email)}">${esc(r.name||'')}</option>`).join('')}</datalist>
           <label id="sh-phone-wrap" class="hidden"><span style="${LBL}">${i18t('co_whatsapp_number')}</span><input id="sh-phone" type="tel" value="${attr(pre.phone)}" placeholder="+254 7…" style="${FLD}"/></label>
         </div>
+        ${shareColBoxHtml()}
       </div></div>
       <div class="sh-lt-row" id="sh-lt-subj-row"><span class="sh-lt-k">${i18t('sh_lt_subject')}</span><b id="sh-lt-subject"></b></div>
       <div class="sh-lt-row sh-lt-as"><span class="sh-lt-k">${i18t('sh_lt_as')}</span><div class="sh-lt-v">
@@ -7963,7 +8085,7 @@ async function openShareModal(c, opts={}){
      with no panel — it stays the dialog it was. Same markup, ids and wiring. */
   const _onDesk=shareBesideJambo();
   let _shSent=null;   // what the last press sent, for the confirmation after Send
-  openModal(oneScreenHtml(_noPre, { opening:true }), { maxWidth:'64rem', onClose:_onDesk?()=>shareLetterPageOff(c):null });
+  openModal(oneScreenHtml(_noPre, { opening:true }), { maxWidth:'64rem', onClose:()=>{ shareColAttr(false); if(_onDesk) shareLetterPageOff(c); } });
   shareLetterChecksPlace();
   if(_onDesk) shareLetterPage(c);
   try{ shareLetterPaint(c, { purpose:purposeSel, ch:'email' }); }catch(_){}
@@ -8060,6 +8182,9 @@ async function openShareModal(c, opts={}){
   const _held={ 'sh-name':fval('sh-name'), 'sh-email':fval('sh-email'), 'sh-phone':fval('sh-phone'), 'sh-summary':fval('sh-summary') };
   shareFillModal(oneScreenHtml(pre));
   Object.keys(_held).forEach(id=>{ const el=document.getElementById(id); if(el && _held[id]) el.value=_held[id]; });
+  /* A NOTE HANDED IN (Jambo's summary, "send the above summary to @Young"):
+     it is the note's first words, the sender's to change; one already typed wins */
+  if(opts.note && !_held['sh-summary']){ const el=document.getElementById('sh-summary'); if(el) el.value=String(opts.note); }
   /* a recipient HaTi already knows is said as a line with Change (round 11's
      gaps); the chips of "Sent as" open their lists; on the desk, the page and
      Jambo's face are laid out again over the filled markup */
@@ -8432,7 +8557,33 @@ async function openShareModal(c, opts={}){
      signing-approval refusal, the readiness acknowledgement, the address
      confirmation — holds for both doors, because there is only one path.
      Returns true only when a link actually went out (or was handed over). */
+  const shareColSend=async(c)=>{
+    const picks=_shCol.picks.slice();
+    if(!picks.length){ toast(i18t('ca_send_who'),'err'); const q=document.getElementById('sh-col-q'); if(q && typeof fieldFocus==='function') fieldFocus(q); return false; }
+    if(typeof canEdit==='function' && !canEdit()){ toast(i18t('ca_send_viewer'),'err'); return false; }
+    const note=fval('sh-summary').trim();
+    const max=(typeof PASS_NOTE_MAX==='number')?PASS_NOTE_MAX:2000;
+    /* A CAP IS A FACT: a note past what the record keeps is refused with its
+       numbers, never trimmed unsaid (the route refuses it too) */
+    if(note.length>max){ toast(i18t('sh_col_note_cap', { n:note.length, max }),'err'); return false; }
+    if(typeof caPassSend!=='function'){ toast(i18t('ca_failed', { who:picks.map(p=>p.name).join(', ') }),'err'); return 'failed'; }
+    const outs=[];
+    for(const p of picks) outs.push(Object.assign({ name:p.name }, await caPassSend(c, p, note, { fromJambo:_shCol.fromJambo, door:'send' })));
+    persist(c); try{ renderAuditSection(c); }catch(_){}
+    const bad=outs.filter(o=>o.state==='failed');
+    if(bad.length===outs.length){ toast(bad.map(o=>o.said||o.why).filter(Boolean).join(' ')||i18t('ca_failed', { who:picks.map(p=>p.name).join(', ') }),'err'); return 'failed'; }
+    const allSent=outs.every(o=>o.state==='sent');
+    const names=outs.filter(o=>o.state!=='failed').map(o=>o.name).join(', ');
+    const words=allSent ? i18tn('sh_col_sent', outs.length, { who:names }) : outs.map(o=>o.said).filter(Boolean).join(' ');
+    const worst=bad.length?'failed':(outs.find(o=>o.state!=='sent')||outs[0]).state;
+    _shSent={ colleague:true, words, kind:allSent?'ok':'warn', onSent:_shCol.onSent, out:{ state:worst, names, why:(outs.find(o=>o.why)||{}).why||'' } };
+    return true;
+  };
   const doSend=async()=>{
+    /* A COLLEAGUE: the pass route, once per colleague picked (caPassSend, the
+       press Jambo's send card makes) — none of the other side's checks apply,
+       nothing leaves the building but an email to our own people */
+    if(purposeSel==='colleague') return shareColSend(c);
     const name=fval('sh-name'), email=fval('sh-email'), phone=fval('sh-phone');
     /* The note the sender WROTE on step 1 travels with the link: into the
        message body, and onto the payload so the landing page still shows it to
@@ -8903,6 +9054,14 @@ async function openShareModal(c, opts={}){
          — and a confirmation says what went and what stayed. Every other
          outcome keeps its box on the letter with its way forward. */
       const went=_shSent;
+      /* a colleague's email: the screen goes, the toast says what went, and the
+         turn in Jambo's conversation that opened it is told (caScreenSent) */
+      if(went && went.colleague){
+        closeModal();
+        if(typeof toast==='function') toast(went.words, went.kind);
+        if(typeof went.onSent==='function') try{ went.onSent(went.out); }catch(_){}
+        return;
+      }
       if(_onDesk && went && went.ch==='email' && went.mailed){
         const words=shareSentWords(c, went);
         closeModal();

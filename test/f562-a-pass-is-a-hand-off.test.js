@@ -127,9 +127,12 @@ describe('f562 (5) — the browser reads the one list and writes no trail', () =
   const MOB = code(R('js/mobile-screens.js'));
   const ASKS = require('../js/asks.js');
   test('5a the card writes nothing to the trail; it sends the review flag and takes the server\'s list', () => {
-    const press = CA.slice(CA.indexOf('async function caCardPress'), CA.indexOf('function caReadDraft'));
+    /* RE-POINTED 20 Oct 2026 (the send screen's "a colleague"): the card and the
+       screen press through ONE function, caPassSend; the card hands it the flag */
+    const press = CA.slice(CA.indexOf('async function caPassSend'), CA.indexOf('function caReadDraft'));
     assert.ok(!/logAudit\(/.test(press), 'the trail line is the server\'s');
-    assert.match(press, /review:\s*!!a\.review/);
+    assert.match(press, /caPassSend\(c, a\.person, a\.note, \{ review: a\.review \}\)/);
+    assert.match(press, /review:\s*!!x\.review/);
     assert.match(press, /asksTakeServer/);
   });
   test('5b the checklist, the bell and the phone read asksLookFor; Done answers through askAnswer', () => {

@@ -20,6 +20,7 @@ const { ndaClean, ndaFacts } = require('../js/nda.js');
 const { shareMailOf, shareMailNameOf, signerTurnMailOf, shareRoundOf, shareAnswersOf } = require('../js/sharemail.js');
 /* THE CHASE (round 23's gaps, 18 Oct 2026): the reminder the Counter's Look draws, written once */
 const { chaseMailOf, chaseDayWords } = require('../js/sharemail.js');
+const { passMailOf, PASS_NOTE_MAX } = require('../js/sharemail.js');
 /* One dictionary, two hosts. The server writes email and needs the recipient's
    own language from the SAME table the screens use — a second copy here would
    drift from js/i18n.js without anything noticing, which is the fault the
@@ -15761,7 +15762,11 @@ app.post('/api/contracts/:id/pass', auth, editor, async (req, res) => {
   if (!inScope(folderScopeFor(u), row.folder))
     return res.status(403).json({ error: `${u.name} cannot open this contract`, why: 'no-access', name: u.name });
   const to = String(u.email || '').trim();
-  const note = clean(b.note).slice(0, 600);
+  /* THE NOTE MAY BE JAMBO'S SUMMARY (the send screen's "a colleague", 20 Oct
+     2026), so it holds PASS_NOTE_MAX; a longer one is refused, never trimmed
+     unsaid — the screen says the cap before the press */
+  const note = clean(b.note);
+  if (note.length > PASS_NOTE_MAX) return res.status(400).json({ error: `The note is ${note.length} characters; it holds ${PASS_NOTE_MAX}.`, why: 'note-cap', max: PASS_NOTE_MAX });
   const review = !!b.review;
   const cName = c.name || req.params.id;
   const ref = clean(c.contractNo || req.params.id).slice(0, 40);
@@ -15769,14 +15774,11 @@ app.post('/api/contracts/:id/pass', auth, editor, async (req, res) => {
   let r3 = null;
   if (/.+@.+\..+/.test(to)) {
     const L = langForEmail(to);
-    r3 = await sendEmail(to,
-      tFor(L, 'mail_pass_subject', { who: req.user.name, name: cName }),
-      `${tFor(L, 'mail_hello')} ${u.name},\n\n`
-        + tFor(L, review ? 'mail_pass_line_review' : 'mail_pass_line', { who: req.user.name, ref, name: cName })
-        + (note ? `\n\n"${note}"\n` : '\n')
-        + `\n${tFor(L, 'mail_at_open')}\n${link}\n`
-        + `\n${tFor(L, 'mail_automated_notice')}`,
-      `pass: ${req.params.id} -> ${to}`);
+    /* ONE LETTER, BOTH HOSTS (js/sharemail.js passMailOf): the send screen
+       draws these words and this route mails them */
+    const M = passMailOf({ t: (k, v) => tFor(L, k, v), sender: req.user.name || '', title: req.user.title || '',
+      org: (getSetting('org') || {}).name || '', recName: u.name || '', ref, cName, note, review, link, fromJambo: !!b.fromJambo });
+    r3 = await sendEmail(to, M.subject, M.body, `pass: ${req.params.id} -> ${to}`, { html: M.html });
   }
   const mail = r3 ? mailReport(r3) : { emailSent: false };
   /* THE QUESTION AND THE TRAIL, ON THE STORED RECORD — read again here, so a
@@ -15793,7 +15795,7 @@ app.post('/api/contracts/:id/pass', auth, editor, async (req, res) => {
     const how = !r3 ? 'no email address on file; it is in their list in HaTi'
       : mail.emailSent ? 'emailed' : EMAIL_ON() ? 'the email did not go; it is in their list in HaTi' : 'email waiting in the outbox';
     line = { at: now(), user: req.user.name || 'System', action: 'Sent to a colleague',
-      detail: `To ${u.name || ''}${review ? ' for review' : ''} (asked Jambo) — ${how}${note ? ` — “${note}”` : ''}` };
+      detail: `To ${u.name || ''}${review ? ' for review' : ''} (${b.door === 'send' ? 'from the send screen' : 'asked Jambo'}) — ${how}${note ? ` — “${note.length > 200 ? note.slice(0, 200) + '…' : note}”` : ''}` };
     cj.audit = (Array.isArray(cj.audit) ? cj.audit : []).concat([line]);
     asks = cj.asks;
     db.prepare('UPDATE contracts SET json=?, updated_at=? WHERE id=?').run(JSON.stringify(cj), now(), req.params.id);
