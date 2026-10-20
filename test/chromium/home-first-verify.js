@@ -112,8 +112,9 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     /* the artifact's symbols, exactly (owner, 10 Oct 2026); Jambo's tab wears his face (owner, 12 Oct 2026).
        RE-POINTED 19 Oct 2026: the first tab's word is "Overview" — the owner: "you land on the page and if
        you want to chat with jambo it takes you to a new jambo tab but you can go back to the landing side
-       panel"; "Jambo" names only the conversation. The face stays its mark. */
-    ok('3a2 symbols — the artifact\'s marks — each with its word under it, whole; one lit', sym.length === 4 && sym.map(s => s.glyph.replace('\uFE0E', '')).join('') === 'FACE\u25A2\u2691\u2630' && sym.map(s => s.txt).join('|') === 'Overview|Clauses|Obligations|Menu' && sym.every(s => s.name && s.txt.length > 2 && s.whole) && sym.filter(s => s.on).length === 1, JSON.stringify(sym.map(s => s.glyph + ' ' + s.txt + (s.whole ? '' : ' (cut)'))));
+       panel"; "Jambo" names only the conversation. The face stays its mark.
+       RE-POINTED 19 Oct 2026 (owner: his face belongs on "its one tab that says Jambo"): Overview wears ▦. */
+    ok('3a2 symbols — the artifact\'s marks — each with its word under it, whole; one lit', sym.length === 4 && sym.map(s => s.glyph.replace('\uFE0E', '')).join('') === '\u25A6\u25A2\u2691\u2630' && sym.map(s => s.txt).join('|') === 'Overview|Clauses|Obligations|Menu' && sym.every(s => s.name && s.txt.length > 2 && s.whole) && sym.filter(s => s.on).length === 1, JSON.stringify(sym.map(s => s.glyph + ' ' + s.txt + (s.whole ? '' : ' (cut)'))));
     /* WHITE, UNDER THE GREETING ROW (owner, 10 Oct 2026; reverses Lifted) */
     const white = await page.evaluate(() => { const d = document.getElementById('ig-dock');
       return { dock: getComputedStyle(d).backgroundColor, card: getComputedStyle(d, '::before').content, top: Math.round(d.getBoundingClientRect().top), bar: Math.round(document.getElementById('ig-strip').getBoundingClientRect().top) }; });

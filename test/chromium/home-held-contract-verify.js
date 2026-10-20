@@ -140,6 +140,9 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
         chips: [...d.querySelectorAll('[data-ig-chips] button, [data-pd-held-chips] button')].map(b => b.textContent.trim()) }; };
 
     /* ===================== 1 ROUND 13: THE WALL ===================== */
+    /* 20 Oct 2026 (owner: "make the contracts landing page be on list as opposed to paper"): the Contracts
+       place lands on the List now; this check is about the Wall, so it picks Wall as a reader would */
+    await page.evaluate(() => { if (window.regPlaceSet) regPlaceSet({ show: 'wall' }); });
     await page.evaluate(() => setView('register'));
     await until(() => document.querySelectorAll('#ig-wall .igw-card').length >= 12, null, 12000);
     /* RE-POINTED (pass 3): the wall counts agreements, an amendment counted with its agreement, as the head does */
@@ -484,7 +487,7 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     /* ===================== 4 THE OWNER'S THREE SCREENS ===================== */
     const shotsDir = OUT || '';
     const scenes = [
-      ['13-chosen-paper', async () => { await page.evaluate(() => { hbOpenContracts(); if (window.igWallLetGo) igWallLetGo(); }); await until(() => !!document.querySelector('#ig-wall .igw-card'), null, 8000);
+      ['13-chosen-paper', async () => { await page.evaluate(() => { if (window.regPlaceSet) regPlaceSet({ show: 'wall' }); /* the Wall, picked (20 Oct 2026: the place lands on the List) */ hbOpenContracts(); if (window.igWallLetGo) igWallLetGo(); }); await until(() => !!document.querySelector('#ig-wall .igw-card'), null, 8000);
         await bring('MK-0382'); await press('#ig-wall .igw-card[data-ig-pick="MK-0382"]');
         await until(() => !!document.querySelector('#ig-dock #pd-chosen'), null, 4000); return '#ig-dock #pd-chosen'; }],
       ['7-page-glance', async () => { await page.evaluate(() => hbStripBring('MK-0377')); await until(() => !!document.querySelector('#ig-dock #pd-cardglance') && !!document.querySelector('#bs-strip-MK-0377 .bs-kpi'), null, 8000); return '#ig-dock #pd-cardglance'; }],

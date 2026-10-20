@@ -1039,7 +1039,10 @@ function openNewAgreement(o){
             ? {}
             : { crumb:`${i18t('nav_contracts')} › ${i18t('na_title')}` }),
           beside:'#ig-dock' }
-        : { acts:['na-create','na-skip','wz-pick-cancel'], crumb:`${i18t((typeof state==='object'&&state&&(state.view==='templates'||state.view==='playbook'))?'nav_tpl_std':'nav_contracts')} › ${i18t('na_title')}`, back:o.backLabel||'' },
+        /* EVERY DOOR STANDS BESIDE JAMBO TOO (owner, 19 Oct 2026: the form opened
+           from a button had no Jambo panel, unlike the drawn sheet): where his
+           panel is up at the right edge the page ends at it; elsewhere nothing moves */
+        : { acts:['na-create','na-skip','wz-pick-cancel'], crumb:`${i18t((typeof state==='object'&&state&&(state.view==='templates'||state.view==='playbook'))?'nav_tpl_std':'nav_contracts')} › ${i18t('na_title')}`, back:o.backLabel||'', beside:'#ig-dock' },
       /* ESCAPE AND THE SCRIM ASK TOO (9 Oct 2026) — see naAskLeave below. */
       onBeforeClose: ()=>naAskLeave() });
   /* A STAGE WITHOUT REAL ELEMENTS (a sandbox that only records the markup)

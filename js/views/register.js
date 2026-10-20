@@ -1012,12 +1012,14 @@ function regSetScope(k){ REG_SCOPE = (k === 'negotiations') ? 'negotiations' : n
    order, step 7): 'wall' (the wall of papers) or 'list' (this table). It is a
    way of LOOKING, like sort and density, so a door's fresh filters keep it. */
 const REG_SHOWS = ['wall','list'];
-const REG_STATE_DEF = () => ({query:'',stage:'all',type:'all',category:'all',signed:'all',payterms:'all',docs:'all',sort:'updated',dir:-1,page:1,sel:{},view:null,only:null,show:'wall'});
+const REG_STATE_DEF = () => ({query:'',stage:'all',type:'all',category:'all',signed:'all',payterms:'all',docs:'all',sort:'updated',dir:-1,page:1,sel:{},view:null,only:null,show:'list'});
 /* A REFRESH LANDS WHERE YOU WERE (Young, 28 Sep 2026): what this page keeps
    across a reload, read by placeSave and put back by placeResume (js/app.js)
    BEFORE the first paint. Home's Contracts place keeps the same pair, inside
    Home's own (hbPlace → igWallPlace). A set kept by an earlier sitting comes
-   back as it was, or not at all; an unknown way of looking is the wall. */
+   back as it was, or not at all; an unknown way of looking is the List
+   (owner, 20 Oct 2026: "make the contracts landing page be on list as opposed
+   to paper" — the place lands on the List until the reader picks Wall). */
 function regPlace(){ return { scope:regScope(), st:{ ...regState() } }; }
 function regPlacePut(p){
   if(!p) return;
@@ -1026,7 +1028,7 @@ function regPlacePut(p){
   const o=s.only;
   s.only=(o&&Array.isArray(o.ids)&&o.ids.length&&o.ids.every(x=>typeof x==='string'))
     ? { ids:o.ids.slice(), label:String(o.label||'').slice(0,200), ...(o.party===true?{ party:true }:{}) } : null;
-  if(!REG_SHOWS.includes(s.show)) s.show='wall';
+  if(!REG_SHOWS.includes(s.show)) s.show='list';
   if(regScope()==='negotiations') state.regNego=s; else state.reg=s;
 }
 /* ---- THE CONTRACTS PLACE ON HOME (the overnight work order, step 7; owner's
@@ -1043,7 +1045,7 @@ function regPlaceSet(patch){
   regSetScope(null);
   const R=regState();
   if(patch) Object.assign(R, patch);
-  if(!REG_SHOWS.includes(R.show)) R.show='wall';
+  if(!REG_SHOWS.includes(R.show)) R.show='list';
   return R;
 }
 function regPlaceUp(){ return typeof document!=='undefined' && !!document.querySelector('[data-reg-home]'); }

@@ -9978,6 +9978,9 @@ function hbPlace(){
   /* with nothing chosen, the Contracts place keeps its view, tab, filters and
      set (13 Oct 2026; the register's own state since step 7) */
   if (s.face === 'paper' && !p.paper && typeof window.igWallPlace === 'function'){ try { p.wall = igWallPlace(); } catch (_){} }
+  /* and with a paper open, the place's Wall | List under it (20 Oct 2026: the
+     place lands on the List, so a reader's Wall is kept across a refresh) */
+  if (s.face === 'paper' && p.paper && window.state && state.reg && state.reg.show) p.show = state.reg.show;
   return p;
 }
 const HB_RESUME_HAND = ['pointerdown', 'keydown', 'wheel', 'touchstart'], HB_RESUME_HAND_MS = 20000;
@@ -9991,6 +9994,7 @@ function hbPlacePut(p){
   if (p.cam && Array.isArray(p.cam.w) && window.intel && typeof IGB_NV !== 'undefined' && p.cam.w.length === IGB_NV) intel.cam = { ...p.cam, w: p.cam.w.slice() };
   if (p.cal && typeof window.calPlacePut === 'function'){ try { calPlacePut(p.cal); } catch (_){} }
   if (p.wall && typeof window.igWallPlacePut === 'function'){ try { igWallPlacePut(p.wall); } catch (_){} }
+  if (!p.wall && (p.show === 'wall' || p.show === 'list') && typeof window.regPlaceSet === 'function'){ try { regPlaceSet({ show: p.show }); } catch (_){} }
   /* a contract's view saved before 15 Oct 2026 (p.cv) is dropped: the views are gone */
   /* the contract goes back on the Document face once the list holds it,
      through the one door (igWalk), bounded; a contract chosen meanwhile wins */

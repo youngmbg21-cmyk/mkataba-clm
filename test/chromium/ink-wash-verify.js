@@ -32,6 +32,11 @@
    fails nothing. Anyone may re-save after a change; no one's yes is needed.
    The re-recordings below were each asked of the owner under the old rule.
 
+   RE-RECORDED 20 Oct 2026 (twenty-first), OWNER-ASKED ("Yes and merge",
+   PR #365: Jambo's face moved to the Jambo tab, Overview wears ▦, the new
+   Jambo tab, Jambo's panel on Our standards, the New agreement form beside
+   him). Audited as a set difference: no colour or text size new to the
+   record, nothing gone; only counts moved.
    RE-RECORDED 19 Oct 2026 (twentieth), OWNER-ASKED (the same "Yes, re-save
    it", for the last of the gap build: every list page's head is the drawn
    white card, Jambo's chips on the buttons' hairline, Before you sign keeps
