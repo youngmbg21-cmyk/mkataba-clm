@@ -4331,10 +4331,10 @@ function stBzDrawerRights(u){
   const box=id=>document.getElementById(id);
   const sysV=(box('tm-role')||{}).value;
   const out={ ...was, sys:sysV==='legal'?'legal':sysV==='viewer'?'viewer':was.sys };
-  if(box('tm-values')) out.values=!!box('tm-values').checked;
-  if(box('tm-paper')) out.paper=!!box('tm-paper').checked;
-  if(box('tm-refile')) out.refile=!!box('tm-refile').checked;
-  if(box('tm-hold')) out.hold=!!box('tm-hold').checked;
+  if(stGrantBox('tm-values')) out.values=!!box('tm-values').checked;
+  if(stGrantBox('tm-paper')) out.paper=!!box('tm-paper').checked;
+  if(stGrantBox('tm-refile')) out.refile=!!box('tm-refile').checked;
+  if(stGrantBox('tm-hold')) out.hold=!!box('tm-hold').checked;
   if(box('tm-rv-checked')) out.checked=!!box('tm-rv-checked').checked;
   const cap=(typeof stSigningRead==='function')?stSigningRead():undefined;
   if(cap!==undefined&&!(typeof cap==='number'&&Number.isNaN(cap))) out.cap=cap;
@@ -4392,6 +4392,56 @@ function stBzNewGrants(){
   const sel=document.getElementById('tm-bz'), r=sel?stBzRole(sel.value):null;
   if(!r) return {};
   return r.sys==='legal' ? { canViewValues:r.values, newPaper:r.paper, reFile:r.refile, holdContracts:r.hold } : { canViewValues:r.values };
+}
+
+/* ---- A NEW PERSON'S GRANTS ON THE FORM (owner, 20 Oct 2026: "some of these
+   access questions are not available until you add them which makes no
+   sense") ----
+   The same four rows the drawer draws for a member, drawn for a new person
+   too. The role is chosen on this form, so each row says which roles it
+   belongs to (data-tm-for) and stGrantRowsSync shows it as the role moves:
+   values for anyone but an admin; new paper, re-filing and holds for an
+   editor, an admin reading the sentence that holds them by rank. A hidden row
+   is never read (stGrantBox), so a viewer is never sent a grant the server
+   refuses. The ticks start on the product's own readings, which a business
+   role chosen above has already dressed. */
+function stNewGrantRowsHtml(u){
+  const tick=(id,on,onK,offK,noteK)=>`<label class="st-toggle" style="margin-top:10px">
+        <input id="${id}" type="checkbox" ${on?'checked':''}/>
+        <span><span class="st-role-name">${esc(i18t(on?onK:offK))}</span>
+        <span class="st-note">${esc(i18t(noteK))}</span></span>
+      </label>`;
+  const row=(forRoles,inner)=>`<div data-tm-for="${forRoles}"${forRoles.split(' ').includes(u.role)?'':' hidden'}>${inner}</div>`;
+  const note=k=>`<p class="st-note" style="margin-top:10px">${esc(i18t(k))}</p>`;
+  return row('viewer legal',tick('tm-values',stValuesOn(u),'st_values_on','st_values_off','st_values_note'))
+    +row('legal',tick('tm-paper',stNewPaperOn(u),'st_paper_on','st_paper_off','st_paper_note'))
+    +row('admin',note('st_paper_admin'))
+    +row('legal',tick('tm-refile',stReFileOn(u),'st_refile_on','st_refile_off','st_refile_note'))
+    +row('admin',note('st_refile_admin'))
+    +row('legal',tick('tm-hold',stHoldOn(u),'st_hold_on','st_hold_off','st_hold_note'))
+    +row('admin',note('st_hold_admin'));
+}
+function stGrantRowsSync(role){
+  document.querySelectorAll('#st-dbody [data-tm-for]').forEach(el=>{
+    el.hidden=!el.getAttribute('data-tm-for').split(' ').includes(role); });
+}
+/* a grant's box only where its row is shown */
+function stGrantBox(id){
+  const b=document.getElementById(id);
+  return (b&&!b.closest('[hidden]'))?b:null;
+}
+/* A TICK SAYS WHICH WAY IT IS SET, AS IT IS PRESSED: the row's words were
+   painted once, so "May not create new paper" stayed beside a ticked box */
+const ST_GRANT_WORDS={ 'tm-values':['st_values_on','st_values_off'], 'tm-paper':['st_paper_on','st_paper_off'],
+  'tm-refile':['st_refile_on','st_refile_off'], 'tm-hold':['st_hold_on','st_hold_off'] };
+function stGrantWordsWire(){
+  Object.keys(ST_GRANT_WORDS).forEach(id=>{
+    const b=document.getElementById(id); if(!b) return;
+    b.addEventListener('change',()=>{
+      const nm=b.closest('label')?.querySelector('.st-role-name');
+      if(nm) nm.textContent=i18t(ST_GRANT_WORDS[id][b.checked?0:1]);
+    });
+  });
 }
 
 /* ---- COMPANY › PEOPLE › ROLES ---- */
@@ -4657,7 +4707,8 @@ function settingsPersonDrawer(idOrNew){
         <input id="tm-hold" type="checkbox" ${stHoldOn(u)?'checked':''}/>
         <span><span class="st-role-name">${esc(stHoldOn(u)?i18t('st_hold_on'):i18t('st_hold_off'))}</span>
         <span class="st-note">${esc(i18t('st_hold_note'))}</span></span>
-      </label>`):''}`)}
+      </label>`):''}
+      ${(isNew && isAdmin() && API_MODE())?stNewGrantRowsHtml(u):''}`)}
 
     ${sec(3,i18t('st_sec_folders'),
       (u.role==='admin'&&!isNew)
@@ -4704,6 +4755,7 @@ function settingsPersonDrawer(idOrNew){
         const accSel=document.getElementById('tm-access');
         const list=document.getElementById('tm-access-list'), note=document.getElementById('tm-access-note');
         if(!roleSel||!accSel) return;
+        stGrantRowsSync(roleSel.value);
         const adminRole=roleSel.value==='admin';
         accSel.disabled=adminRole; accSel.style.opacity=adminRole?'.55':'';
         if(note && note.tagName!=='P') note.style.display=adminRole?'block':'none';
@@ -4723,6 +4775,7 @@ function settingsPersonDrawer(idOrNew){
         const list=document.getElementById('tm-sign-list');
         if(list) list.style.display=signSel.value==='pick'?'grid':'none';
       });
+      stGrantWordsWire();
       stSigningWire(u);
       stReviewWire(u);
       stOverseerWire(u);
@@ -4828,6 +4881,14 @@ async function settingsSavePerson(existing){
     if(rv&&rv.reviewerId!==undefined) after.reviewerId=rv.reviewerId;
     Object.assign(after, ovPatch.patch||{});
     if(API_MODE()) Object.assign(after, stBzNewGrants());
+    /* the grants ticked on the form win over the role's; only rows shown */
+    const gv=stGrantBox('tm-values'), gp=stGrantBox('tm-paper'), gr=stGrantBox('tm-refile'), gh=stGrantBox('tm-hold');
+    if(gv&&role!=='admin') after.canViewValues=!!gv.checked;
+    if(role==='legal'){
+      if(gp) after.newPaper=!!gp.checked;
+      if(gr) after.reFile=!!gr.checked;
+      if(gh) after.holdContracts=!!gh.checked;
+    }
     if(newId && signFolders!==undefined && typeof saveSignFolders==='function'){
       try{ await saveSignFolders(newId, signFolders); }catch(e){ toast(e.message,'err'); }
     }
