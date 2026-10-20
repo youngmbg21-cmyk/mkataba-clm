@@ -122,7 +122,8 @@ describe('f758 (2) "Before you send" owns no builder and no writer', () => {
        (pdSendAway) and "Before you send" waits as a tab (pdSendBack) */
     assert.match(map, /send: \(\) => pdSendAway\(\)/);
     const core = R('js/core.js');
-    assert.match(core, /onClose:_onDesk\?\(\)=>shareLetterPageOff\(c\):null/, 'the screen\'s close gives the column back');
+    /* RE-POINTED 20 Oct 2026 ("Sent as: a colleague"): the close lifts the colleague attribute too */
+    assert.match(core, /onClose:\(\)=>\{ shareColAttr\(false\); if\(_onDesk\) shareLetterPageOff\(c\); \}/, 'the screen\'s close gives the column back');
     assert.match(core, /function closeModalGuarded\(/);
     assert.match(core, /Object\.assign\(window,\s*\{[^}]*closeModalGuarded/, 'published, so the face and the tab can ask it');
   });

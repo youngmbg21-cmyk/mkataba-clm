@@ -246,7 +246,8 @@ describe('f451 (7) — the status link is not a copy of the contract', () => {
 
   test('status is a purpose both halves know', () => {
     assert.match(srvCode, /const SHARE_PURPOSES = \[[^\]]*'status'\]/);
-    assert.match(code(CORE), /SHARE_PURPOSE = p => \(\[[^\]]*'status'\]/);
+    /* RE-POINTED 20 Oct 2026: 'colleague' now follows 'status' in the list */
+    assert.match(code(CORE), /SHARE_PURPOSE = p => \(\[[^\]]*'status'[^\]]*\]/);
   });
 
   test('the browser builds the id and nothing more', () => {

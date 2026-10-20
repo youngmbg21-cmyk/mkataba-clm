@@ -83,7 +83,9 @@ describe('f750 (2) Jambo\'s line, as drawn', () => {
     assert.match(ctx.caDraftCardHtml(a, 0), /<p class="ca-say">I’ve opened a new agreement on the desk with what I read: an NDA, with <b>Volvo Cars<\/b>\. The closest of our paper is our <b>Mutual NDA<\/b>; you pick\. Nothing is created until you press Create\.<\/p>/);
   });
   test('2c no line in front of it; its doors back stand down while the sheet is up', () => {
-    assert.match(IG, /act\.kind==='draft'\?'':i18t\(act\.kind==='send'\?'ca_intro_send':'ca_intro_job'\)/);
+    /* RE-POINTED 20 Oct 2026: a send that opens the send screen ("send the above
+       summary to @…") is said by its own card, so it too has no line in front */
+    assert.match(IG, /act\.kind==='draft'\|\|\(act\.kind==='send'&&act\.screen\)\?'':i18t\(act\.kind==='send'\?'ca_intro_send':'ca_intro_job'\)/);
     assert.match(IX, /body:has\(#na-root\.na-one\) #ig-dock \.ca-dr-said \.ca-acts\{ display:none; \}/);
     assert.match(IX, /body:has\(#na-root\.na-one\) #ig-dock :is\(\.pd-hello, #pd-drop, \[data-ig-chips\]\)\{ display:none; \}/);
   });
