@@ -1431,14 +1431,20 @@ function pdTalkHas(){
   return H.length > _pdTalk.from;
 }
 function pdTalkReopen(){
-  const k = pdTalkKey(); if (!pdTalkHas() || typeof jamboTalkOpen !== 'function') return false;
+  const k = pdTalkKey(); if (!k || k.indexOf('dock:') !== 0 || typeof jamboTalkOpen !== 'function') return false;
+  if (typeof jamboTalkLand === 'function') jamboTalkLand(k);
+  _pdTalk.byTab = true;
   jamboTalkOpen(k, document.getElementById('ig-dock'));
   if (typeof renderIntelDock === 'function') renderIntelDock();
   if (typeof deskBarPaint === 'function') try { deskBarPaint(); } catch (_){}
   return true;
 }
+/* THE JAMBO TAB IS ALWAYS THERE (owner, 20 Oct 2026: "jambo keeps
+   disappearing from the top of the panel"; reverses "nothing shows before your
+   first question"): pressed before a word, it opens his conversation, empty,
+   his box ready */
 function pdTalkTabHtml(){
-  if (!pdTalkHas()) return '';
+  if (!pdTalkKey() || pdTalkKey().indexOf('dock:') !== 0) return '';
   const on = pdTalkShows(), name = _pdT('pd_tab_copilot');
   return `<button type="button" role="tab" class="pd-tab pd-tab-talk${on ? ' on' : ''}" data-pd-talk aria-selected="${on}" title="${_pdE(name)}">${typeof jamboTalkTabInner === 'function' ? jamboTalkTabInner() : _pdE(name)}</button>`;
 }
@@ -1467,7 +1473,7 @@ function pdTalkSync(dock){
   /* NOTHING SAID HERE, NO CONVERSATION VIEW (19 Oct 2026): a conversation
      cleared under an open view puts the landing back — an empty talk is never
      what the panel shows (home-held-contract-verify 3g) */
-  if (len <= _pdTalk.from && !(typeof intel === 'object' && intel && intel.busy) && jamboTalkShows(k) && typeof jamboTalkClose === 'function'){ jamboTalkClose(); _pdTalk.seen = len; }
+  if (len <= _pdTalk.from && !_pdTalk.byTab && !(typeof intel === 'object' && intel && intel.busy) && jamboTalkShows(k) && typeof jamboTalkClose === 'function'){ jamboTalkClose(); _pdTalk.seen = len; }
   /* THE READER'S HAND WINS: an answer that lands after they went back is kept
      in the conversation for the next flip, never pulled up over the landing */
   /* A GUIDE ROW IS NOT TYPING (19 Oct 2026): a press on Explorer's Guide runs
@@ -1484,6 +1490,7 @@ function pdTalkFrom(){ return _pdTalk.from; }
 /* the view closed, its words seen; the landing's scrolls handed back */
 function pdTalkClose(){
   const keep = (typeof jamboTalkClose === 'function') ? jamboTalkClose() : [];
+  _pdTalk.byTab = false;
   _pdTalk.seen = _pdTalk.last = (typeof intel === 'object' && intel && Array.isArray(intel.history)) ? intel.history.length : 0;
   _pdTalk.quiet = !!(typeof intel === 'object' && intel && intel.busy);
   return keep;

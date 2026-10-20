@@ -212,7 +212,8 @@ const check = (name, pass, detail) => {
       await until(() => document.querySelector('#cal-plan.is-talk'), null, 8000);
       await page.evaluate(() => { const b = document.querySelector('#cal-plan .pd-trail .pd-back'); if (b) b.click(); });
       await until(() => document.querySelector('#cal-plan') && !document.querySelector('#cal-plan.is-talk'), null, 5000);
-      check('6a no "Jambo" tab before a word, one after', !C0 && await page.evaluate(ct));
+      /* RE-POINTED 20 Oct 2026 (owner: "jambo keeps disappearing"): the tab stands before a word too */
+      check('6a the "Jambo" tab stands before a word and after', C0 && await page.evaluate(ct));
       if (await page.evaluate(ct)) await page.click('#cal-plan [data-cal-talk]');
       const C1 = await until(() => { const c = document.querySelector('#cal-plan.is-talk'); return !!c && /due this week/.test(c.textContent); }, null, 5000);
       check('6b pressed, the conversation comes back, the question in it', !!C1);
