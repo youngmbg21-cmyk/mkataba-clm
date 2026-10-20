@@ -106,7 +106,7 @@ describe('f742 (1) Jambo beside a page: "<ref> at a glance"', () => {
   });
   test('1d the panel says it beside the page, follows the page, and its doors are the page\'s own', () => {
     assert.match(fnBody(PD, 'pdHolds'), /return pdCardPage\(c\) === 'hist' \? 'hist' : 'card';/);
-    assert.match(fnBody(PD, 'pdHeldTopHtml'), /k === 'hist' \? pdHistGlanceHtml\(c\) : k === 'card' \? pdCardGlanceHtml\(c\) : pdChosenHtml\(c\)/);
+    assert.match(fnBody(PD, 'pdHeldTopHtml'), /k === 'hist' \? pdHistGlanceHtml\(c\) : k === 'card' \? pdCardDossierHtml\(c\) : pdChosenHtml\(c\)/);
     /* RE-POINTED (pass 4): the door opens (pdHeldOpen), then lands on its
        target through the one lander (pdHeldGo → pdHeldLand) */
     assert.match(fnBody(PD, 'pdHeldGo'), /const done = pdHeldOpen\(c, w\);\n\s+if \(done && c\) pdHeldLand\(w, c\.id\);/);

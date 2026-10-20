@@ -76,7 +76,7 @@ describe('f744 (1) the head names what the panel holds', () => {
   test('1a a page, its History, a chosen paper — and nothing where it holds his own words', () => {
     for (const f of FNS) assert.ok(fnBody(PD, f), f + ' is defined');
     const w = world({ card: SIGNED });
-    assert.equal(w.pdHolds(), 'card'); assert.equal(w.pdHeadWord(), 'MK-0377 at a glance');
+    assert.equal(w.pdHolds(), 'card'); assert.equal(w.pdHeadWord(), 'MK-0377 · Dossier', 'RE-POINTED 20 Oct 2026: beside the Board\'s card Jambo shows its dossier');
     w.page = 'hist'; w.card = LIVE; assert.equal(w.pdHolds(), 'hist'); assert.equal(w.pdHeadWord(), 'MK-0382 · History');
     w.page = 'where'; assert.equal(w.pdHolds(), 'card', 'Where we are and Details: the glance');
     w.card = null; assert.equal(w.pdHolds(), ''); assert.equal(w.pdHeadWord(), '');
@@ -129,7 +129,7 @@ describe('f744 (4) pass 3: the chips right under the card', () => {
     assert.equal(world({ card: SIGNED, jamboChipsOn: () => false }).pdHeldChipsHtml(), '', 'a reader who turned the chips off sees none');
   });
   test('4b the top draws the card and then its chips; a repaint keeps the row under the card', () => {
-    assert.match(fnBody(PD, 'pdHeldTopHtml'), /return \(k === 'hist' \? pdHistGlanceHtml\(c\) : k === 'card' \? pdCardGlanceHtml\(c\) : pdChosenHtml\(c\)\) \+ pdHeldChipsHtml\(\);/);
+    assert.match(fnBody(PD, 'pdHeldTopHtml'), /return \(k === 'hist' \? pdHistGlanceHtml\(c\) : k === 'card' \? pdCardDossierHtml\(c\) : pdChosenHtml\(c\)\) \+ pdHeldChipsHtml\(\);/);
     const F = fnBody(PD, 'pdHeldFollow');
     assert.match(F, /const row = document\.querySelector\('#ig-dock \[data-pd-held-chips\]'\), want = pdHeldChipsHtml\(\);/);
     assert.match(F, /else if \(nr\) card\.after\(nr\);/);

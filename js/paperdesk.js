@@ -3199,7 +3199,7 @@ const DOSSIER_STAGES = ['arrive', 'read', 'fill', 'nego', 'sign', 'live'];
 const DOSSIER_FILL_MAX = 4;
 const DOSSIER_ASKS_MAX = 3;
 /* which stage each owed kind belongs to (Needs you's own kinds, insNeedWords') */
-const DOSSIER_STAGE_OF = { fill: 'fill', signer: 'fill', details: 'fill', ask: 'nego', share: 'nego', quiet: 'nego', review: 'nego',
+const DOSSIER_STAGE_OF = { late: 'live', fill: 'fill', signer: 'fill', details: 'fill', ask: 'nego', share: 'nego', quiet: 'nego', review: 'nego',
   join: 'nego', suggest: 'nego', note: 'nego', look: 'nego', approval: 'sign', sign: 'sign', refused: 'sign', renewal: 'live' };
 function dossierNowStage(c){
   if (!c) return 'arrive';
@@ -3262,6 +3262,9 @@ function dossierOwed(c){
   }
   let un = 0; try { un = (c.negotiation && typeof rlUnsentCount === 'function') ? rlUnsentCount(c, {}) : 0; } catch (_){ un = 0; }
   if (un) out.push({ k: 'share', kind: 'share', n: un });
+  /* AN OBLIGATION PAST ITS DAY (the Board card's own reading, bsObRows): one row, the first named */
+  let late = []; try { late = (typeof bsObRows === 'function') ? (((bsObRows(c) || {}).rows) || []).filter(r => r && r.st === 'overdue') : []; } catch (_){ late = []; }
+  if (late.length) out.push({ k: 'late', kind: 'late', n: late.length, what: late[0].what, days: pdDaysSince(late[0].due) });
   needs.forEach((r, i) => out.push({ k: 'need:' + (r.note ? 'mynote' : r.jw ? 'jw:' + r.k + ':' + (r.key || i) : (r.it && r.it.kind) || i), kind: r.note ? 'note' : r.jw ? 'jw' : ((r.it && r.it.kind) || 'ask'), need: r }));
   return out;
 }
@@ -3329,7 +3332,8 @@ function dossierOwedHtml(c, D){
     : r.kind === 'signer' ? _pdT('dos_owed_signer')
     : r.k === 'asks-more' ? _pdTn('pd_gl_asks_more', r.more, { n: r.more })
     : r.ch ? pdAskSay(c, r.ch)
-    : r.kind === 'share' ? _pdTn('pd_gl_unsent', r.n, { n: r.n }) : '';
+    : r.kind === 'share' ? _pdTn('pd_gl_unsent', r.n, { n: r.n })
+    : r.kind === 'late' ? _pdTn('dos_late', r.n, { n: r.n, what: r.what, days: r.days }) : '';
   const mine = D.owed.filter(r => !r.need);
   const done = pdGlanceDone(c, mine, said);
   const rowHtml = r => {
@@ -3340,7 +3344,8 @@ function dossierOwedHtml(c, D){
     const door = r.kind === 'fill' ? dossierGo(`data-pd-ds-fill="${_pdE(r.key || '')}"`, _pdT('dos_go_fill_in'))
       : r.kind === 'signer' ? dossierGo('data-pd-glance="sign"', _pdT('dos_go_name'))
       : r.kind === 'ask' ? dossierGo('data-pd-glance="redline"', _pdT('dos_go_reply'))
-      : r.kind === 'share' ? dossierGo('data-pd-glance="share"', _pdT('dos_go_send')) : '';
+      : r.kind === 'share' ? dossierGo('data-pd-glance="share"', _pdT('dos_go_send'))
+      : r.kind === 'late' ? dossierGo('data-pd-glance-tab="oblig"', _pdT('dos_go_open')) : '';
     return `<div class="pd-gl-row ds-row" data-pd-gl="${_pdE(r.kind === 'signer' ? 'sign' : r.kind)}"${r.ch ? ` data-pd-gl-ch="${_pdE(r.ch.id)}"` : ''}><span>${amb}${sub}</span>${door}</div>`;
   };
   /* a ticked-off row names its kind (fill · signer · ask · share), as the old glance's did */
@@ -3732,7 +3737,7 @@ function pdHeadWord(){
   const k = pdHolds(); if (!k) return '';
   if (k === 'chosen') return _pdT('pd_ch_head');
   const c = pdCardNow(); const ref = c ? ((typeof contractRef === 'function') ? contractRef(c) : c.id) : '';
-  return k === 'hist' ? _pdT('pd_hg_head', { ref }) : _pdT('pd_gl_title', { ref });
+  return k === 'hist' ? _pdT('pd_hg_head', { ref }) : _pdT('dos_held_head', { ref });
 }
 /* the ask box's words: which contract a question goes with */
 function pdAskPlaceholder(){
@@ -4227,7 +4232,7 @@ function pdHeldFollow(){
   _pdHeldWas = sig;
   const k = pdHolds(), c = pdHeldContract(); if (!k || !c) return;
   const el = document.querySelector('#ig-dock [data-pd-held-for], #ig-dock #pd-chosen');
-  const html = k === 'hist' ? pdHistGlanceHtml(c) : k === 'card' ? pdCardGlanceHtml(c) : pdChosenHtml(c);
+  const html = k === 'hist' ? pdHistGlanceHtml(c) : k === 'card' ? pdCardDossierHtml(c) : pdChosenHtml(c);
   if (!el){ if (typeof renderIntelDock === 'function') renderIntelDock(); return; }
   const t = document.createElement('div'); t.innerHTML = html;
   let card = el;
@@ -4242,7 +4247,59 @@ function pdHeldFollow(){
 function pdHeldTopHtml(){
   _pdHeldWas = pdHeldSig();
   const k = pdHolds(), c = pdHeldContract(); if (!k || !c) return null;
-  return (k === 'hist' ? pdHistGlanceHtml(c) : k === 'card' ? pdCardGlanceHtml(c) : pdChosenHtml(c)) + pdHeldChipsHtml();
+  return (k === 'hist' ? pdHistGlanceHtml(c) : k === 'card' ? pdCardDossierHtml(c) : pdChosenHtml(c)) + pdHeldChipsHtml();
+}
+/* ---- THE DOSSIER BESIDE THE BOARD'S CARD (owner, 20 Oct 2026: "yes make it
+   the dossier") ----
+   A contract brought up on the Board: Jambo's panel draws the same dossier as
+   beside its paper (pdGlanceHtml, pdNextUpHtml — one builder, a second host),
+   so the card and the panel say one thing. THE BOARD REVIEWS, THE WORKSPACE
+   ACTS: any press inside it first opens the contract beside its paper, then
+   presses the same door on the paper's own dossier — never a second copy of
+   an act wired here. */
+const PD_HELD_DOS_TRIES = 40;
+function pdCardDossierHtml(c){
+  const g = pdGlanceHtml(c).replace('<div id="pd-glance" class="pd-dossier"', '<div id="pd-glance" class="pd-dossier" data-pd-held-dossier');
+  const nx = pdNextUpHtml(c).replace('class="pd-menu pd-nx ds-nx"', 'class="pd-menu ds-nx" data-pd-held-dossier');
+  /* A PRIVATE CONTRACT SAYS WHO MAY OPEN IT FIRST, as the card did (bsPrivateOf, the card's own row) */
+  let P = null; try { P = (typeof bsPrivateOf === 'function') ? bsPrivateOf(c) : null; } catch (_){ P = null; }
+  const priv = P ? `<div class="pd-glance ds-card ds-private" data-pd-ds-card="private"><div class="pd-gl-b">${pdCardGlanceRowHtml(c, { k: 'private', P })}</div></div>` : '';
+  /* one holder, so the panel follows the page in place (pdHeldFollow) */
+  return `<div class="pd-held-dos" data-pd-held-for="${_pdE(c.id)}">${priv}${g}${nx}</div>`;
+}
+/* the same door on the paper's dossier: its id, else its first data-* mark */
+function pdHeldDoorSel(b){
+  if (b.id) return '#' + CSS.escape(b.id);
+  const a = [...b.attributes].find(x => /^data-(pd|ig|rl)-/.test(x.name));
+  return a ? `[${a.name}="${CSS.escape(a.value)}"]` : '';
+}
+if (typeof document !== 'undefined' && !document._pdHeldDosWired){
+  document._pdHeldDosWired = true;
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    const host = t.closest('[data-pd-held-dossier]'); if (!host) return;
+    const b = t.closest('button'); if (!b || !host.contains(b)) return;
+    /* the Board's own readings (a family member, Where we are, History) stay on the Board */
+    if (b.closest('summary') || b.matches('[data-pd-ds-fam], [data-pd-ds-page], [data-pd-cg-go]')) return;
+    e.preventDefault(); e.stopPropagation();
+    if (b.disabled) return;
+    const id = host.getAttribute('data-pd-glance-for') || host.getAttribute('data-pd-menu'), sel = pdHeldDoorSel(b);
+    if (!id || !sel) return;
+    /* the dossier itself, not a face left up over it */
+    ['pdFillAway', 'pdRedAway', 'pdSignAway'].forEach(f => { if (typeof window[f] === 'function') try { window[f](); } catch (_){} });
+    if (pdTalkShows()) try { pdTalkBack(); } catch (_){}
+    if (pdOpenOnHome(id, 'copilot') === false) return;
+    let n = 0;
+    const press = () => {
+      const on = document.querySelector(`#ig-dock #pd-glance[data-pd-glance-for="${CSS.escape(String(id))}"]:not([data-pd-held-dossier])`);
+      const nx = document.querySelector(`#ig-dock .pd-nx[data-pd-menu="${CSS.escape(String(id))}"]`);
+      const root = on && (on.querySelector(sel) ? on : (nx && nx.dataset.wired ? nx : null));
+      const row = root ? root.querySelector(sel) : null;
+      if (row){ if (!row.disabled) row.click(); return; }
+      if (++n < PD_HELD_DOS_TRIES) setTimeout(press, 50);
+    };
+    setTimeout(press, 0);
+  }, true);
 }
 if (typeof document !== 'undefined' && !document._pdHeldWired){
   document._pdHeldWired = true;
@@ -4377,7 +4434,7 @@ if (typeof document !== 'undefined' && !document._pdTrailEsc){
     if (pdTrailBack() || (typeof jamboTalkBack === 'function' && jamboTalkBack())) e.preventDefault();
   });
 }
-Object.assign(window, { DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
+Object.assign(window, { pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
   PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdTalkKey, pdTalkShows, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,

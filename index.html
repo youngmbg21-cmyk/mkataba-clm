@@ -10184,6 +10184,8 @@
   #ig-dock .pd-mn-go{grid-column:2;grid-row:1 / span 2;color:var(--accent-ink);font-weight:var(--w-strong);font-size:var(--t-label);white-space:nowrap}
   /* THE DOSSIER (owner picked "The Dossier" by name, 20 Oct 2026; pdGlanceHtml, dossierOf): the six stages, What Jambo read, Still owed, the stage's acts, and two folds */
   #ig-dock .pd-dossier{display:grid;gap:10px}
+  #ig-dock .pd-held-dos{display:grid;gap:10px}
+  #ig-dock .pd-held-dos .ds-nx{margin-top:0}
   .ds-spine{display:flex;align-items:flex-start;margin:2px 0 0}
   .ds-st{flex:1;min-width:0;position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--color-neutral-600);text-align:center;white-space:nowrap}
   .ds-st::before{content:"";position:absolute;top:8px;left:0;right:0;height:2px;background:var(--color-divider)}
@@ -10205,7 +10207,7 @@
   #ig-dock .ds-go:hover:not(:disabled){text-decoration:underline}
   #ig-dock .ds-go:disabled{color:var(--color-neutral-600);cursor:not-allowed}
   #ig-dock .ds-go:focus-visible{outline:2px solid var(--accent-fill);outline-offset:2px;border-radius:var(--radius)}
-  #ig-dock .ds-nx{grid-template-columns:minmax(0,1fr);gap:10px;margin-top:10px}
+  #ig-dock .ds-nx{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;margin-top:10px}
   #ig-dock .ds-acts-b{display:flex;flex-wrap:wrap;gap:8px;padding:10px 14px 12px}
   #ig-dock .ds-fold{border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:var(--color-surface);font-size:12.5px}
   #ig-dock .ds-fold>summary{display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;list-style:none;color:var(--color-text)}

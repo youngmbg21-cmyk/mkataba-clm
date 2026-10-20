@@ -249,11 +249,15 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     await bring('MK-0377'); await press(`#ig-wall .igw-card[data-ig-pick="MK-0377"]`);
     await until(() => !!document.querySelector('#ig-dock [data-pd-ch-life="MK-0377"]'), null, 4000);
     await press('#ig-dock [data-pd-ch-life="MK-0377"]');
-    const P7 = await until(() => { const g = document.querySelector('#ig-dock #pd-cardglance'); const st = document.getElementById('bs-strip-MK-0377');
+    /* RE-POINTED 20 Oct 2026 (owner: "yes make it the dossier"): beside the Board's card Jambo's panel is the
+       contract's dossier — "<ref> · Dossier", the spine, What Jambo read, Still owed (a late obligation among
+       its rows), the stage's acts, the Family fold — the card's chips still right under it */
+    const P7 = await until(() => { const g = document.querySelector('#ig-dock .pd-held-dos'); const st = document.getElementById('bs-strip-MK-0377');
       if (!g || !st || !st.querySelector('.bs-kpi')) return null;
       return { card: window.bsCardId && bsCardId(), word: ((document.querySelector('#ig-dock .igd-head-w') || {}).textContent || '').trim(), ph: (document.getElementById('igd-input') || {}).placeholder,
-        head: (g.querySelector('.pd-gl-h b') || {}).textContent, pill: !!g.querySelector('.pd-gl-h .room-stat'),
-        rows: [...g.querySelectorAll('.pd-gl-row')].map(r => ({ k: r.getAttribute('data-pd-cg'), t: (r.querySelector('span') || {}).textContent.replace(/\s+/g, ' ').trim(), b: ((r.querySelector('button') || {}).textContent || '').trim() })),
+        head: [...g.querySelectorAll('.pd-gl-h b')].map(b => b.textContent).join(' | '), pill: !!g.querySelector('.ds-spine .ds-st[data-ds-st="live"]'),
+        rows: [...g.querySelectorAll('[data-pd-ds-card="owed"] .pd-gl-row')].map(r => ({ k: r.getAttribute('data-pd-gl'), t: (r.querySelector('span') || {}).textContent.replace(/\s+/g, ' ').trim(), b: ((r.querySelector('button') || {}).textContent || '').trim() })),
+        fam: ((g.querySelector('[data-ds-fold="family"] summary') || {}).textContent || '').trim(),
         chips: [...document.querySelectorAll('#ig-dock [data-pd-held-chips] button')].map(b => b.textContent.trim()),
         foot: document.querySelectorAll('#ig-dock [data-ig-chips]').length,
         under: (() => { const r = document.querySelector('#ig-dock [data-pd-held-chips]'); return r ? Math.round(r.getBoundingClientRect().top - g.getBoundingClientRect().bottom) : null; })(),
@@ -265,12 +269,11 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
         value: ((st.querySelector('[data-bs-kpi="value"] span') || {}).textContent || ''),
         /* RE-POINTED 20 Oct 2026 (4b): Open stands in the head as "Open in Workspace ›" */
         sfoot: ((st.querySelector('.bs-head [data-bs-open]') || {}).textContent || '').trim() }; }, null, 15000);
-    check('2a Life line and details brings up its page, and Jambo says "MK-0377 at a glance" beside it, with its stage pill', !!P7 && P7.card === 'MK-0377' && P7.word === 'MK-0377 at a glance' && P7.head === 'MK-0377 at a glance' && P7.pill, JSON.stringify(P7 && { card: P7.card, word: P7.word, head: P7.head }));
+    check('2a Life line and details brings up its page, and Jambo says "MK-0377 · Dossier" beside it, its spine at Live', !!P7 && P7.card === 'MK-0377' && P7.word === 'MK-0377 · Dossier' && /^What Jambo read \| Still owed · \d+/.test(P7.head) && P7.pill, JSON.stringify(P7 && { card: P7.card, word: P7.word, head: P7.head }));
     const rk = P7 ? P7.rows.map(r => r.k) : [];
-    check('2b the rows: the obligation late (→ Obligations), the signed amendment (→ Bring it up), the notice day',
-      JSON.stringify(rk) === JSON.stringify(['late', 'amend', 'notice']) && /^1 obligation is late: Check the September invoice, 7 days\. ?ours · due /.test(P7.rows[0].t) && P7.rows[0].b === 'Obligations'
-      /* RE-POINTED (pass 4, round 7 as drawn: "Amendment 1, signed 28 Sep, raised the volume 10%"): what it did, in its maker's words, then the value */
-      && /^Amendment No\. 1, signed .*: “raised the yearly volume by 10%” — the value is KES 7\.10M as amended\.$/.test(P7.rows[1].t) && P7.rows[1].b === 'Bring it up' && /^Notice by .*, or it renews for 12 months\.$/.test(P7.rows[2].t), JSON.stringify(P7 && P7.rows));
+    check('2b Still owed: the obligation late (→ Open ›); the signed amendment in the Family fold',
+      rk.includes('late') && /^1 obligation is late: Check the September invoice, 7 days$/.test(P7.rows[rk.indexOf('late')].t) && P7.rows[rk.indexOf('late')].b === 'Open ›'
+      && /^Family — Original and 1 more in its family/.test(P7.fam), JSON.stringify(P7 && { rows: P7.rows, fam: P7.fam }));
     check('2c chips obligations · history · amend, and the box asks about MK-0377', !!P7 && JSON.stringify(P7.chips) === JSON.stringify(['obligations', 'history', 'amend']) && P7.ph === 'Ask about MK-0377…', JSON.stringify(P7 && { chips: P7.chips, ph: P7.ph }));
     check('2d the page as drawn: the stage pill, "signed <day>", "As amended by" first, a late next obligation in the late colour saying how late, "Open in Workspace ›"',
       !!P7 && P7.stage === 'Executed' && /· signed \d/.test(P7.idline) && /^As amended by MK-0377-A1/.test(P7.value) && P7.next && P7.next.bad && /· 7 days late$/.test(P7.next.sub) && P7.sfoot === 'Open in Workspace ›',
@@ -278,8 +281,9 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     check('5d a page\'s chips sit right under its card, none in the panel\'s foot row', !!P7 && P7.under != null && P7.under >= 0 && P7.under <= 24 && P7.foot === 0, JSON.stringify(P7 && { under: P7.under, foot: P7.foot }));
     check('5e the caption says how late ("…, 7 days late."); the table says Late before Next', !!P7 && /Next up: Check the September invoice \([^)]+\), 7 days late\./.test(P7.cap) && JSON.stringify(P7.pills) === JSON.stringify(['Late', 'Next']), JSON.stringify(P7 && { cap: P7.cap, pills: P7.pills }));
     if (OUT) await page.screenshot({ path: path.join(OUT, '7-page-glance-1440x780.png') });
-    await press('#ig-dock [data-pd-cg-bring="MK-0377-A1"]');
-    const brought = await until(() => window.bsCardId && bsCardId() === 'MK-0377-A1' && document.querySelector('#ig-dock .igd-head-w') && document.querySelector('#ig-dock .igd-head-w').textContent.trim() === 'MK-0377-A1 at a glance', null, 8000);
+    await page.evaluate(() => { const f = document.querySelector('#ig-dock .pd-held-dos [data-ds-fold="family"]'); if (f) f.open = true; });
+    await press('#ig-dock .pd-held-dos [data-pd-ds-fam="MK-0377-A1"]');
+    const brought = await until(() => window.bsCardId && bsCardId() === 'MK-0377-A1' && document.querySelector('#ig-dock .igd-head-w') && document.querySelector('#ig-dock .igd-head-w').textContent.trim() === 'MK-0377-A1 · Dossier', null, 8000);
     check('2e Bring it up brings the amendment\'s page, and the panel follows it', !!brought);
 
     /* ===================== 3 ROUND 12: ITS HISTORY ===================== */
@@ -411,7 +415,7 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
 
     /* 6i the signed supply agreement's page: its tile, its chips, a chip that lands */
     await page.evaluate(() => { intel.paper = null; hbStripBring('MK-0377'); });
-    const T6 = await until(() => { const st = document.getElementById('bs-strip-MK-0377'), g = document.querySelector('#ig-dock #pd-cardglance[data-pd-held-for="MK-0377"]'); if (!st || !g || !st.querySelector('.bs-kpi')) return null;
+    const T6 = await until(() => { const st = document.getElementById('bs-strip-MK-0377'), g = document.querySelector('#ig-dock .pd-held-dos[data-pd-held-for="MK-0377"]'); if (!st || !g || !st.querySelector('.bs-kpi')) return null;
       return { ob: [...st.querySelectorAll('[data-bs-jcell="ob"] li')].map(x => x.textContent.trim()), chips: [...document.querySelectorAll('#ig-dock [data-pd-held-chips] button')].map(b => b.textContent.trim()) }; }, null, 10000);
     check('6i What Jambo read says the obligations\' sides, without a first due day', !!T6 && JSON.stringify(T6.ob) === JSON.stringify(['1 ours · 1 theirs']), JSON.stringify(T6));
     const n6b = await tabN();
@@ -447,16 +451,16 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     await page.reload({ waitUntil: 'networkidle' });
     await until(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-0399') && typeof streamIsPrivate === 'function' && streamIsPrivate('corp'), null, 20000);
     await page.evaluate(() => { if (window.intel) intel.paper = null; hbStripBring('MK-0399'); });
-    const P6 = await until(() => { const st = document.getElementById('bs-strip-MK-0399'), g = document.querySelector('#ig-dock #pd-cardglance[data-pd-held-for="MK-0399"]'); if (!st || !g) return null;
-      return { head: ((st.querySelector('.bs-head .bs-lockp') || {}).textContent || '').trim(), glHead: ((g.querySelector('.pd-gl-h .bs-lockp') || {}).textContent || '').trim(),
-        rows: [...g.querySelectorAll('.pd-gl-row')].map(r => ({ k: r.getAttribute('data-pd-cg'), t: ((r.querySelector('span') || {}).textContent || '').replace(/\s+/g, ' ').trim(), b: ((r.querySelector('button') || {}).textContent || '').trim() })),
+    const P6 = await until(() => { const st = document.getElementById('bs-strip-MK-0399'), g = document.querySelector('#ig-dock .pd-held-dos[data-pd-held-for="MK-0399"]'); if (!st || !g) return null;
+      return { head: ((st.querySelector('.bs-head .bs-lockp') || {}).textContent || '').trim(), glHead: ((g.querySelector('[data-pd-ds-card="private"] .pd-gl-row span') || {}).textContent || '').trim(),
+        rows: [...g.querySelectorAll('[data-pd-ds-card="private"] .pd-gl-row, [data-pd-ds-card="owed"] .pd-gl-row')].map(r => ({ k: r.getAttribute('data-pd-cg') || r.getAttribute('data-pd-gl'), t: ((r.querySelector('span') || {}).textContent || '').replace(/\s+/g, ' ').trim(), b: ((r.querySelector('button') || {}).textContent || '').trim() })),
         chips: [...document.querySelectorAll('#ig-dock [data-pd-held-chips] button')].map(b => ({ w: b.textContent.trim(), k: b.getAttribute('data-pd-held-chip') })) }; }, null, 12000);
-    check('6p a private contract wears "Private · <stream>" on its head and its glance', !!P6 && /^Private · .+/.test(P6.head) && P6.head === P6.glHead, JSON.stringify(P6 && { head: P6.head, glHead: P6.glHead }));
+    check('6p a private contract wears "Private · <stream>" on its head, and its dossier opens saying so', !!P6 && /^Private · .+/.test(P6.head) && P6.glHead.indexOf(P6.head) === 0, JSON.stringify(P6 && { head: P6.head, glHead: P6.glHead }));
     const pk = P6 ? P6.rows.map(r => r.k) : [];
-    check('6q its glance says who may open it, the details still to fill (Fill in) and that nobody is named to sign (Signing)',
+    check('6q its dossier says who may open it, the details still to fill (Fill in ›) and that nobody is named to sign (Name ›)',
       !!P6 && pk[0] === 'private' && /^Private · .+\. Only .+ open it; every open is recorded\.$/.test(P6.rows[0].t)
-      && pk.includes('details') && P6.rows[pk.indexOf('details')].t === '1 detail to fill: the start date.' && P6.rows[pk.indexOf('details')].b === 'Fill in'
-      && pk.includes('signer') && P6.rows[pk.indexOf('signer')].t === 'Nobody is named to sign yet.' && P6.rows[pk.indexOf('signer')].b === 'Signing', JSON.stringify(P6 && P6.rows));
+      && pk.includes('fill') && / not recorded$/.test(P6.rows[pk.indexOf('fill')].t) && P6.rows[pk.indexOf('fill')].b === 'Fill in ›'
+      && pk.includes('sign') && P6.rows[pk.indexOf('sign')].t === 'Signer nobody named yet' && P6.rows[pk.indexOf('sign')].b === 'Name ›', JSON.stringify(P6 && P6.rows));
     check('6r its chips follow what it owes — fill in · pay · who can open it — not the signed agreement\'s',
       !!P6 && JSON.stringify(P6.chips.map(c => c.k)) === JSON.stringify(['fill', 'pay', 'access']) && P6.chips[1].w === 'pay' && P6.chips[2].w === 'who can open it'
       && !!T6 && JSON.stringify(T6.chips) !== JSON.stringify(P6.chips.map(c => c.w)), JSON.stringify(P6 && { chips: P6.chips, signed: T6 && T6.chips }));
@@ -491,12 +495,12 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
       ['13-chosen-paper', async () => { await page.evaluate(() => { if (window.regPlaceSet) regPlaceSet({ show: 'wall' }); /* the Wall, picked (20 Oct 2026: the place lands on the List) */ hbOpenContracts(); if (window.igWallLetGo) igWallLetGo(); }); await until(() => !!document.querySelector('#ig-wall .igw-card'), null, 8000);
         await bring('MK-0382'); await press('#ig-wall .igw-card[data-ig-pick="MK-0382"]');
         await until(() => !!document.querySelector('#ig-dock #pd-chosen'), null, 4000); return '#ig-dock #pd-chosen'; }],
-      ['7-page-glance', async () => { await page.evaluate(() => hbStripBring('MK-0377')); await until(() => !!document.querySelector('#ig-dock #pd-cardglance') && !!document.querySelector('#bs-strip-MK-0377 .bs-kpi'), null, 8000); return '#ig-dock #pd-cardglance'; }],
+      ['7-page-glance', async () => { await page.evaluate(() => hbStripBring('MK-0377')); await until(() => !!document.querySelector('#ig-dock .pd-held-dos') && !!document.querySelector('#bs-strip-MK-0377 .bs-kpi'), null, 8000); return '#ig-dock .pd-held-dos .ds-spine'; }],
       ['12-history-panel', async () => { await page.evaluate(() => hbStripBring('MK-0382', 'hist')); await until(() => !!document.querySelector('#ig-dock #pd-histglance') && !!document.querySelector('#bs-strips .hist-ev'), null, 8000); return '#ig-dock #pd-histglance'; }],
       /* pass 4: the private contract's page and History, the signed one's Details, a second round's History */
-      ['pass4-7-page-private', async () => { await page.evaluate(() => hbStripBring('MK-0399')); await until(() => !!document.querySelector('#ig-dock #pd-cardglance[data-pd-held-for="MK-0399"]') && !!document.querySelector('#bs-strip-MK-0399'), null, 8000); return '#ig-dock #pd-cardglance'; }],
+      ['pass4-7-page-private', async () => { await page.evaluate(() => hbStripBring('MK-0399')); await until(() => !!document.querySelector('#ig-dock .pd-held-dos[data-pd-held-for="MK-0399"]') && !!document.querySelector('#bs-strip-MK-0399'), null, 8000); return '#ig-dock .pd-held-dos .ds-spine'; }],
       ['pass4-7-details', async () => { await page.evaluate(() => hbStripBring('MK-0377', 'details')); await until(() => !!document.querySelector('#bs-strips #ov-filing-rest'), null, 10000);
-        await page.evaluate(() => { const e = document.querySelector('#ov-filing-rest'); if (e) e.scrollIntoView({ block: 'center' }); }); return '#ig-dock #pd-cardglance'; }],
+        await page.evaluate(() => { const e = document.querySelector('#ov-filing-rest'); if (e) e.scrollIntoView({ block: 'center' }); }); return '#ig-dock .pd-held-dos .ds-spine'; }],
       ['pass4-12-history-two-rounds', async () => { await page.evaluate(() => hbStripBring('MK-0390', 'hist')); await until(() => !!document.querySelector('#ig-dock #pd-histglance[data-pd-held-for="MK-0390"]') && !!document.querySelector('#bs-strips .hist-ev'), null, 8000); return '#ig-dock #pd-histglance'; }],
       ['pass4-12-history-private', async () => { await page.evaluate(() => hbStripBring('MK-0399', 'hist')); await until(() => !!document.querySelector('#ig-dock #pd-histglance[data-pd-held-for="MK-0399"]') && !!document.querySelector('#bs-strips .hist-ev'), null, 8000); return '#ig-dock #pd-histglance'; }],
     ];
@@ -509,7 +513,7 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
           const fd = document.getElementById('igd-feed'), ft = fd ? fd.getBoundingClientRect().top : 0;
           /* pass 4: the chosen paper's doors whole and inside the panel (1536×730 cut them) */
           const dock = document.getElementById('ig-dock'), dr = dock ? dock.getBoundingClientRect() : null;
-          const doors = [...document.querySelectorAll('#ig-dock #pd-chosen button, #ig-dock #pd-cardglance button, #ig-dock #pd-histglance button')];
+          const doors = [...document.querySelectorAll('#ig-dock #pd-chosen button, #ig-dock .pd-held-dos .ds-card button, #ig-dock #pd-histglance button')];
           /* pass 4: no mark's line runs through a label on the life line (at 1366 wide Today's ran through "A|mendment No. 1") */
           const through = [];
           document.querySelectorAll('#bs-strips svg').forEach(svg => { const labs = [...svg.querySelectorAll('text.bs-lab')];
