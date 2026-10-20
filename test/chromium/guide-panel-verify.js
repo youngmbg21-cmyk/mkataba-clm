@@ -66,7 +66,7 @@ const READ = () => { const p = document.getElementById('context-panel'); if (!p)
     await page.evaluate(() => openPanel('activity'));
     const A = await until(page, () => { const p = document.getElementById('context-panel'); return p && p.classList.contains('open') && document.querySelector('#panel-tabs [data-pt-face]') ? true : null; });
     const R1 = await page.evaluate(READ);
-    check('1a the panel draws its tabs: Activity · Alerts · Guide, no Notes with no contract in front', !!A && R1.tabs.map(t => t.k).join() === 'activity,alerts,guide' && R1.tabs[0].on,
+    check('1a the panel draws its tabs: Guide · Alerts · Activity (owner, 20 Oct 2026), no Notes with no contract in front', !!A && R1.tabs.map(t => t.k).join() === 'guide,alerts,activity' && (R1.tabs.find(t => t.k === R1.face) || {}).on,
       JSON.stringify(R1 && R1.tabs));
     check('1b the Guide tab says "new" until it has been opened', !!R1 && /new/.test((R1.tabs.find(t => t.k === 'guide') || {}).w || ''), JSON.stringify(R1 && R1.tabs));
 
@@ -116,8 +116,8 @@ const READ = () => { const p = document.getElementById('context-panel'); if (!p)
     await page.evaluate(() => openPanel('guide'));
     await until(page, () => !!document.querySelector('.gd-st'));
     const R5 = await page.evaluate(READ);
-    check('5a with a contract in front the tabs are Activity · Alerts · Notes · Guide, and Workspace is "You are here"',
-      R5.tabs.map(t => t.k).join() === 'activity,alerts,notes,guide' && R5.here.join() === 'document', JSON.stringify({ tabs: R5.tabs.map(t => t.k), here: R5.here }));
+    check('5a with a contract in front the tabs are Guide · Alerts · Notes · Activity, and Workspace is "You are here"',
+      R5.tabs.map(t => t.k).join() === 'guide,alerts,notes,activity' && R5.here.join() === 'document', JSON.stringify({ tabs: R5.tabs.map(t => t.k), here: R5.here }));
     await page.click('#panel-tabs [data-pt-face="notes"]');
     const nf = await until(page, () => document.getElementById('context-panel').dataset.face === 'notes' ? true : null);
     check('5b its Notes tab opens that contract\'s notes in the same panel', !!nf);

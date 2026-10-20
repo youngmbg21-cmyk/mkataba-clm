@@ -3494,7 +3494,7 @@ function placeLanguageSwitch(){
    lifted to module scope to prevent. */
 /* THE GUIDE (owner picked "Journey", 19 Oct 2026): a fourth face, every page
    in the order a contract lives (guidePanelHtml) — the same shell, no new door */
-const PANEL_FACES = ['activity', 'alerts', 'notes', 'guide'];
+const PANEL_FACES = ['guide', 'alerts', 'notes', 'activity'];
 function panelFace(){ return PANEL_FACES.includes(state.panelFace)?state.panelFace:'activity'; }
 function setPanelFace(k){ state.panelFace=PANEL_FACES.includes(k)?k:'activity'; }
 /* THE ONE DOOR ONTO THE NOTES FACE. It needs a contract and a change where the
@@ -3762,7 +3762,7 @@ function panelTabsPaint(face){
   const head=host.previousElementSibling; if(head&&head.style) head.style.borderBottom=desk?'0':'';
   if(!desk){ host.innerHTML=''; return; }
   const cid=(typeof chatContractId==='function')?chatContractId():null;
-  const tabs=[['activity','sh_activity'],['alerts','sh_alerts']].concat(cid||face==='notes'?[['notes','ng_card_notes']]:[]).concat([['guide','gd_tab']]);
+  const tabs=[['guide','gd_tab'],['alerts','sh_alerts']].concat(cid||face==='notes'?[['notes','ng_card_notes']]:[]).concat([['activity','sh_activity']]);
   host.innerHTML=tabs.map(([k,w])=>`<button type="button" role="tab" class="pt-tab${k===face?' on':''}" data-pt-face="${k}" aria-selected="${k===face}">${esc(i18t(w))}${k==='guide'&&!guideSeen()&&face!=='guide'?`<span class="pt-new">${esc(i18t('gd_new'))}</span>`:''}</button>`).join('');
   host.querySelectorAll('[data-pt-face]').forEach(b=>b.addEventListener('click',()=>{
     const k=b.getAttribute('data-pt-face'); if(k===panelFace()) return;
