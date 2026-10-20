@@ -109,7 +109,8 @@ describe('f707 (2) what Jambo found, at a glance', () => {
   });
   test('2c the brief\'s own first lines, its press opens the brief; none written, none drawn', () => {
     const { ctx, c } = pdStage({ brief: { data: { overview: 'Arctic Cold Chain carries our goods.' } } });
-    assert.match(ctx.pdGlanceBriefHtml(c), /data-pd-gl-brief[\s\S]*<em>pd_gl_brief<\/em><span>Arctic Cold Chain carries our goods\.<\/span>/);
+    /* RE-POINTED 20 Oct 2026 (owner: "'the brief' should be a button called Contract Briefing"): the label is the button, the first lines under it */
+    assert.match(ctx.pdGlanceBriefHtml(c), /<button[^>]*data-pd-gl-brief[^>]*>pd_gl_brief_btn<\/button><span[^>]*>Arctic Cold Chain carries our goods\.<\/span>/);
     assert.equal(pdStage().ctx.pdGlanceBriefHtml(pdStage().c), '');
     assert.match(PD, /\[data-pd-gl-brief\]'\)\)\{[\s\S]{0,200}openCheckPanel\(getContract\(cc\.id\) \|\| cc, 'brief'\)/);
   });
@@ -127,7 +128,7 @@ describe('f707 (2) what Jambo found, at a glance', () => {
     assert.equal(JSON.stringify(c), before);
   });
   test('2f the new words, in both books', () => {
-    for (const k of ['pd_gl_std_one', 'pd_gl_std_other', 'pd_gl_obls_one', 'pd_gl_obls_other', 'pd_gl_obls_split', 'pd_gl_brief', 'pd_gl_read'])
+    for (const k of ['pd_gl_std_one', 'pd_gl_std_other', 'pd_gl_obls_one', 'pd_gl_obls_other', 'pd_gl_obls_split', 'pd_gl_brief_btn', 'pd_gl_read'])
       for (const lang of ['en', 'sv']) assert.ok(BOOKS[lang][k], k + ' ' + lang);
   });
 });

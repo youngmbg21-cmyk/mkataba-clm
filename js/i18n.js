@@ -12793,6 +12793,7 @@ const STRINGS = {
     pd_gl_obls_other: '{n} obligations found.',
     pd_gl_obls_split: '{theirs} theirs · {ours} ours',
     pd_gl_brief: 'The brief',
+    pd_gl_brief_btn: 'Contract briefing',
     pd_gl_read: 'Read on arrival · {when}',
     /* THE GLANCE AS DRAWN (rounds 3 and 6 of the redesign; the owner's "build all the gaps", 18 Oct 2026) */
     pd_gl_sent_one: '{who} sent {n} redline {ago}.',
@@ -17253,6 +17254,7 @@ const STRINGS = {
     stk_h_links: 'Linked points',
     stk_redline: 'Start redlining with this ask',
     stk_ask_jambo: 'Ask Jambo about this',
+    stk_redline_viewer: 'You can read this contract but not change it — ask an admin to make you an editor.',
     stk_ask_q: 'In clause {n}: {t}. Explain in plain English what this means for us, and what we should ask for instead.',
     stk_ask_q_none: 'In this contract: {t}. Explain in plain English what this means for us, and what we should ask for instead.',
     stk_ask_q_missing: 'This contract does not cover this: {t}. Explain in plain English what this means for us, and what we should ask for.',
@@ -31683,6 +31685,7 @@ const STRINGS = {
     pd_gl_obls_other: '{n} åtaganden hittade.',
     pd_gl_obls_split: '{theirs} deras · {ours} våra',
     pd_gl_brief: 'Sammanfattningen',
+    pd_gl_brief_btn: 'Avtalets sammanfattning',
     pd_gl_read: 'Läst vid ankomst · {when}',
     /* I KORTHET SOM RITAD (omgång 3 och 6; ägarens "bygg alla luckor", 18 okt 2026) */
     pd_gl_sent_one: '{who} skickade {n} ändring {ago}.',
@@ -35987,6 +35990,7 @@ const STRINGS = {
     stk_h_links: 'Kopplade punkter',
     stk_redline: 'Börja ändra med det här förslaget',
     stk_ask_jambo: 'Fråga Jambo om det här',
+    stk_redline_viewer: 'Du kan läsa det här avtalet men inte ändra det — be en administratör göra dig till redigerare.',
     stk_ask_q: 'I klausul {n}: {t}. Förklara på enkel svenska vad det betyder för oss och vad vi bör be om i stället.',
     stk_ask_q_none: 'I det här avtalet: {t}. Förklara på enkel svenska vad det betyder för oss och vad vi bör be om i stället.',
     stk_ask_q_missing: 'Det här avtalet täcker inte detta: {t}. Förklara på enkel svenska vad det betyder för oss och vad vi bör be om.',

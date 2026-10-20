@@ -3208,7 +3208,10 @@ function pdGlanceSub(c, r){
 function pdGlanceBriefHtml(c){
   const d = (c && ((c._brief && c._brief.data) || (c._briefLite && c._briefLite.data))) || null;
   const t = String((d && d.overview) || '').trim(); if (!t) return '';
-  return `<button type="button" class="pd-gl-brief" data-pd-gl-brief title="${_pdE(t)}"><em>${_pdE(_pdT('pd_gl_brief'))}</em><span>${_pdE(t)}</span></button>`;
+  /* A BUTTON THAT SAYS WHAT IT OPENS (owner, 20 Oct 2026: "the highlighted
+     'the brief' should be a button called Contract Briefing"): the label is a
+     button onto the brief (the same door, openCheckPanel), its first lines under it */
+  return `<div class="pd-gl-brief"><button type="button" class="ui-btn ui-btn-sm pd-gl-brief-b" data-pd-gl-brief>${_pdE(_pdT('pd_gl_brief_btn'))}</button><span title="${_pdE(t)}">${_pdE(t)}</span></div>`;
 }
 function pdGlanceFootHtml(c){
   const t = c && c.triage; if (!t || !t.at) return '';
