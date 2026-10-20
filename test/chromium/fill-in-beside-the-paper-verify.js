@@ -7,13 +7,15 @@
    template's answers show on the paper as typed and reach the wording on Fill
    the document)
    ============================================================
-     1  an upload lands on Home's paper, Jambo's panel on Fill in, the cursor
-        in the first owed box, the room never drawn; owed boxes are amber
+     1  an upload lands on Home's paper, Jambo's panel on its Dossier (since
+        20 Oct 2026 — owner: "it pushes me to fill without my asking"); a
+        press on Still owed's Fill in › opens the face, the cursor in the
+        first owed box, the room never drawn; owed boxes are amber
      2  typing shows on the paper at once; leaving the box stores it and the
         count drops
      3  a press on a blank on the paper lands on its box
-     4  a HaTi template draft from New agreement lands the same way, with no
-        frame of another screen
+     4  a HaTi template draft from New agreement lands the same way (the
+        Dossier, Fill in not opened), with no frame of another screen
      5  a company template: the answer shows on the paper while the stored
         wording waits; Fill the document writes it
      6  the last box: All in, and the next step offered
@@ -57,8 +59,8 @@ const UPLOAD = (id, over) => Object.assign({ id, name: 'SaaS Agreement', counter
   comments: [], rounds: [], versions: [], signatures: [], metadata: {}, compliance: { consent: false }, audit: [] }, over || {});
 /* which screen stood in the window, frame by frame, until the face is up */
 const WATCH = () => { window._frames = []; let n = 0;
-  const tick = () => { const s = document.getElementById('na-root') ? 'na' : document.getElementById('pd-fillface') ? 'face' : ('other:' + state.view);
-    window._frames.push(s); if (s !== 'face' && n++ < 2000) requestAnimationFrame(tick); };
+  const tick = () => { const s = document.getElementById('na-root') ? 'na' : document.getElementById('pd-fillface') ? 'face' : document.getElementById('pd-glance') ? 'dossier' : ('other:' + state.view);
+    window._frames.push(s); if (s !== 'face' && s !== 'dossier' && n++ < 2000) requestAnimationFrame(tick); };
   requestAnimationFrame(tick); };
 const FACE = () => {
   const f = document.getElementById('pd-fillface');
@@ -105,12 +107,16 @@ const FACE = () => {
       window.renderWorkspace = function(){ window._roomSeen++; return was.apply(this, arguments); }; });
     await page.evaluate(WATCH);
     await page.evaluate(() => { roomOpenOnTerms('MK-F1'); openWorkspace('MK-F1', { room: true }); });
+    const dos1 = await waitFor(page, () => !!document.getElementById('pd-glance') && intel.paper && intel.paper.id === 'MK-F1', 10000);
+    const unasked1 = await page.evaluate(() => !!document.getElementById('pd-fillface'));
+    check('1a0 it lands on the Dossier, Fill in not opened for the reader', dos1 && !unasked1, JSON.stringify({ dos1, unasked1 }));
+    await page.evaluate(() => { const b = document.querySelector('#pd-glance [data-pd-ds-fill]'); if (b) b.click(); });
     const up1 = await waitFor(page, () => !!document.getElementById('pd-fillface') && !!document.querySelector('#pd-fillface [data-blankf]'), 10000);
     await waitFor(page, () => !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#pd-fillface')), 3000);
     let f = await page.evaluate(FACE);
     const frames1 = await page.evaluate(() => [...new Set(window._frames || [])]);
     const room1 = await page.evaluate(() => window._roomSeen);
-    check('1a an upload lands on Home\'s paper with Jambo\'s panel on Fill in', up1 && f.view === 'dashboard' && f.face === 'paper' && f.paper === 'MK-F1', JSON.stringify(f));
+    check('1a an upload lands on Home\'s paper; Fill in › opens Jambo\'s Fill in face', up1 && f.view === 'dashboard' && f.face === 'paper' && f.paper === 'MK-F1', JSON.stringify(f));
     check('1b the cursor is in the first owed box', f.focus === 'counterparty' && f.inFace, f.focus);
     check('1c the room is never drawn on the way', room1 === 0 && !frames1.some(x => /workspace/.test(x)), JSON.stringify(frames1) + ' room paints ' + room1);
     const tones = await page.evaluate(() => {
@@ -157,13 +163,13 @@ const FACE = () => {
     await page.fill('#wz-counterparty', 'Kilima Foods Ltd');
     await page.evaluate(WATCH);
     await page.click('#na-create');
-    const up4 = await waitFor(page, () => !!document.getElementById('pd-fillface'), 10000);
+    const up4 = await waitFor(page, () => !!document.getElementById('pd-glance') && !document.getElementById('na-root'), 10000);
     await pause(300);
     const frames4 = await page.evaluate(() => [...new Set(window._frames || [])]);
     f = await page.evaluate(FACE);
     const cdUp = await page.evaluate(() => !!document.getElementById('cd-page'));
-    check('4 a HaTi template draft lands on Home\'s paper on Fill in, no frame of another screen',
-      up4 && f.view === 'dashboard' && frames4.every(x => x === 'na' || x === 'face') && !cdUp, JSON.stringify(frames4) + ' ' + JSON.stringify(f));
+    check('4 a HaTi template draft lands on Home\'s paper on its Dossier, Fill in not opened, no frame of another screen',
+      up4 && !f.up && f.view === 'dashboard' && frames4.every(x => x === 'na' || x === 'dossier') && !cdUp, JSON.stringify(frames4) + ' ' + JSON.stringify(f));
 
     /* ===== 5. A COMPANY TEMPLATE: SHOWN AS TYPED, WRITTEN ON THE PRESS ===== */
     await page.evaluate(() => setView('register')); await pause(400);
@@ -171,7 +177,12 @@ const FACE = () => {
     await waitFor(page, () => !!document.getElementById('ce-counterparty'));
     await page.fill('#ce-counterparty', 'Nordic Bites AB');
     await page.click('#na-create');
+    await waitFor(page, () => !!document.querySelector('#pd-glance [data-pd-ds-fill]') && !document.getElementById('na-root'), 10000);
+    await page.evaluate(() => { const b = document.querySelector('#pd-glance [data-pd-ds-fill]'); if (b) b.click(); });
     const up5 = await waitFor(page, () => !!document.querySelector('#pd-fillface [data-tplf]'), 10000);
+    /* the face puts the cursor in its first owed box as it opens: a reader's
+       press comes after that, so the stage waits for it (bounded) */
+    await waitFor(page, () => !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#pd-fillface')), 3000);
     const site = await page.evaluate(() => getContract(intel.paper.id).templateForm.fields.findIndex(x => x.fieldKey === 'site'));
     await page.click(`#pd-fillface [data-tplf="${site}"]`);
     await page.keyboard.type('Avenyn 12, Gothenburg', { delay: 10 });

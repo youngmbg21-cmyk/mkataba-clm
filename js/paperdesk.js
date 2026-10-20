@@ -3734,6 +3734,11 @@ function pdHeldContract(){
 }
 /* the word the panel's head says beside Jambo's tab: what it holds */
 function pdHeadWord(){
+  /* A NEW AGREEMENT IN FRONT IS NOT THE CARD BEHIND IT (owner, 20 Oct 2026:
+     "it brings the card from board"): while the drafting form stands over the
+     Board the head names no card ("New agreement  MK-B2 · Dossier" was two
+     contracts at once); the conversation beside it stays where it was */
+  if (typeof document !== 'undefined' && document.getElementById('na-root')) return '';
   const k = pdHolds(); if (!k) return '';
   if (k === 'chosen') return _pdT('pd_ch_head');
   const c = pdCardNow(); const ref = c ? ((typeof contractRef === 'function') ? contractRef(c) : c.id) : '';

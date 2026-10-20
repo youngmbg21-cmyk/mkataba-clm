@@ -144,13 +144,13 @@ const word = (lines) => Buffer.from(mkDocx(lines.map(t => para(t)).join('')));
     check('3e a press on the stream in step 3 chooses it, and Create wakes', picked && !gate.dis && gate.stream === 'mktg', gate);
     const before = await page.evaluate(() => state.contracts.map(c => c.id));
     await page.click('#na-create');
-    /* Fill in beside it while anything is owed; an NDA with its counterparty
-       and start date answered owes nothing, and lands on Jambo (roomHomeLand) */
+    /* the Dossier beside it, owed or not; Fill in only on the reader's press
+       (owner, 20 Oct 2026: "it pushes me to fill without my asking") */
     const made = await waitFor(page, ids => { const p = intel.paper && intel.paper.id; if (!p || ids.includes(p)) return false;
-      return detailsOf(getContract(p)).left ? !!document.querySelector('#pd-fillface .pd-ff') : !!document.getElementById('pd-glance'); }, 15000, before);
+      return !!document.getElementById('pd-glance') && !document.querySelector('#pd-fillface .pd-ff'); }, 15000, before);
     const nv = await page.evaluate(() => { const c = getContract(intel.paper.id); return { id: c.id, cp: c.counterparty, folder: c.folder, view: state.view, room: window._seen.room, left: detailsOf(c).left,
       fill: !!document.querySelector('#pd-fillface .pd-ff'), glance: !!document.getElementById('pd-glance') }; });
-    check('3f Create lands on the new paper with Volvo, in the stream chosen — Fill in beside it while owed, else at a glance', made && nv.cp === 'Volvo' && nv.folder === 'mktg' && nv.view === 'dashboard' && !nv.room, nv);
+    check('3f Create lands on the new paper with Volvo, in the stream chosen — the Dossier beside it, Fill in not opened', made && !nv.fill && nv.glance && nv.cp === 'Volvo' && nv.folder === 'mktg' && nv.view === 'dashboard' && !nv.room, nv);
 
     /* the Swedish sentence the card offers drafts too */
     await page.evaluate(() => langSet('sv')); await wall();
@@ -175,13 +175,16 @@ const word = (lines) => Buffer.from(mkDocx(lines.map(t => para(t)).join('')));
     check('4a0 the drop area asks the stream, as the pop-up did: the first chosen until another is', !!asks && asks.n >= 2 && asks.v === asks.first, asks);
     const streamed = await choose('#pd-drop-stream', 'sales');
     await drop(b64, 'Courier Services Agreement.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-    const landed = await waitFor(page, ids => { const p = intel.paper && intel.paper.id; return !!p && !ids.includes(p) && !!document.querySelector('#pd-fillface .pd-ff'); }, 20000, ids4);
+    const landed = await waitFor(page, ids => { const p = intel.paper && intel.paper.id; return !!p && !ids.includes(p) && !!document.getElementById('pd-glance') && !document.querySelector('#pd-fillface .pd-ff'); }, 20000, ids4);
     const up = await page.evaluate(() => { const c = getContract(intel.paper.id); return { id: c.id, name: c.name, src: c.source, folder: c.folder, audit: (c.audit || []).map(a => a.action),
       popup: window._seen.popup, room: window._seen.room, face: hbFace(), view: state.view, owner: !!c.owner }; });
-    check('4a a dropped Word file lands on its paper with Fill in open, on Home', landed && up.view === 'dashboard' && up.face === 'paper', up);
+    check('4a a dropped Word file lands on its paper with the Dossier beside it, on Home', landed && up.view === 'dashboard' && up.face === 'paper', up);
     check('4b through the upload\'s own path: named off the file, uploaded, owned', up.name === 'Courier Services Agreement' && up.src === 'upload' && up.audit.includes('Uploaded') && up.owner, up);
     check('4c never the pop-up, never the room', !up.popup && !up.room, { popup: up.popup, room: up.room });
     check('4c2 filed in the stream the drop area asked', streamed && up.folder === 'sales', { streamed, folder: up.folder });
+    /* Fill in on the reader's own press, from Still owed */
+    await page.evaluate(() => { const b = document.querySelector('#pd-glance [data-pd-ds-fill]'); if (b) b.click(); });
+    await waitFor(page, () => !!document.querySelector('#pd-fillface [data-kt="party"]'), 5000);
     const party = await page.evaluate(() => { const i = document.querySelector('#pd-fillface [data-kt="party"]'); const dl = i && document.getElementById(i.getAttribute('list'));
       return { box: !!i, offered: dl ? [...dl.options].map(o => o.value) : [] }; });
     check('4d who we are is asked in Fill in, our entities offered', party.box && party.offered.length > 0, party);

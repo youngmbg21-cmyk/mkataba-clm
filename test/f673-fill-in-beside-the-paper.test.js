@@ -55,12 +55,14 @@ describe('f673 (1) a contract just made lands on Home, the panel on Fill in', ()
     vm.createContext(ctx); vm.runInContext(region + '\nthis.roomOpenOnTerms=roomOpenOnTerms; this.roomArrivesOnHome=roomArrivesOnHome; this._wsNewAt=_wsNewAt; this.ROOM_ARRIVE_MS=ROOM_ARRIVE_MS;', ctx);
     return { ctx, calls };
   };
-  test('1a registered, then opened: Home, Fill in, once', () => {
+  /* 20 Oct 2026 (owner: "it pushes me to fill without my asking"): a contract
+     just made lands on its Dossier, details owed or not; Fill in is pressed */
+  test('1a registered, then opened: Home on the Dossier, never Fill in unasked, once', () => {
     const { ctx, calls } = stage();
     assert.equal(ctx.roomArrivesOnHome('MK-1'), false, 'not registered: the room as ever');
     ctx.roomOpenOnTerms('MK-1');
     assert.equal(ctx.roomArrivesOnHome('MK-1'), true);
-    assert.deepEqual(J(calls), [['fill', 'MK-1']]);
+    assert.deepEqual(J(calls), [['home', 'MK-1', 'plain']]);
     assert.equal(ctx.roomArrivesOnHome('MK-1'), false, 'spent once');
   });
   test('1b nothing owed: Home on Jambo; an executed import and the phone keep the room', () => {
@@ -203,5 +205,22 @@ describe('f673 (5)(6) the preview, and Fill from document on Home', () => {
     const I = R('js/i18n.js');
     for (const k of ['pd_ff_title', 'pd_ff_all_in', 'pd_ff_done', 'pd_ff_done_press', 'pd_ff_redlines'])
       assert.equal((I.match(new RegExp('^    ' + k + ':', 'gm')) || []).length, 2, k + ' in both books');
+  });
+});
+
+/* 20 Oct 2026 (owner: "it brings the card from board"): the drafting form
+   standing over the Board names no card in Jambo's panel head; the card's
+   name is back once the form goes */
+describe('f673 (7) a new agreement in front is not the Board card behind it', () => {
+  test('7a pdHeadWord says nothing while #na-root stands; the card again once it is gone', () => {
+    let formUp = true;
+    const ctx = { String,
+      document: { getElementById: id => (id === 'na-root' && formUp ? {} : null) },
+      pdHolds: () => 'card', pdCardNow: () => ({ id: 'MK-B2' }), contractRef: c => c.id,
+      _pdT: (k, v) => k + ':' + (v && v.ref) };
+    vm.createContext(ctx); vm.runInContext(fnBody(PD, 'pdHeadWord') + '\nthis.pdHeadWord=pdHeadWord;', ctx);
+    assert.equal(ctx.pdHeadWord(), '', 'the form is up');
+    formUp = false;
+    assert.equal(ctx.pdHeadWord(), 'dos_held_head:MK-B2', 'the form put away: the card again');
   });
 });

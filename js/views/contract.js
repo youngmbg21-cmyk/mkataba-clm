@@ -4963,7 +4963,8 @@ function roomOpenOnTerms(id){ if(id){ _wsNewDrafts.add(String(id)); _wsNewAt.set
    and said yes to "drafts and uploads alike") ----
    setView('workspace') asks this first, so all seven creation sites land the
    same way without a second registration: the paper on Home, Jambo's panel on
-   its Fill in face while something is owed. Spent once, like the flag above.
+   its Dossier (20 Oct 2026: no longer Fill in, which the reader opens from
+   Still owed). Spent once, like the flag above.
    An executed import and the phone keep the room (the phone draws its own
    Details page). REVERSES 12 Oct's "a new contract lands on Details with
    Complete the details over it"; that page is still the Details tab's own. */
@@ -4978,7 +4979,7 @@ function roomArrivesOnHome(id){
   const c=getContract(k); if(!c) return false;
   if((typeof negoExecuted==='function')?negoExecuted(c):(c.status==='Signed')) return false;
   _wsNewDrafts.delete(k); _wsNewAt.delete(k);
-  return roomHomeLand(k);
+  return roomHomeLand(k,{ arrived:true });
 }
 /* ---- THE WORKSPACE DOOR OPENS HOME (the overnight work order, step 2;
    owner's "Go", 14 Oct 2026: "the inspector's Workspace door opens Home
@@ -4989,10 +4990,16 @@ function roomArrivesOnHome(id){
    in only for somebody who may write; a reader lands on the paper. False on
    the phone and where Home's paper is not loaded: the caller opens the room,
    which the phone still draws. (Step 8 points it at the Board's strip.) */
-function roomHomeLand(id){
+function roomHomeLand(id, opts){
   if(typeof window!=='undefined'&&((window.mPhone&&mPhone())||(window.innerWidth&&window.innerWidth<768))) return false;
   if(typeof pdOpenOnHome!=='function'||typeof pdFillOpen!=='function') return false;
   const c=(typeof getContract==='function')?getContract(id):null; if(!c) return false;
+  /* A CONTRACT JUST MADE LANDS ON ITS DOSSIER, NOT ON FILL IN (owner,
+     20 Oct 2026: "it pushes me to fill without my asking"): the paper with
+     Jambo's Dossier beside it, whose Still owed list carries Fill in › for
+     the reader to press. REVERSES 14 Oct's "new paper lands on Fill in"; the
+     Workspace doors below keep their rule. */
+  if(opts&&opts.arrived) return !!pdOpenOnHome(c.id,'plain');
   let owed=false; try{ owed=!!detailsOf(c).left; }catch(_){ owed=false; }
   const may=(typeof canEdit!=='function')||canEdit();
   /* 'plain', not 'copilot': a face an earlier press left open on this
