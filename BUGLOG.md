@@ -21209,6 +21209,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - 20 Oct 2026 (PR #376's CI, noticed, not fixed): requests-sap-way-verify failed once on GitHub at 3898c6c8 but passed on the run before at 70d83a73 (same code) and passes locally (ALL PASSED). A timing flake on the runner; the failing step was not read.
 
 - 20 Oct 2026 — Noticed, not fixed: test f187 (1) "ONE PANEL, THREE CONTENTS" still pins `PANEL_FACES = ['activity', 'alerts', 'notes']`; the side-panel tabs change (Guide, Alerts, Notes, Activity, #376) made it four faces, so the node suite is red on main. Fix: update the pinned list in f187 to the four faces.
+- 20 Oct 2026 (Ask a column, noticed, not fixed): right after signing in, the Contracts list can paint before `currentUser()` knows who is signed in (REMOTE.me still null), so a door drawn from the role at that paint can be wrong until the next repaint — e.g. `myCreatableTemplates` falls back to 'viewer'. Ask a column puts its own door right once the person is known (askColBtnFix); other role-drawn doors were not checked.
 
 - 20 Oct 2026 — Noticed, not fixed: on the Board, a timeline (gantt) chart in full screen draws contract chips whose names run past the right edge of the card (e.g. "MK-R90 · AIT Worldwide Logist…" cut by the edge), and its note says "full screen shows all 123" while full screen shows about 20.
 
@@ -21219,3 +21220,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ## Noticed, not fixed (20 Oct 2026, the draft navigation fix)
 - one-sheet-as-drawn-verify 5b is red on main too: the New agreement sheet now says "only Counterparty and Value stream are needed now" (the stream box counts as needed since the amber-stream change), the check still expects "only Counterparty". Left red.
 - 20 Oct 2026 · Noticed, not fixed: one-sheet-as-drawn-verify 5b is red on main too ("only Counterparty and Value stream are needed now" vs the drawn "only Counterparty").
+- 20 Oct 2026 (PR #387's CI, noticed, not fixed): the node suite is red on main since the Dossier merge (#386): f707 (2a), f743 (5c), f748 (1b, 1c, 1d, 2a, 2b, 2b2, 3) and f805 (6a) still pin the retired "at a glance" glance and the History head; reproduced identically on a worktree at origin/main 3cbf033. Fix: re-point those checks to the Dossier's rows (`dossierOwed`, `pdNextUpHtml`) as #386 drew them.

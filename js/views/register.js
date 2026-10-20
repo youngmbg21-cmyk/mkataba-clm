@@ -722,7 +722,13 @@ function regInspecting(){ return !regHome() && regMode()!=='board' && typeof ins
    under the wrong heading whichever shape the page is in. */
 function regColKeys(){
   const neg=regScope()==='negotiations', ins=regInspecting();
-  if(!neg && regHome()) return regHomeNarrow() ? REG_COL_KEYS_HOME_NARROW : REG_COL_KEYS_HOME;
+  if(!neg && regHome()){
+    if(regHomeNarrow()) return REG_COL_KEYS_HOME_NARROW;
+    /* ASK A COLUMN (20 Oct 2026): the answers stand before the ⋯, and Owner
+       steps aside for them, as drawn (it stays in the filters and the sort) */
+    const ask=(typeof window.askColKeys==='function')?askColKeys():[];
+    return ask.length ? REG_COL_KEYS_HOME.filter(k=>k!=='owner'&&k!=='acts').concat(ask,['acts']) : REG_COL_KEYS_HOME;
+  }
   if(!ins && regNarrowTable()) return neg ? REG_COL_KEYS_NEGO_NARROW : REG_COL_KEYS_NARROW;
   return neg ? (ins?REG_COL_KEYS_NEGO_INS:REG_COL_KEYS_NEGO) : (ins?REG_COL_KEYS_INS:REG_COL_KEYS);
 }
@@ -753,9 +759,11 @@ const REG_COL_MIN_PX = 54;
 const REG_COL_KEY = 'hati.v1.regCols';
 const regColDefaults = () => (regScope()==='negotiations'
   ? (regNarrowTable() && !regInspecting() ? REG_COL_W_NEGO_NARROW : REG_COL_W_NEGO)
-  : regHome() ? (regHomeNarrow() ? REG_COL_W_HOME_NARROW : REG_COL_W_HOME)
+  : regHome() ? (regHomeNarrow() ? REG_COL_W_HOME_NARROW : (regAskN() ? askColWidths(regAskN()) : REG_COL_W_HOME))
   : (regNarrowTable() && !regInspecting() ? REG_COL_W_NARROW : REG_COL_W)).slice();
-const regColStoreKey = () => REG_COL_KEY + (regScope()==='negotiations' ? '.nego' : regHome() ? '.home' : '') + ((regNarrowTable() && !regInspecting()) || regHomeNarrow() ? '.narrow' : '');
+/* how many answer columns this paint draws (Ask a column) — each count keeps its own drag */
+const regAskN = () => (regHome() && regScope()!=='negotiations' && !regHomeNarrow() && typeof window.askColKeys==='function') ? askColKeys().length : 0;
+const regColStoreKey = () => REG_COL_KEY + (regScope()==='negotiations' ? '.nego' : regHome() ? '.home' + (regAskN() ? '.ask' + regAskN() : '') : '') + ((regNarrowTable() && !regInspecting()) || regHomeNarrow() ? '.narrow' : '');
 /* THE STORED ARRAY IS READ, NEVER TRUSTED. A length that does not match the
    seat's own column count is IGNORED rather than applied — which is the whole
    migration story for the Signed column: a browser that stored eight widths
@@ -1012,7 +1020,7 @@ function regSetScope(k){ REG_SCOPE = (k === 'negotiations') ? 'negotiations' : n
    order, step 7): 'wall' (the wall of papers) or 'list' (this table). It is a
    way of LOOKING, like sort and density, so a door's fresh filters keep it. */
 const REG_SHOWS = ['wall','list'];
-const REG_STATE_DEF = () => ({query:'',stage:'all',type:'all',category:'all',signed:'all',payterms:'all',docs:'all',sort:'updated',dir:-1,page:1,sel:{},view:null,only:null,show:'list'});
+const REG_STATE_DEF = () => ({query:'',stage:'all',type:'all',category:'all',signed:'all',payterms:'all',docs:'all',sort:'updated',dir:-1,page:1,sel:{},view:null,only:null,show:'list',ask:[]});
 /* A REFRESH LANDS WHERE YOU WERE (Young, 28 Sep 2026): what this page keeps
    across a reload, read by placeSave and put back by placeResume (js/app.js)
    BEFORE the first paint. Home's Contracts place keeps the same pair, inside
@@ -1423,7 +1431,8 @@ function regViewCount(k){
    tile selection's own precedent. A saved tab is lit when the bar currently
    matches it — no second state to fall out of step. */
 const REG_SAVED_KEY='hati.v1.regSavedViews';
-const REG_SAVED_FIELDS=['stage','type','view','category','renewal','signed','payterms','docs','hold','sort','dir'];
+/* `ask`: the answer columns standing beside the list (Ask a column, 20 Oct 2026) — a saved view carries them */
+const REG_SAVED_FIELDS=['stage','type','view','category','renewal','signed','payterms','docs','hold','sort','dir','ask'];
 function regSavedViews(){
   try{ const v=JSON.parse(localStorage.getItem(REG_SAVED_KEY)||'[]'); return Array.isArray(v)?v.filter(x=>x&&x.name&&x.set):[]; }
   catch(_){ return []; }
@@ -1442,7 +1451,7 @@ function regForgetView(name){
 }
 function regApplySaved(name){
   const v=regSavedViews().find(x=>x.name===name); if(!v) return false;
-  const R=regState(); REG_SAVED_FIELDS.forEach(k=>{ R[k]=v.set[k]==null?(k==='view'?null:(k==='dir'?R.dir:(k==='sort'?R.sort:'all'))):v.set[k]; });
+  const R=regState(); REG_SAVED_FIELDS.forEach(k=>{ R[k]=v.set[k]==null?(k==='view'?null:(k==='dir'?R.dir:(k==='sort'?R.sort:(k==='ask'?[]:'all')))):(k==='ask'&&Array.isArray(v.set[k])?v.set[k].slice():v.set[k]); });
   R.page=1; return true;
 }
 /* ---- THE NEGOTIATIONS TABS: ALL · YOUR MOVE · THEIR MOVE · NEITHER (SAP
@@ -1843,7 +1852,7 @@ function regFiltered(){
   const acc=(typeof userFolderAccess==='function')?userFolderAccess():'*';
   if(acc!=='*') cs=cs.filter(c=>folderAccessAllows(acc,c.folder));
   const sortKey=(R.sort==='value' && typeof canViewValues==='function' && !canViewValues()) ? 'updated' : R.sort;
-  const cmp=REG_CMP[sortKey]||REG_CMP.updated;
+  const cmp=REG_CMP[sortKey]||(String(sortKey||'').startsWith('ask:')&&typeof window.askColCmp==='function'?askColCmp(sortKey.slice(4)):null)||REG_CMP.updated;
   const dir=(R.dir===1||R.dir===-1)?R.dir:(REG_SORT_DEFDIR[sortKey]||-1);
   cs.sort((a,b)=>{ const r=dir*cmp(a,b); return r!==0?r:((Date.parse(b.lastAction)||0)-(Date.parse(a.lastAction)||0)); });
   /* GROUPED BY WHOSE MOVE IT IS, not by family. An amendment carries its own
@@ -2319,6 +2328,8 @@ function regRowsHtml(cs){
           and a builder with no key in REG_COL_KEYS is a builder nothing can
           call. `reg_col_title` stays LIVE: it is the sort dropdown's own
           label, and sorting by title is still offered there. */
+    /* ASK A COLUMN (20 Oct 2026): each answer column's cell, drawn by its own builder */
+    if(typeof window.askColTdHtml==='function') regColKeys().forEach(k=>{ if(k.startsWith('ask:')) CELL[k]=askColTdHtml(c,k.slice(4)); });
     return band + `
     <tr data-row="${c.id}"${neg?' data-nego-row="1"':''} tabindex="${i===0?0:-1}"
       style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">${regColKeys().map(k=>CELL[k]||'').join('')}
@@ -2639,6 +2650,8 @@ function regMenuFit(pop, btn){
   }
 }
 function wireRegRows(){
+  /* ASK A COLUMN: the answers for the rows now in front of the reader, and the chosen one lit */
+  if(typeof window.askColSync==='function'){ askColMarkRows(); askColSync(); }
   /* Whole-row click opens the contract's workspace — EXCEPT on the Negotiations
      page, where a row opens the NEGOTIATION. Same table, same builder, one
      different destination, decided off the row's own attribute rather than off
@@ -3527,6 +3540,7 @@ function renderRegister(opts){
       <div class="reg-cardhead reg-filterbar">
         <h2 id="reg-tt" class="reg-tt">${regListTitle(cs)}</h2>
         <span style="flex:1;min-width:8px"></span>
+        ${typeof window.askColBtnHtml==='function'?askColBtnHtml():''}
         ${regSortIconHtml(sortOpts)}
         ${regDisplayHtml(neg)}
       </div>
@@ -3622,6 +3636,7 @@ function renderRegister(opts){
                     : sortableTh('move',i18t('ngl_col_move'),'',k);
                   if(k==='owner') return sortableTh('owner',i18t('reg_col_owner_word'),'',k);
                   if(k==='round'||k==='changes'||k==='waiting'||k==='lead'){ const i=_colN; return `<th style="${k==='waiting'?'text-align:right;':''}${colAt('',k)}">${esc(i18t('ngl_col_'+k))}${gripFor(i)}</th>`; }
+                  if(k.startsWith('ask:')&&typeof window.askColThHtml==='function'){ const i=_colN; return askColThHtml(k.slice(4),colAt('',k),gripFor(i),R.sort===k?sortCaret(k):''); }
                   return (()=>{ const i=_colN; return `<th style="text-align:right;${colAt('',k)}">${gripFor(i)}</th>`; })();
                 }).join('')}
               </tr>

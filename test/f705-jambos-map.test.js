@@ -120,10 +120,11 @@ describe('f705 (1) the map: thirty-one tasks, both languages, each on an existin
   /* RE-POINTED 19 Oct 2026 (owner: "I want hati to do what the user asks in
      plain language supported by Minisearch"): the 32nd task is a contract's
      brief ("briefing for contracts mk 345"), the paper's own Read the brief */
-  test('1a thirty-two tasks, each named once, the brief the 32nd', () => {
-    assert.equal(T.length, 32);
-    assert.equal(new Set(T.map(x => x.k)).size, 32);
+  test('1a thirty-three tasks, each named once, the brief the 32nd, Ask a column the 33rd', () => {
+    assert.equal(T.length, 33);
+    assert.equal(new Set(T.map(x => x.k)).size, 33);
     assert.ok(T.some(x => x.k === 'brief' && x.to.place === 'brief'));
+    assert.ok(T.some(x => x.k === 'askcol' && x.to.reg && x.to.reg.askOpen === true));
   });
   test('1b every task has at least three ways of asking in each language, and each way has a word the map can read', () => {
     for (const t of T){
@@ -141,7 +142,9 @@ describe('f705 (1) the map: thirty-one tasks, both languages, each on an existin
       if (to.door) assert.ok(doors.includes(to.door), t.k + ' → door ' + to.door);
       if (to.menu) assert.ok(menu.includes(to.menu), t.k + ' → menu ' + to.menu);
       if (to.door || to.menu) assert.ok(places.includes(to.home), t.k + ' asks which contract on ' + to.home);
-      if (to.reg) assert.match(REG, new RegExp(`k:'${to.reg.view}'`), t.k + ' → narrowed ' + to.reg.view);
+      if (to.reg && to.reg.view) assert.match(REG, new RegExp(`k:'${to.reg.view}'`), t.k + ' → narrowed ' + to.reg.view);
+      /* Ask a column (20 Oct 2026): the list, its question opened by the column's own reader */
+      if (to.reg && to.reg.askOpen) assert.match(R('js/views/askcolumn.js'), /if \(R0\.askOpen\)\{ delete R0\.askOpen; if \(!AC\.form\) askColOpen\(\);/, t.k + ' → the question opens');
       if (to.st){
         const [kind, key] = to.st.split(':');
         if (kind === 'panel') assert.match(SET, new RegExp(`^  ${key}:\\{`, 'm'), t.k + ' → Settings panel ' + key);
@@ -199,6 +202,8 @@ const EXAM = [
   ['I want to read the brief', 'brief'], ['brief me on this contract', 'brief'], ['läs sammanfattningen av avtalet', 'brief'],
   ['how do I add a new user?', 'team'], ['invite my colleague to HaTi', 'team'], ['bjud in en kollega', 'team'],
   ['set the signing limits', 'signcap'], ['how do I limit what Peter can sign?', 'signcap'], ['ändra signeringsgränser', 'signcap'],
+  /* Ask a column (20 Oct 2026) */
+  ['I want to ask all my contracts the same question', 'askcol'], ['add a column that Jambo fills in', 'askcol'], ['ställ en fråga till alla avtal', 'askcol'],
   ['how do I make a folder private?', 'folders'], ['change who has access', 'folders'], ['begränsa åtkomst till en mapp', 'folders'],
   ['can I use HaTi in Swedish?', 'lang'], ['change the language to English', 'lang'], ['byt språk till engelska', 'lang'],
   ["I'm going on holiday next week", 'away'], ['who covers for me while I am away?', 'away'], ['jag ska på semester', 'away'],
