@@ -59,6 +59,9 @@ const check = (name, pass, detail) => {
     await page.evaluate(() => { if (window.intel) intel.paper = null; setView('dashboard'); });
     /* attached, not visible: on a computer Home's head row is gone by design (the SAP way, 18 Oct 2026) */
     await page.waitForSelector('#hb-head', { state: 'attached', timeout: 15000 });
+    /* 20 Oct 2026 (owner: "make the contracts landing page be on list as opposed to paper"): the Contracts
+       place lands on the List now; this check is about the Wall, so it picks Wall as a reader would */
+    await page.evaluate(() => { if (window.regPlaceSet) regPlaceSet({ show: 'wall' }); });
     await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'paper');
     const up = await wallUp();
     check('0 the Document tab with nothing open shows the wall', up);

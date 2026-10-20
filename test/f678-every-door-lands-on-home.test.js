@@ -222,7 +222,8 @@ describe('f678 (3) Open party opens Home\'s Contracts place, narrowed to the par
     assert.deepEqual(J(v.state.reg.only), { ids: ['MK-1', 'MK-3'], label: 'Naivas' });
     assert.equal(v.state.reg.show, 'list');
     for (const junk of [{ ids: 'MK-1' }, { ids: [1, 2] }, { ids: [] }, null]){ v.regPlacePut({ scope: null, st: { only: junk } }); assert.equal(v.state.reg.only, null, JSON.stringify(junk)); }
-    v.regPlacePut({ scope: null, st: { show: 'gallery' } }); assert.equal(v.state.reg.show, 'wall', 'an unknown way of looking is the Wall');
+    v.regPlacePut({ scope: null, st: { show: 'gallery' } }); /* RE-POINTED 20 Oct 2026 (owner: "make the contracts landing page be on list as opposed to paper") */
+    assert.equal(v.state.reg.show, 'list', 'an unknown way of looking is the List');
     /* RE-POINTED (round 13 gaps, 18 Oct 2026): the pair carries the paper
        chosen on the wall and how far it is opened beside the place's state */
     assert.match(IG, /function igWallPlace\(\)\{ return \{ scope:null, st:\{ \.\.\.\(state\.reg\|\|\{\}\) \}, chosen:/, 'Home\'s pair carries the place\'s own state');
