@@ -107,7 +107,8 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     ok('3a two contract tabs, each drawn', Object.values(tabs).every(x => x.trim().length > 5), JSON.stringify(Object.fromEntries(Object.entries(tabs).map(([k, v]) => [k, v.slice(0, 60)]))));
     /* LIFTED (Young, 8 Oct 2026: "yes to words under the symbols"): every symbol
        carries its word, whole — a word cut to "Docu…" is not a word */
-    const sym = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .igd-head .pd-tab')].map(b => { const w = b.querySelector('.pd-tab-w');
+    /* RE-POINTED 20 Oct 2026 (owner: "jambo keeps disappearing from the top of the panel", PR #372): the Jambo tab now always stands beside the four; they are counted without it, and it wears his face */
+    const sym = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .igd-head .pd-tab:not([data-pd-talk])')].map(b => { const w = b.querySelector('.pd-tab-w');
       return { k: b.getAttribute('data-pd-tab'), on: b.classList.contains('on'), txt: w ? w.textContent.trim() : '', whole: !!w && w.scrollWidth <= w.clientWidth + 1, glyph: b.querySelector('.pd-tab-g img.jambo-face') ? 'FACE' : ((b.querySelector('.pd-tab-g') || {}).textContent || ''), name: b.getAttribute('title') }; }));
     /* the artifact's symbols, exactly (owner, 10 Oct 2026); Jambo's tab wears his face (owner, 12 Oct 2026).
        RE-POINTED 19 Oct 2026: the first tab's word is "Overview" — the owner: "you land on the page and if
