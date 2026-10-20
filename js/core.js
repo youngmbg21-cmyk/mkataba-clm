@@ -3906,11 +3906,13 @@ function rootEscSet(fn){
    #modal-root panel is ever open; cleared on every close so it can never
    outlive the dialog that set it. */
 let _modalGuard=null;
+/* answers false when the guard kept the dialog up, true once it is closed */
 async function closeModalGuarded(){
   const g=_modalGuard;
   if(g){ let ok=true; try{ ok=await g(); }catch(_){ ok=true; }
-    if(ok===false) return; }
+    if(ok===false) return false; }
   closeModal();
+  return true;
 }
 let _modalOpener=null, _modalRelease=null, _modalDrag=null, _modalPin=null, _modalOnClose=null;
 function modalOnCloseRun(){ const f=_modalOnClose; _modalOnClose=null; if(f){ try{ f(); }catch(_){} } }

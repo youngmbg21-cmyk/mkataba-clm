@@ -259,6 +259,26 @@ const SAY = 'NDA with Volvo Cars for a pilot';
       return !document.getElementById('na-root') && i && i.classList.contains('is-landed') ? { v: i.value, here: document.activeElement === i, end: i.selectionStart === i.value.length } : null; }, null, 6000) : null;
     const D16 = L16 ? null : await page.evaluate(() => { const i = document.getElementById('igd-input'); return { root: !!document.getElementById('na-root'), box: !!i, v: i && i.value, cls: i && i.className.slice(-60), act: (document.activeElement || {}).id, conf: !!document.getElementById('confirm-overlay') }; });
     check('16 Change the ask lands on Jambo\'s box: the sentence in it, lit, the caret at its end', !!L16 && L16.v === SAY && L16.here && L16.end, JSON.stringify({ up16: !!up16, has16, L16, D16 }));
+    /* 17 HA PUTS THE PAGE AWAY FIRST (owner's picture, 20 Oct 2026): pressed with New
+       agreement up, Home's mark closed nothing and the page stood over Home with Jambo's
+       panel gone. Nothing typed: it goes, and Home is in front. Something typed: it asks
+       first; "Discard my answers" goes Home. At the parent the page stayed up both times. */
+    await page.evaluate(() => { if (typeof closeModal === 'function') closeModal(); setView('register'); });
+    await until(() => document.getElementById('ig-dock') ? true : null, null, 6000);
+    await page.evaluate(() => caDraftForm());
+    await until(() => document.getElementById('na-root') ? true : null, null, 6000);
+    await page.click('#dk-mark');
+    const H17a = await until(() => !document.getElementById('na-root') && state.view === 'counter' ? true : null, null, 4000);
+    await page.evaluate(() => setView('register'));
+    await until(() => document.getElementById('ig-dock') ? true : null, null, 6000);
+    await page.evaluate(() => caDraftForm());
+    await until(() => document.getElementById('dr-say') ? true : null, null, 6000);
+    await page.fill('#dr-say', 'NDA with Volvo Cars');
+    await page.click('#dk-mark');
+    const asked17 = await until(() => { const b = [...document.querySelectorAll('button')].find(x => x.getClientRects().length && /^Discard my answers$/.test(x.textContent.trim())); return b ? true : null; }, null, 4000);
+    await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => x.getClientRects().length && /^Discard my answers$/.test(x.textContent.trim())); if (b) b.click(); });
+    const H17b = await until(() => !document.getElementById('na-root') && state.view === 'counter' ? true : null, null, 4000);
+    check('17 HA puts the page away first: untyped it goes and Home is in front; typed it asks, and "Discard my answers" lands on Home', !!H17a && !!asked17 && !!H17b, JSON.stringify({ H17a, asked17, H17b }));
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }
   finally {
     check('no page errors', !errors.length, errors.slice(0, 3).join(' | '));

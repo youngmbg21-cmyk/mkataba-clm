@@ -74,6 +74,17 @@ function dkLeaveSend(k){
   if (dkSendWaiting() && k === 'c:' + now.slice(DK_SEND.length)) return;
   if (typeof closeModal === 'function') try { closeModal(); } catch (_){}
 }
+/* A PAGE IN FRONT GOES BEFORE THE BAR MOVES (owner, 20 Oct 2026: New agreement
+   stayed up over Home when the HA mark was pressed, Jambo's panel gone from
+   beside it): Home and a Recent row first put away a page standing in front
+   (not the send screen, which dkLeaveSend keeps), through its own guard — a
+   page with something typed asks first, and staying keeps the reader there */
+function dkPageUp(){ return typeof document !== 'undefined' && !dkSendNow() && !!document.querySelector('#modal-root [data-dlg-page]'); }
+function dkLeavePageThen(go){
+  if (!dkPageUp() || typeof window.closeModalGuarded !== 'function') return false;
+  Promise.resolve(window.closeModalGuarded()).then(ok => { if (ok !== false && !dkPageUp()) go(); });
+  return true;
+}
 function deskKeyNow(){
   if (typeof state === 'undefined' || !state || !state.view || state.view === 'counter') return null;
   const v = state.view;
@@ -300,6 +311,7 @@ function deskTabOpen(k){
     if (dkSendWaiting() && typeof window.pdSendWaitSet === 'function'){ window.pdSendWaitSet(false); deskBarPaint(); return true; }
     return !!dkSendNow();
   }
+  if (dkLeavePageThen(() => deskTabOpen(k))) return true;
   dkLeaveSend(k);
   if (k === 'home'){ deskGoCounter(); return true; }
   if (k.startsWith('home:')){
@@ -351,7 +363,7 @@ function deskTabClose(k){
   }
   deskBarPaint();
 }
-function deskGoCounter(){ _dkMenuOpen = false; dkLeaveSend(null); if (typeof setView === 'function') setView('counter'); }
+function deskGoCounter(){ _dkMenuOpen = false; if (dkLeavePageThen(deskGoCounter)) return; dkLeaveSend(null); if (typeof setView === 'function') setView('counter'); }
 
 /* ---------------- THE COUNTER ---------------- */
 /* THREE ROWS IN SIGHT, AS DRAWN (round 23: Jambo's work, then three owed
