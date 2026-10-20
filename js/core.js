@@ -5491,8 +5491,9 @@ function shareColPaint(c, on){
 function shareColPick(r){
   if(!r || r.why || _shCol.picks.some(x=>x.id===r.id)) return;
   _shCol.picks.push({ id:r.id, name:r.name });
+  /* a choice puts the list away, as Jambo's @ list does; typing opens it again */
   const q=document.getElementById('sh-col-q'); if(q){ q.value=''; }
-  _shCol.on=0;
+  _shCol.on=0; _shCol.open=false;
   const L=document.getElementById('sh-letter'); if(L && L._shPaint) L._shPaint();
 }
 function shareColDrop(id){
