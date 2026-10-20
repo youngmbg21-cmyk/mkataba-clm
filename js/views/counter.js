@@ -611,7 +611,7 @@ let _cnSig = '';
 function counterBoxFit(q){
   if (!q) return;
   /* the two-row card's one grower: up to six lines, then a thin bar */
-  if (typeof jamboCardGrow === 'function'){ if (!q.value){ q.style.height = ''; return; } jamboCardGrow(q); return; }
+  if (typeof jamboCardGrow === 'function'){ jamboCardGrow(q); if (!q.value) q.style.height = ''; return; }
   q.style.height = 'auto';
   q.style.height = q.value ? Math.min(q.scrollHeight, 120) + 'px' : '';
 }

@@ -469,6 +469,21 @@ function jamboCardGrow(t){
   if (!t || !t.style) return;
   t.style.height = 'auto';
   if (!t.scrollHeight) return;
+  /* ONE LINE UNTIL THE WORDS WRAP (owner, 20 Oct 2026): the card turns tall
+     once the words need a second line, and stays tall until they are gone
+     (so it never flips back and forth at the edge of a line) */
+  const card = t.closest ? t.closest('.jb-card') : null;
+  if (card){
+    if (!String(t.value || '').length) card.classList.remove('is-tall');
+    else if (!card.classList.contains('is-tall')){
+      const cs = getComputedStyle(t);
+      const lh = parseFloat(cs.lineHeight) || 21;
+      const pad = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+      if (/\n/.test(t.value) || t.scrollHeight > lh * 1.5 + pad) card.classList.add('is-tall');
+    }
+    t.style.height = 'auto';
+    if (!t.scrollHeight) return;
+  }
   const max = parseFloat(getComputedStyle(t).maxHeight);
   t.style.height = Math.min(t.scrollHeight, max && isFinite(max) ? max : Infinity) + 'px';
 }
@@ -479,9 +494,24 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     if (b && !b.disabled){ e.preventDefault(); jamboAddFile(); }
   });
   document.addEventListener('input', e => { const t = e.target; if (t && t.matches && t.matches('.jb-card textarea')) jamboCardGrow(t); });
+  /* a box emptied or filled by the page (a send, a prefill, a draft kept)
+     takes its shape on the next frame: after a send, a focus, or a repaint */
+  const refit = () => { try{ document.querySelectorAll('.jb-card > textarea').forEach(t => {
+    const tall = t.parentElement.classList.contains('is-tall');
+    if ((tall && !t.value) || (!tall && t.value)) jamboCardGrow(t); }); }catch(_){} };
+  let _jbRefitAsked = false;
+  const refitSoon = () => { if (_jbRefitAsked) return; _jbRefitAsked = true;
+    (typeof requestAnimationFrame === 'function' ? requestAnimationFrame : f => setTimeout(f, 16))(() => { _jbRefitAsked = false; refit(); }); };
+  document.addEventListener('submit', () => setTimeout(refitSoon, 0), true);
+  document.addEventListener('click', e => { if (e.target && e.target.closest && e.target.closest('.jb-send')) setTimeout(refitSoon, 0); });
+  document.addEventListener('focusin', e => { if (e.target && e.target.matches && e.target.matches('.jb-card > textarea')) refitSoon(); });
+  if (typeof MutationObserver === 'function' && document.documentElement){
+    try{ new MutationObserver(refitSoon).observe(document.documentElement, { childList: true, subtree: true }); }catch(_){}
+  }
   document.addEventListener('keydown', e => {
     const t = e.target; if (!t || !t.matches || !t.matches('textarea[data-jb-enter]') || e.defaultPrevented) return;
     if (!chatFieldSubmits(e)) return;
+    setTimeout(refitSoon, 0);
     const f = t.form || (t.closest && t.closest('form'));
     if (f){ if (typeof f.requestSubmit === 'function') f.requestSubmit(); else f.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true })); return; }
     const s = t.closest && t.closest('.jb-card') && t.closest('.jb-card').querySelector('.jb-send'); if (s && !s.disabled) s.click();
