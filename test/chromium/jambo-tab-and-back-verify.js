@@ -12,7 +12,8 @@
        Redlines / Jambo", the cards out of sight, the question said; ‹ Redlines
        returns to the same cards at the same scroll; asked again, the same
        conversation; Esc and the bar's ‹ return too
-     2 A NEW PAGE IS FRESH: another contract on Home lands on its own panel,
+       — and two tabs later its Jambo tab opens the same conversation (1m)
+     2 A NEW CONTRACT IS FRESH: another contract on Home lands on its own panel,
        no conversation in front
      3 A "GO TO" ASK TAKES YOU THERE: "open explorer" typed beside a paper
        moves to Explorer, which lands on its own panel
@@ -123,6 +124,18 @@ const check = (name, pass, detail) => {
       if (bar) await bar.click();
       const viaBar = await until(() => !document.getElementById('ig-dock').classList.contains('is-talk') && document.querySelectorAll('#pd-redface [data-nego-card]').length >= 2, null, 5000);
       check('1i the bar\'s ‹ returns to the landing too', !!bar && !!viaBar);
+      /* THE CONVERSATION IS THE CONTRACT'S, NOT THE TAB'S (owner, 20 Oct
+         2026: "jambo panel seems to lose the chat history when i am moving
+         between tabs"): another tab of the same contract, then the Jambo tab,
+         brings back every word said beside it. Red at the parent: empty. */
+      for (const t of ['oblig', 'menu']){
+        const sel = '#ig-dock [data-pd-tab="' + t + '"]';
+        if (await page.$(sel)) await page.click(sel);
+        await until(sel => { const b = document.querySelector(sel); return b && b.classList.contains('on'); }, sel, 5000);
+      }
+      if (await page.evaluate(tabUp)) await page.click('#ig-dock [data-pd-talk]');
+      const J3 = await until(() => document.getElementById('ig-dock').classList.contains('is-talk') ? [...document.querySelectorAll('#igd-feed .ai-msg')].map(m => m.textContent).join(' ') : null, null, 5000);
+      check('1m two tabs later, the Jambo tab opens the same conversation', !!J3 && /watch for/.test(J3) && /payment terms/.test(J3) && /one more question/.test(J3), JSON.stringify(J3 && J3.slice(0, 160)));
     });
 
     /* ---- 2 another contract: fresh ---- */
