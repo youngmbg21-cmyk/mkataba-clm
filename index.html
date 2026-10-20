@@ -18,8 +18,8 @@
      /favicon.ico and logged a 404 in the console — on every page, the one
      error every audit probe printed. The rail's own mark (the "Ha" square),
      drawn inline so there is no file to serve. A standalone image carries no
-     :root, so the colour is a literal: the teal brand's accent. -->
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23264C9E'/%3E%3Ctext x='16' y='21.5' font-family='system-ui,-apple-system,Segoe UI,sans-serif' font-size='15' font-weight='600' fill='%23fff' text-anchor='middle'%3EHa%3C/text%3E%3C/svg%3E" />
+     :root, so the colour is a literal: Chambers' ink, the serif (20 Oct 2026). -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='3' fill='%23161512'/%3E%3Ctext x='16' y='21.5' font-family='Georgia,Times New Roman,serif' font-size='16' font-weight='600' fill='%23fff' text-anchor='middle'%3EHa%3C/text%3E%3C/svg%3E" />
 <script>
   // ONE LOOK, NO DARK MODE (owner, 20 Oct 2026: "Let's not implement the dark
   // theme. Remove it from HaTi. Only dark theme will be on the explorer and
@@ -5718,7 +5718,7 @@
      row keeps its parts (time, ring, who, outcome); only where it stands
      moves. The per-row joining line gives way to the one middle line. The two
      side colours are the Board's own pair, checked for colour blindness. */
-  .hist-trail.is-lanes{ --hist-ours:var(--bs-ours,#264c9e); --hist-theirs:var(--bs-theirs,#7E66D6);
+  .hist-trail.is-lanes{ --hist-ours:var(--bs-ours,#1F4D3B); --hist-theirs:var(--bs-theirs,#7E66D6);
     display:grid; grid-template-columns:minmax(0,1fr) 64px minmax(0,1fr); row-gap:6px; padding:0 var(--s-4) 14px; }
   .hist-trail.is-lanes::before{ content:""; position:absolute; top:30px; bottom:0; left:50%; width:1px; background:var(--rule); }
   .hist-trail.is-lanes .hist-ev::before{ display:none; }
@@ -10882,9 +10882,11 @@
      docs/WORKORDER-one-page-finish-strip.html, version 4; js/views/boardstrip.js)
      ---- a contract brought up on the Board, in the insight panels' frame. The
      Board's own tokens, so it reads alike on Light and Dark. The obligation
-     dots keep the two colours checked for colour blindness (ours #264c9e,
-     theirs #7E66D6), lifted for the Dark screen so they stand off the stage. */
-  #hb-page,#ig-page{--bs-ours:#264c9e;--bs-theirs:#7E66D6;--bs-nego:#F2C46B}
+     dots keep two colours told apart by colour-blind readers too — ours is
+     our own accent (Chambers' deep green #1F4D3B since 20 Oct 2026; it was the
+     Blue workspace's #264c9e), theirs violet #7E66D6, far apart in lightness
+     as well as hue — lifted for the Dark screen so they stand off the stage. */
+  #hb-page,#ig-page{--bs-ours:#1F4D3B;--bs-theirs:#7E66D6;--bs-nego:#F2C46B}
   #ig-page.hb-dark,#hb-page.hb-dark{--bs-ours:#7FA6F0;--bs-theirs:#B3A2F0;--bs-nego:#C99A3E}
   .bs-strips{display:flex;flex-direction:column;gap:var(--s-4);container-type:inline-size;container-name:bsstrips}
   .bs-strip{scroll-margin-top:12px}

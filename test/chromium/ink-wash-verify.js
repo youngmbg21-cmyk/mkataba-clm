@@ -7,8 +7,8 @@
    pop-ups.
 
    WHAT MUST NOT MOVE, each the owner's own words, is measured against a
-   census recorded from the code BEFORE the change (ink-wash-baseline.json):
-     · dark mode, exactly as today ("Dark mode should stay as is today")
+   census recorded from the code BEFORE the change (ink-wash-baseline.json)
+   — dark mode, the first of them, left HaTi on 20 Oct 2026 (Chambers):
      · the contract paper ("this should not impact the paper contract")
      · the redline cards' buttons ("do not change the colors of the redline
        cards Buttons")
@@ -32,6 +32,21 @@
    fails nothing. Anyone may re-save after a change; no one's yes is needed.
    The re-recordings below were each asked of the owner under the old rule.
 
+   RE-RECORDED 20 Oct 2026 (twenty-third), CHAMBERS AND NO DARK MODE (the
+   owner picked Chambers by name and said "Let's not implement the dark
+   theme. Remove it from HaTi"). The record is ONE appearance now, 'light';
+   the four (green/navy × light/dark) went with the swatches and the theme
+   button. The grey rule moved with the palette: a COOL grey fails (green or
+   blue above red), Chambers' warm greys and the ink at a wash do not.
+   Audited as a set difference against Blue's light record (what nearly every
+   reader saw) and Green's: no hue invented. On the paper only token moves —
+   the status amber/green/ruby inks and dots (#A24E07→#8A5A0A, #1A6F45→
+   #1F4D3B, #B3261E→#8F2A22, dots likewise), Blue's divider and accent-700
+   ink gone, Chambers' divider #E4E0D7 and accent #1F4D3B in their place; the
+   paper's own ink (#141F1D, the 9 Oct pin) and ground did not move. The
+   redline cards' buttons: the accent and ruby inks follow the tokens, a
+   filled verb is the ink (#161512, was Blue's #264C9E). The danger button:
+   nothing moved. Text sizes: one new, 19px — the bar's serif HaTi mark.
    RE-SAVED 20 Oct 2026 (twenty-second), under the 19 Oct rule (no yes
    needed): the two-row card on every Jambo box. No FAIL before the save:
    no colour or text size new to the record; only counts moved.
@@ -338,12 +353,12 @@ const check = (name, ok, detail) => {
   ok ? pass++ : fail++;
 };
 
-/* THE TABLE IN THE WORK ORDER, as the browser reports it. */
+/* THE RAMP, as the browser reports it. CHAMBERS (owner picked it by name,
+   20 Oct 2026): ONE appearance — the warm ramp — where Ink Wash had one per
+   brand (Green and Blue, 9 Oct) and a dark mode beside them. */
 const INK = {
-  green: { text: 'rgb(3, 46, 42)', n600: 'rgb(58, 95, 90)', n500: 'rgb(58, 95, 90)', n400: 'rgb(84, 121, 116)',
-           n300: 'rgb(190, 214, 209)', n200: 'rgb(220, 233, 230)', n100: 'rgb(240, 245, 244)', bg: 'rgb(244, 248, 247)' },
-  navy:  { text: 'rgb(9, 25, 56)', n600: 'rgb(55, 74, 109)', n500: 'rgb(55, 74, 109)', n400: 'rgb(80, 100, 138)',
-           n300: 'rgb(186, 200, 228)', n200: 'rgb(218, 226, 241)', n100: 'rgb(238, 242, 249)', bg: 'rgb(243, 246, 251)' },
+  light: { text: 'rgb(22, 21, 18)', n600: 'rgb(94, 90, 81)', n500: 'rgb(94, 90, 81)', n400: 'rgb(111, 106, 94)',
+           n300: 'rgb(207, 201, 188)', n200: 'rgb(228, 224, 215)', n100: 'rgb(240, 237, 230)', bg: 'rgb(244, 242, 237)' },
 };
 
 /* ---------- the probes, run in the page ---------- */
@@ -362,7 +377,11 @@ const CENSUS = ([sel, props]) => {
 };
 /* A colour is GREY when it is opaque enough to be seen as itself, is neither
    white nor near-black, and carries almost no hue (HSL saturation under 12%).
-   Today's ramp measures 4–9%; every Ink Wash value measures 17% or more. */
+   CHAMBERS' GREYS ARE WARM (20 Oct 2026): the ramp's own greys (#5E5A51,
+   #6F6A5E, #8E887B, #A8A295) and the ink at a wash lean red-yellow or sit
+   neutral, so what fails now is a COOL grey — one whose green or blue stands
+   above its red: the old Ink Wash teal and navy greys, a slate literal. The
+   relation, not a list of values (THE RULE PINS THE RELATION). */
 const GREYS = () => {
   const parse = s => { const m = String(s).match(/rgba?\(([^)]+)\)/); if (!m) return null;
     const n = m[1].split(/[,\s\/]+/).filter(Boolean).map(Number); return [n[0], n[1], n[2], n.length > 3 ? n[3] : 1]; };
@@ -370,7 +389,7 @@ const GREYS = () => {
     const mx = Math.max(c[0], c[1], c[2]) / 255, mn = Math.min(c[0], c[1], c[2]) / 255, l = (mx + mn) / 2;
     if (l < .06 || l > .975) return false;
     const sat = mx === mn ? 0 : (l > .5 ? (mx - mn) / (2 - mx - mn) : (mx - mn) / (mx + mn));
-    return sat < .12; };
+    return sat < .12 && (c[1] > c[0] + 2 || c[2] > c[0] + 2); };
   const hits = {};
   for (const el of document.querySelectorAll('body *')) {
     if (el.closest('.pg-sheet, #ig-canvas.rl-paper, .tpl-pf-sheet, svg, script, style, #theme-menu, [data-brand-pick], .hati-ref, .rl-card button, .rl-unsent-go, .rl-decisions-go, #nego-send, [data-ink-exempt]')) continue;
@@ -531,10 +550,11 @@ const diff = (a, b) => {
     const closeLayers = async () => { await page.keyboard.press('Escape'); await pause(150); await page.keyboard.press('Escape'); await pause(150);
       await page.evaluate(() => { document.querySelectorAll('.modal-bg, [data-modal-bg]').forEach(n => n.remove()); window.toastsClear && toastsClear(); }); };
 
-    const APPEAR = [['green', false], ['green', true], ['navy', false], ['navy', true]];
+    /* ONE APPEARANCE (Chambers, 20 Oct 2026): no Green, no Blue, no dark mode
+       to press — the census measures the one look HaTi has. */
+    const APPEAR = [['light', false]];
     for (const [brand, dark] of APPEAR) {
-      const tag = `${brand}-${dark ? 'dark' : 'light'}`;
-      await page.evaluate(([b, d]) => { setBrand(b); setDark(d); }, [brand, dark]);
+      const tag = brand;
       await pause(500);
       rec[tag] = { screens: {}, popups: {} };
       rec[tag].status = await page.evaluate(names => { const s = getComputedStyle(document.documentElement);
@@ -572,7 +592,7 @@ const diff = (a, b) => {
         if (name === 'negotiate') r.redlineButtons = await page.evaluate(CENSUS,
           ['.rl-card button, .rl-unsent-go, .rl-decisions-go, #nego-send', BTN_PROPS]);
         if (name === 'dialog') r.danger = await page.evaluate(CENSUS, ['#cf-ok, .ui-btn-danger', BTN_PROPS]);
-        if (!dark && brand === 'green') r.sizes = await page.evaluate(CENSUS, ['body', ['fontSize']]);
+        if (!dark) r.sizes = await page.evaluate(CENSUS, ['body', ['fontSize']]);
         if (!dark) { r.greys = await page.evaluate(GREYS); r.caps = await page.evaluate(CAPS); }
         if (!SAVE && !dark) await page.screenshot({ path: path.join(OUT, `${tag}-${name}.png`) });
         (isPop ? rec[tag].popups : rec[tag].screens)[name] = r;
@@ -598,7 +618,7 @@ const diff = (a, b) => {
     const moved = (tag, name, what, a, b) => { const d = diff(a, b); if (d.length) notes.push(`${tag} ${name}: ${what} — ${d.length} count${d.length === 1 ? '' : 's'} moved`); };
     for (const [tag, now] of Object.entries(rec)) {
       const was = base[tag];
-      const dark = tag.endsWith('dark'), brand = tag.split('-')[0];
+      const dark = tag.endsWith('dark'), brand = tag;
       check(`${tag}: amber, green and ruby status colours are as before`, !diff(was.status, now.status).length, diff(was.status, now.status));
       if (dark) check(`${tag}: the ramp is as before`, !diff(was.tokens, now.tokens).length, diff(was.tokens, now.tokens));
       else check(`${tag}: the ramp is Ink Wash`, !diff(INK[brand], now.tokens).length, diff(INK[brand], now.tokens));

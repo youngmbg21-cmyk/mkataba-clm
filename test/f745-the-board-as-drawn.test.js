@@ -90,7 +90,8 @@ describe('f745 (1) the Board\'s head is one card', () => {
     const body = code(HB.slice(HB.indexOf('function hbBoardHtml('), HB.indexOf('function hbSetupLeft(')));
     assert.match(body, /const time = hbCountedAt\(true\);/);
     assert.match(body, /const pack = s\.panels\.some\(p => p\.kind === 'view'\) \? `<button type="button" class="hb-btn is-sm" data-hb-pack-dl>/);
-    assert.match(body, /return `\$\{hbBoardHeadHtml\(time, cut, bs, pack, deskBits, deskScr\)\}\s*\$\{bs\.box\}\s*\$\{hbBookHtml\(d, moved, base && base\.at\)\}\s*\$\{hbPrepHtml\(A, base && base\.at\)\}/);
+    /* (deskScr, the Board's Light | Dark, left with dark mode: Chambers, 20 Oct 2026) */
+    assert.match(body, /return `\$\{hbBoardHeadHtml\(time, cut, bs, pack, deskBits\)\}\s*\$\{bs\.box\}\s*\$\{hbBookHtml\(d, moved, base && base\.at\)\}\s*\$\{hbPrepHtml\(A, base && base\.at\)\}/);
   });
 });
 

@@ -49,7 +49,8 @@ describe('f709 (1) a page on the desk', () => {
     assert.match(fnBody(BS, 'bsStripsHtml'), /bsStripHtml\(st, \{ desk: true \}\)/);
     assert.match(fnBody(BS, 'bsStripHtml'), /const x = desk \? '' :/, 'no × of its own on the desk');
     const head = fnBody(HB, 'hbPaintHead');
-    assert.match(head, /scr\.hidden = s\.face !== 'board' \|\| card;/);
+    /* the Board's Light | Dark left with dark mode (Chambers, 20 Oct 2026): Present is the head's one Board-only control */
+    assert.doesNotMatch(head, /hb-scr|data-hb-screen/, 'no Light | Dark to hide');
     assert.match(head, /pres\.hidden = card;/);
   });
   test('1d turning to the Board is the Board; a refresh keeps the page', () => {

@@ -373,12 +373,16 @@ describe('f364 (9) Format A', () => {
     assert.ok(!/\.doc-xr-mark\.is-high/.test(INDEX), 'is-high is stale and nothing dresses it');
     assert.ok(!/is-high/.test(xrayBlock()), 'and nothing builds one');
   });
-  test('every grade is a token this product already holds, in BOTH themes', () => {
+  /* RE-POINTED 20 Oct 2026 (Chambers; the owner removed dark mode): one
+     appearance, so a grade is a token the product holds — declared once in
+     :root, and no night answer is owed any more. */
+  test('every grade is a token this product already holds', () => {
     ['ruby', 'amber', 'steel'].forEach(g => {
       ['dot', 'fg', 'bg'].forEach(k => assert.ok(
-        (INDEX.match(new RegExp('--st-' + g + '-' + k + ':', 'g')) || []).length >= 2,
-        '--st-' + g + '-' + k + ' is answered in light AND dark'));
+        new RegExp('--st-' + g + '-' + k + ':\\s*#[0-9A-Fa-f]{6}').test(INDEX),
+        '--st-' + g + '-' + k + ' is a declared token'));
     });
+    assert.ok(!/(^|[\s,}])html\.dark[^{};\n]*\{/m.test(INDEX.replace(/\/\*[\s\S]*?\*\//g, '')), 'and no dark rule is written anywhere');
   });
 
   /* ---- the brief reaches the X-ray ---- */
