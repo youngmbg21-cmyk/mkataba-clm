@@ -6430,6 +6430,25 @@ function redlineLayoutCss(){
   .redline-page .rl-idx-top > .rl-idx-br + .rl-idx-br{display:none}
   .redline-page .rl-idx-top > .rl-idx-br:last-child{display:none}
   .redline-page .rl-idx-top .rl-round-at{height:auto;line-height:1.4;white-space:normal}
+  ${''/* ---- THE HEAD IN TWO LINES (owner, 20 Oct 2026: "so much space is lost
+         here. Optimize this space so that the cards get more screen space") ----
+         Every part stays: "Redlines N · Round 1 · since 10 Sept" with Notes and
+         who is here on ONE line, Send all and Ask for review on the next. The
+         first break goes, the round rides beside the name in the meta voice,
+         and the head's padding tightens. Order, not markup: the checks still
+         find every part inside .rl-idx-top. */}
+  .redline-page .rl-idx{padding-top:8px;padding-bottom:2px}
+  .redline-page .rl-idx-top{row-gap:6px}
+  .redline-page .rl-idx-top > *{order:7}
+  .redline-page .rl-idx-top > .pd-back{order:0}
+  .redline-page .rl-idx-top > .rl-idx-title{order:1}
+  .redline-page .rl-idx-top > .rl-round-at{order:2;flex:0 1 auto;min-width:0;font-size:var(--t-label);color:var(--color-neutral-600)}
+  .redline-page .rl-idx-top > .rl-idx-title + .rl-idx-sp ~ .rl-round-at::before{content:'·';margin-right:6px}
+  .redline-page .rl-idx-top > .rl-idx-sp{order:3}
+  .redline-page .rl-idx-top > .rl-head-notes{order:4}
+  .redline-page .rl-idx-top > .rl-head-here{order:5}
+  .redline-page .rl-idx-top > .rl-idx-br:not(.rl-idx-br ~ .rl-idx-br){display:none}
+  .redline-page .rl-idx-top > .rl-idx-br ~ .rl-idx-br{order:6}
   .redline-page .rl-head-notes,.redline-page .rl-head-review{flex:none;display:inline-flex;align-items:center;gap:5px;
     height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);border:1px solid var(--btn-edge);border-radius:var(--radius);
     background:var(--color-surface);color:var(--color-text);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);

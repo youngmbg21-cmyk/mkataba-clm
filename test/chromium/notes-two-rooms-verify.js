@@ -169,8 +169,9 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
       return { open: !!(s && s.classList.contains('open')), blur: !!(s && s.classList.contains('is-blur')),
         opacity: cs && cs.opacity, pe: cs && cs.pointerEvents, bf: cs && (cs.backdropFilter || cs.webkitBackdropFilter) };
     });
-    check('the scrim does not come up — the contract stays lit, and nothing blurs it',
-      !scrim.open && !scrim.blur && Number(scrim.opacity) === 0 && !/blur\(/.test(scrim.bf || ''),
+    /* RE-POINTED 20 Oct 2026 (owner: "when open the rest of the page should be dark similar to when you open the other tabs"): Notes shades the page like the other faces; still no blur */
+    check('the scrim comes up as for the other faces — and nothing blurs it',
+      scrim.open && !scrim.blur && !/blur\(/.test(scrim.bf || ''),
       `open ${scrim.open} blur ${scrim.blur} opacity ${scrim.opacity} filter ${scrim.bf}`);
 
     /* ---- 3. THE ROOMS REALLY HOLD DIFFERENT NOTES ---- */
@@ -409,8 +410,9 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
          than typed here, so a retune of the column moves this check with it. */
       const col = await page.evaluate(() => window.RL_RIGHT_W0 || null);
       if (col && w.win >= 1024)
-        check('and it is exactly the width the redlines column rests at',
-          w.w === col, `drawer ${w.w} · column ${col}`);
+        /* RE-POINTED 20 Oct 2026 (owner: "Make the side panels as wide as the jambo side panel and make the notes tab the same size"): the drawer is the Jambo panel's width (panelJamboWidth), every face alike */
+        { const jw = await page.evaluate(() => window.panelJamboWidth ? panelJamboWidth() : null);
+          check('and it is exactly the width of Jambo\'s panel, as every face is', jw != null && Math.abs(w.w - jw) <= 1, `drawer ${w.w} · Jambo's panel ${jw}`); }
       /* AND THE CONTRACT KEEPS EVERY PIXEL: the paper ends before the drawer
          begins. This is the whole argument for 460 on this page. */
       const paper = await page.evaluate(() => {
