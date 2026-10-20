@@ -15352,7 +15352,7 @@ function rlPbOutcomeSay(rev){
    in, a button the repaint did not replace is put back as it was. */
 function rlPrepareBusy(){
   if (typeof document === 'undefined') return () => {};
-  const was = [...document.querySelectorAll('[data-rl-prepare]')].map(b => ({ b, html: b.innerHTML, dis: b.disabled }));
+  const was = [...document.querySelectorAll('[data-rl-prepare], [data-pd-mn-go="[data-rl-prepare]"]')].map(b => ({ b, html: b.innerHTML, dis: b.disabled }));
   was.forEach(({ b }) => { b.disabled = true; b.setAttribute('aria-busy', 'true');
     if (typeof busySet === 'function') busySet(b, i18t('ng_prepare_busy')); else b.textContent = i18t('ng_prepare_busy'); });
   return () => was.forEach(({ b, html, dis }) => { if (!b.isConnected) return;

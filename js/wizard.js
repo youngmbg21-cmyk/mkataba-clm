@@ -529,7 +529,7 @@ function wzFieldHtml(v){
      bindFolderSelect answers it — bound by the caller once the markup is in
      the page. */
   if(v.type==='stream') return `<label style="display:block;">${lbl}
-    <select id="${id}" style="${WZ_ST}">${(typeof folderOptionsHtml==='function') ? folderOptionsHtml(v.def||null, false) : ''}</select></label>`;
+    <select id="${id}" style="${WZ_ST}">${(typeof folderOptionsHtml==='function') ? folderOptionsHtml(v.def||null, false, { reach:true }) : ''}</select></label>`;
   if(v.type==='select') return `<label style="display:block;">${lbl}
     <select id="${id}" style="${WZ_ST}"${(typeof needAttrs==='function'?needAttrs(v,v.def||((v.opts||[])[0]!=null&&typeof fieldOpt==='function'?fieldOpt(v.opts[0]).v:'')):'')}>
       ${(v.opts||[]).map(o=>(typeof fieldOpt==='function')?fieldOpt(o):{v:String(o),l:String(o)}).map(o=>

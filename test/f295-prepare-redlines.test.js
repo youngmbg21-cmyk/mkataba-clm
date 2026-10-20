@@ -303,8 +303,10 @@ describe('f295 — two doors, one act', () => {
        such button while Jambo drafts (rlPrepareBusy), names it too; it draws
        no button. Still exactly ONE emitter. */
     assert.equal((VIEW.match(/<button[^>]*data-rl-prepare\b/g) || []).length, 1, 'one emitter draws it');
-    assert.equal((VIEW.match(/data-rl-prepare\b/g) || []).length, 3,
-      'one emitter, one handler and the busy ring name it, and nothing else');
+    /* …and the ring also turns on the Overview's "Next up" card that presses it
+       (data-pd-mn-go="[data-rl-prepare]", 20 Oct 2026): four mentions */
+    assert.equal((VIEW.match(/data-rl-prepare\b/g) || []).length, 4,
+      'one emitter, one handler and the busy ring (button and its card) name it, and nothing else');
   });
   test('ONE HANDLER ANSWERS BOTH — querySelectorAll, never querySelector', () => {
     assert.match(VIEW, /querySelectorAll\('\[data-rl-prepare\]'\)\.forEach/,

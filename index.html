@@ -10170,16 +10170,18 @@
      folded groups. The rows keep .room-menu's own look; only its layer
      (absolute, shadow, border) is taken off, since here it sits in the panel. */
   #pd-body .pd-menu{display:grid;gap:10px;padding:12px 14px 16px}
-  #pd-body .pd-menu .pd-mn-lead{font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600)}
-  #pd-body .pd-menu .pd-mn-cards{display:grid;gap:8px}
-  #pd-body .pd-menu .pd-mn-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;text-align:left;width:100%;
+  /* the Overview's "Next up" (owner, 20 Oct 2026): the same cards under the paper's glance */
+  #ig-dock .pd-nx{display:grid;gap:8px;margin-top:10px}
+  #ig-dock .pd-mn-lead{font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600)}
+  #ig-dock .pd-mn-cards{display:grid;gap:8px}
+  #ig-dock .pd-mn-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;text-align:left;width:100%;
     border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:var(--color-surface);padding:9px 12px;font:inherit;color:var(--color-text);cursor:pointer}
-  #pd-body .pd-menu .pd-mn-card:hover{border-color:var(--accent-ink)}
-  #pd-body .pd-menu .pd-mn-card:focus-visible{outline:2px solid var(--accent-fill);outline-offset:2px}
-  #pd-body .pd-menu .pd-mn-card.is-lead{border-color:var(--accent-ink);box-shadow:inset 3px 0 0 var(--accent-ink)}
-  #pd-body .pd-menu .pd-mn-card b{font-weight:var(--w-strong);font-size:var(--t-body)}
-  #pd-body .pd-menu .pd-mn-card small{grid-column:1;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.4}
-  #pd-body .pd-menu .pd-mn-go{grid-column:2;grid-row:1 / span 2;color:var(--accent-ink);font-weight:var(--w-strong);font-size:var(--t-label);white-space:nowrap}
+  #ig-dock .pd-mn-card:hover{border-color:var(--accent-ink)}
+  #ig-dock .pd-mn-card:focus-visible{outline:2px solid var(--accent-fill);outline-offset:2px}
+  #ig-dock .pd-mn-card.is-lead{border-color:var(--accent-ink);box-shadow:inset 3px 0 0 var(--accent-ink)}
+  #ig-dock .pd-mn-card b{font-weight:var(--w-strong);font-size:var(--t-body)}
+  #ig-dock .pd-mn-card small{grid-column:1;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.4}
+  #ig-dock .pd-mn-go{grid-column:2;grid-row:1 / span 2;color:var(--accent-ink);font-weight:var(--w-strong);font-size:var(--t-label);white-space:nowrap}
   #pd-body .pd-menu .pd-mn-g{border-top:1px solid var(--color-divider);padding-top:6px}
   #pd-body .pd-menu .pd-mn-g > summary{display:flex;justify-content:space-between;align-items:center;cursor:pointer;list-style:none;
     font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600);padding:4px 2px}

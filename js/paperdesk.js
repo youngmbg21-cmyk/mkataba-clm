@@ -2615,10 +2615,16 @@ function pdMenuGroups(c){
   groups.filter(x => x.rows.length).forEach(x => { const same = out.find(o => o.key === x.key); if (same) same.rows.push(...x.rows); else out.push(x); });
   return out.map(x => ({ key: x.key, title: _pdT(x.key), rows: x.rows }));
 }
-function pdMenuHtml(c){
+/* ---- "NEXT UP" STANDS ON THE OVERVIEW (owner, 20 Oct 2026: "the highlighted
+   buttons should be in the overview page and not hidden") ----
+   The three suggestion cards the Menu tab led with are drawn under the
+   paper's "at a glance" on Overview; the Menu keeps its folded rows. A card
+   still presses its row: the rows it names travel with it, hidden, wired by
+   the Menu's own wiring (pdMenuWire over this root), so a card does exactly
+   what the row does and nothing is decided twice. */
+function pdNextUpHtml(c){
   if (!c) return '';
-  const groups = pdMenuGroups(c);
-  if (!groups.length) return pdEmpty(_pdT('pd_failed'), 'alert');
+  const groups = pdMenuGroups(c); if (!groups.length) return '';
   /* the suggestions read the rows as drawn: a grey row is never suggested */
   const box = document.createElement('div');
   box.innerHTML = groups.map(g => g.rows.join('')).join('');
@@ -2629,17 +2635,24 @@ function pdMenuHtml(c){
   if (picked.length < 3) [...box.querySelectorAll('button')].forEach(b => { if (!b.disabled && !picked.includes(b) && picked.length < 3) picked.push(b); });
   const key = b => b.id ? '#' + b.id : ['data-rl-prepare', 'data-rl-edit-clause', 'data-rl-add-clause', 'data-rl-edit-first', 'data-ig-review', 'data-ig-pbreview', 'data-ig-memo'].map(a => b.hasAttribute(a) ? `[${a}]` : '').find(Boolean) || '';
   const word = b => { const x = b.cloneNode(true); x.querySelectorAll('[aria-hidden="true"], svg, .mnote').forEach(n => n.remove()); return x.textContent.replace(/\s+/g, ' ').trim(); };
-  const cards = picked.filter(b => key(b)).map((b, i) => `<button type="button" class="pd-mn-card${i === 0 ? ' is-lead' : ''}" data-pd-mn-go="${_pdE(key(b))}"><b>${_pdE(word(b))}</b>${b.title ? `<small>${_pdE(b.title)}</small>` : ''}<span class="pd-mn-go">${_pdE(_pdT(i === 0 ? 'pd_menu_start' : 'pd_menu_open'))}</span></button>`).join('');
+  const shown = picked.filter(b => key(b));
+  if (!shown.length) return '';
+  const cards = shown.map((b, i) => `<button type="button" class="pd-mn-card${i === 0 ? ' is-lead' : ''}" data-pd-mn-go="${_pdE(key(b))}"><b>${_pdE(word(b))}</b>${b.title ? `<small>${_pdE(b.title)}</small>` : ''}<span class="pd-mn-go">${_pdE(_pdT(i === 0 ? 'pd_menu_start' : 'pd_menu_open'))}</span></button>`).join('');
   const stWord = (typeof statusLabel === 'function') ? statusLabel(st === 'Signed' ? 'Signed' : c.status) : '';
+  return `<div class="pd-menu pd-nx" data-pd-menu="${_pdE(c.id)}"><div class="pd-mn-lead">${_pdE(_pdT('pd_menu_next', { stage: String(stWord) }))}</div><div class="pd-mn-cards">${cards}</div><div class="pd-mn-rows room-menu" hidden>${shown.map(b => b.outerHTML).join('')}</div></div>`;
+}
+function pdMenuHtml(c){
+  if (!c) return '';
+  const groups = pdMenuGroups(c);
+  if (!groups.length) return pdEmpty(_pdT('pd_failed'), 'alert');
   return `<div class="pd-menu" data-pd-menu="${_pdE(c.id)}">
-    ${cards ? `<div class="pd-mn-lead">${_pdE(_pdT('pd_menu_next', { stage: String(stWord) }))}</div><div class="pd-mn-cards">${cards}</div>` : ''}
     ${groups.map((g, i) => `<details class="pd-mn-g"${i === 0 ? ' open' : ''}><summary><span>${_pdE(g.title)}</span><span class="pd-mn-n">${g.rows.length}</span></summary><div class="pd-mn-rows room-menu">${g.rows.join('')}</div></details>`).join('')}
   </div>`;
 }
 /* its presses: the ⋯ menu's one wiring (roomMenuWire, by id), the Negotiate
    rows and the Redlines rows through their own doors; bound once per drawing */
-function pdMenuWire(c){
-  const m = (typeof document !== 'undefined') ? document.querySelector('#pd-body .pd-menu') : null;
+function pdMenuWire(c, root){
+  const m = root || ((typeof document !== 'undefined') ? document.querySelector('#pd-body .pd-menu') : null);
   if (!m || !c || m.dataset.wired) return;
   m.dataset.wired = '1';
   const k = () => getContract(c.id) || c;
@@ -3411,7 +3424,7 @@ function pdJamboTopHtml(){
      (hbBoardHelloHtml, round 17 as drawn: Needs you is Home's now) */
   if (typeof igHomePaperFace !== 'function' || igHomePaperFace() !== true) return (typeof hbBoardHelloHtml === 'function') ? hbBoardHelloHtml() : '';
   const c = pdContract();
-  return c ? pdGlanceHtml(c) : pdWallHtml();
+  return c ? pdGlanceHtml(c) + pdNextUpHtml(c) : pdWallHtml();
 }
 /* NEEDS YOU HERE STAYS AT THE TOP OF THE TAB (round 3, "Tabs and faces" — the
    Compare's reason it won over Conversation: "the checklist would scroll
@@ -4174,7 +4187,7 @@ if (typeof document !== 'undefined' && !document._pdTrailEsc){
     if (pdTrailBack() || (typeof jamboTalkBack === 'function' && jamboTalkBack())) e.preventDefault();
   });
 }
-Object.assign(window, { PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdTalkKey, pdTalkShows, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
+Object.assign(window, { PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdTalkKey, pdTalkShows, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, PD_RD_CHECKS, pdRoadCheckOf, pdRoadCheckNames, pdDayWord, pdBackDay, pdAwayOf, pdRoadRuleOf, pdRoadRuleTitle, pdRoadRuleSub, pdRoadRuleFramed, pdRoadRuleHtml, pdRoadMovedHtml, pdRoadYesOf, pdRoadYesTitle, pdRoadYesFramed, pdRoadYesFacts, pdRoadYesHtml, pdRoadPress, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,
