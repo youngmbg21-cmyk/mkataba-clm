@@ -1908,9 +1908,10 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
       'moving to another clause asks');
     assert.match(CODE, /case 'close': ceLeaveGuard\(\(\) => rlCloseClauseEditor\(\)\); break;/,
       'and so does the way out of the page');
+    /* RE-POINTED 20 Oct 2026 (owner: "the same trail should be respected when editing redlines and risks"): the trail stands on every edit of ours (ceTrailOn), not only from a row */
     /* RE-POINTED 19 Oct 2026 (ONE TRAIL, owner): from a Redlines row Escape is
        ‹ Redlines, which asks the same guard (ceRowBack → ceLeaveGuard) */
-    assert.match(CODE, /if \(_ceSel\)\{ ceDetachPassage\(\); return; \}[\s\S]{0,200}?if \(ceRowMode\(\)\)\{ ceRowBack\(\); return; \}\s*\n\s*ceLeaveGuard\(\(\) => rlCloseClauseEditor\(\)\);/,
+    assert.match(CODE, /if \(_ceSel\)\{ ceDetachPassage\(\); return; \}[\s\S]{0,200}?if \(ceTrailOn\(\)\)\{ ceRowBack\(\); return; \}\s*\n\s*ceLeaveGuard\(\(\) => rlCloseClauseEditor\(\)\);/,
       'and so does Escape \u2014 after it has released a held passage, which is '
       + 'what that key answers first');
     /* Exactly four, so a fifth door is a decision rather than a discovery.

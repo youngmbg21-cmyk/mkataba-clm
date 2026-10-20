@@ -150,7 +150,7 @@ function deskBackTarget(){
 function deskStepBack(press){
   const w = typeof window !== 'undefined' ? window : {};
   if (typeof w.clauseEditorOpen === 'function' && w.clauseEditorOpen()){
-    if (typeof w.ceRowMode === 'function' && w.ceRowMode() && typeof w.ceRowBack === 'function'){ if (press) w.ceRowBack(); return true; }
+    if (typeof w.ceTrailOn === 'function' && w.ceTrailOn() && typeof w.ceRowBack === 'function'){ if (press) w.ceRowBack(); return true; }
     return false;
   }
   if (typeof w.pdTrail === 'function' && w.pdTrail()){ if (press) w.pdTrailBack(); return true; }
