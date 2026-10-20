@@ -32,6 +32,9 @@
    fails nothing. Anyone may re-save after a change; no one's yes is needed.
    The re-recordings below were each asked of the owner under the old rule.
 
+   RE-SAVED 20 Oct 2026 (twenty-second), under the 19 Oct rule (no yes
+   needed): the two-row card on every Jambo box. No FAIL before the save:
+   no colour or text size new to the record; only counts moved.
    RE-RECORDED 20 Oct 2026 (twenty-first), OWNER-ASKED ("Yes and merge",
    PR #365: Jambo's face moved to the Jambo tab, Overview wears ▦, the new
    Jambo tab, Jambo's panel on Our standards, the New agreement form beside

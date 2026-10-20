@@ -569,6 +569,11 @@ function cnChipsHtml(rows){
   return (lead ? `<button type="button" class="cn-chip" data-cn-lead ${cnNeedDoorAttrs(first)}>${_cnE(lead)}</button>` : '')
     + [w('nav_contracts').toLowerCase(), w('ca_w_calendar'), w('ca_wall_draft')].map(word => `<button type="button" class="cn-chip" data-cn-ask="${_cnE(word)}">${_cnE(word)}</button>`).join('');
 }
+/* THE TWO-ROW CARD's one builder (components.js), read where it is drawn;
+   a page loaded without it (a test's one-file world) draws the bare parts */
+const _cnJbCard = o => (typeof jamboCardHtml === 'function') ? jamboCardHtml(o) : `${o.field || ''}${o.ctx || ''}${o.send || ''}${o.tail || ''}`;
+const _cnJbSend = (a, l, o = {}) => (typeof jamboSendHtml === 'function') ? jamboSendHtml(a, l, o) : `<button type="${o.submit ? 'submit' : 'button'}" ${a || ''} aria-label="${l}" title="${o.title || l}"></button>`;
+
 function counterHtml(){
   const me = (typeof currentUser === 'function') ? currentUser() : null;
   const name = String((me && me.name) || '').trim().split(/\s+/)[0] || _cnT('home_greet_there');
@@ -592,7 +597,7 @@ function counterHtml(){
   _cnSig = cnSig(N, A);
   return `<div class="cn-page" id="cn-page"><div class="cn-in">
     <section class="cn-card cn-ask">${cnFace(40, 'cn-face')}<h1>${_cnE(_cnT('cn_hello', { name }))}</h1>
-      <div class="cn-wrap"><div class="cn-box"><textarea id="cn-q" rows="1" autocomplete="off" spellcheck="false" placeholder="${_cnE(_cnT('cn_box_ph'))}" aria-label="${_cnE(_cnT('cn_box_label'))}"></textarea><button type="button" class="ui-btn ui-btn-primary" data-cn-send>${_cnE(_cnT('cn_ask'))}</button></div><div class="ca-pop cn-pop" id="cn-pop" hidden></div></div>
+      <div class="cn-wrap">${''/* THE TWO-ROW CARD (owner picked it, 20 Oct 2026): the one builder */}${_cnJbCard({ cls: 'cn-card-box', field: `<textarea id="cn-q" rows="1" autocomplete="off" spellcheck="false" placeholder="${_cnE(_cnT('cn_box_ph'))}" aria-label="${_cnE(_cnT('cn_box_label'))}"></textarea>`, send: _cnJbSend('data-cn-send', _cnT('cn_ask')) })}<div class="ca-pop cn-pop" id="cn-pop" hidden></div></div>
       ${''/* THE HINT LINE UNDER THE BOX (owner, 18 Oct 2026, "Every Jambo box"):
              the one builder every Jambo ask box on a computer carries */}${typeof jamboHintHtml === 'function' ? jamboHintHtml() : ''}
       <div class="cn-chips" id="cn-chips">${cnChipsHtml(N)}</div></section>
@@ -605,6 +610,8 @@ let _cnSig = '';
    up to five lines, then scrolls; emptied, it is one line again */
 function counterBoxFit(q){
   if (!q) return;
+  /* the two-row card's one grower: up to six lines, then a thin bar */
+  if (typeof jamboCardGrow === 'function'){ if (!q.value){ q.style.height = ''; return; } jamboCardGrow(q); return; }
   q.style.height = 'auto';
   q.style.height = q.value ? Math.min(q.scrollHeight, 120) + 'px' : '';
 }

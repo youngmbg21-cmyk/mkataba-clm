@@ -16704,6 +16704,7 @@ const STRINGS = {
     ins_read: 'What Jambo read',
     /* ---- JAMBO'S PANEL BESIDE THE LISTS (owner's yes, 18 Oct 2026; js/views/inspector.js jlFrame) ---- */
     jb_hint: 'Typing never signs, sends or files — a press does.',
+    jb_add_file: 'Add a file',
     jb_hint_places: 'places',
     jb_hint_closes: 'closes',
     jb_hint_lists: 'lists the places.',
@@ -35437,6 +35438,7 @@ const STRINGS = {
     ins_read: 'Vad Jambo har läst',
     /* ---- JAMBOS PANEL BREDVID LISTORNA (ägarens ja, 18 okt 2026; js/views/inspector.js jlFrame) ---- */
     jb_hint: 'Att skriva skriver aldrig under, skickar eller arkiverar — det gör ett tryck.',
+    jb_add_file: 'L\u00e4gg till en fil',
     jb_hint_places: 'platser',
     jb_hint_closes: 'stänger',
     jb_hint_lists: 'listar platserna.',

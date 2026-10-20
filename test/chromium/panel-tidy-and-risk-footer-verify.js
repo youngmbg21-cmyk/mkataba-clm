@@ -108,29 +108,30 @@ const LIAB_NEW = 'Each party\'s total liability under this Agreement shall not e
 
     /* ---- A. HEADER LINE ---- */
     const a = await page.evaluate(() => {
-      const box = document.querySelector('#ce-askrow .ce-askbox'), ta = document.getElementById('ce-ask');
+      /* RE-POINTED 20 Oct 2026 (owner picked "Two-row card" for every Jambo box): the box is the card (#ce-askrow); "Asking about" rides the control row UNDER the words; the card's focus mark is its one ring */
+      const box = document.querySelector('#ce-askrow'), ta = document.getElementById('ce-ask');
       const line = document.getElementById('ce-tagline'), tag = document.getElementById('ce-scope');
       if (!box || !ta) return null;
       const br = box.getBoundingClientRect(), tr = ta.getBoundingClientRect();
       const tagR = tag ? tag.getBoundingClientRect() : null;
       const x = tag && tag.querySelector('button');
       return { line: !!line && line.getClientRects().length > 0, words: line ? line.textContent.replace(/\s+/g, ' ').trim() : '',
-        tagAbove: !!tagR && tagR.bottom <= tr.top + 1, taLeft: Math.round(tr.left - br.left),
+        tagBelow: !!tagR && tagR.top >= tr.bottom - 1, taLeft: Math.round(tr.left - br.left),
         pillBg: tag ? getComputedStyle(tag).backgroundColor : '', pillInk: tag ? getComputedStyle(tag).color : '', boxBg: getComputedStyle(box).backgroundColor,
         x: x ? Math.round(x.getBoundingClientRect().width) : 0 };
     });
-    check(!!a && a.line && /Asking about/.test(a.words), 'A1 the tag sits on its own line, "Asking about"', a && a.words);
-    check(!!a && a.tagAbove && a.taLeft <= 2, 'A2 the question starts at the box\'s left edge, under the tag', a && JSON.stringify({ tagAbove: a.tagAbove, taLeft: a.taLeft }));
+    check(!!a && a.line && /Asking about/.test(a.words), 'A1 the tag sits on the control row, "Asking about"', a && a.words);
+    check(!!a && a.tagBelow && a.taLeft <= 16, 'A2 the question starts at the card\'s left edge, the tag on the row under it', a && JSON.stringify({ tagBelow: a.tagBelow, taLeft: a.taLeft }));
     check(!!a && a.pillBg !== a.boxBg && !/rgba\(0, 0, 0, 0\)/.test(a.pillBg) && a.pillInk === 'rgb(255, 255, 255)' && a.x >= 16, 'A3 the tag is a filled pill with a × the hand can find', a && JSON.stringify({ pill: a.pillBg, ink: a.pillInk, x: a.x }));
     await page.focus('#ce-ask');
     await page.keyboard.type('Keep the cap but carve out data protection');
     const f = await page.evaluate(() => {
-      const box = document.querySelector('#ce-askrow .ce-askbox'), ta = document.getElementById('ce-ask');
+      const box = document.querySelector('#ce-askrow'), ta = document.getElementById('ce-ask');
       const k = getComputedStyle(ta), b = getComputedStyle(box);
       return { taOutline: k.outlineStyle + ' ' + k.outlineWidth, taShadow: k.boxShadow, boxShadow: b.boxShadow };
     });
     const taRing = !/^none/.test(f.taOutline) && !/^\S+ 0px/.test(f.taOutline.replace(/^\S+ /, 'x ')) || (f.taShadow && f.taShadow !== 'none');
-    check(!taRing && /inset/.test(f.boxShadow), 'A4 while typing, ONE focus mark: the box\'s bottom line, no ring round the textarea', JSON.stringify(f));
+    check(!taRing && !!f.boxShadow && f.boxShadow !== 'none', 'A4 while typing, ONE focus mark: the card\'s ring, no ring round the textarea', JSON.stringify(f));
     await railShot('2-typing.png');
     await page.evaluate(() => { const t = document.getElementById('ce-ask'); t.value = ''; t.dispatchEvent(new Event('input', { bubbles: true })); t.blur(); });
 

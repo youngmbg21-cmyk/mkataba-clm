@@ -180,6 +180,7 @@ describe('f394 (5) the Ask button keeps its place in the box', () => {
   test('[control] the Ask button still asks for its place with `absolute`, at the foot of a box that grows', () => {
     /* (its offsets moved with the hint line under every Jambo box, 19 Oct
        2026 — the place it asks for is the claim, not the pixels) */
-    assert.match(IG, /id="igd-go" class="ui-btn ui-btn-sm ui-btn-primary absolute" style="right:\d+px;bottom:\d+px"/);
+    /* RE-POINTED 20 Oct 2026 (owner picked "Two-row card" for every Jambo box): the words the whole width, + and the round send on their own row under them, drawn by the one builder (jamboCardHtml) */
+    assert.match(IG, /_igJbCard\(\{ cls: 'igd-askbox'[\s\S]{0,400}send: _igJbSend\('id="igd-go"', i18t\('int_ask'\)\)/);
   });
 });

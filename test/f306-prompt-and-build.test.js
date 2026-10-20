@@ -437,7 +437,8 @@ describe('f306 (9) — every failure speaks, and every string is in both books',
        claim is the greying and the reason on the hover, and neither moved. */
     /* RE-POINTED 19 Oct 2026 (round 21 as drawn): the send is the word Ask,
        as on every Jambo box; the greying and the reason did not move */
-    assert.match(TB, /\$\{on \? '' : 'disabled'\}>\$\{esc\(i18t\('int_ask'\)\)\}/, 'and the send button is greyed with the reason on its hover');
+    /* RE-POINTED 20 Oct 2026 (owner picked "Two-row card" for every Jambo box): the words the whole width, + and the round send on their own row under them, drawn by the one builder (jamboCardHtml) */
+    assert.match(TB, /_tbJbSend\(`data-tb-send \$\{on \? '' : 'disabled'\}`, i18t\('int_ask'\), \{ title: on \? i18t\('tb_pb_one_read'\) : i18t\('tb_pb_nokey'\) \}\)/, 'and the send button is greyed with the reason on its hover');
     assert.ok(!/>➤</.test(TB), 'and no typed arrow stands in for the icon');
   });
 

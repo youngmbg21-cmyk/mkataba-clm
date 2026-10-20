@@ -3919,6 +3919,7 @@
   .st-cr .st-jb-ca{ display:flex; gap:8px; flex-wrap:wrap; padding:6px 11px 10px; }
   .st-cr .st-jb-turn > .st-jb-ca{ padding:0 0 0 36px; }
   .st-cr .st-jb-ask{ flex:none; display:flex; gap:8px; padding:10px 12px 6px; border-top:1px solid var(--color-divider); }
+  .st-cr .st-jb-ask > .jb-card{ flex:1; min-width:0; }
   .st-cr .st-jb-ask input{ flex:1; min-width:0; height:var(--ctl-h-lg); border:1px solid var(--field-line); border-radius:var(--radius-lg);
     padding:0 10px; font:inherit; font-size:var(--t-meta); background:var(--color-surface); color:var(--color-text); }
   .st-cr .st-jb-ask input:focus-visible{ outline:2px solid var(--btn-edge); outline-offset:1px; }
@@ -14186,6 +14187,33 @@
   .jb-hint{margin:6px 2px 0;font-size:var(--t-micro);line-height:1.45;color:var(--color-neutral-600);}
   /* the floating window's line: a computer only — the phone stays untouched */
   .ai-hint:empty{display:none;}
+  /* ---- THE TWO-ROW CARD: EVERY JAMBO BOX (owner picked "Two-row card",
+     20 Oct 2026) ---- the words the whole width; under them ONE row: + and
+     "Asking about" left, the round send right. Grows to six lines, then a
+     thin bar with no arrows. ONE builder, jamboCardHtml (components.js). */
+  .jb-card{display:flex;flex-direction:column;min-width:0;text-align:left;border:1px solid var(--color-neutral-300);border-radius:18px;background:var(--color-surface);padding:10px 8px 6px 14px;box-shadow:0 1px 2px rgba(3,46,42,.05),0 4px 14px rgba(3,46,42,.05);transition:border-color .15s,box-shadow .15s}
+  .jb-card:focus-within{border-color:var(--accent-ink);box-shadow:0 0 0 3px var(--color-accent-100)}
+  .jb-card > textarea{display:block;width:100%;min-width:0;margin:0;padding:2px 6px 2px 0;border:0;outline:0;background:transparent;box-shadow:none;resize:none;font:inherit;font-size:var(--t-body);line-height:1.5;color:var(--color-text);min-height:24px;height:auto;max-height:calc(1.5em * 6 + 4px);overflow-y:auto;white-space:pre-wrap;overflow-wrap:anywhere;scrollbar-width:thin;scrollbar-color:var(--color-divider) transparent}
+  .jb-card > textarea.chat-field{max-height:calc(1.5em * 6 + 4px)}   /* past textarea.chat-field's 7.5em, by scope */
+  .jb-card > textarea::-webkit-scrollbar{width:6px}
+  .jb-card > textarea::-webkit-scrollbar-button{display:none;height:0;width:0}
+  .jb-card > textarea::-webkit-scrollbar-thumb{background:var(--color-divider);border-radius:6px}
+  .jb-card > textarea::-webkit-scrollbar-track{background:transparent}
+  .jb-card > textarea::placeholder{color:var(--color-neutral-500)}
+  .jb-card > textarea:focus,.jb-card > textarea:focus-visible{outline:none;box-shadow:none;border:0}
+  .jb-card > textarea[disabled]{background:transparent;cursor:default}
+  .jb-row{display:flex;align-items:center;gap:6px;min-width:0;margin:4px 0 0 -6px}
+  .jb-sp{flex:1 1 auto;min-width:0}
+  .jb-plus{flex:none;width:32px;height:32px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--color-neutral-600);display:grid;place-items:center;cursor:pointer}
+  .jb-plus:hover{background:var(--color-accent-100);color:var(--color-text)}
+  .jb-plus[disabled]{opacity:.4;cursor:default;background:transparent}
+  .jb-send{flex:none;width:34px;height:34px;padding:0;border:0;border-radius:50%;background:var(--accent-fill);color:#fff;display:grid;place-items:center;cursor:pointer;transition:opacity .15s,background .15s}
+  .jb-send:hover{filter:brightness(.92)}
+  .jb-send svg{width:16px;height:16px;display:block}
+  .jb-send[disabled]{opacity:.4;cursor:default}
+  .jb-card:has(> textarea:placeholder-shown) .jb-send{opacity:.45}
+  .jb-card + .ca-pop{z-index:30}
+  @media (prefers-reduced-motion:reduce){ .jb-card,.jb-send{transition:none} }
   @media (max-width:767px){ .ai-hint{display:none;} }
   .jb-keys{white-space:nowrap;}
   .jb-kbd{display:inline-block;min-width:16px;padding:0 4px;border:1px solid var(--color-neutral-300);border-radius:4px;font:inherit;font-size:var(--t-micro);line-height:1.35;text-align:center;color:var(--color-neutral-700);background:var(--color-surface);}
@@ -16463,9 +16491,11 @@
   <div id="ai-suggest" class="px-5 pb-2 flex flex-wrap gap-1.5" style="background:var(--color-bg);"></div>
 
   <footer class="px-5 pb-5 pt-3" style="border-top:1px solid var(--color-divider);background:var(--color-surface);">
-    <div class="flex items-center gap-2">
-      <textarea id="ai-input" rows="1" data-ca-slash data-i18n-ph="ai_input_ph" placeholder="Search, summarize, or ask about your contracts…  (Shift+Enter for a new line)" class="chat-field flex-1 px-3.5 py-2.5 text-sm outline-none transition" style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);"></textarea>
-      <button id="ai-send" aria-label="Send to Jambo" data-i18n-aria="sh_ai_send_aria" class="h-10 w-10 shrink-0 grid place-items-center text-white transition" style="background:var(--color-accent);border-radius:var(--radius);" data-ic-big="send"></button>
+    <!-- THE TWO-ROW CARD (owner picked it, 20 Oct 2026): the words the whole
+         width; + (the one upload door) and the round send under them -->
+    <div class="jb-card">
+      <textarea id="ai-input" rows="1" data-ca-slash data-i18n-ph="ai_input_ph" placeholder="Search, summarize, or ask about your contracts…  (Shift+Enter for a new line)" class="chat-field"></textarea>
+      <div class="jb-row"><button type="button" class="jb-plus" data-jb-file aria-label="Add a file" data-i18n-aria="jb_add_file" title="Add a file"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg></button><span class="jb-sp"></span><button type="button" id="ai-send" aria-label="Send to Jambo" data-i18n-aria="sh_ai_send_aria" class="jb-send"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/></svg></button></div>
     </div>
     <!-- THE HINT LINE UNDER THE BOX (owner, 18 Oct 2026, "Every Jambo box"):
          painted by the one builder (jamboHintHtml) each time the window opens;

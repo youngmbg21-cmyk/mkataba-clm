@@ -1205,6 +1205,11 @@ function jlDoorHtml(){
 }
 /* THE ASK BOX AND ITS HINT — one builder for the panel beside a list and for
    Import's (#mig-side). One box per page, so its ids are fixed. */
+/* THE TWO-ROW CARD's one builder (components.js), read where it is drawn;
+   a page loaded without it (a test's one-file world) draws the bare parts */
+const _jlJbCard = o => (typeof jamboCardHtml === 'function') ? jamboCardHtml(o) : `${o.field || ''}${o.ctx || ''}${o.send || ''}${o.tail || ''}`;
+const _jlJbSend = (a, l, o = {}) => (typeof jamboSendHtml === 'function') ? jamboSendHtml(a, l, o) : `<button type="${o.submit ? 'submit' : 'button'}" ${a || ''} aria-label="${l}" title="${o.title || l}"></button>`;
+
 function jlAskHtml(o){
   const opt = o || {};
   const ph = opt.placeholder || i18t('jl_ph_any');
@@ -1212,7 +1217,7 @@ function jlAskHtml(o){
   return `<div class="jl-foot">
     <form class="jl-ask" data-jl-ask autocomplete="off" title="${esc(cost)}">
       <div class="ca-pop jl-pop" data-jl-pop hidden></div>
-      <div class="jl-box"><input id="jl-q" type="text" maxlength="400" spellcheck="false" placeholder="${esc(ph)}" aria-label="${esc(ph)}"><button type="submit" class="ui-btn ui-btn-primary ui-btn-sm jl-send" data-jl-send title="${esc(cost)}">${esc(i18t('int_ask'))}</button></div>
+      ${_jlJbCard({ field: `<textarea id="jl-q" rows="1" maxlength="400" spellcheck="false" data-jb-enter placeholder="${esc(ph)}" aria-label="${esc(ph)}"></textarea>`, send: _jlJbSend('data-jl-send', i18t('int_ask'), { submit: true, cls: 'jl-send', title: cost }) })}
     </form>
     ${typeof jamboHintHtml === 'function' ? jamboHintHtml() : ''}
   </div>`;

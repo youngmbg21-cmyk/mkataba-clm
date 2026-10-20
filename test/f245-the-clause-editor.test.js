@@ -523,10 +523,11 @@ describe('f245 (16) — the highlighted passage goes to the rail, and it files n
        and what you are typing are still read together, at no height. */
     assert.ok(/<span class="ce-tag" id="ce-scope"><\/span>/.test(CODE),
       'the rail carries the slot the passage lands in');
-    assert.ok(CODE.indexOf('id="ce-lane"') < CODE.indexOf('id="ce-askrow"')
-      && CODE.indexOf('id="ce-askrow"') < CODE.indexOf('id="ce-scope"')
-      && CODE.indexOf('id="ce-scope"') < CODE.indexOf('id="ce-ask"'),
-      'and it sits inside the ask box, before the words typed');
+    /* RE-POINTED 20 Oct 2026 (owner picked "Two-row card" for every Jambo box): the words the whole width, + and the round send on their own row under them, drawn by the one builder (jamboCardHtml); the tag rides the control row under the words */
+    assert.ok(CODE.indexOf('id="ce-lane"') < CODE.indexOf("id: 'ce-askrow'")
+      && CODE.indexOf("id: 'ce-askrow'") < CODE.indexOf('id="ce-ask"')
+      && CODE.indexOf('id="ce-ask"') < CODE.indexOf('id="ce-scope"'),
+      'and it sits inside the ask box, on the row under the words typed');
   });
 
   test('the card quotes the passage and offers the two acts on it', () => {
