@@ -133,7 +133,7 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     check('4d Back to opened works', !!(await until(() => !document.querySelector('.hb-dig.is-full') && !!document.querySelector('#hb-focus svg[data-hb-step="open"]'))));
 
     console.log('\n5 · full screen stands in the middle');
-    await board([], FN_KEY); await page.evaluate(k => { hbCardSet(k, { which: 'all', pic: 'funnel', measure: 'count' }, { seed: true }); hbPaintBoard(); }, FN_KEY);
+    await board([], FN_KEY); await page.evaluate(k => { hbCardSet(k.key, k.r, { seed: true }); hbPaintBoard(); }, { key: FN_KEY, r: FUNNEL });
     await svgAt(fSel);
     await menu('#hb-focus', '[data-hb-full]');
     await until(() => !!document.querySelector('#hb-focus .hb-dig.is-full svg[data-hb-step="full"]'));
@@ -145,7 +145,7 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     check('5a the funnel stands in the middle of its full-screen room', !!fn && Math.abs(fn.top - fn.bottom) <= 40 && fn.top > 40, JSON.stringify(fn));
     await shot(page, '5-funnel-full');
     await page.keyboard.press('Escape'); await page.keyboard.press('Escape');
-    await board([], BARS_KEY); await page.evaluate(k => { hbCardSet(k, { which: 'all', pic: 'bars', split: { by: 'counterparty' }, measure: 'count' }, { seed: true }); hbPaintBoard(); }, BARS_KEY);
+    await board([], BARS_KEY); await page.evaluate(k => { hbCardSet(k.key, k.r, { seed: true }); hbPaintBoard(); }, { key: BARS_KEY, r: BARS });
     await until(() => !!document.querySelector('#hb-focus [data-hb-tools-more]'));
     await menu('#hb-focus', '[data-hb-full]');
     await until(() => !!document.querySelector('#hb-focus .hb-dig.is-full'));
