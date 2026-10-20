@@ -178,6 +178,14 @@ const ceNoAi = () => ceSide() === 'counterparty' || !!(_ceOpts && _ceOpts.noAi);
    EDITOR: every writer, wall and filing path is the page's own; only the
    dress and the walk differ. Our seat with Jambo only. */
 const ceRowMode = () => !!(_ceOpts && _ceOpts.fromRow) && ceSide() === 'owner' && !ceNoAi();
+/* ONE TRAIL ON EVERY EDIT OF OURS (owner, 20 Oct 2026: "the same trail should
+   be respected when editing redlines and risks"): the "‹ Redlines  Jambo /
+   Redlines / Edit · …" strip and its back stand on our seat whatever door
+   opened the editor — a Redlines row, a risk card, the paper's Edit — and the
+   Exit button stands down. What a ROW adds (its walk, its cards) stays
+   ceRowMode's. A risk's last step names the risk's act (ce_risk_edit). */
+const ceTrailOn = () => ceSide() === 'owner';
+const ceTrailRisk = () => !ceRowMode() && !!(_ceOpts && (_ceOpts.risk || _ceOpts.tab === 'risks'));
 
 const clauseEditorOpen = () => !!_ceClauseId;
 const clauseEditorClauseId = () => _ceClauseId;
@@ -1133,8 +1141,7 @@ function clauseEditorCss(){
          dressed as the panel's trail — which lands on the row (ceRowBack);
          Esc and the bar's ‹ press it; no Exit. */}
   #clause-editor .ce-rowhead[hidden]{display:none}
-  #clause-editor.ce-rowmode .ce-barrow{flex-wrap:wrap}
-  #clause-editor.ce-rowmode .ce-rowhead{display:flex; align-items:center; gap:10px; min-width:0; flex:1 0 100%; padding:0 0 8px; margin-bottom:6px; border-bottom:1px solid var(--color-divider)}
+  #clause-editor.ce-trailed .ce-rowhead{display:flex; align-items:center; gap:10px; min-width:0; flex:1 0 100%; padding:8px 12px; border-bottom:1px solid var(--color-divider)}
   .ce-rowback{flex:none; display:inline-flex; align-items:center; gap:3px; height:var(--ctl-h-sm); padding:0 8px 0 5px; border:1px solid var(--btn-edge); border-radius:var(--radius);
     background:var(--color-surface); color:var(--accent-ink); font:inherit; font-size:12px; font-weight:var(--w-label); cursor:pointer; white-space:nowrap}
   .ce-rowback:hover{border-color:var(--accent-ink)}
@@ -1142,7 +1149,7 @@ function clauseEditorCss(){
   .ce-rowpath{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:var(--t-meta); color:var(--color-neutral-600)}
   .ce-rowpath b{font-weight:var(--w-label); color:var(--color-text)}
   #clause-editor .ce-row-is{margin:2px 0 8px; font-size:var(--t-label); line-height:1.4; color:var(--color-neutral-600)}
-  #clause-editor.ce-rowmode .ce-exit{display:none}
+  #clause-editor.ce-trailed .ce-exit{display:none}
   #clause-editor .ce-row-asked,#clause-editor .ce-row-jb{background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg)}
   #clause-editor .ce-row-asked .q{margin:4px 0 0; font-size:var(--t-meta); line-height:1.5; font-style:italic; color:var(--color-text)}
   #clause-editor .ce-row-asked .by{font-style:italic; color:var(--color-neutral-600)}
@@ -1791,10 +1798,12 @@ function clauseEditorHtml(){
            repeatedly, and the comment at the top of this builder says so.
            Drawn by richBarHtml, the product's ONE shelf: the same builder the
            clause panel's inline editor draws, at its 'full' setting. */}
+      ${''/* "‹ Redlines" and the act's title on every edit of ours (ONE
+             TRAIL, 20 Oct 2026; ceRowHeadPaint) — its own row ABOVE the
+             toolbar's, so the toolbar row keeps its one height whatever the
+             sentence beside the tools does (clause-editor-verify 31c) */}
+      <span class="ce-rowhead" id="ce-rowhead" hidden></span>
       <div class="ce-barrow">
-        ${''/* "‹ Redlines" and the act's title, from a Redlines row only
-               (round 9's gaps, second pass; ceRowHeadPaint) */}
-        <span class="ce-rowhead" id="ce-rowhead" hidden></span>
         <div class="ce-bar" id="ce-bar" role="toolbar"
           aria-label="${_ceea(_cet('ce_bar_label'))}"></div>
         <span class="ce-say" id="ce-say" role="status"></span>
@@ -2530,6 +2539,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   page.classList.toggle('is-theirs', theirs);
   /* from a Redlines row: the editor as drawn (round 9's gaps, second pass) */
   page.classList.toggle('ce-rowmode', ceRowMode());
+  page.classList.toggle('ce-trailed', ceTrailOn());
   document.body.classList.toggle('pw-editing', theirs);
   /* THE SHELL BAR'S THREE PANEL DOORS ARE DEAD WHILE THIS PAGE COVERS THE
      WINDOW — Chat, the bell and Activity all open the same drawer, which sits
@@ -3252,6 +3262,7 @@ function ceRowTitle(){
   const cl = ceClause();
   const raw = (_ceLead && _ceLead.clauseLabel) || (cl && window.clauseLabel ? clauseLabel(cl) : '') || '';
   const clause = (window.clauseNameAsDrafted ? clauseNameAsDrafted(raw) : raw) || _cet('ce_this_clause');
+  if (ceTrailRisk()) return _cet('ce_risk_edit', { clause });
   return _cet(theirs ? 'ce_row_counter' : 'ce_row_edit', { clause });
 }
 /* "Nordvik asks 100% · back lands on the same row" */
@@ -3269,7 +3280,7 @@ function ceRowSub(){
 }
 function ceRowHeadPaint(){
   const host = _ceQ('#ce-rowhead'); if (!host) return;
-  if (!ceRowMode()){ host.hidden = true; host.innerHTML = ''; return; }
+  if (!ceTrailOn()){ host.hidden = true; host.innerHTML = ''; return; }
   host.hidden = false;
   /* ‹ Redlines ALONE, top left of the strip as it was before (owner, 19 Oct
      2026): the act's title stands down from the bar — the paper's context
@@ -3368,7 +3379,14 @@ function ceRowAsks(){
 function ceRowBack(){
   ceLeaveGuard(() => {
     const c = _ceC, id = _ceLead ? String(_ceLead.id) : '';
+    const rk = ceTrailRisk() && _ceOpts && _ceOpts.risk ? String(_ceOpts.risk) : '';
     rlCloseClauseEditor({ repaint: true });
+    /* from a risk card: back on that card, lit (LAND ON IT) */
+    if (rk && window.landOn){
+      const q = (window.CSS && CSS.escape) ? CSS.escape(rk) : rk;
+      setTimeout(() => { try{ landOn('#rl-risks [data-rk-key="' + q + '"]', { block: 'nearest' }); }catch(_){} }, 80);
+      return;
+    }
     /* back on the same row, landed on (LAND ON IT): the pair lit as before,
        the row brought into view and lit through the one lander */
     if (c && id && window.rlLinkFocus) setTimeout(() => { try{ rlLinkFocus(c, id, 'card'); }catch(_){} }, 60);
@@ -7575,7 +7593,7 @@ if (typeof document !== 'undefined' && !document._ceWired){
     if (_ceSel){ ceDetachPassage(); return; }
     /* ONE TRAIL (owner, 19 Oct 2026): from a Redlines row Esc is ‹ Redlines,
        one step up, landing on the row it came from */
-    if (ceRowMode()){ ceRowBack(); return; }
+    if (ceTrailOn()){ ceRowBack(); return; }
     ceLeaveGuard(() => rlCloseClauseEditor());
   });
   /* A window dragged below the width where two columns stop making sense: the
@@ -7605,7 +7623,7 @@ Object.assign(window, {
   ceEditableReading, ceGoClause,
   ceFitSplit, ceWireSplit, ceStacked, ceSplit, ceSplitLeft, CE_LEFT_MIN, CE_RIGHT_MIN, CE_FMIN, CE_FMAX, CE_SPLIT_KEY,
   ceLadderCardHtml, ceLadderLaneHtml, ceLadderRow,
-  ceRowMode, ceRowTheirs, ceRowTitle, ceRowSub, ceRowHeadPaint, ceRowIsCounter, ceRowContextLine, ceRowPaperDress, ceRowCardsHtml, ceRowStdCard, ceRowAsks, ceRowBack, ceRowGo,
+  ceRowMode, ceTrailOn, ceTrailRisk, ceRowTheirs, ceRowTitle, ceRowSub, ceRowHeadPaint, ceRowIsCounter, ceRowContextLine, ceRowPaperDress, ceRowCardsHtml, ceRowStdCard, ceRowAsks, ceRowBack, ceRowGo,
   ceMarksPaint, ceMarksClear, ceMarksOps, ceMarksMount, ceLiveTextNodes, ceCaretSave, ceCaretRestore, ceAtomSkip, ceAtomAt, ceDraftNow, CE_MARK_ATTR, CE_MARKS_MS, CE_PAINT_SEL,
   ceMarksPlanOf, ceMarksPaintBox, ceAtomWall, ceAtomSkipIn, ceInlineSeed, ceBoxHtml,
 });

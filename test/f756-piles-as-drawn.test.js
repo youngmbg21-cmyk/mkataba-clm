@@ -317,7 +317,7 @@ describe('f756 (7) where Edit lands from a row, as drawn', () => {
     assert.match(head, /class="ce-rowback" data-ce-act="row-back"[^>]*><svg[\s\S]*?<\/svg>\$\{_cee\(_cet\('ce_row_back'\)\)\}<\/button>/);
     assert.match(head, /<span class="ce-rowpath"/);
     assert.match(head, /<b>\$\{_cee\(ceRowTitle\(\)\)\}<\/b>/);
-    assert.match(CE, /#clause-editor\.ce-rowmode \.ce-rowhead\{display:flex;[^}]*flex:1 0 100%/, 'its own row');
+    assert.match(CE, /#clause-editor\.ce-trailed \.ce-rowhead\{display:flex;[^}]*flex:1 0 100%/, 'its own row');
     assert.match(fnBody(CE, 'ceRowTitle'), /_cet\(theirs \? 'ce_row_counter' : 'ce_row_edit', \{ clause \}\)/);
     assert.match(fnBody(CE, 'ceRowTitle'), /clauseNameAsDrafted\(raw\)/, 'as the paper prints it');
     assert.match(fnBody(CE, 'ceRowSub'), /shareFigureOf\(/, 'their figure, the letter\'s own reading');
@@ -485,8 +485,8 @@ describe('f756 (8) the third pass: the face as drawn', () => {
   test('8j the editor from a row: the strip as before, no Exit, Esc is ‹ Redlines, no step number', () => {
     assert.doesNotMatch(CE, /#clause-editor\.ce-rowmode \.ce-grid\{padding-top:45px\}/);
     assert.doesNotMatch(CE, /#clause-editor\.ce-rowmode #ce-head\{position:absolute/);
-    assert.match(CE, /#clause-editor\.ce-rowmode \.ce-exit\{display:none\}/);
-    assert.match(CE, /if \(ceRowMode\(\)\)\{ ceRowBack\(\); return; \}/);
+    assert.match(CE, /#clause-editor\.ce-trailed \.ce-exit\{display:none\}/); /* RE-POINTED 20 Oct 2026 (owner: "the same trail should be respected when editing redlines and risks"): the trail stands on every edit of ours (ceTrailOn), not only from a row */
+    assert.match(CE, /if \(ceTrailOn\(\)\)\{ ceRowBack\(\); return; \}/);
     assert.ok(!/ce-row-step|function ceRowStep\(/.test(CE.replace(/ceRowStep STALE/, '')), 'no step chip in the editor');
   });
   test('8k the doors this lane added land through the one lander (LAND ON IT)', () => {
