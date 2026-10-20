@@ -124,12 +124,18 @@ function pdStage(){
 }
 
 describe('f840 (2) Home\'s panel', () => {
-  test('2a the first tab beside a contract is "Overview"; "Jambo" names only the conversation', () => {
+  /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): beside a contract
+     the first tab is its Dossier (pd_tab_dossier); Overview stays the
+     landing's name everywhere else (pdLandName). The faces' backs and the
+     trails beside a paper name the Dossier. */
+  test('2a the first tab beside a contract is "Dossier"; "Jambo" names only the conversation', () => {
     const { ctx } = pdStage();
-    assert.equal(ctx.PD_TAB_NAME.copilot, 'pd_tab_overview');
-    assert.match(ctx.pdHeadHtml(''), /data-pd-tab="copilot"[^>]*>[\s\S]*?<span class="pd-tab-w">pd_tab_overview<\/span>/);
+    assert.equal(ctx.PD_TAB_NAME.copilot, 'pd_tab_overview', 'off the paper the landing is still Overview');
+    assert.match(ctx.pdHeadHtml(''), /data-pd-tab="copilot"[^>]*>[\s\S]*?<span class="pd-tab-w">pd_tab_dossier<\/span>/);
     assert.match(I18N, /pd_tab_overview: 'Overview',/);
     assert.match(I18N, /pd_tab_overview: 'Översikt',/);
+    assert.match(I18N, /pd_tab_dossier: 'Dossier',/);
+    assert.match(I18N, /pd_tab_dossier: 'Akt',/);
   });
   test('2b new words turn the panel to the conversation, the trail named for the landing; the back returns', () => {
     const { ctx, painted } = pdStage();
@@ -137,8 +143,8 @@ describe('f840 (2) Home\'s panel', () => {
     assert.equal(ctx.pdTrail(), null, 'Overview, no face: no trail');
     ctx.intel.history.push({ role: 'user', text: 'what is the cap?' });
     assert.equal(ctx.pdTalkSync(null), true, 'a question turns it');
-    assert.deepEqual(JSON.parse(JSON.stringify(ctx.pdTrail())), { back: 'talk', up: 'pd_tab_overview', path: ['pd_tab_overview', 'pd_tab_copilot'] });
-    assert.match(ctx.pdTrailHtml(), /data-pd-back="talk"[^>]*>[\s\S]*pd_tab_overview<\/button>/, '‹ Overview');
+    assert.deepEqual(JSON.parse(JSON.stringify(ctx.pdTrail())), { back: 'talk', up: 'pd_tab_dossier', path: ['pd_tab_dossier', 'pd_tab_copilot'] });
+    assert.match(ctx.pdTrailHtml(), /data-pd-back="talk"[^>]*>[\s\S]*pd_tab_dossier<\/button>/, '‹ Dossier');
     ctx.PD_BACK_CLOSE.talk();
     assert.equal(ctx.pdTalkShows(), false, 'back on the landing');
     assert.ok(painted.length, 'and drawn');
@@ -159,13 +165,13 @@ describe('f840 (2) Home\'s panel', () => {
     assert.equal(ctx.pdTalkFrom(), 2, 'its conversation begins here');
     assert.match(code(fnOf(IG, 'renderIntelDock')), /const msgs=talk\?intel\.history\.map\(\(m,i,a\)=>i<_from\?'':igMsgHTML\(m,i,a\)\)\.join\(''\):'';/, 'the dock draws from there');
   });
-  test('2d the faces\' back says "‹ Overview"; Before you send\'s back returns to the face it came from', () => {
+  test('2d the faces\' back says "‹ Dossier"; Before you send\'s back returns to the face it came from', () => {
     const { ctx } = pdStage();
-    assert.match(ctx.pdBackHtml('red'), /pd_tab_overview<\/button>$/);
+    assert.match(ctx.pdBackHtml('red'), /pd_tab_dossier<\/button>$/);
     ctx.pdSendOpen('MK-1', null);
     const t = ctx.pdTrail();
     assert.equal(t.back, 'send');
-    assert.equal(t.up, 'pd_tab_overview', 'opened over Overview: back to Overview');
+    assert.equal(t.up, 'pd_tab_dossier', 'opened over the Dossier: back to the Dossier');
     ctx.PD_BACK_CLOSE.send();
     assert.equal(ctx.pdSendShows(), false);
     assert.equal(ctx.pdSendHeld(), true, 'the letter waits');

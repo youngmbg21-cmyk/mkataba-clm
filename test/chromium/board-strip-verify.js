@@ -283,7 +283,9 @@ const OBS = [
       && R.jb.det === String(R.want.det) && R.jb.ob === String(R.want.n), JSON.stringify(R.jb));
     check('2r every cell carries its door into Home', ['risks', 'std', 'oblig'].every(k => R.jb.doors.includes(k)) && (R.want.det ? R.jb.doors.includes('fill') : true), JSON.stringify(R.jb.doors));
     /* RE-POINTED 18 Oct 2026 (round 7 as drawn): "Open the paper" */
-    check('2s the foot: Open the paper · Keep · Ask why · Let it go, as the insight panels', JSON.stringify(R.foot) === JSON.stringify(['Open the paper', 'Keep', 'Ask why', 'Let it go']), JSON.stringify(R.foot));
+    /* RE-POINTED 20 Oct 2026 (4b, owner picked it): Open stands in the head as "Open in Workspace ›" */
+    const headOpen = await page.evaluate(() => ((document.querySelector('#bs-strip-MK-L1 .bs-head [data-bs-open]') || {}).textContent || '').trim());
+    check('2s the foot: Keep · Ask why · Let it go; Open in Workspace › in the head', JSON.stringify(R.foot) === JSON.stringify(['Keep', 'Ask why', 'Let it go']) && headOpen === 'Open in Workspace ›', JSON.stringify({ foot: R.foot, headOpen }));
     /* the doors land where they say, nothing spent */
     await page.click(`${strip('MK-L1')} [data-bs-go="oblig"]`);
     /* RE-POINTED 15 Oct 2026 (owner: the contract's views went; "obligations has its own panel") */
@@ -300,7 +302,9 @@ const OBS = [
     const M = sel => `${strip('MK-L1')} ${sel}`;
     await page.click(M('[data-bs-dots]'));
     let menu = await page.evaluate(() => [...document.querySelectorAll('#bs-strip-MK-L1 .bs-menu [data-bs-page] b')].map(x => x.textContent.trim()));
-    check('3a ⋯ opens a menu: Where we are, History, Details', JSON.stringify(menu) === JSON.stringify(['Where we are', 'History', 'Details']), JSON.stringify(menu));
+    /* RE-POINTED 20 Oct 2026 (4b): the ⋯ keeps the readings only; Details is Key terms' Edit these details ›, Show on the map stays */
+    const mapRow = await page.evaluate(() => !!document.querySelector('#bs-strip-MK-L1 .bs-menu [data-hb-map]') && !document.querySelector('#bs-strip-MK-L1 .bs-menu [data-hb-analyze]'));
+    check('3a ⋯ opens a menu: Where we are, History, Show on the map', JSON.stringify(menu) === JSON.stringify(['Where we are', 'History']) && mapRow, JSON.stringify({ menu, mapRow }));
     await page.click(M('[data-bs-dots]'));
     check('3b pressing ⋯ again closes it', !(await S(M('.bs-menu'))));
     await page.click(M('[data-bs-dots]')); await page.keyboard.press('Escape');
@@ -316,7 +320,7 @@ const OBS = [
     await shot('3-where-we-are');
     await page.click(M('[data-bs-dots]'));
     menu = await page.evaluate(() => [...document.querySelectorAll('#bs-strip-MK-L1 .bs-menu [data-bs-page] b')].map(x => x.textContent.trim()));
-    check('3e away from it, ⋯ lists Overview too', JSON.stringify(menu) === JSON.stringify(['Overview', 'Where we are', 'History', 'Details']), JSON.stringify(menu));
+    check('3e away from it, ⋯ lists Overview too', JSON.stringify(menu) === JSON.stringify(['Overview', 'Where we are', 'History']), JSON.stringify(menu));
     await page.click(M('.bs-menu [data-bs-page="hist"]'));
     const hs = await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L1 [data-bs-host="hist"] .hist-trail'), 8000);
     const H1 = await page.evaluate(() => { const host = document.querySelector('#bs-strip-MK-L1 [data-bs-host="hist"]');
@@ -385,15 +389,15 @@ const OBS = [
     const det = await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L1 [data-bs-host="details"] #kt-ov-terms #ov-ess'), 8000);
     check('6a Key terms\' Edit opens the Overview\'s own sheet inside the strip (its Edit, its parties, its renewal)', det && !(await roomSeen()));
     await page.evaluate(() => pdOpenOnHome('MK-L1', 'copilot'));
-    /* RE-POINTED 15 Oct 2026 (owner, answer B): the paper's ⋯ went; its rows are the panel's Menu tab */
-    await waitFor(page, () => !!document.querySelector('#ig-dock [data-pd-tab="menu"]'), 8000);
+    /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the Menu tab's rows are the dossier's All acts fold */
+    await waitFor(page, () => !!document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'), 8000);
     await roomReset();
-    await page.evaluate(() => document.querySelector('#ig-dock [data-pd-tab="menu"]').click());
-    await waitFor(page, () => !!document.querySelector('#pd-body .pd-menu .pd-mn-rows #ws-filing'), 4000);
-    const rows = await page.evaluate(() => [...document.querySelectorAll('#pd-body .pd-menu .pd-mn-rows button')].map(b => b.id));
-    check('6b the Menu tab carries the room\'s own acts: Start negotiating or Add signers, Create an amendment, Add a signed document',
+    await page.evaluate(() => { const f = document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'); if (f) f.open = true; });
+    await waitFor(page, () => !!document.querySelector('#ig-dock .ds-fold .pd-mn-rows #ws-filing'), 4000);
+    const rows = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .ds-fold .pd-mn-rows button')].map(b => b.id));
+    check('6b All acts carries the room\'s own acts: Start negotiating or Add signers, Create an amendment, Add a signed document',
       rows.includes('ws-m-signers') && rows.includes('ws-m-amend') && rows.includes('ws-m-link') && rows.includes('ws-filing'), rows.join(' '));
-    await page.evaluate(() => { const b = document.querySelector('#pd-body .pd-menu .pd-mn-rows #ws-filing'); b.closest('details').open = true; b.click(); });
+    await page.evaluate(() => { const b = document.querySelector('#ig-dock .ds-fold .pd-mn-rows #ws-filing'); b.closest('details').open = true; b.click(); });
     const filing = await waitFor(page, () => state.view === 'dashboard' && hbFace() === 'board' && !!document.querySelector('#bs-strip-MK-L1 [data-bs-host="details"] #ov-record'), 8000);
     check('6c "Filing and stream" lands on the filing rows in the strip, never the room', filing && !(await roomSeen()));
 
@@ -527,7 +531,8 @@ const OBS = [
     const SV = await page.evaluate(() => { const el = document.getElementById('bs-strip-MK-L1'); return { life: (el.querySelector('.bs-life h5') || {}).textContent, terms: (el.querySelector('.bs-two h5') || {}).textContent,
       kpis: [...el.querySelectorAll('.bs-kpi small')].map(x => x.textContent), foot: [...el.querySelectorAll('.bs-foot button')].map(b => b.textContent.trim()), jb: (el.querySelector('.bs-jb h5') || {}).textContent }; });
     check('8a the strip reads in Svenska', SV.life === 'Avtalets liv' && SV.terms === 'Huvudvillkor' && JSON.stringify(SV.kpis) === JSON.stringify(['Värde', 'Löptid', 'Nästa åtagande', 'Säg upp senast', 'Vems drag'])
-      && JSON.stringify(SV.foot) === JSON.stringify(['Öppna papperet', 'Behållen', 'Fråga varför', 'Släpp den']) && SV.jb === 'Vad Jambo läste vid uppladdningen', JSON.stringify(SV));
+      /* RE-POINTED 20 Oct 2026 (4b): Open moved to the head */
+      && JSON.stringify(SV.foot) === JSON.stringify(['Behållen', 'Fråga varför', 'Släpp den']) && SV.jb === 'Vad Jambo läste vid uppladdningen', JSON.stringify(SV));
     await page.evaluate(() => { const el = document.getElementById('bs-strip-MK-L1'); const host = document.getElementById('hb-board'); host.scrollTop += el.getBoundingClientRect().top - host.getBoundingClientRect().top - 8; });
     await shot('8-svenska');
     const en2 = await page.$('.lang-btn[data-lang="en"]'); if (en2) await en2.click();

@@ -10043,6 +10043,47 @@
   #ig-dock .pd-gl-sp{flex:1}
   #ig-dock .pd-gl-h .room-stat{flex:none}
   #ig-dock .pd-gl-b{display:flex;flex-direction:column;gap:8px;padding:10px 14px 12px}
+  /* ASK A COLUMN (owner picked "In Jambo's panel", 20 Oct 2026): the question, the column and the why, beside the Contracts list */
+  #ig-dock .ac-card + .ac-card{margin-top:12px}
+  #ig-dock .ac-meta{font-size:12px;color:var(--color-text);min-width:0}
+  #ig-dock .ac-l{display:block;font-size:12px;font-weight:var(--w-label);margin-bottom:4px}
+  #ig-dock .ac-in{display:block;width:100%;border:1px solid var(--color-neutral-300);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:13px;line-height:1.4;background:var(--color-surface);color:var(--color-text);resize:vertical}
+  #ig-dock .ac-in:focus{outline:2px solid var(--accent-solid);outline-offset:1px}
+  #ig-dock .ac-cost{font-size:12px;line-height:1.45;color:var(--accent-ink);background:var(--color-accent-50);border-radius:var(--radius);padding:7px 10px}
+  #ig-dock .ac-why{font-size:12px;color:var(--st-amber-fg)}
+  #ig-dock .ac-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  #ig-dock .ac-foot{justify-content:flex-end;border-top:1px solid var(--color-divider);padding-top:10px}
+  #ig-dock .ac-chips{display:flex;flex-wrap:wrap;gap:6px}
+  #ig-dock .ac-chip{border:1px solid var(--color-neutral-300);border-radius:999px;padding:3px 10px;font:inherit;font-size:12px;color:var(--accent-ink);background:var(--color-surface);cursor:pointer}
+  #ig-dock .ac-chip:focus-visible,#ig-dock .ac-link:focus-visible{outline:2px solid var(--accent-solid);outline-offset:2px}
+  #ig-dock .ac-link{border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+  #ig-dock .ac-ckline{font-size:12.5px}
+  #ig-dock .ac-fl{display:grid;grid-template-columns:64px minmax(0,1fr);gap:7px 10px;margin:0;font-size:12.5px;line-height:1.45}
+  #ig-dock .ac-fl dt{font-size:12px}
+  #ig-dock .ac-fl dd{margin:0;min-width:0}
+  #ig-dock .ac-quote{font-family:var(--font-doc);border-left:3px solid var(--color-accent-300);background:var(--color-accent-50);padding:7px 10px;border-radius:0 var(--radius) var(--radius) 0}
+  #ig-dock .ac-busy{font-size:13px}
+  .reg-table th.ac-th{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .reg-table .ac-th-i{width:12px;height:12px;margin-left:4px;color:var(--accent-ink);vertical-align:-1px;display:inline-block}
+  .reg-table td.ac-cell{line-height:1.3;cursor:pointer;white-space:nowrap;overflow:hidden}
+  .reg-table td.ac-cell.is-on{box-shadow:inset 0 0 0 2px var(--accent-solid)}
+  .reg-table tr.ac-row-on>td{background:var(--color-accent-50)}
+  .reg-table .ac-ans{display:inline-flex;align-items:center;gap:6px;font-weight:var(--w-label);max-width:100%}
+  .reg-table .ac-ans>i{width:7px;height:7px;border-radius:50%;flex:none}
+  .reg-table .ac-ans.tone-green{color:var(--st-green-fg)} .reg-table .ac-ans.tone-green>i{background:var(--st-green-dot)}
+  .reg-table .ac-ans.tone-amber{color:var(--st-amber-fg)} .reg-table .ac-ans.tone-amber>i{background:var(--st-amber-dot)}
+  .reg-table .ac-ans.tone-ruby{color:var(--st-ruby-fg)} .reg-table .ac-ans.tone-ruby>i{background:var(--st-ruby-dot)}
+  .reg-table .ac-ans.tone-gray{color:var(--st-gray-fg)} .reg-table .ac-ans.tone-gray>i{background:var(--st-gray-dot)}
+  .reg-table .ac-a{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .reg-table .ac-a.is-unck{text-decoration:underline dotted;text-underline-offset:3px}
+  .reg-table .ac-sub{display:block;font-size:11.5px;color:var(--color-text);overflow:hidden;text-overflow:ellipsis}
+  .reg-table .ac-dash{color:var(--color-text)}
+  .reg-table .ac-ck{flex:none;width:16px;height:16px;border-radius:50%;border:1.5px solid var(--color-neutral-400);background:var(--color-surface);display:inline-grid;place-items:center;padding:0;cursor:pointer;color:var(--st-green-fg)}
+  .reg-table .ac-ck.on{background:var(--st-green-bg);border-color:var(--st-green-dot)}
+  .reg-table .ac-ck:disabled{cursor:not-allowed}
+  .reg-table .ac-ck:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
+  .reg-table .ac-ck-i{width:10px;height:10px}
+  .ac-btn svg{margin-right:4px}
   #ig-dock .pd-gl-row{display:flex;align-items:center;gap:10px}
   #ig-dock .pd-gl-row>span{flex:1;min-width:0}
   #ig-dock .pd-gl-row .ui-btn{flex:none}
@@ -10205,6 +10246,79 @@
   #ig-dock .pd-mn-card b{font-weight:var(--w-strong);font-size:var(--t-body)}
   #ig-dock .pd-mn-card small{grid-column:1;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.4}
   #ig-dock .pd-mn-go{grid-column:2;grid-row:1 / span 2;color:var(--accent-ink);font-weight:var(--w-strong);font-size:var(--t-label);white-space:nowrap}
+  /* THE DOSSIER (owner picked "The Dossier" by name, 20 Oct 2026; pdGlanceHtml, dossierOf): the six stages, What Jambo read, Still owed, the stage's acts, and two folds */
+  #ig-dock .pd-dossier{display:grid;gap:10px}
+  #ig-dock .pd-held-dos{display:grid;gap:10px}
+  #ig-dock .pd-held-dos .ds-nx{margin-top:0}
+  .ds-spine{display:flex;align-items:flex-start;margin:2px 0 0}
+  .ds-st{flex:1;min-width:0;position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--color-neutral-600);text-align:center;white-space:nowrap}
+  .ds-st::before{content:"";position:absolute;top:8px;left:0;right:0;height:2px;background:var(--color-divider)}
+  .ds-st:first-child::before{left:50%}
+  .ds-st:last-child::before{right:50%}
+  .ds-st i{position:relative;display:flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 3px;border-radius:9px;border:2px solid var(--color-neutral-300);background:var(--color-surface);font-style:normal;font-size:10px;font-weight:var(--w-strong);line-height:1;color:var(--color-neutral-600)}
+  .ds-st.is-done i{border-color:var(--st-green-fg);background:var(--st-green-bg);color:var(--st-green-fg)}
+  .ds-st.is-on i,.ds-st.is-now i{border-color:var(--accent-fill);background:var(--accent-fill);color:#fff}
+  .ds-st.is-on,.ds-st.is-now{color:var(--color-text);font-weight:var(--w-strong)}
+  #ig-dock .ds-card{margin:0}
+  #ig-dock .ds-card .pd-gl-h b{flex:none}
+  #ig-dock .ds-when{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;color:var(--color-neutral-600)}
+  #ig-dock .pd-glance .ds-row>span{display:block;line-height:1.45}
+  #ig-dock .pd-glance .ds-row>span>small{display:block}
+  #ig-dock .ds-row b{font-weight:var(--w-strong)}
+  #ig-dock .ds-ok{font-style:normal;font-weight:var(--w-strong);color:var(--st-green-fg)}
+  #ig-dock .ds-owed-l{display:inline-block;border-radius:var(--radius);background:var(--st-amber-bg);color:var(--st-amber-fg);font-weight:var(--w-strong);padding:0 6px}
+  /* THE LEGORA WAY (owner, 20 Oct 2026): Still owed's facts as a review grid — fact and where Jambo read it · what he read, in its box · Confirm */
+  #ig-dock .pd-og{width:100%;table-layout:fixed;border-collapse:collapse;font-size:12.5px}
+  #ig-dock .pd-og th{padding:6px 10px;text-align:left;font-size:10.5px;font-weight:var(--w-label);letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-600);background:var(--accent-wash,var(--surface-2));border-bottom:1px solid var(--color-divider)}
+  #ig-dock .pd-og th:nth-child(2),#ig-dock .pd-og td:nth-child(2){width:132px;padding-left:0;padding-right:6px}
+  #ig-dock .pd-og th:nth-child(3),#ig-dock .pd-og td:nth-child(3){width:60px;text-align:right;padding-left:0}
+  #ig-dock .pd-og td{padding:8px 10px;vertical-align:top;border-bottom:1px solid var(--color-divider)}
+  #ig-dock .pd-og tr:last-child td{border-bottom:0}
+  #ig-dock .pd-og-f b{display:block;font-weight:var(--w-strong);color:var(--color-text)}
+  #ig-dock .pd-og-src{display:block;margin-top:2px;line-height:1.35;font-size:12px;color:var(--color-neutral-600);overflow-wrap:anywhere}
+  #ig-dock .pd-og-src q{font-style:italic;color:var(--color-text);quotes:none}
+  #ig-dock .pd-og-cl{border:0;border-radius:3px;padding:0 4px;background:var(--accent-wash,var(--surface-2));font:inherit;font-size:11.5px;font-weight:var(--w-strong);color:var(--accent-ink);cursor:pointer;white-space:nowrap}
+  #ig-dock .pd-og-cl:hover{text-decoration:underline}
+  #ig-dock .pd-og-cl:focus-visible{outline:2px solid var(--accent-fill);outline-offset:1px}
+  #ig-dock .pd-og-in{width:100%;min-width:0;height:var(--ctl-h-sm,28px);border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:0 8px;font:inherit;font-size:12.5px;color:var(--color-text)}
+  #ig-dock .pd-og-in+.pd-og-in{margin-top:4px}
+  #ig-dock textarea.pd-og-in{height:auto;min-height:44px;padding:4px 8px}
+  #ig-dock .pd-og-row.is-amb .pd-og-in:placeholder-shown,#ig-dock .pd-og-row.is-amb select.pd-og-in,#ig-dock .pd-og-row.is-amb input.pd-og-in[type=date]:not(:disabled){background:var(--st-amber-bg)}
+  #ig-dock .pd-og-row.is-amb input.pd-og-in:not(:placeholder-shown):not([type=date]){background:var(--color-surface)}
+  #ig-dock .pd-og-row.is-amb .dp-face{background:var(--st-amber-bg)}
+  #ig-dock .pd-og-nm{display:flex;align-items:center;gap:5px;margin-top:4px;font-size:11.5px;color:var(--color-text)}
+  #ig-dock .pd-og-ok{border:0;background:none;padding:4px 0;font:inherit;font-size:12.5px;font-weight:var(--w-strong);color:var(--accent-ink);cursor:pointer;white-space:nowrap}
+  #ig-dock .pd-og-ok:hover{text-decoration:underline}
+  #ig-dock .pd-og-ok:focus-visible{outline:2px solid var(--accent-fill);outline-offset:2px;border-radius:var(--radius)}
+  #ig-dock .pd-og-read{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid var(--color-divider);border-radius:var(--radius);padding:2px 8px}
+  #ig-dock .pd-og-read.is-amb{background:var(--st-amber-bg);color:var(--st-amber-fg);border-color:transparent}
+  #ig-dock .pd-og-done{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-radius:var(--radius);padding:2px 8px;background:var(--st-green-bg);color:var(--st-green-fg);font-weight:var(--w-strong)}
+  #ig-dock .pd-og-said{font-size:12px;color:var(--color-neutral-600)}
+  #ig-dock .pd-og-row.is-saved td{background:transparent}
+  #ig-dock .ds-owed .pd-gl-h .pd-og-all{margin-left:auto;flex:none}
+  #ig-dock .ds-owed .pd-gl-h .ds-when{flex:1}
+  #ig-dock .ds-go{flex:none;border:0;background:none;padding:2px 0;font:inherit;font-size:12.5px;font-weight:var(--w-strong);color:var(--accent-ink);cursor:pointer;white-space:nowrap}
+  #ig-dock .ds-go:hover:not(:disabled){text-decoration:underline}
+  #ig-dock .ds-go:disabled{color:var(--color-neutral-600);cursor:not-allowed}
+  #ig-dock .ds-go:focus-visible{outline:2px solid var(--accent-fill);outline-offset:2px;border-radius:var(--radius)}
+  #ig-dock .ds-nx{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;margin-top:10px}
+  #ig-dock .ds-acts-b{display:flex;flex-wrap:wrap;gap:8px;padding:10px 14px 12px}
+  #ig-dock .ds-fold{border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:var(--color-surface);font-size:12.5px}
+  #ig-dock .ds-fold>summary{display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;list-style:none;color:var(--color-text)}
+  #ig-dock .ds-fold>summary::-webkit-details-marker{display:none}
+  #ig-dock .ds-fold>summary>span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #ig-dock .ds-fold>summary::after{content:'\203A';font-weight:var(--w-strong);color:var(--accent-ink);transition:transform .15s}
+  #ig-dock .ds-fold[open]>summary::after{transform:rotate(90deg)}
+  #ig-dock .ds-fold .pd-mn-n{font-weight:var(--w-strong);color:var(--color-neutral-600)}
+  #ig-dock .ds-fold .pd-mn-g{border-top:1px solid var(--color-divider);padding:6px 12px 4px}
+  #ig-dock .ds-fold-h{font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600);padding:2px 0}
+  #ig-dock .ds-fold .pd-mn-rows.room-menu{position:static;box-shadow:none;border:0;background:none;padding:2px 0 4px;min-width:0;z-index:auto}
+  #ig-dock .ds-fold .pd-mn-rows [data-rl-add-clause] svg{fill:none;stroke:currentColor;stroke-width:1.8}
+  #ig-dock .ds-fold .ds-acts-b{border-top:1px solid var(--color-divider)}
+  #ig-dock .ds-fam{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 12px 0;border-top:1px solid var(--color-divider)}
+  #ig-dock .ds-fam-p{border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:2px 8px;font:inherit;font-size:12px;color:var(--color-text)}
+  #ig-dock button.ds-fam-p{cursor:pointer;color:var(--accent-ink)}
+  #ig-dock .ds-fam-p.is-here{font-weight:var(--w-strong);border-color:var(--accent-ink)}
   #pd-body .pd-menu .pd-mn-g{border-top:1px solid var(--color-divider);padding-top:6px}
   #pd-body .pd-menu .pd-mn-g > summary{display:flex;justify-content:space-between;align-items:center;cursor:pointer;list-style:none;
     font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600);padding:4px 2px}
@@ -11226,6 +11340,15 @@
   .bs-occ.is-proj.is-theirs{stroke:var(--bs-theirs)}
   .bs-occ.is-done{opacity:.45}
   .bs-cap{margin:10px 0 0;max-width:96ch;font-size:var(--t-body);line-height:1.5;color:var(--hb-ink-2)}
+  /* 4b — the Board's card as the dossier's mirror (owner picked it, 20 Oct 2026): the spine, Still owed and what Jambo read under the head */
+  .bs-dos{display:flex;align-items:center;gap:22px;flex-wrap:wrap;padding:10px 20px}
+  .bs-dos .ds-spine{flex:1 1 380px;min-width:300px;max-width:560px}
+  .bs-dos-go{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;white-space:nowrap}
+  .bs-dos-read{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block}
+  .bs-dos-n{display:inline-block;min-width:18px;padding:0 6px;border-radius:var(--radius);background:var(--color-neutral-100);font-weight:var(--w-strong);text-align:center}
+  .bs-dos-n.is-owed{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .bs-ob-found{display:flex;align-items:center;gap:12px;justify-content:space-between;font-size:12.5px}
+  .bs-head .hb-btn + .hb-btn{margin-left:2px}
   .bs-two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);border-top:1px solid rgba(var(--hb-ln),.14)}
   .bs-two > .bs-sec{border-top:0}
   .bs-two > .bs-sec + .bs-sec{border-left:1px solid rgba(var(--hb-ln),.14)}
@@ -11267,6 +11390,9 @@
   .bs-kpi span .bs-nda-mark{display:inline-flex;max-width:100%}
   .bs-nda-mark{align-items:center;border:1px solid var(--st-amber-line);border-radius:var(--radius);background:var(--st-amber-bg);color:var(--st-amber-fg);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);padding:0 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
   .bs-nda-mark.is-still{cursor:default}
+  /* the door beside the paper reads as a door, under the state (the Legora way) */
+  .bs-kpi span .bs-nda-mark.bs-nda-go{display:flex;margin-top:3px;border:0;background:none;padding:0;color:var(--accent-ink);font-weight:var(--w-strong)}
+  .bs-nda-mark.bs-nda-go:hover{text-decoration:underline}
   .bs-nda-mark:focus-visible{outline:2px solid var(--hb-glow);outline-offset:1px}
   .bs-nda-ed{display:flex;flex-direction:column;gap:10px}
   .bs-nda-q{margin:0;max-width:96ch;font-size:var(--t-body);line-height:1.5;color:var(--hb-ink-2)}

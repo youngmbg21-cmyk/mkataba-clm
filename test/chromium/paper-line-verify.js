@@ -96,9 +96,10 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     });
     /* the three views are drawn where the paper has redlines to show (pdRedOk), as before */
     check('3a Clean · Redline · Their view where there are redlines, Notes with its word, Share', acts.views.length === (acts.red ? 3 : 0) && acts.notesIn && /^Notes/.test(acts.notes || '') && acts.share, JSON.stringify(acts));
-    check('3b no ⋯ on the line (its rows are Jambo\'s Menu tab) and no "‹ Contracts" (the frame\'s tabs are the way back)', !acts.more && !acts.back, JSON.stringify(acts));
-    const menu = await page.evaluate(() => !!document.querySelector('#ig-dock [data-pd-tab="menu"]'));
-    check('3c the Menu tab is still Jambo\'s', menu);
+    check('3b no ⋯ on the line (its rows are the dossier\'s All acts) and no "‹ Contracts" (the frame\'s tabs are the way back)', !acts.more && !acts.back, JSON.stringify(acts));
+    /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the ⋯ rows are the dossier's All acts fold */
+    const menu = await page.evaluate(() => !!document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]') && !document.querySelector('#ig-dock [data-pd-tab="menu"]'));
+    check('3c the ⋯ rows are the dossier\'s All acts fold', menu);
 
     /* 4 the three screens */
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {

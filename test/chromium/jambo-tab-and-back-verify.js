@@ -82,8 +82,9 @@ const check = (name, pass, detail) => {
       await page.evaluate(() => openRedlineWorkbench('MK-A2'));
       await until(() => document.querySelectorAll('#pd-redface [data-nego-card]').length >= 2, null, 12000);
       const D0 = await page.evaluate(DOCK);
-      check('1a beside a contract the first tab says "Overview"', !!D0 && D0.tab === 'Overview', JSON.stringify(D0 && D0.tab));
-      check('1b the Redlines face\'s back says "‹ Overview"', !!D0 && D0.back === 'Overview' && /Overview \/ Redlines/.test(D0.path || ''), JSON.stringify(D0 && { back: D0.back, path: D0.path }));
+      /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): beside a contract the first tab is its Dossier; the lists keep Overview */
+      check('1a beside a contract the first tab says "Dossier"', !!D0 && D0.tab === 'Dossier', JSON.stringify(D0 && D0.tab));
+      check('1b the Redlines face\'s back says "‹ Dossier"', !!D0 && D0.back === 'Dossier' && /Dossier \/ Redlines/.test(D0.path || ''), JSON.stringify(D0 && { back: D0.back, path: D0.path }));
       check('1c the page lands as it is: the cards, no conversation', !!D0 && !D0.talk && D0.cards >= 2, JSON.stringify(D0 && { talk: D0.talk, cards: D0.cards }));
       keptTop = await page.evaluate(() => { const sc = document.querySelector('#pd-redface #nego-cards'); if (!sc) return -1;
         sc.scrollTop = Math.min(120, Math.max(0, sc.scrollHeight - sc.clientHeight)); return sc.scrollTop; });

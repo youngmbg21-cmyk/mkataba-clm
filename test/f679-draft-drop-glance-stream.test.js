@@ -339,15 +339,17 @@ describe('f679 (5) a contract at a glance', () => {
   test('5a one row per thing waiting, each the reading its face uses', () => {
     const { ctx } = pdStage({ left: 3, risks: 2, unsent: 1, signers: true });
     assert.deepEqual(J(ctx.pdGlanceRows(ctx.pdContract())), [{ k: 'fill', n: 3 }, { k: 'redline', n: 2 }, { k: 'share', n: 1 }, { k: 'sign', n: 1 }]);
+    /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the glance is the
+       dossier — the spine, What Jambo read (risks · Open › onto the editor's
+       Risks tab), Still owed (each owed thing with its own door) */
     const html = ctx.pdGlanceHtml(ctx.pdContract());
-    assert.match(html, /pd_gl_title\[MK-1\]/); assert.match(html, /room-stat/, 'the head\'s own stage pill');
-    assert.match(html, /pd_gl_details:3[\s\S]*data-pd-glance="fill"/);
-    /* RE-POINTED AT THE INTEGRATION (19 Oct 2026): round 9 as drawn left the
-       Redlines face beside Home's paper with no risk list, so the risks row
-       opens the clause editor's Risks tab (data-pd-gl-risks → riskEditStart) */
-    assert.match(html, /pd_gl_risks:2[\s\S]*data-pd-gl-risks>ce_tab_risks</);
+    assert.match(html, /class="ds-spine/, 'the stage is the spine');
+    /* RE-POINTED 20 Oct 2026 (owner picked "The Legora way"): the owed facts
+       are the grid's rows, answered there — the signers on one row */
+    assert.match(html, /dos_owed_title\[[^\]]*\][\s\S]*id="pd-og"/);
+    assert.match(html, /data-pd-og-row="signers"[\s\S]*data-pd-og-ok="signers"/);
+    assert.match(html, /data-pd-ds="risks"[\s\S]*data-pd-gl-risks>dos_go_open/);
     assert.match(html, /pd_gl_unsent:1[\s\S]*data-pd-glance="share"/);
-    assert.match(html, /pd_gl_signers[\s\S]*data-pd-glance="sign"/);
   });
   test('5a2 risks are counted only where the Redlines face lists them: a scan run, the wording this person may act on', () => {
     assert.deepEqual(J(pdStage({ risks: 2, scan: false }).ctx.pdGlanceRows(pdStage({ risks: 2, scan: false }).c)), [], 'no scan: the face offers the scan, not a count');
@@ -367,7 +369,8 @@ describe('f679 (5) a contract at a glance', () => {
   test('5b nothing waiting: "Nothing is waiting on you."', () => {
     const { ctx } = pdStage();
     const html = ctx.pdGlanceHtml(ctx.pdContract());
-    assert.match(html, /pd-gl-none[\s\S]*pd_gl_none/); assert.ok(!/data-pd-glance="/.test(html));
+    /* RE-POINTED 20 Oct 2026: Still owed says nothing is owed */
+    assert.match(html, /pd-gl-none[\s\S]*dos_owed_none/); assert.ok(!/data-pd-glance="/.test(html));
   });
   test('5c reading writes nothing: no negotiation is started to count none, nothing is spent', () => {
     const { ctx, c, asked } = pdStage({ nego: false, unsent: 5 });
@@ -378,7 +381,8 @@ describe('f679 (5) a contract at a glance', () => {
   });
   test('5d a shut door is grey with its reason; a press asks the face\'s own word', () => {
     const { ctx } = pdStage({ risks: 1, shut: 'This contract is signed.' });
-    assert.match(ctx.pdGlanceHtml(ctx.pdContract()), /disabled aria-disabled="true" title="This contract is signed\.">ce_tab_risks/);
+    /* RE-POINTED 20 Oct 2026: What Jambo read's risks door is grey with its reason */
+    assert.match(ctx.pdGlanceHtml(ctx.pdContract()), /disabled aria-disabled="true" title="This contract is signed\.">dos_go_open/);
     assert.deepEqual(J(ctx.PD_GLANCE.fill), ['pd_gl_details', 'pd_gl_fill', 'ca_w_fill']);
     for (const k of ['fill', 'redline', 'share', 'sign']) for (const lang of ['en', 'sv']){
       const w = BOOKS[lang][ctx.PD_GLANCE[k][2]]; assert.ok(w, k + ' ' + lang);

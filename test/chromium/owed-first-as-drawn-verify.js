@@ -1,52 +1,33 @@
-/* FILL IN, "OWED FIRST", EVERY DRAWN PART (round 8 of the redesign, option 1
-   "Owed first"; the owner's yes of 18 Oct 2026 to build every gap between the
-   picked drawing and HaTi; js/paperdesk.js pdFillGroupsPaint,
-   pdFillExtrasPaint, pdFillStreamAsk; js/standards.js stdValueFor)
+/* STILL OWED, THE LEGORA WAY, EVERY DRAWN PART (owner picked "The Legora way"
+   by name, 20 Oct 2026, from the four drawn options; it REVERSES round 8's
+   "Owed first" face, whose drawn parts this file pinned until then;
+   js/paperdesk.js pdOgHtml, pdOgFacts, pdOgConfirm, pdKtHtml)
 
    WHAT THIS PINS, driven in a real browser by a colleague who may not re-file
-   (Restricted Legal), on an uploaded freight framework with blanks and on a
-   company form with answers not yet in its wording
-     1 the head: "N left", "N of M done · saved as you type"; "Still to fill"
-       holds its rows as one card; each row says where it lands ("clause 3"),
-       the row being typed in "on the paper · clause 3"
-     2 under the owed notice period, Our standard: "Our standard for
-       termination: 90 days · Use it" — Use it puts it in the box, the box's
-       own writer stores it, the paper shows it
-     3 the answered rows stay behind a shut "Filled", every one of them
-     4 the document's card: "3 answers are on the paper as you typed them, not
-       yet in the wording." · Fill the document — pressed, the wording carries
-       them and the card says so
-     5 the stream: "Moving a contract to another stream is an admin's act." ·
-       Ask an admin — the ask is the Ask-an-admin record (the admin's list has
-       it), and the row says when and whom it was asked of
-     6 the owner's three screens: the first owed box in view, nothing sideways
-   THE SECOND PASS (the checker's list, 18 Oct 2026; node half f754):
-     2a re-pointed — our standard named for the kind of contract whose book
-        applies, not the standard's topic
-     7 an example of the answer in each owed box ("e.g. <the first of next
-       month>", "A number"); no "Fill from document" over the rows; no chips
-       under the face
-     4d the paper beside a company form: owed blanks amber, answers typed but
-        not yet in the wording underlined, dotted
-     8 an NDA's two facts in a card of their own, "Confidentiality · 2 to
-       confirm", each "read from clause 5", its reading in a box, "Read from the
-       wording, not yet confirmed by a person. · Confirm"
-     9 an employment agreement in a private stream: "Private · <stream>", "only
-       the people named on <stream> see it"; Pay in a card of its own (Part ·
-       How often · Amount, base pay owed said, Edit pay ›); Jambo waits for a
-       press, its cost said
-   THE THIRD PASS (the checker's second list, 18 Oct 2026; main brought in;
-   node half f754 (8)):
-     1e re-pointed — "clause N" lands on the paper's spot through the one
-        lander (LAND ON IT), the cursor kept in the box
-     7a re-pointed — the owner's answer (5): no example in an empty owed box
-     8c the NDA editor's own names ("Secret until"); "· Confirm" on its line
-     9c re-pointed — the cost in Jambo calls; 9d base pay owed an amber pill
-        with its dot; 9e the wait line straight under Pay, with Jambo's face
-     10 Jambo perches over nothing of the face, at its top and foot, at the
-        owner's three screens
-     11 the size on the paper's line beside Fill in, nothing above the sheet;
-        back above the sheet once Fill in closes
+   (Restricted Legal), then by an admin, on an uploaded freight framework with
+   blanks, a company form with answers not yet in its wording, an NDA whose
+   wording says both facts, and an employment agreement in a private stream
+     1 the head: "Still owed · N"; the grid's columns "Fact · where Jambo read
+       it" · "Jambo read" · Confirm; each row says where it lands ("§3 on the
+       paper"), a press on it lands on the spot through the one lander
+     2 our standard as the reading in the box: "Our standard for <kind>: 90
+       days"; Confirm stores it through the box's own writer, the paper shows
+       it, the server holds it
+     3 the answered ones are Key terms' lines under the grid, folded
+     4 the company form: "3 answers are on the paper as you typed them, not
+       yet in the wording." · Fill the document in Still owed; the paper's
+       typed answers underlined, dotted; pressed, the wording carries them
+     6 the owner's three screens: the first owed row in view, nothing sideways
+     8 an NDA: both facts read — "· N read from the wording · Confirm all N",
+       each row "§5" with the passage quoted, its reading in the box; Confirm
+       all stores both; the rows say saved
+     9 a private stream: the Dossier says who may open it; base pay is its
+       row's Edit pay; What Jambo read waits for the press, its cost said
+    10 Jambo perches over nothing of the grid at the owner's three screens
+    11 no face, so the size stays the paper's own, above the sheet
+   NOT CARRIED, by the pick (said to the owner): the face's "N of M done"
+   head, its card frames, the stream chips and their Ask an admin, the Pay
+   table beside the paper (the Board card keeps it).
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/owed-first-as-drawn-verify.js */
 const fs = require('node:fs');
@@ -115,122 +96,72 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
     const openFill = async id => { await page.evaluate(async i => { const c = getContract(i); if (c._light && window.ensureFull) await ensureFull(c); setView('dashboard'); pdOpenOnHome(i, 'copilot'); }, id);
       await until(i => window.intel && intel.paper && intel.paper.id === i && !!document.getElementById('ig-canvas'), id, 15000);
       await page.evaluate(i => pdFillOpen(i), id);
-      await until(() => !!document.querySelector('#pd-fillface [data-pd-owed="1"]'), null, 10000);
+      await until(i => !!document.querySelector(`#pd-og[data-pd-og-for="${i}"] tr.pd-og-row`), id, 10000);
       await page.waitForTimeout(400); };
-    const FACE = () => { const f = document.getElementById('pd-fillface'); if (!f) return null;
-      const owh = f.querySelector('[data-pd-ff-owh]'), oe = f.querySelector('[data-pd-ff-owend]'), first = f.querySelector('[data-pd-owed="1"]');
-      const oc = owh && getComputedStyle(owh), ec = oe && getComputedStyle(oe);
-      return { count: (f.querySelector('[data-pd-ff-count]') || {}).textContent || '', pill: (f.querySelector('[data-pd-ff-pill]') || {}).textContent || '',
-        card: !!(oc && ec && oc.borderTopStyle === 'solid' && parseFloat(oc.borderTopWidth) >= 1 && ec.borderBottomStyle === 'solid' && parseFloat(ec.borderBottomWidth) >= 1
-          && first && owh.getBoundingClientRect().bottom <= first.getBoundingClientRect().top + 1 && first.getBoundingClientRect().bottom <= oe.getBoundingClientRect().top + 1),
-        doc: (f.querySelector('[data-pd-ff-doc]') || {}).innerText || '', ro: ((f.querySelector('.pd-ff-ro') || {}).innerText || '').replace(/\s+/g, ' ').trim() }; };
+    const GRID = () => { const og = document.getElementById('pd-og'); if (!og) return null; const t = el => (el ? el.innerText : '').replace(/\s+/g, ' ').trim();
+      return { head: t(document.querySelector('#pd-needs .pd-gl-h')), cols: [...og.querySelectorAll('thead th')].map(t),
+        rows: [...og.querySelectorAll('tr.pd-og-row')].map(r => ({ k: r.getAttribute('data-pd-og-row'), cls: r.className, src: t(r.querySelector('.pd-og-src')),
+          chip: t(r.querySelector('.pd-og-cl')), ok: !!r.querySelector('[data-pd-og-ok]'), box: (r.querySelector('.pd-og-v input, .pd-og-v select') || {}).value })) }; };
 
-    /* 1 the head, the card, where each lands */
+    /* 1 the head, the columns, where each lands */
     await openFill('MK-0405');
-    const F = await page.evaluate(FACE);
-    const R = await page.evaluate(() => { const f = document.getElementById('pd-fillface');
-      const row = l => [...f.querySelectorAll('[data-pd-owed]')].find(x => ((x.querySelector('.cd-lab, span') || {}).textContent || '').replace(/\s*\*\s*$/, '').trim() === l);
-      const at = r => r && r.querySelector('[data-pd-ff-at]') ? r.querySelector('[data-pd-ff-at]').innerText.trim() : '';
-      return { start: at(row('Start date')), notice: at(row('Notice period')), value: at(row('Expected yearly value')) }; });
-    check('1a the head: "N left" and "N of M done · saved as you type"', /^\d+ left$/.test(F.pill.trim()) && /^\d+ of \d+ done · saved as you type$/.test(F.count.trim()), JSON.stringify({ pill: F.pill, count: F.count }));
-    check('1b "Still to fill" holds its owed rows as one card: its heading on top, its edge under the last', F.card, String(F.card));
-    check('1c each row says where it lands on the paper', R.start === 'clause 3' && R.notice === 'clause 3' && R.value === 'clause 4', JSON.stringify(R));
-    await page.click('#pd-fillface [data-blankf="up_start_date"]');
-    const here = await page.evaluate(() => { const r = document.querySelector('#pd-fillface [data-blankf="up_start_date"]').closest('[data-pd-owed]'); return r.querySelector('[data-pd-ff-at]').innerText.trim(); });
-    check('1d the row being typed in: "on the paper · clause 3"', here === 'on the paper · clause 3', here);
-    await page.evaluate(() => { const r = [...document.querySelectorAll('#pd-fillface [data-pd-owed]')].find(x => x.querySelector('[data-blankf="up_notice_period"]'));
-      const b = r && r.querySelector('[data-pd-ff-at]'); if (b) b.click(); });
-    /* RE-POINTED (the third pass; main's LAND ON IT): the spot is lit by the one lander (.is-landed) */
-    const atPress = await until(() => { const lit = document.querySelector('#ig-canvas .is-landed[data-upblank="up_notice_period"]'); if (!lit) return null;
-      return { focus: (document.activeElement || {}).getAttribute ? document.activeElement.getAttribute('data-blankf') : null, lit: true,
-        green: !!document.querySelector('#ig-canvas .is-fieldlit[data-upblank="up_notice_period"]') }; }, null, 4000);
-    check('1e pressed, "clause 3" lands on its spot on the paper through the one lander, the cursor kept in the box', !!atPress && atPress.focus === 'up_notice_period' && atPress.lit, JSON.stringify(atPress));
+    const G = await page.evaluate(GRID);
+    const row = k => G.rows.find(r => r.k === k) || {};
+    check('1a the head "Still owed · N"; the columns "Fact · where Jambo read it" · "Jambo read" · Confirm', /^Still owed · \d+/.test(G.head) && G.cols[0] === 'FACT · WHERE JAMBO READ IT' && G.cols[1] === 'JAMBO READ', JSON.stringify({ head: G.head, cols: G.cols }));
+    check('1c each blank says where it lands on the paper', row('up_start_date').chip === '§3' && /on the paper/.test(row('up_start_date').src) && row('up_expected_yearly_value').chip === '§4', JSON.stringify(G.rows));
+    await page.click('#pd-og [data-pd-og-spot="up_start_date"]');
+    const atPress = await until(() => !!document.querySelector('#ig-canvas .is-landed[data-upblank="up_start_date"]'), null, 4000);
+    check('1e pressed, "§3" lands on its spot on the paper through the one lander', !!atPress);
     await shot(page, '8-owed-first-1440x780');
 
-    /* 7 (pass 2) an example of the answer in each owed box; nothing over the rows; no chips */
-    const E7 = await page.evaluate(() => { const f = document.getElementById('pd-fillface'), vis = el => !!(el && el.getClientRects().length && getComputedStyle(el).display !== 'none');
-      const ph = k => (f.querySelector(`[data-blankf="${k}"]`) || {}).placeholder;
-      const d = new Date(todayISO() + 'T12:00:00Z'); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() + 1);
-      return { start: ph('up_start_date'), value: ph('up_expected_yearly_value'), notice: ph('up_notice_period'),
-        want: 'e.g. ' + d.toLocaleDateString(langLocale(), { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }),
-        fillDoc: vis(f.querySelector('#kt-fill')), chips: document.querySelectorAll('#ig-dock [data-ig-chips] button').length }; });
-    /* RE-POINTED (the third pass; the owner's answer (5): empty owed boxes stay empty with the amber wash, no "e.g. …") */
-    const EG = await page.evaluate(() => [...document.querySelectorAll('#pd-fillface [data-pd-owed="1"] :is(input, textarea)')].map(x => x.placeholder || '')
-      .concat([...document.querySelectorAll('#pd-fillface [data-pd-owed="1"] .dp-v')].map(x => x.textContent)));
-    check('7a no example in any empty owed box — no "e.g. …", no "A number"; a date says "Pick a date"', E7.start !== E7.want && EG.every(x => !/^e\.g\.|^t\.ex\.|^A number$/.test(x)), JSON.stringify({ E7, EG }));
-    check('7b no "Fill from document" over the owed rows, no chips under the face', !E7.fillDoc && E7.chips === 0, JSON.stringify({ fillDoc: E7.fillDoc, chips: E7.chips }));
-    /* 2 our standard */
-    const N = await page.evaluate(() => { const r = document.querySelector('#pd-fillface [data-blankf="up_notice_period"]').closest('[data-pd-owed]'); const st = r.querySelector('[data-pd-ff-std]');
-      return { owed: r.getAttribute('data-pd-owed'), std: st ? st.innerText.replace(/\s+/g, ' ').trim() : '', kind: pdFillStdKind(getContract('MK-0405')) }; });
-    /* RE-POINTED (pass 2, 18 Oct 2026): named for the kind of contract whose book applies ("Our standard for freight: 6 months") */
-    check('2a under the owed notice period: "Our standard for <the kind of contract>: 90 days · Use it"', !!N && !!N.kind && N.kind !== 'termination' && N.std === `Our standard for ${N.kind}: 90 days Use it`, JSON.stringify(N));
-    const nodate = await page.evaluate(() => { const r = [...document.querySelectorAll('#pd-fillface [data-pd-owed]')].find(x => x.querySelector('[data-blankf="up_start_date"]')); return !r.querySelector('[data-pd-ff-std]'); });
-    check('2b a box no standard names is offered nothing', nodate);
-    await page.click('#pd-fillface [data-pd-ff-use]');
-    const used = await until(() => { const b = document.querySelector('#pd-fillface [data-blankf="up_notice_period"]'); const c = getContract('MK-0405');
-      return b && b.value === '90 days' && c.fields && c.fields.up_notice_period === '90 days' ? { paper: /90 days/.test(document.getElementById('ig-canvas').textContent), hint: !!b.closest('[data-pd-owed]').querySelector('[data-pd-ff-std]') } : null; }, null, 6000);
-    check('2c Use it: the box holds it, the box\'s own writer stored it, the paper shows it, the offer is gone', !!used && used.paper && !used.hint, JSON.stringify(used));
+    /* 2 our standard, the reading in the box */
+    const N = await page.evaluate(() => ({ std: (document.querySelector('#pd-og tr[data-pd-og-row="up_notice_period"] [data-pd-ff-std]') || {}).innerText || '',
+      box: (document.querySelector('#pd-og [data-blankf="up_notice_period"]') || {}).value, kind: pdFillStdKind(getContract('MK-0405')), cls: (document.querySelector('#pd-og tr[data-pd-og-row="up_notice_period"]') || {}).className }));
+    check('2a the owed notice period: "Our standard for <the kind of contract>: 90 days", in the box as the reading', !!N.kind && N.kind !== 'termination' && N.std.trim() === `Our standard for ${N.kind}: 90 days` && N.box === '90 days' && /is-read/.test(N.cls), JSON.stringify(N));
+    check('2b a box no standard names is offered nothing', !/Our standard/.test(row('up_start_date').src) && !row('up_start_date').box);
+    await page.click('#pd-og [data-pd-og-ok="up_notice_period"]');
+    const used = await until(() => { const c = getContract('MK-0405');
+      return c.fields && c.fields.up_notice_period === '90 days' ? { paper: /90 days/.test(document.getElementById('ig-canvas').textContent), saved: !!document.querySelector('#pd-og tr.is-saved[data-pd-og-row="up_notice_period"]') } : null; }, null, 6000);
+    check('2c Confirm: the box\'s own writer stored it, the paper shows it, the row says saved', !!used && used.paper && used.saved, JSON.stringify(used));
     await page.evaluate(() => window.flushSaves && flushSaves()).catch(() => {});
     const rec = await W.admin.json('/api/contracts/MK-0405');
     check('2d on the record, on the server', rec.fields && rec.fields.up_notice_period === '90 days', JSON.stringify(rec.fields));
 
-    /* 3 the fold holds on every row */
-    const fold = await page.evaluate(() => { const r = [...document.querySelectorAll('#pd-fillface [data-pd-owed="0"]')]; const vis = el => !!(el.getClientRects().length && getComputedStyle(el).display !== 'none');
-      return { n: r.length, shown: r.filter(vis).map(x => x.textContent.replace(/\s+/g, ' ').trim().slice(0, 30)), open: document.querySelector('#pd-fillface .pd-ff').classList.contains('is-filled-open') }; });
-    check('3a behind a shut "Filled" every answered row is out of sight — the paper\'s questions too', fold.n >= 3 && !fold.open && !fold.shown.length, JSON.stringify(fold));
-    await page.click('#pd-fillface [data-pd-ff-fold]');
-    const opened = await page.evaluate(() => [...document.querySelectorAll('#pd-fillface [data-pd-owed="0"]')].every(el => el.getClientRects().length && getComputedStyle(el).display !== 'none'));
-    check('3b opened, every one shows', opened);
-    await page.click('#pd-fillface [data-pd-ff-fold]');
-
-    /* 5 the stream: the rule's own door */
-    const F5 = await page.evaluate(FACE);
-    check('5a the stream says whose act it is, with Ask an admin', F5.ro === 'Moving a contract to another stream is an admin’s act. Ask an admin', F5.ro);
-    await page.click('#pd-fillface [data-pd-ff-ask]');
-    const asked = await until(() => { const t = ((document.querySelector('#pd-fillface .pd-ff-ro') || {}).innerText || '').replace(/\s+/g, ' ').trim(); return /Asked /.test(t) ? t : null; }, null, 8000);
-    check('5b sent: the row says when and whom it was asked of', !!asked && /^Moving a contract to another stream is an admin’s act\. Asked Amina Otieno · .+$/.test(asked), asked);
-    const asks = await W.admin.json('/api/settings-asks');
-    const a = (asks.asks || []).find(x => x.panel === 'refile:MK-0405');
-    check('5c it is the Ask-an-admin record, waiting in the admin\'s list', !!a && a.status === 'open' && a.what === 'Move MK-0405 Framework agreement to another stream', JSON.stringify(a));
-    await shot(page, '8-owed-first-asked-1440x780');
+    /* 3 the answered ones are Key terms' lines, folded */
+    const fold = await page.evaluate(() => { const k = document.getElementById('pd-kt'); return k ? { open: k.open, carrier: !!k.querySelector('tr[data-pd-og-row="up_carrier_address"]') } : null; });
+    check('3a the answered ones are Key terms\' lines under the grid, folded', !!fold && !fold.open && fold.carrier, JSON.stringify(fold));
 
     /* 6 the three screens */
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht });
-      await page.waitForTimeout(400);
-      const S = await page.evaluate(() => { const r = document.querySelector('#pd-fillface [data-pd-owed="1"]'); const b = r && r.getBoundingClientRect();
+      await page.evaluate(() => pdFillOpen('MK-0405'));
+      await page.waitForTimeout(500);
+      const S = await page.evaluate(() => { const r = document.querySelector('#pd-og tr.pd-og-row:not(.is-saved)'); const b = r && r.getBoundingClientRect();
         return { inView: !!b && b.top >= 0 && b.bottom <= window.innerHeight, side: document.documentElement.scrollWidth <= window.innerWidth + 1 }; });
-      check(`6 ${w}×${ht}: the first owed box in view, nothing sideways`, S.inView && S.side, JSON.stringify(S));
+      check(`6 ${w}×${ht}: the first owed row in view, nothing sideways`, S.inView && S.side, JSON.stringify(S));
       await shot(page, `8-owed-first-${w}x${ht}`);
     }
     await page.setViewportSize({ width: 1440, height: 780 });
 
-    /* 4 the document's card */
+    /* 4 the company form */
     await openFill('MK-0410');
-    const D = await page.evaluate(FACE);
-    check('4a the document\'s card: "3 answers are on the paper as you typed them, not yet in the wording." · Fill the document',
-      /^The document\s+3 answers are on the paper as you typed them, not yet in the wording\.\s+Fill the document$/.test(D.doc.trim()), D.doc);
-    const own = await page.evaluate(() => { const b = document.querySelector('#pd-fill [data-tplf-fill]'); return b ? getComputedStyle(b).display : 'none'; });
-    check('4b the press is said once: the form\'s own button stands behind the card\'s', own === 'none', own);
-    await shot(page, '8-owed-first-document-1440x780');
-    /* 4d (pass 2) the paper beside it: owed blanks amber, answers not yet in the wording underlined */
+    const D = await page.evaluate(() => (document.querySelector('#pd-needs [data-pd-gl="docfill"]') || {}).innerText || '');
+    check('4a Still owed: "3 answers are on the paper as you typed them, not yet in the wording." · Fill the document',
+      /^3 answers are on the paper as you typed them, not yet in the wording\.\s+Fill the document$/.test(D.trim()), D);
     const P4 = await page.evaluate(() => { const cv = document.getElementById('ig-canvas'); const amber = getComputedStyle(document.documentElement).getPropertyValue('--st-amber-bg').trim();
       const probe = document.createElement('i'); probe.style.background = amber; document.body.appendChild(probe); const want = getComputedStyle(probe).backgroundColor; probe.remove();
       const blank = cv.querySelector('.hati-field[data-field-key="notice"]'), done = [...cv.querySelectorAll('.hati-field-done[data-field-key]')];
       return { blank: blank ? getComputedStyle(blank).backgroundColor === want : null,
         pend: done.map(x => x.getAttribute('data-field-key') + ':' + getComputedStyle(x).textDecorationStyle + ':' + getComputedStyle(x).textDecorationLine).sort() }; });
     check('4d the paper: an owed blank amber; the three typed answers underlined, dotted', P4.blank === true && P4.pend.join('|') === 'carrier:dotted:underline|lane:dotted:underline|route:dotted:underline', JSON.stringify(P4));
-    await page.click('#pd-fillface [data-pd-ff-docfill]');
-    const filled = await until(() => { const c = getContract('MK-0410'); const t = ((document.querySelector('#pd-fillface [data-pd-ff-doc]') || {}).innerText || '').replace(/\s+/g, ' ');
-      /* 19 Oct 2026: the card repaints on a zero-delay timer after the wording is filled, so the wait asks
-         for the card's own words too — read before that tick it still said "not yet in the wording" */
-      return !tplFormPending(c) && /Road/.test(c.redlineText || '') && /The answers are in the wording\./.test(t) ? t : null; }, null, 20000);   /* 19 Oct 2026: 8 s ran out once on GitHub's runner; the wait still asks for the state */
-    check('4c pressed: the wording carries them, and the card says so', !!filled && /The answers are in the wording\./.test(filled), filled || ((await page.evaluate(() => ((document.querySelector('#pd-fillface [data-pd-ff-doc]') || {}).innerText || '').replace(/\s+/g, ' '))) + ''));
+    await page.click('#pd-needs [data-pd-og-docfill]');
+    const filled = await until(() => { const c = getContract('MK-0410'); return !tplFormPending(c) && /Road/.test(c.redlineText || '') && !document.querySelector('#pd-needs [data-pd-og-docfill]'); }, null, 20000);
+    check('4c pressed: the wording carries them, and the line goes from Still owed', !!filled);
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(350);
       await shot(page, `8-owed-first-company-${w}x${ht}`);
     }
-    /* 8 and 9 (pass 2), as an admin, who is named on the private stream */
+    /* 8 and 9, as an admin, who is named on the private stream */
     const pa = await (await browser.newContext({ viewport: { width: 1440, height: 780 } })).newPage();
     pa.on('pageerror', e => errors.push(e.message));
     const untilA = async (fn, arg, ms = 8000) => { let v; const t0 = Date.now();
@@ -242,50 +173,32 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
     const openA = async id => { await pa.evaluate(async i => { const c = getContract(i); if (c._light && window.ensureFull) await ensureFull(c); setView('dashboard'); pdOpenOnHome(i, 'copilot'); }, id);
       await untilA(i => window.intel && intel.paper && intel.paper.id === i && !!document.getElementById('ig-canvas'), id, 15000);
       await pa.evaluate(i => pdFillOpen(i), id);
-      await untilA(() => !!document.querySelector('#pd-fillface [data-pd-owed]'), null, 10000); await pa.waitForTimeout(500); };
+      await untilA(i => !!document.querySelector(`#pd-og[data-pd-og-for="${i}"]`), id, 10000); await pa.waitForTimeout(500); };
     await openA('MK-0406');
-    const N8 = await pa.evaluate(() => { const f = document.getElementById('pd-fillface'), t = el => (el ? el.innerText : '').replace(/\s+/g, ' ').trim();
-      const rows = [...f.querySelectorAll('[data-pd-ff-card="nda"]')];
-      return { head: t(f.querySelector('[data-pd-ff-ndh]')), rows: rows.map(r => ({ at: t(r.querySelector('.det-nda-at')), box: t(r.querySelector('.det-nda-box')), line: t(r.querySelector('.det-nda-line')) })),
-        inStill: rows.some(r => r.getBoundingClientRect().top < (f.querySelector('[data-pd-ff-owend]') || r).getBoundingClientRect().top && r.getBoundingClientRect().top > (f.querySelector('[data-pd-ff-owh]') || r).getBoundingClientRect().bottom && !!f.querySelector('[data-pd-ff-owh] h4')) }; });
-    check('8a an NDA\'s facts in a card of their own: "Confidentiality · 2 to confirm"', N8.head === 'Confidentiality 2 to confirm' && N8.rows.length === 2 && !N8.inStill, JSON.stringify(N8));
-    /* (the third pass) the NDA's own editor's names, and "· Confirm" on its sentence's line */
-    const N8c = await pa.evaluate(() => [...document.querySelectorAll('#pd-fillface [data-pd-ff-card="nda"]')].map(r => { const lab = r.querySelector('.cd-lab, span'), tail = r.querySelector('.det-nda-tail');
-      return { label: (lab ? lab.textContent : '').replace(/\s*\*\s*$/, '').trim(), tail: tail ? tail.textContent.trim() : '', lines: tail ? tail.getClientRects().length : 0,
-        alone: (() => { const b = r.querySelector('[data-det-nda]'), t = tail && tail.firstChild; if (!b || !t) return null;
-          const range = document.createRange(); range.selectNodeContents(t); const tr = range.getBoundingClientRect(), br = b.getBoundingClientRect();
-          return Math.abs((tr.top + tr.bottom) / 2 - (br.top + br.bottom) / 2) > 8; })() }; }));
-    check('8c the facts by the NDA editor\'s own names — "Who keeps it secret", "Secret until" — and "· Confirm" never on a line of its own',
-      N8c.length === 2 && N8c[0].label === 'Who keeps it secret' && N8c[1].label === 'Secret until' && N8c.every(r => r.tail === 'person. · Confirm' && r.lines === 1 && r.alone === false), JSON.stringify(N8c));
-    check('8b each "read from clause 5", its reading in a box, "Read from the wording, not yet confirmed by a person. · Confirm"',
-      N8.rows.length === 2 && N8.rows.every(r => r.at === 'read from clause 5' && r.line === 'Read from the wording, not yet confirmed by a person. · Confirm')
-      && N8.rows[0].box === 'Both sides (mutual)' && N8.rows[1].box === '3 years after the agreement ends', JSON.stringify(N8.rows));
+    const N8 = await pa.evaluate(() => { const t = el => (el ? el.innerText : '').replace(/\s+/g, ' ').trim();
+      const r = k => document.querySelector(`#pd-og tr[data-pd-og-row="${k}"]`);
+      return { head: t(document.querySelector('#pd-needs .pd-gl-h')), all: !!document.querySelector('#pd-needs [data-pd-og-all]'),
+        rows: ['ndaDir', 'ndaEnds'].map(k => ({ k, chip: t(r(k) && r(k).querySelector('.pd-og-cl')), q: t(r(k) && r(k).querySelector('q')), cls: r(k) && r(k).className,
+          box: k === 'ndaDir' ? (r(k).querySelector('[data-pd-og-nda="dir"]') || {}).value : (r(k).querySelector('[data-pd-og-nda="ends"]') || {}).value })) }; });
+    check('8a an NDA: "· N read from the wording · Confirm all N" in Still owed\'s head', /· \d read from the wording/.test(N8.head) && N8.all, N8.head);
+    /* the wording counts secrecy from the agreement's end, which this record does not hold yet: quoted, the day asked (amber) */
+    check('8b each fact "§5", the passage quoted; who keeps it secret read into its box, the day asked where the end is not on the record', N8.rows.every(r => r.chip === '§5' && r.q.length > 10)
+      && /is-read/.test(N8.rows[0].cls) && N8.rows[0].box === 'mutual' && /is-amb/.test(N8.rows[1].cls) && !N8.rows[1].box, JSON.stringify(N8.rows));
     await shot(pa, '8-owed-first-nda-1440x780');
+    await pa.click('#pd-needs [data-pd-og-all]');
+    const conf = await untilA(() => { const c = getContract('MK-0406'); return c.nda && c.nda.dir === 'mutual' && !!document.querySelector('#pd-og tr.is-saved[data-pd-og-row="ndaDir"]') ? c.nda : null; }, null, 6000);
+    check('8c Confirm all stores both through the facts\' own writer, the rows say saved', !!conf && conf.dir === 'mutual', JSON.stringify(conf));
     await openA('MK-0407');
-    const P9 = await pa.evaluate(() => { const f = document.getElementById('pd-fillface'), t = el => (el ? el.innerText : '').replace(/\s+/g, ' ').trim();
-      const pay = f.querySelector('[data-pd-ff-pay]');
-      return { priv: t(f.querySelector('.pd-ff-priv')), payHead: t(pay && pay.querySelector('.pd-ff-card-h')), th: pay ? [...pay.querySelectorAll('th')].map(t) : [],
-        base: pay ? [...pay.querySelectorAll('tbody tr:first-child td')].map(t) : [], edit: t(pay && pay.querySelector('[data-pd-ff-pay-edit]')),
-        payRow: [...f.querySelectorAll('[data-pd-ff-card="pay"]')].every(r => getComputedStyle(r).display === 'none'), wait: t(f.querySelector('[data-pd-ff-wait]')) }; });
-    check('9a a private stream says so: "Private · <stream>", "only the people named on <stream> see it"', /^Private · .+ only the people named on .+ see it$/.test(P9.priv), P9.priv);
-    check('9b Pay in a card of its own: "Pay · kept apart from deal value · never added to a total", Part · How often · Amount, base pay owed, Edit pay ›',
-      P9.payHead === 'Pay · kept apart from deal value · never added to a total' && P9.th.join('|') === 'Part|How often|Amount' && P9.base.join('|') === 'Base pay|Monthly|not filled in yet · needed before signing'
-      && P9.edit === 'Edit pay ›' && P9.payRow, JSON.stringify(P9));
-    /* RE-POINTED (the third pass; the owner's answer (4)): the cost in Jambo calls, lower case mid-line */
-    check('9c Jambo waits for a press, its cost said in calls', P9.wait === 'Jambo reads a private stream’s contract only when someone presses. Read it now · about three Jambo calls', P9.wait);
-    /* 9d–9e (the third pass) as drawn: base pay owed an amber pill with its dot; the wait line straight under Pay, with Jambo's face */
-    const P9b = await pa.evaluate(() => { const f = document.getElementById('pd-fillface'), pay = f.querySelector('[data-pd-ff-pay]'), wait = f.querySelector('[data-pd-ff-wait]');
-      const pill = pay && pay.querySelector('tbody tr.is-base .pd-pill.is-warn'), dot = pill && pill.querySelector('i');
-      const cards = [...f.querySelectorAll('.pd-ff-work > *')].filter(el => el.getClientRects().length && el !== wait && el !== pay && el.getBoundingClientRect().height > 8);
-      const pr = pay.getBoundingClientRect(), wr = wait.getBoundingClientRect();
-      const between = cards.filter(el => { const r = el.getBoundingClientRect(); return r.top >= pr.bottom - 1 && r.bottom <= wr.top + 1; }).map(el => el.className);
-      return { pill: pill ? pill.textContent.trim() : null, dot: !!dot && parseFloat(getComputedStyle(dot).width) > 0, under: wr.top >= pr.bottom - 1 && wr.top - pr.bottom < 24, between,
-        face: !!wait.querySelector('img.pd-ff-wait-face, .pd-ff-wait-face') }; });
-    check('9d base pay owed: "● not filled in yet · needed before signing", the amber pill with its dot', P9b.pill === 'not filled in yet · needed before signing' && P9b.dot, JSON.stringify(P9b));
-    check('9e the wait line stands straight under the Pay card, with Jambo\'s small face', P9b.under && !P9b.between.length && P9b.face, JSON.stringify(P9b));
-    /* 10 (the third pass) Jambo perches in empty space: over nothing of the face, at any scroll, at every screen */
+    const P9 = await pa.evaluate(() => { const t = el => (el ? el.innerText : '').replace(/\s+/g, ' ').trim();
+      const v = document.querySelector('#pd-og tr[data-pd-og-row="value"]');
+      return { priv: t(document.querySelector('#pd-glance [data-pd-ds-card="private"]')), pay: !!(v && v.querySelector('[data-pd-og-pay]')), payWord: t(v && v.querySelector('.pd-og-f b')),
+        wait: t(document.querySelector('#pd-glance [data-pd-ds-card="read"] .pd-gl-h')), cost: (document.querySelector('#pd-glance [data-pd-ds-read]') || {}).title || '' }; });
+    check('9a a private stream: the Dossier says who may open it', P9.priv.length > 0 && /Private|private/.test(P9.priv), P9.priv);
+    check('9b base pay owed: its row reads as pay, its door Edit pay', P9.pay && /pay/i.test(P9.payWord), JSON.stringify(P9));
+    check('9c What Jambo read waits for the press, its cost said in calls', /Read it now/.test(P9.wait) && /Jambo call/.test(P9.cost), JSON.stringify(P9));
+    /* 10 Jambo perches over nothing of the grid */
     const perchClear = () => pa.evaluate(() => { const p = document.querySelector('#ig-dock .jb-perch img'); if (!p) return { perch: false };
-      const pr = p.getBoundingClientRect(), f = document.getElementById('pd-fillface');
+      const pr = p.getBoundingClientRect(), f = document.getElementById('pd-glance');
       const hits = [...f.querySelectorAll('*')].filter(el => { if (!el.getClientRects().length || el.children.length) return false; const r = el.getBoundingClientRect();
         const sc = f.closest('.scroll-thin, #igd-body') || f; const vr = sc.getBoundingClientRect();
         const top = Math.max(r.top, vr.top), bot = Math.min(r.bottom, vr.bottom); if (bot <= top) return false;
@@ -294,24 +207,18 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await pa.setViewportSize({ width: w, height: ht }); await pa.waitForTimeout(400);
       const top = await perchClear();
-      await pa.evaluate(() => { let e = document.getElementById('pd-fillface'); while (e && e !== document.body){ if (e.scrollHeight > e.clientHeight + 2 && /auto|scroll/.test(getComputedStyle(e).overflowY)){ e.scrollTop = e.scrollHeight; break; } e = e.parentElement; } });
+      await pa.evaluate(() => { let e = document.getElementById('pd-glance'); while (e && e !== document.body){ if (e.scrollHeight > e.clientHeight + 2 && /auto|scroll/.test(getComputedStyle(e).overflowY)){ e.scrollTop = e.scrollHeight; break; } e = e.parentElement; } });
       await pa.waitForTimeout(250);
       const bot = await perchClear();
-      check(`10 ${w}×${ht}: Jambo perches over nothing of the face, at its top and at its foot`, top.perch && bot.perch && !top.hits.length && !bot.hits.length, JSON.stringify({ top: top.hits, bot: bot.hits }));
+      check(`10 ${w}×${ht}: Jambo perches over nothing of the Dossier, at its top and at its foot`, top.perch && bot.perch && !top.hits.length && !bot.hits.length, JSON.stringify({ top: top.hits, bot: bot.hits }));
       await shot(pa, `8-owed-first-private-${w}x${ht}`);
     }
     await pa.setViewportSize({ width: 1440, height: 780 }); await pa.waitForTimeout(300);
-    /* 11 (the third pass) the size on the paper's line beside Fill in, nothing above the sheet; it goes back when Fill in closes */
-    const Z = () => pa.evaluate(() => { const vis = el => !!(el && el.getClientRects().length && getComputedStyle(el).display !== 'none');
+    /* 11 no face: the size is the paper's own, above the sheet */
+    const Z = await pa.evaluate(() => { const vis = el => !!(el && el.getClientRects().length && getComputedStyle(el).display !== 'none');
       const strip = document.getElementById('ig-strip'), line = strip && strip.querySelector('.ig-zc-line'), row = document.querySelector('#ig-paper-scroll > .paper-zc-row');
-      const sheet = document.querySelector('#ig-paper .pg-sheet, #ig-paper .ig-sheet, #ig-canvas');
-      return { line: vis(line) ? line.innerText.replace(/\s+/g, ' ').trim() : null, row: vis(row), gap: strip && sheet ? Math.round(sheet.getBoundingClientRect().top - strip.getBoundingClientRect().bottom) : null }; });
-    const Z1 = await Z();
-    check('11a beside Fill in the size stands on the paper\'s line, nothing above the sheet', !!Z1.line && /100%/.test(Z1.line) && !Z1.row && Z1.gap != null && Z1.gap <= 24, JSON.stringify(Z1));
-    await pa.evaluate(() => pdFillClose()); await pa.waitForTimeout(500);
-    const Z2 = await Z();
-    check('11b Fill in closed, the size is the paper\'s own again, above the sheet', !Z2.line && Z2.row, JSON.stringify(Z2));
-    await shot(pa, '8-owed-first-private-1440x780');
+      return { line: vis(line), row: vis(row) }; });
+    check('11 no face beside the paper: the size is the paper\'s own, above the sheet', !Z.line && Z.row, JSON.stringify(Z));
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }
   finally {
     check('no page errors', !errors.length, errors.slice(0, 3).join(' | '));

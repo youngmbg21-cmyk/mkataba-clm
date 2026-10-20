@@ -88,6 +88,8 @@ function ndaQuote(s, runTogether){
   let t = String(s || '').trim().replace(/^(?:clause\s+|section\s+|article\s+|§\s*)?\d{1,2}(?:\.\d{1,2}){0,2}[.)]?\s+/i, '');
   if (runTogether) t = t.replace(/^.{0,80}?[a-z)](?=(?:The|This|Each|Either|All|Any|Neither|Both|Such)\s)/, '')
     .replace(/^(?:[A-Z][\w&'’-]*\s+){1,6}?(?=(?:The|This|Each|Either|All|Any|Neither|Both|Such|No|A|An)\s)/, '');
+  /* a heading's title words run into a definition ("Confidential Information "Confidential …") */
+  t = t.replace(/^(?:[A-Z][\w&'’-]*\s+){0,3}[A-Z][\w&'’-]*\s*(?=["“])/, '');
   if (t.length <= NDA_QUOTE_MAX) return t;
   const cut = t.slice(0, NDA_QUOTE_MAX), sp = cut.lastIndexOf(' ');
   return (sp > 80 ? cut.slice(0, sp) : cut) + '…';
@@ -100,7 +102,7 @@ function ndaSameParty(a, b){
 }
 function ndaRead(text, ctx){
   const o = ctx || {};
-  const out = { dir: '', period: null, forGood: false, trade: false, clause: '', quote: '' };
+  const out = { dir: '', period: null, forGood: false, trade: false, clause: '', quote: '', dirClause: '', dirQuote: '' };
   const t = String(text || '').replace(/\r/g, '');
   if (!t.trim()) return out;
   const flat = t.replace(/\s+/g, ' ');
@@ -151,8 +153,25 @@ function ndaRead(text, ctx){
       }
     }
   }
+  /* WHERE "WHO KEEPS IT SECRET" WAS READ (the Legora way, 20 Oct 2026): the
+     first sentence that says it, in its clause, so the grid can quote it */
+  /* the sentence that SAYS it, never the title that names it ("Mutual
+     Non-Disclosure Agreement"): the operative words first, a bare "mutual"
+     only in a sentence that agrees something */
+  if (out.dir){
+    const find = re => { let at = '';
+      for (const para of paras){
+        const h = NDA_HEAD.exec(para); if (h) at = h[1];
+        for (const s of ndaSentences(para)) if (re.test(s) && NDA_DIR_VERB.test(s)) return { at, s };
+      }
+      return null; };
+    const hit = find(NDA_DIR_SAYS) || find(/\bmutual\b/i);
+    if (hit){ out.dirClause = hit.at; out.dirQuote = ndaQuote(hit.s, paras !== lines); }
+  }
   return out;
 }
+const NDA_DIR_SAYS = /\b(?:each|either) party (?:may |will |shall )?(?:disclose|receive)|disclosed by (?:one|either|each) party to the other|by one party to the other\b|both parties (?:may|will|shall) (?:disclose|exchange)|mutual exchange|\b(?:Disclosing Party|Discloser|Disclosing Company|Recipient|Receiving Party|Receiver)\b/i;
+const NDA_DIR_VERB = /\b(?:shall|will|may|means|agrees?|undertakes?|discloses?|disclosed|receives?|received|wish(?:es)?|keeps?)\b/i;
 /* THE DAY a period ends, counted from the agreement's own dates: after its
    end, from its start, or — from each disclosure — at the latest after its end
    (the last day anything could be shared). '' where the date it counts from is
@@ -190,7 +209,7 @@ function ndaRemindDay(ends, today){
    wording only: nothing spent, nothing written. */
 const _ndaMemo = new Map();
 function ndaOf(c){
-  const out = { is: false, dir: '', ends: '', forGood: false, trade: false, clause: '', quote: '', who: '',
+  const out = { is: false, dir: '', ends: '', forGood: false, trade: false, clause: '', quote: '', dirClause: '', dirQuote: '', who: '',
     confirmed: false, read: false, wait: false, latest: false, period: null, start: '', end: '' };
   if (!ndaIs(c)) return out;
   out.is = true;
@@ -217,7 +236,7 @@ function ndaOf(c){
     _ndaMemo.set(key, hit);
   }
   const R = hit.R;
-  Object.assign(out, { dir: R.dir, forGood: R.forGood, trade: R.trade, clause: R.clause, quote: R.quote, period: R.period });
+  Object.assign(out, { dir: R.dir, forGood: R.forGood, trade: R.trade, clause: R.clause, quote: R.quote, period: R.period, dirClause: R.dirClause || '', dirQuote: R.dirQuote || '' });
   if (R.period){ out.ends = ndaEndsOf(R.period, { start: out.start, end: out.end }); out.latest = R.period.from === 'disclosure'; }
   out.read = !!(R.dir || R.period || R.forGood || R.trade);
   return out;

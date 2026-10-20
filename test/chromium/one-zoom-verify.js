@@ -191,7 +191,8 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await page.evaluate(id => openRedlineWorkbench(id, { page: true }), id); await page.waitForTimeout(1500); placed.negotiate = await PLACE();
     await page.evaluate(id => openWorkspace(id, { room: true }), id); await page.waitForTimeout(1000);
     await page.evaluate(id => roomGoTab(getContract(id), 'details'), id);
-    await until(page, () => !!document.querySelector('#pd-fillface') && !!document.querySelector('#ig-paper .paper-zc'), null, 10000);
+    /* RE-POINTED 20 Oct 2026 (the Legora way): the Details door lands on the Dossier's grid, beside Home's working copy */
+    await until(page, () => !!document.querySelector('#ig-dock #pd-og') && !!document.querySelector('#ig-paper .paper-zc'), null, 10000);
     await page.waitForTimeout(1500); placed.details = await PLACE();
     await page.evaluate(id => roomGoTab(getContract(id), 'sign'), id);
     await until(page, () => !!document.querySelector('#pd-signface') && !!document.querySelector('#ig-paper .pg-sheet.pg-sign'), null, 10000);
@@ -200,7 +201,8 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
        you sign ("signing") the size stands on the paper's line and nothing above the sheet — PLACE finds
        no grey zoom there; Home's Document and Negotiate keep it in the grey */
     for (const [k, v] of Object.entries(placed)){
-      if (k === 'details' || k === 'signing') { ok(`6 ${k}: no zoom in the grey above the sheet — its size is on the paper's line`, v === null, JSON.stringify(v)); continue; }
+      /* no face beside the paper on Details any more (the Legora way): its zoom is Home's Document's, in the grey */
+      if (k === 'signing') { ok(`6 ${k}: no zoom in the grey above the sheet — its size is on the paper's line`, v === null, JSON.stringify(v)); continue; }
       ok(`6 ${k}: the zoom stands 6px inside the grey above the sheet, clear of it, 16px in from the grey area's right edge`,
         !!v && v.top >= 4 && v.top <= 8 && v.clear >= 4 && Math.abs(v.right) <= 2, JSON.stringify(v));
     }

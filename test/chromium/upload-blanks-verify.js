@@ -473,13 +473,14 @@ const CONTRACT = (id, over) => Object.assign({
     };
     /* RE-POINTED (the gaps, round 10 "The road", pass 2, 18 Oct 2026): the line under
        the Sign button left Before you sign ("the foot follows the last stop"); its one
-       door is the Menu tab's row now (#ws-m-their-way, roomActsRowsHtml) — the same
+       door is the dossier's All acts row now (#ws-m-their-way, roomActsRowsHtml) — the same
        press, outsideSetRoute(c, 'outside') */
     const pressMenuRoute = async () => {
-      await page.evaluate(x => pdOpenOnHome(x, 'menu'), up.id);
-      await page.waitForFunction(() => !!document.querySelector('#pd-body #ws-m-their-way'), null, { timeout: 8000 }).catch(() => {});
-      if (!(await page.evaluate(() => !!document.querySelector('#pd-body #ws-m-their-way')))) return false;
-      await page.click('#pd-body #ws-m-their-way');
+      /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the row stands in the dossier's All acts fold */
+      await page.evaluate(x => { ['pdFillClose', 'pdSignClose', 'pdRedClose'].forEach(f => { if (typeof window[f] === 'function') try { window[f](); } catch (_){} }); pdOpenOnHome(x, 'copilot'); }, up.id);
+      await page.waitForFunction(() => { const f = document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'); if (f) f.open = true; return !!document.querySelector('#ig-dock .ds-fold #ws-m-their-way'); }, null, { timeout: 8000 }).catch(() => {});
+      if (!(await page.evaluate(() => !!document.querySelector('#ig-dock .ds-fold #ws-m-their-way')))) return false;
+      await page.click('#ig-dock .ds-fold #ws-m-their-way');
       await page.waitForTimeout(600);
       if (await page.evaluate(() => !!document.getElementById('cf-ok'))) await page.click('#cf-ok');
       await page.waitForTimeout(2000);

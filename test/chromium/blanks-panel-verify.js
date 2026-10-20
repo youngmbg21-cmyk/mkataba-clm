@@ -63,20 +63,25 @@ const signIn = async (page, base, email, pass) => {
    press below goes through this, and a missing control is a failed claim with
    its reason on it. THE RULE THIS FILE IS OBEYING: a build without the feature
    REPORTS its failures rather than timing out. */
+/* RE-POINTED 20 Oct 2026 (the Legora way): a blank still owed is answered on
+   its row of the Dossier's grid (#pd-og) and Confirmed; one already answered
+   on its Key terms line (#pd-kt), opened by Change and closed by Done — as a
+   person would. The key is read off the old selector the checks name. */
 const typeInto = async (page, sel, value, ev) => {
-  const there = await page.evaluate(x => !!document.querySelector(x), sel);
-  if (!there) return false;
-  /* A box already answered sits in the "Show N filled" fold (Home's Overview
-     tab, 11 Oct 2026): the reader opens the fold first, as a person would. */
-  await page.evaluate(x => { const d = document.querySelector(x).closest('details');
-    if (d && !d.open) d.querySelector('summary').click();
-    /* RE-POINTED 18 Oct 2026 (the gaps, round 8 "Owed first", f751): on Fill in
-       the answered rows stand behind the face's own "Filled" fold — every one
-       of them now, the paper's questions too — so it is opened first */
-    const row = document.querySelector(x).closest('[data-pd-owed="0"]'), ff = document.querySelector('#pd-fillface .pd-ff');
-    if (row && ff && !ff.classList.contains('is-filled-open')) { const f = document.querySelector('#pd-fillface [data-pd-ff-fold]'); if (f) f.click(); } }, sel);
-  await page.fill(sel, value);
-  await page.dispatchEvent(sel, ev);
+  const k = (/data-blankf="([^"]+)"/.exec(sel) || [])[1]; if (!k) return false;
+  const where = await page.evaluate(k => {
+    if (document.querySelector(`#pd-og tr:not(.is-saved) :is([data-blankf="${k}"],[data-kt="${k}"])`)) return 'og';
+    const r = document.querySelector(`#pd-kt tr[data-pd-og-row="${k}"]`); if (!r) return null;
+    const f = document.getElementById('pd-kt'); if (!f.open) f.open = true;
+    const b = r.querySelector('[data-pd-kt-change]'); if (b) b.click(); return 'kt'; }, k);
+  if (!where) return false;
+  await page.waitForTimeout(400);
+  const box = `${where === 'og' ? '#pd-og' : '#pd-kt'} :is([data-blankf="${k}"],[data-kt="${k}"])`;
+  if (!(await page.$(box))) return false;
+  await page.fill(box, value);
+  await page.dispatchEvent(box, 'input');
+  await page.dispatchEvent(box, ev);
+  await page.click(where === 'og' ? `#pd-og [data-pd-og-ok="${k}"]` : `#pd-kt [data-pd-kt-done="${k}"]`).catch(() => {});
   await page.waitForTimeout(700);
   return true;
 };
@@ -87,52 +92,53 @@ const typeInto = async (page, sel, value, ev) => {
 /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
    Details tab is gone; the same form is Jambo's Fill in face (#pd-fill)
    beside Home's paper (#ig-canvas), the door roomGoTab(c,'details') opens. */
+/* RE-POINTED 20 Oct 2026 (the Legora way): the same door lands on the Dossier's grid beside Home's paper */
 const openRoom = async (page, id) => {
   for (let t0 = Date.now(); Date.now() - t0 < 10000;) {
-    if (await page.evaluate(x => state.view === 'dashboard' && window.pdFillShows && pdFillShows()
-      && !!document.querySelector('#ig-canvas') && !!document.querySelector(`#pd-fillface .pd-ff[data-pd-ff="${x}"] #pd-fill`), id)) break;
+    if (await page.evaluate(x => state.view === 'dashboard' && !!document.querySelector('#ig-canvas')
+      && !!document.querySelector(`#ig-dock #pd-glance[data-pd-glance-for="${x}"]`) && !!(window.intel && intel.paper && intel.paper.id === x), id)) break;
     await page.evaluate(x => { roomGoTab(getContract(x), 'details'); }, id);
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(400);
   }
-  await page.waitForFunction(() => !!document.querySelector('#pd-fill [data-blankf], #pd-fill [data-tplf]'),
-    null, { timeout: 2500 }).catch(() => {});
+  await page.waitForFunction(() => !!document.querySelector('#pd-og, #pd-kt'), null, { timeout: 2500 }).catch(() => {});
+  await page.waitForTimeout(300);
 };
 
 /* WHAT IS PAINTED, read off the rendered page and never off the source. */
 const PANEL = () => {
-  const host = document.getElementById('pd-fill');
-  if (!host) return { there: false };
-  /* RE-POINTED 17 Oct 2026 (round 8, "Owed first"): on Home the questions' host is laid flat in Fill in's worklist, so the face is what is drawn */
-  const r = ((getComputedStyle(host).display === 'contents' && document.getElementById('pd-fillface')) || host).getBoundingClientRect();
-  const boxes = [...host.querySelectorAll('[data-blankf]')].map(b => ({
-    key: b.getAttribute('data-blankf'),
-    label: ((b.closest('label') || {}).textContent || '').trim(),
-    value: b.value,
-    w: Math.round(b.getBoundingClientRect().width),
-    folded: !!b.closest('details.pd-fill-done'),
-  }));
+  /* RE-POINTED 20 Oct 2026 (the Legora way): the form is the Dossier's grid
+     (the owed, each with its box) and its Key terms (the answered, each a line) */
+  const og = document.getElementById('pd-og'), kt = document.getElementById('pd-kt');
+  const dock = document.querySelector('#ig-dock #pd-glance');
+  if (!og && !kt) return { there: false };
+  const r = dock.getBoundingClientRect();
+  const owedRows = og ? [...og.querySelectorAll('tr[data-pd-og-row]:not(.is-saved)')].filter(x => !['signers', 'stream'].includes(x.getAttribute('data-pd-og-row'))) : [];
+  const ktRows = kt ? [...kt.querySelectorAll('tr[data-pd-og-row]')] : [];
+  const gridBoxes = og ? [...og.querySelectorAll('tr:not(.is-saved) [data-blankf]')] : [];
+  const boxes = gridBoxes.map(b => ({ key: b.getAttribute('data-blankf'), label: ((b.closest('tr').querySelector('.pd-og-f b') || {}).textContent || '').trim(),
+    value: b.value, w: Math.round(b.getBoundingClientRect().width), folded: false }))
+    .concat(ktRows.filter(x => x.getAttribute('data-pd-og-kind') === 'blank').map(x => ({ key: x.getAttribute('data-pd-og-row'),
+      label: ((x.querySelector('.pd-og-f b') || {}).textContent || '').trim(), value: ((x.querySelector('.pd-kt-v') || {}).textContent || '').trim(), w: 0, folded: true })));
   const paper = document.getElementById('ig-canvas');
   const pr = paper ? paper.getBoundingClientRect() : null;
-  /* THE FIRST LINE OF THE WORDING, which is what refusal 3 measures. */
-  const firstInk = paper ? (() => {
-    const p = paper.querySelector('p');
-    return p ? Math.round(p.getBoundingClientRect().top) : null;
-  })() : null;
+  const firstInk = paper ? (() => { const p = paper.querySelector('p'); return p ? Math.round(p.getBoundingClientRect().top) : null; })() : null;
+  const c = (window.intel && intel.paper && window.getContract) ? getContract(intel.paper.id) : null;
+  let left = null; try { left = c ? detailsOf(c).left : null; } catch (_){ left = null; }
+  const keys = owedRows.map(x => x.getAttribute('data-pd-og-row')).concat(ktRows.map(x => x.getAttribute('data-pd-og-row')));
   return {
     there: true,
     drawn: r.width > 2 && r.height > 2,
     x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width),
-    boxes, keys: boxes.map(b => b.key),
-    count: ((host.querySelector('[data-blankf-count]') || {}).textContent || '').trim(),
+    boxes, keys,
+    count: String(owedRows.length), left,
     owed: boxes.filter(b => !b.folded).map(b => b.value),
     done: boxes.filter(b => b.folded).map(b => b.value),
-    filledLine: ((host.querySelector('p') || {}).textContent || '').trim(),
-    /* The library form's own marker, so "never both" can be measured. */
-    libraryForm: /Contract form/.test(host.textContent || '') && !host.querySelector('[data-blankf]'),
+    libraryForm: !!(og && og.querySelector('[data-tplf]')) && !gridBoxes.length,
     paperX: pr ? Math.round(pr.left) : null,
     paperW: pr ? Math.round(pr.width) : null,
     firstInk,
     paperBlanks: paper ? paper.querySelectorAll('[data-field],[data-sync]').length : 0,
+    paperKeys: paper ? [...new Set([...paper.querySelectorAll('[data-field],[data-sync]')].map(e => e.getAttribute('data-field') || e.getAttribute('data-sync')))] : [],
   };
 };
 
@@ -194,15 +200,16 @@ const CONTRACT = (id, over) => Object.assign({
     /* ============ 1. THE PANEL IS DRAWN, BESIDE THE PAPER ============ */
     await openRoom(page, built.id);
     const p = await page.evaluate(PANEL);
-    check('1a the slot is on the page at all', p.there, p.there ? 'yes' : '#pd-fill missing');
+    check('1a the slot is on the page at all', p.there, p.there ? 'yes' : '#pd-og / #pd-kt missing');
     check('1b the panel is DRAWN on a built-in template\'s contract', p.drawn,
       p.there ? p.w + 'px wide' : 'not drawn');
     check('1c and it is beside the paper, not over it', p.drawn && p.paperX != null && p.x > p.paperX + p.paperW - 40,
       `panel x ${p.x}, paper ends ${p.paperX + p.paperW}`);
 
     /* ============ 2. EVERY BLANK THE PAGE CARRIES HAS A BOX ============ */
-    check('2a one box per blank the paper draws', p.boxes.length > 0 && p.boxes.length === p.paperBlanks,
-      `${p.boxes.length} boxes for ${p.paperBlanks} blanks on the paper`);
+    /* RE-POINTED 20 Oct 2026: every blank the paper draws has its line — a grid row while owed, a Key terms line once answered */
+    check('2a every blank the paper draws has its line in the panel', p.paperKeys.length > 0 && p.paperKeys.every(k => p.keys.includes(k)),
+      `paper ${p.paperKeys.join(',')} · panel ${p.keys.join(',')}`);
     check('2b including the two this template declares nowhere',
       p.keys.includes('forecastWeeks') && p.keys.includes('safetyDays'),
       p.keys.join(', '));
@@ -211,21 +218,19 @@ const CONTRACT = (id, over) => Object.assign({
     /* RE-POINTED 11 Oct 2026: on Home's Overview tab the rows are not grouped
        by clause (owner picked the SAP way): the blanks still open come first,
        the answered ones fold under "Show N filled". */
-    check('2d the open blanks come first, the answered ones folded beneath',
+    check('2d the open blanks are the grid\'s rows, the answered ones folded under Key terms',
       p.owed.length > 0 && p.done.length > 0 && p.owed.every(v => !String(v).trim())
         && p.done.every(v => String(v).trim()),
       `open [${p.owed.join(',')}] · folded [${p.done.join(',')}]`);
     /* RE-POINTED (21 Sep 2026): the counter reads "N of M" now. */
-    check('2e the counter agrees with the page', /^\d+ \S+ \d+$/.test(p.count)
-      && Number(p.count.split(/\s+/)[2]) === p.boxes.length, p.count);
+    check('2e the grid asks exactly what is owed', Number(p.count) === p.left, `${p.count} rows · ${p.left} owed`);
 
     /* ============ 3. TWO DOORS, ONE ACT — PANEL TO PAPER ============ */
     const drove = await typeInto(page, '#pd-fill [data-blankf="forecastWeeks"]', '11', 'change');
     const toPaper = drove ? await page.evaluate(() => ({
       paper: ((document.querySelector('#ig-canvas [data-field="forecastWeeks"]') || {}).textContent || '').trim(),
       record: (state.contracts.find(x => x.id === 'MK-BF1') || { fields: {} }).fields.forecastWeeks,
-      count: ((document.querySelector('[data-blankf-count]') || {}).textContent || '').trim(),
-    })) : { paper: null, record: null, count: null };
+    })) : { paper: null, record: null };
     check('3a typing in the panel moves the paper', toPaper.paper === '11', 'paper reads ' + toPaper.paper);
     check('3b and the record, through the one act', String(toPaper.record) === '11', 'record reads ' + toPaper.record);
     /* MEASURED ON A BLANK THAT IS REALLY OPEN. Written first against
@@ -234,9 +239,8 @@ const CONTRACT = (id, over) => Object.assign({
        it was never open and filling it could not move a counter of open
        blanks. packType is the one with nothing in it. */
     const droveOpen = await typeInto(page, '#pd-fill [data-blankf="packType"]', 'PET preforms', 'change');
-    const counted = droveOpen ? await page.evaluate(() =>
-      ((document.querySelector('[data-blankf-count]') || {}).textContent || '').trim()) : null;
-    check('3c and the counter moves when an OPEN blank is answered', !!counted && counted !== p.count,
+    const counted = droveOpen ? (await page.evaluate(PANEL)).count : null;
+    check('3c and the grid shortens when an OPEN blank is answered', !!counted && Number(counted) === Number(p.count) - 1,
       p.count + ' → ' + counted);
 
     /* ============ 4. AND PAPER TO PANEL ============ */
@@ -273,7 +277,7 @@ const CONTRACT = (id, over) => Object.assign({
        null: two papers are not a before and after. */
     const withPanel = await page.evaluate(PANEL);
     const without = await page.evaluate(() => {
-      const host = document.getElementById('pd-fill');
+      const host = document.querySelector('#ig-dock #pd-glance');
       const was = host ? host.style.display : null;
       if (host) host.style.display = 'none';
       const paper = document.getElementById('ig-canvas');
@@ -305,7 +309,13 @@ const CONTRACT = (id, over) => Object.assign({
     await openRoom(page, built.id);
     /* the boxes in sight: Fill in folds the answered ones under "Show N filled" */
     const boxes9 = [];
-    for (const b of await page.$$('#pd-fill [data-blankf]')) if (await b.isVisible()) boxes9.push(b);
+    /* every blank of this contract is answered by now: its box is its Key terms line's, opened by Change */
+    await page.evaluate(() => { if (document.querySelector('#pd-og tr:not(.is-saved) [data-blankf]')) return;
+      const kt = document.getElementById('pd-kt'); if (kt && !kt.open) kt.open = true;
+      const rows = [...document.querySelectorAll('#pd-kt tr[data-pd-og-kind="blank"]')];
+      const r = rows[rows.length - 1]; const b = r && r.querySelector('[data-pd-kt-change]'); if (b) b.click(); });
+    await pause(500);
+    for (const b of await page.$$('#pd-og [data-blankf], #pd-kt [data-blankf]')) if (await b.isVisible()) boxes9.push(b);
     if (!boxes9.length){
       for (const [n, what] of [['9a', 'a cursor in a box lights its word on the paper'],
         ['9b', 'exactly one word is lit'], ['9c', 'the contract does not move a pixel'],
@@ -379,7 +389,7 @@ const CONTRACT = (id, over) => Object.assign({
         const sc = document.getElementById('ig-paper-scroll');
         if (sc) sc.scrollTop = 0;
         if (document.activeElement) document.activeElement.blur();
-        const boxes = [...document.querySelectorAll('#pd-fill [data-blankf]')];
+        const boxes = [...document.querySelectorAll('#pd-og [data-blankf], #pd-kt [data-blankf]')];
         const last = boxes[boxes.length - 1];
         const fold = last && last.closest('details'); if (fold) fold.open = true;
         return { key: last ? last.getAttribute('data-blankf') : null,
@@ -389,7 +399,7 @@ const CONTRACT = (id, over) => Object.assign({
       if (!low9.key){
         check('9f a cursor in a field low on the paper scrolls the contract to it', false, 'no box');
       } else {
-        await page.click(`#pd-fill [data-blankf="${low9.key}"]`); await pause(500);
+        await page.click(`:is(#pd-og, #pd-kt) [data-blankf="${low9.key}"]`); await pause(500);
         const moved9 = await page.evaluate(() => {
           const sc = document.getElementById('ig-paper-scroll');
           const lit = document.querySelector('#ig-canvas .is-fieldlit');
@@ -419,14 +429,14 @@ const CONTRACT = (id, over) => Object.assign({
         check('9e a press on a blank on the paper takes the caret to its box in the panel',
           false, 'no blank on this paper');
       } else {
-        await page.evaluate(() => { document.querySelectorAll('#pd-fill details').forEach(d => { d.open = false; });
+        await page.evaluate(() => { document.querySelectorAll('#pd-kt').forEach(d => { d.open = false; });
           if (document.activeElement) document.activeElement.blur(); });
         await pin.scrollIntoViewIfNeeded(); await pin.click(); await pause(250);
         const back = await page.evaluate(() => {
           const a = document.activeElement;
           return { box: a && a.getAttribute ? a.getAttribute('data-blankf') : null,
             caretOnPaper: !!(a && a.closest && a.closest('#ig-canvas')),
-            caretInPanel: !!(a && a.closest && a.closest('#pd-fill')) && a.getAttribute('data-blankf') === 'payDays' };
+            caretInPanel: !!(a && a.closest && a.closest('#pd-og, #pd-kt')) && a.getAttribute('data-blankf') === 'payDays' };
         });
         /* REVERSED 9 Oct 2026 (change 5, "the Document tab is never edited"): a
            press on the paper's blank takes the caret to ITS box in the panel. */
@@ -452,15 +462,11 @@ const CONTRACT = (id, over) => Object.assign({
        form's boxes and was silent on the rest. */
     await openRoom(page, filled.id);
     const cs = await page.evaluate(() => {
-      const panel = document.getElementById('pd-fill');
+      /* RE-POINTED 20 Oct 2026: the owed question is a grid row with its box, the answered one a Key terms line */
       const canvas = document.getElementById('ig-canvas');
-      const boxes = panel ? [...panel.querySelectorAll('[data-tplf]')] : [];
-      /* the contract the form is about: Home's paper's (formHeldContract) */
       const c = (window.formHeldContract && formHeldContract(null)) || getContract(intel.paper.id);
-      const out = boxes.map(b => {
-        const key = window.contractFieldKeyOf ? contractFieldKeyOf(b, c) : '';
-        return { key, peer: !!(key && window.contractFieldPeer && contractFieldPeer(key, 'paper')) };
-      });
+      const keysOf = [...document.querySelectorAll('#pd-og tr:not(.is-saved)[data-pd-og-kind="tplf"], #pd-kt tr[data-pd-og-kind="tplf"]')].map(r => r.getAttribute('data-pd-og-row'));
+      const out = keysOf.map(key => ({ key, peer: !!(key && window.contractFieldPeer && contractFieldPeer(key, 'paper')) }));
       const done = canvas ? canvas.querySelector('span.hati-field-done[data-field-key]') : null;
       const blank = canvas ? canvas.querySelector('span.hati-field[data-field-key]') : null;
       const near = done && done.parentElement ? done.parentElement : null;
@@ -490,10 +496,14 @@ const CONTRACT = (id, over) => Object.assign({
     /* AND THE PRESS REALLY MOVES THE PAPER — the field paragraph is far down. */
     const jump = await page.evaluate(async () => {
       const s = document.getElementById('ig-paper-scroll');
-      const b = document.querySelector('#pd-fill [data-tplf]');
+      /* the ANSWERED one: its Key terms line opened by Change, its box in the hand */
+      const kt = document.getElementById('pd-kt'); if (kt && !kt.open) kt.open = true;
+      const ch = document.querySelector('#pd-kt tr[data-pd-og-kind="tplf"] [data-pd-kt-change]'); if (ch) ch.click();
+      await new Promise(r => setTimeout(r, 400));
+      const b = document.querySelector('#pd-kt [data-tplf]');
       if (!s || !b) return null;
       s.scrollTop = 0;
-      b.focus();
+      b.blur(); b.focus();
       await new Promise(r => setTimeout(r, 400));
       const el = document.querySelector('#ig-canvas .is-fieldlit');
       const sr = s.getBoundingClientRect(), er = el ? el.getBoundingClientRect() : null;

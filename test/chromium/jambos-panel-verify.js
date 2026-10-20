@@ -81,24 +81,29 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     await open();
     const nd = await until(() => { const el = document.getElementById('pd-needs'), gl = document.getElementById('pd-glance');
       if (!el || !gl) return null;
-      const rows = [...el.querySelectorAll('.pd-nd-row')];
-      return { before: !!(el.compareDocumentPosition(gl) & Node.DOCUMENT_POSITION_FOLLOWING),
-        title: el.querySelector('.pd-gl-h b').textContent.trim(), n: (el.querySelector('.pd-gl-h .pd-pill') || {}).textContent || '',
-        rows: rows.length, firstJw: !!(rows[0] && rows[0].classList.contains('is-jw')), jwFace: !!(rows[0] && rows[0].querySelector('img')),
+      /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): Needs you here's rows are the dossier's Still owed card,
+         after What Jambo read; "Still owed · N" counts every row (a "N more" row stands for N) */
+      const rows = [...el.querySelectorAll('.pd-gl-row:not(.is-done)')];
+      const jw = rows.find(r => r.classList.contains('is-jw'));
+      const read = gl.querySelector('[data-pd-ds-card="read"]');
+      return { before: gl.contains(el) && !!read && !!(read.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING),
+        title: el.querySelector('.pd-gl-h b').textContent.trim(), n: (el.querySelector('.pd-gl-h b').textContent.match(/\d+/) || [''])[0],
+        /* RE-POINTED 20 Oct 2026 (the Legora way): the owed facts are the grid's rows */
+        rows: rows.reduce((a, r) => a + Number((/(\d+) more/.exec(r.textContent) || [])[1] || 1), 0) + el.querySelectorAll('#pd-og tr.pd-og-row:not(.is-saved)').length, firstJw: !!jw, jwFace: !!(jw && jw.querySelector('img')),
         kinds: rows.map(r => r.getAttribute('data-pd-nd-kind') || 'jw'),
         all: (el.querySelector('[data-pd-nd-all]') || {}).textContent || '', counter: counterNeedsCount(),
         badge: (document.querySelector('#ig-dock [data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || '' }; }, null, 10000);
-    check('1a Needs you here is drawn above the contract at a glance', !!nd && nd.before && nd.title === 'Needs you here', JSON.stringify(nd));
-    check('1b Jambo\'s prepared work on this contract leads, with his face', !!nd && nd.firstJw && nd.jwFace, nd && nd.kinds.join(','));
+    check('1a Still owed is the dossier\'s card under What Jambo read', !!nd && nd.before && /^Still owed · \d+$/.test(nd.title), JSON.stringify(nd));
+    check('1b Jambo\'s prepared work on this contract is one of its rows, with his face', !!nd && nd.firstJw && nd.jwFace, nd && nd.kinds.join(','));
     check('1d its number is its rows', !!nd && Number(nd.n) === nd.rows, nd && (nd.n + ' / ' + nd.rows));
-    /* the drawn lower case, "all 7 ›" (round 3 as drawn, 18 Oct 2026) */
-    check('1e "all N" is the Counter\'s own number', !!nd && nd.all.trim() === 'all ' + nd.counter, nd && nd.all);
+    /* RE-POINTED 20 Oct 2026: Still owed's head says "everything, one list" where "all N" stood (the dossier as drawn) */
+    check('1e Still owed\'s head carries no "all N" of its own', !!nd && !nd.all, nd && nd.all);
     check('1f his tab carries the same number', !!nd && Number(nd.badge) === nd.counter, nd && nd.badge);
     await shot(page, 'jambos-panel-1440x780');
 
     console.log('\n2 · the two cards do not say it twice');
-    const gl = await page.evaluate(() => [...document.querySelectorAll('#pd-glance [data-pd-gl]')].map(r => r.getAttribute('data-pd-gl')));
-    check('2a the details still owed are the glance\'s row, not Needs you here\'s', !!nd && !nd.kinds.includes('details') && gl.includes('fill'), JSON.stringify({ needs: nd && nd.kinds, glance: gl }));
+    const gl = await page.evaluate(() => [...document.querySelectorAll('#pd-glance [data-pd-gl]')].map(r => r.getAttribute('data-pd-gl')).concat(document.querySelector('#pd-glance #pd-og') ? ['grid'] : []));
+    check('2a the details still owed are the grid\'s rows, not Needs you here\'s', !!nd && !nd.kinds.includes('details') && gl.includes('grid'), JSON.stringify({ needs: nd && nd.kinds, glance: gl }));
 
     console.log('\n3 · a row\'s door, and the way back to Jambo');
     if (await press('#pd-needs [data-pd-nd-jw]', '3a Jambo\'s work row')) {
@@ -107,29 +112,20 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     }
     await page.evaluate(() => pdOpenOnHome('MK-0382', 'fill'));
     {
-      /* RE-POINTED 18 Oct 2026 (the gaps of rounds 8–11 as drawn: while a face
-         is up the panel's row reads Jambo's tab, the face's word, and "‹ Jambo"
-         at its end) — and AT THE INTEGRATION (19 Oct 2026) by the owner's
-         answer (3): Fill in keeps round 3's own head, "‹ Jambo · Fill in the
-         details · N left · ×", the contract's tabs above it and no face word
-         in the row; the row's way is the Redlines face's (3d) */
-      /* RE-POINTED 19 Oct 2026 (ONE TRAIL, owner): the tabs stay; Fill in's
-         head IS its trail — "‹ Jambo  Jambo / Fill in", then the count, no × */
-      const ff = await until(() => window.pdFillShows && pdFillShows() && document.querySelector('#pd-fillface .pd-ff-r') && (() => {
-        const r = document.querySelector('#pd-fillface .pd-ff-r'), b = r.querySelector('[data-pd-back="fill"]'), w = r.querySelector('.pd-trail-w'), x = r.querySelector('[data-pd-ff-close]');
-        const head = document.querySelector('#ig-dock .igd-head');
-        return { back: !!b && b.textContent.trim(), order: !!(b && w) && b.getBoundingClientRect().right <= w.getBoundingClientRect().left + 1, where: w ? w.textContent.trim() : '', x: !!x,
-          rowBack: !!(head && head.querySelector('[data-pd-back]')),
-          tabs: head ? [...head.querySelectorAll('[data-pd-tab]')].map(t => t.getAttribute('data-pd-tab')).join() : '' }; })(), null, 8000);
-      /* RE-POINTED 19 Oct 2026 — JAMBO AS A TAB YOU FLIP TO (owner: "the first tab
-         beside a contract is renamed Overview"): the faces' back says "‹ Overview" */
-      check('3b Fill in: the tabs stay, its head is the trail "‹ Overview · Overview / Fill in", no ×',
-        !!ff && ff.back === 'Overview' && ff.order && /Overview \/ Fill in/.test(ff.where) && !ff.x && !ff.rowBack && ff.tabs.split(',').length > 1, JSON.stringify(ff));
+      /* RE-POINTED 20 Oct 2026 — THE LEGORA WAY (owner: "Why should I have to go
+         elsewhere to enter the details?"): a door asking for Fill in opens no
+         face; the tabs stay, the Dossier is the tab and its grid's first owed
+         row takes the hand — nothing to go back from */
+      const ff = await until(() => { const og = document.querySelector('#ig-dock #pd-og'); if (!og) return null;
+        const a = document.activeElement, head = document.querySelector('#ig-dock .igd-head');
+        return { face: !!document.getElementById('pd-fillface'), back: !!document.querySelector('#ig-dock [data-pd-back="fill"]'), tab: pdTab(),
+          hand: !!(a && a.closest && a.closest('#pd-og')), tabs: head ? [...head.querySelectorAll('[data-pd-tab]')].map(t => t.getAttribute('data-pd-tab')).join() : '' }; }, null, 8000);
+      /* the landing is bounded beats after the paint: the hand is asked for, not assumed at the first frame */
+      if (ff && !ff.hand) ff.hand = !!(await until(() => { const a = document.activeElement; return !!(a && a.closest && a.closest('#pd-og')); }, null, 4000));
+      check('3b Fill in: no face — the tabs stay, the Dossier is the tab, its grid\'s row in the hand',
+        !!ff && !ff.face && ff.tab === 'copilot' && ff.hand && ff.tabs.split(',').length > 1, JSON.stringify(ff));
       await shot(page, 'jambos-panel-fill-1440x780');
-      if (await press('#ig-dock [data-pd-back="fill"]', '3c ‹ Jambo on Fill in')) {
-        const back = await until(() => !(window.pdFillShows && pdFillShows()) && !!document.getElementById('pd-glance'), null, 6000);
-        check('3c "‹ Jambo" brings his tab back', !!back);
-      }
+      check('3c nothing to go back from: no "‹" for a face that is not there', !!ff && !ff.back);
     }
     await page.evaluate(() => pdOpenOnHome('MK-0382', 'red'));
     /* RE-POINTED 19 Oct 2026 (ONE TRAIL, owner): the trail line under the tabs reads "‹ Jambo  Jambo / Redlines" */
@@ -140,19 +136,15 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
         headBack: !!top.querySelector('[data-pd-back]'), headX: !!top.querySelector('[data-pd-rf-close]'),
         first: (top.querySelector('.rl-idx-title') || {}).textContent || '' }; }, null, 10000);
     /* RE-POINTED 19 Oct 2026 (JAMBO AS A TAB YOU FLIP TO): "‹ Overview" */
-    check('3d the Redlines face: the trail line reads "‹ Overview" · Redlines; the column\'s head opens with "Redlines N", no ‹ Jambo, no ×',
-      !!rf && rf.word === 'Redlines' && rf.back === 'Overview' && rf.sameLine && !rf.headBack && !rf.headX && /^Redlines/.test(rf.first.trim()), JSON.stringify(rf));
+    check('3d the Redlines face: the trail line reads "‹ Dossier" · Redlines; the column\'s head opens with "Redlines N", no ‹ Jambo, no ×',
+      !!rf && rf.word === 'Redlines' && rf.back === 'Dossier' && rf.sameLine && !rf.headBack && !rf.headX && /^Redlines/.test(rf.first.trim()), JSON.stringify(rf));
     await shot(page, 'jambos-panel-redlines-1440x780');
     if (await press('#ig-dock [data-pd-back="red"]', '3e ‹ Jambo on Redlines')) {
       const back = await until(() => !(window.pdRedShows && pdRedShows()) && !!document.getElementById('pd-glance'), null, 6000);
       check('3e "‹ Jambo" closes Redlines and brings his tab back', !!back);
     }
 
-    console.log('\n4 · "all N" lands on Home\'s Needs you');
-    if (await press('#pd-needs [data-pd-nd-all]', '4a all N')) {
-      const cn = await until(() => state.view === 'counter' && !!document.querySelector('#cn-needs.is-landed'), null, 8000);
-      check('4a "all N" opens Home and lands on Needs you, where the same number stands (landOn)', !!cn);
-    }
+    /* RE-POINTED 20 Oct 2026: "all N" is retired with Needs you here's head; the tab's number stays the Counter's (1f) */
 
     console.log('\n5 · the folded strip');
     await open();
@@ -178,7 +170,8 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
         if (!dock || !feed || !nd || !gl || !box) return null;
         const f = feed.getBoundingClientRect(), g = gl.getBoundingClientRect(), b = box.getBoundingClientRect(), d = dock.getBoundingClientRect(), n = nd.getBoundingClientRect();
         const wide = [...dock.querySelectorAll('#pd-needs *, #pd-glance *')].filter(e => e.getBoundingClientRect().right > d.right + 1).length;
-        return { top: n.bottom <= f.top + 1 && n.top >= d.top && !feed.contains(nd) && feed.scrollTop === 0, glance: g.top < f.bottom, box: b.bottom <= innerHeight + 1 && b.top >= 0, wide, scroll: feed.scrollHeight - feed.clientHeight }; }, null, 8000);
+        /* RE-POINTED 20 Oct 2026: the dossier opens at its top, Still owed begun in view */
+        return { top: n.top >= d.top && n.top < f.bottom && feed.scrollTop === 0, glance: g.top < f.bottom, box: b.bottom <= innerHeight + 1 && b.top >= 0, wide, scroll: feed.scrollHeight - feed.clientHeight }; }, null, 8000);
       /* RE-POINTED 18 Oct 2026 (rounds 3 and 6 as drawn): the glance now says
          their round and EACH of their asks, so on a short screen it can be
          longer than the panel — which then opens at its TOP (Needs you here
@@ -186,7 +179,7 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
          stands, and the rest is a scroll away. PASS 3 (round 3's Compare,
          "it stays at the top"): Needs you here is PINNED above the
          conversation's scroller (#pd-pin), not inside it */
-      check(`6 ${w}×${ht}: Needs you here at the top, the glance begun, the ask box in view, nothing past the panel's edge`, !!fit && fit.top && fit.glance && fit.box && fit.wide === 0, JSON.stringify(fit));
+      check(`6 ${w}×${ht}: the dossier at its top, Still owed begun, the ask box in view, nothing past the panel's edge`, !!fit && fit.top && fit.glance && fit.box && fit.wide === 0, JSON.stringify(fit));
       await shot(page, `jambos-panel-${w}x${ht}`);
     }
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));

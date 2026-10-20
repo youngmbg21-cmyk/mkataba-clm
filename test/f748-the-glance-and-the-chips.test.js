@@ -98,14 +98,15 @@ describe('f748 (1) their round and each of their asks', () => {
   test('1b who sent how many, and when; "Your move." · Redlines', () => {
     const { ctx, c } = glance();
     const html = ctx.pdGlanceHtml(c);
-    assert.match(html, /data-pd-gl="move"><span>Nordvik Logistik AB sent 2 redlines 4 days ago\.<small title="Your move\.">Your move\.<\/small><\/span><button type="button" class="ui-btn ui-btn-sm" data-pd-glance="redline">Redlines<\/button>/);
+    /* RE-POINTED 20 Oct 2026 (the Dossier, #386): Still owed names each of their asks, how long it waits, and Reply › onto the Redlines */
+    assert.match(html, /data-pd-gl="ask" data-pd-gl-ch="a"><span>[^<]+<small>waits 4 days ago<\/small><\/span><button type="button" class="pd-go ds-go" data-pd-glance="redline">Reply ›<\/button>/);
     const today = glance({ asks: [ask('a', '7. Limitation of liability', SWAP, { createdAt: new Date().toISOString() })] });
     assert.equal(today.ctx.pdGlMoveSay(today.c, today.c.changes), 'Nordvik Logistik AB sent 1 redline today.');
   });
   test('1c each ask in its own stored words — what goes, what comes — with Go to it', () => {
     const { ctx, c } = glance();
     const html = ctx.pdGlanceHtml(c);
-    assert.match(html, /data-pd-gl="ask" data-pd-gl-ch="a"><span>Clause 7: they ask for 100% of the fees, up from 50%\.<small title="their ask">their ask<\/small><\/span><button type="button" class="ui-btn ui-btn-sm" data-pd-gl-go="cl_a">Go to it<\/button>/);
+    assert.match(html, /data-pd-gl="ask" data-pd-gl-ch="a"><span>Clause 7: they ask for 100% of the fees, up from 50%\.<small>/);
     assert.match(html, /Clause 11: they ask for 60 days to pay, up from 30\./, 'days in a payment clause are days to pay (as drawn)');
     const say = (ops, extra) => ctx.pdAskSay(c, ask('x', '4. Fees', ops, extra));
     /* what the number is OF: the words after it, to a stop, without a dangling "of the" */
@@ -133,7 +134,7 @@ describe('f748 (1) their round and each of their asks', () => {
     const rows = J(ctx.pdGlanceRows(c).map(r => Object.assign({}, r, { ch: undefined })));
     assert.equal(rows.filter(r => r.kind === 'ask').length, ctx.PD_GL_ASKS_MAX);
     assert.deepEqual(J(rows.find(r => r.k === 'asks-more')), { k: 'asks-more', n: 5 - ctx.PD_GL_ASKS_MAX });
-    assert.match(ctx.pdGlanceHtml(c), /data-pd-gl="asks-more"><span>2 more of their asks\.<\/span><button type="button" class="ui-btn ui-btn-sm" data-pd-glance="redline">Redlines</);
+    assert.match(ctx.pdGlanceHtml(c), /data-pd-gl="ask-more"><span>2 more of their asks\.<\/span>|data-pd-gl="ask"><span>2 more of their asks\.<\/span><button type="button" class="pd-go ds-go" data-pd-glance="redline">Reply ›</);
   });
   test('1e our own asks, a decided ask and a withdrawn one are not theirs waiting', () => {
     const { ctx, c } = glance({ asks: [ask('a', '7. X', SWAP, { authorSide: 'owner' }), ask('b', '8. Y', SWAP, { status: 'accepted' })] });
@@ -149,17 +150,18 @@ describe('f748 (1) their round and each of their asks', () => {
 describe('f748 (2) who signs, and the risks not read yet', () => {
   test('2a "Nobody has been named to sign yet." · Needed before signing · Signing', () => {
     const { ctx, c } = glance();
-    assert.match(ctx.pdGlanceHtml(c), /data-pd-gl="sign"><span>Nobody has been named to sign yet\.<small title="Needed before signing">Needed before signing<\/small><\/span><button type="button" class="ui-btn ui-btn-sm" data-pd-glance="sign">Signing</);
+    /* RE-POINTED 20 Oct 2026 (the Legora way): nobody named is the grid's Signer row, both sides asked on it */
+    assert.match(ctx.pdGlanceHtml(c), /data-pd-og-row="signers"[^>]*><td class="pd-og-f"><b>Signer<\/b><span class="pd-og-src is-none">not in the wording · from your people<\/span>[\s\S]*data-pd-og-sg="tname"[\s\S]*data-pd-og-ok="signers"/);
   });
   /* RE-POINTED (pass 3, the owner's answer 6): the read is free, the rules scan */
   test('2b "Risks not read yet" · "Reading is free: HaTi\'s own rules, no Jambo call" · Read it', () => {
     const { ctx, c } = glance();
-    assert.match(ctx.pdGlanceHtml(c), /data-pd-gl="scan"><span>Risks not read yet<small title="Reading is free: HaTi’s own rules, no Jambo call">Reading is free: HaTi’s own rules, no Jambo call<\/small><\/span><button type="button" class="ui-btn ui-btn-sm" data-pd-gl-scan>Read it</);
-    assert.ok(!/Jambo call<\/small>/.test(ctx.pdGlanceHtml(c).replace('no Jambo call</small>', '')), 'never a cost');
+    /* RE-POINTED 20 Oct 2026 (the Dossier, #386): What Jambo read's risks row, the free read said on its button */
+    assert.match(ctx.pdGlanceHtml(c), /data-pd-ds="risks"><span>Risks — not read yet · free<\/span><button type="button" class="ui-btn ui-btn-sm" data-pd-gl-scan title="Reading is free: HaTi’s own rules, no Jambo call">Read it</);
   });
   test('2b2 no key needed: the free read is offered either way', () => {
     const { ctx, c } = glance({ keyed: false });
-    assert.match(ctx.pdGlanceHtml(c), /data-pd-gl-scan>Read it</);
+    assert.match(ctx.pdGlanceHtml(c), /data-pd-gl-scan[^>]*>Read it</);
   });
   test('2c not offered once scanned, signed, or to someone who may not act on the wording', () => {
     for (const o of [{ scanned: true }, { status: 'Signed' }, { may: false }]){
@@ -172,7 +174,8 @@ describe('f748 (2) who signs, and the risks not read yet', () => {
 describe('f748 (3) the stage pill carries its round', () => {
   test('3 "In Review · round 2", as the paper\'s line says it', () => {
     const { ctx, c } = glance();
-    assert.match(ctx.pdGlanceHtml(c), /<b>MK-0382 at a glance<\/b><span class="pd-gl-sp"><\/span><span class="room-stat">In Review · round 2<\/span>/);
+    /* RE-POINTED 20 Oct 2026 (the Dossier, #386): the stage is the spine's lit Negotiate */
+    assert.match(ctx.pdGlanceHtml(c), /class="ds-st is-(?:now|on)[^"]*" role="listitem" data-ds-st="nego"/);
   });
 });
 

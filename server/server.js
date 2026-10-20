@@ -180,6 +180,19 @@ db.exec(`
   -- the underscored transport field _brief and never enters the stored record.
   CREATE TABLE IF NOT EXISTS briefs (
     contract_id TEXT PRIMARY KEY, json TEXT NOT NULL, created_at TEXT NOT NULL);
+  -- ASK A COLUMN (owner picked "In Jambo's panel", 20 Oct 2026): a question
+  -- the team asked of many contracts, and each contract's answer to it. Its
+  -- own tables, like briefs, so an answer never bumps a record's version and
+  -- is never part of what was agreed. An answer is keyed on the wording it
+  -- read (input_hash); a person's tick (checked_*) belongs to that answer and
+  -- goes with it when the wording changes and the answer is read again.
+  CREATE TABLE IF NOT EXISTS column_asks (
+    id TEXT PRIMARY KEY, qkey TEXT NOT NULL UNIQUE, question TEXT NOT NULL, name TEXT NOT NULL,
+    created_by TEXT, created_by_name TEXT, created_at TEXT NOT NULL, last_used_at TEXT NOT NULL);
+  CREATE TABLE IF NOT EXISTS column_answers (
+    ask_id TEXT NOT NULL, contract_id TEXT NOT NULL, input_hash TEXT NOT NULL, json TEXT NOT NULL,
+    checked_by TEXT, checked_name TEXT, checked_at TEXT, created_at TEXT NOT NULL,
+    PRIMARY KEY (ask_id, contract_id));
   -- The renewal adviser's cache (W2-4), on the same terms as briefs above: its
   -- own table, so writing one never bumps the record's version under an open
   -- editor, and a recommendation is not part of what was agreed or signed.
@@ -3090,6 +3103,7 @@ const AI_FEATURE_LABEL = {
   amend: 'Amendment drafting',  // work order O-12, named on arrival
   windows: 'Dated windows',     // work order O-40, the Time Machine's periods
   breakdown: 'Contract breakdown', // Home's Breakdown tab (owner, 11 Oct 2026), read once per wording
+  column: 'Ask a column',       // one question asked of many contracts (20 Oct 2026), named on arrival
   plan: 'Calendar planning',    // Copilot plans a person's own time (10 Oct 2026)
   settings: 'Settings questions', // Jambo answers a "why" on Settings (16 Oct 2026), named on arrival
   /* The template builder's outline (Prompt & Build). Named on arrival for
@@ -9324,6 +9338,174 @@ app.post('/api/ai/brief', auth, editor, rlAiDeep, aiFeature('brief'), aiBudgetGu
       .run(String(id), JSON.stringify(brief), now());
     res.json({ brief, ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
+});
+
+/* ===================== ASK A COLUMN (owner picked "In Jambo's panel",
+   20 Oct 2026; Legora's Tabular Review, made HaTi's own) =====================
+   One question asked of the WORDING of many contracts at once, each answer a
+   cell on the Contracts list with the sentence it came from. The owner's
+   rulings: at most COLUMN_MAX contracts a press, said where it bites (a cap is
+   a fact, never a silent trim); anyone who can edit contracts may ask (the
+   `editor` gate, as for the brief); an answer shows WHY in Jambo's side panel
+   ("The SAP way") and carries a person's tick once checked ("Tick in the
+   cell").
+   THE SAME BARGAIN AS THE BRIEF: an answer is read once per wording, keyed on
+   a hash of exactly what was read, kept in its own table, and read again only
+   when the wording moved or the reader asks again. Reading never writes to a
+   contract; nothing is filed.
+   THE WALLS ARE THE CONTRACT ROUTES' OWN: the stored record is asked, out of
+   scope reads exactly like not found, and a code-named deal outside its list
+   is refused at the front door (cnRequestIds reads `ids`). */
+const COLUMN_MAX = 50;
+const COLUMN_AT_ONCE = 4;
+const COLUMN_TONES = ['good', 'watch', 'concern', 'none'];
+const colKey = q => String(q || '').trim().replace(/\s+/g, ' ').toLowerCase();
+const colFlat = s => String(s || '').replace(/[‘’‚′]/g, "'").replace(/[“”„″]/g, '"')
+  .replace(/[–—]/g, '-').replace(/\s+/g, ' ').trim().toLowerCase();
+function colAskOut(r) {
+  return r ? { id: r.id, question: r.question, name: r.name, by: r.created_by_name || '', at: r.created_at, used: r.last_used_at } : null;
+}
+function colAnswerOut(r) {
+  let a = {}; try { a = JSON.parse(r.json) || {}; } catch (_) {}
+  return { ...a, checked: r.checked_at ? { by: r.checked_name || '', id: r.checked_by || '', at: r.checked_at } : null };
+}
+/* THE WORDING AN ANSWER IS READ FROM, as the brief reads it: the stored body
+   or the upload's text where the record holds one; a paper drawn from its
+   template exists only where it is drawn, so the browser sends that drawing
+   (`texts[id]`, the brief's own `text`). aiDocText clips at the one ceiling
+   and says so. `has` is false where there is no wording at all. */
+function colWording(req, full, given) {
+  const stored = !!(full.redlineText && String(full.redlineText).trim()) || !!(full.upload && full.upload.extractedText);
+  const g = typeof given === 'string' ? given.trim() : '';
+  const drawn = !stored && g.length >= 120;
+  const body = contractFullBody(full) + (drawn ? '\n\n' + g : '');
+  return { text: aiDocText(req, body), has: stored || drawn, capped: body.length > aiDocChars() };
+}
+const colTexts = v => (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
+function colContract(req, id) {
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(String(id));
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return null;
+  try { return JSON.parse(row.json) || {}; } catch (_) { return null; }
+}
+const colIds = v => [...new Set((Array.isArray(v) ? v : []).filter(x => typeof x === 'string' && x).map(String))];
+
+/* the team's questions, newest used first: the panel's "Asked before in your team" */
+app.get('/api/columns', auth, (req, res) => {
+  const rows = db.prepare('SELECT * FROM column_asks ORDER BY last_used_at DESC LIMIT 12').all();
+  res.json({ asks: rows.map(colAskOut), max: COLUMN_MAX });
+});
+
+/* What is already known, spending nothing: the kept answers to one question
+   for the contracts in front of the reader. An answer whose wording has moved
+   since it was read is not served — it is listed as `stale`, to be read again. */
+app.post('/api/columns/answers', auth, (req, res) => {
+  const ask = db.prepare('SELECT * FROM column_asks WHERE id=?').get(String((req.body || {}).askId || ''));
+  if (!ask) return res.status(404).json({ error: 'That question is not kept any more' });
+  const answers = {}, stale = [], texts = colTexts((req.body || {}).texts);
+  for (const id of colIds((req.body || {}).ids).slice(0, 500)) {
+    const r = db.prepare('SELECT * FROM column_answers WHERE ask_id=? AND contract_id=?').get(ask.id, id);
+    if (!r) continue;
+    const full = colContract(req, id); if (!full) continue;
+    if (r.input_hash !== sha(colWording(null, full, texts[id]).text)) { stale.push(id); continue; }
+    answers[id] = colAnswerOut(r);
+  }
+  res.json({ ask: colAskOut(ask), answers, stale });
+});
+
+app.post('/api/ai/column', auth, editor, rlAiDeep, aiFeature('column'), aiBudgetGuard, async (req, res) => {
+  const b = req.body || {};
+  const question = String(b.question || '').trim().replace(/\s+/g, ' ');
+  if (question.length < 3) return res.status(400).json({ error: 'Type the question for the column' });
+  if (question.length > 300) return res.status(400).json({ error: 'Keep the question under 300 characters' });
+  const name = (String(b.name || '').trim().replace(/\s+/g, ' ') || question.split(' ').slice(0, 4).join(' ')).slice(0, 40);
+  const asked = colIds(b.ids);
+  if (!asked.length) return res.status(400).json({ error: 'There are no contracts to ask' });
+  const ids = asked.slice(0, COLUMN_MAX);
+  /* the team's question, kept once by its words; the newest name given wins */
+  const at = now(), qkey = colKey(question);
+  let ask = db.prepare('SELECT * FROM column_asks WHERE qkey=?').get(qkey);
+  if (ask) db.prepare('UPDATE column_asks SET name=?, last_used_at=? WHERE id=?').run(name, at, ask.id);
+  else db.prepare('INSERT INTO column_asks (id,qkey,question,name,created_by,created_by_name,created_at,last_used_at) VALUES (?,?,?,?,?,?,?,?)')
+    .run('ca_' + crypto.randomBytes(8).toString('hex'), qkey, question, name, String(req.user.id), req.user.name || req.user.email || '', at, at);
+  ask = db.prepare('SELECT * FROM column_asks WHERE qkey=?').get(qkey);
+
+  const answers = {}, failed = [], todo = [], texts = colTexts(b.texts);
+  let cached = 0;
+  for (const id of ids) {
+    const full = colContract(req, id);
+    if (!full) { failed.push({ id, why: 'notFound' }); continue; }
+    const w = colWording(req, full, texts[id]), sent = w.text;
+    if (!w.has) { answers[id] = { found: false, noWording: true, at, by: 'jambo', calls: 0 }; continue; }
+    const hash = sha(sent);
+    const prev = db.prepare('SELECT * FROM column_answers WHERE ask_id=? AND contract_id=?').get(ask.id, id);
+    if (prev && prev.input_hash === hash && !b.force) { answers[id] = colAnswerOut(prev); cached++; continue; }
+    todo.push({ id, full, sent, hash, capped: w.capped });
+  }
+  const key = todo.length ? aiKey() : null;
+  if (todo.length && !key) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
+  const tool = {
+    name: 'column_answer',
+    description: 'One short answer to the question for this contract, as it would sit in one cell of a table, with the wording it rests on.',
+    input_schema: { type: 'object', properties: {
+      found: { type: 'boolean', description: 'true only if the DOCUMENT itself answers the question.' },
+      answer: { type: 'string', description: 'The answer as a table cell, 1 to 5 words: "90 days", "KES 78M", "Not capped", "Kenya". Empty when not found.' },
+      detail: { type: 'string', description: '2 to 6 words that qualify the answer: "either side", "Buyer only", "1x the value". When not found, what was looked for, in 2 to 6 words.' },
+      tone: { type: 'string', enum: COLUMN_TONES, description: 'good = usual and balanced; watch = one-sided or unusual; concern = exposes OUR SIDE to real risk; none = a plain fact, or not found.' },
+      why: { type: 'string', description: 'One plain sentence on what the wording means for the reader. Never advice on whether to sign.' },
+      quote: { type: 'string', description: 'The verbatim sentence the answer rests on.' + AI_QUOTE_RULE },
+      clause: { type: 'string', description: 'The clause it sits in, number and heading as the document writes them, e.g. "9 · Termination". Empty if the document numbers nothing.' },
+    }, required: ['found', 'answer', 'detail', 'tone', 'why'] },
+  };
+  const J = orgJx();
+  let calls = 0, lastResp = null;
+  const readOne = async t => {
+    const ours = t.full.party || (t.full.execution && t.full.execution.firstParty) || 'our company';
+    const prompt = `You are reading ONE contract for a contract manager at ${ours} (OUR SIDE), under ${J.adjective} law, to fill one cell of a table. The QUESTION is asked of every contract in their list. Answer it for this DOCUMENT only, via column_answer. Say only what the wording says: never invent, never guess, never propose new wording. If the document does not answer the question, set found to false and leave the answer empty.\n\nQUESTION: ${question}\n\nDOCUMENT:\n${t.sent}`;
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 800, tools: [tool], tool_choice: { type: 'tool', name: 'column_answer' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'column', who: aiWho(req) });
+    calls++; lastResp = resp;
+    if (!resp.ok) { failed.push({ id: t.id, why: 'provider', error: String(resp.error || resp.status).slice(0, 200) }); return; }
+    const block = (resp.data.content || []).find(x => x.type === 'tool_use');
+    if (!block) { failed.push({ id: t.id, why: 'empty' }); return; }
+    const d = block.input || {};
+    const s = v => String(v == null ? '' : v).trim();
+    const found = d.found === true && !!s(d.answer);
+    /* THE SENTENCE IS CHECKED AGAINST THE WORDING: a quote that is not in the
+       document is not shown as if it were — an absence is stated, never guessed */
+    let quote = s(d.quote).slice(0, 600);
+    const quoteMissing = !!quote && !colFlat(t.sent).includes(colFlat(quote));
+    if (quoteMissing) quote = '';
+    const a = { found, answer: found ? s(d.answer).slice(0, 60) : '', detail: s(d.detail).slice(0, 80),
+      tone: found && COLUMN_TONES.includes(d.tone) ? d.tone : 'none', why: s(d.why).slice(0, 400),
+      quote, quoteMissing, clause: s(d.clause).slice(0, 80), truncated: !!resp.truncated,
+      inputCapped: t.capped, at: now(), by: 'jambo', calls: 1 };
+    db.prepare(`INSERT INTO column_answers (ask_id,contract_id,input_hash,json,checked_by,checked_name,checked_at,created_at)
+      VALUES (?,?,?,?,NULL,NULL,NULL,?) ON CONFLICT(ask_id,contract_id) DO UPDATE SET input_hash=excluded.input_hash, json=excluded.json,
+      checked_by=NULL, checked_name=NULL, checked_at=NULL, created_at=excluded.created_at`)
+      .run(ask.id, t.id, t.hash, JSON.stringify(a), a.at);
+    answers[t.id] = { ...a, checked: null };
+  };
+  try {
+    const queue = todo.slice();
+    await Promise.all(Array.from({ length: Math.min(COLUMN_AT_ONCE, queue.length) }, async () => {
+      while (queue.length) { const t = queue.shift(); try { await readOne(t); } catch (e) { failed.push({ id: t.id, why: 'provider', error: String(e.message || e).slice(0, 200) }); } }
+    }));
+  } catch (e) { return res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
+  res.json({ ask: colAskOut(ask), answers, calls, cached, failed,
+    capped: asked.length > ids.length ? { asked: asked.length, read: ids.length } : null, ...aiNotice(req, lastResp) });
+});
+
+/* A PERSON'S TICK: who checked this answer, and when. Anyone who may ask may
+   tick; taking a tick back is the same press. It belongs to the answer it was
+   given to, so a new reading starts unchecked. */
+app.post('/api/columns/:askId/check', auth, editor, (req, res) => {
+  const b = req.body || {}, id = String(b.contractId || '');
+  if (!colContract(req, id)) return res.status(404).json({ error: 'Contract not found' });
+  const r = db.prepare('SELECT * FROM column_answers WHERE ask_id=? AND contract_id=?').get(String(req.params.askId), id);
+  if (!r) return res.status(404).json({ error: 'There is no answer to check yet' });
+  if (b.checked === false) db.prepare('UPDATE column_answers SET checked_by=NULL, checked_name=NULL, checked_at=NULL WHERE ask_id=? AND contract_id=?').run(r.ask_id, id);
+  else db.prepare('UPDATE column_answers SET checked_by=?, checked_name=?, checked_at=? WHERE ask_id=? AND contract_id=?')
+    .run(String(req.user.id), req.user.name || req.user.email || '', now(), r.ask_id, id);
+  res.json({ answer: colAnswerOut(db.prepare('SELECT * FROM column_answers WHERE ask_id=? AND contract_id=?').get(r.ask_id, id)) });
 });
 
 /* ===================== THE PLAIN-ENGLISH LAYER (idea 7) =====================

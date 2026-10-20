@@ -72,15 +72,17 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
        Details tab is gone; the fill panel is Jambo's Fill in face (#pd-fill)
        beside Home's paper (#ig-canvas) — the door roomGoTab(c,'details') opens. */
+    /* RE-POINTED 20 Oct 2026 (the Legora way): the fill panel is the Dossier's
+       Still owed grid (#pd-og) beside Home's paper — the same door opens it */
     await waitFor(page, id => { if (document.getElementById('cd-page') && window.closeModal) closeModal();
-      if (!(window.pdFillShows && pdFillShows() && document.querySelector('#ig-canvas'))) roomGoTab(getContract(id), 'details');
-      return !!(document.querySelector('#ig-canvas') && document.querySelector('#pd-fill [data-blankf]')); }, aid, 10000);
+      if (!document.querySelector('#pd-og [data-blankf]') && !window._amAsked){ window._amAsked = true; roomGoTab(getContract(id), 'details'); }
+      return !!(document.querySelector('#ig-canvas') && document.querySelector('#pd-og [data-blankf]')); }, aid, 10000);
 
     const p1 = await waitFor(page, () => {
-      const host = document.getElementById('pd-fill');
+      const host = document.getElementById('pd-og');
       const boxes = host ? Array.from(host.querySelectorAll('[data-blankf]')) : [];
       return boxes.length ? { n: boxes.length, keys: boxes.map(b => b.getAttribute('data-blankf')),
-        types: boxes.map(b => b.type), labels: Array.from(host.querySelectorAll('label > span:first-child')).map(s => s.textContent.trim()) } : null;
+        types: boxes.map(b => b.type), labels: boxes.map(b => (b.closest('tr').querySelector('.pd-og-f b') || {}).textContent || '') } : null;
     });
     check('1  the fill panel draws with the ruled lines as boxes', p1 && p1.n >= 1, JSON.stringify(p1));
     check('2  the date box is a date box named by the paper ("Made on")',
@@ -90,7 +92,7 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
 
     /* Fill the date through the panel's own box. */
     await page.evaluate(() => {
-      const box = document.querySelector('#pd-fill [data-blankf="own_1"]');
+      const box = document.querySelector('#pd-og [data-blankf="own_1"]');
       if (!box) return;
       box.value = '2026-10-08'; box.dispatchEvent(new Event('change', { bubbles: true }));
     });
@@ -99,7 +101,7 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
       const paper = document.querySelector('#ig-canvas span[data-field-key="own_1"]');
       return { stored: /made on <span class="hati-field-done" data-field-key="own_1">8 October 2026<\/span>/.test(c.redlineText),
         paper: paper ? paper.textContent : null, cls: paper ? paper.className : null,
-        box: (document.querySelector('#pd-fill [data-blankf="own_1"]') || {}).value };
+        box: (document.querySelector('#pd-og [data-blankf="own_1"]') || {}).value };
     }, aid);
     check('3  the date is written INTO the wording and shown on the paper',
       p3.stored && p3.paper === '8 October 2026' && p3.cls === 'hati-field-done', JSON.stringify(p3));
@@ -107,10 +109,12 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
     await page.evaluate(() => igPaperRefresh());
     const p3b = await page.evaluate(() => {
       const paper = document.querySelector('#ig-canvas span[data-field-key="own_1"]');
-      const box = document.querySelector('#pd-fill [data-blankf="own_1"]');
-      return { paper: paper ? paper.textContent : null, box: box ? box.value : null };
+      /* answered, the row leaves the grid once it is drawn again: the answer is its Key terms line's */
+      const box = document.querySelector('#pd-og [data-blankf="own_1"]');
+      const kt = document.querySelector('#pd-kt tr[data-pd-og-row="own_1"] .pd-kt-v');
+      return { paper: paper ? paper.textContent : null, box: box ? box.value : (kt ? kt.textContent.trim() : null) };
     });
-    check('3b after a repaint the paper and the box still hold it', p3b.paper === '8 October 2026' && p3b.box === '2026-10-08', JSON.stringify(p3b));
+    check('3b after a repaint the paper and the panel still hold it', p3b.paper === '8 October 2026' && /2026-10-08|8 October 2026/.test(p3b.box || ''), JSON.stringify(p3b));
 
     /* The clause list beside the paper. */
     /* the clause list is Home's Clauses tab now (11 Oct 2026) */
@@ -176,14 +180,16 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
       const b = f.querySelector('#sign-paper');
       return { line: !!(b && b.getBoundingClientRect().width > 0) };
     });
-    await page.evaluate(id => pdOpenOnHome(id, 'menu'), id8);
+    /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the Menu tab's rows stand in the dossier's All acts fold */
+    await page.evaluate(id => { if (window.pdSignClose) try { pdSignClose(); } catch (_){} pdOpenOnHome(id, 'copilot'); }, id8);
+    await waitFor(page, () => { const f = document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'); if (!f) return null; f.open = true; return true; });
     const p8 = await waitFor(page, () => {
-      const b = Array.from(document.querySelectorAll('#pd-body #ws-m-their-way')).find(x => x.getBoundingClientRect().width > 0);
+      const b = Array.from(document.querySelectorAll('#ig-dock .ds-fold #ws-m-their-way')).find(x => x.getBoundingClientRect().width > 0);
       if (!b) return null;
-      const r = b.getBoundingClientRect(), p = document.getElementById('pd-body').getBoundingClientRect();
+      const r = b.getBoundingClientRect(), p = document.getElementById('ig-dock').getBoundingClientRect();
       return { sw: b.scrollWidth, cw: b.clientWidth, inside: r.left >= p.left - 1 && r.right <= p.right + 1, t: b.textContent.trim() };
     });
-    check('8  "Hand it over to sign their way" sits whole inside the Menu tab, and the face no longer draws the line',
+    check('8  "Hand it over to sign their way" sits whole inside the dossier\'s All acts fold, and the face no longer draws the line',
       face8 && !face8.line && p8 && p8.sw <= p8.cw + 1 && p8.inside, JSON.stringify({ face8, p8 }));
 
     await page.screenshot({ path: process.env.SHOT || '/tmp/amend-blanks.png' });
