@@ -127,7 +127,7 @@ describe('f284 (3) every paint after the record goes through one guard', () => {
     assert.match(vp, /console\.error/, 'a failing paint is silent again');
   });
 
-  test('and the paints are a SWEEP, not a list — a seventh has to join them', () => {
+  test('and the paints are a SWEEP, not a list — a new one has to join them', () => {
     /* The claim is the RELATION: between recording where the reader is and
        handing back to the poller, nothing calls a painter bare. Written as a
        list of the six, a paint added later would sit outside the guard with
@@ -135,14 +135,20 @@ describe('f284 (3) every paint after the record goes through one guard', () => {
     const tail = SET.slice(SET.indexOf('lsSet(LS.ui'));
     const stop = tail.indexOf('schedulePolling');
     const region = tail.slice(0, stop > -1 ? stop : tail.length);
+    /* RE-POINTED 20 Oct 2026: placeLanguageSwitch was one of the six. The
+       bar's language switch is gone (CHAMBERS — the language is changed in
+       Settings › You, through langSet), so its painter went with it and must
+       not be called from here at all. The other five stay guarded. */
+    assert.ok(!/placeLanguageSwitch/.test(region),
+      'the retired language-switch painter is still called after the record');
     const PAINTERS = ['setActiveNav', 'updateCommandBar', 'updateSidebarCounts',
-      'applyPanelLayout', 'placeLanguageSwitch', 'renderContextPanel'];
+      'applyPanelLayout', 'renderContextPanel'];
     for (const p of PAINTERS){
       assert.match(region, new RegExp("viewPaint\\('" + p + "'"),
         p + ' is not guarded by viewPaint');
       /* Every occurrence of the name in that region must be inside a
          viewPaint(...) call — once as the label, once in the arrow body. A
-         seventh painter called bare fails here rather than shipping. */
+         new painter called bare fails here rather than shipping. */
       const occurrences = region.split(p + '(').length - 1;
       const inGuard = region.split("viewPaint('" + p + "'").length - 1;
       assert.equal(occurrences, inGuard,

@@ -3,7 +3,8 @@
        step; none keeps the fixed 1000 (O-22).
    (2) the steps: board 196, opened 42% of the window between 280 and 380,
        full the window less 230 (O-22).
-   (3) the series colours are the checked sets; the first follows the brand (O-24).
+   (3) the series colours are the checked sets, blue first on every screen; no
+       brand swaps them any more (Chambers, 20 Oct 2026: the brands are gone) (O-24).
    (4) Instrument marks: three gridlines on the board, thin bars, labels on the
        biggest and the latest, a part-month hatched and said (O-23).
    (5) opened: the same numbers as a table, each row a door; full screen; a
@@ -46,11 +47,21 @@ test('f549 (2) the three steps', () => {
   ctx.window.innerHeight = 1200; assert.equal(ctx.hbStepH('open'), 380);
 });
 
-test('f549 (3) the checked series colours', () => {
+test('f549 (3) the checked series colours, blue first, no brand swap', () => {
   assert.match(SRC, /HB_HUES_LIGHT = \['#2F5FC4', '#1A9C8A', '#B87A0F', '#9A5CC8'/);
   assert.match(SRC, /HB_HUES_DARK = \['#4F82E6', '#1C9E8B', '#C08518', '#9E68D2'/);
   assert.match(region('hbHueOf'), /hmStageTone/, 'status colours never move');
-  assert.match(region('hbHues'), /data-brand/, 'the first follows the brand');
+  /* RE-POINTED 20 Oct 2026 (Chambers: the brands are gone): the first no longer
+     follows a brand; hbHues hands back the checked set as it stands, blue first. */
+  assert.doesNotMatch(region('hbHues'), /data-brand/, 'no brand is read any more');
+  const vm = require('node:vm');
+  const hues = SRC.match(/const HB_HUES_LIGHT = \[[^\]]*\];\s*const HB_HUES_DARK = \[[^\]]*\];/);
+  assert.ok(hues, 'the two checked sets sit together');
+  for (const screen of ['light', 'dark']){
+    const ctx = { screen, document: { documentElement: { getAttribute: () => 'green' } } };
+    vm.runInNewContext(hues[0] + ' function hbScreenNow(){ return screen; } ' + region('hbHues') + ' this.out = hbHues();', ctx);
+    assert.equal(ctx.out[0], screen === 'light' ? '#2F5FC4' : '#4F82E6', screen + ': blue first, unswapped');
+  }
 });
 
 test('f549 (4) the Instrument marks', () => {

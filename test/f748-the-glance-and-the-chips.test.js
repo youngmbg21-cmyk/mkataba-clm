@@ -27,7 +27,9 @@
    (4) Go to it Redlines Home's paper and brings the clause up (pdGlGoTo →
        igPaperGoClause); Read it runs the deep read and opens the Clauses tab,
        where the reading is drawn as it comes.
-   (5) The chips lead with what is owed (caOwedSteps): the checklist's lead,
+   (5) The chips lead with what is owed (caOwedSteps): the checklist's lead
+       (since Chambers, 20 Oct 2026, every chip is an underlined link, the
+       owed lead at the strong weight),
        then "answer the redlines" while their asks wait, then "name a
        signer" while nobody is named — never also "redline" or "sign" — and
        four of them (CA_NEXT_MAX), as drawn; "answer the redlines" opens the
@@ -217,9 +219,18 @@ describe('f748 (5) the chips lead with what is owed', () => {
     const L = J(ctx.caPaperChips());
     assert.deepEqual(L.map(x => x.k), ['answer', 'signer', 'share', 'history']);
     assert.deepEqual(L.slice(0, 2).map(x => x.label), ['answer the redlines', 'name a signer']);
-    assert.ok(L[0].owed && !L[1].owed, 'the first owed leads, in the accent\'s outline');
-    assert.match(ctx.caChipsHtml(), /data-ca-chip="answer" class="ca-chip-owed [^"]*bg-canvas/);
-    assert.match(R('index.html'), /\.ca-chip-owed\{border:1px solid var\(--accent-solid\);color:var\(--accent-ink\);font-weight:var\(--w-label\)\}/, 'as drawn: the accent outline, not amber');
+    assert.ok(L[0].owed && !L[1].owed, 'the first owed leads, at the strong weight');
+    /* RE-POINTED 20 Oct 2026 (Chambers: a suggestion is a link, not a chip):
+       every chip wears the one link class; the owed lead is the same link at
+       the strong weight — no accent outline any more (was 18 Oct's). */
+    const html = ctx.caChipsHtml();
+    assert.match(html, /data-ca-chip="answer" class="jb-chip ca-chip-owed"/);
+    assert.match(html, /data-ca-chip="signer" class="jb-chip"/, 'the rest are plain links');
+    assert.doesNotMatch(html, /bg-canvas|rounded-full/, 'no chip pill is drawn');
+    const css = R('index.html').replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.match(css, /\.ca-chip-owed\{font-weight:var\(--w-strong\)\}/, 'as drawn: the strong weight, not amber');
+    assert.doesNotMatch(css, /\.ca-chip-owed\{[^}]*border:/, 'no accent outline on the owed lead');
+    assert.match(css, /\.jb-chip\{[^}]*border:0;[^}]*color:var\(--accent-ink\);text-decoration:underline/, 'a link in the accent ink');
     assert.equal(ctx.CA_NEXT_MAX, 4);
   });
   test('5b details owed lead; nothing owed, the journey as before', () => {

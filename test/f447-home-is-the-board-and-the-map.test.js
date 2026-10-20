@@ -446,28 +446,42 @@ describe('F447 (5) — a watch is a bell row only while its line is crossed', ()
 
 describe('F447 (6) — the board is the person\'s own record', () => {
   test('it survives a reload, and what this version does not know falls back', () => {
-    /* RE-POINTED 7 Oct 2026 ("Follow dark mode"): a screen is kept only when
-       the reader pressed it (scrPick) */
+    /* RE-POINTED 7 Oct 2026 ("Follow dark mode"): a screen was kept only when
+       the reader pressed it (scrPick).
+       RE-POINTED 20 Oct 2026: the Board's own Light | Dark switch is gone with
+       dark mode (the owner: "Remove it from HaTi. Only dark theme will be on
+       the explorer and brain"), so a screen stored by the old switch is a word
+       this version does not know: it is not kept, and an old pressed Dark
+       lands on light. */
     const stored = JSON.stringify({ face: 'explorer', lens: 'nonsense', screen: 'light', scrPick: 1, prep: 'folded',
       panels: [{ id: 'p1', kind: 'obl' }, { id: 'p2', kind: 'bogus' }], watches: [{ k: 'live', dir: 'sideways', n: 1 }] });
     const { sb } = world({ stored });
     const s = sb.hbS();
     assert.equal(s.face, 'explorer');
     assert.equal(s.lens, 'all', 'an unknown lens falls back to the whole book');
-    assert.equal(s.screen, 'light');
+    assert.ok(!('screen' in s) && !('scrPick' in s), 'a screen stored by the retired switch is not kept');
     assert.equal(s.prep, 'folded');
     assert.deepEqual(s.panels.map(p => p.kind), ['obl'], 'an unknown panel kind is dropped');
     assert.equal(s.watches.length, 0, 'a watch with no direction is dropped');
+    const old = world({ stored: JSON.stringify({ face: 'board', screen: 'dark', scrPick: 1 }) }).sb;
+    assert.equal(old.hbScreenNow(), 'light', 'an old pressed Dark on the Board lands on light');
   });
   /* lands LIGHT since 6 Oct 2026 (Young: "the landing mode for the Board
      should be light mode") */
   /* RE-POINTED 7 Oct 2026 (Young, "Follow dark mode"): no screen of the
      reader's own, so the board is Light by day */
-  test('the screen lands on Light by day, the board side, the whole book, Prepared by Copilot open', () => {
+  /* RE-POINTED 20 Oct 2026: dark mode was removed, and the Board's own
+     Light | Dark switch with it — the Board, Workspace and Calendar faces are
+     always light; only Explorer keeps its dark stage. */
+  test('the screen lands on Light — the only screen the Board has —, the board side, the whole book, Prepared by Copilot open', () => {
     const { sb } = world();
-    sb.darkNow = () => false;
     const s = sb.hbS();
-    assert.deepEqual([s.face, s.screen, sb.hbScreenNow(), s.lens, s.prep], ['board', null, 'light', 'all', 'open']);
+    assert.deepEqual([s.face, sb.hbScreenNow(), s.lens, s.prep], ['board', 'light', 'all', 'open']);
+    assert.ok(!('screen' in s), 'the board keeps no screen of the reader\'s own');
+    for (const f of ['paper', 'calendar']) { s.face = f; assert.equal(sb.hbScreenNow(), 'light', f + ' is light'); }
+    s.face = 'explorer';
+    assert.equal(sb.hbScreenNow(), 'dark', 'only Explorer keeps its dark stage');
+    s.face = 'board';
   });
 });
 

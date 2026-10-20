@@ -5,8 +5,9 @@
    platform." The prototype makes three decisions and each lands on one token:
      screens            --font-heading / --font-body   Geist
      numbers and codes  --font-mono                    Geist (tabular digits, no typewriter)
-     the contract       --font-doc                     Source Serif 4 (Geist since 6 Oct 2026;
-                        the serif is --font-doc-serif, the signing copy and print)
+     the contract       --font-doc                     Source Serif 4 (Geist 6 Oct 2026, serif
+                        again 20 Oct 2026 with CHAMBERS; --font-doc-serif is the
+                        signing copy and print)
    IBM Plex Sans stays named SECOND: Geist carries no Greek, and a name written
    in Greek must still read in a designed face (F85's reason).
 
@@ -39,10 +40,17 @@ describe('F377 (1) the three decisions, one token each', () => {
     assert.doesNotMatch(token('font-mono'), /JetBrains/);
   });
   /* RE-POINTED 6 Oct 2026 (Clean Sans, Young picked it over "HaTi Paper
-     Fonts"): the paper you READ is the platform's face; the book serif is kept
-     as --font-doc-serif for the signing copy and every printed page. */
-  test('the paper you read is Clean Sans: the platform face, Plex second', () => {
-    assert.match(token('font-doc'), /^'Geist',\s*'IBM Plex Sans'/, `--font-doc is ${token('font-doc')}`);
+     Fonts"): the paper you READ was the platform's face; the book serif kept
+     as --font-doc-serif for the signing copy and every printed page.
+     RE-POINTED AGAIN 20 Oct 2026 (CHAMBERS, owner-picked by name): the paper
+     you read is the book serif again, reversing Clean Sans — the same face
+     the signing copy and print wear, so the reading and signing papers agree. */
+  test('the paper you read is the book serif again (Chambers), the same face as the signing copy', () => {
+    assert.match(token('font-doc'), /^'Source Serif 4'/, `--font-doc is ${token('font-doc')}`);
+    assert.match(token('font-doc'), /serif\s*$/, 'a reading face that falls back to a sans is not a book face');
+    assert.equal(token('font-doc').split(',')[0], token('font-doc-serif').split(',')[0],
+      'the paper you read and the paper you sign lead with the same face');
+    assert.notEqual(token('font-doc'), token('font-body'), 'the paper is not the screen face any more');
   });
   test('the signing copy and the printed page keep Source Serif 4, falling back to serifs', () => {
     assert.match(token('font-doc-serif'), /^'Source Serif 4'/);

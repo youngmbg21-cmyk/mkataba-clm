@@ -43,8 +43,9 @@
        the approval answered for an away colleague leads, so the lead chip is
        "Jonas's approval"; time said in words ("in 40 days", never "in 40d");
        the renewal's title is its act, "Decide the renewal"; the greeting
-       large (26px, semibold) and Jambo's work's tail small (12px); the
-       approval's door lands ON the approval it opens (NEEDS_LAND, LAND ON IT).
+       large (26px, semibold; since Chambers, 20 Oct 2026, the title serif
+       at 28px) and Jambo's work's tail small (12px); the approval's door
+       lands ON the approval it opens (NEEDS_LAND, LAND ON IT).
    (9) THE HOUSE FILLS ITS PAGE (19 Oct 2026, as drawn: from the page's left
        edge to Jambo's folded strip): no 1200px cap; past JH_K_MAX the drawing
        widens (_jhW) rather than scaling up, so its floors keep their height.
@@ -331,9 +332,11 @@ describe('f803 (8) third pass: Home as drawn', () => {
     assert.match(w.cnWhenWords({ it: { kind: 'sign', due: plus(2) }, age: null }), /^due [A-Z][a-z]+day$/);
     assert.equal(BOOKS.sv.cn_due, 'senast {day}');
   });
-  test('8d the greeting large and Jambo\'s work\'s tail small, as drawn', () => {
+  test('8d the greeting large, in the title serif, and Jambo\'s work\'s tail small, as drawn', () => {
     const css = R('index.html');
-    assert.match(css, /\.cn-ask h1\{font-size:26px;font-weight:var\(--w-strong\);/);
+    /* RE-POINTED 20 Oct 2026 (Chambers): Home's question is a page title — the
+       serif title face at 28px, its own weight (was Geist 26px strong) */
+    assert.match(css, /\.cn-ask h1\{font-family:var\(--font-title\);font-size:28px;font-weight:var\(--w-title-serif\);/);
     assert.match(css, /\.cn-jw \.cn-w b \.cn-n\{font-size:var\(--t-meta\)\}/);
   });
   test('8e "Open approval" and the lead chip LAND ON the approval they open, lit (LAND ON IT)', () => {

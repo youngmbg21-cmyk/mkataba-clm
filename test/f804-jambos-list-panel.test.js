@@ -65,7 +65,7 @@ const evt = (win, type) => new win.Event(type, { bubbles: true, cancelable: true
 
 describe('f804 (1) the list panel is dressed as Jambo\'s, once, by the one builder', () => {
   const list = () => [fixture('MK-1', { name: 'Supply & Delivery', counterparty: 'Aleph Group' }), fixture('MK-2', { counterparty: 'Wasoko' })];
-  test('1a a head with his tab, a word for what it holds, ‹ Jambo while it holds a row, and the fold', () => {
+  test('1a a head with his tab, a word for what it holds, ‹ Jambo while it holds a row, the fold, and no hint line', () => {
     const b = world(list());
     b.win.renderRegister();
     const p = b.$('#ins-panel');
@@ -79,7 +79,9 @@ describe('f804 (1) the list panel is dressed as Jambo\'s, once, by the one build
     assert.ok(p.querySelector('[data-jl-fold]'), 'the fold to the edge');
     assert.ok(p.querySelector('.jl-body .ins-h'), 'the chosen row\'s panel is in the body');
     assert.ok(p.querySelector('.jl-foot #jl-q') && p.querySelector('.jl-foot [data-jl-send]'), 'the ask box and its Ask at the foot');
-    assert.match(fnOf(INS, 'jlAskHtml'), /jamboHintHtml\(\)/, 'and the one hint line under it (the builder is components.js\'s, f805)');
+    /* RE-POINTED 20 Oct 2026 (Chambers: no hint line under any Jambo box, f805) */
+    assert.doesNotMatch(fnOf(INS, 'jlAskHtml'), /jamboHintHtml|jb-hint/, 'and no hint line under it');
+    assert.equal(p.querySelector('.jl-foot .jb-hint'), null, 'none drawn either');
   });
   test('1b the frame is built once: a row press keeps the words typed in the box', () => {
     const b = world(list());

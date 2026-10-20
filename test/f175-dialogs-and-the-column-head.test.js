@@ -310,8 +310,12 @@ describe('f175 · the Tracked Changes head is a rule, not a box', () => {
     const css = p.css();
     assert.ok(/\.rl-idx-n\.is-live\{[^}]*color:var\(--accent-ink\)/.test(css),
       'the count rules stay in the sheet for the reviewer head that still draws one');
-    assert.ok(/html\.dark[^{]*\.rl-idx-n\.is-live\{[^}]*var\(--color-accent-300\)/.test(css),
-      'and it keeps its own night answer, which is why it reads at 2.4:1 no longer');
+    /* RE-POINTED 20 Oct 2026 — the owner removed dark mode ("Let's not
+       implement the dark theme. Remove it from HaTi."). The hand-written night
+       answer had nothing left to answer: there is no dark panel for the count
+       to sit on, so the claim is now that no night rule for it survives. */
+    assert.ok(!/html\.dark[^{]*\.rl-idx-n/.test(css),
+      'and no night answer is left for it — HaTi has no dark mode outside Explorer and the Brain');
     /* ---- REVERSED IN PLACE AGAIN (owner-chose render B1, 23 Aug 2026) ----
        The history, because it is the useful part. 16 Aug: the live cut was an
        accent INK. 22 Aug (Render B, chosen off four drawn options): a FILLED

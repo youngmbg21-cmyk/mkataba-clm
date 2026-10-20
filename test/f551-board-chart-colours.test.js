@@ -5,11 +5,14 @@
      lightness band · strength (chroma) · colour-blind separation (protan and
      deutan, Machado 2009 at full severity) · normal-vision separation ·
      contrast against the board card the colour is drawn on.
-   Checked for BOTH brands' orders (Green swaps the first two, so its
-   neighbours differ) on BOTH boards (light and dark), against the card as
-   painted: --hb-card composited over the stage's middle colour, read out of
-   index.html. Only the first four (the checked set) are held to it; the tail
-   is for a fifth series and later. */
+   Checked on BOTH boards (the light Chambers board and Explorer's dark
+   stage), against the card as painted: --hb-card composited over the stage's
+   middle colour, read out of index.html. Only the first four (the checked
+   set) are held to it; the tail is for a fifth series and later.
+   RE-POINTED 20 Oct 2026 (Chambers, the brands are gone): there is no Blue /
+   Green order any more — hbHues hands each set back as it stands, blue first —
+   and no :root[data-brand] board block; Explorer's dark stage keeps the old
+   Blue values folded into its base rule, and the light board is Chambers'. */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -62,25 +65,24 @@ function cardOf(selector, fallback){
   const ground = hex('#' + mid[1]).map(v => v * 255), a = Number(card[4]);
   return { hex: toHex([1, 2, 3].map(i => Number(card[i]) * a + ground[i - 1] * (1 - a))), card };
 }
-const greenDark = cardOf('#ig-page.hb-dark,#hb-page.hb-dark');
-const greenLight = cardOf('#ig-page.hb-light,#hb-page.hb-light');
-const navyDark = cardOf(':root[data-brand="navy"] #ig-page.hb-dark,:root[data-brand="navy"] #hb-page.hb-dark', greenDark.card);
-const navyLight = cardOf(':root[data-brand="navy"] #ig-page.hb-light,:root[data-brand="navy"] #hb-page.hb-light', greenLight.card);
+const darkCard = cardOf('#ig-page.hb-dark,#hb-page.hb-dark');
+const lightCard = cardOf('#ig-page.hb-light,#hb-page.hb-light');
 
 const LIGHT = setOf('HB_HUES_LIGHT'), DARK = setOf('HB_HUES_DARK');
-const swapFirstTwo = s => [s[1], s[0], ...s.slice(2)];
 const CASES = [
-  { name: 'Blue brand, light board', set: LIGHT, mode: 'light', card: navyLight.hex },
-  { name: 'Blue brand, dark board', set: DARK, mode: 'dark', card: navyDark.hex },
-  { name: 'Green brand, light board', set: swapFirstTwo(LIGHT), mode: 'light', card: greenLight.hex },
-  { name: 'Green brand, dark board', set: swapFirstTwo(DARK), mode: 'dark', card: greenDark.hex }
+  { name: 'light board (Chambers)', set: LIGHT, mode: 'light', card: lightCard.hex },
+  { name: 'dark board (Explorer\'s stage)', set: DARK, mode: 'dark', card: darkCard.hex }
 ];
 const pairs = s => s.slice(1).map((c, i) => [s[i], c]);
 
-test('f551 (0) the four checked colours and the four cards are read, not guessed', () => {
+test('f551 (0) the four checked colours and the two cards are read, not guessed; no brand reorders them', () => {
   assert.equal(LIGHT.length, 4); assert.equal(DARK.length, 4);
   for (const k of CASES) assert.match(k.card, /^#[0-9a-f]{6}$/, k.name);
-  assert.match(SRC.replace(/\/\*[\s\S]*?\*\//g, ''), /set\[0\] = set\[1\]; set\[1\] = t;/, 'Green swaps the first two, as checked here');
+  const code = SRC.replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.doesNotMatch(code, /set\[0\] = set\[1\]; set\[1\] = t;/, 'no brand swaps the first two any more');
+  assert.doesNotMatch(code, /data-brand/, 'the board reads no brand');
+  const css = INDEX.replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.doesNotMatch(css, /:root\[data-brand="navy"\] #(?:ig|hb)-page\.hb-(?:dark|light)/, 'no brand block re-dresses the board');
 });
 
 for (const k of CASES){

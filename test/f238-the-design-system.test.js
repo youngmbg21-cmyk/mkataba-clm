@@ -38,6 +38,35 @@ const VIEWS = fs.readdirSync(path.join(ROOT, 'js/views')).filter(f => f.endsWith
 const BLOB_SIG = '*,:after,:before{--tw-border-spacing-x';
 const BLOB_LINE = INDEX.split('\n').findIndex(l => l.startsWith(BLOB_SIG));
 const SHEET = INDEX.split('\n').filter((_, i) => i !== BLOB_LINE).join('\n');
+/* THE FIRST :root BLOCK, and a token's value read off :root (20 Oct 2026, when
+   dark mode was removed and the html.dark block these checks used to slice up
+   to went with it). A token is looked for in the first :root block, then in a
+   one-line `:root{ --tok:… }` declaration; a var() is followed to its value. */
+const ROOT0 = (() => {
+  /* Brace-matched, as test/tokens.js does: a '}' in a comment must not end it. */
+  const at = SHEET.indexOf(':root{');
+  let d = 0;
+  for (let j = SHEET.indexOf('{', at); j < SHEET.length; j++) {
+    if (SHEET[j] === '{') d++;
+    else if (SHEET[j] === '}' && !--d) return SHEET.slice(at, j);
+  }
+  return '';
+})();
+const rootVal = (tok, depth = 0) => {
+  const esc = tok.replace(/[-]/g, '\\-');
+  const m = new RegExp(esc + ':\\s*([^;}]+)').exec(ROOT0)
+    || new RegExp(':root\\{[^}]*?' + esc + ':\\s*([^;}]+)').exec(SHEET);
+  if (!m) return null;
+  const v = m[1].trim();
+  const ref = /^var\((--[a-z0-9-]+)\)$/i.exec(v);
+  return ref && depth < 5 ? rootVal(ref[1], depth + 1) : v;
+};
+const lumOf = hex => {
+  const c = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255)
+    .map(v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+};
+const onWhite = hex => 1.05 / (lumOf(hex) + 0.05);
 
 describe('f238 — the design system has its other half', () => {
 
@@ -165,10 +194,9 @@ describe('f238 — the design system has its other half', () => {
     /* ANCHORED FORWARD FROM :root, not from the top of the file — "html.dark"
        appears in prose long before either block, and slicing on the first hit
        gives an empty root and seven false misses. */
-    const r0 = SHEET.indexOf(':root{');
-    const d0 = SHEET.indexOf('html.dark{', r0);
-    const root = SHEET.slice(r0, d0);
-    const dark = SHEET.slice(d0);
+    /* RE-ANCHORED 20 Oct 2026: the html.dark block this sliced up to is gone
+       with dark mode, so the light inks are read off the first :root block. */
+    const root = ROOT0;
     const has = (src, decl) => src.includes(decl);
     /* RE-PINNED 20 Sep 2026 to the redesign order's own palette (the
        owner-approved artifact, prototype/hati-redesign-reference.html): ink
@@ -181,22 +209,26 @@ describe('f238 — the design system has its other half', () => {
        black + the theme colour — Green's here in :root, Blue's in
        :root[data-brand="navy"]:not(.dark). Dark is unchanged, and so is the
        paper's own ink. Same claim: the inks are the design's literals. */
-    for (const decl of ['--color-text:#032E2A', '--color-neutral-600:#3A5F5A',
-                        '--color-neutral-500:#3A5F5A', '--color-neutral-400:#547974',
-                        '--color-neutral-700:#032E2A', '--color-doc-text:#1C1A16',
+    /* RE-PINNED 20 Oct 2026 to CHAMBERS (owner-picked by name): the inks are
+       warm black #161512 and the warm grey #5E5A51 / #6F6A5E; the paper's own
+       ink is unchanged. And there is no dark theme any more ("Let's not
+       implement the dark theme. Remove it from HaTi."), so the night inks this
+       pinned are now asserted ABSENT: no html.dark block survives. Same claim:
+       the inks are the design's literals. */
+    for (const decl of ['--color-text:#161512', '--color-neutral-600:#5E5A51',
+                        '--color-neutral-500:#5E5A51', '--color-neutral-400:#6F6A5E',
+                        '--color-neutral-700:#161512', '--color-doc-text:#1C1A16',
                         '--color-doc-muted:#3B4A48'])
       assert.ok(has(root, decl), `light theme is missing ${decl}`);
-    for (const decl of ['--color-text:#E6ECEA', '--color-neutral-600:#A0ACA9',
-                        '--color-neutral-500:#A0ACA9', '--color-neutral-400:#8B9895',
-                        '--color-neutral-700:#E6ECEA'])
-      assert.ok(has(dark, decl), `dark theme is missing ${decl}`);
+    assert.equal(/html\.dark\{/.test(SHEET), false,
+      'a dark theme block is back — HaTi has no dark mode outside Explorer and the Brain');
     /* AND NOTHING KEPT THE OLD ONES. A stray literal is how one screen comes
        to read a shade lighter than the rest of the product; the standalone
        documents (the evidence pack, the print root, the branding preview) are
        the deliberate exception, because they carry no stylesheet and a token
        there resolves to nothing. */
-    assert.equal(/#1B2A28/i.test(root.replace(/\/\*[\s\S]*?\*\//g, '')), false,
-      'the old primary ink is still declared somewhere in :root');
+    assert.equal(/#1B2A28|#032E2A/i.test(root.replace(/\/\*[\s\S]*?\*\//g, '')), false,
+      'an old primary ink is still declared somewhere in :root');
   });
 
   test('no text opacity ladder survives — an opacity is not an ink', () => {
@@ -206,7 +238,7 @@ describe('f238 — the design system has its other half', () => {
       'a faded reading ink came back');
   });
 
-  test('the accent-as-text carriers read the token that has a dark answer', () => {
+  test('the accent-as-text carriers read the one accent-ink token, which reads on white', () => {
     /* html.dark redefines the surface, the ink and the whole neutral ramp and
        never redefines the accent — so a raw ramp step used as TEXT measured
        3.26:1 at night in teal and 1.58:1 in navy. */
@@ -214,7 +246,15 @@ describe('f238 — the design system has its other half', () => {
     assert.ok(btn, '.ui-btn is defined');
     assert.match(btn[1], /color:var\(--accent-ink\)/, '.ui-btn reads --accent-ink');
     assert.match(SHEET, /\ba\{color:var\(--accent-ink\)/, 'the global link reads it too');
-    assert.match(SHEET, /html\.dark\{\s*--accent-ink:/, '--accent-ink has a dark answer');
+    /* RE-POINTED 20 Oct 2026: dark mode was removed, so the token no longer
+       owes a night answer. What it still owes is to READ: it names a rung of
+       the accent ramp that clears AA as text on white (Chambers' #1F4D3B). */
+    const rung = /--accent-ink:var\(--color-accent-(\d+)\)/.exec(SHEET);
+    assert.ok(rung, '--accent-ink names a rung of the accent ramp');
+    const hex = rootVal('--color-accent-' + rung[1]);
+    assert.ok(hex && onWhite(hex) >= 4.5,
+      `--accent-ink (${hex}) reads at ${hex && onWhite(hex).toFixed(2)}:1 on white, under AA`);
+    assert.doesNotMatch(SHEET, /html\.dark\{/, 'and no dark answer is left — there is no dark theme');
   });
 
   test('the one filled act does not put white on a 3.74:1 fill', () => {
@@ -228,10 +268,12 @@ describe('f238 — the design system has its other half', () => {
        for white-on-accent, whose contrast the test above computes. */
     assert.match(prim, /background:var\(--accent-fill\)/,
       'the filled act reads --accent-fill, the one token judged for AA above');
-    /* AND --accent-solid IS UNTOUCHED: it is the nav's active fill and this
-       codebase records it as a brand fill that must not flip with the theme. */
-    assert.match(SHEET, /--accent-solid:var\(--color-accent-600\)/,
-      '--accent-solid is still the brand fill it was');
+    /* RE-POINTED 20 Oct 2026 (CHAMBERS, owner-picked): --accent-solid is no
+       longer the brand's green rung — the filled control is the INK, black.
+       Pin the relation, not the number: the solid fill is the text ink. */
+    assert.ok(rootVal('--accent-solid'), '--accent-solid is declared');
+    assert.equal(rootVal('--accent-solid'), rootVal('--color-text'),
+      '--accent-solid is the ink — a filled control is black in Chambers');
   });
 
   /* ---------- 3b · A1 — THE DARK THEME'S OWN CONTRAST, RATCHETED ----------
@@ -254,48 +296,58 @@ describe('f238 — the design system has its other half', () => {
     assert.deepEqual(bad, [], 'accent-ramp-as-text is back in ' + bad.length + ' places');
   });
 
-  test('both accent inks have a dark answer, and light is where it was', () => {
+  test('both accent inks are their own token, with no night answer left', () => {
     /* TWO tokens, not one, and that is the whole reason light did not move:
        --accent-ink is accent-800 in light and --accent-ink-700 is accent-700,
        so each of the two rungs that carried text keeps its own light value and
        only night changes. Collapsing them onto one would have re-coloured
        104 of the 183 declarations in broad daylight. */
+    /* RE-POINTED 20 Oct 2026: dark mode was removed, so neither token owes a
+       night answer and none may come back; the two stay two tokens on two
+       different rungs, which is still what keeps them from collapsing. */
     for (const t of ['--accent-ink', '--accent-ink-700'])
-      assert.match(SHEET, new RegExp('html\\.dark\\{[^}]*\\' + t + ':', 's'),
-        t + ' answers differently at night');
+      assert.doesNotMatch(SHEET, new RegExp('html\\.dark\\{[^}]*\\' + t + ':', 's'),
+        t + ' has a night answer again — there is no dark theme');
     assert.match(SHEET, /--accent-ink-700:var\(--color-accent-700\)/,
-      '--accent-ink-700 is accent-700 by day, so nothing moved in light mode');
+      '--accent-ink-700 is accent-700');
+    const a = /--accent-ink:var\(--color-accent-(\d+)\)/.exec(SHEET);
+    assert.ok(a && a[1] !== '700', '--accent-ink names its own rung, not accent-700');
   });
 
-  test('--accent-fill is the token for white-on-accent, and it clears AA in both brands', () => {
+  test('--accent-fill is the token for white-on-fill, and white on it clears AA', () => {
     /* White on the OLD accent-600 measured 3.74:1 — under AA for anything that
        is not large text — so this once pinned the token to accent-700 by name.
        RE-POINTED 20 Sep 2026: the ramp moved to the reference's own teal and
        accent-600 is #0E5F58 (7.5:1 under white; navy's #24488f is 8.8:1). The
        claim was always AA, never a rung's name, so it is COMPUTED now: resolve
        the rung the token names in each brand and measure white against it. */
-    const rung = /--accent-fill:var\(--color-accent-(\d+)\)/.exec(SHEET);
-    assert.ok(rung, '--accent-fill names a rung of the accent ramp');
-    const lum = hex => {
-      const c = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255)
-        .map(v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
-      return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
-    };
-    const r0 = SHEET.indexOf(':root{');
-    const n0 = SHEET.indexOf(':root[data-brand="navy"]{');
-    for (const [name, block] of [['teal', SHEET.slice(r0, SHEET.indexOf('html.dark{', r0))],
-                                 ['navy', SHEET.slice(n0, SHEET.indexOf('}', n0))]]) {
-      const m = new RegExp('--color-accent-' + rung[1] + ':(#[0-9a-fA-F]{6})').exec(block);
-      assert.ok(m, name + ' declares the rung --accent-fill names');
-      const ratio = 1.05 / (lum(m[1]) + 0.05);
-      assert.ok(ratio >= 4.5, `${name}: white on ${m[1]} is ${ratio.toFixed(2)}:1, under AA`);
-    }
+    /* RE-POINTED 20 Oct 2026 (CHAMBERS): --accent-fill reads --accent-solid,
+       the ink, and there is ONE brand now — the navy block went with the
+       brand picker. The claim was always AA, so it is still COMPUTED: follow
+       the token to its value and measure white against it. */
+    assert.match(SHEET, /--accent-fill:var\(--/, '--accent-fill names a token');
+    const hex = rootVal('--accent-fill');
+    assert.ok(/^#[0-9a-fA-F]{6}$/.test(hex || ''), '--accent-fill resolves to a colour on :root');
+    const ratio = onWhite(hex);
+    assert.ok(ratio >= 4.5, `white on ${hex} is ${ratio.toFixed(2)}:1, under AA`);
+    assert.equal(SHEET.includes(':root[data-brand="navy"]{'), false,
+      'and no second brand declares its own rung any more');
   });
 
-  test('danger and the two rules answer differently at night', () => {
-    for (const t of ['--danger', '--danger-hover', '--rule-strong', '--rule-faint'])
-      assert.match(SHEET, new RegExp('html\\.dark\\{[^}]*\\' + t + ':', 's'),
-        t + ' has a dark answer');
+  test('danger and the two rules have one answer each — no night answer left', () => {
+    /* RE-POINTED 20 Oct 2026: dark mode was removed ("Let's not implement the
+       dark theme. Remove it from HaTi."), so these four no longer answer at
+       night; the claim is that none does again, that each is still declared,
+       and that danger — a destructive VERB — still reads as text on white. */
+    for (const t of ['--danger', '--danger-hover', '--rule-strong', '--rule-faint']) {
+      assert.ok(rootVal(t), t + ' is declared on :root');
+      assert.doesNotMatch(SHEET, new RegExp('html\\.dark\\{[^}]*\\' + t + ':', 's'),
+        t + ' has a night answer again — there is no dark theme');
+    }
+    const danger = rootVal('--danger');
+    assert.ok(onWhite(danger) >= 4.5, `--danger (${danger}) reads at ${onWhite(danger).toFixed(2)}:1 on white, under AA`);
+    assert.ok(lumOf(rootVal('--rule-faint')) > lumOf(rootVal('--rule-strong')),
+      'the faint rule is lighter than the strong one');
   });
 
   test("Reports' hero cards are on the platform shell, not white on a gradient", () => {

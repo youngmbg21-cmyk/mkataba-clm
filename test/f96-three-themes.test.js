@@ -23,6 +23,29 @@
    a lawyer reads them before they read anything else. The theme block is
    asserted to contain no status colour at all, so the rule cannot be broken by
    somebody adding "just one" green to it later.
+
+   ============================================================
+   RE-POINTED 20 Oct 2026 — CHAMBERS: ONE LOOK, NO DARK, NO BRAND
+   ============================================================
+   The owner picked the "Chambers" design by name and said: "Let's not
+   implement the dark theme. Remove it from HaTi. Only dark theme will be on
+   the explorer and brain as designed today." So there is no Green, no Navy
+   and no Dark any more: the theme code (THEMES … renderThemeMenu), the
+   swatches, the light/dark toggle, the phone's theme button and the
+   :root[data-brand="navy"] block are gone. Explorer's map and the Brain draw
+   their own dark stage and never read a stored key.
+
+   Every claim below that pinned a theme now pins that it is ABSENT, and that
+   NOTHING A BROWSER KEPT CAN BRING ONE BACK: the pre-paint script reads
+   nothing, adds no `dark` class and no `data-brand`, and clears the old keys
+   once — the reader's, the counterparty's, the legacy single key and the
+   brand — so an old stored "dark" lands on light, on our page and theirs.
+   What the old claims were really about survives where it still means
+   something: the redline's grammar (accepted green, rejected red, amber) is
+   still nobody's theme — defined once, in the palette — the one palette
+   still carries every accent step in hex AND channel form, and the chat
+   backdrop is still its own tone. AT THE PARENT (d2b75c7) every absence
+   claim here FAILS: the themes are all there.
 */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
@@ -33,371 +56,193 @@ const vm = require('node:vm');
 
 const ROOT = path.join(__dirname, '..');
 const src = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
+/* code without its comments: a comment may tell the story of what left */
+const code = s => String(s).replace(/<!--[\s\S]*?-->/g, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/[^\n]*/g, '$1');
+const walk = (rel, out = []) => { for (const e of fs.readdirSync(path.join(ROOT, rel), { withFileTypes: true })){
+  const r = rel + '/' + e.name; if (e.isDirectory()) walk(r, out); else if (r.endsWith('.js')) out.push(r); } return out; };
 
-/* js/app.js on a small stage: a real document, and the handful of shell
-   functions the theme code touches. Nothing about themes is reimplemented. */
-function stage(saved){
-  /* A REAL ORIGIN. jsdom serves a document with no url from an opaque origin,
-     where localStorage throws — and window.localStorage is a getter, so
-     assigning a fake one silently does nothing and every read comes back null.
-     That cost a round of green-instead-of-navy failures. Give it an origin and
-     use the real thing. */
-  /* THE FIXTURE IS THE SHELL AS BUILT (24 Aug 2026): one bordered group of two
-     brand swatches and a light/dark toggle, in place of the three-row menu. */
-  const dom = new JSDOM(`<!doctype html><html><body>
-    <div class="sh-grp">
-      <button id="brand-green" class="sh-sw" data-brand-pick="green" hidden><i></i></button>
-      <button id="brand-navy" class="sh-sw" data-brand-pick="navy" hidden><i></i></button>
-      <button id="theme-btn" class="sh-theme" aria-pressed="false"></button>
-    </div></body></html>`, { url: 'https://hati.test/' });
-  const win = dom.window;
+/* THE PRE-PAINT SCRIPT, as the page carries it: the first script in the
+   document, the one that runs before anything is painted. */
+const HTML = src('index.html');
+const SCRIPTS = [...HTML.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+const PREPAINT = SCRIPTS.find(b => /hati-dark/.test(b)) || '';
+
+/* ONE real document with a real origin (jsdom serves a document with no url
+   from an opaque origin, where localStorage throws), reused for every
+   combination: cleared, seeded, the script run on it as it really runs. */
+const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'https://hati.test/' });
+const win = dom.window, root = win.document.documentElement;
+const ctx = vm.createContext(win);
+function boot(stored, hash){
   win.localStorage.clear();
-  if (saved) win.localStorage.setItem('hati-theme', saved);
-  const store = { get: k => win.localStorage.getItem(k) };
-  win.state = { view: 'dashboard' };
-  win.setView = () => {};
-  win.toast = () => {};
-  /* The swatches ask who is signed in. Default to an admin so the ordinary
-     tests see them; the admin-only test overrides this. */
-  win.currentUser = () => ({ id: 'u1', name: 'Amina', role: 'admin' });
-  const ctx = vm.createContext(win);
-  /* The theme block's labels read through i18t(), so the dictionary goes in
-     first — the same order js/app.js itself loads them. */
-  vm.runInContext(src('js/i18n.js'), ctx, { filename: 'js/i18n.js' });
-  const s = src('js/app.js');
-  /* Only the theme block — js/app.js as a whole reaches for the entire shell. */
-  const from = s.indexOf('const THEMES = [');
-  const to = s.indexOf('/* ---------- Jurisdiction switcher');
-  vm.runInContext(s.slice(from, to), ctx);
-  return { win, doc: win.document, store,
-    root: win.document.documentElement,
-    press: el => el.dispatchEvent(new win.Event('click', { bubbles: true })) };
+  win.location.hash = hash || '';
+  for (const [k, v] of Object.entries(stored)) if (v !== null) win.localStorage.setItem(k, v);
+  root.className = ''; root.removeAttribute('data-brand');
+  vm.runInContext(PREPAINT, ctx);
+  return { dark: root.classList.contains('dark'), brand: root.getAttribute('data-brand'),
+    left: ['hati-dark', 'hati-dark-guest', 'hati-theme', 'hati-brand', 'hati-brand-blue-once'].filter(k => win.localStorage.getItem(k) !== null) };
 }
 
-describe('F96 — three themes, and what each one sets', () => {
-  /* REVERSED IN PLACE, 7 Oct 2026 (Young: "Move everyone to Blue once"):
-     HaTi lands on Blue, and every browser is moved to Blue once on its next
-     visit; a Green pressed afterwards is stored and stands. */
-  test('Green sets nothing; Blue is where a fresh browser lands', () => {
-    const s = stage();
-    assert.equal(s.win.themeNow(), 'navy', 'HaTi lands on Blue');
-    s.win.applyTheme('green');
-    assert.equal(s.root.classList.contains('dark'), false);
-    assert.equal(s.root.hasAttribute('data-brand'), false,
-      'Green is the stylesheet as written — no attribute to undo');
+const RETIRED = ['THEMES', 'THEME_KEY', 'themeNow', 'applyTheme', 'setTheme', 'toggleTheme', 'BRAND_KEY', 'DARK_KEY', 'BRANDS',
+  'brandRead', 'brandWrite', 'brandNow', 'brandBlueOnce', 'DARK_KEY_GUEST', 'darkGuest', 'darkKey', 'darkNow', 'applyAppearance',
+  'repaintForAppearance', 'setBrand', 'setDark', 'toggleDark', 'brandPickerVisible', 'paintAppearance', 'wireThemeMenu',
+  'renderThemeMenu', 'M_THEME_SWATCH'];
+
+describe('F96 — one look: a fresh browser lands on it, and nothing kept brings a theme back', () => {
+  test('the pre-paint script is still the first script, and it reads nothing', () => {
+    assert.ok(PREPAINT, 'the pre-paint script is there');
+    assert.equal(SCRIPTS.indexOf(PREPAINT), 0, 'it runs before anything else');
+    const body = code(PREPAINT);
+    assert.doesNotMatch(body, /getItem/, 'nothing is read before the first paint');
+    assert.doesNotMatch(body, /classList|setAttribute|data-brand|className/, 'and nothing is put on the page');
   });
 
-  test('Navy sets the brand and leaves the lights on', () => {
-    const s = stage();
-    s.win.applyTheme('navy');
-    assert.equal(s.root.getAttribute('data-brand'), 'navy');
-    assert.equal(s.root.classList.contains('dark'), false, 'Navy is a light theme');
+  test('a fresh browser lands on light: no dark class, no brand', () => {
+    const r = boot({});
+    assert.equal(r.dark, false);
+    assert.equal(r.brand, null, 'no brand attribute — there is no brand');
   });
 
-  test('Dark turns the lights off and leaves the brand alone', () => {
-    const s = stage();
-    s.win.applyTheme('dark');
-    assert.equal(s.root.classList.contains('dark'), true);
-    assert.equal(s.root.getAttribute('data-brand'), 'navy', 'the brand (Blue since the move) is left as it was');
+  /* REVERSED IN PLACE, 20 Oct 2026 (Chambers). This was "the pre-paint script
+     in the page agrees with the app, on every stored combination" — the
+     script RUN against every combination of the keys and compared with
+     brandNow() and darkNow(). There is no app answer left to agree with; the
+     sweep stays, and now every combination must land on light with its keys
+     cleared. Same breadth, the new ruling. */
+  test('every old stored choice lands on light, and the old keys are cleared once', () => {
+    let combinations = 0;
+    for (const b of [null, 'green', 'navy']) for (const d of [null, '0', '1'])
+      for (const l of [null, '', 'light', 'green', 'navy', 'dark', 'chartreuse']) for (const once of [null, '1']){
+        const where = `brand=${b} dark=${d} legacy=${l} blue-once=${once}`;
+        const r = boot({ 'hati-brand': b, 'hati-dark': d, 'hati-theme': l, 'hati-brand-blue-once': once });
+        assert.equal(r.dark, false, 'dark came back at ' + where);
+        assert.equal(r.brand, null, 'a brand came back at ' + where);
+        assert.deepEqual(r.left, [], 'an old key was left behind at ' + where);
+        combinations++;
+      }
+    assert.ok(combinations > 100, 'the sweep read back too short: ' + combinations);
   });
 
-  test('switching back cleans up after itself', () => {
-    const s = stage();
-    s.win.applyTheme('navy'); s.win.applyTheme('dark'); s.win.applyTheme('green');
-    assert.equal(s.root.hasAttribute('data-brand'), false, 'no stale brand left behind');
-    assert.equal(s.root.classList.contains('dark'), false);
+  test('only the old keys are cleared — the reader\'s other choices stand', () => {
+    win.localStorage.clear();
+    win.localStorage.setItem('hati.v1.docZoom', '120');
+    win.localStorage.setItem('hati-dark', '1');
+    vm.runInContext(PREPAINT, ctx);
+    assert.equal(win.localStorage.getItem('hati.v1.docZoom'), '120', 'the paper\'s zoom survives');
+    assert.equal(win.localStorage.getItem('hati-dark'), null);
+  });
+
+  /* REVERSED IN PLACE, 20 Oct 2026: "their page keeps its own light and
+     dark" (Young, 4 Oct 2026) guarded the counterparty's page from our
+     reader's dark. With no dark at all, their page — a share or an adviser
+     link — lands on light whatever either side stored, and their key is
+     cleared with ours. */
+  test('their page too: a share or adviser link lands on light whatever either side stored', () => {
+    for (const hash of ['#share=tok123', '#advice=abc'])
+      for (const ours of [null, '0', '1']) for (const theirs of [null, '0', '1']){
+        const where = `${hash} ours=${ours} theirs=${theirs}`;
+        const r = boot({ 'hati-dark': ours, 'hati-dark-guest': theirs, 'hati-theme': 'dark', 'hati-brand': 'navy' }, hash);
+        assert.equal(r.dark, false, 'dark at ' + where);
+        assert.equal(r.brand, null, 'a brand at ' + where);
+        assert.deepEqual(r.left, [], 'a key left at ' + where);
+      }
   });
 });
 
-describe('F96 — the choice is remembered, and old choices still mean something', () => {
-  test('picking a theme records it', () => {
-    const s = stage();
-    s.win.setTheme('navy');
-    assert.equal(s.store.get('hati-theme'), 'navy');
-    assert.equal(s.win.themeNow(), 'navy');
+describe('F96 — the theme code is gone, and nothing asks for it', () => {
+  test('js/app.js keeps none of the theme or brand machinery', () => {
+    const app = code(src('js/app.js'));
+    assert.doesNotMatch(app, /const THEMES = \[/, 'the theme block is gone');
+    for (const n of RETIRED) assert.doesNotMatch(app, new RegExp('\\b' + n + '\\b'), n + ' is still in js/app.js');
   });
 
-  /* REVERSED IN PLACE, 7 Oct 2026 (Young: "Move everyone to Blue once"):
-     HaTi lands on Blue, and every browser is moved to Blue once on its next
-     visit; a Green pressed afterwards is stored and stands. */
-  test('"light" from the old two-position switch is moved to Blue with everyone', () => {
-    const s = stage('light');
-    assert.equal(s.win.themeNow(), 'navy');
-    s.win.setBrand('green');
-    assert.equal(s.win.brandNow(), 'green', 'a Green pressed after the move stands');
-  });
-
-  test('"dark" from the old switch still means Dark', () => {
-    const s = stage('dark');
-    assert.equal(s.win.themeNow(), 'dark', 'a month on dark is not undone by this change');
-  });
-
-  test('a theme that no longer exists falls back rather than breaking', () => {
-    const s = stage('chartreuse');
-    assert.equal(s.win.themeNow(), 'navy');
-  });
-
-  /* ---- REVERSED IN PLACE, 10 Sep 2026 — AND MADE THE RELATION IT ALWAYS
-     MEANT (owner-reported: the navy workspace goes green on refresh) ----
-
-     This pinned three LITERALS out of the pre-paint script, and one of them
-     was the fault: `else if (t === 'navy')`. An ELSE, so a dark workspace
-     could never also be navy — the three-states-not-two-axes model the app
-     itself left behind on 24 Aug 2026 and this script was never told about.
-     Worse, it read only 'hati-theme', which setBrand and setDark do not write,
-     so from that day the desktop's own appearance controls stored a choice the
-     next load ignored. MEASURED before it was touched: press navy, refresh,
-     and hati-brand is still 'navy' in the browser while data-brand is gone.
-
-     The claim this test was making — "the two copies have to be checked
-     against each other rather than assumed" — is exactly right and could never
-     have caught that, because it checked the copy against ITSELF. So the
-     script is RUN, against every combination of the three keys, and its answer
-     is compared with brandNow() and darkNow(). Three literals cannot drift
-     apart quietly again, and a fourth key would have to be taught to both. */
-  test('the pre-paint script in the page agrees with the app, on every stored combination', () => {
-    const head = src('index.html');
-    const at = head.indexOf('var brand  = localStorage.getItem');
-    assert.ok(at > -1, 'the pre-paint script no longer reads the brand key at all');
-    const open = head.lastIndexOf('try{', at);
-    const close = head.indexOf('}catch(e){}', at);
-    assert.ok(open > -1 && close > open, 'could not read the pre-paint block back');
-    const boot = head.slice(head.indexOf('{', open) + 1, close);
-
-    const VALUES = [null, 'green', 'navy'];
-    const DARKS = [null, '0', '1'];
-    const LEGACY = [null, '', 'light', 'green', 'navy', 'dark', 'chartreuse'];
-    let combinations = 0;
-
-    for (const b of VALUES) for (const d of DARKS) for (const l of LEGACY){
-      const s = stage();
-      s.win.localStorage.clear();
-      if (b !== null) s.win.localStorage.setItem('hati-brand', b);
-      if (d !== null) s.win.localStorage.setItem('hati-dark', d);
-      if (l !== null) s.win.localStorage.setItem('hati-theme', l);
-      /* The script as it really runs, on this document. */
-      s.root.className = '';
-      s.root.removeAttribute('data-brand');
-      vm.runInContext(boot, vm.createContext(s.win));
-      const bootSays = {
-        navy: s.root.getAttribute('data-brand') === 'navy',
-        dark: s.root.classList.contains('dark'),
-      };
-      const appSays = { navy: s.win.brandNow() === 'navy', dark: s.win.darkNow() };
-      const where = `brand=${b} dark=${d} legacy=${l}`;
-      assert.equal(bootSays.navy, appSays.navy, 'the brand disagrees at ' + where);
-      assert.equal(bootSays.dark, appSays.dark, 'light/dark disagrees at ' + where);
-      combinations++;
+  test('no module anywhere names one, publishes one or calls one — the phone included', () => {
+    const hits = [];
+    for (const f of walk('js')){
+      const c = code(src(f));
+      for (const n of RETIRED) if (new RegExp('\\b' + n + '\\b').test(c)) hits.push(f + ': ' + n);
     }
-    assert.ok(combinations > 60, 'the sweep read back too short: ' + combinations);
+    assert.deepEqual(hits, []);
   });
 
-  test('their page keeps its own light and dark: our choice never reaches a share link (Young, 4 Oct 2026)', () => {
-    /* One site, one browser, one 'hati-dark' — so our reader going dark turned
-       the counterparty's page dark too. A share or adviser link reads and
-       writes 'hati-dark-guest'; the pre-paint script and darkNow() agree. */
-    const head = src('index.html');
-    const at = head.indexOf('var brand  = localStorage.getItem');
-    const open = head.lastIndexOf('try{', at);
-    const close = head.indexOf('}catch(e){}', at);
-    const boot = head.slice(head.indexOf('{', open) + 1, close);
-    for (const hash of ['#share=tok123', '#advice=abc']){
-      for (const [ours, theirs, want] of [['1', null, false], ['1', '0', false], ['0', '1', true], [null, '1', true], [null, null, false]]){
-        const s = stage();
-        s.win.localStorage.clear();
-        s.win.location.hash = hash;
-        if (ours !== null) s.win.localStorage.setItem('hati-dark', ours);
-        if (theirs !== null) s.win.localStorage.setItem('hati-dark-guest', theirs);
-        s.win.localStorage.setItem('hati-theme', 'dark');   /* the legacy key is ours too */
-        s.root.className = '';
-        vm.runInContext(boot, vm.createContext(s.win));
-        const where = `${hash} ours=${ours} theirs=${theirs}`;
-        assert.equal(s.root.classList.contains('dark'), want, 'the pre-paint script at ' + where);
-        assert.equal(s.win.darkNow(), want, 'darkNow() at ' + where);
-      }
-    }
-    /* a switch pressed on their page writes their key, and ours is untouched */
-    const s = stage();
-    s.win.localStorage.clear(); s.win.location.hash = '#share=tok123';
-    s.win.localStorage.setItem('hati-dark', '1');
-    s.win.setDark(false);
-    assert.equal(s.win.localStorage.getItem('hati-dark-guest'), '0');
-    assert.equal(s.win.localStorage.getItem('hati-dark'), '1', 'their switch reached our choice');
-    /* and on our own page nothing changed */
-    const o = stage();
-    o.win.localStorage.clear(); o.win.localStorage.setItem('hati-dark', '1'); o.win.localStorage.setItem('hati-dark-guest', '0');
-    assert.equal(o.win.darkNow(), true);
-  });
-
-  test('and it asks the two questions independently — navy at night survives a load', () => {
-    /* The one combination the old `else if` could not paint, whatever was
-       stored. It is the whole reason the two axes exist. */
-    const head = src('index.html');
-    const at = head.indexOf('var brand  = localStorage.getItem');
-    const open = head.lastIndexOf('try{', at);
-    const close = head.indexOf('}catch(e){}', at);
-    const boot = head.slice(head.indexOf('{', open) + 1, close);
-    const s = stage();
-    s.win.localStorage.clear();
-    s.win.localStorage.setItem('hati-brand', 'navy');
-    s.win.localStorage.setItem('hati-dark', '1');
-    vm.runInContext(boot, vm.createContext(s.win));
-    assert.equal(s.root.getAttribute('data-brand'), 'navy', 'the workspace lost its brand at night');
-    assert.equal(s.root.classList.contains('dark'), true, 'the night was lost with it');
-  });
-
-  test('and the one painter runs at boot, so the module is the authority', () => {
-    /* applyAppearance had exactly two callers and both were inside the
-       setters, so nothing in the product ever applied the appearance on a
-       fresh load — the pre-paint script was the only thing that ever had, and
-       when it fell behind, the wrong theme was permanent rather than
-       corrected. wireShell calls wireThemeMenu once at load. */
-    const app = src('js/app.js');
-    const from = app.indexOf('function wireThemeMenu(');
-    const to = app.indexOf('function renderThemeMenu(');
-    assert.ok(from > -1 && to > from, 'wireThemeMenu moved');
-    const body = app.slice(from, to);
-    assert.match(body, /applyAppearance\(\)/, 'the appearance is never applied at boot');
-    /* And NOT the expensive one: this runs on every load. */
-    assert.doesNotMatch(body, /repaintForAppearance\(\)/,
-      'wireThemeMenu re-renders the whole view at boot');
+  test('nothing puts the dark class or a brand on the page', () => {
+    const hits = walk('js').filter(f => /documentElement\.classList\.(?:add|toggle)\(\s*['"]dark['"]|setAttribute\(\s*['"]data-brand['"]/.test(code(src(f))));
+    assert.deepEqual(hits, []);
   });
 });
 
 /* ============================================================
    REVERSED IN PLACE, 24 Aug 2026 — THE MENU BECAME TWO CONTROLS
-   ============================================================
-   This block asserted a menu of three mutually-exclusive rows: Green, Navy,
-   Dark, each with a swatch and a tick. The enterprise design splits the two
-   axes that were always underneath — and this file's own header already said
-   they were there ("navy-at-night already works in the stylesheet and is one
-   row away in the menu if anybody asks for it"). Somebody asked.
-
-   THE BRAND IS THE WORKSPACE'S and the THEME IS THE PERSON'S, so they are two
-   controls: two swatches, admin-only, and a Light/Dark toggle everyone gets.
-   Four combinations replace three states, and navy-at-night is reachable for
-   the first time.
-
-   WHAT THE OLD CLAIMS WERE REALLY ABOUT SURVIVES, one for one: the control
-   states what you are wearing, pressing it applies AND repaints itself, and
-   nothing stored in anybody's browser moves. */
-describe('F96 — brand and theme are two controls, not three rows', () => {
-  test('the retired menu is gone from the markup and the code', () => {
-    const html = src('index.html');
-    assert.ok(!html.includes('data-theme-pick'),
-      'the three-row menu is retired — flag any mention as stale');
+   (two swatches, admin-only, and a Light/Dark toggle everyone got)
+   REVERSED AGAIN, 20 Oct 2026 — CHAMBERS: NEITHER CONTROL IS LEFT
+   ============================================================ */
+describe('F96 — no theme control on any page', () => {
+  test('the retired menu is gone, and so are the two controls that replaced it', () => {
+    const html = code(HTML);
+    assert.ok(!html.includes('data-theme-pick'), 'the three-row menu is retired — flag any mention as stale');
     assert.ok(!html.includes('id="theme-menu"'));
-    assert.ok(html.includes('data-brand-pick="green"') && html.includes('data-brand-pick="navy"'),
-      'the two brand swatches are what replaced it');
-    assert.ok(html.includes('id="theme-btn"'), 'and the light/dark toggle keeps its id');
+    assert.ok(!html.includes('data-brand-pick'), 'no brand swatch');
+    assert.ok(!html.includes('id="brand-green"') && !html.includes('id="brand-navy"'));
+    assert.ok(!html.includes('id="theme-btn"'), 'no light/dark toggle');
+    assert.doesNotMatch(html, /class="[^"]*\bsh-grp\b/, 'no Appearance group in the bar');
   });
 
-  test('the toggle says which theme you are wearing', () => {
-    const s = stage('dark');
-    s.win.applyTheme('dark');
-    s.win.wireThemeMenu();
-    const t = s.doc.getElementById('theme-btn');
-    assert.match(t.textContent, /Dark/);
-    assert.equal(t.getAttribute('aria-pressed'), 'true');
-  });
-
-  test('pressing it flips only the theme, and the brand stays put', () => {
-    const s = stage('navy');
-    s.win.applyTheme('navy');
-    s.win.wireThemeMenu();
-    assert.equal(s.win.darkNow(), false);
-    s.win.setDark(true);
-    assert.equal(s.win.darkNow(), true);
-    assert.equal(s.win.brandNow(), 'navy', 'navy at night — the combination the menu could not reach');
-    assert.equal(s.root.getAttribute('data-brand'), 'navy');
-    assert.ok(s.root.classList.contains('dark'));
-  });
-
-  test('pressing a swatch flips only the brand, and the theme stays put', () => {
-    const s = stage();
-    s.win.setDark(true);
-    s.win.setBrand('navy');
-    assert.equal(s.win.brandNow(), 'navy');
-    assert.equal(s.win.darkNow(), true, 'the theme is not collateral damage');
-  });
-
-  test('NOTHING STORED IN ANYBODY\'S BROWSER MOVES', () => {
-    /* The single legacy key is the only thing an existing reader has. Each of
-       its three values still opens exactly the workspace it always did. */
-    /* except the brand, moved to Blue once by the owner's word (7 Oct 2026):
-       the lights a reader chose still stand */
-    for (const [saved, brand, dark] of [['green','navy',false],['navy','navy',false],['dark','navy',true]]){
-      const s = stage(saved);
-      assert.equal(s.win.brandNow(), brand, saved + ' -> brand');
-      assert.equal(s.win.darkNow(), dark, saved + ' -> dark');
+  test('the phone has no theme button either', () => {
+    for (const f of walk('js').filter(f => /\/mobile[^/]*\.js$/.test(f))){
+      const c = code(src(f));
+      assert.doesNotMatch(c, /data-m-act="theme"|m-theme-sw|M_THEME_SWATCH/, f);
     }
-  });
-
-  test('the swatches are ADMIN-ONLY and the toggle is not', () => {
-    const s = stage();
-    s.win.currentUser = () => ({ id:'u1', name:'Ed', role:'editor' });
-    s.win.wireThemeMenu();
-    assert.equal(s.doc.getElementById('brand-navy').hidden, true, 'an editor sees no brand swatch');
-    assert.ok(!s.doc.getElementById('theme-btn').hidden, 'but light/dark is everybody\'s');
-    s.win.currentUser = () => ({ id:'u2', name:'Amina', role:'admin' });
-    s.win.wireThemeMenu();
-    assert.equal(s.doc.getElementById('brand-navy').hidden, false, 'an admin does');
-  });
-
-  test('the old toggle still works, and steps through all three', () => {
-    const s = stage();
-    /* Blue first since 7 Oct 2026 */
-    s.win.toggleTheme(); assert.equal(s.win.themeNow(), 'green');
-    s.win.toggleTheme(); assert.equal(s.win.themeNow(), 'dark');
-    s.win.toggleTheme(); assert.equal(s.win.themeNow(), 'navy', 'the phone presses this one');
   });
 });
 
-describe('F96 — Navy changes colour and nothing else', () => {
-  const css = src('index.html');
-  const block = (() => {
-    const i = css.indexOf(':root[data-brand="navy"]{');
-    assert.ok(i > 0, 'the navy theme is declared');
-    return css.slice(i, css.indexOf('}', i));
-  })();
+describe('F96 — no brand block; the redline\'s grammar is still nobody\'s theme', () => {
+  const css = code(HTML);
 
-  test('it sets the same names the green ramp sets', () => {
-    for (const n of ['--color-accent-600', '--color-accent-600-rgb', '--nav-bg', '--brand-hero-deep'])
-      assert.ok(block.includes(n + ':'), `${n} is missing from Navy`);
+  test('no :root[data-brand] block, and no rule keyed on a brand', () => {
+    assert.equal(css.indexOf(':root[data-brand="navy"]{'), -1, 'the navy theme is gone');
+    assert.doesNotMatch(css, /data-brand/, 'no selector anywhere reads a brand');
   });
 
-  test('every accent step has a hex AND a channel form', () => {
-    for (const step of ['50','100','200','300','400','500','600','700','800','900']){
-      assert.ok(block.includes(`--color-accent-${step}:`), `hex missing for ${step}`);
-      assert.ok(block.includes(`--color-accent-${step}-rgb:`), `channels missing for ${step}`);
+  /* The old claim — "every accent step has a hex AND a channel form" — held
+     of Navy's block; it holds now of the one palette, and the relation is
+     pinned rather than the number: each step's channels ARE its hex. */
+  test('the one palette carries every accent step in hex AND channel form, and they agree', () => {
+    const at = css.indexOf('  :root{');
+    assert.ok(at > -1, 'the palette is there');
+    let depth = 0, end = at;
+    for (let i = css.indexOf('{', at); i < css.length; i++){
+      if (css[i] === '{') depth++;
+      else if (css[i] === '}'){ depth--; if (depth === 0){ end = i; break; } }
+    }
+    const block = css.slice(at, end);
+    for (const step of ['50', '100', '200', '300', '400', '500', '600', '700', '800', '900']){
+      const hex = (block.match(new RegExp('--color-accent-' + step + ':\\s*#([0-9a-fA-F]{6})')) || [])[1];
+      const rgb = (block.match(new RegExp('--color-accent-' + step + '-rgb:\\s*(\\d+) (\\d+) (\\d+)')) || []).slice(1).map(Number);
+      assert.ok(hex, `hex missing for ${step}`);
+      assert.equal(rgb.length, 3, `channels missing for ${step}`);
+      assert.deepEqual(rgb, [0, 2, 4].map(i => parseInt(hex.slice(i, i + 2), 16)), `${step}: the channels are not its hex`);
     }
   });
 
-  test('it carries no spacing, size or radius — colour only', () => {
-    for (const bad of ['padding', 'margin', 'font-size', 'border-radius', 'width', 'height'])
-      assert.ok(!block.includes(bad), `Navy sets ${bad} — a theme that can move layout will`);
-  });
-
-  /* THE LINE THAT MUST NOT MOVE. */
-  test('it touches no status colour: accepted stays green, rejected stays red', () => {
-    for (const bad of ['--st-green', '--st-ruby', '--st-amber', '--n-ins', '--n-del',
-                       '--n-accept', '--n-reject'])
-      assert.ok(!block.includes(bad),
-        `Navy sets ${bad} — the redline's grammar is not the brand's to change`);
-  });
-
-  test('and the green theme does not define the status colours either', () => {
-    /* They live in their own block, so neither theme can quietly claim them. */
-    const st = css.indexOf('--st-green-bg:');
-    assert.ok(st > 0);
-    assert.ok(css.lastIndexOf(':root[data-brand="navy"]{', st) < css.lastIndexOf(':root{', st),
-      'the status palette sits outside any theme block');
+  /* THE LINE THAT MUST NOT MOVE, said the new way: accepted green, rejected
+     red and amber are each defined ONCE, in the palette — no theme, brand or
+     dark block anywhere can re-dress them. */
+  test('accepted stays green, rejected stays red: each status colour is defined once, in the palette', () => {
+    for (const tone of ['green', 'ruby', 'amber']) for (const part of ['bg', 'fg', 'dot', 'line']){
+      const name = `--st-${tone}-${part}`;
+      const at = [...css.matchAll(new RegExp(name + '\\s*:', 'g'))].map(m => m.index);
+      assert.equal(at.length, 1, `${name} is defined ${at.length} times`);
+      const open = css.lastIndexOf('{', at[0]);
+      /* the selector: from the last rule's end (or the <style> it opens) to its brace */
+      const sel = css.slice(css.lastIndexOf('}', open) + 1, open).replace(/^[\s\S]*<style[^>]*>/, '').trim();
+      assert.equal(sel, ':root', `${name} sits under "${sel}", not in the palette`);
+    }
   });
 });
 
 /* ============================================================ */
 describe('F96 — the Copilot is a layer, not a hole', () => {
-  const css = src('index.html');
+  const css = HTML;
 
   /* WHAT WENT WRONG. The conversation area was painted var(--color-bg) — the
      PAGE's own background — so in every theme the drawer's body was exactly
@@ -409,18 +254,9 @@ describe('F96 — the Copilot is a layer, not a hole', () => {
       'the feed must not borrow the page background');
   });
 
-  /* Read the value out of each palette block rather than trusting one
-     definition: a theme that overrides --color-bg and forgets this is exactly
-     how the blend comes back. */
   /* THE BLOCK IS FOUND BY MATCHING ITS BRACES, NOT BY ASSUMING WHAT FOLLOWS
-     THE OPENING ONE. This read used to anchor on the literal
-     `  :root{\n    --color-bg:` and slice to the first `\n  }` in the FILE —
-     so the day somebody wrote a comment between `:root{` and the first token
-     (22 Aug, the ink retune), the anchor stopped matching, indexOf returned
-     -1, the slice came back EMPTY and all three tokens read undefined. The
-     test then failed on a claim that was still perfectly true: the three
-     colours are #F4F6F6, #ffffff and #eef2f7. A fragile anchor accusing the
-     product of a fault it does not have is worse than no test. */
+     THE OPENING ONE (a fragile anchor accusing the product of a fault it does
+     not have is worse than no test). */
   const tokenIn = (blockOpen, name) => {
     const at = css.indexOf(blockOpen);
     assert.ok(at > 0, 'the ' + name + ' palette is still there');
@@ -434,14 +270,19 @@ describe('F96 — the Copilot is a layer, not a hole', () => {
     return { bg: grab('color-bg'), surface: grab('color-surface'), chat: grab('color-chat-bg') };
   };
 
-  for (const [start, name] of [['  :root{', 'light'], ['  html.dark{', 'dark']]) {
-    test(`${name}: the chat backdrop is its own tone, apart from the page and the panel`, () => {
-      const t = tokenIn(start, name);
-      assert.ok(t.bg && t.surface && t.chat, `${name} defines all three`);
-      assert.notEqual(t.chat.toLowerCase(), t.bg.toLowerCase(),
-        'the same colour as the page is the blend this fixes');
-      assert.notEqual(t.chat.toLowerCase(), t.surface.toLowerCase(),
-        'the same colour as the panel leaves the conversation with no edge');
-    });
-  }
+  test('light: the chat backdrop is its own tone, apart from the page and the panel', () => {
+    const t = tokenIn('  :root{', 'light');
+    assert.ok(t.bg && t.surface && t.chat, 'light defines all three');
+    assert.notEqual(t.chat.toLowerCase(), t.bg.toLowerCase(),
+      'the same colour as the page is the blend this fixes');
+    assert.notEqual(t.chat.toLowerCase(), t.surface.toLowerCase(),
+      'the same colour as the panel leaves the conversation with no edge');
+  });
+
+  /* RE-POINTED 20 Oct 2026 (Chambers): the dark pass is gone with the dark
+     palette — there is no second set of these three to fall behind. */
+  test('there is no dark palette left to blend: no html.dark block, no dark selector', () => {
+    assert.equal(css.indexOf('  html.dark{'), -1, 'the dark palette block is gone');
+    assert.doesNotMatch(code(css), /\b(?:html|:root)\.dark\b/, 'no rule is keyed on the dark class');
+  });
 });

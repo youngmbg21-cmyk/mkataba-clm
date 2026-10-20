@@ -70,7 +70,8 @@ const ok = (name, good, detail) => {
     await page.fill('#su-email', 'admin@example.co.ke'); await page.fill('#su-pass', 'adminpassword1');
     const sample = await page.$('#su-sample'); if (sample && !(await sample.isChecked())) await sample.check();
     await page.click('#su-go'); await page.waitForTimeout(3500); await page.keyboard.press('Escape').catch(() => {});
-    const en = await page.$('.lang-btn[data-lang="en"]'); if (en) { await en.click(); await page.waitForTimeout(800); }
+    /* RE-POINTED 20 Oct 2026 (Chambers): the bar carries no language switch; langSet is the one writer */
+    await page.evaluate(() => { if (typeof langSet === 'function') langSet('en'); }); await page.waitForTimeout(400);
 
     /* ---- the stage ---- */
     const staged = await page.evaluate(async () => {
@@ -331,20 +332,26 @@ const ok = (name, good, detail) => {
       drawn: document.querySelectorAll('.hb-ag-works [data-hb-ag-item="desk:MK-131:chase:ob_held"]').length }));
     ok('8e CONTROL — once our deposit is marked paid, the same step IS offered, on the page', freed.ready === 1 && freed.drawn === 1, JSON.stringify(freed));
 
-    /* ---- 9. a narrow window and the dark theme ---- */
+    /* ---- 9. a narrow window, and no dark theme ----
+       RE-POINTED 20 Oct 2026 (the owner picked "Chambers" and removed dark mode:
+       "Let's not implement the dark theme. Remove it from HaTi."): 9b used to
+       switch the dark theme on and measure the Board's work dressed dark; there
+       is no dark theme now, so it asserts there is none to switch to and the
+       Board's work stays on the light screen, in dark ink. */
     await page.setViewportSize({ width: 1024, height: 800 });
     await page.waitForTimeout(500);
     const narrow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
     ok('9a no sideways scroll at 1024', narrow <= 0, narrow + 'px');
     await page.screenshot({ path: path.join(OUT, '9-narrow.png') });
-    await page.evaluate(() => { if (typeof setDark === 'function') setDark(true); else document.documentElement.classList.add('dark'); });
-    await page.waitForTimeout(400);
-    const dark = await page.evaluate(() => {
+    const lightOnly = await page.evaluate(() => {
       const card = document.querySelector('.hb-ag-works .hb-ag-work') || document.getElementById('hm-agents'); if (!card) return null;
-      return { bg: getComputedStyle(card).backgroundColor, ink: getComputedStyle(card).color };
+      const pg = document.getElementById('ig-page') || document.getElementById('hb-page');
+      const ink = (getComputedStyle(card).color.match(/\d+/g) || []).slice(0, 3).map(Number);
+      return { setDark: typeof window.setDark, toggleDark: typeof window.toggleDark, darkClass: document.documentElement.classList.contains('dark'),
+        light: !!pg && pg.classList.contains('hb-light') && !pg.classList.contains('hb-dark'), ink };
     });
-    ok('9b the dark theme dresses the Board\'s work (a dark card, light ink)', !!dark && !/255, 255, 255/.test(dark.bg) && /2[0-9]{2}/.test(dark.ink), JSON.stringify(dark));
-    await page.screenshot({ path: path.join(OUT, '9-dark.png') });
+    ok('9b no dark theme to switch to: the Board\'s work stays on the light screen, in dark ink', !!lightOnly && lightOnly.setDark === 'undefined' && lightOnly.toggleDark === 'undefined'
+      && !lightOnly.darkClass && lightOnly.light && lightOnly.ink.length === 3 && lightOnly.ink.every(v => v < 80), JSON.stringify(lightOnly));
 
     /* ---- 10. THE BRIEF THAT OPENED EMPTY (Young, 27 Sep 2026: "for many cards
        in there when i click on read brief, the panel comes up but it has no
@@ -357,7 +364,6 @@ const ok = (name, good, detail) => {
        briefed"); 10a–10c are the opened readings; 10e is the one door onto
        adding the obligations found. */
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.evaluate(() => { if (typeof setDark === 'function') setDark(false); });
     const fresh = await page.evaluate(async () => {
       const me = currentUser();
       const used = new Set(['MK-149', 'MK-143', 'MK-131', 'MK-158']);

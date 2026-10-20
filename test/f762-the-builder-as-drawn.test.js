@@ -14,8 +14,9 @@
        "Jambo proposes · <standard>" · Add · Skip · "Our standard: …"; never
        wording; Skip is kept for the template; marks under met sections.
    (4) The ask box as drawn on every tab ("Ask for anything, or type /", the
-       word Ask, its hint) — "/" leaves the page through tbLeave (caSlTake's
-       `_caLeave`), and a question from another tab is answered on Build.
+       word Ask; since Chambers, 20 Oct 2026, no hint line under it) — "/"
+       leaves the page through tbLeave (caSlTake's `_caLeave`), and a
+       question from another tab is answered on Build.
    (5) Everything the builder did keeps its one writer: tbAddBlock the only
        push, tbFocus the only writer of the section in hand besides the open.
    (6) The words, in both books.
@@ -159,12 +160,13 @@ describe('f762 (3) Jambo proposes on the paper', () => {
 });
 
 describe('f762 (4) the ask box as drawn', () => {
-  test('4a on every tab: "Ask for anything, or type /", the word Ask, "/" the places, its hint inside the foot', async () => {
+  test('4a on every tab: "Ask for anything, or type /", the word Ask, "/" the places, and no hint line under the box', async () => {
     const s = await stage(RESELLER, FIELDS);
     /* RE-POINTED 20 Oct 2026 (owner picked "Two-row card" for every Jambo box): the words the whole width, + and the round send on their own row under them, drawn by the one builder (jamboCardHtml) */
     assert.match(s.rail, /<div class="tb-foot">(<div class="jb-card" id="tb-askrow">)?<textarea id="tb-ask"[^>]*data-ca-slash placeholder="Ask for anything, or type \/"/);
     assert.match(s.rail, /data-tb-send[^>]*aria-label="[^"]+"/);
-    assert.match(s.rail, /<p class="jb-hint">Typing never signs, sends or files — a press does\.<\/p><\/div>/);
+    /* RE-POINTED 20 Oct 2026 (Chambers: no hint line under any Jambo box) */
+    assert.doesNotMatch(s.rail, /jb-hint|jb-keys|Typing never signs, sends or files/, 'no hint line inside the foot');
     s.w.tbSetTab('blanks'); assert.match(s.read().rail, /id="tb-ask"/, 'the box stays on another tab');
   });
   test('4b a question from another tab is answered on Build; "/" leaves through tbLeave', () => {

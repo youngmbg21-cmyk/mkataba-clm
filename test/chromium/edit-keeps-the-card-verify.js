@@ -4,7 +4,8 @@
    with Directory", "for the terms field, there should be no more fields than
    what is in image 1 ... go with the soft fill", "the card should not expand
    when you click edit. the parties side should simply be on a scroll".
-   At 1440, 1280 and 1100, light and dark:
+   At 1440, 1280 and 1100 (light only — RE-POINTED 20 Oct 2026, Chambers:
+   HaTi has no dark mode any more, so the dark pass is removed):
      1. the sentence beside Read the brief is gone
      2. the essentials card is exactly as tall in Edit as at rest, and stays
         so with a person's form open
@@ -41,8 +42,8 @@ const EIGHT = ['contractType', 'governingLaw', 'disputes', 'value', 'effDate', '
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const errors = [];
   try {
-    for (const dark of [false, true]) for (const width of [1440, 1280, 1100]) {
-      const tag = `${dark ? 'dark' : 'light'} ${width}`;
+    for (const width of [1440, 1280, 1100]) {
+      const tag = `light ${width}`;
       const page = await (await browser.newContext({ viewport: { width, height: 900 } })).newPage();
       page.on('pageerror', e => errors.push(e.message));
       const until = async (fn, arg, ms = 8000) => { let v; const t0 = Date.now();
@@ -53,7 +54,6 @@ const EIGHT = ['contractType', 'governingLaw', 'disputes', 'value', 'effDate', '
       await page.fill('#li-pass', 'adminpassword1');
       await page.click('#li-go');
       await page.waitForFunction(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-EK1'), null, { timeout: 20000 });
-      if (dark) await page.evaluate(() => setDark(true));
       /* RE-POINTED 15 Oct 2026 (step 8, the room retired): the Overview's
          sheet is the contract strip's Details page on Home's Board — where the
          reader edits it now — opened by its one door (roomOverviewOpen) */

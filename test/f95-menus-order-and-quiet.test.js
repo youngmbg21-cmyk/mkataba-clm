@@ -131,10 +131,15 @@ describe('F95 — every menu row has a symbol, and the symbols are solid dark gr
         `${sel} — hover must never turn Delete into a row that looks safe`);
   });
 
-  test('the dark theme lifts them off the ground instead of sinking them', () => {
-    assert.equal(decl('html.dark .room-menu button svg', 'color'), 'var(--color-accent-300)',
-      'accent-800 is a near-black green on dark paper');
-    assert.equal(decl('html.dark .reg-act svg', 'color'), 'var(--color-accent-300)');
+  /* RE-POINTED 20 Oct 2026 (Chambers: the dark theme is removed — only
+     Explorer's map and the Brain keep a dark stage). This used to pin the
+     dark theme lifting the marks to accent-300; there is no dark theme left
+     to lift them on, so it now pins that no dark rule re-dresses either menu
+     and the accent ink above is their one colour. */
+  test('no dark theme re-dresses them: the accent ink is their one colour', () => {
+    assert.equal(decl('html.dark .room-menu button svg', 'color'), undefined, 'no dark rule for the room menu');
+    assert.equal(decl('html.dark .reg-act svg', 'color'), undefined, 'nor for the register menu');
+    assert.doesNotMatch(bare, /(?:html|:root)\.dark\s+[^{]*\.(?:room-menu|reg-act)\b/, 'no dark selector reaches either menu');
   });
 
   test('every verb in the register menu names an icon', () => {

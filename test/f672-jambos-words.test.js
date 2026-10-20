@@ -307,7 +307,9 @@ describe('f672 (4) the chips lead with the checklist', () => {
   test('4d a chip is the word in the reader\'s language, and asks it', () => {
     const { ctx } = stage({ lang: 'sv', need: ['details'] });
     const html = ctx.caChipsHtml();
-    assert.match(html, /data-igsug="fyll i"[^>]*class="ca-chip-owed/);
+    /* RE-POINTED 20 Oct 2026 (Chambers: suggestions are links): the chip wears
+       the one link class, the owed lead marked on top of it */
+    assert.match(html, /data-igsug="fyll i"[^>]*class="jb-chip ca-chip-owed"/);
   });
 });
 
