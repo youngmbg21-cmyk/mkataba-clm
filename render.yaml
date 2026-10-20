@@ -46,7 +46,7 @@ services:
       - key: HATI_DATA
         value: /var/data
       - key: EMAIL_FROM
-        value: HaTi <onboarding@resend.dev>
+        value: HaTi <no-reply@hatiway.co.ke>
       - key: RESEND_API_KEY
         sync: false   # set this in the Render dashboard; never committed to git
       - key: APP_URL
