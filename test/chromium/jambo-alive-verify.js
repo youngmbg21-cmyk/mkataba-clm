@@ -66,7 +66,8 @@ const check = (name, pass, detail) => {
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-B2'), null, { timeout: 15000 });
 
     /* ============ 1. WHERE HE SITS ============ */
-    await page.evaluate(() => hbOpenContracts());
+    /* Contracts opens on the List (owner, 20 Oct 2026): this check walks the Wall */
+    await page.evaluate(() => { if (window.regPlaceSet) regPlaceSet({ show: 'wall' }); hbOpenContracts(); });
     await until(() => !!document.querySelector('#ct-place [data-ig-pick]'));
     await atRest();
     const w = await perch();
@@ -130,7 +131,8 @@ const check = (name, pass, detail) => {
     const still = await page.evaluate(() => [...document.querySelectorAll('#pd-glance [data-pd-gl]')].map(x => x.getAttribute('data-pd-gl')));
     check('4b then it leaves, and the rows still owed stay', !!gone && !still.includes('fill') && g0.filter(k => k !== 'fill').every(k => still.includes(k)), JSON.stringify(still));
     /* opening another paper ticks nothing off: its rows are not the last one's */
-    await page.evaluate(() => hbOpenContracts());
+    /* Contracts opens on the List (owner, 20 Oct 2026): this check walks the Wall */
+    await page.evaluate(() => { if (window.regPlaceSet) regPlaceSet({ show: 'wall' }); hbOpenContracts(); });
     await until(() => !!document.querySelector('#ct-place [data-ig-pick="MK-A2"]'));
     await page.click('[data-ig-pick="MK-A2"]'); await page.click('[data-ig-pick="MK-A2"]');
     await until(() => intel.paper && intel.paper.id === 'MK-A2' && document.getElementById('pd-glance'));

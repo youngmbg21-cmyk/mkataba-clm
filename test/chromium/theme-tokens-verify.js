@@ -29,6 +29,14 @@
    variables actually repaints the platform. A token nothing reads is not a
    token, and no census of the DEFAULT theme would ever notice.
 
+   RE-RECORDED 20 Oct 2026 (ninth), OWNER-ASKED ("fix all of them"):
+   Contracts opens on the List (REG_STATE_DEF show 'list'), and the panel's
+   tabs came back. Audited as a set difference: every colour new is an
+   existing token now drawn on more screens — the accent-700 ink and
+   accent-100 wash, --danger/--st-ruby-fg, --st-green-bg on the register in
+   both themes, and the accent-500 wash rgba(53,96,180,0.16) on the dark
+   dashboard, contract and history screens. Gone (light): slate-300 and the
+   rgba(10,20,40,0.18) shadow the wall's small papers wore.
    RE-RECORDED 19 Oct 2026 (eighth), OWNER-ASKED ("Yes, re-save it", after
    the gap build: every visible part of the picked redesign drawings; and
    "Design's colours" for the redline buttons). Audited as a set difference

@@ -327,7 +327,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
 
     /* ---- 9 check #2's differences, built (lane A2, 19 Oct 2026) ---- */
     await part('9 check #2', async () => {
-      const lit = () => until(() => { const e = document.querySelector('.is-landed, .is-landed-held'); return e ? (e.className + '|' + state.view + '|' + (e.getAttribute('data-ap-row') || '')) : null; }, null, 8000);
+      const lit = () => until(() => { const e = document.querySelector('.is-landed, .is-landed-held'); return e ? (e.className + (e.hasAttribute('data-row') ? ' data-row' : '') + '|' + state.view + '|' + (e.getAttribute('data-ap-row') || '')) : null; }, null, 8000);
       const choose = async key => { await page.evaluate(() => setView('customers')); await until(() => document.querySelector('#cu-tbody'));
         await page.evaluate(k => { const r = document.querySelector(`#cu-tbody [data-cu-cust="${k}"]`); if (r) r.click(); }, key); await until(() => document.querySelector('#ins-panel [data-ins-act]')); };
       await choose('kenya freight ltd');
@@ -335,6 +335,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       check('9a the panel\'s doors stand at their own width', W.length === 2 && W[0] < 150, JSON.stringify(W));
       await page.click('#ins-panel [data-ins-act="open"]');
       const O = await lit();
+      /* Contracts opens on the List (owner, 20 Oct 2026): the first paper is a
+         list row (tr[data-row]) as often as a wall card */
       check('9b Open party lands on the place\'s first paper, lit', !!O && /igw-card|data-row|ig/.test(O) && /dashboard/.test(O), String(O));
       await choose('kenya freight ltd');
       await page.click('#ins-panel [data-ins-act="explorer"]');
