@@ -187,7 +187,8 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     await page.fill('#ce-ask', 'Please raise the cap and carve out confidentiality, data protection, fraud, personal injury and anything that cannot be limited at law, and keep it to one paragraph that reads cleanly in the contract and leaves the rest of the clause as it stands today with no other edits at all please. '.repeat(3));
     const ask1 = await page.evaluate(() => { const b = document.querySelector('#ce-ask'); return { h: Math.round(b.getBoundingClientRect().height), lh: parseFloat(getComputedStyle(b).lineHeight), ov: getComputedStyle(b).overflowY }; });
     check(ask0 <= 30, '5f the prompt box is one line at rest', ask0);
-    check(ask1.h > ask0 && ask1.h <= Math.ceil(ask1.lh * 5) + 14 && ask1.ov === 'auto', '5g a long prompt wraps and grows to five lines, then scrolls', JSON.stringify(ask1));
+    /* RE-POINTED 20 Oct 2026 (owner picked "Two-row card"): the box grows to SIX lines, then scrolls */
+    check(ask1.h > ask0 && ask1.h <= Math.ceil(ask1.lh * 6) + 14 && ask1.ov === 'auto', '5g a long prompt wraps and grows to six lines, then scrolls', JSON.stringify(ask1));
     await page.fill('#ce-ask', '');
     /* RE-POINTED 7 Oct 2026 (Sticky bar): printed whole, no window */
     check(!!R && R.pvH > 0 && R.pvScroll <= 1, '1i the card is printed whole: nothing inside it scrolls', R && (R.pvH + ' / ' + R.pvScroll));
