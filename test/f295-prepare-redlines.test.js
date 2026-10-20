@@ -23,7 +23,11 @@ const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/g
 const VIEW = read('js/views/negotiation.js'), PB = read('js/playbook.js'), I18N = read('js/i18n.js');
 function bodyOf(src, name){ const i = src.indexOf('function ' + name + '('); assert.ok(i >= 0, name); let j = src.indexOf('{', i), d = 0;
   for (let k = j; k < src.length; k++){ if (src[k] === '{') d++; else if (src[k] === '}' && --d === 0) return src.slice(j, k + 1); } throw new Error(name); }
-const RUN = strip(bodyOf(VIEW, 'rlPrepareRedlines'));
+/* RE-POINTED 20 Oct 2026 (owner: "Add some movement so that someone does not
+   think it is frozen"): rlPrepareRedlines is now the wrapper that turns the
+   button's ring on after the yes and off at the end; the run it read is
+   rlPrepareRedlinesRun, unchanged */
+const RUN = strip(bodyOf(VIEW, 'rlPrepareRedlinesRun'));
 
 const ME = { id: 'u_me', name: 'Young Mbagaya', role: 'legal', email: 'y@w.co.ke' };
 const BODY =
@@ -295,8 +299,14 @@ describe('f295 — two doors, one act', () => {
     assert.ok(!/data-rl-prepare/.test(ACTS),
       'the attribute is the builder\'s to write — writing it here would be the copy');
     /* The whole point of one builder: exactly one place emits this. */
-    assert.equal((VIEW.match(/data-rl-prepare\b/g) || []).length, 2,
-      'one emitter and one handler name it, and nothing else');
+    /* RE-POINTED 20 Oct 2026: a third reader, the ring that turns on every
+       such button while Jambo drafts (rlPrepareBusy), names it too; it draws
+       no button. Still exactly ONE emitter. */
+    assert.equal((VIEW.match(/<button[^>]*data-rl-prepare\b/g) || []).length, 1, 'one emitter draws it');
+    /* …and the ring also turns on the Overview's "Next up" card that presses it
+       (data-pd-mn-go="[data-rl-prepare]", 20 Oct 2026): four mentions */
+    assert.equal((VIEW.match(/data-rl-prepare\b/g) || []).length, 4,
+      'one emitter, one handler and the busy ring (button and its card) name it, and nothing else');
   });
   test('ONE HANDLER ANSWERS BOTH — querySelectorAll, never querySelector', () => {
     assert.match(VIEW, /querySelectorAll\('\[data-rl-prepare\]'\)\.forEach/,

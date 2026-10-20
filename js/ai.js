@@ -1211,7 +1211,9 @@ function renderAIFeed(typing=false){
       ${aiFaceHtml('think')}
       <div class="rounded-2xl rounded-tl-md bg-canvas border border-brand-100 px-4 py-3 typing"><span></span><span></span><span></span></div>
     </div>`:'');
-  { const sc=inList?(feed.closest('.jl-talk-sc')||feed):feed; sc.scrollTop=sc.scrollHeight; }
+  /* the newest turn read from its first line (jamboFeedLand, owner 20 Oct 2026) */
+  { const sc=inList?(feed.closest('.jl-talk-sc')||feed):feed;
+    if(typeof jamboFeedLand==='function') jamboFeedLand(sc, jamboFeedLast(feed)); else sc.scrollTop=sc.scrollHeight; }
   /* Charts last: the canvases only exist now the feed has painted. The sweep
      first, because this innerHTML assignment has just detached every canvas
      from the previous paint while their Chart instances are still running. */
@@ -2682,7 +2684,9 @@ function aiStreamRenderer(){
       text+=ev.text;
       el.textContent=text;
       const feed=aiFeedEl();
-      if(feed){ const sc=feed.id==='jl-feed'?(feed.closest('.jl-talk-sc')||feed):feed; sc.scrollTop=sc.scrollHeight; }
+      /* words still arriving: follow them down only to the answer's first line */
+      if(feed){ const sc=feed.id==='jl-feed'?(feed.closest('.jl-talk-sc')||feed):feed;
+        if(typeof jamboFeedLand==='function') jamboFeedLand(sc, el.closest('.ai-msg')||jamboFeedLast(feed), { follow:true }); else sc.scrollTop=sc.scrollHeight; }
     }
   };
 }

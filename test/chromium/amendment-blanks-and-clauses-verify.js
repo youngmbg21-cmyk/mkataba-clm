@@ -176,14 +176,16 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
       const b = f.querySelector('#sign-paper');
       return { line: !!(b && b.getBoundingClientRect().width > 0) };
     });
-    await page.evaluate(id => pdOpenOnHome(id, 'menu'), id8);
+    /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the Menu tab's rows stand in the dossier's All acts fold */
+    await page.evaluate(id => { if (window.pdSignClose) try { pdSignClose(); } catch (_){} pdOpenOnHome(id, 'copilot'); }, id8);
+    await waitFor(page, () => { const f = document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'); if (!f) return null; f.open = true; return true; });
     const p8 = await waitFor(page, () => {
-      const b = Array.from(document.querySelectorAll('#pd-body #ws-m-their-way')).find(x => x.getBoundingClientRect().width > 0);
+      const b = Array.from(document.querySelectorAll('#ig-dock .ds-fold #ws-m-their-way')).find(x => x.getBoundingClientRect().width > 0);
       if (!b) return null;
-      const r = b.getBoundingClientRect(), p = document.getElementById('pd-body').getBoundingClientRect();
+      const r = b.getBoundingClientRect(), p = document.getElementById('ig-dock').getBoundingClientRect();
       return { sw: b.scrollWidth, cw: b.clientWidth, inside: r.left >= p.left - 1 && r.right <= p.right + 1, t: b.textContent.trim() };
     });
-    check('8  "Hand it over to sign their way" sits whole inside the Menu tab, and the face no longer draws the line',
+    check('8  "Hand it over to sign their way" sits whole inside the dossier\'s All acts fold, and the face no longer draws the line',
       face8 && !face8.line && p8 && p8.sw <= p8.cw + 1 && p8.inside, JSON.stringify({ face8, p8 }));
 
     await page.screenshot({ path: process.env.SHOT || '/tmp/amend-blanks.png' });

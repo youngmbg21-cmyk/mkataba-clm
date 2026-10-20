@@ -1,6 +1,6 @@
 'use strict';
 /* ═══════════════════════════════════════════════════════════════════════════
-   f842 — ASK A COLUMN (owner picked "In Jambo's panel", 20 Oct 2026; with
+   f843 — ASK A COLUMN (owner picked "In Jambo's panel", 20 Oct 2026; with
    "The SAP way" for show-why and "Tick in the cell" for checked-by; limit 50,
    anyone who can edit contracts may ask)
 
@@ -36,7 +36,7 @@ before(async () => {
 });
 after(async () => { if (h) await h.stop(); });
 
-describe('f842 (1) one question, many contracts', () => {
+describe('f843 (1) one question, many contracts', () => {
   test('1a every contract answered, each with a sentence from its own wording', async () => {
     h.ai.reset();
     const r = await w.admin.json('/api/ai/column', { method: 'POST', body: { question: Q, name: 'Notice to end', ids: ALL } });
@@ -64,7 +64,7 @@ describe('f842 (1) one question, many contracts', () => {
   });
 });
 
-describe('f842 (2) read once per wording', () => {
+describe('f843 (2) read once per wording', () => {
   test('2a a second press spends nothing; Ask again reads again', async () => {
     h.ai.reset();
     const again = await w.admin.json('/api/ai/column', { method: 'POST', body: { question: Q, name: 'Notice to end', ids: ALL } });
@@ -84,7 +84,7 @@ describe('f842 (2) read once per wording', () => {
   });
 });
 
-describe('f842 (3) the walls', () => {
+describe('f843 (3) the walls', () => {
   test('3a a viewer may not ask', async () => {
     const r = await viewer.raw('/api/ai/column', { method: 'POST', body: { question: Q, ids: ALL } });
     assert.equal(r.status, 403);
@@ -104,7 +104,7 @@ describe('f842 (3) the walls', () => {
   });
 });
 
-describe('f842 (4) a person\'s tick', () => {
+describe('f843 (4) a person\'s tick', () => {
   test('4a who and when; the same press takes it back', async () => {
     const ask = (await w.admin.json('/api/columns')).asks.find(a => /notice/i.test(a.question));
     const on = await w.admin.json(`/api/columns/${ask.id}/check`, { method: 'POST', body: { contractId: 'MK-A1' } });

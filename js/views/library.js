@@ -227,8 +227,8 @@ function openTemplateFillModal(t, prefill, ho){
              template's own filing is the answer already in the box. */}
       <label style="display:block">
         <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('tl_stream')}</span>
-        <select id="tf-folder" style="width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none">${
-          (typeof folderOptionsHtml==='function') ? folderOptionsHtml(t.folder||null, false) : ''}</select></label>
+        <select id="tf-folder" style="width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);background:var(--need-bg,var(--color-surface));border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none">${
+          (typeof folderOptionsHtml==='function') ? folderOptionsHtml(t.folder||null, false, { reach:true }) : ''}</select></label>
     </div>`;
   const errHtml=`<div id="tf-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);min-height:15px;margin-top:var(--s-2)"></div>`;
   const tfFolder=()=>((document.getElementById('tf-folder')||{}).value||'');

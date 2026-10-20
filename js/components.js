@@ -181,7 +181,31 @@ const _busyEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&
 const busyHtml = text => `<span class="ob-spin" aria-hidden="true"></span>${_busyEsc(text)}`;
 /* a button or line that is now waiting: its ring and its word */
 const busySet = (el, text) => { if (el) el.innerHTML = busyHtml(text); };
-Object.assign(window,{ICONS,icon,plusLed,JAMBO_FACE,jamboFaceHtml,jamboFacePaint,jamboHintHtml,busyHtml,busySet});
+/* ---- AN ANSWER READS FROM ITS FIRST LINE (owner, 20 Oct 2026: "when the
+   output or answer is given by jambo, the page pushes me to the bottom of the
+   output and i have to scroll up to begin reading. I should start from the
+   top where the answer starts then scroll down") ----
+   ONE landing for every Jambo conversation: the scroller `sc` is moved so
+   the newest turn `last` starts at its top (JAMBO_LAND_GAP above it); an
+   answer shorter than the room simply ends at the bottom, as before. With
+   `follow` (words still arriving) it only ever moves DOWN, and never past the
+   answer's first line, so the reader is not pulled back once they scroll on. */
+const JAMBO_LAND_GAP = 8;
+function jamboFeedLand(sc, last, o = {}){
+  if (!sc) return;
+  if (!last){ sc.scrollTop = sc.scrollHeight; return; }
+  const top = Math.max(0, Math.round(last.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - JAMBO_LAND_GAP));
+  const want = Math.min(top, Math.max(0, sc.scrollHeight - sc.clientHeight));
+  if (o.follow && sc.scrollTop >= want) return;
+  sc.scrollTop = want;
+}
+/* the newest of a feed's turns, by the selector its builder draws */
+function jamboFeedLast(feed, sel){
+  if (!feed) return null;
+  const all = feed.querySelectorAll(sel || '.ai-msg');
+  return all.length ? all[all.length - 1] : null;
+}
+Object.assign(window,{ICONS,icon,plusLed,JAMBO_FACE,jamboFaceHtml,jamboFacePaint,jamboHintHtml,busyHtml,busySet,JAMBO_LAND_GAP,jamboFeedLand,jamboFeedLast});
 /* ---- LAND ON IT (owner, 18 Oct 2026: "a well crafted rule where you are
    directed towards what you are looking for exactly so you are not searching
    across the page") ----
@@ -283,7 +307,9 @@ Object.assign(window,{LAND_TRIES,LAND_WAIT,LAND_PULSE_MS,landOn,landOff});
    OWED IS WHAT detailsOf COUNTS ON A CONTRACT: the other party, the value (a
    0 is no value), the start date and every one of the template's own
    questions. Who we are, their email, the end date, which side of the money
-   and the stream are asked but never owed (NEED_NEVER), so they stay white.
+   and the stream are asked but never owed (NEED_NEVER), so they stay white —
+   save the New agreement form's stream box, which Create waits on and which
+   its own light() marks (owner, 20 Oct 2026).
    A builder marks the box with `needAttrs(f, value)`; ONE capture listener
    keeps its class as it is typed in, and the date picker's face follows its
    box (datePickDress paints through needMark). The amber is a custom

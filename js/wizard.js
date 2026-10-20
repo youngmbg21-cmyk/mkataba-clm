@@ -529,7 +529,7 @@ function wzFieldHtml(v){
      bindFolderSelect answers it — bound by the caller once the markup is in
      the page. */
   if(v.type==='stream') return `<label style="display:block;">${lbl}
-    <select id="${id}" style="${WZ_ST}">${(typeof folderOptionsHtml==='function') ? folderOptionsHtml(v.def||null, false) : ''}</select></label>`;
+    <select id="${id}" style="${WZ_ST}">${(typeof folderOptionsHtml==='function') ? folderOptionsHtml(v.def||null, false, { reach:true }) : ''}</select></label>`;
   if(v.type==='select') return `<label style="display:block;">${lbl}
     <select id="${id}" style="${WZ_ST}"${(typeof needAttrs==='function'?needAttrs(v,v.def||((v.opts||[])[0]!=null&&typeof fieldOpt==='function'?fieldOpt(v.opts[0]).v:'')):'')}>
       ${(v.opts||[]).map(o=>(typeof fieldOpt==='function')?fieldOpt(o):{v:String(o),l:String(o)}).map(o=>
@@ -1101,6 +1101,13 @@ function openNewAgreement(o){
     /* the new-stream choice is not a stream until its prompt puts one in the
        box (naStreamAsk watches the prompt go, then asks this again) */
     const noStream=!!sb&&(!sb.value||sb.value==='__new__');
+    /* OWED HERE, SO AMBER HERE (owner, 20 Oct 2026: "value stream is
+       mandatory but it does not come shaded"): Create waits on this box, so
+       it wears the owed boxes' amber and star while it holds no stream —
+       this form only; elsewhere the stream stays NEED_NEVER */
+    if(sb){ sb.setAttribute('data-need','1'); sb.classList.toggle('need-empty', noStream);
+      const lab=sb.closest('label'), cap=lab&&lab.querySelector('span');
+      if(cap&&!cap.querySelector('[data-na-req]')) cap.insertAdjacentHTML('beforeend',' <span data-na-req style="color:var(--st-ruby-fg)">*</span>'); }
     const on=!!api&&!noStream;
     const why=!api?i18t('na_pick_first'):i18t('na_stream_first');
     ['na-create','na-skip'].forEach(id=>{ const b=document.getElementById(id); if(!b) return;

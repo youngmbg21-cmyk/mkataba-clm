@@ -95,7 +95,8 @@ describe('f810 (3) one turn, whichever box asked', () => {
     assert.doesNotMatch(st, /getElementById\('ai-feed'\)/);
     assert.match(code(fnOf(AI, 'aiWireProposals')), /const feed = aiFeedEl\(\);/);
     /* RE-POINTED 19 Oct 2026 (JAMBO AS A TAB YOU FLIP TO): the conversation's own scroller */
-    assert.match(code(fnOf(AI, 'renderAIFeed')), /const sc=inList\?\(feed\.closest\('\.jl-talk-sc'\)\|\|feed\):feed; sc\.scrollTop=sc\.scrollHeight;/);
+    /* RE-POINTED 20 Oct 2026 (owner: an answer reads from its first line): the scroller chosen is the same; it lands with jamboFeedLand */
+    assert.match(code(fnOf(AI, 'renderAIFeed')), /const sc=inList\?\(feed\.closest\('\.jl-talk-sc'\)\|\|feed\):feed;\s*if\(typeof jamboFeedLand==='function'\) jamboFeedLand\(sc, jamboFeedLast\(feed\)\)/);
     assert.equal((code(AI).match(/getElementById\('ai-feed'\)/g) || []).length, 1, 'the window\'s feed is named once, by aiFeedEl (the sweep asks for the other host by a choice)');
   });
 });

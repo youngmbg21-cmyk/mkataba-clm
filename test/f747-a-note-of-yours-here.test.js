@@ -208,13 +208,14 @@ describe('f747 (6) Jambo\'s work here, in the drawing\'s words', () => {
 });
 
 describe('f747 (7) Needs you here stays at the top of the tab', () => {
-  test('7a pinned above the conversation, painted again in place', () => {
+  test('7a the note is a row of the dossier\'s Still owed card, painted again in place', () => {
+    /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): nothing is pinned
+       above the dossier; Needs you here's rows, a note of yours among them,
+       are its Still owed card, and repaint with it */
     const { ctx, c } = stage({ notes: [{ id: 'n1', contractId: 'MK-1', body: 'x', reviewBy: TODAY }] });
     ctx.pdContract = () => c;
-    const pin = ctx.pdJamboPinHtml();
-    assert.match(pin, /^<div id="pd-pin" class="pd-pin" data-pd-pin-for="MK-1"><div id="pd-needs"/);
-    assert.match(PD.slice(PD.indexOf('function pdNeedsRepaint('), PD.indexOf('function pdNeedsRepaint(') + 400), /document\.getElementById\('pd-pin'\)[\s\S]*pin\.innerHTML = html/);
-    const CSS = R('index.html');
-    assert.match(CSS, /#ig-dock \.pd-pin\{flex:none;max-height:45%;overflow-y:auto;/);
+    assert.equal(ctx.pdJamboPinHtml(), '');
+    assert.match(ctx.pdGlanceHtml(c), /id="pd-needs"[\s\S]*data-pd-nd-note="n1"/);
+    assert.match(PD.slice(PD.indexOf('function pdNeedsRepaint('), PD.indexOf('function pdNeedsRepaint(') + 400), /pdGlanceRepaint\(\)/);
   });
 });

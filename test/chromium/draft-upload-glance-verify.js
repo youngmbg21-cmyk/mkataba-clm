@@ -253,17 +253,21 @@ const word = (lines) => Buffer.from(mkDocx(lines.map(t => para(t)).join('')));
     const gl = await waitFor(page, () => !!document.getElementById('pd-glance'), 8000);
     const g = await page.evaluate(() => { const c = getContract(intel.paper.id); const el = document.getElementById('pd-glance');
       const rows = [...el.querySelectorAll('[data-pd-gl]')].map(r => [r.getAttribute('data-pd-gl'), r.querySelector('span').textContent]);
-      return { title: el.querySelector('.pd-gl-h b').textContent, pill: !!el.querySelector('.room-stat'), rows,
+      /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the glance is the dossier — the spine for the stage, What Jambo read, Still owed */
+      const fillRows = [...el.querySelectorAll('[data-pd-ds-card="owed"] [data-pd-gl="fill"]')].map(r => Number((/(\d+) more/.exec(r.textContent) || [])[1] || 1));
+      const rk = el.querySelector('[data-pd-ds="risks"] b');
+      return { title: [...el.querySelectorAll('.pd-gl-h b')].map(b => b.textContent).join(' | '), pill: !!el.querySelector('.ds-spine .ds-st.is-on, .ds-spine .ds-st.is-now'), rows,
+        fillN: fillRows.reduce((a, b) => a + b, 0), riskN: rk ? Number(rk.textContent) : 0,
         left: detailsOf(c).left, risks: (c.scan && riskMayAct(c, {})) ? riskOpenOf(c).length : 0, nobody: signBlockers(c).some(b => b.key === 'signers'),
         unsent: c.negotiation ? rlUnsentCount(c, {}) : 0, nego: !!c.negotiation,
         above: (() => { const chips = document.querySelector('#ig-dock [data-ig-chips]'); return !!chips && el.getBoundingClientRect().bottom <= chips.getBoundingClientRect().top + 1; })() }; });
     const num = k => { const r = g.rows.find(x => x[0] === k); return r ? Number((/(\d+)/.exec(r[1]) || [])[1] || (k === 'sign' ? 1 : 0)) : 0; };
-    check('6a Jambo\'s tab opens on "<ref> at a glance" with the stage', gl && /at a glance$/.test(g.title) && g.pill, g.title);
-    check('6b each count is the reading its own face uses', num('fill') === g.left && num('redline') === g.risks && num('share') === g.unsent && (num('sign') === 1) === g.nobody, g);
+    check('6a Jambo\'s tab opens on the dossier: the stage on the spine, What Jambo read, Still owed', gl && /^What Jambo read \| Still owed · \d+/.test(g.title) && g.pill, g.title);
+    check('6b each count is the reading its own face uses', g.fillN === g.left && g.riskN === g.risks && num('share') === g.unsent && (num('sign') === 1) === g.nobody, g);
     check('6c reading it starts no negotiation', !g.nego);
     check('6d the card sits above the chips and the box', g.above);
     await shoot('6-glance');
-    await page.click('#pd-glance [data-pd-glance="fill"]');
+    await page.click('#pd-glance [data-pd-ds-fill]');
     check('6e "Fill in" opens Fill in beside the paper', await waitFor(page, () => !!document.querySelector('#pd-fillface .pd-ff'), 6000));
     await page.evaluate(() => pdFillClose());
     await waitFor(page, () => !!document.getElementById('pd-glance'), 4000);
@@ -275,7 +279,7 @@ const word = (lines) => Buffer.from(mkDocx(lines.map(t => para(t)).join('')));
     /* the risks row says what the Redlines face draws */
     await page.evaluate(id => pdOpenOnHome(id, 'plain'), upId);
     await waitFor(page, () => !!document.getElementById('pd-glance'), 6000);
-    const rkRow = await page.evaluate(() => { const r = document.querySelector('#pd-glance [data-pd-gl="redline"] span'); return r ? Number((/(\d+)/.exec(r.textContent) || [])[1]) : 0; });
+    const rkRow = await page.evaluate(() => { const r = document.querySelector('#pd-glance [data-pd-ds="risks"] b'); return r ? Number(r.textContent) : 0; });
     /* RE-POINTED AT THE INTEGRATION (19 Oct 2026; red on lane C2 alone): round
        9 as drawn leaves the Redlines face beside Home's paper with nothing
        under its piles, so the risks row's door is where the risks ARE listed —
