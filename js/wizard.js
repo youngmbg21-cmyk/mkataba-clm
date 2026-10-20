@@ -1101,6 +1101,13 @@ function openNewAgreement(o){
     /* the new-stream choice is not a stream until its prompt puts one in the
        box (naStreamAsk watches the prompt go, then asks this again) */
     const noStream=!!sb&&(!sb.value||sb.value==='__new__');
+    /* OWED HERE, SO AMBER HERE (owner, 20 Oct 2026: "value stream is
+       mandatory but it does not come shaded"): Create waits on this box, so
+       it wears the owed boxes' amber and star while it holds no stream —
+       this form only; elsewhere the stream stays NEED_NEVER */
+    if(sb){ sb.setAttribute('data-need','1'); sb.classList.toggle('need-empty', noStream);
+      const lab=sb.closest('label'), cap=lab&&lab.querySelector('span');
+      if(cap&&!cap.querySelector('[data-na-req]')) cap.insertAdjacentHTML('beforeend',' <span data-na-req style="color:var(--st-ruby-fg)">*</span>'); }
     const on=!!api&&!noStream;
     const why=!api?i18t('na_pick_first'):i18t('na_stream_first');
     ['na-create','na-skip'].forEach(id=>{ const b=document.getElementById(id); if(!b) return;
