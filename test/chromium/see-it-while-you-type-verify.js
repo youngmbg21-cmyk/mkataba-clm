@@ -46,7 +46,8 @@ const check = (name, pass, detail) => { results.push({ name, pass: !!pass }); co
     const b2 = await box();
     await page.screenshot({ path: path.join(OUT, '2-free.png') });
     check('2 the line says what will be drawn, free — and the board is untouched', s2 === 'All contracts: Ring · by stage · count · Free' && board2 === board0, JSON.stringify({ s2, same: board2 === board0 }));
-    await page.fill('#igd-input', ''); await page.keyboard.type('how quickly do we close deals in each stream', { delay: 10 });
+    await page.fill('#igd-input', ''); /* a question that fits on ONE line: since the two-row card (20 Oct 2026) words that wrap grow the box on purpose, which is not what this check is about */
+    await page.keyboard.type('how fast do we close deals', { delay: 10 });
     const s3 = await until(() => { const t = document.getElementById('igd-pre').textContent; return /Jambo/.test(t) ? t : null; });
     const b3 = await box();
     await page.screenshot({ path: path.join(OUT, '3-copilot.png') });

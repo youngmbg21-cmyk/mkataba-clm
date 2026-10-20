@@ -118,7 +118,10 @@ const CONTRACTS = [
       if (!c || typeof askOpen !== 'function') return 'no ask writer';
       askOpen(c, { kind: 'look', of: c.id, by: { id: 'u-colleague', name: 'Wanjiru Kamau' },
         to: { id: String(me.id), name: me.name, email: me.email },
-        at: new Date(Date.now() - 3 * 864e5).toISOString(), note: 'Please look at the notice clause' });
+        /* asked two hours ago: a look turns urgent after SA_REMIND_WORKDAYS
+           working days, so "3 days ago" made the order depend on the weekday
+           (red Tuesday to Saturday) — a few hours is never late, any day */
+        at: new Date(Date.now() - 2 * 36e5).toISOString(), note: 'Please look at the notice clause' });
       persist(c); return 'ok';
     });
     await page.evaluate(() => setView('counter'));

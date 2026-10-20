@@ -48,7 +48,9 @@ describe('f187 (1) — two buttons, two jobs', () => {
       'there is ONE shell and every face uses it');
     assert.match(html, /id="panel-title"/);
     const app = read('js/app.js');
-    assert.match(app, /const PANEL_FACES = \['activity', 'alerts', 'notes'\]/,
+    /* 20 Oct 2026: the Guide joined as a fourth face and the owner set the
+       tab order Guide · Alerts · Notes · Activity — still ONE list. */
+    assert.match(app, /const PANEL_FACES = \['guide', 'alerts', 'notes', 'activity'\]/,
       'the faces are one list');
     assert.match(app, /function panelFace\(\)\{ return PANEL_FACES\.includes/,
       'and both readings ask it rather than repeating the strings');
