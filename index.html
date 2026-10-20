@@ -15765,10 +15765,11 @@
   /* the hint line under the box (owner, 18 Oct 2026, "Every Jambo box"): it
      hugs the box it speaks of, read from the box's own left edge */
   .cn-ask > .jb-hint{margin:-6px 2px 0;text-align:left}
-  .cn-box{display:flex;align-items:center;gap:8px;height:44px;border:1px solid var(--color-accent);border-radius:10px;background:var(--color-surface);padding:0 6px 0 14px;box-shadow:0 0 0 3px var(--color-accent-100);text-align:left}
-  .cn-box input{flex:1;min-width:0;border:0;outline:0;background:transparent;font-size:15px;color:var(--color-text);height:40px}
-  .cn-box input::placeholder{color:var(--color-neutral-500)}
-  .cn-box input:focus-visible{outline:none;box-shadow:none}   /* the box wears its own ring */
+  .cn-box{display:flex;align-items:flex-end;gap:8px;min-height:44px;border:1px solid var(--color-accent);border-radius:10px;background:var(--color-surface);padding:1px 6px 1px 14px;box-shadow:0 0 0 3px var(--color-accent-100);text-align:left}
+  .cn-box textarea{flex:1;min-width:0;border:0;outline:0;background:transparent;font:inherit;font-size:15px;line-height:22px;color:var(--color-text);height:40px;max-height:120px;padding:9px 0;margin:0;resize:none;overflow-y:auto;white-space:pre-wrap;overflow-wrap:anywhere;display:block}
+  .cn-box > .ui-btn{margin-bottom:6px;flex:none}
+  .cn-box textarea::placeholder{color:var(--color-neutral-500)}
+  .cn-box textarea:focus-visible{outline:none;box-shadow:none}   /* the box wears its own ring */
   .cn-wrap .cn-pop{left:0;right:0;top:calc(100% + 4px);max-height:340px;text-align:left}
   .cn-wrap .cn-pop[hidden]{display:none}
   .cn-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
