@@ -592,7 +592,7 @@ function counterHtml(){
   _cnSig = cnSig(N, A);
   return `<div class="cn-page" id="cn-page"><div class="cn-in">
     <section class="cn-card cn-ask">${cnFace(40, 'cn-face')}<h1>${_cnE(_cnT('cn_hello', { name }))}</h1>
-      <div class="cn-wrap"><div class="cn-box"><input id="cn-q" type="text" autocomplete="off" spellcheck="false" placeholder="${_cnE(_cnT('cn_box_ph'))}" aria-label="${_cnE(_cnT('cn_box_label'))}"><button type="button" class="ui-btn ui-btn-primary" data-cn-send>${_cnE(_cnT('cn_ask'))}</button></div><div class="ca-pop cn-pop" id="cn-pop" hidden></div></div>
+      <div class="cn-wrap"><div class="cn-box"><textarea id="cn-q" rows="1" autocomplete="off" spellcheck="false" placeholder="${_cnE(_cnT('cn_box_ph'))}" aria-label="${_cnE(_cnT('cn_box_label'))}"></textarea><button type="button" class="ui-btn ui-btn-primary" data-cn-send>${_cnE(_cnT('cn_ask'))}</button></div><div class="ca-pop cn-pop" id="cn-pop" hidden></div></div>
       ${''/* THE HINT LINE UNDER THE BOX (owner, 18 Oct 2026, "Every Jambo box"):
              the one builder every Jambo ask box on a computer carries */}${typeof jamboHintHtml === 'function' ? jamboHintHtml() : ''}
       <div class="cn-chips" id="cn-chips">${cnChipsHtml(N)}</div></section>
@@ -601,6 +601,13 @@ function counterHtml(){
 }
 /* what the card was drawn from, so a list that arrives later redraws it once */
 let _cnSig = '';
+/* THE BOX WRAPS: a long ask wraps onto new lines and the box grows with it,
+   up to five lines, then scrolls; emptied, it is one line again */
+function counterBoxFit(q){
+  if (!q) return;
+  q.style.height = 'auto';
+  q.style.height = q.value ? Math.min(q.scrollHeight, 120) + 'px' : '';
+}
 function cnSig(N, A){
   return [(A && A.ready) || 0, (A && A.rows || []).map(r => (r.items || []).map(i => i.key).join(',')).join(';'), N.map(y => y.k + ':' + y.kind + ':' + (y.x ? y.x.c.id : y.n ? y.n.id : y.r ? y.r.id : '')).join(',')].join('|');
 }
@@ -686,7 +693,7 @@ if (typeof document !== 'undefined' && !window._cnWired){
     if (!t.closest('#cn-page')) return;
     if ((el = t.closest('[data-cn-pop]'))){ counterPopTake(Number(el.getAttribute('data-cn-pop'))); return; }
     if (_cnPop && !t.closest('.cn-wrap')) counterPopClose();
-    if ((el = t.closest('[data-cn-send]'))){ const q = document.getElementById('cn-q'); if (q){ const v = q.value; q.value = ''; counterPopClose(); counterAsk(v); } return; }
+    if ((el = t.closest('[data-cn-send]'))){ const q = document.getElementById('cn-q'); if (q){ const v = q.value; q.value = ''; counterBoxFit(q); counterPopClose(); counterAsk(v); } return; }
     if ((el = t.closest('[data-cn-ask]'))){ counterAsk(el.getAttribute('data-cn-ask')); return; }
     if ((el = t.closest('[data-cn-jw]'))){ if (typeof hbOpenAgent === 'function') hbOpenAgent(); return; }
     /* a note of yours and a request nobody holds: their own pages, landing ON
@@ -698,7 +705,7 @@ if (typeof document !== 'undefined' && !window._cnWired){
     if ((el = t.closest('[data-cn-co]'))){ if (typeof openSettingsAt === 'function') openSettingsAt('company'); return; }
     if ((el = t.closest('[data-cn-all]'))){ _cnAll = !_cnAll; counterRepaint(); }
   });
-  document.addEventListener('input', e => { if (e.target && e.target.id === 'cn-q') counterPopRead(e.target); });
+  document.addEventListener('input', e => { if (e.target && e.target.id === 'cn-q'){ counterBoxFit(e.target); counterPopRead(e.target); } });
   document.addEventListener('keydown', e => {
     const t = e.target;
     if (t && t.id === 'cn-q'){
@@ -706,8 +713,8 @@ if (typeof document !== 'undefined' && !window._cnWired){
         e.preventDefault(); const n = _cnPop.rows.length;
         _cnPop.on = (_cnPop.on + (e.key === 'ArrowDown' ? 1 : -1) + n) % n; counterPopPaint(); return;
       }
-      if (e.key === 'Enter'){ e.preventDefault(); if (_cnPop){ counterPopTake(_cnPop.on); return; } const v = t.value; t.value = ''; counterAsk(v); return; }
-      if (e.key === 'Escape'){ if (_cnPop) counterPopClose(); else t.value = ''; }
+      if (e.key === 'Enter'){ e.preventDefault(); if (_cnPop){ counterPopTake(_cnPop.on); return; } const v = t.value; t.value = ''; counterBoxFit(t); counterAsk(v); return; }
+      if (e.key === 'Escape'){ if (_cnPop) counterPopClose(); else { t.value = ''; counterBoxFit(t); } }
       return;
     }
     /* Recent: Esc closes it and hands the keyboard back to the page's name; the arrows walk its rows */
