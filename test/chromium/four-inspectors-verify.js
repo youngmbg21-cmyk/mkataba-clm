@@ -246,25 +246,27 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
          count is the row's `.n` */
       tabs: [...document.querySelectorAll('.sd-ins [data-pb-sec]:not([hidden]) [data-pb-tab]')].map(b => ({ k: b.getAttribute('data-pb-tab'), n: (b.querySelector('.n, .st-tab-n') || {}).textContent || null })),
       rows: document.querySelectorAll('[data-pb-sec="clauses"] tbody [data-ins-row]').length, lib: clauseLibrary().length,
-      title: (document.querySelector('#sd-panel-clauses h2') || {}).textContent || '' }));
+      title: (document.querySelector('#ins-panel h2') || {}).textContent || '' }));
     ok('3a three tabs, each carrying its count, and every standard is a row', sd.ins && sd.tabs.length === 3
       && sd.tabs.every(t => t.n != null) && sd.rows === sd.lib && !!sd.title, sd);
+    /* JAMBO'S PANEL ON OUR STANDARDS (owner, 19 Oct 2026): the three lists share the one list panel, dressed as his */
+    ok('3a2 Our standards carries Jambo\'s panel, his box at its foot', await page.evaluate(() => { const q = document.querySelector('.sd-ins #ins-panel.is-jambo #jl-q'); return !!q && q.getClientRects().length > 0; }));
     await page.evaluate(() => { const r = document.querySelector('.sd-ins'); if (r) r._probe = 1; });
     await page.click('.sd-ins [data-pb-sec]:not([hidden]) [data-pb-tab="playbook"]'); await page.waitForTimeout(400);
     ok('3b a tab press flips the tab — the page is not rebuilt under the reader',
       await page.evaluate(() => { const r = document.querySelector('.sd-ins'); return !!(r && r._probe === 1)
         && !document.querySelector('[data-pb-sec="playbook"]').hidden && document.querySelector('[data-pb-sec="clauses"]').hidden; }));
     await page.click('[data-sd-book="supply"]').catch(() => {}); await page.waitForTimeout(300);
-    const caps = await page.evaluate(() => [...document.querySelectorAll('#sd-panel-books .ins-stdl li b')].filter(b => /^Liability cap/.test(b.textContent)).length);
+    const caps = await page.evaluate(() => [...document.querySelectorAll('#ins-panel .ins-stdl li b')].filter(b => /^Liability cap/.test(b.textContent)).length);
     ok('3c a book lists each standard once — Liability cap is one line on the supply book', caps === 1, caps);
     await page.click('.sd-ins [data-pb-sec]:not([hidden]) [data-pb-tab="clauses"]'); await page.waitForTimeout(300);
     await page.click('[data-sd-row="cl-pay"]').catch(() => {}); await page.waitForTimeout(300);
-    await page.click('#sd-panel-clauses [data-ins-act="pos"]').catch(() => {}); await page.waitForTimeout(400);
+    await page.click('#ins-panel [data-ins-act="pos"]').catch(() => {}); await page.waitForTimeout(400);
     const pos = await page.evaluate(() => ({ tab: (document.querySelector('[data-pb-tab].on') || {}).getAttribute ? document.querySelector('[data-pb-tab].on').getAttribute('data-pb-tab') : null,
-      book: (document.querySelector('#sd-panel-books h2') || {}).textContent || '' }));
+      book: (document.querySelector('#ins-panel h2') || {}).textContent || '' }));
     ok('3d "Change the position" lands on the book that holds it', pos.tab === 'playbook' && /baseline/i.test(pos.book), pos);
     await page.click('.sd-ins [data-pb-sec]:not([hidden]) [data-pb-tab="clauses"]'); await page.waitForTimeout(300);
-    const godev = await page.$('#sd-panel-clauses [data-sd-godev]');
+    const godev = await page.$('#ins-panel [data-sd-godev]');
     let gd = null;
     if (godev) {
       const cid = await godev.getAttribute('data-sd-godev');
@@ -274,7 +276,7 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     }
     ok('3e a departure in a standard\'s panel lands on that contract under Portfolio deviations', !!gd && gd.tab === 'deviations' && gd.sel === gd.want, gd);
     await page.screenshot({ path: path.join(OUT, '3e-deviations.png') });
-    const see = await page.$('#sd-panel-dev [data-sd-gostd]');
+    const see = await page.$('#ins-panel [data-sd-gostd]');
     let sw = null;
     if (see) {
       const clid = await see.getAttribute('data-sd-gostd');
@@ -284,8 +286,8 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     }
     ok('3f "See the standard" lands on the standard it misses', !!sw && sw.tab === 'clauses' && sw.sel === sw.want, sw);
     const libBefore = await page.evaluate(() => clauseLibrary().length);
-    await page.click('#sd-panel-clauses [data-ins-more]').catch(() => {}); await page.waitForTimeout(200);
-    await page.click('#sd-panel-clauses [data-act="remove"]').catch(() => {}); await page.waitForTimeout(500);
+    await page.click('#ins-panel [data-ins-more]').catch(() => {}); await page.waitForTimeout(200);
+    await page.click('#ins-panel [data-act="remove"]').catch(() => {}); await page.waitForTimeout(500);
     const askedStd = await page.evaluate(() => { const d = [...document.querySelectorAll('[data-top-overlay], [role="alertdialog"], [role="dialog"]')].pop();
       return d ? d.textContent.replace(/\s+/g, ' ').slice(0, 160) : ''; });
     await page.keyboard.press('Escape'); await page.waitForTimeout(400);
