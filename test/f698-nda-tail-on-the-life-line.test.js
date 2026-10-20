@@ -65,7 +65,7 @@ describe('f698 (1) reading the wording', () => {
     assert.equal(r.dir, 'mutual');
     assert.equal(r.period, null, 'the agreement\'s own term is not how long secrecy lasts');
     assert.equal(r.forGood, false);
-    assert.deepEqual(N.ndaRead('', {}), { dir: '', period: null, forGood: false, trade: false, clause: '', quote: '' });
+    assert.deepEqual(N.ndaRead('', {}), { dir: '', period: null, forGood: false, trade: false, clause: '', quote: '', dirClause: '', dirQuote: '' });
   });
   test('an NDA is HaTi\'s own standard, a contract type or a name that says so', () => {
     assert.equal(N.ndaIs({ template: 'ND' }), true);

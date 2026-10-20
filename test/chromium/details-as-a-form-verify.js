@@ -66,7 +66,8 @@ const check = (name, pass, detail) => {
        column); the face's scroller #pd-fillface is the column's one scroll
        (the old #doc-right); the tab's count is the face's own "N left" pill. */
     await page.evaluate(() => { openWorkspace('MK-DF1', { room: true }); roomGoTab(getContract('MK-DF1'), 'details'); });
-    const up = await until(() => !!document.querySelector('#pd-fillface .pd-ff[data-pd-ff="MK-DF1"] #pd-fill [data-tplf]'));
+    /* RE-POINTED 20 Oct 2026 (the Legora way): the form is Still owed's grid (#pd-og) on the Dossier beside Home's paper */
+    const up = await until(() => !!document.querySelector('#pd-og[data-pd-og-for="MK-DF1"] [data-tplf]'));
     if (!up) { check('0 the Details tab draws its form', false); throw new Error('not drawn'); }
 
     const m = await page.evaluate(() => {
@@ -74,18 +75,18 @@ const check = (name, pass, detail) => {
       /* RE-POINTED 14 Oct 2026 (stage 5): the face dresses a date question in
          HaTi's own date face (popupControlsDress — the native box is hidden
          behind .dp-face), so the box the reader sees is that face */
-      const q0 = document.querySelector('#pd-fill [data-tplf]');
+      const q0 = document.querySelector('#pd-og [data-tplf]');
       const qFace = q0 && q0.nextElementSibling && q0.nextElementSibling.classList.contains('dp-face') ? q0.nextElementSibling : null;
       const firstQ = (q0 && q0.getBoundingClientRect().width === 0 && qFace) ? qFace : q0;
       /* the other party's box wherever this build draws it on the tab */
-      const cp = document.querySelector('#det-basics [data-kt="counterparty"]') || document.querySelector('.pd-ff[data-pd-ff="MK-DF1"] [data-kt="counterparty"]');
+      const cp = document.querySelector('#pd-og[data-pd-og-for="MK-DF1"] [data-kt="counterparty"]');
       if (!cp) return { qOn: vis(firstQ), cpOn: false, edge: false, cpAmber: false, inner: ['(no other-party box)'], twice: ['counterparty'] };
       const cs = getComputedStyle(cp);
-      const right = document.getElementById('pd-fillface');
+      const right = document.getElementById('pd-glance');
       const inner = [...right.querySelectorAll('*')].filter(e => { const s = getComputedStyle(e); return /(auto|scroll)/.test(s.overflowY) && e.scrollHeight > e.clientHeight + 2 && e.tagName !== 'TEXTAREA'; });
       const probe = document.createElement('i'); probe.style.background = 'var(--st-amber-bg)'; document.body.appendChild(probe);
       const amber = getComputedStyle(probe).backgroundColor; probe.remove();
-      const count = k => document.querySelectorAll(`.pd-ff[data-pd-ff="MK-DF1"] [data-kt="${k}"]`).length;
+      const count = k => document.querySelectorAll(`#pd-og[data-pd-og-for="MK-DF1"] [data-kt="${k}"]`).length;
       return { qOn: vis(firstQ), cpOn: vis(cp), edge: cs.borderTopStyle !== 'none' && parseFloat(cs.borderTopWidth) > 0,
         cpAmber: cs.backgroundColor === amber, amber, cpBg: cs.backgroundColor, inner: inner.map(e => e.id || e.className).slice(0, 4),
         twice: ['counterparty', 'value', 'effDate'].filter(k => count(k) !== 1).concat(count('expiry') ? ['expiry'] : []) };
@@ -95,17 +96,18 @@ const check = (name, pass, detail) => {
     check('3 one scroll in the column — nothing scrolls inside it', m.inner.length === 0, JSON.stringify(m.inner));
     check('4 no fact has two boxes in the column', m.twice.length === 0, m.twice.join(', ') || 'one each');
 
-    const p = await page.evaluate(() => { const col = document.querySelector('.pd-ff[data-pd-ff="MK-DF1"]');
+    const p = await page.evaluate(() => { const col = document.querySelector('#pd-og[data-pd-og-for="MK-DF1"]');
       return { folds: col ? col.querySelectorAll('details').length : -1, parties: !!(col && col.querySelector('#ov-parties, #kt-det-terms, #det-more')),
         law: !!(col && col.querySelector('[data-ktm="governingLaw"]')) }; });
     check('5 only what the paper owes: no folds, no parties, people or filing, no other terms', p.folds === 0 && !p.parties && !p.law, JSON.stringify(p));
 
-    const before = await page.evaluate(() => (document.querySelector('#pd-fillface [data-pd-ff-pill]') || {}).textContent || '');
-    if (await page.evaluate(() => !!document.querySelector('#det-basics [data-kt="counterparty"]')))
-      await page.fill('#det-basics [data-kt="counterparty"]', 'Juno Foods Ltd');
-    await page.waitForTimeout(400);
-    const after = await page.evaluate(() => ({ tab: (document.querySelector('#pd-fillface [data-pd-ff-pill]') || {}).textContent || '',
-      open: !!(document.querySelector('#det-basics [data-cd-key="counterparty"]') || { classList: { contains: () => true } }).classList.contains('is-open'),
+    const before = await page.evaluate(() => (document.querySelector('#pd-needs .pd-gl-h b') || {}).textContent || '');
+    if (await page.evaluate(() => !!document.querySelector('#pd-og [data-kt="counterparty"]'))){
+      await page.fill('#pd-og [data-kt="counterparty"]', 'Juno Foods Ltd');
+      await page.click('#pd-og [data-pd-og-ok="counterparty"]'); }
+    await page.waitForTimeout(500);
+    const after = await page.evaluate(() => ({ tab: (document.querySelector('#pd-needs .pd-gl-h b') || {}).textContent || '',
+      open: !document.querySelector('#pd-og tr.is-saved[data-pd-og-row="counterparty"]'),
       stored: getContract('MK-DF1').counterparty }));
     check('6 typing the other party is stored, clears its amber and moves the tab\'s count',
       after.stored === 'Juno Foods Ltd' && !after.open && after.tab !== before, `${before} → ${after.tab} · ${JSON.stringify(after)}`);

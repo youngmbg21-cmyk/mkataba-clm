@@ -83,10 +83,11 @@ describe('f678 (1) the Workspace door opens Home, never the room', () => {
     let s = stage({ phone: true }); assert.equal(s.ctx.roomHomeLand('MK-1'), false); assert.equal(s.calls.length, 0);
     s = stage({ known: false }); assert.equal(s.ctx.roomHomeLand('MK-1'), false); assert.equal(s.calls.length, 0);
   });
-  test('1d a contract just made lands through the same landing', () => {
+  /* 20 Oct 2026: the same landing, told it ARRIVED — the Dossier, not Fill in */
+  test('1d a contract just made lands through the same landing, on its Dossier', () => {
     const { ctx, calls } = stage(); ctx.roomOpenOnTerms('MK-1');
-    assert.equal(ctx.roomArrivesOnHome('MK-1'), true); assert.deepEqual(J(calls), [['fill', 'MK-1']]);
-    assert.match(strip(fnBody(CONTRACT, 'roomArrivesOnHome')), /return roomHomeLand\(k\);/);
+    assert.equal(ctx.roomArrivesOnHome('MK-1'), true); assert.deepEqual(J(calls), [['home', 'MK-1', 'plain']]);
+    assert.match(strip(fnBody(CONTRACT, 'roomArrivesOnHome')), /return roomHomeLand\(k,\{ arrived:true \}\);/);
   });
   test('1e every door named Workspace asks it first; the room only as the fallback', () => {
     const doors = INS.slice(INS.indexOf('function insDoorActs'), INS.indexOf('function insActsHtml'));

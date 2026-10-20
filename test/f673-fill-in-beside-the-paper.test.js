@@ -55,12 +55,14 @@ describe('f673 (1) a contract just made lands on Home, the panel on Fill in', ()
     vm.createContext(ctx); vm.runInContext(region + '\nthis.roomOpenOnTerms=roomOpenOnTerms; this.roomArrivesOnHome=roomArrivesOnHome; this._wsNewAt=_wsNewAt; this.ROOM_ARRIVE_MS=ROOM_ARRIVE_MS;', ctx);
     return { ctx, calls };
   };
-  test('1a registered, then opened: Home, Fill in, once', () => {
+  /* 20 Oct 2026 (owner: "it pushes me to fill without my asking"): a contract
+     just made lands on its Dossier, details owed or not; Fill in is pressed */
+  test('1a registered, then opened: Home on the Dossier, never Fill in unasked, once', () => {
     const { ctx, calls } = stage();
     assert.equal(ctx.roomArrivesOnHome('MK-1'), false, 'not registered: the room as ever');
     ctx.roomOpenOnTerms('MK-1');
     assert.equal(ctx.roomArrivesOnHome('MK-1'), true);
-    assert.deepEqual(J(calls), [['fill', 'MK-1']]);
+    assert.deepEqual(J(calls), [['home', 'MK-1', 'plain']]);
     assert.equal(ctx.roomArrivesOnHome('MK-1'), false, 'spent once');
   });
   test('1b nothing owed: Home on Jambo; an executed import and the phone keep the room', () => {
@@ -106,26 +108,24 @@ describe('f673 (2)(3) the face: one contract, Jambo\'s tab, counted with details
     vm.createContext(ctx); vm.runInContext(PD, ctx);
     return { ctx, c, opened };
   };
-  test('2a shown only for its contract, on Jambo\'s tab, while something is asked', () => {
-    let { ctx } = stage();
-    assert.equal(ctx.pdFillShows(), false, 'not opened');
-    ctx.pdOpenOnHome('MK-1', 'fill');
-    assert.equal(ctx.pdFillShows(), true);
-    ctx.pdSetTab('oblig'); assert.equal(ctx.pdFillShows(), false, 'another tab');
-    ctx.pdSetTab('copilot'); assert.equal(ctx.pdFillShows(), true);
-    ({ ctx } = stage({ all: 0, left: 0 })); ctx.pdOpenOnHome('MK-1', 'fill'); assert.equal(ctx.pdFillShows(), false, 'nothing asked');
-  });
-  test('2b another contract asked for, or a question asked, puts it away', () => {
+  /* RE-POINTED 20 Oct 2026 — THE LEGORA WAY (owner: "Why should I have to go
+     elsewhere to enter the details?"): the face is never drawn; every door
+     that asked for it opens the paper on its Dossier and lands on the grid's
+     row (pdFillOpen → pdOpenOnHome 'plain' → pdOgLand) */
+  test('2a the face is never drawn: a door asking for it lands on the Dossier\'s grid row', () => {
     const { ctx } = stage();
     ctx.pdOpenOnHome('MK-1', 'fill');
-    ctx.pdFillSeen('MK-1'); assert.equal(ctx.pdFillFor(), 'MK-1', 'the same contract keeps it');
-    ctx.pdFillSeen('MK-2'); assert.equal(ctx.pdFillFor(), null);
-    ctx.pdOpenOnHome('MK-1', 'fill'); ctx.pdFillAway(); assert.equal(ctx.pdFillFor(), null);
-    /* RE-POINTED 19 Oct 2026 — JAMBO AS A TAB YOU FLIP TO (owner: "you can go
-       back to the landing side panel"): a question no longer puts the face
-       away; the panel turns to the conversation over it (f840) */
-    assert.doesNotMatch(strip(fnBody(IG, 'intelAsk')), /pdFillAway\(\)/);
-    assert.match(strip(IG.slice(IG.indexOf('async function igAnalyze('), IG.indexOf('async function igAnalyze(') + 400)), /pdFillSeen\(id\)/);
+    assert.equal(ctx.pdFillShows(), false, 'no face');
+    const body = strip(fnBody(PD, 'pdFillOpen'));
+    assert.match(body, /pdOpenOnHome\(id, 'plain'\)/);
+    assert.match(body, /pdOgLand\(id, o\.key \|\| ''\)/);
+    assert.match(strip(fnBody(PD, 'pdOpenOnHome')), /if \(tab === 'fill'\) return pdFillOpen\(id/);
+  });
+  test('2b a hand in a grid box is never repainted under while the Dossier is the tab', () => {
+    const code = strip(IG.slice(IG.indexOf('THE GRID (the Legora way'), IG.indexOf('THE GRID (the Legora way') + 400));
+    assert.match(code, /closest\('#ig-dock #pd-og'\)/);
+    assert.match(code, /pdOgShows\(pdContract\(\)\)/, 'only while the grid is what shows: a face or a tab asked for is drawn');
+    assert.match(strip(fnBody(PD, 'pdGlanceRepaint')), /if \(pdOgHolds\(\)\)\{ _pdOgPending = true; return; \}/);
   });
   test('3a the head says what is left and how much is done', () => {
     const { ctx, c } = stage({ left: 2, all: 5 });
@@ -203,5 +203,22 @@ describe('f673 (5)(6) the preview, and Fill from document on Home', () => {
     const I = R('js/i18n.js');
     for (const k of ['pd_ff_title', 'pd_ff_all_in', 'pd_ff_done', 'pd_ff_done_press', 'pd_ff_redlines'])
       assert.equal((I.match(new RegExp('^    ' + k + ':', 'gm')) || []).length, 2, k + ' in both books');
+  });
+});
+
+/* 20 Oct 2026 (owner: "it brings the card from board"): the drafting form
+   standing over the Board names no card in Jambo's panel head; the card's
+   name is back once the form goes */
+describe('f673 (7) a new agreement in front is not the Board card behind it', () => {
+  test('7a pdHeadWord says nothing while #na-root stands; the card again once it is gone', () => {
+    let formUp = true;
+    const ctx = { String,
+      document: { getElementById: id => (id === 'na-root' && formUp ? {} : null) },
+      pdHolds: () => 'card', pdCardNow: () => ({ id: 'MK-B2' }), contractRef: c => c.id,
+      _pdT: (k, v) => k + ':' + (v && v.ref) };
+    vm.createContext(ctx); vm.runInContext(fnBody(PD, 'pdHeadWord') + '\nthis.pdHeadWord=pdHeadWord;', ctx);
+    assert.equal(ctx.pdHeadWord(), '', 'the form is up');
+    formUp = false;
+    assert.equal(ctx.pdHeadWord(), 'dos_held_head:MK-B2', 'the form put away: the card again');
   });
 });

@@ -107,29 +107,32 @@ const WATCH = () => { window._walk = {}; const tick = () => {
     check('1a "upload" in Jambo\'s box lands on the drop area, lit; Choose a file opens the picker, no pop-up', !!lit1 && !!fc && await page.evaluate(() => state.view === 'dashboard' && !document.getElementById('up-file')));
     if (fc) await fc.setFiles(file);
     const landed = await waitFor(page, () => state.contracts.length === 1 && !!intel.paper && intel.paper.id === state.contracts[0].id
-      && !!document.querySelector('#pd-fillface .pd-ff[data-pd-ff="' + state.contracts[0].id + '"]'), 15000);
+      && !!document.querySelector('#pd-og[data-pd-og-for="' + state.contracts[0].id + '"]'), 15000);
     id = await page.evaluate(() => (state.contracts[0] || {}).id || null);
-    check('1b the file is filed and lands on Home\'s paper, Fill in open beside it', landed && await page.evaluate(() => state.view === 'dashboard' && hbFace() === 'paper'), id);
+    /* RE-POINTED 20 Oct 2026 (the Legora way): it lands on the Dossier, Still owed's grid asking what is owed */
+    check('1b the file is filed and lands on Home\'s paper, Still owed\'s grid beside it', landed && await page.evaluate(() => state.view === 'dashboard' && hbFace() === 'paper'), id);
     await shot('1-uploaded');
 
     /* ===== 2. FILL IN ===== */
     const left0 = id ? await page.evaluate(i => detailsOf(getContract(i)).left, id) : 0;
     for (let i = 0; i < 16 && id; i++) {
-      const next = await page.evaluate(() => { const b = [...document.querySelectorAll('#pd-fillface .cd-fld.is-open input:not([type="checkbox"]), #pd-fillface [data-blankf], #pd-fillface [data-kt]:not([type="checkbox"])')]
+      const next = await page.evaluate(() => { const b = [...document.querySelectorAll('#pd-og tr.pd-og-row:not(.is-saved) [data-blankf], #pd-og tr.pd-og-row:not(.is-saved) [data-kt]:not([type="checkbox"])')]
         /* a date wears HaTi's own picker (datePickDress), its real box behind it */
         .find(x => (x.offsetParent || x.type === 'date') && !x.disabled && !String(x.value || '').trim() && x.tagName !== 'SELECT');
         return b ? (b.getAttribute('data-kt') ? '[data-kt="' + b.getAttribute('data-kt') + '"]' : '[data-blankf="' + b.getAttribute('data-blankf') + '"]') : null; });
       if (!next || !(await page.evaluate(x => detailsOf(getContract(x)).left, id))) break;
-      const sel = '#pd-fillface ' + next;
+      const sel = '#pd-og ' + next;
       const type = await page.$eval(sel, el => el.type).catch(() => '');
       if (type === 'date') await page.$eval(sel, el => { el.value = '2026-11-02'; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); });
-      else { await page.click(sel); await page.keyboard.type(/value/.test(next) ? '240000' : /counterparty/.test(next) ? 'Parcelway ApS' : 'Nairobi', { delay: 5 }); await page.keyboard.press('Tab'); }
+      else { await page.click(sel); await page.keyboard.type(/value/.test(next) ? '240000' : /counterparty/.test(next) ? 'Parcelway ApS' : 'Nairobi', { delay: 5 }); }
+      /* each row is Confirmed, as drawn */
+      await page.evaluate(x => { const b = document.querySelector(x); const r = b && b.closest('tr'); const ok = r && r.querySelector('[data-pd-og-ok]'); if (ok) ok.click(); }, sel);
       await pause(300);
     }
     const filled = id ? await waitFor(page, i => !detailsOf(getContract(i)).left, 5000, id) : false;
     check('2 every owed box is filled in beside the paper, nothing owed after', left0 > 0 && filled && await page.evaluate(() => state.view === 'dashboard'),
       JSON.stringify({ before: left0, open: id && await page.evaluate(i => detailsOf(getContract(i)).items.filter(x => x.open).map(x => x.key), id),
-        boxes: await page.evaluate(() => [...document.querySelectorAll('#pd-fillface [data-kt], #pd-fillface [data-blankf]')].map(b => (b.getAttribute('data-kt') || b.getAttribute('data-blankf')) + ':' + b.tagName + ':' + (b.type || '') + ':' + String(b.value || '').slice(0, 12) + (b.offsetParent ? '' : ':hidden'))) }));
+        boxes: await page.evaluate(() => [...document.querySelectorAll('#pd-og [data-kt], #pd-og [data-blankf]')].map(b => (b.getAttribute('data-kt') || b.getAttribute('data-blankf')) + ':' + b.tagName + ':' + (b.type || '') + ':' + String(b.value || '').slice(0, 12) + (b.offsetParent ? '' : ':hidden'))) }));
     await shot('2-filled-in');
 
     /* ===== 3. REDLINE ===== */

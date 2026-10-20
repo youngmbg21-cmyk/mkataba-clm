@@ -79,17 +79,18 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
        [data-doc-col="details"] column, its #pd-fill the old #tplform-section.
        Waited for by THIS contract's id: the last contract's face can still be
        up for a beat. */
+    /* RE-POINTED 20 Oct 2026 (the Legora way): Details is Still owed's grid on the Dossier — only what is owed is asked */
     await page.evaluate(() => { openWorkspace('MK-DO1', { room: true }); roomGoTab(getContract('MK-DO1'), 'details'); });
-    await until(() => !!document.querySelector('#pd-fillface .pd-ff[data-pd-ff="MK-DO1"] #det-basics [data-cd-key]'));
-    const det = await page.evaluate(() => ({
-      keys: [...document.querySelectorAll('#det-basics [data-cd-key]')].map(e => e.getAttribute('data-cd-key')),
-      fold: !!document.querySelector('.pd-ff[data-pd-ff="MK-DO1"] details'), more: !!document.getElementById('det-more'),
-      parties: !!document.querySelector('.pd-ff[data-pd-ff="MK-DO1"] #ov-parties'), q: !!document.querySelector('#pd-fill [data-tplf]') }));
+    await until(() => !!document.querySelector('#pd-og[data-pd-og-for="MK-DO1"] tr[data-pd-og-kind="kt"]'));
+    const det = await page.evaluate(() => { const og = document.querySelector('#pd-og[data-pd-og-for="MK-DO1"]');
+      return { keys: [...og.querySelectorAll('tr.pd-og-row:not(.is-saved)[data-pd-og-kind="kt"]')].map(e => e.getAttribute('data-pd-og-row')),
+        owed: detailsOf(getContract('MK-DO1')).items.filter(x => x.kind === 'kt' && x.open).map(x => x.key),
+        fold: !!og.querySelector('details'), parties: !!og.querySelector('#ov-parties'), law: !!og.querySelector('[data-ktm]'), q: !!og.querySelector('[data-tplf]') }; });
     await page.screenshot({ path: path.join(OUT, '02-details.png') });
-    check('3a Details asks only who we are, the other party, the value and the start date',
-      JSON.stringify(det.keys) === JSON.stringify(['party', 'counterparty', 'value', 'effDate']), JSON.stringify(det.keys));
-    check('3b no other terms and no parties/people/filing on Details; the paper\'s questions stay',
-      !det.fold && !det.more && !det.parties && det.q, JSON.stringify(det));
+    check('3a Details asks only the contract\'s owed details — the other party, the value and the start date, never who we are',
+      det.keys.length > 0 && JSON.stringify(det.keys) === JSON.stringify(det.owed) && det.keys.every(k => ['counterparty', 'value', 'effDate'].includes(k)), JSON.stringify(det));
+    check('3b no other terms and no parties/people/filing in the grid; the paper\'s questions stay',
+      !det.fold && !det.parties && !det.law && det.q, JSON.stringify(det));
 
     /* ===== 2. THE ZOOM'S EDGE ===== */
     const zc = await page.evaluate(() => { const z = document.querySelector('.paper-zc .rl-type-step');
@@ -99,8 +100,8 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
     check('2 the paper\'s zoom wears the grey hairline again, not the accent edge', !!zc && zc.edge === zc.grey && zc.edge !== zc.accent, JSON.stringify(zc));
 
     /* an answer typed on Details is the Overview's to read */
-    const cp = '#det-basics [data-kt="counterparty"]';
-    await page.fill(cp, 'Nordic Bites AB'); await page.press(cp, 'Tab'); await pause(300);
+    const cp = '#pd-og [data-kt="counterparty"]';
+    await page.fill(cp, 'Nordic Bites AB'); await page.click('#pd-og [data-pd-og-ok="counterparty"]'); await pause(300);
 
     /* ===== 4. THE OVERVIEW EDITS AGAIN ===== */
     /* RE-POINTED 14 Oct 2026 (stage 5): Details is on Home now, so the
@@ -115,12 +116,14 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
       reads: /Nordic Bites AB/.test((document.getElementById('ov-ess') || {}).textContent || '') }));
     check('4a the Overview has Edit these details and + Add a party again', ov.edit && ov.add && !ov.door, JSON.stringify(ov));
     check('4b the Overview reads the other party typed on Details', ov.reads, JSON.stringify(ov));
-    await page.click('#kt-ov-terms [data-ov-edit="all"]'); await pause(300);
-    const ed = await page.evaluate(() => ({ email: !!document.querySelector('#kt-ov-terms [data-kt="cpEmail"]'),
-      expiry: !!document.querySelector('#kt-ov-terms [data-kt="expiry"], #kt-ov-terms [data-ktm="expiry"]'),
-      law: !!document.querySelector('#kt-ov-terms [data-ktm="governingLaw"], #kt-ov-terms [data-kt="governingLaw"]') }));
+    /* RE-POINTED 20 Oct 2026 (the owner: "we should not be entering information in the board"): the
+       Board's Edit opens the paper with its Key terms unfolded — the end date and the other terms, a Change on each line */
+    await page.click('#kt-ov-terms [data-ov-edit="all"]'); await pause(600);
+    const ed = await until(() => { const k = document.getElementById('pd-kt'); if (!k || !k.open) return null;
+      return { face: hbS().face, email: !!k.querySelector('tr[data-pd-og-row="cpEmail"] [data-pd-kt-change]'),
+        expiry: !!k.querySelector('tr[data-pd-og-row="expiry"] [data-pd-kt-change]'), law: !!k.querySelector('tr[data-pd-og-row="governingLaw"] [data-pd-kt-change]') }; }, null, 6000);
     await page.screenshot({ path: path.join(OUT, '03-overview-edit.png') });
-    check('4c Edit opens the boxes Details no longer holds (the end date, the other terms)', ed.expiry && ed.law, JSON.stringify(ed));
+    check('4c Edit opens the paper\'s Key terms: the end date and the other terms, each with Change', !!ed && ed.face === 'paper' && ed.expiry && ed.law, JSON.stringify(ed));
 
     check('9 no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) { fail++; console.log('FAIL  the run threw — ' + e.message); }

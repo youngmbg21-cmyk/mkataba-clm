@@ -197,7 +197,8 @@ describe('f743 (5) pass 3: every round\'s decisions, the newest said, the trail 
     const INDEX = R('index.html'), BS = R('js/views/boardstrip.js');
     assert.match(INDEX, /\.bs-on-desk \.bs-hist \.hist-trail\{max-height:none;overflow:visible;border:0;border-radius:0\}/);
     assert.match(BS, /const dots = page === 'hist' \? '' : `<span class="bs-dwrap">/);
-    assert.match(BS, /\$\{crumbs\}<span class="hb-grow"><\/span>\n\s+\$\{dots\}/);
+    /* RE-POINTED 20 Oct 2026 (4b, #386): the stage's act and Open in Workspace stand before the ⋯ */
+    assert.match(BS, /\$\{crumbs\}<span class="hb-grow"><\/span>\n\s+\$\{bsHeadActsHtml\(c\)\}\$\{dots\}/);
   });
 });
 

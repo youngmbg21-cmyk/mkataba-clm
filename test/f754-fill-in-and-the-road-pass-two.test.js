@@ -109,8 +109,9 @@ describe('f754 (2) the paper beside Fill in; nothing over the rows; no chips', (
     const cls = k => cv.querySelector(`[data-field-key="${k}"]`).className;
     assert.match(cls('start'), /pd-ff-owe-mark/); assert.doesNotMatch(cls('lane'), /pd-ff-owe-mark/, 'not owed: not amber');
     assert.match(cls('route'), /pd-ff-pend/); assert.doesNotMatch(cls('carrier'), /pd-ff-pend/, 'in the wording already');
-    W.pdFillAway(); W.pdFillPaperMarks(c);
-    assert.ok(!cv.querySelector('.pd-ff-owe-mark, .pd-ff-pend'), 'the face gone, the marks go'); up = !up;
+    /* RE-POINTED 20 Oct 2026 (the Legora way): the marks follow the Dossier's grid, not a face */
+    W.pdSetTab('oblig'); W.pdFillPaperMarks(c);
+    assert.ok(!cv.querySelector('.pd-ff-owe-mark, .pd-ff-pend'), 'another tab, the marks go'); up = !up;
     assert.match(IX, /#ig-canvas \.hati-field\.pd-ff-owe-mark:not\(\.is-fieldlit\)\{background:var\(--st-amber-bg\);color:var\(--st-amber-fg\)\}/);
     assert.match(IX, /#ig-canvas \.pd-ff-pend\{text-decoration:underline dotted var\(--accent-ink\)/);
     assert.match(PD, /try \{ pdFillPaperMarks\(c \|\| pdContract\(\)\); \} catch \(_\)\{\}/, 'after every paint of the paper');

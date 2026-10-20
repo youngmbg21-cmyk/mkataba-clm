@@ -186,7 +186,8 @@ describe('f805 (6) the line follows what is in front, in place', () => {
     assert.match(f, /document\.querySelector\('#ig-dock \.igd-askbox \+ \.jb-hint'\)/);
     assert.match(f, /jamboHintHtml\(\{ places:igHintKeys\(\) \}\)/);
     assert.match(fnOf(read('js/views/homeboard.js'), 'hbPaintBoard'), /if \(typeof window\.igHintPaint === 'function'\) try \{ igHintPaint\(\); \} catch \(_\)\{\}\n\}$/);
-    assert.equal((fnOf(read('js/paperdesk.js'), 'pdNeedsRepaint').match(/igHintPaint\(\)/g) || []).length, 2, 'filling and emptying');
+    /* three since the Dossier (20 Oct 2026): Still owed repainting with the dossier, then filling and emptying */
+    assert.equal((fnOf(read('js/paperdesk.js'), 'pdNeedsRepaint').match(/igHintPaint\(\)/g) || []).length, 3, 'the dossier, filling and emptying');
   });
 });
 

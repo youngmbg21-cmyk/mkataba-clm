@@ -166,7 +166,8 @@ const readRow = page => page.evaluate(() => {
       const box = a && a.classList && a.classList.contains('dp-face') && a.previousElementSibling && a.previousElementSibling.matches('input') ? a.previousElementSibling : a;
       return { key: box && box.getAttribute && box.getAttribute('data-kt'), blank: box && box.getAttribute && (box.getAttribute('data-blankf') || box.getAttribute('data-field') || ''),
         type: box && box.type, face: !!(a && a.classList && a.classList.contains('dp-face')),
-        inPanel: !!(a && a.closest && a.closest('#tplform-section, #pd-fill')), fill: !!(window.pdFillShows && pdFillShows()) }; });
+        /* RE-POINTED 20 Oct 2026 (the Legora way): the panel's boxes are Still owed's grid */
+        inPanel: !!(a && a.closest && a.closest('#tplform-section, #pd-fill, #pd-og')), fill: !!document.querySelector('#ig-dock #pd-og') }; });
     await page.waitForFunction(() => { const a = document.activeElement; return !!(a && a.matches && a.matches('.dp-face, [data-kt]')); },
       null, { timeout: 8000 }).catch(() => {});
     const landed = await boxOfFocus();
@@ -212,9 +213,9 @@ const readRow = page => page.evaluate(() => {
        Jambo's Fill in face beside Home's paper (#pd-fillface), whose form
        holds the paper's questions in #pd-fill; the "tab" is that face. */
     await page.waitForFunction(() => { const a = document.activeElement;
-      return !!(a && a.closest && a.closest('#tplform-section, #pd-fill')); }, null, { timeout: 8000 }).catch(() => {});
+      return !!(a && a.closest && a.closest('#tplform-section, #pd-fill, #pd-og')); }, null, { timeout: 8000 }).catch(() => {});
     const fb = await boxOfFocus();
-    const focus = { inPanel: fb.inPanel, key: fb.blank, face: fb.face,
+    const focus = { inPanel: fb.inPanel, key: fb.blank || fb.key, face: fb.face,
       tab: fb.fill ? 'Fill in' : await page.evaluate(() => (document.querySelector('#ws-tabs .on, #ws-tabs [aria-selected="true"]') || {}).textContent || '') };
     /* RE-POINTED 12 Oct 2026: the form is the room's Details tab (owner). */
     check('3b pressing it lands on the Details tab, with the cursor in the first empty box', focus.inPanel && focus.key === 'effDate', JSON.stringify(focus));
@@ -352,7 +353,7 @@ const readRow = page => page.evaluate(() => {
     /* RE-POINTED 12 Oct 2026: the boxes are on the Details tab (owner). */
     await page.evaluate(id => roomGoTab(getContract(id), 'details'), made.id);
     await page.waitForTimeout(900);
-    const box = await page.evaluate(() => { const v = document.querySelector('#det-basics [data-kt="value"]'); const n = document.querySelector('#det-basics [data-kt="nonmonetary"]');
+    const box = await page.evaluate(() => { const v = document.querySelector('#pd-og [data-kt="value"]'); const n = document.querySelector('#pd-og [data-kt="nonmonetary"]');
       return { box: !!v, disabled: v ? v.disabled : null, ticked: n ? n.checked : null }; });
     check('5c and on Details the value box is open and "Non-monetary" is not ticked',
       box.box && box.disabled === false && box.ticked === false, JSON.stringify(box));

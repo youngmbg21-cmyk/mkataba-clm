@@ -149,8 +149,9 @@ const CONTRACTS = [
     await until(page, () => !!document.querySelector('#cn-needs [data-cn-need]'));
     const det = await page.$('#cn-needs [data-cn-need="details"]');
     if (det) await det.click();
-    const filled = det && await until(page, () => typeof pdFillShows === 'function' && pdFillShows());
-    ok('5a "details to fill" opens Fill in beside the paper', !!filled);
+    /* RE-POINTED 20 Oct 2026 (the Legora way): it lands on the paper's Still owed grid, a row in the hand */
+    const filled = det && await until(page, () => { const a = document.activeElement; return !!document.querySelector('#ig-dock #pd-og') && !!(a && a.closest && a.closest('#pd-og')); });
+    ok('5a "details to fill" lands on Still owed\'s grid beside the paper', !!filled);
     await page.screenshot({ path: path.join(OUT, '5-fill.png') });
 
     /* ===== 6. "needs me" OPENS THE COUNTER ===== */

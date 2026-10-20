@@ -90,9 +90,10 @@ describe('f707 (2) what Jambo found, at a glance', () => {
     assert.deepEqual(J(ctx.pdGlanceRows(c)), [{ k: 'std', n: 2 }, { k: 'oblig', n: 3 }]);
     assert.deepEqual(J(ctx.PD_GLANCE.std), ['pd_gl_std', 'pd_tab_clauses', '', 'doc']);
     assert.deepEqual(J(ctx.PD_GLANCE.oblig), ['pd_gl_obls', 'tab_obligations', '', 'oblig']);
+    /* RE-POINTED 20 Oct 2026 (the Dossier, #386): the glance is the dossier;
+       the obligations Jambo found are its What Jambo read row, with its door */
     const html = ctx.pdGlanceHtml(c);
-    assert.match(html, /pd_gl_std:2[\s\S]*data-pd-glance-tab="doc">pd_tab_clauses</);
-    assert.match(html, /pd_gl_obls:3[\s\S]*data-pd-glance-tab="oblig">tab_obligations</);
+    assert.match(html, /data-pd-ds-card="read"[\s\S]*data-pd-ds="oblig"[\s\S]*ds-go/);
     for (const status of ['Signed', 'Declined'])
       assert.deepEqual(J(pdStage({ status, playbook: PB, obligations: OBS }).ctx.pdGlanceRows(pdStage({ status, playbook: PB, obligations: OBS }).c)), [], status + ': no findings rows');
     assert.deepEqual(J(pdStage({ playbook: null, obligations: [] }).ctx.pdGlanceRows(pdStage().c)), [], 'a check not run, no obligations: nothing said');

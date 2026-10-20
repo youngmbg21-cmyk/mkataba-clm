@@ -144,13 +144,13 @@ const word = (lines) => Buffer.from(mkDocx(lines.map(t => para(t)).join('')));
     check('3e a press on the stream in step 3 chooses it, and Create wakes', picked && !gate.dis && gate.stream === 'mktg', gate);
     const before = await page.evaluate(() => state.contracts.map(c => c.id));
     await page.click('#na-create');
-    /* Fill in beside it while anything is owed; an NDA with its counterparty
-       and start date answered owes nothing, and lands on Jambo (roomHomeLand) */
+    /* the Dossier beside it, owed or not; Fill in only on the reader's press
+       (owner, 20 Oct 2026: "it pushes me to fill without my asking") */
     const made = await waitFor(page, ids => { const p = intel.paper && intel.paper.id; if (!p || ids.includes(p)) return false;
-      return detailsOf(getContract(p)).left ? !!document.querySelector('#pd-fillface .pd-ff') : !!document.getElementById('pd-glance'); }, 15000, before);
+      return !!document.getElementById('pd-glance') && !document.querySelector('#pd-fillface .pd-ff'); }, 15000, before);
     const nv = await page.evaluate(() => { const c = getContract(intel.paper.id); return { id: c.id, cp: c.counterparty, folder: c.folder, view: state.view, room: window._seen.room, left: detailsOf(c).left,
       fill: !!document.querySelector('#pd-fillface .pd-ff'), glance: !!document.getElementById('pd-glance') }; });
-    check('3f Create lands on the new paper with Volvo, in the stream chosen — Fill in beside it while owed, else at a glance', made && nv.cp === 'Volvo' && nv.folder === 'mktg' && nv.view === 'dashboard' && !nv.room, nv);
+    check('3f Create lands on the new paper with Volvo, in the stream chosen — the Dossier beside it, Fill in not opened', made && !nv.fill && nv.glance && nv.cp === 'Volvo' && nv.folder === 'mktg' && nv.view === 'dashboard' && !nv.room, nv);
 
     /* the Swedish sentence the card offers drafts too */
     await page.evaluate(() => langSet('sv')); await wall();
@@ -175,16 +175,20 @@ const word = (lines) => Buffer.from(mkDocx(lines.map(t => para(t)).join('')));
     check('4a0 the drop area asks the stream, as the pop-up did: the first chosen until another is', !!asks && asks.n >= 2 && asks.v === asks.first, asks);
     const streamed = await choose('#pd-drop-stream', 'sales');
     await drop(b64, 'Courier Services Agreement.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-    const landed = await waitFor(page, ids => { const p = intel.paper && intel.paper.id; return !!p && !ids.includes(p) && !!document.querySelector('#pd-fillface .pd-ff'); }, 20000, ids4);
+    const landed = await waitFor(page, ids => { const p = intel.paper && intel.paper.id; return !!p && !ids.includes(p) && !!document.getElementById('pd-glance') && !document.querySelector('#pd-fillface .pd-ff'); }, 20000, ids4);
     const up = await page.evaluate(() => { const c = getContract(intel.paper.id); return { id: c.id, name: c.name, src: c.source, folder: c.folder, audit: (c.audit || []).map(a => a.action),
       popup: window._seen.popup, room: window._seen.room, face: hbFace(), view: state.view, owner: !!c.owner }; });
-    check('4a a dropped Word file lands on its paper with Fill in open, on Home', landed && up.view === 'dashboard' && up.face === 'paper', up);
+    check('4a a dropped Word file lands on its paper with the Dossier beside it, on Home', landed && up.view === 'dashboard' && up.face === 'paper', up);
     check('4b through the upload\'s own path: named off the file, uploaded, owned', up.name === 'Courier Services Agreement' && up.src === 'upload' && up.audit.includes('Uploaded') && up.owner, up);
     check('4c never the pop-up, never the room', !up.popup && !up.room, { popup: up.popup, room: up.room });
     check('4c2 filed in the stream the drop area asked', streamed && up.folder === 'sales', { streamed, folder: up.folder });
-    const party = await page.evaluate(() => { const i = document.querySelector('#pd-fillface [data-kt="party"]'); const dl = i && document.getElementById(i.getAttribute('list'));
+    /* RE-POINTED 20 Oct 2026 (owner picked "The Legora way"): who we are is a Key terms line under
+       Still owed's grid; its Change box offers our entities */
+    await page.evaluate(id => pdKtOpen(id, 'party'), up.id);
+    await waitFor(page, () => !!document.querySelector('#pd-kt [data-kt="party"]'), 5000);
+    const party = await page.evaluate(() => { const i = document.querySelector('#pd-kt [data-kt="party"]'); const dl = i && document.getElementById(i.getAttribute('list'));
       return { box: !!i, offered: dl ? [...dl.options].map(o => o.value) : [] }; });
-    check('4d who we are is asked in Fill in, our entities offered', party.box && party.offered.length > 0, party);
+    check('4d who we are is changed in Key terms beside the paper, our entities offered', party.box && party.offered.length > 0, party);
     await shoot('4-dropped-fill-in');
     const upId = up.id;
     await wall();
@@ -210,43 +214,15 @@ const word = (lines) => Buffer.from(mkDocx(lines.map(t => para(t)).join('')));
     const land4f = await waitFor(page, ids => { const p = intel.paper && intel.paper.id; return !!p && !ids.includes(p); }, 20000, ids4f);
     check('4f "upload" with a contract on the paper lands on the drop area, lit; the file chosen there lands on its paper', !!lit4f && !!chooser && land4f, { lit: !!lit4f, chooser: !!chooser, land4f });
 
-    /* ===== 5. THE STREAM IN FILL IN ===== */
-    await page.evaluate(id => pdFillOpen(id), upId);
-    await waitFor(page, () => !!document.querySelector('#pd-fillface [data-pd-ff-stream]'), 8000);
-    const s0 = await page.evaluate(() => { const c = getContract(intel.paper.id);
-      return { folder: c.folder, lit: [...document.querySelectorAll('#pd-fillface [data-pd-stream][aria-pressed="true"]')].map(b => b.getAttribute('data-pd-stream')),
-        n: document.querySelectorAll('#pd-fillface [data-pd-stream]').length, left: detailsOf(c).left, all: detailsOf(c).all,
-        kt: !!document.querySelector('#pd-fillface [data-pd-ff-stream] [data-kt]') }; });
-    check('5a Fill in asks the stream: the company\'s streams, the current one lit', s0.n >= 2 && s0.lit.length === 1 && s0.lit[0] === s0.folder, s0);
-    check('5b and never counts it as owed', !s0.kt && !(await page.evaluate(() => detailsOf(getContract(intel.paper.id)).items.some(x => /folder|stream/.test(x.key)))));
-    const to = await page.evaluate(f => { const b = [...document.querySelectorAll('#pd-fillface [data-pd-stream]')].find(x => x.getAttribute('data-pd-stream') !== f); return b ? b.getAttribute('data-pd-stream') : null; }, s0.folder);
-    await page.evaluate(() => { window._seen.room = false; });
-    await page.click(`#pd-fillface [data-pd-stream="${to}"]`);
-    const asked = await waitFor(page, () => !!document.querySelector('#confirm-overlay:not(.hidden) button, [role="dialog"] [data-dlg-confirm]'), 5000);
-    await shoot('5-stream-asks');
-    await page.evaluate(() => { const b = [...document.querySelectorAll('#confirm-overlay button, [role="dialog"] button')].find(x => /Move it/.test(x.textContent)); if (b) b.click(); });
-    const moved = await waitFor(page, t => getContract(intel.paper.id).folder === t, 6000, to);
-    const s1 = await page.evaluate(() => { const c = getContract(intel.paper.id); return { folder: c.folder, rec: (c.audit || []).some(a => a.action === 'Re-filed'),
-      lit: [...document.querySelectorAll('#pd-fillface [data-pd-stream][aria-pressed="true"]')].map(b => b.getAttribute('data-pd-stream')), face: !!document.getElementById('pd-fillface'),
-      room: window._seen.room, left: detailsOf(c).left }; });
-    check('5c a press asks first, then moves it and records "Re-filed"', asked && moved && s1.rec && s1.lit[0] === to, s1);
-    check('5d the face stays, the room is never drawn, the count does not move', s1.face && !s1.room && s1.left === s0.left, s1);
-    await shoot('5-stream-moved');
-    await page.waitForFunction(() => !window._saveTimer && !(window.state && state._saving), null, { timeout: 3000 }).catch(() => {});
-    await pause(800);
-    /* a person who may not re-file */
-    const ctx2 = await browser.newContext({ viewport: { width: 1440, height: 780 } });
-    const p2 = await ctx2.newPage();
-    p2.on('pageerror', e => errors.push('(legal) ' + String(e.message || e).slice(0, 200)));
-    await login(p2, 'everything@example.co.ke', 'their-own-pass-9');
-    await p2.evaluate(id => { setView('dashboard'); pdFillOpen(id); }, upId);
-    const ro = await waitFor(p2, () => !!document.querySelector('#pd-fillface [data-pd-ff-stream]'), 10000);
-    const r5 = await p2.evaluate(() => ({ may: typeof mayReFile === 'function' && mayReFile(), dis: [...document.querySelectorAll('#pd-fillface [data-pd-stream]')].every(b => b.disabled),
-      why: (document.querySelector('#pd-fillface .pd-ff-ro') || {}).textContent || '' }));
-    /* RE-POINTED 18 Oct 2026 (the gaps, round 8 "Owed first", f751): the reason as drawn, with the rule's own door */
-    check('5e a person who may not re-file sees the stream grey, with the reason', ro && !r5.may && r5.dis && /an admin’s act\. Ask an admin$/.test(r5.why.trim()), r5);
-    await p2.screenshot({ path: path.join(OUT, '5-stream-read-only-1440x780.png') }).catch(() => {});
-    await ctx2.close();
+    /* ===== 5. THE STREAM IN STILL OWED =====
+       RE-POINTED 20 Oct 2026 (owner picked "The Legora way"): the stream is a saved row in the
+       grid, "set when the draft was made"; moving it is the filing door's (⋯ › Filing), not the grid's */
+    await page.evaluate(id => pdOpenOnHome(id, 'plain'), upId);
+    await waitFor(page, () => !!document.querySelector('#pd-og [data-pd-og-row="stream"]'), 8000);
+    const s0 = await page.evaluate(() => { const c = getContract(intel.paper.id); const r = document.querySelector('#pd-og [data-pd-og-row="stream"]');
+      return { folder: c.folder, name: (FOLDERS[c.folder] || {}).name, said: r ? r.textContent : '', box: !!(r && r.querySelector('input, select, button')) }; });
+    check('5a Still owed names the stream, saved when the draft was made', !!s0.name && s0.said.includes(s0.name) && /set when/i.test(s0.said) && !s0.box, s0);
+    check('5b and never counts it as owed', !(await page.evaluate(() => detailsOf(getContract(intel.paper.id)).items.some(x => /folder|stream/.test(x.key)))));
 
     /* ===== 6. AT A GLANCE ===== */
     await page.evaluate(id => pdOpenOnHome(id, 'plain'), upId);
@@ -254,28 +230,32 @@ const word = (lines) => Buffer.from(mkDocx(lines.map(t => para(t)).join('')));
     const g = await page.evaluate(() => { const c = getContract(intel.paper.id); const el = document.getElementById('pd-glance');
       const rows = [...el.querySelectorAll('[data-pd-gl]')].map(r => [r.getAttribute('data-pd-gl'), r.querySelector('span').textContent]);
       /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the glance is the dossier — the spine for the stage, What Jambo read, Still owed */
-      const fillRows = [...el.querySelectorAll('[data-pd-ds-card="owed"] [data-pd-gl="fill"]')].map(r => Number((/(\d+) more/.exec(r.textContent) || [])[1] || 1));
+      /* RE-POINTED 20 Oct 2026 (the Legora way): each owed detail is a row of Still owed's grid */
+      const fillRows = [...el.querySelectorAll('#pd-og [data-pd-og-kind]')].filter(r => r.getAttribute('data-pd-og-kind') !== 'signer').map(() => 1);
       const rk = el.querySelector('[data-pd-ds="risks"] b');
       return { title: [...el.querySelectorAll('.pd-gl-h b')].map(b => b.textContent).join(' | '), pill: !!el.querySelector('.ds-spine .ds-st.is-on, .ds-spine .ds-st.is-now'), rows,
         fillN: fillRows.reduce((a, b) => a + b, 0), riskN: rk ? Number(rk.textContent) : 0,
         left: detailsOf(c).left, risks: (c.scan && riskMayAct(c, {})) ? riskOpenOf(c).length : 0, nobody: signBlockers(c).some(b => b.key === 'signers'),
         unsent: c.negotiation ? rlUnsentCount(c, {}) : 0, nego: !!c.negotiation,
-        above: (() => { const chips = document.querySelector('#ig-dock [data-ig-chips]'); return !!chips && el.getBoundingClientRect().bottom <= chips.getBoundingClientRect().top + 1; })() }; });
+        ogSign: !!el.querySelector('#pd-og [data-pd-og-row="signers"]'),
+        /* RE-POINTED 20 Oct 2026: Still owed's grid makes the card taller than the panel, so it scrolls in
+           its own area; that area ends above the chips and the box (it never runs under them) */
+        above: (() => { const chips = document.querySelector('#ig-dock [data-ig-chips]'); const sc = el.closest('.overflow-y-auto') || el;
+          return !!chips && sc.getBoundingClientRect().bottom <= chips.getBoundingClientRect().top + 1; })() }; });
     const num = k => { const r = g.rows.find(x => x[0] === k); return r ? Number((/(\d+)/.exec(r[1]) || [])[1] || (k === 'sign' ? 1 : 0)) : 0; };
     check('6a Jambo\'s tab opens on the dossier: the stage on the spine, What Jambo read, Still owed', gl && /^What Jambo read \| Still owed · \d+/.test(g.title) && g.pill, g.title);
-    check('6b each count is the reading its own face uses', g.fillN === g.left && g.riskN === g.risks && num('share') === g.unsent && (num('sign') === 1) === g.nobody, g);
+    check('6b each count is the reading its own face uses', g.fillN === g.left && g.riskN === g.risks && num('share') === g.unsent && g.ogSign === g.nobody, g);
     check('6c reading it starts no negotiation', !g.nego);
     check('6d the card sits above the chips and the box', g.above);
     await shoot('6-glance');
-    await page.click('#pd-glance [data-pd-ds-fill]');
-    check('6e "Fill in" opens Fill in beside the paper', await waitFor(page, () => !!document.querySelector('#pd-fillface .pd-ff'), 6000));
-    await page.evaluate(() => pdFillClose());
-    await waitFor(page, () => !!document.getElementById('pd-glance'), 4000);
+    /* RE-POINTED 20 Oct 2026: no Fill in face; Still owed IS the form */
+    check('6e Still owed carries the boxes beside the paper, no Fill in face', await page.evaluate(() => !!document.querySelector('#pd-glance #pd-og [data-pd-og-row]') && !document.getElementById('pd-fillface')));
     /* a fresh upload has nobody named to sign: the row must be there to press (a missing row is reported, never skipped) */
-    const signRow = await page.evaluate(() => !!document.querySelector('#pd-glance [data-pd-glance="sign"]'));
-    if (signRow) await page.click('#pd-glance [data-pd-glance="sign"]');
-    check('6f "Signing" opens Before you sign beside the paper', g.nobody && signRow && await waitFor(page, () => !!document.getElementById('pd-signface'), 6000), { nobody: g.nobody, signRow });
-    if (signRow) await page.evaluate(() => { if (typeof pdSignClose === 'function') pdSignClose(); });
+    /* RE-POINTED 20 Oct 2026 (the Legora way, signer "Yes, our signer here"): nobody named to sign is a
+       row of the grid asking our signer and theirs, one Confirm (a route needs a signer on each side) */
+    const signRow = await page.evaluate(() => { const r = document.querySelector('#pd-og [data-pd-og-row="signers"]');
+      return r ? { ours: !!r.querySelector('select'), theirs: r.querySelectorAll('input').length, ok: !!r.querySelector('[data-pd-og-ok]') } : null; });
+    check('6f nobody named to sign is a grid row: our signer, their name and email, one Confirm', g.nobody && !!signRow && signRow.ours && signRow.theirs >= 2 && signRow.ok, { nobody: g.nobody, signRow });
     /* the risks row says what the Redlines face draws */
     await page.evaluate(id => pdOpenOnHome(id, 'plain'), upId);
     await waitFor(page, () => !!document.getElementById('pd-glance'), 6000);

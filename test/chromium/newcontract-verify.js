@@ -140,12 +140,14 @@ const FORM = () => {
      should land on the terms those blanks are filled FROM. Read off the tab row
      the reader is actually looking at, not off the module's variable. */
   const landed = await page.evaluate(() => ({ view: window.state.view, paper: window.intel && intel.paper && intel.paper.id,
-    face: !!document.getElementById('pd-fillface') }));
+    face: !!document.getElementById('pd-fillface'), grid: !!document.querySelector('#ig-dock #pd-glance #pd-og') }));
   /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 2, owner picked
      "Form"): a new draft lands on Home's paper with Jambo's panel on Fill in
      (12 Oct 2026: the room's Details tab) */
-  check('a new draft lands beside the paper, Jambo\'s panel on Fill in',
-    landed.view === 'dashboard' && landed.paper === skipped.id && landed.face, JSON.stringify(landed));
+  /* RE-POINTED 20 Oct 2026 (the owner: "it pushes me to fill without my asking"; then the Legora way):
+     the Dossier, its Still owed grid asking what is owed — never a face opened unasked */
+  check('a new draft lands beside the paper, Jambo\'s panel on its Dossier and its Still owed grid',
+    landed.view === 'dashboard' && landed.paper === skipped.id && !landed.face && landed.grid, JSON.stringify(landed));
   /* the room's head is what 2c measures: opened as a reader opens it */
   await page.evaluate(id => window.openWorkspace(id, { room: true }), skipped.id);
   await page.waitForTimeout(600);
