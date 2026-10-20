@@ -135,13 +135,14 @@ describe('f505 (E) the second pass', () => {
     assert.equal(I18N.split('\n    ce_save_to_long:').length - 1, 2, 'the change is named on the hover, both books');
   });
   test('the ask box is one line and grows to CE_ASK_LINES', () => {
-    assert.match(CE, /const CE_ASK_LINES = 5;/);
+    /* RE-POINTED 20 Oct 2026 (owner picked "Two-row card" for every Jambo box): the words the whole width, + and the round send on their own row under them, drawn by the one builder (jamboCardHtml) */
+    assert.match(CE, /const CE_ASK_LINES = 6;/);
     assert.match(CE, /ask\.addEventListener\('input', \(\) => ceAskFit\(ask\)\);/);
     /* RE-POINTED 6 Oct 2026: the box is .ce-askbox (it holds the tag that
        replaced the Selected card); the textarea inside it is one line high */
     /* RE-POINTED 7 Oct 2026 (Header line): the tag has its own line, so the
        textarea takes the box's whole width */
-    assert.match(read('js/views/clauseeditor.js'), /\.ce-ask textarea\{flex:none; width:100%; min-width:0; height:calc\(var\(--ctl-h\) - 2px\)/);
+    assert.match(read('index.html'), /\.jb-card > textarea\{display:block;width:100%;min-width:0;[^}]*min-height:24px;height:auto;max-height:calc\(1\.5em \* 6 \+ 4px\)/);
   });
 });
 

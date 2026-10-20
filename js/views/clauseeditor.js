@@ -992,26 +992,17 @@ function clauseEditorCss(){
   /* THE BOX YOU TYPE IN IS ONE LINE AT REST (Young, 5 Oct 2026: "one line
      space but if your prompt is long then it will then wrap text"): it grows
      with what is typed, up to CE_ASK_LINES lines, then scrolls inside. */
-  .ce-ask{flex:none; display:flex; gap:var(--s-2); padding:10px 14px;
-    border-top:1px solid var(--color-divider); align-items:flex-end}
+  /* THE TWO-ROW CARD (owner picked it, 20 Oct 2026): the card itself is the
+     one builder's (.jb-card, index.html); here only its place on the rail
+     and "Asking about" riding the control row beside +. .ce-ask, .ce-askbox
+     and the square send outside the box are STALE. */
+  .ce-askwrap{flex:none; padding:10px 14px 0; border-top:1px solid var(--color-divider)}
   /* the hint line under the box (owner, 18 Oct 2026, "Every Jambo box") */
-  .ce-ask + .jb-hint{flex:none; margin:-4px 14px 8px}
-  /* HEADER LINE (Young, 7 Oct 2026): the tag on its own slim line, the
-     question under it at the full width. ONE quiet focus mark — a 2px accent
-     line along the bottom edge — where there were two rings (the box's own
-     and the app-wide textarea ring inside it, the line between tag and text). */
-  .ce-askbox{flex:1; min-width:0; display:flex; flex-direction:column; align-items:stretch;
-    background:var(--color-surface); border:1px solid var(--color-divider)}
-  .ce-askbox:focus-within{box-shadow:inset 0 -2px 0 var(--accent-solid)}
-  .ce-ask .ce-askbox textarea:focus-visible{outline:none; box-shadow:none}
-  .ce-tagline{display:flex; align-items:center; gap:6px; min-width:0; padding:4px 6px 0 9px;
+  .ce-askwrap + .jb-hint{flex:none; margin:6px 14px 8px}
+  .ce-tagline{display:flex; align-items:center; gap:6px; min-width:0; overflow:hidden;
     font-size:var(--t-label); color:var(--color-neutral-500)}
   .ce-tagline:has(> .ce-tag:empty){display:none}
   .ce-tag-k{flex:none; white-space:nowrap}
-  .ce-ask textarea{flex:none; width:100%; min-width:0; height:calc(var(--ctl-h) - 2px); min-height:calc(var(--ctl-h) - 2px); max-height:none; overflow-y:hidden;
-    padding:3px 10px; font:inherit; font-size:var(--t-meta); line-height:1.5; resize:none;
-    white-space:pre-wrap; overflow-wrap:break-word; background:transparent;
-    border:0; color:var(--color-text); outline:none}
   .ce-tag:empty{display:none}
   /* a FILLED pill with a white × the hand can find (Young, 7 Oct 2026: "more
      visible maybe colored with an x to press") */
@@ -1019,18 +1010,11 @@ function clauseEditorCss(){
     font-size:var(--t-label); font-weight:var(--w-label); color:#fff; background:var(--accent-solid); border-radius:var(--radius); white-space:nowrap}
   .ce-tag.is-asking{color:#fff; background:#6d28d9}
   .ce-tag .w{overflow:hidden; text-overflow:ellipsis; min-width:0}
-
-  .ce-ask button{flex:none; display:inline-grid; place-items:center; width:var(--ctl-h); height:var(--ctl-h);
-    padding:0; background:var(--color-accent-700); border:1px solid var(--color-accent-700);
-    color:#fff}
-  .ce-ask button svg{width:var(--btn-ic); height:var(--btn-ic); display:block}
-  .ce-ask button:hover{background:var(--accent-ink); border-color:var(--accent-ink)}
-  /* the tag's own buttons, scoped past the send button's rules above */
-  .ce-ask .ce-tag button{flex:none; display:inline-grid; place-items:center; width:16px; height:16px; padding:0; border:0;
+  .ce-askwrap .ce-tag button{flex:none; display:inline-grid; place-items:center; width:16px; height:16px; padding:0; border:0;
     background:none; color:inherit; font:inherit; font-size:var(--t-label); cursor:pointer; border-radius:var(--radius)}
-  .ce-ask .ce-tag button:hover{background:rgba(255,255,255,.25); border:0}
-  .ce-ask .ce-tag button svg{width:12px; height:12px}
-  .ce-ask .ce-tag .cut{width:auto; padding:0 5px; margin-left:4px; background:rgba(255,255,255,.18)}
+  .ce-askwrap .ce-tag button:hover{background:rgba(255,255,255,.25); border:0}
+  .ce-askwrap .ce-tag button svg{width:12px; height:12px}
+  .ce-askwrap .ce-tag .cut{width:auto; padding:0 5px; margin-left:4px; background:rgba(255,255,255,.18)}
 
   /* ---- the reason is asked as a STEP, in HaTi's own words ---- */
   /* ---- THE REASON PANEL'S RULES, DRESSING NOTHING ----
@@ -1737,6 +1721,11 @@ const CE_LEAVE_ICON = '<svg width="13" height="13" viewBox="0 0 16 16" fill="non
   + ' stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"'
   + ' aria-hidden="true"><path d="M6 2H2v4M10 14h4v-4M2 10v4h4M14 6V2h-4"/></svg>';
 
+/* THE TWO-ROW CARD's one builder (components.js), read where it is drawn;
+   a page loaded without it (a test's one-file world) draws the bare parts */
+const _ceJbCard = o => (typeof jamboCardHtml === 'function') ? jamboCardHtml(o) : `${o.field || ''}${o.ctx || ''}${o.send || ''}${o.tail || ''}`;
+const _ceJbSend = (a, l, o = {}) => (typeof jamboSendHtml === 'function') ? jamboSendHtml(a, l, o) : `<button type="${o.submit ? 'submit' : 'button'}" ${a || ''} aria-label="${l}" title="${o.title || l}"></button>`;
+
 function clauseEditorHtml(){
   return `<div id="clause-editor" role="region" aria-label="${_ceea(_cet('ce_page_label'))}">
     ${''/* ---- THE GRID IS THE PAGE, AND THAT IS THE WHOLE POINT ----
@@ -1951,17 +1940,13 @@ function clauseEditorHtml(){
                ceRenderScope and EMPTY when nothing is attached, so this slot
                costs the ordinary rail nothing. */}
         ${ceNoAi() ? '' : `<div class="ce-chips" id="ce-chips"></div>
-        <div class="ce-ask" id="ce-askrow">
-          <div class="ce-askbox">${''/* THE SELECTED CARD IS GONE (Young, 6 Oct 2026): what it said
-                 rides here as a tag in the box (ceRenderScope).
-                 HEADER LINE (Young, 7 Oct 2026, "Copilot Panel Tidy-up",
-                 reversing "at no height"): the tag sits on its own slim line
-                 at the top of the box, so the question uses the full width. */}<div class="ce-tagline" id="ce-tagline"><span class="ce-tag-k">${_cee(_cet('ce_tag_about'))}</span><span class="ce-tag" id="ce-scope"></span></div>
-          <textarea id="ce-ask" rows="1" aria-label="${_ceea(_cet('ce_ask_label'))}"
-            placeholder="${_ceea(_cet('ce_ask_ph'))}"></textarea></div>
-          <button type="button" data-ce-act="ask" aria-label="${_ceea(_cet('ce_send'))}"
-            title="${_ceea(_cet('ce_send'))}">${CE_SEND_ICON}</button>
-        </div>
+        ${''/* THE TWO-ROW CARD (owner picked it, 20 Oct 2026: "these need to
+               change as well" — the send stood outside the box): the words the
+               whole width; under them +, "Asking about" (the tag ceRenderScope
+               paints) and the round send, all inside the one card */}
+        <div class="ce-askwrap">${_ceJbCard({ id: 'ce-askrow', field: `<textarea id="ce-ask" rows="1" aria-label="${_ceea(_cet('ce_ask_label'))}" placeholder="${_ceea(_cet('ce_ask_ph'))}"></textarea>`,
+          ctx: `<div class="ce-tagline" id="ce-tagline"><span class="ce-tag-k">${_cee(_cet('ce_tag_about'))}</span><span class="ce-tag" id="ce-scope"></span></div>`,
+          send: _ceJbSend('data-ce-act="ask"', _cet('ce_send')) })}</div>
         ${''/* THE HINT LINE UNDER THE BOX (owner, 18 Oct 2026, "Every Jambo
                box"): the one builder; asking files nothing — Apply or Save does */}${typeof jamboHintHtml === 'function' ? jamboHintHtml() : ''}`}
         ${''/* THE SPELLING LIST'S SLOT, directly over the Save it is about
@@ -5481,7 +5466,7 @@ function ceWholeContext(){
 }
 /* THE ASK BOX GROWS WITH ITS WORDS: one line at rest, at most CE_ASK_LINES,
    then it scrolls inside. Measured off the box's own line height. */
-const CE_ASK_LINES = 5;
+const CE_ASK_LINES = 6;   /* the two-row card grows to six lines (20 Oct 2026) */
 function ceAskFit(box){
   if (!box) return;
   box.style.height = 'auto';
@@ -5493,6 +5478,12 @@ function ceAskFit(box){
   const want = box.scrollHeight + (parseFloat(cs.borderTopWidth) || 0) + (parseFloat(cs.borderBottomWidth) || 0);
   box.style.height = Math.min(most, Math.ceil(want)) + 'px';
   box.style.overflowY = want > most ? 'auto' : 'hidden';
+  /* the two-row card's shape: one line until the words wrap (20 Oct 2026) */
+  if (typeof jamboCardGrow === 'function' && box.closest && box.closest('.jb-card')){
+    const card = box.closest('.jb-card'), was = card.classList.contains('is-tall');
+    jamboCardGrow(box);
+    if (was !== card.classList.contains('is-tall')) ceAskFit(box);
+  }
 }
 /* ONE ASK BOX, TWO TABS: on the Risks tab a typed ask asks Copilot about the
    risk in front of the reader (riskWalkPress 'send'); everywhere else it is

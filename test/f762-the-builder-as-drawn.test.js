@@ -161,8 +161,9 @@ describe('f762 (3) Jambo proposes on the paper', () => {
 describe('f762 (4) the ask box as drawn', () => {
   test('4a on every tab: "Ask for anything, or type /", the word Ask, "/" the places, its hint inside the foot', async () => {
     const s = await stage(RESELLER, FIELDS);
-    assert.match(s.rail, /<div class="tb-foot"><div class="tb-ask" id="tb-askrow"><textarea id="tb-ask"[^>]*data-ca-slash placeholder="Ask for anything, or type \/"/);
-    assert.match(s.rail, /data-tb-send[^>]*>Ask<\/button>/);
+    /* RE-POINTED 20 Oct 2026 (owner picked "Two-row card" for every Jambo box): the words the whole width, + and the round send on their own row under them, drawn by the one builder (jamboCardHtml) */
+    assert.match(s.rail, /<div class="tb-foot">(<div class="jb-card" id="tb-askrow">)?<textarea id="tb-ask"[^>]*data-ca-slash placeholder="Ask for anything, or type \/"/);
+    assert.match(s.rail, /data-tb-send[^>]*aria-label="[^"]+"/);
     assert.match(s.rail, /<p class="jb-hint">Typing never signs, sends or files — a press does\.<\/p><\/div>/);
     s.w.tbSetTab('blanks'); assert.match(s.read().rail, /id="tb-ask"/, 'the box stays on another tab');
   });

@@ -214,7 +214,7 @@ async function SEED(){
         rail: r(rail), tabs: [...rail.querySelectorAll('[data-tb-tab]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()), on: (rail.querySelector('[data-tb-tab].is-on') || {}).textContent || '',
         word: (rail.querySelector('.jl-word') || {}).textContent || '', ol: [...rail.querySelectorAll('.tb-ol-r')].map(b => [...b.children].map(x => x.textContent.trim()).filter(Boolean).join(' ')),
         sh: [...rail.querySelectorAll('.tb-ol-sh')].map(x => x.textContent.trim()), p: [...rail.querySelectorAll('.tb-ol-p')].map(x => x.textContent.trim()),
-        ph: (document.getElementById('tb-ask') || {}).placeholder || '', hint: (rail.querySelector('.jb-hint') || {}).textContent || '', send: (rail.querySelector('[data-tb-send]') || {}).textContent || '' }; });
+        ph: (document.getElementById('tb-ask') || {}).placeholder || '', hint: (rail.querySelector('.jb-hint') || {}).textContent || '', send: (() => { const b = rail.querySelector('[data-tb-send]'); return b ? b.getAttribute('aria-label') || '' : ''; })() }; });  /* RE-POINTED 20 Oct 2026 (Two-row card): the round send says Ask to a screen reader and on its hover */
     check('7a the head card is one line: name · v1 draft · Category · Stream · Save draft · Publish v1',
       G.strip.h <= 46 && /Reseller agreement\s*v1 draft\s*Category\s*\S+.*Stream.*Save draft\s*Publish v1/.test(G.head), JSON.stringify({ h: G.strip.h, head: G.head }));
     check('7b Jambo\'s panel at the window\'s edge, "Builder" in its head', G.rail.r === 1440 && G.word === 'Builder', JSON.stringify(G.rail));
@@ -224,7 +224,7 @@ async function SEED(){
       /^· Parties 1 blank$/.test(G.ol[0] || '') && G.ol.some(r => /^2 Territory 1 blank$/.test(r)) && G.ol.some(r => /^\+ .+ proposed$/.test(r)), JSON.stringify(G.ol));
     check('7e Blanks and Our standards said under it', G.sh[0] === 'Blanks 3' && /Reseller name · Territory · Discount: asked of whoever drafts from it\./.test(G.p[0] || '')
       && /^\d+ of \d+ met\. .+ (is|are) proposed on the paper\.$/.test(G.p[1] || ''), JSON.stringify({ sh: G.sh, p: G.p }));
-    check('7f the ask box as drawn with its hint', G.ph === 'Ask for anything, or type /' && G.send === 'Ask' && /Typing never signs/.test(G.hint), JSON.stringify({ ph: G.ph, send: G.send }));
+    check('7f the ask box as drawn with its hint', G.ph === 'Ask for anything, or type /' && /^Ask/.test(G.send) && /Typing never signs/.test(G.hint), JSON.stringify({ ph: G.ph, send: G.send }));
     if (OUT) await page.screenshot({ path: path.join(OUT, 'our-paper-builder-1440x780.png') });
 
     /* 8 PROPOSALS AND MARKS ON THE PAPER */

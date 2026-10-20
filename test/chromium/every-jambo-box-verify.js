@@ -1,3 +1,4 @@
+/* RE-POINTED 20 Oct 2026 (owner picked "Two-row card" for every Jambo box): each box is measured as its card (.jb-card), the words and the control row under them */
 /* EVERY JAMBO BOX CARRIES THE HINT LINE (the owner's answer (2) during the
    build, 18 Oct 2026, "Every Jambo box": "Typing never signs, sends or files —
    a press does." under EVERY Jambo ask box on a computer, through the one
@@ -98,7 +99,7 @@ const LISTS = LINE + ' / lists the places.';
       /* ---- 1 the seven boxes ---- */
       await part('1a the Counter', async () => {
         await page.evaluate(() => setView('counter'));
-        const L = await until(LINE_OF, { hint: '#cn-page .cn-ask > .jb-hint', box: '#cn-page .cn-box' });
+        const L = await until(LINE_OF, { hint: '#cn-page .cn-ask > .jb-hint', box: '#cn-page .jb-card' });
         check(`1a ${at} the Counter's box: the line right under it`, ok(L, LINE), JSON.stringify(L));
         await shot(`hint-counter-${tag}.png`);
       });
@@ -106,7 +107,7 @@ const LISTS = LINE + ' / lists the places.';
         await page.evaluate(() => setView('brain'));
         await until(() => state.view === 'brain' ? true : null);
         await page.click('#cmd-ai');
-        const L = await until(LINE_OF, { hint: '#ai-panel.open #ai-hint .jb-hint', box: '#ai-input' });
+        const L = await until(LINE_OF, { hint: '#ai-panel.open #ai-hint .jb-hint', box: '#ai-panel .jb-card' });
         check(`1b ${at} the floating Jambo window (the bar's door on the Brain): the line under its box`, ok(L, LINE), JSON.stringify(L));
         await shot(`hint-window-${tag}.png`);
         await page.evaluate(() => { if (typeof closeAI === 'function') closeAI(); });
@@ -115,7 +116,7 @@ const LISTS = LINE + ' / lists the places.';
         await page.evaluate(() => openRedlineWorkbench('MK-A2', { face: true }));
         await until(() => document.getElementById('pd-redface') ? true : null, null, 8000);
         await page.evaluate(() => { const c = getContract('MK-A2'); const cl = negoClauseList(c); rlOpenClauseEditor(c, cl[1] ? cl[1].clauseId : cl[0].clauseId, {}); });
-        const L = await until(LINE_OF, { hint: '#ce-askrow + .jb-hint', box: '#ce-askrow .ce-askbox' }, 10000);
+        const L = await until(LINE_OF, { hint: '.ce-askwrap + .jb-hint', box: '#ce-askrow' }, 10000);
         check(`1c ${at} the clause editor's ask: the line under it`, ok(L, LINE), JSON.stringify(L));
         await shot(`hint-clause-editor-${tag}.png`);
         await page.evaluate(() => { try { if (typeof rlCloseClauseEditor === 'function') rlCloseClauseEditor({ force: true }); } catch (_) {} });
@@ -123,19 +124,19 @@ const LISTS = LINE + ' / lists the places.';
       });
       await part('1d Jambo\'s panel beside a list', async () => {
         await page.evaluate(() => openNegotiations({ list: true }));
-        const L = await until(LINE_OF, { hint: '#ins-panel.is-jambo .jl-foot .jb-hint', box: '#ins-panel .jl-box' }, 10000);
+        const L = await until(LINE_OF, { hint: '#ins-panel.is-jambo .jl-foot .jb-hint', box: '#ins-panel .jb-card' }, 10000);
         check(`1d ${at} Jambo's panel beside Negotiations: the line under its box`, ok(L, LINE), JSON.stringify(L));
       });
       await part('1e Settings', async () => {
         await page.evaluate(() => setView('team'));
         /* the page re-measures its side once its entrance has settled (stSideFit): wait for that, bounded */
         await until(() => { const sd = document.getElementById('st-side'); return sd && document.querySelector('#st-side .jb-hint') && sd.getBoundingClientRect().bottom <= innerHeight + 1; }, null, 4000);
-        const L = await until(LINE_OF, { hint: '#st-side .jb-hint, .st-side .jb-hint', box: '#st-jb-q' }, 10000);
+        const L = await until(LINE_OF, { hint: '#st-side .jb-hint, .st-side .jb-hint', box: '#st-jb-form .jb-card' }, 10000);
         check(`1e ${at} Settings' Jambo side: the line under its box`, !!L && L.t === LINE && L.inView && L.side, JSON.stringify(L));
       });
       await part('1f Import', async () => {
         await page.evaluate(() => setView('migration'));
-        const L = await until(LINE_OF, { hint: '#mig-side .jl-foot .jb-hint', box: '#mig-side .jl-box' }, 10000);
+        const L = await until(LINE_OF, { hint: '#mig-side .jl-foot .jb-hint', box: '#mig-side .jb-card' }, 10000);
         check(`1f ${at} Import's panel: the line under its box`, ok(L, LINE), JSON.stringify(L));
       });
       /* PASS 4 (the checker's second pass): the Calendar's Jambo box and the template builder's */
@@ -144,7 +145,7 @@ const LISTS = LINE + ' / lists the places.';
         const L = await until(sel => { const e = document.querySelector(sel.hint), b = document.querySelector(sel.box); if (!e || !b || !e.getClientRects().length) return null;
           const er = e.getBoundingClientRect(), br = b.getBoundingClientRect();
           return { t: e.textContent.replace(/\s+/g, ' ').trim(), under: er.top >= br.bottom, inView: er.bottom <= innerHeight + 1, last: e === e.parentElement.lastElementChild,
-            side: document.documentElement.scrollWidth <= innerWidth + 1 }; }, { hint: '#cal-plan .jb-hint', box: '#cal-plan-in' }, 10000);
+            side: document.documentElement.scrollWidth <= innerWidth + 1 }; }, { hint: '#cal-plan .jb-hint', box: '#cal-plan .jb-card' }, 10000);
         check(`1g ${at} the Calendar's Jambo box (round 16): the line under it, the card's last line`, !!L && L.t === LINE && L.under && L.inView && L.last && L.side, JSON.stringify(L));
         await shot(`r16-hint-calendar-${tag}.png`);
       });
@@ -155,7 +156,7 @@ const LISTS = LINE + ' / lists the places.';
         await until(() => state.view === 'templates' ? true : null, null, 6000); await page.waitForTimeout(500);
         await page.evaluate(ids => openTemplateBuilder(ids.tid, ids.vid), tbIds);
         await until(() => document.getElementById('tb-askrow') ? true : null, null, 10000); await page.waitForTimeout(500);
-        const L = await until(LINE_OF, { hint: '#tb-askrow + .jb-hint', box: '#tb-ask' }, 10000);
+        const L = await until(LINE_OF, { hint: '#tb-askrow + .jb-hint', box: '#tb-askrow' }, 10000);
         check(`1h ${at} the template builder's Jambo box (round 21): the line under it`, ok(L, LINE), JSON.stringify(L));
         await shot(`r21-hint-builder-${tag}.png`);
         await page.evaluate(() => { try { tbLeave(() => setView('dashboard')); } catch (_) { setView('dashboard'); } });
@@ -163,7 +164,7 @@ const LISTS = LINE + ' / lists the places.';
       });
 
       /* ---- 2 Home's keys, one reading ---- */
-      const HOME = { hint: '#ig-dock .jb-hint', box: '#igd-input' };
+      const HOME = { hint: '#ig-dock .jb-hint', box: '#ig-dock .jb-card' };
       await part('2a a contract brought up as a page, and its History', async () => {
         await page.evaluate(() => setView('dashboard'));
         await page.evaluate(() => hbStripBring('MK-A2'));

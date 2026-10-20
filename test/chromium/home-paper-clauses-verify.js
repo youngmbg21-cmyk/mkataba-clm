@@ -95,7 +95,10 @@ const until = async (page, fn, arg, ms = 8000) => page.waitForFunction(fn, arg, 
     ok('2 a press on "5. Limitation of Liability" glides Home\'s paper there and opens its row', glided && /^5\. Limitation of Liability/.test(opened), opened);
 
     /* ===== 3. NO SIGNING TAB; THE ARTIFACT'S SYMBOLS ===== */
-    const tabs = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .igd-head .pd-tab')].map(b => ({ k: b.getAttribute('data-pd-tab'), g: b.querySelector('.pd-tab-g img.jambo-face') ? 'FACE' : ((b.querySelector('.pd-tab-g') || {}).textContent || '').replace('︎', '') })));
+    /* RE-POINTED 20 Oct 2026 (owner: "jambo keeps disappearing from the top of the panel", PR #372): the Jambo tab now always stands beside the four; they are counted without it, and it wears his face */
+    const talkFace = await page.evaluate(() => !!document.querySelector('#ig-dock .igd-head [data-pd-talk] img.jambo-face'));
+    ok('3c the Jambo tab stands beside them, wearing his face', talkFace, String(talkFace));
+    const tabs = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .igd-head .pd-tab:not([data-pd-talk])')].map(b => ({ k: b.getAttribute('data-pd-tab'), g: b.querySelector('.pd-tab-g img.jambo-face') ? 'FACE' : ((b.querySelector('.pd-tab-g') || {}).textContent || '').replace('︎', '') })));
     /* RE-POINTED 11 Oct 2026 (owner: "delete the deal tab ... and also delete history") */
     /* RE-POINTED 13 Oct 2026 (owner: "delete the overview tab from document page") */
 /* RE-POINTED 15 Oct 2026 (owner): the Menu tab ("Next up") stands beside Obligations */

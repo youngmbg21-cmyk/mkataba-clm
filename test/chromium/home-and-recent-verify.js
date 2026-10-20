@@ -250,7 +250,7 @@ const CONTRACTS = [
       await page.setViewportSize(vp);
       await toCounter(); await page.waitForTimeout(200);
       const fit = await page.evaluate(() => {
-        const box = document.querySelector('.cn-box').getBoundingClientRect(), card = document.getElementById('cn-needs').getBoundingClientRect();
+        const box = document.querySelector('#cn-page .jb-card') /* RE-POINTED 20 Oct 2026: Home's box is the two-row card */.getBoundingClientRect(), card = document.getElementById('cn-needs').getBoundingClientRect();
         const btns = [...document.querySelectorAll('#cn-needs .cn-r .ui-btn')];
         const cut = btns.filter(b => { const r = document.createRange(); r.selectNodeContents(b); return r.getBoundingClientRect().width > b.getBoundingClientRect().width + 1; }).length;
         return { boxIn: box.top >= 0 && box.bottom <= innerHeight, needsTop: Math.round(card.top), needsIn: card.top < innerHeight, cut, side: document.documentElement.scrollWidth - innerWidth };

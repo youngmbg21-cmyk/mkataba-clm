@@ -2087,6 +2087,11 @@ if(typeof document!=='undefined'&&!document._calTalkWired){ document._calTalkWir
     if(typeof window.jamboTalkOpen==='function') jamboTalkOpen(CAL_TALK_KEY, document.getElementById('cal-plan-body'));
     if(calOnScreen()) calPlanRepaint(); else if(typeof window.renderIntelDock==='function') renderIntelDock();
     if(typeof window.deskBarPaint==='function') try{ deskBarPaint(); }catch(_){ } }); }
+/* THE TWO-ROW CARD's one builder (components.js), read where it is drawn;
+   a page loaded without it (a test's one-file world) draws the bare parts */
+const _calJbCard = o => (typeof jamboCardHtml === 'function') ? jamboCardHtml(o) : `${o.field || ''}${o.ctx || ''}${o.send || ''}${o.tail || ''}`;
+const _calJbSend = (a, l, o = {}) => (typeof jamboSendHtml === 'function') ? jamboSendHtml(a, l, o) : `<button type="${o.submit ? 'submit' : 'button'}" ${a || ''} aria-label="${l}" title="${o.title || l}"></button>`;
+
 function calPlanHtml(){
   const lv=calLevelOf();
   const never=lv==='never';
@@ -2138,7 +2143,7 @@ function calPlanHtml(){
       ${talk?`<div class="cal-plan-talk" data-jt-talk>${you}${answer}</div>`:''}
     </div>
     <div class="jl-foot cal-plan-foot">
-      <div class="jl-box cal-plan-box"><input id="cal-plan-in" type="text" maxlength="600" enterkeyhint="send" data-ca-slash autocomplete="off" placeholder="${_esc(i18t('jl_ph_week'))}" aria-label="${_esc(i18t('jl_ph_week'))}" title="${_esc(cost)}"${off}><button type="button" class="ui-btn ui-btn-primary ui-btn-sm jl-send" id="cal-plan-go" title="${_esc(cost)}"${off}>${_esc(i18t('int_ask'))}</button></div>
+      ${_calJbCard({ cls: 'cal-plan-box', field: `<textarea id="cal-plan-in" rows="1" maxlength="600" enterkeyhint="send" data-ca-slash autocomplete="off" placeholder="${_esc(i18t('jl_ph_week'))}" aria-label="${_esc(i18t('jl_ph_week'))}" title="${_esc(cost)}"${off}></textarea>`, send: _calJbSend(`id="cal-plan-go"${off}`, i18t('int_ask'), { cls: 'jl-send', title: cost }) })}
       ${/* THE HINT LINE (owner's "Every Jambo box", 18 Oct 2026; round 16 draws it
          last under the Calendar's box): the one builder */ typeof window.jamboHintHtml==='function'?jamboHintHtml():''}
     </div>

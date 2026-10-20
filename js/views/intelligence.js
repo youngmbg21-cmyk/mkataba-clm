@@ -7895,6 +7895,11 @@ function igFaceHtml(mood){
   if(typeof jamboFaceHtml==='function') return jamboFaceHtml(mood, 24, 'ai-face shrink-0 mt-0.5');
   return `<div class="h-6 w-6 shrink-0 grid place-items-center rounded-lg bg-gold-500/15 text-gold-600 mt-0.5">${icon('sparkle','w-3 h-3')}</div>`;
 }
+/* THE TWO-ROW CARD's one builder (components.js), read where it is drawn;
+   a page loaded without it (a test's one-file world) draws the bare parts */
+const _igJbCard = o => (typeof jamboCardHtml === 'function') ? jamboCardHtml(o) : `${o.field || ''}${o.ctx || ''}${o.send || ''}${o.tail || ''}`;
+const _igJbSend = (a, l, o = {}) => (typeof jamboSendHtml === 'function') ? jamboSendHtml(a, l, o) : `<button type="${o.submit ? 'submit' : 'button'}" ${a || ''} aria-label="${l}" title="${o.title || l}"></button>`;
+
 function renderIntelDock(){
   const dock=document.getElementById('ig-dock'); if(!dock) return;
   /* A BOX IN THE OVERVIEW TAB'S FILL FORM UNDER THE READER'S HAND IS NEVER
@@ -8078,10 +8083,9 @@ function renderIntelDock(){
              drawing): the box and its Ask in their own frame, so the line under
              them never moves the button; with a paper up it adds the keys the box
              answers ("/ places · Esc closes", rounds 6–9 and 12) */}
-      <div class="igd-askbox relative">
-      <textarea id="igd-input" rows="1" placeholder="${igEsc(igAskPlaceholder())}" title="${igEsc(igAskCost())}" class="chat-field w-full rounded-xl border border-inputln bg-white pl-3.5 pr-16 py-2.5 text-[13px] outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition" style="display:block"></textarea>
-      <button id="igd-go" class="ui-btn ui-btn-sm ui-btn-primary absolute" style="right:6px;bottom:8px">${i18t('int_ask')}</button>
-      </div>
+      ${''/* THE TWO-ROW CARD (owner picked it, 20 Oct 2026: "Ask" sat over the
+             words): the words the whole width, + and the round send under them */}
+      ${_igJbCard({ cls: 'igd-askbox', field: `<textarea id="igd-input" rows="1" placeholder="${igEsc(igAskPlaceholder())}" title="${igEsc(igAskCost())}" class="chat-field"></textarea>`, send: _igJbSend('id="igd-go"', i18t('int_ask')) })}
       ${typeof window.jamboHintHtml==='function'?jamboHintHtml({ places:igHintKeys() }):''}
     </div>`}${''/* the letter's "Before you send" column waits here unseen while
            ‹ Jambo has turned the panel to Jambo (round 11's gaps, second pass) */}${(window.pdSendKeepHtml&&pdSendKeepHtml())||''}`;

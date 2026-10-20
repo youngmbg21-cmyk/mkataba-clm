@@ -388,6 +388,9 @@ function chatFieldGrow(el){
   if (!el.scrollHeight) return;
   const max = parseFloat(el.dataset.chatMax || '0');
   el.style.height = Math.min(el.scrollHeight, max > 0 ? max : Infinity) + 'px';
+  /* a field inside the two-row card also takes the card's shape (one line
+     until the words wrap) when the page puts words in it */
+  if (el.closest && el.closest('.jb-card') && typeof jamboCardGrow === 'function') jamboCardGrow(el);
 }
 function chatFieldWire(root){
   const scope = root || document;
@@ -426,6 +429,98 @@ function chatFieldReset(el){
 }
 
 Object.assign(window,{CHAT_FIELD_CLASS,chatFieldGrow,chatFieldWire,chatFieldSubmits,chatFieldReset});
+
+/* ---- THE TWO-ROW CARD: EVERY JAMBO BOX (owner picked "Two-row card", 20 Oct
+   2026: "Two-row card BUT … these need to change as well", the edit page's box
+   with its send outside, and Home's panel with Ask over the words) ----
+   The words take the whole width; under them ONE row of controls: + (add a
+   file, the one upload door) and "Asking about" on the left, a round send on
+   the right. The box grows to six lines, then scrolls on a thin bar with no
+   arrows. ONE builder, so Home's box, Home's panel, the lists, Import,
+   Settings, the Calendar, the clause editor, the builder and the window draw
+   one card. Each caller hands its OWN field and send (ids, data hooks and
+   listeners untouched); `ctx` is what the box asks about. */
+const JB_SEND_ICON = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/></svg>';
+const JB_PLUS_ICON = '<svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>';
+const _jbT = k => (typeof i18t === 'function') ? i18t(k) : k;
+/* the round send: the caller's own attributes, its name on the hover and to a
+   screen reader (the word "Ask" no longer printed) */
+function jamboSendHtml(attrs, label, o = {}){
+  return `<button type="${o.submit ? 'submit' : 'button'}" class="jb-send${o.cls ? ' ' + o.cls : ''}" ${attrs || ''} aria-label="${esc(label)}"${o.title === false ? '' : ` title="${esc(o.title || label)}"`}>${JB_SEND_ICON}</button>`;
+}
+function jamboCardHtml(o = {}){
+  const may = typeof window === 'undefined' || typeof window.pdDropMay !== 'function' || window.pdDropMay();
+  const plusT = may ? _jbT('jb_add_file') : _jbT('ct_viewers_no_add');
+  const plus = o.noFile ? '' : `<button type="button" class="jb-plus" data-jb-file aria-label="${esc(plusT)}" title="${esc(plusT)}"${may ? '' : ' disabled aria-disabled="true"'}>${JB_PLUS_ICON}</button>`;
+  return `<div class="jb-card${o.cls ? ' ' + o.cls : ''}"${o.id ? ` id="${o.id}"` : ''}>${o.lead || ''}${o.field || ''}<div class="jb-row">${plus}${o.ctx || ''}<span class="jb-sp"></span>${o.send || ''}</div>${o.tail || ''}</div>`;
+}
+/* + ADDS A FILE THROUGH THE ONE UPLOAD DOOR (pdDropDoor; the phone's pop-up
+   where there is no desk). A page that keeps work is left by its own guard. */
+function jamboAddFile(){
+  const go = () => { if (!(typeof window.pdDropDoor === 'function' && window.pdDropDoor()) && typeof window.openUploadModal === 'function') window.openUploadModal(); };
+  try{
+    if (typeof window.clauseEditorOpen === 'function' && window.clauseEditorOpen() && typeof window.ceLeaveGuard === 'function'){
+      window.ceLeaveGuard(() => { if (typeof window.rlCloseClauseEditor === 'function') window.rlCloseClauseEditor(); go(); }); return;
+    }
+    if (typeof window.tbOnScreen === 'function' && window.tbOnScreen() && typeof window.tbLeave === 'function'){ window.tbLeave(go); return; }
+  }catch(_){}
+  go();
+}
+/* the card grows with its words up to six lines (CSS caps it); a field that
+   was an input keeps Enter = send (data-jb-enter): its form, else its send */
+function jamboCardGrow(t){
+  if (!t || !t.style) return;
+  t.style.height = 'auto';
+  if (!t.scrollHeight) return;
+  /* ONE LINE UNTIL THE WORDS WRAP (owner, 20 Oct 2026): the card turns tall
+     once the words need a second line, and stays tall until they are gone
+     (so it never flips back and forth at the edge of a line) */
+  const card = t.closest ? t.closest('.jb-card') : null;
+  if (card){
+    if (!String(t.value || '').length) card.classList.remove('is-tall');
+    else if (!card.classList.contains('is-tall')){
+      const cs = getComputedStyle(t);
+      const lh = parseFloat(cs.lineHeight) || 21;
+      const pad = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+      if (/\n/.test(t.value) || t.scrollHeight > lh * 1.5 + pad) card.classList.add('is-tall');
+    }
+    t.style.height = 'auto';
+    if (!t.scrollHeight) return;
+  }
+  const max = parseFloat(getComputedStyle(t).maxHeight);
+  t.style.height = Math.min(t.scrollHeight, max && isFinite(max) ? max : Infinity) + 'px';
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._jbCardWired){
+  document._jbCardWired = true;
+  document.addEventListener('click', e => {
+    const b = e.target && e.target.closest ? e.target.closest('[data-jb-file]') : null;
+    if (b && !b.disabled){ e.preventDefault(); jamboAddFile(); }
+  });
+  document.addEventListener('input', e => { const t = e.target; if (t && t.matches && t.matches('.jb-card textarea')) jamboCardGrow(t); });
+  /* a box emptied or filled by the page (a send, a prefill, a draft kept)
+     takes its shape on the next frame: after a send, a focus, or a repaint */
+  const refit = () => { try{ document.querySelectorAll('.jb-card > textarea').forEach(t => {
+    const tall = t.parentElement.classList.contains('is-tall');
+    if ((tall && !t.value) || (!tall && t.value)) jamboCardGrow(t); }); }catch(_){} };
+  let _jbRefitAsked = false;
+  const refitSoon = () => { if (_jbRefitAsked) return; _jbRefitAsked = true;
+    (typeof requestAnimationFrame === 'function' ? requestAnimationFrame : f => setTimeout(f, 16))(() => { _jbRefitAsked = false; refit(); }); };
+  document.addEventListener('submit', () => setTimeout(refitSoon, 0), true);
+  document.addEventListener('click', e => { if (e.target && e.target.closest && e.target.closest('.jb-send')) setTimeout(refitSoon, 0); });
+  document.addEventListener('focusin', e => { if (e.target && e.target.matches && e.target.matches('.jb-card > textarea')) refitSoon(); });
+  if (typeof MutationObserver === 'function' && document.documentElement){
+    try{ new MutationObserver(refitSoon).observe(document.documentElement, { childList: true, subtree: true }); }catch(_){}
+  }
+  document.addEventListener('keydown', e => {
+    const t = e.target; if (!t || !t.matches || !t.matches('textarea[data-jb-enter]') || e.defaultPrevented) return;
+    if (!chatFieldSubmits(e)) return;
+    setTimeout(refitSoon, 0);
+    const f = t.form || (t.closest && t.closest('form'));
+    if (f){ if (typeof f.requestSubmit === 'function') f.requestSubmit(); else f.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true })); return; }
+    const s = t.closest && t.closest('.jb-card') && t.closest('.jb-card').querySelector('.jb-send'); if (s && !s.disabled) s.click();
+  });
+}
+Object.assign(window,{JB_SEND_ICON,jamboSendHtml,jamboCardHtml,jamboAddFile,jamboCardGrow});
 
 /* ═══ THE SLIDER — ONE DIVIDER BESIDE EVERY JAMBO PANEL (owner, 19 Oct 2026:
    "all the new jambo panels do not have a slider like in the redline page.

@@ -72,7 +72,8 @@ describe('f805 (2) every Jambo ask box draws it, from the builder', () => {
     /* RE-POINTED 18 Oct 2026 (pass 3, the checker against rounds 3, 7 and
        12): which keys the line names is ONE reading, igHintKeys — see (4) */
     assert.match(IG, /jamboHintHtml\(\{ places:igHintKeys\(\) \}\)/);
-    assert.match(IG, /<div class="igd-askbox relative">[\s\S]{0,700}<button id="igd-go" class="ui-btn ui-btn-sm ui-btn-primary absolute" style="right:6px;bottom:8px">/, 'the box and Ask in their own frame, so the line never moves the button');
+    /* RE-POINTED 20 Oct 2026 (owner picked "Two-row card" for every Jambo box): the words the whole width, + and the round send on their own row under them, drawn by the one builder (jamboCardHtml) */
+    assert.match(IG, /_igJbCard\(\{ cls: 'igd-askbox'[\s\S]{0,400}send: _igJbSend\('id="igd-go"'/, 'the box and Ask in their own frame, so the line never moves the button');
   });
   test('2b Settings\' Jambo side: under its form', () => {
     assert.match(fnOf(SET, 'stJamboHtml'), /<\/form>\s*\$\{typeof jamboHintHtml==='function'\?jamboHintHtml\(\):''\}/);
@@ -130,14 +131,16 @@ describe('f805 (4) the last three boxes: the Counter, the Jambo window, the clau
     assert.match(HTML, /\.cn-ask > \.jb-hint\{margin:-6px 2px 0;text-align:left\}/);
   });
   test('4b the floating window: a host under its box, painted from the builder on every open; off on the phone', () => {
-    assert.match(HTML, /data-ic-big="send"><\/button>\s*<\/div>\s*<!--[\s\S]*?-->\s*<div id="ai-hint" class="ai-hint"><\/div>\s*<\/footer>/);
+    /* RE-POINTED 20 Oct 2026 (owner picked "Two-row card" for every Jambo box): the one builder draws the card; the hint line still stands under it */
+    assert.match(HTML, /id="ai-send"[^>]*class="jb-send">[\s\S]*?<\/button><\/div>\s*<\/div>\s*<!--[\s\S]*?-->\s*<div id="ai-hint" class="ai-hint"><\/div>\s*<\/footer>/);
     assert.match(fnOf(AI, 'aiHintPaint'), /el\.innerHTML=window\.jamboHintHtml\(\);/);
     assert.match(fnOf(AI, 'openAI'), /renderAIFeed\(\); renderAISuggest\(\);\s*aiHintPaint\(\);/);
     assert.match(HTML, /@media \(max-width:767px\)\{ \.ai-hint\{display:none;\} \}/, 'the phone stays untouched');
   });
   test('4c the clause editor\'s ask: under its row, from the builder, and only where Jambo asks (not their seat)', () => {
-    assert.match(CE, /title="\$\{_ceea\(_cet\('ce_send'\)\)\}">\$\{CE_SEND_ICON\}<\/button>\s*<\/div>\s*\$\{''\/\*[\s\S]*?\*\/\}\$\{typeof jamboHintHtml === 'function' \? jamboHintHtml\(\) : ''\}`\}/);
-    assert.match(CE, /\.ce-ask \+ \.jb-hint\{flex:none; margin:-4px 14px 8px\}/);
+    /* RE-POINTED 20 Oct 2026 (owner picked "Two-row card" for every Jambo box): the one builder draws the card; the hint line still stands under it */
+    assert.match(CE, /send: _ceJbSend\('data-ce-act="ask"', _cet\('ce_send'\)\) \}\)\}<\/div>\s*\$\{''\/\*[\s\S]*?\*\/\}\$\{typeof jamboHintHtml === 'function' \? jamboHintHtml\(\) : ''\}`\}/);
+    assert.match(CE, /\.ce-askwrap \+ \.jb-hint\{flex:none; margin:6px 14px 8px\}/);
   });
 });
 
@@ -200,14 +203,15 @@ describe('f805 (7) the Calendar\'s box and the template builder\'s', () => {
      chips saying theirs: "plan my week · 1 Jambo call") at the foot, the hint
      line last under them, as on every list panel (.jl-foot) */
   test('7a the Calendar: the line last in its Jambo card, under the box and its cost', () => {
-    assert.match(fnOf(CAL, 'calPlanHtml'), /<div class="jl-box cal-plan-box">[^\n]*title="\$\{_esc\(cost\)\}"[^\n]*<\/div>\s*\$\{[\s\S]{0,200}typeof window\.jamboHintHtml==='function'\?jamboHintHtml\(\):''\}\s*<\/div>\s*<\/aside>/);
+    /* RE-POINTED 20 Oct 2026 (owner picked "Two-row card" for every Jambo box): the one builder draws the card; the hint line still stands under it */
+    assert.match(fnOf(CAL, 'calPlanHtml'), /_calJbCard\(\{ cls: 'cal-plan-box'[^\n]*title="\$\{_esc\(cost\)\}"[^\n]*\}\)\}\s*\$\{[\s\S]{0,200}typeof window\.jamboHintHtml==='function'\?jamboHintHtml\(\):''\}\s*<\/div>\s*<\/aside>/);
     assert.match(fnOf(CAL, 'calPlanHtml'), /const cost=i18t\('jl_ask_cost'\);/);
   });
   test('7b the builder: under its ask row, from the builder', () => {
     /* RE-POINTED 19 Oct 2026 (round 21's builder as drawn, lane D): the box
        and its line sit together at the foot of Jambo's panel (.tb-foot) */
-    assert.match(fnOf(TB, 'tbAskHtml'), /<div class="tb-pick" id="tb-pick" hidden><\/div><\/div>\$\{[\s\S]{0,300}typeof jamboHintHtml === 'function' \? jamboHintHtml\(\) : ''\}<\/div>`;/);
-    assert.match(TB, /\.tb-foot \.tb-ask \+ \.jb-hint\{margin:6px 0 0\}/);
+    assert.match(fnOf(TB, 'tbAskHtml'), /tail: `<div class="tb-pick" id="tb-pick" hidden><\/div>` \}\)\}\$\{[\s\S]{0,300}typeof jamboHintHtml === 'function' \? jamboHintHtml\(\) : ''\}<\/div>`;/);
+    assert.match(TB, /\.tb-foot \.jb-card \+ \.jb-hint\{margin:6px 0 0\}/);
   });
   test('7c every Jambo ask box in the code asks the builder: Home, Settings, the list panel (and Import), the Counter, the window, the clause editor, the Calendar, the builder', () => {
     const askers = ['js/views/intelligence.js', 'js/views/settings.js', 'js/views/inspector.js', 'js/views/counter.js', 'js/ai.js', 'js/views/clauseeditor.js', 'js/views/calendar.js', 'js/views/templatebuilder.js'];

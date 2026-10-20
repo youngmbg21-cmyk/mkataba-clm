@@ -171,7 +171,8 @@ describe('f537 (4) B4 the Selected card is gone', () => {
     const S = fn(CE, 'ceRenderScope');
     assert.ok(!/ce-scope is-/.test(S), 'no card');
     /* RE-POINTED 7 Oct 2026 (Header line): still inside the box, on its own line at the top */
-    assert.match(CE, /<div class="ce-askbox">[\s\S]{0,600}<div class="ce-tagline" id="ce-tagline">[\s\S]{0,120}<span class="ce-tag" id="ce-scope"><\/span><\/div>/);
+    /* RE-POINTED 20 Oct 2026 (owner picked "Two-row card" for every Jambo box): the words the whole width, + and the round send on their own row under them, drawn by the one builder (jamboCardHtml); the tag rides its control row */
+    assert.match(CE, /_ceJbCard\(\{ id: 'ce-askrow'[\s\S]{0,400}ctx: `<div class="ce-tagline" id="ce-tagline">[\s\S]{0,120}<span class="ce-tag" id="ce-scope"><\/span><\/div>`/);
     assert.match(S, /words\.slice\(0, CE_TAG_WORDS\)/, 'a highlight shows its first few words');
     assert.match(S, /data-ce-act="scope-off"/); assert.match(S, /data-ce-act="scope-cut"/, 'the one press that strikes words out stays');
     assert.match(CE, /case 'scope-off': ceDetachPassage\(\); break;/, '× goes back to the whole clause');

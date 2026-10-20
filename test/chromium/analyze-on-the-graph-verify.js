@@ -90,9 +90,11 @@ const deliver = (id, answer, citations) => ({ content: [{ type: 'tool_use', id, 
       const h0 = t.getBoundingClientRect().height;
       t.value = 'What does clause IV.2 mean for us if the goods are lost in transit, and what should we ask Verizon to change before we sign?';
       if (window.chatFieldGrow) chatFieldGrow(t);
+      /* RE-POINTED 20 Oct 2026 (owner picked "Two-row card"): the send sits inside the CARD, on its own row under the words, at the card's right end */
       const r = t.getBoundingClientRect(), go = document.getElementById('igd-go').getBoundingClientRect();
+      const card = (t.closest('.jb-card') || t).getBoundingClientRect();
       const out = { tag: t.tagName, h0: Math.round(h0), h1: Math.round(r.height), sw: t.scrollWidth, cw: t.clientWidth,
-        goInside: go.right <= r.right + 1 && go.bottom <= r.bottom + 1 && go.top >= r.top - 1 };
+        goInside: go.right <= card.right + 1 && go.bottom <= card.bottom + 1 && go.top >= r.bottom - 1 };
       t.value = ''; if (window.chatFieldGrow) chatFieldGrow(t);
       out.h2 = Math.round(t.getBoundingClientRect().height);
       return out; });

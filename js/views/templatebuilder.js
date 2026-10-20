@@ -1519,6 +1519,10 @@ function tbStyleHtml() {
   .tb-foot .tb-ask button{width:auto;height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);border-radius:var(--radius);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong)}
   .tb-foot .tb-ask + .jb-hint{margin:6px 0 0}
   .tb-foot .tb-pick{bottom:46px;left:0}
+  /* the two-row card (20 Oct 2026): its pick list rides above it */
+  .tb-foot .jb-card{position:relative}
+  .tb-foot .jb-card .tb-pick{bottom:calc(100% + 6px)}
+  .tb-foot .jb-card + .jb-hint{margin:6px 0 0}
   .tb-ol{border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden}
   .tb-ol-r{display:flex;align-items:center;gap:10px;width:100%;min-height:34px;padding:6px 12px;border:0;border-top:1px solid var(--color-divider);background:none;font:inherit;font-size:var(--t-body);color:var(--color-text);text-align:left;cursor:pointer}
   .tb-ol-r:first-child{border-top:0}
@@ -1971,6 +1975,11 @@ function tbChipsRowHtml() {
   }
   return `<div class="tb-chips" id="tb-chips">${chips.map(([attr, label, cls]) => `<button type="button" ${attr}${cls ? ` class="${cls}"` : ''}>${label}</button>`).join('')}</div>`;
 }
+/* THE TWO-ROW CARD's one builder (components.js), read where it is drawn;
+   a page loaded without it (a test's one-file world) draws the bare parts */
+const _tbJbCard = o => (typeof jamboCardHtml === 'function') ? jamboCardHtml(o) : `${o.field || ''}${o.ctx || ''}${o.send || ''}${o.tail || ''}`;
+const _tbJbSend = (a, l, o = {}) => (typeof jamboSendHtml === 'function') ? jamboSendHtml(a, l, o) : `<button type="${o.submit ? 'submit' : 'button'}" ${a || ''} aria-label="${l}" title="${o.title || l}"></button>`;
+
 function tbAskHtml() {
   const sec = _tb.focus != null ? tbSectionAt(_tb.focus) : null;
   const on = typeof copilotAvailable === 'function' && copilotAvailable();
@@ -1983,9 +1992,10 @@ function tbAskHtml() {
      question), the word Ask on its button, "/" the places (data-ca-slash,
      leaving through tbLeave so nothing typed is lost) */
   const ph2 = opening || _tb.refine ? ph : i18t('jl_ph_any');
-  return `<div class="tb-foot"><div class="tb-ask" id="tb-askrow"><textarea id="tb-ask" rows="1" maxlength="${TB_ASK_MAX}" data-ca-slash placeholder="${esc(ph2)}" title="${esc(ph)}" aria-label="${i18t('tb_ask_label')}" ${on ? '' : 'disabled'}>${esc(draft)}</textarea>
-    <button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-tb-send title="${on ? i18t('tb_pb_one_read') : esc(i18t('tb_pb_nokey'))}" aria-label="${i18t('tb_send')}" ${on ? '' : 'disabled'}>${esc(i18t('int_ask'))}</button>
-    <div class="tb-pick" id="tb-pick" hidden></div></div>${
+  /* THE TWO-ROW CARD (owner picked it, 20 Oct 2026): the one builder */
+  return `<div class="tb-foot">${_tbJbCard({ id: 'tb-askrow', field: `<textarea id="tb-ask" rows="1" maxlength="${TB_ASK_MAX}" data-ca-slash placeholder="${esc(ph2)}" title="${esc(ph)}" aria-label="${i18t('tb_ask_label')}" ${on ? '' : 'disabled'}>${esc(draft)}</textarea>`,
+    send: _tbJbSend(`data-tb-send ${on ? '' : 'disabled'}`, i18t('int_ask'), { title: on ? i18t('tb_pb_one_read') : i18t('tb_pb_nokey') }),
+    tail: `<div class="tb-pick" id="tb-pick" hidden></div>` })}${
     /* THE HINT LINE (owner's "Every Jambo box", 18 Oct 2026; round 21 draws it
        under the builder's box): the one builder; asking files nothing */
     typeof jamboHintHtml === 'function' ? jamboHintHtml() : ''}</div>`;

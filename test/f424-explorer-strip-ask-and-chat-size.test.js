@@ -112,7 +112,8 @@ test('f424 (7) the graph answer goes through the side panel\'s renderer, the doc
   assert.doesNotMatch(g, /'<br>'\+igEsc\(own\)/, 'the raw-escaped sentence is gone');
   assert.match(HTML, /#igd-feed ul\.ai-list\{list-style:disc\}/);
   assert.match(HTML, /#igd-feed \.ai-p\{margin:0 0 \.5em\}/);
-  assert.match(IG, /<textarea id="igd-input" rows="1"[^>]*class="chat-field /);
+  /* RE-POINTED 20 Oct 2026 (owner picked "Two-row card"): the box keeps chat-field; the card dresses the rest */
+  assert.match(IG, /<textarea id="igd-input" rows="1"[^>]*class="chat-field"/);
   assert.doesNotMatch(IG, /<input id="igd-input"/);
   assert.match(code(region(IG, 'renderIntelDock')), /chatFieldSubmits\(e\)/);
   assert.match(code(region(IG, 'igStrandPress')), /chatFieldGrow\(inp\)/, 'a filled question opens the box to fit');

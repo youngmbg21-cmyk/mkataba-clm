@@ -3278,6 +3278,11 @@ async function stJbWhyRun(id){
 /* THE CHIPS BEFORE ANYBODY TYPES are drawn with Jambo's words for the page
    in front (stJbFeedHtml, rounds 24–26 as drawn); stJbChips and
    stJbChipsHtml went with the old greeting. */
+/* THE TWO-ROW CARD's one builder (components.js), read where it is drawn;
+   a page loaded without it (a test's one-file world) draws the bare parts */
+const _stJbCard = o => (typeof jamboCardHtml === 'function') ? jamboCardHtml(o) : `${o.field || ''}${o.ctx || ''}${o.send || ''}${o.tail || ''}`;
+const _stJbSend = (a, l, o = {}) => (typeof jamboSendHtml === 'function') ? jamboSendHtml(a, l, o) : `<button type="${o.submit ? 'submit' : 'button'}" ${a || ''} aria-label="${l}" title="${o.title || l}"></button>`;
+
 function stJamboHtml(){
   stTalkLand();
   const on=stTalkShows();
@@ -3286,8 +3291,7 @@ function stJamboHtml(){
     <div class="st-jb-feed${!on&&_stSwPick&&_stPage==='streams'?' is-stream':''}" id="st-jb-feed" aria-live="polite">${stJbFeedHtml()}</div>
     <form class="st-jb-ask" id="st-jb-form" autocomplete="off">
       <label class="sr-only" for="st-jb-q">${esc(i18t('st_jb_ph'))}</label>
-      <input id="st-jb-q" type="text" maxlength="200" data-ca-slash autocomplete="off" placeholder="${esc(i18t('st_jb_ph'))}">
-      <button type="submit" class="ui-btn ui-btn-primary">${esc(i18t('st_jb_ask'))}</button>
+      ${_stJbCard({ field: `<textarea id="st-jb-q" rows="1" maxlength="200" data-ca-slash data-jb-enter autocomplete="off" placeholder="${esc(i18t('st_jb_ph'))}"></textarea>`, send: _stJbSend('', i18t('st_jb_ask'), { submit: true }) })}
     </form>
     ${typeof jamboHintHtml==='function'?jamboHintHtml():''}
   </div>`;
