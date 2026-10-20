@@ -137,8 +137,9 @@ const signIn = async (page, base, email, pass) => {
     const noChips = await until(() => document.querySelectorAll('#st-side .st-jb-chip').length === 0);
     check('4b. Jambo\'s suggestions off: none beside Settings', !!noChips);
     await page.evaluate(() => { const c = state.contracts.find(x => x.status === 'Draft') || state.contracts[0]; regOpenContract(c.id); });
-    const fill = await until(() => !!document.getElementById('pd-fillface'), null, 12000);
-    check('4c. a contract opened from the list lands on Fill in, as chosen', !!fill);
+    /* RE-POINTED 20 Oct 2026 (the Legora way): "Fill in" is the Dossier's Still owed grid, its first owed row in the hand */
+    const fill = await until(() => { const a = document.activeElement; return !!document.querySelector('#ig-dock #pd-og') && !!(a && a.closest && a.closest('#pd-og')); }, null, 12000);
+    check('4c. a contract opened from the list lands on Fill in (Still owed\'s grid), as chosen', !!fill);
     const homeChips = await page.evaluate(() => document.querySelectorAll('#ig-dock [data-ig-chips] button').length);
     check('4d. and Home\'s Jambo shows no suggestion chips', homeChips === 0, homeChips + ' chips');
     await page.evaluate(() => stPrefSet('jamboChips', true));

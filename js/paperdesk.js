@@ -309,7 +309,9 @@ function pdOpenOnHome(id, tab){
     return true;
   }
   /* THE FILL IN FACE (stage 2): Jambo's tab, with the face open on this contract */
-  if (tab === 'fill'){
+  /* a door naming the retired face lands on the grid (pdFillOpen) */
+  if (tab === 'fill') return pdFillOpen(id, _pdFillKey ? { key: _pdFillKey } : {});
+  if (tab === 'fill-face-retired'){
     /* coming from this contract's Redlines or Before you sign face, the paper
        beside it was drawn for that face (Redlined, the signing copy) */
     const turned = _pdSign === String(id) || _pdRed === String(id);
@@ -450,16 +452,26 @@ function pdFillDetails(c){ try { return (typeof detailsOf === 'function') ? deta
 /* the face is up: Home's paper holds the contract it was opened for, Jambo's
    tab is lit, and the contract still has details to ask */
 function pdFillShows(){
+  /* the face retired (the Legora way): it is never drawn */
+  return false;
+}
+function pdFillShowsRetired(){
   if (!_pdFill || _pdTab !== 'copilot' || !pdOnPaper()) return false;
   const c = pdContract(); if (!c || String(c.id) !== _pdFill) return false;
   const d = pdFillDetails(c);
   return !!(d && d.live && d.all);
 }
+/* THE FILL IN FACE RETIRED (the Legora way, owner, 20 Oct 2026): every
+   door that asked for it (the checklist, the bell, the Contracts filter,
+   Negotiate's "Fill them in", a blank pressed on the paper, Jambo's "fill
+   in", the Board's rows) opens the paper on its Dossier and lands on the
+   grid's row, its box in the hand — answered where it is asked */
 function pdFillOpen(id, opts){
   const o = opts || {};
-  _pdFillFloor = null;
-  _pdFillKey = o.key ? String(o.key) : null;
-  return pdOpenOnHome(id, 'fill');
+  _pdFillFloor = null; _pdFillKey = null;
+  const ok = pdOpenOnHome(id, 'plain');
+  if (ok !== false) pdOgLand(id, o.key || '');
+  return ok;
 }
 /* ANOTHER CONTRACT ASKED FOR PUTS THE FACE AWAY: read off the request
    (igAnalyze), never off a paint — a paint can still show the last contract
@@ -803,7 +815,9 @@ function pdFillStdKind(c){
    is underlined. Taken off again when the face goes. */
 function pdFillPaperMarks(c){
   const cv = (typeof document !== 'undefined') ? document.getElementById('ig-canvas') : null; if (!cv) return;
-  const on = pdFillShows() && c && String(c.id) === _pdFill;
+  /* THE GRID ASKS (the Legora way): while the Dossier stands beside this
+     paper with no face over it, its owed blanks are amber on the paper */
+  const on = !!(c && pdOgShows(c));
   const owe = new Set(), pend = new Set();
   if (on){
     const d = pdFillDetails(c) || { items: [] };
@@ -3327,14 +3341,19 @@ function dossierReadHtml(c, D){
     rows.push(row('blanks', `<b>${b.total}</b> ${_pdE(_pdT('dos_blanks', { f: b.filled }))}`, b.filled < b.total ? dossierGo('data-pd-ds-fill=""', _pdT('dos_go_fill')) : '')); }
   return `<div class="pd-glance ds-card ds-read" data-pd-ds-card="read"><div class="pd-gl-h"><b>${_pdE(_pdT('dos_read_title'))}</b><span class="pd-gl-sp"></span>${head}</div><div class="pd-gl-b">${rows.join('')}</div></div>`;
 }
-function dossierOwedHtml(c, D){
+function dossierOwedHtml(c, D, o){
+  const held = !!(o && o.held);
   const said = r => r.kind === 'fill' ? (r.more ? _pdTn('dos_fill_more', r.more, { n: r.more }) : _pdT('dos_owed_empty', { label: r.label }))
     : r.kind === 'signer' ? _pdT('dos_owed_signer')
     : r.k === 'asks-more' ? _pdTn('pd_gl_asks_more', r.more, { n: r.more })
     : r.ch ? pdAskSay(c, r.ch)
     : r.kind === 'share' ? _pdTn('pd_gl_unsent', r.n, { n: r.n })
     : r.kind === 'late' ? _pdTn('dos_late', r.n, { n: r.n, what: r.what, days: r.days }) : '';
-  const mine = D.owed.filter(r => !r.need);
+  /* THE FACTS ARE THE GRID (the Legora way): the rows below are the rest */
+  const isFact = r => r.kind === 'fill' || r.kind === 'signer';
+  const grid = pdOgHtml(c, { held });
+  const rest = grid ? D.owed.filter(r => !isFact(r)) : D.owed;
+  const mine = rest.filter(r => !r.need);
   const done = pdGlanceDone(c, mine, said);
   const rowHtml = r => {
     if (r.need) return pdNeedRowHtml(c, r.need);
@@ -3350,14 +3369,562 @@ function dossierOwedHtml(c, D){
   };
   /* a ticked-off row names its kind (fill · signer · ask · share), as the old glance's did */
   const doneHtml = done.map(d => `<div class="pd-gl-row is-done" data-pd-gl-done="${_pdE(String(d.k).split(':')[0].replace(/-more$/, '').replace(/^signer$/, 'sign'))}"><i aria-hidden="true">✓</i><span><s>${_pdE(d.text)}</s></span></div>`).join('');
-  const body = D.owed.length ? D.owed.map(rowHtml).join('') + doneHtml
+  /* FILL THE DOCUMENT, the company template's one press, where the answers are owed to the wording
+     (tplFormPending, the signing list's and the link check's own reading) */
+  let pend = 0; try { pend = (!held && typeof tplFormPending === 'function' && tplFormPending(c)) ? ((typeof tplFormPendingKeys === 'function' ? tplFormPendingKeys(c).length : 0) || 1) : 0; } catch (_){ pend = 0; }
+  const docFill = pend ? `<div class="pd-gl-row ds-row" data-pd-gl="docfill"><span>${_pdE(_pdTn('pd_ff_doc_n', pend, { n: pend }))}</span>${((typeof canEdit !== 'function') || canEdit()) ? `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary hati-fill-btn" data-pd-og-docfill="${_pdE(c.id)}">${_pdE(_pdT('tl_fill_doc'))}</button>` : ''}</div>` : '';
+  const body = (D.owed.length || grid || docFill) ? grid + docFill + rest.map(rowHtml).join('') + doneHtml
     : doneHtml + `<div class="pd-gl-none"><i aria-hidden="true">✓</i><span>${_pdE(_pdT('dos_owed_none'))}</span></div>`;
-  return `<div id="pd-needs" class="pd-glance ds-card ds-owed" data-pd-ds-card="owed" data-pd-needs-for="${_pdE(c.id)}"><div class="pd-gl-h"><b>${_pdE(_pdT('dos_owed_title', { n: D.owedN }))}</b><span class="pd-gl-sp"></span><span class="ds-when">${_pdE(_pdT('dos_owed_sub'))}</span></div><div class="pd-gl-b">${body}</div></div>`;
+  /* the head says how many Jambo read, and stores them in one press */
+  const readN = grid ? pdOgReadN(c) : 0;
+  const may = (typeof canEdit !== 'function') || !!canEdit();
+  const sub = readN ? `<span class="ds-when">· ${_pdE(_pdTn('og_read_n', readN, { n: readN }))}</span>${!held && may ? `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary pd-og-all" data-pd-og-all>${_pdE(_pdTn('og_confirm_all', readN, { n: readN }))}</button>` : ''}`
+    : `<span class="ds-when">${_pdE(_pdT('dos_owed_sub'))}</span>`;
+  return `<div id="pd-needs" class="pd-glance ds-card ds-owed" data-pd-ds-card="owed" data-pd-needs-for="${_pdE(c.id)}"><div class="pd-gl-h"><b>${_pdE(_pdT('dos_owed_title', { n: D.owedN }))}</b>${readN ? '' : '<span class="pd-gl-sp"></span>'}${sub}</div><div class="pd-gl-b">${body}</div></div>`;
 }
-function pdGlanceHtml(c){
+/* ============================================================
+   THE LEGORA WAY: STILL OWED IS A REVIEW GRID (owner picked "The Legora way"
+   by name, 20 Oct 2026: "Why should I have to go elsewhere to enter the
+   details?")
+   ============================================================
+   One row per owed fact, answered where it is asked: the fact and where
+   Jambo read it (the clause, the passage quoted; a press lights it on the
+   paper), what he read already in the box, and Confirm. Confirm all stores
+   every reading at once; a fact the wording does not hold is amber and asks
+   for it in the same row. Nothing takes the reader anywhere, so there is no
+   way back to design. THE SAVERS ARE THE PRODUCT'S OWN: the contract's boxes
+   are wireKeyTerms' (data-kt), a blank's wireBlankForm's (data-blankf), a
+   template question's tplFormCommit (data-tplf), the NDA's two facts ndaSet,
+   the signers saveSignerPlan (a route needs both sides, so both are asked on
+   the one row). Beside the Board the grid is drawn read-only: each row's
+   door opens the paper with that row ready (the Board reads, never takes
+   typing). */
+const _pdOgSaved = new Map();   // contract id → the facts confirmed here this sitting [{ key, label, words }]
+function pdOgSavedOf(c){ return (c && _pdOgSaved.get(String(c.id))) || []; }
+function pdOgSavedAdd(c, f, words){
+  const k = String(c.id), L = (_pdOgSaved.get(k) || []).filter(x => x.key !== f.key);
+  L.push({ key: f.key, label: f.label, words: String(words || '') }); _pdOgSaved.set(k, L);
+}
+/* the wording's NDA reading on its own, whatever a person has confirmed of it
+   (ndaOf answers the confirmed record whole, so a half-confirmed NDA would
+   lose the other half's reading) */
+function pdOgNdaRead(c){
+  try { return (typeof ndaOf === 'function') ? ndaOf(Object.assign({}, c, { nda: null })) : null; } catch (_){ return null; }
+}
+function pdOgDay(iso){
+  const t = (typeof window !== 'undefined' && window.fmtDocDate) ? window.fmtDocDate(iso) : '';
+  return t || String(iso || '');
+}
+/* THE ROWS: detailsOf's open facts in its order, then the signers where
+   signing is ahead and nobody is named */
+function pdOgFacts(c){
+  const out = []; if (!c) return out;
+  let d = null; try { d = (typeof detailsOf === 'function') ? detailsOf(c) : null; } catch (_){ d = null; }
+  const open = (d && d.live) ? d.items.filter(x => x && x.open) : [];
+  const N = open.some(x => x.kind === 'nda') ? pdOgNdaRead(c) : null;
+  const onPaper = k => { try { return !!(typeof contractFieldPeer === 'function' && contractFieldPeer(k, 'paper')); } catch (_){ return false; } };
+  open.forEach(x => {
+    const f = { key: x.key, kind: x.kind, label: x.label, read: null, from: null, sec: x.sec };
+    if (x.kind === 'nda' && N){
+      if (x.key === 'ndaDir' && N.dir){ f.read = { dir: N.dir, words: _pdT('nda_dir_' + N.dir) };
+        f.from = { clause: N.dirClause || '', quote: N.dirQuote || '', read: true }; }
+      if (x.key === 'ndaEnds'){
+        if (N.ends || N.forGood) f.read = { ends: N.forGood ? '' : N.ends, forGood: !!N.forGood, trade: !!N.trade,
+          words: N.forGood ? _pdT('nda_for_good') : pdOgDay(N.ends) };
+        /* the wording says how long, from a day the record does not hold yet: quoted, the day asked */
+        if (N.quote || f.read) f.from = { clause: N.clause || '', quote: N.quote || '', read: true };
+      }
+    }
+    /* OUR STANDARD, WHERE ONE NAMES THIS FACT (owner's yes, 18 Oct 2026, kept in the grid): read off Our
+       standards' own wording, never guessed — it stands in the box as the reading, and Confirm stores it */
+    if (!f.read && (x.kind === 'blank' || x.kind === 'tplf') && typeof stdValueFor === 'function'){
+      let v = null; try { v = stdValueFor(x.label); } catch (_){ v = null; }
+      if (v && PD_FF_UNIT[v.unit]){ const said = _pdTn(PD_FF_UNIT[v.unit], v.figure, { n: v.figure });
+        /* named for the kind of contract whose book applies (the face's rule, pdFillStdKind) */
+        let kind = ''; try { kind = (typeof pdFillStdKind === 'function') ? (pdFillStdKind(c) || '') : ''; } catch (_){ kind = ''; }
+        f.read = { words: said, put: said, figure: v.figure }; f.from = { std: kind || v.category || '', said }; }
+    }
+    if (!f.from) f.from = (x.kind === 'blank' || x.kind === 'tplf' || onPaper(x.key)) ? { spot: true } : { none: 'wording' };
+    if (x.key === 'value' && typeof fxIsPay === 'function' && fxIsPay(c)) f.pay = true;
+    out.push(f);
+  });
+  let nobody = false; try { nobody = pdSignAhead(c) && (typeof signBlockers === 'function') && signBlockers(c).some(b => b && b.key === 'signers'); } catch (_){ nobody = false; }
+  if (nobody) out.push({ key: 'signers', kind: 'signer', label: _pdT('dos_signer'), read: null, from: { none: 'people' } });
+  return out;
+}
+const PD_OG_INP = 'pd-og-in';
+const PD_OG_QUOTE_MAX = 84;   // a passage drawn in the grid: about two lines of the fact's column
+/* every box carries a placeholder, so an empty one is amber by :placeholder-shown (AN EMPTY OWED BOX IS AMBER EVERYWHERE) */
+/* (the form's boxes carry their own inline clothes; in the grid the grid's class dresses them, so the amber can show) */
+function pdOgPh(html){ return String(html).replace(/^(<(?:input|select|textarea)[^>]*?)\sstyle="[^"]*"/, '$1').replace(/^<(input)(?![^>]*\splaceholder="[^"]+")/, '<$1 placeholder=" "'); }
+function pdOgBoxHtml(c, f){
+  const E = _pdE;
+  if (f.kind === 'kt'){
+    if (f.pay) return `<button type="button" class="pd-go ds-go" data-pd-og-pay="${E(c.id)}">${E(_pdT('bs_pay_edit'))}</button>`;
+    if (f.key === 'value') return `<input type="text" inputmode="numeric" class="${PD_OG_INP}" data-kt="value" value="" placeholder="${E(_pdT('og_ph_value'))}" aria-label="${E(f.label)}">`
+      + `<label class="pd-og-nm"><input type="checkbox" data-kt="nonmonetary"${c.valueType === 'none' ? ' checked' : ''}> ${E(_pdT('og_no_money'))}</label>`;
+    if (f.key === 'effDate') return `<input type="date" class="${PD_OG_INP}" data-kt="effDate" value="" aria-label="${E(f.label)}">`;
+    return `<input type="text" class="${PD_OG_INP}" data-kt="${E(f.key)}" value="" placeholder=" " aria-label="${E(f.label)}">`;
+  }
+  if (f.kind === 'nda'){
+    if (f.key === 'ndaDir'){
+      const v = (f.read && f.read.dir) || '';
+      const dirs = (typeof NDA_DIRS !== 'undefined' && NDA_DIRS) || ['mutual', 'ours', 'theirs'];
+      return `<select class="${PD_OG_INP}" data-pd-og-nda="dir" aria-label="${E(f.label)}"><option value="">${E(_pdT('og_choose'))}</option>${
+        dirs.map(k => `<option value="${E(k)}"${k === v ? ' selected' : ''}>${E(_pdT('nda_dir_' + k))}</option>`).join('')}</select>`;
+    }
+    const r = f.read || {};
+    /* the NDA editor's own parts, kept (owner's picks, 17–18 Oct 2026): for good, trade secrets, and who the reminder goes to */
+    const owner = (typeof contractOwnerName === 'function' && contractOwnerName(c)) || '';
+    return `<input type="date" class="${PD_OG_INP}" data-pd-og-nda="ends" value="${E(r.ends || '')}"${r.forGood ? ' disabled' : ''} aria-label="${E(f.label)}">`
+      + `<label class="pd-og-nm"><input type="checkbox" data-pd-og-nda="forGood"${r.forGood ? ' checked' : ''}> ${E(_pdT('nda_for_good'))}</label>`
+      + `<label class="pd-og-nm"><input type="checkbox" data-pd-og-nda="trade"${r.trade ? ' checked' : ''}> ${E(_pdT('nda_trade_ck'))}</label>`
+      + `<span class="pd-og-src pd-og-remind">${E(owner ? _pdT('nda_ed_remind', { who: owner }) : _pdT('nda_ed_remind_noone'))}</span>`;
+  }
+  if (f.kind === 'tplf'){
+    const fields = (c.templateForm && c.templateForm.fields) || [];
+    const idx = fields.findIndex(x => x && String(x.fieldKey) === String(f.key));
+    const fd = fields[idx]; if (!fd || typeof tplFormInputHtml !== 'function') return '';
+    const vals = c.templateForm.values || {};
+    const put = (f.read && f.read.put && !String(vals[fd.fieldKey] || '').trim()) ? (fd.fieldType === 'number' ? String(f.read.figure) : f.read.put) : vals[fd.fieldKey];
+    return pdOgPh(String(tplFormInputHtml(fd, put, idx)).replace(/^<(input|select|textarea)/, `<$1 class="${PD_OG_INP}"`));
+  }
+  if (f.kind === 'blank'){
+    let b = null; try { b = (typeof contractBlanks === 'function') ? (contractBlanks(c) || []).find(x => x && String(x.key) === String(f.key)) : null; } catch (_){ b = null; }
+    if (!b || typeof blankFormInputHtml !== 'function') return '';
+    if (f.read && f.read.put && !String(b.value == null ? '' : b.value).trim()) b = Object.assign({}, b, { value: b.type === 'number' ? String(f.read.figure) : f.read.put });
+    return pdOgPh(String(blankFormInputHtml(b)).replace(/^<input/, `<input class="${PD_OG_INP}"`).replace(/\splaceholder=""/, ''));
+  }
+  if (f.kind === 'signer'){
+    const me = (typeof currentUser === 'function' && currentUser()) || null;
+    const members = ((typeof getUsers === 'function' ? getUsers() : []) || []).filter(u => u && u.role !== 'viewer');
+    const plan = Array.isArray(c.signerPlan) ? c.signerPlan : [];
+    const ours = plan.find(s => s && s.party !== 'counterparty'), theirs = plan.find(s => s && s.party === 'counterparty');
+    const pick = (ours && ours.memberId) || (me && me.id) || '';
+    const them = (typeof counterpartyContact === 'function' ? counterpartyContact(c) : null) || {};
+    const tName = (theirs && theirs.name) || (them.name && !(typeof signerIsCompany === 'function' && signerIsCompany(c, { party: 'counterparty', name: them.name })) ? them.name : '');
+    const tMail = (theirs && theirs.email) || (typeof contactEmail === 'function' ? contactEmail(c) : '') || them.email || '';
+    return `<select class="${PD_OG_INP}" data-pd-og-sg="ours" aria-label="${E(_pdT('og_sg_ours'))}">${members.map(u => `<option value="${E(u.id)}"${String(u.id) === String(pick) ? ' selected' : ''}>${E(u.name || u.email)}${me && String(u.id) === String(me.id) ? ' · ' + E(_pdT('og_you')) : ''}</option>`).join('')}</select>`
+      + `<input type="text" class="${PD_OG_INP}" data-pd-og-sg="tname" value="${E(tName)}" placeholder="${E(_pdT('og_sg_their_name', { them: c.counterparty || _pdT('ct_a_counterparty') }))}" aria-label="${E(_pdT('og_sg_their_name', { them: c.counterparty || '' }))}">`
+      + `<input type="email" class="${PD_OG_INP}" data-pd-og-sg="temail" value="${E(tMail)}" placeholder="${E(_pdT('og_sg_their_email'))}" aria-label="${E(_pdT('og_sg_their_email'))}">`;
+  }
+  return '';
+}
+function pdOgFromHtml(c, f){
+  const E = _pdE, F = f.from || {};
+  if (F.quote){
+    /* the passage as said, cut at a word to two lines' worth; the whole of it on hover, and lit on the paper by the press */
+    const q = String(F.quote).trim(), cut = q.length > PD_OG_QUOTE_MAX ? q.slice(0, PD_OG_QUOTE_MAX).replace(/\s+\S*$/, '') + '…' : q;
+    const said = /^["“]/.test(cut) ? cut : '“' + cut + (cut.endsWith('…') ? '' : '”');
+    return `<span class="pd-og-src"><button type="button" class="pd-og-cl" data-pd-og-quote="${E(q)}" title="${E(_pdT('og_show_on_paper'))}">${E(F.clause ? '§' + F.clause : _pdT('og_the_wording'))}</button> <q title="${E(q)}">${E(said)}</q></span>`;
+  }
+  if (F.std != null) return `<span class="pd-og-src" data-pd-ff-std>${E(_pdT('pd_ff_std', { what: F.std || _pdT('og_the_wording'), value: F.said || '' }))}</span>`;
+  if (F.read) return `<span class="pd-og-src">${E(F.clause ? _pdT('det_nda_read_clause', { n: F.clause }) : _pdT('det_nda_from_wording'))}</span>`;
+  if (F.spot){
+    /* where it lands: the clause the blank sits under on the paper beside (pdFillSpotClause, the face's own reading) */
+    let n = ''; try { const sp = (typeof contractFieldPeer === 'function') ? contractFieldPeer(f.key, 'paper') : null; n = sp ? pdFillSpotClause(sp, document.getElementById('ig-canvas')) : ''; } catch (_){ n = ''; }
+    return `<span class="pd-og-src"><button type="button" class="pd-og-cl" data-pd-og-spot="${E(f.key)}" title="${E(_pdT('og_show_on_paper'))}">${E(n ? '§' + n : _pdT('og_on_paper'))}</button> ${E(n ? _pdT('og_on_paper_lc') : (f.sec || ''))}</span>`;
+  }
+  return `<span class="pd-og-src is-none">${E(_pdT(F.none === 'people' ? 'og_from_people' : 'og_not_in_wording'))}</span>`;
+}
+/* the grid; held (beside the Board) it reads only, each row a door to the paper */
+function pdOgHtml(c, o){
+  const held = !!(o && o.held);
+  const may = (typeof canEdit !== 'function') || !!canEdit();
+  const rows = pdOgFacts(c), saved = pdOgSavedOf(c).filter(x => !rows.some(r => r.key === x.key));
+  const E = _pdE;
+  const tr = f => {
+    const box = held || !may ? `<span class="pd-og-read${f.read ? '' : ' is-amb'}">${E(f.read ? f.read.words : _pdT('og_not_read'))}</span>` : pdOgBoxHtml(c, f);
+    const act = held ? `<button type="button" class="pd-go ds-go" data-pd-og-go="${E(f.key)}" title="${E(_pdT('og_fill_beside'))}">${E(_pdT('dos_go_fill_in'))}${PD_GO_TXT}</button>`
+      : (may && !f.pay) ? `<button type="button" class="pd-og-ok" data-pd-og-ok="${E(f.key)}">${E(_pdT('og_confirm'))}</button>` : '';
+    return `<tr class="pd-og-row${f.read ? ' is-read' : ' is-amb'}" data-pd-og-row="${E(f.key)}" data-pd-og-kind="${E(f.kind)}"><td class="pd-og-f"><b>${E(f.label)}</b>${pdOgFromHtml(c, f)}</td><td class="pd-og-v">${box}</td><td class="pd-og-a">${act}</td></tr>`;
+  };
+  const stream = (() => { const F = (typeof FOLDERS === 'object' && FOLDERS) || {}; const n = c.folder && F[c.folder] ? F[c.folder].name : '';
+    return n ? `<tr class="pd-og-row is-saved" data-pd-og-row="stream"><td class="pd-og-f"><b>${E(_pdT('ct_value_stream'))}</b><span class="pd-og-src is-none">${E(_pdT('og_stream_set'))}</span></td><td class="pd-og-v"><span class="pd-og-done">${E(n)}</span></td><td class="pd-og-a"><span class="pd-og-said">${E(_pdT('og_saved'))}</span></td></tr>` : ''; })();
+  const done = saved.map(x => `<tr class="pd-og-row is-saved" data-pd-og-row="${E(x.key)}"><td class="pd-og-f"><b>${E(x.label)}</b></td><td class="pd-og-v"><span class="pd-og-done">${E(x.words)}</span></td><td class="pd-og-a"><span class="pd-og-said">${E(_pdT('og_saved'))}</span></td></tr>`).join('');
+  if (!rows.length && !done) return '';
+  return `<table id="${held ? 'pd-og-held' : 'pd-og'}" class="pd-og" data-pd-og-for="${E(c.id)}"><thead><tr><th>${E(_pdT('og_col_fact'))}</th><th>${E(_pdT('og_col_read'))}</th><th><span class="sr-only">${E(_pdT('og_confirm'))}</span></th></tr></thead><tbody>${rows.map(tr).join('')}${done}${stream}</tbody></table>`;
+}
+/* the grid is up for this contract: its Dossier is the tab, beside its paper, no face over it */
+function pdOgShows(c){
+  if (!c || _pdTab !== 'copilot' || !pdOnPaper() || pdFaceNow()) return false;
+  if (typeof pdSendShows === 'function' && pdSendShows()) return false;
+  if (typeof pdTalkShows === 'function' && pdTalkShows()) return false;
+  const p = pdContract(); return !!(p && String(p.id) === String(c.id));
+}
+/* how many rows Confirm all would store: the ones Jambo read, still unanswered */
+function pdOgReadN(c){ return pdOgFacts(c).filter(f => f.read).length; }
+/* ---- KEY TERMS, UNDER THE GRID (owner's pick, 20 Oct 2026: "a folded Key
+   terms list shows every term with a Change on its line. The Board card's
+   door opens the paper there. Nothing is typed on the Board.") ----
+   The terms the Board card lists (who we are, the other party, the eight of
+   the Overview's sheet — ovEssKeys — with the term as its two dates) and the
+   answered facts of the grid. Change turns that one line into its box, the
+   product's own (ktFieldCell's edit posture: wireKeyTerms writes it as typed;
+   an NDA's facts, a template question and a blank as the grid's rows do);
+   Done puts the line back. Folded until asked for; a door that asks opens it. */
+let _pdKtOpen = null;           // the contract whose Key terms are unfolded
+let _pdKtEdit = null;           // { id, key } — the one line being changed
+function pdKtKeys(c){
+  let ess = []; try { ess = (typeof ovEssKeys === 'function') ? ovEssKeys(c) : []; } catch (_){ ess = []; }
+  const out = ['party', 'counterparty', 'cpEmail'];
+  ess.forEach(k => { if (k === 'term') out.push('effDate', 'expiry'); else if (!out.includes(k)) out.push(k); });
+  return out;
+}
+function pdKtFacts(c){
+  if (!c) return [];
+  let d = null; try { d = (typeof detailsOf === 'function') ? detailsOf(c) : null; } catch (_){ d = null; }
+  const owed = new Set(((d && d.items) || []).filter(x => x && x.open).map(x => x.key));
+  const rows = [];
+  let N = null;
+  pdKtKeys(c).forEach(k => {
+    if (owed.has(k)) return;   // still owed: the grid asks it
+    if (k === 'ndaDir' || k === 'ndaEnds'){
+      /* what a person confirmed of this fact, else what the wording says (a half-confirmed NDA keeps the other half's reading) */
+      if (!N){ const rec = (typeof ndaClean === 'function') ? ndaClean(c.nda) : null; const R = pdOgNdaRead(c) || {};
+        N = { rec, R, who: rec && rec.who }; }
+      const has = k === 'ndaDir' ? !!(N.rec && N.rec.dir) : !!(N.rec && (N.rec.ends || N.rec.forGood));
+      const src = has ? N.rec : N.R;
+      const view = { dir: src.dir || '', ends: src.forGood ? '' : (src.ends || ''), forGood: !!src.forGood, trade: !!(src.trade || (N.R && N.R.trade)), period: N.R.period, latest: N.R.latest };
+      const words = k === 'ndaDir' ? (view.dir ? _pdT('nda_dir_' + view.dir) : '') : ((typeof ndaUntilWords === 'function' ? ndaUntilWords(view) : '') || '');
+      const from = has ? null : (k === 'ndaDir' ? (N.R.dirQuote ? { clause: N.R.dirClause || '', quote: N.R.dirQuote } : null) : (N.R.quote ? { clause: N.R.clause || '', quote: N.R.quote } : null));
+      rows.push({ key: k, kind: 'nda', label: _pdT(k === 'ndaDir' ? 'nda_f_dir' : 'nda_f_ends'), html: _pdE(words || '—'), from,
+        sub: has ? (N.who ? _pdT('nda_confirmed_by', { who: N.who }) : _pdT('nda_confirmed')) : (words ? _pdT('det_nda_not_conf') : ''),
+        read: { dir: view.dir, ends: view.ends, forGood: view.forGood, trade: view.trade, words } });
+      return;
+    }
+    /* who we are and their address are the record's own boxes (wireKeyTerms), not sheet cells */
+    if (k === 'party' || k === 'cpEmail'){
+      const v = k === 'party' ? ((typeof contractParty === 'function' ? contractParty(c) : '') || c.party || '') : ((typeof ctTheirEmail === 'function' ? ctTheirEmail(c) : '') || '');
+      rows.push({ key: k, kind: 'kt', label: _pdT(k === 'party' ? 'bs_t_our' : 'og_their_email_l'), html: _pdE(v || '—'), value: k === 'party' ? (c.party || '') : v });
+      return;
+    }
+    let cell = null; try { cell = (typeof ktFieldCell === 'function') ? ktFieldCell(c, k, false, null) : null; } catch (_){ cell = null; }
+    if (!cell) return;
+    rows.push({ key: k, kind: 'ktm', label: String(cell[0] || '').replace(/<[^>]*>/g, ''), html: String(cell[1] || '').trim() || '—' });
+  });
+  /* the paper's own answered questions, after the record's terms */
+  ((d && d.items) || []).filter(x => x && !x.open && (x.kind === 'tplf' || x.kind === 'blank')).forEach(x => {
+    rows.push({ key: x.key, kind: x.kind, label: x.label, html: _pdE(pdKtAnswer(c, x) || '—') });
+  });
+  return rows;
+}
+function pdKtAnswer(c, x){
+  if (x.kind === 'tplf') return String(((c.templateForm || {}).values || {})[x.key] || '');
+  let b = null; try { b = (typeof contractBlanks === 'function') ? (contractBlanks(c) || []).find(y => y && String(y.key) === String(x.key)) : null; } catch (_){ b = null; }
+  return b ? String(b.value == null ? '' : b.value) : '';
+}
+function pdKtBoxHtml(c, f){
+  if (f.kind === 'nda' || f.kind === 'tplf' || f.kind === 'blank') return pdOgBoxHtml(c, f);
+  if (f.kind === 'kt'){
+    /* who we are: our own entities offered (the Details form's own list, uploadPartyOptions) */
+    let opts = []; try { opts = (f.key === 'party' && typeof uploadPartyOptions === 'function') ? (uploadPartyOptions() || []) : []; } catch (_){ opts = []; }
+    const list = opts.length ? `<datalist id="pd-kt-party-list">${opts.map(v => `<option value="${_pdE(v)}"></option>`).join('')}</datalist>` : '';
+    return `<input type="${f.key === 'cpEmail' ? 'email' : 'text'}" class="${PD_OG_INP}" data-kt="${_pdE(f.key)}" value="${_pdE(f.value || '')}" aria-label="${_pdE(f.label)}"${f.key === 'party' ? ` placeholder="${_pdE((typeof contractParty === 'function' ? contractParty(c) : '') || '')}"${list ? ' list="pd-kt-party-list"' : ''}` : ''}>${list}`;
+  }
+  let cell = null; try { cell = (typeof ktFieldCell === 'function') ? ktFieldCell(c, f.key, true, null) : null; } catch (_){ cell = null; }
+  return cell ? String(cell[1] || '') : f.html;
+}
+function pdKtHtml(c){
+  const may = (typeof canEdit !== 'function') || !!canEdit();
+  const rows = pdKtFacts(c); if (!rows.length) return '';
+  const open = _pdKtOpen === String(c.id);
+  const ed = (_pdKtEdit && _pdKtEdit.id === String(c.id)) ? _pdKtEdit.key : '';
+  const E = _pdE;
+  const tr = f => {
+    const on = ed === f.key && may;
+    const act = !may ? '' : on ? `<button type="button" class="pd-og-ok" data-pd-kt-done="${E(f.key)}">${E(_pdT('og_done'))}</button>`
+      : `<button type="button" class="pd-og-ok" data-pd-kt-change="${E(f.key)}">${E(_pdT('og_change'))}</button>`;
+    const said = (f.from ? pdOgFromHtml(c, f) : '') + (f.sub ? `<span class="pd-og-src is-none">${E(f.sub)}</span>` : '');
+    return `<tr class="pd-og-row${on ? ' is-changing' : ''}" data-pd-og-row="${E(f.key)}" data-pd-og-kind="${E(f.kind)}"><td class="pd-og-f"><b>${E(f.label)}</b>${said}</td><td class="pd-og-v">${on ? pdKtBoxHtml(c, f) : `<span class="pd-kt-v">${f.html}</span>`}</td><td class="pd-og-a">${act}</td></tr>`;
+  };
+  return `<details id="pd-kt" class="ds-fold pd-kt" data-pd-og-for="${E(c.id)}"${open ? ' open' : ''}><summary><span>${E(_pdT('og_kt_title'))}</span><span class="ds-when">${E(_pdTn('og_kt_n', rows.length, { n: rows.length }))}</span></summary>
+    <table class="pd-og pd-kt-t"><tbody>${rows.map(tr).join('')}</tbody></table></details>`;
+}
+/* THE DOOR ONTO THE KEY TERMS: the paper on its Dossier, the list unfolded,
+   the line asked for (if any) open for changing and in the hand */
+function pdKtOpen(id, key){
+  _pdKtOpen = String(id);
+  _pdKtEdit = key ? { id: String(id), key: String(key) } : null;
+  const ok = pdOpenOnHome(id, 'plain');
+  if (ok === false) return false;
+  let tries = 0;
+  const go = () => {
+    const f = document.querySelector(`#ig-dock #pd-kt[data-pd-og-for="${CSS.escape(String(id))}"]`);
+    if (!f){ if (++tries < PD_FILL_TRIES) setTimeout(go, PD_FILL_BEAT_MS); return; }
+    if (!f.open) f.open = true;
+    const row = key ? f.querySelector(`tr[data-pd-og-row="${CSS.escape(String(key))}"]`) : null;
+    if (typeof landOn === 'function') landOn(row || f, { block: 'center', focus: false });
+    const box = row && row.querySelector('input:not([type=checkbox]):not([disabled]), select, textarea');
+    if (box) try { box.focus({ preventScroll: true }); } catch (_){}
+  };
+  setTimeout(go, PD_FILL_BEAT_MS);
+  return true;
+}
+/* ---- THE GRID'S PRESSES (bound once, on the document; the live row and
+   the live contract are read at the press) ---- */
+let _pdOgPending = false;       // a repaint asked for while a hand was in the grid
+function pdOgHost(){ return (typeof document !== 'undefined') ? document.getElementById('pd-og') : null; }
+/* the grid, or the Key terms under it: both hold rows the same presses answer */
+function pdOgHostOf(el){ return el && el.closest ? el.closest('#pd-og, #pd-kt') : null; }
+function pdOgContract(host){
+  const h = host || pdOgHost(); const id = h && h.getAttribute('data-pd-og-for'); if (!id) return null;
+  const c = pdContract(); if (!c || String(c.id) !== String(id)) return null;
+  return (typeof getContract === 'function' && getContract(c.id)) || c;
+}
+/* the boxes' own writers, bound once per grid drawn */
+function pdOgWire(host, c){
+  if (!host || !c || host.dataset.pdOgWired) return;
+  host.dataset.pdOgWired = '1';
+  try { if (typeof wireKeyTerms === 'function') wireKeyTerms(c); } catch (_){}
+  try { if (typeof wireBlankForm === 'function') wireBlankForm(c, host); } catch (_){}
+}
+/* a hand in the grid is never repainted under (renderIntelDock asks this too) */
+function pdOgHolds(){
+  const a = (typeof document !== 'undefined') ? document.activeElement : null;
+  return !!(a && a.closest && a.closest('#ig-dock #pd-og, #ig-dock #pd-kt'));
+}
+/* after the grid is drawn: HaTi's own date and choice faces, and the boxes' writers */
+function pdOgPaint(host){
+  const hs = host ? [host] : ['pd-og', 'pd-kt'].map(id => document.getElementById(id)).filter(Boolean);
+  hs.forEach(h => {
+    if (h.dataset.pdOgDressed) return;
+    h.dataset.pdOgDressed = '1';
+    try { if (typeof popupControlsDress === 'function') popupControlsDress(h); } catch (_){}
+    const c = pdOgContract(h); if (c) pdOgWire(h, c);
+  });
+}
+function pdOgRepaint(){
+  _pdOgPending = false;
+  const a = document.activeElement;
+  if (a && a.closest && a.closest('#pd-og, #pd-kt') && typeof a.blur === 'function') a.blur();
+  pdGlanceRepaint();
+  try { pdFillPaperMarks(pdContract()); } catch (_){}
+  if (typeof window.igHintPaint === 'function') try { igHintPaint(); } catch (_){}
+}
+/* the next row still owed takes the hand (EVERY STEP STARTS THE NEXT) */
+function pdOgNext(after){
+  const host = pdOgHost(); if (!host) return;
+  const rows = [...host.querySelectorAll('tr.pd-og-row:not(.is-saved)')];
+  const r = rows.find(x => x.getAttribute('data-pd-og-row') !== after) || null;
+  const box = r && r.querySelector('input:not([type=checkbox]):not([disabled]), select, textarea');
+  if (box) try { box.focus({ preventScroll: true }); } catch (_){}
+}
+function pdOgSay(msg, kind){ if (typeof toast === 'function') toast(msg, kind || 'warn'); }
+/* STORE ONE ROW through its own writer; false (and why, said) when it cannot */
+function pdOgConfirm(c, key, o){
+  const inKt = !!(o && o.kt);
+  const host = inKt ? document.getElementById('pd-kt') : pdOgHost(); if (!host || !c) return false;
+  const row = host.querySelector(`tr[data-pd-og-row="${CSS.escape(String(key))}"]`); if (!row) return false;
+  /* a box left (Tab) has already stored its answer, so the row's fact may no
+     longer be owed: the row itself says what it was, and Confirm ticks it */
+  const f = (inKt ? pdKtFacts(c) : pdOgFacts(c)).find(x => x.key === key)
+    || { key, kind: row.getAttribute('data-pd-og-kind') || '', label: ((row.querySelector('.pd-og-f b') || {}).textContent || key).trim() };
+  pdOgWire(host, c);
+  const ask = el => { if (!(o && o.quiet)){ pdOgSay(_pdT('og_type_first', { what: f.label })); if (el) try { el.focus(); } catch (_){} } return false; };
+  let words = '';
+  if (f.kind === 'kt'){
+    const nm = row.querySelector('[data-kt="nonmonetary"]');
+    if (f.key === 'value' && nm && nm.checked){ if (c.valueType !== 'none'){ nm.dispatchEvent(new Event('change', { bubbles: true })); } words = _pdT('og_no_money'); }
+    else {
+      const el = row.querySelector('[data-kt]'); const v = el ? String(el.value || '').trim() : '';
+      if (!v) return ask(el);
+      el.dispatchEvent(new Event(el.type === 'date' ? 'change' : 'input', { bubbles: true }));
+      words = f.key === 'value' ? ((typeof fmtMoneyOf === 'function') ? fmtMoneyOf(c) : v) : el.type === 'date' ? pdOgDay(v) : v;
+    }
+  } else if (f.kind === 'blank' || f.kind === 'tplf'){
+    const el = row.querySelector('[data-blankf],[data-tplf]'); const v = el ? String(el.value || '').trim() : '';
+    if (!v) return ask(el);
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    words = el.type === 'date' ? pdOgDay(v) : (el.tagName === 'SELECT' && el.selectedOptions[0] ? el.selectedOptions[0].textContent : v);
+  } else if (f.kind === 'nda'){
+    if (typeof ndaSet !== 'function') return false;
+    const base = Object.assign({ dir: '', ends: '', forGood: false, trade: false, clause: '' }, (typeof ndaFacts === 'function' && ndaFacts(c.nda)) || {});
+    const N = pdOgNdaRead(c) || {};
+    let v;
+    if (f.key === 'ndaDir'){ const el = row.querySelector('[data-pd-og-nda="dir"]'); const d = el ? el.value : '';
+      if (!d) return ask(el);
+      v = Object.assign(base, { dir: d }); words = _pdT('nda_dir_' + d); }
+    else { const el = row.querySelector('[data-pd-og-nda="ends"]'), fg = row.querySelector('[data-pd-og-nda="forGood"]');
+      const good = !!(fg && fg.checked), day = el ? el.value : '';
+      if (!good && !day) return ask(el);
+      const tr = row.querySelector('[data-pd-og-nda="trade"]');
+      v = Object.assign(base, { ends: good ? '' : day, forGood: good, trade: tr ? !!tr.checked : (base.trade || !!N.trade), clause: base.clause || N.clause || '' });
+      words = good ? _pdT('nda_for_good') : pdOgDay(day); }
+    const r = ndaSet(c, v) || {};
+    if (r.err){ pdOgSay(r.err, 'err'); return false; }
+  } else if (f.kind === 'signer'){
+    if (typeof saveSignerPlan !== 'function') return false;
+    const sel = row.querySelector('[data-pd-og-sg="ours"]'), tn = row.querySelector('[data-pd-og-sg="tname"]'), te = row.querySelector('[data-pd-og-sg="temail"]');
+    const u = sel && typeof userById === 'function' ? userById(sel.value) : null;
+    const tName = tn ? String(tn.value || '').trim() : '';
+    if (!u) return ask(sel);
+    if (!tName) return ask(tn);
+    const plan = (Array.isArray(c.signerPlan) ? c.signerPlan : []).slice();
+    const keep = plan.filter(x => x && x.name);
+    if (!keep.some(x => x.party !== 'counterparty')) keep.push({ party: 'internal', name: u.name || u.email, email: u.email || '', role: (typeof signerTitle === 'function' ? signerTitle(u) : '') || '', memberId: u.id });
+    if (!keep.some(x => x.party === 'counterparty')) keep.push({ party: 'counterparty', name: tName, email: te ? String(te.value || '').trim() : '', role: '' });
+    const why = saveSignerPlan(c, keep);
+    if (why){ pdOgSay(why, 'err'); return false; }
+    words = (u.name || u.email) + ' · ' + tName;
+  } else return false;
+  if (!inKt) pdOgSavedAdd(c, f, words);
+  try { if (typeof detailsChanged === 'function') detailsChanged(c); } catch (_){}
+  if (!(o && o.hold)){ pdOgRepaint(); pdOgNext(key); }
+  return true;
+}
+/* FILL THE DOCUMENT: the box still under the hand is stored first (its own
+   writer), then the answers go into the wording (tplFormApply) — done on the
+   press's way DOWN, because storing the box repaints the dossier and a click
+   whose button was redrawn between down and up is dropped (the form's own
+   rule, renderTemplateFormSection's) */
+let _pdOgDocDown = false;
+function pdOgDocFill(){
+  const c = pdContract(); const live = c && ((typeof getContract === 'function' && getContract(c.id)) || c);
+  if (!live || typeof tplFormApply !== 'function') return false;
+  const a = document.activeElement;
+  if (a && a.closest && a.closest('#pd-og, #pd-kt') && a.hasAttribute('data-tplf') && typeof tplFormCommit === 'function') tplFormCommit(live, Number(a.getAttribute('data-tplf')), a.value);
+  tplFormApply(live);
+  try { if (typeof detailsChanged === 'function') detailsChanged(live); } catch (_){}
+  pdOgRepaint();
+  if (typeof igPaperRefresh === 'function') try { igPaperRefresh(); } catch (_){}
+  return true;
+}
+/* Done on a changed line: an NDA's fact, a template question or a blank is
+   stored as the grid stores it; a record term was stored as it was typed */
+function pdKtDone(c, key){
+  const f = pdKtFacts(c).find(x => x.key === key);
+  if (f && (f.kind === 'nda' || f.kind === 'tplf' || f.kind === 'blank')){
+    if (!pdOgConfirm(c, key, { kt: true, hold: true })) return false;
+  } else {
+    const a = document.activeElement;
+    if (a && a.closest && a.closest('#pd-kt') && typeof a.blur === 'function') a.blur();
+  }
+  _pdKtEdit = null;
+  pdOgRepaint();
+  if (typeof toast === 'function') toast(f && f.kind === 'nda' ? _pdT('nda_saved') : _pdT('og_kt_saved', { what: f ? f.label : '' }), 'ok');
+  return true;
+}
+if (typeof document !== 'undefined' && !document._pdOgWired){
+  document._pdOgWired = true;
+  document.addEventListener('focusin', e => {
+    const host = pdOgHostOf(e.target); if (!host) return;
+    const c = pdOgContract(host); if (c) pdOgWire(host, c);
+    /* A CURSOR IN A BOX LIGHTS ITS WORD ON THE PAPER (the fill form's own rule, wireFieldLink's) */
+    if (c && typeof contractFieldKeyOf === 'function' && typeof contractFieldLight === 'function'){
+      let k = ''; try { k = contractFieldKeyOf(e.target, c) || ''; } catch (_){ k = ''; }
+      if (!k){ const r = e.target.closest('tr[data-pd-og-row]'); k = r ? r.getAttribute('data-pd-og-row') : ''; }
+      let spot = null; try { spot = k && typeof contractFieldPeer === 'function' ? contractFieldPeer(k, 'paper') : null; } catch (_){ spot = null; }
+      if (spot) contractFieldLight(spot); else if (typeof contractFieldUnlight === 'function') contractFieldUnlight();
+    }
+  });
+  /* a hand leaving the grid lets a repaint asked for meanwhile happen */
+  document.addEventListener('focusout', e => {
+    if (pdOgHostOf(e.target) && typeof contractFieldUnlight === 'function') setTimeout(() => { if (!pdOgHolds()) contractFieldUnlight(); }, 0);
+    if (!_pdOgPending || !pdOgHostOf(e.target)) return;
+    setTimeout(() => { if (!pdOgHolds() && _pdOgPending) pdOgRepaint(); }, 0);
+  });
+  document.addEventListener('change', e => {
+    const t = e.target; const h = pdOgHostOf(t); if (!h) return;
+    const c = pdOgContract(h); if (!c) return;
+    /* a template question's own writer (the Complete-details page's, as there) */
+    if (t.hasAttribute('data-tplf') && typeof tplFormCommit === 'function'){ tplFormCommit(c, Number(t.getAttribute('data-tplf')), t.value); try { detailsChanged(c); } catch (_){} }
+    if (t.getAttribute('data-pd-og-nda') === 'forGood'){ const d = t.closest('tr').querySelector('[data-pd-og-nda="ends"]'); if (d) d.disabled = t.checked; return; }
+    /* an answer stored as the box is left: the dossier is drawn again once the hand leaves the grid (pdGlanceRepaint waits for it) */
+    /* asked after the press that left the box has moved the hand (a click on the next box must land on it) */
+    if (t.matches('[data-kt],[data-ktm],[data-blankf],[data-tplf]')){ _pdOgPending = true; setTimeout(() => { if (_pdOgPending && !pdOgHolds()) pdOgRepaint(); }, 0); }
+  });
+  document.addEventListener('toggle', e => {
+    const f = e.target; if (!(f && f.id === 'pd-kt')) return;
+    _pdKtOpen = f.open ? f.getAttribute('data-pd-og-for') : null;
+    if (!f.open && _pdKtEdit) _pdKtEdit = null;
+  }, true);
+  /* WHAT A BOX HOLDS SHOWS ON THE PAPER AS IT IS TYPED (display only; the box's own writer stores it — the face's rule, pdFillEcho) */
+  document.addEventListener('input', e => {
+    const t = e.target; if (!pdOgHostOf(t)) return;
+    const c = pdOgContract(pdOgHostOf(t)); if (!c) return;
+    const k = pdFillKeyOf(t, c); if (k) pdFillEcho(k, t.value);
+  });
+  document.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    const b = e.target && e.target.closest ? e.target.closest('#ig-dock #pd-needs [data-pd-og-docfill]') : null;
+    if (!b || b.disabled || b.closest('[data-pd-held-dossier]')) return;
+    e.preventDefault(); _pdOgDocDown = true; setTimeout(() => { _pdOgDocDown = false; }, 1500);
+    pdOgDocFill();
+  }, true);
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || e.isComposing) return;
+    const t = e.target; if (!t || !t.closest || t.tagName === 'TEXTAREA') return;
+    const row = t.closest('#pd-og tr[data-pd-og-row], #pd-kt tr.is-changing[data-pd-og-row]'); if (!row) return;
+    e.preventDefault(); const kt = !!row.closest('#pd-kt'); const c = pdOgContract(pdOgHostOf(row)); if (!c) return;
+    if (kt) pdKtDone(c, row.getAttribute('data-pd-og-row')); else pdOgConfirm(c, row.getAttribute('data-pd-og-row'));
+  });
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('#ig-dock')) return;
+    const ok = t.closest('#pd-og [data-pd-og-ok]');
+    if (ok){ e.preventDefault(); const c = pdOgContract(); if (c) pdOgConfirm(c, ok.getAttribute('data-pd-og-ok')); return; }
+    if (t.closest('[data-pd-og-all]') && !t.closest('[data-pd-held-dossier]')){ e.preventDefault(); const c = pdOgContract(); if (!c) return;
+      const keys = pdOgFacts(c).filter(f => f.read).map(f => f.key);
+      let n = 0; keys.forEach(k => { if (pdOgConfirm(c, k, { quiet: true, hold: true })) n++; });
+      pdOgRepaint(); pdOgNext('');
+      if (n) pdOgSay(_pdTn('og_confirmed_n', n, { n }), 'ok');
+      return; }
+    const q = t.closest('#pd-og [data-pd-og-quote], #pd-kt [data-pd-og-quote]');
+    if (q){ e.preventDefault(); if (typeof igQuoteGo === 'function') igQuoteGo(q.getAttribute('data-pd-og-quote')); return; }
+    const sp = t.closest('#pd-og [data-pd-og-spot]');
+    if (sp){ e.preventDefault(); let el = null; try { el = (typeof contractFieldPeer === 'function') ? contractFieldPeer(sp.getAttribute('data-pd-og-spot'), 'paper') : null; } catch (_){ el = null; }
+      if (el && typeof landOn === 'function') landOn(el, { block: 'center', focus: false }); else pdOgSay(_pdT('og_not_on_paper'));
+      return; }
+    const ch = t.closest('#pd-kt [data-pd-kt-change]');
+    if (ch){ e.preventDefault(); const c = pdOgContract(pdOgHostOf(ch)); if (!c) return; pdKtOpen(c.id, ch.getAttribute('data-pd-kt-change')); pdOgRepaint(); return; }
+    const dn = t.closest('#pd-kt [data-pd-kt-done]');
+    if (dn){ e.preventDefault(); const c = pdOgContract(pdOgHostOf(dn)); if (c) pdKtDone(c, dn.getAttribute('data-pd-kt-done')); return; }
+    const df = t.closest('#pd-needs [data-pd-og-docfill]');
+    if (df && !t.closest('[data-pd-held-dossier]')){ e.preventDefault(); if (_pdOgDocDown){ _pdOgDocDown = false; return; } pdOgDocFill(); return; }
+    const pay = t.closest('#pd-og [data-pd-og-pay], #pd-kt [data-pd-og-pay]');
+    if (pay){ e.preventDefault(); if (typeof payEditOpen === 'function') payEditOpen(pay.getAttribute('data-pd-og-pay')); return; }
+  });
+}
+/* LAND ON THE ROW (every Fill in door since the face retired): the paper on
+   the Dossier, the grid's row brought into view and lit, its box in the hand
+   — bounded, because the dossier is painted by the render the landing asks for */
+let _pdOgLand = null;
+function pdOgLand(id, key){
+  _pdOgLand = { id: String(id), key: key ? String(key) : '' };
+  let tries = 0;
+  const go = () => {
+    const want = _pdOgLand; if (!want) return;
+    const host = pdOgHost();
+    if (host && host.getAttribute('data-pd-og-for') === want.id){
+      _pdOgLand = null;
+      const q = want.key ? `tr[data-pd-og-row="${CSS.escape(want.key)}"]:not(.is-saved)` : 'tr.pd-og-row:not(.is-saved)';
+      /* a fact already answered is changed on its Key terms line, not the first owed row */
+      if (want.key && !host.querySelector(q)){ const c = pdOgContract(host);
+        if (c && pdKtFacts(c).some(f => f.key === want.key)){ pdKtOpen(want.id, want.key); return; } }
+      const row = host.querySelector(q) || host.querySelector('tr.pd-og-row:not(.is-saved)');
+      if (!row) return;
+      if (typeof landOn === 'function') landOn(row, { block: 'center', focus: false });
+      const box = row.querySelector('input:not([type=checkbox]):not([disabled]), select, textarea');
+      if (box) try { box.focus({ preventScroll: true }); } catch (_){}
+      return;
+    }
+    /* nothing owed any more: the Still owed card itself */
+    const card = document.querySelector(`#ig-dock #pd-needs[data-pd-needs-for="${CSS.escape(want.id)}"]`);
+    if (card && !host){ _pdOgLand = null;
+      const c = pdContract();
+      if (want.key && c && String(c.id) === want.id && pdKtFacts(c).some(f => f.key === want.key)){ pdKtOpen(want.id, want.key); return; }
+      if (typeof landOn === 'function') landOn(card, { block: 'nearest', focus: false }); return; }
+    if (++tries < PD_FILL_TRIES) setTimeout(go, PD_FILL_BEAT_MS); else _pdOgLand = null;
+  };
+  setTimeout(go, PD_FILL_BEAT_MS);
+}
+function pdGlanceHtml(c, o){
   if (!c) return '';
   const D = dossierOf(c);
-  return `<div id="pd-glance" class="pd-dossier" data-pd-glance-for="${_pdE(c.id)}">${dossierSpineHtml(D)}${dossierReadHtml(c, D)}${dossierOwedHtml(c, D)}</div>`;
+  /* A PRIVATE CONTRACT SAYS WHO MAY OPEN IT, beside the paper too (the Board card's own row, bsPrivateOf; the Fill in face said it) */
+  let P = null; try { P = (!(o && o.held) && typeof bsPrivateOf === 'function') ? bsPrivateOf(c) : null; } catch (_){ P = null; }
+  const priv = P ? `<div class="pd-glance ds-card ds-private" data-pd-ds-card="private"><div class="pd-gl-b">${pdCardGlanceRowHtml(c, { k: 'private', P })}</div></div>` : '';
+  return `<div id="pd-glance" class="pd-dossier" data-pd-glance-for="${_pdE(c.id)}">${priv}${dossierSpineHtml(D)}${dossierReadHtml(c, D)}${dossierOwedHtml(c, D, o)}${(o && o.held) ? '' : pdKtHtml(c)}</div>`;
 }
 /* ---- WHAT JAMBO FOUND, SAID WHERE IT IS (owner picked "Jambo's tray" by
    name, round 5, 17 Oct 2026) ----
@@ -3582,8 +4149,11 @@ function pdGlanceDone(c, rows, said){
 function pdGlanceRepaint(){
   const el = (typeof document !== 'undefined') ? document.getElementById('pd-glance') : null; if (!el) return;
   const c = pdContract(); if (!c || String(c.id) !== el.getAttribute('data-pd-glance-for')) return;
+  /* a hand in the grid keeps its box: drawn again once it leaves */
+  if (pdOgHolds()){ _pdOgPending = true; return; }
   const t = document.createElement('div'); t.innerHTML = pdGlanceHtml(c);
   const nu = t.firstElementChild; if (nu && nu.outerHTML !== el.outerHTML) el.replaceWith(nu);
+  pdOgPaint();
 }
 /* what Jambo's tab draws at its top on Home's Document face: the wall's
    greeting and drop area, or the paper's contract at a glance */
@@ -4264,7 +4834,7 @@ function pdHeldTopHtml(){
    an act wired here. */
 const PD_HELD_DOS_TRIES = 40;
 function pdCardDossierHtml(c){
-  const g = pdGlanceHtml(c).replace('<div id="pd-glance" class="pd-dossier"', '<div id="pd-glance" class="pd-dossier" data-pd-held-dossier');
+  const g = pdGlanceHtml(c, { held: true }).replace('<div id="pd-glance" class="pd-dossier"', '<div id="pd-glance" class="pd-dossier" data-pd-held-dossier');
   const nx = pdNextUpHtml(c).replace('class="pd-menu pd-nx ds-nx"', 'class="pd-menu ds-nx" data-pd-held-dossier');
   /* A PRIVATE CONTRACT SAYS WHO MAY OPEN IT FIRST, as the card did (bsPrivateOf, the card's own row) */
   let P = null; try { P = (typeof bsPrivateOf === 'function') ? bsPrivateOf(c) : null; } catch (_){ P = null; }
@@ -4289,6 +4859,11 @@ if (typeof document !== 'undefined' && !document._pdHeldDosWired){
     e.preventDefault(); e.stopPropagation();
     if (b.disabled) return;
     const id = host.getAttribute('data-pd-glance-for') || host.getAttribute('data-pd-menu'), sel = pdHeldDoorSel(b);
+    /* a grid row beside the Board: the paper, its row ready (the Board reads, the paper takes the answer) */
+    const og = b.getAttribute('data-pd-og-go');
+    if (id && og != null){ ['pdFillAway', 'pdRedAway', 'pdSignAway'].forEach(f => { if (typeof window[f] === 'function') try { window[f](); } catch (_){} });
+      if (pdTalkShows()) try { pdTalkBack(); } catch (_){}
+      pdFillOpen(id, { key: og }); return; }
     if (!id || !sel) return;
     /* the dossier itself, not a face left up over it */
     ['pdFillAway', 'pdRedAway', 'pdSignAway'].forEach(f => { if (typeof window[f] === 'function') try { window[f](); } catch (_){} });
@@ -4439,7 +5014,7 @@ if (typeof document !== 'undefined' && !document._pdTrailEsc){
     if (pdTrailBack() || (typeof jamboTalkBack === 'function' && jamboTalkBack())) e.preventDefault();
   });
 }
-Object.assign(window, { pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
+Object.assign(window, { pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
   PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdTalkKey, pdTalkShows, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,

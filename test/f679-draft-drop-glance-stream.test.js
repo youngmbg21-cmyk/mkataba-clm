@@ -344,10 +344,12 @@ describe('f679 (5) a contract at a glance', () => {
        Risks tab), Still owed (each owed thing with its own door) */
     const html = ctx.pdGlanceHtml(ctx.pdContract());
     assert.match(html, /class="ds-spine/, 'the stage is the spine');
-    assert.match(html, /dos_owed_title\[[^\]]*\][\s\S]*dos_fill_more:3[\s\S]*data-pd-ds-fill=/);
+    /* RE-POINTED 20 Oct 2026 (owner picked "The Legora way"): the owed facts
+       are the grid's rows, answered there — the signers on one row */
+    assert.match(html, /dos_owed_title\[[^\]]*\][\s\S]*id="pd-og"/);
+    assert.match(html, /data-pd-og-row="signers"[\s\S]*data-pd-og-ok="signers"/);
     assert.match(html, /data-pd-ds="risks"[\s\S]*data-pd-gl-risks>dos_go_open/);
     assert.match(html, /pd_gl_unsent:1[\s\S]*data-pd-glance="share"/);
-    assert.match(html, /dos_signer[\s\S]*data-pd-glance="sign"/);
   });
   test('5a2 risks are counted only where the Redlines face lists them: a scan run, the wording this person may act on', () => {
     assert.deepEqual(J(pdStage({ risks: 2, scan: false }).ctx.pdGlanceRows(pdStage({ risks: 2, scan: false }).c)), [], 'no scan: the face offers the scan, not a count');

@@ -52,29 +52,31 @@ const CONTRACT = (id, over) => Object.assign({
    Fill in face beside Home's paper. The form is the face's #pd-fill (was
    #tplform-section), the paper is Home's #ig-canvas (was #doc-canvas). The
    face is waited for by THIS contract's id: the last one's can linger. */
+/* RE-POINTED 20 Oct 2026 (the Legora way): the same door lands on the
+   Dossier's Still owed grid (#pd-og) beside Home's paper; Fill the document
+   is a line of Still owed while the answers are owed to the wording */
 const openDocs = async (page, id) => {
   for (let t0 = Date.now(); Date.now() - t0 < 10000;) {
-    if (await page.evaluate(x => state.view === 'dashboard' && window.pdFillShows && pdFillShows()
-      && !!document.querySelector(`#pd-fillface .pd-ff[data-pd-ff="${x}"] #pd-fill`) && !!document.querySelector('#ig-canvas'), id)) break;
+    if (await page.evaluate(x => state.view === 'dashboard' && !!document.querySelector(`#pd-og[data-pd-og-for="${x}"]`) && !!document.querySelector('#ig-canvas'), id)) break;
     await page.evaluate(x => { roomGoTab(getContract(x), 'details'); }, id);
     await page.waitForTimeout(300);
   }
-  await waitFor(page, () => !!document.querySelector('#pd-fill input'));
+  await waitFor(page, () => !!document.querySelector('#pd-og input'));
 };
 const paperText = page => page.evaluate(() => (document.getElementById('ig-canvas') || {}).textContent || '');
 /* RE-POINTED 18 Oct 2026 (the gaps, round 8 "Owed first", f751): on Home's
    Fill in the press is in the document's own card, as drawn — the form's own
    button pressed (the one act), its state the form's own */
 const fillBtn = page => page.evaluate(() => {
-  const b = document.querySelector('#pd-fillface [data-pd-ff-docfill]');
+  const b = document.querySelector('#pd-needs [data-pd-og-docfill]');
   if (!b) return null;
-  const host = document.querySelector('#pd-fillface .pd-ff');
+  const host = document.querySelector('#pd-needs');
   const probe = document.createElement('span');
   probe.style.background = 'var(--color-accent-50)'; document.body.appendChild(probe);
   const want = getComputedStyle(probe).backgroundColor; probe.remove();
   const br = b.getBoundingClientRect(), hr = host.getBoundingClientRect();
   return { text: b.textContent.trim(), disabled: b.disabled, bg: getComputedStyle(b).backgroundColor, want,
-    atFoot: br.top > hr.top + hr.height / 2, inCard: !!b.closest('[data-pd-ff-doc]'), title: b.title };
+    atFoot: br.top > hr.top + hr.height / 2, inCard: !!b.closest('#pd-needs [data-pd-gl="docfill"]'), title: b.title };
 });
 const owed = (page, id) => page.evaluate(x => {
   const c = state.contracts.find(k => k.id === x);
@@ -115,7 +117,7 @@ const owed = (page, id) => page.evaluate(x => {
 
     /* ===== 1. ONE PRESS TO THE NEXT BOX ===== */
     await openDocs(page, 'MK-FD1');
-    const b0 = '#pd-fill [data-tplf="0"]', b1 = '#pd-fill [data-tplf="1"]';
+    const b0 = '#pd-og [data-tplf="0"]', b1 = '#pd-og [data-tplf="1"]';
     const there = await page.evaluate(s => !!document.querySelector(s), b1);
     if (there) {
       await page.click(b0);
@@ -136,8 +138,11 @@ const owed = (page, id) => page.evaluate(x => {
        What waits for the press is the stored wording, so that is read here. */
     const w2 = await page.evaluate(() => String((state.contracts.find(k => k.id === 'MK-FD1') || {}).redlineText || ''));
     check('2b the wording waits for the press', !!w2 && !w2.includes('Wanjiru Catering Ltd'), w2 ? '' : 'no wording');
+    /* the hand leaves the grid: Still owed is drawn again with what it now owes */
+    await page.evaluate(() => document.activeElement && document.activeElement.blur());
+    await waitFor(page, () => !!document.querySelector('#pd-needs [data-pd-og-docfill]'), undefined, 4000);
     const fb = await fillBtn(page);
-    check('2c "Fill the document" sits in the document\'s card, as drawn', !!fb && fb.inCard && /Fill the document/.test(fb.text), fb && fb.text);
+    check('2c "Fill the document" is a line of Still owed while the answers are owed', !!fb && fb.inCard && /Fill the document/.test(fb.text), fb && fb.text);
     check('2d and it is lit while answers are owed', !!fb && !fb.disabled);
 
     /* ===== 3. A FORGOTTEN PRESS NEVER TRAVELS ===== */
@@ -152,8 +157,9 @@ const owed = (page, id) => page.evaluate(x => {
     await waitFor(page, () => !!window.state && Array.isArray(state.contracts) && state.contracts.length > 0);
     await openDocs(page, 'MK-FD1');
     const fbR = await fillBtn(page);
+    /* answered, the company is a Key terms line now; the provider is still the grid's */
     check('2f after a refresh the answer is still there and still owed', !!fbR && !fbR.disabled
-      && (await page.evaluate(s => (document.querySelector(s) || {}).value, b0)) === 'Wanjiru Catering Ltd');
+      && /Wanjiru Catering Ltd/.test(await page.evaluate(() => ((document.querySelector('#pd-kt tr[data-pd-og-row="company"] .pd-kt-v') || {}).textContent || ''))));
 
     /* ===== 4. THE PRESS FILLS THE PAPER ===== */
     const press = {};
@@ -163,13 +169,13 @@ const owed = (page, id) => page.evaluate(x => {
        press, not the one they were drawn with — staged here every run. */
     await page.evaluate(() => { const i = state.contracts.findIndex(k => k.id === 'MK-FD1');
       if (i >= 0) state.contracts[i] = JSON.parse(JSON.stringify(state.contracts[i])); });
-    if (await page.evaluate(s => !!document.querySelector(s), b1)) {
-      await page.click(b1);
+    if (await page.evaluate(s => !!document.querySelector(s), '#pd-og [data-tplf="1"]')) {
+      await page.click('#pd-og [data-tplf="1"]');
       await page.keyboard.type('Juno Limited');
       /* WHAT THE PRESS MET, said in 4a's detail when it fails (8 Oct 2026):
          CI failed this step on runs that pass locally, so the reading is
          taken where the runner is, not guessed at. */
-      press.before = await page.evaluate(() => { const b = document.querySelector('#pd-fillface [data-pd-ff-docfill]');
+      press.before = await page.evaluate(() => { const b = document.querySelector('#pd-needs [data-pd-og-docfill]');
         if (!b) return 'no button'; const r = b.getBoundingClientRect(); const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
         return { disabled: b.disabled, onTop: at === b || b.contains(at) ? 'button' : (at ? (at.id || at.className || at.tagName) : 'nothing'),
           y: Math.round(r.top), vh: innerHeight, focused: (document.activeElement || {}).getAttribute ? document.activeElement.getAttribute('data-tplf') : null }; });
@@ -177,7 +183,7 @@ const owed = (page, id) => page.evaluate(x => {
          the button's centre on its icon, and the commit that leaving the box
          makes repainted the button's insides between mouse-down and mouse-up,
          so the click was dropped. Pressing there stages it here. */
-      const spot = await page.evaluate(() => { const b = document.querySelector('#pd-fillface [data-pd-ff-docfill]');
+      const spot = await page.evaluate(() => { const b = document.querySelector('#pd-needs [data-pd-og-docfill]');
         const i = b && (b.querySelector('svg') || b.firstElementChild); const r = (i || b).getBoundingClientRect();
         return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
       try { await page.mouse.move(spot.x, spot.y); await page.mouse.down(); await page.mouse.up(); }
@@ -185,9 +191,9 @@ const owed = (page, id) => page.evaluate(x => {
       /* A WAIT ASKS FOR THE STATE, BOUNDED (7 Oct 2026): a fixed 500ms was
          too short on a loaded CI runner, where the press had not finished
          repainting the paper when the reading was taken. */
-      await waitFor(page, () => { const b = document.querySelector('#pd-fillface [data-pd-ff-docfill]');
+      await waitFor(page, () => { const b = document.querySelector('#pd-needs [data-pd-og-docfill]');
         const t = (document.getElementById('ig-canvas') || {}).textContent || '';
-        return !!b && b.disabled && t.includes('Juno Limited'); }, undefined, 10000);
+        return !b && t.includes('Juno Limited'); }, undefined, 10000);
     }
     const t4 = await paperText(page);
     press.after = await page.evaluate(() => { const c = state.contracts.find(k => k.id === 'MK-FD1');
@@ -196,23 +202,27 @@ const owed = (page, id) => page.evaluate(x => {
     const p4 = t4.includes('Wanjiru Catering Ltd') && t4.includes('Juno Limited');
     check('4a the paper carries both answers', p4, p4 ? '' : JSON.stringify(press));
     const fb4 = await fillBtn(page);
-    check('4b and the button goes quiet', !!fb4 && fb4.disabled && /Document filled/.test(fb4.text), fb4 && fb4.text);
+    check('4b and the line goes from Still owed', !fb4, fb4 && fb4.text);
     const o4 = await owed(page, 'MK-FD1');
     check('4c nothing owed any more', !o4.link && !o4.sign, JSON.stringify(o4));
 
     /* ===== 5. THE BLANKS PANEL IS ONE PRESS TOO ===== */
     await openDocs(page, 'MK-FD2');
     /* the boxes still open: the answered ones fold under "Show N filled" */
-    const keys = await page.evaluate(() => [...document.querySelectorAll('#pd-fill [data-blankf]')]
-      .filter(b => !b.closest('details'))
-      .filter(b => b.type === 'text' || b.type === 'number' || b.tagName === 'INPUT').map(b => b.getAttribute('data-blankf')));
+    /* RE-POINTED 20 Oct 2026 (the Legora way): the grid's own boxes — a blank
+       the paper asks and the record's own facts — one click from one to the next */
+    const keys = await page.evaluate(() => [...document.querySelectorAll('#pd-og tr:not(.is-saved) input')]
+      .filter(b => b.type === 'text' || b.type === 'number').map(b => b.getAttribute('data-blankf') ? 'blankf:' + b.getAttribute('data-blankf') : 'kt:' + b.getAttribute('data-kt')));
+    const sel5 = k => { const [a, v] = k.split(':'); return `#pd-og [data-${a}="${v}"]`; };
     let focus5 = null;
-    if (keys.length >= 3) {
-      await page.click(`#pd-fill [data-blankf="${keys[1]}"]`);
+    if (keys.length >= 2) {
+      const from = keys.find(k => k.startsWith('blankf:')) || keys[0], to = keys.find(k => k !== from);
+      keys.splice(0, keys.length, null, from, to);
+      await page.click(sel5(from));
       await page.keyboard.type('11');
-      await page.click(`#pd-fill [data-blankf="${keys[2]}"]`);
+      await page.click(sel5(to));
       await page.waitForTimeout(400);
-      focus5 = await page.evaluate(() => (document.activeElement || {}).getAttribute?.('data-blankf'));
+      focus5 = await page.evaluate(() => { const a = document.activeElement || {}; return a.getAttribute ? (a.getAttribute('data-blankf') ? 'blankf:' + a.getAttribute('data-blankf') : 'kt:' + a.getAttribute('data-kt')) : null; });
     }
     check('5 the built-in blanks panel: one click on the next box', focus5 && focus5 === keys[2], `${focus5} vs ${keys[2]}`);
 
@@ -227,8 +237,9 @@ const owed = (page, id) => page.evaluate(x => {
     }).catch(() => null);
     let ov2 = ov;
     if (!ov2) {
-      /* Fill from document rides the Details tab (12 Oct 2026) */
-      await page.evaluate(() => { openWorkspace('MK-FD2', { room: true }); roomGoTab(getContract('MK-FD2'), 'details'); });
+      /* Fill from document rides the Details tab (12 Oct 2026); RE-POINTED 20 Oct
+         2026 (the Legora way): it is the Overview sheet's, on the Board's card */
+      await page.evaluate(() => { const s = hbS(); s.face = 'board'; hbSave(); setView('dashboard'); hbStripBring('MK-FD2', 'details'); });
       await waitFor(page, () => !!document.getElementById('kt-fill'));
       ov2 = await page.evaluate(() => {
         const b = document.getElementById('kt-fill');

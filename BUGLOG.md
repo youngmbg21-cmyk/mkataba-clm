@@ -21218,3 +21218,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 
 ## Noticed, not fixed (20 Oct 2026, the draft navigation fix)
 - one-sheet-as-drawn-verify 5b is red on main too: the New agreement sheet now says "only Counterparty and Value stream are needed now" (the stream box counts as needed since the amber-stream change), the check still expects "only Counterparty". Left red.
+- 20 Oct 2026 · Noticed, not fixed: one-sheet-as-drawn-verify 5b is red on main too ("only Counterparty and Value stream are needed now" vs the drawn "only Counterparty").

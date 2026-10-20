@@ -4892,7 +4892,7 @@ function roomOverviewOpen(c){
   return true;
 }
 /* published beside their definitions (the file's export list stays the one at its end) */
-Object.assign(window, { ovSheetPaint, ovRecordOpen, roomOverviewOpen, ovEssRestCells, cnEditOpen, cnRowPaint });
+Object.assign(window, { ovSheetPaint, ovRecordOpen, roomOverviewOpen, ovEssRestCells, ovEssKeys, uploadPartyOptions, cnEditOpen, cnRowPaint });
 /* ---- Document workspace right-panel: two tabs (Screening | Signing) --------
    Screening (default while a contract is in progress) stacks Playbook review →
    Insert clause → Copilot Contract Scan, with a "Next: Signing" button. Signing
@@ -6461,6 +6461,9 @@ function renderKeyTerms(c){
      them, so there is no second way in and nothing to keep in step. */
   host.querySelectorAll('[data-ov-edit]').forEach(b=>b.addEventListener('click',()=>{
     const k=b.getAttribute('data-ov-edit');
+    /* THE BOARD READS (owner, 20 Oct 2026, the Legora way): the sheet drawn on
+       the Board's card opens the paper with its Key terms unfolded instead */
+    if(k==='all'&&host.closest&&host.closest('#hb-board')&&window.pdKtOpen&&!ovEditing(OV_KEY(c,'deal'))){ pdKtOpen(c.id); return; }
     /* `all` is the sheet's one Edit: both postures on, or both off. */
     if(k==='all'){
       const dk=OV_KEY(c,'deal'), rk=OV_KEY(c,'record');
@@ -10318,8 +10321,9 @@ function blankFormInputHtml(b){
    the box it is drawn in and the paper it lights differ. Home is the host while
    Home's page is up and has drawn the slot. */
 function formOnHome(){
+  /* the Fill in face's slot, or (the Legora way, 20 Oct 2026) the Dossier's grid, or its Key terms */
   return !!(typeof state === 'object' && state && state.view === 'dashboard'
-    && typeof document !== 'undefined' && document.getElementById('pd-fill'));
+    && typeof document !== 'undefined' && (document.getElementById('pd-fill') || document.getElementById('pd-og') || document.getElementById('pd-kt')));
 }
 function formHostEl(){ return document.getElementById(formOnHome() ? 'pd-fill' : 'tplform-section'); }
 function formPaperEl(){ return document.getElementById(formOnHome() ? 'ig-canvas' : 'doc-canvas'); }

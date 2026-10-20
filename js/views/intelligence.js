@@ -7921,7 +7921,10 @@ function renderIntelDock(){
   { const ae=document.activeElement;
     const ff=ae&&ae.closest?ae.closest('#ig-dock #pd-fillface'):null;
     const ffMine=()=>{ const r=ff.querySelector('.pd-ff[data-pd-ff]'); return !!(r&&window.pdFillFor&&r.getAttribute('data-pd-ff')===pdFillFor()); };
-    if(intel.dockOpen&&ae&&ae.closest&&(ff?(window.pdFillShows&&pdFillShows()&&ffMine()):ae.closest('#ig-dock #pd-fill'))){ if(window.pdTrailSync) pdTrailSync(); return; } }
+    if(intel.dockOpen&&ae&&ae.closest&&(ff?(window.pdFillShows&&pdFillShows()&&ffMine()):ae.closest('#ig-dock #pd-fill'))){ if(window.pdTrailSync) pdTrailSync(); return; }
+    /* THE GRID (the Legora way, 20 Oct 2026): a hand in a Still owed box keeps it while the Dossier is still the tab */
+    const og=ae&&ae.closest?ae.closest('#ig-dock #pd-og'):null;
+    if(og&&intel.dockOpen&&window.pdOgShows&&window.pdContract&&pdContract()&&String(pdContract().id)===og.getAttribute('data-pd-og-for')&&pdOgShows(pdContract())) return; }
   if(!intel.dockOpen){
     /* HIS FACE ON THE FOLDED STRIP (owner picked "Tabs and faces" by name,
        round 3, 17 Oct 2026): Jambo himself with the count his tab carries
@@ -8132,6 +8135,10 @@ function renderIntelDock(){
   if(window.pdShowsDesk&&pdShowsDesk()&&window.pdTab&&pdTab()==='menu'&&typeof window.pdMenuWire==='function'){ const pc=pdContract(); if(pc) try{ pdMenuWire(pc); }catch(_){ } }
   /* "Next up" on the Overview, wired by the Menu's own wiring (owner, 20 Oct 2026) */
   { const nx=dock.querySelector('.pd-nx'); if(nx&&typeof window.pdMenuWire==='function'){ const pc=pdContract(); if(pc) try{ pdMenuWire(pc, nx); }catch(_){ } } }
+  /* the Still owed grid's boxes wear HaTi's own date and choice faces (the Legora way) */
+  { const og=dock.querySelector('#pd-og'); if(og&&typeof window.pdOgPaint==='function') try{ pdOgPaint(og); }catch(_){ } }
+  /* …and the paper's owed blanks wear amber while the grid asks them, not once it is put away */
+  if(window.pdFillPaperMarks&&window.pdContract){ const pc=pdContract(); if(pc) try{ pdFillPaperMarks(pc); }catch(_){ } }
   // charts in dock answers come back to life after every repaint
   if(typeof aiHydrateCharts==='function'){
     const blocks=intel.history.flatMap(m=>(m&&m.blocks)||[]);

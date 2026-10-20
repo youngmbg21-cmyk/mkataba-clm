@@ -112,35 +112,49 @@ const ND5 = nda('ND-5', 'Mutual NDA — Retail Pilot', 'Naivas Supermarkets', 'U
     await P.screenshot({ path: path.join(OUT, '1-mutual-rest.png') });
 
     /* ============ 2. THE EDITOR, CONFIRM, THE REMINDER ============ */
+    /* RE-POINTED 20 Oct 2026 (the Legora way, owner: "we should not be entering
+       information in the board"): the tile's door opens the paper with the NDA's
+       lines under Key terms, each changed on its line — the clause it was read
+       from quoted there, for good and trade secrets, who the reminder goes to,
+       and Done; nothing is typed on the Board */
     await press(P, '#bs-strip-ND-1 [data-bs-kpi="value"] [data-bs-nda-edit]');
-    const ed = await until(P, () => !!document.querySelector('#bs-strip-ND-1 .bs-nda .bs-nda-ed'));
-    const E = await P.evaluate(() => { const e = document.querySelector('#bs-strip-ND-1 .bs-nda-ed'); if (!e) return null;
-      return { q: e.querySelector('.bs-nda-q').innerText, dir: e.querySelector('[data-bs-nda-f="dir"]').value, ends: e.querySelector('[data-bs-nda-f="ends"]').value,
-        trade: e.querySelector('[data-bs-nda-f="trade"]').checked, good: e.querySelector('[data-bs-nda-f="forGood"]').checked, note: e.querySelector('.bs-note').innerText,
-        acts: [...e.querySelectorAll('.bs-pay-acts button')].map(b => b.innerText) }; });
-    check(ed && !!E && /^Read from clause 5: /.test(E.q) && /survive for a period of three \(3\) years/.test(E.q), '2a the editor opens where the line was, quoting the clause it read', E && E.q);
-    check(!!E && E.dir === 'mutual' && E.ends === '2030-07-31' && E.trade && !E.good, '2b it opens on the reading: mutual, 31 Jul 2030, trade secrets', E && JSON.stringify(E));
-    check(!!E && new RegExp(`A reminder goes to ${me.name} a month before`).test(E.note) && E.acts.join(',') === 'Confirm,Cancel', '2c it says who the reminder goes to; Confirm first, Cancel last', E && `${E.note} / ${E.acts}`);
+    const ed = await until(P, () => !!document.querySelector('#pd-kt[open] tr[data-pd-og-row="ndaDir"].is-changing'));
+    const E = await P.evaluate(() => { const k = document.getElementById('pd-kt'); if (!k) return null;
+      const ends = k.querySelector('tr[data-pd-og-row="ndaEnds"]'), dir = k.querySelector('tr[data-pd-og-row="ndaDir"]');
+      return { q: ((ends && ends.querySelector('.pd-og-src q')) || {}).title || '', clause: ((ends && ends.querySelector('.pd-og-cl')) || {}).textContent || '',
+        dir: (dir.querySelector('[data-pd-og-nda="dir"]') || {}).value, face: hbS().face }; });
+    check(ed && !!E && E.face === 'paper' && E.clause === '§5' && /survive for a period of three \(3\) years/.test(E.q), '2a the paper\'s Key terms open, the line quoting the clause it read', E && JSON.stringify(E));
+    await press(P, '#pd-kt [data-pd-kt-change="ndaEnds"]');
+    await until(P, () => !!document.querySelector('#pd-kt tr[data-pd-og-row="ndaEnds"].is-changing [data-pd-og-nda="ends"]'));
+    const E2 = await P.evaluate(() => { const r = document.querySelector('#pd-kt tr[data-pd-og-row="ndaEnds"]'); if (!r) return null;
+      return { ends: r.querySelector('[data-pd-og-nda="ends"]').value, good: r.querySelector('[data-pd-og-nda="forGood"]').checked, trade: r.querySelector('[data-pd-og-nda="trade"]').checked,
+        note: (r.querySelector('.pd-og-remind') || {}).textContent || '', acts: [...r.querySelectorAll('.pd-og-a button')].map(b => b.innerText) }; });
+    check(!!E && E.dir === 'mutual' && !!E2 && E2.ends === '2030-07-31' && E2.trade && !E2.good, '2b it opens on the reading: mutual, 31 Jul 2030, trade secrets', E2 && JSON.stringify(E2));
+    check(!!E2 && new RegExp(`A reminder goes to ${me.name} a month before`).test(E2.note) && E2.acts.join(',') === 'Done', '2c it says who the reminder goes to; Done on its line', E2 && `${E2.note} / ${E2.acts}`);
     await P.screenshot({ path: path.join(OUT, '2-editor.png') });
-    /* Cancel keeps nothing */
-    /* the day box wears HaTi's own picker; a pick writes the box underneath and says so */
-    await P.evaluate(() => { const i = document.querySelector('#bs-strip-ND-1 [data-bs-nda-f="ends"]'); if (!i) return; i.value = '2031-01-31'; i.dispatchEvent(new Event('change', { bubbles: true })); });
-    await press(P, '#bs-strip-ND-1 [data-bs-nda-cancel]');
-    const cancelled = ed && await until(P, () => !document.querySelector('#bs-strip-ND-1 .bs-nda-ed') && !getContract('ND-1').nda);
-    check(!!cancelled, '2d Cancel puts the line back and keeps nothing');
-    await press(P, '#bs-strip-ND-1 [data-bs-kpi="value"] [data-bs-nda-edit]');
-    await until(P, () => !!document.querySelector('#bs-strip-ND-1 [data-bs-nda-save]'));
-    await press(P, '#bs-strip-ND-1 [data-bs-nda-save]');
+    /* folding Key terms away keeps nothing */
+    await P.evaluate(() => { const i = document.querySelector('#pd-kt [data-pd-og-nda="ends"]'); if (!i) return; i.value = '2031-01-31'; i.dispatchEvent(new Event('change', { bubbles: true })); });
+    await P.evaluate(() => { const k = document.getElementById('pd-kt'); if (k) k.open = false; });
+    const cancelled = ed && await until(P, () => !getContract('ND-1').nda);
+    check(!!cancelled, '2d folding it away puts the line back and keeps nothing');
+    await P.evaluate(() => pdKtOpen('ND-1', 'ndaDir'));
+    await until(P, () => !!document.querySelector('#pd-kt [data-pd-kt-done="ndaDir"]'));
+    await press(P, '#pd-kt [data-pd-kt-done="ndaDir"]');
+    await until(P, () => !!document.querySelector('#pd-kt [data-pd-kt-change="ndaEnds"]'));
+    await press(P, '#pd-kt [data-pd-kt-change="ndaEnds"]');
+    await until(P, () => !!document.querySelector('#pd-kt [data-pd-kt-done="ndaEnds"]'));
+    await press(P, '#pd-kt [data-pd-kt-done="ndaEnds"]');
     const srv = !ed ? null : await untilServer(W, 'ND-1', c => c.nda && c.nda.ends === '2030-07-31' && (c.obligations || []).some(o => o.origin === 'nda'));
     const rem = srv && srv.obligations.find(o => o.origin === 'nda');
-    check(!!srv && srv.nda.dir === 'mutual' && srv.nda.who === me.name && srv.nda.trade === true, '2e Confirm stores the facts, and the server names who confirmed', srv && JSON.stringify(srv.nda));
+    check(!!srv && srv.nda.dir === 'mutual' && srv.nda.who === me.name && srv.nda.trade === true, '2e Done stores the facts, and the server names who confirmed', srv && JSON.stringify(srv.nda));
     check(!!rem && rem.due === '2030-06-30' && rem.party === 'ours' && rem.assignee === me.name && rem.status === 'open' && srv.nda.ob === rem.id,
       '2f the reminder is an ordinary obligation, ours, the owner\'s, a month before', rem && JSON.stringify(rem));
-    await until(P, () => !document.querySelector('#bs-strip-ND-1 .bs-nda-ed') && /Confirmed by/.test((document.querySelector('#bs-strip-ND-1 [data-bs-kpi="value"]') || {}).innerText || ''));
+    const toasted = await P.evaluate(() => [...document.querySelectorAll('.toast, [class*="toast"]')].some(t => /Confidentiality confirmed/.test(t.innerText || '')));
+    await bring('ND-1');
+    await until(P, () => /Confirmed by/.test((document.querySelector('#bs-strip-ND-1 [data-bs-kpi="value"]') || {}).innerText || ''));
     s1 = await strip('ND-1');
     check(!!s1 && new RegExp(`Confirmed by ${me.name}`).test(s1.tile) && !s1.markBtn, '2g the tile now says who confirmed it, and the mark is gone', s1 && s1.tile);
     check(!!s1 && /Reminder 30 Jun 2030/.test(s1.svg) && /^Next obligation 30 Jun 2030 Secrecy ends 31 Jul 2030/.test(s1.next), '2h the line and Next obligation carry the reminder', s1 && `${s1.next} | ${s1.svg}`);
-    const toasted = await P.evaluate(() => [...document.querySelectorAll('.toast, [class*="toast"]')].some(t => /Confidentiality confirmed/.test(t.innerText || '')));
     check(toasted, '2i a confirmation says it was saved');
     await P.screenshot({ path: path.join(OUT, '2-confirmed.png') });
 
@@ -162,11 +176,11 @@ const ND5 = nda('ND-5', 'Mutual NDA — Retail Pilot', 'Naivas Supermarkets', 'U
     const D4 = await P.evaluate(() => { const e = document.querySelector('#bs-strip-ND-4 #ov-ess'); return e ? { t: e.innerText.replace(/\s+/g, ' '), door: !!e.querySelector('[data-ov-nda-edit]') } : null; });
     check(det && !!D4 && /Secret until/.test(D4.t) && /Who keeps it secret Both sides \(mutual\)/.test(D4.t) && D4.door && !/Payment terms/.test(D4.t),
       '4c the Details sheet\'s eight carry the two facts in place of value and payment terms, with the door', D4 && D4.t.slice(0, 260));
+    /* RE-POINTED 20 Oct 2026 (the Legora way): owed, the facts are the paper's grid rows */
     await press(P, '#bs-strip-ND-4 #ov-ess [data-ov-nda-edit]');
-    check(await until(P, () => !!document.querySelector('#bs-strip-ND-4 .bs-nda-ed')), '4d the cell\'s door opens the same editor on the panel');
-    const unsaid = await P.evaluate(() => (document.querySelector('#bs-strip-ND-4 .bs-nda-q') || {}).innerText || '');
-    check(/does not say how long secrecy lasts/.test(unsaid), '4e the editor says the wording does not say', unsaid);
-    await press(P, '#bs-strip-ND-4 [data-bs-nda-cancel]');
+    check(await until(P, () => !!document.querySelector('#pd-og[data-pd-og-for="ND-4"] tr[data-pd-og-row="ndaDir"]') && hbS().face === 'paper'), '4d the cell\'s door opens the paper, the facts on the grid\'s rows');
+    const unsaid = await P.evaluate(() => (document.querySelector('#pd-og tr[data-pd-og-row="ndaEnds"] .pd-og-src') || {}).innerText || '');
+    check(/not in the wording/.test(unsaid), '4e the grid says the wording does not say', unsaid);
 
     /* ============ 5. A PRIVATE FOLDER'S NDA ============ */
     check(await bring('ND-5'), '5 the private NDA comes up');

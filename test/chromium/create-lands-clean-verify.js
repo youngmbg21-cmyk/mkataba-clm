@@ -116,16 +116,15 @@ const WATCH = () => { window._frames = []; let n = 0;
       cd1 && others1.length === 0 && frames.includes('na'), `${frames.length} frames · others ${JSON.stringify([...new Set(others1)])} · landed ${cd1}`);
     await page.screenshot({ path: path.join(OUT, '02-complete.png') });
 
-    /* ===== 5. ON THE FILL IN FACE, AN OWED DATE IS AMBER TOO ===== */
-    await page.evaluate(() => { const b = document.querySelector('#pd-glance [data-pd-ds-fill]'); if (b) b.click(); });
-    await waitFor(page, () => !!document.getElementById('pd-fillface'), 5000);
+    /* ===== 5. IN STILL OWED'S GRID, AN OWED DATE IS AMBER TOO ===== */
+    await waitFor(page, () => !!document.querySelector('#pd-og .pd-og-row.is-amb .dp-face'), 5000);
     const cdt = await page.evaluate(() => {
       const probe = document.createElement('div'); probe.style.background = 'var(--st-amber-bg)'; document.body.appendChild(probe);
       const amber = getComputedStyle(probe).backgroundColor; probe.remove();
-      const faces = [...document.querySelectorAll('#pd-fillface .cd-fld.is-open .dp-face')];
+      const faces = [...document.querySelectorAll('#pd-og .pd-og-row.is-amb .dp-face')];
       return { n: faces.length, amber: faces.filter(f => getComputedStyle(f).backgroundColor === amber).length };
     });
-    check('5a every owed date on the face wears the amber its neighbours wear', cdt.n > 0 && cdt.amber === cdt.n, JSON.stringify(cdt));
+    check('5a every owed date in the grid wears the amber its neighbours wear', cdt.n > 0 && cdt.amber === cdt.n, JSON.stringify(cdt));
     await page.unroute('**/api/templates/*/contracts');
     await page.evaluate(() => { const b = document.getElementById('cd-later'); if (b) b.click(); }); await pause(500);
     await page.evaluate(() => setView('register')); await pause(500);

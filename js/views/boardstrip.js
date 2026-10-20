@@ -486,6 +486,14 @@ function bsNdaDraft(c){
    the life line was (the Overview's two cells and the tile's mark come here) */
 function ndaEditOpen(id){
   const c = bsContract(id); if (!c || !bsIsNda(c) || !ndaMay(c)) return false;
+  /* THE BOARD READS (owner, 20 Oct 2026, the Legora way): an NDA's facts are
+     answered beside the paper — the grid's row while one is owed, else its
+     line under Key terms, open for changing. (The phone keeps its own.) */
+  if (!bsPhone() && typeof pdFillOpen === 'function' && typeof pdKtOpen === 'function'){
+    let d = null; try { d = (typeof detailsOf === 'function') ? detailsOf(c) : null; } catch (_){ d = null; }
+    const owed = ((d && d.items) || []).find(x => x && x.open && x.kind === 'nda');
+    return owed ? pdFillOpen(c.id, { key: owed.key }) !== false : pdKtOpen(c.id, 'ndaDir') !== false;
+  }
   _bsNda = bsNdaDraft(c);
   const st = bsStrip(id);
   if (!(st && st.page === 'ov' && bsNdaHost(id)) && !hbStripBring(id, 'ov')){ _bsNda = null; return false; }
@@ -524,7 +532,8 @@ function bsNdaTile(c, N){
   const may = ndaMay(c);
   const words = (N.ends || N.forGood) ? (N.clause ? bsT('nda_confirm', { n: N.clause }) : bsT('nda_confirm_noclause'))
     : bsT(N.period ? (may ? 'nda_noend_set' : 'nda_noend') : (may ? 'nda_set' : 'nda_unsaid'));
-  const mark = may ? `<button type="button" class="bs-nda-mark" data-bs-nda-edit="${bsE(c.id)}">${bsE(words)}</button>`
+  /* THE BOARD READS (the Legora way): the state said, and the door beside the paper */
+  const mark = may ? `<span class="bs-nda-mark is-still">${bsE(words)}</span><button type="button" class="bs-nda-mark bs-nda-go" data-bs-nda-edit="${bsE(c.id)}">${bsE(bsT('og_fill_beside'))} ›</button>`
     : `<span class="bs-nda-mark is-still">${bsE(words)}</span>`;
   return { n, sub: words, subHtml: mark };
 }
@@ -1047,7 +1056,9 @@ function bsTermsObsHtml(D){
     const owedNow = cell[3] === 'amber' && !val;
     terms.push(row(String(cell[0] || '').replace(/<[^>]*>/g, ''), val ? val : (owedNow ? bsE(bsT('bs_t_owed')) : '—'), owedNow ? 'is-owed' : (cell[3] === 'amber' ? 'is-amber' : '')));
   });
-  const edit = (typeof canEdit !== 'function' || canEdit()) ? `<button type="button" class="hb-link" data-bs-page="details" data-bs-id="${bsE(c.id)}">${bsE(bsT('bs_t_edit'))}</button>` : `<button type="button" class="hb-link" data-bs-page="details" data-bs-id="${bsE(c.id)}">${bsE(bsT('bs_t_more'))}</button>`;
+  /* THE BOARD READS (owner, 20 Oct 2026, the Legora way): its Edit opens the
+     paper with the Key terms unfolded beside it (pdKtOpen); a reader keeps More › */
+  const edit = (typeof canEdit !== 'function' || canEdit()) ? `<button type="button" class="hb-link" data-bs-kt-open="${bsE(c.id)}">${bsE(bsT('bs_t_edit_beside'))}</button>` : `<button type="button" class="hb-link" data-bs-page="details" data-bs-id="${bsE(c.id)}">${bsE(bsT('bs_t_more'))}</button>`;
   const O = D.O;
   const obRows = O.rows.map(r => `<tr${r === O.next ? ' class="is-next"' : ''}${r.st === 'done' ? ' data-done' : ''}><td>${bsE(r.what)}${''/* LATE FIRST, THEN NEXT (pass 3, round 7 as drawn: "Check the September invoice [Late]", [Next] under it) */}${r.st === 'overdue' ? `<span class="bs-late">${bsE(bsT('bs_ob_late'))}</span>` : ''}${r === O.next ? `<span class="bs-nx">${bsE(bsT('bs_ob_next'))}</span>` : ''}${r.st === 'done' ? `<span class="bs-done">${bsE(bsT('bs_ob_done'))}</span>` : ''}</td>
     <td class="bs-who"><i class="bs-dot ${r.theirs ? 'is-theirs' : 'is-ours'}" aria-hidden="true"></i>${bsE(bsWho(c, r))}</td><td class="bs-d">${r.due ? bsE(bsDay(r.due)) : bsE(bsT('bs_ob_nodue'))}</td></tr>`).join('');
@@ -1380,7 +1391,11 @@ function bsGo(kind, id){
   }
   if (kind === 'oblig'){ if (typeof hbOpenView === 'function') hbOpenView(c.id, 'oblig'); return; }
   /* 4b: the Board reviews, the Workspace acts — each lands beside the paper */
-  if (kind === 'signers'){ if (typeof pdOpenOnHome === 'function') pdOpenOnHome(c.id, 'signing'); return; }
+  /* nobody named yet: the paper's grid row, both signers asked on it (the Legora way) */
+  if (kind === 'signers'){
+    let row = false; try { row = typeof pdOgFacts === 'function' && pdOgFacts(c).some(f => f.key === 'signers'); } catch (_){ row = false; }
+    if (row && typeof pdFillOpen === 'function'){ pdFillOpen(c.id, { key: 'signers' }); return; }
+    if (typeof pdOpenOnHome === 'function') pdOpenOnHome(c.id, 'signing'); return; }
   if (kind === 'oblreview'){
     Promise.resolve((c._light && !c._loaded && typeof ensureFull === 'function') ? ensureFull(c) : null).catch(() => {}).then(() => {
       const full = bsContract(c.id) || c;
@@ -1420,6 +1435,7 @@ if (typeof document !== 'undefined' && !document._bsWired){
     if ((el = t.closest('[data-bs-pay-save]'))){ take(); bsPayAct('save', el.getAttribute('data-bs-pay-save')); return; }
     if ((el = t.closest('[data-bs-pay-cancel]'))){ take(); bsPayAct('cancel', el.getAttribute('data-bs-pay-cancel')); return; }
     /* an NDA's facts: the tile's mark or the line's link opens them, Confirm, Cancel */
+    if ((el = t.closest('[data-bs-kt-open]'))){ take(); if (typeof pdKtOpen === 'function') pdKtOpen(el.getAttribute('data-bs-kt-open')); return; }
     if ((el = t.closest('[data-bs-nda-edit]'))){ take(); bsNdaAct('edit', el.getAttribute('data-bs-nda-edit')); return; }
     if ((el = t.closest('[data-bs-nda-save]'))){ take(); bsNdaAct('save', el.getAttribute('data-bs-nda-save')); return; }
     if ((el = t.closest('[data-bs-nda-cancel]'))){ take(); bsNdaAct('cancel', el.getAttribute('data-bs-nda-cancel')); return; }
