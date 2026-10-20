@@ -14149,6 +14149,13 @@
   .jl-words{padding:14px 14px 4px;display:flex;flex-direction:column;gap:8px;}
   .jl-say{display:flex;align-items:flex-start;gap:10px;}
   .jl-say .jl-say-face{flex:none;width:24px;height:24px;border-radius:50%;margin-top:4px;}
+  /* NO FACE IN THE THREAD (owner, 20 Oct 2026): on a computer, Jambo's small
+     face beside his words is not drawn in any side panel's conversation —
+     Home's panel, the list panels, Import, Settings, the Jambo window; he
+     stays standing on the ask box's edge (.jb-bird) and on his tab. */
+  @media (min-width:768px){
+    :is(#ig-dock, #jl-feed, #ai-feed) .ai-face, .jl-say .jl-say-face, .st-jb-msg .st-jb-av{ display:none; }
+  }
   .jl-bub{min-width:0;flex:1 1 auto;padding:10px 12px;border-radius:var(--radius-lg);background:var(--surface-2);color:var(--color-text);line-height:1.5;}
   .jl-bub b{font-weight:var(--w-strong);}
   .jl-bub .late{color:var(--st-ruby-fg);font-weight:var(--w-label);}
