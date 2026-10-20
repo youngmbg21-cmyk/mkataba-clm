@@ -3465,7 +3465,9 @@ function placeLanguageSwitch(){
    (owner-ruled 27 Aug 2026): two panels arriving from the same edge is how they
    come to disagree about what "open" means, which is the fault openPanel was
    lifted to module scope to prevent. */
-const PANEL_FACES = ['activity', 'alerts', 'notes'];
+/* THE GUIDE (owner picked "Journey", 19 Oct 2026): a fourth face, every page
+   in the order a contract lives (guidePanelHtml) — the same shell, no new door */
+const PANEL_FACES = ['activity', 'alerts', 'notes', 'guide'];
 function panelFace(){ return PANEL_FACES.includes(state.panelFace)?state.panelFace:'activity'; }
 function setPanelFace(k){ state.panelFace=PANEL_FACES.includes(k)?k:'activity'; }
 /* THE ONE DOOR ONTO THE NOTES FACE. It needs a contract and a change where the
@@ -3562,9 +3564,11 @@ function renderContextPanel(){
      drawer, and a reader who cannot tell them apart is a reader who will
      believe the wrong one. */
   const _chat=notes&&!((state.notesFor||{}).changeId);
-  if(title) title.textContent=_chat?i18t('ng_chat'):notes?i18t('ng_card_notes'):alerts?i18t('sh_alerts'):i18t('sh_activity');
+  const guide=face==='guide';
+  if(title) title.textContent=guide?i18t('gd_title'):_chat?i18t('ng_chat'):notes?i18t('ng_card_notes'):alerts?i18t('sh_alerts'):i18t('sh_activity');
+  panelTabsPaint(face);
   const close=document.getElementById('panel-close');
-  if(close){ const t=notes?i18t('act_close'):alerts?i18t('sh_close_alerts'):i18t('sh_close_activity');
+  if(close){ const t=(notes||guide)?i18t('act_close'):alerts?i18t('sh_close_alerts'):i18t('sh_close_activity');
     close.title=t; close.setAttribute('aria-label',t); }
   /* ---- THE NOTES FACE OWNS ITS OWN LAYOUT ----
      The other two are one scrolling list; this one is a list AND a box pinned
@@ -3596,6 +3600,9 @@ function renderContextPanel(){
     rlNotesPanelPaint(body,c,ch,opts);
     return;
   }
+  if(guide){ body.innerHTML=guidePanelHtml(); guideSeenMark();
+    body.querySelectorAll('[data-gd-go]').forEach(el=>el.addEventListener('click',()=>guideGo(el.getAttribute('data-gd-go'))));
+    return; }
   body.innerHTML=alerts?alertsPanelHtml():activityPanelHtml();
   if(alerts){
     const rows=buildAlerts();
@@ -3639,6 +3646,101 @@ function renderContextPanel(){
       const id=el.getAttribute('data-sel-act');
       if(!(typeof window.hbOpenView==='function'&&hbOpenView(id,'hist'))) selectContract(id); }));
   }
+}
+/* ---- THE GUIDE: EVERY PAGE IN THE ORDER A CONTRACT LIVES (owner picked
+   "Journey", 19 Oct 2026: "a menu … like a nav panel for the entire platform …
+   more of a guide than a nav panel") ----
+   A face of the one panel, so it opens from the same door and adds none. A
+   row goes through Jambo's own mover (caGo), the way a "go to" ask does, and
+   lands on that page's own panel; its count is the number the page's own head
+   prints (the door's reading), shown only while something waits; "You are
+   here" is read off the page in front (deskKeyNow). Reads only — no AI, no
+   writes beyond the reader's own "seen" mark for the tab's "new". */
+const GUIDE_STAGES = [
+  { k: 'ask', rows: ['requests', 'import'] },
+  { k: 'draft', rows: ['ourpaper', 'draft'] },
+  { k: 'agree', rows: ['document', 'negotiations', 'parties', 'people'] },
+  { k: 'sign', rows: ['approvals'] },
+  { k: 'keep', rows: ['contracts', 'oblig', 'calendar', 'mynotes'] },
+  { k: 'see', rows: ['board', 'explorer', 'house'] },
+];
+/* each page's count and its words, off the door's own reading (null = none) */
+function guideCountOf(k){
+  const n=(f)=>{ try{ const v=f(); return Number(v)||0; }catch(_){ return 0; } };
+  const W={
+    counter:()=>typeof counterNeedsCount==='function'?counterNeedsCount():0,
+    requests:()=>typeof requestsDoorCount==='function'?requestsDoorCount():0,
+    import:()=>navCounts().migration,
+    negotiations:()=>typeof negoNeedsYouTotal==='function'?negoNeedsYouTotal():0,
+    approvals:()=>typeof approvalsDoorCount==='function'?approvalsDoorCount():0,
+    oblig:()=>typeof obligationsDoorCount==='function'?obligationsDoorCount():0,
+    mynotes:()=>typeof mineNotesDue==='function'?mineNotesDue().length:0,
+    house:()=>typeof agentsDoorCount==='function'?agentsDoorCount():0 };
+  if(!W[k]) return null;
+  const v=n(W[k]); return v>0?{ n:v, w:i18t('gd_n_'+k,{ n:v }) }:null;
+}
+/* the page in front, as a row's key */
+function guideHereKey(){
+  try{
+    const v=state&&state.view; if(!v||v==='counter') return 'counter';
+    if(v==='dashboard'){ const f=(typeof hbFace==='function')?hbFace():'board';
+      if(f==='paper'){ const c=(typeof pdOnPaper==='function'&&pdOnPaper()&&typeof pdContract==='function')?pdContract():null; return c?'document':'contracts'; }
+      return ({ board:'board', calendar:'calendar', explorer:'explorer' })[f]||'board'; }
+    return ({ intake:'requests', migration:'import', templates:'ourpaper', playbook:'ourpaper', redline:'negotiations', customers:'parties',
+      directory:'people', approvals:'approvals', register:'contracts', obligations:'oblig', mynotes:'mynotes', jambo:'house',
+      team:'settings', workspace:'document', doc:'document' })[v]||null;
+  }catch(_){ return null; }
+}
+/* a page this reader cannot use is not listed (Import needs the right to add) */
+function guideRowShown(k){ return k!=='import'||(typeof caMayAdd!=='function')||caMayAdd(); }
+function guideRowHtml(k, here, cls){
+  const c=guideCountOf(k), on=here===k;
+  return `<button type="button" class="gd-row${on?' is-here':''}${cls?' '+cls:''}" data-gd-go="${k}"${on?' aria-current="page"':''}>
+    <span class="gd-tx"><span class="gd-nm">${esc(i18t('gd_p_'+k))}</span><span class="gd-why">${esc(i18t('gd_w_'+k))}</span></span>
+    ${on?`<span class="gd-pill is-here">${esc(i18t('gd_here'))}</span>`:c?`<span class="gd-pill is-owed">${esc(c.w)}</span>`:''}
+    <span class="gd-go" aria-hidden="true">›</span></button>`;
+}
+function guidePanelHtml(){
+  const here=guideHereKey();
+  return `<div class="gd">
+    <p class="gd-say"><b>${esc(i18t('gd_say_b'))}</b> ${esc(i18t('gd_say'))}</p>
+    ${guideRowHtml('counter',here,'is-home')}
+    <ol class="gd-stages">${GUIDE_STAGES.map((st,i)=>{ const rows=st.rows.filter(guideRowShown); if(!rows.length) return '';
+      return `<li class="gd-st"><span class="gd-n">${i+1}</span><div class="gd-sh">${esc(i18t('gd_s_'+st.k))}<small>${esc(i18t('gd_s_'+st.k+'_w'))}</small></div>
+        <span class="gd-rail" aria-hidden="true"></span><div class="gd-rows">${rows.map(k=>guideRowHtml(k,here)).join('')}</div></li>`; }).join('')}</ol>
+    ${guideRowHtml('settings',here,'is-foot')}
+  </div>`;
+}
+/* a row's press: the panel lets go, then the page through Jambo's one mover */
+function guideGo(k){
+  closeContextPanel();
+  try{
+    if(k==='draft'){ if(typeof caDraftForm==='function') caDraftForm(null); else if(typeof openNewDoors==='function') openNewDoors(); return; }
+    if(k==='settings'){ if(typeof setView==='function') setView('team'); return; }
+    if(typeof caGo==='function'&&caGo({ kind:'go', place:k })) return;
+  }catch(e){ if(typeof toast==='function') toast((e&&e.message)||String(e),'err'); }
+}
+/* the tab's "new" stands until the reader has opened the Guide once */
+const GUIDE_SEEN_KEY='hati.v1.guideSeen';
+function guideSeen(){ try{ return localStorage.getItem(GUIDE_SEEN_KEY)==='1'; }catch(_){ return true; } }
+function guideSeenMark(){ try{ localStorage.setItem(GUIDE_SEEN_KEY,'1'); }catch(_){} }
+/* THE PANEL'S TABS (the Journey drawing): Activity · Alerts · Notes · Guide on
+   a computer; Notes only while a contract is in front (an unusable switch is
+   not drawn); a press on the tab in front does nothing */
+function panelTabsPaint(face){
+  const host=document.getElementById('panel-tabs'); if(!host) return;
+  const desk=(typeof deskShellOn==='function')?!!deskShellOn():true;
+  host.hidden=!desk;
+  /* the tabs draw the panel's one line under the heading (an inline style, so it is set here) */
+  const head=host.previousElementSibling; if(head&&head.style) head.style.borderBottom=desk?'0':'';
+  if(!desk){ host.innerHTML=''; return; }
+  const cid=(typeof chatContractId==='function')?chatContractId():null;
+  const tabs=[['activity','sh_activity'],['alerts','sh_alerts']].concat(cid||face==='notes'?[['notes','ng_card_notes']]:[]).concat([['guide','gd_tab']]);
+  host.innerHTML=tabs.map(([k,w])=>`<button type="button" role="tab" class="pt-tab${k===face?' on':''}" data-pt-face="${k}" aria-selected="${k===face}">${esc(i18t(w))}${k==='guide'&&!guideSeen()&&face!=='guide'?`<span class="pt-new">${esc(i18t('gd_new'))}</span>`:''}</button>`).join('');
+  host.querySelectorAll('[data-pt-face]').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.getAttribute('data-pt-face'); if(k===panelFace()) return;
+    if(k==='notes'){ const id=(typeof chatContractId==='function')?chatContractId():null; if(id) openNotesPanel(id,null,{ force:true }); return; }
+    setPanelFace(k); applyPanelLayout(); if(k==='activity') refreshActivityFeed(true); renderContextPanel(); }));
 }
 function activityPanelHtml(){
   refreshActivityFeed();   // server mode: keep the whole-workspace feed current
@@ -4506,5 +4608,5 @@ if (typeof window !== 'undefined' && window.addEventListener){
 }
 
 Object.assign(window,{shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,notesPanelShowing,notesPanelFollow,
-  buildAlerts,alertCount,updateAlertBadge,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
+  buildAlerts,alertCount,updateAlertBadge,GUIDE_STAGES,guidePanelHtml,guideGo,guideCountOf,guideHereKey,panelTabsPaint,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

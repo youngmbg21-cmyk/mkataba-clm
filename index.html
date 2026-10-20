@@ -12282,6 +12282,35 @@
      rule's (1,0,0), so it wins by WEIGHT and not by order or !important —
      and a face with no rule of its own simply keeps --shell-panel-w. */
   #context-panel[data-face="notes"]{ width:min(var(--shell-panel-notes-w,330px),88vw); }
+  /* THE PANEL'S TABS AND THE GUIDE (owner picked "Journey", 19 Oct 2026) */
+  #context-panel .pt-tabs{ flex:none; display:flex; gap:16px; padding:0 var(--s-4); border-bottom:1px solid var(--color-divider); }
+  #context-panel .pt-tab{ border:0; background:none; font:inherit; font-size:var(--t-meta); color:var(--color-neutral-600); padding:8px 0; border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; }
+  #context-panel .pt-tab.on{ color:var(--color-text); border-bottom-color:var(--accent-solid); font-weight:var(--w-label); }
+  #context-panel .pt-tab:hover:not(.on){ color:var(--color-text); }
+  #context-panel .pt-new{ margin-left:4px; font-size:10px; background:var(--color-accent-100); color:var(--accent-ink); border-radius:3px; padding:0 4px; vertical-align:1px; }
+  #context-panel .gd{ padding:12px var(--s-4) 16px; display:grid; gap:12px; align-content:start; }
+  #context-panel .gd-say{ margin:0; font-size:var(--t-meta); line-height:1.45; color:var(--color-neutral-600); }
+  #context-panel .gd-say b{ color:var(--color-text); font-weight:var(--w-strong); }
+  #context-panel .gd-row{ display:flex; align-items:center; gap:8px; width:100%; padding:6px 8px; border:0; background:none; border-radius:var(--radius); font:inherit; color:inherit; text-align:left; cursor:pointer; }
+  #context-panel .gd-row:hover{ background:color-mix(in srgb,var(--color-text) 5%,transparent); }
+  #context-panel .gd-row.is-here{ background:var(--color-accent-50); }
+  #context-panel .gd-row.is-home{ border:1px solid var(--color-divider); }
+  #context-panel .gd-row.is-foot{ border-top:1px solid var(--color-divider); border-radius:0; padding-top:10px; }
+  #context-panel .gd-tx{ flex:1; min-width:0; display:grid; }
+  #context-panel .gd-nm{ font-size:var(--t-meta); font-weight:var(--w-label); color:var(--color-text); }
+  #context-panel .gd-why{ font-size:var(--t-label); color:var(--color-neutral-600); line-height:1.35; }
+  #context-panel .gd-go{ color:var(--color-neutral-500); font-size:14px; }
+  #context-panel .gd-pill{ display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:var(--w-label); border-radius:999px; padding:1px 8px; white-space:nowrap; }
+  #context-panel .gd-pill.is-owed{ background:var(--st-amber-bg); color:var(--st-amber-fg); }
+  #context-panel .gd-pill.is-owed::before{ content:""; width:6px; height:6px; border-radius:50%; background:var(--st-amber-dot); }
+  #context-panel .gd-pill.is-here{ background:var(--color-accent-100); color:var(--accent-ink); }
+  #context-panel .gd-stages{ list-style:none; margin:0; padding:0; display:grid; gap:4px; }
+  #context-panel .gd-st{ display:grid; grid-template-columns:24px 1fr; column-gap:10px; }
+  #context-panel .gd-n{ width:22px; height:22px; border-radius:50%; border:1px solid var(--color-divider); font-size:11px; font-weight:var(--w-strong); display:grid; place-items:center; color:var(--color-neutral-600); background:var(--color-surface); }
+  #context-panel .gd-sh{ font-size:var(--t-meta); font-weight:var(--w-strong); color:var(--color-text); padding-top:2px; }
+  #context-panel .gd-sh small{ display:block; font-weight:400; font-size:var(--t-label); color:var(--color-neutral-600); }
+  #context-panel .gd-rail{ grid-row:2; justify-self:center; width:1px; background:var(--color-divider); }
+  #context-panel .gd-rows{ grid-row:2; grid-column:2; display:grid; gap:2px; margin:6px 0 10px; }
   /* ---- AN ALERT ROW'S TONE, AND WHETHER IT IS NEWS (owner-asked 23 Aug 2026)
      Two classes, two facts. `al-good` is the TONE and lasts as long as the row:
      green ink on the title and a green edge down the left, so the one piece of
@@ -16393,6 +16422,8 @@
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
     </button>
   </header>
+  <!-- THE PANEL'S TABS (the Journey drawing, 19 Oct 2026): painted by panelTabsPaint, a computer only -->
+  <nav id="panel-tabs" class="pt-tabs" role="tablist" aria-label="Panel" hidden></nav>
   <div id="panel-body" class="scroll-thin" style="flex:1;overflow-y:auto;"></div>
 </aside>
 
