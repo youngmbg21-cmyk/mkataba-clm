@@ -70,6 +70,13 @@ function startAiStub() {
         : toolName === 'render_graph' ? { note: 'stub', answer: 'stub' }
         : toolName === 'answer_portfolio' ? { answer: 'stub', matches: [] }
         : toolName === 'recommend_template' ? { ranked: [], answer: 'stub' }
+        /* ASK A COLUMN: an answer resting on the document's own first long
+           sentence, so the route's quote check passes as it would live */
+        : toolName === 'column_answer' ? (() => {
+            const txt = String(((body.messages || [])[0] || {}).content || '').split('DOCUMENT:\n')[1] || '';
+            const quote = (txt.match(/[^.\n]{40,200}\./) || [''])[0].trim();
+            return { found: true, answer: '30 days', detail: 'either side', tone: 'good', why: 'stubbed reason', quote, clause: '9 · Termination' };
+          })()
         : {};
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({

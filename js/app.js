@@ -115,6 +115,7 @@ import './pdfrich.js';
 import './workshape.js';       // which shapes this business has, and what it calls a piece of work
 import './views/portfolio.js';    // the universal frame: six panels every business gets
 import './views/intelligence.js';
+import './views/askcolumn.js';  // Ask a column: one question asked of many contracts' wording, answered beside the list (20 Oct 2026)
 import './views/homeboard.js';   // Home is the board and the map: the headline numbers, Copilot's prepared work, the answers to what is asked (3 Oct 2026)
 import './views/boardstrip.js';
 import './views/counter.js';  // the Counter and the desk tabs: the first screen after signing in, and every open page as a tab in the menu's place (Rounds 1 and 2, 17 Oct 2026)  // the Lifeline strip: a contract brought up on the Board, with Where we are and History behind its ⋯ (step 8, 15 Oct 2026)

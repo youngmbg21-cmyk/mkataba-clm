@@ -3596,7 +3596,10 @@ function pdJamboTopHtml(){
      (hbBoardHelloHtml, round 17 as drawn: Needs you is Home's now) */
   if (typeof igHomePaperFace !== 'function' || igHomePaperFace() !== true) return (typeof hbBoardHelloHtml === 'function') ? hbBoardHelloHtml() : '';
   const c = pdContract();
-  return c ? pdGlanceHtml(c) + pdNextUpHtml(c) : pdWallHtml();
+  /* ASK A COLUMN (owner picked "In Jambo's panel", 20 Oct 2026): beside the
+     Contracts list his panel holds the question, then the answers' why */
+  const ac = (!c && typeof askColPanelHtml === 'function') ? askColPanelHtml() : '';
+  return c ? pdGlanceHtml(c) + pdNextUpHtml(c) : (ac || pdWallHtml());
 }
 /* NEEDS YOU HERE STAYS AT THE TOP OF THE TAB (round 3, "Tabs and faces" — the
    Compare's reason it won over Conversation: "the checklist would scroll
