@@ -307,7 +307,9 @@ Object.assign(window,{LAND_TRIES,LAND_WAIT,LAND_PULSE_MS,landOn,landOff});
    OWED IS WHAT detailsOf COUNTS ON A CONTRACT: the other party, the value (a
    0 is no value), the start date and every one of the template's own
    questions. Who we are, their email, the end date, which side of the money
-   and the stream are asked but never owed (NEED_NEVER), so they stay white.
+   and the stream are asked but never owed (NEED_NEVER), so they stay white —
+   save the New agreement form's stream box, which Create waits on and which
+   its own light() marks (owner, 20 Oct 2026).
    A builder marks the box with `needAttrs(f, value)`; ONE capture listener
    keeps its class as it is typed in, and the date picker's face follows its
    box (datePickDress paints through needMark). The amber is a custom
