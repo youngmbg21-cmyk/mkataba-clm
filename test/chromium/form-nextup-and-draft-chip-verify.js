@@ -82,7 +82,7 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     check('2b … under the paper\'s "at a glance"', !!nx && nx.under);
     check('2c … led by Draft from our standards on a draft', !!nx && nx.cards[0] === 'Draft from our standards', nx && nx.cards[0]);
     await shot(page, '2-overview-next-up');
-    await page.evaluate(() => document.querySelector('#ig-dock .pd-nx [data-pd-mn-go]').click());
+    await page.evaluate(() => { const b = document.querySelector('#ig-dock .pd-nx [data-pd-mn-go]'); if (b) b.click(); });
     const ask = await until(page, () => !!document.getElementById('cf-ok'), null, 6000);
     check('2d the card does its row\'s act (the confirm before drafting)', !!ask);
     if (ask) await page.click('#cf-cancel');
