@@ -485,7 +485,8 @@ describe('f304 (8) — round three: the filed pin quotes the change, equal halve
        the owner asked for it off within the hour. Gone, not stubbed. */
     assert.ok(!/function notesBlurs\(/.test(APP), 'notesBlurs is gone');
     assert.ok(!/is-blur/.test(INDEX), 'no blur rule in the sheet');
-    assert.match(APP, /scrim\.classList\.toggle\('open',show&&panelFace\(\)!=='notes'\);/, 'the notes face draws no scrim');
+    /* RE-POINTED 20 Oct 2026 (owner: "when open the rest of the page should be dark similar to when you open the other tabs"): every face, Notes too, shades the page */
+    assert.match(APP, /scrim\.classList\.toggle\('open',show\);/, 'every face, Notes too, draws the scrim');
     assert.match(APP, /scrim\.classList\.remove\('is-blur'\);/, 'and takes the class off a page that still carries it');
   });
 });

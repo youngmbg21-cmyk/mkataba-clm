@@ -756,9 +756,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   /* RE-POINTED 18 Oct 2026 (round 9's gaps, "Piles" as drawn: "Redlines 4 ·
      Notes · Here now", then "Round 2 · their asks came 4 days ago", then "Send
      all · 1 not sent · Ask for review"): the head reads DOWN, one line each */
-  check('14a the head reads down: the name, then the round, then Send all',
+  /* RE-POINTED 20 Oct 2026 (owner: "so much space is lost here. Optimize this space so that the cards get more screen space"): the round rides the name's line, Send all the line under */
+  check('14a the head in two lines: the name and the round, then Send all',
     idxHead.title && idxHead.send && idxHead.round
-      && idxHead.round.mid - idxHead.title.mid >= 12
+      && Math.abs(idxHead.round.mid - idxHead.title.mid) <= 6
       && idxHead.send.mid - idxHead.round.mid >= 12,
     idxHead.title && `mids ${idxHead.title.mid} / ${idxHead.round && idxHead.round.mid} / ${idxHead.send && idxHead.send.mid}`);
 

@@ -3345,6 +3345,16 @@ function applyPanelLayout(){
      LAYOUT for the same reason (see `pb-flow` in renderContextPanel), because
      it is a list AND a box where the other two are one list. */
   panel.dataset.face = panelFace();
+  /* ---- AS WIDE AS JAMBO'S PANEL, EVERY FACE THE SAME (owner, 20 Oct 2026:
+     "Make the side panels as wide as the jambo side panel and make the notes
+     tab the same size") ---- The width of the Jambo panel on screen (Home's,
+     beside a list, Import's, Settings', the Calendar's), else its resting
+     width; both width tokens take it, so Notes no longer differs. */
+  if(show){
+    const jw=panelJamboWidth();
+    panel.style.setProperty('--shell-panel-w',jw+'px');
+    panel.style.setProperty('--shell-panel-notes-w',jw+'px');
+  }
   /* ---- NOTES DOES NOT DIM THE PAGE, AND THE OTHER TWO DO ----
      (owner-ruled 27 Aug 2026, following the clause panel's own rule: "do not
      shade the contract, it has to remain active".) A note is written while
@@ -3359,8 +3369,12 @@ function applyPanelLayout(){
      stands on every page again: no shade, no outside-press close; the ✕ and
      Escape are the notes face's ways out. `notesBlurs` and `is-blur` are
      GONE, not stubbed. */
+  /* ---- NOTES DIMS THE PAGE TOO NOW (owner, 20 Oct 2026: "when open the rest
+     of the page should be dark similar to when you open the other tabs";
+     reverses the 27 Aug and 11 Sep rulings above): every face shades the page
+     behind, and a press outside closes the panel, as the other faces do. */
   if(scrim&&scrim.classList){
-    scrim.classList.toggle('open',show&&panelFace()!=='notes');
+    scrim.classList.toggle('open',show);
     scrim.classList.remove('is-blur');
   }
   const btn=document.getElementById('cmd-panel');
@@ -3377,6 +3391,19 @@ function applyPanelLayout(){
 }
 /* One value: one panel, two contents, never two layers. */
 let _panelTrap=null;
+/* THE JAMBO PANEL'S WIDTH, read off the one on screen (not folded), else the
+   width the list panel rests at (JL_W, 380) */
+const PANEL_JAMBO_SEL=['#ig-dock','#ins-panel.is-jambo','#mig-side','#st-side','#cal-plan'];
+function panelJamboWidth(){
+  if(typeof document==='undefined') return 380;
+  for(const sel of PANEL_JAMBO_SEL){
+    const el=document.querySelector(sel);
+    if(!el||!el.getClientRects||!el.getClientRects().length) continue;
+    const w=Math.round(el.getBoundingClientRect().width);
+    if(w>=240) return w;
+  }
+  return (typeof window!=='undefined'&&typeof window.JL_W==='number')?window.JL_W:380;
+}
 function closeContextPanel(){
   if(!state.panelOpen) return;
   state.panelOpen=false; applyPanelLayout();
@@ -4607,6 +4634,6 @@ if (typeof window !== 'undefined' && window.addEventListener){
   window.addEventListener('afterprint', clearPrintRoot);
 }
 
-Object.assign(window,{shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,notesPanelShowing,notesPanelFollow,
+Object.assign(window,{shellCrumbHome,printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,navFoldPressFlies,navFoldRest,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,panelJamboWidth,closeContextPanel,notesPanelShowing,notesPanelFollow,
   buildAlerts,alertCount,updateAlertBadge,GUIDE_STAGES,guidePanelHtml,guideGo,guideCountOf,guideHereKey,panelTabsPaint,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});
