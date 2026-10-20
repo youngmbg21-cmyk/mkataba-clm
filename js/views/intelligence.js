@@ -8093,7 +8093,9 @@ function renderIntelDock(){
      he draws above it (Needs you here, the glance, the Board's greeting) is
      read from its first line, never scrolled past (round 3 as drawn: Needs
      you is the first card, 18 Oct 2026) */
-  const feed=document.getElementById('igd-feed'); feed.scrollTop=talk?feed.scrollHeight:0;
+  /* …the newest turn read from its FIRST line, never pushed to its end (jamboFeedLand, owner 20 Oct 2026) */
+  const feed=document.getElementById('igd-feed');
+  if(!talk) feed.scrollTop=0; else if(typeof jamboFeedLand==='function') jamboFeedLand(feed, jamboFeedLast(feed)); else feed.scrollTop=feed.scrollHeight;
   /* NO CHIPS UNDER A FACE (rounds 8–11 as drawn, the gaps of 18 Oct 2026): the
      face carries its own acts, so the panel says a face is up and the chips row
      stands down by that scope (#ig-dock.pd-face-up) — Jambo perches on the box */

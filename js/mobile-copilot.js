@@ -326,7 +326,8 @@ function mAiHookPanel(){
 function mAiFeedToBottom(){
   const feed = document.getElementById('ai-feed');
   if(!feed) return;
-  const put = ()=>{ try{ feed.scrollTop = feed.scrollHeight; }catch(_){} };
+  /* the newest turn read from its first line (jamboFeedLand, owner 20 Oct 2026) */
+  const put = ()=>{ try{ if(typeof jamboFeedLand==='function') jamboFeedLand(feed, jamboFeedLast(feed)); else feed.scrollTop = feed.scrollHeight; }catch(_){} };
   put();
   if(typeof requestAnimationFrame==='function') requestAnimationFrame(put);
 }
