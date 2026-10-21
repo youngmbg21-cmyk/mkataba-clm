@@ -181,8 +181,8 @@ const deal = () => ({ id: ID, contractNo: ID, name: 'Haulage Review', counterpar
         who: done ? (done.querySelector('.stk-mk') || {}).textContent : '', undo: !!(done && done.querySelector('[data-stk-unreview]')) };
     });
     const t1 = await tally(), b1 = await badge();
-    ok('6 Mark reviewed asks the server, strikes the card and names who, and leaves every count',
-      e6.done && e6.calls.some(p => /^contracts\/MK-L1\/points\/p[a-z0-9]+\/review$/.test(p)) && e6.struck === 'line-through' && /^Reviewed · Amina Otieno$/.test((e6.who || '').trim()) && e6.undo
+    ok('6 Mark reviewed asks the server, strikes the card and names who (by first name), and leaves every count',
+      e6.done && e6.calls.some(p => /^contracts\/MK-L1\/points\/p[a-z0-9]+\/review$/.test(p)) && e6.struck === 'line-through' && /^Reviewed · Amina$/.test((e6.who || '').trim()) && e6.undo
       && t1 === '1 needs you' && b1 === '1', JSON.stringify({ e6, tally: t1, badge: b1 }));
     /* a save from a page that holds an OLD map may not take the tick away */
     await page.evaluate(async () => { const c = getContract('MK-L1'); c.pointReviews = {}; persist(c); await flushSaves(); });
