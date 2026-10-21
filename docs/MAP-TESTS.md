@@ -70,6 +70,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - jambo-moves-and-opens verify.
 - f841, f842, guide-panel verify.
 - f96, f187, f238, f240, f251, f264, f284, f449, f543, f672, f679, f706, f735–f737, home-and-recent, jambo-everywhere, answer-where-you-stand, show-it-here-first, jambo-window-follows-the-ask, alerts-and-activity, home-page, pages-read-alike, language-switch-stays, jambo-pill-and-window verify.
+- jambo-slides-in-verify (the side panel, the ✦ ask bar, plain only, conversation across pages, here chip, paste, ONE DOOR, Pop out with PiP stubbed and absent, touch; 22 red at d7a320c2); f107 (plain only), f88, f97, f631 re-pointed; jambo-pill-and-window 4–7, every-jambo-box 1b, jambos-list-panel 10h, phone (384) re-pointed.
 
 ## THE PHONE
 - phone-verify, f630, f631, phone-fits-verify.
@@ -86,6 +87,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## STAKES — THE CLAUSES TAB CARRIES THE DEEP READ
 - stakes-verify, point-buttons-and-brief verify, jambo-pill-and-window 3a, f668, f671, f277.
+- clauses-legora-way-verify (merged twin counted once, worst-first order, the dive walks the same order, badge = need you, Mark reviewed persists through the server and drops the count, missing row in place; 1/12 at d7a320c2). stakes-verify and point-buttons-and-brief-verify re-pointed to the card anatomy.
 
 ## INSIGHTS
 - f151, f183, f247, f267, f290–f299, f305, f321, f338, f392, f394, f424–f438, f441, f457, f459 (A), f539, f730; insights-*, portfolio-frame, obligations-report, friction-fits-the-screen, explorer-*, imported-on-the-map, analyze-on-the-graph, map-asked-bubbles, owners-fifteen, fold-every-view verify.
@@ -132,6 +134,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE DETAILS TAB — THE ONE PLACE A CONTRACT IS FILLED IN
 - f148, f170, f442, f673, f676, f679, f710, f751, f754, fill-in-beside-the-paper, fill-the-document, details-as-a-form, create-lands-clean, owed-first verify.
+- still-owed-sap-way-verify (signer name, email and stream whole at all three screens, Confirm and Fill in › inside the panel, labels above, amber kept, Key terms keeps its table, Tab onto Confirm does not jump; 14 red at d7a320c2).
 
 ## WHERE THE DEAL STANDS — ONE PAGE EVERY PARTY READS (js/dealstands.js)
 - f451, f459 (B), deal-stands, status-link, where-we-are verify.

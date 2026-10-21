@@ -21255,3 +21255,14 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Clauses tab: off-Chambers dress — 6px/8px corners on point boxes, Deep dive and filter selects; native select arrows; the dive's head band tinted by ten section hues outside the palette; "N to review" in amber ink even on red and blue rows; dots carry no word.
 - Clauses tab: opening a deep dive pins its quote on the paper and the pin stays after Back ("1 pin · Clear" left behind).
 - Clauses tab: riskViewOpen lands on the clause with the worst OLD mark, not the worst point.
+
+## Noticed, not fixed (21 Oct 2026, build round: Still owed, Clause review, Jambo)
+- stakes-verify 8 expects a "Menu" tab on Home's panel that the Dossier (20 Oct) removed; red on main d7a320c2.
+- home-paper-clauses-verify 3a/3b pin the old tab set Copilot · Clauses · Obligations · Menu; red on main d7a320c2.
+- point-buttons-and-brief-verify 6a expects a "Contract briefing" button in "at a glance"; it reads "Read ›" on main.
+- uploaded-contract-fixed-verify 4a/4b cannot find the "Who else" Add button; red on main d7a320c2.
+- home-and-recent-verify 2e ("a details row opens Fill in beside its paper") is red at d7a320c2.
+- show-it-here-first-verify 7b counts the 30-second ai/usage meter refresh (core.js refreshAiUsage) as a model call, so it goes red whenever the run takes over 30 seconds.
+- The Dossier tab's number is the whole workspace's Needs you, not this contract's.
+- riskViewOpen still lands on the worst OLD mark, not the worst point.
+- The deep dive leaves its quote pinned on the paper after Back; its head band wears ten section hues outside Chambers.
