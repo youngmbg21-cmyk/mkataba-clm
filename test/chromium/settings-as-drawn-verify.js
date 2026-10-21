@@ -103,8 +103,11 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     await page.evaluate(() => settingsGoPage('streams'));
     await until(() => document.querySelector('.st-sw-row[data-st-sw-pick="sales"]') ? true : null, null, 10000);
     if (await press('.st-sw-row[data-st-sw-pick="sales"]', '3a the Sales row')) {
+      /* A WAIT ASKS FOR THE STATE (21 Oct 2026, red on GitHub only): the panel is drawn at once and its
+         keeping figures arrive after (/api/keeping) — read them once Due now is drawn, bounded */
       const side = await until(() => { const p = document.querySelector('#st-jb-feed .st-swp'); if (!p) return null;
         const facts = {}; p.querySelectorAll('.st-swp-f').forEach(f => { facts[f.querySelector('dt').textContent.trim()] = f.querySelector('dd').textContent.replace(/\s+/g, ' ').trim(); });
+        if (!facts['Due now'] && !p.querySelector('[data-st-swp-run]')) return null;
         return { word: document.getElementById('st-side-word').textContent.trim(), facts, due: p.querySelectorAll('.st-swp-tb tbody tr').length, held: p.querySelectorAll('.st-swp-held').length,
           del: ((p.querySelector('[data-st-swp-run]') || {}).textContent || '').trim() }; }, null, 8000);
       check('3a the panel says "<stream> · stream"', !!side && side.word === 'Sales & Route-to-Market · stream', side && side.word);
