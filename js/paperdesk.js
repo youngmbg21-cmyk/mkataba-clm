@@ -156,7 +156,7 @@ function pdTabCount(t, c){
       /* THE NUMBER ON THE DOOR IS THE LIST'S (owner said yes, 21 Oct 2026):
          Clause review's "need you" once Jambo has read these words; before
          that, the paper's own marks the list then shows */
-      const r = (typeof window.stkNeedCount === 'function') ? window.stkNeedCount(c) : null;
+      const r = (typeof stkNeedCount === 'function') ? stkNeedCount(c) : null;
       const n = r != null ? r : (typeof docThreadHomeMarks === 'function') ? docThreadHomeMarks(c) : 0;
       return n ? { n, tone: 'warn' } : null;
     }

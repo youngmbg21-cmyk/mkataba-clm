@@ -329,8 +329,8 @@ function watchWords(w){
   const c = _jpC(w.contractId), ref = c ? _jpRef(c) : '', who = c ? (String(c.counterparty || '').trim() || _jpT('wt_them')) : '';
   const p = w.params || {};
   if (w.kind === 'reply') return _jpT('wt_say_reply', { who, ref });
-  if (w.kind === 'renewal') return c ? _jpT('wt_say_renewal_one', { ref, n: p.days }) : _jpT('wt_say_renewal', { n: p.days });
-  if (w.kind === 'obligation') return c ? _jpT('wt_say_oblig_one', { ref, n: p.days }) : _jpT('wt_say_oblig', { n: p.days });
+  if (w.kind === 'renewal') return c ? _jpT('wt_say_renewal_on', { ref, n: p.days }) : _jpT('wt_say_renewal', { n: p.days });
+  if (w.kind === 'obligation') return c ? _jpT('wt_say_oblig_on', { ref, n: p.days }) : _jpT('wt_say_oblig', { n: p.days });
   const what = String(p.what || '').trim();
   return what ? _jpT('wt_say_remind_what', { day: _wtDay(p.on), what }) : _jpT('wt_say_remind', { day: _wtDay(p.on) });
 }

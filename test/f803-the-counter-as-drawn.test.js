@@ -302,7 +302,8 @@ describe('f803 (7) Jambo\'s house says the Board card\'s count', () => {
     assert.match(f, /_jhT\('pd_tab_copilot'\)/);
     assert.match(f, /<use href="#i-left"\/>/);
     assert.match(fnBody(JH, 'renderJamboHouse'), /\$\{jhBandHtml\(\)\}\$\{body\}<\/div>\$\{jhJamboDoorHtml\(\)\}<\/div>/);
-    assert.match(JH, /if \(t\.closest\('\[data-jh-jambo\]'\)\)\{ if \(typeof openAI === 'function'\) openAI\(\); return; \}/);
+    /* the press slides Jambo in as a side panel and takes him out again (owner, 21 Oct 2026: "let jambo slide in") */
+    assert.match(JH, /if \(t\.closest\('\[data-jh-jambo\]'\)\)\{ if \(typeof aiSideToggle === 'function'\) aiSideToggle\(\); else if \(typeof openAI === 'function'\) openAI\(\); return; \}/);
     assert.match(R('index.html'), /:is\(#ig-dock,#jh-jambo\) \.igd-door\{height:100%/, 'Home\'s folded strip\'s own clothes');
   });
 });

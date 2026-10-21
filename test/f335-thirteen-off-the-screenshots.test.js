@@ -501,7 +501,8 @@ describe('f335 (12) — bold from facts, amber from the record', () => {
       "this workspace's own playbook");
     assert.match(fnBody(CONTRACT, '_xrFinds'), /openFindings\(c\)/, 'and the risk scan already run, less what was dismissed');
     const body = fnBody(CONTRACT, 'docXrayMarks');
-    assert.match(body, /if\(docXrayPlace\(txt,_xrFindQuote\(f\)\)\) out\.push/, 'a finding lands only where its quote is');
+    /* the mark keeps its quote since Clause review (21 Oct 2026), so a twin can be recognised */
+    assert.match(body, /const q=_xrFindQuote\(f\); if\(docXrayPlace\(txt,q\)\) out\.push/, 'a finding lands only where its quote is');
     assert.match(body, /if\(docXrayPlace\(txt,v\.quote\)\) out\.push/, 'so does a verdict');
   });
   test('an unplaceable finding marks NOTHING rather than the wrong paragraph', () => {
