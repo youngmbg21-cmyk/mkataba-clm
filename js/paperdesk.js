@@ -3480,6 +3480,81 @@ function pdOgFacts(c){
   return out;
 }
 const PD_OG_INP = 'pd-og-in';
+/* ---- THE SIGNER ROW, THE SAP WAY (the owner picked it by name, 21 Oct 2026) ----
+   "adding signer should be next to the signers area not at the bottom. Also when i
+   click on add signers it takes me to a different location … it should be possible
+   that you can add without being taken to a different page unless there is a pop up.
+   Also, I should also be able to search within our directory to enter the right
+   person and their respective email."
+   Both signer boxes are SEARCH boxes over the directory: typing filters, a quiet list
+   drops OVER the rows under it (the counterparty's own people first, then the rest),
+   picking a row fills the name AND the email together, and somebody outside the
+   directory is still typed by hand — the box is still a typing box. NOTHING IS STORED
+   HERE: saveSignerPlan stays the one authority, reached by this row's own Confirm. */
+function _pdSgFold(v){ return String(v == null ? '' : v).trim().toLowerCase(); }
+function pdSgInitials(name, email){
+  const n = String(name || '').trim();
+  if (n){ const w = n.split(/[\s-]+/).filter(Boolean);
+    return String((w[0] || '')[0] || '').toUpperCase() + String((w.length > 1 ? (w[w.length - 1] || '')[0] : (w[0] || '')[1]) || '').toUpperCase(); }
+  return String(email || '?').slice(0, 2).toUpperCase();
+}
+/* ONE READING, THE DIRECTORY'S OWN (dirBook — the one address book, contactsOf, is
+   already inside it; where it is not up yet, this contract's own contacts). A person's
+   second word is WHAT THE RECORD HOLDS — their title, their party, or their role in
+   HaTi — never a job title HaTi does not have. Nothing here writes. */
+function pdSgPeople(c, side){
+  const S = v => String(v == null ? '' : v).trim();
+  let book = []; try { book = (typeof dirBook === 'function') ? (dirBook() || []) : []; } catch (_){ book = []; }
+  const me = (typeof currentUser === 'function' && currentUser()) || null;
+  const mk = o => ({ id: S(o.id), name: S(o.name) || S(o.email), email: S(o.email), sub: S(o.sub), at: S(o.at),
+    you: !!(me && o.id != null && S(o.id) && String(o.id) === String(me.id)) });
+  const bookOf = new Map(book.filter(p => p && p.side === 'ours' && p.id).map(p => [String(p.id), p]));
+  const ours = ((typeof getUsers === 'function' ? getUsers() : []) || []).filter(u => u && u.role !== 'viewer')
+    .map(u => { const b = bookOf.get(String(u.id)) || {};
+      return mk({ id: u.id, name: u.name || u.email, email: u.email, sub: S(u.title) || S(b.title) || S(b.hati) }); })
+    .filter(p => p.name);
+  if (side === 'ours') return ours;
+  let theirs = book.filter(p => p && p.side === 'theirs' && (S(p.name) || S(p.email)))
+    .map(p => mk({ name: p.name, email: p.email, sub: S(p.title) || S(p.partyName), at: p.partyName }));
+  if (!theirs.length){
+    let rows = []; try { rows = (typeof contactsOf === 'function') ? (contactsOf(c) || []) : []; } catch (_){ rows = []; }
+    const seen = new Set();
+    theirs = rows.filter(r => r && (S(r.name) || S(r.email)))
+      .filter(r => { const k = _pdSgFold(r.email) || _pdSgFold(r.name); if (seen.has(k)) return false; seen.add(k); return true; })
+      .map(r => mk({ name: r.name, email: r.email, sub: S(c && c.counterparty), at: S(c && c.counterparty) }));
+  }
+  const cp = _pdSgFold(c && c.counterparty);
+  return theirs.filter(p => _pdSgFold(p.at) === cp)
+    .concat(theirs.filter(p => _pdSgFold(p.at) !== cp))
+    .concat(ours);
+}
+/* what the typing narrows to: the name or the address carrying the words typed */
+function pdSgMatches(rows, q){
+  const w = _pdSgFold(q).split(/\s+/).filter(Boolean);
+  if (!w.length) return rows.slice();
+  return rows.filter(p => { const hay = _pdSgFold(p.name) + ' ' + _pdSgFold(p.email) + ' ' + _pdSgFold(p.sub);
+    return w.every(x => hay.includes(x)); });
+}
+const PD_SG_GLYPH = '<svg class="pd-og-sb-g" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>';
+/* a search box in the owed box's own clothes, the glyph at its right */
+function pdSgBoxHtml(o){
+  const E = _pdE;
+  return `<div class="pd-og-sb"><input type="text" class="${PD_OG_INP}" data-pd-og-sb="${E(o.side)}" data-pd-og-sg="${E(o.name)}"`
+    + ` data-og-id="${E(o.uid || '')}" data-og-picked="${E(o.value || '')}" value="${E(o.value || '')}" placeholder="${E(o.ph)}"`
+    + ` aria-label="${E(o.label)}" autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list">${PD_SG_GLYPH}</div>`;
+}
+/* ONE BUILDER for a signer on their side — the row paints the first, "+ Add another
+   signer" adds the next: the same label, search box, label and address box */
+function pdSgTheirHtml(c, o){
+  const E = _pdE, v = o || {};
+  const them = (c && c.counterparty) || _pdT('ct_a_counterparty');
+  const ml = w => `<span class="pd-og-ml" aria-hidden="true">${E(w)}</span>`;
+  return ml(_pdT('og_sg_their_name', { them }))
+    + pdSgBoxHtml({ side: 'theirs', name: 'tname', value: v.name || '',
+      ph: _pdT('og_sg_their_name', { them }), label: _pdT('og_sg_their_name', { them: (c && c.counterparty) || '' }) })
+    + ml(_pdT('og_sg_their_email'))
+    + `<input type="email" class="${PD_OG_INP}" data-pd-og-sg="temail" value="${E(v.email || '')}" placeholder="${E(_pdT('og_sg_their_email'))}" aria-label="${E(_pdT('og_sg_their_email'))}">`;
+}
 const PD_OG_QUOTE_MAX = 84;   // a passage drawn in the grid: about two lines of the fact's column
 /* every box carries a placeholder, so an empty one is amber by :placeholder-shown (AN EMPTY OWED BOX IS AMBER EVERYWHERE) */
 /* (the form's boxes carry their own inline clothes; in the grid the grid's class dresses them, so the amber can show) */
@@ -3531,13 +3606,18 @@ function pdOgBoxHtml(c, f){
     const them = (typeof counterpartyContact === 'function' ? counterpartyContact(c) : null) || {};
     const tName = (theirs && theirs.name) || (them.name && !(typeof signerIsCompany === 'function' && signerIsCompany(c, { party: 'counterparty', name: them.name })) ? them.name : '');
     const tMail = (theirs && theirs.email) || (typeof contactEmail === 'function' ? contactEmail(c) : '') || them.email || '';
-    /* THE SAP WAY (owner picked it by name, 21 Oct 2026): a label above each of the signer's three boxes,
-       in the box's own words (the box keeps its aria-label, so the label is not read twice) */
+    /* THE SAP WAY (owner picked it by name, 21 Oct 2026): a label above each of the signer's boxes,
+       in the box's own words (the box keeps its aria-label, so the label is not read twice); both
+       name boxes SEARCH the directory (pdSgPeople), and "+ Add another signer" adds the next one here
+       rather than at the bottom of the panel — the row answers its own question. */
     const ml = w => `<span class="pd-og-ml" aria-hidden="true">${E(w)}</span>`;
-    const themWho = c.counterparty || _pdT('ct_a_counterparty');
-    return ml(_pdT('og_sg_ours')) + `<select class="${PD_OG_INP}" data-pd-og-sg="ours" aria-label="${E(_pdT('og_sg_ours'))}">${members.map(u => `<option value="${E(u.id)}"${String(u.id) === String(pick) ? ' selected' : ''}>${E(u.name || u.email)}${me && String(u.id) === String(me.id) ? ' · ' + E(_pdT('og_you')) : ''}</option>`).join('')}</select>`
-      + ml(_pdT('og_sg_their_name', { them: themWho })) + `<input type="text" class="${PD_OG_INP}" data-pd-og-sg="tname" value="${E(tName)}" placeholder="${E(_pdT('og_sg_their_name', { them: themWho }))}" aria-label="${E(_pdT('og_sg_their_name', { them: c.counterparty || '' }))}">`
-      + ml(_pdT('og_sg_their_email')) + `<input type="email" class="${PD_OG_INP}" data-pd-og-sg="temail" value="${E(tMail)}" placeholder="${E(_pdT('og_sg_their_email'))}" aria-label="${E(_pdT('og_sg_their_email'))}">`;
+    const u0 = members.find(u => String(u.id) === String(pick)) || members[0] || null;
+    const ourWords = u0 ? ((u0.name || u0.email) + (me && String(u0.id) === String(me.id) ? ' · ' + _pdT('og_you') : '')) : '';
+    return ml(_pdT('og_sg_ours'))
+      + pdSgBoxHtml({ side: 'ours', name: 'ours', uid: u0 ? u0.id : '', value: ourWords,
+        ph: _pdT('og_sg_ours'), label: _pdT('og_sg_ours') })
+      + pdSgTheirHtml(c, { name: tName, email: tMail })
+      + `<button type="button" class="jb-chip pd-og-sg-add" data-pd-og-sg-add>${E(_pdT('og_sg_add'))}</button>`;
   }
   return '';
 }
@@ -3568,8 +3648,13 @@ function pdOgHtml(c, o){
   const E = _pdE;
   const tr = f => {
     const box = held || !may ? `<span class="pd-og-read${f.read ? '' : ' is-amb'}">${E(f.read ? f.read.words : _pdT('og_not_read'))}</span>` : pdOgBoxHtml(c, f);
+    /* THE ROW'S ONE POP-UP (owner, 21 Oct 2026): "Order the signing ›" under Confirm is the only
+       door left from here to the signing route editor — the bottom "name a signer" chip went, and
+       an owed fact is otherwise answered where it is asked */
+    const route = (!held && may && f.kind === 'signer' && typeof openSignerPlanEditor === 'function')
+      ? `<button type="button" class="pd-og-order" data-pd-og-route="${E(c.id)}">${E(_pdT('og_sg_order'))}</button>` : '';
     const act = held ? `<button type="button" class="pd-go ds-go" data-pd-og-go="${E(f.key)}" title="${E(_pdT('og_fill_beside'))}">${E(_pdT('dos_go_fill_in'))}${PD_GO_TXT}</button>`
-      : (may && !f.pay) ? `<button type="button" class="pd-og-ok" data-pd-og-ok="${E(f.key)}">${E(_pdT('og_confirm'))}</button>` : '';
+      : (may && !f.pay) ? `<button type="button" class="pd-og-ok" data-pd-og-ok="${E(f.key)}">${E(_pdT('og_confirm'))}</button>` + route : '';
     return `<tr class="pd-og-row${f.read ? ' is-read' : ' is-amb'}" data-pd-og-row="${E(f.key)}" data-pd-og-kind="${E(f.kind)}"><td class="pd-og-f"><b>${E(f.label)}</b>${pdOgFromHtml(c, f)}</td><td class="pd-og-v">${box}</td><td class="pd-og-a">${act}</td></tr>`;
   };
   const stream = (() => { const F = (typeof FOLDERS === 'object' && FOLDERS) || {}; const n = c.folder && F[c.folder] ? F[c.folder].name : '';
@@ -3787,18 +3872,30 @@ function pdOgConfirm(c, key, o){
     if (r.err){ pdOgSay(r.err, 'err'); return false; }
   } else if (f.kind === 'signer'){
     if (typeof saveSignerPlan !== 'function') return false;
-    const sel = row.querySelector('[data-pd-og-sg="ours"]'), tn = row.querySelector('[data-pd-og-sg="tname"]'), te = row.querySelector('[data-pd-og-sg="temail"]');
-    const u = sel && typeof userById === 'function' ? userById(sel.value) : null;
-    const tName = tn ? String(tn.value || '').trim() : '';
-    if (!u) return ask(sel);
-    if (!tName) return ask(tn);
+    /* OUR SIGNER is the person the search box picked (its id), or — typed by hand — the
+       colleague whose name or address it names; THEIR SIGNERS are the name/address pairs
+       in the row, in order, however many "+ Add another signer" drew. */
+    const sel = row.querySelector('[data-pd-og-sg="ours"]');
+    const names = [...row.querySelectorAll('[data-pd-og-sg="tname"]')];
+    const mails = [...row.querySelectorAll('[data-pd-og-sg="temail"]')];
+    const uid = sel ? String(sel.getAttribute('data-og-id') || sel.value || '').trim() : '';
+    let u = uid && typeof userById === 'function' ? userById(uid) : null;
+    if (!u && sel && String(sel.value || '').trim() && typeof getUsers === 'function'){
+      const w = _pdSgFold(String(sel.value).split(' · ')[0]);
+      u = (getUsers() || []).find(x => x && x.role !== 'viewer' && (_pdSgFold(x.name) === w || _pdSgFold(x.email) === w)) || null;
+    }
+    if (!u){ if (sel && String(sel.value || '').trim() && !(o && o.quiet)) pdOgSay(_pdT('og_sg_pick_ours')); return ask(sel); }
+    const theirs = names.map((tn, i) => ({ name: String(tn.value || '').trim(), email: mails[i] ? String(mails[i].value || '').trim() : '' }))
+      .filter(x => x.name);
+    if (!theirs.length) return ask(names[0]);
     const plan = (Array.isArray(c.signerPlan) ? c.signerPlan : []).slice();
     const keep = plan.filter(x => x && x.name);
     if (!keep.some(x => x.party !== 'counterparty')) keep.push({ party: 'internal', name: u.name || u.email, email: u.email || '', role: (typeof signerTitle === 'function' ? signerTitle(u) : '') || '', memberId: u.id });
-    if (!keep.some(x => x.party === 'counterparty')) keep.push({ party: 'counterparty', name: tName, email: te ? String(te.value || '').trim() : '', role: '' });
+    theirs.forEach(t => { if (!keep.some(x => x.party === 'counterparty' && _pdSgFold(x.name) === _pdSgFold(t.name)))
+      keep.push({ party: 'counterparty', name: t.name, email: t.email, role: '' }); });
     const why = saveSignerPlan(c, keep);
     if (why){ pdOgSay(why, 'err'); return false; }
-    words = (u.name || u.email) + ' · ' + tName;
+    words = [u.name || u.email].concat(theirs.map(t => t.name)).join(' · ');
   } else return false;
   if (!inKt) pdOgSavedAdd(c, f, words);
   try { if (typeof detailsChanged === 'function') detailsChanged(c); } catch (_){}
@@ -3837,8 +3934,125 @@ function pdKtDone(c, key){
   if (typeof toast === 'function') toast(f && f.kind === 'nda' ? _pdT('nda_saved') : _pdT('og_kt_saved', { what: f ? f.label : '' }), 'ok');
   return true;
 }
+/* ---- THE QUIET LIST UNDER A SIGNER BOX ----
+   It FLOATS over the rows under it — the rows below never move — and is flipped ABOVE
+   the box where the panel has no room under it (a row near the foot). HaTi's own list
+   dress (.hati-selmenu's white, hairline, radius-lg). Built on a press and on typing,
+   taken down by a press outside, by Esc and by a pick; never in the markup at rest, so
+   a row at rest measures exactly as it did. Nothing here writes to the record. */
+const PD_SG_MAX = 24;            // rows built at once; the list stands five tall and scrolls
+function pdSgRowHtml(p, on){
+  const E = _pdE;
+  const sub = p.sub ? `<span class="pd-og-dd-sub"> · ${E(p.sub)}</span>` : '';
+  const you = p.you ? `<span class="pd-og-dd-sub"> · ${E(_pdT('og_you'))}</span>` : '';
+  const mail = p.email && _pdSgFold(p.email) !== _pdSgFold(p.name) ? `<span class="pd-og-dd-e">${E(p.email)}</span>` : '';
+  return `<button type="button" role="option" aria-selected="${on ? 'true' : 'false'}" class="pd-og-dd-row${on ? ' on' : ''}"`
+    + ` data-pd-og-pick="${E(p.name)}" data-og-mail="${E(p.email)}" data-og-uid="${E(p.id || '')}">`
+    + `<span class="pd-og-av" aria-hidden="true">${E(pdSgInitials(p.name, p.email))}</span>`
+    + `<span class="pd-og-dd-t"><span class="pd-og-dd-n"><b>${E(p.name)}</b>${sub}${you}</span>${mail}</span></button>`;
+}
+let _pdSgUp = false;             // a list is up somewhere: a press elsewhere need not look
+function pdSgListClose(){
+  if (typeof document === 'undefined' || !_pdSgUp) return;
+  _pdSgUp = false;
+  [...document.querySelectorAll('#ig-dock #pd-og .pd-og-dd')].forEach(el => {
+    const box = el.parentNode && el.parentNode.querySelector('[data-pd-og-sb]');
+    if (box) box.setAttribute('aria-expanded', 'false');
+    el.remove();
+  });
+}
+function pdSgListShowing(box){ const w = box && box.closest ? box.closest('.pd-og-sb') : null; return !!(w && w.querySelector('.pd-og-dd')); }
+function pdSgListOpen(box){
+  if (!box || !box.closest) return false;
+  const wrap = box.closest('.pd-og-sb'); if (!wrap) return false;
+  pdSgListClose();
+  const c = pdOgContract(pdOgHostOf(box)); if (!c) return false;
+  const picked = box.getAttribute('data-og-picked') || '', typed = String(box.value || '');
+  /* a box still holding the person it was filled with lists everybody, so the reader can change it */
+  const q = (picked && _pdSgFold(typed) === _pdSgFold(picked)) ? '' : typed;
+  const rows = pdSgMatches(pdSgPeople(c, box.getAttribute('data-pd-og-sb')), q);
+  if (!rows.length) return false;
+  const el = document.createElement('div');
+  el.className = 'pd-og-dd'; el.setAttribute('role', 'listbox'); el.setAttribute('aria-label', _pdT('og_sg_list'));
+  el.innerHTML = rows.slice(0, PD_SG_MAX).map((p, i) => pdSgRowHtml(p, i === 0)).join('');
+  wrap.appendChild(el);
+  _pdSgUp = true;
+  box.setAttribute('aria-expanded', 'true');
+  const feed = box.closest('#igd-feed') || box.closest('#ig-dock');
+  const fr = feed ? feed.getBoundingClientRect() : null;
+  const br = box.getBoundingClientRect(), h = el.offsetHeight;
+  const floor = Math.min(window.innerHeight, fr ? fr.bottom : window.innerHeight);
+  const roof = Math.max(0, fr ? fr.top : 0);
+  if (floor - br.bottom < h + 8 && br.top - roof > h + 8) el.classList.add('is-up');
+  return true;
+}
+/* their signer's own address box: the one after this search box, before the next signer's */
+function pdSgMailFor(box){
+  const wrap = box && box.closest ? box.closest('.pd-og-sb') : null;
+  let n = wrap ? wrap.nextElementSibling : null;
+  while (n){
+    if (n.matches && n.matches('[data-pd-og-sg="temail"]')) return n;
+    if (n.matches && n.matches('.pd-og-sb')) return null;
+    n = n.nextElementSibling;
+  }
+  return null;
+}
+/* A PICK FILLS THE NAME AND THE ADDRESS TOGETHER (the owner's ask). Nothing is filed:
+   the row's Confirm is still what reaches saveSignerPlan. */
+function pdSgPick(btn){
+  const wrap = btn && btn.closest ? btn.closest('.pd-og-sb') : null;
+  const box = wrap && wrap.querySelector('[data-pd-og-sb]'); if (!box) return false;
+  const name = btn.getAttribute('data-pd-og-pick') || '', mail = btn.getAttribute('data-og-mail') || '';
+  box.value = name;
+  box.setAttribute('data-og-picked', name);
+  box.setAttribute('data-og-id', btn.getAttribute('data-og-uid') || '');
+  if (box.getAttribute('data-pd-og-sb') === 'theirs' && mail){ const mb = pdSgMailFor(box); if (mb) mb.value = mail; }
+  pdSgListClose();
+  try { box.focus({ preventScroll: true }); } catch (_){}
+  return true;
+}
+function pdSgStep(box, by){
+  const wrap = box.closest('.pd-og-sb'), el = wrap && wrap.querySelector('.pd-og-dd'); if (!el) return false;
+  const rows = [...el.querySelectorAll('.pd-og-dd-row')]; if (!rows.length) return false;
+  let i = rows.findIndex(r => r.classList.contains('on')); i = Math.max(0, Math.min(rows.length - 1, (i < 0 ? 0 : i) + by));
+  rows.forEach(r => { r.classList.remove('on'); r.setAttribute('aria-selected', 'false'); });
+  rows[i].classList.add('on'); rows[i].setAttribute('aria-selected', 'true');
+  try { rows[i].scrollIntoView({ block: 'nearest' }); } catch (_){}
+  return true;
+}
 if (typeof document !== 'undefined' && !document._pdOgWired){
   document._pdOgWired = true;
+  /* THE LIST ANSWERS THE KEYBOARD FIRST (capture, ahead of the row's own Enter = Confirm):
+     ↑↓ walk it, Enter picks the lit row, Esc takes it down and only it */
+  document.addEventListener('keydown', e => {
+    const t = e.target;
+    const box = t && t.closest ? t.closest('#ig-dock #pd-og [data-pd-og-sb]') : null; if (!box) return;
+    const up = pdSgListShowing(box);
+    if (e.key === 'Escape'){ if (!up) return; pdSgListClose(); e.stopPropagation(); e.preventDefault(); return; }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+      if (!up){ if (e.key === 'ArrowDown') pdSgListOpen(box); } else pdSgStep(box, e.key === 'ArrowDown' ? 1 : -1);
+      e.preventDefault(); e.stopPropagation(); return;
+    }
+    if (e.key === 'Enter' && up && !e.isComposing){
+      const lit = box.closest('.pd-og-sb').querySelector('.pd-og-dd-row.on');
+      if (lit){ pdSgPick(lit); e.preventDefault(); e.stopPropagation(); }
+    }
+  }, true);
+  /* a press inside the list keeps the hand in the box (so no repaint lands under it) */
+  document.addEventListener('pointerdown', e => {
+    const t = e.target;
+    if (t && t.closest && t.closest('#ig-dock #pd-og .pd-og-dd')){ e.preventDefault(); return; }
+    if (t && t.closest && t.closest('#ig-dock #pd-og .pd-og-sb')) return;
+    pdSgListClose();
+  }, true);
+  /* TYPING FILTERS: the list is rebuilt under the box, and a name typed over a picked
+     person is no longer that person */
+  document.addEventListener('input', e => {
+    const box = e.target && e.target.closest ? e.target.closest('#ig-dock #pd-og [data-pd-og-sb]') : null; if (!box) return;
+    box.setAttribute('data-og-id', '');
+    box.setAttribute('data-og-picked', '');
+    if (!pdSgListOpen(box)) pdSgListClose();
+  });
   document.addEventListener('focusin', e => {
     const host = pdOgHostOf(e.target); if (!host) return;
     const c = pdOgContract(host); if (c) pdOgWire(host, c);
@@ -3901,6 +4115,27 @@ if (typeof document !== 'undefined' && !document._pdOgWired){
   });
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('#ig-dock')) return;
+    /* ---- THE SIGNER ROW'S OWN PRESSES (21 Oct 2026) ---- */
+    const pick = t.closest('#pd-og .pd-og-dd-row');
+    if (pick){ e.preventDefault(); pdSgPick(pick); return; }
+    const sb = t.closest('#pd-og [data-pd-og-sb]');
+    /* ONE LIST PER PRESS, AND THE SAME PRESS TAKES IT DOWN (there is no system picker
+       behind it any more: the box is a typing box, not a <select>) */
+    if (sb){ if (pdSgListShowing(sb)) pdSgListClose(); else pdSgListOpen(sb); return; }
+    const addSg = t.closest('#pd-og [data-pd-og-sg-add]');
+    if (addSg){ e.preventDefault(); const c = pdOgContract(); const v = addSg.closest('td.pd-og-v'); if (!c || !v) return;
+      pdSgListClose();
+      addSg.insertAdjacentHTML('beforebegin', pdSgTheirHtml(c, {}));
+      const box = [...v.querySelectorAll('[data-pd-og-sg="tname"]')].pop();
+      if (box) try { box.focus({ preventScroll: true }); } catch (_){}
+      return; }
+    /* THE ROW'S ONE POP-UP: the signing route, over this page, landing back on the row */
+    const rt = t.closest('#pd-og [data-pd-og-route]');
+    if (rt){ e.preventDefault(); const c = pdOgContract(); if (!c || typeof openSignerPlanEditor !== 'function') return;
+      const id = c.id; pdSgListClose();
+      openSignerPlanEditor((typeof getContract === 'function' && getContract(id)) || c,
+        { onDone(){ pdOgRepaint(); pdOgLand(id, 'signers'); } });
+      return; }
     const ok = t.closest('#pd-og [data-pd-og-ok]');
     if (ok){ e.preventDefault(); const c = pdOgContract(); if (c) pdOgConfirm(c, ok.getAttribute('data-pd-og-ok')); return; }
     if (t.closest('[data-pd-og-all]') && !t.closest('[data-pd-held-dossier]')){ e.preventDefault(); const c = pdOgContract(); if (!c) return;
