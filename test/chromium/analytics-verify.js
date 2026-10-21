@@ -80,7 +80,8 @@ const check = (ok, what) => {
 
   /* ---- 3. the report chip opens the Portfolio Health Report ---- */
   const popup = ctx.waitForEvent('page', { timeout: 15000 }).catch(() => null);
-  await page.locator('#ai-suggest .ai-chip').first().click();
+  /* the first suggestion, after the free "What am I looking at?" (21 Oct 2026), which stands first in the row */
+  await page.locator('#ai-suggest .ai-chip[data-ai-chip]').first().click();
   const rep = await popup;
   check(!!rep, 'the report chip opens a new tab');
   if (rep) {
