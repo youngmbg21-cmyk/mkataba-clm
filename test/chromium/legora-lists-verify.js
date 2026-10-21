@@ -252,6 +252,13 @@ function pageKit(){
     asked: q => { const h = (window.ai && Array.isArray(ai.history)) ? ai.history : ((window.intel && Array.isArray(intel.history)) ? intel.history : []);
       return h.filter(m => m && m.role === 'user' && String(m.text || m.content || '').trim() === q).length; },
     busy: () => !!((window.ai && ai.busy) || (window.intel && intel.busy)),
+    /* the head shows what its page reads now: the head counts again only once
+       the typing pauses (LH_SYNC_QUIET_MS, js/views/listhead.js), so a stage
+       that reads the tabs or the chips just after typing asks for this first */
+    synced: () => { const s = K.seat(); if (!s || typeof window.lhTabsHtml !== 'function') return true;
+      const rows = el => [...el.children].filter(e => e.matches('.reg-views, .lh-chips')).map(words).join(' ');
+      const tmp = document.createElement('div'); tmp.innerHTML = window.lhTabsHtml(s.getAttribute('data-lh-seat')) + window.lhChipsHtml(s.getAttribute('data-lh-seat'));
+      return rows(tmp) === rows(s); },
     /* a party one row carries and not every row does (any: or every row does);
        else a long word of the first row */
     pick: (c, parties, any) => {
@@ -498,6 +505,9 @@ function pageKit(){
 
   /* ===== 7 · THE BOX: SEARCH, OR ASK THE PAGE'S OWN JAMBO ===== */
   const boxFocus = () => ev(() => { const b = window.__lh.box(); if (!b) return false; b.focus(); return document.activeElement === b; });
+  /* the head's recount after typing is one per pause (lhHeadSyncSoon): asked
+     for as a state — the lit tab says the rows shown — and bounded */
+  const recounted = c => until(cc => { const t = window.__lh.tabs().find(x => x.lit); return (!t || t.n == null || t.n === window.__lh.total(cc)) ? true : null; }, c, 3000);
   const boxClear = async () => { await boxFocus(); await page.keyboard.press('Control+A'); await page.keyboard.press('Backspace'); };
   async function gBox(d){
     await arrive(d);
@@ -520,6 +530,9 @@ function pageKit(){
     }
     check(`${tag(d)} 7a the caret stays in the box at every keystroke`, lost == null, lost == null ? `typed "${P.word}"` : JSON.stringify(lost));
     const nar = await until(([c, wd]) => { const els = window.__lh.rowEls(c); return els.length && els.every(e => window.__lh.rowText(e).includes(wd.toLowerCase())) ? els.length : null; }, [cfg, P.word], 5000);
+    /* the head counts again once the typing pauses (lhHeadSyncSoon,
+       LH_SYNC_QUIET_MS): wait for that recount, bounded, before judging it */
+    await recounted(cfg);
     const after = await ev(c => ({ total: window.__lh.total(c), tabs: window.__lh.tabs() }), cfg);
     const litT = (after.tabs || []).find(t => t.lit), allB = (before.tabs || []).find(t => t.all), allA = (after.tabs || []).find(t => t.all);
     check(`${tag(d)} 7b typing "${P.word}" narrows the list to the rows that carry it (a ${P.kind} is never a question)`,
@@ -546,11 +559,15 @@ function pageKit(){
       await boxClear();
       await until(([c, n]) => window.__lh.total(c) === n ? true : null, [cfg, before.total], 4000);
     } else note(`${tag(d)} 7e no row here names Visa, so "Visa" is not tried`, JSON.stringify(visa));
-    /* a question does not narrow; Enter hands it to the page's own Jambo */
+    /* a question does not narrow; Enter hands it to the page's own Jambo.
+       Measured against the rows drawn at rest just before it is typed: words
+       typed and cleared above put a paged list back on its first page (Show
+       more pressed earlier is not kept), which is no narrowing by the question */
+    const rest = await ev(c => window.__lh.rows(c), cfg);
     await boxFocus(); await page.keyboard.type(QUESTION);
     const held = await until(([c, n, q]) => { const b = window.__lh.box(); return b && b.value === q && window.__lh.total(c) === n ? true : null; }, [cfg, before.total, QUESTION], 4000);
     const qn = await ev(c => ({ total: window.__lh.total(c), rows: window.__lh.rows(c), focus: document.activeElement === window.__lh.box() }), cfg);
-    check(`${tag(d)} 7f "${QUESTION}" does not narrow the list, the caret kept`, !!held && qn.rows === before.rows && qn.focus, JSON.stringify({ before: before.total, now: qn }));
+    check(`${tag(d)} 7f "${QUESTION}" does not narrow the list, the caret kept`, !!held && qn.rows === rest && qn.focus, JSON.stringify({ before: before.total, rest, now: qn }));
     const asked0 = await ev(q => window.__lh.asked(q), QUESTION);
     await page.keyboard.press('Enter');
     const went = await until(([q, n]) => window.__lh.asked(q) > n ? true : null, [QUESTION, asked0], 10000);
@@ -583,9 +600,14 @@ function pageKit(){
     if (P && hasBox){
       await boxClear(); await page.keyboard.type(P);
       await until(([c, wd]) => { const els = window.__lh.rowEls(c); return els.length && els.every(e => window.__lh.rowText(e).includes(wd.toLowerCase())) ? true : null; }, [cfg, P], 5000);
+      await recounted(cfg);
     }
     const spot = () => ev(c => ({ tab: (window.__lh.tabs().find(t => t.lit) || {}).label || null, chips: window.__lh.chips().map(x => x.t).sort(),
       words: (window.__lh.box() || {}).value == null ? null : window.__lh.box().value, ids: window.__lh.ids(c).slice(0, 60) }), cfg);
+    /* the lit tab's number may already be right while a chip's choices still
+       wait for the head's one recount per pause: ask for the head as its page
+       reads it now, bounded */
+    await until(() => window.__lh.synced() ? true : null, null, 3000);
     const was = await spot();
     await page.reload({ waitUntil: 'networkidle' });
     await loaded();

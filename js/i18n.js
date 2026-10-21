@@ -15220,8 +15220,9 @@ const STRINGS = {
     /* ---- the Directory, Faces (13 Oct 2026) ---- */
     dir_tabs_label: 'Whose people',
     dir_tab_all: 'Everyone',
-    dir_tab_ours: 'Our people',
-    dir_tab_theirs: 'Their people',
+    /* the tabs as drawn (Part 8, the Legora way: Everyone · Ours · Theirs) */
+    dir_tab_ours: 'Ours',
+    dir_tab_theirs: 'Theirs',
     dir_tab_none: 'Not on a contract',
     dir_n_ours: '{n} of ours',
     dir_find: 'Find a person',

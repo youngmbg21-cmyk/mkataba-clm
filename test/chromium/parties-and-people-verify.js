@@ -28,6 +28,13 @@
        People with that person chosen and lit
      7 the owner's three screens: the list and the panel side by side, the
        filters in view, nothing sideways
+   RE-POINTED 21 Oct 2026 (Part 8, the owner's pick of "The Legora way",
+   reverses round 19's labelled bands and the cards' own heads on both
+   pages): 1, 2a, 6a–6c, 7 and 8a read the list head — one box to search or
+   ask in under the title, the views as tabs (Parties All · Live · Ended,
+   opening on Live; People Everyone · Ours · Theirs), the filters under
+   "+ Filter", Columns at the chip row's end — and People's table as drawn,
+   Name · Party or company · Contracts with the job title under the name.
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/parties-and-people-verify.js
    Photographs: HATI_SHOT_DIR=<dir> node test/chromium/parties-and-people-verify.js */
@@ -108,47 +115,46 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
     await page.evaluate(() => setView('customers'));
     await until(() => document.querySelectorAll('#cu-tbody [data-cu-cust]').length >= 3, null, 10000);
 
-    /* ---- 1 the band ---- */
-    await part('1 the band', async () => {
+    /* ---- 1 the head (RE-POINTED 21 Oct 2026, Part 8: the list head the
+       Legora way — round 19's labelled band is gone) ---- */
+    await part('1 the head', async () => {
       const B = await page.evaluate(() => {
-        const band = document.querySelector('.cu-page .sap-band'); if (!band) return null;
-        const boxes = [...band.querySelectorAll('.cu-fb > *')].map(el => {
-          const l = el.querySelector('.reg-f-l, .cu-find-l'), b = el.querySelector('.reg-f-v, .cu-find-box');
-          const lr = l && l.getBoundingClientRect(), br = b && b.getBoundingClientRect();
-          /* where the word's ink starts (a Range, not the element's line box) */
-          const ink = (() => { if (!l) return null; const rg = document.createRange(); rg.selectNodeContents(l); const q = rg.getClientRects()[0]; return q ? Math.round(q.top * 2) / 2 : null; })();
-          return { label: l ? l.textContent.trim() : '', value: b ? b.textContent.trim() : '', above: !!(lr && br && lr.bottom <= br.top + 1 && lr.width > 0), ink };
-        });
-        const q = document.getElementById('cu-q');
-        return { boxes, ph: q && q.getAttribute('placeholder'), title: (band.querySelector('.cu-t') || {}).textContent || '', sub: (band.querySelector('.cu-hs') || {}).textContent || '',
-          /* RE-POINTED 19 Oct 2026 (the head card's first check: ONE line on every
-             head card): the hairline over the filters is the title row's own foot
-             (.ph-top), drawn by the one rule every head wears — still solid, still
-             right over the filters (nothing between it and their row) */
-          hair: (() => { const t = band.querySelector('.ph-top'), fb = band.querySelector('.cu-fb'); if (!t || !fb) return 'none';
-            const cs = getComputedStyle(t); return Math.abs(t.getBoundingClientRect().bottom - fb.getBoundingClientRect().top) <= 1 && parseFloat(cs.borderBottomWidth) >= 1 ? cs.borderBottomStyle : 'none'; })(),
+        const band = document.querySelector('.cu-page .sap-band[data-lh-seat="customers"]'); if (!band) return null;
+        const q = document.getElementById('cu-q'), top = band.querySelector('.ph-top'), ask = band.querySelector('.lh-ask'), tabs = band.querySelector('[role="tablist"]');
+        const r = e => e && e.getBoundingClientRect();
+        return { old: !!document.querySelector('.cu-page .cu-fb, .cu-page .reg-f-l, .cu-page .cu-find-l, .cu-page select[data-cu-f]'),
+          box: !!(q && q.hasAttribute('data-lh-q') && ask && ask.contains(q)), ph: q && q.getAttribute('placeholder'),
+          order: !!(top && ask && tabs && r(top).bottom <= r(ask).top + 1 && r(ask).bottom <= r(tabs).top + 1),
+          tabs: [...band.querySelectorAll('[role="tab"][data-cu-status]')].map(t => ({ k: t.getAttribute('data-cu-status'), on: t.getAttribute('aria-selected') === 'true' })),
+          add: !!band.querySelector('.lh-chips [data-lh-add]'),
+          title: (band.querySelector('.cu-t') || {}).textContent || '', sub: (band.querySelector('.cu-hs') || {}).textContent || '',
+          /* the title row's own foot (.ph-top), the one line every head card draws */
+          hair: (() => { if (!top) return 'none'; const cs = getComputedStyle(top); return parseFloat(cs.borderBottomWidth) >= 1 ? cs.borderBottomStyle : 'none'; })(),
           draft: !!band.querySelector('[data-cu-draft]') };
       });
-      check('1a each box\'s word is above it: Party name · Status · Stream · Owner · NDA', !!B && JSON.stringify(B.boxes.map(b => b.label)) === JSON.stringify(['Party name', 'Status', 'Stream', 'Owner', 'NDA']) && B.boxes.every(b => b.above), JSON.stringify(B && B.boxes));
-      /* 19 Oct 2026 (the head card's second check): the five words stand on ONE
-         line, as drawn — "Party name" stood 4px above the other four */
-      check('1a2 and the five words stand on one line', !!B && B.boxes.length === 5 && B.boxes.every(b => b.ink != null && Math.abs(b.ink - B.boxes[0].ink) <= 1), JSON.stringify(B && B.boxes.map(b => `${b.label}@${b.ink}`)));
-      check('1b the find box says "Name or city"; Status opens on Live; a hairline over the filters', !!B && B.ph === 'Name or city' && B.boxes[1] && B.boxes[1].value === 'Live' && B.hair === 'solid', JSON.stringify(B && { ph: B.ph, st: B.boxes[1], hair: B.hair }));
+      check('1a one box to search or ask in, under the title and over the tabs; no labelled band', !!B && B.box && B.order && !B.old, JSON.stringify(B));
+      check('1a2 Status is the tabs: All · Live · Ended, the list opening on Live; the filters wait under + Filter', !!B
+        && JSON.stringify(B.tabs.map(t => t.k)) === JSON.stringify(['all', 'live', 'ended']) && (B.tabs.find(t => t.on) || {}).k === 'live' && B.add, JSON.stringify(B && B.tabs));
+      check('1b the box says "Search, or ask across N parties"; a hairline under the title row', !!B && /^Search, or ask across \d+ parties$/.test(B.ph || '') && B.hair === 'solid', JSON.stringify(B && { ph: B.ph, hair: B.hair }));
       check('1c the head: "Parties N" and "… on paper with live parties", and + Draft new agreement', !!B && /^Parties\s*\d+$/.test(B.title.trim()) && /on paper with live parties$/.test(B.sub.trim()) && B.draft, JSON.stringify(B && { t: B.title, s: B.sub }));
     });
 
     /* ---- 2 the list ---- */
     await part('2 the list', async () => {
       const L = await page.evaluate(() => ({
-        head: (document.querySelector('.cu-card .ap-card-t') || {}).textContent || '',
+        /* (Part 8) the count is the lit tab's, how the list is sorted the Party column's hover */
+        lit: (() => { const t = document.querySelector('[data-lh-seat="customers"] [role="tab"][aria-selected="true"]'); return t ? (t.firstChild.textContent.trim() + ' ' + ((t.querySelector('.n') || {}).textContent || '').trim()) : ''; })(),
+        sort: (document.querySelector('.cu-table thead th') || { getAttribute: () => '' }).getAttribute('title') || '',
+        card: !!document.querySelector('.cu-card .ap-card-h'),
         cols: [...document.querySelectorAll('.cu-table thead th')].map(t => t.textContent.trim()),
         rows: document.querySelectorAll('#cu-tbody [data-cu-cust]').length,
         foot: (document.querySelector('.cu-foot') || {}).textContent || '',
-        columns: !!document.querySelector('[data-lc-btn="customers"]'),
+        columns: !!document.querySelector('[data-lh-seat="customers"] .lh-chips [data-lc-btn="customers"]'),
         sub: (document.querySelector('#cu-tbody [data-cu-cust="kenya freight ltd"] .cu-ps') || {}).textContent || '',
         old: !!document.querySelector('#cu-tbody [data-cu-cust="retired supplies ltd"]'),
       }));
-      check('2a "Parties N live · sorted by name", and Columns', /^Parties\s*\d+\s*live · sorted by name$/.test(L.head.replace(/\s+/g, ' ').trim()) && L.columns, L.head);
+      check('2a the list\'s count is the lit tab\'s ("Live N", the foot\'s N), "sorted by name" on the Party column, Columns in the head\'s chip row',
+        /^Live \d+$/.test(L.lit) && L.lit.endsWith(' ' + ((/of (\d+)/.exec(L.foot) || [])[1])) && L.sort === 'sorted by name' && !L.card && L.columns, JSON.stringify({ lit: L.lit, sort: L.sort, card: L.card, foot: L.foot, columns: L.columns }));
       check('2b the columns as drawn', JSON.stringify(L.cols) === JSON.stringify(['Party', 'City', 'Live', 'Ended', 'On paper', 'Next to end', 'Waiting on you', 'NDA']), JSON.stringify(L.cols));
       check('2c a party\'s line: "2 agreements · <stream>"', /^2 agreements · \S/.test(L.sub), L.sub);
       /* RE-POINTED 21 Oct 2026 (Part 8, the list head the Legora way): the
@@ -253,25 +259,30 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
     await part('6 People', async () => {
       await page.evaluate(() => setView('directory'));
       await until(() => document.querySelector('#dir-tbody [data-dir-row]'), null, 10000);
+      /* RE-POINTED 21 Oct 2026 (Part 8, the Legora way): the list head — one
+         box, the sides as tabs, the rest under + Filter — and the table as
+         drawn, Name · Party or company · Contracts, the job title under the name */
       const D = await page.evaluate(() => {
-        const band = document.querySelector('.dir-page .sap-band');
-        const boxes = [...band.querySelectorAll('.cu-fb > *')].map(el => { const l = el.querySelector('.reg-f-l, .cu-find-l'), b = el.querySelector('.reg-f-v, .cu-find-box');
-          const lr = l && l.getBoundingClientRect(), br = b && b.getBoundingClientRect();
-          const ink = (() => { if (!l) return null; const rg = document.createRange(); rg.selectNodeContents(l); const q = rg.getClientRects()[0]; return q ? Math.round(q.top * 2) / 2 : null; })();
-          return { label: l ? l.textContent.trim() : '', above: !!(lr && br && lr.bottom <= br.top + 1), ink }; });
-        return { boxes, ph: document.getElementById('dir-q').getAttribute('placeholder'), title: band.querySelector('.cu-t').textContent.trim(), sub: band.querySelector('.cu-hs').textContent.trim(),
-          head: document.querySelector('.dir-card .ap-card-t').textContent.replace(/\s+/g, ' ').trim(),
+        const band = document.querySelector('.dir-page .sap-band[data-lh-seat="directory"]');
+        const q = document.getElementById('dir-q');
+        return { old: !!document.querySelector('#dir-page .cu-fb, #dir-page .reg-f-l, #dir-page .cu-find-l, #dir-page select[data-dir-f]'),
+          box: !!(q && q.hasAttribute('data-lh-q') && band && band.contains(q)), ph: q && q.getAttribute('placeholder'),
+          add: !!(band && band.querySelector('.lh-chips [data-lh-add]')),
+          title: band.querySelector('.cu-t').textContent.trim(), sub: band.querySelector('.cu-hs').textContent.trim(),
+          sort: (document.querySelector('.dir-table thead th') || { getAttribute: () => '' }).getAttribute('title') || '',
           cols: [...document.querySelectorAll('.dir-table thead th')].map(t => t.textContent.trim()),
           rows: document.querySelectorAll('#dir-tbody [data-dir-row]').length, foot: (document.querySelector('.dir-cardfoot') || {}).textContent || '',
-          tabs: document.querySelectorAll('#dir-page [data-dir-tab], #dir-page .dir-az').length,
+          tabs: [...document.querySelectorAll('#dir-page [role="tab"][data-dir-tab]')].map(t => t.firstChild.textContent.trim()),
+          az: !!document.querySelector('#dir-page .dir-az'),
+          sub1: (document.querySelector('#dir-tbody [data-dir-row] .dir-sub') || {}).textContent || '',
           away: [...document.querySelectorAll('#dir-tbody [data-dir-row]')].filter(r => r.querySelector('.dir-away')).map(r => r.textContent.replace(/\s+/g, ' ').trim()),
           first: (document.querySelector('#dir-tbody [data-dir-row] .dir-name') || {}).textContent || '', bar: (document.getElementById('dk-page') || {}).textContent || '' };
       });
-      check('6a the words above the boxes: Name, email or party · Side · Party · Role in HaTi · Stream; "Type to find"', JSON.stringify(D.boxes.map(b => b.label)) === JSON.stringify(['Name, email or party', 'Side', 'Party', 'Role in HaTi', 'Stream']) && D.boxes.every(b => b.above) && D.ph === 'Type to find', JSON.stringify(D.boxes));
-      check('6a2 and the five words stand on one line', D.boxes.length === 5 && D.boxes.every(b => b.ink != null && Math.abs(b.ink - D.boxes[0].ink) <= 1), JSON.stringify(D.boxes.map(b => `${b.label}@${b.ink}`)));
-      check('6b the page is People: "People N", "<n> of ours · <n> at <n> parties"; no tabs, no A to Z', /^People\s*\d+$/.test(D.title) && /^\d+ of ours · \d+ at \d+ parties$/.test(D.sub) && D.tabs === 0, JSON.stringify({ t: D.title, s: D.sub, tabs: D.tabs, bar: D.bar }));
-      check('6c the table as drawn: Name · Side · Party or company · Job title · In HaTi · Contracts · Email; "ours first, then theirs, by name"',
-        JSON.stringify(D.cols) === JSON.stringify(['Name', 'Side', 'Party or company', 'Job title', 'In HaTi', 'Contracts', 'Email']) && /ours first, then theirs, by name$/.test(D.head) && /Amina Otieno/.test(D.first), JSON.stringify({ c: D.cols, h: D.head, f: D.first }));
+      check('6a one box to search or ask in, "Search N people, or ask Jambo"; Party · Role in HaTi · Stream under + Filter; no labelled band', D.box && !D.old && D.add && /^Search \d+ people, or ask Jambo$/.test(D.ph || ''), JSON.stringify({ box: D.box, old: D.old, add: D.add, ph: D.ph }));
+      check('6a2 the sides are the tabs: Everyone · Ours · Theirs', JSON.stringify(D.tabs.slice(0, 3)) === JSON.stringify(['Everyone', 'Ours', 'Theirs']), JSON.stringify(D.tabs));
+      check('6b the page is People: "People N", "<n> of ours · <n> at <n> parties"; no A to Z', /^People\s*\d+$/.test(D.title) && /^\d+ of ours · \d+ at \d+ parties$/.test(D.sub) && !D.az, JSON.stringify({ t: D.title, s: D.sub, az: D.az, bar: D.bar }));
+      check('6c the table as drawn: Name · Party or company · Contracts, the job title and role under the name; "ours first, then theirs, by name" on Name',
+        JSON.stringify(D.cols) === JSON.stringify(['Name', 'Party or company', 'Contracts']) && D.sort === 'ours first, then theirs, by name' && /Amina Otieno/.test(D.first) && / · Admin$/.test(D.sub1.trim()), JSON.stringify({ c: D.cols, s: D.sort, f: D.first, sub: D.sub1 }));
       check('6d an away colleague wears "Away until …" on their row', D.away.some(x => /Jonas Berg.*Away until/.test(x)), JSON.stringify(D.away));
       check('6e twelve at a time, the cap said: "1–12 of N · Show N more"', D.rows === 12 && /^1–12 of 1\d · Show \d+ more/.test(D.foot.trim()), JSON.stringify({ r: D.rows, f: D.foot }));
       await page.click('#dir-tbody [data-dir-row="' + (await page.evaluate(() => (dirBook().find(p => p.name === 'Jonas Berg') || {}).key)) + '"]');
@@ -296,8 +307,9 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await page.click('#ins-panel .jl-back, #ins-panel [data-jl-back]');
       const J = await until(() => { const p = document.getElementById('ins-panel'); const b = p && p.querySelector('b');
         if (!b || !/on this list/.test(b.textContent)) return null;
-        return { said: b.textContent.trim(), head: ((document.querySelector('.cu-card .ap-card-n') || {}).textContent || '').trim() }; });
-      check('8a with nothing chosen Jambo says the list\'s own count, the number on its head', !!J && J.said.startsWith(J.head + ' part'), JSON.stringify(J));
+        /* (Part 8) the list's count is the lit tab's number */
+        return { said: b.textContent.trim(), head: ((document.querySelector('[data-lh-seat="customers"] [role="tab"][aria-selected="true"] .n') || {}).textContent || '').trim() }; });
+      check('8a with nothing chosen Jambo says the list\'s own count, the number on its lit tab', !!J && !!J.head && J.said.startsWith(J.head + ' part'), JSON.stringify(J));
       await page.click('#cu-tbody [data-cu-cust="kenya freight ltd"]');
       await until(() => document.querySelector('#ins-panel [data-cu-nda]'));
       await page.click('#ins-panel [data-cu-nda]');
@@ -369,7 +381,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
           await until(s => document.querySelector(s), sel);
           await page.waitForTimeout(250);
           const G = await page.evaluate(() => {
-            const card = document.querySelector('.cu-card'), p = document.getElementById('ins-panel'), fb = document.querySelector('.sap-band .cu-fb');
+            /* (Part 8) the filters are the list head's chip row */
+            const card = document.querySelector('.cu-card'), p = document.getElementById('ins-panel'), fb = document.querySelector('[data-lh-seat] .lh-chips');
             const cr = card && card.getBoundingClientRect(), pr = p && p.getBoundingClientRect(), fr = fb && fb.getBoundingClientRect();
             return { side: !!(cr && pr && cr.right <= pr.left + 2 && pr.width > 200), filters: !!(fr && fr.bottom <= innerHeight && fr.top >= 0),
               sideways: document.documentElement.scrollWidth > innerWidth + 1, panelIn: !!(pr && pr.bottom <= innerHeight + 1) };

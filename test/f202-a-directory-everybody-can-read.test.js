@@ -100,9 +100,19 @@ describe('f202 — a restricted member sees every colleague', () => {
     assert.match(admin.querySelector('.dir-role').textContent, /Admin/);
   });
 
+  /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick of "The Legora way":
+     People's table is Name · Party · Contracts, the Email column leaves the
+     row): D-1 holds where the person is read whole — the panel's Email row is
+     the address as a link (its Email button opens it) — and the row's name
+     carries the address on its hover */
   test('D-1: the address is a link, because a directory you cannot act on is a list', () => {
-    const a = page.doc.querySelector('.dir-mail a');
-    assert.ok(a && a.getAttribute('href').startsWith('mailto:'), 'mailto');
+    const src = read('js/views/directory.js');
+    const panel = src.slice(src.indexOf('function dirPaintPanel('), src.indexOf('function dirDoesFor('));
+    assert.match(panel, /<a href="mailto:\$\{_dE\(p\.email\)\}">/, 'the panel\'s Email row is a mailto link');
+    const u = boot.users.find(x => x.email);
+    const row = [...page.doc.querySelectorAll('[data-dir-row]')].find(r => r.textContent.includes(u.name));
+    assert.ok(row && row.querySelector('.dir-nm-w').getAttribute('title').includes(u.email), 'the row\'s name carries the address on its hover');
+    assert.equal(page.doc.querySelector('#dir-tbody a[href^="mailto:"]'), null, 'no address column in the rows (as drawn)');
   });
 
   /* RE-POINTED 19 Oct 2026 (round 19's People table as drawn: "ours first,
@@ -124,8 +134,10 @@ describe('f202 — a restricted member sees every colleague', () => {
        The only LINK is an address, which leaves the app, and the renderer
        calls none of the writers — pinned on the source so a door onto editing
        cannot grow here unnoticed. */
+    /* (21 Oct 2026, Part 8: the rows carry no address link any more; the
+       person's panel does — a link, when there is one, is still only an address) */
     const links = [...page.doc.querySelectorAll('#dir-page a')];
-    assert.ok(links.length > 0 && links.every(a => a.getAttribute('href').startsWith('mailto:')), 'the only links are addresses');
+    assert.ok(links.every(a => a.getAttribute('href').startsWith('mailto:')), 'the only links are addresses');
     const src = read('js/views/directory.js');
     for (const w of ['saveSettings', 'saveContract', 'contactSet(', 'participantAdd', 'participantSet', 'participantRemove', 'fetch('])
       assert.ok(!src.includes(w), `the directory calls ${w} — it is a reading and writes nothing`);
@@ -261,10 +273,13 @@ describe('f202 — every role', () => {
     assert.ok(mine.querySelector('.dir-you'));
   });
 
+  /* (21 Oct 2026, Part 8: the address left the row, so its absence is said
+     where the address is read — the person's panel's Email row) */
   test('a missing job title and a missing address each say so rather than going blank', () => {
     const p = stage([{ id: 'x', name: 'No Details', role: 'legal', email: '', title: '' }], { id: 'x', role: 'legal' });
     assert.match(p.html, /dir_no_title/);
-    assert.match(p.html, /dir_no_email/);
+    const src = read('js/views/directory.js');
+    assert.match(src.slice(src.indexOf('function dirPaintPanel('), src.indexOf('function dirDoesFor(')), /dir_no_email/);
   });
 
   test('AND THE PHONE SAYS THE SAME THING — an absence describes one person once', () => {

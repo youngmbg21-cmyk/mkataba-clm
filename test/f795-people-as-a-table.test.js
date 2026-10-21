@@ -17,6 +17,13 @@
          more"; Columns hides a column
      (4) the page is named People in both books; a person from elsewhere
          (the Parties panel) is chosen and landed on (dirOpenPerson → landOn)
+   RE-POINTED 21 Oct 2026 (Part 8, the owner's pick of "The Legora way",
+   reverses round 19's band and table here): the head is the list head — one
+   box to search or ask in, the sides as tabs Everyone · Ours · Theirs (and
+   Not on a contract where somebody is), Party · Role in HaTi · Stream under
+   "+ Filter" — and the table is Name · Party or company · Contracts, the
+   job title and the role here under the name, the address the person's
+   panel's (the name's hover on the row); the list's count is the lit tab's.
    RED AT THE PARENT (gaps/A1): a wall of face cards under tabs, no Side box,
    no Role in HaTi, no paging, named Directory.
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -84,37 +91,52 @@ describe('f795 (1) the band as drawn', () => {
     assert.match(doc.querySelector('#dir-page .cu-t').textContent, /^People\s*15$/);
     assert.equal(doc.querySelector('#dir-page .cu-hs').textContent, '4 of ours · 11 at 11 parties');
   });
-  test('each box\'s word above it, the find box first, no tab row and no A to Z edge', () => {
-    const fb = doc.querySelector('#dir-page .sap-band > .cu-fb');
-    assert.ok(fb, 'the filters are the band\'s own row, under a hairline');
-    assert.deepEqual([...fb.children].map(el => (el.querySelector('.reg-f-l, .cu-find-l') || {}).textContent), ['Name, email or party', 'Side', 'Party', 'Role in HaTi', 'Stream']);
-    assert.equal(doc.getElementById('dir-q').getAttribute('placeholder'), 'Type to find');
-    assert.equal(doc.querySelector('#dir-page [data-dir-tab], #dir-page .reg-views, #dir-page .dir-az'), null);
-    assert.equal(doc.querySelector('select[data-dir-f="tab"]').value, 'all');
-    assert.deepEqual([...doc.querySelector('select[data-dir-f="hati"]').options].map(x => x.textContent), ['Any', 'Admin', 'Editor', 'Viewer']);
+  /* RE-POINTED 21 Oct 2026 (Part 8, the Legora way): the labelled band is
+     the list head — one box, the sides as tabs, the rest under + Filter */
+  test('one box to search or ask in, the sides as tabs, Party · Role in HaTi · Stream under + Filter, no A to Z edge', () => {
+    assert.ok(doc.querySelector('#dir-page .sap-band.ph-card[data-lh-seat="directory"]'), 'the list head is the page\'s one head card');
+    assert.equal(doc.querySelector('#dir-page .cu-fb, #dir-page select[data-dir-f], #dir-page .cu-find-l, #dir-page .dir-az'), null, 'no labelled band, no A to Z edge');
+    const q = doc.getElementById('dir-q');
+    assert.ok(q && q.hasAttribute('data-lh-q'), 'the box keeps the page\'s id');
+    assert.equal(q.getAttribute('placeholder'), 'Search 15 people, or ask Jambo');
+    const pg = sb.LH_PAGES.directory;
+    assert.equal(pg.tabAttr, 'data-dir-tab');
+    assert.equal(pg.tabNow(), 'all');
+    assert.deepEqual(Array.from(pg.tabs(), t => t.k + ' ' + t.label + ' ' + t.n), ['all Everyone 15', 'ours Ours 4', 'theirs Theirs 11', 'none Not on a contract 0']);
+    assert.deepEqual([...doc.querySelectorAll('#dir-page [data-lh-add] optgroup')].map(g => g.getAttribute('label')), ['Party', 'Role in HaTi', 'Stream']);
+    const roles = [...doc.querySelectorAll('#dir-page [data-lh-add] optgroup')].find(g => g.getAttribute('label') === 'Role in HaTi');
+    assert.deepEqual([...roles.querySelectorAll('option')].map(x => x.textContent), ['Admin (1)', 'Editor (2)', 'Viewer (1)']);
   });
 });
 
 describe('f795 (2) the table as drawn', () => {
   const { sb, doc } = stage();
   sb.renderDirectory();
+  /* RE-POINTED 21 Oct 2026 (Part 8, the Legora way): Name · Party · Contracts
+     as drawn; the card's own head went — the count is the lit tab's, the
+     order the Name column's hover, Columns at the end of the head's chip row */
   test('the columns and the list\'s head', () => {
-    assert.deepEqual([...doc.querySelectorAll('#dir-page thead th')].map(t => t.textContent), ['Name', 'Side', 'Party or company', 'Job title', 'In HaTi', 'Contracts', 'Email']);
-    const t = doc.querySelector('.dir-card .ap-card-t');
-    assert.equal(t.querySelector('.ap-card-n').textContent, '15');
-    assert.equal(t.querySelector('.ap-card-m').textContent, 'ours first, then theirs, by name');
-    assert.ok(doc.querySelector('.dir-card [data-lc-btn="directory"]'), 'Columns');
+    assert.deepEqual([...doc.querySelectorAll('#dir-page thead th')].map(t => t.textContent), ['Name', 'Party or company', 'Contracts']);
+    assert.equal(doc.querySelector('.dir-card .ap-card-h'), null, 'the card is the table and its foot');
+    assert.equal(sb.LH_PAGES.directory.tabs().find(t => t.k === 'all').n, 15);
+    assert.equal(doc.querySelector('#dir-page thead th').getAttribute('title'), 'ours first, then theirs, by name');
+    assert.ok(doc.querySelector('[data-lh-seat="directory"] .lh-chips [data-lc-btn="directory"]'), 'Columns');
   });
   test('ours first — the reader first — then theirs, each by name', () => {
     const names = rowsOf(doc).map(nameOf);
     assert.deepEqual(names.slice(0, 5), ['Vera Reader', 'Amina Otieno', 'Jonas Berg', 'Zed Mwangi', 'Buyer 01']);
   });
-  test('a row says it all: (you), side, party or company, title, role here, contracts, the address', () => {
+  /* RE-POINTED 21 Oct 2026 (Part 8, the Legora way): the job title and the
+     role here stand under the name; the side is the tab; the address rides
+     the name's hover */
+  test('a row says it all: (you), the job title and role here under the name, party or company, contracts', () => {
     const r = rowsOf(doc);
     const cells = row => [...row.children].map(td => td.textContent.replace(/\s+/g, ' ').trim());
-    assert.equal(JSON.stringify(cells(r[0])), JSON.stringify(['VRVera Reader (you)', 'Ours', 'Highland Corporate Ltd', '—', 'Viewer', '—', 'v@x.test']));
-    assert.equal(JSON.stringify(cells(r[4])), JSON.stringify(['B0Buyer 01', 'Theirs', 'Party 01 Ltd', '—', '—', '1', 'buyer1@party1.co.ke']));
-    assert.match(r[0].children[3].querySelector('.dir-none').getAttribute('title'), /title/i, 'a missing job title still says so, on the hover');
+    assert.equal(JSON.stringify(cells(r[0])), JSON.stringify(['VR Vera Reader (you) No job title on file · Viewer', 'Highland Corporate Ltd', '—']));
+    assert.equal(JSON.stringify(cells(r[4])), JSON.stringify(['B0 Buyer 01 No job title on file', 'Party 01 Ltd', '1']));
+    assert.match(r[0].querySelector('.dir-sub .dir-none').textContent, /title/i, 'a missing job title still says so');
+    assert.match(r[0].querySelector('.dir-nm-w').getAttribute('title'), /v@x\.test/, 'the address on the name\'s hover');
+    assert.match(rowsOf(doc).find(x => nameOf(x) === 'Amina Otieno').querySelector('.dir-sub').textContent, /^General Counsel · Admin$/);
   });
   test('an away colleague wears "Away until <day>"', () => {
     const j = rowsOf(doc).find(r => nameOf(r) === 'Jonas Berg');
@@ -127,7 +149,9 @@ describe('f795 (3) the boxes narrow; twelve at a time; Columns', () => {
   test('Side and Role in HaTi', () => {
     const { sb, doc } = stage();
     sb.dirPlacePut({ tab: 'theirs' }); sb.renderDirectory();
-    assert.ok(rowsOf(doc).every(r => r.children[1].textContent === 'Theirs'));
+    /* (Part 8) the side is the tab: every row behind Theirs is one of theirs */
+    const side = Object.fromEntries(sb.dirBook().map(p => [p.key, p.side]));
+    assert.ok(rowsOf(doc).length && rowsOf(doc).every(r => side[r.getAttribute('data-dir-row')] === 'theirs'));
     sb.dirPlacePut({ tab: 'all', hati: 'legal' }); sb.renderDirectory();
     assert.deepEqual(rowsOf(doc).map(nameOf), ['Jonas Berg', 'Zed Mwangi']);
   });
@@ -143,9 +167,10 @@ describe('f795 (3) the boxes narrow; twelve at a time; Columns', () => {
   });
   test('Columns hides a column, for this reader', () => {
     const { sb, doc } = stage();
-    sb.localStorage.setItem('hati.v1.cols.directory', JSON.stringify({ hidden: ['email', 'side'] }));
+    /* (Part 8) the columns as drawn: Party or company · Contracts */
+    sb.localStorage.setItem('hati.v1.cols.directory', JSON.stringify({ hidden: ['party'] }));
     sb.renderDirectory();
-    assert.deepEqual([...doc.querySelectorAll('#dir-page thead th')].map(t => t.textContent), ['Name', 'Party or company', 'Job title', 'In HaTi', 'Contracts']);
+    assert.deepEqual([...doc.querySelectorAll('#dir-page thead th')].map(t => t.textContent), ['Name', 'Contracts']);
   });
 });
 
@@ -244,19 +269,22 @@ describe('f795 (5) someone on their side, as drawn', () => {
    pill drops under a tight name. Somebody on no contract wears the same panel
    shape as everyone. RED at the first fix (cdc5051). */
 describe('f795 (6) check #2\'s differences, built', () => {
-  test('6a Side, In HaTi and Email read whole: two lines, never an ellipsis', () => {
+  /* RE-POINTED 21 Oct 2026 (Part 8, the Legora way): Side, In HaTi and
+     Email are no columns any more — the side is the tab, the role reads under
+     the name after the job title, the address is the panel's */
+  test('6a the job title and the role here read under the name; no Side, In HaTi or Email column', () => {
     const { sb } = stage();
-    const ours = sb.dirBook().find(x => x.side === 'ours');
-    assert.match(sb.dirCellHtml('side', ours), /class="dir-td-cut dir-td-wrap"><span class="dir-clamp">/);
-    assert.match(sb.dirCellHtml('hati', ours), /class="dir-role dir-td-cut dir-td-wrap"><span class="dir-clamp">/);
-    assert.match(sb.dirCellHtml('email', ours), /<a class="dir-clamp" href="mailto:a@x\.test" title="a@x\.test">a@<wbr>x\.test<\/a>/);
+    assert.deepEqual(Array.from(sb.dirColDefs(), c => c.k), ['party', 'contracts']);
+    const ours = sb.dirBook().find(x => x.side === 'ours' && x.title);
+    assert.match(sb.dirRowHtml(ours, ['party', 'contracts']), /<span class="dir-sub"><span class="dir-title">General Counsel<\/span> · <span class="dir-role">Admin<\/span><\/span>/);
+    assert.equal(sb.dirCellHtml('email', ours), '<td></td>');
   });
-  test('6b the columns have the room for their words (Contracts, Administratör)', () => {
+  test('6b the columns have the room for their words (Contracts, a long party); an away pill drops under a tight name', () => {
     const { sb } = stage();
     const w = Object.fromEntries(sb.dirColDefs().map(c => [c.k, c.w]));
     assert.ok(w.contracts >= 90, 'Contracts ' + w.contracts);
-    assert.ok(w.hati >= 110, 'In HaTi ' + w.hati);
-    assert.match(read('js/views/directory.js'), /\.dir-nm\{display:flex;align-items:center;gap:4px 8px;min-width:0;flex-wrap:wrap;\}/);
+    assert.ok(w.party >= 160, 'Party or company ' + w.party);
+    assert.match(read('js/views/directory.js'), /\.dir-nm-l\{display:flex;align-items:center;flex-wrap:wrap;gap:2px 6px;min-width:0;\}/);
   });
   test('6c somebody on no contract: the same shape — initials, "title · Not on a contract", Email, the rows', () => {
     const st = stage();

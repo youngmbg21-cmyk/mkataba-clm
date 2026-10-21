@@ -19,6 +19,10 @@
        per person, Side · Party or company · Job title · In HaTi · Contracts ·
        Email, the one link an address; ours first, then theirs, by name; no
        A to Z edge (the drawing has none)
+     · RE-POINTED (Part 8, the owner's pick of "The Legora way", 21 Oct
+       2026, reverses round 19's table): Name · Party or company · Contracts;
+       the side is the tabs, the job title and the role here stand under the
+       name, the address is the person's panel's (on the row, the name's hover)
      · the place a refresh puts back, the doors, both books, the brain, the
        Parties panel's door, and the phone keeping its People screen
    ============================================================ */
@@ -233,36 +237,45 @@ describe('f669 — the table, as drawn', () => {
     assert.match(doc.querySelector('#dir-page .dir-t').textContent, /7/, 'everyone counted beside the name');
     assert.match(doc.querySelector('#dir-page .page-facts').textContent, /"n":3/, 'three of ours');
     assert.match(doc.querySelector('#dir-page .page-facts').textContent, /dir_head_theirs:2/, 'theirs at two parties');
+    /* RE-POINTED (Part 8, the Legora way): Name · Party · Contracts, as drawn */
     eq([...doc.querySelectorAll('#dir-page thead th')].map(h => h.getAttribute('data-dir-col') || 'name'),
-      ['name', 'side', 'party', 'title', 'hati', 'contracts', 'email']);
+      ['name', 'party', 'contracts']);
   });
 
-  test('a row says who, which side, which party, the job title, how many contracts; the address is the one link', () => {
+  /* RE-POINTED (Part 8, the Legora way): the side is the tab the row stands
+     behind, the job title stands under the name, and the address is no
+     column — it rides the name's hover (the person's panel carries the link) */
+  test('a row says who, which party, the job title, how many contracts; the side is its tab, the address its hover', () => {
     const w = card('Wanjiru Kamau');
-    assert.match(cell(w, 'side').textContent, /dir_side_theirs/);
     assert.match(cell(w, 'party').textContent, /Naivas Ltd/);
-    assert.match(cell(w, 'title').textContent, /Chief Finance Officer/);
+    assert.match(w.querySelector('.dir-sub').textContent, /Chief Finance Officer/);
     assert.equal(cell(w, 'contracts').textContent.trim(), '1');
-    const a = w.querySelector('.dir-mail a');
-    assert.equal(a.getAttribute('href'), 'mailto:wanjiru@naivas.co.ke');
+    assert.match(w.querySelector('.dir-nm-w').getAttribute('title'), /wanjiru@naivas\.co\.ke/);
+    assert.equal(w.querySelector('a'), null, 'no address link in the row');
+    eq(sb.dirRows(sb.dirBook(), 'theirs').map(p => p.key).includes(w.getAttribute('data-dir-row')), true);
+    /* the sides are the list head's tabs, on the page's own attribute */
+    assert.equal(sb.LH_PAGES.directory.tabAttr, 'data-dir-tab');
+    eq(sb.LH_PAGES.directory.tabs().map(t => t.k), ['all', 'ours', 'theirs', 'none']);
     const links = [...doc.querySelectorAll('#dir-page a')];
     assert.ok(links.every(l => l.getAttribute('href').startsWith('mailto:')), 'no other link on the page');
   });
 
-  test('a colleague\'s row says their HaTi role and Ours; the reader is marked', () => {
+  test('a colleague\'s row says their HaTi role under the name and stands on Ours; the reader is marked', () => {
     const a = card('Amina Otieno');
-    assert.match(cell(a, 'hati').textContent, /Admin/);
-    assert.match(cell(a, 'side').textContent, /dir_side_ours/);
+    assert.match(a.querySelector('.dir-sub .dir-role').textContent, /Admin/);
+    assert.match(a.querySelector('.dir-sub').textContent, /General Counsel · Admin/, 'the job title, then the role here');
+    eq(sb.dirRows(sb.dirBook(), 'ours').map(p => p.key).includes('a'), true);
     assert.ok(a.querySelector('.dir-you'));
     assert.equal(a.getAttribute('data-dir-row'), 'a', 'a colleague\'s key is their id');
   });
 
   test('an absence says so in the one grey both shells share', () => {
     const v = card('Vera Reader');
-    assert.ok(cell(v, 'title').querySelector('.dir-none'));
+    assert.ok(v.querySelector('.dir-sub .dir-none'), 'no job title, said under the name');
+    assert.match(v.querySelector('.dir-sub').textContent, /dir_no_title · Viewer/, 'and the role still follows it');
     assert.ok(cell(v, 'contracts').querySelector('.dir-none'));
     const o = card('Olof Sand');
-    assert.match(cell(o, 'side').textContent, /dir_tab_none/);
+    eq(sb.dirRows(sb.dirBook(), 'none').map(p => p.name), ['Olof Sand']);
     assert.ok(cell(o, 'party').querySelector('.dir-none'));
   });
 
@@ -318,8 +331,9 @@ describe('f669 — the doors go somewhere', () => {
     assert.match(cu, /cu_people_at/);
     assert.match(cu, /dirPeopleOfParty\(r\.key\)/, 'the people are the Directory\'s own reading');
     assert.match(cu, /dirOpenPerson\(pp\.getAttribute\('data-cu-pp'\)\)/);
-    /* RE-POINTED (round 19): the shared builders now run on past cuChip in the export */
-    assert.match(cu, /Object\.assign\(window, \{[\s\S]*\bcuChip,[\s\S]*\bcuFindHtml\b[\s\S]*\}\);\s*$/, 'the one filter-box builder is shared, and the find box with it');
+    /* RE-POINTED (round 19): the shared builders now run on past cuChip in the export;
+       (Part 8) the find box went with the labelled band — the list head's box is listhead.js's */
+    assert.match(cu, /Object\.assign\(window, \{[\s\S]*\bcuChip,[\s\S]*\bcuCardHtml\b[\s\S]*\}\);\s*$/, 'the one filter-box builder is shared, and the card with it');
     const app = read('js/app.js');
     assert.match(app, /directory:\['dirPlace','dirPlacePut'\]/, 'a refresh lands at the same spot');
     assert.match(app, /case 'directory': return \[i18t\('nav_directory'\)/);

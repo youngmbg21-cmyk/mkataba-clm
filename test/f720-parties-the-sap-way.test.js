@@ -88,7 +88,14 @@ describe('f720 (3) the Status box', () => {
     assert.doesNotMatch(fnBody(CU, 'cuFiltersOn'), /_cu\.status/);
     assert.match(fnBody(CU, 'cuPlace'), /status: _cu\.status/);
     assert.match(fnBody(CU, 'cuPlacePut'), /_cu\.status = \['live', 'ended', 'all'\]\.includes\(p\.status\) \? p\.status : 'live';/);
-    assert.match(fnBody(CU, 'cuFilterBarHtml'), /key: 'status', cur: _cu\.status, def: 'live'/);
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick of "The Legora way"):
+       the Status box is the list head's tab row now — All · Live · Ended on
+       the page's own key, each tab counted with the rows its press shows */
+    const reg = fnBody(CU, 'cuLcReg');
+    assert.match(reg, /tabAttr: 'data-cu-status'/);
+    assert.match(reg, /tabNow: \(\) => _cu\.status/);
+    assert.match(reg, /tab: k => \{ _cu\.status = CU_TABS\.includes\(k\) \? k : 'live';/);
+    assert.match(CU, /const CU_TABS = \['all', 'live', 'ended'\];/);
     assert.match(CU, /const _cu = \{[^}]*status: 'live'/);
   });
 });
