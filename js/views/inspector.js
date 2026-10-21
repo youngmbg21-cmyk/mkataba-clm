@@ -1495,6 +1495,8 @@ function jlBoardReads(t){
 }
 function jlAsk(text){
   const t = String(text || '').trim(); if (!t) return false;
+  /* a watch sentence (js/jambopress.js) is proposed as a card in this conversation, never read as a place */
+  if (typeof watchAsks === 'function' && watchAsks(t) && typeof watchAskHere === 'function'){ jlTalkOpen(); if (watchAskHere(t)) return 'card'; }
   const cards = (typeof JM_CARD_PLACES !== 'undefined') ? JM_CARD_PLACES : ['share', 'draft', 'help', 'next'];
   let a = null; try { a = (typeof caReadPlace === 'function') ? caReadPlace(t) : null; } catch (_){ a = null; }
   if (a && a.kind === 'go' && a.missing){
