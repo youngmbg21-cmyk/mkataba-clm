@@ -173,7 +173,9 @@ const SAY = 'NDA with Volvo Cars for a pilot';
     await page.waitForTimeout(300);
     const S5 = await page.evaluate(SHEET);
     check('5a the closest picked: its radio checked', S5.cards[0].checked === 'true', JSON.stringify(S5.cards[0]));
-    check('5b its questions: "N questions · only Counterparty is needed now"', /^\d+ questions · only Counterparty is needed now$/.test(S5.sub) && /asks$/.test(S5.cardName), `${S5.cardName} · ${S5.sub}`);
+    /* RE-POINTED 21 Oct 2026: the stream is asked at every creation door and Create waits for it
+       (naStreamBox, CLAUDE.md "STREAM ACCESS"), so it is needed now beside Counterparty */
+    check('5b its questions: "N questions · only Counterparty and Value stream are needed now"', /^\d+ questions · only Counterparty and Value stream are needed now$/.test(S5.sub) && /asks$/.test(S5.cardName), `${S5.cardName} · ${S5.sub}`);
     check('5c the counterparty the sentence filled says so: "✦ from your words"', /^Counterparty \*? ?✦ from your words$/.test(S5.cp.replace(/\s+/g, ' ')), S5.cp);
     check('5d who else: "Who else is on this agreement · nobody is emailed until you send"', /^Who else is on this agreement · nobody is emailed until you send/.test(S5.people), S5.people);
     check('5e the cost of reading on the stream\'s own row', !!S5.file && S5.file.inRow && /^When it is created, Jambo reads it/.test(S5.file.cost), JSON.stringify(S5.file));

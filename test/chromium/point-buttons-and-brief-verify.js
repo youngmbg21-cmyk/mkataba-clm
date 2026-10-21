@@ -15,7 +15,7 @@
         Home's box with the cursor there
      5  … greyed, with the desk's reason, where somebody else leads the
         negotiation and the reader has no seat
-     6  the paper's "at a glance" carries a Contract briefing button that
+     6  (re-pointed 21 Oct 2026: What Jambo read's brief row, its door "Read ›") a button that
         opens the brief
 
    Run: node test/chromium/point-buttons-and-brief-verify.js */
@@ -130,7 +130,9 @@ const BREAKDOWN = { head: 'Fix the cap first', sub: 'Their cover stops at three 
     await page.evaluate(() => { const c = getContract('MK-P1'); c._brief = { data: { overview: 'This is a two-year haulage agreement with Juno Limited.' } };
       setView('dashboard'); pdOpenOnHome('MK-P1', 'copilot'); });
     const btn = await until(page, () => { const b = document.querySelector('#pd-glance [data-pd-gl-brief]'); return b && b.getBoundingClientRect().width > 0 ? { tag: b.tagName, words: b.textContent.trim() } : null; }, null, 10000);
-    check('6a "at a glance" carries a Contract briefing button', !!btn && btn.tag === 'BUTTON' && btn.words === 'Contract briefing', JSON.stringify(btn));
+    /* RE-POINTED 21 Oct 2026 (owner, "WHAT JAMBO READ, FOUR EVEN ROWS"): the brief is a row of What
+       Jambo read — figure · name · door — its door "Read ›" */
+    check('6a What Jambo read carries the brief\'s door, "Read ›"', !!btn && btn.tag === 'BUTTON' && btn.words === 'Read ›', JSON.stringify(btn));
     check('6b no "The brief" label is left', await page.evaluate(() => !/The brief/.test((document.getElementById('pd-glance') || {}).textContent || '')));
     await shot(page, '6-brief-button');
     if (btn) await page.click('#pd-glance [data-pd-gl-brief]');
