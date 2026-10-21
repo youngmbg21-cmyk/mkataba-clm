@@ -254,9 +254,14 @@ const word = (lines) => Buffer.from(mkDocx(lines.map(t => para(t)).join('')));
     /* a fresh upload has nobody named to sign: the row must be there to press (a missing row is reported, never skipped) */
     /* RE-POINTED 20 Oct 2026 (the Legora way, signer "Yes, our signer here"): nobody named to sign is a
        row of the grid asking our signer and theirs, one Confirm (a route needs a signer on each side) */
+    /* RE-POINTED 21 Oct 2026: the owner picked "The SAP way" for the Signer row, so our
+       signer is a search box over the directory, not a <select> (no <select> may be left in
+       the row — one list per press, on an iPad too). The reading is the same: a box for our
+       signer, boxes for their name and address, one Confirm. */
     const signRow = await page.evaluate(() => { const r = document.querySelector('#pd-og [data-pd-og-row="signers"]');
-      return r ? { ours: !!r.querySelector('select'), theirs: r.querySelectorAll('input').length, ok: !!r.querySelector('[data-pd-og-ok]') } : null; });
-    check('6f nobody named to sign is a grid row: our signer, their name and email, one Confirm', g.nobody && !!signRow && signRow.ours && signRow.theirs >= 2 && signRow.ok, { nobody: g.nobody, signRow });
+      return r ? { ours: !!r.querySelector('[data-pd-og-sg="ours"]'), noSelect: !r.querySelector('select'),
+        theirs: r.querySelectorAll('input').length, ok: !!r.querySelector('[data-pd-og-ok]') } : null; });
+    check('6f nobody named to sign is a grid row: our signer, their name and email, one Confirm', g.nobody && !!signRow && signRow.ours && signRow.noSelect && signRow.theirs >= 2 && signRow.ok, { nobody: g.nobody, signRow });
     /* the risks row says what the Redlines face draws */
     await page.evaluate(id => pdOpenOnHome(id, 'plain'), upId);
     await waitFor(page, () => !!document.getElementById('pd-glance'), 6000);
