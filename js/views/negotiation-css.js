@@ -6371,13 +6371,12 @@ function redlineLayoutCss(){
   .redline-page .rl-head-notes:hover,.redline-page .rl-head-review:hover:not(:disabled){border-color:var(--accent-ink);color:var(--accent-ink)}
   .redline-page .rl-head-review:disabled{opacity:.5;cursor:not-allowed}
   .redline-page .rl-head-notes svg,.redline-page .rl-head-review svg{width:13px;height:13px;flex:none}
-  .redline-page .rl-head-notes b{min-width:18px;height:18px;padding:0 5px;border-radius:9px;display:inline-grid;place-items:center;
-    background:var(--color-neutral-100);font-weight:var(--w-title);font-size:var(--t-label);font-variant-numeric:tabular-nums}
-  ${''/* "Redlines 4": the count in a small grey pill, as the piles' heads
-         and Notes carry theirs (round 9's gaps, second pass) */}
-  .redline-page .rl-idx-title i{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;margin-left:4px;
-    border-radius:9px;background:var(--color-neutral-100);font-family:inherit;font-size:var(--t-label);font-weight:var(--w-title);
-    font-variant-numeric:tabular-nums;color:var(--color-neutral-600);vertical-align:1px}
+  .redline-page .rl-head-notes b{font-weight:var(--w-body);font-size:var(--t-label);font-variant-numeric:tabular-nums;color:var(--color-neutral-600)}
+  ${''/* "Redlines 4": the count beside the name, as the piles' heads and Notes
+         carry theirs (round 9's gaps, second pass) — CHAMBERS (21 Oct 2026):
+         a plain number, no pill */}
+  .redline-page .rl-idx-title i{font-style:normal;margin-left:4px;font-family:inherit;font-size:var(--t-label);font-weight:var(--w-body);
+    font-variant-numeric:tabular-nums;color:var(--color-neutral-600)}
   .redline-page .rl-head-here{flex:none;display:inline-flex;align-items:center;gap:6px;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap}
   .redline-page .rl-head-here:not(:has(.pz-row)){display:none}
   .redline-page .rl-head-here .pz-row{height:auto}
@@ -6391,10 +6390,10 @@ function redlineLayoutCss(){
   .redline-page .rl-pile > .rl-band,.redline-page .rl-pile > .rl-band:first-child{display:flex;align-items:center;gap:8px;margin:0;
     padding:8px 12px;background:var(--color-neutral-100);border:0;border-bottom:1px solid var(--color-divider);
     font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:0;text-transform:none;color:var(--color-text)}
-  .redline-page .rl-pile > .rl-band b{margin-left:auto;min-width:20px;height:18px;padding:0 6px;border-radius:9px;display:inline-grid;place-items:center;
-    font-family:inherit;font-size:var(--t-label);font-weight:var(--w-title);background:var(--color-surface);border:1px solid var(--color-divider);color:var(--color-neutral-600)}
+  .redline-page .rl-pile > .rl-band b{margin-left:auto;font-family:inherit;font-size:var(--t-label);font-weight:var(--w-body);
+    font-variant-numeric:tabular-nums;color:var(--color-neutral-600)}  ${''/* a plain number (Chambers) */}
   .redline-page .rl-pile > .rl-band[data-rl-band="awaiting"]{color:var(--st-amber-fg)}
-  .redline-page .rl-pile > .rl-band[data-rl-band="awaiting"] b{background:var(--st-amber-bg);border-color:var(--st-amber-line);color:var(--st-amber-fg)}
+  .redline-page .rl-pile > .rl-band[data-rl-band="awaiting"] b{color:var(--st-amber-fg)}
   .redline-page .rl-pile.rl-pile-quiet > .rl-band{border-bottom:0;background:var(--color-surface)}
   .redline-page .rl-pile > .rl-band .rl-band-acts{display:inline-flex;align-items:center;gap:10px;flex:none;margin-left:4px}
   .redline-page .rl-pile > .rl-band .rl-band-act{border:0;background:none;padding:0;font:inherit;font-weight:var(--w-label);

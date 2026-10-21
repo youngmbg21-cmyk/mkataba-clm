@@ -3482,7 +3482,7 @@ function portalBellHtml(){
   return `<button id="pt-bell" class="ui-btn pt-verb pw-id-verb pt-bell" type="button"
     aria-haspopup="dialog" aria-expanded="false" aria-controls="pt-alerts"
     title="${esc(i18t('pa_bell_title'))}" aria-label="${esc(i18t('pa_bell_title'))}"
-    >&#128276;<span id="pt-bell-dot" class="pt-bell-dot" hidden>0</span></button>`;
+    ><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-bell"/></svg><span id="pt-bell-dot" class="pt-bell-dot" hidden>0</span></button>`;
 }
 /* ---- AND THE PANEL, FROM THE RIGHT ----
    The owner's shape: a title saying ALERTS, a dimmed backdrop, and three ways

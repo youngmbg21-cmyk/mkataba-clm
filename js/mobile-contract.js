@@ -411,7 +411,7 @@ function mNoticeStackHtml(c){
   const folded = (typeof rlNoticesFolded==='function') ? rlNoticesFolded(c) : true;
   if(folded) return `<div class="m-notices" id="m-notices">
     <button type="button" class="m-notices-fab" data-rl-notices-open="${id}"
-      aria-label="${mEsc(i18t('ng_notices_fab'))}">&#128276;<span class="m-notices-dot"></span></button>
+      aria-label="${mEsc(i18t('ng_notices_fab'))}"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-bell"/></svg><span class="m-notices-dot"></span></button>
   </div>`;
   return `<div class="m-notices m-notices-open" id="m-notices">
     <button type="button" class="m-notices-min" data-rl-notices-min="${id}">${mEsc(i18t('ng_notices_min'))} &#9662;</button>
