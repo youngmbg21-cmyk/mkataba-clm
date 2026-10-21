@@ -406,7 +406,12 @@ const drive = async (page, fn, arg, fallback) => {
       const wait = ms => new Promise(r => setTimeout(r, ms));
       const idx = Array.from(document.querySelectorAll('#pd-thread .doc-th-row[data-th-row]')).map(r => r.getAttribute('data-th-row')).slice(0, 3);
       for (const k of idx) {
-        const go = document.querySelector('#pd-thread [data-th-go="' + k + '"]'); if (go) go.click();
+        /* RE-POINTED 21 Oct 2026 (the owner: "some clauses refuse to close
+           once you go past them"): a press on the row already open CLOSES it,
+           so each row is OPENED only where it is not already the open one. */
+        const r0 = document.querySelector('#pd-thread [data-th-row="' + k + '"]');
+        const go = r0 && !r0.classList.contains('is-open') ? r0.querySelector('[data-th-go]') : null;
+        if (go) go.click();
         await wait(1300);
         const b = document.querySelector('#pd-thread .doc-th-row.is-open [data-th-explain]'); if (b) b.click();
         await wait(2200);

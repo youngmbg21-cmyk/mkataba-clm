@@ -152,7 +152,11 @@ const ok = (name, good, detail) => {
         p.style.fontWeight = 'var(--w-strong)'; document.body.appendChild(p);
         const w = getComputedStyle(p).fontWeight; p.remove(); return Number(w); })();
       /* the first toned row opened, so a mark with its reason is on screen */
-      const go = document.querySelector('#pd-thread .doc-th-row.is-ruby [data-th-go], #pd-thread .doc-th-row.is-amber [data-th-go]');
+      /* RE-POINTED 21 Oct 2026 (the owner: "some clauses refuse to close once
+         you go past them"): a press on the row already open CLOSES it now, so
+         this one presses only where that row is not the open one. */
+      const row = document.querySelector('#pd-thread .doc-th-row.is-ruby, #pd-thread .doc-th-row.is-amber');
+      const go = row && !row.classList.contains('is-open') ? row.querySelector('[data-th-go]') : null;
       if (go) { go.click(); await new Promise(r => setTimeout(r, 1200)); }
       const xr = document.querySelector('#pd-thread .doc-th-row.is-open .doc-xr-why b');
       const xw = xr ? Number(getComputedStyle(xr).fontWeight) : null;

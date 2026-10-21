@@ -2,16 +2,19 @@
    21 Oct 2026 — design round 1, "If Legora drew it": Mark reviewed as a new
    record, the head renamed, the Clauses tab's number = the "need you" count).
 
-   1 the head is "Clause review" with its grey sub, and three counts that are
-     doors onto the Severity filter (pressed again, they let go)
+   1 the head is "Clause review" with its grey sub, and NO count line
+     (re-pointed 21 Oct 2026, the owner: "remove the highlighted area as it is
+     redundant") — the Severity filter is the one door onto the same three
    2 two finders quoting the same sentence are ONE card, worst verdict, both
      finders named ("Found by Jambo · Our standards") — counted once
    3 under a clause the cards stand WORST FIRST (the paper would put the
      "worth a look" sentence first), and the deep dive's ‹ › walk the list's
      own order
    4 the Clauses tab's number equals the "need you" count
-   5 a point the contract lacks stands IN PLACE: a dashed row right after the
-     clause it would follow, "After §2 — not in the contract"; no bottom fold
+   5 a point the contract lacks stands IN PLACE: a row right after the clause
+     it would follow, "After §2 — not in the contract", with NO dashed border
+     (re-pointed 21 Oct 2026, the owner: "no dotted lines in the clauses") and
+     its own open and close; no bottom fold
    6 Mark reviewed is the SERVER's record: the card is struck with "Reviewed ·
      <name>", the count and the tab drop, it survives a reload (and a save
      that echoes an old map), the trail has a line, Undo takes it back
@@ -88,22 +91,35 @@ const deal = () => ({ id: ID, contractNo: ID, name: 'Haulage Review', counterpar
     await page.waitForTimeout(600);
 
     /* 1 the head */
-    const e1 = await page.evaluate(() => {
+    /* RE-POINTED 21 Oct 2026 (the owner: of the three-count line "remove the
+       highlighted area as it is redundant"): the line and its doors are gone;
+       the title, its grey sub and the three filter boxes stand, and the
+       counts themselves live on where the number is read (stkNeedCount, 4). */
+    const e1 = await page.evaluate(id => {
       const v = document.querySelector('#pd-thread .stk-view');
-      const doors = [...document.querySelectorAll('#pd-thread [data-stk-sev]')].map(b => ({ k: b.getAttribute('data-stk-sev'), t: b.textContent.trim() }));
-      return { title: v ? (v.querySelector('b') || {}).textContent : null, sub: v ? ((v.querySelector('.stk-view-sub') || {}).textContent || '') : '', doors };
-    });
-    ok('1 the head is "Clause review", its grey sub, and three counts', read && e1.title === 'Clause review' && /one view for the whole company/.test(e1.sub)
-      && e1.doors.map(d => d.t).join('|') === '2 need you|2 worth a look', JSON.stringify(e1));
+      return { title: v ? (v.querySelector('b') || {}).textContent : null, sub: v ? ((v.querySelector('.stk-view-sub') || {}).textContent || '') : '',
+        line: !!document.querySelector('#pd-thread .stk-tally, #pd-thread [data-stk-sev]'),
+        boxes: [...document.querySelectorAll('#pd-thread .stk-flt')].map(l => (l.querySelector('span') || {}).textContent).join('|'),
+        need: stkNeedCount(getContract(id)) };
+    }, ID);
+    ok('1 the head is "Clause review", its grey sub, and no count line', read && e1.title === 'Clause review' && /one view for the whole company/.test(e1.sub)
+      && !e1.line && e1.boxes === 'Section|Severity|Found by' && e1.need === 2, JSON.stringify(e1));
+    /* 1b THE SEVERITY FILTER IS THE ONE DOOR onto the same three: it narrows
+       the list and lets go — the act the count line carried is not lost. */
     const e1b = await page.evaluate(async () => {
-      const b = document.querySelector('#pd-thread [data-stk-sev="look"]'); if (!b) return { door: false };
-      b.click(); await new Promise(r => setTimeout(r, 150));
-      const sev = (document.querySelector('#pd-thread [data-stk-f="sev"]') || {}).value;
-      const pressed = (document.querySelector('#pd-thread [data-stk-sev="look"]') || {}).getAttribute('aria-pressed');
-      document.querySelector('#pd-thread [data-stk-sev="look"]').click(); await new Promise(r => setTimeout(r, 150));
-      return { door: true, sev, pressed, after: (document.querySelector('#pd-thread [data-stk-f="sev"]') || {}).value };
+      const el = document.querySelector('#pd-thread [data-stk-f="sev"]'); if (!el) return { box: false };
+      const set = v => { el.focus(); el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); };
+      const cards = () => document.querySelectorAll('#pd-thread .stk-card').length;
+      const all = cards();
+      set('look'); await new Promise(r => setTimeout(r, 250));
+      const look = cards();
+      document.querySelector('#pd-thread [data-stk-f="sev"]').value = '';
+      document.querySelector('#pd-thread [data-stk-f="sev"]').dispatchEvent(new Event('change', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 250));
+      return { box: true, offers: [...document.querySelectorAll('#pd-thread [data-stk-f="sev"] option')].map(o => o.value).join(','), all, look, back: cards() };
     });
-    ok('1b a count is the Severity filter\'s door, and pressed again it lets go', e1b.door && e1b.sev === 'look' && e1b.pressed === 'true' && e1b.after === '', JSON.stringify(e1b));
+    ok('1b the Severity filter is the one door onto the same three, and it lets go',
+      e1b.box && e1b.offers === ',need,look' && e1b.look === 2 && e1b.back === e1b.all && e1b.all === 4, JSON.stringify(e1b));
 
     /* 2 + 3: open clause 2, then clause 3 */
     const openRow = n => page.evaluate(async n => {
@@ -151,20 +167,33 @@ const deal = () => ({ id: ID, contractNo: ID, name: 'Haulage Review', counterpar
 
     /* 4 the tab's number */
     const badge = () => page.evaluate(() => ((document.querySelector('#ig-dock [data-pd-tab="doc"] .pd-tab-n') || {}).textContent || '').trim());
-    const tally = () => page.evaluate(() => ((document.querySelector('#pd-thread [data-stk-sev="need"]') || {}).textContent || '').trim());
+    /* RE-POINTED 21 Oct 2026: the count line is gone, so the "need you" count
+       is read where it still lives — the one reading the tab's number uses. */
+    const tally = () => page.evaluate(id => stkNeedCount(getContract(id)), ID);
     const b0 = await badge();
     ok('4 the Clauses tab carries the "need you" count', b0 === '2', JSON.stringify({ badge: b0, tally: await tally() }));
 
     /* 5 missing in place */
-    const e5 = await page.evaluate(() => {
+    const e5 = await page.evaluate(async () => {
       const m = document.querySelector('#pd-thread .doc-th-rows .stk-miss');
       const prev = m && m.previousElementSibling;
-      return { h: m ? (m.querySelector('.stk-miss-h') || {}).textContent : null, prev: prev && prev.classList.contains('doc-th-row') ? prev.querySelector('.doc-th-name').innerText : null,
+      const cs = m && getComputedStyle(m);
+      const btn = m && m.querySelector('[data-stk-miss-go]');
+      const body = m && m.querySelector('.stk-miss-body');
+      const seen = () => !!(body && body.getClientRects().length);
+      const out = { h: m ? (m.querySelector('.stk-miss-h') || {}).textContent : null, prev: prev && prev.classList.contains('doc-th-row') ? prev.querySelector('.doc-th-name').innerText : null,
         card: m ? ((m.querySelector('.stk-ct') || {}).textContent || '') : '', shows: !!(m && m.querySelector('.stk-card') && m.querySelector('.stk-card').getClientRects().length),
-        dashed: m ? getComputedStyle(m).borderTopStyle : '', fold: !!document.querySelector('#pd-thread [data-stk-mopen]') };
+        border: cs ? cs.borderTopStyle + '/' + cs.borderTopWidth : '', indent: cs ? cs.marginLeft : '', fold: !!document.querySelector('#pd-thread [data-stk-mopen]'), close: !!btn };
+      if (btn){ btn.click(); await new Promise(r => setTimeout(r, 150)); out.shut = !seen();
+        btn.click(); await new Promise(r => setTimeout(r, 150)); out.reopened = seen(); }
+      return out;
     });
-    ok('5 a point the contract lacks stands in a dashed row right after clause 2, open, with no bottom fold',
-      e5.h === 'After §2 — not in the contract' && /^2\b/.test(e5.prev || '') && /price rise/.test(e5.card) && e5.shows && e5.dashed === 'dashed' && !e5.fold, JSON.stringify(e5));
+    /* RE-POINTED 21 Oct 2026 (the owner: "no dotted lines in the clauses", and
+       nothing in the list may be uncloseable): no dashed box — the indent and
+       the grey label carry the group — and its head is its own open/close. */
+    ok('5 a point the contract lacks stands right after clause 2, no dashed border, its own close, no bottom fold',
+      e5.h === 'After §2 — not in the contract' && /^2\b/.test(e5.prev || '') && /price rise/.test(e5.card) && e5.shows
+      && /\/0px$/.test(e5.border) && parseFloat(e5.indent) >= 20 && e5.close && e5.shut && e5.reopened && !e5.fold, JSON.stringify(e5));
 
     /* 6 Mark reviewed (the walk above moved the paper, so clause 3 is opened again) */
     await openRow(3);
@@ -183,7 +212,7 @@ const deal = () => ({ id: ID, contractNo: ID, name: 'Haulage Review', counterpar
     const t1 = await tally(), b1 = await badge();
     ok('6 Mark reviewed asks the server, strikes the card and names who (by first name), and leaves every count',
       e6.done && e6.calls.some(p => /^contracts\/MK-L1\/points\/p[a-z0-9]+\/review$/.test(p)) && e6.struck === 'line-through' && /^Reviewed · Amina$/.test((e6.who || '').trim()) && e6.undo
-      && t1 === '1 needs you' && b1 === '1', JSON.stringify({ e6, tally: t1, badge: b1 }));
+      && t1 === 1 && b1 === '1', JSON.stringify({ e6, need: t1, badge: b1 }));
     /* a save from a page that holds an OLD map may not take the tick away */
     await page.evaluate(async () => { const c = getContract('MK-L1'); c.pointReviews = {}; persist(c); await flushSaves(); });
     await page.reload({ waitUntil: 'networkidle' });
@@ -200,7 +229,7 @@ const deal = () => ({ id: ID, contractNo: ID, name: 'Haulage Review', counterpar
     });
     const t2 = await tally(), b2 = await badge();
     ok('6b after a reload (and a save echoing an old map) the tick stands, the counts still leave it out, the trail has its line',
-      e6b.map === 1 && e6b.done && t2 === '1 needs you' && b2 === '1' && e6b.trail.some(d => /Marked reviewed: Their cover stops/.test(d)), JSON.stringify({ e6b, tally: t2, badge: b2 }));
+      e6b.map === 1 && e6b.done && t2 === 1 && b2 === '1' && e6b.trail.some(d => /Marked reviewed: Their cover stops/.test(d)), JSON.stringify({ e6b, tally: t2, badge: b2 }));
     const e6c = await page.evaluate(async () => {
       const u = document.querySelector('#pd-thread .stk-card.is-done [data-stk-unreview]'); if (!u) return { undo: false };
       u.click();
@@ -208,7 +237,7 @@ const deal = () => ({ id: ID, contractNo: ID, name: 'Haulage Review', counterpar
       return { undo: true, gone: !document.querySelector('#pd-thread .stk-card.is-done'), map: Object.keys(getContract('MK-L1').pointReviews || {}).length };
     });
     const t3 = await tally(), b3 = await badge();
-    ok('6c Undo takes it back on the server; the counts return', e6c.undo && e6c.gone && e6c.map === 0 && t3 === '2 need you' && b3 === '2', JSON.stringify({ e6c, tally: t3, badge: b3 }));
+    ok('6c Undo takes it back on the server; the counts return', e6c.undo && e6c.gone && e6c.map === 0 && t3 === 2 && b3 === '2', JSON.stringify({ e6c, need: t3, badge: b3 }));
 
     /* 7 a viewer */
     const v = h.client('viewer@example.co.ke');

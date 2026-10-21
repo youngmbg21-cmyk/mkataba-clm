@@ -131,10 +131,15 @@ function startProvider(){
       try { await b.click({ timeout: 3000 }); return true; } catch (_) { return false; }
     };
     /* clause 61 is the one the stand-in holds back */
+    /* RE-POINTED 21 Oct 2026 (the owner: "some clauses refuse to close once
+       you go past them"): a press on the row that is already open CLOSES it
+       now, so this door OPENS clause 61 — it presses only where 61 is not
+       already the open row (it is called twice, once after coming back). */
     const open61 = async () => {
       await page.evaluate(() => {
         const r = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(x => /^61\. Clause 61/.test((x.querySelector('.doc-th-name') || {}).textContent || ''));
-        const b = r && r.querySelector('[data-th-go]'); if (b) b.click();
+        if (!r || r.classList.contains('is-open')) return;
+        const b = r.querySelector('[data-th-go]'); if (b) b.click();
       }).catch(() => {});
       await page.waitForTimeout(1300);
     };

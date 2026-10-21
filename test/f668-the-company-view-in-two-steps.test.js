@@ -141,3 +141,66 @@ describe('f668 (3) — the reader\'s language, and the plain words', () => {
     assert.match(BD, /const stkKey = c => String\(c && c\.id\) \+ ':' \+ bdHash\(c\) \+ ':' \+ bdLang\(\);/, 'a language switch may read again in the same sitting');
   });
 });
+
+/* f668 (4) — A BLANK CLAUSE IS NOT A MISSING ONE (the owner, 21 Oct 2026:
+   "there is a bug where some clause 2 is missing")
+
+   The schema had two states only — in the contract, or not in it at all — so
+   a NUMBERED CLAUSE LEFT EMPTY came back as missing, had its number wiped,
+   and was filed above the clause under "After §1 — not in the contract":
+   words that were untrue, because clause 2 IS in the contract; its wording is
+   not. `blank` is the third state: the clause's number is kept, the point is
+   not missing, and it lands ON that clause's row. A blank with no number to
+   stand on has nowhere to go, so it falls back to missing rather than being
+   guessed at. */
+describe('f668 (4) — the clause is there and says nothing', () => {
+  const list = pts => ({ type: 'tool_use', id: 'tu', name: 'break_down', input: {
+    regions: [{ name: 'Term and exit', status: 'need', items: [{ ref: '2' }] }], points: pts } });
+  const read = async pts => { ai.reset(); ai.script([list(pts)]);
+    return (await W.admin.json('/api/ai/breakdown', { method: 'POST', body: { text: TEXT } })).points[0]; };
+
+  test('the reading may say a clause is blank, and the tool offers that state', async () => {
+    const p = await read([{ clause: '2', region: 1, status: 'need', blank: true, title: 'Clause 2 is blank',
+      stake: 'No notice period, exit terms or renewal dates.' }]);
+    assert.equal(p.blank, true, 'the state travels');
+    assert.equal(p.missing, false, 'a blank clause is NOT a missing point');
+    assert.equal(p.clause, '2', 'and it keeps its number, so it can land on that clause');
+    const tool = (ai.calls[ai.calls.length - 1].body.tools || []).find(t => t.name === 'break_down');
+    const pt = tool.input_schema.properties.points.items.properties;
+    assert.ok('blank' in pt, 'the schema has the third state');
+    assert.match(pt.blank.description, /has no wording under it/);
+    assert.match(JSON.stringify(ai.calls[ai.calls.length - 1].body.messages), /NUMBERED CLAUSE IS IN THE CONTRACT BUT LEFT EMPTY/, 'and the ask says when to use it');
+  });
+  test('a missing point is still a missing point, and keeps the clause it would follow', async () => {
+    const p = await read([{ after: '1', region: 1, status: 'look', missing: true, title: 'No service levels anywhere',
+      stake: 'Nothing says how late a load may be.' }]);
+    assert.equal(p.missing, true);
+    assert.equal(p.blank, false);
+    assert.equal(p.clause, '');
+    assert.equal(p.after, '1');
+  });
+  test('a blank with no clause to stand on falls back to missing, never guessed', async () => {
+    const p = await read([{ clause: '', after: '1', region: 1, status: 'need', blank: true, title: 'Something is blank',
+      stake: 'There is nowhere to put this.' }]);
+    assert.equal(p.blank, false, 'it cannot be blank with no clause named');
+    assert.equal(p.missing, true, 'so it is a missing point, which has a home');
+  });
+  test('the dive is told the clause says nothing', async () => {
+    ai.reset();
+    ai.script([{ type: 'tool_use', id: 'tu', name: 'dive_point', input: { what: 'There is no way out.', usual: 'A notice period.' } }]);
+    await W.admin.json('/api/ai/breakdown/point', { method: 'POST', body: { text: TEXT,
+      point: { title: 'Clause 2 is blank', clause: '2', stake: 'No notice period.', missing: false, blank: true } } });
+    const prompt = JSON.stringify(ai.calls[ai.calls.length - 1].body.messages);
+    assert.match(prompt, /Clause 2 is in the contract but has NO wording under it/, 'or it would be asked about wording that is not there');
+    assert.doesNotMatch(prompt, /does NOT say/, 'and it is not called a missing point');
+  });
+  test('the browser passes that state on, and the walk of the paper draws such a clause as a clause', () => {
+    const fsx = require('node:fs'), px = require('node:path');
+    const BD = fsx.readFileSync(px.join(__dirname, '..', 'js', 'views', 'breakdown.js'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.match(BD, /blank: !!p\.blank/, 'the dive request carries it');
+    const CT = fsx.readFileSync(px.join(__dirname, '..', 'js', 'views', 'contract.js'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.match(CT, /const blankNumbered=row\.isHead&&!text&&!!cite\s+&&_docReadNumNext\(cite,_docReadRowNum\(rows\[i\+1\]\)\)\s+&&!DOC_READ_SELF_HEAD\.test\(_docReadHeadCut\(heading\)\.rest\)/,
+      'a bodiless numbered heading the numbering carries straight on past, which does not name itself a part');
+    assert.match(CT, /kind:\(row\.isHead&&!text&&!blankNumbered\)\?'section':'clause'/, 'is a clause row, not a section title');
+  });
+});

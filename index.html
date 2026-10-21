@@ -11621,11 +11621,23 @@
   .pd-th .stk-mk.is-done{color:var(--st-green-fg);font-weight:var(--w-label)}
   .pd-th .stk-ring{display:inline-block;flex:none;width:12px;height:12px;box-sizing:border-box;border-radius:50%;border:1px solid var(--rule-strong);background:var(--color-surface)}
   .pd-th .stk-ring.is-on{background:var(--st-green-dot);border-color:var(--st-green-dot)}
-  /* WHAT THE CONTRACT DOES NOT SAY, IN PLACE: a dashed row after its clause, its card always open */
-  .pd-th .stk-miss{position:relative;margin:4px 6px 6px 24px;padding:8px 10px 2px;border:1px dashed var(--rule-strong);border-radius:var(--radius-lg)}
+  /* WHAT THE CONTRACT DOES NOT SAY, IN PLACE: a row after its clause, its indent and its grey label */
+  /* NO DOTTED LINES IN THE CLAUSES (the owner, 21 Oct 2026): the dashed box
+     and the "Other points" solid box are both gone — a border-style with no
+     width of its own would draw 3px, so BOTH declarations go, not one. The
+     cards' 2px coloured left edge (.stk-card::before) is untouched. */
+  .pd-th .stk-miss{position:relative;margin:4px 6px 6px 24px;padding:8px 10px 2px}
   .pd-th .stk-miss .stk-miss-h{padding:0;font-size:var(--t-label);line-height:16px;font-weight:var(--w-label);color:var(--color-neutral-600)}
   .pd-th .stk-miss .stk-line.stk-card{margin:0}
-  .pd-th .stk-miss.is-other{border-style:solid;border-color:var(--color-divider)}
+  /* ==== THE GROUP'S OWN OPEN AND CLOSE (21 Oct 2026) ====
+     Its head IS the control, so nothing in the Clauses list is uncloseable:
+     a button wearing the label's own clothes (the head was a div), underlined
+     on hover like every other word-door in this panel. */
+  .pd-th .stk-miss .stk-miss-h{display:block;width:100%;text-align:left;border:0;background:none;font-family:inherit;cursor:pointer}
+  .pd-th .stk-miss .stk-miss-h:hover{text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--rule-strong)}
+  .pd-th .stk-miss .stk-miss-h:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:2px}
+  .pd-th .stk-miss:not(.is-open) .stk-miss-body{display:none}
+  .pd-th .stk-miss:not(.is-open){padding-bottom:8px}
   /* A POINT'S BOX SHOWS ONLY UNDER THE OPEN CLAUSE (owner, 13 Oct 2026: "only … once you click on the clause header") */
   .pd-th .doc-th-row:not(.is-open) > .stk-line, .pd-th .stk-miss-row:not(.is-open) .stk-line{display:none}
   /* THE DOT WEARS ITS CLAUSE'S WORST POINT (owner, 13 Oct 2026) */
