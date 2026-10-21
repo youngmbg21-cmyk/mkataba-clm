@@ -159,7 +159,9 @@ const owed = (page, id) => page.evaluate(x => {
     const fbR = await fillBtn(page);
     /* answered, the company is a Key terms line now; the provider is still the grid's */
     check('2f after a refresh the answer is still there and still owed', !!fbR && !fbR.disabled
-      && /Wanjiru Catering Ltd/.test(await page.evaluate(() => ((document.querySelector('#pd-kt tr[data-pd-og-row="company"] .pd-kt-v') || {}).textContent || ''))));
+      /* RE-POINTED 21 Oct 2026 (THE MIDDLE): Key terms' line is read off the table it draws in the middle (pdKtRowsHtml) */
+      && /Wanjiru Catering Ltd/.test(await page.evaluate(() => { const c = pdContract(); const t = document.createElement('tbody'); t.innerHTML = c ? pdKtRowsHtml(c, pdKtFacts(c)) : '';
+        return ((t.querySelector('tr[data-pd-og-row="company"] .pd-kt-v') || {}).textContent || ''); })));
 
     /* ===== 4. THE PRESS FILLS THE PAPER ===== */
     const press = {};

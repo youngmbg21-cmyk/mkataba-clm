@@ -2135,8 +2135,9 @@ function agActsOf(it){
   B('away', _agT('desk_discard'), 'link');
   return L;
 }
-function agPanelActs(it){
-  return agActsOf(it).map(a => `<button type="button" class="${a.cls === 'lead' ? 'ui-btn ui-btn-primary' : a.cls === 'link' ? 'ui-link' : 'ui-btn'}" data-ag-act="${a.act}">${_agE(a.label)}</button>`).join('');
+function agPanelActs(it, o){
+  const skip = (o && o.skip) || [];
+  return agActsOf(it).filter(a => !skip.includes(a.act)).map(a => `<button type="button" class="${a.cls === 'lead' ? 'ui-btn ui-btn-primary' : a.cls === 'link' ? 'ui-link' : 'ui-btn'}" data-ag-act="${a.act}">${_agE(a.label)}</button>`).join('');
 }
 /* THE ONE ACT A FOLDED PIECE OFFERS (the owner's answer (18), 19 Oct 2026,
    "Fold to one line" — round 23's "Look · its own act · Put away"): the act
@@ -2346,33 +2347,46 @@ function agPanelHeadHtml(it){
   return `<div class="ag-p-head">${title ? `<div class="ag-p-title">${_agE(title)}</div>` : ''}${sub}<div class="ag-p-agent">${meta}</div></div>`;
 }
 let _agOpenKey = null;
-function agOpenItem(key){
+/* o.mid (21 Oct 2026, the middle): the same panel drawn as the page in the
+   middle beside the Dossier (pdMidPage), not the side panel */
+let _agOpenMid = null;
+function agOpenItem(key, o){
   const it = agFind(key);
-  if (!it || typeof openSidePanel !== 'function') return;
+  if (!it || typeof openSidePanel !== 'function') return false;
   _agOpenKey = key;
+  _agOpenMid = (o && o.mid) ? { key: o.mid, crumb: o.crumb || '' } : null;
   /* THE RECORD, WHOLE (see agLoadWhole), asked for BEFORE the first paint so
      the paint knows it is on its way. Where this panel reads what only the
      whole record carries, the press waits a moment for it; every other panel
      draws at once and fills in behind, the Inspector's own idiom. */
   const load = agLoadWhole(it.c);
-  if (!load) return agDrawPanel(key);
-  if (!AG_NEEDS_WHOLE.has(it.kind)){ agDrawPanel(key); load.then(() => agPanelRefresh(key)); return; }
+  if (!load){ agDrawPanel(key); return true; }
+  if (!AG_NEEDS_WHOLE.has(it.kind)){ agDrawPanel(key); load.then(() => agPanelRefresh(key)); return true; }
   let drawn = false;
   const draw = () => { if (drawn) return; drawn = true; if (_agOpenKey === key) agDrawPanel(key); };
   const t = setTimeout(draw, AG_OPEN_WAIT_MS);
   load.then(() => { if (!drawn){ clearTimeout(t); draw(); } else agPanelRefresh(key); });
+  return true;
 }
+/* IN THE MIDDLE the Dossier stands beside the page, so the act that only
+   opens the contract's Overview (Open Details) is not offered there */
+const AG_MID_SKIP = ['overview'];
 function agDrawPanel(key){
   const it = agFind(key);
   if (!it || typeof openSidePanel !== 'function') return;
   const p = agCardParts(it);
   const title = it.c ? [p.kind, _agRef(it.c)].filter(Boolean).join(' · ') : p.kind;
-  openSidePanel(`<div class="ag-panel" data-ag-panel="${_agE(key)}">
+  const mid = _agOpenMid && typeof pdMidPage === 'function' ? _agOpenMid : null;
+  const html = `<div class="ag-panel${mid ? ' is-mid' : ''}" data-ag-panel="${_agE(key)}">
       ${agPanelHeadHtml(it)}
       <div class="ag-p-body">${agPanelBody(it)}</div>
-      <div class="ag-p-foot"><div class="ag-p-acts">${agPanelActs(it)}</div>
+      <div class="ag-p-foot"><div class="ag-p-acts">${agPanelActs(it, mid ? { skip: AG_MID_SKIP } : null)}</div>
         <p class="ag-p-line">${_agE(_agT('ag_panel_line'))}</p></div>
-    </div>`, { title, label: title, width: '520px' });
+    </div>`;
+  if (mid){
+    openModal(html, { label: title, maxWidth: 'none', page: pdMidPage(mid.crumb || title), onClose: () => { if (typeof pdMidOff === 'function') pdMidOff(); } });
+    if (typeof pdMidOn === 'function') pdMidOn(mid.key);
+  } else openSidePanel(html, { title, label: title, width: '520px' });
   const panel = document.querySelector('[data-ag-panel]');
   if (panel) panel.addEventListener('click', ev => {
     const t = ev.target && ev.target.closest ? ev.target : null;
@@ -2406,7 +2420,7 @@ function agPanelRefresh(key){
     } else b.innerHTML = next.innerHTML;
   }
   const a = panel.querySelector('.ag-p-acts');
-  if (a){ const html = agPanelActs(it); if (a.innerHTML !== html) a.innerHTML = html; }
+  if (a){ const html = agPanelActs(it, panel.classList.contains('is-mid') ? { skip: AG_MID_SKIP } : null); if (a.innerHTML !== html) a.innerHTML = html; }
 }
 /* ============================================================
    PUT AWAY, ON EVERY PIECE (round 23's gaps, 18 Oct 2026)

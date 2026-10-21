@@ -929,10 +929,14 @@ function pdChipsRepaint(){
   pdNeedsRepaint();
   pdGlanceRepaint();
   const chips = document.querySelector('#ig-dock [data-ig-chips]'); if (!chips) return;
-  if (pdChipsQuiet()){ chips.querySelectorAll('button').forEach(b => b.remove()); return; }
-  const h = caChipsHtml(); if (!h || h === chips.innerHTML) return;
-  chips.innerHTML = h;
-  chips.querySelectorAll('[data-igsug]').forEach(b => b.addEventListener('click', () => { if (typeof intelAsk === 'function') intelAsk(b.getAttribute('data-igsug')); }));
+  if (pdChipsQuiet()){ chips.querySelectorAll('button').forEach(b => b.remove()); pdMidBackSync(); return; }
+  const h = caChipsHtml();
+  if (h && h !== chips.innerHTML){
+    chips.innerHTML = h;
+    chips.querySelectorAll('[data-igsug]').forEach(b => b.addEventListener('click', () => { if (typeof intelAsk === 'function') intelAsk(b.getAttribute('data-igsug')); }));
+  }
+  /* "‹ Paper" stays first while the middle holds a page */
+  pdMidBackSync();
 }
 /* what a box holds, shown on the paper at once (display only: the box's own
    writer stores it when the box is left, and the paper is drawn again from
@@ -3658,10 +3662,24 @@ function pdKtBoxHtml(c, f){
   let cell = null; try { cell = (typeof ktFieldCell === 'function') ? ktFieldCell(c, f.key, true, null) : null; } catch (_){ cell = null; }
   return cell ? String(cell[1] || '') : f.html;
 }
+/* THE MIDDLE (owner, 21 Oct 2026: "instead of having a long list of key terms
+   going down the side jambo panel, it appears on the screen as well"): on a
+   computer the Dossier keeps Key terms as ONE line, and the table stands in
+   the middle (pdKtMid); the phone and anything without a Dossier keep the fold */
+function pdKtMidShell(){ return typeof openModal === 'function' && (typeof deskShellOn !== 'function' || !!deskShellOn()); }
 function pdKtHtml(c){
-  const may = (typeof canEdit !== 'function') || !!canEdit();
   const rows = pdKtFacts(c); if (!rows.length) return '';
+  if (pdKtMidShell()){
+    const on = pdMidUp('kt:' + c.id);
+    return `<details class="ds-fold pd-kt pd-kt-line${on ? ' is-mid' : ''}" data-pd-kt-mid="${_pdE(c.id)}"><summary aria-pressed="${on}"><span>${_pdE(_pdT('og_kt_title'))}</span><span class="ds-when" data-pd-kt-when>${_pdE(on ? _pdT('pd_stage_showing') : _pdTn('og_kt_n', rows.length, { n: rows.length }))}</span></summary></details>`;
+  }
   const open = _pdKtOpen === String(c.id);
+  return `<details id="pd-kt" class="ds-fold pd-kt" data-pd-og-for="${_pdE(c.id)}"${open ? ' open' : ''}><summary><span>${_pdE(_pdT('og_kt_title'))}</span><span class="ds-when">${_pdE(_pdTn('og_kt_n', rows.length, { n: rows.length }))}</span></summary>
+    <table class="pd-og pd-kt-t"><tbody>${pdKtRowsHtml(c, rows)}</tbody></table></details>`;
+}
+/* the table's rows: one builder, in the fold and in the middle */
+function pdKtRowsHtml(c, rows){
+  const may = (typeof canEdit !== 'function') || !!canEdit();
   const ed = (_pdKtEdit && _pdKtEdit.id === String(c.id)) ? _pdKtEdit.key : '';
   const E = _pdE;
   const tr = f => {
@@ -3671,12 +3689,73 @@ function pdKtHtml(c){
     const said = (f.from ? pdOgFromHtml(c, f) : '') + (f.sub ? `<span class="pd-og-src is-none">${E(f.sub)}</span>` : '');
     return `<tr class="pd-og-row${on ? ' is-changing' : ''}" data-pd-og-row="${E(f.key)}" data-pd-og-kind="${E(f.kind)}"><td class="pd-og-f"><b>${E(f.label)}</b>${said}</td><td class="pd-og-v">${on ? pdKtBoxHtml(c, f) : `<span class="pd-kt-v">${f.html}</span>`}</td><td class="pd-og-a">${act}</td></tr>`;
   };
-  return `<details id="pd-kt" class="ds-fold pd-kt" data-pd-og-for="${E(c.id)}"${open ? ' open' : ''}><summary><span>${E(_pdT('og_kt_title'))}</span><span class="ds-when">${E(_pdTn('og_kt_n', rows.length, { n: rows.length }))}</span></summary>
-    <table class="pd-og pd-kt-t"><tbody>${rows.map(tr).join('')}</tbody></table></details>`;
+  return rows.map(tr).join('');
+}
+/* the table as the page in the middle (the same rows, the same presses: #pd-kt) */
+function pdKtMidHtml(c){
+  const rows = pdKtFacts(c);
+  return `<div class="pd-kt-mid" data-pd-mid-kt>
+    <h2 class="pd-kt-mid-h">${_pdE(_pdT('og_kt_title'))} <span>${_pdE(String(rows.length))}</span></h2>
+    <div id="pd-kt" class="pd-kt" data-pd-og-for="${_pdE(c.id)}"><table class="pd-og pd-kt-t"><tbody>${pdKtRowsHtml(c, rows)}</tbody></table></div>
+  </div>`;
+}
+/* open the table in the middle (pressed again: the paper comes back); false where the middle cannot stand */
+function pdKtMid(id, key){
+  const mk = 'kt:' + String(id);
+  if (!key && pdMidUp(mk)) return pdMidClose();
+  /* Key terms stand beside the PAPER: elsewhere (a Board card) the paper is brought up first (pdKtOpen) */
+  const c = pdContract(); if (!c || String(c.id) !== String(id) || !pdOnPaper() || !pdMidMay()) return false;
+  _pdKtEdit = key ? { id: String(id), key: String(key) } : null;
+  if (!pdMidUp(mk)){
+    openModal(pdKtMidHtml(c), { maxWidth: 'none', label: _pdT('og_kt_title'), page: pdMidPage(_pdT('og_kt_title')), onClose: () => { _pdKtEdit = null; pdMidOff(); } });
+    pdMidOn(mk);
+  } else pdKtMidRepaint(true);
+  const host = document.getElementById('pd-kt'); if (host) pdOgPaint(host);
+  /* after the page's own first focus (trapFocus takes it on the next turn): the line asked for takes the hand */
+  if (key) setTimeout(() => {
+    const h = document.querySelector('[data-pd-mid-kt] #pd-kt');
+    const row = h ? h.querySelector(`tr[data-pd-og-row="${CSS.escape(String(key))}"]`) : null;
+    if (row && typeof landOn === 'function') landOn(row, { block: 'center', focus: false });
+    const box = row && row.querySelector('input:not([type=checkbox]):not([disabled]), select, textarea');
+    if (box) try { box.focus({ preventScroll: true }); } catch (_){}
+  }, 0);
+  return true;
+}
+/* the table in the middle drawn again from the record (never under a hand, unless asked) */
+function pdKtMidRepaint(force){
+  const host = document.querySelector('[data-pd-mid-kt] #pd-kt'); if (!host) return;
+  const a = document.activeElement;
+  if (!force && a && host.contains(a)) return;
+  const c = pdContract(); if (!c || String(c.id) !== host.getAttribute('data-pd-og-for')) return;
+  const html = `<table class="pd-og pd-kt-t"><tbody>${pdKtRowsHtml(c, pdKtFacts(c))}</tbody></table>`;
+  if (host.innerHTML === html) return;
+  host.innerHTML = html;
+  /* new boxes: dressed and their writers bound again (each writer binds a box once) */
+  delete host.dataset.pdOgDressed; delete host.dataset.pdOgWired;
+  pdOgPaint(host);
+}
+/* the Dossier's one line says the table is in the middle */
+function pdKtLineSync(){
+  const d = document.querySelector('#ig-dock [data-pd-kt-mid]'); if (!d) return;
+  const id = d.getAttribute('data-pd-kt-mid'), on = pdMidUp('kt:' + id);
+  d.classList.toggle('is-mid', on);
+  const s = d.querySelector('summary'); if (s) s.setAttribute('aria-pressed', String(on));
+  const w = d.querySelector('[data-pd-kt-when]'); const c = pdContract();
+  if (w && c){ const n = pdKtFacts(c).length; w.textContent = on ? _pdT('pd_stage_showing') : _pdTn('og_kt_n', n, { n }); }
 }
 /* THE DOOR ONTO THE KEY TERMS: the paper on its Dossier, the list unfolded,
    the line asked for (if any) open for changing and in the hand */
 function pdKtOpen(id, key){
+  /* on a computer the table stands in the middle beside the Dossier (pdKtMid): the paper first, then the table */
+  if (pdKtMidShell()){
+    if (pdKtMid(id, key)) return true;
+    const ok = pdOpenOnHome(id, 'plain');
+    if (ok === false) return false;
+    let n = 0;
+    const go = () => { if (pdKtMid(id, key)) return; if (++n < PD_FILL_TRIES) setTimeout(go, PD_FILL_BEAT_MS); };
+    setTimeout(go, PD_FILL_BEAT_MS);
+    return true;
+  }
   _pdKtOpen = String(id);
   _pdKtEdit = key ? { id: String(id), key: String(key) } : null;
   const ok = pdOpenOnHome(id, 'plain');
@@ -3715,7 +3794,7 @@ function pdOgWire(host, c){
 /* a hand in the grid is never repainted under (renderIntelDock asks this too) */
 function pdOgHolds(){
   const a = (typeof document !== 'undefined') ? document.activeElement : null;
-  return !!(a && a.closest && a.closest('#ig-dock #pd-og, #ig-dock #pd-kt'));
+  return !!(a && a.closest && a.closest('#ig-dock #pd-og, #ig-dock #pd-kt, [data-pd-mid-kt] #pd-kt'));
 }
 /* after the grid is drawn: HaTi's own date and choice faces, and the boxes' writers */
 function pdOgPaint(host){
@@ -3733,6 +3812,7 @@ function pdOgRepaint(){
   if (a && a.closest && a.closest('#pd-og, #pd-kt') && typeof a.blur === 'function') a.blur();
   pdGlanceRepaint();
   try { pdFillPaperMarks(pdContract()); } catch (_){}
+  try { pdKtMidRepaint(true); } catch (_){}
 }
 /* the next row still owed takes the hand (EVERY STEP STARTS THE NEXT) */
 function pdOgNext(after){
@@ -3900,7 +3980,10 @@ if (typeof document !== 'undefined' && !document._pdOgWired){
     if (kt) pdKtDone(c, row.getAttribute('data-pd-og-row')); else pdOgConfirm(c, row.getAttribute('data-pd-og-row'));
   });
   document.addEventListener('click', e => {
-    const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('#ig-dock')) return;
+    const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('#ig-dock, [data-pd-mid-kt]')) return;
+    /* Key terms' one line in the Dossier: the table comes to the middle (pressed again, the paper comes back) */
+    const ktl = t.closest('#ig-dock [data-pd-kt-mid] > summary');
+    if (ktl){ e.preventDefault(); pdKtMid(ktl.parentElement.getAttribute('data-pd-kt-mid')); return; }
     const ok = t.closest('#pd-og [data-pd-og-ok]');
     if (ok){ e.preventDefault(); const c = pdOgContract(); if (c) pdOgConfirm(c, ok.getAttribute('data-pd-og-ok')); return; }
     if (t.closest('[data-pd-og-all]') && !t.closest('[data-pd-held-dossier]')){ e.preventDefault(); const c = pdOgContract(); if (!c) return;
@@ -3910,13 +3993,18 @@ if (typeof document !== 'undefined' && !document._pdOgWired){
       if (n) pdOgSay(_pdTn('og_confirmed_n', n, { n }), 'ok');
       return; }
     const q = t.closest('#pd-og [data-pd-og-quote], #pd-kt [data-pd-og-quote]');
-    if (q){ e.preventDefault(); if (typeof igQuoteGo === 'function') igQuoteGo(q.getAttribute('data-pd-og-quote')); return; }
-    const sp = t.closest('#pd-og [data-pd-og-spot]');
-    if (sp){ e.preventDefault(); let el = null; try { el = (typeof contractFieldPeer === 'function') ? contractFieldPeer(sp.getAttribute('data-pd-og-spot'), 'paper') : null; } catch (_){ el = null; }
+    if (q){ e.preventDefault();
+      /* from the middle the wording is read on the paper: the paper comes back, at the clause */
+      if (q.closest('[data-pd-mid-kt]')) pdMidClose();
+      if (typeof igQuoteGo === 'function') igQuoteGo(q.getAttribute('data-pd-og-quote')); return; }
+    const sp = t.closest('#pd-og [data-pd-og-spot], [data-pd-mid-kt] [data-pd-og-spot]');
+    if (sp){ e.preventDefault(); if (sp.closest('[data-pd-mid-kt]')) pdMidClose(); let el = null; try { el = (typeof contractFieldPeer === 'function') ? contractFieldPeer(sp.getAttribute('data-pd-og-spot'), 'paper') : null; } catch (_){ el = null; }
       if (el && typeof landOn === 'function') landOn(el, { block: 'center', focus: false }); else pdOgSay(_pdT('og_not_on_paper'));
       return; }
     const ch = t.closest('#pd-kt [data-pd-kt-change]');
-    if (ch){ e.preventDefault(); const c = pdOgContract(pdOgHostOf(ch)); if (!c) return; pdKtOpen(c.id, ch.getAttribute('data-pd-kt-change')); pdOgRepaint(); return; }
+    if (ch){ e.preventDefault(); const c = pdOgContract(pdOgHostOf(ch)); if (!c) return;
+      if (ch.closest('[data-pd-mid-kt]')){ pdKtMid(c.id, ch.getAttribute('data-pd-kt-change')); return; }
+      pdKtOpen(c.id, ch.getAttribute('data-pd-kt-change')); pdOgRepaint(); return; }
     const dn = t.closest('#pd-kt [data-pd-kt-done]');
     if (dn){ e.preventDefault(); const c = pdOgContract(pdOgHostOf(dn)); if (c) pdKtDone(c, dn.getAttribute('data-pd-kt-done')); return; }
     const df = t.closest('#pd-needs [data-pd-og-docfill]');
@@ -4113,6 +4201,90 @@ function pdJwSay(c, r){
   const sub = what ? _pdT(p ? 'pd_nd_jw_prepared' : 'pd_nd_jw_read', { when: when || _pdT('pd_nd_jw_today'), what }) : '';
   return { what: _pdT('pd_nd_jw_answer', { who }), sub };
 }
+/* ---- THE MIDDLE (owner, 21 Oct 2026, "The stage", picked by name: "when you
+   press, you never leave dossier … everything needed comes to you … the paper
+   disappears but there should be a button … that says paper that simply
+   brings the paper back"; reverses the one-page plan's "the paper sits still")
+   ---- What a Dossier line opens — Jambo's work on this contract, the
+   obligations he found, the Key terms — stands IN THE MIDDLE where the paper
+   was, through the product's own page beside Jambo (openModal's page,
+   dlgPageAdopt, beside '#ig-dock'): the Dossier never moves. The way back is
+   ONE close (closeModalGuarded): "‹ Paper" first in the chips under the
+   Dossier, Esc, the bar's ‹ (deskGoBack), "paper" asked of Jambo (caGo), or
+   the line that opened it pressed again. Nothing here stores anything. A
+   phone, or no Dossier in sight, keeps every door as it was. */
+let _pdMid = null;              // { key } while a page stands in the middle beside the Dossier
+function pdMidMay(){
+  if (typeof document === 'undefined' || typeof openModal !== 'function') return false;
+  if (typeof deskShellOn === 'function' && !deskShellOn()) return false;
+  const d = document.querySelector('#ig-dock');
+  return !!(d && d.getClientRects().length && getComputedStyle(d).visibility !== 'hidden');
+}
+function pdMidUp(key){ return !!(_pdMid && (key == null || _pdMid.key === key)); }
+/* the page's options: the crumb names where it stands, the page ends at the Dossier */
+function pdMidPage(what){
+  return { crumb: _pdT('pd_stage_paper') + ' › ' + String(what || ''), beside: '#ig-dock' };
+}
+/* asked AFTER openModal: a page replacing another one in the middle keeps the middle */
+function pdMidOn(key){
+  /* the page it belongs to (the desk's own key, deskKeyNow): another page or contract in front puts it away (pdMidStale) */
+  let at = ''; try { at = (typeof deskKeyNow === 'function' && deskKeyNow()) || ''; } catch (_){ at = ''; }
+  _pdMid = { key: String(key), at };
+  const p = document.querySelector('#modal-root [data-dlg-page]'); if (p) p.setAttribute('data-pd-mid', String(key));
+  pdMidSync();
+}
+function pdMidOff(){ if (!_pdMid) return; _pdMid = null; pdMidSync(); }
+/* asked after every page is drawn (deskTabsSync): the middle stands only on the page that opened it */
+function pdMidStale(){
+  if (!_pdMid) return false;
+  let at = ''; try { at = (typeof deskKeyNow === 'function' && deskKeyNow()) || ''; } catch (_){ at = ''; }
+  if (at === _pdMid.at) return false;
+  if (typeof closeModal === 'function') closeModal();
+  pdMidOff();
+  return true;
+}
+function pdMidClose(){
+  if (!_pdMid) return false;
+  if (typeof closeModalGuarded === 'function') closeModalGuarded(); else if (typeof closeModal === 'function') closeModal();
+  return true;
+}
+/* "‹ Paper" first in the chips under the Dossier while the middle holds a page; the lines that opened it say so */
+function pdMidSync(){
+  pdMidBackSync();
+  try { pdNeedsRepaint(); } catch (_){}
+  try { pdKtLineSync(); } catch (_){}
+}
+function pdMidBackSync(){
+  if (typeof document === 'undefined') return;
+  const chips = document.querySelector('#ig-dock [data-ig-chips]');
+  const was = document.querySelector('#ig-dock [data-pd-mid-back]');
+  if (!_pdMid){ if (was) was.remove(); }
+  else if (chips && !was){
+    const b = document.createElement('button'); b.type = 'button';
+    b.className = 'pd-mid-back'; b.setAttribute('data-pd-mid-back', '');
+    b.title = _pdT('pd_stage_back_title');
+    b.textContent = '‹ ' + _pdT('pd_stage_paper');
+    chips.insertBefore(b, chips.firstChild);
+  }
+}
+/* JAMBO'S WORK ON THIS CONTRACT, IN THE MIDDLE: the piece's own panel
+   (agOpenItem's, one builder) drawn as the page; the same line pressed again
+   brings the paper back */
+function pdMidWork(k, key){
+  const mk = 'jw:' + String(key || k);
+  if (pdMidUp(mk)) return pdMidClose();
+  if (!key || !pdMidMay() || typeof agOpenItem !== 'function') return false;
+  /* the crumb is the row's own words: "Paper › Jambo's work · New paper" */
+  return agOpenItem(key, { mid: mk, crumb: _pdT('cn_jw') + ' \u00b7 ' + _pdT('ag_' + k) }) !== false;
+}
+if (typeof document !== 'undefined' && !document._pdMidWired){
+  document._pdMidWired = true;
+  document.addEventListener('click', e => {
+    const b = e.target && e.target.closest ? e.target.closest('[data-pd-mid-back]') : null;
+    if (!b) return;
+    e.preventDefault(); pdMidClose();
+  });
+}
 function pdNeedRowHtml(c, r){
   if (r.note){
     const words = String((r.first && (r.first.title || r.first.body)) || '').replace(/\s+/g, ' ').trim();
@@ -4125,8 +4297,10 @@ function pdNeedRowHtml(c, r){
   if (r.jw){
     const face = (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 22, 'pd-nd-face').replace('<img', '<img data-ink-exempt') : '';
     const J = pdJwSay(c, r);
-    const sub = J ? J.sub : [r.sum, r.urg].filter(Boolean).join(' · ');
-    return `<div class="pd-gl-row pd-nd-row is-jw">${face}<span><b>${_pdE(_pdT('cn_jw'))} · ${_pdE(J ? J.what : _pdT('ag_' + r.k))}</b>${sub ? `<small title="${_pdE(sub)}">${_pdE(sub)}</small>` : ''}</span><button type="button" class="ui-btn ui-btn-sm" data-pd-nd-jw="${_pdE(r.k)}" data-pd-nd-key="${_pdE(r.key || '')}">${_pdE(_pdT('pd_nd_see'))}</button></div>`;
+    /* while its piece stands in the middle the row says so, and its See it brings the paper back */
+    const mid = pdMidUp('jw:' + String(r.key || r.k));
+    const sub = mid ? _pdT('pd_stage_showing') : J ? J.sub : [r.sum, r.urg].filter(Boolean).join(' · ');
+    return `<div class="pd-gl-row pd-nd-row is-jw${mid ? ' is-mid' : ''}">${face}<span><b>${_pdE(_pdT('cn_jw'))} · ${_pdE(J ? J.what : _pdT('ag_' + r.k))}</b>${sub ? `<small title="${_pdE(sub)}">${_pdE(sub)}</small>` : ''}</span><button type="button" class="ui-btn ui-btn-sm" aria-pressed="${mid}" data-pd-nd-jw="${_pdE(r.k)}" data-pd-nd-key="${_pdE(r.key || '')}">${_pdE(_pdT('pd_nd_see'))}</button></div>`;
   }
   let w = null; try { w = (typeof insNeedWords === 'function') ? insNeedWords(c, r.it) : null; } catch (_){ w = null; }
   /* their redlines waiting say which clauses and open the redlines (round 3 as drawn: "waiting 4 days · clauses 7 and 11 · Open redlines") */
@@ -4238,7 +4412,10 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
     /* "all N": Home's Needs you, landed on (hbNeedsOpen → landOn) */
     if (t.closest('[data-pd-nd-all]')){ e.preventDefault(); if (typeof hbNeedsOpen === 'function') hbNeedsOpen(); else if (typeof deskGoCounter === 'function') deskGoCounter(); return; }
     const jw = t.closest('[data-pd-nd-jw]');
-    if (jw){ e.preventDefault(); if (typeof hbOpenAgent === 'function') hbOpenAgent(jw.getAttribute('data-pd-nd-jw'), jw.getAttribute('data-pd-nd-key') || null); return; }
+    if (jw){ e.preventDefault();
+      /* THE MIDDLE (21 Oct 2026): the piece comes to you beside the Dossier; the Board's list only where the middle cannot stand */
+      if (pdMidWork(jw.getAttribute('data-pd-nd-jw'), jw.getAttribute('data-pd-nd-key') || null)) return;
+      if (typeof hbOpenAgent === 'function') hbOpenAgent(jw.getAttribute('data-pd-nd-jw'), jw.getAttribute('data-pd-nd-key') || null); return; }
     const nd = t.closest('[data-pd-nd]');
     if (nd){ e.preventDefault(); if (typeof needsYouGo === 'function') needsYouGo(nd.getAttribute('data-pd-nd'), nd.getAttribute('data-pd-nd-id')); return; }
     const nn = t.closest('[data-pd-nd-note]');
@@ -4958,7 +5135,7 @@ if (typeof document !== 'undefined' && !document._pdTrailEsc){
     if (pdTrailBack() || (typeof jamboTalkBack === 'function' && jamboTalkBack())) e.preventDefault();
   });
 }
-Object.assign(window, { pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
+Object.assign(window, { pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
   PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdTalkKey, pdTalkScope, pdTalkShows, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,

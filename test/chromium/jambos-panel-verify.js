@@ -108,8 +108,13 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
 
     console.log('\n3 · a row\'s door, and the way back to Jambo');
     if (await press('#pd-needs [data-pd-nd-jw]', '3a Jambo\'s work row')) {
-      const board = await until(() => state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'board' && !!document.querySelector('.is-landed[data-hb-ag-item], .hb-ag-works.is-landed, #hm-agents.is-landed'), null, 8000);
-      check('3a a prepared piece\'s See it lands on Jambo\'s work, on the Board, lit (hbOpenAgent → landOn)', !!board);
+      /* RE-POINTED 21 Oct 2026 (THE MIDDLE, owner: "When you press, you never leave dossier … everything
+         needed comes to you"): the piece stands in the middle beside the Dossier, the paper's face kept;
+         "‹ Paper" brings the paper back (the-middle-verify measures the rest) */
+      const mid = await until(() => state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'paper'
+        && !!document.querySelector('#modal-root [data-pd-mid] .ag-panel') && !!document.querySelector('#ig-dock [data-pd-mid-back]'), null, 8000);
+      check('3a a prepared piece\'s See it brings it to the middle beside the Dossier, the paper\'s face kept', !!mid);
+      await page.evaluate(() => { if (typeof pdMidClose === 'function') pdMidClose(); });
     }
     await page.evaluate(() => pdOpenOnHome('MK-0382', 'fill'));
     {

@@ -141,6 +141,9 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f148, f170, f442, f673, f676, f679, f710, f751, f754, fill-in-beside-the-paper, fill-the-document, details-as-a-form, create-lands-clean, owed-first verify.
 - still-owed-sap-way-verify (signer name, email and stream whole at all three screens, Confirm and Fill in › inside the panel, labels above, amber kept, Key terms keeps its table, Tab onto Confirm does not jump; 14 red at d7a320c2).
 
+## THE MIDDLE — WHAT A DOSSIER LINE OPENS COMES TO YOU
+- the-middle-verify (See it brings Jambo's work to the middle, the Dossier beside it in sight and pressable, the page ending at its edge; "Showing in the middle"; "‹ Paper" first in the chips; the four ways back; the obligations review in the middle; Key terms one line, its table in the middle, Change and Done store; "paper" asked; the three screens). f705 (the jw row's door).
+
 ## WHERE THE DEAL STANDS — ONE PAGE EVERY PARTY READS (js/dealstands.js)
 - f451, f459 (B), deal-stands, status-link, where-we-are verify.
 

@@ -118,7 +118,8 @@ const ND5 = nda('ND-5', 'Mutual NDA — Retail Pilot', 'Naivas Supermarkets', 'U
        from quoted there, for good and trade secrets, who the reminder goes to,
        and Done; nothing is typed on the Board */
     await press(P, '#bs-strip-ND-1 [data-bs-kpi="value"] [data-bs-nda-edit]');
-    const ed = await until(P, () => !!document.querySelector('#pd-kt[open] tr[data-pd-og-row="ndaDir"].is-changing'));
+    /* RE-POINTED 21 Oct 2026 (THE MIDDLE, owner): Key terms' table stands in the middle beside the Dossier */
+    const ed = await until(P, () => !!document.querySelector('[data-pd-mid-kt] #pd-kt tr[data-pd-og-row="ndaDir"].is-changing'));
     const E = await P.evaluate(() => { const k = document.getElementById('pd-kt'); if (!k) return null;
       const ends = k.querySelector('tr[data-pd-og-row="ndaEnds"]'), dir = k.querySelector('tr[data-pd-og-row="ndaDir"]');
       return { q: ((ends && ends.querySelector('.pd-og-src q')) || {}).title || '', clause: ((ends && ends.querySelector('.pd-og-cl')) || {}).textContent || '',
@@ -132,11 +133,11 @@ const ND5 = nda('ND-5', 'Mutual NDA — Retail Pilot', 'Naivas Supermarkets', 'U
     check(!!E && E.dir === 'mutual' && !!E2 && E2.ends === '2030-07-31' && E2.trade && !E2.good, '2b it opens on the reading: mutual, 31 Jul 2030, trade secrets', E2 && JSON.stringify(E2));
     check(!!E2 && new RegExp(`A reminder goes to ${me.name} a month before`).test(E2.note) && E2.acts.join(',') === 'Done', '2c it says who the reminder goes to; Done on its line', E2 && `${E2.note} / ${E2.acts}`);
     await P.screenshot({ path: path.join(OUT, '2-editor.png') });
-    /* folding Key terms away keeps nothing */
+    /* putting Key terms away keeps nothing (RE-POINTED 21 Oct 2026: "‹ Paper" puts the middle away) */
     await P.evaluate(() => { const i = document.querySelector('#pd-kt [data-pd-og-nda="ends"]'); if (!i) return; i.value = '2031-01-31'; i.dispatchEvent(new Event('change', { bubbles: true })); });
-    await P.evaluate(() => { const k = document.getElementById('pd-kt'); if (k) k.open = false; });
+    await press(P, '#ig-dock [data-pd-mid-back]');
     const cancelled = ed && await until(P, () => !getContract('ND-1').nda);
-    check(!!cancelled, '2d folding it away puts the line back and keeps nothing');
+    check(!!cancelled, '2d putting it away ("‹ Paper") puts the line back and keeps nothing');
     await P.evaluate(() => pdKtOpen('ND-1', 'ndaDir'));
     await until(P, () => !!document.querySelector('#pd-kt [data-pd-kt-done="ndaDir"]'));
     await press(P, '#pd-kt [data-pd-kt-done="ndaDir"]');

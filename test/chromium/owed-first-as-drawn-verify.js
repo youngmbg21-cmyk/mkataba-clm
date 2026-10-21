@@ -130,8 +130,9 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
     check('2d on the record, on the server', rec.fields && rec.fields.up_notice_period === '90 days', JSON.stringify(rec.fields));
 
     /* 3 the answered ones are Key terms' lines, folded */
-    const fold = await page.evaluate(() => { const k = document.getElementById('pd-kt'); return k ? { open: k.open, carrier: !!k.querySelector('tr[data-pd-og-row="up_carrier_address"]') } : null; });
-    check('3a the answered ones are Key terms\' lines under the grid, folded', !!fold && !fold.open && fold.carrier, JSON.stringify(fold));
+    /* RE-POINTED 21 Oct 2026 (THE MIDDLE, owner): Key terms is one line under the grid; its table (the rows it draws) stands in the middle when pressed */
+    const fold = await page.evaluate(() => { const k = document.querySelector('#ig-dock [data-pd-kt-mid]'); const c = pdContract(); return k && c ? { open: !!document.querySelector('[data-pd-mid-kt]'), carrier: pdKtFacts(c).some(f => f.key === 'up_carrier_address') } : null; });
+    check('3a the answered ones are Key terms\' lines, one line under the grid', !!fold && !fold.open && fold.carrier, JSON.stringify(fold));
 
     /* 6 the three screens */
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
