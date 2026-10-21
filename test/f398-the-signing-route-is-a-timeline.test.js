@@ -338,9 +338,11 @@ describe('f398 (5) the window wears the product\'s own clothes', () => {
     for (const sel of ['.sr-step{', '.sr-node{', '.sr-card.is-rest{', '.sr-card.is-open{', '.sr-miss{', '.sr-win .sr-menu{', '.sr-cbl{', '.sr-say{'])
       assert.ok(block.includes(sel), sel);
   });
-  test('(5b) the tints are MIXED from the surface, so the night has its own answer', () => {
+  /* RE-POINTED 21 Oct 2026 (Chambers): initials are outlined — our face is told
+     by its edge and ink, not a fill; the node's tint is still mixed from the surface. */
+  test('(5b) the node\'s tint is MIXED from the surface; our face is an accent edge, no fill', () => {
     assert.ok(/\.sr-node\{[^}]*color-mix\(in srgb,var\(--accent-fill\) 10%,var\(--color-surface\)\)/.test(block));
-    assert.ok(/\.sr-av\.us\{background:color-mix\(in srgb,var\(--accent-fill\) 16%,var\(--color-surface\)\)/.test(block));
+    assert.ok(/\.sr-av\.us\{background:transparent;border-color:var\(--accent-ink\)/.test(block));
     assert.ok(!/--color-accent-(50|100|300)\)/.test(block), 'not the ramp, which has no night value');
   });
   test('(5c) [wall] nothing shouts', () => {

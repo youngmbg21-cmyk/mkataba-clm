@@ -271,10 +271,13 @@ describe('f454 (5) — the row is a slot, and it is quiet', () => {
       'and an empty slot generates no box at all');
   });
 
+  /* RE-POINTED 21 Oct 2026 (Chambers): the desk's face is outlined now — a hairline
+     and the warm label ink — and this one still wears its clothes, one rung smaller. */
   test('its clothes are the desk\'s face, one rung smaller', () => {
     assert.match(HTML, /\.pz-face\{[^}]*width:17px/);
-    assert.match(HTML, /\.pz-face\{[^}]*var\(--accent-ink-700\)/,
-      'the ink token, never the raw accent ramp as text — f238 sweeps for that');
+    assert.match(HTML, /\.pz-face\{[^}]*color:var\(--color-neutral-600\)[^}]*border:1px solid var\(--rule-strong\)/,
+      'an ink token and the hairline, never the raw accent ramp as text — f238 sweeps for that');
+    assert.match(HTML, /\.dk-face\{[^}]*color:var\(--color-neutral-600\); border:1px solid var\(--rule-strong\)/, 'the desk\'s face, the same clothes');
   });
 
   test('and its one sentence is in both books, as a pair', () => {

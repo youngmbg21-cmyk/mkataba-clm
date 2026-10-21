@@ -218,7 +218,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - sap-popups, negotiate-as-drawn, new-agreement, end-or-pause verify, f390 1h, f358 (6).
 
 ## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS
-- chambers-verify (Chambers and no dark mode, 20 Oct 2026: 26 checks, 21 red at the parent; its controls are Explorer's and the Brain's stages, the language door, the phone's bird), f96 (one look: no theme, no brand, old keys cleared), f238, f310, f312, f364 (9), f377, f385, f386, f458 (9), contrast, button-consistency, theme-tokens (one appearance; "no colour of the old look"), dark-no-white-patches (no dark rule anywhere), brand-survives-refresh (an old stored brand or dark lands on Chambers), one-reference-face, ink-wash verify (one appearance; no COOL grey).
+- chambers-verify (Chambers and no dark mode, 20 Oct 2026: 26 checks, 21 red at the parent; 21 Oct, "Finish everything": 11a–11j, all ten red at b9d887d — counts, status dots, panel shadow, tag corners, the Board's lines and Jambo's box, the green wash under our words, the other side's page, the public status page; its controls are Explorer's and the Brain's stages, the language door, the phone's bird), f96 (one look: no theme, no brand, old keys cleared), f238, f310, f312, f364 (9), f377, f385, f386, f458 (9), contrast, button-consistency, theme-tokens (one appearance; "no colour of the old look"), dark-no-white-patches (no dark rule anywhere), brand-survives-refresh (an old stored brand or dark lands on Chambers), one-reference-face, ink-wash verify (one appearance; no COOL grey).
 
 ## TWO LANGUAGES ≠ TWO MARKETS
 - f148, f677, signing-screen-svenska-verify.

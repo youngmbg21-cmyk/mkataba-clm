@@ -867,7 +867,7 @@ function clauseEditorCss(){
      the expanded view is set in the panel's own face at the panel's body size,
      and the paper's A-/A+ never reach it — nothing is measured off the sheet. */
   .ce-rail .ce-card .pv{font-family:inherit; font-size:var(--t-meta); line-height:1.6}
-  .ce-rail .ce-card .pv ins.rl-us{background:var(--st-steel-bg); color:var(--accent-ink);
+  .ce-rail .ce-card .pv ins.rl-us{background:var(--st-green-bg); color:var(--accent-ink);
     font-weight:inherit; text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:2px; text-decoration-color:currentColor}
   .ce-rail .ce-card .pv del.rl-us{background:transparent; color:var(--rl-del-ink);
     font-weight:inherit; text-decoration:line-through; text-decoration-thickness:1.5px; text-decoration-color:currentColor}

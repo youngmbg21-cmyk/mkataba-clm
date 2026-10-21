@@ -94,12 +94,16 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
       return { glow: cs.getPropertyValue('--hb-glow').trim(), ln: cs.getPropertyValue('--hb-ln').trim(),
         stage: cs.getPropertyValue('--hb-stage').trim(), accent: root.getPropertyValue('--color-accent-600').trim(),
         accentRgb: root.getPropertyValue('--color-accent-600-rgb').trim(),
+        divider: (() => { const p = document.createElement('i'); p.style.color = 'var(--color-divider)'; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; })(),
         light: pg.classList.contains('hb-light'), dark: pg.classList.contains('hb-dark') };
     });
     const boardT = await tones();
     const same = (a, b) => String(a || '').replace(/\s+/g, '').toUpperCase() === String(b || '').replace(/\s+/g, '').toUpperCase();
-    check('N-4a the Board is the light screen and its glow is the accent\'s deep green', !!boardT && boardT.light && !boardT.dark
-      && same(boardT.glow, boardT.accent) && same(boardT.ln, String(boardT.accentRgb).split(/\s+/).join(',')), JSON.stringify(boardT).slice(0, 240));
+    /* RE-POINTED 21 Oct 2026 (Chambers): the Board's LINE is warm — a card's edge
+       (the line channel at .18 over white) IS the house's divider; the glow stays the accent. */
+    const edgeOf = ln => { const v = String(ln || '').split(',').map(Number); return v.length === 3 ? 'rgb(' + v.map(x => Math.round(255 - (255 - x) * .18)).join(', ') + ')' : null; };
+    check('N-4a the Board is the light screen, its glow the accent\'s deep green, its card edge the house\'s warm divider', !!boardT && boardT.light && !boardT.dark
+      && same(boardT.glow, boardT.accent) && edgeOf(boardT.ln) === boardT.divider, JSON.stringify(boardT).slice(0, 240) + ' edge ' + edgeOf(boardT && boardT.ln));
     check('N-4b and its ground carries no teal', !!boardT && !!boardT.stage && !/38CDB8|56,\s*205|0E2B2A|04191A|14,95,88|0E5F58/i.test(boardT.stage), boardT && String(boardT.stage).slice(0, 120));
     await page.screenshot({ path: path.join(OUT, '01-board-chambers.png') });
     const was = await page.evaluate(() => hbFace());

@@ -2928,7 +2928,7 @@ function pdWallHelloHtml(){
   const first = String((me && me.name) || '').trim().split(/\s+/)[0] || _pdT('home_greet_there');
   const say = _pdT(pdDropMay() ? 'pd_wall_hello' : 'pd_wall_hello_view', { greet, name: first });
   const face = (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 24, 'ai-face shrink-0 mt-0.5') : '';
-  return `<div class="ai-msg flex gap-2 pd-hello">${face}<div class="min-w-0 flex-1"><div class="ai-bub rounded-2xl rounded-tl-md border px-3.5 py-2 text-[13px] leading-relaxed bg-canvas border-brand-100 text-brand-900">${_pdE(say)}</div></div></div>`;
+  return `<div class="ai-msg flex gap-2 pd-hello">${face}<div class="min-w-0 flex-1"><div class="ai-bub jl-bub">${_pdE(say)}</div></div></div>`;
 }
 function pdDropInner(){
   const d = _pdDrop;

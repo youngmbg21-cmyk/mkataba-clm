@@ -279,7 +279,7 @@ describe('f745 (7) Today\'s insights as drawn', () => {
       const want = BOOKS.en.hb_ins_sub_moved.replace('{m}', w.hbThenWord(true));
       const n = (html.match(/<article class="hb-ins/g) || []).length;
       assert.ok(n >= 2, String(n));
-      assert.ok(html.startsWith('<section class="hb-card hb-inscard hb-ins-head"><header class="hb-ch"><span class="hb-ct">Today’s insights</span><span class="hb-pill hb-ins-n">' + n + '</span><span class="hb-cs">' + want + '</span><span class="hb-grow"></span><button type="button" class="hb-edge-b" data-hb-ins-fold aria-expanded="true">Hide</button></header></section><div class="hb-shelf hb-shelf-cards"'), scope + ': ' + html.slice(0, 360));
+      assert.ok(html.startsWith('<section class="hb-card hb-inscard hb-ins-head"><header class="hb-ch"><span class="hb-ct">Today’s insights</span><span class="hb-pill hb-ins-n">' + n + '</span><span class="hb-cs">' + want + '</span><span class="hb-grow"></span><button type="button" class="hb-btn is-sm" data-hb-ins-fold aria-expanded="true">Hide</button></header></section><div class="hb-shelf hb-shelf-cards"'), scope + ': ' + html.slice(0, 360));
       assert.equal(n, w.hbShelfCards(I).length, 'the pill is the cards drawn');
       w.hbS().insFold = true;
       const f = w.hbInsCardHtml(I);

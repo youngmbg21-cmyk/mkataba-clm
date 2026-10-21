@@ -1799,7 +1799,7 @@ function tplInsPaint(host){
   const dash='<span class="ins-quiet">—</span>';
   const tr=r=>`<tr data-ins-row data-tpl-row="${_tplEsc(r.kind+':'+r.id)}" tabindex="-1">
       <td><span class="ins-c2"><b title="${_tplEsc(r.name)}">${_tplEsc(r.name)}${r.draft?` <span class="tpl-draft-tag">${_tplEsc(i18t('lib_draft_tag'))}</span>`:''}</b><span>${_tplEsc(r.sub||'')}</span></span></td>
-      <td><span class="reg-stg ins-pill"><i aria-hidden="true"></i>${_tplEsc(r.origin)}</span></td>
+      <td><span class="reg-stg ins-pill">${_tplEsc(r.origin)}</span></td>
       <td class="tpl-code">${r.mono?_tplEsc(r.version):dash}</td>
       <td>${r.stream&&FOLDERS[r.stream]?_tplEsc(tplShortStream(FOLDERS[r.stream].name)):dash}</td>
       <td class="num">${r.used==null?dash:r.used}</td>

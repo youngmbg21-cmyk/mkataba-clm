@@ -29,6 +29,15 @@
    variables actually repaints the platform. A token nothing reads is not a
    token, and no census of the DEFAULT theme would ever notice.
 
+   RE-RECORDED 21 Oct 2026 (twelfth), CHAMBERS FINISHED (owner: "Finish
+   everything" after the fourteen-page review). Audited as a set difference:
+   GONE — Jambo's old message box (#F8FAFC, its accent-900 ink #0A1C15), the
+   compiled cool line #E2E8F0 (.border-hair), the Board's green-grey lines
+   rgba(31,77,59,.12–.28), the docked panel's shadow rgba(43,43,45,.35), Our
+   paper's mint mark wash #DFF2E7 and its empty gray dot. NEW — the warm box
+   every panel already used (#EFECE5, --surface-2) and the Board's warm LINE
+   channel rgba(105,83,33,.12–.28), chosen so a card's edge at .18 over white
+   IS --color-divider #E4E0D7. No other hue.
    RE-RECORDED 20 Oct 2026 (eleventh), CHAMBERS AND NO DARK MODE (owner
    picked Chambers by name; "Let's not implement the dark theme. Remove it
    from HaTi"), by the one who owns the palette change. Ten light screens now,

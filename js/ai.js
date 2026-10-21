@@ -1172,7 +1172,7 @@ function renderAIFeed(typing=false){
     feed.innerHTML=`<div class="ai-msg flex gap-2.5">
       ${aiFaceHtml('hello')}
       <div class="max-w-[88%] space-y-2">
-        <div class="ai-bub rounded-2xl rounded-tl-md bg-canvas border border-brand-100 px-4 py-2.5 text-sm text-brand-900 leading-relaxed">${aiWelcomeHtml()}</div>
+        <div class="ai-bub jl-bub text-sm">${aiWelcomeHtml()}</div>
       </div>
     </div>`;
     if(typeof aiChartSweep==='function') aiChartSweep();
@@ -1191,7 +1191,7 @@ function renderAIFeed(typing=false){
     return `<div class="ai-msg flex gap-2.5">
       ${aiFaceHtml('hello')}
       <div class="max-w-[88%] space-y-2">
-        ${m.text?`<div class="ai-bub rounded-2xl rounded-tl-md bg-canvas border border-brand-100 px-4 py-2.5 text-sm text-brand-900 leading-relaxed">${m.text}</div>`:''}
+        ${m.text?`<div class="ai-bub jl-bub text-sm">${m.text}</div>`:''}
         ${proposal}
         ${m.cards?m.cards:''}
       </div>
@@ -1199,7 +1199,7 @@ function renderAIFeed(typing=false){
   }).join('') + (typing?`
     <div class="ai-msg flex gap-2.5">
       ${aiFaceHtml('think')}
-      <div class="rounded-2xl rounded-tl-md bg-canvas border border-brand-100 px-4 py-3 typing"><span></span><span></span><span></span></div>
+      <div class="jl-bub typing"><span></span><span></span><span></span></div>
     </div>`:'');
   /* the newest turn read from its first line (jamboFeedLand, owner 20 Oct 2026) */
   { const sc=inList?(feed.closest('.jl-talk-sc')||feed):feed;

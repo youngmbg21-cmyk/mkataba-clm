@@ -7771,7 +7771,7 @@ function igMsgHTML(m,i){
   return `<div class="ai-msg flex gap-2"${Number.isInteger(i)?` data-ig-turn="${i}"`:''}>
     ${igFaceHtml('hello')}
     <div class="min-w-0 flex-1 space-y-1.5">
-      ${m.text?`<div class="ai-bub rounded-2xl rounded-tl-md border px-3.5 py-2 text-[13px] leading-relaxed ${m.err?'bg-rose-50 border-rose-200 text-rose-800':'bg-canvas border-brand-100 text-brand-900'}">${igSafeHtml(m.text)}${cites}</div>`:''}
+      ${m.text?`<div class="ai-bub ${m.err?'rounded-2xl rounded-tl-md border px-3.5 py-2 text-[13px] leading-relaxed bg-rose-50 border-rose-200 text-rose-800':'jl-bub'}">${igSafeHtml(m.text)}${cites}</div>`:''}
       ${''/* THE ANSWER IS A WORKLIST DOOR (the brain drawing, 28 Sep 2026): the
              set a map answer drew opens on the Contracts page as that list
              (regShowOnly, the one named-set door), or leaves as a file. */}
@@ -7968,7 +7968,7 @@ function renderIntelDock(){
   const typing=intel.busy?`
     <div class="ai-msg flex gap-2">
       ${igFaceHtml('think')}
-      <div class="rounded-2xl rounded-tl-md bg-canvas border border-brand-100 px-3.5 py-2.5 typing"><span></span><span></span><span></span></div>
+      <div class="jl-bub typing"><span></span><span></span><span></span></div>
     </div>`:'';
   /* ---- ONE COPILOT PANEL, ON THE CALENDAR TAB TOO (owner, 11 Oct 2026,
      WORKORDER-four-builds item 1) ----

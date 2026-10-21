@@ -576,24 +576,24 @@ function handoverWaitWords(c){
   return stale ? `${days} \u00b7 ${typeof i18t==='function'?i18t('ho_still_live_q'):'still live?'}` : days;
 }
 const contractStatusChip = c => contractOnHold(c)
-  ? `<span class="badge" title="${i18t('hd_chip_title')}" style="background:${HOLD_META.bg};color:${HOLD_META.tx}">${HOLD_META.label}</span>`
+  ? `<span class="reg-stg" title="${i18t('hd_chip_title')}" style="color:${HOLD_META.tx}"><i style="background:${HOLD_META.dot}"></i>${HOLD_META.label}</span>`
   : _hoOut(c)
-  ? `<span class="badge" title="${(_hoSigned(c)?HANDOVER_SIGNED_META:HANDOVER_META).label} \u00b7 ${handoverWaitWords(c)}" style="background:${HANDOVER_META.bg};color:${HANDOVER_META.tx}">${(_hoSigned(c)?HANDOVER_SIGNED_META_SHORT:HANDOVER_META_SHORT).label}</span>`
+  ? `<span class="reg-stg" title="${(_hoSigned(c)?HANDOVER_SIGNED_META:HANDOVER_META).label} \u00b7 ${handoverWaitWords(c)}" style="color:${HANDOVER_META.tx}"><i style="background:${HANDOVER_META.dot}"></i>${(_hoSigned(c)?HANDOVER_SIGNED_META_SHORT:HANDOVER_META_SHORT).label}</span>`
   : contractPartiallySigned(c)
-  ? `<span class="badge" title="${typeof t==='function'?i18t('status_partially_signed_title'):"Sealed — awaiting the counterparty's signature. Copies go out when every party has signed."}" style="background:${PARTIAL_META.bg};color:${PARTIAL_META.tx}">${PARTIAL_META.label}</span>`
+  ? `<span class="reg-stg" title="${typeof t==='function'?i18t('status_partially_signed_title'):"Sealed — awaiting the counterparty's signature. Copies go out when every party has signed."}" style="color:${PARTIAL_META.tx}"><i style="background:${PARTIAL_META.dot}"></i>${PARTIAL_META.label}</span>`
   : contractExpired(c)
-  ? `<span class="badge" style="background:${EXPIRED_META.bg};color:${EXPIRED_META.tx}">${EXPIRED_META.label}</span>`
+  ? `<span class="reg-stg" style="color:${EXPIRED_META.tx}"><i style="background:${EXPIRED_META.dot}"></i>${EXPIRED_META.label}</span>`
   /* THE SHORT WORD IN A TABLE (owner-chose it, 23 Aug 2026): a register column
      cannot afford "Counterparty ready to sign", and the title carries the whole
      sentence for anybody who hovers. */
   : cpReadyToSign(c)
-  ? `<span class="badge" title="${i18t('status_cp_ready')}" style="background:${READY_META.bg};color:${READY_META.tx}">${READY_META_SHORT.label}</span>`
+  ? `<span class="reg-stg" title="${i18t('status_cp_ready')}" style="color:${READY_META.tx}"><i style="background:${READY_META.dot}"></i>${READY_META_SHORT.label}</span>`
   : statusChip(c&&c.status);
-// Pill status chip: wash bg + tone fg, 999px radius. No inner dot — the chip's
-// own colour carries the stage; the separate share dot (shareDot) sits outside
-// the chip so the two signals never read as one confusing double dot.
+// The status chip (Chambers, 21 Oct 2026): a dot and a word in the tone, no
+// wash — the same dress as contractStatusDotHtml, sized by .reg-stg > i in
+// HaTi's own sheet; the separate share dot (shareDot) still sits outside it.
 const statusChip = s => { const m=STATUS_META[s]||STATUS_META.Draft;
-  return `<span class="badge" style="background:${m.bg};color:${m.tx}">${m.label}</span>`; };
+  return `<span class="reg-stg" style="color:${m.tx}"><i style="background:${m.dot}"></i>${m.label}</span>`; };
 
 /* ---- THE SAME STATUS, SAID AS WORDS (owner-asked 22 Aug 2026) ----
    The design mock-up states a contract's stage as COLOURED TEXT beside the

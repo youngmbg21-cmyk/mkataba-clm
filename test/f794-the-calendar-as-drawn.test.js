@@ -155,7 +155,8 @@ describe('f794 (4) their tint', () => {
     assert.doesNotMatch(HTML, /--st-violet-bg:#261B3A/, 'no night answer');
     assert.match(CAL, /\.cal-chip\.is-ck-theirs\{border-left:3px solid var\(--st-violet-dot\)/);
     assert.match(CAL, /\.cal-key i\.is-theirs\{background:var\(--st-violet-dot\)\}/);
-    assert.match(HTML, /\.obw-av\.is-theirs\{background:var\(--st-violet-bg\);color:var\(--st-violet-fg\);\}/);
+    /* RE-POINTED 21 Oct 2026 (Chambers): initials are outlined — their face wears the violet as edge and ink */
+    assert.match(HTML, /\.obw-av\.is-theirs\{background:transparent;border-color:var\(--st-violet-line\);color:var\(--st-violet-fg\);\}/);
   });
 });
 

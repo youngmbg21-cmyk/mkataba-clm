@@ -429,11 +429,10 @@ function tbMarksOf(list, cov, changed) {
 function tbMarksHtml(list) {
   const ms = (list || []).filter(Boolean);
   if (!ms.length) return '';
-  const tick = '<svg class="tpl-mk-i" viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3.5 8.5 6.5 11.5 12.5 4.5"/></svg>';
   return `<div class="tpl-mks" data-not-wording contenteditable="false">${ms.map(m => {
-    if (m.kind === 'met') return `<span class="tpl-mk" title="${esc(i18t('tpl_mk_met_t', { s: m.category }))}">${tick}${esc(m.label)}</span>`;
-    if (m.kind === 'dev') return `<span class="tpl-mk is-dev" title="${esc(i18t('tpl_mk_dev_t', { s: m.category }))}">${esc(i18t('tpl_mk_dev', { s: m.label, n: m.figure, want: m.want, op: m.op === '<=' ? '≤' : '≥', u: m.unit ? i18t(m.unit === 'days' ? 'tpl_u_days' : 'tpl_u_months') : '' }).trim())}</span>`;
-    return `<button type="button" class="tpl-mk is-changed" data-tpl-mk-changed="${esc((m.ids || []).join(','))}" data-tpl-mk-cat="${esc(m.category)}" title="${esc(i18t('tpl_mk_changed_t', { s: m.category }))}">${esc(i18tn('tpl_mk_changed', m.n, { n: m.n }))}</button>`;
+    if (m.kind === 'met') return `<span class="tpl-mk" title="${esc(i18t('tpl_mk_met_t', { s: m.category }))}"><i></i>${esc(m.label)}</span>`;
+    if (m.kind === 'dev') return `<span class="tpl-mk is-dev" title="${esc(i18t('tpl_mk_dev_t', { s: m.category }))}"><i></i>${esc(i18t('tpl_mk_dev', { s: m.label, n: m.figure, want: m.want, op: m.op === '<=' ? '≤' : '≥', u: m.unit ? i18t(m.unit === 'days' ? 'tpl_u_days' : 'tpl_u_months') : '' }).trim())}</span>`;
+    return `<button type="button" class="tpl-mk is-changed" data-tpl-mk-changed="${esc((m.ids || []).join(','))}" data-tpl-mk-cat="${esc(m.category)}" title="${esc(i18t('tpl_mk_changed_t', { s: m.category }))}"><i></i>${esc(i18tn('tpl_mk_changed', m.n, { n: m.n }))}</button>`;
   }).join('')}</div>`;
 }
 /* THE CLAUSES OUR STANDARDS EXPECT AND THIS TEMPLATE DOES NOT HAVE — each
@@ -1494,7 +1493,7 @@ function tbStyleHtml() {
      stays its 30px and the paper's first line does not move (refusal 3) */
   .tb-strip{background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:0 0 0 5px var(--color-surface),0 0 0 6px var(--color-divider)}
   #tb-railslot{margin:calc(-1 * var(--page-pad-t)) calc(-1 * var(--page-pad-x)) calc(-1 * var(--page-pad-b)) 0}
-  .tb-rail.tb-jl{border:0;border-left:1px solid var(--color-neutral-300);border-radius:0;box-shadow:-10px 0 28px -20px rgba(43,43,45,.35);background:var(--color-surface);overflow:hidden}
+  .tb-rail.tb-jl{border:0;border-left:1px solid var(--color-neutral-300);border-radius:0;box-shadow:none;background:var(--color-surface);overflow:hidden}
   .tb-page.is-railfold{grid-template-columns:minmax(0,1fr) calc(46px - var(--page-pad-x))}
   .tb-page.is-railfold > .tb-resizer{display:none}
   .tb-rail.is-folded > :not(.tb-door){display:none}
@@ -1533,7 +1532,7 @@ function tbStyleHtml() {
   .tb-ol-pill.is-amber{background:var(--st-amber-bg);color:var(--st-amber-fg);border-color:transparent}
   .tb-ol-ok{flex:none;color:var(--st-green-fg);display:block}
   .tb-ol-sh{margin:16px 0 4px;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text)}
-  .tb-ol-cnt{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:999px;background:var(--surface-2);font-size:var(--t-micro);text-align:center;color:var(--color-neutral-700)}
+  .tb-ol-cnt{font-weight:var(--w-body);color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
   .tb-ol-p{margin:0;font-size:var(--t-meta);line-height:1.5;color:var(--color-neutral-700)}
   .tb-props{display:flex;flex-direction:column;gap:12px;margin:14px 0 18px}
   .tb-prop{border:1.5px dashed color-mix(in srgb,var(--accent-solid) 55%,transparent);border-radius:var(--radius-lg);background:color-mix(in srgb,var(--color-accent) 4%,var(--color-surface));padding:10px 12px;user-select:none;-webkit-user-select:none}

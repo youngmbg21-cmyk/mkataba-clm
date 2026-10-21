@@ -1228,7 +1228,11 @@
   /* ink */
   /* The same collapse at night: --color-neutral-600 answers #93A09E under
      html.dark, 6.60:1 on the dark surface. */
-  /* hairlines */
+  /* hairlines (Chambers, 21 Oct 2026: the compiled cool slate line is the warm divider) */
+  .border-hair{border-color:var(--color-divider);}
+  /* grounds (Chambers, 21 Oct 2026): the compiled cool slate ground (canvas #f8fafc) is the white field */
+  .bg-canvas{background-color:var(--color-surface);}
+  .bg-canvas\/60{background-color:color-mix(in srgb,var(--color-surface) 60%,transparent);}
   /* interactive states */
 
   /* buttons */
@@ -1595,8 +1599,8 @@
   html[data-sh-col] :is(#sh-lt-checks, #share-readiness-wrap, .sh-lt-card){ display:none; }
   [data-share-sap] .sh-col-in{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; min-height:var(--field-h); padding:3px 8px; border:1px solid var(--field-line, var(--color-divider)); border-radius:var(--radius); background:var(--color-surface); }
   [data-share-sap] .sh-col-in:focus-within{ border-color:var(--accent-ink); }
-  [data-share-sap] .sh-col-chip{ display:inline-flex; align-items:center; gap:4px; height:24px; padding:0 4px 0 2px; border-radius:999px; background:var(--color-accent-100); color:var(--accent-ink); font-size:var(--t-meta); font-weight:var(--w-label); white-space:nowrap; }
-  [data-share-sap] .sh-col-chip .av{ width:20px; height:20px; border-radius:50%; display:grid; place-items:center; font-size:10px; background:var(--accent-fill); color:#fff; }
+  [data-share-sap] .sh-col-chip{ display:inline-flex; align-items:center; gap:4px; height:24px; padding:0 6px 0 2px; border-radius:var(--radius); border:1px solid var(--rule-strong); background:var(--color-surface); color:var(--color-text); font-size:var(--t-meta); font-weight:var(--w-label); white-space:nowrap; }
+  [data-share-sap] .sh-col-chip .av{ width:20px; height:20px; border-radius:50%; display:grid; place-items:center; font-size:10px; background:transparent; border:1px solid var(--rule-strong); color:var(--color-neutral-600); }
   [data-share-sap] .sh-col-chip button{ border:0; background:none; padding:0 2px; font:inherit; color:inherit; cursor:pointer; line-height:1; }
   [data-share-sap] #sh-col-q{ flex:1; min-width:160px; border:0; outline:0; background:transparent; font:inherit; font-size:var(--t-body); color:var(--color-text); padding:4px 2px; }
   [data-share-sap] .sh-col-pop{ position:absolute; left:0; right:0; top:calc(100% + 4px); bottom:auto; max-height:280px; }
@@ -1671,7 +1675,7 @@
   .al-grow{ display:flex; gap:10px; align-items:center; width:100%; padding:8px 2px; border:0; border-bottom:1px solid var(--color-divider);
     background:transparent; text-align:left; cursor:pointer; color:var(--color-text); font:inherit; }
   .al-grow .al-av{ flex:none; width:24px; height:24px; border-radius:4px; display:grid; place-items:center; font-size:10px;
-    font-weight:var(--w-strong); background:color-mix(in srgb,var(--accent-fill) 10%,var(--color-surface)); color:var(--accent-ink); }
+    font-weight:var(--w-strong); background:transparent; border:1px solid var(--rule-strong); color:var(--color-neutral-600); }
   .al-grow .al-t{ display:block; font-size:var(--t-body); font-weight:var(--w-label); line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .al-grow .al-sub2{ display:block; font-size:12px; color:var(--color-neutral-600); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .al-grow .al-open{ flex:none; height:var(--ctl-h); padding:0 10px; display:inline-flex; align-items:center; border:1px solid var(--btn-edge, var(--field-line));
@@ -1703,10 +1707,10 @@
   .sr-card.is-rest:hover{border-color:var(--rule-strong);}
   .sr-card.is-open{padding:10px 12px 12px;border-color:var(--rule-strong);}
   .sr-av{width:28px;height:28px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:var(--t-micro);
-    font-weight:var(--w-strong);letter-spacing:.02em;background:var(--surface-2);color:var(--color-neutral-600);}
+    font-weight:var(--w-strong);letter-spacing:.02em;background:transparent;border:1px solid var(--rule-strong);color:var(--color-neutral-600);}
   /* Tints MIXED from the surface, not the accent ramp: the ramp has no night
      answer, and a pale mint disc on the dark ground is the thing to avoid. */
-  .sr-av.us{background:color-mix(in srgb,var(--accent-fill) 16%,var(--color-surface));color:var(--accent-ink);}
+  .sr-av.us{background:transparent;border-color:var(--accent-ink);color:var(--accent-ink);}
   .sr-who{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;text-align:left;background:none;border:0;
     padding:0;cursor:pointer;color:inherit;font:inherit;border-radius:var(--radius);}
   .sr-who:focus-visible{outline:2px solid var(--accent-fill);outline-offset:3px;}
@@ -1757,8 +1761,8 @@
   .sr-win .sr-mt span{ font-size:12px; color:var(--color-neutral-600); }
   .sr-win .sr-end{ padding-left:0; }
   .sr-win .sr-miss > .sr-av, .sr-win .sr-card .sr-av{ flex:none; width:24px; height:24px; border-radius:4px; font-size:10px; }
-  .sr-win .sr-miss > .sr-av{ background:color-mix(in srgb, var(--st-amber-fg) 12%, var(--color-surface)); color:var(--st-amber-fg); }
-  .sr-win .sr-miss > .sr-av.us{ background:color-mix(in srgb,var(--accent-fill) 16%,var(--color-surface)); color:var(--accent-ink); }
+  .sr-win .sr-miss > .sr-av{ background:transparent; border:1px dashed var(--st-amber-line); color:var(--st-amber-fg); }
+  .sr-win .sr-miss > .sr-av.us{ background:transparent; border:1px dashed var(--accent-ink); color:var(--accent-ink); }
   .sr-win .sr-end .ui-btn{ border-color:transparent; background:transparent; color:var(--accent-ink); padding-left:12px; }
   .sr-win .sr-end .ui-btn:hover{ text-decoration:underline; text-underline-offset:2px; }
   /* ONE SMALL MENU: the Inspector's own card (.ins-menu), wider for its words,
@@ -1863,7 +1867,7 @@
   .rl-doc del.rl-them,.nego-doc del.rl-them,.rl-cp-src del.rl-them,.rl-col del.rl-them,.pv-sheet del.rl-them,.ag-words del.rl-them{background:transparent;color:var(--rl-del-ink)}
   .rl-doc del.rl-us,.nego-doc del.rl-us,.rl-cp-src del.rl-us,.rl-col del.rl-us,.pv-sheet del.rl-us,.ag-words del.rl-us{background:transparent;color:var(--rl-del-ink)}
   .rl-doc ins.rl-them,.nego-doc ins.rl-them,.rl-cp-src ins.rl-them,.rl-col ins.rl-them,.pv-sheet ins.rl-them,.ag-words ins.rl-them{background:var(--st-amber-bg);color:var(--st-amber-fg)}
-  .rl-doc ins.rl-us,.nego-doc ins.rl-us,.rl-cp-src ins.rl-us,.rl-col ins.rl-us,.pv-sheet ins.rl-us,.ag-words ins.rl-us{background:var(--st-steel-bg);color:var(--accent-ink)}
+  .rl-doc ins.rl-us,.nego-doc ins.rl-us,.rl-cp-src ins.rl-us,.rl-col ins.rl-us,.pv-sheet ins.rl-us,.ag-words ins.rl-us{background:var(--st-green-bg);color:var(--accent-ink)}
   /* AN ADDED RUN IS UNDERLINED AND A STRUCK ONE IS STRUCK, so the colour can
      say WHO and the line still says WHAT (the artifact's grammar, 14 Sep 2026).
      Written on the sided classes only: a mark carrying neither side keeps the
@@ -2942,10 +2946,12 @@
   .dk-chip .dk-who{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .dk-face{ width:24px; height:24px; border-radius:50%; flex:none; display:inline-flex;
     align-items:center; justify-content:center; font-family:var(--font-mono); font-size:var(--t-label);
-    font-weight:var(--w-title); letter-spacing:.02em; background:var(--st-steel-bg);
-    color:var(--st-steel-fg); border:1px solid var(--color-divider);
-    box-shadow:0 0 0 2px var(--color-bg); }
-  .dk-face-lead{ background:var(--color-accent); color:#fff; border-color:var(--color-accent); }
+    font-weight:var(--w-title); letter-spacing:.02em; background:transparent;
+    color:var(--color-neutral-600); border:1px solid var(--rule-strong);
+    box-shadow:none; }
+  .dk-face-lead{ background:transparent; color:var(--accent-ink); border-color:var(--accent-ink); }
+  /* the chip's faces overlap: a white body and a white cut-out hide the face behind (Chambers, 21 Oct 2026) */
+  .dk-chip .dk-faces .dk-face{ background:var(--color-surface); box-shadow:0 0 0 2px var(--color-surface); }
   /* Below the tablet break the header is already wrapping; the name goes and
      the faces stay, because a face still says "somebody owns this" and a
      truncated name says nothing at all. */
@@ -2953,7 +2959,7 @@
     /* …except the empty one, which has no faces to fall back on. */
     .dk-chip.dk-chip-empty .dk-who{ display:inline; }
     .dk-chip.dk-chip-empty{ padding:0 10px; } }
-  .dk-face-more{ background:var(--color-bg); color:var(--color-neutral-600); font-size:var(--t-figure); }
+  .dk-face-more{ background:transparent; color:var(--color-neutral-600); font-size:var(--t-figure); }
   .dk-pip{ flex:none; min-width:17px; height:17px; padding:0 var(--s-1); border-radius:var(--radius);
     background:var(--st-amber-fg); color:var(--color-surface); font-family:var(--font-mono);
     font-size:var(--t-label); font-weight:var(--w-title); display:inline-flex; align-items:center; justify-content:center; }
@@ -3277,7 +3283,7 @@
      one grey an absence wears on both shells. */
   .dir-av{ width:30px; height:30px; border-radius:50%; flex:none; display:inline-grid;
     place-items:center; font-size:var(--t-label); font-weight:var(--w-title); font-family:var(--font-mono);
-    background:var(--st-steel-bg); color:var(--st-steel-fg); }
+    background:transparent; border:1px solid var(--rule-strong); color:var(--color-neutral-600); }
   .dir-none{ color:var(--color-neutral-400); }
   .st-chip{ flex:none; font-size:var(--t-label); font-weight:var(--w-title); border-radius:var(--radius);
     padding:3px 10px; background:var(--st-green-bg); color:var(--st-green-fg); }
@@ -3313,7 +3319,7 @@
      name, one info line, quiet section labels, no rules between sections,
      two boxes side by side, the role as a switch. */
   .st-dav{ flex:none; width:30px; height:30px; border-radius:var(--radius); display:grid; place-items:center;
-    background:color-mix(in srgb,var(--accent-fill) 10%,var(--color-surface)); color:var(--accent-ink); font-size:11px; font-weight:var(--w-strong); }
+    background:transparent; border:1px solid var(--rule-strong); color:var(--color-neutral-600); font-size:11px; font-weight:var(--w-strong); }
   .st-row2{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; }
   .st-seg{ display:flex; border:1px solid var(--field-line); border-radius:var(--radius); overflow:hidden; height:30px; }
   .st-seg-o{ flex:1; position:relative; display:grid; place-items:center; border-right:1px solid var(--field-line);
@@ -3647,7 +3653,7 @@
   .st-cr .st-search input:focus:not(#_),.st-cr .st-search input:focus-visible:not(#_){ box-shadow:none; outline:none; }
   .st-cr .st-you-who{ display:flex !important; align-items:center; gap:10px; }
   .st-cr .st-you-av{ flex:none; width:36px; height:36px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
-    background:var(--accent-solid,var(--color-accent)); color:#fff; font-weight:var(--w-strong); font-size:var(--t-meta); }
+    background:var(--color-neutral-200); border:1px solid var(--rule-strong); color:var(--color-text); font-weight:var(--w-strong); font-size:var(--t-meta); }
   .st-cr .st-you-id{ flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
   .st-cr .st-you-name{ font-weight:var(--w-strong); color:var(--color-text); }
   .st-cr .st-you-mail{ font-size:var(--t-label); color:var(--color-neutral-600); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -3695,7 +3701,7 @@
   .st-cr .st-jb-pre{ color:var(--accent-ink); }
   .st-cr .st-jb-role{ font-weight:var(--w-body); color:var(--color-neutral-600); }
   .st-cr .st-jb-ini{ width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
-    background:var(--surface-2); font-size:10.5px; font-weight:var(--w-strong); color:var(--color-text); }
+    background:transparent; border:1px solid var(--rule-strong); font-size:10.5px; font-weight:var(--w-strong); color:var(--color-neutral-600); }
   .st-cr .st-jb-cb{ padding:8px 11px 2px; font-size:var(--t-label); line-height:1.5; color:var(--color-text); }
   .st-cr .st-jb-cb p{ margin:0 0 6px; }
   .st-cr .st-jb-cb ul{ margin:0 0 6px; padding-left:16px; }
@@ -3795,11 +3801,9 @@
   .st-cr .st-drawer.is-docked .st-dbody{ overflow:visible; flex:none; }
   .st-cr .st-drawer.is-docked .st-dfoot{ position:sticky; bottom:0; z-index:1; }
   .st-cr .st-pg-dock .st-pg-head{ margin-bottom:var(--s-2); }
-  /* a count in a small round tag, as every drawn card head carries */
-  .st-cr .st-pill-n{ display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; padding:0 6px;
-    border-radius:999px; background:var(--surface-2); color:var(--color-neutral-700); font-size:var(--t-label); font-weight:var(--w-label);
-    font-variant-numeric:tabular-nums; vertical-align:1px; }
-  .st-cr .st-pill-n.is-amber{ background:var(--st-amber-bg); color:var(--st-amber-fg); }
+  /* CHAMBERS (21 Oct 2026): a card head's count is a plain number; owed work keeps its amber ink, no wash */
+  .st-cr .st-pill-n{ font-size:var(--t-label); font-weight:var(--w-label); color:var(--color-neutral-600); font-variant-numeric:tabular-nums; }
+  .st-cr .st-pill-n.is-amber{ color:var(--st-amber-fg); }
   .st-cr .st-card-ht{ display:inline-flex; align-items:baseline; gap:8px; flex-wrap:wrap; min-width:0; }
   .st-cr .st-card-sub-l{ margin-left:2px; }
   /* A PAGE OPENED FROM SETTINGS STARTS AT ITS OWN NAME (round 26 as drawn,
@@ -4157,8 +4161,8 @@
     vertical-align:middle; height:0; overflow:visible; }
   .pz-face{ width:17px; height:17px; border-radius:50%; display:inline-flex;
     align-items:center; justify-content:center; font-size:8px; font-weight:var(--w-title);
-    letter-spacing:0; background:var(--color-accent-100); color:var(--accent-ink-700);
-    border:1px solid var(--color-surface); margin-left:-4px; }
+    letter-spacing:0; background:var(--color-surface); color:var(--color-neutral-600);
+    border:1px solid var(--rule-strong); margin-left:-4px; }
   .pz-face:first-child{ margin-left:0; }
   /* ---- AND EACH FACE IS A BUTTON (Follow me, idea 14) ----
      It does something, so it is one; it keeps the face's exact size, so the row
@@ -5093,7 +5097,7 @@
   .ov-sec-none{ margin:0; font-size:var(--t-meta); color:var(--color-neutral-600); }
   .ov-prow{ display:flex; align-items:center; gap:10px; padding:7px 0; border-top:1px solid var(--color-divider); }
   .ov-av{ flex:none; width:26px; height:26px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
-    font-size:var(--t-micro); font-weight:var(--w-strong); background:var(--surface-2); color:var(--color-neutral-700); border:1px solid var(--color-divider); }
+    font-size:var(--t-micro); font-weight:var(--w-strong); background:transparent; border:1px solid var(--rule-strong); color:var(--color-neutral-600); }
   .ov-pw{ display:flex; flex-direction:column; min-width:0; font-size:var(--t-meta); }
   .ov-pw b{ font-weight:var(--w-label); color:var(--color-text); }
   .ov-pw span{ color:var(--color-neutral-600); }
@@ -5161,8 +5165,8 @@
   .pt-dir-row.is-sel{ box-shadow:inset 3px 0 0 var(--accent-fill); background:var(--color-accent-50); }
   .pt-dir-row:focus-visible{ outline:2px solid var(--accent-fill); outline-offset:-2px; }
   .pt-dir-av{ flex:none; width:26px; height:26px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
-    font-size:10.5px; font-weight:var(--w-strong); background:var(--color-accent-50); color:var(--accent-ink); }
-  .pt-dir-av.is-them{ background:var(--alt-soft); color:var(--alt-ink); }
+    font-size:10.5px; font-weight:var(--w-strong); background:transparent; border:1px solid var(--rule-strong); color:var(--color-neutral-600); }
+  .pt-dir-av.is-them{ color:var(--alt-ink); }
   .pt-dir-t{ flex:1; min-width:0; display:flex; flex-direction:column; }
   .pt-dir-n{ font-size:var(--t-card); font-weight:var(--w-label); color:var(--color-text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .pt-dir-w{ font-size:var(--t-label); color:var(--color-neutral-600); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -5178,7 +5182,7 @@
   .pt-dir-form .pt-row :is(input,select){ height:28px; }
   .pt-dir-done{ display:flex; justify-content:flex-end; margin-top:10px; }
   .ov-pty-av{ flex:none; width:32px; height:32px; border-radius:50%; display:grid; place-items:center;
-    font-size:var(--t-micro); font-weight:var(--w-title); letter-spacing:.02em; }
+    font-size:var(--t-micro); font-weight:var(--w-title); letter-spacing:.02em; background:transparent; }
   .ov-pty > div{ min-width:0; flex:1; }
   .ov-pty b{ display:block; font-weight:var(--w-strong); color:var(--color-text); overflow-wrap:anywhere; }
   /* A PARTY ROW, DRAWN AS A LIST ROW (owner, 9 Oct 2026: "does not look like it
@@ -9374,7 +9378,7 @@
   .reg-own-name{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   /* COPILOT PREPARES, YOU PRESS (7 Oct 2026): the @ / # list over the ask box,
      and the card an act answers with. */
-  #ig-dock{position:relative;background:var(--color-bg);border-left:1px solid var(--color-neutral-300);box-shadow:-10px 0 28px -20px rgba(43,43,45,.35)}
+  #ig-dock{position:relative;background:var(--color-bg);border-left:1px solid var(--color-neutral-300)}
   /* THE FOLDED PANEL IS A DOOR THAT LOOKS LIKE ONE (8 Oct 2026): tinted, the mark in the accent, "Ask Copilot" readable top to bottom;
      the same clothes on Jambo's house, where he stands folded beside it (round 23's gaps, #jh-jambo) */
   :is(#ig-dock,#jh-jambo) .igd-door{height:100%;width:100%;display:flex;flex-direction:column;align-items:center;gap:10px;padding-top:14px;background:var(--color-accent-50);border:0;border-left:1px solid var(--color-accent-100);color:var(--accent-ink);cursor:pointer;transition:background var(--dur-2)}
@@ -9390,7 +9394,7 @@
   .ca-pop h5{margin:4px 8px 6px;font-size:11px;color:var(--cap-ink);font-weight:400}
   .ca-opt{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:7px 8px;border-radius:var(--radius);font-size:13px;cursor:pointer;color:var(--color-text)}
   .ca-opt.on,.ca-opt:hover{background:var(--color-accent-50)}
-  .ca-opt .av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:var(--w-strong);background:var(--color-accent-100);color:var(--accent-ink)}
+  .ca-opt .av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:var(--w-strong);background:transparent;border:1px solid var(--rule-strong);color:var(--color-neutral-600)}
   .ca-opt .who{min-width:0}
   .ca-opt .who b{font-weight:var(--w-strong)}
   .ca-opt small{display:block;color:var(--color-neutral-600);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -9515,7 +9519,7 @@
   .ig-line-cn{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:10px;border:1px dashed var(--rule-strong);color:var(--color-neutral-600);font-size:var(--t-meta);white-space:nowrap;flex:none}
   .ig-line-faces{display:inline-flex;align-items:center;flex:none}
   /* THE SIGNING COPY ON THE LINE (the gaps, round 10 "The road"): its word as a
-     quiet pill, then its page arrows and its size, the room's steppers in the
+     plain label, then its page arrows and its size, the room's steppers in the
      line's small height — nothing above the paper */
   #ig-strip .ig-sc{display:inline-flex;align-items:center;gap:var(--s-2);flex:none}
   /* FILL IN'S SIZE ON THE LINE (the gaps, round 8, the second check): the one zoom's control on the
@@ -9532,7 +9536,7 @@
   #ig-page:has(#pd-fillface) #ig-paper-scroll > .paper-zc-row{display:none}
   #ig-strip .ig-zc-line .rl-type-step{height:var(--ctl-h-sm)}
   #ig-strip .ig-zc-line .rl-type-step button{width:22px;height:22px;font-size:var(--t-body)}
-  #ig-strip .ig-sc-word{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;background:var(--st-green-bg);color:var(--st-green-fg);font-size:var(--t-meta);font-weight:var(--w-label);white-space:nowrap}
+  #ig-strip .ig-sc-word{display:inline-flex;align-items:center;height:22px;padding:0;color:var(--color-neutral-600);font-size:var(--t-meta);font-weight:var(--w-label);white-space:nowrap}
   #ig-strip .ig-sc .sc-step{display:inline-flex;align-items:center;gap:2px;flex:none;height:var(--ctl-h-sm);box-sizing:border-box;padding:0 2px;border:1px solid var(--btn-edge);border-radius:var(--radius);background:var(--color-surface)}
   #ig-strip .ig-sc .sc-step:first-of-type{border-color:transparent;background:transparent}
   #ig-strip .ig-sc .sc-step button{width:22px;height:22px;display:inline-grid;place-items:center;padding:0;border:0;background:none;border-radius:var(--radius);color:var(--color-neutral-600);font:inherit;font-size:var(--t-body);cursor:pointer}
@@ -9540,7 +9544,7 @@
   #ig-strip .ig-sc .sc-step button:disabled{opacity:.4;cursor:default}
   #ig-strip .ig-sc .sc-step>span{min-width:3.2em;text-align:center;font-size:var(--t-label);color:var(--color-text);font-variant-numeric:tabular-nums;white-space:nowrap;padding:0 3px}
   #ig-strip .ig-line-faces .pz-row{margin-left:0}
-  #ig-strip .ig-line-faces .pz-face{width:24px;height:24px;font-size:10px;border-width:2px;margin-left:-5px}
+  #ig-strip .ig-line-faces .pz-face{width:24px;height:24px;font-size:10px;border-width:1px;margin-left:-5px}
   #ig-strip .ig-line-faces .pz-face:first-child{margin-left:0}
   .ig-acts #hdr-chat.ig-notes .room-badge{position:static;border:0;min-width:0;height:auto;padding:0 0 0 2px;background:transparent;color:var(--color-neutral-600);font-size:var(--t-meta);font-weight:var(--w-label)}
   .ig-more{position:relative;display:inline-flex}
@@ -9584,11 +9588,11 @@
   .pd-body{padding:16px 16px 20px;overflow:auto;font-size:12.5px;flex:1;min-height:0}
   .pd-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 14px}
   .pd-top h3{margin:0;font-size:16px;font-weight:var(--w-title);color:var(--color-text);min-width:0}
-  .pd-pill{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font-size:11.5px;font-weight:var(--w-label);white-space:nowrap;flex:none}
+  .pd-pill{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0;border-radius:0;font-size:11.5px;font-weight:var(--w-label);white-space:nowrap;flex:none}  /* dot and word, no wash (Chambers) */
   .pd-pill i{width:6px;height:6px;border-radius:50%}
-  .pd-pill.is-warn{background:var(--st-amber-bg);color:var(--st-amber-fg)} .pd-pill.is-warn i{background:var(--st-amber-dot)}
-  .pd-pill.is-ok{background:var(--st-green-bg);color:var(--st-green-fg)} .pd-pill.is-ok i{background:var(--st-green-dot)}
-  .pd-pill.is-quiet{background:var(--st-gray-bg);color:var(--st-gray-fg)} .pd-pill.is-quiet i{background:var(--st-gray-dot)}
+  .pd-pill.is-warn{color:var(--st-amber-fg)} .pd-pill.is-warn i{background:var(--st-amber-dot)}
+  .pd-pill.is-ok{color:var(--st-green-fg)} .pd-pill.is-ok i{background:var(--st-green-dot)}
+  .pd-pill.is-quiet{color:var(--st-gray-fg)} .pd-pill.is-quiet i{background:var(--st-gray-dot)}
   /* FILL IN THE DETAILS, BESIDE THE PAPER (the one-page Home plan, stage 2; owner picked "Form", 14 Oct 2026): a face of Jambo's tab, one column at the panel's width; its head stays in sight while the form scrolls */
   #pd-fillface{padding:0 14px 12px}
   #pd-fillface .pd-ff{display:flex;flex-direction:column;gap:12px}
@@ -9698,7 +9702,7 @@
   #pd-fillface .pd-ff-work > .pd-ff-wait{order:3;margin-top:10px;padding:0 2px;font-size:12px;line-height:1.45;color:var(--color-neutral-600)}
   #pd-fillface .pd-ff-wait-t{margin:0;display:flex;gap:8px;align-items:flex-start}
   #pd-fillface .pd-ff-wait-face{flex:none;margin-top:1px}
-  #pd-fillface .pd-ff-pay-t .pd-pill{white-space:normal;height:auto;min-height:22px;padding:2px 9px;line-height:1.35}
+  #pd-fillface .pd-ff-pay-t .pd-pill{white-space:normal;height:auto;min-height:22px;padding:2px 0;line-height:1.35}
   #pd-fillface .pd-ff-cost{color:var(--color-neutral-600)}
   /* THE PAPER BESIDE FILL IN: an owed blank amber, an answer not yet in the wording underlined (pdFillPaperMarks) */
   #ig-canvas .hati-field.pd-ff-owe-mark:not(.is-fieldlit){background:var(--st-amber-bg);color:var(--st-amber-fg)}
@@ -9790,7 +9794,7 @@
   #ig-dock .pd-drop-more{font-size:12px;color:var(--color-neutral-600)}
   #ig-dock .pd-drop-wait{color:var(--st-amber-fg)}
   /* NEEDS YOU HERE (owner picked "Tabs and faces" by name, round 3, 17 Oct 2026; pdNeedsHtml): the glance's own card grammar above it — a row is what is owed, its line under it, its one button; Jambo's prepared work first with his face */
-  #ig-dock .pd-needs .pd-gl-h .pd-pill{height:20px;padding:0 7px}
+  #ig-dock .pd-needs .pd-gl-h .pd-pill{height:20px;padding:0}
   #ig-dock .pd-needs .pd-gl-h .pd-pill i{display:none}
   #ig-dock .pd-nd-all{padding:2px 4px;font-size:12px}
   /* pinned above the conversation, never scrolled away; a long list scrolls inside its own share of the column */
@@ -10105,7 +10109,7 @@
   .pd-go:focus-visible{outline:2px solid var(--accent-ink);outline-offset:1px}
   .pd-parties{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
   .pd-party{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--color-neutral-200);border-radius:var(--radius-lg);background:var(--color-surface);min-width:0}
-  .pd-party i{width:30px;height:30px;flex:none;border-radius:999px;display:grid;place-items:center;font-style:normal;font-size:11px;font-weight:700;background:var(--color-accent-50);color:var(--accent-ink)}
+  .pd-party i{width:30px;height:30px;flex:none;border-radius:999px;display:grid;place-items:center;font-style:normal;font-size:11px;font-weight:700;background:transparent;border:1px solid var(--rule-strong);color:var(--color-neutral-600)}
   .pd-party span{font-weight:var(--w-strong);min-width:0;overflow-wrap:anywhere;line-height:1.3}
   .pd-kv{display:grid;grid-template-columns:1fr 1fr;margin:0;border:1px solid var(--color-neutral-200);border-radius:var(--radius-lg);overflow:hidden;background:var(--color-surface)}
   .pd-kv>div{padding:9px 12px;border-bottom:1px solid var(--color-neutral-200);margin-bottom:-1px;min-width:0}
@@ -10471,7 +10475,9 @@
     --hb-stage:radial-gradient(circle,rgba(31,77,59,.09) 1px,transparent 1.2px) 0 0/26px 26px,radial-gradient(ellipse at 50% 30%,#FFFFFF 0%,#F4F2ED 48%,#E9E5DC 100%);
     --hb-ink:#161512;--hb-ink-2:#5E5A51;--hb-mute:#5E5A51;--hb-glow:#1F4D3B;
     --hb-amber:#8A5A0A;--hb-ruby:#8F2A22;--hb-green:#1F4D3B;
-    --hb-ln:31,77,59;--hb-gw:58,107,87;
+    /* the LINE channel is warm (Chambers, 21 Oct 2026): a card's edge rgba(ln,.18) over white is exactly
+       --color-divider #E4E0D7; the inside rules at .12 / .16 land between --rule-faint and the divider */
+    --hb-ln:105,83,33;--hb-gw:58,107,87;
     --hb-card:rgba(255,255,255,.62);--hb-fig:rgba(255,255,255,.74);--hb-menu:#FFFFFF;--hb-blur:10px;
     --hb-shadow:0 16px 34px -24px rgba(22,21,18,.35);--hb-on-glow:#FFFFFF}
   /* Light also lightens the map's stage, its corner panels and its words; the
@@ -10605,7 +10611,8 @@
   .hb-btn{height:var(--ctl-h);padding:0 var(--s-3);border-radius:var(--radius);border:1px solid rgba(var(--hb-ln),.3);background:var(--hb-fig);color:var(--hb-ink);cursor:pointer;font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);white-space:nowrap}
   .hb-btn:hover{border-color:var(--hb-glow)}
   .hb-btn.is-primary{background:var(--hb-glow);border-color:transparent;color:var(--hb-on-glow);font-weight:var(--w-strong)}
-  .hb-pill{font-size:var(--t-micro);font-weight:var(--w-strong);background:rgba(var(--hb-gw),.2);color:var(--hb-glow);border-radius:999px;padding:0 6px;font-variant-numeric:tabular-nums}
+  /* CHAMBERS (21 Oct 2026): a count beside a head is a plain number, no bubble */
+  .hb-pill{font-weight:var(--w-body);color:var(--hb-ink-2);font-variant-numeric:tabular-nums}
   .hb-chip{display:inline-flex;align-items:center;gap:4px;font-size:var(--t-micro);font-weight:var(--w-strong);padding:1px 7px;border-radius:3px;border:1px solid rgba(var(--hb-ln),.25);color:var(--hb-ink-2);white-space:nowrap}
   .hb-chip.is-bad{color:var(--hb-ruby);border-color:currentColor}
   .hb-chip.is-warn{color:var(--hb-amber);border-color:currentColor}
@@ -13687,7 +13694,7 @@
      tripped that net while meaning the opposite — the class-name trap this
      file has paid for twice. */
   .reg-table td.reg-typecell{font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .reg-own{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:color-mix(in srgb,var(--color-accent) 12%,transparent);color:var(--accent-ink);font-family:var(--font-mono);font-size:10px;font-weight:var(--w-strong);letter-spacing:.02em;}
+  .reg-own{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:transparent;border:1px solid var(--rule-strong);color:var(--color-neutral-600);font-family:var(--font-mono);font-size:10px;font-weight:var(--w-strong);letter-spacing:.02em;}
   .reg-dash{color:var(--color-neutral-400);}
   .page-facts{font-size:var(--t-body);color:var(--color-neutral-600);margin-top:3px;line-height:1.4;}
   .page-facts:empty{display:none;}
@@ -13765,7 +13772,8 @@
      20 Oct 2026; a pale pill of its own tone from 7 Oct): no wash behind. Here
      rather than in the register's sheet because the inspector panel draws it
      on six pages. */
-  .reg-stg{padding:0;border-radius:0;max-width:100%;box-sizing:border-box;}
+  .reg-stg{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;vertical-align:middle;padding:0;border-radius:0;max-width:100%;box-sizing:border-box;}
+  .reg-stg > i{width:8px;height:8px;border-radius:50%;flex:none;background:currentColor;}
   .ins-mv{font-weight:var(--w-label);white-space:nowrap;}
   .ins-mv.is-you{color:var(--st-amber-fg);}
   .ins-mv.is-them{color:var(--color-neutral-600);}
@@ -13885,7 +13893,7 @@
      under body:has() made every element's style hang on the :has (home-speed-verify 1). */
   #content .sap-page.ap-page{padding-top:var(--s-3);}
   #content .ins-panel.is-jambo{position:fixed;right:0;top:var(--jl-top,88px);bottom:0;width:var(--jl-w,380px);z-index:20;display:flex;flex-direction:column;overflow:hidden;
-    border:0;border-left:1px solid var(--color-neutral-300);border-radius:0;box-shadow:-10px 0 28px -20px rgba(43,43,45,.35);background:var(--color-surface);}
+    border:0;border-left:1px solid var(--color-neutral-300);border-radius:0;box-shadow:none;background:var(--color-surface);}
   #content .ins-panel.is-jambo.is-folded{width:46px;}
   /* the divider's grip (splitHtml, Home's .ig-resizer dress): its press strip
      starts ON the panel's hairline, so the strip's left edge is the seam and
@@ -13924,7 +13932,7 @@
   .jl-h .ins-cp .jl-st-side{margin-left:0;}
   .jl-face-row{display:flex;align-items:center;gap:12px;min-width:0;}
   .jl-face-row .jl-face-w{min-width:0;}
-  .jl-face-row .dir-av,.jl-face-row .jl-av{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:var(--w-strong);background:var(--color-accent-50);color:var(--accent-ink);}
+  .jl-face-row .dir-av,.jl-face-row .jl-av{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:var(--w-strong);background:transparent;color:var(--color-neutral-600);border:1px solid var(--rule-strong);}
   /* Jambo's own words: his face, a bubble, the line saying it cost nothing, the page's doors as chips */
   .jl-words{padding:14px 14px 4px;display:flex;flex-direction:column;gap:8px;}
   .jl-say{display:flex;align-items:flex-start;gap:10px;}
@@ -14038,15 +14046,15 @@
   .jl-rows dd.is-ruby{color:var(--st-ruby-fg);font-weight:var(--w-label);}
   .jl-rows dd.is-amber{color:var(--st-amber-fg);font-weight:var(--w-label);}
   .jl-rows dd .sub{display:block;font-size:var(--t-meta);color:var(--color-neutral-600);}
-  /* THE LISTS AS DRAWN (rounds 14 and 15): a list's count in a pill on its
-     head, the wait in amber where it waits on the reader, a stand-in's "for
-     Jonas" beside "You", the card's late note and its foot */
-  .reg-tt-n.is-pill,.ap-card-n.is-pill{display:inline-block;margin-left:4px;padding:1px 7px;border-radius:999px;background:var(--color-accent-50);color:var(--accent-ink);
-    font-size:var(--t-micro);font-weight:var(--w-strong);line-height:1.45;vertical-align:1px;font-variant-numeric:tabular-nums;}
+  /* THE LISTS AS DRAWN (rounds 14 and 15): a list's count on its head, the
+     wait in amber where it waits on the reader, a stand-in's "for Jonas"
+     beside "You", the card's late note and its foot. CHAMBERS (21 Oct 2026):
+     the count is a plain number; the class keeps its old name. */
+  .reg-tt-n.is-pill,.ap-card-n.is-pill{margin-left:2px;font-weight:var(--w-body);color:var(--color-neutral-600);font-variant-numeric:tabular-nums;}
   .reg-table .reg-wait.is-mine{color:var(--st-amber-fg);}
   .ap-card-h .ap-card-t .ap-card-m{margin-left:6px;font-weight:var(--w-body);}
   .ap-card-h .ap-card-sp{flex:1 1 auto;}
-  .ap-for,.ap-for-pill{display:inline-flex;align-items:center;gap:3px;border-radius:999px;background:var(--color-accent-50);color:var(--accent-ink);font-size:var(--t-micro);font-weight:var(--w-label);white-space:nowrap;}
+  .ap-for,.ap-for-pill{display:inline-flex;align-items:center;gap:3px;border-radius:var(--radius);background:var(--color-accent-50);color:var(--accent-ink);font-size:var(--t-micro);font-weight:var(--w-label);white-space:nowrap;}
   .ap-for{margin-left:4px;padding:1px 7px;vertical-align:1px;}
   .ap-for .ap-for-ic,.ap-for-pill .ap-for-ic{width:11px;height:11px;flex:none;}
   .ap-wl-foot{padding:10px 14px;font-size:var(--t-meta);color:var(--color-neutral-600);border-top:1px solid var(--color-divider);}
@@ -14077,7 +14085,7 @@
   .ap-table tr.ap-grp.is-yours i{background:var(--st-amber-dot)}
   .ap-table tr.ap-grp b{font-weight:var(--w-strong);color:var(--color-text)}
   .ap-table tr.ap-grp .n{margin-left:8px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
-  .ap-kind{display:inline-flex;align-items:center;height:20px;padding:0 8px;border:1px solid var(--color-divider);border-radius:999px;font-size:11.5px;color:var(--color-text);background:var(--color-surface)}
+  .ap-kind{display:inline-flex;align-items:center;height:20px;padding:0 8px;border:1px solid var(--color-divider);border-radius:var(--radius);font-size:11.5px;color:var(--color-text);background:var(--color-surface)}
   .ap-kind.is-sig{background:var(--surface-2)}
   .ap-table.ap-ins{table-layout:fixed;}
   .ap-table.ap-ins th{position:sticky;top:0;z-index:1;background:var(--color-surface);text-transform:none;letter-spacing:0;
@@ -14175,10 +14183,10 @@
     font-size:var(--t-micro);font-weight:var(--w-label);color:var(--color-neutral-700);background:var(--color-surface);}
   /* who acts, as a face: ours grey, theirs in their tint, nobody a grey ring, Jambo's own face */
   .obw-av{flex:none;width:22px;height:22px;border-radius:50%;display:inline-grid;place-items:center;font-style:normal;font-size:10px;font-weight:var(--w-title);
-    letter-spacing:.02em;background:var(--surface-2);color:var(--color-neutral-600);box-sizing:border-box;}
-  .obw-av.is-theirs{background:var(--st-violet-bg);color:var(--st-violet-fg);}
+    letter-spacing:.02em;background:transparent;border:1px solid var(--rule-strong);color:var(--color-neutral-600);box-sizing:border-box;}
+  .obw-av.is-theirs{background:transparent;border-color:var(--st-violet-line);color:var(--st-violet-fg);}
   .obw-av.is-nobody{background:none;border:1.5px dashed var(--rule-strong);}
-  .obw-av.is-jambo{background:none;overflow:hidden;}
+  .obw-av.is-jambo{background:none;border:0;overflow:hidden;}
   .obw-av.is-jambo img{width:22px;height:22px;border-radius:50%;}
   /* Jambo's finds: one row in its week, in his tint, never a band */
   .obw-wk tr.obw-finds td:not(:first-child){background:var(--color-accent-50);}
@@ -14270,7 +14278,7 @@
   .ob-id > .ins-c2{min-width:0;flex:1;}
   .ins-who{display:inline-flex;align-items:center;gap:7px;color:var(--color-neutral-600);min-width:0;max-width:100%;}
   .ins-who > span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .ins-av{width:20px;height:20px;border-radius:50%;background:var(--surface-2);color:var(--color-neutral-600);font-size:10px;font-weight:var(--w-title);
+  .ins-av{width:20px;height:20px;border-radius:50%;background:transparent;border:1px solid var(--rule-strong);color:var(--color-neutral-600);font-size:10px;font-weight:var(--w-title);
     display:inline-grid;place-items:center;flex:none;font-style:normal;letter-spacing:.02em;}
   .ins-amt{font-weight:var(--w-label);color:var(--color-text);font-variant-numeric:tabular-nums;}
   .ins-cnt{font-weight:var(--w-title);font-variant-numeric:tabular-nums;}
@@ -14503,7 +14511,7 @@
   .ds-sheet .ds-top{display:flex;flex-direction:column;gap:12px;padding:var(--s-3) var(--s-4) 0;}
   .ds-hrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:var(--ctl-h);}
   .ds-h1{font-family:var(--font-heading);font-size:var(--t-card);font-weight:var(--w-strong);line-height:1.25;margin:0;}
-  .ds-tag{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;background:var(--surface-2);
+  .ds-tag{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:var(--radius);background:var(--surface-2);
     font-size:var(--t-label);color:var(--color-neutral-600);}
   .ds-moved{font-size:var(--t-meta);color:var(--color-neutral-600);}
   .ds-hsp{flex:1;}
@@ -14525,10 +14533,10 @@
   .ds-facts b{font-size:var(--t-page);font-weight:var(--w-strong);font-variant-numeric:tabular-nums;}
   .ds-facts .ds-warn{color:var(--st-amber-fg);}
   .ds-parties{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;}
-  .ds-pch{display:inline-flex;align-items:center;gap:8px;font-size:var(--t-meta);border:1px solid var(--color-divider);border-radius:999px;
+  .ds-pch{display:inline-flex;align-items:center;gap:8px;font-size:var(--t-meta);border:1px solid var(--color-divider);border-radius:var(--radius);
     padding:3px 12px 3px 4px;color:var(--color-neutral-600);}
   .ds-pch b{color:var(--color-text);font-weight:var(--w-strong);}
-  .ds-pch.is-ours{border-color:var(--color-accent-300);background:var(--color-accent-50);}
+  .ds-pch.is-ours{border-color:var(--rule-strong);background:transparent;}
   .ds-j{list-style:none;display:flex;margin:16px 0 18px;padding:0;}
   .ds-j li{flex:1;position:relative;padding-right:12px;min-width:0;}
   .ds-j li::after{content:"";position:absolute;left:13px;right:12px;top:5px;height:2px;background:var(--color-divider);}
@@ -14865,14 +14873,16 @@
   #content .mn-ins .ins-body:has(> #ins-panel.is-jambo){align-items:start;}
   #content .ik-ins .ins-body:has(> #ins-panel.is-jambo) > .ins-card,
   #content .mn-ins .ins-body:has(> #ins-panel.is-jambo) > .ins-card{max-height:100%;}
-  /* How it is handled, a pill in the drawing's tones; With, the name alone,
+  /* How it is handled, in the drawing's tones — CHAMBERS (21 Oct 2026): a dot
+     and a word, no wash, the same 8px dot as .reg-stg; With, the name alone,
      "You" in its own weight */
-  .ik-road{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:var(--w-label);
-    white-space:nowrap;background:var(--st-gray-bg);color:var(--st-gray-fg);max-width:100%;overflow:hidden;text-overflow:ellipsis;}
-  .ik-road.is-routine,.ik-road.is-lane{background:var(--st-green-bg);color:var(--st-green-fg);}
-  .ik-road.is-close{background:var(--st-amber-bg);color:var(--st-amber-fg);}
-  /* on the chosen row's tint the grey Standard pill keeps an edge, so it still reads */
-  .ins-lt tbody tr.is-sel .ik-road.is-standard{box-shadow:inset 0 0 0 1px var(--color-divider);}
+  .ik-road{display:inline-flex;align-items:center;gap:6px;height:20px;padding:0;border-radius:0;font-size:11.5px;font-weight:var(--w-label);
+    white-space:nowrap;background:none;color:var(--st-gray-fg);max-width:100%;overflow:hidden;text-overflow:ellipsis;}
+  .ik-road::before{content:"";width:8px;height:8px;border-radius:50%;flex:none;background:var(--st-gray-dot);}
+  .ik-road.is-routine,.ik-road.is-lane{color:var(--st-green-fg);}
+  .ik-road.is-routine::before,.ik-road.is-lane::before{background:var(--st-green-dot);}
+  .ik-road.is-close{color:var(--st-amber-fg);}
+  .ik-road.is-close::before{background:var(--st-amber-dot);}
   /* a wrapped title and its asker breathe inside their row */
   .ik-lt .ins-c2{padding:8px 0;}
   /* "What <asker> asked for": a small grey label over their words, as drawn */
@@ -14888,7 +14898,7 @@
   .jl-pills > .ins-more-wrap{margin-left:auto;}
   /* the request's reference line may take two lines: a long stream's name reads whole */
   .ik-ins #ins-panel .ins-h .ins-eb{white-space:normal;overflow:visible;text-overflow:clip;}
-  .ik-with-chip{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 9px;border:1px solid var(--color-divider);border-radius:999px;
+  .ik-with-chip{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 9px;border:1px solid var(--color-divider);border-radius:var(--radius);
     font-size:var(--t-meta);color:var(--color-neutral-700);background:var(--color-surface);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
   .ik-with-chip.is-nobody{color:var(--st-amber-fg);border-color:var(--st-amber-line);}
   .ik-ask-q{margin:0;padding:10px 14px;border-left:3px solid var(--rule-strong);border-radius:var(--radius);background:var(--surface-2);
@@ -14928,7 +14938,7 @@
     font:inherit;color:inherit;text-align:left;cursor:pointer;}
   .st-person-open:focus-visible{outline:2px solid var(--focus-color);outline-offset:2px;border-radius:var(--radius);}
   .st-person-av{width:28px;height:28px;border-radius:var(--radius);flex:none;display:inline-grid;place-items:center;
-    font-size:var(--t-label);font-weight:var(--w-title);font-family:var(--font-mono);background:var(--st-steel-bg);color:var(--st-steel-fg);}
+    font-size:var(--t-label);font-weight:var(--w-title);font-family:var(--font-mono);background:transparent;border:1px solid var(--rule-strong);color:var(--color-neutral-600);}
   .st-people-table .st-person-name{overflow:hidden;text-overflow:ellipsis;font-weight:var(--w-body);}
   .st-person-you{color:var(--color-neutral-600);font-size:var(--t-label);}
   .st-person-sub{display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px;}
@@ -15018,12 +15028,14 @@
   .tpl-mks{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px;user-select:none;-webkit-user-select:none;font-family:var(--font-body);}
   /* the signatures stand apart from the last clause's marks (check #2, 19 Oct 2026) */
   .tpl-pf-sheet .tpl-mks + p{margin-top:var(--s-6);}
-  .tpl-mk{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:999px;font-size:var(--t-micro);line-height:1.6;font-weight:var(--w-label);background:var(--st-green-bg);color:var(--st-green-fg);border:0;font-family:inherit;white-space:nowrap;}
-  .tpl-mk.is-dev,.tpl-mk.is-changed{background:var(--st-amber-bg);color:var(--st-amber-fg);}
+  /* CHAMBERS (21 Oct 2026): a mark is a dot and a word, no wash */
+  .tpl-mk{display:inline-flex;align-items:center;gap:6px;padding:0;border-radius:0;font-size:var(--t-micro);line-height:1.6;font-weight:var(--w-label);background:none;color:var(--st-green-fg);border:0;font-family:inherit;white-space:nowrap;}
+  .tpl-mk.is-dev,.tpl-mk.is-changed{color:var(--st-amber-fg);}
+  .tpl-mk i{width:6px;height:6px;border-radius:50%;flex:none;background:var(--st-green-dot);}
+  .tpl-mk.is-dev i,.tpl-mk.is-changed i{background:var(--st-amber-dot);}
   button.tpl-mk{cursor:pointer;}
   button.tpl-mk:hover{text-decoration:underline;}
   button.tpl-mk:focus-visible{outline:2px solid var(--accent-ink);outline-offset:1px;}
-  .tpl-mk-i{flex:none;}
   .jl-next-h{margin:6px 0 0;font-size:var(--t-meta);color:var(--color-neutral-600);}
   .jl-chips.is-flush{margin-left:0;}
   .tpl-pf-jl .jl-bub p{margin:0;}
@@ -15235,7 +15247,7 @@
      departures, the obligations found). No band anywhere: every section sits
      inside the panel that was already there. Every value a token. */
   .ag-foot{display:flex;align-items:center;gap:6px;margin-top:6px;min-width:0;font-size:var(--t-label);color:var(--color-neutral-600);}
-  .ag-av{width:20px;height:20px;flex:none;border-radius:50%;display:inline-grid;place-items:center;background:var(--st-steel-bg);color:var(--accent-ink);font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:0;}
+  .ag-av{width:20px;height:20px;flex:none;border-radius:50%;display:inline-grid;place-items:center;background:transparent;border:1px solid var(--rule-strong);color:var(--color-neutral-600);font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:0;}
   .ag-for,.ag-when{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .ag-dot{color:var(--rule-strong);}
   .ag-p-title{font-family:var(--font-heading);font-size:var(--t-section);font-weight:var(--w-title);line-height:1.3;color:var(--color-text);}
@@ -15315,7 +15327,7 @@
   .sa-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px 14px;margin-top:14px;}
   .sa-lbl{display:block;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600);margin-bottom:4px;}
   .sa-who{display:flex;align-items:center;gap:var(--s-2);}
-  .sa-av{width:26px;height:26px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--st-steel-bg);color:var(--accent-ink);font-size:var(--t-label);font-weight:var(--w-strong);}
+  .sa-av{width:26px;height:26px;flex:none;border-radius:50%;display:grid;place-items:center;background:transparent;border:1px solid var(--rule-strong);color:var(--color-neutral-600);font-size:var(--t-label);font-weight:var(--w-strong);}
   .sa-who-t{display:block;font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-text);}
   .sa-who-s{display:block;font-size:var(--t-meta);color:var(--color-neutral-600);}
   .sa-box{margin-top:14px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:12px 14px;}
@@ -15604,7 +15616,7 @@
   .cn-chip:hover{text-decoration-color:currentColor;color:var(--accent-ink-700)}
   .cn-h{display:flex;align-items:center;gap:8px;padding:10px 12px 10px 16px;border-bottom:1px solid var(--color-divider);min-height:40px}
   .cn-t{font-weight:var(--w-strong);font-size:var(--t-body);color:var(--color-text);white-space:nowrap}
-  .cn-cnt{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:18px;padding:0 6px;border-radius:9px;background:var(--color-accent-100);color:var(--accent-ink);font-size:var(--t-micro);font-weight:var(--w-strong)}
+  .cn-cnt{font-weight:var(--w-body);color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
   .cn-r{display:flex;align-items:center;gap:12px;padding:7px 16px;border-bottom:1px solid var(--color-divider)}
   .cn-r:last-child{border-bottom:0}
   .cn-w{flex:1;min-width:0}

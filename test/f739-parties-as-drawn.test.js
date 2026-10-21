@@ -349,8 +349,11 @@ describe('f739 (7) check #1\'s differences, built', () => {
       'cu_say_waiting_one', 'cu_say_waiting_other', 'cu_say_no_nda_one', 'cu_say_no_nda_other', 'cu_say_chip_no_nda', 'cu_say_chip_all'])
       assert.ok(B.en[k] && B.sv[k], k + ' in both books');
   });
-  test('7i a section\'s count wears its small pill on Parties and People', () => {
-    assert.match(read('js/views/customers.js'), /:is\(\.cu-page,\.dir-page\) \.ins-sec h3 \.n\{display:inline-block;padding:0 7px;border-radius:999px;/);
+  /* RE-POINTED 21 Oct 2026 (Chambers): a count beside a head is a plain number —
+     Parties and People draw the section count every panel draws, no pill of their own. */
+  test('7i a section\'s count is the plain number every panel draws, on Parties and People too', () => {
+    const src = read('js/views/customers.js').replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.doesNotMatch(src, /\.ins-sec h3 \.n\{[^}]*(border-radius|background)/);
   });
 });
 

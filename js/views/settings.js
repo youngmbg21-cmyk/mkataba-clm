@@ -3913,7 +3913,7 @@ function stPeopleHtml(opts){
     const invited=!!(u.prefs&&u.prefs.mustChangePassword)&&u.id!==me.id;
     return `<tr class="st-person" data-st-panel="person:${PB_ATTR(u.id)}" data-st-hay="${esc(hay)}">
       <td><button type="button" class="st-person-open" data-st-panel="person:${PB_ATTR(u.id)}"><span class="st-person-av">${esc(ini)}</span><span class="st-person-id"><span class="st-person-name">${esc(u.name||u.email)}${u.id===me.id?` <span class="st-person-you">${i18t('set_you')}</span>`:''}</span>${u.name&&u.email?`<span class="st-person-mail">${esc(u.email)}</span>`:''}</span></button></td>
-      <td><span class="reg-stg ins-pill"><i aria-hidden="true"></i>${esc(role)}</span></td>
+      <td><span class="reg-stg ins-pill">${esc(role)}</span></td>
       ${bz?`<td class="st-bz-cell" data-st-bz="${PB_ATTR(u.id)}">${esc((stBzOf(u)||{}).name||'—')}</td>`:''}
       <td>${esc(acc.text)}</td>
       ${''/* HOW MUCH THEY MAY SIGN FOR, on the row: the fact an admin comes to

@@ -22,6 +22,14 @@
    8  the Brain's dark stage, its own corners
    9  the language still changes, in Settings › You
    10 the phone keeps the bird
+   11 the rest of the platform (owner, 21 Oct 2026: "Finish everything"):
+      a count beside a head is a plain number; a status in Jambo's panel has
+      its dot; no docked panel shadow; a tag's corner is the hairline's; the
+      Board's lines are the warm divider and Jambo's words sit on the warm
+      box; our new words on the paper sit on the green wash; the other side's
+      page wears the serif title, the dotted status, an unboxed turn and the
+      word HaTi; the public status page wears the one look. RED at b9d887d
+      (Chambers before this pass): all ten of 11a–11j.
    Red at the parent (d2b75c7): 21 of 26 — the bar is dark, the mark reads
    "Ha", the theme button and the language switch stand in it, the bird is
    everywhere, the hint lines are drawn, a stored "dark" turns the page dark.
@@ -187,6 +195,78 @@ const check = (name, pass, detail) => {
     const lang = await until(() => typeof langId === 'function' && langId() === 'sv' ? langId() : null, null, 6000);
     check('9a the language still changes — in Settings › You, its one door', lang === 'sv', String(lang));
     await page.evaluate(() => { if (typeof langSet === 'function') langSet('en'); });
+
+    /* ================= 11. THE REST OF THE PLATFORM (21 Oct 2026) ===========
+       The owner's review of fourteen more pages found leftovers of the old
+       look; "Finish everything". Each is measured where it is drawn. */
+    const tok = v => page.evaluate(v => { const p = document.createElement('i'); p.style.color = v; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; }, v);
+    const NONE = /rgba\(0, 0, 0, 0\)|transparent/;
+    /* on Parties: a party is chosen on arrival, its agreements listed with their status in Jambo's panel */
+    await page.evaluate(() => setView('customers'));
+    await until(() => !!document.querySelector('.ap-card-n.is-pill') && !!document.querySelector('#ins-panel .reg-stg'), null, 10000);
+    const ap = await page.evaluate(() => { const n = document.querySelector('.ap-card-n.is-pill'), ns = n && getComputedStyle(n);
+      const st = document.querySelector('#ins-panel .reg-stg'), d = st && st.querySelector(':scope > i'), dr = d && d.getBoundingClientRect();
+      const pn = document.querySelector('#content .ins-panel.is-jambo');
+      /* the Kind tag is drawn only where a list has approvals or requests; its rule is read off a probe of the class */
+      const k = document.createElement('span'); k.className = 'ap-kind'; k.textContent = 'Approval'; document.body.appendChild(k);
+      const kr = getComputedStyle(k).borderTopLeftRadius; k.remove();
+      return { nBg: ns && ns.backgroundColor, nPad: ns && ns.paddingLeft, dot: dr ? [Math.round(dr.width), Math.round(dr.height)] : null,
+        shadow: pn && getComputedStyle(pn).boxShadow, kind: kr }; });
+    check('11a a count beside a list\'s heading is a plain number: no bubble, no padding', !!ap.nBg && NONE.test(ap.nBg) && ap.nPad === '0px', JSON.stringify(ap));
+    check('11b a status in Jambo\'s panel carries its dot (8 × 8), not only its word', !!ap.dot && ap.dot[0] === 8 && ap.dot[1] === 8, JSON.stringify(ap.dot));
+    check('11c Jambo\'s panel beside a list stands on its hairline, no shadow', ap.shadow === 'none', String(ap.shadow));
+    check('11d a tag in a list (Kind) has the hairline corner, not a capsule', !!ap.kind && parseFloat(ap.kind) <= 3, String(ap.kind));
+    await page.evaluate(() => { setView('dashboard'); if (window.hbSetFace) hbSetFace('board'); });
+    await until(() => !!document.querySelector('#hb-board .hb-card') && !!document.querySelector('.hb-jb-hello .ai-bub'), null, 10000);
+    const div = await tok('var(--color-divider)'), s2 = await tok('var(--surface-2)');
+    const bd = await page.evaluate(() => { const c = document.querySelector('#hb-board .hb-card'), b = document.querySelector('.hb-jb-hello .ai-bub'), p = document.querySelector('#hb-board .hb-pill');
+      return { edge: c && getComputedStyle(c).borderTopColor, bub: b && getComputedStyle(b).backgroundColor, pill: p ? getComputedStyle(p).backgroundColor : 'none drawn' }; });
+    /* the card's edge is a line channel at .18, laid over the card's white */
+    const over = c => { const v = (String(c).match(/[\d.]+/g) || []).map(Number); const a = v.length > 3 ? v[3] : 1;
+      return 'rgb(' + v.slice(0, 3).map(x => Math.round(x * a + 255 * (1 - a))).join(', ') + ')'; };
+    check('11e the Board\'s cards stand on the warm divider, and Jambo\'s words sit on the warm box every panel uses', over(bd.edge) === div && bd.bub === s2, JSON.stringify(bd) + ' edge over white ' + over(bd.edge) + ' divider ' + div + ' box ' + s2);
+    check('11f the Board\'s counts are plain numbers', bd.pill === 'none drawn' || NONE.test(bd.pill), String(bd.pill));
+    /* ours, on the paper: three redlines staged the way a person files them */
+    const ins = await page.evaluate(async () => { const c = getContract('MK-B2'); if (c._light && window.ensureFull) await ensureFull(c);
+      const k = negoClauseList(c).filter(x => String(x.text || '').length > 60)[1];
+      if (k) await negoEditClause(c, k.clauseId, '<p>' + String(k.text).replace(/\.\s*$/, '') + ', confirmed in writing.</p>', { side: 'owner', author: 'Admin', why: 'Our standard.' });
+      if (window.persist) persist(c); if (window.flushSaves) await flushSaves(); return !!k; });
+    await page.evaluate(() => { regPlaceSet({ show: 'list' }); setView('register'); });
+    await page.waitForTimeout(400);
+    await page.evaluate(() => regOpenContract('MK-B2'));
+    await until(() => !!document.querySelector('#pd-glance'), null, 12000);
+    await page.evaluate(() => (window.pdRedOpen ? pdRedOpen('MK-B2') : openRedlineWorkbench('MK-B2', { face: true })));
+    await until(() => !!document.querySelector('#ig-paper ins.rl-us'), null, 12000);
+    const green = await tok('var(--st-green-bg)');
+    const us = await page.evaluate(() => { const i = document.querySelector('#ig-paper ins.rl-us'); return i ? getComputedStyle(i).backgroundColor : null; });
+    check('11g our new words on the paper sit on the green wash, not the old steel blue', ins && us === green, us + ' (green ' + green + ')');
+    /* the other side's page and the public status page */
+    const links = await page.evaluate(async () => { const c = getContract('MK-B2'), out = {};
+      for (const purpose of ['negotiate', 'status']){ try { const payload = buildSharePayload(c, null, { org: FIRST_PARTY, name: 'Admin' }, { purpose });
+        const r = await api('shares', 'POST', { payload, channel: 'link', purpose, durable: true, recipient: { name: 'Erik Lund', email: 'erik@coastretail.example' } });
+        out[purpose] = r && (r.token || (r.share && r.share.token)); } catch (e) { out[purpose + 'Err'] = String(e.message || e); } }
+      return out; });
+    const them = await (await browser.newContext({ viewport: { width: 1440, height: 780 } })).newPage();
+    if (links.negotiate){
+      await them.goto(h.base + '/#share=t:' + links.negotiate, { waitUntil: 'networkidle' });
+      await them.waitForFunction(() => !!document.querySelector('.pw-id-main h1'), null, { timeout: 15000 }).catch(() => {});
+      const pt = await them.evaluate(() => { const h1 = document.querySelector('.pw-id-main h1'), st = document.querySelector('.pw-id-stat'), d = st && st.querySelector(':scope > i'),
+          turn = document.getElementById('pt-turn'), tb = turn && turn.querySelector('.pw-turn'), bd = document.querySelector('.pw-id-badge'), pch = document.querySelector('.ds-pch.is-ours');
+        return { face: h1 && getComputedStyle(h1).fontFamily, dot: d ? Math.round(d.getBoundingClientRect().width) : 0, turnBg: tb ? getComputedStyle(tb).backgroundColor : 'none drawn',
+          mark: bd && bd.textContent.trim(), pch: pch ? getComputedStyle(pch).backgroundColor + ' ' + getComputedStyle(pch).borderTopLeftRadius : 'none drawn' }; });
+      check('11h the other side\'s page: the title in the serif, the status with its dot, whose turn unboxed, the word HaTi for the mark',
+        /^"?Source Serif 4/.test(pt.face || '') && pt.dot === 7 && (pt.turnBg === 'none drawn' || NONE.test(pt.turnBg)) && pt.mark === 'HaTi', JSON.stringify(pt));
+      check('11i … and the parties on the deal card are hairline tags, ours untinted', pt.pch === 'none drawn' || /^(rgba\(0, 0, 0, 0\)|transparent) 2px$/.test(pt.pch), String(pt.pch));
+    } else check('11h the other side\'s page could be opened', false, JSON.stringify(links));
+    if (links.status){
+      const res = await them.goto(h.base + '/deal/' + links.status, { waitUntil: 'load' });
+      const html = res ? await res.text() : '';
+      const sp = await them.evaluate(() => ({ ground: getComputedStyle(document.body).backgroundColor, band: getComputedStyle(document.body.firstElementChild).backgroundColor,
+        caps: [...document.querySelectorAll('*')].filter(e => getComputedStyle(e).textTransform === 'uppercase' && e.textContent.trim()).length }));
+      check('11j the public status page wears the one look: the warm ground, a white band, no old blue, no capitals',
+        sp.ground === 'rgb(244, 242, 237)' && sp.band === 'rgb(255, 255, 255)' && !/#264C9E|#EDF1F2|#EEF2F8|#2A4A86/i.test(html) && sp.caps === 0, JSON.stringify(sp));
+    } else check('11j the status page could be opened', false, JSON.stringify(links));
+    await them.close();
 
     check('page errors: none', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {

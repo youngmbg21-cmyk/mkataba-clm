@@ -8137,7 +8137,7 @@ function ktOverviewTermsHtml(c,opts={}){
   const rtParty=rtSay&&D?D.parties.find(p=>!p.us):null;
   const rtLine=rtSay?`<small class="ov-pty-route" data-ov-route="1"><span style="font-weight:var(--w-strong)">${esc(i18t('ct_signing_route_email'))}:</span> ${esc(rtSay.email)}${
       rtSay.who?' \u00b7 '+esc(rtSay.who):''} \u00b7 ${esc(i18t('ct_signing_route_email_note'))}</small>`:'';
-  const pyRows=(D?D.parties:[]).map(p=>`<div class="ov-pty"><span class="ov-pty-av" style="background:${p.tone[1]};color:${p.tone[2]}">${
+  const pyRows=(D?D.parties:[]).map(p=>`<div class="ov-pty"><span class="ov-pty-av" style="border:1px solid ${p.tone[0]};color:${p.tone[2]}">${
       esc(typeof deskInitials==='function'?deskInitials(p.name):String(p.name).slice(0,2))}</span><div><span class="ov-pty-nm"><b title="${esc(p.name)}">${esc(p.name)}</b>${p.us?`<span class="ov-pty-us">${esc(i18t('ov_pty_our_side'))}</span>`:''}</span>${(()=>{
       const sub=[p.role, p.where, p.email].filter(Boolean).join(' · ');
       return sub?`<small class="ov-pty-sub" title="${esc(sub)}">${esc(sub)}</small>`:''; })()}${

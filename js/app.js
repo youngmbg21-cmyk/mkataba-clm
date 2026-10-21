@@ -3834,7 +3834,7 @@ function alertsPanelHtml(given){
           return `<div class="al-grp" data-al-grp>
             <div style="display:flex;align-items:center;gap:9px;padding:12px 2px 6px;">
               <span class="al-t" style="font-size:12px;font-weight:var(--w-label);color:var(--color-neutral-600);">${esc(a0.text)}</span>
-              <span class="al-n" style="flex:none;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink);background:var(--color-accent-50);border-radius:999px;padding:1px 8px;font-variant-numeric:tabular-nums">${g.rows.length}</span>
+              <span class="al-n" style="flex:none;font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600);font-variant-numeric:tabular-nums">${g.rows.length}</span>
               <span style="flex:1"></span>
             </div>
             ${g.rows.slice(0,ALERT_GROUP_SHOW).map(r=>alertRowHtml(r.a, r.i, true)).join('')}

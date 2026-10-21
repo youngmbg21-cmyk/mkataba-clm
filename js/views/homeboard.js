@@ -1543,7 +1543,7 @@ function hbBoardHelloHtml(){
   /* not over a contract brought up as a page: the desk shows that contract, not the book */
   if (!hbBoardHelloOn()) return '';
   const face = (typeof jamboFaceHtml === 'function') ? jamboFaceHtml('hello', 24, 'ai-face shrink-0 mt-0.5') : '';
-  const bub = (say, chips) => `<div class="ai-msg flex gap-2 pd-hello hb-jb-hello">${face}<div class="min-w-0 flex-1"><div class="ai-bub rounded-2xl rounded-tl-md border px-3.5 py-2 text-[13px] leading-relaxed bg-canvas border-brand-100 text-brand-900">${say}</div>`
+  const bub = (say, chips) => `<div class="ai-msg flex gap-2 pd-hello hb-jb-hello">${face}<div class="min-w-0 flex-1"><div class="ai-bub jl-bub">${say}</div>`
     + (chips.length ? `<div class="hb-jb-chips">${chips.map(c => `<button type="button" data-igsug="${_hbE(c)}" class="jb-chip">${_hbE(c)}</button>`).join('')}</div>` : '') + '</div></div>';
   let ending = 0; try { ending = hbBookData(hbS().lens || 'all').figs.ending.n; } catch (_){ ending = 0; }
   let views = 0; try { views = (typeof igViewsRead === 'function') ? igViewsRead().length : 0; } catch (_){ views = 0; }
@@ -1719,7 +1719,7 @@ function hbInsCardHtml(I){
      row's width — never a hole (the owner's 11 Oct rule, kept). */
   return `<section class="hb-card hb-inscard hb-ins-head${fold ? ' is-folded' : ''}"><header class="hb-ch"><span class="hb-ct">${_hbE(i18t('hb_ins_title'))}</span>`
     + `${n ? `<span class="hb-pill hb-ins-n">${_hbE(_hbN(n))}</span>` : ''}<span class="hb-cs">${_hbE(i18t(sub, { m: hbThenWord(true) }))}</span><span class="hb-grow"></span>`
-    + `<button type="button" class="hb-edge-b" data-hb-ins-fold aria-expanded="${!fold}">${_hbE(i18t(fold ? 'hb_ins_show' : 'hb_ins_hide'))}</button></header></section>`
+    + `<button type="button" class="hb-btn is-sm" data-hb-ins-fold aria-expanded="${!fold}">${_hbE(i18t(fold ? 'hb_ins_show' : 'hb_ins_hide'))}</button></header></section>`
     + (fold ? '' : hbShelfHtml(I));
 }
 

@@ -32,6 +32,12 @@
    fails nothing. Anyone may re-save after a change; no one's yes is needed.
    The re-recordings below were each asked of the owner under the old rule.
 
+   RE-SAVED 21 Oct 2026 (twenty-fourth), CHAMBERS FINISHED ("Finish
+   everything", the owner's pick after the fourteen-page review): a mark on
+   Our paper's template sheet is a dot and a word, so the status green dot
+   (#3A8A62, a token the record holds elsewhere) now paints on that sheet
+   where the green wash pill sat; the template's wording did not move. Text
+   sizes moved by count only (counts beside heads are plain numbers).
    RE-RECORDED 20 Oct 2026 (twenty-third), CHAMBERS AND NO DARK MODE (the
    owner picked Chambers by name and said "Let's not implement the dark
    theme. Remove it from HaTi"). The record is ONE appearance now, 'light';
