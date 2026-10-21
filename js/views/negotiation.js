@@ -18476,7 +18476,7 @@ const RL_SUG_VERB = {
      own button while it is shut */
   /* … and since round 9 as drawn the Redlines column's own head carries "Ask
      for review" ([data-rl-review-go]), which is where it glows on the face */
-  escalate: () => '[data-rl-review], [data-rl-review-go]:not(:disabled), #pd-body .pd-menu [data-ig-review], #ig-dock [data-pd-tab="menu"]',
+  escalate: () => '[data-rl-review], [data-rl-review-go]:not(:disabled), #ig-dock .pd-nx [data-ig-review]',
 };
 const _rlGlowDone = new Set();
 /* RAW: their pending asks carrying an answer the reader sent back. */

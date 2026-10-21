@@ -1781,8 +1781,9 @@ if(typeof document!=='undefined' && !window._stSwWired){
    Enter). Where the row cannot be shown (no right to hold) it says so. */
 function stHeldOpen(id){
   if(!id) return;
-  const sel=`#pd-body .pd-menu[data-pd-menu="${String(id).replace(/["\\]/g,'')}"] .pd-mn-rows #ws-hold`;
-  if(typeof pdOpenOnHome==='function' && pdOpenOnHome(id,'menu')!==false){
+  /* the Dossier's All acts fold (the Menu tab folded into it, 20 Oct 2026), in Jambo's panel */
+  const sel=`#ig-dock .pd-nx[data-pd-menu="${String(id).replace(/["\\]/g,'')}"] .pd-mn-rows #ws-hold`;
+  if(typeof pdOpenOnHome==='function' && pdOpenOnHome(id,'copilot')!==false){
     if(typeof landOn==='function') landOn(()=>{ const r=document.querySelector(sel); if(r){ const d=r.closest('details'); if(d&&!d.open) d.open=true; } return r; },
       { focus:false, block:'center', missing:i18t('st_swp_hold_missing') });
     return; }
