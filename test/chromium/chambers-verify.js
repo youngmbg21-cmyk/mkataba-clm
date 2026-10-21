@@ -159,10 +159,15 @@ const check = (name, pass, detail) => {
     await until(() => !!document.querySelector('.ig-brain'), null, 10000);
     const ex = await page.evaluate(() => { const p = document.querySelector('#ig-page, #hb-page'), st = document.querySelector('.ig-brain');
       const ps = p && getComputedStyle(p), ss = st && getComputedStyle(st);
+      /* the corners are read on the map's own pieces (the view bar, the legend), and on the paper side
+         that lives in the same wrapper (#ig-paper: Home's paper and the Contracts place), which wears Chambers */
+      const vb = document.querySelector('.ig-brain .ig-viewbar'), lg = document.getElementById('ig-legend'), pp = document.getElementById('ig-paper');
       return { dark: !!p && p.classList.contains('hb-dark'), glow: ps && ps.getPropertyValue('--hb-glow').trim(), ink: ps && ps.getPropertyValue('--hb-ink').trim(),
-        bg: ss && ss.backgroundImage.slice(0, 40), r: ss && ss.getPropertyValue('--radius').trim(), rl: ss && ss.getPropertyValue('--radius-lg').trim() }; });
+        bg: ss && ss.backgroundImage.slice(0, 40), r: vb && getComputedStyle(vb).getPropertyValue('--radius').trim(), rl: lg && getComputedStyle(lg).getPropertyValue('--radius-lg').trim(),
+        paperR: pp && getComputedStyle(pp).getPropertyValue('--radius').trim() }; });
     check('7b Explorer is dark as designed: its stage\'s gradient, the Blue glow and ink it had', ex.dark && /gradient/.test(ex.bg || '') && /^#6F9BEA$/i.test(ex.glow) && /^#E6EDF8$/i.test(ex.ink), JSON.stringify(ex));
-    check('7c Explorer\'s stage keeps its own corners (4px, 8px) — the hairline corners stop at its edge', ex.r === '4px' && ex.rl === '8px', JSON.stringify(ex));
+    check('7c Explorer\'s map keeps its own corners (4px, 8px) — the hairline corners stop at its edge', ex.r === '4px' && ex.rl === '8px', JSON.stringify(ex));
+    check('7d … and only the map: the paper side in the same wrapper (Home\'s paper, the Contracts place) wears Chambers\' 2px', ex.paperR === '2px', JSON.stringify(ex));
     await page.screenshot({ path: path.join(OUT, 'explorer-1440x780.png') });
 
     /* ================= 8. THE BRAIN ========================================= */

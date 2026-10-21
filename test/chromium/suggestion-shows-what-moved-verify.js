@@ -8,10 +8,13 @@
         the other two sub-clauses' words, and one line counts what was left
         out. Apply still puts the WHOLE clause in the box.
      C. The prepared questions over the ask box are shaded: their ground is
-        not white and their ink is the accent ink — on both brands.
+        not white and their ink is the accent ink. (RE-POINTED 20 Oct 2026,
+        Chambers: there is ONE brand now and no dark mode — C2 asserts there is
+        no brand to switch to; it used to switch to the other brand.)
      G. A struck run is red (the ruby token) and so is its line, ours on the
         Copilot panel and on the paper, theirs on the paper; an insertion
-        keeps its side's colour. Light and dark.
+        keeps its side's colour. Light only — G6 asserts there is no night
+        theme to switch to (it used to measure the dark ruby).
    Every driven half is GUARDED — a build without the feature REPORTS.
    Screenshots: test/chromium/shots/suggestion-shows-what-moved/ (or HATI_SHOT_DIR).
    Run: node test/chromium/suggestion-shows-what-moved-verify.js */
@@ -69,7 +72,7 @@ const BODY = '<h1>Lease Agreement</h1><p>Between Highland Corporate Ltd and Nord
   page.on('pageerror', e => errors.push(e.message));
   const shot = n => page.screenshot({ path: path.join(OUT, n) }).catch(() => {});
   const railShot = n => page.locator('#clause-editor .ce-rail').screenshot({ path: path.join(OUT, n) }).catch(() => {});
-  /* the ruby the tokens give, measured off a probe so light and dark both answer */
+  /* the ruby the tokens give, measured off a probe (the token, not a number) */
   const ruby = () => page.evaluate(() => {
     const s = document.createElement('span'); s.style.color = 'var(--st-ruby-fg)'; document.body.appendChild(s);
     const v = getComputedStyle(s).color; s.remove(); return v;
@@ -131,18 +134,12 @@ const BODY = '<h1>Lease Agreement</h1><p>Between Highland Corporate Ltd and Nord
     const c1 = await chipOf();
     check(!!c1 && c1.bg === c1.want.bg && c1.bg !== 'rgb(255, 255, 255)' && c1.ink === c1.want.ink, 'C1 a prepared question wears the pale accent ground and the accent ink', c1 && JSON.stringify(c1));
     await railShot('1-chips-green.png');
-    const other = await page.evaluate(() => { if (typeof setBrand !== 'function' || !window.BRANDS) return null;
-      const now = window._swBrandWas = brandNow();
-      return BRANDS.find(b => b !== now) || null; });
-    const was = await page.evaluate(() => window._swBrandWas || null);
-    const navy = !!other && await page.evaluate(b => { setBrand(b); return true; }, other);
-    if (navy){
-      await page.waitForTimeout(200);
-      const c2 = await chipOf();
-      check(!!c2 && c2.bg === c2.want.bg && c2.bg !== c1.bg, 'C2 on the other brand ('+other+') the shade follows the brand', c2 && JSON.stringify(c2));
-      await railShot('2-chips-navy.png');
-      if (was) await page.evaluate(b => setBrand(b), was);
-    } else check(false, 'C2 the brand can be switched');
+    /* RE-POINTED 20 Oct 2026 (Chambers): the brand switch is gone, so the shade
+       cannot be measured "on the other brand" — there is no other brand. */
+    const oneBrand = await page.evaluate(() => ({ setBrand: typeof window.setBrand, brands: typeof window.BRANDS, brandNow: typeof window.brandNow,
+      attr: document.documentElement.getAttribute('data-brand'), picks: document.querySelectorAll('[data-brand-pick], #brand-navy, #brand-green').length }));
+    check(oneBrand.setBrand === 'undefined' && oneBrand.brands === 'undefined' && oneBrand.brandNow === 'undefined' && oneBrand.attr === null && oneBrand.picks === 0,
+      'C2 there is one brand: no brand switch, no brand attribute, no swatches', JSON.stringify(oneBrand));
 
     /* ---- B. ONLY WHAT MOVED ---- */
     await page.evaluate(() => ceAsk('Add interest on late payment'));
@@ -194,14 +191,12 @@ const BODY = '<h1>Lease Agreement</h1><p>Between Highland Corporate Ltd and Nord
     const ins = await page.evaluate(() => { const i = document.querySelector('#ig-paper ins.rl-us'); return i ? getComputedStyle(i).color : null; });
     check(!!ins && ins !== r0, 'G5 an insertion keeps its side\'s colour', ins);
     await shot('5-paper-light.png');
-    await page.evaluate(id => { setDark(true); roomGoTab(getContract(id), 'redline'); }, ID);
-    await page.waitForTimeout(300);
-    const r1 = await ruby();
-    await until(page, () => document.querySelector('#ig-paper del.rl-us') && document.querySelector('#ig-paper del.rl-them') ? true : null, null, 10000);
-    const usD = await delOf(page, '#ig-paper del.rl-us');
-    const themD = await delOf(page, '#ig-paper del.rl-them');
-    check(!!usD && !!themD && r1 !== r0 && usD.color === r1 && themD.color === r1 && usD.lineColor === r1, 'G6 at night the struck words take the dark ruby', JSON.stringify({ r1, usD, themD }));
-    await shot('6-paper-dark.png');
+    /* RE-POINTED 20 Oct 2026 (Chambers): dark mode is removed, so the night
+       pass is gone; what stands is that there is no night theme to switch to */
+    const night = await page.evaluate(() => ({ setDark: typeof window.setDark, toggleDark: typeof window.toggleDark, setTheme: typeof window.setTheme,
+      darkClass: document.documentElement.classList.contains('dark') }));
+    check(night.setDark === 'undefined' && night.toggleDark === 'undefined' && night.setTheme === 'undefined' && !night.darkClass,
+      'G6 there is no night theme to switch to (no setDark, toggleDark or setTheme, no dark class)', JSON.stringify(night));
   } catch (e){
     console.log('  FAIL — stopped: ' + (e && e.message));
     failures++;

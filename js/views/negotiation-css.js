@@ -53,7 +53,7 @@ function negoStyleHtml(){
 /* .nego-onpaper: Home's Paper drawing this canvas read-only (8 Oct 2026) takes the same tokens */
 .nego-room, #nego-root, .nego-selmenu, .nego-aipop, .nego-onpaper{
     --n-slate:#33475c; --n-slate-deep:#26374a; --n-slate-soft:#456a8f;
-    --n-badge-bg:var(--color-neutral-100);   /* Ink Wash (9 Oct 2026): the room's greys are the ramp's; dark answers below */
+    --n-badge-bg:var(--color-neutral-100);   /* Ink Wash (9 Oct 2026): the room's greys are the ramp's (one appearance since 20 Oct 2026) */
     --n-ins-bg:#e4f1ea; --n-ins-fg:var(--st-green-fg);
     --n-del-bg:var(--st-ruby-bg); --n-del-fg:var(--st-ruby-dot);
     --n-paper:#ffffff; --n-canvas:var(--color-neutral-100); --n-line:var(--color-neutral-200);

@@ -59,7 +59,8 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     }
     await page.waitForFunction(() => window.state && Array.isArray(state.contracts) && state.contracts.length >= 4, null, { timeout: 15000 }).catch(() => {});
     await page.keyboard.press('Escape').catch(() => {});
-    const en = await page.$('.lang-btn[data-lang="en"]'); if (en) await en.click();
+    /* RE-POINTED 20 Oct 2026 (Chambers): the bar's language switch is gone; langSet is the one writer */
+    await page.evaluate(() => { if (typeof langId === 'function' && langId() !== 'en') langSet('en'); });
     await page.evaluate(() => setView('dashboard'));
     await page.waitForSelector('[data-hb-face="board"]', { timeout: 10000 }).catch(() => {});
     await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'board');

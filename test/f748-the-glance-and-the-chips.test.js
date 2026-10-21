@@ -231,6 +231,9 @@ describe('f748 (5) the chips lead with what is owed', () => {
     assert.match(css, /\.ca-chip-owed\{font-weight:var\(--w-strong\)\}/, 'as drawn: the strong weight, not amber');
     assert.doesNotMatch(css, /\.ca-chip-owed\{[^}]*border:/, 'no accent outline on the owed lead');
     assert.match(css, /\.jb-chip\{[^}]*border:0;[^}]*color:var\(--accent-ink\);text-decoration:underline/, 'a link in the accent ink');
+    /* one class each, so the later rule wins: the owed lead's weight must come
+       after the link's own (font-weight:var(--w-body)) or it loses the fight */
+    assert.ok(css.indexOf('.ca-chip-owed{') > css.indexOf('.jb-chip{'), 'the owed lead\'s weight is not overruled by the link\'s');
     assert.equal(ctx.CA_NEXT_MAX, 4);
   });
   test('5b details owed lead; nothing owed, the journey as before', () => {

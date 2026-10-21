@@ -43,8 +43,8 @@
        the approval answered for an away colleague leads, so the lead chip is
        "Jonas's approval"; time said in words ("in 40 days", never "in 40d");
        the renewal's title is its act, "Decide the renewal"; the greeting
-       large (26px, semibold; since Chambers, 20 Oct 2026, the title serif
-       at 28px) and Jambo's work's tail small (12px); the approval's door
+       large (since Chambers, 20 Oct 2026, the title serif at 28px; it was
+       Geist 26px semibold) and Jambo's work's tail small (12px); the approval's door
        lands ON the approval it opens (NEEDS_LAND, LAND ON IT).
    (9) THE HOUSE FILLS ITS PAGE (19 Oct 2026, as drawn: from the page's left
        edge to Jambo's folded strip): no 1200px cap; past JH_K_MAX the drawing

@@ -22,7 +22,8 @@
      5 Jambo's panel beside it: "<name> v1, from the record — nothing spent.
        Used 5 times in 12 months. 2 came back changed: clause 2 Liability
        twice, clause 3 Payment once. It meets all N of Our standards." + Next
-       steps chips; the ask box and the hint under it; ‹ Jambo lets the
+       steps chips; the ask box, with no hint line under it (Chambers, owner's
+       pick 20 Oct 2026: no hint line under any Jambo box); ‹ Jambo lets the
        template go and a press holds it again
      6 doors land: "where it came back changed" lands on the mark; the mark
        opens the Contracts list narrowed to the contracts it counts; Draft
@@ -31,7 +32,7 @@
        Category · Stream · Save draft · Publish v1); Jambo's panel at the
        window's edge with Build · Outline · Playbook n/m · Blanks n, opening
        on the Outline (sections with "1 blank", ✓, "+ … proposed"), Blanks
-       and Our standards said under it; the ask box with its hint
+       and Our standards said under it; the ask box, no hint line under it
      8 Jambo proposes on the paper (Add · Skip, "Our standard: …"); Skip takes
        it away for this template; Add puts our standard's heading in through
        the one push; marks under the sections that meet a standard
@@ -168,14 +169,15 @@ async function SEED(){
     const E = await page.evaluate(() => { const p = document.getElementById('ins-panel');
       return { word: (p.querySelector('[data-jl-word]') || {}).textContent || '', back: !!(p.querySelector('[data-jl-back]') && !p.querySelector('[data-jl-back]').hidden),
         said: (p.querySelector('.tpl-pf-jl .jl-bub') || {}).textContent || '', chips: [...p.querySelectorAll('[data-tpl-pf-chip]')].map(b => b.textContent.trim()),
-        next: (p.querySelector('.jl-next-h') || {}).textContent || '', ph: (p.querySelector('#jl-q') || {}).placeholder || '', hint: (p.querySelector('.jb-hint') || {}).textContent || '',
+        next: (p.querySelector('.jl-next-h') || {}).textContent || '', ph: (p.querySelector('#jl-q') || {}).placeholder || '', hints: p.querySelectorAll('.jb-hint, .jb-keys, .jb-kbd').length,
         fixed: getComputedStyle(p).position, right: Math.round(p.getBoundingClientRect().right) === innerWidth }; });
     check('5a the head says the template; ‹ Jambo is there', E.word === 'Master services agreement' && E.back, JSON.stringify({ w: E.word, b: E.back }));
     check('5b his words, from the record — nothing spent, with where it came back changed and what it meets',
       /Master services agreement v1, from the record — nothing spent\./.test(E.said) && /Used 5 times in 12 months\. 2 came back changed: clause 2 Liability twice, clause 3 Payment once\. It meets (all \d+|\d+ of (the )?\d+)( of Our standards| standards every contract is read against| standards Our standards set for [^.;]+)[.;]/.test(E.said), E.said);
     check('5c Next steps: open it in the builder · draft a contract from it · where it came back changed', E.next === 'Next steps'
       && JSON.stringify(E.chips) === JSON.stringify(['open it in the builder', 'draft a contract from it', 'where it came back changed']), JSON.stringify(E.chips));
-    check('5d the ask box and the hint line at the panel\'s foot; the panel at the window\'s edge', E.ph === 'Ask for anything, or type /' && /Typing never signs, sends or files — a press does\./.test(E.hint) && E.right, JSON.stringify({ ph: E.ph, hint: E.hint, right: E.right }));
+    /* RE-POINTED 21 Oct 2026 (Chambers, owner's pick 20 Oct 2026): no hint line under any Jambo box */
+    check('5d the ask box at the panel\'s foot, no hint line under it; the panel at the window\'s edge', E.ph === 'Ask for anything, or type /' && E.hints === 0 && E.right, JSON.stringify({ ph: E.ph, hints: E.hints, right: E.right }));
     await press('#ins-panel [data-jl-back]');
     const E2 = await until(() => { const p = document.getElementById('ins-panel'); return p && !p.querySelector('.tpl-pf-jl') && p.querySelector('[data-jl-words]') ? p.querySelector('[data-jl-words]').textContent.replace(/\s+/g, ' ').trim() : null; });
     check('5e ‹ Jambo lets the template go: his words say the book', !!E2 && /Our paper holds \d+ templates/.test(E2) && /contracts were drafted from them in 12 months; 2 came back changed/.test(E2), E2);
@@ -214,7 +216,7 @@ async function SEED(){
         rail: r(rail), tabs: [...rail.querySelectorAll('[data-tb-tab]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()), on: (rail.querySelector('[data-tb-tab].is-on') || {}).textContent || '',
         word: (rail.querySelector('.jl-word') || {}).textContent || '', ol: [...rail.querySelectorAll('.tb-ol-r')].map(b => [...b.children].map(x => x.textContent.trim()).filter(Boolean).join(' ')),
         sh: [...rail.querySelectorAll('.tb-ol-sh')].map(x => x.textContent.trim()), p: [...rail.querySelectorAll('.tb-ol-p')].map(x => x.textContent.trim()),
-        ph: (document.getElementById('tb-ask') || {}).placeholder || '', hint: (rail.querySelector('.jb-hint') || {}).textContent || '', send: (() => { const b = rail.querySelector('[data-tb-send]'); return b ? b.getAttribute('aria-label') || '' : ''; })() }; });  /* RE-POINTED 20 Oct 2026 (Two-row card): the round send says Ask to a screen reader and on its hover */
+        ph: (document.getElementById('tb-ask') || {}).placeholder || '', hints: rail.querySelectorAll('.jb-hint, .jb-keys, .jb-kbd').length, send: (() => { const b = rail.querySelector('[data-tb-send]'); return b ? b.getAttribute('aria-label') || '' : ''; })() }; });  /* RE-POINTED 20 Oct 2026 (Two-row card): the round send says Ask to a screen reader and on its hover */
     check('7a the head card is one line: name · v1 draft · Category · Stream · Save draft · Publish v1',
       G.strip.h <= 46 && /Reseller agreement\s*v1 draft\s*Category\s*\S+.*Stream.*Save draft\s*Publish v1/.test(G.head), JSON.stringify({ h: G.strip.h, head: G.head }));
     check('7b Jambo\'s panel at the window\'s edge, "Builder" in its head', G.rail.r === 1440 && G.word === 'Builder', JSON.stringify(G.rail));
@@ -224,7 +226,8 @@ async function SEED(){
       /^· Parties 1 blank$/.test(G.ol[0] || '') && G.ol.some(r => /^2 Territory 1 blank$/.test(r)) && G.ol.some(r => /^\+ .+ proposed$/.test(r)), JSON.stringify(G.ol));
     check('7e Blanks and Our standards said under it', G.sh[0] === 'Blanks 3' && /Reseller name · Territory · Discount: asked of whoever drafts from it\./.test(G.p[0] || '')
       && /^\d+ of \d+ met\. .+ (is|are) proposed on the paper\.$/.test(G.p[1] || ''), JSON.stringify({ sh: G.sh, p: G.p }));
-    check('7f the ask box as drawn with its hint', G.ph === 'Ask for anything, or type /' && /^Ask/.test(G.send) && /Typing never signs/.test(G.hint), JSON.stringify({ ph: G.ph, send: G.send }));
+    /* RE-POINTED 21 Oct 2026 (Chambers, owner's pick 20 Oct 2026): no hint line under any Jambo box */
+    check('7f the ask box as drawn, no hint line under it', G.ph === 'Ask for anything, or type /' && /^Ask/.test(G.send) && G.hints === 0, JSON.stringify({ ph: G.ph, send: G.send, hints: G.hints }));
     if (OUT) await page.screenshot({ path: path.join(OUT, 'our-paper-builder-1440x780.png') });
 
     /* 8 PROPOSALS AND MARKS ON THE PAPER */

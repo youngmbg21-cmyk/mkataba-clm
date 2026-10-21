@@ -45,7 +45,9 @@
          states and its own buttons; the pill counts what the road shows; the
          name and party stand whole beside the signing copy at the three
          screens; Approve on each, and the record on the server
-     13  Jambo perches over nothing; nothing stands above the signing copy
+     13  no perch is drawn over the face (re-pointed 20 Oct 2026, Chambers:
+         the perch is gone — it was "Jambo perches over nothing"); nothing
+         stands above the signing copy
      9d–9f the receipt says obligations, draws the record once, and Open
          obligations lands through the one lander
      14  the gate holding, Ready to sign counts exactly what it names
@@ -196,15 +198,13 @@ const dayAfter = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCD
       const over = await page.evaluate(() => { const f = document.querySelector('#pd-signface .pd-sf'); return f ? f.scrollHeight - f.clientHeight : null; });
       const most = w === 1536 ? 41 : 0;
       check(`7f ${w}×${ht}: the road fits the panel (scrolls at most ${most}px)`, over != null && over <= most, String(over));
-      /* (the third pass) Jambo perches over nothing — never the foot's Change, never the checks; nothing above the signing copy */
-      const P = await page.evaluate(() => { const p = document.querySelector('#ig-dock .jb-perch img'), f = document.getElementById('pd-signface');
-        if (!p || !f) return null; const pr = p.getBoundingClientRect();
-        const hits = [...f.querySelectorAll('*')].filter(el => { if (!el.getClientRects().length || el.children.length) return false; const r = el.getBoundingClientRect();
-          const sc = f.querySelector('.pd-sf') || f, vr = sc.getBoundingClientRect(); const top = Math.max(r.top, vr.top), bot = Math.min(r.bottom, vr.bottom); if (bot <= top) return false;
-          return r.right > pr.left + 1 && r.left < pr.right - 1 && bot > pr.top + 1 && top < pr.bottom - 1; }).map(el => el.tagName + ':' + el.textContent.trim().slice(0, 20));
+      /* (the third pass) nothing above the signing copy. It also asked that Jambo's perch cover nothing of the face;
+         RE-POINTED 20 Oct 2026 (Chambers): the perch is gone (reverses "JAMBO, ALIVE"), so no perch is drawn at all */
+      const P = await page.evaluate(() => { const f = document.getElementById('pd-signface'); if (!f) return null;
+        const perch = [...document.querySelectorAll('.jb-perch, .jb-bird, [class*="jb-perched"]')].filter(el => el.getClientRects().length).length;
         const strip = document.getElementById('ig-strip'), sheet = document.querySelector('#ig-paper .pg-sheet.pg-sign, #ig-paper .ig-signpaper, #ig-paper .pg-sheet');
-        return { hits, gap: strip && sheet ? Math.round(sheet.getBoundingClientRect().top - strip.getBoundingClientRect().bottom) : null, row: !!document.querySelector('#ig-paper-scroll > .paper-zc-row') }; });
-      check(`13 ${w}×${ht}: Jambo perches over nothing of the face, and nothing stands above the signing copy`, !!P && !P.hits.length && !P.row && P.gap != null && P.gap <= 24, JSON.stringify(P));
+        return { perch, gap: strip && sheet ? Math.round(sheet.getBoundingClientRect().top - strip.getBoundingClientRect().bottom) : null, row: !!document.querySelector('#ig-paper-scroll > .paper-zc-row') }; });
+      check(`13 ${w}×${ht}: no perch is drawn over the face, and nothing stands above the signing copy`, !!P && P.perch === 0 && !P.row && P.gap != null && P.gap <= 24, JSON.stringify(P));
     }
     await page.setViewportSize({ width: 1440, height: 780 }); await page.waitForTimeout(300);
     await page.click('#pd-signface [data-pd-rd-route]');

@@ -11,7 +11,10 @@
    under the pressed face, the door on Home going to Home's own panel, the
    window's limits measured, its stepping aside and coming back, Jambo's face
    beside his words, and Jambo's read of a contract's Clauses wearing a turning
-   ring while it waits. */
+   ring while it waits.
+   RE-POINTED 20 Oct 2026 (Chambers): on a computer his face is the ✦ mark
+   (JAMBO_MARK_PATH) in the window's head, beside his words and on the top
+   bar's door; the bird is the phone's. */
 const path = require('node:path');
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
@@ -83,11 +86,14 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await page.evaluate(() => setView('brain'));
     await page.click('#cmd-ai');
     await until(page, () => document.getElementById('ai-panel').classList.contains('open'));
+    /* RE-POINTED 20 Oct 2026 (Chambers): on a computer Jambo's face is the ✦ mark (JAMBO_MARK_PATH),
+       not the bird; the window's head is white and names him in .ai-head-name (the title serif) */
     const first = await page.evaluate(() => { const p = document.getElementById('ai-panel'), r = p.getBoundingClientRect();
-      const face = p.querySelector('img.jambo-face'); return { cls: p.className, x: Math.round(r.right), w: Math.round(r.width), face: !!(face && /^data:image\/png/.test(face.getAttribute('src') || '')),
-        title: (p.querySelector('header .font-display') || {}).textContent }; });
+      const mark = p.querySelector('header .ai-head-tile svg path'), name = p.querySelector('header .ai-head-name');
+      return { cls: p.className, x: Math.round(r.right), w: Math.round(r.width), face: !!(mark && mark.getAttribute('d') === window.JAMBO_MARK_PATH), bird: !!p.querySelector('header img.jambo-face'),
+        title: name ? name.textContent.trim() : '', serif: name ? /Source Serif 4/.test(getComputedStyle(name).fontFamily) : false }; });
     ok('5a it opens as today\'s drawer on the right edge', /floating/.test(first.cls) && first.x === 1500 && first.w === 430, JSON.stringify(first));
-    ok('5b it is called Jambo and shows his face', first.title === 'Jambo' && first.face, first.title);
+    ok('5b it is called Jambo, in the title serif, and shows his ✦ mark (not the bird)', first.title === 'Jambo' && first.serif && first.face && !first.bird, JSON.stringify({ title: first.title, serif: first.serif, face: first.face, bird: first.bird }));
     const hb = await (await page.$('#ai-panel > header')).boundingBox();
     await page.mouse.move(hb.x + 140, hb.y + 20); await page.mouse.down(); await page.mouse.move(hb.x - 400, hb.y + 100, { steps: 8 }); await page.mouse.up();
     let r = await (await page.$('#ai-panel')).boundingBox();
@@ -126,21 +132,27 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     r = await (await page.$('#ai-panel')).boundingBox();
     ok('7a the dock button returns it to the right edge', Math.round(r.x + r.width) === 1500 && Math.round(r.width) === 430 && Math.round(r.height) === 900, `${Math.round(r.x)} ${Math.round(r.width)}×${Math.round(r.height)}`);
 
-    /* ---- 8 his face in the chat ---- */
-    const feedFace = await page.evaluate(() => !!document.querySelector('#ai-feed img.jambo-face'));
-    ok('8a his face sits beside his words in the chat', feedFace);
+    /* ---- 8 his face in the chat (RE-POINTED 20 Oct 2026, Chambers: the ✦ mark on a computer) ---- */
+    const feedFace = await page.evaluate(() => { const f = document.querySelector('#ai-feed .jambo-face'); const d = f && f.querySelector('path');
+      return { mark: !!(f && f.tagName.toLowerCase() === 'svg' && d && d.getAttribute('d') === window.JAMBO_MARK_PATH), bird: !!document.querySelector('#ai-feed img.jambo-face') }; });
+    ok('8a his ✦ mark sits beside his words in the chat (not the bird)', feedFace.mark && !feedFace.bird, JSON.stringify(feedFace));
 
-    /* ---- 11 his face on his own doors, "Hi" in English, no ask box on the Breakdown (owner, 12 Oct 2026) ---- */
-    const doors = await page.evaluate(() => ({ bar: !!document.querySelector('#cmd-ai img.jambo-face'), barSvg: !!document.querySelector('#cmd-ai svg'),
+    /* ---- 11 his mark on his own doors, "Hi" in English, no ask box on the Breakdown (owner, 12 Oct 2026;
+       RE-POINTED 20 Oct 2026, Chambers: the top bar door keeps the ✦ mark on a computer — the bird is the phone's) ---- */
+    const doors = await page.evaluate(() => ({ bar: !!document.querySelector('#cmd-ai img.jambo-face'),
+      barMark: (() => { const d = document.querySelector('#cmd-ai svg path'); return !!(d && d.getAttribute('d') === window.JAMBO_MARK_PATH); })(),
+      oldSpark: !!document.querySelector('#cmd-ai use[href="#i-spark"]'),
       greet: (typeof i18t === 'function' ? i18t('ai_welcome') : '').slice(0, 3), note: (typeof i18t === 'function' ? i18t('int_notebook_welcome') : '').slice(0, 3) }));
-    ok('11a the top bar door shows Jambo\'s face, not the sparkle', doors.bar && !doors.barSvg, JSON.stringify(doors));
+    ok('11a the top bar door shows Jambo\'s ✦ mark on a computer, not the bird and not the old sparkle', doors.barMark && !doors.bar && !doors.oldSpark, JSON.stringify(doors));
     ok('11b the greeting says Hi', doors.greet === 'Hi!' && doors.note === 'Hi!', JSON.stringify(doors));
     await page.evaluate(() => setView('dashboard'));
     await until(page, () => !!document.querySelector('#ig-dock [data-pd-tab="copilot"]'), null, 6000);
-    const tab = await page.evaluate(() => { const t = document.querySelector('#ig-dock [data-pd-tab="copilot"]'); return t ? { face: !!t.querySelector('img.jambo-face'), word: (t.querySelector('.pd-tab-w') || {}).textContent } : null; });
+    const tab = await page.evaluate(() => { const t = document.querySelector('#ig-dock [data-pd-tab="copilot"]'); return t ? { face: !!t.querySelector('.jambo-face, .jambo-mark'), word: (t.querySelector('.pd-tab-w') || {}).textContent } : null; });
     /* RE-POINTED 19 Oct 2026 — JAMBO AS A TAB YOU FLIP TO (owner: the panel's
        first tab is "Overview"; "Jambo" names only the conversation it flips to) */
-    /* RE-POINTED 19 Oct 2026 (owner: his face belongs on "its one tab that says Jambo"): Overview wears ▦ */
+    /* RE-POINTED 19 Oct 2026 (owner: his face belongs on "its one tab that says Jambo"): Overview wears ▦.
+       RE-POINTED 20 Oct 2026 (Chambers): his face on a computer is the ✦ svg (.jambo-face/.jambo-mark), not an
+       <img>, so the probe asks for either — an img-only probe could no longer see his face if it came back */
     ok('11c the panel\'s first tab is "Overview", a plain mark, not his face', !!tab && !tab.face && tab.word === 'Overview', JSON.stringify(tab));
     /* 11d re-pointed 13 Oct 2026: the Breakdown face and its panel are gone, so
        its panel cannot carry an ask box; the reading's Clauses tab carries none */

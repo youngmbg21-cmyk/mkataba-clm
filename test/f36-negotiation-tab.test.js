@@ -845,6 +845,10 @@ describe('the room wears the prototype\'s visual language, and keeps it to itsel
     const sel = block ? block[1].replace(/\/\*[\s\S]*?\*\//g, '') : '';
     assert.ok(sel.includes('.nego-room') && !sel.includes(':root'),
       'the room\'s paper is declared on the room, never on :root');
+    /* And not only the first block that names the paper: no bare :root rule
+       anywhere in the room's sheet declares one of its --n-* handles. */
+    assert.doesNotMatch(css.replace(/\/\*[\s\S]*?\*\//g, ''), /(^|[},])\s*:root\s*\{[^}]*--n-[a-z]/,
+      'a --n-* handle is declared on :root, which restyles the whole product from inside the room');
     assert.match(css, /\.nego-room[^{]*\{[^}]*--n-ink:var\(--color-text\)/,
       'the room\'s ink reads the app\'s ink through the --n-* namespace');
   });
@@ -855,7 +859,7 @@ describe('the room wears the prototype\'s visual language, and keeps it to itsel
     assert.match(css, /\.nego-del\{background:var\(--n-del-bg\);color:var\(--n-del-fg\)/);
     assert.match(css, /\.nego-ins\{background:var\(--n-ins-bg\);color:var\(--n-ins-fg\)/);
     assert.match(css, /--n-ins-fg:var\(--st-green-fg\)/,
-      'the insertion green rides the shared status token, so it re-maps in dark');
+      'the insertion green rides the shared status token, so it moves with the app\'s palette');
   });
 
   test('reduced motion is honoured', async () => {

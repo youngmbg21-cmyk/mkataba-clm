@@ -3,17 +3,23 @@
    Work order "Home speed", Parts 10–12 (owner, 8 Oct 2026: "The drop down on
    the board is translucent ... When selecting choices on the board, there's a
    dark black outline ... The search field at the top of the page seems to
-   have thick boundaries and does not turn dark"). Light and dark:
+   have thick boundaries and does not turn dark"). RE-POINTED 20 Oct 2026
+   (the owner picked "Chambers" and removed dark mode: "Let's not implement
+   the dark theme. Remove it from HaTi."): the dark pass is gone with the
+   night; the Board is always the light screen, and the light pass stays:
      1. a board card's open list (and its ⋯ menu) paints a SOLID ground, no
         blur — nothing of the card below shows through
      2. after a MOUSE press the open choice wears no dark ring: no inset
         shadow, no outline, its edge lighter than the board's glow
      3. a keyboard Tab onto a choice still shows a 2px ring
-     4. the search field at rest has no visible edge
+     4. the search field at rest has no THICK boundary: Chambers draws it as
+        a well with ONE hairline, the bar's own line (--bar-line), and no glow
+        (until 20 Oct 2026 it had no edge at all on the dark bar)
      5. pressed, it has one 1px edge and no glow (the box inside draws no
-        second ring); in dark mode its ground is
-        dark and its typed text light, in light mode its ground is white
+        second ring); its ground is white and its typed text dark
      6. no page errors
+   and, once the cards stand, 0b: the Board is the light screen even for a
+   reader who stored the old Dark choice, and no Light | Dark switch is drawn.
    Waits ask for the state, bounded. Red at main e18f309 (1, 2, 4, 5).
    Run: node test/chromium/board-lists-and-search-verify.js */
 const fs = require('node:fs');
@@ -39,7 +45,7 @@ const PANELS = [['pa', 'q:contracts by status'], ['pb', 'q:contracts by counterp
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const errors = [];
   try {
-    for (const screen of ['light', 'dark']) {
+    for (const screen of ['light']) {
       const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
       page.on('pageerror', e => errors.push(e.message));
       const until = async (fn, arg, ms = 8000) => { let v; const t0 = Date.now();
@@ -50,15 +56,16 @@ const PANELS = [['pa', 'q:contracts by status'], ['pb', 'q:contracts by counterp
       await page.fill('#li-pass', 'adminpassword1');
       await page.click('#li-go');
       await page.waitForFunction(() => window.state && state.contracts && state.contracts.length > 3 && typeof hbS === 'function', null, { timeout: 20000 });
-      if (screen === 'dark') await page.evaluate(() => setDark(true));
       const standFn = ({ P, R, screen }) => {
         /* RE-POINTED 11 Oct 2026 (the Board as drawn): the card's list is the How this is drawn panel */
         if (P.every(([id]) => document.querySelector(`[data-hb-pid="${id}"] [data-hb-drawn]`))) return true;
-        const s = hbS(); s.face = 'board'; s.prep = 'closed'; s.path = []; s.screen = screen; s.scrPick = 1;
+        /* a reader who chose the Board's old Dark screen before 20 Oct 2026
+           still carries it in their stored board: it must not be read (0b) */
+        const s = hbS(); s.face = 'board'; s.prep = 'closed'; s.path = []; s.screen = 'dark'; s.scrPick = 1;
         s.panels = P.map(([id, key]) => ({ id, kind: 'view', key, title: id, recipe: JSON.parse(JSON.stringify(R)), split: false, big: false }));
         hbSave(); if (state.view !== 'dashboard') setView('dashboard'); else hbPaintBoard(); return false; };
       /* SLOW-RUNNER WAIT (10 Oct 2026, "get main to green"): on GitHub's runner
-         the dark pass once found the cards standing, then lost card "pa" to a
+         a pass once found the cards standing, then lost card "pa" to a
          later repaint before the press — the list never opened and step 3 read
          a card that was gone. So each press first asks that the cards STILL
          stand (re-staging them if a repaint took them), bounded. */
@@ -66,6 +73,14 @@ const PANELS = [['pa', 'q:contracts by status'], ['pb', 'q:contracts by counterp
       const stood = await stand();
       check(`0. ${screen}: the board's cards stand`, !!stood);
       if (!stood) { await page.close(); continue; }
+      /* THE ONE LOOK (20 Oct 2026): the Board is the light screen whatever was
+         stored, and no Light | Dark switch is drawn — so every check below
+         that says "light" was read on the light screen */
+      const look = await page.evaluate(() => { const pg = document.getElementById('hb-page') || document.getElementById('ig-page');
+        return { light: !!pg && pg.classList.contains('hb-light'), dark: !!pg && pg.classList.contains('hb-dark'),
+          html: document.documentElement.classList.contains('dark'), switch: !!document.querySelector('[data-hb-screen], .hb-scr') }; });
+      check(`0b. ${screen}: the Board is the light screen though an old Dark choice is stored, and draws no Light | Dark switch`,
+        look.light && !look.dark && !look.html && !look.switch, JSON.stringify(look));
       const rgba = s => { const m = String(s).match(/rgba?\(([^)]+)\)/); if (!m) return null; const p = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
       const lum = c => c ? (0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b) / 255 : null;
       /* 1 + 2: a mouse press on the Split choice */
@@ -77,8 +92,7 @@ const PANELS = [['pa', 'q:contracts by status'], ['pb', 'q:contracts by counterp
         const b = document.querySelector('[data-hb-pid="pa"] [data-hb-drawn]'), bs = getComputedStyle(b);
         const glow = getComputedStyle(document.getElementById('hb-page') || document.getElementById('ig-page')).getPropertyValue('--hb-glow').trim();
         return { bg: cs.backgroundColor, blur: cs.backdropFilter, shadow: bs.boxShadow, outline: bs.outlineStyle + ' ' + bs.outlineWidth, edge: bs.borderTopColor, ew: parseFloat(bs.borderTopWidth), glow }; });
-      if (screen === 'light') await page.screenshot({ path: path.join(OUT, '1-list-open-light.png') });
-      else await page.screenshot({ path: path.join(OUT, '1-list-open-dark.png') });
+      await page.screenshot({ path: path.join(OUT, '1-list-open-light.png') });
       const mbg = menu && rgba(menu.bg);
       check(`1. ${screen}: the open list's ground is solid, no blur`, !!mbg && mbg.a === 1 && (!menu.blur || menu.blur === 'none'), menu && `${menu.bg} · blur ${menu.blur}`);
       const edge = menu && rgba(menu.edge);
@@ -100,9 +114,12 @@ const PANELS = [['pa', 'q:contracts by status'], ['pb', 'q:contracts by counterp
       check(`3. ${screen}: a keyboard Tab onto a choice shows a 2px ring`, ring.on && ring.style !== 'none' && ring.w >= 2, JSON.stringify(ring));
       /* 4 + 5: the search field */
       await page.mouse.click(4, 400);
-      const rest = await page.evaluate(() => { const f = document.querySelector('#top-header .cmd-search'), cs = getComputedStyle(f); return { edge: cs.borderTopColor, w: cs.borderTopWidth, shadow: cs.boxShadow }; });
-      const re = rgba(rest.edge);
-      check(`4. ${screen}: the search field at rest has no visible edge`, (!!re && re.a === 0) || rest.w === '0px', JSON.stringify(rest));
+      const rest = await page.evaluate(() => { const f = document.querySelector('#top-header .cmd-search'), cs = getComputedStyle(f);
+        const probe = document.createElement('i'); probe.style.color = 'var(--bar-line)'; document.getElementById('top-header').appendChild(probe);
+        const line = getComputedStyle(probe).color; probe.remove();
+        return { edge: cs.borderTopColor, w: cs.borderTopWidth, shadow: cs.boxShadow, line }; });
+      check(`4. ${screen}: the search field at rest has no thick boundary — one hairline, the bar's own line, no glow`,
+        rest.w === '1px' && rest.edge === rest.line && rest.shadow === 'none', JSON.stringify(rest));
       await page.click('#cmd-search');
       /* the field eases its edge in (a short transition): ask until it has
          settled, bounded, then read it whatever it says */
@@ -114,8 +131,7 @@ const PANELS = [['pa', 'q:contracts by status'], ['pb', 'q:contracts by counterp
       await page.screenshot({ path: path.join(OUT, `2-search-${screen}.png`), clip: { x: 0, y: 0, width: 1440, height: 60 } });
       const bg = on && rgba(on.bg), ink = on && rgba(on.ink);
       check(`5. ${screen}: pressed = one 1px edge, no glow`, !!on && on.w === '1px' && on.shadow === 'none' && on.inner === 'none · none' && rgba(on.edge).a === 1, JSON.stringify(on));
-      if (screen === 'dark') check('5. dark: the pressed field is dark with light text', !!bg && bg.a === 1 && lum(bg) < 0.25 && lum(ink) > 0.7, on && `${on.bg} · ${on.ink}`);
-      else check('5. light: the pressed field is white with dark text', !!bg && bg.a === 1 && lum(bg) > 0.97 && lum(ink) < 0.3, on && `${on.bg} · ${on.ink}`);
+      check('5. light: the pressed field is white with dark text', !!bg && bg.a === 1 && lum(bg) > 0.97 && lum(ink) < 0.3, on && `${on.bg} · ${on.ink}`);
       await page.close();
     }
     check('6. no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));

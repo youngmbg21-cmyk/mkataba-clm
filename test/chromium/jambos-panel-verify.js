@@ -89,12 +89,13 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
       return { before: gl.contains(el) && !!read && !!(read.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING),
         title: el.querySelector('.pd-gl-h b').textContent.trim(), n: (el.querySelector('.pd-gl-h b').textContent.match(/\d+/) || [''])[0],
         /* RE-POINTED 20 Oct 2026 (the Legora way): the owed facts are the grid's rows */
-        rows: rows.reduce((a, r) => a + Number((/(\d+) more/.exec(r.textContent) || [])[1] || 1), 0) + el.querySelectorAll('#pd-og tr.pd-og-row:not(.is-saved)').length, firstJw: !!jw, jwFace: !!(jw && jw.querySelector('img')),
+        rows: rows.reduce((a, r) => a + Number((/(\d+) more/.exec(r.textContent) || [])[1] || 1), 0) + el.querySelectorAll('#pd-og tr.pd-og-row:not(.is-saved)').length, firstJw: !!jw, jwFace: !!(jw && jw.querySelector('svg.jambo-mark.jambo-face')),
         kinds: rows.map(r => r.getAttribute('data-pd-nd-kind') || 'jw'),
         all: (el.querySelector('[data-pd-nd-all]') || {}).textContent || '', counter: counterNeedsCount(),
         badge: (document.querySelector('#ig-dock [data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || '' }; }, null, 10000);
     check('1a Still owed is the dossier\'s card under What Jambo read', !!nd && nd.before && /^Still owed · \d+$/.test(nd.title), JSON.stringify(nd));
-    check('1b Jambo\'s prepared work on this contract is one of its rows, with his face', !!nd && nd.firstJw && nd.jwFace, nd && nd.kinds.join(','));
+    /* RE-POINTED 20 Oct 2026 (Chambers): on a computer his face is the ✦ mark (jamboFaceHtml's svg.jambo-mark), not the bird */
+    check('1b Jambo\'s prepared work on this contract is one of its rows, with his face (the ✦ mark)', !!nd && nd.firstJw && nd.jwFace, nd && nd.kinds.join(','));
     check('1d its number is its rows', !!nd && Number(nd.n) === nd.rows, nd && (nd.n + ' / ' + nd.rows));
     /* RE-POINTED 20 Oct 2026: Still owed's head says "everything, one list" where "all N" stood (the dossier as drawn) */
     check('1e Still owed\'s head carries no "all N" of its own', !!nd && !nd.all, nd && nd.all);
@@ -151,9 +152,10 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     if (await press('#igd-collapse', '5a the fold')) {
       await settled();
       const st = await until(() => { const d = document.getElementById('igd-expand'); if (!d) return null;
-        return { face: !!d.querySelector('img.igd-door-face'), n: (d.querySelector('.pd-tab-n') || {}).textContent || '', counter: counterNeedsCount(),
+        return { face: !!d.querySelector('svg.jambo-mark.igd-door-face'), n: (d.querySelector('.pd-tab-n') || {}).textContent || '', counter: counterNeedsCount(),
           words: (d.querySelector('.igd-door-w') || {}).textContent || '' }; }, null, 6000);
-      check('5a the strip carries his face and the count his tab carries', !!st && st.face && Number(st.n) === st.counter, JSON.stringify(st));
+      /* RE-POINTED 20 Oct 2026 (Chambers): his face on a computer is the ✦ mark, not the bird */
+      check('5a the strip carries his face (the ✦ mark) and the count his tab carries', !!st && st.face && Number(st.n) === st.counter, JSON.stringify(st));
       await shot(page, 'jambos-panel-folded-1440x780');
       if (await press('#igd-expand', '5b the strip')) {
         const opened = await until(() => intel.dockOpen && !!document.getElementById('pd-needs'), null, 6000);

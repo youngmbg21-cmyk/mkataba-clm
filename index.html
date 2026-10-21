@@ -10321,7 +10321,9 @@
   .ig-brain{background:radial-gradient(ellipse at 52% 44%,#0B312C 0%,#05201D 45%,#021011 100%);overflow:hidden}
   /* EXPLORER'S STAGE KEEPS ITS OWN CORNERS (owner, 20 Oct 2026: "Only dark theme will be on the explorer
      and brain as designed today"): Chambers' hairline corners stop at the map's edge */
-  .ig-brain{--radius:4px;--radius-sm:4px;--radius-md:6px;--radius-lg:8px}
+  /* on the map's own pieces only: Home's paper and the Contracts place live in #ig-paper inside this
+     same wrapper, and they wear Chambers (caught by contracts-page-verify, 20 Oct 2026) */
+  .ig-brain > :not(#ig-paper){--radius:4px;--radius-sm:4px;--radius-md:6px;--radius-lg:8px}
   .ig-brain #ig-cv{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:block}
   /* A drag is a turn: the map's words are not selectable, or a drag that
      starts on selected text becomes the browser's own text drag and cancels
@@ -10806,7 +10808,6 @@
   .hb-sy-lead{margin:0;font-family:var(--font-doc);font-size:calc(var(--t-body) + 2px);line-height:1.55;color:var(--hb-ink);text-wrap:pretty}
   /* THE WRITING IS NOT BLAND (Young, 6 Oct 2026): good news green, bad news
      red, figures bold — the board's own tones, so both screens answer */
-  #hb-head .hb-scr[hidden]{display:none}
   .hb-good,.hb-bad{font-weight:600;padding:0 3px;border-radius:3px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
   .hb-good{color:var(--hb-green);background:color-mix(in srgb,var(--hb-green) 13%,transparent)}
   .hb-bad{color:var(--hb-ruby);background:color-mix(in srgb,var(--hb-ruby) 12%,transparent)}
@@ -11628,7 +11629,7 @@
     height:var(--ctl-h);padding:0 var(--pad-ctl-x);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);
     color:#fff;background:var(--st-ruby-dot);border:0;border-radius:999px;box-shadow:0 6px 18px -8px rgba(0,0,0,.5)}
   .hb-veil-exit:focus-visible{outline:2px solid #fff;outline-offset:2px}
-  .hb-presenting #ig-dock,.hb-presenting #ig-resizer,.hb-presenting .hb-counting,.hb-presenting .hb-scr,.hb-presenting #hb-present{display:none}
+  .hb-presenting #ig-dock,.hb-presenting #ig-resizer,.hb-presenting .hb-counting,.hb-presenting #hb-present{display:none}
   .hb-presenting{height:100vh}
   /* the page's host is what goes full screen (it survives Board ⇄ Explorer) */
   #content:fullscreen{background:var(--color-bg);overflow:hidden}

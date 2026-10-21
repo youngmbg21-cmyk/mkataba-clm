@@ -15,13 +15,15 @@
      3  pressing a row GLIDES the paper until that clause is at the line, and
         ‹ › step one clause the same way — scroll and press never disagree
      4  PLAIN (was "Explain this clause", renamed 5 Oct 2026) sends ONE
-        request carrying ONE clause, the reading lands in the paper's own
-        face, and it rides the GET after a reload; "All N clauses in plain
+        request carrying ONE clause, the reading lands in the panel's face
+        (re-pointed 21 Oct 2026, Chambers: the paper is serif again, and the
+        reading keeps the panel's voice, --font-body, as clean-sans 2a pins),
+        and it rides the GET after a reload; "All N clauses in plain
         English" is GONE (Young, 6 Oct 2026: "there should never be an option
         to translate all clauses")
      5  Worth a look is the one light-red area, with marks as sentences under a
         coloured rule and NO "Add a note"; Who does what sits under it
-     6  the contract does not move (refusal 3), in either theme; the risk door
+     6  the contract does not move (refusal 3); the risk door
         lands on the worst-marked clause; below 1024 the Thread stands down
      8  (6 Oct 2026) a clause Copilot could not read says WHY on its row — the
         provider failed, or it answered with nothing; and the open clause
@@ -184,7 +186,9 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
         whoAfterLook: !!(look && body.querySelector('.doc-xr-sec.is-who') && (look.compareDocumentPosition(body.querySelector('.doc-xr-sec.is-who')) & Node.DOCUMENT_POSITION_FOLLOWING)),
         explain: !!(body && body.querySelector('[data-th-explain]')), explainAll: !!(body && body.querySelector('[data-th-explain-all]')),
         plainFace: plain ? getComputedStyle(plain).fontFamily : '', plainSize: plain ? getComputedStyle(plain).fontSize : '',
-        paperFace: paper ? getComputedStyle(paper).fontFamily : '' };
+        paperFace: paper ? getComputedStyle(paper).fontFamily : '',
+        bodyFace: (() => { const d = document.createElement('i'); d.style.fontFamily = 'var(--font-body)'; (th || document.body).appendChild(d);
+          const f = getComputedStyle(d).fontFamily; d.remove(); return f; })() };
     });
     const reddish = bg => { const v = (String(bg).match(/[\d.]+/g) || []).map(Number).map(n => /srgb/.test(bg) ? n * 255 : n); return v.length >= 3 && v[0] > v[1] + 3 && v[0] > v[2] + 3; };
     const names = s => s.rows.map(r => (r.open ? '[' : '') + r.name.slice(0, 12) + (r.open ? ']' : '')).join(' | ');
@@ -251,7 +255,12 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
     const asked = ai.calls.slice(calls0).map(c => (c.body.messages && String(c.body.messages[0].content).match(/\[R\d+\]/g) || []).length);
     check('4a Plain sends ONE request carrying ONE clause', asked.length === 1 && asked[0] === 1, JSON.stringify({ calls: asked.length, rowsPerCall: asked, posts0 }));
     check('4b the reading lands in the open row', /THPLAIN/.test(s5.openText), s5.openText.slice(0, 80));
-    check('4c set in the paper\'s own face', !!s5.plainFace && s5.plainFace === s5.paperFace, s5.plainFace.slice(0, 40) + ' vs ' + s5.paperFace.slice(0, 40));
+    /* RE-POINTED 21 Oct 2026 (Chambers): the paper you read is serif again
+       (--font-doc); the Plain reading is the panel's voice (--font-body, the
+       6 Oct ruling "the font should follow the fonts in the panel"), so it
+       is no longer the paper's face */
+    check('4c set in the panel\'s own face (--font-body), not the paper\'s serif', !!s5.plainFace && s5.plainFace === s5.bodyFace && s5.plainFace !== s5.paperFace,
+      s5.plainFace.slice(0, 40) + ' vs body ' + s5.bodyFace.slice(0, 40) + ' · paper ' + s5.paperFace.slice(0, 40));
     check('4d that row says Read, and no other does', s5.rows.filter(r => /Read\b/.test(r.state) && !/Reading/.test(r.state)).length === 1 && /Read/.test(s5.rows[2].state),
       s5.rows.map(r => r.state || '-').join(' | '));
     check('4e the other rows still offer their own Plain', s5.rows.filter(r => !/Read/.test(r.state)).length >= 3, s5.rows.length + ' rows');
@@ -335,7 +344,7 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
     check('8e [control] the last clause goes as high as the list allows — nothing padded to fake it', !!r3 && r3.idx === 4 && Math.abs(r3.scroll - r3.want) <= 2,
       JSON.stringify(r3));
 
-    /* ===== 6. THE DOORS, THE NARROW WINDOW, THE NIGHT ===== */
+    /* ===== 6. THE DOORS, THE NARROW WINDOW, AND NO NIGHT (Chambers, 21 Oct 2026) ===== */
     /* 6a retired 11 Oct 2026: the Document tab is gone (owner). "Below 1024 the
        Thread stands down and the paper has the tab" was the tab's own width
        rule; Home's Document panel keeps its own. */
@@ -349,10 +358,13 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
     const s8 = await read();
     check('6b the risk door lands on Home\'s Document, Clauses tab, with the worst-marked clause open, the paper glided to it',
       !s8.hidden && s8.openIdx >= 0 && s8.rows[s8.openIdx].tone === 'ruby' && s8.atLine === s8.openIdx, names(s8) + ' · scroll ' + s8.scroll);
-    await page.evaluate(() => { try { setDark(true); } catch (_) { document.documentElement.classList.add('dark'); } }); await page.waitForTimeout(600);
+    /* RE-POINTED 21 Oct 2026 (Chambers): dark mode was removed from HaTi, so
+       the night pass is gone; what stays is that the open row draws no Worth
+       a look, and that there is no night to switch to */
     const night = await read();
-    check('6c at night the open row still draws no Worth a look', !night.lookHas && night.openIdx >= 0, night.lookBg);
-    await page.screenshot({ path: path.join(OUT, '06-night.png') });
+    const noNight = await page.evaluate(() => ({ setDark: typeof window.setDark, dark: document.documentElement.classList.contains('dark') }));
+    check('6c no night to switch to (dark mode removed), and the open row still draws no Worth a look',
+      !night.lookHas && night.openIdx >= 0 && noNight.setDark === 'undefined' && !noNight.dark, JSON.stringify({ lookBg: night.lookBg, noNight }));
 
     check('7 [control] no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {

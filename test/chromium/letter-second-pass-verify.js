@@ -86,8 +86,11 @@ const sharePayload = (id, name) => ({ v: 1, kind: 'hati-share', org: 'Lindqvist 
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await waitFor(page, () => window.state && state.contracts && ['MK-0382', 'MK-0412'].every(id => state.contracts.some(c => c.id === id)), 20000);
     await page.keyboard.press('Escape').catch(() => {});
-    const en = await page.$('.lang-btn[data-lang="en"]'); if (en) await en.click();
-    await page.evaluate(() => { try { setBrand('green'); } catch (_) {} try { saveLinkCodeCfg({ on: true }); } catch (_) {} });
+    /* RE-POINTED 21 Oct 2026 (Chambers, owner's pick 20 Oct 2026): the bar's
+       language switch is gone — the language goes through its one writer,
+       langSet; and there is one look, so no brand is chosen */
+    await page.evaluate(() => { if (typeof window.langSet === 'function') langSet('en'); });
+    await page.evaluate(() => { try { saveLinkCodeCfg({ on: true }); } catch (_) {} });
     if (await page.evaluate(() => typeof flushSaves === 'function')) await page.evaluate(async () => { await flushSaves(); });
     /* their asks on both deals, answered through the link as Anna would */
     for (const id of ['MK-0382', 'MK-0412']) {

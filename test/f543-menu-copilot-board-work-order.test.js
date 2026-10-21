@@ -67,7 +67,11 @@ test('(W-3) one Copilot door: the foot block is gone, the bar spark is bigger', 
      with it the painter that gave it a home in the drawer; the language is
      changed in Settings › You, whose buttons write through langSet. */
   assert.doesNotMatch(html, /id="lang-switch"/, 'no language switch in the bar');
-  assert.ok(!app.includes('function placeLanguageSwitch('), 'nor the painter that moved it');
+  /* By name in the CODE, comments stripped (a history note may still name
+     it): not only `function placeLanguageSwitch(` — a const or a call left
+     behind would be the same painter by another spelling. */
+  const appCode = app.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  assert.doesNotMatch(appCode, /\bplaceLanguageSwitch\b/, 'nor the painter that moved it');
   const st = read('js/views/settings.js');
   assert.match(st, /data-st-lang="\$\{esc\(l\.id\)\}"/, 'Settings › You draws the language buttons');
   assert.match(st, /closest\('\[data-st-lang\]'\)[\s\S]{0,300}langSet\(id\)/, 'and they write through langSet');

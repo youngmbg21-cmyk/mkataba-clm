@@ -1,13 +1,15 @@
 /* JAMBO'S PANEL BESIDE THE LISTS (the owner's "build all the gaps", 18 Oct
    2026: rounds 14, 15 and 19 of the redesign as drawn, and the hint line under
-   every Jambo ask box; js/views/inspector.js jlFrame/jlAsk, the pages'
+   every Jambo ask box — that line since removed by "Chambers", 20 Oct 2026;
+   js/views/inspector.js jlFrame/jlAsk, the pages'
    regInsPaint · apInsPaint · dirPaintPanel)
 
    WHAT THIS PINS, driven in a real browser as an admin who stands in for an
    away colleague (Jonas):
      1 NEGOTIATIONS, nothing chosen: the panel at the right edge, Jambo's tab,
        the page in his words from the page's own counts, its doors as chips,
-       the ask box with its words and the hint line under it
+       the ask box with its words and NO hint line under it (RE-POINTED 20 Oct
+       2026, Chambers: the hint line under every Jambo box is removed)
      2 a row pressed: "Negotiation", the pill with its wait, the facts as rows
        (Value · Lead · Their changes · Last sent), Needs you "Answer N
        redlines", What Jambo read; ‹ Jambo lets the row go
@@ -21,8 +23,9 @@
        the recorded-as sentence
      6 PEOPLE: Jonas in the panel — "Person", Show their contracts · Email, the
        rows Email · In HaTi · Streams · Named on · Away, "Waiting on Jonas"
-     7 THE HINT LINE under Home's box (with "/ places · Esc closes" while a
-       paper is up), Settings' and Import's
+     7 NO HINT LINE under Home's box beside a paper, Settings' or Import's
+       (RE-POINTED 20 Oct 2026, Chambers: the hint line is removed everywhere);
+       each box still in view
      8 the owner's three screens: the panel inside the window, the list beside
        it (never under it), the box in view, nothing sideways
    PASS 3 (18 Oct 2026, the checker against the picked drawings):
@@ -128,7 +131,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
     await until(() => document.querySelectorAll('#reg-tbody tr[data-row]').length >= 2 && document.querySelector('#ins-panel.is-jambo .jl-body'), null, 10000);
     await page.waitForTimeout(300);
     const PANEL = () => { const p = document.getElementById('ins-panel'); if (!p) return null; const r = p.getBoundingClientRect();
-      const q = document.getElementById('jl-q'), hint = p.querySelector('.jl-foot .jb-hint');
+      const q = document.getElementById('jl-q'), hint = p.querySelector('.jb-hint, .jb-keys, .jb-kbd');
       return { jambo: p.classList.contains('is-jambo'), folded: p.classList.contains('is-folded'), w: Math.round(r.width), right: Math.round(r.right), left: Math.round(r.left),
         tab: !!p.querySelector('[data-jl-home] .pd-tab-g'), word: (p.querySelector('[data-jl-word]') || {}).textContent || '',
         back: !!(p.querySelector('[data-jl-back]') && !p.querySelector('[data-jl-back]').hidden),
@@ -138,7 +141,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         text: p.innerText.replace(/\s+/g, ' ') }; };
     const N0 = await page.evaluate(PANEL);
     check('1a the panel is Jambo\'s, at the right edge, Home\'s panel\'s width, with his tab', !!N0 && N0.jambo && N0.tab && N0.w === 380 && Math.abs(N0.right - 1440) <= 1, JSON.stringify(N0 && { w: N0.w, right: N0.right, tab: N0.tab }));
-    check('1c the box asks in its words, the hint line under it', !!N0 && N0.ph === 'Ask for a contract, a number or a list…' && N0.hint === 'Typing never signs, sends or files — a press does.', JSON.stringify(N0 && { ph: N0.ph, hint: N0.hint }));
+    /* RE-POINTED 20 Oct 2026 (Chambers): no hint line under any Jambo box */
+    check('1c the box asks in its words, and no hint line under it', !!N0 && N0.ph === 'Ask for a contract, a number or a list…' && N0.hint === null, JSON.stringify(N0 && { ph: N0.ph, hint: N0.hint }));
 
     /* ---- 2 a row pressed ---- */
     await page.click('#reg-tbody tr[data-row="MK-A2"]');
@@ -452,34 +456,36 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       }
     }
 
-    /* ---- 7 the hint line under every other Jambo box ---- */
+    /* ---- 7 no hint line under every other Jambo box ----
+       RE-POINTED 20 Oct 2026 (the owner picked "Chambers", which draws no hint
+       line under any Jambo box: jamboHintHtml, igHintKeys and .jb-hint are
+       gone). Each stage now asserts the line is ABSENT — none on the whole
+       page — and that the box itself still stands in view. */
+    const HINTS = '.jb-hint, .jb-keys, .jb-kbd, .ai-hint, #ai-hint';
     for (const [w, ht] of SCREENS) {
       await page.setViewportSize({ width: w, height: ht });
       await part('7a Home', async () => {
         await page.evaluate(() => { if (typeof regOpenContract === 'function') regOpenContract('MK-A2'); });
-        const HH = await until(() => { const e = document.querySelector('#ig-dock .jb-hint'); return e && e.getClientRects().length && /\//.test(e.textContent) ? { t: e.textContent.replace(/\s+/g, ' ').trim(), kbd: e.querySelectorAll('kbd').length, needs: !!document.getElementById('pd-needs'),
-          inView: e.getBoundingClientRect().bottom <= innerHeight, keysOne: (() => { const k = e.querySelector('.jb-keys'); return !!k && k.getClientRects().length === 1; })() } : null; }, null, 10000);
-        /* RE-POINTED 18 Oct 2026 (pass 3, round 3 as drawn): beside a paper whose Needs you here has rows, "/ lists the places." */
-        check(`7a Home ${w}×${ht}: the hint under Jambo's box, with the keys while a paper is up, in view, the keys on one line`, !!HH && (HH.needs
-          ? HH.t === 'Typing never signs, sends or files — a press does. / lists the places.' && HH.kbd === 1
-          : HH.t === 'Typing never signs, sends or files — a press does. / places · Esc closes' && HH.kbd === 2) && HH.inView && HH.keysOne, JSON.stringify(HH));
+        const HH = await until(sel => { const c = typeof pdContract === 'function' && pdContract(), e = document.querySelector('#ig-dock .jb-card');
+          return c && c.id === 'MK-A2' && e && e.getClientRects().length ? { hints: document.querySelectorAll(sel).length, inView: e.getBoundingClientRect().bottom <= innerHeight } : null; }, HINTS, 10000);
+        check(`7a Home ${w}×${ht}: no hint line under Jambo's box while a paper is up, the box in view`, !!HH && HH.hints === 0 && HH.inView, JSON.stringify(HH));
         await shot(`hint-home-${w}x${ht}.png`);
       });
       await part('7b Settings', async () => {
         await page.evaluate(() => setView('team'));
         /* the page re-measures its side once its entrance has settled (stSideFit): wait for that, bounded */
-        await until(() => { const sd = document.getElementById('st-side'); return sd && document.querySelector('#st-side .jb-hint') && sd.getBoundingClientRect().bottom <= innerHeight + 1; }, null, 4000);
-        const HS = await until(() => { const e = document.querySelector('#st-side .jb-hint, .st-side .jb-hint'); if (!e || !e.getClientRects().length) return null;
+        await until(() => { const sd = document.getElementById('st-side'); return sd && document.querySelector('#st-side .jb-card') && sd.getBoundingClientRect().bottom <= innerHeight + 1; }, null, 4000);
+        const HS = await until(sel => { const e = document.querySelector('#st-side .jb-card, .st-side .jb-card'); if (!e || !e.getClientRects().length) return null;
           const r = e.getBoundingClientRect(), side = e.closest('.st-side, #st-side'), sr = side ? side.getBoundingClientRect() : null;
-          return { t: e.textContent.replace(/\s+/g, ' ').trim(), inView: r.bottom <= innerHeight && (!sr || r.bottom <= sr.bottom + 1), at: [Math.round(r.top), Math.round(r.bottom)], side: sr && [Math.round(sr.top), Math.round(sr.bottom)], ih: innerHeight }; }, null, 10000);
-        check(`7b Settings ${w}×${ht}: under its Jambo box`, !!HS && HS.t === 'Typing never signs, sends or files — a press does.' && HS.inView, JSON.stringify(HS));
+          return { hints: document.querySelectorAll(sel).length, inView: r.bottom <= innerHeight && (!sr || r.bottom <= sr.bottom + 1), at: [Math.round(r.top), Math.round(r.bottom)], side: sr && [Math.round(sr.top), Math.round(sr.bottom)], ih: innerHeight }; }, HINTS, 10000);
+        check(`7b Settings ${w}×${ht}: no hint line under its Jambo box, the box in view`, !!HS && HS.hints === 0 && HS.inView, JSON.stringify(HS));
         await shot(`hint-settings-${w}x${ht}.png`);
       });
       await part('7c Import', async () => {
         await page.evaluate(() => setView('migration'));
-        const HI = await until(() => { const e = document.querySelector('#mig-side .jb-hint'); const q = document.querySelector('#mig-side #jl-q');
-          return e && q && e.getClientRects().length ? { t: e.textContent.replace(/\s+/g, ' ').trim(), inView: e.getBoundingClientRect().bottom <= innerHeight, ph: q.getAttribute('placeholder') } : null; }, null, 10000);
-        check(`7c Import ${w}×${ht}: the shared box in its panel, the hint under it`, !!HI && HI.t === 'Typing never signs, sends or files — a press does.' && HI.ph === 'Ask for anything, or type /' && HI.inView, JSON.stringify(HI));
+        const HI = await until(sel => { const q = document.querySelector('#mig-side #jl-q'), e = q && (q.closest('.jb-card') || q);
+          return e && e.getClientRects().length ? { hints: document.querySelectorAll(sel).length, inView: e.getBoundingClientRect().bottom <= innerHeight, ph: q.getAttribute('placeholder') } : null; }, HINTS, 10000);
+        check(`7c Import ${w}×${ht}: the shared box in its panel, no hint line under it, in view`, !!HI && HI.hints === 0 && HI.ph === 'Ask for anything, or type /' && HI.inView, JSON.stringify(HI));
         await shot(`hint-import-${w}x${ht}.png`);
       });
     }

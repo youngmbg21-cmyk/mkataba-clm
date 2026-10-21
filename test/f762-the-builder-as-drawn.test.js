@@ -58,6 +58,9 @@ const stage = async (blocks, fields) => {
   const w = loadViews(['js/fieldlib.js', 'js/clausemodel.js', 'js/playbook.js', 'js/views/templatebuilder.js'], {
     state: { contracts: [], settings: {}, aiConfigured: true, view: 'templates' },
     API_MODE: () => true, canEdit: () => true, copilotAvailable: () => true,
+    /* KEPT ON PURPOSE since Chambers (20 Oct 2026) deleted the builder: a
+       trap, so (4a)'s "no hint line" can fail — a builder that still asked
+       for the line would draw it here */
     jamboHintHtml: () => '<p class="jb-hint">Typing never signs, sends or files — a press does.</p>',
     api: async (p, m, body) => {
       CALLS.push([p, m || 'GET', body || null]);

@@ -3,7 +3,10 @@
    plan on 14 Oct 2026 and picked "Chips" by name)
    ============================================================
      1  On Home's Document, the chips stand above the box and say the next
-        words for the contract on the paper; work owed leads, in the accent's outline (round 3 as drawn; amber before 18 Oct 2026)
+        words for the contract on the paper; work owed leads, in the strong
+        weight (Chambers, 21 Oct 2026: every suggestion is an underlined link
+        in the accent ink, no outline; round 3's accent outline and the amber
+        before 18 Oct 2026 are gone)
      2  "/" on the Document lists the places, and nothing of the Board's
      3  a typed word moves the reader ("board"), and the panel offers the way
         back; Back returns to the same paper
@@ -11,7 +14,8 @@
      5  a word that is work opens its door ("redline" → the Redlines face
         beside the paper, stage 3; was Negotiate)
      6  the top bar's search offers the same places ("calen" → the Calendar)
-     7  Svenska: the chips are Swedish words, and a Swedish word goes
+     7  Svenska (switched in Settings › You since Chambers): the chips are
+        Swedish words, and a Swedish word goes
    AT THE PARENT every claim FAILS: no chips with words, no places in "/",
    no way back, nothing in the search.
    ============================================================ */
@@ -56,7 +60,12 @@ const DOC = 'SOFTWARE AS A SERVICE AGREEMENT\n\n1. TERM\n\nThis Agreement runs f
     }
     await page.waitForFunction(() => window.state && Array.isArray(state.contracts) && state.contracts.length >= 2, null, { timeout: 15000 }).catch(() => {});
     await page.keyboard.press('Escape').catch(() => {});
-    const en = await page.$('.lang-btn[data-lang="en"]'); if (en) await en.click();
+    /* RE-POINTED 21 Oct 2026 (Chambers): the bar's language switch is gone
+       (the language is changed in Settings › You, its one writer langSet).
+       Its press used to give the signed-in book time to replace the demo
+       book the page starts with; the wait now asks for that state, bounded. */
+    await page.waitForFunction(() => typeof getContract === 'function' && !!getContract('MK-W1') && !!getContract('MK-W2'), null, { timeout: 15000 }).catch(() => {});
+    await page.evaluate(() => { if (langId() !== 'en') langSet('en'); });
     await page.evaluate(() => { try { localStorage.removeItem('hati.v1.jamboUses'); } catch (_){} setView('dashboard'); });
     const onPaper = id => page.evaluate(i => pdOpenOnHome(i, 'copilot'), id);
     const settle = () => page.waitForFunction(() => !intel.busy, null, { timeout: 8000 }).catch(() => {});
@@ -78,11 +87,18 @@ const DOC = 'SOFTWARE AS A SERVICE AGREEMENT\n\n1. TERM\n\nThis Agreement runs f
     ok('1b details owed: "fill in" leads', c1[0] && c1[0].k === 'fill' && c1[0].text === 'fill in', JSON.stringify(c1.map(x => x.text)));
     /* RE-POINTED 18 Oct 2026 (round 3 as drawn, "Tabs and faces"): the lead
        chip wears the accent's outline and the label weight, on the other
-       chips' own ground — not amber */
+       chips' own ground — not amber.
+       RE-POINTED 21 Oct 2026 (Chambers, picked by name 20 Oct): every
+       suggestion is an underlined link in the accent ink (.jb-chip) — no
+       outline, no ground; the owed lead is told by its STRONG weight alone */
     const lead = await page.evaluate(() => { const b = document.querySelector('[data-ig-chips] .ca-chip-owed'); const o = document.querySelector('[data-ig-chips] [data-ca-chip]:not(.ca-chip-owed)');
-      const d = document.createElement('i'); d.style.color = 'var(--accent-solid)'; document.body.appendChild(d); const acc = getComputedStyle(d).color; d.remove();
-      return b ? { edge: getComputedStyle(b).borderTopColor, acc, bg: getComputedStyle(b).backgroundColor, otherBg: o ? getComputedStyle(o).backgroundColor : null, otherEdge: o ? getComputedStyle(o).borderTopColor : null } : null; });
-    ok('1c the lead is drawn as owed work — the accent outline — the rest are not', c1[0] && c1[0].owed && c1.slice(1).every(x => !x.owed) && !!lead && lead.edge === lead.acc && lead.bg === lead.otherBg && lead.otherEdge !== lead.acc, JSON.stringify(lead));
+      const tok = (prop, v) => { const d = document.createElement('i'); d.style[prop] = v; document.body.appendChild(d); const r = getComputedStyle(d)[prop]; d.remove(); return r; };
+      const look = e => { const cs = getComputedStyle(e); return { w: cs.fontWeight, edge: cs.borderTopWidth, bg: cs.backgroundColor, ink: cs.color, line: cs.textDecorationLine }; };
+      return b ? { lead: look(b), other: o ? look(o) : null, ink: tok('color', 'var(--accent-ink)'), strong: tok('fontWeight', 'var(--w-strong)'), body: tok('fontWeight', 'var(--w-body)') } : null; });
+    const asLink = x => !!x && x.edge === '0px' && x.bg === 'rgba(0, 0, 0, 0)' && /underline/.test(x.line) && x.ink === lead.ink;
+    ok('1c the lead is drawn as owed work — the strong weight — the rest are not; every chip is an underlined link in the accent ink, no outline',
+      c1[0] && c1[0].owed && c1.slice(1).every(x => !x.owed) && !!lead && asLink(lead.lead) && asLink(lead.other)
+        && lead.lead.w === lead.strong && lead.other.w === lead.body && lead.strong !== lead.body, JSON.stringify(lead));
     ok('1d the chips agree with the side panel\'s checklist', await page.evaluate(() => caChipLead(getContract('MK-W1')) === 'fill'));
     await page.screenshot({ path: path.join(OUT, '1-chips-on-the-paper.png') });
 
@@ -148,9 +164,13 @@ const DOC = 'SOFTWARE AS A SERVICE AGREEMENT\n\n1. TERM\n\nThis Agreement runs f
     ok('6 "calen" in the search opens the Calendar', !!pal && cal);
 
     /* ===== 7. SVENSKA ===== */
-    const sv = await page.$('.lang-btn[data-lang="sv"]');
+    /* RE-POINTED 21 Oct 2026 (Chambers): the bar's switch is gone; THE
+       LANGUAGE IS CHANGED IN SETTINGS › YOU — pressed there, as a person would */
+    await page.evaluate(() => setView('team'));
+    const sv = await page.waitForSelector('[data-st-lang="sv"]', { timeout: 8000 }).catch(() => null);
     if (sv) await sv.click();
-    ok('7 the Svenska switch is there', !!sv);
+    const svOn = await page.waitForFunction(() => langId() === 'sv', null, { timeout: 6000 }).then(() => true, () => false);
+    ok('7 the Svenska switch is there, in Settings › You', !!sv && svOn);
     await page.evaluate(() => setView('dashboard'));
     await onPaper('MK-W1');
     await page.waitForSelector('[data-ig-chips] [data-ca-chip]', { timeout: 8000 }).catch(() => {});
@@ -165,7 +185,7 @@ const DOC = 'SOFTWARE AS A SERVICE AGREEMENT\n\n1. TERM\n\nThis Agreement runs f
     await type('kalender', true);
     const svCal = await page.waitForFunction(() => hbFace() === 'calendar', null, { timeout: 5000 }).then(() => true, () => false);
     ok('7b "kalender" opens the Calendar', svCal);
-    const en2 = await page.$('.lang-btn[data-lang="en"]'); if (en2) await en2.click();
+    await page.evaluate(() => langSet('en'));
 
     ok('no page errors', !errs.length, errs.join(' | '));
   } catch (e) {

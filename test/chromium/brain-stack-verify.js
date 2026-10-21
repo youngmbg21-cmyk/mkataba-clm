@@ -45,9 +45,14 @@ const ok = (name, good, detail) => {
     await page.fill('#su-org', 'Highland Corporate Ltd'); await page.fill('#su-name', 'Young Mbagaya');
     await page.fill('#su-email', 'admin@example.co.ke'); await page.fill('#su-pass', 'adminpassword1');
     await page.click('#su-go');
-    await page.waitForFunction(() => window.state && typeof setView === 'function' && document.querySelector('[data-view="brain"]'), null, { timeout: 15000 }).catch(() => {});
+    /* RE-POINTED 20 Oct 2026 (Chambers): the bar's language switch is gone, and
+       pressing it was what gave the sign-up time to land. So the walk now asks
+       for the signed-in state itself (the sign-up form gone, a person signed
+       in), bounded, and sets English through langSet, the one writer. */
+    await page.waitForFunction(() => window.state && typeof setView === 'function' && document.querySelector('[data-view="brain"]')
+      && !document.getElementById('su-org') && typeof currentUser === 'function' && !!currentUser(), null, { timeout: 15000 }).catch(() => {});
     await page.keyboard.press('Escape').catch(() => {});
-    const en = await page.$('.lang-btn[data-lang="en"]'); if (en) await en.click();
+    await page.evaluate(() => { if (typeof langId === 'function' && langId() !== 'en') langSet('en'); });
     /* re-pointed 17 Oct 2026: a computer draws no left menu (the owner's
        "Desk tabs"); the Brain is a place Jambo opens from the Counter */
     await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'brain');
@@ -79,7 +84,6 @@ const ok = (name, good, detail) => {
     });
     ok('2a the canvas steps aside', s1.cv === 'none', 'canvas display ' + s1.cv);
     ok('2b six rings, and the first is what is under the pointer', s1.rings === 6 && !!hit && hit.inRing, JSON.stringify(hit));
-    await page.screenshot({ path: path.join(OUT, '1-stack.png') });
 
     /* ---- 3. the panel: four trips, the open stop, the gold box ---- */
     const p3 = await page.evaluate(() => {
@@ -95,6 +99,13 @@ const ok = (name, good, detail) => {
     ok('3a the panel shows the four trips, the first chosen', p3.trips === 4 && p3.pressed === 0, JSON.stringify({ trips: p3.trips, pressed: p3.pressed }));
     ok('3b the open stop carries the gold "Say this to a developer" box', p3.now === '0' && /^Say this to a developer/.test(p3.say) && p3.sayBg !== 'rgba(0, 0, 0, 0)', p3.say + ' · ' + p3.sayBg);
     ok('3c the Brain\'s own panel (Process flows) steps aside', p3.brainPanelHidden);
+    /* THE PICTURE AFTER THE READING (20 Oct 2026): a full-page picture of the
+       moving stack takes about 6.5 s, and the parcel holds a stop only
+       BR_STACK_HOLD_MS (6 s) before moving on — so taken before 3b it moved
+       the open stop on. It stayed green only while the stack was opened
+       before the sign-up had landed (the race the bar's language press used
+       to hide), MEASURED at main d2b75c7 in a worktree. */
+    await page.screenshot({ path: path.join(OUT, '1-stack.png') });
 
     /* ---- 4. the counts are read from the route, never typed in ---- */
     await page.waitForFunction(() => !/reading the code/.test((document.querySelector('#br-stk-panel .br-stk-gl') || {}).textContent || 'reading the code'), null, { timeout: 8000 }).catch(() => {});
@@ -168,8 +179,8 @@ const ok = (name, good, detail) => {
     ok('9 the Brain view comes back with its own panel and canvas', r9.cv !== 'none' && r9.title === 'Brain view' && r9.flows > 0 && r9.flowsShown && r9.stackGone, JSON.stringify(r9));
 
     /* ---- 10. Swedish ---- */
-    const sv = await page.$('.lang-btn[data-lang="sv"]');
-    if (sv){ await sv.click(); }
+    /* RE-POINTED 20 Oct 2026 (Chambers): the language is changed in Settings › You; langSet is its one writer */
+    await page.evaluate(() => langSet('sv'));
     await page.waitForFunction(() => typeof langId === 'function' && langId() === 'sv', null, { timeout: 4000 }).catch(() => {});
     await page.evaluate(() => { if (state.view !== 'brain') setView('brain'); });
     await page.waitForFunction(() => !!document.querySelector('[data-br-view="4"]'), null, { timeout: 5000 }).catch(() => {});

@@ -90,8 +90,11 @@ const px = v => Number(String(v || '').replace('px', ''));
        feature"); the column was renamed "Redlines N" on 27 Aug. What B1 asked
        for still stands and is what is measured now: the head's count is the
        real number, the whole head is the primary ink (B1, "all of it black"),
-       it is legible at night — and the
-       filter is nowhere on the head, neither as tabs nor as a dropdown. */
+       it is legible against its own panel — and the
+       filter is nowhere on the head, neither as tabs nor as a dropdown.
+       RE-POINTED 20 Oct 2026 (the owner picked "Chambers" and removed dark
+       mode): the night pass is gone with the night theme; what is left of it
+       is that there is no theme to switch to and the head reads at 4.5:1. */
     const lum = c => { const m = /(\d+), (\d+), (\d+)/.exec(c || ''); if (!m) return null;
       const f = v => { v = v / 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); };
       return .2126 * f(+m[1]) + .7152 * f(+m[2]) + .0722 * f(+m[3]); };
@@ -124,16 +127,14 @@ const px = v => Number(String(v || '').replace('px', ''));
     check('and its number is the quiet half, still legible',
       head.num && head.num !== head.ink && nr >= 4.5, `${head.num} · ${nr && nr.toFixed(2)}`);
 
-    await page.evaluate(() => setTheme('dark'));
-    await page.waitForTimeout(1200);
-    const dark = await readHead();
-    const a = lum(dark.color), bb = lum(dark.bg);
+    const noNight = await page.evaluate(() => ({ setTheme: typeof window.setTheme, setDark: typeof window.setDark,
+      darkClass: document.documentElement.classList.contains('dark') }));
+    const a = lum(head.color), bb = lum(head.bg);
     const ratio = (a == null || bb == null) ? null
       : Math.round(((Math.max(a, bb) + .05) / (Math.min(a, bb) + .05)) * 100) / 100;
-    check('at night the head is still legible against its own panel',
-      ratio !== null && ratio >= 4.5, JSON.stringify({ color: dark.color, bg: dark.bg, ratio }));
-    await page.evaluate(() => setTheme('light'));
-    await page.waitForTimeout(1000);
+    check('no night theme to switch to, and the head is legible against its own panel',
+      noNight.setTheme === 'undefined' && noNight.setDark === 'undefined' && !noNight.darkClass && ratio !== null && ratio >= 4.5,
+      JSON.stringify({ ...noNight, color: head.color, bg: head.bg, ratio }));
 
     /* ============================================================
        2 · AN ANSWER THAT WILL NOT LAND IS A ROW, NOT FOUR ORANGE BOXES

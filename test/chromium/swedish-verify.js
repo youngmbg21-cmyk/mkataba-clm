@@ -11,8 +11,11 @@
         at the two most common laptop sizes and the phone, in Swedish, and
         fails on anything cut off or spilling off the side.
 
-     2  THE SWITCH WORKS FROM EVERY SCREEN, with content loaded — not just from
-        the dashboard where it happens to be easy.
+     2  THE SWITCH WORKS, with content loaded — not just from the dashboard
+        where it happens to be easy. RE-POINTED 20 Oct 2026 (the owner picked
+        "Chambers"): the bar no longer carries a language switch; THE LANGUAGE
+        IS CHANGED IN SETTINGS › YOU on a computer (its language row), and in
+        the account sheet on the phone. Both are PRESSED, never langSet.
 
    It also pins the thing the whole language layer rests on: switching language
    must not move the MARKET. The market decides what the contracts say and is
@@ -29,12 +32,11 @@ const EXEC = process.env.CHROMIUM_BIN
 const SIZES = [
   { name: '1080p @150% (ThinkPad)', w: 1280, h: 590, dpr: 1.5 },
   { name: '1366x768',               w: 1366, h: 638, dpr: 1 },
-  /* THE GAP BETWEEN THE TWO SHELLS. Above 900 the toggle is in the header;
-     below 768 the phone shell draws instead and carries its own rows. Between
-     them the desktop shell survives with a header too cramped to hold the
-     toggle, so it relocates into the nav drawer — a third arrangement, with
-     its own CSS, that neither of the other sizes touches. */
-  { name: 'narrow desktop 800 (drawer)', w: 800, h: 700, dpr: 2 },
+  /* THE GAP BETWEEN THE TWO SHELLS. Below 768 the phone shell draws instead
+     and carries its own rows; at 800 the desktop shell survives, narrow, and
+     Settings › You's language row has to be reachable there too. (Until 20 Oct
+     2026 the bar's toggle relocated into a nav drawer here.) */
+  { name: 'narrow desktop 800', w: 800, h: 700, dpr: 2 },
   { name: 'phone 390',              w: 390,  h: 780, dpr: 3 },
 ];
 const VIEWS = ['dashboard', 'register', 'calendar', 'intel', 'templates', 'team',
@@ -95,16 +97,17 @@ const PROBE = () => {
     const marketBefore = await page.evaluate(() => window.jxId());
 
     /* ---- SWITCH TO SWEDISH BY CLICKING THE CONTROL ----
+       (RE-POINTED 20 Oct 2026: on a computer the control is Settings › You's
+       language row, [data-st-lang]; the bar's #lang-switch is gone.)
        Not window.langSet(). Every earlier version of this test called the
        function directly, which is why it stayed green while the picker itself
        was invisible: the search bar was painted on top of it, so the switch
        worked and nobody could reach it. A test that drives the app through
        JavaScript proves the engine, not the button. */
     /* TWO SHELLS, TWO CONTROLS. Below 768 the desktop shell is hidden outright
-       and js/mobile*.js draws the app, so the header toggle does not exist
-       there at all — the phone carries its own language rows in the account
-       sheet. Between 768 and 900 the desktop shell survives but its header has
-       no room, and the toggle relocates into the nav drawer.
+       and js/mobile*.js draws the app — the phone carries its own language
+       rows in the account sheet. On a computer, at every width, the language
+       row of Settings › You.
 
        Every one of these paths is CLICKED. Reaching in with window.langSet is
        what let an invisible control pass for a working one. */
@@ -149,12 +152,12 @@ const PROBE = () => {
         if (cb) { await page.mouse.click(cb.x + cb.width / 2, cb.y + cb.height / 2); await page.waitForTimeout(350); }
         return;
       }
-      if (!await pressable()) { await page.click('#cmd-rail'); await page.waitForTimeout(450); }
-      const box = await (await page.$(`#lang-switch [data-lang="${lang}"]`)).boundingBox();
+      await openYou(lang);
+      const btn = await page.$(`[data-st-lang="${lang}"]`);
+      const box = btn ? await btn.boundingBox() : null;
       if (!box) throw new Error(`the ${lang} button has no box — it is not on screen`);
       await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
       await page.waitForTimeout(600);
-      await closeNav();
     };
 
     /* REACHABLE MEANS A THUMB LANDS ON IT — not that a selector finds it.
@@ -167,8 +170,8 @@ const PROBE = () => {
 
        So the question asked is the only one that matters: is the centre of
        the button inside the window, and is the button what is painted there? */
-    const pressable = () => page.evaluate(() => {
-      const b = document.querySelector('#lang-switch [data-lang="sv"]');
+    const pressable = lang => page.evaluate(l => {
+      const b = document.querySelector(`[data-st-lang="${l}"]`);
       if (!b) return false;
       const r = b.getBoundingClientRect();
       if (r.width < 1 || r.height < 1) return false;
@@ -176,28 +179,25 @@ const PROBE = () => {
       if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) return false;   // parked off-screen
       const hit = document.elementFromPoint(x, y);
       return !!hit && b.contains(hit);                                          // or covered over
-    });
-    const closeNav = async () => {
-      if (await page.evaluate(() => window.navDrawerActive && navDrawerActive()
-          && document.getElementById('side-nav')?.classList.contains('open'))) {
-        await page.evaluate(() => window.closeNavDrawer && closeNavDrawer());
-        await page.waitForTimeout(350);
-      }
+    }, lang || 'sv');
+    /* Settings › You, opened through its own door, the language row brought
+       into view the way a reader scrolls to it */
+    const openYou = async lang => {
+      await page.evaluate(() => { if (typeof window.openSettingsAt === 'function') window.openSettingsAt('you'); else window.setView('team'); });
+      await page.waitForFunction(l => !!document.querySelector(`[data-st-lang="${l}"]`), lang || 'sv', { timeout: 8000 }).catch(() => {});
+      await page.evaluate(l => { const b = document.querySelector(`[data-st-lang="${l}"]`); if (b) b.scrollIntoView({ block: 'center' }); }, lang || 'sv');
+      await page.waitForTimeout(450);
     };
 
-    /* WHERE it is allowed to be depends on the width, and each place has to be
-       reachable on its own terms: in the header outright, or one press of the
-       nav toggle away, or the phone's account sheet. */
+    /* WHERE it is allowed to be depends on the shell, and each place has to be
+       reachable on its own terms: Settings › You's language row on a
+       computer, the phone's account sheet. */
     let where = null;
     if (onPhone) {
       where = await page.$('[data-m-act="account"]') ? 'phone: account sheet' : null;
-    } else if (await pressable()) {
-      where = 'desktop: header toggle';
-    } else if (await page.$('#cmd-rail')) {
-      await page.click('#cmd-rail');
-      await page.waitForTimeout(450);
-      where = await pressable() ? 'desktop: nav drawer, one press away' : null;
-      await closeNav();
+    } else {
+      await openYou('sv');
+      where = await pressable('sv') ? 'desktop: Settings › You, the language row' : null;
     }
     check(`${S.name}: there is a language control a user can actually reach`,
       !!where, where || 'nothing a person could press');
@@ -245,13 +245,14 @@ const PROBE = () => {
       room.cut.length === 0 && room.spill.length === 0,
       [...room.cut.map(c => `${c.el} cut ${c.over}px`), ...room.spill.map(p => `page +${p}px`)].slice(0, 3).join(' | '));
 
-    // ---- switching BACK, from a screen that is not the dashboard ----
+    // ---- switching BACK, after a contract was open (on a computer through
+    //      Settings › You since 20 Oct 2026; on the phone from where it stands) ----
     await pick('en');
     const back = await page.evaluate(() => ({
       lang: document.documentElement.lang,
       nav: (document.querySelector('[data-i18n="nav_home"]') || {}).textContent || '',
     }));
-    check(`${S.name}: it switches back from inside a contract`,
+    check(`${S.name}: it switches back after a contract was open`,
       back.lang === 'en' && back.nav === 'Home', `lang=${back.lang} nav=${back.nav}`);
 
     // ---- and the choice survives a reload ----

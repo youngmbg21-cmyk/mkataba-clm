@@ -17,7 +17,9 @@
         offered again;
      5. Make smaller brings the card back and the panel returns;
      6. a kept view, enlarged, wears the same button;
-     7. the board's Light screen, photographed; no page errors.
+     7. the Board is always the light screen, even where an old Dark press
+        is still stored — its own Light | Dark switch is gone (Chambers,
+        21 Oct 2026) — photographed; no page errors.
    Copilot's answer is a stub (no key in CI); everything else is the app.
    Dates are built from today. Waits ask for the state, bounded.
    Screenshots go to test/chromium/shots/read-then-ask/.
@@ -50,8 +52,9 @@ const KEY = 'q:contracts by month signed';
 /* amber: red leads, green about half to four-fifths of it, blue far below —
    read from rgb() or from the color(srgb …) a color-mix() computes to.
    RE-POINTED 7 Oct 2026: by HUE, not brightness — the board lands Light
-   (6 Oct), whose amber is the deep #A24E07 that reads on white; the Dark
-   screen's is the bright #F2B24C. Teal (green over red) is never amber. */
+   (6 Oct), whose amber is the deep #A24E07 that reads on white (the Dark
+   screen, whose amber was the bright #F2B24C, was removed with Chambers,
+   21 Oct 2026). Teal (green over red) is never amber. */
 const isAmber = c => { const m = /rgba?\((\d+), (\d+), (\d+)/.exec(c) || /color\(srgb ([\d.]+) ([\d.]+) ([\d.]+)/.exec(c); if (!m) return false;
   const k = /srgb/.test(c) ? 255 : 1, [r, g, b] = [m[1], m[2], m[3]].map(x => Number(x) * k);
   return r > 120 && g / r >= 0.35 && g / r <= 0.85 && r - b > 100; };
@@ -94,7 +97,8 @@ const check = (name, pass, detail) => {
       window.copilotAvailable = () => true;
       window.copilotAsk = async (msgs) => { window._asked.push(msgs[0].content); await new Promise(r => setTimeout(r, 300));
         return { answer: 'Signing came in a late burst: 25 contracts landed in two months. 22 contracts were imported in one day. Worth checking which of the open ones are close to signing.' }; };
-      const s = hbS(); s.face = 'board'; s.prep = 'closed'; s.panels = []; s.why = {}; s.digBig = false; s.path = [k]; s.screen = 'dark';
+      const s = hbS(); s.face = 'board'; s.prep = 'closed'; s.panels = []; s.why = {}; s.digBig = false; s.path = [k];
+      /* (Chambers, 21 Oct 2026: the Board has no Dark screen to start on; stage 7 stores an old Dark press and asks that it is not read) */
       s.recipe = s.recipe || {}; s.recipe[k] = { which: 'all', pic: 'cols', split: { by: 'date', unit: 'm', date: 'signed' }, measure: 'count', trend: true };
       hbSave(); setView('dashboard'); }, KEY);
     const up = await until(() => !!document.querySelector('#hb-focus .hb-dig [data-hb-tools-more]'));
@@ -213,11 +217,20 @@ const check = (name, pass, detail) => {
     await page.waitForTimeout(600);
     await page.screenshot({ path: path.join(OUT, '8d-panel-asked.png') });
 
-    /* ================= 7. LIGHT ================= */
-    await page.evaluate(k => { const s = hbS(); s.panels = []; s.path = [k]; s.digBig = true; hbSave(); setView('dashboard'); }, KEY);
-    await until(() => document.querySelector('[data-hb-screen="light"]') ? true : null);
-    await page.click('[data-hb-screen="light"]');
+    /* ================= 7. LIGHT, ALWAYS =================
+       RE-POINTED 21 Oct 2026 (Chambers, the owner: "Let's not implement the
+       dark theme"): the Board's own Light | Dark switch is gone (HB_SCREENS,
+       [data-hb-screen]); the Board is always the light screen, only the
+       Explorer keeps its dark stage. Nothing to press: it is measured — with
+       the Dark press a reader made before Chambers still in the stored board
+       (s.screen = 'dark'), which must not be read. */
+    await page.evaluate(k => { const s = hbS(); s.panels = []; s.path = [k]; s.digBig = true; s.screen = 'dark'; hbSave(); setView('dashboard'); }, KEY);
     await until(() => document.querySelector('#hb-focus .hb-why .hb-why-b') ? true : null);
+    const scr = await page.evaluate(() => { const pg = document.getElementById('ig-page') || document.getElementById('hb-page');
+      return { sw: document.querySelectorAll('[data-hb-screen], .hb-scr').length, light: !!pg && pg.classList.contains('hb-light'),
+        dark: !!pg && pg.classList.contains('hb-dark'), now: hbScreenNow(), face: hbFace() }; });
+    check('7 the Board is always the light screen, an old stored Dark press not read: no Light | Dark switch is drawn',
+      scr.face === 'board' && scr.sw === 0 && scr.light && !scr.dark && scr.now === 'light', JSON.stringify(scr));
     await page.waitForTimeout(1200);
     await page.screenshot({ path: path.join(OUT, '7-light.png') });
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');

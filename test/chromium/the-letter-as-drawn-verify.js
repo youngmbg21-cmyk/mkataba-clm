@@ -85,8 +85,10 @@ async function mkUser(h, admin, name, email){
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await waitFor(page, () => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-0382'), 20000);
     await page.keyboard.press('Escape').catch(() => {});
-    const en = await page.$('.lang-btn[data-lang="en"]'); if (en) await en.click();
-    await page.evaluate(() => { try { setBrand('green'); } catch (_) {} try { saveLinkCodeCfg({ on: true }); } catch (_) {} });
+    /* RE-POINTED 20 Oct 2026 (the owner picked "Chambers"): the bar's language
+       switch and the brand picker are gone — langSet is the one language
+       writer, and there is one look, so no brand is chosen */
+    await page.evaluate(() => { if (typeof langId === 'function' && langId() !== 'en') langSet('en'); try { saveLinkCodeCfg({ on: true }); } catch (_) {} });
     if (await page.evaluate(() => typeof flushSaves === 'function')) await page.evaluate(async () => { await flushSaves(); });
     const cls = await page.evaluate(async () => { const c = getContract('MK-0382'); if (c._light && typeof ensureFull === 'function') await ensureFull(c);
       return negoClauseList(c).map(k => ({ id: k.clauseId, label: clauseLabel(k), text: String(k.text || k.body || '').trim() })); });

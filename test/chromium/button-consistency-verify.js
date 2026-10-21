@@ -15,7 +15,8 @@
    sections, run edges first on the untouched book, then the squeeze, then
    Home, so no stage leaks into another section's measurement:
      3 · one light grey edge — the Document tab's row the owner photographed,
-         Home, Contracts, the Negotiate page, a sweep, the night theme, a wall;
+         Home, Contracts, the Negotiate page, a sweep, no night theme left to
+         follow (Chambers, 20 Oct 2026: dark mode removed), a wall;
      1 · no label wraps — the owner's own squeeze, long titles on the Approvals
          page at four widths, and a sweep of the working pages at 1024;
      2 · Home's two cards — a desk row STAGED on real records (the sample book
@@ -103,8 +104,10 @@ const HELPERS = `(() => {
     await page.click('#su-go');
     await page.waitForTimeout(3500);
     await page.keyboard.press('Escape').catch(() => {});
-    /* The owner's own look: the navy workspace in the light theme. */
-    await page.evaluate(() => { try { setBrand('navy'); } catch (e) {} try { setDark(false); } catch (e) {} try { applyAppearance(); } catch (e) {} });
+    /* The owner's own look: RE-POINTED 21 Oct 2026 (Chambers, owner's pick
+       20 Oct 2026: "Let's not implement the dark theme. Remove it from
+       HaTi"): there is one look, no brand and no night to choose, so the
+       page is measured as it lands. */
     const load = () => page.evaluate(HELPERS);
     await load();
     const id = await page.evaluate(() => { const c = state.contracts.find(c => c.status === 'Under Review') || state.contracts[0]; return c && c.id; });
@@ -146,7 +149,7 @@ const HELPERS = `(() => {
       /* RE-POINTED 13 Oct 2026 (owner: the paper's zoom goes back to what it
          was): the stepper is the paper's instrument, not an act, and reads
          the hairline (--chip-edge); Open Negotiate keeps the accent edge. */
-      return { want, hair: b.tok('--chip-edge'), light: b.tok('--color-neutral-200'), accent: b.tok('--accent-solid'), fill: b.bg('--accent-fill'),
+      return { want, hair: b.tok('--chip-edge'), rule: b.tok('--rule-strong'), field: b.tok('--field-line'), accent: b.tok('--accent-solid'), fill: b.bg('--accent-fill'),
         nego: negoEdge, step: b.edge(step), thStep: b.edge(thStep), switchGone: !document.querySelector('[data-doc-read]') };
     }, negoEdge);
     ok('3a the controls the owner photographed paint ONE edge — Open Negotiate and the stepper; the switch is gone',
@@ -158,7 +161,14 @@ const HELPERS = `(() => {
     /* RE-POINTED 12 Oct 2026 to the accent (the SAP way), and BACK 13 Oct 2026
        (owner: "revert all the buttons back to the previous thin grey
        outline"): the one edge is the ramp's light divider step again. */
-    ok('3b and it is the LIGHT edge, the ramp\'s divider step', !!row.light && row.want === row.light && row.want !== row.accent, `${row.want} vs ${row.light}`);
+    /* RE-POINTED 21 Oct 2026 (Chambers, owner's pick 20 Oct 2026): the one
+       edge is the strong rule (--btn-edge reads --rule-strong), a step
+       firmer than the divider so it stands on the warm ground — still a
+       light grey hairline, lighter than a text box's own edge, never the
+       black of the filled controls. */
+    ok('3b and it is the light grey RULE, the strong hairline — not a text box\'s edge, not the ink',
+      !!row.rule && row.want === row.rule && row.want !== row.accent && row.want !== row.field,
+      `${row.want} vs --rule-strong ${row.rule} · --field-line ${row.field} · ink ${row.accent}`);
     ok('3c the open row\'s Plain English takes the same edge', !!row.thStep && row.thStep === row.want, `step ${row.thStep}`);
 
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): every door
@@ -188,10 +198,11 @@ const HELPERS = `(() => {
         if (!b.vis(el)) continue;
         const r = el.getBoundingClientRect(); if (r.height > 36) continue;
         if (el.querySelector('div,p,li,ul,table,h2,h3,h4,section')) continue;
-        if (el.closest('#top-header')) continue;          /* the navy bar's controls are white-on-navy by design */
+        if (el.closest('#top-header')) continue;          /* the bar's controls are its own furniture (white bar, no boxes since Chambers) */
         if (el.classList.contains('nav-section-head')) continue;   /* on the 64px rail a group is a hairline divider, not an outlined control */
         if (el.matches('.reg-filterbar .reg-chip:not(.on)')) continue;   /* a resting FILTER keeps its hairline (--chip-edge); the accent says it is in force */
         if (el.matches('.rl-type-step')) continue;   /* the paper's zoom keeps its hairline (owner, 13 Oct 2026) */
+        if (el.matches('.cal-wk-slot')) continue;    /* an hour of the Calendar's week grid: a press area whose only edge is the grid's hour line (top only, the divider), not an outlined control — it matched only while --btn-edge was the divider (Chambers, 20 Oct 2026) */
         const cs = getComputedStyle(el);
         if (!(parseFloat(cs.borderTopWidth) >= 0.5) || cs.borderTopStyle === 'none') continue;
         const col = cs.borderTopColor; if (/rgba\\([^)]*,\\s*0\\)$/.test(col) || col === 'transparent') continue;
@@ -216,25 +227,20 @@ const HELPERS = `(() => {
     ok('3f a sweep of seven working pages finds no outlined control resting on another edge',
       swept.length === 0, swept.length ? swept.slice(0, 8).join(' | ') : 'every one reads --btn-edge');
 
-    /* RE-POINTED 14 Oct 2026 (stage 5): the sweep above now ends on Home
-       (Signing's twin), whose buttons ease their edge in over 0.12s
-       (transition: border-color) — read at once, a button reports the edge it
-       is leaving. So the turn to night is waited for, bounded, then read. */
-    await page.evaluate(() => { try { setDark(true); applyAppearance(); } catch (e) {} });
-    await page.waitForFunction(() => { const b = window.__b; const el = [...document.querySelectorAll('.ui-btn:not(.ui-btn-primary)')].find(b.vis);
-      return !!el && b.edge(el) === b.tok('--btn-edge'); }, null, { timeout: 2000 }).catch(() => {});
+    /* RE-POINTED 21 Oct 2026 (Chambers, owner's pick 20 Oct 2026: "Let's
+       not implement the dark theme. Remove it from HaTi"): this claim was
+       the edge followed into the night. There is no night now, so it is
+       asked that none is left to follow: no night switch published, no
+       dark class on the page, and the button's edge is still the one rule. */
     const night = await page.evaluate(() => {
       const b = window.__b; const want = b.tok('--btn-edge');
       const el = [...document.querySelectorAll('.ui-btn:not(.ui-btn-primary)')].find(b.vis);
-      const div = b.tok('--color-divider');
-      const out = { want, div, btn: b.edge(el) };
-      try { setDark(false); applyAppearance(); } catch (e) {}
-      return out; });
-    /* RE-POINTED 12 Oct 2026 (the SAP way, owner's pick): the edge is the
-       accent now, at night its lighter ink — still not the night divider. */
-    ok('3g [control] at night the edge stays VISIBLE — the accent\'s night ink, not the day token followed into the dark',
-      night.btn === night.want && night.want !== night.div,
-      `edge ${night.want} · button ${night.btn} · night divider ${night.div}`);
+      return { want, btn: b.edge(el), rule: b.tok('--rule-strong'),
+        switches: ['setDark', 'toggleDark', 'applyAppearance', 'setTheme', 'setBrand'].filter(n => typeof window[n] === 'function'),
+        dark: document.documentElement.classList.contains('dark') || document.body.classList.contains('dark') || document.documentElement.hasAttribute('data-brand') }; });
+    ok('3g no night theme is left to follow — no switch published, no dark class, and the edge stays the one rule',
+      night.switches.length === 0 && !night.dark && !!night.btn && night.btn === night.want && night.want === night.rule,
+      `switches ${night.switches.join(',') || 'none'} · dark ${night.dark} · button ${night.btn} · edge ${night.want}`);
 
     const wall = await page.evaluate(i => { try { openShareModal(getContract(i)); } catch (e) {} return i; }, id);
     await page.waitForTimeout(1500); await load();

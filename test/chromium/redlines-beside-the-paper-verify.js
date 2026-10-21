@@ -90,7 +90,9 @@ const bands = () => [...document.querySelectorAll('#pd-redface .rl-band')].map(b
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await waitFor(page, () => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-R1'), 20000);
     await page.keyboard.press('Escape').catch(() => {});
-    const en = await page.$('.lang-btn[data-lang="en"]'); if (en) await en.click();
+    /* RE-POINTED 20 Oct 2026 (Chambers): the bar's language switch is gone;
+       the language is Settings › You's, whose one writer is langSet */
+    await page.evaluate(() => { if (typeof window.langSet === 'function') window.langSet('en'); });
     /* their round: three asks, sent from their link */
     const cls = await page.evaluate(async () => { const c = getContract('MK-R1'); if (c._light && typeof ensureFull === 'function') await ensureFull(c);
       return negoClauseList(c).map(k => ({ id: k.clauseId, label: clauseLabel(k), text: String(k.text || k.body || '').trim() })); });
@@ -331,14 +333,16 @@ const bands = () => [...document.querySelectorAll('#pd-redface .rl-band')].map(b
     await page.setViewportSize({ width: 1440, height: 780 }); await pause(300);
 
     /* ===== 11. SVENSKA, AND THE PHONE ===== */
-    const sv = await page.$('.lang-btn[data-lang="sv"]'); if (sv) { await sv.click(); await pause(800); }
+    await page.evaluate(() => { if (typeof window.langSet === 'function') window.langSet('sv'); }); await pause(800);
     await page.evaluate(() => { if (!document.getElementById('pd-redface')) pdRedOpen('MK-R1'); });
     await waitFor(page, () => !!document.getElementById('pd-redface'), 5000);
-    const s11 = await page.evaluate(() => ({ nego: ((document.querySelector('#pd-redface [data-pd-rf-nego]') || {}).textContent || '').trim(),
+    const s11 = await page.evaluate(() => ({ lang: document.documentElement.lang, nego: ((document.querySelector('#pd-redface [data-pd-rf-nego]') || {}).textContent || '').trim(),
       title: ((document.querySelector('#pd-redface .rl-idx-title') || {}).textContent || '').trim(), x: (document.querySelector('#ig-dock [data-pd-back="red"]') || {}).title }));
-    check('11a Svenska: the face speaks the reader\'s language', !s11.nego && !/Redlines/.test(s11.title) && !/Close/.test(s11.x || ''), JSON.stringify(s11));
+    /* the switch is langSet now, so the check also asks that the page IS in
+       Swedish and the face is drawn — an absent face says no English either */
+    check('11a Svenska: the face speaks the reader\'s language', s11.lang === 'sv' && !!s11.title && !s11.nego && !/Redlines/.test(s11.title) && !/Close/.test(s11.x || ''), JSON.stringify(s11));
     await shot('11-svenska');
-    const en2 = await page.$('.lang-btn[data-lang="en"]'); if (en2) { await en2.click(); await pause(500); }
+    await page.evaluate(() => { if (typeof window.langSet === 'function') window.langSet('en'); }); await pause(500);
     await page.setViewportSize({ width: 390, height: 844 }); await pause(600);
     await page.evaluate(() => openRedlineWorkbench('MK-R1', { face: true }));
     await pause(1200);

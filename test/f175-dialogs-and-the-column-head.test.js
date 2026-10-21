@@ -335,7 +335,7 @@ describe('f175 · the Tracked Changes head is a rule, not a box', () => {
     assert.ok(/\.rl-fseg\.on\{[^}]*border-bottom-color:var\(--accent-solid\)/.test(p.css()),
       'the live tab is marked by its underline');
     assert.ok(/\.rl-fseg\.on\{[^}]*color:var\(--accent-ink\)/.test(p.css()),
-      'and by the accent ink — --accent-ink, so the dark theme follows with no second rule');
+      'and by the accent ink — --accent-ink, the one token, with no second rule');
     assert.ok(!/\.rl-fseg\.on \.rl-fseg-n\{/.test(p.css()),
       'the fill is gone with the box it filled');
 

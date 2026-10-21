@@ -69,7 +69,8 @@ const ok = (name, good, detail) => {
     await page.fill('#su-email', 'admin@example.co.ke'); await page.fill('#su-pass', 'adminpassword1');
     const sample = await page.$('#su-sample'); if (sample && !(await sample.isChecked())) await sample.check();
     await page.click('#su-go'); await page.waitForTimeout(3500); await page.keyboard.press('Escape').catch(() => {});
-    const en = await page.$('.lang-btn[data-lang="en"]'); if (en) { await en.click(); await page.waitForTimeout(800); }
+    /* RE-POINTED 20 Oct 2026 (Chambers): the bar carries no language switch; langSet is the one writer */
+    await page.evaluate(() => { if (typeof langSet === 'function') langSet('en'); }); await page.waitForTimeout(400);
 
     /* ---- the stage ---- */
     const staged = await page.evaluate(async () => {
@@ -328,12 +329,14 @@ const ok = (name, good, detail) => {
        RETIRED AT STEP 7 with the Contracts page's panel (MK-131 stands on no
        other list); the rule stays pinned by f395 and every other list's panel. */
 
-    /* ================= 7 · THE NIGHT THEME READS THE SAME TOKENS ================= */
-    await page.evaluate(() => { if (typeof setDark === 'function') setDark(true); });
+    /* ================= 7 · ONE THEME, AND IT READS THE TOKENS =================
+       RE-POINTED 20 Oct 2026 (the owner picked "Chambers" and removed dark
+       mode): there is no night theme to switch to any more, so 7a asserts that
+       (no setDark, no dark class) and measures the one theme instead — the late
+       row's dot is the ruby token's own, the section's name reads at 4.5:1 or
+       better. */
     await toContracts();
-    const dark = (await pick('MK-149')) ? await page.evaluate(() => {
-      /* RE-POINTED 18 Oct 2026: the late row's dot takes the ruby token's night
-         answer, and the section's name reads on the panel at 4.5:1 or better */
+    const one = (await pick('MK-149')) ? await page.evaluate(() => {
       const n = document.querySelector('#ins-panel .jl-needs');
       if (!n) return null;
       const tok = v => { const e = document.createElement('i'); e.style.cssText = 'position:absolute;color:var(' + v + ')'; document.body.appendChild(e); const c = getComputedStyle(e).color; e.remove(); return c; };
@@ -344,13 +347,12 @@ const ok = (name, good, detail) => {
       const ratio = (f, b) => { const a = lum(f), c = lum(b); return (Math.max(a, c) + 0.05) / (Math.min(a, c) + 0.05); };
       const hcs = getComputedStyle(head);
       const dotBg = dot ? getComputedStyle(dot).backgroundColor : null;
-      return { dot: dotBg, rubyDot: (() => { const e = document.createElement('i'); e.style.cssText = 'position:absolute;background:var(--st-ruby-dot)'; document.body.appendChild(e); const c = getComputedStyle(e).backgroundColor; e.remove(); return c; })(),
+      return { setDark: typeof window.setDark, darkClass: document.documentElement.classList.contains('dark'), dot: dotBg, rubyDot: (() => { const e = document.createElement('i'); e.style.cssText = 'position:absolute;background:var(--st-ruby-dot)'; document.body.appendChild(e); const c = getComputedStyle(e).backgroundColor; e.remove(); return c; })(),
         headInk: hcs.color, headBg: bgOf(head), contrast: +ratio(hcs.color, bgOf(head)).toFixed(2), rubyFg: tok('--st-ruby-fg') };
     }) : null;
-    ok('7a at night the late row\'s dot takes the ruby token\'s own night answer, and the section\'s name reads at 4.5:1 or better',
-      !!dark && !!dark.dot && dark.dot === dark.rubyDot && dark.contrast >= 4.5, JSON.stringify(dark));
-    await page.screenshot({ path: path.join(OUT, '7-night.png') });
-    await page.evaluate(() => { if (typeof setDark === 'function') setDark(false); });
+    ok('7a no night theme to switch to; the late row\'s dot takes the ruby token\'s own answer, and the section\'s name reads at 4.5:1 or better',
+      !!one && one.setDark === 'undefined' && !one.darkClass && !!one.dot && one.dot === one.rubyDot && one.contrast >= 4.5, JSON.stringify(one));
+    await page.screenshot({ path: path.join(OUT, '7-one-theme.png') });
 
     /* ================= 8 · HOME'S ROWS AND THE BELL'S ROWS GO WHERE THE BUTTONS WENT =================
        (Young, 27 Sep 2026: "Yes, make them go straight to the right place".)

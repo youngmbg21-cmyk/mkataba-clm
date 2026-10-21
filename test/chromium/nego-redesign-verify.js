@@ -676,30 +676,35 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       `cards ${geom.cardsScrollsItself} · contract ${geom.docScrollsItself}`);
     check('10 nothing makes the page scroll sideways', !geom.pageScrollsSideways);
 
-    /* ---- 11. DARK, AND THE ACCENT INK SURVIVES IT ---- */
-    await page.evaluate(() => setTheme('dark'));
-    await pause(1500);
-    const dark = await page.evaluate(() => {
-      const rgb = s => (s.match(/\d+/g) || []).map(Number);
+    /* ---- 11. NO DARK THEME, AND THE LIVE TAB AND THE WAY BACK READ ----
+       RE-POINTED 21 Oct 2026 (Chambers; the owner: "Let's not implement the
+       dark theme. Remove it from HaTi."): the dark pass is gone — there is no
+       theme to switch to (setTheme deleted, nothing adds the `dark` class).
+       What it protected — the live tab and the way back readable — is held
+       on the one theme, each read against the ground it actually stands on
+       (its own fill where it has one, else the nearest painted ground
+       behind it). The fault the dark
+       pass caught (accent-800 on an almost-black bar, 2.4:1) cannot recur. */
+    const lightRead = await page.evaluate(() => {
+      const rgba = s => { const n = (String(s).match(/[\d.]+/g) || []).map(Number); const k = /srgb/.test(s) ? 255 : 1;
+        return { c: n.slice(0, 3).map(v => v * k), a: n.length > 3 ? n[3] : 1 }; };
       const lum = c => { const [r, g, b] = c.map(v => { v /= 255;
         return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
         return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
-      const ratio = (a, b) => { const l1 = lum(rgb(a)), l2 = lum(rgb(b));
+      const ground = el => { for (let e = el; e && e !== document.documentElement; e = e.parentElement){
+        const g = rgba(getComputedStyle(e).backgroundColor); if (g.a > 0.5) return g.c; } return [255, 255, 255]; };
+      const ratio = el => { const l1 = lum(rgba(getComputedStyle(el).color).c), l2 = lum(ground(el));
         return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05); };
       const tab = document.querySelector('#view-redline .rl-readwrap .rl-seg.on');
-      const bar = document.querySelector('#view-redline .rl-tabrow');
       const back = document.querySelector('#view-redline .rl-livelist');
-      return { tab: ratio(getComputedStyle(tab).color, getComputedStyle(bar).backgroundColor),
-        back: ratio(getComputedStyle(back).color, getComputedStyle(bar).backgroundColor) };
+      return { tab: tab ? ratio(tab) : 0, back: back ? ratio(back) : 0,
+        setTheme: typeof window.setTheme, setDark: typeof window.setDark, dark: document.documentElement.classList.contains('dark') };
     });
-    await page.screenshot({ path: path.join(OUT, '05-dark.png') });
-    /* THE FAULT THIS CATCHES, and it is one this page has had before: the dark
-       theme does not redefine the accent ramp, so accent-800 is a deep green on
-       an almost-black bar — 2.4:1, invisible. Found by photographing it. */
-    check('11 the live tab is readable in dark', dark.tab >= 4, dark.tab.toFixed(1) + ':1');
-    check('11 and so is the way back', dark.back >= 4, dark.back.toFixed(1) + ':1');
-    await page.evaluate(() => setTheme('light'));
-    await pause(1200);
+    await page.screenshot({ path: path.join(OUT, '05-light.png') });
+    check('11 there is no dark theme to switch to, and the page is not dark',
+      lightRead.setTheme === 'undefined' && lightRead.setDark === 'undefined' && !lightRead.dark, JSON.stringify(lightRead));
+    check('11 the live tab is readable on its ground', lightRead.tab >= 4, lightRead.tab.toFixed(1) + ':1');
+    check('11 and so is the way back', lightRead.back >= 4, lightRead.back.toFixed(1) + ':1');
 
     /* ---- 12. AND THE ROW STILL FITS ON A LAPTOP ---- */
     for (const w of [1280, 1366, 1440]){

@@ -6,7 +6,9 @@
    the navy bubble, and the reference inside it is a door onto the contract.
      1  the reference in the reader's bubble reads against the bubble (≥ 4.5)
      2  it is still a door (a button that opens the contract)
-     3  the same in the app's dark theme
+     3  there is no dark theme left to read it in (RE-POINTED 20 Oct 2026:
+        the owner picked "Chambers" and removed dark mode — "Let's not
+        implement the dark theme. Remove it from HaTi.")
      4  Copilot's answer keeps its own accent-ink reference (unchanged)
    AT THE PARENT 1 FAILS: accent ink on the navy bubble measured 1.42.
    ============================================================ */
@@ -44,7 +46,8 @@ const DOC = 'SUPPLY AGREEMENT\n\nArticle 1 Term\n\nThis Agreement runs for twelv
     }
     await page.waitForFunction(() => window.state && Array.isArray(state.contracts) && state.contracts.some(c => c.id === 'MK-RQ1'), null, { timeout: 15000 }).catch(() => {});
     await page.keyboard.press('Escape').catch(() => {});
-    const en = await page.$('.lang-btn[data-lang="en"]'); if (en) await en.click();
+    /* RE-POINTED 20 Oct 2026 (Chambers): the bar's language switch is gone; langSet is the one writer */
+    await page.evaluate(() => { if (typeof langId === 'function' && langId() !== 'en') langSet('en'); });
     await page.evaluate(() => setView('dashboard'));
     await page.waitForSelector('#igd-input', { timeout: 10000 }).catch(() => {});
     await page.evaluate(() => intelAsk('Put MK-RQ1 on hold, budget freeze'));
@@ -64,14 +67,9 @@ const DOC = 'SUPPLY AGREEMENT\n\nArticle 1 Term\n\nThis Agreement runs for twelv
     ok('1 the reference in my own question reads against the bubble (≥ 4.5)', marked && light.mine >= 4.5, JSON.stringify(light));
     ok('2 it is still a door onto the contract', light.door);
     await page.screenshot({ path: path.join(OUT, '1-light.png') });
-    await page.evaluate(() => { if (typeof setDark === 'function') setDark(true); });
-    await page.waitForFunction(() => document.documentElement.classList.contains('dark'), null, { timeout: 5000 }).catch(() => {});
-    await page.evaluate(() => { if (typeof renderIntelDock === 'function') renderIntelDock(); });
-    await page.waitForFunction(() => !!document.querySelector('#igd-feed .ai-msg.justify-end .ig-ref-go'), null, { timeout: 5000 }).catch(() => {});
-    const dark = await measure();
-    ok('3 and in the dark theme', dark.mine >= 4.5, JSON.stringify(dark));
-    await page.screenshot({ path: path.join(OUT, '2-dark.png') });
-    await page.evaluate(() => { if (typeof setDark === 'function') setDark(false); });
+    const night = await page.evaluate(() => ({ dark: document.documentElement.classList.contains('dark'),
+      fns: ['setDark', 'toggleDark', 'setTheme', 'applyTheme'].filter(n => typeof window[n] === 'function') }));
+    ok('3 there is no dark theme left to read it in — no switch published, the page never wears dark', !night.dark && night.fns.length === 0, JSON.stringify(night));
     await page.evaluate(() => intelAsk('Summarise MK-RQ1'));
     const answered = await page.waitForFunction(() => !!document.querySelector('#igd-feed .ai-msg:not(.justify-end) .ig-ref-go'), null, { timeout: 8000 }).then(() => true, () => false);
     if (answered) {

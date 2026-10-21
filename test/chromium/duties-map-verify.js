@@ -4,8 +4,9 @@
    companies' circles piled in the map's top-left corner, names overlapping,
    the "we owe" curve in two stubs). The Safari cause (a CSS pop-in transform
    replacing a node's SVG transform) is pinned in f442 (9); WebKit is not
-   installed here. In Chromium, at 1440, 1280 and 1100, light and dark, with
-   0, 1 and 9 duties:
+   installed here. In Chromium, at 1440, 1280 and 1100, with 0, 1 and 9
+   duties (light only: dark mode was removed from HaTi with Chambers, 21 Oct
+   2026, so the dark pass is gone):
      1. our circle's centre is left of 0.4 of the map, theirs right of 0.6
      2. no two labels in the map overlap (names, curve labels)
      3. the upper curve is mostly visible: its label sits above it
@@ -45,7 +46,7 @@ const BOOK = [['MK-D0', 0], ['MK-D1', 1], ['MK-D9', 9]];
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const errors = [];
   try {
-    for (const dark of [false, true]) for (const width of [1440, 1280, 1100]) {
+    for (const width of [1440, 1280, 1100]) {
       const page = await (await browser.newContext({ viewport: { width, height: 900 } })).newPage();
       page.on('pageerror', e => errors.push(e.message));
       const until = async (fn, arg, ms = 8000) => { let v; const t0 = Date.now();
@@ -56,9 +57,8 @@ const BOOK = [['MK-D0', 0], ['MK-D1', 1], ['MK-D9', 9]];
       await page.fill('#li-pass', 'adminpassword1');
       await page.click('#li-go');
       await page.waitForFunction(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-D9'), null, { timeout: 20000 });
-      if (dark) await page.evaluate(() => setDark(true));
       for (const [id, n] of BOOK) {
-        const tag = `${dark ? 'dark' : 'light'} ${width} ${n} duties`;
+        const tag = `light ${width} ${n} duties`;
         /* RE-POINTED 15 Oct 2026 (step 8, the room retired): the duties map
            is drawn in the Overview's sheet, the contract strip's Details page
            on Home's Board — where the reader sees it now (roomOverviewOpen) */

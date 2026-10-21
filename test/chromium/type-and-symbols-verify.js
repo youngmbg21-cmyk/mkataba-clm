@@ -54,7 +54,8 @@ const SHELL_ICONS = [
   /* #brand-mark is RETIRED with the 44px shell bar (24 Aug 2026): a 40px tile
      does not fit, and the wordmark stays as live text. */
   ['.cmd-search',                'i-search'],
-  /* #cmd-ai wears Jambo's face, not #i-spark, since 12 Oct 2026 (owner); checked below */
+  /* #cmd-ai wears Jambo's face, not #i-spark, since 12 Oct 2026 (owner); since 20 Oct 2026
+     (Chambers) that face on a computer is the ✦ mark, an inline path; checked below */
   ['#hdr-notify',                'i-bell'],
   ['#cmd-panel',                 'i-clock'],   /* DECIDE 2, 20 Sep 2026: Recent activity is behind the clock */
   ['#side-logout',               'i-out'],
@@ -185,9 +186,12 @@ const SHELL_ICONS = [
       return { loaded: document.fonts.check("16px 'Source Serif 4'", 'Agreement'), wFace: probe("'Source Serif 4'"), wFallback: probe('serif') };
     });
     /* RE-POINTED 6 Oct 2026 (Clean Sans): the paper you read names the
-       platform face; the signing copy and print keep the serif token. */
-    check('the reading paper token names the platform face (Clean Sans)',
-      /^'?Geist'?/.test(mono.doc), mono.doc);
+       platform face; the signing copy and print keep the serif token.
+       RE-POINTED 20 Oct 2026 (the owner picked "Chambers"; reverses Clean
+       Sans): THE PAPER YOU READ IS SERIF again — --font-doc names Source
+       Serif 4 first, the same face the signing copy wears. */
+    check('the reading paper token names Source Serif 4 first (Chambers; Clean Sans reversed)',
+      /^'?Source Serif 4'?/.test(mono.doc), mono.doc);
     check('the signing-copy token names Source Serif 4 first',
       /^'?Source Serif 4'?/.test(mono.serif), mono.serif);
     check('and the serif genuinely loaded from fonts/',
@@ -261,9 +265,23 @@ const SHELL_ICONS = [
        seven icons are not painted on a computer; the bar's are what is left to measure */
     check('most of the shell was measured, not merely referenced', painted >= 4,
       `${painted} painted`);
-    const door = await page.evaluate(() => { const i = document.querySelector('#cmd-ai img.jambo-face'); const r = i && i.getBoundingClientRect();
-      return r ? { w: Math.round(r.width), h: Math.round(r.height), ok: i.complete && i.naturalWidth > 0 } : null; });
-    check('#cmd-ai, the one Jambo door, shows his face, painted', !!door && door.w > 8 && door.h > 8 && door.ok, JSON.stringify(door));
+    /* RE-POINTED 20 Oct 2026 (the owner picked "Chambers"): on a computer the
+       door keeps Jambo's ✦ mark — an inline <svg> path, no picture and no
+       <use> — in the bar's quiet ink (--bar-ink-2); the bird is the phone's.
+       PAINTED means a real box, a drawn path, an ink that is not transparent
+       and is the bar's quiet ink, and the mark itself is what is under the
+       pointer at its centre. */
+    const door = await page.evaluate(() => { const b = document.getElementById('cmd-ai'); const i = b && b.querySelector('svg'); const r = i && i.getBoundingClientRect();
+      if (!r) return null;
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      const probe = document.createElement('i'); probe.style.color = 'var(--bar-ink-2)'; document.getElementById('top-header').appendChild(probe);
+      const quiet = getComputedStyle(probe).color; probe.remove();
+      return { w: Math.round(r.width), h: Math.round(r.height), path: !!i.querySelector('path[d]'), use: !!i.querySelector('use'),
+        ink: getComputedStyle(i).color, quiet, onMark: !!(hit && (hit === i || i.contains(hit))), bird: !!b.querySelector('img') }; });
+    check('#cmd-ai, the one Jambo door, shows his ✦ mark, painted in the bar\'s quiet ink — not the bird',
+      !!door && door.w > 8 && door.h > 8 && door.path && !door.use && !door.bird && door.onMark
+        && !/rgba\([^)]*,\s*0\)$/.test(door.ink) && door.ink === door.quiet,
+      JSON.stringify(door));
 
     /* Every <use> anywhere in the shell must point at a symbol that exists —
        the named list above proves the ones we meant to change; this catches a

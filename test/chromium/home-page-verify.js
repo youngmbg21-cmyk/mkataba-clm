@@ -19,7 +19,10 @@
        AGREE, and that can only be proved by pressing the tile and counting
        what arrives;
      · the dark theme's accent ink has been the fault on this page before, so
-       it is measured rather than eyeballed.
+       it is measured rather than eyeballed. RE-POINTED 20 Oct 2026 (Chambers,
+       owner: "Remove it from HaTi"): there is no dark theme and no theme
+       button any more, so section 8 asks that none is drawn and measures the
+       one act in the one look; the bar is white (--bar-bg) with a hairline.
 
    Screenshots go to test/chromium/shots/home-page/.
    Run: node test/chromium/home-page-verify.js */
@@ -102,9 +105,24 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       probe.remove();
       return bg;
     });
-    check('1 the bar is 48px and carries the WORKSPACE\'S OWN brand ground',
-      shell.bar.h === 48 && shell.bar.bg === barGround && shell.bar.ink === 'rgb(255, 255, 255)',
-      `${shell.bar.h}px · bar ${shell.bar.bg} · --nav-bg ${barGround} · ink ${shell.bar.ink}`);
+    /* RE-POINTED 20 Oct 2026 (Chambers): the bar is WHITE again — its own
+       --bar-bg (#fff) with the text ink (--bar-ink) and a hairline under it
+       (--bar-edge); --nav-bg is only the lit tab's underline now. Still a
+       RELATION: the bar must equal its own tokens, resolved live inside it. */
+    const barTok = await page.evaluate(() => {
+      const bar = document.getElementById('top-header'); if (!bar) return null;
+      const probe = document.createElement('span');
+      probe.style.cssText = 'position:absolute;left:-9999px;background:var(--bar-bg);color:var(--bar-ink);border-top:1px solid var(--bar-edge)';
+      bar.appendChild(probe);
+      const c = getComputedStyle(probe), o = { bg: c.backgroundColor, ink: c.color, edge: c.borderTopColor };
+      probe.remove();
+      const b = getComputedStyle(bar); o.barEdge = b.borderBottomColor; o.barEdgeW = b.borderBottomWidth;
+      return o;
+    });
+    check('1 the bar is 48px, WHITE in its own --bar-bg, the text ink on it, a hairline under it',
+      shell.bar.h === 48 && !!barTok && shell.bar.bg === barTok.bg && barTok.bg === 'rgb(255, 255, 255)' && shell.bar.ink === barTok.ink
+      && barTok.barEdge === barTok.edge && barTok.barEdgeW === '1px',
+      `${shell.bar.h}px · bar ${shell.bar.bg} · --bar-bg ${barTok && barTok.bg} · ink ${shell.bar.ink}/${barTok && barTok.ink} · edge ${barTok && barTok.barEdgeW} ${barTok && barTok.barEdge} · (--nav-bg ${barGround})`);
     /* REVISED 25 Aug 2026. This ran at 1440 and asserted the column rests OPEN
        at 240. That was true while the float line sat at 1280, which put 1440
        above it — and the owner reported the shove back on a ThinkPad, so the
@@ -396,9 +414,14 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     await page.keyboard.press('Escape');
     await page.waitForTimeout(400);
 
-    /* ================= 8. THE DARK THEME'S ACCENT INK ==================== */
+    /* ================= 8. THE ONE LOOK — NO DARK THEME ====================
+       RE-POINTED 20 Oct 2026 (Chambers; owner: "Let's not implement the dark
+       theme. Remove it from HaTi."). This section pressed #theme-btn and
+       measured the one act at night; there is no night now. What stands: no
+       theme button is drawn, the page never wears the dark class, and the one
+       act is legible in the one look. */
     /* This page has been caught here before: the accent ramp has no dark
-       answer, so anything reading it directly goes dim at night. */
+       answer, so anything reading it directly went dim at night. */
     /* RE-POINTED (the overnight work order, step 3, 15 Oct 2026): Home's head
        carries no "+ Draft new agreement" now — drafting is Jambo's — so the
        one filled act on Home is the drop area's "Choose a file" on the
@@ -407,27 +430,22 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
        section 9 */
     await page.evaluate(() => { hbSetFace('paper'); if (typeof igPickAgain === 'function') igPickAgain(); });
     await page.waitForFunction(() => !!document.querySelector('#pd-drop [data-pd-drop-pick]'), null, { timeout: 6000 }).catch(() => {});
-    await page.click('#theme-btn');
-    await page.waitForTimeout(1400);
-    const dark = await page.evaluate(() => {
-      const b = document.querySelector('#pd-drop [data-pd-drop-pick]'), c = getComputedStyle(b);
-      return { bg: c.backgroundColor, ink: c.color, edge: c.borderTopColor,
-        page: getComputedStyle(document.body).backgroundColor,
-        /* RE-POINTED 3 Oct 2026: the head row is the platform's surface on
-           Home (the board below it is the screen's own Dark | Light). */
-        tile: getComputedStyle(document.getElementById('hb-head')).backgroundColor };
+    const one = await page.evaluate(() => {
+      const b = document.querySelector('#pd-drop [data-pd-drop-pick]'), c = b ? getComputedStyle(b) : null;
+      return { theme: ['#theme-btn', '[data-brand-pick]', '#brand-navy', '#brand-green'].filter(s => !!document.querySelector(s)),
+        dark: document.documentElement.classList.contains('dark'),
+        act: !!c, bg: c ? c.backgroundColor : '', ink: c ? c.color : '',
+        page: getComputedStyle(document.body).backgroundColor };
     });
-    check('8 the one act on the page stays legible at night',
-      ratio(dark.ink, dark.bg) >= 4.5, `ink ${ratio(dark.ink, dark.bg)}:1`);
+    check('8 no theme button is drawn, and the page never wears the dark class',
+      one.theme.length === 0 && !one.dark, JSON.stringify({ theme: one.theme, dark: one.dark }));
+    check('8 the one act on the page is legible in the one look',
+      one.act && ratio(one.ink, one.bg) >= 4.5, one.act ? `ink ${ratio(one.ink, one.bg)}:1` : 'no "Choose a file" drawn');
     /* REVERSED IN PLACE (21 Sep 2026): the act is FILLED now, so its edge is
        its fill and the claim is the fill against the page. */
     check('8 and its fill stands off the page',
-      ratio(dark.bg, dark.page) >= 3, `fill ${ratio(dark.bg, dark.page)}:1`);
-    check('8 the head row takes the dark surface, not the light one',
-      dark.tile !== 'rgb(255, 255, 255)' && dark.tile !== dark.page, dark.tile);
-    await page.screenshot({ path: path.join(OUT, '04-dark.png') });
-    await page.click('#theme-btn');
-    await page.waitForTimeout(1000);
+      one.act && ratio(one.bg, one.page) >= 3, one.act ? `fill ${ratio(one.bg, one.page)}:1` : 'no "Choose a file" drawn');
+    await page.screenshot({ path: path.join(OUT, '04-one-look.png') });
     await page.evaluate(() => hbSetFace('board'));
     await page.waitForTimeout(600);
 

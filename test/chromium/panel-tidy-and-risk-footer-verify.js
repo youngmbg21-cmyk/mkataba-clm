@@ -121,7 +121,7 @@ const LIAB_NEW = 'Each party\'s total liability under this Agreement shall not e
         x: x ? Math.round(x.getBoundingClientRect().width) : 0 };
     });
     /* RE-POINTED 20 Oct 2026 (owner: "Remove the wording highlighted and just leave the blue button"): the chip alone, no "Asking about" */
-    check(!!a && a.line && !/Asking about/.test(a.words) && a.words.length > 0, 'A1 the tag sits on the control row, the blue chip alone (no "Asking about")', a && a.words);
+    check(!!a && a.line && !/Asking about/.test(a.words) && a.words.length > 0, 'A1 the tag sits on the control row, the filled chip alone (no "Asking about"; Chambers fills it ink, 20 Oct 2026)', a && a.words);
     /* RE-POINTED 20 Oct 2026 (owner: "one line field … when you need to text wrap it is when it becomes bigger"): at rest the tag rides the one line before the words; tall, it rides the row under them */
     check(!!a && a.tagBefore, 'A2 at rest the tag sits on the one line, before the words', a && JSON.stringify({ tagBefore: a.tagBefore, taLeft: a.taLeft }));
     check(!!a && a.pillBg !== a.boxBg && !/rgba\(0, 0, 0, 0\)/.test(a.pillBg) && a.pillInk === 'rgb(255, 255, 255)' && a.x >= 16, 'A3 the tag is a filled pill with a × the hand can find', a && JSON.stringify({ pill: a.pillBg, ink: a.pillInk, x: a.x }));
@@ -204,9 +204,8 @@ const LIAB_NEW = 'Each party\'s total liability under this Agreement shall not e
     await page.evaluate(() => { const l = document.getElementById('ce-lane'); l.scrollTop = Math.max(0, l.scrollHeight - l.clientHeight - 120); });
     await railShot('4-suggestions-sticky.png');
     await shot('5-whole-page.png');
-    /* the same rail in dark, to be looked at */
-    const dark = await page.evaluate(() => { if (typeof setDark !== 'function') return false; setDark(true); return true; });
-    if (dark){ await page.waitForTimeout(300); await page.evaluate(() => { const l = document.getElementById('ce-lane'); l.scrollTop = 0; }); await railShot('6-dark.png'); }
+    /* the rail's dark photograph is gone (20 Oct 2026: the owner removed dark
+       mode — "Let's not implement the dark theme. Remove it from HaTi.") */
   } catch (e){
     console.log('  FAIL — stopped: ' + (e && e.message));
     failures++;

@@ -31,6 +31,13 @@ const NCSS = read('js/views/negotiation-css.js');
 const CAL = read('js/views/calendar.js');
 const CORE = read('js/core.js');
 const PF = read('js/views/portfolio.js');
+/* A token's value off index.html's first :root block — the one resolver. */
+const { RAW } = require('./tokens');
+const lum = hex => {
+  const c = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255)
+    .map(v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+};
 
 /* The families the sweep found drawing a LABELLED button — short words, nothing
    block-level inside — across every page, the room's tabs, the Negotiate page
@@ -52,8 +59,11 @@ describe('f386 (1) a button\'s words never wrap', () => {
     assert.ok(list, 'a single :is(...) rule states white-space:nowrap');
     for (const f of FAMILIES) assert.ok(list.includes('.' + f), '.' + f + ' is on the list');
     assert.equal((HTML.match(/\{white-space:nowrap;\}/g) || []).length >= 1, true);
-    assert.ok(!/id="theme-btn"|class="sh-theme"/.test(HTML),
-      'the theme button is gone from the bar, so .sh-theme is not on the list');
+    /* Not only the exact attribute spellings: a second class on the button,
+       or the family left on the nowrap list, would slip past those. */
+    assert.ok(!list.includes('.sh-theme'), '.sh-theme is still on the nowrap list');
+    assert.doesNotMatch(HTML, /theme-btn|\bsh-theme\b/,
+      'the theme button is gone from the bar, and nothing in the page names it');
   });
   test('every entry is ONE class, so the list keeps a single class\'s weight', () => {
     /* :is() takes the weight of its heaviest argument. One id or a second class
@@ -178,7 +188,20 @@ describe('f386 (3) one edge on every outlined control', () => {
     assert.match(CAL, /\.cal-seg span\.on,\.cal-seg a\.on,\.cal-seg button\.on\{background:var\(--accent-fill\);color:#fff;/);
   });
   test('[wall] a text box keeps its own stronger edge — it tells a reader where to type', () => {
-    assert.match(HTML, /--field-line:#8A9795;/);
+    /* RE-POINTED 21 Oct 2026 — PIN THE RELATION, NOT THE NUMBER. This pinned
+       the literal #8A9795, which since CHAMBERS only the Ink Wash pin on the
+       redline cards' buttons still writes; :root's own value moved with the
+       palette, so the check was passing on a block that dresses no text box.
+       The claim was always that the box's edge is its OWN, STRONGER than a
+       button's hairline (--btn-edge is --rule-strong, asserted above), and
+       clears WCAG 1.4.11's 3:1 for a control's boundary on white. */
+    const field = RAW('--field-line'), edge = RAW('--rule-strong');
+    assert.match(field || '', /^#[0-9a-fA-F]{6}$/, '--field-line is a colour on :root');
+    assert.match(edge || '', /^#[0-9a-fA-F]{6}$/, '--rule-strong is a colour on :root');
+    assert.notEqual(field.toLowerCase(), edge.toLowerCase(), 'a text box has its own edge, not the buttons\'');
+    assert.ok(lum(field) < lum(edge), `the box's edge ${field} is not stronger than a button's ${edge}`);
+    assert.ok(1.05 / (lum(field) + 0.05) >= 3,
+      `the box's edge ${field} is ${(1.05 / (lum(field) + 0.05)).toFixed(2)}:1 on white, under 3:1`);
     assert.match(CORE, /const HATI_FLD='width:100%;height:var\(--field-h\);[^']*var\(--field-line/);
   });
   test('[wall] a filled button\'s edge is its fill', () => {

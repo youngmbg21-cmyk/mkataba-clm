@@ -1,5 +1,6 @@
-/* Chromium verification: CLEAN SANS, PANEL VOICE, DIVIDERS OFF THE SCROLLBARS,
-   THE POINTER ALONE, AND NO PALE PATCH IN THE DARK (Young, 6 Oct 2026).
+/* Chromium verification: THE PAPER'S SERIF, PANEL VOICE, DIVIDERS OFF THE
+   SCROLLBARS, THE POINTER ALONE, AND NO DARK PAGE (Young, 6 Oct 2026;
+   re-pointed for Chambers, 21 Oct 2026).
    ============================================================
    "the paper looks ugly" → the paper you READ is the platform's face (Clean
    Sans); the signing copy keeps the book serif. "the font should follow the
@@ -11,6 +12,13 @@
    pointer on, the page wears no cursor (7 Oct 2026: not even over a button —
    the pointer only points; see pointer-only-verify). And the
    pressed "All" chip on the clause list is no longer a pale block in dark.
+
+   RE-POINTED 21 Oct 2026 (Chambers, picked by the owner by name, 20 Oct):
+   THE PAPER YOU READ IS SERIF AGAIN — `--font-doc` is the Source Serif 4
+   stack, reversing "Clean Sans"; sections 1 and 5 now ask that Home's paper
+   and the paper being negotiated wear the paper's token, the serif. Dark
+   mode was removed from HaTi ("Let's not implement the dark theme"), so
+   section 8 asks that the page is never dark and the list draws no chip.
 
    WHY A BROWSER FILE: every claim is a measurement — a computed face, a
    computed cursor, and what elementFromPoint returns where a reader aims.
@@ -31,6 +39,10 @@ const check = (name, pass, detail) => {
 };
 
 const first = f => String(f || '').split(',')[0].replace(/['"]/g, '').trim();
+/* The paper's own token, `--font-doc`, as the browser reads it — the paper
+   is pinned to the token (the relation), and the token to the Source Serif 4
+   stack Chambers named. */
+const docToken = page => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--font-doc'));
 
 /* The face of the first real paragraph of the agreement inside `sel`. */
 const paperFace = (page, sel) => page.evaluate(s => {
@@ -88,7 +100,9 @@ const login = async page => {
     await page.evaluate(i => pdOpenOnHome(i, 'doc'), id);
     await page.waitForFunction(() => { const c = document.getElementById('ig-canvas'); return !!c && (c.textContent || '').trim().length > 40 && !!document.getElementById('pd-thread'); }, null, { timeout: 15000 }).catch(() => {});
     const docFace = await paperFace(page, '#ig-canvas');
-    check('1a Home\'s Document sets the agreement in Clean Sans', first(docFace) === 'Geist', docFace);
+    const tokFace = first(await docToken(page));
+    check('1a Home\'s Document sets the agreement in the paper\'s serif (--font-doc, Source Serif 4)',
+      tokFace === 'Source Serif 4' && first(docFace) === tokFace, `${docFace} · token ${tokFace}`);
     await page.screenshot({ path: path.join(OUT, '01-document.png') });
 
     /* ---- 2. PANEL VOICE: the reading is the panel's face and size ---- */
@@ -140,7 +154,7 @@ const login = async page => {
     await page.waitForTimeout(1400);
     /* Redlined where a change is open, the clean copy otherwise: either way Home's one canvas */
     const negFace = await paperFace(page, '#ig-paper #ig-canvas');
-    check('5a the paper being negotiated is set in Clean Sans', first(negFace) === 'Geist', negFace);
+    check('5a the paper being negotiated is set in the paper\'s serif (--font-doc)', first(negFace) === tokFace && tokFace === 'Source Serif 4', negFace);
     const opened = await page.evaluate(i => {
       const c = getContract(i);
       const cl = (negoClauseList(c) || []).find(x => x && x.clauseId && x.clauseId !== 'front');
@@ -218,12 +232,16 @@ const login = async page => {
     const after = await page.evaluate(() => { const pg = document.getElementById('ig-page') || document.getElementById('hb-page'); return { cls: pg && pg.classList.contains('hb-pointing'), cur: pg ? getComputedStyle(pg).cursor : null }; });
     check('7f stopping the presentation gives the mouse back', after.cls === false && after.cur !== 'none', JSON.stringify(after));
 
-    /* ---- 8. THE PRESSED CHIP IN THE DARK ---- */
-    await page.evaluate(() => { try { setDark(true); } catch (_) { document.documentElement.classList.add('dark'); } });
+    /* ---- 8. NO DARK PAGE, AND NO PALE CHIP ----
+       RE-POINTED 21 Oct 2026 (Chambers): dark mode was removed from HaTi —
+       there is no switch to press (setDark is gone) and nothing adds the
+       `dark` class. What is left of the claim: the page stays light and the
+       clause list draws no chip to be a pale block. */
+    const noDark = await page.evaluate(() => ({ setDark: typeof window.setDark, toggleDark: typeof window.toggleDark }));
     await page.evaluate(i => pdOpenOnHome(i, 'doc'), id);
     /* RE-POINTED 13 Oct 2026 (Stakes as drawn): Home's Clauses list draws no
        colour filter, so there is no pressed chip to be a pale block. The
-       claim is held as: the list is up, dark, and no chip is drawn. */
+       claim is held as: the list is up and no chip is drawn. */
     await page.waitForFunction(() => document.querySelectorAll('#pd-thread .doc-th-row').length > 0, null, { timeout: 15000 }).catch(() => {});
     const noChip = await page.evaluate(() => ({ rows: document.querySelectorAll('#pd-thread .doc-th-row').length,
       chips: document.querySelectorAll('#pd-thread .doc-th-chip').length, dark: document.documentElement.classList.contains('dark') }));
@@ -235,8 +253,9 @@ const login = async page => {
       return { bg: getComputedStyle(c).backgroundColor, lum: (0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]) * a,
         dark: document.documentElement.classList.contains('dark') };
     });
-    check('8a in the dark Home\'s Clauses list draws no pale chip — no chip at all (Stakes as drawn)', !chip && noChip.rows > 0 && noChip.chips === 0 && noChip.dark, JSON.stringify({ chip, noChip }));
-    const el = await page.$('#pd-thread .doc-th-chips'); if (el) await el.screenshot({ path: path.join(OUT, '04-dark-chips.png') });
+    check('8a the page is never dark (no dark switch, no `dark` class) and Home\'s Clauses list draws no chip at all (Stakes as drawn)',
+      !chip && noChip.rows > 0 && noChip.chips === 0 && !noChip.dark && noDark.setDark === 'undefined' && noDark.toggleDark === 'undefined',
+      JSON.stringify({ chip, noChip, noDark }));
 
     check('9 no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } finally {

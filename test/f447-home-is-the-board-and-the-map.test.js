@@ -473,7 +473,7 @@ describe('F447 (6) — the board is the person\'s own record', () => {
   /* RE-POINTED 20 Oct 2026: dark mode was removed, and the Board's own
      Light | Dark switch with it — the Board, Workspace and Calendar faces are
      always light; only Explorer keeps its dark stage. */
-  test('the screen lands on Light — the only screen the Board has —, the board side, the whole book, Prepared by Copilot open', () => {
+  test('the screen lands on Light (the Board\'s only screen; Explorer alone is dark), the board side, the whole book, Prepared by Copilot open', () => {
     const { sb } = world();
     const s = sb.hbS();
     assert.deepEqual([s.face, sb.hbScreenNow(), s.lens, s.prep], ['board', 'light', 'all', 'open']);

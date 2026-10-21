@@ -224,13 +224,17 @@ const FACE = () => {
     await page.setViewportSize({ width: 1440, height: 780 }); await pause(300);
 
     /* ===== 9. SVENSKA, AND THE PHONE ===== */
-    const sv = await page.$('.lang-btn[data-lang="sv"]'); if (sv) { await sv.click(); await pause(800); }
+    /* RE-POINTED 21 Oct 2026 (Chambers): the bar's language switch is gone;
+       the language is changed in Settings › You, whose one writer is langSet
+       — called here so the face stays up while the language changes */
+    const sv = await page.evaluate(() => langSet('sv'));
+    await waitFor(page, () => langId() === 'sv', 5000); await pause(800);
     await page.evaluate(() => { if (!document.getElementById('pd-signface') && window.pdSignOpen) pdSignOpen('MK-A2'); });
     await waitFor(page, () => !!document.querySelector('#pd-signface h3'), 5000);
     const s9 = await page.evaluate(() => ({ title: ((document.querySelector('#pd-signface h3') || {}).textContent || '').trim() }));
     check('9a Svenska: the face speaks the reader\'s language', !!sv && s9.title === 'Innan du signerar', JSON.stringify(s9));
     await page.screenshot({ path: path.join(OUT, '9-svenska.png') });
-    const en2 = await page.$('.lang-btn[data-lang="en"]'); if (en2) { await en2.click(); await pause(500); }
+    await page.evaluate(() => langSet('en')); await pause(500);
     await page.setViewportSize({ width: 390, height: 844 }); await pause(600);
     await page.evaluate(() => { openWorkspace('MK-A2', { room: true }); roomGoTab(getContract('MK-A2'), 'sign'); });
     await pause(1200);

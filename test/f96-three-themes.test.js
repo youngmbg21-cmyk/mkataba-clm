@@ -188,7 +188,9 @@ describe('F96 — no theme control on any page', () => {
   });
 
   test('the phone has no theme button either', () => {
-    for (const f of walk('js').filter(f => /\/mobile[^/]*\.js$/.test(f))){
+    const phone = walk('js').filter(f => /\/mobile[^/]*\.js$/.test(f));
+    assert.ok(phone.length, 'the phone\'s modules were found to look in');
+    for (const f of phone){
       const c = code(src(f));
       assert.doesNotMatch(c, /data-m-act="theme"|m-theme-sw|M_THEME_SWATCH/, f);
     }
@@ -281,8 +283,18 @@ describe('F96 — the Copilot is a layer, not a hole', () => {
 
   /* RE-POINTED 20 Oct 2026 (Chambers): the dark pass is gone with the dark
      palette — there is no second set of these three to fall behind. */
-  test('there is no dark palette left to blend: no html.dark block, no dark selector', () => {
+  /* REVIEWED 21 Oct 2026: the selector sweep read `\b(?:html|:root)` — a word
+     boundary before ":" needs a letter in front, so a `:root.dark` rule could
+     never be seen. The boundary now sits on `html` alone, and the sweep also
+     reads the modules that carry their own sheets (negotiation-css.js, the
+     calendar, the clause editor, portfolio, the phone), which held html.dark
+     rules at the parent. */
+  test('there is no dark palette left to blend: no html.dark block, no dark selector in the page or any module', () => {
+    const DARK_SEL = /(?:\bhtml|:root)\.dark\b/;
+    assert.ok(DARK_SEL.test(' :root.dark .x{}') && DARK_SEL.test('html.dark .x{}'), 'the sweep can see both spellings');
     assert.equal(css.indexOf('  html.dark{'), -1, 'the dark palette block is gone');
-    assert.doesNotMatch(code(css), /\b(?:html|:root)\.dark\b/, 'no rule is keyed on the dark class');
+    assert.doesNotMatch(code(css), DARK_SEL, 'no rule is keyed on the dark class');
+    const hits = walk('js').filter(f => DARK_SEL.test(code(src(f))));
+    assert.deepEqual(hits, [], 'no module\'s own sheet is keyed on the dark class');
   });
 });

@@ -24,8 +24,12 @@
 
    CONTROLS pass on both sides by design: the five filters are still in the
    open, "Show the wording" still prints a proposal's redline, and the
-   sentence was already in the page's own ink by day and by night (6a, 8a) —
-   what made it read grey was its weight, and that is 6b.
+   sentence was already in the page's own ink (6a) — what made it read grey
+   was its weight, and that is 6b.
+
+   RE-POINTED 21 Oct 2026 (Chambers): dark mode was removed from HaTi ("Let's
+   not implement the dark theme"), so the night pass (8) is gone; 8 now asks
+   that there is no night to switch to and the trail stays light.
 
    Run: node test/chromium/history-timeline-verify.js */
 const fs = require('node:fs');
@@ -43,8 +47,8 @@ const ok = (name, good, detail) => {
   console.log(`${good ? 'PASS' : 'FAIL'}  ${name}${detail != null ? ' — ' + detail : ''}`);
 };
 
-/* Everything the page is asked, in one probe, so the light and dark readings
-   are the same measurement. Returns null parts rather than throwing on a build
+/* Everything the page is asked, in one probe, so every reading (at rest,
+   and with the wording open) is the same measurement. Returns null parts rather than throwing on a build
    without the design, so each claim REPORTS instead of timing out. */
 /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
    History tab went home — its twin is the Board's History view, drawn by the
@@ -186,8 +190,8 @@ const PROBE = `(() => {
       if (host) roomPaintHistory(c, host._histF || {}, host); else roomPaintHistory(c);
     }, id);
     await page.waitForTimeout(400);
-    /* The pane is looked up afresh for every photograph: a theme change
-       repaints the room and a handle taken earlier would point at nothing. */
+    /* The pane is looked up afresh for every photograph: a repaint redraws
+       the room and a handle taken earlier would point at nothing. */
     const shot = async name => { const el = await page.$(HP) || await page.$('#ws-history-pane');
       if (el) await el.screenshot({ path: path.join(OUT, name) }); };
     await shot('01-history-light.png');
@@ -349,23 +353,20 @@ const PROBE = `(() => {
     await page.click('#hist-detail');
     await page.waitForTimeout(300);
 
-    /* ================= 8. THE DARK THEME ================= */
-    await page.evaluate(i => { if (typeof setDark === 'function') setDark(true);
-      const host = document.querySelector('#bs-strips [data-bs-host="hist"]');
-      if (host) roomPaintHistory(getContract(i), host._histF || {}, host); else roomPaintHistory(getContract(i)); }, id);
-    await page.waitForTimeout(400);
-    const d = await page.evaluate(PROBE);
-    const dRows = d.rows || [];
-    ok('8a CONTROL at night the sentence takes the night ink', dRows.length > 0 && dRows.every(r => r.title && r.title.color === d.ink),
-      dRows.length && dRows[0].title ? `${dRows[0].title.color} · ink ${d.ink}` : 'none');
-    /* RE-POINTED 18 Oct 2026: a bubble wears no ring (3a); what stood in the
-       page's surface by night is the bubble itself, and any ring that stands */
-    const dBub = dRows.filter(r => r.lane === 'ours' || r.lane === 'theirs'), dMid = dRows.filter(r => r.lane === 'mid');
-    ok('8b and at night each bubble, and any ring that stands, is the night surface',
-      dBub.length > 0 && dBub.every(r => r.bubBg === d.surface) && dMid.every(r => r.dot && r.dot.fill === d.surface),
-      dBub.length ? `${dBub[0].bubBg} · surface ${d.surface}` : 'none · lanes ' + dRows.map(r => r.lane).join(','));
-    await shot('03-history-dark.png');
-    await page.evaluate(() => { if (typeof setDark === 'function') setDark(false); });
+    /* ================= 8. NO NIGHT THEME =================
+       RE-POINTED 21 Oct 2026 (Chambers): dark mode was removed from HaTi —
+       the night pass (the sentence in the night ink, the bubbles in the night
+       surface) has nothing left to measure. What stays: there is no switch
+       to a night theme, nothing makes the page dark, and each bubble, and any
+       ring that stands, is the page's one surface. */
+    const night = await page.evaluate(() => ({ setDark: typeof window.setDark, setTheme: typeof window.setTheme,
+      dark: document.documentElement.classList.contains('dark') }));
+    ok('8a there is no night theme to switch to, and the page is not dark',
+      night.setDark === 'undefined' && night.setTheme === 'undefined' && !night.dark, JSON.stringify(night));
+    const dBub = rows.filter(r => r.lane === 'ours' || r.lane === 'theirs'), dMid = rows.filter(r => r.lane === 'mid');
+    ok('8b each bubble, and any ring that stands, is the page\'s surface',
+      dBub.length > 0 && dBub.every(r => r.bubBg === m.surface) && dMid.every(r => r.dot && r.dot.fill === m.surface),
+      dBub.length ? `${dBub[0].bubBg} · surface ${m.surface}` : 'none · lanes ' + rows.map(r => r.lane).join(','));
 
     ok('9 no page errors on the way', errors.length === 0, errors.join(' | ') || 'none');
   } catch (e) {

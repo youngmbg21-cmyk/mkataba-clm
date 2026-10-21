@@ -107,8 +107,9 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   await page.click('#li-go');
   await until(page, () => !!(window.state && state.contracts && state.contracts.length));
 
-  /* DARK=1 photographs the same journey in the dark theme. */
-  if (process.env.DARK) await page.evaluate(() => { if (typeof setDark === 'function') setDark(true); });
+  /* DARK=1 used to photograph the same journey in the dark theme; removed
+     21 Oct 2026 with the dark theme itself (Chambers, owner's pick 20 Oct
+     2026: "Let's not implement the dark theme. Remove it from HaTi"). */
 
   /* COPILOT, SCRIPTED AT THE TRANSPORT the product itself calls through
      (window.copilotAsk — see copilotPropose). Each answer names what was asked

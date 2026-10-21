@@ -9,7 +9,8 @@
    WHAT THIS PINS, driven in a real browser on a seeded workspace
      1 Home's head as drawn: "What do you need, <name>?", the box's words, the
        chips "<first owed row> · contracts · calendar · draft a new agreement"
-       (one dress), "each row's button opens its page"
+       (one dress); no hint line under Needs you (Chambers, 20 Oct 2026: the
+       drawing carries no "each row's button opens its page")
      2 Home's Jambo's work row: "Jambo's work · N prepared · nothing sent or
        filed until you press", whose work it is, and Open — which LANDS ON the
        Board's Jambo's work card, lit; NO list of pieces in place on Home
@@ -33,8 +34,9 @@
     10 Jambo's house says the card's count; its "N waiting for you" lands on
        the Board's card (a room's: that agent's work below it); four and three
        rooms a floor, faces clear of words; Jambo folded to the right edge
-    11 THIRD PASS (19 Oct 2026): the greeting 26px semibold and Jambo's work's
-       tail 12px, as drawn; three owed rows in sight, the approval answered
+    11 THIRD PASS (19 Oct 2026): the greeting in the title serif, 28px
+       (re-pointed 20 Oct 2026, Chambers: it was 26px semibold Geist) and
+       Jambo's work's tail 12px, as drawn; three owed rows in sight, the approval answered
        for an away colleague first and so the lead chip; the renewal row says
        its act and its time in words; the lead chip LANDS ON the approval
        gate it opens, lit; the Board card's head says Home's words; each piece
@@ -157,16 +159,21 @@ C[2].metadata = { ...(C[2].metadata || {}), expiryDate: day(40) }; C[2].expiry =
     const head = await page.evaluate(() => ({ h1: (document.querySelector('.cn-ask h1') || {}).textContent || '', ph: (document.getElementById('cn-q') || {}).placeholder || '',
       chips: [...document.querySelectorAll('.cn-chips .cn-chip')].map(b => { const cs = getComputedStyle(b); return { t: b.textContent.trim(), lead: b.hasAttribute('data-cn-lead'), door: b.getAttribute('data-cn-need') || b.getAttribute('data-cn-note') || b.getAttribute('data-cn-req') || '',
         dress: [cs.borderTopColor, cs.fontWeight, cs.backgroundColor, cs.color].join('|') }; }),
-      first: (() => { if (typeof cnRows !== 'function' || typeof cnNeedShort !== 'function') return '(no reading)'; const r = cnRows()[0]; return r ? cnNeedShort(r) : ''; })(), hint: (document.querySelector('#cn-needs .cn-hint') || {}).textContent || '' }));
+      first: (() => { if (typeof cnRows !== 'function' || typeof cnNeedShort !== 'function') return '(no reading)'; const r = cnRows()[0]; return r ? cnNeedShort(r) : ''; })(), hint: { el: document.querySelectorAll('#cn-needs .cn-hint, .cn-ask .jb-hint, .cn-ask .jb-keys').length, said: /each row.s button opens its page/.test((document.getElementById('cn-needs') || {}).textContent || '') } }));
     check('1a "What do you need, Amina?" and the box\'s own words', head.h1 === 'What do you need, Amina?' && head.ph === 'A contract, a party, a place, a draft, a question… or /', JSON.stringify([head.h1, head.ph]));
     check('1b the chips: the first owed row, then contracts · calendar · draft a new agreement — no upload, no "jambo\'s work"',
       head.chips.length === 4 && head.chips[0].lead && head.chips[0].t === head.first && !!head.chips[0].door
       && head.chips.slice(1).map(c => c.t).join('|') === 'contracts|calendar|draft a new agreement', JSON.stringify(head.chips));
-    check('1c "each row\'s button opens its page"', head.hint === 'each row’s button opens its page', head.hint);
+    /* RE-POINTED 20 Oct 2026 (Chambers): the hint line is not drawn — no .cn-hint under Needs you, no hint under the box */
+    check('1c no hint line: no "each row\'s button opens its page" under Needs you, no hint under the box', head.hint.el === 0 && !head.hint.said, JSON.stringify(head.hint));
     check('1d the four chips wear one dress, as drawn (the lead is not louder)', head.chips.length === 4 && new Set(head.chips.map(c => c.dress)).size === 1, JSON.stringify(head.chips.map(c => c.dress)));
     const type = await page.evaluate(() => { const h = document.querySelector('.cn-ask h1'), t = document.querySelector('#cn-needs .cn-jw .cn-w b .cn-n'), b = document.querySelector('#cn-needs .cn-jw .cn-w b');
-      const cs = e => e ? getComputedStyle(e) : null; return { h1: cs(h) && [cs(h).fontSize, cs(h).fontWeight].join(' '), tail: cs(t) && [cs(t).fontSize, cs(t).fontWeight].join(' '), name: cs(b) && cs(b).fontSize }; });
-    check('11g the greeting large as drawn (26px, semibold); Jambo\'s work\'s tail small after its bold name (12px)', type.h1 === '26px 600' && type.tail === '12px 400' && type.name === '14px', JSON.stringify(type));
+      const root = getComputedStyle(document.documentElement);
+      const cs = e => e ? getComputedStyle(e) : null; return { h1: cs(h) && [cs(h).fontSize, cs(h).fontWeight].join(' '), fam: cs(h) && cs(h).fontFamily, title: root.getPropertyValue('--font-title').trim(), wSerif: root.getPropertyValue('--w-title-serif').trim(),
+        tail: cs(t) && [cs(t).fontSize, cs(t).fontWeight].join(' '), name: cs(b) && cs(b).fontSize }; });
+    /* RE-POINTED 20 Oct 2026 (Chambers): Home's question is in the title serif (--font-title), 28px, --w-title-serif (was 26px semibold) */
+    check('11g the greeting large as drawn (28px, the title serif at its own weight); Jambo\'s work\'s tail small after its bold name (12px)',
+      !!type.h1 && type.h1 === '28px ' + type.wSerif && !!type.title && /Source Serif 4/.test(type.fam || '') && type.tail === '12px 400' && type.name === '14px', JSON.stringify(type));
     check('11h the approval answered for an away colleague leads, so it is the lead chip: "Unrestricted\'s approval"', head.chips[0] && head.chips[0].t === 'Unrestricted’s approval' && head.chips[0].door === 'approval', JSON.stringify(head.chips[0]));
 
     console.log('\n2 · Home\'s Jambo\'s work row lands on the Board\'s card');

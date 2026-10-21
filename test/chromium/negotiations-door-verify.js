@@ -559,13 +559,19 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
       startedNow.length ? 'STARTED ON: ' + startedNow.join(', ') : 'none — the count read without writing');
     await page.screenshot({ path: path.join(OUT, '08-two-live.png') });
 
-    /* ---- 9. CHANGING THE THEME IS NOT A NAVIGATION ----
+    /* ---- 9. A REPAINT IS NOT A NAVIGATION (it was: CHANGING THE THEME) ----
        Owner-reported, 13 Aug 2026: standing on the Negotiations list, pick a
        different colour and the platform lands you inside some contract's
        workbench instead. Driven through the REAL control — the theme button,
        its menu, a row in it — because the whole fault lived in what setTheme
        does after it flips the class: it repaints the current view, and this
-       page could not tell that repaint apart from "open this contract". */
+       page could not tell that repaint apart from "open this contract".
+       RE-POINTED 20 Oct 2026 (the owner picked "Chambers" and removed dark
+       mode and the brand swatches): there is no theme control left to press.
+       The claim stands — a repaint of the page in front is not a navigation —
+       and the one in-place repaint left is the LANGUAGE change: langSet, the
+       one writer Settings › You's buttons call, ends in the same
+       setView(state.view) the theme change did (window.onLanguageChange). */
     await page.evaluate(() => openNegotiations({ list: true }));
     await page.waitForTimeout(900);
     const onList = await page.evaluate(() => ({
@@ -575,27 +581,37 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
     check('9 standing on the list, with a contract still named in state',
       onList.list && !onList.held && !!onList.active,
       `list ${onList.list} · held ${onList.held} · activeId ${onList.active}`);
-    await page.screenshot({ path: path.join(OUT, '09-list-before-theme.png') });
+    await page.screenshot({ path: path.join(OUT, '09-list-before-repaint.png') });
 
     /* RE-POINTED 24 Aug 2026, not re-scoped: the claim is that a REPAINT is not
        a navigation — changing the workspace's appearance while standing on the
        list must not throw the reader into some contract's workbench. What
-       changed is the control. The three-row menu became two axes, so the press
-       that repaints is now the brand swatch, which is the nearest thing to the
-       colour change this check has always made. */
+       changed is the control (and on 20 Oct 2026 again: no theme control is
+       left, so the press that repaints is the language change). */
     const themed = await page.evaluate(async () => {
-      const was = document.documentElement.getAttribute('data-brand') || 'green';
-      const other = was === 'navy' ? 'green' : 'navy';
-      const sw = document.getElementById('brand-' + other);
-      if (!sw) return { pressed: false };
-      sw.click();
+      const gone = { themeBtn: !!document.getElementById('theme-btn'), swatches: document.querySelectorAll('#brand-navy, #brand-green, [data-brand-pick]').length,
+        setTheme: typeof window.setTheme, setBrand: typeof window.setBrand, setDark: typeof window.setDark };
+      if (typeof window.langSet !== 'function') return { gone, pressed: false };
+      const was = document.documentElement.lang || 'en';
+      const other = was === 'sv' ? 'en' : 'sv';
+      /* the language change redraws the screen only when nothing is being
+         edited (langEditingNow); the reader presses it in Settings, so no box
+         here holds the caret — let go of any, and mark a row so the check can
+         SEE the list was really redrawn, not merely left alone */
+      const a = document.activeElement; if (a && a !== document.body && a.blur) a.blur();
+      const row0 = document.querySelector('#reg-tbody tr[data-row]');
+      const editing = typeof window.langEditingNow === 'function' ? langEditingNow() : null;
+      langSet(other);
       await new Promise(r => setTimeout(r, 700));
-      return { pressed: true, was, picked: other,
-        brand: document.documentElement.getAttribute('data-brand') || 'green',
-        dark: document.documentElement.classList.contains('dark') };
+      return { gone, pressed: true, was, picked: other, lang: document.documentElement.lang, editing,
+        repainted: !!row0 && !row0.isConnected };
     });
-    check('9 the theme control is real and a different colour was picked',
-      themed.pressed && themed.picked, themed.pressed ? `${themed.was} → ${themed.picked}` : 'no control');
+    check('9 no theme control is left to press (Chambers: no dark mode, no brand swatches)',
+      !themed.gone.themeBtn && themed.gone.swatches === 0 && themed.gone.setTheme === 'undefined' && themed.gone.setBrand === 'undefined' && themed.gone.setDark === 'undefined',
+      JSON.stringify(themed.gone));
+    check('9 the repaint left — the language change — is real: a different language was picked and the list was redrawn',
+      themed.pressed && themed.lang === themed.picked && themed.editing === false && themed.repainted,
+      themed.pressed ? `${themed.was} → ${themed.picked} (page says ${themed.lang}) · editing ${themed.editing} · list redrawn ${themed.repainted}` : 'no langSet');
     await page.waitForTimeout(400);
     const afterTheme = await page.evaluate(() => ({
       list: !!document.querySelector('#reg-tbody'),
@@ -603,7 +619,7 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
       held: window.redlineHeldId ? redlineHeldId() : 'n/a',
       rows: document.querySelectorAll('#reg-tbody tr[data-row]').length,
       live: ((document.querySelector('.ngl-live') || {}).textContent || '').trim() }));
-    await page.screenshot({ path: path.join(OUT, '10-list-after-theme.png') });
+    await page.screenshot({ path: path.join(OUT, '10-list-after-repaint.png') });
     check('9 THE READER IS STILL ON THE LIST — the reported fault',
       afterTheme.list && !afterTheme.bench,
       `list ${afterTheme.list} · a contract's sheet drawn: ${afterTheme.bench} · held ${afterTheme.held}`);
@@ -626,12 +642,22 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
       `face on ${stillOpens.held} (wanted ${cid2}) · sheet drawn ${stillOpens.bench}`);
     /* And a repaint of a BENCH keeps that bench — the same rule from the other
        side, which is the half a "always show the list" fix would have broken. */
-    await page.evaluate(() => setTheme(themeNow() === 'green' ? 'navy' : 'green'));
+    /* RE-POINTED 20 Oct 2026: the repaint is the language change going back */
+    const backTo = await page.evaluate(was => {
+      if (typeof window.langSet !== 'function') return { pressed: false };
+      const a = document.activeElement; if (a && a !== document.body && a.blur) a.blur();
+      window._ndBefore = { face: document.querySelector('#pd-redface [data-pd-rf]'), paper: document.querySelector('#ig-paper .rl-paper') };
+      const editing = typeof window.langEditingNow === 'function' ? langEditingNow() : null;
+      langSet(was || 'en');
+      return { pressed: true, editing };
+    }, themed.was);
     await page.waitForTimeout(900);
     const benchHeld = await faceOf();
-    check('9 a theme change INSIDE a negotiation keeps that negotiation',
-      benchHeld.face && benchHeld.bench,
-      `face on ${benchHeld.held} · sheet drawn ${benchHeld.bench}`);
+    const benchDrawn = await page.evaluate(() => { const b = window._ndBefore || {};
+      return { lang: document.documentElement.lang, face: !!b.face && !b.face.isConnected, paper: !!b.paper && !b.paper.isConnected }; });
+    check('9 a repaint (the language change) INSIDE a negotiation keeps that negotiation',
+      backTo.pressed && backTo.editing === false && (benchDrawn.face || benchDrawn.paper) && benchHeld.face && benchHeld.bench,
+      `face on ${benchHeld.held} · sheet drawn ${benchHeld.bench} · editing ${backTo.editing} · redrawn ${JSON.stringify(benchDrawn)}`);
 
     /* ---- 10. FOCUS MODE KEEPS THE PAGE AT THE WALL ----
        Owner-reported 16 Aug 2026: a wide dead-white void LEFT of the contract
@@ -651,7 +677,7 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
        one-line summary is that content, and it is what a sent ask draws. */
     /* RE-POINTED 14 Oct 2026 (stage 5): Focus mode and the grid are the
        Negotiate PAGE's own, so the page is opened by name on the same
-       contract the theme change left up (cid2) */
+       contract the repaint left up (cid2) */
     await page.evaluate(id => openRedlineWorkbench(id, { page: true }), cid2);
     await page.waitForFunction(() => state.view === 'redline' && !!document.querySelector('.redline-page .rl-grid'), null, { timeout: 10000 }).catch(() => {});
     await page.evaluate(async () => {

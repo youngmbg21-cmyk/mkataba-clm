@@ -1,12 +1,14 @@
-/* Chromium verification: THE NEXT QUESTIONS CAN BE READ ON THE BOARD'S DARK
-   SCREEN (Young, 6 Oct 2026, over a Dig deeper card whose "Next:" buttons
-   were dark green on the dark stage: "in dark mode, these buttons … are not
-   visible")
+/* Chromium verification: THE NEXT QUESTIONS CAN BE READ ON THE BOARD
+   (Young, 6 Oct 2026, over a Dig deeper card whose "Next:" buttons were dark
+   green on the dark stage: "in dark mode, these buttons … are not visible")
    ============================================================
-     1. on the board's Dark screen a next-question button's words stand off
-        the dark card (contrast ≥ 4.5 against the card's own colour), and so
-        does its dashed edge (≥ 3);
-     2. on the Light screen the same, against white;
+   RE-POINTED 20 Oct 2026 (Chambers; owner: "Let's not implement the dark
+   theme. Remove it from HaTi."): the Board's own Light | Dark switch is gone
+   and the Board always stands on its light screen, so the dark pass is gone
+   and its place is taken by a check that the switch is not drawn.
+     1. the Board draws no Light | Dark switch, and stands on its light screen;
+     2. on that light screen a next-question button's words stand off the
+        card (contrast >= 4.5 against white), and so does its dashed edge (>= 3);
      3. the Copilot panel's own buttons keep the platform's colours;
      4. no page errors.
    The buttons are drawn in the markup the Dig deeper card writes, inside a
@@ -29,8 +31,8 @@ const rgb = s => (String(s).match(/[\d.]+/g) || []).map(Number);
 const over = (fg, bg) => { const [r, g, b, a = 1] = rgb(fg); const [R, G, B] = bg; return [r * a + R * (1 - a), g * a + G * (1 - a), b * a + B * (1 - a)]; };
 const lum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
 const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
-/* the card colours of each screen, laid over the stage's darkest and lightest */
-const CARD = { dark: over('rgba(4,25,26,.82)', [2, 16, 17]), light: over('rgba(255,255,255,.62)', [255, 255, 255]) };
+/* the card colour of the Board's light screen (--hb-card #FFFFFF) */
+const CARD = { light: over('rgba(255,255,255,.62)', [255, 255, 255]) };
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
@@ -47,9 +49,13 @@ const CARD = { dark: over('rgba(4,25,26,.82)', [2, 16, 17]), light: over('rgba(2
     await page.waitForFunction(() => !!document.getElementById('hb-board'), null, { timeout: 15000 });
     await page.evaluate(async () => { intel.history = []; await intelAsk('contracts by stage'); });
     await page.waitForFunction(() => !!document.querySelector('#hb-board [data-hb-read-more]'), null, { timeout: 10000 });
-    for (const scr of ['dark', 'light']){
-      await page.click(`[data-hb-screen="${scr}"]`);
-      await page.waitForFunction(scr => { const p = document.getElementById('hb-page') || document.getElementById('ig-page'); return p && p.classList.contains('hb-' + scr) && document.querySelector('#hb-board [data-hb-read-more]'); }, scr, { timeout: 8000 });
+    /* 1 the Board's Light | Dark switch is gone (20 Oct 2026): nothing to press, and the light screen stands */
+    const scrn = await page.evaluate(() => { const p = document.getElementById('hb-page') || document.getElementById('ig-page');
+      return { switches: document.querySelectorAll('[data-hb-screen], .hb-scr').length, light: !!(p && p.classList.contains('hb-light')), dark: !!(p && p.classList.contains('hb-dark')),
+        now: typeof hbScreenNow === 'function' ? hbScreenNow() : null }; });
+    check('1 the Board draws no Light | Dark switch and stands on its light screen', scrn.switches === 0 && scrn.light && !scrn.dark && scrn.now === 'light', JSON.stringify(scrn));
+    { const scr = 'light';
+      await page.waitForFunction(scr => { const p = document.getElementById('hb-page') || document.getElementById('ig-page'); return p && p.classList.contains('hb-' + scr) && document.querySelector('#hb-board [data-hb-read-more]'); }, scr, { timeout: 8000 }).catch(() => {});
       const m = await page.evaluate(NXS => { const NX = new Function('q', NXS);
         const host = document.querySelector('#hb-board [data-hb-read-more]').closest('div').parentElement;
         const d = document.createElement('div'); d.innerHTML = NX('Which specific contracts drove the September spike?'); host.appendChild(d);
@@ -58,9 +64,9 @@ const CARD = { dark: over('rgba(4,25,26,.82)', [2, 16, 17]), light: over('rgba(2
         return { color: cs.color, edge: cs.borderTopColor, style: cs.borderTopStyle, width: cs.borderTopWidth, painted: !!hit && (hit === q || q.contains(hit)) };
       }, NXS);
       const tc = ratio(over(m.color, CARD[scr]), CARD[scr]), ec = ratio(over(m.edge, CARD[scr]), CARD[scr]);
-      check(`${scr === 'dark' ? 1 : 2}a ${scr} screen: the button is painted where it stands`, m.painted, JSON.stringify(m));
-      check(`${scr === 'dark' ? 1 : 2}b ${scr} screen: its words stand off the card (≥ 4.5)`, tc >= 4.5, tc.toFixed(2) + ' ' + m.color);
-      check(`${scr === 'dark' ? 1 : 2}c ${scr} screen: its dashed edge is drawn and seen (≥ 3)`, m.style === 'dashed' && parseFloat(m.width) >= 1 && ec >= 3, ec.toFixed(2) + ' ' + m.edge);
+      check(`2a ${scr} screen: the button is painted where it stands`, m.painted, JSON.stringify(m));
+      check(`2b ${scr} screen: its words stand off the card (≥ 4.5)`, tc >= 4.5, tc.toFixed(2) + ' ' + m.color);
+      check(`2c ${scr} screen: its dashed edge is drawn and seen (≥ 3)`, m.style === 'dashed' && parseFloat(m.width) >= 1 && ec >= 3, ec.toFixed(2) + ' ' + m.edge);
       await page.screenshot({ path: path.join(OUT, `next-chips-${scr}.png`) });
     }
     const dock = await page.evaluate(NXS => { const NX = new Function('q', NXS); const d = document.createElement('div'); d.innerHTML = NX('by stage'); document.body.appendChild(d);

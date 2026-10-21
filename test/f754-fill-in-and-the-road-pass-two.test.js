@@ -280,8 +280,8 @@ describe('f754 (7) the words, in both books', () => {
    (8) The NDA's facts carry its own editor's names ("Secret until"), and
        "· Confirm" stays on its sentence's line; base pay owed is an amber pill
        with its dot; a private contract's wait line stands straight under Pay
-       with Jambo's small face; Jambo perches in a row of his own, over nothing
-       (since Chambers, 20 Oct 2026: no perch at all);
+       with Jambo's small face; no perch beside Fill in and Before you sign
+       (Chambers, 20 Oct 2026, removed the perch and the row it was given);
        Fill in's size stands on the paper's line, nothing above the sheet; the
        "clause N" door lands on the paper's spot through the one lander.
    ROUND 10
