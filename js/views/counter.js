@@ -412,6 +412,9 @@ function cnRows(){
   notes.forEach(n => out.push({ k: 'note', kind: 'mynote', urgent: String(n.reviewBy || '') < today, n }));
   let reqs = []; try { reqs = (typeof intakeAlertRows === 'function') ? (intakeAlertRows() || []) : []; } catch (_){ reqs = []; }
   reqs.forEach(r => out.push({ k: 'req', kind: 'request', urgent: false, r }));
+  /* a watch Jambo kept for you that has fired (the bell's 'watch' rows, js/jambopress.js) */
+  let wts = []; try { wts = (typeof watchesFired === 'function') ? (watchesFired() || []) : []; } catch (_){ wts = []; }
+  wts.forEach(w => out.push({ k: 'watch', kind: 'watch', urgent: false, w }));
   return out.map((y, i) => ({ y, i })).sort((a, b) => (Number(!!b.y.fw) - Number(!!a.y.fw)) || (Number(b.y.urgent) - Number(a.y.urgent)) || (a.i - b.i)).map(o => o.y);
 }
 /* WHAT WAITS FOR YOU, BY AGENT — the count of Jambo's work Home's row and
@@ -505,6 +508,7 @@ const _cnPill = (ic, words) => ` <span class="cn-pill">${(typeof icon === 'funct
 function cnNeedRowHtml(y){
   if (y.k === 'note') return cnNoteRowHtml(y);
   if (y.k === 'req') return cnReqRowHtml(y);
+  if (y.k === 'watch') return cnWatchRowHtml(y);
   const x = y.x, c = x.c, it = x.it;
   const title = cnNeedTitle(y);
   const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
@@ -520,6 +524,13 @@ function cnNoteRowHtml(y){
   const c = n.contractId && typeof getContract === 'function' ? getContract(n.contractId) : null;
   const sub = [text ? `“${_cnE(text.length > 90 ? text.slice(0, 89).replace(/\s+\S*$/, '') + '…' : text)}”` : '', c ? _cnE(c.name || '') : '', _cnE(_cnT('cn_need_note_only'))].filter(Boolean).join(' · ');
   return `<div class="cn-r"><div class="cn-w"><b>${_cnE(late ? _cnT('cn_need_note_late', { day: cnDayWords(n.reviewBy) }) : _cnT('cn_need_note'))}</b><span>${sub}</span></div><button type="button" class="ui-btn ui-btn-sm" data-cn-note="${_cnE(n.id)}">${_cnE(_cnT('cn_need_go_note'))}</button></div>`;
+}
+/* a watch of yours that fired: what happened, what you asked to be told; the press lands on it (watchGo) */
+function cnWatchRowHtml(y){
+  const w = y.w || {};
+  const said = (typeof watchFiredWords === 'function') ? watchFiredWords(w) : '';
+  const asked = (typeof watchWords === 'function') ? _cnT('wt_bell_sub', { what: watchWords(w) }) : '';
+  return `<div class="cn-r"><div class="cn-w"><b>${_cnE(said)}</b>${asked ? `<span>${_cnE(asked)}</span>` : ''}</div><button type="button" class="ui-btn ui-btn-sm" data-cn-watch="${_cnE(String(w.id || ''))}">${_cnE(_cnT('cn_open'))}</button></div>`;
 }
 /* a request nobody holds yet (the bell's), opened on Requests */
 function cnReqRowHtml(y){
@@ -545,6 +556,7 @@ function cnReqWhat(r){
    ("a note due today · Baltic Freight's 3 details · Sara's NDA request") */
 function cnNeedShort(y){
   if (y.k === 'note') return y.urgent ? _cnT('cn_sh_mynote_late') : _cnT('cn_sh_mynote');
+  if (y.k === 'watch') return _cnT('wt_sh');
   if (y.k === 'req'){ const what = cnReqWhat(y.r), who = _cnWho(_cnFirst((y.r && y.r.by && y.r.by.name) || ''));
     return what ? _cnT('cn_sh_request_what', { ...who, what }) : _cnT('cn_sh_request', who); }
   const x = y.x, c = x.c, it = x.it, cp = String(c.counterparty || c.name || '').trim(), n = it.n || 1;
@@ -561,6 +573,7 @@ function cnNeedShort(y){
 function cnNeedDoorAttrs(y){
   if (y.k === 'note') return `data-cn-note="${_cnE(y.n.id)}"`;
   if (y.k === 'req') return `data-cn-req="${_cnE(String((y.r && y.r.id) || ''))}"`;
+  if (y.k === 'watch') return `data-cn-watch="${_cnE(String((y.w && y.w.id) || ''))}"`;
   return `data-cn-need="${_cnE(y.x.it.kind)}" data-cn-id="${_cnE(y.x.c.id)}"`;
 }
 function cnCompanyRowHtml(R){
@@ -626,7 +639,7 @@ function counterBoxFit(q){
   q.style.height = q.value ? Math.min(q.scrollHeight, 120) + 'px' : '';
 }
 function cnSig(N, A){
-  return [(A && A.ready) || 0, (A && A.rows || []).map(r => (r.items || []).map(i => i.key).join(',')).join(';'), N.map(y => y.k + ':' + y.kind + ':' + (y.x ? y.x.c.id : y.n ? y.n.id : y.r ? y.r.id : '')).join(',')].join('|');
+  return [(A && A.ready) || 0, (A && A.rows || []).map(r => (r.items || []).map(i => i.key).join(',')).join(';'), N.map(y => y.k + ':' + y.kind + ':' + (y.x ? y.x.c.id : y.n ? y.n.id : y.r ? y.r.id : y.w ? y.w.id : '')).join(',')].join('|');
 }
 function renderCounter(){
   const host = document.getElementById('content'); if (!host) return;
@@ -716,6 +729,7 @@ if (typeof document !== 'undefined' && !window._cnWired){
     /* a note of yours and a request nobody holds: their own pages, landing ON
        the row (LAND ON IT — My notes' row, Requests' row), lit */
     if ((el = t.closest('[data-cn-note]'))){ const id = el.getAttribute('data-cn-note'); if (typeof myNotesOpen === 'function') myNotesOpen(id); cnLand('[data-mn-row="' + cnSel(id) + '"]', 'cn_land_note_gone'); return; }
+    if ((el = t.closest('[data-cn-watch]'))){ if (typeof watchGo === 'function') watchGo(el.getAttribute('data-cn-watch')); return; }
     if ((el = t.closest('[data-cn-req]'))){ const id = el.getAttribute('data-cn-req'); if (typeof intakeGoTo === 'function') intakeGoTo(id); cnLand('[data-ik-row="' + cnSel(id) + '"]', 'cn_land_req_gone'); return; }
     if ((el = t.closest('[data-cn-need]'))){ if (typeof hbNeedsPress === 'function') hbNeedsPress(el.getAttribute('data-cn-need'), el.getAttribute('data-cn-id')); return; }
     if (t.closest('[data-cn-setup]')){ if (typeof hbSetupGo === 'function') hbSetupGo(); return; }

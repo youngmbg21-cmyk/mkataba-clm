@@ -2532,6 +2532,8 @@ function startApp(){
   /* MY OWN EVENTS AND NOTES (10 Oct 2026): loaded once, so the rail's count
      and the bell know what is due before either page is opened. */
   if(window.mineLoad) mineLoad(true).then(()=>{ if(window.paintMyNotesCount) paintMyNotesCount(); });
+  /* JAMBO'S WATCHES (21 Oct 2026): what fired reaches the bell and Needs you from the start */
+  if(window.watchLoad) watchLoad(true);
   if(API_MODE()){ refreshStats(); refreshShareOverview(); refreshWaitingQuestions(); pollPendingResponses(); refreshAiUsage();
     /* asks to an admin, and their answers, reach the bell from the start */
     if(window.stAsksLoad){ _asksAt=Date.now(); try{ stAsksLoad(); }catch(_){} }

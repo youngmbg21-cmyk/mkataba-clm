@@ -24154,6 +24154,204 @@ app.delete('/api/me/items/:id', auth, (req, res) => {
   if (!r.changes) return res.status(404).json({ error: 'Not found' });
   res.json({ ok: true });
 });
+/* ============================================================
+   JAMBO'S STANDING WATCHES (owner, 21 Oct 2026: "build the chatbot as
+   recommended" — "tell me when Siginon replies", "warn me if any contract
+   renews within 60 days", "remind me Friday about the NDA")
+   ============================================================
+   A sentence becomes a watch in the browser WITHOUT AI (js/jambopress.js,
+   watchRead); Jambo proposes it as a card and the PERSON presses Start
+   watching (flow rule 7). What is stored is the person's own: every read and
+   write is scoped to req.user.id, a contract only where folderScopeFor lets
+   them see it (else 404, as every single-record route answers) and never one
+   of a confidential deal they are outside of. Only what HaTi can check from
+   its own records: their reply landing on a contract (a link's answer or
+   their note), a renewal or notice day within N days, a day to be reminded
+   on, an obligation due or late. The sweep (runWatches) fires each new hit
+   ONCE: the bell and Needs you read `fired` until the person presses it
+   (seen); mail goes only down the one mail path (sendEmail) and only when the
+   person takes HaTi's mail at all (briefCadence is not 'off'). Words are the
+   browser's and the mail's own: no contract name is stored on the row. Start
+   and stop leave a trail line (account_acts, flow rule 8). */
+db.exec(`
+  CREATE TABLE IF NOT EXISTS watches (
+    id TEXT PRIMARY KEY, user_id TEXT NOT NULL, kind TEXT NOT NULL, params TEXT NOT NULL DEFAULT '{}',
+    contract_id TEXT, created_at TEXT NOT NULL, paused INTEGER NOT NULL DEFAULT 0,
+    last_fired_at TEXT, fired TEXT, seen_at TEXT, ended_at TEXT);
+  CREATE INDEX IF NOT EXISTS idx_watches_user ON watches(user_id);
+`);
+const WATCH_KINDS = ['reply', 'renewal', 'remind', 'obligation'];
+const WATCH_MAX = 50;                 // per person — a cap is a fact: the refusal says it
+const WATCH_DAYS_MAX = 365;
+const WATCH_HITS_MAX = 400;           // the standing kinds remember what they already told, bounded
+const WATCH_SWEEP_MS = 5 * 60 * 1000;
+ACCT_KINDS.watch_on = 'Started a Jambo watch';
+ACCT_KINDS.watch_off = 'Stopped a Jambo watch';
+const watchJson = s => { try { const j = JSON.parse(s || '{}'); return j && typeof j === 'object' ? j : {}; } catch (_) { return {}; } };
+/* a contract this person may watch: in their streams, and not a confidential deal they are outside of */
+function watchContractOk(user, id) {
+  if (!id) return '';
+  const ok = myContractOk(user, id);
+  if (!ok) return null;
+  try { if (cnOutsideFor(user).has(ok)) return null; } catch (_) {}
+  return ok;
+}
+function watchClean(b, user) {
+  const o = b || {}, p = (o.params && typeof o.params === 'object') ? o.params : {};
+  const kind = String(o.kind || '');
+  if (!WATCH_KINDS.includes(kind)) return { error: 'A watch is one of: ' + WATCH_KINDS.join(', ') + '.' };
+  const cid = watchContractOk(user, o.contractId);
+  if (cid === null) return { error: 'Not found', status: 404 };
+  const days = (v, d) => { const n = Math.round(Number(v)); return Number.isFinite(n) && n >= 0 && n <= WATCH_DAYS_MAX ? n : d; };
+  if (kind === 'reply') {
+    if (!cid) return { error: 'Say which contract to watch for their reply.' };
+    return { kind, cid, params: {} };
+  }
+  if (kind === 'renewal') return { kind, cid, params: { days: days(p.days, 60) || 60 } };
+  if (kind === 'obligation') return { kind, cid, params: { days: days(p.days, 7) } };
+  const on = myDay(p.on);
+  if (!on) return { error: 'A reminder needs a day (yyyy-mm-dd).' };
+  return { kind, cid, params: { on, what: myText(p.what, 200) } };
+}
+function watchRow(r) {
+  const f = r.fired ? watchJson(r.fired) : null;
+  return { id: r.id, kind: r.kind, params: watchJson(r.params), contractId: r.contract_id || null, createdAt: r.created_at,
+    paused: !!r.paused, lastFiredAt: r.last_fired_at || null, fired: f, seenAt: r.seen_at || null, endedAt: r.ended_at || null,
+    unseen: !!(r.last_fired_at && (!r.seen_at || r.seen_at < r.last_fired_at)) };
+}
+/* the words the trail keeps: the kind and its day or window, never a contract's name */
+const watchTrailWords = w => w.kind === 'reply' ? 'their reply on a contract'
+  : w.kind === 'renewal' ? `a renewal within ${w.params.days} days`
+  : w.kind === 'obligation' ? `an obligation due within ${w.params.days} days or late`
+  : `a reminder on ${w.params.on}`;
+/* the watches this person may still read: one whose contract left their streams is not shown (nor fired) */
+function watchesOf(user) {
+  const scope = folderScopeFor(user);
+  return db.prepare('SELECT * FROM watches WHERE user_id=? ORDER BY created_at DESC').all(String(user.id))
+    .filter(r => !r.contract_id || idInScope(scope, r.contract_id)).map(watchRow);
+}
+app.get('/api/me/watches', auth, (req, res) => res.json({ watches: watchesOf(req.user), max: WATCH_MAX }));
+app.post('/api/me/watches', auth, (req, res) => {
+  const cl = watchClean(req.body, req.user);
+  if (cl.error) return res.status(cl.status || 400).json({ error: cl.error });
+  const n = db.prepare('SELECT COUNT(*) AS n FROM watches WHERE user_id=? AND ended_at IS NULL').get(String(req.user.id)).n;
+  if (n >= WATCH_MAX) return res.status(409).json({ error: `You already have ${WATCH_MAX} watches — stop one first.`, max: WATCH_MAX });
+  const id = 'wt_' + crypto.randomBytes(8).toString('hex'), at = now();
+  db.prepare('INSERT INTO watches (id,user_id,kind,params,contract_id,created_at) VALUES (?,?,?,?,?,?)')
+    .run(id, String(req.user.id), cl.kind, JSON.stringify(cl.params), cl.cid || null, at);
+  acctRecord(req.user, req.user, 'watch_on', watchTrailWords({ kind: cl.kind, params: cl.params }));
+  res.json({ watch: watchRow(db.prepare('SELECT * FROM watches WHERE id=?').get(id)) });
+});
+/* pause, resume, or "I have seen it" (the bell's press) — nothing else changes here */
+app.patch('/api/me/watches/:id', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM watches WHERE id=? AND user_id=?').get(String(req.params.id), String(req.user.id));
+  if (!r || (r.contract_id && !idInScope(folderScopeFor(req.user), r.contract_id))) return res.status(404).json({ error: 'Not found' });
+  const b = req.body || {};
+  if ('paused' in b) {
+    if (typeof b.paused !== 'boolean') return res.status(400).json({ error: 'paused must be true or false' });
+    db.prepare('UPDATE watches SET paused=? WHERE id=?').run(b.paused ? 1 : 0, r.id);
+  }
+  if (b.seen === true) db.prepare('UPDATE watches SET seen_at=? WHERE id=?').run(now(), r.id);
+  res.json({ watch: watchRow(db.prepare('SELECT * FROM watches WHERE id=?').get(r.id)) });
+});
+app.delete('/api/me/watches/:id', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM watches WHERE id=? AND user_id=?').get(String(req.params.id), String(req.user.id));
+  if (!r) return res.status(404).json({ error: 'Not found' });
+  db.prepare('DELETE FROM watches WHERE id=?').run(r.id);
+  acctRecord(req.user, req.user, 'watch_off', watchTrailWords(watchRow(r)));
+  res.json({ ok: true });
+});
+/* THE SWEEP: each live watch read against the STORED records, as its owner
+   may see them today. A hit is fired once (the standing kinds remember it in
+   params.hits); a one-shot watch (their reply, a reminder) ends when it fires. */
+function runWatches(opts) {
+  const o = opts || {};
+  const rows = db.prepare(`SELECT * FROM watches WHERE paused=0 AND ended_at IS NULL${o.userId ? ' AND user_id=?' : ''}`).all(...(o.userId ? [String(o.userId)] : []));
+  if (!rows.length) return { checked: 0, fired: 0, mailed: 0 };
+  const day = aiToday();
+  const dayNum = iso => Math.round((Date.parse(iso + 'T00:00:00Z') - Date.parse(day + 'T00:00:00Z')) / 86400000);
+  let book = null;
+  const readBook = () => {
+    if (book) return book;
+    const cs = db.prepare("SELECT id,name,counterparty,expiry,status,parent_id,folder,json FROM contracts WHERE status!='Declined'").all();
+    const parsed = new Map();
+    for (const r of cs) { let f = {}; try { f = JSON.parse(r.json) || {}; } catch (_) {} parsed.set(r.id, f); }
+    const { eff, ownExp, kidsOf } = effExpiryReader(cs, parsed);
+    return (book = { cs, parsed, eff, ownExp, kidsOf });
+  };
+  const users = new Map(db.prepare('SELECT * FROM users').all().map(u => [String(u.id), u]));
+  let fired = 0, mailed = 0;
+  for (const w of rows) {
+    const u = users.get(String(w.user_id)); if (!u) continue;
+    const scope = folderScopeFor(u);
+    if (w.contract_id && (!idInScope(scope, w.contract_id) || !watchContractOk(u, w.contract_id))) continue;
+    const p = watchJson(w.params);
+    const hits = new Set(Array.isArray(p.hits) ? p.hits : []);
+    let hit = null, end = false;
+    if (w.kind === 'reply') {
+      const since = w.last_fired_at || w.created_at;
+      const a = db.prepare('SELECT MAX(responded_at) AS at FROM shares WHERE contract_id=? AND responded_at > ?').get(w.contract_id, since).at;
+      const b = db.prepare(`SELECT MAX(r.at) AS at FROM share_responses r JOIN shares s ON s.token=r.token WHERE s.contract_id=? AND r.at > ?`).get(w.contract_id, since).at;
+      const m = db.prepare("SELECT MAX(at) AS at FROM share_messages WHERE contract_id=? AND side='counterparty' AND at > ?").get(w.contract_id, since).at;
+      const at = [a, b, m].filter(Boolean).sort().pop();
+      if (at) { hit = { what: 'reply', cid: w.contract_id, at, how: m === at ? 'note' : 'answer' }; end = true; }
+    } else if (w.kind === 'remind') {
+      if (p.on && p.on <= day) { hit = { what: 'remind', cid: w.contract_id || null, on: p.on }; end = true; }
+    } else if (w.kind === 'renewal' || w.kind === 'obligation') {
+      const B = readBook();
+      const n = Number(p.days) || 0;
+      for (const r of B.cs) {
+        if (hit) break;
+        if (w.contract_id ? r.id !== w.contract_id : !inScope(scope, r.folder)) continue;
+        const f = B.parsed.get(r.id) || {};
+        if (f.archived) continue;
+        try { if (cnOutsideFor(u).has(r.id)) continue; } catch (_) {}
+        if (w.kind === 'renewal') {
+          if (r.parent_id) continue;
+          const exp = B.eff(r); if (!exp) continue;
+          const setter = (B.kidsOf.get(r.id) || []).find(k => B.ownExp(k) === exp);
+          const meta = (setter ? (B.parsed.get(setter.id) || {}).metadata : f.metadata) || {};
+          const notice = Number(meta.noticePeriodDays) || Number((f.metadata || {}).noticePeriodDays) || 0;
+          let when = exp, said = 'ends';
+          if (notice > 0) { const d = new Date(exp + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - notice); if (!isNaN(d.getTime())) { when = d.toISOString().slice(0, 10); said = 'notice'; } }
+          const k = `${r.id}:${exp}`;
+          const left = dayNum(when);
+          if (left >= 0 && left <= n && !hits.has(k)) { hits.add(k); hit = { what: 'renewal', cid: r.id, day: when, said, days: left }; }
+        } else {
+          for (const ob of (Array.isArray(f.obligations) ? f.obligations : [])) {
+            if (!ob || ob.status === 'done') continue;
+            const due = String(ob.due || '').slice(0, 10); if (!/^\d{4}-\d{2}-\d{2}$/.test(due)) continue;
+            const k = `${r.id}:${ob.id || ob.desc}:${due}`;
+            if (dayNum(due) <= n && !hits.has(k)) { hits.add(k); hit = { what: 'obligation', cid: r.id, obId: ob.id || null, due, late: dayNum(due) < 0 }; break; }
+          }
+        }
+      }
+    }
+    if (!hit) continue;
+    const at = now();
+    const keep = [...hits].slice(-WATCH_HITS_MAX);
+    db.prepare('UPDATE watches SET fired=?, last_fired_at=?, params=?, ended_at=? WHERE id=?')
+      .run(JSON.stringify(hit), at, JSON.stringify(keep.length ? { ...p, hits: keep } : p), end ? at : null, w.id);
+    fired++;
+    /* "SENT" MEANS SENT: mail only down the one path, only to somebody who takes HaTi's mail */
+    if (/.+@.+\..+/.test(String(u.email || '')) && briefCadence(u) !== 'off') {
+      const L = (u.lang && I18N_STRINGS[u.lang]) ? u.lang : I18N_DEFAULT;
+      const cr = hit.cid ? db.prepare('SELECT id,name,counterparty,json FROM contracts WHERE id=?').get(hit.cid) : null;
+      let full = {}; try { full = cr ? (JSON.parse(cr.json) || {}) : {}; } catch (_) { full = {}; }
+      const vars = { ref: cr ? contractRef(full.id ? full : cr) : '', name: cr ? (cr.name || '') : '', who: cr ? (cr.counterparty || tFor(L, 'wt_mail_them')) : '',
+        day: hit.day || hit.due || hit.on || '', what: p.what || '', n: hit.days == null ? '' : hit.days };
+      const line = tFor(L, 'wt_mail_' + hit.what + (hit.what === 'remind' && !cr ? '_bare' : '') + (hit.what === 'obligation' && hit.late ? '_late' : ''), vars);
+      const link = cr ? contractUrl(null, cr.id) : (APP_URL() || `http://localhost:${PORT}`) + '/';
+      sendEmail(u.email, tFor(L, 'wt_mail_subject', { line: line.length > 90 ? line.slice(0, 89) + '…' : line }),
+        `${tFor(L, 'mail_hello')},\n\n${line}\n\n${link}\n\n${tFor(L, 'wt_mail_why')}\n\n${tFor(L, 'mail_automated_notice')}`, 'jambo watch')
+        .catch(() => {});
+      mailed++;   // handed to the one mail path; its outbox row says whether it went
+    }
+  }
+  return { checked: rows.length, fired, mailed };
+}
+app.post('/api/watches/run', auth, admin, (req, res) => res.json(runWatches()));
+setInterval(() => { try { runWatches(); } catch (e) { console.warn('[watches] sweep failed:', (e && e.message) || e); } }, WATCH_SWEEP_MS).unref?.();
 /* COPILOT PLANS YOUR TIME: it reads the dates and events the person's own
    calendar shows and proposes blocks; nothing is stored here — each block
    lands only when the person presses Add (or, at "Just do it", is added by

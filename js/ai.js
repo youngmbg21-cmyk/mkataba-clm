@@ -992,8 +992,13 @@ function aiBarSend(){
 /* where the bar's words go; answers which Jambo took them */
 function aiAskFromBar(t){
   t = String(t || '').trim(); if(!t) return null;
+  /* "What am I looking at?" typed is the bar's own chip; a watch sentence is
+     never read as a place or a contract to move to — it is proposed as a card
+     by the Jambo it reaches (Home's, a list's, else the side panel) */
+  if(aiHereAsked(t)) return aiHereFromBar();
+  const watch = typeof window.watchAsks==='function' && watchAsks(t);
   /* THE ONE READER first: a place or a contract moves there, said in the one conversation */
-  let u = null; try{ u = (typeof caUnderstand==='function') ? caUnderstand(t, { box: 'bar' }) : null; }catch(_){ u = null; }
+  let u = null; try{ u = (!watch && typeof caUnderstand==='function') ? caUnderstand(t, { box: 'bar' }) : null; }catch(_){ u = null; }
   const cards = (typeof CA_CARD_WORDS!=='undefined' && Array.isArray(CA_CARD_WORDS)) ? CA_CARD_WORDS : [];
   if(u && u.kind==='go' && !u.missing && !u.narrowOff && !u.here && !cards.includes(u.place) && typeof caGo==='function'){
     let moved = false; try{ moved = !!caGo(u); }catch(_){ moved = false; }
@@ -1008,12 +1013,12 @@ function aiAskFromBar(t){
   const here = aiEmbeddedHere();
   if(here==='home' && typeof intelAsk==='function'){ aiGoEmbedded('home'); intelAsk(t); return 'home'; }
   if(here==='list' && typeof jlAsk==='function'){ if(typeof window.jlFocus==='function') window.jlFocus(); jlAsk(t); return 'list'; }
-  if(here==='settings' && typeof window.stJamboFocus==='function' && window.stJamboFocus(t)){
+  if(here==='settings' && !watch && typeof window.stJamboFocus==='function' && window.stJamboFocus(t)){
     const f = document.getElementById('st-jb-form');
     if(f){ if(typeof f.requestSubmit==='function') f.requestSubmit(); else f.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true })); }
     return 'settings';
   }
-  if(here==='editor'){ aiGoEmbedded('editor', t); return 'editor'; }
+  if(here==='editor' && !watch){ aiGoEmbedded('editor', t); return 'editor'; }
   if(!ai.open) openAI(null, { here: true, noFocus: true });
   aiSubmit(t);
   return 'panel';
@@ -1271,8 +1276,12 @@ function renderAISuggest(){
     if(c) h+=chip('data-ai-paste','read',i18t('ai_paste_read',{ ref:aiRefOf(c) }));
     h+=chip('data-ai-paste','request',i18t('ai_paste_request'));
   }
+  /* YOUR WATCHES (21 Oct 2026, js/jambopress.js): the list of what Jambo watches for this person, once there is one */
+  { const W=(typeof watchesAll==='function')?watchesAll():[];
+    if(W.length) h+=`<button type="button" class="ai-chip jb-chip" data-jp-wlist="1">${esc(i18t('wt_list_chip'))} <span class="jp-n">${W.length}</span></button>`; }
   if(fresh&&!P) h+=aiChipQuestions().map(c=>chip('data-ai-chip',c.q)).join('');
   el.innerHTML=h;
+  if(typeof jpWire==='function') jpWire(el);
   el.querySelectorAll('[data-ai-chip]').forEach(b=>b.addEventListener('click',()=>{
     aiSubmit(b.getAttribute('data-ai-chip')||'');
   }));
@@ -1318,9 +1327,14 @@ function aiHereSays(){
   out.push(i18t('ai_here_free'));
   return out;
 }
-function aiHereExplain(){
+/* THE SAME QUESTION TYPED (21 Oct 2026): "what am I looking at?" in any box is
+   the chip's own free reading, never a model call that has to guess the page */
+const AI_HERE_ASK_RE=/^\s*(?:jambo,?\s+)?(?:what\s+am\s+i\s+looking\s+at|what(?:'s|\s+is)\s+(?:on\s+)?(?:this\s+(?:page|screen)|the\s+screen)|where\s+am\s+i|vad\s+tittar\s+jag\s+på|vad\s+är\s+(?:det\s+här|den\s+här\s+sidan)|var\s+är\s+jag)\s*[?.!]*\s*$/i;
+const aiHereAsked=q=>AI_HERE_ASK_RE.test(String(q||''));
+function aiHereExplain(asked){
   const lines=aiHereSays();
-  aiPush('user',{ text:esc(i18t('ai_here_chip')), raw:i18t('ai_here_chip') });
+  const said=(typeof asked==='string'&&asked.trim())?asked.trim():i18t('ai_here_chip');
+  aiPush('user',{ text:esc(said), raw:said });
   aiPush('assistant',{ text:lines.map(l=>`<div>${_aiEsc(l)}</div>`).join(''), free:true });
   if(!ai.open&&!aiPopped()&&!aiListFeed()) openAI(null,{ here:true, noFocus:true });
   renderAIFeed(); renderAISuggest();
@@ -1428,6 +1442,10 @@ function renderAIFeed(typing=false){
         ${m.text?`<div class="ai-bub jl-bub text-sm">${m.text}</div>`:''}
         ${proposal}
         ${m.cards?m.cards:''}
+        ${''/* THE PREPARED PRESS AND SHOW ME › (js/jambopress.js, 21 Oct 2026); a watch Jambo proposes, and Your watches, drawn live from the store */}
+        ${m.press&&typeof jpHtml==='function'?jpHtml(m.press,'ai:'+i):''}
+        ${m.watchAsk&&typeof watchAskHtml==='function'?watchAskHtml(m,'ai:'+i):''}
+        ${m.watchList&&typeof watchListHtml==='function'?watchListHtml():''}
         ${m.read&&m.read.text?`<div class="ai-read" data-ai-read>${_aiEsc(m.read.text)}</div>`:''}
       </div>
     </div>`;
@@ -1468,6 +1486,8 @@ function renderAIFeed(typing=false){
     regShowOnly(ids, el.getAttribute('data-ai-worklist-label')||'');
   }));
   if(typeof aiWireProposals==='function') aiWireProposals();
+  /* the presses under an answer, bound to their own elements (the popped-out window hears no document listener here) */
+  if(typeof jpWire==='function') jpWire(feed);
   /* a contract number in an answer is a link to it (caRefLinkPaint) */
   if(feed&&typeof window.caRefLinkPaint==='function') caRefLinkPaint(feed);
   /* The panel's own composer and any the feed drew: re-measured on every paint
@@ -4498,6 +4518,10 @@ async function aiSubmit(asked){
   /* an open rewrite (or a seeded session) owns the sentence only when it is not
      a question or a booking (aiAsksPastCard, 18 Oct 2026) */
   const cardOwns=!!(aiActiveProposal()||aiActiveRephrase()) && !aiAsksPastCard(q);
+  /* "What am I looking at?" typed is the chip's free reading; a watch sentence
+     is proposed as a card (js/jambopress.js) — both before any other reader */
+  if(!cardOwns && aiHereAsked(q)){ aiHereExplain(q); return; }
+  if(!cardOwns && typeof window.watchAskHere==='function' && watchAskHere(q)) return;
   if(!cardOwns && typeof window.caAskAnywhere==='function'){
     /* ONE READER FOR EVERY JAMBO BOX (19 Oct 2026): what the one reading read
        is what the window says it did — a place with its narrowing, a
@@ -4528,6 +4552,9 @@ async function aiAskWords(qRaw){
   /* the same reading aiSubmit makes: an open rewrite owns the sentence only
      when it is not a question or a booking (aiAsksPastCard) */
   const cardOwns=!!(aiActiveProposal()||aiActiveRephrase()) && !aiAsksPastCard(q);
+  /* beside a list (jlAsk) the same two readings as the window's box (aiSubmit) */
+  if(!cardOwns && aiHereAsked(q)){ aiHereExplain(q); return; }
+  if(!cardOwns && typeof window.watchAskHere==='function' && watchAskHere(q)) return;
   /* ---- WHAT THE READER TYPED IS WORDS, NEVER MARKUP (26 Sep 2026, the
      overnight clean-up) ---- The feed draws a user bubble's `text` as HTML,
      because the two seeded doors (a clause action from the Document tab and
@@ -4604,6 +4631,10 @@ async function aiAskWords(qRaw){
   const read=aiReadFrom();
   const finish=(ans)=>{
     ai.busy=false;
+    /* SHOW ME › AND THE ONE PREPARED PRESS, from the contracts the answer cites (js/jambopress.js): no second call */
+    if(ans&&typeof ans==='object'&&!ans.press&&typeof window.jpPressOf==='function'){
+      try{ const p=jpPressOf({ ids:jpIdsOf(ans.cards), q, text:ans.text }); if(p) ans.press=p; }catch(_){}
+    }
     aiPush('assistant',ans&&typeof ans==='object'?{ ...ans, read }:ans);
     renderAIFeed();
     // answer arrived while the panel was minimized/closed -> light up the launcher

@@ -66,6 +66,7 @@ import './wizard.js';
 import './draft.js';    // draft from a sentence: it picks from your own paper and mints nothing (W-1)
 import './adviserlink.js';   // send two clauses to an outside adviser: a fifth link purpose (upgrade 9)
 import './mine.js';             // a person's own calendar events and private notes: one store, private to them (10 Oct 2026)
+import './jambopress.js';       // Jambo's Show me ›, the one prepared press under an answer, and his standing watches (21 Oct 2026)
 import './views/calendar.js';
 import './views/mynotes.js';
 import './views/breakdown.js';   // Home's Breakdown face: the whole contract in regions (11 Oct 2026)     // My notes: the private ledger (10 Oct 2026)
@@ -2818,6 +2819,15 @@ function buildAlerts(){
      (hbWatchAlerts); the press lands on that figure's dig-in. */
   try{
     if(typeof window.hbWatchAlerts==='function') hbWatchAlerts().forEach(w=>push('watch',null,w.text,w.go));
+  }catch(e){}
+  /* A WATCH JAMBO KEPT FOR THIS READER HAS FIRED (21 Oct 2026, js/jambopress.js):
+     the same kind as the Board's watched number — something this reader asked
+     to be told — one row per watch until pressed; the press lands on the thing */
+  try{
+    if(typeof window.watchesFired==='function') watchesFired().forEach(w=>{
+      const c=(w.fired&&w.fired.cid||w.contractId)&&typeof getContract==='function'?getContract(w.fired.cid||w.contractId):null;
+      push('watch',c,watchFiredWords(w),()=>watchGo(w.id),{ sub:i18t('wt_bell_sub',{ what:watchWords(w) }) });
+    });
   }catch(e){}
   try{
     if(typeof window.hbGiftAlerts==='function') hbGiftAlerts().forEach(g=>push('gift',g.c,g.text,g.go));
