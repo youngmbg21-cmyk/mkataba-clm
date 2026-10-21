@@ -14250,7 +14250,6 @@
      (the day, who acts as a face, what and where, the row's one act). Scoped
      to the page (.obw-ins); the contract's tab keeps its table. */
   .obw-ins .ins-card.obw-weeks{background:none;border:0;box-shadow:none;overflow:visible;gap:var(--s-2);}
-  .obw-ins .ins-card.obw-weeks > .ins-bar{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);}
   .obw-ins .obw-scroll{display:flex;flex-direction:column;gap:var(--s-2);padding-bottom:var(--s-3);}
   .obw-wk{flex:none;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;}
   .obw-wk table.obw-wk-lt td{border-bottom:1px solid var(--rule);}
@@ -14307,6 +14306,10 @@
   .obw-add-btn{display:inline-flex;align-items:center;gap:6px;}
   .obw-empty{padding:28px 16px;text-align:center;color:var(--color-neutral-600);}
   .obw-empty p{margin:0 0 6px;}
+  /* THE LIST HEAD ON OBLIGATIONS (Part 8, the Legora way, 21 Oct 2026): the
+     foot under the last week's card, "1–12 of 12", on the ground, a little
+     in from the cards' edge; the filter fold and its chip bar went with it */
+  .obw-ins .obw-scroll > .lh-foot{flex:none;padding:0 var(--s-1);}
   /* + Add an obligation: which contract */
   .obw-pick .dlg-h p{margin:4px 0 0;color:var(--color-neutral-600);font-size:var(--t-meta);}
   .obw-pick-b{padding:12px 20px;display:flex;flex-direction:column;gap:8px;}
@@ -14363,8 +14366,6 @@
   .ins-cardhead{display:flex;align-items:center;gap:var(--s-2);padding:var(--s-3) var(--s-4);border-bottom:1px solid var(--color-divider);flex:none;}
   .ins-cardhead-t{margin:0;font-size:var(--t-card);font-weight:var(--w-strong);line-height:var(--lh-tight);color:var(--color-text);}
   .ins-cardhead-n{font-weight:var(--w-body);color:var(--color-neutral-600);font-variant-numeric:tabular-nums;}
-  .obw-filter-btn{color:var(--accent-ink);}
-  .obw-filter-n{font-variant-numeric:tabular-nums;}
   .ins-bar[hidden]{display:none;}
   .ob-id{display:flex;align-items:center;gap:var(--s-2);min-width:0;}
   .ob-id > .ins-c2{min-width:0;flex:1;}

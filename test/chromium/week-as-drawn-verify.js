@@ -129,8 +129,11 @@ const weekOf = () => {
         actDec: act('MK-C1::~renewal'), lineDec: line('MK-C1::~renewal'), actColleague: act('MK-A1::o2'), lineColleague: line('MK-A1::o2'),
         finds: finds ? { t: finds.textContent.replace(/\s+/g, ' ').trim(), face: (() => { const m = finds.querySelector('.obw-av.is-jambo .jambo-face path'); return !!(m && m.getAttribute('d') === window.JAMBO_MARK_PATH); })(), card: finds.closest('.obw-wk').getAttribute('data-obw-card') } : null };
     });
-    check('1a the head: "N outstanding · 1 overdue", Open every week, Filter, + Add an obligation',
-      /^\d+ outstanding · 1 overdue$/.test(P.head.trim()) && JSON.stringify(P.acts) === JSON.stringify(['Open every week', 'Filter', 'Add an obligation']), { head: P.head, acts: P.acts });
+    /* RE-POINTED (Part 8, the Legora way, the owner's pick of 21 Oct 2026):
+       the head's Filter fold went — a filter is added from the list head's
+       "+ Filter" under the title */
+    check('1a the head: "N outstanding · 1 overdue", Open every week, + Add an obligation',
+      /^\d+ outstanding · 1 overdue$/.test(P.head.trim()) && JSON.stringify(P.acts) === JSON.stringify(['Open every week', 'Add an obligation']), { head: P.head, acts: P.acts });
     check('1b each week a card of its own, in order', JSON.stringify(P.cards.slice(0, 3)) === JSON.stringify(['overdue', 'w0', 'w1']) && P.cards.includes('later'), P.cards);
     check('1c each card says what it holds', /work somebody could do now/.test(P.late) && /both theirs/.test(P.w0) && /nothing to pay/.test(P.w0)
       && /a renewal decision/.test(P.w1) && /Pay the storage fee/.test(P.w2) && /Private/.test(P.w2) && /we pay/.test(P.w2) && /nobody owns it yet/.test(P.later),

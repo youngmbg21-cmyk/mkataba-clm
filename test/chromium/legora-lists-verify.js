@@ -520,7 +520,11 @@ function pageKit(){
     }
     check(`${tag(d)} 7a the caret stays in the box at every keystroke`, lost == null, lost == null ? `typed "${P.word}"` : JSON.stringify(lost));
     const nar = await until(([c, wd]) => { const els = window.__lh.rowEls(c); return els.length && els.every(e => window.__lh.rowText(e).includes(wd.toLowerCase())) ? els.length : null; }, [cfg, P.word], 5000);
-    const after = await ev(c => ({ total: window.__lh.total(c), tabs: window.__lh.tabs() }), cfg);
+    /* the head recounts once the typing pauses (lhHeadSyncSoon, LH_SYNC_QUIET_MS):
+       ask for its settled state, bounded, before judging the numbers */
+    const settled = c => { const t = window.__lh.total(c), tabs = window.__lh.tabs(), lit = tabs.find(x => x.lit);
+      return (!lit || lit.n === t) ? { total: t, tabs } : null; };
+    const after = await until(settled, cfg, 3000) || await ev(c => ({ total: window.__lh.total(c), tabs: window.__lh.tabs() }), cfg);
     const litT = (after.tabs || []).find(t => t.lit), allB = (before.tabs || []).find(t => t.all), allA = (after.tabs || []).find(t => t.all);
     check(`${tag(d)} 7b typing "${P.word}" narrows the list to the rows that carry it (a ${P.kind} is never a question)`,
       !!nar && after.total >= 1 && after.total < before.total, JSON.stringify({ before: before.total, after: after.total }));
@@ -586,6 +590,8 @@ function pageKit(){
     }
     const spot = () => ev(c => ({ tab: (window.__lh.tabs().find(t => t.lit) || {}).label || null, chips: window.__lh.chips().map(x => x.t).sort(),
       words: (window.__lh.box() || {}).value == null ? null : window.__lh.box().value, ids: window.__lh.ids(c).slice(0, 60) }), cfg);
+    /* the head's numbers settle once the typing pauses (lhHeadSyncSoon): ask, bounded */
+    await until(c => { const t = window.__lh.total(c), lit = window.__lh.tabs().find(x => x.lit); return (!lit || lit.n === t) ? true : null; }, cfg, 3000);
     const was = await spot();
     await page.reload({ waitUntil: 'networkidle' });
     await loaded();
