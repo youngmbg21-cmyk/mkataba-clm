@@ -177,6 +177,8 @@ function deskGoBack(){
      beside it — the sentence that drafted it stands in Jambo's conversation
      there (19 Oct 2026, one-sheet-as-drawn 7a) */
   if (deskSheetUp() && typeof window.naSheetBack === 'function'){ window.naSheetBack(); return true; }
+  /* a page standing in the middle beside the Dossier: ‹ brings the paper back (the middle, 21 Oct 2026) */
+  if (typeof window.pdMidClose === 'function' && window.pdMidClose()) return true;
   if (deskStepBack(true)){ deskBarPaint(); return true; }
   const t = deskBackTarget(); if (!t) return false;
   _dkTrail = _dkTrail.slice(0, t.i + 1); _dkMenuOpen = false;
@@ -205,6 +207,8 @@ const DK_SETTLE_MS = 300;
 let _dkNoteT = 0;
 function deskTabsSync(){
   if (!deskShellOn()) return;
+  /* a page standing in the middle belongs to the page that opened it (the middle, 21 Oct 2026) */
+  if (typeof window.pdMidStale === 'function') try { window.pdMidStale(); } catch (_){}
   deskBarPaint();
   clearTimeout(_dkNoteT);
   _dkNoteT = setTimeout(() => {

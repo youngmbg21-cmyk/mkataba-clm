@@ -21315,3 +21315,9 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - A breakdown reading kept before 21 Oct 2026 still carries missing:true for a clause that is merely blank, so on those contracts that finding stays in the "After N" group until the wording changes and Jambo reads again; a "Mark reviewed" tick made against that old shape does not carry to the new one (the point's key changes).
 - Red at 826e87cb, not this round's: stakes-verify 8 and home-paper-clauses-verify 3a/3b (Home's panel draws copilot, doc, oblig - the `menu` tab those checks expect is absent); point-buttons-and-brief-verify 6a ("at a glance" carries a Contract briefing button); uploaded-contract-fixed-verify 4a/4b (the "Who else" row).
 - CLAUDE.md was 82.7 KB before this change and 83.8 KB after (three MAP lines for the clause faults and the lines removed), well above its 80 KB line; a trim needs the owner's yes.
+## 21 Oct 2026 — the middle (what a Dossier line opens comes to you)
+- Removed (owner's pick "The stage", said to the owner): Key terms' fold of lines down the Dossier on a computer (one line now, the table in the middle); "See it"'s trip to the Board's Jambo's work list from the Dossier; the Open Details act on a piece shown in the middle.
+- Noticed, not fixed: the piece panel's foot draws "Mark as read" and "Put away" alike as plain links side by side, though Put away takes the piece off the list.
+- Noticed, not fixed: every-door-lands-on-home-verify fails the same 12 doors (expecting the retired "Fill in beside the paper" face) at main 85e9567 and on the branch.
+- Noticed, not fixed: CLAUDE.md is 82.6 KB, over the ~80 KB rule; a trim needs the owner's yes.
+- Noticed, not fixed: paper-panel-as-drawn-verify fails the same 6 checks (1b, 1e, 1f, 2d among them) on main b2e178f and on the branch after bringing main in.
