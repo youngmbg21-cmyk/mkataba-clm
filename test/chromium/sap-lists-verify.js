@@ -91,7 +91,11 @@ const wait = async (page, fn, arg, ms = 5000) => {
     }) : null;
     check('2b0 one row is four days idle', !!aged && aged.idle === 4, JSON.stringify(aged));
     const ap = apUp ? await page.evaluate(() => {
-      const t = document.querySelector('.ap-card-t');
+      /* RE-POINTED 21 Oct 2026 (Part 8, the list head the Legora way): the
+         card's head went (ruling 5); what it said is the All tab's — its
+         words on the tab's hover, its count the tab's number */
+      const all = document.querySelector('[data-lh-seat="approvals"] [data-ap-view="all"]');
+      const t = all ? { textContent: all.title } : null;
       const tab = document.querySelector('[data-ap-tab="approvals"] .ap-n');
       const rows = window.apApprovalRows ? apApprovalRows() : [];
       const wrong = rows.filter(r => {
@@ -100,7 +104,7 @@ const wait = async (page, fn, arg, ms = 5000) => {
         return red !== (r.idle >= 7);
       }).map(r => r.c.id + ':' + r.idle);
       /* RE-POINTED 18 Oct 2026 (round 15 as drawn): the count is a pill beside the title ("· 4 ·"), no brackets */
-      const pill = document.querySelector('.ap-card-t .ap-card-n.is-pill');
+      const pill = all && all.querySelector('.n');
       return { title: t ? t.textContent.trim() : null, pill: pill ? pill.textContent.trim() : null, tab: tab ? tab.textContent.trim() : '', n: rows.length,
         mine: rows.filter(r => r.mine).length, wrong, idles: rows.map(r => r.idle) };
     }) : null;

@@ -465,6 +465,11 @@ describe('f804 (12) the frame as drawn', () => {
     assert.match(fnOf(read('js/app.js'), 'renderPageHeader'), /host\.innerHTML=`<div class="ph-card">/);
     assert.match(HTML, /\.ph-card\{border-radius:var\(--radius-lg\);padding:14px 16px;\}/);
     assert.doesNotMatch(HTML, /body:has\(#content \.ap-page\) #page-head > div:last-child/);
-    assert.match(HTML, /#content \.sap-page\.ap-page\{padding-top:var\(--s-3\);\}/);
+    /* RE-POINTED 21 Oct 2026 (Part 8, the list head the Legora way): the
+       list head is the head card's lower half (.ph-foot), flush under it, so
+       the page starts at its top; the ground is the page's gap above the
+       list's card */
+    assert.match(HTML, /#content \.sap-page\.ap-page\{padding-top:0;\}/);
+    assert.match(read('js/views/approvalsview.js'), /lhHtml\('approvals',\{ frame:'foot' \}\)/);
   });
 });

@@ -43,10 +43,14 @@ describe('f717 (1) one list, no tabs', () => {
       'ap_wl_n_yours_one', 'ap_wl_n_yours_other', 'ap_wl_n_others_one', 'ap_wl_n_others_other'])
       for (const lang of ['en', 'sv']) assert.ok(BOOKS[lang][k], k + ' ' + lang);
   });
-  test('1b the page draws no tab row; the columns are Kind · Why it waits · Whose turn', () => {
+  /* RE-POINTED 21 Oct 2026 (Part 8, the list head the Legora way; the owner's
+     "tabs only"): the page draws a tab row again, but by who owes the next
+     step (data-ap-view), never the old Approvals | Signatures split by kind
+     (data-ap-tab) — Kind stays a column */
+  test('1b no Approvals | Signatures tab row; the columns are Kind · Why it waits · Whose turn', () => {
     const page = fnBody(AP, 'renderApprovalsPage');
     assert.ok(page, 'renderApprovalsPage is there');
-    assert.doesNotMatch(page, /data-ap-tab/, 'no tab row on the page');
+    assert.doesNotMatch(page, /data-ap-tab/, 'no tab row by kind on the page');
     assert.match(page, /i18t\('ap_wl_kind'\)[\s\S]*i18t\('ap_wl_why'\)[\s\S]*i18t\('ap_wl_turn'\)/);
   });
 });
@@ -74,7 +78,16 @@ describe('f717 (2) grouped by who owes the next step', () => {
     assert.match(page, /const W=apWorkRows\(\)/);
     assert.match(page, /i18tn\('ap_wl_n_yours',W\.yours\.length/);
     assert.match(page, /i18tn\('ap_wl_n_others',W\.others\.length/);
-    assert.match(page, /band\('yours',i18t\('ap_wl_yours'\),W\.yours\)\}\$\{band\('others',i18t\('ap_wl_others'\),W\.others\)/);
+    /* RE-POINTED 21 Oct 2026 (Part 8; the owner's "tabs only": ONE plain
+       table, the group rows go, the tabs do their job): the two groups are
+       the list head's tabs, Yours to answer and Waiting on others, read off
+       the same reading's two lists */
+    const views = /const AP_VIEWS=\[[^\n]*\];/.exec(AP);
+    assert.ok(views, 'the tabs are the page\'s views');
+    assert.match(views[0], /\['yours','ap_wl_yours'\],\['others','ap_wl_others'\]/);
+    assert.match(fnBody(AP, 'apListNow'), /const yours=new Set\(W\.yours\);/);
+    assert.match(fnBody(AP, 'apListNow'), /if\(o\.view==='yours'&&!yours\.has\(r\)\) return false;/);
+    assert.match(fnBody(AP, 'apListNow'), /if\(o\.view==='others'&&yours\.has\(r\)\) return false;/);
   });
 });
 
@@ -101,11 +114,15 @@ describe('f717 (4) each row its own panel; a group spans the list', () => {
     assert.match(paint, /^function apInsPaint\(rows\)/, 'one list in, no tab');
     assert.match(paint, /const tab=apRowTab\(r\)/);
   });
-  test('4b a group\'s row spans every column, under its own name (not the page band\'s)', () => {
+  /* RE-POINTED 21 Oct 2026 (Part 8; the owner's "tabs only"): no group row
+     in the table any more — one plain table, yours first under All (the
+     reading's own order), the tabs naming the groups */
+  test('4b one plain table: no group rows, the rows in the reading\'s order (yours first)', () => {
     const page = fnBody(AP, 'renderApprovalsPage');
-    assert.match(page, /<tr class="ap-grp is-\$\{k\}"><td colspan="\$\{cols\}">/);
+    assert.doesNotMatch(page, /ap-grp/, 'no group row in the table');
+    assert.match(page, /<tbody>\$\{\s*W\.rows\.map\(row\)\.join\(''\)\}<\/tbody>/);
     const css = R('index.html');
-    assert.match(css, /\.ap-table tr\.ap-grp td\{/);
+    assert.doesNotMatch(css, /\.ap-table tr\.ap-grp/, 'the group rows\' clothes went with them');
     assert.doesNotMatch(css, /\.ap-table tr\.ap-band/, 'the table rows never wear the page band\'s name');
   });
 });

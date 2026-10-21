@@ -70,16 +70,33 @@ const RULES = [
     const A = await page.evaluate(READ);
     const row = id => A.rows.find(r => r.id === id) || {};
     check('1 one list, no tabs, a Kind column', A.tabs === 0 && A.heads.includes('Kind') && A.heads.includes('Why it waits') && A.heads.includes('Whose turn'), JSON.stringify({ tabs: A.tabs, heads: A.heads }));
-    check('2 "Yours to answer" first, each group\'s name whole across the list (the approval asked of you, your signature), then "Waiting on others" (the one you raised)',
-      A.groups.length === 2 && A.groups.every(g => g.whole) && A.groups[0].k === 'Yours to answer' && A.groups[1].k === 'Waiting on others'
-      && ['MK-WL-1', 'MK-WL-3'].every(id => A.groups[0].rows.includes(id)) && JSON.stringify(A.groups[1].rows) === JSON.stringify(['MK-WL-2']), JSON.stringify(A.groups));
+    /* RE-POINTED 21 Oct 2026 (Part 8, the list head the Legora way; the
+       owner's "tabs only"): ONE plain table, no group rows — the head's tabs
+       ([data-ap-view]) are the two groups, each showing its own rows, and
+       under All the rows that wait on the reader come first */
+    const VIEWS = () => [...document.querySelectorAll('[data-lh-seat="approvals"] [data-ap-view]')].map(b => ({ k: b.getAttribute('data-ap-view'),
+      label: (b.firstChild || {}).textContent, n: Number(((b.querySelector('.n') || {}).textContent || '0').replace(/\D/g, '')) || 0 }));
+    const viewRows = async k => { await page.evaluate(v => { const b = document.querySelector(`[data-lh-seat="approvals"] [data-ap-view="${v}"]`); if (b) b.click(); }, k);
+      return until(v => { const b = document.querySelector(`[data-lh-seat="approvals"] [data-ap-view="${v}"]`); return b && b.getAttribute('aria-selected') === 'true'
+        ? [...document.querySelectorAll('.ap-table tbody tr[data-ap-row]')].map(tr => tr.getAttribute('data-ap-row')) : null; }, k, 4000); };
+    const V = await page.evaluate(VIEWS);
+    const yoursIds = await viewRows('yours') || [], othersIds = await viewRows('others') || [], allIds = await viewRows('all') || [];
+    const lastYours = Math.max(...yoursIds.map(id => allIds.indexOf(id))), firstOthers = Math.min(...othersIds.map(id => allIds.indexOf(id)));
+    check('2 the tabs are the groups: "Yours to answer" (the approval asked of you, your signature), "Waiting on others" (the one you raised); under All yours come first; no group rows',
+      A.groups.length === 0 && V.map(v => v.label).join(' · ') === 'All · Yours to answer · Waiting on others'
+      && ['MK-WL-1', 'MK-WL-3'].every(id => yoursIds.includes(id)) && JSON.stringify(othersIds) === JSON.stringify(['MK-WL-2'])
+      && allIds.length === yoursIds.length + othersIds.length && lastYours < firstOthers,
+      JSON.stringify({ groupRows: A.groups.length, views: V, yoursIds, othersIds, allIds }));
     check('3a Kind and Whose turn say it: Approval · You, Signature · You sign, Approval · its approver',
       row('MK-WL-1').kind === 'Approval' && row('MK-WL-1').turn === 'You' && row('MK-WL-3').kind === 'Signature' && row('MK-WL-3').turn === 'You sign'
       && row('MK-WL-2').kind === 'Approval' && row('MK-WL-2').turn && !/^You/.test(row('MK-WL-2').turn), JSON.stringify(A.rows));
     /* RE-POINTED (lane A1 pass 4, 18 Oct 2026): round 15 draws Approval rules
        for an Editor too — an admin goes to the rules, anyone else hears them
        from Jambo with Ask an admin (f807 (9), jambos-list-panel-verify) */
-    check('3b the band counts both groups in the same words; Approval rules is everyone\'s door', A.groups.length === 2 && A.facts === `${A.groups[0].rows.length} yours to answer · ${A.groups[1].rows.length} waiting on others` && A.rules, JSON.stringify({ facts: A.facts, rules: A.rules }));
+    /* RE-POINTED 21 Oct 2026 (Part 8): the counts on the title's line are the
+       two tabs' numbers, in the same words */
+    const nOf = k => (V.find(v => v.k === k) || {}).n;
+    check('3b the band counts both groups in the same words as the tabs; Approval rules is everyone\'s door', V.length === 3 && A.facts === `${nOf('yours')} yours to answer · ${nOf('others')} waiting on others` && A.rules, JSON.stringify({ facts: A.facts, views: V, rules: A.rules }));
     await page.click('[data-ap-rules]');
     const RS = await until(() => { const f = document.getElementById('jl-feed') || document.getElementById('ai-feed'); const t = f ? f.textContent.replace(/\s+/g, ' ') : '';
       return /ask for a yes before anyone signs/.test(t) ? { said: true, door: !!(f.querySelector('[data-ai-rule-door="ask_admin"][data-ai-rule="approvals"]')), view: state.view } : null; }, null, 6000);
