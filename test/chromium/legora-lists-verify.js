@@ -498,6 +498,9 @@ function pageKit(){
 
   /* ===== 7 · THE BOX: SEARCH, OR ASK THE PAGE'S OWN JAMBO ===== */
   const boxFocus = () => ev(() => { const b = window.__lh.box(); if (!b) return false; b.focus(); return document.activeElement === b; });
+  /* the head's recount after typing is one per pause (lhHeadSyncSoon): asked
+     for as a state — the lit tab says the rows shown — and bounded */
+  const recounted = c => until(cc => { const t = window.__lh.tabs().find(x => x.lit); return (!t || t.n == null || t.n === window.__lh.total(cc)) ? true : null; }, c, 3000);
   const boxClear = async () => { await boxFocus(); await page.keyboard.press('Control+A'); await page.keyboard.press('Backspace'); };
   async function gBox(d){
     await arrive(d);
@@ -520,6 +523,9 @@ function pageKit(){
     }
     check(`${tag(d)} 7a the caret stays in the box at every keystroke`, lost == null, lost == null ? `typed "${P.word}"` : JSON.stringify(lost));
     const nar = await until(([c, wd]) => { const els = window.__lh.rowEls(c); return els.length && els.every(e => window.__lh.rowText(e).includes(wd.toLowerCase())) ? els.length : null; }, [cfg, P.word], 5000);
+    /* the head counts again once the typing pauses (lhHeadSyncSoon,
+       LH_SYNC_QUIET_MS): wait for that recount, bounded, before judging it */
+    await recounted(cfg);
     const after = await ev(c => ({ total: window.__lh.total(c), tabs: window.__lh.tabs() }), cfg);
     const litT = (after.tabs || []).find(t => t.lit), allB = (before.tabs || []).find(t => t.all), allA = (after.tabs || []).find(t => t.all);
     check(`${tag(d)} 7b typing "${P.word}" narrows the list to the rows that carry it (a ${P.kind} is never a question)`,
@@ -583,6 +589,7 @@ function pageKit(){
     if (P && hasBox){
       await boxClear(); await page.keyboard.type(P);
       await until(([c, wd]) => { const els = window.__lh.rowEls(c); return els.length && els.every(e => window.__lh.rowText(e).includes(wd.toLowerCase())) ? true : null; }, [cfg, P], 5000);
+      await recounted(cfg);
     }
     const spot = () => ev(c => ({ tab: (window.__lh.tabs().find(t => t.lit) || {}).label || null, chips: window.__lh.chips().map(x => x.t).sort(),
       words: (window.__lh.box() || {}).value == null ? null : window.__lh.box().value, ids: window.__lh.ids(c).slice(0, 60) }), cfg);

@@ -8,7 +8,11 @@
      1 Requests' band: the tabs and, beside them on ONE row, Request · Stream ·
        With, each label before its box; the head "4 open · what colleagues ask
        Legal for · advice too"; the Open list oldest waiting first, its card
-       ending after the rows with "4 of 4 open" under them
+       ending after the rows with "4 of 4 open" under them. RE-POINTED 21 Oct
+       2026 (Part 8, the Legora way): Requests' band is the list head — the
+       box, the tabs, + Filter (Stream, With) — the Open tab's hover says
+       "oldest waiting first", the foot "1–4 of 4"; 5 is a finger on + Filter;
+       7 asks the head's rows stacked and uncut
      2 the request in Jambo's panel: Routine and "With you · by the NDA lane",
        Start the draft · Promise a day · Hand back on one line (⋯ at the pills'
        end), her words quoted, the rows, "Attachments 1 of 3", Jambo naming the
@@ -95,31 +99,36 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     await note({ title: 'The NDA must cover shelf data', body: 'Shelf data too.', reviewBy: day(1) });
     await note({ title: "Check Nandi Dairy's insurance broker", body: 'Check the broker before we accept a higher cap in clause 7.', contractId: 'MK-A2', reviewBy: day(0) });
 
-    /* ---- 1 · REQUESTS: the band, the head, the list ---- */
+    /* ---- 1 · REQUESTS: the list head, the page head, the list ---- */
     await page.evaluate(() => setView('intake'));
     const listed = await until(() => document.querySelectorAll('.ik-lt [data-ik-row]').length === 4 ? true : null, null, 10000);
     check('1 the four requests are listed', !!listed);
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way" for
+       every list page): round 20's band — the tabs with Request · Stream ·
+       With beside them — is the list head now: the box under the page's
+       head, the tabs under it, + Filter in the chip row under them; the list
+       card's own head is gone, its words the tabs' hovers; the foot "1–4 of 4" */
     const B = await page.evaluate(() => {
-      const tabs = document.querySelector('.ik-tabbar .rq-kinds'), fb = document.querySelector('.ik-tabbar .ik-fb');
+      const lh = document.querySelector('[data-lh-seat="intake"]');
+      const q = lh && lh.querySelector('input[data-lh-q]'), tabs = lh && lh.querySelector('[role="tablist"]'), add = lh && lh.querySelector('.lh-add');
       const box = el => el && el.getBoundingClientRect();
-      const pairs = [...(fb ? fb.querySelectorAll('.ik-fb-find, .reg-chip') : [])].map(l => { const lab = l.querySelector('.ik-fb-l, .reg-f-l'), val = l.querySelector('.ik-search, .reg-f-v');
-        return { label: lab ? lab.textContent.trim() : '', before: !!(lab && val && box(lab).right <= box(val).left + 1), framed: !!(val && getComputedStyle(val).borderTopStyle !== 'none' && parseFloat(getComputedStyle(val).borderTopWidth) > 0) }; });
+      const open = lh && lh.querySelector('[data-ik-view="open"]');
       const facts = document.getElementById('page-head-facts');
       const card = document.querySelector('.ik-ins .ins-card'), foot = document.querySelector('[data-ik-foot]');
       const rows = [...document.querySelectorAll('.ik-lt [data-ik-row]')];
-      return { oneRow: !!(tabs && fb) && Math.abs(box(tabs).top - box(fb).top) < 24, pairs,
+      return { stacked: !!(q && tabs && add) && box(q).bottom <= box(tabs).top + 1 && box(tabs).bottom <= box(add).top + 1,
+        gone: [...document.querySelectorAll('.ik-tabbar, .ik-fb, .ins-cardhead')].length,
         head: facts ? [...facts.children].map(e => e.textContent.trim()) : null,
         order: rows.map(r => r.querySelector('.ins-c2 b').textContent),
-        cardNote: (document.querySelector('.ins-cardhead-t') || {}).textContent,
+        cardNote: open ? open.getAttribute('title') : '',
         foot: foot ? foot.textContent.trim() : '', footUnder: !!(foot && rows.length && box(foot).top - box(rows[rows.length - 1]).bottom < 4),
         cardEnds: !!card && box(card).bottom < innerHeight - 60 };
     });
-    check('1a the tabs and the boxes on one row; Request · Stream · With, each label before its framed box', B.oneRow
-      && JSON.stringify(B.pairs.map(p => p.label)) === '["Request","Stream","With"]' && B.pairs.every(p => p.before && p.framed), JSON.stringify(B.pairs));
+    check('1a the list head: the box, the tabs under it, + Filter under them; no labelled band, no card head', B.stacked && B.gone === 0, JSON.stringify({ stacked: B.stacked, gone: B.gone }));
     check('1b the head: "4 open · what colleagues ask Legal for · advice too"', JSON.stringify(B.head) === '["4 open","what colleagues ask Legal for · advice too"]', JSON.stringify(B.head));
-    check('1c oldest waiting first, as the list\'s head says', B.order[0] === 'Event venue booking, March kick-off' && B.order[3] === 'Mutual NDA with Naivas Supermarkets'
+    check('1c oldest waiting first, as the Open tab says on hover', B.order[0] === 'Event venue booking, March kick-off' && B.order[3] === 'Mutual NDA with Naivas Supermarkets'
       && /oldest waiting first/.test(B.cardNote), JSON.stringify({ order: B.order, note: B.cardNote }));
-    check('1d the card ends after its rows, "4 of 4 open" right under them', B.foot === '4 of 4 open' && B.footUnder && B.cardEnds, JSON.stringify({ foot: B.foot, under: B.footUnder, ends: B.cardEnds }));
+    check('1d the card ends after its rows, "1–4 of 4" right under them', B.foot === '1–4 of 4' && B.footUnder && B.cardEnds, JSON.stringify({ foot: B.foot, under: B.footUnder, ends: B.cardEnds }));
 
     /* ---- 2 · the request in Jambo's panel ---- */
     await press(`.ik-lt [data-ik-row="${r1.id}"]`);
@@ -173,11 +182,12 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     const C = await until(() => { const el = document.querySelector('.is-landed, .is-landed-held'); return el && /Naivas/.test(document.body.innerText) && (state.view !== 'intake') ? { view: state.view, lit: el.className } : null; });
     check('4 the counterparty\'s name lands on their contracts', !!C, JSON.stringify(C));
 
-    /* ---- 5 · a finger on the Stream box ---- */
+    /* ---- 5 · a finger on + Filter (re-pointed 21 Oct 2026, Part 8: Stream
+       is offered under + Filter, the list head's one list of filters) ---- */
     await page.evaluate(() => setView('intake'));
-    await until(() => document.querySelector('.ik-fb select[data-ik-f="folder"]') ? true : null);
+    await until(() => document.querySelector('[data-lh-seat="intake"] select[data-lh-add]') ? true : null);
     const T = await page.evaluate(async () => {
-      const sel = document.querySelector('.ik-fb select[data-ik-f="folder"]');
+      const sel = document.querySelector('[data-lh-seat="intake"] select[data-lh-add]');
       if (!sel) return { menus: 0, missing: true };
       if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
       const r = sel.getBoundingClientRect();
@@ -188,7 +198,7 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
       return { menus, focusedSelect: !!(a && a.tagName === 'SELECT') };
     });
-    check('5 a finger on the Stream box opens HaTi\'s one list, the box not focused', T.menus === 1 && !T.focusedSelect, JSON.stringify(T));
+    check('5 a finger on + Filter opens HaTi\'s one list, the box not focused', T.menus === 1 && !T.focusedSelect, JSON.stringify(T));
 
     /* ---- 6 · MY NOTES ---- */
     await page.evaluate(() => mineLoad(true).then(() => setView('mynotes')));
@@ -232,15 +242,21 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
       for (const [w, ht] of SCREENS) {
         await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(450);
         const F = await page.evaluate(s => {
-          const tabs = document.querySelector('.reg-tabbar .reg-views'), fb = document.querySelector('.reg-tabbar .ik-fb');
+          /* RE-POINTED 21 Oct 2026 (Part 8): Requests' band is the list head —
+             its rows stacked (the box, the tabs, the chips), none cut sideways */
+          const lh = s === '.ik-lt' ? document.querySelector('[data-lh-seat="intake"]') : null;
+          const tabs = lh ? lh.querySelector('[role="tablist"]') : document.querySelector('.reg-tabbar .reg-views'), fb = lh ? lh.querySelector('.lh-chips') : document.querySelector('.reg-tabbar .ik-fb');
           const tr = tabs && tabs.getBoundingClientRect(), fr = fb && fb.getBoundingClientRect();
-          const labelsCut = [...document.querySelectorAll('.ik-tabbar .reg-f-l, .ik-tabbar .ik-fb-l, .ik-tabbar .reg-vtab, .ik-tabbar .reg-f-v')].filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.textContent.trim());
+          const labelsCut = [...document.querySelectorAll(lh ? '[data-lh-seat="intake"] .reg-vtab, [data-lh-seat="intake"] .lh-add'
+            : '.ik-tabbar .reg-f-l, .ik-tabbar .ik-fb-l, .ik-tabbar .reg-vtab, .ik-tabbar .reg-f-v')].filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.textContent.trim());
+          const oneRow = lh ? !!(tr && fr) && fr.top >= tr.bottom - 1 && tabs.scrollWidth <= tabs.clientWidth + 1 && fb.scrollWidth <= fb.clientWidth + 1
+            : !!(tr && fr) && fr.top < tr.bottom && fr.bottom > tr.top && fr.left >= tr.right;
           const heads = [...document.querySelectorAll(s + ' thead th')].filter(t => t.scrollWidth > t.clientWidth + 1).map(t => t.textContent.trim());
           const p = document.querySelector('#ins-panel.is-jambo'); const pr = p && p.getBoundingClientRect();
           const verbs = p ? [...p.querySelectorAll('.ins-h .ins-acts [data-ins-act]')] : [];
           const cutVerb = verbs.filter(b => b.scrollWidth > b.clientWidth + 1 || b.getBoundingClientRect().right > pr.right + 1).map(b => b.textContent.trim());
           const tops = new Set(verbs.map(b => Math.round(b.getBoundingClientRect().top)));
-          return { side: document.documentElement.scrollWidth <= innerWidth + 1, oneRow: !!(tr && fr) && fr.top < tr.bottom && fr.bottom > tr.top && fr.left >= tr.right, labelsCut,
+          return { side: document.documentElement.scrollWidth <= innerWidth + 1, oneRow, labelsCut,
             heads, cutVerb, verbsOneLine: tops.size <= 1, panel: !!p && pr.right <= innerWidth + 1 && pr.bottom <= innerHeight + 1 };
         }, sel);
         check(`7 ${lang} ${view} ${w}×${ht}: nothing sideways, the band one row, its labels whole, no head cut, the panel's verbs whole on one line`, F.side && F.oneRow && !F.labelsCut.length && !F.heads.length && !F.cutVerb.length && F.verbsOneLine && F.panel, JSON.stringify(F));
@@ -253,12 +269,13 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
     /* ---- 8 · SECOND PASS: a refresh lands at the same spot ---- */
     await page.evaluate(() => setView('intake'));
     await until(() => document.querySelector('.ik-lt [data-ik-row]') ? true : null);
-    await press('.ik-tabbar [data-ik-view="all"]');
-    await until(() => document.querySelector('.ik-tabbar [data-ik-view="all"].on') ? true : null);
+    /* re-pointed 21 Oct 2026 (Part 8): the tabs stand in the list head */
+    await press('[data-lh-seat="intake"] [data-ik-view="all"]');
+    await until(() => document.querySelector('[data-lh-seat="intake"] [data-ik-view="all"].on') ? true : null);
     await press(`.ik-lt [data-ik-row="${r2.id}"]`);
     await until(id => { const p = document.querySelector('#ins-panel'); return p && p.getAttribute('data-ins-id') === id ? true : null; }, r2.id);
     await page.reload({ waitUntil: 'networkidle' });
-    const K = await until(id => { const on = document.querySelector('.ik-tabbar [data-ik-view].on'); const p = document.querySelector('#ins-panel');
+    const K = await until(id => { const on = document.querySelector('[data-lh-seat="intake"] [data-ik-view].on'); const p = document.querySelector('#ins-panel');
       return on && p && p.getAttribute('data-ins-id') ? { tab: on.getAttribute('data-ik-view'), row: p.getAttribute('data-ins-id') } : null; }, null, 15000);
     check('8a Requests after a refresh: the same tab and the same request', !!K && K.tab === 'all' && K.row === r2.id, JSON.stringify(K));
     await page.evaluate(() => setView('mynotes'));

@@ -40,22 +40,29 @@ const until = async (page, fn, arg, ms = 8000) => {
 const READ = () => {
   const door = document.querySelector('#side-nav .nav-item[data-view="intake"]');
   const n = el => (el && !el.hidden && el.textContent.trim()) ? Number(el.textContent.trim().replace(/\D/g, '')) : 0;
-  const row = document.querySelector('#content .rq-kinds');
+  /* RE-POINTED 21 Oct 2026 (Part 8, the Legora way): on Requests the tab row
+     stands in the list head, drawn from the same one reading (ikTabViews) as
+     the board's own row (.rq-kinds); a tab of a view of the list carries
+     data-ik-view, the asker's page change data-rq-kind="advice" */
+  const row = document.querySelector('#content .rq-kinds, #content [data-lh-seat="intake"] [role="tablist"]');
+  const tabEls = row ? [...row.querySelectorAll('[role="tab"]')] : [];
   return {
     view: state.view,
     lit: [...document.querySelectorAll('#side-nav .nav-item[aria-current="page"]')].map(b => b.getAttribute('data-view')),
     adviceDoor: !!document.querySelector('#side-nav [data-view="advice"]'),
     doorN: door ? n(door.querySelector('[data-count="intake"]')) : null,
-    tabs: [...document.querySelectorAll('#content [data-rq-kind]')].map(b => b.getAttribute('data-rq-kind')),
+    tabs: tabEls.map(b => b.getAttribute('data-rq-kind') || (b.hasAttribute('data-ik-view') ? 'contracts' : null)),
+    views: tabEls.map(b => b.getAttribute('data-ik-view')),
+    tabNs: tabEls.map(b => n(b.querySelector('.n'))),
     /* the lit tab, named by the view it opens (one row of views since 9 Oct
        2026: Open · Mine · Advice · Finished · All) */
-    on: (() => { const b = document.querySelector('#content .rq-kinds .on'); return b ? (b.getAttribute('data-ik-view') || b.getAttribute('data-rq-kind')) : null; })(),
+    on: (() => { const b = row && row.querySelector('.on'); return b ? (b.getAttribute('data-ik-view') || b.getAttribute('data-rq-kind')) : null; })(),
     advRows: document.querySelectorAll('#content [data-ik-row^="adv:"]').length,
     ikRows: document.querySelectorAll('#content [data-ik-row]:not([data-ik-row^="adv:"])').length,
     /* ONE ROW since 9 Oct 2026 (SAP benchmark, batch 2): the contracts half is
        the Open tab's count — the queue the door opens on */
-    nContracts: n(document.querySelector('#content [data-ik-view="open"] .n')),
-    nAdvice: n(document.querySelector('#content [data-rq-n="advice"]')),
+    nContracts: n(row && row.querySelector('[data-ik-view="open"] .n')),
+    nAdvice: n(row && row.querySelector('[data-rq-n="advice"], [data-ik-view="advice"] .n')),
     title: ((document.querySelector('#page-head h1') || {}).textContent || '').trim(),
     rowTop: row ? Math.round(row.getBoundingClientRect().top) : null,
     rowLeft: row ? Math.round(row.getBoundingClientRect().left) : null,
@@ -114,21 +121,26 @@ const READ = () => {
 
     /* ---- 2 · REQUESTS OPENS ON CONTRACTS ---- */
     /* the left menu's place is the desk tabs' since 17 Oct 2026 (Round 2): the page is asked of Jambo's box */ await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'requests');
-    await until(page, () => state.view === 'intake' && !!document.querySelector('#content .rq-kinds'));
+    await until(page, () => state.view === 'intake' && !!document.querySelector('#content [data-lh-seat="intake"] [role="tablist"]'));
     s = await page.evaluate(READ);
     /* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2 — the drawing is
        the target): ONE row, Open · Mine · Advice · Finished this month · All;
        Advice is still its own view, the other four the contracts queue. */
     /* RE-POINTED 9 Oct 2026 (the owner: build it the SAP way): advice
        requests are listed in the same table, and Advice is a cut of it. */
-    ok('2a Requests draws one tab row of views, Advice third', s.tabs.length === 5 && s.tabs.every(k => k === 'contracts'), s.tabs);
+    /* RE-POINTED 21 Oct 2026 (Part 8, the Legora way): a view with no rows is
+       left out unless lit or All — the admin asked for nothing, so no Mine */
+    const ORDER = ['open', 'mine', 'advice', 'fin', 'all'];
+    ok('2a Requests draws one tab row of views in their order, Advice among them, each with rows', s.tabs.length >= 3 && s.tabs.every(k => k === 'contracts')
+      && s.views.every((v, i) => i === 0 || ORDER.indexOf(v) > ORDER.indexOf(s.views[i - 1])) && ['open', 'advice', 'all'].every(v => s.views.includes(v))
+      && s.views.every((v, i) => v === 'all' || v === s.on || s.tabNs[i] > 0), { views: s.views, n: s.tabNs });
     ok('2b it opens on Open, with both kinds in the one list', s.on === 'open' && s.ikPage && s.advRows === s.adviceN && s.ikRows === s.intakeN,
       { on: s.on, ikPage: s.ikPage, advice: s.advRows, contract: s.ikRows });
     ok('2c Open counts both kinds, and Advice counts the open advice', s.nContracts === s.intakeN + s.adviceN && s.nAdvice === s.adviceN,
       { open: s.nContracts, advice: s.nAdvice });
     ok('2d the door is the Open list it opens', s.doorN === s.nContracts,
       { door: s.doorN, open: s.nContracts });
-    const wideContracts = s.rowTop, wideLeft = s.rowLeft;
+    const wideLeft = s.rowLeft, wideViews = JSON.stringify(s.views);
     await page.screenshot({ path: path.join(OUT, '2-contracts.png') });
 
     /* ---- 3 · THE ADVICE TAB ---- */
@@ -151,8 +163,12 @@ const READ = () => {
     await page.screenshot({ path: path.join(OUT, '3-advice.png') });
 
     /* ---- 4 · THE ROW HOLDS STILL, WIDE AND NARROW ---- */
-    ok('4a wide: the tab row sits where it sat on Contracts', s.rowTop != null && s.rowTop === wideContracts && s.rowLeft === wideLeft,
-      { contracts: [wideContracts, wideLeft], advice: [s.rowTop, s.rowLeft] });
+    /* RE-POINTED 21 Oct 2026 (Part 8, the Legora way): on Requests the tabs
+       stand under the list head's box, so the board's row (which draws the
+       tabs alone) is no longer at the same height; it starts at the same
+       edge and carries the same tabs, from the one reading */
+    ok('4a wide: the board\'s tab row starts where Requests\' does, with the same tabs', s.rowLeft != null && s.rowLeft === wideLeft && JSON.stringify(s.views) === wideViews,
+      { requests: [wideLeft, wideViews], advice: [s.rowLeft, s.views] });
     await page.setViewportSize({ width: 1000, height: 820 });
     await until(page, () => (document.querySelector('#content [data-ins-page="advice"]') || {}).getAttribute
       && document.querySelector('#content [data-ins-page="advice"]').getAttribute('data-ins') === '0', null, 4000);

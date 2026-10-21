@@ -29,12 +29,19 @@ const BOOKS = (() => {
 })();
 
 describe('f721 (1) the team\'s columns', () => {
+  /* RE-POINTED 21 Oct 2026 (Part 8, the Legora way: the drawing's chip row
+     ends in Columns, the reader's own choice and order of the columns): the
+     same eight for the team and four for the asker, at round 20's widths, are
+     the columns at rest (ikColDefs); Ref and Request always stand first */
   test('1a eight columns for the team, four for the asker', () => {
-    const r = fnBody(IK, 'renderIntakeInspector');
-    assert.match(r, /\{ t:i18t\('ik_f_road'\), w:\d+ \}, \{ t:i18t\('ik_f_with'\), w:\d+ \}, \{ t:i18t\('ik_col_files'\), w:\d+ \}, \{ t:i18t\('ik_col_asked'\), w:\d+ \}, \{ t:i18t\('ik_f_promised'\), w:\d+ \}\]/);
-    assert.match(r, /\? \[\{ t:i18t\('ik_col_ref'\), w:96 \}, \{ t:i18t\('ik_col_request'\) \}, \{ t:i18t\('ik_f_with'\), w:170 \}, \{ t:i18t\('ik_f_promised'\), w:130 \}\]/, 'the asker\'s list is as it was');
+    const defs = fnBody(IK, 'ikColDefs');
+    assert.match(defs, /\{ k:'kind', label:i18t\('ik_col_kind'\), w:\d+ \}, \{ k:'road', label:i18t\('ik_f_road'\), w:\d+ \}, \{ k:'with', label:i18t\('ik_f_with'\), w:\d+ \},\s*\{ k:'files', label:i18t\('ik_col_files'\), w:\d+ \}, \{ k:'asked', label:i18t\('ik_col_asked'\), w:\d+ \}, \{ k:'promised', label:i18t\('ik_f_promised'\), w:\d+ \}\]/);
+    assert.match(defs, /\? \[\{ k:'with', label:i18t\('ik_f_with'\), w:170 \}, \{ k:'promised', label:i18t\('ik_f_promised'\), w:130 \}\]/, 'the asker\'s list is as it was');
+    const r = fnBody(IK, 'ikPaintRows');
+    assert.match(r, /const cols=\[\{ t:i18t\('ik_col_ref'\), w:asker\?96:108 \}, \{ t:i18t\('ik_col_request'\) \}, \.\.\.keys\.map/, 'Ref and Request first, then the columns shown');
     /* RE-POINTED 19 Oct 2026 (round 20 as drawn): the With cell carries its class (the name and the lane on one line) */
-    assert.match(r, /\$\{asker\?'':`<td class="ik-with">\$\{ikWithListHtml\(r\)\}<\/td><td>\$\{ikFilesCellHtml\(r\)\}<\/td><td class="ik-ask">/);
+    assert.match(r, /with:\(\)=>asker\?`<td>\$\{ikWithCellHtml\(r, asker\)\}<\/td>`:`<td class="ik-with">\$\{ikWithListHtml\(r\)\}<\/td>`/);
+    assert.match(r, /files:\(\)=>`<td>\$\{ikFilesCellHtml\(r\)\}<\/td>`,\s*asked:\(\)=>`<td class="ik-ask">/);
   });
 });
 
