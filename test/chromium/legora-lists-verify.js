@@ -520,7 +520,11 @@ function pageKit(){
     }
     check(`${tag(d)} 7a the caret stays in the box at every keystroke`, lost == null, lost == null ? `typed "${P.word}"` : JSON.stringify(lost));
     const nar = await until(([c, wd]) => { const els = window.__lh.rowEls(c); return els.length && els.every(e => window.__lh.rowText(e).includes(wd.toLowerCase())) ? els.length : null; }, [cfg, P.word], 5000);
-    const after = await ev(c => ({ total: window.__lh.total(c), tabs: window.__lh.tabs() }), cfg);
+    /* the head recounts its tabs once the typing pauses (listhead.js
+       LH_SYNC_QUIET_MS), while the rows narrow at every key: the lit tab's
+       number is asked for, bounded, not read the instant the rows narrow */
+    const after = await until(c => { const t = window.__lh.tabs(), n = window.__lh.total(c), l = t.find(x => x.lit);
+      return !l || l.n === n ? { total: n, tabs: t } : null; }, cfg, 2000) || await ev(c => ({ total: window.__lh.total(c), tabs: window.__lh.tabs() }), cfg);
     const litT = (after.tabs || []).find(t => t.lit), allB = (before.tabs || []).find(t => t.all), allA = (after.tabs || []).find(t => t.all);
     check(`${tag(d)} 7b typing "${P.word}" narrows the list to the rows that carry it (a ${P.kind} is never a question)`,
       !!nar && after.total >= 1 && after.total < before.total, JSON.stringify({ before: before.total, after: after.total }));

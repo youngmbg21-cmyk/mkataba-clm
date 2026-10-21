@@ -13981,9 +13981,12 @@
   #content .ap-body.is-ins:has(> #ins-panel.is-jambo) .ap-foot{margin-top:0;}
   /* round 15: the head card (title, counts, Approval rules), the grey ground,
      then the list's card. The head's own padding is the card's (.ph-card,
-     19 Oct 2026); the --s-3 below it is the page's. A bare :last-child
-     under body:has() made every element's style hang on the :has (home-speed-verify 1). */
-  #content .sap-page.ap-page{padding-top:var(--s-3);}
+     19 Oct 2026). PART 8 (the list head, the Legora way, 21 Oct 2026): the
+     list head is that card's lower half (.ph-foot), flush under it, so the
+     page starts at its top; the --s-3 ground is the page's gap above the
+     list. A bare :last-child under body:has() made every element's style
+     hang on the :has (home-speed-verify 1). */
+  #content .sap-page.ap-page{padding-top:0;}
   #content .ins-panel.is-jambo{position:fixed;right:0;top:var(--jl-top,88px);bottom:0;width:var(--jl-w,384px);z-index:20;display:flex;flex-direction:column;overflow:hidden;
     border:0;border-left:1px solid var(--color-neutral-300);border-radius:0;box-shadow:none;background:var(--color-surface);}
   #content .ins-panel.is-jambo.is-folded{width:46px;}
@@ -14172,11 +14175,8 @@
   .ap-band{display:flex;align-items:center;gap:12px;min-height:38px}
   .ap-facts{font-size:var(--t-meta);color:var(--color-neutral-600)}
   .ap-band-sp{flex:1}
-  .ap-table tr.ap-grp td{padding:6px 12px;background:var(--surface-2);font-size:var(--t-meta);color:var(--color-neutral-700);border-top:1px solid var(--color-divider);border-bottom:1px solid var(--color-divider)}
-  .ap-table tr.ap-grp i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;vertical-align:0;background:var(--color-neutral-400)}
-  .ap-table tr.ap-grp.is-yours i{background:var(--st-amber-dot)}
-  .ap-table tr.ap-grp b{font-weight:var(--w-strong);color:var(--color-text)}
-  .ap-table tr.ap-grp .n{margin-left:8px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
+  /* PART 8 ("tabs only", 21 Oct 2026): the group rows (.ap-grp) went with
+     their rules; the list head's tabs say who owes the next step */
   .ap-kind{display:inline-flex;align-items:center;height:20px;padding:0 8px;border:1px solid var(--color-divider);border-radius:var(--radius);font-size:11.5px;color:var(--color-text);background:var(--color-surface)}
   .ap-kind.is-sig{background:var(--surface-2)}
   .ap-table.ap-ins{table-layout:fixed;}
@@ -14194,6 +14194,14 @@
   .ap-table tbody tr.is-sel td{background:color-mix(in srgb,var(--color-accent) 8%,transparent);}
   .ap-table tbody tr.is-sel td:first-child{box-shadow:inset 2px 0 0 var(--accent-solid);}
   .ap-table tbody tr.is-sel td.mono{color:var(--accent-ink);}
+  /* PART 8: the sort moved from the list card's head to the right end of the
+     list head's chip row; it keeps the head's icon clothes (the card head's
+     .reg-cardhead rules), scoped to this page's chip row */
+  .sap-page.ap-page .lh-chips .reg-chip.reg-ico{position:relative;display:inline-flex;align-items:center;justify-content:center;width:var(--ctl-h);min-width:var(--ctl-h);height:var(--ctl-h);padding:0;
+    border:0;border-radius:var(--radius);background:none;color:var(--accent-ink);cursor:pointer;}
+  .sap-page.ap-page .lh-chips .reg-chip.reg-ico:is(:hover,:focus-within){background:var(--surface-2);}
+  .sap-page.ap-page .lh-chips .reg-chip.reg-ico .reg-f-l{display:inline-flex;pointer-events:none;}
+  .sap-page.ap-page .lh-chips .reg-chip.reg-ico .reg-chip-sel{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;opacity:0;cursor:pointer;}
 
   /* ═══ THE INSPECTOR ON FOUR MORE PAGES (Young ruled 26 Sep 2026: the
      Obligations page, the contract's Obligations tab, Our standards and

@@ -1555,6 +1555,8 @@ const PLACE_PARTS={
   mynotes:['mnPlace','mnPlacePut'],
   /* Import keeps its figure door, Show all, the chosen file and the check view (round 22, 18 Oct 2026) */
   migration:['migPlace','migPlacePut'],
+  /* Approvals & signing keeps its tab, filters, words and sort (Part 8, 21 Oct 2026) */
+  approvals:['apPlace','apPlacePut'],
 };
 const PLACE_ONE_CONTRACT=['workspace','doc','redline'];
 const PLACE_BACK_MS=6000, PLACE_BACK_EVERY=120, PLACE_SAVE_WAIT=250;

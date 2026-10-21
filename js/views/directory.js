@@ -540,7 +540,7 @@ function dirWaitGo(kind, id){
   const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c) return;
   /* LAND ON IT: each door arrives on its one thing, lit (jlLand) */
   const land = (k, a) => { if (typeof jlLand === 'function') jlLand(k, a); };
-  if (kind === 'approval'){ if (typeof insSelect === 'function') insSelect('approvals', c.id); if (typeof setView === 'function') setView('approvals'); land('row', c.id); return; }
+  if (kind === 'approval'){ if (typeof apShowRow === 'function') apShowRow(c.id); if (typeof insSelect === 'function') insSelect('approvals', c.id); if (typeof setView === 'function') setView('approvals'); land('row', c.id); return; }
   if (kind === 'sign'){ if (typeof apOpenSigning === 'function') apOpenSigning(c.id, 'road'); return; }
   if (typeof openRedlineWorkbench === 'function'){ openRedlineWorkbench(c.id, { face: true }); land('redlines'); } else dirOpenContract(c.id);
 }

@@ -423,9 +423,10 @@ function apWorkRows(){
   apSortRows(yours); apSortRows(others);
   return { yours, others, rows:[...yours, ...others], live, sg };
 }
-/* THE LIST'S SORT (round 15 draws it on the card's head): within each group,
-   the longest wait first (the drawing's order), or by value, or by reference.
-   Per sitting. */
+/* THE LIST'S SORT (round 15 drew it on the card's head; Part 8 moved it to
+   the right end of the list head's chip row): within each group, the longest
+   wait first (the drawing's order), or by value, or by reference. Kept
+   across a refresh with the rest of the list's spot (apPlace). */
 let _apSort='wait';
 const AP_SORTS=['wait','value','ref'];
 const AP_SORT_WORDS={ wait:'jl_ap_sort_wait', value:'jl_ap_sort_value', ref:'jl_ap_sort_ref' };
@@ -436,6 +437,139 @@ function apSortRows(list){
   const by={ wait:(a,b)=>(Number(b.idle)||0)-(Number(a.idle)||0), value:(a,b)=>val(b)-val(a), ref:(a,b)=>ref(a).localeCompare(ref(b)) }[k];
   if(by) list.sort(by);
   return list;
+}
+/* ═══ THE LIST HEAD, THE LEGORA WAY (Part 8: the owner picked "The Legora
+   way" for every list page, 21 Oct 2026, and answered "tabs only" for this
+   page: ONE plain table, no group headings) ═══════════════════════════════
+   The page's head is the shared one (js/views/listhead.js): a box to search
+   or ask in, the views as tabs, "+ Filter", the sort at the chip row's end,
+   and under the list "1–n of n". THE TABS DO WHAT THE GROUP ROWS DID: All ·
+   Yours to answer · Waiting on others, each counted from the ONE reading
+   (apWorkRows) with every other cut held; under All the rows that wait on
+   the reader come first (apWorkRows' own order). The filters are read off
+   the rows on the list — Kind, Stream, Whose turn — and one is offered only
+   where its values split the rows. The page keeps its spot across a refresh
+   (apPlace / apPlacePut, PLACE_PARTS.approvals). */
+const AP_VIEWS=[['all','reg_tab_all'],['yours','ap_wl_yours'],['others','ap_wl_others']];
+const AP_F_DEF={ kind:'all', stream:'all', turn:'all' };
+let _apView='all', _apF=Object.assign({},AP_F_DEF), _apQ='';
+/* the list at rest: All, no filter, no words */
+function apListAtRest(){
+  _apView='all'; _apF=Object.assign({},AP_F_DEF); _apQ='';
+  if(typeof lhBoxSet==='function') lhBoxSet('approvals','');
+}
+/* THE WHOLE LIST, READ ONCE PER TURN: the head's tabs and filters and the
+   rows under them read the same answer; a paint of the page reads it fresh */
+let _apBookMemo=null;
+function apBook(){
+  if(!_apBookMemo){ _apBookMemo=apWorkRows(); Promise.resolve().then(()=>{ _apBookMemo=null; }); }
+  return _apBookMemo;
+}
+const apKindOf=r=>r&&r.type==='signature'?'signature':'approval';
+const apStreamOf=r=>String((r&&r.c&&r.c.folder)||'');
+function apStreamName(id){
+  const f=(typeof FOLDERS!=='undefined'&&FOLDERS)?FOLDERS[id]:null;
+  return (typeof STREAM_SHORT!=='undefined'&&STREAM_SHORT&&STREAM_SHORT[id])||(f&&f.name)||String(id||'—');
+}
+/* the words a row carries on the screen: its reference, the party, the
+   agreement, why it waits, whose turn and its kind */
+function apRowWords(r){
+  const ref=(typeof contractRef==='function')?contractRef(r.c):r.c.id;
+  let why=[]; try{ why=apWhyLines(r); }catch(_){ why=[]; }
+  return [ref, r.c.id, r.c.counterparty, r.c.name, ...why, apTurnText(r), i18t(apKindOf(r)==='signature'?'ap_wl_kind_sig':'ap_wl_kind_appr')]
+    .filter(Boolean).join(' ').toLowerCase();
+}
+/* ONE READING OF WHAT THE LIST SHOWS: the whole list (W), and a pass that
+   cuts it by a view, the filters and the words — every tab's number and
+   every filter's count is this pass with one part swapped */
+function apListNow(){
+  const W=apBook();
+  const yours=new Set(W.yours);
+  const meta=new Map(W.rows.map(r=>[r,{ kind:apKindOf(r), stream:apStreamOf(r), turn:apTurnText(r), words:null }]));
+  const hit=(r,q)=>{ const w=String(q||'').trim().toLowerCase(); if(!w) return true;
+    const m=meta.get(r); if(m.words==null) m.words=apRowWords(r);
+    return w.split(/\s+/).every(t=>m.words.includes(t)); };
+  const pass=(r,o)=>{ const f=o.f||AP_F_DEF, m=meta.get(r);
+    if(o.view==='yours'&&!yours.has(r)) return false;
+    if(o.view==='others'&&yours.has(r)) return false;
+    for(const k of Object.keys(AP_F_DEF)) if(f[k]!=='all'&&m[k]!==f[k]) return false;
+    return hit(r,o.q); };
+  const now={ view:_apView, f:_apF, q:_apQ };
+  return { W, meta, pass, now, rows:W.rows.filter(r=>pass(r,now)) };
+}
+/* THE TABS: the rows each press shows, every other cut held. All carries
+   what the card's head used to say: what the list holds, and that a wait
+   turns late after seven days. */
+function apTabs(L0){
+  const L=L0||apListNow();
+  const late=i18tn('jl_ap_late_after',AP_LATE_DAYS,{n:AP_LATE_DAYS});
+  return AP_VIEWS.map(([k,key])=>({ k, label:i18t(key), keep:k==='all',
+    n:L.W.rows.filter(r=>L.pass(r,Object.assign({},L.now,{ view:k }))).length,
+    title:k==='all'?`${i18t('ap_wl_title')} \u00b7 ${late}`:'' }));
+}
+/* THE FILTERS, read off the rows the list holds with every other cut held:
+   a value that leaves nothing is not offered, and a filter whose rows all
+   carry one value (it would narrow nothing) is not offered until chosen */
+function apFilters(L0){
+  const L=L0||apListNow();
+  const label={ kind:i18t('ap_wl_kind'), stream:i18t('reg_chip_stream'), turn:i18t('ap_wl_turn') };
+  const word={ kind:v=>i18t(v==='signature'?'ap_wl_kind_sig':'ap_wl_kind_appr'), stream:apStreamName, turn:v=>v };
+  return Object.keys(AP_F_DEF).map(k=>{
+    const rest=L.W.rows.filter(r=>L.pass(r,Object.assign({},L.now,{ f:Object.assign({},L.now.f,{ [k]:'all' }) })));
+    const n=new Map(); rest.forEach(r=>{ const v=L.meta.get(r)[k]; if(v) n.set(v,(n.get(v)||0)+1); });
+    const cur=_apF[k], applied=cur!=='all';
+    /* a chosen value the list no longer holds keeps its own words on its chip */
+    if(applied&&!n.has(cur)) n.set(cur,0);
+    const opts=(!applied&&n.size<2)?[]:[...n].map(([v,c])=>[v,word[k](v),c]);
+    return { k, label:label[k], cur, def:'all', opts };
+  });
+}
+function apSortHtml(){
+  const sortOpts=AP_SORTS.map(k=>`<option value="${k}"${(_apSort===k)?' selected':''}>${esc(i18t(AP_SORT_WORDS[k]))}</option>`).join('');
+  return (typeof regSortIconHtml==='function')?regSortIconHtml(sortOpts,'ap-sort'):'';
+}
+/* the page's spec for the shared head, registered at its own render time */
+function apHeadRegister(){
+  if(typeof lhRegister!=='function') return null;
+  const keep=()=>{ if(typeof placeSave==='function') placeSave(); };
+  return lhRegister('approvals',{
+    noun:'approvals',
+    total:()=>apBook().rows.length,
+    q:()=>_apQ,
+    setQuery:w=>{ _apQ=String(w==null?'':w); apPaintList(); keep(); },
+    boxId:'ap-q',
+    tabAttr:'data-ap-view',
+    tabsLabel:i18t('ap_wl_title'),
+    tabs:()=>apTabs(),
+    tabNow:()=>_apView,
+    tab:k=>{ _apView=AP_VIEWS.some(v=>v[0]===k)?k:'all'; renderApprovalsPage(); keep(); },
+    filters:()=>apFilters(),
+    apply:patch=>{ Object.keys(patch||{}).forEach(k=>{ if(k in AP_F_DEF) _apF[k]=String(patch[k]==null?'all':patch[k])||'all'; }); renderApprovalsPage(); keep(); },
+    right:()=>apSortHtml(),
+  });
+}
+/* A REFRESH LANDS AT THE SAME SPOT (the owner's rule; PLACE_PARTS.approvals):
+   the tab, the filters, the words and the sort. The chosen row stays per
+   sitting, as before (two people's screens never open on one contract). */
+function apPlace(){ return { view:_apView, f:Object.assign({},_apF), q:_apQ, sort:_apSort }; }
+function apPlacePut(p){
+  if(!p||typeof p!=='object') return;
+  _apView=AP_VIEWS.some(v=>v[0]===p.view)?p.view:'all';
+  _apF=Object.assign({},AP_F_DEF);
+  if(p.f&&typeof p.f==='object') Object.keys(AP_F_DEF).forEach(k=>{ if(p.f[k]!=null&&p.f[k]!=='') _apF[k]=String(p.f[k]); });
+  _apQ=p.q?String(p.q):'';
+  _apSort=AP_SORTS.includes(p.sort)?p.sort:'wait';
+}
+/* LAND ON IT: a door that names one row (the directory's "waiting on",
+   Home's sign door, Settings' stand-in) arrives on it drawn — a tab, a
+   filter or words that would hide it are put back at rest first; a row the
+   list does not hold changes nothing */
+function apShowRow(id){
+  const q=String(id==null?'':id); if(!q) return false;
+  let L=null; try{ L=apListNow(); }catch(_){ return false; }
+  if(!L.W.rows.some(r=>String(r.c.id)===q)||L.rows.some(r=>String(r.c.id)===q)) return false;
+  apListAtRest();
+  return true;
 }
 /* the seat a row's panel is drawn for: an approval's or a signature's */
 function apRowTab(r){ return r&&r.type==='signature'?'signatures':'approvals'; }
@@ -528,6 +662,11 @@ function apInsPaint(rows){
   const idOf=tr=>tr.getAttribute('data-ap-row');
   const id=insPick(seat, tb?[...tb.querySelectorAll('[data-ap-row]')].map(idOf):[]);
   if(tb) insMarkRow(tb,'[data-ap-row]',idOf,id);
+  /* words typed in the head's box redraw the rows only (the page's panel
+     stands): a panel already painted on the chosen row is left as it is,
+     his conversation too; a page drawn afresh brings a fresh panel */
+  const host=document.getElementById('ins-panel');
+  const same=!!(host&&host._ins&&(host.getAttribute('data-ins-id')||'')===String(id||''));
   const paint=pid=>{
     const r=rows.find(x=>x.c.id===pid)||null;
     const tab=apRowTab(r);
@@ -556,7 +695,7 @@ function apInsPaint(rows){
       jlPh:i18t('jl_ph_list'),
       jlSay:()=>apSay(rows) });
   };
-  paint(id);
+  if(!same) paint(id);
   if(tb) insListWire(tb,{ rowSel:'[data-ap-row]', idOf,
     onSelect:pid=>{ insSelect(seat,pid); insMarkRow(tb,'[data-ap-row]',idOf,pid); paint(pid); },
     onOpen:pid=>apOpenSigning(pid) });
@@ -582,7 +721,10 @@ function apSay(rows){
     lines.push(esc(i18t('jl_ap_cover',{who:String(x.userName||'').split(/\s+/)[0],day:jlDayWord(x.to)}))); });
   const chips=[];
   const first=W.yours[0]||null;
-  if(first) chips.push({ label:i18t('jl_ap_chip_first'), run:()=>{ const tb=document.querySelector('.ap-table tbody'); const L=tb&&tb._insList;
+  if(first) chips.push({ label:i18t('jl_ap_chip_first'), run:()=>{
+    /* LAND ON IT: a tab, a filter or words that hide the row are put at rest first */
+    if(apShowRow(first.c.id)){ if(typeof insSelect==='function') insSelect('approvals', first.c.id); renderApprovalsPage(); }
+    const tb=document.querySelector('.ap-table tbody'); const L=tb&&tb._insList;
     const row=tb&&[...tb.querySelectorAll('[data-ap-row]')].find(x=>x.getAttribute('data-ap-row')===String(first.c.id));
     if(L&&row) L.onSelect(String(first.c.id), row);
     if(typeof jlLand==='function') jlLand('row', first.c.id); } });
@@ -628,8 +770,21 @@ function apRulesSay(){
   if(!here&&typeof openAI==='function') openAI(); else renderAIFeed();
   return true;
 }
-function renderApprovalsPage(){
-  const W=apWorkRows();
+/* THE PAGE (Part 8, the list head the Legora way): the shared head's card
+   (renderPageHeader: the name, the counts, Approval rules) with the list head
+   as its lower half — the box, the tabs, "+ Filter" and the sort — then the
+   list's card and Jambo's panel beside it. ONE PLAIN TABLE (the owner's
+   "tabs only"): the group rows went; the tabs say who owes the next step.
+   Words typed in the box repaint the list's card alone ({ listOnly:true }),
+   so the head, its box and the caret stay where they are. */
+function renderApprovalsPage(o){
+  const listOnly=!!(o&&o.listOnly);
+  if(!listOnly) _apBookMemo=null;
+  apHeadRegister();
+  const L=apListNow();
+  /* the rows on screen: the list cut by its tab, its filters and the words;
+     under All the ones that wait on the reader first (apWorkRows' order) */
+  const W={ rows:L.rows, all:L.W };
   const money=!(typeof canViewValues==='function'&&!canViewValues());
   /* WHICH SHAPE — asked once, recorded on the page (data-ins) so a width
      that crosses the line repaints it. */
@@ -659,43 +814,57 @@ function renderApprovalsPage(){
       ${money?`<td class="r mono">${apValueCell(r.c)}</td>`:''}
       ${INS?'':`<td class="r">${acts(r)}</td>`}
     </tr>`;
-  const cols=head.length;
-  const band=(k,label,list)=>list.length?`<tr class="ap-grp is-${k}"><td colspan="${cols}"><i aria-hidden="true"></i><b>${esc(label)}</b><span class="n">${list.length}</span></td></tr>${list.map(row).join('')}`:'';
-  const n=W.rows.length;
+  const n=W.rows.length, total=W.all.rows.length;
   const table=n
     ? `<table class="ap-table${INS?' ap-ins':''}"><colgroup>${head.map(h=>`<col${h.w?` style="width:${h.w}px"`:''}>`).join('')}</colgroup><thead><tr>${head.map(h=>`<th${h.right?' class="r"':''}>${esc(h.t)}</th>`).join('')}</tr></thead><tbody>${
-        band('yours',i18t('ap_wl_yours'),W.yours)}${band('others',i18t('ap_wl_others'),W.others)}</tbody></table>`
-    : `<div class="ap-empty">${esc(i18t('ap_wl_none'))}</div>`;
-  /* THE CARD'S HEAD AS DRAWN (round 15): "What waits for a yes or a
-     signature · 4 · late after 7 days", the sort at its end; its foot says
-     how many are shown */
-  const loc=typeof jxLocale==='function'?jxLocale():undefined;
-  const sortOpts=AP_SORTS.map(k=>`<option value="${k}"${(_apSort===k)?' selected':''}>${esc(i18t(AP_SORT_WORDS[k]))}</option>`).join('');
-  const sortHtml=(typeof regSortIconHtml==='function')?regSortIconHtml(sortOpts,'ap-sort'):'';
-  const card=`<section class="ap-card">
-      <div class="ap-card-h reg-cardhead reg-filterbar"><h2 class="ap-card-t">${esc(i18t('ap_wl_title'))} <span class="ap-card-n is-pill">${n.toLocaleString(loc)}</span> <span class="ap-card-m">${esc(i18tn('jl_ap_late_after',AP_LATE_DAYS,{n:AP_LATE_DAYS}))}</span></h2><span class="ap-card-sp"></span>${sortHtml}</div>
-      ${table}
-      ${n?`<div class="ap-foot ap-wl-foot" data-ap-foot>${esc(i18t('jl_ap_showing',{n:n.toLocaleString(loc),total:n.toLocaleString(loc)}))}</div>`:''}
-    </section>`;
+        W.rows.map(row).join('')}</tbody></table>`
+    : `<div class="ap-empty">${esc(i18t(total?'ap_wl_none_match':'ap_wl_none'))}</div>`;
+  /* THE FOOT (Part 8): "1–n of n" — every row is drawn, nothing more to show */
+  const foot=n&&typeof lhFootHtml==='function'?lhFootHtml('approvals',n,n,0,{ cls:'ap-foot ap-wl-foot' }):'';
+  const page=document.querySelector('#content .ap-page[data-ins-page="approvals"]');
+  const sec=document.getElementById('ap-scroll');
+  if(listOnly&&page&&sec&&page.getAttribute('data-ins')===(INS?'1':'0')){
+    sec.innerHTML=`${table}${foot}`;
+    apListWire(INS, W);
+    return;
+  }
+  const card=`<section class="ap-card" id="ap-scroll">${table}${foot}</section>`;
   document.getElementById('content').innerHTML=`
   <div class="view-enter sap-page ap-page${INS?' is-ins':''}" data-ins-page="approvals" data-ins="${INS?'1':'0'}">
+    ${typeof lhHtml==='function'?lhHtml('approvals',{ frame:'foot' }):''}
     ${INS?`<div class="ap-body is-ins">${card}<aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ins_panel_label'))}"></aside></div>`:card}
   </div>`;
   apPaintHead();
-  document.getElementById('ap-sort')?.addEventListener('change',e=>{ _apSort=AP_SORTS.includes(e.target.value)?e.target.value:'wait'; renderApprovalsPage(); });
-  if(INS){
-    apInsPaint(W.rows);
-    if(typeof insWatchWidth==='function') insWatchWidth();
-  } else {
-    document.querySelectorAll('[data-ap-open]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); apOpenSigning(b.getAttribute('data-ap-open')); }));
-    document.querySelectorAll('[data-ap-approve]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); apDecide(b.getAttribute('data-ap-approve'),'approved'); }));
-    document.querySelectorAll('[data-ap-refuse]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); apDecide(b.getAttribute('data-ap-refuse'),'refused'); }));
-    document.querySelectorAll('[data-ap-undo]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); apUndo(b.getAttribute('data-ap-undo')); }));
-    document.querySelectorAll('[data-ap-row]').forEach(tr=>tr.addEventListener('click',()=>apOpenSigning(tr.getAttribute('data-ap-row'))));
-  }
+  apListWire(INS, W);
+  if(INS&&typeof insWatchWidth==='function') insWatchWidth();
   setActiveNav('approvals');
+}
+/* the words in the box narrow the rows: the list's card alone is drawn again */
+function apPaintList(){ return renderApprovalsPage({ listOnly:true }); }
+/* the list's presses: beside the panel a press selects and a second opens
+   (apInsPaint); below the line each row's own buttons */
+function apListWire(INS, W){
+  if(INS){ apInsPaint(W.rows); return; }
+  document.querySelectorAll('[data-ap-open]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); apOpenSigning(b.getAttribute('data-ap-open')); }));
+  document.querySelectorAll('[data-ap-approve]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); apDecide(b.getAttribute('data-ap-approve'),'approved'); }));
+  document.querySelectorAll('[data-ap-refuse]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); apDecide(b.getAttribute('data-ap-refuse'),'refused'); }));
+  document.querySelectorAll('[data-ap-undo]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); apUndo(b.getAttribute('data-ap-undo')); }));
+  document.querySelectorAll('[data-ap-row]').forEach(tr=>tr.addEventListener('click',()=>apOpenSigning(tr.getAttribute('data-ap-row'))));
+}
+/* THE SORT, AT THE CHIP ROW'S END: one listener on the document, bound once
+   (the head keeps the page's own parts standing through a recount; the old
+   listener on the select itself is gone) */
+if(typeof document!=='undefined'&&document.addEventListener&&typeof window!=='undefined'&&!window._apSortWired){
+  window._apSortWired=true;
+  document.addEventListener('change',e=>{
+    const s=e.target; if(!s||s.id!=='ap-sort') return;
+    _apSort=AP_SORTS.includes(s.value)?s.value:'wait';
+    renderApprovalsPage();
+    if(typeof placeSave==='function') placeSave();
+  });
 }
 Object.assign(window,{AP_TABS,apTab,apSetTab,apWorkRows,apRowTab,apWhyHtml,apWaitsShort,apTurnText,apKindHtml,
   apOtherSignRows,apSignIdle,apRulesSay,apApproverMe,apSignAway,apSignRuleHtml,AP_SORTS,AP_SORT_WORDS,AP_SINCE_WORDS,apSortRows,apWhyLines,apForWho,apDayAfter,apTurnHtml,apSinceLook,apAskedByText,apWhySentence,apLeadJlHtml,apForPillHtml,apSay,apPaintHead,apSaWaiting,apApprovalRows,apSignatureRows,approvalsDoorCount,renderApprovalsPage,apOpenSigning,
   apInsSeat,apLeadHtml,apInsActs,apInsPaint,apMayDecide,apDecide,
-  AP_LATE_DAYS,apLate,apRowsShown,apUndo,apMayUndo,apApprovedPillHtml,apDoneLineHtml});
+  AP_LATE_DAYS,apLate,apRowsShown,apUndo,apMayUndo,apApprovedPillHtml,apDoneLineHtml,
+  AP_VIEWS,AP_F_DEF,apListAtRest,apBook,apStreamName,apRowWords,apListNow,apTabs,apFilters,apSortHtml,apHeadRegister,apPlace,apPlacePut,apShowRow,apPaintList,apListWire});

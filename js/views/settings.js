@@ -481,7 +481,7 @@ function stWireDrawerOnce(){
     /* the stand-in's Open it: the worklist, ON the approval that waits (LAND ON IT) */
     const ao=t.closest('[data-st-away-open]');
     if(ao){ const id=ao.getAttribute('data-st-away-open')||'';
-      if(id){ if(typeof apSetTab==='function') try{ apSetTab('approvals'); }catch(_){} if(typeof insSelect==='function') insSelect('approvals', id); }
+      if(id){ if(typeof apSetTab==='function') try{ apSetTab('approvals'); }catch(_){} if(typeof apShowRow==='function') try{ apShowRow(id); }catch(_){} if(typeof insSelect==='function') insSelect('approvals', id); }
       if(typeof setView==='function') setView('approvals');
       if(id && typeof landOn==='function') landOn(`[data-ap-row="${String(id).replace(/["\\]/g,'')}"][data-ap-kind="approval"]`,{ block:'nearest' });
       return; }

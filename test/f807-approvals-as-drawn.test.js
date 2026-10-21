@@ -150,11 +150,19 @@ describe('f807 (3) the list as drawn', () => {
     assert.match(fnOf(AP, 'approvalsDoorCount'), /apApprovalRows\(\)\.filter\(r=>r\.mine\)\.length \+ apSignatureRows\(\)\.length/, 'the door counts what is yours, as before');
     assert.match(fnOf(AP, 'apWorkRows'), /apOtherSignRows\(\)\.filter\(r=>!taken\.has\(r\.c\.id\)\)/);
   });
-  test('3c the card\'s head, its sort and its foot; the waiting cell says "late"', () => {
+  /* RE-POINTED 21 Oct 2026 (Part 8, the list head the Legora way): the
+     card's head goes (ruling 5) — its count is the All tab's number, its
+     title and "late after 7 days" are the All tab's hover, the sort stands
+     at the end of the head's chip row; the foot is the head's own, "1–n of
+     n" (lhFootHtml) */
+  test('3c the head carries what the card\'s head said, its sort and its foot; the waiting cell says "late"', () => {
     const f = fnOf(AP, 'renderApprovalsPage');
-    assert.match(f, /<span class="ap-card-n is-pill">\$\{n\.toLocaleString\(loc\)\}<\/span> <span class="ap-card-m">\$\{esc\(i18tn\('jl_ap_late_after',AP_LATE_DAYS,\{n:AP_LATE_DAYS\}\)\)\}<\/span>/);
-    assert.match(f, /regSortIconHtml\(sortOpts,'ap-sort'\)/);
-    assert.match(f, /i18t\('jl_ap_showing',\{n:n\.toLocaleString\(loc\),total:n\.toLocaleString\(loc\)\}\)/);
+    assert.doesNotMatch(f, /ap-card-h|ap-card-n|ap-card-m/, 'no card head of its own');
+    assert.match(fnOf(AP, 'apTabs'), /const late=i18tn\('jl_ap_late_after',AP_LATE_DAYS,\{n:AP_LATE_DAYS\}\);/);
+    assert.match(fnOf(AP, 'apTabs'), /title:k==='all'\?`\$\{i18t\('ap_wl_title'\)\} \\u00b7 \$\{late\}`:''/);
+    assert.match(fnOf(AP, 'apSortHtml'), /regSortIconHtml\(sortOpts,'ap-sort'\)/);
+    assert.match(fnOf(AP, 'apHeadRegister'), /right:\(\)=>apSortHtml\(\)/);
+    assert.match(f, /lhFootHtml\('approvals',n,n,0,\{ cls:'ap-foot ap-wl-foot' \}\)/);
     assert.match(f, /apWaitingText\(r\.idle\)\+\(apLate\(r\)\?' \\u00b7 '\+i18t\('jl_late'\):''\)/);
     assert.equal(tn('jl_ap_late_after', 7, { n: 7 }), 'late after 7 days');
     const ctx = stage(['apSortRows'], { _apSort: 'wait', AP_SORTS: ['wait', 'value', 'ref'] });
@@ -342,5 +350,118 @@ describe('f807 (10) the party\'s name reads whole beside the panel', () => {
   test('10b a long name takes a second line, never an ellipsis; the agreement under it keeps its cut', () => {
     assert.match(HTML, /\.ap-table\.ap-ins \.ap-id \.ap-name\{white-space:normal;overflow-wrap:anywhere;\}/);
     assert.doesNotMatch(HTML, /\.ap-table\.ap-ins \.ap-name,\.ap-table\.ap-ins \.ap-sub\{white-space:nowrap/);
+  });
+});
+
+/* ═══ PART 8 (21 Oct 2026): THE LIST HEAD, THE LEGORA WAY ═══════════════════
+   The owner picked "The Legora way" for every list page and answered "tabs
+   only" for this one: ONE plain table, the group rows gone, the tabs doing
+   their job.
+   (11) THE TABS ARE THE GROUPS, COUNTED: All · Yours to answer · Waiting on
+        others, each the rows its press shows with every other cut held
+        (the words, the filters); All is always drawn.
+   (12) THE FILTERS ARE READ OFF THE ROWS: Kind, Stream, Whose turn; a value
+        that leaves nothing is never offered, and a filter whose rows all
+        carry one value is not offered until it is chosen.
+   (13) A REFRESH LANDS AT THE SAME SPOT: the tab, filters, words and sort
+        go into the place store and come back, checked.
+   (14) LAND ON IT: a door naming one row puts the list at rest only where
+        the row is hidden; a row the list does not hold changes nothing.
+   (15) THE HEAD'S SPEC: the page's own tab attribute, the noun, words that
+        repaint the rows only, the sort at the chip row's end, the place pair.
+   AT THE PARENT (c70f4b09) every claim FAILS: none of these names exists. */
+describe('f807 (11–15) the list head, the Legora way', () => {
+  const region = (() => { const a = AP.indexOf('const AP_VIEWS='), b = AP.indexOf("/* the seat a row's panel is drawn for");
+    return a >= 0 && b > a ? AP.slice(a, b) : ''; })();
+  const A = { c: { id: 'A', counterparty: 'Helio AB', name: 'Power deal', folder: 'f1' }, type: 'signature', turn: 'You sign' };
+  const B = { c: { id: 'B', counterparty: 'Kustfrakt AB', name: 'Freight', folder: 'f1' }, type: 'approval', mine: true, turn: 'You' };
+  const C = { c: { id: 'C', counterparty: 'Stratos Ltd', name: 'Support', folder: 'f2' }, type: 'approval', turn: 'Sara' };
+  const mk = extra => {
+    const seen = { painted: 0, listed: 0, box: [] };
+    const ctx = Object.assign({ i18t: t, i18tn: tn, esc, Promise, String, Object, Array, Set, Map, Number,
+      apWorkRows: () => ({ yours: [A, B], others: [C], rows: [A, B, C] }), apTurnText: r => r.turn, apWhyLines: r => [r.why || '', ''],
+      contractRef: c => c.id, AP_LATE_DAYS: 7, AP_SORTS: ['wait', 'value', 'ref'], AP_SORT_WORDS: { wait: 'jl_ap_sort_wait', value: 'jl_ap_sort_value', ref: 'jl_ap_sort_ref' },
+      FOLDERS: { f1: { name: 'Procurement' }, f2: { name: 'Sales' } }, STREAM_SHORT: {},
+      lhRegister: (seat, spec) => { ctx.__spec = spec; return spec; }, lhBoxSet: (s, w) => seen.box.push([s, w]),
+      renderApprovalsPage: () => { seen.painted++; }, apPaintList: () => { seen.listed++; }, placeSave: () => {}, regSortIconHtml: (o, id) => `<label><select id="${id}">${o}</select></label>` }, extra || {});
+    vm.createContext(ctx);
+    vm.runInContext("var _apSort='wait';\n" + region + '\nvar __get=()=>({ view:_apView, f:_apF, q:_apQ, sort:typeof _apSort==="undefined"?null:_apSort });\nvar __set=(v,f,q)=>{ _apView=v; _apF=Object.assign({},AP_F_DEF,f||{}); _apQ=q||""; _apBookMemo=null; };', ctx);
+    ctx.__seen = seen;
+    return ctx;
+  };
+  const tabs = ctx => ctx.apTabs().map(x => `${x.k} ${x.n}`).join(' · ');
+  test('11a the three tabs, counted from the one reading; All carries the old card head\'s words on its hover', () => {
+    assert.ok(region, 'the region is there');
+    const ctx = mk();
+    assert.equal(tabs(ctx), 'all 3 · yours 2 · others 1');
+    const all = ctx.apTabs()[0];
+    assert.equal(all.keep, true, 'All is always drawn');
+    assert.equal(all.title, 'What waits for a yes or a signature · late after 7 days');
+  });
+  test('11b words and filters cut every tab, the tab swapped alone', () => {
+    const ctx = mk();
+    ctx.__set('yours', {}, 'stratos');
+    assert.equal(tabs(ctx), 'all 1 · yours 0 · others 1', 'the words find the party');
+    ctx.__set('all', { kind: 'approval' }, '');
+    assert.equal(tabs(ctx), 'all 2 · yours 1 · others 1');
+    assert.deepEqual(ctx.apListNow().rows.map(r => r.c.id), ['B', 'C'], 'the rows on screen, yours first');
+  });
+  test('12a the filters, read off the rows, counted with every other cut held', () => {
+    const ctx = mk();
+    const F = Object.fromEntries(ctx.apFilters().map(f => [f.k, f.opts.map(o => `${o[1]} (${o[2]})`).join(', ')]));
+    assert.equal(F.kind, 'Signature (1), Approval (2)');
+    assert.equal(F.stream, 'Procurement (2), Sales (1)');
+    assert.equal(F.turn, 'You sign (1), You (1), Sara (1)');
+  });
+  test('12b a filter whose rows all carry one value is not offered; once chosen it keeps its values', () => {
+    const ctx = mk();
+    ctx.__set('yours', {}, '');
+    const F = Object.fromEntries(ctx.apFilters().map(f => [f.k, f.opts.length]));
+    assert.equal(F.stream, 0, 'both of yours are in one stream: choosing it would narrow nothing');
+    assert.equal(F.kind, 2);
+    ctx.__set('yours', { stream: 'f1' }, '');
+    assert.equal(ctx.apFilters().find(f => f.k === 'stream').opts.length, 1, 'the chosen value stays to choose again');
+    assert.equal(ctx.apFilters().find(f => f.k === 'stream').cur, 'f1');
+  });
+  test('13 the place keeps the tab, the filters, the words and the sort — checked on the way back', () => {
+    const ctx = mk();
+    ctx.__set('others', { turn: 'Sara' }, 'stra');
+    const p = JSON.parse(JSON.stringify(ctx.apPlace()));
+    assert.deepEqual(p, { view: 'others', f: { kind: 'all', stream: 'all', turn: 'Sara' }, q: 'stra', sort: 'wait' });
+    ctx.__set('all', {}, '');
+    ctx.apPlacePut(Object.assign({}, p, { sort: 'value' }));
+    assert.deepEqual(JSON.parse(JSON.stringify(ctx.__get())), { view: 'others', f: { kind: 'all', stream: 'all', turn: 'Sara' }, q: 'stra', sort: 'value' });
+    ctx.apPlacePut({ view: 'nope', f: { evil: 'x' }, q: null, sort: 'nope' });
+    assert.deepEqual(JSON.parse(JSON.stringify(ctx.__get())), { view: 'all', f: { kind: 'all', stream: 'all', turn: 'all' }, q: '', sort: 'wait' });
+  });
+  test('14 LAND ON IT: only a hidden row puts the list at rest; a row not on the list changes nothing', () => {
+    const ctx = mk();
+    ctx.__set('others', {}, '');
+    assert.equal(ctx.apShowRow('C'), false, 'shown already: the reader\'s tab stays');
+    assert.equal(ctx.__get().view, 'others');
+    assert.equal(ctx.apShowRow('ZZ'), false, 'not on the list');
+    assert.equal(ctx.__get().view, 'others');
+    assert.equal(ctx.apShowRow('A'), true, 'hidden by the tab');
+    assert.deepEqual(JSON.parse(JSON.stringify(ctx.__get())).view, 'all');
+    assert.deepEqual(ctx.__seen.box.pop(), ['approvals', ''], 'the box shows the list at rest');
+    for (const [file, src] of [['directory.js', read('js/views/directory.js')], ['paperdesk.js', read('js/paperdesk.js')], ['settings.js', read('js/views/settings.js')]])
+      assert.match(src, /apShowRow\((c\.id|id)\)/, file + ' lands on its row through it');
+  });
+  test('15 the head\'s spec: the page\'s own tab attribute, words repaint the rows only, the sort at the end, the place pair', () => {
+    const ctx = mk();
+    const spec = ctx.apHeadRegister();
+    assert.equal(spec.tabAttr, 'data-ap-view');
+    assert.equal(spec.noun, 'approvals');
+    spec.setQuery('helio');
+    assert.equal(ctx.__get().q, 'helio');
+    assert.deepEqual([ctx.__seen.listed, ctx.__seen.painted], [1, 0], 'the rows only, never the head');
+    spec.tab('yours');
+    assert.equal(ctx.__get().view, 'yours');
+    spec.apply({ kind: 'signature' });
+    assert.equal(ctx.__get().f.kind, 'signature');
+    assert.match(spec.right(), /id="ap-sort"/);
+    assert.match(APP, /approvals:\['apPlace','apPlacePut'\]/);
+    assert.doesNotMatch(code(fnOf(AP, 'renderApprovalsPage')), /getElementById\('ap-sort'\)\?\.addEventListener/, 'the sort\'s own listener went: one delegated listener');
+    assert.match(AP, /window\._apSortWired=true;/);
   });
 });

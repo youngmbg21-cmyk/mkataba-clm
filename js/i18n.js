@@ -8512,6 +8512,7 @@ const STRINGS = {
     ap_wl_you_sign: 'You sign',
     ap_wl_you_send: 'You, to ask',
     ap_wl_none: 'Nothing waits for a yes or a signature.',
+    ap_wl_none_match: 'Nothing waiting matches these words or filters.',
     // SAP benchmark (owner-approved 9 Oct 2026): the table's own title, late past a week, Undo.
     ap_pg_title_mine: 'Waiting for your approval',
     ap_pg_title_all: 'Waiting for approval',
@@ -28111,6 +28112,7 @@ const STRINGS = {
     ap_wl_you_sign: 'Du skriver under',
     ap_wl_you_send: 'Du, att be om',
     ap_wl_none: 'Inget väntar på ett ja eller en underskrift.',
+    ap_wl_none_match: 'Inget som väntar matchar orden eller filtren.',
     ap_pg_title_mine: 'Väntar på ditt godkännande',
     ap_pg_title_all: 'Väntar på godkännande',
     ap_pg_title_sign: 'Väntar på underskrift',

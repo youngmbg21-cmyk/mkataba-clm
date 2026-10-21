@@ -300,7 +300,7 @@ function pdOpenOnHome(id, tab){
      decides it (Approve · Refuse in its panel). */
   if (tab === 'sign'){
     if (typeof apSetTab === 'function' && typeof insSelect === 'function' && typeof setView === 'function'){
-      apSetTab('approvals'); insSelect('approvals', id); setView('approvals'); return true;
+      apSetTab('approvals'); if (typeof apShowRow === 'function') apShowRow(id); insSelect('approvals', id); setView('approvals'); return true;
     }
     if (typeof openWorkspace === 'function') openWorkspace(id);
     if (typeof roomGoTab === 'function') try { roomGoTab(getContract(id), 'sign'); } catch (_){}
