@@ -173,8 +173,12 @@ const BOX = sel => {
     });
     await page.evaluate(() => setView('playbook'));
     await pause(1200);
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick of "the Legora way"):
+       where the inspector fits, the page's row is the switch at the head's
+       right on both views (.paper-seg, one builder), so a resting part there
+       is asked of it; the narrow page keeps its .st-tab row */
     const other = await page.evaluate(() => {
-      const e = document.querySelector('.st-tab:not(.on)'); if (!e) return null;
+      const e = document.querySelector('.paper-seg button:not(.on)') || document.querySelector('.st-tab:not(.on)'); if (!e) return null;
       const s = getComputedStyle(e);
       return { family: s.fontFamily, size: s.fontSize, weight: s.fontWeight, color: s.color,
         padding: s.padding, borderBottomWidth: s.borderBottomWidth };

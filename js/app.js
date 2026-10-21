@@ -1539,6 +1539,8 @@ const PLACE_PARTS={
   dashboard:['hbPlace','hbPlacePut'],
   team:['settingsPlace','settingsPlacePut'],
   templates:['tplPlace','tplPlacePut'],
+  /* Our standards keeps its list, its filters and the box's words (Part 8, the Legora head) */
+  playbook:['sdPlace','sdPlacePut'],
   calendar:['calPlace','calPlacePut'],
   obligations:['obwPlace','obwPlacePut'],
   redline:['rlPlace','rlPlacePut'],
