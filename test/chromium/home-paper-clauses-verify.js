@@ -109,9 +109,10 @@ const until = async (page, fn, arg, ms = 8000) => page.waitForFunction(fn, arg, 
     /* RE-POINTED 11 Oct 2026 (owner: "delete the deal tab ... and also delete history") */
     /* RE-POINTED 13 Oct 2026 (owner: "delete the overview tab from document page") */
 /* RE-POINTED 15 Oct 2026 (owner): the Menu tab ("Next up") stands beside Obligations */
-    ok('3a no Overview, Signing, Deal or History tab: Copilot · Clauses · Obligations · Menu', tabs.map(t => t.k).join(',') === 'copilot,doc,oblig,menu', JSON.stringify(tabs.map(t => t.k)));
+    /* RE-POINTED 21 Oct 2026 (owner picked "The Dossier", 20 Oct 2026: it reverses the Menu tab, folded into the Dossier's All acts; the first tab beside a paper is "Dossier"): */
+    ok('3a no Overview, Signing, Deal, History or Menu tab: Dossier · Clauses · Obligations', tabs.map(t => t.k).join(',') === 'copilot,doc,oblig', JSON.stringify(tabs.map(t => t.k)));
     /* RE-POINTED 19 Oct 2026 (owner): his face is on the Jambo tab; Overview wears ▦ */
-    ok('3b the symbols are the artifact\'s marks, Overview ▦ (his face is the Jambo tab\'s)', tabs.map(t => t.g).join('') === '▦▢⚑☰', tabs.map(t => t.g).join(' '));
+    ok('3b the symbols are the artifact\'s marks, the Dossier ▦ (his face is the Jambo tab\'s)', tabs.map(t => t.g).join('') === '▦▢⚑', tabs.map(t => t.g).join(' '));
 
     /* ===== 4. WHITE, UNDER THE GREETING ROW ===== */
     const lay = await page.evaluate(() => { const R = e => e.getBoundingClientRect();

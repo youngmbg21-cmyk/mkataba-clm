@@ -141,6 +141,9 @@ const LAND = () => {
     paper: (window.intel && intel.paper) ? String(intel.paper.id) : null,
     cp: (window.intel && intel.paper && window.getContract && getContract(intel.paper.id)) ? String(getContract(intel.paper.id).counterparty || '') : '',
     pd, tab: window.pdTab ? pdTab() : '',
+    /* THE LEGORA WAY (owner, 20 Oct 2026; reverses the Fill in face): Fill in lands on Still owed's grid
+       beside the paper — a row of #pd-og in the hand (focused) or landed (landOn) */
+    og: !!document.querySelector('#ig-dock #pd-og') && (!!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#ig-dock #pd-og')) || !!document.querySelector('#ig-dock #pd-og .is-landed, #ig-dock #pd-og.is-landed')),
     cv: (v && v.c) ? v.v + ':' + v.c.id : null,
     wall: !!document.getElementById('ig-wall'),
     /* HOME'S CONTRACTS PLACE (step 7): drawn, which way (Wall | List), its
@@ -167,7 +170,7 @@ const LAND = () => {
     stripPage: (() => { const n = document.querySelector('#bs-strips > .bs-strip'); return n ? n.getAttribute('data-bs-on') : null; })(),
   };
 };
-const KEY = L => [L.view, L.room, L.negPage, L.face, L.paper, L.pd, L.tab, L.cv, L.wall, L.only, L.place, L.show, L.stage, L.strip, L.stripPage, L.obCid, L.obSel, L.ceRisks].join('|');
+const KEY = L => [L.view, L.room, L.negPage, L.face, L.paper, L.pd, L.tab, L.og, L.cv, L.wall, L.only, L.place, L.show, L.stage, L.strip, L.stripPage, L.obCid, L.obSel, L.ceRisks].join('|');
 const SAY = L => `${L.view}${L.face && L.view === 'dashboard' ? '/' + L.face : ''}${L.paper ? ' paper ' + L.paper : ''}${L.pd ? ' face ' + L.pd : ''}`
   + `${L.view === 'dashboard' && L.face === 'paper' && L.paper && !L.pd ? ' tab ' + L.tab : ''}${L.cv && L.face === 'board' ? ' view ' + L.cv : ''}`
   + `${L.view === 'obligations' && L.obCid ? ' narrowed to ' + L.obCid + (L.obSel ? ' row ' + L.obSel : '') : ''}${L.place && !L.paper && L.face === 'paper' ? ' Contracts ' + (L.show || '?') + (L.stage && L.stage !== 'all' ? ' tab ' + L.stage : '') + (L.only ? ' (' + L.only + ' sent' + (L.wall ? ', "' + L.count + '"' : '') + ')' : '') : ''}${L.obSel && L.face === 'board' ? ' row ' + L.obSel : ''}${L.strip && L.face === 'board' && L.view === 'dashboard' && (!L.cv || /^book:/.test(L.cv)) ? ' strip ' + L.strip + ' (' + L.stripPage + ')' : ''}${L.room ? ' ROOM' : ''}${L.negPage ? ' NEGOTIATE-PAGE' : ''}`;
@@ -190,7 +193,9 @@ const RETIRED = ['calendar', 'agents', 'doc'];
 const E = {
   paper: id => L => L.view === 'dashboard' && L.face === 'paper' && L.paper === id,
   copilot: id => L => E.paper(id)(L) && L.pd === '' && L.tab === 'copilot',
-  fill: id => L => E.paper(id)(L) && L.pd === 'fill',
+  /* RE-POINTED 21 Oct 2026 — THE LEGORA WAY (owner, 20 Oct 2026, "Why should I have to go elsewhere
+     to enter the details?"): no Fill in face; Fill in is the Dossier with its grid's owed row in the hand */
+  fill: id => L => E.paper(id)(L) && L.pd === '' && L.tab === 'copilot' && L.og,
   red: id => L => E.paper(id)(L) && L.pd === 'red',
   signing: id => L => E.paper(id)(L) && L.pd === 'signing',
   obTab: id => L => E.paper(id)(L) && L.pd === '' && L.tab === 'oblig',
@@ -215,7 +220,7 @@ const E = {
   page: v => L => L.view === v && !L.room,
   ngList: L => L.view === 'redline' && L.rlList,
 };
-const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'Fill in beside the paper', red: 'Redlines beside the paper',
+const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'the Dossier beside the paper, Still owed\'s row in the hand', red: 'Redlines beside the paper',
   signing: 'Before you sign beside the paper', obTab: 'the paper, Jambo\'s Obligations tab', obPage: 'the Obligations page, narrowed to the contract', board: 'its home (the Obligations page or the strip)', wall: 'Home\'s Contracts place, the Wall',
   list: 'Home\'s Contracts place, the List',
   strip: 'its strip on the Board', stripWhere: 'its strip on the Board, on Where we are', stripDetails: 'its strip on the Board, on Details (the Overview\'s sheet)' };
@@ -642,8 +647,15 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
        the next steps now, and an open face (Redlines after the "redline"
        chip) rightly moves them on */
     const onBarePaper = id => async () => { await page.evaluate(() => ['pdFillClose', 'pdRedClose', 'pdSignClose', 'pdAmendClose'].forEach(f => { try { if (typeof window[f] === 'function') window[f](); } catch (_){} })); await onPaper(id)(); };
-    for (const k of [...new Set(chips)])
+    /* RE-POINTED 21 Oct 2026: the chips are the NEXT STEPS (caNextSteps, CA_NEXT_MAX 4) and move on as
+       the contract does, so each chip is pressed only while it is still offered on the bare paper — a
+       step that has moved off the four is said, not pressed (it is not a door on screen) */
+    const chipNow = () => page.evaluate(() => [...document.querySelectorAll('[data-ca-chip]')].map(b => b.getAttribute('data-ca-chip')));
+    for (const k of [...new Set(chips)]) {
+      await onBarePaper('MK-R1')();
+      if (!(await chipNow()).includes(k)) { console.log(`  the chip "${k}" is no longer among the next steps on MK-R1 (not pressed)`); continue; }
       await door(D, `the chip "${k}" (on MK-R1)`, { start: onBarePaper('MK-R1'), same: k === 'share' || k === 'signer', press: () => domClick(`[data-ca-chip="${k}"]`), expect: CHIP[k] || (L => !L.room && !L.negPage), says: CHIP[k] ? 'its place on Home' : 'anywhere but the room' });
+    }
     if (!chips.length) record(D, 'the chips are drawn', false, 'no chip above the box', 'missing');
     /* THE WALL'S TWO WAYS IN (the overnight work order, steps 3 and 4): each
        makes a contract, and lands on ITS paper — Fill in beside it while
@@ -705,7 +717,11 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
         if (typeof pdTalkShows === 'function' && pdTalkShows()) pdTalkBack();
         pdOpenOnHome(i, 'copilot'); if (typeof renderIntelDock === 'function') renderIntelDock(); }, gid);
         await waitFor(page, i => !!document.querySelector(`#pd-glance[data-pd-glance-for="${i}"]`), 8000, gid); };
-      for (const k of ['fill', 'redline', 'share', 'sign'])
+      /* RE-POINTED 21 Oct 2026: beside the paper the dossier's fill and sign rows are Still owed's grid
+         (THE LEGORA WAY, 20 Oct; THE SIGNER ROW, THE SAP WAY, 21 Oct — "an owed fact is answered WHERE IT
+         IS ASKED"): no Fill in › or Name › door stands there to press; the grid is measured in
+         still-owed-sap-way and signer-row-as-drawn. The glance's two remaining doors are pressed. */
+      for (const k of ['redline', 'share'])
         await door(D, `the glance's "${k}" button (on the dropped contract)`, { start: glanceStart, same: k === 'share',
           press: async () => { if (!(await waitFor(page, i => !!document.querySelector(`#pd-glance[data-pd-glance-for="${i}"]`), 6000, gid))) return false;
             /* RE-POINTED 20 Oct 2026 (the dossier): Still owed's Fill in › is each empty box's own door */
@@ -813,7 +829,9 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'F
     const reload = async () => { await page.reload({ waitUntil: 'networkidle' }); await waitFor(page, () => window.state && Array.isArray(state.contracts) && state.contracts.length > 0, 15000); return true; };
     const REFRESH = [
       ['on the Redlines face (MK-R1)', () => page.evaluate(() => pdRedOpen('MK-R1')), E.red('MK-R1'), SAYS.red, null],
-      ['on Fill in (MK-A2)', () => page.evaluate(() => pdFillOpen('MK-A2')), E.fill('MK-A2'), SAYS.fill, null],
+      /* RE-POINTED 21 Oct 2026 (the Legora way): Fill in is the Dossier with a row in the hand; a refresh
+         comes back to the Dossier (a hand in a box is not a place a refresh can keep) */
+      ['on Fill in (MK-A2)', () => page.evaluate(() => pdFillOpen('MK-A2')), E.copilot('MK-A2'), SAYS.copilot, null],
       ['on Before you sign (MK-A2)', () => page.evaluate(() => pdSignOpen('MK-A2')), E.signing('MK-A2'), SAYS.signing, null],
       ['on the Obligations page narrowed to a contract (MK-A1)', () => page.evaluate(() => hbOpenView('MK-A1', 'oblig')), E.obPage('MK-A1'), SAYS.obPage, null],
       ['on the wall narrowed to a party', () => page.evaluate(() => cuOpenCustomer('naivas supermarkets')), PARTY, PSAYS, null],

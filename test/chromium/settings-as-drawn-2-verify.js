@@ -171,7 +171,8 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
       /* re-pointed 19 Oct 2026 (the gaps' third pass, LAND ON IT): the
          contract's Menu beside its paper, ON Release hold — where its hold
          is placed (End or pause) and released */
-      const held = await until(() => { const r = document.querySelector('#pd-body .pd-menu[data-pd-menu="MK-S3"] #ws-hold');
+      /* RE-POINTED 21 Oct 2026 (the Dossier, 20 Oct): the Menu tab folded into the Dossier's All acts */
+      const held = await until(() => { const r = document.querySelector('#ig-dock .pd-nx[data-pd-menu="MK-S3"] #ws-hold');
         return state.view === 'dashboard' && r && r.classList.contains('is-landed') ? r.textContent.trim() : null; }, null, 10000);
       check('4f a held contract\'s Open lands on Release hold, in its Menu', !!held, String(held));
     }

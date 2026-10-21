@@ -71,6 +71,21 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
       check('1h the screen goes and Jambo says what went', !D.attr && /Sent to Unrestricted Legal at .+\. Recorded in MK-B2's history\. Show what was sent/.test(D.said), JSON.stringify(D));
     });
 
+    /* 1i THE SAME ASK IN OTHER WORDS (21 Oct 2026): "write an email to Unrestricted summarising the above"
+       opens the same screen on that colleague with Jambo's words — no model is asked, so nothing can claim
+       "Email drafted above" with no email anywhere */
+    await part('1i', async () => {
+      const ai0 = h.ai ? h.ai.calls.length : 0;
+      await page.evaluate(() => { const Hh = intel.history; Hh.push({ role: 'assistant', text: '<p>Payment is due within 30 days.</p>' }); renderIntelDock(); });
+      await page.click('#igd-input'); await page.keyboard.type('write an email to Unrestricted summarising the above'); await page.keyboard.press('Enter');
+      const up = await until(() => document.querySelector('#sh-letter') && document.documentElement.hasAttribute('data-sh-col') && document.querySelector('#sh-lt-after .sh-lt-btn') && (document.getElementById('sh-summary') || {}).value ? true : null, null, 10000);
+      const S2 = await page.evaluate(() => ({ chips: (document.getElementById('sh-col-chips') || {}).textContent || '', note: (document.getElementById('sh-summary') || {}).value || '' }));
+      check('1i "write an email to … summarising the above" opens the send screen on that colleague, Jambo\'s words the note, no model asked',
+        !!up && /Unrestricted Legal/.test(S2.chips) && /Payment is due within 30 days/.test(S2.note) && (h.ai ? h.ai.calls.length === ai0 : true), JSON.stringify(S2));
+      await page.evaluate(() => { if (window.closeModal) closeModal(); });
+      await until(() => !document.querySelector('#sh-letter'), null, 6000);
+    });
+
     await part('2', async () => {
       await page.evaluate(() => openShareModal(getContract('MK-B2')));
       await until(() => document.querySelector('#sh-letter') && document.querySelector('[data-sh-as-go="purpose"]') && document.querySelector('#sh-lt-after .sh-lt-btn'), null, 12000);

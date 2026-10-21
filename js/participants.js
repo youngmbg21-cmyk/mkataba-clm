@@ -755,6 +755,13 @@ function participantsDirHtml(carrier, opts){
       <div class="pt-dir-done"><button type="button" class="ui-btn ui-btn-sm" data-pt-pick="">${_ptEsc(i18t('ppl_dir_done'))}</button></div></div>` : ''}${
     ed ? `<div class="pt-acts"><button type="button" class="ui-btn ui-btn-sm" data-pt-add="1">${_ptEsc(i18t('ppl_add'))}</button></div>` : ''}</div>`;
 }
+/* A CHANGE TO THE PEOPLE, KEPT (21 Oct 2026): the record's own save, for a host that only draws the list
+   (Home's "Who else" pop-up, pdPeopleOpen) — the desk reads, this module writes */
+function participantsKeep(c){
+  if (!c) return;
+  if (typeof todayStr === 'function') c.lastAction = todayStr();
+  if (typeof persist === 'function') persist(c);
+}
 /* ONE LISTENER PER MOUNT, bound once per element — the section grammar's own
    idiom, and needed for the same reason: both hosts repaint themselves. The
    caller passes the repaint, because only it knows what to redraw. */
@@ -884,7 +891,7 @@ function shareMoreChosen(){
 
 if (typeof window !== 'undefined') Object.assign(window, {
   shareMoreRowsHtml, shareMoreChosen,
-  participantsPanelHtml, participantsDirHtml, participantsDirItems, participantRowHtml, participantsWire, participantsAuto, participantAutoOff,
+  participantsKeep, participantsPanelHtml, participantsDirHtml, participantsDirItems, participantRowHtml, participantsWire, participantsAuto, participantAutoOff,
   participantAutoRowHtml, PT_AUTO_EDIT_ACTIONS, participantRoleOptions,
   participantAccessOptions, participantReachedWord, PT_IN,
   PARTY_SIDES, PARTY_ROLES, PARTY_ROLE_OF, PARTY_ACCESS, PARTY_ACCESS_OF, PARTY_ACCESS_DEFAULT,

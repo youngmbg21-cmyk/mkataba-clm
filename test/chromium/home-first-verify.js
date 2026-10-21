@@ -97,8 +97,9 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     /* RE-POINTED 10 Oct 2026 (owner: "delete signing tab"), and 11 Oct 2026
        ("delete the deal tab ... and also delete history"; Document is Clauses), and
        13 Oct 2026 ("delete the overview tab from document page") */
-    ok('3a0 the title row is the tabs: Copilot then two; no Overview, Signing, Deal or History, no "Intelligence panel", no column beside the paper',
-      !head.title && !head.desk && head.tabs.join(',') === 'copilot,doc,oblig,menu', JSON.stringify(head));   /* + the Menu tab, 15 Oct 2026 */
+    /* RE-POINTED 21 Oct 2026 (owner picked "The Dossier", 20 Oct 2026: it reverses the Menu tab, folded into the Dossier's All acts; the first tab beside a paper is "Dossier"): */
+    ok('3a0 the title row is the tabs: the Dossier then two; no Overview, Signing, Deal, History or Menu, no "Intelligence panel", no column beside the paper',
+      !head.title && !head.desk && head.tabs.join(',') === 'copilot,doc,oblig', JSON.stringify(head));
     const tabs = {};
     for (const t of ['doc', 'oblig']) {
       const b = await page.$(`#ig-dock [data-pd-tab="${t}"]`); if (b) await b.click();
@@ -116,7 +117,7 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
        you want to chat with jambo it takes you to a new jambo tab but you can go back to the landing side
        panel"; "Jambo" names only the conversation. The face stays its mark.
        RE-POINTED 19 Oct 2026 (owner: his face belongs on "its one tab that says Jambo"): Overview wears ▦. */
-    ok('3a2 symbols — the artifact\'s marks — each with its word under it, whole; one lit', sym.length === 4 && sym.map(s => s.glyph.replace('\uFE0E', '')).join('') === '\u25A6\u25A2\u2691\u2630' && sym.map(s => s.txt).join('|') === 'Overview|Clauses|Obligations|Menu' && sym.every(s => s.name && s.txt.length > 2 && s.whole) && sym.filter(s => s.on).length === 1, JSON.stringify(sym.map(s => s.glyph + ' ' + s.txt + (s.whole ? '' : ' (cut)'))));
+    ok('3a2 symbols — the artifact\'s marks — each with its word under it, whole; one lit', sym.length === 3 && sym.map(s => s.glyph.replace('\uFE0E', '')).join('') === '\u25A6\u25A2\u2691' && sym.map(s => s.txt).join('|') === 'Dossier|Clauses|Obligations' && sym.every(s => s.name && s.txt.length > 2 && s.whole) && sym.filter(s => s.on).length === 1, JSON.stringify(sym.map(s => s.glyph + ' ' + s.txt + (s.whole ? '' : ' (cut)'))));
     /* WHITE, UNDER THE GREETING ROW (owner, 10 Oct 2026; reverses Lifted) */
     const white = await page.evaluate(() => { const d = document.getElementById('ig-dock');
       return { dock: getComputedStyle(d).backgroundColor, card: getComputedStyle(d, '::before').content, top: Math.round(d.getBoundingClientRect().top), bar: Math.round(document.getElementById('ig-strip').getBoundingClientRect().top) }; });

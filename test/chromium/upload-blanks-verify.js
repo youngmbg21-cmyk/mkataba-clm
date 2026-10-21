@@ -80,14 +80,17 @@ const typeInto = async (page, sel, value, ev) => {
    drawn into #pd-fill, beside the paper #ig-canvas. Home holds no
    state.activeId for the paper's contract, so every reading below asks the
    paper's own contract (pdContract) first. */
+/* RE-POINTED 21 Oct 2026 (the Legora way, owner 20 Oct 2026): the Fill in face is gone — pdFillOpen
+   lands on the Dossier, where Still owed is a review grid (#pd-og) and each blank is one of its rows,
+   its box the same blankFormInputHtml ([data-blankf]). The panel below is that card (#pd-needs). */
 const openRoom = async (page, id) => {
   for (let t0 = Date.now(); Date.now() - t0 < 10000;) {
     if (await page.evaluate(x => state.view === 'dashboard' && !!(window.pdContract && pdContract() && pdContract().id === x)
-      && !!document.querySelector('#ig-canvas') && !!document.querySelector('#pd-fillface #pd-fill'), id)) break;
+      && !!document.querySelector('#ig-canvas') && !!document.querySelector('#ig-dock #pd-needs'), id)) break;
     await page.evaluate(x => { if (document.getElementById('cd-page') && window.closeModal) closeModal(); pdFillOpen(x); }, id);
     await page.waitForTimeout(300);
   }
-  await page.waitForFunction(() => !!document.querySelector('#pd-fill [data-blankf]'), null, { timeout: 2500 }).catch(() => {});
+  await page.waitForFunction(() => !!document.querySelector('#pd-og [data-blankf]'), null, { timeout: 2500 }).catch(() => {});
 };
 /* the contract room, for its Overview and Signing tabs */
 const openContractRoom = async (page, id) => {
@@ -117,12 +120,13 @@ const WORDING = [
 /* WHAT IS PAINTED, read off the rendered page and never off the source. */
 const SEEN = () => {
   const canvas = document.getElementById('ig-canvas');
-  const host = document.getElementById('pd-fill');
+  const host = document.getElementById('pd-og');
   const wording = canvas ? canvas.querySelector('[data-upwording]') : null;
   const marks = canvas ? [...canvas.querySelectorAll('span.up-blank')] : [];
   const boxes = host ? [...host.querySelectorAll('[data-blankf]')] : [];
   /* RE-POINTED 17 Oct 2026 (round 8, "Owed first"): the questions' host is laid flat in Fill in's worklist, so the face is what is drawn */
-  const pr = host ? ((getComputedStyle(host).display === 'contents' && document.getElementById('pd-fillface')) || host).getBoundingClientRect() : null;
+  const card = document.getElementById('pd-needs');
+  const pr = host && card ? card.getBoundingClientRect() : null;
   const cr = canvas ? canvas.getBoundingClientRect() : null;
   /* THE GEOMETRY OF THE WORDING, block by block — this is what says the marks
      cost the contract nothing. Rounded to whole pixels; sub-pixel reflow of a
@@ -146,11 +150,12 @@ const SEEN = () => {
     panel: !!host, panelW: pr ? Math.round(pr.width) : null,
     panelX: pr ? Math.round(pr.left) : null,
     canvasRight: cr ? Math.round(cr.left + cr.width) : null,
-    panelHead: host ? ((host.querySelector('h6') || {}).textContent || '').trim() : '',
-    panelTitle: (host && host.querySelector('h6') && host.querySelector('h6').getAttribute('title')) || '',
+    panelHead: host && card ? ((card.querySelector('.pd-gl-h b') || {}).textContent || '').trim() : '',
+    /* each blank row says where it stands on the paper (pdOgFromHtml), never a cell of its own */
+    blankRows: host ? [...host.querySelectorAll('tr.pd-og-row[data-pd-og-kind="blank"]')].length : 0,
     boxKeys: boxes.map(b => b.getAttribute('data-blankf')),
-    boxLabels: boxes.map(b => ((b.closest('label') || {}).textContent || '').trim()),
-    count: host ? ((host.querySelector('[data-blankf-count]') || {}).textContent || '').trim() : '',
+    boxLabels: boxes.map(b => { const tr = b.closest('tr'); return ((tr && tr.querySelector('.pd-og-f b')) || {}).textContent || ''; }).map(t => t.trim()),
+    count: host && card ? ((card.querySelector('.pd-gl-h b') || {}).textContent || '').trim() : '',
     blocks,
     /* WHAT SITS ON THE CANVAS BUT OUTSIDE THE AGREEMENT — HaTi's own signature
        block and the seal card. The scope claim is about these. */
@@ -262,23 +267,22 @@ const CONTRACT = (id, over) => Object.assign({
 
     /* ============ 3. THE PANEL ============ */
     check('3a the panel is DRAWN on a received document', s.panel && s.panelW > 2,
-      s.panel ? s.panelW + 'px' : '#pd-fill missing');
+      s.panel ? s.panelW + 'px' : '#pd-og missing');
     check('3b beside the paper, never over it',
       s.panelW > 2 && s.canvasRight != null && s.panelX > s.canvasRight - 40,
       `panel x ${s.panelX}, paper ends ${s.canvasRight}`);
-    check('3c the heading says which kind of blank these are',
-      /Blanks in this document/i.test(s.panelHead), s.panelHead || '(none)');
-    check('3d and the one fact about the machinery is on the HOVER, not on the page',
-      /not changed/i.test(s.panelTitle), s.panelTitle || '(no title)');
+    /* RE-POINTED 21 Oct 2026: the card is Still owed (no "Blanks in this document" heading, no hover
+       of its own); each blank is a row of the grid, one per question */
+    check('3c the card is Still owed, its rows the blanks', /still owed/i.test(s.panelHead) && s.blankRows === s.boxKeys.length, `${s.panelHead} · ${s.blankRows} rows`);
     check('3e one box per question', s.boxKeys.length >= 4, s.boxKeys.join(', '));
     check('3f a ruled line is labelled by the words in front of it',
       s.boxLabels.some(l => /Delivery address/i.test(l)), s.boxLabels.join(' | '));
     /* RE-POINTED (21 Sep 2026): the counter reads "N of M" now. */
-    check('3g the counter agrees with the page',
-      /^\d+ \S+ \d+$/.test(s.count) && Number(s.count.split(/\s+/)[2]) === s.boxKeys.length, s.count);
+    check('3g the counter counts at least the boxes on the page',
+      /\d+/.test(s.count) && Number((s.count.match(/\d+/) || [0])[0]) >= s.boxKeys.length, s.count);
 
     /* ============ 4. TYPING IN THE PANEL CHANGES THE PAGE ============ */
-    const drove = await typeInto(page, '#pd-fill [data-blankf="up_insert_company_name"]',
+    const drove = await typeInto(page, '#pd-og [data-blankf="up_insert_company_name"]',
       'Highland Corporate Ltd', 'change');
     const after = drove ? await page.evaluate(() => {
       const c = getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId);
@@ -288,7 +292,7 @@ const CONTRACT = (id, over) => Object.assign({
         filled: marks.filter(m => m.classList.contains('is-filled')).length,
         record: (c.fields || {}).up_insert_company_name,
         stored: c.redlineText,
-        count: ((document.querySelector('[data-blankf-count]') || {}).textContent || '').trim(),
+        count: ((document.querySelector('#pd-needs .pd-gl-h b') || {}).textContent || '').trim(),
       };
     }) : null;
     check('4a the box was there to type in', drove, drove ? 'yes' : 'no box');
@@ -302,8 +306,12 @@ const CONTRACT = (id, over) => Object.assign({
     check('4e THE RECEIVED DOCUMENT IS NOT REWRITTEN',
       !!after && after.stored === s.stored && /\[Insert Company Name\]/.test(after.stored),
       after ? (after.stored === s.stored ? 'byte-identical' : 'THE WORDING MOVED') : 'not driven');
-    check('4f the counter moved', !!after && after.count !== s.count,
-      after ? s.count + ' → ' + after.count : 'not driven');
+    /* RE-POINTED 21 Oct 2026 (the Legora way): the grid is never repainted under a hand (pdOgHolds) —
+       the row's Confirm is the answer's press, and the count moves on it */
+    const n1 = drove ? await page.evaluate(async () => { const b = document.querySelector('#pd-og [data-pd-og-ok="up_insert_company_name"]'); if (b) b.click();
+      await new Promise(r => setTimeout(r, 700)); return ((document.querySelector('#pd-needs .pd-gl-h b') || {}).textContent || '').trim(); }) : '';
+    check('4f the counter moved once the row was confirmed', !!after && n1 !== s.count,
+      after ? s.count + ' → ' + n1 : 'not driven');
 
     /* ============ 5. THE CONTRACT DOES NOT MOVE BY A PIXEL ============ */
     /* GUARDED: run against the commit before this work neither name exists,
@@ -367,7 +375,7 @@ const CONTRACT = (id, over) => Object.assign({
       /Buyer name/.test(f.boxLabels.join(' | ')) && /Registered address/.test(f.boxLabels.join(' | '))
       && /Fee/.test(f.boxLabels.join(' | ')), f.boxLabels.join(' | '));
     check('8e an EMPTY box is still a gap', f.boxKeys.includes('up_fee'), f.boxKeys.join(', '));
-    const droveF = await typeInto(page, '#pd-fill [data-blankf="up_buyer_name"]',
+    const droveF = await typeInto(page, '#pd-og [data-blankf="up_buyer_name"]',
       'Highland Corporate Ltd', 'change');
     const afterF = droveF ? await page.evaluate(() => {
       const c = getContract((window.pdContract && pdContract() && pdContract().id) || state.activeId);
@@ -497,7 +505,7 @@ const CONTRACT = (id, over) => Object.assign({
     const t9 = await page.evaluate(SEEN);
     const ok9 = drew9 && route1 === 'outside';
     check('9b THEIR SIGNING: no blanks panel beside their paper',
-      ok9 && t9.boxKeys.length === 0 && !/Blanks in this document/i.test(t9.panelHead),
+      ok9 && t9.boxKeys.length === 0 && !t9.blankRows,
       ok9 ? (t9.boxKeys.length + ' boxes · heading "' + (t9.panelHead || '') + '"') : 'GATE not met');
     /* GATED (14 Oct 2026, stage 5) on the paper beside the panel being the
        WORKING copy — the copy marks are drawn on — or "none marked" is true of

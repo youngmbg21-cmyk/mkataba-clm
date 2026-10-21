@@ -93,6 +93,14 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await page.reload({ waitUntil: 'networkidle' });
     ok('11 a refresh comes back to the Calendar tab, on the view it was on', await until(page, () =>
       window.state && state.view === 'dashboard' && window.hbFace && hbFace() === 'calendar' && !!document.querySelector('#hb-cal .cal-wk-card'), null, 15000));
+    /* 11b THE HOURS STAY WHOLE on the owner's shortest screen (21 Oct 2026: at 1536×730 the last hour was a sliver) */
+    for (const [w, hh] of [[1536, 730], [1440, 780], [1366, 950]]) {
+      await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(400);
+      const fit = await page.evaluate(() => { const b = document.getElementById('cal-wk-body'); if (!b) return null;
+        const last = [...b.querySelectorAll('.cal-wk-t')].pop(); const br = b.getBoundingClientRect(), lr = last && last.getBoundingClientRect();
+        return { cut: b.scrollHeight - b.clientHeight, lastIn: !!lr && lr.bottom <= br.bottom + 1 && lr.height > 20, side: document.documentElement.scrollWidth > innerWidth + 1 }; });
+      ok(`11b ${w}x${hh}: this week's hours are whole, the last one in view, nothing sideways`, !!fit && fit.cut <= 1 && fit.lastIn && !fit.side, JSON.stringify(fit));
+    }
     ok('12 no page errors', errs.length === 0, errs.slice(0, 2).join(' | ') || null);
   } catch (e) { fail++; console.log('FAIL  the check threw — ' + e.message); }
   await browser.close(); await h.stop();

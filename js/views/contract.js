@@ -10570,7 +10570,11 @@ function contractFieldPeer(key, where){
   const k = String(key == null ? '' : key);
   if(!k || typeof document === 'undefined') return null;
   const q = (window.CSS && CSS.escape) ? CSS.escape(k) : k.replace(/["\\]/g, '\\$&');
-  const host = where === 'panel' ? formHostEl() : formPaperEl();
+  /* ON HOME THE BOXES ARE THE DOSSIER'S (the Legora way, 20 Oct 2026; Fill in's #pd-fill is gone): Key
+     terms standing in the middle first, then Still owed's grid — read only here, never painted into */
+  const host = where === 'panel'
+    ? ((formOnHome() && (document.querySelector('[data-pd-mid-kt] #pd-kt') || document.getElementById('pd-og'))) || formHostEl())
+    : formPaperEl();
   if(!host) return null;
   if(where === 'panel'){
     const box = host.querySelector(`[data-blankf="${q}"]`);

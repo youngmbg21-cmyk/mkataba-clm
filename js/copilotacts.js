@@ -327,9 +327,19 @@ function caSummaryText(before){
   }
   return '';
 }
+/* "WRITE AN EMAIL TO YOUNG SUMMARISING THE ABOVE" is the same ask in other words (21 Oct 2026: the model
+   answered it "Email drafted above…" with no email anywhere): it opens the ONE send screen, never the model */
+const CA_WRITE_MAIL_RE = /^\s*(?:please\s+)?(?:(?:write|draft|compose|prepare)\s+(?:an?\s+|the\s+)?(?:e-?mail|mail|message|note)|e-?mail)\b/i;
+function caFindPersonNamed(q){
+  const m = String(q).match(/\bto\s+([A-Za-zÀ-ÿ'’.\-]{2,40})/i); if (!m) return null;
+  const w = m[1].toLowerCase();
+  const hits = caPeople(caOpenContract()).filter(p => p.name.toLowerCase() === w || p.name.toLowerCase().split(/\s+/)[0] === w);
+  return hits.length === 1 ? { kind: hits[0].kind, id: hits[0].id, name: hits[0].name } : null;
+}
 function caReadSend(q){
-  if (!CA_SEND_RE.test(q) || !/@/.test(q)) return null;
-  const person = caFindPerson(q);
+  const mail = CA_WRITE_MAIL_RE.test(q) && CA_SUMMARY_RE.test(q);
+  if (!mail && (!CA_SEND_RE.test(q) || !/@/.test(q))) return null;
+  const person = caFindPerson(q) || (mail ? caFindPersonNamed(q) : null);
   const c = caFindContract(q);
   const a = { kind: 'send', person, cid: c ? c.id : null, note: caNoteOf(q), review: /\breview\b/i.test(q), state: 'ready' };
   if (CA_SUMMARY_RE.test(q) && !a.note){
@@ -1461,7 +1471,7 @@ async function caDraftReply(prompt, cid){
 }
 Object.assign(window, { caDraftReply });
 Object.assign(window, { caRefFix, CA_REF_RE, caRefLinkPaint, caRefOpen, CA_MENU, CA_MENU_INBOUND, CA_MENU_THEIR_FILE, CA_FILE_OUT, CA_FILE_KEEP, CA_MENU_NOT, caReadMenu, caMenuRows, caMenuCardHtml, caMenuPress, CA_DOORS, CA_DOOR_NOT, caReadDoor, caRoomSign, CA_DOOR_GO, CA_DOOR_SHUT, CA_DOOR_NEEDS, caDoorCardHtml, caDoorPress });
-Object.assign(window, { CA_SUMMARY_RE, caSummaryText, caSummaryOpen, caScreenSent, caPassSend, caPeopleFor, caPersonRowHtml, caScreenCardHtml });
+Object.assign(window, { CA_SUMMARY_RE, CA_WRITE_MAIL_RE, caFindPersonNamed, caSummaryText, caSummaryOpen, caScreenSent, caPassSend, caPeopleFor, caPersonRowHtml, caScreenCardHtml });
 Object.assign(window, { CA_PICK_MAX, CA_NOTE_MAX, CA_SEND_RE, caPeople, caContracts, caOpenContract, caTokenAt, caMatches, caPopHtml, caPopClose, caPopRead, caChoose,
   caFindContract, caFindPerson, caNoteOf, caReadSend, caActOf, caSendBlock, caCardHtml, caCardPress,
   CA_DRAFT_RE, CA_DRAFT_NOUN, CA_DRAFT_OPTS, CA_DRAFT_BARE, CA_DRAFT_ASKING, caIsDraftAsk, caReadDraft, caDraftWords, caDraftScore, caDraftShared, caDraftRank, caDraftRun, caDraftCardHtml, caDraftPress, CA_DRAFT_WITH, CA_DRAFT_WITH_MAX, caDraftWith, CA_DRAFT_NOT_PARTY, CA_DRAFT_TERM_WORD, caDraftBest, caDraftTitleOf, caDraftWho, caDraftForm, CA_DRAFT_WHAT_MAX, caDraftWhatRaw, caDraftWhatOf, CA_DRAFT_KINDS, caDraftKindOf, CA_DRAFT_FOR, CA_DRAFT_FOR_MAX, caDraftForOf, caDraftOneExchange,
@@ -2455,7 +2465,13 @@ function caAskAnywhere(text, opts = {}){
     const own = !!m && ((box === 'settings' && (!!m.st || m.place === 'settings')) || (box === 'cal' && m.place === 'calendar')
       /* the Portfolio Health Report asked by name is the chat's own document (aiWantsHealthReport → openHealthReport) */
       || (box !== 'counter' && typeof aiWantsHealthReport === 'function' && aiWantsHealthReport(t)));
-    if (m && !own && m.kind === 'go' && !m.missing && !CA_CARD_WORDS.includes(m.place) && caGo(m)) return true; }
+    if (m && !own && m.kind === 'go' && !m.missing && !CA_CARD_WORDS.includes(m.place) && caGo(m)) return true;
+    /* "WHICH DID YOU MEAN" FOR WORK (21 Oct 2026: "upload a contract" asked in Settings found a mail-in setting):
+       a close match that starts work (JM_STARTS_WORK) is Home's Jambo's card, where it can be drawn and pressed */
+    if (m && !own && !win && m.kind === 'map' && Array.isArray(m.picks) && typeof JM_STARTS_WORK !== 'undefined'
+      && m.picks.some(k => JM_STARTS_WORK.has(k))) return caHandHome(t, m);
+    /* …and a sure one that is a CARD word ("new contract" → the draft form) is Home's too, as a place word's is */
+    if (m && !own && !win && m.kind === 'go' && !m.missing && CA_CARD_WORDS.includes(m.place)) return caHandHome(t, m); }
   if (win) return false;
   if ((a && a.kind === 'go') || caTakesWords(t) || opts.all) return caHandHome(t, a);
   return false;

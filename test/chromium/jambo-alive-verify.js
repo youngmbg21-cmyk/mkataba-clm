@@ -128,18 +128,20 @@ const check = (name, pass, detail) => {
 
     /* ============ 4. A ROW THAT GOES IS TICKED OFF ============ */
     /* RE-POINTED 20 Oct 2026 (the dossier): Still owed says each empty box by its own name, "<label> not recorded" */
-    const g0 = await page.evaluate(() => [...document.querySelectorAll('#pd-glance [data-pd-gl]')].map(x => x.getAttribute('data-pd-gl')));
+    /* RE-POINTED 21 Oct 2026 (the Legora way, owner 20 Oct 2026): an owed FACT is a row of Still owed's
+       grid (#pd-og), not a glance line — the facts are the grid, the rows below are the rest — so a
+       filled fact leaves the grid; the tick-off stays for the rest (asks, unsent, late) */
+    const og = () => page.evaluate(() => [...document.querySelectorAll('#pd-glance #pd-og tr.pd-og-row:not(.is-saved)')].map(x => x.getAttribute('data-pd-og-row')));
+    const rest = () => page.evaluate(() => [...document.querySelectorAll('#pd-glance [data-pd-gl]')].map(x => x.getAttribute('data-pd-gl')));
+    const g0 = await og(), r0 = await rest();
     /* the empty detail is filled (the way a save repaints the panel) */
     await page.evaluate(() => { const c = getContract('MK-B2'); c.fields = { ...(c.fields || {}), effDate: '2026-11-01' }; pdGlanceRepaint(); });
-    const done = await until(() => { const d = document.querySelector('#pd-glance .pd-gl-row.is-done[data-pd-gl-done="fill"]');
-      return d ? { text: d.textContent.trim(), struck: !!d.querySelector('s'), tick: !!d.querySelector('i') } : null; }, null, 2000);
+    const left = await until(() => { const r = [...document.querySelectorAll('#pd-glance #pd-og tr.pd-og-row:not(.is-saved)')].map(x => x.getAttribute('data-pd-og-row'));
+      return r.includes('effDate') ? null : r; }, null, 2000);
     await page.screenshot({ path: path.join(OUT, '4a-ticked-off.png'), clip: { x: 1050, y: 95, width: 390, height: 300 } });
-    /* RE-POINTED 20 Oct 2026 (Chambers): the tick-off stays; the hop went with the perch */
-    check('4a the row no longer owed is ticked off in its own words, struck through',
-      g0.includes('fill') && !!done && done.struck && done.tick && /(detail|not recorded)/.test(done.text), JSON.stringify({ g0, done }));
-    const gone = await until(() => !document.querySelector('#pd-glance .pd-gl-row.is-done') ? true : null, null, 4000);
-    const still = await page.evaluate(() => [...document.querySelectorAll('#pd-glance [data-pd-gl]')].map(x => x.getAttribute('data-pd-gl')));
-    check('4b then it leaves, and the rows still owed stay', !!gone && !still.includes('fill') && g0.filter(k => k !== 'fill').every(k => still.includes(k)), JSON.stringify(still));
+    check('4a the fact no longer owed leaves Still owed\'s grid', g0.includes('effDate') && !!left, JSON.stringify({ g0, left }));
+    const still = await rest();
+    check('4b and the rows still owed stay', !!left && g0.filter(k => k !== 'effDate').every(k => left.includes(k)) && r0.every(k => still.includes(k)), JSON.stringify({ left, r0, still }));
     /* opening another paper ticks nothing off: its rows are not the last one's */
     /* Contracts opens on the List (owner, 20 Oct 2026): this check walks the Wall */
     await page.evaluate(() => { if (window.regPlaceSet) regPlaceSet({ show: 'wall' }); hbOpenContracts(); });

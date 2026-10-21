@@ -462,13 +462,16 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     const P6 = await until(() => { const st = document.getElementById('bs-strip-MK-0399'), g = document.querySelector('#ig-dock .pd-held-dos[data-pd-held-for="MK-0399"]'); if (!st || !g) return null;
       return { head: ((st.querySelector('.bs-head .bs-lockp') || {}).textContent || '').trim(), glHead: ((g.querySelector('[data-pd-ds-card="private"] .pd-gl-row span') || {}).textContent || '').trim(),
         rows: [...g.querySelectorAll('[data-pd-ds-card="private"] .pd-gl-row, [data-pd-ds-card="owed"] .pd-gl-row')].map(r => ({ k: r.getAttribute('data-pd-cg') || r.getAttribute('data-pd-gl'), t: ((r.querySelector('span') || {}).textContent || '').replace(/\s+/g, ' ').trim(), b: ((r.querySelector('button') || {}).textContent || '').trim() })),
+        og: [...g.querySelectorAll('#pd-og-held tr.pd-og-row:not(.is-saved)')].map(r => ({ k: r.getAttribute('data-pd-og-kind'), key: r.getAttribute('data-pd-og-row'), b: ((r.querySelector('[data-pd-og-go]') || {}).textContent || '').trim() })),
         chips: [...document.querySelectorAll('#ig-dock [data-pd-held-chips] button')].map(b => ({ w: b.textContent.trim(), k: b.getAttribute('data-pd-held-chip') })) }; }, null, 12000);
     check('6p a private contract wears "Private · <stream>" on its head, and its dossier opens saying so', !!P6 && /^Private · .+/.test(P6.head) && P6.glHead.indexOf(P6.head) === 0, JSON.stringify(P6 && { head: P6.head, glHead: P6.glHead }));
     const pk = P6 ? P6.rows.map(r => r.k) : [];
-    check('6q its dossier says who may open it, the details still to fill (Fill in ›) and that nobody is named to sign (Name ›)',
+    /* RE-POINTED 21 Oct 2026 (THE LEGORA WAY, 20 Oct; "the held grid the same"): beside the Board the owed
+       facts are the held grid's rows — the signer among them — each a "Fill in ›" door to the paper */
+    const og6 = (P6 && P6.og) || [];
+    check('6q its dossier says who may open it, then the facts still owed — the signer among them — each with Fill in ›',
       !!P6 && pk[0] === 'private' && /^Private · .+\. Only .+ open it; every open is recorded\.$/.test(P6.rows[0].t)
-      && pk.includes('fill') && / not recorded$/.test(P6.rows[pk.indexOf('fill')].t) && P6.rows[pk.indexOf('fill')].b === 'Fill in ›'
-      && pk.includes('sign') && P6.rows[pk.indexOf('sign')].t === 'Signer nobody named yet' && P6.rows[pk.indexOf('sign')].b === 'Name ›', JSON.stringify(P6 && P6.rows));
+      && og6.length > 1 && og6.some(r => r.k === 'signer') && og6.every(r => /^Fill in/.test(r.b)), JSON.stringify(P6 && { rows: P6.rows, og: og6 }));
     check('6r its chips follow what it owes — fill in · pay · who can open it — not the signed agreement\'s',
       !!P6 && JSON.stringify(P6.chips.map(c => c.k)) === JSON.stringify(['fill', 'pay', 'access']) && P6.chips[1].w === 'pay' && P6.chips[2].w === 'who can open it'
       && !!T6 && JSON.stringify(T6.chips) !== JSON.stringify(P6.chips.map(c => c.w)), JSON.stringify(P6 && { chips: P6.chips, signed: T6 && T6.chips }));

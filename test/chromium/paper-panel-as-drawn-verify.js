@@ -120,17 +120,19 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     await onPaper();
     const nt = await until(() => { const r = document.querySelector('#pd-needs [data-pd-nd-kind="mynote"]'); if (!r) return null;
       return { title: r.querySelector('b').textContent.trim(), sub: r.querySelector('small').textContent.trim(), btn: (r.querySelector('[data-pd-nd-note]') || {}).textContent || '',
-        n: Number(((document.querySelector('#pd-needs .pd-gl-h b') || {}).textContent || '').replace(/\D+/g, '') || 0), rows: document.querySelectorAll('#pd-needs .pd-gl-row:not(.is-done)').length,
+        n: Number(((document.querySelector('#pd-needs .pd-gl-h b') || {}).textContent || '').replace(/\D+/g, '') || 0), rows: document.querySelectorAll('#pd-needs .pd-gl-row:not(.is-done), #pd-needs #pd-og tr.pd-og-row:not(.is-saved)').length,
         all: (document.querySelector('#pd-needs [data-pd-nd-all]') || {}).textContent || '', counter: counterNeedsCount() }; }, null, 10000);
     check('1a "1 note due today", its own words and "only you", with Open note', !!nt && nt.title === '1 note due today' && nt.sub === '“Check Nordvik\'s insurance broker.” · only you' && nt.btn === 'Open note', JSON.stringify(nt));
     /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): Needs you here's rows are the dossier's Still owed card,
        "Still owed · N" counting its rows; its head says "everything, one list" where "all N" stood */
+    /* RE-POINTED 21 Oct 2026 (the Legora way, owner 20 Oct 2026): the owed FACTS are rows of the grid
+       (#pd-og) above the list — the pill counts them with the list's rows, so both are counted here */
     check('1b Still owed counts it with its rows', !!nt && nt.n === nt.rows && !nt.all, JSON.stringify(nt));
     /* PASS 3 (the owner's answer 8): their redlines are owed after the desk's quiet standard, unchanged —
        before it, Needs you here draws no row of its own; past it, needsYouOf's own urgent row */
     const qrow = () => page.evaluate(() => { const r = document.querySelector('#pd-needs [data-pd-nd-kind="quiet"]'); if (!r) return null;
       const sm = r.querySelector('small'); return { title: r.querySelector('b').textContent.trim(), sub: sm ? sm.textContent.trim() : '', late: !!(sm && sm.querySelector('.late')), btn: (r.querySelector('[data-pd-nd]') || {}).textContent || '' }; });
-    const counts = () => page.evaluate(() => ({ pill: Number(((document.querySelector('#pd-needs .pd-gl-h b') || {}).textContent || '').replace(/\D+/g, '') || 0), rows: document.querySelectorAll('#pd-needs .pd-gl-row:not(.is-done)').length,
+    const counts = () => page.evaluate(() => ({ pill: Number(((document.querySelector('#pd-needs .pd-gl-h b') || {}).textContent || '').replace(/\D+/g, '') || 0), rows: document.querySelectorAll('#pd-needs .pd-gl-row:not(.is-done), #pd-needs #pd-og tr.pd-og-row:not(.is-saved)').length,
       quietOwed: (needsYouOf(getContract('MK-0382')) || []).some(it => it.kind === 'quiet') }));
     const q0 = await qrow(), c0 = await counts();
     check('1e (pass 3) the day they came: no redlines row in Needs you here — not owed before the standard', !q0 && !c0.quietOwed && c0.pill === c0.rows, JSON.stringify({ q0, c0 }));
@@ -164,16 +166,33 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
       const rk = g.querySelector('[data-pd-ds="risks"]');
       const D = dossierOf(getContract('MK-0382')), want = D.stages.find(x => x.k === 'nego').n;
       return { nego: (g.querySelector('.ds-st[data-ds-st="nego"]') || {}).className || '', negoN: ((g.querySelector('.ds-st[data-ds-st="nego"] i') || {}).textContent || '').trim(), want,
-        order: rows.map(r => r.getAttribute('data-pd-gl')), asks: row('ask'), sign: row('sign'),
-        scan: rk ? { say: rk.querySelector('span').textContent.trim(), btn: ((rk.querySelector('[data-pd-gl-scan]') || {}).textContent || '').trim(), tip: ((rk.querySelector('[data-pd-gl-scan]') || {}).title || '') } : null }; });
+        /* RE-POINTED 21 Oct 2026 (the Legora way): the signer is a row of Still owed's grid, answered there;
+           the grid stands above the list, so the order reads the grid's rows first */
+        order: [...owed.querySelectorAll('#pd-og tr.pd-og-row:not(.is-saved)')].map(r => r.getAttribute('data-pd-og-kind') === 'signer' ? 'sign' : 'fact').concat(rows.map(r => r.getAttribute('data-pd-gl'))),
+        asks: row('ask'),
+        sign: [...owed.querySelectorAll('#pd-og tr.pd-og-row[data-pd-og-kind="signer"]')].map(r => ({ say: ((r.querySelector('.pd-og-f b') || {}).textContent || '').trim(),
+          box: !!r.querySelector('input'), btn: ((r.querySelector('[data-pd-og-route]') || {}).textContent || '').trim() })),
+        scan: rk ? { say: ((rk.querySelector('.ds-nm') || {}).textContent || '').replace(/\s+/g, ' ').trim(), btn: ((rk.querySelector('[data-pd-gl-scan]') || {}).textContent || '').trim(), tip: ((rk.querySelector('[data-pd-gl-scan]') || {}).title || '') } : null }; });
     check('2a the spine: Negotiate lit, its number the owed rows filed under it (their two asks among them)', /is-on/.test(gl.nego) && gl.negoN === String(gl.want) && gl.want >= 2, JSON.stringify({ nego: gl.nego, n: gl.negoN, want: gl.want }));
     check('2c one row per ask, in its own words — what the number is of, which way it moved · waits · Reply ›',
       gl.asks.length === 2 && gl.asks.some(a => a.say === 'Clause 7: they ask for 100% of the fees paid, up from 50%.') && gl.asks.some(a => a.say === 'Clause 11: they ask for 60 days to pay, up from 30.')
       && gl.asks.every(a => /^waits /.test(a.sub) && a.btn === 'Reply ›'), JSON.stringify(gl.asks));
-    check('2d nobody named to sign: Signer · nobody named yet · Name ›', gl.sign.length === 1 && gl.sign[0].say === 'Signer' && gl.sign[0].btn === 'Name ›', JSON.stringify(gl.sign));
+    check('2d nobody named to sign: the signer is one grid row, its boxes in it, and Order the signing ›', gl.sign.length === 1 && gl.sign[0].box && gl.sign[0].btn === 'Order the signing ›', JSON.stringify(gl.sign));
     check('2e the risks not read yet, in What Jambo read: "free" said before the press, and Read it (the owner\'s answer 6)',
-      !!gl.scan && gl.scan.say === 'Risks — not read yet · free' && gl.scan.btn === 'Read it' && gl.scan.tip === 'Reading is free: HaTi’s own rules, no Jambo call', JSON.stringify(gl.scan));
+      !!gl.scan && gl.scan.say === 'Risks to look at · not read yet · free' && gl.scan.btn === 'Read it' && gl.scan.tip === 'Reading is free: HaTi’s own rules, no Jambo call', JSON.stringify(gl.scan));
     check('2f Still owed: the signer, then their asks', gl.order.indexOf('sign') >= 0 && gl.order.indexOf('sign') < gl.order.indexOf('ask'), gl.order.join(','));
+    /* 2g WHAT JAMBO READ SAYS WHAT THE BOARD COUNTS (21 Oct 2026): a brief that already names watch-outs is
+       counted (never "not read yet" beside them); obligations on the record with none waiting in the reading
+       are counted as the record's, never "0 found · N recorded" */
+    const g2 = await page.evaluate(async () => { const c = getContract('MK-0382'); const keep = { b: c._brief, o: c.obligations, t: c.triage };
+      c._brief = { data: { overview: 'A logistics deal.', watchouts: [{ title: 'Uncapped liability', point: 'Liability is not capped.', wording: true }] } };
+      c.obligations = [{ id: 'ob1', desc: 'Pay within 30 days' }, { id: 'ob2', desc: 'Deliver monthly' }];
+      pdGlanceRepaint(); await new Promise(r => setTimeout(r, 300));
+      const rd = k => { const r = document.querySelector(`#pd-glance [data-pd-ds="${k}"]`); return r ? { fig: r.querySelector('.ds-fig').textContent.trim(), nm: r.querySelector('.ds-nm').textContent.replace(/\s+/g, ' ').trim() } : null; };
+      const out = { risks: rd('risks'), oblig: rd('oblig'), want: riskOpenOf(c).length };
+      Object.assign(c, { _brief: keep.b, obligations: keep.o, triage: keep.t }); pdGlanceRepaint(); return out; });
+    check('2g What Jambo read counts the brief\'s watch-outs as the Board does, and the record\'s obligations without a "0 found"',
+      !!g2.risks && g2.risks.fig === String(g2.want) && g2.want >= 1 && !/not read yet/.test(g2.risks.nm) && !!g2.oblig && g2.oblig.fig === '2' && g2.oblig.nm === 'Obligations', JSON.stringify(g2));
     await shot(page, '3-panel-beside-a-paper-1440x780');
 
     console.log('\n3 · Reply');

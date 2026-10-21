@@ -725,7 +725,8 @@ describe('the room wears the prototype\'s visual language, and keeps it to itsel
     // Status hues resolve from the shared status tokens since the dark-mode
     // unification, so the room's redline colours re-map with the theme like
     // every other status wash in the product.
-    assert.match(css, /--n-del-fg:var\(--st-ruby-dot\)/);
+    // 21 Oct 2026: the deletion ink is the ruby TEXT tone, as insertions are the green one (the dot read 4.14:1)
+    assert.match(css, /--n-del-fg:var\(--st-ruby-fg\)/);
     assert.match(css, /--n-ins-fg:var\(--st-green-fg\)/);
   });
 

@@ -55,7 +55,7 @@ function negoStyleHtml(){
     --n-slate:#33475c; --n-slate-deep:#26374a; --n-slate-soft:#456a8f;
     --n-badge-bg:var(--color-neutral-100);   /* Ink Wash (9 Oct 2026): the room's greys are the ramp's (one appearance since 20 Oct 2026) */
     --n-ins-bg:#e4f1ea; --n-ins-fg:var(--st-green-fg);
-    --n-del-bg:var(--st-ruby-bg); --n-del-fg:var(--st-ruby-dot);
+    --n-del-bg:var(--st-ruby-bg); --n-del-fg:var(--st-ruby-fg);
     --n-paper:#ffffff; --n-canvas:var(--color-neutral-100); --n-line:var(--color-neutral-200);
     --n-ink:var(--color-text); --n-ink-soft:var(--color-neutral-500);
     --n-accept:var(--st-green-fg); --n-reject:var(--st-ruby-dot); --n-focus:#456a8f;
@@ -1153,7 +1153,7 @@ function redlineLayoutCss(){
          .redline-page, and the two read alike. */}
   .redline-page, .ng-memo-wording, .hb-cv-deal{
     --n-ins-bg:#e4f1ea; --n-ins-fg:var(--st-green-fg);
-    --n-del-bg:var(--st-ruby-bg); --n-del-fg:var(--st-ruby-dot)}
+    --n-del-bg:var(--st-ruby-bg); --n-del-fg:var(--st-ruby-fg)}
   /* The block renderer emits an h4 for a heading line, which at a heading's own
      size would be the largest thing in the memo. Everything in this block reads
      at the memo's own size; what tells the wording apart is the marks. */

@@ -59,6 +59,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f193–f199, f331, f335, new-person-grants verify.
 
 ## THE SHELL — RAIL, BAR, PANELS
+- 21 Oct 2026 (overnight): send-to-a-colleague-verify 1i ("write an email to X summarising the above" opens the send screen, no model); jambo-slides-in-verify 6c (Home's box answers "What am I looking at?" free); control-room-in-full-verify 7b/7c ("upload a contract" / "new contract" in Settings go to Home's Jambo).
 - ONE JAMBO CONVERSATION EVERYWHERE (21 Oct 2026): `test/chromium/jambo-one-conversation-verify.js` (red at cb1aa4ba: Home, Settings and the side panel kept three conversations); f840 2c re-pointed (another contract keeps the conversation). No light on arrival: f445 (5), `land-on-it-verify.js` 1b/2b/3b/5c re-pointed.
 - the-brief-and-sap-history verify (Jambo's panel as "The Brief" and History "the SAP way", 21 Oct 2026: 25 checks, 19 red at 0392ded7; its controls are the paper strip's line, every entry drawn, the three screens, no page errors); f804, f830, f394, f840 (the 384 width and the named foot).
 - f842 (every new page is on the Guide)
@@ -79,6 +80,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - phone-verify, f630, f631, phone-fits-verify.
 
 ## HOME — THE BOARD AND THE MAP (js/views/homeboard.js)
+- 21 Oct 2026 (overnight): home-board-verify 13g2/13j2/13j3 (timeline words inside bars and chart, full screen 1536x730); board-agent-work-verify 3c (Put away not dressed as Look); paper-panel-as-drawn-verify 1b/2d/2f re-pointed to the grid, 2g (What Jambo read counts as the Board does); jambos-work-open-verify (Open lands on the card).
 - What Jambo read as four rows, no grey line under an owed fact (21 Oct 2026): f748 2b re-pointed; `owed-first-verify.js`, `nda-tail-verify.js`. The paper's line without the party: f708 1a, `paper-line-verify.js` 1a, `the-road-as-drawn-verify.js` 12d re-pointed. `piles-as-drawn-verify.js` 3b (piles unboxed). List before Wall: f687.
 - form-nextup-and-draft-chip verify (a card word asked again lands on its card)
 - f745, f746, board-as-drawn verify.
@@ -124,12 +126,14 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f97, f240, f258, f281–f283, f324, f346, f350, f378, f379, f397, f687, f693, f715, f740, f741; contracts-page, contracts-stage-tabs, counterparty-leads, every-door-lands-on-home, wall-of-papers, home-held-contract verify.
 
 ## CALENDAR
+- 21 Oct 2026 (overnight): calendar-on-home-verify 11b (this week's hours whole at the three screens).
 - f80, f83, f261, f458, f641, f694, f732, f793, f794, calendar-on-home, calendar-day, calendar-redesign, calendar-holds-still, my-calendar, jambo-follows-the-ask, week-as-drawn verify.
 
 ## MY NOTES AND MY OWN EVENTS (js/mine.js, js/views/mynotes.js)
 - f641, f798, my-notes, requests-and-notes-as-drawn verify.
 
 ## SETTINGS & RULES — THE CONTROL ROOM (owner picked it 16 Oct 2026)
+- 21 Oct 2026 (overnight): settings-as-drawn-2-verify 4f, settings-as-drawn-3-verify 6b (a held contract's Open lands on Release hold in the Dossier's All acts).
 - f193, f195, f201, f203, f276, f350, f691, f692, f699–f704, f725–f727, f729, f780–f788; settings-tabs, settings-groups, settings-as-drawn(-2/-3/-4), control-room-in-full, company-control-room, one-sheet, streams-and-data, trail-export, business-roles, clashes, access-review, when-youre-away, keeping, keeping-no-admin, code-names verify.
 
 ## PARTY vs WORKSPACE, AND WHO THE AGREEMENT IS BETWEEN (js/parties.js)
@@ -140,6 +144,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f91, f148, f170, f184, f198, f241, f273, f278, f301, f335, f380, f442, f698, f709, f741, f742, f744; board-strip, agreement-family, every-door-lands-on-home, edit-keeps-the-card, details-owes-overview-edits, keeps-your-page, room-head-fold, history-timeline, contract-page, nda-tail verify.
 
 ## THE DETAILS TAB — THE ONE PLACE A CONTRACT IS FILLED IN
+- 21 Oct 2026: who-else-doors-verify (the Dossier's line and Key terms' row open one people list; a person added is saved and counted; Done brings Key terms back; three screens); uploaded-contract-fixed 4a/4b re-pointed to the pop-up.
+- 21 Oct 2026 (overnight): thirteen-screenshots-verify 6b–6d, 6k (Key terms' Counterparty box is c.counterparty's); term-and-fields-verify (a blank pressed on the paper finds its box: contractFieldPeer → #pd-kt / #pd-og); upload-blanks-verify re-pointed to Still owed's grid.
 - f148, f170, f442, f673, f676, f679, f710, f751, f754, fill-in-beside-the-paper, fill-the-document, details-as-a-form, create-lands-clean, owed-first verify.
 - still-owed-sap-way-verify (signer name, email and stream whole at all three screens, Confirm and Fill in › inside the panel, labels above, amber kept, Key terms keeps its table, Tab onto Confirm does not jump; 14 red at d7a320c2).
 
@@ -149,6 +155,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - the-middle-verify (See it brings Jambo's work to the middle, the Dossier beside it in sight and pressable, the page ending at its edge; "Showing in the middle"; "‹ Paper" first in the chips; the four ways back; the obligations review in the middle; Key terms one line, its table in the middle, Change and Done store; "paper" asked; the three screens). f705 (the jw row's door).
 
 ## WHERE THE DEAL STANDS — ONE PAGE EVERY PARTY READS (js/dealstands.js)
+- 21 Oct 2026 (overnight): where-we-are-verify 10a (the journey on the page's line; .ds-st spine rules scoped to .ds-spine).
 - f451, f459 (B), deal-stands, status-link, where-we-are verify.
 
 ## ONE PAPER EVERYWHERE — THE HOME PAPER (8 Oct)
@@ -161,6 +168,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f277, f300, f315, f364, f373, f384, f507, f536, f656, thread, thread-drawer, home-paper-clauses, runway-and-xray, reading-in-the-background, xray-who-does-what verify.
 
 ## SIGNING — ONE LIST BEFORE THE SIGNATURE
+- 21 Oct 2026 (overnight): the-road-as-drawn-verify 14b/14c (the head and the road's first stop never give two totals: "n of the N").
 - f308, f311, f319, f353, f367, f543, f676, f712, f752, f754, signing-flow, sign-beside-the-paper, the-road, the-road-as-drawn, two-copies verify.
 
 ## A LINK LANDS ON WHAT YOU CAME TO DO
@@ -179,6 +187,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f388, f389, f342 (7)(8), f654, f655, redline-here-sign-there, signed-copy-differs, import-contracts verify.
 
 ## NEGOTIATE — FOLDED INTO HOME, AND ITS PAGE (the engine)
+- 21 Oct 2026 (overnight): f36-negotiation-tab (--n-del-fg is --st-ruby-fg, about 7:1).
 - f84, f89, f92–f95, f100, f152, f184, f210, f246, nego-redesign, redline, parity, negotiations-door, focus-*, edit-clause-door, negotiate-as-drawn verify.
 
 ## THE TRACKED-CHANGES COLUMN
@@ -248,6 +257,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - nda-carries-no-money-verify.
 
 ## JAMBO'S AGENTS — THE HOUSE AND HIS POINTS (js/views/jambohouse.js)
+- jambos-work-open-verify (Home's Jambo's work · Open, and the house's door, land on the Board's Jambo's work card even when a contract's report was held there: bsCardLeave first; never "nothing prepared" over waiting work; three screens).
 - f667, f724, f790, f800–f803, jambo-agents, open-in-place, counter-as-drawn verify.
 
 ## THE SLIDER ON EVERY JAMBO PANEL

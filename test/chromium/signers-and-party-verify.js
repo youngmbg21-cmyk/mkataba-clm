@@ -196,8 +196,9 @@ const contract = () => ({
           .map(b => b.getAttribute('data-share-purpose')) };
     });
     check('the picker offers a read-only link, not only Sign and Negotiate',
-      /* Adviser joined as the fourth purpose (THE SEND SCREEN: Sign · Negotiate · View · Adviser) */
-      defaults.offered.join(',') === 'sign,negotiate,view,advise', defaults.offered.join(','));
+      /* Adviser joined as the fourth purpose (THE SEND SCREEN: Sign · Negotiate · View · Adviser)
+         RE-POINTED 21 Oct 2026: A COLLEAGUE is a purpose too (passing it to a colleague, caPassSend) */
+      defaults.offered.join(',') === 'sign,negotiate,view,advise,colleague', defaults.offered.join(','));
     check('and with nobody named to sign, the default is one the send will accept',
       defaults.preselected.join(',') === 'negotiate',
       'preselected ' + (defaults.preselected.join(',') || 'nothing')
