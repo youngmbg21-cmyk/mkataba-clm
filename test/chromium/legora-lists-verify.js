@@ -593,6 +593,8 @@ function pageKit(){
     }
     const spot = () => ev(c => ({ tab: (window.__lh.tabs().find(t => t.lit) || {}).label || null, chips: window.__lh.chips().map(x => x.t).sort(),
       words: (window.__lh.box() || {}).value == null ? null : window.__lh.box().value, ids: window.__lh.ids(c).slice(0, 60) }), cfg);
+    /* the head's numbers settle once the typing pauses (lhHeadSyncSoon): ask, bounded */
+    await until(c => { const t = window.__lh.total(c), lit = window.__lh.tabs().find(x => x.lit); return (!lit || lit.n === t) ? true : null; }, cfg, 3000);
     const was = await spot();
     await page.reload({ waitUntil: 'networkidle' });
     await loaded();
