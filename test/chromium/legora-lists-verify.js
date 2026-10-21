@@ -252,6 +252,13 @@ function pageKit(){
     asked: q => { const h = (window.ai && Array.isArray(ai.history)) ? ai.history : ((window.intel && Array.isArray(intel.history)) ? intel.history : []);
       return h.filter(m => m && m.role === 'user' && String(m.text || m.content || '').trim() === q).length; },
     busy: () => !!((window.ai && ai.busy) || (window.intel && intel.busy)),
+    /* the head shows what its page reads now: the head counts again only once
+       the typing pauses (LH_SYNC_QUIET_MS, js/views/listhead.js), so a stage
+       that reads the tabs or the chips just after typing asks for this first */
+    synced: () => { const s = K.seat(); if (!s || typeof window.lhTabsHtml !== 'function') return true;
+      const rows = el => [...el.children].filter(e => e.matches('.reg-views, .lh-chips')).map(words).join(' ');
+      const tmp = document.createElement('div'); tmp.innerHTML = window.lhTabsHtml(s.getAttribute('data-lh-seat')) + window.lhChipsHtml(s.getAttribute('data-lh-seat'));
+      return rows(tmp) === rows(s); },
     /* a party one row carries and not every row does (any: or every row does);
        else a long word of the first row */
     pick: (c, parties, any) => {
@@ -520,6 +527,7 @@ function pageKit(){
     }
     check(`${tag(d)} 7a the caret stays in the box at every keystroke`, lost == null, lost == null ? `typed "${P.word}"` : JSON.stringify(lost));
     const nar = await until(([c, wd]) => { const els = window.__lh.rowEls(c); return els.length && els.every(e => window.__lh.rowText(e).includes(wd.toLowerCase())) ? els.length : null; }, [cfg, P.word], 5000);
+    await until(() => window.__lh.synced() ? true : null, null, 3000);
     const after = await ev(c => ({ total: window.__lh.total(c), tabs: window.__lh.tabs() }), cfg);
     const litT = (after.tabs || []).find(t => t.lit), allB = (before.tabs || []).find(t => t.all), allA = (after.tabs || []).find(t => t.all);
     check(`${tag(d)} 7b typing "${P.word}" narrows the list to the rows that carry it (a ${P.kind} is never a question)`,
@@ -586,6 +594,7 @@ function pageKit(){
     }
     const spot = () => ev(c => ({ tab: (window.__lh.tabs().find(t => t.lit) || {}).label || null, chips: window.__lh.chips().map(x => x.t).sort(),
       words: (window.__lh.box() || {}).value == null ? null : window.__lh.box().value, ids: window.__lh.ids(c).slice(0, 60) }), cfg);
+    await until(() => window.__lh.synced() ? true : null, null, 3000);
     const was = await spot();
     await page.reload({ waitUntil: 'networkidle' });
     await loaded();
