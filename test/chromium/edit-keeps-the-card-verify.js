@@ -63,25 +63,16 @@ const EIGHT = ['contractType', 'governingLaw', 'disputes', 'value', 'effDate', '
       const H = () => page.evaluate(() => document.getElementById('ov-ess').getBoundingClientRect().height);
       check(`1. ${tag}: no sentence beside Read the brief`, await page.evaluate(() => !document.querySelector('.ov-top-note')
         && !document.querySelector('.ov-top').textContent.includes(i18t('ov_top_note').slice(0, 30))));
+      /* RE-POINTED 21 Oct 2026 (THE BOARD READS, owner 20 Oct 2026, the Legora way): the sheet on the
+         Board's card no longer turns into boxes — its Edit brings the paper up with Key terms standing in
+         the middle (pdKtOpen → pdKtMid), so the card cannot grow; checks 3–5 (the eight boxes, the soft
+         fill, the Directory inside the card) had no card left to measure and are retired with it */
       const rest = await H();
       await page.click('[data-ov-edit="all"]');
-      const edited = await until(() => document.querySelector('#ov-facts [data-ktm], #ov-facts [data-kt]') ? true : null);
-      if (!edited) { check(`2. ${tag}: Edit draws boxes`, false); await page.close(); continue; }
-      const edit = await H();
-      check(`2a. ${tag}: Edit keeps the card's height`, Math.abs(edit - rest) < 1, `${rest.toFixed(1)} → ${edit.toFixed(1)}`);
-      const boxes = await page.evaluate(() => [...new Set([...document.querySelectorAll('#ov-facts [data-kt], #ov-facts [data-ktm]')]
-        .map(e => e.getAttribute('data-kt') || e.getAttribute('data-ktm')).filter(k => k !== 'nonmonetary'))]);
-      check(`3. ${tag}: the eight terms' boxes and no other`, EIGHT.every(k => boxes.includes(k)) && boxes.length === EIGHT.length, boxes.join(','));
-      const edge = await page.evaluate(() => { const b = document.querySelector('#ov-facts [data-ktm="governingLaw"]'); const cs = getComputedStyle(b);
-        return { color: cs.borderTopColor, bg: cs.backgroundColor }; });
-      check(`4. ${tag}: a term box has no visible edge (soft fill)`, /rgba\(0, 0, 0, 0\)|transparent/.test(edge.color) && edge.bg !== 'rgba(0, 0, 0, 0)', JSON.stringify(edge));
-      const dir = await page.evaluate(() => !!document.querySelector('#ov-parties .ov-dir .pt-dir [data-pt-pick]'));
-      check(`5a. ${tag}: the parties are the Directory`, dir);
-      await page.evaluate(() => { const r = document.querySelector('[data-pt-pick="p:pt_a"]'); if (r) r.click(); });
-      const form = await until(() => { const f = document.querySelector('#ov-parties .ov-dir .pt-dir-form [data-pt-row="pt_a"]'); return f ? true : null; });
-      check(`5b. ${tag}: a person's press opens their form inside the scroller`, !!form);
-      const withForm = await H();
-      check(`2b. ${tag}: the form open keeps the card's height`, Math.abs(withForm - rest) < 1, `${rest.toFixed(1)} → ${withForm.toFixed(1)}`);
+      const mid = await until(() => document.querySelector('[data-pd-mid-kt] #pd-kt tr') ? true : null);
+      check(`2. ${tag}: Edit on the Board's card brings Key terms to the middle beside the paper`, !!mid);
+      const boxes = await page.evaluate(() => document.querySelectorAll('[data-bs-host="details"] #ov-facts [data-kt], [data-bs-host="details"] #ov-facts [data-ktm]').length);
+      check(`2a. ${tag}: the card itself draws no boxes (it only reads)`, boxes === 0, `${boxes} boxes; card was ${rest.toFixed(1)}px`);
       await page.close();
     }
     check('6. no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
