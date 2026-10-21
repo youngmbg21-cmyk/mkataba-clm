@@ -533,6 +533,7 @@ function pageKit(){
     /* the head counts again once the typing pauses (lhHeadSyncSoon,
        LH_SYNC_QUIET_MS): wait for that recount, bounded, before judging it */
     await recounted(cfg);
+    await until(() => window.__lh.synced() ? true : null, null, 3000);
     const after = await ev(c => ({ total: window.__lh.total(c), tabs: window.__lh.tabs() }), cfg);
     const litT = (after.tabs || []).find(t => t.lit), allB = (before.tabs || []).find(t => t.all), allA = (after.tabs || []).find(t => t.all);
     check(`${tag(d)} 7b typing "${P.word}" narrows the list to the rows that carry it (a ${P.kind} is never a question)`,
@@ -602,6 +603,7 @@ function pageKit(){
       words: (window.__lh.box() || {}).value == null ? null : window.__lh.box().value, ids: window.__lh.ids(c).slice(0, 60) }), cfg);
     /* the head's numbers settle once the typing pauses (lhHeadSyncSoon): ask, bounded */
     await until(c => { const t = window.__lh.total(c), lit = window.__lh.tabs().find(x => x.lit); return (!lit || lit.n === t) ? true : null; }, cfg, 3000);
+    await until(() => window.__lh.synced() ? true : null, null, 3000);
     const was = await spot();
     await page.reload({ waitUntil: 'networkidle' });
     await loaded();
