@@ -154,18 +154,19 @@ const LIVE = { ...H.fixtureContract('MK-R2', 'Raw Milk Collection', 'Nandi Dairy
 
     console.log('\n6 · History');
     await tab('MK-R1', 'history');
+    /* RE-POINTED 21 Oct 2026 (History, the SAP way — reverses Two sides):
+       the filters that give results stand in the open beside the search (no Filter
+       button), entries sit under a day row, and our approval's outcome is a
+       dot and a word in its own column. */
     const hi = await page.evaluate(() => ({
       q: !!document.getElementById('hist-q'),
-      folded: !!(document.getElementById('hist-filters') && document.getElementById('hist-filters').hidden),
+      open: [...document.querySelectorAll('.hist-tools .hist-filters select')].filter(x => x.offsetParent).length,
+      btn: !!document.getElementById('hist-filter-btn'),
       days: document.querySelectorAll('.hist-day-h').length,
-      pills: document.querySelectorAll('.hist-pill').length }));
+      words: [...document.querySelectorAll('.hist-ocw')].map(x => x.textContent.trim()) }));
     ok('6a a search box on the head', hi.q);
-    ok('6b the five filters fold behind Filter', hi.folded);
-    ok('6c entries sit under a day heading, with outcome tags', hi.days >= 1 && hi.pills >= 1, JSON.stringify(hi));
-    if (hi.q) {
-      await page.click('#hist-filter-btn');
-      ok('6d Filter opens them', await page.evaluate(() => !document.getElementById('hist-filters').hidden));
-    }
+    ok('6b the filters stand in the open (only those that give results), no Filter button', hi.open >= 1 && !hi.btn, JSON.stringify(hi));
+    ok('6c entries sit under a day row, with an outcome word', hi.days >= 1 && hi.words.length >= 1, JSON.stringify(hi));
   } catch (e) {
     fail++; console.log('  FAIL harness — ' + e.message);
   }

@@ -246,7 +246,8 @@ function insSecHtml(title, n, body, cls){
    showing the drawing's four (SAP benchmark, 9 Oct 2026) asks for those. */
 function insFactsHtml(c, keys){
   const list = Array.isArray(keys) ? insFacts(c).filter(f => keys.includes(f.k)) : insFacts(c);
-  return `<dl class="ins-facts">${list.map(f => {
+  /* THE BRIEF (21 Oct 2026): the facts carry their section's label; only Jambo's panel draws it */
+  return `<dl class="ins-facts" data-ins-label="${esc(i18t('pd_tab_facts'))}">${list.map(f => {
     const none = !f.v;
     return `<div data-ins-fact="${f.k}"><dt>${esc(f.label)}</dt><dd${none ? ' class="none"' : ''}${f.v ? ` title="${esc(f.v + (f.sub ? ' · ' + f.sub : ''))}"` : ''}>${
       none ? '—' : esc(f.v)}${f.sub ? ` <span class="sub${f.tone ? ' is-' + f.tone : ''}">· ${esc(f.sub)}</span>` : ''}</dd></div>`;
@@ -721,7 +722,7 @@ function insViewTabsHtml(o){
    `wide` fact takes the whole row and may wrap. The contract's own grid
    (insFactsHtml) is this shape with its own six readings. */
 function insKvHtml(facts){
-  return `<dl class="ins-facts">${(facts || []).filter(Boolean).map(f => {
+  return `<dl class="ins-facts" data-ins-label="${esc(i18t('pd_tab_facts'))}">${(facts || []).filter(Boolean).map(f => {
     const none = !f.v && f.v !== 0;
     return `<div${f.wide ? ' class="wide"' : ''}${f.k ? ` data-ins-fact="${esc(f.k)}"` : ''}><dt>${esc(f.label)}</dt><dd${none ? ' class="none"' : ''}${
       !none && f.plain ? ` title="${esc(f.plain)}"` : ''}>${none ? '—' : f.v}</dd></div>`;
@@ -1045,7 +1046,7 @@ function insWatchWidth(){
    · WHERE IT STANDS: at the window's right edge from under the desk tabs to
      the foot — Home's panel's own place and width (IG_DOCK_W0) — and the page
      beside it takes the rest (index.html, ".ins-panel.is-jambo"). */
-const JL_W = 380, JL_FOLDED = 46;
+const JL_W = 384, JL_FOLDED = 46;   /* THE BRIEF (21 Oct 2026): 48 x 8; was 380 */
 const JL_FOLD_KEY = 'hati.v1.jlFold';
 let _jlFold = null;
 function jlFolded(){

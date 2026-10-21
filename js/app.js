@@ -3388,14 +3388,14 @@ let _panelTrap=null;
    width the list panel rests at (JL_W, 380) */
 const PANEL_JAMBO_SEL=['#ig-dock','#ins-panel.is-jambo','#mig-side','#st-side','#cal-plan'];
 function panelJamboWidth(){
-  if(typeof document==='undefined') return 380;
+  if(typeof document==='undefined') return 384;
   for(const sel of PANEL_JAMBO_SEL){
     const el=document.querySelector(sel);
     if(!el||!el.getClientRects||!el.getClientRects().length) continue;
     const w=Math.round(el.getBoundingClientRect().width);
     if(w>=240) return w;
   }
-  return (typeof window!=='undefined'&&typeof window.JL_W==='number')?window.JL_W:380;
+  return (typeof window!=='undefined'&&typeof window.JL_W==='number')?window.JL_W:384;   /* THE BRIEF: 384 (21 Oct 2026) */
 }
 function closeContextPanel(){
   if(!state.panelOpen) return;

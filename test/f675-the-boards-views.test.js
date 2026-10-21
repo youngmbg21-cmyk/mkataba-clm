@@ -128,7 +128,8 @@ describe('f675 (2) the room\'s own builders, in a second host', () => {
     assert.match(strip(fnBody(OB, 'roomObligationsInspector')), /roomPaintObligations\(c, host\)/);
     const hi = strip(fnBody(CT, 'roomPaintHistory'));
     assert.match(hi, /const host=at\|\|document\.getElementById\('ws-history-pane'\);/);
-    assert.equal((hi.match(/roomPaintHistory\(c,(?:read\(\)|\{\}),at\)/g) || []).length, 5, 'every filter, search and wording press repaints the same host');
+    /* RE-POINTED 21 Oct 2026 (History the SAP way): four, not five — the Filter button that folded the filters is gone */
+    assert.equal((hi.match(/roomPaintHistory\(c,(?:read\(\)|\{\}),at\)/g) || []).length, 4, 'every filter, search and wording press repaints the same host');
     assert.doesNotMatch(hi, /roomPaintHistory\(c,(?:read\(\)|\{\})\)/);
     assert.match(strip(fnBody(INS, 'insWatchWidth')), /p\(page\)/, 'the width watcher repaints the host it found');
     assert.match(INS, /oblig: page => \{ const own = page && page\.getAttribute\('data-ins-cid'\);/);

@@ -290,7 +290,7 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     await page.evaluate(() => hbStripBring('MK-0382', 'hist'));
     const P12 = await until(() => { const g = document.querySelector('#ig-dock #pd-histglance'), host = document.querySelector('#bs-strips [data-bs-host="hist"]');
       if (!g || !host || !host.querySelector('.hist-ev')) return null;
-      const tools = host.querySelector('.hist-tools'), order = tools ? [...tools.querySelectorAll('#hist-q, #hist-filter-btn, #hist-detail, #hist-more')].map(e => e.id) : [];
+      const hh = host.querySelector('.hist-head'), order = hh ? [...hh.querySelectorAll('#hist-q, #hist-filter-btn, #hist-detail, #hist-more')].map(e => e.id) : [];
       const more = host.querySelector('#hist-more');
       return { word: ((document.querySelector('#ig-dock .igd-head-w') || {}).textContent || '').trim(), ph: (document.getElementById('igd-input') || {}).placeholder,
         rows: [...g.querySelectorAll('.pd-gl-row')].map(r => ({ t: (r.querySelector('span') || {}).textContent.replace(/\s+/g, ' ').trim(), b: ((r.querySelector('button') || {}).textContent || '').trim() })),
@@ -299,17 +299,20 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
         trail: (() => { const t = host.querySelector('.hist-trail'), cs = t && getComputedStyle(t), card = host.closest('.bs-strip');
           return cs ? { mh: cs.maxHeight, ov: cs.overflowY, bw: cs.borderTopWidth, inside: card.getBoundingClientRect().bottom >= t.getBoundingClientRect().bottom - 1 } : null; })(),
         cap: (host.querySelector('.hist-cap') || {}).textContent || '', order, moreAria: more && more.getAttribute('aria-label'), moreText: more && more.textContent.trim(),
-        pill: ((host.querySelector('.hist-day-h') || {}).textContent || '').trim(), text: [...host.querySelectorAll('.hist-ev .hist-text')].map(x => x.textContent.trim()),
-        sep: !!host.querySelector('.hist-ev.is-theirs .hist-top .hist-sep') && !host.querySelector('.hist-ev.is-theirs .hist-top .hist-dot') }; }, null, 15000);
+        pill: ((host.querySelector('.hist-day-h b') || host.querySelector('.hist-day-h') || {}).textContent || '').trim(), text: [...host.querySelectorAll('.hist-ev .hist-text')].map(x => x.textContent.trim()),
+        side: [...host.querySelectorAll('.hist-ev.is-theirs .hist-c-side')].map(x => x.textContent.trim()) }; }, null, 15000);
     check('3a Jambo says "MK-0382 · History": the last two weeks with the newest, what is open with whose move and Redlines',
       !!P12 && P12.word === 'MK-0382 · History' && /^\d+ entr(y|ies) in the last two weeks\. ?Newest: their round 1, today\.$/.test(P12.rows[0].t)
       && /^2 of their changes are still open: clauses \d+ and \d+\. ?Your move, since today\.$/.test(P12.rows[1].t) && P12.rows[1].b === 'Redlines', JSON.stringify(P12 && P12.rows));
     check('3b chips: the question worth asking, and redline; the box asks about its history', !!P12 && JSON.stringify(P12.chips) === JSON.stringify(['what changed in round 1', 'redline']) && P12.ph === 'Ask about MK-0382\'s history…', JSON.stringify(P12 && { chips: P12.chips, ph: P12.ph }));
-    check('3c the head: "Newest first · our side left, theirs right · N events · 2 open changes" over one toolbar — search, Filter, Show the wording, ⋯ named "More"',
-      !!P12 && /^Newest first · our side left, theirs right · \d+ events · 2 open changes$/.test(P12.cap.trim()) && JSON.stringify(P12.order) === JSON.stringify(['hist-q', 'hist-filter-btn', 'hist-detail', 'hist-more']) && P12.moreAria === 'More' && P12.moreText === '', JSON.stringify(P12 && { cap: P12.cap, order: P12.order, aria: P12.moreAria }));
+    /* RE-POINTED 21 Oct 2026 (the owner picked "The SAP way" for History): the head is "Newest first · N events ·
+       2 open changes" with Show the wording and ⋯ on its right; the band under it the search and the filters in the open */
+    check('3c the head: "Newest first · N events · 2 open changes", Show the wording and ⋯ named "More"; the search in the band under it, no Filter button',
+      !!P12 && /^Newest first · \d+ events · 2 open changes$/.test(P12.cap.trim()) && JSON.stringify(P12.order) === JSON.stringify(['hist-detail', 'hist-more', 'hist-q']) && P12.moreAria === 'More' && P12.moreText === '', JSON.stringify(P12 && { cap: P12.cap, order: P12.order, aria: P12.moreAria }));
     /* RE-POINTED (pass 4, round 12 as drawn: "Today, Mon 19 Oct"): today's pill says so */
-    check('3d the day\'s pill as drawn ("Today, Sun 18 Oct"), a change\'s entry in words, the time and the person joined by a dot',
-      !!P12 && /^Today, [A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2,3}$/.test(P12.pill) && P12.text.some(t => /^Proposed a change to clause \d+, .+: 30 days to 60 days$/.test(t)) && P12.sep, JSON.stringify(P12 && { pill: P12.pill, text: P12.text, sep: P12.sep }));
+    /* RE-POINTED 21 Oct 2026 (the SAP way): the day is a row of the table; their entry reads "Theirs" in the Side column */
+    check('3d the day as drawn ("Today, Sun 18 Oct"), a change\'s entry in words, their side said in the Side column',
+      !!P12 && /^Today, [A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2,3}$/.test(P12.pill) && P12.text.some(t => /^Proposed a change to clause \d+, .+: 30 days to 60 days$/.test(t)) && P12.side.length > 0 && P12.side.every(x => x === 'Theirs'), JSON.stringify(P12 && { pill: P12.pill, text: P12.text, side: P12.side }));
     check('5f History: one ⋯ (the toolbar\'s), none on the head; the trail runs inside the card, no box or scroll of its own',
       !!P12 && P12.headDots === 0 && !!P12.trail && P12.trail.mh === 'none' && P12.trail.ov === 'visible' && P12.trail.bw === '0px' && P12.trail.inside, JSON.stringify(P12 && { dots: P12.headDots, trail: P12.trail }));
     if (OUT) await page.screenshot({ path: path.join(OUT, '12-history-panel-1440x780.png') });
@@ -357,30 +360,33 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     const H2 = await until(() => { const host = document.querySelector('#bs-strips [data-bs-host="hist"]'); if (!host || !host.querySelector('.hist-ev')) return null;
       const texts = [...host.querySelectorAll('.hist-ev .hist-text')].map(x => x.textContent.replace(/\s+/g, ' ').trim());
       const mid = [...host.querySelectorAll('.hist-ev.is-mid')];
-      return { texts, mid: mid.length, midWho: mid.filter(m => m.querySelector('.hist-who, .hist-pill, [class*="avatar"], [class*="-av"]')).length,
+      /* RE-POINTED 21 Oct 2026 (the SAP way): a middle-line entry is a row that names no side; it still carries no initials and no outcome */
+      return { texts, mid: mid.length, midWho: mid.filter(m => m.querySelector('.hist-pill, .hist-ocw, [class*="avatar"], [class*="-av"]')).length,
         rchip: host.querySelectorAll('.hist-rchip').length, fp: host.querySelectorAll('.hist-fp').length,
-        pill: ((host.querySelector('.hist-day-h') || {}).textContent || '').trim() }; }, null, 10000);
+        pill: ((host.querySelector('.hist-day-h b') || host.querySelector('.hist-day-h') || {}).textContent || '').trim() }; }, null, 10000);
     const backN = H2 ? H2.texts.filter(t => /^Sent round 1 back to .+: 3 answers$/.test(t)).length : -1;
     const r1N = H2 ? H2.texts.filter(t => /round 1/i.test(t) && /(back|closed|ended|sent)/i.test(t)).length : -1;
     const cameN = H2 ? H2.texts.filter(t => /^Their round 2 came back: 2 changes$/.test(t)).length : -1;
     check('6a History says a round sent back once ("Sent round 1 back to …: 3 answers") and "Their round 2 came back: 2 changes"; no round chip; today\'s pill "Today, …"',
       backN === 1 && r1N === 1 && cameN === 1 && H2.rchip === 0 && /^Today, /.test(H2.pill), JSON.stringify(H2 && { backN, r1N, cameN, rchip: H2.rchip, pill: H2.pill, texts: H2.texts.slice(0, 12) }));
-    check('6b the middle line\'s pills carry no initials and no outcome', !!H2 && H2.mid >= 1 && H2.midWho === 0, JSON.stringify(H2 && { mid: H2.mid, midWho: H2.midWho }));
+    check('6b an entry on no side carries no initials and no outcome', !!H2 && H2.mid >= 1 && H2.midWho === 0, JSON.stringify(H2 && { mid: H2.mid, midWho: H2.midWho }));
     const n6 = await tabN();
     check('6c his tab beside a History carries Home\'s own Needs-you number', !!n6.tab && n6.tab === n6.home, JSON.stringify(n6));
     /* the filters: only what the trail has; Clear greys at rest on the band's grey */
-    await press('#hist-filter-btn');
-    const F6 = await until(() => { const b = document.getElementById('hist-filters'); if (!b || b.hidden) return null; const band = b.querySelector('.hist-filters'), cl = document.getElementById('ht-clear');
+    /* RE-POINTED 21 Oct 2026 (the SAP way): the filters stand in the band, in the open — no Filter button to press,
+       no grey band of their own; what each offers is still only what the trail has */
+    const HB = '#bs-strips [data-bs-host="hist"]';
+    const F6 = await until(sel => { const b = document.querySelector(sel); if (!b || !b.querySelector('select[data-ht-filter]')) return null; const cl = b.querySelector('#ht-clear');
       const opt = k => { const s = b.querySelector(`select[data-ht-filter="${k}"]`); return s ? [...s.options].map(o => o.value).filter(Boolean) : null; };
       return { outcome: opt('outcome'), opens: opt('opens'), person: opt('actor'), round: opt('round'), clear: cl ? { dis: cl.disabled, title: cl.title } : null,
-        bandBg: band ? getComputedStyle(band).backgroundColor : '', clearBg: cl ? getComputedStyle(cl).backgroundColor : '' }; }, null, 5000);
-    check('6d Filter lists only what the trail has (Outcome: no Withdrawn or Counter here, Opens not offered where nothing was opened); Clear greyed at rest on a grey band',
-      !!F6 && Array.isArray(F6.outcome) && F6.outcome.includes('accepted') && F6.outcome.includes('rejected') && !F6.outcome.includes('withdrawn') && !F6.outcome.includes('counter')
-      && F6.opens === null && Array.isArray(F6.round) && F6.round.length === 2 && !!F6.clear && F6.clear.dis && !!F6.clear.title && F6.bandBg !== 'rgb(255, 255, 255)' && F6.bandBg !== 'rgba(0, 0, 0, 0)', JSON.stringify(F6));
-    await page.selectOption('#hist-filters select[data-ht-filter="outcome"]', 'accepted').catch(() => {});
+        button: !!b.querySelector('#hist-filter-btn') }; }, HB, 5000);
+    check('6d the filters stand in the open and list only what the trail has (Outcome: no Withdrawn or Counter here, Opens not offered where nothing was opened); Clear greyed at rest',
+      !!F6 && !F6.button && Array.isArray(F6.outcome) && F6.outcome.includes('accepted') && F6.outcome.includes('rejected') && !F6.outcome.includes('withdrawn') && !F6.outcome.includes('counter')
+      && F6.opens === null && Array.isArray(F6.round) && F6.round.length === 2 && !!F6.clear && F6.clear.dis && !!F6.clear.title, JSON.stringify(F6));
+    await page.selectOption(HB + ' select[data-ht-filter="outcome"]', 'accepted').catch(() => {});
     const clr = await until(() => { const cl = document.getElementById('ht-clear'); return cl && !cl.disabled ? true : null; }, null, 4000);
     await press('#ht-clear');
-    const clrd = await until(() => { const cl = document.getElementById('ht-clear'), s = document.querySelector('#hist-filters select[data-ht-filter="outcome"]'); return cl && cl.disabled && (!s || !s.value) ? true : null; }, null, 4000);
+    const clrd = await until(sel => { const cl = document.getElementById('ht-clear'), s = document.querySelector(sel + ' select[data-ht-filter="outcome"]'); return cl && cl.disabled && (!s || !s.value) ? true : null; }, HB, 4000);
     check('6e a choice makes Clear pressable, and Clear puts it back', !!clr && !!clrd, JSON.stringify({ clr, clrd }));
     /* the ⋯ menu as drawn */
     await press('#hist-more');
@@ -471,8 +477,8 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
       const c = getContract('MK-0399');
       return { rows: [...g.querySelectorAll('.pd-gl-row')].map(r => ({ k: r.getAttribute('data-pd-hg'), t: ((r.querySelector('span') || {}).textContent || '').replace(/\s+/g, ' ').trim() })),
         opened: Array.isArray(c._opens) ? c._opens.length : 0 }; }, null, 12000);
-    await press('#hist-filter-btn');
-    const PHf = await until(() => { const b = document.getElementById('hist-filters'); return b && !b.hidden ? { opens: !!b.querySelector('select[data-ht-filter="opens"]') } : null; }, null, 4000);
+    /* RE-POINTED 21 Oct 2026 (the SAP way): the filters stand in the open — nothing to press first */
+    const PHf = await until(() => { const b = document.querySelector('#bs-strips [data-bs-host="hist"] .hist-filters'); return b ? { opens: !!b.querySelector('select[data-ht-filter="opens"]') } : null; }, null, 4000);
     check('6s a private contract\'s History leads with its wall ("…every open is in this History."), says nothing was shared yet, and offers Opens only where it was opened',
       !!PH && PH.rows[0] && PH.rows[0].k === 'private' && /every open is in this History\./.test(PH.rows[0].t) && PH.rows.some(r => r.k === 'unshared' && r.t === 'Nothing has been shared with Annika Holm yet.')
       && !!PHf && PHf.opens === (PH.opened > 0), JSON.stringify({ PH, PHf }));
@@ -523,6 +529,7 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
           return { panel: !!r && r.top >= 0 && r.top >= ft - 1 && r.bottom <= innerHeight + 1 && r.right <= innerWidth + 1, side: document.documentElement.scrollWidth <= innerWidth + 1,
             head: !!document.querySelector('#ig-dock .igd-head-w'),
             cut: [...document.querySelectorAll('#ig-dock .pd-ch-needs small, #ig-dock [data-pd-held-chips] button')]/* against the border box: a button's own edge is not a cut */ .concat(doors).some(x => x.offsetParent && x.scrollWidth > x.offsetWidth + 1),
+            cutWhat: [...document.querySelectorAll('#ig-dock .pd-ch-needs small, #ig-dock [data-pd-held-chips] button')].concat(doors).filter(x => x.offsetParent && x.scrollWidth > x.offsetWidth + 1).map(x => x.textContent.trim().slice(0, 30) + ' ' + x.scrollWidth + '>' + x.offsetWidth),
             outside: dr ? doors.filter(b => b.offsetParent && b.getBoundingClientRect().right > dr.right + 1).map(b => b.textContent.trim()) : [], through }; }, sel);
         check(`4 ${w}×${ht} ${name}: the panel's card in view, its head named, nothing sideways, nothing cut, every door inside the panel`, F.panel && F.side && F.head && !F.cut && !F.outside.length, JSON.stringify(F));
         if (/7-page/.test(name)) check(`4 ${w}×${ht} ${name}: no mark's line runs through a label on the life line`, !F.through.length, JSON.stringify(F.through));

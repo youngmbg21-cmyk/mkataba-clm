@@ -159,7 +159,7 @@ const check = (name, pass, detail) => {
       ['4b', '4c', '4d', '4e', '4f', '4g', '4h', '4i', '4j', '4k', '4l', '5a', '5b'].forEach(n => check(n + ' (the divider)', false, 'no divider on the page'));
       throw Object.assign(new Error('no divider'), { reported: true });
     }
-    check('4b at rest the panel is the width it always opened at (380px) and nothing is stored', g0.dockW === 380 && g0.stored === null, `${g0.dockW}px · stored ${g0.stored}`);
+    check('4b at rest the panel is the width it always opened at (384px since The Brief, 21 Oct 2026) and nothing is stored', g0.dockW === 384 && g0.stored === null, `${g0.dockW}px · stored ${g0.stored}`);
     const hover = await page.evaluate(() => { const s = document.querySelector('#ig-resizer span'); return getComputedStyle(s).backgroundColor; });
     await page.hover('#ig-resizer'); await page.waitForTimeout(250);
     const hovered = await page.evaluate(() => { const s = document.querySelector('#ig-resizer span'); return getComputedStyle(s).backgroundColor; });
@@ -199,10 +199,10 @@ const check = (name, pass, detail) => {
     const k0 = await geo();
     await page.keyboard.press('ArrowLeft'); await page.waitForTimeout(300);
     const k1 = await geo();
-    check('4i Home puts it back and forgets the choice; an arrow key steps it', k0.dockW === 380 && k0.stored === null && k1.dockW > k0.dockW, `${k0.dockW} → ${k1.dockW}px`);
+    check('4i Home puts it back and forgets the choice; an arrow key steps it', k0.dockW === 384 && k0.stored === null && k1.dockW > k0.dockW, `${k0.dockW} → ${k1.dockW}px`);
     await page.dblclick('#ig-resizer'); await page.waitForTimeout(400);
     const g5 = await geo();
-    check('4j a double-click puts it back to where it rests', g5.dockW === 380 && g5.stored === null, `${g5.dockW}px · stored ${g5.stored}`);
+    check('4j a double-click puts it back to where it rests', g5.dockW === 384 && g5.stored === null, `${g5.dockW}px · stored ${g5.stored}`);
     /* Folded to its strip, there is nothing to drag. */
     await page.click('#igd-collapse'); await page.waitForTimeout(600);
     const g6 = await geo();

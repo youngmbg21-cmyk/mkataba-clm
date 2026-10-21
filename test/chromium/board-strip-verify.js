@@ -329,13 +329,16 @@ const OBS = [
       const tr = host.querySelector('.hist-trail');
       return { q: !!host.querySelector('#hist-q'), side: [...host.querySelectorAll('.hist-side [data-ht-side]')].map(b => b.textContent.trim()), sideSel: !!host.querySelector('[data-ht-filter="side"]'),
         lanes: [...host.querySelectorAll('.hist-trail.is-lanes > .hist-lh')].map(x => x.textContent.trim().split(' · ')[0]),
+        cols: [...host.querySelectorAll('.hist-trail.is-table > .hist-th > *')].map(x => x.textContent.trim()),
+        boxes: host.querySelectorAll('.hist-filters [data-ht-filter]').length,
         filter: !!host.querySelector('#hist-filter-btn'), wording: (host.querySelector('#hist-detail') || {}).textContent, n: host.querySelectorAll('.hist-ev').length,
         scroll: tr ? getComputedStyle(tr).overflowY : '', maxH: tr ? parseFloat(getComputedStyle(tr).maxHeight) : 0, more: !!host.querySelector('#hist-more-menu #ht-verify'),
         desk: !!host.closest('.bs-on-desk') }; });
-    /* RE-POINTED 17 Oct 2026 (round 12, the owner picked "Two sides"): the
-       side is the lane — Ours · Day · Theirs — and the switch is gone */
-    check('3f History opens in the strip: search, two lanes (Ours · Day · Theirs, no switch, no Side box), Filter, Show the wording',
-      hs && H1.q && H1.side.length === 0 && JSON.stringify(H1.lanes) === JSON.stringify(['Ours', 'Day', 'Theirs']) && !H1.sideSel && H1.filter && /Show the wording/.test(H1.wording || ''), JSON.stringify(H1));
+    /* RE-POINTED 21 Oct 2026 (the owner picked "The SAP way" for History):
+       one table — Time · Who · Side · What happened · Outcome — no lanes, no
+       switch; the filters stand in the open, no Filter button */
+    check('3f History opens in the strip: search, one table (Time · Who · Side · What happened · Outcome), the filters in the open, Show the wording',
+      hs && H1.q && H1.side.length === 0 && H1.lanes.length === 0 && JSON.stringify(H1.cols) === JSON.stringify(['Time', 'Who', 'Side', 'What happened', 'Outcome']) && !H1.sideSel && !H1.filter && H1.boxes >= 1 && /Show the wording/.test(H1.wording || ''), JSON.stringify(H1));
     /* RE-POINTED 18 Oct 2026 (pass 3 of the redesign's gaps, round 12 as
        drawn): a contract brought up as a page on the desk runs its trail
        inside the History card and the desk scrolls the page; a strip among
@@ -343,11 +346,12 @@ const OBS = [
     check('3g the trail runs inside the card on the desk (scrolls in its own box among the Board\'s strips), and ⋯ More keeps Verify integrity',
       (H1.desk ? (H1.scroll === 'visible' && !(H1.maxH > 0)) : (H1.scroll === 'auto' && H1.maxH > 0 && H1.maxH <= 480)) && H1.more, JSON.stringify({ desk: H1.desk, scroll: H1.scroll, maxH: H1.maxH, more: H1.more }));
     /* RE-POINTED 17 Oct 2026 (round 12): their moves stand in the right lane —
-       exactly the trail's own "Theirs" reading, nothing filtered away */
+       exactly the trail's own "Theirs" reading, nothing filtered away. Since
+       21 Oct (the SAP way) the lane is the row's Side, said "Theirs" */
     const H2 = await page.evaluate(() => { const host = document.querySelector('#bs-strip-MK-L1 [data-bs-host="hist"]');
       const evs = roomHistoryEvents(getContract('MK-L1'), { side: 'counterparty' });
       return { n: host.querySelectorAll('.hist-ev.is-theirs').length, want: evs.length, all: host.querySelectorAll('.hist-ev').length }; });
-    check('3h their moves stand in the right lane — the trail\'s own "Theirs" reading — and nothing is hidden', H2.n === H2.want && H2.n > 0 && H2.all === H1.n, JSON.stringify(H2) + ' of ' + H1.n);
+    check('3h their moves are the rows marked Theirs — the trail\'s own "Theirs" reading — and nothing is hidden', H2.n === H2.want && H2.n > 0 && H2.all === H1.n, JSON.stringify(H2) + ' of ' + H1.n);
     await page.click(M('#hist-detail'));
     await pause(300);
     const H3 = await page.evaluate(() => { const host = document.querySelector('#bs-strip-MK-L1 [data-bs-host="hist"]');

@@ -185,7 +185,7 @@ describe('f840 (2) Home\'s panel', () => {
     assert.match(f, /\$\{talk\?`<div id="igd-feed" class="igd-talk /, 'the conversation in its own view');
     assert.match(f, /return top\|\|`<div class="ig-welcome/, 'the landing: its own words only');
     assert.match(f, /return !talk&&!\(window\.pdShowsDesk&&pdShowsDesk\(\)\)/, 'chips only on the landing');
-    assert.match(f, /\$\{!talk&&\(\(window\.pdShowsDesk&&pdShowsDesk\(\)\)\|\|igFindingsShows\(\)\|\|igGuideShows\(\)\)\?'':`<div class="p-3 border-t/, 'the box on both views');
+    assert.match(f, /\$\{!talk&&\(\(window\.pdShowsDesk&&pdShowsDesk\(\)\)\|\|igFindingsShows\(\)\|\|igGuideShows\(\)\)\?'':`<div class="igd-foot p-3 border-t/, 'the box on both views');
     /* (19 Oct 2026) the go's words count as heard even when the view has
        already moved (pdTalkShows reads false off Home): the record's dock key */
     assert.match(code(fnOf(CA, 'caGoRepaint')), /pdTalkShows\(\)\) \|\| k\.indexOf\('dock:'\) === 0\) && typeof pdTalkClose === 'function'\) pdTalkClose\(\);/, 'a "go to" lands on the place\'s own panel');

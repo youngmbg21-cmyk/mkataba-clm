@@ -148,8 +148,10 @@ describe('F380 — the history reads as a line of time', () => {
     /* RE-POINTED 18 Oct 2026 (round 12 as drawn): the day as a person says
        it, "Thu 15 Oct" — the year only where it is not this one — its count
        on the pill's hover */
-    assert.match(heads[0].textContent.trim(), /^\S+ \d{1,2} \S+$/, 'the day as a person says it');
-    assert.match(heads[0].getAttribute('title') || '', /event/, 'its count on the hover');
+    /* RE-POINTED 21 Oct 2026 (the SAP way): the day is a row across the table
+       with its count printed beside it, not on a hover */
+    assert.match(heads[0].querySelector('b').textContent.trim(), /^\S+ \d{1,2} \S+$/, 'the day as a person says it');
+    assert.match(heads[0].querySelector('small').textContent, /event/, 'its count beside it');
     for (const r of rows){
       assert.ok(r.querySelector('.hist-when > .hist-time').textContent, 'every row has its time');
       assert.ok(!/\d{4}-\d{2}-\d{2}/.test(r.querySelector('.hist-when').textContent));
@@ -157,36 +159,29 @@ describe('F380 — the history reads as a line of time', () => {
   });
 
   /* ═══════ 3. A RING IN THE KIND'S TONE ═══════ */
-  /* RE-POINTED 18 Oct 2026 (round 12, "Two sides", as drawn: "16:24 · PN Per
-     Nordvik"): in a bubble the time is followed by a dot of punctuation and
-     the kind's name rides the time's hover; an entry on the middle line keeps
-     its ring, the tone on its edge */
-  test('(3) the tone is the ring\'s edge, not a fill', async () => {
+  /* RE-POINTED 21 Oct 2026 (the SAP way, one table): a row's kind and round
+     ride its time's hover; only an open wears the ring (an eye) where the
+     initials stand, its tone on the edge; the outcome is a dot and a word */
+  test('(3) the kind rides the time\'s hover; a ring is never a fill', async () => {
     const { win, c } = await storyWorld();
     const { rows } = rowsOf(win, win.roomHistoryHtml(c));
     for (const r of rows){
-      const dot = r.querySelector('.hist-dot');
-      if (r.getAttribute('data-hist-lane') !== 'mid'){
-        assert.equal(dot, null, 'no ring in a bubble');
-        assert.ok(r.querySelector('.hist-top .hist-sep'), 'the time and the person joined by a dot');
-        assert.ok((r.querySelector('.hist-when').getAttribute('title') || '').length > 0, 'the kind on the time\'s hover');
-        continue;
-      }
-      const st = dot.getAttribute('style');
-      assert.match(st, /^border-color:var\(--/, st);
+      assert.ok((r.querySelector('.hist-when').getAttribute('title') || '').length > 0, 'the kind on the time\'s hover');
+      const dot = r.querySelector('.hist-dot:not(.is-eye)');
+      if (!dot) continue;
+      const st = dot.getAttribute('style') || '';
       assert.ok(!/background/.test(st), 'no fill on the element');
     }
     assert.match(rule('.hist-dot'), /background:var\(--color-surface\)/, 'the middle is the surface');
-    assert.match(rule('.hist-dot'), /z-index:1/, 'and it sits over the line');
   });
   test('(3b) [control] a refusal is still ruby', async () => {
     const { win, c } = await storyWorld();
     const { rows } = rowsOf(win, win.roomHistoryHtml(c));
     const r = rows.find(x => /Rejected/.test(x.querySelector('.hist-text').textContent));
     assert.ok(r, 'the refusal is on the page');
-    /* The TONE is the claim, whichever property carries it — since round 12
-       as drawn, the outcome's own pill (18 Oct 2026). */
-    assert.match(r.querySelector('.hist-pill').className, /\bis-r\b/);
+    /* The TONE is the claim, whichever property carries it — since the SAP
+       way (21 Oct 2026), the outcome's dot and word. */
+    assert.match(r.querySelector('.hist-ocw').className, /\bis-r\b/);
   });
 
   /* ═══════ 4. ONE LINE JOINS THEM ═══════ */

@@ -3479,7 +3479,7 @@ const ST_SPLIT_KEY='hati.v1.stSideW';
 const stWide=()=>(typeof matchMedia!=='function')||matchMedia('(min-width:981px)').matches;
 const ST_SPLIT={
   key:ST_SPLIT_KEY, min:ST_SIDE_MIN, restMin:ST_BOARD_MIN, foldedW:46,
-  w0:()=>((typeof matchMedia==='function')&&matchMedia('(min-width:1401px)').matches)?380:344,
+  w0:()=>((typeof matchMedia==='function')&&matchMedia('(min-width:1401px)').matches)?384:344,   /* THE BRIEF: 384 (was 380) */
   folded:()=>_stSideFold||!document.getElementById('st-side'),
   off:()=>!stWide(),
   /* the room the board and the panel share: the grid's two tracks (its gap aside) */

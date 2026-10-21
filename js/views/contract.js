@@ -8584,7 +8584,7 @@ let _histDetail=false;
 /* THE HISTORY TAB, AS DRAWN (SAP batch 3): a search over the trail and the
    five filters folded behind one Filter button — per sitting, in memory. A
    filter in force keeps the fold open, so nothing narrows the list unseen. */
-let _histQ='', _histFiltersOpen=false;
+let _histQ='';   /* the Filter button's fold (_histFiltersOpen) went with the SAP way, 21 Oct 2026: the filters stand in the open */
 /* An entry's outcome as one word in a tag at the row's end: a decision's own
    answer, else the trail's action word (a RECORD word, kept as written). */
 function histOutcome(e){
@@ -9141,32 +9141,33 @@ function roomHistoryHtml(c,f={},opts={}){
        wording" prints it under the entry */
     const fpTip=(e._also||[]).map(a=>{ const fp=String(a.detail||'').match(/(0x[0-9a-f]{8,})/i); return fp?fp[1]:''; }).filter(Boolean)[0]||'';
     const whenTip=[m.mark,(e.round!=null&&e.round!=='')?i18t('ct_round_n',{n:e.round}):'',fpTip].filter(Boolean).join(' \u00b7 ');
-    const when=`<span class="hist-when"${lane!=='mid'&&whenTip?` title="${esc(whenTip)}"`:''}>${w.time?`<span class="hist-time">${esc(w.time)}</span>`:`<span class="hist-day">${esc(w.day)}</span>`}</span>`;
+    const when=`<span class="hist-when"${whenTip?` title="${esc(whenTip)}"`:''}>${w.time?`<span class="hist-time">${esc(w.time)}</span>`:`<span class="hist-day">${esc(w.day)}</span>`}</span>`;
     const whoH=`<span class="hist-who">${e.actor?`${av}<span>${esc(e.actor)}</span>`:''}</span>`;
-    const ocH=`<span class="hist-oc">${oc?`<span class="hist-pill is-${oc.t}">${esc(oc.w)}</span>`:''}</span>`;
     const inside=e._k==='opened'||e._k==='access';
     /* THE MIDDLE LINE, AS DRAWN (round 12 gaps, pass 4): one quiet dashed
        pill — "08:52 · Maria Lindgren: opened the contract", an eye for an
        open, a lock for the stream's own acts — no initials, no outcome pill */
-    if(lane==='mid'){
-      const mark=e._k==='opened'?dot:e._k==='access'?`<span class="hist-lock" aria-hidden="true">${icon('lock','w-3 h-3')}</span>`:dot;
-      const t=histSaysOf(e), line=e.actor?`${esc(e.actor)}: ${esc(t.charAt(0).toLocaleLowerCase()+t.slice(1))}`:esc(t);
-      const stamp=w.time||w.day;
-      return `<div class="hist-ev is-mid${inside?' is-inside':''}${e._k==='opened'?' is-open':''}" data-hist-at="${esc(e.at||'')}" data-hist-lane="mid">
-      <span class="hist-inside"${whenTip?` title="${esc(whenTip)}"`:''}>${mark}<span class="hist-body"><span class="hist-text">${stamp?`<span class="hist-time">${esc(stamp)}</span> \u00b7 `:''}${line}${cl}</span></span></span>${body?`<div class="hist-mid-more">${body}</div>`:''}</div>`;
-    }
-    /* a change's entry says what happened to which clause (histSaysOf); the
-       clause and round chips stay on entries whose words do not name them */
+    /* THE SAP WAY (owner picked it by name, 21 Oct 2026; reverses "Two sides", 17 Oct): ONE TABLE —
+       Time · Who · Side · What happened · Outcome — every entry the same row, newest first. The side
+       is histLaneOf's own reading, said as a word in its own column; the outcome is a dot and a word.
+       What only we can see (who opened it, the stream's own acts) is a row like any other, its eye or
+       lock where the initials stand, in the quiet ink. The lane is still on the row (data-hist-lane). */
+    const sideW=lane==='ours'?`<span class="hist-sd is-ours">${esc(i18t('ct_hist_side_ours'))}</span>`
+      :lane==='theirs'?`<span class="hist-sd is-theirs">${esc(i18t('ct_hist_side_theirs'))}</span>`:'<span class="hist-sd is-none">\u2014</span>';
+    /* an entry nobody can place (HaTi's own) or only we can see carries no initials and no outcome (as drawn; round 12's rule kept) */
+    const ocW=oc&&lane!=='mid'?`<span class="hist-ocw is-${oc.t}"><i aria-hidden="true"></i>${esc(oc.w)}</span>`:'';
+    const mark=e._k==='opened'?dot:e._k==='access'?`<span class="hist-lock" aria-hidden="true">${icon('lock','w-3 h-3')}</span>`:'';
+    const whoCell=lane==='mid'?`<span class="hist-who">${mark}${e.actor?`<span>${esc(e.actor)}</span>`:''}</span>`:whoH;
     const said=histSaysOf(e), named=said!==String(e.text||'');
-    return `<div class="hist-ev is-${lane}${e._k==='opened'?' is-open':''}" data-hist-at="${esc(e.at||'')}" data-hist-lane="${lane}">
-      <div class="hist-bub"><div class="hist-top">${when}<span class="hist-sep" aria-hidden="true">\u00b7</span>${whoH}${ocH}</div>
-      <div class="hist-body"><div class="hist-text">${esc(said)}${named?'':cl}</div>
-      ${body}${why}${reply}</div></div></div>`;
+    const whatT=inside&&e.actor?esc(said.charAt(0).toLocaleLowerCase()+said.slice(1)):esc(said);
+    return `<div class="hist-ev hist-tr is-${lane}${inside?' is-inside':''}${e._k==='opened'?' is-open':''}" data-hist-at="${esc(e.at||'')}" data-hist-lane="${lane}" role="row">
+      <span class="hist-c hist-c-time" role="cell">${when}</span><span class="hist-c hist-c-who" role="cell">${whoCell}</span><span class="hist-c hist-c-side" role="cell">${sideW}</span>
+      <div class="hist-c hist-c-what hist-body" role="cell"><div class="hist-text">${whatT}${named?'':cl}</div>${body}${why}${reply}</div>
+      <span class="hist-c hist-c-oc hist-oc" role="cell">${ocW}</span></div>`;
   };
   const ours=_histOurPeople();
-  /* the lanes' heads: our party, the days, theirs */
-  const usName=(typeof contractParty==='function'?contractParty(c):'')||FIRST_PARTY||'';
-  const lanesHead=`<div class="hist-lh is-l"><i aria-hidden="true"></i>${esc(i18t('ct_hist_lane_ours',{ who:usName }))}</div><div class="hist-lh is-m">${esc(i18t('ct_hist_lane_day'))}</div><div class="hist-lh is-r"><i aria-hidden="true"></i>${esc(i18t('ct_hist_lane_theirs',{ who:c.counterparty||i18t('co_them') }))}</div>`;
+  /* the table's column head (the SAP way): the words above the columns */
+  const colHead=`<div class="hist-th" role="row"><span role="columnheader">${esc(i18t('ct_hist_col_time'))}</span><span role="columnheader">${esc(i18t('ct_hist_col_who'))}</span><span role="columnheader">${esc(i18t('ct_hist_col_side'))}</span><span role="columnheader">${esc(i18t('ct_hist_col_what'))}</span><span role="columnheader">${esc(i18t('ct_hf_outcome'))}</span></div>`;
   /* THE DAY IS A HEADING OVER ITS ENTRIES, with its count (as drawn). */
   const dayKey=e=>String(e.at||'').slice(0,10);
   /* THE DAY'S PILL, AS DRAWN (round 12): the day a person would say it —
@@ -9182,7 +9183,7 @@ function roomHistoryHtml(c,f={},opts={}){
     return (window.todayISO&&loc===todayISO())?i18t('ct_hist_day_today',{ d:said }):said; };
   const grouped=()=>{ let out='', k=null, buf=[];
     const flush=()=>{ if(!buf.length) return;
-      out+=`<div class="hist-day-h" title="${esc(i18tn('ct_hist_events',buf.length,{n:buf.length}))}"><b>${esc(dayLabel(buf[0]))}</b></div>${buf.map(row).join('')}`; buf=[]; };
+      out+=`<div class="hist-day-h" role="row"><b>${esc(dayLabel(buf[0]))}</b><small>${esc(i18tn('ct_hist_events',buf.length,{n:buf.length}))}</small></div>${buf.map(row).join('')}`; buf=[]; };
     evs.forEach(e=>{ const kk=dayKey(e); if(kk!==k){ flush(); k=kk; } buf.push(e); }); flush(); return out; };
   /* ---- ONE SWITCH, ONE HANDLE, AND NO LID OVER IT ----
      "Whose asks am I looking at" used to be answered TWICE on this head: a
@@ -9221,59 +9222,42 @@ function roomHistoryHtml(c,f={},opts={}){
      its end. The open changes are histMoveOf's own count, the one Jambo's
      History lines say. */
   const mvH=histMoveOf(c), openN=mvH?mvH.open:0;
+  /* THE HEAD, THE SAP WAY (owner, 21 Oct 2026): the serif "History" with its facts, Show the wording
+     and ⋯ on the right; under it ONE band — the search and the five filters as labelled boxes in the
+     open (no Filter button to open), Clear at its end. "our side left, theirs right" went with the
+     lanes; ct_hist_lanes_say is inert. */
   return `<div class="hist-head">
-      <h6 style="margin:0;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading)">${esc(i18t('tab_history'))}</h6>
-      <span class="hist-cap">${esc(i18t('ct_hist_reading'))} · ${esc(i18t('ct_hist_lanes_say'))} · ${on?esc(i18t('ct_hist_n_of',{n:evs.length,all}))
+      <h6 class="hist-title">${esc(i18t('tab_history'))}</h6>
+      <span class="hist-cap">${esc(i18t('ct_hist_reading'))} · ${on?esc(i18t('ct_hist_n_of',{n:evs.length,all}))
         :esc(i18tn('ct_hist_events',all,{n:all}))}${openN?` · <span class="hist-open-n">${esc(i18tn('ct_hist_open_n',openN,{n:openN}))}</span>`:''}${opensN?` · ${esc(i18tn('ct_hist_opens_n',opensN,{n:opensN}))}`:''}${cutN?` · ${esc(i18tn('ct_hist_opens_cut',cutN,{n:cutN}))}`:''}</span>
-      <div class="hist-tools">
-      <label class="hist-q"><span class="sr-only">${esc(i18t('ct_hist_search'))}</span>${icon('search','w-3.5 h-3.5')}<input id="hist-q" type="search" value="${esc(_histQ)}" placeholder="${esc(i18t('ct_hist_search'))}" autocomplete="off"></label>
-      ${''/* THE SIDE SWITCH IS GONE (round 12, "Two sides"): each side is its own
-             lane, so "whose step was it" is read by where it stands, not
-             filtered. HIST_SIDES and .hist-side are STALE. */}
-      <button id="hist-filter-btn" class="ui-btn" aria-expanded="${(_histFiltersOpen||onF)?'true':'false'}" aria-controls="hist-filters">${icon('filter','w-3.5 h-3.5')}${esc(i18t('ct_hist_filter'))}${onF?` <span class="hist-fn">${onF}</span>`:''}${icon('chevD')}</button>
-      ${''/* The long reading. Named for what pressing it does, not for the mode
-             it is in — "Detailed" tells you nothing about which way you are
-             about to go. */}
+      <span class="hist-tools-sp"></span>
       <button id="hist-detail" class="ui-btn" aria-pressed="${_histDetail?'true':'false'}"
         title="${esc(_histDetail?i18t('ct_hist_back_short'):i18t('ct_hist_print_wording'))}">${_histDetail?i18t('ct_hist_hide_wording'):i18t('ct_hist_show_wording')}</button>
-      <span class="hist-tools-sp"></span>
-      ${''/* ⋯ AT THE TOOLBAR'S END, AS DRAWN (round 12): the mark alone, its
-             name for a screen reader and on the hover (Verify, export or
-             print this record); the menu's rows still say what each does */}
       <div style="position:relative">
         <button id="hist-more" class="ui-btn ui-btn-icon hist-more-btn" aria-haspopup="true" aria-expanded="false"
           aria-label="${esc(i18t('ct_more'))}" title="${esc(i18t('ct_hist_more_title'))}">
           ${icon('more')}</button>
-        ${''/* THE MENU AS DRAWN (round 12 gaps, pass 4): "This contract" over its
-               three acts, each title with its line under it, no symbols; then
-               "Every contract · admins only" over the whole trail */}
         <div id="hist-more-menu" class="room-menu hist-menu hidden">
           <div class="hist-mg is-first">${esc(i18t('ct_hist_menu_this'))}</div>
           <button type="button" id="ht-verify"><b>${esc(i18t('ct_hist_verify'))}</b><small>${esc(i18t('ct_hist_menu_verify_l'))}</small></button>
-          ${''/* Print and Download stood on the Board's own line while the
-                 contract's views lived (stage 4); since they went (owner, 15
-                 Oct 2026) the history's own menu carries them in every host,
-                 the strip's History page among them. */}
-          ${`<button type="button" id="ht-export"><b>${esc(i18t('ct_export_history'))}</b><small>${esc(i18t('ct_hist_menu_export_l'))}</small></button>
-          <button type="button" id="ht-print"><b>${esc(i18t('ct_hist_print'))}</b><small>${esc(i18t('ct_hist_menu_print_l'))}</small></button>`}
-          ${''/* THE WHOLE TRAIL, FOR ADMINS (round 12, the owner's "Yes"): every
-                 contract's record for a period, as a file — Settings → Data &
-                 backup → The trail, its one home. Beside this contract's own
-                 Export, so there is one place to take a record away. */}
+          <button type="button" id="ht-export"><b>${esc(i18t('ct_export_history'))}</b><small>${esc(i18t('ct_hist_menu_export_l'))}</small></button>
+          <button type="button" id="ht-print"><b>${esc(i18t('ct_hist_print'))}</b><small>${esc(i18t('ct_hist_menu_print_l'))}</small></button>
           ${histTrailDoorOn()?`<div class="hist-mg">${esc(i18t('ct_hist_trail_group'))}</div>
           <button type="button" id="ht-trail"><b>${esc(i18t('ct_hist_trail_door'))}</b><small>${esc(i18t('ct_hist_trail_note'))}</small></button>`:''}
         </div>
       </div>
+      <div class="hist-tools">
+      <label class="hist-q"><span class="sr-only">${esc(i18t('ct_hist_search'))}</span>${icon('search','w-3.5 h-3.5')}<input id="hist-q" type="search" value="${esc(_histQ)}" placeholder="${esc(i18t('ct_hist_search'))}" autocomplete="off"></label>
+      ${roomHistoryFiltersHtml(c,f)}
       </div>
     </div>
-    <div id="hist-filters" style="margin-bottom:10px"${(_histFiltersOpen||onF)?'':' hidden'}>${roomHistoryFiltersHtml(c,f)}</div>
     <div id="ht-verify-result"></div>
     ${''/* THE TRAIL IS ONE ELEMENT (24 Sep 2026) so the line joining the rings
            knows where it starts and stops: it begins at the first entry's ring
            and ends at the last's, and a filter that leaves one entry draws no
            line at all. The empty sentence stays outside it — there is nothing
            to join. */}
-    ${evs.length?`<div class="hist-trail is-lanes">${lanesHead}${grouped()}</div>`
+    ${evs.length?`<div class="hist-trail is-table" role="table" aria-label="${esc(i18t('tab_history'))}">${colHead}${grouped()}</div>`
       :`<p class="hist-empty">${on?esc(i18t('ct_hist_none_match')):esc(i18t('ct_hist_none_yet'))}</p>`}`;
 }
 /* the filters behind Filter (the values are the record's own keys; only the
@@ -9307,21 +9291,24 @@ function histFilterChoices(c){
 }
 function roomHistoryFiltersHtml(c,f){
   const C=histFilterChoices(c);
-  const sel=(k,label,pairs)=>pairs.length?`<label class="hist-f"><span>${label}</span>
-    <select data-ht-filter="${k}">${`<option value="">${i18t('ct_all')}</option>`}${pairs.map(p=>
+  /* THE SAP WAY (21 Oct 2026): each filter a labelled box in the band — its name inside it, then
+     what it holds — in the drawing's order: Person · Clause · Outcome · Round · Opens */
+  const sel=(k,label,pairs,allW)=>pairs.length?`<label class="hist-f"><span>${label}:</span>
+    <select data-ht-filter="${k}">${`<option value="">${allW||i18t('ct_all')}</option>`}${pairs.map(p=>
       `<option value="${esc(String(p[0]))}"${String(f[k]||'')===String(p[0])?' selected':''}>${esc(String(p[1]).slice(0,42))}</option>`).join('')}</select></label>`:'';
   const any=HIST_FOLD_FILTERS.some(k=>f&&f[k])||!!(f&&f.side)||!!String(_histQ||'').trim();
   return `<div class="hist-filters">
     ${''/* THE FILTERS SPEAK THE READER'S LANGUAGE (26 Sep 2026, the overnight
            clean-up): the labels and their fixed choices are the reader's; the
            VALUES stay the record's English keys — only what is printed moved. */}
+    ${sel('actor',i18t('ct_hf_person'),C.person,i18t('ct_hf_everyone'))}
     ${sel('clauseId',i18t('ct_hf_clause'),C.clause)}
-    ${sel('actor',i18t('ct_hf_person'),C.person)}
+    ${sel('outcome',i18t('ct_hf_outcome'),C.outcome,i18t('ct_hf_any'))}
     ${sel('round',i18t('ct_hf_round'),C.round)}
-    ${sel('outcome',i18t('ct_hf_outcome'),C.outcome)}
     ${''/* OPENS, only where there are any: All shows them, or hide them, or show only them */}
-    ${C.opens?sel('opens',i18t('ct_hf_opens'),[['hide',i18t('ct_hf_opens_hide')],['only',i18t('ct_hf_opens_only')]]):''}
-    <button id="ht-clear" class="ui-btn" style="align-self:flex-end"${any?'':` disabled title="${esc(i18t('ct_hist_clear_none'))}"`}>${i18t('ct_clear2')}</button>
+    ${C.opens?sel('opens',i18t('ct_hf_opens'),[['hide',i18t('ct_hf_opens_hide')],['only',i18t('ct_hf_opens_only')]],i18t('ct_hf_shown')):''}
+    <span class="hist-f-sp"></span>
+    <button id="ht-clear" type="button" class="hist-clear"${any?'':` disabled title="${esc(i18t('ct_hist_clear_none'))}"`}>${i18t('ct_clear2')}</button>
   </div>`;
 }
 function roomVersionsHtml(c){
@@ -9359,7 +9346,6 @@ function roomPaintHistory(c,f={},at){
   /* Clear puts every filter back, side among them — one way back rather than
      two, now that side is one of the five rather than a control of its own. */
   host.querySelector('#ht-clear')?.addEventListener('click',()=>{ _histQ=''; roomPaintHistory(c,{},at); });
-  host.querySelector('#hist-filter-btn')?.addEventListener('click',()=>{ _histFiltersOpen=!_histFiltersOpen; roomPaintHistory(c,read(),at); });
   const qi=host.querySelector('#hist-q');
   if(qi) qi.addEventListener('input',()=>{ _histQ=qi.value; const caret=qi.selectionStart; roomPaintHistory(c,read(),at);
     const again=host.querySelector('#hist-q'); if(again){ again.focus(); try{ again.setSelectionRange(caret,caret); }catch(_){} } });

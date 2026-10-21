@@ -52,29 +52,29 @@ describe('f714 (1) which lane a row stands in', () => {
 
 describe('f714 (2) the lanes, the head and the door', () => {
   const H = fnBody(CT, 'roomHistoryHtml');
-  test('2a three lanes under one head, inside the one trail; the row keeps its parts', () => {
-    assert.match(H, /<div class="hist-trail is-lanes">\$\{lanesHead\}\$\{grouped\(\)\}<\/div>/);
-    for (const k of ['ct_hist_lane_ours', 'ct_hist_lane_day', 'ct_hist_lane_theirs']) assert.ok(H.includes(`i18t('${k}'`), k);
+  /* RE-POINTED 21 Oct 2026: the owner picked "The SAP way" for History, which
+     reverses the lanes. The row still knows its lane (histLaneOf, data-hist-lane)
+     — it is said as the Side column's word — and keeps its parts. */
+  test('2a ONE TABLE under one head (the SAP way, 21 Oct 2026); each row still carries its lane and its parts', () => {
+    assert.match(H, /<div class="hist-trail is-table" role="table"[^`]*>\$\{colHead\}\$\{grouped\(\)\}<\/div>/);
+    assert.ok(!H.includes('lanesHead'), 'no lanes\' heads');
+    for (const k of ['ct_hist_side_ours', 'ct_hist_side_theirs', 'ct_hist_col_side']) assert.ok(H.includes(`i18t('${k}'`), k);
     assert.match(H, /const lane=histLaneOf\(e, ours\);/);
     assert.match(H, /data-hist-lane="\$\{lane\}"/);
-    /* RE-POINTED (pass 4, round 12 as drawn): a bubble keeps its time, person
-       and outcome; the middle line's quiet pill carries its own mark (an eye
-       for an open, a lock for the stream's acts) */
-    for (const part of ['class="hist-when"', 'class="hist-who"', 'class="hist-oc"', '${mark}']) assert.ok(H.includes(part), part);
+    for (const part of ['class="hist-when"', 'class="hist-who"', 'hist-c-oc', '${mark}']) assert.ok(H.includes(part), part);
   });
-  test('2b the side switch is gone; the head says where each side is', () => {
+  test('2b the side switch is gone; the head no longer says "our side left, theirs right"', () => {
     assert.ok(!/class="hist-side"/.test(H) && !/data-ht-side=/.test(H), 'no switch drawn');
-    assert.match(H, /\$\{esc\(i18t\('ct_hist_reading'\)\)\} · \$\{esc\(i18t\('ct_hist_lanes_say'\)\)\}/);
+    assert.ok(!H.includes("i18t('ct_hist_lanes_say')"), 'the lanes\' sentence went with them');
   });
   test('2c the whole trail, for an admin on a server, onto Settings\' one home for it', () => {
     assert.match(H, /\$\{histTrailDoorOn\(\)\?`<div class="hist-mg">/);
     assert.match(fnBody(CT, 'histTrailDoorOn'), /typeof isAdmin==='function' && !!isAdmin\(\) && typeof API_MODE==='function' && !!API_MODE\(\)/);
     assert.match(fnBody(CT, 'roomPaintHistory'), /host\.querySelector\('#ht-trail'\)\?\.addEventListener\('click',\(\)=>\{\n\s+if\(window\.openSettingsAt\) openSettingsAt\('company','trail'\);/);
   });
-  test('2d one middle line for the days; no row draws its own', () => {
-    assert.match(HTML, /\.hist-trail\.is-lanes::before\{ content:""; position:absolute; top:30px; bottom:0; left:50%; width:1px;/);
-    assert.match(HTML, /\.hist-trail\.is-lanes \.hist-ev::before\{ display:none; \}/);
-    assert.match(HTML, /\.hist-ev\.is-inside \.hist-inside\{ border-style:dashed;/);
+  test('2d no row draws a line of its own: the table\'s rows put away the trail\'s old joining line (the SAP way)', () => {
+    assert.match(HTML, /\.hist-trail\.is-table > \.hist-tr::before\{display:none\}/);
+    assert.match(HTML, /\.hist-trail\.is-table > \.hist-tr\{[^}]*border-bottom:1px solid var\(--rule-faint\)/);
   });
   test('2e the new words, in both books', () => {
     for (const k of ['ct_hist_lanes_say', 'ct_hist_lane_ours', 'ct_hist_lane_day', 'ct_hist_lane_theirs', 'ct_hist_trail_group', 'ct_hist_trail_door', 'ct_hist_trail_note'])

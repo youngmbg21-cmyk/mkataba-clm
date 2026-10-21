@@ -29,6 +29,13 @@
    variables actually repaints the platform. A token nothing reads is not a
    token, and no census of the DEFAULT theme would ever notice.
 
+   RE-RECORDED 21 Oct 2026 (thirteenth), THE BRIEF AND HISTORY THE SAP WAY
+   (owner picked both by name). Audited as a set difference from the failing
+   run's was/now lines: GONE — the panel tab count's amber-badge ink #2A1B04
+   (the count is a plain number in the accent ink, already on every screen),
+   and on History the old lanes' violet #7E66D6 and the outcome pills' green
+   wash #DFF2E7 (an outcome is a dot and a word). NEW — History's "Theirs" in
+   --alt-ink #24488F, Chambers' own "their side" ink. No other hue.
    RE-RECORDED 21 Oct 2026 (twelfth), CHAMBERS FINISHED (owner: "Finish
    everything" after the fourteen-page review). Audited as a set difference:
    GONE — Jambo's old message box (#F8FAFC, its accent-900 ink #0A1C15), the

@@ -202,12 +202,12 @@ describe('f804 (5) where it stands', () => {
     /* RE-POINTED 19 Oct 2026 (owner: "all the new jambo panels do not have a
        slider like in the redline page. They should all have one."): the
        panel's width and the page's margin are ONE value the divider writes,
-       --jl-w — still 380, Home's panel's, where nobody has chosen. */
-    assert.match(HTML, /#content \.ins-panel\.is-jambo\{position:fixed;right:0;top:var\(--jl-top,88px\);bottom:0;width:var\(--jl-w,380px\);/);
-    assert.match(HTML, /#app-shell:has\(#content \.ins-panel\.is-jambo\):not\(:has\(#content \[hidden\] \.ins-panel\.is-jambo\)\) #content-scroll\{margin-right:var\(--jl-w,380px\);\}/);
+       --jl-w — 384 since The Brief (21 Oct 2026), Home's panel's, where nobody has chosen. */
+    assert.match(HTML, /#content \.ins-panel\.is-jambo\{position:fixed;right:0;top:var\(--jl-top,88px\);bottom:0;width:var\(--jl-w,384px\);/);
+    assert.match(HTML, /#app-shell:has\(#content \.ins-panel\.is-jambo\):not\(:has\(#content \[hidden\] \.ins-panel\.is-jambo\)\) #content-scroll\{margin-right:var\(--jl-w,384px\);\}/);
     assert.match(HTML, /#content :has\(> #ins-panel\.is-jambo\)\{grid-template-columns:minmax\(0,1fr\);column-gap:0;\}/);
-    assert.match(read('js/views/intelligence.js'), /const IG_DOCK_W0 = 380,/, 'the same width as Home\'s panel');
-    assert.match(code(INS), /const JL_W = 380, JL_FOLDED = 46;/);
+    assert.match(read('js/views/intelligence.js'), /const IG_DOCK_W0 = 384,/, 'the same width as Home\'s panel');
+    assert.match(code(INS), /const JL_W = 384, JL_FOLDED = 46;/);
   });
   test('5b the width the list measures is the page and the panel together, so the panel never takes itself away', () => {
     assert.match(code(fnOf(INS, 'insFits')), /const w = el \? el\.clientWidth \+ jlReserved\(\) : 0;/);

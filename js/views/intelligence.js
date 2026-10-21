@@ -695,7 +695,7 @@ window.intel = { groupBy:'folder', groups:null /*{id:label} override from Copilo
    pages. A double-click, Home or Enter put it back; the arrows step it.
    Folded to its strip (the › in the panel's head, kept), the divider stands
    down: there is nothing to drag. */
-const IG_DOCK_W0 = 380, IG_DOCK_MIN = 340, IG_LEFT_MIN = 420, IG_DOCK_FOLDED = 46;
+const IG_DOCK_W0 = 384, IG_DOCK_MIN = 340, IG_LEFT_MIN = 420, IG_DOCK_FOLDED = 46;
 const IG_SPLIT_KEY = 'hati.v1.igDockW';
 /* null = nobody has chosen, which is what lets the resting place be a width. */
 function _igDockPref(){
@@ -8078,7 +8078,7 @@ function renderIntelDock(){
            clauses and obligations) should not have a copilot prompt entry
            window"). A press elsewhere that puts words in the box goes through
            igAskBox, which turns to the Copilot tab first. */}
-    ${!talk&&((window.pdShowsDesk&&pdShowsDesk())||igFindingsShows()||igGuideShows())?'':`<div class="p-3 border-t border-hair shrink-0 relative">
+    ${!talk&&((window.pdShowsDesk&&pdShowsDesk())||igFindingsShows()||igGuideShows())?'':`<div class="igd-foot p-3 border-t border-hair shrink-0 relative">
       ${''/* THE BOX SAYS WHICH CONTRACT IT ASKS ABOUT (26 Sep 2026): the reader's
              own switch, read back on the control that carries it — never a
              line above it. The cost of a question rides the hover. */}
