@@ -12702,12 +12702,12 @@
   @keyframes aiPulse{0%,100%{box-shadow:0 0 0 0 rgb(var(--color-accent-600-rgb)/.6);}50%{box-shadow:0 0 0 8px rgb(var(--color-accent-600-rgb)/0);}}
   #ai-scrim{opacity:0;pointer-events:none;transition:opacity var(--dur-3);}
   #ai-scrim.open{opacity:1;pointer-events:auto;}
-  /* ==== JAMBO SLIDES IN BESIDE THE PAGE · THE ✦ ASK BAR · POP OUT (owner, 21 Oct 2026; js/ai.js
-     aiSideSync, aiBarToggle, aiPopOut) ====
+  /* ==== JAMBO SLIDES IN BESIDE THE PAGE · POP OUT (owner, 21 Oct 2026; js/ai.js
+     aiSideSync, aiPopOut) ====
      On a computer the window is a side panel wearing THE BRIEF: 384 wide under the top bar, the head
      and the foot 56, its tab a word (the ✦ and "Jambo", the live tab's rule under them), nothing boxed;
      the page beside it dimmed by the scrim under the bar (the ONE PANEL convention), never reflowed.
-     The ✦ drops one line under the bar, centred, over everything, the side panel included. Popped out,
+     The ✦ opens the movable chat window instead (below; the one-line ✦ bar is gone). Popped out,
      the same nodes stand in a window of their own (.is-popped). Scoped by id and class, never !important. */
   @media (min-width:768px){
     #ai-scrim{top:var(--shell-head-h,48px)}
@@ -12733,14 +12733,48 @@
   }
   /* each answer says what it read (aiReadFrom) */
   #ai-feed .ai-read{font-size:var(--t-label);line-height:16px;color:var(--color-neutral-600)}
-  /* THE ✦ ASK BAR: one line under the bar, centred */
-  .jb-bar{position:fixed;top:calc(var(--shell-head-h,48px) + 8px);left:50%;transform:translateX(-50%);width:min(640px,calc(100vw - 32px));z-index:60}
-  .jb-bar > .jb-card{box-sizing:border-box;min-height:40px;box-shadow:var(--shadow-lg)}
-  /* with the side panel in, the bar is centred over the page beside it, never over the panel */
-  @media (min-width:768px){ body.ai-side-open .jb-bar{left:calc((100vw - 384px) / 2);width:min(640px,calc(100vw - 384px - 32px))} }
-  .jb-bar > .jb-card:focus-within{box-shadow:0 0 0 3px var(--color-accent-100),var(--shadow-lg)}
-  .jb-bar .jb-bar-here{flex:none;white-space:nowrap;margin:0 8px}
-  /* the "/" list of a box on the bar or in the side panel stands over both */
+  /* ---- THE ✦ OPENS THE CHAT WINDOW, ONE YOU CAN MOVE AND RESIZE (owner, 11 Oct 2026; back on
+     21 Oct 2026, "The old chat window"; ai.js aiFloat*, aiWinToggle) ----
+     Desktop only. Its place and size are set inline from the reader's own
+     stored box; the limits are kept by aiFloatClamp, never by CSS. Closed, it
+     is simply not shown where it stands. It never steps aside: it opens beside
+     a page's own Jambo too. The dock button shows only once it has been moved
+     off the right edge. (.expanded carries !important, so its override must.) */
+  #ai-panel.floating,#ai-panel.floating.expanded{right:auto;bottom:auto;max-width:none!important;transition:none;transform:none}
+  #ai-panel.floating:not(.open){transform:translateX(200vw);pointer-events:none}   /* closed: off the screen, as the drawer always was */
+  #ai-panel.floating:not(.ai-float-home){border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden;box-shadow:0 18px 50px rgba(9,25,56,.24),0 2px 6px rgba(9,25,56,.1)}
+  #ai-panel.floating > header{cursor:grab;touch-action:none;user-select:none}
+  #ai-panel.floating.ai-float-busy > header{cursor:grabbing}
+  #ai-panel.ai-float-busy{user-select:none}
+  #ai-panel #ai-dock-home{display:none}
+  #ai-panel.floating:not(.ai-float-home) #ai-dock-home{display:grid}
+  /* the line under the name stays one line in the window, cut with an ellipsis */
+  #ai-panel.floating > header > .flex-1{min-width:0}
+  #ai-panel.floating #ai-brain-sub{white-space:nowrap;overflow:hidden}
+  #ai-panel.floating #ai-brain-sub > span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  /* The window's own size decides how much its header and foot may carry —
+     measured on the window, not the screen (the screen's narrow rules below
+     are for a drawer as wide as a phone). */
+  #ai-panel.floating{container-type:size;container-name:aiwin}
+  @container aiwin (max-width: 419px){   /* below the drawer's own 430 */
+    #ai-panel > header{padding:var(--s-3);gap:var(--s-2)}
+    #ai-panel > header button{width:28px;height:28px}
+    #ai-panel > header > :first-child{display:none}
+    #ai-panel > header > .flex-1 > div:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    #ai-brain-sub{display:none}
+    #ai-feed,#ai-panel > footer,#ai-suggest{padding-left:var(--s-3);padding-right:var(--s-3)}
+  }
+  @container aiwin (max-height: 560px){ #ai-suggest{display:none} }
+  #ai-panel .ai-rz{display:none;position:absolute;z-index:3;touch-action:none}
+  #ai-panel.floating .ai-rz{display:block}
+  #ai-panel .ai-rz-n,#ai-panel .ai-rz-s{left:12px;right:12px;height:8px;cursor:ns-resize}
+  #ai-panel .ai-rz-n{top:-3px} #ai-panel .ai-rz-s{bottom:-3px}
+  #ai-panel .ai-rz-e,#ai-panel .ai-rz-w{top:12px;bottom:12px;width:8px;cursor:ew-resize}
+  #ai-panel .ai-rz-e{right:-3px} #ai-panel .ai-rz-w{left:-3px}
+  #ai-panel .ai-rz-ne,#ai-panel .ai-rz-nw,#ai-panel .ai-rz-se,#ai-panel .ai-rz-sw{width:16px;height:16px}
+  #ai-panel .ai-rz-ne{right:-3px;top:-3px;cursor:nesw-resize} #ai-panel .ai-rz-sw{left:-3px;bottom:-3px;cursor:nesw-resize}
+  #ai-panel .ai-rz-nw{left:-3px;top:-3px;cursor:nwse-resize} #ai-panel .ai-rz-se{right:-3px;bottom:-3px;cursor:nwse-resize}
+  /* the "/" list of a box in the side panel or the window stands over both */
   body > #ca-slash{z-index:61}
   /* POPPED OUT: the conversation and the card fill a window of their own */
   #ai-panel.is-popped{position:static;transform:none;width:100%;max-width:none;height:100vh;display:flex;flex-direction:column;box-shadow:none;border:0;background:var(--color-surface)}
@@ -16618,6 +16652,7 @@
       <div class="ai-head-name">Jambo</div>
       <div id="ai-brain-sub" class="text-[11px] flex items-center gap-1.5" style="color:var(--color-neutral-600);"><span class="h-1.5 w-1.5 rounded-full live-dot" style="background:var(--st-green-dot);"></span><span data-i18n="ai_searching_live">Searching your live contract data</span></div>
     </div>
+    <button id="ai-dock-home" title="Back to the right edge" data-i18n-title="ai_dock_home" aria-label="Back to the right edge" class="h-8 w-8 grid place-items-center rounded transition ai-head-btn" style="color:var(--color-neutral-600);"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg></button>
     <!-- POP OUT (owner, 21 Oct 2026): Jambo in a window of his own that stays on top of Word (ai.js aiPopOut); drawn only on a computer with a mouse (aiPopMay) -->
     <button id="ai-popout" type="button" hidden title="Pop out — keep Jambo on top of other windows" data-i18n-title="ai_pop_out_tip" aria-label="Pop out" data-i18n-aria="ai_pop_out" class="h-8 w-8 grid place-items-center rounded transition ai-head-btn" style="color:var(--color-neutral-600);"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 2.5h4v4"/><path d="M13.5 2.5 8 8"/><path d="M12 9.5v3a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3"/></svg></button>
     <button id="ai-expand" title="Expand the panel" data-i18n-title="ai_expand_panel" class="h-8 w-8 grid place-items-center rounded transition ai-head-btn" style="color:var(--color-neutral-600);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5"/><path d="M18 17l-5-5 5-5"/></svg></button>

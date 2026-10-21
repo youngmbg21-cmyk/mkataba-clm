@@ -2409,6 +2409,10 @@ function caAskAnywhere(text, opts = {}){
     let b = false; try { b = igBookAsk(t); } catch (_){ b = false; }
     if (b && calHandOff(t)) return 'cal';
   }
+  /* THE ✦'S WINDOW (opts.win, ai.js aiWinToggle; owner, 21 Oct 2026) answers in
+     itself: no question or card is handed to another Jambo; a place or a
+     contract still opens, and a booking still goes to the Calendar (above) */
+  const win = !!opts.win;
   /* the Calendar's own box keeps its booking and planning words (opts.cal) */
   if (opts.cal){ let b = false; try { b = typeof igBookAsk === 'function' && !!igBookAsk(t); } catch (_){ b = false; } if (b) return false; }
   /* THE ONE READER (owner, 19 Oct 2026: "do what the user asks in plain
@@ -2420,7 +2424,7 @@ function caAskAnywhere(text, opts = {}){
      own Jambo answers it, as it always did */
   if (u && u.kind === 'ask' && box !== 'counter') u = null;
   /* on Home his own box is the reader already */
-  if (typeof document !== 'undefined' && document.getElementById('igd-input') && typeof intelAsk === 'function'
+  if (!win && typeof document !== 'undefined' && document.getElementById('igd-input') && typeof intelAsk === 'function'
     && typeof state !== 'undefined' && state && state.view === 'dashboard'){
     /* …and a request to see what the screen in front shows is answered there (caHereRead) */
     if (!opts.all && !u && !caReadPlace(t) && !caTakesWords(t) && !caHereRead(t)) return false; intelAsk(t); return true; }
@@ -2429,7 +2433,7 @@ function caAskAnywhere(text, opts = {}){
     if (u.kind === 'noref' && typeof opts.say === 'function'){ opts.say(caUnderstandSay(u)); return 'said'; }
     if (u.kind === 'go' && !u.missing && !u.narrowOff && !CA_CARD_WORDS.includes(u.place) && caGo(u)) return true;
     /* a card, a question asked of a contract, "which contract?": Jambo's, beside the Board */
-    return caHandHome(t, u);
+    return win ? false : caHandHome(t, u);
   }
   let a = null; try { a = caReadPlace(t); } catch (_){ a = null; }
   if (a && a.kind === 'go' && !CA_CARD_WORDS.includes(a.place) && caGo(a)) return true;
@@ -2442,6 +2446,7 @@ function caAskAnywhere(text, opts = {}){
       /* the Portfolio Health Report asked by name is the chat's own document (aiWantsHealthReport → openHealthReport) */
       || (box !== 'counter' && typeof aiWantsHealthReport === 'function' && aiWantsHealthReport(t)));
     if (m && !own && m.kind === 'go' && !m.missing && !CA_CARD_WORDS.includes(m.place) && caGo(m)) return true; }
+  if (win) return false;
   if ((a && a.kind === 'go') || caTakesWords(t) || opts.all) return caHandHome(t, a);
   return false;
 }

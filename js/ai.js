@@ -668,7 +668,7 @@ function scrollToQuote(quote, opts){
 /* ============================================================
    Copilot ASSISTANT  (local intent engine over live state)
    ============================================================ */
-const ai = { open:false, minimized:false, unread:false, busy:false, history:[],
+const ai = { open:false, win:false, minimized:false, unread:false, busy:false, history:[],
   /* The proposal the panel is currently arguing about, or null. Held here
      rather than in the DOM because the next thing typed into the input has to
      know whether it is a follow-up on a rewrite or a fresh question, and a
@@ -707,6 +707,9 @@ function toggleAIExpand(force){
   const want=(typeof force==='boolean')?force:!panel.classList.contains('expanded');
   panel.classList.toggle('expanded',want);
   try{ if(typeof lsSet==='function') lsSet('hati.v1.aiExpanded',want); }catch(_){}
+  /* A MOVED WINDOW EXPANDS TO ITS LARGEST SIZE, and shrinks back to the panel
+     on the right (aiFloat*): the same two sizes the drawer has always had. */
+  if(aiFloatOn() && typeof force!=='boolean') aiFloatApply(want ? aiFloatMaxBox() : aiFloatHome(), true);
   /* After the class, before the chevrons: docked mode sizes the page's column
      from the panel's own width, and the width has just changed. */
   if(typeof aiSyncDock==='function') aiSyncDock();
@@ -797,21 +800,162 @@ function aiSideSync(){
   const panel = typeof document!=='undefined' ? document.getElementById('ai-panel') : null;
   if(!panel || !panel.classList) return;
   const on = aiSideOn();
-  panel.classList.toggle('is-side', on);
-  const aside = !!(on && ai.open && aiEmbeddedHere());
+  /* THE ✦'S WINDOW (aiFloat*) stands where the reader left it, on every page,
+     beside a page's own Jambo too: never stepped aside, never a scrim */
+  const win = aiFloatOn();
+  panel.classList.toggle('is-side', on && !win);
+  panel.classList.toggle('floating', win);
+  if(win){ try{ aiFloatWire(); }catch(_){} aiFloatApply(aiFloatBox(), false); }
+  else if(panel.style && typeof panel.style.removeProperty==='function') ['left','top','width','height'].forEach(k => { try{ panel.style.removeProperty(k); }catch(_){} });
+  const head = panel.querySelector ? panel.querySelector('header') : null;
+  if(head){ if(win){ head.setAttribute('data-i18n-title', 'ai_float_move'); head.title = i18t('ai_float_move'); } else { head.removeAttribute('data-i18n-title'); head.removeAttribute('title'); } }
+  const aside = !!(on && ai.open && !win && aiEmbeddedHere());
   panel.classList.toggle('ai-stepaside', aside);
   const scrim = document.getElementById('ai-scrim');
-  if(scrim && scrim.classList) scrim.classList.toggle('open', !!(ai.open && !ai.docked && !aside));
-  if(document.body && document.body.classList) document.body.classList.toggle('ai-side-open', !!(on && ai.open && !aside));
+  if(scrim && scrim.classList) scrim.classList.toggle('open', !!(ai.open && !ai.docked && !aside && !win));
+  if(document.body && document.body.classList) document.body.classList.toggle('ai-side-open', !!(on && ai.open && !aside && !win));
+  const star = document.getElementById('cmd-ai'); if(star && star.setAttribute) star.setAttribute('aria-expanded', String(!!(win && ai.open)));
   /* POP OUT is drawn only where it can be done: a computer with a mouse */
   const pop = document.getElementById('ai-popout');
   if(pop) pop.hidden = !aiPopMay();
 }
 /* THE EDGE TAB'S PRESS: in, and out again on the same press */
 function aiSideToggle(){
-  if(ai.open && !ai.docked){ closeAI(); return false; }
+  if(ai.open && !ai.docked && !ai.win){ closeAI(); return false; }
+  /* the ✦'s window open: the edge tab puts it away and slides the panel in */
+  if(ai.open && ai.win) closeAI();
   openAI();
   return true;
+}
+
+/* ---------- THE ✦ OPENS THE CHAT WINDOW (owner, 21 Oct 2026, "The old chat window") ----------
+   "the highlighted area is what shows up as a chatbot pop up, then when i type
+   in it, it just jumps to the jambo in the side panel. It is not the old
+   chatbot i had." REVERSES the one-line ✦ ask bar of the same morning: the top
+   bar's ✦ opens THE WINDOW YOU CAN MOVE AND RESIZE (11 Oct 2026) again, on
+   every page — beside Home's, a list's, Settings' and the clause editor's own
+   Jambo too (it never steps aside). What is typed in it is answered IN it
+   (aiSubmit passes win to caAskAnywhere: no hand-off to another Jambo); a
+   place word still opens its page. It draws the ONE conversation (ai.history,
+   jamboTurnHtml); while it does, Home's and Settings' talk views say the words
+   are in Jambo's window (aiConvoInWindow), as they do popped out. Pressed
+   again it closes. The edge tab still slides the side panel in (aiSideToggle)
+   and still lands on a page's own Jambo. Not on the phone: its own chat.
+   - Drag the header to move it; pull any edge or corner to resize it.
+   - Never smaller than AI_FLOAT_MIN; never larger than the expanded drawer
+     (clamp(430px,72vw,940px) wide, the window's height) — aiFloatMaxBox.
+   - It opens where the reader left it (AI_FLOAT_LS, theirs alone); the first
+     open is a window of its own at the right, under the bar (aiFloatFirst —
+     the right-edge drawer looked like the side panel). The dock button puts it
+     on the right edge (aiFloatHome); a double-click toggles the two.
+   - It never stands over the top bar (aiFloatTop), so the ✦ that opened it
+     closes it again. */
+const AI_FLOAT_LS = 'hati.v1.aiFloat';
+const AI_FLOAT_MIN = { w: 320, h: 360 };
+const AI_FLOAT_DOCK_W = 430;
+function aiFloatOn(){ return !!(ai.win && aiSideOn()); }
+function aiFloatMaxW(){ return Math.max(AI_FLOAT_DOCK_W, Math.min(940, Math.round(window.innerWidth * 0.72))); }
+/* the top bar's height: the window stands below it */
+function aiFloatTop(){
+  try{ const b = document.getElementById('top-header'); const h = b && b.getBoundingClientRect ? Math.round(b.getBoundingClientRect().bottom) : 0; if(h > 0 && h < 200) return h; }catch(_){}
+  return 48;
+}
+function aiFloatMaxBox(){ const w = Math.min(aiFloatMaxW(), window.innerWidth), t = aiFloatTop(); return { x: window.innerWidth - w, y: t, w, h: window.innerHeight - t, home: false }; }
+function aiFloatHome(){ const w = Math.min(AI_FLOAT_DOCK_W, window.innerWidth), t = aiFloatTop(); return { x: window.innerWidth - w, y: t, w, h: window.innerHeight - t, home: true }; }
+/* the first open: a window of its own, 16 in from the right, 16 under the bar */
+function aiFloatFirst(){ const t = aiFloatTop(); return aiFloatClamp({ x: window.innerWidth - 440 - 16, y: t + 16, w: 440, h: Math.min(620, window.innerHeight - t - 32) }); }
+/* inside the limits, inside the window and below the bar, always */
+function aiFloatClamp(b){
+  const W = window.innerWidth, T = aiFloatTop(), H = window.innerHeight - T;
+  const o = { x: +b.x || 0, y: +b.y || 0, w: +b.w || AI_FLOAT_DOCK_W, h: +b.h || H, home: !!b.home };
+  o.w = Math.min(aiFloatMaxW(), W, Math.max(AI_FLOAT_MIN.w, o.w));
+  o.h = Math.min(H, Math.max(AI_FLOAT_MIN.h, o.h));
+  o.x = Math.min(W - o.w, Math.max(0, o.x));
+  o.y = Math.min(T + H - o.h, Math.max(T, o.y));
+  return o;
+}
+let _aiFloatBox = null;
+function aiFloatBox(){
+  if(_aiFloatBox) return _aiFloatBox;
+  let saved = null; try{ saved = (typeof lsGet==='function') ? lsGet(AI_FLOAT_LS) : null; }catch(_){}
+  return (_aiFloatBox = (saved && saved.home) ? aiFloatHome() : (saved && saved.w) ? aiFloatClamp(saved) : aiFloatFirst());
+}
+function aiFloatApply(b, keep){
+  const panel = document.getElementById('ai-panel'); if(!panel || !panel.style) return;
+  /* the drawer on the right edge follows the window's size; a moved one stays put */
+  _aiFloatBox = b.home ? aiFloatHome() : aiFloatClamp(b);
+  const o = _aiFloatBox;
+  panel.style.left = o.x + 'px'; panel.style.top = o.y + 'px';
+  panel.style.width = o.w + 'px'; panel.style.height = o.h + 'px';
+  panel.classList.toggle('ai-float-home', !!o.home);
+  if(keep){ try{ if(typeof lsSet==='function') lsSet(AI_FLOAT_LS, o); }catch(_){} }
+}
+/* drag the header, pull an edge or corner — pointer events, bounded */
+function aiFloatWire(){
+  const panel = document.getElementById('ai-panel'); if(!panel || !panel.dataset || panel.dataset.aiFloatWired || typeof panel.appendChild!=='function') return;
+  panel.dataset.aiFloatWired = '1';
+  ['n','s','e','w','ne','nw','se','sw'].forEach(d => {
+    const h = document.createElement('div'); h.className = 'ai-rz ai-rz-' + d; h.setAttribute('data-ai-rz', d); h.setAttribute('aria-hidden', 'true'); panel.appendChild(h);
+  });
+  const head = panel.querySelector('header');
+  let act = null;
+  panel.addEventListener('pointerdown', e => {
+    if(!panel.classList.contains('floating') || e.button !== 0) return;
+    const rz = e.target.closest && e.target.closest('[data-ai-rz]');
+    const onHead = head && head.contains(e.target) && !(e.target.closest && e.target.closest('button,a,input,select,textarea'));
+    if(!rz && !onHead) return;
+    const b = { ...aiFloatBox() };
+    /* dragging the drawer off the right edge lifts it into a window: its own
+       width, a height that leaves room to move it */
+    if(b.home && !rz) b.h = Math.max(AI_FLOAT_MIN.h, Math.min(window.innerHeight - aiFloatTop() - 48, 600));
+    b.home = false;
+    act = { kind: rz ? rz.getAttribute('data-ai-rz') : 'move', sx: e.clientX, sy: e.clientY, b };
+    panel.classList.add('ai-float-busy');
+    try{ panel.setPointerCapture(e.pointerId); }catch(_){}
+    e.preventDefault();
+  });
+  panel.addEventListener('pointermove', e => {
+    if(!act) return;
+    const dx = e.clientX - act.sx, dy = e.clientY - act.sy, s = act.b, k = act.kind, n = { ...s, home: false };
+    if(k === 'move'){ n.x = s.x + dx; n.y = s.y + dy; aiFloatApply(n, false); return; }
+    const maxW = Math.min(aiFloatMaxW(), window.innerWidth), H = window.innerHeight;
+    if(k.includes('e')) n.w = Math.min(s.w + dx, window.innerWidth - s.x);
+    if(k.includes('s')) n.h = Math.min(s.h + dy, H - s.y);
+    if(k.includes('w')){ const w = Math.min(maxW, Math.max(AI_FLOAT_MIN.w, s.w - dx), s.x + s.w); n.x = s.x + s.w - w; n.w = w; }
+    if(k.includes('n')){ const h = Math.min(H, Math.max(AI_FLOAT_MIN.h, s.h - dy), s.y + s.h); n.y = s.y + s.h - h; n.h = h; }
+    aiFloatApply(n, false);
+  });
+  const end = () => { if(!act) return; act = null; panel.classList.remove('ai-float-busy'); aiFloatApply(aiFloatBox(), true); };
+  panel.addEventListener('pointerup', end); panel.addEventListener('pointercancel', end);
+  if(head) head.addEventListener('dblclick', e => {
+    if(!panel.classList.contains('floating') || (e.target.closest && e.target.closest('button'))) return;
+    aiFloatApply(aiFloatBox().home ? aiFloatFirst() : aiFloatHome(), true);
+  });
+  document.getElementById('ai-dock-home')?.addEventListener('click', () => { aiFloatApply(aiFloatHome(), true); });
+  window.addEventListener('resize', () => { aiSideSync(); });
+}
+/* THE ✦'S PRESS: the window opens, and closes again on the same press */
+function aiWinToggle(){
+  /* the phone keeps its own chat */
+  if(typeof window==='undefined' || !window.innerWidth || window.innerWidth < AI_SIDE_MIN_SCREEN || (typeof window.mPhone==='function' && window.mPhone())){ openAI(); return false; }
+  if(aiPopped()){ try{ _aiPop.win.focus(); }catch(_){} return true; }
+  if(ai.open && ai.win){ closeAI(); return false; }
+  openAI(null, { win: true });
+  return true;
+}
+/* the conversation is said in Jambo's own window (popped out, or the ✦'s
+   window open): the other hosts' talk views point there */
+function aiConvoInWindow(){ return !!(aiPopped() || (ai.open && aiFloatOn())); }
+/* "Bring it back here" from such a talk view */
+function aiConvoBack(){
+  if(aiPopped()){ aiPopBack(); return true; }
+  if(ai.open && ai.win){ closeAI(); return true; }
+  return false;
+}
+/* the hosts that draw the conversation say where it is now */
+function aiHostsRepaint(){
+  try{ if(document.getElementById('ig-dock') && typeof window.renderIntelDock==='function') window.renderIntelDock(); }catch(_){}
+  try{ const T = document.querySelector('[data-st-jb-talk]'); if(T && typeof window.stJbTalkRepaint==='function') window.stJbTalkRepaint(T); }catch(_){}
 }
 
 /* ---------- POP OUT: JAMBO ON TOP OF WORD (owner, 21 Oct 2026) ----------
@@ -933,135 +1077,19 @@ function aiPopBack(closed){
   try{ openAI(); }catch(_){}
 }
 
-/* ---------- THE ✦ ASK BAR, ON ANY PAGE (owner, 21 Oct 2026) ----------
-   "when i click on jambo at the top of the page in the top bar, the jambo chat
-   box bar should be able to appear in any window even if jambo side panel is
-   there." The top bar's ✦ drops ONE LINE under the bar, centred over the page:
-   the two-row card every Jambo box wears (jamboCardHtml), "What am I looking
-   at?" in its row. A pop-up: Esc, a press outside and the ✦ again close it.
-   What is typed goes through THE ONE READER first (caUnderstand, box 'bar'): a
-   place or a contract MOVES there (caGo) and the line is kept in the one
-   conversation; anything else is asked of the Jambo already on the page
-   (Home's box, a list's panel, Settings' side, the clause editor's box), else
-   of the side panel, opened if it was closed — never a second chat. ⌘K stays
-   the palette. */
-let _aiBar = null;
-function aiBarOpen(){ return !!(_aiBar && _aiBar.isConnected); }
-function aiBarHtml(){
-  const ph = i18t('ai_bar_ph');
-  const field = `<textarea id="jb-bar-q" rows="1" maxlength="4000" class="chat-field" data-jb-enter data-ca-slash placeholder="${esc(ph)}" aria-label="${esc(ph)}"></textarea>`;
-  const ctx = `<button type="button" class="jb-chip jb-bar-here" data-jb-bar-here>${esc(i18t('ai_here_chip'))}</button>`;
-  const send = (typeof jamboSendHtml==='function') ? jamboSendHtml('data-jb-bar-send', i18t('sh_ai_send_aria')) : '';
-  const card = (typeof jamboCardHtml==='function') ? jamboCardHtml({ field, ctx, send, cls: 'jb-bar-card' }) : field;
-  return `<div id="jb-bar" class="jb-bar" role="dialog" aria-label="${esc(i18t('sh_ask_copilot'))}">${card}</div>`;
-}
-function aiBarToggle(){
-  if(aiBarOpen()){ aiBarClose(); return false; }
-  /* the phone keeps its own chat */
-  if(typeof window==='undefined' || !window.innerWidth || window.innerWidth < AI_SIDE_MIN_SCREEN || (typeof window.mPhone==='function' && window.mPhone())){ openAI(); return false; }
-  const host = document.createElement('div'); host.innerHTML = aiBarHtml();
-  _aiBar = host.firstElementChild; document.body.appendChild(_aiBar);
-  const btn = document.getElementById('cmd-ai'); if(btn) btn.setAttribute('aria-expanded', 'true');
-  const q = _aiBar.querySelector('#jb-bar-q');
-  /* a pasted letter is offered in the side panel's row (aiPasteNote) */
-  if(q) q.addEventListener('paste', e => {
-    let t = ''; try{ t = e.clipboardData.getData('text'); }catch(_){ t = ''; }
-    if(!aiPasteLooksLong(t)) return;
-    e.preventDefault(); aiBarClose();
-    if(!ai.open && !aiPopped()) openAI(null, { here: true, noFocus: true });
-    const inp = aiEl('ai-input'); if(inp){ inp.value = t; try{ inp.dispatchEvent(new Event('input', { bubbles: true })); }catch(_){} }
-    aiPasteNote(t);
-  });
-  _aiBar.addEventListener('dragover', e => { if(e.dataTransfer && [...(e.dataTransfer.types || [])].includes('Files')) e.preventDefault(); });
-  _aiBar.addEventListener('drop', e => { const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if(!f) return; e.preventDefault(); aiDropFile(f); });
-  try{ q.focus({ preventScroll: true }); }catch(_){}
-  return true;
-}
-function aiBarClose(){
-  if(_aiBar){ try{ _aiBar.remove(); }catch(_){} }
-  _aiBar = null;
-  try{ if(typeof caSlClose==='function') caSlClose(); }catch(_){}
-  const btn = document.getElementById('cmd-ai'); if(btn) btn.setAttribute('aria-expanded', 'false');
-}
-function aiBarSend(){
-  const q = _aiBar && _aiBar.querySelector('#jb-bar-q');
-  const t = String((q && q.value) || '').trim(); if(!t) return false;
-  aiBarClose();
-  return aiAskFromBar(t);
-}
-/* where the bar's words go; answers which Jambo took them */
-function aiAskFromBar(t){
-  t = String(t || '').trim(); if(!t) return null;
-  /* "What am I looking at?" typed is the bar's own chip; a watch sentence is
-     never read as a place or a contract to move to — it is proposed as a card
-     by the Jambo it reaches (Home's, a list's, else the side panel) */
-  if(aiHereAsked(t)) return aiHereFromBar();
-  const watch = typeof window.watchAsks==='function' && watchAsks(t);
-  /* THE ONE READER first: a place or a contract moves there, said in the one conversation */
-  let u = null; try{ u = (!watch && typeof caUnderstand==='function') ? caUnderstand(t, { box: 'bar' }) : null; }catch(_){ u = null; }
-  const cards = (typeof CA_CARD_WORDS!=='undefined' && Array.isArray(CA_CARD_WORDS)) ? CA_CARD_WORDS : [];
-  if(u && u.kind==='go' && !u.missing && !u.narrowOff && !u.here && !cards.includes(u.place) && typeof caGo==='function'){
-    let moved = false; try{ moved = !!caGo(u); }catch(_){ moved = false; }
-    if(moved){
-      aiPush('user', { text: esc(t), raw: t });
-      aiPush('assistant', { text: `<div>${_aiEsc(typeof caGoSay==='function' ? caGoSay(u) : i18t('ai_handed_home'))}</div>` });
-      renderAIFeed();
-      return 'moved';
-    }
-  }
-  if(aiPopped()){ aiSubmit(t); return 'panel'; }
-  const here = aiEmbeddedHere();
-  if(here==='home' && typeof intelAsk==='function'){ aiGoEmbedded('home'); intelAsk(t); return 'home'; }
-  if(here==='list' && typeof jlAsk==='function'){ if(typeof window.jlFocus==='function') window.jlFocus(); jlAsk(t); return 'list'; }
-  if(here==='settings' && !watch && typeof window.stJamboFocus==='function' && window.stJamboFocus(t)){
-    const f = document.getElementById('st-jb-form');
-    if(f){ if(typeof f.requestSubmit==='function') f.requestSubmit(); else f.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true })); }
-    return 'settings';
-  }
-  if(here==='editor' && !watch){ aiGoEmbedded('editor', t); return 'editor'; }
-  if(!ai.open) openAI(null, { here: true, noFocus: true });
-  aiSubmit(t);
-  return 'panel';
-}
-if(typeof document!=='undefined' && typeof document.addEventListener==='function' && !document._aiBarWired){
-  document._aiBarWired = true;
-  document.addEventListener('click', e => {
-    const t = e.target; if(!t || !t.closest) return;
-    if(t.closest('[data-jb-bar-send]')){ e.preventDefault(); aiBarSend(); return; }
-    if(t.closest('[data-jb-bar-here]')){ e.preventDefault(); aiBarClose(); aiHereFromBar(); return; }
-    /* a press outside closes it (the ✦ itself toggles it, app.js) */
-    if(aiBarOpen() && !t.closest('#jb-bar, #cmd-ai, #ca-slash')) aiBarClose();
-  });
-  /* Esc closes the bar first, and only the bar */
-  document.addEventListener('keydown', e => {
-    if(e.key!=='Escape' || !aiBarOpen()) return;
-    if(document.getElementById('ca-slash')) return;   // the "/" list closes first
-    e.__aiBarClosed = true; aiBarClose();
-  }, true);
-}
-/* A FILE DROPPED ON JAMBO (the bar or the side panel) goes through the one
+/* A FILE DROPPED ON JAMBO (the window or the side panel) goes through the one
    upload door: jamboAddFile → pdDropDoor lands on the drop area; with one
    stream it is read at once (pdDropTake, the drop area's own reader), else the
    stream is asked there first and Jambo says so */
 function aiDropFile(f){
   if(!f) return false;
   if(ai.open) closeAI();
-  aiBarClose();
   if(typeof jamboAddFile==='function') jamboAddFile();
   const one = typeof window.pdDropStreams==='function' ? window.pdDropStreams().length < 2 : false;
   if(one && typeof window.pdDropTake==='function' && document.getElementById('pd-drop')){ window.pdDropTake(f); return true; }
   if(document.getElementById('pd-drop')) toast(i18t('ai_drop_stream_first', { name: f.name || '' }), 'warn');
   return false;
 }
-/* "What am I looking at?" from the bar: the Jambo already on the page says
-   it (Home's and a list's panel land on the page in his words), else the side panel */
-function aiHereFromBar(){
-  const here = aiEmbeddedHere();
-  if(here && here!=='editor' && aiGoEmbedded(here)) return here;
-  aiHereExplain();
-  return 'panel';
-}
-
 /* ---------- AN OVERLAY DRAWER, AND NOTHING UNDER IT MOVES ----------
    The panel has always opened over a scrim: a dimmed, blurred sheet across the
    page, because the questions it was built for — "what expires in 90 days" —
@@ -1117,10 +1145,14 @@ function openAI(prefill,opts){
   /* WHERE COPILOT IS ALREADY ON THE SCREEN the door goes there; the panel
      does not appear over it (aiEmbeddedHere, ONE DOOR). A summoned drawer is
      an errand for a passage and is left alone. */
-  if(!o.docked && !o.summoned && !o.here && typeof window!=='undefined' && window.innerWidth >= AI_SIDE_MIN_SCREEN){
+  /* …except the ✦'s window (aiWinToggle), and any door while it is open */
+  const wasWin=!!(ai.open && ai.win);
+  const win=!o.docked && !o.summoned && (!!o.win || wasWin);
+  if(!win && !o.docked && !o.summoned && !o.here && typeof window!=='undefined' && window.innerWidth >= AI_SIDE_MIN_SCREEN){
     const here = aiEmbeddedHere();
     if(here && aiGoEmbedded(here, prefill)) return;
   }
+  ai.win=win;
   ai.docked=!!o.docked;
   /* Remember WHY it opened — see `ai.summoned`. A deliberate open always
      clears the flag, including a re-open of a panel a summons left behind:
@@ -1143,15 +1175,19 @@ function openAI(prefill,opts){
   if(!aiSideOn()) try{ toggleAIExpand(!!(typeof lsGet==='function'&&lsGet('hati.v1.aiExpanded'))); }catch(_){}
   aiSyncDock();
   renderAIFeed(); renderAISuggest();
+  if(win && !wasWin) aiHostsRepaint();
   const inp=document.getElementById('ai-input');
   if(prefill){ inp.value=prefill; aiSubmit(); } else if(!o.noFocus) inp.focus();
 }
 function closeAI(){
   document.getElementById('ai-panel').classList.remove('open');
   document.getElementById('ai-scrim').classList.remove('open');
-  ai.open=false;
+  const wasWin=!!ai.win;
+  ai.open=false; ai.win=false;
   aiSyncDock();
   try{ aiSideSync(); }catch(_){}
+  /* the ✦'s window put away: the conversation is said on the page again */
+  if(wasWin) aiHostsRepaint();
   /* the conversation goes back to the panel beside the list, if one is up */
   if(aiListFeed()) try{ renderAIFeed(); }catch(_){}
   /* A seeded rephrase ends with the drawer. Left open, the next thing typed
@@ -1171,7 +1207,9 @@ function minimizeAI(){
   document.getElementById('ai-scrim').classList.remove('open');
   /* Minimize is "keep this going, I will be back" — the reader claiming the
      panel, so it is no longer merely summoned and will stick around. */
-  ai.open=false; ai.minimized=true; ai.summoned=false; aiSyncDock(); try{ aiSideSync(); }catch(_){} updateAIBadge();
+  const wasWin=!!ai.win;
+  ai.open=false; ai.win=false; ai.minimized=true; ai.summoned=false; aiSyncDock(); try{ aiSideSync(); }catch(_){} updateAIBadge();
+  if(wasWin) aiHostsRepaint();
 }
 /* THE ONE CONVERSATION GOES, EVERYWHERE (21 Oct 2026): every host's bin
    calls this; Home's and Settings' panels read the same record */
@@ -4527,7 +4565,7 @@ function aiRephraseHistory(session){
 }
 
 async function aiSubmit(asked){
-  /* the words handed in (the ✦ ask bar, a chip, a paste's offer), else the box's */
+  /* the words handed in (a chip, a paste's offer), else the box's */
   const inp=aiEl('ai-input');
   const given=typeof asked==='string';
   const q=(given?asked:(inp?inp.value:'')).trim(); if(!q||ai.busy) return;
@@ -4555,7 +4593,8 @@ async function aiSubmit(asked){
     /* a request the screen in front answers stays there: no place is said (caHereRead) */
     try{ if(go&&window.caHereRead&&caHereRead(q)) go=null; }catch(_){ }
     let said='';
-    const took=caAskAnywhere(q,{ box:'window', say:line=>{ said=String(line||''); } });
+    /* the ✦'s window answers in itself: nothing is handed to another Jambo */
+    const took=caAskAnywhere(q,{ box:'window', win:!!(ai.open&&ai.win), say:line=>{ said=String(line||''); } });
     if(took){
       /* a booking or a question about their own calendar went to the Calendar's Jambo (18 Oct 2026) */
       const say=took==='cal'?i18t('ig_cal_handoff')
@@ -5526,7 +5565,7 @@ document.getElementById('ai-scrim').addEventListener('click',closeAI);
 // Copilot is opened from the command bar (#cmd-ai, wired in app.js). The "/" key
 // focuses the command-bar search (app.js); Esc closes the Copilot panel.
 document.addEventListener('keydown',e=>{
-  if(e.key!=='Escape'||!ai.open||e.__aiBarClosed) return;
+  if(e.key!=='Escape'||!ai.open) return;
   /* a panel stepped aside where Jambo is already on the page is not the layer in front */
   const p=document.getElementById('ai-panel'); if(p&&p.classList.contains('ai-stepaside')) return;
   closeAI();
@@ -5572,7 +5611,7 @@ function aiDoorFace(){
 }
 try{ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',aiDoorFace); else setTimeout(aiDoorFace,0); }catch(_){}
 Object.assign(window,{ AI_GOVERNANCE_RULE,aiRuleDoorOf,aiRuleDoorHtml,aiRuleDoorGo,AI_CALENDAR_RULE,chatTodayLine,aiAsksPastCard,aiOpenCardSays });
-Object.assign(window,{ aiMsgHtml,aiFeedWire,aiConvoClear,aiDoorFace,aiFaceHtml,aiSideSync,aiSideOn,aiSideToggle,AI_SIDE_W,aiPopOut,aiPopBack,aiPopped,aiPopMay,aiEl,aiBarToggle,aiBarOpen,aiBarClose,aiBarSend,aiAskFromBar,aiHereFromBar,aiHereSays,aiHereExplain,aiReadFrom,aiPasteNote,aiPasteAct,aiPasteLooksLong,aiDropFile,aiOnScreenContract,aiEmbeddedHere,aiGoEmbedded,scanGoTo,aiContractByRef,aiWorkingNotes,aiExplainOf,aiExplainSet,aiJsonObjects,
+Object.assign(window,{ aiMsgHtml,aiFeedWire,aiConvoClear,aiDoorFace,aiFaceHtml,aiSideSync,aiSideOn,aiSideToggle,AI_SIDE_W,aiPopOut,aiPopBack,aiPopped,aiPopMay,aiEl,aiWinToggle,aiConvoInWindow,aiConvoBack,aiFloatOn,aiFloatClamp,aiFloatMaxBox,aiFloatHome,AI_FLOAT_MIN,aiHereSays,aiHereExplain,aiReadFrom,aiPasteNote,aiPasteAct,aiPasteLooksLong,aiDropFile,aiOnScreenContract,aiEmbeddedHere,aiGoEmbedded,scanGoTo,aiContractByRef,aiWorkingNotes,aiExplainOf,aiExplainSet,aiJsonObjects,
   AI_PROPOSAL_FORMAT,AI_EDIT_FORMAT,AI_LIST_RULE,aiListLines,aiListLine,AI_ADVICE_FIELD,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,
   AI_PLACEMENTS,AI_PLACEMENT_LABEL,AI_PLACEMENT_SHORT,aiNormalizePlacement,aiIsInsert,
   aiProposalAnchorHtml,aiProposalPlacementHtml,aiProposalSetPlacement,aiCleanAddedWording,

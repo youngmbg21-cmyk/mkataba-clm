@@ -10315,7 +10315,8 @@ const STRINGS = {
     ai_style_plain_toast: 'Answers will be in plain language',
     ai_input_ph: 'Search, summarize, or ask about your contracts…  (Shift+Enter for a new line)',
     /* Jambo everywhere: the side panel, the ✦ ask bar, pop out (21 Oct 2026). The Plain | Legal keys above
-       (ai_answers_caption, ai_style_*) and ai_dock_home, ai_float_move are INERT: the toggle and the movable window are gone. */
+       (ai_answers_caption, ai_style_*) are INERT: the toggle is gone. The ✦ ask bar went the same day (ai_bar_ph
+       INERT): the ✦ opens the movable window again (ai_dock_home, ai_float_move live). */
     ai_pop_out: 'Pop out',
     ai_pop_out_tip: 'Pop out — keep Jambo on top of Word and other windows',
     ai_pop_back: 'Put back',
@@ -10342,8 +10343,8 @@ const STRINGS = {
     ai_read_from_page: 'Read from {page} and your book',
     ai_read_from_book: 'Read from your book',
     ai_drop_stream_first: 'Choose the stream for {name} here, then drop it again.',
-    brn_p_askbar: 'The ✦ ask bar',
-    brn_pd_askbar: 'The top bar’s ✦ on any page: one line under the bar. A place or a contract moves there, free; anything else is asked of the Jambo on the page, or of his side panel.',
+    brn_p_askbar: 'The ✦ chat window',
+    brn_pd_askbar: 'The top bar’s ✦ on any page opens Jambo’s chat window, which you can move and resize. What you type is answered in that window; a place or a contract still opens.',
     brn_p_jambopop: 'Jambo popped out',
     brn_pd_jambopop: 'Jambo’s conversation in a window of its own that stays on top of Word and other apps (Chrome and Edge); Put back returns it to the side panel.',
     brn_p_jambohere: 'What am I looking at?',
@@ -29755,7 +29756,8 @@ const STRINGS = {
     ai_style_plain_toast: 'Svaren kommer att ges på enkelt språk',
     ai_input_ph: 'Sök, sammanfatta eller fråga om dina avtal…  (Skift+Enter för ny rad)',
     /* Jambo everywhere: the side panel, the ✦ ask bar, pop out (21 Oct 2026). The Plain | Legal keys above
-       (ai_answers_caption, ai_style_*) and ai_dock_home, ai_float_move are INERT: the toggle and the movable window are gone. */
+       (ai_answers_caption, ai_style_*) are INERT: the toggle is gone. The ✦ ask bar went the same day (ai_bar_ph
+       INERT): the ✦ opens the movable window again (ai_dock_home, ai_float_move live). */
     ai_pop_out: 'Lossa',
     ai_pop_out_tip: 'Lossa — håll Jambo ovanpå Word och andra fönster',
     ai_pop_back: 'Sätt tillbaka',
@@ -29782,8 +29784,8 @@ const STRINGS = {
     ai_read_from_page: 'Läst från {page} och din bok',
     ai_read_from_book: 'Läst från din bok',
     ai_drop_stream_first: 'Välj strömmen för {name} här och släpp den igen.',
-    brn_p_askbar: '✦-frågeraden',
-    brn_pd_askbar: 'Toppradens ✦ på varje sida: en rad under raden. En plats eller ett avtal öppnas direkt, gratis; allt annat frågas till Jambo på sidan, eller i hans sidopanel.',
+    brn_p_askbar: '✦-chattfönstret',
+    brn_pd_askbar: 'Toppradens ✦ på varje sida öppnar Jambos chattfönster, som du kan flytta och ändra storlek på. Det du skriver besvaras i fönstret; en plats eller ett avtal öppnas fortfarande.',
     brn_p_jambopop: 'Jambo i eget fönster',
     brn_pd_jambopop: 'Jambos samtal i ett eget fönster som ligger ovanpå Word och andra appar (Chrome och Edge); Sätt tillbaka lägger det i sidopanelen igen.',
     brn_p_jambohere: 'Vad tittar jag på?',
