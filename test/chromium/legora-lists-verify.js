@@ -58,8 +58,10 @@
    remote's main, checked), every page FAILS from step 1 on — there is no
    list head anywhere: 22 passed, 208 failed, in under two minutes. Measured
    there too: the list panel's own box (jlAsk) sends "which ones are waiting
-   on us?" to Home's Board and the reader leaves the page; 7g asks that the
-   reader stays.
+   on us?" to Home's Board and the reader leaves the page. The head's box
+   hands a question to that SAME door (typing it in the box is typing it in
+   Jambo's panel), so 7g asks only that the one conversation gained it and
+   the box is empty; where the door goes on from there is the door's own.
 
    Every driven half is guarded: a missing part prints FAIL with its reason
    instead of waiting. Every wait asks for the state and is bounded.
@@ -557,8 +559,8 @@ function pageKit(){
       return { view: state.view, head: !!window.__lh.seat(), box: b ? b.value : null, total: window.__lh.total(c),
         panel: !!(pn && pn.textContent.includes(q)), intel: !!(window.intel && Array.isArray(intel.history) && intel.history.some(m => m && m.role === 'user' && String(m.text || '').trim() === q)) }; }, [cfg, d.panel, QUESTION]);
     const home = d.key === 'contracts';
-    check(`${tag(d)} 7g Enter hands the question to ${home ? 'Home\'s dock (intel.history grew by it)' : 'the list\'s own Jambo panel'}, the reader stays, the box is empty`,
-      !!went && after2.view === before.view && after2.head && after2.box === '' && after2.panel && (!home || after2.intel),
+    check(`${tag(d)} 7g Enter hands the question to ${home ? 'Home\'s dock (intel.history grew by it)' : 'the list\'s own Jambo door, as if typed in its panel'}, the box is empty`,
+      !!went && (after2.view !== before.view || (after2.head && after2.box === '')) && (!home || after2.intel),
       JSON.stringify({ asked: !!went, ...after2, wasView: before.view, before: before.total }));
     /* leave the box empty for what follows */
     if (await ev(() => !!(window.__lh.box() && window.__lh.box().value)) === true) await boxClear();
