@@ -1862,9 +1862,12 @@ function ikPaintRows(){
      rows behind the tab, the chips and the words. The asker's own sentence
      stays after it. */
   const foot=host.querySelector('[data-ik-foot]');
-  if(foot) foot.innerHTML=(typeof lhFootHtml==='function')
+  if(foot){ const html=(typeof lhFootHtml==='function')
     ? lhFootHtml(IK_SEAT, rows.length, rows.length, 0, asker?{ extra:` · <span class="ik-foot-note">${esc(i18t('ik_foot_asker'))}</span>` }:undefined)
     : '';
+    /* in place, so the live region is heard when the count moves (lhFootPut) */
+    const cur=foot.querySelector('[data-lh-foot]');
+    if(!(cur&&typeof lhFootPut==='function'&&lhFootPut(cur, html))) foot.innerHTML=html; }
   /* the empty list's way forward: every filter and the words at rest */
   scroll.querySelectorAll('[data-ik-clear]').forEach(b=>b.addEventListener('click',()=>{
     IK_CHIPS.forEach(k=>{ f[k]=IK_DEF[k]; }); f.q='';

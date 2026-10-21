@@ -717,10 +717,14 @@ function insChipHtml(o){
    view's `title` is its hover; `o.after` is the page's own html inside the
    same tablist (the saved views and "+ Save this view"). */
 function insViewTabsHtml(o){
+  /* a tab's number as the foot and the facts line print it: grouped by the
+     market's locale ("3,000", "3 000"), never raw */
+  const num = n => { if (typeof n !== 'number' || !isFinite(n)) return String(n);
+    try { return n.toLocaleString((typeof jxLocale === 'function') ? jxLocale() : undefined); } catch (_){ return String(n); } };
   return `<div class="reg-views" role="tablist"${o.label ? ` aria-label="${esc(o.label)}"` : ''}>${(o.views || []).filter(v => v && (v.n !== 0 || v.keep || String(v.k) === String(o.cur))).map(v => {
     const on = String(v.k) === String(o.cur);
     return `<button type="button" role="tab" class="reg-vtab${on ? ' on' : ''}${!v.n && !on ? ' is-zero' : ''}" ${o.attr}="${esc(v.k)}" aria-selected="${on ? 'true' : 'false'}"${v.title ? ` title="${esc(v.title)}"` : ''}>${
-      esc(v.label)}${v.n ? `<span class="n">${esc(String(v.n))}</span>` : ''}</button>`; }).join('')}${o.after || ''}</div>`;
+      esc(v.label)}${v.n ? `<span class="n">${esc(num(v.n))}</span>` : ''}</button>`; }).join('')}${o.after || ''}</div>`;
 }
 /* A FACTS GRID FOR ANYTHING: label over value, an em-dash for silence, a
    `wide` fact takes the whole row and may wrap. The contract's own grid
@@ -1352,7 +1356,20 @@ function jlTalkLand(){
 }
 function jlTalkShows(){ return typeof jamboTalkShows === 'function' && jamboTalkShows(jlTalkKey()); }
 function jlTalkHtml(){
-  return `<div class="jl-talk" data-jt-talk hidden><div data-jl-trail></div><div class="jl-talk-sc" id="jl-talk-sc"><div id="jl-feed" class="jl-feed" aria-live="polite"></div></div></div>`;
+  return `<div class="jl-talk" data-jt-talk hidden><div data-jl-trail></div><div class="jl-talk-sc" id="jl-talk-sc"><p class="igd-popped" data-jl-popped hidden></p><div id="jl-feed" class="jl-feed" aria-live="polite"></div></div></div>`;
+}
+/* WHILE JAMBO'S WINDOW HOLDS THE CONVERSATION (popped out, or the ✦'s
+   window open) the feed here is empty by design (renderAIFeed: one copy on
+   the page at a time), so the talk view says where the words are, with the
+   way back — Home's dock and Settings say the same (jb_in_window). It stands
+   OUTSIDE #jl-feed, which renderAIFeed empties; the window's opening and
+   closing repaint it (aiHostsRepaint), and a paint of the feed here means
+   the window does not hold it (jlTalkSync). */
+function jlPoppedPaint(host, on){
+  const p = host && host.querySelector('[data-jl-popped]'); if (!p) return;
+  const held = !!on && !!(typeof aiConvoInWindow === 'function' ? aiConvoInWindow() : (typeof aiPopped === 'function' && aiPopped()));
+  p.hidden = !held;
+  p.innerHTML = held ? `${esc(i18t('jb_in_window'))} <button type="button" class="ui-link" data-jb-popback>${esc(i18t('jb_bring_back'))}</button>` : '';
 }
 /* the view the panel shows, drawn from the one record */
 function jlTalkPaint(host){
@@ -1365,6 +1382,7 @@ function jlTalkPaint(host){
     talk.hidden = !on;
     const tr = talk.querySelector('[data-jl-trail]');
     if (tr) tr.innerHTML = on && typeof jamboTalkTrailHtml === 'function' ? jamboTalkTrailHtml('list', i18t('pd_tab_overview')) : '';
+    jlPoppedPaint(talk, on);
   }
   host.classList.toggle('is-talk', on);
   /* THE WAY BACK TO THE CONVERSATION (owner picked "A Jambo tab", 19 Oct
@@ -1387,6 +1405,8 @@ function jlTalkOpen(){
    page's conversation begins at `from` */
 function jlTalkSync(typing){
   jlTalkLand();
+  /* the feed is painted here, so the window does not hold the words */
+  { const host = jlHost(); if (host) jlPoppedPaint(host, false); }
   const n = _jlAiLen();
   /* THE READER'S HAND WINS: an answer landing after they went back waits in
      the conversation for the next flip */

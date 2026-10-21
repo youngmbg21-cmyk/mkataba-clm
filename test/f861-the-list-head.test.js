@@ -37,6 +37,8 @@
          closed; one open on a page's own control that stands stays, and its
          pick is heard
     (13) one recount per pause in the typing, not one per letter
+    (14) the foot is written in place (lhFootPut); a column standing aside
+         is greyed with its reason; a tab's number is grouped like the foot's
    RED AT THE PARENT (db763d0a): js/views/listhead.js does not exist, and
    insViewTabsHtml draws an empty view quietly instead of leaving it out.
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -526,5 +528,56 @@ describe('f861 (13) one recount per pause in the typing', () => {
     assert.equal(counted, 2);
     flush();
     assert.equal(counted, 2, 'a direct recount takes the one waiting');
+  });
+});
+
+/* (14) THE REVIEW'S FIXES (21 Oct 2026, Part 8's finish): the foot is written
+   IN PLACE (lhFootPut) — the same node, so its live region is heard when the
+   count moves, and Show N more keeps the keyboard; a column standing aside
+   for now (LC_PAGES[seat].off) is greyed with its reason, never a live tick
+   that draws nothing; a tab's number is grouped the way the foot's is. */
+describe('f861 (14) the foot in place, a column aside, the numbers grouped', () => {
+  test('lhFootPut writes the new count into the foot already on the page, attributes and all', () => {
+    need(); const { sb, doc } = stage();
+    doc.body.innerHTML = `<div id="card">${sb.lhFootHtml('s', 40, 189, 40, { id: 'reg-showing' })}</div>`;
+    const el = doc.querySelector('[data-lh-foot="s"]');
+    el.querySelector('[data-lh-more]').focus();
+    assert.equal(sb.lhFootPut(el, sb.lhFootHtml('s', 4, 4, 40, { id: 'reg-showing', cls: 'x' })), true);
+    const now = doc.querySelector('[data-lh-foot="s"]');
+    assert.equal(now, el, 'the same node: a live region is heard when it changes, not when it is inserted');
+    assert.equal(txt(now), '1–4 of 4');
+    assert.equal(now.getAttribute('role'), 'status');
+    assert.equal(now.getAttribute('aria-live'), 'polite');
+    assert.ok(now.classList.contains('x'), 'its attributes follow the new foot');
+    el.innerHTML = '';
+    doc.body.innerHTML = `<div>${sb.lhFootHtml('s', 40, 189, 40)}</div>`;
+    const f2 = doc.querySelector('[data-lh-foot="s"]');
+    f2.querySelector('[data-lh-more]').focus();
+    sb.lhFootPut(f2, sb.lhFootHtml('s', 80, 189, 40));
+    assert.equal(txt(f2), '1–80 of 189 · Show 40 more');
+    assert.ok(doc.activeElement && doc.activeElement.matches('[data-lh-more]'), 'Show N more keeps the keyboard');
+    assert.equal(sb.lhFootPut(f2, ''), true); assert.equal(doc.querySelector('[data-lh-foot]'), null, 'an empty foot takes it away');
+    assert.equal(sb.lhFootPut(null, sb.lhFootHtml('s', 1, 1, 0)), false, 'no foot to write into: the page inserts it');
+  });
+  test('a column standing aside is greyed with its reason; the others stay live', () => {
+    need(); const { sb, doc } = stage();
+    sb.LC_PAGES.t = { cols: () => [{ k: 'stage', label: 'Stage' }, { k: 'owner', label: 'Owner' }], repaint: () => {}, hide: ['owner'], off: () => ({ owner: 'Steps aside' }) };
+    doc.body.innerHTML = sb.lcPopHtml('t');
+    const o = doc.querySelector('[data-lc-k="owner"]'), st = doc.querySelector('[data-lc-k="stage"]');
+    assert.equal(o.disabled, true, 'Owner cannot be ticked while it stands aside');
+    assert.equal(o.closest('label').getAttribute('title'), 'Steps aside', 'its reason on the hover');
+    assert.ok(o.closest('label').classList.contains('is-off'));
+    assert.equal(st.disabled, false);
+    sb.LC_PAGES.t.off = () => ({});
+    doc.body.innerHTML = sb.lcPopHtml('t');
+    assert.equal(doc.querySelector('[data-lc-k="owner"]').disabled, false, 'back, it is live again');
+    const REG = read('js/views/register.js');
+    assert.match(REG, /off:\(\)=>regOnCt\(\(\)=>regCtAskKeys\(\)\.length\?\{ owner:i18t\('reg_col_owner_aside'\) \}:\{\}\)/, 'Contracts names Owner aside while answer columns stand');
+    assert.ok(EN.reg_col_owner_aside && BOOKS.sv.reg_col_owner_aside, 'its reason in both books');
+  });
+  test('a tab\'s number is grouped the way the foot\'s is', () => {
+    need(); const { sb, doc } = stage();
+    doc.body.innerHTML = sb.insViewTabsHtml({ attr: 'data-t', cur: 'all', views: [{ k: 'all', label: 'All', n: 3000, keep: true }] });
+    assert.equal(doc.querySelector('.n').textContent, (3000).toLocaleString(), 'grouped, never "3000"');
   });
 });

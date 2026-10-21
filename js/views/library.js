@@ -1870,7 +1870,10 @@ function tplInsPaint(host){
   /* ONE FOOT: every row is drawn, so "1–n of n" and nothing to show more */
   const card=host.closest('.ins-card');
   const foot=card&&card.querySelector('[data-tpl-foot]');
-  if(foot&&typeof lhFootHtml==='function') foot.innerHTML=lhFootHtml(TPL_LH_LIST, rows.length, rows.length, 0, { cls:'ins-foot' });
+  if(foot&&typeof lhFootHtml==='function'){ const html=lhFootHtml(TPL_LH_LIST, rows.length, rows.length, 0, { cls:'ins-foot' });
+    /* in place, so the live region is heard when the count moves (lhFootPut) */
+    const cur=foot.querySelector('[data-lh-foot]');
+    if(!(cur&&typeof lhFootPut==='function'&&lhFootPut(cur, html))) foot.innerHTML=html; }
   const tb=host.querySelector('tbody');
   const idOf=t=>t.getAttribute('data-tpl-row');
   const byId=new Map(rows.map(r=>[r.kind+':'+r.id,r]));

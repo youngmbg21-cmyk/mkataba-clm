@@ -303,7 +303,8 @@ function mnRowsPaint(){
   const card = page.querySelector('.mn-card2');
   if (card){
     const old = card.querySelector(`[data-lh-foot="${MN_SEAT}"]`), html = mnFootHtml(list);
-    if (old){ if (html) old.outerHTML = html; else old.remove(); }
+    /* in place, so the live region is heard when the count moves (lhFootPut) */
+    if (old){ if (!(typeof lhFootPut === 'function' && lhFootPut(old, html))){ if (html) old.outerHTML = html; else old.remove(); } }
     else if (html) card.insertAdjacentHTML('beforeend', html);
   }
   if (_mn.mode === 'view' && String(_mn.sel) !== was) mnSidePaint(wide);

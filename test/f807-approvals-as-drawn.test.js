@@ -373,9 +373,13 @@ describe('f807 (10) the party\'s name reads whole beside the panel', () => {
 describe('f807 (11–15) the list head, the Legora way', () => {
   const region = (() => { const a = AP.indexOf('const AP_VIEWS='), b = AP.indexOf("/* the seat a row's panel is drawn for");
     return a >= 0 && b > a ? AP.slice(a, b) : ''; })();
-  const A = { c: { id: 'A', counterparty: 'Helio AB', name: 'Power deal', folder: 'f1' }, type: 'signature', turn: 'You sign' };
+  /* the rows as apWorkRows gives them (a signature the reader signs, an
+     approval they answer, one a colleague answers), with the words
+     apTurnText would say for each (stubbed: r.turn) — matched by their
+     CODE (apTurnKey), the words the label only (12c) */
+  const A = { c: { id: 'A', counterparty: 'Helio AB', name: 'Power deal', folder: 'f1' }, type: 'signature', kind: 'sign', turn: 'You sign' };
   const B = { c: { id: 'B', counterparty: 'Kustfrakt AB', name: 'Freight', folder: 'f1' }, type: 'approval', mine: true, turn: 'You' };
-  const C = { c: { id: 'C', counterparty: 'Stratos Ltd', name: 'Support', folder: 'f2' }, type: 'approval', turn: 'Sara' };
+  const C = { c: { id: 'C', counterparty: 'Stratos Ltd', name: 'Support', folder: 'f2' }, type: 'approval', turn: 'Sara', st: { next: { approver: { kind: 'member', id: 'u-s' } } } };
   const mk = extra => {
     const seen = { painted: 0, listed: 0, box: [] };
     const ctx = Object.assign({ i18t: t, i18tn: tn, esc, Promise, String, Object, Array, Set, Map, Number,
@@ -423,14 +427,28 @@ describe('f807 (11–15) the list head, the Legora way', () => {
     assert.equal(ctx.apFilters().find(f => f.k === 'stream').opts.length, 1, 'the chosen value stays to choose again');
     assert.equal(ctx.apFilters().find(f => f.k === 'stream').cur, 'f1');
   });
+  test('12c Whose turn is matched by a CODE, its words only the label: a language switch or the next day keeps the choice', () => {
+    const ctx = mk();
+    assert.equal(ctx.apFilters().find(f => f.k === 'turn').opts.map(o => o[0]).join(' | '), 'you-sign | you | waits:m:u-s', 'stable codes, never the translated words');
+    ctx.__set('all', { turn: 'waits:m:u-s' }, '');
+    assert.equal(ctx.apListNow().rows.map(r => r.c.id).join(), 'C');
+    /* the words change (Svenska; "back Friday" turning into another day): the choice still holds its rows, named in the new words */
+    ctx.apTurnText = r => r.turn === 'Sara' ? 'Sara (sv)' : r.turn + ' (sv)';
+    assert.equal(ctx.apListNow().rows.map(r => r.c.id).join(), 'C', 'the kept choice still matches after the words changed');
+    const turn = ctx.apFilters().find(f => f.k === 'turn');
+    assert.equal(turn.cur, 'waits:m:u-s');
+    assert.ok(turn.opts.some(o => o[0] === 'waits:m:u-s' && o[1] === 'Sara (sv)'), 'its label is said in the words of now');
+    /* a kept value no row of the book carries goes back to rest at the page's paint */
+    assert.match(code(fnOf(AP, 'renderApprovalsPage')), /if\(_apF\.turn!=='all'&&L\.W\.rows\.length&&!L\.turnWords\.has\(_apF\.turn\)\)\{ _apF\.turn='all'; L=apListNow\(\); \}/);
+  });
   test('13 the place keeps the tab, the filters, the words and the sort — checked on the way back', () => {
     const ctx = mk();
-    ctx.__set('others', { turn: 'Sara' }, 'stra');
+    ctx.__set('others', { turn: 'waits:m:u-s' }, 'stra');
     const p = JSON.parse(JSON.stringify(ctx.apPlace()));
-    assert.deepEqual(p, { view: 'others', f: { kind: 'all', stream: 'all', turn: 'Sara' }, q: 'stra', sort: 'wait' });
+    assert.deepEqual(p, { view: 'others', f: { kind: 'all', stream: 'all', turn: 'waits:m:u-s' }, q: 'stra', sort: 'wait' });
     ctx.__set('all', {}, '');
     ctx.apPlacePut(Object.assign({}, p, { sort: 'value' }));
-    assert.deepEqual(JSON.parse(JSON.stringify(ctx.__get())), { view: 'others', f: { kind: 'all', stream: 'all', turn: 'Sara' }, q: 'stra', sort: 'value' });
+    assert.deepEqual(JSON.parse(JSON.stringify(ctx.__get())), { view: 'others', f: { kind: 'all', stream: 'all', turn: 'waits:m:u-s' }, q: 'stra', sort: 'value' });
     ctx.apPlacePut({ view: 'nope', f: { evil: 'x' }, q: null, sort: 'nope' });
     assert.deepEqual(JSON.parse(JSON.stringify(ctx.__get())), { view: 'all', f: { kind: 'all', stream: 'all', turn: 'all' }, q: '', sort: 'wait' });
   });

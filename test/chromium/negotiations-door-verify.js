@@ -777,20 +777,32 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
        AND THE ABSENCE IS ASSERTED TOO: a filter row that quietly kept its box
        would be the owner's report unfixed, and the same row is what carries the
        claim, so the two sit together. */
+    /* RE-POINTED 21 Oct 2026 (Part 8: the owner picked "the Legora way" for
+       every list page, which reverses M-5 on a computer): the Negotiations
+       list draws the list head's ONE box — exactly one, never the old
+       #reg-search beside it — and what is typed there is the page's OWN
+       query (state.regNego.query), never Contracts'. It used to look for
+       #reg-search only, so it passed while the page showed the new box. */
     await page.evaluate(() => openNegotiations({ list: true }));
     await page.waitForTimeout(1600);
     const box = await page.evaluate(() => {
       const s = document.getElementById('reg-search');
-      const sels = [...document.querySelectorAll('#reg-stage-sel,#reg-type-sel,#reg-category,#reg-renewal')];
-      const g = e => e ? getComputedStyle(e).backgroundColor : null;
-      return { drew: !!document.querySelector('.reg-table'), found: !!s,
+      const own = [...document.querySelectorAll('[data-lh-seat="negotiations"] input[data-lh-q]')].filter(e => e.getClientRects().length);
+      return { drew: !!document.querySelector('.reg-table'), found: !!s, boxes: own.length,
         note: !!document.getElementById('reg-sort-note'),
-        shell: !!document.getElementById('cmd-search'),
-        search: g(s), neighbours: [...new Set(sels.map(g))] };
+        shell: !!document.getElementById('cmd-search') };
     });
-    check('11 the list drew, and it draws NO search box of its own',
-      box.drew && box.found === false, JSON.stringify(box));
-    check('11 …because the shell bar above it already carries one',
+    if (box.boxes === 1) {
+      await page.fill('[data-lh-seat="negotiations"] input[data-lh-q]', 'Naiv').catch(() => {});
+      await page.waitForTimeout(400);
+    }
+    const typed = await page.evaluate(() => ({ nego: String((state.regNego && state.regNego.query) || ''), ct: String((state.reg && state.reg.query) || '') }));
+    if (box.boxes === 1) { await page.fill('[data-lh-seat="negotiations"] input[data-lh-q]', '').catch(() => {}); await page.waitForTimeout(300); }
+    check('11 the list drew, and it draws ONE list box of its own (the list head\'s), never #reg-search beside it',
+      box.drew && box.found === false && box.boxes === 1, JSON.stringify(box));
+    check('11 …and what is typed there is the page\'s own query, never Contracts\'',
+      typed.nego === 'Naiv' && typed.ct !== 'Naiv', JSON.stringify(typed));
+    check('11 …and the shell bar\'s box above it stays (Q1, "B — keep both boxes")',
       box.shell === true, `shell search ${box.shell}`);
     check('11 and no "sorts within each group" line under the controls',
       box.note === false, box.note ? '#reg-sort-note still drawn' : 'gone');

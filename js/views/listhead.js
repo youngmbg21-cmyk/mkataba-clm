@@ -342,6 +342,27 @@ function lhFootHtml(seat, shown, total, step, o){
   return `<div class="lh-foot${opt.cls ? ' ' + _lhE(opt.cls) : ''}"${opt.id ? ` id="${_lhE(opt.id)}"` : ''} data-lh-foot="${_lhE(seat)}" role="status" aria-live="polite"><span class="lh-range" data-lh-shown>${_lhE(range)}</span>${
     left > 0 ? ` · <button type="button" class="ui-link lh-more" data-lh-more="${_lhE(seat)}">${_lhE(_lhT('lh_more', { n: _lhN(k) }))}</button>` : ''}${opt.extra || ''}</div>`;
 }
+/* THE FOOT CHANGES IN PLACE (a live region is heard only when it CHANGES; a
+   freshly inserted one is not read out): the one writer a page calls with
+   the foot it stands on (`el`, a [data-lh-foot]) and the foot lhFootHtml just
+   drew — its attributes and words are written into the node already on the
+   page, and Show N more keeps the keyboard where it was. An empty `html`
+   takes the foot away. Answers false (nothing done) without a foot to write
+   into, so the page inserts the new one itself. */
+function lhFootPut(el, html){
+  if (!el || !el.isConnected || typeof document === 'undefined') return false;
+  const h = String(html || '').trim();
+  if (!h){ el.remove(); return true; }
+  const t = document.createElement('template'); t.innerHTML = h;
+  const n = t.content.firstElementChild;
+  if (!n || !n.hasAttribute('data-lh-foot')) return false;
+  const had = !!(document.activeElement && el.contains(document.activeElement) && document.activeElement.matches('[data-lh-more]'));
+  [...el.attributes].forEach(a => { if (!n.hasAttribute(a.name)) el.removeAttribute(a.name); });
+  [...n.attributes].forEach(a => { if (el.getAttribute(a.name) !== a.value) el.setAttribute(a.name, a.value); });
+  if (el.innerHTML !== n.innerHTML) el.innerHTML = n.innerHTML;
+  if (had){ const b = el.querySelector('[data-lh-more]'); if (b) try { b.focus({ preventScroll: true }); } catch (_){} }
+  return true;
+}
 function lhMore(seat){
   const pg = _lhPage(seat);
   if (!pg || typeof pg.more !== 'function') return false;
@@ -404,8 +425,9 @@ function lhBoxFocus(seat){
    A reader's own convenience, kept in this browser per page (never the
    record, never shared). The first column — who it is — is always there.
    One builder for every list that draws it: the page names its columns and
-   how it draws again (LC_PAGES[seat] = { cols, repaint, hide? }); `hide`
-   names the columns hidden until the reader shows them. The pop-up follows
+   how it draws again (LC_PAGES[seat] = { cols, repaint, hide?, off? }); `hide`
+   names the columns hidden until the reader shows them; `off()` names the
+   ones standing aside for now, each with its reason ({ key: why }). The pop-up follows
    PRESS IT AGAIN AND IT CLOSES; Esc and a press outside close it too. */
 const LC_PAGES = {};
 let _lcOpen = null;
@@ -430,9 +452,13 @@ function lcPopHtml(seat){
   const pg = LC_PAGES[seat]; if (!pg) return '';
   const cols = pg.cols(), keys = cols.map(c => c.k), st = lcState(seat, keys);
   const label = k => (cols.find(c => c.k === k) || {}).label || k;
+  /* A COLUMN THAT STEPS ASIDE FOR NOW (pg.off() → { key: why }) is greyed
+     with its reason, never a live tick that draws nothing; the reader's own
+     choice for it is kept for when it comes back */
+  let off = {}; try { off = (typeof pg.off === 'function' ? pg.off() : null) || {}; } catch (_){ off = {}; }
   return `<div class="lc-pop" role="group" aria-label="${_lhE(_lhT('cu_cols_title'))}" data-lc-pop="${_lhE(seat)}">
     <p class="lc-h">${_lhE(_lhT('cu_cols_title'))}</p>
-    ${st.order.map((k, i) => `<div class="lc-row"><label class="lc-l"><input type="checkbox" data-lc-k="${_lhE(k)}"${st.hidden.includes(k) ? '' : ' checked'}><span>${_lhE(label(k))}</span></label>
+    ${st.order.map((k, i) => `<div class="lc-row"><label class="lc-l${off[k] ? ' is-off' : ''}"${off[k] ? ` title="${_lhE(off[k])}"` : ''}><input type="checkbox" data-lc-k="${_lhE(k)}"${st.hidden.includes(k) ? '' : ' checked'}${off[k] ? ' disabled' : ''}><span>${_lhE(label(k))}</span></label>
       <button type="button" class="lc-mv" data-lc-up="${_lhE(k)}" aria-label="${_lhE(_lhT('cu_cols_up', { c: label(k) }))}" title="${_lhE(_lhT('cu_cols_up', { c: label(k) }))}"${i === 0 ? ' disabled' : ''}>${_lhIc('chevU')}</button>
       <button type="button" class="lc-mv" data-lc-down="${_lhE(k)}" aria-label="${_lhE(_lhT('cu_cols_down', { c: label(k) }))}" title="${_lhE(_lhT('cu_cols_down', { c: label(k) }))}"${i === st.order.length - 1 ? ' disabled' : ''}>${_lhIc('chevD')}</button></div>`).join('')}
     <div class="lc-foot"><button type="button" class="ui-link" data-lc-reset="${_lhE(seat)}">${_lhE(_lhT('cu_cols_reset'))}</button></div>
@@ -477,6 +503,7 @@ const LC_CSS = `
   .lc-row{display:flex;align-items:center;gap:4px;padding:2px 4px;border-radius:var(--radius);}
   .lc-row:hover{background:var(--surface-2);}
   .lc-l{flex:1;display:flex;align-items:center;gap:8px;min-width:0;font-size:var(--t-body);color:var(--color-text);cursor:pointer;}
+  .lc-l.is-off{color:var(--color-neutral-500);cursor:not-allowed;}
   .lc-mv{flex:none;width:24px;height:24px;display:grid;place-items:center;border:0;border-radius:var(--radius);background:none;color:var(--color-neutral-600);cursor:pointer;}
   .lc-mv:hover:not(:disabled){background:var(--color-surface);color:var(--accent-ink);}
   .lc-mv:disabled{opacity:.35;cursor:default;}
@@ -617,5 +644,5 @@ if (typeof document !== 'undefined' && document.addEventListener && typeof windo
      more()    Show N more
      ask(text) the page's own Jambo door (answers false when it could not take it) */
 Object.assign(window, { LH_PAGES, lhRegister, lhIsQuestion, LH_ASK_WORDS, LH_ASK_PAIRS, lhBoxHtml, lhSavedHtml, lhTabsHtml, lhChipHtml, lhAddHtml, lhChipsHtml,
-  lhRowsHtml, lhHtml, lhHeadSync, lhHeadSyncSoon, LH_SYNC_QUIET_MS, lhBoxSet, lhFootHtml, lhMore, lhAsk, lhBoxFocus,
+  lhRowsHtml, lhHtml, lhHeadSync, lhHeadSyncSoon, LH_SYNC_QUIET_MS, lhBoxSet, lhFootHtml, lhFootPut, lhMore, lhAsk, lhBoxFocus,
   LC_PAGES, LC_CSS, lcKey, lcState, lcSave, lcShown, lcBtnHtml, lcPopHtml, lcPlace, lcRepaint, lcScrollWire });

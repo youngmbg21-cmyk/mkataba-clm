@@ -2449,6 +2449,16 @@ function obwOnlyChipHtml(f){
   const x = typeof icon === 'function' ? icon('x', 'w-3.5 h-3.5') : '';
   return `<span class="obw-only" id="obw-only" title="${_obEsc(i18t('ob_rl_only_title'))}"><span class="obw-only-t" title="${_obEsc(o.label || '')}">${_obEsc(o.label || '')} · ${o.keys.length}</span><button type="button" data-obw-only-clear title="${_obEsc(i18t('ob_rl_only_clear'))}" aria-label="${_obEsc(i18t('ob_rl_only_clear'))}">${x}</button></span>`;
 }
+/* THE WORDS, ON THE PAGE THAT DRAWS NO BOX (below INS_MIN_W, the full table
+   as before): words typed in the wide page's head keep narrowing here, so
+   they are said, as a chip with its own ×, never a cut nobody can see */
+function obwWordsChipHtml(f){
+  const q = String((f && f.q) || '').trim();
+  if(!q || !obwWords(f)) return '';
+  const x = typeof icon === 'function' ? icon('x', 'w-3.5 h-3.5') : '';
+  const what = '\u201c' + q + '\u201d', rm = i18t('lh_remove', { what });
+  return `<span class="obw-only obw-words" title="${_obEsc(i18t('lh_box_label'))}"><span class="obw-only-t">${_obEsc(what)}</span><button type="button" data-obw-q-clear title="${_obEsc(rm)}" aria-label="${_obEsc(rm)}">${x}</button></span>`;
+}
 const OBW_STATE = [['open','ob_f_state_open'],['overdue','ob_f_state_over'],['waiting','ob_f_state_waiting'],
   ['done','ob_f_state_done'],['all','ob_f_state_all']];
 const OBW_WHOSE = [['all','ob_f_whose_all'],['mine','ob_f_whose_mine'],['none','ob_f_whose_none']];
@@ -2778,6 +2788,7 @@ function renderObligationsList(){
       </div>
       <div class="obw-filters">
         ${obwOnlyChipHtml(f)}
+        ${obwWordsChipHtml(f)}
         ${obwSelect('whose', OBW_WHOSE, f.whose)}
         ${obwSelect('state', OBW_STATE, f.state)}
         ${obwSelect('side', OBW_SIDE, f.side)}
@@ -2829,6 +2840,7 @@ function renderObligationsList(){
   }));
   host.querySelector('#obw-clear')?.addEventListener('click', () => { _obwF = null; obwRepaint(); });
   host.querySelector('[data-obw-only-clear]')?.addEventListener('click', () => { f.only = null; obwRepaint(); });
+  host.querySelector('[data-obw-q-clear]')?.addEventListener('click', () => { f.q = ''; obwRepaint(); obwPlaceKeep(); });
   /* WHERE THE READER ENDS UP: the contract, on the tab this row is about. A row
      that opened the Document tab would make them hunt for what they pressed. */
   const go = (cid, key) => obOpenContract(cid, key);

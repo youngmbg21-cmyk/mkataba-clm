@@ -479,13 +479,36 @@ function apRowWords(r){
   return [ref, r.c.id, r.c.counterparty, r.c.name, ...why, apTurnText(r), i18t(apKindOf(r)==='signature'?'ap_wl_kind_sig':'ap_wl_kind_appr')]
     .filter(Boolean).join(' ').toLowerCase();
 }
+/* WHOSE TURN AS A CODE — the filter's value, kept across a refresh: never the
+   translated, day-dependent words apTurnText says ("You", "Anna signs · back
+   Friday"), which a language switch or the next day would stop matching (the
+   language rule). One branch per branch of apTurnText, so the rows it groups
+   are the rows its words group. */
+function apTurnKey(r){
+  if(!r) return '';
+  const idOf=(id,name)=>String(id!=null&&id!==''?id:(name||''));
+  if(r.type==='signature'){
+    if(r.kind==='other'){ const s=r.signer||{}; return 'signs:'+idOf(s.memberId, s.name); }
+    return r.kind==='sign'?'you-sign':'you';
+  }
+  if(r.done) return 'approved';
+  if(r.mine){ const fw=typeof apForWho==='function'?apForWho(r):null; return fw?'you-for:'+idOf(fw.id, fw.name):'you'; }
+  if(r.notAsked) return 'you-send';
+  let a=null; try{ a=r.st&&r.st.next&&r.st.next.approver; }catch(_){ a=null; }
+  if(a&&a.kind==='member') return 'waits:m:'+idOf(a.id, a.name);
+  if(a&&a.role) return 'waits:r:'+String(a.role);
+  return 'waits:'+String(r.waitsOn||'');
+}
 /* ONE READING OF WHAT THE LIST SHOWS: the whole list (W), and a pass that
    cuts it by a view, the filters and the words — every tab's number and
    every filter's count is this pass with one part swapped */
 function apListNow(){
   const W=apBook();
   const yours=new Set(W.yours);
-  const meta=new Map(W.rows.map(r=>[r,{ kind:apKindOf(r), stream:apStreamOf(r), turn:apTurnText(r), words:null }]));
+  /* Whose turn is matched by its CODE (apTurnKey); its words are the label only */
+  const turnWords=new Map();
+  const meta=new Map(W.rows.map(r=>{ const turn=apTurnKey(r); if(!turnWords.has(turn)) turnWords.set(turn, apTurnText(r));
+    return [r,{ kind:apKindOf(r), stream:apStreamOf(r), turn, words:null }]; }));
   const hit=(r,q)=>{ const w=String(q||'').trim().toLowerCase(); if(!w) return true;
     const m=meta.get(r); if(m.words==null) m.words=apRowWords(r);
     return w.split(/\s+/).every(t=>m.words.includes(t)); };
@@ -495,7 +518,7 @@ function apListNow(){
     for(const k of Object.keys(AP_F_DEF)) if(f[k]!=='all'&&m[k]!==f[k]) return false;
     return hit(r,o.q); };
   const now={ view:_apView, f:_apF, q:_apQ };
-  return { W, meta, pass, now, rows:W.rows.filter(r=>pass(r,now)) };
+  return { W, meta, turnWords, pass, now, rows:W.rows.filter(r=>pass(r,now)) };
 }
 /* THE TABS: the rows each press shows, every other cut held. All carries
    what the card's head used to say: what the list holds, and that a wait
@@ -513,7 +536,7 @@ function apTabs(L0){
 function apFilters(L0){
   const L=L0||apListNow();
   const label={ kind:i18t('ap_wl_kind'), stream:i18t('reg_chip_stream'), turn:i18t('ap_wl_turn') };
-  const word={ kind:v=>i18t(v==='signature'?'ap_wl_kind_sig':'ap_wl_kind_appr'), stream:apStreamName, turn:v=>v };
+  const word={ kind:v=>i18t(v==='signature'?'ap_wl_kind_sig':'ap_wl_kind_appr'), stream:apStreamName, turn:v=>L.turnWords.get(v)||v };
   return Object.keys(AP_F_DEF).map(k=>{
     const rest=L.W.rows.filter(r=>L.pass(r,Object.assign({},L.now,{ f:Object.assign({},L.now.f,{ [k]:'all' }) })));
     const n=new Map(); rest.forEach(r=>{ const v=L.meta.get(r)[k]; if(v) n.set(v,(n.get(v)||0)+1); });
@@ -781,7 +804,10 @@ function renderApprovalsPage(o){
   const listOnly=!!(o&&o.listOnly);
   if(!listOnly) _apBookMemo=null;
   apHeadRegister();
-  const L=apListNow();
+  let L=apListNow();
+  /* a kept Whose turn no row of the book carries any more (answered since,
+     or kept as words before it was a code) goes back to rest */
+  if(_apF.turn!=='all'&&L.W.rows.length&&!L.turnWords.has(_apF.turn)){ _apF.turn='all'; L=apListNow(); }
   /* the rows on screen: the list cut by its tab, its filters and the words;
      under All the ones that wait on the reader first (apWorkRows' order) */
   const W={ rows:L.rows, all:L.W };

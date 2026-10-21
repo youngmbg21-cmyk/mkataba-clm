@@ -743,6 +743,8 @@ function regColKeys(){
   return regScope()==='negotiations' ? regNegoColsShown(keys) : keys;
 }
 /* the seat's own columns for this paint's shape, before the reader's choice */
+/* the answer columns standing on the Contracts List (none on its narrow shape) */
+function regCtAskKeys(){ return (!regHomeNarrow()&&typeof window.askColKeys==='function')?askColKeys():[]; }
 function regColKeysSeat(){
   const neg=regScope()==='negotiations', ins=regInspecting();
   if(!neg && regHome()){
@@ -754,7 +756,7 @@ function regColKeysSeat(){
     let shown=(typeof window.lcShown==='function'&&window.LC_PAGES&&LC_PAGES.contracts)?lcShown('contracts', mid):mid.filter(k=>k!=='owner');
     /* ASK A COLUMN (20 Oct 2026): the answers stand before the ⋯, and Owner
        steps aside for them, as drawn (it stays in the filters and the sort) */
-    const ask=(!narrow&&typeof window.askColKeys==='function')?askColKeys():[];
+    const ask=regCtAskKeys();
     if(ask.length) shown=shown.filter(k=>k!=='owner');
     return ['counterparty'].concat(shown, ask, ['acts']);
   }
@@ -1825,7 +1827,9 @@ function regCtColDefs(){
    keeps nothing of its own) */
 function regCtHeadReg(){
   if(typeof window.LC_PAGES==='object'&&window.LC_PAGES&&!LC_PAGES[REG_CT_SEAT])
-    LC_PAGES[REG_CT_SEAT]={ cols:()=>regCtColDefs(), repaint:()=>regCtRepaint(), hide:['owner'] };
+    LC_PAGES[REG_CT_SEAT]={ cols:()=>regCtColDefs(), repaint:()=>regCtRepaint(), hide:['owner'],
+      /* Owner steps aside for Jambo's answers (regColKeysSeat): its tick is greyed with why, never live and dead */
+      off:()=>regOnCt(()=>regCtAskKeys().length?{ owner:i18t('reg_col_owner_aside') }:{}) };
   /* the Wall carries no Columns: its seat names a page Columns does not know */
   if(typeof window.lhRegister==='function') lhRegister('wall', { more:()=>{ if(typeof window.igWallShowMore==='function') igWallShowMore(); } });
   if(typeof window.lhRegister!=='function') return null;
@@ -2794,6 +2798,10 @@ const regAvatarTone = name => {
 };
 const regAvatarHtml = name => `<span class="reg-av av-${regAvatarTone(name)}" aria-hidden="true">${esc(regInitials(name))}</span>`;
 
+/* THE FOOT IS WRITTEN IN PLACE, so its live region is heard when the count
+   moves (js/views/listhead.js lhFootPut; main wrote #reg-showing's words in
+   place too); a page without the list head's writer draws it afresh */
+function regFootPut(sh, html){ if(!(typeof window.lhFootPut==='function'&&lhFootPut(sh,html))) sh.outerHTML=html; }
 function renderRegisterBody(){
   /* the wall on Home's Contracts place is drawn whole: its count line and
      every paper follow the narrowing together — the wall alone, never the
@@ -2814,7 +2822,7 @@ function renderRegisterBody(){
   /* …and the Contracts place's ("1–40 of 189 · Show 40 more", regCtFootHtml),
      the same way (Part 8) */
   const ctSeat=!negSeat&&regHome();
-  const sh=document.getElementById('reg-showing'); if(sh){ if(negSeat) sh.outerHTML=regNegoFootHtml(cs); else if(ctSeat) sh.outerHTML=regCtFootHtml(cs); else sh.innerHTML=regFooterText(cs); }
+  const sh=document.getElementById('reg-showing'); if(sh){ if(negSeat) regFootPut(sh,regNegoFootHtml(cs)); else if(ctSeat) regFootPut(sh,regCtFootHtml(cs)); else sh.innerHTML=regFooterText(cs); }
   if((negSeat||ctSeat)&&typeof window.lhHeadSyncSoon==='function') lhHeadSyncSoon(negSeat?REG_NEGO_SEAT:REG_CT_SEAT);
   const tt=document.getElementById('reg-tt'); if(tt){ tt.innerHTML=regListTitle(cs); }
   const pgr=document.getElementById('reg-pager'); if(pgr){ pgr.innerHTML=regPager(cs); wireRegPager(); }

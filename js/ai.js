@@ -956,6 +956,10 @@ function aiConvoBack(){
 function aiHostsRepaint(){
   try{ if(document.getElementById('ig-dock') && typeof window.renderIntelDock==='function') window.renderIntelDock(); }catch(_){}
   try{ const T = document.querySelector('[data-st-jb-talk]'); if(T && typeof window.stJbTalkRepaint==='function') window.stJbTalkRepaint(T); }catch(_){}
+  /* and Jambo's panel beside a list (js/views/inspector.js: its talk view says the window holds the words) */
+  try{ if(document.getElementById('jl-feed') && typeof window.jlTalkPaint==='function'){ window.jlTalkPaint();
+    /* put away (closed or minimised), the words are said there again */
+    if(!aiConvoInWindow() && aiListFeed()) renderAIFeed(); } }catch(_){}
 }
 
 /* ---------- POP OUT: JAMBO ON TOP OF WORD (owner, 21 Oct 2026) ----------
