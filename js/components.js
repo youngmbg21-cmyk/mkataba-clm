@@ -859,7 +859,7 @@ function jamboForeignPress(born, i, btn){
   setTimeout(go, 50);
   return true;
 }
-if (typeof document !== 'undefined' && !document._jbForeignWired){
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._jbForeignWired){
   document._jbForeignWired = true;
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
