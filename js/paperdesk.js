@@ -3521,9 +3521,13 @@ function pdOgBoxHtml(c, f){
     const them = (typeof counterpartyContact === 'function' ? counterpartyContact(c) : null) || {};
     const tName = (theirs && theirs.name) || (them.name && !(typeof signerIsCompany === 'function' && signerIsCompany(c, { party: 'counterparty', name: them.name })) ? them.name : '');
     const tMail = (theirs && theirs.email) || (typeof contactEmail === 'function' ? contactEmail(c) : '') || them.email || '';
-    return `<select class="${PD_OG_INP}" data-pd-og-sg="ours" aria-label="${E(_pdT('og_sg_ours'))}">${members.map(u => `<option value="${E(u.id)}"${String(u.id) === String(pick) ? ' selected' : ''}>${E(u.name || u.email)}${me && String(u.id) === String(me.id) ? ' · ' + E(_pdT('og_you')) : ''}</option>`).join('')}</select>`
-      + `<input type="text" class="${PD_OG_INP}" data-pd-og-sg="tname" value="${E(tName)}" placeholder="${E(_pdT('og_sg_their_name', { them: c.counterparty || _pdT('ct_a_counterparty') }))}" aria-label="${E(_pdT('og_sg_their_name', { them: c.counterparty || '' }))}">`
-      + `<input type="email" class="${PD_OG_INP}" data-pd-og-sg="temail" value="${E(tMail)}" placeholder="${E(_pdT('og_sg_their_email'))}" aria-label="${E(_pdT('og_sg_their_email'))}">`;
+    /* THE SAP WAY (owner picked it by name, 21 Oct 2026): a label above each of the signer's three boxes,
+       in the box's own words (the box keeps its aria-label, so the label is not read twice) */
+    const ml = w => `<span class="pd-og-ml" aria-hidden="true">${E(w)}</span>`;
+    const themWho = c.counterparty || _pdT('ct_a_counterparty');
+    return ml(_pdT('og_sg_ours')) + `<select class="${PD_OG_INP}" data-pd-og-sg="ours" aria-label="${E(_pdT('og_sg_ours'))}">${members.map(u => `<option value="${E(u.id)}"${String(u.id) === String(pick) ? ' selected' : ''}>${E(u.name || u.email)}${me && String(u.id) === String(me.id) ? ' · ' + E(_pdT('og_you')) : ''}</option>`).join('')}</select>`
+      + ml(_pdT('og_sg_their_name', { them: themWho })) + `<input type="text" class="${PD_OG_INP}" data-pd-og-sg="tname" value="${E(tName)}" placeholder="${E(_pdT('og_sg_their_name', { them: themWho }))}" aria-label="${E(_pdT('og_sg_their_name', { them: c.counterparty || '' }))}">`
+      + ml(_pdT('og_sg_their_email')) + `<input type="email" class="${PD_OG_INP}" data-pd-og-sg="temail" value="${E(tMail)}" placeholder="${E(_pdT('og_sg_their_email'))}" aria-label="${E(_pdT('og_sg_their_email'))}">`;
   }
   return '';
 }
@@ -3560,7 +3564,7 @@ function pdOgHtml(c, o){
     return n ? `<tr class="pd-og-row is-saved" data-pd-og-row="stream"><td class="pd-og-f"><b>${E(_pdT('ct_value_stream'))}</b><span class="pd-og-src is-none">${E(_pdT('og_stream_set'))}</span></td><td class="pd-og-v"><span class="pd-og-done">${E(n)}</span></td><td class="pd-og-a"><span class="pd-og-said">${E(_pdT('og_saved'))}</span></td></tr>` : ''; })();
   const done = saved.map(x => `<tr class="pd-og-row is-saved" data-pd-og-row="${E(x.key)}"><td class="pd-og-f"><b>${E(x.label)}</b></td><td class="pd-og-v"><span class="pd-og-done">${E(x.words)}</span></td><td class="pd-og-a"><span class="pd-og-said">${E(_pdT('og_saved'))}</span></td></tr>`).join('');
   if (!rows.length && !done) return '';
-  return `<table id="${held ? 'pd-og-held' : 'pd-og'}" class="pd-og" data-pd-og-for="${E(c.id)}"><thead><tr><th>${E(_pdT('og_col_fact'))}</th><th>${E(_pdT('og_col_read'))}</th><th><span class="sr-only">${E(_pdT('og_confirm'))}</span></th></tr></thead><tbody>${rows.map(tr).join('')}${done}${stream}</tbody></table>`;
+  return `<table id="${held ? 'pd-og-held' : 'pd-og'}" class="pd-og" data-pd-og-for="${E(c.id)}"><thead class="sr-only"><tr><th>${E(_pdT('og_col_fact'))}</th><th>${E(_pdT('og_col_read'))}</th><th><span class="sr-only">${E(_pdT('og_confirm'))}</span></th></tr></thead><tbody>${rows.map(tr).join('')}${done}${stream}</tbody></table>`;
 }
 /* the grid is up for this contract: its Dossier is the tab, beside its paper, no face over it */
 function pdOgShows(c){
@@ -3826,6 +3830,14 @@ if (typeof document !== 'undefined' && !document._pdOgWired){
   document.addEventListener('focusin', e => {
     const host = pdOgHostOf(e.target); if (!host) return;
     const c = pdOgContract(host); if (c) pdOgWire(host, c);
+    /* THE SAP WAY puts a row's label and Confirm ABOVE its box: a hand in a box sees what it answers, so the
+       row's head is brought into view by the least scroll (else a Tab onto Confirm would jump the panel) */
+    const tr = host.id === 'pd-og' && e.target.closest('td.pd-og-v') ? e.target.closest('tr[data-pd-og-row]') : null;
+    const feed = tr && tr.closest('#igd-feed');
+    if (tr && feed){
+      const fr = feed.getBoundingClientRect(), rr = tr.getBoundingClientRect();
+      if (rr.top < fr.top && rr.height <= fr.height) feed.scrollTop -= Math.ceil(fr.top - rr.top);
+    }
     /* A CURSOR IN A BOX LIGHTS ITS WORD ON THE PAPER (the fill form's own rule, wireFieldLink's) */
     if (c && typeof contractFieldKeyOf === 'function' && typeof contractFieldLight === 'function'){
       let k = ''; try { k = contractFieldKeyOf(e.target, c) || ''; } catch (_){ k = ''; }

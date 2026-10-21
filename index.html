@@ -15698,6 +15698,42 @@
   #ig-dock .pd-og td{padding:6px 12px 6px 0;border-bottom:0}
   #ig-dock .pd-og td:nth-child(3){padding-right:0}
   #ig-dock .pd-og-row.is-saved td{background:transparent}
+  /* ==== STILL OWED, THE SAP WAY (owner picked it by name, 21 Oct 2026; spec-owed Option A) ====
+     SAP's rule for a form under 600 wide: one column, the label ABOVE its box. Each owed fact is a row
+     16 below the one before (the drawing's hairline between rows is left out: The Brief draws no line
+     inside the body, 21 Oct 2026): the label (strong) with Confirm on its right, where Jambo read it under
+     that, then its box(es) the full width, stacked; the signer's three boxes each carry a small label.
+     A saved row is one line: label · the green chip · "saved". Beside the Board (#pd-og-held) the same
+     anatomy reads only: the chip full width, "Fill in ›" on the label's line. The table stays a table
+     (its rows and boxes keep their wiring; its column names stay for a screen reader, thead.sr-only); only its display changes, scoped to the two grids by id so
+     Key terms (#pd-kt, the same .pd-og clothes) keeps its own look. */
+  #ig-dock #pd-og, #ig-dock #pd-og-held{display:block;width:100%;table-layout:auto}
+  #ig-dock #pd-og tbody, #ig-dock #pd-og-held tbody{display:block}
+  #ig-dock #pd-og tr.pd-og-row, #ig-dock #pd-og-held tr.pd-og-row{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"f a" "v v";column-gap:8px;padding:8px 0}
+  #ig-dock #pd-og tr.pd-og-row:first-child, #ig-dock #pd-og-held tr.pd-og-row:first-child{padding-top:0}
+  #ig-dock #pd-og td, #ig-dock #pd-og-held td{display:block;width:auto;min-width:0;padding:0;border:0}
+  #ig-dock #pd-og td.pd-og-f, #ig-dock #pd-og-held td.pd-og-f{grid-area:f}
+  #ig-dock #pd-og td.pd-og-v, #ig-dock #pd-og-held td.pd-og-v{grid-area:v;display:flex;flex-direction:column;align-items:stretch;gap:4px;margin-top:6px}
+  #ig-dock #pd-og td.pd-og-a, #ig-dock #pd-og-held td.pd-og-a{grid-area:a;width:auto;text-align:right;align-self:start}
+  #ig-dock #pd-og .pd-og-f b, #ig-dock #pd-og-held .pd-og-f b{font-size:var(--t-body);line-height:20px}
+  /* where Jambo read it: the § and the passage, two lines at most */
+  #ig-dock #pd-og td.pd-og-f > .pd-og-src, #ig-dock #pd-og-held td.pd-og-f > .pd-og-src{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+  #ig-dock #pd-og td.pd-og-v > .pd-og-in, #ig-dock #pd-og td.pd-og-v > .dp-face{width:100%;margin-top:0}
+  #ig-dock #pd-og td.pd-og-v > .pd-og-in:not(textarea){height:var(--ctl-h-sm,28px)}
+  #ig-dock #pd-og td.pd-og-v > .pd-go, #ig-dock #pd-og td.pd-og-v > .pd-og-nm{align-self:flex-start;margin-top:0}
+  /* the signer's three boxes: a small label over each, 8 between one box and the next label */
+  #ig-dock #pd-og .pd-og-ml{display:block;margin-top:4px;font-size:var(--t-label);line-height:16px;font-weight:var(--w-label);color:var(--color-neutral-600)}
+  #ig-dock #pd-og .pd-og-ml:first-child{margin-top:0}
+  /* a saved row is ONE line: label · the chip, whole where it fits · "saved" */
+  #ig-dock #pd-og tr.pd-og-row.is-saved, #ig-dock #pd-og-held tr.pd-og-row.is-saved{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"f v a";align-items:center}
+  #ig-dock #pd-og tr.is-saved td.pd-og-v, #ig-dock #pd-og-held tr.is-saved td.pd-og-v{margin-top:0;flex-direction:row;justify-content:flex-end}
+  #ig-dock #pd-og tr.is-saved .pd-og-src, #ig-dock #pd-og-held tr.is-saved .pd-og-src{display:none}
+  #ig-dock #pd-og tr.is-saved td.pd-og-a, #ig-dock #pd-og-held tr.is-saved td.pd-og-a{align-self:center}
+  /* beside the Board: the reading a chip the full width, one box tall */
+  #ig-dock #pd-og-held td.pd-og-v > .pd-og-read{display:block;width:100%;max-width:none;box-sizing:border-box;height:var(--ctl-h-sm,28px);line-height:calc(var(--ctl-h-sm,28px) - 6px)}
+  /* NOTHING FALLS PAST THE PANEL'S EDGE: a row's small line wraps, and the dossier's parts may narrow */
+  #ig-dock .pd-glance .pd-gl-row small{white-space:normal}
+  #ig-dock #pd-glance > *, #ig-dock .pd-glance .pd-gl-row > span{min-width:0}
   /* HISTORY'S GLANCE, AS DRAWN: the serif title, then "In his words"; the links under it carry "Next steps" */
   #ig-dock .pd-hglance .pd-hg-title{margin:8px 0 0;font-family:var(--font-title);font-size:18px;line-height:24px;font-weight:var(--w-title-serif);color:var(--color-text)}
   #ig-dock .pd-held-chips:has(> .pd-held-lbl){margin-top:0;row-gap:8px}
