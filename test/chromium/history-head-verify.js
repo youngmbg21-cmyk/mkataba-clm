@@ -116,6 +116,8 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
         sideSwitch: [...host.querySelectorAll('.hist-side [data-ht-side]')].map(b => b.getAttribute('data-ht-side') + '=' + b.textContent.trim()),
         sideSeen: seen(host.querySelector('.hist-side')),
         lanes: [...host.querySelectorAll('.hist-trail.is-lanes > .hist-lh')].map(x => x.textContent.replace(/\\s+/g, ' ').trim()),
+        cols: [...host.querySelectorAll('.hist-trail.is-table > .hist-th > *')].map(x => x.textContent.trim()),
+        sides: [...host.querySelectorAll('.hist-trail.is-table .hist-c-side')].map(x => x.textContent.trim()),
         lid: !!host.querySelector('#hist-filter'),
         btn: seen(host.querySelector('#hist-filter-btn')),
         btnExp: (host.querySelector('#hist-filter-btn') || {}).getAttribute
@@ -143,47 +145,27 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
     /* RE-POINTED AGAIN 17 Oct 2026 (round 12: the owner picked "Two sides"):
        each side is its own lane, so whose step it was is read where it
        stands; the switch is gone (reverses the 15 Oct switch in the open). */
-    check('no side switch: the side is the lane (Ours · Day · Theirs)',
-      head.chips === 0 && head.sideSwitch.length === 0 && head.lanes.length === 3, `${head.chips} switch buttons · lanes ${head.lanes.join(' | ')}`);
+    /* RE-POINTED 21 Oct 2026 (the owner picked "The SAP way"): ONE TABLE —
+       the side is a column of words, read on every row; no switch, no lanes */
+    check('no side switch: the side is a column of the one table (Time · Who · Side · What happened · Outcome)',
+      head.chips === 0 && head.sideSwitch.length === 0 && head.lanes.length === 0 && JSON.stringify(head.cols) === JSON.stringify(['Time', 'Who', 'Side', 'What happened', 'Outcome']),
+      `${head.chips} switch buttons · lanes ${head.lanes.length} · columns ${head.cols.join(' | ')}`);
     check('the old Filter lid (#hist-filter) is gone', !head.lid, head.lid ? 'still there' : 'none');
-    /* RE-POINTED 10 Oct 2026 — follows SAP batch 3 (e0e3035, 9 Oct 2026, owner:
-       "Build exactly the drawings of SAP way"): the History tab draws a search
-       box and a FILTER FOLD (#hist-filter-btn, `_histFiltersOpen`, open while a
-       filter is on). The 13 Aug "filters in the open" ruling was reversed by
-       that drawing, so at rest the row is folded and ONE named press opens it.
-       What still holds: the five filters, Clear, and Side reading Ours/Theirs. */
-    check('at rest the filter row is folded behind a named Filter button',
-      !(head.row && head.row.on) && !!(head.btn && head.btn.on) && head.btnExp === 'false',
-      `row ${head.row ? head.row.w + 'x' + head.row.h : 'absent'} · button ${head.btn ? head.btn.w + 'x' + head.btn.h : 'absent'} · expanded ${head.btnExp}`);
-    await page.click('#bs-strips [data-bs-host="hist"] #hist-filter-btn');
-    await page.waitForFunction(() => {
-      const r = document.querySelector('#bs-strips [data-bs-host="hist"] .hist-filters');
-      return r && r.getBoundingClientRect().height > 0;
-    }, null, { timeout: 5000 }).catch(() => {});
-    const opened1 = await page.evaluate(`(() => {
-      const seen = ${SEEN};
-      const host = document.querySelector('#bs-strips [data-bs-host="hist"]');
-      return { row: seen(host.querySelector('.hist-filters')),
-        selects: [...host.querySelectorAll('.hist-f select')].map(s =>
-          ({ k: s.getAttribute('data-ht-filter'), ...seen(s) })),
-        clear: seen(host.querySelector('#ht-clear')),
-        exp: host.querySelector('#hist-filter-btn') && host.querySelector('#hist-filter-btn').getAttribute('aria-expanded') };
-    })()`);
-    check('one press on Filter opens the row into visible pixels, and the button says so',
-      !!(opened1.row && opened1.row.on) && opened1.exp === 'true',
-      opened1.row ? `${opened1.row.w}x${opened1.row.h} · expanded ${opened1.exp}` : 'absent');
-    check('the four other filters are on screen in the fold, and side is NOT among them (one handle)',
-      opened1.selects.length === 4 && opened1.selects.every(s => s.on) && !opened1.selects.some(s => s.k === 'side')
-      && JSON.stringify(opened1.selects.map(s => s.k)) === JSON.stringify(['clauseId', 'actor', 'round', 'outcome']),
-      opened1.selects.map(s => `${s.k}:${s.w}x${s.h}`).join(' · '));
-    check('and its Clear is on screen with them', !!(opened1.clear && opened1.clear.on),
-      opened1.clear ? `${opened1.clear.w}x${opened1.clear.h}` : 'absent');
-    check('the row still names each filter', head.labels.length === 4, head.labels.join(' | '));
+    /* RE-POINTED 21 Oct 2026 (the SAP way): the filters stand IN THE OPEN as
+       labelled boxes in the band beside the search — the Filter button that
+       folded them (SAP batch 3, 9 Oct) is gone. What still holds: the
+       filters, Clear, one handle per filter, Side not among them. */
+    check('the filters stand in the open at rest: no Filter button, every box on screen, Clear with them',
+      !(head.btn && head.btn.on) && head.selects.length >= 4 && head.selects.every(s => s.on) && !!(head.clear && head.clear.on),
+      head.selects.map(s => `${s.k}:${s.w}x${s.h}`).join(' · ') + ` · button ${head.btn ? 'present' : 'absent'}`);
+    check('in the drawing\'s order, and side is NOT among them (one handle)',
+      !head.selects.some(s => s.k === 'side') && JSON.stringify(head.selects.map(s => s.k)) === JSON.stringify(['actor', 'clauseId', 'outcome', 'round']),
+      head.selects.map(s => s.k).join(' · '));
+    check('the band still names each filter', head.labels.length === 4, head.labels.join(' | '));
 
-    /* ---- the Side control says Ours / Theirs, in the owner's chair ---- */
-    check('the lanes say whose, in plain words: Ours · our party, Theirs · theirs',
-      /^Ours · \S/.test(head.lanes[0] || '') && head.lanes[1] === 'Day' && /^Theirs · \S/.test(head.lanes[2] || ''),
-      head.lanes.join(' | '));
+    /* ---- the Side column says Ours / Theirs, in the owner's chair ---- */
+    check('the Side column says whose, in plain words: Ours and Theirs',
+      head.sides.includes('Ours') && head.sides.includes('Theirs'), head.sides.join(' | '));
 
     /* ============ 2. "MORE" IS NAMED, AND IS STILL A MENU =============== */
     /* RE-POINTED 18 Oct 2026 (round 12, "Two sides", as drawn): ⋯ stands
@@ -232,7 +214,7 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
        under it, about 290px tall, so it may cover the last rows of a short or
        narrowed trail): the press is on the "Ours" lane head, at the left,
        never under a menu that opens at the toolbar's right end. */
-    await page.click('#bs-strips [data-bs-host="hist"] .hist-lh.is-l');
+    await page.click('#bs-strips [data-bs-host="hist"] .hist-th');   /* a press outside: the table's head row (21 Oct 2026, the SAP way) */
     await page.waitForTimeout(300);
     const closed = await page.evaluate(`(() => {
       const seen = ${SEEN};
@@ -256,7 +238,8 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
       return { rows: host.querySelectorAll('.hist-ev').length,
         pill: ((host.querySelector('.hist-cap') || {}).textContent || '').trim(),
         side: (host.querySelector('[data-ht-filter="actor"]') || {}).value,
-        row: ${SEEN}(host.querySelector('.hist-filters')) };
+        /* the band's own filter, not its wrapper (which takes no box since the SAP way) */
+        row: ${SEEN}(host.querySelector('[data-ht-filter="actor"]')) };
     })()`);
     check('picking a person narrows the record', narrowed.rows > 0 && narrowed.rows < before,
       `${before} → ${narrowed.rows}`);
@@ -282,7 +265,7 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
        press means is unchanged: somewhere outside the menu (the last row: the
        three-row menu covers the first, 15 Oct 2026). RE-POINTED (B1 pass 4):
        the "Ours" lane head, as above — the drawn menu covers a narrowed trail. */
-    await page.click('#bs-strips [data-bs-host="hist"] .hist-lh.is-l');
+    await page.click('#bs-strips [data-bs-host="hist"] .hist-th');   /* a press outside: the table's head row (21 Oct 2026, the SAP way) */
     await page.waitForTimeout(300);
     const stillCloses = await page.evaluate(`!!(${SEEN}(document.getElementById('hist-more-menu')) || {}).on`);
     check('after three repaints the menu still opens and shuts on one press each',

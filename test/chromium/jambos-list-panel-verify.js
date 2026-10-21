@@ -35,7 +35,7 @@
         "Sara approves", Whose turn "Sara"
      6d Jonas is "Named on" the contracts he approves and signs: the row, the
         list ("approver", "signer") and a live Show their contracts; no ⋯
-     9  PARTIES: a row of what waits on you reads whole in the 380px panel —
+     9  PARTIES: a row of what waits on you reads whole in the 384px panel (380 until The Brief, 21 Oct 2026) —
         its title, its short door, the Waiting on you fact — at three screens
    PASS 4 (18 Oct 2026, evening, the checker's second pass):
      5i "Since last look" when the value moved after the question was put
@@ -140,7 +140,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         ph: q ? q.getAttribute('placeholder') : null, hint: hint ? hint.textContent.replace(/\s+/g, ' ').trim() : null,
         text: p.innerText.replace(/\s+/g, ' ') }; };
     const N0 = await page.evaluate(PANEL);
-    check('1a the panel is Jambo\'s, at the right edge, Home\'s panel\'s width, with his tab', !!N0 && N0.jambo && N0.tab && N0.w === 380 && Math.abs(N0.right - 1440) <= 1, JSON.stringify(N0 && { w: N0.w, right: N0.right, tab: N0.tab }));
+    check('1a the panel is Jambo\'s, at the right edge, Home\'s panel\'s width, with his tab', !!N0 && N0.jambo && N0.tab && N0.w === 384 && Math.abs(N0.right - 1440) <= 1, JSON.stringify(N0 && { w: N0.w, right: N0.right, tab: N0.tab }));
     /* RE-POINTED 20 Oct 2026 (Chambers): no hint line under any Jambo box */
     check('1c the box asks in its words, and no hint line under it', !!N0 && N0.ph === 'Ask for a contract, a number or a list…' && N0.hint === null, JSON.stringify(N0 && { ph: N0.ph, hint: N0.hint }));
 
@@ -203,7 +203,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       check('4a folded: a strip with his face, the page takes the room', !!F && F.w === 46 && F.door && F.page >= 1440 - 46 - 2, JSON.stringify(F));
       await page.click('#ins-panel [data-jl-door]');
       const F2 = await until(() => { const p = document.getElementById('ins-panel'); return p && !p.classList.contains('is-folded') ? Math.round(p.getBoundingClientRect().width) : null; });
-      check('4b the strip opens it again', F2 === 380, String(F2));
+      check('4b the strip opens it again', F2 === 384, String(F2));
     });
     await part('3c a place word', async () => {
       await page.fill('#jl-q', 'approvals'); await page.press('#jl-q', 'Enter');

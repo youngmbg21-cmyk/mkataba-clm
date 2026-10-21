@@ -144,26 +144,29 @@ describe('f743 (3) the page as drawn', () => {
     assert.match(H, /\$\{openN\?` · <span class="hist-open-n">\$\{esc\(i18tn\('ct_hist_open_n',openN,\{n:openN\}\)\)\}<\/span>`:''\}/);
     assert.equal(BOOKS.en.ct_hist_reading, 'Newest first', 'the head as drawn: "Newest first · our side left, theirs right · …"');
   });
-  test('3b one toolbar under the head: search, Filter, Show the wording, and ⋯ at its end, named for a screen reader', () => {
-    const t = H.indexOf('<div class="hist-tools">'), q = H.indexOf('id="hist-q"', t), f = H.indexOf('id="hist-filter-btn"', t), d = H.indexOf('id="hist-detail"', t), sp = H.indexOf('hist-tools-sp', t), m = H.indexOf('id="hist-more"', t);
-    assert.ok(t > 0 && t < q && q < f && f < d && d < sp && sp < m, JSON.stringify({ t, q, f, d, sp, m }));
+  /* RE-POINTED 21 Oct 2026 (the SAP way): the head carries Show the wording and ⋯; under it ONE band —
+     the search, then the filters in the open (no Filter button), Clear at its end */
+  test('3b the head: the title, its facts, Show the wording, ⋯; one band under it: the search and the filters in the open', () => {
+    const d = H.indexOf('id="hist-detail"'), m = H.indexOf('id="hist-more"'), t = H.indexOf('<div class="hist-tools">'), q = H.indexOf('id="hist-q"', t), f = H.indexOf('${roomHistoryFiltersHtml(c,f)}', t);
+    assert.ok(d > 0 && d < m && m < t && t < q && q < f, JSON.stringify({ d, m, t, q, f }));
+    assert.ok(!H.includes('hist-filter-btn'), 'no Filter button');
     assert.match(H, /<button id="hist-more" class="ui-btn ui-btn-icon hist-more-btn" aria-haspopup="true" aria-expanded="false"\n\s+aria-label="\$\{esc\(i18t\('ct_more'\)\)\}" title="\$\{esc\(i18t\('ct_hist_more_title'\)\)\}">\n\s+\$\{icon\('more'\)\}<\/button>/);
   });
-  test('3c the day\'s pill: "Thu 15 Oct", the year only where it is not this one, its count on the hover', () => {
+  test('3c the day\'s pill: "Thu 15 Oct", the year only where it is not this one, its count beside it', () => {
     assert.match(H, /\{weekday:'short',day:'numeric',month:'short'\}:\{weekday:'short',day:'numeric',month:'short',year:'numeric'\}/);
     assert.match(H, /formatToParts\(d\)\.filter\(x=>x\.type!=='literal'\)\.map\(x=>x\.value\)\.join\(' '\)/);
-    assert.match(H, /<div class="hist-day-h" title="\$\{esc\(i18tn\('ct_hist_events',buf\.length,\{n:buf\.length\}\)\)\}"><b>\$\{esc\(dayLabel\(buf\[0\]\)\)\}<\/b><\/div>/);
+    /* RE-POINTED 21 Oct 2026 (the SAP way): the day a row across the table, its count beside it */
+    assert.match(H, /<div class="hist-day-h" role="row"><b>\$\{esc\(dayLabel\(buf\[0\]\)\)\}<\/b><small>\$\{esc\(i18tn\('ct_hist_events',buf\.length,\{n:buf\.length\}\)\)\}<\/small><\/div>/);
     const parts = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).formatToParts(new Date(2026, 9, 15)).filter(x => x.type !== 'literal').map(x => x.value).join(' ');
     assert.equal(parts, 'Thu 15 Oct', 'the drawing\'s own words');
   });
-  test('3d a bubble: the time, a dot, the person, the outcome; the kind and round on the time\'s hover; the fingerprint only with the wording', () => {
-    assert.match(H, /<div class="hist-top">\$\{when\}<span class="hist-sep" aria-hidden="true">\\u00b7<\/span>\$\{whoH\}\$\{ocH\}<\/div>/);
+  /* RE-POINTED 21 Oct 2026 (the SAP way): a row of the one table — Time · Who · Side · What happened · Outcome */
+  test('3d a row: the time, the person, the side, what happened, the outcome; the kind and round on the time\'s hover; the fingerprint only with the wording', () => {
+    assert.match(H, /<span class="hist-c hist-c-time" role="cell">\$\{when\}<\/span><span class="hist-c hist-c-who" role="cell">\$\{whoCell\}<\/span><span class="hist-c hist-c-side" role="cell">\$\{sideW\}<\/span>/);
+    assert.match(H, /<span class="hist-c hist-c-oc hist-oc" role="cell">\$\{ocW\}<\/span>/);
     assert.match(H, /const whenTip=\[m\.mark,\(e\.round!=null&&e\.round!==''\)\?i18t\('ct_round_n',\{n:e\.round\}\):'',fpTip\]/);
-    /* RE-POINTED (pass 4, round 12 as drawn): Show the wording prints only
-       the wording — the fingerprint stays on the time's hover — and no round
-       chip is drawn anywhere */
     assert.ok(!/hist-meta">\$\{also\}/.test(H) && !/rchip/.test(H), 'no fingerprint line, no round chip');
-    assert.match(H, /<div class="hist-text">\$\{esc\(said\)\}\$\{named\?'':cl\}<\/div>/);
+    assert.match(H, /<div class="hist-text">\$\{whatT\}\$\{named\?'':cl\}<\/div>/);
   });
 });
 
@@ -211,7 +214,10 @@ describe('f743 (4) Jambo on History, and both books', () => {
     ctx.window = ctx; vm.createContext(ctx);
     vm.runInContext([lineOf(PD, 'const _pdE = '), lineOf(PD, 'const _pdT = '), lineOf(PD, 'const _pdTn = '), lineOf(PD, 'const PD_CG_NAMES_MAX = ')].concat(['pdDaysSince', 'pdListSay', 'pdNeverShared', 'pdHistGlanceHtml'].map(f => fnBody(PD, f))).join('\n'), ctx);
     const h = ctx.pdHistGlanceHtml({ id: 'MK-0382' });
-    assert.match(h, /<b>MK-0382 · History<\/b>/);
+    /* RE-POINTED 21 Oct 2026 (the SAP way's History, as drawn): the glance is titled "History of MK-0382" in the
+       serif, "In his words" over his rows; the panel's head word still says "MK-0382 · History" */
+    assert.match(h, /<h3 class="pd-hg-title">History of MK-0382<\/h3>/);
+    assert.match(h, /<b>In his words<\/b>/);
     assert.match(h, /<span>13 entries in the last two weeks\.<small title="Newest: their round 2, 15 Oct\.">Newest: their round 2, 15 Oct\.<\/small><\/span>/);
     assert.match(h, /<span>2 of their changes are still open: clauses 7 and 11\.<small>Your move, 4 days\.<\/small><\/span><button type="button" class="ui-btn ui-btn-sm" data-pd-cg-go="red">Redlines<\/button>/);
   });
@@ -302,18 +308,21 @@ describe('f743 (6) pass 4: History as drawn, the second time', () => {
     assert.ok(mine.length === 2 && mine.every(e => e.actor === 'Erik Ström'), 'a person\'s own entries, the trail\'s and the opens among them: ' + JSON.stringify(mine.map(e => e.text)));
     assert.equal(w.histTrailSaysOf(w.roomHistoryEvents(cfo).find(e => e._audit && e._audit.action === 'Created')), 'Created it from the template “Employment”');
     const F = fnBody(CT, 'roomHistoryFiltersHtml');
-    assert.match(F, /const sel=\(k,label,pairs\)=>pairs\.length\?/, 'a box with no choice is not drawn');
-    assert.match(F, /<button id="ht-clear" class="ui-btn" style="align-self:flex-end"\$\{any\?'':` disabled title="\$\{esc\(i18t\('ct_hist_clear_none'\)\)\}"`\}>/);
-    assert.match(INDEX, /\.hist-filters\{ display:flex;[^}]*background:var\(--surface-2\); \}/, 'the grey band under the toolbar');
+    assert.match(F, /const sel=\(k,label,pairs,allW\)=>pairs\.length\?/, 'a box with no choice is not drawn');
+    /* RE-POINTED 21 Oct 2026 (the SAP way): Clear is a link at the band's end; the filters stand in the band's own row */
+    assert.match(F, /<button id="ht-clear" type="button" class="hist-clear"\$\{any\?'':` disabled title="\$\{esc\(i18t\('ct_hist_clear_none'\)\)\}"`\}>/);
+    assert.match(INDEX, /\.hist-tools \.hist-filters\{display:contents\}/, 'the filters in the band beside the search');
   });
-  test('6c "Today, <day>"; the middle line is a quiet pill — time · person: what, an eye or a lock, no initials, no outcome; no round chip', () => {
+  /* RE-POINTED 21 Oct 2026 (the SAP way): what only we can see is a row like any other — its eye or lock
+     where the initials stand, the person in Who, what they did in What happened, no outcome — in the quiet ink */
+  test('6c "Today, <day>"; what only we can see is a quiet row: an eye or a lock, the person, what they did, no outcome; no round chip', () => {
     const H = fnBody(CT, 'roomHistoryHtml');
     assert.match(H, /return \(window\.todayISO&&loc===todayISO\(\)\)\?i18t\('ct_hist_day_today',\{ d:said \}\):said; \};/);
     assert.equal(say('ct_hist_day_today', { d: 'Mon 19 Oct' }), 'Today, Mon 19 Oct');
-    assert.match(H, /const mark=e\._k==='opened'\?dot:e\._k==='access'\?`<span class="hist-lock" aria-hidden="true">\$\{icon\('lock','w-3 h-3'\)\}<\/span>`:dot;/);
-    assert.match(H, /line=e\.actor\?`\$\{esc\(e\.actor\)\}: \$\{esc\(t\.charAt\(0\)\.toLocaleLowerCase\(\)\+t\.slice\(1\)\)\}`:esc\(t\);/);
-    const mid = H.slice(H.indexOf("if(lane==='mid'){"), H.indexOf("const said=histSaysOf(e), named"));
-    assert.ok(mid.length > 50 && !/whoH|ocH|av\b/.test(mid), 'no initials, no outcome pill on the middle line');
+    assert.match(H, /const mark=e\._k==='opened'\?dot:e\._k==='access'\?`<span class="hist-lock" aria-hidden="true">\$\{icon\('lock','w-3 h-3'\)\}<\/span>`:'';/);
+    assert.match(H, /const whoCell=lane==='mid'\?`<span class="hist-who">\$\{mark\}\$\{e\.actor\?`<span>\$\{esc\(e\.actor\)\}<\/span>`:''\}<\/span>`:whoH;/);
+    assert.match(H, /const whatT=inside&&e\.actor\?esc\(said\.charAt\(0\)\.toLocaleLowerCase\(\)\+said\.slice\(1\)\):esc\(said\);/);
+    assert.match(INDEX, /\.hist-trail\.is-table \.hist-tr\.is-inside \.hist-c-what \.hist-text, \.hist-trail\.is-table \.hist-tr\.is-inside \.hist-who\{color:var\(--color-neutral-600\)\}/, 'in the quiet ink');
     assert.ok(!/rchip/.test(H), 'no round chip anywhere');
   });
   test('6d the ⋯ menu as drawn: "This contract" over its three acts with their lines under them, no symbols; the whole trail for admins', () => {

@@ -92,12 +92,15 @@ const PROBE = `(() => {
       text: text ? text.textContent.trim() : '',
       at: r.getAttribute('data-hist-at'),
       when: (r.querySelector('.hist-when') || {}).textContent || '',
-      head: hd ? hd.textContent.replace(/\s+/g, ' ').trim() : null,
+      /* RE-POINTED 21 Oct 2026 (the SAP way): the day is a row across the table — its name, and its count beside it */
+      head: hd ? (hd.querySelector('b') || hd).textContent.replace(/\s+/g, ' ').trim() : null,
       headTip: hd ? (hd.getAttribute('title') || '') : null,
+      headCount: hd ? ((hd.querySelector('small') || {}).textContent || '').trim() : null,
       sep: !!r.querySelector('.hist-top .hist-sep'),
       bubBg: (() => { const b = r.querySelector('.hist-bub'); return b ? getComputedStyle(b).backgroundColor : null; })(),
       whenTip: (r.querySelector('.hist-when') || { getAttribute: () => '' }).getAttribute('title') || '',
-      pill: (() => { const p = r.querySelector('.hist-pill'); return p ? { cls: p.className, bg: getComputedStyle(p).backgroundColor } : null; })(),
+      pill: (() => { const p = r.querySelector('.hist-pill, .hist-ocw'); return p ? { cls: p.className, bg: getComputedStyle(p).backgroundColor } : null; })(),
+      rowBg: getComputedStyle(r).backgroundColor,
       day: day ? day.textContent.trim() : null,
       time: time ? time.textContent.trim() : null,
       stacked: day && time ? time.getBoundingClientRect().top >= day.getBoundingClientRect().bottom - 1 : null,
@@ -256,7 +259,8 @@ const PROBE = `(() => {
     ok('2c an earlier day has its own heading', !!rE.head && rE.head === full.earlier && rE.time === expect.earlier.time,
       `${JSON.stringify(rE.head)} ${JSON.stringify(rE.time)}`);
     ok('2d a day from another year carries its year', !!rY.head && rY.head.includes(expect.yearNo), JSON.stringify(rY.head));
-    ok('2e the heading counts its entries, on its hover', !!rT.headTip && /event/i.test(rT.headTip) && !/event/i.test(rT.head || ''), JSON.stringify({ head: rT.head, tip: rT.headTip }));
+    /* RE-POINTED 21 Oct 2026 (the SAP way): the count is printed beside the day, not on a hover */
+    ok('2e the heading counts its entries, beside the day', /event/i.test(rT.headCount || '') && !/event/i.test(rT.head || ''), JSON.stringify({ head: rT.head, count: rT.headCount }));
     ok('2f no row prints the raw record date', rows.every(r => !/\d{4}-\d{2}-\d{2}/.test(r.when)),
       rows.map(r => r.when.replace(/\s+/g, ' ').trim()).slice(0, 4).join(' | '));
 
@@ -266,15 +270,18 @@ const PROBE = `(() => {
        the kind's ring — the kind's name rides the time's hover, and the tone
        that says a refusal is the outcome's own pill. An entry on the middle
        line keeps its ring, a hollow disc in the page's surface. */
-    const bubbles = rows.filter(r => r.lane === 'ours' || r.lane === 'theirs'), mids = rows.filter(r => r.lane === 'mid');
-    ok('3a a bubble\'s time is followed by a dot of punctuation, its kind on the hover; the middle line keeps its ring',
-      bubbles.length > 0 && bubbles.every(r => r.sep && !r.dot && r.whenTip) && mids.every(r => r.dot && r.dot.fill === m.surface && r.dot.ringW >= 2),
-      JSON.stringify({ bubbles: bubbles.map(r => [r.sep, !!r.dot, r.whenTip]).slice(0, 3), mids: mids.map(r => r.dot && r.dot.fill) }) + ' · surface ' + m.surface);
+    /* RE-POINTED 21 Oct 2026 (the SAP way, one table): every row's kind rides its time's hover; no bubble,
+       no dot of punctuation; a ring stands only where it is drawn (an open's eye), never a fill */
+    const bubbles = rows.filter(r => r.lane === 'ours' || r.lane === 'theirs'), mids = rows.filter(r => r.lane === 'mid' && r.dot);
+    ok('3a every row\'s kind rides its time\'s hover; no bubble, no dot of punctuation',
+      rows.length > 0 && rows.every(r => r.whenTip && !r.sep && r.bubBg === null),
+      JSON.stringify(rows.map(r => [r.sep, r.bubBg, r.whenTip]).slice(0, 3)));
+    void bubbles;
     const toneSet = Object.values(m.tones || {});
     ok('3b and a ring that stands carries one of the kinds\' own tones, never a colour nobody chose',
       mids.every(r => r.dot && toneSet.includes(r.dot.ring)), mids.map(r => r.dot && r.dot.ring).join(' | '));
     const refused = rows.find(x => /rejected/i.test(x.text));
-    ok('3c the refusal still reads as a refusal (its pill in the ruby tone, not green)',
+    ok('3c the refusal still reads as a refusal (its outcome in the ruby tone, not green)',
       !!(refused && refused.pill && /\bis-r\b/.test(refused.pill.cls)),
       refused && refused.pill ? JSON.stringify(refused.pill) : 'none');
 
@@ -299,11 +306,12 @@ const PROBE = `(() => {
        (or, on the middle line, its own pill) instead of a ruled row.
        dayOk/many/one stay for the record of what 12 Oct asked. */
     void many; void one; void dayOk;
-    ok('4a the days run down one middle line between the lanes; no row draws its own',
-      !!(m.spine && Math.abs(m.spine.x - m.spine.mid) <= 2 && m.spine.w >= 1) && rows.every(r => !r.line),
+    /* RE-POINTED 21 Oct 2026 (the SAP way): no line runs down the trail; each entry is a row of the one
+       table, ruled off from the next by a faint rule */
+    ok('4a no line runs down the trail, and no row draws its own', !m.spine && rows.every(r => !r.line),
       JSON.stringify(m.spine) + ' · row lines ' + rows.filter(r => r.line).length);
-    ok('4b each entry stands in its own edge: a bubble in its lane, or a pill on the middle line', rows.length > 0 && rows.every(r => r.edge >= 1),
-      rows.map(r => r.lane + ':' + r.edge).join(','));
+    ok('4b each entry is a row of the one table, ruled off from the next (the last of a day may close it)', rows.length > 1 && rows.slice(0, -1).filter(r => r.rule >= 1).length >= rows.length - 1 - days.length,
+      rows.map(r => r.lane + ':' + r.rule).join(','));
 
     /* ================= 5. THE ROUND AT THE RIGHT WALL ================= */
     /* RE-POINTED 18 Oct 2026 (round 12, "Two sides", as drawn): a change's
@@ -334,14 +342,11 @@ const PROBE = `(() => {
        the fold for one switch in the open (All sides · Ours · Theirs); the
        other four fold behind Filter */
     const side = await page.evaluate(sel => [...document.querySelectorAll(sel + ' .hist-side [data-ht-side]')].filter(b => b.getBoundingClientRect().width > 0).map(b => b.textContent.trim()), HP);
-    /* RE-POINTED 17 Oct 2026 (round 12): no side switch — the side is the lane */
-    ok('7a the four other filters fold behind Filter, and no side switch (the side is the lane)', m.filters === 0 && side.length === 0, m.filters + ' filters showing · ' + side.join(' · '));
-    await page.click('#hist-filter-btn');
-    await page.waitForTimeout(300);
+    /* RE-POINTED 21 Oct 2026 (the SAP way): the filters stand in the open, in the drawing's order, no Filter button */
     const f5 = await page.evaluate(sel => [...document.querySelectorAll(sel + ' .hist-f select')].filter(s => s.getBoundingClientRect().width > 0).map(s => s.getAttribute('data-ht-filter')), HP);
-    ok('7a2 and Filter opens the other four (clause, person, round, outcome)', JSON.stringify(f5) === JSON.stringify(['clauseId', 'actor', 'round', 'outcome']), f5.join(' · '));
-    await page.click('#hist-filter-btn');
-    await page.waitForTimeout(300);
+    const fbtn = await page.evaluate(sel => !!document.querySelector(sel + ' #hist-filter-btn'), HP);
+    ok('7a the filters stand in the open, no Filter button, and no side switch (the side is a column)', m.filters >= 4 && !fbtn && side.length === 0, m.filters + ' filters showing · button ' + fbtn + ' · ' + side.join(' · '));
+    ok('7a2 in the drawing\'s order (person, clause, outcome, round)', JSON.stringify(f5) === JSON.stringify(['actor', 'clauseId', 'outcome', 'round']), f5.join(' · '));
     await page.click('#hist-detail');
     await page.waitForTimeout(500);
     const wording = await page.evaluate(sel => document.querySelectorAll(sel + ' .hist-redline').length, HP);
@@ -363,10 +368,9 @@ const PROBE = `(() => {
       dark: document.documentElement.classList.contains('dark') }));
     ok('8a there is no night theme to switch to, and the page is not dark',
       night.setDark === 'undefined' && night.setTheme === 'undefined' && !night.dark, JSON.stringify(night));
-    const dBub = rows.filter(r => r.lane === 'ours' || r.lane === 'theirs'), dMid = rows.filter(r => r.lane === 'mid');
-    ok('8b each bubble, and any ring that stands, is the page\'s surface',
-      dBub.length > 0 && dBub.every(r => r.bubBg === m.surface) && dMid.every(r => r.dot && r.dot.fill === m.surface),
-      dBub.length ? `${dBub[0].bubBg} · surface ${m.surface}` : 'none · lanes ' + rows.map(r => r.lane).join(','));
+    /* RE-POINTED 21 Oct 2026 (the SAP way): no bubble — every row stands on the page's own surface */
+    ok('8b every row stands on the page\'s own surface (no bubble, no fill of its own)',
+      rows.length > 0 && rows.every(r => r.bubBg === null && /rgba\(0, 0, 0, 0\)|transparent/.test(r.rowBg || '')), rows.map(r => r.rowBg).slice(0, 3).join(' | '));
 
     ok('9 no page errors on the way', errors.length === 0, errors.join(' | ') || 'none');
   } catch (e) {

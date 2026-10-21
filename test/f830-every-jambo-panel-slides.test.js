@@ -235,8 +235,8 @@ describe('f830 (4) the panel beside the lists, and Import', () => {
     const win = listWorld();
     assert.equal(win.JL_MIN, 340);
     assert.equal(win.JL_LIST_MIN, win.INS_MIN_W - 340);
-    assert.equal(win.JL_SPLIT.w0, 380, 'Home\'s panel\'s rest');
-    assert.equal(win.splitClamp(null, 1440, win.JL_SPLIT), 380);
+    assert.equal(win.JL_SPLIT.w0, 384, 'Home\'s panel\'s rest');
+    assert.equal(win.splitClamp(null, 1440, win.JL_SPLIT), 384);
     assert.equal(win.splitClamp(100, 1440, win.JL_SPLIT), 340);
     assert.equal(win.splitClamp(2000, 1440, win.JL_SPLIT), 1440 - win.JL_LIST_MIN);
     assert.equal(win.JL_SPLIT.key, 'hati.v1.jlW', 'one key for every list page and Import');
@@ -260,13 +260,13 @@ describe('f830 (4) the panel beside the lists, and Import', () => {
     const win = listWorld();
     const p = win.document.getElementById('ins-panel');
     /* jsdom lays nothing out: the room is stated */
-    p.getBoundingClientRect = () => ({ left: 1060, right: 1440, width: 380, top: 48, bottom: 780, height: 732 });
+    p.getBoundingClientRect = () => ({ left: 1056, right: 1440, width: 384, top: 48, bottom: 780, height: 732 });
     win.document.getElementById('content-scroll') || win.document.body.insertAdjacentHTML('beforeend', '<main id="content-scroll"></main>');
     win.document.getElementById('content-scroll').getBoundingClientRect = () => ({ left: 0, right: 1060, width: 1060, top: 48, bottom: 780, height: 732 });
     win.jlLayout();
     const g = win.document.getElementById('jl-resizer');
     assert.equal(g.hidden, false, 'open: the grip at the seam');
-    assert.equal(g.getAttribute('aria-valuenow'), '380');
+    assert.equal(g.getAttribute('aria-valuenow'), '384');
     win.jlFoldSet(true);
     assert.equal(g.hidden, true, 'folded: no grip');
     win.jlFoldSet(false);
@@ -293,9 +293,9 @@ describe('f830 (4) the panel beside the lists, and Import', () => {
     box.remove();
     assert.equal(win.jlListMin(), win.JL_LIST_MIN, 'a list with no fixed table keeps the inspector\'s own floor');
   });
-  test('4e the 380 literals are one variable: the panel, the page head and the page\'s scroller read --jl-w', () => {
-    assert.match(HTML, /#content \.ins-panel\.is-jambo\{position:fixed;right:0;top:var\(--jl-top,88px\);bottom:0;width:var\(--jl-w,380px\);/);
-    assert.match(HTML, /#app-shell:has\(#content \.ins-panel\.is-jambo\):not\(:has\(#content \[hidden\] \.ins-panel\.is-jambo\)\) #page-head,\n\s*#app-shell:has\(#content \.ins-panel\.is-jambo\):not\(:has\(#content \[hidden\] \.ins-panel\.is-jambo\)\) #content-scroll\{margin-right:var\(--jl-w,380px\);\}/);
+  test('4e the 384 literals are one variable: the panel, the page head and the page\'s scroller read --jl-w', () => {
+    assert.match(HTML, /#content \.ins-panel\.is-jambo\{position:fixed;right:0;top:var\(--jl-top,88px\);bottom:0;width:var\(--jl-w,384px\);/);
+    assert.match(HTML, /#app-shell:has\(#content \.ins-panel\.is-jambo\):not\(:has\(#content \[hidden\] \.ins-panel\.is-jambo\)\) #page-head,\n\s*#app-shell:has\(#content \.ins-panel\.is-jambo\):not\(:has\(#content \[hidden\] \.ins-panel\.is-jambo\)\) #content-scroll\{margin-right:var\(--jl-w,384px\);\}/);
     assert.doesNotMatch(HTML, /\.ins-panel\.is-jambo[^{]*\{[^}]*width:380px/, 'no 380px literal left on the panel');
     assert.match(HTML, /#content \.ins-panel\.is-jambo\.is-folded\{width:46px;\}/, 'the folded strip keeps its 46');
   });
@@ -324,8 +324,8 @@ describe('f830 (5) Settings', () => {
     assert.equal(g.sb.ST_SIDE_MIN, 340);
     assert.equal(g.sb.ST_BOARD_MIN, 780);
     assert.equal(S.key, 'hati.v1.stSideW', 'its own key');
-    assert.match(code(objOf(SET, 'ST_SPLIT')), /w0:\(\)=>\(\(typeof matchMedia==='function'\)&&matchMedia\('\(min-width:1401px\)'\)\.matches\)\?380:344/, 'resting at the track\'s own width');
-    assert.equal(g.sb.splitClamp(null, 1382, Object.assign({}, S, { w0: 380 })), 380);
+    assert.match(code(objOf(SET, 'ST_SPLIT')), /w0:\(\)=>\(\(typeof matchMedia==='function'\)&&matchMedia\('\(min-width:1401px\)'\)\.matches\)\?384:344/, 'resting at the track\'s own width');
+    assert.equal(g.sb.splitClamp(null, 1382, Object.assign({}, S, { w0: 384 })), 384);
     assert.equal(g.sb.splitClamp(2000, 1382, S), 1382 - 780, 'the board keeps its floor');
     assert.equal(g.sb.splitClamp(100, 1382, S), 340);
   });
@@ -338,7 +338,7 @@ describe('f830 (5) Settings', () => {
     assert.equal(g.$('set-page').style.getPropertyValue('--st-side-w'), '560px');
     assert.equal(g.$('st-resizer').hidden, false);
     g.sb.localStorage.removeItem('hati.v1.stSideW');
-    assert.match(HTML, /@media \(min-width:981px\)\{[\s\S]*?\.st-cr \.st-cr-cols\{ grid-template-columns:minmax\(0,1fr\) var\(--st-side-w,380px\); column-gap:var\(--s-4\); \}/);
+    assert.match(HTML, /@media \(min-width:981px\)\{[\s\S]*?\.st-cr \.st-cr-cols\{ grid-template-columns:minmax\(0,1fr\) var\(--st-side-w,384px\); column-gap:var\(--s-4\); \}/);
     assert.match(HTML, /@media \(min-width:981px\) and \(max-width:1400px\)\{ \.st-cr \.st-cr-cols\{ grid-template-columns:minmax\(0,1fr\) var\(--st-side-w,344px\); \} \}/);
     assert.match(code(objOf(SET, 'ST_SPLIT')), /off:\(\)=>!stWide\(\)/, 'stacked, the divider stands down');
   });

@@ -116,12 +116,12 @@ describe('f394 (3) the divider is the other two pages\' own', () => {
     assert.match(w, /'dblclick'[\s\S]*?_splitSaveOf\(h, null\)/, 'a double-click forgets the choice');
     assert.match(w, /e\.key === 'Home' \|\| e\.key === 'Enter'/);
   });
-  test('the width rests at 380 where nobody has chosen, and the floors win: the panel 340, the column 420', () => {
+  test('the width rests at 384 where nobody has chosen, and the floors win: the panel 340, the column 420', () => {
     const win = world();
     /* the one clamp is the builder's: loaded here as the browser loads it */
     win.eval(CMP);
-    assert.equal(win.IG_DOCK_W0, 380);
-    assert.equal(win.igDockClamp(null, 1276), 380);
+    assert.equal(win.IG_DOCK_W0, 384);
+    assert.equal(win.igDockClamp(null, 1276), 384);
     assert.equal(win.igDockClamp(100, 1276), 340, 'the panel\'s floor');
     assert.equal(win.igDockClamp(2000, 1276), 1276 - 420, 'the column\'s floor');
     assert.equal(win.igDockClamp(540, 1276), 540);

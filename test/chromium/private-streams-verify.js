@@ -173,7 +173,8 @@ const book = page => page.evaluate(() => state.contracts.map(c => c.id).sort().j
       /* RE-POINTED (B1 pass 4, round 12's middle line as drawn: one quiet pill "08:52 · Maria Lindgren: opened the contract",
          no initials, so no .hist-who): the person is read off the pill's own words */
       named: [...document.querySelectorAll('.hist-ev')].some(e => /added themself to/i.test(e.textContent)),
-      who: [...document.querySelectorAll('.hist-ev.is-open .hist-text')].map(x => x.textContent.replace(/\s+/g, ' ').trim()) }));
+      /* RE-POINTED 21 Oct 2026 (the SAP way): an open is a row of the table — the person in Who, what they did beside it */
+      who: [...document.querySelectorAll('.hist-ev.is-open')].map(x => x.textContent.replace(/\s+/g, ' ').trim()) }));
     check(t7.eye && /open/i.test(t7.cap), '7b each open wears the eye, and the head counts the opens', t7.cap.trim());
     check(t7.named && t7.who.some(w => /Restricted Legal/.test(w)), '7c the folder\'s own record is in the trail: the admin adding themself, and who opened it', JSON.stringify(t7.who));
     await R.page.evaluate(() => document.querySelector('.hist-head').scrollIntoView({ block: 'start' }));
@@ -182,9 +183,9 @@ const book = page => page.evaluate(() => state.contracts.map(c => c.id).sort().j
       await R.page.screenshot({ path: path.join(OUT, `4-trail-${w}x${ht}.png`) });
     }
     await R.page.setViewportSize({ width: 1440, height: 780 });
-    await R.page.click('#hist-filter-btn');
+    /* RE-POINTED 21 Oct 2026 (the SAP way): the filters stand in the open — no Filter button to press */
     const listed = await until(R.page, () => !!document.querySelector('[data-ht-filter="opens"]'));
-    check(listed, '7d the Filter offers Opens on a contract that has them');
+    check(listed, '7d the filters offer Opens on a contract that has them');
     await R.page.selectOption('[data-ht-filter="opens"]', 'only');
     const only = await until(R.page, () => { const all = document.querySelectorAll('.hist-ev'), op = document.querySelectorAll('.hist-ev.is-open'); return all.length && all.length === op.length; });
     check(only, '7e "Only opens" leaves only the opens');
@@ -192,7 +193,7 @@ const book = page => page.evaluate(() => state.contracts.map(c => c.id).sort().j
     check(await until(R.page, () => document.querySelectorAll('.hist-ev').length && !document.querySelector('.hist-ev.is-open')), '7f "Hide them" takes them away');
     await R.page.evaluate(() => hbStripBring('MK-A1', 'hist'));
     await until(R.page, () => { const h = document.querySelector('.hist-head'); return h && /Refined Sugar|MK-A1/.test((h.closest('[data-bs-id]') || document.body).textContent); });
-    const notListed = await R.page.evaluate(() => { const b = [...document.querySelectorAll('#hist-filters')].pop(); return !(b && b.querySelector('[data-ht-filter="opens"]')); });
+    const notListed = await R.page.evaluate(() => { const b = [...document.querySelectorAll('.hist-filters')].pop(); return !!b && !b.querySelector('[data-ht-filter="opens"]'); });
     check(notListed, '7g a contract in an ordinary folder lists no Opens choice — a choice with nothing behind it is not offered');
     check(R.errors.length === 0, '6c no page errors for the named person', R.errors.join(' | ') || 'clean');
     await R.ctx.close();

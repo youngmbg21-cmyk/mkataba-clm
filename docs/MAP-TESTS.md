@@ -59,6 +59,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f193–f199, f331, f335, new-person-grants verify.
 
 ## THE SHELL — RAIL, BAR, PANELS
+- the-brief-and-sap-history verify (Jambo's panel as "The Brief" and History "the SAP way", 21 Oct 2026: 25 checks, 19 red at 0392ded7; its controls are the paper strip's line, every entry drawn, the three screens, no page errors); f804, f830, f394, f840 (the 384 width and the named foot).
 - f842 (every new page is on the Guide)
 - held-contract-asks verify.
 - f840, jambo-tab-and-back verify.
@@ -102,6 +103,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f193, f244 (7), f336, f495, f652, f721, f723, f728, f770–f773, f797, f799, sap-lists, advice-is-a-request, four-inspectors, requests-sap-way, requests-and-notes-as-drawn, import-sap-way, import-as-drawn, import-jambo-panel, calendar-* verify.
 
 ## THE SAP BENCHMARK, BATCH 3 — THE CONTRACT ROOM (9 Oct)
+- History, the SAP way (21 Oct 2026): the-brief-and-sap-history verify 4a–4f; re-pointed f380, f714, f743, history-timeline, history-head, two-sides, board-strip 3f/3h, home-held-contract 3c/3d/6b/6d/6s, private-streams 7c/7d/7g.
 - f225, f380, f457, f459, f490, f622, f714, f743; room-tabs-as-drawn, deal-stands, where-we-are, status-link, their-page-parties, history-timeline, history-head, nego-redesign, two-sides verify.
 
 ## CUSTOMER FOLDERS — SHELVES, THE SAP WAY (js/views/customers.js)

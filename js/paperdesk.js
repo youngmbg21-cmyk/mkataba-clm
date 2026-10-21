@@ -4645,7 +4645,8 @@ function pdHistGlanceHtml(c){
     const may = !(typeof negoMayStart === 'function') || !!(negoMayStart(c) || {}).ok;
     rowB = `<div class="pd-gl-row" data-pd-hg="open"><span>${_pdE(said)}${mv ? `<small>${_pdE(mv)}</small>` : ''}</span>${may ? `<button type="button" class="ui-btn ui-btn-sm" data-pd-cg-go="red">${_pdE(_pdT('pd_gl_redlines'))}</button>` : ''}</div>`;
   }
-  return `<div id="pd-histglance" class="pd-glance pd-hglance" data-pd-held-for="${_pdE(c.id)}"><div class="pd-gl-h"><b>${_pdE(_pdT('pd_hg_head', { ref }))}</b></div><div class="pd-gl-b">${rowA}${rowB}</div></div>`;
+  /* AS DRAWN (the SAP way's History, 21 Oct 2026): the serif "History of MK-A2", then "In his words" over his rows */
+  return `<div id="pd-histglance" class="pd-glance pd-hglance" data-pd-held-for="${_pdE(c.id)}"><h3 class="pd-hg-title">${_pdE(_pdT('pd_hg_title', { ref }))}</h3><div class="pd-gl-h"><b>${_pdE(_pdT('pd_hg_words'))}</b></div><div class="pd-gl-b">${rowA}${rowB}</div></div>`;
 }
 /* the History page's questions worth asking, read off its record: what came
    in the newest round with changes, who decided the newest decided clause */
@@ -4762,7 +4763,8 @@ function pdPanelChipsHtml(){
 function pdHeldChipsHtml(){
   const k = pdHolds(); if (k !== 'card' && k !== 'hist') return '';
   const inner = pdPanelChipsHtml();
-  return inner ? `<div class="pd-held-chips" data-pd-held-chips>${inner}</div>` : '';
+  /* AS DRAWN (21 Oct 2026): beside History the links carry their label, "Next steps" */
+  return inner ? `<div class="pd-held-chips" data-pd-held-chips>${k === 'hist' ? `<div class="pd-held-lbl">${_pdE(_pdT('pd_hg_next'))}</div>` : ''}${inner}</div>` : '';
 }
 /* ---- LAND ON IT (owner, 18 Oct 2026; pass 4): every door these panels hold
    names the one thing it opens on and arrives there, lit, through the one
