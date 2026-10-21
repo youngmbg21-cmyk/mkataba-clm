@@ -13576,6 +13576,40 @@ function docReadLongSplit(canvas, rows){
   if(!added.length) return rows;
   return rows.concat(added).sort((a,b)=>a.el===b.el?0:(_docReadBefore(a.el,b.el)||a.el.contains(b.el)?-1:1));
 }
+/* ---- THE NUMBER A ROW OF THE WALK CARRIES, read the way docReadSheet's own
+   push below reads it: a heading's out of its own text, a numbered paragraph's
+   and a mark's off the walk that found them. Cheap, because it is only ever
+   asked of the ONE row after a bodiless heading. */
+const _docReadRowNum = r => !r ? '' : (r.isHead
+  ? _docReadHeadNum(String((r.el&&r.el.textContent)||'').replace(/\s+/g,' ').trim())
+  : String(r.num||''));
+/* ---- IS THE ROW AFTER THIS ONE THE NEXT NUMBER IN THE SEQUENCE — "3" after
+   "2", "3.3" after "3.2"? ----
+   This is the paper's own evidence that a bodiless numbered heading is a
+   CLAUSE somebody left empty rather than a title over its own parts: the
+   numbering carries straight on past it. Everything else stays a section
+   title — a title whose parts are "3.1" and "3.2" (a child, not the next
+   number), and one whose parts carry no numbers at all ("Part B Terms of
+   Credit" over "Credit Terms", which thread-drawer-verify draws). ONLY the
+   next row is asked, and that is enough: anything between a heading and the
+   row after it would be wording, and this question is only ever put where
+   there is none. Digits only, both sides, and the same depth — a Roman or
+   lettered article keeps the reading it has always had. */
+/* ---- A HEADING THAT NAMES ITSELF A PART IS A TITLE, whatever number stands
+   in front of it ----
+   A template form's paper numbers its headings in sequence, so "5. Part B
+   Terms of Credit" heads "6. Credit Terms": the numbering carries on past it
+   exactly as it does past a blank clause, and nothing but its own words tells
+   the two apart. The same self-naming words DOC_READ_HEAD_NUM reads, kept in
+   the one home (thread-drawer-verify 2d draws this paper). */
+const DOC_READ_SELF_HEAD = new RegExp('^\\s*' + _DOC_READ_SELF + '\\b', 'i');
+const _docReadNumNext = (a,b) => {
+  const A=String(a||'').split('.'), B=String(b||'').split('.');
+  if(!A[0]||A.length!==B.length) return false;
+  for(let k=0;k<A.length-1;k++) if(A[k]!==B[k]) return false;
+  const x=A[A.length-1], y=B[B.length-1];
+  return /^\d+$/.test(x)&&/^\d+$/.test(y)&&Number(y)===Number(x)+1;
+};
 function docReadSheet(c, root){
   /* with no root named, the paper the thread is showing: the Document tab's,
      or Home's while the clause list is drawn there (10 Oct 2026) */
@@ -13734,8 +13768,25 @@ function docReadSheet(c, root){
        the drawing question (which tag, which class) apart from the reading
        question the route is asked. THIS MOVES THE SENT SHAPE and therefore
        the cache key, once, on purpose. */
+    /* ---- A NUMBERED CLAUSE LEFT BLANK IS STILL A CLAUSE (the owner, 21 Oct
+       2026: "there is a bug where some clause 2 is missing") ----
+       A heading with no wording of its own is a section TITLE where its own
+       sub-clauses follow it — "3. Payment" over 3.1 and 3.2. Where nothing
+       numbered under it follows, the paper is showing a numbered clause
+       somebody left EMPTY, and drawn as a section it lost everything: no
+       number (stkNumsOf blanks a section's), no bead, no press, and no point
+       could ever sit on it — so "clause 2 is blank" was filed above clause 2
+       under words that said it was not in the contract at all. The test is the
+       paper's own: the numbering carries straight on past it (2 then 3), which
+       a title over its own parts never does — see _docReadNumNext.
+       THIS MOVES THE SENT SHAPE (docReadClauses sends `kind`) and so the
+       route's cache key, once, for the contracts that carry such a clause —
+       the same deliberate move D-2a above made, for the same reason. */
+    const blankNumbered=row.isHead&&!text&&!!cite
+      &&_docReadNumNext(cite,_docReadRowNum(rows[i+1]))
+      &&!DOC_READ_SELF_HEAD.test(_docReadHeadCut(heading).rest);
     if(heading||text) out.push({el:row.el,heading,ownHead,text,num:row.num,cite,sep,
-      headed:row.isHead, kind:(row.isHead&&!text)?'section':'clause'});
+      headed:row.isHead, kind:(row.isHead&&!text&&!blankNumbered)?'section':'clause'});
   });
   return out;
 }
@@ -14970,6 +15021,7 @@ function docThreadLineRow(){
    scroll decides. */
 function docThreadGoTo(c,i){
   const n=_docThreadRows.length; if(!n) return;
+  docThreadShutClear();   /* a press that moves the paper is the reader's: the close is let go */
   i=Math.max(0,Math.min(n-1,Number(i)||0));
   const sc=thEl('scroll'), el=_docThreadRows[i];
   if(!sc||!el){ docThreadOpen(c,i); return; }
@@ -15007,7 +15059,9 @@ function docThreadFollowArm(){
       return;
     }
     if(raf) return;
-    raf=requestAnimationFrame(()=>{ raf=0; const c=live(); if(c&&docThreadLive()) docThreadOpen(c,docThreadLineRow(),{follow:true}); });
+    /* THE FOLLOW STANDS DOWN WHILE THE READER'S CLOSE HOLDS: scrolling past a
+       clause may not re-open the list they shut (docThreadShut). */
+    raf=requestAnimationFrame(()=>{ raf=0; const c=live(); if(c&&docThreadLive()&&!docThreadShutOn(c)) docThreadOpen(c,docThreadLineRow(),{follow:true}); });
   },{passive:true});
   if('onscrollend' in window) sc.addEventListener('scrollend',()=>{ if(_docThreadGlide>=0) docThreadSettle(live()); });
 }
@@ -15058,7 +15112,7 @@ function docThreadDrawerSet(c, open, opts){
   const was=_docThreadUp;
   if(open&&!was&&right) _docRightKeep=right.scrollTop;
   _docThreadDrawerFor=String(cur.id); _docThreadDrawer=!!open;
-  if(open&&!was) _docThreadOn=-1;
+  if(open&&!was){ _docThreadOn=-1; docThreadShutClear(); }   /* opening the drawer is a press: it lands on a clause */
   docThreadPaint(cur);
   if(!open&&was&&right) right.scrollTop=_docRightKeep;
   if(!open&&was&&o.from!=='door'){
@@ -15298,11 +15352,18 @@ const docThreadNoAi = () => typeof API_MODE==='function'&&API_MODE()&&typeof sta
    "All N clauses in plain English" press is gone (`th_plain_all*` inert) and
    the route refuses a reading that does not name exactly one clause. */
 function docThreadExplainHtml(c,rows,i){
-  const dead=docThreadNoAi();
+  /* ---- A CLAUSE WITH NO WORDING HAS NOTHING TO READ (21 Oct 2026) ----
+   A numbered clause somebody left blank is a row of its own now, and its
+   Plain press would spend a call to be told there was nothing there. HaTi
+   knows before the press, so the button is GREY WITH THE REASON — the
+   sentence the whole-contract read already uses. */
+  const row=(rows||[])[i], empty=!!row&&!String((row.row&&row.row.text)||'').trim();
+  const dead=docThreadNoAi()||empty;
   return `<div class="doc-th-ask">
     <button type="button" class="ui-btn" data-th-explain="${i}"${dead?' disabled aria-disabled="true"':''}
-      title="${esc(i18t(dead?'th_no_ai':'th_plain_title'))}">${esc(i18t(thOnHome()?'th_plain_en':'th_plain'))}</button>
-    <span class="doc-th-cost">${esc(i18t('th_cost'))}</span>
+      title="${esc(i18t(empty?'ct_read_nothing':docThreadNoAi()?'th_no_ai':'th_plain_title'))}">${esc(i18t(thOnHome()?'th_plain_en':'th_plain'))}</button>
+    ${empty?`<span class="doc-th-cost">${esc(i18t('ct_read_nothing'))}</span>`
+      :`<span class="doc-th-cost">${esc(i18t('th_cost'))}</span>`}
   </div>`;
 }
 /* A MISSING MEMORY IS "WE DO NOT KNOW", NEVER "IT MOVED" (22 Sep 2026):
@@ -15438,8 +15499,15 @@ function docThreadFill(c,rows,i,opts){
    the list — because a scroll passes several clauses a second and each one
    used to set the list growing, shrinking and gliding at once. A PRESS (a row,
    ‹ ›, the filter) still animates: it is one change the reader asked for. */
+/* ---- NOTHING NEED BE OPEN (the owner, 21 Oct 2026: "some clauses refuse to
+   close once you go past them") ----
+   `i` of -1 is a real answer now — every row shut — because exactly one row
+   being open for ever is what made the open row's own press do nothing, and
+   the paper's follow then handed the reader a row they could not close. A
+   press on the open row shuts it (docThreadShut); docThreadFill has always
+   drawn -1 as "nothing open". */
 function docThreadOpen(c,i,opts){
-  if(i<0||i===_docThreadOn) return;
+  if(i===_docThreadOn) return;
   _docThreadOn=i;
   const card=thEl('card');
   if(!card||card.hidden) return;
@@ -15451,11 +15519,32 @@ function docThreadOpen(c,i,opts){
   if(follow){ clearTimeout(_docThreadStillT); _docThreadStillT=setTimeout(()=>card.classList.remove('th-still'),DOC_THREAD_SETTLE_MS*2); }
 }
 let _docThreadStillT=null;
+/* ---- A CLAUSE YOU CLOSED STAYS CLOSED WHILE YOU SCROLL (the owner decided
+   the judgement call, 21 Oct 2026) ----
+   The paper's follow opens whichever clause reaches the line, so without this
+   latch a deliberate close was undone by the reader's very next scroll. The
+   latch is the contract's own id while the list is shut, so moving to another
+   contract starts fresh, and the reader's NEXT PRESS clears it — every press
+   that opens a row goes through docThreadGoTo, the filter, a step, or the
+   paper's own press, and each lets it go. */
+let _docThreadShut='';
+const docThreadShutOn = c => !!_docThreadShut&&_docThreadShut===String(c&&c.id);
+const docThreadShutClear = () => { _docThreadShut=''; };
+/* SHUT THE LIST: the glide in flight is dropped (its reconcile would open the
+   row at the line again), the latch is raised, nothing is open. The paper does
+   not move — the reader is reading it. */
+function docThreadShut(c){
+  const cur=docThreadCur(c); if(!cur) return;
+  clearTimeout(_docThreadGlideT); _docThreadGlideT=null; _docThreadGlide=-1; _docThreadHold=-1;
+  _docThreadShut=String(cur.id);
+  docThreadOpen(cur,-1);
+}
 /* THE FILTER MOVED: the rows it hides step aside; where the open clause is
    one of them, the paper glides on to the next clause it shows (or the
    nearest, at the end of the paper) and that row opens. */
 function docThreadFilterSet(c, tone){
   const cur=docThreadCur(c);
+  docThreadShutClear();   /* the reader's own press: the close is let go */
   if(!tone) _docThreadTones=[];
   else _docThreadTones=docThreadTonesClean(_docThreadTones.includes(tone)
     ? _docThreadTones.filter(g=>g!==tone) : _docThreadTones.concat([tone]));
@@ -15601,7 +15690,7 @@ function docThreadPaint(c){
      its presses reading a paper that is not there ("There is no wording here
      to read yet." on Plain English). */
   if(want!==_thHost&&!document.getElementById(TH_HOSTS[want].card)) return;
-  if(want!==_thHost){ _thHost=want; _docThreadOn=-1; _docThreadRows=[]; _docThreadCache=null; _docThreadRevealed=-1; }
+  if(want!==_thHost){ _thHost=want; _docThreadOn=-1; _docThreadRows=[]; _docThreadCache=null; _docThreadRevealed=-1; docThreadShutClear(); }
   const home=thOnHome();
   const card=thEl('card');
   if(!card) return;
@@ -15647,7 +15736,11 @@ function docThreadPaint(c){
     land=worst?rows.findIndex(x=>!docThreadIsSec(x)&&x.tone===worst):-1;
     if(land>=0&&!docThreadShown(rows[land])) _docThreadTones=[];
   }
-  if(land>=0) _docThreadOn=land;
+  /* A LANDING IS A PRESS (the risk door above): it lets the reader's close go.
+     Otherwise the close HOLDS through every repaint — a poll, a reading
+     landing, a scan — because a repaint is not a press. */
+  if(land>=0){ docThreadShutClear(); _docThreadOn=land; }
+  else if(docThreadShutOn(c)) _docThreadOn=-1;
   else if(!docThreadShown(rows[_docThreadOn])) _docThreadOn=docThreadNearest(rows,docThreadAtLine());
   const sig=String(c&&c.id)+'|'+rows.map(x=>(docThreadIsSec(x)?'§':'')+docXrayLabel(x)).join('\u0001');
   if(card.getAttribute('data-th-sig')!==sig||!card.querySelector('.doc-th-rows')){
@@ -15682,7 +15775,13 @@ function docThreadWire(c){
       const t=e.target; if(!t||!t.closest) return;
       const cur=docThreadCur(c);
       const go=t.closest('[data-th-go]');
-      if(go){ docThreadGoTo(cur,Number(go.getAttribute('data-th-go'))); return; }
+      /* PRESS IT AGAIN AND IT CLOSES (the house rule): the open row's own head
+         shuts the list, and that close holds while the reader scrolls. */
+      if(go){
+        const at=Number(go.getAttribute('data-th-go'));
+        if(at===_docThreadOn) docThreadShut(cur); else docThreadGoTo(cur,at);
+        return;
+      }
       const st=t.closest('[data-th-step]');
       if(st){
         if(st.disabled) return;
@@ -15740,6 +15839,8 @@ function docThreadWire(c){
       const at=_docThreadRows.findIndex(el=>el&&el.contains&&el.contains(e.target));
       const rows=(_docThreadCache&&_docThreadCache.rows)||[];
       if(at<0||at===_docThreadOn||!docThreadShown(rows[at])) return;
+      /* the reader's own press: a close they made is let go */
+      docThreadShutClear();
       docThreadOpen(docThreadCur(thOnHome()?(thLiveContract()||c):c),at);
     });
   }

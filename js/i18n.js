@@ -17620,6 +17620,9 @@ const STRINGS = {
     stk_review_viewer: 'Only an editor can mark a point reviewed — ask an admin to make you an editor.',
     stk_review_failed: 'The review mark could not be saved. Try again.',
     stk_missing_after: 'After §{n} — not in the contract',
+    /* Jambo's panel, the Clauses tab (21 Oct 2026) */
+    stk_miss_fold: 'Hide these findings',
+    stk_miss_unfold: 'Show these findings',
     stk_missing_end: 'Not in the contract',
     brn_p_ptmark: 'Mark a point reviewed',
     brn_pd_ptmark: 'On Clause review a person marks one of the points reviewed, or takes it back; it then counts nowhere and says who reviewed it.',
@@ -36795,6 +36798,9 @@ const STRINGS = {
     stk_review_viewer: 'Bara en redigerare kan markera en punkt som granskad — be en administratör göra dig till redigerare.',
     stk_review_failed: 'Granskningen kunde inte sparas. Försök igen.',
     stk_missing_after: 'Efter §{n} — finns inte i avtalet',
+    /* Jambo's panel, the Clauses tab (21 Oct 2026) */
+    stk_miss_fold: 'Dölj dessa fynd',
+    stk_miss_unfold: 'Visa dessa fynd',
     stk_missing_end: 'Finns inte i avtalet',
     brn_p_ptmark: 'Markera en punkt som granskad',
     brn_pd_ptmark: 'I klausulgranskningen markerar en person en av punkterna som granskad, eller tar tillbaka det; den räknas då ingenstans och säger vem som granskade den.',

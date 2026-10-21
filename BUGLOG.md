@@ -21308,6 +21308,13 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Removed (owner's pick "The old chat window", said to the owner): the one-line ✦ ask bar under the top bar.
 - Noticed, not fixed: on Home, "What am I looking at?" typed into Home's own Jambo box answers "The board could not draw that…" instead of the free on-screen reading the side panel gives.
 
+## Noticed, not fixed (21 Oct 2026, the Clauses tab round)
+- Clauses tab CSS: .stk-miss-bead, .stk-miss-row and .stk-miss-t in index.html are drawn by nothing (no js writes those classes); the bead rule still carries a 2px dashed border that never reaches a screen. Left alone.
+- .doc-xr-who.is-limit keeps a 1px dashed border. It is only drawn in the room's clause drawer ("Who does what"), never in Jambo's Clauses tab on Home, so the owner's "no dotted lines in the clauses" does not reach it. Left alone.
+- .pd-th .stk-tally and .pd-th .stk-door are now unreferenced CSS (the count line is retired by not being drawn). Left in place, house style.
+- A breakdown reading kept before 21 Oct 2026 still carries missing:true for a clause that is merely blank, so on those contracts that finding stays in the "After N" group until the wording changes and Jambo reads again; a "Mark reviewed" tick made against that old shape does not carry to the new one (the point's key changes).
+- Red at 826e87cb, not this round's: stakes-verify 8 and home-paper-clauses-verify 3a/3b (Home's panel draws copilot, doc, oblig - the `menu` tab those checks expect is absent); point-buttons-and-brief-verify 6a ("at a glance" carries a Contract briefing button); uploaded-contract-fixed-verify 4a/4b (the "Who else" row).
+- CLAUDE.md was 82.7 KB before this change and 83.8 KB after (three MAP lines for the clause faults and the lines removed), well above its 80 KB line; a trim needs the owner's yes.
 ## 21 Oct 2026 — the middle (what a Dossier line opens comes to you)
 - Removed (owner's pick "The stage", said to the owner): Key terms' fold of lines down the Dossier on a computer (one line now, the table in the middle); "See it"'s trip to the Board's Jambo's work list from the Dossier; the Open Details act on a piece shown in the middle.
 - Noticed, not fixed: the piece panel's foot draws "Mark as read" and "Put away" alike as plain links side by side, though Put away takes the piece off the list.

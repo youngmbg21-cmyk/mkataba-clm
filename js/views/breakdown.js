@@ -86,7 +86,9 @@ function bdBusyHtml(){ return window.busyHtml ? busyHtml(i18t('bd_reading')) : _
    on screen"): a point's words are lit on the paper instead (igQuoteGo).
    Nothing is filed or sent: "Start redlining with this ask" is Negotiate's
    own door, "Ask Jambo about this" only fills Jambo's ask box. */
-const _stk = { id: null, dive: -1, f: { reg: '', sev: '', by: '' }, rows: null, nums: null, diveBusy: {}, diveErr: {}, marking: {} };
+/* `missShut`: the not-in-the-contract groups the reader has closed, this
+   sitting, this contract (the group's own key — see stkDecorate) */
+const _stk = { id: null, dive: -1, f: { reg: '', sev: '', by: '' }, rows: null, nums: null, diveBusy: {}, diveErr: {}, marking: {}, missShut: new Set() };
 const STK_REGION_TONES = 10;
 const stkOf = c => { const b = bdOf(c); return b && Array.isArray(b.points) ? b : null; };
 const stkNum = s => { const m = /^\s*(?:clause\s+|§\s*)?(\d+(?:\.\d+)*)/i.exec(String(s || '')); return m ? m[1] : ''; };
@@ -292,15 +294,14 @@ function stkAutoRun(c){
    review", and in grey the ruling it keeps — one view for the whole company
    (owner, 13 Oct 2026: "It should be one Overall Company view") */
 const stkViewHtml = extra => `<div class="stk-view"><b>${_bdE(i18t('stk_head'))}</b><span class="stk-view-sub">${_bdE(i18t('stk_view_sub'))}</span>${extra || ''}</div>`;
-/* THE THREE COUNTS ARE THE SUMMARY, AND EACH IS A DOOR onto the Severity
-   filter it names (one door: _stk.f.sev — pressed again it lets go). A count
-   of nothing is not offered (a choice that gives nothing is not listed). */
-function stkTallyHtml(all){
-  const n = stkCounts(all);
-  const doors = ['need', 'look', 'note'].filter(k => n[k]).map(k => { const on = _stk.f.sev === k;
-    return `<button type="button" class="stk-door${on ? ' is-on' : ''}" data-stk-sev="${k}" aria-pressed="${on ? 'true' : 'false'}"><i class="stk-d8 is-${k}" aria-hidden="true"></i>${_bdE(i18tn('stk_tally_' + k, n[k], { n: n[k] }))}</button>`; });
-  return `<div class="stk-tally" role="group" aria-label="${_bdE(i18t('stk_f_sev'))}">${doors.length ? doors.join('') : `<span class="stk-door is-none">${_bdE(i18t('stk_tally_none'))}</span>`}</div>`;
-}
+/* ---- THE THREE-COUNT LINE IS GONE (the owner, 21 Oct 2026: "remove the
+   highlighted area as it is redundant") ----
+   It sat under the title saying "1 needs you · 2 worth a look" and was a door
+   onto the Severity filter — the same three the Severity box below it offers,
+   so no act is lost and the head is one line shorter. `stkTallyHtml` and its
+   `data-stk-sev` press are retired by not being drawn; `stk_tally_*` stay
+   inert in both books. `stkCounts` lives on: the Clauses tab's own number
+   reads it (stkNeedCount). */
 function stkHeadHtml(c, b, all){
   const busy = _bd.busy && _bd.runFor === c.id;
   const err = _bd.err && _bd.runFor === c.id ? _bd.err : '';
@@ -314,12 +315,12 @@ function stkHeadHtml(c, b, all){
     const why = err || (noKey ? i18t('bd_no_key') : waits ? i18t('jb_wait_line') : i18t('stk_read_sub'));
     return `<div class="stk-head is-empty">${view}${waits && !err ? `<span class="jb-state">${_bdE(i18t('jb_state_private'))}</span>` : ''}<p class="${err ? 'stk-err' : 'stk-sub'}" role="${err ? 'alert' : 'status'}">${_bdE(why)}</p>${noKey ? '' : `<div class="stk-acts"><button type="button" class="ui-btn ui-btn-sm" data-stk-run>${_bdE(i18t(waits ? 'jb_read_now' : 'stk_again'))}</button><span class="stk-cost">${_bdE(i18t('bd_cost'))}</span></div>`}</div>`;
   }
-  /* AS DRAWN (owner said yes, 21 Oct 2026, "the Legora way"): the name, the
-     three counts as doors, then the three filters */
+  /* AS DRAWN (owner said yes, 21 Oct 2026, "the Legora way"; the count line
+     removed on their word the same day): the name, then the three filters */
   all = all || stkReview(c, b);
   return `<div class="stk-head">
     ${stkViewHtml(busy ? `<span class="stk-busy" role="status">${bdBusyHtml()}</span>` : '')}
-    ${all.length ? stkTallyHtml(all) + stkFiltersHtml(b, all) : `<p class="stk-sub">${_bdE(i18t('stk_none'))}</p>`}
+    ${all.length ? stkFiltersHtml(b, all) : `<p class="stk-sub">${_bdE(i18t('stk_none'))}</p>`}
     ${b.truncated ? `<p class="stk-sub">${_bdE(i18t('stk_cut'))}</p>` : ''}
     ${err ? `<p class="stk-err" role="alert">${_bdE(err)}</p>` : ''}</div>`;
 }
@@ -366,7 +367,7 @@ function stkRowWords(live){
 /* painted after the list's own paint, on Home only */
 function stkDecorate(c, card, rows){
   if (!c || !card) return;
-  if (_stk.id !== String(c.id)){ _stk.id = String(c.id); _stk.dive = -1; _stk.f = { reg: '', sev: '', by: '' }; }
+  if (_stk.id !== String(c.id)){ _stk.id = String(c.id); _stk.dive = -1; _stk.f = { reg: '', sev: '', by: '' }; _stk.missShut = new Set(); }
   const b = stkOf(c);
   _stk.rows = rows || null;
   _stk.nums = stkNumsOf(rows || []);
@@ -413,10 +414,14 @@ function stkDecorate(c, card, rows){
         if (h) h.insertAdjacentHTML('afterend', (byRow[at] || []).map(i => stkCardHtml(c, shown[i], i, redWhy)).join('')); }
     });
     /* ---- WHAT THE CONTRACT DOES NOT SAY STANDS WHERE IT WOULD GO (owner
-       said yes, 21 Oct 2026): a dashed row "After §N — not in the contract"
-       after the clause the point names, its card always open; one that names
-       no clause, and a point about a clause the list does not show, stand at
-       the end under their own words — never dropped, never guessed ---- */
+       said yes, 21 Oct 2026): a row "After §N — not in the contract" after the
+       clause the point names; one that names no clause, and a point about a
+       clause the list does not show, stand at the end under their own words —
+       never dropped, never guessed ----
+       NO DASHED BOX (the owner, 21 Oct 2026: "no dotted lines in the
+       clauses") — the indent and the grey label carry it.
+       AND IT FOLDS: the head is the group's own open/close, so nothing in the
+       list is uncloseable; open unless the reader shut it this sitting. */
     const groups = new Map();
     shown.forEach((p, i) => { if (p.at >= 0) return;
       const g = p.missing ? (p.afterAt >= 0 ? 'a' + p.afterAt : 'm') : 'o';
@@ -424,7 +429,10 @@ function stkDecorate(c, card, rows){
     groups.forEach((ids, g) => {
       const at = g[0] === 'a' ? Number(g.slice(1)) : -1;
       const h = at >= 0 ? i18t('stk_missing_after', { n: nums[at] || '' }) : g === 'm' ? i18t('stk_missing_end') : i18t('stk_other_h', { n: ids.length });
-      const html = `<div class="stk-miss${g === 'o' ? ' is-other' : ''}" role="listitem"><div class="stk-miss-h">${_bdE(h)}</div>${ids.map(i => stkCardHtml(c, shown[i], i, redWhy)).join('')}</div>`;
+      const open = !_stk.missShut.has(g);
+      const html = `<div class="stk-miss${g === 'o' ? ' is-other' : ''}${open ? ' is-open' : ''}" role="listitem"><button type="button" class="stk-miss-h" data-stk-miss-go="${_bdE(g)}"
+        aria-expanded="${open ? 'true' : 'false'}" title="${_bdE(i18t(open ? 'stk_miss_fold' : 'stk_miss_unfold'))}">${_bdE(h)}</button>
+        <div class="stk-miss-body">${ids.map(i => stkCardHtml(c, shown[i], i, redWhy)).join('')}</div></div>`;
       const row = at >= 0 ? list.querySelector(`.doc-th-row[data-th-row="${at}"]`) : null;
       if (row) row.insertAdjacentHTML('afterend', html); else list.insertAdjacentHTML('beforeend', html);
     });
@@ -457,7 +465,10 @@ async function stkDiveFetch(c, p){
   _stk.diveBusy[k] = true; delete _stk.diveErr[k];
   try {
     const live = (typeof getContract === 'function' && getContract(c.id)) || c;
-    const r = await api('ai/breakdown/point', 'POST', { text: bdText(live), point: { title: p.title, clause: p.clause, stake: p.stake, quote: p.quote, missing: !!p.missing, after: p.after || '' } }, { quiet: true });
+    /* `blank`: the clause IS in the contract and says nothing (the route's own
+       third state) — the dive is told so, or it would be asked about wording
+       that is not there */
+    const r = await api('ai/breakdown/point', 'POST', { text: bdText(live), point: { title: p.title, clause: p.clause, stake: p.stake, quote: p.quote, missing: !!p.missing, blank: !!p.blank, after: p.after || '' } }, { quiet: true });
     if (!r || r.error) throw new Error((r && r.error) || i18t('bd_failed'));
     const b = live.breakdown, at = b && Array.isArray(b.points) ? b.points[p._i] : null;
     /* kept only on the reading it was asked for: these words, and the language it came back in */
@@ -635,10 +646,23 @@ if (typeof document !== 'undefined' && !document._stkWired){
     const da = t.closest('[data-stk-dive-again]');
     if (da){ const b0 = stkOf(c), p = b0 ? stkShown(c, b0)[Number(da.getAttribute('data-stk-dive-again'))] : null;
       if (p){ delete _stk.diveErr[stkDiveKey(c, p)]; stkDivePaint(c); stkDiveFetch(c, p); } return; }
-    /* a count in the head is the Severity filter's door; pressed again it lets go */
-    const sv = t.closest('[data-stk-sev]');
-    if (sv){ const k = sv.getAttribute('data-stk-sev') || ''; _stk.f.sev = _stk.f.sev === k ? '' : k; _stk.dive = -1; stkRepaint(c);
-      const again = document.querySelector(`#pd-thread [data-stk-sev="${k}"]`); if (again && again.focus) again.focus({ preventScroll: true }); return; }
+    /* ---- WHAT THE CONTRACT DOES NOT SAY FOLDS LIKE EVERYTHING ELSE (21 Oct
+       2026) ---- Its own head is the control: pressed it shuts the group,
+       pressed again it opens it, and the choice is kept for this sitting so a
+       repaint (a poll, a reading landing) does not undo it. Nothing in the
+       list is uncloseable now. The list is NOT repainted: the class and the
+       state go on the elements in front of the reader. */
+    const mg = t.closest('[data-stk-miss-go]');
+    if (mg){
+      const k = String(mg.getAttribute('data-stk-miss-go') || ''), box = mg.closest('.stk-miss');
+      if (box){
+        const open = box.classList.toggle('is-open');
+        if (open) _stk.missShut.delete(k); else _stk.missShut.add(k);
+        mg.setAttribute('aria-expanded', open ? 'true' : 'false');
+        mg.title = i18t(open ? 'stk_miss_fold' : 'stk_miss_unfold');
+      }
+      return;
+    }
     const rv = t.closest('[data-stk-review], [data-stk-unreview]');
     if (rv){ if (rv.disabled) return; const b0 = stkOf(c), undo = rv.hasAttribute('data-stk-unreview');
       const p = b0 ? stkShown(c, b0)[Number(rv.getAttribute(undo ? 'data-stk-unreview' : 'data-stk-review'))] : null;

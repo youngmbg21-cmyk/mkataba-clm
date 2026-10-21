@@ -277,20 +277,30 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
 
     /* ===== 5. WORTH A LOOK AND WHO DOES WHAT ===== */
     await stage(); await page.waitForTimeout(900);
-    await page.evaluate(() => { const c = getContract(window.__thId); const i = docXrayRows(c, document.getElementById('ig-canvas')).findIndex(r => r.tone === 'ruby');
-      document.querySelector('#pd-thread [data-th-go="' + i + '"]').click(); });
+    /* RE-POINTED 21 Oct 2026 (the owner: "some clauses refuse to close once
+       you go past them"): a press on the row that is ALREADY OPEN now closes
+       it, so the two presses below OPEN the row they name — they press only
+       where that row is not already the open one. */
+    const openRow = i => page.evaluate(i => { const r = document.querySelector('#pd-thread [data-th-row="' + i + '"]');
+      if (!r || r.classList.contains('is-open')) return false;
+      r.querySelector('[data-th-go]').click(); return true; }, i);
+    const rubyAt = await page.evaluate(() => { const c = getContract(window.__thId);
+      return docXrayRows(c, document.getElementById('ig-canvas')).findIndex(r => r.tone === 'ruby'); });
+    await openRow(rubyAt);
     await page.waitForTimeout(1300);
     const s7 = await read();
     /* RE-POINTED 13 Oct 2026 (Stakes as drawn, owner: "This is how the panel
        should look like but with a plain English button"): Home's open row
        carries only Plain English - Worth a look, its marks and Who does what
        are not drawn there. 5a/5b/5d/6c assert them ABSENT on the ruby row. */
-    check('5a the ruby row (Article XI) opens with no Worth a look on Home (Stakes as drawn)', /INDEMNIF/.test(s7.rows[s7.openIdx].name) && !s7.lookHas, s7.lookBg);
+    check('5a the ruby row (Article XI) opens with no Worth a look on Home (Stakes as drawn)',
+      s7.openIdx >= 0 && /INDEMNIF/.test(((s7.rows.find(r => r.open) || {}).name) || '') && !s7.lookHas,
+      JSON.stringify({ openIdx: s7.openIdx, open: (s7.rows.find(r => r.open) || {}).name, lookBg: s7.lookBg }));
     check('5b and no mark is drawn in the open row', s7.marks.length === 0,
       JSON.stringify(s7.marks));
     check('5c and there is NO "Add a note" (the owner removed it)', s7.notes === 0 && !s7.addNote, JSON.stringify({ notes: s7.notes, addNote: s7.addNote }));
     check('5d and no Who does what either', !s7.who, s7.who + ' lines');
-    await page.evaluate(() => document.querySelector('#pd-thread [data-th-go="0"]').click()); await page.waitForTimeout(1300);
+    await openRow(0); await page.waitForTimeout(1300);
     const s7b = await read();
     check('5e [control] with nothing worth a look (Article VI) the area stays white', !s7b.lookHas && !reddish(s7b.lookBg), s7b.lookBg);
     await page.screenshot({ path: path.join(OUT, '05-worth-a-look.png') });

@@ -355,7 +355,12 @@ const check = (name, pass, detail) => {
       /* land on the clause the high finding quotes */
       const rows = docXrayRows(state.contracts[0], document.getElementById('ig-canvas'));
       const i = rows.findIndex(r => r.tone === 'ruby');
-      if (i >= 0) { const b = document.querySelector('#pd-thread [data-th-go="' + i + '"]'); if (b) b.click(); }
+      /* RE-POINTED 21 Oct 2026 (the owner: "some clauses refuse to close once
+         you go past them"): a press on the row that is already open CLOSES it
+         now, so this press opens the row it names only where it is not
+         already the open one. */
+      if (i >= 0) { const r0 = document.querySelector('#pd-thread [data-th-row="' + i + '"]');
+        const b = r0 && !r0.classList.contains('is-open') ? r0.querySelector('[data-th-go]') : null; if (b) b.click(); }
       await new Promise(z => setTimeout(z, 1300));
       const th = document.getElementById('pd-thread'), cv = document.getElementById('ig-canvas');
       const overlap = th && cv ? th.getBoundingClientRect().left < cv.getBoundingClientRect().right : null;
