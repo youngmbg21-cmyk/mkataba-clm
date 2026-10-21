@@ -283,11 +283,13 @@ const visible = (page, sel) => page.evaluate(s => {
       const st = getComputedStyle(el);
       const ink = over(rgba(st.color), ground(el.parentElement));
       return { r: ratio(ink, ground(el)), ink: st.color, bg: st.backgroundColor }; };
-    const res = v => { const e = document.createElement('i'); e.style.color = v; document.body.appendChild(e); const c = rgba(getComputedStyle(e).color); e.remove(); return c; };
-    const pair = (fg, bg) => { const g = over(res(bg), { r: 255, g: 255, b: 255, a: 1 }); return ratio(over(res(fg), g), g); };
+    /* the tokens are scoped, not on :root: resolved INSIDE the mark itself */
+    const res = (at, v) => { const e = document.createElement('i'); e.style.color = v; at.appendChild(e); const c = rgba(getComputedStyle(e).color); e.remove(); return c; };
+    const pair = (sel, fg, bg) => { const at = p && p.querySelector(sel); if (!at) return 0;
+      const g = over(res(at, bg), { r: 255, g: 255, b: 255, a: 1 }); return ratio(over(res(at, fg), g), g); };
     const out = { ins: one('ins, .nego-ins'), del: one('del, .nego-del') };
-    if (out.ins) out.ins.pair = pair('var(--n-ins-fg)', 'var(--n-ins-bg)');
-    if (out.del) out.del.pair = pair('var(--n-del-fg)', 'var(--n-del-bg)');
+    if (out.ins) out.ins.pair = pair('ins, .nego-ins', 'var(--n-ins-fg)', 'var(--n-ins-bg)');
+    if (out.del) out.del.pair = pair('del, .nego-del', 'var(--n-del-fg)', 'var(--n-del-bg)');
     return out;
   });
   for (const k of ['ins', 'del']){
