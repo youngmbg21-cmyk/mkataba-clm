@@ -78,7 +78,8 @@ CONTRACTS[1].metadata = { ...(CONTRACTS[1].metadata || {}), expiryDate: day(40) 
       const L = await until(() => { const c = document.getElementById('hm-agents'); return c && c.classList.contains('is-landed') ? true : null; }, null, 6000);
       const s = await landed();
       check('1b Open lands on the Board\'s Jambo\'s work card', L === true && s.view === 'dashboard' && s.face === 'board' && s.card, JSON.stringify(s));
-      check('1c the card is in sight and lit, a ring drawn', s.inView && s.lit && /solid 2px/.test(s.ring), JSON.stringify(s));
+      /* RE-POINTED 21 Oct 2026 (owner: no light on arrival): in sight and marked, no ring drawn */
+      check('1c the card is in sight, no ring drawn', s.inView && s.lit && /^none/.test(s.ring), JSON.stringify(s));
       check('1d a button on it is ready for Enter', s.focus, JSON.stringify(s));
       await shot(page, 'land-on-work-1440x780');
       await page.mouse.click(5, 300);

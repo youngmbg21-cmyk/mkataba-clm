@@ -221,7 +221,8 @@ const word = (lines) => Buffer.from(mkDocx(lines.map(t => para(t)).join('')));
     await waitFor(page, () => !!document.querySelector('#pd-og [data-pd-og-row="stream"]'), 8000);
     const s0 = await page.evaluate(() => { const c = getContract(intel.paper.id); const r = document.querySelector('#pd-og [data-pd-og-row="stream"]');
       return { folder: c.folder, name: (FOLDERS[c.folder] || {}).name, said: r ? r.textContent : '', box: !!(r && r.querySelector('input, select, button')) }; });
-    check('5a Still owed names the stream, saved when the draft was made', !!s0.name && s0.said.includes(s0.name) && /set when/i.test(s0.said) && !s0.box, s0);
+    /* RE-POINTED 21 Oct 2026 (owner: the grey line under an owed fact was noise): the row names the stream and says Saved */
+    check('5a Still owed names the stream, saved', !!s0.name && s0.said.includes(s0.name) && /saved/i.test(s0.said) && !/set when/i.test(s0.said) && !s0.box, s0);
     check('5b and never counts it as owed', !(await page.evaluate(() => detailsOf(getContract(intel.paper.id)).items.some(x => /folder|stream/.test(x.key)))));
 
     /* ===== 6. AT A GLANCE ===== */

@@ -153,7 +153,8 @@ const signIn = async (page, base, email, pass) => {
     const cost = await until(() => { const t = [...document.querySelectorAll('.st-jb-turn')].pop(); return t && t.querySelector('[data-st-jb-why]') ? t.textContent : null; });
     check('5. a "why" offers the AI, its cost said before the press', !!cost && /Jambo call|Jambo-anrop/.test(cost));
     const callsBefore = h.ai.calls.length;
-    await page.click('.st-jb-turn:last-child [data-st-jb-why]');
+    /* RE-POINTED 21 Oct 2026 (one conversation): a turn sits in its host wrapper with its read line after it, so the last turn is the last wrapper's */
+    await page.click('#st-jb-feed .jb-turn:last-child .st-jb-turn [data-st-jb-why]');
     const said = await until(() => { const t = [...document.querySelectorAll('.st-jb-turn')].pop(); const c = t && t.querySelector('.st-jb-ai .st-jb-cb'); return c && !c.querySelector('.ob-spin') && c.textContent.trim().length > 10 ? c.textContent.trim().slice(0, 100) : null; }, null, 15000);
     check('5b. the press is one Jambo call, and its answer — or why there is none — is said on the card', h.ai.calls.length === callsBefore + 1 && !!said, said);
 
@@ -165,9 +166,9 @@ const signIn = async (page, base, email, pass) => {
     await ed.waitForFunction(() => !!document.getElementById('st-jb-q'), null, { timeout: 10000 });
     await ed.fill('#st-jb-q', 'turn on internal review');
     await ed.press('#st-jb-q', 'Enter');
-    await ed.waitForFunction(() => !!document.querySelector('.st-jb-turn:last-child [data-st-ask-admin]'), null, { timeout: 8000 });
-    await ed.fill('.st-jb-turn:last-child textarea', 'HR offer letters go out unchecked');
-    await ed.click('.st-jb-turn:last-child [data-st-ask-admin]');
+    await ed.waitForFunction(() => !!document.querySelector('#st-jb-feed .jb-turn:last-child .st-jb-turn [data-st-ask-admin]'), null, { timeout: 8000 });
+    await ed.fill('#st-jb-feed .jb-turn:last-child .st-jb-turn textarea', 'HR offer letters go out unchecked');
+    await ed.click('#st-jb-feed .jb-turn:last-child .st-jb-turn [data-st-ask-admin]');
     const asked = await ed.waitForFunction(() => /Asked|Frågat/.test(([...document.querySelectorAll('.st-jb-turn')].pop() || {}).textContent || ''), null, { timeout: 8000 }).then(() => true).catch(() => false);
     check('6. an editor\'s ask is sent, and Jambo says where it waits', asked);
     /* the count moves at once; the row is drawn on the next paint (the page
