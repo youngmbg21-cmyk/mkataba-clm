@@ -420,33 +420,35 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
       /2026-08-2\d/.test(outcome.body), outcome.body.slice(0, 90));
     check('8 and the note the sender typed', /coming up/i.test(outcome.body));
 
-    /* ---- 9. DARK ---- */
-    await page.evaluate(() => { document.documentElement.classList.add('dark'); renderCalendar(); });
-    await pause(700);
-    await page.screenshot({ path: path.join(OUT, '05-dark.png') });
-    const dark = await page.evaluate(() => {
+    /* ---- 9. ONE LOOK ----
+       RE-POINTED 21 Oct 2026 (Chambers): dark mode is gone from HaTi (only
+       Explorer's map and the Brain keep their dark stage). The old night pass
+       becomes the absence it now is: the class that once turned the calendar
+       dark repaints nothing, and the chips and the four tones still draw. */
+    const look = () => page.evaluate(() => {
       const g = e => e ? getComputedStyle(e) : null;
       const seg = document.querySelector('.cal-seg span.on');
-      /* RE-POINTED 10 Oct 2026: the views moved into the segmented control
-         (.cal-seg-view) in SAP batch 2; .cal-bar .views is gone. */
       const tab = document.querySelector('.cal-seg-view a.on');
       const chip = document.querySelector('.cal-chip');
       const legend = [...document.querySelectorAll('.cal-legend i')].map(i => g(i).backgroundColor);
-      return { segBg: g(seg).backgroundColor, segFg: g(seg).color, tabFg: g(tab).color,
+      return { segBg: seg ? g(seg).backgroundColor : null, segFg: seg ? g(seg).color : null, tabFg: tab ? g(tab).color : null,
+        page: g(document.body).backgroundColor,
         chip: chip ? { bg: g(chip).backgroundColor, fg: g(chip).color } : null, legend };
     });
-    /* The live tab was the one caught out on the negotiation page: dark does
-       not redefine the accent ramp, so accent-800 on an almost-black panel is
-       all but invisible. -300 is the step that reads. */
-    check('9 dark: the live tab is a light accent, not the dark step',
-      /(94, 234, 212|\d{3}, \d{3}, \d{3})/.test(dark.tabFg) && dist(dark.tabFg, 'rgb(15,118,110)') > 60,
-      dark.tabFg);
-    check('9 dark: the chips still draw', !!dark.chip, dark.chip);
-    check('9 dark: the four tones are still tellable apart',
+    const day = await look();
+    await page.evaluate(() => { document.documentElement.classList.add('dark'); renderCalendar(); });
+    await pause(700);
+    await page.screenshot({ path: path.join(OUT, '05-one-look.png') });
+    const night = await look();
+    await page.evaluate(() => { document.documentElement.classList.remove('dark'); renderCalendar(); });
+    check('9 one look: the old dark class repaints nothing',
+      !!day.tabFg && JSON.stringify(day) === JSON.stringify(night), JSON.stringify({ day: day.tabFg + ' ' + day.page, night: night.tabFg + ' ' + night.page }));
+    check('9 the chips still draw', !!day.chip, day.chip);
+    check('9 the four tones are still tellable apart',
       (() => { let w = 999;
-        for (let i = 0; i < dark.legend.length; i++) for (let j = i + 1; j < dark.legend.length; j++)
-          w = Math.min(w, dist(dark.legend[i], dark.legend[j]));
-        return w > 60; })(), dark.legend);
+        for (let i = 0; i < day.legend.length; i++) for (let j = i + 1; j < day.legend.length; j++)
+          w = Math.min(w, dist(day.legend[i], day.legend[j]));
+        return day.legend.length >= 2 && w > 60; })(), day.legend);
 
     check('no page errors anywhere in the journey', errors.length === 0, errors.slice(0, 3));
   } finally {

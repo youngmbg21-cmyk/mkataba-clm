@@ -66,7 +66,10 @@ const check = (name, pass, detail) => {
     const lateN = () => { const a = agentsData(state.contracts).agents.late; return ((a && a.ready) || []).filter(x => /^MK-AP/.test(x.cid)).length; };
     check('0. three late promises wait', (await until(n => (new Function('return (' + n + ')()'))() >= 3, lateN.toString())) === true);
 
-    for (const scr of ['dark', 'light']) {
+    /* RE-POINTED 21 Oct 2026 (Chambers): the Board's Light | Dark switch is gone
+       and the Board is light; the dark pass left with it (only Explorer's map
+       and the Brain stay dark). */
+    for (const scr of ['light']) {
       await page.evaluate(scr => { const s = hbS(); s.screen = scr; hbSave(); hbOpenAgent('late'); try { hbApplyScreen(); } catch (_) {} }, scr);
       const ready = await until(scr => { const pg = document.querySelector('#hb-page, #ig-page'); return !!pg && pg.classList.contains('hb-' + scr) && document.querySelectorAll('.hb-ag-work').length >= 3; }, scr);
       check(`${scr} 0. the packs are drawn below the card`, !!ready);

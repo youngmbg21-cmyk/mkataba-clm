@@ -128,9 +128,8 @@ function healthReportData(){
 
 /* ---------- charts, as pictures ----------
    The report is a standalone document, so its charts travel as embedded PNGs
-   drawn OFFSCREEN from the same recipes the Copilot uses. Always drawn on the
-   LIGHT palette: a report is printed and forwarded, and dark-theme ink on
-   white paper is unreadable — so the dark class steps aside for the build. */
+   drawn OFFSCREEN from the same recipes the Copilot uses, on HaTi's one
+   (light) palette — dark mode left HaTi on 20 Oct 2026. */
 async function _hrChartImages(){
   const out={};
   if(typeof aiChartLib!=='function'||typeof AI_CHART_RECIPES!=='object') return out;
@@ -138,9 +137,6 @@ async function _hrChartImages(){
   const money=(typeof kpiMoneyOk==='function')?kpiMoneyOk():true;
   const kinds=[['status','statusBreakdown'],['expiry','expiryTimeline']]
     .concat(money?[['party','valueByCounterparty'],['renewal','renewalPipeline']]:[]);
-  const rootCl=document.documentElement.classList;
-  const wasDark=!!(rootCl&&rootCl.contains&&rootCl.contains('dark'));
-  if(wasDark) rootCl.remove('dark');
   if(typeof _acRefreshPalette==='function') try{ _acRefreshPalette(); }catch(_){}
   const host=document.createElement('div');
   host.style.cssText='position:fixed;left:-10000px;top:0;width:840px;pointer-events:none;opacity:0';
@@ -166,8 +162,6 @@ async function _hrChartImages(){
     }
   } finally {
     host.remove();
-    if(wasDark) rootCl.add('dark');
-    if(typeof _acRefreshPalette==='function') try{ _acRefreshPalette(); }catch(_){}
   }
   return out;
 }

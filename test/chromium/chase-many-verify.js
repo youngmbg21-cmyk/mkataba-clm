@@ -53,7 +53,10 @@ const DOC = 'SUPPLY AGREEMENT\n\nArticle 1 Term\n\nThis Agreement runs for twelv
     }
     await page.waitForFunction(() => window.state && Array.isArray(state.contracts) && state.contracts.length >= 2, null, { timeout: 15000 }).catch(() => {});
     await page.keyboard.press('Escape').catch(() => {});
-    const en = await page.$('.lang-btn[data-lang="en"]'); if (en) await en.click();
+    /* RE-POINTED 21 Oct 2026 (Chambers): the bar's language switch left; its
+       press used to give the Board its beat. The wait now asks for the state,
+       bounded: the Late promises row is on Jambo's work before it is opened. */
+    await page.waitForFunction(() => typeof hbAgentsData === 'function' && hbAgentsData(null).rows.some(r => r.k === 'late'), null, { timeout: 15000 }).catch(() => {});
     await page.evaluate(() => hbOpenAgent('late'));
     await page.waitForSelector('[data-hb-chase-many-box]', { timeout: 10000 }).catch(() => {});
 

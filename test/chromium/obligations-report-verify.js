@@ -16,10 +16,11 @@
       disagreed with its own data fails here — and the hollow dots are the
       silent ones (RE-POINTED 28 Sep 2026 to the Reminder Line).
 
-   3  IS THE COLOUR TELLABLE APART, IN BOTH THEMES? Will be reminded (a green
-      dot) against will reach nobody (a hollow ruby ring) — a pair that has to
-      survive the teal workspace, the navy one and the dark theme. Measured as
-      COMPUTED values.
+   3  IS THE COLOUR TELLABLE APART? Will be reminded (a green dot) against
+      will reach nobody (a hollow ruby ring), and neither is the page under
+      it. Measured as COMPUTED values. (RE-POINTED 20 Oct 2026: the owner
+      picked "Chambers" and removed dark mode and the Blue / Green workspaces,
+      so the pair is asked of the one look; the dark and navy passes are gone.)
 
    4  DOES IT FIT A LAPTOP? Measured at three widths, with no sideways scroll.
 
@@ -213,11 +214,13 @@ const apart = (a, b) => { const x = rgb(a), y = rgb(b);
         && seen.dots.length === onLine.length,
       `${seen.dots.filter(x => x.hollow).length} hollow of ${seen.dots.length}`);
 
-    /* ---- 3 · told and not told are tellable apart, in both themes ----
+    /* ---- 3 · told and not told are tellable apart ----
        RE-POINTED 28 Sep 2026: the page's one colour question is now "will
-       anybody be told" — a filled green dot against a hollow ruby ring — and
-       it must survive the dark theme and the navy workspace. Measured as
-       COMPUTED values. */
+       anybody be told" — a filled green dot against a hollow ruby ring.
+       RE-POINTED 20 Oct 2026 (Chambers, no dark mode, no Blue / Green
+       workspace): the dark and navy passes are gone with the looks they
+       measured; "neither is the page it is drawn on" is asked of the one
+       look. Measured as COMPUTED values. */
     const readPair = () => page.evaluate(() => {
       const host = document.getElementById('ig-oblig');
       const told = host.querySelector('.ob-rl-dot.is-told'), sil = host.querySelector('.ob-rl-dot.is-silent');
@@ -225,33 +228,18 @@ const apart = (a, b) => { const x = rgb(a), y = rgb(b);
         page: getComputedStyle(document.body).backgroundColor };
     });
     const light = await readPair();
-    check('3a · light · told and not told are different colours',
+    check('3a · told and not told are different colours',
       light.dots.length >= 2 && apart(light.dots[0], light.dots[1]) > 40,
       `${light.dots[0]} vs ${light.dots[1]} — ${apart(light.dots[0], light.dots[1])}`);
+    check('3b · neither is the page it is drawn on',
+      apart(light.dots[0], light.page) > 40 && apart(light.dots[1], light.page) > 40,
+      `page ${light.page}`);
     await page.screenshot({ path: path.join(OUT, 'report-light-1500.png'), fullPage: true });
-
-    await page.evaluate(() => { setDark(true); });
-    await page.waitForTimeout(700);
-    const dark = await readPair();
-    check('3b · dark · the pair survives the theme',
-      dark.dots.length >= 2 && apart(dark.dots[0], dark.dots[1]) > 40,
-      `${dark.dots[0]} vs ${dark.dots[1]} — ${apart(dark.dots[0], dark.dots[1])}`);
-    check('3c · dark · neither is the page it is drawn on',
-      apart(dark.dots[0], dark.page) > 40 && apart(dark.dots[1], dark.page) > 40,
-      `page ${dark.page}`);
-    await page.screenshot({ path: path.join(OUT, 'report-dark-1500.png'), fullPage: true });
-
-    /* THE NAVY WORKSPACE MOVES THE ACCENT, and neither status colour may be
-       the accent: green and ruby are fixed in every workspace. */
-    await page.evaluate(() => { setDark(false); setBrand('navy'); });
-    await page.waitForTimeout(700);
-    const navy = await readPair();
-    check('3d · navy workspace · the pair still reads as two colours',
-      navy.dots.length >= 2 && apart(navy.dots[0], navy.dots[1]) > 40,
-      `${navy.dots[0]} vs ${navy.dots[1]} — ${apart(navy.dots[0], navy.dots[1])}`);
-    await page.screenshot({ path: path.join(OUT, 'report-navy-1500.png'), fullPage: true });
-    await page.evaluate(() => { setBrand('teal'); });
-    await page.waitForTimeout(600);
+    const looks = await page.evaluate(() => ({ dark: document.documentElement.classList.contains('dark'),
+      brand: document.documentElement.getAttribute('data-brand'),
+      fns: ['setDark', 'setBrand', 'setTheme'].filter(n => typeof window[n] === 'function') }));
+    check('3c · one look: no dark theme or workspace brand is left to switch to',
+      !looks.dark && looks.brand === null && looks.fns.length === 0, JSON.stringify(looks));
 
     /* ---- 4 · it fits a laptop ---- */
     for (const w of [1500, 1440, 1280]) {

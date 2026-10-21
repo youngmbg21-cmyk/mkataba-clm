@@ -74,9 +74,10 @@ describe('f761 (3) one builder for the marks', () => {
     const win = w();
     const html = win.tbMarksHtml([{ kind: 'met', category: 'Payment terms', label: 'Payment within 30 days' }, { kind: 'dev', category: 'Payment terms', label: 'Payment terms', figure: 60, want: 45, op: '<=', unit: 'days' }, { kind: 'changed', category: 'Liability cap', n: 3, ids: ['a', 'b', 'c'] }]);
     assert.match(html, /^<div class="tpl-mks" data-not-wording contenteditable="false">/);
-    assert.match(html, /<span class="tpl-mk" title="Meets Our standards: Payment terms"><svg[^>]*>[\s\S]*?<\/svg>Payment within 30 days<\/span>/);
-    assert.match(html, /<span class="tpl-mk is-dev"[^>]*>Payment terms: 60 days · ours ≤ 45<\/span>/);
-    assert.match(html, /<button type="button" class="tpl-mk is-changed" data-tpl-mk-changed="a,b,c" data-tpl-mk-cat="Liability cap"[^>]*>Came back changed 3 times<\/button>/);
+    /* RE-POINTED 21 Oct 2026 (Chambers): every mark is a dot and its words (an <i>), no tick, no wash */
+    assert.match(html, /<span class="tpl-mk" title="Meets Our standards: Payment terms"><i><\/i>Payment within 30 days<\/span>/);
+    assert.match(html, /<span class="tpl-mk is-dev"[^>]*><i><\/i>Payment terms: 60 days · ours ≤ 45<\/span>/);
+    assert.match(html, /<button type="button" class="tpl-mk is-changed" data-tpl-mk-changed="a,b,c" data-tpl-mk-cat="Liability cap"[^>]*><i><\/i>Came back changed 3 times<\/button>/);
     assert.equal(win.tbMarksHtml([]), '', 'no marks, no row');
   });
   test('3b the mark opens the Contracts list narrowed to its contracts, landing on the first (and leaves the builder through tbLeave)', () => {

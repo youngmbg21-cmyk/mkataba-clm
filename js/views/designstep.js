@@ -293,7 +293,7 @@ function dsPaint(opts) {
   const posChips = DESIGN_LOGO_POSITIONS.map(p => {
     const label = { 'top-left': 'Top left', 'top-center': 'Top centre', 'top-right': 'Top right', footer: 'Footer' }[p];
     const sel = b.logoPosition === p;
-    return `<button data-ds-pos="${p}" class="ui-btn ui-btn-sm" style="${sel ? 'background:var(--color-accent-700);border-color:var(--accent-ink-700);color:#fff;font-weight:var(--w-title)' : ''}">${label}</button>`;
+    return `<button data-ds-pos="${p}" class="ui-btn ui-btn-sm" style="${sel ? 'background:var(--accent-fill);border-color:var(--accent-fill);color:#fff;font-weight:var(--w-title)' : ''}">${label}</button>`;
   }).join('');
 
   /* The colour control is ALWAYS drawn, on every design. It used to appear only
@@ -316,8 +316,8 @@ function dsPaint(opts) {
     <div style="margin-top:14px">
       <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:5px">${i18t('ds_accent_colour')}</span>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <button data-ds-accentsrc="logo" class="ui-btn ui-btn-sm" style="${b.accentSource !== 'manual' ? 'background:var(--color-accent-700);border-color:var(--accent-ink-700);color:#fff;font-weight:var(--w-title)' : ''}">${i18t('ds_from_logo')}</button>
-        <button data-ds-accentsrc="manual" class="ui-btn ui-btn-sm" style="${b.accentSource === 'manual' ? 'background:var(--color-accent-700);border-color:var(--accent-ink-700);color:#fff;font-weight:var(--w-title)' : ''}">${i18t('ds_pick_my_own')}</button>
+        <button data-ds-accentsrc="logo" class="ui-btn ui-btn-sm" style="${b.accentSource !== 'manual' ? 'background:var(--accent-fill);border-color:var(--accent-fill);color:#fff;font-weight:var(--w-title)' : ''}">${i18t('ds_from_logo')}</button>
+        <button data-ds-accentsrc="manual" class="ui-btn ui-btn-sm" style="${b.accentSource === 'manual' ? 'background:var(--accent-fill);border-color:var(--accent-fill);color:#fff;font-weight:var(--w-title)' : ''}">${i18t('ds_pick_my_own')}</button>
         <span style="display:inline-block;width:15px;height:15px;border-radius:var(--radius);background:${accentNow};border:1px solid var(--color-divider)" title="${esc(accentNow)}"></span>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:9px">${swatches}</div>
@@ -445,7 +445,7 @@ function dsPaint(opts) {
                remembered value shared with every other paper. -->
           <button id="ds-focus" class="ui-btn ui-btn-icon" title="${_ds.focus ? 'Leave full screen' : 'Fill the screen with the document'}"
             aria-pressed="${_ds.focus ? 'true' : 'false'}"
-            style="${_ds.focus ? 'background:var(--color-accent-700);border-color:var(--accent-ink-700);color:#fff' : ''}">
+            style="${_ds.focus ? 'background:var(--accent-fill);border-color:var(--accent-fill);color:#fff' : ''}">
             ${icon('expand', 'w-3.5 h-3.5')}</button>
         </div>
         <div id="ds-docpane" class="scroll-thin" style="flex:1;min-height:0;padding:var(--s-4);

@@ -62,9 +62,15 @@ const until = async (page, fn, arg, ms = 8000) => page.waitForFunction(fn, arg, 
     page.on('pageerror', e => errs.push(String(e).slice(0, 200)));
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     if (await page.$('#li-email')) { await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go'); }
-    await until(page, () => window.state && Array.isArray(state.contracts) && state.contracts.length >= 2, null, 15000);
+    /* RE-POINTED 21 Oct 2026 (Chambers, owner's pick 20 Oct 2026): the bar's
+       language switch is gone — the language is changed in Settings › You,
+       through its one writer langSet. That press used to give the sign-in
+       time to land; without it, "two contracts in the book" was already
+       true of the sample book drawn BEFORE signing in. So the wait asks for
+       THIS book: the two fixtures, signed in. */
+    await until(page, () => window.state && Array.isArray(state.contracts) && ['MK-HP1', 'MK-HP2'].every(id => state.contracts.some(c => c.id === id)), null, 15000);
     await page.keyboard.press('Escape').catch(() => {});
-    const en = await page.$('.lang-btn[data-lang="en"]'); if (en) await en.click();
+    await page.evaluate(() => { if (typeof window.langSet === 'function') langSet('en'); });
     await page.evaluate(() => setView('dashboard'));
     await until(page, () => typeof pdOpenOnHome === 'function' && !!document.getElementById('hb-head'));
 
@@ -96,9 +102,10 @@ const until = async (page, fn, arg, ms = 8000) => page.waitForFunction(fn, arg, 
 
     /* ===== 3. NO SIGNING TAB; THE ARTIFACT'S SYMBOLS ===== */
     /* RE-POINTED 20 Oct 2026 (owner: "jambo keeps disappearing from the top of the panel", PR #372): the Jambo tab now always stands beside the four; they are counted without it, and it wears his face */
-    const talkFace = await page.evaluate(() => !!document.querySelector('#ig-dock .igd-head [data-pd-talk] img.jambo-face'));
+    /* RE-POINTED 21 Oct 2026 (Chambers, owner's pick 20 Oct 2026): on a computer his face is the ✦ mark (an svg), the bird only on the phone */
+    const talkFace = await page.evaluate(() => !!document.querySelector('#ig-dock .igd-head [data-pd-talk] svg.jambo-face'));
     ok('3c the Jambo tab stands beside them, wearing his face', talkFace, String(talkFace));
-    const tabs = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .igd-head .pd-tab:not([data-pd-talk])')].map(b => ({ k: b.getAttribute('data-pd-tab'), g: b.querySelector('.pd-tab-g img.jambo-face') ? 'FACE' : ((b.querySelector('.pd-tab-g') || {}).textContent || '').replace('︎', '') })));
+    const tabs = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .igd-head .pd-tab:not([data-pd-talk])')].map(b => ({ k: b.getAttribute('data-pd-tab'), g: b.querySelector('.pd-tab-g .jambo-face') ? 'FACE' : ((b.querySelector('.pd-tab-g') || {}).textContent || '').replace('︎', '') })));
     /* RE-POINTED 11 Oct 2026 (owner: "delete the deal tab ... and also delete history") */
     /* RE-POINTED 13 Oct 2026 (owner: "delete the overview tab from document page") */
 /* RE-POINTED 15 Oct 2026 (owner): the Menu tab ("Next up") stands beside Obligations */

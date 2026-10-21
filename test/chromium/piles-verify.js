@@ -63,8 +63,10 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await waitFor(page, () => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-0382'), 20000);
     await page.keyboard.press('Escape').catch(() => {});
-    const en = await page.$('.lang-btn[data-lang="en"]'); if (en) await en.click();
-    await page.evaluate(() => { try { setBrand('green'); } catch (_) {} });
+    /* RE-POINTED 21 Oct 2026 (Chambers, owner's pick 20 Oct 2026): the bar's
+       language switch is gone — the language goes through its one writer,
+       langSet; and there is one look, so no brand is chosen */
+    await page.evaluate(() => { if (typeof window.langSet === 'function') langSet('en'); });
     const cls = await page.evaluate(async () => { const c = getContract('MK-0382'); if (c._light && typeof ensureFull === 'function') await ensureFull(c);
       return negoClauseList(c).map(k => ({ id: k.clauseId, label: clauseLabel(k), text: String(k.text || k.body || '').trim() })); });
     const ask = (re, a, bb, why) => { const k = cls.find(x => re.test(x.text)); return { clauseId: k.id, clauseLabel: k.label, oldText: k.text, newText: k.text.replace(a, bb), why }; };

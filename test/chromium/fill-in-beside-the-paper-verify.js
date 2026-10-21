@@ -95,7 +95,8 @@ const FACE = () => {
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await waitFor(page, () => window.state && Array.isArray(state.contracts) && state.contracts.length >= 2, 15000);
     await page.keyboard.press('Escape').catch(() => {});
-    const en = await page.$('.lang-btn[data-lang="en"]'); if (en) await en.click();
+    /* the bar's language buttons are gone (Chambers, 20 Oct 2026): the language is set through langSet, the one writer */
+    await page.evaluate(() => { if (typeof langId === 'function' && langId() !== 'en' && typeof langSet === 'function') langSet('en'); });
     await page.evaluate(async () => { try { await tplLibRefresh(); } catch (_) {} setView('register'); }); await pause(500);
 
     /* ===== 1. AN UPLOAD LANDS BESIDE THE PAPER ===== */
@@ -259,15 +260,16 @@ const FACE = () => {
       await page.screenshot({ path: path.join(OUT, `9-${w}x${hgt}.png`) });
     }
 
-    /* ===== 10. SVENSKA ===== */
-    const sv = await page.$('.lang-btn[data-lang="sv"]');
-    if (sv) await sv.click();
+    /* ===== 10. SVENSKA =====
+       RE-POINTED 20 Oct 2026 (Chambers): the bar's .lang-btn is gone; the language is changed in
+       Settings › You, whose buttons call langSet — the one writer — so the switch is made through it */
+    const sv = await page.evaluate(() => { if (typeof langSet !== 'function') return false; langSet('sv'); return typeof langId === 'function' && langId() === 'sv'; });
     await page.evaluate(() => { setView('dashboard'); pdFillOpen('MK-F2'); });
     await waitFor(page, () => !!document.querySelector('#pd-og th'), 5000);
     const title = await page.evaluate(() => (document.querySelector('#pd-og th') || {}).textContent || '');
     check('10 Svenska: the grid speaks the reader\'s language', !!sv && title === 'Uppgift · där Jambo läste den', title);
     await page.screenshot({ path: path.join(OUT, '10-svenska.png') });
-    const en2 = await page.$('.lang-btn[data-lang="en"]'); if (en2) await en2.click();
+    await page.evaluate(() => { if (typeof langSet === 'function') langSet('en'); });
 
     check('11 no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) { fail++; console.log('FAIL  the run threw — ' + (e && e.stack || e)); }

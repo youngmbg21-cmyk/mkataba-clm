@@ -2343,7 +2343,7 @@ function renderMigration(){
       .mig-list .mig-warn{margin:0 var(--s-4) var(--s-2)}
       .mig-lh{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;padding:var(--s-3) var(--s-4)}
       .mig-lh-t{margin:0;font-size:var(--t-card);font-weight:var(--w-strong)}
-      .mig-lh-n{font-size:var(--t-label);font-weight:var(--w-strong);background:var(--surface-2);border-radius:999px;padding:1px 8px;font-variant-numeric:tabular-nums}
+      .mig-lh-n{font-size:var(--t-card);font-weight:var(--w-body);color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
       .mig-lh-s{font-size:var(--t-meta);color:var(--color-neutral-600)}
       .mig-sp{flex:1 1 auto}
       .mig-run{display:flex;align-items:center;gap:var(--s-2);padding:0 var(--s-4) var(--s-2);font-size:var(--t-meta);color:var(--color-neutral-700)}

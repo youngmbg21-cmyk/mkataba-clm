@@ -42,7 +42,7 @@ function adviceCard(r){
       ${r.contractName?`<div style="font-size:var(--t-label);color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.contractName)}</div>`:''}
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;border-top:1px solid color-mix(in srgb,var(--color-text) 8%,transparent);padding-top:5px;margin-top:1px">
         <span style="font-size:var(--t-label);font-weight:var(--w-body);font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--color-text)">${fee}</span>
-        ${ini?`<span title="${esc(r.assignee)}" style="width:20px;height:20px;border-radius:50%;background:var(--st-steel-bg);color:var(--st-steel-fg);display:inline-grid;place-items:center;font-size:var(--t-figure);font-weight:var(--w-title);font-family:var(--font-mono);flex:none">${ini}</span>`
+        ${ini?`<span title="${esc(r.assignee)}" style="width:20px;height:20px;border-radius:50%;background:transparent;border:1px solid var(--rule-strong);color:var(--color-neutral-600);display:inline-grid;place-items:center;font-size:var(--t-figure);font-weight:var(--w-title);font-family:var(--font-mono);flex:none">${ini}</span>`
             :`<span style="font-size:var(--t-label);color:var(--color-neutral-400)">unassigned</span>`}
       </div>
     </div>`;

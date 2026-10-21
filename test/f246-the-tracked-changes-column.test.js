@@ -759,8 +759,11 @@ describe('f246 (5) — the card opens instead of a menu', () => {
     const i = NCSS.indexOf('.rl-card-verbs button.rl-verb-ai{');
     assert.ok(i > -1, 'which the sheet dresses');
     assert.match(NCSS.slice(i, NCSS.indexOf('}', i)), /color:#6d28d9/, 'the Copilot violet');
-    assert.ok(NCSS.includes('html.dark .redline-page .rl-card-d .rl-card-verbs button.rl-verb-ai'),
-      'with a night answer');
+    /* RE-POINTED 20 Oct 2026: dark mode was removed (the owner: "Let's not
+       implement the dark theme. Remove it from HaTi."), so the violet's night
+       answer went with it; the claim is now that none is left behind. */
+    assert.ok(!/html\.dark[^{]*button\.rl-verb-ai/.test(NCSS),
+      'and no night answer is left for it — there is no dark theme');
   });
 
   test('our seat has no door onto the clause panel', async () => {

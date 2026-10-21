@@ -86,7 +86,8 @@ async function readHead(page, hostSel, sel){
     await page.fill('#su-email', 'admin@example.co.ke'); await page.fill('#su-pass', 'adminpassword1');
     const sample = await page.$('#su-sample'); if (sample && !(await sample.isChecked())) await sample.check();
     await page.click('#su-go'); await page.waitForTimeout(3500); await page.keyboard.press('Escape').catch(() => {});
-    const en = await page.$('.lang-btn[data-lang="en"]'); if (en) { await en.click(); await page.waitForTimeout(800); }
+    /* RE-POINTED 20 Oct 2026 (Chambers): the bar's language switch is gone; langSet is the one writer */
+    await page.evaluate(() => { if (typeof langId === 'function' && langId() !== 'en') langSet('en'); }); await page.waitForTimeout(800);
 
     /* ---- THE STAGE ---- */
     await page.evaluate(() => setView('approvals')); await page.waitForTimeout(1000);
@@ -218,7 +219,9 @@ async function readHead(page, hostSel, sel){
     ok('5a after a refresh the panel still names both — the parties ride the list the server sends', listed(r1, staged.cpA),
       r1 ? { names: r1.names, tops: r1.tops } : 'row not found after the refresh');
 
-    /* ================= 6 · READABLE, BY DAY AND AT NIGHT ================= */
+    /* ================= 6 · READABLE =================
+       RE-POINTED 20 Oct 2026 (the owner picked "Chambers" and removed dark
+       mode): the night check 6b is gone with the night; 6a stays. */
     const inkOf = () => page.evaluate(() => {
       const p = document.getElementById('ins-panel'); const r = p && p.querySelector('.ins-cp-r'); if (!r) return null;
       const rgb = s => (s.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
@@ -228,12 +231,6 @@ async function readHead(page, hostSel, sel){
     });
     const ink = await inkOf();
     ok('6a the role word reads (AA) against the panel', !!ink && ink.ratio >= 4.5, ink);
-    await page.evaluate(() => { setDark(true); applyAppearance(); }); await toContracts();
-    await pickRow('#reg-tbody', 'data-row', staged.A);
-    const night = await inkOf();
-    ok('6b and at night', !!night && night.ratio >= 4.5, night);
-    await page.screenshot({ path: path.join(OUT, '6-panel-night.png') });
-    await page.evaluate(() => { setDark(false); applyAppearance(); });
 
     ok('no page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
   } catch (e) {

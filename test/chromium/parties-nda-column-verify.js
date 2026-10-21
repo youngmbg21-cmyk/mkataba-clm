@@ -81,7 +81,8 @@ CONTRACTS.forEach(c => { if (!c.nda && c.id.startsWith('MK-')) c.expiry = day(40
         const pill = td && td.querySelector('.cu-nda');
         const sub = td && td.querySelector('.cu-nda-sub');
         return [tr.getAttribute('data-cu-cust'), { text: td ? [pill ? pill.textContent.trim() : td.textContent.trim(), sub ? sub.textContent.trim() : ''].filter(Boolean).join(' / ') : '', st: pill ? pill.getAttribute('data-cu-nda-st') : '',
-          tone: pill ? (pill.className.match(/is-(\w+)/) || [])[1] || 'grey' : '', bg: pill ? getComputedStyle(pill).backgroundColor : '' }];
+          tone: pill ? (pill.className.match(/is-(\w+)/) || [])[1] || 'grey' : '', bg: pill ? getComputedStyle(pill).backgroundColor : '',
+          dot: pill && pill.querySelector('i') ? getComputedStyle(pill.querySelector('i')).backgroundColor : '' }];
       })), foot: ((document.querySelector('.cu-foot') || {}).textContent || '').trim() };
     });
 
@@ -96,7 +97,9 @@ CONTRACTS.forEach(c => { if (!c.nda && c.id.startsWith('MK-')) c.expiry = day(40
     /* RE-POINTED 19 Oct 2026 (lane A2, round 19 as drawn: "Not signed yet / draft") */
     ok('1f Krones: only a draft NDA — "Not signed yet", "draft" under it', R['krones east africa'] && R['krones east africa'].text === 'Not signed yet / draft' && R['krones east africa'].st === 'draft', JSON.stringify(R['krones east africa']));
     ok('1g Kabras: no NDA — "None"', R['kabras sugar'] && R['kabras sugar'].text === 'None' && !R['kabras sugar'].st, JSON.stringify(R['kabras sugar']));
-    const gvBg = (R['givaudan east africa'] || {}).bg || '', saBg = (R['sap east africa'] || {}).bg || '';
+    /* RE-POINTED 21 Oct 2026 (Chambers): a status is a dot and a word — the pill
+       lost its wash, so the tone is read off the painted DOT. */
+    const gvBg = (R['givaudan east africa'] || {}).dot || '', saBg = (R['sap east africa'] || {}).dot || '';
     ok('1h the pills are painted, green and amber apart', !!gvBg && gvBg !== 'rgba(0, 0, 0, 0)' && !!saBg && saBg !== 'rgba(0, 0, 0, 0)' && gvBg !== saBg, gvBg + ' / ' + saBg);
 
     console.log('\n2 · a labelled filter finds the gaps');

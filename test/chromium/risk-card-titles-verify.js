@@ -21,7 +21,8 @@
         row's head goes where its "Go to change" link goes;
      5. Edit with Copilot's Risks tab shows the title, the sentence under it;
      6. the Document tab's Clauses drawer reads "title — sentence".
-   Photographed light and dark. Every driven half is GUARDED — a build
+   Photographed in the one look (the dark photograph is removed with the
+   dark theme, Chambers, 20 Oct 2026). Every driven half is GUARDED — a build
    without the feature REPORTS.
    Screenshots: test/chromium/shots/risk-card-titles/ (or HATI_SHOT_DIR).
    Run: node test/chromium/risk-card-titles-verify.js */
@@ -199,9 +200,6 @@ async function shot(page, name){ try{ await page.screenshot({ path: path.join(OU
        its whole sentence is on the hover */
     check(!!old && / · /.test(old.text) && old.text.split(/\s+/).length <= 7 && old.hover === D_SENT && old.ellipsis === 'ellipsis' && old.one === 'nowrap', '2d an old-shape card is named "Topic · problem", its sentence on the hover', JSON.stringify(old));
     await shot(page, '1-titles-light.png');
-    await page.evaluate(() => { if (window.setDark) setDark(true); });
-    await shot(page, '2-titles-dark.png');
-    await page.evaluate(() => { if (window.setDark) setDark(false); });
 
     /* 3 — Discard then Bring back */
     await page.evaluate(k => document.querySelector('#rl-risks .rk-row[data-rk-key="' + CSS.escape(k) + '"] [data-rk-act="dismiss"]').click(), kTerm);

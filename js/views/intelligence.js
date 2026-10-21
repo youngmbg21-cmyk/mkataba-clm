@@ -5161,7 +5161,7 @@ function igViewSuggestions(){
   const tour=i18t('int_tour_ask'); if(IG_TOUR_RE.test(tour)) out.push(tour);
   return out;
 }
-function igSugChipHtml(s){ return `<button data-igsug="${igEsc(s)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${igEsc(s)}</button>`; }
+function igSugChipHtml(s){ return `<button data-igsug="${igEsc(s)}" class="jb-chip">${igEsc(s)}</button>`; }
 /* a view change on Explorer puts that view's own chips under the greeting */
 function igSugRepaint(){
   const box=document.querySelector('#ig-dock [data-ig-chips]'); if(!box||!igSugOnMap()||box.querySelector('[data-ca-chip],[data-ca-next]')) return;
@@ -7771,7 +7771,7 @@ function igMsgHTML(m,i){
   return `<div class="ai-msg flex gap-2"${Number.isInteger(i)?` data-ig-turn="${i}"`:''}>
     ${igFaceHtml('hello')}
     <div class="min-w-0 flex-1 space-y-1.5">
-      ${m.text?`<div class="ai-bub rounded-2xl rounded-tl-md border px-3.5 py-2 text-[13px] leading-relaxed ${m.err?'bg-rose-50 border-rose-200 text-rose-800':'bg-canvas border-brand-100 text-brand-900'}">${igSafeHtml(m.text)}${cites}</div>`:''}
+      ${m.text?`<div class="ai-bub ${m.err?'rounded-2xl rounded-tl-md border px-3.5 py-2 text-[13px] leading-relaxed bg-rose-50 border-rose-200 text-rose-800':'jl-bub'}">${igSafeHtml(m.text)}${cites}</div>`:''}
       ${''/* THE ANSWER IS A WORKLIST DOOR (the brain drawing, 28 Sep 2026): the
              set a map answer drew opens on the Contracts page as that list
              (regShowOnly, the one named-set door), or leaves as a file. */}
@@ -7968,7 +7968,7 @@ function renderIntelDock(){
   const typing=intel.busy?`
     <div class="ai-msg flex gap-2">
       ${igFaceHtml('think')}
-      <div class="rounded-2xl rounded-tl-md bg-canvas border border-brand-100 px-3.5 py-2.5 typing"><span></span><span></span><span></span></div>
+      <div class="jl-bub typing"><span></span><span></span><span></span></div>
     </div>`:'';
   /* ---- ONE COPILOT PANEL, ON THE CALENDAR TAB TOO (owner, 11 Oct 2026,
      WORKORDER-four-builds item 1) ----
@@ -8096,7 +8096,6 @@ function renderIntelDock(){
       ${''/* THE TWO-ROW CARD (owner picked it, 20 Oct 2026: "Ask" sat over the
              words): the words the whole width, + and the round send under them */}
       ${_igJbCard({ cls: 'igd-askbox', field: `<textarea id="igd-input" rows="1" placeholder="${igEsc(igAskPlaceholder())}" title="${igEsc(igAskCost())}" class="chat-field"></textarea>`, send: _igJbSend('id="igd-go"', i18t('int_ask')) })}
-      ${typeof window.jamboHintHtml==='function'?jamboHintHtml({ places:igHintKeys(), people:!!igHintKeys() }):''}
     </div>`}${''/* the letter's "Before you send" column waits here unseen while
            ‹ Jambo has turned the panel to Jambo (round 11's gaps, second pass) */}${(window.pdSendKeepHtml&&pdSendKeepHtml())||''}`;
   /* THE NEWEST WORDS IN VIEW — or, with no conversation yet, the TOP: what
@@ -8114,7 +8113,6 @@ function renderIntelDock(){
   /* the bar's ‹ follows the trail (a face up is a step to go back from) */
   if(typeof window.deskBarPaint==='function') try{ deskBarPaint(); }catch(_){}
   /* JAMBO, ALIVE (owner, 16 Oct 2026): he takes his seat on the chips row again */
-  if(typeof window.jamboPerchMount==='function') try{ jamboPerchMount(dock); }catch(_){ }
   /* a contract number in an answer is a link to it (caRefLinkPaint) */
   if(typeof window.caRefLinkPaint==='function') caRefLinkPaint(feed);
   /* Jambo's sentence about the map points at its parts, its figures checked (stage 3) */
@@ -8396,39 +8394,6 @@ function igPaperHold(id){
   return true;
 }
 function igPaperUp(){ return !!(intel.paper&&intel.paper.mode==='paper'&&getContract(intel.paper.id)); }
-/* ---- WHICH KEYS THE HINT LINE UNDER HOME'S BOX NAMES (the picked drawings,
-   rounds 3–17; owner, 18 Oct 2026: every visible part is built) ----
-   true → "/ places · Esc closes" with a contract in front: a paper (rounds 6,
-   8, 9) or a contract brought up as a page and its History (rounds 7, 12);
-   'lists' → "/ lists the places." on Jambo's own tab beside a paper while
-   Needs you here has rows (round 3); false → the sentence alone: Before you
-   sign (round 10), the wall, the Board, a draft (rounds 4, 5, 13, 17). One
-   reading, the panel's own faces; it writes nothing. */
-function igHintKeys(){
-  try{
-    if(typeof state==='undefined'||!state||state.view!=='dashboard') return false;
-    if(window.pdSignShows&&pdSignShows()) return false;
-    /* a paper IN FRONT: Home's paper face (a paper left open behind the
-       Board is not in front), or one up on Explorer's map */
-    if((window.pdOnPaper&&pdOnPaper())||(igPaperUp()&&typeof igMapUp==='function'&&igMapUp())){
-      const faced=(window.pdFillShows&&pdFillShows())||(window.pdRedShows&&pdRedShows())||(window.pdAmendShows&&pdAmendShows());
-      const c=(!faced&&window.pdContract)?pdContract():null;
-      if(c&&typeof window.pdNeedsRows==='function'&&(pdNeedsRows(c)||[]).length) return 'lists';
-      return true;
-    }
-    if(typeof window.hbFace==='function'&&hbFace()==='board'&&typeof window.bsCardId==='function'&&bsCardId()) return true;
-  }catch(_){ }
-  return false;
-}
-/* the line follows what is in front without redrawing the panel: a contract
-   brought up on the Board, let go, or Needs you here filling or emptying
-   (hbPaintBoard, pdNeedsRepaint) — the one builder, in place */
-function igHintPaint(){
-  if(typeof document==='undefined'||typeof window.jamboHintHtml!=='function') return;
-  const el=document.querySelector('#ig-dock .igd-askbox + .jb-hint'); if(!el) return;
-  const t=document.createElement('div'); t.innerHTML=jamboHintHtml({ places:igHintKeys(), people:!!igHintKeys() });
-  const nu=t.firstElementChild; if(nu&&nu.outerHTML!==el.outerHTML) el.replaceWith(nu);
-}
 function igPaperText(c){ return (typeof contractPlainText==='function')?contractPlainText(c):''; }
 function igPaperWords(c){ return igPaperText(c).split(/\s+/).filter(Boolean).length; }
 /* ---- WHAT CHANGED TRAVELS WITH THE PAPER (Young asked 30 Sep 2026: "I want
@@ -9863,7 +9828,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
   });
 }
 
-Object.assign(window,{igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igHintKeys,igHintPaint,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk,igWallValue,IG_WALL_STEP,igWallLeadOf,igWallShown,igWallMoreReset,igWallKeyOf,igWallShowMore,IG_WALL_SCROLL_NEAR,igWallScrollNear,igWallOrderWords,igWallChosenId,igWallChosen,igWallChosenPaint,igWallChoose,igWallLetGo,igWallOpen,igWallPress,igHeldAskId,IG_HELD_TIME_RE,IG_HELD_THIS_RE,IG_HELD_BOOK_RE,igHeldAsksBook,igPaperClauseMarks,igSignCopyHtml});
+Object.assign(window,{igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk,igWallValue,IG_WALL_STEP,igWallLeadOf,igWallShown,igWallMoreReset,igWallKeyOf,igWallShowMore,IG_WALL_SCROLL_NEAR,igWallScrollNear,igWallOrderWords,igWallChosenId,igWallChosen,igWallChosenPaint,igWallChoose,igWallLetGo,igWallOpen,igWallPress,igHeldAskId,IG_HELD_TIME_RE,IG_HELD_THIS_RE,IG_HELD_BOOK_RE,igHeldAsksBook,igPaperClauseMarks,igSignCopyHtml});
 Object.assign(window,{IG,IG_SUGGESTIONS,igViewSuggestions,igSugRepaint,IG_ATTN,igAttn,IGB_ATTN_RGB,igLinkHoverShow,igAsOfRead,igAsOfData,igPictureBlob,igPictureSvg,igPictureCopy,igFindingsLoad,igFindingsOwed,igFindingsTabOn,igFindingsShows,igFindingsCount,igFindingGo,igFindingOpen,igPartsNow,igFinding,igDateRead,igDayWord,igUntilRead,igUntilIds,igSoleRead,igSoleData,igObOpenOf,IG_TEMPLATE_RE,IG_BOOK_RE,IG_BOOK_NOT_RE,IG_MYCAL_RE,igBookAsk,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,igCountsDrawn,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand,igGuideTabOn,igGuideShows,igGuideRows,igGuideRepaint});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});

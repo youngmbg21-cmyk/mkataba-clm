@@ -6,7 +6,8 @@
      (W-2) "Collapse menu" is a row at the foot of the menu; the small arrow
            at the top is gone.
      (W-3) the Copilot block at the foot is deleted; the bar's spark is the
-           one door, drawn bigger.
+           one door, drawn bigger. (Since 20 Oct 2026, Chambers: the spark is
+           the bar's quieter ink, and the language is set in Settings › You.)
      (W-4) a step counter never passes its limit: once the steps are used the
            run says it is writing.
      (W-5) a ring in a narrow story chapter stands tall: legend under the
@@ -56,9 +57,24 @@ test('(W-2) "Collapse menu" sits at the foot; the arrow at the top is gone', () 
 test('(W-3) one Copilot door: the foot block is gone, the bar spark is bigger', () => {
   assert.doesNotMatch(html, /id="side-copilot"/);
   assert.doesNotMatch(app, /getElementById\('side-copilot'\)/);
-  assert.match(html, /#top-header #cmd-ai\{width:36px;height:36px;color:var\(--bar-ink\);\}/);
+  /* RE-POINTED 20 Oct 2026 (CHAMBERS, owner-picked by name): the bar is white
+     and the spark is its quieter ink, --bar-ink-2, with a 17px mark; still the
+     bigger 36px door. */
+  assert.match(html, /#top-header #cmd-ai\{width:36px;height:36px;color:var\(--bar-ink-2\);\}/);
+  assert.match(html, /#top-header #cmd-ai svg\{width:17px;height:17px;\}/);
   assert.match(html, /<button id="cmd-ai"[\s\S]{0,400}data-ai-badge/, 'the amber dot stays on the spark');
-  assert.match(region(app, 'placeLanguageSwitch'), /#side-nav \.nav-foot/, 'the language switch has a home in the drawer');
+  /* RE-POINTED 20 Oct 2026: the bar's language switch is gone (CHAMBERS) and
+     with it the painter that gave it a home in the drawer; the language is
+     changed in Settings › You, whose buttons write through langSet. */
+  assert.doesNotMatch(html, /id="lang-switch"/, 'no language switch in the bar');
+  /* By name in the CODE, comments stripped (a history note may still name
+     it): not only `function placeLanguageSwitch(` — a const or a call left
+     behind would be the same painter by another spelling. */
+  const appCode = app.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  assert.doesNotMatch(appCode, /\bplaceLanguageSwitch\b/, 'nor the painter that moved it');
+  const st = read('js/views/settings.js');
+  assert.match(st, /data-st-lang="\$\{esc\(l\.id\)\}"/, 'Settings › You draws the language buttons');
+  assert.match(st, /closest\('\[data-st-lang\]'\)[\s\S]{0,300}langSet\(id\)/, 'and they write through langSet');
 });
 
 test('(W-4) a step counter never passes its limit', () => {

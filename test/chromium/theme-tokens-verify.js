@@ -29,6 +29,35 @@
    variables actually repaints the platform. A token nothing reads is not a
    token, and no census of the DEFAULT theme would ever notice.
 
+   RE-RECORDED 21 Oct 2026 (twelfth), CHAMBERS FINISHED (owner: "Finish
+   everything" after the fourteen-page review). Audited as a set difference:
+   GONE — Jambo's old message box (#F8FAFC, its accent-900 ink #0A1C15), the
+   compiled cool line #E2E8F0 (.border-hair), the Board's green-grey lines
+   rgba(31,77,59,.12–.28), the docked panel's shadow rgba(43,43,45,.35), Our
+   paper's mint mark wash #DFF2E7 and its empty gray dot, and (negotiate
+   only) the amber edge #EBCB8E (--st-amber-line) of Redlines' "Waiting on
+   you" count box — the count is a plain number now. NEW — the warm box
+   every panel already used (#EFECE5, --surface-2) and the Board's warm LINE
+   channel rgba(105,83,33,.12–.28), chosen so a card's edge at .18 over white
+   IS --color-divider #E4E0D7. No other hue.
+   RE-RECORDED 20 Oct 2026 (eleventh), CHAMBERS AND NO DARK MODE (owner
+   picked Chambers by name; "Let's not implement the dark theme. Remove it
+   from HaTi"), by the one who owns the palette change. Ten light screens now,
+   no dark ones; the "Navy repaints it / no green survives" pass became "no
+   colour of the old look is drawn". Audited as a set difference against the
+   tenth record's light screens: NEW are Chambers' own — the warm ramp and
+   grounds (#161512, #5E5A51, #6F6A5E, #8E887B, #A8A295, #CFC9BC, #E4E0D7,
+   #E9E5DC, #EFECE5, #F0EDE6, #F4F2ED, #F8F6F1), the green accent ramp
+   (#1F4D3B … #0A1C15, #B5CDC1, #DCE7E1, #EEF3F0) and its alpha washes, the
+   status inks and dots (#8A5A0A/#C98A14, #3A8A62, #8F2A22/#C2453B), the ink
+   at 8/12% (shadows), and the helper "their side" blue now shown to everyone
+   (--alt #3A64C4, -ink #24488F, -soft #E9EFFB; Blue readers saw teal there).
+   GONE: the Blue and Green ramps and their washes, the Blue Ink Wash greys
+   and ground, the bar's white veils, the old teal-tinted shadows, the status
+   washes behind stage words (dot and word now) and slate-50 behind the
+   chips (links now), and the bell count's dark-amber ink #2A1B04 (the count
+   is white on the ink now; on the room screens, where the bell shows a
+   count). Nothing else moved.
    RE-RECORDED 20 Oct 2026 (tenth), OWNER-ASKED ("build the dossier and the
    4b"): the Board's card carries the stage's act in its head, so History's
    light screen wears --btn-lift (rgba(10,20,40,0.18)), an existing token.
@@ -184,6 +213,7 @@ const CENSUS = () => {
      rows were. The reasoning above is unchanged and is why they have to be
      here — uncounted, the green sample reads as a teal the sweep missed while
      the reader is wearing navy, which is what it reported on all ten screens. */
+  /* (Gone with them on 20 Oct 2026: the swatches and the theme button; the selector is kept for a stale page.) */
   const CONTROL = el => el.closest && el.closest('#theme-menu, #theme-btn, [data-brand-pick]');
   for (const el of document.querySelectorAll('*')){
     if (CONTROL(el)) continue;
@@ -269,9 +299,10 @@ const CENSUS = () => {
   }
 
   const todayLook = {};
-  for (const theme of ['light', 'dark']){
+  /* ONE APPEARANCE (Chambers, 20 Oct 2026): dark mode left HaTi, so the
+     census is the light screens only. */
+  for (const theme of ['light']){
     const { ctx, page } = await open();
-    if (theme === 'dark'){ await page.evaluate(() => applyTheme('dark')); await pause(300); }
     for (const [name, go] of SCREENS){
       await go(page);
       await page.addStyleTag({ content:
@@ -289,7 +320,7 @@ const CENSUS = () => {
      are put to the page as probes, a today column and heading beside plain
      ones, and must still look marked: the column washed, the heading's day in
      the accent ink. A relation, not a recorded shade. */
-  for (const theme of ['light', 'dark']){
+  for (const theme of ['light']){
     const r = todayLook[theme];
     check(`calendar--${theme} — the today column is washed and its day wears the accent ink (probed, any day)`,
       !!r && r.colToday !== r.colPlain && r.colToday !== 'rgba(0, 0, 0, 0)'
@@ -297,51 +328,20 @@ const CENSUS = () => {
       r ? JSON.stringify(r) : 'no week drawn');
   }
 
-  /* ---- THE POINT OF THE EXERCISE ----
-     Switching to Navy must take the green OFF the screen, not merely add a
-     blue beside it. Anything still green after the switch is a colour the
-     tidy-up missed, and no census of the default theme would ever notice it.
-
-     Driven through setTheme, which is the control a person presses — poking the
-     variables directly would prove the stylesheet works and leave the feature
-     untested. */
-  /* RE-POINTED 20 Sep 2026 to the redesign order's teal ramp (accent 500–900
-     and 100 of the reference): a list of the OLD greens would pass on navy
-     for the wrong reason, because nothing draws them any more. */
-  /* RE-POINTED 7 Oct 2026 (the bright brand): navy now BORROWS green as its
-     helper colour (--alt #12796D, --alt-soft #E3F3EF, --alt-ink #0E5F58 — the
-     stream tag, one initials wash), so those three shades are meant to stay on
-     a navy screen. The list is every OTHER green on the ramp: the 500, the
-     hover, the 800/900, the tint, the line and the 400. */
-  const GREENS = ['rgb(46, 140, 130)', 'rgb(14, 106, 95)', 'rgb(9, 55, 51)',
-                  'rgb(6, 40, 37)', 'rgb(241, 249, 247)', 'rgb(188, 226, 217)',
-                  'rgb(94, 194, 179)'];
-  /* Skipped while recording: a baseline is taken from the code BEFORE a change,
-     which is a build that may not have setTheme yet — and a save run that
-     crashes half way leaves no baseline at all, which is how the last one was
-     lost. Recording is only ever a census. */
-  /* RE-POINTED 7 Oct 2026 (Young: HaTi lands on Blue): the census above is
-     the product as a fresh browser sees it, which is Blue now; this pass starts
-     from Green ON PURPOSE, pressed as a person would, so it still measures the
-     switch rather than Blue against itself. */
-  for (const [name, go] of (SAVE ? [] : SCREENS)){
-    const { ctx, page } = await open();
-    await page.evaluate(() => setTheme('green'));
-    await pause(500);
-    await go(page);
-    await page.addStyleTag({ content:
-      '*,*::before,*::after{animation:none!important;transition:none!important}' });
-    const before = await page.evaluate(CENSUS);
-    await page.evaluate(() => setTheme('navy'));
-    await pause(500);
-    await go(page);
-    await page.addStyleTag({ content:
-      '*,*::before,*::after{animation:none!important;transition:none!important}' });
-    const after = await page.evaluate(CENSUS);
-    check(`${name} — Navy repaints it`, before !== after);
-    const left = GREENS.filter(g => after.includes(g));
-    check(`${name} — no green survives the switch`, left.length === 0, left.join(' | ') || null);
-    await ctx.close();
+  /* ---- THE OLD LOOK IS GONE (Chambers, 20 Oct 2026) ----
+     The Blue / Green switch it used to press left with the dark mode, so the
+     point of the exercise turns round: no screen may still draw a colour of
+     the look HaTi left — the Blue and Green accents, their bar, and the Ink
+     Wash greys and grounds of either brand. A colour the census holds is
+     enough; how often does not matter. (Explorer's map, which keeps its own
+     dark stage, is not one of these screens.) */
+  const OLD_LOOK = ['rgb(38, 76, 158)', 'rgb(31, 64, 136)', 'rgb(28, 56, 114)', 'rgb(18, 121, 109)', 'rgb(14, 106, 95)',
+    'rgb(14, 95, 88)', 'rgb(3, 46, 42)', 'rgb(58, 95, 90)', 'rgb(84, 121, 116)', 'rgb(9, 25, 56)', 'rgb(55, 74, 109)',
+    'rgb(80, 100, 138)', 'rgb(244, 248, 247)', 'rgb(243, 246, 251)', 'rgb(220, 233, 230)', 'rgb(218, 226, 241)'];
+  for (const [name] of SCREENS){
+    const set = new Set(String(census[`${name}--light`] || '').split('\n'));
+    const left = OLD_LOOK.filter(c => set.has(c));
+    check(`${name} — no colour of the old look is drawn`, set.size > 1 && left.length === 0, left.join(' | ') || null);
   }
 
   await browser.close();

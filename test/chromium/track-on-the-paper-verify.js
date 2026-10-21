@@ -5,8 +5,9 @@
    paper cut numbers like 3.4.1 off. The Track is one rail for the whole
    contract, a mark where each flagged clause really is, its number whole on
    a label beside it, and a window over the part on screen. On Home's Paper at
-   1440 x 900 with the panel open, light and dark, flags spread through a
-   long contract:
+   1440 x 900 with the panel open, flags spread through a long contract
+   (light only — RE-POINTED 20 Oct 2026, Chambers: dark mode is removed, so
+   the dark pass is gone; 0a asserts an old stored hati-dark=1 lands on light):
      1. every flagged clause has one label, every number is whole (not
         clipped), and no two labels overlap
      2. each mark's place on the rail matches its clause's place on the paper
@@ -44,20 +45,24 @@ const check = (name, pass, detail) => {
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const errors = [];
   try {
-    for (const dark of [false, true]) {
-      const tag = dark ? 'dark' : 'light';
+    for (const tag of ['light']) {
       const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
       page.on('pageerror', e => errors.push(e.message));
       const until = async (fn, arg, ms = 8000) => { let v; const t0 = Date.now();
         while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(120); }
         return v; };
       await page.goto(h.base + '/', { waitUntil: 'networkidle' });
-      if (dark) await page.evaluate(() => { try { localStorage.setItem('hati-dark', '1'); } catch (_) {} });
+      /* an old stored "dark" from before Chambers lands on light: the
+         pre-paint script removes the key on load and nothing adds the class */
+      await page.evaluate(() => { try { localStorage.setItem('hati-dark', '1'); } catch (_) {} });
+      await page.reload({ waitUntil: 'networkidle' });
+      const landed = await page.evaluate(() => ({ dark: document.documentElement.classList.contains('dark'),
+        key: (() => { try { return localStorage.getItem('hati-dark'); } catch (_) { return 'unreadable'; } })(), setDark: typeof window.setDark }));
+      check(`0a. ${tag}: an old stored hati-dark=1 lands on light — the key removed, no dark class, no setDark`, !landed.dark && landed.key === null && landed.setDark === 'undefined', JSON.stringify(landed));
       await page.fill('#li-email', 'admin@example.co.ke');
       await page.fill('#li-pass', 'adminpassword1');
       await page.click('#li-go');
       await page.waitForFunction(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-A2') && typeof pdOpenOnHome === 'function', null, { timeout: 20000 });
-      if (dark) await page.evaluate(() => { if (typeof setDark === 'function') setDark(true); });
       await page.evaluate(() => pdOpenOnHome('MK-A2'));
       const opened = await until(() => !!document.querySelector('#ig-paper:not([hidden]) #ig-canvas') && !!document.getElementById('ig-spine'), null, 15000);
       check(`0. ${tag}: the contract is on Home's Paper`, !!opened);

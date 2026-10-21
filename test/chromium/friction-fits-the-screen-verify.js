@@ -167,41 +167,39 @@ function measure() {
   try {
     for (const [W, H] of [[1440, 900], [1920, 1080]]) {
       const page = await open(W, H);
-      for (const dark of [false, true]) {
-        await drive(page, d => setDark(d), dark, null);
-        await waitFor(page, d => document.documentElement.classList.contains('dark') === d, dark);
-        const tag = `${W}${dark ? ' dark' : ''}`;
-        await lens(page, 'clauses');
-        const m = await drive(page, measure, undefined, null) || {};
-        check(`${tag} a — the tab fits: the page itself does not scroll`, m.hostScrolls === false, JSON.stringify({ scrolls: m.hostScrolls }));
-        check(`${tag} b — Jambo's read first, then six figure tiles in one line`,
-          !!m.cop && !!m.figsR && m.cop.b <= m.figsR.t && m.figs === 6 && (m.figTops || []).length === 1,
-          `${m.figs} tiles · tops ${JSON.stringify(m.figTops)}`);
-        check(`${tag} c — the list and its panel share top and bottom edges`,
-          !!m.list && !!m.det && Math.abs(m.list.t - m.det.t) <= 1 && Math.abs(m.list.b - m.det.b) <= 1 && m.list.r < m.det.l,
-          m.list && m.det ? `list ${m.list.t}–${m.list.b} · panel ${m.det.t}–${m.det.b}` : 'not drawn');
-        check(`${tag} d — and reach the bottom of the window's page`,
-          !!m.list && m.list.b <= m.hostBottom && m.hostBottom - m.list.b <= 24, m.list ? `${m.list.b} of ${m.hostBottom}` : 'not drawn');
-        check(`${tag} e — the list's rows fill its card, no blank lower third`,
-          m.rows === 8 && m.gapUnderRows != null && m.gapUnderRows <= 2 && m.gapUnderRows >= -2, `${m.rows} rows · ${m.gapUnderRows}px under the last`);
-        check(`${tag} f — nothing runs past a card except inside its own scroller`,
-          m.cards >= 3 && Array.isArray(m.spill) && m.spill.length === 0, `${m.cards} cards · ${JSON.stringify(m.spill)}`);
-        check(`${tag} g — the panel's long lists scroll inside the panel`,
-          !!m.dsc && m.dsc.h > 0 && m.dsc.sh >= m.dsc.h, JSON.stringify(m.dsc));
-        await page.screenshot({ path: path.join(OUT, `${W}${dark ? '-dark' : ''}-clauses.png`) });
+      /* ONE PASS, BY DAY (re-pointed 21 Oct 2026, Chambers; the owner, 20 Oct
+         2026: "Let's not implement the dark theme. Remove it from HaTi"):
+         the night pass went with the night. */
+      const tag = `${W}`;
+      await lens(page, 'clauses');
+      const m = await drive(page, measure, undefined, null) || {};
+      check(`${tag} a — the tab fits: the page itself does not scroll`, m.hostScrolls === false, JSON.stringify({ scrolls: m.hostScrolls }));
+      check(`${tag} b — Jambo's read first, then six figure tiles in one line`,
+        !!m.cop && !!m.figsR && m.cop.b <= m.figsR.t && m.figs === 6 && (m.figTops || []).length === 1,
+        `${m.figs} tiles · tops ${JSON.stringify(m.figTops)}`);
+      check(`${tag} c — the list and its panel share top and bottom edges`,
+        !!m.list && !!m.det && Math.abs(m.list.t - m.det.t) <= 1 && Math.abs(m.list.b - m.det.b) <= 1 && m.list.r < m.det.l,
+        m.list && m.det ? `list ${m.list.t}–${m.list.b} · panel ${m.det.t}–${m.det.b}` : 'not drawn');
+      check(`${tag} d — and reach the bottom of the window's page`,
+        !!m.list && m.list.b <= m.hostBottom && m.hostBottom - m.list.b <= 24, m.list ? `${m.list.b} of ${m.hostBottom}` : 'not drawn');
+      check(`${tag} e — the list's rows fill its card, no blank lower third`,
+        m.rows === 8 && m.gapUnderRows != null && m.gapUnderRows <= 2 && m.gapUnderRows >= -2, `${m.rows} rows · ${m.gapUnderRows}px under the last`);
+      check(`${tag} f — nothing runs past a card except inside its own scroller`,
+        m.cards >= 3 && Array.isArray(m.spill) && m.spill.length === 0, `${m.cards} cards · ${JSON.stringify(m.spill)}`);
+      check(`${tag} g — the panel's long lists scroll inside the panel`,
+        !!m.dsc && m.dsc.h > 0 && m.dsc.sh >= m.dsc.h, JSON.stringify(m.dsc));
+      await page.screenshot({ path: path.join(OUT, `${W}-clauses.png`) });
 
-        for (const k of ['cps', 'wait']) {
-          await lens(page, k);
-          const n = await drive(page, measure, undefined, null) || {};
-          check(`${tag} ${k} — same fit on this lens`,
-            n.hostScrolls === false && !!n.list && !!n.det && Math.abs(n.list.b - n.det.b) <= 1 && Array.isArray(n.spill) && n.spill.length === 0,
-            JSON.stringify({ scrolls: n.hostScrolls, list: n.list && n.list.b, det: n.det && n.det.b, spill: n.spill }));
-          if (k === 'wait') check(`${tag} wait — a list longer than the card scrolls inside it`,
-            !!n.lsc && n.lsc.sh > n.lsc.h + 10, JSON.stringify(n.lsc));
-          await page.screenshot({ path: path.join(OUT, `${W}${dark ? '-dark' : ''}-${k}.png`) });
-        }
+      for (const k of ['cps', 'wait']) {
+        await lens(page, k);
+        const n = await drive(page, measure, undefined, null) || {};
+        check(`${tag} ${k} — same fit on this lens`,
+          n.hostScrolls === false && !!n.list && !!n.det && Math.abs(n.list.b - n.det.b) <= 1 && Array.isArray(n.spill) && n.spill.length === 0,
+          JSON.stringify({ scrolls: n.hostScrolls, list: n.list && n.list.b, det: n.det && n.det.b, spill: n.spill }));
+        if (k === 'wait') check(`${tag} wait — a list longer than the card scrolls inside it`,
+          !!n.lsc && n.lsc.sh > n.lsc.h + 10, JSON.stringify(n.lsc));
+        await page.screenshot({ path: path.join(OUT, `${W}-${k}.png`) });
       }
-      await drive(page, () => setDark(false), undefined, null);
 
       if (W === 1440) {
         /* A PRESS ON A ROW DEEP IN A SCROLLED LIST keeps the list where it was:

@@ -132,8 +132,8 @@ const M_CSS = `
      The design this was drawn from has no header at all. It could not: it is a
      prototype of a phone that is already signed in, already in one workspace
      and already in one jurisdiction. The real app is none of those things, and
-     four controls have nowhere else to live — who you are, how to leave, which
-     market's law and money are in force, and light or dark. The jurisdiction is
+     three controls have nowhere else to live — who you are, how to leave, which
+     market's law and money are in force. The jurisdiction is
      the one that is not cosmetic: it changes the currency on every figure and
      which statute checks run, so a phone that cannot see it is a phone that
      cannot tell you it is showing you Swedish rules. */
@@ -154,11 +154,6 @@ const M_CSS = `
     display:grid; place-items:center; border-radius:var(--radius); color:var(--color-neutral-600);
   }
   .m-head-btn:active{ background:var(--color-neutral-100); }
-  /* The theme swatch. Bigger than the desktop's, because a thumb has to hit it
-     and because it is the only thing on this row carrying colour. */
-  .m-theme-sw{ width:19px; height:19px; border-radius:var(--radius); display:block;
-    border:1px solid rgb(0 0 0/.16); }
-  html.dark .m-theme-sw{ border-color:rgb(255 255 255/.22); }
 
   /* ---- the screen ---- */
   .m-screen{ flex:1; min-height:0; display:flex; flex-direction:column; }
@@ -748,27 +743,13 @@ function mExpiry(c){
 function mHeadHtml(){
   const org = (typeof getOrg==='function' && getOrg()) || null;
   const name = (org && org.name) || (typeof FIRST_PARTY!=='undefined' && FIRST_PARTY) || 'HaTi';
-  /* ---- THE PHONE SHOWS THE THEME, IT DOES NOT PROMISE NIGHT ----
-     There are three themes now, so a moon that means "make it dark" is the
-     control lying about itself on the one screen with no room to explain. The
-     button is a swatch of the theme you are wearing and pressing it steps to
-     the next — the same three, in the same order, as the menu on the desktop.
-     Same function underneath (toggleTheme), so the two shells cannot drift. */
-  const themeNow = (typeof window.themeNow === 'function') ? window.themeNow() : 'navy';
-  const M_THEME_SWATCH = {
-    navy:'linear-gradient(135deg,#264c9e,#3f7ac4)',
-    green:'linear-gradient(135deg,#12796D,#06b6d4)',
-    dark:'linear-gradient(135deg,#1e293b,#0f172a)',
-  };
-  const themeLabel = { navy:'Navy', green:'Green', dark:'Dark' }[themeNow] || 'Navy';
+  /* ONE LOOK (owner, 20 Oct 2026): the theme button went with dark mode and
+     the Blue / Green swatches; the phone keeps who you are and the way out. */
   const initials = String(name).trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase() || 'HT';
   return `
     <div class="m-head">
       <div class="m-head-mark">${mEsc(initials)}</div>
       <div class="m-head-org">${mEsc(name)}</div>
-      <button class="m-head-btn" data-m-act="theme" aria-label="Theme — ${themeLabel}. Tap for the next one">
-        <span class="m-theme-sw" style="background:${M_THEME_SWATCH[themeNow]}"></span>
-      </button>
       <button class="m-head-btn" data-m-act="account" aria-label="${i18t('m_account_and_jx')}">
         <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>
       </button>
@@ -1319,7 +1300,6 @@ function mWire(){
   }));
   root.querySelectorAll('[data-m-act]').forEach(b=>b.addEventListener('click',e=>{
     const k = b.getAttribute('data-m-act');
-    if(k==='theme'){ if(window.toggleTheme) toggleTheme(); mRender(); return; }
     if(k==='account'){ mOpenSheet('account'); return; }
     if(k==='close-sheet'){ mCloseSheet(); return; }
     /* The signer picker's Save. It hands two rows to the DESKTOP's own

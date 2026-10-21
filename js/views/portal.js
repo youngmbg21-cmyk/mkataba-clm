@@ -2468,8 +2468,8 @@ function portalStatusWordHtml(c){
      a signature. */
   try{
     if(PORTAL_OPTS && (PORTAL_OPTS.purpose==='sign' || Array.isArray(PORTAL_OPTS.signingOrder)) && PORTAL_OPTS.payload){
-      const pill=(bg,fg,t)=>`<span class="pw-id-stat room-stat" style="display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:11px;font-weight:var(--w-strong);background:${bg};color:${fg}">${esc(t)}</span>`;
-      const G=['var(--st-green-bg)','var(--st-green-fg)'], A=['var(--st-amber-bg)','var(--st-amber-fg)'], B=['var(--color-accent-50)','var(--accent-ink)'];
+      const pill=(dot,fg,t)=>`<span class="pw-id-stat room-stat" style="color:${fg}"><i style="background:${dot}"></i>${esc(t)}</span>`;
+      const G=['var(--st-green-dot)','var(--st-green-fg)'], A=['var(--st-amber-dot)','var(--st-amber-fg)'], B=['var(--color-accent-600)','var(--accent-ink)'];
       const ex=portalExecuted();
       if(ex) return pill(...G, i18t('po_pill_fully')+(ex.at?' · '+(window.portalDayWords?portalDayWords(ex.at):String(ex.at).slice(0,10)):''));
       if(portalSignedHere()){ const w=[]; (PORTAL_OPTS.signingOrder||[]).forEach(st=>(st.rows||[]).forEach(r=>{ if(r&&!r.signed&&!r.you) w.push(r.name||r.party); }));
@@ -2483,15 +2483,15 @@ function portalStatusWordHtml(c){
        snapshot sent with it, so the pill still read "In Review" after the
        signing had begun. The link's own news wins over the snapshot. */
     if(PORTAL_OPTS && PORTAL_OPTS.payload){
-      const pill=(bg,fg,t)=>`<span class="pw-id-stat room-stat" style="display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:11px;font-weight:var(--w-strong);background:${bg};color:${fg}">${esc(t)}</span>`;
+      const pill=(dot,fg,t)=>`<span class="pw-id-stat room-stat" style="color:${fg}"><i style="background:${dot}"></i>${esc(t)}</span>`;
       const ex=portalExecuted();
-      if(ex) return pill('var(--st-green-bg)','var(--st-green-fg)', i18t('po_pill_fully')+(ex.at?' · '+(window.portalDayWords?portalDayWords(ex.at):String(ex.at).slice(0,10)):''));
-      if(portalSigningStarted()) return pill('var(--st-amber-bg)','var(--st-amber-fg)', i18t('po_pill_signing_started'));
+      if(ex) return pill('var(--st-green-dot)','var(--st-green-fg)', i18t('po_pill_fully')+(ex.at?' · '+(window.portalDayWords?portalDayWords(ex.at):String(ex.at).slice(0,10)):''));
+      if(portalSigningStarted()) return pill('var(--st-amber-dot)','var(--st-amber-fg)', i18t('po_pill_signing_started'));
     }
   }catch(_){}
   const meta = (window.STATUS_META && c && STATUS_META[c.status]) || null;
   if(!meta) return '';
-  return `<span class="pw-id-stat room-stat" style="color:${meta.tx}">${esc(meta.label)}</span>`;
+  return `<span class="pw-id-stat room-stat" style="color:${meta.tx}"><i style="background:${meta.dot}"></i>${esc(meta.label)}</span>`;
 }
 /* ---- WHICH OUTSIDE PARTY THIS PAGE IS (owner's D2, 8 Oct 2026) ----
    On a multi-party contract the payload carries the parties and the link's
@@ -3482,7 +3482,7 @@ function portalBellHtml(){
   return `<button id="pt-bell" class="ui-btn pt-verb pw-id-verb pt-bell" type="button"
     aria-haspopup="dialog" aria-expanded="false" aria-controls="pt-alerts"
     title="${esc(i18t('pa_bell_title'))}" aria-label="${esc(i18t('pa_bell_title'))}"
-    >&#128276;<span id="pt-bell-dot" class="pt-bell-dot" hidden>0</span></button>`;
+    ><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-bell"/></svg><span id="pt-bell-dot" class="pt-bell-dot" hidden>0</span></button>`;
 }
 /* ---- AND THE PANEL, FROM THE RIGHT ----
    The owner's shape: a title saying ALERTS, a dimmed backdrop, and three ways
@@ -3632,12 +3632,12 @@ function portalAlertsStyle(){
       font-weight:var(--w-title);line-height:16px;text-align:center;}
     .pt-notes-n[hidden]{display:none;}
     .pt-bell-dot{position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;padding:0 var(--s-1);
-      border-radius:var(--radius);background:var(--st-amber-fg);color:var(--color-surface);
+      border-radius:var(--radius);background:var(--color-text);color:var(--color-surface);
       font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-title);line-height:16px;text-align:center;}
-    .pt-alerts-scrim{position:fixed;inset:0;background:rgba(15,23,42,.38);z-index:70;}
+    .pt-alerts-scrim{position:fixed;inset:0;background:rgba(22,21,18,.38);z-index:70;}
     .pt-alerts{position:fixed;top:0;right:0;bottom:0;width:min(360px,88vw);z-index:71;
       background:var(--color-surface);border-left:1px solid var(--color-divider);
-      box-shadow:-14px 0 40px rgba(15,23,42,.18);display:flex;flex-direction:column;
+      box-shadow:-14px 0 40px rgba(22,21,18,.18);display:flex;flex-direction:column;
       transform:translateX(102%);transition:transform var(--dur-3) ease,visibility 0s linear var(--dur-3);
       visibility:hidden;}
     .pt-alerts.open{transform:none;visibility:visible;transition:transform var(--dur-3) ease;}
@@ -3710,10 +3710,11 @@ function portalWorkbenchStyle(){
     /* The title is what gives way first: it is the one thing in the row that can
        shorten without losing a control, and it already ellipsises. */
     .pw-id-main{flex:1 1 220px;}
-    .pw-id-badge{width:30px;height:30px;flex:none;border-radius:var(--radius);background:var(--color-accent);
-      color:#fff;display:grid;place-items:center;font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-body);}
+    /* CHAMBERS (21 Oct 2026): the mark is the word HaTi in the title serif, no tile — as our own bar draws it */
+    .pw-id-badge{height:30px;flex:none;padding:0 2px;background:transparent;color:var(--color-text);display:inline-flex;align-items:center;
+      font-family:var(--font-title);font-weight:600;font-size:18px;letter-spacing:0;}
     .pw-id-main{min-width:0;line-height:1.3;}
-    .pw-id-main h1{margin:0;font-family:var(--font-heading);font-weight:var(--w-strong);font-size:16px;
+    .pw-id-main h1{margin:0;font-family:var(--font-title);font-weight:var(--w-title-serif);font-size:16px;
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
     /* THE TITLE AND ITS STATE ON ONE LINE, the room head's own pair (Mirror,
        28 Sep 2026): the name gives way first, the state word never does. */
@@ -4213,9 +4214,12 @@ function portalTabsStyle(){
     .pw-copy>span>span{font-size:var(--t-label);color:var(--color-neutral-600);}
     .pw-sign{max-width:760px;margin:0 auto;padding:18px 4px 28px;}
     .pw-sign .ps-side{position:static;max-height:none;}
-    .pw-turn{flex:none;align-self:center;font-size:var(--t-label);font-weight:var(--w-strong);border-radius:999px;
-      padding:1px 8px;white-space:nowrap;border:1px solid var(--color-divider);color:var(--color-neutral-700);background:var(--color-surface);}
-    .pw-turn.is-you{color:var(--st-amber-fg);background:var(--st-amber-bg);border-color:var(--st-amber-line);}
+    /* whose turn: a dot and a word, no pill (Chambers, 21 Oct 2026) */
+    .pw-turn{flex:none;align-self:center;display:inline-flex;align-items:center;gap:6px;font-size:var(--t-label);font-weight:var(--w-label);
+      padding:0;white-space:nowrap;border:0;border-radius:0;background:none;color:var(--st-gray-fg);}
+    .pw-turn::before{content:'';width:7px;height:7px;border-radius:50%;flex:none;background:var(--st-gray-dot);}
+    .pw-turn.is-you{color:var(--st-amber-fg);}
+    .pw-turn.is-you::before{background:var(--st-amber-dot);}
     @media (max-width:760px){.pw-tab{padding-left:9px;padding-right:9px;}}
     @media (max-width:480px){.pw-tab{font-size:var(--t-body);padding-left:7px;padding-right:7px;}}`;
   document.head.appendChild(el);
@@ -4306,7 +4310,7 @@ function renderShareWorkbench(p, opts={}){
            quiet line names who it is FROM, because on this page "with" named
            the reader's own company back to them. */}
     <section class="pw-id">
-      <span class="pw-id-badge">HT</span>
+      <span class="pw-id-badge">HaTi</span>
       <span class="pw-id-main">
         <span class="pw-id-titlerow"><h1>${esc(c.name||'Contract')}</h1>${portalStatusWordHtml(c)}<span id="pt-turn"></span></span>
         <span class="pw-id-sub">${window.refHtml?refHtml(c):esc(c.id||'')} &middot; ${esc(i18t('po_from_org',{org}))}
@@ -4792,7 +4796,7 @@ function renderSharePortal(p, opts={}){
   root.innerHTML=`
   <div class="ps-page">
     <section class="pw-id">
-      <span class="pw-id-badge">HT</span>
+      <span class="pw-id-badge">HaTi</span>
       <span class="pw-id-main">
         <span class="pw-id-titlerow"><h1>${esc(c.name||'Contract')}</h1>${portalStatusWordHtml(c)}</span>
         <span class="pw-id-sub">${window.refHtml?refHtml(p.contract):esc(p.contract.id)} &middot; ${esc(i18t('po_from_org',{org:(p&&p.org)||''}))}

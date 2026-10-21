@@ -248,10 +248,13 @@ const visible = (page, sel) => page.evaluate(s => {
      ratio is measured rather than assumed. The class is flipped directly
      rather than through setTheme, which repaints the view and would take the
      panel with it: this is a question about CSS, not about state. */
+  /* RE-POINTED 21 Oct 2026 (Chambers): there is no night any more — dark mode
+     left HaTi — so the panel is no longer a new ground for the marks. The claim
+     becomes the relation the night pass protected: in the memo each mark reads
+     EXACTLY as the redline's own pair (--n-ins-fg on --n-ins-bg, --n-del-fg on
+     --n-del-bg) reads on the contract, i.e. the panel adds no new combination.
+     The pair's own ratio is the redline's business (a BUGLOG line). */
   const night = await page.evaluate(() => {
-    const root = document.documentElement;
-    const had = root.classList.contains('dark');
-    root.classList.add('dark');
     const p = document.getElementById('side-panel');
     const rgba = s => { const n = (String(s).match(/[\d.]+/g) || []).map(Number);
       return n.length ? { r: n[0], g: n[1], b: n[2], a: n.length > 3 ? n[3] : 1 }
@@ -280,14 +283,19 @@ const visible = (page, sel) => page.evaluate(s => {
       const st = getComputedStyle(el);
       const ink = over(rgba(st.color), ground(el.parentElement));
       return { r: ratio(ink, ground(el)), ink: st.color, bg: st.backgroundColor }; };
+    /* the tokens are scoped, not on :root: resolved INSIDE the mark itself */
+    const res = (at, v) => { const e = document.createElement('i'); e.style.color = v; at.appendChild(e); const c = rgba(getComputedStyle(e).color); e.remove(); return c; };
+    const pair = (sel, fg, bg) => { const at = p && p.querySelector(sel); if (!at) return 0;
+      const g = over(res(at, bg), { r: 255, g: 255, b: 255, a: 1 }); return ratio(over(res(at, fg), g), g); };
     const out = { ins: one('ins, .nego-ins'), del: one('del, .nego-del') };
-    if (!had) root.classList.remove('dark');
+    if (out.ins) out.ins.pair = pair('ins, .nego-ins', 'var(--n-ins-fg)', 'var(--n-ins-bg)');
+    if (out.del) out.del.pair = pair('del, .nego-del', 'var(--n-del-fg)', 'var(--n-del-bg)');
     return out;
   });
   for (const k of ['ins', 'del']){
     const m = night && night[k];
-    check(!!m && m.r >= 4.5, `2h6 the ${k === 'ins' ? 'insertion' : 'deletion'} still reads at night`,
-      m ? `${m.r.toFixed(2)}:1 — ${m.ink} on ${m.bg}` : 'not drawn');
+    check(!!m && Math.abs(m.r - m.pair) < 0.05, `2h6 the ${k === 'ins' ? 'insertion' : 'deletion'} reads in the memo as it reads on the contract`,
+      m ? `${m.r.toFixed(2)}:1 (the redline's pair ${m.pair.toFixed(2)}:1) — ${m.ink} on ${m.bg}` : 'not drawn');
   }
 
   /* ============ 3. THE NEGOTIATION STAYS LIT BEHIND IT ============ */

@@ -576,24 +576,24 @@ function handoverWaitWords(c){
   return stale ? `${days} \u00b7 ${typeof i18t==='function'?i18t('ho_still_live_q'):'still live?'}` : days;
 }
 const contractStatusChip = c => contractOnHold(c)
-  ? `<span class="badge" title="${i18t('hd_chip_title')}" style="background:${HOLD_META.bg};color:${HOLD_META.tx}">${HOLD_META.label}</span>`
+  ? `<span class="reg-stg" title="${i18t('hd_chip_title')}" style="color:${HOLD_META.tx}"><i style="background:${HOLD_META.dot}"></i>${HOLD_META.label}</span>`
   : _hoOut(c)
-  ? `<span class="badge" title="${(_hoSigned(c)?HANDOVER_SIGNED_META:HANDOVER_META).label} \u00b7 ${handoverWaitWords(c)}" style="background:${HANDOVER_META.bg};color:${HANDOVER_META.tx}">${(_hoSigned(c)?HANDOVER_SIGNED_META_SHORT:HANDOVER_META_SHORT).label}</span>`
+  ? `<span class="reg-stg" title="${(_hoSigned(c)?HANDOVER_SIGNED_META:HANDOVER_META).label} \u00b7 ${handoverWaitWords(c)}" style="color:${HANDOVER_META.tx}"><i style="background:${HANDOVER_META.dot}"></i>${(_hoSigned(c)?HANDOVER_SIGNED_META_SHORT:HANDOVER_META_SHORT).label}</span>`
   : contractPartiallySigned(c)
-  ? `<span class="badge" title="${typeof t==='function'?i18t('status_partially_signed_title'):"Sealed — awaiting the counterparty's signature. Copies go out when every party has signed."}" style="background:${PARTIAL_META.bg};color:${PARTIAL_META.tx}">${PARTIAL_META.label}</span>`
+  ? `<span class="reg-stg" title="${typeof t==='function'?i18t('status_partially_signed_title'):"Sealed — awaiting the counterparty's signature. Copies go out when every party has signed."}" style="color:${PARTIAL_META.tx}"><i style="background:${PARTIAL_META.dot}"></i>${PARTIAL_META.label}</span>`
   : contractExpired(c)
-  ? `<span class="badge" style="background:${EXPIRED_META.bg};color:${EXPIRED_META.tx}">${EXPIRED_META.label}</span>`
+  ? `<span class="reg-stg" style="color:${EXPIRED_META.tx}"><i style="background:${EXPIRED_META.dot}"></i>${EXPIRED_META.label}</span>`
   /* THE SHORT WORD IN A TABLE (owner-chose it, 23 Aug 2026): a register column
      cannot afford "Counterparty ready to sign", and the title carries the whole
      sentence for anybody who hovers. */
   : cpReadyToSign(c)
-  ? `<span class="badge" title="${i18t('status_cp_ready')}" style="background:${READY_META.bg};color:${READY_META.tx}">${READY_META_SHORT.label}</span>`
+  ? `<span class="reg-stg" title="${i18t('status_cp_ready')}" style="color:${READY_META.tx}"><i style="background:${READY_META.dot}"></i>${READY_META_SHORT.label}</span>`
   : statusChip(c&&c.status);
-// Pill status chip: wash bg + tone fg, 999px radius. No inner dot — the chip's
-// own colour carries the stage; the separate share dot (shareDot) sits outside
-// the chip so the two signals never read as one confusing double dot.
+// The status chip (Chambers, 21 Oct 2026): a dot and a word in the tone, no
+// wash — the same dress as contractStatusDotHtml, sized by .reg-stg > i in
+// HaTi's own sheet; the separate share dot (shareDot) still sits outside it.
 const statusChip = s => { const m=STATUS_META[s]||STATUS_META.Draft;
-  return `<span class="badge" style="background:${m.bg};color:${m.tx}">${m.label}</span>`; };
+  return `<span class="reg-stg" style="color:${m.tx}"><i style="background:${m.dot}"></i>${m.label}</span>`; };
 
 /* ---- THE SAME STATUS, SAID AS WORDS (owner-asked 22 Aug 2026) ----
    The design mock-up states a contract's stage as COLOURED TEXT beside the
@@ -628,11 +628,11 @@ const contractStatusTextHtml = (c, more) => {
   /* out with them, the head says for how long — "With them for signature ·
      6 days" — because the wait is the fact a reader opens it to learn */
   const wait = (m === HANDOVER_META || m === HANDOVER_SIGNED_META) ? handoverWaitWords(c) : '';
-  /* a PILL in its own tone since 7 Oct 2026 (the HaTi Platform mockup): the
-     stage's wash behind, its dot before the word */
+  /* the stage's DOT AND WORD in its own tone (Chambers, 20 Oct 2026; it was
+     a pill with the stage's wash behind it from 7 Oct) */
   /* `more` is a word the caller adds after the stage (the paper's line: the
      round, round 6) — said in the pill, never a second pill */
-  return `<span class="room-stat" style="color:${m.tx};background:${m.bg || 'transparent'}"><i style="background:${m.dot}"></i>${m.label}${wait ? ` \u00b7 ${_holdEsc(wait)}` : ''}${more ? ` \u00b7 ${_holdEsc(more)}` : ''}</span>`;
+  return `<span class="room-stat" style="color:${m.tx}"><i style="background:${m.dot}"></i>${m.label}${wait ? ` \u00b7 ${_holdEsc(wait)}` : ''}${more ? ` \u00b7 ${_holdEsc(more)}` : ''}</span>`;
 };
 /* THE TABLE'S DRESS. The dot is what a scanned column needs — the shape the
    chip used to give it — and the word beside it is what stops the colour being
@@ -668,7 +668,7 @@ const contractStatusDotHtml = c => {
     : (m === HANDOVER_META || m === HANDOVER_SIGNED_META) ? handoverWaitWords(c) : '';
   const full = (m === READY_META || m === HANDOVER_META || m === HANDOVER_SIGNED_META) ? m.label
     : (m === HOLD_META && (c && c.hold && c.hold.why)) ? String(c.hold.why) : '';
-  return `<span class="reg-stg" style="color:${m.tx};background:${m.bg||'transparent'}"${full?` title="${_holdEsc(full)}"`:''}`
+  return `<span class="reg-stg" style="color:${m.tx}"${full?` title="${_holdEsc(full)}"`:''}`
     + `><i style="background:${m.dot}"></i>${short.label}${
       why?` <span class="reg-stg-why">\u00b7 ${_holdEsc(why)}</span>`:''}</span>`;
 };
@@ -2247,14 +2247,13 @@ function renderAuth(mode){
   const shell = inner => `
   <div style="min-height:100vh;display:grid;place-items:center;background:var(--color-bg);padding:var(--s-10) var(--s-4);">
     <div style="width:100%;max-width:420px;">
-      <div style="display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:20px;">
-        <div style="width:36px;height:36px;background:var(--color-accent-800);color:#fff;display:grid;place-items:center;font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);letter-spacing:.02em;border-radius:var(--radius);">HT</div>
-        <div style="line-height:1.15;">
-          <div style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:20px;letter-spacing:.01em;color:var(--color-text);">HaTi</div>
-          <div style="font-size:var(--t-micro);color:var(--color-neutral-600);">${i18t('co_clm')}</div>
-        </div>
+      ${''/* CHAMBERS (owner picked it by name, 20 Oct 2026): the wordmark is the
+           word "HaTi" in the title serif, no tile; the card is a hairline */}
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px;margin-bottom:20px;line-height:1.15;">
+        <div style="font-family:var(--font-title);font-weight:600;font-size:26px;color:var(--color-text);">HaTi</div>
+        <div style="font-size:var(--t-micro);color:var(--color-neutral-600);">${i18t('co_clm')}</div>
       </div>
-      <div style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);padding:26px;">${inner}</div>
+      <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);padding:26px;">${inner}</div>
       <p style="text-align:center;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:14px;line-height:1.6;">${REMOTE?'Connected to your HaTi server — accounts and contracts are stored centrally.':'MVP demo — no data leaves this browser.'}</p>
     </div>
   </div>`;
@@ -2264,7 +2263,7 @@ function renderAuth(mode){
       <input id="${id}" type="${type}" placeholder="${ph}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font-family:var(--font-body);color:var(--color-text);outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>`;
   /* 20 Sep 2026: the heading face — --font-mono is JetBrains Mono now and is
      for DATA (ids, dates, counts, money), never a title or a caption. */
-  const H1='font-family:var(--font-heading);font-weight:var(--w-strong);font-size:22px;letter-spacing:-0.01em;color:var(--color-text);margin:0;';
+  const H1='font-family:var(--font-title);font-weight:var(--w-title-serif);font-size:22px;letter-spacing:-0.005em;color:var(--color-text);margin:0;';
   const SUB='font-size:var(--t-meta);color:var(--color-neutral-700);margin:var(--s-1) 0 18px;line-height:1.5;';
   const PBTN='width:100%;padding:9px;font-size:var(--t-body);margin-top:2px;';
   /* min-height is WCAG 2.5.8 (target size, AA): measured at 366x17px, this is

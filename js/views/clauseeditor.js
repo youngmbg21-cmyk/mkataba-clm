@@ -491,7 +491,7 @@ function clauseEditorCss(){
   .ce-spell:empty{display:none}
   .ce-railfoot button{height:var(--ctl-h-sm); padding:0 var(--pad-ctl-x-sm); font:inherit; font-size:var(--t-meta); font-weight:var(--w-label); white-space:nowrap;
     background:var(--color-surface); color:var(--color-text); border:1px solid var(--color-divider)}
-  .ce-railfoot button.p{background:var(--color-accent-700); border-color:var(--accent-ink-700);
+  .ce-railfoot button.p{background:var(--accent-fill); border-color:var(--accent-fill);
     color:#fff}
   .ce-railfoot button[disabled]{opacity:.45}
   /* ONE FOOTER: the suggestion's row takes the whole width over the walk's */
@@ -867,14 +867,14 @@ function clauseEditorCss(){
      the expanded view is set in the panel's own face at the panel's body size,
      and the paper's A-/A+ never reach it — nothing is measured off the sheet. */
   .ce-rail .ce-card .pv{font-family:inherit; font-size:var(--t-meta); line-height:1.6}
-  .ce-rail .ce-card .pv ins.rl-us{background:var(--st-steel-bg); color:var(--accent-ink);
+  .ce-rail .ce-card .pv ins.rl-us{background:var(--st-green-bg); color:var(--accent-ink);
     font-weight:inherit; text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:2px; text-decoration-color:currentColor}
   .ce-rail .ce-card .pv del.rl-us{background:transparent; color:var(--rl-del-ink);
     font-weight:inherit; text-decoration:line-through; text-decoration-thickness:1.5px; text-decoration-color:currentColor}
   .ce-card .av{display:flex; gap:var(--s-2); margin-top:9px; flex-wrap:wrap; align-items:center}
   .ce-card .av button{height:var(--ctl-h-sm); padding:0 var(--pad-ctl-x-sm); font:inherit; font-size:var(--t-meta); font-weight:var(--w-label);
     background:var(--color-surface); color:var(--accent-ink); border:1px solid var(--color-divider)}
-  .ce-card .av button.p{background:var(--color-accent-700); border-color:var(--accent-ink-700);
+  .ce-card .av button.p{background:var(--accent-fill); border-color:var(--accent-fill);
     color:#fff}
   .ce-card .av button:hover{border-color:var(--accent-solid)}
   .ce-card .av .g{flex:1; min-width:4px}
@@ -998,7 +998,6 @@ function clauseEditorCss(){
      and the square send outside the box are STALE. */
   .ce-askwrap{flex:none; padding:10px 14px 0; border-top:1px solid var(--color-divider)}
   /* the hint line under the box (owner, 18 Oct 2026, "Every Jambo box") */
-  .ce-askwrap + .jb-hint{flex:none; margin:6px 14px 8px}
   .ce-tagline{display:flex; align-items:center; gap:6px; min-width:0; overflow:hidden;
     font-size:var(--t-label); color:var(--color-neutral-500)}
   .ce-tagline:has(> .ce-tag:empty){display:none}
@@ -1036,7 +1035,7 @@ function clauseEditorCss(){
   .ce-reason .hint{font-size:var(--t-label); color:var(--color-neutral-600)}
   .ce-reason button{height:28px; padding:0 13px; font:inherit; font-size:var(--t-meta); font-weight:var(--w-strong);
     background:var(--color-surface); color:var(--color-text); border:1px solid var(--color-divider)}
-  .ce-reason button.p{background:var(--color-accent-700); border-color:var(--accent-ink-700);
+  .ce-reason button.p{background:var(--accent-fill); border-color:var(--accent-fill);
     color:#fff}
 
   /* ---- THE PASSAGE GOES TO THE COPILOT RAIL (M-1, 31 Aug 2026) ----
@@ -1101,9 +1100,7 @@ function clauseEditorCss(){
      contract in steel, a small line under the quote saying what the card
      holds. Colours are the ones those meanings already wear on this page. */}
   .ce-scope.is-asking .eb{color:#6d28d9}
-  html.dark .ce-scope.is-asking .eb{color:#c4b5fd}
   .ce-scope.is-asking q{border-left-color:#6d28d9}
-  html.dark .ce-scope.is-asking q{border-left-color:#c4b5fd}
   .ce-scope.is-whole .eb{color:var(--st-steel-fg)}
   .ce-scope.is-clause q{-webkit-line-clamp:3}
   .ce-scope .sm{margin:6px 0 0; font-size:var(--t-label); line-height:1.5; color:var(--color-neutral-600)}
@@ -1948,8 +1945,7 @@ function clauseEditorHtml(){
         <div class="ce-askwrap">${_ceJbCard({ id: 'ce-askrow', field: `<textarea id="ce-ask" rows="1" aria-label="${_ceea(_cet('ce_ask_label'))}" placeholder="${_ceea(_cet('ce_ask_ph'))}"></textarea>`,
           ctx: `<div class="ce-tagline" id="ce-tagline"><span class="ce-tag" id="ce-scope"></span></div>`,
           send: _ceJbSend('data-ce-act="ask"', _cet('ce_send')) })}</div>
-        ${''/* THE HINT LINE UNDER THE BOX (owner, 18 Oct 2026, "Every Jambo
-               box"): the one builder; asking files nothing — Apply or Save does */}${typeof jamboHintHtml === 'function' ? jamboHintHtml() : ''}`}
+`}
         ${''/* THE SPELLING LIST'S SLOT, directly over the Save it is about
                (28 Sep 2026). Empty unless a Save found something. */}
         <div class="ce-spell" id="ce-spell"></div>

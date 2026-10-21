@@ -25,7 +25,9 @@
         coming back lands on Form & links
      7  a contract with no form, no link and no round: the clauses ARE the
         panel — no door, no ×
-     8  at night the drawer keeps its colours
+     8  (retired 21 Oct 2026: "at night the drawer keeps its colours" went
+        with the dark theme — Chambers, owner's pick 20 Oct 2026: "Let's not
+        implement the dark theme. Remove it from HaTi")
 
    RE-POINTED 11 Oct 2026 (the contract's Document tab is gone, owner): asked
    on Home's Document face, Clauses tab; 1, 5 and 6b are retired in place.
@@ -254,18 +256,8 @@ const answer = say => b => [{ type: 'tool_use', id: 'tu', name: 'clause_readings
       JSON.stringify({ thread: s10.threadShown, rows: s10.rows.length, door: s10.door, close: s10.close }));
     await page.screenshot({ path: path.join(OUT, '06-one-home.png') });
 
-    /* ===== 8. AT NIGHT ===== */
-    await open('MK-314');
-    await page.evaluate(() => { if (typeof setDark === 'function') setDark(true); });
-    await page.waitForTimeout(700);
-    /* on Home the list is drawn on the panel itself (#ig-dock) */
-    /* the chip it read is gone (no filter on Home, 13 Oct 2026): the open row's Plain English button is what must stand out */
-    const night = await page.evaluate(() => { const th = document.getElementById('pd-thread'); const dock = document.getElementById('ig-dock'); const ch = th && th.querySelector('[data-th-explain]');
-      return { bg: dock ? getComputedStyle(dock).backgroundColor : '', body: getComputedStyle(document.body).backgroundColor, chip: ch ? getComputedStyle(ch).backgroundColor : '' }; });
-    const dark = c => { const v = (String(c).match(/[\d.]+/g) || []).map(Number); return v.length >= 3 && v[0] < 80 && v[1] < 80 && v[2] < 80; };
-    check('8 at night the clause panel is dark', dark(night.bg), JSON.stringify(night));
-    await page.screenshot({ path: path.join(OUT, '07-night.png') });
-    await page.evaluate(() => { if (typeof setDark === 'function') setDark(false); });
+    /* ===== 8. AT NIGHT — retired 21 Oct 2026 with the dark theme (Chambers,
+       owner's pick 20 Oct 2026); there is no night pass to run ===== */
 
     check('9 [control] no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {

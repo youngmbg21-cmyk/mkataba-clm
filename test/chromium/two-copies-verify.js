@@ -14,7 +14,8 @@
        copy's top margin and the whole letterhead on the signing copy's page 1;
      - the size control ZOOMING the signing copy rather than re-breaking it;
      - the places to sign on the signing copy and nowhere else;
-     - the signing copy staying white under the dark theme;
+     - the signing copy staying white (RE-POINTED 20 Oct 2026: there is no
+       dark theme any more, so a stray `dark` class paints neither copy dark);
      - their signing link drawing the same signing copy.
    Every claim is GATED on the thing it measures being on the page, so a build
    without the feature REPORTS its failures rather than passing on an empty
@@ -286,8 +287,13 @@ const PAGES = sel => `(() => {
     check('5a a place to sign that EXISTS is not drawn on the working copy', workSpots.copy === 'work'
       && workSpots.placed >= 1 && workSpots.spots === 0 && workSpots.flags === 0, JSON.stringify(workSpots));
 
-    /* ================= 6 — THE SIGNING COPY IS ALWAYS WHITE */
-    await page.evaluate(() => { if (window.setDark) setDark(true); else document.documentElement.classList.add('dark'); });
+    /* ================= 6 — THE SIGNING COPY IS ALWAYS WHITE
+       RE-POINTED 20 Oct 2026: the owner removed dark mode ("Let's not
+       implement the dark theme. Remove it from HaTi."). Nothing adds the
+       `dark` class any more; one is put on by hand, as an old page might have
+       left it, and NO rule answers it — both copies stay the white paper. */
+    const noSwitch = await page.evaluate(() => typeof window.setDark !== 'function' && typeof window.setTheme !== 'function');
+    await page.evaluate(() => document.documentElement.classList.add('dark'));
     await page.waitForTimeout(500);
     const darkWork = await page.evaluate(() => { const s = document.querySelector('#ig-paper .pg-work'); return s ? getComputedStyle(s).backgroundColor : null; });
     await page.evaluate(id => openWorkspace(id, { room: true }), ID);
@@ -297,11 +303,12 @@ const PAGES = sel => `(() => {
     await page.waitForFunction(() => !!document.querySelector('#ig-signwrap .pg-sign'), null, { timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(500);
     const darkSign = await page.evaluate(() => { const s = document.querySelector('#ig-signwrap .pg-sign'); return s ? getComputedStyle(s).backgroundColor : null; });
-    check('6a under the dark theme the working copy is the dark paper…', !!darkWork && darkWork !== 'rgb(255, 255, 255)', darkWork);
+    check('6a no dark theme is left: no switch, and a stray dark class leaves the working copy the white paper…',
+      noSwitch && darkWork === 'rgb(255, 255, 255)', `switch gone ${noSwitch} · ${darkWork}`);
     check('6b …and the signing copy stays WHITE — it is the page that gets signed and printed',
       darkSign === 'rgb(255, 255, 255)', darkSign);
-    await page.screenshot({ path: path.join(OUT, '04-signing-copy-dark.png') });
-    await page.evaluate(() => { if (window.setDark) setDark(false); else document.documentElement.classList.remove('dark'); });
+    await page.screenshot({ path: path.join(OUT, '04-signing-copy-stray-dark-class.png') });
+    await page.evaluate(() => document.documentElement.classList.remove('dark'));
     await page.waitForTimeout(400);
 
     /* ================= 7 — THE PAGES YOU READ ARE THE PAGES THAT PRINT */

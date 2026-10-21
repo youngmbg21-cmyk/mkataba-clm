@@ -8,7 +8,8 @@
    Needs you here from the day they arrive (quiet, "Arrived today" / "Waiting
    4 days"); each ask says what its number is of and which way it moved;
    "Risks not read yet" costs 1 Jambo call and Read it runs the Clauses
-   tab's deep read; the lead chip wears the accent's outline; Follow me
+   tab's deep read; the lead chip is a strong link in the accent ink
+   (re-pointed 20 Oct 2026, Chambers: it wore the accent's outline); Follow me
    names the clause on the hover, says what a press did, and works on the
    signing copy beside Before you sign — photographed at all three screens.
 
@@ -216,11 +217,15 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     check('5a the owed lead — "answer the redlines", "name a signer" — never also "redline" or "sign"',
       ks.includes('answer') && ks.includes('signer') && !ks.includes('redline') && !ks.includes('sign') && ks.length === 4 && ch[0].owed
       && ch.find(x => x.k === 'answer').w === 'answer the redlines' && ch.find(x => x.k === 'signer').w === 'name a signer', JSON.stringify(ch));
-    /* PASS 2: the lead chip wears the accent's outline, as drawn — not amber */
+    /* PASS 2, RE-POINTED 20 Oct 2026 (Chambers: suggestions are links): the lead chip is a link in
+       the accent ink, its words strong, underlined, no outline and no wash — and never amber */
     const edge = await page.evaluate(() => { const b = document.querySelector('#ig-dock .ca-chip-owed'); if (!b) return null;
-      const probe = document.createElement('i'); probe.style.color = 'var(--accent-solid)'; document.body.appendChild(probe); const acc = getComputedStyle(probe).color; probe.remove();
-      const cs = getComputedStyle(b); return { border: cs.borderTopColor, style: cs.borderTopStyle, width: cs.borderTopWidth, acc, bg: cs.backgroundColor }; });
-    check('5c (pass 2) the lead chip: the accent\'s outline, not amber', !!edge && edge.border === edge.acc && edge.style === 'solid' && edge.width === '1px' && !/180, 83, 9|254, 243, 199/.test(edge.bg), JSON.stringify(edge));
+      const probe = document.createElement('i'); probe.style.color = 'var(--accent-ink)'; probe.style.fontWeight = 'var(--w-strong)'; document.body.appendChild(probe);
+      const pcs = getComputedStyle(probe), ink = pcs.color, strong = pcs.fontWeight; probe.remove();
+      const cs = getComputedStyle(b); return { jb: b.classList.contains('jb-chip'), color: cs.color, ink, weight: cs.fontWeight, strong, line: cs.textDecorationLine, style: cs.borderTopStyle, width: cs.borderTopWidth, bg: cs.backgroundColor }; });
+    check('5c (pass 2) the lead chip: a link in the accent ink, strong and underlined, no outline, not amber',
+      !!edge && edge.jb && edge.color === edge.ink && edge.weight === edge.strong && /underline/.test(edge.line) && (edge.style === 'none' || edge.width === '0px')
+      && edge.bg === 'rgba(0, 0, 0, 0)' && !/180, 83, 9|254, 243, 199/.test(edge.bg + edge.color), JSON.stringify(edge));
     if (await press('#ig-dock [data-ca-chip="signer"]', '5b name a signer')) {
       const route = await until(() => /Signing route/.test((document.body.innerText || '')) && !!document.querySelector('.modal-overlay, .modal, [role="dialog"]'), null, 8000);
       check('5b "name a signer" opens the signing route', !!route);

@@ -363,7 +363,7 @@ function myNotesCss(){ return `
   .mn-ins .sap-band{padding-top:var(--page-pad-t);display:flex;flex-direction:column;gap:var(--s-2)}
   .mn-head2{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s-3);flex-wrap:wrap}
   .mn-hl{display:flex;align-items:baseline;gap:6px 10px;flex-wrap:wrap;min-width:0}
-  .mn-t1{margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;line-height:1.2;color:var(--color-text)}
+  .mn-t1{margin:0;font-family:var(--font-title);font-size:20px;font-weight:var(--w-title-serif);letter-spacing:-.01em;line-height:1.2;color:var(--color-text)}
   .mn-hn{color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
   .mn-hs{display:inline-flex;align-items:center;gap:5px;font-size:var(--t-meta);color:var(--color-neutral-600)}
   .mn-lock{width:12px;height:12px;flex:none}
@@ -434,7 +434,7 @@ function myNotesCss(){ return `
   .mn-chosen button{margin-left:auto;border:0;background:none;color:var(--color-neutral-600);cursor:pointer;font:inherit;font-size:16px}
   .mn-when{display:flex;flex-wrap:wrap;gap:6px}
   .mn-when button{height:var(--ctl-h-sm);padding:0 10px;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);color:var(--color-neutral-700,var(--color-text));font:inherit;font-size:var(--t-label);font-weight:var(--w-label);cursor:pointer}
-  .mn-when button[aria-pressed="true"]{background:var(--color-accent-700);border-color:var(--color-accent-700);color:#fff}
+  .mn-when button[aria-pressed="true"]{background:var(--accent-fill);border-color:var(--accent-fill);color:#fff}
   .mn-when button:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:2px}
 `; }
 

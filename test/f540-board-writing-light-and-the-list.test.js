@@ -5,6 +5,8 @@
          good or bad words outside a negation. Every Copilot paragraph on the
          board goes through it; the prompts ask for the marks.
      (2) The board lands Light, Light before Dark; Explorer is always dark.
+         (Since 20 Oct 2026: the board is always Light, no switch — dark mode
+         was removed; Explorer keeps its dark stage.)
      (3) Present opens with no tool; the Pointer button turns it on.
      (4) HaTi's list closes on any press outside it, even for a select with no
          label round it, and leaving Edit with Copilot takes it away. */
@@ -65,28 +67,30 @@ test('f540 (1) hbSay: marks, figures and plain good/bad words, escaped first', (
 });
 
 /* RE-POINTED 7 Oct 2026 (Young, "Follow dark mode"): with no screen of the
-   reader's own the board is Light by day and Dark at night; a press on the
-   board's Light | Dark is kept and wins. */
-test('f540 (2) the board lands Light by day, Dark at night, the reader\'s press wins; Explorer is always dark', () => {
+   reader's own the board was Light by day and Dark at night; a press on the
+   board's Light | Dark was kept and won.
+   RE-POINTED 20 Oct 2026: the owner removed dark mode ("Let's not implement
+   the dark theme. Remove it from HaTi. Only dark theme will be on the explorer
+   and brain as designed today"). The board is always Light, the Light | Dark
+   switch is gone from every face, a stored screen is not read, and Explorer
+   keeps its dark stage. */
+test('f540 (2) the board is always Light, with no Light | Dark switch; Explorer is always dark', () => {
   const w = board();
-  w.darkNow = () => false;
-  assert.equal(w.hbS().screen, null, 'no screen of the reader\'s own');
-  assert.equal(w.hbScreenNow(), 'light', 'by day');
-  w.darkNow = () => true;
-  assert.equal(w.hbScreenNow(), 'dark', 'at night');
-  w.hbS().screen = 'light'; w.hbS().scrPick = 1;
-  assert.equal(w.hbScreenNow(), 'light', 'a pressed Light holds at night');
-  w.hbS().screen = null; w.hbS().scrPick = 0; w.darkNow = () => false;
+  assert.ok(!('screen' in w.hbS()), 'no screen of the reader\'s own');
+  assert.equal(w.hbScreenNow(), 'light', 'the board is light');
+  w.hbS().screen = 'dark'; w.hbS().scrPick = 1;
+  assert.equal(w.hbScreenNow(), 'light', 'an old pressed Dark is not read');
+  delete w.hbS().screen; delete w.hbS().scrPick;
   w.hbS().face = 'explorer';
-  assert.equal(w.hbScreenNow(), 'dark', 'Explorer is dark whatever the board wears');
-  const head = w.hbHeadHtml('');
-  assert.match(head, /<div class="hb-seg hb-scr"[^>]* hidden/, 'no Light/Dark on Explorer');
-  w.hbS().face = 'board';
-  const h2 = w.hbHeadHtml('');
-  assert.ok(h2.indexOf('data-hb-screen="light"') < h2.indexOf('data-hb-screen="dark"'), 'Light before Dark');
-  /* a screen saved before the ruling is not kept; one the reader pressed is */
-  assert.match(code(region(HB, 'hbS')), /HB_SCREENS\.includes\(v\.screen\) && v\.scrPick === 1/);
-  assert.match(read('index.html'), /#hb-head \.hb-scr\[hidden\]\{display:none\}/);
+  assert.equal(w.hbScreenNow(), 'dark', 'Explorer keeps its dark stage');
+  for (const f of ['explorer', 'board']) {
+    w.hbS().face = f;
+    const head = w.hbHeadHtml('');
+    assert.ok(!/hb-scr|data-hb-screen/.test(head), 'no Light | Dark switch on ' + f);
+  }
+  /* a screen saved by the retired switch is not read back */
+  assert.doesNotMatch(code(region(HB, 'hbS')), /v\.screen|scrPick|HB_SCREENS/);
+  assert.doesNotMatch(code(HB), /HB_SCREENS|hbScrButtonHtml|data-hb-screen/, 'the switch\'s machinery is gone');
 });
 
 test('f540 (3) Present opens with no tool', () => {

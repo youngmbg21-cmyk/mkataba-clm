@@ -43,7 +43,9 @@ const ok = (name, good, detail) => {
     await page.fill('#su-email', 'admin@example.co.ke'); await page.fill('#su-pass', 'adminpassword1');
     const sample = await page.$('#su-sample'); if (sample && !(await sample.isChecked())) await sample.check();
     await page.click('#su-go'); await page.waitForTimeout(3500); await page.keyboard.press('Escape').catch(() => {});
-    const en = await page.$('.lang-btn[data-lang="en"]'); if (en) { await en.click(); await page.waitForTimeout(800); }
+    /* RE-POINTED 20 Oct 2026 (Chambers): the bar carries no language switch any
+       more; the language is changed in Settings › You, through the one writer langSet */
+    await page.evaluate(() => { if (typeof langSet === 'function') langSet('en'); }); await page.waitForTimeout(400);
     /* re-pointed 17 Oct 2026: a computer draws no left menu (the owner's
        "Desk tabs"); the Brain is a place Jambo opens from the Counter */
     await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'brain');
@@ -137,12 +139,12 @@ const ok = (name, good, detail) => {
     ok('5a the key 1 goes back to the brain and the canvas returns', back.cv !== 'none' && back.lanes, JSON.stringify(back));
     await page.keyboard.press('4'); await page.waitForTimeout(400);
     ok('5b the key 4 opens the lanes', await page.evaluate(() => !document.getElementById('br-lanes').hidden && document.querySelectorAll('#br-lanes .br-lb').length > 0));
-    const sv = await page.$('.lang-btn[data-lang="sv"]');
-    if (sv){ await sv.click(); await page.waitForTimeout(1500); }
+    const svSet = await page.evaluate(() => typeof langSet === 'function' && langSet('sv')); /* the bar's switch is gone (Chambers); langSet is the one writer */
+    if (svSet) await page.waitForTimeout(1500);
     const svW = await page.evaluate(() => ({ t: (document.getElementById('br-ov-t') || {}).textContent || '', l: [...document.querySelectorAll('#br-lanes .br-ln-lane')].map(t => t.textContent).join(' ') }));
     ok('5c in Swedish the view and its lanes are named in Swedish', /Banvy/.test(svW.t) && /Motparten/.test(svW.l), svW.t + ' · ' + svW.l);
     await page.screenshot({ path: path.join(OUT, '4-swedish.png') });
-    const en2 = await page.$('.lang-btn[data-lang="en"]'); if (en2) { await en2.click(); await page.waitForTimeout(600); }
+    await page.evaluate(() => { if (typeof langSet === 'function') langSet('en'); }); await page.waitForTimeout(600);
   } catch (e) {
     ok('the run reached its end', false, String(e).slice(0, 200));
   } finally {

@@ -866,7 +866,7 @@ const LC_CSS = `
      it is the card's title row (.ph-top), so the 12px and the hairline under it are the one rule every head wears */
   .sap-band > .cu-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s-3);flex-wrap:wrap;}
   .cu-hl{display:flex;align-items:baseline;gap:var(--s-3);min-width:0;flex:1 1 auto;}
-  .cu-t{margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;line-height:1.2;color:var(--color-text);white-space:nowrap;}
+  .cu-t{margin:0;font-family:var(--font-title);font-size:20px;font-weight:var(--w-title-serif);letter-spacing:-.01em;line-height:1.2;color:var(--color-text);white-space:nowrap;}
   .cu-t .cu-tn{margin-left:6px;font-size:var(--t-card);font-weight:var(--w-body);color:var(--color-neutral-600);font-variant-numeric:tabular-nums;}
   .cu-hs{font-size:var(--t-meta);color:var(--color-neutral-700);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .cu-acts{display:flex;align-items:center;gap:var(--s-2);flex:none;min-height:var(--ctl-h);}
@@ -901,9 +901,8 @@ const LC_CSS = `
   /* "10 of 27 shown · Show more" reads as one line at the foot's start */
   .ap-foot.cu-foot{justify-content:flex-start;gap:4px;flex-wrap:wrap;}
   .ap-foot.cu-foot .lc-shown{white-space:nowrap;}
-  /* Jambo's panel on Parties and People: a section's count in its small pill, as drawn */
+  /* Jambo's panel on Parties and People: the lead button keeps its own width; a section's count is the plain number every panel draws (.ins-sec h3 .n, Chambers) */
   :is(.cu-page,.dir-page) .ins-acts .ins-lead{flex:0 1 auto;}
-  :is(.cu-page,.dir-page) .ins-sec h3 .n{display:inline-block;padding:0 7px;border-radius:999px;background:var(--color-accent-50);color:var(--accent-ink);font-size:var(--t-micro);line-height:18px;font-variant-numeric:tabular-nums;}
 `;
 const CU_CSS = `
   .cu-page{height:var(--view-h);box-sizing:border-box;}
@@ -948,7 +947,7 @@ const CU_CSS = `
   .cu-li.is-late .cu-li-b b{color:var(--st-ruby-fg);}
   .cu-li-b span .late{color:var(--st-ruby-fg);}
   .cu-ag-st{flex:none;font-size:var(--t-meta);}
-  .cu-pp-av{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:var(--w-strong);background:var(--color-accent-50);color:var(--accent-ink);border:1px solid var(--color-divider);}
+  .cu-pp-av{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:var(--w-label);background:transparent;color:var(--color-neutral-600);border:1px solid var(--rule-strong);}
   .cu-draft-with{padding:4px 16px 16px;}
   .cu-sub-act{border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);font-weight:var(--w-label);cursor:pointer;}
   .cu-sub-act:hover{text-decoration:underline;}

@@ -166,7 +166,9 @@ const OBS = [
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await waitFor(page, () => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-L1'), 20000);
     await page.keyboard.press('Escape').catch(() => {});
-    const en = await page.$('.lang-btn[data-lang="en"]'); if (en) await en.click();
+    /* RE-POINTED 21 Oct 2026 (Chambers): the bar's language switch is gone —
+       the language is changed in Settings › You, whose one writer is langSet */
+    await page.evaluate(() => { if (langId() !== 'en') langSet('en'); });
     /* their round: two asks from their link, so the move is ours */
     const cls = await page.evaluate(async () => { const c = getContract('MK-L1'); if (c._light && typeof ensureFull === 'function') await ensureFull(c);
       return negoClauseList(c).map(k => ({ id: k.clauseId, label: clauseLabel(k), text: String(k.text || k.body || '').trim() })); });
@@ -524,7 +526,7 @@ const OBS = [
     /* ===== 8. SVENSKA ===== */
     await toBoard();
     await page.evaluate(() => { const s = hbS(); s.strips.forEach(x => { x.page = 'ov'; }); hbSave(); });
-    const sv = await page.$('.lang-btn[data-lang="sv"]'); if (sv) await sv.click();
+    await page.evaluate(() => langSet('sv'));   /* Chambers: no switch in the bar; langSet is Settings' one writer */
     await waitFor(page, () => (typeof langId === 'function') && langId() === 'sv', 6000);
     await toBoard();
     await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L1 .bs-chart'), 8000);
@@ -535,7 +537,7 @@ const OBS = [
       && JSON.stringify(SV.foot) === JSON.stringify(['Behållen', 'Fråga varför', 'Släpp den']) && SV.jb === 'Vad Jambo läste vid uppladdningen', JSON.stringify(SV));
     await page.evaluate(() => { const el = document.getElementById('bs-strip-MK-L1'); const host = document.getElementById('hb-board'); host.scrollTop += el.getBoundingClientRect().top - host.getBoundingClientRect().top - 8; });
     await shot('8-svenska');
-    const en2 = await page.$('.lang-btn[data-lang="en"]'); if (en2) await en2.click();
+    await page.evaluate(() => langSet('en'));
     await waitFor(page, () => langId() === 'en', 6000);
 
     /* ===== 9. THE OWNER'S THREE SCREENS ===== */

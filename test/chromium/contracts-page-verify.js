@@ -561,25 +561,21 @@ const check = (name, ok, detail) => {
     check('12e and the filters beside it stay resting, so the narrowing is legible',
       act.type && act.type.bc === ruleStrong, act.type && act.type.bc);
 
-    /* AND IT IS READABLE AT NIGHT. `--color-accent-800` had NO dark answer —
-       measured 2.35:1 on the night panel where AA wants 4.5 — so the one thing
-       saying "this list is narrowed" was all but invisible. `--accent-ink` is
-       the same accent ink WITH a dark value. The claim is the RELATION: the
-       active ink must differ from the light theme's, which is what having a
-       dark answer means. */
-    await page.evaluate(() => setTheme('dark'));
-    await page.waitForTimeout(1500);
-    const dark = await page.evaluate(READ_EDGES);
+    /* RE-POINTED 20 Oct 2026 (the owner picked "Chambers" and removed dark
+       mode: "Let's not implement the dark theme. Remove it from HaTi."). The
+       night pass is gone with the night; what it protected — the active
+       filter says so in the accent INK token, and a resting one in the
+       hairline — is asked of the one look HaTi has. */
     const accentInk = await page.evaluate(RESOLVE, '--accent-ink');
-    check('12f the active filter\'s ink follows the theme, rather than staying a light-mode accent',
-      dark.stage && dark.stage.fg === accentInk && dark.stage.fg !== act.stage.fg,
-      `dark ${dark.stage && dark.stage.fg} · light ${act.stage.fg} · token ${accentInk}`);
-    /* RE-POINTED (21 Sep 2026): the chip's hairline has a night answer of its
-       own, so "the same neutral" is the token resolved AT NIGHT. */
-    check('12f and a resting filter still wears the hairline at night',
-      dark.type && dark.type.bc === await page.evaluate(RESOLVE, '--chip-edge') && dark.type.bc === await page.evaluate(RESOLVE, '--rule-strong'),
-      dark.type && dark.type.bc);
-    await page.evaluate(() => setTheme('light'));
+    check('12f the active filter\'s ink is the accent ink token, --accent-ink',
+      act.stage && act.stage.fg === accentInk,
+      `active ${act.stage && act.stage.fg} · token ${accentInk}`);
+    check('12f and a resting filter wears the hairline, --chip-edge reading --rule-strong',
+      act.type && act.type.bc === await page.evaluate(RESOLVE, '--chip-edge') && act.type.bc === await page.evaluate(RESOLVE, '--rule-strong'),
+      act.type && act.type.bc);
+    const night = await page.evaluate(() => ({ dark: document.documentElement.classList.contains('dark'),
+      fns: ['setTheme', 'setDark', 'toggleTheme', 'toggleDark'].filter(n => typeof window[n] === 'function') }));
+    check('12g no night look is left to switch to', !night.dark && night.fns.length === 0, JSON.stringify(night));
     await page.evaluate(() => { const R = regState(); R.stage = 'all'; R.view = null; regRepaint(); });
     await page.waitForTimeout(1000);
 

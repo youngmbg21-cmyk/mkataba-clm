@@ -114,7 +114,8 @@ test('f415 (h2 h4 h6 h7 h8 h9 h10 h11 h12 h13 h14) Home and the pages around it'
   assert.match(I18N, /home_dd_sorted: 'anyone waiting on you first'/);
   assert.match(IDX, /\.hm-dk-tag\{[^}]*min-width:11ch/);
   assert.match(R('js/views/calendar.js'), /\.cal-hz-bar\{[^}]*min-width:8px/);
-  assert.match(IDX, /html\.dark \.py-chip-inv\{ background:var\(--st-steel-bg\); \}/);
+  /* the night answer for .py-chip-inv left with dark mode (Chambers, 20 Oct 2026) */
+  assert.doesNotMatch(IDX, /html\.dark \.py-chip-inv/);
   assert.match(R('js/views/calendar.js'), /\.cal-seg a\.on \.c,\.cal-seg span\.on \.c,\.cal-seg button\.on \.c\{color:#fff;opacity:1\}/);
   assert.match(IDX, /\.obw-f select\{[^}]*border:1px solid var\(--field-line\)/);
   assert.ok(!/set_role_legal: 'Editor — edit &amp; sign'/.test(I18N));

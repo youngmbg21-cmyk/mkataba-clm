@@ -249,43 +249,41 @@ describe('f458 (10) — the calendar\'s More button wears the row\'s outline', (
 });
 
 /* ---------------------------------------------------------------- 9 ---- */
-describe('f458 (9) — the two pale accent rungs have a dark answer', () => {
-  const _d0 = HTML.indexOf('  :root.dark{');
-  const dark = HTML.slice(_d0, HTML.indexOf('}', _d0) + 1);
-
-  test('both are declared for the night', () => {
-    assert.match(dark, /--color-accent-50:rgb\(var\(--color-accent-500-rgb\)\/\.08\)/);
-    assert.match(dark, /--color-accent-100:rgb\(var\(--color-accent-500-rgb\)\/\.16\)/);
+describe('f458 (9) — the two pale accent rungs owe no dark answer: dark mode is gone', () => {
+  /* RE-POINTED 20 Oct 2026. Item 9 was "when in dark mode you still have
+     white patches"; its answer was a night value for the two pale rungs. The
+     owner then removed dark mode ("Let's not implement the dark theme. Remove
+     it from HaTi. Only dark theme will be on the explorer and brain as
+     designed today"), so there is no night for a patch to show in. What this
+     section now holds is that the night answer is GONE and stays gone, and
+     that daylight wears the Chambers rungs. */
+  test('no :root.dark block declares the rungs for the night', () => {
+    assert.strictEqual(HTML.indexOf(':root.dark{'), -1, 'a :root.dark block is back');
+    assert.ok(!/html\.dark\{[^}]*--color-accent-(50|100):/.test(HTML), 'nor an html.dark one for the pale rungs');
   });
 
-  test('written in channels, so the wash follows whichever brand is on', () => {
-    assert.ok(!/#[0-9a-fA-F]{6}/.test(dark), 'a hex here would freeze the teal onto the navy workspace');
+  test('and the compiled utilities have no hand-written night wash either', () => {
+    assert.ok(!/html\.dark \.(hover\\:)?bg-brand-(50|100)/.test(HTML),
+      'a night wash for bg-brand-50/100 is back — there is no dark theme');
   });
 
-  test('it is the SAME answer the compiled utilities already give', () => {
-    assert.match(HTML, /html\.dark \.bg-brand-50[^}]*rgb\(var\(--color-accent-500-rgb\)\/\.08\)/,
-      'bg-brand-50 and a hand-written accent-50 must paint one colour at night');
-    assert.match(HTML, /html\.dark \.bg-brand-100\{background-color:rgb\(var\(--color-accent-500-rgb\)\/\.16\)/);
+  test('there is one brand, so no brand block outranks anything', () => {
+    assert.strictEqual(HTML.indexOf(':root[data-brand="navy"]{'), -1,
+      'the navy brand block is back — the brand picker went with dark mode');
   });
 
-  test(':root.dark, and after the brand blocks — or navy keeps the white patch', () => {
-    const navy = HTML.indexOf(':root[data-brand="navy"]{');
-    assert.ok(navy > 0 && HTML.indexOf('  :root.dark{') > navy,
-      ':root[data-brand="navy"] (0,2,0) outranks html.dark (0,1,1); the tie is broken by order');
-  });
-
-  test('daylight is untouched: the light values are where they were', () => {
-    /* RE-PINNED 7 Oct 2026: Young moved the palette to the HaTi Platform
-       mockup's brighter brand (#12796D / #264C9E), whose tint and soft rungs
-       these are. The claim stands — the dark answer leaves daylight alone. */
-    assert.match(HTML, /--color-accent-50:#F1F9F7;/);
-    assert.match(HTML, /--color-accent-100:#E3F3EF;/);
-    assert.match(HTML, /--color-accent-50:#f0f4fb;/);
+  test('daylight wears the Chambers rungs', () => {
+    /* RE-PINNED 7 Oct 2026 to the HaTi Platform mockup's brighter brand, and
+       RE-PINNED 20 Oct 2026 to CHAMBERS (owner-picked by name): the deep
+       green's tint and soft rungs. */
+    assert.match(HTML, /--color-accent-50:#EEF3F0;/);
+    assert.match(HTML, /--color-accent-100:#DCE7E1;/);
   });
 
   test('and the inks that sat ON the wash read the accent ink, not a dark rung', () => {
-    /* accent-800 on a dark wash is dark on dark. --accent-ink is accent-700 by
-       day and accent-400 at night, so one token answers both. */
+    /* accent-800 on a dark wash was dark on dark; --accent-ink answered both.
+       With dark mode gone (20 Oct 2026) the token is kept: it is still the one
+       accent ink that sits on the wash. */
     for (const [file, mark] of [
       ['js/views/contract.js', "b.style.color=on?'var(--accent-ink)'"],
       /* the Activity & comments card's avatar (color:${internal?…}) left the

@@ -61,7 +61,9 @@ const ok = (name, good, detail) => {
     await page.fill('#su-email', 'admin@example.co.ke'); await page.fill('#su-pass', 'adminpassword1');
     const sample = await page.$('#su-sample'); if (sample && !(await sample.isChecked())) await sample.check();
     await page.click('#su-go'); await page.waitForTimeout(3500); await page.keyboard.press('Escape').catch(() => {});
-    const en = await page.$('.lang-btn[data-lang="en"]'); if (en) { await en.click(); await page.waitForTimeout(800); }
+    /* RE-POINTED 20 Oct 2026 (Chambers): the bar's language switch is gone;
+       the language is Settings › You's, whose one writer is langSet */
+    await page.evaluate(() => { if (typeof window.langSet === 'function') window.langSet('en'); }); await page.waitForTimeout(800);
 
     /* ---- the stage: one negotiation waiting on us, one with them ---- */
     const staged = await page.evaluate(async () => {
@@ -198,7 +200,7 @@ const ok = (name, good, detail) => {
     /* the one line, at every laptop width, in both languages */
     const lineRep = [];
     for (const lang of ['en', 'sv']) {
-      const b = await page.$('.lang-btn[data-lang="' + lang + '"]'); if (b) { await b.click(); await page.waitForTimeout(700); }
+      await page.evaluate(l => { if (typeof window.langSet === 'function') window.langSet(l); }, lang); await page.waitForTimeout(700);
       for (const W of [1104, 1280, 1440, 1920]) {
         await page.setViewportSize({ width: W, height: 900 }); await toContracts();
         const m = await page.evaluate(() => {
@@ -219,16 +221,16 @@ const ok = (name, good, detail) => {
           return { ins: document.querySelector('[data-ins-page]')?.getAttribute('data-ins'), lines: chips.length ? mids.size : 0,
             fits: sc ? sc.scrollWidth <= sc.clientWidth + 1 : false, over: document.documentElement.scrollWidth - document.documentElement.clientWidth };
         });
-        lineRep.push({ lang, W, ...m });
+        lineRep.push({ lang, W, ...m, html: await page.evaluate(() => document.documentElement.lang) });
       }
     }
     /* the List has no inspector line to cross since step 7; its own line (four
        columns below REG_HOME_NARROW_W of place) sits below these widths and is
        crossed in 4d–4f */
-    const bad = lineRep.filter(r => r.lines !== 1 || !r.fits || r.over > 0);
+    const bad = lineRep.filter(r => r.lines !== 1 || !r.fits || r.over > 0 || r.html !== r.lang);
     ok('1q the filter row is one line and the list fits its pane, 1104–1920, both languages', bad.length === 0,
       bad.length ? JSON.stringify(bad) : `${lineRep.length} measured`);
-    const back = await page.$('.lang-btn[data-lang="en"]'); if (back) { await back.click(); await page.waitForTimeout(700); }
+    await page.evaluate(() => { if (typeof window.langSet === 'function') window.langSet('en'); }); await page.waitForTimeout(700);
     await page.setViewportSize({ width: 1440, height: 900 }); await toContracts();
 
     /* the Display menu */
@@ -398,20 +400,31 @@ const ok = (name, good, detail) => {
     const w2 = await shapeIs(v => v.heads === v.wide && !v.narrow);
     ok('4f widened again, its wide columns come back', w2.heads === w2.wide && !w2.narrow && w2.pan <= 1, JSON.stringify(w2));
 
-    /* ================= 5 · NIGHT ================= */
-    await page.evaluate(() => { setDark(true); applyAppearance(); }); await toNego();
-    const night = await page.evaluate(() => {
+    /* ================= 5 · ONE LOOK, AND ITS WORDS READ =================
+       RE-POINTED 20 Oct 2026: the owner removed dark mode ("Let's not
+       implement the dark theme. Remove it from HaTi."), so the night pass is
+       gone with the night. Its claim — the panel's words read (AA) on the
+       surface they sit on — is asked of the one look HaTi has (5a), and no
+       night look is left for the list panel to wear (5b). */
+    await toNego();
+    const look = await page.evaluate(() => {
       const p = document.getElementById('ins-panel'); if (!p) return null;
       const rgb = s => (s.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
       const lum = c => { const [r, g, b] = rgb(c).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }); return .2126 * r + .7152 * g + .0722 * b; };
       const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + .05) / (y + .05); };
-      const bg = getComputedStyle(p).backgroundColor;
-      const cp = getComputedStyle(p.querySelector('.ins-cp')).color, dt = getComputedStyle(p.querySelector('.ins-facts dt')).color;
-      return { bg, cp: ratio(cp, bg), dt: ratio(dt, bg) };
+      /* the surface a word sits on: the nearest box that paints a ground */
+      const ground = el => { for (let e = el; e; e = e.parentElement) { const b = getComputedStyle(e).backgroundColor, a = (b.match(/[\d.]+/g) || []);
+        if (b && b !== 'transparent' && !(a.length === 4 && Number(a[3]) === 0)) return b; } return 'rgb(255, 255, 255)'; };
+      const cpE = p.querySelector('.ins-cp'), dtE = p.querySelector('.ins-facts dt');
+      if (!cpE || !dtE) return { missing: [!cpE && '.ins-cp', !dtE && '.ins-facts dt'].filter(Boolean) };
+      const cpBg = ground(cpE), dtBg = ground(dtE);
+      return { cpBg, dtBg, cp: ratio(getComputedStyle(cpE).color, cpBg), dt: ratio(getComputedStyle(dtE).color, dtBg) };
     });
-    ok('5a at night the panel (Negotiations) is the dark surface and its words read (AA)', !!night && night.cp >= 4.5 && night.dt >= 4.5, JSON.stringify(night));
-    await page.screenshot({ path: path.join(OUT, '5-negotiations-night.png') });
-    await page.evaluate(() => { setDark(false); applyAppearance(); });
+    ok('5a the panel\'s words (Negotiations) read on the surface under them (AA)', !!look && !look.missing && look.cp >= 4.5 && look.dt >= 4.5, JSON.stringify(look));
+    const night = await page.evaluate(() => ({ dark: document.documentElement.classList.contains('dark'),
+      panel: !!document.getElementById('ins-panel'),
+      fns: ['setDark', 'applyAppearance', 'setTheme', 'toggleDark'].filter(n => typeof window[n] === 'function') }));
+    ok('5b no night look: the dark class never lands and no switch for it is published', !night.dark && night.fns.length === 0 && night.panel, JSON.stringify(night));
 
     ok('no page errors', errs.length === 0, errs.slice(0, 3).join(' | '));
   } catch (e) {

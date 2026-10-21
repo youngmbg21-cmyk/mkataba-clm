@@ -138,14 +138,13 @@ const SWEEP=()=>{
   const browser=await chromium.launch({executablePath:EXEC,args:['--no-sandbox']});
   const [ck,cv]=String(admin.cookie||'').split('=');
   const all={};
-  for(const theme of ['light','dark']){
+  for(const theme of ['light']){   /* one appearance since Chambers (20 Oct 2026): no dark mode */
     const ctx=await browser.newContext({viewport:{width:1440,height:900}});
     await ctx.addCookies([{name:ck,value:cv,url:h.base}]);
     const page=await ctx.newPage();
     await page.goto(h.base,{waitUntil:'load'});
     await page.waitForFunction(()=>window.state&&Array.isArray(state.contracts)&&state.contracts.some(c=>c&&c.id==='MK-82'));
     await page.addStyleTag({content:'*,*::before,*::after{animation:none!important;transition:none!important}'});
-    if(theme==='dark'){await page.evaluate(()=>applyTheme('dark'));await pause(400);}
     for(const [name,go] of SCREENS){
       try{ await go(page); }catch(e){ all[`${name}--${theme}`]={ERROR:{[e.message]:1}}; continue; }
       await page.addStyleTag({content:'*,*::before,*::after{animation:none!important;transition:none!important}'});

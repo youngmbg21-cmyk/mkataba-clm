@@ -157,7 +157,8 @@ async function login(b, base, email, pass, errs){
         rungs, ph: (document.getElementById('igd-input') || {}).placeholder };
     });
     check('1a inside "Waiting on you" the paper\'s order: 7. Liability cap, then 11. Payment terms', one.names.join('|') === '7. Liability cap|11. Payment terms', JSON.stringify(one.names));
-    check('1b "Redlines 4" wears a grey pill', !!one.pill && one.pill.bg !== 'rgba(0, 0, 0, 0)' && one.pill.r >= 8, JSON.stringify(one.pill));
+    /* RE-POINTED 21 Oct 2026 (Chambers): the count beside the name is a plain number */
+    check('1b "Redlines 4" is a plain number beside the name, no pill', !!one.pill && one.pill.bg === 'rgba(0, 0, 0, 0)' && one.pill.r === 0, JSON.stringify(one.pill));
     /* RE-POINTED 20 Oct 2026 (owner, 19 Oct: the risk cards back under the piles beside the paper) */
     check('1c under the settled fold only "Risks to look at"', one.risks && one.lastPile === 'accepted' && /^Risks to look at/.test(one.after), JSON.stringify({ risks: one.risks, last: one.lastPile, after: one.after }));
     check('1d Home\'s paper draws no step chips while Redlines is open', one.rungs === 0, String(one.rungs));

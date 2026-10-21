@@ -149,12 +149,14 @@ describe('f794 (3) the week', () => {
 });
 
 describe('f794 (4) their tint', () => {
-  test('4a a token in both themes, worn by their chips, their faces and the key', () => {
+  /* (one appearance since Chambers, 20 Oct 2026: the night answer left with dark mode) */
+  test('4a a token, worn by their chips, their faces and the key', () => {
     assert.match(HTML, /--st-violet-bg:#F2EDFA; --st-violet-fg:#6A3AA8; --st-violet-dot:#7A44B8;/);
-    assert.match(HTML, /--st-violet-bg:#261B3A; --st-violet-fg:#C9A5F2; --st-violet-dot:#B07FE6;/);
+    assert.doesNotMatch(HTML, /--st-violet-bg:#261B3A/, 'no night answer');
     assert.match(CAL, /\.cal-chip\.is-ck-theirs\{border-left:3px solid var\(--st-violet-dot\)/);
     assert.match(CAL, /\.cal-key i\.is-theirs\{background:var\(--st-violet-dot\)\}/);
-    assert.match(HTML, /\.obw-av\.is-theirs\{background:var\(--st-violet-bg\);color:var\(--st-violet-fg\);\}/);
+    /* RE-POINTED 21 Oct 2026 (Chambers): initials are outlined — their face wears the violet as edge and ink */
+    assert.match(HTML, /\.obw-av\.is-theirs\{background:transparent;border-color:var\(--st-violet-line\);color:var\(--st-violet-fg\);\}/);
   });
 });
 

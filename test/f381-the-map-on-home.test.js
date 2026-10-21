@@ -309,9 +309,10 @@ describe('F381 (7) — the words', () => {
      longer true and is not asked. What still holds: the renewal piles are
      tokens on the card, and the one that follows the accent has a night
      answer. */
-  test('the card\'s own colours are tokens with a night answer', () => {
+  /* (the night answer left with dark mode, 20 Oct 2026: Chambers) */
+  test('the card\'s own colours are tokens', () => {
     assert.match(CSS, /\.hm-map\{ --map-made:var\(--color-accent-600\)/);
-    assert.match(CSS, /html\.dark \.hm-map\{ --map-made:/);
+    assert.doesNotMatch(CSS, /html\.dark \.hm-map\{/, 'no night answer: HaTi has one appearance');
     assert.match(CSS, /--map-due:var\(--st-amber-dot\)/, 'a decision due is amber');
     assert.ok(!/--map-s[123]/.test(CSS), 'and the stages carry no accent tokens of their own any more');
   });

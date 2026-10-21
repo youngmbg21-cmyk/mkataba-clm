@@ -1,6 +1,11 @@
 /* ============================================================
-   CONTRAST — what a person can actually read, in both themes
+   CONTRAST — what a person can actually read
    ============================================================
+   RE-POINTED 20 Oct 2026 (the owner picked "Chambers" and removed dark mode:
+   "Let's not implement the dark theme. Remove it from HaTi."). HaTi has one
+   look; every dark pass below is gone with the night and the light passes
+   stay. The history that follows is why this file exists.
+
    The 23 Aug design audit graded the dark theme C+ on one structural fact:
    `html.dark` redefines the surface, the ink and the whole neutral ramp and
    NEVER redefines the accent. So 183 declarations setting an accent ramp step
@@ -85,8 +90,11 @@ const SCREENS = [
 /* RE-POINTED 20 Sep 2026: the redesign order moved --color-neutral-400 to the
    reference's own #6B7876 by day and #8B9895 at night, which measure 4.59:1
    and 6.3:1 — so the exclusion below no longer hides a finding. It is kept as
-   the token's CURRENT values so the count stays a fact if the ramp moves. */
-const KNOWN_PALE = ['rgb(107, 120, 118)', 'rgb(139, 152, 149)'];
+   the token's CURRENT values so the count stays a fact if the ramp moves.
+   RE-POINTED 20 Oct 2026 (Chambers): the value is READ off the token on the
+   page, not typed in — pin the relation, not the number. */
+const KNOWN_PALE_OF = () => { const d = document.createElement('i'); d.style.color = 'var(--color-neutral-400)';
+  document.body.appendChild(d); const v = getComputedStyle(d).color; d.remove(); return [v]; };
 
 const SWEEP = KNOWN => {
   const lum = c => { const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); };
@@ -127,9 +135,9 @@ const SWEEP = KNOWN => {
   };
   const out = { fails: [], pale: 0, grad: 0 };
   for (const el of document.querySelectorAll('*')) {
-    /* The brand swatches are SAMPLES of the other workspace — the census
-       excludes them for the same reason and the reasoning is recorded there. */
-    if (el.closest('#theme-menu, #theme-btn, [data-brand-pick], script, style, svg')) continue;
+    /* (The brand swatches the census once excluded are gone with the brand
+       picker, 20 Oct 2026.) */
+    if (el.closest('script, style, svg')) continue;
     let txt = ''; for (const n of el.childNodes) if (n.nodeType === 3) txt += n.nodeValue;
     txt = txt.trim(); if (!txt) continue;
     const s = getComputedStyle(el);
@@ -191,7 +199,7 @@ const SWEEP = KNOWN => {
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const [ck, cv] = String(admin.cookie || '').split('=');
 
-  async function open(theme) {
+  async function open() {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     await ctx.addCookies([{ name: ck, value: cv, url: h.base }]);
     const page = await ctx.newPage();
@@ -201,19 +209,18 @@ const SWEEP = KNOWN => {
       && state.contracts.some(c => c && c.id === 'MK-82'));
     await page.addStyleTag({ content:
       '*,*::before,*::after{animation:none!important;transition:none!important}' });
-    if (theme === 'dark') { await page.evaluate(() => applyTheme('dark')); await pause(400); }
     return { ctx, page };
   }
 
-  /* ---------- 1 · THE SWEEP, BOTH THEMES ---------- */
+  /* ---------- 1 · THE SWEEP, THE ONE LOOK ---------- */
   let paleTotal = 0, gradTotal = 0;
-  for (const theme of ['light', 'dark']) {
-    const { ctx, page } = await open(theme);
+  for (const theme of ['light']) {
+    const { ctx, page } = await open();
     for (const [name, go] of SCREENS) {
       await go(page);
       await page.addStyleTag({ content:
         '*,*::before,*::after{animation:none!important;transition:none!important}' });
-      const r = await page.evaluate(SWEEP, KNOWN_PALE);
+      const r = await page.evaluate(SWEEP, await page.evaluate(KNOWN_PALE_OF));
       paleTotal += r.pale; gradTotal += r.grad;
       check(`${name}--${theme} — every ink clears AA on its own ground`,
         r.fails.length === 0,
@@ -225,14 +232,14 @@ const SWEEP = KNOWN => {
   }
   /* SAID OUT LOUD RATHER THAN HIDDEN. Two exclusions carry a count so nobody
      reads a green run as "nothing is left". */
-  console.log(`\nNOTE  --color-neutral-400 as an ink: ${paleTotal} elements across both themes `
-    + `(2.96:1 by day, 4.34:1 at night). Deliberately not swept — see the note in this file.`);
+  console.log(`\nNOTE  --color-neutral-400 as an ink, under AA: ${paleTotal} elements. `
+    + `Deliberately not swept — see the note in this file.`);
   console.log(`NOTE  text on a gradient: ${gradTotal} elements, unmeasurable by ratio. `
     + `The Insights hero tile is the one that matters and is logged.\n`);
 
   /* ---------- 2 · REPORTS' HERO CARDS ---------- */
-  for (const theme of ['light', 'dark']) {
-    const { ctx, page } = await open(theme);
+  for (const theme of ['light']) {
+    const { ctx, page } = await open();
     await page.evaluate(() => setView('reports')); await pause(900);
     const hero = await page.evaluate(() => {
       const grid = document.querySelector('#content .tnum') ? null : null;
@@ -252,7 +259,7 @@ const SWEEP = KNOWN => {
     check(`reports--${theme} — the edges are the metrics' own tones, not one colour`,
       edges.size >= 2, [...edges].join(' | '));
     /* THE POINT, AS A RELATION AND NOT A LITERAL: the card's ground IS the
-       platform's card surface — whatever that token resolves to in this theme
+       platform's card surface — whatever that token resolves to
        — rather than a colour of its own. Asked as "not white" it would be a
        tautology in light mode and would pass on the broken build. */
     const surf = await page.evaluate(() =>
@@ -268,7 +275,7 @@ const SWEEP = KNOWN => {
 
   /* ---------- 3 · THE THREE NAMED accent-600 FILLS ---------- */
   {
-    const { ctx, page } = await open('light');
+    const { ctx, page } = await open();
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register'))); await pause(700);
     const pager = await page.evaluate(() => {
       const b = document.querySelector('[data-reg-page]:not([disabled])');
@@ -296,24 +303,9 @@ const SWEEP = KNOWN => {
     await ctx.close();
   }
 
-  /* ---------- 4 · THE TEXT-SIZE STEPPER AT NIGHT ---------- */
-  {
-    const { ctx, page } = await open('dark');
-    await page.evaluate(() => { openWorkspace('MK-82', { room: true }); roomGoTab(getContract('MK-82'), 'docs'); });
-    await pause(800);
-    const step = await page.evaluate(() => {
-      const b = document.querySelector('.rl-type-step button');
-      const o = document.querySelector('.rl-type-out');
-      return { btn: b ? getComputedStyle(b).color : null, out: o ? getComputedStyle(o).color : null };
-    });
-    /* neutral-300 answers #475569 at night — a PANEL BORDER shade — and that is
-       what these two wore. 2.36:1 against the page ground. */
-    check('the stepper\'s glyphs do not wear a border shade at night',
-      step.btn == null || step.btn !== 'rgb(71, 85, 105)', step.btn);
-    check('the stepper\'s readout does not either',
-      step.out == null || step.out !== 'rgb(71, 85, 105)', step.out);
-    await ctx.close();
-  }
+  /* ---------- 4 · THE TEXT-SIZE STEPPER AT NIGHT ----------
+     REMOVED 20 Oct 2026: it was a dark pass only (neutral-300 answered a
+     panel-border shade at night); there is no night any more. */
 
   await browser.close();
   await h.stop();

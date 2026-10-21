@@ -41,7 +41,9 @@ const ok = (name, good, detail) => {
     await page.fill('#su-email', 'admin@example.co.ke'); await page.fill('#su-pass', 'adminpassword1');
     const sample = await page.$('#su-sample'); if (sample && !(await sample.isChecked())) await sample.check();
     await page.click('#su-go'); await page.waitForTimeout(3500); await page.keyboard.press('Escape').catch(() => {});
-    const en = await page.$('.lang-btn[data-lang="en"]'); if (en) { await en.click(); await page.waitForTimeout(800); }
+    /* RE-POINTED 20 Oct 2026 (Chambers): the bar's language switch is gone;
+       the language is changed in Settings › You, whose one writer is langSet */
+    await page.evaluate(() => { if (typeof window.langSet === 'function') window.langSet('en'); }); await page.waitForTimeout(800);
 
     /* ---- 1. the door, above Home ---- */
     /* RE-POINTED 29 Sep 2026 (Young: "move the Brain tab in the nav panel to
@@ -166,12 +168,13 @@ const ok = (name, good, detail) => {
       ok('8c no "new parts" chip on a baseline — nothing is new on a first reading', chip === true);
 
       /* ---- 9. a second language ---- */
-      const sv = await page.$('.lang-btn[data-lang="sv"]');
-      if (sv){ await sv.click(); await page.waitForTimeout(1200); }
+      /* RE-POINTED 20 Oct 2026: switched through langSet, Settings › You's one
+         writer, since the bar no longer carries a language switch */
+      await page.evaluate(() => { if (typeof window.langSet === 'function') window.langSet('sv'); }); await page.waitForTimeout(1200);
       const svText = await page.evaluate(() => (document.querySelector('[data-view="brain"] [data-i18n="nav_brain"]') || {}).textContent + ' | ' + ((document.querySelector('[data-br-flow="sign"] b') || {}).textContent || ''));
       ok('9a in Swedish the door and the flows speak Swedish', /Hjärnan/.test(svText) && /Signera avtalet/.test(svText), svText);
       await page.screenshot({ path: path.join(OUT, '5-swedish.png') });
-      if (en) { await page.click('.lang-btn[data-lang="en"]'); await page.waitForTimeout(600); }
+      await page.evaluate(() => { if (typeof window.langSet === 'function') window.langSet('en'); }); await page.waitForTimeout(600);
 
       /* ---- 10. leaving stops the loop ---- */
       await page.evaluate(() => hbOpenHome()); await page.waitForTimeout(500);

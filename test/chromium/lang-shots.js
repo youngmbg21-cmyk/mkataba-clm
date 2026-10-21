@@ -40,17 +40,27 @@ const SCREENS = [
   /* CLICKED, NOT CALLED. These shots exist to show the owner the control, so
      the shots have to be taken the way a person would take them — press the
      button. Calling window.langSet would photograph an app in Swedish without
-     ever proving the button that got it there is on the screen. */
+     ever proving the button that got it there is on the screen.
+     RE-POINTED 20 Oct 2026 (the owner picked "Chambers"): the bar's language
+     switch (#lang-switch) is gone; THE LANGUAGE IS CHANGED IN SETTINGS › YOU,
+     its language row ([data-st-lang]), opened through its own door. */
+  const openYou = async () => {
+    await page.evaluate(() => { if (typeof window.openSettingsAt === 'function') window.openSettingsAt('you'); else window.setView('team'); });
+    await page.waitForSelector('[data-st-lang]', { timeout: 8000 });
+    await page.evaluate(() => document.querySelector('[data-st-lang]').scrollIntoView({ block: 'center' }));
+    await page.waitForTimeout(300);
+  };
   const press = async lang => {
-    await page.click(`#lang-switch [data-lang="${lang}"]`);
+    await openYou();
+    await page.click(`[data-st-lang="${lang}"]`);
     await page.waitForTimeout(700);
   };
 
-  /* The toggle on its own, big, so it is legible in a message. */
+  /* The language row on its own, big, so it is legible in a message. */
   for (const lang of ['en', 'sv']) {
-    if (lang !== 'en') await press(lang);
+    if (lang !== 'en') await press(lang); else await openYou();
     const f = path.join(OUT, `toggle--${lang}.png`);
-    await page.locator('#lang-switch').screenshot({ path: f });
+    await page.locator('[data-st-lang]').first().locator('xpath=..').screenshot({ path: f });
     shots.push(f);
   }
   await press('en');

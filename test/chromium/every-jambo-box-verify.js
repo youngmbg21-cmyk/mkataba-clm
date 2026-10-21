@@ -1,22 +1,25 @@
 /* RE-POINTED 20 Oct 2026 (owner picked "Two-row card" for every Jambo box): each box is measured as its card (.jb-card), the words and the control row under them */
-/* EVERY JAMBO BOX CARRIES THE HINT LINE (the owner's answer (2) during the
-   build, 18 Oct 2026, "Every Jambo box": "Typing never signs, sends or files —
-   a press does." under EVERY Jambo ask box on a computer, through the one
-   shared builder, jamboHintHtml), and the keys Home's line names (igHintKeys,
-   the checker against rounds 3, 7 and 12)
+/* NO HINT LINE UNDER ANY JAMBO BOX (RE-POINTED 20 Oct 2026: the owner picked
+   the "Chambers" design by name, which draws no line under a Jambo box; the
+   shared builder jamboHintHtml, Home's keys igHintKeys / igHintPaint and the
+   window's aiHintPaint are DELETED, and the jb_hint* words stay inert in both
+   books). This file used to pin the line ("Typing never signs, sends or files
+   — a press does.") under EVERY box (the owner's answer (2) during the build,
+   18 Oct 2026, "Every Jambo box") and the keys Home's line named (rounds 3, 6,
+   7, 10, 12, 17); its claims are turned into ABSENCE checks, asked of the same
+   boxes in the same states, so a line that crept back under any one of them
+   is caught.
 
    WHAT THIS PINS, in a real browser, at the owner's three screens:
-     1 the NINE boxes, each with the line right under it, in view, nothing
-       sideways: Home's panel, Settings' Jambo side, Import's panel, Jambo's
-       panel beside a list (Negotiations), the Counter's box, the floating
-       Jambo window (opened from the bar's door on a page with no Jambo of its
-       own — the Brain), the clause editor's ask, and (pass 4) the Calendar's
-       Jambo box and the template builder's
-     2 HOME'S KEYS, one reading: "/ places · Esc closes" with a contract up as a
-       page and on its History (rounds 7, 12) and on a paper (round 6); "/
-       lists the places." on Jambo's tab beside a paper while Needs you here
-       has rows (round 3); the sentence alone on Before you sign (round 10) and
-       the Board
+     1 the NINE boxes, each drawn, in view, nothing sideways, and NO line under
+       it: Home's panel, Settings' Jambo side, Import's panel, Jambo's panel
+       beside a list (Negotiations), the Counter's box, the floating Jambo
+       window (opened from the bar's door on a page with no Jambo of its own —
+       the Brain), the clause editor's ask, the Calendar's Jambo box and the
+       template builder's
+     2 HOME'S PANEL in every state the keys used to change with — a contract
+       up as a page and its History, a paper with and without rows still
+       owed, Before you sign and the Board — draws no line and no keys
      3 the phone: the floating window draws no line (the phone stays untouched)
    Waits ask for the state, bounded; a missing part reports.
    Run: node test/chromium/every-jambo-box-verify.js
@@ -36,9 +39,10 @@ const check = (name, pass, detail) => {
   if (!pass) failures++;
 };
 const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
-const LINE = 'Typing never signs, sends or files — a press does.';
-const PLACES = LINE + ' / places · Esc closes';
-const LISTS = LINE + ' / lists the places.';
+/* the sentence the line used to say, looked for as WORDS too, so a line drawn
+   under some other class is still caught */
+const LINE = 'Typing never signs, sends or files';
+const HINT_SEL = '.jb-hint, .jb-keys, .jb-kbd, .ai-hint, #ai-hint, [data-jb-hint]';
 
 (async () => {
   const h = await H.startHati({ HATI_AGENTS_AUTO: 'off' });
@@ -75,17 +79,25 @@ const LISTS = LINE + ' / lists the places.';
       persist(c);
     });
 
-    /* the line under one box: its words, under the box, in view, nothing sideways */
-    const LINE_OF = ({ hint, box }) => {
-      const e = document.querySelector(hint), b = document.querySelector(box);
-      if (!e || !e.getClientRects().length || !b) return null;
-      const er = e.getBoundingClientRect(), br = b.getBoundingClientRect();
-      const hit = document.elementFromPoint(Math.round(er.left + 4), Math.round(er.top + er.height / 2));
-      return { t: e.textContent.replace(/\s+/g, ' ').trim(), under: er.top >= br.bottom - 1 && er.top - br.bottom <= 24,
-        inView: er.top >= 0 && er.bottom <= innerHeight + 1, painted: !!hit && (hit === e || e.contains(hit)),
-        side: document.documentElement.scrollWidth <= innerWidth + 1, gap: Math.round(er.top - br.bottom) };
+    /* one box: drawn, in view, nothing sideways — and NO line under it, by
+       class or by its words, anywhere in the box's host */
+    const NO_LINE_OF = ({ box, host, sel, line }) => {
+      const b = document.querySelector(box);
+      if (!b || !b.getClientRects().length) return null;
+      /* no host named: the box's grandparent, so a line drawn as the box's
+         wrapper's sibling (where the clause editor's sat) is inside it */
+      const hs = host ? document.querySelector(host) : null, h = hs || (b.parentElement && b.parentElement.parentElement) || document.body;
+      const br = b.getBoundingClientRect();
+      const drawn = [...h.querySelectorAll(sel)].filter(e => e.getClientRects().length && e.getBoundingClientRect().height > 0);
+      return { lines: drawn.length, words: (h.textContent || '').includes(line),
+        inView: br.top >= 0 && br.bottom <= innerHeight + 1, side: document.documentElement.scrollWidth <= innerWidth + 1 };
     };
-    const ok = (L, want) => !!L && L.t === want && L.under && L.inView && L.painted && L.side;
+    const ARG = (box, host) => ({ box, host, sel: HINT_SEL, line: LINE });
+    const ok = L => !!L && L.lines === 0 && !L.words && L.inView && L.side;
+
+    /* the builders of the line and its keys are gone, not merely uncalled */
+    const gone = await page.evaluate(() => ['jamboHintHtml', 'igHintKeys', 'igHintPaint', 'aiHintPaint'].filter(n => typeof window[n] === 'function'));
+    check('0 the line\'s builders are gone (jamboHintHtml, igHintKeys, igHintPaint, aiHintPaint)', gone.length === 0, JSON.stringify(gone));
 
     /* PASS 4: a draft template of the workspace's own, through the product's own route, so the builder has one to open */
     const tbIds = await page.evaluate(async () => {
@@ -96,58 +108,55 @@ const LISTS = LINE + ' / lists the places.';
       await page.setViewportSize({ width: w, height: ht });
       const at = `${w}×${ht}`, tag = `${w}x${ht}`;
 
-      /* ---- 1 the seven boxes ---- */
+      /* ---- 1 the nine boxes, no line under any ---- */
       await part('1a the Counter', async () => {
         await page.evaluate(() => setView('counter'));
-        const L = await until(LINE_OF, { hint: '#cn-page .cn-ask > .jb-hint', box: '#cn-page .jb-card' });
-        check(`1a ${at} the Counter's box: the line right under it`, ok(L, LINE), JSON.stringify(L));
-        await shot(`hint-counter-${tag}.png`);
+        const L = await until(NO_LINE_OF, ARG('#cn-page .jb-card', '#cn-page'));
+        check(`1a ${at} the Counter's box: drawn, and no line under it`, ok(L), JSON.stringify(L));
+        await shot(`no-hint-counter-${tag}.png`);
       });
       await part('1b the floating window', async () => {
         await page.evaluate(() => setView('brain'));
         await until(() => state.view === 'brain' ? true : null);
         await page.click('#cmd-ai');
-        const L = await until(LINE_OF, { hint: '#ai-panel.open #ai-hint .jb-hint', box: '#ai-panel .jb-card' });
-        check(`1b ${at} the floating Jambo window (the bar's door on the Brain): the line under its box`, ok(L, LINE), JSON.stringify(L));
-        await shot(`hint-window-${tag}.png`);
+        const L = await until(NO_LINE_OF, ARG('#ai-panel.open .jb-card', '#ai-panel'));
+        check(`1b ${at} the floating Jambo window (the bar's door on the Brain): no line under its box`, ok(L), JSON.stringify(L));
+        await shot(`no-hint-window-${tag}.png`);
         await page.evaluate(() => { if (typeof closeAI === 'function') closeAI(); });
       });
       await part('1c the clause editor', async () => {
         await page.evaluate(() => openRedlineWorkbench('MK-A2', { face: true }));
         await until(() => document.getElementById('pd-redface') ? true : null, null, 8000);
         await page.evaluate(() => { const c = getContract('MK-A2'); const cl = negoClauseList(c); rlOpenClauseEditor(c, cl[1] ? cl[1].clauseId : cl[0].clauseId, {}); });
-        const L = await until(LINE_OF, { hint: '.ce-askwrap + .jb-hint', box: '#ce-askrow' }, 10000);
-        check(`1c ${at} the clause editor's ask: the line under it`, ok(L, LINE), JSON.stringify(L));
-        await shot(`hint-clause-editor-${tag}.png`);
+        const L = await until(NO_LINE_OF, ARG('#ce-askrow', null), 10000);
+        check(`1c ${at} the clause editor's ask: no line under it`, ok(L), JSON.stringify(L));
+        await shot(`no-hint-clause-editor-${tag}.png`);
         await page.evaluate(() => { try { if (typeof rlCloseClauseEditor === 'function') rlCloseClauseEditor({ force: true }); } catch (_) {} });
         await until(() => !document.querySelector('#ce-askrow') ? true : null, null, 4000);
       });
       await part('1d Jambo\'s panel beside a list', async () => {
         await page.evaluate(() => openNegotiations({ list: true }));
-        const L = await until(LINE_OF, { hint: '#ins-panel.is-jambo .jl-foot .jb-hint', box: '#ins-panel .jb-card' }, 10000);
-        check(`1d ${at} Jambo's panel beside Negotiations: the line under its box`, ok(L, LINE), JSON.stringify(L));
+        const L = await until(NO_LINE_OF, ARG('#ins-panel.is-jambo .jb-card', '#ins-panel'), 10000);
+        check(`1d ${at} Jambo's panel beside Negotiations: no line under its box`, ok(L), JSON.stringify(L));
       });
       await part('1e Settings', async () => {
         await page.evaluate(() => setView('team'));
         /* the page re-measures its side once its entrance has settled (stSideFit): wait for that, bounded */
-        await until(() => { const sd = document.getElementById('st-side'); return sd && document.querySelector('#st-side .jb-hint') && sd.getBoundingClientRect().bottom <= innerHeight + 1; }, null, 4000);
-        const L = await until(LINE_OF, { hint: '#st-side .jb-hint, .st-side .jb-hint', box: '#st-jb-form .jb-card' }, 10000);
-        check(`1e ${at} Settings' Jambo side: the line under its box`, !!L && L.t === LINE && L.inView && L.side, JSON.stringify(L));
+        await until(() => { const sd = document.getElementById('st-side'); return sd && document.querySelector('#st-jb-form .jb-card') && sd.getBoundingClientRect().bottom <= innerHeight + 1; }, null, 4000);
+        const L = await until(NO_LINE_OF, ARG('#st-jb-form .jb-card', '#st-side'), 10000);
+        check(`1e ${at} Settings' Jambo side: no line under its box`, ok(L), JSON.stringify(L));
       });
       await part('1f Import', async () => {
         await page.evaluate(() => setView('migration'));
-        const L = await until(LINE_OF, { hint: '#mig-side .jl-foot .jb-hint', box: '#mig-side .jb-card' }, 10000);
-        check(`1f ${at} Import's panel: the line under its box`, ok(L, LINE), JSON.stringify(L));
+        const L = await until(NO_LINE_OF, ARG('#mig-side .jb-card', '#mig-side'), 10000);
+        check(`1f ${at} Import's panel: no line under its box`, ok(L), JSON.stringify(L));
       });
       /* PASS 4 (the checker's second pass): the Calendar's Jambo box and the template builder's */
       await part('1g the Calendar', async () => {
         await page.evaluate(() => { if (typeof hbOpenCalendar === 'function') hbOpenCalendar(); else setView('calendar'); });
-        const L = await until(sel => { const e = document.querySelector(sel.hint), b = document.querySelector(sel.box); if (!e || !b || !e.getClientRects().length) return null;
-          const er = e.getBoundingClientRect(), br = b.getBoundingClientRect();
-          return { t: e.textContent.replace(/\s+/g, ' ').trim(), under: er.top >= br.bottom, inView: er.bottom <= innerHeight + 1, last: e === e.parentElement.lastElementChild,
-            side: document.documentElement.scrollWidth <= innerWidth + 1 }; }, { hint: '#cal-plan .jb-hint', box: '#cal-plan .jb-card' }, 10000);
-        check(`1g ${at} the Calendar's Jambo box (round 16): the line under it, the card's last line`, !!L && L.t === LINE && L.under && L.inView && L.last && L.side, JSON.stringify(L));
-        await shot(`r16-hint-calendar-${tag}.png`);
+        const L = await until(NO_LINE_OF, ARG('#cal-plan .jb-card', '#cal-plan'), 10000);
+        check(`1g ${at} the Calendar's Jambo box (round 16): no line under it`, ok(L), JSON.stringify(L));
+        await shot(`r16-no-hint-calendar-${tag}.png`);
       });
       await part('1h the template builder', async () => {
         if (!tbIds || !tbIds.tid){ check(`1h ${at} a template for the builder`, false, JSON.stringify(tbIds)); return; }
@@ -156,54 +165,68 @@ const LISTS = LINE + ' / lists the places.';
         await until(() => state.view === 'templates' ? true : null, null, 6000); await page.waitForTimeout(500);
         await page.evaluate(ids => openTemplateBuilder(ids.tid, ids.vid), tbIds);
         await until(() => document.getElementById('tb-askrow') ? true : null, null, 10000); await page.waitForTimeout(500);
-        const L = await until(LINE_OF, { hint: '#tb-askrow + .jb-hint', box: '#tb-askrow' }, 10000);
-        check(`1h ${at} the template builder's Jambo box (round 21): the line under it`, ok(L, LINE), JSON.stringify(L));
-        await shot(`r21-hint-builder-${tag}.png`);
+        const L = await until(NO_LINE_OF, ARG('#tb-askrow', null), 10000);
+        check(`1h ${at} the template builder's Jambo box (round 21): no line under it`, ok(L), JSON.stringify(L));
+        await shot(`r21-no-hint-builder-${tag}.png`);
         await page.evaluate(() => { try { tbLeave(() => setView('dashboard')); } catch (_) { setView('dashboard'); } });
         await until(() => !document.getElementById('tb-askrow') ? true : null, null, 4000);
       });
 
-      /* ---- 2 Home's keys, one reading ---- */
-      const HOME = { hint: '#ig-dock .jb-hint', box: '#ig-dock .jb-card' };
+      /* ---- 2 Home's panel: no line and no keys, in every state the keys
+         used to change with (rounds 3, 6, 7, 10, 12, 17) ---- */
+      const HOME = ARG('#ig-dock .jb-card', '#ig-dock');
+      /* the state each reading waits for, named (no code is sent as a string) */
+      const homeWhen = (cond, arg, ms = 10000) => until(([sel, k, a2]) => {
+        const W = { card: () => !!(window.bsCardId && bsCardId()),
+          paper: id => !!(window.pdContract && pdContract() && pdContract().id === id),
+          owed: id => !!(window.pdContract && pdContract() && pdContract().id === id && document.getElementById('pd-needs')),
+          sign: () => !!(window.pdSignShows && pdSignShows()),
+          board: () => !(window.bsCardId && bsCardId()) && !(window.igPaperUp && igPaperUp()) && !(window.pdOnPaper && pdOnPaper()) };
+        if (!W[k] || !W[k](a2)) return null;
+        const b = document.querySelector(sel.box); if (!b || !b.getClientRects().length) return null;
+        const h = document.querySelector(sel.host) || document.body, br = b.getBoundingClientRect();
+        const drawn = [...h.querySelectorAll(sel.sel)].filter(e => e.getClientRects().length && e.getBoundingClientRect().height > 0);
+        return { lines: drawn.length, words: (h.textContent || '').includes(sel.line),
+          inView: br.top >= 0 && br.bottom <= innerHeight + 1, side: document.documentElement.scrollWidth <= innerWidth + 1,
+          /* the rows Still owed draws (a ticked-off row is not owed), so "with rows" is measured, not assumed */
+          owed: document.querySelectorAll('#ig-dock #pd-needs .pd-gl-row:not(.is-done)').length };
+      }, [HOME, cond, arg], ms);
       await part('2a a contract brought up as a page, and its History', async () => {
         await page.evaluate(() => setView('dashboard'));
         await page.evaluate(() => hbStripBring('MK-A2'));
-        const L = await until(sel => { const e = document.querySelector(sel.hint); const s = document.querySelector('.bs-strip, [data-bs-strip]');
-          return e && e.getClientRects().length && /places/.test(e.textContent) ? { t: e.textContent.replace(/\s+/g, ' ').trim(), card: !!(window.bsCardId && bsCardId()), strip: !!s } : null; }, HOME, 10000);
-        check(`2a ${at} a contract up as a page (round 7): "/ places · Esc closes"`, !!L && L.t === PLACES && L.card, JSON.stringify(L));
-        await shot(`hint-home-page-${tag}.png`);
+        const L = await homeWhen('card');
+        check(`2a ${at} a contract up as a page (round 7): no line and no keys under Home's box`, ok(L), JSON.stringify(L));
+        await shot(`no-hint-home-page-${tag}.png`);
         await page.evaluate(() => hbStripBring('MK-A2', 'hist'));
-        const L2 = await until(sel => { const e = document.querySelector(sel.hint); return e && e.getClientRects().length ? { t: e.textContent.replace(/\s+/g, ' ').trim(), card: !!(window.bsCardId && bsCardId()) } : null; }, HOME, 10000);
-        check(`2b ${at} its History (round 12): "/ places · Esc closes"`, !!L2 && L2.t === PLACES && L2.card, JSON.stringify(L2));
-        await shot(`hint-home-history-${tag}.png`);
+        const L2 = await homeWhen('card');
+        check(`2b ${at} its History (round 12): no line and no keys`, ok(L2), JSON.stringify(L2));
+        await shot(`no-hint-home-history-${tag}.png`);
       });
       await part('2c a paper beside Jambo\'s tab', async () => {
-        /* a paper whose Needs you here is empty, and one where it has rows */
+        /* a paper with nothing still owed, and one with rows (the keys used to differ between them) */
         const quiet = await page.evaluate(() => { const c = (state.contracts || []).find(x => x.id !== 'MK-A2' && !x.archived && typeof pdNeedsRows === 'function' && !(pdNeedsRows(x) || []).length);
           return c ? c.id : null; });
         if (quiet) {
           await page.evaluate(id => regOpenContract(id), quiet);
-          const L = await until(([sel, id]) => { const e = document.querySelector(sel.hint); return e && window.pdContract && pdContract() && pdContract().id === id && !document.getElementById('pd-needs')
-            ? { t: e.textContent.replace(/\s+/g, ' ').trim(), keys: igHintKeys() } : null; }, [HOME, quiet], 10000);
-          check(`2c ${at} a paper, Jambo's tab, nothing in Needs you here (round 6): "/ places · Esc closes"`, !!L && L.t === PLACES, JSON.stringify(L));
+          const L = await homeWhen('paper', quiet);
+          check(`2c ${at} a paper with nothing owed, Jambo's tab (round 6): no line and no keys`, ok(L) && L.owed === 0, JSON.stringify(L));
         } else check(`2c ${at} a paper with nothing owed exists in the seed`, false, await page.evaluate(() => (state.contracts || []).map(x => x.id + ':' + (pdNeedsRows(x) || []).map(r => (r.it && r.it.kind) || r.k || '?').join('+')).join(' ')));
         await page.evaluate(() => regOpenContract('MK-NY1'));
-        const L2 = await until(sel => { const e = document.querySelector(sel.hint); return e && document.getElementById('pd-needs') ? { t: e.textContent.replace(/\s+/g, ' ').trim(), rows: document.querySelectorAll('#pd-needs .pd-nd-row').length } : null; }, HOME, 10000);
-        check(`2d ${at} Jambo's tab beside a paper with Needs you here (round 3): "/ lists the places."`, !!L2 && L2.t === LISTS && L2.rows > 0, JSON.stringify(L2));
-        const L3 = await page.evaluate(LINE_OF, HOME);
-        check(`2e ${at} Home's line under its box, in view, nothing sideways`, !!L3 && L3.under && L3.inView && L3.side, JSON.stringify(L3));
-        await shot(`hint-home-needs-${tag}.png`);
+        const L2 = await homeWhen('owed', 'MK-NY1');
+        check(`2d ${at} Jambo's tab beside a paper with rows still owed (round 3): no line and no keys`, ok(L2) && L2.owed > 0, JSON.stringify(L2));
+        const L3 = await page.evaluate(NO_LINE_OF, HOME);
+        check(`2e ${at} Home's box in view, nothing sideways, nothing under it`, ok(L3), JSON.stringify(L3));
+        await shot(`no-hint-home-needs-${tag}.png`);
       });
       await part('2f Before you sign and the Board', async () => {
         await page.evaluate(() => { regOpenContract('MK-A2'); });
         await until(() => window.pdContract && pdContract() && pdContract().id === 'MK-A2' ? true : null, null, 8000);
         await page.evaluate(() => { if (typeof pdSignOpen === 'function') pdSignOpen('MK-A2'); });
-        const L = await until(sel => { const e = document.querySelector(sel.hint); return e && window.pdSignShows && pdSignShows() ? { t: e.textContent.replace(/\s+/g, ' ').trim() } : null; }, HOME, 10000);
-        check(`2f ${at} Before you sign (round 10): the sentence alone`, !!L && L.t === LINE, JSON.stringify(L));
+        const L = await homeWhen('sign');
+        check(`2f ${at} Before you sign (round 10): no line`, ok(L), JSON.stringify(L));
         await page.evaluate(() => { if (typeof hbSetFace === 'function') hbSetFace('board'); });
-        const L2 = await until(sel => { const e = document.querySelector(sel.hint); return e && !(window.bsCardId && bsCardId()) && !(window.igPaperUp && igPaperUp()) && !(window.pdOnPaper && pdOnPaper())
-          ? { t: e.textContent.replace(/\s+/g, ' ').trim() } : null; }, HOME, 10000);
-        check(`2g ${at} the Board (round 17): the sentence alone`, !!L2 && L2.t === LINE, JSON.stringify(L2));
+        const L2 = await homeWhen('board');
+        check(`2g ${at} the Board (round 17): no line`, ok(L2), JSON.stringify(L2));
       });
     }
 

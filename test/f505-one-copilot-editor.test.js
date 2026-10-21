@@ -121,7 +121,8 @@ describe('f505 (E) the second pass', () => {
   test('a suggestion reads like the paper: the rl-us tokens, not bold, the paper\'s face', () => {
     const css = read('js/views/clauseeditor.js');
     /* RE-POINTED 7 Oct 2026: the expanded view is retired; the card keeps the rule */
-    assert.match(css, /\.ce-rail \.ce-card \.pv ins\.rl-us\{background:var\(--st-steel-bg\); color:var\(--accent-ink\);\n\s+font-weight:inherit; text-decoration:underline/);
+    /* RE-POINTED 21 Oct 2026 (Chambers): the paper's rl-us fill is the green, so the card's is too */
+    assert.match(css, /\.ce-rail \.ce-card \.pv ins\.rl-us\{background:var\(--st-green-bg\); color:var\(--accent-ink\);\n\s+font-weight:inherit; text-decoration:underline/);
     /* RE-POINTED 6 Oct 2026 (Panel Voice): the marks keep the paper's
        colours; the face is the panel's, nothing measured off the sheet. */
     assert.ok(!/function ceWordingFace\(/.test(CE), 'the sheet measurer is gone');

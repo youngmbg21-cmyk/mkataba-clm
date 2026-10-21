@@ -127,7 +127,7 @@ const weekOf = () => {
         late: sub('overdue'), w0: sub('w0'), w1: sub('w1'), w2: sub('w2'), later: sub('later'),
         actLate: act('MK-A1::o1'), actTheirs: act('MK-A2::o4'), actChased: act('MK-A2::o5'), lineChased: line('MK-A2::o5'),
         actDec: act('MK-C1::~renewal'), lineDec: line('MK-C1::~renewal'), actColleague: act('MK-A1::o2'), lineColleague: line('MK-A1::o2'),
-        finds: finds ? { t: finds.textContent.replace(/\s+/g, ' ').trim(), face: !!finds.querySelector('.obw-av.is-jambo img'), card: finds.closest('.obw-wk').getAttribute('data-obw-card') } : null };
+        finds: finds ? { t: finds.textContent.replace(/\s+/g, ' ').trim(), face: (() => { const m = finds.querySelector('.obw-av.is-jambo .jambo-face path'); return !!(m && m.getAttribute('d') === window.JAMBO_MARK_PATH); })(), card: finds.closest('.obw-wk').getAttribute('data-obw-card') } : null };
     });
     check('1a the head: "N outstanding · 1 overdue", Open every week, Filter, + Add an obligation',
       /^\d+ outstanding · 1 overdue$/.test(P.head.trim()) && JSON.stringify(P.acts) === JSON.stringify(['Open every week', 'Filter', 'Add an obligation']), { head: P.head, acts: P.acts });
@@ -138,7 +138,8 @@ const weekOf = () => {
     check('1d each row\'s one act: Mark done (ours), Chase / Chase again (theirs), Decide (a renewal decision), none on a colleague\'s',
       P.actLate === 'Mark done' && P.actTheirs === 'Chase' && P.actChased === 'Chase again' && /chased/.test(P.lineChased)
       && P.actDec === 'Decide' && /notice deadline/.test(P.lineDec) && P.actColleague === '' && /Unrestricted Legal/.test(P.lineColleague), P);
-    check('1e Jambo\'s finds: one row on this week\'s line, his face, "none is added until you say", Review 3',
+    /* RE-POINTED 20 Oct 2026 (Chambers): on a computer his face is the ✦ mark (JAMBO_MARK_PATH), not the bird */
+    check('1e Jambo\'s finds: one row on this week\'s line, his ✦ mark, "none is added until you say", Review 3',
       !!P.finds && P.finds.card === 'w0' && P.finds.face && /Jambo found 3 obligations in/.test(P.finds.t) && /none is added until you say/.test(P.finds.t) && /Review 3/.test(P.finds.t), P.finds);
     if (OUT) await page.screenshot({ path: path.join(OUT, '16-obligations-1440x780.png') });
 
@@ -147,13 +148,14 @@ const weekOf = () => {
       return { word: (p.querySelector('[data-jl-word]') || {}).textContent || '', bubs: [...p.querySelectorAll('.jl-bub')].map(b => b.textContent.trim()),
         src: (p.querySelector('.jl-src') || {}).textContent || '', chips: [...p.querySelectorAll('.jl-chip')].map(c => c.textContent.trim()),
         lv: [...p.querySelectorAll('[data-cal-lv]')].map(b => b.textContent.trim() + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')),
-        ph: (p.querySelector('#jl-q') || {}).placeholder || '', hint: (p.querySelector('.jb-hint') || {}).textContent || '', sel: document.querySelectorAll('.obw-wk tr.is-sel').length }; });
+        ph: (p.querySelector('#jl-q') || {}).placeholder || '', hint: p.querySelectorAll('.jb-hint, .jb-keys, .jb-kbd').length, sel: document.querySelectorAll('.obw-wk tr.is-sel').length }; });
     check('2a nothing chosen: Jambo says "Your week", counted from the list, no call',
       Y.word === 'Your week' && Y.sel === 0 && /^This week: 1 late \(yours\), 2 due from the other side, and Jambo’s 3 finds to review\. Next week holds the renewal decision on Office Lease\.$/.test(Y.bubs[0] || '')
       && Y.src === 'Counted from your list · no Jambo call', Y);
-    check('2b his offer, the planner\'s two asks as chips, the setting as three buttons, the box and the hint',
+    /* RE-POINTED 20 Oct 2026 (Chambers): no hint line under any Jambo box */
+    check('2b his offer, the planner\'s two asks as chips, the setting as three buttons, the box — and no hint line under it',
       /Want me to plan the week\?/.test(Y.bubs[1] || '') && JSON.stringify(Y.chips) === JSON.stringify(['plan my week · 1 Jambo call', 'find time for what is due · 1 call'])
-      && JSON.stringify(Y.lv) === JSON.stringify(['On his own', 'Ask me first*', 'Never']) && Y.ph === 'Ask for a number, a list or a contract…' && /Typing never signs/.test(Y.hint), Y);
+      && JSON.stringify(Y.lv) === JSON.stringify(['On his own', 'Ask me first*', 'Never']) && Y.ph === 'Ask for a number, a list or a contract…' && Y.hint === 0, Y);
     await page.click('[data-cal-lv="never"]');
     const nv = await until(async () => { if (minePref().copilotLevel !== 'never') return null;
       const r = await api('me/items'); const p = (r.items || []).find(x => x.kind === 'pref');

@@ -31,12 +31,22 @@ const NCSS = read('js/views/negotiation-css.js');
 const CAL = read('js/views/calendar.js');
 const CORE = read('js/core.js');
 const PF = read('js/views/portfolio.js');
+/* A token's value off index.html's first :root block — the one resolver. */
+const { RAW } = require('./tokens');
+const lum = hex => {
+  const c = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255)
+    .map(v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+};
 
 /* The families the sweep found drawing a LABELLED button — short words, nothing
    block-level inside — across every page, the room's tabs, the Negotiate page
-   and the main dialogs. */
+   and the main dialogs.
+   RE-POINTED 20 Oct 2026: .sh-theme left the list with the theme button it
+   dressed — dark mode was removed (the owner: "Let's not implement the dark
+   theme. Remove it from HaTi."), so the bar draws no #theme-btn any more. */
 const FAMILIES = ['ui-btn', 'ui-link', 'hm-rverb', 'hm-tri-b', 'hm-cz', 'sc-stage-act', 'cg', 'sec-f-n', 'reg-chip',
-  'reg-seg', 'cal-seg', 'cal-link', 'tpl-btn-xs', 'std-open', 'sh-theme', 'nav-section-head', 'rl-btn', 'rl-livelist', 'rl-pb-btn'];
+  'reg-seg', 'cal-seg', 'cal-link', 'tpl-btn-xs', 'std-open', 'nav-section-head', 'rl-btn', 'rl-livelist', 'rl-pb-btn'];
 
 const nowrapList = () => {
   const m = HTML.match(/\n  :is\(([^)]*)\)\{white-space:nowrap;\}/);
@@ -49,6 +59,11 @@ describe('f386 (1) a button\'s words never wrap', () => {
     assert.ok(list, 'a single :is(...) rule states white-space:nowrap');
     for (const f of FAMILIES) assert.ok(list.includes('.' + f), '.' + f + ' is on the list');
     assert.equal((HTML.match(/\{white-space:nowrap;\}/g) || []).length >= 1, true);
+    /* Not only the exact attribute spellings: a second class on the button,
+       or the family left on the nowrap list, would slip past those. */
+    assert.ok(!list.includes('.sh-theme'), '.sh-theme is still on the nowrap list');
+    assert.doesNotMatch(HTML, /theme-btn|\bsh-theme\b/,
+      'the theme button is gone from the bar, and nothing in the page names it');
   });
   test('every entry is ONE class, so the list keeps a single class\'s weight', () => {
     /* :is() takes the weight of its heaviest argument. One id or a second class
@@ -123,13 +138,18 @@ describe('f386 (2) Home\'s two cards use one button size', () => {
 describe('f386 (3) one edge on every outlined control', () => {
   /* RE-POINTED 12 Oct 2026 to the accent (the SAP way), and BACK 13 Oct 2026
      (owner: "revert all the buttons back to the previous thin grey outline"):
-     the one edge is the grey hairline by day and the stronger rule by night;
-     the claim is still ONE token, its last value the one that wins. */
-  test('the token is the grey hairline by day and the stronger rule at night, written last', () => {
+     the one edge was the grey hairline by day and the stronger rule by night.
+     RE-POINTED 20 Oct 2026 (CHAMBERS, owner-picked by name, and dark mode
+     removed): the one edge is the strong rule, a light warm grey, on every
+     :root line that names it, and no night value is left. The claim is still
+     ONE token, its last value the one that wins. */
+  test('the token is the strong rule (Chambers), written last, with no night value left', () => {
     const day = [...HTML.matchAll(/:root\{[^}]*--btn-edge:([^;}]+)/g)].map(m => m[1].trim());
     const night = [...HTML.matchAll(/html\.dark\{[^}]*--btn-edge:([^;}]+)/g)].map(m => m[1].trim());
-    assert.equal(day[day.length - 1], 'var(--color-divider)', 'the last day value is the hairline');
-    assert.equal(night[night.length - 1], 'var(--rule-strong)', 'the last night value is the stronger rule');
+    assert.ok(day.length >= 1, 'the token is declared on :root');
+    assert.equal(day[day.length - 1], 'var(--rule-strong)', 'the last value is the strong rule');
+    assert.deepEqual([...new Set(day)], ['var(--rule-strong)'], 'and no :root line says anything else');
+    assert.deepEqual(night, [], 'there is no night value — HaTi has no dark mode');
   });
   test('every family that named its own edge reads the token now', () => {
     const want = [
@@ -146,7 +166,6 @@ describe('f386 (3) one edge on every outlined control', () => {
       [NCSS, /\.redline-page \.rl-cp-head \.rl-segwrap\{[^}]*border:1px solid var\(--btn-edge\)/, 'the seat switch and the clause panel\'s pair'],
       [NCSS, /\.rl-segwrap \.rl-seg \+ \.rl-seg\{border-left:1px solid var\(--btn-edge\)\}/, 'and their seam'],
       [NCSS, /\.rl-type-step\{height:28px;[^}]*border:1px solid var\(--btn-edge\)/, 'the text-size stepper'],
-      [NCSS, /html\.dark \.rl-type-step\{[^}]*border-color:var\(--btn-edge\)/, 'and its night rule'],
       [NCSS, /\.redline-page \.rl-q-tab\{[^}]*border:1px solid var\(--btn-edge\)/, 'the queue tab'],
       [NCSS, /\.redline-page \.rl-pb-btn\{[^}]*border:1px solid var\(--btn-edge\)/, 'the playbook button'],
       [NCSS, /\.redline-page #ws-head \.rl-pb-btn\{[^}]*border:1px solid var\(--btn-edge\)/, 'and its head-row dress'],
@@ -157,14 +176,32 @@ describe('f386 (3) one edge on every outlined control', () => {
       [PF, /data-pf-fixcats style="[^"]*border:1px solid var\(--btn-edge\)/, 'Insights\' Read them now'],
     ];
     for (const [src, re, what] of want) assert.match(src, re, what);
+    /* RE-POINTED 20 Oct 2026: the stepper's night rule went with dark mode. */
+    assert.doesNotMatch(NCSS, /html\.dark \.rl-type-step/, 'the stepper has no night rule left');
   });
+  /* RE-POINTED 20 Oct 2026 (CHAMBERS): the Negotiate switch and the
+     calendar's switches fill with --accent-fill — black — like every other
+     lit half, instead of naming accent-700 by hand. */
   test('[control] a switch still FILLS its lit half — the fill says which is on', () => {
     assert.match(HTML, /\.doc-read-seg button\[aria-pressed="true"\]\{ background:var\(--accent-fill\); color:#fff;/);
-    assert.match(NCSS, /\.redline-page \.rl-cp-head \.rl-segwrap \.rl-seg\.on\{background:var\(--color-accent-700\);color:#fff;/);
-    assert.match(CAL, /\.cal-seg span\.on,\.cal-seg a\.on,\.cal-seg button\.on\{background:var\(--color-accent-700\);color:#fff;/);
+    assert.match(NCSS, /\.redline-page \.rl-cp-head \.rl-segwrap \.rl-seg\.on\{background:var\(--accent-fill\);color:#fff;/);
+    assert.match(CAL, /\.cal-seg span\.on,\.cal-seg a\.on,\.cal-seg button\.on\{background:var\(--accent-fill\);color:#fff;/);
   });
   test('[wall] a text box keeps its own stronger edge — it tells a reader where to type', () => {
-    assert.match(HTML, /--field-line:#8A9795;/);
+    /* RE-POINTED 21 Oct 2026 — PIN THE RELATION, NOT THE NUMBER. This pinned
+       the literal #8A9795, which since CHAMBERS only the Ink Wash pin on the
+       redline cards' buttons still writes; :root's own value moved with the
+       palette, so the check was passing on a block that dresses no text box.
+       The claim was always that the box's edge is its OWN, STRONGER than a
+       button's hairline (--btn-edge is --rule-strong, asserted above), and
+       clears WCAG 1.4.11's 3:1 for a control's boundary on white. */
+    const field = RAW('--field-line'), edge = RAW('--rule-strong');
+    assert.match(field || '', /^#[0-9a-fA-F]{6}$/, '--field-line is a colour on :root');
+    assert.match(edge || '', /^#[0-9a-fA-F]{6}$/, '--rule-strong is a colour on :root');
+    assert.notEqual(field.toLowerCase(), edge.toLowerCase(), 'a text box has its own edge, not the buttons\'');
+    assert.ok(lum(field) < lum(edge), `the box's edge ${field} is not stronger than a button's ${edge}`);
+    assert.ok(1.05 / (lum(field) + 0.05) >= 3,
+      `the box's edge ${field} is ${(1.05 / (lum(field) + 0.05)).toFixed(2)}:1 on white, under 3:1`);
     assert.match(CORE, /const HATI_FLD='width:100%;height:var\(--field-h\);[^']*var\(--field-line/);
   });
   test('[wall] a filled button\'s edge is its fill', () => {

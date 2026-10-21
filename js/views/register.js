@@ -2407,7 +2407,7 @@ function regMovePillHtml(c, o){
   /* the wait beside the word in Jambo's panel (round 14: "Our move · 4 days") */
   let wait=''; if(o&&o.days){ try{ const w=regNegoCols(c).waiting; if(w&&w!=='\u2014') wait=w; }catch(_){ wait=''; } }
   const word=i18t(m.k==='you'?'reg_pill_your_move':'reg_pill_their_move')+(wait?' \u00b7 '+wait:'');
-  return `<span class="reg-stg" style="color:var(--st-${tone}-fg);background:var(--st-${tone}-bg)" title="${esc(m.word||'')}"><i style="background:var(--st-${tone}-dot)"></i>${esc(word)}</span>`;
+  return `<span class="reg-stg" style="color:var(--st-${tone}-fg)" title="${esc(m.word||'')}"><i style="background:var(--st-${tone}-dot)"></i>${esc(word)}</span>`;
 }
 /* The drawing's three Negotiations columns, read off the record RAW (no
    negoInit): the round number, what the changes on the table ask of whom,

@@ -257,8 +257,11 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
       segSweep.push(...got);
     }
     const bad = segSweep.filter(s => s.gap > 0.6 || s.gapB > 0.6);
+    /* RE-POINTED 21 Oct 2026 (Chambers): the bar's two groups (.sh-grp — the
+       Blue/Green and theme switch, and the language switch) were twelve of the
+       fifteen measured on main; both left the bar, so three remain to sweep. */
     ok('4 every segmented control’s lit half fills its button',
-      segSweep.length >= 4 && bad.length === 0,
+      segSweep.length >= 3 && bad.length === 0,
       bad.length ? bad.map(b => `${b.v}/${b.cls} ${b.gap}/${b.gapB}`).join(' · ')
                  : segSweep.length + ' measured, none leaking');
 

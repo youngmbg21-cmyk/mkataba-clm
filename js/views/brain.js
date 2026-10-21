@@ -982,7 +982,8 @@ function brEnsureCss(){
   const css = [
     /* THE WHOLE SCREEN (Young, 27 Sep 2026): the page is exactly --view-h tall — the shell's own measured room below the bar (js/app.js, VIEW_OWNS_HEIGHT) — and the stage takes whatever the card has left, so nothing is left over at the bottom and nothing scrolls. */
     '.br-root{display:grid;grid-template-columns:minmax(0,1fr) 360px;grid-template-rows:minmax(0,1fr);gap:12px;align-items:stretch;height:var(--view-h);box-sizing:border-box;padding:12px var(--page-pad-x,16px);min-height:0}',
-    '.br-stagecard{background:#04191A;border-radius:var(--radius-lg,8px);overflow:hidden;border:1px solid #0E2C29;display:flex;flex-direction:column;min-width:0;min-height:0}',
+    /* the Brain's dark stage keeps its own corners as designed (owner, 20 Oct 2026); Chambers' hairline corners stop at its edge */
+    '.br-stagecard{--radius:4px;--radius-sm:4px;--radius-md:6px;--radius-lg:8px;background:#04191A;border-radius:var(--radius-lg,8px);overflow:hidden;border:1px solid #0E2C29;display:flex;flex-direction:column;min-width:0;min-height:0}',
     '.br-stage{position:relative;flex:1 1 auto;min-height:0;background:radial-gradient(ellipse at 52% 44%,#0B312C 0%,#05201D 45%,#021011 100%)}',
     '.br-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}',
     '.br-stage canvas.is-drag{cursor:grabbing}',

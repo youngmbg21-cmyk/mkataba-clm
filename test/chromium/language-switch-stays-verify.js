@@ -1,17 +1,17 @@
-/* Chromium verification: THE LANGUAGE SWITCH STAYS BESIDE THE THEME SWITCH
+/* Chromium verification: THE LANGUAGE IS CHANGED IN SETTINGS › YOU, NOT IN THE BAR
    ============================================================
    Work order "Home speed", Part 8 (owner, 8 Oct 2026: "You also moved the
-   language toggle. Move it back to where it was"). Below 900px the switch
-   moves into the side menu; coming back it was put after the logo, top left,
-   for the rest of the sitting.
-     1. on load at 1440 it stands where the bar's markup puts it
-     2. at 800 it stays in the bar, whole and on screen (re-pointed 17 Oct
-        2026: the owner picked "Desk tabs", so a computer draws no side menu
-        to move it into)
-     3. back at 1440 it has the same neighbours as on load, not the logo
-     4. pressing Svenska still switches the language
+   language toggle. Move it back to where it was") pinned the bar's switch in
+   one place at every width. RE-POINTED 20 Oct 2026: the owner picked
+   "Chambers", whose bar carries no language switch (#lang-switch, .lang-btn
+   and .lang-toggle are gone); the language is changed in Settings › You
+   ([data-st-lang] → langSet, the one writer). So what this file now pins:
+     1. on load at 1440 the bar carries no language switch
+     2. at 800 it still carries none — nothing moved into the bar or a menu
+     3. back at 1440 still none
+     4. Settings › You's Svenska switches the language, and English brings it back
      5. no page errors
-   Waits ask for the state, bounded. Red at main f31da55 (3).
+   Waits ask for the state, bounded.
    Run: node test/chromium/language-switch-stays-verify.js */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
@@ -24,7 +24,6 @@ const check = (name, pass, detail) => {
   console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail != null ? ' — ' + detail : ''}`);
   if (!pass) failures++;
 };
-const tag = el => el ? (el.id ? '#' + el.id : (el.className && String(el.className).split(' ')[0] ? '.' + String(el.className).split(' ')[0] : el.tagName.toLowerCase())) : 'none';
 
 (async () => {
   const h = await startHati();
@@ -41,27 +40,41 @@ const tag = el => el ? (el.id ? '#' + el.id : (el.className && String(el.classNa
     await page.fill('#li-email', 'admin@example.co.ke');
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
-    await page.waitForFunction(() => window.state && state.contracts && state.contracts.length > 2 && !!document.querySelector('#lang-switch button'), null, { timeout: 20000 });
+    await page.waitForFunction(() => window.state && state.contracts && state.contracts.length > 2, null, { timeout: 20000 });
     /* signing in lands on the Counter since 17 Oct 2026: measure once it has landed, not while the sign-in screen still covers the bar */
     await page.waitForFunction(() => !document.body.classList.contains('pre-auth') && state.view === 'counter', null, { timeout: 20000 }).catch(() => {});
-    const where = () => page.evaluate(src => { const tag = eval(src); const s = document.getElementById('lang-switch');
-      return { prev: tag(s.previousElementSibling), next: tag(s.nextElementSibling), inNav: !!s.closest('#side-nav'), x: Math.round(s.getBoundingClientRect().left) }; }, tag.toString());
-    const w0 = await where();
-    check('1. on load it stands in the bar, not after the logo', !w0.inNav && w0.prev !== '#brand-block', JSON.stringify(w0));
+    /* any language control left in the bar, or anywhere outside Settings › You */
+    const switches = () => page.evaluate(() => {
+      const bar = document.getElementById('top-header');
+      const els = [...document.querySelectorAll('#lang-switch, .lang-btn, .lang-toggle, [data-lang]')];
+      return { bar: !!bar && bar.getBoundingClientRect().height > 0, n: els.length, inBar: !!bar && els.some(e => bar.contains(e)),
+        what: els.slice(0, 3).map(e => e.id ? '#' + e.id : (e.className ? '.' + String(e.className).split(' ')[0] : e.tagName.toLowerCase())) };
+    });
+    const w0 = await switches();
+    check('1. on load at 1440 the bar carries no language switch', w0.bar && w0.n === 0 && !w0.inBar, JSON.stringify(w0));
     await page.setViewportSize({ width: 800, height: 900 });
     await page.evaluate(() => setView('contracts'));
-    const w1 = await until(() => { const s = document.getElementById('lang-switch'); const r = s.getBoundingClientRect();
-      const o = { inNav: !!s.closest('#side-nav'), shown: getComputedStyle(s).display !== 'none' && r.width > 0, inside: r.left >= 0 && r.right <= innerWidth };
-      return o.shown ? o : null; }) || { shown: false };
-    check('2. at 800 it stays in the bar, whole and on screen', !!w1 && !w1.inNav && w1.shown && w1.inside, JSON.stringify(w1));
+    await until(w => { const b = document.getElementById('top-header'); return innerWidth === w && !!b && b.getBoundingClientRect().height > 0; }, 800);
+    const w1 = await switches();
+    check('2. at 800 it still carries none — nothing moved into the bar', w1.bar && w1.n === 0 && !w1.inBar, JSON.stringify(w1));
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.evaluate(() => setView('dashboard'));
-    await until(() => !document.getElementById('lang-switch').closest('#side-nav'));
-    const w2 = await where();
-    check('3. back at 1440 it has the same neighbours as on load', !w2.inNav && w2.prev === w0.prev && w2.next === w0.next, JSON.stringify({ load: w0, back: w2 }));
-    await page.click('#lang-switch button:nth-child(2)');
-    const sv = await until(() => (typeof langId === 'function' && langId() === 'sv') ? langId() : null);
-    check('4. pressing Svenska still switches the language', sv === 'sv', String(sv));
+    await until(w => { const b = document.getElementById('top-header'); return innerWidth === w && !!b && b.getBoundingClientRect().height > 0 && state.view === 'dashboard'; }, 1440);
+    const w2 = await switches();
+    check('3. back at 1440 still none', w2.bar && w2.n === 0 && !w2.inBar, JSON.stringify(w2));
+    /* the one way in: Settings › You's language row */
+    await page.evaluate(() => { if (typeof window.openSettingsAt === 'function') window.openSettingsAt('you'); else window.setView('team'); });
+    const row = await until(() => { const b = document.querySelector('[data-st-lang="sv"]'); if (!b) return null; b.scrollIntoView({ block: 'center' }); return true; }, null, 8000);
+    let sv = null, back = null;
+    if (row) {
+      await page.click('[data-st-lang="sv"]');
+      sv = await until(() => (typeof langId === 'function' && langId() === 'sv') ? langId() : null);
+      await until(() => !!document.querySelector('[data-st-lang="en"]'), null, 6000);
+      await page.evaluate(() => { const b = document.querySelector('[data-st-lang="en"]'); if (b) b.scrollIntoView({ block: 'center' }); });
+      if (await page.$('[data-st-lang="en"]')) await page.click('[data-st-lang="en"]');
+      back = await until(() => (typeof langId === 'function' && langId() === 'en') ? langId() : null);
+    }
+    check('4. Settings › You\'s Svenska switches the language, and English brings it back', !!row && sv === 'sv' && back === 'en', JSON.stringify({ row: !!row, sv, back }));
     check('5. no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } finally {
     await browser.close(); await h.stop();

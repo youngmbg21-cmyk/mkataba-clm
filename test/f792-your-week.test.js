@@ -13,7 +13,8 @@
        Calendar (calHandOff) — the one writer of his blocks.
    (4) Both pages say it alike: the Obligations panel (obYourWeekSay through
        the shared list panel, its `after` for the setting) and the Calendar's
-       panel (calPlanHtml), the week's ask box, the hint line.
+       panel (calPlanHtml), the week's ask box (since Chambers, 20 Oct
+       2026, with no hint line under it).
    AT THE PARENT (gaps/A1, d2a4eb4) every test here FAILS.
    ═══════════════════════════════════════════════════════════════════════════ */
 const { test, describe } = require('node:test');
@@ -135,7 +136,7 @@ describe('f792 (4) both pages say it alike', () => {
   test('4b the Obligations panel: "Your week", his words, the week\'s box', () => {
     assert.match(fnBody(OB, 'obPanelJl'), /return \{ jlHome: i18t\('jl_w_week'\), jlSay: obYourWeekSay, jlPh: i18t\('jl_ph_week'\), seat: 'obligations' \};/);
   });
-  test('4c the Calendar\'s panel: the same sentence, the same offer, the planner\'s chips, the setting, the box and the hint', () => {
+  test('4c the Calendar\'s panel: the same sentence, the same offer, the planner\'s chips, the setting, the box, and no hint line', () => {
     const p = fnBody(CAL, 'calPlanHtml');
     assert.match(p, /obYourWeekSentence\(\)/);
     assert.match(p, /obYourWeekOffer\(\)/);
@@ -144,7 +145,8 @@ describe('f792 (4) both pages say it alike', () => {
     assert.match(p, /\$\{calLevelSegHtml\(\)\}/);
     assert.match(p, /<span class="jl-word">\$\{_esc\(i18t\('jl_w_week'\)\)\}<\/span>/);
     assert.match(p, /placeholder="\$\{_esc\(i18t\('jl_ph_week'\)\)\}"/);
-    assert.match(p, /jamboHintHtml\(\)/);
+    /* RE-POINTED 20 Oct 2026 (Chambers: no hint line under any Jambo box) */
+    assert.doesNotMatch(p, /jamboHintHtml|jb-hint/, 'no hint line under the box');
     assert.ok(!/cal_plan_q_hour/.test(p), 'two asks, as drawn');
   });
   test('4d the box asks through the one reader first, Enter and Ask alike', () => {

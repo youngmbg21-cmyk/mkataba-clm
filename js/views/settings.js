@@ -2533,7 +2533,6 @@ async function stNameSave(){
   if(typeof settingsMirrorDirectory==='function') try{ settingsMirrorDirectory(u.name,u.email,u.title||''); }catch(_){}
   toast(i18t('st_you_name_saved'),'ok');
   stDrawerClose(); stYouCardRepaint('who');
-  if(typeof paintAppearance==='function') try{ paintAppearance(); }catch(_){}
 }
 /* ---- YOUR EMAIL, CHANGED BY YOU, WITH YOUR CURRENT PASSWORD (round 24 as
    drawn: "Email · Change") ----
@@ -3293,7 +3292,6 @@ function stJamboHtml(){
       <label class="sr-only" for="st-jb-q">${esc(i18t('st_jb_ph'))}</label>
       ${_stJbCard({ field: `<textarea id="st-jb-q" rows="1" maxlength="200" data-ca-slash data-jb-enter autocomplete="off" placeholder="${esc(i18t('st_jb_ph'))}"></textarea>`, send: _stJbSend('', i18t('st_jb_ask'), { submit: true }) })}
     </form>
-    ${typeof jamboHintHtml==='function'?jamboHintHtml():''}
   </div>`;
 }
 /* AN ASK IS ADDED WHERE IT IS READ — appended to the feed, the box keeps the
@@ -3915,7 +3913,7 @@ function stPeopleHtml(opts){
     const invited=!!(u.prefs&&u.prefs.mustChangePassword)&&u.id!==me.id;
     return `<tr class="st-person" data-st-panel="person:${PB_ATTR(u.id)}" data-st-hay="${esc(hay)}">
       <td><button type="button" class="st-person-open" data-st-panel="person:${PB_ATTR(u.id)}"><span class="st-person-av">${esc(ini)}</span><span class="st-person-id"><span class="st-person-name">${esc(u.name||u.email)}${u.id===me.id?` <span class="st-person-you">${i18t('set_you')}</span>`:''}</span>${u.name&&u.email?`<span class="st-person-mail">${esc(u.email)}</span>`:''}</span></button></td>
-      <td><span class="reg-stg ins-pill"><i aria-hidden="true"></i>${esc(role)}</span></td>
+      <td><span class="reg-stg ins-pill">${esc(role)}</span></td>
       ${bz?`<td class="st-bz-cell" data-st-bz="${PB_ATTR(u.id)}">${esc((stBzOf(u)||{}).name||'—')}</td>`:''}
       <td>${esc(acc.text)}</td>
       ${''/* HOW MUCH THEY MAY SIGN FOR, on the row: the fact an admin comes to

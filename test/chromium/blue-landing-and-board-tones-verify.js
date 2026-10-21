@@ -5,10 +5,12 @@
      N-1  Present stays on across Board ⇄ Explorer until the reader exits —
           measured as the browser's own full screen AND the page's class.
      N-2  the reference on the Contracts list reads smaller than the row.
-     N-3  a fresh browser lands Blue; the Blue swatch comes first; the bar is
-          painted blue.
-     N-4  the board's ground and glow follow the brand (blue on Blue, teal on
-          Green), on both screens; status colours do not move.
+     N-3  RE-POINTED 20 Oct 2026 (the owner picked "Chambers" and removed
+          dark mode and the Blue / Green brand): an old stored brand or dark
+          lands on light and is cleared; no swatches; the bar is white.
+     N-4  RE-POINTED 20 Oct 2026: the Board's ground and glow are Chambers'
+          (the deep green, no teal); Explorer alone keeps its dark blue stage;
+          no brand switch is left.
      N-5  "Summarise my board" is a button.
      N-8  the Clauses door dressed in its tone paints that tone's wash.
      N-9  "Your move" starts at one left edge down the list (retired at step 7 of the overnight work order: the List draws no move mark).
@@ -48,14 +50,21 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
     const page = await browser.newPage({ viewport: { width: 1600, height: 900 }, deviceScaleFactor: 1 });
     page.on('pageerror', e => errors.push(String(e)));
 
-    /* ============ N-3 a fresh browser lands Blue, before the first frame ============ */
+    /* ============ N-3 RE-POINTED 20 Oct 2026: one look, no brand, no dark ============
+       The owner picked "Chambers" and said "Let's not implement the dark
+       theme. Remove it from HaTi." What a browser kept from the old Blue /
+       Green swatches and the dark switch is cleared before the first paint, so
+       an old "navy" or "dark" lands on the one light look. */
     await page.goto(h.base + '/', { waitUntil: 'domcontentloaded' });
+    await page.evaluate(() => { localStorage.setItem('hati-brand', 'navy'); localStorage.setItem('hati-brand-blue-once', '1');
+      localStorage.setItem('hati-dark', '1'); localStorage.setItem('hati-theme', 'dark'); });
+    await page.reload({ waitUntil: 'domcontentloaded' });
     const first = await page.evaluate(() => ({
-      brand: document.documentElement.getAttribute('data-brand'),
-      stored: localStorage.getItem('hati-brand'), once: localStorage.getItem('hati-brand-blue-once'),
+      brand: document.documentElement.getAttribute('data-brand'), dark: document.documentElement.classList.contains('dark'),
+      kept: ['hati-brand', 'hati-brand-blue-once', 'hati-dark', 'hati-theme'].filter(k => localStorage.getItem(k) != null),
     }));
-    check('N-3a a fresh browser is Blue from the first frame, and the move is marked once',
-      first.brand === 'navy' && first.stored === 'navy' && first.once === '1', JSON.stringify(first));
+    check('N-3a an old stored Blue brand and dark land on the one light look, and the old keys are cleared',
+      first.brand === null && !first.dark && first.kept.length === 0, JSON.stringify(first));
     await page.waitForLoadState('networkidle');
     await page.fill('#li-email', 'admin@example.co.ke');
     await page.fill('#li-pass', 'adminpassword1');
@@ -66,33 +75,49 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
     await waitFor(page, () => !!document.getElementById('hb-head'), null, 15000);
     await page.waitForTimeout(1500);
     const shell = await page.evaluate(() => {
-      const n = document.getElementById('brand-navy'), g = document.getElementById('brand-green');
       const bar = document.getElementById('top-header');
-      return { navyFirst: !!(n && g && (n.compareDocumentPosition(g) & Node.DOCUMENT_POSITION_FOLLOWING)),
-        bar: bar ? getComputedStyle(bar).backgroundColor : '' };
+      const probe = document.createElement('i'); probe.style.background = 'var(--color-bg)'; document.body.appendChild(probe);
+      const ground = getComputedStyle(probe).backgroundColor; probe.remove();
+      return { swatches: ['#brand-navy', '#brand-green', '[data-brand-pick]', '#theme-btn'].filter(q => document.querySelector(q)),
+        bar: bar ? getComputedStyle(bar).backgroundColor : '', ground,
+        dark: document.documentElement.classList.contains('dark'), brand: document.documentElement.getAttribute('data-brand') };
     });
-    check('N-3b the Blue swatch comes before the Green one', shell.navyFirst);
-    check('N-3c the bar is painted blue', shell.bar === 'rgb(38, 76, 158)', shell.bar);
+    check('N-3b no brand swatches and no theme button in the bar', shell.swatches.length === 0, JSON.stringify(shell.swatches));
+    check('N-3c the bar is white, standing off the page\'s ground', shell.bar === 'rgb(255, 255, 255)' && shell.ground !== shell.bar && !shell.dark && shell.brand === null, JSON.stringify(shell));
 
-    /* ============ N-4 the board's tones follow the brand ============ */
+    /* ============ N-4 RE-POINTED 20 Oct 2026: the Board wears Chambers ============
+       The Board face is always the light screen now, its glow the accent's
+       deep green; only Explorer keeps the dark stage, in its old Blue values. */
     const tones = async () => page.evaluate(() => {
       const pg = document.querySelector('#hb-page.hb-light,#hb-page.hb-dark,#ig-page.hb-light,#ig-page.hb-dark'); if (!pg) return { none: [...document.querySelectorAll('#hb-page,#ig-page')].map(e => e.id + '.' + e.className).join(' ') };
-      const cs = getComputedStyle(pg);
+      const cs = getComputedStyle(pg), root = getComputedStyle(document.documentElement);
       return { glow: cs.getPropertyValue('--hb-glow').trim(), ln: cs.getPropertyValue('--hb-ln').trim(),
-        stage: cs.getPropertyValue('--hb-stage').trim(), green: getComputedStyle(document.documentElement).getPropertyValue('--st-green-fg').trim(),
-        light: pg.classList.contains('hb-light') };
+        stage: cs.getPropertyValue('--hb-stage').trim(), accent: root.getPropertyValue('--color-accent-600').trim(),
+        accentRgb: root.getPropertyValue('--color-accent-600-rgb').trim(),
+        divider: (() => { const p = document.createElement('i'); p.style.color = 'var(--color-divider)'; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; })(),
+        light: pg.classList.contains('hb-light'), dark: pg.classList.contains('hb-dark') };
     });
-    const blueT = await tones();
-    check('N-4a on Blue the board\'s glow is blue', !!blueT && /264C9E|6F9BEA/i.test(blueT.glow), JSON.stringify(blueT).slice(0, 200));
-    check('N-4b and its ground carries no teal', !!blueT && !/38CDB8|56,\s*205|0E2B2A|04191A|14,95,88|0E5F58/i.test(blueT.stage), blueT && blueT.stage.slice(0, 120));
-    await page.screenshot({ path: path.join(OUT, '01-board-blue.png') });
-    await page.evaluate(() => setBrand('green'));
+    const boardT = await tones();
+    const same = (a, b) => String(a || '').replace(/\s+/g, '').toUpperCase() === String(b || '').replace(/\s+/g, '').toUpperCase();
+    /* RE-POINTED 21 Oct 2026 (Chambers): the Board's LINE is warm — a card's edge
+       (the line channel at .18 over white) IS the house's divider; the glow stays the accent. */
+    const edgeOf = ln => { const v = String(ln || '').split(',').map(Number); return v.length === 3 ? 'rgb(' + v.map(x => Math.round(255 - (255 - x) * .18)).join(', ') + ')' : null; };
+    check('N-4a the Board is the light screen, its glow the accent\'s deep green, its card edge the house\'s warm divider', !!boardT && boardT.light && !boardT.dark
+      && same(boardT.glow, boardT.accent) && edgeOf(boardT.ln) === boardT.divider, JSON.stringify(boardT).slice(0, 240) + ' edge ' + edgeOf(boardT && boardT.ln));
+    check('N-4b and its ground carries no teal', !!boardT && !!boardT.stage && !/38CDB8|56,\s*205|0E2B2A|04191A|14,95,88|0E5F58/i.test(boardT.stage), boardT && String(boardT.stage).slice(0, 120));
+    await page.screenshot({ path: path.join(OUT, '01-board-chambers.png') });
+    const was = await page.evaluate(() => hbFace());
+    await page.evaluate(() => hbSetFace('explorer'));
+    await waitFor(page, () => hbFace() === 'explorer');
     await page.waitForTimeout(800);
-    const greenT = await tones();
-    check('N-4c on Green the board\'s glow is no longer the blue one', !!greenT && greenT.glow !== blueT.glow, greenT && greenT.glow);
-    check('N-4d status colours do not move with the brand', !!greenT && greenT.green === blueT.green, `${blueT && blueT.green} / ${greenT && greenT.green}`);
-    await page.evaluate(() => setBrand('navy'));
-    await page.waitForTimeout(800);
+    const explT = await tones();
+    check('N-4c Explorer alone keeps its dark stage, in the old Blue glow', !!explT && explT.dark && !explT.light && /6F9BEA/i.test(explT.glow), JSON.stringify(explT).slice(0, 240));
+    await page.evaluate(f => hbSetFace(f), was);
+    await waitFor(page, f => hbFace() === f, was);
+    await page.waitForTimeout(600);
+    const gone = await page.evaluate(() => ({ fns: ['setBrand', 'setDark', 'toggleDark', 'setTheme', 'toggleTheme', 'applyAppearance'].filter(n => typeof window[n] === 'function'),
+      screenSwitch: !!document.querySelector('[data-hb-screen],.hb-scr') }));
+    check('N-4d no brand or dark switch is left (nothing published, no Light | Dark on the Board)', gone.fns.length === 0 && !gone.screenSwitch, JSON.stringify(gone));
 
     /* ============ N-5 Summarise my board is a button ============ */
     const sum = await page.evaluate(() => { const b = document.querySelector('.hb-bs-go'); return b ? { tag: b.tagName, cls: b.className } : null; });

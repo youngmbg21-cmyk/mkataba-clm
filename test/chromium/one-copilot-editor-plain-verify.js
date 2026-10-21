@@ -160,11 +160,9 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
       const moved = await until(page, o => window.clauseEditorClauseId && clauseEditorClauseId() === o ? true : null, other);
       check(!!moved, '2e a pick moves the editor to that clause');
     } else check(false, '2e a pick moves the editor to that clause', 'no other clause');
-    for (const dark of [false, true]){
-      await page.evaluate(d => { if (window.setDark) setDark(d); else document.documentElement.classList.toggle('dark', d); }, dark);
-      await page.waitForTimeout(250);
-      await shot(dark ? '3-dark.png' : '3-light.png');
-    }
+    /* RE-POINTED 20 Oct 2026 (the owner picked "Chambers" and removed dark
+       mode): the dark picture is gone with the night; the light one stays */
+    await shot('3-light.png');
     check(!errors.length, '6 no page errors', errors.slice(0, 2).join(' | '));
   } catch (e){ check(false, 'the stage ran to the end', e.message); }
   finally { await browser.close(); await h.stop(); }

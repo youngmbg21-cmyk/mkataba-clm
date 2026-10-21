@@ -2,7 +2,7 @@
  * 3 Oct 2026; f447 pins the readings and the server's walls).
  *
  * WHAT THIS DRIVES, where the user looks:
- *   1. Home lands on the board, Dark, six figures that are the book's own,
+ *   1. Home lands on the board, light, five figures that are the book's own,
  *      and the map is NOT built while the board covers it;
  *   2. a figure is a door with a trail, and the trail's first crumb goes back;
  *   3. asking changes the lens and puts panels on the board, and side by side
@@ -16,7 +16,8 @@
  *      sees the seen tick;
  *   8. Present: the tools appear only while presenting, the pen paints, and
  *      Escape brings everything back;
- *   9. the screen's Light stays light when the PLATFORM is dark;
+ *   9. the Board's light screen wears the platform's own ink (RE-POINTED
+ *      20 Oct 2026: there is no dark platform and no Light | Dark switch);
  *  10. Insights has no Explorer tab, and an old door to it lands on Home.
  * Every driven half is guarded, so a missing feature REPORTS rather than
  * times out (the house rule). */
@@ -90,8 +91,11 @@ const CONTRACTS = [
       order: [...document.querySelectorAll('[data-hb-screen]')].map(b => b.getAttribute('data-hb-screen')).join(','), up: typeof igMapUp === 'function' ? igMapUp() : null,
       nums: [...document.querySelectorAll('.hb-fig .hb-fig-n')].map(e => e.textContent.trim()),
       want: typeof hbBookData === 'function' ? hbBookData('all').figs : null }));
-    /* the Board LANDS LIGHT, Light before Dark (Young, 6 Oct 2026) */
-    ok('1b the board side, on the Light screen, Light first', L.face === 'board' && L.light && !L.dark && L.order === 'light,dark', JSON.stringify([L.face, L.light, L.order]));
+    /* the Board LANDS LIGHT (Young, 6 Oct 2026). RE-POINTED 20 Oct 2026 (the
+       owner removed dark mode: "Only dark theme will be on the explorer and
+       brain as designed today"): the Board's own Light | Dark switch is gone —
+       the Board is always the light screen, Explorer alone the dark one. */
+    ok('1b the board side, on the light screen, with no Light | Dark switch', L.face === 'board' && L.light && !L.dark && L.order === '', JSON.stringify([L.face, L.light, L.order]));
     ok('1c the map is not built while the board covers it', L.up === false);
     ok('1d live, ending, past and overdue print the book\'s own counts',
       !!L.want && L.nums[0] === String(L.want.live.n) && L.nums[2] === String(L.want.ending.n)
@@ -243,16 +247,18 @@ const CONTRACTS = [
       !document.getElementById('ig-page').classList.contains('hb-presenting')
       && getComputedStyle(document.getElementById('hb-tools')).display === 'none'));
 
-    /* ===== 9. THE SCREEN'S OWN LIGHT ===== */
-    await page.click('[data-hb-screen="light"]');
-    await page.evaluate(() => { if (typeof setDark === 'function') setDark(true); });
-    const ink = await page.evaluate(() => getComputedStyle(document.getElementById('ig-page')).getPropertyValue('--hb-ink').trim().toUpperCase());
-    /* RE-POINTED 9 Oct 2026: the board's Light wears Ink Wash (black + the
-       brand's colour) — Green #032E2A, Blue #091938. Same claim: the LIGHT ink. */
-    ok('9a Light stays light when the platform is dark', ['#032E2A', '#091938'].includes(ink), ink);
-    await page.screenshot({ path: path.join(OUT, '9-light-on-dark-platform.png') });
-    await page.evaluate(() => { if (typeof setDark === 'function') setDark(false); });
-    await page.click('[data-hb-screen="dark"]');
+    /* ===== 9. THE SCREEN'S OWN LIGHT =====
+       RE-POINTED 20 Oct 2026 (Chambers, no dark mode): there is no dark
+       platform to stay light against and no Light | Dark switch to press; the
+       claim kept is "the LIGHT ink" — the Board's light screen writes in the
+       platform's own ink, --color-text (Chambers' #161512). */
+    await page.evaluate(() => { const s = hbS(); if (s.face !== 'board'){ s.face = 'board'; hbSave(); setView('dashboard'); } });
+    await until(page, () => hbS().face === 'board' && !!document.querySelector('#ig-page.hb-light'));
+    const ink = await page.evaluate(() => ({ hb: getComputedStyle(document.getElementById('ig-page')).getPropertyValue('--hb-ink').trim().toUpperCase(),
+      text: getComputedStyle(document.documentElement).getPropertyValue('--color-text').trim().toUpperCase(),
+      dark: document.documentElement.classList.contains('dark'), sw: !!document.querySelector('[data-hb-screen]') }));
+    ok('9a the Board\'s light screen writes in the platform\'s own ink, and nothing switches it dark', !!ink.hb && ink.hb === ink.text && !ink.dark && !ink.sw, JSON.stringify(ink));
+    await page.screenshot({ path: path.join(OUT, '9-light-board-ink.png') });
 
     /* ===== 10. INSIGHTS KEEPS THE DETAIL ===== */
     await page.evaluate(() => setView('intel'));

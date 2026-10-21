@@ -370,9 +370,11 @@ describe('f314 (5) — the fill means arriving, and nothing else', () => {
         assert.match(r[k], /color:var\(/, k + ' still says whose deletion it is');
       }
     });
+    /* RE-POINTED 21 Oct 2026 (Chambers): ours keeps its fill, now the green the
+       accent ink sits on (--st-green-bg); the cool steel wash left with the blue. */
     test(name + ': an insertion keeps the fill', () => {
       const r = rules(src);
-      assert.match(r['ins.rl-us'], /background:var\(--st-steel-bg\)/);
+      assert.match(r['ins.rl-us'], /background:var\(--st-green-bg\)/);
       assert.match(r['ins.rl-them'], /background:var\(--st-amber-bg\)/);
     });
   }

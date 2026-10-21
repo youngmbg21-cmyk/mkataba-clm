@@ -189,13 +189,17 @@ const OFFSETS = [3, 6, 9, 12, 20, 26, 35, 44, 52, 61, 70, 78, 85, 88];
       const cs = getComputedStyle(d), ws = getComputedStyle(wk), ds = getComputedStyle(dow);
       const col = n => { const e = document.querySelectorAll('.cal-day')[n], l = dow.children[n];
         return e && l ? +(e.getBoundingClientRect().left - l.getBoundingClientRect().left).toFixed(1) : null; };
-      return { radius: parseFloat(cs.borderTopLeftRadius), edge: cs.borderTopWidth + ' ' + cs.borderTopStyle,
+      return { radius: parseFloat(cs.borderTopLeftRadius),
+        card: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--radius-lg')), edge: cs.borderTopWidth + ' ' + cs.borderTopStyle,
         wkBg: ws.backgroundColor, gap: ws.columnGap,
         /* a line is painted only where its style draws one */
         edgeDrawn: cs.borderTopStyle !== 'none' && parseFloat(cs.borderTopWidth) > 0,
         align: [col(0), col(2), col(4)], dowGap: ds.columnGap };
     });
-    ok('3a a day box has the card radius', !!tile && tile.radius >= 8, tile && String(tile.radius));
+    /* RE-POINTED 21 Oct 2026 (Chambers): the card corner is --radius-lg, RESOLVED
+       (Chambers set it to 3px); the claim is "the card's corner, not square". */
+    ok('3a a day box has the card radius', !!tile && tile.radius > 0 && tile.radius === tile.card,
+      tile && tile.radius + ' (card ' + tile.card + ')');
     ok('3b and an edge that is really drawn', !!tile && tile.edgeDrawn, tile && tile.edge);
     ok('3c the grey backing behind the old grid lines is gone',
       !!tile && /rgba\(0, 0, 0, 0\)|transparent/.test(tile.wkBg), tile && tile.wkBg);

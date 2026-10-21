@@ -828,19 +828,29 @@ describe('the room wears the prototype\'s visual language, and keeps it to itsel
         `${sel} floats at body level, so it must be in the token block or it paints with nothing`);
   });
 
-  test('the room joins the theme through its own namespace', async () => {
+  test('the room joins the app through its own namespace, and has no dark flip left', async () => {
     /* This test used to assert the opposite — that the room never referenced
-       a shared token. That reading was overturned with dark mode: the HaTi
-       reference themes EVERYTHING on screen, so the room's surface/ink ramp
-       must flip with the app. What still holds: the flip happens through the
-       room's own --n-* handles (a dark override on the component selector),
-       never by restyling :root from inside a component. */
+       a shared token. That reading was overturned with dark mode: the room's
+       surface/ink ramp had to flip with the app, through its own --n-* handles.
+       RE-POINTED 20 Oct 2026: dark mode was removed (the owner: "Let's not
+       implement the dark theme. Remove it from HaTi."), so there is no flip
+       left to make and none may come back. What still holds: the room's ink
+       reads the app's ink through its own --n-* handle, declared on the
+       component's selector, never by restyling :root from inside a component. */
     const m = await mounted();
     const css = m.doc.getElementById('nego-style').textContent;
-    assert.match(css, /html\.dark \.nego-room[^{]*\{[^}]*--n-paper:#0f172a/,
-      'dark mode must flip the room\'s paper through the --n-* namespace');
-    assert.match(css, /html\.dark \.nego-room[^{]*\{[^}]*--n-ink:#e2e8f0/,
-      'dark mode must flip the room\'s ink through the --n-* namespace');
+    assert.doesNotMatch(css, /html\.dark \.nego-room/,
+      'a dark flip of the room is back — there is no dark theme');
+    const block = /([^{}]*)\{[^}]*--n-paper:#ffffff/.exec(css);
+    const sel = block ? block[1].replace(/\/\*[\s\S]*?\*\//g, '') : '';
+    assert.ok(sel.includes('.nego-room') && !sel.includes(':root'),
+      'the room\'s paper is declared on the room, never on :root');
+    /* And not only the first block that names the paper: no bare :root rule
+       anywhere in the room's sheet declares one of its --n-* handles. */
+    assert.doesNotMatch(css.replace(/\/\*[\s\S]*?\*\//g, ''), /(^|[},])\s*:root\s*\{[^}]*--n-[a-z]/,
+      'a --n-* handle is declared on :root, which restyles the whole product from inside the room');
+    assert.match(css, /\.nego-room[^{]*\{[^}]*--n-ink:var\(--color-text\)/,
+      'the room\'s ink reads the app\'s ink through the --n-* namespace');
   });
 
   test('the redline marks paint from the room\'s tokens', async () => {
@@ -849,7 +859,7 @@ describe('the room wears the prototype\'s visual language, and keeps it to itsel
     assert.match(css, /\.nego-del\{background:var\(--n-del-bg\);color:var\(--n-del-fg\)/);
     assert.match(css, /\.nego-ins\{background:var\(--n-ins-bg\);color:var\(--n-ins-fg\)/);
     assert.match(css, /--n-ins-fg:var\(--st-green-fg\)/,
-      'the insertion green rides the shared status token, so it re-maps in dark');
+      'the insertion green rides the shared status token, so it moves with the app\'s palette');
   });
 
   test('reduced motion is honoured', async () => {

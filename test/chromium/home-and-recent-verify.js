@@ -4,7 +4,8 @@
 
    WHAT THIS PINS, driven in a real browser on a seeded workspace
      1 signing in on a computer lands on Home: Jambo's box, no left menu, no
-       row of tabs; the bar reads ‹ · Ha · "Home"
+       row of tabs; the bar reads ‹ · HaTi · "Home" (the mark reads "HaTi"
+       since Chambers, 20 Oct 2026)
      2 Needs you: Jambo's work is the first row; each contract's owed item is
        a row (the Board's own reading) whose button opens its door; an admin
        has one row onto Settings; the number is the rows that owe something
@@ -16,10 +17,12 @@
        pressed again, Esc or a press outside closes it; a row brings its page
        back; × takes one off now (the page in front goes to the one used
        last); ‹ goes back one page, grey with its reason when there is none;
-       the Ha mark is Home; a refresh keeps the page and Recent
+       the HaTi mark is Home; a refresh keeps the page and Recent
      5 the paper starts under the bar: Home draws no head row; Present is
-       Recent's last row on Home's faces only; the Board's Light | Dark is on
-       its first line and Explorer's Group by in the map's corner
+       Recent's last row on Home's faces only; the Board draws no Light | Dark
+       switch — the Board is light and Explorer alone is dark — and Explorer's
+       Group by is in the map's corner (RE-POINTED 20 Oct 2026, Chambers: the
+       Board's own Light | Dark switch is gone)
      6 the phone keeps its own screens: no Home, no bar buttons
      7 it fits the owner's three screens, Recent included, and in Svenska
        Home is Hem
@@ -76,14 +79,15 @@ const CONTRACTS = [
     const land = await until(() => state.view === 'counter' && document.getElementById('cn-q') && ({
       menu: getComputedStyle(document.getElementById('side-nav')).display,
       mark: !document.getElementById('dk-mark').hidden && document.getElementById('dk-mark').getBoundingClientRect().width > 0,
+      markText: document.getElementById('dk-mark').textContent.trim(),
       markTip: document.getElementById('dk-mark').title,
       order: ['dk-back', 'dk-mark', 'dk-page'].map(id => { const e = document.getElementById(id); return e ? Math.round(e.getBoundingClientRect().left) : -1; }),
       name: (document.getElementById('dk-page') || {}).textContent, titleShown: document.getElementById('shell-title').getBoundingClientRect().width > 0,
       greet: (document.querySelector('.cn-ask h1') || {}).textContent || '' }), null, 15000);
     check('1a the first screen is Home, with Jambo\'s box', !!land, JSON.stringify(land));
     check('1b the left menu is not drawn', !!land && land.menu === 'none', land && land.menu);
-    check('1c the bar reads ‹ · Ha · the page\'s name, and the page is Home', !!land && land.mark && land.markTip === 'Home' && land.order.every((x, i, a) => x >= 0 && (i === 0 || x > a[i - 1]))
-      && String(land.name).trim() === 'Home' && !land.titleShown, land && JSON.stringify({ order: land.order, name: land.name, tip: land.markTip, title: land.titleShown }));
+    check('1c the bar reads ‹ · HaTi · the page\'s name, and the page is Home', !!land && land.mark && land.markText === 'HaTi' && land.markTip === 'Home' && land.order.every((x, i, a) => x >= 0 && (i === 0 || x > a[i - 1]))
+      && String(land.name).trim() === 'Home' && !land.titleShown, land && JSON.stringify({ order: land.order, mark: land.markText, name: land.name, tip: land.markTip, title: land.titleShown }));
     check('1d no row of tabs anywhere', await noRow());
     check('1e the box greets the person by name', !!land && /^What do you need, \S+\?$/.test(land.greet), land && land.greet);
     await shot(page, 'home-1440x780');
@@ -194,7 +198,7 @@ const CONTRACTS = [
     check('4k a refresh keeps the page and Recent', back === viewBefore && JSON.stringify((await kept()).slice().sort()) === JSON.stringify(before.slice().sort()), `${back} · ${(await kept()).length} pages`);
     const grey = await page.evaluate(() => { const b = document.getElementById('dk-back'); return b ? { off: b.disabled, tip: b.title } : { off: false, tip: 'no ‹ in the bar' }; });
     check('4l with nothing to go back to in this sitting, ‹ is grey and says why', grey.off && grey.tip === 'Nothing to go back to yet', JSON.stringify(grey));
-    if (await press('#dk-mark', '4m the Ha mark')) check('4m the Ha mark goes Home', !!await until(() => state.view === 'counter' && !!document.getElementById('cn-q')));
+    if (await press('#dk-mark', '4m the HaTi mark')) check('4m the HaTi mark goes Home', !!await until(() => state.view === 'counter' && !!document.getElementById('cn-q')));
     check('4n and ‹ is there to come back', await page.evaluate(() => { const b = document.getElementById('dk-back'); return !!b && !b.disabled; }));
 
     console.log('\n5 · the paper starts under the bar');
@@ -218,13 +222,20 @@ const CONTRACTS = [
     check('5c and not on a page that has nothing to present', await page.evaluate(() => !document.querySelector('#dk-recent [data-dk-present]')));
     await page.keyboard.press('Escape');
     await page.evaluate(() => deskTabOpen('home:board')); await until(() => state.view === 'dashboard' && hbFace() === 'board' && document.querySelector('#hb-board .hb-note'));
-    const scr = await page.evaluate(() => { const n = document.querySelector('#hb-board .hb-note .hb-scr'); return { onLine: !!n, inHead: !!document.querySelector('#hb-head .hb-scr'),
-      shown: !!n && n.getBoundingClientRect().height > 0 }; });
-    if (scr.onLine) await page.locator('#hb-board .hb-note [data-hb-screen="dark"]').click();
-    const dark = await until(() => hbS().screen === 'dark' && document.querySelector('#hb-board .hb-note [data-hb-screen="dark"]').getAttribute('aria-pressed') === 'true');
-    check('5d the Board\'s Light | Dark stands on its own first line, and works', scr.onLine && scr.shown && !scr.inHead && !!dark, JSON.stringify(scr));
-    await page.locator('#hb-board .hb-note [data-hb-screen="light"]').click().catch(() => {});
+    /* RE-POINTED 20 Oct 2026 (the owner picked "Chambers" and removed dark mode:
+       "Only dark theme will be on the explorer and brain as designed today"):
+       the Board's own Light | Dark switch is gone. 5d now asserts it is not
+       drawn anywhere, that the Board stands on the light screen, and — read
+       once Explorer is open below — that Explorer alone keeps its dark stage. */
+    const scr = await page.evaluate(() => { const pg = document.getElementById('ig-page') || document.getElementById('hb-page');
+      return { switches: document.querySelectorAll('.hb-scr, [data-hb-screen]').length,
+        board: { now: hbScreenNow(), light: !!pg && pg.classList.contains('hb-light'), dark: !!pg && pg.classList.contains('hb-dark') } }; });
     await page.evaluate(() => hbOpenExplorer());
+    const exScr = await until(() => { const pg = document.getElementById('ig-page') || document.getElementById('hb-page');
+      return hbFace() === 'explorer' && { now: hbScreenNow(), light: !!pg && pg.classList.contains('hb-light'), dark: !!pg && pg.classList.contains('hb-dark') }; });
+    check('5d the Board draws no Light | Dark switch: the Board is light, Explorer alone is dark', scr.switches === 0
+      && scr.board.now === 'light' && scr.board.light && !scr.board.dark && !!exScr && exScr.now === 'dark' && exScr.dark && !exScr.light,
+      JSON.stringify({ switches: scr.switches, board: scr.board, explorer: exScr }));
     /* RE-POINTED 19 Oct 2026 (owner: the corner's Group by was redundant): Group by
        is the head line's own dropdown, in the map's top-left corner; the corner box is gone */
     const gb = await until(() => { const s = document.getElementById('ig-group'), g = document.getElementById('ig-gwrap'); if (!s || !g || hbFace() !== 'explorer') return null;

@@ -1454,11 +1454,15 @@ describe('F210 — the clause rail', () => {
     assert.match(bar, /left:-18px/, 'outside the text column, in the LEFT margin the sheet already has — as Word draws it (D-7, 11 Sep 2026)');
     /* NAMED, NOT TYPED (21 Aug 2026, the same move f89 records above it): the
        literal #dc2626 IS --danger, so the rule is unchanged and only its
-       spelling moved. The hand-written dark override below is untouched and
-       still wins in dark, which is why the census did not shift by a shade. */
+       spelling moved. (The hand-written dark override that stood below it
+       went with dark mode, 20 Oct 2026.) */
     assert.match(bar, /background:var\(--danger\)/);
-    assert.match(SRC, /html\.dark .redline-page \.rl-clause\.is-changed::after\{background:#f87171\}/,
-      'and it follows the dark theme');
+    /* RE-POINTED 20 Oct 2026 — dark mode was removed (the owner: "Let's not
+       implement the dark theme. Remove it from HaTi."). The bar's hand-written
+       night override had no night left to follow, so the claim is now that it
+       is gone and the one token above is the bar's only colour. */
+    assert.ok(!/html\.dark[^{]*\.rl-clause\.is-changed::after/.test(SRC),
+      'and no dark override is left for it — there is no dark theme to follow');
   });
 
   test('the pill is pinned to the box, not carried by the heading row', () => {

@@ -11,8 +11,10 @@
      3. Dig deeper on the story: its cost beside it; one press sends the
         story's own fact sheets with the question; the run stays on the story;
         a deeper chapter is drawn, with What to watch and Ideas set aside;
-     4. the story reads on the board's Dark AND Light screens (the lead, a
-        chapter's words and the cost line stand off the card);
+     4. the story reads on the board's one screen, light (Chambers, 20 Oct
+        2026: the Board's own Light | Dark switch is gone and the Board is
+        always light): the lead, a chapter's words and the cost line stand
+        off the card, and no Light | Dark switch is drawn;
      5. Share opens the give form on the story;
      6. a refresh lands back on the story with its words, and no new call;
      7. no page errors;
@@ -50,7 +52,7 @@ const rgb = s => (String(s).match(/[\d.]+/g) || []).map(Number);
 const over = (fg, bg) => { const [r, g, b, a = 1] = rgb(fg); const [R, G, B] = bg; return [r * a + R * (1 - a), g * a + G * (1 - a), b * a + B * (1 - a)]; };
 const lum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
 const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
-const CARD = { dark: over('rgba(4,25,26,.82)', [2, 16, 17]), light: over('rgba(255,255,255,.62)', [255, 255, 255]) };
+const CARD = over('rgba(255,255,255,.62)', [255, 255, 255]);
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
@@ -80,7 +82,7 @@ const CARD = { dark: over('rgba(4,25,26,.82)', [2, 16, 17]), light: over('rgba(2
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
     await page.waitForFunction(ids => window.state && state.contracts && ids.every(id => state.contracts.some(c => c.id === id)), BOOK.map(c => c.id), { timeout: 20000 });
-    await page.evaluate(() => { const s = hbS(); s.face = 'board'; s.prep = 'closed'; s.panels = []; s.path = []; s.digBig = false; s.recipe = {}; s.screen = 'dark'; delete s.sy; hbSave(); setView('dashboard'); });
+    await page.evaluate(() => { const s = hbS(); s.face = 'board'; s.prep = 'closed'; s.panels = []; s.path = []; s.digBig = false; s.recipe = {}; delete s.sy; hbSave(); setView('dashboard'); });
     await until(() => document.getElementById('hb-board') ? true : null);
     await page.evaluate(() => { state.aiConfigured = true; intel.history = []; });
 
@@ -98,19 +100,20 @@ const CARD = { dark: over('rgba(4,25,26,.82)', [2, 16, 17]), light: over('rgba(2
     check('2a one Copilot call writes the words', chats === 1 && !!words, 'calls ' + chats);
     check('2b the lead and a chapter\'s sentences are on the page', /Negotiations took more rounds as the year went on/.test(words || '') && /Limitation of liability was redlined most/.test(words || ''));
     check('2c a sentence with a number HaTi did not count is not, and the foot says so', !/9999/.test(words || '') && /1 sentence was left out/.test(words || ''), (words || '').slice(-200));
-    await page.screenshot({ path: path.join(OUT, 'story-dark.png') });
 
-    /* 4. both screens read (measured before Dig deeper fills the card) */
-    for (const scr of ['dark', 'light']){
-      await page.click(`[data-hb-screen="${scr}"]`);
-      await until(scr => { const p = document.getElementById('hb-page') || document.getElementById('ig-page'); return p && p.classList.contains('hb-' + scr) && document.querySelector('#hb-board .hb-sy-lead') ? true : null; }, scr);
+    /* 4. the one screen reads (measured before Dig deeper fills the card):
+       the Board is always light, and its Light | Dark switch is not drawn */
+    {
+      const lit = await until(() => { const p = document.getElementById('hb-page') || document.getElementById('ig-page');
+        return p && document.querySelector('#hb-board .hb-sy-lead') ? { light: p.classList.contains('hb-light'), dark: p.classList.contains('hb-dark'),
+          sw: document.querySelectorAll('[data-hb-screen], .hb-scr').length } : null; });
+      check('4a the Board is always light, with no Light | Dark switch on it', !!lit && lit.light && !lit.dark && lit.sw === 0, JSON.stringify(lit));
       const m = await page.evaluate(() => { const c = sel => { const e = document.querySelector(sel); return e ? getComputedStyle(e).color : null; };
         return { lead: c('#hb-board .hb-sy-lead'), para: c('#hb-board .hb-sy-p'), cost: c('#hb-board .hb-sy .hb-dd-cost') }; });
-      const r = Object.fromEntries(Object.entries(m).map(([k, v]) => [k, v ? ratio(over(v, CARD[scr]), CARD[scr]) : 0]));
-      check(`4${scr === 'dark' ? 'a' : 'b'} ${scr} screen: the lead, a chapter's words and the cost line stand off the card (≥ 4.5)`, r.lead >= 4.5 && r.para >= 4.5 && r.cost >= 4.5, JSON.stringify(Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v.toFixed(2)]))));
-      await page.screenshot({ path: path.join(OUT, `story-${scr}.png`) });
+      const r = Object.fromEntries(Object.entries(m).map(([k, v]) => [k, v ? ratio(over(v, CARD), CARD) : 0]));
+      check('4b the lead, a chapter\'s words and the cost line stand off the card (≥ 4.5)', r.lead >= 4.5 && r.para >= 4.5 && r.cost >= 4.5, JSON.stringify(Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v.toFixed(2)]))));
+      await page.screenshot({ path: path.join(OUT, 'story-light.png') });
     }
-    await page.click('[data-hb-screen="dark"]');
 
     /* 3. Dig deeper on the story */
     const cost = await page.evaluate(() => { const b = document.querySelector('#hb-board [data-hb-sy-deeper]'); const c = document.querySelector('#hb-board .hb-sy .hb-dd-cost');

@@ -280,7 +280,8 @@ describe('f754 (7) the words, in both books', () => {
    (8) The NDA's facts carry its own editor's names ("Secret until"), and
        "· Confirm" stays on its sentence's line; base pay owed is an amber pill
        with its dot; a private contract's wait line stands straight under Pay
-       with Jambo's small face; Jambo perches in a row of his own, over nothing;
+       with Jambo's small face; no perch beside Fill in and Before you sign
+       (Chambers, 20 Oct 2026, removed the perch and the row it was given);
        Fill in's size stands on the paper's line, nothing above the sheet; the
        "clause N" door lands on the paper's spot through the one lander.
    ROUND 10
@@ -313,9 +314,15 @@ describe('f754 (8) Fill in, the third pass', () => {
     assert.match(IX, /#pd-fillface \.pd-ff-work > \.pd-ff-wait\{order:3;/, 'among Pay\'s order, after it');
     assert.match(strip(PD.slice(PD.indexOf('function pdFillWaitHtml('), PD.indexOf('let _pdFillFolded'))), /jamboFaceHtml\('hello', 22, 'pd-ff-wait-face'\)/);
   });
-  test('8d Jambo perches in a row of his own beside Fill in and Before you sign — he covers nothing', () => {
-    assert.match(IX, /#ig-dock\.jb-perched:has\(#pd-fillface, #pd-signface\) \[data-ig-chips\]:not\(:has\(button\)\)\{min-height:44px;/);
-    assert.doesNotMatch(IX, /\[data-ig-chips\]:not\(:has\(button\)\) \.jb-perch\{bottom:0\}/);
+  /* RE-POINTED 20 Oct 2026 (Chambers: the perch is gone, reversing "JAMBO,
+     ALIVE"): beside Fill in and Before you sign no bird perches at all, so
+     nothing can cover the chips and no row is reserved for him. */
+  test('8d no perch beside Fill in and Before you sign — Jambo covers nothing', () => {
+    const css = strip(IX);
+    assert.doesNotMatch(css, /\.jb-perch|jb-perched/, 'no perch rule left in the sheet');
+    assert.doesNotMatch(css, /#ig-dock\.jb-perched:has\(#pd-fillface, #pd-signface\)/, 'no row reserved for a perch');
+    for (const f of ['js/components.js', 'js/views/intelligence.js', 'js/paperdesk.js'])
+      assert.doesNotMatch(strip(R(f)), /jamboPerchMount|jamboHop|jb-perch/, f + ' mounts no perch');
   });
   test('8e Fill in\'s size on the paper\'s line, nothing above the sheet while it is open', () => {
     assert.match(strip(IG.slice(IG.indexOf('function igStripHtml('), IG.indexOf('function igStripHtml(') + 9000)), /up&&onHome&&!igSignOn\(c\)&&window\.rlTypeStepHtml\?`<span class="ig-zc-line" data-ig-zc-line>\$\{rlTypeStepHtml\(\)\}<\/span>`:''/);

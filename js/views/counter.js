@@ -441,7 +441,7 @@ function cnJwRowHtml(A){
   const who = [...new Set((A.rows || []).map(r => r.who || r.sum).filter(Boolean))].slice(0, 4);
   /* its head says what the drawing says: "· 5 prepared · nothing sent or
      filed until you press" (round 23); the line under it, whose work it is */
-  return `<div class="cn-r cn-jw">${cnFace(24, 'cn-r-face')}<div class="cn-w"><b>${_cnE(_cnT('cn_jw'))} <span class="cn-n">· ${_cnE(n ? _cnTn('cn_jw_n', n, { n }) : _cnT('cn_jw_none'))}${n ? ' · ' + _cnE(_cnT('cn_jw_said')) : ''}</span></b><span>${_cnE(n ? who.join(' · ') : _cnT('cn_jw_rest'))}</span></div>${n ? `<button type="button" class="ui-btn ui-btn-sm" data-cn-jw>${_cnE(_cnT('cn_open'))}</button>` : ''}</div>`;
+  return `<div class="cn-r cn-jw">${''/* no mark in the row (Chambers, as drawn, 20 Oct 2026) */}<div class="cn-w"><b>${_cnE(_cnT('cn_jw'))} <span class="cn-n">· ${_cnE(n ? _cnTn('cn_jw_n', n, { n }) : _cnT('cn_jw_none'))}${n ? ' · ' + _cnE(_cnT('cn_jw_said')) : ''}</span></b><span>${_cnE(n ? who.join(' · ') : _cnT('cn_jw_rest'))}</span></div>${n ? `<button type="button" class="ui-btn ui-btn-sm" data-cn-jw>${_cnE(_cnT('cn_open'))}</button>` : ''}</div>`;
 }
 /* ---- A ROW OF NEEDS YOU, AS DRAWN (round 23's gaps) ----
    "Answer an approval for Jonas" (for Jonas · away until Friday) / "Power
@@ -608,12 +608,10 @@ function counterHtml(){
     `<div class="cn-r"><div class="cn-w"><b>${_cnE(deskTabLabel(t.k))}</b></div><button type="button" class="ui-btn ui-btn-sm" data-dk-go="${_cnE(t.k)}">${_cnE(_cnT('cn_open'))}</button></div>`).join('')}</section>` : '';
   _cnSig = cnSig(N, A);
   return `<div class="cn-page" id="cn-page"><div class="cn-in">
-    <section class="cn-card cn-ask">${cnFace(40, 'cn-face')}<h1>${_cnE(_cnT('cn_hello', { name }))}</h1>
+    <section class="cn-card cn-ask">${cnFace(26, 'cn-face')}<h1>${_cnE(_cnT('cn_hello', { name }))}</h1>
       <div class="cn-wrap">${''/* THE TWO-ROW CARD (owner picked it, 20 Oct 2026): the one builder */}${_cnJbCard({ cls: 'cn-card-box', field: `<textarea id="cn-q" rows="1" autocomplete="off" spellcheck="false" placeholder="${_cnE(_cnT('cn_box_ph'))}" aria-label="${_cnE(_cnT('cn_box_label'))}"></textarea>`, send: _cnJbSend('data-cn-send', _cnT('cn_ask')) })}<div class="ca-pop cn-pop" id="cn-pop" hidden></div></div>
-      ${''/* THE HINT LINE UNDER THE BOX (owner, 18 Oct 2026, "Every Jambo box"):
-             the one builder every Jambo ask box on a computer carries */}${typeof jamboHintHtml === 'function' ? jamboHintHtml() : ''}
       <div class="cn-chips" id="cn-chips">${cnChipsHtml(N)}</div></section>
-    <section class="cn-card cn-needs" id="cn-needs"><header class="cn-h"><span class="cn-t">${_cnE(_cnT('hb_ny_title'))}</span><span class="cn-cnt">${n}</span>${n ? `<span class="cn-hint">${_cnE(_cnT('cn_needs_hint'))}</span>` : ''}</header>${rows}${after}${more}</section>
+    <section class="cn-card cn-needs" id="cn-needs"><header class="cn-h"><span class="cn-t">${_cnE(_cnT('hb_ny_title'))}</span><span class="cn-cnt">${n}</span></header>${rows}${after}${more}</section>
     ${pick}</div></div>`;
 }
 /* what the card was drawn from, so a list that arrives later redraws it once */

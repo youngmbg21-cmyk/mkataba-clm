@@ -19,7 +19,8 @@
      7 a refresh lands on the same file in the check view; ‹ All files back
      8 a duplicate: Jambo asks "Is this a copy?"; Skip leaves it out
      9 Review spreadsheet is a menu of two; pressed again it closes
-    10 the ask box carries the hint and asks as every Jambo box asks
+    10 the ask box asks as every Jambo box asks, with no hint line under it
+       (re-pointed 21 Oct 2026, Chambers: no hint line under any Jambo box)
     11 the owner's three screens: nothing sideways, the panel in the window,
        the check view's two cards side by side
    Waits ask for the state, bounded; a missing part reports.
@@ -318,8 +319,14 @@ const FILES = {
 
     console.log('\n10 · the ask box');
     await page.evaluate(() => migPickSet(null));
-    const A = await page.evaluate(() => ({ ph: (document.querySelector('#mig-side #jl-q') || {}).placeholder, hint: (document.querySelector('#mig-side .jb-hint') || {}).textContent || '' }));
-    check('10a "Ask for anything, or type /" with the hint under it', A.ph === 'Ask for anything, or type /' && /Typing never signs, sends or files — a press does\./.test(A.hint), JSON.stringify(A));
+    /* RE-POINTED 21 Oct 2026 (Chambers): the hint line under every Jambo box
+       is gone (jamboHintHtml deleted) — the box keeps its placeholder, and
+       nothing is drawn under it */
+    const A = await page.evaluate(() => { const side = document.querySelector('#mig-side');
+      return { ph: (document.querySelector('#mig-side #jl-q') || {}).placeholder,
+        hints: side ? side.querySelectorAll('.jb-hint, .jb-keys, .jb-kbd').length : -1,
+        said: side ? /Typing never signs, sends or files/.test(side.textContent) : null }; });
+    check('10a "Ask for anything, or type /" with no hint line under it', A.ph === 'Ask for anything, or type /' && A.hints === 0 && A.said === false, JSON.stringify(A));
     await page.fill('#mig-side #jl-q', 'contracts'); await page.press('#mig-side #jl-q', 'Enter');
     const went = await until(() => state.view !== 'migration' ? state.view : null, null, 6000);
     check('10b a place word typed in it opens that place, as every Jambo box does', !!went, String(went));

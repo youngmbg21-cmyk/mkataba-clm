@@ -23,7 +23,9 @@
        all stores both; the rows say saved
      9 a private stream: the Dossier says who may open it; base pay is its
        row's Edit pay; What Jambo read waits for the press, its cost said
-    10 Jambo perches over nothing of the grid at the owner's three screens
+    10 nothing of Jambo sits over the grid at the owner's three screens —
+       re-pointed 21 Oct 2026 (Chambers): the perch is gone, so no perched
+       bird is drawn anywhere beside the paper
     11 no face, so the size stays the paper's own, above the sheet
    NOT CARRIED, by the pick (said to the owner): the face's "N of M done"
    head, its card frames, the stream chips and their Ask an admin, the Pay
@@ -196,21 +198,23 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
     check('9a a private stream: the Dossier says who may open it', P9.priv.length > 0 && /Private|private/.test(P9.priv), P9.priv);
     check('9b base pay owed: its row reads as pay, its door Edit pay', P9.pay && /pay/i.test(P9.payWord), JSON.stringify(P9));
     check('9c What Jambo read waits for the press, its cost said in calls', /Read it now/.test(P9.wait) && /Jambo call/.test(P9.cost), JSON.stringify(P9));
-    /* 10 Jambo perches over nothing of the grid */
-    const perchClear = () => pa.evaluate(() => { const p = document.querySelector('#ig-dock .jb-perch img'); if (!p) return { perch: false };
-      const pr = p.getBoundingClientRect(), f = document.getElementById('pd-glance');
-      const hits = [...f.querySelectorAll('*')].filter(el => { if (!el.getClientRects().length || el.children.length) return false; const r = el.getBoundingClientRect();
-        const sc = f.closest('.scroll-thin, #igd-body') || f; const vr = sc.getBoundingClientRect();
-        const top = Math.max(r.top, vr.top), bot = Math.min(r.bottom, vr.bottom); if (bot <= top) return false;
-        return r.right > pr.left + 1 && r.left < pr.right - 1 && bot > pr.top + 1 && top < pr.bottom - 1; }).map(el => el.tagName + '.' + el.className);
-      return { perch: true, hits }; });
+    /* 10 nothing of Jambo sits over the grid.
+       RE-POINTED 21 Oct 2026 (Chambers, the owner picked it by name; it
+       reverses "JAMBO, ALIVE", 16 Oct): the perch is gone (jamboPerchMount,
+       .jb-perch, .jb-bird deleted), so the claim is held as its absence — no
+       perched bird, and the dock wears no perch class, at the top of the
+       Dossier and at its foot */
+    const perchClear = () => pa.evaluate(() => { const dock = document.getElementById('ig-dock');
+      return { glance: !!document.getElementById('pd-glance'), birds: document.querySelectorAll('.jb-perch, .jb-bird').length,
+        perched: !!dock && (dock.classList.contains('jb-perched') || dock.classList.contains('jb-perched-ask')) }; });
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await pa.setViewportSize({ width: w, height: ht }); await pa.waitForTimeout(400);
       const top = await perchClear();
       await pa.evaluate(() => { let e = document.getElementById('pd-glance'); while (e && e !== document.body){ if (e.scrollHeight > e.clientHeight + 2 && /auto|scroll/.test(getComputedStyle(e).overflowY)){ e.scrollTop = e.scrollHeight; break; } e = e.parentElement; } });
       await pa.waitForTimeout(250);
       const bot = await perchClear();
-      check(`10 ${w}×${ht}: Jambo perches over nothing of the Dossier, at its top and at its foot`, top.perch && bot.perch && !top.hits.length && !bot.hits.length, JSON.stringify({ top: top.hits, bot: bot.hits }));
+      const clear = x => x.glance && x.birds === 0 && !x.perched;
+      check(`10 ${w}×${ht}: no perched Jambo sits over the Dossier (the perch is gone), at its top and at its foot`, clear(top) && clear(bot), JSON.stringify({ top, bot }));
       await shot(pa, `8-owed-first-private-${w}x${ht}`);
     }
     await pa.setViewportSize({ width: 1440, height: 780 }); await pa.waitForTimeout(300);

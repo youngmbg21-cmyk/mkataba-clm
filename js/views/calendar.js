@@ -1006,7 +1006,7 @@ function calStyleCss(){ return `
      24px title centred in it began 2px below every other page's on identical
      padding. align-self takes the title out of the centring; everything else
      on the row keeps it. See "ONE HEADER TOP" beside #page-head. */
-  .cal-head .ttl{font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);
+  .cal-head .ttl{font-family:var(--font-title);font-size:20px;font-weight:var(--w-title-serif);
     line-height:var(--lh-tight);align-self:flex-start;color:var(--color-text);flex:none}
   .cal-head .g{flex:1;min-width:0}
   .cal-stat{font-size:var(--t-body);font-weight:var(--w-title);white-space:nowrap;flex:none}
@@ -1045,7 +1045,6 @@ function calStyleCss(){ return `
   .cal-bar .views a .c{font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-body);
     font-variant-numeric:tabular-nums;color:var(--color-neutral-500)}
   .cal-bar .views a.on .c{color:var(--accent-ink)}
-  html.dark .cal-bar .views a.on,html.dark .cal-bar .views a.on .c{color:var(--color-accent-300)}
   ${''/* ---- THE SHADED HALF COVERS ITS WHOLE BUTTON (Young ruled 21 Sep
          2026: "the shared area needs to cover the entire button") ----
          MEASURED: the group stood 28px and its lit half 16.8px, with 5.6px of
@@ -1064,7 +1063,7 @@ function calStyleCss(){ return `
     font-weight:var(--w-label);color:var(--color-neutral-600);cursor:pointer;border:0;background:none;font-family:inherit}
   /* accent-700, not the lighter step: white on accent-600 measures 3.74:1 and
      this is 13px. The darker step reads in both workspace accents. */
-  .cal-seg span.on,.cal-seg a.on,.cal-seg button.on{background:var(--color-accent-700);color:#fff;font-weight:var(--w-title)}
+  .cal-seg span.on,.cal-seg a.on,.cal-seg button.on{background:var(--accent-fill);color:#fff;font-weight:var(--w-title)}
   ${''/* ONE LIGHT GREY EDGE, AND A SEAM BETWEEN THE HALVES IN THE SAME GREY (26 Sep
          2026, the button work order's third item) — the box and the seams read
          --btn-edge like every switch beside it. The child combinator keeps the
@@ -1292,7 +1291,6 @@ function calStyleCss(){ return `
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .cal-chip.is-done{opacity:.55;text-decoration:line-through}
   .cal-more{font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--accent-ink-700);flex:none}
-  html.dark .cal-more{color:var(--color-accent-300)}
   .cal-dots{display:flex;gap:3px;flex-wrap:wrap;flex:none}
   /* ---- THE LEGEND ---- */
   .cal-legend{flex:none;display:flex;gap:18px;flex-wrap:wrap;padding:10px 14px;
@@ -1355,7 +1353,6 @@ function calStyleCss(){ return `
     color:var(--accent-ink);cursor:pointer;padding:0 4px;min-height:var(--tap-min);display:inline-flex;align-items:center;gap:4px;border-radius:var(--radius)}
   .cal-link:hover{background:color-mix(in srgb,var(--accent-solid) 10%,transparent)}
   .cal-link > svg{width:var(--btn-ic);height:var(--btn-ic);flex:none}
-  html.dark .cal-link,html.dark .cal-more{color:var(--color-accent-300)}
   .cal-empty{padding:22px 14px;text-align:center}
   .cal-empty-t{font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)}
   .cal-empty-s{font-size:var(--t-label);color:var(--color-neutral-600);margin-top:3px;line-height:1.5}
@@ -1509,7 +1506,7 @@ function calStyleCss(){ return `
   .cal-prop small{color:var(--color-neutral-700,var(--color-text))}
   .cal-prop .av{display:flex;gap:6px;margin-top:4px}
   .cal-prop button,.cal-plan-chips button,.cal-plan-ask button{height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm,8px);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);color:var(--color-text);cursor:pointer;white-space:nowrap}
-  .cal-prop button.p,.cal-plan-ask button{background:var(--color-accent-700);border-color:var(--accent-ink-700, var(--color-accent-700));color:#fff}
+  .cal-prop button.p,.cal-plan-ask button{background:var(--accent-fill);border-color:var(--accent-fill);color:#fff}
   .cal-prop button.d{background:var(--st-ruby-bg);border-color:var(--st-ruby-line);color:var(--st-ruby-fg)}
   .cal-prop button.u{background:var(--st-amber-bg);border-color:var(--st-amber-line);color:var(--st-amber-fg)}
   .cal-prop button.is-added{background:var(--color-accent-50);border-color:var(--color-accent-100);color:var(--accent-ink);cursor:default}
@@ -1539,7 +1536,6 @@ function calStyleCss(){ return `
          Copilot's colour is the design's violet, dashed while a suggestion and
          solid once added — the page's own tokens, said once here. */}
   .cal-page,.cal-cop{--cal-cp:#6B4FBB;--cal-cp-bg:#F2EEFB}
-  html.dark .cal-page,html.dark .cal-cop{--cal-cp:#B9A4F2;--cal-cp-bg:#221B3A}
   ${''/* ON HOME (owner, 11 Oct 2026): the card is the calendar alone — its
          Copilot is Home's panel — and the page fills the tab's cover */}
   .cal-page.is-home{height:100%}
@@ -1594,7 +1590,7 @@ function calStyleCss(){ return `
   .cal-cop .cal-prop .av{margin-top:0}
   .cal-cop .cal-prop button{height:var(--ctl-h);display:inline-flex;align-items:center;gap:6px;padding:0 12px;font-size:var(--t-meta)}
   .cal-cop .cal-prop button svg{flex:none}
-  .cal-cop .cal-prop button.p{background:var(--color-accent-700);border-color:transparent;color:#fff}
+  .cal-cop .cal-prop button.p{background:var(--accent-fill);border-color:transparent;color:#fff}
   .cal-cop .cal-prop button.is-added{opacity:1}
   .cal-plan-read{margin:0;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5}
   .cal-cop .cal-plan-pts{margin:4px 0 0;padding:0 0 0 18px;font-size:var(--t-meta);line-height:1.5;color:var(--color-text)}
@@ -2144,8 +2140,6 @@ function calPlanHtml(){
     </div>
     <div class="jl-foot cal-plan-foot">
       ${_calJbCard({ cls: 'cal-plan-box', field: `<textarea id="cal-plan-in" rows="1" maxlength="600" enterkeyhint="send" data-ca-slash autocomplete="off" placeholder="${_esc(i18t('jl_ph_week'))}" aria-label="${_esc(i18t('jl_ph_week'))}" title="${_esc(cost)}"${off}></textarea>`, send: _calJbSend(`id="cal-plan-go"${off}`, i18t('int_ask'), { cls: 'jl-send', title: cost }) })}
-      ${/* THE HINT LINE (owner's "Every Jambo box", 18 Oct 2026; round 16 draws it
-         last under the Calendar's box): the one builder */ typeof window.jamboHintHtml==='function'?jamboHintHtml():''}
     </div>
   </aside>`;
 }

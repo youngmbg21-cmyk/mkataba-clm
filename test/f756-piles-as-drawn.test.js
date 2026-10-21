@@ -294,8 +294,10 @@ describe('f756 (6) the column and the paper as drawn', () => {
     assert.match(fnBody(NV, 'rlLadderSectionHtml'), /if \(!inEditor\) acts\.push\(/, 'the editor\'s ladder pins no rung');
     assert.doesNotMatch(NV + IGV, /noRungs/, 'no second guard');
   });
-  test('6d "Redlines 4" in a grey pill; the box asks as drawn beside Redlines, and keeps "Ask about MK-…" beside the letter', () => {
-    assert.match(NCSS, /\.redline-page \.rl-idx-title i\{display:inline-grid;[^}]*border-radius:9px;background:var\(--color-neutral-100\)/);
+  /* RE-POINTED 21 Oct 2026 (Chambers): a count beside a head is a plain number, no grey pill */
+  test('6d "Redlines 4" a plain number; the box asks as drawn beside Redlines, and keeps "Ask about MK-…" beside the letter', () => {
+    const r = /\.redline-page \.rl-idx-title i\{([^}]*)\}/.exec(NCSS.slice(NCSS.lastIndexOf('.redline-page .rl-idx-title i{')));
+    assert.ok(r && !/border-radius|background/.test(r[1]), r && r[1]);
     assert.match(fnBody(IGV, 'igAskPlaceholder'), /if\(window\.pdRedShows&&pdRedShows\(\)&&!\(window\.pdSendShows&&pdSendShows\(\)\)\) return i18t\('hb_ask_ph'\);/);
   });
 });
@@ -431,10 +433,11 @@ describe('f756 (8) the third pass: the face as drawn', () => {
     assert.doesNotMatch(NV, /rlDiscardUndo|rlDiscardSnap|RL_DISCARD_UNDO_MS/, 'no Undo in place of the question');
   });
   test('8d every live verb on a pile wears the accent ink; Reject and Discard last stay red', () => {
-    assert.match(CSSN, /\.redline-page \.rl-pile \.rl-card-d \.rl-card-verbs button\.rl-verb-ai,\s*html\.dark \.redline-page \.rl-pile \.rl-card-d \.rl-card-verbs button\.rl-verb-ai,\s*\.redline-page \.rl-pile \.rl-card-d \.rl-card-face \[data-rl-ladder\],\s*\.redline-page \.rl-pile \.rl-card-d \.rl-card-face \[data-rl-ask-review\],\s*\.redline-page \.rl-pile \.rl-card-d \.rl-card-face \.rl-sg-back\{color:var\(--accent-ink\)\}/);
+    /* (the html.dark half of this list left with dark mode: Chambers, 20 Oct 2026) */
+    assert.match(CSSN, /\.redline-page \.rl-pile \.rl-card-d \.rl-card-verbs button\.rl-verb-ai,\s*\.redline-page \.rl-pile \.rl-card-d \.rl-card-face \[data-rl-ladder\],\s*\.redline-page \.rl-pile \.rl-card-d \.rl-card-face \[data-rl-ask-review\],\s*\.redline-page \.rl-pile \.rl-card-d \.rl-card-face \.rl-sg-back\{color:var\(--accent-ink\)\}/);
     assert.match(CSSN, /\.redline-page \.rl-card-d \.rl-card-face \.rl-rej,\s*\.redline-page \.rl-card-d \.rl-card-face \[data-rl-retract\]\{color:var\(--st-ruby-fg\)\}/);
     const at = CSSN.indexOf('.redline-page .rl-pile .rl-card-d .rl-card-verbs button.rl-verb-ai,');
-    const dead = CSSN.indexOf('.redline-page .rl-pile .rl-card-d .rl-card-verbs button.is-locked,');
+    const dead = CSSN.indexOf('.redline-page .rl-pile .rl-card-d .rl-card-verbs button.is-locked{');
     assert.ok(at > 0 && dead > at, 'a dead door keeps the label shade in the piles too, later in the sheet at the same weight');
   });
   test('8e "Here now": filled circles, one colour per person (the house\'s avatar tone), overlapping, white initials', () => {
