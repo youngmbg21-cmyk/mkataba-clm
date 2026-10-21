@@ -92,14 +92,11 @@ describe('F97a — the placement survives the parse, or fails safe', () => {
   beforeEach(() => { ai = loadAi(); });
 
   test('the edit format names the field and the four values', () => {
-    /* A function since the advice field answers to the Plain/Legal register
-       (F107). The placement contract is the same in both. */
-    for (const style of ['plain', 'legal']){
-      ai.aiSetStyle(style);
-      assert.match(ai.AI_EDIT_FORMAT(), /"placement"/);
-      for (const p of ['replace', 'after', 'before', 'newClause'])
-        assert.ok(ai.AI_EDIT_FORMAT().includes(p), `the model is told about "${p}" in ${style}`);
-    }
+    /* A function (F107). RE-POINTED 21 Oct 2026: Jambo is plain at all times
+       (the owner removed the Plain/Legal toggle), so there is one register. */
+    assert.match(ai.AI_EDIT_FORMAT(), /"placement"/);
+    for (const p of ['replace', 'after', 'before', 'newClause'])
+      assert.ok(ai.AI_EDIT_FORMAT().includes(p), `the model is told about "${p}"`);
   });
 
   test('and it forbids the one answer that loses wording', () => {

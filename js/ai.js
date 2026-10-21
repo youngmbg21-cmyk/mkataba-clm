@@ -681,43 +681,14 @@ const ai = { open:false, minimized:false, unread:false, busy:false, history:[],
      theirs, and stays until they close it; a summons landing on an
      already-open panel changes nothing, because the panel was not opened for
      the errand. */
-  summoned:false,
-  /* PLAIN or LEGAL. Not a personality setting — it changes what an answer is
-     allowed to leave out. Plain says "this one runs out next month"; Legal says
-     "clause 12.1, expiry 14 Aug 2026, 45 days' notice, so the window closes on
-     30 Jun". Persisted per user, because whoever needs one needs it every
-     time. */
-  style: 'plain' };
-const AI_STYLE_KEY = 'hati.v1.aiStyle';
-function aiStyle(){ return ai.style==='legal' ? 'legal' : 'plain'; }
-function aiSetStyle(v){
-  const prev = ai.style;
-  ai.style = v==='legal' ? 'legal' : 'plain';
-  try{ lsSet(AI_STYLE_KEY, ai.style); }catch(_){}
-  renderAIStyleToggle();
-  /* A call to persistUi stood here, guarded on typeof. Nothing in this product
-     defines persistUi — the guard has always been false, so the call has never
-     once run — and it bought nothing even in principle: the line above already
-     writes this preference with lsSet. Removed rather than left as a guarded
-     call to a name that does not exist, which is how the next reader comes to
-     believe there is a second save to keep in step with. */
-  /* The toggle is not only a preference for NEXT time: if an explanation is
-     on screen, flipping it restates that explanation in the register just
-     chosen — see aiRestyleLastAnswer. Nothing to restate, nothing happens. */
-  if(ai.style!==prev) aiRestyleLastAnswer();
-}
-function renderAIStyleToggle(){
-  const host=document.getElementById('ai-style'); if(!host) return;
-  const on=aiStyle();
-  const btn=(k,label,hint)=>`<button data-ai-style="${k}" title="${hint}"
-    class="transition" style="display:inline-flex;align-items:center;min-height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);font:inherit;font-family:var(--font-heading);font-size:var(--t-meta);font-weight:var(--w-label);cursor:pointer;border-radius:var(--radius);border:1px solid ${on===k?'transparent':'var(--color-divider)'};background:${on===k?'var(--color-accent)':'transparent'};color:${on===k?'#fff':'var(--color-neutral-600)'}">${label}</button>`;
-  host.innerHTML = btn('plain',i18t('ai_style_plain'),i18t('ai_style_plain_hint'))
-    + btn('legal',i18t('ai_style_legal'),i18t('ai_style_legal_hint'));
-  host.querySelectorAll('[data-ai-style]').forEach(b=>b.addEventListener('click',()=>{
-    aiSetStyle(b.getAttribute('data-ai-style'));
-    toast(aiStyle()==='legal'?i18t('ai_style_legal_toast'):i18t('ai_style_plain_toast'));
-  }));
-}
+  summoned:false };
+/* ---- JAMBO IS PLAIN AT ALL TIMES (owner, 21 Oct 2026: "remove the plain and
+   legal toggles and let jambo be plain at all times") ----
+   The Plain | Legal register, its stored preference (hati.v1.aiStyle) and the
+   restating of an answer when it flipped are gone; every answer is in
+   everyday words (AI_STYLE_RULES, AI_ADVICE_FIELD). A browser that stored the
+   old choice has it forgotten once, here, so nothing reads it again. */
+try{ if(typeof localStorage!=='undefined' && localStorage && typeof localStorage.removeItem==='function') localStorage.removeItem('hati.v1.aiStyle'); }catch(_){}
 const AI_SUGGESTIONS = [
   'What is pending counterparty action?',
   'Total value of signed contracts',
@@ -736,9 +707,6 @@ function toggleAIExpand(force){
   const want=(typeof force==='boolean')?force:!panel.classList.contains('expanded');
   panel.classList.toggle('expanded',want);
   try{ if(typeof lsSet==='function') lsSet('hati.v1.aiExpanded',want); }catch(_){}
-  /* A MOVED WINDOW EXPANDS TO ITS LARGEST SIZE, and shrinks back to the panel
-     on the right (aiFloat*): the same two sizes the drawer has always had. */
-  if(aiFloatOn() && typeof force!=='boolean') aiFloatApply(want ? aiFloatMaxBox() : aiFloatHome(), true);
   /* After the class, before the chevrons: docked mode sizes the page's column
      from the panel's own width, and the width has just changed. */
   if(typeof aiSyncDock==='function') aiSyncDock();
@@ -761,61 +729,25 @@ function toggleAIExpand(force){
       :'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5"/><path d="M18 17l-5-5 5-5"/></svg>';
   }
 }
-/* ---------- A WINDOW YOU CAN MOVE AND RESIZE (owner, 11 Oct 2026) ----------
-   "make it mobile as in I can drag it around the screen and make any size I
-   want up to a certain limit ... it can never be bigger than it is now when it
-   is expanded. The other rule is it does not appear if it is in a screen where
-   Copilot that is embedded on screen is located."
-   - Drag the header to move it; pull any edge or corner to resize it.
-   - Never smaller than AI_FLOAT_MIN; never larger than the expanded drawer
-     (clamp(430px,72vw,940px) wide, the window's height) — aiFloatMaxBox.
-   - It opens where the reader left it (AI_FLOAT_LS, theirs alone); the first
-     open is today's drawer on the right edge (aiFloatHome), so nothing moves
-     until they move it. The dock button or a double-click puts it back.
-   - It STEPS ASIDE where Copilot is already on the screen (aiEmbeddedHere:
-     Home's and Insights' panel, the clause editor): hidden there, back where
-     it was on the way out, the conversation untouched; the door there goes to
-     the built-in Copilot (openAI → aiGoEmbedded).
-   - Not on the phone (below AI_FLOAT_MIN_SCREEN): the phone's own chat.
-   A drawer SUMMONED docked beside a document (rephrase flows) keeps its old
-   place on the right edge and is not moved or hidden: it belongs to the
-   passage it was opened for. */
-const AI_FLOAT_LS = 'hati.v1.aiFloat';
-const AI_FLOAT_MIN = { w: 320, h: 360 };
-const AI_FLOAT_DOCK_W = 430;
-const AI_FLOAT_MIN_SCREEN = 768;
-function aiFloatOn(){
-  if(typeof window==='undefined' || !window.innerWidth || window.innerWidth < AI_FLOAT_MIN_SCREEN) return false;
+/* ---------- JAMBO SLIDES IN BESIDE THE PAGE (owner, 21 Oct 2026) ----------
+   "when i click on jambo in the side lining, let jambo slide in so that it
+   looks like a jambo side panel not like the attached autonomous chatbot box."
+   REVERSES the window you could move and resize (11 Oct 2026): on a computer
+   the window is a docked side panel on the right edge, under the top bar,
+   wearing "The Brief" (384 wide, head and foot 56, its tab a word, nothing
+   boxed) — the same look as Jambo's panel beside Home's paper and the lists.
+   It follows the ONE PANEL convention: it dims the page beside it (nothing
+   under it reflows) and closes on a press outside, on Esc, on its ×, and on
+   its opener pressed again (aiSideToggle). Where Jambo already has a panel on
+   the page (aiEmbeddedHere: Home, a list, Settings, the clause editor) the
+   door lands on that one (ONE DOOR), and an open side panel steps aside there
+   until the reader leaves. Below AI_SIDE_MIN_SCREEN the phone's own chat. A
+   drawer SUMMONED docked beside a passage (rephrase flows) keeps its place. */
+const AI_SIDE_MIN_SCREEN = 768;
+const AI_SIDE_W = 384;   // THE BRIEF: 384 (JL_W, IG_DOCK_W0)
+function aiSideOn(){
+  if(typeof window==='undefined' || !window.innerWidth || window.innerWidth < AI_SIDE_MIN_SCREEN) return false;
   return !ai.docked;
-}
-function aiFloatMaxW(){ return Math.max(AI_FLOAT_DOCK_W, Math.min(940, Math.round(window.innerWidth * 0.72))); }
-function aiFloatMaxBox(){ const w = Math.min(aiFloatMaxW(), window.innerWidth); return { x: window.innerWidth - w, y: 0, w, h: window.innerHeight, home: false }; }
-function aiFloatHome(){ const w = Math.min(AI_FLOAT_DOCK_W, window.innerWidth); return { x: window.innerWidth - w, y: 0, w, h: window.innerHeight, home: true }; }
-/* inside the limits and inside the window, always */
-function aiFloatClamp(b){
-  const W = window.innerWidth, H = window.innerHeight;
-  const o = { x: +b.x || 0, y: +b.y || 0, w: +b.w || AI_FLOAT_DOCK_W, h: +b.h || H, home: !!b.home };
-  o.w = Math.min(aiFloatMaxW(), W, Math.max(AI_FLOAT_MIN.w, o.w));
-  o.h = Math.min(H, Math.max(AI_FLOAT_MIN.h, o.h));
-  o.x = Math.min(W - o.w, Math.max(0, o.x));
-  o.y = Math.min(H - o.h, Math.max(0, o.y));
-  return o;
-}
-let _aiFloatBox = null;
-function aiFloatBox(){
-  if(_aiFloatBox) return _aiFloatBox;
-  let saved = null; try{ saved = (typeof lsGet==='function') ? lsGet(AI_FLOAT_LS) : null; }catch(_){}
-  return (_aiFloatBox = (saved && !saved.home && saved.w) ? aiFloatClamp(saved) : aiFloatHome());
-}
-function aiFloatApply(b, keep){
-  const panel = document.getElementById('ai-panel'); if(!panel || !panel.style) return;
-  /* the drawer on the right edge follows the window's size; a moved one stays put */
-  _aiFloatBox = b.home ? aiFloatHome() : aiFloatClamp(b);
-  const o = _aiFloatBox;
-  panel.style.left = o.x + 'px'; panel.style.top = o.y + 'px';
-  panel.style.width = o.w + 'px'; panel.style.height = o.h + 'px';
-  panel.classList.toggle('ai-float-home', !!o.home);
-  if(keep){ try{ if(typeof lsSet==='function') lsSet(AI_FLOAT_LS, o); }catch(_){} }
 }
 /* Where Copilot is already on the screen, by what the reader can see. */
 function aiEmbeddedHere(){
@@ -860,58 +792,268 @@ function aiGoEmbedded(here, prefill){
   if(here === 'list' && typeof window.jlFocus === 'function') return !!window.jlFocus(prefill);
   return false;
 }
-/* hidden where Copilot is already on screen, back on the way out */
-function aiFloatSync(){
-  const panel = document.getElementById('ai-panel'); if(!panel || !panel.classList) return;
-  const on = aiFloatOn();
-  panel.classList.toggle('floating', on);
-  if(!on){ ['left','top','width','height'].forEach(k => { try{ panel.style.removeProperty(k); }catch(_){} }); panel.classList.remove('ai-stepaside'); return; }
-  aiFloatApply(aiFloatBox(), false);
-  panel.classList.toggle('ai-stepaside', !!(ai.open && aiEmbeddedHere()));
+/* the side look on a computer; stepped aside where Jambo is already on the page */
+function aiSideSync(){
+  const panel = typeof document!=='undefined' ? document.getElementById('ai-panel') : null;
+  if(!panel || !panel.classList) return;
+  const on = aiSideOn();
+  panel.classList.toggle('is-side', on);
+  const aside = !!(on && ai.open && aiEmbeddedHere());
+  panel.classList.toggle('ai-stepaside', aside);
+  const scrim = document.getElementById('ai-scrim');
+  if(scrim && scrim.classList) scrim.classList.toggle('open', !!(ai.open && !ai.docked && !aside));
+  if(document.body && document.body.classList) document.body.classList.toggle('ai-side-open', !!(on && ai.open && !aside));
+  /* POP OUT is drawn only where it can be done: a computer with a mouse */
+  const pop = document.getElementById('ai-popout');
+  if(pop) pop.hidden = !aiPopMay();
 }
-/* drag the header, pull an edge or corner — pointer events, bounded */
-function aiFloatWire(){
-  const panel = document.getElementById('ai-panel'); if(!panel || !panel.dataset || panel.dataset.aiFloatWired || typeof panel.appendChild!=='function') return;
-  panel.dataset.aiFloatWired = '1';
-  ['n','s','e','w','ne','nw','se','sw'].forEach(d => {
-    const h = document.createElement('div'); h.className = 'ai-rz ai-rz-' + d; h.setAttribute('data-ai-rz', d); h.setAttribute('aria-hidden', 'true'); panel.appendChild(h);
+/* THE EDGE TAB'S PRESS: in, and out again on the same press */
+function aiSideToggle(){
+  if(ai.open && !ai.docked){ closeAI(); return false; }
+  openAI();
+  return true;
+}
+
+/* ---------- POP OUT: JAMBO ON TOP OF WORD (owner, 21 Oct 2026) ----------
+   "the chatbot can stay open even when your page is minimized so that you can
+   bring the window on top of microsoft word or any other page that is not
+   hati". On Chrome and Edge the press asks for a Document Picture-in-Picture
+   window (it floats above every other app and lives while HaTi is minimised)
+   and MOVES the live conversation and the ask card into it — the same nodes,
+   their listeners kept, HaTi's stylesheets copied in so it wears Chambers.
+   Where the browser has no such window (Safari, Firefox) a small window of
+   its own carries the same conversation, and Jambo says plainly that it
+   cannot stay on top there. Closing it puts Jambo back in the panel. A door
+   pressed in it acts in HaTi's own window (aiPopForward) and asks the browser
+   to bring that window forward. Not drawn on an iPad or a phone (aiPopMay). */
+let _aiPop = null;   // { win, pip, home: [[node, parent, next]] }
+function aiPopped(){ return !!(_aiPop && _aiPop.win && !_aiPop.win.closed); }
+/* an element of the window's own, wherever it is standing right now */
+function aiEl(id){
+  if(typeof document==='undefined') return null;
+  if(aiPopped()){
+    try{ const el=_aiPop.win.document.getElementById(id); if(el) return el; }catch(_){}
+  }
+  return document.getElementById(id);
+}
+function aiPopMay(){
+  try{
+    if(typeof window==='undefined' || !window.innerWidth || window.innerWidth < 1024) return false;
+    if(typeof window.mPhone==='function' && window.mPhone()) return false;
+    const coarse = typeof window.matchMedia==='function' && window.matchMedia('(pointer: coarse)').matches;
+    const ipad = typeof navigator!=='undefined' && /Macintosh|iPad/.test(navigator.userAgent||'') && (navigator.maxTouchPoints||0) > 1;
+    return !coarse && !ipad;
+  }catch(_){ return false; }
+}
+/* HaTi's clothes, copied into the other window: every stylesheet as text
+   (a sheet it cannot read goes by its address), the root's attributes, and
+   the drawn icons' sprite */
+function aiPopDress(doc){
+  try{
+    [...document.styleSheets].forEach(ss => {
+      /* the phone's sheets stay home: the other window is narrow, not a phone */
+      if(ss.ownerNode && /^m-/.test(ss.ownerNode.id || '')) return;
+      try{
+        const css = [...ss.cssRules].map(r => r.cssText).join('\n');
+        const st = doc.createElement('style'); st.textContent = css; doc.head.appendChild(st);
+      }catch(_){
+        if(ss.href){ const l = doc.createElement('link'); l.rel = 'stylesheet'; l.href = ss.href; doc.head.appendChild(l); }
+      }
+    });
+  }catch(_){}
+  try{
+    const r = document.documentElement, d = doc.documentElement;
+    [...r.attributes].forEach(a => { try{ d.setAttribute(a.name, a.value); }catch(_){} });
+  }catch(_){}
+  try{ document.querySelectorAll('body > svg').forEach(sv => { if(sv.querySelector('symbol')) doc.body.appendChild(doc.importNode(sv, true)); }); }catch(_){}
+  try{ doc.title = 'Jambo'; }catch(_){}
+}
+/* a press in the other window reaches HaTi's own doors (delegated on this
+   document), and HaTi's window is asked to come forward */
+function aiPopForward(e){
+  if(!e || !e.target || !e.target.closest || e.target.closest('[data-ai-popback]')) return;
+  const hit = e.target.closest('a,button,[role="button"],[data-ca-card]');
+  if(!hit || hit.closest('.jb-card')) return;
+  try{
+    const ev = new MouseEvent('click', { bubbles: true, cancelable: true, button: e.button, ctrlKey: e.ctrlKey, metaKey: e.metaKey, shiftKey: e.shiftKey, altKey: e.altKey });
+    Object.defineProperty(ev, 'target', { value: e.target });
+    document.dispatchEvent(ev);
+  }catch(_){}
+  try{ window.focus(); }catch(_){}
+}
+async function aiPopOut(){
+  if(aiPopped()){ try{ _aiPop.win.focus(); }catch(_){} return true; }
+  const feed = document.getElementById('ai-feed'), sug = document.getElementById('ai-suggest');
+  const foot = document.querySelector('#ai-panel > footer');
+  if(!feed || !foot) return false;
+  const W = AI_SIDE_W + 36, H = Math.min(720, Math.max(480, (window.innerHeight || 720) - 80));
+  const dpip = typeof window!=='undefined' ? window.documentPictureInPicture : null;
+  let win = null, pip = false;
+  if(dpip && typeof dpip.requestWindow==='function'){
+    try{ win = await dpip.requestWindow({ width: W, height: H }); pip = true; }catch(_){ win = null; }
+  }
+  if(!win){
+    try{ win = window.open('', 'hati-jambo', `popup=yes,width=${W},height=${H}`); }catch(_){ win = null; }
+    if(!win){ toast(i18t('ai_pop_blocked'), 'warn'); return false; }
+    /* SAID PLAINLY: this browser cannot keep a window above other apps */
+    toast(i18t('ai_pop_no_top'), 'warn');
+  }
+  const doc = win.document;
+  try{ if(!pip && doc.body) doc.body.innerHTML = ''; }catch(_){}
+  aiPopDress(doc);
+  try{ doc.body.style.margin = '0'; doc.body.style.background = 'var(--color-surface)'; }catch(_){}
+  const shell = doc.createElement('section');
+  shell.id = 'ai-panel'; shell.className = 'hati-copilot-panel open is-popped';
+  const face = (typeof jamboFaceHtml==='function') ? jamboFaceHtml('hello', 18) : '';
+  shell.innerHTML = `<header class="ai-side-head"><span class="ai-side-tab"><span aria-hidden="true">${face}</span><b>${esc(i18t('pd_tab_copilot'))}</b></span><span class="flex-1"></span><button type="button" class="ui-btn ui-btn-sm ai-pop-back" data-ai-popback title="${esc(i18t('ai_pop_back_tip'))}">${esc(i18t('ai_pop_back'))}</button></header>`;
+  doc.body.appendChild(shell);
+  const home = [];
+  [feed, sug, foot].forEach(n => { if(!n) return; home.push([n, n.parentNode, n.nextSibling]); shell.appendChild(doc.adoptNode(n)); });
+  _aiPop = { win, pip, home };
+  shell.querySelector('[data-ai-popback]').addEventListener('click', () => aiPopBack());
+  doc.addEventListener('click', aiPopForward);
+  win.addEventListener('pagehide', () => aiPopBack(true));
+  if(!pip) _aiPop.poll = setInterval(() => { if(!_aiPop || !_aiPop.win || _aiPop.win.closed) aiPopBack(true); }, 800);
+  /* the side panel stands down: Jambo is out in his own window */
+  if(ai.open) closeAI();
+  renderAIFeed(); renderAISuggest();
+  try{ const inp = doc.getElementById('ai-input'); if(inp) inp.focus(); }catch(_){}
+  return true;
+}
+/* closing the other window (or "Put back") puts Jambo back in the panel */
+function aiPopBack(closed){
+  const p = _aiPop; if(!p) return;
+  _aiPop = null;
+  if(p.poll) clearInterval(p.poll);
+  (p.home || []).forEach(([n, parent, next]) => {
+    try{ const m = document.adoptNode(n); if(next && next.parentNode === parent) parent.insertBefore(m, next); else parent.appendChild(m); }catch(_){}
   });
-  const head = panel.querySelector('header');
-  let act = null;
-  panel.addEventListener('pointerdown', e => {
-    if(!panel.classList.contains('floating') || e.button !== 0) return;
-    const rz = e.target.closest && e.target.closest('[data-ai-rz]');
-    const onHead = head && head.contains(e.target) && !(e.target.closest && e.target.closest('button,a,input,select,textarea'));
-    if(!rz && !onHead) return;
-    const b = { ...aiFloatBox() };
-    /* dragging the drawer off the right edge lifts it into a window: its own
-       width, a height that leaves room to move it */
-    if(b.home && !rz) b.h = Math.max(AI_FLOAT_MIN.h, Math.min(window.innerHeight - 96, 600));
-    b.home = false;
-    act = { kind: rz ? rz.getAttribute('data-ai-rz') : 'move', sx: e.clientX, sy: e.clientY, b };
-    panel.classList.add('ai-float-busy');
-    try{ panel.setPointerCapture(e.pointerId); }catch(_){}
-    e.preventDefault();
+  if(!closed){ try{ p.win.close(); }catch(_){} }
+  try{ openAI(); }catch(_){}
+}
+
+/* ---------- THE ✦ ASK BAR, ON ANY PAGE (owner, 21 Oct 2026) ----------
+   "when i click on jambo at the top of the page in the top bar, the jambo chat
+   box bar should be able to appear in any window even if jambo side panel is
+   there." The top bar's ✦ drops ONE LINE under the bar, centred over the page:
+   the two-row card every Jambo box wears (jamboCardHtml), "What am I looking
+   at?" in its row. A pop-up: Esc, a press outside and the ✦ again close it.
+   What is typed goes through THE ONE READER first (caUnderstand, box 'bar'): a
+   place or a contract MOVES there (caGo) and the line is kept in the one
+   conversation; anything else is asked of the Jambo already on the page
+   (Home's box, a list's panel, Settings' side, the clause editor's box), else
+   of the side panel, opened if it was closed — never a second chat. ⌘K stays
+   the palette. */
+let _aiBar = null;
+function aiBarOpen(){ return !!(_aiBar && _aiBar.isConnected); }
+function aiBarHtml(){
+  const ph = i18t('ai_bar_ph');
+  const field = `<textarea id="jb-bar-q" rows="1" maxlength="4000" class="chat-field" data-jb-enter data-ca-slash placeholder="${esc(ph)}" aria-label="${esc(ph)}"></textarea>`;
+  const ctx = `<button type="button" class="jb-chip jb-bar-here" data-jb-bar-here>${esc(i18t('ai_here_chip'))}</button>`;
+  const send = (typeof jamboSendHtml==='function') ? jamboSendHtml('data-jb-bar-send', i18t('sh_ai_send_aria')) : '';
+  const card = (typeof jamboCardHtml==='function') ? jamboCardHtml({ field, ctx, send, cls: 'jb-bar-card' }) : field;
+  return `<div id="jb-bar" class="jb-bar" role="dialog" aria-label="${esc(i18t('sh_ask_copilot'))}">${card}</div>`;
+}
+function aiBarToggle(){
+  if(aiBarOpen()){ aiBarClose(); return false; }
+  /* the phone keeps its own chat */
+  if(typeof window==='undefined' || !window.innerWidth || window.innerWidth < AI_SIDE_MIN_SCREEN || (typeof window.mPhone==='function' && window.mPhone())){ openAI(); return false; }
+  const host = document.createElement('div'); host.innerHTML = aiBarHtml();
+  _aiBar = host.firstElementChild; document.body.appendChild(_aiBar);
+  const btn = document.getElementById('cmd-ai'); if(btn) btn.setAttribute('aria-expanded', 'true');
+  const q = _aiBar.querySelector('#jb-bar-q');
+  /* a pasted letter is offered in the side panel's row (aiPasteNote) */
+  if(q) q.addEventListener('paste', e => {
+    let t = ''; try{ t = (e.clipboardData || window.clipboardData).getData('text'); }catch(_){ t = ''; }
+    if(!aiPasteLooksLong(t)) return;
+    e.preventDefault(); aiBarClose();
+    if(!ai.open && !aiPopped()) openAI(null, { here: true, noFocus: true });
+    const inp = aiEl('ai-input'); if(inp){ inp.value = t; try{ inp.dispatchEvent(new Event('input', { bubbles: true })); }catch(_){} }
+    aiPasteNote(t);
   });
-  panel.addEventListener('pointermove', e => {
-    if(!act) return;
-    const dx = e.clientX - act.sx, dy = e.clientY - act.sy, s = act.b, k = act.kind, n = { ...s, home: false };
-    if(k === 'move'){ n.x = s.x + dx; n.y = s.y + dy; aiFloatApply(n, false); return; }
-    const maxW = Math.min(aiFloatMaxW(), window.innerWidth), H = window.innerHeight;
-    if(k.includes('e')) n.w = Math.min(s.w + dx, window.innerWidth - s.x);
-    if(k.includes('s')) n.h = Math.min(s.h + dy, H - s.y);
-    if(k.includes('w')){ const w = Math.min(maxW, Math.max(AI_FLOAT_MIN.w, s.w - dx), s.x + s.w); n.x = s.x + s.w - w; n.w = w; }
-    if(k.includes('n')){ const h = Math.min(H, Math.max(AI_FLOAT_MIN.h, s.h - dy), s.y + s.h); n.y = s.y + s.h - h; n.h = h; }
-    aiFloatApply(n, false);
+  _aiBar.addEventListener('dragover', e => { if(e.dataTransfer && [...(e.dataTransfer.types || [])].includes('Files')) e.preventDefault(); });
+  _aiBar.addEventListener('drop', e => { const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if(!f) return; e.preventDefault(); aiDropFile(f); });
+  try{ q.focus({ preventScroll: true }); }catch(_){}
+  return true;
+}
+function aiBarClose(){
+  if(_aiBar){ try{ _aiBar.remove(); }catch(_){} }
+  _aiBar = null;
+  try{ if(typeof caSlClose==='function') caSlClose(); }catch(_){}
+  const btn = document.getElementById('cmd-ai'); if(btn) btn.setAttribute('aria-expanded', 'false');
+}
+function aiBarSend(){
+  const q = _aiBar && _aiBar.querySelector('#jb-bar-q');
+  const t = String((q && q.value) || '').trim(); if(!t) return false;
+  aiBarClose();
+  return aiAskFromBar(t);
+}
+/* where the bar's words go; answers which Jambo took them */
+function aiAskFromBar(t){
+  t = String(t || '').trim(); if(!t) return null;
+  /* THE ONE READER first: a place or a contract moves there, said in the one conversation */
+  let u = null; try{ u = (typeof caUnderstand==='function') ? caUnderstand(t, { box: 'bar' }) : null; }catch(_){ u = null; }
+  const cards = (typeof CA_CARD_WORDS!=='undefined' && Array.isArray(CA_CARD_WORDS)) ? CA_CARD_WORDS : [];
+  if(u && u.kind==='go' && !u.missing && !u.narrowOff && !u.here && !cards.includes(u.place) && typeof caGo==='function'){
+    let moved = false; try{ moved = !!caGo(u); }catch(_){ moved = false; }
+    if(moved){
+      aiPush('user', { text: esc(t), raw: t });
+      aiPush('assistant', { text: `<div>${_aiEsc(typeof caGoSay==='function' ? caGoSay(u) : i18t('ai_handed_home'))}</div>` });
+      renderAIFeed();
+      return 'moved';
+    }
+  }
+  if(aiPopped()){ aiSubmit(t); return 'panel'; }
+  const here = aiEmbeddedHere();
+  if(here==='home' && typeof intelAsk==='function'){ aiGoEmbedded('home'); intelAsk(t); return 'home'; }
+  if(here==='list' && typeof jlAsk==='function'){ if(typeof window.jlFocus==='function') window.jlFocus(); jlAsk(t); return 'list'; }
+  if(here==='settings' && typeof window.stJamboFocus==='function' && window.stJamboFocus(t)){
+    const f = document.getElementById('st-jb-form');
+    if(f){ if(typeof f.requestSubmit==='function') f.requestSubmit(); else f.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true })); }
+    return 'settings';
+  }
+  if(here==='editor'){ aiGoEmbedded('editor', t); return 'editor'; }
+  if(!ai.open) openAI(null, { here: true, noFocus: true });
+  aiSubmit(t);
+  return 'panel';
+}
+if(typeof document!=='undefined' && typeof document.addEventListener==='function' && !document._aiBarWired){
+  document._aiBarWired = true;
+  document.addEventListener('click', e => {
+    const t = e.target; if(!t || !t.closest) return;
+    if(t.closest('[data-jb-bar-send]')){ e.preventDefault(); aiBarSend(); return; }
+    if(t.closest('[data-jb-bar-here]')){ e.preventDefault(); aiBarClose(); aiHereFromBar(); return; }
+    /* a press outside closes it (the ✦ itself toggles it, app.js) */
+    if(aiBarOpen() && !t.closest('#jb-bar, #cmd-ai, #ca-slash')) aiBarClose();
   });
-  const end = () => { if(!act) return; act = null; panel.classList.remove('ai-float-busy'); aiFloatApply(aiFloatBox(), true); };
-  panel.addEventListener('pointerup', end); panel.addEventListener('pointercancel', end);
-  if(head) head.addEventListener('dblclick', e => {
-    if(!panel.classList.contains('floating') || (e.target.closest && e.target.closest('button'))) return;
-    aiFloatApply(aiFloatBox().home ? aiFloatClamp({ x: window.innerWidth - 480, y: 48, w: 440, h: Math.min(560, window.innerHeight - 96) }) : aiFloatHome(), true);
-  });
-  document.getElementById('ai-dock-home')?.addEventListener('click', () => { aiFloatApply(aiFloatHome(), true); });
-  window.addEventListener('resize', () => { if(panel.classList.contains('floating')) aiFloatApply(aiFloatBox(), false); else aiFloatSync(); });
+  /* Esc closes the bar first, and only the bar */
+  document.addEventListener('keydown', e => {
+    if(e.key!=='Escape' || !aiBarOpen()) return;
+    if(document.getElementById('ca-slash')) return;   // the "/" list closes first
+    e.__aiBarClosed = true; aiBarClose();
+  }, true);
+}
+/* A FILE DROPPED ON JAMBO (the bar or the side panel) goes through the one
+   upload door: jamboAddFile → pdDropDoor lands on the drop area; with one
+   stream it is read at once (pdDropTake, the drop area's own reader), else the
+   stream is asked there first and Jambo says so */
+function aiDropFile(f){
+  if(!f) return false;
+  if(ai.open) closeAI();
+  aiBarClose();
+  if(typeof jamboAddFile==='function') jamboAddFile();
+  const one = typeof window.pdDropStreams==='function' ? window.pdDropStreams().length < 2 : false;
+  if(one && typeof window.pdDropTake==='function' && document.getElementById('pd-drop')){ window.pdDropTake(f); return true; }
+  if(document.getElementById('pd-drop')) toast(i18t('ai_drop_stream_first', { name: f.name || '' }), 'warn');
+  return false;
+}
+/* "What am I looking at?" from the bar: the Jambo already on the page says
+   it (Home's and a list's panel land on the page in his words), else the side panel */
+function aiHereFromBar(){
+  const here = aiEmbeddedHere();
+  if(here && here!=='editor' && aiGoEmbedded(here)) return here;
+  aiHereExplain();
+  return 'panel';
 }
 
 /* ---------- AN OVERLAY DRAWER, AND NOTHING UNDER IT MOVES ----------
@@ -958,10 +1100,18 @@ function aiSyncDock(){
    of the screen dimmed out of the way. */
 function openAI(prefill,opts){
   const o=opts||{};
-  /* WHERE COPILOT IS ALREADY ON THE SCREEN the door goes there; the window
-     does not appear over it (aiEmbeddedHere). A summoned drawer is an errand
-     for a passage and is left alone. */
-  if(!o.docked && !o.summoned && typeof window!=='undefined' && window.innerWidth >= AI_FLOAT_MIN_SCREEN){
+  /* POPPED OUT (aiPopOut): Jambo is in his own window — the door goes there,
+     and the words asked go to that one conversation */
+  if(aiPopped()){
+    try{ _aiPop.win.focus(); }catch(_){}
+    const inp=aiEl('ai-input');
+    if(prefill){ if(inp) inp.value=prefill; aiSubmit(); } else if(inp) try{ inp.focus(); }catch(_){}
+    return;
+  }
+  /* WHERE COPILOT IS ALREADY ON THE SCREEN the door goes there; the panel
+     does not appear over it (aiEmbeddedHere, ONE DOOR). A summoned drawer is
+     an errand for a passage and is left alone. */
+  if(!o.docked && !o.summoned && !o.here && typeof window!=='undefined' && window.innerWidth >= AI_SIDE_MIN_SCREEN){
     const here = aiEmbeddedHere();
     if(here && aiGoEmbedded(here, prefill)) return;
   }
@@ -972,14 +1122,10 @@ function openAI(prefill,opts){
   if(!o.summoned) ai.summoned=false;
   else if(!ai.open) ai.summoned=true;
   document.getElementById('ai-panel').classList.add('open');
-  /* The saved register, restored on first open rather than at load: the panel
-     may never be opened in a session, and reading storage costs nothing here. */
-  try{ const v=lsGet(AI_STYLE_KEY); if(v==='legal'||v==='plain') ai.style=v; }catch(_){}
-  renderAIStyleToggle();
-  /* a window you can move sits beside the page, not over a dimmed one */
-  document.getElementById('ai-scrim').classList.toggle('open',!ai.docked && !aiFloatOn());
   ai.open=true;
-  try{ aiFloatWire(); aiFloatSync(); }catch(_){}   /* a cut-down stage has no box model */
+  /* the side look, the scrim that dims the page beside it, Pop out */
+  try{ aiSideSync(); }catch(_){}   /* a cut-down stage has no box model */
+  if(!aiSideOn()) document.getElementById('ai-scrim').classList.toggle('open',!ai.docked);
   /* his face takes the header's tile once the chat is opened ON THE PHONE —
      on a computer the tile keeps the ✦ mark (Chambers, 20 Oct 2026) */
   try{ const tile=document.querySelector('#ai-panel > header .ai-head-tile');
@@ -987,18 +1133,19 @@ function openAI(prefill,opts){
       tile.style.background='color-mix(in srgb,#fff 82%,var(--color-accent))'; tile.style.borderRadius='50%'; } }catch(_){}
   ai.minimized=false; ai.unread=false; updateAIBadge();   // opening clears the glow
   if(typeof updateAiBrainPill==='function') updateAiBrainPill();   // show which brain is live
-  // restore the remembered width preference
-  if(!aiFloatOn()) try{ toggleAIExpand(!!(typeof lsGet==='function'&&lsGet('hati.v1.aiExpanded'))); }catch(_){}
+  // restore the remembered width preference (the docked drawer and the phone; the side panel is 384)
+  if(!aiSideOn()) try{ toggleAIExpand(!!(typeof lsGet==='function'&&lsGet('hati.v1.aiExpanded'))); }catch(_){}
   aiSyncDock();
   renderAIFeed(); renderAISuggest();
   const inp=document.getElementById('ai-input');
-  if(prefill){ inp.value=prefill; aiSubmit(); } else inp.focus();
+  if(prefill){ inp.value=prefill; aiSubmit(); } else if(!o.noFocus) inp.focus();
 }
 function closeAI(){
   document.getElementById('ai-panel').classList.remove('open');
   document.getElementById('ai-scrim').classList.remove('open');
   ai.open=false;
   aiSyncDock();
+  try{ aiSideSync(); }catch(_){}
   /* the conversation goes back to the panel beside the list, if one is up */
   if(aiListFeed()) try{ renderAIFeed(); }catch(_){}
   /* A seeded rephrase ends with the drawer. Left open, the next thing typed
@@ -1008,6 +1155,7 @@ function closeAI(){
      this going, I will be back". */
   if(typeof aiCloseRephraseSession==='function') aiCloseRephraseSession();
   ai.summoned=false;   // whatever errand opened it, closing settles it
+  ai.pasted=null;      // a paste's offer ends with the panel
   ai.minimized=false; updateAIBadge();   // full close: no minimized dot (unread glow may still arrive)
 }
 /* Minimize: hide the panel but keep the conversation "live" — the launcher
@@ -1017,7 +1165,7 @@ function minimizeAI(){
   document.getElementById('ai-scrim').classList.remove('open');
   /* Minimize is "keep this going, I will be back" — the reader claiming the
      panel, so it is no longer merely summoned and will stick around. */
-  ai.open=false; ai.minimized=true; ai.summoned=false; aiSyncDock(); updateAIBadge();
+  ai.open=false; ai.minimized=true; ai.summoned=false; aiSyncDock(); try{ aiSideSync(); }catch(_){} updateAIBadge();
 }
 function clearAIHistory(){
   // cleared immediately — no confirm prompt (history is local and cheap to rebuild)
@@ -1103,20 +1251,104 @@ function aiChipQuestions(){
     { q:i18t('ai_chip_exposure') },
   ];
 }
+/* THE ROW UNDER THE CONVERSATION (owner, 21 Oct 2026, "as recommended"):
+   · "What am I looking at?" STANDS on every page — Jambo says the screen in
+     front from its own counts, free (aiHereSays: no model is asked);
+   · a pasted email or long text is offered two ways (ai.pasted): read it
+     against the contract on screen (a question, the press is the cost) or
+     start a request (the request form's one door, openIntakeForm);
+   · the four starting questions only on an empty conversation. */
 function renderAISuggest(){
-  const el=document.getElementById('ai-suggest');
+  const el=aiEl('ai-suggest');
   if(!el) return;
-  // an empty conversation is the welcome bubble alone
   const fresh=ai.history.length<=1 && !ai.busy;
-  if(!fresh){ el.innerHTML=''; return; }
-  el.innerHTML=aiChipQuestions().map(c=>
-    `<button type="button" class="ai-chip" data-ai-chip="${esc(c.q)}">${esc(c.q)}</button>`).join('');
+  const chip=(attr,q,label)=>`<button type="button" class="ai-chip jb-chip" ${attr}="${esc(q)}">${esc(label||q)}</button>`;
+  let h=chip('data-ai-here','1',i18t('ai_here_chip'));
+  const P=ai.pasted;
+  if(P){
+    const c=P.cid&&typeof getContract==='function'?getContract(P.cid):null;
+    if(c) h+=chip('data-ai-paste','read',i18t('ai_paste_read',{ ref:aiRefOf(c) }));
+    h+=chip('data-ai-paste','request',i18t('ai_paste_request'));
+  }
+  if(fresh&&!P) h+=aiChipQuestions().map(c=>chip('data-ai-chip',c.q)).join('');
+  el.innerHTML=h;
   el.querySelectorAll('[data-ai-chip]').forEach(b=>b.addEventListener('click',()=>{
-    const inp=document.getElementById('ai-input');
-    if(!inp) return;
-    inp.value=b.getAttribute('data-ai-chip')||'';
-    aiSubmit();
+    aiSubmit(b.getAttribute('data-ai-chip')||'');
   }));
+  el.querySelectorAll('[data-ai-here]').forEach(b=>b.addEventListener('click',()=>aiHereExplain()));
+  el.querySelectorAll('[data-ai-paste]').forEach(b=>b.addEventListener('click',()=>aiPasteAct(b.getAttribute('data-ai-paste'))));
+}
+/* a contract's printed reference (refHtml is for the page; this is words) */
+function aiRefOf(c){ return (typeof contractRef==='function'?contractRef(c):(c&&(c.contractNo||c.id)))||''; }
+/* THE CONTRACT ON SCREEN, wherever it is drawn: the room or the negotiation
+   page (aiScreenContractId), else Home's paper */
+function aiOnScreenContract(){
+  let id=null;
+  try{ id=aiScreenContractId(); }catch(_){ id=null; }
+  try{ if(!id && typeof state==='object' && state && state.view==='dashboard' && typeof intel==='object' && intel && intel.paper && intel.paper.id) id=intel.paper.id; }catch(_){}
+  return id&&typeof getContract==='function'?getContract(id):null;
+}
+/* ONE CONVERSATION FOLLOWS YOU (owner, 21 Oct 2026): the side panel's talk is
+   the same on every page, so each answer says what it read — the contract and
+   the face it was asked on ("Read from MK-0418 · Redlines"), else the page and
+   the book. A record on the turn (`read`), said under it; never sent to the model. */
+function aiReadFrom(){
+  let page=''; try{ page=(typeof deskPageName==='function'&&deskPageName())||''; }catch(_){ page=''; }
+  const c=aiOnScreenContract();
+  if(c) return { cid:c.id, page, text:page?i18t('ai_read_from_c_on',{ ref:aiRefOf(c), page }):i18t('ai_read_from_c',{ ref:aiRefOf(c) }) };
+  return { cid:null, page, text:page?i18t('ai_read_from_page',{ page }):i18t('ai_read_from_book') };
+}
+/* "WHAT AM I LOOKING AT?" — the page in front in his words, from its own
+   readings (aiPageContext, the bar's own page name), never a model call */
+function aiHereSays(){
+  const P=(()=>{ try{ return aiPageContext()||{}; }catch(_){ return {}; } })();
+  let page=''; try{ page=(typeof deskPageName==='function'&&deskPageName())||''; }catch(_){ page=''; }
+  if(!page) page=P.label||P.name||'';
+  const out=[];
+  const c=aiOnScreenContract();
+  if(c){
+    out.push(i18t('ai_here_contract',{ ref:aiRefOf(c), title:c.title||'', party:c.counterparty||'—', status:c.status?String(c.status):'—' }));
+    if(page) out.push(i18t('ai_here_on',{ page }));
+  } else if(page) out.push(i18t('ai_here_page',{ page }));
+  else out.push(i18t('ai_here_none'));
+  if(typeof P.matching==='number') out.push(typeof P.ofBook==='number'?i18t('ai_here_rows_of',{ n:P.matching, of:P.ofBook }):i18t('ai_here_rows',{ n:P.matching }));
+  if(Array.isArray(P.filters)&&P.filters.length) out.push(i18t('ai_here_filters',{ n:P.filters.length }));
+  if(P.searchBox) out.push(i18t('ai_here_search',{ q:P.searchBox }));
+  out.push(i18t('ai_here_free'));
+  return out;
+}
+function aiHereExplain(){
+  const lines=aiHereSays();
+  aiPush('user',{ text:esc(i18t('ai_here_chip')), raw:i18t('ai_here_chip') });
+  aiPush('assistant',{ text:lines.map(l=>`<div>${_aiEsc(l)}</div>`).join(''), free:true });
+  if(!ai.open&&!aiPopped()&&!aiListFeed()) openAI(null,{ here:true, noFocus:true });
+  renderAIFeed(); renderAISuggest();
+}
+/* A PASTE THAT IS A LETTER, NOT A QUESTION: three lines or 200 characters */
+const AI_PASTE_MIN=200;
+function aiPasteLooksLong(t){ const s=String(t||''); return s.length>=AI_PASTE_MIN || s.split(/\r?\n/).filter(x=>x.trim()).length>=3; }
+function aiPasteNote(text){
+  if(!aiPasteLooksLong(text)){ if(ai.pasted){ ai.pasted=null; renderAISuggest(); } return false; }
+  const c=aiOnScreenContract();
+  ai.pasted={ text:String(text), cid:c?c.id:null };
+  renderAISuggest();
+  return true;
+}
+function aiPasteAct(kind){
+  const P=ai.pasted; if(!P) return;
+  ai.pasted=null;
+  const inp=aiEl('ai-input');
+  if(inp&&window.chatFieldReset) chatFieldReset(inp);
+  renderAISuggest();
+  if(kind==='request'){
+    if(typeof openIntakeForm==='function'){
+      const title=(typeof intakeTitleFrom==='function')?intakeTitleFrom(P.text):String(P.text).slice(0,80);
+      openIntakeForm({ title, need:String(P.text).slice(0,4000) });
+    }
+    return;
+  }
+  const c=P.cid&&typeof getContract==='function'?getContract(P.cid):null;
+  if(c) aiSubmit(i18t('ai_paste_read_ask',{ ref:aiRefOf(c) })+'\n\n'+P.text);
 }
 
 /* JAMBO'S FACE beside his words in the chat (components.js); the sparkle
@@ -1140,11 +1372,12 @@ function aiListFeed(){
   return (f && f.isConnected && box && typeof box.getClientRects==='function' && box.getClientRects().length && !(box.classList&&box.classList.contains('is-folded'))) ? f : null;
 }
 function aiFeedEl(){
-  if(!ai.open){ const f=aiListFeed(); if(f) return f; }
-  return document.getElementById('ai-feed');
+  /* popped out (aiPopOut), the conversation is in Jambo's own window */
+  if(!ai.open && !aiPopped()){ const f=aiListFeed(); if(f) return f; }
+  return aiEl('ai-feed');
 }
 /* an answer said where the reader is looking lights no launcher */
-function aiUnreadIfAway(){ if(!ai.open && !aiListFeed()){ ai.unread=true; updateAIBadge(); } }
+function aiUnreadIfAway(){ if(!ai.open && !aiPopped() && !aiListFeed()){ ai.unread=true; updateAIBadge(); } }
 function renderAIFeed(typing=false){
   const feed=aiFeedEl();
   if(!feed) return;
@@ -1194,6 +1427,7 @@ function renderAIFeed(typing=false){
         ${m.text?`<div class="ai-bub jl-bub text-sm">${m.text}</div>`:''}
         ${proposal}
         ${m.cards?m.cards:''}
+        ${m.read&&m.read.text?`<div class="ai-read" data-ai-read>${_aiEsc(m.read.text)}</div>`:''}
       </div>
     </div>`;
   }).join('') + (typing?`
@@ -1657,11 +1891,7 @@ function aiPortfolioSnapshot(){
    returned nothing at all. Simple words and a complete answer are not in
    tension, so the register rules speak only about vocabulary and the length
    follows the question. */
-const AI_STYLE_RULES = () => aiStyle()==='legal' ? `RESPONSE STYLE — LEGAL
-Full professional depth. Cite clause names, statuses, dates and amounts exactly
-as they appear in the snapshot. State your assumptions. Use precise terms of art
-where they are the right words. Do not simplify a distinction away.`
-: `RESPONSE STYLE — PLAIN
+const AI_STYLE_RULES = () => `RESPONSE STYLE — PLAIN
 Everyday language. No legal jargon unless you immediately say what it means.
 Plain means plain WORDS, never a cut-down answer: a simple question gets
 two or three sentences, while a broad portfolio or report question gets the
@@ -1972,7 +2202,6 @@ function aiChatContext(){
        day behind for an evening in Nairobi before 03:00) */
     today: (typeof todayISO==='function')?todayISO():new Date().toISOString().slice(0,10),
     user: u?{ name:u.name, role:(typeof ROLE_LABEL==='object'&&ROLE_LABEL[u.role])||u.role||'' }:null,
-    style: aiStyle(),
     /* THE READER'S language, so the Copilot answers a Swedish reader in Swedish
        instead of coin-flipping. This used to read the market pack's locale,
        which conflated two different settings: the market is the COMPANY's (it
@@ -2742,40 +2971,14 @@ function localCompareData(ids){
    stays live underneath, so the next sentence carries the exchange forward
    instead of restarting it. */
 
-/* ---------- HOW MUCH REASONING, AND IN WHOSE REGISTER ----------
-   PLAIN or LEGAL is the reader's answer to "how much do you want said"
-   (see `ai.style`), and this — the one field on a proposal that is prose — did
-   not ask. The register travelled: AI_STYLE_RULES rides in the brief on every
-   call, and its plain half says "short answers, two or three sentences". But
-   the advice field described itself as a four-part checklist — what changed,
-   which risk moves, what it costs, what to check — in the instruction sitting
-   directly beside the passage. A specific enumeration next to the question
-   beats a general rule in the background briefing, every time, so Plain bought
-   the reader nothing here and the button's own tooltip ("short answers") was
-   describing something the product did not do.
-
-   So the field answers to the setting. Four points where the reader asked for
-   depth; the answer and its reason where they asked for plain. LEGAL IS
-   UNCHANGED — literally the text that was here before — because the complaint
-   was never that the depth is wrong, only that it was compulsory.
-
-   The plain half makes the points CONDITIONAL as well as brief, and that is the
-   half doing the work: three sentences that must still cover four headings is
-   compression, not brevity, and comes back as a denser paragraph rather than a
-   shorter one. What it must not become is a licence to leave out a real risk —
-   hence "only where there is genuinely one", which drops the empty slot and
-   keeps the full one.
-
-   FUNCTIONS, not const strings, for the reason AI_GROUND_RULES is one: the
-   register is a setting the reader flips mid-session, and a string built at
-   load would go on asking for the depth they just turned off, for the rest of
-   the session. The SHAPE never varies — same fields, same names, whatever the
-   register — because the parser reads one contract and a second would be a
-   second thing to keep in step. */
-const AI_ADVICE_FIELD = made => aiStyle() === 'legal'
-  ? `  "advice": "Your reasoning: what you ${made}, which risk it moves, what it `
-    + 'costs to ask for it, and anything the drafter should check before proposing it.",\n'
-  : `  "advice": "Your reasoning in everyday language, two or three sentences. Lead with `
+/* ---------- HOW MUCH REASONING: PLAIN, ALWAYS ----------
+   The one field on a proposal that is prose answers in everyday words: the
+   answer and its reason, a risk, a cost or a check only where there is
+   genuinely one — the same length AI_STYLE_RULES asks for in the brief, so
+   the two never contradict (F107). Jambo is plain at all times (owner, 21 Oct
+   2026: the Plain | Legal toggle is gone). A FUNCTION, as AI_GROUND_RULES is,
+   so no caller can freeze it at load. */
+const AI_ADVICE_FIELD = made => `  "advice": "Your reasoning in everyday language, two or three sentences. Lead with `
     + `the answer — whether this is worth proposing at all — then why. Give a risk, a cost `
     + `or something to check only where there is genuinely one: a point written to fill a `
     + `heading is the padding this register exists to remove. No legal jargon unless you `
@@ -4002,7 +4205,6 @@ function aiOpenProposal(opts){
        is an answer to THIS. Without it the reader answers a question the model
        is never shown again. */
     aiRephraseRemember('copilot', said);
-    _aiNoteRestylable(said);
     renderAIFeed();
     return null;
   }
@@ -4024,7 +4226,7 @@ function aiOpenProposal(opts){
     onRefine: typeof o.onRefine === 'function' ? o.onRefine : null };
   aiProposals.set(id, p);
   ai.activeProposal = id;
-  if (p.advice){ aiPush('assistant', { text: aiFmt(p.advice) }); _aiNoteRestylable(p.advice); }
+  if (p.advice) aiPush('assistant', { text: aiFmt(p.advice) });
   /* NO REASONING IS TWO DIFFERENT FACTS. A model that kept the shape and left
      the advice field empty had nothing to add, and saying so is true. A model
      that missed the shape entirely never offered reasoning OR wording — what
@@ -4251,83 +4453,6 @@ function aiOpenRephraseSession(opts){
 const aiActiveRephrase = () => aiRephrase.active;
 function aiCloseRephraseSession(){ aiRephrase.active = null; }
 
-/* ============================================================
-   PLAIN ↔ LEGAL, APPLIED TO THE ANSWER ALREADY ON SCREEN
-   ============================================================
-   The style toggle used to govern only the NEXT answer, so a drafter who
-   read a plain explanation and wanted the legal depth had to walk back to
-   the contract, re-select the passage and ask again — the panel had all of
-   it and made them re-earn it. Now the last explanation is remembered with
-   the passage it was about, and flipping the toggle restates THAT answer,
-   in place, in the register just chosen.
-
-   Both versions are kept once they exist, so flipping back is instant and
-   free — the model is never asked to say the same thing the same way twice.
-   The bubble is REPLACED, not appended to: one explanation wearing two
-   registers is one thing, and two bubbles would read as two opinions. */
-let _aiRestyle = null;
-function _aiNoteRestylable(said){
-  const s = String(said == null ? '' : said).trim();
-  if (!s) return;
-  _aiRestyle = {
-    passage: (aiRephrase.active && aiRephrase.active.passage) || '',
-    clauseLabel: (aiRephrase.active && aiRephrase.active.clauseLabel) || '',
-    texts: { [aiStyle()]: s },
-    /* The live history entry this explanation is wearing. aiPush spreads the
-       payload into a fresh object, so the reference is taken off the top of
-       the history right after the push. */
-    entry: ai.history[ai.history.length - 1] || null,
-  };
-}
-async function aiRestyleLastAnswer(){
-  const r = _aiRestyle;
-  if (!r || !r.entry || ai.busy) return;
-  /* The feed may have been cleared since — restating into a bubble that is
-     no longer on the record would resurrect it. */
-  if (!ai.history.includes(r.entry)) return;
-  const want = aiStyle();
-  const put = raw => {
-    r.entry.text = aiFmt(raw);
-    /* aiFmt banks chart blocks for the NEXT aiPush; this path has no push,
-       so the bank must not leak into someone else's message. */
-    _aiPendingBlocks = null;
-    renderAIFeed();
-  };
-  if (r.texts[want]){ put(r.texts[want]); return; }
-  const source = r.texts[want === 'legal' ? 'plain' : 'legal'] || Object.values(r.texts)[0] || '';
-  if (!source) return;
-  if (!copilotAvailable()){
-    if (typeof toast === 'function')
-      toast('Rewriting this answer needs Jambo engine — add a key under Team & Settings', 'err');
-    return;
-  }
-  ai.busy = true; renderAIFeed(true);
-  try{
-    const messages = [{ role: 'user', content:
-      `Restate the explanation below ${want === 'legal'
-        ? 'in full professional legal depth — name the clauses, dates, amounts and assumptions it rests on'
-        : 'in plain everyday language a non-lawyer follows on first read — short sentences, no jargon'}. `
-      + `Keep every fact and caveat; change only the register. Do not add new claims or new advice.\n\n`
-      + `EXPLANATION:\n"""\n${source}\n"""`
-      + (r.passage ? `\n\nIt explains this contract passage${r.clauseLabel ? ` (${r.clauseLabel})` : ''}:\n"""\n${String(r.passage).slice(0, 1500)}\n"""` : '')
-      + `\n\nReply with the restated explanation and nothing else.` }];
-    const res = await copilotAsk(messages, window.buildAssistantContext ? buildAssistantContext() : null);
-    let raw = typeof res === 'string' ? res
-      : (res && (res.text || res.answer || res.content || res.reply || res.message)) || '';
-    raw = String(raw || '').trim();
-    ai.busy = false;
-    if (!raw){ renderAIFeed(); return; }
-    r.texts[want] = raw;
-    put(raw);
-  }catch(e){
-    ai.busy = false;
-    renderAIFeed();
-    if (typeof toast === 'function')
-      toast(e && e.needsKey
-        ? 'Rewriting this answer needs Jambo engine — add a key under Team & Settings'
-        : `Jambo could not restate that: ${(e && e.message) || 'no answer'}. The explanation is unchanged.`, 'err');
-  }
-}
 
 /* Record a turn on the open session, if there is one. Called for the drafter's
    own sentence and for a Copilot reply that produced no card — which is exactly
@@ -4355,12 +4480,16 @@ function aiRephraseHistory(session){
     : `You replied: "${t.text}"`).join('\n');
 }
 
-async function aiSubmit(){
-  const inp=document.getElementById('ai-input');
-  const q=inp.value.trim(); if(!q||ai.busy) return;
+async function aiSubmit(asked){
+  /* the words handed in (the ✦ ask bar, a chip, a paste's offer), else the box's */
+  const inp=aiEl('ai-input');
+  const given=typeof asked==='string';
+  const q=(given?asked:(inp?inp.value:'')).trim(); if(!q||ai.busy) return;
   /* Back to one line, or the next question is typed into the hole the last one
      grew to. */
-  if(window.chatFieldReset) chatFieldReset(inp); else inp.value='';
+  if(!given&&inp){ if(window.chatFieldReset) chatFieldReset(inp); else inp.value=''; }
+  /* a paste's offer ends with what was sent */
+  if(ai.pasted){ ai.pasted=null; renderAISuggest(); }
   /* JAMBO, THE SAME ON EVERY PAGE (owner, 18 Oct 2026): unless a proposal or a
      seeded passage owns the sentence, what he reads on Home — a page, a
      contract's number, a draft, a send — he does from this window too
@@ -4469,9 +4598,12 @@ async function aiAskWords(qRaw){
     return;
   }
   renderAIFeed(true);
+  /* WHAT IT READ, taken when it was asked (the page may change before the
+     answer lands): said under the answer (aiReadFrom, renderAIFeed) */
+  const read=aiReadFrom();
   const finish=(ans)=>{
     ai.busy=false;
-    aiPush('assistant',ans);
+    aiPush('assistant',ans&&typeof ans==='object'?{ ...ans, read }:ans);
     renderAIFeed();
     // answer arrived while the panel was minimized/closed -> light up the launcher
     aiUnreadIfAway();
@@ -5337,7 +5469,29 @@ document.getElementById('ai-scrim').addEventListener('click',closeAI);
 // Copilot is opened from the command bar (#cmd-ai, wired in app.js). The "/" key
 // focuses the command-bar search (app.js); Esc closes the Copilot panel.
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'&&ai.open) closeAI();
+  if(e.key!=='Escape'||!ai.open||e.__aiBarClosed) return;
+  /* a panel stepped aside where Jambo is already on the page is not the layer in front */
+  const p=document.getElementById('ai-panel'); if(p&&p.classList.contains('ai-stepaside')) return;
+  closeAI();
+});
+/* POP OUT (aiPopOut), and a pasted letter offered two ways (aiPasteNote) */
+document.getElementById('ai-popout')?.addEventListener('click',()=>{ aiPopOut(); });
+document.getElementById('ai-input').addEventListener('input',e=>{ if(ai.pasted&&!String(e.target.value||'').trim()){ ai.pasted=null; renderAISuggest(); } });
+document.getElementById('ai-input').addEventListener('paste',e=>{
+  let t=''; try{ t=(e.clipboardData||window.clipboardData).getData('text'); }catch(_){ t=''; }
+  aiPasteNote(t);
+});
+/* a file dropped on the panel goes through the one upload door (jamboAddFile →
+   pdDropDoor): taken at once where there is one stream, else the drop area is
+   lit with its stream asked and Jambo says to choose it there */
+['ai-panel'].forEach(id=>{
+  const el=document.getElementById(id); if(!el) return;
+  el.addEventListener('dragover',e=>{ if(e.dataTransfer&&[...(e.dataTransfer.types||[])].includes('Files')){ e.preventDefault(); el.classList.add('is-drop'); } });
+  el.addEventListener('dragleave',e=>{ if(!el.contains(e.relatedTarget)) el.classList.remove('is-drop'); });
+  el.addEventListener('drop',e=>{
+    const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; el.classList.remove('is-drop');
+    if(!f) return; e.preventDefault(); aiDropFile(f);
+  });
 });
 /* A window that crosses the docking threshold has to give the column back, or
    a narrow screen keeps a 430px gutter it has no room for. Bound through the
@@ -5361,7 +5515,7 @@ function aiDoorFace(){
 }
 try{ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',aiDoorFace); else setTimeout(aiDoorFace,0); }catch(_){}
 Object.assign(window,{ AI_GOVERNANCE_RULE,aiRuleDoorOf,aiRuleDoorHtml,aiRuleDoorGo,AI_CALENDAR_RULE,chatTodayLine,aiAsksPastCard,aiOpenCardSays });
-Object.assign(window,{ aiDoorFace,aiFaceHtml,aiFloatSync,aiFloatClamp,aiFloatMaxBox,aiFloatHome,aiFloatOn,aiEmbeddedHere,aiGoEmbedded,AI_FLOAT_MIN,scanGoTo,aiContractByRef,aiWorkingNotes,aiExplainOf,aiExplainSet,aiJsonObjects,
+Object.assign(window,{ aiDoorFace,aiFaceHtml,aiSideSync,aiSideOn,aiSideToggle,AI_SIDE_W,aiPopOut,aiPopBack,aiPopped,aiPopMay,aiEl,aiBarToggle,aiBarOpen,aiBarClose,aiBarSend,aiAskFromBar,aiHereFromBar,aiHereSays,aiHereExplain,aiReadFrom,aiPasteNote,aiPasteAct,aiPasteLooksLong,aiDropFile,aiOnScreenContract,aiEmbeddedHere,aiGoEmbedded,scanGoTo,aiContractByRef,aiWorkingNotes,aiExplainOf,aiExplainSet,aiJsonObjects,
   AI_PROPOSAL_FORMAT,AI_EDIT_FORMAT,AI_LIST_RULE,aiListLines,aiListLine,AI_ADVICE_FIELD,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,
   AI_PLACEMENTS,AI_PLACEMENT_LABEL,AI_PLACEMENT_SHORT,aiNormalizePlacement,aiIsInsert,
   aiProposalAnchorHtml,aiProposalPlacementHtml,aiProposalSetPlacement,aiCleanAddedWording,
@@ -5373,4 +5527,4 @@ Object.assign(window,{ aiDoorFace,aiFaceHtml,aiFloatSync,aiFloatClamp,aiFloatMax
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,aiDropRestatedHeading,
   aiParseProposal,copilotPropose,copilotProposeTemplate,AI_TEMPLATE_RULE,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
   aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,aiStepBackIfSummoned,
-  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,aiPortfolioFigures,aiPortfolioSays,aiWholeBookAsk,aiDegrade,AI_CHAT_STEPS,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,AI_DEPENDENTS_TOOL_DESC,AI_COUNTERPARTY_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiAskWords,aiFeedEl,aiListFeed,aiUnreadIfAway,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiGraphSays, aiScreenContractId,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,briefMoved,briefMovedHtml,briefReadFootHtml,BRIEF_MOVED_MAX,runContractBrief,runFillBlanks,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,renewalStartPaper,renewalDecisionAct,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scanCanvas,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});
+  AI_SUGGESTIONS,buildAssistantContext,aiPortfolioSnapshot,aiPortfolioFigures,aiPortfolioSays,aiWholeBookAsk,aiDegrade,AI_CHAT_STEPS,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,AI_DEPENDENTS_TOOL_DESC,AI_COUNTERPARTY_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiAskWords,aiFeedEl,aiListFeed,aiUnreadIfAway,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiGraphSays, aiScreenContractId,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,briefMoved,briefMovedHtml,briefReadFootHtml,BRIEF_MOVED_MAX,runContractBrief,runFillBlanks,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,renewalStartPaper,renewalDecisionAct,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scanCanvas,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});

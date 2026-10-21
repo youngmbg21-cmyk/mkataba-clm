@@ -1465,8 +1465,8 @@ function setView(view){
       if(typeof requestAnimationFrame==='function') requestAnimationFrame(()=>{ sc.scrollTop=_keepTop; }); }
     else sc.scrollTo({top:0});
   }
-  /* the moved Copilot window steps aside where Copilot is on the page (ai.js) */
-  if(typeof window!=='undefined' && typeof window.aiFloatSync==='function') try{ window.aiFloatSync(); }catch(_){}
+  /* Jambo's side panel steps aside where Jambo is already on the page (ai.js aiSideSync) */
+  if(typeof window!=='undefined' && typeof window.aiSideSync==='function') try{ window.aiSideSync(); }catch(_){}
 }
 /* Repaint a same-view surface without losing the reader's place. For callers
    that repaint DIRECTLY (renderRegister after a delete, a filter or a pager
@@ -1929,7 +1929,7 @@ function openCommandPalette(prefill){
     if(it.kind==='ask'){
       close();
       if(window.openAI) openAI();
-      const ai=document.getElementById('ai-input');
+      const ai=window.aiEl?aiEl('ai-input'):document.getElementById('ai-input');
       if(ai){ ai.value=it.q; ai.focus(); }
       return;
     }
@@ -4097,7 +4097,10 @@ function wireShell(){
      button are the same act; delegated on a marker rather than bound to each,
      so a third door added later needs no third listener. */
   document.addEventListener('click',e=>{
-    if(e.target.closest?.('#cmd-ai,[data-copilot-proxy]')) openAI();
+    /* THE BAR'S ✦ DROPS THE ASK BAR, on any page, the side panel open or not
+       (owner, 21 Oct 2026; ai.js aiBarToggle); pressed again it closes */
+    if(e.target.closest?.('#cmd-ai')){ aiBarToggle(); return; }
+    if(e.target.closest?.('[data-copilot-proxy]')) openAI();
   });
   /* THE WORKSPACE-STATUS FOOT FOLDS (owner-asked 20 Aug 2026): the handle
      toggles the sheet that slides up over the nav; Escape closes it. Open
@@ -4211,16 +4214,15 @@ if(typeof window!=='undefined') window.onLanguageChange=function(){
     updateSidebarCounts();
     renderPageHeader&&renderPageHeader();
     /* THE COPILOT PANEL IS FURNITURE TOO, and no view redraws it — it is a
-       body-level layer, not part of the page. Its greeting, its suggested
-       questions and its style toggle are the panel's own wording and must
+       body-level layer, not part of the page. Its greeting and its suggested
+       questions are the panel's own wording and must
        follow the reader; the CONVERSATION is a record and is deliberately left
        exactly as it was written. Guarded, because a stage without the panel
        still calls this. */
     try{
-      if(window.ai && ai.open){
+      if(window.ai && (ai.open || (window.aiPopped && aiPopped()))){
         window.renderAIFeed && renderAIFeed();
         window.renderAISuggest && renderAISuggest();
-        window.renderAIStyleToggle && renderAIStyleToggle();
       }
     }catch(e){}
     /* Re-entering the SAME view, which setView already treats as a repaint and

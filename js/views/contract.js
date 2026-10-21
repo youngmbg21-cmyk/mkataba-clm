@@ -15970,7 +15970,7 @@ async function docAiRead(c,action,text){
        stays the one composer. */
     aiPush('assistant',{text:'What would you like to know about this passage? Ask in your own words — I’ll answer about exactly the wording you highlighted, read against the rest of this contract.'});
     renderAIFeed();
-    const inp=document.getElementById('ai-input');
+    const inp=window.aiEl?aiEl('ai-input'):document.getElementById('ai-input');
     if(inp){ try{ inp.focus({preventScroll:true}); }catch(_){ try{ inp.focus(); }catch(_2){} } }
     return;
   }

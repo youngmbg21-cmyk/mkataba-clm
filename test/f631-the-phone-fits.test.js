@@ -35,9 +35,12 @@ describe('f631 (G8) the workbench head fits a phone', () => {
   });
 });
 
-describe('f631 (G9) Copilot\'s toggle and questions are a finger\'s size', () => {
+describe('f631 (G9) Copilot\'s questions are a finger\'s size', () => {
+  /* RE-POINTED 21 Oct 2026 (owner: "remove the plain and legal toggles and
+     let jambo be plain at all times"): the toggle is gone, so its phone rule
+     went with it; the questions keep theirs */
   test('44px and the card\'s type, !important over the inline 22px', () => {
-    assert.match(AI, /#ai-panel #ai-style button\{ min-height:44px!important;/);
+    assert.doesNotMatch(AI, /#ai-style/, 'no rule for a toggle that is gone');
     assert.match(AI, /#ai-panel \.ai-chip\{ min-height:44px!important; font-size:var\(--t-card\)!important;/);
   });
 });
