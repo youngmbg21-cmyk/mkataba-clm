@@ -424,7 +424,8 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
        door onto it lands on Jambo */
     const tabs = await page.evaluate(() => { pdOpenOnHome('MK-S1', 'facts');
       return new Promise(r => setTimeout(() => r({ tabs: [...document.querySelectorAll('#ig-dock [data-pd-tab]')].map(b => b.getAttribute('data-pd-tab')), on: pdTab() }), 900)); });
-    ok('8 Home\'s panel has no Overview tab, and its old door lands on Jambo', tabs.tabs.join(',') === 'copilot,doc,oblig,menu' && tabs.on === 'copilot'   /* + the Menu tab, 15 Oct 2026 */, JSON.stringify(tabs));
+    /* RE-POINTED 21 Oct 2026 (owner picked "The Dossier", 20 Oct 2026: the Menu tab folded into the Dossier) */
+    ok('8 Home\'s panel has no Overview tab, and its old door lands on the Dossier', tabs.tabs.join(',') === 'copilot,doc,oblig' && tabs.on === 'copilot', JSON.stringify(tabs));
     /* 10 THE READING FOLLOWS THE READER (owner, 15 Oct 2026: "Make the deep
        dive answer in the reader's language"): the reading made in English (the
        scanned contract, read in step 9 and untouched since) is not served to a
