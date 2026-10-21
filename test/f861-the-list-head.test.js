@@ -24,6 +24,19 @@
      (8) both books carry every lh_ word, once each
      (9) the listeners are bound once; no window name is published twice
          (f48, f232-6); Columns lives here and nowhere else
+    (10) THE PAGE'S OWN PARTS STAND: a recount (lhHeadSync) keeps the
+         controls a page drew in lead / right / tabsAfter — the same nodes, so
+         a listener the page bound on one still fires and its focus stays; a
+         part whose html changed is drawn afresh and the page's wire(head,
+         parts) is called
+    (11) THE BOX SHOWS THE PAGE'S QUERY: a question typed stands only while
+         the page's query is empty; a query written by another door wins on
+         the next repaint and through lhBoxSet (the top bar's search calls
+         it); a page left and come back to starts from its own query
+    (12) a list left open on a control the recount took off the page is
+         closed; one open on a page's own control that stands stays, and its
+         pick is heard
+    (13) one recount per pause in the typing, not one per letter
    RED AT THE PARENT (db763d0a): js/views/listhead.js does not exist, and
    insViewTabsHtml draws an empty view quietly instead of leaving it out.
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -49,6 +62,9 @@ const fnBody = (src, name) => { const at = src.search(new RegExp('^(?:async )?fu
 const COMP = read('js/components.js');
 const ESC_SRC = /const ESC_MAP = [^\n]*\n/.exec(COMP)[0] + fnBody(COMP, 'esc');
 const TABS_SRC = fnBody(read('js/views/inspector.js'), 'insViewTabsHtml');
+/* HaTi's own dropdown list (js/core.js), from where it is declared to where it arms the document */
+const CORE = read('js/core.js');
+const MENU_SRC = CORE.slice(CORE.indexOf('let _selMenuEl'), CORE.indexOf('function _selMenuArmDoc(')).replace(/^let /m, 'var ');
 
 function stage(o = {}){
   const dom = new JSDOM('<!doctype html><html><head></head><body><div id="content"></div></body></html>', { runScripts: 'outside-only', url: 'https://hati.test/' });
@@ -65,6 +81,7 @@ function stage(o = {}){
   sb.window = sb; sb.self = sb;
   vm.createContext(sb);
   vm.runInContext(ESC_SRC + '\n' + TABS_SRC, sb, { filename: 'parts.js' });
+  if (o.menu) vm.runInContext(MENU_SRC, sb, { filename: 'core-menu.js' });
   if (LH) vm.runInContext(LH, sb, { filename: LH_FILE });
   if (o.twice && LH) vm.runInContext('{' + LH + '\n}', sb, { filename: LH_FILE + '#again' });
   return { sb, doc, win, toasts, adds };
@@ -355,5 +372,159 @@ describe('f861 (9) bound once, published once', () => {
     assert.deepEqual(clash, [], 'a name the list head publishes is published or declared in another module too');
     assert.ok(!/\bfunction lcFootHtml\b/.test(read('js/views/customers.js')), 'the old foot is gone');
     assert.ok(/import '\.\/views\/listhead\.js';[^\n]*\n(?:[^\n]*\n)*?import '\.\/views\/customers\.js'/.test(read('js/app.js')), 'imported before the pages that draw it');
+  });
+});
+
+describe('f861 (10) the page\'s own parts stand across a recount', () => {
+  const SORT = '<select id="reg-sort"><option value="end">Ends</option><option value="value">Value</option></select>';
+  const ONLY = '<span id="reg-only-chip">Only these 4 <button type="button" id="reg-only-clear">Show all</button></span>';
+  test('a listener a page bound on its own control in right() and lead() still fires after lhHeadSync', () => {
+    need(); const x = stage(); const P = page(x.sb, { state: { stream: 'proc' }, spec: { right: () => SORT, lead: () => ONLY } }); paint(x);
+    const sort = x.doc.getElementById('reg-sort'), clear = x.doc.getElementById('reg-only-clear');
+    const heard = { sort: 0, clear: 0 };
+    sort.addEventListener('change', () => { heard.sort++; });
+    clear.addEventListener('click', () => { heard.clear++; });
+    clear.focus();
+    P.spec.tabs = () => [{ k: 'all', label: 'All', n: 7, keep: true }, { k: 'drafts', label: 'Drafts', n: 2 }];
+    assert.equal(x.sb.lhHeadSync('contracts'), 1);
+    assert.deepEqual([...x.doc.querySelectorAll('[data-reg-view]')].map(b => txt(b)), ['All7', 'Drafts2'], 'the recount ran');
+    assert.equal(x.doc.getElementById('reg-sort'), sort, 'the same Sort, never redrawn');
+    assert.equal(x.doc.getElementById('reg-only-clear'), clear, 'the same chip a door handed in');
+    assert.equal(x.doc.activeElement, clear, 'its focus stays');
+    sort.value = 'value'; sort.dispatchEvent(new x.win.Event('change', { bubbles: true }));
+    press(x, clear);
+    assert.deepEqual(heard, { sort: 1, clear: 1 }, 'neither is a dead button');
+    const kids = [...x.doc.querySelector('.lh-chips').children].map(el => el.id || el.className.split(' ')[0]);
+    assert.deepEqual(kids, ['reg-only-chip', 'lh-chip', 'lh-add', 'lh-sp', 'reg-sort'], 'every part in its place');
+  });
+  test('typed words recount the head and the page\'s own controls stay alive', () => {
+    need(); const x = stage(); page(x.sb, { spec: { right: () => SORT } }); paint(x);
+    const sort = x.doc.getElementById('reg-sort'); let heard = 0;
+    sort.addEventListener('change', () => { heard++; });
+    const inp = x.doc.querySelector('input[data-lh-q]');
+    inp.value = 'N'; inp.dispatchEvent(new x.win.Event('input', { bubbles: true }));
+    inp.value = 'Nordkap'; inp.dispatchEvent(new x.win.Event('input', { bubbles: true }));
+    sort.dispatchEvent(new x.win.Event('change', { bubbles: true }));
+    assert.equal(x.doc.getElementById('reg-sort'), sort);
+    assert.equal(heard, 1, 'one change, heard once');
+  });
+  test('tabsAfter stands in the tab row', () => {
+    need(); const x = stage(); const P = page(x.sb, { spec: { tabsAfter: () => '<button type="button" id="seg">The book</button>' } }); paint(x);
+    const seg = x.doc.getElementById('seg'); let heard = 0;
+    seg.addEventListener('click', () => { heard++; });
+    P.spec.tabs = () => [{ k: 'all', label: 'All', n: 3, keep: true }];
+    x.sb.lhHeadSync('contracts');
+    assert.equal(x.doc.getElementById('seg'), seg);
+    assert.ok(x.doc.querySelector('[role="tablist"] > #seg'), 'still inside the tablist');
+    assert.deepEqual([...x.doc.querySelectorAll('[data-reg-view]')].map(b => txt(b)), ['All3']);
+    press(x, seg);
+    assert.equal(heard, 1);
+  });
+  test('a part whose html changed is drawn afresh and the page\'s wire(head, parts) is called; unchanged, it is not', () => {
+    need(); const x = stage(); const wired = [];
+    const P = page(x.sb, { state: { n: 12 }, spec: { right: () => `<button type="button" id="act">Do this to these ${P.S.n}</button>`, wire: (head, parts) => wired.push([head.getAttribute('data-lh-seat'), parts]) } });
+    paint(x);
+    x.sb.lhHeadSync('contracts');
+    assert.deepEqual(wired, [], 'nothing of the page\'s was redrawn');
+    P.S.n = 3;
+    x.sb.lhHeadSync('contracts');
+    assert.equal(txt(x.doc.getElementById('act')), 'Do this to these 3');
+    assert.deepEqual(JSON.parse(JSON.stringify(wired)), [['contracts', ['right']]]);
+  });
+});
+
+describe('f861 (11) the box shows the page\'s query', () => {
+  const ask = (x, w) => { const inp = x.doc.querySelector('input[data-lh-q]'); inp.value = w; inp.dispatchEvent(new x.win.Event('input', { bubbles: true })); return inp; };
+  test('a question typed, then the page\'s query written elsewhere: the repaint shows the page\'s query', () => {
+    need(); const x = stage(); const P = page(x.sb); paint(x);
+    ask(x, 'which ones end soon');
+    assert.equal(P.S.q, '', 'a question narrows nothing');
+    paint(x);
+    assert.equal(x.doc.querySelector('input[data-lh-q]').value, 'which ones end soon', 'a repaint draws the question back');
+    P.S.q = 'Nordkap';
+    paint(x);
+    assert.equal(x.doc.querySelector('input[data-lh-q]').value, 'Nordkap', 'the page\'s query wins');
+  });
+  test('lhBoxSet: the one writer of what a box shows when another door writes the query', () => {
+    need(); const x = stage(); const P = page(x.sb); paint(x);
+    const inp = ask(x, 'which ones end soon');
+    P.S.q = 'Nordkap';
+    assert.equal(x.sb.lhBoxSet('contracts'), 1);
+    assert.equal(inp.value, 'Nordkap', 'the question goes; the page\'s query shows');
+    assert.equal(x.sb.lhBoxSet('contracts'), 0, 'a box already showing the words is not touched');
+    x.sb.lhBoxSet('contracts', 'Volvo');
+    assert.equal(inp.value, 'Volvo');
+    P.S.q = 'Kaffe';
+    assert.equal(x.sb.lhBoxSet(), 1, 'with no seat (the top bar), every head shows its own page\'s query');
+    assert.equal(inp.value, 'Kaffe');
+    P.S.q = '';
+    ask(x, 'which ones end soon');
+    assert.equal(x.sb.lhBoxSet(), 0, 'a question stands where its page\'s query is empty');
+    assert.equal(inp.value, 'which ones end soon');
+  });
+  test('the top bar\'s search tells the list head\'s box what it wrote', () => {
+    const app = read('js/app.js').replace(/\/\*[\s\S]*?\*\//g, ' ');
+    const at = app.indexOf("const search=document.getElementById('cmd-search');");
+    assert.ok(at > 0, 'the bar\'s search is wired in app.js');
+    const input = app.slice(at, app.indexOf("search.addEventListener('keydown'", at));
+    assert.match(input, /R\.query=q;[\s\S]*if\(window\.lhBoxSet\) lhBoxSet\(\);/);
+  });
+  test('a page left and come back to starts from its own query', () => {
+    need(); const x = stage(); page(x.sb); paint(x);
+    ask(x, 'which ones end soon');
+    x.doc.getElementById('content').innerHTML = '<p>another page</p>';
+    paint(x);
+    assert.equal(x.doc.querySelector('input[data-lh-q]').value, '');
+  });
+});
+
+describe('f861 (12) a list open on a control the recount takes away', () => {
+  test('"+ Filter"\'s list is closed when lhHeadSync redraws it', () => {
+    need(); const x = stage({ menu: true }); page(x.sb); paint(x);
+    const sel = x.doc.querySelector('select[data-lh-add]');
+    assert.equal(x.sb.selectMenuOpen(sel), true);
+    assert.equal(x.sb.selectMenuFor(), sel);
+    x.sb.lhHeadSync('contracts');
+    assert.equal(sel.isConnected, false, 'the old "+ Filter" left the page');
+    assert.equal(x.sb.selectMenuShowing(), false, 'and its list with it');
+    assert.equal(x.doc.querySelector('.hati-selmenu'), null);
+    assert.ok(x.doc.querySelector('select[data-lh-add]'), 'the fresh "+ Filter" stands');
+  });
+  test('a list open on a page\'s own control that stands stays open, and its pick is heard', () => {
+    need(); const x = stage({ menu: true });
+    page(x.sb, { spec: { right: () => '<label><select id="reg-sort"><option value="end">Ends</option><option value="value">Value</option></select></label>' } }); paint(x);
+    const sort = x.doc.getElementById('reg-sort'); const heard = [];
+    sort.addEventListener('change', () => heard.push(sort.value));
+    x.sb.selectMenuOpen(sort);
+    x.sb.lhHeadSync('contracts');
+    assert.equal(sort.isConnected, true, 'the page\'s own Sort never left the page');
+    assert.equal(x.sb.selectMenuShowing(), true);
+    x.doc.querySelector('.hati-selmenu [data-sm="1"]').dispatchEvent(new x.win.MouseEvent('click', { bubbles: true }));
+    assert.deepEqual(heard, ['value']);
+  });
+});
+
+describe('f861 (13) one recount per pause in the typing', () => {
+  test('three letters narrow the rows three times and count the head once', () => {
+    need(); const x = stage(); const P = page(x.sb); paint(x);
+    const timers = [];
+    x.sb.setTimeout = (fn, ms) => { timers.push({ fn, ms }); return timers.length; };
+    x.sb.clearTimeout = id => { if (timers[id - 1]) timers[id - 1].fn = null; };
+    const flush = () => timers.forEach(t => { const f = t.fn; t.fn = null; if (f) f(); });
+    const tabs = P.spec.tabs; let counted = 0;
+    P.spec.tabs = () => { counted++; return tabs(); };
+    const inp = x.doc.querySelector('input[data-lh-q]');
+    for (const w of ['N', 'No', 'Nor']){ inp.value = w; inp.dispatchEvent(new x.win.Event('input', { bubbles: true })); }
+    assert.deepEqual(P.S.queries, ['N', 'No', 'Nor'], 'every letter narrows the rows');
+    assert.equal(counted, 0, 'nothing counted while typing');
+    assert.equal(timers.filter(t => t.fn).length, 1, 'one recount waiting');
+    assert.equal(timers[0].ms, x.sb.LH_SYNC_QUIET_MS);
+    flush();
+    assert.equal(counted, 1, 'counted once, after the pause');
+    inp.value = 'Nord'; inp.dispatchEvent(new x.win.Event('input', { bubbles: true }));
+    x.sb.lhHeadSync('contracts');
+    assert.equal(counted, 2);
+    flush();
+    assert.equal(counted, 2, 'a direct recount takes the one waiting');
   });
 });

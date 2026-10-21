@@ -4019,6 +4019,10 @@ function wireShell(){
       if(!here){ setView('register'); }
       else if(window.renderRegisterBody){ renderRegisterBody(); }
       const rs=document.getElementById('reg-search'); if(rs&&rs!==search) rs.value=q;
+      /* ONE FACT, ONE BOX'S WORDS (the owner's Q1, 21 Oct 2026: keep both
+         boxes, never two disagreeing): the list head's box on screen shows
+         the query this box just wrote (js/views/listhead.js) */
+      if(window.lhBoxSet) lhBoxSet();
     });
     /* JAMBO'S MAP (owner, 18 Oct 2026: "wire the map into the top search
        bar"): words no contract matches are a request, not a search — Enter

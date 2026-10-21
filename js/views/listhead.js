@@ -12,8 +12,9 @@
    (lhRegister, at its OWN render time, so the import order of the files never
    matters) and every press here ends in the page's own writer, its own
    repaint and its own place store. The only things held here are transient,
-   like an open pop-up: whether Columns is open, the question being typed in a
-   box (so a repaint never loses it), and what the last press was made with.
+   like an open pop-up: whether Columns is open, a recount asked for while the
+   reader is still typing, and what the last press was made with. The question
+   being typed is held by the box itself, nowhere else (_lhAskingNow).
 
    SEARCH OR QUESTION (the lead's ruling 2): typing narrows the list through
    the page's own query — unless the words read as a QUESTION by a strict
@@ -51,10 +52,6 @@ function lhRegister(seat, spec){
 const _lhPage = seat => (seat != null && Object.prototype.hasOwnProperty.call(LH_PAGES, seat)) ? LH_PAGES[seat] : null;
 const _lhApplied = f => !!f && String(f.cur) !== String(f.def);
 const _lhOptWords = o => (o && typeof o[2] === 'number') ? `${o[1]} (${_lhN(o[2])})` : String((o && o[1]) == null ? '' : o[1]);
-/* TRANSIENT, NEVER KEPT: the question a reader is typing in a seat's box —
-   it narrows nothing, so the page's own query is empty while it stands, and
-   a repaint of the head draws it back rather than losing it */
-const _lhAsking = {};
 let _lhPress = 'key';
 
 /* ---- SEARCH OR QUESTION: THE STRICT TEST ----
@@ -75,6 +72,46 @@ function lhIsQuestion(words){
 }
 
 /* ---- THE BOX ----
+   THE QUESTION BEING TYPED LIVES IN THE BOX ITSELF, never in a store here.
+   It narrows nothing, so the page's own query is empty while it stands, and a
+   repaint of the page draws it back only while that box still stands on the
+   page holding it AND the page's query is still empty: a query written by any
+   other door (the top bar's search, a lander, a chip handed in) wins, and a
+   page left and come back to starts from its own query. */
+const _lhBoxes = seat => (typeof document === 'undefined' || !document.querySelectorAll) ? []
+  : Array.from(document.querySelectorAll(`[data-lh-seat="${_lhSel(seat)}"] input[data-lh-q]`));
+function _lhAskingNow(seat, q){
+  if (q != null && String(q) !== '') return null;
+  const boxes = _lhBoxes(seat);
+  const b = boxes.find(x => x === document.activeElement) || boxes[0];
+  return (b && lhIsQuestion(b.value)) ? b.value : null;
+}
+/* THE ONE WRITER OF WHAT A BOX SHOWS when a door other than the box writes
+   the page's query: every live box of the seat shows those words (default:
+   the page's own query), and a question standing there goes. With no seat
+   (the top bar's search, which knows no seat), every head on the page shows
+   its own page's query, a question left standing only where its page's query
+   is empty. A box already showing the words is not touched, so its caret
+   stays. Returns how many boxes changed. */
+function lhBoxSet(seat, words){
+  let n = 0;
+  const put = (inp, w) => { const v = String(w == null ? '' : w); if (inp.value !== v){ inp.value = v; n++; } };
+  const qOf = pg => (pg && typeof pg.q === 'function') ? String(pg.q() == null ? '' : pg.q()) : '';
+  if (seat != null){
+    const w = words !== undefined ? words : qOf(_lhPage(seat));
+    _lhBoxes(seat).forEach(inp => put(inp, w));
+    return n;
+  }
+  if (typeof document === 'undefined' || !document.querySelectorAll) return 0;
+  document.querySelectorAll('[data-lh-seat]').forEach(head => {
+    const pg = _lhPage(head.getAttribute('data-lh-seat'));
+    if (!pg || typeof pg.q !== 'function') return;
+    const q = qOf(pg);
+    head.querySelectorAll('input[data-lh-q]').forEach(inp => { if (!q && lhIsQuestion(inp.value)) return; put(inp, q); });
+  });
+  return n;
+}
+/* the box itself:
    `input[type=search][data-lh-q]` under the title. The page's own id is kept
    (spec.boxId or o.id: cu-q, dir-q, mn-q …) so its caret-keeping and every
    selector that finds it still work; spec.boxAttrs adds the page's own
@@ -86,11 +123,39 @@ function lhBoxHtml(seat, o){
   const total = (typeof pg.total === 'function') ? pg.total() : null;
   const noun = pg.noun || seat;
   const ph = (typeof total === 'number' && isFinite(total)) ? _lhTn('lh_ph_' + noun, total, { n: _lhN(total) }) : _lhT('lh_box_label');
-  const q = Object.prototype.hasOwnProperty.call(_lhAsking, seat) ? _lhAsking[seat] : ((typeof pg.q === 'function') ? pg.q() : '');
+  const qNow = (typeof pg.q === 'function') ? pg.q() : '';
+  const asking = _lhAskingNow(seat, qNow);
+  const q = asking != null ? asking : qNow;
   const extra = Object.entries(Object.assign({}, pg.boxAttrs || {}, opt.attrs || {}))
     .filter(([k, v]) => /^[a-z][\w-]*$/i.test(k) && v != null && v !== false)
     .map(([k, v]) => v === true ? ` ${k}` : ` ${k}="${_lhE(v)}"`).join('');
   return `<label class="lh-ask" title="${_lhE(_lhT('lh_box_title'))}">${_lhIc('search')}<input type="search" id="${_lhE(id)}" data-lh-q autocomplete="off" spellcheck="false" placeholder="${_lhE(ph)}" value="${_lhE(q == null ? '' : q)}" aria-label="${_lhE(_lhT('lh_box_label'))}"${extra}></label>`;
+}
+
+/* ---- A PAGE'S OWN PARTS STAND ----
+   What a page hands the head as html (lead, right, tabsAfter) and Columns are
+   marked where they stand, with a short hash of the html they were drawn
+   from. lhHeadSync keeps those nodes in place, never moved nor redrawn, while
+   the html is unchanged, so every listener a page bound on its own control
+   (#reg-sort's change, a chip's ×) and the focus on it survive a recount.
+   A part whose html has changed is drawn afresh, and the page's spec.wire
+   (head, parts) is called to bind what it binds per element. */
+const LH_OWN = ['lead', 'right', 'after', 'cols'];
+const LH_PAGE_OWN = ['lead', 'right', 'after'];
+function _lhHash(s){
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
+const _lhOwn = (part, html) => html ? `<!--lh:${part}:${_lhHash(String(html))}-->${html}<!--lh/${part}-->` : '';
+function _lhPartOf(row, part){
+  if (!row || !row.childNodes) return null;
+  const kids = Array.from(row.childNodes), at = 'lh:' + part + ':';
+  const i = kids.findIndex(x => x.nodeType === 8 && x.data.indexOf(at) === 0);
+  if (i < 0) return null;
+  const j = kids.findIndex((x, k) => k > i && x.nodeType === 8 && x.data === 'lh/' + part);
+  if (j < 0) return null;
+  return { start: kids[i], end: kids[j], hash: kids[i].data.slice(at.length), nodes: kids.slice(i + 1, j) };
 }
 
 /* ---- THE TAB ROW ----
@@ -115,7 +180,7 @@ function lhTabsHtml(seat){
   const pg = _lhPage(seat);
   if (!pg || !pg.tabAttr || typeof pg.tabs !== 'function' || typeof insViewTabsHtml !== 'function') return '';
   const views = pg.tabs() || [];
-  const after = lhSavedHtml(seat) + ((typeof pg.tabsAfter === 'function') ? (pg.tabsAfter() || '') : '');
+  const after = lhSavedHtml(seat) + _lhOwn('after', (typeof pg.tabsAfter === 'function') ? (pg.tabsAfter() || '') : '');
   if (!views.length && !after) return '';
   return insViewTabsHtml({ attr: pg.tabAttr, cur: (typeof pg.tabNow === 'function') ? pg.tabNow() : '', label: pg.tabsLabel || '', views, after });
 }
@@ -165,7 +230,7 @@ function lhChipsHtml(seat){
   const lcSeat = pg.lcSeat || seat;
   const cols = LC_PAGES[lcSeat] ? lcBtnHtml(lcSeat) : '';
   if (!lead && !chips && !add && !right && !cols) return '';
-  return `<div class="lh-chips" data-lh-chips>${lead}${chips}${add}<span class="lh-sp"></span>${right}${cols}</div>`;
+  return `<div class="lh-chips" data-lh-chips>${_lhOwn('lead', lead)}${chips}${add}<span class="lh-sp"></span>${_lhOwn('right', right)}${_lhOwn('cols', cols)}</div>`;
 }
 
 /* ---- THE HEAD, IN ONE OF THREE FRAMES (no card inside a card) ----
@@ -189,26 +254,76 @@ function lhHtml(seat, o){
     : `<div class="ph-top lh-top">${opt.title || ''}${opt.facts || ''}<span class="lh-sp"></span>${opt.acts || ''}${opt.seg || ''}</div>`;
   return `<div class="sap-band ph-card lh${cls}" ${at}>${top}${rows}</div>`;
 }
-/* THE NUMBERS FOLLOW THE WORDS, THE CARET STAYS: rewrites ONLY the tab row
-   and the chip row of every head of this seat — never the box — so typing
-   keeps its caret while the counts move. Returns how many heads it found. */
+/* a row that holds a part that stands is patched where it is: the row and the
+   part are never moved (a move would drop the focus), the rest is the fresh row */
+function _lhPatchRow(o, f, kept){
+  Array.from(o.attributes).forEach(a => { if (!f.hasAttribute(a.name)) o.removeAttribute(a.name); });
+  Array.from(f.attributes).forEach(a => { if (o.getAttribute(a.name) !== a.value) o.setAttribute(a.name, a.value); });
+  const parts = {}, stand = new Set();
+  kept.forEach(p => { const r = _lhPartOf(o, p); if (r){ parts[p] = r; [r.start, ...r.nodes, r.end].forEach(x => stand.add(x)); } });
+  Array.from(o.childNodes).forEach(x => { if (!stand.has(x)) o.removeChild(x); });
+  let ref = o.firstChild;
+  const fk = Array.from(f.childNodes);
+  for (let i = 0; i < fk.length; i++){
+    const x = fk[i], m = x.nodeType === 8 ? /^lh:(\w+):/.exec(x.data) : null;
+    if (m && parts[m[1]]){
+      ref = parts[m[1]].end.nextSibling;
+      while (i < fk.length && !(fk[i].nodeType === 8 && fk[i].data === 'lh/' + m[1])) i++;
+      continue;
+    }
+    o.insertBefore(x, ref);
+  }
+}
+/* THE NUMBERS FOLLOW THE WORDS, THE CARET STAYS: redraws ONLY the head's own
+   parts of every head of this seat (its tabs, its chips, "+ Filter") — never
+   the box, and never a page's own part whose html is unchanged (A PAGE'S OWN
+   PARTS STAND, above): a row that holds a part that stands is patched in
+   place, so neither the part nor the row is ever moved. A list left open on a
+   control that has left the page is closed (a pick would set a select nobody
+   hears). Returns how many heads it found. */
 function lhHeadSync(seat){
+  if (_lhSoon[seat] != null){ if (typeof clearTimeout === 'function') clearTimeout(_lhSoon[seat]); delete _lhSoon[seat]; }
   if (typeof document === 'undefined' || !document.querySelectorAll) return 0;
+  const pg = _lhPage(seat);
   let n = 0;
   document.querySelectorAll(`[data-lh-seat="${_lhSel(seat)}"]`).forEach(head => {
-    const kids = Array.from(head.children);
-    const old = kids.filter(el => el.classList.contains('reg-views') || el.classList.contains('lh-chips'));
-    const box = kids.find(el => el.classList.contains('lh-ask'));
+    const kids = Array.from(head.children), row = (list, cls) => list.find(el => el.classList.contains(cls)) || null;
+    const box = row(kids, 'lh-ask'), oT = row(kids, 'reg-views'), oC = row(kids, 'lh-chips');
     const tmp = document.createElement('div');
     tmp.innerHTML = lhTabsHtml(seat) + lhChipsHtml(seat);
-    const anchor = old.length ? old[0] : (box ? box.nextSibling : null);
-    Array.from(tmp.children).forEach(el => head.insertBefore(el, anchor));
-    old.forEach(el => el.remove());
+    const fresh = Array.from(tmp.children), fT = row(fresh, 'reg-views'), fC = row(fresh, 'lh-chips');
+    const inEither = (p, a, b) => _lhPartOf(a, p) || _lhPartOf(b, p);
+    const keptIn = (o, f) => new Set(o && f ? LH_OWN.filter(p => { const a = _lhPartOf(o, p), b = _lhPartOf(f, p); return a && b && a.hash === b.hash; }) : []);
+    const kT = keptIn(oT, fT), kC = keptIn(oC, fC);
+    const redrawn = LH_PAGE_OWN.filter(p => !kT.has(p) && !kC.has(p) && (inEither(p, oT, oC) || inEither(p, fT, fC)));
+    let T = fT;
+    if (kT.size){ _lhPatchRow(oT, fT, kT); T = oT; }
+    else { if (fT) head.insertBefore(fT, oT || oC || (box ? box.nextSibling : null)); if (oT) oT.remove(); }
+    if (kC.size) _lhPatchRow(oC, fC, kC);
+    else { if (fC) head.insertBefore(fC, oC || (T ? T.nextSibling : (box ? box.nextSibling : null))); if (oC) oC.remove(); }
+    if (redrawn.length && pg && typeof pg.wire === 'function') pg.wire(head, redrawn);
     n++;
   });
-  const pg = _lhPage(seat), lcSeat = (pg && pg.lcSeat) || seat;
+  if (typeof selectMenuFor === 'function' && typeof selectMenuClose === 'function'){
+    const open = selectMenuFor();
+    if (open && !open.isConnected) selectMenuClose();
+  }
+  const lcSeat = (pg && pg.lcSeat) || seat;
   if (n && _lcOpen === lcSeat) lcPlace(lcSeat);
   return n;
+}
+/* ONE RECOUNT PER PAUSE IN THE TYPING: every letter narrows the rows through
+   the page's own setQuery at once, but the head's numbers (every tab's count,
+   every filter's choices) are counted again only once the reader has stopped
+   for LH_SYNC_QUIET_MS — the book is walked once per pause, not once per
+   letter. Any direct lhHeadSync takes the one asked for. */
+const LH_SYNC_QUIET_MS = 120;
+const _lhSoon = {};
+function lhHeadSyncSoon(seat){
+  if (typeof setTimeout !== 'function') return lhHeadSync(seat);
+  if (_lhSoon[seat] != null && typeof clearTimeout === 'function') clearTimeout(_lhSoon[seat]);
+  _lhSoon[seat] = setTimeout(() => { delete _lhSoon[seat]; lhHeadSync(seat); }, LH_SYNC_QUIET_MS);
+  return 0;
 }
 
 /* ---- THE FOOT ----
@@ -410,15 +525,11 @@ function _lhInput(e){
   const seat = head.getAttribute('data-lh-seat'), pg = _lhPage(seat); if (!pg) return;
   const w = inp.value;
   const now = (typeof pg.q === 'function') ? String(pg.q() == null ? '' : pg.q()) : '';
-  if (lhIsQuestion(w)){
-    /* a question narrows nothing: the list stands whole while it is typed */
-    _lhAsking[seat] = w;
-    if (now && typeof pg.setQuery === 'function') pg.setQuery('');
-  } else {
-    delete _lhAsking[seat];
-    if (typeof pg.setQuery === 'function') pg.setQuery(w);
-  }
-  lhHeadSync(seat);
+  /* a question narrows nothing: the list stands whole while it is typed, and
+     the box holds it (_lhAskingNow) */
+  if (lhIsQuestion(w)){ if (now && typeof pg.setQuery === 'function') pg.setQuery(''); }
+  else if (typeof pg.setQuery === 'function') pg.setQuery(w);
+  lhHeadSyncSoon(seat);
 }
 function _lhKey(e){
   if (e.key !== 'Enter' || e.isComposing) return;
@@ -430,7 +541,6 @@ function _lhKey(e){
   if (!lhIsQuestion(w)) return;
   e.preventDefault();
   if (!lhAsk(seat, w)) return;              /* said ('warn'); the words stay */
-  delete _lhAsking[seat];
   inp.value = '';
   if (!inp.isConnected) return;
   const now = (typeof pg.q === 'function') ? String(pg.q() == null ? '' : pg.q()) : '';
@@ -487,17 +597,25 @@ if (typeof document !== 'undefined' && document.addEventListener && typeof windo
 /* WHAT A PAGE REGISTERS (lhRegister(seat, spec), at its own render time):
      noun      the placeholder's word: lh_ph_<noun>_one/_other (default: the seat)
      total()   the page's book at rest, for "… across N …"
-     q() / setQuery(words)   the page's OWN query key; setQuery repaints the rows only
+     q() / setQuery(words)   the page's OWN query key; setQuery repaints the rows only.
+               Every OTHER door that writes that key (the top bar's search, a
+               lander, a chip handed in) calls lhBoxSet(seat, words), so the box
+               shows it and a question standing there goes
      boxId, boxAttrs         the box's id and the page's own attributes on it
      tabAttr   the page's existing tab attribute; tabs() → [{k,label,n,keep,title}]
      tab(k) / tabNow() / tabsLabel / tabsAfter()
      saved() → [{id,label,on}], useSaved(id), unsave(id), save()   (Contracts)
      lead()    a chip a door handed the list, drawn first
+     (lead, right and tabsAfter STAND across lhHeadSync while their html is
+      unchanged, listeners and all; one whose html changed is drawn afresh
+      and wire(head, parts) is called, parts naming which: a control whose
+      words follow the list binds there, or is delegated)
+     wire(head, parts)  binds the page's own controls in a part drawn afresh
      filters() → [{k,label,title,cur,def,opts:[[v,label,n]]}]; apply({k:v})
      right()   the page's own controls at the chip row's end
      lcSeat    Columns' seat when it is not the page's own
      more()    Show N more
      ask(text) the page's own Jambo door (answers false when it could not take it) */
 Object.assign(window, { LH_PAGES, lhRegister, lhIsQuestion, LH_ASK_WORDS, LH_ASK_PAIRS, lhBoxHtml, lhSavedHtml, lhTabsHtml, lhChipHtml, lhAddHtml, lhChipsHtml,
-  lhRowsHtml, lhHtml, lhHeadSync, lhFootHtml, lhMore, lhAsk, lhBoxFocus,
+  lhRowsHtml, lhHtml, lhHeadSync, lhHeadSyncSoon, LH_SYNC_QUIET_MS, lhBoxSet, lhFootHtml, lhMore, lhAsk, lhBoxFocus,
   LC_PAGES, LC_CSS, lcKey, lcState, lcSave, lcShown, lcBtnHtml, lcPopHtml, lcPlace, lcRepaint, lcScrollWire });
