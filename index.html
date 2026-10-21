@@ -9955,6 +9955,36 @@
   #ig-dock .pd-og-said{font-size:12px;color:var(--color-neutral-600)}
   #ig-dock .pd-og-row.is-saved td{background:transparent}
   #ig-dock .ds-owed .pd-gl-h .pd-og-all{margin-left:auto;flex:none}
+  /* ---- THE MIDDLE (owner, 21 Oct 2026, "The stage"): what a Dossier line opens stands
+     where the paper was, as one quiet sheet on the desk ground, the Dossier beside it;
+     "‹ Paper" leads the chips under the Dossier while it stands ---- */
+  #ig-dock [data-ig-chips] .pd-mid-back{flex:none;height:var(--ctl-h-sm,28px);padding:0 10px;border:1px solid var(--btn-edge,var(--rule-strong));border-radius:var(--radius);background:var(--color-surface);font:inherit;font-size:12.5px;font-weight:var(--w-strong);color:var(--accent-ink);cursor:pointer;white-space:nowrap}
+  #ig-dock [data-ig-chips] .pd-mid-back:hover{background:var(--accent-wash,var(--surface-2))}
+  #ig-dock [data-ig-chips] .pd-mid-back:focus-visible{outline:2px solid var(--accent-fill);outline-offset:2px}
+  #ig-dock .pd-nd-row.is-mid small,#ig-dock .pd-kt-line.is-mid .ds-when{color:var(--accent-ink);font-weight:var(--w-label)}
+  #ig-dock .pd-kt-line > summary::after{content:'\203A'}
+  [data-pd-mid] .dlg-pg-body{background:var(--desk-ground);padding:20px 24px 32px}
+  [data-pd-mid] .dlg-pg-body > *{max-width:880px;margin:0 auto;background:var(--color-surface);border:1px solid var(--color-divider);padding:20px 24px}
+  [data-pd-mid] .dlg-pg-body > .obd{max-width:1040px}
+  [data-pd-mid] .ag-panel{min-height:0}
+  [data-pd-mid] .ag-p-foot{position:static}
+  [data-pd-mid] .pd-kt-mid-h span{font-family:var(--font-ui);font-size:var(--t-label);color:var(--color-neutral-600);font-weight:var(--w-label)}
+  [data-pd-mid-kt] .pd-og{width:100%;table-layout:fixed;border-collapse:collapse;font-size:13.5px}
+  [data-pd-mid-kt] .pd-og td{padding:10px 12px 10px 0;vertical-align:top;border-bottom:1px solid var(--color-divider)}
+  [data-pd-mid-kt] .pd-og tr:last-child td{border-bottom:0}
+  [data-pd-mid-kt] .pd-og td.pd-og-f{width:44%}
+  [data-pd-mid-kt] .pd-og td.pd-og-a{width:72px;text-align:right;padding-right:0}
+  [data-pd-mid-kt] .pd-og-f b{display:block;font-weight:var(--w-strong);color:var(--color-text)}
+  [data-pd-mid-kt] .pd-og-src{display:block;margin-top:3px;line-height:1.4;font-size:12.5px;color:var(--color-neutral-600);overflow-wrap:anywhere}
+  [data-pd-mid-kt] .pd-og-src q{font-style:italic;color:var(--color-text);quotes:none}
+  [data-pd-mid-kt] .pd-og-cl{border:0;border-radius:3px;padding:0 4px;background:var(--accent-wash,var(--surface-2));font:inherit;font-size:12px;font-weight:var(--w-strong);color:var(--accent-ink);cursor:pointer;white-space:nowrap}
+  [data-pd-mid-kt] .pd-og-cl:hover{text-decoration:underline}
+  [data-pd-mid-kt] .pd-og-in{width:100%;min-width:0;height:var(--ctl-h-sm,28px);border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:0 8px;font:inherit;font-size:13px;color:var(--color-text)}
+  [data-pd-mid-kt] .pd-og-in+.pd-og-in{margin-top:4px}
+  [data-pd-mid-kt] textarea.pd-og-in{height:auto;min-height:44px;padding:4px 8px}
+  [data-pd-mid-kt] .pd-og-ok{border:0;background:none;padding:2px 0;font:inherit;font-size:13px;font-weight:var(--w-strong);color:var(--accent-ink);cursor:pointer}
+  [data-pd-mid-kt] .pd-og-ok:hover{text-decoration:underline}
+  [data-pd-mid-kt] .pd-og-ok:focus-visible{outline:2px solid var(--accent-fill);outline-offset:2px;border-radius:var(--radius)}
   #ig-dock .ds-owed .pd-gl-h .ds-when{flex:1}
   #ig-dock .ds-go{flex:none;border:0;background:none;padding:2px 0;font:inherit;font-size:12.5px;font-weight:var(--w-strong);color:var(--accent-ink);cursor:pointer;white-space:nowrap}
   #ig-dock .ds-go:hover:not(:disabled){text-decoration:underline}
@@ -11616,11 +11646,23 @@
   .pd-th .stk-mk.is-done{color:var(--st-green-fg);font-weight:var(--w-label)}
   .pd-th .stk-ring{display:inline-block;flex:none;width:12px;height:12px;box-sizing:border-box;border-radius:50%;border:1px solid var(--rule-strong);background:var(--color-surface)}
   .pd-th .stk-ring.is-on{background:var(--st-green-dot);border-color:var(--st-green-dot)}
-  /* WHAT THE CONTRACT DOES NOT SAY, IN PLACE: a dashed row after its clause, its card always open */
-  .pd-th .stk-miss{position:relative;margin:4px 6px 6px 24px;padding:8px 10px 2px;border:1px dashed var(--rule-strong);border-radius:var(--radius-lg)}
+  /* WHAT THE CONTRACT DOES NOT SAY, IN PLACE: a row after its clause, its indent and its grey label */
+  /* NO DOTTED LINES IN THE CLAUSES (the owner, 21 Oct 2026): the dashed box
+     and the "Other points" solid box are both gone — a border-style with no
+     width of its own would draw 3px, so BOTH declarations go, not one. The
+     cards' 2px coloured left edge (.stk-card::before) is untouched. */
+  .pd-th .stk-miss{position:relative;margin:4px 6px 6px 24px;padding:8px 10px 2px}
   .pd-th .stk-miss .stk-miss-h{padding:0;font-size:var(--t-label);line-height:16px;font-weight:var(--w-label);color:var(--color-neutral-600)}
   .pd-th .stk-miss .stk-line.stk-card{margin:0}
-  .pd-th .stk-miss.is-other{border-style:solid;border-color:var(--color-divider)}
+  /* ==== THE GROUP'S OWN OPEN AND CLOSE (21 Oct 2026) ====
+     Its head IS the control, so nothing in the Clauses list is uncloseable:
+     a button wearing the label's own clothes (the head was a div), underlined
+     on hover like every other word-door in this panel. */
+  .pd-th .stk-miss .stk-miss-h{display:block;width:100%;text-align:left;border:0;background:none;font-family:inherit;cursor:pointer}
+  .pd-th .stk-miss .stk-miss-h:hover{text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--rule-strong)}
+  .pd-th .stk-miss .stk-miss-h:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:2px}
+  .pd-th .stk-miss:not(.is-open) .stk-miss-body{display:none}
+  .pd-th .stk-miss:not(.is-open){padding-bottom:8px}
   /* A POINT'S BOX SHOWS ONLY UNDER THE OPEN CLAUSE (owner, 13 Oct 2026: "only … once you click on the clause header") */
   .pd-th .doc-th-row:not(.is-open) > .stk-line, .pd-th .stk-miss-row:not(.is-open) .stk-line{display:none}
   /* THE DOT WEARS ITS CLAUSE'S WORST POINT (owner, 13 Oct 2026) */
@@ -12697,12 +12739,12 @@
   @keyframes aiPulse{0%,100%{box-shadow:0 0 0 0 rgb(var(--color-accent-600-rgb)/.6);}50%{box-shadow:0 0 0 8px rgb(var(--color-accent-600-rgb)/0);}}
   #ai-scrim{opacity:0;pointer-events:none;transition:opacity var(--dur-3);}
   #ai-scrim.open{opacity:1;pointer-events:auto;}
-  /* ==== JAMBO SLIDES IN BESIDE THE PAGE · THE ✦ ASK BAR · POP OUT (owner, 21 Oct 2026; js/ai.js
-     aiSideSync, aiBarToggle, aiPopOut) ====
+  /* ==== JAMBO SLIDES IN BESIDE THE PAGE · POP OUT (owner, 21 Oct 2026; js/ai.js
+     aiSideSync, aiPopOut) ====
      On a computer the window is a side panel wearing THE BRIEF: 384 wide under the top bar, the head
      and the foot 56, its tab a word (the ✦ and "Jambo", the live tab's rule under them), nothing boxed;
      the page beside it dimmed by the scrim under the bar (the ONE PANEL convention), never reflowed.
-     The ✦ drops one line under the bar, centred, over everything, the side panel included. Popped out,
+     The ✦ opens the movable chat window instead (below; the one-line ✦ bar is gone). Popped out,
      the same nodes stand in a window of their own (.is-popped). Scoped by id and class, never !important. */
   @media (min-width:768px){
     #ai-scrim{top:var(--shell-head-h,48px)}
@@ -12728,14 +12770,48 @@
   }
   /* each answer says what it read (aiReadFrom) */
   #ai-feed .ai-read{font-size:var(--t-label);line-height:16px;color:var(--color-neutral-600)}
-  /* THE ✦ ASK BAR: one line under the bar, centred */
-  .jb-bar{position:fixed;top:calc(var(--shell-head-h,48px) + 8px);left:50%;transform:translateX(-50%);width:min(640px,calc(100vw - 32px));z-index:60}
-  .jb-bar > .jb-card{box-sizing:border-box;min-height:40px;box-shadow:var(--shadow-lg)}
-  /* with the side panel in, the bar is centred over the page beside it, never over the panel */
-  @media (min-width:768px){ body.ai-side-open .jb-bar{left:calc((100vw - 384px) / 2);width:min(640px,calc(100vw - 384px - 32px))} }
-  .jb-bar > .jb-card:focus-within{box-shadow:0 0 0 3px var(--color-accent-100),var(--shadow-lg)}
-  .jb-bar .jb-bar-here{flex:none;white-space:nowrap;margin:0 8px}
-  /* the "/" list of a box on the bar or in the side panel stands over both */
+  /* ---- THE ✦ OPENS THE CHAT WINDOW, ONE YOU CAN MOVE AND RESIZE (owner, 11 Oct 2026; back on
+     21 Oct 2026, "The old chat window"; ai.js aiFloat*, aiWinToggle) ----
+     Desktop only. Its place and size are set inline from the reader's own
+     stored box; the limits are kept by aiFloatClamp, never by CSS. Closed, it
+     is simply not shown where it stands. It never steps aside: it opens beside
+     a page's own Jambo too. The dock button shows only once it has been moved
+     off the right edge. (.expanded carries !important, so its override must.) */
+  #ai-panel.floating,#ai-panel.floating.expanded{right:auto;bottom:auto;max-width:none!important;transition:none;transform:none}
+  #ai-panel.floating:not(.open){transform:translateX(200vw);pointer-events:none}   /* closed: off the screen, as the drawer always was */
+  #ai-panel.floating:not(.ai-float-home){border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden;box-shadow:0 18px 50px rgba(9,25,56,.24),0 2px 6px rgba(9,25,56,.1)}
+  #ai-panel.floating > header{cursor:grab;touch-action:none;user-select:none}
+  #ai-panel.floating.ai-float-busy > header{cursor:grabbing}
+  #ai-panel.ai-float-busy{user-select:none}
+  #ai-panel #ai-dock-home{display:none}
+  #ai-panel.floating:not(.ai-float-home) #ai-dock-home{display:grid}
+  /* the line under the name stays one line in the window, cut with an ellipsis */
+  #ai-panel.floating > header > .flex-1{min-width:0}
+  #ai-panel.floating #ai-brain-sub{white-space:nowrap;overflow:hidden}
+  #ai-panel.floating #ai-brain-sub > span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  /* The window's own size decides how much its header and foot may carry —
+     measured on the window, not the screen (the screen's narrow rules below
+     are for a drawer as wide as a phone). */
+  #ai-panel.floating{container-type:size;container-name:aiwin}
+  @container aiwin (max-width: 419px){   /* below the drawer's own 430 */
+    #ai-panel > header{padding:var(--s-3);gap:var(--s-2)}
+    #ai-panel > header button{width:28px;height:28px}
+    #ai-panel > header > :first-child{display:none}
+    #ai-panel > header > .flex-1 > div:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    #ai-brain-sub{display:none}
+    #ai-feed,#ai-panel > footer,#ai-suggest{padding-left:var(--s-3);padding-right:var(--s-3)}
+  }
+  @container aiwin (max-height: 560px){ #ai-suggest{display:none} }
+  #ai-panel .ai-rz{display:none;position:absolute;z-index:3;touch-action:none}
+  #ai-panel.floating .ai-rz{display:block}
+  #ai-panel .ai-rz-n,#ai-panel .ai-rz-s{left:12px;right:12px;height:8px;cursor:ns-resize}
+  #ai-panel .ai-rz-n{top:-3px} #ai-panel .ai-rz-s{bottom:-3px}
+  #ai-panel .ai-rz-e,#ai-panel .ai-rz-w{top:12px;bottom:12px;width:8px;cursor:ew-resize}
+  #ai-panel .ai-rz-e{right:-3px} #ai-panel .ai-rz-w{left:-3px}
+  #ai-panel .ai-rz-ne,#ai-panel .ai-rz-nw,#ai-panel .ai-rz-se,#ai-panel .ai-rz-sw{width:16px;height:16px}
+  #ai-panel .ai-rz-ne{right:-3px;top:-3px;cursor:nesw-resize} #ai-panel .ai-rz-sw{left:-3px;bottom:-3px;cursor:nesw-resize}
+  #ai-panel .ai-rz-nw{left:-3px;top:-3px;cursor:nwse-resize} #ai-panel .ai-rz-se{right:-3px;bottom:-3px;cursor:nwse-resize}
+  /* the "/" list of a box in the side panel or the window stands over both */
   body > #ca-slash{z-index:61}
   /* POPPED OUT: the conversation and the card fill a window of their own */
   #ai-panel.is-popped{position:static;transform:none;width:100%;max-width:none;height:100vh;display:flex;flex-direction:column;box-shadow:none;border:0;background:var(--color-surface)}
@@ -15878,6 +15954,40 @@
   /* the signer's three boxes: a small label over each, 8 between one box and the next label */
   #ig-dock #pd-og .pd-og-ml{display:block;margin-top:4px;font-size:var(--t-label);line-height:16px;font-weight:var(--w-label);color:var(--color-neutral-600)}
   #ig-dock #pd-og .pd-og-ml:first-child{margin-top:0}
+  /* ==== THE SIGNER ROW, THE SAP WAY (the owner picked it by name, 21 Oct 2026) ====
+     "adding signer should be next to the signers area not at the bottom … it should be possible
+     that you can add without being taken to a different page unless there is a pop up … I should
+     also be able to search within our directory." Each signer name box is a SEARCH box over the
+     directory; its quiet list FLOATS over the rows under it (it never pushes them down) in HaTi's
+     own list dress (.hati-selmenu's white, hairline and radius-lg), flipped above the box where
+     the panel has no room below. "Order the signing ›" sits under Confirm on the row's head line:
+     the row's one pop-up, and the only door left from here to the route editor. */
+  #ig-dock #pd-og tr[data-pd-og-kind="signer"] td.pd-og-a{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+  #ig-dock #pd-og tr[data-pd-og-kind="signer"] td.pd-og-v{overflow:visible}
+  #ig-dock #pd-og .pd-og-order{border:0;background:none;padding:0;font:inherit;font-size:var(--t-meta);line-height:16px;color:var(--color-neutral-600);cursor:pointer;white-space:nowrap}
+  #ig-dock #pd-og .pd-og-order:hover{color:var(--accent-ink);text-decoration:underline}
+  #ig-dock #pd-og td.pd-og-v > .pd-og-sb{position:relative;width:100%;min-width:0}
+  #ig-dock #pd-og .pd-og-sb > .pd-og-in{width:100%;margin-top:0;padding-right:26px}
+  #ig-dock #pd-og .pd-og-sb > .pd-og-in:not(textarea){height:var(--ctl-h-sm,28px)}
+  #ig-dock #pd-og .pd-og-sb-g{position:absolute;right:7px;top:50%;margin-top:-7px;color:var(--color-neutral-500);pointer-events:none}
+  #ig-dock #pd-og .pd-og-dd{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;
+    max-height:min(50vh,296px);overflow:auto;overscroll-behavior:contain;padding:4px;
+    background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);
+    box-shadow:0 10px 28px color-mix(in srgb,var(--color-text) 16%,transparent)}
+  #ig-dock #pd-og .pd-og-dd.is-up{top:auto;bottom:calc(100% + 4px)}
+  #ig-dock #pd-og .pd-og-dd-row{display:flex;align-items:center;gap:8px;width:100%;box-sizing:border-box;min-width:0;
+    padding:5px 8px;border:0;border-radius:var(--radius);background:none;font:inherit;font-size:var(--t-label);
+    line-height:16px;color:var(--color-text);text-align:left;cursor:pointer}
+  #ig-dock #pd-og .pd-og-dd-row + .pd-og-dd-row{margin-top:1px}
+  #ig-dock #pd-og .pd-og-dd-row:hover, #ig-dock #pd-og .pd-og-dd-row.on{background:var(--nav-well)}
+  #ig-dock #pd-og .pd-og-av{flex:none;width:24px;height:24px;display:inline-grid;place-items:center;border-radius:50%;
+    border:1px solid var(--rule-strong);background:transparent;color:var(--color-neutral-600);font-size:10.5px;font-weight:var(--w-title)}
+  #ig-dock #pd-og .pd-og-dd-t{display:flex;flex-direction:column;min-width:0;flex:1 1 auto}
+  #ig-dock #pd-og .pd-og-dd-n{min-width:0;overflow-wrap:anywhere}
+  #ig-dock #pd-og .pd-og-dd-n b{font-weight:var(--w-strong)}
+  #ig-dock #pd-og .pd-og-dd-sub{color:var(--color-neutral-600)}
+  #ig-dock #pd-og .pd-og-dd-e{font-size:var(--t-meta);line-height:15px;color:var(--color-neutral-600);overflow-wrap:anywhere}
+  #ig-dock #pd-og .pd-og-sg-add{align-self:flex-start;margin-top:2px}
   /* a saved row is ONE line: label · the chip, whole where it fits · "saved" */
   #ig-dock #pd-og tr.pd-og-row.is-saved, #ig-dock #pd-og-held tr.pd-og-row.is-saved{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"f v a";align-items:center}
   #ig-dock #pd-og tr.is-saved td.pd-og-v, #ig-dock #pd-og-held tr.is-saved td.pd-og-v{margin-top:0;flex-direction:row;justify-content:flex-end}
@@ -16671,6 +16781,7 @@
       <div class="ai-head-name">Jambo</div>
       <div id="ai-brain-sub" class="text-[11px] flex items-center gap-1.5" style="color:var(--color-neutral-600);"><span class="h-1.5 w-1.5 rounded-full live-dot" style="background:var(--st-green-dot);"></span><span data-i18n="ai_searching_live">Searching your live contract data</span></div>
     </div>
+    <button id="ai-dock-home" title="Back to the right edge" data-i18n-title="ai_dock_home" aria-label="Back to the right edge" class="h-8 w-8 grid place-items-center rounded transition ai-head-btn" style="color:var(--color-neutral-600);"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg></button>
     <!-- POP OUT (owner, 21 Oct 2026): Jambo in a window of his own that stays on top of Word (ai.js aiPopOut); drawn only on a computer with a mouse (aiPopMay) -->
     <button id="ai-popout" type="button" hidden title="Pop out — keep Jambo on top of other windows" data-i18n-title="ai_pop_out_tip" aria-label="Pop out" data-i18n-aria="ai_pop_out" class="h-8 w-8 grid place-items-center rounded transition ai-head-btn" style="color:var(--color-neutral-600);"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 2.5h4v4"/><path d="M13.5 2.5 8 8"/><path d="M12 9.5v3a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3"/></svg></button>
     <button id="ai-expand" title="Expand the panel" data-i18n-title="ai_expand_panel" class="h-8 w-8 grid place-items-center rounded transition ai-head-btn" style="color:var(--color-neutral-600);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5"/><path d="M18 17l-5-5 5-5"/></svg></button>

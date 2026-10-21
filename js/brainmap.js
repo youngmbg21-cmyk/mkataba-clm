@@ -298,8 +298,8 @@ const BRAIN_PARTS = [
   ['briefword', 'caBriefOpen', 'ai', 1],
   /* Jambo's panel beside the lists (18 Oct 2026): its box reads as the Counter's — a place, the map, else a question said in the panel */
   ['listask', 'jlAsk', 'ai', 0],
-  /* Jambo everywhere (owner, 21 Oct 2026): the ✦ ask bar on any page, read by the one reader then asked of the Jambo on the page or the side panel; Pop out keeps the conversation on top of Word; "What am I looking at?" says the screen free */
-  ['askbar', 'aiAskFromBar', 'ai', 0],
+  /* Jambo everywhere (owner, 21 Oct 2026): the ✦ opens the chat window on any page, answering in itself ("The old chat window", reversing the ✦ ask bar); Pop out keeps the conversation on top of Word; "What am I looking at?" says the screen free */
+  ['askbar', 'aiWinToggle', 'ai', 0],
   ['jambopop', 'aiPopOut', 'ai', 0],
   ['jambohere', 'aiHereSays', 'ai', 0],
   /* Jambo, as recommended (owner, 21 Oct 2026): an answer about one contract carries Show me › and one prepared press through the act's own door; a sentence becomes a standing watch the person starts, the server's sweep tells them once (js/jambopress.js) */

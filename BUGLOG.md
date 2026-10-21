@@ -21267,9 +21267,57 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - riskViewOpen still lands on the worst OLD mark, not the worst point.
 - The deep dive leaves its quote pinned on the paper after Back; its head band wears ten section hues outside Chambers.
 
+## Noticed, not fixed (21 Oct 2026, design round on the Import pop-up and the Dossier's folds)
+- Import their response: the pop-up changes size when you press the other tab (520x289.58 on Response code, 520x278.14 on Marked-up Word file, measured identically at 1440x780, 1536x730 and 1366x950); because it is centred, the frame and the Cancel button move about 6px under the hand. A third size (294.94) appears once a file is chosen and #imp-docx-note fills. The owner asked for one size; drawn only, nothing built.
+- Import their response: on the Marked-up Word file tab the Import button is not drawn at all, so the foot offers only Cancel.
+- Import their response: a chosen Word file is read, filed, logged and the pop-up closed the instant it is picked - no confirmation and no Undo.
+- Import their response: the response-code box carries a resize grip, a second way the frame's size changes.
+- Import their response: on an executed contract the refusal is a small grey line that appears in the Word pane only after a file has been chosen; the pop-up never says so beforehand.
+
+## Noticed, not fixed (21 Oct 2026, the owner's five-point review of the Dossier and Clauses)
+- A NUMBERED CLAUSE LEFT BLANK IS DRAWN AS A SECTION TITLE AND BECOMES UNREACHABLE: docReadSheet (js/views/contract.js:13738) marks a heading with no text `kind:'section'`, so docThreadIsSec is true, stkNumsOf (js/views/breakdown.js:115) blanks its number, docThreadRowHtml draws a bare `.doc-th-sec` with no `[data-th-go]`, no bead and no body, and no point can sit on it. Reproduced on a fixture (a numbered h2 with no p before the next numbered h2).
+- THE SAME FAULT MIS-FILES ITS OWN FINDING: POST /api/ai/breakdown (server/server.js:9103) forces `missing` whenever `clause` is blank and wipes `clause`, and the tool schema offers no state for "the clause is there but empty"; stkReview's afterAt then puts "clause 2 is blank" in the group "After §1 - not in the contract", above the clause it names, and the words are untrue. Naming clause 2 instead drops the card into "Other points" at the foot (measured both ways).
+- A CLAUSE ROW CANNOT BE CLOSED: docThreadOpen (contract.js:15441) returns on `i===_docThreadOn` and no caller ever passes -1, so exactly one row is always open; docThreadFollowArm (contract.js:14997) opens whichever clause reaches the paper's line on scroll, so a clause scrolled past becomes the open one and is then immune to a press. 40 presses stress-tested: no swallowed press, the machinery is sound - this is the design. The `.stk-miss` groups carry no toggle at all.
+- The Still owed boxes use --ctl-h-sm (22px, index.html:681) with 12.5px text, written `var(--ctl-h-sm,28px)` so the rule reads as 28; rows are 8px apart and a micro-label sits 4px under the box above. A 22px target on the owner's iPad.
+- The "Still owed - {n}" card also carries work rows that are not owed facts (pdNeedsRows via dossierOwed: Jambo's prepared work, "N changes not sent", a late obligation, a note of yours), counted in the same n; its own sub-line says "everything, one list".
+- Nothing in Key terms writes to the wording: every pdKtFacts row is kind kt/ktm/nda, the record only. Only ruled blanks and a template's questions reach the paper, and those are in Still owed. The screen never says so.
+- "All acts - draft from our standards, edit clause, add a clause... 19" (dos_all_acts) and "Acts - {stage}" (dos_acts) both use a word the owner says means nothing; the Menu tab was retired into that fold.
+
+## Noticed, not fixed (21 Oct 2026, the owner's "nonsensical flow" - Jambo's work from a contract's Dossier)
+- THE LANDER RINGS THE WRONG THING: hbOpenAgent (js/views/homeboard.js:5519) targets `[data-hb-ag-item=<key>]` else `.hb-ag-works` else `#hm-agents`, and hbAgentWorkHtml caps the list at HB_AG_WORK_MAX = 8 (:5374) without raising _hbAgMore for the named piece. When the piece is past the cap its element is never in the DOM, so landOn lights the WHOLE list of eight other contracts, `opts.missing` is never reached and nothing is said. Measured at 13 pieces: the ring is a 988x462 box around eight rows, none of them the contract the reader came from; it holds for 12s. Where the piece IS drawn the ring lands correctly but is a 2px outline among hairlines, and `.is-landed-held` never appears in either case.
+- "Show N more" extinguishes the ring (landOff on pointerdown) and the wanted row then paints below the fold with nothing marking it; the rows also expand under the stationary cursor, where the control at that point is another piece's "Put away" (a discard).
+- "Open Details" opens Overview: agRunAct 'overview' -> agGo('terms') (js/views/agents.js:2507, :1333); ROOM_TABS_HOME (js/views/contract.js:5652) has no 'terms' key, so roomTabHome returns false and it falls through to openWorkspace -> roomRetiredLand -> hbStripBring(id,'ov'). Three different pages are involved and the label names none of them.
+- The same panel is "Dossier" beside the paper and "Overview" beside the Board's card, and beside the card it loses its Clauses and Obligations tabs.
+- "Look" and "Put away" are both `button.ui-link`: 13px accent text, no border, no background, no underline, differing from body text by hue alone and indistinguishable from each other; the act button beside them is a bordered white box. One opens, the other discards.
+- A piece row names its contract only by a 12px weight-400 warm-grey reference third on the line; the contract's name and stream are not on the row at all, so thirteen rows reading "Read on arrival: a brief and 2 details to fill." are told apart by that reference and the party name alone.
+- The journey is circular: the Dossier's row borrows the Board's cross-contract door (pdNeedRowHtml -> hbOpenAgent), and three presses later the reader is on the same contract with the same Still owed card, including the same "See it" row they pressed.
+
+## Noticed, not fixed (21 Oct 2026, building the Signer row the SAP way)
+- Jambo's panel: the strip of links at its foot (fill in · redline · share · history) is painted OVER the last ~40px of a long card rather than above it. With the Signer row one line taller, "Fill the document" at the bottom of the scroll sits under the strip and a press there lands on a chip - seen while running fill-the-document-verify. The feed wants bottom padding the strip's height; not touched.
+- paper-panel-as-drawn-verify is red at the base in five checks - 1b "Still owed counts it with its rows", 1e and 1f (the Needs you redlines row before/after the standard), 2d "nobody named to sign: Signer - nobody named yet - Name" and 2f "Still owed: the signer, then their asks". Proven against an unmodified worktree at 3b601675.
+- A directory contact the record holds an address for but no name is listed in the signer search box under their address, because that is all dirBook has for them ("procurement@kabras.co.ke - Kabras Sugar"). Nothing invented to fill it.
+- CLAUDE.md was 80.7 KB before this change and 81.6 KB after (two MAP lines for the signer row and the No trips rule), above its 80 KB line; a trim needs the owner's yes.
 ## 21 Oct 2026 — one conversation, the report simplified, why first
 - Removed (owner's picks, said to the owner): the Board report's stage bar, id line, five tiles, tall chart, obligations table and four Jambo tiles; the Dossier's grey lines under owed facts and "everything, one list"; the risk card's "Brief · …" line; the arrival light (pulse and ring) and the doors' own arrival flashes.
 - Noticed, not fixed: the Dossier's What Jambo read says "Risks to look at · not read yet" while the brief on file holds watch-outs the Board counts as risks (dossierRead reads c.scan only).
 - Noticed, not fixed: What Jambo read can say "0 Obligations found · 11 recorded" (found counts held readings only); the Board's report counts the larger of the two.
 - Noticed, not fixed: board-strip-verify's 6a clicks `.bs-sec-h [data-bs-page="details"]`, which an admin never sees (their Key terms door is Change beside the paper) — red on main too.
 - Noticed, not fixed: CLAUDE.md is 81.6 KB, over the ~80 KB rule; a trim needs the owner's yes.
+
+## 21 Oct 2026 — the ✦ opens the old chat window
+- Removed (owner's pick "The old chat window", said to the owner): the one-line ✦ ask bar under the top bar.
+- Noticed, not fixed: on Home, "What am I looking at?" typed into Home's own Jambo box answers "The board could not draw that…" instead of the free on-screen reading the side panel gives.
+
+## Noticed, not fixed (21 Oct 2026, the Clauses tab round)
+- Clauses tab CSS: .stk-miss-bead, .stk-miss-row and .stk-miss-t in index.html are drawn by nothing (no js writes those classes); the bead rule still carries a 2px dashed border that never reaches a screen. Left alone.
+- .doc-xr-who.is-limit keeps a 1px dashed border. It is only drawn in the room's clause drawer ("Who does what"), never in Jambo's Clauses tab on Home, so the owner's "no dotted lines in the clauses" does not reach it. Left alone.
+- .pd-th .stk-tally and .pd-th .stk-door are now unreferenced CSS (the count line is retired by not being drawn). Left in place, house style.
+- A breakdown reading kept before 21 Oct 2026 still carries missing:true for a clause that is merely blank, so on those contracts that finding stays in the "After N" group until the wording changes and Jambo reads again; a "Mark reviewed" tick made against that old shape does not carry to the new one (the point's key changes).
+- Red at 826e87cb, not this round's: stakes-verify 8 and home-paper-clauses-verify 3a/3b (Home's panel draws copilot, doc, oblig - the `menu` tab those checks expect is absent); point-buttons-and-brief-verify 6a ("at a glance" carries a Contract briefing button); uploaded-contract-fixed-verify 4a/4b (the "Who else" row).
+- CLAUDE.md was 82.7 KB before this change and 83.8 KB after (three MAP lines for the clause faults and the lines removed), well above its 80 KB line; a trim needs the owner's yes.
+## 21 Oct 2026 — the middle (what a Dossier line opens comes to you)
+- Removed (owner's pick "The stage", said to the owner): Key terms' fold of lines down the Dossier on a computer (one line now, the table in the middle); "See it"'s trip to the Board's Jambo's work list from the Dossier; the Open Details act on a piece shown in the middle.
+- Noticed, not fixed: the piece panel's foot draws "Mark as read" and "Put away" alike as plain links side by side, though Put away takes the piece off the list.
+- Noticed, not fixed: every-door-lands-on-home-verify fails the same 12 doors (expecting the retired "Fill in beside the paper" face) at main 85e9567 and on the branch.
+- Noticed, not fixed: CLAUDE.md is 82.6 KB, over the ~80 KB rule; a trim needs the owner's yes.
+- Noticed, not fixed: paper-panel-as-drawn-verify fails the same 6 checks (1b, 1e, 1f, 2d among them) on main b2e178f and on the branch after bringing main in.

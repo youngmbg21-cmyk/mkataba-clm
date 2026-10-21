@@ -4118,9 +4118,10 @@ function wireShell(){
      button are the same act; delegated on a marker rather than bound to each,
      so a third door added later needs no third listener. */
   document.addEventListener('click',e=>{
-    /* THE BAR'S ✦ DROPS THE ASK BAR, on any page, the side panel open or not
-       (owner, 21 Oct 2026; ai.js aiBarToggle); pressed again it closes */
-    if(e.target.closest?.('#cmd-ai')){ aiBarToggle(); return; }
+    /* THE BAR'S ✦ OPENS JAMBO'S CHAT WINDOW, on any page, beside a page's own
+       Jambo too (owner, 21 Oct 2026, "The old chat window"; ai.js aiWinToggle);
+       pressed again it closes */
+    if(e.target.closest?.('#cmd-ai')){ aiWinToggle(); return; }
     if(e.target.closest?.('[data-copilot-proxy]')) openAI();
   });
   /* THE WORKSPACE-STATUS FOOT FOLDS (owner-asked 20 Aug 2026): the handle

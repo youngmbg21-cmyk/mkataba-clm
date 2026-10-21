@@ -55,7 +55,11 @@ const MEASURE = () => {
     return { text: el.value, need: Math.round(textW(el, el.value || '')), have: Math.round(have), whole: textW(el, el.value || '') <= have + 1 && el.scrollWidth <= el.clientWidth + 1 }; };
   const chip = grid.querySelector('tr[data-pd-og-row="stream"] .pd-og-done');
   const sg = k => grid.querySelector(`[data-pd-og-sg="${k}"]`);
-  const labelOver = el => { const p = el && el.previousElementSibling; return p && p.classList.contains('pd-og-ml') ? p.textContent.trim() : null; };
+  /* RE-POINTED 21 Oct 2026: the two name boxes are search boxes over the directory now
+     (the owner's "The SAP way" signer row), so each sits inside its own .pd-og-sb — the
+     label still stands immediately above the box, which is what this reads. */
+  const labelOver = el => { const w = el && el.closest ? (el.closest('.pd-og-sb') || el) : el;
+    const p = w && w.previousElementSibling; return p && p.classList.contains('pd-og-ml') ? p.textContent.trim() : null; };
   const acts = [...grid.querySelectorAll('[data-pd-og-ok], [data-pd-og-go]')].map(b => ({ k: b.getAttribute('data-pd-og-ok') || b.getAttribute('data-pd-og-go'), right: Math.round(b.getBoundingClientRect().right) }));
   /* anything with its own words in the card that runs past the panel's right edge */
   const past = [];

@@ -98,14 +98,17 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
          three filters; the summary, the ribbon and its key are gone. Each box
          lists only what this contract's points hold. */
       /* RE-POINTED 21 Oct 2026 (owner said yes to "the Legora way"): the head
-         is "Clause review" and its three counts (stk-tally), still no ribbon or key */
+         is "Clause review", still no ribbon or key */
+      /* RE-POINTED AGAIN 21 Oct 2026 (the owner, of the three-count line:
+         "remove the highlighted area as it is redundant"): the count line is
+         GONE and the Severity box still filters by the same three (3c). */
       const e2 = await page.evaluate(() => ({ count: (document.querySelector('#pd-thread .stk-view') || {}).innerText || '',
-        tally: [...document.querySelectorAll('#pd-thread .stk-tally [data-stk-sev]')].map(b => b.textContent.trim()).join('|'),
+        tally: !!document.querySelector('#pd-thread .stk-tally, #pd-thread [data-stk-sev]'),
         boxes: [...document.querySelectorAll('#pd-thread .stk-flt')].map(l => (l.querySelector('span') || {}).innerText),
         gone: !document.querySelector('#pd-thread .stk-ribbon, #pd-thread .stk-legend, #pd-thread .stk-sum') }));
       const o2 = await page.evaluate(() => Object.fromEntries(['reg', 'sev', 'by'].map(k => [k, [...document.querySelectorAll(`#pd-thread [data-stk-f="${k}"] option`)].map(o => o.value).join(',')])));
       ok('2 the head says the points and draws three filters, no summary, ribbon or key',
-        /^Clause review/.test(e2.count) && e2.tally === '1 needs you|2 worth a look' && e2.boxes.join('|') === 'Section|Severity|Found by' && e2.gone
+        /^Clause review/.test(e2.count) && e2.tally === false && e2.boxes.join('|') === 'Section|Severity|Found by' && e2.gone
         && o2.reg === ',1,2' && o2.sev === ',need,look' && o2.by === ',jambo,std', JSON.stringify({ e2, o2 }));
 
       const e3 = await page.evaluate(() => {
@@ -137,10 +140,12 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
         && f1.onlyKept && f1.shown <= 2 && f1.focus === 'by', JSON.stringify(f1));
       await pick('by', '');
       await pick('sev', 'need');
-      const f2 = await page.evaluate(() => { const d = document.querySelector('#pd-thread [data-stk-sev="need"]');
-        return { door: d ? d.getAttribute('aria-pressed') : null, lines: document.querySelectorAll('#pd-thread .stk-line').length }; });
-      /* RE-POINTED 21 Oct 2026: the filter's choice shows on its door in the head (the "need you" count, pressed) */
-      ok('3c Severity: Needs you keeps only what needs us', f2.door === 'true' && f2.lines === 1, JSON.stringify(f2));
+      const f2 = await page.evaluate(() => { const b = document.querySelector('#pd-thread [data-stk-f="sev"]');
+        return { box: b ? b.value : null, lines: document.querySelectorAll('#pd-thread .stk-line').length }; });
+      /* RE-POINTED 21 Oct 2026 (the count line removed on the owner's word):
+         the filter's choice shows on the Severity box itself, which is now the
+         one door onto the three. */
+      ok('3c Severity: Needs you keeps only what needs us', f2.box === 'need' && f2.lines === 1, JSON.stringify(f2));
       await pick('sev', '');
       /* 3d A POINT'S SECTION IS READ OFF ITS CLAUSE when Jambo named none (owner,
          13 Oct 2026: "the Region which we should call Section"): the standards

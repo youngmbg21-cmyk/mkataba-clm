@@ -71,7 +71,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - jambo-moves-and-opens verify.
 - f841, f842, guide-panel verify.
 - f96, f187, f238, f240, f251, f264, f284, f449, f543, f672, f679, f706, f735–f737, home-and-recent, jambo-everywhere, answer-where-you-stand, show-it-here-first, jambo-window-follows-the-ask, alerts-and-activity, home-page, pages-read-alike, language-switch-stays, jambo-pill-and-window verify.
-- jambo-slides-in-verify (the side panel, the ✦ ask bar, plain only, conversation across pages, here chip, paste, ONE DOOR, Pop out with PiP stubbed and absent, touch; 22 red at d7a320c2); f107 (plain only), f88, f97, f631 re-pointed; jambo-pill-and-window 4–7, every-jambo-box 1b, jambos-list-panel 10h, phone (384) re-pointed.
+- jambo-chat-window-verify (the ✦ opens the floating window on Home, Approvals and Settings, typed words answered in it, the one conversation shown there and Home pointing to it, the edge tab still slides the side panel in, three screens; 12 red at db763d0); jambo-slides-in 3, 4, 10, jambo-pill-and-window 4a and 5d, jambos-list-panel 10h, every-jambo-box 1b re-pointed to the window; f735 (a booking still goes to the Calendar).
+- jambo-slides-in-verify (the side panel, the ✦ ask bar (now the window), plain only, conversation across pages, here chip, paste, ONE DOOR, Pop out with PiP stubbed and absent, touch; 22 red at d7a320c2); f107 (plain only), f88, f97, f631 re-pointed; jambo-pill-and-window 4–7, every-jambo-box 1b, jambos-list-panel 10h, phone (384) re-pointed.
 - jambo-watches-and-presses-verify (here names the page, Show me › lands and lights, the press sends nothing, a watch card stores only on Start watching, Your watches pause/delete; 8 red at e332b81b); f860 (watches: the wall, only mine, CRUD, the sweep fires once).
 
 ## THE PHONE
@@ -92,6 +93,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - stakes-verify, point-buttons-and-brief verify, jambo-pill-and-window 3a, f668, f671, f277.
 - clauses-legora-way-verify (merged twin counted once, worst-first order, the dive walks the same order, badge = need you, Mark reviewed persists through the server and drops the count, missing row in place; 1/12 at d7a320c2). stakes-verify and point-buttons-and-brief-verify re-pointed to the card anatomy.
 
+- clause-list-fixed-verify (the blank clause is a real row with its finding on it and Plain greyed, a genuine section title still a title, the close that holds while you scroll, the group's own close, no dashed border, no count line; 5/14 at 826e87cb). f668 (4) pins the route's `blank` state and the walk's own test.
+- RE-POINTED 21 Oct 2026: stakes-verify 2 and 3c, clauses-legora-way-verify 1, 1b and 5 (the count line removed, the dashed box gone), f507 (2) (the follow stands down while the reader's close is latched). Five checks had their DRIVING re-pointed only — thread, runway-and-xray, reading-in-the-background, five-screenshots, six-off-five-images each pressed a row that was already open.
 ## INSIGHTS
 - f151, f183, f247, f267, f290–f299, f305, f321, f338, f392, f394, f424–f438, f441, f457, f459 (A), f539, f730; insights-*, portfolio-frame, obligations-report, friction-fits-the-screen, explorer-*, imported-on-the-map, analyze-on-the-graph, map-asked-bubbles, owners-fifteen, fold-every-view verify.
 
@@ -139,6 +142,11 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## THE DETAILS TAB — THE ONE PLACE A CONTRACT IS FILLED IN
 - f148, f170, f442, f673, f676, f679, f710, f751, f754, fill-in-beside-the-paper, fill-the-document, details-as-a-form, create-lands-clean, owed-first verify.
 - still-owed-sap-way-verify (signer name, email and stream whole at all three screens, Confirm and Fill in › inside the panel, labels above, amber kept, Key terms keeps its table, Tab onto Confirm does not jump; 14 red at d7a320c2).
+
+- signer-row-as-drawn-verify (the bottom chip gone and no <select> left; a touch press opens one list; typing filters it with the counterparty's own people first; a pick fills name and email; the list floats, the rows under it do not move, and near the foot it opens above the box, whole, inside the panel at all three screens; "+ Add another signer" adds a box without leaving the page; "Order the signing" opens the route editor over the same page and closing it lands back on the row; 5 red at 3b601675).
+- RE-POINTED 21 Oct 2026 for that row: still-owed-sap-way-verify's labelOver reads the box's .pd-og-sb wrapper; f748 5a/5b and paper-panel-as-drawn-verify 5a now assert the chip is gone and "sign" is not offered while nobody is named (its 5b went with the chip); fill-the-document-verify scrolls to the "Fill the document" line before pressing it.
+## THE MIDDLE — WHAT A DOSSIER LINE OPENS COMES TO YOU
+- the-middle-verify (See it brings Jambo's work to the middle, the Dossier beside it in sight and pressable, the page ending at its edge; "Showing in the middle"; "‹ Paper" first in the chips; the four ways back; the obligations review in the middle; Key terms one line, its table in the middle, Change and Done store; "paper" asked; the three screens). f705 (the jw row's door).
 
 ## WHERE THE DEAL STANDS — ONE PAGE EVERY PARTY READS (js/dealstands.js)
 - f451, f459 (B), deal-stands, status-link, where-we-are verify.

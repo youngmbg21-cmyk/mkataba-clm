@@ -23,7 +23,10 @@ Calendar · Explorer — and Jambo's panel on the right are where a person works
 all day. Nothing in a normal day takes them to another page.
 
 - **Document face = everything about the paper.** The paper sits still in its
-  own space and never shrinks. The panel beside it changes face: fill in the
+  own space and never shrinks. (REVERSED by the owner, 21 Oct 2026 — THE
+  MIDDLE: the Dossier sits still and what its lines open — Jambo's work, the
+  obligations found, Key terms — stands where the paper was, with "‹ Paper"
+  to bring it back. See CLAUDE.md "THE MIDDLE".) The panel beside it changes face: fill in the
   details, redlines, before you sign, share, draft. With nothing chosen, the
   face is the wall of paper (every contract as a small page).
 - **Board face = the state of things.** The portfolio, the deal board, the

@@ -1231,10 +1231,17 @@ function caOwedSteps(c){
   let asks = 0; try { asks = (typeof negoNeedsYouIds === 'function') ? negoNeedsYouIds(c).length : 0; } catch (_){ asks = 0; }
   if (lead && !(lead === 'redline' && asks)) out.push(lead);
   if (asks) out.push('answer');
-  let nobody = false;
-  try { nobody = (typeof pdSignAhead !== 'function' || pdSignAhead(c)) && typeof signBlockers === 'function' && signBlockers(c).some(b => b && b.key === 'signers'); } catch (_){ nobody = false; }
-  if (nobody) out.push('signer');
   return out;
+}
+/* NOBODY NAMED TO SIGN. The "name a signer" chip at the foot of the panel WENT
+   (the owner, 21 Oct 2026: "adding signer should be next to the signers area not
+   at the bottom") — Still owed's own Signer row asks it now, and that row carries
+   the one door left to the route editor. What stays is the rule the chip carried:
+   signing is not offered while nobody is named. */
+function caSignerOwed(c){
+  if (!c) return false;
+  try { return (typeof pdSignAhead !== 'function' || pdSignAhead(c)) && typeof signBlockers === 'function' && signBlockers(c).some(b => b && b.key === 'signers'); }
+  catch (_){ return false; }
 }
 /* the owed step that stands for a ladder step: answering is redlining, naming a signer is the way to signing */
 const CA_OWED_FOR = { answer: 'redline', signer: 'sign' };
@@ -1248,6 +1255,7 @@ function caNextSteps(c){
     : ['redline', 'share', 'sign'];
   const owed = executed ? [] : caOwedSteps(c);
   const covered = new Set(owed.map(k => CA_OWED_FOR[k]).filter(Boolean));
+  if (!executed && caSignerOwed(c)) covered.add('sign');
   return owed.concat(ladder, ['history', 'oblig', 'share'])
     .filter((k, i, all) => all.indexOf(k) === i && k !== here && CA_OWED_FOR[k] !== here && !covered.has(k) && !caChipShut(c, k))
     .slice(0, CA_NEXT_MAX);
@@ -1457,7 +1465,7 @@ Object.assign(window, { CA_SUMMARY_RE, caSummaryText, caSummaryOpen, caScreenSen
 Object.assign(window, { CA_PICK_MAX, CA_NOTE_MAX, CA_SEND_RE, caPeople, caContracts, caOpenContract, caTokenAt, caMatches, caPopHtml, caPopClose, caPopRead, caChoose,
   caFindContract, caFindPerson, caNoteOf, caReadSend, caActOf, caSendBlock, caCardHtml, caCardPress,
   CA_DRAFT_RE, CA_DRAFT_NOUN, CA_DRAFT_OPTS, CA_DRAFT_BARE, CA_DRAFT_ASKING, caIsDraftAsk, caReadDraft, caDraftWords, caDraftScore, caDraftShared, caDraftRank, caDraftRun, caDraftCardHtml, caDraftPress, CA_DRAFT_WITH, CA_DRAFT_WITH_MAX, caDraftWith, CA_DRAFT_NOT_PARTY, CA_DRAFT_TERM_WORD, caDraftBest, caDraftTitleOf, caDraftWho, caDraftForm, CA_DRAFT_WHAT_MAX, caDraftWhatRaw, caDraftWhatOf, CA_DRAFT_KINDS, caDraftKindOf, CA_DRAFT_FOR, CA_DRAFT_FOR_MAX, caDraftForOf, caDraftOneExchange,
-  CA_JOBS, CA_JOB_RE, caReadJob, caNamedOrUp, caRowsWithQuotes, caRiskList, caObligList, caListCardHtml, caReadyDoor, caJobCardHtml, caJobPress, caMayAdd, caPaperChips, caChipsHtml, caNextSteps, caNextRun, caChipShut, caNextLabel, caEditChipBtn, CA_NEXT_FACE, CA_NEXT_MAX, CA_NEXT_GO, caOwedSteps, CA_OWED_FOR,
+  CA_JOBS, CA_JOB_RE, caReadJob, caNamedOrUp, caRowsWithQuotes, caRiskList, caObligList, caListCardHtml, caReadyDoor, caJobCardHtml, caJobPress, caMayAdd, caPaperChips, caChipsHtml, caNextSteps, caNextRun, caChipShut, caNextLabel, caEditChipBtn, CA_NEXT_FACE, CA_NEXT_MAX, CA_NEXT_GO, caOwedSteps, caSignerOwed, CA_OWED_FOR,
   CA_SEL_ACTIONS, caSelKill, caSelClauseId, caSelOpen, caSelPick, CA_RISK_MAX, caRiskMark });
 
 /* ============================================================
@@ -1754,6 +1762,8 @@ function caGo(a){
   if (a.place === 'back'){ const ok = caTrailBack(); caGoRepaint(); return ok; }
   if (a.place === 'help') return true;
   caUseBump(a.place);
+  /* "paper" asked while a page stands in the middle: the paper comes back (the middle, 21 Oct 2026) */
+  if (a.place === 'document' && typeof pdMidClose === 'function') pdMidClose();
   /* share and draft answer with a card in the panel (caGoCardHtml) and move nothing */
   if (a.place !== 'help' && CA_CARD_WORDS.includes(a.place)) return true;
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
@@ -2409,6 +2419,10 @@ function caAskAnywhere(text, opts = {}){
     let b = false; try { b = igBookAsk(t); } catch (_){ b = false; }
     if (b && calHandOff(t)) return 'cal';
   }
+  /* THE ✦'S WINDOW (opts.win, ai.js aiWinToggle; owner, 21 Oct 2026) answers in
+     itself: no question or card is handed to another Jambo; a place or a
+     contract still opens, and a booking still goes to the Calendar (above) */
+  const win = !!opts.win;
   /* the Calendar's own box keeps its booking and planning words (opts.cal) */
   if (opts.cal){ let b = false; try { b = typeof igBookAsk === 'function' && !!igBookAsk(t); } catch (_){ b = false; } if (b) return false; }
   /* THE ONE READER (owner, 19 Oct 2026: "do what the user asks in plain
@@ -2420,7 +2434,7 @@ function caAskAnywhere(text, opts = {}){
      own Jambo answers it, as it always did */
   if (u && u.kind === 'ask' && box !== 'counter') u = null;
   /* on Home his own box is the reader already */
-  if (typeof document !== 'undefined' && document.getElementById('igd-input') && typeof intelAsk === 'function'
+  if (!win && typeof document !== 'undefined' && document.getElementById('igd-input') && typeof intelAsk === 'function'
     && typeof state !== 'undefined' && state && state.view === 'dashboard'){
     /* …and a request to see what the screen in front shows is answered there (caHereRead) */
     if (!opts.all && !u && !caReadPlace(t) && !caTakesWords(t) && !caHereRead(t)) return false; intelAsk(t); return true; }
@@ -2429,7 +2443,7 @@ function caAskAnywhere(text, opts = {}){
     if (u.kind === 'noref' && typeof opts.say === 'function'){ opts.say(caUnderstandSay(u)); return 'said'; }
     if (u.kind === 'go' && !u.missing && !u.narrowOff && !CA_CARD_WORDS.includes(u.place) && caGo(u)) return true;
     /* a card, a question asked of a contract, "which contract?": Jambo's, beside the Board */
-    return caHandHome(t, u);
+    return win ? false : caHandHome(t, u);
   }
   let a = null; try { a = caReadPlace(t); } catch (_){ a = null; }
   if (a && a.kind === 'go' && !CA_CARD_WORDS.includes(a.place) && caGo(a)) return true;
@@ -2442,6 +2456,7 @@ function caAskAnywhere(text, opts = {}){
       /* the Portfolio Health Report asked by name is the chat's own document (aiWantsHealthReport → openHealthReport) */
       || (box !== 'counter' && typeof aiWantsHealthReport === 'function' && aiWantsHealthReport(t)));
     if (m && !own && m.kind === 'go' && !m.missing && !CA_CARD_WORDS.includes(m.place) && caGo(m)) return true; }
+  if (win) return false;
   if ((a && a.kind === 'go') || caTakesWords(t) || opts.all) return caHandHome(t, a);
   return false;
 }

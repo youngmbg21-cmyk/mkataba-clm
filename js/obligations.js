@@ -1448,7 +1448,13 @@ function openObligationsReview(c, found, back){
                written by obPaintAdd and never here — one painter. */}
         <button id="or-add" class="ui-btn ui-btn-primary"></button>
       </div>
-    </div>`, { maxWidth: '920px', label: i18t('ob_proposed') });
+    </div>`, (() => {
+      /* THE MIDDLE (owner, 21 Oct 2026): beside the Dossier the review stands where the paper was, not as a pop-up */
+      const mid = typeof pdMidMay === 'function' && pdMidMay();
+      return mid ? { maxWidth: 'none', label: i18t('ob_proposed'), page: pdMidPage(i18t('ob_proposed')), onClose: () => { if (typeof pdMidOff === 'function') pdMidOff(); } }
+        : { maxWidth: '920px', label: i18t('ob_proposed') };
+    })());
+  if (typeof pdMidMay === 'function' && typeof pdMidOn === 'function' && document.querySelector('#modal-root [data-dlg-page]')) pdMidOn('obs:' + c.id);
   const modal = document.getElementById('modal-root');
   const obPicks = () => Array.prototype.slice.call(
     document.querySelectorAll('#modal-root [data-ob-pick]'));

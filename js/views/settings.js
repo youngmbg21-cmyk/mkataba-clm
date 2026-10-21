@@ -3620,7 +3620,7 @@ function stJbLandWrapHtml(land, hide){ return `<div class="st-jb-land" data-st-j
 function stJbTalkInnerHtml(){
   if(typeof jamboTurnHtml!=='function') return stTalkTurns().map(stJbTurnHtml).join('');
   if(typeof jamboReadStamp==='function') jamboReadStamp();
-  if(window.aiPopped&&aiPopped()){ if(typeof window.renderAIFeed==='function') try{ renderAIFeed(); }catch(_){ } return `<p class="igd-popped">${esc(i18t('jb_in_window'))} <button type="button" class="ui-link" data-jb-popback>${esc(i18t('jb_bring_back'))}</button></p>`; }
+  if(window.aiConvoInWindow?aiConvoInWindow():(window.aiPopped&&aiPopped())){ if(typeof window.renderAIFeed==='function') try{ renderAIFeed(); }catch(_){ } return `<p class="igd-popped">${esc(i18t('jb_in_window'))} <button type="button" class="ui-link" data-jb-popback>${esc(i18t('jb_bring_back'))}</button></p>`; }
   const H=stJbConvo(); return H.map((m,i)=>jamboTurnHtml(m,i,H,'st')).join('');
 }
 function stJbTalkWrapHtml(hide){ return `<div class="st-jb-talk" data-st-jb-talk data-jt-talk${hide?' hidden':''}>${stJbTalkInnerHtml()}</div>`; }

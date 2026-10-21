@@ -9073,11 +9073,19 @@ app.post('/api/ai/breakdown', auth, rlAiDeep, aiFeature('breakdown'), aiBudgetGu
         }, required: ['ref'] } },
       }, required: ['name', 'status', 'items'] } },
       points: { type: 'array', maxItems: BREAKDOWN_POINTS_MAX, description: 'The points that matter most to the company, worst first.', items: { type: 'object', properties: {
-        clause: { type: 'string', description: 'The clause number as printed, e.g. "5" or "5.2". Empty when the point is something MISSING from the contract.' },
+        clause: { type: 'string', description: 'The clause number as printed, e.g. "5" or "5.2". Empty when the point is something MISSING from the contract. Give the number even where the clause is in the contract but has no wording under it, and set blank.' },
         after: { type: 'string', description: 'Only for a missing point: the clause number it would sit after.' },
         region: { type: 'number', description: '1-based number of the section it belongs to.' },
         status: { type: 'string', enum: ['need', 'look'], description: 'need = must be dealt with before signing; look = worth raising.' },
-        missing: { type: 'boolean', description: 'True when the point is something the contract does not say at all.' },
+        missing: { type: 'boolean', description: 'True when the point is something the contract does not say at all — it has no clause of its own. Not for a numbered clause that is in the contract but empty: that is blank.' },
+        /* ---- THE THIRD STATE: THE CLAUSE IS THERE AND SAYS NOTHING (the
+           owner, 21 Oct 2026: "there is a bug where some clause 2 is
+           missing") ---- The schema had only "in the contract" and "not in the
+           contract at all", so a numbered clause left blank came back as
+           missing, lost its number below, and was filed ABOVE the clause under
+           "After §1 — not in the contract" — words that were untrue, because
+           clause 2 IS in the contract; only its wording is not. */
+        blank: { type: 'boolean', description: 'True when the clause named in clause IS in the contract but has no wording under it (an empty numbered heading). Leave quote empty.' },
         title: { type: 'string', description: 'At most 12 words: the point, as a plain statement, e.g. "Their liability is capped at 3 months of charges".' },
         stake: { type: 'string', description: 'ONE plain line, at most 16 words, saying what is at stake for the company: the risk and, where the wording supports it, the money together.' },
         quote: { type: 'string', description: 'The key words in the contract that carry the point, verbatim, at most 25 words. Empty for a missing point.' + AI_QUOTE_RULE },
@@ -9085,7 +9093,7 @@ app.post('/api/ai/breakdown', auth, rlAiDeep, aiFeature('breakdown'), aiBudgetGu
       }, required: ['title', 'stake', 'status'] } },
     }, required: ['regions'] } };
   const mine = side === 'theirs' ? 'the other party' : 'our side (the party using this system)';
-  const prompt = `Read this whole contract from ${mine} and cut it into at most ten sections — groups of clauses that do one job (price, payment, term and exit, service levels, data, liability, law and general…). Every clause and schedule must sit in exactly one section; list each one's clause numbers. Say whether each section NEEDS the reader, is WORTH A LOOK, or is FINE. Then, as ONE company view (the legal risk and the money together, never split by department), list the points that matter most, worst first: where this wording leaves us exposed or hands the other side an edge, and anything a careful company would expect that is MISSING. For each point give only its title, one line on what is at stake, its section and the key words verbatim — keep it short; the detail is asked for separately. Do not invent facts or numbers the text does not state. Return via break_down.\n\n${stakesWriteRule(req)}\n\nCONTRACT:\n${aiDocText(req, text)}`;
+  const prompt = `Read this whole contract from ${mine} and cut it into at most ten sections — groups of clauses that do one job (price, payment, term and exit, service levels, data, liability, law and general…). Every clause and schedule must sit in exactly one section; list each one's clause numbers. Say whether each section NEEDS the reader, is WORTH A LOOK, or is FINE. Then, as ONE company view (the legal risk and the money together, never split by department), list the points that matter most, worst first: where this wording leaves us exposed or hands the other side an edge, and anything a careful company would expect that is MISSING. Where a NUMBERED CLAUSE IS IN THE CONTRACT BUT LEFT EMPTY, give its number in clause and set blank — it is not a missing point. For each point give only its title, one line on what is at stake, its section and the key words verbatim — keep it short; the detail is asked for separately. Do not invent facts or numbers the text does not state. Return via break_down.\n\n${stakesWriteRule(req)}\n\nCONTRACT:\n${aiDocText(req, text)}`;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 6000, tools: [tool], tool_choice: { type: 'tool', name: 'break_down' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'breakdown', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
@@ -9114,9 +9122,14 @@ app.post('/api/ai/breakdown', auth, rlAiDeep, aiFeature('breakdown'), aiBudgetGu
       let quote = raw(p.quote, 600);
       if (quote && !hay.includes(amendNorm(quote))) { dropped++; quote = ''; }
       const region = Math.round(Number(p.region));
-      const missing = !!p.missing || !String(p.clause || '').trim();
+      /* A BLANK CLAUSE IS NOT A MISSING ONE: where the reading names a clause
+         AND says it is blank, the number is kept and the point is not missing,
+         so it lands ON that clause's row. A blank with no number to stand on
+         cannot be placed, so it falls back to missing — never guessed. */
+      const blank = !!p.blank && !!String(p.clause || '').trim();
+      const missing = !blank && (!!p.missing || !String(p.clause || '').trim());
       return { clause: missing ? '' : raw(p.clause, 24), after: missing ? raw(p.after, 24) : '', region: region >= 1 && region <= regions.length ? region : 0,
-        status: p.status === 'need' ? 'need' : 'look', missing, title: str(p.title, 140), stake: str(p.stake, 180), what: str(p.what, 600),
+        status: p.status === 'need' ? 'need' : 'look', missing, blank, title: str(p.title, 140), stake: str(p.stake, 180), what: str(p.what, 600),
         theirs: str(p.theirs, 240), usual: str(p.usual, 240), figure: str(p.figure, 40), how: str(p.how, 300), push: str(p.push, 240),
         edge: (Array.isArray(p.edge) ? p.edge : []).map(e => str(e, 300)).filter(Boolean).slice(0, 3),
         trade: (Array.isArray(p.trade) ? p.trade : []).filter(t => t && t.give && t.get).slice(0, 3).map(t => ({ give: str(t.give, 160), get: str(t.get, 160) })),
@@ -9155,6 +9168,9 @@ app.post('/api/ai/breakdown/point', auth, rlAiDeep, aiFeature('breakdown'), aiBu
   const mine = side === 'theirs' ? 'the other party' : 'our side (the party using this system)';
   const about = [`POINT: ${str(point.title, 200)}`, point.stake ? `AT STAKE: ${str(point.stake, 240)}` : '',
     point.missing ? `This is something the contract does NOT say${point.after ? ` (it would sit after clause ${str(point.after, 24)})` : ''}.` : (point.clause ? `CLAUSE: ${str(point.clause, 24)}` : ''),
+    /* THE CLAUSE IS THERE AND SAYS NOTHING (21 Oct 2026): said plainly, or the
+       dive is asked about wording the paper does not carry */
+    (!point.missing && point.blank && point.clause) ? `Clause ${str(point.clause, 24)} is in the contract but has NO wording under it.` : '',
     point.quote ? `KEY WORDS: "${str(point.quote, 600)}"` : ''].filter(Boolean).join('\n');
   const prompt = `Read this contract from ${mine} and give the deep dive on ONE point, as one company view (the legal risk and the money together). Say what could happen, what this contract says, what a careful company would normally get, the money at stake (only from figures the wording states), where the other side will push back, our edge, what we could trade, and the wording we would ask for. Keep each part short. Do not invent facts or numbers the text does not state. Return via dive_point.\n\n${stakesWriteRule(req)}\n\n${about}\n\nCONTRACT:\n${aiDocText(req, text)}`;
   try {

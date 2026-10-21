@@ -159,7 +159,9 @@ const owed = (page, id) => page.evaluate(x => {
     const fbR = await fillBtn(page);
     /* answered, the company is a Key terms line now; the provider is still the grid's */
     check('2f after a refresh the answer is still there and still owed', !!fbR && !fbR.disabled
-      && /Wanjiru Catering Ltd/.test(await page.evaluate(() => ((document.querySelector('#pd-kt tr[data-pd-og-row="company"] .pd-kt-v') || {}).textContent || ''))));
+      /* RE-POINTED 21 Oct 2026 (THE MIDDLE): Key terms' line is read off the table it draws in the middle (pdKtRowsHtml) */
+      && /Wanjiru Catering Ltd/.test(await page.evaluate(() => { const c = pdContract(); const t = document.createElement('tbody'); t.innerHTML = c ? pdKtRowsHtml(c, pdKtFacts(c)) : '';
+        return ((t.querySelector('tr[data-pd-og-row="company"] .pd-kt-v') || {}).textContent || ''); })));
 
     /* ===== 4. THE PRESS FILLS THE PAPER ===== */
     const press = {};
@@ -175,6 +177,13 @@ const owed = (page, id) => page.evaluate(x => {
       /* WHAT THE PRESS MET, said in 4a's detail when it fails (8 Oct 2026):
          CI failed this step on runs that pass locally, so the reading is
          taken where the runner is, not guessed at. */
+      /* RE-POINTED 21 Oct 2026: the Signer row gained a line ("+ Add another signer", the
+         owner's SAP-way signer row), so the card is 31px taller and at this scroll position
+         the "Fill the document" line can sit UNDER the panel's own chips strip. A reader
+         scrolls to a line before pressing it; so does the press. (The strip covering the
+         foot of a long card is the panel's, not this line's: a BUGLOG line, not a fix here.) */
+      await page.evaluate(() => { const b = document.querySelector('#pd-needs [data-pd-og-docfill]'); if (b) b.scrollIntoView({ block: 'center' }); });
+      await page.waitForTimeout(150);
       press.before = await page.evaluate(() => { const b = document.querySelector('#pd-needs [data-pd-og-docfill]');
         if (!b) return 'no button'; const r = b.getBoundingClientRect(); const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
         return { disabled: b.disabled, onTop: at === b || b.contains(at) ? 'button' : (at ? (at.id || at.className || at.tagName) : 'nothing'),
