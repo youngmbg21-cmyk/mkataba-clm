@@ -2465,7 +2465,13 @@ function caAskAnywhere(text, opts = {}){
     const own = !!m && ((box === 'settings' && (!!m.st || m.place === 'settings')) || (box === 'cal' && m.place === 'calendar')
       /* the Portfolio Health Report asked by name is the chat's own document (aiWantsHealthReport → openHealthReport) */
       || (box !== 'counter' && typeof aiWantsHealthReport === 'function' && aiWantsHealthReport(t)));
-    if (m && !own && m.kind === 'go' && !m.missing && !CA_CARD_WORDS.includes(m.place) && caGo(m)) return true; }
+    if (m && !own && m.kind === 'go' && !m.missing && !CA_CARD_WORDS.includes(m.place) && caGo(m)) return true;
+    /* "WHICH DID YOU MEAN" FOR WORK (21 Oct 2026: "upload a contract" asked in Settings found a mail-in setting):
+       a close match that starts work (JM_STARTS_WORK) is Home's Jambo's card, where it can be drawn and pressed */
+    if (m && !own && !win && m.kind === 'map' && Array.isArray(m.picks) && typeof JM_STARTS_WORK !== 'undefined'
+      && m.picks.some(k => JM_STARTS_WORK.has(k))) return caHandHome(t, m);
+    /* …and a sure one that is a CARD word ("new contract" → the draft form) is Home's too, as a place word's is */
+    if (m && !own && !win && m.kind === 'go' && !m.missing && CA_CARD_WORDS.includes(m.place)) return caHandHome(t, m); }
   if (win) return false;
   if ((a && a.kind === 'go') || caTakesWords(t) || opts.all) return caHandHome(t, a);
   return false;
