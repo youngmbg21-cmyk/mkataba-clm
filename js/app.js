@@ -4161,7 +4161,7 @@ function wireShell(){
     /* The Copilot sits ON TOP of this panel, and a modal on top of both. One
        Escape closes one layer, and it must be the one the reader can see —
        so this stands down while either of those is up. */
-    if(document.getElementById('ai-panel')?.classList.contains('open')) return;
+    { const ap=document.getElementById('ai-panel'); if(ap&&ap.classList.contains('open')&&!ap.classList.contains('ai-stepaside')) return; }
     if(document.getElementById('modal-root')?.firstChild) return;
     /* …and a question on top of it (confirmDialog, promptDialog) is the layer
        Escape belongs to (26 Sep 2026, the overnight clean-up): answering "Send

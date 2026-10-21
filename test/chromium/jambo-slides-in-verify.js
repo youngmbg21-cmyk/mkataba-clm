@@ -134,7 +134,7 @@ const LETTER = 'Dear Ann,\nFurther to our call, Nandi Dairy asks that the delive
         overPanel: r.right > pr.left ? !!(over && over.closest('#jb-bar')) : 'clear', focus: document.activeElement && document.activeElement.id,
         panelOpen: document.getElementById('ai-panel').classList.contains('open'), card: !!b.querySelector('.jb-card') }; }, null, 3000);
     check('3a the ✦ drops the ask bar while the side panel is open', !!B && B.panelOpen && B.card && B.focus === 'jb-bar-q', JSON.stringify(B));
-    check('3b it stands under the top bar, centred, one line, over the page and the panel', !!B && B.top >= 48 && B.top <= 64 && Math.abs(B.mid - B.vw / 2) <= 2 && B.h <= 48 && B.onTop && B.overPanel !== false, JSON.stringify(B));
+    check('3b it stands under the top bar, one line, centred over the page beside the panel (never over the panel)', !!B && B.top >= 48 && B.top <= 64 && Math.abs(B.mid - (B.vw - 384) / 2) <= 2 && B.h <= 48 && B.onTop && B.overPanel === 'clear', JSON.stringify(B));
     await shot('3-bar-over-panel-1440x780');
     await page.keyboard.press('Escape');
     const B2 = await page.evaluate(() => ({ bar: !!document.getElementById('jb-bar'), panel: document.getElementById('ai-panel').classList.contains('open') }));
@@ -177,8 +177,8 @@ const LETTER = 'Dear Ann,\nFurther to our call, Nandi Dairy asks that the delive
     }
 
     /* ===== 7 · A PASTED LETTER ===== */
-    await page.evaluate(t => { const inp = document.getElementById('ai-input'); inp.focus(); const dt = new DataTransfer(); dt.setData('text/plain', t);
-      inp.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true })); }, LETTER);
+    await page.evaluate(t => { const inp = document.getElementById('ai-input'); inp.focus(); const dt = new window.DataTransfer(); dt.setData('text/plain', t);
+      inp.dispatchEvent(new window.ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true })); }, LETTER);
     const PST = await until(() => { const b = document.querySelector('#ai-suggest [data-ai-paste="request"]'); return b ? b.textContent.trim() : null; }, null, 2000);
     check('7 a pasted letter is offered as a request', !!PST && /request/i.test(PST), String(PST));
     await page.evaluate(() => { if (typeof closeAI === 'function') closeAI(); });

@@ -10342,6 +10342,12 @@ const STRINGS = {
     ai_read_from_page: 'Read from {page} and your book',
     ai_read_from_book: 'Read from your book',
     ai_drop_stream_first: 'Choose the stream for {name} here, then drop it again.',
+    brn_p_askbar: 'The ✦ ask bar',
+    brn_pd_askbar: 'The top bar’s ✦ on any page: one line under the bar. A place or a contract moves there, free; anything else is asked of the Jambo on the page, or of his side panel.',
+    brn_p_jambopop: 'Jambo popped out',
+    brn_pd_jambopop: 'Jambo’s conversation in a window of its own that stays on top of Word and other apps (Chrome and Edge); Put back returns it to the side panel.',
+    brn_p_jambohere: 'What am I looking at?',
+    brn_pd_jambohere: 'Jambo says the screen in front from its own counts — the page, the contract, the rows and filters — with no Jambo call.',
 
     // ---- the Copilot's welcome ----
     ai_welcome: 'Hi! I\'m <b>Jambo</b>. Ask me anything about your contracts — I can search, summarize and compare them, read what changed in a negotiation and who asked for it, and I know what\'s on your screen.',
@@ -29611,6 +29617,12 @@ const STRINGS = {
     ai_read_from_page: 'Läst från {page} och din bok',
     ai_read_from_book: 'Läst från din bok',
     ai_drop_stream_first: 'Välj strömmen för {name} här och släpp den igen.',
+    brn_p_askbar: '✦-frågeraden',
+    brn_pd_askbar: 'Toppradens ✦ på varje sida: en rad under raden. En plats eller ett avtal öppnas direkt, gratis; allt annat frågas till Jambo på sidan, eller i hans sidopanel.',
+    brn_p_jambopop: 'Jambo i eget fönster',
+    brn_pd_jambopop: 'Jambos samtal i ett eget fönster som ligger ovanpå Word och andra appar (Chrome och Edge); Sätt tillbaka lägger det i sidopanelen igen.',
+    brn_p_jambohere: 'Vad tittar jag på?',
+    brn_pd_jambohere: 'Jambo beskriver skärmen framför dig utifrån dess egna siffror — sidan, avtalet, raderna och filtren — utan något Jambo-anrop.',
 
     // ---- the Copilot's welcome ----
     ai_welcome: 'Hej! Jag är <b>Jambo</b>. Fråga mig vad du vill om dina avtal — jag kan söka i dem, sammanfatta och jämföra dem, läsa vad som ändrats i en förhandling och vem som bad om det, och jag ser vad du har på skärmen.',

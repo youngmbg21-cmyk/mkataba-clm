@@ -12671,6 +12671,8 @@
   /* THE ✦ ASK BAR: one line under the bar, centred */
   .jb-bar{position:fixed;top:calc(var(--shell-head-h,48px) + 8px);left:50%;transform:translateX(-50%);width:min(640px,calc(100vw - 32px));z-index:60}
   .jb-bar > .jb-card{box-sizing:border-box;min-height:40px;box-shadow:var(--shadow-lg)}
+  /* with the side panel in, the bar is centred over the page beside it, never over the panel */
+  @media (min-width:768px){ body.ai-side-open .jb-bar{left:calc((100vw - 384px) / 2);width:min(640px,calc(100vw - 384px - 32px))} }
   .jb-bar > .jb-card:focus-within{box-shadow:0 0 0 3px var(--color-accent-100),var(--shadow-lg)}
   .jb-bar .jb-bar-here{flex:none;white-space:nowrap;margin:0 8px}
   /* the "/" list of a box on the bar or in the side panel stands over both */

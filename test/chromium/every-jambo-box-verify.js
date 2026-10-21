@@ -115,13 +115,19 @@ const HINT_SEL = '.jb-hint, .jb-keys, .jb-kbd, .ai-hint, #ai-hint, [data-jb-hint
         check(`1a ${at} the Counter's box: drawn, and no line under it`, ok(L), JSON.stringify(L));
         await shot(`no-hint-counter-${tag}.png`);
       });
-      await part('1b the floating window', async () => {
+      /* RE-POINTED 21 Oct 2026 (owner): the window is Jambo's side panel, and the bar's ✦ drops
+         the ask bar — two boxes where there was one, both asked */
+      await part('1b the side panel and the ask bar', async () => {
         await page.evaluate(() => setView('brain'));
         await until(() => state.view === 'brain' ? true : null);
-        await page.click('#cmd-ai');
+        await page.evaluate(() => openAI());
         const L = await until(NO_LINE_OF, ARG('#ai-panel.open .jb-card', '#ai-panel'));
-        check(`1b ${at} the floating Jambo window (the bar's door on the Brain): no line under its box`, ok(L), JSON.stringify(L));
+        check(`1b ${at} Jambo's side panel (on the Brain): no line under its box`, ok(L), JSON.stringify(L));
         await shot(`no-hint-window-${tag}.png`);
+        await page.click('#cmd-ai');
+        const B = await until(NO_LINE_OF, ARG('#jb-bar .jb-card', '#jb-bar'));
+        check(`1b ${at} the ✦ ask bar: no line under its box`, ok(B), JSON.stringify(B));
+        await page.keyboard.press('Escape');
         await page.evaluate(() => { if (typeof closeAI === 'function') closeAI(); });
       });
       await part('1c the clause editor', async () => {

@@ -873,7 +873,8 @@ function aiPopDress(doc){
 function aiPopForward(e){
   if(!e || !e.target || !e.target.closest || e.target.closest('[data-ai-popback]')) return;
   const hit = e.target.closest('a,button,[role="button"],[data-ca-card]');
-  if(!hit || hit.closest('.jb-card')) return;
+  /* the send has its own listener; the + (the one upload door) goes home with the rest */
+  if(!hit || hit.id==='ai-send') return;
   try{
     const ev = new MouseEvent('click', { bubbles: true, cancelable: true, button: e.button, ctrlKey: e.ctrlKey, metaKey: e.metaKey, shiftKey: e.shiftKey, altKey: e.altKey });
     Object.defineProperty(ev, 'target', { value: e.target });
@@ -964,7 +965,7 @@ function aiBarToggle(){
   const q = _aiBar.querySelector('#jb-bar-q');
   /* a pasted letter is offered in the side panel's row (aiPasteNote) */
   if(q) q.addEventListener('paste', e => {
-    let t = ''; try{ t = (e.clipboardData || window.clipboardData).getData('text'); }catch(_){ t = ''; }
+    let t = ''; try{ t = e.clipboardData.getData('text'); }catch(_){ t = ''; }
     if(!aiPasteLooksLong(t)) return;
     e.preventDefault(); aiBarClose();
     if(!ai.open && !aiPopped()) openAI(null, { here: true, noFocus: true });
@@ -5478,7 +5479,7 @@ document.addEventListener('keydown',e=>{
 document.getElementById('ai-popout')?.addEventListener('click',()=>{ aiPopOut(); });
 document.getElementById('ai-input').addEventListener('input',e=>{ if(ai.pasted&&!String(e.target.value||'').trim()){ ai.pasted=null; renderAISuggest(); } });
 document.getElementById('ai-input').addEventListener('paste',e=>{
-  let t=''; try{ t=(e.clipboardData||window.clipboardData).getData('text'); }catch(_){ t=''; }
+  let t=''; try{ t=e.clipboardData.getData('text'); }catch(_){ t=''; }
   aiPasteNote(t);
 });
 /* a file dropped on the panel goes through the one upload door (jamboAddFile →
