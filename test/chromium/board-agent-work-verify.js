@@ -96,13 +96,18 @@ const check = (name, pass, detail) => {
         const second = w[1] ? getComputedStyle(w[1]) : null;
         return { worst, n: words.length, open: !!open, footPos: fs.position, footBand: !!actsG && Math.abs(lum(actsG) - lum(cardG)) > 0.1,
           edge: ls ? ls.borderTopStyle + ' ' + ls.borderTopWidth : '',
-          rule: second ? second.borderTopStyle + ' ' + second.borderTopWidth : '' };
+          rule: second ? second.borderTopStyle + ' ' + second.borderTopWidth : '',
+          /* Look and Put away: the opener and the setter-aside are not one dress (21 Oct 2026) */
+          lookC: (() => { const b = first.querySelector('[data-hb-ag-look]'); return b ? getComputedStyle(b).color : ''; })(),
+          awayC: (() => { const b = first.querySelector('[data-ag-act="away"]'); return b ? getComputedStyle(b).color : ''; })(),
+          awayR: (() => { const b = first.querySelector('[data-ag-act="away"]'); return b ? ratio(over(rgb(getComputedStyle(b).color), ground(b)), ground(b)) : 0; })() };
       });
       check(`${scr} 1. the pieces' words, folded and opened, read against their ground (worst ≥ 4.5)`, m.open && m.n > 6 && m.worst.r >= 4.5, `${m.worst.r.toFixed(2)} on "${m.worst.t}" of ${m.n}`);
       check(`${scr} 2a. the open piece's buttons sit in its row, not sticky`, m.footPos !== 'sticky' && m.footPos !== 'fixed', m.footPos);
       check(`${scr} 2b. no band of another colour under the buttons`, !m.footBand);
       check(`${scr} 3a. the list has a painted edge`, /^solid /.test(m.edge) && parseFloat(m.edge.split(' ')[1]) >= 1, m.edge);
       check(`${scr} 3b. one piece from the next: a painted hairline (style and width), one line each`, /^solid /.test(m.rule) && parseFloat(m.rule.split(' ')[1]) >= 1, m.rule);
+      check(`${scr} 3c. Put away is not dressed as Look (its own quiet ink, still readable)`, !!m.awayC && !!m.lookC && m.awayC !== m.lookC && m.awayR >= 4.5, JSON.stringify({ look: m.lookC, away: m.awayC, r: m.awayR && m.awayR.toFixed(2) }));
       await page.screenshot({ path: path.join(OUT, `${scr}.png`) });
     }
     check('4. no page errors', errors.length === 0, errors.join(' | '));

@@ -5423,7 +5423,7 @@ function hbAgPieceHtml(it){
   const mail = look && (it.kind === 'chase' || it.kind === 'chase-firm');
   return `<div class="hb-ag-work is-line${look ? ' is-look' : ''}" data-hb-ag-item="${_hbE(it.key)}"><div class="hb-pc-r">
       <div class="hb-pc-w"><b class="hb-pc-t">${tag}<span class="hb-pc-name">${_hbE(title)}</span>${ref ? `<span class="hb-pc-ref">${ref}</span>` : ''}</b><span class="hb-pc-line"${look ? '' : ` title="${_hbE(line)}"`}>${_hbE(line)}</span></div>
-      <div class="hb-pc-acts"><button type="button" class="ui-link hb-pc-look${look ? ' is-on' : ''}" data-hb-ag-look="${_hbE(it.key)}" aria-pressed="${look}" aria-expanded="${look}">${_hbE(i18t('cn_jw_look'))}</button>${actBtn}<button type="button" class="ui-link" data-ag-act="away">${_hbE(i18t('desk_discard'))}</button></div></div>
+      <div class="hb-pc-acts"><button type="button" class="ui-link hb-pc-look${look ? ' is-on' : ''}" data-hb-ag-look="${_hbE(it.key)}" aria-pressed="${look}" aria-expanded="${look}">${_hbE(i18t('cn_jw_look'))}</button>${actBtn}<button type="button" class="ui-link hb-pc-away" data-ag-act="away">${_hbE(i18t('desk_discard'))}</button></div></div>
     ${look ? `<div class="hb-pc-body${mail ? ' is-mail' : ''}">${body}${restHtml}</div>` : ''}</div>`;
 }
 /* Look, pressed: open this piece under its row, or fold it again */
