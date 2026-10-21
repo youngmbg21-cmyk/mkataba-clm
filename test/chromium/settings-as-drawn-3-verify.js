@@ -201,7 +201,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       check('6a Delete these N · Change keeping · Close, on one row', !!acts && acts.tops.length === 1 && acts.right <= acts.feed, JSON.stringify(acts));
     }
     if (await press('#st-jb-feed [data-st-swp-open]', '6b the held contract\'s Open')) {
-      const held = await until(() => { const r = document.querySelector('#pd-body .pd-menu[data-pd-menu="MK-S3"] #ws-hold');
+      /* RE-POINTED 21 Oct 2026 (the Dossier, 20 Oct): the Menu tab folded into the Dossier's All acts */
+      const held = await until(() => { const r = document.querySelector('#ig-dock .pd-nx[data-pd-menu="MK-S3"] #ws-hold');
         return state.view === 'dashboard' && r && r.classList.contains('is-landed') && r.getBoundingClientRect().height > 0 ? r.textContent.trim() : null; }, null, 10000);
       check('6b it lands ON Release hold, in the contract\'s Menu beside its paper', !!held, String(held));
       await shot(page, '26-held-open-1440x780');
