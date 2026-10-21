@@ -214,9 +214,14 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     console.log('\n5 · the chips');
     const ch = await until(() => { const L = [...document.querySelectorAll('#ig-dock [data-ca-chip]')]; return L.length ? L.map(b => ({ k: b.getAttribute('data-ca-chip'), w: b.textContent.trim(), owed: b.classList.contains('ca-chip-owed') })) : null; }, null, 6000);
     const ks = (ch || []).map(x => x.k);
-    check('5a the owed lead — "answer the redlines", "name a signer" — never also "redline" or "sign"',
-      ks.includes('answer') && ks.includes('signer') && !ks.includes('redline') && !ks.includes('sign') && ks.length === 4 && ch[0].owed
-      && ch.find(x => x.k === 'answer').w === 'answer the redlines' && ch.find(x => x.k === 'signer').w === 'name a signer', JSON.stringify(ch));
+    /* RE-POINTED 21 Oct 2026 — the owner picked "The SAP way" for the Signer row in Still owed
+       ("adding signer should be next to the signers area not at the bottom"): the "name a
+       signer" chip at the foot of the panel is GONE, the row asks it, and the row carries the
+       one door left to the route editor (signer-row-as-drawn-verify 1c, 6a, 6b). What the
+       chip's rule carried stays: signing is not offered while nobody is named. */
+    check('5a the owed lead — "answer the redlines" — no "name a signer" chip, and never "redline" or "sign"',
+      ks.includes('answer') && !ks.includes('signer') && !ks.includes('redline') && !ks.includes('sign') && ks.length === 4 && ch[0].owed
+      && ch.find(x => x.k === 'answer').w === 'answer the redlines', JSON.stringify(ch));
     /* PASS 2, RE-POINTED 20 Oct 2026 (Chambers: suggestions are links): the lead chip is a link in
        the accent ink, its words strong, underlined, no outline and no wash — and never amber */
     const edge = await page.evaluate(() => { const b = document.querySelector('#ig-dock .ca-chip-owed'); if (!b) return null;
@@ -226,12 +231,9 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     check('5c (pass 2) the lead chip: a link in the accent ink, strong and underlined, no outline, not amber',
       !!edge && edge.jb && edge.color === edge.ink && edge.weight === edge.strong && /underline/.test(edge.line) && (edge.style === 'none' || edge.width === '0px')
       && edge.bg === 'rgba(0, 0, 0, 0)' && !/180, 83, 9|254, 243, 199/.test(edge.bg + edge.color), JSON.stringify(edge));
-    if (await press('#ig-dock [data-ca-chip="signer"]', '5b name a signer')) {
-      const route = await until(() => /Signing route/.test((document.body.innerText || '')) && !!document.querySelector('.modal-overlay, .modal, [role="dialog"]'), null, 8000);
-      check('5b "name a signer" opens the signing route', !!route);
-      await page.keyboard.press('Escape').catch(() => {});
-      await page.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });
-    }
+    /* 5b WENT WITH THE CHIP (21 Oct 2026). "Order the signing ›" on the Signer row in Still
+       owed is the one door left to the route editor, and signer-row-as-drawn-verify 6a/6b
+       presses it there: it opens over the same page and closing it lands back on the row. */
 
     console.log('\n6 · Follow me on Home');
     const peer = await open('everything@example.co.ke', 'their-own-pass-9', 'colleague');

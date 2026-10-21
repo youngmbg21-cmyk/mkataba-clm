@@ -213,19 +213,28 @@ describe('f748 (5) the chips lead with what is owed', () => {
     vm.createContext(ctx); vm.runInContext(CA, ctx);
     return { ctx, c, calls };
   }
-  test('5a their asks waiting and nobody named: "answer the redlines · name a signer · share · history"', () => {
+  /* RE-POINTED 21 Oct 2026 — the owner picked "The SAP way" for the Signer row in Still
+     owed: "adding signer should be next to the signers area not at the bottom". The
+     "name a signer" chip at the foot of the panel WENT; the row asks it, and carries the
+     one door left to the route editor. The rule the chip carried stays (caSignerOwed):
+     signing is not offered while nobody is named. */
+  test('5a their asks waiting: "answer the redlines" leads; no "name a signer" chip, and no "sign" while nobody is named', () => {
     const { ctx, c } = chips({ asks: 2 });
-    assert.deepEqual(J(ctx.caOwedSteps(c)), ['answer', 'signer']);
+    assert.deepEqual(J(ctx.caOwedSteps(c)), ['answer']);
+    assert.equal(ctx.caSignerOwed(c), true);
     const L = J(ctx.caPaperChips());
-    assert.deepEqual(L.map(x => x.k), ['answer', 'signer', 'share', 'history']);
-    assert.deepEqual(L.slice(0, 2).map(x => x.label), ['answer the redlines', 'name a signer']);
+    assert.ok(!L.some(x => x.k === 'signer'), 'the bottom chip is gone: the Signer row asks it');
+    assert.ok(!L.some(x => x.k === 'sign'), 'nor is signing offered while nobody is named');
+    assert.deepEqual(L.map(x => x.k), ['answer', 'share', 'history', 'oblig']);
+    assert.equal(L[0].label, 'answer the redlines');
     assert.ok(L[0].owed && !L[1].owed, 'the first owed leads, at the strong weight');
     /* RE-POINTED 20 Oct 2026 (Chambers: a suggestion is a link, not a chip):
        every chip wears the one link class; the owed lead is the same link at
        the strong weight — no accent outline any more (was 18 Oct's). */
     const html = ctx.caChipsHtml();
     assert.match(html, /data-ca-chip="answer" class="jb-chip ca-chip-owed"/);
-    assert.match(html, /data-ca-chip="signer" class="jb-chip"/, 'the rest are plain links');
+    assert.match(html, /data-ca-chip="share" class="jb-chip"/, 'the rest are plain links');
+    assert.doesNotMatch(html, /data-ca-chip="signer"/, 'no "name a signer" chip at the foot');
     assert.doesNotMatch(html, /bg-canvas|rounded-full/, 'no chip pill is drawn');
     const css = R('index.html').replace(/\/\*[\s\S]*?\*\//g, '');
     assert.match(css, /\.ca-chip-owed\{font-weight:var\(--w-strong\)\}/, 'as drawn: the strong weight, not amber');
@@ -237,7 +246,7 @@ describe('f748 (5) the chips lead with what is owed', () => {
     assert.equal(ctx.CA_NEXT_MAX, 4);
   });
   test('5b details owed lead; nothing owed, the journey as before', () => {
-    assert.deepEqual(J(chips({ need: ['details'], asks: 2 }).ctx.caNextSteps({ id: 'MK-9' })), ['fill', 'answer', 'signer', 'share']);
+    assert.deepEqual(J(chips({ need: ['details'], asks: 2 }).ctx.caNextSteps({ id: 'MK-9' })), ['fill', 'answer', 'share', 'history']);
     assert.deepEqual(J(chips({ signers: true }).ctx.caNextSteps({ id: 'MK-9' })), ['redline', 'share', 'sign', 'history']);
   });
   test('5c executed: nothing owed is offered; on the Redlines face answering is not offered again', () => {

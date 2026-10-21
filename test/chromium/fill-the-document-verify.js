@@ -175,6 +175,13 @@ const owed = (page, id) => page.evaluate(x => {
       /* WHAT THE PRESS MET, said in 4a's detail when it fails (8 Oct 2026):
          CI failed this step on runs that pass locally, so the reading is
          taken where the runner is, not guessed at. */
+      /* RE-POINTED 21 Oct 2026: the Signer row gained a line ("+ Add another signer", the
+         owner's SAP-way signer row), so the card is 31px taller and at this scroll position
+         the "Fill the document" line can sit UNDER the panel's own chips strip. A reader
+         scrolls to a line before pressing it; so does the press. (The strip covering the
+         foot of a long card is the panel's, not this line's: a BUGLOG line, not a fix here.) */
+      await page.evaluate(() => { const b = document.querySelector('#pd-needs [data-pd-og-docfill]'); if (b) b.scrollIntoView({ block: 'center' }); });
+      await page.waitForTimeout(150);
       press.before = await page.evaluate(() => { const b = document.querySelector('#pd-needs [data-pd-og-docfill]');
         if (!b) return 'no button'; const r = b.getBoundingClientRect(); const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
         return { disabled: b.disabled, onTop: at === b || b.contains(at) ? 'button' : (at ? (at.id || at.className || at.tagName) : 'nothing'),
