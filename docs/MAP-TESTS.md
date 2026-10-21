@@ -248,6 +248,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - nda-carries-no-money-verify.
 
 ## JAMBO'S AGENTS — THE HOUSE AND HIS POINTS (js/views/jambohouse.js)
+- jambos-work-open-verify (Home's Jambo's work · Open, and the house's door, land on the Board's Jambo's work card even when a contract's report was held there: bsCardLeave first; never "nothing prepared" over waiting work; three screens).
 - f667, f724, f790, f800–f803, jambo-agents, open-in-place, counter-as-drawn verify.
 
 ## THE SLIDER ON EVERY JAMBO PANEL

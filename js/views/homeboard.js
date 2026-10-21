@@ -5509,6 +5509,13 @@ function hbAgentWorkPress(el){
 function hbOpenAgent(k, itemKey){
   const s = hbS();
   s.face = 'board';
+  /* THE BOARD, NOT A CONTRACT'S PAGE ON IT (owner, 21 Oct 2026: "Open" landed
+     on a stale contract card and said "nothing prepared" over 47 pieces): a
+     card brought up earlier is put away first, as every other door onto the
+     Board's own page puts it away (bsCardLeave) — else the card stays the
+     page on top, the Jambo's work card is never drawn and landOn's missing
+     line is untrue. One door: Home's row, the house and "work" asked. */
+  if (typeof window.bsCardLeave === 'function') try { window.bsCardLeave(); } catch (_){}
   if (s.prep === 'closed') s.prep = 'open';
   const keys = Array.isArray(window.AG_KEYS) ? AG_KEYS : [];
   s.path = (k && keys.includes(k) && hbAgentsData(null).rows.some(r => r.k === k)) ? ['ag:' + k] : [];
