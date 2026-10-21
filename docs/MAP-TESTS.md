@@ -93,6 +93,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - stakes-verify, point-buttons-and-brief verify, jambo-pill-and-window 3a, f668, f671, f277.
 - clauses-legora-way-verify (merged twin counted once, worst-first order, the dive walks the same order, badge = need you, Mark reviewed persists through the server and drops the count, missing row in place; 1/12 at d7a320c2). stakes-verify and point-buttons-and-brief-verify re-pointed to the card anatomy.
 
+- clause-list-fixed-verify (the blank clause is a real row with its finding on it and Plain greyed, a genuine section title still a title, the close that holds while you scroll, the group's own close, no dashed border, no count line; 5/14 at 826e87cb). f668 (4) pins the route's `blank` state and the walk's own test.
+- RE-POINTED 21 Oct 2026: stakes-verify 2 and 3c, clauses-legora-way-verify 1, 1b and 5 (the count line removed, the dashed box gone), f507 (2) (the follow stands down while the reader's close is latched). Five checks had their DRIVING re-pointed only — thread, runway-and-xray, reading-in-the-background, five-screenshots, six-off-five-images each pressed a row that was already open.
 ## INSIGHTS
 - f151, f183, f247, f267, f290–f299, f305, f321, f338, f392, f394, f424–f438, f441, f457, f459 (A), f539, f730; insights-*, portfolio-frame, obligations-report, friction-fits-the-screen, explorer-*, imported-on-the-map, analyze-on-the-graph, map-asked-bubbles, owners-fifteen, fold-every-view verify.
 
