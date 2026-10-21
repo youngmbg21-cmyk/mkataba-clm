@@ -218,7 +218,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - sap-popups, negotiate-as-drawn, new-agreement, end-or-pause verify, f390 1h, f358 (6).
 
 ## LOOKS: TOKENS, TYPE, BUTTONS, DIALOGS, POP-UPS
-- f96, f238, f310, f312, f377, f385, f386, f458 (9), contrast, button-consistency, theme-tokens, dark-no-white-patches, one-reference-face, ink-wash verify.
+- chambers-verify (Chambers and no dark mode, 20 Oct 2026: 26 checks, 21 red at the parent; its controls are Explorer's and the Brain's stages, the language door, the phone's bird), f96 (one look: no theme, no brand, old keys cleared), f238, f310, f312, f364 (9), f377, f385, f386, f458 (9), contrast, button-consistency, theme-tokens (one appearance; "no colour of the old look"), dark-no-white-patches (no dark rule anywhere), brand-survives-refresh (an old stored brand or dark lands on Chambers), one-reference-face, ink-wash verify (one appearance; no COOL grey).
 
 ## TWO LANGUAGES ≠ TWO MARKETS
 - f148, f677, signing-screen-svenska-verify.

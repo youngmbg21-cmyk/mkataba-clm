@@ -22,7 +22,7 @@
    8  the Brain's dark stage, its own corners
    9  the language still changes, in Settings › You
    10 the phone keeps the bird
-   Red at the parent (d2b75c7): 19 of 24 — the bar is dark, the mark reads
+   Red at the parent (d2b75c7): 21 of 26 — the bar is dark, the mark reads
    "Ha", the theme button and the language switch stand in it, the bird is
    everywhere, the hint lines are drawn, a stored "dark" turns the page dark.
    7c, 8a, 9a, 10a and "page errors" pass there too: they are the CONTROLS,
@@ -91,11 +91,13 @@ const check = (name, pass, detail) => {
       const div = getComputedStyle(document.documentElement).getPropertyValue('--color-divider').trim();
       return { bg: cs.backgroundColor, edge: cs.borderBottomColor, edgeW: cs.borderBottomWidth, div, mark: m && m.textContent.trim(), markFace: ms && ms.fontFamily, markBg: ms && ms.backgroundColor,
         markShown: !!m && !m.hidden && m.getBoundingClientRect().width > 0,
+        bell: (() => { const d = document.getElementById('hdr-notify-dot'); return d && !d.hidden ? getComputedStyle(d).backgroundColor : null; })(),
         theme: !!document.getElementById('theme-btn'), swatches: document.querySelectorAll('[data-brand-pick]').length, lang: !!document.getElementById('lang-switch') || document.querySelectorAll('.lang-btn').length };
     });
     check('3a the bar is white with one hairline under it', bar.bg === 'rgb(255, 255, 255)' && bar.edgeW === '1px', JSON.stringify(bar));
     check('3b the mark is the word "HaTi" in the title serif, no tile', bar.markShown && bar.mark === 'HaTi' && /^"?Source Serif 4/.test(bar.markFace) && /rgba\(0, 0, 0, 0\)|transparent/.test(bar.markBg), JSON.stringify(bar));
     check('3c no theme button, no Blue/Green swatches and no language switch in the bar', !bar.theme && bar.swatches === 0 && !bar.lang, JSON.stringify(bar));
+    check('3d the bell\'s count is the ink, not amber', bar.bell === 'rgb(22, 21, 18)' || bar.bell === 'rgb(31, 77, 59)', String(bar.bell));
 
     /* ================= 4. HOME'S QUESTION =================================== */
     const home = await page.evaluate(() => {

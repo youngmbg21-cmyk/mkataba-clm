@@ -44,7 +44,9 @@
    GONE: the Blue and Green ramps and their washes, the Blue Ink Wash greys
    and ground, the bar's white veils, the old teal-tinted shadows, the status
    washes behind stage words (dot and word now) and slate-50 behind the
-   chips (links now). Nothing else moved.
+   chips (links now), and the bell count's dark-amber ink #2A1B04 (the count
+   is white on the ink now; on the room screens, where the bell shows a
+   count). Nothing else moved.
    RE-RECORDED 20 Oct 2026 (tenth), OWNER-ASKED ("build the dossier and the
    4b"): the Board's card carries the stage's act in its head, so History's
    light screen wears --btn-lift (rgba(10,20,40,0.18)), an existing token.
