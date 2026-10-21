@@ -252,6 +252,13 @@ function pageKit(){
     asked: q => { const h = (window.ai && Array.isArray(ai.history)) ? ai.history : ((window.intel && Array.isArray(intel.history)) ? intel.history : []);
       return h.filter(m => m && m.role === 'user' && String(m.text || m.content || '').trim() === q).length; },
     busy: () => !!((window.ai && ai.busy) || (window.intel && intel.busy)),
+    /* the head shows what its page reads now: the head counts again only once
+       the typing pauses (LH_SYNC_QUIET_MS, js/views/listhead.js), so a stage
+       that reads the tabs or the chips just after typing asks for this first */
+    synced: () => { const s = K.seat(); if (!s || typeof window.lhTabsHtml !== 'function') return true;
+      const rows = el => [...el.children].filter(e => e.matches('.reg-views, .lh-chips')).map(words).join(' ');
+      const tmp = document.createElement('div'); tmp.innerHTML = window.lhTabsHtml(s.getAttribute('data-lh-seat')) + window.lhChipsHtml(s.getAttribute('data-lh-seat'));
+      return rows(tmp) === rows(s); },
     /* a party one row carries and not every row does (any: or every row does);
        else a long word of the first row */
     pick: (c, parties, any) => {

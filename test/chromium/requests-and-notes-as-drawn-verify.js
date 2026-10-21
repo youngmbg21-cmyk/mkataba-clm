@@ -207,13 +207,16 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
       const verbs = [...p.querySelectorAll('.ins-h .ins-acts [data-ins-act]')]; const tops = new Set(verbs.map(b => Math.round(b.getBoundingClientRect().top)));
       return { word: (p.querySelector('[data-jl-word]') || {}).textContent, title: (document.querySelector('.mn-t1') || {}).textContent, n: (document.querySelector('.mn-hn') || {}).textContent,
         tabs: [...document.querySelectorAll('[data-mn-tab]')].map(b => b.firstChild.textContent + (b.querySelector('.n') && !b.querySelector('.n').hidden ? ' ' + b.querySelector('.n').textContent : '')),
-        boxes: [...document.querySelectorAll('.mn-band .ik-fb .ik-fb-l, .mn-band .ik-fb .reg-f-l')].map(e => e.textContent.trim()),
+        /* RE-POINTED (Part 8, the owner's pick of "The Legora way", 21 Oct
+           2026): the labelled boxes Note · Contract became the list head's
+           one box and Contract under its "+ Filter" */
+        boxes: [document.querySelector('.mn-band[data-lh-seat="mynotes"] input[data-lh-q]') ? 'box' : '', ...[...document.querySelectorAll('.mn-band [data-lh-add] optgroup')].map(g => g.label)],
         pills: [...document.querySelectorAll('.mn-t [data-mn-row] .mn-pill')].map(e => e.textContent.trim()),
         verbs: verbs.map(b => b.textContent.trim()), oneLine: tops.size === 1, del: !!p.querySelector('[data-mn-act="delete"]'),
         review: (p.querySelector('[data-ins-fact="review"] dd') || {}).textContent };
     }, null, 10000);
-    check('6a My notes: the band, the tabs, Note · Contract, the review pills as drawn', !!N && N.title === 'My notes' && N.n === '5'
-      && JSON.stringify(N.tabs) === '["All 5","Due today 1","Later 2","Reviewed 1"]' && JSON.stringify(N.boxes) === '["Note","Contract"]'
+    check('6a My notes: the head, the tabs, the box and Contract under + Filter, the review pills as drawn', !!N && N.title === 'My notes' && N.n === '5'
+      && JSON.stringify(N.tabs) === '["All 5","Due today 1","Later 2","Reviewed 1"]' && JSON.stringify(N.boxes) === '["box","Contract"]'
       && N.pills[0] === 'Review today' && /^Review \S+ \d/.test(N.pills[1]) && N.pills[3] === 'No review day' && /^Reviewed/.test(N.pills[4]), N && JSON.stringify({ tabs: N.tabs, boxes: N.boxes, pills: N.pills }));
     check('6b the note in Jambo\'s panel ("Note"): three verbs on one line, Review "Today, … · in your bell", Delete note', !!N && N.word === 'Note'
       && /^Mark reviewed,Snooze a week,Open MK-A2$/.test(N.verbs.join(',')) && N.oneLine && /^Today, .* · in your bell$/.test(N.review) && N.del, N && JSON.stringify({ verbs: N.verbs, review: N.review }));
@@ -247,10 +250,14 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
           const lh = s === '.ik-lt' ? document.querySelector('[data-lh-seat="intake"]') : null;
           const tabs = lh ? lh.querySelector('[role="tablist"]') : document.querySelector('.reg-tabbar .reg-views'), fb = lh ? lh.querySelector('.lh-chips') : document.querySelector('.reg-tabbar .ik-fb');
           const tr = tabs && tabs.getBoundingClientRect(), fr = fb && fb.getBoundingClientRect();
-          const labelsCut = [...document.querySelectorAll(lh ? '[data-lh-seat="intake"] .reg-vtab, [data-lh-seat="intake"] .lh-add'
-            : '.ik-tabbar .reg-f-l, .ik-tabbar .ik-fb-l, .ik-tabbar .reg-vtab, .ik-tabbar .reg-f-v')].filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.textContent.trim());
-          const oneRow = lh ? !!(tr && fr) && fr.top >= tr.bottom - 1 && tabs.scrollWidth <= tabs.clientWidth + 1 && fb.scrollWidth <= fb.clientWidth + 1
-            : !!(tr && fr) && fr.top < tr.bottom && fr.bottom > tr.top && fr.left >= tr.right;
+          /* both list-head pages (Requests and My notes): box, tabs and chips stand as
+             three rows in that order, nothing cut sideways (Part 8, 21 Oct 2026) */
+          const lhAny = document.querySelector('[data-lh-seat]');
+          const labelsCut = [...document.querySelectorAll('.ik-tabbar .reg-f-l, .ik-tabbar .ik-fb-l, .ik-tabbar .reg-vtab, .ik-tabbar .reg-f-v, [data-lh-seat] .reg-vtab, [data-lh-seat] .lh-chip > label, [data-lh-seat] .lh-add')].filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.textContent.trim());
+          const lhRows = lhAny && (() => { const b = lhAny.querySelector('.lh-ask'), t = lhAny.querySelector('.reg-views'), c = lhAny.querySelector('.lh-chips');
+            const br = b && b.getBoundingClientRect(), tr2 = t && t.getBoundingClientRect(), cr = c && c.getBoundingClientRect();
+            return !!(br && tr2) && br.bottom <= tr2.top + 1 && (!cr || tr2.bottom <= cr.top + 1) && t.scrollWidth <= t.clientWidth + 1 && (!c || c.scrollWidth <= c.clientWidth + 1); })();
+          const oneRow = lhAny ? lhRows : !!(tr && fr) && fr.top < tr.bottom && fr.bottom > tr.top && fr.left >= tr.right;
           const heads = [...document.querySelectorAll(s + ' thead th')].filter(t => t.scrollWidth > t.clientWidth + 1).map(t => t.textContent.trim());
           const p = document.querySelector('#ins-panel.is-jambo'); const pr = p && p.getBoundingClientRect();
           const verbs = p ? [...p.querySelectorAll('.ins-h .ins-acts [data-ins-act]')] : [];
@@ -259,7 +266,7 @@ const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
           return { side: document.documentElement.scrollWidth <= innerWidth + 1, oneRow, labelsCut,
             heads, cutVerb, verbsOneLine: tops.size <= 1, panel: !!p && pr.right <= innerWidth + 1 && pr.bottom <= innerHeight + 1 };
         }, sel);
-        check(`7 ${lang} ${view} ${w}×${ht}: nothing sideways, the band one row, its labels whole, no head cut, the panel's verbs whole on one line`, F.side && F.oneRow && !F.labelsCut.length && !F.heads.length && !F.cutVerb.length && F.verbsOneLine && F.panel, JSON.stringify(F));
+        check(`7 ${lang} ${view} ${w}×${ht}: nothing sideways, the band one row (on the list head: its rows in order), its labels whole, no head cut, the panel's verbs whole on one line`, F.side && F.oneRow && !F.labelsCut.length && !F.heads.length && !F.cutVerb.length && F.verbsOneLine && F.panel, JSON.stringify(F));
         if (OUT) await page.screenshot({ path: path.join(OUT, `20-${view === 'intake' ? 'requests' : 'mynotes'}-${lang}-${w}x${ht}.png`) });
       }
       await page.setViewportSize({ width: 1440, height: 780 });
