@@ -3830,6 +3830,14 @@ if (typeof document !== 'undefined' && !document._pdOgWired){
   document.addEventListener('focusin', e => {
     const host = pdOgHostOf(e.target); if (!host) return;
     const c = pdOgContract(host); if (c) pdOgWire(host, c);
+    /* THE SAP WAY puts a row's label and Confirm ABOVE its box: a hand in a box sees what it answers, so the
+       row's head is brought into view by the least scroll (else a Tab onto Confirm would jump the panel) */
+    const tr = host.id === 'pd-og' && e.target.closest('td.pd-og-v') ? e.target.closest('tr[data-pd-og-row]') : null;
+    const feed = tr && tr.closest('#igd-feed');
+    if (tr && feed){
+      const fr = feed.getBoundingClientRect(), rr = tr.getBoundingClientRect();
+      if (rr.top < fr.top && rr.height <= fr.height) feed.scrollTop -= Math.ceil(fr.top - rr.top);
+    }
     /* A CURSOR IN A BOX LIGHTS ITS WORD ON THE PAPER (the fill form's own rule, wireFieldLink's) */
     if (c && typeof contractFieldKeyOf === 'function' && typeof contractFieldLight === 'function'){
       let k = ''; try { k = contractFieldKeyOf(e.target, c) || ''; } catch (_){ k = ''; }
