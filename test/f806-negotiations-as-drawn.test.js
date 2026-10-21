@@ -129,9 +129,13 @@ describe('f806 (3) the page as drawn', () => {
     assert.match(HTML, /\.ngl-head \.ngl-title-row\{ display:flex; align-items:baseline;/);
     assert.match(APP, /<div class="page-title-row" style="min-width:0;display:flex;align-items:baseline;column-gap:12px;row-gap:2px;flex-wrap:wrap">/);
   });
-  test('3b the list\'s count in a pill: "Negotiations 7"', () => {
-    assert.match(fnOf(REG, 'regListTitle'), /if\(regScope\(\)==='negotiations'\) return `\$\{esc\(name\)\} <span class="reg-tt-n is-pill">\$\{n\}<\/span>`;/);
-    assert.match(HTML, /\.reg-tt-n\.is-pill,\.ap-card-n\.is-pill\{/);
+  test('3b the list\'s count is the All tab and the foot, not a card head\'s pill', () => {
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way": the
+       list's own card head goes, its controls to the chip row's end). This
+       pinned round 14's "Negotiations 7" pill on that head. */
+    assert.doesNotMatch(fnOf(REG, 'regListTitle'), /negotiations|is-pill/, 'the register\'s list title is Contracts\' alone');
+    assert.match(REG, /\$\{neg\?'':`<div class="reg-cardhead reg-filterbar">/, 'no card head on the Negotiations seat');
+    assert.match(HTML, /\.reg-tt-n\.is-pill,\.ap-card-n\.is-pill\{/, 'the pill\'s rule stays for Approvals\' own count');
   });
   test('3c the wait is amber where it waits on the reader: our move, on a deal they lead', () => {
     assert.match(REG, /const onMe=ld\.mine&&c\._ngBand==='you'&&nc\.waiting!=='\\u2014';/);

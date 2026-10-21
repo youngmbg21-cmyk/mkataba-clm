@@ -996,17 +996,26 @@ const check = (name, ok, detail) => {
        and is the one the reader types into. The rule is unchanged and only its
        subject moved, so BOTH halves are pinned: the Negotiations seat draws no
        box on either shell and must still narrow nothing. */
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way"):
+       the computer's Negotiations page draws its own box now (the list
+       head), so there the words narrow; the seat with no box is the PHONE's
+       Negotiations screen, and there a query must still narrow nothing. */
     const staleNego = await page.evaluate(() => {
       if (window.regSetScope) regSetScope('negotiations');
-      const before = regFiltered().length;
-      regState().query = 'zzzz-no-such-contract';
-      const after = regFiltered().length;
-      regState().query = '';
-      return { before, after };
+      const keep = window.mPhone;
+      try {
+        window.mPhone = () => true;
+        const before = regFiltered().length;
+        regState().query = 'zzzz-no-such-contract';
+        const phone = regFiltered().length;
+        window.mPhone = () => false;
+        const computer = regFiltered().length;
+        return { before, phone, computer };
+      } finally { regState().query = ''; window.mPhone = keep; }
     });
-    check('16d a query narrows nothing on the seat with no box',
-      staleNego.before === staleNego.after,
-      `${staleNego.before} rows before, ${staleNego.after} after`);
+    check('16d a query narrows nothing on the seat with no box (the phone), and narrows the computer\'s, whose box says it',
+      staleNego.before === staleNego.phone && staleNego.computer < staleNego.before,
+      JSON.stringify(staleNego));
 
     /* ============ 17. THE SEARCH BOX ACTUALLY NARROWS THE TABLE ============
        DRIVEN WITH REAL KEYSTROKES, because this is the whole report and the

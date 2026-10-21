@@ -496,11 +496,14 @@ const SEED_UNSENT = async () => {
 
       /* RE-POINTED IN PLACE 26 Sep 2026: a group's NAME keeps the strong
          weight and its COUNT reads lighter than the name — the drawing's
-         `tr.grp td{font-weight:600}` over `.n{font-weight:500}`. */
+         `tr.grp td{font-weight:600}` over `.n{font-weight:500}`.
+         RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way", Q2
+         "A — tabs only"): the group headings between the rows are gone — the
+         whose-move tabs above the table say the groups — so the rows are flat
+         all the way down, nothing between them heavier than a row. */
       if (label === 'negotiations')
-        check(`5${shape}-negotiationsg the group headings keep theirs, and the count reads lighter than the name`,
-          rows.bands.length > 0 && rows.bands.every(w => Number(w) >= 600)
-            && rows.bandN.every(w => Number(w) < Math.min(...rows.bands.map(Number))),
+        check(`5${shape}-negotiationsg no group heading between the rows (the whose-move tabs say the groups)`,
+          rows.bands.length === 0 && rows.bandN.length === 0,
           { name: rows.bands, count: rows.bandN });
     }
     }

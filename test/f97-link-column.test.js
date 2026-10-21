@@ -170,7 +170,9 @@ describe('F97 — one builder, so the two tables cannot disagree', () => {
   test('the full-width rows span a real column count, on the seat that draws them', () => {
     assert.ok(!/colspan="7"/.test(reg), 'no row still spans a retired column count');
     const spans = [...reg.matchAll(/colspan="([^"]+)"/g)].map(m => m[1]);
-    assert.ok(spans.length >= 4, 'the full-width rows are still there');
+    /* RE-POINTED 21 Oct 2026 (Part 8, Q2 "A — tabs only"): the band row went
+       with the bands, so one full-width row fewer is drawn */
+    assert.ok(spans.length >= 3, 'the full-width rows are still there');
     for (const v of spans) {
       /* Either a literal that is one of the two real counts, or the seat's own
          expression. Nine on Contracts (MK · title · counterparty · stream ·
@@ -193,8 +195,9 @@ describe('F97 — one builder, so the two tables cannot disagree', () => {
        when the owner took the stream column off both seats the literal would
        have spanned a column the table no longer draws. It reads the seat's own
        key list now, which is the relation this was always claiming. */
-    const band = reg.slice(reg.indexOf('function negoBandRowHtml'));
-    assert.match(band.slice(0, band.indexOf('\n}')), /colspan="\$\{regColKeys\(\)\.length\}"/);
+    /* RE-POINTED 21 Oct 2026 (Part 8): the band row and its builder are
+       deleted, not stubbed (one plain table under the whose-move tabs). */
+    assert.ok(!/function negoBandRowHtml/.test(reg), 'no band row is built');
     /* And the register's own empty row follows the seat rather than a number. */
     /* The seat's own key list is the count since 21 Sep 2026 — asked through
        regColKeys since 26 Sep, so the inspector's shape spans its own four. */

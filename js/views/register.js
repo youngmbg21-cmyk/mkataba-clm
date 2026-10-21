@@ -721,6 +721,13 @@ function regInspecting(){ return !regHome() && regMode()!=='board' && typeof ins
    empty row's span and a band's span all ask it, so a column can never sit
    under the wrong heading whichever shape the page is in. */
 function regColKeys(){
+  /* NEGOTIATIONS: the seat's shape, then the reader's own Columns (Part 8 —
+     Ref and the counterparty always lead, the rest in the reader's order) */
+  const keys=regColKeysSeat();
+  return regScope()==='negotiations' ? regNegoColsShown(keys) : keys;
+}
+/* the seat's own columns for this paint's shape, before the reader's choice */
+function regColKeysSeat(){
   const neg=regScope()==='negotiations', ins=regInspecting();
   if(!neg && regHome()){
     if(regHomeNarrow()) return REG_COL_KEYS_HOME_NARROW;
@@ -771,6 +778,16 @@ const regColStoreKey = () => REG_COL_KEY + (regScope()==='negotiations' ? '.nego
    column one place left. Same for a total that has drifted off 100, which
    would put the table back into sideways scroll. */
 function regColWidths(){
+  /* NEGOTIATIONS' OWN COLUMNS (Part 8): where the reader hid or moved one,
+     each column keeps its width BY KEY off the seat's widths (theirs or the
+     defaults), and a hidden one's room goes to the counterparty */
+  if(regScope()==='negotiations' && !regInspecting()){
+    const keys=regColKeys();
+    if(regNegoColsChosen(keys)) return regNegoColWidths(keys, regColWidthsOwn());
+  }
+  return regColWidthsOwn();
+}
+function regColWidthsOwn(){
   const def = regColDefaults();
   try{
     const raw = localStorage.getItem(regColStoreKey());
@@ -969,10 +986,9 @@ function regSetMode(k){ _regMode=(k==='board')?'board':'table'; }
    applied above every filter and untouched by Clear, so it is deliberately not
    counted here.
 
-   AND THE QUERY COUNTS ONLY WHERE IT NARROWS. The Negotiations seat draws no
-   search box on either shell, so regFiltered ignores a stale query there; a
-   head that called it a filter would be the control saying one thing and the
-   table another. */
+   AND THE QUERY COUNTS ONLY WHERE IT NARROWS (regQueryOf, the one answer):
+   a head that called a query nobody can see a filter would be the control
+   saying one thing and the table another. */
 /* ---- THE WAY BACK IS PAINTED, NOT ONLY BUILT ----
    The shell bar's search repaints the BODY on every keystroke (a full render
    per letter would rebuild the page under the reader), so a Clear button
@@ -1004,9 +1020,20 @@ function wireRegClear(){
     regRepaint();
   });
 }
+/* ---- WHERE THE WORDS NARROW (Part 8, the owner's pick "The Legora way", 21
+   Oct 2026) ---- a query narrows where a box says what it is set to, and
+   nowhere else (M-5's own rule, kept): on Contracts, the top bar's box; on
+   Negotiations, the list head's box — on a computer. The phone's Negotiations
+   screen draws no box (mNegotiationsHtml reads regFiltered over the same
+   state), so there the words narrow nothing, as M-5 ruled for both shells.
+   This REVERSES M-5 on the computer only: the page now has a box of its own. */
+function regQueryOf(R){
+  if(regScope()==='negotiations' && typeof window.mPhone==='function' && window.mPhone()) return '';
+  return String((R&&R.query)||'');
+}
 function regNarrowed(R){
   const st = R || regState();
-  const q = (regScope()==='negotiations') ? '' : String(st.query||'').trim();
+  const q = regQueryOf(st).trim();
   /* EVERY BAR FILTER, ASKED THROUGH ITS OWN PREDICATE (the owner's list, 27
      Sep 2026): this listed the filters by hand and On hold was missed, so a
      list narrowed by it alone drew no Clear and no "Do this to these". One
@@ -1241,6 +1268,9 @@ function regGoFiltered(patch, opts){
   const R=regFiltersAtRest(regState());
   if(patch) Object.assign(R, patch);
   regSearchBoxClear();
+  /* the list head's box on Negotiations shows the fresh words, and a question
+     standing in it goes (its one writer, js/views/listhead.js) */
+  if(nego&&typeof window.lhBoxSet==='function') lhBoxSet(REG_NEGO_SEAT, '');
   if(nego){ regSetScope(null); if(opts.open===false) return R;
     if(typeof window.openNegotiations==='function') window.openNegotiations({ list:true }); return R; }
   if(opts && opts.open===false) return R;
@@ -1464,18 +1494,166 @@ function regNegoBase(){
   const R=regState(), keep=R.band; R.band=null;
   try{ return regFiltered(); } finally { R.band=keep; }
 }
-function negoBandTabsHtml(R, book){
+/* ---- THE WHOSE-MOVE TABS ARE THE PAGE'S GROUPS NOW (Part 8, the owner's pick
+   "The Legora way", 21 Oct 2026; Q2 answered "A — tabs only") ----
+   ONE READING for the list head's tab row: All, then Our move, Their move,
+   For signature and Neither, each counted with the rows its press shows
+   (negoBandCounts over the book with every other cut held, the very partition
+   regFiltered narrows the band by). A tab with nothing in it is left out by
+   the one tab builder (insViewTabsHtml) unless the reader stands on it — this
+   REVERSES round 14's greyed Our move and Their move at zero, the shared
+   rule's own. The bands that used to head each group under the table are
+   gone (one plain table, "waiting on us" first under All), and their words
+   ride each tab's hover ("Waiting on our side"). */
+function negoBandViews(R, book){
   const n=negoBandCounts(book||[]);
-  /* WHOSE MOVE (round 14): "Our move" — our side's, whoever on it leads —
-     then theirs, "For signature" and "Neither" only where something is in
-     them (a choice that gives nothing is not listed). The ones the reader is
-     standing on stay. */
-  const tabs=[['',i18t('reg_tab_all'),(book||[]).length],['you',i18t('reg_pill_your_move'),n.you],['them',i18t('reg_pill_their_move'),n.them],
-    ...((n.out||(R.band||'')==='out')?[['out',i18t('ngl_tab_sign'),n.out]]:[]),...((n.clear||(R.band||'')==='clear')?[['clear',i18t('ngl_tab_neither'),n.clear]]:[])];
-  return `<div class="reg-views" role="tablist" aria-label="${esc(i18t('ngl_tabs_label'))}">${tabs.map(([k,label,c])=>{
-    const on=(R.band||'')===k;
-    return `<button type="button" role="tab" class="reg-vtab${on?' on':''}${!c&&!on?' is-zero':''}" data-reg-band="${k}" aria-selected="${on?'true':'false'}">${esc(label)}${c?`<span class="n">${c}</span>`:''}</button>`;
-  }).join('')}</div>`;
+  const said=k=>{ const b=NEGO_BANDS.find(x=>x.k===k); return b?b.label:''; };
+  return [{ k:'', label:i18t('reg_tab_all'), n:(book||[]).length, keep:true },
+    { k:'you', label:i18t('reg_pill_your_move'), n:n.you, title:said('you') },
+    { k:'them', label:i18t('reg_pill_their_move'), n:n.them, title:said('them') },
+    { k:'out', label:i18t('ngl_tab_sign'), n:n.out, title:said('out') },
+    { k:'clear', label:i18t('ngl_tab_neither'), n:n.clear, title:said('clear') }];
+}
+/* ═══ THE NEGOTIATIONS LIST HEAD, THE LEGORA WAY (Part 8, 21 Oct 2026) ═══════
+   The page names itself (negoListHeadHtml: the title, its facts, Start a
+   negotiation), then the shared head's rows (js/views/listhead.js): the box
+   to search or ask in, the whose-move tabs, "+ Filter" and its chips, Sort
+   and Display at the right end, and Columns. EVERY READING AND KEPT VALUE IS
+   THIS PAGE'S OWN: state.regNego (rlPlace keeps it across a refresh),
+   regFiltered the one reading of the rows, of every tab's number and of every
+   choice's count. The labelled boxes, Adapt filters, Clear and the list's own
+   card head ("Negotiations 7") are retired on this seat. */
+const REG_NEGO_SEAT='negotiations';
+/* The filters "+ Filter" offers here — REG_BAR_FILTERS less the two this seat
+   never draws (Signed: a live negotiation carries none; Quick filters: they
+   are questions about the book, not about a deal). */
+const REG_NEGO_FILTERS=['stage','type','category','renewal','payterms','docs','hold'];
+function regNegoState(){ if(!state.regNego) state.regNego=REG_STATE_DEF(); return state.regNego; }
+/* the seat's own reading, whatever seat the register was last asked for: the
+   top bar's search turns the register to Contracts before it asks every head
+   for its own words (lhBoxSet), and this page's box must never show
+   Contracts' query nor count Contracts' filters */
+function regOnNego(fn){
+  const was=REG_SCOPE; REG_SCOPE='negotiations';
+  try{ return fn(regNegoState()); } finally { REG_SCOPE=was; }
+}
+/* IS THE LOADED LIST THE WHOLE BOOK — a count over a slice is a number about
+   the slice wearing the book's name (regViewCount's own rule) */
+function regBookWhole(){
+  return !(typeof API_MODE==='function'&&API_MODE()) || !(state.serverStats&&state.serverStats.total!=null)
+    || Number(state.serverStats.total)<=state.contracts.length;
+}
+/* how many rows one choice would leave, every other cut held (the lit tab and
+   the typed words too): the press's own reading — regFiltered with that one
+   value swapped — never a second tally; null where it cannot be counted */
+function regNegoOptN(R, k, v){
+  if(!regBookWhole()) return null;
+  const was=R[k]; R[k]=v;
+  try{ return regFiltered().length; }catch(_){ return null; } finally { R[k]=was; }
+}
+function regNegoFilters(){
+  return regOnNego(R=>{
+    const opts=(k,list)=>list.map(([v,l])=>[v,l,regNegoOptN(R,k,v)]);
+    const pay=(typeof PAY_BUCKETS!=='undefined'&&Array.isArray(PAY_BUCKETS))?PAY_BUCKETS.map(b=>b.k):[];
+    const f=(k,label,title,list)=>({ k, label, title, cur:(R[k]==null||R[k]==='')?'all':String(R[k]), def:'all', opts:opts(k,list) });
+    return [
+      f('stage',i18t('reg_chip_stage'),i18t('reg_lifecycle_stage'),REG_STAGE_TABS.filter(k=>k!=='all').map(k=>[k,regStageWord(k)])),
+      f('type',i18t('reg_chip_stream'),i18t('reg_value_stream'),regTypes().filter(t=>t.k!=='all').map(t=>[t.k,t.label])),
+      f('category',i18t('me_category'),i18t('me_category'),regCategories().map(k=>[k,regCatLabel(k)]).concat([['none',i18t('reg_uncategorised')]])),
+      f('renewal',i18t('reg_renewal'),i18t('reg_renewal'),[['auto-renew',i18t('reg_renew_auto')],['fixed',i18t('reg_fixed')],['evergreen',i18t('reg_evergreen')]]),
+      f('payterms',i18t('reg_payterms'),i18t('reg_payterms_title'),pay.map(b=>[b,`${b} ${i18t('pt_days')}`]).concat([['none',i18t('reg_payterms_none')]])),
+      f('docs',i18t('reg_docs'),i18t('reg_docs_title'),[['lapsed',i18t('reg_docs_lapsed')],['missing',i18t('reg_docs_missing')],['soon',i18t('reg_docs_soon')],['none',i18t('reg_docs_none')]]),
+      f('hold',i18t('reg_f_hold'),i18t('reg_f_hold_title'),[['on',i18t('reg_f_hold_on')],['off',i18t('reg_f_hold_off')]]),
+    ];
+  });
+}
+/* a press in the head repaints the page it is on, and the place a refresh
+   comes back to is written at once */
+function regNegoRepaint(){
+  regSetScope('negotiations');
+  if(_regOpts&&_regOpts.scope==='negotiations') regRepaint();
+  if(typeof window.placeSave==='function'){ try{ placeSave(); }catch(_){ /* the place is a convenience */ } }
+}
+/* Sort and Display at the chip row's right end, in the dress they wore on the
+   list's own card head (a .reg-filterbar holds them, so the chip's own
+   select overlay and caret rules still reach them) */
+function regNegoToolsHtml(R){
+  return `<span class="reg-filterbar ngl-tools">${regSortIconHtml(regSortOptsHtml(R,true))}${regDisplayHtml(true)}</span>`;
+}
+/* REGISTERED AT THE PAGE'S OWN RENDER (the shared head counts nothing and
+   keeps nothing of its own). The columns the reader may hide or order are the
+   ones after who the row is (Ref and the counterparty always lead). */
+function regNegoHeadReg(){
+  if(typeof window.LC_PAGES==='object'&&window.LC_PAGES&&!LC_PAGES[REG_NEGO_SEAT])
+    LC_PAGES[REG_NEGO_SEAT]={ cols:()=>regNegoColDefs(), repaint:()=>regNegoRepaint() };
+  if(typeof window.lhRegister!=='function') return null;
+  return lhRegister(REG_NEGO_SEAT, {
+    noun:'negotiations', boxId:'ngl-q',
+    total:()=>(typeof window.negoLiveList==='function')?negoLiveList().length:null,
+    q:()=>String((state.regNego&&state.regNego.query)||''),
+    /* the rows only — never the box, so the caret stays; the head recounts
+       itself once the typing pauses (renderRegisterBody asks it too) */
+    setQuery:words=>{ const R=regNegoState(); R.query=String(words==null?'':words); R.page=1;
+      regSetScope('negotiations'); renderRegisterBody();
+      if(typeof window.placeSave==='function'){ try{ placeSave(); }catch(_){ /* a convenience */ } } },
+    tabAttr:'data-reg-band', tabsLabel:i18t('ngl_tabs_label'),
+    tabs:()=>regOnNego(R=>negoBandViews(R, regNegoBase())),
+    tabNow:()=>String((state.regNego&&state.regNego.band)||''),
+    tab:k=>{ const R=regNegoState(); R.band=k||null; R.page=1; regNegoRepaint(); },
+    lead:()=>regOnNego(R=>regOnlyChipHtml(R)),
+    filters:()=>regNegoFilters(),
+    apply:patch=>{ const R=regNegoState();
+      Object.keys(patch||{}).forEach(k=>{ if(REG_NEGO_FILTERS.includes(k)) R[k]=String(patch[k]==null?'all':patch[k]); });
+      R.page=1; regNegoRepaint(); },
+    right:()=>regOnNego(R=>regNegoToolsHtml(R)),
+    /* A PART OF THE PAGE'S OWN DRAWN AFRESH BY A RECOUNT is bound by the
+       page's own full paint, which binds every one of its controls per
+       element (renderRegister). Never while typing: the named set, Sort and
+       Display change only through presses that repaint the page already, so
+       their html is the same at every recount and the head leaves them
+       standing, listeners and focus kept. */
+    wire:()=>regNegoRepaint(),
+  });
+}
+function regNegoHeadHtml(top){
+  if(!regNegoHeadReg()||typeof window.lhHtml!=='function') return `<div class="reg-band sap-band ph-card">${top}</div>`;
+  return lhHtml(REG_NEGO_SEAT, { frame:'card', top, cls:'reg-band' });
+}
+/* the foot: "1–7 of 7" — this list draws every row, so it offers no Show
+   more; the register's own id stays on it (#reg-showing, the live region) */
+function regNegoFootHtml(cs){
+  const n=(cs||[]).length;
+  if(typeof window.lhFootHtml!=='function') return '';
+  return lhFootHtml(REG_NEGO_SEAT, n, n, 0, { id:'reg-showing' });
+}
+/* COLUMNS (the drawing's right end): the columns after who the row is, in the
+   shape this paint draws — beside the panel Round · What is open · Waiting ·
+   Lead; the full table its own. A hidden column's room goes to the
+   counterparty, the column with the give. */
+const REG_NEGO_FIXED=['mk','counterparty'];
+const REG_NEGO_COL_WORD={ kind:'reg_col_type_round', value:'reg_col_value', expiry:'reg_col_ends', stage:'reg_col_stage', move:'ngl_col_move',
+  round:'ngl_col_round', changes:'ngl_col_changes', waiting:'ngl_col_waiting', lead:'ngl_col_lead' };
+function regNegoShapeKeys(){ return regOnNego(()=>regColKeysSeat()); }
+function regNegoColDefs(){
+  return regNegoShapeKeys().filter(k=>!REG_NEGO_FIXED.includes(k)).map(k=>({ k, label:i18t(REG_NEGO_COL_WORD[k]||k) }));
+}
+function regNegoColsShown(keys){
+  if(typeof window.lcShown!=='function'||!(window.LC_PAGES&&window.LC_PAGES[REG_NEGO_SEAT])) return keys;
+  return keys.filter(k=>REG_NEGO_FIXED.includes(k)).concat(lcShown(REG_NEGO_SEAT, keys.filter(k=>!REG_NEGO_FIXED.includes(k))));
+}
+/* whether the reader has hidden or moved a column on this seat's full table:
+   its drag widths are kept for the seat's own order only (regColWidths reads
+   a stored array by position), so a chosen set is cut from the defaults by
+   KEY and draws no grips */
+function regNegoColsChosen(keys){
+  const def=regNegoShapeKeys();
+  return keys.length!==def.length || keys.some((k,i)=>k!==def[i]);
+}
+function regNegoColWidths(keys, own){
+  const def=regNegoShapeKeys(), w=(Array.isArray(own)&&own.length===def.length)?own:regColDefaults();
+  const at=k=>{ const i=def.indexOf(k); return i>=0&&typeof w[i]==='number'?w[i]:0; };
+  const spare=def.filter(k=>!keys.includes(k)).reduce((s,k)=>s+at(k),0);
+  return keys.map(k=>at(k)+(k==='counterparty'?spare:0));
 }
 /* ---- THE CONTRACTS TABS ARE THE STAGES (owner-asked 9 Oct 2026: "contracts
    page needs to resemble the negotiations page so add tabs in contracts that
@@ -1828,11 +2006,12 @@ function regFiltered(){
 
      SO THE RULE IS UNCHANGED AND ONLY ITS SUBJECT MOVED: a query narrows where
      a box says what it is set to, and nowhere else. On Contracts that box is
-     the shell bar's, and clearing it widens the list again; the Negotiations
-     seat draws none on either shell, so a stale value there narrows nothing —
-     which is M-5's own rule, kept. regNarrowed asks the same question the same
-     way, so no head can call this page filtered when it is not. */
-  const q=(regScope()==='negotiations'?'':String(R.query||'')).trim().toLowerCase();
+     the shell bar's, and clearing it widens the list again; on Negotiations it
+     is the list head's own box on a computer (Part 8, 21 Oct 2026), and the
+     phone, which draws none, is never narrowed by it — regQueryOf, which
+     regNarrowed asks the same way, so no head can call this page filtered
+     when it is not. */
+  const q=regQueryOf(R).trim().toLowerCase();
   /* ---- A SEARCH MATCHES ANY PARTY'S NAME (22 Sep 2026) ----
      Without this a three-party contract disappears from a search for the
      company that GUARANTEES it, which is exactly the company a reader looking
@@ -2121,32 +2300,16 @@ function negoMovePillHtml(c){
     full&&full!==word?` title="${esc(full)}"`:''}>${esc(word)}</span>`;
   return pill('ngl-w-'+(m.k==='clear'?'clear':m.k), m.word, m.say);
 }
-/* ---- A BAND IS NOT A ROW ----
-   It is a full-width heading that happens to live between rows: a coloured dot,
-   the name in small caps, the count. Everything about the markup says so —
-   role="presentation" on the <tr> and the <td> so no screen reader announces a
-   table row, a real heading inside for the ones that do announce, no data-row
-   (which is what wireRegRows binds the whole-row click to), no tab stop, and it
-   is generated during render rather than being a member of the filtered set, so
-   the footer's "showing 1–8 of 8" can never count one. */
-function negoBandRowHtml(band, n){
-  /* THE PAINT'S OWN COUNT, NEVER A LITERAL: a band spans whatever columns
-     this paint draws (regColKeys) — the seat's full seven, or the list
-     inspector's four. It read a literal 8, and when the stream column left
-     that seat (24 Sep 2026) the band would have spanned one column more than
-     the table draws. */
-  /* ---- THE COUNT IS PART OF THE HEADING (21 Sep 2026, Young: the four pages
-     must look exactly like the artifact) ---- the reference writes
-     "WAITING ON YOU · 3" as one line; HaTi boxed the number in a pill beside
-     it, which is a second shape for a fact the words are already carrying.
-     Same reading, same element, same class, no box. */
-  return `<tr class="ngl-band" role="presentation"><td role="presentation" colspan="${regColKeys().length}">
-    <div class="ngl-band-in" role="heading" aria-level="3">
-      <span class="ngl-band-dot" style="background:${NEGO_BAND_DOT[band.tone]}" aria-hidden="true"></span>
-      <span class="ngl-band-k">${esc(band.label)}</span>
-      <span class="ngl-band-n">${n}</span>
-    </div></td></tr>`;
-}
+/* ---- NO BAND BETWEEN THE ROWS (Part 8, the owner's pick "The Legora way",
+   21 Oct 2026; Q2 answered "A — tabs only") ---- the list is ONE plain table:
+   the whose-move tabs above it do the groups' job, each counted with the rows
+   its press shows, and under All the rows waiting on us come first
+   (negoGroupByMove's fixed order, the sort deciding the order inside each).
+   This REVERSES 12 Aug's "the group order is the whole design of this page"
+   and the full-width group headings it drew ("Waiting on our side 2" …);
+   negoBandRowHtml and its rules are deleted, not stubbed. The groups' words
+   ride the tabs' hovers (negoBandViews), and NEGO_BANDS stays the one list of
+   them — the phone still heads its own sections with it. */
 function regRowsHtml(cs){
   const R=regState();
   const neg=regScope()==='negotiations';
@@ -2175,22 +2338,6 @@ function regRowsHtml(cs){
   }
   const p=regCurPage(cs); const size=regPageSize(); const start=(p-1)*size;
   const pageRows=cs.slice(start, start+size);
-  /* THE BANDS THAT HAVE ROWS, IN FIXED ORDER, EACH WITH ITS OWN COUNT.
-     ---- AN EMPTY GROUP IS NOT DRAWN (26 Sep 2026, the list options' floor —
-     "empty groups are not drawn") ---- this REVERSES "an empty one is
-     information": a heading over nothing read as a broken list, and the page
-     head already says how many are waiting on you. The order is still the
-     fixed one — a band is drawn where its first row is, never re-sorted. */
-  const bandN=neg?negoBandCounts(pageRows):null;
-  const drawn=new Set();
-  const bandsBefore=k=>{
-    if(!neg||drawn.has(k)) return '';
-    const b=NEGO_BANDS.find(x=>x.k===k)||NEGO_BANDS[NEGO_BANDS.length-1];
-    drawn.add(k);
-    return negoBandRowHtml(b,bandN[b.k]||0);
-  };
-  const bandsAfter=()=>'';
-  let lastBand=null;
   const actBtns=regRowActsHtml;
   return pageRows.map((c,i)=>{
     const eff=effectiveExpiry(c);
@@ -2209,9 +2356,6 @@ function regRowsHtml(cs){
        shorthand a reader had to decode, on the one cell whose whole job is to
        be read at a glance. The word is the book's own (reg_non_monetary_word). */
     const val=!isMonetary(c)?esc(i18t('reg_non_monetary_word')):(c.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'—');
-    /* The band header for the group this row opens, drawn once, ahead of it. */
-    let band='';
-    if(neg && c._ngBand!==lastBand){ band=bandsBefore(c._ngBand); lastBand=c._ngBand; }
     /* ---- THE CELLS ARE BUILT BY KEY AND EMITTED IN THE SEAT'S ORDER (second
        pass, 21 Sep 2026) ---- the head does the same off the same list, so a
        column can never sit under the wrong heading. THE TITLE IS TWO LINES
@@ -2331,25 +2475,23 @@ function regRowsHtml(cs){
           label, and sorting by title is still offered there. */
     /* ASK A COLUMN (20 Oct 2026): each answer column's cell, drawn by its own builder */
     if(typeof window.askColTdHtml==='function') regColKeys().forEach(k=>{ if(k.startsWith('ask:')) CELL[k]=askColTdHtml(c,k.slice(4)); });
-    return band + `
+    return `
     <tr data-row="${c.id}"${neg?' data-nego-row="1"':''} tabindex="${i===0?0:-1}"
       style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">${regColKeys().map(k=>CELL[k]||'').join('')}
     </tr>`;
-  }).join('')
-    /* Any band with no rows under it still gets its header and its zero — and
-       the trailing ones are only reachable here, after the last row. */
-    + bandsAfter();
+  }).join('');
 }
 // W2-1: converted to the workspace currency, so one column total is one currency
 /* THE LIST'S TITLE WITH ITS COUNT (owner-approved SAP benchmark, 9 Oct 2026):
    SAP's table toolbar names the list and counts what it shows — "Contracts
    (14)". The count is the list as filtered, the same rows the table draws; the
    foot keeps the paging. One builder, repainted with the rows. */
+/* NOT ON NEGOTIATIONS ANY MORE (Part 8, the owner's pick "The Legora way",
+   21 Oct 2026): that page draws no card head over its list — its All tab and
+   its foot say the count — so round 14's "Negotiations 7" pill went with it. */
 function regListTitle(cs){
-  const name=i18t(regScope()==='negotiations'?'nav_negotiations':'nav_contracts');
+  const name=i18t('nav_contracts');
   const n=(Array.isArray(cs)?cs.length:0).toLocaleString(jxLocale());
-  /* the count in its pill on Negotiations (round 14 as drawn: "Negotiations 7") */
-  if(regScope()==='negotiations') return `${esc(name)} <span class="reg-tt-n is-pill">${n}</span>`;
   return `${esc(name)} <span class="reg-tt-n">(${n})</span>`;
 }
 function regAggregate(cs){ return cs.filter(c=>c.status!=='Declined'&&!c.archived&&isMonetary(c)).reduce((s,c)=>s+(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)),0); }
@@ -2381,7 +2523,12 @@ function renderRegisterBody(){
   const tb=document.getElementById('reg-tbody'); if(tb){ tb.innerHTML=regRowsHtml(cs); wireRegRows(); }
   /* The fold's control is in the Display menu, which a body repaint does not
      rebuild — so it is wired once, by the full render, never here. */
-  const sh=document.getElementById('reg-showing'); if(sh){ sh.innerHTML=regFooterText(cs); }
+  /* Negotiations' foot is the list head's ("1–7 of 7", regNegoFootHtml),
+     drawn whole; and the head's own numbers follow the rows once the typing
+     pauses (Part 8) — a body repaint from any door keeps the tabs true */
+  const negSeat=regScope()==='negotiations';
+  const sh=document.getElementById('reg-showing'); if(sh){ if(negSeat) sh.outerHTML=regNegoFootHtml(cs); else sh.innerHTML=regFooterText(cs); }
+  if(negSeat&&typeof window.lhHeadSyncSoon==='function') lhHeadSyncSoon(REG_NEGO_SEAT);
   const tt=document.getElementById('reg-tt'); if(tt){ tt.innerHTML=regListTitle(cs); }
   const pgr=document.getElementById('reg-pager'); if(pgr){ pgr.innerHTML=regPager(cs); wireRegPager(); }
   /* The search narrows from the shell bar, which repaints only this body — so
@@ -2756,6 +2903,30 @@ function regExportCsv(){
    functions eventually disagree about what a row says, and disagreeing is
    exactly what the Negotiations page was written as a twenty-line signpost to
    avoid. Reuse is now what keeps that promise. */
+/* THE CHIP IS THE NARROWING AND THE WAY OUT OF IT, in one object — see
+   regShowOnly. It leads the bar because it is the widest statement on it:
+   every dropdown beside it narrows within this set. ONE BUILDER for the
+   Contracts bar and the Negotiations list head's chip row (Part 8). */
+function regOnlyChipHtml(R){
+  const onlyChip=R.only?`<span id="reg-only-chip" title="${esc(i18t('reg_only_title'))}"
+      style="display:inline-flex;align-items:center;gap:7px;font-size:var(--t-meta);font-weight:var(--w-strong);border-radius:var(--radius);padding:5px 6px 5px 10px;
+        background:var(--st-steel-bg);border:1px solid var(--st-steel-line);color:var(--st-steel-fg);max-width:320px;min-width:0">
+      ${''/* A WIDTH LIMIT, THE WHOLE LABEL ON THE HOVER (the owner's list, 27 Sep
+             2026): a long label pushed the filters onto a second line. */}
+      <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(R.only.label||i18t('reg_only_fallback'))}">${esc(R.only.label||i18t('reg_only_fallback'))}</span>
+      <button id="reg-only-clear" title="${esc(i18t('reg_only_clear'))}" aria-label="${esc(i18t('reg_only_clear'))}"
+        style="border:0;background:none;font:inherit;line-height:1;color:inherit;cursor:pointer;padding:0 3px;opacity:.7;display:inline-grid;place-items:center">${icon('x','w-3.5 h-3.5')}</button>
+    </span>`:'';
+  return onlyChip;
+}
+/* NEVER SIGNED ON THE NEGOTIATIONS SEAT, for the reason its own filter gives:
+   that page holds live negotiations and has no Signed column, so ordering by a
+   date none of them carries is a control whose one outcome is a list of
+   em-dashes. ONE BUILDER for both seats' Sort (Part 8). */
+function regSortOptsHtml(R, neg){
+  return visibleSorts(REG_SORTS).filter(s=>!(neg&&s.k==='signed'))
+    .map(s=>`<option value="${s.k}" ${R.sort===s.k?'selected':''}>${s.label}</option>`).join('');
+}
 let _regOpts={};
 /* Repaint the page that is actually on screen. Every filter control inside this
    file used to call renderRegister() bare, which with two pages sharing the
@@ -2769,14 +2940,17 @@ function renderRegister(opts){
   const HOME=regHome();
   const neg=regScope()==='negotiations';
   const R=regState(); R.page=1;
+  /* NEGOTIATIONS' LIST HEAD (Part 8) says what it reads before anything is
+     drawn — its Columns decide which columns this paint draws */
+  if(neg) regNegoHeadReg();
   const cs=regFiltered();
   /* WHICH SHAPE THIS PAINT DRAWS — the list inspector's, or the full table —
      asked ONCE and recorded on the page (data-ins), so a width that crosses
      the line repaints it (insWatchWidth) and nothing in one paint disagrees. */
   const INS=regInspecting();
-  /* The head counts the whole live book, never the one tab on screen. */
-  const csBook=(neg&&R.band)?regNegoBase():cs;
-  const headHtml=typeof o.head==='function' ? o.head(csBook) : (o.head||'');
+  /* The page's own title row (Negotiations': negoListHeadHtml, which counts
+     the whole live book itself, never the one tab on screen). */
+  const headHtml=typeof o.head==='function' ? o.head(cs) : (o.head||'');
   /* A select left on `appearance:auto` is drawn by the platform, and the
      platform draws it with a hard dark edge and a square corner whatever the
      border says. Turning the appearance off hands the closed control back to
@@ -2905,18 +3079,8 @@ function renderRegister(opts){
       .map(([k,l])=>`<option value="${k}" ${cur===k?'selected':''}>${esc(String(l))}</option>`).join('');
   })();
   const BAR=regBarShown(R);
-  /* THE CHIP IS THE NARROWING AND THE WAY OUT OF IT, in one object — see
-     regShowOnly. It leads the bar because it is the widest statement on it:
-     every dropdown beside it narrows within this set. */
-  const onlyChip=R.only?`<span id="reg-only-chip" title="${esc(i18t('reg_only_title'))}"
-      style="display:inline-flex;align-items:center;gap:7px;font-size:var(--t-meta);font-weight:var(--w-strong);border-radius:var(--radius);padding:5px 6px 5px 10px;
-        background:var(--st-steel-bg);border:1px solid var(--st-steel-line);color:var(--st-steel-fg);max-width:320px;min-width:0">
-      ${''/* A WIDTH LIMIT, THE WHOLE LABEL ON THE HOVER (the owner's list, 27 Sep
-             2026): a long label pushed the filters onto a second line. */}
-      <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(R.only.label||i18t('reg_only_fallback'))}">${esc(R.only.label||i18t('reg_only_fallback'))}</span>
-      <button id="reg-only-clear" title="${esc(i18t('reg_only_clear'))}" aria-label="${esc(i18t('reg_only_clear'))}"
-        style="border:0;background:none;font:inherit;line-height:1;color:inherit;cursor:pointer;padding:0 3px;opacity:.7;display:inline-grid;place-items:center">${icon('x','w-3.5 h-3.5')}</button>
-    </span>`:'';
+  /* the named set's chip (regOnlyChipHtml, one builder for both seats) */
+  const onlyChip=regOnlyChipHtml(R);
   /* ---- AND THE LOCKED ONE, WHICH SAYS WHAT THE PAGE IS ----
      It wears the accent like the chip above it and carries a padlock, and it
      has no ✕ because there is nothing to remove: it is not a filter the reader
@@ -2933,12 +3097,8 @@ function renderRegister(opts){
      page, not to the chip, and regFiltered applies it first whatever the bar
      draws. `lockChip` and `#reg-lock-chip` are retired — flag any mention. */
   const lockChip='';
-  /* NEVER SIGNED ON THE NEGOTIATIONS SEAT, for the reason its own filter gives
-     twenty lines down: that page holds live negotiations and has no Signed
-     column, so ordering by a date none of them carries is a control whose one
-     outcome is a list of em-dashes. */
-  const sortOpts=visibleSorts(REG_SORTS).filter(s=>!(neg&&s.k==='signed'))
-    .map(s=>`<option value="${s.k}" ${R.sort===s.k?'selected':''}>${s.label}</option>`).join('');
+  /* never Signed on the Negotiations seat (regSortOptsHtml says why) */
+  const sortOpts=regSortOptsHtml(R,neg);
   // Clickable, sortable column header: shows a dim ↕ when inactive and a solid
   // ▲/▼ for the active sort direction. Clicking toggles asc/desc (see wiring below).
   /* A SORT ARROW ONLY ON THE COLUMN THE LIST IS SORTED BY (26 Sep 2026, the
@@ -2961,12 +3121,16 @@ function renderRegister(opts){
      SEPARATE control inside the head: the head itself sorts, and a press on
      the grip must never sort, which is what its own handler's stopPropagation
      buys. The last column gets none — it has nothing to its right. */
+  /* THE READER'S OWN COLUMNS ON NEGOTIATIONS (Columns, Part 8): a set they
+     chose is cut by key (regColWidths) and draws no grips — a stored drag is
+     by position, the seat's own order only */
+  const negChosen=neg&&!INS&&regNegoColsChosen(regColKeys());
   const COLW=regColWidths();
   let _colN=0;
   /* IN THE INSPECTOR'S SHAPE the three short columns hold a width in pixels
      and the counterparty takes the rest — and there are no grips: four
      columns, one of them the give, have nothing worth dragging. */
-  const gripFor=i=>(INS||i>=COLW.length-1) ? '' :
+  const gripFor=i=>(INS||i>=COLW.length-1) ? '' : negChosen ? '' :
     `<span class="reg-grip" data-reg-grip="${i}" role="separator" aria-orientation="vertical" tabindex="0"
        title="${esc(i18t('reg_col_drag'))}" aria-label="${esc(i18t('reg_col_drag'))}"></span>`;
   const colAt=(extra='',k)=>{ const i=_colN++;
@@ -3513,7 +3677,12 @@ function renderRegister(opts){
              for the two things still in it. THE VIEWS ARE NEVER DRAWN ON THE
              NEGOTIATIONS SEAT: "Ending in 90 days" and "Archived" are
              questions about the book, not about a live negotiation. */}
-      ${HOME?regHomeHeadHtml(R,fbBoxes,adaptBtn,clearSlot):`<div class="reg-band sap-band ph-card">
+      ${''/* NEGOTIATIONS, THE LEGORA WAY (Part 8, the owner's pick, 21 Oct
+             2026): its own title row over the shared list head — the box,
+             the whose-move tabs, "+ Filter" and its chips, Sort, Display and
+             Columns at the right end. No labelled boxes, no Adapt filters,
+             no Clear, no card head over the list (regNegoHeadHtml). */}
+      ${HOME?regHomeHeadHtml(R,fbBoxes,adaptBtn,clearSlot):neg?regNegoHeadHtml(headHtml):`<div class="reg-band sap-band ph-card">
       ${headHtml}
       <!-- THE FILTERS SIT BESIDE THE TABS (owner, 10 Oct 2026: "move the
            highlighted filters to the empty side on the right ... to optimize
@@ -3523,8 +3692,7 @@ function renderRegister(opts){
            streams"). When they do not fit, the row wraps and the filters
            take one short line under the tabs. -->
       <div class="reg-tabbar">
-      ${!neg?regStageTabsHtml(R):''}
-      ${neg?negoBandTabsHtml(R,csBook):''}
+      ${regStageTabsHtml(R)}
       <div class="reg-filterbar reg-fb">
         ${lockChip}
         ${fbBoxes}
@@ -3538,13 +3706,15 @@ function renderRegister(opts){
       <!-- THE LIST'S OWN HEAD (SAP benchmark, owner-approved 9 Oct 2026): its
            name and count, then Sort and Display as two small icons. The
            filters went up into the white band with the page's name. -->
-      <div class="reg-cardhead reg-filterbar">
+      ${''/* NOT ON NEGOTIATIONS (Part 8): the list head above says the count
+             (the All tab) and carries Sort and Display at its chip row's end */}
+      ${neg?'':`<div class="reg-cardhead reg-filterbar">
         <h2 id="reg-tt" class="reg-tt">${regListTitle(cs)}</h2>
         <span style="flex:1;min-width:8px"></span>
         ${typeof window.askColBtnHtml==='function'?askColBtnHtml():''}
         ${regSortIconHtml(sortOpts)}
         ${regDisplayHtml(neg)}
-      </div>
+      </div>`}
 
       ${regMode()==='board'?`
         <div id="reg-scroll" style="flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;padding:var(--s-3)">
@@ -3646,8 +3816,8 @@ function renderRegister(opts){
           </table>
         </div>
         <div style="flex:none;border-top:1px solid var(--color-divider);display:flex;align-items:center;justify-content:space-between;gap:10px var(--s-4);flex-wrap:wrap;padding:5px var(--s-3);font-size:var(--t-label);color:var(--color-neutral-600)">
-          <span id="reg-showing" role="status" aria-live="polite" aria-atomic="true">${regFooterText(cs)}</span>
-          <div id="reg-pager" style="display:flex;align-items:center;gap:6px">${regPager(cs)}</div>
+          ${neg?regNegoFootHtml(cs):`<span id="reg-showing" role="status" aria-live="polite" aria-atomic="true">${regFooterText(cs)}</span>
+          <div id="reg-pager" style="display:flex;align-items:center;gap:6px">${regPager(cs)}</div>`}
           ${''/* ---- THE FOOT IS THE COUNT AND THE PAGER, AND NOTHING ELSE
                  (Young ruled 24 Sep 2026, over a screenshot of this strip:
                  "delete this from both the contracts and negotiations pages";
@@ -3800,7 +3970,9 @@ function renderRegister(opts){
     if(v.startsWith('act:forget:')){ await regForgetViewAsk(v.slice(11)); regRepaint(); return; }
     if(v.startsWith('saved:')){ if(regApplySaved(v.slice(6))) regRepaint(); return; }
     R.view=v||null; R.page=1; regRepaint(); });
-  document.querySelectorAll('button[data-reg-band]').forEach(b=>b.addEventListener('click',()=>{ R.band=b.getAttribute('data-reg-band')||null; R.page=1; regRepaint(); }));
+  /* the whose-move tabs are the list head's (js/views/listhead.js: one press,
+     delegated, ending in the page's own tab(k)); their per-element binding
+     here is deleted, so a press fires once (Part 8) */
   document.querySelectorAll('button[data-reg-saved]').forEach(b=>b.addEventListener('click',()=>{ if(regApplySaved(b.getAttribute('data-reg-saved'))) regRepaint(); }));
   document.querySelectorAll('button[data-reg-saved-x]').forEach(b=>b.addEventListener('click',async e=>{ e.stopPropagation();
     if(await regForgetViewAsk(b.getAttribute('data-reg-saved-x'))) regRepaint(); }));
@@ -3830,7 +4002,6 @@ function renderRegister(opts){
     R.show=k; regRepaint(); }));
 
   regWireColResize();
-  regFitBandOffset();
   regPaintCohort();
   setActiveNav(_regOpts.nav);
   if(HOME){ _regHomeSig=regBookSig(); regHomeWatch(hostEl); if(typeof placeSave==='function'){ try{ placeSave(); }catch(_){ /* the place is a convenience */ } } }
@@ -3855,34 +4026,14 @@ function regPaintCohort(){
   slot.innerHTML = html;
 }
 
-/* ---- WHERE A BAND PINS IS THE HEADER'S HEIGHT, ASKED OF THE HEADER ----
-   The Negotiations list draws full-width bands between its rows and both they
-   and the column header are position:sticky inside #reg-scroll. The band's
-   offset was typed as 38px against a header that renders 35, so a 3px slot sat
-   between them and every row scrolled visibly through it — reported as the list
-   breaking on scroll (owner, 22 Aug 2026). The number is read off the header
-   now and written as --reg-head-h for the rule in index.html.
-   TWO PROPERTIES, each of which this codebase has learned once already:
-   A HEIGHT OF ZERO IS NOT A HEIGHT — the pane can be display:none when a
-   sitting starts, and writing 0 there would pin every band to the top of the
-   scroller — so a zero is refused and today's value stands.
-   AND IT IS OBSERVED, NOT MEASURED ONCE: the header's height follows the
-   reader's type and the window's width, so a ResizeObserver re-reads it. Bound
-   once per element (dataset.regHeadObserved), because this function is called
-   from the full render AND from every body repaint. */
-function regFitBandOffset(){
-  const sc=document.getElementById('reg-scroll'); if(!sc) return;
-  const hd=sc.querySelector('.reg-table thead tr'); if(!hd) return;
-  const apply=()=>{
-    const h=Math.round(hd.getBoundingClientRect().height);
-    if(h>0) sc.style.setProperty('--reg-head-h',h+'px');
-  };
-  apply();
-  if(!hd.dataset.regHeadObserved && typeof ResizeObserver==='function'){
-    hd.dataset.regHeadObserved='1';
-    try{ new ResizeObserver(apply).observe(hd); }catch(e){}
-  }
-}
+/* ---- WHERE A BAND PINNED (retired 21 Oct 2026, Part 8) ----
+   regFitBandOffset measured the column header and wrote --reg-head-h, so the
+   Negotiations list's group headings could pin flush under it (owner, 22 Aug
+   2026: "when you scroll … it breaks"). The headings are gone — the
+   whose-move tabs in the list head say the groups (the owner's pick "The
+   Legora way", Q2 "A — tabs only") — and nothing read the measure any more,
+   so the function, its ResizeObserver and the property are deleted, not
+   stubbed. The column header itself is still sticky (.reg-table thead th). */
 
 /* ---- E6-T1 full-text search dropdown (server mode) ---- */
 let ftsTimer=null;
@@ -3907,11 +4058,14 @@ function ftsSearch(q){
 Object.assign(window,{regOpenContract,regPlace,regPlacePut,regSignedOn,regSignedYear,regSignedYears,regSignedCell,
   REG_COL_KEYS,REG_COL_KEYS_NEGO,REG_COL_W,REG_COL_W_NEGO,REG_COL_KEYS_NARROW,REG_COL_KEYS_NEGO_NARROW,REG_COL_W_NARROW,REG_COL_W_NEGO_NARROW,REG_NARROW_W,regNarrowTable,REG_COL_MIN_PX,regReopenAsk,
   /* the list inspector (26 Sep 2026) */
-  REG_COL_KEYS_INS,REG_COL_KEYS_NEGO_INS,REG_INS_COL_PX,regInspecting,regColKeys,regInsSeat,regInsActs,regInsPaint,
+  REG_COL_KEYS_INS,REG_COL_KEYS_NEGO_INS,REG_INS_COL_PX,regInspecting,regColKeys,regColKeysSeat,regInsSeat,regInsActs,regInsPaint,
   regRowActsHtml,regRunRowAct,regOpenRow,regDisplayHtml,regCloseDisplay,REG_SOON_DAYS,regEndsSay,
-  regColWidths,regColSetWidths,regColReset,regColDefaults,regColTrade,regColApply,regWireColResize,
+  regColWidths,regColWidthsOwn,regColSetWidths,regColReset,regColDefaults,regColTrade,regColApply,regWireColResize,
   REG_CMP,REG_SORT_DEFDIR,regBlanksLast,regStreamName,regRefParts,regNarrowed,regClearHtml,regPaintClear,
-  REG_BAR_FILTERS,REG_BAR_DEFAULT,regListTitle,regSortIconHtml,regMovePillHtml,regNegoCols,regNegoBase,regNegoSay,regNegoNeedRows,negoBandTabsHtml,regAvatarHtml,regAvatarTone,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,regViewCount,REG_SAVED_KEY,REG_SAVED_FIELDS,regSavedViews,regSaveView,regForgetView,regApplySaved,regSavedMatches,regHeadFactsHtml,regPaintHeadFacts,regPaintViewCounts,regMoveWord,regOwnerCell,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regMode,regSetMode,regViewTabsHtml,regStageTabsHtml,regStageBase,regStageTabsWire,REG_STAGE_TABS,regViewOptsHtml,regSaveViewAsk,regForgetViewAsk,regSegHtml,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regMenuFit,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,REG_FILTER_REST,regFiltersAtRest,regSearchBoxClear,regGoFiltered,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
-  regScope,regSetScope,regRepaint,regPageSize,regFitBandOffset,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,negoBandRowHtml,
+  REG_BAR_FILTERS,REG_BAR_DEFAULT,regListTitle,regSortIconHtml,regMovePillHtml,regNegoCols,regNegoBase,regNegoSay,regNegoNeedRows,regAvatarHtml,regAvatarTone,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,regViewCount,REG_SAVED_KEY,REG_SAVED_FIELDS,regSavedViews,regSaveView,regForgetView,regApplySaved,regSavedMatches,regHeadFactsHtml,regPaintHeadFacts,regPaintViewCounts,regMoveWord,regOwnerCell,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regMode,regSetMode,regViewTabsHtml,regStageTabsHtml,regStageBase,regStageTabsWire,REG_STAGE_TABS,regViewOptsHtml,regSaveViewAsk,regForgetViewAsk,regSegHtml,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regMenuFit,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,REG_FILTER_REST,regFiltersAtRest,regSearchBoxClear,regGoFiltered,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
+  regScope,regSetScope,regRepaint,regPageSize,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,
+  /* the Negotiations list head, the Legora way (Part 8, 21 Oct 2026) */
+  negoBandViews,REG_NEGO_SEAT,REG_NEGO_FILTERS,regNegoState,regOnNego,regBookWhole,regNegoOptN,regNegoFilters,regNegoHeadReg,regNegoHeadHtml,regNegoFootHtml,regNegoToolsHtml,regNegoRepaint,
+  REG_NEGO_FIXED,regNegoShapeKeys,regNegoColDefs,regNegoColsShown,regNegoColsChosen,regNegoColWidths,regQueryOf,regOnlyChipHtml,regSortOptsHtml,
   /* the Contracts place on Home (the overnight work order, step 7) */
   REG_SHOWS,REG_COL_KEYS_HOME,REG_COL_W_HOME,REG_COL_KEYS_HOME_NARROW,REG_COL_W_HOME_NARROW,REG_HOME_NARROW_W,regHomeNarrow,regHomeWatch,regPlaceSet,regPlaceUp,regHome,regRestBase,regHomeHeadHtml,regHomeWallHtml,regBookSig,regHomeStale});

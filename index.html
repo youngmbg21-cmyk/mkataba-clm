@@ -2739,44 +2739,12 @@
   tr[data-nego-row]:hover .ngl-w{ text-decoration:underline; }
   .ngl-empty{ background:var(--color-surface); border:1px solid var(--color-divider);
     border-radius:var(--radius); padding:34px; text-align:center; box-shadow:var(--shadow-sm); }
-  /* ---- THE BAND ----
-     A full-width heading between rows: a coloured dot, the name in small caps,
-     the count. It is the thing a flat register cannot produce, and it is what
-     stops this page being mistaken for Contracts. NOT A ROW — no hover tint, no
-     pointer, no cell padding, and the markup carries role="presentation" so it
-     is never announced as one either. */
-  /* ---- THE BAND PINS TO THE HEADER, AND THE HEADER IS MEASURED (owner-
-     reported 22 Aug 2026: "when you scroll in the negotiations list of
-     contracts, it breaks") ----
-     It was `top:38px`, typed. MEASURED, the register's sticky header renders
-     35px tall, so there was a 3px slot between the two pinned things that
-     every row slid visibly through on the way past — the reported break. A
-     number that has to agree with another element's height is one that agrees
-     until somebody changes a padding or a type size, which this file did on
-     22 Aug and nothing said so. regFitBandOffset writes --reg-head-h off the
-     header's own box and re-reads it on a ResizeObserver, so the two cannot
-     come apart again. The fallback is today's measured 35px, for the one
-     reader that never runs script. */
-  .ngl-band > td{ padding:0!important; border-bottom:0!important;
-    background:var(--color-surface); position:sticky; top:var(--reg-head-h,35px); z-index:2; }
-  .reg-table tbody tr.ngl-band:hover{ background:none; }
-  .ngl-band-in{ display:flex; align-items:center; gap:8px; padding:9px var(--s-3) 7px;
-    border-bottom:1px solid var(--color-divider); }
-  .ngl-band-dot{ width:8px; height:8px; border-radius:50%; flex:none; }
-  /* ---- A GROUP IS NAMED IN ORDINARY WORDS (Young picked the Inspector
-     drawing, 26 Sep 2026) ---- "Waiting on you 6": the group's name in the
-     page's own ink at the row's size and the strong weight, and its count
-     beside it in the quiet ink. It REVERSES 21 Sep's small capitals the way
-     the column heads were reversed, on the owner's later drawing — a band is
-     a heading over rows, and the heads above it are words now. The band still
-     sits on the list's own white, pinned under the head, one rule below it. */
-  .ngl-band-k{ font-size:var(--t-body); font-weight:var(--w-strong); letter-spacing:0; text-transform:none;
-    color:var(--color-text); }
-  /* NO BOX (21 Sep 2026), and no middle dot since 26 Sep: the count reads
-     beside the words in the quiet ink, the mono numerals kept so a column of
-     bands lines up. */
-  .ngl-band-n{ font-family:var(--font-mono); font-size:var(--t-body); font-weight:var(--w-label);
-    letter-spacing:0; color:var(--color-neutral-600); }
+  /* ---- NO BAND BETWEEN THE ROWS (Part 8, the owner's pick "The Legora way",
+     21 Oct 2026; Q2 answered "A — tabs only") ---- the full-width group
+     headings ("Waiting on our side 2", pinned under the column heads) are
+     gone with their rules: the whose-move tabs in the list head do their job
+     over one plain table. Their history is in MAP-HISTORY under round 14 and
+     22 Aug's pinned-band report. */
   /* ---- ITS TITLE STARTS WHERE EVERY OTHER PAGE'S DOES (owner-asked 25 Aug
      2026: "the distance between the edge at the top and the header should be
      the same across all pages") ----
@@ -2794,7 +2762,6 @@
   /* .ngl-page carries no padding rule any more; the class stays as the hook
      that says which of the two pages this wrapper is drawing. */
   .ngl-head-table h2{ margin:0; display:flex; align-items:baseline; gap:9px; flex-wrap:wrap; }
-  .ngl-head-table p{ margin:2px 0 0; }
   /* THE PILL IS STALE (21 Sep 2026) and is kept whole: the head draws the
      count as a sub-line now, and putting the pill back is taking the scoped
      rule below away. */
@@ -2836,6 +2803,17 @@
   .ngl-empty h3{ margin:0 0 6px; font-size:16px; font-weight:var(--w-title); }
   .ngl-empty p{ margin:0 0 var(--s-4); font-size:var(--t-body); color:var(--color-neutral-600);
     max-width:46ch; margin-inline:auto; line-height:1.6; }
+  /* ---- SORT AND DISPLAY AT THE CHIP ROW'S END (Part 8, the owner's pick "The
+     Legora way", 21 Oct 2026) ---- the two small icons the list's own card
+     head carried ("Negotiations 7 ⇅ ⚙") stand at the list head's right end,
+     before Columns, in the same dress: an icon square, no edge, the accent
+     ink, the platform's caret off. Scoped to this page's head. */
+  .sap-page.ngl-page .lh-chips > .ngl-tools{ display:inline-flex; align-items:center; gap:var(--s-1); flex:none; }
+  .sap-page.ngl-page .ngl-tools .reg-chip.reg-ico{ width:var(--ctl-h); min-width:var(--ctl-h); height:var(--ctl-h); padding:0;
+    justify-content:center; border:0; background:none; color:var(--accent-ink); }
+  .sap-page.ngl-page .ngl-tools .reg-chip.reg-ico::after{ display:none; }
+  .sap-page.ngl-page .ngl-tools .reg-chip.reg-ico:hover{ background:var(--surface-2); }
+  .sap-page.ngl-page .ngl-tools .reg-chip.reg-ico .reg-f-l{ display:inline-flex; }
   /* ---- THE NEGOTIATION DESK, IN THE HEADER AND NOWHERE ELSE ----
      Who leads a negotiation is a fact about the contract, so it rides with the
      contract's other facts. This is the whole visual cost of the feature: one

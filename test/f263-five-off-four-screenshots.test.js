@@ -20,7 +20,8 @@
      2  a duplicate obligation is refused at the form as well as at the scan,
         and an obligation never clashes with itself
      3  the Negotiations seat draws one search control, and a stale query on
-        that seat narrows nothing
+        that seat narrows nothing where no box says it — the phone (Part 8,
+        21 Oct 2026: the computer's page has its own box now)
      4  the worklist names its columns, says which filter is on, and holds one
         row height
      5  both languages
@@ -207,11 +208,24 @@ describe('f263 (3) — neither seat draws a search control', () => {
     win.state = Object.assign({}, win.state, { contracts: [a, b], activeId: null, view: 'redline' });
     win.getContract = id => [a, b].find(c => c.id === id) || null;
 
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way"):
+       the computer's Negotiations page now draws its own box (the list head),
+       so there the words narrow it; the PHONE's Negotiations screen still
+       draws none, and there a query nobody can see must still narrow
+       nothing — the control this half always was, on the shell that keeps
+       M-5's reason. */
     win.regSetScope('negotiations');
     const beforeNeg = win.regFiltered().length;
-    win.regState().query = 'Warehousing';
-    assert.equal(win.regFiltered().length, beforeNeg,
-      'a query nobody can see must not narrow Negotiations');
+    const keepPhone = win.mPhone;
+    try {
+      win.mPhone = () => true;
+      win.regState().query = 'Warehousing';
+      assert.equal(win.regFiltered().length, beforeNeg,
+        'a query nobody can see must not narrow Negotiations on the phone');
+      win.mPhone = () => false;
+      assert.ok(beforeNeg > 1 && win.regFiltered().length < beforeNeg,
+        'on a computer the list head\'s box narrows it');
+    } finally { win.mPhone = keepPhone; }
 
     /* AND ON CONTRACTS IT BITES, because that is the seat the shell bar's box
        opens and the box holds the words that say so. */
