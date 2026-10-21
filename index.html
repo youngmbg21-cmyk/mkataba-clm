@@ -15197,31 +15197,37 @@
   .tpl-page > section[data-tpl-sec]:not([hidden]):has(> .tpl-ins){overflow:hidden;display:flex;flex-direction:column;}
   .tpl-ins{flex:1;min-height:0;}
   .tpl-ins .ins-panel{min-height:0;overflow:auto;}
-  .tpl-piles{padding:0 var(--s-4);border-bottom:1px solid var(--color-divider);flex:none;}
-  .tpl-ins-head{flex:none;}
-  .tpl-ins-note{font-size:var(--t-meta);color:var(--color-neutral-600);margin-left:var(--s-2);}
   .tpl-lt .tpl-code{font-family:var(--font-mono);font-size:var(--t-label);color:var(--color-neutral-600);}
   .tpl-lt .num,.tpl-lt th.num{text-align:right;font-variant-numeric:tabular-nums;}
   .tpl-draft-tag{font-size:var(--t-figure);font-weight:var(--w-title);padding:1px 6px;border-radius:var(--radius);background:var(--st-amber-bg);color:var(--st-amber-fg);margin-left:4px;}
-  .tpl-fb{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--s-3) var(--s-4);padding:0 0 var(--s-3);}
-  .tpl-fb .tpl-fb-q{display:flex;flex-direction:column;gap:0;}
-  .tpl-band [data-tpl-head="list"]{margin-bottom:var(--s-2);}
-  .tpl-fb .tpl-fb-q .reg-f-l{font-size:var(--t-meta);color:var(--color-neutral-600);}
-  .tpl-fb .tpl-fb-q .ik-search{width:240px;}
-  /* Our standards (SAP benchmark, batch 2): the same white band as the book,
-     this page's three tabs on each card's top, the offer an info strip. */
-  /* the head card's lower half (.ph-foot, 19 Oct 2026): its figures 12px under the title row's line, as every head's second row of boxes */
+  /* Our standards (SAP benchmark, batch 2): the offer an info strip. */
+  /* the head card's lower half (.ph-foot, 19 Oct 2026): its rows 12px under the title row's line, as every head's second row */
   .sd-ins.sap-page > .sap-band.sd-band{flex:none;margin-top:0;padding-top:var(--s-3);}
-  .sd-band .paper-tabs{border-bottom:0;}
-  .sd-subtabs{flex:none;padding:0 var(--s-4);border-bottom:1px solid var(--color-divider);}
   .sd-ins .ins-offer.sd-info{margin:var(--s-3) var(--s-4) 0;border:1px solid color-mix(in srgb,var(--color-accent) 30%,transparent);
     background:color-mix(in srgb,var(--color-accent) 7%,var(--color-surface));border-radius:var(--radius);display:flex;align-items:center;gap:var(--s-2);flex-wrap:nowrap;}
   .sd-ins .ins-offer.sd-info > span:not(.sp){flex:1 1 auto;min-width:0;}
   .sd-ins .ins-offer.sd-info > .sp{display:none;}
   .sd-ins .ins-offer.sd-info > svg{flex:none;color:var(--accent-ink);}
-  .sd-ins .ins-card > .ins-cardhead{border-bottom:1px solid var(--color-divider);}
   /* the one Jambo panel stands at the right edge (fixed): each list takes its section's width */
   #content .sd-ins:has(> #ins-panel.is-jambo) > .ins-body{grid-template-columns:minmax(0,1fr);column-gap:0;}
+  /* OUR PAPER THE LEGORA WAY (the owner's pick, 21 Oct 2026, Part 8;
+     js/views/library.js tplLhReg, sdLhReg, paperSegHtml): each tab's list
+     head under the title row, 12px under its line as every head's second
+     row; the page's switch at the head's right, as List | Wall; the
+     quiet table and its one foot in the list's card. Scoped to this page,
+     tokens only. The classic shape (below the inspector's width) keeps its
+     own tab row and rail. */
+  .tpl-page > .sap-band.tpl-band:has(> [data-tpl-head]){padding-bottom:var(--s-2);}
+  .tpl-band > [data-tpl-head] > .lh{padding-top:var(--s-3);}
+  /* the page's switch at the head's right, on the box's line (the title's
+     line keeps one height on every page); the tab and chip rows under both */
+  .sap-page .lh.lh-paper{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:var(--s-3);row-gap:var(--s-2);align-items:center;}
+  .sap-page .lh.lh-paper > .lh-ask{grid-column:1;grid-row:1;}
+  .sap-page .lh.lh-paper > .reg-seg.paper-seg{grid-column:2;grid-row:1;align-self:center;}
+  .sap-page .lh.lh-paper > :not(.lh-ask):not(.paper-seg){grid-column:1 / -1;}
+  .sap-page .lh.lh-paper > .reg-seg.paper-seg button{display:inline-flex;align-items:center;}
+  :is(.tpl-ins,.sd-ins) .ins-card > :is(.tpl-foot,.sd-foot){flex:none;}
+  :is(.tpl-ins,.sd-ins) .ins-card > :is(.tpl-foot,.sd-foot):empty{display:none;}
 
   /* ═══ COPILOT'S WORK — THE AGENTS (Young ruled 27 Sep 2026: "Build the
      agents idea", the "Work Board Options" artifact, option 2) ═════════════

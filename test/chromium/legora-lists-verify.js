@@ -538,7 +538,9 @@ function pageKit(){
     const litT = (after.tabs || []).find(t => t.lit), allB = (before.tabs || []).find(t => t.all), allA = (after.tabs || []).find(t => t.all);
     check(`${tag(d)} 7b typing "${P.word}" narrows the list to the rows that carry it (a ${P.kind} is never a question)`,
       !!nar && after.total >= 1 && after.total < before.total, JSON.stringify({ before: before.total, after: after.total }));
-    check(`${tag(d)} 7c the tab numbers follow the words`, (after.tabs || []).length > 0 && (!litT || litT.n === after.total)
+    /* a list ruled to draw no tab row (the book) has no numbers to follow */
+    if (d.tabs === false) note(`${tag(d)} 7c this list draws no tab row (as ruled)`);
+    else check(`${tag(d)} 7c the tab numbers follow the words`, (after.tabs || []).length > 0 && (!litT || litT.n === after.total)
       && (after.tabs || []).every(t => t.saved || t.lit || t.all || t.n > 0) && (!allB || !allA || allA.n <= allB.n),
       JSON.stringify({ was: (before.tabs || []).map(t => t.label + ' ' + t.n), now: (after.tabs || []).map(t => t.label + ' ' + t.n), shown: after.total }));
     /* Enter on plain words stays a search */
