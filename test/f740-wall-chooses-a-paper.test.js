@@ -21,6 +21,13 @@
        way down.
    AT THE PARENT (8dc306a) every test here FAILS.
    The browser half: test/chromium/home-held-contract-verify.js (section 1).
+   RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way": one foot
+   on every list, "1–12 of 48 · Show 12 more"): the Wall's foot is the list
+   foot's own builder (lhFootHtml, js/views/listhead.js) on the Wall's own
+   seat, its Show more that seat's more (igWallShowMore); the scroll that
+   reaches it, and the press that keeps a choice, read its button. What was
+   protected stands: twelve at a time, the foot counts in the head's unit,
+   no Show more once all are drawn, one ask per paint as you scroll.
    ═══════════════════════════════════════════════════════════════════════════ */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
@@ -32,6 +39,12 @@ const IG = R('js/views/intelligence.js');
 const I18N = R('js/i18n.js');
 const fnBody = (src, name) => { const i = src.indexOf('function ' + name + '('); if (i < 0) return ''; return src.slice(i, src.indexOf('\n}', i) + 2); };
 const lineOf = (src, start) => { const i = src.indexOf(start); if (i < 0) return ''; return src.slice(i, src.indexOf('\n', i) + 1); };
+/* the list foot's own builder and the three small readers it speaks through */
+const LH = R('js/views/listhead.js');
+const constOf = (src, name) => { const i = src.indexOf('const ' + name + ' ='); if (i < 0) return ''; return src.slice(i, src.indexOf(';\n', i) + 2); };
+/* the foot escapes what it prints; the stand-in i18t's JSON is read back */
+const un = h => String(h).replace(/&quot;/g, '"');
+const FOOT_SRC = ['_lhE', '_lhT', '_lhN'].map(n => constOf(LH, n)).join('') + fnBody(LH, 'lhFootHtml');
 const BOOKS = (() => {
   const en = {}, sv = {};
   /* a value in either quote, the other quote allowed inside it ("Home's") */
@@ -74,7 +87,7 @@ function world(n){
   vm.createContext(ctx);
   const src = [lineOf(IG, 'const IG_WALL_STEP='), lineOf(IG, 'let _igWallMore=0'), 'let _igWallNeed=null;', lineOf(IG, 'let _igChosen=null;'),
     lineOf(IG, 'const IG_WALL_SCROLL_NEAR='), lineOf(IG, 'let _igWallScrollAsked=')]
-    .concat(WALL_FNS.map(f => fnBody(IG, f))).concat([fnBody(IG, 'igWallScrollNear')]).join('\n');
+    .concat(WALL_FNS.map(f => fnBody(IG, f))).concat([fnBody(IG, 'igWallScrollNear'), FOOT_SRC]).join('\n');
   vm.runInContext(src + '\nthis.__peek=()=>({ chosen:_igChosen, more:_igWallMore });', ctx);
   ctx.book = book;
   return ctx;
@@ -128,12 +141,15 @@ describe('f740 (1) a press chooses, a second opens', () => {
     const wire = fnBody(IG, 'igPickWire');
     assert.match(wire, /if\(b\.classList\.contains\('igw-card'\)\)\{ igWallPress\(b\.getAttribute\('data-ig-pick'\)\); return; \}\n\s+igAnalyze\(b\.getAttribute\('data-ig-pick'\)\);/);
     assert.match(wire, /if\(e\.key!=='Enter'\) return;[\s\S]*?igWallOpen\(b\.getAttribute\('data-ig-pick'\)\)/);
-    assert.match(wire, /\[data-ig-wall-more\][\s\S]*?igWallShowMore\(\)/);
+    /* Show more is the list foot's own press, on the Wall's seat (Part 8) */
+    assert.doesNotMatch(wire, /data-ig-wall-more/, 'no second press for it on the host');
+    assert.match(R('js/views/register.js'), /lhRegister\('wall', \{ more:\(\)=>\{ if\(typeof window\.igWallShowMore==='function'\) igWallShowMore\(\); \} \}\)/,
+      'the Wall\'s seat: its more is igWallShowMore');
   });
   test('1g a press elsewhere or Esc lets it go, armed once; a press on a paper or in the panel keeps it', () => {
     const i = IG.indexOf('document._igWallChoiceWired'), seg = IG.slice(i, IG.indexOf('\n}\n', i));
     assert.ok(i > 0, 'armed once at load');
-    assert.match(seg, /if\(t\.closest\('#ig-wall \.igw-card, #ig-dock, \[data-ig-wall-more\]/);
+    assert.match(seg, /if\(t\.closest\('#ig-wall \.igw-card, #ig-dock, \[data-lh-more="wall"\]/);
     assert.match(seg, /e\.key!=='Escape'\|\|!_igChosen\|\|!igWallChosen\(\)/);
     assert.match(seg, /igWallLetGo\(\);/);
   });
@@ -144,18 +160,18 @@ describe('f740 (2) twelve papers at a time', () => {
     const w = world();
     const html = w.igWallBodyHtml(w.book, { base: w.book });
     assert.equal((html.match(/<card /g) || []).length, 12);
-    assert.match(html, /<span class="igw-shown"[^>]*>igw_shown\{"k":12,"n":30\}<\/span><button type="button" class="ui-btn ui-btn-sm" data-ig-wall-more>igw_more<\/button>/);
+    assert.match(un(html), /<div class="lh-foot igw-foot" data-lh-foot="wall"[^>]*><span class="lh-range" data-lh-shown>lh_range\{"a":"1","b":"12","n":"30"\}<\/span> · <button type="button" class="ui-link lh-more" data-lh-more="wall">lh_more\{"n":"12"\}<\/button><\/div>/);
     w.igWallShowMore(); assert.equal(w.repainted, 1, 'the place is drawn again');
     const h2 = w.igWallBodyHtml(w.book, { base: w.book });
     assert.equal((h2.match(/<card /g) || []).length, 24);
     w.igWallShowMore();
     const h3 = w.igWallBodyHtml(w.book, { base: w.book });
     assert.equal((h3.match(/<card /g) || []).length, 30, 'never more than the list holds');
-    assert.match(h3, /igw_shown\{"k":30,"n":30\}<\/span><\/div>/, 'all shown: no Show more');
+    assert.match(un(h3), /lh_range\{"a":"1","b":"30","n":"30"\}<\/span><\/div>/, 'all shown: no Show more');
   });
   test('2b twelve or fewer: no foot at all (nothing is left out)', () => {
     const w = world(12);
-    assert.doesNotMatch(w.igWallBodyHtml(w.book, { base: w.book }), /igw-foot|igw-shown/);
+    assert.doesNotMatch(w.igWallBodyHtml(w.book, { base: w.book }), /igw-foot|igw-shown|lh-foot/);
   });
   test('2c a new narrowing starts at twelve again', () => {
     const w = world();
@@ -215,12 +231,12 @@ describe('f740 (5) pass 3: one number on every door, the choice on its own wall'
     const html = w.igWallBodyHtml(b, { base: b });
     assert.equal((html.match(/<card /g) || []).length, 13, 'twelve agreements and the amendment among them');
     assert.match(html, /<card MK-3-A1>/);
-    assert.match(html, /igw_shown\{"k":12,"n":28\}<\/span><button[^>]*data-ig-wall-more>/);
+    assert.match(un(html), /lh_range\{"a":"1","b":"12","n":"28"\}<\/span> · <button[^>]*data-lh-more="wall">/);
     w.igWallShowMore();
     const h2 = w.igWallBodyHtml(b, { base: b });
-    assert.equal((h2.match(/<card /g) || []).length, 26); assert.match(h2, /igw_shown\{"k":24,"n":28\}/);
+    assert.equal((h2.match(/<card /g) || []).length, 26); assert.match(un(h2), /lh_range\{"a":"1","b":"24","n":"28"\}/);
     w.igWallShowMore();
-    assert.match(w.igWallBodyHtml(b, { base: b }), /igw_shown\{"k":28,"n":28\}<\/span><\/div>/, 'all drawn: no Show more');
+    assert.match(un(w.igWallBodyHtml(b, { base: b })), /lh_range\{"a":"1","b":"28","n":"28"\}<\/span><\/div>/, 'all drawn: no Show more');
   });
   test('5c the List in front: the panel says no paper; the press that turned it is heard on the way down', () => {
     const w = world();
@@ -256,10 +272,10 @@ describe('f740 (6) pass 4: as you scroll, one number, the doors whole', () => {
     const w = world();
     assert.ok(fnBody(IG, 'igWallScrollNear'), 'the reading');
     const html = w.igWallBodyHtml(w.book, { base: w.book });
-    assert.match(html, /data-ig-wall-more/);
+    assert.match(html, /data-lh-more="wall"/);
     let top = 900;
     const foot = { getBoundingClientRect: () => ({ top }) };
-    w.document = { querySelector: s => (s === '#ig-wall [data-ig-wall-more]' ? foot : null), scrollingElement: null };
+    w.document = { querySelector: s => (s === '#ig-wall [data-lh-more="wall"]' ? foot : null), scrollingElement: null };
     const sc = { contains: () => true, getBoundingClientRect: () => ({ bottom: 700 }) };
     assert.equal(w.igWallScrollNear(sc), false, 'the foot is far below: nothing');
     assert.equal(w.repainted, 0);

@@ -2807,13 +2807,14 @@
      Legora way", 21 Oct 2026) ---- the two small icons the list's own card
      head carried ("Negotiations 7 ⇅ ⚙") stand at the list head's right end,
      before Columns, in the same dress: an icon square, no edge, the accent
-     ink, the platform's caret off. Scoped to this page's head. */
-  .sap-page.ngl-page .lh-chips > .ngl-tools{ display:inline-flex; align-items:center; gap:var(--s-1); flex:none; }
-  .sap-page.ngl-page .ngl-tools .reg-chip.reg-ico{ width:var(--ctl-h); min-width:var(--ctl-h); height:var(--ctl-h); padding:0;
+     ink, the platform's caret off. Scoped to the two pages that draw them
+     there (one builder, regToolsHtml): Negotiations and the Contracts place. */
+  .sap-page:is(.ngl-page,.ct-page) .lh-chips > .ngl-tools{ display:inline-flex; align-items:center; gap:var(--s-1); flex:none; }
+  .sap-page:is(.ngl-page,.ct-page) .ngl-tools .reg-chip.reg-ico{ width:var(--ctl-h); min-width:var(--ctl-h); height:var(--ctl-h); padding:0;
     justify-content:center; border:0; background:none; color:var(--accent-ink); }
-  .sap-page.ngl-page .ngl-tools .reg-chip.reg-ico::after{ display:none; }
-  .sap-page.ngl-page .ngl-tools .reg-chip.reg-ico:hover{ background:var(--surface-2); }
-  .sap-page.ngl-page .ngl-tools .reg-chip.reg-ico .reg-f-l{ display:inline-flex; }
+  .sap-page:is(.ngl-page,.ct-page) .ngl-tools .reg-chip.reg-ico::after{ display:none; }
+  .sap-page:is(.ngl-page,.ct-page) .ngl-tools .reg-chip.reg-ico:hover{ background:var(--surface-2); }
+  .sap-page:is(.ngl-page,.ct-page) .ngl-tools .reg-chip.reg-ico .reg-f-l{ display:inline-flex; }
   /* ---- THE NEGOTIATION DESK, IN THE HEADER AND NOWHERE ELSE ----
      Who leads a negotiation is a fact about the contract, so it rides with the
      contract's other facts. This is the whole visual cost of the feature: one
@@ -9317,12 +9318,25 @@
   .ct-top .ct-arch{align-self:flex-start;margin-left:auto;flex:none}
   .ct-top .ct-arch + .reg-seg.ct-seg{margin-left:0}
   .reg-seg.ct-seg button{display:inline-flex;align-items:center;gap:6px}
-  /* the filter row: the boxes from the left edge (wrapping within their own
-     block on a narrow place), Do this to these and Adapt filters at its end */
-  .sap-page .reg-tabbar.ct-filters{flex-wrap:nowrap;align-items:flex-start;gap:var(--s-3);padding:2px 0 9px}
-  .sap-page .reg-tabbar.ct-filters > .reg-fb:not(.ct-adapt){flex:1 1 auto;min-width:0;margin-left:0;flex-wrap:wrap;justify-content:flex-start;row-gap:6px;padding:0}
-  .ct-filters .ct-cohort{flex:none;align-self:center}
-  .sap-page .reg-tabbar.ct-filters > .reg-fb.ct-adapt{padding:0;flex:none;margin-left:0;align-self:center}
+  /* THE LEGORA WAY ON THE PLACE (Part 8, the owner's pick, 21 Oct 2026): the
+     head is the list head's white card (.ph-card, the one every list page
+     wears) set in on the ground — its title row, the line, the box, the tabs
+     and the chip row (js/views/listhead.js's own rules) — so the place takes
+     the page's top inset above it. The filter row's rules (.ct-filters,
+     .ct-adapt: the labelled boxes, Clear, Adapt filters) went with the row. */
+  .sap-page.ct-page{padding-top:var(--page-pad-t)}
+  .sap-page.ct-page .ct-head.ph-card.lh{flex:none}
+  .sap-page.ct-page .lh-chips > .ct-cohort{flex:none;display:inline-flex;align-items:center}
+  .sap-page.ct-page .lh-chips > .ct-cohort:empty{display:none}
+  /* the views wrap onto a second line where they do not fit, never cut off
+     sideways: the drawing's five, the four the Quick filters box offered
+     (each while it holds rows), the reader's saved views, Save this view */
+  .sap-page.ct-page .ct-head.lh > .reg-views{flex-wrap:wrap;overflow:visible}
+  /* "+ Save this view" (a shorter control than a tab) sits on the tabs' own
+     centre line, not on their underline (measured 8px low at the row's end) */
+  .sap-page.ct-page .ct-head.lh > .reg-views > .lh-save{align-self:center}
+  /* the agreement's line under the party: "kind · ref", the ref in its own face */
+  .ct-page .reg-table.is-home .reg-sub .hati-ref{font-size:inherit;color:inherit}
   .ct-place .ig-wall.ct-wall{flex:1;min-height:0;overflow:auto;padding:2px 2px 32px}
   /* A NARROW PLACE (an 820 tablet, a 1024 window): the name gives Wall |
      List room; the boxes wrap within their own row, never squeezed empty. */
@@ -9345,6 +9359,9 @@
   @container ctplace (max-width:540px){ .ct-wall .igw-grid{grid-template-columns:repeat(3,minmax(0,1fr))} }
   @container ctplace (max-width:400px){ .ct-wall .igw-grid{grid-template-columns:repeat(2,minmax(0,1fr))} }
   .igw-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 -16px;padding:10px 16px;border-top:1px solid var(--color-divider);font-size:var(--t-meta);color:var(--color-neutral-600)}
+  /* the Wall's foot is the list foot's own now (Part 8): "1–12 of 48 · Show
+     12 more" reads as one line from the left, as under the List */
+  .ct-wall .igw-foot.lh-foot{justify-content:flex-start;gap:var(--s-2)}
   /* the edge drawn inside the sheet, and the card a breath taller at its top:
      a paper's lift (hover, focus) and its edge are not clipped by the card's
      own paint containment (content-visibility) */

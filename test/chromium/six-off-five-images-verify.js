@@ -63,8 +63,8 @@ const ok = (name, good, detail) => {
         return s ? s.options.length : 0; })(),
       band: (() => { const td = document.querySelector('tr.ngl-band td');
         return td ? td.colSpan : null; })(),
-      /* the Negotiations list head's "+ Filter" (Part 8): its Stream group */
-      addStream: (() => { const g = [...document.querySelectorAll('[data-lh-seat="negotiations"] select[data-lh-add] optgroup')]
+      /* the list head's "+ Filter" (Part 8), on either seat: its Stream group */
+      addStream: (() => { const g = [...document.querySelectorAll('[data-lh-seat="negotiations"] select[data-lh-add] optgroup, [data-lh-seat="contracts"] select[data-lh-add] optgroup')]
         .find(x => x.label === i18t('reg_chip_stream')); return g ? g.querySelectorAll('option').length : 0; })(),
       plain: [...document.querySelectorAll('#reg-tbody tr')].every(r => r.hasAttribute('data-row')),
     }));
@@ -74,8 +74,11 @@ const ok = (name, good, detail) => {
     const c1 = await heads();
     ok('1a the Contracts table draws no value stream column',
       c1.heads.length > 3 && !c1.heads.some(x => x.toLowerCase() === c1.stream.toLowerCase()), c1.heads.join(' | '));
-    ok('1b CONTROL the Stream filter is still on the Contracts bar, with streams to pick', c1.filter > 1,
-      c1.filter + ' options');
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way"): on
+       the Contracts place too the Stream filter is one of "+ Filter"'s
+       groups, offering the streams that hold a row */
+    ok('1b CONTROL the Stream filter is still on the Contracts head, with streams to pick', c1.filter > 1 || c1.addStream > 0,
+      `${c1.filter} box options · ${c1.addStream} under + Filter`);
     await page.screenshot({ path: path.join(OUT, '01-contracts.png') });
     /* The Negotiations list only draws over a LIVE negotiation — one change
        filed through the funnel makes one. */

@@ -65,13 +65,21 @@ const check = (name, ok, detail) => {
        The whole report. At the parent this select held ZERO options and drew
        at its minimum box. A rect is not enough on its own here — an empty
        select still HAS a rect — so the options are counted as well. */
-    await page.evaluate(() => {
-      regBarSetChosen(['stage', 'type', 'view', 'hold']);
-      (regPlaceSet({ show: 'list' }), setView('register'));
-    });
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way" for
+       the Contracts place): On hold is a group under "+ Filter" and, once
+       chosen, a CHIP whose list holds its two choices (its rest, "Any", is the
+       chip's x). What this file protects is unchanged: the control holds real
+       choices, has a real width, and narrows. */
+    await page.evaluate(() => { (regPlaceSet({ show: 'list' }), setView('register')); });
     await page.waitForTimeout(1200);
-    const hold = await page.evaluate(() => {
-      const el = document.getElementById('reg-hold');
+    const HOLD = '[data-lh-seat="contracts"] [data-lh-chip="hold"]';
+    const before = await page.evaluate(() => document.querySelectorAll('tr[data-row]').length);
+    const offered = await page.evaluate(() => [...document.querySelectorAll('[data-lh-seat="contracts"] select[data-lh-add] option')]
+      .map(o => { try { return JSON.parse(o.value); } catch (_) { return null; } }).filter(x => x && x[0] === 'hold').map(x => x[1]));
+    await page.evaluate(() => LH_PAGES.contracts.apply({ hold: 'on' }));
+    await page.waitForFunction(S => !!document.querySelector(S), HOLD, { timeout: 5000 }).catch(() => {});
+    const hold = await page.evaluate(S => {
+      const el = document.querySelector(S + ' select[data-lh-f="hold"]');
       if (!el) return { err: 'not drawn' };
       const r = el.getBoundingClientRect();
       return {
@@ -80,63 +88,33 @@ const check = (name, ok, detail) => {
         labels: [...el.options].map(o => o.textContent.trim()),
         w: +r.width.toFixed(1), h: +r.height.toFixed(1),
       };
-    });
-    check('1a the hold filter draws three options', hold.n === 3,
-      `${hold.n}: ${(hold.values || []).join(',')}`);
+    }, HOLD);
+    check('1a the hold filter offers its choices: under + Filter, then on its chip (its rest is the x)', offered.length >= 1 && hold.n === 2 && hold.values.includes('on') && hold.values.includes('off'),
+      `+ Filter ${offered.join(',')} · chip ${hold.n}: ${(hold.values || []).join(',')}`);
     check('1b every one is a real word, not an empty box', (hold.labels || []).every(l => l.length > 1),
       JSON.stringify(hold.labels));
     /* A CONTROL THE READER CAN HIT. Measured at the parent it came back under
-       30px wide; the other filters on that bar sit near 180. */
-    /* RE-POINTED (21 Sep 2026): the control is a chip and its select sits
-       inside the pill, so the width a reader can hit is the chip's. */
-    /* RE-POINTED IN PLACE 26 Sep 2026 (the list Inspector drawing): the chips
-       lost their leading funnel mark, which the drawing does not draw, so
-       every chip is ~14px narrower and "On hold" measures 77.6px — plainly a
-       control a reader can hit. The typed 90 was the width WITH that mark.
-       What this claim protects is that the control is not collapsed to a
-       minimum box (the report: under 30px), which is a RELATION: its own
-       words are whole, and it is no narrower than the Stage chip beside it,
-       drawn by the same builder with a shorter word. */
-    const holdChip = await page.evaluate(() => {
-      const e = document.getElementById('reg-hold'); const c = e && e.closest('.reg-chip');
-      /* RE-POINTED 9 Oct 2026: the stage is a tab row on Contracts now, so the
-         neighbour asked is the Stream chip, drawn by the same builder. */
-      const s = document.getElementById('reg-type-sel'); const sc = s && s.closest('.reg-chip');
-      /* RE-POINTED AGAIN 10 Oct 2026 ("get main to green"): the 9 Oct swap to
-         the Stream chip broke the relation itself — since SAP batch 1 a chip
-         is a labelled box (label line `.reg-f-l` over value line `.reg-f-v`),
-         and Stream's value reads "All streams" where On hold's reads "Any",
-         so Stream is wider BY ITS WORDS, not because On hold collapsed. The
-         report was a box collapsed under its words (under 30px). So the claim
-         is pinned to the chip's OWN words: both lines whole, and the chip at
-         least as wide as the wider of them. Stream is still printed. */
-      const words = c && c.querySelector('.reg-f-l');
-      const val = c && c.querySelector('.reg-f-v');
-      const need = Math.max(words ? words.scrollWidth : 0, val ? val.scrollWidth : 0);
-      return { w: c ? +c.getBoundingClientRect().width.toFixed(1) : (e ? +e.getBoundingClientRect().width.toFixed(1) : 0),
-        stage: sc ? +sc.getBoundingClientRect().width.toFixed(1) : 0, need,
-        whole: !!words && words.scrollWidth <= words.clientWidth + 0.5
-          && (!val || val.scrollWidth <= val.clientWidth + 0.5) }; });
+       30px wide; the other filters on that bar sit near 180. The claim is a
+       RELATION: the chip's own words are whole and the face a reader presses
+       is at least as wide as they need. */
+    const holdChip = await page.evaluate(S => {
+      const c = document.querySelector(S), face = c && c.querySelector('label');
+      const need = face ? face.scrollWidth : 0;
+      return { w: face ? +face.getBoundingClientRect().width.toFixed(1) : 0, need,
+        whole: !!face && face.scrollWidth <= face.clientWidth + 0.5 }; }, HOLD);
     check('1c and it has a real width — its words whole, the chip as wide as they need',
-      holdChip.w > 0 && holdChip.need > 0 && holdChip.whole && holdChip.w >= holdChip.need,
-      `${holdChip.w}px, its words need ${holdChip.need}px · words whole ${holdChip.whole} (Stream ${holdChip.stage}px, select ${hold.w}px)`);
+      holdChip.w > 30 && holdChip.need > 0 && holdChip.whole && holdChip.w >= holdChip.need - 0.5,
+      `${holdChip.w}px, its words need ${holdChip.need}px · words whole ${holdChip.whole} (select ${hold.w}px)`);
     await page.screenshot({ path: path.join(OUT, '01-hold-filter.png') });
 
     /* IT NARROWS. A control that draws and does nothing is the same fault in
        a second costume, so the press is driven and the rows counted. */
-    const narrowed = await page.evaluate(async () => {
-      const before = document.querySelectorAll('tr[data-row]').length;
-      const el = document.getElementById('reg-hold');
-      el.value = 'on'; el.dispatchEvent(new Event('change', { bubbles: true }));
-      await new Promise(r => setTimeout(r, 400));
-      return { before, after: document.querySelectorAll('tr[data-row]').length,
-        state: (typeof regState === 'function') ? regState().hold : null };
-    });
+    const narrowed = await page.evaluate(() => ({ after: document.querySelectorAll('tr[data-row]').length,
+      state: (typeof regState === 'function') ? regState().hold : null }));
     check('1d the press reaches the state', narrowed.state === 'on', String(narrowed.state));
-    check('1e and it really narrows', narrowed.after < narrowed.before,
-      `${narrowed.before} → ${narrowed.after}`);
-    await page.evaluate(() => { const el = document.getElementById('reg-hold');
-      el.value = 'all'; el.dispatchEvent(new Event('change', { bubbles: true })); });
+    check('1e and it really narrows', narrowed.after < before,
+      `${before} → ${narrowed.after}`);
+    await page.click(HOLD + ' [data-lh-x="hold"]').catch(() => {});
     await page.waitForTimeout(400);
 
     /* ═══════ 2. THE SHARE SCREEN DRAWS ONE HEADING ═══════

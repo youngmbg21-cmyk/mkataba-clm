@@ -934,7 +934,7 @@ const STRINGS = {
     reg_all_stages: 'All stages',
     reg_all_streams: 'All streams',
     reg_awaiting_cp: 'Awaiting counterparty',
-    reg_exp_90: 'Expiring ≤ 90 days',
+    reg_exp_90: 'Ending in 90 days',
     reg_exp_60: 'Expiring ≤ 60 days',
     reg_exp_30: 'Expiring ≤ 30 days',
     reg_term_ended: 'Term already ended',
@@ -6786,6 +6786,12 @@ const STRINGS = {
     /* ---- the archive shelf (WO-5) ---- */
     reg_view_archived: "Archived",
     reg_view_nego: "In negotiation",
+    /* the Contracts place's views (Part 8, the Legora way, 21 Oct 2026) */
+    reg_view_needs: "Needs you",
+    reg_view_needs_title: "The contracts on Home's Needs you list, each counted once however much it needs",
+    reg_view_drafts: "Drafts",
+    reg_view_drafts_title: "Every contract at the Drafting stage",
+    reg_col_agreement: "Agreement",
     reg_archive: "Archive", /* inert since 15 Oct 2026: End or pause is one door */
     reg_restore: "Restore",
     ct_archived_tag: "Archived",
@@ -21049,7 +21055,7 @@ const STRINGS = {
     reg_all_stages: 'Alla steg',
     reg_all_streams: 'Alla värdeflöden',
     reg_awaiting_cp: 'Väntar på motpart',
-    reg_exp_90: 'Går ut om ≤ 90 dagar',
+    reg_exp_90: 'Slutar inom 90 dagar',
     reg_exp_60: 'Går ut om ≤ 60 dagar',
     reg_exp_30: 'Går ut om ≤ 30 dagar',
     reg_term_ended: 'Löptiden har gått ut',
@@ -26412,6 +26418,12 @@ const STRINGS = {
     ap_tag_wording: "lydelse",
     reg_view_archived: "Arkiverade",
     reg_view_nego: "Under förhandling",
+    /* the Contracts place's views (Part 8, the Legora way, 21 Oct 2026) */
+    reg_view_needs: "Behöver dig",
+    reg_view_needs_title: "Avtalen på listan Behöver dig på Hem, vart och ett räknat en gång hur mycket det än behöver",
+    reg_view_drafts: "Utkast",
+    reg_view_drafts_title: "Alla avtal i steget Under utformning",
+    reg_col_agreement: "Avtal",
     reg_archive: "Arkivera", /* inert since 15 Oct 2026: End or pause is one door */
     reg_restore: "Återställ",
     ct_archived_tag: "Arkiverat",

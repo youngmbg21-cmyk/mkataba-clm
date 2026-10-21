@@ -77,8 +77,10 @@ const check = (name, pass, detail) => {
     const P = await page.evaluate(CARD, 'MK-W1');
     check('2a a contract on a private stream wears a lock with its stream\'s name', !!P && !!folder && P.lock === folder, JSON.stringify({ lock: P && P.lock, folder }));
     /* the stand-in is the book's last paper: the wall draws twelve at a time
-       since 18 Oct 2026 (round 13 as drawn), so Show more brings it */
-    while (!(await page.$('#ig-wall .igw-card[data-ig-pick="MK-0412"]')) && await page.$('#ig-wall [data-ig-wall-more]')) { await page.click('#ig-wall [data-ig-wall-more]'); await page.waitForTimeout(250); }
+       since 18 Oct 2026 (round 13 as drawn), so Show more brings it — the
+       shared list foot's "Show N more" since Part 8 (21 Oct 2026, the owner
+       picked "the Legora way"; it was [data-ig-wall-more]) */
+    while (!(await page.$('#ig-wall .igw-card[data-ig-pick="MK-0412"]')) && await page.$('#ig-wall [data-lh-more="wall"]')) { await page.click('#ig-wall [data-lh-more="wall"]'); await page.waitForTimeout(250); }
     const C = await page.evaluate(CARD, 'MK-0412');
     check('2b a deal kept to its list: a hatched paper with its code name, its stream for a value, "Kept to its list"',
       !!C && C.coded && /repeating-linear-gradient/.test(C.bg) && /Project Falcon/.test(C.t) && C.ref === `MK-0412 · ${folder}` && C.nm === 'Kept to its list' && !C.lock, JSON.stringify(C));
@@ -111,6 +113,7 @@ const check = (name, pass, detail) => {
         const tops = [...new Set(cards.map(c => Math.round(c.top)))].sort((x, y) => x - y);
         const second = cards.filter(c => Math.round(c.top) === tops[1]);
         return { head: !!a && !!seg && a.top >= 0 && seg.right <= innerWidth, rows2: tops.length >= 2 && second.length > 0 && second.every(c => c.bottom <= innerHeight),
+          short: second.length ? Math.round(Math.max(...second.map(c => c.bottom)) - innerHeight) : null,
           side: document.documentElement.scrollWidth <= innerWidth + 1 }; });
       check(`4 ${w}×${ht}: Archive · Wall · List in view, two rows of papers on the screen, nothing sideways`, F.head && F.rows2 && F.side, JSON.stringify(F));
       if (OUT) await page.screenshot({ path: path.join(OUT, `wall-of-papers-${w}x${ht}.png`) });

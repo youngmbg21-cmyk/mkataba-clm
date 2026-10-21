@@ -30,10 +30,12 @@ const AC_MAX = 50;
 /* how many answer columns stand beside the list at once */
 const AC_COLS_MAX = 3;
 const AC_TONE = { good:'green', watch:'amber', concern:'ruby', none:'gray' };
-/* widths when answer columns stand (sum 100): the reference, the
-   counterparty, the stage, ends, value, each answer, the ⋯ — Owner steps
-   aside, as drawn, and stays in the filters and the sort */
-const AC_COL_W = { 1:[8,25,15,13,11,22,6], 2:[8,22,13,11,9,16.5,16.5,4], 3:[7,19,12,10,9,13,13,13,4] };
+/* widths when answer columns stand (sum 100): the agreement, the stage,
+   ends, value, each answer, the ⋯ — Owner steps aside, as drawn, and stays in
+   the filters and the sort. RECUT FOR THE LEGORA WAY (Part 8, 21 Oct 2026):
+   the agreement cell carries "kind · ref" now, so the Ref column's share
+   went to it (the drawing's Agreement 34% beside one answer) */
+const AC_COL_W = { 1:[33,15,13,11,22,6], 2:[30,13,11,9,16.5,16.5,4], 3:[26,12,10,9,13,13,13,4] };
 
 const AC = {
   asks: {},        // id → { id, question, name }
@@ -180,6 +182,11 @@ function askColWhen(at){
   const loc = (typeof langLocale === 'function') ? langLocale() : undefined;
   try { return d.toLocaleString(loc, { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }); } catch (_){ return d.toISOString().slice(0, 16).replace('T', ' '); }
 }
+/* THE CLAUSE AN ANSWER CAME FROM, AS ITS NUMBER ("11.2", "IV", "B"): one
+   reading for the cell's § chip and the panel's "Go to clause N" */
+function askColClauseNo(a){
+  return (String((a && a.clause) || '').match(/^\s*([0-9]+(?:\.[0-9]+)*|[IVXLC]+|[A-Z])\b/) || [])[1] || '';
+}
 function askColTdHtml(c, askId){
   const a = (AC.ans[askId] || {})[c.id];
   const on = AC.chosen && AC.chosen.askId === askId && AC.chosen.cid === String(c.id);
@@ -196,7 +203,12 @@ function askColTdHtml(c, askId){
   const tip = !may ? _acT('ac_mark_viewer') : ck ? _acT('ac_unmark', { who: ck.by, when: askColWhen(ck.at) }) : _acT('ac_mark');
   const tick = `<button type="button" class="ac-ck${ck ? ' on' : ''}" data-ac-ck aria-pressed="${ck ? 'true' : 'false'}" title="${_acE(tip)}" aria-label="${_acE(tip)}"${may ? '' : ' disabled'}>${ck && typeof icon === 'function' ? icon('check2', 'ac-ck-i') : ''}</button>`;
   const sub = [a.detail, ck ? _acT('ac_checked_by', { who: askColInitials(ck.by) }) : _acT('ac_not_checked')].filter(Boolean).join(' · ');
-  return `<td ${attrs}><span class="ac-ans tone-${tone}"><i></i><span class="ac-a${ck ? '' : ' is-unck'}">${_acE(word)}</span>${tick}</span><small class="ac-sub">${_acE(sub)}</small></td>`;
+  /* THE CLAUSE IT CAME FROM, ON THE ANSWER (Part 8, the Legora way's "§ 11.2"):
+     a press goes through "Go to clause"'s own door (askColGo), the answer
+     chosen first — never a second way onto the paper */
+  const no = a.found ? askColClauseNo(a) : '';
+  const cite = no ? `<button type="button" class="ac-cite" data-ac-cite title="${_acE(_acT('ac_go_clause', { n: no }))}" aria-label="${_acE(_acT('ac_go_clause', { n: no }))}">§ ${_acE(no)}</button>` : '';
+  return `<td ${attrs}><span class="ac-ans tone-${tone}"><i></i><span class="ac-a${ck ? '' : ' is-unck'}">${_acE(word)}</span>${cite}${tick}</span><small class="ac-sub">${_acE(sub)}</small></td>`;
 }
 /* sorting by an answer column: the ones to look at first — a concern, then
    one to watch, then the usual, then a plain fact, then nothing found */
@@ -267,7 +279,7 @@ function askColWhyHtml(ch){
   const head = [ref, c && c.counterparty].filter(Boolean).join(' · ');
   if (!a) return '';
   const word = a.noWording ? _acT('ac_no_wording') : a.found ? [a.answer, a.detail].filter(Boolean).join(', ') : _acT('ac_not_found');
-  const num = (String(a.clause || '').match(/^\s*([0-9]+(?:\.[0-9]+)*|[IVXLC]+|[A-Z])\b/) || [])[1] || '';
+  const num = askColClauseNo(a);
   const go = num ? _acT('ac_go_clause', { n: num }) : _acT('ac_go_it');
   const row = (k, v) => v ? `<dt>${_acE(_acT(k))}</dt><dd>${v}</dd>` : '';
   return `<div class="pd-glance ac-card ac-why-card" data-ac-why="${_acE(ch.askId)}:${_acE(ch.cid)}"><div class="pd-gl-h"><b>${_acE(head)}</b><span class="pd-gl-sp"></span><span class="ac-meta">${_acE(q.name || '')}</span></div>
@@ -403,6 +415,11 @@ if (typeof document !== 'undefined' && !document._acWired){
     if (td){
       e.stopPropagation(); e.preventDefault();
       const askId = td.getAttribute('data-ac'), cid = td.getAttribute('data-ac-cid');
+      /* the § chip: this answer chosen (unless it already is), then Go to clause */
+      if (t.closest('[data-ac-cite]')){
+        if (!(AC.chosen && AC.chosen.askId === askId && AC.chosen.cid === cid)) askColChoose(askId, cid);
+        askColGo(); return;
+      }
       if (t.closest('[data-ac-ck]')) askColCheck(askId, cid); else askColChoose(askId, cid);
     }
   }, true);
@@ -443,5 +460,5 @@ function askColBtnHtml(){
   return `<button type="button" class="ui-btn ui-btn-sm ac-btn${AC.form ? ' is-open' : ''}" data-ac-open aria-expanded="${AC.form ? 'true' : 'false'}"${may ? '' : ` disabled title="${_acE(_acT('ac_btn_viewer'))}"`}>${spark}${_acE(_acT('ac_btn'))}</button>`;
 }
 
-Object.assign(window, { AC_MAX, AC_COLS_MAX, askColOn, askColKeys, askColWidths, askColThHtml, askColTdHtml, askColCmp,
+Object.assign(window, { AC_MAX, AC_COLS_MAX, askColOn, askColKeys, askColWidths, askColThHtml, askColTdHtml, askColCmp, askColClauseNo,
   askColPanelHtml, askColBtnHtml, askColOpen, askColSync, askColMarkRows });

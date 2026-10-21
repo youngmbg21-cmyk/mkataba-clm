@@ -4043,6 +4043,8 @@ function wireShell(){
       if(window.regSetScope) regSetScope(null);
       if(window.regState){ const R=regState(); R.query=''; R.page=1; }
       search.value=''; const rs=document.getElementById('reg-search'); if(rs&&rs!==search) rs.value='';
+      /* and the list head's box on the page says the same (Q1, "keep both boxes") */
+      if(window.lhBoxSet) lhBoxSet();
       if(window.regPlaceUp&&regPlaceUp()&&window.renderRegisterBody) try{ renderRegisterBody(); }catch(_){}
       if(u){ if(u.kind==='go'&&!u.missing&&!u.narrowOff&&!(window.CA_CARD_WORDS||[]).includes(u.place)&&window.caGo&&caGo(u)) return;
         if(window.caHandHome) caHandHome(q,u); return; }

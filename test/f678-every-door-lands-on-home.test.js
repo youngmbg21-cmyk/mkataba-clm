@@ -264,8 +264,13 @@ describe('f678 (3) Open party opens Home\'s Contracts place, narrowed to the par
     assert.match(REGS, /const onlyChip=R\.only\?`<span id="reg-only-chip"/);
     assert.match(REGS, /<button id="reg-only-clear" title="\$\{esc\(i18t\('reg_only_clear'\)\)\}"[\s\S]{0,260}\$\{icon\('x','w-3\.5 h-3\.5'\)\}<\/button>/, 'a drawn ×, never a typed one (f385)');
     assert.match(REGS, /const fbBoxes=`\s*\$\{onlyChip\}/, 'it leads the filter boxes');
-    assert.match(REGS, /\$\{HOME\?regHomeHeadHtml\(R,fbBoxes,adaptBtn,clearSlot\):/, 'and the place\'s one head draws them, over the Wall or the List');
-    assert.match(REG, /getElementById\('reg-only-clear'\)\?\.addEventListener\('click',\(\)=>\{ R\.only=null; R\.page=1; regRepaint\(\); \}\)/);
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way"): on
+       the place the chip leads the list head's chip row (its lead), in the
+       place's one head over the Wall or the List; its × is bound once per
+       element with the page's other tools (regToolsWire) */
+    assert.match(REGS, /lead:\(\)=>regOnCt\(R=>regOnlyChipHtml\(R\)\)/, 'it leads the list head\'s chip row');
+    assert.match(REGS, /\$\{HOME\?regHomeHeadHtml\(R\):/, 'and the place\'s one head draws it, over the Wall or the List');
+    assert.match(REG, /once\(document\.getElementById\('reg-only-clear'\),'click',\(\)=>\{ const R=regState\(\); R\.only=null; R\.page=1; regRepaint\(\); \}\)/);
     const i18n = R('js/i18n.js');
     assert.equal((i18n.match(/^\s+reg_only_clear: /gm) || []).length, 2, 'in both books');
   });

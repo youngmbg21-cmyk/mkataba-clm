@@ -207,7 +207,8 @@ const MANIFEST = [
     await page.waitForTimeout(1200);
     const onList = await page.evaluate(id => { const c = getContract(id);
       const ref = c ? (window.contractRef ? contractRef(c) : c.id) : id;
-      return [...document.querySelectorAll('.reg-table .reg-mk')].some(td => td.textContent.trim() === ref); }, acmeId);
+      /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way"): the Contracts place prints the reference under the party ("kind · ref", .reg-sub .hati-ref) — its Ref column (.reg-mk) went */
+      return [...document.querySelectorAll('.reg-table .reg-mk, .reg-table .reg-sub .hati-ref')].some(td => td.textContent.trim() === ref); }, acmeId);
     check('7b the imported contract is on the Contracts list', onList);
 
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
