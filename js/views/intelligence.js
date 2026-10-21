@@ -7987,9 +7987,9 @@ function renderIntelDock(){
   const talk=(typeof window.pdTalkSync==='function')?pdTalkSync(dock):false;
   /* ONE CONVERSATION EVERYWHERE (21 Oct 2026): every turn, each drawn by the
      builder of the host it was born in; popped out, the words are in Jambo's
-     own window and only there (one place at a time) */
+     own window (popped out, or the ✦'s window open) and only there (one place at a time) */
   if(talk&&typeof window.jamboReadStamp==='function') jamboReadStamp();
-  const _popped=!!(window.aiPopped&&aiPopped());
+  const _popped=!!(window.aiConvoInWindow?aiConvoInWindow():(window.aiPopped&&aiPopped()));
   if(talk&&_popped&&typeof window.renderAIFeed==='function') try{ renderAIFeed(!!intel.busy); }catch(_){ }
   const msgs=!talk?'':_popped?`<p class="igd-popped">${igEsc(i18t('jb_in_window'))} <button type="button" class="ui-link" data-jb-popback>${igEsc(i18t('jb_bring_back'))}</button></p>`
     :!intel.history.length?'':`<div class="igd-turns" data-jb-turns>${intel.history.map((m,i,a)=>(typeof window.jamboTurnHtml==='function')?jamboTurnHtml(m,i,a,'ig'):igMsgHTML(m,i,a)).join('')}</div>`;

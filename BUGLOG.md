@@ -21273,3 +21273,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Noticed, not fixed: What Jambo read can say "0 Obligations found · 11 recorded" (found counts held readings only); the Board's report counts the larger of the two.
 - Noticed, not fixed: board-strip-verify's 6a clicks `.bs-sec-h [data-bs-page="details"]`, which an admin never sees (their Key terms door is Change beside the paper) — red on main too.
 - Noticed, not fixed: CLAUDE.md is 81.6 KB, over the ~80 KB rule; a trim needs the owner's yes.
+
+## 21 Oct 2026 — the ✦ opens the old chat window
+- Removed (owner's pick "The old chat window", said to the owner): the one-line ✦ ask bar under the top bar.
+- Noticed, not fixed: on Home, "What am I looking at?" typed into Home's own Jambo box answers "The board could not draw that…" instead of the free on-screen reading the side panel gives.

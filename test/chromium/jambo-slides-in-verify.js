@@ -15,9 +15,10 @@
         the page beside it dimmed; the same tab pressed again takes it out;
         Esc takes it out
      2  no Plain | Legal anywhere: no toggle, no setter, nothing stored
-     3  the top bar's ✦ drops the ask bar under the bar, centred, OVER the open
-        side panel; Esc closes the bar and leaves the panel; ✦ again closes it
-     4  a question in the bar is answered in the side panel's one conversation,
+     3  RE-POINTED 21 Oct 2026 ("The old chat window"): the top bar's ✦ opens
+        the floating chat window under the bar, over the open side panel; Esc
+        closes it; ✦ again closes it (the one-line ask bar is gone)
+     4  a question in that window is answered in the one conversation there,
         with the line saying what it read; a page's name moves there; nothing
         spent on the move
      5  the conversation follows you: on another page the same turns are there
@@ -28,7 +29,7 @@
         the box MOVE into the other window and "Put back" returns them; without
         it, a window of its own and a warning that it cannot stay on top; on a
         touch screen the control is not drawn
-     10 the owner's three screens: the panel and the bar photographed, inside
+     10 the owner's three screens: the panel and the ✦'s window photographed, inside
         the window, nothing sideways
    AT THE PARENT (d7a320c2) 1, 2, 3, 4b, 6, 7 and 9 FAIL: the edge tab opened
    the floating window, the toggle was there, the ✦ opened the window.
@@ -124,40 +125,41 @@ const LETTER = 'Dear Ann,\nFurther to our call, Nandi Dairy asks that the delive
         caption: /\bAnswers\b/.test(p.textContent), stored: localStorage.getItem('hati.v1.aiStyle') }; });
     check('2 no Plain | Legal toggle, no setter, the old stored choice forgotten', !P2.toggle && P2.setter === 'undefined' && !P2.words.length && !P2.caption && P2.stored === null, JSON.stringify(P2));
 
-    /* ===== 3 · THE ✦ ASK BAR, OVER THE OPEN SIDE PANEL ===== */
+    /* ===== 3 · THE ✦ OPENS THE CHAT WINDOW, OVER THE OPEN SIDE PANEL =====
+       RE-POINTED 21 Oct 2026 (owner picked "The old chat window": "the highlighted area is what
+       shows up as a chatbot pop up, then when i type in it, it just jumps to the jambo in the side
+       panel. It is not the old chatbot i had"): the ✦ no longer drops a one-line bar; it opens the
+       floating window you can move and resize, under the top bar; Esc closes it; ✦ again closes it.
+       Its own check: jambo-chat-window-verify.js */
     await press('#cmd-ai');
-    const B = await until(() => { const b = document.getElementById('jb-bar'); if (!b) return null; const r = b.getBoundingClientRect();
-      const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-      const pr = document.getElementById('ai-panel').getBoundingClientRect();
-      const over = document.elementFromPoint(Math.min(pr.left + 20, r.right - 4), r.top + r.height / 2);
-      return { top: Math.round(r.top), h: Math.round(r.height), mid: Math.round(r.left + r.width / 2), vw: innerWidth, onTop: !!(top && top.closest('#jb-bar')),
-        overPanel: r.right > pr.left ? !!(over && over.closest('#jb-bar')) : 'clear', focus: document.activeElement && document.activeElement.id,
-        panelOpen: document.getElementById('ai-panel').classList.contains('open'), card: !!b.querySelector('.jb-card') }; }, null, 3000);
-    check('3a the ✦ drops the ask bar while the side panel is open', !!B && B.panelOpen && B.card && B.focus === 'jb-bar-q', JSON.stringify(B));
-    check('3b it stands under the top bar, one line, centred over the page beside the panel (never over the panel)', !!B && B.top >= 48 && B.top <= 64 && Math.abs(B.mid - (B.vw - 384) / 2) <= 2 && B.h <= 48 && B.onTop && B.overPanel === 'clear', JSON.stringify(B));
-    await shot('3-bar-over-panel-1440x780');
+    const B = await until(() => { const p = document.getElementById('ai-panel'); if (!p.classList.contains('open') || !p.classList.contains('floating')) return null;
+      const r = p.getBoundingClientRect(); const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return { top: Math.round(r.top), barH: Math.round(document.getElementById('top-header').getBoundingClientRect().height), side: p.classList.contains('is-side'),
+        onTop: !!(top && top.closest('#ai-panel')), focus: document.activeElement && document.activeElement.id, bar: !!document.getElementById('jb-bar'), card: !!p.querySelector('.jb-card') }; }, null, 3000);
+    check('3a the ✦ over the open side panel opens the floating chat window, the cursor in its box (no one-line bar)', !!B && !B.side && B.card && !B.bar && B.focus === 'ai-input', JSON.stringify(B));
+    check('3b it stands under the top bar, on top', !!B && B.top >= B.barH && B.onTop, JSON.stringify(B));
+    await shot('3-window-1440x780');
     await page.keyboard.press('Escape');
-    const B2 = await page.evaluate(() => ({ bar: !!document.getElementById('jb-bar'), panel: document.getElementById('ai-panel').classList.contains('open') }));
-    check('3c Esc closes the bar and only the bar', !B2.bar && B2.panel, JSON.stringify(B2));
-    await press('#cmd-ai'); await until(() => document.getElementById('jb-bar') ? true : null, null, 2000);
+    const B2 = await page.evaluate(() => ({ open: document.getElementById('ai-panel').classList.contains('open'), bar: !!document.getElementById('jb-bar') }));
+    check('3c Esc closes the window', !B2.open && !B2.bar, JSON.stringify(B2));
+    await press('#cmd-ai'); await until(() => document.getElementById('ai-panel').classList.contains('open') ? true : null, null, 2000);
     await press('#cmd-ai');
-    check('3d the ✦ pressed again closes it', !(await page.evaluate(() => !!document.getElementById('jb-bar'))));
+    check('3d the ✦ pressed again closes it', !(await page.evaluate(() => document.getElementById('ai-panel').classList.contains('open'))));
 
-    /* ===== 4 · A QUESTION FROM THE BAR, ANSWERED IN THE ONE CONVERSATION ===== */
+    /* ===== 4 · A QUESTION IN THE ✦'S WINDOW, ANSWERED IN THE ONE CONVERSATION (re-pointed 21 Oct 2026) ===== */
     await page.evaluate(() => { if (typeof closeAI === 'function') closeAI(); if (typeof clearAIHistory === 'function') clearAIHistory(); });
-    await press('#cmd-ai'); await until(() => document.getElementById('jb-bar-q') ? true : null, null, 2000);
-    await typeIn('#jb-bar-q', 'How many drafts do I have?');
+    await press('#cmd-ai'); await until(() => document.getElementById('ai-panel').classList.contains('open') ? true : null, null, 2000);
+    await typeIn('#ai-input', 'How many drafts do I have?');
     const A = await until(() => { const p = document.getElementById('ai-panel'); const msgs = [...document.querySelectorAll('#ai-feed .ai-msg')];
       const asked = msgs.some(m => /How many drafts/.test(m.textContent)); const read = document.querySelector('#ai-feed .ai-read');
-      return p.classList.contains('open') && asked && read ? { read: read.textContent.trim(), bar: !!document.getElementById('jb-bar'), n: (window.ai && ai.history.length) } : null; }, null, 6000);
-    check('4a the bar\'s question opens the side panel and is answered in its conversation', !!A && !A.bar && A.n >= 2, JSON.stringify(A));
+      return p.classList.contains('open') && asked && read ? { read: read.textContent.trim(), floating: p.classList.contains('floating'), n: (window.ai && ai.history.length) } : null; }, null, 6000);
+    check('4a the window\'s question is answered in the window\'s one conversation', !!A && A.floating && A.n >= 2, JSON.stringify(A));
     check('4b the answer says what it read', !!A && /^Read from /.test(A.read), JSON.stringify(A));
-    await page.evaluate(() => { if (typeof closeAI === 'function') closeAI(); });
     ai.length = 0;
-    await press('#cmd-ai'); await until(() => document.getElementById('jb-bar-q') ? true : null, null, 2000);
-    await typeIn('#jb-bar-q', 'obligations');
+    await typeIn('#ai-input', 'obligations');
     const V = await until(() => state.view === 'obligations' ? state.view : null, null, 6000);
-    check('4c a page\'s name in the bar moves there (the one reader), nothing spent', V === 'obligations' && !ai.length, JSON.stringify({ view: V, ai }));
+    check('4c a page\'s name in the window moves there (the one reader), nothing spent', V === 'obligations' && !ai.length, JSON.stringify({ view: V, ai }));
+    await page.evaluate(() => { if (typeof closeAI === 'function') closeAI(); });
 
     /* ===== 5 · THE CONVERSATION FOLLOWS YOU ===== */
     await page.evaluate(() => setView('brain'));
@@ -248,11 +250,13 @@ const LETTER = 'Dear Ann,\nFurther to our call, Nandi Dairy asks that the delive
       await until(() => document.getElementById('ai-panel').classList.contains('open') ? true : null, null, 3000);
       await page.waitForTimeout(400);
       const S = await page.evaluate(PANEL);
-      await press('#cmd-ai'); await until(() => document.getElementById('jb-bar') ? true : null, null, 2000);
-      const S2 = await page.evaluate(() => { const r = document.getElementById('jb-bar').getBoundingClientRect(); return { l: Math.round(r.left), r: Math.round(r.right), sx: document.scrollingElement.scrollWidth > innerWidth }; });
-      check(`10 at ${w}×${hh}: the panel at the edge 384 wide, the bar inside the window, nothing sideways`, S.right === w && S.w === 384 && S.top === S.barH && S2.l >= 16 && S2.r <= w - 16 && !S2.sx, JSON.stringify({ S: { right: S.right, w: S.w, top: S.top }, S2 }));
-      await shot(`10-panel-and-bar-${w}x${hh}`);
-      await page.keyboard.press('Escape'); await page.keyboard.press('Escape');
+      await shot(`10-panel-${w}x${hh}`);
+      /* re-pointed 21 Oct 2026: the ✦ opens the chat window (no bar) */
+      await press('#cmd-ai'); await until(() => document.getElementById('ai-panel').classList.contains('floating') ? true : null, null, 2000);
+      const S2 = await page.evaluate(() => { const r = document.getElementById('ai-panel').getBoundingClientRect(); return { l: Math.round(r.left), r: Math.round(r.right), t: Math.round(r.top), b: Math.round(r.bottom), sx: document.scrollingElement.scrollWidth > innerWidth }; });
+      check(`10 at ${w}×${hh}: the panel at the edge 384 wide, the ✦'s window inside the screen, nothing sideways`, S.right === w && S.w === 384 && S.top === S.barH && S2.l >= 0 && S2.r <= w && S2.t >= S.barH && S2.b <= hh && !S2.sx, JSON.stringify({ S: { right: S.right, w: S.w, top: S.top }, S2 }));
+      await shot(`10-window-${w}x${hh}`);
+      await page.keyboard.press('Escape');
     }
 
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));

@@ -863,9 +863,9 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   document._jbForeignWired = true;
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
-    /* popped out, a host's talk view says where the words are, with the way back */
+    /* popped out (or in the ✦'s window), a host's talk view says where the words are, with the way back */
     const pb = t.closest('[data-jb-popback]');
-    if (pb){ e.preventDefault(); if (typeof window.aiPopBack === 'function') window.aiPopBack();
+    if (pb){ e.preventDefault(); if (typeof window.aiConvoBack === 'function') window.aiConvoBack(); else if (typeof window.aiPopBack === 'function') window.aiPopBack();
       if (document.getElementById('st-jb-feed') && typeof window.stTalkReopen === 'function') window.stTalkReopen();
       else if (typeof window.renderIntelDock === 'function') window.renderIntelDock(); return; }
     const turn = t.closest('.jb-turn[data-jb-born]'); if (!turn) return;

@@ -115,9 +115,10 @@ const HINT_SEL = '.jb-hint, .jb-keys, .jb-kbd, .ai-hint, #ai-hint, [data-jb-hint
         check(`1a ${at} the Counter's box: drawn, and no line under it`, ok(L), JSON.stringify(L));
         await shot(`no-hint-counter-${tag}.png`);
       });
-      /* RE-POINTED 21 Oct 2026 (owner): the window is Jambo's side panel, and the bar's ✦ drops
-         the ask bar — two boxes where there was one, both asked */
-      await part('1b the side panel and the ask bar', async () => {
+      /* RE-POINTED 21 Oct 2026 (owner): the edge tab's side panel, and the bar's ✦ opens the
+         floating chat window ("The old chat window"; the one-line ask bar is gone) — one box, the
+         same #ai-panel, drawn two ways, both asked */
+      await part('1b the side panel and the chat window', async () => {
         await page.evaluate(() => setView('brain'));
         await until(() => state.view === 'brain' ? true : null);
         await page.evaluate(() => openAI());
@@ -125,8 +126,8 @@ const HINT_SEL = '.jb-hint, .jb-keys, .jb-kbd, .ai-hint, #ai-hint, [data-jb-hint
         check(`1b ${at} Jambo's side panel (on the Brain): no line under its box`, ok(L), JSON.stringify(L));
         await shot(`no-hint-window-${tag}.png`);
         await page.click('#cmd-ai');
-        const B = await until(NO_LINE_OF, ARG('#jb-bar .jb-card', '#jb-bar'));
-        check(`1b ${at} the ✦ ask bar: no line under its box`, ok(B), JSON.stringify(B));
+        const B = await until(NO_LINE_OF, ARG('#ai-panel.open.floating .jb-card', '#ai-panel'));
+        check(`1b ${at} the ✦ chat window: no line under its box`, ok(B), JSON.stringify(B));
         await page.keyboard.press('Escape');
         await page.evaluate(() => { if (typeof closeAI === 'function') closeAI(); });
       });
