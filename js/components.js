@@ -208,9 +208,9 @@ Object.assign(window,{ICONS,icon,plusLed,JAMBO_FACE,JAMBO_MARK_PATH,jamboMarkSvg
    across the page") ----
    THE ONE LANDER every door calls once it has opened the page: it waits,
    bounded, for the thing the press named (a card, a row, a box, a button —
-   never just a page), brings it into view, LIGHTS it the one way every
-   arrival is lit (.is-landed, index.html: a pulse of about two seconds, then a
-   soft ring) and readies its main button for Enter. It PRESSES NOTHING. The
+   never just a page), brings it into view, marks it .is-landed (which draws
+   nothing since the owner's 21 Oct 2026 ruling: no light on arrival) and
+   readies its main button for Enter. It PRESSES NOTHING. The
    ring stays until the reader's next press or key, and follows the thing
    through a repaint (the page drew it again under the same name), so a board
    that refills a moment later does not put it out. A thing that never shows
@@ -770,4 +770,111 @@ function jamboTalkTabInner(){
 }
 /* the Overview tab's mark on every panel (the grid the room's Overview wore) */
 var JAMBO_LAND_GLYPH = '\u25A6\uFE0E';
-Object.assign(window,{JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});
+/* ---- ONE JAMBO CONVERSATION EVERYWHERE (owner, 21 Oct 2026: "Jambo keeps ONE
+   conversation across the whole app"; reverses "a new page or contract is
+   fresh on Home's, a list's and Settings' panels") ----
+   The one record is the side panel's (ai.history, js/ai.js); Home's
+   (intel.history) reads and writes it, and Settings' turns are kept in it as
+   {role:'st', st}. Every host draws EVERY turn, each with the builder of the
+   host it was BORN in (aiMsgHtml · igMsgHTML · stJbTurnHtml), says what it read
+   (m.read, stamped the first time any host draws it — right after it is said,
+   so it names the page it was asked on), and draws it in ONE place at a time:
+   a host that paints takes the turns off the others (jamboTurnsTake). A press
+   in a turn drawn away from its own host that only works there travels: it
+   opens that host, the conversation up, and presses the same button there
+   (jamboForeignPress) — said where the reader looks if it cannot. */
+function jamboConvo(){ const A = (typeof window !== 'undefined') ? window.ai : null; return (A && Array.isArray(A.history)) ? A.history : []; }
+function jamboBornOf(m){ return !m ? 'ig' : m.role === 'st' ? 'st' : m.host === 'ai' ? 'ai' : 'ig'; }
+function jamboReadStamp(){
+  const H = jamboConvo();
+  /* how far it has stamped rides the function itself (no module-level name: a stage may load this file twice) */
+  if (!(jamboReadStamp._n <= H.length)) jamboReadStamp._n = 0;
+  for (let i = jamboReadStamp._n; i < H.length; i++){
+    const m = H[i];
+    if (m && !m.read && (m.role === 'assistant' || m.role === 'st') && !m.err && typeof window.aiReadFrom === 'function'){ try { m.read = window.aiReadFrom(); } catch (_){} }
+  }
+  jamboReadStamp._n = H.length;
+}
+function jamboTurnHtml(m, i, H, host){
+  const born = jamboBornOf(m);
+  let inner = '';
+  try {
+    inner = born === 'ai' ? (typeof window.aiMsgHtml === 'function' ? window.aiMsgHtml(m, i) : '')
+      : born === 'st' ? (typeof window.stJbTurnHtml === 'function' && m.st ? window.stJbTurnHtml(m.st) : '')
+      : (typeof window.igMsgHTML === 'function' ? window.igMsgHTML(m, i, H) : '');
+  } catch (_){ inner = ''; }
+  if (!inner) return '';
+  /* the side panel's builder says what it read itself; the others say it here */
+  const read = (born !== 'ai' && m.read && m.read.text) ? `<div class="ai-read jb-read is-${born}" data-ai-read>${String(m.read.text).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))}</div>` : '';
+  return `<div class="jb-turn" data-jb-turn="${i}" data-jb-born="${born}" data-jb-host="${host}">${inner}${read}</div>`;
+}
+var JB_TURN_HOSTS = { ai: ['#ai-feed', '#jl-feed'], ig: ['#ig-dock [data-jb-turns]'], st: ['#st-jb-feed [data-st-jb-talk]'] };
+/* ONE PLACE AT A TIME: the host painting now keeps the turns; every other
+   host's drawn turns go (their charts with them), to be drawn again on its turn */
+function jamboTurnsTake(keep){
+  if (typeof document === 'undefined') return;
+  Object.values(JB_TURN_HOSTS).flat().forEach(sel => {
+    let el = null; try { el = document.querySelector(sel); } catch (_){ el = null; }
+    if (!el || el === keep || (keep && (el.contains(keep) || keep.contains(el)))) return;
+    el.querySelectorAll('.jb-turn, .ai-msg, .st-jb-turn').forEach(n => n.remove());
+  });
+}
+/* after a host painted the conversation: the side panel's own presses and
+   charts are bound wherever its turns are drawn */
+function jamboTurnsAfter(root){
+  if (!root) return;
+  if (root.querySelector('[data-jb-born="ai"]') && typeof window.aiFeedWire === 'function') try { window.aiFeedWire(root); } catch (_){}
+  if (typeof window.aiChartSweep === 'function') try { window.aiChartSweep(); } catch (_){}
+  if (typeof window.aiHydrateCharts === 'function'){ const b = jamboConvo().flatMap(m => (m && m.blocks) || []); if (b.length) try { window.aiHydrateCharts(b); } catch (_){} }
+}
+/* a press in a turn drawn away from its own host: go there and press it there */
+var JB_HOST_ROOT = { ig: '#ig-dock', st: '#st-jb-feed' };
+function jamboPressKey(el){
+  const at = [...el.attributes].filter(a => !/^(class|style|id|title|tabindex|aria-.*|role)$/.test(a.name)).map(a => a.name + '=' + a.value).sort();
+  return el.tagName + '|' + at.join('|');
+}
+function jamboForeignPress(born, i, btn){
+  const H = jamboConvo(), m = H[i]; if (!m) return false;
+  const key = jamboPressKey(btn);
+  const say = () => { if (typeof window.toast === 'function') window.toast(window.i18t ? window.i18t('jb_press_lost') : 'That button could not be found where it was asked.', 'warn'); };
+  try {
+    if (born === 'ig'){
+      if (typeof window.setView === 'function') window.setView('dashboard');
+      if (m.paperId && typeof window.pdOpenOnHome === 'function') window.pdOpenOnHome(m.paperId, 'copilot');
+      if (typeof window.pdTalkReopen === 'function') window.pdTalkReopen();
+    } else if (born === 'st'){
+      if (typeof window.setView === 'function') window.setView('team');
+      if (typeof window.stTalkReopen === 'function') window.stTalkReopen();
+    } else return false;
+  } catch (_){ say(); return true; }
+  let n = 0;
+  const go = () => {
+    const root = document.querySelector(JB_HOST_ROOT[born]);
+    const turn = root && root.querySelector(`.jb-turn[data-jb-turn="${i}"][data-jb-host="${born}"]`);
+    const twin = turn && [...turn.querySelectorAll('button, a, [role="button"], [data-ca-act]')].find(b => jamboPressKey(b) === key);
+    if (twin){ try { twin.scrollIntoView({ block: 'nearest' }); } catch (_){} twin.click(); return; }
+    if (++n < 30){ setTimeout(go, 100); return; }
+    say();
+  };
+  setTimeout(go, 50);
+  return true;
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._jbForeignWired){
+  document._jbForeignWired = true;
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target : null; if (!t) return;
+    /* popped out (or in the ✦'s window), a host's talk view says where the words are, with the way back */
+    const pb = t.closest('[data-jb-popback]');
+    if (pb){ e.preventDefault(); if (typeof window.aiConvoBack === 'function') window.aiConvoBack(); else if (typeof window.aiPopBack === 'function') window.aiPopBack();
+      if (document.getElementById('st-jb-feed') && typeof window.stTalkReopen === 'function') window.stTalkReopen();
+      else if (typeof window.renderIntelDock === 'function') window.renderIntelDock(); return; }
+    const turn = t.closest('.jb-turn[data-jb-born]'); if (!turn) return;
+    const born = turn.getAttribute('data-jb-born'), host = turn.getAttribute('data-jb-host');
+    if (born === host || born === 'ai') return;
+    const btn = t.closest('button, a, [role="button"], [data-ca-act]');
+    if (!btn || !turn.contains(btn) || btn.disabled) return;
+    e.preventDefault(); e.stopPropagation();
+    jamboForeignPress(born, Number(turn.getAttribute('data-jb-turn')), btn);
+  }, true);
+}
+Object.assign(window,{jamboConvo,jamboBornOf,jamboReadStamp,jamboTurnHtml,JB_TURN_HOSTS,jamboTurnsTake,jamboTurnsAfter,jamboPressKey,jamboForeignPress,JAMBO_LAND_GLYPH,jamboTalkTabInner,JT_BACK,jamboTalkHost,jamboTalkUp,jamboTalkLand,jamboTalkKey,jamboTalkShows,jamboScrollKeep,jamboScrollPut,jamboTalkOpen,jamboTalkClose,jamboTalkBack,jamboTrailHtml,jamboTalkTrailHtml});

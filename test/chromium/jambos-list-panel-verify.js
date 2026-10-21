@@ -364,19 +364,19 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await page.evaluate(() => setView('templates'));
       await until(() => state.view === 'templates' ? true : null);
       await page.waitForTimeout(400);
-      /* RE-POINTED 21 Oct 2026 (owner: "when i click on jambo at the top of the page in the top
-         bar, the jambo chat box bar should be able to appear in any window"): the ✦ drops the ask
-         bar; what is typed there is asked of the Jambo already on the page — the page's panel
-         beside the book — never a second window */
+      /* RE-POINTED AGAIN 21 Oct 2026 (owner picked "The old chat window": "when i type in it, it
+         just jumps to the jambo in the side panel"): the ✦ opens the floating chat window beside
+         the page's own panel, and what is typed there is answered IN the window — never handed to
+         the panel beside the book */
       await page.click('#cmd-ai');
-      const O = await until(() => { const b = document.getElementById('jb-bar'); const f = document.activeElement && document.activeElement.id;
-        return b ? { bar: true, focus: f, onScreen: !!(window.jlOnScreen && jlOnScreen()) } : null; }, null, 6000);
-      check('10h the bar\'s door drops the ask bar, the cursor in it', !!O && O.focus === 'jb-bar-q', JSON.stringify(O));
-      if (O && O.bar) {
-        await page.type('#jb-bar-q', 'which of these are waiting on me', { delay: 4 }); await page.keyboard.press('Enter');
-        const A = await until(() => { const f = document.getElementById('jl-feed'); const p = document.getElementById('ai-panel');
-          return f && /waiting on me/.test(f.textContent) ? { window: p.classList.contains('open'), bar: !!document.getElementById('jb-bar') } : null; }, null, 6000);
-        check('10h and its words are asked of the page\'s own panel beside the book (no second window)', !!A && !A.window && !A.bar, JSON.stringify(A));
+      const O = await until(() => { const p = document.getElementById('ai-panel'); const f = document.activeElement && document.activeElement.id;
+        return p.classList.contains('open') ? { floating: p.classList.contains('floating'), aside: p.classList.contains('ai-stepaside'), focus: f, bar: !!document.getElementById('jb-bar') } : null; }, null, 6000);
+      check('10h the bar\'s door opens the floating chat window, the cursor in its box', !!O && O.floating && !O.aside && !O.bar && O.focus === 'ai-input', JSON.stringify(O));
+      if (O && O.floating) {
+        await page.type('#ai-input', 'which of these are waiting on me', { delay: 4 }); await page.keyboard.press('Enter');
+        const A = await until(() => { const w = document.getElementById('ai-feed'); const f = document.getElementById('jl-feed');
+          return w && /waiting on me/.test(w.textContent) ? { list: !!(f && /waiting on me/.test(f.textContent)), open: document.getElementById('ai-panel').classList.contains('open') } : null; }, null, 6000);
+        check('10h and its words are answered in the window, not in the panel beside the book', !!A && A.open && !A.list, JSON.stringify(A));
       }
       await page.evaluate(() => { if (typeof closeAI === 'function') closeAI(); });
     });

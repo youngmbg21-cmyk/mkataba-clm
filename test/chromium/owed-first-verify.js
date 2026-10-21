@@ -127,7 +127,8 @@ const base = (id, name, extra) => Object.assign({ id, name, counterparty: 'Balti
     check('4a an NDA owes its two facts: two rows of the grid, in the count, each with Confirm',
       JSON.stringify(N.items) === JSON.stringify(['ndaDir:true', 'ndaEnds:true']) && N.rows.length === 2 && N.rows.every(r => r.ok), JSON.stringify(N));
     /* this upload carries no read text, so the grid says the wording was not read for it — never a guess */
-    check('4b the wording\'s reading is in the box as a suggestion, else the row says the wording does not hold it', N.rows.every(r => /suggested by|read from|not in the wording/.test(r.t)), JSON.stringify(N.rows));
+    /* RE-POINTED 21 Oct 2026 (owner: no grey line under an owed fact): an unread row is amber instead of saying "not in the wording" */
+    check('4b the wording\'s reading is in the box as a suggestion, else the row is amber', N.rows.every(r => /suggested by|read from/.test(r.t) || /is-amb/.test(r.cls)), JSON.stringify(N.rows));
     await page.selectOption('#pd-og [data-pd-og-nda="dir"]', 'mutual');
     await page.click('#pd-og [data-pd-og-ok="ndaDir"]');
     const ed = await until(() => { const c = getContract('MK-0406'); return !!(c.nda && c.nda.dir === 'mutual'); }, null, 6000);

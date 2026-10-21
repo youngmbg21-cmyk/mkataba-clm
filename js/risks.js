@@ -780,18 +780,23 @@ function _rkRowHtml(c, it){
      line, and the whole sentence is read when the card opens. */
   const full = _rkTopicText(it), shown = riskTitleOf(it);
   const long = full.trim() !== shown;
-  const open = !!_rk.whyOpen[it.key];
+  /* WHY FIRST (the owner's pick, 21 Oct 2026): the reason is open on landing
+     and sits under the name; a press on it goes to the clause, as the head
+     does; Hide why sits UNDER it, on the verbs' line, where Why stays when it
+     is shut. The source line is gone; its word rides the name's hover. */
+  const open = _rk.whyOpen[it.key] !== false;
   const hasMore = !!(why || long);
+  const src = _rkT(RK_SRC_KEY[it.src]);
+  const whyIn = `${long ? `<span class="rk-why-full">${_rkE(full)}</span>` : ''}${why ? `<span>${_rkE(why)}</span>` : ''}`;
   return `<div class="rk-row is-${_rkE(it.sev)}${open ? ' is-open' : ''}" data-rk-key="${_rkE(it.key)}">
-    ${_rkHeadHtml(it, `<div class="rk-top"><b class="rk-t" title="${_rkE(full)}">${_rkE(shown)}</b>${_rkSevHtml(it.sev)}</div>
-    <div class="rk-m">${_rkE(_rkT(RK_SRC_KEY[it.src]))}</div>`)}
+    ${_rkHeadHtml(it, `<div class="rk-top"><b class="rk-t" title="${_rkE([full, src].filter(Boolean).join(' · '))}">${_rkE(shown)}</b>${_rkSevHtml(it.sev)}</div>`)}
+    ${open && hasMore ? (it.missing ? `<div class="rk-why">${whyIn}</div>` : `<div class="rk-why is-door" data-rk-act="go" role="button" tabindex="0">${whyIn}</div>`) : ''}
     <div class="rk-verbs">
       <button type="button" class="rk-verb" data-rk-act="note">${_rkMark('chat')}${_rkE(_rkT('rk_note'))}</button>
       <button type="button" class="rk-verb is-no" data-rk-act="dismiss">${_rkMark('bin')}${_rkE(_rkT('ng_discard'))}</button>
       <button type="button" class="rk-verb is-ai" data-rk-act="edit-ce" title="${_rkE(_rkT('rk_edit_ce_title'))}">${_rkMark('edit')}${_rkE(_rkT('rk_edit_ce'))}</button>
-      ${hasMore ? `<button type="button" class="rk-why-btn" data-rk-act="why" aria-expanded="${open}" title="${_rkE(_rkT('rk_why_title'))}">${_rkE(_rkT('rk_why_open'))}<svg class="rk-why-i" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>` : ''}
+      ${hasMore ? `<button type="button" class="rk-why-btn" data-rk-act="why" aria-expanded="${open}" title="${_rkE(_rkT('rk_why_title'))}">${_rkE(_rkT(open ? 'rk_why_hide' : 'rk_why_open'))}<svg class="rk-why-i" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>` : ''}
     </div>
-    ${open && hasMore ? `<div class="rk-why">${long ? `<span class="rk-why-full">${_rkE(full)}</span>` : ''}${why ? `<b>${_rkE(_rkT('ai_why_matters'))}</b><span>${_rkE(why)}</span>` : ''}</div>` : ''}
   </div>`;
 }
 /* A CARD'S HEAD IS A DOOR TO ITS CLAUSE (Young, 5 Oct 2026: "where possible,
@@ -1011,6 +1016,9 @@ function rkEnsureStyle(){
   .rk-why-i{flex:none;transition:transform var(--dur-1, .15s)}
   .rk-why-btn[aria-expanded="true"] .rk-why-i{transform:rotate(180deg)}
   @media (prefers-reduced-motion:reduce){ .rk-why-i{transition:none} }
+  .rk-why.is-door{cursor:pointer}
+  .rk-why.is-door:hover span{text-decoration:underline;text-underline-offset:2px;text-decoration-color:var(--color-neutral-400)}
+  .rk-why.is-door:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
   .rk-why{display:grid;gap:2px;margin-top:2px;padding:7px 9px;border-radius:var(--radius);
     background:var(--color-neutral-100);font-size:var(--t-meta);line-height:1.5;color:var(--color-text)}
   .rk-why b{font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--color-neutral-600)}
@@ -1148,7 +1156,7 @@ if (typeof document !== 'undefined' && document.addEventListener && !document._r
     if (act === 'cov-go'){ if (typeof rlJumpToClause === 'function') rlJumpToClause(b.getAttribute('data-rk-clause')); return; }
     if (!key) return;
     if (act === 'go'){ riskGoClause(c, key); return; }
-    if (act === 'why'){ _rk.whyOpen[key] = !_rk.whyOpen[key]; rkRepaint(c); return; }
+    if (act === 'why'){ _rk.whyOpen[key] = _rk.whyOpen[key] === false; rkRepaint(c); return; }
     if (act === 'dismiss'){ riskDismiss(c, key); rkRepaint(c); return; }
     if (act === 'back'){ riskDismiss(c, key, true); rkRepaint(c); return; }
     if (act === 'note'){ riskNote(c, key); return; }

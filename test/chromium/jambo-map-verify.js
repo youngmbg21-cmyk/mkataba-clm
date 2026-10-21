@@ -132,13 +132,15 @@ const check = (name, pass, detail) => {
 
     console.log('\n4 · a question about the wording is not the map\'s');
     await onPaper('MK-B2');
-    const before = await page.evaluate(() => document.querySelectorAll('#igd-feed [data-jm-card]').length);
+    /* RE-POINTED 21 Oct 2026 (one Jambo conversation everywhere): another contract draws the whole conversation,
+       so the cards counted are the ones said AFTER this question was asked */
+    const before = await page.evaluate(() => intel.history.length);
     const said = await page.evaluate(() => jmRead('what does clause 7 say about liability?'));
     check('4a the map answers null', said === null, JSON.stringify(said));
     await panelAsk('what does clause 7 say about liability?');
     await until(() => !intel.busy, null, 10000);
-    const after = await page.evaluate(() => ({ cards: document.querySelectorAll('#igd-feed [data-jm-card]').length, view: state.view, paper: intel.paper && intel.paper.id }));
-    check('4b no card from the map, and nothing moved', after.cards === before && after.view === 'dashboard' && after.paper === 'MK-B2', JSON.stringify(after));
+    const after = await page.evaluate(n => ({ cards: [...document.querySelectorAll('#igd-feed .jb-turn[data-jb-turn]')].filter(t => Number(t.getAttribute('data-jb-turn')) >= n && t.querySelector('[data-jm-card]')).length, view: state.view, paper: intel.paper && intel.paper.id }), before);
+    check('4b no card from the map, and nothing moved', after.cards === 0 && after.view === 'dashboard' && after.paper === 'MK-B2', JSON.stringify(after));
 
     console.log('\n5 · in Svenska');
     await page.evaluate(() => window.langSet('sv'));

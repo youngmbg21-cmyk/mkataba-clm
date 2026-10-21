@@ -253,7 +253,7 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
        contract's dossier — "<ref> · Dossier", the spine, What Jambo read, Still owed (a late obligation among
        its rows), the stage's acts, the Family fold — the card's chips still right under it */
     const P7 = await until(() => { const g = document.querySelector('#ig-dock .pd-held-dos'); const st = document.getElementById('bs-strip-MK-0377');
-      if (!g || !st || !st.querySelector('.bs-kpi')) return null;
+      if (!g || !st || !st.querySelector('.bs-deal')) return null;
       return { card: window.bsCardId && bsCardId(), word: ((document.querySelector('#ig-dock .igd-head-w') || {}).textContent || '').trim(), ph: (document.getElementById('igd-input') || {}).placeholder,
         head: [...g.querySelectorAll('.pd-gl-h b')].map(b => b.textContent).join(' | '), pill: !!g.querySelector('.ds-spine .ds-st[data-ds-st="live"]'),
         rows: [...g.querySelectorAll('[data-pd-ds-card="owed"] .pd-gl-row')].map(r => ({ k: r.getAttribute('data-pd-gl'), t: (r.querySelector('span') || {}).textContent.replace(/\s+/g, ' ').trim(), b: ((r.querySelector('button') || {}).textContent || '').trim() })),
@@ -261,11 +261,12 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
         chips: [...document.querySelectorAll('#ig-dock [data-pd-held-chips] button')].map(b => b.textContent.trim()),
         foot: document.querySelectorAll('#ig-dock [data-ig-chips]').length,
         under: (() => { const r = document.querySelector('#ig-dock [data-pd-held-chips]'); return r ? Math.round(r.getBoundingClientRect().top - g.getBoundingClientRect().bottom) : null; })(),
-        cap: ((st.querySelector('.bs-cap') || {}).textContent || ''),
+        cap: ((st.querySelector('.bs-nd[data-bs-nd="late"]') || {}).textContent || ''),
         pills: (() => { const td = [...st.querySelectorAll('.bs-obs td')].find(t => /September invoice/.test(t.textContent)); return td ? [...td.querySelectorAll('span')].map(x => x.textContent) : null; })(),
         stage: ((st.querySelector('.bs-head .bs-stage .room-stat') || {}).textContent || '').trim(),
-        idline: (st.querySelector('.bs-idline') || {}).textContent || '',
-        next: (() => { const k = st.querySelector('[data-bs-kpi="next"]'); return k ? { sub: k.querySelector('span').textContent, bad: k.classList.contains('is-bad'), col: getComputedStyle(k.querySelector('b')).color } : null; })(),
+        /* RE-POINTED 21 Oct 2026 (the report simplified): the signed day rides the head's line; a late obligation is a Needs you row */
+        idline: (st.querySelector('.bs-head .bs-ref') || {}).textContent || '',
+        next: (() => { const k = st.querySelector('.bs-nd[data-bs-nd="late"]'); return k ? { sub: (k.querySelector('small') || {}).textContent || '', bad: true } : null; })(),
         value: ((st.querySelector('[data-bs-kpi="value"] span') || {}).textContent || ''),
         /* RE-POINTED 20 Oct 2026 (4b): Open stands in the head as "Open in Workspace ›" */
         sfoot: ((st.querySelector('.bs-head [data-bs-open]') || {}).textContent || '').trim() }; }, null, 15000);
@@ -276,10 +277,10 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
       && /^Family — Original and 1 more in its family/.test(P7.fam), JSON.stringify(P7 && { rows: P7.rows, fam: P7.fam }));
     check('2c chips obligations · history · amend, and the box asks about MK-0377', !!P7 && JSON.stringify(P7.chips) === JSON.stringify(['obligations', 'history', 'amend']) && P7.ph === 'Ask about MK-0377…', JSON.stringify(P7 && { chips: P7.chips, ph: P7.ph }));
     check('2d the page as drawn: the stage pill, "signed <day>", "As amended by" first, a late next obligation in the late colour saying how late, "Open in Workspace ›"',
-      !!P7 && P7.stage === 'Executed' && /· signed \d/.test(P7.idline) && /^As amended by MK-0377-A1/.test(P7.value) && P7.next && P7.next.bad && /· 7 days late$/.test(P7.next.sub) && P7.sfoot === 'Open in Workspace ›',
+      !!P7 && P7.stage === 'Executed' && /· signed \d/.test(P7.idline) && /^As amended by MK-0377-A1/.test(P7.value) && P7.next && P7.next.bad && /^7 days late$/.test(P7.next.sub) && P7.sfoot === 'Open in Workspace ›',
       JSON.stringify(P7 && { stage: P7.stage, idline: P7.idline, value: P7.value, next: P7.next, foot: P7.sfoot }));
     check('5d a page\'s chips sit right under its card, none in the panel\'s foot row', !!P7 && P7.under != null && P7.under >= 0 && P7.under <= 24 && P7.foot === 0, JSON.stringify(P7 && { under: P7.under, foot: P7.foot }));
-    check('5e the caption says how late ("…, 7 days late."); the table says Late before Next', !!P7 && /Next up: Check the September invoice \([^)]+\), 7 days late\./.test(P7.cap) && JSON.stringify(P7.pills) === JSON.stringify(['Late', 'Next']), JSON.stringify(P7 && { cap: P7.cap, pills: P7.pills }));
+    check('5e the late obligation is a Needs you row saying how late (the report simplified, 21 Oct 2026)', !!P7 && /Check the September invoice/.test(P7.cap) && /7 days late/.test(P7.cap), JSON.stringify(P7 && { cap: P7.cap }));
     if (OUT) await page.screenshot({ path: path.join(OUT, '7-page-glance-1440x780.png') });
     await page.evaluate(() => { const f = document.querySelector('#ig-dock .pd-held-dos [data-ds-fold="family"]'); if (f) f.open = true; });
     await press('#ig-dock .pd-held-dos [data-pd-ds-fam="MK-0377-A1"]');
@@ -421,9 +422,10 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
 
     /* 6i the signed supply agreement's page: its tile, its chips, a chip that lands */
     await page.evaluate(() => { intel.paper = null; hbStripBring('MK-0377'); });
-    const T6 = await until(() => { const st = document.getElementById('bs-strip-MK-0377'), g = document.querySelector('#ig-dock .pd-held-dos[data-pd-held-for="MK-0377"]'); if (!st || !g || !st.querySelector('.bs-kpi')) return null;
-      return { ob: [...st.querySelectorAll('[data-bs-jcell="ob"] li')].map(x => x.textContent.trim()), chips: [...document.querySelectorAll('#ig-dock [data-pd-held-chips] button')].map(b => b.textContent.trim()) }; }, null, 10000);
-    check('6i What Jambo read says the obligations\' sides, without a first due day', !!T6 && JSON.stringify(T6.ob) === JSON.stringify(['1 ours · 1 theirs']), JSON.stringify(T6));
+    const T6 = await until(() => { const st = document.getElementById('bs-strip-MK-0377'), g = document.querySelector('#ig-dock .pd-held-dos[data-pd-held-for="MK-0377"]'); if (!st || !g || !st.querySelector('.bs-deal')) return null;
+      return { ob: [...st.querySelectorAll('.bs-jb .bs-counts span')].map(x => x.textContent.trim()).filter(t => /obligation/.test(t)), chips: [...document.querySelectorAll('#ig-dock [data-pd-held-chips] button')].map(b => b.textContent.trim()) }; }, null, 10000);
+    /* RE-POINTED 21 Oct 2026 (the report simplified): What Jambo read counts the obligations once, in its counts line */
+    check('6i What Jambo read counts the obligations, without a first due day', !!T6 && JSON.stringify(T6.ob) === JSON.stringify(['2 obligations']), JSON.stringify(T6));
     const n6b = await tabN();
     check('6j his tab beside a page carries Home\'s own Needs-you number', !!n6b.tab && n6b.tab === n6b.home, JSON.stringify(n6b));
     await press('#ig-dock [data-pd-held-chip="oblig"]');
@@ -501,7 +503,7 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
       ['13-chosen-paper', async () => { await page.evaluate(() => { if (window.regPlaceSet) regPlaceSet({ show: 'wall' }); /* the Wall, picked (20 Oct 2026: the place lands on the List) */ hbOpenContracts(); if (window.igWallLetGo) igWallLetGo(); }); await until(() => !!document.querySelector('#ig-wall .igw-card'), null, 8000);
         await bring('MK-0382'); await press('#ig-wall .igw-card[data-ig-pick="MK-0382"]');
         await until(() => !!document.querySelector('#ig-dock #pd-chosen'), null, 4000); return '#ig-dock #pd-chosen'; }],
-      ['7-page-glance', async () => { await page.evaluate(() => hbStripBring('MK-0377')); await until(() => !!document.querySelector('#ig-dock .pd-held-dos') && !!document.querySelector('#bs-strip-MK-0377 .bs-kpi'), null, 8000); return '#ig-dock .pd-held-dos .ds-spine'; }],
+      ['7-page-glance', async () => { await page.evaluate(() => hbStripBring('MK-0377')); await until(() => !!document.querySelector('#ig-dock .pd-held-dos') && !!document.querySelector('#bs-strip-MK-0377 .bs-deal'), null, 8000); return '#ig-dock .pd-held-dos .ds-spine'; }],
       ['12-history-panel', async () => { await page.evaluate(() => hbStripBring('MK-0382', 'hist')); await until(() => !!document.querySelector('#ig-dock #pd-histglance') && !!document.querySelector('#bs-strips .hist-ev'), null, 8000); return '#ig-dock #pd-histglance'; }],
       /* pass 4: the private contract's page and History, the signed one's Details, a second round's History */
       ['pass4-7-page-private', async () => { await page.evaluate(() => hbStripBring('MK-0399')); await until(() => !!document.querySelector('#ig-dock .pd-held-dos[data-pd-held-for="MK-0399"]') && !!document.querySelector('#bs-strip-MK-0399'), null, 8000); return '#ig-dock .pd-held-dos .ds-spine'; }],

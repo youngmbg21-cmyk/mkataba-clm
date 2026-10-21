@@ -1342,7 +1342,8 @@ let _jlTalk = { from: 0, seen: 0 };
 const _jlAiLen = () => (typeof ai === 'object' && ai && Array.isArray(ai.history)) ? ai.history.length : 0;
 function jlTalkKey(){ return 'list:' + ((typeof state !== 'undefined' && state && state.view) || ''); }
 function jlTalkLand(){
-  if (typeof jamboTalkLand === 'function' && jamboTalkLand(jlTalkKey())){ const n = _jlAiLen(); _jlTalk = { from: n, seen: n }; return true; }
+  /* ONE CONVERSATION EVERYWHERE (owner, 21 Oct 2026): a page draws the whole conversation; only new words turn it */
+  if (typeof jamboTalkLand === 'function' && jamboTalkLand(jlTalkKey())){ const n = _jlAiLen(); _jlTalk = { from: 0, seen: n }; return true; }
   return false;
 }
 function jlTalkShows(){ return typeof jamboTalkShows === 'function' && jamboTalkShows(jlTalkKey()); }
@@ -1385,7 +1386,7 @@ function jlTalkSync(typing){
   const n = _jlAiLen();
   /* THE READER'S HAND WINS: an answer landing after they went back waits in
      the conversation for the next flip */
-  if (_jlTalk.quiet && n > _jlTalk.seen){ const H = (ai.history || []).slice(_jlTalk.seen); if (!H.some(m => m && m.role === 'user')){ _jlTalk.seen = n; if (!ai.busy) _jlTalk.quiet = false; } }
+  if (_jlTalk.quiet && n > _jlTalk.seen){ const H = (ai.history || []).slice(_jlTalk.seen); if (!H.some(m => m && (m.role === 'user' || m.role === 'st'))){ _jlTalk.seen = n; if (!ai.busy) _jlTalk.quiet = false; } }
   if (n > _jlTalk.seen){ _jlTalk.quiet = false; jlTalkOpen(); }
   return _jlTalk.from;
 }

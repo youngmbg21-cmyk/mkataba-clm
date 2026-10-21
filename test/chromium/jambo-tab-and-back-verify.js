@@ -143,7 +143,7 @@ const check = (name, pass, detail) => {
       check('1m two tabs later, the Jambo tab opens the same conversation', !!J3 && /watch for/.test(J3) && /payment terms/.test(J3) && /one more question/.test(J3), JSON.stringify(J3 && J3.slice(0, 160)));
     });
 
-    /* ---- 2 another contract: fresh ---- */
+    /* ---- 2 another contract: the one conversation (RE-POINTED 21 Oct 2026, owner: "Jambo keeps ONE conversation across the whole app"; reverses "another contract is fresh") ---- */
     await part('2', async () => {
       await page.evaluate(() => openRedlineWorkbench('MK-B2'));
       await until(() => document.querySelector('#pd-redface') && window.intel && intel.paper && intel.paper.id === 'MK-B2', null, 12000);
@@ -153,7 +153,7 @@ const check = (name, pass, detail) => {
       await ask('#igd-input', 'is anything late here?');
       await until(() => document.getElementById('ig-dock').classList.contains('is-talk'), null, 8000);
       const E = await page.evaluate(DOCK);
-      check('2b its conversation is fresh: what was said beside MK-A2 is not here', !!E && E.talk && !E.asked.some(t => /watch for|payment terms/.test(t)) && E.asked.some(t => /late here/.test(t)),
+      check('2b its conversation is the one conversation: what was said beside MK-A2 is here too, with the new question', !!E && E.talk && E.asked.some(t => /watch for|payment terms/.test(t)) && E.asked.some(t => /late here/.test(t)),
         JSON.stringify(E && E.asked.slice(0, 4)));
     });
 

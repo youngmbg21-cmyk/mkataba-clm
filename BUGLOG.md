@@ -21297,3 +21297,13 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - paper-panel-as-drawn-verify is red at the base in five checks - 1b "Still owed counts it with its rows", 1e and 1f (the Needs you redlines row before/after the standard), 2d "nobody named to sign: Signer - nobody named yet - Name" and 2f "Still owed: the signer, then their asks". Proven against an unmodified worktree at 3b601675.
 - A directory contact the record holds an address for but no name is listed in the signer search box under their address, because that is all dirBook has for them ("procurement@kabras.co.ke - Kabras Sugar"). Nothing invented to fill it.
 - CLAUDE.md was 80.7 KB before this change and 81.6 KB after (two MAP lines for the signer row and the No trips rule), above its 80 KB line; a trim needs the owner's yes.
+## 21 Oct 2026 — one conversation, the report simplified, why first
+- Removed (owner's picks, said to the owner): the Board report's stage bar, id line, five tiles, tall chart, obligations table and four Jambo tiles; the Dossier's grey lines under owed facts and "everything, one list"; the risk card's "Brief · …" line; the arrival light (pulse and ring) and the doors' own arrival flashes.
+- Noticed, not fixed: the Dossier's What Jambo read says "Risks to look at · not read yet" while the brief on file holds watch-outs the Board counts as risks (dossierRead reads c.scan only).
+- Noticed, not fixed: What Jambo read can say "0 Obligations found · 11 recorded" (found counts held readings only); the Board's report counts the larger of the two.
+- Noticed, not fixed: board-strip-verify's 6a clicks `.bs-sec-h [data-bs-page="details"]`, which an admin never sees (their Key terms door is Change beside the paper) — red on main too.
+- Noticed, not fixed: CLAUDE.md is 81.6 KB, over the ~80 KB rule; a trim needs the owner's yes.
+
+## 21 Oct 2026 — the ✦ opens the old chat window
+- Removed (owner's pick "The old chat window", said to the owner): the one-line ✦ ask bar under the top bar.
+- Noticed, not fixed: on Home, "What am I looking at?" typed into Home's own Jambo box answers "The board could not draw that…" instead of the free on-screen reading the side panel gives.

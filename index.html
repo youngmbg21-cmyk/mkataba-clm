@@ -3684,37 +3684,37 @@
   /* each view is no box of its own (display:contents): its rows sit in the feed's own column exactly as before the flip, so the page paints nothing new */
   .st-cr .st-jb-feed > .st-jb-land, .st-cr .st-jb-feed > .st-jb-talk{ display:contents; }
   .st-cr .st-jb-feed > .st-jb-land[hidden], .st-cr .st-jb-feed > .st-jb-talk[hidden], .st-cr #st-jb-trail[hidden]{ display:none; }
-  .st-cr .st-jb-msg{ display:flex; gap:8px; align-items:flex-start; }
-  .st-cr .st-jb-av{ flex:none; border-radius:50%; background:var(--color-surface); }
-  .st-cr .st-jb-bub{ background:var(--color-surface); border:1px solid var(--color-divider); border-radius:10px; padding:8px 11px;
+  :is(.st-cr, .jb-turn) .st-jb-msg{ display:flex; gap:8px; align-items:flex-start; }
+  :is(.st-cr, .jb-turn) .st-jb-av{ flex:none; border-radius:50%; background:var(--color-surface); }
+  :is(.st-cr, .jb-turn) .st-jb-bub{ background:var(--color-surface); border:1px solid var(--color-divider); border-radius:10px; padding:8px 11px;
     font-size:var(--t-meta); line-height:1.5; color:var(--color-text); min-width:0; }
-  .st-cr .st-jb-me{ align-self:flex-end; max-width:88%; background:var(--accent-solid,var(--color-accent)); color:#fff;
+  :is(.st-cr, .jb-turn) .st-jb-me{ align-self:flex-end; max-width:88%; background:var(--accent-solid,var(--color-accent)); color:#fff;
     border-radius:10px; padding:7px 11px; font-size:var(--t-meta); line-height:1.45; overflow-wrap:anywhere; }
-  .st-cr .st-jb-turn{ display:flex; flex-direction:column; gap:8px; }
-  .st-cr .st-jb-chips{ display:flex; flex-wrap:wrap; gap:4px 12px; padding-left:36px; }
+  :is(.st-cr, .jb-turn) .st-jb-turn{ display:flex; flex-direction:column; gap:8px; }
+  :is(.st-cr, .jb-turn) .st-jb-chips{ display:flex; flex-wrap:wrap; gap:4px 12px; padding-left:36px; }
   /* a suggestion is a link (Chambers, 20 Oct 2026; see .jb-chip) */
-  .st-cr .st-jb-chip{ appearance:none; border:0; background:none; padding:1px 0; border-radius:0; height:auto; min-height:0; font:inherit; font-size:12.5px; font-weight:var(--w-body); line-height:1.45; color:var(--accent-ink); text-decoration:underline; text-decoration-color:var(--color-accent-200); text-underline-offset:3px; cursor:pointer; text-align:left; }
-  .st-cr .st-jb-chip:hover{ text-decoration-color:currentColor; color:var(--accent-ink-700); }
-  .st-cr .st-jb-card{ margin-left:36px; background:var(--color-surface); border:1px solid var(--color-divider); border-radius:10px; overflow:hidden; }
-  .st-cr .st-jb-ch{ display:flex; align-items:center; gap:7px; flex-wrap:wrap; padding:8px 11px; font-weight:var(--w-strong);
+  :is(.st-cr, .jb-turn) .st-jb-chip{ appearance:none; border:0; background:none; padding:1px 0; border-radius:0; height:auto; min-height:0; font:inherit; font-size:12.5px; font-weight:var(--w-body); line-height:1.45; color:var(--accent-ink); text-decoration:underline; text-decoration-color:var(--color-accent-200); text-underline-offset:3px; cursor:pointer; text-align:left; }
+  :is(.st-cr, .jb-turn) .st-jb-chip:hover{ text-decoration-color:currentColor; color:var(--accent-ink-700); }
+  :is(.st-cr, .jb-turn) .st-jb-card{ margin-left:36px; background:var(--color-surface); border:1px solid var(--color-divider); border-radius:10px; overflow:hidden; }
+  :is(.st-cr, .jb-turn) .st-jb-ch{ display:flex; align-items:center; gap:7px; flex-wrap:wrap; padding:8px 11px; font-weight:var(--w-strong);
     font-size:var(--t-meta); color:var(--color-text); border-bottom:1px solid var(--surface-2); }
-  .st-cr .st-jb-pre{ color:var(--accent-ink); }
-  .st-cr .st-jb-role{ font-weight:var(--w-body); color:var(--color-neutral-600); }
-  .st-cr .st-jb-ini{ width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
+  :is(.st-cr, .jb-turn) .st-jb-pre{ color:var(--accent-ink); }
+  :is(.st-cr, .jb-turn) .st-jb-role{ font-weight:var(--w-body); color:var(--color-neutral-600); }
+  :is(.st-cr, .jb-turn) .st-jb-ini{ width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
     background:transparent; border:1px solid var(--rule-strong); font-size:10.5px; font-weight:var(--w-strong); color:var(--color-neutral-600); }
-  .st-cr .st-jb-cb{ padding:8px 11px 2px; font-size:var(--t-label); line-height:1.5; color:var(--color-text); }
-  .st-cr .st-jb-cb p{ margin:0 0 6px; }
-  .st-cr .st-jb-cb ul{ margin:0 0 6px; padding-left:16px; }
-  .st-cr .st-jb-cb li{ margin:0 0 2px; }
-  .st-cr .st-jb-state{ color:var(--color-neutral-600); }
-  .st-cr .st-jb-list{ list-style:none; padding:0 !important; }
-  .st-cr .st-jb-list li{ display:flex; justify-content:space-between; gap:8px; }
-  .st-cr .st-jb-list li span{ color:var(--color-neutral-600); text-align:right; }
-  .st-cr .st-jb-names{ display:flex; flex-wrap:wrap; gap:4px 10px; margin-bottom:6px; }
-  .st-cr .st-jb-name{ appearance:none; border:0; background:none; padding:0; font:inherit; color:var(--accent-ink); cursor:pointer; text-align:left; }
-  .st-cr .st-jb-name:hover{ text-decoration:underline; }
-  .st-cr .st-jb-ca{ display:flex; gap:8px; flex-wrap:wrap; padding:6px 11px 10px; }
-  .st-cr .st-jb-turn > .st-jb-ca{ padding:0 0 0 36px; }
+  :is(.st-cr, .jb-turn) .st-jb-cb{ padding:8px 11px 2px; font-size:var(--t-label); line-height:1.5; color:var(--color-text); }
+  :is(.st-cr, .jb-turn) .st-jb-cb p{ margin:0 0 6px; }
+  :is(.st-cr, .jb-turn) .st-jb-cb ul{ margin:0 0 6px; padding-left:16px; }
+  :is(.st-cr, .jb-turn) .st-jb-cb li{ margin:0 0 2px; }
+  :is(.st-cr, .jb-turn) .st-jb-state{ color:var(--color-neutral-600); }
+  :is(.st-cr, .jb-turn) .st-jb-list{ list-style:none; padding:0 !important; }
+  :is(.st-cr, .jb-turn) .st-jb-list li{ display:flex; justify-content:space-between; gap:8px; }
+  :is(.st-cr, .jb-turn) .st-jb-list li span{ color:var(--color-neutral-600); text-align:right; }
+  :is(.st-cr, .jb-turn) .st-jb-names{ display:flex; flex-wrap:wrap; gap:4px 10px; margin-bottom:6px; }
+  :is(.st-cr, .jb-turn) .st-jb-name{ appearance:none; border:0; background:none; padding:0; font:inherit; color:var(--accent-ink); cursor:pointer; text-align:left; }
+  :is(.st-cr, .jb-turn) .st-jb-name:hover{ text-decoration:underline; }
+  :is(.st-cr, .jb-turn) .st-jb-ca{ display:flex; gap:8px; flex-wrap:wrap; padding:6px 11px 10px; }
+  :is(.st-cr, .jb-turn) .st-jb-turn > .st-jb-ca{ padding:0 0 0 36px; }
   .st-cr .st-jb-ask{ flex:none; display:flex; gap:8px; padding:10px 12px 6px; border-top:1px solid var(--color-divider); }
   .st-cr .st-jb-ask > .jb-card{ flex:1; min-width:0; }
   .st-cr .st-jb-ask input{ flex:1; min-width:0; height:var(--ctl-h-lg); border:1px solid var(--field-line); border-radius:var(--radius-lg);
@@ -12702,12 +12702,12 @@
   @keyframes aiPulse{0%,100%{box-shadow:0 0 0 0 rgb(var(--color-accent-600-rgb)/.6);}50%{box-shadow:0 0 0 8px rgb(var(--color-accent-600-rgb)/0);}}
   #ai-scrim{opacity:0;pointer-events:none;transition:opacity var(--dur-3);}
   #ai-scrim.open{opacity:1;pointer-events:auto;}
-  /* ==== JAMBO SLIDES IN BESIDE THE PAGE · THE ✦ ASK BAR · POP OUT (owner, 21 Oct 2026; js/ai.js
-     aiSideSync, aiBarToggle, aiPopOut) ====
+  /* ==== JAMBO SLIDES IN BESIDE THE PAGE · POP OUT (owner, 21 Oct 2026; js/ai.js
+     aiSideSync, aiPopOut) ====
      On a computer the window is a side panel wearing THE BRIEF: 384 wide under the top bar, the head
      and the foot 56, its tab a word (the ✦ and "Jambo", the live tab's rule under them), nothing boxed;
      the page beside it dimmed by the scrim under the bar (the ONE PANEL convention), never reflowed.
-     The ✦ drops one line under the bar, centred, over everything, the side panel included. Popped out,
+     The ✦ opens the movable chat window instead (below; the one-line ✦ bar is gone). Popped out,
      the same nodes stand in a window of their own (.is-popped). Scoped by id and class, never !important. */
   @media (min-width:768px){
     #ai-scrim{top:var(--shell-head-h,48px)}
@@ -12733,14 +12733,48 @@
   }
   /* each answer says what it read (aiReadFrom) */
   #ai-feed .ai-read{font-size:var(--t-label);line-height:16px;color:var(--color-neutral-600)}
-  /* THE ✦ ASK BAR: one line under the bar, centred */
-  .jb-bar{position:fixed;top:calc(var(--shell-head-h,48px) + 8px);left:50%;transform:translateX(-50%);width:min(640px,calc(100vw - 32px));z-index:60}
-  .jb-bar > .jb-card{box-sizing:border-box;min-height:40px;box-shadow:var(--shadow-lg)}
-  /* with the side panel in, the bar is centred over the page beside it, never over the panel */
-  @media (min-width:768px){ body.ai-side-open .jb-bar{left:calc((100vw - 384px) / 2);width:min(640px,calc(100vw - 384px - 32px))} }
-  .jb-bar > .jb-card:focus-within{box-shadow:0 0 0 3px var(--color-accent-100),var(--shadow-lg)}
-  .jb-bar .jb-bar-here{flex:none;white-space:nowrap;margin:0 8px}
-  /* the "/" list of a box on the bar or in the side panel stands over both */
+  /* ---- THE ✦ OPENS THE CHAT WINDOW, ONE YOU CAN MOVE AND RESIZE (owner, 11 Oct 2026; back on
+     21 Oct 2026, "The old chat window"; ai.js aiFloat*, aiWinToggle) ----
+     Desktop only. Its place and size are set inline from the reader's own
+     stored box; the limits are kept by aiFloatClamp, never by CSS. Closed, it
+     is simply not shown where it stands. It never steps aside: it opens beside
+     a page's own Jambo too. The dock button shows only once it has been moved
+     off the right edge. (.expanded carries !important, so its override must.) */
+  #ai-panel.floating,#ai-panel.floating.expanded{right:auto;bottom:auto;max-width:none!important;transition:none;transform:none}
+  #ai-panel.floating:not(.open){transform:translateX(200vw);pointer-events:none}   /* closed: off the screen, as the drawer always was */
+  #ai-panel.floating:not(.ai-float-home){border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden;box-shadow:0 18px 50px rgba(9,25,56,.24),0 2px 6px rgba(9,25,56,.1)}
+  #ai-panel.floating > header{cursor:grab;touch-action:none;user-select:none}
+  #ai-panel.floating.ai-float-busy > header{cursor:grabbing}
+  #ai-panel.ai-float-busy{user-select:none}
+  #ai-panel #ai-dock-home{display:none}
+  #ai-panel.floating:not(.ai-float-home) #ai-dock-home{display:grid}
+  /* the line under the name stays one line in the window, cut with an ellipsis */
+  #ai-panel.floating > header > .flex-1{min-width:0}
+  #ai-panel.floating #ai-brain-sub{white-space:nowrap;overflow:hidden}
+  #ai-panel.floating #ai-brain-sub > span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  /* The window's own size decides how much its header and foot may carry —
+     measured on the window, not the screen (the screen's narrow rules below
+     are for a drawer as wide as a phone). */
+  #ai-panel.floating{container-type:size;container-name:aiwin}
+  @container aiwin (max-width: 419px){   /* below the drawer's own 430 */
+    #ai-panel > header{padding:var(--s-3);gap:var(--s-2)}
+    #ai-panel > header button{width:28px;height:28px}
+    #ai-panel > header > :first-child{display:none}
+    #ai-panel > header > .flex-1 > div:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    #ai-brain-sub{display:none}
+    #ai-feed,#ai-panel > footer,#ai-suggest{padding-left:var(--s-3);padding-right:var(--s-3)}
+  }
+  @container aiwin (max-height: 560px){ #ai-suggest{display:none} }
+  #ai-panel .ai-rz{display:none;position:absolute;z-index:3;touch-action:none}
+  #ai-panel.floating .ai-rz{display:block}
+  #ai-panel .ai-rz-n,#ai-panel .ai-rz-s{left:12px;right:12px;height:8px;cursor:ns-resize}
+  #ai-panel .ai-rz-n{top:-3px} #ai-panel .ai-rz-s{bottom:-3px}
+  #ai-panel .ai-rz-e,#ai-panel .ai-rz-w{top:12px;bottom:12px;width:8px;cursor:ew-resize}
+  #ai-panel .ai-rz-e{right:-3px} #ai-panel .ai-rz-w{left:-3px}
+  #ai-panel .ai-rz-ne,#ai-panel .ai-rz-nw,#ai-panel .ai-rz-se,#ai-panel .ai-rz-sw{width:16px;height:16px}
+  #ai-panel .ai-rz-ne{right:-3px;top:-3px;cursor:nesw-resize} #ai-panel .ai-rz-sw{left:-3px;bottom:-3px;cursor:nesw-resize}
+  #ai-panel .ai-rz-nw{left:-3px;top:-3px;cursor:nwse-resize} #ai-panel .ai-rz-se{right:-3px;bottom:-3px;cursor:nwse-resize}
+  /* the "/" list of a box in the side panel or the window stands over both */
   body > #ca-slash{z-index:61}
   /* POPPED OUT: the conversation and the card fill a window of their own */
   #ai-panel.is-popped{position:static;transform:none;width:100%;max-width:none;height:100vh;display:flex;flex-direction:column;box-shadow:none;border:0;background:var(--color-surface)}
@@ -15440,12 +15474,21 @@
      outside the box, nothing moves — and it is the same ring Jambo's glowing
      button wears (.rl-glow). Reduced motion gets the ring without the pulse.
      :not(#_) lifts it past a card's own outline rules. */
-  .is-landed:not(#_), .rl-glow:not(#_){outline:2px solid var(--accent-ink);outline-offset:2px;
+  /* NO LIGHT ON ARRIVAL (owner, 21 Oct 2026: "remove the feature when you
+     land on page it highlights or flashes where you are supposed to go"):
+     landOn still opens, scrolls and readies the button; it draws nothing. The
+     other doors' own arrival flashes are switched off with it. Jambo's
+     glowing button (.rl-glow) is a suggestion, not an arrival: it keeps its ring. */
+  .rl-glow:not(#_){outline:2px solid var(--accent-ink);outline-offset:2px;
     animation:hatiLand 1s ease-in-out 2;}
-  .is-landed-held:not(#_){animation:none;}
+  .is-landed:not(#_), .is-landed-held:not(#_){outline:none;animation:none;}
+  :is(.anchor-flash, .clause-flash, .ig-flash, .st-lit, .nego-clause.flash, .ov-map-ob.is-lit):not(#_){animation:none;box-shadow:none;}
+  :is(.hb-card.is-lit, .hb-card.is-new):not(#_)::before{content:none;animation:none;}
+  :is(.hb-card.is-new, .hb-csec.is-lit, .cal-prop.is-lit):not(#_){animation:none;box-shadow:none;}
+  .rl-np-note.is-lit:not(#_){background:transparent;}
   @keyframes hatiLand{0%,100%{outline-offset:2px;outline-color:var(--accent-ink);}
     50%{outline-offset:6px;outline-color:color-mix(in srgb,var(--accent-ink) 30%,transparent);}}
-  @media (prefers-reduced-motion: reduce){ .is-landed:not(#_), .rl-glow:not(#_){animation:none;} }
+  @media (prefers-reduced-motion: reduce){ .rl-glow:not(#_){animation:none;} }
   .sa-card-h{display:flex;align-items:center;gap:var(--s-2);padding:11px 15px;border-bottom:1px solid var(--st-amber-line);}
   .sa-card-t{font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text);}
   .sa-card-when{margin-left:auto;font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;}
@@ -15904,6 +15947,73 @@
   .st-cr #st-jb-feed{background:var(--color-surface)}
   .st-cr #st-jb-form{box-sizing:border-box;min-height:var(--jb-foot);padding:7px var(--jb-g) 8px}
 
+  /* A CARD'S BUTTONS STAND CLEAR OF ITS WORDS (owner, 21 Oct 2026: "too close
+     to the sentences"): one 16px step, the Brief's own measure, wherever a
+     sentence is followed by a card's buttons */
+  .ca-card > .ca-foot + .ca-acts, .ca-card > .ca-why + .ca-acts{margin-top:16px}
+  /* ==== ONE JAMBO CONVERSATION EVERYWHERE (owner, 21 Oct 2026) ====
+     a turn said on another page names what it read, on every host, in the
+     side panel's own small grey line; popped out, the talk view says where */
+  .jb-read{font-size:var(--t-label);line-height:16px;color:var(--color-neutral-600);margin:4px 0 0}
+  .jb-read.is-ig{padding-left:36px}
+  .igd-popped{margin:0;font-size:var(--t-meta);color:var(--color-neutral-600)}
+  /* ==== THE REPORT, SIMPLIFIED (owner, 21 Oct 2026; "Three quieter surfaces", tab 3) ====
+     the head: the title over "party · role · ref"; then two by two —
+     Needs you | The deal, Key terms | What Jambo read — split by hairlines */
+  .bs-head .bs-tt{display:flex;flex-direction:column;min-width:0;flex:0 1 auto;gap:1px}
+  .bs-head .bs-tt .hb-ct{font-family:var(--font-title);font-weight:var(--w-title-serif, 500);font-size:20px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bs-head .bs-tt .bs-ref{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bs-rep{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);border-top:1px solid rgba(var(--hb-ln),.14)}
+  .bs-rep > .bs-sec{border-top:0}
+  .bs-rep > .bs-sec:nth-child(n+3){border-top:1px solid rgba(var(--hb-ln),.14)}
+  .bs-rep > .bs-sec:nth-child(odd){border-right:1px solid rgba(var(--hb-ln),.14)}
+  .bs-rep .bs-sec-h{margin-bottom:8px}
+  .bs-nd{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;min-height:44px;padding:4px 0;border-top:1px solid rgba(var(--hb-ln),.08)}
+  .bs-nd:first-of-type{border-top:0}
+  .bs-nd-t{min-width:0;color:var(--hb-ink)}
+  .bs-nd-t small{display:block;font-size:var(--t-meta);color:var(--hb-mute)}
+  .bs-nd .bs-go{white-space:nowrap}
+  .bs-deal{display:flex;flex-direction:column}
+  .bs-facts{display:flex;flex-wrap:wrap;gap:8px 32px}
+  .bs-f{display:flex;flex-direction:column;min-width:0}
+  .bs-f small{font-size:var(--t-meta);color:var(--hb-mute)}
+  .bs-f b{font-weight:var(--w-label);white-space:nowrap;color:var(--hb-ink)}
+  .bs-f span{font-size:var(--t-meta);color:var(--hb-mute);white-space:nowrap}
+  .bs-f span.is-amber{color:var(--st-amber-fg)}
+  .bs-deal .bs-line{flex:1 0 auto}
+  .bs-line{position:relative;height:72px;margin:12px 0 0;align-self:stretch}
+  .bs-line-base{position:absolute;left:0;right:0;top:36px;border-top:1px solid rgba(var(--hb-ln),.3)}
+  .bs-mk{position:absolute;top:0;height:72px;display:flex;flex-direction:column;align-items:center;transform:translateX(-50%);font-size:var(--t-meta);color:var(--hb-mute);white-space:nowrap}
+  .bs-mk em{font-style:normal;height:22px;display:flex;align-items:center;order:0}
+  .bs-mk i{width:9px;height:9px;border-radius:50%;background:var(--hb-ink);margin:auto 0;order:1}
+  .bs-mk::after{content:"";height:22px;order:2}
+  .bs-mk.is-below em{order:2}
+  .bs-mk.is-below::after{order:0}
+  .bs-mk.is-notice{color:var(--st-amber-fg)}
+  .bs-mk.is-notice i{background:var(--st-amber-dot)}
+  .bs-mk.is-start{transform:translateX(-4.5px);align-items:flex-start}
+  .bs-mk.is-end{transform:translateX(calc(-100% + 4.5px));align-items:flex-end}
+  .bs-terms .bs-dl dd.is-none{color:var(--hb-mute)}
+  .bs-terms > .hb-link{margin-top:8px;padding-left:0}
+  .bs-rep > .bs-jb{background:transparent}
+  .bs-rep .bs-brief{margin:0 0 8px;color:var(--hb-ink-2);max-width:72ch}
+  .bs-counts{margin:0 0 8px;display:flex;flex-wrap:wrap;gap:4px 12px;color:var(--hb-ink)}
+  .bs-counts i{font-style:normal;color:var(--hb-mute)}
+  .bs-jb-foot{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px}
+  .bs-jb-foot .hb-link{padding-left:0}
+  @container bsstrips (max-width: 720px){
+    .bs-rep{grid-template-columns:minmax(0,1fr)}
+    .bs-rep > .bs-sec:nth-child(odd){border-right:0}
+    .bs-rep > .bs-sec:nth-child(n+2){border-top:1px solid rgba(var(--hb-ln),.14)}
+  }
+  /* ==== WHAT JAMBO READ, FOUR EVEN ROWS (owner, 21 Oct 2026) ====
+     a figure column, the name, one door; one line and one height a row,
+     the doors in one straight column; the day on its own line */
+  #app-shell .ds-read .ds-read-when{display:block;margin:-4px 0 8px;white-space:normal}
+  #app-shell .pd-glance .ds-row.ds-rr{display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;column-gap:12px;min-height:40px}
+  #app-shell .pd-glance .ds-row.ds-rr>.ds-fig{text-align:right;font-variant-numeric:tabular-nums}
+  #app-shell .pd-glance .ds-row.ds-rr>.ds-nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #app-shell .pd-glance .ds-row.ds-rr>.ds-nm>small{display:inline;font-size:inherit;color:var(--color-neutral-600)}
   /* ==== HISTORY, THE SAP WAY (owner picked it by name, 21 Oct 2026; reverses "Two sides", 17 Oct) ====
      The serif "History" and its facts, Show the wording and ⋯ on the right; one band of the search and
      the five filters as labelled boxes; then ONE TABLE — Time 64 · Who 200 · Side 80 · What happened ·
@@ -16576,6 +16686,7 @@
       <div class="ai-head-name">Jambo</div>
       <div id="ai-brain-sub" class="text-[11px] flex items-center gap-1.5" style="color:var(--color-neutral-600);"><span class="h-1.5 w-1.5 rounded-full live-dot" style="background:var(--st-green-dot);"></span><span data-i18n="ai_searching_live">Searching your live contract data</span></div>
     </div>
+    <button id="ai-dock-home" title="Back to the right edge" data-i18n-title="ai_dock_home" aria-label="Back to the right edge" class="h-8 w-8 grid place-items-center rounded transition ai-head-btn" style="color:var(--color-neutral-600);"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg></button>
     <!-- POP OUT (owner, 21 Oct 2026): Jambo in a window of his own that stays on top of Word (ai.js aiPopOut); drawn only on a computer with a mouse (aiPopMay) -->
     <button id="ai-popout" type="button" hidden title="Pop out — keep Jambo on top of other windows" data-i18n-title="ai_pop_out_tip" aria-label="Pop out" data-i18n-aria="ai_pop_out" class="h-8 w-8 grid place-items-center rounded transition ai-head-btn" style="color:var(--color-neutral-600);"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 2.5h4v4"/><path d="M13.5 2.5 8 8"/><path d="M12 9.5v3a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3"/></svg></button>
     <button id="ai-expand" title="Expand the panel" data-i18n-title="ai_expand_panel" class="h-8 w-8 grid place-items-center rounded transition ai-head-btn" style="color:var(--color-neutral-600);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5"/><path d="M18 17l-5-5 5-5"/></svg></button>

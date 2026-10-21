@@ -65,7 +65,7 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
 
     /* 1 bring up */
     await page.evaluate(() => hbStripBring('MK-0377'));
-    const up = await until(() => !!document.querySelector('#bs-strip-MK-0377 .bs-chart') && window.bsCardId && bsCardId() === 'MK-0377');
+    const up = await until(() => !!document.querySelector('#bs-strip-MK-0377 .bs-deal') && window.bsCardId && bsCardId() === 'MK-0377');
     const P = await page.evaluate(() => { const el = document.getElementById('bs-strip-MK-0377'), t = el && el.querySelector('.bs-head .hb-ct');
       return { key: deskKeyNow(), furniture: !!document.querySelector('#hb-board .hb-note, #hb-board .hb-prep, #hb-board .hb-grid'), others: document.querySelectorAll('#bs-strips > .bs-strip').length,
         x: !!(el && el.querySelector('[data-bs-x]')), present: (() => { const p = document.getElementById('hb-present'); return !p || p.hidden; })(), desk: !!(el && el.classList.contains('bs-on-desk')), title: t ? parseFloat(getComputedStyle(t).fontSize) : 0,
@@ -111,17 +111,16 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     const gone = await until(() => !hbS().strips.some(x => x.id === 'MK-0378') && !String(localStorage.getItem(DK_KEY) || '').includes('"c:MK-0378"') && !bsCardId());
     check('3b Let it go takes the strip and its tab', !!gone);
 
-    /* 4 the life line */
+    /* 4 the deal (RE-POINTED 21 Oct 2026, the report simplified: four facts on one thin line, Today · Notice by · Ends;
+       the renewal and the amendment are said by the facts, the line draws no marks of its own) */
     await page.evaluate(() => hbStripBring('MK-0377'));
-    await until(() => !!document.querySelector('#bs-strip-MK-0377 .bs-chart'));
+    await until(() => !!document.querySelector('#bs-strip-MK-0377 .bs-deal'));
     const L = await page.evaluate(() => { const el = document.getElementById('bs-strip-MK-0377');
-      const amd = [...el.querySelectorAll('.bs-chart .bs-amd')];
-      return { legend: el.querySelector('.bs-lg').textContent, renew: !!el.querySelector('.bs-chart .bs-seg-renew'), amd: amd.length, tip: amd[0] ? amd[0].textContent : '',
-        lab: [...el.querySelectorAll('.bs-chart .bs-lab')].map(t => t.textContent), cap: el.querySelector('.bs-cap').textContent,
-        want: fmtMoneyShortIn(7100000, 'SEK') }; });
-    check('4a the renewal the line draws is named: "If it renews"', L.renew && /If it renews/.test(L.legend), L.legend);
-    check('4b the signed amendment is a mark on the line, named, its hover saying what it set', L.amd === 1 && L.lab.includes('Amendment No. 1') && /MK-0377-A1/.test(L.tip) && L.tip.includes(L.want), JSON.stringify(L));
-    check('4c the sentence under the line says so', /Amendment No\. 1 took effect on .* and set the value to /.test(L.cap) && L.cap.includes(L.want), L.cap);
+      const f = k => ((el.querySelector(`[data-bs-f="${k}"]`) || {}).textContent || '').replace(/\s+/g, ' ').trim();
+      return { value: f('value'), renewal: f('renewal'), marks: [...el.querySelectorAll('.bs-line .bs-mk em')].map(x => x.textContent), want: fmtMoneyShortIn(7100000, 'SEK') }; });
+    check('4a the renewal is said as a fact of the deal', /Renewal/.test(L.renewal) && L.renewal.length > 'Renewal'.length, L.renewal);
+    check('4b the signed amendment is named under Value, with the value it set', L.value.includes(L.want) && /As amended by MK-0377-A1/.test(L.value), JSON.stringify(L));
+    check('4c the line carries its dates: Today and Ends', L.marks.some(m => /^Today/.test(m)) && L.marks.some(m => /^Ends/.test(m)), JSON.stringify(L.marks));
 
     /* 5 Details reads the value as amended */
     await page.evaluate(() => bsStripPage('MK-0377', 'details'));
@@ -142,10 +141,10 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     /* 7 the three screens, and the phone */
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht });
-      await until(() => !!document.querySelector('#bs-strip-MK-0377 .bs-chart'));
+      await until(() => !!document.querySelector('#bs-strip-MK-0377 .bs-deal'));
       await page.waitForTimeout(400);
       const F = await page.evaluate(() => { const el = document.getElementById('bs-strip-MK-0377'); const r = el.getBoundingClientRect(), head = el.querySelector('.bs-head').getBoundingClientRect();
-        return { side: document.documentElement.scrollWidth <= window.innerWidth + 1 && el.scrollWidth <= el.clientWidth + 1, headIn: head.top >= 0 && head.bottom <= window.innerHeight, kpis: !!el.querySelector('.bs-kpis') && el.querySelector('.bs-kpis').getBoundingClientRect().bottom <= window.innerHeight, w: Math.round(r.width) }; });
+        return { side: document.documentElement.scrollWidth <= window.innerWidth + 1 && el.scrollWidth <= el.clientWidth + 1, headIn: head.top >= 0 && head.bottom <= window.innerHeight, kpis: !!el.querySelector('.bs-facts') && el.querySelector('.bs-facts').getBoundingClientRect().bottom <= window.innerHeight, w: Math.round(r.width) }; });
       check(`7 ${w}×${ht}: nothing sideways; the head and the figures in view`, F.side && F.headIn && F.kpis, JSON.stringify(F));
       await shot(page, `contract-page-${w}x${ht}`);
     }

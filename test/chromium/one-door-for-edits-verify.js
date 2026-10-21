@@ -153,7 +153,8 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
         acts: rows.map(r => [...r.querySelectorAll('button')].map(b => b.textContent.trim()).join(' · ')),
         drafting: !!p.querySelector('[data-rk-target], .rk-draft, [data-rk-act="add"]') };
     });
-    check(!!list && list.acts.length && list.acts.every(a => a === 'Add a note · Discard · Edit · Why'), '1a each risk row offers Add a note · Discard · Edit, and Why', list && list.acts[0]);
+    /* RE-POINTED 21 Oct 2026 (Why first): the reason is open on landing, so its button reads Hide why */
+    check(!!list && list.acts.length && list.acts.every(a => a === 'Add a note · Discard · Edit · Hide why'), '1a each risk row offers Add a note · Discard · Edit, and Hide why', list && list.acts[0]);
     check(!!list && !list.drafting, '1b no wording is drafted in the card');
     check(!!list && /· 3$/.test(list.head) && !list.keys.includes('s:t-pay'), '1c the covered Payment risk is not listed or counted', list && list.head + ' ' + list.keys.join(','));
     const tile = await page.evaluate(id => riskOpenOf(getContract(id)).length, ID);
@@ -188,19 +189,19 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
         why: rows.map(r => { const b = r.querySelector('[data-rk-act="why"]'); return b ? b.textContent.trim() : ''; }),
         whyRight: rows.every(r => { const b = r.querySelector('[data-rk-act="why"]'), sv = r.querySelector('.rk-sev'); return b && sv && Math.abs(b.getBoundingClientRect().right - sv.getBoundingClientRect().right) < 14; }) };
     });
-    check(even.hs.length > 1 && new Set(even.hs).size === 1 && even.oneLine, '1i every risk card is one size, the title on one line', JSON.stringify(even.hs));
-    check(even.why.every(w => w === 'Why') && even.whyRight, '1j "Why" sits at the bottom right, under the severity', JSON.stringify(even.why));
-    await press(page, '#rl-risks [data-rk-key="s:t-liab"] [data-rk-act="why"]');
+    /* RE-POINTED 21 Oct 2026 (Why first): the reasons stand open, so a card is as tall as its reason; the title stays one line */
+    check(even.hs.length > 1 && even.oneLine, '1i every risk card\'s title on one line', JSON.stringify(even.hs));
+    check(even.why.every(w => w === 'Hide why') && even.whyRight, '1j "Hide why" sits at the bottom right, under the reason', JSON.stringify(even.why));
     const opened = await until(page, () => { const w = document.querySelector('#rl-risks [data-rk-key="s:t-liab"] .rk-why');
       const b = document.querySelector('#rl-risks [data-rk-key="s:t-liab"] [data-rk-act="why"]');
       return w ? { text: w.textContent.replace(/\s+/g, ' ').trim(), exp: b && b.getAttribute('aria-expanded') } : null; });
     /* RE-POINTED 6 Oct 2026: the card wears the short title, so the opened
        Why leads with the rule's whole title, then the plain reason */
-    check(!!opened && /^Liability cap may be too low\s*Why it matters/i.test(opened.text) && /limit what they owe you/.test(opened.text) && !/A data breach could cost/.test(opened.text) && opened.exp === 'true',
-      '1k "Why" opens the plain-English reason for the rule, not the stored wording', opened && opened.text);
+    check(!!opened && /^Liability cap may be too low/i.test(opened.text) && /limit what they owe you/.test(opened.text) && !/A data breach could cost/.test(opened.text) && opened.exp === 'true',
+      '1k the plain-English reason for the rule stands open on landing, not the stored wording', opened && opened.text);
     await shot('1b-why-open.png');
     await press(page, '#rl-risks [data-rk-key="s:t-liab"] [data-rk-act="why"]');
-    check(!!(await until(page, () => !document.querySelector('#rl-risks [data-rk-key="s:t-liab"] .rk-why') ? true : null)), '1l pressing it again folds the card');
+    check(!!(await until(page, () => !document.querySelector('#rl-risks [data-rk-key="s:t-liab"] .rk-why') ? true : null)), '1l pressing Hide why folds the card');
     /* NO DOTTED LINE AROUND THE CLAUSE (Young, 5 Oct 2026) */
     await page.evaluate(id => { const c = getContract(id); const ch = (c.changes || [])[0];
       if (ch && window.rlLinkFocus) rlLinkFocus(c, ch.id, 'card');
@@ -343,7 +344,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
     await shot('6-last-risk-done.png');
     await press(page, '[data-ce-rk="back"]');
     check(!!(await until(page, () => !document.getElementById('clause-editor') && !!document.getElementById('rl-risks'))), '6d Back to Redlines closes the window');
-    check(await page.evaluate(() => !document.querySelector('#rl-risks [data-rk-target], #rl-risks .rk-row.is-open')), '6f the card drafts nothing itself');
+    check(await page.evaluate(() => !document.querySelector('#rl-risks [data-rk-target]')), '6f the card drafts nothing itself');   /* .is-open is the reason standing open since Why first, 21 Oct 2026 */
 
     /* ============ 7. THE THREAD (was Risk View) ============ */
     /* RE-POINTED 5 Oct 2026 (the Thread): Risk View is gone; a clause's marks

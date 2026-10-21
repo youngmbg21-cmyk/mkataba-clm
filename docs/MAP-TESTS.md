@@ -59,6 +59,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f193–f199, f331, f335, new-person-grants verify.
 
 ## THE SHELL — RAIL, BAR, PANELS
+- ONE JAMBO CONVERSATION EVERYWHERE (21 Oct 2026): `test/chromium/jambo-one-conversation-verify.js` (red at cb1aa4ba: Home, Settings and the side panel kept three conversations); f840 2c re-pointed (another contract keeps the conversation). No light on arrival: f445 (5), `land-on-it-verify.js` 1b/2b/3b/5c re-pointed.
 - the-brief-and-sap-history verify (Jambo's panel as "The Brief" and History "the SAP way", 21 Oct 2026: 25 checks, 19 red at 0392ded7; its controls are the paper strip's line, every entry drawn, the three screens, no page errors); f804, f830, f394, f840 (the 384 width and the named foot).
 - f842 (every new page is on the Guide)
 - held-contract-asks verify.
@@ -70,13 +71,15 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - jambo-moves-and-opens verify.
 - f841, f842, guide-panel verify.
 - f96, f187, f238, f240, f251, f264, f284, f449, f543, f672, f679, f706, f735–f737, home-and-recent, jambo-everywhere, answer-where-you-stand, show-it-here-first, jambo-window-follows-the-ask, alerts-and-activity, home-page, pages-read-alike, language-switch-stays, jambo-pill-and-window verify.
-- jambo-slides-in-verify (the side panel, the ✦ ask bar, plain only, conversation across pages, here chip, paste, ONE DOOR, Pop out with PiP stubbed and absent, touch; 22 red at d7a320c2); f107 (plain only), f88, f97, f631 re-pointed; jambo-pill-and-window 4–7, every-jambo-box 1b, jambos-list-panel 10h, phone (384) re-pointed.
+- jambo-chat-window-verify (the ✦ opens the floating window on Home, Approvals and Settings, typed words answered in it, the one conversation shown there and Home pointing to it, the edge tab still slides the side panel in, three screens; 12 red at db763d0); jambo-slides-in 3, 4, 10, jambo-pill-and-window 4a and 5d, jambos-list-panel 10h, every-jambo-box 1b re-pointed to the window; f735 (a booking still goes to the Calendar).
+- jambo-slides-in-verify (the side panel, the ✦ ask bar (now the window), plain only, conversation across pages, here chip, paste, ONE DOOR, Pop out with PiP stubbed and absent, touch; 22 red at d7a320c2); f107 (plain only), f88, f97, f631 re-pointed; jambo-pill-and-window 4–7, every-jambo-box 1b, jambos-list-panel 10h, phone (384) re-pointed.
 - jambo-watches-and-presses-verify (here names the page, Show me › lands and lights, the press sends nothing, a watch card stores only on Start watching, Your watches pause/delete; 8 red at e332b81b); f860 (watches: the wall, only mine, CRUD, the sweep fires once).
 
 ## THE PHONE
 - phone-verify, f630, f631, phone-fits-verify.
 
 ## HOME — THE BOARD AND THE MAP (js/views/homeboard.js)
+- What Jambo read as four rows, no grey line under an owed fact (21 Oct 2026): f748 2b re-pointed; `owed-first-verify.js`, `nda-tail-verify.js`. The paper's line without the party: f708 1a, `paper-line-verify.js` 1a, `the-road-as-drawn-verify.js` 12d re-pointed. `piles-as-drawn-verify.js` 3b (piles unboxed). List before Wall: f687.
 - form-nextup-and-draft-chip verify (a card word asked again lands on its card)
 - f745, f746, board-as-drawn verify.
 - f747, f748, paper-panel-as-drawn verify.
@@ -131,6 +134,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f354, f355, f359, f369, signers-and-party-verify.
 
 ## THE LIFELINE STRIP, AND THE ROOM RETIRED (js/views/boardstrip.js; step 8)
+- THE REPORT SIMPLIFIED (21 Oct 2026): `board-strip-verify.js` sections 2, 8a, 9, 10g–10j re-pointed (head, Needs you, the deal, the line, key terms, what Jambo read once). Its 6a click is red on main too.
 - f91, f148, f170, f184, f198, f241, f273, f278, f301, f335, f380, f442, f698, f709, f741, f742, f744; board-strip, agreement-family, every-door-lands-on-home, edit-keeps-the-card, details-owes-overview-edits, keeps-your-page, room-head-fold, history-timeline, contract-page, nda-tail verify.
 
 ## THE DETAILS TAB — THE ONE PLACE A CONTRACT IS FILLED IN
@@ -217,6 +221,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f133, f222, f272, f279, f295, f296, f314, f318, f372, f545, prepare-redlines, standards-page verify.
 
 ## RISKS TO LOOK AT — THE RISK SCAN LIVES IN THE REDLINES CARD (js/risks.js)
+- WHY FIRST (21 Oct 2026): f506 (C) and f522 (6) re-pointed; `risk-card-titles-verify.js`, `one-door-for-edits-verify.js`.
 - f273, f364, f484, f503, f506, f508–f510, f522, f537, risks-in-the-redlines-card, one-door-for-edits, a-risk-finds-its-clause, only-what-needs-wording, risk-card-titles verify.
 
 ## THE AI'S READING RULES

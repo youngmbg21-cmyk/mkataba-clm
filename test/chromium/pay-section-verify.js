@@ -62,7 +62,8 @@ async function login(browser, email, pass, vp) {
 }
 const bring = async (page, id) => {
   await page.evaluate(x => hbStripBring(x, 'ov'), id);
-  return until(page, x => !!document.querySelector(`#bs-strip-${x} .bs-kpis`), id);
+  /* RE-POINTED 21 Oct 2026 (the report simplified): the facts row of The deal */
+  return until(page, x => !!document.querySelector(`#bs-strip-${x} .bs-facts`), id);
 };
 const stripText = (page, id, sel) => page.evaluate(([x, s]) => { const el = document.querySelector(`#bs-strip-${x} ${s}`); return el ? el.innerText : null; }, [id, sel]);
 const serverPay = page => page.evaluate(async () => { const r = await fetch('/api/contracts/MK-E1'); const j = await r.json(); return { value: j.value, pay: j.pay || null }; });
@@ -86,8 +87,8 @@ const untilServer = async (page, ok, ms = 8000) => {
     /* ============ 1. THE JOB'S TILES AND THE PAY TABLE ============ */
     const up = await bring(P, 'MK-E1');
     check(up, '1a the employment contract comes up on the Board');
-    const tiles = await P.evaluate(() => [...document.querySelectorAll('#bs-strip-MK-E1 .bs-kpi')].map(x => [x.getAttribute('data-bs-kpi'), x.querySelector('b').innerText, (x.querySelector('span') || {}).innerText || '']));
-    check(JSON.stringify(tiles.map(t => t[0])) === JSON.stringify(['role', 'starts', 'probation', 'noticeLen', 'move']), '1b five tiles: Role · Starts · Probation ends · Notice · Whose move', tiles.map(t => t[0]).join(','));
+    const tiles = await P.evaluate(() => [...document.querySelectorAll('#bs-strip-MK-E1 .bs-f[data-bs-kpi]')].map(x => [x.getAttribute('data-bs-kpi'), x.querySelector('b').innerText, (x.querySelector('span') || {}).innerText || '']));
+    check(JSON.stringify(tiles.map(t => t[0])) === JSON.stringify(['role', 'starts', 'probation', 'noticeLen']), '1b four facts: Role · Starts · Probation ends · Notice (whose move is a Needs you row since 21 Oct 2026)', tiles.map(t => t[0]).join(','));
     const t = Object.fromEntries(tiles.map(x => [x[0], x]));
     check(t.role && t.role[1] === 'Senior Accountant', '1c Role reads the job title, whole', t.role && t.role[1]);
     check(t.starts && t.starts[1] === '1 Oct 2026' && /No end date/.test(t.starts[2]), '1d Starts: the start day, and no end date said', t.starts && t.starts.join(' / '));
@@ -106,9 +107,9 @@ const untilServer = async (page, ok, ms = 8000) => {
     const total = await P.evaluate(() => hbBookData('all', { whole: true }).figs.value.v);
     check(total === 48000000 + 36000000 + 85000000 + 78000000, '2a the Board\'s total is the deals alone', String(total));
     await bring(P, 'MK-A2');
-    const deal = await P.evaluate(() => ({ kpis: [...document.querySelectorAll('#bs-strip-MK-A2 .bs-kpi')].map(x => x.getAttribute('data-bs-kpi')).join(','),
-      life: !!document.querySelector('#bs-strip-MK-A2 .bs-life'), pay: !!document.querySelector('#bs-strip-MK-A2 .bs-pay') }));
-    check(deal.kpis === 'value,term,next,notice,move' && deal.life && !deal.pay, '2b a deal\'s panel is unchanged: Value first, its life line, no Pay', JSON.stringify(deal));
+    const deal = await P.evaluate(() => ({ kpis: [...document.querySelectorAll('#bs-strip-MK-A2 .bs-f[data-bs-kpi]')].map(x => x.getAttribute('data-bs-kpi')).join(','),
+      life: !!document.querySelector('#bs-strip-MK-A2 .bs-line'), pay: !!document.querySelector('#bs-strip-MK-A2 .bs-pay') }));
+    check(deal.kpis === 'value,notice' && deal.life && !deal.pay, '2b a deal\'s panel: Value first, its line, no Pay (the report simplified, 21 Oct 2026)', JSON.stringify(deal));
     await P.evaluate(() => { setView('register'); regPlaceSet({ show: 'list' }); regRepaint(); });
     const listed = await until(P, () => [...document.querySelectorAll('tr')].some(r => /MK-E1/.test(r.innerText)), null, 10000);
     const row = await P.evaluate(() => { const r = [...document.querySelectorAll('tr')].find(x => /MK-E1/.test(x.innerText)); return r ? r.innerText : ''; });
@@ -201,7 +202,7 @@ const untilServer = async (page, ok, ms = 8000) => {
     await P.evaluate(() => { if (window.langSet) langSet('sv'); });
     await bring(P, 'MK-E1');
     const sv = await stripText(P, 'MK-E1', '.bs-pay');
-    const svTiles = await stripText(P, 'MK-E1', '.bs-kpis');
+    const svTiles = await stripText(P, 'MK-E1', '.bs-facts');
     check(/Lön/.test(sv || '') && /Grundlön/.test(sv || '') && /Roll/.test(svTiles || '') && /Uppsägningstid/.test(svTiles || ''), '6a in Swedish: Lön, Grundlön, Roll, Uppsägningstid');
     await P.evaluate(() => { if (window.langSet) langSet('en'); });
     const phone = await P.evaluate(() => (typeof mTermsHtml === 'function') ? mTermsHtml(getContract('MK-E1')).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ') : '');

@@ -92,7 +92,7 @@ const ND5 = nda('ND-5', 'Mutual NDA — Retail Pilot', 'Naivas Supermarkets', 'U
       let painted = false;
       if (tail){ const r = tail.getBoundingClientRect(); const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); painted = at === tail; }
       return { tile: t('[data-bs-kpi="value"]'), mark: t('[data-bs-kpi="value"] .bs-nda-mark'), markBtn: !!s.querySelector('[data-bs-kpi="value"] button[data-bs-nda-edit]'),
-        idline: t('.bs-idline'), icon: !!s.querySelector('.bs-idline .bs-nda-ic'), lg: t('.bs-nda .bs-lg'), cap: t('.bs-nda .bs-cap'),
+        idline: t('[data-bs-f="dir"]'), icon: !!s.querySelector('[data-bs-f="dir"] .bs-nda-ic'),   /* RE-POINTED 21 Oct 2026 (the report simplified): who keeps it secret is a fact of The deal */ lg: t('.bs-nda .bs-lg'), cap: t('.bs-nda .bs-cap'),
         svg: [...s.querySelectorAll('.bs-nda .bs-chart text')].map(x => x.textContent).join(' | '),
         tail: !!tail, tailFill: tail ? tail.getAttribute('fill') : '', tailOpen: !!(tail && tail.classList.contains('is-open')), painted,
         terms: t('.bs-dl'), next: t('[data-bs-kpi="next"]') };
@@ -179,8 +179,9 @@ const ND5 = nda('ND-5', 'Mutual NDA — Retail Pilot', 'Naivas Supermarkets', 'U
     /* RE-POINTED 20 Oct 2026 (the Legora way): owed, the facts are the paper's grid rows */
     await press(P, '#bs-strip-ND-4 #ov-ess [data-ov-nda-edit]');
     check(await until(P, () => !!document.querySelector('#pd-og[data-pd-og-for="ND-4"] tr[data-pd-og-row="ndaDir"]') && hbS().face === 'paper'), '4d the cell\'s door opens the paper, the facts on the grid\'s rows');
-    const unsaid = await P.evaluate(() => (document.querySelector('#pd-og tr[data-pd-og-row="ndaEnds"] .pd-og-src') || {}).innerText || '');
-    check(/not in the wording/.test(unsaid), '4e the grid says the wording does not say', unsaid);
+    /* RE-POINTED 21 Oct 2026 (owner: the grey "not in the wording" line was noise): the row's amber box says it, and no grey line under the fact */
+    const unsaid = await P.evaluate(() => { const r = document.querySelector('#pd-og tr[data-pd-og-row="ndaEnds"]'); return r ? { amb: r.classList.contains('is-amb'), src: !!r.querySelector('.pd-og-src.is-none') } : null; });
+    check(!!unsaid && unsaid.amb && !unsaid.src, '4e the grid row is amber where the wording does not say, with no grey line under it', JSON.stringify(unsaid));
 
     /* ============ 5. A PRIVATE FOLDER'S NDA ============ */
     check(await bring('ND-5'), '5 the private NDA comes up');

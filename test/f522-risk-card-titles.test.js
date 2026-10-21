@@ -145,7 +145,7 @@ describe('(6) the hover and the opened Why print the sentence', () => {
     const c = briefContract();
     const it = w.riskItemsOf(c).find(x => x.src === 'brief');
     let html = w._rkRowHtml ? w._rkRowHtml(c, it) : vm.runInContext('_rkRowHtml', w)(c, it);
-    assert.ok(html.includes('title="' + SENT.replace(/'/g, '&#39;') + '"') || html.includes('title="' + SENT + '"'), 'the hover is the sentence');
+    assert.ok(html.includes('title="' + SENT.replace(/'/g, '&#39;')) || html.includes('title="' + SENT), 'the hover is the sentence (its source word after it since Why first, 21 Oct 2026)');
     vm.runInContext(`_rk.whyOpen[${JSON.stringify(it.key)}] = true`, w);
     html = vm.runInContext('_rkRowHtml', w)(c, it);
     assert.match(html, /<span class="rk-why-full">The contract can be ended/);

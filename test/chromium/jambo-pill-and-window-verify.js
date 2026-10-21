@@ -76,13 +76,15 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await page.unroute('**/api/ai/breakdown');
 
     /* ---- 4 on Home, the bar's door ----
-       RE-POINTED 21 Oct 2026 (owner: "when i click on jambo at the top of the page in the top bar,
-       the jambo chat box bar should be able to appear in any window"): the ✦ drops the ask bar on
-       every page, Home included; no window appears and Home's own Jambo stays where it is */
+       RE-POINTED AGAIN 21 Oct 2026 (owner picked "The old chat window": "when i type in it, it
+       just jumps to the jambo in the side panel. It is not the old chatbot i had"): the ✦ opens
+       the floating chat window on every page, Home included, the cursor in its box; no one-line
+       bar; Home's own Jambo stays where it is */
     await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'board');
     await page.click('#cmd-ai');
-    const home = await page.evaluate(() => ({ open: document.getElementById('ai-panel').classList.contains('open'), bar: !!document.getElementById('jb-bar'), focus: document.activeElement && document.activeElement.id }));
-    ok('4a on Home the window does not appear; the ✦ drops the ask bar, the cursor in it', !home.open && home.bar && home.focus === 'jb-bar-q', JSON.stringify(home));
+    const home = await page.evaluate(() => { const p = document.getElementById('ai-panel');
+      return { open: p.classList.contains('open'), floating: p.classList.contains('floating'), aside: p.classList.contains('ai-stepaside'), bar: !!document.getElementById('jb-bar'), focus: document.activeElement && document.activeElement.id }; });
+    ok('4a on Home the ✦ opens the floating chat window, the cursor in its box (no ask bar)', home.open && home.floating && !home.aside && !home.bar && home.focus === 'ai-input', JSON.stringify(home));
     await page.keyboard.press('Escape');
 
     /* ---- 5 the window is a side panel ----
@@ -104,8 +106,11 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await page.mouse.move(hb.x + 140, hb.y + 20); await page.mouse.down(); await page.mouse.move(hb.x - 400, hb.y + 100, { steps: 8 }); await page.mouse.up();
     let r = await (await page.$('#ai-panel')).boundingBox();
     ok('5c dragging the head moves nothing: it is a panel at the edge, not a window', Math.round(r.x + r.width) === 1500 && Math.round(r.width) === 384 && Math.round(r.y) === 48, `${Math.round(r.x)},${Math.round(r.y)} ${Math.round(r.width)}`);
-    const handles = await page.evaluate(() => ({ rz: document.querySelectorAll('#ai-panel [data-ai-rz]').length, dock: !!document.getElementById('ai-dock-home') }));
-    ok('5d no resize handles and no dock button', !handles.rz && !handles.dock, JSON.stringify(handles));
+    /* RE-POINTED 21 Oct 2026 ("The old chat window"): the ✦'s window carries the handles and the
+       dock button again (the same #ai-panel), so the side panel asks that NONE IS DRAWN in it */
+    const handles = await page.evaluate(() => ({ rz: [...document.querySelectorAll('#ai-panel [data-ai-rz]')].filter(e => e.getClientRects().length).length,
+      dock: (() => { const d = document.getElementById('ai-dock-home'); return !!(d && d.getClientRects().length); })() }));
+    ok('5d the side panel draws no resize handles and no dock button', !handles.rz && !handles.dock, JSON.stringify(handles));
     await page.screenshot({ path: path.join(OUT, '5-side-panel.png') });
 
     /* ---- 6 it steps aside where Jambo is on the page, and comes back ---- */

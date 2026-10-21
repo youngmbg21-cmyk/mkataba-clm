@@ -433,7 +433,7 @@ function stWireDrawerOnce(){
     const ansA=t.closest('[data-st-ask-answer]');
     if(ansA){ stAskAnswer(ansA.getAttribute('data-st-ask-answer'), ansA.getAttribute('data-st-ask-to')); return; }
     const askf=t.closest('[data-st-jb-askfor]');
-    if(askf){ const qt=_stJbLog.find(x=>String(x.id)===askf.getAttribute('data-st-jb-q-id')); stAskFrom(askf.getAttribute('data-st-jb-askfor'), qt?qt.q:''); return; }
+    if(askf){ const qt=stJbLog().find(x=>String(x.id)===askf.getAttribute('data-st-jb-q-id')); stAskFrom(askf.getAttribute('data-st-jb-askfor'), qt?qt.q:''); return; }
     const why=t.closest('[data-st-jb-why]');
     if(why){ stJbWhyRun(why.getAttribute('data-st-jb-why')); return; }
     const drop=t.closest('[data-st-jb-drop]');
@@ -2872,8 +2872,21 @@ function stMenuHtml(){ return stRowsHtml(); }
    own settings and nothing about colleagues or the company's rules.
    The conversation is this sitting's, in memory, and holds the QUESTIONS:
    each answer is read again whenever it is drawn, so it is never stale. */
-let _stJbLog=[], _stJbSeq=0;
+let _stJbSeq=0;
 const ST_JB_MAX=12;
+/* ONE JAMBO CONVERSATION EVERYWHERE (owner, 21 Oct 2026): Settings' turns are
+   kept in the one conversation (ai.history) as {role:'st', st}; the last
+   ST_JB_MAX of them are kept, older ones leave it (a cap is a fact: it was
+   the panel's own rule before) */
+let _stJbLocal=[];
+function stJbConvo(){ return (typeof jamboConvo==='function'&&window.ai&&Array.isArray(window.ai.history))?jamboConvo():_stJbLocal; }
+function stJbLog(){ return stJbConvo().filter(m=>m&&m.role==='st'&&m.st).map(m=>m.st); }
+function stJbPush(t){
+  const H=stJbConvo(); H.push({ role:'st', host:'st', st:t });
+  const mine=H.filter(m=>m&&m.role==='st');
+  if(mine.length>ST_JB_MAX) mine.slice(0,mine.length-ST_JB_MAX).forEach(m=>{ const i=H.indexOf(m); if(i>=0) H.splice(i,1); });
+}
+function stJbForget(id){ const H=stJbConvo(); const i=H.findIndex(m=>m&&m.role==='st'&&m.st&&String(m.st.id)===String(id)); if(i>=0) H.splice(i,1); }
 /* Words that carry no meaning for finding, in both books' languages. */
 const ST_JB_STOP=new Set(('a an the and or of to for in on at by is are am be do does did can could may might must should would will i me my mine we our you your it its this that these those there here what which when where why how who whom whose about with from into please set make change show tell give get turn let see find open want need '+
   'och eller att för i på av till med om är vara jag mig min mitt mina vi vår vårt du din ditt dina den det de en ett som vad vilken vilka när var varför hur vem kan ska vill måste får göra gör ändra visa ge sätt slå öppna hitta').split(/\s+/));
@@ -3109,7 +3122,7 @@ const stAdminsSaid=()=>stNamesSaid(stUsers().filter(u=>u.role==='admin'));
    what stopped them. Nothing is sent until they press Ask an admin. */
 function stAskFrom(panel, words){
   const t={ id:++_stJbSeq, q:String(words||'').slice(0,200), force:{ say:'', cards:[{ k:'askadmin', panel }] } };
-  _stJbLog.push(t); if(_stJbLog.length>ST_JB_MAX) _stJbLog=_stJbLog.slice(-ST_JB_MAX);
+  stJbPush(t);
   _stSide='jambo';
   const feed=document.getElementById('st-jb-feed');
   if(feed && typeof state!=='undefined' && state.view==='team'){ stSideSet('jambo'); stJbTurnAdd(t); }
@@ -3146,7 +3159,7 @@ function stAskCardHtml(c, t){
     `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-st-ask-admin="${t.id}" data-st-ask-panel="${esc(c.panel)}">${esc(i18t('st_ask_go'))}</button><button type="button" class="ui-btn ui-btn-sm" data-st-jb-drop="${t.id}">${esc(i18t('st_jb_not_now'))}</button>`);
 }
 async function stAskSend(turnId, panel){
-  const t=_stJbLog.find(x=>String(x.id)===String(turnId)); if(!t) return;
+  const t=stJbLog().find(x=>String(x.id)===String(turnId)); if(!t) return;
   const why=String((document.getElementById('st-ask-why-'+turnId)||{}).value||'').trim();
   /* a question the reader wrote themselves (an ask begun from a door) */
   const wbox=document.getElementById('st-ask-what-'+turnId);
@@ -3266,7 +3279,7 @@ function stJbTurnRepaint(t){
   const d=document.createElement('div'); d.innerHTML=stJbTurnHtml(t); if(d.firstElementChild) el.replaceWith(d.firstElementChild);
 }
 async function stJbWhyRun(id){
-  const t=_stJbLog.find(x=>String(x.id)===String(id)); if(!t || (t.ai&&t.ai.state==='busy')) return;
+  const t=stJbLog().find(x=>String(x.id)===String(id)); if(!t || (t.ai&&t.ai.state==='busy')) return;
   t.ai={ state:'busy' }; stJbTurnRepaint(t);
   try{
     const r=await api('ai/settings-why','POST',{ q:t.q });
@@ -3302,10 +3315,10 @@ function stJbAsk(q){
      "an ask brings Jambo's words back where a stream was shown"): the panel
      turns to the conversation */
   const t={ id:++_stJbSeq, q };
-  _stJbLog.push(t); if(_stJbLog.length>ST_JB_MAX) _stJbLog=_stJbLog.slice(-ST_JB_MAX);
+  stJbPush(t);
   const feed=document.getElementById('st-jb-feed'); if(!feed) return;
   [...feed.querySelectorAll('[data-st-jb-turn]')].forEach(el=>{
-    if(!_stJbLog.some(x=>String(x.id)===el.getAttribute('data-st-jb-turn'))) el.remove(); });
+    if(!stJbLog().some(x=>String(x.id)===el.getAttribute('data-st-jb-turn'))) el.remove(); });
   stJbTurnAdd(t);
 }
 /* ---- JAMBO AS A TAB YOU FLIP TO, AND BACK — SETTINGS (owner, 19 Oct 2026:
@@ -3318,9 +3331,9 @@ function stJbAsk(q){
    page): another begins fresh (turns after _stTalk.from). */
 let _stTalk={ from:0 };
 function stTalkKey(){ const co=stIsAdmin()&&settingsTab()==='company'; return 'settings:'+(co?'company':'you')+':'+(co?(_stPage||''):''); }
-function stTalkLand(){ if(typeof jamboTalkLand==='function'&&jamboTalkLand(stTalkKey())){ _stTalk={ from:_stJbSeq }; return true; } return false; }
+function stTalkLand(){ if(typeof jamboTalkLand==='function'&&jamboTalkLand(stTalkKey())){ _stTalk={ from:0 }; return true; } return false; }
 function stTalkShows(){ return typeof jamboTalkShows==='function'&&jamboTalkShows(stTalkKey()); }
-function stTalkTurns(){ return _stJbLog.filter(t=>Number(t.id)>_stTalk.from); }
+function stTalkTurns(){ return stJbLog(); }
 /* the trail over the conversation and which of the two views is up */
 function stJbTalkPaint(){
   stTalkLand();
@@ -3349,13 +3362,15 @@ function stJbTurnAdd(t){
   const feed=document.getElementById('st-jb-feed'); if(!feed) return;
   if(typeof jamboTalkOpen==='function') jamboTalkOpen(stTalkKey(), feed);
   const T=stJbTalkWrap(feed);
-  if(t&&!T.querySelector(`[data-st-jb-turn="${t.id}"]`)) T.insertAdjacentHTML('beforeend', stJbTurnHtml(t));
+  stJbTalkRepaint(T);
   stJbTalkPaint();
   stJbLand(feed);
 }
 function stTalkReopen(){
   if(typeof jamboTalkOpen!=='function') return false;
-  jamboTalkOpen(stTalkKey(), document.getElementById('st-jb-feed'));
+  const feed0=document.getElementById('st-jb-feed');
+  if(feed0) stJbTalkRepaint(stJbTalkWrap(feed0));
+  jamboTalkOpen(stTalkKey(), feed0);
   stJbTalkPaint();
   stJbLand(document.getElementById('st-jb-feed'));
   return true;
@@ -3368,7 +3383,7 @@ function stTalkBack(){
 }
 if(typeof jamboTalkHost==='function') jamboTalkHost('settings', stTalkBack, k=>k===stTalkKey()&&typeof state!=='undefined'&&state.view==='team'&&!!document.getElementById('st-jb-feed'));
 function stJbDrop(id){
-  _stJbLog=_stJbLog.filter(t=>String(t.id)!==String(id));
+  stJbForget(id);
   document.querySelector(`[data-st-jb-turn="${id}"]`)?.remove();
 }
 /* READY, NOT SAVED: the person's drawer, the limit typed into its box (and
@@ -3602,7 +3617,20 @@ function stJbFeedHtml(){
   return stJbLandWrapHtml(land,true)+stJbTalkWrapHtml(false);
 }
 function stJbLandWrapHtml(land, hide){ return `<div class="st-jb-land" data-st-jb-land data-jt-land${hide?' hidden':''}>${land}</div>`; }
-function stJbTalkWrapHtml(hide){ return `<div class="st-jb-talk" data-st-jb-talk data-jt-talk${hide?' hidden':''}>${stTalkTurns().map(stJbTurnHtml).join('')}</div>`; }
+function stJbTalkInnerHtml(){
+  if(typeof jamboTurnHtml!=='function') return stTalkTurns().map(stJbTurnHtml).join('');
+  if(typeof jamboReadStamp==='function') jamboReadStamp();
+  if(window.aiConvoInWindow?aiConvoInWindow():(window.aiPopped&&aiPopped())){ if(typeof window.renderAIFeed==='function') try{ renderAIFeed(); }catch(_){ } return `<p class="igd-popped">${esc(i18t('jb_in_window'))} <button type="button" class="ui-link" data-jb-popback>${esc(i18t('jb_bring_back'))}</button></p>`; }
+  const H=stJbConvo(); return H.map((m,i)=>jamboTurnHtml(m,i,H,'st')).join('');
+}
+function stJbTalkWrapHtml(hide){ return `<div class="st-jb-talk" data-st-jb-talk data-jt-talk${hide?' hidden':''}>${stJbTalkInnerHtml()}</div>`; }
+/* the whole conversation drawn again in the talk view, taken off the other hosts */
+function stJbTalkRepaint(T){
+  if(!T) return;
+  T.innerHTML=stJbTalkInnerHtml();
+  if(typeof jamboTurnsTake==='function') jamboTurnsTake(T);
+  if(typeof jamboTurnsAfter==='function') jamboTurnsAfter(T);
+}
 /* the landing as left goes into its own view (nothing redrawn, so an open
    row and its scrolls stay), the conversation beside it */
 function stJbTalkWrap(feed){
@@ -3658,7 +3686,7 @@ function stTrailReadyPdf(){
      button through the page's repaint (the count drawn again) */
   if(typeof landOn==='function') landOn('#st-tr-download',{ block:'nearest' });
   const t={ id:++_stJbSeq, q:stChipWord(i18t('st_jb_c_tr_pdf',{ period:stTrailPeriodWords(_stTr.from,_stTr.to,true) })), force:{ say:i18t('st_jb_tr_pdf_ready'), cards:[] } };
-  _stJbLog.push(t); if(_stJbLog.length>ST_JB_MAX) _stJbLog=_stJbLog.slice(-ST_JB_MAX);
+  stJbPush(t);
   stJbTurnAdd(t);
 }
 /* A QUESTION JAMBO ANSWERS FROM WHAT HaTi IS, spending nothing ("what is a
@@ -3667,13 +3695,13 @@ function stTrailReadyPdf(){
    can see"): a turn with the reader's words and Jambo's one line */
 function stJbSayLine(q, line){
   const t={ id:++_stJbSeq, q:String(q||'').trim().slice(0,200), force:{ say:String(line||''), cards:[] } };
-  _stJbLog.push(t); if(_stJbLog.length>ST_JB_MAX) _stJbLog=_stJbLog.slice(-ST_JB_MAX);
+  stJbPush(t);
   stJbTurnAdd(t);
 }
 function stJbSayFixed(kind, label){
   const said={ sealed:'st_jb_sealed_say' }[String(kind||'')]; if(!said) return;
   const t={ id:++_stJbSeq, q:String(label||'').trim(), force:{ say:i18t(said), cards:[] } };
-  _stJbLog.push(t); if(_stJbLog.length>ST_JB_MAX) _stJbLog=_stJbLog.slice(-ST_JB_MAX);
+  stJbPush(t);
   stJbTurnAdd(t);
 }
 /* the admin a member would ask, by first name where there is one */
@@ -3697,7 +3725,7 @@ function stJbFeedRepaint(){
 function stAskGeneral(about){
   if(stIsAdmin()) return;
   const t={ id:++_stJbSeq, q:about==='role'?i18t('st_ask_role_words'):'', force:{ say:'', cards:[{ k:'askadmin', panel:about==='role'?'me:role':'', free:true }] } };
-  _stJbLog.push(t); if(_stJbLog.length>ST_JB_MAX) _stJbLog=_stJbLog.slice(-ST_JB_MAX);
+  stJbPush(t);
   stSideSet('jambo');
   stJbTurnAdd(t);
   const box=document.getElementById('st-ask-what-'+t.id);
@@ -9708,6 +9736,6 @@ Object.assign(window,{stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsP
    (PAGE_HEAD_PAINT reads it off window), a form in its row, the stream beside
    the list, Jambo's words for the page in front, your own copy and name and
    email, and the readings the checks ask */
-Object.assign(window,{stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
+Object.assign(window,{stJbTurnHtml,stJbLog,stJbPush,stJbConvo,stJbTalkRepaint,stTalkKey,stTalkShows,stJbTalkPaint,stJbTurnAdd,stTalkBack,stTalkReopen,stJbLandHtml,stJbSayLine,stPaintHead,stRowFormOpen,stRowFormClose,stNameForm,stEmailForm,stMyCopyDownload,stAskGeneral,stDevicesSaid,
   stSwPickSet,stSwPanelHtml,stSwRows,stJbFeedHtml,stJbFeedRepaint,stJbCompanyWords,stJbDataWords,stJbStreamsWords,stJbNeedPhrase,stSideFoldSet,
   stTrailLeftOut,stHouseFacts,stTrailPastHtml,stYouCardRepaint,stGovLadderHtml,stSheetCardHtml});
