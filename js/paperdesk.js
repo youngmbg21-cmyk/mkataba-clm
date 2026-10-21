@@ -1498,14 +1498,17 @@ function pdTalkSync(dock){
   const was = jamboTalkKey();
   if (jamboTalkLand(k)){
     if (was && pdTalkScope(was) === pdTalkScope(k) && _pdTalk.from <= len){ _pdTalk = { from: _pdTalk.from, seen: len, last: _pdTalk.last, quiet: !!(typeof intel === 'object' && intel && intel.busy) }; }
-    else { const from = Math.min(len, _pdTalk.last == null ? len : _pdTalk.last); _pdTalk = { from, seen: from, stale: !!(typeof intel === 'object' && intel && intel.busy) }; }
+    /* ONE CONVERSATION EVERYWHERE (owner, 21 Oct 2026; reverses "another contract
+       is still fresh"): another contract or page draws the whole conversation;
+       only words said since the last page drawn turn the panel to it */
+    else { const seen = Math.min(len, _pdTalk.last == null ? len : _pdTalk.last); _pdTalk = { from: 0, seen, stale: !!(typeof intel === 'object' && intel && intel.busy) }; }
   }
   /* A CONVERSATION THAT SHRANK (an exchange put away, the bin, a reset) lost
      words from BEFORE the ones drawn: where this page's words begin moves back
      with them, so what was on screen stays on screen (one-sheet-as-drawn 14) */
   if (_pdTalk.last != null && len < _pdTalk.last){ _pdTalk.from = Math.max(0, _pdTalk.from - (_pdTalk.last - len)); _pdTalk.seen = Math.min(_pdTalk.seen, len); }
   if (len < _pdTalk.from) _pdTalk = { from: len, seen: len };
-  if (_pdTalk.stale && len > _pdTalk.seen){ const H1 = H.slice(_pdTalk.seen); if (!H1.some(m => m && m.role === 'user')) _pdTalk.from = _pdTalk.seen = len; else _pdTalk.stale = false; }
+  if (_pdTalk.stale && len > _pdTalk.seen){ const H1 = H.slice(_pdTalk.seen); if (!H1.some(m => m && (m.role === 'user' || m.role === 'st'))) _pdTalk.seen = len; else _pdTalk.stale = false; }
   if (_pdTalk.stale && !(typeof intel === 'object' && intel && intel.busy)) _pdTalk.stale = false;
   _pdTalk.last = len;
   if (k.indexOf('dock:') !== 0) return false;
@@ -1520,7 +1523,7 @@ function pdTalkSync(dock){
      and reads Showing — the words it put in the conversation are seen, never
      a turn to the conversation (explorer-guide-tab-verify 3b) */
   if (k.slice(-6) === ':guide'){ _pdTalk.seen = len; _pdTalk.quiet = false; return false; }
-  if (_pdTalk.quiet && len > _pdTalk.seen){ const H2 = H.slice(_pdTalk.seen); if (!H2.some(m => m && m.role === 'user')){ _pdTalk.seen = len; if (!(intel && intel.busy)) _pdTalk.quiet = false; } }
+  if (_pdTalk.quiet && len > _pdTalk.seen){ const H2 = H.slice(_pdTalk.seen); if (!H2.some(m => m && (m.role === 'user' || m.role === 'st'))){ _pdTalk.seen = len; if (!(intel && intel.busy)) _pdTalk.quiet = false; } }
   if (len > _pdTalk.seen){ _pdTalk.quiet = false; jamboTalkOpen(k, dock); _pdTalk.seen = len; }
   return jamboTalkShows(k);
 }

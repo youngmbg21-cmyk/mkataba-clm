@@ -1173,6 +1173,15 @@ function minimizeAI(){
      panel, so it is no longer merely summoned and will stick around. */
   ai.open=false; ai.minimized=true; ai.summoned=false; aiSyncDock(); try{ aiSideSync(); }catch(_){} updateAIBadge();
 }
+/* THE ONE CONVERSATION GOES, EVERYWHERE (21 Oct 2026): every host's bin
+   calls this; Home's and Settings' panels read the same record */
+function aiConvoClear(){
+  ai.history=[];
+  if(typeof aiChartDestroyAll==='function') aiChartDestroyAll();
+  if(typeof aiProposals!=='undefined') aiProposals.clear();
+  ai.activeProposal=null;
+  if(typeof aiCloseRephraseSession==='function') aiCloseRephraseSession();
+}
 function clearAIHistory(){
   // cleared immediately — no confirm prompt (history is local and cheap to rebuild)
   ai.history=[];
@@ -1237,7 +1246,8 @@ function aiPush(role,payload){
   /* Charts extracted while formatting this message ride along with it, so a
      feed repaint knows which canvases to rebuild and which to let go. */
   const blocks=_aiPendingBlocks; _aiPendingBlocks=null;
-  ai.history.push({role,...payload,...(blocks?{blocks}:{})});
+  /* born in the side panel (ONE CONVERSATION EVERYWHERE: each host draws a turn with its own builder) */
+  ai.history.push({role,host:'ai',...payload,...(blocks?{blocks}:{})});
 }
 
 /* SUGGESTED QUESTIONS ARE BACK — deliberately, and only on an empty panel.
@@ -1393,6 +1403,30 @@ function aiFeedEl(){
 }
 /* an answer said where the reader is looking lights no launcher */
 function aiUnreadIfAway(){ if(!ai.open && !aiPopped() && !aiListFeed()){ ai.unread=true; updateAIBadge(); } }
+/* one turn as the side panel draws it (the builder the other hosts borrow) */
+function aiMsgHtml(m,i){
+    if(m.role==='user'){
+      return `<div class="ai-msg flex justify-end"><div class="ai-bub max-w-[85%] rounded-2xl rounded-br-md bg-brand-900 text-white px-4 py-2.5 text-sm">${m.text}</div></div>`;
+    }
+    /* BUBBLE TWO. Drawn from the live record rather than from anything stored
+       on the message, so a card that has since been applied, declined or
+       superseded says so the next time the feed paints — whatever caused the
+       repaint. */
+    const proposal=m.proposalId?aiProposalCardHtml(aiProposals.get(m.proposalId)):'';
+    return `<div class="ai-msg flex gap-2.5">
+      ${aiFaceHtml('hello')}
+      <div class="max-w-[88%] space-y-2">
+        ${m.text?`<div class="ai-bub jl-bub text-sm">${m.text}</div>`:''}
+        ${proposal}
+        ${m.cards?m.cards:''}
+        ${''/* THE PREPARED PRESS AND SHOW ME › (js/jambopress.js, 21 Oct 2026); a watch Jambo proposes, and Your watches, drawn live from the store */}
+        ${m.press&&typeof jpHtml==='function'?jpHtml(m.press,'ai:'+i):''}
+        ${m.watchAsk&&typeof watchAskHtml==='function'?watchAskHtml(m,'ai:'+i):''}
+        ${m.watchList&&typeof watchListHtml==='function'?watchListHtml():''}
+        ${m.read&&m.read.text?`<div class="ai-read" data-ai-read>${_aiEsc(m.read.text)}</div>`:''}
+      </div>
+    </div>`;
+}
 function renderAIFeed(typing=false){
   const feed=aiFeedEl();
   if(!feed) return;
@@ -1426,29 +1460,14 @@ function renderAIFeed(typing=false){
     if(typeof aiChartSweep==='function') aiChartSweep();
     return;
   }
-  feed.innerHTML=ai.history.map((m,i)=>{
+  /* ONE CONVERSATION EVERYWHERE (21 Oct 2026): every turn, each drawn by the
+     builder of the host it was born in (jamboTurnHtml), and said once — the
+     other hosts' drawn turns are taken (jamboTurnsTake) */
+  if(typeof jamboReadStamp==='function') jamboReadStamp();
+  if(typeof jamboTurnsTake==='function') jamboTurnsTake(feed);
+  feed.innerHTML=ai.history.map((m,i,H)=>{
     if(inList&&i<_from) return '';
-    if(m.role==='user'){
-      return `<div class="ai-msg flex justify-end"><div class="ai-bub max-w-[85%] rounded-2xl rounded-br-md bg-brand-900 text-white px-4 py-2.5 text-sm">${m.text}</div></div>`;
-    }
-    /* BUBBLE TWO. Drawn from the live record rather than from anything stored
-       on the message, so a card that has since been applied, declined or
-       superseded says so the next time the feed paints — whatever caused the
-       repaint. */
-    const proposal=m.proposalId?aiProposalCardHtml(aiProposals.get(m.proposalId)):'';
-    return `<div class="ai-msg flex gap-2.5">
-      ${aiFaceHtml('hello')}
-      <div class="max-w-[88%] space-y-2">
-        ${m.text?`<div class="ai-bub jl-bub text-sm">${m.text}</div>`:''}
-        ${proposal}
-        ${m.cards?m.cards:''}
-        ${''/* THE PREPARED PRESS AND SHOW ME › (js/jambopress.js, 21 Oct 2026); a watch Jambo proposes, and Your watches, drawn live from the store */}
-        ${m.press&&typeof jpHtml==='function'?jpHtml(m.press,'ai:'+i):''}
-        ${m.watchAsk&&typeof watchAskHtml==='function'?watchAskHtml(m,'ai:'+i):''}
-        ${m.watchList&&typeof watchListHtml==='function'?watchListHtml():''}
-        ${m.read&&m.read.text?`<div class="ai-read" data-ai-read>${_aiEsc(m.read.text)}</div>`:''}
-      </div>
-    </div>`;
+    return (typeof jamboTurnHtml==='function')?jamboTurnHtml(m,i,H,'ai'):aiMsgHtml(m,i);
   }).join('') + (typing?`
     <div class="ai-msg flex gap-2.5">
       ${aiFaceHtml('think')}
@@ -1466,6 +1485,19 @@ function renderAIFeed(typing=false){
     if(blocks.length) aiHydrateCharts(blocks);
   }
   renderAISuggest();   // chips live on an empty panel only — a repaint re-decides
+  aiFeedWire(feed);
+  if(typeof jamboTurnsAfter==='function'&&feed.querySelector('[data-jb-born]:not([data-jb-born="ai"])')) try{ jamboTurnsAfter(feed); }catch(_){}
+  /* The panel's own composer and any the feed drew: re-measured on every paint
+     so a half-typed question is not clipped back to one line by an answer
+     landing above it. */
+  if(window.chatFieldWire) chatFieldWire(document.getElementById('ai-panel')||document);
+  // keep the brain indicator current (a key can be added/removed mid-session)
+  if(typeof updateAiBrainPill==='function') updateAiBrainPill();
+}
+
+/* the side panel's presses, bound on whichever host drew its turns (wired per paint, as before) */
+function aiFeedWire(feed){
+  if(!feed) return;
   feed.querySelectorAll('[data-ai-open]').forEach(el=>el.addEventListener('click',()=>{ closeAI(); openWorkspace(el.getAttribute('data-ai-open')); }));
   /* THE WORKLIST DOOR — see aiWorklistHtml. It closes the panel FIRST, which
      is the card handler's own move one line up and for the same reason: this
@@ -1490,14 +1522,7 @@ function renderAIFeed(typing=false){
   if(typeof jpWire==='function') jpWire(feed);
   /* a contract number in an answer is a link to it (caRefLinkPaint) */
   if(feed&&typeof window.caRefLinkPaint==='function') caRefLinkPaint(feed);
-  /* The panel's own composer and any the feed drew: re-measured on every paint
-     so a half-typed question is not clipped back to one line by an answer
-     landing above it. */
-  if(window.chatFieldWire) chatFieldWire(document.getElementById('ai-panel')||document);
-  // keep the brain indicator current (a key can be added/removed mid-session)
-  if(typeof updateAiBrainPill==='function') updateAiBrainPill();
 }
-
 function aiContractCard(c){
   return `
   <button data-ai-open="${c.id}" class="w-full text-left flex items-center gap-2.5 rounded-xl border border-brand-100 bg-white hover:border-brand-300 hover:shadow-sm px-3 py-2.5 transition group">
@@ -5547,7 +5572,7 @@ function aiDoorFace(){
 }
 try{ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',aiDoorFace); else setTimeout(aiDoorFace,0); }catch(_){}
 Object.assign(window,{ AI_GOVERNANCE_RULE,aiRuleDoorOf,aiRuleDoorHtml,aiRuleDoorGo,AI_CALENDAR_RULE,chatTodayLine,aiAsksPastCard,aiOpenCardSays });
-Object.assign(window,{ aiDoorFace,aiFaceHtml,aiSideSync,aiSideOn,aiSideToggle,AI_SIDE_W,aiPopOut,aiPopBack,aiPopped,aiPopMay,aiEl,aiBarToggle,aiBarOpen,aiBarClose,aiBarSend,aiAskFromBar,aiHereFromBar,aiHereSays,aiHereExplain,aiReadFrom,aiPasteNote,aiPasteAct,aiPasteLooksLong,aiDropFile,aiOnScreenContract,aiEmbeddedHere,aiGoEmbedded,scanGoTo,aiContractByRef,aiWorkingNotes,aiExplainOf,aiExplainSet,aiJsonObjects,
+Object.assign(window,{ aiMsgHtml,aiFeedWire,aiConvoClear,aiDoorFace,aiFaceHtml,aiSideSync,aiSideOn,aiSideToggle,AI_SIDE_W,aiPopOut,aiPopBack,aiPopped,aiPopMay,aiEl,aiBarToggle,aiBarOpen,aiBarClose,aiBarSend,aiAskFromBar,aiHereFromBar,aiHereSays,aiHereExplain,aiReadFrom,aiPasteNote,aiPasteAct,aiPasteLooksLong,aiDropFile,aiOnScreenContract,aiEmbeddedHere,aiGoEmbedded,scanGoTo,aiContractByRef,aiWorkingNotes,aiExplainOf,aiExplainSet,aiJsonObjects,
   AI_PROPOSAL_FORMAT,AI_EDIT_FORMAT,AI_LIST_RULE,aiListLines,aiListLine,AI_ADVICE_FIELD,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,
   AI_PLACEMENTS,AI_PLACEMENT_LABEL,AI_PLACEMENT_SHORT,aiNormalizePlacement,aiIsInsert,
   aiProposalAnchorHtml,aiProposalPlacementHtml,aiProposalSetPlacement,aiCleanAddedWording,

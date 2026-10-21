@@ -141,7 +141,8 @@ describe('f687 (2) one head, one set of tabs and filters, Wall | List', () => {
     assert.ok(head.querySelector('#reg-head-facts'), 'the facts line\'s slot');
     const top = head.querySelector('.ct-top'), row = head.querySelector('.ct-filters');
     assert.equal(top.querySelectorAll('select').length, 0, 'no filter box on the first row');
-    assert.deepEqual([...top.querySelectorAll('[data-ct-show]')].map(b => b.getAttribute('data-ct-show')), ['wall', 'list']);
+    /* RE-POINTED 21 Oct 2026 (owner: "the list needs to come before the wall") */
+    assert.deepEqual([...top.querySelectorAll('[data-ct-show]')].map(b => b.getAttribute('data-ct-show')), ['list', 'wall']);
     assert.deepEqual([...row.querySelectorAll('.reg-fb select')].map(x => x.id), ['reg-stage-sel', 'reg-type-sel', 'reg-category', 'reg-view-sel'],
       'Stage · Stream · Category · Quick filters, in that order');
     assert.equal(doc.querySelectorAll('[data-reg-home] [data-reg-stage]').length, 0, 'no stage tabs');

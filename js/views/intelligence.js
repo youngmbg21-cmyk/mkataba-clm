@@ -743,6 +743,14 @@ const IG_SPLIT = {
   settle: () => igSplitSettle(),
   resize: () => { if(igPageUp()){ igFitSplit(); if(igMapUp()) igNoteMeasure(); } }
 };
+/* ONE JAMBO CONVERSATION EVERYWHERE (owner, 21 Oct 2026): Home's conversation
+   IS the side panel's (ai.history, js/ai.js) — read and written through here,
+   so every host sees the same words (jamboTurnHtml in js/components.js). */
+{ let _igLocal=[];
+  Object.defineProperty(window.intel,'history',{ configurable:true, enumerable:true,
+    get(){ const A=window.ai; return (A&&Array.isArray(A.history))?A.history:_igLocal; },
+    set(v){ const A=window.ai; const L=Array.isArray(v)?v:[]; if(A) A.history=L; else _igLocal=L; } }); }
+
 /* The width the panel takes in a row `avail` wide: the reader's choice or the
    resting width, clamped by both floors — the one clamp's (splitClamp). A
    stage without the builder gets the resting width and the panel's floor. */
@@ -7977,8 +7985,14 @@ function renderIntelDock(){
      trail over it back to the landing as it was left. A page arrived at begins
      its conversation fresh (pdTalkFrom): what was said on another is not drawn. */
   const talk=(typeof window.pdTalkSync==='function')?pdTalkSync(dock):false;
-  const _from=talk&&typeof window.pdTalkFrom==='function'?pdTalkFrom():0;
-  const msgs=talk?intel.history.map((m,i,a)=>i<_from?'':igMsgHTML(m,i,a)).join(''):'';
+  /* ONE CONVERSATION EVERYWHERE (21 Oct 2026): every turn, each drawn by the
+     builder of the host it was born in; popped out, the words are in Jambo's
+     own window and only there (one place at a time) */
+  if(talk&&typeof window.jamboReadStamp==='function') jamboReadStamp();
+  const _popped=!!(window.aiPopped&&aiPopped());
+  if(talk&&_popped&&typeof window.renderAIFeed==='function') try{ renderAIFeed(!!intel.busy); }catch(_){ }
+  const msgs=!talk?'':_popped?`<p class="igd-popped">${igEsc(i18t('jb_in_window'))} <button type="button" class="ui-link" data-jb-popback>${igEsc(i18t('jb_bring_back'))}</button></p>`
+    :!intel.history.length?'':`<div class="igd-turns" data-jb-turns>${intel.history.map((m,i,a)=>(typeof window.jamboTurnHtml==='function')?jamboTurnHtml(m,i,a,'ig'):igMsgHTML(m,i,a)).join('')}</div>`;
   const typing=intel.busy?`
     <div class="ai-msg flex gap-2">
       ${igFaceHtml('think')}
@@ -8206,6 +8220,10 @@ function renderIntelDock(){
      under an answer, each a press that puts those words in front of the
      reader. */
   dock.querySelectorAll('[data-ig-analyze]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); igAnalyze(b.getAttribute('data-ig-analyze')); }));
+  /* ONE CONVERSATION EVERYWHERE: said here, taken off the other hosts; the side panel's turns bound here too */
+  { const T=dock.querySelector('[data-jb-turns]');
+    if(T&&typeof window.jamboTurnsTake==='function'){ jamboTurnsTake(T); if(typeof window.jamboTurnsAfter==='function') jamboTurnsAfter(T); }
+  }
   dock.querySelectorAll('[data-ig-choice]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
     const [t,k]=String(b.getAttribute('data-ig-choice')||'').split(':').map(Number); const m=intel.history[t], c=m&&m.choices&&m.choices[k];
     if(!c) return; intel.history.push({ role:'user', text:c.label });
@@ -8250,7 +8268,8 @@ function renderIntelDock(){
     /* AND THE ANALYSIS GOES WITH THE CONVERSATION (26 Sep 2026): the paper,
        its pins and the strip are the conversation's — the bin is the one act
        that ends them, so no second control was added for it. */
-    intel.history=[]; intel.compareSel=[]; intel.paper=null; if(typeof window.pdTalkClose==='function') pdTalkClose(); igPaintPaper(); igPaintIds(null); renderIntelDock();
+    if(typeof window.aiConvoClear==='function') aiConvoClear(); else intel.history=[];
+    intel.compareSel=[]; intel.paper=null; if(typeof window.pdTalkClose==='function') pdTalkClose(); igPaintPaper(); igPaintIds(null); renderIntelDock();
     if(typeof toast==='function') toast(i18t('int_conversation_deleted'));
   });
   /* the bar's way back to the Clauses tab, on the trip that began there (stage 5) */

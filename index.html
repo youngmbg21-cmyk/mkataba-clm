@@ -3684,37 +3684,37 @@
   /* each view is no box of its own (display:contents): its rows sit in the feed's own column exactly as before the flip, so the page paints nothing new */
   .st-cr .st-jb-feed > .st-jb-land, .st-cr .st-jb-feed > .st-jb-talk{ display:contents; }
   .st-cr .st-jb-feed > .st-jb-land[hidden], .st-cr .st-jb-feed > .st-jb-talk[hidden], .st-cr #st-jb-trail[hidden]{ display:none; }
-  .st-cr .st-jb-msg{ display:flex; gap:8px; align-items:flex-start; }
-  .st-cr .st-jb-av{ flex:none; border-radius:50%; background:var(--color-surface); }
-  .st-cr .st-jb-bub{ background:var(--color-surface); border:1px solid var(--color-divider); border-radius:10px; padding:8px 11px;
+  :is(.st-cr, .jb-turn) .st-jb-msg{ display:flex; gap:8px; align-items:flex-start; }
+  :is(.st-cr, .jb-turn) .st-jb-av{ flex:none; border-radius:50%; background:var(--color-surface); }
+  :is(.st-cr, .jb-turn) .st-jb-bub{ background:var(--color-surface); border:1px solid var(--color-divider); border-radius:10px; padding:8px 11px;
     font-size:var(--t-meta); line-height:1.5; color:var(--color-text); min-width:0; }
-  .st-cr .st-jb-me{ align-self:flex-end; max-width:88%; background:var(--accent-solid,var(--color-accent)); color:#fff;
+  :is(.st-cr, .jb-turn) .st-jb-me{ align-self:flex-end; max-width:88%; background:var(--accent-solid,var(--color-accent)); color:#fff;
     border-radius:10px; padding:7px 11px; font-size:var(--t-meta); line-height:1.45; overflow-wrap:anywhere; }
-  .st-cr .st-jb-turn{ display:flex; flex-direction:column; gap:8px; }
-  .st-cr .st-jb-chips{ display:flex; flex-wrap:wrap; gap:4px 12px; padding-left:36px; }
+  :is(.st-cr, .jb-turn) .st-jb-turn{ display:flex; flex-direction:column; gap:8px; }
+  :is(.st-cr, .jb-turn) .st-jb-chips{ display:flex; flex-wrap:wrap; gap:4px 12px; padding-left:36px; }
   /* a suggestion is a link (Chambers, 20 Oct 2026; see .jb-chip) */
-  .st-cr .st-jb-chip{ appearance:none; border:0; background:none; padding:1px 0; border-radius:0; height:auto; min-height:0; font:inherit; font-size:12.5px; font-weight:var(--w-body); line-height:1.45; color:var(--accent-ink); text-decoration:underline; text-decoration-color:var(--color-accent-200); text-underline-offset:3px; cursor:pointer; text-align:left; }
-  .st-cr .st-jb-chip:hover{ text-decoration-color:currentColor; color:var(--accent-ink-700); }
-  .st-cr .st-jb-card{ margin-left:36px; background:var(--color-surface); border:1px solid var(--color-divider); border-radius:10px; overflow:hidden; }
-  .st-cr .st-jb-ch{ display:flex; align-items:center; gap:7px; flex-wrap:wrap; padding:8px 11px; font-weight:var(--w-strong);
+  :is(.st-cr, .jb-turn) .st-jb-chip{ appearance:none; border:0; background:none; padding:1px 0; border-radius:0; height:auto; min-height:0; font:inherit; font-size:12.5px; font-weight:var(--w-body); line-height:1.45; color:var(--accent-ink); text-decoration:underline; text-decoration-color:var(--color-accent-200); text-underline-offset:3px; cursor:pointer; text-align:left; }
+  :is(.st-cr, .jb-turn) .st-jb-chip:hover{ text-decoration-color:currentColor; color:var(--accent-ink-700); }
+  :is(.st-cr, .jb-turn) .st-jb-card{ margin-left:36px; background:var(--color-surface); border:1px solid var(--color-divider); border-radius:10px; overflow:hidden; }
+  :is(.st-cr, .jb-turn) .st-jb-ch{ display:flex; align-items:center; gap:7px; flex-wrap:wrap; padding:8px 11px; font-weight:var(--w-strong);
     font-size:var(--t-meta); color:var(--color-text); border-bottom:1px solid var(--surface-2); }
-  .st-cr .st-jb-pre{ color:var(--accent-ink); }
-  .st-cr .st-jb-role{ font-weight:var(--w-body); color:var(--color-neutral-600); }
-  .st-cr .st-jb-ini{ width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
+  :is(.st-cr, .jb-turn) .st-jb-pre{ color:var(--accent-ink); }
+  :is(.st-cr, .jb-turn) .st-jb-role{ font-weight:var(--w-body); color:var(--color-neutral-600); }
+  :is(.st-cr, .jb-turn) .st-jb-ini{ width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
     background:transparent; border:1px solid var(--rule-strong); font-size:10.5px; font-weight:var(--w-strong); color:var(--color-neutral-600); }
-  .st-cr .st-jb-cb{ padding:8px 11px 2px; font-size:var(--t-label); line-height:1.5; color:var(--color-text); }
-  .st-cr .st-jb-cb p{ margin:0 0 6px; }
-  .st-cr .st-jb-cb ul{ margin:0 0 6px; padding-left:16px; }
-  .st-cr .st-jb-cb li{ margin:0 0 2px; }
-  .st-cr .st-jb-state{ color:var(--color-neutral-600); }
-  .st-cr .st-jb-list{ list-style:none; padding:0 !important; }
-  .st-cr .st-jb-list li{ display:flex; justify-content:space-between; gap:8px; }
-  .st-cr .st-jb-list li span{ color:var(--color-neutral-600); text-align:right; }
-  .st-cr .st-jb-names{ display:flex; flex-wrap:wrap; gap:4px 10px; margin-bottom:6px; }
-  .st-cr .st-jb-name{ appearance:none; border:0; background:none; padding:0; font:inherit; color:var(--accent-ink); cursor:pointer; text-align:left; }
-  .st-cr .st-jb-name:hover{ text-decoration:underline; }
-  .st-cr .st-jb-ca{ display:flex; gap:8px; flex-wrap:wrap; padding:6px 11px 10px; }
-  .st-cr .st-jb-turn > .st-jb-ca{ padding:0 0 0 36px; }
+  :is(.st-cr, .jb-turn) .st-jb-cb{ padding:8px 11px 2px; font-size:var(--t-label); line-height:1.5; color:var(--color-text); }
+  :is(.st-cr, .jb-turn) .st-jb-cb p{ margin:0 0 6px; }
+  :is(.st-cr, .jb-turn) .st-jb-cb ul{ margin:0 0 6px; padding-left:16px; }
+  :is(.st-cr, .jb-turn) .st-jb-cb li{ margin:0 0 2px; }
+  :is(.st-cr, .jb-turn) .st-jb-state{ color:var(--color-neutral-600); }
+  :is(.st-cr, .jb-turn) .st-jb-list{ list-style:none; padding:0 !important; }
+  :is(.st-cr, .jb-turn) .st-jb-list li{ display:flex; justify-content:space-between; gap:8px; }
+  :is(.st-cr, .jb-turn) .st-jb-list li span{ color:var(--color-neutral-600); text-align:right; }
+  :is(.st-cr, .jb-turn) .st-jb-names{ display:flex; flex-wrap:wrap; gap:4px 10px; margin-bottom:6px; }
+  :is(.st-cr, .jb-turn) .st-jb-name{ appearance:none; border:0; background:none; padding:0; font:inherit; color:var(--accent-ink); cursor:pointer; text-align:left; }
+  :is(.st-cr, .jb-turn) .st-jb-name:hover{ text-decoration:underline; }
+  :is(.st-cr, .jb-turn) .st-jb-ca{ display:flex; gap:8px; flex-wrap:wrap; padding:6px 11px 10px; }
+  :is(.st-cr, .jb-turn) .st-jb-turn > .st-jb-ca{ padding:0 0 0 36px; }
   .st-cr .st-jb-ask{ flex:none; display:flex; gap:8px; padding:10px 12px 6px; border-top:1px solid var(--color-divider); }
   .st-cr .st-jb-ask > .jb-card{ flex:1; min-width:0; }
   .st-cr .st-jb-ask input{ flex:1; min-width:0; height:var(--ctl-h-lg); border:1px solid var(--field-line); border-radius:var(--radius-lg);
@@ -15883,6 +15883,12 @@
      to the sentences"): one 16px step, the Brief's own measure, wherever a
      sentence is followed by a card's buttons */
   .ca-card > .ca-foot + .ca-acts, .ca-card > .ca-why + .ca-acts{margin-top:16px}
+  /* ==== ONE JAMBO CONVERSATION EVERYWHERE (owner, 21 Oct 2026) ====
+     a turn said on another page names what it read, on every host, in the
+     side panel's own small grey line; popped out, the talk view says where */
+  .jb-read{font-size:var(--t-label);line-height:16px;color:var(--color-neutral-600);margin:4px 0 0}
+  .jb-read.is-ig{padding-left:36px}
+  .igd-popped{margin:0;font-size:var(--t-meta);color:var(--color-neutral-600)}
   /* ==== THE REPORT, SIMPLIFIED (owner, 21 Oct 2026; "Three quieter surfaces", tab 3) ====
      the head: the title over "party · role · ref"; then two by two —
      Needs you | The deal, Key terms | What Jambo read — split by hairlines */

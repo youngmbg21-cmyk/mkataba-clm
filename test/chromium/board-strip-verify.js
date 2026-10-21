@@ -234,7 +234,7 @@ const OBS = [
       return {
         head: { title: t('.bs-head .hb-ct'), ref: t('.bs-head .bs-ref'), pill: t('.bs-head .hb-chip') || t('.bs-head .bs-stage'), dots: !!el.querySelector('[data-bs-dots]'), x: !!el.querySelector('[data-bs-x]'),
           openFilled: !!el.querySelector('.bs-head [data-bs-open].is-primary'), actFilled: !!el.querySelector('.bs-head [data-bs-act].is-primary') },
-        gone: { spine: !!el.querySelector('.ds-spine'), idline: !!el.querySelector('.bs-idline'), tiles: el.querySelectorAll('[data-bs-kpi]').length, chart: !!el.querySelector('.bs-chart'), obTable: !!el.querySelector('.bs-ob'), cells: el.querySelectorAll('[data-bs-jcell]').length },
+        gone: { spine: !!el.querySelector('.ds-spine'), idline: !!el.querySelector('.bs-idline'), tiles: el.querySelectorAll('.bs-kpis').length, chart: !!el.querySelector('.bs-chart'), obTable: !!el.querySelector('.bs-ob'), cells: el.querySelectorAll('[data-bs-jcell]').length },
         needs: { head: t('.bs-needs h5'), rows: [...el.querySelectorAll('.bs-nd')].map(r => ({ k: r.getAttribute('data-bs-nd'), t: r.querySelector('.bs-nd-t').firstChild.textContent.trim(), sub: (r.querySelector('small') || {}).textContent || '', go: (r.querySelector('[data-bs-go]') || {}).getAttribute ? r.querySelector('[data-bs-go]').getAttribute('data-bs-go') : '' })) },
         owedN: D.owedN,
         facts: { value: f('value'), ends: f('ends'), notice: f('notice'), renewal: f('renewal') },
