@@ -153,7 +153,11 @@ function pdTabCount(t, c){
   }
   try {
     if (t === 'doc'){
-      const n = (typeof docThreadHomeMarks === 'function') ? docThreadHomeMarks(c) : 0;
+      /* THE NUMBER ON THE DOOR IS THE LIST'S (owner said yes, 21 Oct 2026):
+         Clause review's "need you" once Jambo has read these words; before
+         that, the paper's own marks the list then shows */
+      const r = (typeof window.stkNeedCount === 'function') ? window.stkNeedCount(c) : null;
+      const n = r != null ? r : (typeof docThreadHomeMarks === 'function') ? docThreadHomeMarks(c) : 0;
       return n ? { n, tone: 'warn' } : null;
     }
     if (t === 'oblig'){ const n = Array.isArray(c.obligations) ? c.obligations.filter(Boolean).length : 0; return n ? { n, tone: 'quiet' } : null; }

@@ -86,7 +86,7 @@ function bdBusyHtml(){ return window.busyHtml ? busyHtml(i18t('bd_reading')) : _
    on screen"): a point's words are lit on the paper instead (igQuoteGo).
    Nothing is filed or sent: "Start redlining with this ask" is Negotiate's
    own door, "Ask Jambo about this" only fills Jambo's ask box. */
-const _stk = { id: null, dive: -1, f: { reg: '', sev: '', by: '' }, rows: null, nums: null, mOpen: '', diveBusy: {}, diveErr: {} };
+const _stk = { id: null, dive: -1, f: { reg: '', sev: '', by: '' }, rows: null, nums: null, diveBusy: {}, diveErr: {}, marking: {} };
 const STK_REGION_TONES = 10;
 const stkOf = c => { const b = bdOf(c); return b && Array.isArray(b.points) ? b : null; };
 const stkNum = s => { const m = /^\s*(?:clause\s+|§\s*)?(\d+(?:\.\d+)*)/i.exec(String(s || '')); return m ? m[1] : ''; };
@@ -109,7 +109,10 @@ const stkKey = c => String(c && c.id) + ':' + bdHash(c) + ':' + bdLang();
    read RAW — nothing is run or spent here) */
 const STK_BY = ['jambo', 'std', 'scan', 'brief'];
 const STK_SEVS = ['need', 'look', 'note', 'fine'];
+const STK_RANK = { need: 3, look: 2, note: 1, fine: 0 };
 const _stkNorm = s => String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+/* the list's clause numbers, one per row (a section title has none) */
+const stkNumsOf = rows => (rows || []).map(x => (typeof docThreadIsSec === 'function' && docThreadIsSec(x)) ? '' : stkNum(typeof docXrayLabel === 'function' ? docXrayLabel(x) : ''));
 function stkStdPoints(c){
   const vs = (typeof stdDepartures === 'function') ? stdDepartures(c) : [];
   return vs.map(v => {
@@ -124,10 +127,10 @@ function stkStdPoints(c){
    Section"): the one Jambo named, else the section that holds its clause —
    read off the reading's own section lists, the clause's number or, for a
    standard, the row whose wording holds its quote */
-function stkSectionOf(b, p){
+function stkSectionOf(b, p, ctx){
   if (Number(p.region) >= 1 && (b.regions || [])[p.region - 1]) return Number(p.region);
   let n = p.by === 'std' ? '' : stkNum(p.clause);
-  if (!n && p.by === 'std' && p.quote && _stk.rows && _stk.nums){ const at = stkRowForQuote(p.quote, _stk.rows); if (at >= 0) n = _stk.nums[at] || ''; }
+  if (!n && p.by === 'std' && p.quote && ctx.rows && ctx.nums){ const at = stkRowForQuote(p.quote, ctx.rows); if (at >= 0) n = ctx.nums[at] || ''; }
   if (!n) return 0;
   const regs = b.regions || [];
   for (let k = n; k; k = k.includes('.') ? k.slice(0, k.lastIndexOf('.')) : ''){
@@ -145,36 +148,125 @@ function stkSectionOf(b, p){
    the same shaded box, counted, filtered ("Found by": Risk scan · Brief) and
    walked by the deep dive. Placed on the row the mark was found on, so a mark
    that lands nowhere is never guessed onto a clause. A standards mark is the
-   standards point already there, never said twice. Nothing is run here. */
+   standards point already there, never said twice. Nothing is run here.
+   Each carries the words it was placed by (`m.q`), so a twin of another
+   finder's point is ONE point (stkMerge). */
 const STK_MARK_BY = { scan: 'scan', brief: 'brief', odd: 'brief', pb: 'std' };
 const STK_GRADE_SEV = { ruby: 'need', amber: 'look', steel: 'note' };
-function stkMarkPoints(stdRows){
+function stkMarkPoints(stdRows, ctx){
   const out = [];
-  (_stk.rows || []).forEach((x, at) => {
+  (ctx.rows || []).forEach((x, at) => {
     if (!x || !Array.isArray(x.marks) || (typeof docThreadIsSec === 'function' && docThreadIsSec(x))) return;
     x.marks.forEach(m => {
       if (!m || !STK_MARK_BY[m.k]) return;
       if (m.k === 'pb' && stdRows.has(at)) return;
       const lead = String(m.lead || '').trim(), say = String(m.say || '').trim(), why = String(m.why || '').trim();
       out.push({ by: STK_MARK_BY[m.k], status: STK_GRADE_SEV[m.grade] || 'look', missing: false, region: 0, links: [],
-        clause: (_stk.nums || [])[at] || '', _at: at, title: lead || say || why, stake: [lead && say ? say : '', why].filter(Boolean).join(' ') || lead || say,
-        what: why, theirs: '', usual: '', ask: '', quote: '' });
+        clause: (ctx.nums || [])[at] || '', _at: at, title: lead || say || why, stake: [lead && say ? say : '', why].filter(Boolean).join(' ') || lead || say,
+        what: why, theirs: '', usual: '', ask: '', quote: String(m.q || '') });
     });
   });
   return out;
 }
-/* every point, Jambo's first; the list the filters read */
-function stkAll(c, b){
+/* every point, Jambo's first, as each finder said it */
+function stkAll(c, b, ctx){
   if (!b) return [];
+  ctx = ctx || { rows: _stk.rows, nums: _stk.nums };
   const std = stkStdPoints(c);
-  const stdRows = new Set(std.map(p => p.quote && _stk.rows ? stkRowForQuote(p.quote, _stk.rows) : -1).filter(at => at >= 0));
-  return b.points.map((p, i) => Object.assign({}, p, { by: 'jambo', _i: i })).concat(std, stkMarkPoints(stdRows))
-    .map(p => Object.assign(p, { region: stkSectionOf(b, p) }));
+  const stdRows = new Set(std.map(p => p.quote && ctx.rows ? stkRowForQuote(p.quote, ctx.rows) : -1).filter(at => at >= 0));
+  return b.points.map((p, i) => Object.assign({}, p, { by: 'jambo', _i: i })).concat(std, stkMarkPoints(stdRows, ctx))
+    .map(p => Object.assign(p, { region: stkSectionOf(b, p, ctx) }));
 }
-const stkKeep = (p, f) => (!f.reg || String(p.region || 0) === f.reg) && (!f.sev || p.status === f.sev) && (!f.by || p.by === f.by);
+/* ---- ONE SENTENCE, ONE POINT (owner said yes, 21 Oct 2026, "the Legora
+   way"): two finders quoting the same sentence of one clause are ONE point —
+   its worst verdict, both finders named ("Found by Jambo · Our standards").
+   The first finder's words lead (Jambo before our standards before the marks);
+   a standard's position rides along as "Our standard: …" and its redline as
+   the ask Start redlining carries when Jambo's dive has none yet. ---- */
+function stkMerge(list, ctx){
+  const out = [];
+  list.forEach((p, seq) => {
+    const at = stkAt(p, ctx.nums || [], ctx.rows);
+    const q = p.missing ? '' : _stkNorm(p.quote);
+    const twin = q.length >= 12 ? out.find(m => m.at === at && m._q && (m._q === q || m._q.includes(q) || q.includes(m._q))) : null;
+    if (twin){
+      if (!twin.bys.includes(p.by)) twin.bys.push(p.by);
+      if ((STK_RANK[p.status] || 0) > (STK_RANK[twin.status] || 0)) twin.status = p.status;
+      if (p.by === 'std' && !twin.stdPos){ twin.stdPos = String(p.usual || ''); twin.stdAsk = String(p.ask || ''); }
+      return;
+    }
+    out.push(Object.assign({}, p, { at, _q: q, _seq: seq, bys: [p.by],
+      stdPos: p.by === 'std' ? String(p.usual || '') : '', stdAsk: p.by === 'std' ? String(p.ask || '') : '' }));
+  });
+  return out;
+}
+/* A POINT'S KEY: its clause and its quoted words, hashed — so a reading made
+   again of the same wording keeps a person's "reviewed", and changed words
+   make a new point (POST /api/contracts/:id/points/:key/review) */
+function stkHashKey(s){
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < s.length; i++){ const ch = s.charCodeAt(i); h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677); }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return 'p' + (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36).padStart(6, '0');
+}
+function stkPointKey(p, nums){
+  const n = p.missing ? 'm' + stkNum(p.after || '') : (p.at >= 0 ? ((nums || [])[p.at] || '') : stkNum(p.clause));
+  return stkHashKey(n + '|' + (p._q || ('t:' + _stkNorm(p.title))));
+}
+/* where a point's words stand in its clause: paper order within a verdict */
+function stkQuoteAt(p, ctx){
+  const x = p.at >= 0 && ctx.rows ? ctx.rows[p.at] : null;
+  if (!x || !x.row || !p._q) return 1e6;
+  const i = _stkNorm((x.row.heading || '') + ' ' + (x.row.text || '')).indexOf(p._q.slice(0, 80));
+  return i < 0 ? 1e6 : i;
+}
+/* ---- THE ONE READING OF CLAUSE REVIEW (21 Oct 2026) ----
+   Every point once (stkMerge), with its key, its row (`at`, or for a point
+   about what is missing the row it would follow, `afterAt`), whether a person
+   marked it reviewed (`done`, c.pointReviews — the server's record), in the
+   ONE order the list draws and the deep dive walks: by the paper, then WORST
+   FIRST within a clause, then where its words stand. The list, the three
+   counts, the Clauses tab's number and the dive all read this. RAW: nothing
+   is run, spent or written. */
+function stkReview(c, b, ctx){
+  if (!b) return [];
+  ctx = ctx || { rows: _stk.rows, nums: _stk.nums };
+  const seen = (c && c.pointReviews && typeof c.pointReviews === 'object') ? c.pointReviews : {};
+  const pts = stkMerge(stkAll(c, b, ctx), ctx).map(p => {
+    p.key = stkPointKey(p, ctx.nums);
+    p.done = seen[p.key] || null;
+    p.afterAt = p.missing && p.after ? stkRowFor({ clause: p.after }, ctx.nums || []) : -1;
+    p._place = p.at >= 0 ? p.at : p.afterAt >= 0 ? p.afterAt + 0.5 : 1e9;
+    p._qat = stkQuoteAt(p, ctx);
+    return p;
+  });
+  return pts.sort((a, z) => (a._place - z._place) || ((STK_RANK[z.status] || 0) - (STK_RANK[a.status] || 0)) || (a._qat - z._qat) || (a._seq - z._seq));
+}
+/* the three counts: live points only — a reviewed one counts nowhere */
+function stkCounts(list){
+  const n = { need: 0, look: 0, note: 0 };
+  (list || []).forEach(p => { if (!p.done && p.status in n) n[p.status]++; });
+  return n;
+}
+/* THE NUMBER ON THE CLAUSES TAB (21 Oct 2026: "the number on the door
+   matches the list behind it"): the points that need you, or null while there
+   is no reading — the paper's own marks are then what the list shows */
+function stkNeedCount(c){
+  const b = stkOf(c); if (!b) return null;
+  let ctx = null;
+  if (_stk.id === String(c.id) && _stk.rows) ctx = { rows: _stk.rows, nums: _stk.nums };
+  else {
+    const cv = typeof document !== 'undefined' ? document.getElementById('ig-canvas') : null;
+    const rows = (cv && typeof docXrayRows === 'function') ? (docXrayRows(c, cv) || []) : [];
+    ctx = { rows, nums: stkNumsOf(rows) };
+  }
+  return stkCounts(stkReview(c, b, ctx)).need;
+}
+const stkKeep = (p, f) => (!f.reg || String(p.region || 0) === f.reg) && (!f.sev || p.status === f.sev) && (!f.by || (p.bys || [p.by]).includes(f.by));
 const stkFiltering = () => !!(_stk.f.reg || _stk.f.sev || _stk.f.by);
-/* what is on screen: the points the filters keep — the deep dive walks these */
-function stkShown(c, b){ return stkAll(c, b).filter(p => stkKeep(p, _stk.f)); }
+/* what is on screen: the points the filters keep, in the list's order — the deep dive walks these */
+function stkShown(c, b){ return stkReview(c, b).filter(p => stkKeep(p, _stk.f)); }
 /* A CHOICE THAT GIVES NOTHING IS NOT LISTED (the owner's rule): each box offers
    only what this contract's points hold */
 function stkFiltersHtml(b, all){
@@ -182,7 +274,7 @@ function stkFiltersHtml(b, all){
   const regs = [...new Set(all.map(p => Number(p.region) || 0).filter(r => r > 0 && (b.regions || [])[r - 1]))].sort((x, y) => x - y)
     .map(r => ({ v: String(r), t: b.regions[r - 1].name }));
   const sevs = STK_SEVS.filter(v => all.some(p => p.status === v)).map(v => ({ v, t: i18t('bd_st_' + v) }));
-  const bys = STK_BY.filter(v => all.some(p => p.by === v)).map(v => ({ v, t: i18t('stk_by_' + v) }));
+  const bys = STK_BY.filter(v => all.some(p => (p.bys || [p.by]).includes(v))).map(v => ({ v, t: i18t('stk_by_' + v) }));
   return `<div class="stk-flts">${box('reg', 'stk_f_region', regs)}${box('sev', 'stk_f_sev', sevs)}${box('by', 'stk_f_by', bys)}</div>`;
 }
 /* OPENING CLAUSES IS THE PRESS: read once a sitting per wording; a refusal
@@ -196,12 +288,25 @@ function stkAutoRun(c){
   _bd.tried[k] = true;
   setTimeout(() => stkRun(c), 0);
 }
-function stkHeadHtml(c, b){
+/* THE HEAD'S NAME (owner said yes to the rename, 21 Oct 2026): "Clause
+   review", and in grey the ruling it keeps — one view for the whole company
+   (owner, 13 Oct 2026: "It should be one Overall Company view") */
+const stkViewHtml = extra => `<div class="stk-view"><b>${_bdE(i18t('stk_head'))}</b><span class="stk-view-sub">${_bdE(i18t('stk_view_sub'))}</span>${extra || ''}</div>`;
+/* THE THREE COUNTS ARE THE SUMMARY, AND EACH IS A DOOR onto the Severity
+   filter it names (one door: _stk.f.sev — pressed again it lets go). A count
+   of nothing is not offered (a choice that gives nothing is not listed). */
+function stkTallyHtml(all){
+  const n = stkCounts(all);
+  const doors = ['need', 'look', 'note'].filter(k => n[k]).map(k => { const on = _stk.f.sev === k;
+    return `<button type="button" class="stk-door${on ? ' is-on' : ''}" data-stk-sev="${k}" aria-pressed="${on ? 'true' : 'false'}"><i class="stk-d8 is-${k}" aria-hidden="true"></i>${_bdE(i18tn('stk_tally_' + k, n[k], { n: n[k] }))}</button>`; });
+  return `<div class="stk-tally" role="group" aria-label="${_bdE(i18t('stk_f_sev'))}">${doors.length ? doors.join('') : `<span class="stk-door is-none">${_bdE(i18t('stk_tally_none'))}</span>`}</div>`;
+}
+function stkHeadHtml(c, b, all){
   const busy = _bd.busy && _bd.runFor === c.id;
   const err = _bd.err && _bd.runFor === c.id ? _bd.err : '';
   if (!b){
     const noKey = !(typeof API_MODE === 'function' && API_MODE() && state.aiConfigured);
-    const view = `<div class="stk-view"><b>${_bdE(i18t('stk_view'))}</b></div>`;
+    const view = stkViewHtml();
     /* a private folder's contract is not read until somebody presses: said,
        with the same press and its cost (jamboOnPress) */
     const waits = !_bd.tried[stkKey(c)] && typeof jamboOnPress === 'function' && jamboOnPress(c);
@@ -209,73 +314,119 @@ function stkHeadHtml(c, b){
     const why = err || (noKey ? i18t('bd_no_key') : waits ? i18t('jb_wait_line') : i18t('stk_read_sub'));
     return `<div class="stk-head is-empty">${view}${waits && !err ? `<span class="jb-state">${_bdE(i18t('jb_state_private'))}</span>` : ''}<p class="${err ? 'stk-err' : 'stk-sub'}" role="${err ? 'alert' : 'status'}">${_bdE(why)}</p>${noKey ? '' : `<div class="stk-acts"><button type="button" class="ui-btn ui-btn-sm" data-stk-run>${_bdE(i18t(waits ? 'jb_read_now' : 'stk_again'))}</button><span class="stk-cost">${_bdE(i18t('bd_cost'))}</span></div>`}</div>`;
   }
-  /* AS DRAWN (owner, 13 Oct 2026): the title line and the three filters — the
-     summary, the colour ribbon and its key are gone */
-  const all = stkAll(c, b), pts = all.filter(p => stkKeep(p, _stk.f)), need = pts.filter(p => p.status === 'need').length;
+  /* AS DRAWN (owner said yes, 21 Oct 2026, "the Legora way"): the name, the
+     three counts as doors, then the three filters */
+  all = all || stkReview(c, b);
   return `<div class="stk-head">
-    <div class="stk-view"><b>${_bdE(i18t('stk_view'))}</b><span>${_bdE(i18tn('stk_points', pts.length, { n: pts.length }))}${need ? ' · ' + _bdE(i18t('stk_need_n', { n: need })) : ''}</span>${busy ? `<span class="stk-busy" role="status">${bdBusyHtml()}</span>` : ''}</div>
-    ${all.length ? stkFiltersHtml(b, all) : `<p class="stk-sub">${_bdE(i18t('stk_none'))}</p>`}
+    ${stkViewHtml(busy ? `<span class="stk-busy" role="status">${bdBusyHtml()}</span>` : '')}
+    ${all.length ? stkTallyHtml(all) + stkFiltersHtml(b, all) : `<p class="stk-sub">${_bdE(i18t('stk_none'))}</p>`}
     ${b.truncated ? `<p class="stk-sub">${_bdE(i18t('stk_cut'))}</p>` : ''}
     ${err ? `<p class="stk-err" role="alert">${_bdE(err)}</p>` : ''}</div>`;
 }
-const stkDiveBtn = i => `<button type="button" class="stk-go" data-stk-dive="${i}">${_bdE(i18t('stk_deep'))} ›</button>`;
-const stkLineHtml = (p, i) => `<div class="stk-line is-${p.status}${stkTone(p)}"><span class="stk-st">${_bdE(p.stake)}</span>${stkDiveBtn(i)}</div>`;
 /* the row a standard's finding sits on: the row whose wording holds its quote */
 function stkRowForQuote(q, rows){
   const n = _stkNorm(q).slice(0, 80); if (n.length < 12) return -1;
   return (rows || []).findIndex(x => x && x.row && _stkNorm((x.row.heading || '') + ' ' + (x.row.text || '')).includes(n));
 }
 const stkAt = (p, nums, rows) => p.missing ? -1 : (p._at != null ? p._at : p.by === 'std' ? stkRowForQuote(p.quote, rows) : stkRowFor(p, nums));
+/* WHY THIS READER MAY NOT MARK A POINT REVIEWED, or '' — the server's own
+   wall (editors only), said before the press */
+function stkReviewWhy(){ return (typeof canEdit === 'function' && !canEdit()) ? i18t('stk_review_viewer') : ''; }
+/* ---- THE POINT CARD (owner said yes, 21 Oct 2026, "the Legora way"; dressed
+   as The Brief draws a body — NOTHING BOXED: a 2px edge in the verdict's
+   colour on the left, a hairline between cards, no wash) ----
+   The verdict as a dot and a word, who found it; a short title; why it
+   matters; our standard where one is in play; then Start redlining (the
+   existing door, stkRedlineGo, greyed with its reason), Deep dive, and Mark
+   reviewed (the server's record; struck and "Reviewed · <name>" once done,
+   with Undo). */
+function stkCardHtml(c, p, i, redWhy){
+  const by = (p.bys || [p.by]).map(k => i18t('stk_by_' + k)).join(' · ');
+  const markWhy = stkReviewWhy(), busy = !!_stk.marking[p.key];
+  const dis = why => why ? ` disabled aria-disabled="true" title="${_bdE(why)}"` : '';
+  const mark = p.done
+    ? `<span class="stk-mk is-done"><i class="stk-ring is-on" aria-hidden="true"></i>${_bdE(i18t('stk_reviewed_by', { who: String(p.done.name || '').trim().split(/\s+/)[0] || i18t('stk_someone') }))}</span><button type="button" class="stk-a stk-undo" data-stk-unreview="${i}"${dis(markWhy)}${busy ? ' disabled' : ''}>${_bdE(i18t('stk_review_undo'))}</button>`
+    : `<button type="button" class="stk-a stk-mk" data-stk-review="${i}"${dis(markWhy)}${busy ? ' disabled' : ''}><i class="stk-ring" aria-hidden="true"></i>${_bdE(i18t('stk_mark_reviewed'))}</button>`;
+  const stake = String(p.stake || '').trim();
+  return `<div class="stk-line stk-card is-${p.status}${p.done ? ' is-done' : ''}" data-stk-key="${_bdE(p.key)}">
+    <div class="stk-c1"><i class="stk-d8 is-${p.status}" aria-hidden="true"></i><span class="stk-verd">${_bdE(i18t('bd_st_' + p.status))}</span><span class="stk-by">${_bdE(i18t('stk_found_by', { who: by }))}</span></div>
+    <div class="stk-ct">${_bdE(p.title || stake)}</div>
+    ${stake && stake !== p.title ? `<p class="stk-st">${_bdE(stake)}</p>` : ''}
+    ${p.stdPos && p.by !== 'std' ? `<div class="stk-std" title="${_bdE(p.stdPos)}">${_bdE(i18t('stk_our_std', { pos: p.stdPos }))}</div>` : ''}
+    <div class="stk-cacts"><button type="button" class="stk-a is-go" data-stk-redline="${i}"${dis(redWhy)}>${_bdE(i18t('stk_start_red'))} ›</button><button type="button" class="stk-a" data-stk-dive="${i}">${_bdE(i18t('stk_deep'))} ›</button><span class="stk-mks">${mark}</span></div></div>`;
+}
+/* the words at a row's right: the worst live verdict and how many, in its ink */
+function stkRowWords(live){
+  if (!live.length) return null;
+  const worst = live.reduce((a, p) => (STK_RANK[p.status] || 0) > (STK_RANK[a] || 0) ? p.status : a, '');
+  if (worst === 'need' || worst === 'look') return { worst, html: _bdE(i18t('stk_row_' + worst, { n: live.length })) };
+  if (worst === 'note') return { worst, html: _bdE(i18tn('stk_row_note', live.length, { n: live.length })) };
+  return null;
+}
 /* painted after the list's own paint, on Home only */
 function stkDecorate(c, card, rows){
   if (!c || !card) return;
-  if (_stk.id !== String(c.id)){ _stk.id = String(c.id); _stk.dive = -1; _stk.f = { reg: '', sev: '', by: '' }; _stk.mOpen = ''; }
+  if (_stk.id !== String(c.id)){ _stk.id = String(c.id); _stk.dive = -1; _stk.f = { reg: '', sev: '', by: '' }; }
   const b = stkOf(c);
   _stk.rows = rows || null;
-  _stk.nums = (rows || []).map(x => (typeof docThreadIsSec === 'function' && docThreadIsSec(x)) ? '' : stkNum(typeof docXrayLabel === 'function' ? docXrayLabel(x) : ''));
-  const shown = stkShown(c, b);
+  _stk.nums = stkNumsOf(rows || []);
+  const ctx = { rows: _stk.rows, nums: _stk.nums };
+  const all = b ? stkReview(c, b, ctx) : [];
+  const shown = all.filter(p => stkKeep(p, _stk.f));
   if (_stk.dive >= 0 && !shown[_stk.dive]) _stk.dive = -1;
   if (!b) stkAutoRun(c);
   let head = card.querySelector('.stk-head-slot');
   const top = card.querySelector('.doc-th-top');
   if (!head && top){ head = document.createElement('div'); head.className = 'stk-head-slot'; top.after(head); }
-  if (head) head.innerHTML = stkHeadHtml(c, b);
+  if (head){ head.innerHTML = stkHeadHtml(c, b, all);
+    /* the filters wear HaTi's own select face (the one dresser) */
+    if (typeof selectFaceDress === 'function') try { selectFaceDress(head); } catch (_){} }
   card.querySelectorAll('.stk-line, .stk-miss, .stk-rsq, .stk-nomatch').forEach(el => el.remove());
   card.querySelectorAll('.stk-hide').forEach(el => el.classList.remove('stk-hide'));
-  card.querySelectorAll('.stk-b-need, .stk-b-look, .stk-b-note').forEach(el => el.classList.remove('stk-b-need', 'stk-b-look', 'stk-b-note'));
+  card.querySelectorAll('.stk-b-need, .stk-b-look, .stk-b-note, .stk-b-none').forEach(el => el.classList.remove('stk-b-need', 'stk-b-look', 'stk-b-note', 'stk-b-none'));
   const list = card.querySelector('.doc-th-rows');
-  /* THE OLDER MARKS' TONE STAYS: every mark that colours a dot is now a
-     point under its clause (stkMarkPoints), so the dot explains itself */
   if (b && list){
     const nums = _stk.nums;
-    /* each row says how many of the points on screen stand on it. NO SECTION
-       SQUARE after the name (owner, 13 Oct 2026: "remove these green dots as no
-       one knows what they are for"; `.stk-rsq` STALE) — the Section filter
-       says which section a point is in */
-    const onRow = {}, worstOn = {};
-    shown.forEach(p => { const at = stkAt(p, nums, rows); if (at < 0) return;
-      onRow[at] = (onRow[at] || 0) + 1;
-      const rank = { need: 3, look: 2, note: 1 };
-      if ((rank[p.status] || 0) > (rank[worstOn[at]] || 0)) worstOn[at] = p.status; });
-    /* THE DOT WEARS ITS CLAUSE'S WORST POINT (owner, 13 Oct 2026): red when a
-       point needs you, amber when the worst is worth a look — the older marks'
-       tone stays where it is worse; the paper's own track is not touched */
-    Object.keys(worstOn).forEach(at => { const r = list.querySelector(`[data-th-row="${at}"]`); if (r) r.classList.add('stk-b-' + worstOn[at]); });
+    const byRow = {};
+    shown.forEach((p, i) => { if (p.at >= 0) (byRow[p.at] = byRow[p.at] || []).push(i); });
+    const redWhy = stkRedlineWhy(c);
     nums.forEach((n, at) => {
       const row = list.querySelector(`[data-th-row="${at}"]`); if (!row || !n) return;
+      const mine = (byRow[at] || []).map(i => shown[i]);
+      /* THE DOT WEARS ITS CLAUSE'S WORST POINT STILL OPEN; none, or every one
+         reviewed, is an empty ring (the old marks are points now, so the
+         paper's own tone no longer outranks the reading) */
+      const words = stkRowWords(mine.filter(p => !p.done && p.status !== 'fine'));
+      row.classList.add('stk-b-' + (words ? words.worst : 'none'));
+      /* THE ROW SAYS A WORD AND A COUNT ("Needs you · 2", "2 notes"), then
+         its Plain English state after a separator ("· read") */
       const st = row.querySelector('[data-th-state]');
-      /* the row's count is its points; its Plain English state (Reading… · Read) stays the list's own */
       if (st){
-        st.querySelectorAll('.is-ruby, .is-amber, .is-steel, .stk-n').forEach(el => el.remove());
-        if (onRow[at]) st.insertAdjacentHTML('afterbegin', `<span class="stk-n">${_bdE(i18tn('stk_review', onRow[at], { n: onRow[at] }))}</span>`);
+        st.querySelectorAll('.th-marks, .stk-n, .doc-th-dot').forEach(el => el.remove());
+        const rest = [...st.children];
+        rest.forEach(el => { if (el.classList.contains('is-read') && words){ el.classList.add('stk-read'); el.textContent = i18t('stk_read_after'); } });
+        const parts = (words ? [`<span class="stk-n is-${words.worst}">${words.html}</span>`] : []).concat(rest.map(el => el.outerHTML));
+        st.innerHTML = parts.join('<span class="doc-th-dot"> · </span>');
       }
+      /* the open clause's cards, in the one order (stkReview), drawn once */
+      if (mine.length){ const h = row.querySelector('.doc-th-head');
+        if (h) h.insertAdjacentHTML('afterend', (byRow[at] || []).map(i => stkCardHtml(c, shown[i], i, redWhy)).join('')); }
     });
-    const miss = [], other = [];
-    shown.forEach((p, i) => {
-      if (p.missing){ miss.push(i); return; }
-      const at = stkAt(p, nums, rows);
-      const row = at >= 0 ? list.querySelector(`[data-th-row="${at}"] .doc-th-head`) : null;
-      if (row) row.insertAdjacentHTML('afterend', stkLineHtml(p, i)); else other.push(i);
+    /* ---- WHAT THE CONTRACT DOES NOT SAY STANDS WHERE IT WOULD GO (owner
+       said yes, 21 Oct 2026): a dashed row "After §N — not in the contract"
+       after the clause the point names, its card always open; one that names
+       no clause, and a point about a clause the list does not show, stand at
+       the end under their own words — never dropped, never guessed ---- */
+    const groups = new Map();
+    shown.forEach((p, i) => { if (p.at >= 0) return;
+      const g = p.missing ? (p.afterAt >= 0 ? 'a' + p.afterAt : 'm') : 'o';
+      if (!groups.has(g)) groups.set(g, []); groups.get(g).push(i); });
+    groups.forEach((ids, g) => {
+      const at = g[0] === 'a' ? Number(g.slice(1)) : -1;
+      const h = at >= 0 ? i18t('stk_missing_after', { n: nums[at] || '' }) : g === 'm' ? i18t('stk_missing_end') : i18t('stk_other_h', { n: ids.length });
+      const html = `<div class="stk-miss${g === 'o' ? ' is-other' : ''}" role="listitem"><div class="stk-miss-h">${_bdE(h)}</div>${ids.map(i => stkCardHtml(c, shown[i], i, redWhy)).join('')}</div>`;
+      const row = at >= 0 ? list.querySelector(`.doc-th-row[data-th-row="${at}"]`) : null;
+      if (row) row.insertAdjacentHTML('afterend', html); else list.insertAdjacentHTML('beforeend', html);
     });
     /* A FILTER NARROWS THE LIST: a row with nothing the filters keep steps
        aside, AN OPEN ONE TOO (owner, 13 Oct 2026: an open clause stayed in a
@@ -283,21 +434,15 @@ function stkDecorate(c, card, rows){
        track is untouched */
     if (stkFiltering()){
       list.querySelectorAll('.doc-th-row, .doc-th-sec').forEach(el => {
-        if (el.classList.contains('doc-th-row') && onRow[Number(el.getAttribute('data-th-row'))]) return;
+        if (el.classList.contains('doc-th-row') && byRow[Number(el.getAttribute('data-th-row'))]) return;
         el.classList.add('stk-hide');
       });
       if (!shown.length) list.insertAdjacentHTML('beforeend', `<p class="stk-nomatch" role="status">${_bdE(i18t('stk_f_none'))}</p>`);
     }
-    /* a point about a clause the list does not show is never dropped, and never
-       called missing: it stands under its own heading with its clause named */
-    const group = (key, ids, dashed) => ids.length ? `<div class="stk-miss" role="listitem"><div class="stk-miss-h">${_bdE(i18t(key, { n: ids.length }))}</div>${ids.map(i => {
-      const p = shown[i];
-      /* its box opens on a press of its title, like a clause's (owner, 13 Oct 2026) */
-      const key = (dashed ? 'm:' : 'o:') + p.title, on = _stk.mOpen === key;
-      return `<div class="stk-miss-row${on ? ' is-open' : ''}"><span class="stk-miss-bead${dashed ? '' : ' is-other'}" aria-hidden="true"></span><div><button type="button" class="stk-miss-t" data-stk-mopen="${_bdE(key)}" aria-expanded="${on ? 'true' : 'false'}">${p.clause && !dashed ? _bdE(p.clause) + ' · ' : ''}${_bdE(p.title)}</button>${stkLineHtml(p, i)}</div></div>`; }).join('')}</div>` : '';
-    list.insertAdjacentHTML('beforeend', group('stk_other_h', other, false) + group('stk_missing_h', miss, true));
   }
   stkDivePaint(c, card);
+  /* the tab's number is this reading's "need you" (pdTabCount → stkNeedCount) */
+  if (typeof pdTabCountPaint === 'function') try { pdTabCountPaint('doc', c); } catch (_){}
 }
 /* TWO STEPS (owner, 13 Oct 2026): the list read leaves a point's deep dive
    for its own small read, asked on the press of Deep dive and kept on the
@@ -397,9 +542,12 @@ function stkRedlineWhy(c){
   if (typeof negoWordingFrozen === 'function' && negoWordingFrozen(c)) return i18t('ce_wording_frozen');
   return '';
 }
+/* a card's own "Start redlining ›" passes its point (`opts.at`, the list's
+   order); the deep dive's passes none and means the point it shows */
 function stkRedlineGo(c, opts){
   if (stkRedlineWhy(c)) return;
-  const b = stkOf(c), p = b && _stk.dive >= 0 ? stkShown(c, b)[_stk.dive] : null;
+  const at = opts && Number.isInteger(opts.at) ? opts.at : _stk.dive;
+  const b = stkOf(c), p = b && at >= 0 ? stkShown(c, b)[at] : null;
   let clauseId = '';
   if (p && !p.missing && _stk.rows){
     const at = stkAt(p, _stk.nums || [], _stk.rows), x = at >= 0 ? _stk.rows[at] : null;
@@ -408,13 +556,41 @@ function stkRedlineGo(c, opts){
   if (typeof rlCameFromSet === 'function') rlCameFromSet({ id: String(c.id), dive: _stk.dive, f: { ..._stk.f } });
   if (typeof openRedlineWorkbench !== 'function') return;
   const q = opts && opts.question ? String(opts.question) : '';
-  openRedlineWorkbench(c.id, { from: 'clauses', land: p && !p.missing ? { clauseId, quote: String(p.quote || ''), num: stkNum(p.clause), ask: q ? '' : String(p.ask || ''), question: q } : null });
+  openRedlineWorkbench(c.id, { from: 'clauses', land: p && !p.missing ? { clauseId, quote: String(p.quote || ''), num: stkNum(p.clause) || ((_stk.nums || [])[p.at] || ''), ask: q ? '' : String(p.ask || p.stdAsk || ''), question: q } : null });
 }
 /* the way back puts the deep dive where the reader left it */
 function stkResume(f){
   if (!f || !f.id) return;
   _stk.id = String(f.id); _stk.dive = Number.isInteger(f.dive) ? f.dive : -1;
-  _stk.f = { reg: '', sev: '', by: '', ...(f.f || {}) }; _stk.mOpen = '';
+  _stk.f = { reg: '', sev: '', by: '', ...(f.f || {}) };
+}
+/* ---- MARK REVIEWED: THE SERVER WRITES IT (flow rule 8; owner said yes,
+   21 Oct 2026) ----
+   One route, POST /api/contracts/:id/points/:key/review ({undo} takes it
+   back): who and when on c.pointReviews, a line in the trail. The page only
+   shows what came back. Without a server (the demo in one browser) the same
+   record is kept on the contract here, with the same trail line. */
+async function stkMarkReviewed(c, p, undo){
+  if (!c || !p || !p.key || stkReviewWhy() || _stk.marking[p.key]) return;
+  const live = (typeof getContract === 'function' && getContract(c.id)) || c;
+  _stk.marking[p.key] = true; stkRepaint(live);
+  try {
+    if (typeof API_MODE === 'function' && API_MODE()){
+      const r = await api('contracts/' + encodeURIComponent(live.id) + '/points/' + encodeURIComponent(p.key) + '/review', 'POST', { undo: !!undo, title: String(p.title || '') });
+      live.pointReviews = (r && r.pointReviews && typeof r.pointReviews === 'object') ? r.pointReviews : {};
+      if (r && r.line) live.audit = (Array.isArray(live.audit) ? live.audit : []).concat([r.line]);
+    } else {
+      const u = (typeof currentUser === 'function' && currentUser()) || {};
+      const map = { ...(live.pointReviews || {}) };
+      if (undo) delete map[p.key]; else map[p.key] = { id: String(u.id || ''), name: String(u.name || ''), at: new Date().toISOString() };
+      live.pointReviews = map;
+      live.audit = (Array.isArray(live.audit) ? live.audit : []).concat([{ at: new Date().toISOString(), user: String(u.name || ''), action: 'Clause review',
+        detail: (undo ? 'Took back "reviewed" on: ' : 'Marked reviewed: ') + String(p.title || '') }]);
+      if (typeof persist === 'function') persist(live);
+    }
+  } catch (e){ if (typeof toast === 'function') toast((e && e.message) || i18t('stk_review_failed'), 'err'); }
+  delete _stk.marking[p.key];
+  stkRepaint((typeof getContract === 'function' && getContract(c.id)) || live);
 }
 function stkContract(){ return _stk.id && typeof getContract === 'function' ? getContract(_stk.id) : null; }
 /* light a point's words on the paper; a point with no words goes to its clause */
@@ -459,18 +635,22 @@ if (typeof document !== 'undefined' && !document._stkWired){
     const da = t.closest('[data-stk-dive-again]');
     if (da){ const b0 = stkOf(c), p = b0 ? stkShown(c, b0)[Number(da.getAttribute('data-stk-dive-again'))] : null;
       if (p){ delete _stk.diveErr[stkDiveKey(c, p)]; stkDivePaint(c); stkDiveFetch(c, p); } return; }
-    const mo = t.closest('[data-stk-mopen]');
-    if (mo){ const k = mo.getAttribute('data-stk-mopen'); _stk.mOpen = _stk.mOpen === k ? '' : k;
-      document.querySelectorAll('#pd-thread [data-stk-mopen]').forEach(b => { const on = b.getAttribute('data-stk-mopen') === _stk.mOpen;
-        b.setAttribute('aria-expanded', on ? 'true' : 'false'); const r = b.closest('.stk-miss-row'); if (r) r.classList.toggle('is-open', on); });
-      return; }
+    /* a count in the head is the Severity filter's door; pressed again it lets go */
+    const sv = t.closest('[data-stk-sev]');
+    if (sv){ const k = sv.getAttribute('data-stk-sev') || ''; _stk.f.sev = _stk.f.sev === k ? '' : k; _stk.dive = -1; stkRepaint(c);
+      const again = document.querySelector(`#pd-thread [data-stk-sev="${k}"]`); if (again && again.focus) again.focus({ preventScroll: true }); return; }
+    const rv = t.closest('[data-stk-review], [data-stk-unreview]');
+    if (rv){ if (rv.disabled) return; const b0 = stkOf(c), undo = rv.hasAttribute('data-stk-unreview');
+      const p = b0 ? stkShown(c, b0)[Number(rv.getAttribute(undo ? 'data-stk-unreview' : 'data-stk-review'))] : null;
+      if (p) stkMarkReviewed(c, p, undo); return; }
     const dv = t.closest('[data-stk-dive]');
     if (dv){ e.stopPropagation(); if (dv.disabled) return; stkDiveOpen(c, Number(dv.getAttribute('data-stk-dive'))); return; }
     if (t.closest('[data-stk-back]')){ stkDiveClose(c); return; }
     const b = stkOf(c);
     const sh = t.closest('[data-stk-show]');
     if (sh && b){ const k = Number(sh.getAttribute('data-stk-show')); stkShow(c, stkShown(c, b)[k], k); return; }
-    if (t.closest('[data-stk-redline]')){ stkRedlineGo(c); return; }
+    const rl = t.closest('[data-stk-redline]');
+    if (rl){ if (rl.disabled) return; const v = rl.getAttribute('data-stk-redline'); stkRedlineGo(c, v ? { at: Number(v) } : undefined); return; }
     const ak = t.closest('[data-stk-ask]');
     if (ak && b){ const p = stkShown(c, b)[Number(ak.getAttribute('data-stk-ask'))];
       /* A WHOLE QUESTION, NOT A STUB (owner, 13 Oct 2026: "the question posed is
@@ -509,4 +689,4 @@ if (typeof document !== 'undefined' && !document._stkWired){
   });
 }
 
-Object.assign(window, { stkRedlineGo, stkResume, stkDecorate, stkOf, stkRun, stkDiveOpen, stkDiveClose, bdOf, bdStale, bdRun });
+Object.assign(window, { stkRedlineGo, stkResume, stkDecorate, stkOf, stkRun, stkDiveOpen, stkDiveClose, bdOf, bdStale, bdRun, stkReview, stkNeedCount, stkMarkReviewed, stkPointKey });

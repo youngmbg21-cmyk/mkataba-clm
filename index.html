@@ -11561,6 +11561,71 @@
   .stk-line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:start;margin:0 6px 8px 2px;padding:9px 10px;border-radius:6px;
     background:var(--surface-2,var(--color-surface));font-size:var(--t-meta);line-height:1.45}
   .stk-line.is-need{background:var(--st-ruby-bg)} .stk-line.is-look{background:var(--st-amber-bg)} .stk-line.is-note{background:var(--st-steel-bg)}
+  /* ==== CLAUSE REVIEW, THE LEGORA WAY (owner said yes, 21 Oct 2026; drawn in design round 1, "If Legora drew it") ====
+     The head: "Clause review" + its grey sub, then the three counts as doors onto Severity (a dot and a
+     word, no box). A row: the 8px dot of its worst open point, then a word and a count in that verdict's
+     ink, then "· read". A POINT CARD IS NOT A BOX (The Brief, 21 Oct 2026: nothing boxed inside the
+     body): a 2px edge in the verdict's colour, a hairline between cards, no wash, no corners. A point
+     the contract lacks stands in a dashed row after the clause it would follow. Chambers: radius 2/3,
+     a status is a dot and a word, numbers plain. Scoped to the panel's card, later in source. */
+  .pd-th .stk-view{justify-content:flex-start;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .pd-th .stk-view b{font-family:var(--font-title);font-weight:var(--w-title-serif,var(--w-title));font-size:var(--t-body);color:var(--color-text)}
+  .pd-th .stk-view .stk-view-sub{font-size:var(--t-meta);color:var(--color-neutral-500)}
+  .pd-th .stk-view .stk-busy{margin-left:auto}
+  .pd-th .stk-tally{display:flex;flex-wrap:wrap;align-items:center;gap:4px 16px}
+  .pd-th .stk-door{display:inline-flex;align-items:center;gap:6px;padding:0;border:0;background:none;font:inherit;font-size:var(--t-meta);font-weight:var(--w-body);color:var(--color-text);cursor:pointer;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .pd-th button.stk-door:hover{text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--rule-strong)}
+  .pd-th .stk-door.is-on{font-weight:var(--w-strong);text-decoration:underline;text-underline-offset:3px}
+  .pd-th .stk-door.is-none{cursor:default;color:var(--color-neutral-500)}
+  .pd-th .stk-door:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:2px}
+  .pd-th .stk-d8{display:inline-block;flex:none;width:8px;height:8px;border-radius:50%;background:var(--color-neutral-400)}
+  .pd-th .stk-d8.is-need{background:var(--st-ruby-dot)} .pd-th .stk-d8.is-look{background:var(--st-amber-dot)}
+  .pd-th .stk-d8.is-note{background:var(--st-steel-dot)} .pd-th .stk-d8.is-fine{background:var(--st-green-dot)}
+  /* the filters in HaTi's own face: one control tall, the house corner */
+  .pd-th .stk-flt select{height:var(--ctl-h-sm);border-radius:var(--radius);border-color:var(--rule-strong);font-size:var(--t-meta);font-weight:var(--w-body)}
+  /* the row's dot: 8px, centred where the 12px bead stood; the worst OPEN point wins over the paper's old tone */
+  .pd-th .doc-th-rows .doc-th-row .doc-th-bead{left:3px;top:13px;width:8px;height:8px;border-width:1px}
+  .pd-th .doc-th-rows .doc-th-row.stk-b-need .doc-th-bead{background:var(--st-ruby-dot);border-color:var(--st-ruby-dot)}
+  .pd-th .doc-th-rows .doc-th-row.stk-b-look .doc-th-bead{background:var(--st-amber-dot);border-color:var(--st-amber-dot)}
+  .pd-th .doc-th-rows .doc-th-row.stk-b-note .doc-th-bead{background:var(--st-steel-dot);border-color:var(--st-steel-dot)}
+  .pd-th .doc-th-rows .doc-th-row.stk-b-none .doc-th-bead{background:var(--color-surface);border-color:var(--rule-strong)}
+  .pd-th .doc-th-state .stk-n.is-need{color:var(--st-ruby-fg)} .pd-th .doc-th-state .stk-n.is-look{color:var(--st-amber-fg)}
+  .pd-th .doc-th-state .stk-n.is-note{color:var(--color-neutral-600)}
+  .pd-th .doc-th-state .stk-read{color:var(--color-neutral-500)}
+  /* THE CARD: an edge, not a box */
+  .pd-th .stk-line.stk-card{position:relative;display:block;margin:0 6px 0 2px;padding:10px 0 10px 12px;border:0;border-radius:0;background:none;font-size:var(--t-body);line-height:20px}
+  .pd-th .stk-line.stk-card::before{content:'';position:absolute;left:0;top:10px;bottom:10px;width:2px;background:var(--color-neutral-400)}
+  .pd-th .stk-card.is-need::before{background:var(--st-ruby-dot)} .pd-th .stk-card.is-look::before{background:var(--st-amber-dot)}
+  .pd-th .stk-card.is-note::before{background:var(--st-steel-dot)} .pd-th .stk-card.is-fine::before{background:var(--st-green-dot)}
+  .pd-th .stk-card.is-done::before{background:var(--rule-strong)}
+  .pd-th .stk-card + .stk-card{border-top:1px solid var(--color-divider)}
+  .pd-th .doc-th-row > .stk-card:last-of-type{margin-bottom:6px}
+  .pd-th .stk-c1{display:flex;align-items:center;gap:6px;min-width:0;font-size:var(--t-label);line-height:16px}
+  .pd-th .stk-verd{font-weight:var(--w-label);white-space:nowrap}
+  .pd-th .stk-card.is-need .stk-verd{color:var(--st-ruby-fg)} .pd-th .stk-card.is-look .stk-verd{color:var(--st-amber-fg)}
+  .pd-th .stk-card.is-note .stk-verd{color:var(--st-steel-fg)} .pd-th .stk-card.is-fine .stk-verd{color:var(--st-green-fg)}
+  .pd-th .stk-card.is-done .stk-d8{background:var(--rule-strong)}
+  .pd-th .stk-card.is-done .stk-verd{color:var(--color-neutral-500);text-decoration:line-through}
+  .pd-th .stk-by{margin-left:auto;min-width:0;color:var(--color-neutral-500);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pd-th .stk-ct{margin-top:4px;font-weight:var(--w-strong);color:var(--color-text)}
+  .pd-th .stk-card .stk-st{margin:2px 0 0;color:var(--color-text);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+  .pd-th .stk-std{margin-top:2px;font-size:var(--t-meta);color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pd-th .stk-cacts{display:flex;flex-wrap:wrap;align-items:center;gap:4px 16px;margin-top:6px;min-height:var(--ctl-h-sm)}
+  .pd-th .stk-a{display:inline-flex;align-items:center;gap:6px;padding:0;border:0;background:none;font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;cursor:pointer}
+  .pd-th .stk-a.is-go{color:var(--accent-ink)}
+  .pd-th .stk-a:hover:not(:disabled){text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--rule-strong)}
+  .pd-th .stk-a:disabled{color:var(--color-neutral-500);cursor:not-allowed}
+  .pd-th .stk-a:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:2px}
+  .pd-th .stk-mks{margin-left:auto;display:inline-flex;align-items:center;gap:12px}
+  .pd-th .stk-mk{font-size:var(--t-meta);font-weight:var(--w-body);color:var(--color-neutral-600);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  .pd-th .stk-mk.is-done{color:var(--st-green-fg);font-weight:var(--w-label)}
+  .pd-th .stk-ring{display:inline-block;flex:none;width:12px;height:12px;box-sizing:border-box;border-radius:50%;border:1px solid var(--rule-strong);background:var(--color-surface)}
+  .pd-th .stk-ring.is-on{background:var(--st-green-dot);border-color:var(--st-green-dot)}
+  /* WHAT THE CONTRACT DOES NOT SAY, IN PLACE: a dashed row after its clause, its card always open */
+  .pd-th .stk-miss{position:relative;margin:4px 6px 6px 24px;padding:8px 10px 2px;border:1px dashed var(--rule-strong);border-radius:var(--radius-lg)}
+  .pd-th .stk-miss .stk-miss-h{padding:0;font-size:var(--t-label);line-height:16px;font-weight:var(--w-label);color:var(--color-neutral-600)}
+  .pd-th .stk-miss .stk-line.stk-card{margin:0}
+  .pd-th .stk-miss.is-other{border-style:solid;border-color:var(--color-divider)}
   /* A POINT'S BOX SHOWS ONLY UNDER THE OPEN CLAUSE (owner, 13 Oct 2026: "only … once you click on the clause header") */
   .pd-th .doc-th-row:not(.is-open) > .stk-line, .pd-th .stk-miss-row:not(.is-open) .stk-line{display:none}
   /* THE DOT WEARS ITS CLAUSE'S WORST POINT (owner, 13 Oct 2026) */

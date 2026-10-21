@@ -81,7 +81,7 @@ const BREAKDOWN = { head: 'Fix the cap first', sub: 'Their cover stops at three 
       const row = await until(page, () => !!document.querySelector('#pd-thread .doc-th-row [data-stk-dive="0"]'), null, 15000);
       if (!row) return null;
       await page.evaluate(() => document.querySelector('#pd-thread .doc-th-row [data-stk-dive="0"]').click());
-      return until(page, () => { const r = document.querySelector('#pd-thread [data-stk-redline]'), a = document.querySelector('#pd-thread [data-stk-ask]');
+      return until(page, () => { const r = document.querySelector('#pd-thread .stk-dv [data-stk-redline]'), a = document.querySelector('#pd-thread .stk-dv [data-stk-ask]');  /* the DIVE's (a card in the list carries one too since 21 Oct 2026) */
         return r && a ? { dead: r.disabled, why: r.getAttribute('title') || '' } : null; }, null, 8000);
     };
     const cursorIn = (page, id) => until(page, id => { const el = document.getElementById(id); if (!el || document.activeElement !== el) return null;

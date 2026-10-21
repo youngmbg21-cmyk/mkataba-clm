@@ -4926,6 +4926,45 @@ app.post('/api/contracts/:id/arrival', auth, editor, (req, res) => {
   res.json({ claimed: true });
 });
 
+/* ---- MARK REVIEWED — A POINT ON CLAUSE REVIEW, LOOKED AT BY A PERSON
+   (owner said yes, 21 Oct 2026, "the Legora way" for the Clauses tab) ----
+   One person's word that they looked at one of Jambo's points (or a
+   standard's, a scan's, the brief's) and it needs nothing more. It is a
+   RECORD THE SERVER WRITES (flow rule 8): who and when, per point, on the
+   contract's own `pointReviews` map, and a line in the trail. The point is
+   named by its KEY — a hash of its clause and its quoted words, made by the
+   page (stkPointKey) — so a re-read of the same wording keeps the tick, and a
+   changed wording makes a new key and the tick drops by itself. The key is
+   clamped to that shape; the title rides only into the trail's sentence.
+   Editors only, inside folderScopeFor. Like `here`, it is this route's alone
+   (the PUT keeps the stored map) and it never travels (the share strip below).
+   JSON only, never `version`: a tick is not an edit of the agreement. */
+const PT_REVIEW_KEY_RE = /^p[a-z0-9]{4,24}$/;
+const PT_REVIEW_MAX = 500;
+app.post('/api/contracts/:id/points/:key/review', auth, editor, (req, res) => {
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  const key = String(req.params.key || '');
+  if (!PT_REVIEW_KEY_RE.test(key)) return res.status(400).json({ error: 'That point could not be found.' });
+  let c = {}; try { c = JSON.parse(row.json) || {}; } catch (_) { return res.status(409).json({ error: 'Contract not readable' }); }
+  const b = req.body || {}, undo = b.undo === true;
+  const title = String(b.title == null ? '' : b.title).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160) || 'a point';
+  const map = (c.pointReviews && typeof c.pointReviews === 'object' && !Array.isArray(c.pointReviews)) ? { ...c.pointReviews } : {};
+  const had = !!map[key];
+  if (undo ? !had : had) return res.json({ pointReviews: map, line: null });
+  if (undo) delete map[key];
+  else {
+    if (Object.keys(map).length >= PT_REVIEW_MAX) return res.status(409).json({ error: 'This contract holds as many reviewed points as it can.' });
+    map[key] = { id: String(req.user.id || ''), name: String(req.user.name || ''), at: now() };
+  }
+  const line = { at: now(), user: req.user.name || '', action: 'Clause review',
+    detail: undo ? `Took back "reviewed" on: ${title}` : `Marked reviewed: ${title}` };
+  const next = { ...c, audit: (Array.isArray(c.audit) ? c.audit : []).concat([line]) };
+  if (Object.keys(map).length) next.pointReviews = map; else delete next.pointReviews;
+  db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(next), req.params.id);
+  res.json({ pointReviews: map, line });
+});
+
 /* ---------- executed records are immutable ----------
    A signature is a claim about a specific document. If the document, its
    frozen copy, its value or its parties can still be changed afterwards, the
@@ -5168,6 +5207,10 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      a colleague arrived would echo back a map without them — taking somebody
      out of a room they are sitting in. The STORED map wins, always. */
   if (prev && prev.here) c.here = prev.here; else delete c.here;
+  /* ---- AND WHICH POINTS A PERSON MARKED REVIEWED (21 Oct 2026) ----
+     `pointReviews` is written by POST /api/contracts/:id/points/:key/review
+     and by nothing else — the same rule as `here`: the stored map wins. */
+  if (prev && prev.pointReviews) c.pointReviews = prev.pointReviews; else delete c.pointReviews;
   /* ---- AND WHETHER COPILOT STILL OWES IT ITS ARRIVAL READING (4 Oct 2026) ----
      `arrivalOwed` is written by a lane's mint and cleared by POST
      /api/contracts/:id/arrival, and by nothing else — the same rule as
@@ -18192,7 +18235,8 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
        stripped here as well because an allow-list holds only until somebody
        adds a field — the discipline the brief beside it keeps. */
     delete payload.contract.here;
-    delete payload.contract.arrivalOwed;        // a lane's bookkeeping is ours (4 Oct 2026)
+    delete payload.contract.pointReviews;       // which points we marked reviewed is ours (21 Oct 2026)
+    delete payload.contract.arrivalOwed;       // a lane's bookkeeping is ours (4 Oct 2026)
     delete payload.contract._readings;          // idea 7: our plain-English reading of their paper is ours
     delete payload.contract._roundPrep; }       // Copilot's answers to their round are ours alone
   /* 'word' joined the list on 13 Sep 2026: the round travels as an attached
