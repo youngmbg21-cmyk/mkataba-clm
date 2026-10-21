@@ -46,7 +46,9 @@ const check = (name, pass, detail) => {
     await until(() => window._intakeState && _intakeState.loaded, null, 10000);
     const days = await page.evaluate(() => {
       const me = currentUser(), at = n => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString(); };
-      _intakeState.list = [
+      /* the list is kept on window so a late load of the real one (a slow runner) can be answered by laying it
+         back down (21 Oct 2026: GitHub drew no rows once, the server's list landing after this one) */
+      window.__ikList = _intakeState.list = [
         { id: 'REQ-1042', title: 'Mutual NDA with Kettle & Co', need: 'A mutual NDA first.', counterparty: 'Kettle & Co', status: 'open', createdAt: at(0), by: { id: 'u-sara', name: 'Sara Nyström' }, assignee: { id: me.id, name: me.name }, lane: 'NDA', files: [{ id: 'f1', name: 'pilot-brief.pdf', size: 240000 }] },
         { id: 'REQ-1039', title: 'Reseller agreement for Denmark', need: 'A reseller.', status: 'open', createdAt: at(3), by: { id: 'u-lina', name: 'Lina Ek' }, files: [] },
         { id: 'REQ-1037', title: 'Event venue booking', need: 'A venue.', status: 'accepted', createdAt: at(4), by: { id: 'u-lina', name: 'Lina Ek' }, assignee: { id: 'u-erik', name: 'Erik Ström' }, files: [{ id: 'f2', name: 'a.pdf', size: 1 }, { id: 'f3', name: 'b.pdf', size: 1 }] },
@@ -54,7 +56,8 @@ const check = (name, pass, detail) => {
       renderIntake();
       return { today: ikDay(at(0)) };
     });
-    await until(() => document.querySelectorAll('.ik-lt [data-ik-row]').length >= 3, null, 8000);
+    await until(() => { if (document.querySelectorAll('.ik-lt [data-ik-row]').length >= 3) return true;
+      if (window.__ikList && !_intakeState.list.some(r => r.id === 'REQ-1042')){ _intakeState.list = window.__ikList; renderIntake(); } return null; }, null, 8000);
     const T = await page.evaluate(() => ({
       heads: [...document.querySelectorAll('.ik-lt thead th')].map(t => t.textContent.trim()),
       rows: Object.fromEntries([...document.querySelectorAll('.ik-lt [data-ik-row]')].map(r => { const td = [...r.children];
