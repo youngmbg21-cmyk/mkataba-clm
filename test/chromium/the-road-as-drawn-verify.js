@@ -293,7 +293,8 @@ const dayAfter = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCD
       const N = await page.evaluate(() => { const s = document.getElementById('ig-strip'), t = s && s.querySelector('.ig-line-t'), p = s && s.querySelector('.ig-line-p');
         return { name: t ? t.scrollWidth <= t.clientWidth + 1 : null, party: p ? p.scrollWidth <= p.clientWidth + 1 : null, round: /round 3/.test((s.querySelector('.ig-line-st') || {}).textContent || ''), sc: !!s.querySelector('[data-ig-sc]'),
           side: document.documentElement.scrollWidth <= innerWidth + 1 }; });
-      check(`12d ${w}×${ht}: beside the signing copy, its page arrows and size, the name and the party stand whole`, N.name && N.party && N.round && N.sc && N.side, JSON.stringify(N));
+      /* RE-POINTED 21 Oct 2026: the line draws no party (the bar names it) */
+      check(`12d ${w}×${ht}: beside the signing copy, its page arrows and size, the name stands whole`, N.name && N.party === null && N.round && N.sc && N.side, JSON.stringify(N));
       await shot(page, `10-the-road-two-yeses-${w}x${ht}`);
     }
     await page.setViewportSize({ width: 1440, height: 780 }); await page.waitForTimeout(300);

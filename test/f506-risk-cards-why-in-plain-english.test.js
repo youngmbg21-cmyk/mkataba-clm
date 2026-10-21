@@ -78,10 +78,12 @@ describe('f506 (C) the card', () => {
   test('"Why" is its own press that opens Why it matters; the title is one line', () => {
     const row = RK.match(/function _rkRowHtml\(c, it\)\{[\s\S]*?\n\}/)[0];
     assert.match(row, /data-rk-act="why" aria-expanded="\$\{open\}"/);
-    assert.match(row, /_rkT\('rk_why_open'\)/);
-    assert.match(row, /_rkT\('ai_why_matters'\)/);
+    // WHY FIRST (21 Oct 2026): open on landing, the button reads Hide why, shut it reads Why
+    assert.match(row, /'rk_why_hide' : 'rk_why_open'/);
+    // the drawn card carries the reason alone, no "Why it matters" label over it
+    assert.doesNotMatch(row, /_rkT\('ai_why_matters'\)/);
     assert.match(row, /const why = riskWhyOf\(it\);/);
-    assert.match(RK, /if \(act === 'why'\)\{ _rk\.whyOpen\[key\] = !_rk\.whyOpen\[key\]; rkRepaint\(c\); return; \}/);
+    assert.match(RK, /if \(act === 'why'\)\{ _rk\.whyOpen\[key\] = _rk\.whyOpen\[key\] === false; rkRepaint\(c\); return; \}/);
     assert.match(read('js/risks.js'), /\.rk-row \.rk-top \.rk-t\{white-space:nowrap;overflow:hidden;text-overflow:ellipsis\}/);
     assert.match(read('js/risks.js'), /\.rk-why-btn\{margin-left:auto;/, 'at the right of the button row');
   });

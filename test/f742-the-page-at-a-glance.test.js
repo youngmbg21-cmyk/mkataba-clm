@@ -145,7 +145,8 @@ describe('f742 (2) the page itself, as drawn', () => {
     const s = strip({ contractStatusTextHtml: (c, more) => `<span class="room-stat">In Review${more ? ' · ' + more : ''}</span>`, igLineRound: () => 2, refHtml: c => `<span class="hati-ref">${c.id}</span>`, contractRef: c => c.id });
     s.book['MK-0382'] = { id: 'MK-0382', name: 'Master services agreement', counterparty: 'Nordvik', status: 'Under Review' };
     const h = s.bsStripHtml({ id: 'MK-0382', page: 'hist' }, { desk: true });
-    assert.match(h, /<span class="bs-ref"><span class="hati-ref">MK-0382<\/span> · Nordvik<\/span><span class="bs-stage"><span class="room-stat">In Review · round 2<\/span><\/span>/);
+    /* RE-POINTED 21 Oct 2026 (the report simplified): the title over "party · ref" (role where it is known), then the stage */
+    assert.match(h, /<span class="bs-ref">Nordvik · <span class="hati-ref">MK-0382<\/span><\/span><\/span><span class="bs-stage"><span class="room-stat">In Review · round 2<\/span><\/span>/);
   });
   test('2e the foot\'s first act is "Open the paper" (Svenska: "Öppna papperet")', () => {
     assert.equal(BOOKS.en.bs_open, 'Open the paper'); assert.equal(BOOKS.sv.bs_open, 'Öppna papperet');
@@ -164,10 +165,13 @@ describe('f742 (4) pass 3: how late, said once and alike', () => {
     const one = s.bsLifeData({ ...SUPPLY(), obligations: [{ id: 'o1', desc: 'Pay', party: 'ours', due: dayAt(-1), status: 'open' }] });
     assert.match(s.bsCaption(one), /\(Lindqvist & Co AB\), 1 day late\.$/);
   });
-  test('4b the Obligations table: Late first, then Next', () => {
+  test('4b no Obligations table; a late obligation is a Needs you row', () => {
     const s = strip();
+    /* RE-POINTED 21 Oct 2026 (the report simplified): no obligations table on the card; a late one is a
+       Needs you row read off the dossier's own Still owed (bsNeedsRows → dossierOf) */
     const h = s.bsLifeHtml(SUPPLY(), { id: 'MK-0377' });
-    assert.match(h, /<td>Check the September invoice<span class="bs-late">Late<\/span><span class="bs-nx">Next<\/span><\/td>/);
+    assert.doesNotMatch(h, /class="bs-ob"/);
+    assert.match(String(s.bsNeedsRows), /r\.kind === 'late'/);
   });
   test('4c both books', () => {
     for (const k of ['bs_cap_next_late_one', 'bs_cap_next_late_other']){ assert.ok(BOOKS.en[k], 'en ' + k); assert.ok(BOOKS.sv[k], 'sv ' + k); }

@@ -189,16 +189,17 @@ async function shot(page, name){ try{ await page.screenshot({ path: path.join(OU
     /* 2 — the titles */
     const tTerm = await page.evaluate(k => { const r = document.querySelector('#rl-risks .rk-row[data-rk-key="' + CSS.escape(k) + '"] .rk-t'); return r ? { text: r.textContent, hover: r.getAttribute('title') } : null; }, kTerm);
     check(!!tTerm && tTerm.text === 'Ended on 30 days\' notice', '2a a titled card shows its short title', tTerm && tTerm.text);
-    check(!!tTerm && tTerm.hover === T_SENT, '2b its hover is the whole sentence', tTerm && tTerm.hover);
-    await page.evaluate(k => document.querySelector('#rl-risks .rk-row[data-rk-key="' + CSS.escape(k) + '"] [data-rk-act="why"]').click(), kTerm);
+    /* RE-POINTED 21 Oct 2026 (Why first): the hover is the sentence, its source word after it */
+    check(!!tTerm && String(tTerm.hover || '').startsWith(T_SENT), '2b its hover is the whole sentence', tTerm && tTerm.hover);
+    /* RE-POINTED 21 Oct 2026 (Why first): the reason is open on landing, no press */
     const why = await until(page, k => { const w = document.querySelector('#rl-risks .rk-row[data-rk-key="' + CSS.escape(k) + '"] .rk-why'); return w ? w.textContent.replace(/\s+/g, ' ') : null; }, kTerm);
-    check(!!why && why.includes(T_SENT) && /You could lose the account/.test(why), '2c Why opens the sentence and why it matters', why);
+    check(!!why && why.includes(T_SENT) && /You could lose the account/.test(why), '2c the reason stands open on landing: the sentence and why it matters', why);
     const old = await page.evaluate(k => { const r = document.querySelector('#rl-risks .rk-row[data-rk-key="' + CSS.escape(k) + '"] .rk-t'); if (!r) return null; const cs = getComputedStyle(r);
       return { text: r.textContent, hover: r.getAttribute('title'), ellipsis: cs.textOverflow, one: cs.whiteSpace }; }, kDeliv);
     /* RE-POINTED 6 Oct 2026 (Young picked "Topic and Problem"): a brief from
        before titles is named from the topic HaTi reads in it, no new call;
        its whole sentence is on the hover */
-    check(!!old && / · /.test(old.text) && old.text.split(/\s+/).length <= 7 && old.hover === D_SENT && old.ellipsis === 'ellipsis' && old.one === 'nowrap', '2d an old-shape card is named "Topic · problem", its sentence on the hover', JSON.stringify(old));
+    check(!!old && / · /.test(old.text) && old.text.split(/\s+/).length <= 7 && String(old.hover || '').startsWith(D_SENT) && old.ellipsis === 'ellipsis' && old.one === 'nowrap', '2d an old-shape card is named "Topic · problem", its sentence on the hover', JSON.stringify(old));
     await shot(page, '1-titles-light.png');
 
     /* 3 — Discard then Bring back */

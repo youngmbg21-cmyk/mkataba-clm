@@ -124,11 +124,12 @@ describe('f445 (5) it is not a second door onto deciding', () => {
     assert.match(COMP, /function landOff\(\)\{[\s\S]*?classList\.remove\('is-landed'/);
     assert.match(COMP, /addEventListener\('pointerdown', \(\) => \{ if \(_land[^}]*landOff\(\)/);
   });
-  test('the ring costs the page no layout, and respects reduced motion', () => {
-    assert.match(INDEX, /\.is-landed:not\(#_\), \.rl-glow:not\(#_\)\{outline:/, 'an outline is drawn outside the box');
-    assert.doesNotMatch(chunk(INDEX, '.is-landed:not(#_), .rl-glow:not(#_){', '@keyframes hatiLand'), /margin|padding|border-width/,
-      'nothing that would move the card');
-    assert.match(INDEX, /prefers-reduced-motion: reduce\)\{ \.is-landed:not\(#_\), \.rl-glow:not\(#_\)\{animation:none/);
+  /* RE-POINTED 21 Oct 2026 (owner: "remove the feature when you land on page it
+     highlights or flashes"): the arrival draws nothing; Jambo's glowing button keeps its ring */
+  test('an arrival draws no light; it costs the page nothing', () => {
+    assert.match(INDEX, /\.is-landed:not\(#_\), \.is-landed-held:not\(#_\)\{outline:none;animation:none;\}/, 'no ring, no pulse');
+    assert.match(INDEX, /\.rl-glow:not\(#_\)\{outline:2px solid/, 'the suggestion keeps its ring');
+    assert.match(INDEX, /prefers-reduced-motion: reduce\)\{ \.rl-glow:not\(#_\)\{animation:none/);
   });
 });
 

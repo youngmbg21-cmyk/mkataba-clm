@@ -21266,3 +21266,10 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - The Dossier tab's number is the whole workspace's Needs you, not this contract's.
 - riskViewOpen still lands on the worst OLD mark, not the worst point.
 - The deep dive leaves its quote pinned on the paper after Back; its head band wears ten section hues outside Chambers.
+
+## 21 Oct 2026 — one conversation, the report simplified, why first
+- Removed (owner's picks, said to the owner): the Board report's stage bar, id line, five tiles, tall chart, obligations table and four Jambo tiles; the Dossier's grey lines under owed facts and "everything, one list"; the risk card's "Brief · …" line; the arrival light (pulse and ring) and the doors' own arrival flashes.
+- Noticed, not fixed: the Dossier's What Jambo read says "Risks to look at · not read yet" while the brief on file holds watch-outs the Board counts as risks (dossierRead reads c.scan only).
+- Noticed, not fixed: What Jambo read can say "0 Obligations found · 11 recorded" (found counts held readings only); the Board's report counts the larger of the two.
+- Noticed, not fixed: board-strip-verify's 6a clicks `.bs-sec-h [data-bs-page="details"]`, which an admin never sees (their Key terms door is Change beside the paper) — red on main too.
+- Noticed, not fixed: CLAUDE.md is 81.6 KB, over the ~80 KB rule; a trim needs the owner's yes.

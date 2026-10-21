@@ -152,7 +152,9 @@ describe('f840 (2) Home\'s panel', () => {
     ctx.intel.history.push({ role: 'assistant', text: 'late answer' });
     assert.equal(ctx.pdTalkSync(null), true, 'an answer coming turns it again, the same conversation');
   });
-  test('2c another contract lands fresh: what was said before is not drawn there', () => {
+  /* RE-POINTED 21 Oct 2026 (owner: "Jambo keeps ONE conversation across the whole app";
+     reverses "another contract lands fresh"): another contract draws the whole conversation */
+  test('2c another contract keeps the one conversation: what was said before is drawn there', () => {
     const { ctx } = pdStage();
     ctx.pdTalkSync(null);
     ctx.intel.history.push({ role: 'user', text: 'q' }, { role: 'assistant', text: 'a' });
@@ -162,8 +164,8 @@ describe('f840 (2) Home\'s panel', () => {
     const g = ctx.getContract; ctx.getContract = id => (id === 'MK-2' ? other : g(id));
     ctx.intel.paper = { id: 'MK-2' };
     assert.equal(ctx.pdTalkSync(null), false, 'the new page lands on its own panel');
-    assert.equal(ctx.pdTalkFrom(), 2, 'its conversation begins here');
-    assert.match(code(fnOf(IG, 'renderIntelDock')), /const msgs=talk\?intel\.history\.map\(\(m,i,a\)=>i<_from\?'':igMsgHTML\(m,i,a\)\)\.join\(''\):'';/, 'the dock draws from there');
+    assert.equal(ctx.pdTalkFrom(), 0, 'its conversation is the whole one');
+    assert.match(code(fnOf(IG, 'renderIntelDock')), /intel\.history\.map\(\(m,i,a\)=>\(typeof window\.jamboTurnHtml==='function'\)\?jamboTurnHtml\(m,i,a,'ig'\)/, 'the dock draws every turn');
   });
   test('2d the faces\' back says "‹ Dossier"; Before you send\'s back returns to the face it came from', () => {
     const { ctx } = pdStage();

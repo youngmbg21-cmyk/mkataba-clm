@@ -77,12 +77,13 @@ const B3 = { ...fixtureContract('MK-B3', 'Uploaded Listing Terms', 'Carrefour Ke
       const cell = k => { const c = s.querySelector(`[data-bs-jcell="${k}"]`); return c ? c.innerText.replace(/\s+/g, ' ') : ''; };
       return { state: (s.querySelector('.bs-jb-state') || {}).innerText, btn: (s.querySelector('[data-bs-go="read"]') || {}).innerText,
         cost: [...s.querySelectorAll('.bs-sec-h .bs-note')].map(n => n.innerText).join(' '), line: (s.querySelector('.bs-brief') || {}).innerText,
-        risks: cell('risks'), std: cell('std') };
+        risks: cell('risks'), std: cell('std'), counts: (s.querySelector('.bs-counts') || {}).innerText || '' };
     });
     check(up && sec && sec.state === 'Not read · private folder', '1b the section says it is not read, and why', sec && sec.state);
     check(!!sec && sec.btn === 'Read it now' && /About three Jambo calls/.test(sec.cost), '1c one press, Read it now, its cost beside it', sec && `${sec.btn} / ${sec.cost}`);
     check(!!sec && /only when one of its people asks/.test(sec.line || ''), '1d one sentence says why it waits', sec && sec.line);
-    check(!!sec && /—/.test(sec.risks) && /Not read yet/.test(sec.risks) && /Not read yet/.test(sec.std), '1e the readings it would fill say "Not read yet", not a count never taken', sec && `${sec.risks} | ${sec.std}`);
+    /* RE-POINTED 21 Oct 2026 (the report simplified): the readings are one counts line, not tiles */
+    check(!!sec && /Risks found — Not read yet/.test(sec.counts) && /Our standards — Not read yet/.test(sec.counts), '1e the readings it would fill say "Not read yet", not a count never taken', sec && sec.counts);
     check((await aiCalls()).length === 0, '1f bringing it up asked Jambo nothing', (await aiCalls()).join(','));
 
     /* ============ 2. NO DOOR READS IT UNASKED ============ */

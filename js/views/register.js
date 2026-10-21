@@ -1018,8 +1018,9 @@ function regNarrowed(R){
 function regSetScope(k){ REG_SCOPE = (k === 'negotiations') ? 'negotiations' : null; }
 /* `show` is HOW the Contracts place draws the one list (the overnight work
    order, step 7): 'wall' (the wall of papers) or 'list' (this table). It is a
-   way of LOOKING, like sort and density, so a door's fresh filters keep it. */
-const REG_SHOWS = ['wall','list'];
+   way of LOOKING, like sort and density, so a door's fresh filters keep it.
+   LIST FIRST (owner, 21 Oct 2026): the switch reads List | Wall, the default first. */
+const REG_SHOWS = ['list','wall'];
 const REG_STATE_DEF = () => ({query:'',stage:'all',type:'all',category:'all',signed:'all',payterms:'all',docs:'all',sort:'updated',dir:-1,page:1,sel:{},view:null,only:null,show:'list',ask:[]});
 /* A REFRESH LANDS WHERE YOU WERE (Young, 28 Sep 2026): what this page keeps
    across a reload, read by placeSave and put back by placeResume (js/app.js)

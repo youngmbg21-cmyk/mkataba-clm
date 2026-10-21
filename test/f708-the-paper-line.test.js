@@ -44,11 +44,15 @@ function stage(){
 }
 
 describe('f708 (1) who and what', () => {
-  test('1a the number, the name, the party, the stage pill', () => {
+  /* RE-POINTED 21 Oct 2026 (owner: "remove reference to the customer but keep the type of contract"): the party is the bar's */
+  test('1a the number, the kind of contract, no party, the stage pill', () => {
     const ctx = stage();
     assert.equal(typeof ctx.igLineIdHtml, 'function', 'igLineIdHtml exists');
     const html = ctx.igLineIdHtml({ name: 'Master services agreement', counterparty: 'Nordvik Logistik AB', status: 'Draft' }, 'MK-0382');
-    assert.match(html, /<b class="hati-ref">MK-0382<\/b><span class="ig-line-t">Master services agreement<\/span><span class="ig-line-p">Nordvik Logistik AB<\/span>/);
+    assert.match(html, /<b class="hati-ref">MK-0382<\/b><span class="ig-line-t">Master services agreement<\/span><\/span>/);
+    assert.ok(!/ig-line-p/.test(html), 'no party on the line');
+    ctx.bsShortName = c => String(c.name).replace(/\s+—\s+Nordvik Logistik AB$/, '');
+    assert.match(ctx.igLineIdHtml({ name: 'Master services agreement — Nordvik Logistik AB', counterparty: 'Nordvik Logistik AB', status: 'Draft' }, 'MK-0382'), /<span class="ig-line-t">Master services agreement<\/span>/, 'a name that ends in the party loses it on the line');
     assert.match(html, /<span class="ig-line-st"><span class="room-stat">Draft<\/span><\/span>/);
     assert.ok(!/ig-line-cn/.test(html), 'no code name, no mark');
   });

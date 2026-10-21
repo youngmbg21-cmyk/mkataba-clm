@@ -220,70 +220,44 @@ const OBS = [
     await pause(400);
     await shot('1-strip-1440');
 
-    /* ===== 2. THE SECTIONS AND THE NUMBERS, READ AGAINST THE RECORD ===== */
+    /* ===== 2. THE REPORT, SIMPLIFIED, READ AGAINST THE RECORD =====
+       RE-POINTED 21 Oct 2026 (owner: "the report seems too busy … simplified
+       but also useful"; "Three quieter surfaces", tab 3): one head, Needs you,
+       the deal in four facts on one thin line, Key terms, What Jambo read
+       once — no stage bar, no five tiles, no tall chart, no obligations table */
     const R = await page.evaluate(() => {
       const c = getContract('MK-L1'), el = document.getElementById('bs-strip-MK-L1');
       const t = s => ((el.querySelector(s) || {}).textContent || '').replace(/\s+/g, ' ').trim();
-      const kpi = k => { const x = el.querySelector(`[data-bs-kpi="${k}"]`); return x ? { n: x.querySelector('b').textContent.trim(), sub: x.querySelector('span').textContent.trim(), warn: x.classList.contains('is-warn'), bad: x.classList.contains('is-bad') } : null; };
-      const D = bsLifeData(c);
-      const ob = bsObRows(c);
-      const M = ov2Model(c);
-      const ds = dealStands(c), wm = negWhoseMove(c);
-      const terms = [...el.querySelectorAll('.bs-dl dt')].map((dt, i) => ({ k: dt.textContent.trim(), v: el.querySelectorAll('.bs-dl dd')[i].textContent.trim(), owed: el.querySelectorAll('.bs-dl dd')[i].classList.contains('is-owed'), amber: el.querySelectorAll('.bs-dl dd')[i].className }));
-      const box = el.querySelector('.bs-obs'), rows = [...el.querySelectorAll('.bs-ob tbody tr')];
-      const th = el.querySelector('.bs-ob th');
-      const svg = el.querySelector('.bs-chart');
+      const M = ov2Model(c), D = dossierOf(c);
+      const f = k => { const x = el.querySelector(`[data-bs-f="${k}"]`); return x ? { v: x.querySelector('b').textContent.trim(), sub: (x.querySelector('span') || {}).textContent || '', wrap: getComputedStyle(x.querySelector('b')).whiteSpace } : null; };
+      const terms = [...el.querySelectorAll('.bs-terms .bs-dl dt')].map((dt, i) => ({ k: dt.textContent.trim(), v: el.querySelectorAll('.bs-terms .bs-dl dd')[i].textContent.trim() }));
       return {
-        head: { title: t('.hb-ct'), ref: t('.bs-ref'), pill: t('.bs-head .hb-chip') || t('.bs-head .bs-stage'), dots: !!el.querySelector('[data-bs-dots]'), x: !!el.querySelector('[data-bs-x]') },
-        id: t('.bs-idline'), value: kpi('value'), term: kpi('term'), next: kpi('next'), notice: kpi('notice'), move: kpi('move'),
-        want: { value: fmtMoneyShortIn(3600000, contractCurrency(c)), from: bsDay(M.start), nextDay: bsDay(ob.next.due), nextWhat: ob.next.what, notice: bsDay(M.noticeBy), round: ds.round, open: ds.open, wm: wm.k,
-          ours: ob.ours, theirs: ob.theirs, n: ob.rows.length, risks: riskOpenOf(c).length, brief: triageBriefLine(c._brief), det: detailsOf(c).left, dev: deviationSummary(c) },
-        chart: svg ? { w: +svg.getAttribute('width'), term: !!svg.querySelector('.bs-seg-term'), notice: !!svg.querySelector('.bs-seg-notice'), nego: !!svg.querySelector('.bs-seg-nego'),
-          today: !!svg.querySelector('.bs-tick.is-today'), dots: svg.querySelectorAll('.bs-occ').length, ours: svg.querySelectorAll('.bs-occ.is-ours').length, theirs: svg.querySelectorAll('.bs-occ.is-theirs').length,
-          proj: svg.querySelectorAll('.bs-occ.is-proj').length, labels: [...svg.querySelectorAll('.bs-lab')].map(x => x.textContent), occ: D.life.occ.length } : null,
-        legend: t('.bs-lg'), cap: t('.bs-cap'),
-        nego: { span: D.life && D.life.nego ? [D.life.nego.a, D.life.nego.b].map(x => x.toISOString().slice(0, 10)) : null,
-          from: (c.changes || []).map(ch => ch.createdAt || ch.at || null).concat(((c.negotiation || {}).rounds || []).map(r => r.at || null)) },
+        head: { title: t('.bs-head .hb-ct'), ref: t('.bs-head .bs-ref'), pill: t('.bs-head .hb-chip') || t('.bs-head .bs-stage'), dots: !!el.querySelector('[data-bs-dots]'), x: !!el.querySelector('[data-bs-x]'),
+          openFilled: !!el.querySelector('.bs-head [data-bs-open].is-primary'), actFilled: !!el.querySelector('.bs-head [data-bs-act].is-primary') },
+        gone: { spine: !!el.querySelector('.ds-spine'), idline: !!el.querySelector('.bs-idline'), tiles: el.querySelectorAll('.bs-kpis').length, chart: !!el.querySelector('.bs-chart'), obTable: !!el.querySelector('.bs-ob'), cells: el.querySelectorAll('[data-bs-jcell]').length },
+        needs: { head: t('.bs-needs h5'), rows: [...el.querySelectorAll('.bs-nd')].map(r => ({ k: r.getAttribute('data-bs-nd'), t: r.querySelector('.bs-nd-t').firstChild.textContent.trim(), sub: (r.querySelector('small') || {}).textContent || '', go: (r.querySelector('[data-bs-go]') || {}).getAttribute ? r.querySelector('[data-bs-go]').getAttribute('data-bs-go') : '' })) },
+        owedN: D.owedN,
+        facts: { value: f('value'), ends: f('ends'), notice: f('notice'), renewal: f('renewal') },
+        line: [...el.querySelectorAll('.bs-line .bs-mk')].map(m => ({ w: m.textContent.trim(), below: m.classList.contains('is-below') })),
+        want: { value: fmtMoneyShortIn(3600000, contractCurrency(c)), ends: bsDay(M.end), notice: bsDay(M.noticeBy), today: bsDay(todayISO()), risks: riskOpenOf(c).length, brief: triageBriefLine(c._brief), ob: bsObRows(c).rows.length },
         terms,
-        obs: { head: t('.bs-two .bs-sec:nth-child(2) h5'), note: t('.bs-two .bs-sec:nth-child(2) .bs-note'), rows: rows.length, next: rows.findIndex(r => r.classList.contains('is-next')), nextTxt: rows[0] ? rows[0].textContent.replace(/\s+/g, ' ') : '',
-          h: box ? box.clientHeight : 0, sh: box ? box.scrollHeight : 0, rowH: rows[1] ? rows[1].getBoundingClientRect().height : 0, sticky: th ? getComputedStyle(th).position : '' },
-        jb: { brief: t('.bs-brief'), note: t('.bs-jb .bs-note'), risks: t('[data-bs-jcell="risks"] b'), riskItems: [...el.querySelectorAll('[data-bs-jcell="risks"] li')].map(x => x.textContent),
-          std: t('[data-bs-jcell="std"] b'), stdItems: t('[data-bs-jcell="std"] ul'), det: t('[data-bs-jcell="det"] b'), ob: t('[data-bs-jcell="ob"] b'),
-          doors: [...el.querySelectorAll('.bs-jb [data-bs-go]')].map(b => b.getAttribute('data-bs-go')) },
+        jb: { brief: t('.bs-jb .bs-brief'), counts: [...el.querySelectorAll('.bs-counts span')].map(x => x.textContent.trim()), note: t('.bs-jb .bs-note'), doors: [...el.querySelectorAll('.bs-jb [data-bs-go]')].map(b => b.getAttribute('data-bs-go')) },
         foot: [...el.querySelectorAll('.bs-foot button')].map(b => b.textContent.trim()),
-        tall: el.getBoundingClientRect().height,
       };
     });
-    /* RE-POINTED (round 7): on the desk the tab's × puts the page away, so the head draws none of its own */
-    /* RE-POINTED 18 Oct 2026 (rounds 7 and 12 as drawn): the stage is the
-       paper line's own pill — its dot, its words and its round */
-    check('2a the head: title · ref · counterparty · stage · ⋯ (the desk tab\'s × puts it away)', R.head.title === 'Packaging Film Supply Agreement' && /MK-L1 · Nordfilm Packaging AB/.test(R.head.ref) && /^In Review( · round \d+)?$/.test(R.head.pill) && R.head.dots && !R.head.x, JSON.stringify(R.head));
-    check('2b who it is with: the counterparty\'s role, the type, the stream, the owner, uploaded', /Nordfilm Packaging AB is the supplier/.test(R.id) && /owned by/.test(R.id) && /uploaded/.test(R.id), R.id);
-    check('2c Value is the record\'s, in its own currency, with what it comes to a year over the term', R.value && R.value.n === R.want.value && /a year/.test(R.value.sub), JSON.stringify(R.value) + ' want ' + R.want.value);
-    check('2d Term: two years, from the start date on the record', R.term && R.term.n === '2 years' && R.term.sub === 'From ' + R.want.from, JSON.stringify(R.term));
-    /* RE-POINTED 18 Oct 2026 (round 7 as drawn): late is the late colour, and
-       the line says how late where whose stood (whose is the table's column) */
-    check('2e Next obligation: the first open one by its day (late: the late colour, and how late)', R.next && R.next.n === R.want.nextDay && R.next.sub.startsWith(R.want.nextWhat) && /· \d+ days? late$/.test(R.next.sub) && R.next.bad, JSON.stringify(R.next) + ' want ' + R.want.nextDay);
-    check('2f Notice by: ninety days before the end, and that it renews for twelve months', R.notice && R.notice.n === R.want.notice && /renews 12 months/.test(R.notice.sub), JSON.stringify(R.notice));
-    check('2g Whose move: yours (amber), the round and what is open — dealStands and negWhoseMove', R.move && R.want.wm === 'you' && R.move.n === 'Yours' && R.move.warn && R.move.sub === `Round ${R.want.round} · ${R.want.open} open`, JSON.stringify(R.move) + ' ' + JSON.stringify({ r: R.want.round, o: R.want.open }));
-    check('2h the life line: the term, the notice window, the negotiation and today, drawn at the card\'s width', R.chart && R.chart.term && R.chart.notice && R.chart.nego && R.chart.today && R.chart.w > 600, JSON.stringify(R.chart && { w: R.chart.w, term: R.chart.term, notice: R.chart.notice, nego: R.chart.nego, today: R.chart.today, span: R.nego }));
-    check('2i the obligations are dots, ours and theirs, a yearly repeat drawn as a ring (projected, never stored), every one the record holds drawn', R.chart && R.chart.dots >= 12 && R.chart.ours > 0 && R.chart.theirs > 0 && R.chart.proj >= 1 && R.chart.dots === R.chart.occ, JSON.stringify({ dots: R.chart && R.chart.dots, occ: R.chart && R.chart.occ, proj: R.chart && R.chart.proj }));
-    check('2j the marks are named: today, starts, the price review, notice by, ends', R.chart && ['Today', 'Starts', 'Price review', 'Notice by', 'Ends'].every(w => R.chart.labels.some(l => l.indexOf(w) === 0)), JSON.stringify(R.chart && R.chart.labels));
-    check('2k the legend counts each side\'s obligations, as the table does', R.legend.includes(`Our obligations (${R.want.ours})`) && R.legend.includes(`Their obligations (${R.want.theirs})`), R.legend);
-    check('2l one caption: the term, the renewal and the next obligation', /^It runs from .* If neither side gives notice by .* it renews for 12 months\. Next up: /.test(R.cap), R.cap);
+    check('2a the head: the title, then "party · role · ref", the stage, ⋯; Open in Workspace the one filled button', R.head.title === 'Packaging Film Supply Agreement' && R.head.ref === 'Nordfilm Packaging AB · supplier · MK-L1' && /^In Review( · round \d+)?$/.test(R.head.pill) && R.head.dots && !R.head.x && R.head.openFilled && !R.head.actFilled, JSON.stringify(R.head));
+    check('2b gone from the card: the stage bar, the id line, the five tiles, the tall chart, the obligations table, the four Jambo tiles', !R.gone.spine && !R.gone.idline && !R.gone.tiles && !R.gone.chart && !R.gone.obTable && !R.gone.cells, JSON.stringify(R.gone));
+    const nd = k => R.needs.rows.find(r => r.k === k) || {};
+    check('2c Needs you leads: their asks as one row with the round, nobody named, the late obligation, the rest of the Dossier — each with its door',
+      /^Answer their 2 open redlines$/.test(nd('asks').t) && /^Your move · round \d+$/.test(nd('asks').sub) && nd('asks').go === 'redline' && nd('signer').t === 'Name who signs' && nd('signer').go === 'signers'
+      && nd('late').t === 'Pay the deposit' && /days? late/.test(nd('late').sub) && nd('late').go === 'oblig', JSON.stringify(R.needs.rows));
+    check('2d its number is what the rows stand for, the Dossier\'s Still owed count', R.needs.head === `Needs you · ${R.owedN}`, JSON.stringify({ head: R.needs.head, owedN: R.owedN }));
+    check('2e the deal in four small facts, none breaking: value, ends, notice by (90 days), renewal', R.facts.value && R.facts.value.v === R.want.value && R.facts.ends.v === R.want.ends && R.facts.notice.v === R.want.notice && /90 days/.test(R.facts.notice.sub) && /auto-renew/i.test(R.facts.renewal.v) && Object.values(R.facts).every(x => x.wrap === 'nowrap'), JSON.stringify(R.facts));
+    check('2f one thin line with its dates: Today, Notice by (under the line), Ends', R.line.length === 3 && R.line[0].w === 'Today · ' + R.want.today && R.line[1].w === 'Notice by ' + R.want.notice && R.line[1].below && R.line[2].w === 'Ends ' + R.want.ends, JSON.stringify(R.line));
     const tv = k => (R.terms.find(x => x.k === k) || {});
-    check('2m Key terms: our side, signers (none named: amber), law, disputes, renewal, payment, liability cap (uncapped: amber)',
-      tv('Our side').v && tv('Signers').owed && tv('Governing law').v === 'Swedish law' && tv('Disputes').v === 'Arbitration in Stockholm' && /Auto-renew/i.test(tv('Renewal').v || '') && tv('Payment terms').v === '45 days net' && /is-amber/.test(tv('Liability capped').amber || ''),
-      JSON.stringify(R.terms.map(x => x.k + '=' + x.v)));
-    check('2n Obligations (N), "ours · theirs · next first" — never "duties"', R.obs.head === `Obligations (${R.want.n})` && R.obs.note === `${R.want.ours} ours · ${R.want.theirs} theirs · next first` && !/dut/i.test(R.obs.head + R.obs.note), JSON.stringify({ head: R.obs.head, note: R.obs.note }));
-    check('2o the table scrolls in its own box (about seven rows, sticky head), the card does not grow with it; the next one marked first',
-      R.obs.rows === R.want.n && R.obs.sh > R.obs.h + 10 && R.obs.h <= 7 * Math.max(R.obs.rowH, 30) + 60 && R.obs.sticky === 'sticky' && R.obs.next === 0 && R.obs.nextTxt.includes(R.want.nextWhat), JSON.stringify(R.obs));
-    check('2p what Jambo read: the brief\'s first sentence, read on arrival from the file', R.jb.brief === R.want.brief && /Packaging Film Supply Agreement\.docx/.test(R.jb.note), JSON.stringify({ brief: R.jb.brief, note: R.jb.note }));
-    /* RE-POINTED (B1 pass 4, round 7 as drawn: "Our standards 7 of 8 · 1 differs"): the figure says "k of n", the word "met" left to the tile's name */
-    check('2q risks found: the one count (riskOpenOf) and their titles; standards met / missing / differs; details; obligations found',
-      R.jb.risks === String(R.want.risks) && R.want.risks === 2 && R.jb.riskItems.includes('Liability is not capped') && R.jb.std === '2 of 4' && /1 missing/.test(R.jb.stdItems) && /1 differs/.test(R.jb.stdItems)
-      && R.jb.det === String(R.want.det) && R.jb.ob === String(R.want.n), JSON.stringify(R.jb));
-    check('2r every cell carries its door into Home', ['risks', 'std', 'oblig'].every(k => R.jb.doors.includes(k)) && (R.want.det ? R.jb.doors.includes('fill') : true), JSON.stringify(R.jb.doors));
+    check('2g Key terms: our side, law, disputes, payment, liability; no renewal (a fact above) and no signers row while nobody is named (a Needs you row)',
+      tv('Our side').v && tv('Governing law').v === 'Swedish law' && tv('Disputes').v === 'Arbitration in Stockholm' && tv('Payment terms').v === '45 days net' && tv('Liability capped').v && !tv('Renewal').k && !tv('Signers').k, JSON.stringify(R.terms));
+    check('2h what Jambo read, once: the brief\'s sentence, three counts, Read the brief, read from the file', R.jb.brief === R.want.brief && JSON.stringify(R.jb.counts) === JSON.stringify([`${R.want.risks} risks`, '2 of 4 standards met', `${R.want.ob} obligations`]) && R.jb.doors.includes('brief') && /Packaging Film Supply Agreement\.docx/.test(R.jb.note), JSON.stringify(R.jb));
     /* RE-POINTED 18 Oct 2026 (round 7 as drawn): "Open the paper" */
     /* RE-POINTED 20 Oct 2026 (4b, owner picked it): Open stands in the head as "Open in Workspace ›" */
     const headOpen = await page.evaluate(() => ((document.querySelector('#bs-strip-MK-L1 .bs-head [data-bs-open]') || {}).textContent || '').trim());
@@ -311,7 +285,7 @@ const OBS = [
     check('3b pressing ⋯ again closes it', !(await S(M('.bs-menu'))));
     await page.click(M('[data-bs-dots]')); await page.keyboard.press('Escape');
     const esc1 = !(await S(M('.bs-menu')));
-    await page.click(M('[data-bs-dots]')); await page.click(M('.bs-idline'));
+    await page.click(M('[data-bs-dots]')); await page.click(M('.bs-needs h5'));
     check('3c Esc closes it, and so does a press outside', esc1 && !(await S(M('.bs-menu'))));
     await page.click(M('[data-bs-dots]')); await page.click(M('.bs-menu [data-bs-page="where"]'));
     const ww = await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L1 [data-bs-host="where"] .ds-sheet'), 6000);
@@ -360,7 +334,7 @@ const OBS = [
     await shot('3-history-theirs-wording');
     await page.click(M('#hist-detail'));
     await page.click(M('.bs-crumbs [data-bs-page="ov"]'));
-    check('3j "‹ Overview" takes the strip back to its chart', await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L1 .bs-chart'), 5000));
+    check('3j "‹ Overview" takes the strip back to its report', await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L1 .bs-deal'), 5000));
 
     /* ===== 4. × · KEEP · LET IT GO ===== */
     await page.click(`${strip('MK-L1')} [data-bs-keep]`);
@@ -383,7 +357,7 @@ const OBS = [
     await waitFor(page, () => window.state && state.contracts && state.contracts.length > 0, 15000);
     const back0 = await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L2 [data-bs-host="where"] .ds-sheet') && bsCardId() === 'MK-L2', 10000);
     await allOnBoard();
-    const back = back0 && await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L2 [data-bs-host="where"] .ds-sheet') && !!document.querySelector('#bs-strip-MK-L1 .bs-chart'), 10000);
+    const back = back0 && await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L2 [data-bs-host="where"] .ds-sheet') && !!document.querySelector('#bs-strip-MK-L1 .bs-deal'), 10000);
     check('5a a refresh comes back to the same page on the desk, and the same strips on the same pages on the Board', back, JSON.stringify({ back0, now: await page.evaluate(() => ({ card: bsCardId(), sc: hbS().card, face: hbFace(), view: state.view, strips: hbS().strips.map(x => x.id + ':' + x.page), on: [...document.querySelectorAll('#bs-strips > .bs-strip')].map(x => x.id + ':' + x.getAttribute('data-bs-on')), sheet: !!document.querySelector('#bs-strip-MK-L2 .ds-sheet') })) }));
     /* the list is light again: every restored strip asks for the whole record itself, so the brief comes back and the ring stops */
     const briefBack = await waitFor(page, () => { const b = document.querySelector('#bs-strip-MK-L1 .bs-brief'); return !!b && !b.querySelector('.ob-spin') && /Nordfilm supplies packaging film/.test(b.textContent); }, 12000);
@@ -484,27 +458,26 @@ const OBS = [
     await page.evaluate(() => { setView('dashboard'); state.activeId = 'MK-L1'; setView('workspace'); });
     const forgot = await waitFor(page, () => state.view === 'dashboard' && document.querySelector('#bs-strips > .bs-strip') && document.querySelector('#bs-strips > .bs-strip').getAttribute('data-bs-id') === 'MK-L1', 6000);
     check('10f once the room opened by name is left, a later door to that contract opens its strip, not the room', forgot);
-    /* 10g a signed contract: who signed, its value as amended, no repeat past its fixed end */
+    /* 10g a signed contract: who signed, its value as amended
+       RE-POINTED 21 Oct 2026 (the report simplified): no dots or chart on the card; the line is Today · Ends */
     await page.evaluate(() => hbStripBring('MK-L3'));
-    await waitFor(page, () => { const c = getContract('MK-L3'); return !!(c && (c._loaded || !c._light)) && !!document.querySelector('#bs-strip-MK-L3 .bs-chart'); }, 8000);
+    await waitFor(page, () => { const c = getContract('MK-L3'); return !!(c && (c._loaded || !c._light)) && !!document.querySelector('#bs-strip-MK-L3 [data-bs-f="value"]'); }, 8000);
     await pause(300);
-    const L3 = await page.evaluate(() => { const el = document.getElementById('bs-strip-MK-L3'), c = getContract('MK-L3'), M = ov2Model(c), D = bsLifeData(c);
+    const L3 = await page.evaluate(() => { const el = document.getElementById('bs-strip-MK-L3'), c = getContract('MK-L3');
       const dd = [...el.querySelectorAll('.bs-dl dt')].map((dt, i) => [dt.textContent.trim(), el.querySelectorAll('.bs-dl dd')[i].textContent.trim()]);
-      return { signers: (dd.find(x => x[0] === 'Signers') || [])[1], value: el.querySelector('[data-bs-kpi="value"] b').textContent.trim(), sub: el.querySelector('[data-bs-kpi="value"] span').textContent.trim(),
-        want: fmtMoneyShortIn(450000, contractCurrency(c)), past: D.life.occ.filter(x => x.due > M.end).length, dots: el.querySelectorAll('.bs-occ').length, occ: D.life.occ.length }; });
+      const v = el.querySelector('[data-bs-f="value"]');
+      return { signers: (dd.find(x => x[0] === 'Signers') || [])[1], value: v.querySelector('b').textContent.trim(), sub: (v.querySelector('span') || {}).textContent || '',
+        want: fmtMoneyShortIn(450000, contractCurrency(c)), marks: [...el.querySelectorAll('.bs-line .bs-mk')].length }; });
     check('10g a signed contract with no signer plan names who signed, off its signatures', L3.signers === 'Amina Otieno · Bob Zeta', JSON.stringify(L3.signers));
     check('10h Value reads the deal as amended (a signed amendment set it) and says so', L3.value === L3.want && /As amended by MK-L3-A1/.test(L3.sub), JSON.stringify({ v: L3.value, sub: L3.sub, want: L3.want }));
-    check('10i a fixed term draws no projected repeat past its end; every occurrence kept is drawn', L3.past === 0 && L3.dots === L3.occ && L3.dots > 1, JSON.stringify(L3));
-    /* 10j a draft with an end but no start: the owed start amber; an undated obligation said; a far one drawn */
+    check('10i its line draws Today and Ends (no notice on a fixed term)', L3.marks === 2, JSON.stringify(L3));
+    /* 10j a draft with an end but no start: the owed start amber under Ends */
     await page.evaluate(() => hbStripBring('MK-L4'));
-    await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L4 .bs-chart'), 8000);
-    const L4 = await page.evaluate(() => { const el = document.getElementById('bs-strip-MK-L4'), k = el.querySelector('[data-bs-kpi="term"]');
-      const far = [...el.querySelectorAll('.bs-occ title')].map(t => t.textContent);
-      return { warn: k.classList.contains('is-warn'), term: k.textContent.replace(/\s+/g, ' ').trim(), owed: detailsOf(getContract('MK-L4')).items.filter(x => x.open).map(x => x.key),
-        cap: el.querySelector('.bs-cap').textContent, far, legend: el.querySelector('.bs-lg').textContent }; });
-    check('10j a start date owed before signing is amber on the Term figure, and says so', L4.owed.includes('effDate') && L4.warn && /start date needed before signing/.test(L4.term), JSON.stringify(L4));
-    check('10k an obligation with no due date is said under the line; one due far past the term is drawn, the line runs to it',
-      /1 obligation has no due date, so it is not on the line/.test(L4.cap) && L4.far.some(t => /Hand over the archive/.test(t)), JSON.stringify({ cap: L4.cap, far: L4.far }));
+    await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L4 [data-bs-f="ends"]'), 8000);
+    const L4 = await page.evaluate(() => { const el = document.getElementById('bs-strip-MK-L4'), k = el.querySelector('[data-bs-f="ends"]');
+      return { amber: !!k.querySelector('span.is-amber'), ends: k.textContent.replace(/\s+/g, ' ').trim(), owed: detailsOf(getContract('MK-L4')).items.filter(x => x.open).map(x => x.key),
+        fill: [...el.querySelectorAll('.bs-nd')].map(r => r.getAttribute('data-bs-nd')) }; });
+    check('10j a start date owed before signing is amber under Ends, and is a Needs you row', L4.owed.includes('effDate') && L4.amber && /Start date missing/.test(L4.ends) && L4.fill.some(k => /^fill/.test(k)), JSON.stringify(L4));
     const noBrief = await page.evaluate(() => !getContract('MK-L4')._brief && !!document.querySelector('#bs-strip-MK-L4 .bs-brief') && !document.querySelector('#bs-strip-MK-L4 [data-bs-go="brief"]'));
     check('10m with no brief on file the strip draws no "Read the brief" (writing one stays on Details)', noBrief);
     await page.evaluate(() => { bsStripClose('MK-L3'); bsStripClose('MK-L4'); });
@@ -533,12 +506,12 @@ const OBS = [
     await page.evaluate(() => langSet('sv'));   /* Chambers: no switch in the bar; langSet is Settings' one writer */
     await waitFor(page, () => (typeof langId === 'function') && langId() === 'sv', 6000);
     await toBoard();
-    await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L1 .bs-chart'), 8000);
-    const SV = await page.evaluate(() => { const el = document.getElementById('bs-strip-MK-L1'); return { life: (el.querySelector('.bs-life h5') || {}).textContent, terms: (el.querySelector('.bs-two h5') || {}).textContent,
-      kpis: [...el.querySelectorAll('.bs-kpi small')].map(x => x.textContent), foot: [...el.querySelectorAll('.bs-foot button')].map(b => b.textContent.trim()), jb: (el.querySelector('.bs-jb h5') || {}).textContent }; });
-    check('8a the strip reads in Svenska', SV.life === 'Avtalets liv' && SV.terms === 'Huvudvillkor' && JSON.stringify(SV.kpis) === JSON.stringify(['Värde', 'Löptid', 'Nästa åtagande', 'Säg upp senast', 'Vems drag'])
-      /* RE-POINTED 20 Oct 2026 (4b): Open moved to the head */
-      && JSON.stringify(SV.foot) === JSON.stringify(['Behållen', 'Fråga varför', 'Släpp den']) && SV.jb === 'Vad Jambo läste vid uppladdningen', JSON.stringify(SV));
+    await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L1 .bs-deal'), 8000);
+    /* RE-POINTED 21 Oct 2026 (the report simplified): its four heads and four facts */
+    const SV = await page.evaluate(() => { const el = document.getElementById('bs-strip-MK-L1'); return { heads: [...el.querySelectorAll('.bs-rep h5')].map(x => x.textContent.replace(/ · \d+$/, '')),
+      facts: [...el.querySelectorAll('.bs-f small')].map(x => x.textContent), foot: [...el.querySelectorAll('.bs-foot button')].map(b => b.textContent.trim()) }; });
+    check('8a the strip reads in Svenska', JSON.stringify(SV.heads) === JSON.stringify(['Behöver dig', 'Affären', 'Huvudvillkor', 'Vad Jambo läste']) && JSON.stringify(SV.facts) === JSON.stringify(['Värde', 'Slutar', 'Säg upp senast', 'Förnyelse'])
+      && JSON.stringify(SV.foot) === JSON.stringify(['Behållen', 'Fråga varför', 'Släpp den']), JSON.stringify(SV));
     await page.evaluate(() => { const el = document.getElementById('bs-strip-MK-L1'); const host = document.getElementById('hb-board'); host.scrollTop += el.getBoundingClientRect().top - host.getBoundingClientRect().top - 8; });
     await shot('8-svenska');
     await page.evaluate(() => langSet('en'));
@@ -548,14 +521,17 @@ const OBS = [
     for (const [w, hgt] of SCREENS){
       await page.setViewportSize({ width: w, height: hgt });
       await toBoard();
-      await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L1 .bs-chart'), 8000);
+      await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L1 .bs-line'), 8000);
       await pause(500);
-      const F = await page.evaluate(() => { const el = document.getElementById('bs-strip-MK-L1'), host = document.getElementById('hb-board');
-        const svg = el.querySelector('.bs-chart'), box = svg.parentElement;
-        const k = [...el.querySelectorAll('.bs-kpi b')];
-        return { side: el.scrollWidth <= el.clientWidth + 1 && document.documentElement.scrollWidth <= window.innerWidth + 1, kpiOne: k.every(b => b.getBoundingClientRect().height < 34),
-          svgFits: svg.getBoundingClientRect().width <= box.clientWidth + 1, svgW: +svg.getAttribute('width'), boxW: box.clientWidth, host: host.clientWidth }; });
-      check(`9 ${w}×${hgt}: nothing scrolls sideways, the figures on one line, the life line drawn for the card`, F.side && F.kpiOne && F.svgFits, JSON.stringify(F));
+      /* RE-POINTED 21 Oct 2026 (the report simplified): the four facts on one line each, the line's labels inside the card */
+      const F = await page.evaluate(() => { const el = document.getElementById('bs-strip-MK-L1');
+        const line = el.querySelector('.bs-line'), lr = line.getBoundingClientRect(), card = el.getBoundingClientRect();
+        const k = [...el.querySelectorAll('.bs-f b')];
+        const labs = [...line.querySelectorAll('.bs-mk em')].map(x => x.getBoundingClientRect());
+        const apart = labs.every((a, i) => labs.every((b, j) => i >= j || a.right <= b.left + 1 || b.right <= a.left + 1 || a.bottom <= b.top + 1 || b.bottom <= a.top + 1));
+        return { side: el.scrollWidth <= el.clientWidth + 1 && document.documentElement.scrollWidth <= window.innerWidth + 1, factOne: k.every(b => b.getBoundingClientRect().height < 26),
+          inside: labs.every(r => r.left >= card.left - 1 && r.right <= card.right + 1), apart, lineW: Math.round(lr.width) }; });
+      check(`9 ${w}×${hgt}: nothing scrolls sideways, the facts on one line, the line's dates inside the card and apart`, F.side && F.factOne && F.inside && F.apart, JSON.stringify(F));
       await page.evaluate(() => { const el = document.getElementById('bs-strip-MK-L1'); const host = document.getElementById('hb-board'); host.scrollTop += el.getBoundingClientRect().top - host.getBoundingClientRect().top - 8; });
       await pause(300);
       await shot(`9-strip-${w}x${hgt}`);
