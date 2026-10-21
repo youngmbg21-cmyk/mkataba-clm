@@ -94,9 +94,11 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
 
     /* ===== 2. THE ZOOM'S EDGE ===== */
     const zc = await page.evaluate(() => { const z = document.querySelector('.paper-zc .rl-type-step');
-      if (!z) return null; const p = document.createElement('i'); p.style.color = 'var(--color-divider)'; document.body.appendChild(p);
+      if (!z) return null; const p = document.createElement('i'); p.style.color = 'var(--btn-edge)'; document.body.appendChild(p);
       const grey = getComputedStyle(p).color; p.style.color = 'var(--accent-solid)'; const acc = getComputedStyle(p).color; p.remove();
       const e = getComputedStyle(z).borderTopColor; return { edge: e, grey, accent: acc }; });
+    /* RE-POINTED 21 Oct 2026 (Chambers): the controls' grey hairline is --btn-edge,
+       RESOLVED (Chambers' rule-strong, a shade firmer than the divider). */
     check('2 the paper\'s zoom wears the grey hairline again, not the accent edge', !!zc && zc.edge === zc.grey && zc.edge !== zc.accent, JSON.stringify(zc));
 
     /* an answer typed on Details is the Overview's to read */

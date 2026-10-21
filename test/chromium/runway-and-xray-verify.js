@@ -378,12 +378,17 @@ const check = (name, pass, detail) => {
       const look = open && open.querySelector('.doc-th-look'), wide = open && open.querySelector('.doc-xr-sec.is-wide');
       const plain = open && open.querySelector('.doc-th-plain');
       return { plain: txt(plain).slice(0, 60), look: marksIn(look), wide: marksIn(wide), wideDrawn: !!wide,
-        face: plain ? getComputedStyle(plain).fontFamily : '', paper: getComputedStyle(document.querySelector('#ig-canvas .doc-surface') || document.getElementById('ig-canvas')).fontFamily };
+        face: plain ? getComputedStyle(plain).fontFamily : '', paper: getComputedStyle(document.querySelector('#ig-canvas .doc-surface') || document.getElementById('ig-canvas')).fontFamily,
+        panelFace: (() => { const p = document.createElement('i'); p.style.fontFamily = 'var(--font-body)'; document.body.appendChild(p); const f = getComputedStyle(p).fontFamily; p.remove(); return f; })() };
     }) : null;
 
-    check('7a the open row shows the reading that is ON the record, in the paper\'s face',
-      !!panel && /^XRPLAIN/.test(panel.plain) && !!panel.face && panel.face === panel.paper,
-      panel ? JSON.stringify({ plain: panel.plain, face: panel.face.slice(0, 30), paper: panel.paper.slice(0, 30) }) : 'nothing staged');
+    /* RE-POINTED 21 Oct 2026 (Chambers): the paper is the book serif again, and the
+       owner's Panel Voice (6 Oct 2026) says the reading wears the PANEL's face
+       (--font-body), never the paper's — the two only matched while the paper
+       was Clean Sans. The claim now names the ruling, RESOLVED. */
+    check('7a the open row shows the reading that is ON the record, in the panel\'s own face',
+      !!panel && /^XRPLAIN/.test(panel.plain) && !!panel.face && panel.face === panel.panelFace,
+      panel ? JSON.stringify({ plain: panel.plain, face: panel.face.slice(0, 30), panel: panel.panelFace.slice(0, 30), paper: panel.paper.slice(0, 30) }) : 'nothing staged');
     check('7b the rows are GRADED — ruby and steel where the record says so, and a tone on exactly the marked ones',
       !!fa && fa.segs.indexOf('ruby') >= 0 && fa.segs.indexOf('steel') >= 0
         && fa.segs.every((g, k) => g === fa.tones[k]),

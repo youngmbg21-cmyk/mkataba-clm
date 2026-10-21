@@ -183,6 +183,7 @@ const MARK = cid => {
          perfectly and was clipped away entirely (18 Sep). */
       const mid = document.elementFromPoint(Math.round(r.left + r.width / 2), Math.round(r.top + 6));
       return { drawn: true, n: rows.length, radius: cs.borderTopLeftRadius,
+        card: getComputedStyle(document.documentElement).getPropertyValue('--radius-lg').trim(),
         rowRadius: rcs ? rcs.borderTopLeftRadius : null, pos: cs.position,
         litBg: on ? getComputedStyle(on).backgroundColor : null,
         litInk: on ? getComputedStyle(on).color : null,
@@ -195,8 +196,9 @@ const MARK = cid => {
       getComputedStyle(document.documentElement).getPropertyValue('--accent-fill').trim());
     check('3a a press on a chip draws HaTi\'s own list', menu.drawn && menu.n > 1, JSON.stringify(menu));
     check('3b it is really painted where it is measured', !!menu.painted, String(menu.painted));
+    /* RE-POINTED 21 Oct 2026 (Chambers): the card corner is --radius-lg, RESOLVED. */
     check('3c with the platform\'s card corner, not a square one',
-      parseFloat(menu.radius) >= 8, menu.radius);
+      parseFloat(menu.radius) > 0 && parseFloat(menu.radius) === parseFloat(menu.card), menu.radius + ' (card ' + menu.card + ')');
     check('3d and its rows with the platform\'s control corner',
       parseFloat(menu.rowRadius) > 0 && parseFloat(menu.rowRadius) < parseFloat(menu.radius),
       menu.rowRadius);

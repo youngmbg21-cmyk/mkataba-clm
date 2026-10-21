@@ -283,13 +283,16 @@ const check = (name, ok, detail) => {
       const m = document.querySelectorAll('.hati-selmenu');
       const one = m[0], cs = one && getComputedStyle(one);
       return { n: m.length, rows: one ? one.querySelectorAll('.hati-selmenu-row').length : 0,
-        radius: cs && cs.borderRadius, pos: cs && cs.position };
+        radius: cs && cs.borderRadius, pos: cs && cs.position,
+        card: getComputedStyle(document.documentElement).getPropertyValue('--radius-lg').trim() };
     });
     check('3e a dropdown away from the Contracts page draws HaTi’s own list',
       !menu.err && menu.n === 1 && menu.rows > 0, menu.err || JSON.stringify(menu));
     check('3f exactly ONE menu — one root, one listener', menu.n === 1, String(menu.n));
+    /* RE-POINTED 21 Oct 2026 (Chambers): the card corner is --radius-lg, RESOLVED. */
     check('3g and it wears the platform’s card corner, over everything',
-      menu.radius === '8px' && menu.pos === 'fixed', `${menu.radius} · ${menu.pos}`);
+      !!menu.card && parseFloat(menu.card) > 0 && menu.radius === menu.card && menu.pos === 'fixed',
+      `${menu.radius} (card ${menu.card}) · ${menu.pos}`);
     await page.evaluate(() => { document.querySelectorAll('.hati-selmenu').forEach(x => x.remove());
       const m = document.getElementById('modal-root'); if (m) m.innerHTML = ''; });
 

@@ -463,11 +463,14 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
       return l && l.getAttribute('data-rl-ladder') === id; });
     const b = row && row.querySelector('.rl-card-face [data-rl-retract]');
     const e = row && row.querySelector('.rl-card-face [data-rl-send]');
-    return { discard: b ? getComputedStyle(b).color : null, send: e ? getComputedStyle(e).color : null };
+    const res = v => { const p = document.createElement('span'); p.style.color = v; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; };
+    return { discard: b ? getComputedStyle(b).color : null, send: e ? getComputedStyle(e).color : null, ruby: res('var(--st-ruby-fg)') };
   }, staged.c4);
+  /* RE-POINTED 21 Oct 2026 (Chambers): ruby is --st-ruby-fg, RESOLVED — the
+     look moved the hex to a deeper oxblood, and the claim is the tone. */
   check('18c2 Discard is ruby, and the verb beside it is not',
-    !!d18.discard && /rgb\(190, 18, 60\)|rgb\(1[6-9][0-9], [0-9]+, [0-9]+\)/.test(d18.discard)
-    && d18.discard !== d18.send, d18.discard + ' vs send ' + d18.send);
+    !!d18.discard && d18.discard === d18.ruby
+    && d18.discard !== d18.send, d18.discard + ' (ruby ' + d18.ruby + ') vs send ' + d18.send);
   check('18d the argued figure is said on the row — the last two rungs as a sentence, on the changed words\' hover', !!col18.track4 && /Step 3/.test(col18.track4) && /6\s*→\s*18/.test(col18.track4) /* their R2 (6) → your R3 (18): the last two rungs */
     && col18.marks4 > 0, col18.track4 + ' · marks ' + col18.marks4);
   check('18e the piles carry the artifact\'s names', col18.bands.some(b => /not yet sent/i.test(b)) && col18.bands.some(b => /Waiting on you/i.test(b)), col18.bands.join(' · '));

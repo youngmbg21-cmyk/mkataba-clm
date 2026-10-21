@@ -143,7 +143,9 @@ const check = (name, pass, detail) => {
     const hues = await page.evaluate(() => { const b = document.documentElement.getAttribute('data-brand'); return { b, set: hbHues() }; });
     const light = ['#2F5FC4', '#1A9C8A', '#B87A0F', '#9A5CC8'];
     const four = hues.set.slice(0, 4);
-    check('4. the light board wears the checked four, the first following the brand', light.every(x => four.includes(x)) && four[0] === (hues.b === 'navy' ? '#2F5FC4' : '#1A9C8A'), hues.b + ' ' + four.join(' '));
+    /* RE-POINTED 21 Oct 2026 (Chambers): there is ONE look and no brand to follow
+       (data-brand is gone); the four keep the order HaTi's default (Blue) wore. */
+    check('4. the light board wears the checked four, in the one look\'s order', light.every(x => four.includes(x)) && four[0] === '#2F5FC4' && !hues.b, hues.b + ' ' + four.join(' '));
     /* 6. the ring, the timeline and the blocks keep the step too */
     const OTHERS = [
       { id: 'pring', pic: 'ring', cls: 'hb-ring', R: { which: 'all', pic: 'ring', split: { by: 'status' }, measure: 'count' } },

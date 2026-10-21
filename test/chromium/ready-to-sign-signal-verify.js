@@ -58,8 +58,12 @@ const check = (name, pass, detail) => {
    off the surface that states them now. */
 /* RE-POINTED 21 Sep 2026: both dots are RESOLVED off the page once it is up —
    the redesign moved the hexes and the claim never named a number. */
-let GREEN_BG = null;    /* --st-green-dot */
-let AMBER_BG = null;    /* --st-amber-dot */
+/* RE-POINTED 21 Oct 2026 (Chambers): the bell's count wears the INK at rest
+   and the deep green (--st-green-fg) while there is news. "Then it goes back to
+   yellow" became "then it goes back to the ink" — a reversal listed for the
+   owner's yes on the side-by-side. Still resolved off the page, never a hex. */
+let GREEN_BG = null;    /* --st-green-fg */
+let REST_BG = null;    /* the resting count: --color-text */
 
 /* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
    place; this check reads its List (regPlaceSet({ show: 'list' }) before
@@ -125,9 +129,12 @@ let AMBER_BG = null;    /* --st-amber-dot */
     });
     check('the contract head says they are ready, in words',
       !!st && /ready to sign/i.test(st.text), st && st.text);
+    /* RE-POINTED 21 Oct 2026 (Chambers): the green is --st-green-fg, RESOLVED. */
+    const tone = await page.evaluate(() => { const res = v => { const p = document.createElement('span'); p.style.color = v; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; };
+      return { green: res('var(--st-green-fg)'), amber: res('var(--st-amber-fg)') }; });
     check('and it is GREEN, not the amber "In Review" wore',
-      !!st && st.color !== 'rgb(180, 83, 9)' && /rgb\(\s*\d+,\s*1[0-9]\d,\s*\d+\s*\)/.test(st.color),
-      st && st.color);
+      !!st && st.color === tone.green && st.color !== tone.amber,
+      st && st.color + ' (green ' + tone.green + ', amber ' + tone.amber + ')');
 
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(1600);
@@ -174,8 +181,8 @@ let AMBER_BG = null;    /* --st-amber-dot */
        THE COLOUR IS READ OFF THE DOT rather than the button: the header bell is
        an icon with a count badge, so the badge is what carries the tone, while
        the blink plays on the button around it. */
-    ({ GREEN_BG, AMBER_BG } = await page.evaluate(() => { const res = v => { const p = document.createElement('span'); p.style.color = v; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; };
-      return { GREEN_BG: res('var(--st-green-dot)'), AMBER_BG: res('var(--st-amber-dot)') }; }));
+    ({ GREEN_BG, REST_BG } = await page.evaluate(() => { const res = v => { const p = document.createElement('span'); p.style.color = v; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; };
+      return { GREEN_BG: res('var(--st-green-fg)'), REST_BG: res('var(--color-text)') }; }));
     let bell = await page.evaluate(() => {
       const b = document.getElementById('hdr-notify');
       if (!b) return null;
@@ -257,8 +264,8 @@ let AMBER_BG = null;    /* --st-amber-dot */
         bg: dot ? getComputedStyle(dot).backgroundColor : null,
         anim: cs.animationName } : null;
     });
-    check('"then it goes back to yellow"',
-      !!bell && !bell.news && bell.bg === AMBER_BG && bell.anim === 'none', JSON.stringify(bell));
+    check('"then it goes back to" the ink (was yellow; Chambers, for the owner\'s yes)',
+      !!bell && !bell.news && bell.bg === REST_BG && bell.anim === 'none', JSON.stringify(bell));
 
     /* AND THE ROW IS CALM THE SECOND TIME. Opening the panel is what counts as
        having seen it: the flash is over, the green is not. */
