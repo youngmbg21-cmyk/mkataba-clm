@@ -2744,7 +2744,7 @@ function pdPeopleOpen(id, from){
   const host = document.getElementById('pd-ppl');
   if (host && typeof participantsWire === 'function') participantsWire(host, live(), {
     onPick: k => { _pdPplSel = k || ''; },
-    onChange: () => { const c = live(); c.lastAction = (typeof todayStr === 'function') ? todayStr() : c.lastAction; if (typeof persist === 'function') persist(c); },
+    onChange: () => { if (typeof participantsKeep === 'function') participantsKeep(live()); },
     onRemove: row => { if (typeof logAudit === 'function') logAudit(live(), 'Record', `Took ${row.name || row.email || 'somebody'} off the contract`); },
     repaint: paint });
   document.querySelector('[data-pd-ppl-done]')?.addEventListener('click', () => { if (typeof closeModal === 'function') closeModal(); });
