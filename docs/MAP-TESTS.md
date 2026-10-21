@@ -71,6 +71,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f841, f842, guide-panel verify.
 - f96, f187, f238, f240, f251, f264, f284, f449, f543, f672, f679, f706, f735–f737, home-and-recent, jambo-everywhere, answer-where-you-stand, show-it-here-first, jambo-window-follows-the-ask, alerts-and-activity, home-page, pages-read-alike, language-switch-stays, jambo-pill-and-window verify.
 - jambo-slides-in-verify (the side panel, the ✦ ask bar, plain only, conversation across pages, here chip, paste, ONE DOOR, Pop out with PiP stubbed and absent, touch; 22 red at d7a320c2); f107 (plain only), f88, f97, f631 re-pointed; jambo-pill-and-window 4–7, every-jambo-box 1b, jambos-list-panel 10h, phone (384) re-pointed.
+- jambo-watches-and-presses-verify (here names the page, Show me › lands and lights, the press sends nothing, a watch card stores only on Start watching, Your watches pause/delete; 8 red at e332b81b); f860 (watches: the wall, only mine, CRUD, the sweep fires once).
 
 ## THE PHONE
 - phone-verify, f630, f631, phone-fits-verify.

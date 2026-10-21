@@ -132,7 +132,7 @@ function jpClear(host){
   try { if (typeof aiPopped === 'function' && aiPopped()) return; } catch (_){}
   if (typeof closeAI === 'function') try { closeAI(); } catch (_){}
 }
-const JP_PAPER_LINE = '#ig-paper .ig-line-id';
+const JP_PAPER_LINE = '.ig-line-id';
 function jpShowContract(id){
   const c = _jpC(id); if (!c) return false;
   if (typeof pdOpenOnHome === 'function' && pdOpenOnHome(c.id, 'plain')){
