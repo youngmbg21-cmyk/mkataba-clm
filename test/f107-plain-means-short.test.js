@@ -82,52 +82,33 @@ const sent = async (ai, opts) => {
   return seen;
 };
 
-/* The four-part checklist, exactly as it stood before this change. Written out
-   rather than derived, because the point of the assertion is that nobody
-   rewrote it while making Plain shorter. */
-const LEGAL_ADVICE = 'Your reasoning: what you changed, which risk it moves, what it '
-  + 'costs to ask for it, and anything the drafter should check before proposing it.';
-const LEGAL_ADVICE_EDIT = 'Your reasoning: what you changed or added, which risk it moves, what it '
-  + 'costs to ask for it, and anything the drafter should check before proposing it.';
+/* RE-POINTED 21 Oct 2026 — JAMBO IS PLAIN AT ALL TIMES (the owner: "remove
+   the plain and legal toggles and let jambo be plain at all times"). The
+   register and its Legal half are gone; what this file pinned about PLAIN
+   stays pinned, and a new section pins that no second register comes back. */
 
 /* ============================================================ */
-describe('F107a — the advice field answers to the register', () => {
+describe('F107a — the advice field is plain and short', () => {
   let ai;
   beforeEach(() => { ai = loadAi(); });
 
-  test('THE FIX: plain asks for two or three sentences, legal for the four points', () => {
-    ai.aiSetStyle('plain');
+  test('THE FIX: the proposal format asks for two or three sentences, never the four-point checklist', () => {
     const plain = ai.AI_PROPOSAL_FORMAT();
-    assert.match(plain, /two or three sentences/,
-      'the length the Plain button has always promised in its tooltip');
+    assert.match(plain, /two or three sentences/);
     assert.doesNotMatch(plain, /which risk it moves/,
       'the checklist is what produced four answers to a question with one');
-
-    ai.aiSetStyle('legal');
-    assert.match(ai.AI_PROPOSAL_FORMAT(), /which risk it moves/);
   });
 
   test('plain is short in the EDIT format too, where a proposal may add wording', () => {
-    /* Two formats, one field. A fix that reached only the replace path would
-       leave "✨ Edit with Copilot" — the action people use most — long. */
-    ai.aiSetStyle('plain');
     assert.match(ai.AI_EDIT_FORMAT(), /two or three sentences/);
     assert.doesNotMatch(ai.AI_EDIT_FORMAT(), /which risk it moves/);
   });
 
   test('plain drops the empty points rather than compressing four into three sentences', () => {
-    /* This is the half that does the work. Three sentences that must still
-       cover four headings is compression, not brevity, and comes back as a
-       denser paragraph rather than a shorter one. */
-    ai.aiSetStyle('plain');
     assert.match(ai.AI_ADVICE_FIELD('changed'), /only where there is genuinely one/);
   });
 
   test('and it never licenses leaving out a REAL risk', () => {
-    /* The failure mode of the fix: a Copilot that stops mentioning the cost of
-       an ask is worse than one that mentions it when there is none. The rule is
-       conditional on there being something to say, not on brevity. */
-    ai.aiSetStyle('plain');
     const f = ai.AI_ADVICE_FIELD('changed');
     assert.match(f, /a risk, a cost or something to check/i,
       'all three are still asked for where they exist');
@@ -135,87 +116,54 @@ describe('F107a — the advice field answers to the register', () => {
 });
 
 /* ============================================================ */
-describe('F107b — and LEGAL did not move', () => {
-  let ai;
-  beforeEach(() => { ai = loadAi(); ai.aiSetStyle('legal'); });
-
-  test('the four-part checklist is the text it always was, to the character', () => {
-    /* Nobody complained that the depth was wrong — only that it was
-       compulsory. A reader who asks for depth gets exactly what they got
-       before this change. */
-    assert.ok(ai.AI_PROPOSAL_FORMAT().includes(LEGAL_ADVICE),
-      'the replace format\'s advice field is unchanged');
-    assert.ok(ai.AI_EDIT_FORMAT().includes(LEGAL_ADVICE_EDIT),
-      'and the edit format\'s, which says "changed or added"');
+describe('F107b — there is no second register any more', () => {
+  test('no Plain | Legal toggle, setter or stored choice is left', () => {
+    const ai = loadAi();
+    assert.equal(typeof ai.aiSetStyle, 'undefined');
+    assert.equal(typeof ai.aiStyle, 'undefined');
+    assert.equal(typeof ai.renderAIStyleToggle, 'undefined');
+    const src = read('js/ai.js').replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.doesNotMatch(src, /RESPONSE STYLE — LEGAL/);
+    assert.doesNotMatch(src, /lsSet\(\s*AI_STYLE_KEY/);
+    assert.doesNotMatch(src, /\bstyle:\s*aiStyle\(\)/, 'the context sent to the model carries no register');
+    assert.doesNotMatch(read('index.html'), /id="ai-style"/, 'the toggle is not drawn');
   });
 
-  test('legal is the longer instruction of the two, which is the whole point', () => {
-    const legal = ai.AI_ADVICE_FIELD('changed');
-    ai.aiSetStyle('plain');
-    const plain = ai.AI_ADVICE_FIELD('changed');
-    assert.notEqual(legal, plain, 'the register has to change something');
+  test('the old stored choice is forgotten once', () => {
+    assert.match(read('js/ai.js'), /localStorage\.removeItem\('hati\.v1\.aiStyle'\)/);
   });
 });
 
 /* ============================================================ */
-describe('F107c — the brief and the instruction now agree', () => {
-  let ai;
-  beforeEach(() => { ai = loadAi(); });
-
-  /* THE BUG, STATED AS A RULE. AI_STYLE_RULES rides in the system brief on
-     every call and its plain half asks for two or three sentences. The advice
-     field asked for four points in the instruction beside the passage. Both
-     were sent, they contradicted, and the nearer one won. Neither may say
-     "short" while the other says "four points" again. */
-  test('in plain, both the brief and the field ask for the same length', () => {
-    ai.aiSetStyle('plain');
+describe('F107c — the brief and the instruction agree', () => {
+  test('both the brief and the field ask for the same length', () => {
+    const ai = loadAi();
     assert.match(ai.AI_STYLE_RULES(), /two or three sentences/);
     assert.match(ai.AI_ADVICE_FIELD('changed'), /two or three sentences/);
   });
-
-  test('in legal, neither of them asks for it', () => {
-    ai.aiSetStyle('legal');
-    assert.doesNotMatch(ai.AI_STYLE_RULES(), /two or three sentences/);
-    assert.doesNotMatch(ai.AI_ADVICE_FIELD('changed'), /two or three sentences/);
-  });
 });
 
 /* ============================================================ */
-describe('F107d — the shape never varies, whatever the register', () => {
+describe('F107d — the shape never varies', () => {
   let ai;
   beforeEach(() => { ai = loadAi(); });
 
-  test('both registers ask for the same fields by the same names', () => {
-    /* aiParseProposal reads ONE contract. A register that renamed a field, or
-       dropped one, would be a second contract to keep in step — and the day
-       they drift is the day a perfectly good answer parses as nothing. */
-    for (const style of ['plain', 'legal']){
-      ai.aiSetStyle(style);
-      for (const field of ['"advice"', '"proposedText"'])
-        assert.ok(ai.AI_PROPOSAL_FORMAT().includes(field), `${field} in ${style}`);
-      for (const field of ['"advice"', '"proposedText"', '"placement"', '"headingText"'])
-        assert.ok(ai.AI_EDIT_FORMAT().includes(field), `${field} in ${style}`);
-    }
+  test('the formats ask for the fields by their names', () => {
+    for (const field of ['"advice"', '"proposedText"'])
+      assert.ok(ai.AI_PROPOSAL_FORMAT().includes(field), field);
+    for (const field of ['"advice"', '"proposedText"', '"placement"', '"headingText"'])
+      assert.ok(ai.AI_EDIT_FORMAT().includes(field), field);
   });
 
-  test('the placement rules survive both registers', () => {
-    /* The two instructions that stop this feature losing wording — "ADD must
-       not be replace" and one list item per line — are not part of the
-       register and must not be edited out by it. */
-    for (const style of ['plain', 'legal']){
-      ai.aiSetStyle(style);
-      const f = ai.AI_EDIT_FORMAT();
-      for (const p of ['replace', 'after', 'before', 'newClause'])
-        assert.ok(f.includes(p), `${p} in ${style}`);
-      assert.match(f, /ADD.*placement MUST NOT be "replace"/s, style);
-      /* RE-POINTED 11 Oct 2026 (WORKORDER-four-builds item 2): the list rule is
-         AI_LIST_RULE now, shared by both formats */
-      assert.match(f, /ONE POINT PER LINE/, style);
-    }
+  test('the placement rules survive', () => {
+    const f = ai.AI_EDIT_FORMAT();
+    for (const p of ['replace', 'after', 'before', 'newClause'])
+      assert.ok(f.includes(p), p);
+    assert.match(f, /ADD.*placement MUST NOT be "replace"/s);
+    assert.match(f, /ONE POINT PER LINE/);
   });
 
-  test('an answer still parses the same either way', () => {
-    ai.aiSetStyle('plain');
+  test('an answer still parses', () => {
     const p = ai.aiParseProposal('{"advice":"Already tight.","proposedText":"The Lessor shall install the equipment."}');
     assert.equal(p.strict, true);
     assert.equal(p.advice, 'Already tight.');
@@ -224,42 +172,19 @@ describe('F107d — the shape never varies, whatever the register', () => {
 });
 
 /* ============================================================ */
-describe('F107e — it reaches the model, and it is not frozen at load', () => {
-  test('the prompt that leaves carries the plain instruction in plain', async () => {
+describe('F107e — it reaches the model', () => {
+  test('the prompt that leaves carries the plain instruction', async () => {
     const ai = loadAi();
-    ai.aiSetStyle('plain');
     const s = await sent(ai);
     assert.match(s, /two or three sentences/);
     assert.doesNotMatch(s, /which risk it moves/);
   });
 
-  test('and the four points in legal', async () => {
-    const ai = loadAi();
-    ai.aiSetStyle('legal');
-    assert.match(await sent(ai), /which risk it moves/);
-  });
-
   test('the edit path carries it too', async () => {
     const ai = loadAi();
-    ai.aiSetStyle('plain');
     const s = await sent(ai, { placements: true });
     assert.match(s, /two or three sentences/);
     assert.match(s, /"placement"/, 'and it is still the edit format');
-  });
-
-  test('THE FROZEN-CONST TRAP: flipping the register changes the NEXT call', async () => {
-    /* A const string built at load would keep asking for the depth the reader
-       just turned off, for the rest of the session — the same failure the
-       ground rules hit when the market became a setting (F99). The toggle
-       would repaint and change nothing that leaves the building. */
-    const ai = loadAi();
-    ai.aiSetStyle('legal');
-    assert.match(await sent(ai), /which risk it moves/);
-    ai.aiSetStyle('plain');
-    const after = await sent(ai);
-    assert.match(after, /two or three sentences/);
-    assert.doesNotMatch(after, /which risk it moves/,
-      'the register the reader is on now, not the one the module loaded under');
   });
 
   test('both formats are functions, so neither can be frozen by accident', () => {
@@ -273,7 +198,7 @@ describe('F107e — it reaches the model, and it is not frozen at load', () => {
     /* A source guard, because this is the failure that reappears: the next
        caller somebody writes drops the parentheses, JavaScript stringifies the
        function object without complaint, and the model is sent
-       "() => aiStyle() === 'legal' ? ..." as its instructions. Silent, and
+       the function's own source as its instructions. Silent, and
        every proposal from that path comes back shapeless.
 
        The shape of the check matters. "Followed by a space is fine" would have

@@ -14,7 +14,10 @@
    ring while it waits.
    RE-POINTED 20 Oct 2026 (Chambers): on a computer his face is the ✦ mark
    (JAMBO_MARK_PATH) in the window's head, beside his words and on the top
-   bar's door; the bird is the phone's. */
+   bar's door; the bird is the phone's.
+   RE-POINTED 21 Oct 2026 (owner: Jambo slides in as a side panel, the ✦ drops an
+   ask bar): the window that moved and resized is gone (4, 5, 6; 7 retired with
+   the dock button) — test/chromium/jambo-slides-in-verify.js carries the rest. */
 const path = require('node:path');
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
@@ -72,50 +75,38 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await page.screenshot({ path: path.join(OUT, '3-clauses-wait.png') });
     await page.unroute('**/api/ai/breakdown');
 
-    /* ---- 4 on Home, the door goes to Home's own Jambo ---- */
+    /* ---- 4 on Home, the bar's door ----
+       RE-POINTED 21 Oct 2026 (owner: "when i click on jambo at the top of the page in the top bar,
+       the jambo chat box bar should be able to appear in any window"): the ✦ drops the ask bar on
+       every page, Home included; no window appears and Home's own Jambo stays where it is */
     await page.evaluate(f => { if (state.view === 'dashboard' && document.getElementById('hb-head')) hbSetFace(f); else { hbS().face = f; hbSave(); setView('dashboard'); } }, 'board');
     await page.click('#cmd-ai');
-    const home = await page.evaluate(() => ({ open: document.getElementById('ai-panel').classList.contains('open'), focus: document.activeElement && document.activeElement.id }));
-    ok('4a on Home the window does not appear; the cursor goes to Home\'s Jambo', !home.open && home.focus === 'igd-input', JSON.stringify(home));
+    const home = await page.evaluate(() => ({ open: document.getElementById('ai-panel').classList.contains('open'), bar: !!document.getElementById('jb-bar'), focus: document.activeElement && document.activeElement.id }));
+    ok('4a on Home the window does not appear; the ✦ drops the ask bar, the cursor in it', !home.open && home.bar && home.focus === 'jb-bar-q', JSON.stringify(home));
+    await page.keyboard.press('Escape');
 
-    /* ---- 5 the window ---- */
-    /* a page that is not Home: Contracts is Home's Contracts place since step 7, so Approvals —
-       RE-POINTED 18 Oct 2026: Approvals now has Jambo's panel beside its list (round 15 as
-       drawn), and the door goes to the Jambo already on the page (aiGoEmbedded 'list'), so the
-       window is checked on a page with no Jambo of its own: the Brain */
+    /* ---- 5 the window is a side panel ----
+       RE-POINTED 21 Oct 2026 (owner: "let jambo slide in so that it looks like a jambo side panel
+       not like the attached autonomous chatbot box"): REVERSES the window you could move and resize
+       (11 Oct 2026). On a page with no Jambo of its own — the Brain — it slides in at the right edge
+       under the top bar, 384 wide (THE BRIEF), and stays there: no drag, no resize, no dock button */
     await page.evaluate(() => setView('brain'));
-    await page.click('#cmd-ai');
+    await page.evaluate(() => openAI());
     await until(page, () => document.getElementById('ai-panel').classList.contains('open'));
-    /* RE-POINTED 20 Oct 2026 (Chambers): on a computer Jambo's face is the ✦ mark (JAMBO_MARK_PATH),
-       not the bird; the window's head is white and names him in .ai-head-name (the title serif) */
+    await page.waitForTimeout(450);
     const first = await page.evaluate(() => { const p = document.getElementById('ai-panel'), r = p.getBoundingClientRect();
       const mark = p.querySelector('header .ai-head-tile svg path'), name = p.querySelector('header .ai-head-name');
-      return { cls: p.className, x: Math.round(r.right), w: Math.round(r.width), face: !!(mark && mark.getAttribute('d') === window.JAMBO_MARK_PATH), bird: !!p.querySelector('header img.jambo-face'),
-        title: name ? name.textContent.trim() : '', serif: name ? /Source Serif 4/.test(getComputedStyle(name).fontFamily) : false }; });
-    ok('5a it opens as today\'s drawer on the right edge', /floating/.test(first.cls) && first.x === 1500 && first.w === 430, JSON.stringify(first));
-    ok('5b it is called Jambo, in the title serif, and shows his ✦ mark (not the bird)', first.title === 'Jambo' && first.serif && first.face && !first.bird, JSON.stringify({ title: first.title, serif: first.serif, face: first.face, bird: first.bird }));
+      return { cls: p.className, x: Math.round(r.right), w: Math.round(r.width), top: Math.round(r.top), face: !!(mark && mark.getAttribute('d') === window.JAMBO_MARK_PATH), bird: !!p.querySelector('header img.jambo-face'),
+        title: name ? name.textContent.trim() : '' }; });
+    ok('5a it opens as the side panel on the right edge, under the top bar, 384 wide', /is-side/.test(first.cls) && !/floating/.test(first.cls) && first.x === 1500 && first.w === 384 && first.top === 48, JSON.stringify(first));
+    ok('5b it is called Jambo and shows his ✦ mark (not the bird)', first.title === 'Jambo' && first.face && !first.bird, JSON.stringify({ title: first.title, face: first.face, bird: first.bird }));
     const hb = await (await page.$('#ai-panel > header')).boundingBox();
     await page.mouse.move(hb.x + 140, hb.y + 20); await page.mouse.down(); await page.mouse.move(hb.x - 400, hb.y + 100, { steps: 8 }); await page.mouse.up();
     let r = await (await page.$('#ai-panel')).boundingBox();
-    ok('5c dragging the header moves it', Math.round(r.x) < 1070 - 300 && Math.round(r.y) > 50, `${Math.round(r.x)},${Math.round(r.y)}`);
-    /* grab the corner handle itself, and say what was under the pointer if it was not the handle */
-    const corner = async () => { const b = await (await page.$('#ai-panel [data-ai-rz="se"]')).boundingBox();
-      const x = b.x + b.width / 2, y = b.y + b.height / 2;
-      const hit = await page.evaluate(([px, py]) => { const el = document.elementFromPoint(px, py);
-        return el && el.closest('[data-ai-rz="se"]') ? 'handle' : (el ? (el.id || el.className || el.tagName) + '' : 'nothing'); }, [x, y]);
-      return { x, y, hit }; };
-    let cn = await corner();
-    await page.mouse.move(cn.x, cn.y); await page.mouse.down(); await page.mouse.move(cn.x + 1500, cn.y + 1500, { steps: 8 }); await page.mouse.up();
-    r = await (await page.$('#ai-panel')).boundingBox();
-    const maxW = Math.max(430, Math.min(940, Math.round(1500 * 0.72)));
-    ok('5d it never grows past today\'s expanded size', Math.round(r.width) <= maxW && Math.round(r.height) <= 900, `${Math.round(r.width)}×${Math.round(r.height)} (largest ${maxW}×900; under the pointer: ${cn.hit})`);
-    cn = await corner();
-    await page.mouse.move(cn.x, cn.y); await page.mouse.down(); await page.mouse.move(cn.x - 1500, cn.y - 1500, { steps: 8 }); await page.mouse.up();
-    r = await (await page.$('#ai-panel')).boundingBox();
-    ok('5e and never shrinks below 320 × 360', Math.round(r.width) === 320 && Math.round(r.height) === 360, `${Math.round(r.width)}×${Math.round(r.height)} (under the pointer: ${cn.hit})`);
-    const inside = r.x >= 0 && r.y >= 0 && r.x + r.width <= 1500 && r.y + r.height <= 900;
-    ok('5f it stays inside the window', inside);
-    await page.screenshot({ path: path.join(OUT, '5-window-small.png') });
+    ok('5c dragging the head moves nothing: it is a panel at the edge, not a window', Math.round(r.x + r.width) === 1500 && Math.round(r.width) === 384 && Math.round(r.y) === 48, `${Math.round(r.x)},${Math.round(r.y)} ${Math.round(r.width)}`);
+    const handles = await page.evaluate(() => ({ rz: document.querySelectorAll('#ai-panel [data-ai-rz]').length, dock: !!document.getElementById('ai-dock-home') }));
+    ok('5d no resize handles and no dock button', !handles.rz && !handles.dock, JSON.stringify(handles));
+    await page.screenshot({ path: path.join(OUT, '5-side-panel.png') });
 
     /* ---- 6 it steps aside where Jambo is on the page, and comes back ---- */
     const before = { x: Math.round(r.x), y: Math.round(r.y) };
@@ -126,11 +117,6 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     const back = await until(page, () => getComputedStyle(document.getElementById('ai-panel')).visibility === 'visible', null, 4000);
     r = await (await page.$('#ai-panel')).boundingBox();
     ok('6b leaving Home, it comes back where it was', back && Math.round(r.x) === before.x && Math.round(r.y) === before.y, `${Math.round(r.x)},${Math.round(r.y)}`);
-
-    /* ---- 7 one press puts it back ---- */
-    await page.click('#ai-dock-home');
-    r = await (await page.$('#ai-panel')).boundingBox();
-    ok('7a the dock button returns it to the right edge', Math.round(r.x + r.width) === 1500 && Math.round(r.width) === 430 && Math.round(r.height) === 900, `${Math.round(r.x)} ${Math.round(r.width)}×${Math.round(r.height)}`);
 
     /* ---- 8 his face in the chat (RE-POINTED 20 Oct 2026, Chambers: the ✦ mark on a computer) ---- */
     const feedFace = await page.evaluate(() => { const f = document.querySelector('#ai-feed .jambo-face'); const d = f && f.querySelector('path');
