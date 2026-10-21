@@ -133,21 +133,29 @@ describe('f687 (2) one head, one set of tabs and filters, Wall | List', () => {
      put them in a dropdown as well", quick filters last): the name and Wall |
      List on the first row; Stage · Stream · Category · Quick filters and Adapt
      filters on the row under it; no stage tabs. */
-  test('2a the head: the name, the facts line and Wall | List; the four filter boxes and Adapt filters under them', () => {
-    const { doc } = world();
+  /* RE-POINTED AGAIN 21 Oct 2026 (Part 8, the owner's pick "The Legora way";
+     reverses 16 Oct's four labelled boxes and Adapt filters on the place):
+     the title row as before, and under its line the list head's rows — the
+     box to search or ask in, the views as tabs, "+ Filter" — in the list
+     head's own card. No labelled box, no Adapt filters, no stage tabs. */
+  test('2a the head: the name, the facts line and List | Wall; under its line the box, the views as tabs and + Filter', () => {
+    const { win, doc } = world();
     const head = doc.querySelector('[data-reg-home] .ct-head');
     assert.ok(head, 'the one head');
+    assert.equal(head.getAttribute('data-lh-seat'), 'contracts', 'the list head\'s own card');
     assert.equal(head.querySelector('.ct-h').textContent, 'Contracts');
     assert.ok(head.querySelector('#reg-head-facts'), 'the facts line\'s slot');
-    const top = head.querySelector('.ct-top'), row = head.querySelector('.ct-filters');
+    const top = head.querySelector('.ct-top');
     assert.equal(top.querySelectorAll('select').length, 0, 'no filter box on the first row');
     /* RE-POINTED 21 Oct 2026 (owner: "the list needs to come before the wall") */
     assert.deepEqual([...top.querySelectorAll('[data-ct-show]')].map(b => b.getAttribute('data-ct-show')), ['list', 'wall']);
-    assert.deepEqual([...row.querySelectorAll('.reg-fb select')].map(x => x.id), ['reg-stage-sel', 'reg-type-sel', 'reg-category', 'reg-view-sel'],
-      'Stage · Stream · Category · Quick filters, in that order');
+    assert.ok(head.querySelector('input[type="search"][data-lh-q]'), 'the box to search or ask in');
+    const tabs = [...head.querySelectorAll('[role="tablist"] [data-reg-view]')].map(b => b.getAttribute('data-reg-view'));
+    assert.equal(tabs[0], '', 'All first');
+    assert.deepEqual(tabs.slice(1), J(win.REG_CT_VIEWS).filter(k => tabs.includes(k)), 'then the views, in the drawing\'s order');
+    assert.ok(head.querySelector('[data-lh-add]'), '+ Filter');
+    assert.equal(doc.querySelectorAll('[data-reg-home] .reg-fb select, #reg-adapt, .ct-filters').length, 0, 'no labelled box, no Adapt filters');
     assert.equal(doc.querySelectorAll('[data-reg-home] [data-reg-stage]').length, 0, 'no stage tabs');
-    assert.ok(row.querySelector('.ct-adapt #reg-adapt'), 'Adapt filters at the filter row\'s end');
-    assert.equal(doc.querySelectorAll('#reg-type-sel').length, 1, 'one set of filters');
   });
   test('2b the Wall: the very rows the List holds, under the same head; no table', () => {
     const { win, doc } = world('wall');
@@ -157,21 +165,27 @@ describe('f687 (2) one head, one set of tabs and filters, Wall | List', () => {
     assert.ok(!doc.getElementById('reg-tbody'), 'no table on the Wall');
     assert.equal(win.regFiltered().length, 3);
   });
-  test('2c the List: the same builder, no inspector, the drawing\'s six columns and the row\'s ⋯, a row\'s one press opens the paper', () => {
+  /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way"): the
+     agreement leads — the party over "kind · ref" — so the Ref column of its
+     own goes on the place, and the drawing's Agreement · Stage · Ends · Value
+     follow; Owner is hidden until the reader shows it under Columns. */
+  test('2c the List: the same builder, no inspector, the drawing\'s columns and the row\'s ⋯, a row\'s one press opens the paper', () => {
     const { win, doc } = world('list');
     assert.ok(!doc.getElementById('ins-panel') && !doc.querySelector('[data-ins-page]'), 'no inspector, nothing for its width watcher');
     assert.equal(win.regInspecting(), false, 'even where the inspector would fit');
-    assert.deepEqual(J(win.regColKeys()), ['mk', 'counterparty', 'stage', 'owner', 'expiry', 'value', 'acts']);
+    assert.deepEqual(J(win.regColKeys()), ['counterparty', 'stage', 'expiry', 'value', 'acts']);
     assert.equal(win.REG_COL_W_HOME.reduce((a, b) => a + b, 0), 100, 'the widths sum to 100');
+    assert.equal(win.regColWidths().reduce((a, b) => a + b, 0), 100, 'and the drawn ones too, Owner\'s share paid to the agreement');
+    assert.deepEqual(J(win.LC_PAGES.contracts.hide), ['owner'], 'Owner is one press away, under Columns');
     const heads = [...doc.querySelectorAll('[data-reg-home] .reg-table thead th')].map(th => th.textContent.trim().replace(/[▲▼]/g, '').trim());
-    assert.deepEqual(heads, ['Ref', 'Counterparty and agreement', 'Stage', 'Owner', 'Ends', 'Value', ''], 'the drawing\'s six, the ⋯ unheaded');
+    assert.deepEqual(heads, ['Agreement', 'Stage', 'Ends', 'Value', ''], 'the drawing\'s four, the ⋯ unheaded');
     assert.equal(doc.querySelectorAll('#reg-tbody [data-row] [data-menu]').length, 3, 'every row keeps its ⋯');
     assert.ok(!doc.getElementById('ig-wall'), 'no wall on the List');
     /* the same builder: its Display cog is the page's, Table · Board, density and the amendment fold (f387 4g) */
     for (const sel of ['button[data-reg-mode="board"]', 'button[data-reg-density="comfortable"]', '#reg-flat'])
       assert.ok(doc.querySelector('#reg-display-pop ' + sel), sel + ' in the List\'s Display');
     const row = doc.querySelector('#reg-tbody [data-row="MK-1"]');
-    assert.ok(row.textContent.includes('Amina Otieno'), 'the owner written out');
+    assert.match(row.querySelector('.reg-sub').textContent.trim(), /^\S.* · MK-1$/, '"kind · ref" under the party');
     row.click();
     /* 'open' is the reader's own "A contract opens on" (pdOpenTabOf, the
        Control Room built in full, 16 Oct 2026): Jambo unless they chose otherwise */
@@ -198,12 +212,13 @@ describe('f687 (2) one head, one set of tabs and filters, Wall | List', () => {
     const { win, doc, host } = world('list');
     const at = w => { Object.defineProperty(host, 'clientWidth', { configurable: true, get: () => w }); win.regRepaint(); return doc.querySelector('[data-reg-home] .reg-table'); };
     let t = at(win.REG_HOME_NARROW_W - 1);
-    assert.deepEqual(J(win.regColKeys()), ['mk', 'counterparty', 'stage', 'acts']);
+    /* RE-POINTED 21 Oct 2026 (Part 8): no Ref column of its own on the place */
+    assert.deepEqual(J(win.regColKeys()), ['counterparty', 'stage', 'acts']);
     assert.equal(win.REG_COL_W_HOME_NARROW.reduce((a, b) => a + b, 0), 100, 'the widths sum to 100');
-    assert.equal(t.querySelectorAll('thead th').length, 4);
+    assert.equal(t.querySelectorAll('thead th').length, 3);
     assert.ok(t.classList.contains('is-home') && t.classList.contains('is-hnarrow'), 'no floor, and marked narrow for the width watch');
     t = at(win.REG_HOME_NARROW_W + 300);
-    assert.deepEqual(J(win.regColKeys()), J(win.REG_COL_KEYS_HOME), 'wide again: the drawing\'s six and the ⋯');
+    assert.deepEqual(J(win.regColKeys()), ['counterparty', 'stage', 'expiry', 'value', 'acts'], 'wide again: the drawing\'s four and the ⋯');
     assert.ok(t.classList.contains('is-home') && !t.classList.contains('is-hnarrow'));
     assert.match(HTML, /#reg-scroll>table\.reg-table\.is-home\{min-width:0;\}/, 'the window\'s floor never applies to the place');
   });

@@ -71,24 +71,32 @@ const IDS = () => window.regFiltered().map(c => c.id).sort();
     await page.evaluate(() => (window.regPlaceSet({ show: 'list' }), window.setView('register')));
     await page.waitForTimeout(900);
 
-    /* ---- the control exists, beside the one it resembles ---- */
-    const bar = await page.evaluate(() => {
-      const sel = document.getElementById('reg-category');
-      if (!sel) return null;
-      const bar = sel.closest('div');
-      const order = [...bar.querySelectorAll('select')].map(s => s.id);
-      return { opts: [...sel.options].map(o => o.value), labels: [...sel.options].map(o => o.textContent.trim()),
-        order,
-        /* Its neighbours, and whether it is labelled — WO-4 gave every filter a
-           visible label because a title attribute is not one. */
-        labelled: (() => { const l = sel.closest('label');
-          const t = l && l.querySelector('.reg-f-l');
-          return !!(t && t.textContent.trim()); })() };
-    });
-    check('the register offers a category filter', !!bar, bar ? bar.opts.join(', ') : 'no #reg-category');
-    check('it lists every category the metadata records',
-      bar && ['customer', 'supplier', 'employment', 'lease', 'licence', 'partner', 'funding', 'other']
-        .every(k => bar.opts.includes(k)));
+    /* ---- the control exists, beside the one it resembles ----
+       RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way" for
+       the Contracts place): the labelled boxes are not drawn there any more —
+       Category is one of "+ Filter"'s groups and, once chosen, a chip with its
+       x. A choice that cannot give results is not listed (the standing rule
+       every filter keeps), so the group offers the categories THIS book holds
+       and the "No category yet" pile; the catalogue behind it (regCtFilters)
+       still names every category the metadata records. */
+    const SEAT = '[data-lh-seat="contracts"]';
+    const bar = await page.evaluate(S => {
+      const add = document.querySelector(S + ' select[data-lh-add]');
+      if (!add) return null;
+      const groups = [...add.querySelectorAll('optgroup')];
+      const g = groups.find(x => { const o = x.querySelector('option'); try { return o && JSON.parse(o.value)[0] === 'category'; } catch (_) { return false; } });
+      if (!g) return null;
+      const opts = [...g.querySelectorAll('option')];
+      const cat = (window.regCtFilters().find(f => f.k === 'category') || { opts: [] }).opts.map(o => o[0]);
+      return { opts: opts.map(o => JSON.parse(o.value)[1]), labels: opts.map(o => o.textContent.trim()), label: g.label, cat,
+        order: groups.map(x => { try { return JSON.parse(x.querySelector('option').value)[0]; } catch (_) { return x.label; } }),
+        renewalChip: !!document.querySelector(S + ' [data-lh-chip="renewal"]') };
+    }, SEAT);
+    check('the register offers a category filter', !!bar, bar ? bar.opts.join(', ') : 'no Category group under + Filter');
+    check('it lists every category the book holds, and none it does not',
+      bar && JSON.stringify(bar.opts.filter(k => k !== 'none').sort()) === JSON.stringify(['customer', 'supplier'])
+      && ['customer', 'supplier', 'employment', 'lease', 'licence', 'partner', 'funding', 'other'].every(k => bar.cat.includes(k)),
+      bar ? `${bar.opts.join(', ')} · catalogue ${bar.cat.join(', ')}` : '');
     check('and a way back to the ones with no category yet',
       bar && bar.opts.includes('none') && bar.labels.some(l => /No category yet/i.test(l)));
     /* REVERSED IN PLACE 24 Aug 2026 (WO-2, owner-asked: "delete the notes and
@@ -101,39 +109,41 @@ const IDS = () => window.regFiltered().map(c => c.id).sort();
        WO-4 gave it, since a filter whose only name is a tooltip is the fault
        that whole item was about. */
     check('it is on the register\'s own filter bar, with the others',
-      bar && bar.order.includes('reg-category') && bar.order.length >= 3,
+      bar && bar.order.includes('category') && bar.order.length >= 3,
       bar ? bar.order.join(' → ') : '');
-    check('and the Renewal filter it used to sit beside is gone (WO-2)',
-      bar && !bar.order.includes('reg-renewal'), bar ? bar.order.join(' → ') : '');
+    check('and the Renewal filter it used to sit beside is not drawn at rest (WO-2)',
+      bar && !bar.renewalChip, bar ? bar.order.join(' → ') : '');
     check('and it says what it filters, rather than hiding it in a tooltip',
-      bar && bar.labelled);
+      bar && /\S/.test(bar.label || ''), bar ? bar.label : '');
 
     /* ---- it actually filters ---- */
     const all = await page.evaluate(COUNT);
-    await page.selectOption('#reg-category', 'supplier');
-    await page.waitForTimeout(500);
+    await page.selectOption(SEAT + ' select[data-lh-add]', JSON.stringify(['category', 'supplier']));
+    await page.waitForFunction(S => !!document.querySelector(S + ' [data-lh-chip="category"]'), SEAT, { timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(300);
     const suppliers = await page.evaluate(IDS);
     check('choosing a category narrows the register',
       suppliers.length === 2 && suppliers.join(',') === 'MK-A1,MK-A2',
       `${suppliers.length} of ${all}: ${suppliers.join(', ')}`);
 
-    await page.selectOption('#reg-category', 'none');
-    await page.waitForTimeout(500);
+    await page.selectOption(SEAT + ' select[data-lh-f="category"]', 'none');
+    await page.waitForFunction(() => window.regState().category === 'none', null, { timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(300);
     const uncat = await page.evaluate(IDS);
     check('"no category yet" finds exactly the ones nobody has filed',
       uncat.length === seeded.total - seeded.done && !uncat.includes('MK-A1'),
       `${uncat.length} of ${seeded.total}: ${uncat.join(', ')}`);
 
-    /* ---- clearing clears it ---- */
-    const clearedByButton = await page.evaluate(() => {
-      const b = document.getElementById('reg-clear-filters');
-      if (!b) return 'no clear button offered while a category is chosen';
+    /* ---- clearing clears it (its chip's x, the place's Clear) ---- */
+    const clearedByButton = await page.evaluate(S => {
+      const b = document.querySelector(S + ' [data-lh-x="category"]') || document.getElementById('reg-clear-filters');
+      if (!b) return 'no way to take the category off while it is chosen';
       b.click();
       return null;
-    });
+    }, SEAT);
     await page.waitForTimeout(500);
     const afterClear = await page.evaluate(() => ({ cat: window.regState().category, n: window.regFiltered().length }));
-    check('Clear puts the category back with the other filters',
+    check('its x puts the category back with the other filters',
       !clearedByButton && afterClear.cat === 'all' && afterClear.n === all,
       clearedByButton || `category=${afterClear.cat}, ${afterClear.n} rows`);
 

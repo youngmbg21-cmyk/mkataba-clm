@@ -430,7 +430,11 @@ const SEED_UNSENT = async () => {
          REFERENCE is the row's label (ROW IDENTITY: "the reference at
          --t-label/--w-label"), deliberately one rung smaller. */
       const KIND = /reg-kind|reg-sub|reg-typecell|reg-own|reg-av/;
-      const REF = /reg-mk|reg-day/;   /* the reference and the day: the row's labels (regDotDate prints the day at the label rung) */
+      /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way"): on
+         the Contracts place the reference rides under the party ("kind ·
+         ref", refHtml's .hati-ref) instead of a Ref column — still the row's
+         label, one rung under the row */
+      const REF = /reg-mk|reg-day|hati-ref/;   /* the reference and the day: the row's labels (regDotDate prints the day at the label rung) */
       const body = rows.cells.filter(c => !KIND.test(c.cls));
       const text = body.filter(c => !REF.test(c.cls));
       const refs = body.filter(c => REF.test(c.cls));

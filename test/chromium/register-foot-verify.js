@@ -119,13 +119,26 @@ const KEYS = `(() => {
       c1 ? c1.text : 'no foot');
     ok('1c the page-size note is gone', !!c1 && c1.text.indexOf(words.perPage) < 0,
       c1 ? `"${words.perPage}" ${c1.text.indexOf(words.perPage) < 0 ? 'absent' : 'still there'}` : 'no foot');
-    ok('1d the foot holds the count and the pager, and nothing else',
-      !!c1 && c1.kids.join(',') === 'reg-showing,reg-pager', c1 ? c1.kids.join(',') : 'no foot');
+    /* ---- 1d and 1g RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the
+       Legora way" for the Contracts place): the foot is the shared list
+       head's — "1–40 of 50 · Show 10 more" on #reg-showing itself — so the
+       Prev/Next pager became "Show 10 more". What these pin is unchanged: the
+       foot is the count and the way to the rest, and nothing else. */
+    const f1 = await page.evaluate(() => {
+      const foot = document.querySelector('#reg-showing[data-lh-foot]');
+      if (!foot) return null;
+      const kids = [...foot.children].filter(k => { const r = k.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
+      return { kids: kids.map(k => k.className.split(' ').find(c => c.startsWith('lh-')) || k.tagName.toLowerCase()),
+        more: !!foot.querySelector('[data-lh-more="contracts"]'), pager: !!document.getElementById('reg-pager') };
+    });
+    ok('1d the foot holds the count and "Show N more", and nothing else',
+      !!f1 && f1.kids[0] === 'lh-range' && f1.kids.includes('lh-more') && f1.kids.every(k => ['lh-range', 'lh-more', 'lh-extra'].includes(k)),
+      f1 ? f1.kids.join(',') : 'no foot');
     ok('1e and it is one line, not a wall', !!c1 && c1.oneLine, c1 ? `centres ${c1.tops} · ${c1.h}px` : 'no foot');
     ok('1f CONTROL the count is still there', !!c1 && c1.showOn && /50/.test(c1.showing),
       c1 ? c1.showing : 'no foot');
-    ok('1g CONTROL the pager is still there on a book of two pages', !!c1 && c1.pagerBtns >= 3,
-      c1 ? `${c1.pagerBtns} buttons` : 'no foot');
+    ok('1g CONTROL the way to the rest is still there on a book of more than forty', !!f1 && f1.more && !f1.pager,
+      f1 ? `Show more ${f1.more} · pager ${f1.pager}` : 'no foot');
     /* ---- 1h RE-POINTED LATER THE SAME DAY (24 Sep 2026) ----
        It was a CONTROL: "every row still names its stream beside its colour",
        the fact the key used to explain. Hours later the owner took the stream
@@ -138,7 +151,9 @@ const KEYS = `(() => {
         .filter(tr => [...tr.querySelectorAll('td span')].some(s => {
           const r = s.getBoundingClientRect(); return r.width > 0 && r.width <= 6 && r.height >= 8;
         })).length,
-      filter: !!document.getElementById('reg-type-sel'),
+      /* the Stream filter is a group under "+ Filter" on the place (Part 8) */
+      filter: !!document.getElementById('reg-type-sel') || [...document.querySelectorAll('[data-lh-seat="contracts"] select[data-lh-add] option')]
+        .some(o => { try { return JSON.parse(o.value)[0] === 'type'; } catch (_) { return false; } }),
     }));
     ok('1h no row draws a stream colour now, and the Stream filter stays',
       rows.bars === 0 && rows.filter, JSON.stringify(rows));

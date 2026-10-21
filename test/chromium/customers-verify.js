@@ -200,22 +200,23 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     for (const v of ['register', 'redline']){
       await page.evaluate(v => setView(v), v);
       await page.waitForTimeout(1200);
-      /* Contracts is Home's Contracts place since step 7: its filters sit on
-         the row under the name, just above the card (owner, 16 Oct 2026) */
+      /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way" for
+         both lists, which reverses the labelled boxes above the card and
+         beside the tabs): each page's filters are "+ Filter" and its chips,
+         on the chip row of the one list head, under the name row (and, on
+         Negotiations, under its tabs) */
       const r = await page.evaluate(() => {
-        const place = document.querySelector('[data-reg-home]');
-        if (place){ const top = place.querySelector('.ct-top'), bar = place.querySelector('.ct-filters .reg-fb');
-          const chip = bar && bar.querySelector('.reg-chip:not(.reg-chip-btn)');
-          const br = bar && bar.getBoundingClientRect(), tr = top && top.getBoundingClientRect();
-          return { one: !!(br && tr) && br.top >= tr.bottom - 1, face: chip ? chip.textContent.replace(/\s+/g, ' ').trim().slice(0, 40) : '' }; }
-        const row = document.querySelector('.reg-tabbar');
-        const tabs = row && row.querySelector('.reg-views'), bar = row && row.querySelector('.reg-fb');
-        const tr = tabs && tabs.getBoundingClientRect(), br = bar && bar.getBoundingClientRect();
-        const chip = bar && bar.querySelector('.reg-chip:not(.reg-chip-btn)');
-        return { one: !!(tr && br) && Math.abs((tr.top + tr.bottom) / 2 - (br.top + br.bottom) / 2) < 14 && br.left > tr.right,
-          face: chip ? chip.textContent.replace(/\s+/g, ' ').trim().slice(0, 40) : '' };
+        const head = document.querySelector('[data-lh-seat="contracts"], [data-lh-seat="negotiations"]');
+        const top = head && head.querySelector('.ph-top'), row = head && head.querySelector('.lh-chips');
+        const tabs = head && head.querySelector('.reg-views');
+        const add = row && row.querySelector('.lh-add');
+        const rr = row && row.getBoundingClientRect(), tr = top && top.getBoundingClientRect(), vr = tabs && tabs.getBoundingClientRect();
+        return { seat: head && head.getAttribute('data-lh-seat'), boxes: document.querySelectorAll('[data-reg-home] .reg-fb, .reg-tabbar .reg-fb').length,
+          one: !!(rr && tr) && rr.top >= tr.bottom - 1 && (!vr || rr.top >= vr.bottom - 1),
+          face: add ? add.textContent.replace(/\s+/g, ' ').trim().slice(0, 40) : '' };
       });
-      ok(`6 ${v === 'register' ? 'Contracts (the place): the filters sit on the row under the name, above the card' : 'Negotiations: the filters sit beside the tabs'}, label and value inside`, r.one && /:?\s*\S/.test(r.face), r.face);
+      ok(`6 ${v === 'register' ? 'Contracts (the place)' : 'Negotiations'}: the filters are "+ Filter" on the head's chip row, under the name${v === 'register' ? '' : ' and the tabs'}, no labelled box`,
+        r.seat === (v === 'register' ? 'contracts' : 'negotiations') && r.one && r.boxes === 0 && /\S/.test(r.face), JSON.stringify(r));
     }
     ok('no page errors', !errs.length, errs.join(' | '));
   } catch (e) {

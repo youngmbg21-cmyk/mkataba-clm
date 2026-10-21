@@ -55,19 +55,46 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     await page.screenshot({ path: path.join(OUT, '01-contracts.png') });
 
     /* RE-POINTED 9 Oct 2026 (owner's pick): the quick filters are a box now, so
-       its options are what is asked. */
-    const tabs = await page.$$eval('#reg-view-sel option', els => els.map(e => e.textContent.trim()));
-    ok('2a the 60-day tab is gone', !tabs.some(t => /≤ 60/.test(t)), tabs.join(' | '));
-    ok('2a2 the 30-day tab is gone', !tabs.some(t => /≤ 30/.test(t)));
-    ok('2a3 and 90 is still there', tabs.some(t => /≤ 90/.test(t)));
+       its options are what is asked.
+       RE-POINTED AGAIN 21 Oct 2026 (Part 8, the owner picked "the Legora way"):
+       the views are TABS again, in the drawing's words ("Ending in 90 days"),
+       each drawn where it holds rows — so the catalogue of tabs is asked
+       (regCtViews, the one reading the tab row draws), not the painted row. */
+    const tabs = await page.evaluate(() => regCtViews().map(v => v.k + ':' + v.label));
+    ok('2a the 60-day tab is gone', !tabs.some(t => /60/.test(t)), tabs.join(' | '));
+    ok('2a2 the 30-day tab is gone', !tabs.some(t => /\b30\b/.test(t)));
+    ok('2a3 and 90 is still there', tabs.some(t => /^expiring90:.*90/.test(t)));
 
     const dens = await page.$$eval('button[data-reg-density]',
       els => els.map(e => e.textContent.trim()));
     ok('2b Condensed is gone', dens.length === 2 && !/ondensed|ompakt/.test(dens.join()),
       dens.join(' | '));
 
-    /* ---- THE HIT TEST. This is the whole of the filter report. ---- */
-    const chips = await page.evaluate(() => [...document.querySelectorAll('.reg-filterbar .reg-chip')]
+    /* ---- AND IT NARROWS. A control that opens and does nothing is the
+       same report in a second costume. ---- */
+    const before = await page.$$eval('tr[data-row]', r => r.length);
+    /* RE-POINTED 21 Oct 2026 (Part 8): a stream is picked under "+ Filter"
+       and stands as a chip — the claim (a filter narrows and says so) is one. */
+    const SEAT = '[data-lh-seat="contracts"]';
+    const pick = await page.evaluate(S => { const add = document.querySelector(S + ' select[data-lh-add]');
+      const o = add && [...add.querySelectorAll('option')].find(x => { try { return JSON.parse(x.value)[0] === 'type'; } catch (_) { return false; } });
+      return o ? { v: o.value, t: regTypes().find(t => t.k === JSON.parse(o.value)[1]).label } : null; }, SEAT);
+    if (pick) await page.selectOption(SEAT + ' select[data-lh-add]', pick.v);
+    await page.waitForFunction(S => !!document.querySelector(S + ' [data-lh-chip="type"]'), SEAT, { timeout: 5000 }).catch(() => {});
+    const after = await page.evaluate(S => { const c = document.querySelector(S + ' [data-lh-chip="type"]'); return {
+      rows: document.querySelectorAll('tr[data-row]').length,
+      face: c ? c.textContent.replace(/\s+/g, ' ').trim() : '',
+      lit: !!c }; }, SEAT);
+    ok('2c3 picking a stream narrows the table', after.rows > 0 && after.rows < before,
+      `${before} → ${after.rows}`);
+    ok('2c4 and the chip says what is in force', after.lit && !!pick && (after.face || '').includes(pick.t),
+      after.face);
+
+    /* ---- THE HIT TEST. This is the whole of the filter report. ----
+       RE-POINTED 21 Oct 2026 (Part 8): the controls with a list on the chip
+       row — "+ Filter", the Stream chip just picked, Sort — each measured
+       across its own face (a chip's x is a second control beside it) */
+    const chips = await page.evaluate(S => [...document.querySelectorAll(`${S} .lh-chips .lh-add, ${S} .lh-chips .lh-chip > label, ${S} .lh-chips .reg-chip`)]
       .filter(c => c.querySelector('select'))
       .map(c => {
         const s = c.querySelector('select'), r = c.getBoundingClientRect();
@@ -75,37 +102,20 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
            right wall. Every one of them must land on the control. */
         const xs = [.2, .4, .6, .8].map(f => document.elementFromPoint(
           r.left + r.width * f, r.top + r.height / 2));
-        return { id: s.id, opts: s.options.length,
+        return { id: s.id || s.getAttribute('data-lh-f') || (s.hasAttribute('data-lh-add') ? '+filter' : '?'), opts: s.options.length,
           onSelect: xs.every(e => e && e.tagName === 'SELECT'),
           hits: xs.map(e => e ? e.tagName : 'null').join(','),
           sel: Math.round(s.getBoundingClientRect().width),
           chip: Math.round(r.width) };
-      }));
+      }), SEAT);
     ok('2c every filter chip opens from anywhere on its face',
       chips.length >= 3 && chips.every(c => c.onSelect),
       chips.map(c => `${c.id}:${c.hits}`).join(' · '));
     ok('2c2 and the control really is the size of the chip',
       chips.every(c => c.sel >= c.chip - 4),
       chips.map(c => `${c.id} ${c.sel}/${c.chip}`).join(' · '));
-
-    /* ---- AND IT NARROWS. A control that opens and does nothing is the
-       same report in a second costume. ---- */
-    const before = await page.$$eval('tr[data-row]', r => r.length);
-    /* RE-POINTED 9 Oct 2026: the stage is the tab row on this page now, so the
-       box picked is the stream — the claim (a box narrows and says so) is one. */
-    const pick = await page.$eval('#reg-type-sel', s => { const o = s.options[1]; return o ? { v: o.value, t: o.textContent.trim() } : null; });
-    await page.selectOption('#reg-type-sel', pick ? pick.v : 'all');
-    await page.waitForTimeout(800);
-    const after = await page.evaluate(() => { const c = document.getElementById('reg-type-sel').closest('.reg-chip'); return {
-      rows: document.querySelectorAll('tr[data-row]').length,
-      face: (c.querySelector('.reg-f-l') || {}).textContent,
-      lit: c.classList.contains('on') }; });
-    ok('2c3 picking a stream narrows the table', after.rows > 0 && after.rows < before,
-      `${before} → ${after.rows}`);
-    ok('2c4 and the chip says what is in force', after.lit && !!pick && (after.face || '').includes(pick.t),
-      after.face);
     await page.screenshot({ path: path.join(OUT, '02-chip-picked.png') });
-    await page.selectOption('#reg-type-sel', 'all');
+    await page.click(SEAT + ' [data-lh-x="type"]').catch(() => {});
     await page.waitForTimeout(600);
 
     /* ════════ 1. HOME'S PREPARED BY COPILOT ROW ════════

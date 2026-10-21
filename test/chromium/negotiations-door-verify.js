@@ -803,15 +803,25 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
        filter controls still reads as one convention. */
     await page.evaluate(() => { regSetScope(null); setView('register'); });
     await page.waitForTimeout(1400);
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way", and
+       answered Q1 "B — keep both boxes"): the Contracts place draws the list
+       head's ONE box, and it always says what the shell bar says — never a
+       second box of its own (#reg-search), never two boxes disagreeing; the
+       filters are "+ Filter" and its chips on one row of one dress */
+    await page.fill('#cmd-search', 'Naiv').catch(() => {});
+    await page.waitForTimeout(600);
     const cbox = await page.evaluate(() => {
-      const sels = [...document.querySelectorAll('#reg-stage-sel,#reg-type-sel,#reg-category,#reg-renewal')];
+      const sels = [...document.querySelectorAll('[data-lh-seat="contracts"] .lh-chips .lh-add, [data-lh-seat="contracts"] .lh-chips .lh-chip > label')];
       const g = e => e ? getComputedStyle(e).backgroundColor : null;
-      return { found: !!document.getElementById('reg-search'),
+      const boxes = [...document.querySelectorAll('[data-reg-home] input[data-lh-q]')];
+      return { found: !!document.getElementById('reg-search'), boxes: boxes.length,
+        same: boxes.length === 1 && boxes[0].value === (document.getElementById('cmd-search') || {}).value,
         shell: !!document.getElementById('cmd-search'),
         neighbours: [...new Set(sels.map(g))] };
     });
-    check('11 CONTRACTS DRAWS NO BOX EITHER — the shell bar is the one search',
-      cbox.found === false && cbox.shell === true, JSON.stringify(cbox));
+    await page.fill('#cmd-search', '').catch(() => {});
+    check('11 CONTRACTS DRAWS ONE LIST BOX, in step with the shell bar — never a box of its own beside it',
+      cbox.found === false && cbox.shell === true && cbox.boxes === 1 && cbox.same, JSON.stringify(cbox));
     check('11 …and the filter controls beside it still read as one row',
       cbox.neighbours.length === 1, JSON.stringify(cbox));
 

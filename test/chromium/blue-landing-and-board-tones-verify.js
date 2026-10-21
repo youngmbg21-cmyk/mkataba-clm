@@ -163,7 +163,8 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
     });
     await page.waitForTimeout(800);
     const list = await page.evaluate(() => {
-      const mk = document.querySelector('#reg-tbody .reg-mk'), row = document.querySelector('#reg-tbody').closest('table');
+      /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way"): the Contracts place prints the reference under the party ("kind · ref", .reg-sub .hati-ref) — its Ref column (.reg-mk) went */
+      const mk = document.querySelector('#reg-tbody .reg-mk, #reg-tbody .reg-sub .hati-ref'), row = document.querySelector('#reg-tbody').closest('table');
       const lefts = [...document.querySelectorAll('#reg-tbody .reg-stg-slot + .ins-mv')].map(e => Math.round(e.getBoundingClientRect().left));
       return { mk: mk ? parseFloat(getComputedStyle(mk).fontSize) : 0, row: row ? parseFloat(getComputedStyle(row).fontSize) : 0, lefts };
     });

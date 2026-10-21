@@ -148,20 +148,21 @@ const AGREED = [
     const RL = made && made.id;
 
     /* ===== 2. IT LIVES ON NEGOTIATIONS ===== */
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way"): the Contracts place prints the reference under the party ("kind · ref", .reg-sub .hati-ref) — its Ref column (.reg-mk) went */
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(900);
     const onContracts = await page.evaluate(id => !!document.querySelector(`.reg-table tr[data-row="${id}"], .reg-table [data-sel="${id}"], .reg-table [data-row-id="${id}"]`)
-      || [...document.querySelectorAll('.reg-table .reg-mk')].some(td => td.textContent.trim() === id), RL);
+      || [...document.querySelectorAll('.reg-table .reg-mk, .reg-table .reg-sub .hati-ref')].some(td => td.textContent.trim() === id), RL);
     check('2a the Contracts list does not carry a working file', !onContracts);
     await page.evaluate(id => { const R = regState(); R.query = id; regRepaint(); }, RL);
     await page.waitForTimeout(700);
-    const found = await page.evaluate(id => { const td = [...document.querySelectorAll('.reg-table .reg-mk')].find(x => x.textContent.trim() === id);
+    const found = await page.evaluate(id => { const td = [...document.querySelectorAll('.reg-table .reg-mk, .reg-table .reg-sub .hati-ref')].find(x => x.textContent.trim() === id);
       const row = td && td.closest('tr'); return row ? row.textContent.replace(/\s+/g, ' ') : ''; }, RL);
     check('2b a search on Contracts still finds it, and the row says where it lives', /on Negotiations/i.test(found), found.slice(0, 160));
     await page.evaluate(() => { const R = regState(); R.query = ''; regRepaint(); });
     await page.evaluate(() => { if (window.openNegotiations) openNegotiations({ list: true }); else setView('redline'); });
     await page.waitForTimeout(1200);
-    const onNego = await page.evaluate(id => [...document.querySelectorAll('.reg-table .reg-mk')].some(td => td.textContent.trim() === id), RL);
+    const onNego = await page.evaluate(id => [...document.querySelectorAll('.reg-table .reg-mk, .reg-table .reg-sub .hati-ref')].some(td => td.textContent.trim() === id), RL);
     await page.screenshot({ path: path.join(OUT, '2-negotiations.png') });
     check('2c the Negotiations page lists it from the day it is opened, before a change is filed', onNego);
 
@@ -308,7 +309,7 @@ const AGREED = [
       `${filed.crumb} · want ${filed.barWord}`);
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(900);
-    const row = await page.evaluate(no => [...document.querySelectorAll('.reg-table .reg-mk')].some(td => td.textContent.trim() === no), filed.no);
+    const row = await page.evaluate(no => [...document.querySelectorAll('.reg-table .reg-mk, .reg-table .reg-sub .hati-ref')].some(td => td.textContent.trim() === no), filed.no);
     check('6f it is on the Contracts list now, under its number', row);
     await page.evaluate(() => { if (window.openNegotiations) openNegotiations({ list: true }); });
     await page.waitForTimeout(900);

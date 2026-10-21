@@ -166,14 +166,21 @@ const MARK = cid => {
       opened.pressed && opened.panel, JSON.stringify(opened));
 
     /* ═══ 3 · THE DROPDOWN ═══ */
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way" for
+       the Contracts place): the labelled boxes went; a chosen filter is a
+       CHIP in the list head whose face says what is in force. The chip
+       measured is a Stage chip, staged on the stage the book holds most. */
+    const CHIP = '[data-lh-seat="contracts"] [data-lh-chip="stage"] > label';
     await page.evaluate(() => { const b = document.querySelector('#context-panel [data-panel-close],.side-panel-x');
       if (b) b.click(); setView('register'); }); await pause(1200);
-    const chip = await page.evaluate(() => { const c = document.querySelector('.reg-filterbar .reg-chip');
+    await page.evaluate(() => { const n = {}; regFiltered().forEach(c => { n[c.status] = (n[c.status] || 0) + 1; });
+      const k = Object.keys(n).sort((a, b) => n[b] - n[a])[0]; if (k) LH_PAGES.contracts.apply({ stage: k }); }); await pause(600);
+    const chip = await page.evaluate(S => { const c = document.querySelector(S);
       if (!c) return null; const r = c.getBoundingClientRect();
-      return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }; });
+      return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }; }, CHIP);
     check('3-stage the filter bar draws a chip', !!chip, JSON.stringify(chip));
     await page.mouse.click(chip.x, chip.y); await pause(400);
-    const menu = await page.evaluate(() => {
+    const menu = await page.evaluate(S => {
       const el = document.querySelector('.hati-selmenu'); if (!el) return { drawn: false };
       const cs = getComputedStyle(el), r = el.getBoundingClientRect();
       const on = el.querySelector('.hati-selmenu-row.on');
@@ -188,9 +195,9 @@ const MARK = cid => {
         litBg: on ? getComputedStyle(on).backgroundColor : null,
         litInk: on ? getComputedStyle(on).color : null,
         painted: !!(mid && el.contains(mid)),
-        below: Math.round(r.top) > Math.round(document.querySelector('.reg-filterbar .reg-chip')
+        below: Math.round(r.top) > Math.round(document.querySelector(S)
           .getBoundingClientRect().bottom) - 2 };
-    });
+    }, CHIP);
     await page.screenshot({ path: path.join(OUT, '03-menu.png') });
     const accent = await page.evaluate(() =>
       getComputedStyle(document.documentElement).getPropertyValue('--accent-fill').trim());
@@ -211,20 +218,22 @@ const MARK = cid => {
        never drawn one `rows[2]` is undefined, and a probe that throws takes
        every check after it down with it — a file that stops at sixteen proves
        nothing about the eight it never reached. */
-    const picked = await page.evaluate(async () => {
+    const picked = await page.evaluate(async S => {
+      /* the row that is not in force (the chip's list holds its other choices) */
       const rows = [...document.querySelectorAll('.hati-selmenu-row')];
-      if (rows.length < 3) return { word: null, sel: null, gone: null, face: null, none: true };
-      const word = rows[2].textContent.trim(); rows[2].click();
+      const row = rows.find(x => !x.classList.contains('on') && !x.disabled);
+      if (rows.length < 2 || !row) return { word: null, sel: null, gone: null, face: null, none: true };
+      const word = row.textContent.trim(); row.click();
       await new Promise(r => setTimeout(r, 600));
-      const sel = document.querySelector('.reg-filterbar select');
+      const sel = document.querySelector(S + ' select');
       return { word, sel: sel ? sel.options[sel.selectedIndex].textContent.trim() : null,
         gone: !document.querySelector('.hati-selmenu'),
-        face: ((document.querySelector('.reg-filterbar .reg-chip .reg-f-l') || {}).textContent || '').trim() };
-    });
+        face: ((document.querySelector(S + ' b') || {}).textContent || '').trim() };
+    }, CHIP);
     check('3g a press writes the answer back to the select itself',
       !!picked.word && picked.sel === picked.word, `${picked.word} → ${picked.sel}`);
     check('3h the menu goes, and the chip says what is in force',
-      !!picked.gone && !!picked.face && picked.face.indexOf(picked.word) >= 0, JSON.stringify(picked));
+      !!picked.gone && !!picked.face && String(picked.word || '').replace(/\s*\([\d,\s]+\)$/, '') === picked.face, JSON.stringify(picked));
     await page.mouse.click(chip.x, chip.y); await pause(300);
     const o1 = await page.evaluate(() => !!document.querySelector('.hati-selmenu'));
     await page.mouse.click(chip.x, chip.y); await pause(300);

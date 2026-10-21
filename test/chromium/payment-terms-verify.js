@@ -665,37 +665,39 @@ const EXTRA = [
        book read. It lives behind Adapt filters, so it has to be turned on
        before it draws — and it must draw on its own the moment it is
        narrowing, which is this catalogue's own safety property. */
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way" for
+       the Contracts place): Adapt filters and the labelled boxes are not drawn
+       there any more — every filter is a group under "+ Filter" and a chosen
+       one is a chip with its x; the safety property is unchanged (a chip is
+       drawn exactly while its filter narrows). */
     await seedBook();
     await page.evaluate(() => { window.langSet('en'); (regPlaceSet({ show: 'list' }), setView('register')); });
     await page.waitForTimeout(1200);
-    const offBar = await page.evaluate(() => !document.getElementById('reg-payterms'));
+    const PT_CHIP = '[data-lh-seat="contracts"] [data-lh-chip="payterms"]';
+    const offBar = await page.evaluate(C => !document.getElementById('reg-payterms') && !document.querySelector(C), PT_CHIP);
     check('13a it is NOT on the bar by default — the row still fits one line', offBar,
-      offBar ? 'behind Adapt filters' : 'drawn unasked');
+      offBar ? 'under + Filter' : 'drawn unasked');
     const inCat = await page.evaluate(() => {
-      const b = document.getElementById('reg-adapt');
-      if (!b) return null;
-      b.click();
-      const box = Array.from(document.querySelectorAll('#modal-root input[type="checkbox"]'))
-        .map(i => ({ v:i.value || (i.getAttribute('data-f') || ''), t:(i.closest('label') || {}).textContent || '' }));
-      return box;
+      const add = document.querySelector('[data-lh-seat="contracts"] select[data-lh-add]');
+      if (!add) return null;
+      return [...add.querySelectorAll('optgroup')].map(g => ({ v: g.label, t: g.label }));
     });
-    check('13b it is offered in Adapt filters',
+    check('13b it is offered under + Filter',
       Array.isArray(inCat) && inCat.some(x => /payment terms/i.test(x.t)),
-      Array.isArray(inCat) ? inCat.map(x => x.t.trim()).join(' | ').slice(0, 120) : 'no dialog');
-    await page.evaluate(() => { const m = document.getElementById('modal-root'); if (m) m.innerHTML = ''; });
+      Array.isArray(inCat) ? inCat.map(x => x.t.trim()).join(' | ').slice(0, 120) : 'no + Filter');
 
     /* THE SAFETY PROPERTY: turned on from the model, it must appear on the bar
        by itself rather than narrowing the book from behind a closed dialog. */
     await page.evaluate(() => { regState().payterms = 'none'; regRepaint(); });
     await page.waitForTimeout(900);
-    const narrowed = await page.evaluate(() => ({
-      drawn: !!document.getElementById('reg-payterms'),
-      value: (document.getElementById('reg-payterms') || {}).value,
+    const narrowed = await page.evaluate(C => ({
+      drawn: !!document.querySelector(C),
+      value: (document.querySelector(C + ' select[data-lh-f="payterms"]') || {}).value,
       shown: document.querySelectorAll('tr[data-row]').length,
       want: regFiltered().length,
       noTerms: state.contracts.filter(c => c.status !== 'Declined' && !c.archived &&
         (typeof payDays === 'function') && payDays(c) == null).length,
-    }));
+    }), PT_CHIP);
     check('13c a filter that is narrowing draws itself — it can never be quietly on',
       narrowed.drawn && narrowed.value === 'none', `drawn ${narrowed.drawn} · ${narrowed.value}`);
     check('13d "not recorded" really narrows the register',
@@ -720,10 +722,10 @@ const EXTRA = [
     } else {
       check('13e a band narrows to exactly that band', false, 'no contract carries terms');
     }
-    await page.evaluate(() => { const b = document.getElementById('reg-clear-filters'); if (b) b.click(); });
+    await page.evaluate(C => { const b = document.querySelector(C + ' [data-lh-x="payterms"]'); if (b) b.click(); }, PT_CHIP);
     await page.waitForTimeout(800);
-    const cleared = await page.evaluate(() => ({ v: regState().payterms, gone: !document.getElementById('reg-payterms') }));
-    check('13f Clear puts it back and the control stands down again',
+    const cleared = await page.evaluate(C => ({ v: regState().payterms, gone: !document.getElementById('reg-payterms') && !document.querySelector(C) }), PT_CHIP);
+    check('13f its chip\'s x puts it back and the control stands down again',
       cleared.v === 'all' && cleared.gone, `${cleared.v} · off the bar ${cleared.gone}`);
     await page.screenshot({ path: path.join(OUT, '06-contracts-filter.png'), fullPage: true });
 

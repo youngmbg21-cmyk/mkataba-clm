@@ -64,9 +64,13 @@ const check = (name, pass, detail) => {
   /* RE-POINTED 18 Oct 2026 (round 13 as drawn): a press on a paper CHOOSES it
      and a second press opens it, and the wall draws twelve at a time — so the
      paper is brought into the wall (Show more) and pressed twice */
+  /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way"): the
+     Wall's foot is the shared list foot — "1–12 of N · Show N more"
+     ([data-lh-foot="wall"] .lh-range, [data-lh-more="wall"]); it was "Showing 12
+     of N" (.igw-shown) and [data-ig-wall-more]. */
   const pressOpen = async id => {
     const sel = `#ig-wall .igw-card[data-ig-pick="${id}"]`;
-    for (let i = 0; i < 6 && !(await page.$(sel)) && await page.$('#ig-wall [data-ig-wall-more]'); i++){ await page.click('#ig-wall [data-ig-wall-more]'); await page.waitForTimeout(200); }
+    for (let i = 0; i < 6 && !(await page.$(sel)) && await page.$('#ig-wall [data-lh-more="wall"]'); i++){ await page.click('#ig-wall [data-lh-more="wall"]'); await page.waitForTimeout(200); }
     await page.click(sel); await page.click(sel);
   };
   try {

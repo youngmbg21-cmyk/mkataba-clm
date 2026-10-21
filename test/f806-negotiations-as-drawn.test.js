@@ -134,7 +134,9 @@ describe('f806 (3) the page as drawn', () => {
        list's own card head goes, its controls to the chip row's end). This
        pinned round 14's "Negotiations 7" pill on that head. */
     assert.doesNotMatch(fnOf(REG, 'regListTitle'), /negotiations|is-pill/, 'the register\'s list title is Contracts\' alone');
-    assert.match(REG, /\$\{neg\?'':`<div class="reg-cardhead reg-filterbar">/, 'no card head on the Negotiations seat');
+    /* and none on the Contracts place either (Part 8, the same pick): the card
+       head is drawn only on the full table renderRegister draws off Home */
+    assert.match(REG, /\$\{\(neg\|\|HOME\)\?'':`<div class="reg-cardhead reg-filterbar">/, 'no card head on the Negotiations seat');
     assert.match(HTML, /\.reg-tt-n\.is-pill,\.ap-card-n\.is-pill\{/, 'the pill\'s rule stays for Approvals\' own count');
   });
   test('3c the wait is amber where it waits on the reader: our move, on a deal they lead', () => {

@@ -17,6 +17,13 @@
    (3) Words in both books; the paper being opened says so (job 1's ring).
    At the parent feb17f1 every test here fails: there is no 'nego' view, no
    Stage box on the place (it drew tabs) and no regStageOptsHtml.
+   RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way", which
+   reverses the four boxes above the card): the views are the list head's
+   tabs (In negotiation among them, counted), and Stage is a "+ Filter"
+   choice — the tabs' order and words, each counted, an empty stage not
+   offered — standing as a chip once chosen. What each test protected is
+   asked of the new home: the count is the rows, a pick narrows, the stage in
+   force stays offered when it empties.
    ═══════════════════════════════════════════════════════════════════════════ */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
@@ -45,55 +52,64 @@ const world = (show = 'list') => {
   return { win, doc: win.document };
 };
 const opts = (doc, id) => [...doc.getElementById(id).options].map(o => ({ v: o.value, t: o.textContent, on: o.selected }));
-const pick = (win, doc, id, v) => { const s = doc.getElementById(id); s.value = v; s.dispatchEvent(new win.Event('change', { bubbles: true })); };
+/* the list head's own controls: a tab by its key, "+ Filter"'s choices of one filter, a chip's select */
+const tab = (doc, k) => doc.querySelector(`[data-reg-home] [data-lh-seat="contracts"] [role="tablist"] [data-reg-view="${k}"]`);
+/* the words "+ Filter" offers under one filter's heading (this harness's
+   stand-in esc leaves quotes alone, so an option's JSON value is not read
+   here); a choice made goes through the head's own writer, as the select's
+   change does (spec.apply) */
+const addOpts = (doc, label) => [...doc.querySelectorAll(`[data-reg-home] select[data-lh-add] optgroup[label="${label}"] option`)].map(o => o.textContent);
+const addPick = (win, k, v) => win.LH_PAGES.contracts.apply({ [k]: v });
 
 describe('f693 (1) Quick filters: In negotiation', () => {
-  test('1a it is offered after Auto-renewing soon, with the count of live negotiations', () => {
+  test('1a it is a tab, after Needs you in the drawing\'s order, with the count of live negotiations', () => {
     const { win, doc } = world();
     assert.equal(typeof win.negoIsLive, 'function', 'the Negotiations list\'s own reading is loaded');
-    const o = opts(doc, 'reg-view-sel'), i = o.findIndex(x => x.v === 'nego');
-    assert.ok(i > 0, 'In negotiation is a choice');
-    assert.equal(o[i - 1].v, 'autosoon', 'after Auto-renewing soon');
+    const b = tab(doc, 'nego');
+    assert.ok(b, 'In negotiation is a tab');
+    assert.deepEqual(JSON.parse(JSON.stringify(win.REG_CT_VIEWS)).slice(0, 4), ['needs', 'nego', 'expiring90', 'drafts'], 'All · Needs you · In negotiation · Ending in 90 days · Drafts');
     const want = win.state.contracts.filter(c => win.negoIsLive(c)).length;
     assert.equal(want, 2, 'the fixture: two live, one signed with a record');
-    assert.equal(o[i].t, `In negotiation (${want})`);
+    assert.equal(b.querySelector('.n').textContent, String(want), 'its number');
+    assert.equal(b.firstChild.textContent.trim(), 'In negotiation');
   });
-  test('1b a pick narrows to exactly the live negotiations', () => {
+  test('1b a press narrows to exactly the live negotiations', () => {
     const { win, doc } = world();
-    pick(win, doc, 'reg-view-sel', 'nego');
+    tab(doc, 'nego').click();
     assert.equal(win.regState().view, 'nego');
     assert.deepEqual([...doc.querySelectorAll('#reg-tbody [data-row]')].map(r => r.getAttribute('data-row')).sort(), ['MK-3', 'MK-4']);
   });
 });
 
 describe('f693 (2) the Stage box on the place', () => {
-  test('2a the four boxes above the card, Quick filters last; no tabs', () => {
+  test('2a no labelled box on the place: Stage is a "+ Filter" choice, never a tab row', () => {
     const { doc } = world('wall');
     const head = doc.querySelector('[data-reg-home] .ct-head');
-    assert.deepEqual([...head.querySelectorAll('.ct-filters .reg-fb select')].map(x => x.id), ['reg-stage-sel', 'reg-type-sel', 'reg-category', 'reg-view-sel']);
+    assert.equal(head.querySelectorAll('.reg-fb select, .ct-filters').length, 0, 'no labelled box');
     assert.equal(head.querySelectorAll('.ct-top select').length, 0, 'none beside the name');
+    assert.ok(head.querySelector('select[data-lh-add] optgroup[label="Stage"]'), 'Stage under + Filter');
     assert.equal(doc.querySelectorAll('[data-reg-home] [data-reg-stage]').length, 0);
   });
-  test('2b its choices: the tabs\' order and words, each counted; an empty stage is not offered', () => {
+  test('2b its choices: the tabs\' order and words, each counted; an empty stage, and All, are not offered', () => {
     const { doc } = world();
-    assert.deepEqual(opts(doc, 'reg-stage-sel').map(o => o.v + '|' + o.t),
-      ['all|All', 'Draft|Drafting (2)', 'Under Review|In Review (1)', 'Signed|Executed (2)'],
-      'Awaiting counterparty and Closed hold nothing here, so they are not listed');
+    assert.deepEqual(addOpts(doc, 'Stage'),
+      ['Drafting (2)', 'In Review (1)', 'Executed (2)'],
+      'Awaiting counterparty and Closed hold nothing here, so they are not listed; All changes nothing');
   });
-  test('2c a pick narrows, lights the box and brings up Clear; the chosen stage stays offered when it empties', () => {
+  test('2c a pick narrows and stands as a chip with its ×; the chosen stage stays offered when it empties', () => {
     const { win, doc } = world();
-    pick(win, doc, 'reg-stage-sel', 'Draft');
+    addPick(win, 'stage', 'Draft');
     assert.equal(win.regState().stage, 'Draft');
     assert.deepEqual([...doc.querySelectorAll('#reg-tbody [data-row]')].map(r => r.getAttribute('data-row')).sort(), ['MK-2', 'MK-4']);
-    const chip = doc.getElementById('reg-stage-sel').closest('.reg-chip');
-    assert.ok(chip.classList.contains('on'), 'the box is lit while it narrows');
-    assert.ok(/Drafting \(2\)/.test(chip.textContent), 'the face says the stage chosen');
-    assert.ok(doc.querySelector('#reg-clear-slot button, #reg-clear-slot [data-reg-clear], #reg-clear-slot .reg-clear') || /\S/.test((doc.getElementById('reg-clear-slot') || {}).textContent || ''), 'Clear while narrowed');
+    const chip = doc.querySelector('[data-reg-home] .lh-chip[data-lh-chip="stage"]');
+    assert.ok(chip, 'the choice stands as a chip while it narrows');
+    assert.ok(/Stage\s*Drafting/.test(chip.querySelector('label').textContent), 'the chip says the stage chosen');
+    assert.ok(chip.querySelector('[data-lh-x]'), 'and carries its way back');
     /* both drafts leave the stage: the choice in force is still offered, at no count */
     win.state.contracts.forEach(c => { if (c.status === 'Draft') c.status = 'Declined'; });
     win.regRepaint();
-    const o = opts(doc, 'reg-stage-sel');
-    assert.ok(o.some(x => x.v === 'Draft' && x.on && x.t === 'Drafting'), JSON.stringify(o));
+    const o = [...doc.querySelectorAll('[data-reg-home] select[data-lh-f="stage"] option')].map(x => ({ v: x.value, t: x.textContent, on: x.selected }));
+    assert.ok(o.some(x => x.v === 'Draft' && x.on && /^Drafting/.test(x.t)), JSON.stringify(o));
   });
   test('2d one reading for the tabs and the box (the full table keeps its tabs)', () => {
     const REG = R('js/views/register.js');
