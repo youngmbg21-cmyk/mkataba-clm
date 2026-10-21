@@ -106,8 +106,11 @@ const CONTRACTS = [
     check('2c the admin has one row onto Settings', needs.company > 0 ? needs.co === 1 : needs.co === 0, `${needs.company} things in Settings`);
     check('2d the number is the rows that owe something', needs.cnt === (needs.ready ? 1 : 0) + needs.book + (needs.company ? 1 : 0), JSON.stringify(needs));
     if (await press('#cn-needs [data-cn-need="details"]', '2e a details row')) {
-      const fill = await until(() => state.view === 'dashboard' && !!document.getElementById('pd-fillface') && pdContract() && pdContract().id);
-      check('2e a details row opens Fill in beside its paper', !!fill, String(fill));
+      /* RE-POINTED 21 Oct 2026 — THE LEGORA WAY (20 Oct 2026): no Fill in face; the row lands on its paper's
+         Dossier with Still owed's first owed row in the hand */
+      const fill = await until(() => { const a = document.activeElement;
+        return state.view === 'dashboard' && !!document.querySelector('#ig-dock #pd-og') && !!(a && a.closest && a.closest('#ig-dock #pd-og')) && pdContract() && pdContract().id; });
+      check('2e a details row opens its paper, Still owed\'s row in the hand', !!fill, String(fill));
       await toCounter();
     }
     if (await press('#cn-needs [data-cn-co]', '2f the company row')) {
