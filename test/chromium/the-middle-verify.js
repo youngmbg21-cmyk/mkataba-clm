@@ -22,8 +22,9 @@
         table stands in the middle; Change → a box, Done stores it on the
         record; the line pressed again brings the paper back
      5  "paper" asked of Jambo brings the paper back
-     6  the owner's three screens: the middle and the Dossier side by side,
-        nothing scrolls sideways; photographed
+     6  the owner's three screens: Jambo's work, the obligations review and
+        Key terms in the middle beside the Dossier, nothing scrolls
+        sideways; photographed
      node test/chromium/the-middle-verify.js
    ============================================================ */
 'use strict';
@@ -192,6 +193,11 @@ const MID = () => {
       const a = await page.evaluate(MID);
       check(`6 ${w}x${hh} Jambo's work in the middle, the Dossier beside it, nothing sideways`, a.up && a.dockShown && a.right <= a.dockLeft + 1 && !a.sideways, JSON.stringify(a));
       await page.screenshot({ path: path.join(OUT, `jambos-work-${w}x${hh}.png`) });
+      await click('#modal-root [data-pd-mid] [data-ag-act="obs"]');
+      await waitFor(page, () => !!document.querySelector('#modal-root [data-pd-mid] #obd'), 8000); await pause(500);
+      const o = await page.evaluate(MID);
+      check(`6 ${w}x${hh} the obligations review in the middle, nothing sideways`, o.up && /^obs:/.test(o.key || '') && o.dockShown && !o.sideways, JSON.stringify(o));
+      await page.screenshot({ path: path.join(OUT, `obligations-${w}x${hh}.png`) });
       await click('#ig-dock [data-pd-mid-back]'); await gone();
       await click('#ig-dock [data-pd-kt-mid] > summary');
       await waitFor(page, () => !!document.querySelector('[data-pd-mid-kt] #pd-kt tr'), 5000); await pause(200);
