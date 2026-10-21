@@ -7,8 +7,8 @@
    faked) and an onboarding allowance of 200 files, 41 used
      1 the total before it starts: in Jambo calls and files, never money
      2 the head says what the batch is; Choose files… opens the chooser
-     3 five figures; a figure narrows the list to what it counts, pressed again
-       all; "9 of 12 shown · Show all 12"
+     3 the five readings as the list head's tabs; a tab narrows the list to
+       what it counts, All brings it back; "1–9 of 12 · Show 3 more"
      4 one table, the ones that need you first, in the drawn columns
      5 a press chooses a file: Jambo's panel says "Check this file", the end
        Jambo was not sure of in amber with the clause it read, File it grey
@@ -24,6 +24,13 @@
     11 the owner's three screens: nothing sideways, the panel in the window,
        the check view's two cards side by side
    Waits ask for the state, bounded; a missing part reports.
+   RE-POINTED 21 Oct 2026 (Part 8, "every list page the Legora way", the
+   owner's pick): 3 the five figures are the list head's TAB ROW (All · To
+   check · Duplicate? · No readable text · Filed, a tab with none left out), a
+   tab pressed again stays and All brings the list back, the foot says
+   "1–9 of 12 · Show 3 more"; 4b the list card's head is gone — its words are
+   the All tab's hover; 11a the tab row stands where the figures did; 13 Show
+   more is the foot's [data-lh-more]. Each claim kept.
    Run: node test/chromium/import-as-drawn-verify.js */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -135,29 +142,32 @@ const FILES = {
       page.click('#mig-choose').then(() => new Promise(r => setTimeout(() => r(null), 4500))).catch(() => false)]);
     check('2b Choose files… in the head opens the chooser', chooser === true);
 
-    console.log('\n3 · the figures and the cap');
-    const figs = await page.evaluate(() => [...document.querySelectorAll('#mig-kpis > *')].map(e => e.innerText.replace(/\s+/g, ' ').trim()));
-    check('3a five figures as drawn: Files · Filed · To check · Duplicate? · No readable text', JSON.stringify(figs) === JSON.stringify(['Files 12', 'Filed 7', 'To check 3', 'Duplicate? 1', 'No readable text 1']), JSON.stringify(figs));
-    const foot = await page.evaluate(() => (document.querySelector('.mig-foot') || {}).innerText || '');
-    check('3b "9 of 12 shown · Show all 12": the cap said', /9 of 12 shown/.test(foot) && /Show all 12/.test(foot), foot.replace(/\s+/g, ' '));
-    if (await press('.mig-kpi[data-mig-show="check"]', '3c To check')) {
+    console.log('\n3 · the tabs and the cap');
+    const TAB = k => '[data-lh-seat="migration"] [role="tab"][data-mig-show="' + k + '"]';
+    const figs = await page.evaluate(() => [...document.querySelectorAll('[data-lh-seat="migration"] [role="tab"]')].map(e => e.innerText.replace(/\s+/g, ' ').trim()));
+    check('3a the five readings as the tab row: All · To check · Duplicate? · No readable text · Filed', JSON.stringify(figs) === JSON.stringify(['All 12', 'To check 3', 'Duplicate? 1', 'No readable text 1', 'Filed 7']), JSON.stringify(figs));
+    const foot = await page.evaluate(() => (document.querySelector('[data-lh-foot="migration"]') || {}).innerText || '');
+    check('3b "1–9 of 12 · Show 3 more": the cap said', /^1–9 of 12 · Show 3 more$/.test(foot.replace(/\s+/g, ' ').trim()), foot.replace(/\s+/g, ' '));
+    if (await press(TAB('check'), '3c To check')) {
       const R = await until(() => { const ks = [...document.querySelectorAll('.mig-table tbody tr[data-row]')].map(r => r.className.match(/is-(\w+)/)[1]); return ks.length === 3 ? ks : null; }, null, 4000);
-      check('3c a figure narrows the list to what it counts', !!R && R.every(k => k === 'check'), JSON.stringify(R));
-      await page.click('.mig-kpi[data-mig-show="check"]');
+      check('3c a tab narrows the list to what it counts', !!R && R.every(k => k === 'check'), JSON.stringify(R));
+      await page.click(TAB('check'));
+      const stays = await page.evaluate(sel => { const b = document.querySelector(sel); return !!b && b.getAttribute('aria-selected') === 'true' && document.querySelectorAll('.mig-table tbody tr[data-row]').length === 3; }, TAB('check'));
+      await page.click(TAB('all'));
       const back = await until(() => document.querySelectorAll('.mig-table tbody tr[data-row]').length === 9 ? true : null, null, 4000);
-      check('3d pressed again, the whole list (nine of it, the cap said)', !!back);
+      check('3d pressed again it stays; All brings the whole list back (nine of it, the cap said)', stays && !!back, JSON.stringify({ stays, back: !!back }));
     }
-    if (await press('[data-mig-all]', '3e Show all')) {
+    if (await press('[data-lh-more="migration"]', '3e Show 3 more')) {
       const n = await until(() => { const k = document.querySelectorAll('.mig-table tbody tr[data-row]').length; return k === 12 ? k : null; }, null, 4000);
-      check('3e Show all 12 shows all twelve', n === 12, String(n));
+      check('3e Show 3 more shows all twelve', n === 12, String(n));
     }
 
     console.log('\n4 · one table');
     const T = await page.evaluate(() => ({ heads: [...document.querySelectorAll('.mig-table thead th')].map(th => th.textContent.trim()),
       order: [...document.querySelectorAll('.mig-table tbody tr[data-row]')].map(r => r.className.match(/is-(\w+)/)[1]),
-      title: (document.querySelector('.mig-lh') || {}).innerText || '', filedRef: !!document.querySelector('.mig-table tr.is-filed [data-open]') }));
+      title: (document.querySelector('[data-lh-seat="migration"] [role="tab"][data-mig-show="all"]') || {}).title || '', filedRef: !!document.querySelector('.mig-table tr.is-filed [data-open]') }));
     check('4a the drawn columns', JSON.stringify(T.heads) === JSON.stringify(['File · what Jambo read', 'Stream', 'Value', 'Ends', 'Done', 'State']), JSON.stringify(T.heads));
-    check('4b "Files in this batch · the ones that need you first", and they come first', /Files in this batch/.test(T.title) && /the ones that need you first/.test(T.title)
+    check('4b "Files in this batch · the ones that need you first" (the All tab says it), and they come first', /Files in this batch/.test(T.title) && /the ones that need you first/.test(T.title)
       && T.order.join() === 'check,check,check,dupe,none,filed,filed,filed,filed,filed,filed,filed', T.order.join());
     check('4c a filed row\'s number opens its contract', T.filedRef);
     await shot(page, 'import-drawn-list-1440x780');
@@ -287,7 +297,7 @@ const FILES = {
     } else check('5 the lease to choose', false, 'not imported');
 
     console.log('\n13 · the list after the fix pass');
-    await page.evaluate(() => { migPickSet(null); const all = document.querySelector('[data-mig-all]'); if (all) all.click(); });
+    await page.evaluate(() => { migPickSet(null); const all = document.querySelector('[data-lh-more="migration"]'); if (all) all.click(); });
     const L13 = await page.evaluate(() => {
       const rows = [...document.querySelectorAll('.mig-table tbody tr[data-row]')];
       const dots = rows.map(r => r.querySelectorAll('.mig-dot').length).filter(n => n);
@@ -338,10 +348,10 @@ const FILES = {
       await until(() => !!document.querySelector('.mig-table'), null, 6000);
       await page.evaluate(id => { if (id) migPickSet(id); }, await page.evaluate(() => (migRows().find(r => r.st.k === 'check') || {}).key));
       await page.waitForTimeout(250);
-      const L = await page.evaluate(() => { const s = document.getElementById('mig-side').getBoundingClientRect(), k = document.getElementById('mig-kpis').getBoundingClientRect(), t = document.querySelector('.mig-list').getBoundingClientRect();
+      const L = await page.evaluate(() => { const s = document.getElementById('mig-side').getBoundingClientRect(), k = document.querySelector('[data-lh-seat="migration"] [role="tablist"]').getBoundingClientRect(), t = document.querySelector('.mig-list').getBoundingClientRect();
         return { side: s.left >= t.right - 1 && s.right <= innerWidth && s.bottom <= innerHeight + 1, figs: k.top >= 0 && k.bottom < innerHeight, sx: document.scrollingElement.scrollWidth > innerWidth,
           sxc: (sc => sc ? sc.scrollWidth > sc.clientWidth + 1 : false)(document.getElementById('content-scroll')) }; });
-      check(`11a ${w}×${hh}: the panel beside the list and in the window, the figures in view, nothing sideways`, L.side && L.figs && !L.sx && !L.sxc, JSON.stringify(L));
+      check(`11a ${w}×${hh}: the panel beside the list and in the window, the tab row in view, nothing sideways`, L.side && L.figs && !L.sx && !L.sxc, JSON.stringify(L));
       const cut = await page.evaluate(() => [...document.querySelectorAll('.mig-table .mig-td-v, .mig-table .mig-td-s, .mig-table .mig-fr, .mig-table .mig-st-why')].filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.textContent));
       check(`14e ${w}×${hh}: nothing in a row is cut — the value with its period, the stream, the file's line, the reason`, !cut.length, JSON.stringify(cut));
       await shot(page, `import-drawn-list-${w}x${hh}`);

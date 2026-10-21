@@ -6,7 +6,7 @@
    person uses, end to end, against a real server, reading every claim off the
    RENDERED page or the stored record:
 
-     1  THE PAGE OPENS: the drop zone and the figures across the top.
+     1  THE PAGE OPENS: the drop zone and the list head across the top.
      2  THE CUSTOMER'S LIST (manifest CSV) loads: the page names it, and a value
         it could not read is LISTED, left empty rather than guessed.
      3  A BATCH OF SIX FILES: three good ones are imported; an identical copy is
@@ -25,6 +25,11 @@
    customer's list says how much matched in its own box (.mig-list-box); a
    person confirms through Jambo's panel ("All the details…" opens the same
    review window, #mr-save).
+
+   RE-POINTED 21 Oct 2026 (Part 8, "every list page the Legora way", the
+   owner's pick): the figures across the top are the list head — its box and
+   its tab row, where a tab with no file is left out, so an empty page draws
+   the box and the All tab; "Files 6" is the All tab's "All 6".
 
    No Copilot on this stage: the pattern reader is the path every workspace
    without a key takes. A section that cannot be staged reports its failure
@@ -98,9 +103,11 @@ const MANIFEST = [
     /* ===== 1. THE PAGE OPENS ===== */
     await openImport();
     const p1 = await page.evaluate(() => ({ drop: !!document.getElementById('mig-drop'),
-      kpis: document.querySelectorAll('#mig-kpis > div').length, title: (document.getElementById('shell-title') || {}).textContent || '' }));
+      box: !!document.querySelector('[data-lh-seat="migration"] input[data-lh-q]'),
+      tabs: [...document.querySelectorAll('[data-lh-seat="migration"] [role="tab"]')].map(t => t.textContent.replace(/\s+/g, ' ').trim()),
+      title: (document.getElementById('shell-title') || {}).textContent || '' }));
     await page.screenshot({ path: path.join(OUT, '1-page.png') });
-    check('1a the Import contracts page opens with its drop zone and its figures', p1.drop && p1.kpis >= 4, JSON.stringify(p1));
+    check('1a the Import contracts page opens with its drop zone and its list head (the box, and All the one tab of an empty page)', p1.drop && p1.box && p1.tabs.join() === 'All', JSON.stringify(p1));
 
     /* ===== 2. THE CUSTOMER'S LIST ===== */
     const mf = path.join(OUT, 'manifest.csv');
@@ -144,8 +151,8 @@ const MANIFEST = [
     check('3c an empty file fails, saying why', row('empty.txt').status === 'error' && /empty file/.test(row('empty.txt').note), row('empty.txt').note);
     check('3d an old .doc Word file is refused before anything is filed', row('old_contract.doc').status === 'word' && !row('old_contract.doc').id
       && /old_contract\.doc[\s\S]{0,200}Not imported[\s\S]{0,40}an old Word \.doc file/.test(qtext), row('old_contract.doc').note);
-    const files6 = await page.evaluate(() => (document.querySelector('.mig-kpi[data-mig-show="all"]') || {}).innerText || '');
-    check('3e the list accounts for every file of the batch: Files 6, each named with its state', /Files\s*6/.test(files6)
+    const files6 = await page.evaluate(() => (document.querySelector('[data-lh-seat="migration"] [role="tab"][data-mig-show="all"]') || {}).innerText || '');
+    check('3e the list accounts for every file of the batch: All 6, each named with its state', /All\s*6/.test(files6)
       && ['acme_supply_2024.txt', 'office_lease.txt', 'board_consultancy.txt', 'acme_supply_COPY.txt', 'empty.txt', 'old_contract.doc'].every(n => qtext.includes(n)),
       files6.replace(/\s+/g, ' ') + ' | ' + qtext.split('\n').slice(0, 2).join(' | '));
 

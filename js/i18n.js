@@ -11668,6 +11668,7 @@ const STRINGS = {
     mig_head_files_other: '{n} files',
     mig_choose_dots: 'Choose files…',
     mig_k_files: 'Files',
+    mig_tab_all: 'All',
     mig_k_filed: 'Filed',
     mig_k_check: 'To check',
     mig_k_dupe: 'Duplicate?',
@@ -11905,6 +11906,8 @@ const STRINGS = {
     mig_notice_days_other: '{n} days\'',
     mig_chip_choose: 'choose files',
     mig_none_yet2: 'Nothing brought in yet — drop old contracts on the strip above to begin.',
+    mig_none_match: 'No file matches these words.',
+    mig_none_left: 'Nothing here now. All shows every file.',
     mig_new_batch: 'New batch',
 
     // ---- templates and the clause library ----
@@ -31098,6 +31101,7 @@ const STRINGS = {
     mig_head_files_other: '{n} filer',
     mig_choose_dots: 'Välj filer…',
     mig_k_files: 'Filer',
+    mig_tab_all: 'Alla',
     mig_k_filed: 'Arkiverade',
     mig_k_check: 'Att kontrollera',
     mig_k_dupe: 'Dubblett?',
@@ -31335,6 +31339,8 @@ const STRINGS = {
     mig_notice_days_other: '{n} dagars',
     mig_chip_choose: 'välj filer',
     mig_none_yet2: 'Inget inläst ännu — släpp gamla avtal på remsan ovan för att börja.',
+    mig_none_match: 'Ingen fil matchar de här orden.',
+    mig_none_left: 'Inget här nu. Alla visar varje fil.',
     mig_new_batch: 'Ny omgång',
 
     // ---- templates and the clause library ----

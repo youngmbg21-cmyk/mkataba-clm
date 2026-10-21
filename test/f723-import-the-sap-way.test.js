@@ -12,6 +12,13 @@
    Files · Filed · To check · Duplicate? · No readable text over ONE list of
    the batch's files (migRows, its states); the list says "N of M shown"
    through migShown; the strip's button is .mig-drop-b.
+   RE-POINTED 21 Oct 2026 (Part 8, "every list page the Legora way", the
+   owner's pick): the figures are the list head's TAB ROW — a tab is a tab, so
+   the lit one pressed again stays where it is (All is its own tab), and a tab
+   with none is left out unless lit; the foot is the list head's "1–9 of 12 ·
+   Show 3 more" (lhFootHtml), its "of" the rows the door lets through. Each
+   claim kept: the door reads the rows' own states, the list draws only what
+   the door lets through and says so.
    The browser half: test/chromium/import-sap-way-verify.js.
    ═══════════════════════════════════════════════════════════════════════════ */
 const { test, describe } = require('node:test');
@@ -31,8 +38,8 @@ const BOOKS = (() => {
   return { en, sv };
 })();
 
-describe('f723 (1) each figure is a door', () => {
-  test('1a the door reads the rows\' own states; pressed again, all', () => {
+describe('f723 (1) each tab is a door', () => {
+  test('1a the door reads the rows\' own states; pressed again, it stays (a tab, not a toggle)', () => {
     let painted = 0;
     const ctx = { _migShow: 'all', _migAll: false, MIG_SHOWS: ['all', 'filed', 'check', 'dupe', 'none'], renderMigration: () => { painted++; } };
     vm.createContext(ctx);
@@ -43,17 +50,18 @@ describe('f723 (1) each figure is a door', () => {
     assert.equal(rows.filter(r => ctx.migShowPass(r, 'filed')).length, 1);
     assert.equal(rows.filter(r => ctx.migShowPass(r, 'all')).length, 3);
     ctx.migShowSet('check'); assert.equal(ctx.get(), 'check');
-    ctx.migShowSet('check'); assert.equal(ctx.get(), 'all', 'pressed again, all');
+    ctx.migShowSet('check'); assert.equal(ctx.get(), 'check', 'pressed again, it stays: All is its own tab');
     ctx.migShowSet('nonsense'); assert.equal(ctx.get(), 'all');
     assert.equal(painted, 3);
   });
   test('1b the list draws only what the door lets through, and says so', () => {
     const r = fnBody(MIG, 'migListHtml');
-    assert.match(r, /const sh = migShown\(rows\)/);
+    assert.match(r, /const sh = migShown\(migFound\(rows\)\)/);
     assert.match(r, /\$\{sh\.list\.map\(migRowHtml\)\.join\(''\)\}/);
-    assert.match(r, /i18t\('mig_shown_n', \{ n:sh\.list\.length, of:sh\.of \}\)/);
+    assert.match(r, /lhFootHtml\(MIG_SEAT, sh\.list\.length, sh\.of, null, \{ cls:'mig-foot' \}\)/, '"1–9 of 12 · Show 3 more"');
     assert.match(fnBody(MIG, 'migShown'), /const pass = rows\.filter\(r => migShowPass\(r\)\)/);
-    assert.match(fnBody(MIG, 'migBandHtml'), /const door = n > 0/, 'a figure of zero is not a door');
+    assert.match(fnBody(MIG, 'migShown'), /of:pass\.length/, 'the foot\'s "of" is the rows the door lets through');
+    assert.match(fnBody(MIG, 'migTabViews'), /keep:k === 'all'/, 'a tab with none is left out, All is kept');
   });
 });
 
