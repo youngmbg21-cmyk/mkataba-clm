@@ -72,13 +72,16 @@ const base = (id, name, extra) => Object.assign({ id, name, counterparty: 'Balti
        lines, folded under it */
     const FACE = () => { const og = document.getElementById('pd-og'); if (!og) return null;
       const vis = el => !!(el && (el.checkVisibility ? el.checkVisibility() : el.getClientRects().length) && getComputedStyle(el).display !== 'none');
-      const kt = document.getElementById('pd-kt');
+      /* RE-POINTED 21 Oct 2026 (THE MIDDLE, owner): Key terms is ONE line in the Dossier and its table
+         stands in the middle; its rows are the ones that table draws (pdKtRowsHtml) */
+      const kt = document.querySelector('#ig-dock [data-pd-kt-mid]'), mid = document.querySelector('[data-pd-mid-kt] #pd-kt');
+      const ktT = mid || (() => { const t = document.createElement('tbody'); t.innerHTML = pdKtRowsHtml(pdContract(), pdKtFacts(pdContract())); return t; })();
       const rows = [...og.querySelectorAll('tr.pd-og-row:not(.is-saved)')].filter(r => /^(kt|nda|tplf|blank)$/.test(r.getAttribute('data-pd-og-kind') || ''))
         .map(r => ({ k: r.getAttribute('data-pd-og-row'), vis: vis(r), top: Math.round(r.getBoundingClientRect().top), label: ((r.querySelector('.pd-og-f b') || {}).textContent || '').trim() }));
       const head = document.querySelector('#pd-needs .pd-gl-h b');
       return { head: head ? head.textContent.trim() : '', headTop: head ? Math.round(head.getBoundingClientRect().top) : null, rows, left: detailsOf(pdContract()).left,
         fold: kt ? (kt.querySelector('summary') || {}).textContent.replace(/\s+/g, ' ').trim() : '', foldTop: kt ? Math.round(kt.getBoundingClientRect().top) : null,
-        open: !!(kt && kt.open), ktRows: kt ? [...kt.querySelectorAll('tr[data-pd-og-row]')].map(r => ({ k: r.getAttribute('data-pd-og-row'), vis: vis(r) })) : [] }; };
+        open: !!mid, ktRows: [...ktT.querySelectorAll('tr[data-pd-og-row]')].map(r => ({ k: r.getAttribute('data-pd-og-row'), vis: !!mid && vis(r) })) }; };
     const PAPER_AT = () => { const sc = document.getElementById('ig-paper-scroll'), sh = document.querySelector('#ig-paper .pg-sheet, #ig-paper .doc-surface');
       return sc && sh ? Math.round(sh.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop) : null; };
     const openFill = async id => { await page.evaluate(i => { setView('dashboard'); pdOpenOnHome(i, 'doc'); }, id);
@@ -94,12 +97,14 @@ const base = (id, name, extra) => Object.assign({ id, name, counterparty: 'Balti
     const F = await page.evaluate(FACE);
     check('1a Still owed\'s grid: one row per owed fact (detailsOf\'s count), the details and the paper\'s questions alike',
       !!F && F.rows.length === F.left && F.rows.every(r => r.vis && r.top > F.headTop) && F.rows.some(r => /Start date/.test(r.label)) && F.rows.some(r => /Effective/.test(r.label)), JSON.stringify(F));
-    check('1b the answered ones are Key terms\' lines, folded under the grid', !!F && /^Key terms/.test(F.fold) && F.ktRows.length > 0 && F.ktRows.every(r => !r.vis) && F.foldTop > Math.max(...F.rows.map(r => r.top)) && !F.open, F && F.fold);
-    await page.click('#pd-kt summary');
+    check('1b the answered ones are Key terms\' lines, one line under the grid', !!F && /^Key terms/.test(F.fold) && F.ktRows.length > 0 && F.ktRows.every(r => !r.vis) && F.foldTop > Math.max(...F.rows.map(r => r.top)) && !F.open, F && F.fold);
+    await page.click('#ig-dock [data-pd-kt-mid] > summary');
+    await until(() => !!document.querySelector('[data-pd-mid-kt] #pd-kt tr'), null, 4000); await page.waitForTimeout(300);
     const opened = await page.evaluate(FACE);
-    check('1c pressed, the fold opens and shows them', opened.open && opened.ktRows.every(r => r.vis), JSON.stringify(opened.ktRows));
-    await page.click('#pd-kt summary');
-    check('1d pressed again, it shuts', !(await page.evaluate(FACE)).open);
+    check('1c pressed, the table comes to the middle and shows them', opened.open && opened.ktRows.length > 0 && opened.ktRows.every(r => r.vis), JSON.stringify(opened.ktRows));
+    await page.click('#ig-dock [data-pd-kt-mid] > summary');
+    await until(() => !document.querySelector('[data-pd-mid-kt]'), null, 4000);
+    check('1d pressed again, the paper comes back', !(await page.evaluate(FACE)).open);
     await shot(page, 'owed-first-1440x780');
 
     /* 2 a box answered stays put under the hand */
@@ -111,7 +116,7 @@ const base = (id, name, extra) => Object.assign({ id, name, counterparty: 'Balti
     const after = await page.evaluate(() => { const b = document.querySelector('#pd-og [data-blankf="up_notice_period"]'); return { top: b ? Math.round(b.getBoundingClientRect().top) : null, inGrid: !!b, left: detailsOf(pdContract()).left }; });
     check('2a stored as the box is left, the row stays where it is while the hand is in the grid', before != null && after.top === before && after.inGrid && after.left === F.left - 1, JSON.stringify({ before, after }));
     await page.evaluate(() => { const a = document.activeElement; if (a && a.blur) a.blur(); });
-    const again = await until(() => !document.querySelector('#pd-og tr:not(.is-saved) [data-blankf="up_notice_period"]') && !!document.querySelector('#pd-kt tr[data-pd-og-row="up_notice_period"]'), null, 4000);
+    const again = await until(() => !document.querySelector('#pd-og tr:not(.is-saved) [data-blankf="up_notice_period"]') && pdKtFacts(pdContract()).some(f => f.key === 'up_notice_period'), null, 4000);
     check('2b the hand gone, it is drawn again: no longer owed, a Key terms line', !!again);
 
     /* 3 the paper holds still */

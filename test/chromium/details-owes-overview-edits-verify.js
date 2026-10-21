@@ -121,7 +121,8 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
     /* RE-POINTED 20 Oct 2026 (the owner: "we should not be entering information in the board"): the
        Board's Edit opens the paper with its Key terms unfolded — the end date and the other terms, a Change on each line */
     await page.click('#kt-ov-terms [data-ov-edit="all"]'); await pause(600);
-    const ed = await until(() => { const k = document.getElementById('pd-kt'); if (!k || !k.open) return null;
+    /* RE-POINTED 21 Oct 2026 (THE MIDDLE, owner): Key terms' table stands in the middle beside the Dossier */
+    const ed = await until(() => { const k = document.querySelector('[data-pd-mid-kt] #pd-kt'); if (!k) return null;
       return { face: hbS().face, email: !!k.querySelector('tr[data-pd-og-row="cpEmail"] [data-pd-kt-change]'),
         expiry: !!k.querySelector('tr[data-pd-og-row="expiry"] [data-pd-kt-change]'), law: !!k.querySelector('tr[data-pd-og-row="governingLaw"] [data-pd-kt-change]') }; }, null, 6000);
     await page.screenshot({ path: path.join(OUT, '03-overview-edit.png') });

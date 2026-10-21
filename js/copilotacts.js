@@ -1762,6 +1762,8 @@ function caGo(a){
   if (a.place === 'back'){ const ok = caTrailBack(); caGoRepaint(); return ok; }
   if (a.place === 'help') return true;
   caUseBump(a.place);
+  /* "paper" asked while a page stands in the middle: the paper comes back (the middle, 21 Oct 2026) */
+  if (a.place === 'document' && typeof pdMidClose === 'function') pdMidClose();
   /* share and draft answer with a card in the panel (caGoCardHtml) and move nothing */
   if (a.place !== 'help' && CA_CARD_WORDS.includes(a.place)) return true;
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;

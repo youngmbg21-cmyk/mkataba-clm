@@ -21307,3 +21307,10 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ## 21 Oct 2026 — the ✦ opens the old chat window
 - Removed (owner's pick "The old chat window", said to the owner): the one-line ✦ ask bar under the top bar.
 - Noticed, not fixed: on Home, "What am I looking at?" typed into Home's own Jambo box answers "The board could not draw that…" instead of the free on-screen reading the side panel gives.
+
+## 21 Oct 2026 — the middle (what a Dossier line opens comes to you)
+- Removed (owner's pick "The stage", said to the owner): Key terms' fold of lines down the Dossier on a computer (one line now, the table in the middle); "See it"'s trip to the Board's Jambo's work list from the Dossier; the Open Details act on a piece shown in the middle.
+- Noticed, not fixed: the piece panel's foot draws "Mark as read" and "Put away" alike as plain links side by side, though Put away takes the piece off the list.
+- Noticed, not fixed: every-door-lands-on-home-verify fails the same 12 doors (expecting the retired "Fill in beside the paper" face) at main 85e9567 and on the branch.
+- Noticed, not fixed: CLAUDE.md is 82.6 KB, over the ~80 KB rule; a trim needs the owner's yes.
+- Noticed, not fixed: paper-panel-as-drawn-verify fails the same 6 checks (1b, 1e, 1f, 2d among them) on main b2e178f and on the branch after bringing main in.

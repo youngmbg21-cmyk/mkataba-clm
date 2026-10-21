@@ -111,7 +111,9 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
       const paper = document.querySelector('#ig-canvas span[data-field-key="own_1"]');
       /* answered, the row leaves the grid once it is drawn again: the answer is its Key terms line's */
       const box = document.querySelector('#pd-og [data-blankf="own_1"]');
-      const kt = document.querySelector('#pd-kt tr[data-pd-og-row="own_1"] .pd-kt-v');
+      /* RE-POINTED 21 Oct 2026 (THE MIDDLE): Key terms' line is read off the table it draws in the middle (pdKtRowsHtml) */
+      const c = pdContract(), t = document.createElement('tbody'); t.innerHTML = c ? pdKtRowsHtml(c, pdKtFacts(c)) : '';
+      const kt = t.querySelector('tr[data-pd-og-row="own_1"] .pd-kt-v');
       return { paper: paper ? paper.textContent : null, box: box ? box.value : (kt ? kt.textContent.trim() : null) };
     });
     check('3b after a repaint the paper and the panel still hold it', p3b.paper === '8 October 2026' && /2026-10-08|8 October 2026/.test(p3b.box || ''), JSON.stringify(p3b));
