@@ -1008,14 +1008,21 @@ async function migImportSheet(file){
    1's "One at a time" view) ═══════════════════════════════════════════════
    · THE HEAD: the page's name, what the batch is ("Old contracts from <the
      folder>", started <day> by <you>, N files) and Choose files… (migPaintHead).
-   · FIVE FIGURES in the white band, each a door narrowing the list: Files ·
-     Filed · To check · Duplicate? · No readable text (migKpis, one reading).
+   · THE LIST HEAD, THE LEGORA WAY (Part 8, 21 Oct 2026; js/views/listhead.js)
+     in the head card's lower half, where the five figures stood: the box to
+     search the batch's files or ask Jambo, the figures' five readings as the
+     tab row (All · To check · Duplicate? · No readable text · Filed, each
+     counted with the rows its press shows; a tab with none left out), and
+     Review spreadsheet · Read again · Check all at the chip row's right end.
+     No + Filter: the list has no filters.
    · THE DROP STRIP and its three labelled boxes: Import as · File under · A list
      of what is in them; the cost said in Jambo calls before anything is read.
-   · ONE TABLE, "Files in this batch · the ones that need you first": a row per
+   · ONE TABLE of the batch's files, the ones that need you first: a row per
      file — the contracts it made AND the files that did not become one this
      sitting (a duplicate waiting for a call, a file refused) — read by ONE
-     reading, migRows. A press CHOOSES a row; Jambo's panel says it.
+     reading, migRows. A press CHOOSES a row; Jambo's panel says it. Its foot
+     says "1–9 of 12 · Show 3 more" (the cap said, a row that needs you never
+     hidden by it).
    · CHECK ALL N: the one-at-a-time view — the file's own words on the left,
      numbered where each fact was found, the facts to file on the right, Jambo
      saying why he was not sure, next and previous (migCheckHtml).
@@ -1023,7 +1030,7 @@ async function migImportSheet(file){
      head, the chosen file's facts ready to file, the ask box and its hint.
    Nothing here spends a call or files anything until a press. */
 
-/* ---- THE FIGURES ARE DOORS (each narrows the list to what it counts) ---- */
+/* ---- THE TABS ARE DOORS (each narrows the list to what it counts) ---- */
 let _migShow = 'all';
 const MIG_SHOWS = ['all', 'filed', 'check', 'dupe', 'none', 'decide'];
 /* the check view's middle tab (option 1's "Decide 2"): the files that want a
@@ -1042,7 +1049,17 @@ function migShowPass(r, show){
   if (k === 'decide') return !!(r && r.st && MIG_DECIDE.includes(r.st.k));
   return !!(r && r.st && r.st.k === k);
 }
-function migShowSet(k){ _migShow = (!MIG_SHOWS.includes(k) || k === _migShow) ? 'all' : k; _migAll = false; renderMigration(); }
+/* THE ONE WRITER OF THE DOOR: a tab, never a toggle (Part 8, the Legora way —
+   the lit tab pressed again stays where it is; All is its own tab). `fresh`
+   is a door that counted the whole batch (Jambo's chips, the check view's
+   tabs): it lands on every file it named, so the box's words go first. */
+function migShowSet(k, fresh){
+  _migShow = MIG_SHOWS.includes(k) ? k : 'all';
+  _migAll = false;
+  if (fresh){ _migQ = ''; if (typeof lhBoxSet === 'function') lhBoxSet(MIG_SEAT, ''); }
+  renderMigration();
+  if (typeof window !== 'undefined' && typeof window.placeSave === 'function') try { window.placeSave(); } catch (_){}
+}
 
 /* ---- ONE READING OF WHERE EACH FILE STANDS ---- */
 const migLinkPending = c => !!(c && c.linkSuggestions && c.linkSuggestions.length && !c.parentId && !c.linkConfirmed);
@@ -1134,13 +1151,16 @@ function migKpis(){
     blocked:cs.filter(c => c.migration.blocked).length };
 }
 /* the rows the list shows: a door's own kind whole; otherwise everything that
-   needs you, then the rest up to nine — "Show all N" lifts the cap */
+   needs you, then the rest up to nine — "Show N more" lifts the cap. `of` is
+   the rows the door lets through, the foot's "of" and the lit tab's number;
+   the rows come in need-you-first order, so the ones shown are always the
+   first of them ("1–9 of 12") */
 function migShown(rows){
   const pass = rows.filter(r => migShowPass(r));
-  if (_migShow !== 'all' || _migAll) return { list:pass, of:rows.length };
+  if (_migShow !== 'all' || _migAll) return { list:pass, of:pass.length };
   const list = [];
   for (const r of rows) if (MIG_NEEDS.includes(r.st.k) || list.length < MIG_ROWS_SHOWN) list.push(r);
-  return { list, of:rows.length };
+  return { list, of:pass.length };
 }
 
 
@@ -1180,25 +1200,102 @@ function migPaintHead(){
   if (a) a.innerHTML = canEdit() ? `<button type="button" class="ui-btn ui-btn-primary" id="mig-choose">${esc(i18t(_migCheck ? 'mig_new_batch' : 'mig_choose_dots'))}</button>` : '';
 }
 
-/* ---- THE FIVE FIGURES, in the white band ---- */
-function migBandHtml(){
-  if (_migShow === 'decide') return migDecideBarHtml();
+/* ════ THE LIST HEAD, THE LEGORA WAY (the owner's pick, 21 Oct 2026, Part 8;
+   js/views/listhead.js) ═══════════════════════════════════════════════════
+   In the head card's lower half, where round 22's five figures stood: the box
+   to search the batch's files or ask Jambo in, then the figures' five
+   readings as the ONE tab row — All · To check · Duplicate? · No readable
+   text · Filed, in the order the list puts its rows — each counted with the
+   rows its press shows (the words held), a tab with none left out unless it
+   is lit or All. A tab is a tab: pressed again it stays (round 22's "pressed
+   again, all" is reversed). Then the chip row: no + Filter (the list has no
+   filters), and at its right end the list card's own acts, Review
+   spreadsheet · Read N again · Check all N (the card's head and its words
+   "Files in this batch · the ones that need you first" are the All tab's
+   hover). The page keeps every reading and every kept value: the door
+   (_migShow), Show more (_migAll) and the words (_migQ) are its own, kept
+   across a refresh by migPlace. A question typed in the box goes to Jambo's
+   panel beside the list (jlAsk, the panel's own door), never into the list.
+   The check view (Check all) keeps its own bar, and option 1's Decide list
+   its own frame (migDecideBarHtml). */
+const MIG_SEAT = 'migration';
+let _migQ = '';
+const MIG_TABS = [['all', 'mig_tab_all'], ['check', 'mig_k_check'], ['dupe', 'mig_k_dupe'], ['none', 'mig_no_text'], ['filed', 'mig_k_filed']];
+/* THE BOX'S WORDS, read against what a row SAYS: the file's name, what Jambo
+   read (kind · party), its stream, the reason it waits, and a filed file's
+   reference */
+function migHit(r, q){
+  const w = String(q == null ? '' : q).trim().toLowerCase();
+  if (!w) return true;
+  const ref = (r.c && r.st && r.st.k === 'filed') ? ((typeof contractRef === 'function') ? contractRef(r.c) : r.c.id) : '';
+  return [r.file, migWhatOf(r), migStreamOf(r), r.st && r.st.why, ref].some(x => String(x == null ? '' : x).toLowerCase().includes(w));
+}
+const migFound = rows => (rows || migRows()).filter(r => migHit(r, _migQ));
+const migBatchCount = () => {
+  const M = migState(), b = new Set(migContracts().map(c => c.migration && c.migration.batch).filter(Boolean));
+  if (M.batch && M.queue.length) b.add(M.batch);
+  return b.size;
+};
+/* THE TAB ROW'S ONE READING: every tab with the rows its press shows */
+function migTabViews(){
+  const n = {};
+  const found = migFound(migRows());
+  found.forEach(r => { n[r.st.k] = (n[r.st.k] || 0) + 1; });
+  n.all = found.length;
+  const name = i18t(migBatchCount() > 1 ? 'mig_list_h_all' : 'mig_list_h');
+  return MIG_TABS.map(([k, key]) => ({ k, label:i18t(key), n:n[k] || 0, keep:k === 'all',
+    title:k === 'all' ? name + ' · ' + i18t('mig_list_sub') : i18t('mig_show_only', { what:i18t(key) }) }));
+}
+/* THE CHIP ROW'S RIGHT END: the list card's own acts, as they were */
+function migHeadActsHtml(){
+  if (!migRows().length) return '';
   const k = migKpis();
-  const fig = (show, label, n, tone) => {
-    const door = n > 0, on = door && show !== 'all' && _migShow === show;
-    const num = `<span class="mig-kpi-n${n && tone ? ' is-' + tone : ''}">${n}</span>`;
-    const lab = `<span class="mig-kpi-l">${esc(label)}</span>`;
-    return door
-      ? `<button type="button" class="mig-kpi${on ? ' is-on' : ''}" data-mig-show="${show}" aria-pressed="${on ? 'true' : 'false'}" title="${esc(i18t(show === 'all' ? 'mig_show_all' : 'mig_show_only', { what:label }))}">${lab}${num}</button>`
-      : `<div class="mig-kpi-card">${lab}${num}</div>`;
-  };
-  return `<div id="mig-kpis" class="mig-kpis">
-    ${fig('all', i18t('mig_k_files'), k.files)}
-    ${fig('filed', i18t('mig_k_filed'), k.filed, 'green')}
-    ${fig('check', i18t('mig_k_check'), k.check, 'amber')}
-    ${fig('dupe', i18t('mig_k_dupe'), k.dupe, 'amber')}
-    ${fig('none', i18t('mig_no_text'), k.none, 'ruby')}
-  </div>`;
+  const heur = migContracts().filter(c => c.migration.needsReview && c.migration.aiSource !== 'ai' && !c.migration.blocked).length;
+  return `<button type="button" id="mig-sheet" class="ui-btn ui-btn-sm" aria-haspopup="menu" aria-expanded="false">${esc(i18t('mig_sheet'))}</button>${
+    canEdit() && heur && API_MODE() && state.aiConfigured ? `<button type="button" id="mig-rerun" class="ui-btn ui-btn-sm" title="${esc(i18tn('mig_rerun_cost', heur, { n:heur }))}">${esc(i18tn('mig_rerun_n', heur, { n:heur }))}</button>` : ''}${
+    canEdit() && k.check ? `<button type="button" id="mig-check-all" class="ui-btn ui-btn-sm">${esc(i18tn('mig_check_all', k.check, { n:k.check }))}</button>` : ''}`;
+}
+/* the head's box keeps the reader's caret across a repaint of the whole page */
+function migBoxKeep(){
+  if (typeof document === 'undefined') return () => {};
+  const sel = `[data-lh-seat="${MIG_SEAT}"] input[data-lh-q]`, a = document.activeElement;
+  if (!(a && a.matches && a.matches(sel))) return () => {};
+  const s = a.selectionStart, e = a.selectionEnd;
+  return () => { const b = document.querySelector(sel); if (!b || b === a) return;
+    try { b.focus({ preventScroll:true }); b.setSelectionRange(s, e); } catch (_){} };
+}
+const migPlaceKeep = () => { if (typeof window !== 'undefined' && typeof window.placeSave === 'function') try { window.placeSave(); } catch (_){} };
+function migLhRegister(){
+  if (typeof lhRegister !== 'function') return null;
+  return lhRegister(MIG_SEAT, {
+    noun:'files',
+    total:() => migRows().length,
+    q:() => _migQ,
+    /* the words repaint the list alone: the box and its caret stand */
+    setQuery:w => { _migQ = String(w == null ? '' : w); migListPaint(); },
+    boxId:'mig-q',
+    tabAttr:'data-mig-show', tabsLabel:i18t(migBatchCount() > 1 ? 'mig_list_h_all' : 'mig_list_h'),
+    tabs:() => migTabViews(),
+    tabNow:() => _migShow,
+    tab:k => { migShowSet(k); migLandFirst(); },
+    right:() => migHeadActsHtml(),
+    /* Show N more: the cap lifted, every row the door lets through */
+    more:() => { _migShow = 'all'; _migAll = true; migListPaint(); migBandPaint(); migPlaceKeep(); },
+  });
+}
+/* the head card's lower half: the list head at rest; the check view's bar
+   (Check all) or option 1's Decide frame while one of those is up */
+const migBandIsHead = () => !_migCheck && _migShow !== 'decide' && typeof lhRowsHtml === 'function';
+function migBandHtml(){
+  if (_migCheck) return migCheckBarHtml();
+  if (_migShow === 'decide') return migDecideBarHtml();
+  if (typeof lhRowsHtml !== 'function') return '';
+  migLhRegister();
+  return lhRowsHtml(MIG_SEAT);
+}
+function migBandFrameHtml(){
+  const head = migBandIsHead();
+  return `<div class="sap-band mig-band ph-foot${head ? ' lh' : ''}" id="mig-band"${head ? ` data-lh-seat="${MIG_SEAT}"` : ''}>${migBandHtml()}</div>`;
 }
 
 /* ---- THE DROP STRIP: what it takes, what reading costs, said before ---- */
@@ -1333,23 +1430,14 @@ function migRowHtml(r){
   </tr>`;
 }
 function migListHtml(){
-  const M = migState(), rows = migRows(), k = migKpis();
+  const M = migState(), rows = migRows();
   if (!rows.length) return `<div class="mig-empty">${esc(i18t('mig_none_yet2'))}</div>`;
-  const sh = migShown(rows);
-  const batches = new Set(migContracts().map(c => c.migration && c.migration.batch).filter(Boolean));
-  if (M.batch && M.queue.length) batches.add(M.batch);
+  /* the box's words first, then the door; every row that needs you stands */
+  const sh = migShown(migFound(rows));
   const settled = M.queue.filter(q => ['saved', 'duplicate', 'error', 'word', 'skipped', 'dupe'].includes(q.status)).length;
-  const heur = migContracts().filter(c => c.migration.needsReview && c.migration.aiSource !== 'ai' && !c.migration.blocked).length;
-  return `<div class="mig-lh">
-      <h3 class="mig-lh-t">${esc(i18t(batches.size > 1 ? 'mig_list_h_all' : 'mig_list_h'))}</h3>
-      <span class="mig-lh-n">${rows.length}</span>
-      <span class="mig-lh-s">${esc(i18t('mig_list_sub'))}</span>
-      <span class="mig-sp"></span>
-      <button type="button" id="mig-sheet" class="ui-btn ui-btn-sm" aria-haspopup="menu" aria-expanded="false">${esc(i18t('mig_sheet'))}</button>
-      ${canEdit() && heur && API_MODE() && state.aiConfigured ? `<button type="button" id="mig-rerun" class="ui-btn ui-btn-sm" title="${esc(i18tn('mig_rerun_cost', heur, { n:heur }))}">${esc(i18tn('mig_rerun_n', heur, { n:heur }))}</button>` : ''}
-      ${canEdit() && k.check ? `<button type="button" id="mig-check-all" class="ui-btn ui-btn-sm ui-btn-primary">${esc(i18tn('mig_check_all', k.check, { n:k.check }))}</button>` : ''}
-    </div>
-    ${M.running ? `<div class="mig-run">${typeof busyHtml === 'function' ? busyHtml(i18t('mig_running', { n:settled, of:M.queue.length })) : esc(i18t('mig_running', { n:settled, of:M.queue.length }))}<span class="mig-sp"></span><button type="button" id="mig-cancel" class="ui-btn ui-btn-sm">${esc(i18t('mig_stop_after_current'))}</button></div>` : ''}
+  /* nothing behind the door: said in the list, with the way to every file */
+  const none = sh.list.length ? '' : `<tr class="mig-none"><td colspan="6">${esc(i18t(_migQ.trim() ? 'mig_none_match' : 'mig_none_left'))}</td></tr>`;
+  return `${M.running ? `<div class="mig-run">${typeof busyHtml === 'function' ? busyHtml(i18t('mig_running', { n:settled, of:M.queue.length })) : esc(i18t('mig_running', { n:settled, of:M.queue.length }))}<span class="mig-sp"></span><button type="button" id="mig-cancel" class="ui-btn ui-btn-sm">${esc(i18t('mig_stop_after_current'))}</button></div>` : ''}
     ${M.ocrError ? `<div class="mig-warn is-amber">A scanned document could not be read: ${migEsc(M.ocrError)}. Those files were imported with no text — check each one and type its details, or fix the reader and read them again.</div>` : ''}
     ${M.aiDown ? `<div class="mig-warn is-amber">${migEsc(M.aiDownMsg || 'Jambo unavailable')} — the rest of the files were read by HaTi's own rules and wait for you to check them.</div>` : ''}
     <div class="table-scroll">
@@ -1358,19 +1446,32 @@ function migListHtml(){
           <th>${esc(i18t('mig_col_file'))}</th><th>${esc(i18t('mig_col_stream'))}</th><th class="mig-td-v">${esc(i18t('mig_col_value'))}</th>
           <th>${esc(i18t('mig_col_ends'))}</th><th>${esc(i18t('mig_col_done'))}</th><th>${esc(i18t('mig_col_state'))}</th>
         </tr></thead>
-        <tbody>${sh.list.map(migRowHtml).join('')}</tbody>
+        <tbody>${sh.list.map(migRowHtml).join('')}${none}</tbody>
       </table>
     </div>
-    <div class="mig-foot"><span>${esc(i18t('mig_shown_n', { n:sh.list.length, of:sh.of }))}</span>${sh.list.length < sh.of ? `<span class="mig-list-sep" aria-hidden="true">·</span><button type="button" class="mig-link" data-mig-all>${esc(i18tn('mig_show_all_n', sh.of, { n:sh.of }))}</button>` : ''}</div>`;
+    ${(typeof lhFootHtml === 'function') ? lhFootHtml(MIG_SEAT, sh.list.length, sh.of, null, { cls:'mig-foot' }) : ''}`;
 }
 function migListPaint(){
   const host = document.getElementById('mig-list'); if (!host) return;
   host.innerHTML = migListHtml();
   migWireCancel();
 }
+/* the band's numbers again, as files settle: the list head counts again in
+   place (its tabs and its acts; the box and its caret stand, and only its
+   words "Search 12 files…" follow the batch) */
 function migBandPaint(){
   const host = document.getElementById('mig-band'); if (!host || _migCheck) return;
-  host.innerHTML = migBandHtml();
+  const head = migBandIsHead();
+  if (head !== host.hasAttribute('data-lh-seat')){ renderMigration(); return; }
+  if (!head){ host.innerHTML = migBandHtml(); return; }
+  migLhRegister();
+  lhHeadSync(MIG_SEAT);
+  const box = host.querySelector('input[data-lh-q]');
+  if (box && typeof lhBoxHtml === 'function'){
+    const t = document.createElement('div'); t.innerHTML = lhBoxHtml(MIG_SEAT);
+    const fresh = t.querySelector('input[data-lh-q]');
+    if (fresh && box.placeholder !== fresh.placeholder) box.placeholder = fresh.placeholder;
+  }
 }
 /* during a batch the page moves as each file settles: the list, the figures,
    the cost line and the head — never the drop strip's own boxes */
@@ -1823,8 +1924,9 @@ function migSideSay(){
   if (a && a.open && migAllowanceLine()) lines.push(esc(migAllowanceLine()));
   const chips = [];
   if (k.check && canEdit()) chips.push({ label:i18tn('mig_chip_check', k.check, { n:k.check }), run:() => migCheckOpen() });
-  if (k.dupe) chips.push({ label:i18tn('mig_side_show_dupe', k.dupe, { n:k.dupe }), run:() => { migShowSet('dupe'); migLandFirst(); } });
-  if (k.none) chips.push({ label:i18tn('mig_chip_none', k.none, { n:k.none }), run:() => { migShowSet('none'); migLandFirst(); } });
+  /* the batch's own counts: each lands on every file it named (fresh) */
+  if (k.dupe) chips.push({ label:i18tn('mig_side_show_dupe', k.dupe, { n:k.dupe }), run:() => { migShowSet('dupe', true); migLandFirst(); } });
+  if (k.none) chips.push({ label:i18tn('mig_chip_none', k.none, { n:k.none }), run:() => { migShowSet('none', true); migLandFirst(); } });
   if (k.total) chips.push({ label:i18t('mig_chip_sheet'), run:() => migExportSheet() });
   if (k.filed) chips.push({ label:i18tn('mig_chip_filed', k.filed, { n:k.filed }), run:() => {
     const ids = migRows().filter(r => r.c && r.st.k === 'filed').map(r => r.c.id);
@@ -2192,7 +2294,7 @@ function migTabsHtml(on, nCheck){
 /* the Decide list keeps the tab row as its frame, with the way back to all files */
 function migDecideBarHtml(){
   return `<div class="mig-ck-bar">
-    <button type="button" class="mig-ck-back" data-mig-show="decide">‹ ${esc(i18t('mig_ck_back'))}</button>
+    <button type="button" class="mig-ck-back" data-mig-back-all>‹ ${esc(i18t('mig_ck_back'))}</button>
     ${migTabsHtml('decide')}
     <span class="mig-sp"></span>
   </div>`;
@@ -2265,10 +2367,10 @@ async function migDropTake(dt){
   migProcessFiles(r.files, r.from ? { from:r.from } : {});
 }
 
-/* ---- A REFRESH LANDS AT THE SAME SPOT (PLACE_PARTS.migration): the figure
-   door, Show all, the chosen file and the check view on its file ---- */
+/* ---- A REFRESH LANDS AT THE SAME SPOT (PLACE_PARTS.migration): the tab,
+   Show more, the box's words, the chosen file and the check view on its file ---- */
 function migPlace(){
-  return { show:_migShow, all:_migAll, pick:(_migPick && !/^q:/.test(_migPick)) ? _migPick : null, check:migCheckId() };
+  return { show:_migShow, all:_migAll, pick:(_migPick && !/^q:/.test(_migPick)) ? _migPick : null, check:migCheckId(), q:_migQ };
 }
 function migPlacePut(p){
   if (!p || typeof p !== 'object') return;
@@ -2276,6 +2378,7 @@ function migPlacePut(p){
   _migAll = !!p.all;
   _migPick = typeof p.pick === 'string' ? p.pick : null;
   _migCheck = typeof p.check === 'string' ? { ids:[p.check], i:0, want:p.check } : null;
+  _migQ = typeof p.q === 'string' ? p.q : '';
 }
 
 function renderMigration(){
@@ -2293,26 +2396,21 @@ function renderMigration(){
   migCheckRekey();
   if(_migCheck&&!migRowByKey(migCheckId())) _migCheck=null;
   if(_migPick&&!migRowByKey(_migPick)) _migPick=null;
+  /* the list head names its readings before the page is drawn (its foot's
+     Show more resolves through them); the box keeps the reader's caret
+     across a repaint of the whole page (a batch settling, a door pressed) */
+  migLhRegister();
+  const caret=migBoxKeep();
   document.getElementById('content').innerHTML=`
   <div class="view-enter sap-page mig-page${_migCheck?' is-checking':''}">
     ${''/* THE WHITE BAR (owner, 9 Oct 2026): the page's name, what the batch is
-           and Choose files… on the white head; the five figures (or the check
+           and Choose files… on the white head; the list head (or the check
            view's bar) on the same white band, closed by its rule */}
-    <div class="sap-band mig-band ph-foot" id="mig-band">${_migCheck?migCheckBarHtml():migBandHtml()}</div>
+    ${migBandFrameHtml()}
     <style>
       .mig-page{padding:0 var(--page-pad-x) var(--s-4);display:flex;flex-direction:column;gap:var(--s-3)}
-      /* the figures 12px under the head card's line and over its foot (19 Oct 2026) */
+      /* the check view's bar 12px under the head card's line and over its foot (19 Oct 2026) */
       .mig-band{padding-top:var(--s-3);padding-bottom:var(--s-3)}
-      .mig-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-3)}
-      @media (min-width:640px){ .mig-kpis{grid-template-columns:repeat(5,minmax(0,1fr))} }
-      .mig-kpi,.mig-kpi-card{display:flex;flex-direction:column;gap:4px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:12px 14px;text-align:left;font:inherit;color:inherit;min-width:0}
-      .mig-kpi{cursor:pointer}
-      .mig-kpi:hover{border-color:var(--btn-edge)}
-      .mig-kpi.is-on{border-color:var(--color-accent);box-shadow:0 0 0 1px var(--color-accent)}
-      .mig-kpi:focus-visible{outline:2px solid var(--focus-color);outline-offset:2px}
-      .mig-kpi-l{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      .mig-kpi-n{font-size:24px;line-height:1.1;font-weight:var(--w-title);font-variant-numeric:tabular-nums;color:var(--color-text)}
-      .mig-kpi-n.is-green{color:var(--st-green-fg)} .mig-kpi-n.is-amber{color:var(--st-amber-fg)} .mig-kpi-n.is-ruby{color:var(--st-ruby-fg)}
       .mig-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);min-width:0}
       .mig-drop-card{padding:var(--s-4);display:flex;flex-direction:column;gap:var(--s-3)}
       #mig-drop{display:flex;align-items:center;gap:var(--s-3);border:1px dashed var(--color-neutral-400);border-radius:var(--radius-lg);padding:12px 16px;text-align:left;cursor:pointer;background:var(--surface-2);transition:border-color var(--dur-1),background var(--dur-1)}
@@ -2340,13 +2438,16 @@ function renderMigration(){
       .mig-warn.is-amber{color:var(--st-amber-fg);background:var(--st-amber-bg);border-color:var(--st-amber-line)}
       .mig-warn.is-steel{color:var(--st-steel-fg);background:var(--st-steel-bg)}
       .mig-list{overflow:hidden}
-      .mig-list .mig-warn{margin:0 var(--s-4) var(--s-2)}
-      .mig-lh{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;padding:var(--s-3) var(--s-4)}
-      .mig-lh-t{margin:0;font-size:var(--t-card);font-weight:var(--w-strong)}
-      .mig-lh-n{font-size:var(--t-card);font-weight:var(--w-body);color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
-      .mig-lh-s{font-size:var(--t-meta);color:var(--color-neutral-600)}
+      ${''/* the list card has no head of its own (Part 8: its words are the All tab's
+             hover, its acts at the chip row's end): what stands over the table
+             keeps its own room, and the table's top rule is the card's edge */}
+      .mig-list .mig-warn{margin:var(--s-2) var(--s-4)}
       .mig-sp{flex:1 1 auto}
-      .mig-run{display:flex;align-items:center;gap:var(--s-2);padding:0 var(--s-4) var(--s-2);font-size:var(--t-meta);color:var(--color-neutral-700)}
+      .mig-run{display:flex;align-items:center;gap:var(--s-2);padding:var(--s-2) var(--s-4);font-size:var(--t-meta);color:var(--color-neutral-700)}
+      .mig-list > .table-scroll:first-child .mig-table thead th{border-top:0}
+      .mig-table tr.mig-none td{padding:var(--s-6) var(--s-4);text-align:center;color:var(--color-neutral-600)}
+      .mig-table tbody tr.mig-none{cursor:default}
+      .mig-table tbody tr.mig-none:hover{background:none}
       .mig-table{width:100%;border-collapse:collapse;font-size:var(--t-body);table-layout:fixed}
       .mig-table th{text-align:left;font-size:var(--t-meta);font-weight:var(--w-body);color:var(--color-neutral-600);padding:10px 14px;border-top:1px solid var(--color-divider);border-bottom:1px solid var(--color-divider);white-space:nowrap}
       .mig-table th:nth-child(1){width:29%} .mig-table th:nth-child(2){width:13%} .mig-table th:nth-child(3){width:12%} .mig-table th:nth-child(4){width:15%} .mig-table th:nth-child(5){width:11%} .mig-table th:nth-child(6){width:20%}
@@ -2499,6 +2600,7 @@ function renderMigration(){
   migWireCancel();
   migSidePaint();
   migFormPut(document.getElementById('content'), keep);
+  caret();
   migPaintHead();
   setActiveNav('migration');
   /* the check view's file is read whole once (the list is light) */
@@ -2540,8 +2642,10 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     if (!t.closest('.mig-page')) return;
     if ((el = t.closest('[data-open]'))){ e.stopPropagation(); openWorkspace(el.getAttribute('data-open')); return; }
     if ((el = t.closest('#mig-drop'))){ document.getElementById('mig-files')?.click(); return; }
-    if ((el = t.closest('[data-mig-show]'))){ migShowSet(el.getAttribute('data-mig-show')); migLandFirst(); return; }
-    if ((el = t.closest('[data-mig-all]'))){ _migShow = 'all'; _migAll = true; migListPaint(); migBandPaint(); return; }
+    /* the tabs and Show N more are the list head's presses (js/views/listhead.js:
+       its tab → migShowSet, its foot → Show more); only option 1's Decide frame
+       keeps its own way back to every file */
+    if ((el = t.closest('[data-mig-back-all]'))){ migShowSet('all'); migLandFirst(); return; }
     if ((el = t.closest('#mig-check-all'))){ migCheckOpen(); return; }
     if ((el = t.closest('#mig-sheet'))){ migSheetMenu(el); return; }
     if ((el = t.closest('#mig-rerun'))){ migRerunAi(); return; }
@@ -2552,7 +2656,8 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
     if ((el = t.closest('[data-mig-ck-tab]'))){
       const tk = el.getAttribute('data-mig-ck-tab');
       if (tk === 'check'){ _migShow = 'all'; migCheckOpen(); return; }
-      _migCheck = null; _migPick = null; _migShow = 'all'; migShowSet(tk); migLandFirst(); return; }
+      /* the bar counts the whole batch: it lands on every file it named */
+      _migCheck = null; _migPick = null; migShowSet(tk, true); migLandFirst(); return; }
     /* A FILE THAT LOOKS UNSIGNED: the person's call — a draft, signed, or left out */
     if ((el = t.closest('[data-mig-unsigned]'))){
       const i = Number(el.getAttribute('data-i')), act = el.getAttribute('data-mig-unsigned'), key = 'q:' + i;
@@ -2647,6 +2752,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 }
 
 Object.assign(window,{migMarksOf,migPeriodEnd,migRowC,migTabsHtml,migLooksUnsigned,migSignedAt,migIsoIn,migSignedLineHtml,migPartyGuess,migAmountGuess,migNoticeDays,migNoticeWords,migNoticeDay,migPeriodAt,migAmountWithPeriod,migPendingAsContract,migUnsignedHtml,migStreamName,migParked,MIG_DECIDE,
+  MIG_SEAT,MIG_TABS,migHit,migFound,migTabViews,migHeadActsHtml,migLhRegister,migBandFrameHtml,
   migPickSet,migSideHtml:migSideRowHtml,migSideRowHtml,migSideFacts,migSidePaint,migSideSay,migShowPass,migShowSet,MIG_SHOWS,MIG_ROWS_SHOWN,migShown,migRows,migRowByKey,migStateOf,migQueueState,migCheckWhy,migDupeWhy,migKpis,migHeadFacts,migPaintHead,migBandHtml,migCostLine,migCallsOf,migAllowanceWords,migDropCardHtml,migListHtml,migFolderFor,
   migFormOf,migFormHtml,migFormRead,migFormWaits,migWaitWords,migFileIt,migDateRead,migFind,migDateAt,migAmountAt,migRenewAt,migClauseAt,migFoundAt,migFormMarks,
   migCheckOpen,migCheckClose,migCheckGo,migCheckTo,migCheckRekey,migCheckIds,migCheckId,migCheckNext,migCheckHtml,migDocHtml,migWhyHtml,migSheetMenu,migFilesFromDrop,migDropTake,migPlace,migPlacePut,
