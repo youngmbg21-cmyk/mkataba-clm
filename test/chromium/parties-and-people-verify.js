@@ -151,10 +151,12 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       check('2a "Parties N live · sorted by name", and Columns', /^Parties\s*\d+\s*live · sorted by name$/.test(L.head.replace(/\s+/g, ' ').trim()) && L.columns, L.head);
       check('2b the columns as drawn', JSON.stringify(L.cols) === JSON.stringify(['Party', 'City', 'Live', 'Ended', 'On paper', 'Next to end', 'Waiting on you', 'NDA']), JSON.stringify(L.cols));
       check('2c a party\'s line: "2 agreements · <stream>"', /^2 agreements · \S/.test(L.sub), L.sub);
-      check('2d ten at a time, the cap said: "10 of N shown · Show more"; a party with nothing live is off Live', L.rows === 10 && /^10 of 1\d shown · Show more/.test(L.foot.trim()) && !L.old, JSON.stringify(L));
-      await page.click('[data-lc-more="customers"]');
+      /* RE-POINTED 21 Oct 2026 (Part 8, the list head the Legora way): the
+         foot is the list head's one foot, "1–10 of N · Show N more" */
+      check('2d ten at a time, the cap said: "1–10 of N · Show N more"; a party with nothing live is off Live', L.rows === 10 && /^1–10 of 1\d · Show \d+ more/.test(L.foot.trim()) && !L.old, JSON.stringify(L));
+      await page.click('[data-lh-more="customers"]');
       const M = await until(() => { const n = document.querySelectorAll('#cu-tbody [data-cu-cust]').length; return n > 10 ? { n, foot: (document.querySelector('.cu-foot') || {}).textContent.trim() } : null; });
-      check('2e Show more draws the rest, and the foot says so', !!M && new RegExp(`^${M.n} of ${M.n} shown`).test(M.foot), JSON.stringify(M));
+      check('2e Show more draws the rest, and the foot says so', !!M && new RegExp(`^1–${M.n} of ${M.n}`).test(M.foot), JSON.stringify(M));
       await shot('19-parties-list-1440x780.png');
     });
 
@@ -271,7 +273,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       check('6c the table as drawn: Name · Side · Party or company · Job title · In HaTi · Contracts · Email; "ours first, then theirs, by name"',
         JSON.stringify(D.cols) === JSON.stringify(['Name', 'Side', 'Party or company', 'Job title', 'In HaTi', 'Contracts', 'Email']) && /ours first, then theirs, by name$/.test(D.head) && /Amina Otieno/.test(D.first), JSON.stringify({ c: D.cols, h: D.head, f: D.first }));
       check('6d an away colleague wears "Away until …" on their row', D.away.some(x => /Jonas Berg.*Away until/.test(x)), JSON.stringify(D.away));
-      check('6e twelve at a time, the cap said: "12 of N shown · Show more"', D.rows === 12 && /^12 of 1\d shown · Show more/.test(D.foot.trim()), JSON.stringify({ r: D.rows, f: D.foot }));
+      check('6e twelve at a time, the cap said: "1–12 of N · Show N more"', D.rows === 12 && /^1–12 of 1\d · Show \d+ more/.test(D.foot.trim()), JSON.stringify({ r: D.rows, f: D.foot }));
       await page.click('#dir-tbody [data-dir-row="' + (await page.evaluate(() => (dirBook().find(p => p.name === 'Jonas Berg') || {}).key)) + '"]');
       await until(() => /Jonas Berg/.test((document.querySelector('#ins-panel .ins-cp') || {}).textContent || ''));
       await shot('19-people-1440x780.png');

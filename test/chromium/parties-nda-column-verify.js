@@ -120,7 +120,8 @@ CONTRACTS.forEach(c => { if (!c.nda && c.id.startsWith('MK-')) c.expiry = day(40
       ok('2b In force leaves Givaudan and Naivas', (await keys()) === 'givaudan east africa, naivas supermarkets', await keys());
       /* RE-POINTED 19 Oct 2026 (lane A2, round 19 as drawn): the card's head
          counts the rows ("Parties 2"), the foot how many of them are drawn */
-      ok('2c …and the list counts the same: "Parties 2", "2 of 2 shown"', /^2 of 2 shown/.test((await readList()).foot)
+      /* RE-POINTED 21 Oct 2026 (Part 8): the foot is the list head's one foot, "1–2 of 2" */
+      ok('2c …and the list counts the same: "Parties 2", "1–2 of 2"', /^1–2 of 2/.test((await readList()).foot)
         && await page.evaluate(() => (document.querySelector('.cu-card .ap-card-n') || {}).textContent) === '2', (await readList()).foot);
       await pick('unconfirmed');
       ok('2d Not confirmed leaves SAP East Africa', (await keys()) === 'sap east africa', await keys());

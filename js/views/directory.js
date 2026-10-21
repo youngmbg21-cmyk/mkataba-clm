@@ -482,7 +482,7 @@ function dirCardHtml(rows, book){
     ? `<table class="ap-table ap-ins dir-table"><colgroup>${head.map(h => `<col${h.w ? ` style="width:${h.w}px"` : ''}>`).join('')}</colgroup><thead><tr>${
       head.map(h => `<th${h.r ? ' class="n"' : ''}${h.k ? ` data-dir-col="${_dE(h.k)}"` : ''}>${_dE(h.t)}</th>`).join('')}</tr></thead><tbody id="dir-tbody">${rows.slice(0, shown).map(p => dirRowHtml(p, keys)).join('')}</tbody></table>`
     : empty;
-  const foot = [rows.length && typeof lcFootHtml === 'function' ? lcFootHtml(DIR_SEAT, shown, rows.length) : '', dirPartNote() ? `<span>${_dE(dirPartNote())}</span>` : ''].filter(Boolean).join(' ');
+  const foot = [rows.length && typeof lhFootHtml === 'function' ? lhFootHtml(DIR_SEAT, shown, rows.length, DIR_PAGE) : '', dirPartNote() ? `<span>${_dE(dirPartNote())}</span>` : ''].filter(Boolean).join(' ');
   const loc = (typeof jxLocale === 'function') ? jxLocale() : undefined;
   return `<section class="ap-card cu-card dir-card">
     <div class="ap-card-h cu-card-h"><h2 class="ap-card-t">${_dE(i18t('nav_directory'))} <span class="ap-card-n is-pill">${_dE(Number(rows.length).toLocaleString(loc))}</span> <span class="ap-card-m">${_dE(i18t('dir_list_sort'))}</span></h2><span class="ap-card-sp"></span>
@@ -491,13 +491,13 @@ function dirCardHtml(rows, book){
     ${foot ? `<div class="ap-foot cu-foot dir-cardfoot">${foot}</div>` : ''}
   </section>`;
 }
-/* Columns and Show more, the Parties page's own builder (LC_PAGES): the page
-   says once what it draws and how it draws again */
+/* Columns and Show more, the list head's own registries (js/views/listhead.js,
+   LC_PAGES and lhRegister): the page says, at its own render, what it draws
+   and how it draws again */
 function dirLcReg(){
   const L = (typeof window !== 'undefined') ? window.LC_PAGES : null;
-  if (!L || L[DIR_SEAT]) return;
-  L[DIR_SEAT] = { cols: () => dirColDefs().map(c => ({ k: c.k, label: c.label })), repaint: () => dirRepaint(),
-    more: () => { _dir.shown = Math.max(_dir.shown || DIR_PAGE, DIR_PAGE) + DIR_PAGE; dirRepaint(); } };
+  if (L && !L[DIR_SEAT]) L[DIR_SEAT] = { cols: () => dirColDefs().map(c => ({ k: c.k, label: c.label })), repaint: () => dirRepaint() };
+  if (typeof lhRegister === 'function') lhRegister(DIR_SEAT, { more: () => { _dir.shown = Math.max(_dir.shown || DIR_PAGE, DIR_PAGE) + DIR_PAGE; dirRepaint(); } });
 }
 
 /* ---- WHAT WAITS ON A PERSON (round 19, the People scene as drawn: "Waiting
@@ -749,9 +749,9 @@ function renderDirectory(){
   const typing = document.activeElement && document.activeElement.id === 'dir-q';
   const book = dirBook();
   const rows = dirRows(book, _dir.tab);
-  const card = dirCardHtml(rows, book);
   dirLcReg();
-  host.innerHTML = `<style>${(typeof window !== 'undefined' && window.LC_CSS) || ''}${DIR_CSS}</style>
+  const card = dirCardHtml(rows, book);
+  host.innerHTML = `<style>${(typeof window !== 'undefined' && window.CU_WHO_CSS) || ''}${DIR_CSS}</style>
   <div id="dir-page" class="view-enter sap-page ap-page dir-page${INS ? ' is-ins' : ''}" data-ins-page="directory" data-ins="${INS ? '1' : '0'}">
     ${dirBandHtml(book)}
     ${INS ? `<div class="ap-body is-ins dir-body">${card}<aside id="ins-panel" class="ins-panel" aria-label="${_dE(i18t('dir_panel_label'))}"></aside></div>`

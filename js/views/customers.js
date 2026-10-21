@@ -744,124 +744,14 @@ function cuPartFoot(){
   const w = cuWhole();
   return w.whole ? '' : `<span>${_cuE(i18t('cu_part_book', { have: w.have, total: w.total }))}</span>`;
 }
-/* "10 of 27 shown · Show more" — the list draws a page at a time and says the
-   cap; Show more (or reaching the list's end) draws the next page. One
-   builder for Parties and People. */
-function lcFootHtml(seat, shown, total){
-  const loc = (typeof jxLocale === 'function') ? jxLocale() : undefined;
-  const more = shown < total;
-  return `<span class="lc-shown" data-lc-shown="${_cuE(seat)}">${_cuE(i18t('cu_shown_n', { n: Number(shown).toLocaleString(loc), total: Number(total).toLocaleString(loc) }))}${more ? ' · ' : ''}</span>${
-    more ? `<button type="button" class="ui-link lc-more" data-lc-more="${_cuE(seat)}">${_cuE(i18t('cu_show_more'))}</button>` : ''}`;
-}
-
-/* ---- COLUMNS: CHOOSE AND ORDER (round 19 as drawn: "Columns" on the list's
-   head; "you choose and order the columns here") ----
-   A reader's own convenience, kept in this browser per page (never the
-   record, never shared). The first column — who it is — is always there.
-   One builder for every list that draws it (Parties, People): the page names
-   its columns and how it draws again (LC_PAGES). The pop-up follows PRESS IT
-   AGAIN AND IT CLOSES; Esc and a press outside close it too. */
-const LC_PAGES = {};
-let _lcOpen = null;
-const lcKey = seat => 'hati.v1.cols.' + seat;
-function lcState(seat, keys){
-  let v = null; try { v = JSON.parse(localStorage.getItem(lcKey(seat)) || 'null'); } catch (_){ v = null; }
-  const order = (v && Array.isArray(v.order) ? v.order.filter(k => keys.includes(k)) : []);
-  keys.forEach(k => { if (!order.includes(k)) order.push(k); });
-  const hidden = (v && Array.isArray(v.hidden) ? v.hidden.filter(k => keys.includes(k)) : []);
-  return { order, hidden };
-}
-function lcSave(seat, st){ try { if (st) localStorage.setItem(lcKey(seat), JSON.stringify(st)); else localStorage.removeItem(lcKey(seat)); } catch (_){} }
-function lcShown(seat, keys){ const st = lcState(seat, keys); return st.order.filter(k => !st.hidden.includes(k)); }
-function lcBtnHtml(seat){
-  const open = _lcOpen === seat;
-  return `<span class="lc-wrap"><button type="button" class="ui-btn ui-btn-sm lc-btn" data-lc-btn="${_cuE(seat)}" aria-haspopup="true" aria-expanded="${open ? 'true' : 'false'}" title="${_cuE(i18t('cu_cols_title'))}">${_cuE(i18t('cu_cols'))}</button>${open ? lcPopHtml(seat) : ''}</span>`;
-}
-function lcPopHtml(seat){
-  const pg = LC_PAGES[seat]; if (!pg) return '';
-  const cols = pg.cols(), keys = cols.map(c => c.k), st = lcState(seat, keys);
-  const label = k => (cols.find(c => c.k === k) || {}).label || k;
-  const ic = n => (typeof icon === 'function') ? icon(n, 'w-3.5 h-3.5') : '';
-  return `<div class="lc-pop" role="group" aria-label="${_cuE(i18t('cu_cols_title'))}" data-lc-pop="${_cuE(seat)}">
-    <p class="lc-h">${_cuE(i18t('cu_cols_title'))}</p>
-    ${st.order.map((k, i) => `<div class="lc-row"><label class="lc-l"><input type="checkbox" data-lc-k="${_cuE(k)}"${st.hidden.includes(k) ? '' : ' checked'}><span>${_cuE(label(k))}</span></label>
-      <button type="button" class="lc-mv" data-lc-up="${_cuE(k)}" aria-label="${_cuE(i18t('cu_cols_up', { c: label(k) }))}" title="${_cuE(i18t('cu_cols_up', { c: label(k) }))}"${i === 0 ? ' disabled' : ''}>${ic('chevU')}</button>
-      <button type="button" class="lc-mv" data-lc-down="${_cuE(k)}" aria-label="${_cuE(i18t('cu_cols_down', { c: label(k) }))}" title="${_cuE(i18t('cu_cols_down', { c: label(k) }))}"${i === st.order.length - 1 ? ' disabled' : ''}>${ic('chevD')}</button></div>`).join('')}
-    <div class="lc-foot"><button type="button" class="ui-link" data-lc-reset="${_cuE(seat)}">${_cuE(i18t('cu_cols_reset'))}</button></div>
-  </div>`;
-}
-/* the list hangs under its button, over the page — never cut by the card a
-   short list ends early (the card clips what overflows it) */
-function lcPlace(seat){
-  const b = document.querySelector(`[data-lc-btn="${seat}"]`), pop = document.querySelector(`[data-lc-pop="${seat}"]`);
-  if (!b || !pop) return;
-  const r = b.getBoundingClientRect();
-  pop.style.position = 'fixed';
-  pop.style.top = Math.round(r.bottom + 6) + 'px';
-  pop.style.right = Math.max(8, Math.round(window.innerWidth - r.right)) + 'px';
-  pop.style.left = 'auto';
-  pop.style.maxHeight = Math.max(160, window.innerHeight - r.bottom - 16) + 'px';
-  pop.style.overflow = 'auto';
-}
-function lcRepaint(seat, focusSel){
-  const pg = LC_PAGES[seat]; if (!pg) return;
-  pg.repaint();
-  if (_lcOpen === seat) lcPlace(seat);
-  if (focusSel){ const el = document.querySelector(focusSel); if (el) try { el.focus({ preventScroll: true }); } catch (_){} }
-}
-if (typeof document !== 'undefined' && document.addEventListener){
-  document.addEventListener('click', e => {
-    const t = e.target && e.target.closest ? e.target : null; if (!t) return;
-    const b = t.closest('[data-lc-btn]');
-    if (b){ const seat = b.getAttribute('data-lc-btn'); _lcOpen = _lcOpen === seat ? null : seat; lcRepaint(seat, `[data-lc-btn="${seat}"]`); return; }
-    const pop = t.closest('[data-lc-pop]');
-    if (pop){
-      const seat = pop.getAttribute('data-lc-pop'), pg = LC_PAGES[seat]; if (!pg) return;
-      const keys = pg.cols().map(c => c.k), st = lcState(seat, keys);
-      const mv = (k, d) => { const i = st.order.indexOf(k), j = i + d; if (i < 0 || j < 0 || j >= st.order.length) return false; st.order.splice(j, 0, st.order.splice(i, 1)[0]); return true; };
-      const up = t.closest('[data-lc-up]'), dn = t.closest('[data-lc-down]');
-      if (up && mv(up.getAttribute('data-lc-up'), -1)){ lcSave(seat, st); lcRepaint(seat, `[data-lc-up="${up.getAttribute('data-lc-up')}"]`); return; }
-      if (dn && mv(dn.getAttribute('data-lc-down'), 1)){ lcSave(seat, st); lcRepaint(seat, `[data-lc-down="${dn.getAttribute('data-lc-down')}"]`); return; }
-      if (t.closest('[data-lc-reset]')){ lcSave(seat, null); lcRepaint(seat, `[data-lc-btn="${seat}"]`); }
-      return;
-    }
-    const more = t.closest('[data-lc-more]');
-    if (more){ const seat = more.getAttribute('data-lc-more'), pg = LC_PAGES[seat]; if (pg && pg.more) pg.more(); return; }
-    if (_lcOpen){ const seat = _lcOpen; _lcOpen = null; lcRepaint(seat); }
-  });
-  document.addEventListener('change', e => {
-    const cb = e.target && e.target.closest ? e.target.closest('[data-lc-k]') : null; if (!cb) return;
-    const pop = cb.closest('[data-lc-pop]'); if (!pop) return;
-    const seat = pop.getAttribute('data-lc-pop'), pg = LC_PAGES[seat]; if (!pg) return;
-    const keys = pg.cols().map(c => c.k), st = lcState(seat, keys), k = cb.getAttribute('data-lc-k');
-    st.hidden = cb.checked ? st.hidden.filter(x => x !== k) : st.hidden.concat(k);
-    lcSave(seat, st); lcRepaint(seat, `[data-lc-k="${k}"]`);
-  });
-  document.addEventListener('keydown', e => {
-    if (e.key !== 'Escape' || !_lcOpen) return;
-    const seat = _lcOpen; _lcOpen = null; e.stopPropagation(); lcRepaint(seat, `[data-lc-btn="${seat}"]`);
-  }, true);
-}
-/* THE LIST CARRIES ON AS YOU SCROLL (the drawing's note on Show more): the
-   scroller's end draws the next page, as the button does */
-function lcScrollWire(host, seat){
-  const sc = host && host.querySelector(`[data-lc-scroll="${seat}"]`);
-  if (!sc || sc.dataset.lcBound) return;
-  sc.dataset.lcBound = '1';
-  sc.addEventListener('scroll', () => {
-    if (sc.scrollTop + sc.clientHeight < sc.scrollHeight - 24) return;
-    const b = host.querySelector(`[data-lc-more="${seat}"]`), pg = LC_PAGES[seat];
-    if (b && pg && pg.more) pg.more();
-  }, { passive: true });
-}
-
 /* ---- THE STYLE: the Approvals page's card and table (one look for every
    inspector list), plus the page's own few rules ---- */
 /* THE CLOTHES THE TWO "WHO" LISTS SHARE (round 19: Parties and People drawn
    alike): the head row, the filters under a hairline with each word above its
-   box, the find box, the card and its scroller, Columns and the paged foot.
-   One string, put on both pages. */
-const LC_CSS = `
+   box, the find box, the card and its scroller and the paged foot's line.
+   One string, put on both pages. Columns' own rules moved with Columns to
+   js/views/listhead.js (Part 8, 21 Oct 2026). */
+const CU_WHO_CSS = `
   /* the title at the card's top, as every page head (.ph-card, 19 Oct 2026): the row starts its items there;
      it is the card's title row (.ph-top), so the 12px and the hairline under it are the one rule every head wears */
   .sap-band > .cu-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s-3);flex-wrap:wrap;}
@@ -886,21 +776,9 @@ const LC_CSS = `
   .is-ins .cu-card{overflow:hidden;}
   .cu-scroll{flex:1;min-height:0;overflow:auto;}
   .cu-card-h{position:relative;}
-  /* Columns: the button at the card head's end, its list under it */
-  .lc-wrap{position:relative;display:inline-flex;}
-  .lc-pop{position:absolute;right:0;top:calc(100% + 6px);z-index:30;min-width:240px;padding:8px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);background:var(--color-surface);box-shadow:var(--shadow-md);}
-  .lc-h{margin:2px 4px 6px;font-size:var(--t-meta);color:var(--color-neutral-600);}
-  .lc-row{display:flex;align-items:center;gap:4px;padding:2px 4px;border-radius:var(--radius);}
-  .lc-row:hover{background:var(--surface-2);}
-  .lc-l{flex:1;display:flex;align-items:center;gap:8px;min-width:0;font-size:var(--t-body);color:var(--color-text);cursor:pointer;}
-  .lc-mv{flex:none;width:24px;height:24px;display:grid;place-items:center;border:0;border-radius:var(--radius);background:none;color:var(--color-neutral-600);cursor:pointer;}
-  .lc-mv:hover:not(:disabled){background:var(--color-surface);color:var(--accent-ink);}
-  .lc-mv:disabled{opacity:.35;cursor:default;}
-  .lc-foot{border-top:1px solid var(--color-divider);margin-top:6px;padding:6px 4px 2px;}
-  .lc-more{font-size:inherit;}
-  /* "10 of 27 shown · Show more" reads as one line at the foot's start */
+  /* "1–10 of 27 · Show 10 more" reads as one line at the foot's start */
   .ap-foot.cu-foot{justify-content:flex-start;gap:4px;flex-wrap:wrap;}
-  .ap-foot.cu-foot .lc-shown{white-space:nowrap;}
+  .ap-foot.cu-foot .lh-range{white-space:nowrap;}
   /* Jambo's panel on Parties and People: the lead button keeps its own width; a section's count is the plain number every panel draws (.ins-sec h3 .n, Chambers) */
   :is(.cu-page,.dir-page) .ins-acts .ins-lead{flex:0 1 auto;}
 `;
@@ -1041,7 +919,7 @@ function cuListHtml(INS){
     ? `<table class="ap-table ap-ins cu-table"><colgroup>${head.map(h => `<col${h.w ? ` style="width:${h.w}px"` : ''}>`).join('')}</colgroup><thead><tr>${
       head.map(h => `<th${h.r ? ' class="n"' : ''}${h.k ? ` data-cu-col="${_cuE(h.k)}"` : ''}>${_cuE(h.t)}</th>`).join('')}</tr></thead><tbody id="cu-tbody">${body}</tbody></table>`
     : `<div class="ap-empty">${_cuE(all.length ? i18t('cu_none_match') : i18t('cu_none_yet'))}</div>`;
-  const foot = rows.length ? [lcFootHtml('customers', shown, rows.length), cuPartFoot()].filter(Boolean).join('') : cuPartFoot();
+  const foot = rows.length ? [lhFootHtml('customers', shown, rows.length, CU_PAGE), cuPartFoot()].filter(Boolean).join('') : cuPartFoot();
   const meta = i18t(_cu.status === 'live' ? 'cu_list_live' : _cu.status === 'ended' ? 'cu_list_ended' : 'cu_list_sort');
   const card = cuCardHtml({ seat: 'customers', title: i18t('nav_customers'), n: rows.length, meta, right: lcBtnHtml('customers'), table, foot });
   return `<div class="sap-band ph-card">
@@ -1054,9 +932,11 @@ function cuListHtml(INS){
     ${INS ? `<div class="ap-body is-ins cu-body">${card}<aside id="ins-panel" class="ins-panel" aria-label="${_cuE(i18t('ins_panel_label'))}"></aside></div>`
       : `<div class="cu-body">${card}</div>`}`;
 }
-if (typeof window !== 'undefined'){
-  LC_PAGES.customers = { cols: () => cuColDefs().map(c => ({ k: c.k, label: c.label })), repaint: () => cuRepaint(),
-    more: () => { _cu.shown = Math.max(_cu.shown || CU_PAGE, CU_PAGE) + CU_PAGE; cuRepaint(); } };
+/* Columns and Show more, the list head's own registries (js/views/listhead.js):
+   the page says, at its own render, what it draws and how it draws again */
+function cuLcReg(){
+  LC_PAGES.customers = { cols: () => cuColDefs().map(c => ({ k: c.k, label: c.label })), repaint: () => cuRepaint() };
+  lhRegister('customers', { more: () => { _cu.shown = Math.max(_cu.shown || CU_PAGE, CU_PAGE) + CU_PAGE; cuRepaint(); } });
 }
 
 /* ---- THE PANEL: THE PARTY AS DRAWN (round 19, on Jambo's panel) ----
@@ -1260,14 +1140,15 @@ function renderCustomers(){
   const keep = (() => { const sc = document.querySelector('.cu-scroll'); return sc ? sc.scrollTop : 0; })();
   const typing = document.activeElement && document.activeElement.id === 'cu-q';
   const editing = document.activeElement && document.activeElement.closest && document.activeElement.closest('#cu-pr-form') ? document.activeElement.id : '';
-  host.innerHTML = `<style>${LC_CSS}${CU_CSS}</style>
+  cuLcReg();
+  host.innerHTML = `<style>${CU_WHO_CSS}${CU_CSS}</style>
   <div class="view-enter sap-page ap-page cu-page${INS ? ' is-ins' : ''}" data-ins-page="customers" data-ins="${INS ? '1' : '0'}" data-cu-screen="list">
     ${cuListHtml(INS)}
   </div>`;
   const sc = host.querySelector('.cu-scroll'); if (sc && keep) sc.scrollTop = keep;
   cuWire(host, INS);
   if (typing){ const q = document.getElementById('cu-q'); if (q){ q.focus(); const n = q.value.length; try { q.setSelectionRange(n, n); } catch (_) {} } }
-  if (_lcOpen === 'customers') lcPlace('customers');
+  lcPlace('customers');
   if (editing){ const f = document.getElementById(editing); if (f) try { f.focus({ preventScroll: true }); } catch (_){} }
   if (INS && typeof insWatchWidth === 'function') insWatchWidth();
   if (typeof setActiveNav === 'function') setActiveNav('customers');
@@ -1298,7 +1179,8 @@ Object.assign(window, { cuNeedsOf, cuNeedTitle, cuNeedsSay, cuNeedGo, cuPanelNee
   /* the one filter-box builder the band's clothes dress; the Directory draws its boxes with it too (13 Oct 2026) */
   cuChip,
   /* round 19 as drawn: a party's own facts, the party's standing, the page's
-     find box, Columns and the paged foot — People draws the last three too */
+     find box and card, and the clothes People wears too (CU_WHO_CSS; Columns
+     and the paged foot are js/views/listhead.js's since Part 8) */
   cuNeedShort, cuRequestsOf, cuStanding, cuSay, cuMoveRedlines, cuOpenAgreement, cuSelectParty, cuStatusWants, partyRecordOf, partyCityOf, partyOrgNoOf, partyRecordSet, partyRecordOpen, partyCitySuggest, cuCityFromAddress, cuAddrAfterName,
   cuSinceOf, cuShortName, cuOwnerSay, cuAgreementSub, cuPanelPeopleHtml, cuFindHtml, cuCardHtml,
-  LC_CSS, LC_PAGES, lcPlace, lcState, lcShown, lcBtnHtml, lcFootHtml, lcScrollWire, CU_PAGE });
+  CU_WHO_CSS, CU_PAGE });

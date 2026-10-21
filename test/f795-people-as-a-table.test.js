@@ -69,6 +69,7 @@ function stage(o = {}){
   sb.window = sb; sb.self = sb;
   vm.createContext(sb);
   vm.runInContext(read('js/participants.js'), sb, { filename: 'participants.js' });
+  vm.runInContext(read('js/views/listhead.js'), sb, { filename: 'listhead.js' });
   vm.runInContext(read('js/views/customers.js'), sb, { filename: 'customers.js' });
   vm.runInContext(read('js/views/directory.js'), sb, { filename: 'directory.js' });
   return { sb, doc: win.document, landed };
@@ -134,8 +135,10 @@ describe('f795 (3) the boxes narrow; twelve at a time; Columns', () => {
     const { sb, doc } = stage();
     sb.renderDirectory();
     assert.equal(rowsOf(doc).length, 12);
-    assert.equal(doc.querySelector('.dir-cardfoot .lc-shown').textContent.trim(), '12 of 15 shown ·');
-    sb.LC_PAGES.directory.more();
+    /* RE-POINTED 21 Oct 2026 (Part 8): the list head's one foot, the seat's own Show more */
+    assert.equal(doc.querySelector('.dir-cardfoot [data-lh-shown]').textContent.trim(), '1–12 of 15');
+    assert.equal(doc.querySelector('.dir-cardfoot [data-lh-more="directory"]').textContent.trim(), 'Show 3 more');
+    sb.LH_PAGES.directory.more();
     assert.equal(rowsOf(doc).length, 15);
   });
   test('Columns hides a column, for this reader', () => {

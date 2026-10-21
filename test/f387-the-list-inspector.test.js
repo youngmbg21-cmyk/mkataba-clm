@@ -119,7 +119,9 @@ describe('f387 (1) the panel file, and what it may and may not do', () => {
     assert.match(c, /const INS_MIN_W = 1040;/);
     assert.match(c, /return w >= INS_MIN_W;/);
     assert.match(c, /if \(_insForce !== null\) return _insForce;/);
-    assert.match(APP, /import '\.\/views\/inspector\.js';\s*\n\s*import '\.\/views\/approvalsview\.js';/,
+    /* RE-POINTED 21 Oct 2026 (Part 8): the list head (js/views/listhead.js) is
+       imported straight after the inspector, still before every page that draws it */
+    assert.match(APP, /import '\.\/views\/inspector\.js';\s*\n\s*import '\.\/views\/listhead\.js';[^\n]*\n\s*import '\.\/views\/approvalsview\.js';/,
       'loaded before the pages that draw it');
   });
 });

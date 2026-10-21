@@ -14908,6 +14908,49 @@
   .ik-cp{display:inline-flex;align-items:center;gap:var(--s-2);min-width:0;}
   .ik-file-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;}
   .ik-file-list .ui-link{display:inline-flex;align-items:center;gap:6px;}
+  /* ═══ THE LIST HEAD, THE LEGORA WAY (the owner's pick, 21 Oct 2026, Part 8;
+     js/views/listhead.js) ════════════════════════════════════════════════
+     One head for every list page: the box to search or ask in under the
+     title, the views as tabs, then a row of chips — a filter only once it is
+     added ("+ Filter", dashed, in the accent ink), as "Label value x" — with
+     the page's own controls and Columns at its right end; under the list one
+     foot, "1–40 of 189 · Show 40 more". Scoped under .sap-page, which every
+     list root wears; new class names only, so nothing fights the old
+     labelled-box cascade (.reg-fb, .reg-chip), which the pages not yet on
+     this head still draw. Tokens only. */
+  .sap-page .lh{display:flex;flex-direction:column;gap:var(--s-2);}
+  .sap-page .sap-band.lh{row-gap:var(--s-2);}
+  .sap-page .sap-band.ph-card.lh{padding-bottom:var(--s-2);}
+  .sap-page .sap-band.ph-foot.lh{padding-top:var(--s-3);padding-bottom:var(--s-2);}
+  .sap-page .sap-band.ph-card.lh > .ph-top + .lh-ask{margin-top:var(--s-1);}
+  .sap-page .lh > .lh-top{display:flex;align-items:center;flex-wrap:wrap;gap:var(--s-3);}
+  .sap-page .lh > .lh-top > .lh-sp{flex:1 1 auto;}
+  .sap-page .lh-ask{display:flex;align-items:center;gap:var(--s-2);height:var(--ctl-h-lg);padding:0 var(--pad-ctl-x);border:1px solid var(--rule-strong);border-radius:var(--radius);background:var(--color-surface);cursor:text;}
+  .sap-page .lh-ask:focus-within{border-color:var(--accent-ink);}
+  .sap-page .lh-ask > svg{flex:none;width:14px;height:14px;color:var(--color-neutral-500);}
+  .sap-page .lh-ask input{flex:1 1 auto;min-width:0;height:100%;border:0;outline:0;background:transparent;font:inherit;font-size:var(--t-body);color:var(--color-neutral-800);}
+  .sap-page .lh-ask input:focus-visible{outline:none;box-shadow:none;}
+  .sap-page .lh-ask input::placeholder{color:var(--color-neutral-500);}
+  .sap-page .lh-ask input::-webkit-search-cancel-button{cursor:pointer;}
+  .sap-page .lh > .reg-views{margin:0;}
+  .sap-page .lh-chips{display:flex;align-items:center;flex-wrap:wrap;gap:var(--s-2);min-height:var(--ctl-h);}
+  .sap-page .lh-chips > .lh-sp{flex:1 1 auto;}
+  .sap-page .lh-chip{position:relative;display:inline-flex;align-items:center;height:var(--ctl-h);border:1px solid var(--chip-edge);border-radius:var(--radius);background:var(--color-surface);font-size:var(--t-body);white-space:nowrap;}
+  .sap-page .lh-chip > label{position:relative;display:inline-flex;align-items:center;gap:6px;height:100%;padding:0 4px 0 var(--pad-ctl-x);color:var(--color-neutral-500);font-weight:var(--w-label);cursor:pointer;}
+  .sap-page .lh-chip > label b{color:var(--color-neutral-900);font-weight:var(--w-strong);}
+  .sap-page :is(.lh-chip,.lh-add) .reg-chip-sel{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;}
+  .sap-page .lh-chip .lh-x{display:inline-flex;align-items:center;justify-content:center;width:var(--ctl-h-sm);height:var(--ctl-h-sm);margin-right:3px;padding:0;border:0;border-radius:var(--radius);background:none;color:var(--color-neutral-500);cursor:pointer;}
+  .sap-page .lh-chip .lh-x:hover,.sap-page .lh-chip .lh-x:focus-visible{background:var(--color-neutral-100);color:var(--color-neutral-900);}
+  .sap-page .lh-add{position:relative;display:inline-flex;align-items:center;gap:4px;height:var(--ctl-h);padding:0 var(--pad-ctl-x);border:1px dashed var(--rule-strong);border-radius:var(--radius);background:none;color:var(--accent-ink);font-size:var(--t-body);font-weight:var(--w-label);white-space:nowrap;cursor:pointer;}
+  .sap-page .lh-add:hover,.sap-page .lh-add:focus-within{border-color:var(--accent-ink);}
+  .sap-page .lh-chips .lc-wrap{flex:none;}
+  .sap-page .lh .lh-save{display:inline-flex;align-items:center;gap:4px;}
+  .lh-foot{display:flex;align-items:center;gap:var(--s-2);min-height:var(--ctl-h);font-size:var(--t-meta);color:var(--color-neutral-500);}
+  .lh-foot .lh-range{white-space:nowrap;}
+  .lh-foot .lh-more{font-size:var(--t-meta);}
+  /* the § chip in a Jambo answer cell (askColTdHtml) */
+  .reg-table td.ac-cell .ac-cite{display:inline-flex;align-items:center;height:18px;margin-left:6px;padding:0 4px;border:1px solid var(--rule);border-radius:var(--radius);background:var(--color-surface);color:var(--color-neutral-700);font:inherit;font-size:var(--t-meta);line-height:1;cursor:pointer;}
+  .reg-table td.ac-cell .ac-cite:hover,.reg-table td.ac-cell .ac-cite:focus-visible{border-color:var(--accent-ink);color:var(--accent-ink);}
   /* ═══ REQUESTS AND MY NOTES, AS DRAWN (round 20 of the redesign, owner
      picked "The SAP way"; every drawn part built on the owner's yes of 18 Oct
      2026; js/views/intake.js, js/views/mynotes.js) ═══

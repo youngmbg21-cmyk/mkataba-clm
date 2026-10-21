@@ -90,7 +90,7 @@ const _mnLock = () => (typeof icon === 'function') ? icon('lock', 'mn-lock') : '
 function myNotesBandHtml(){
   const all = typeof mineList === 'function' ? mineList('note') : [];
   const tabs = (typeof insViewTabsHtml === 'function') ? insViewTabsHtml({ attr:'data-mn-tab', cur:_mn.filter, label:i18t('mn_filter'),
-    views:MN_TABS.map(([k, key]) => { const boxed = mnBoxed(); return { k, label:i18t(key), n:boxed.filter(n => mnInTab(n, k)).length }; }) }) : '';
+    views:MN_TABS.map(([k, key]) => { const boxed = mnBoxed(); return { k, label:i18t(key), n:boxed.filter(n => mnInTab(n, k)).length, keep:k === 'all' }; }) }) : '';
   const cts = [...new Set(all.map(n => String(n.contractId || '')).filter(Boolean))].map(id => _mnContract(id)).filter(Boolean);
   const chip = (typeof window.cuChip === 'function') ? window.cuChip : (typeof insChipHtml === 'function' ? insChipHtml : null);
   const ctBox = chip ? chip({ attr:'data-mn-f', key:'ct', label:i18t('mn_box_contract'), cur:_mn.ct || '', def:'',

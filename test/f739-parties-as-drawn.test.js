@@ -74,6 +74,7 @@ function stage(o = {}){
   };
   sb.window = sb; sb.self = sb;
   vm.createContext(sb);
+  vm.runInContext(read('js/views/listhead.js'), sb, { filename: 'listhead.js' });
   vm.runInContext(read('js/views/customers.js'), sb, { filename: 'customers.js' });
   return { sb, doc: win.document };
 }
@@ -118,13 +119,17 @@ describe('f739 (2) the list as drawn', () => {
     assert.equal(kf.querySelector('.cu-ps').textContent, '2 agreements · Procurement');
     assert.equal(doc.querySelector('[data-cu-cust="party 01 ltd"] .cu-ps').textContent, '1 agreement · Procurement');
   });
+  /* RE-POINTED 21 Oct 2026 (Part 8, the list head the Legora way): the foot
+     is the list head's one foot (lhFootHtml) — "1–10 of 13 · Show 3 more",
+     a live region — and Show more is the seat's own (LH_PAGES), not Columns' */
   test('ten at a time, the cap said; Show more draws the next ten', () => {
     assert.equal(doc.querySelectorAll('#cu-tbody [data-cu-cust]').length, 10);
-    assert.equal(doc.querySelector('.cu-foot .lc-shown').textContent.trim(), '10 of 13 shown ·');
-    assert.ok(doc.querySelector('.cu-foot [data-lc-more="customers"]'));
-    sb.LC_PAGES.customers.more();
+    assert.equal(doc.querySelector('.cu-foot [data-lh-shown]').textContent.trim(), '1–10 of 13');
+    assert.equal(doc.querySelector('.cu-foot [data-lh-more="customers"]').textContent.trim(), 'Show 3 more');
+    assert.equal(doc.querySelector('.cu-foot [data-lh-foot="customers"]').getAttribute('role'), 'status');
+    sb.LH_PAGES.customers.more();
     assert.equal(doc.querySelectorAll('#cu-tbody [data-cu-cust]').length, 13);
-    assert.equal(doc.querySelector('.cu-foot').textContent.trim(), '13 of 13 shown');
+    assert.equal(doc.querySelector('.cu-foot').textContent.trim(), '1–13 of 13');
   });
   test('Columns: a hidden column leaves the list, an order is kept, per reader', () => {
     sb.localStorage.setItem('hati.v1.cols.customers', JSON.stringify({ order: ['nda', 'city'], hidden: ['paper'] }));

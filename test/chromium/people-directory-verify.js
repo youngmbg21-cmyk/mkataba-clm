@@ -203,7 +203,8 @@ const PAGE = () => {
     /* RE-POINTED 19 Oct 2026: the drawing draws no A to Z edge; the table pages
        instead ("N of M shown · Show more") */
     const edge = await page.evaluate(() => ({ az: !!document.querySelector('#dir-page .dir-az'), foot: ((document.querySelector('#dir-page .dir-cardfoot') || {}).textContent || '').trim() }));
-    check('no A to Z edge; the foot says how many are shown', !edge.az && /^\d+ of \d+ shown/.test(edge.foot), JSON.stringify(edge));
+    /* RE-POINTED 21 Oct 2026 (Part 8): the list head's one foot, "1–12 of N" */
+    check('no A to Z edge; the foot says how many are shown', !edge.az && /^1–\d+ of \d+/.test(edge.foot), JSON.stringify(edge));
     await page.reload({ waitUntil: 'networkidle' });
     await page.waitForTimeout(2200);
     const kept = await page.evaluate(() => ({ view: state.view, tab: (document.querySelector('#dir-page select[data-dir-f="tab"]') || {}).value || null }));

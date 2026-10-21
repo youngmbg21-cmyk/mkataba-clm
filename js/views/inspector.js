@@ -710,13 +710,17 @@ function insChipHtml(o){
     (o.opts || []).map(([v, l]) => `<option value="${esc(v)}"${String(v) === String(o.cur) ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`;
 }
 /* ---- THE VIEW TABS, THE CONTRACTS PAGE'S OWN ROW ----
-   `.reg-views` / `.reg-vtab`, the count in its pill, a view with nothing in
-   it quiet and uncounted — one control on every page. */
+   `.reg-views` / `.reg-vtab`, the count after the word — one control on every
+   page. A VIEW WITH NOTHING IN IT IS LEFT OUT (the list head, the Legora way,
+   21 Oct 2026; was: drawn quiet and uncounted), unless it is the one lit or
+   the page keeps it (keep:true — "All"); a kept empty one stays quiet. A
+   view's `title` is its hover; `o.after` is the page's own html inside the
+   same tablist (the saved views and "+ Save this view"). */
 function insViewTabsHtml(o){
-  return `<div class="reg-views" role="tablist"${o.label ? ` aria-label="${esc(o.label)}"` : ''}>${(o.views || []).map(v => {
+  return `<div class="reg-views" role="tablist"${o.label ? ` aria-label="${esc(o.label)}"` : ''}>${(o.views || []).filter(v => v && (v.n !== 0 || v.keep || String(v.k) === String(o.cur))).map(v => {
     const on = String(v.k) === String(o.cur);
-    return `<button type="button" role="tab" class="reg-vtab${on ? ' on' : ''}${!v.n && !on ? ' is-zero' : ''}" ${o.attr}="${esc(v.k)}" aria-selected="${on ? 'true' : 'false'}">${
-      esc(v.label)}${v.n ? `<span class="n">${esc(String(v.n))}</span>` : ''}</button>`; }).join('')}</div>`;
+    return `<button type="button" role="tab" class="reg-vtab${on ? ' on' : ''}${!v.n && !on ? ' is-zero' : ''}" ${o.attr}="${esc(v.k)}" aria-selected="${on ? 'true' : 'false'}"${v.title ? ` title="${esc(v.title)}"` : ''}>${
+      esc(v.label)}${v.n ? `<span class="n">${esc(String(v.n))}</span>` : ''}</button>`; }).join('')}${o.after || ''}</div>`;
 }
 /* A FACTS GRID FOR ANYTHING: label over value, an em-dash for silence, a
    `wide` fact takes the whole row and may wrap. The contract's own grid

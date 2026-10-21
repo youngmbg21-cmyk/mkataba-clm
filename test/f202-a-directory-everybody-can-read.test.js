@@ -58,6 +58,7 @@ function stage(users, me, place) {
   };
   sb.window = sb;
   vm.createContext(sb);
+  vm.runInContext(read('js/views/listhead.js'), sb, { filename: 'listhead.js' });
   vm.runInContext(read('js/views/directory.js'), sb, { filename: 'directory.js' });
   sb.dirPlacePut(place || { tab: 'all' });
   sb.renderDirectory();

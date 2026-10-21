@@ -3367,7 +3367,10 @@ function selectMenuOpen(sel){
   const box = document.createElement('div');
   box.className = 'hati-selmenu';
   box.setAttribute('role', 'listbox');
-  const row = (o, i) => `<button type="button" role="option" aria-selected="${o.selected ? 'true' : 'false'}"
+  /* A HIDDEN OPTION IS NOT DRAWN, as the system's own list does not draw it
+     (21 Oct 2026: the list head's "+ Filter" holds its resting placeholder
+     that way, js/views/listhead.js) */
+  const row = (o, i) => o.hidden ? '' : `<button type="button" role="option" aria-selected="${o.selected ? 'true' : 'false'}"
       class="hati-selmenu-row${o.selected ? ' on' : ''}"${o.disabled ? ' disabled' : ''}
       data-sm="${i}">${o.dataset && o.dataset.dot ? `<i class="hati-selmenu-dot is-${esc(o.dataset.dot)}" aria-hidden="true"></i>` : ''}<span class="hati-selmenu-t">${esc(o.textContent)}</span>${o.dataset && o.dataset.st ? `<span class="hati-selmenu-st">${esc(o.dataset.st)}</span>` : ''}</button>`;
   /* A LIST THAT ASKS FOR ITS GROUPS (data-sm-groups; Edit with Copilot's

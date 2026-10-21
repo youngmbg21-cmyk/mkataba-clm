@@ -86,6 +86,7 @@ function stage(o = {}) {
   sb.window = sb; sb.self = sb;
   vm.createContext(sb);
   vm.runInContext(read('js/participants.js'), sb, { filename: 'participants.js' });
+  vm.runInContext(read('js/views/listhead.js'), sb, { filename: 'listhead.js' });
   vm.runInContext(read('js/views/directory.js'), sb, { filename: 'directory.js' });
   return { sb, doc: win.document, calls };
 }

@@ -79,6 +79,7 @@ import './views/home.js';
    and Approvals lists (Young picked it 26 Sep 2026). Loaded before the three
    pages that draw it; it publishes its names and asks theirs through window. */
 import './views/inspector.js';
+import './views/listhead.js';      // the list head, the Legora way: one box, views as tabs, filters added as chips, Columns, the foot (21 Oct 2026)
 import './views/approvalsview.js'; // Approvals & signing: a door onto two readings Home already makes (20 Sep 2026)
 import './views/customers.js';     // Customer folders: a Customers page; Open customer → Contracts narrowed, Open on Explorer → Active | Expired (10 Oct 2026)
 import './brainmap.js';           // the Brain's catalogue and its reader of the code, one for both hosts (27 Sep 2026)

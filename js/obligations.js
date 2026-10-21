@@ -4040,7 +4040,7 @@ function renderObligationsInspector(host){
   const counts = {};
   OBW_VIEWS.forEach(([k]) => { counts[k] = book.filter(r => obwPass(r, { ...f, state: k })).length; });
   const views = insViewTabsHtml({ attr:'data-obw-view', cur: f.state, label: i18t('ob_views_label'),
-    views: OBW_VIEWS.map(([k, key]) => ({ k, label: i18t(key), n: counts[k] })) });
+    views: OBW_VIEWS.map(([k, key]) => ({ k, label: i18t(key), n: counts[k], keep: k === 'all' })) });
   /* NOTHING IS CHOSEN ON ARRIVAL (round 16: Jambo's panel says "Your week");
      a row the reader chose stays chosen, and never hides in a folded week:
      its week opens */
