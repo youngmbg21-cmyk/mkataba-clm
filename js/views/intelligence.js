@@ -8849,7 +8849,11 @@ function igLineIdHtml(c,ref){
   let pill=''; try{ pill=(typeof contractStatusTextHtml==='function')?contractStatusTextHtml(c,n?i18t('ig_line_round',{ n }):''):''; }catch(_){ pill=''; }
   const cn=c._codeName&&c._codeName.code?String(c._codeName.code):'';
   const mark=cn?`<span class="ig-line-cn" title="${igEsc(i18t('ig_line_cn_title',{ code:cn, ref }))}">${icon('lock','w-3 h-3')}${igEsc(cn)}</span>`:'';
-  return `<span class="ig-strip-ref ig-line-id" title="${igEsc([c.name,party].filter(Boolean).join(' · '))}"><b class="hati-ref">${igEsc(ref)}</b><span class="ig-line-t">${igEsc(c.name||'')}</span>${party?`<span class="ig-line-p">${igEsc(party)}</span>`:''}</span>${mark}${pill?`<span class="ig-line-st">${pill}</span>`:''}`;
+  /* THE PARTY ONCE (owner, 21 Oct 2026): the bar above already names it, so
+     the line keeps the ref and the kind of contract (bsShortName, the Board
+     head's own reading; the stored name is never rewritten) */
+  const kind=(typeof bsShortName==='function')?bsShortName(c):(c.name||'');
+  return `<span class="ig-strip-ref ig-line-id" title="${igEsc([c.name,party].filter(Boolean).join(' · '))}"><b class="hati-ref">${igEsc(ref)}</b><span class="ig-line-t">${igEsc(kind)}</span></span>${mark}${pill?`<span class="ig-line-st">${pill}</span>`:''}`;
 }
 function igStripHtml(c,p){
   const up=p.mode==='paper';

@@ -208,9 +208,9 @@ Object.assign(window,{ICONS,icon,plusLed,JAMBO_FACE,JAMBO_MARK_PATH,jamboMarkSvg
    across the page") ----
    THE ONE LANDER every door calls once it has opened the page: it waits,
    bounded, for the thing the press named (a card, a row, a box, a button —
-   never just a page), brings it into view, LIGHTS it the one way every
-   arrival is lit (.is-landed, index.html: a pulse of about two seconds, then a
-   soft ring) and readies its main button for Enter. It PRESSES NOTHING. The
+   never just a page), brings it into view, marks it .is-landed (which draws
+   nothing since the owner's 21 Oct 2026 ruling: no light on arrival) and
+   readies its main button for Enter. It PRESSES NOTHING. The
    ring stays until the reader's next press or key, and follows the thing
    through a repaint (the page drew it again under the same name), so a board
    that refills a moment later does not put it out. A thing that never shows

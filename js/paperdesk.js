@@ -3337,30 +3337,33 @@ function dossierDay(iso){
 }
 const PD_GO_TXT = ' ›';
 function dossierGo(attr, word, extra){ return `<button type="button" class="pd-go ds-go" ${attr}${extra || ''}>${_pdE(word)}${PD_GO_TXT}</button>`; }
+/* WHAT JAMBO READ, FOUR EVEN ROWS (owner, 21 Oct 2026): a figure column, a
+   short name, one door at the right — every row one line, one height; the
+   day and Read again on their own line under the label; no cut sentence */
 function dossierReadHtml(c, D){
   const R = D.read, may = (typeof canEdit !== 'function') || !!canEdit();
-  const head = R.read
-    ? `<span class="ds-when">${_pdE(_pdT(R.stale ? 'dos_read_stale' : 'dos_read_same', { when: dossierDay(R.at) }))}</span>${R.stale && may ? `<button type="button" class="ui-btn ui-btn-sm" data-pd-ds-read title="${_pdE(_pdT('jb_read_cost'))}">${_pdE(_pdT('dos_read_again'))}</button>` : ''}`
-    : `<span class="ds-when">${_pdE(_pdT('dos_read_not'))}</span>${may ? `<button type="button" class="ui-btn ui-btn-sm" data-pd-ds-read title="${_pdE(_pdT('jb_read_cost'))}">${_pdE(_pdT('jb_read_now'))}</button>` : ''}`;
-  const row = (k, html, door) => `<div class="pd-gl-row ds-row" data-pd-ds="${k}"><span>${html}</span>${door || ''}</div>`;
+  const again = (R.read ? (R.stale && may) : may)
+    ? `<button type="button" class="pd-go ds-go" data-pd-ds-read title="${_pdE(_pdT('jb_read_cost'))}">${_pdE(_pdT(R.read ? 'dos_read_again' : 'jb_read_now'))}</button>` : '';
+  const when = `<div class="ds-when ds-read-when">${_pdE(R.read ? _pdT(R.stale ? 'dos_read_stale' : 'dos_read_same', { when: dossierDay(R.at) }) : _pdT('dos_read_not'))}</div>`;
+  const ok = '<i class="ds-ok" aria-hidden="true">✓</i>';
+  const row = (k, fig, name, small, door) => `<div class="pd-gl-row ds-row ds-rr" data-pd-ds="${k}"><span class="ds-fig">${fig}</span><span class="ds-nm">${_pdE(name)}${small ? ` <small>· ${_pdE(small)}</small>` : ''}</span>${door || '<span></span>'}</div>`;
   const rows = [];
-  const clip = (t, n) => { const x = String(t || '').replace(/\s+/g, ' ').trim(); return x.length > n ? x.slice(0, n - 1) + '…' : x; };
-  rows.push(R.brief ? row('brief', `<i class="ds-ok" aria-hidden="true">✓</i> ${_pdE(_pdT('dos_brief', { line: clip(R.brief, 70) }))}`, dossierGo('data-pd-gl-brief', _pdT('dos_go_read')))
-    : row('brief', _pdE(_pdT('dos_brief_none'))));
+  rows.push(R.brief ? row('brief', ok, _pdT('dos_k_brief'), '', dossierGo('data-pd-gl-brief', _pdT('dos_go_read')))
+    : row('brief', '·', _pdT('dos_k_brief'), _pdT('dos_k_not_yet')));
   /* a door this contract has shut is grey with its reason (the Redlines face's own rule, negoMayStartLine) */
   let shut = ''; try { shut = (typeof negoMayStartLine === 'function') ? (negoMayStartLine(c) || '') : ''; } catch (_){ shut = ''; }
   const risksGo = shut ? `<button type="button" class="pd-go ds-go" disabled aria-disabled="true" title="${_pdE(shut)}">${_pdE(_pdT('dos_go_open'))}${PD_GO_TXT}</button>` : dossierGo('data-pd-gl-risks', _pdT('dos_go_open'));
-  if (R.risks) rows.push(R.risks.n ? row('risks', `<b>${R.risks.n}</b> ${_pdE(_pdTn('dos_risks', R.risks.n, { n: R.risks.n }))}${R.risks.titles.length ? ' — ' + _pdE(R.risks.titles.join(', ')) : ''}`, risksGo)
-    : row('risks', `<i class="ds-ok" aria-hidden="true">✓</i> ${_pdE(_pdT('dos_risks_none'))}`));
-  else if (R.mayScan) rows.push(row('risks', _pdE(_pdT('dos_risks_unread')), `<button type="button" class="ui-btn ui-btn-sm" data-pd-gl-scan title="${_pdE(_pdT('pd_gl_scan_cost'))}">${_pdE(_pdT('pd_gl_scan_go'))}</button>`));
+  if (R.risks) rows.push(R.risks.n ? row('risks', `<b>${R.risks.n}</b>`, _pdT('dos_k_risks'), '', risksGo)
+    : row('risks', ok, _pdT('dos_risks_none'), ''));
+  else if (R.mayScan) rows.push(row('risks', '·', _pdT('dos_k_risks'), _pdT('dos_k_not_yet_free'), `<button type="button" class="pd-go ds-go" data-pd-gl-scan title="${_pdE(_pdT('pd_gl_scan_cost'))}">${_pdE(_pdT('pd_gl_scan_go'))}</button>`));
   if (R.std){ const s = R.std, off = s.dev + s.miss, met = Math.max(0, s.total - off);
-    rows.push(s.ok && s.complete ? row('std', `<i class="ds-ok" aria-hidden="true">✓</i> ${_pdE(_pdT('dos_std_all', { n: s.total }))}`, dossierGo('data-pd-ds-std', _pdT('dos_go_open')))
-      : row('std', `<b>${_pdE(_pdT('dos_k_of_n', { k: met, n: s.total }))}</b> ${_pdE(_pdT('dos_std_met'))}${off ? ' — ' + _pdE(_pdTn('dos_std_off', off, { n: off })) : ''}`, dossierGo('data-pd-ds-std', _pdT('dos_go_open')))); }
+    rows.push(s.ok && s.complete ? row('std', ok, _pdT('dos_k_std_all'), '', dossierGo('data-pd-ds-std', _pdT('dos_go_open')))
+      : row('std', `<b>${met}/${s.total}</b>`, _pdT('dos_k_std'), off ? _pdTn('dos_std_off', off, { n: off }) : '', dossierGo('data-pd-ds-std', _pdT('dos_go_open')))); }
   if (R.obl){ const o = R.obl;
-    rows.push(row('oblig', `<b>${o.found}</b> ${_pdE(_pdT('dos_obl', { r: o.recorded }))}`, o.left ? dossierGo('data-pd-ds-obl', _pdT('dos_go_review')) : dossierGo('data-pd-glance-tab="oblig"', _pdT('dos_go_open')))); }
+    rows.push(row('oblig', `<b>${o.found}</b>`, _pdT('dos_k_obl'), o.recorded ? _pdT('dos_k_obl_rec', { r: o.recorded }) : _pdT('dos_k_obl_none'), o.left ? dossierGo('data-pd-ds-obl', _pdT('dos_go_review')) : dossierGo('data-pd-glance-tab="oblig"', _pdT('dos_go_open')))); }
   if (R.blanks){ const b = R.blanks;
-    rows.push(row('blanks', `<b>${b.total}</b> ${_pdE(_pdT('dos_blanks', { f: b.filled }))}`, b.filled < b.total ? dossierGo('data-pd-ds-fill=""', _pdT('dos_go_fill')) : '')); }
-  return `<div class="pd-glance ds-card ds-read" data-pd-ds-card="read"><div class="pd-gl-h"><b>${_pdE(_pdT('dos_read_title'))}</b><span class="pd-gl-sp"></span>${head}</div><div class="pd-gl-b">${rows.join('')}</div></div>`;
+    rows.push(row('blanks', `<b>${b.total}</b>`, _pdT('dos_k_blanks'), _pdT('dos_k_blanks_f', { f: b.filled }), b.filled < b.total ? dossierGo('data-pd-ds-fill=""', _pdT('dos_go_fill')) : '')); }
+  return `<div class="pd-glance ds-card ds-read" data-pd-ds-card="read"><div class="pd-gl-h"><b>${_pdE(_pdT('dos_read_title'))}</b><span class="pd-gl-sp"></span>${again}</div>${when}<div class="pd-gl-b">${rows.join('')}</div></div>`;
 }
 function dossierOwedHtml(c, D, o){
   const held = !!(o && o.held);
@@ -3400,7 +3403,7 @@ function dossierOwedHtml(c, D, o){
   const readN = grid ? pdOgReadN(c) : 0;
   const may = (typeof canEdit !== 'function') || !!canEdit();
   const sub = readN ? `<span class="ds-when">· ${_pdE(_pdTn('og_read_n', readN, { n: readN }))}</span>${!held && may ? `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary pd-og-all" data-pd-og-all>${_pdE(_pdTn('og_confirm_all', readN, { n: readN }))}</button>` : ''}`
-    : `<span class="ds-when">${_pdE(_pdT('dos_owed_sub'))}</span>`;
+    : '';
   return `<div id="pd-needs" class="pd-glance ds-card ds-owed" data-pd-ds-card="owed" data-pd-needs-for="${_pdE(c.id)}"><div class="pd-gl-h"><b>${_pdE(_pdT('dos_owed_title', { n: D.owedN }))}</b>${readN ? '' : '<span class="pd-gl-sp"></span>'}${sub}</div><div class="pd-gl-b">${body}</div></div>`;
 }
 /* ============================================================
@@ -3550,7 +3553,9 @@ function pdOgFromHtml(c, f){
     let n = ''; try { const sp = (typeof contractFieldPeer === 'function') ? contractFieldPeer(f.key, 'paper') : null; n = sp ? pdFillSpotClause(sp, document.getElementById('ig-canvas')) : ''; } catch (_){ n = ''; }
     return `<span class="pd-og-src"><button type="button" class="pd-og-cl" data-pd-og-spot="${E(f.key)}" title="${E(_pdT('og_show_on_paper'))}">${E(n ? '§' + n : _pdT('og_on_paper'))}</button> ${E(n ? _pdT('og_on_paper_lc') : (f.sec || ''))}</span>`;
   }
-  return `<span class="pd-og-src is-none">${E(_pdT(F.none === 'people' ? 'og_from_people' : 'og_not_in_wording'))}</span>`;
+  /* NO GREY LINE UNDER AN OWED FACT (owner, 21 Oct 2026): "not in the wording"
+     said again what the amber box already says */
+  return '';
 }
 /* the grid; held (beside the Board) it reads only, each row a door to the paper */
 function pdOgHtml(c, o){
@@ -3565,7 +3570,7 @@ function pdOgHtml(c, o){
     return `<tr class="pd-og-row${f.read ? ' is-read' : ' is-amb'}" data-pd-og-row="${E(f.key)}" data-pd-og-kind="${E(f.kind)}"><td class="pd-og-f"><b>${E(f.label)}</b>${pdOgFromHtml(c, f)}</td><td class="pd-og-v">${box}</td><td class="pd-og-a">${act}</td></tr>`;
   };
   const stream = (() => { const F = (typeof FOLDERS === 'object' && FOLDERS) || {}; const n = c.folder && F[c.folder] ? F[c.folder].name : '';
-    return n ? `<tr class="pd-og-row is-saved" data-pd-og-row="stream"><td class="pd-og-f"><b>${E(_pdT('ct_value_stream'))}</b><span class="pd-og-src is-none">${E(_pdT('og_stream_set'))}</span></td><td class="pd-og-v"><span class="pd-og-done">${E(n)}</span></td><td class="pd-og-a"><span class="pd-og-said">${E(_pdT('og_saved'))}</span></td></tr>` : ''; })();
+    return n ? `<tr class="pd-og-row is-saved" data-pd-og-row="stream"><td class="pd-og-f"><b>${E(_pdT('ct_value_stream'))}</b></td><td class="pd-og-v"><span class="pd-og-done">${E(n)}</span></td><td class="pd-og-a"><span class="pd-og-said">${E(_pdT('og_saved'))}</span></td></tr>` : ''; })();
   const done = saved.map(x => `<tr class="pd-og-row is-saved" data-pd-og-row="${E(x.key)}"><td class="pd-og-f"><b>${E(x.label)}</b></td><td class="pd-og-v"><span class="pd-og-done">${E(x.words)}</span></td><td class="pd-og-a"><span class="pd-og-said">${E(_pdT('og_saved'))}</span></td></tr>`).join('');
   if (!rows.length && !done) return '';
   return `<table id="${held ? 'pd-og-held' : 'pd-og'}" class="pd-og" data-pd-og-for="${E(c.id)}"><thead class="sr-only"><tr><th>${E(_pdT('og_col_fact'))}</th><th>${E(_pdT('og_col_read'))}</th><th><span class="sr-only">${E(_pdT('og_confirm'))}</span></th></tr></thead><tbody>${rows.map(tr).join('')}${done}${stream}</tbody></table>`;

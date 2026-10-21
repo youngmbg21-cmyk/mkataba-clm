@@ -113,7 +113,7 @@ CONTRACTS[1].metadata = { ...(CONTRACTS[1].metadata || {}), expiryDate: day(40) 
       const L = await until(() => { const c = document.getElementById('hm-agents'); return c && c.classList.contains('is-landed') ? true : null; }, null, 6000);
       const s = await page.evaluate(LIT);
       check('1a "jambo\'s work" lands on the Board\'s Jambo\'s work card', !!L && s.id === 'hm-agents' && await page.evaluate(() => state.view === 'dashboard' && hbFace() === 'board'), JSON.stringify(s));
-      check('1b it is in sight, ringed, a button on it ready', s.inView && /solid 2px/.test(s.ring) && s.focus, JSON.stringify(s));
+      check('1b it is in sight, no light drawn (owner, 21 Oct 2026), a button on it ready', s.inView && /^none/.test(s.ring) && s.focus, JSON.stringify(s));
       await shot('1-work-1440x780');
     }
 
@@ -125,7 +125,7 @@ CONTRACTS[1].metadata = { ...(CONTRACTS[1].metadata || {}), expiryDate: day(40) 
       const s = await page.evaluate(LIT);
       const n1 = await page.evaluate(() => document.querySelectorAll('#ig-dock .ca-dr').length);
       check('2a it lands on the Draft card in Jambo\'s panel, lit', !!L && n1 === 1, JSON.stringify({ s, n1 }));
-      check('2b in sight, ringed, "Use our template" ready', s.inView && /solid 2px/.test(s.ring) && s.focus && /Use our template/.test(s.focusText), JSON.stringify(s));
+      check('2b in sight, no light drawn, "Use our template" ready', s.inView && /^none/.test(s.ring) && s.focus && /Use our template/.test(s.focusText), JSON.stringify(s));
       await shot('2-draft-1440x780');
       /* asked again from the panel itself: the same card, lit again, never a second */
       await page.mouse.click(5, 400);
@@ -152,7 +152,7 @@ CONTRACTS[1].metadata = { ...(CONTRACTS[1].metadata || {}), expiryDate: day(40) 
       const L = await until(() => { const d = document.getElementById('pd-drop'); return d && d.classList.contains('is-landed') ? true : null; }, null, 8000);
       const s = await page.evaluate(LIT);
       check('3a it lands on Jambo\'s drop area on the Contracts place, lit', !!L && s.id === 'pd-drop' && await page.evaluate(() => state.view === 'dashboard'), JSON.stringify(s));
-      check('3b in sight, ringed, Choose files ready', s.inView && /solid 2px/.test(s.ring) && s.focus && /Choose/i.test(s.focusText), JSON.stringify(s));
+      check('3b in sight, no light drawn, Choose files ready', s.inView && /^none/.test(s.ring) && s.focus && /Choose/i.test(s.focusText), JSON.stringify(s));
       await page.waitForTimeout(600);
       check('3c it presses nothing: no file picker opened by itself', pickers === pick0, 'pickers ' + (pickers - pick0));
       await shot('3-upload-1440x780');
@@ -170,7 +170,7 @@ CONTRACTS[1].metadata = { ...(CONTRACTS[1].metadata || {}), expiryDate: day(40) 
       const L = await until(() => { const r = document.querySelector('#pd-redface [data-nego-card]'); return r && r.classList.contains('is-landed') ? true : null; }, null, 10000);
       const s = await page.evaluate(LIT);
       check('4a it lands on the first row waiting on you in the Redlines face, lit', !!L && s.n === 1, JSON.stringify(s));
-      check('4b in sight, ringed, its main button ready', s.inView && /solid 2px/.test(s.ring) && s.focus, JSON.stringify(s));
+      check('4b in sight, ringed, its main button ready', s.inView && /^none/.test(s.ring) && s.focus, JSON.stringify(s));
       await shot('4-needs-1440x780');
     }
 
@@ -183,11 +183,12 @@ CONTRACTS[1].metadata = { ...(CONTRACTS[1].metadata || {}), expiryDate: day(40) 
       const out = { a: [A.outlineStyle, A.outlineWidth, A.outlineColor, A.animationName].join(' '), b: [B.outlineStyle, B.outlineWidth, B.outlineColor, B.animationName].join(' '),
         margin: A.marginTop + A.paddingTop };
       a.remove(); b.remove(); return out; });
-    check('5c one look: an arrival and Jambo\'s glowing button wear the same light', look.a === look.b && /solid 2px/.test(look.a) && /hatiLand/.test(look.a), JSON.stringify(look));
+    /* RE-POINTED 21 Oct 2026 (owner): an arrival draws nothing; Jambo's glowing button keeps its ring */
+    check('5c an arrival draws no light; Jambo\'s glowing button keeps its ring', /^none/.test(look.a) && / none$/.test(look.a) && /solid 2px/.test(look.b) && /hatiLand/.test(look.b), JSON.stringify(look));
     await page.emulateMedia({ reducedMotion: 'reduce' });
     const still = await page.evaluate(() => { const a = document.createElement('i'); a.className = 'is-landed'; document.body.append(a);
       const n = getComputedStyle(a).animationName; a.remove(); return n; });
-    check('5d under reduced motion the ring stands still', still === 'none', still);
+    check('5d under reduced motion nothing moves either', still === 'none', still);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     const said = await page.evaluate(async () => { await landOn('#no-such-thing', { tries: 2, missing: 'Nothing to land on' });
       return [...document.querySelectorAll('#toast-root [data-toast-msg], #toast-root *')].some(e => /Nothing to land on/.test(e.textContent || '')); });

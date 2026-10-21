@@ -153,13 +153,14 @@ describe('f748 (2) who signs, and the risks not read yet', () => {
   test('2a "Nobody has been named to sign yet." · Needed before signing · Signing', () => {
     const { ctx, c } = glance();
     /* RE-POINTED 20 Oct 2026 (the Legora way): nobody named is the grid's Signer row, both sides asked on it */
-    assert.match(ctx.pdGlanceHtml(c), /data-pd-og-row="signers"[^>]*><td class="pd-og-f"><b>Signer<\/b><span class="pd-og-src is-none">not in the wording · from your people<\/span>[\s\S]*data-pd-og-sg="tname"[\s\S]*data-pd-og-ok="signers"/);
+    /* no grey line under an owed fact since 21 Oct 2026: the amber box says it */
+    assert.match(ctx.pdGlanceHtml(c), /data-pd-og-row="signers"[^>]*><td class="pd-og-f"><b>Signer<\/b><\/td>[\s\S]*data-pd-og-sg="tname"[\s\S]*data-pd-og-ok="signers"/);
   });
   /* RE-POINTED (pass 3, the owner's answer 6): the read is free, the rules scan */
   test('2b "Risks not read yet" · "Reading is free: HaTi\'s own rules, no Jambo call" · Read it', () => {
     const { ctx, c } = glance();
     /* RE-POINTED 20 Oct 2026 (the Dossier, #386): What Jambo read's risks row, the free read said on its button */
-    assert.match(ctx.pdGlanceHtml(c), /data-pd-ds="risks"><span>Risks — not read yet · free<\/span><button type="button" class="ui-btn ui-btn-sm" data-pd-gl-scan title="Reading is free: HaTi’s own rules, no Jambo call">Read it</);
+    assert.match(ctx.pdGlanceHtml(c), /data-pd-ds="risks"><span class="ds-fig">·<\/span><span class="ds-nm">Risks to look at <small>· not read yet · free<\/small><\/span><button type="button" class="pd-go ds-go" data-pd-gl-scan title="Reading is free: HaTi’s own rules, no Jambo call">Read it</);
   });
   test('2b2 no key needed: the free read is offered either way', () => {
     const { ctx, c } = glance({ keyed: false });

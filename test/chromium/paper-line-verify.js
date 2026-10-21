@@ -74,7 +74,8 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
       return { ref: (q('.hati-ref') || {}).textContent, name: t && t.textContent, weight: t ? Number(getComputedStyle(t).fontWeight) : 0,
         party: (q('.ig-line-p') || {}).textContent, cn: (q('.ig-line-cn') || {}).textContent, stage: st && st.textContent.replace(/\s+/g, ' ').trim() };
     });
-    check('1a the number, the name in the strong weight, the other party', id.ref === 'MK-0382' && id.name === 'Master services agreement' && id.weight >= 500 && id.party === 'Nordvik Logistik AB', JSON.stringify(id));
+    /* RE-POINTED 21 Oct 2026 (owner): the party is the bar's; the line keeps the number and the kind of contract */
+    check('1a the number, the name in the strong weight, no party', id.ref === 'MK-0382' && id.name === 'Master services agreement' && id.weight >= 500 && !id.party, JSON.stringify(id));
     check('1b the stage is the house pill, with the round while it is negotiated', /^In Review · round 2$/.test(id.stage || ''), id.stage);
     check('1c an insider\'s line carries the code-name mark', cn.status === 200 && id.cn === 'Project Falcon', cn.status + ' · ' + id.cn);
 

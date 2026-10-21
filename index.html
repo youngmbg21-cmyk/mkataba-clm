@@ -15440,12 +15440,21 @@
      outside the box, nothing moves — and it is the same ring Jambo's glowing
      button wears (.rl-glow). Reduced motion gets the ring without the pulse.
      :not(#_) lifts it past a card's own outline rules. */
-  .is-landed:not(#_), .rl-glow:not(#_){outline:2px solid var(--accent-ink);outline-offset:2px;
+  /* NO LIGHT ON ARRIVAL (owner, 21 Oct 2026: "remove the feature when you
+     land on page it highlights or flashes where you are supposed to go"):
+     landOn still opens, scrolls and readies the button; it draws nothing. The
+     other doors' own arrival flashes are switched off with it. Jambo's
+     glowing button (.rl-glow) is a suggestion, not an arrival: it keeps its ring. */
+  .rl-glow:not(#_){outline:2px solid var(--accent-ink);outline-offset:2px;
     animation:hatiLand 1s ease-in-out 2;}
-  .is-landed-held:not(#_){animation:none;}
+  .is-landed:not(#_), .is-landed-held:not(#_){outline:none;animation:none;}
+  :is(.anchor-flash, .clause-flash, .ig-flash, .st-lit, .nego-clause.flash, .ov-map-ob.is-lit):not(#_){animation:none;box-shadow:none;}
+  :is(.hb-card.is-lit, .hb-card.is-new):not(#_)::before{content:none;animation:none;}
+  :is(.hb-card.is-new, .hb-csec.is-lit, .cal-prop.is-lit):not(#_){animation:none;box-shadow:none;}
+  .rl-np-note.is-lit:not(#_){background:transparent;}
   @keyframes hatiLand{0%,100%{outline-offset:2px;outline-color:var(--accent-ink);}
     50%{outline-offset:6px;outline-color:color-mix(in srgb,var(--accent-ink) 30%,transparent);}}
-  @media (prefers-reduced-motion: reduce){ .is-landed:not(#_), .rl-glow:not(#_){animation:none;} }
+  @media (prefers-reduced-motion: reduce){ .rl-glow:not(#_){animation:none;} }
   .sa-card-h{display:flex;align-items:center;gap:var(--s-2);padding:11px 15px;border-bottom:1px solid var(--st-amber-line);}
   .sa-card-t{font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text);}
   .sa-card-when{margin-left:auto;font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;}
@@ -15870,6 +15879,67 @@
   .st-cr #st-jb-feed{background:var(--color-surface)}
   .st-cr #st-jb-form{box-sizing:border-box;min-height:var(--jb-foot);padding:7px var(--jb-g) 8px}
 
+  /* A CARD'S BUTTONS STAND CLEAR OF ITS WORDS (owner, 21 Oct 2026: "too close
+     to the sentences"): one 16px step, the Brief's own measure, wherever a
+     sentence is followed by a card's buttons */
+  .ca-card > .ca-foot + .ca-acts, .ca-card > .ca-why + .ca-acts{margin-top:16px}
+  /* ==== THE REPORT, SIMPLIFIED (owner, 21 Oct 2026; "Three quieter surfaces", tab 3) ====
+     the head: the title over "party · role · ref"; then two by two —
+     Needs you | The deal, Key terms | What Jambo read — split by hairlines */
+  .bs-head .bs-tt{display:flex;flex-direction:column;min-width:0;flex:0 1 auto;gap:1px}
+  .bs-head .bs-tt .hb-ct{font-family:var(--font-title);font-weight:var(--w-title-serif, 500);font-size:20px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bs-head .bs-tt .bs-ref{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bs-rep{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);border-top:1px solid rgba(var(--hb-ln),.14)}
+  .bs-rep > .bs-sec{border-top:0}
+  .bs-rep > .bs-sec:nth-child(n+3){border-top:1px solid rgba(var(--hb-ln),.14)}
+  .bs-rep > .bs-sec:nth-child(odd){border-right:1px solid rgba(var(--hb-ln),.14)}
+  .bs-rep .bs-sec-h{margin-bottom:8px}
+  .bs-nd{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;min-height:44px;padding:4px 0;border-top:1px solid rgba(var(--hb-ln),.08)}
+  .bs-nd:first-of-type{border-top:0}
+  .bs-nd-t{min-width:0;color:var(--hb-ink)}
+  .bs-nd-t small{display:block;font-size:var(--t-meta);color:var(--hb-mute)}
+  .bs-nd .bs-go{white-space:nowrap}
+  .bs-deal{display:flex;flex-direction:column}
+  .bs-facts{display:flex;flex-wrap:wrap;gap:8px 32px}
+  .bs-f{display:flex;flex-direction:column;min-width:0}
+  .bs-f small{font-size:var(--t-meta);color:var(--hb-mute)}
+  .bs-f b{font-weight:var(--w-label);white-space:nowrap;color:var(--hb-ink)}
+  .bs-f span{font-size:var(--t-meta);color:var(--hb-mute);white-space:nowrap}
+  .bs-f span.is-amber{color:var(--st-amber-fg)}
+  .bs-deal .bs-line{flex:1 0 auto}
+  .bs-line{position:relative;height:72px;margin:12px 0 0;align-self:stretch}
+  .bs-line-base{position:absolute;left:0;right:0;top:36px;border-top:1px solid rgba(var(--hb-ln),.3)}
+  .bs-mk{position:absolute;top:0;height:72px;display:flex;flex-direction:column;align-items:center;transform:translateX(-50%);font-size:var(--t-meta);color:var(--hb-mute);white-space:nowrap}
+  .bs-mk em{font-style:normal;height:22px;display:flex;align-items:center;order:0}
+  .bs-mk i{width:9px;height:9px;border-radius:50%;background:var(--hb-ink);margin:auto 0;order:1}
+  .bs-mk::after{content:"";height:22px;order:2}
+  .bs-mk.is-below em{order:2}
+  .bs-mk.is-below::after{order:0}
+  .bs-mk.is-notice{color:var(--st-amber-fg)}
+  .bs-mk.is-notice i{background:var(--st-amber-dot)}
+  .bs-mk.is-start{transform:translateX(-4.5px);align-items:flex-start}
+  .bs-mk.is-end{transform:translateX(calc(-100% + 4.5px));align-items:flex-end}
+  .bs-terms .bs-dl dd.is-none{color:var(--hb-mute)}
+  .bs-terms > .hb-link{margin-top:8px;padding-left:0}
+  .bs-rep > .bs-jb{background:transparent}
+  .bs-rep .bs-brief{margin:0 0 8px;color:var(--hb-ink-2);max-width:72ch}
+  .bs-counts{margin:0 0 8px;display:flex;flex-wrap:wrap;gap:4px 12px;color:var(--hb-ink)}
+  .bs-counts i{font-style:normal;color:rgba(var(--hb-ln),.4)}
+  .bs-jb-foot{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px}
+  .bs-jb-foot .hb-link{padding-left:0}
+  @container bsstrips (max-width: 720px){
+    .bs-rep{grid-template-columns:minmax(0,1fr)}
+    .bs-rep > .bs-sec:nth-child(odd){border-right:0}
+    .bs-rep > .bs-sec:nth-child(n+2){border-top:1px solid rgba(var(--hb-ln),.14)}
+  }
+  /* ==== WHAT JAMBO READ, FOUR EVEN ROWS (owner, 21 Oct 2026) ====
+     a figure column, the name, one door; one line and one height a row,
+     the doors in one straight column; the day on its own line */
+  #app-shell .ds-read .ds-read-when{display:block;margin:-4px 0 8px;white-space:normal}
+  #app-shell .pd-glance .ds-row.ds-rr{display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;column-gap:12px;min-height:40px}
+  #app-shell .pd-glance .ds-row.ds-rr>.ds-fig{text-align:right;font-variant-numeric:tabular-nums}
+  #app-shell .pd-glance .ds-row.ds-rr>.ds-nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #app-shell .pd-glance .ds-row.ds-rr>.ds-nm>small{display:inline;font-size:inherit;color:var(--color-neutral-600)}
   /* ==== HISTORY, THE SAP WAY (owner picked it by name, 21 Oct 2026; reverses "Two sides", 17 Oct) ====
      The serif "History" and its facts, Show the wording and ⋯ on the right; one band of the search and
      the five filters as labelled boxes; then ONE TABLE — Time 64 · Who 200 · Side 80 · What happened ·
