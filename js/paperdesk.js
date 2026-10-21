@@ -2701,7 +2701,54 @@ function pdNextUpHtml(c){
     names = [...box.querySelectorAll('button')].map(dossierRowWord).filter(Boolean).slice(0, 3).map(w => w.charAt(0).toLowerCase() + w.slice(1)); }
   const allFold = all ? `<details class="ds-fold" data-ds-fold="acts"><summary><span>${_pdE(_pdT('dos_all_acts', { list: names.join(', ') }))}</span><span class="pd-mn-n">${all}</span></summary>
     ${groups.map(g => `<div class="pd-mn-g"><div class="ds-fold-h">${_pdE(g.title)}</div><div class="pd-mn-rows room-menu">${g.rows.join('')}</div></div>`).join('')}</details>` : '';
-  return `<div class="pd-menu pd-nx ds-nx" data-pd-menu="${_pdE(c.id)}">${actsCard}${allFold}${dossierFamilyFoldHtml(c)}</div>`;
+  return `<div class="pd-menu pd-nx ds-nx" data-pd-menu="${_pdE(c.id)}">${actsCard}${allFold}${dossierFamilyFoldHtml(c)}${dossierPeopleFoldHtml(c)}</div>`;
+}
+/* ---- WHO ELSE IS ON THIS AGREEMENT (owner, 21 Oct 2026: "put it in Key terms and dossier") ----
+   Since the Board's card reads (20 Oct) the people list had no door on a computer. ONE DOOR, pdPeopleOpen:
+   the list's own builder and wire (participantsDirHtml, participantsWire — every write still theirs) in a
+   pop-up over the page; Key terms' row and this Dossier line both press it, and its close lands back where
+   it was pressed (Key terms comes back to the middle). */
+let _pdPplSel = '';
+function pdPeopleItems(c){ try { return (c && typeof participantsDirItems === 'function') ? participantsDirItems(c, { auto: true, book: true }) : []; } catch (_){ return []; } }
+function pdPeopleSay(c){
+  const it = pdPeopleItems(c); if (!it.length) return _pdT('ppl_none');
+  const names = it.map(x => x.name || x.email).filter(Boolean);
+  return names.slice(0, 3).join(', ') + (names.length > 3 ? ' ' + _pdT('pd_ppl_more', { n: names.length - 3 }) : '');
+}
+function dossierPeopleFoldHtml(c){
+  if (!c || typeof participantsDirHtml !== 'function') return '';
+  const n = pdPeopleItems(c).length, may = (typeof canEdit !== 'function') || !!canEdit();
+  return `<details class="ds-fold" data-ds-fold="people"><summary><span>${_pdE(_pdT('ppl_title'))}</span><span class="pd-mn-n">${n}</span></summary>
+    <p class="ds-ppl">${_pdE(pdPeopleSay(c))}</p><div class="ds-acts-b"><button type="button" class="ui-btn ui-btn-sm" data-pd-people="${_pdE(c.id)}" data-pd-people-from="dossier">${_pdE(_pdT(may ? 'pd_ppl_go' : 'pd_ppl_see'))}</button></div></details>`;
+}
+function pdPeopleOpen(id, from){
+  const c0 = (typeof getContract === 'function') ? getContract(id) : null;
+  if (!c0 || typeof participantsDirHtml !== 'function' || typeof openModal !== 'function') return false;
+  const may = ((typeof canEdit !== 'function') || !!canEdit()) && !(typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE);
+  const live = () => (typeof getContract === 'function' && getContract(id)) || c0;
+  _pdPplSel = '';
+  const paint = () => { const host = document.getElementById('pd-ppl'); if (!host) return;
+    /* an empty list says so above its Add button (the directory alone draws nothing) */
+    host.innerHTML = (pdPeopleItems(live()).length ? '' : `<p class="pt-none">${_pdE(_pdT('ppl_none'))}</p>`)
+      + participantsDirHtml(live(), { editable: may, reached: true, auto: true, book: true, sel: _pdPplSel }); };
+  const ref = (typeof contractRef === 'function') ? contractRef(c0) : c0.id;
+  openModal(`<div class="p-6 pd-ppl-dlg"><h3 class="font-serif font-600 text-lg text-ink">${_pdE(_pdT('ppl_title'))}</h3>
+      <p>${_pdE(ref + ' · ' + (c0.name || ''))}</p><div id="pd-ppl" class="ov-dir"></div>
+      <div class="flex justify-end gap-2 mt-4"><button type="button" class="ui-btn ui-btn-primary" data-pd-ppl-done>${_pdE(_pdT('og_done'))}</button></div></div>`,
+    { label: _pdT('ppl_title'), onClose: () => {
+      _pdPplSel = '';
+      /* the close lands back where it was pressed: Key terms in the middle, else the Dossier as it stands */
+      setTimeout(() => { if (from === 'kt' && typeof pdKtMid === 'function') pdKtMid(String(id));
+        else if (typeof renderIntelDock === 'function') try { renderIntelDock(); } catch (_){} }, 0); } });
+  paint();
+  const host = document.getElementById('pd-ppl');
+  if (host && typeof participantsWire === 'function') participantsWire(host, live(), {
+    onPick: k => { _pdPplSel = k || ''; },
+    onChange: () => { const c = live(); c.lastAction = (typeof todayStr === 'function') ? todayStr() : c.lastAction; if (typeof persist === 'function') persist(c); },
+    onRemove: row => { if (typeof logAudit === 'function') logAudit(live(), 'Record', `Took ${row.name || row.email || 'somebody'} off the contract`); },
+    repaint: paint });
+  document.querySelector('[data-pd-ppl-done]')?.addEventListener('click', () => { if (typeof closeModal === 'function') closeModal(); });
+  return true;
 }
 /* THE FAMILY, WHERE WE ARE AND HISTORY, folded under one line */
 function dossierFamilyFoldHtml(c){
@@ -3735,6 +3782,9 @@ function pdKtFacts(c){
     if (k === 'counterparty'){ rows.push({ key: k, kind: 'kt', label: String(cell[0] || '').replace(/<[^>]*>/g, ''), html: String(cell[1] || '').trim() || '—', value: c.counterparty || '' }); return; }
     rows.push({ key: k, kind: 'ktm', label: String(cell[0] || '').replace(/<[^>]*>/g, ''), html: String(cell[1] || '').trim() || '—' });
   });
+  /* WHO ELSE IS ON THIS AGREEMENT (owner, 21 Oct 2026: "put it in Key terms and dossier"): one row, its
+     press the one door (pdPeopleOpen) */
+  if (typeof participantsDirHtml === 'function') rows.push({ key: 'people', kind: 'people', label: _pdT('ppl_title'), html: _pdE(pdPeopleSay(c)) });
   /* the paper's own answered questions, after the record's terms */
   ((d && d.items) || []).filter(x => x && !x.open && (x.kind === 'tplf' || x.kind === 'blank')).forEach(x => {
     rows.push({ key: x.key, kind: x.kind, label: x.label, html: _pdE(pdKtAnswer(c, x) || '—') });
@@ -3779,7 +3829,8 @@ function pdKtRowsHtml(c, rows){
   const E = _pdE;
   const tr = f => {
     const on = ed === f.key && may;
-    const act = !may ? '' : on ? `<button type="button" class="pd-og-ok" data-pd-kt-done="${E(f.key)}">${E(_pdT('og_done'))}</button>`
+    const act = f.kind === 'people' ? `<button type="button" class="pd-og-ok" data-pd-people="${E(c.id)}" data-pd-people-from="kt">${E(_pdT(may ? 'og_change' : 'pd_ppl_see'))}</button>`
+      : !may ? '' : on ? `<button type="button" class="pd-og-ok" data-pd-kt-done="${E(f.key)}">${E(_pdT('og_done'))}</button>`
       : `<button type="button" class="pd-og-ok" data-pd-kt-change="${E(f.key)}">${E(_pdT('og_change'))}</button>`;
     const said = (f.from ? pdOgFromHtml(c, f) : '') + (f.sub ? `<span class="pd-og-src is-none">${E(f.sub)}</span>` : '');
     return `<tr class="pd-og-row${on ? ' is-changing' : ''}" data-pd-og-row="${E(f.key)}" data-pd-og-kind="${E(f.kind)}"><td class="pd-og-f"><b>${E(f.label)}</b>${said}</td><td class="pd-og-v">${on ? pdKtBoxHtml(c, f) : `<span class="pd-kt-v">${f.html}</span>`}</td><td class="pd-og-a">${act}</td></tr>`;
@@ -4206,6 +4257,8 @@ if (typeof document !== 'undefined' && !document._pdOgWired){
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('#ig-dock, [data-pd-mid-kt]')) return;
     /* Key terms' one line in the Dossier: the table comes to the middle (pressed again, the paper comes back) */
+    const ppl = t.closest('[data-pd-people]');
+    if (ppl){ e.preventDefault(); pdPeopleOpen(ppl.getAttribute('data-pd-people'), ppl.getAttribute('data-pd-people-from') || ''); return; }
     const ktl = t.closest('#ig-dock [data-pd-kt-mid] > summary');
     if (ktl){ e.preventDefault(); pdKtMid(ktl.parentElement.getAttribute('data-pd-kt-mid')); return; }
     /* ---- THE SIGNER ROW'S OWN PRESSES (21 Oct 2026) ---- */
@@ -5380,7 +5433,7 @@ if (typeof document !== 'undefined' && !document._pdTrailEsc){
     if (pdTrailBack() || (typeof jamboTalkBack === 'function' && jamboTalkBack())) e.preventDefault();
   });
 }
-Object.assign(window, { pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
+Object.assign(window, { pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
   PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdTalkKey, pdTalkScope, pdTalkShows, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,

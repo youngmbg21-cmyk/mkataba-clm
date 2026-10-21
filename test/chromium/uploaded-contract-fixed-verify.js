@@ -268,24 +268,22 @@ const BODY =
        and THE OVERVIEW EDITS AGAIN): the people directory is the Overview's
        Edit (data-ov-edit="all" → participantsDirHtml in #ov-parties), so the
        check presses Edit on the Overview and measures there. */
-    await page.waitForFunction(() => !!document.querySelector('[data-ov-edit="all"]'), null, { timeout: 6000 }).catch(() => {});
-    await page.evaluate(() => { const b = document.querySelector('[data-ov-edit="all"]'); if (b) b.click(); });
-    await page.waitForFunction(() => !!document.querySelector('#ov-parties #kt-people'), null, { timeout: 6000 }).catch(() => {});
+    /* RE-POINTED 21 Oct 2026 (owner: "put it in Key terms and dossier"): since the Board's card reads
+       (20 Oct), "Who else" opens from Key terms' row and the Dossier's line, one door (pdPeopleOpen), its
+       list in a pop-up over the page; the list and its Add button still share one left edge */
+    await page.evaluate(() => { if (window.pdPeopleOpen) pdPeopleOpen(window.__cid, 'dossier'); });
+    await page.waitForFunction(() => !!document.querySelector('#pd-ppl [data-pt-add]'), null, { timeout: 6000 }).catch(() => {});
     const cards = await page.evaluate(() => {
       const out = {};
-      const col = document.getElementById('ov-parties');
+      const host = document.getElementById('pd-ppl');
       const inset = (b, sel) => { const e = b && b.querySelector(sel); return e ? Math.round(e.getBoundingClientRect().left - b.getBoundingClientRect().left) : null; };
-      const ppl = document.querySelector('#kt-people');
-      /* re-pointed 9 Oct 2026 (the Directory): the people sit in the parties'
-         own scroller; the list and its Add button share one left edge */
-      const host = ppl && ppl.closest('.ov-dir');
-      out.whoBtn = inset(host, '#kt-people [data-pt-add]');
-      out.whoText = inset(host, '#kt-people .pt-dir-list, #kt-people .pt-none');
+      out.whoBtn = inset(host, '[data-pt-add]');
+      out.whoText = inset(host, '.pt-dir-list, .pt-none');
+      out.inDlg = !!(host && host.closest('[role="dialog"]'));
       out.tables = document.querySelectorAll('#kt-overview .ov-reads').length;
-      out.colPad = col ? Math.round(parseFloat(getComputedStyle(col).paddingLeft)) : null;
       return out;
     });
-    await page.evaluate(() => { const b = document.querySelector('[data-ov-edit="all"]'); if (b && document.querySelector('#ov-parties #kt-people')) b.click(); });
+    await page.evaluate(() => { if (window.closeModal) closeModal(); });
     await page.evaluate(() => roomOverviewOpen(getContract(window.__cid)));
     await page.waitForTimeout(800);
     const rest = await page.evaluate(() => {
@@ -298,8 +296,8 @@ const BODY =
     });
     check('4a "Who else" — the text lines up with its own Add button',
       cards.whoText != null && cards.whoText === cards.whoBtn, `text ${cards.whoText} · button ${cards.whoBtn}`);
-    check('4b "Who else" — it sits inside the Parties column, on the card\'s inset',
-      cards.whoBtn != null && cards.colPad != null && cards.whoBtn >= 0, `button ${cards.whoBtn} · column inset ${cards.colPad}`);
+    check('4b "Who else" — it opens in its own pop-up over the page',
+      cards.whoBtn != null && cards.inDlg && cards.whoBtn >= 0, `button ${cards.whoBtn} · in a pop-up ${cards.inDlg}`);
     check('4c "What Copilot read" — said once, by the read card; no table on the Overview', cards.tables === 0, cards.tables + ' tables');
     check('4d Parties — no second line directly under the head', rest.lines === 0, rest.lines + ' extra line(s)');
     await page.screenshot({ path: path.join(OUT, '04-overview.png'), fullPage: true });

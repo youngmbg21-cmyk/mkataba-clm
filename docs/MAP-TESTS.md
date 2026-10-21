@@ -144,6 +144,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f91, f148, f170, f184, f198, f241, f273, f278, f301, f335, f380, f442, f698, f709, f741, f742, f744; board-strip, agreement-family, every-door-lands-on-home, edit-keeps-the-card, details-owes-overview-edits, keeps-your-page, room-head-fold, history-timeline, contract-page, nda-tail verify.
 
 ## THE DETAILS TAB — THE ONE PLACE A CONTRACT IS FILLED IN
+- 21 Oct 2026: who-else-doors-verify (the Dossier's line and Key terms' row open one people list; a person added is saved and counted; Done brings Key terms back; three screens); uploaded-contract-fixed 4a/4b re-pointed to the pop-up.
 - 21 Oct 2026 (overnight): thirteen-screenshots-verify 6b–6d, 6k (Key terms' Counterparty box is c.counterparty's); term-and-fields-verify (a blank pressed on the paper finds its box: contractFieldPeer → #pd-kt / #pd-og); upload-blanks-verify re-pointed to Still owed's grid.
 - f148, f170, f442, f673, f676, f679, f710, f751, f754, fill-in-beside-the-paper, fill-the-document, details-as-a-form, create-lands-clean, owed-first verify.
 - still-owed-sap-way-verify (signer name, email and stream whole at all three screens, Confirm and Fill in › inside the panel, labels above, amber kept, Key terms keeps its table, Tab onto Confirm does not jump; 14 red at d7a320c2).

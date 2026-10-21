@@ -21335,3 +21335,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 
 ## Noticed, not fixed — 21 Oct 2026 (overnight run)
 - "Who else is on this agreement" (adding a person to an existing contract) has no door on a computer since the Board's card Edit opens Key terms (20 Oct, the Legora way); only the drafting wizard still draws the people list. Needs the owner's pick of where it lives. uploaded-contract-fixed 4a/4b listed KNOWN_RED with this reason.
+- 21 Oct 2026 (later): the "Who else" line above is DONE — the owner chose "put it in Key terms and dossier"; both open one people pop-up (pdPeopleOpen). CLAUDE.md is about 85 KB, past its ~80 KB line, before any trim (a trim needs the owner's yes).

@@ -362,9 +362,9 @@ const CONTRACTS = [
     await page.click('[data-hb-crumb="-1"]').catch(() => {});
     /* long partner names on short bars (the owner's "MK-R90 · AIT Worldwide Logist…", 20 Oct 2026) */
     await page.evaluate(() => { const iso = d => { const t = new Date(); t.setDate(t.getDate() + d); return t.toISOString().slice(0, 10); };
-      [[20, 60], [40, 85], [70, 120], [100, 150], [200, 330]].forEach(([a, b], i) => { if (state.contracts.some(c => c.id === 'MK-RL' + i)) return;
+      [[20, 60], [40, 85], [70, 120], [100, 150], [200, 330], [30, null], [60, null]].forEach(([a, b], i) => { if (state.contracts.some(c => c.id === 'MK-RL' + i)) return;
         state.contracts.push({ id: 'MK-RL' + i, contractNo: 'MK-RL' + i, name: 'Freight services ' + i, counterparty: 'AIT Worldwide Logistics Kenya Limited ' + i, folder: 'proc', status: 'Signed', value: 1000000,
-          effectiveDate: iso(a), expiry: iso(b), metadata: { effectiveDate: iso(a), expiryDate: iso(b) }, fields: { effDate: iso(a) }, rounds: [], audit: [], changes: [], obligations: [] }); });
+          effectiveDate: iso(a), expiry: b == null ? null : iso(b), metadata: b == null ? { effectiveDate: iso(a) } : { effectiveDate: iso(a), expiryDate: iso(b) }, fields: { effDate: iso(a) }, rounds: [], audit: [], changes: [], obligations: [] }); });
       if (window.familyIndexDirty) familyIndexDirty(); });
     await ask(page, 'which contracts end in the next 12 months');
     ok('13g a date question is the Timeline: today marked, each month with an ending a door, each pill a contract', await until(page, () =>
@@ -373,9 +373,16 @@ const CONTRACTS = [
     const tlFits = () => page.evaluate(() => { const svg = document.querySelector('#hb-focus .hb-tl'); if (!svg) return null; const R = svg.getBoundingClientRect();
       const out = [...svg.querySelectorAll('text')].filter(t => t.getBoundingClientRect().right > R.right + 1).map(t => t.textContent);
       const spill = [...svg.querySelectorAll('.hb-sv-pill')].filter(g => { const r = g.querySelector('rect'), t = g.querySelector('text'); return r && t && r.getAttribute('fill') !== 'transparent' && t.getBoundingClientRect().right > r.getBoundingClientRect().right + 1; }).map(g => g.querySelector('text').textContent);
-      return { out, spill, n: svg.querySelectorAll('text').length }; });
+      return { out, spill, n: svg.querySelectorAll('text').length, undated: svg.querySelectorAll('.hb-sv-pill circle').length }; });
     const fit1 = await tlFits();
     ok('13g2 every word on the timeline stays inside it, and a bar\'s name inside its bar', !!fit1 && fit1.n > 0 && !fit1.out.length && !fit1.spill.length, JSON.stringify(fit1));
+    /* 13g3 contracts with no end date are drawn too (a dot and their words), without an error, inside the chart */
+    const und = await page.evaluate(() => { try { const cs = state.contracts.filter(c => /^MK-RL\d$/.test(c.id));
+      const R = hbTimelineSvg({ key: 'probe' }, cs, false); const box = document.createElement('div'); box.style.cssText = 'position:fixed;left:0;top:0;width:900px';
+      box.innerHTML = R.body; document.body.appendChild(box); const svg = box.querySelector('svg'), Rr = svg.getBoundingClientRect();
+      const out = [...svg.querySelectorAll('text')].filter(t => t.getBoundingClientRect().right > Rr.right + 1).map(t => t.textContent);
+      const n = svg.querySelectorAll('.hb-sv-pill circle').length; box.remove(); return { n, out }; } catch (e) { return { err: e.message }; } });
+    ok('13g3 contracts with no end date are drawn on the timeline without an error, their words inside it', !und.err && und.n > 0 && !und.out.length, JSON.stringify(und));
     const big = await page.evaluate(() => { const s = document.querySelector('#hb-focus .hb-svg'); return s ? s.getBoundingClientRect().width : 0; });
     await bigger();
     ok('13j expanded, the timeline grows with the room', await until(page, w => { const s = document.querySelector('#hb-focus .hb-dig.is-big .hb-svg'); return !!s && s.getBoundingClientRect().width > w + 100; }, big));

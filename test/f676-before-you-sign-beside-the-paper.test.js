@@ -330,7 +330,8 @@ describe('f676 (10) what the Negotiate page did, the Redlines face does too (fou
     /* RE-POINTED 18 Oct 2026 (round 9's gaps, "Piles" as drawn): the Redlines
        column's own head carries "Ask for review" ([data-rl-review-go]) — on
        the face that is the review door that glows; the menu rows stay */
-    assert.match(NEGO, /escalate: \(\) => '\[data-rl-review\], \[data-rl-review-go\]:not\(:disabled\), #pd-body \.pd-menu \[data-ig-review\], #ig-dock \[data-pd-tab="menu"\]'/);
+    /* RE-POINTED 21 Oct 2026 (the Dossier, 20 Oct): the Menu tab folded into the Dossier's All acts — the row glows there */
+    assert.match(NEGO, /escalate: \(\) => '\[data-rl-review\], \[data-rl-review-go\]:not\(:disabled\), #ig-dock \.pd-nx \[data-ig-review\]'/);
   });
   test('10b the live probe and the presence beat run for the face', () => {
     assert.match(strip(fnBody(NEGO, 'rlLiveHere')), /pdRedShows\(\)/);

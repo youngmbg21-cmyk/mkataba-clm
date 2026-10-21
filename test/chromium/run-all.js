@@ -62,8 +62,6 @@ const KNOWN_RED = {
      checks were re-pointed to Home's paper line (round 6, "One line" — Notes
      beside Share; the row's verbs measured against that line's buttons), and
      it reads 93/93, also with four checks side by side. */
-  'uploaded-contract-fixed-verify.js':
-    'WAITING ON THE OWNER, 21 Oct 2026: 4a/4b measure "Who else is on this agreement" (adding a person to a contract), which lived in the Overview card\'s Edit. Since THE BOARD READS (20 Oct 2026, the Legora way) that Edit opens Key terms beside the paper, so on a computer the people list has no door. Where it should live is the owner\'s call (asked in the morning summary; BUGLOG line). Take it off when it has a home again.',
   'their-edit-page-verify.js':
     'RED ON GITHUB ONLY, 10 Oct 2026: section 4 — typing after a save on THEIR seat — never holds on GitHub\'s runner (the words typed are gone each time); it passes every time locally, even at a 10x CPU throttle. The foot\'s Discard claims (2b, 3a2, 6a2) were re-pointed 11 Oct to the one-panel foot and pass. Logged in BUGLOG (a repaint may be taking a person\'s typing). Take it off when section 4 holds on GitHub.',
   /* NOT LISTED, deliberately: analytics-verify.js. It was two faults wearing
