@@ -34,7 +34,9 @@
    GONE — Jambo's old message box (#F8FAFC, its accent-900 ink #0A1C15), the
    compiled cool line #E2E8F0 (.border-hair), the Board's green-grey lines
    rgba(31,77,59,.12–.28), the docked panel's shadow rgba(43,43,45,.35), Our
-   paper's mint mark wash #DFF2E7 and its empty gray dot. NEW — the warm box
+   paper's mint mark wash #DFF2E7 and its empty gray dot, and (negotiate
+   only) the amber edge #EBCB8E (--st-amber-line) of Redlines' "Waiting on
+   you" count box — the count is a plain number now. NEW — the warm box
    every panel already used (#EFECE5, --surface-2) and the Board's warm LINE
    channel rgba(105,83,33,.12–.28), chosen so a card's edge at .18 over white
    IS --color-divider #E4E0D7. No other hue.
