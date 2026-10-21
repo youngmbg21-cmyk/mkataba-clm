@@ -2508,7 +2508,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   document.body.appendChild(page);
   document.body.classList.add('ce-open');
   /* Copilot is on this page: the moved Copilot window steps aside (ai.js) */
-  try{ if (window.aiFloatSync) aiFloatSync(); }catch(_){}
+  try{ if (window.aiSideSync) aiSideSync(); }catch(_){}
   /* ---- THEIR SEAT: THE EDITING PAGE BESIDE THEIR OWN REDLINES COLUMN
      (Young ruled 28 Sep 2026: "the redline page should look exactly like it
      does today but the side panel should still reflect the image attached")
@@ -2639,7 +2639,7 @@ function rlCloseClauseEditor(opts = {}){
   _ceSpellList = []; _ceSpellFor = null;
   _ceRendering = false;
   /* the page is gone: a moved Copilot window that stepped aside comes back (ai.js) */
-  try{ if (window.aiFloatSync) aiFloatSync(); }catch(_){}
+  try{ if (window.aiSideSync) aiSideSync(); }catch(_){}
   _ceOpenText = '';
   _ceBusy = false;
   clearTimeout(_ceSayTimer);

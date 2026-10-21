@@ -2473,8 +2473,16 @@ function caSlPaint(){
   const r = _caSl.inp.getBoundingClientRect();
   el.style.left = Math.max(8, r.left) + 'px';
   el.style.width = Math.max(260, r.width) + 'px';
-  el.style.bottom = Math.max(8, innerHeight - r.top + 6) + 'px';
-  el.style.maxHeight = Math.max(160, Math.min(CA_SL_TALL, r.top - 16)) + 'px';
+  /* a box near the top of the window (the ✦ ask bar under the top bar,
+     21 Oct 2026) has its list BELOW it, where there is room */
+  if (r.top < 200 && innerHeight - r.bottom > r.top){
+    el.style.bottom = 'auto'; el.style.top = Math.round(r.bottom + 6) + 'px';
+    el.style.maxHeight = Math.max(160, Math.min(CA_SL_TALL, innerHeight - r.bottom - 16)) + 'px';
+  } else {
+    el.style.top = 'auto';
+    el.style.bottom = Math.max(8, innerHeight - r.top + 6) + 'px';
+    el.style.maxHeight = Math.max(160, Math.min(CA_SL_TALL, r.top - 16)) + 'px';
+  }
   const on = el.querySelector('.ca-opt.on'); if (on && on.scrollIntoView) try { on.scrollIntoView({ block: 'nearest' }); } catch (_){}
 }
 function caSlClose(){ _caSl = null; const el = document.getElementById('ca-slash'); if (el) el.remove(); }

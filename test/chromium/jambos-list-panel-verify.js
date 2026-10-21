@@ -364,13 +364,20 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await page.evaluate(() => setView('templates'));
       await until(() => state.view === 'templates' ? true : null);
       await page.waitForTimeout(400);
+      /* RE-POINTED 21 Oct 2026 (owner: "when i click on jambo at the top of the page in the top
+         bar, the jambo chat box bar should be able to appear in any window"): the ✦ drops the ask
+         bar; what is typed there is asked of the Jambo already on the page — the page's panel
+         beside the book — never a second window */
       await page.click('#cmd-ai');
-      const O = await until(() => { const p = document.getElementById('ai-panel'); const f = document.activeElement && document.activeElement.id;
-        return (p && p.classList.contains('open')) || f === 'jl-q' ? { open: !!(p && p.classList.contains('open')), focus: f, onScreen: !!(window.jlOnScreen && jlOnScreen()) } : null; }, null, 6000);
-      /* RE-POINTED 19 Oct 2026 (round 21 as drawn, lane D): Our paper's
-         panel is the PAGE's now and stands beside the book, on screen — so the
-         bar's door puts the reader in its box, as beside every list */
-      check('10h the bar\'s door takes the reader to the Jambo box on screen: the page\'s panel beside the book (the window where none is shown)', !!O && ((O.focus === 'ai-input' && !O.onScreen) || (O.focus === 'jl-q' && O.onScreen)), JSON.stringify(O));
+      const O = await until(() => { const b = document.getElementById('jb-bar'); const f = document.activeElement && document.activeElement.id;
+        return b ? { bar: true, focus: f, onScreen: !!(window.jlOnScreen && jlOnScreen()) } : null; }, null, 6000);
+      check('10h the bar\'s door drops the ask bar, the cursor in it', !!O && O.focus === 'jb-bar-q', JSON.stringify(O));
+      if (O && O.bar) {
+        await page.type('#jb-bar-q', 'which of these are waiting on me', { delay: 4 }); await page.keyboard.press('Enter');
+        const A = await until(() => { const f = document.getElementById('jl-feed'); const p = document.getElementById('ai-panel');
+          return f && /waiting on me/.test(f.textContent) ? { window: p.classList.contains('open'), bar: !!document.getElementById('jb-bar') } : null; }, null, 6000);
+        check('10h and its words are asked of the page\'s own panel beside the book (no second window)', !!A && !A.window && !A.bar, JSON.stringify(A));
+      }
       await page.evaluate(() => { if (typeof closeAI === 'function') closeAI(); });
     });
     await part('10i the person panel as drawn', async () => {

@@ -21243,3 +21243,26 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - 21 Oct 2026 · Left alone on purpose, said to the owner: the pop-out History record (`openHistoryTimeline`) and the counterparty's read-only History keep their own layout; the phone draws its own.
 - 21 Oct 2026 · Noticed, not fixed (identical at unmodified main 0392ded7): every-door-lands-on-home-verify's 12 "expected Fill in beside the paper" rows; home-held-contract-verify 6q; home-paper-clauses-verify 3a/3b; one-sheet-as-drawn-verify 5b; paper-panel-as-drawn-verify 1b/1e/1f/2d/2f; where-we-are-verify 10a; board-strip-verify's stage ("Details" link timeout).
 - 21 Oct 2026 · Noticed, not fixed: CLAUDE.md was 83.8 KB before this change and 84.4 KB after (the MAP's History line rewritten, one line for The Brief); a trim needs the owner's yes.
+## Noticed, not fixed (21 Oct 2026, design round on Still owed and Clauses)
+- Still owed: a Jambo's-work row's nowrap small line ("Read today: …", 292px) widens the whole dossier card to 415px in a 379px feed, so Confirm, Reply ›, Send ›, Open ›, See it and "saved" are cut past the panel's edge (measured beside the paper and beside the Board, all three screens).
+- Still owed (held, beside the Board): the signer row shows "Not read" even when a name and email are prefilled beside the paper.
+- Still owed: a blank's from line can read "On the paper MUTUAL NON-DISCLOSURE AGREEMENT" (the section is the document title) and wraps to 3–4 lines in the 129px column.
+- An upload's paper head reads "Text not machin…" even when extracted text exists.
+- Clauses tab: the tab badge (docThreadHomeMarks, the OLD marks = 7) disagrees with the head ("19 points · 6 need you") — the number on the door does not match the list behind it; the Dossier tab badge is the whole workspace's Needs-you count (99+ in the owner's book) on a per-contract tab.
+- Clauses tab: "1 to reviewRead" has no separator (docThreadStates joins with " · " only between its own parts; stkDecorate prepends with none).
+- Clauses tab: a clause's point boxes are drawn in reverse insertion order (neither worst-first nor paper order); the dive's ‹ › walks a different order than the boxes are listed.
+- Clauses tab: about 4 of 19 points are second copies of the same sentence found by two sources (identical quotes, e.g. the standards cap and Jambo's cap both counted in "6 need you"); only standards-vs-standards is de-duplicated today.
+- Clauses tab: off-Chambers dress — 6px/8px corners on point boxes, Deep dive and filter selects; native select arrows; the dive's head band tinted by ten section hues outside the palette; "N to review" in amber ink even on red and blue rows; dots carry no word.
+- Clauses tab: opening a deep dive pins its quote on the paper and the pin stays after Back ("1 pin · Clear" left behind).
+- Clauses tab: riskViewOpen lands on the clause with the worst OLD mark, not the worst point.
+
+## Noticed, not fixed (21 Oct 2026, build round: Still owed, Clause review, Jambo)
+- stakes-verify 8 expects a "Menu" tab on Home's panel that the Dossier (20 Oct) removed; red on main d7a320c2.
+- home-paper-clauses-verify 3a/3b pin the old tab set Copilot · Clauses · Obligations · Menu; red on main d7a320c2.
+- point-buttons-and-brief-verify 6a expects a "Contract briefing" button in "at a glance"; it reads "Read ›" on main.
+- uploaded-contract-fixed-verify 4a/4b cannot find the "Who else" Add button; red on main d7a320c2.
+- home-and-recent-verify 2e ("a details row opens Fill in beside its paper") is red at d7a320c2.
+- show-it-here-first-verify 7b counts the 30-second ai/usage meter refresh (core.js refreshAiUsage) as a model call, so it goes red whenever the run takes over 30 seconds.
+- The Dossier tab's number is the whole workspace's Needs you, not this contract's.
+- riskViewOpen still lands on the worst OLD mark, not the worst point.
+- The deep dive leaves its quote pinned on the paper after Back; its head band wears ten section hues outside Chambers.

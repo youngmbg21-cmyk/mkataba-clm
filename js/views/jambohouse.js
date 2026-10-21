@@ -1263,7 +1263,8 @@ function jhWire(host){
     if (t.closest('[data-jh-end-x]')){ jhEndClose(); return; }
     if (t.closest('[data-jh-points]')){ jhOpenPoints(); return; }
     if (t.closest('[data-jh-work]')){ if (typeof hbOpenAgent === 'function') hbOpenAgent(); return; }
-    if (t.closest('[data-jh-jambo]')){ if (typeof openAI === 'function') openAI(); return; }
+    /* THE EDGE TAB SLIDES JAMBO IN BESIDE THE PAGE, and out on the same press (owner, 21 Oct 2026; ai.js aiSideToggle) */
+    if (t.closest('[data-jh-jambo]')){ if (typeof aiSideToggle === 'function') aiSideToggle(); else if (typeof openAI === 'function') openAI(); return; }
     if (t.closest('.jh-end') && !t.closest('.jh-end-card')){ jhEndClose(); return; }
     if (t.closest('[data-jh-days-go]')){ jhDaysGo(); return; }
     if (t.closest('[data-jh-play]')){ if (_jh.playing){ _jh.playing = false; } else { if (_jh.t >= 1){ jhReplayFromStart(true); jhFeedFill(); } else _jh.playing = true; _jh.last = 0; } jhSetPlayWord(); jhKick(); return; }

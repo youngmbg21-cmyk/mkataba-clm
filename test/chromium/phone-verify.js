@@ -94,14 +94,14 @@ const PROBE = () => {
       rootPainted: document.getElementById('m-root').innerHTML.length,
       bodyClass: document.body.className.includes('m-on'),
       phoneBits: document.querySelectorAll('.m-tabs, .m-ai-fab, .m-pagehead').length,
-      /* the Jambo window (11 Oct 2026) keeps its width itself, not by max-width: docked it is still 430 wide */
+      /* RE-POINTED 21 Oct 2026 (owner: Jambo slides in as a side panel wearing THE BRIEF): on a computer it is 384 wide */
       panelMax: getComputedStyle(document.getElementById('ai-panel')).width,
     }));
     check('desktop: the shell is still the page', s.shell === 'grid', s.shell);
     check('desktop: the phone root is hidden and empty', s.rootHidden && s.rootPainted === 0);
     check('desktop: no phone class on the body', !s.bodyClass);
     check('desktop: not one phone element exists', s.phoneBits === 0, s.phoneBits + ' found');
-    check('desktop: the Copilot is still a 430px drawer', s.panelMax === '430px', s.panelMax);
+    check('desktop: the Copilot is Jambo\'s 384px side panel, not the phone\'s full screen', s.panelMax === '384px', s.panelMax);
     await ctx.close();
   }
 

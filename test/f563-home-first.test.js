@@ -68,7 +68,11 @@ describe('f563 (2) — no Signing tab; an approval opens where it is decided', (
     const { ctx, c } = stage({ g: { docThreadHomeMarks: () => 3 } });
     assert.deepEqual({ ...ctx.pdTabCount('doc', c) }, { n: 3, tone: 'warn' });
     const none = stage({ g: { docThreadHomeMarks: () => 0 } });
-    assert.equal(none.ctx.pdTabCount('doc', none.c), null);
+    assert.equal(none.ctx.pdTabCount('doc', none.c), null);    /* once Jambo has read these words, the number is Clause review's "need you" (21 Oct 2026) */
+    const read = stage({ g: { stkNeedCount: () => 5, docThreadHomeMarks: () => 3 } });
+    assert.deepEqual({ ...read.ctx.pdTabCount('doc', read.c) }, { n: 5, tone: 'warn' });
+    const allDone = stage({ g: { stkNeedCount: () => 0, docThreadHomeMarks: () => 3 } });
+    assert.equal(allDone.ctx.pdTabCount('doc', allDone.c), null, 'nothing needs you: no number, whatever the old marks say');
   });
 });
 

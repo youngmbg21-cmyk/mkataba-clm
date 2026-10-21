@@ -2246,9 +2246,12 @@ async function intelAsk(qRaw, opts){
     intel.busy=false; renderIntelDock();
     return;
   }
-  /* A REQUEST TO BOOK OR FIND TIME (18 Oct 2026) is the Calendar's: it opens
-     and its own Jambo is asked the same words there (calHandOff, the one door
-     that adds to a calendar); a question about dates stays here */
+  /* A WATCH FROM A SENTENCE (21 Oct 2026, js/jambopress.js): "tell me when
+     Siginon replies", "remind me Friday about the NDA" — read without AI and
+     proposed here as a card the person presses; before the Calendar's hand-off,
+     which would read "remind me Friday" as a booking */
+  { const turn=(typeof window.watchTurnFor==='function')?watchTurnFor(q):null;
+    if(turn){ intel.history.push({role:'user', text:q}, {role:'assistant', ...turn}); renderIntelDock(); return; } }
   if(igBookAsk(q)&&typeof window.calHandOff==='function'&&calHandOff(q)){
     intel.history.push({role:'user', text:q}, {role:'assistant', text:i18t('ig_cal_handoff')});
     renderIntelDock(); return;
@@ -2424,6 +2427,13 @@ async function intelAsk(qRaw, opts){
     intel.history.push({role:'assistant', text:'Something went wrong: '+igEsc(e.message), err:true});
   }
   intel.busy=false;
+  /* THE ONE PREPARED PRESS under an answer about one contract (js/jambopress.js):
+     its Show me is the answer's own Open on Paper (igDoorsHtml, THE ONE DOOR),
+     and the paper on screen carries its next steps as chips already */
+  if(typeof window.jpPressOf==='function'){ const m=intel.history.slice(h0).reverse().find(x=>x&&x.role==='assistant'&&!x.err);
+    if(m&&!m.press&&!m.act){ const ids=igAnswerIds(m);
+      const onPaper=ids.length===1&&igPaperUp()&&intel.paper&&String(intel.paper.id)===String(ids[0]);
+      if(!onPaper){ try{ const p=jpPressOf({ ids, q, text:m.text, noShow:true }); if(p) m.press=p; }catch(_){} } } }
   /* the page that also holds what the map now shows is a door under the answer;
      the Contracts list opens on the same set the map shows (none shown, no door)
      — and where the map's answer already carries its own door to that list
@@ -7793,6 +7803,10 @@ function igMsgHTML(m,i){
       ${(Number.isInteger(i)&&m.deeper&&!m.err&&typeof window.hbDeeperHtml==='function')?hbDeeperHtml(m.deeper):''}
       ${(Number.isInteger(i)&&m.how)?`<div class="igd-how" title="${igEsc(m.how)}">${igEsc(i18t('int_how_drawn'))}</div>`:''}
       ${Number.isInteger(i)?igDoorsHtml(m,i):''}
+      ${''/* the one prepared press, a watch proposed and Your watches (js/jambopress.js, one builder for both hosts) */}
+      ${(Number.isInteger(i)&&m.press&&typeof window.jpHtml==='function')?jpHtml(m.press,'ig:'+i):''}
+      ${(Number.isInteger(i)&&m.watchAsk&&typeof window.watchAskHtml==='function')?watchAskHtml(m,'ig:'+i):''}
+      ${(m.watchList&&typeof window.watchListHtml==='function')?watchListHtml():''}
       ${body}
     </div>
   </div>`;

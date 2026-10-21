@@ -11561,6 +11561,71 @@
   .stk-line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:start;margin:0 6px 8px 2px;padding:9px 10px;border-radius:6px;
     background:var(--surface-2,var(--color-surface));font-size:var(--t-meta);line-height:1.45}
   .stk-line.is-need{background:var(--st-ruby-bg)} .stk-line.is-look{background:var(--st-amber-bg)} .stk-line.is-note{background:var(--st-steel-bg)}
+  /* ==== CLAUSE REVIEW, THE LEGORA WAY (owner said yes, 21 Oct 2026; drawn in design round 1, "If Legora drew it") ====
+     The head: "Clause review" + its grey sub, then the three counts as doors onto Severity (a dot and a
+     word, no box). A row: the 8px dot of its worst open point, then a word and a count in that verdict's
+     ink, then "· read". A POINT CARD IS NOT A BOX (The Brief, 21 Oct 2026: nothing boxed inside the
+     body): a 2px edge in the verdict's colour, a hairline between cards, no wash, no corners. A point
+     the contract lacks stands in a dashed row after the clause it would follow. Chambers: radius 2/3,
+     a status is a dot and a word, numbers plain. Scoped to the panel's card, later in source. */
+  .pd-th .stk-view{justify-content:flex-start;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .pd-th .stk-view b{font-family:var(--font-title);font-weight:var(--w-title-serif,var(--w-title));font-size:var(--t-body);color:var(--color-text)}
+  .pd-th .stk-view .stk-view-sub{font-size:var(--t-meta);color:var(--color-neutral-500)}
+  .pd-th .stk-view .stk-busy{margin-left:auto}
+  .pd-th .stk-tally{display:flex;flex-wrap:wrap;align-items:center;gap:4px 16px}
+  .pd-th .stk-door{display:inline-flex;align-items:center;gap:6px;padding:0;border:0;background:none;font:inherit;font-size:var(--t-meta);font-weight:var(--w-body);color:var(--color-text);cursor:pointer;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .pd-th button.stk-door:hover{text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--rule-strong)}
+  .pd-th .stk-door.is-on{font-weight:var(--w-strong);text-decoration:underline;text-underline-offset:3px}
+  .pd-th .stk-door.is-none{cursor:default;color:var(--color-neutral-500)}
+  .pd-th .stk-door:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:2px}
+  .pd-th .stk-d8{display:inline-block;flex:none;width:8px;height:8px;border-radius:50%;background:var(--color-neutral-400)}
+  .pd-th .stk-d8.is-need{background:var(--st-ruby-dot)} .pd-th .stk-d8.is-look{background:var(--st-amber-dot)}
+  .pd-th .stk-d8.is-note{background:var(--st-steel-dot)} .pd-th .stk-d8.is-fine{background:var(--st-green-dot)}
+  /* the filters in HaTi's own face: one control tall, the house corner */
+  .pd-th .stk-flt select{height:var(--ctl-h-sm);border-radius:var(--radius);border-color:var(--rule-strong);font-size:var(--t-meta);font-weight:var(--w-body)}
+  /* the row's dot: 8px, centred where the 12px bead stood; the worst OPEN point wins over the paper's old tone */
+  .pd-th .doc-th-rows .doc-th-row .doc-th-bead{left:3px;top:13px;width:8px;height:8px;border-width:1px}
+  .pd-th .doc-th-rows .doc-th-row.stk-b-need .doc-th-bead{background:var(--st-ruby-dot);border-color:var(--st-ruby-dot)}
+  .pd-th .doc-th-rows .doc-th-row.stk-b-look .doc-th-bead{background:var(--st-amber-dot);border-color:var(--st-amber-dot)}
+  .pd-th .doc-th-rows .doc-th-row.stk-b-note .doc-th-bead{background:var(--st-steel-dot);border-color:var(--st-steel-dot)}
+  .pd-th .doc-th-rows .doc-th-row.stk-b-none .doc-th-bead{background:var(--color-surface);border-color:var(--rule-strong)}
+  .pd-th .doc-th-state .stk-n.is-need{color:var(--st-ruby-fg)} .pd-th .doc-th-state .stk-n.is-look{color:var(--st-amber-fg)}
+  .pd-th .doc-th-state .stk-n.is-note{color:var(--color-neutral-600)}
+  .pd-th .doc-th-state .stk-read{color:var(--color-neutral-500)}
+  /* THE CARD: an edge, not a box */
+  .pd-th .stk-line.stk-card{position:relative;display:block;margin:0 6px 0 2px;padding:10px 0 10px 12px;border:0;border-radius:0;background:none;font-size:var(--t-body);line-height:20px}
+  .pd-th .stk-line.stk-card::before{content:'';position:absolute;left:0;top:10px;bottom:10px;width:2px;background:var(--color-neutral-400)}
+  .pd-th .stk-card.is-need::before{background:var(--st-ruby-dot)} .pd-th .stk-card.is-look::before{background:var(--st-amber-dot)}
+  .pd-th .stk-card.is-note::before{background:var(--st-steel-dot)} .pd-th .stk-card.is-fine::before{background:var(--st-green-dot)}
+  .pd-th .stk-card.is-done::before{background:var(--rule-strong)}
+  .pd-th .stk-card + .stk-card{border-top:1px solid var(--color-divider)}
+  .pd-th .doc-th-row > .stk-card:last-of-type{margin-bottom:6px}
+  .pd-th .stk-c1{display:flex;align-items:center;gap:6px;min-width:0;font-size:var(--t-label);line-height:16px}
+  .pd-th .stk-verd{font-weight:var(--w-label);white-space:nowrap}
+  .pd-th .stk-card.is-need .stk-verd{color:var(--st-ruby-fg)} .pd-th .stk-card.is-look .stk-verd{color:var(--st-amber-fg)}
+  .pd-th .stk-card.is-note .stk-verd{color:var(--st-steel-fg)} .pd-th .stk-card.is-fine .stk-verd{color:var(--st-green-fg)}
+  .pd-th .stk-card.is-done .stk-d8{background:var(--rule-strong)}
+  .pd-th .stk-card.is-done .stk-verd{color:var(--color-neutral-500);text-decoration:line-through}
+  .pd-th .stk-by{margin-left:auto;min-width:0;color:var(--color-neutral-500);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pd-th .stk-ct{margin-top:4px;font-weight:var(--w-strong);color:var(--color-text)}
+  .pd-th .stk-card .stk-st{margin:2px 0 0;color:var(--color-text);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+  .pd-th .stk-std{margin-top:2px;font-size:var(--t-meta);color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pd-th .stk-cacts{display:flex;flex-wrap:wrap;align-items:center;gap:4px 16px;margin-top:6px;min-height:var(--ctl-h-sm)}
+  .pd-th .stk-a{display:inline-flex;align-items:center;gap:6px;padding:0;border:0;background:none;font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;cursor:pointer}
+  .pd-th .stk-a.is-go{color:var(--accent-ink)}
+  .pd-th .stk-a:hover:not(:disabled){text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--rule-strong)}
+  .pd-th .stk-a:disabled{color:var(--color-neutral-500);cursor:not-allowed}
+  .pd-th .stk-a:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:2px}
+  .pd-th .stk-mks{margin-left:auto;display:inline-flex;align-items:center;gap:12px}
+  .pd-th .stk-mk{font-size:var(--t-meta);font-weight:var(--w-body);color:var(--color-neutral-600);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  .pd-th .stk-mk.is-done{color:var(--st-green-fg);font-weight:var(--w-label)}
+  .pd-th .stk-ring{display:inline-block;flex:none;width:12px;height:12px;box-sizing:border-box;border-radius:50%;border:1px solid var(--rule-strong);background:var(--color-surface)}
+  .pd-th .stk-ring.is-on{background:var(--st-green-dot);border-color:var(--st-green-dot)}
+  /* WHAT THE CONTRACT DOES NOT SAY, IN PLACE: a dashed row after its clause, its card always open */
+  .pd-th .stk-miss{position:relative;margin:4px 6px 6px 24px;padding:8px 10px 2px;border:1px dashed var(--rule-strong);border-radius:var(--radius-lg)}
+  .pd-th .stk-miss .stk-miss-h{padding:0;font-size:var(--t-label);line-height:16px;font-weight:var(--w-label);color:var(--color-neutral-600)}
+  .pd-th .stk-miss .stk-line.stk-card{margin:0}
+  .pd-th .stk-miss.is-other{border-style:solid;border-color:var(--color-divider)}
   /* A POINT'S BOX SHOWS ONLY UNDER THE OPEN CLAUSE (owner, 13 Oct 2026: "only … once you click on the clause header") */
   .pd-th .doc-th-row:not(.is-open) > .stk-line, .pd-th .stk-miss-row:not(.is-open) .stk-line{display:none}
   /* THE DOT WEARS ITS CLAUSE'S WORST POINT (owner, 13 Oct 2026) */
@@ -12563,41 +12628,13 @@
   }
 
   /* Copilot slide-over */
-  #ai-panel{position:fixed;top:0;right:0;bottom:0;z-index:50;transform:translateX(105%);transition:transform var(--dur-3) cubic-bezier(.22,.61,.36,1),max-width var(--dur-3) cubic-bezier(.22,.61,.36,1);}
+  #ai-panel{position:fixed;top:0;right:0;bottom:0;z-index:50;max-width:430px;transform:translateX(105%);transition:transform var(--dur-3) cubic-bezier(.22,.61,.36,1),max-width var(--dur-3) cubic-bezier(.22,.61,.36,1);}
   /* Expanded: the panel stretches leftward (it stays anchored right), giving
      comparison tables and long answers real room. clamp() keeps it sane on
      narrow screens (never below the normal width; w-full caps tiny viewports). */
   #ai-panel.expanded{max-width:clamp(430px,72vw,940px)!important;}
   #ai-scrim{position:fixed;inset:0;z-index:40;}
   #ai-panel.open{transform:none;}
-  /* ---- A WINDOW YOU CAN MOVE AND RESIZE (owner, 11 Oct 2026; ai.js aiFloat*) ----
-     Desktop only. Its place and size are set inline from the reader's own
-     stored box; the limits are kept by aiFloatClamp, never by CSS. Closed, it
-     is simply not shown where it stands; on a screen where Copilot is already
-     on the page it steps aside (.ai-stepaside). The dock button shows only
-     once it has been moved off the right edge. */
-  #ai-panel.floating,#ai-panel.floating.expanded{right:auto;bottom:auto;max-width:none!important;transition:none;transform:none}
-  #ai-panel.floating:not(.open){transform:translateX(200vw);pointer-events:none}   /* closed: off the screen, as the drawer always was */
-  #ai-panel.floating.ai-stepaside{visibility:hidden;pointer-events:none}
-  #ai-panel.floating:not(.ai-float-home){border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden;box-shadow:0 18px 50px rgba(9,25,56,.24),0 2px 6px rgba(9,25,56,.1)}
-  #ai-panel.floating > header{cursor:grab;touch-action:none;user-select:none}
-  #ai-panel.floating.ai-float-busy > header{cursor:grabbing}
-  #ai-panel.ai-float-busy{user-select:none}
-  #ai-panel #ai-dock-home{display:none}
-  #ai-panel.floating:not(.ai-float-home) #ai-dock-home{display:grid}
-  /* The window's own size decides how much its header and foot may carry —
-     measured on the window, not the screen (the screen's narrow rules below
-     are for a drawer as wide as a phone). */
-  #ai-panel.floating{container-type:size;container-name:aiwin}
-  @container aiwin (max-width: 419px){   /* below the drawer's own 430 */
-    #ai-panel > header{padding:var(--s-3);gap:var(--s-2)}
-    #ai-panel > header button{width:28px;height:28px}
-    #ai-panel > header > :first-child{display:none}
-    #ai-panel > header > .flex-1 > div:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    #ai-brain-sub{display:none}
-    #ai-feed,#ai-panel > footer,#ai-suggest{padding-left:var(--s-3);padding-right:var(--s-3)}
-  }
-  @container aiwin (max-height: 560px){ #ai-suggest{display:none} }
   /* JAMBO'S FACE in the chats (components.js jamboFaceHtml) — a round picture
      on a light wash of the theme colour, the same in every chat */
   img.jambo-face{border-radius:50%;object-fit:cover;flex:none;align-self:flex-start;aspect-ratio:1/1;background:color-mix(in srgb,var(--color-accent) 12%,var(--color-surface));user-select:none}
@@ -12611,15 +12648,6 @@
      name in the title serif, the ✦ in the accent ink, the buttons the page's grey. */
   #ai-panel > header .ai-head-name{font-family:var(--font-title);font-weight:var(--w-title-serif);font-size:17px;color:var(--color-text)}
   #ai-panel > header .ai-head-btn:hover{background:var(--color-neutral-100);color:var(--color-text)}
-  #ai-panel .ai-rz{display:none;position:absolute;z-index:3;touch-action:none}
-  #ai-panel.floating .ai-rz{display:block}
-  #ai-panel .ai-rz-n,#ai-panel .ai-rz-s{left:12px;right:12px;height:8px;cursor:ns-resize}
-  #ai-panel .ai-rz-n{top:-3px} #ai-panel .ai-rz-s{bottom:-3px}
-  #ai-panel .ai-rz-e,#ai-panel .ai-rz-w{top:12px;bottom:12px;width:8px;cursor:ew-resize}
-  #ai-panel .ai-rz-e{right:-3px} #ai-panel .ai-rz-w{left:-3px}
-  #ai-panel .ai-rz-ne,#ai-panel .ai-rz-nw,#ai-panel .ai-rz-se,#ai-panel .ai-rz-sw{width:16px;height:16px}
-  #ai-panel .ai-rz-ne{right:-3px;top:-3px;cursor:nesw-resize} #ai-panel .ai-rz-sw{left:-3px;bottom:-3px;cursor:nesw-resize}
-  #ai-panel .ai-rz-nw{left:-3px;top:-3px;cursor:nwse-resize} #ai-panel .ai-rz-se{right:-3px;bottom:-3px;cursor:nwse-resize}
   /* DOCKED: an overlay drawer, and nothing behind it moves.
      The drawer floats on top of the right-hand side of the screen — it does not
      take a column, so no width behind it changes, no clause frame shifts left
@@ -12674,6 +12702,70 @@
   @keyframes aiPulse{0%,100%{box-shadow:0 0 0 0 rgb(var(--color-accent-600-rgb)/.6);}50%{box-shadow:0 0 0 8px rgb(var(--color-accent-600-rgb)/0);}}
   #ai-scrim{opacity:0;pointer-events:none;transition:opacity var(--dur-3);}
   #ai-scrim.open{opacity:1;pointer-events:auto;}
+  /* ==== JAMBO SLIDES IN BESIDE THE PAGE · THE ✦ ASK BAR · POP OUT (owner, 21 Oct 2026; js/ai.js
+     aiSideSync, aiBarToggle, aiPopOut) ====
+     On a computer the window is a side panel wearing THE BRIEF: 384 wide under the top bar, the head
+     and the foot 56, its tab a word (the ✦ and "Jambo", the live tab's rule under them), nothing boxed;
+     the page beside it dimmed by the scrim under the bar (the ONE PANEL convention), never reflowed.
+     The ✦ drops one line under the bar, centred, over everything, the side panel included. Popped out,
+     the same nodes stand in a window of their own (.is-popped). Scoped by id and class, never !important. */
+  @media (min-width:768px){
+    #ai-scrim{top:var(--shell-head-h,48px)}
+    #ai-panel.is-side{top:var(--shell-head-h,48px);height:auto;width:384px;max-width:none;border-left:1px solid var(--color-divider);box-shadow:none}
+    #ai-panel.is-side.ai-stepaside{visibility:hidden;pointer-events:none}
+    #ai-panel.is-side > header{box-sizing:border-box;height:56px;min-height:56px;padding:0 12px 0 16px;gap:0;align-items:stretch}
+    #ai-panel.is-side > header > *{align-self:center}
+    #ai-panel.is-side > header > .ai-head-tile{align-self:stretch;width:auto;height:auto;padding:0 6px 0 0;border-bottom:2px solid var(--nav-bg);border-radius:0;box-sizing:border-box;padding-top:2px}
+    #ai-panel.is-side > header > .ai-head-tile svg{width:14px;height:14px}
+    #ai-panel.is-side > header > .flex-1{align-self:stretch;display:flex;align-items:stretch}
+    #ai-panel.is-side > header .ai-head-name{display:inline-flex;align-items:center;box-sizing:border-box;padding-top:2px;border-bottom:2px solid var(--nav-bg);font-family:inherit;font-size:var(--t-body);line-height:20px;font-weight:var(--w-strong)}
+    #ai-panel.is-side #ai-brain-sub, #ai-panel.is-side #ai-expand{display:none}
+    #ai-panel.is-side > header button{width:32px;height:32px;margin-left:4px}
+    #ai-panel.is-side > header button[hidden]{display:none}
+    #ai-panel.is-side #ai-feed{padding:16px}
+    #ai-panel.is-side #ai-suggest{padding:8px 16px 0;row-gap:4px}
+    #ai-panel.is-side > footer{box-sizing:border-box;min-height:56px;padding:7px 16px 8px;display:flex;flex-direction:column;justify-content:center}
+    #ai-panel.is-side > footer .jb-card:not(.is-tall){box-sizing:border-box;min-height:40px}
+    #ai-panel.is-side.is-drop{outline:2px dashed var(--accent-ink);outline-offset:-6px}
+    /* the edge tab rides the panel's edge while it is in, so the same press takes it out */
+    body.ai-side-open #jh-jambo .igd-door{position:fixed;top:var(--shell-head-h,48px);right:384px;bottom:0;width:46px;height:auto;z-index:51}
+    body.ai-side-open:has(#jh-jambo) #ai-scrim{right:430px}
+  }
+  /* each answer says what it read (aiReadFrom) */
+  #ai-feed .ai-read{font-size:var(--t-label);line-height:16px;color:var(--color-neutral-600)}
+  /* THE ✦ ASK BAR: one line under the bar, centred */
+  .jb-bar{position:fixed;top:calc(var(--shell-head-h,48px) + 8px);left:50%;transform:translateX(-50%);width:min(640px,calc(100vw - 32px));z-index:60}
+  .jb-bar > .jb-card{box-sizing:border-box;min-height:40px;box-shadow:var(--shadow-lg)}
+  /* with the side panel in, the bar is centred over the page beside it, never over the panel */
+  @media (min-width:768px){ body.ai-side-open .jb-bar{left:calc((100vw - 384px) / 2);width:min(640px,calc(100vw - 384px - 32px))} }
+  .jb-bar > .jb-card:focus-within{box-shadow:0 0 0 3px var(--color-accent-100),var(--shadow-lg)}
+  .jb-bar .jb-bar-here{flex:none;white-space:nowrap;margin:0 8px}
+  /* the "/" list of a box on the bar or in the side panel stands over both */
+  body > #ca-slash{z-index:61}
+  /* POPPED OUT: the conversation and the card fill a window of their own */
+  #ai-panel.is-popped{position:static;transform:none;width:100%;max-width:none;height:100vh;display:flex;flex-direction:column;box-shadow:none;border:0;background:var(--color-surface)}
+  #ai-panel.is-popped > header{box-sizing:border-box;height:56px;flex:none;display:flex;align-items:stretch;gap:8px;padding:0 12px 0 16px;border-bottom:1px solid var(--color-divider)}
+  #ai-panel.is-popped > header > *{align-self:center}
+  #ai-panel.is-popped > header > .ai-side-tab{align-self:stretch;display:inline-flex;align-items:center;gap:6px;box-sizing:border-box;padding-top:2px;border-bottom:2px solid var(--nav-bg);font-size:var(--t-body);color:var(--color-text)}
+  #ai-panel.is-popped > header > .ai-side-tab b{font-weight:var(--w-strong)}
+  #ai-panel.is-popped > header > .flex-1{flex:1;min-width:0}
+  #ai-panel.is-popped > header > .ai-pop-back{flex:none;width:auto;height:var(--ctl-h-sm)}
+  #ai-panel.is-popped #ai-feed{flex:1 1 0%;min-height:0;overflow-y:auto;padding:16px}
+  #ai-panel.is-popped #ai-suggest{flex:none;padding:8px 16px 0}
+  #ai-panel.is-popped > footer{flex:none;box-sizing:border-box;min-height:56px;padding:7px 16px 8px;border-top:1px solid var(--color-divider)}
+  /* ==== SHOW ME ›, THE ONE PREPARED PRESS, A WATCH, YOUR WATCHES (owner, 21 Oct 2026; js/jambopress.js
+     jpHtml, watchAskHtml, watchListHtml) ==== THE BRIEF: nothing boxed — the presses are links (.jb-chip) in one
+     row under the answer, the act first at the owed lead's weight; a watch is words and one link; Your watches a
+     plain list with its two links per row. Both hosts: the side panel (#ai-feed) and Home's (#ig-dock). */
+  .jp-row{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;margin-top:6px}
+  .jp-row > .jb-chip[disabled]{opacity:.5;cursor:default}
+  .jp-watch{font-size:var(--t-body);line-height:20px;color:var(--color-text)}
+  .jp-watch .jp-sub{font-size:var(--t-label);line-height:16px;color:var(--color-neutral-600);margin-top:2px}
+  .jp-watch .jp-wt-head{font-weight:var(--w-strong)}
+  .jp-wlist{list-style:none;margin:6px 0 0;padding:0}
+  .jp-wlist > .jp-wrow + .jp-wrow{margin-top:12px}
+  .jp-wlist .jp-row{margin-top:2px}
+  #ai-suggest .jp-n{color:var(--color-neutral-600);font-weight:400}
   .ai-msg{animation:viewIn .25s cubic-bezier(.22,.61,.36,1);}
   .typing span{display:inline-block;width:5px;height:5px;border-radius:var(--radius);background:var(--color-accent-400);margin-right:3px;animation:blink 1.2s infinite;}
   .typing span:nth-child(2){animation-delay:.2s;} .typing span:nth-child(3){animation-delay:.4s;}
@@ -15698,6 +15790,42 @@
   #ig-dock .pd-og td{padding:6px 12px 6px 0;border-bottom:0}
   #ig-dock .pd-og td:nth-child(3){padding-right:0}
   #ig-dock .pd-og-row.is-saved td{background:transparent}
+  /* ==== STILL OWED, THE SAP WAY (owner picked it by name, 21 Oct 2026; spec-owed Option A) ====
+     SAP's rule for a form under 600 wide: one column, the label ABOVE its box. Each owed fact is a row
+     16 below the one before (the drawing's hairline between rows is left out: The Brief draws no line
+     inside the body, 21 Oct 2026): the label (strong) with Confirm on its right, where Jambo read it under
+     that, then its box(es) the full width, stacked; the signer's three boxes each carry a small label.
+     A saved row is one line: label · the green chip · "saved". Beside the Board (#pd-og-held) the same
+     anatomy reads only: the chip full width, "Fill in ›" on the label's line. The table stays a table
+     (its rows and boxes keep their wiring; its column names stay for a screen reader, thead.sr-only); only its display changes, scoped to the two grids by id so
+     Key terms (#pd-kt, the same .pd-og clothes) keeps its own look. */
+  #ig-dock #pd-og, #ig-dock #pd-og-held{display:block;width:100%;table-layout:auto}
+  #ig-dock #pd-og tbody, #ig-dock #pd-og-held tbody{display:block}
+  #ig-dock #pd-og tr.pd-og-row, #ig-dock #pd-og-held tr.pd-og-row{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"f a" "v v";column-gap:8px;padding:8px 0}
+  #ig-dock #pd-og tr.pd-og-row:first-child, #ig-dock #pd-og-held tr.pd-og-row:first-child{padding-top:0}
+  #ig-dock #pd-og td, #ig-dock #pd-og-held td{display:block;width:auto;min-width:0;padding:0;border:0}
+  #ig-dock #pd-og td.pd-og-f, #ig-dock #pd-og-held td.pd-og-f{grid-area:f}
+  #ig-dock #pd-og td.pd-og-v, #ig-dock #pd-og-held td.pd-og-v{grid-area:v;display:flex;flex-direction:column;align-items:stretch;gap:4px;margin-top:6px}
+  #ig-dock #pd-og td.pd-og-a, #ig-dock #pd-og-held td.pd-og-a{grid-area:a;width:auto;text-align:right;align-self:start}
+  #ig-dock #pd-og .pd-og-f b, #ig-dock #pd-og-held .pd-og-f b{font-size:var(--t-body);line-height:20px}
+  /* where Jambo read it: the § and the passage, two lines at most */
+  #ig-dock #pd-og td.pd-og-f > .pd-og-src, #ig-dock #pd-og-held td.pd-og-f > .pd-og-src{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+  #ig-dock #pd-og td.pd-og-v > .pd-og-in, #ig-dock #pd-og td.pd-og-v > .dp-face{width:100%;margin-top:0}
+  #ig-dock #pd-og td.pd-og-v > .pd-og-in:not(textarea){height:var(--ctl-h-sm,28px)}
+  #ig-dock #pd-og td.pd-og-v > .pd-go, #ig-dock #pd-og td.pd-og-v > .pd-og-nm{align-self:flex-start;margin-top:0}
+  /* the signer's three boxes: a small label over each, 8 between one box and the next label */
+  #ig-dock #pd-og .pd-og-ml{display:block;margin-top:4px;font-size:var(--t-label);line-height:16px;font-weight:var(--w-label);color:var(--color-neutral-600)}
+  #ig-dock #pd-og .pd-og-ml:first-child{margin-top:0}
+  /* a saved row is ONE line: label · the chip, whole where it fits · "saved" */
+  #ig-dock #pd-og tr.pd-og-row.is-saved, #ig-dock #pd-og-held tr.pd-og-row.is-saved{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"f v a";align-items:center}
+  #ig-dock #pd-og tr.is-saved td.pd-og-v, #ig-dock #pd-og-held tr.is-saved td.pd-og-v{margin-top:0;flex-direction:row;justify-content:flex-end}
+  #ig-dock #pd-og tr.is-saved .pd-og-src, #ig-dock #pd-og-held tr.is-saved .pd-og-src{display:none}
+  #ig-dock #pd-og tr.is-saved td.pd-og-a, #ig-dock #pd-og-held tr.is-saved td.pd-og-a{align-self:center}
+  /* beside the Board: the reading a chip the full width, one box tall */
+  #ig-dock #pd-og-held td.pd-og-v > .pd-og-read{display:block;width:100%;max-width:none;box-sizing:border-box;height:var(--ctl-h-sm,28px);line-height:calc(var(--ctl-h-sm,28px) - 6px)}
+  /* NOTHING FALLS PAST THE PANEL'S EDGE: a row's small line wraps, and the dossier's parts may narrow */
+  #ig-dock .pd-glance .pd-gl-row small{white-space:normal}
+  #ig-dock #pd-glance > *, #ig-dock .pd-glance .pd-gl-row > span{min-width:0}
   /* HISTORY'S GLANCE, AS DRAWN: the serif title, then "In his words"; the links under it carry "Next steps" */
   #ig-dock .pd-hglance .pd-hg-title{margin:8px 0 0;font-family:var(--font-title);font-size:18px;line-height:24px;font-weight:var(--w-title-serif);color:var(--color-text)}
   #ig-dock .pd-held-chips:has(> .pd-held-lbl){margin-top:0;row-gap:8px}
@@ -16407,14 +16535,15 @@
 
 <!-- ================= Copilot ASSISTANT (slide-over) ================= -->
 <div id="ai-scrim" class="fixed inset-0 z-40" style="background:color-mix(in srgb,#020617 45%,transparent);"></div>
-<section id="ai-panel" class="hati-copilot-panel fixed top-0 right-0 bottom-0 w-full z-50 flex flex-col" style="max-width:430px;background:var(--color-surface);border-left:1px solid var(--color-divider);">
-  <header class="px-5 py-4 flex items-center gap-3" data-i18n-title="ai_float_move" title="Drag to move. Pull an edge or corner to resize." style="background:var(--color-surface);color:var(--color-text);border-bottom:1px solid var(--color-divider);">
+<section id="ai-panel" class="hati-copilot-panel fixed top-0 right-0 bottom-0 w-full z-50 flex flex-col" style="background:var(--color-surface);border-left:1px solid var(--color-divider);">
+  <header class="px-5 py-4 flex items-center gap-3" style="background:var(--color-surface);color:var(--color-text);border-bottom:1px solid var(--color-divider);">
     <div class="h-9 w-9 grid place-items-center shrink-0 ai-head-tile" style="background:transparent;color:var(--accent-ink);border-radius:var(--radius);"><svg width="22" height="22" viewBox="-1 -1 18 18" fill="currentColor" aria-hidden="true"><path d="M8 1C8.5 5.2 10.8 7.5 15 8C10.8 8.5 8.5 10.8 8 15C7.5 10.8 5.2 8.5 1 8C5.2 7.5 7.5 5.2 8 1Z"/></svg></div>
     <div class="flex-1 leading-tight">
       <div class="ai-head-name">Jambo</div>
       <div id="ai-brain-sub" class="text-[11px] flex items-center gap-1.5" style="color:var(--color-neutral-600);"><span class="h-1.5 w-1.5 rounded-full live-dot" style="background:var(--st-green-dot);"></span><span data-i18n="ai_searching_live">Searching your live contract data</span></div>
     </div>
-    <button id="ai-dock-home" title="Back to the right edge" data-i18n-title="ai_dock_home" aria-label="Back to the right edge" class="h-8 w-8 grid place-items-center rounded transition ai-head-btn" style="color:var(--color-neutral-600);"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg></button>
+    <!-- POP OUT (owner, 21 Oct 2026): Jambo in a window of his own that stays on top of Word (ai.js aiPopOut); drawn only on a computer with a mouse (aiPopMay) -->
+    <button id="ai-popout" type="button" hidden title="Pop out — keep Jambo on top of other windows" data-i18n-title="ai_pop_out_tip" aria-label="Pop out" data-i18n-aria="ai_pop_out" class="h-8 w-8 grid place-items-center rounded transition ai-head-btn" style="color:var(--color-neutral-600);"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 2.5h4v4"/><path d="M13.5 2.5 8 8"/><path d="M12 9.5v3a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3"/></svg></button>
     <button id="ai-expand" title="Expand the panel" data-i18n-title="ai_expand_panel" class="h-8 w-8 grid place-items-center rounded transition ai-head-btn" style="color:var(--color-neutral-600);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5"/><path d="M18 17l-5-5 5-5"/></svg></button>
     <button id="ai-clear" title="Delete conversation" data-i18n-title="ai_delete_conversation" class="h-8 w-8 grid place-items-center rounded transition ai-head-btn" style="color:var(--color-neutral-600);" data-ic-big="trash"></button>
     <button id="ai-min" title="Minimize — you'll be notified when an answer arrives" data-i18n-title="ai_minimize_hint" class="h-8 w-8 grid place-items-center rounded transition ai-head-btn" style="color:var(--color-neutral-600);" data-ic-big="minus"></button>
@@ -16423,20 +16552,13 @@
 
   <div id="ai-feed" class="flex-1 overflow-y-auto scroll-thin px-5 py-4 space-y-4" style="background:var(--color-chat-bg);"></div>
 
-  <!-- How much to say, and in what register. Above the input because it
-       changes the NEXT answer, not the ones already on the screen. -->
-  <div class="px-5 pt-2 flex items-center gap-2" style="background:var(--color-bg);">
-    <span class="text-[10px] font-600 " data-i18n="ai_answers_caption" style="color:var(--color-neutral-500);">Answers</span>
-    <div id="ai-style" class="flex items-center gap-1"></div>
-  </div>
-
   <div id="ai-suggest" class="px-5 pb-2 flex flex-wrap gap-1.5" style="background:var(--color-bg);"></div>
 
   <footer class="px-5 pb-5 pt-3" style="border-top:1px solid var(--color-divider);background:var(--color-surface);">
     <!-- THE TWO-ROW CARD (owner picked it, 20 Oct 2026): the words the whole
          width; + (the one upload door) and the round send under them -->
     <div class="jb-card">
-      <textarea id="ai-input" rows="1" data-ca-slash data-i18n-ph="ai_input_ph" placeholder="Search, summarize, or ask about your contracts…  (Shift+Enter for a new line)" class="chat-field"></textarea>
+      <textarea id="ai-input" rows="1" data-ca-slash data-i18n-ph="ai_side_ph" placeholder="Ask Jambo about your contracts…" class="chat-field"></textarea>
       <div class="jb-row"><button type="button" class="jb-plus" data-jb-file aria-label="Add a file" data-i18n-aria="jb_add_file" title="Add a file"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg></button><span class="jb-sp"></span><button type="button" id="ai-send" aria-label="Send to Jambo" data-i18n-aria="sh_ai_send_aria" class="jb-send"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/></svg></button></div>
     </div>
   </footer>

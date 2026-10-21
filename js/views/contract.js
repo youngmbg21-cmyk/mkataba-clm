@@ -14294,14 +14294,16 @@ const _xrVerdicts = c => ((c&&c.playbook&&Array.isArray(c.playbook.verdicts))?c.
 function docXrayMarks(c,row){
   const out=[];
   const txt=docXrayRowText(row);
-  _xrFinds(c).forEach(f=>{ if(docXrayPlace(txt,_xrFindQuote(f))) out.push(_xrScanMark(f)); });
-  _xrVerdicts(c).forEach(v=>{ if(docXrayPlace(txt,v.quote)) out.push(_xrPbMark(v)); });
+  /* each mark keeps the words it was placed by (`q`), so Clause review can
+     tell a twin of Jambo's point from a second finding (stkMerge, 21 Oct 2026) */
+  _xrFinds(c).forEach(f=>{ const q=_xrFindQuote(f); if(docXrayPlace(txt,q)) out.push({..._xrScanMark(f),q:String(q||'')}); });
+  _xrVerdicts(c).forEach(v=>{ if(docXrayPlace(txt,v.quote)) out.push({..._xrPbMark(v),q:String(v.quote||'')}); });
   /* A brief line somebody dismissed in the Redlines card's risk list is gone
      here too — dismissing anywhere dismisses everywhere (js/risks.js). A scan
      finding already is: openFindings is the scan's own "not dismissed". */
   const gone=(k,say)=>!!(window.riskKeyDismissed&&window.riskKeyOf&&riskKeyDismissed(c,riskKeyOf(k,say)));
-  docXrayBriefWatch(c).forEach(w=>{ if(!gone('brief',w.say)&&docXrayPlace(txt,w.quote)) out.push(_xrBriefMark(w)); });
-  docXrayBriefOdd(c).forEach(u=>{ if(!gone('odd',u.say)&&docXrayPlace(txt,u.quote)) out.push(_xrOddMark(u)); });
+  docXrayBriefWatch(c).forEach(w=>{ if(!gone('brief',w.say)&&docXrayPlace(txt,w.quote)) out.push({..._xrBriefMark(w),q:String(w.quote||'')}); });
+  docXrayBriefOdd(c).forEach(u=>{ if(!gone('odd',u.say)&&docXrayPlace(txt,u.quote)) out.push({..._xrOddMark(u),q:String(u.quote||'')}); });
   return out;
 }
 /* ---- WHAT IS SAID ABOUT THE WHOLE AGREEMENT (U1, the owner's pick) ----
@@ -15265,7 +15267,7 @@ function docThreadStates(c,rows,plain){
     const el=row.querySelector(`[data-th-state="${i}"]`); if(!el) return;
     const n=(x.marks||[]).length;
     const parts=[];
-    if(n) parts.push(`<span class="is-${esc(x.tone||'amber')}">${esc(i18tn('th_look_n',n,{n}))}</span>`);
+    if(n) parts.push(`<span class="is-${esc(x.tone||'amber')} th-marks">${esc(i18tn('th_look_n',n,{n}))}</span>`);
     if(plain.has(x.el)) parts.push(`<span class="is-read">${esc(i18t('th_read'))}</span>`);
     else if(running&&(!_docThreadOnly||_docThreadOnly.has(i)))
       parts.push(`<span class="is-wait">${window.busyHtml?busyHtml(i18t('ct_read_reading')):esc(i18t('ct_read_reading'))}</span>`);
@@ -15970,7 +15972,7 @@ async function docAiRead(c,action,text){
        stays the one composer. */
     aiPush('assistant',{text:'What would you like to know about this passage? Ask in your own words — I’ll answer about exactly the wording you highlighted, read against the rest of this contract.'});
     renderAIFeed();
-    const inp=document.getElementById('ai-input');
+    const inp=window.aiEl?aiEl('ai-input'):document.getElementById('ai-input');
     if(inp){ try{ inp.focus({preventScroll:true}); }catch(_){ try{ inp.focus(); }catch(_2){} } }
     return;
   }

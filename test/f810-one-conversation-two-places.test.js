@@ -41,8 +41,10 @@ const page = ({ listShown = true, listThere = true } = {}) => {
   if (listThere) els['jl-feed'] = el('jl-feed', box);
   return { els, document: { getElementById: id => els[id] || null } };
 };
-const stage = (names, extra) => { const ctx = Object.assign({ window: {} }, extra || {});
-  vm.createContext(ctx); vm.runInContext(names.map(n => fnOf(AI, n)).join('\n'), ctx); return ctx; };
+/* since Pop out (21 Oct 2026) the feed's helpers reach the panel through aiEl, and ask
+   aiPopped whether the conversation stands in its own window: neither is, here */
+const stage = (names, extra) => { const ctx = Object.assign({ window: {}, _aiPop: null }, extra || {});
+  vm.createContext(ctx); vm.runInContext(['aiPopped', 'aiEl', ...names].map(n => fnOf(AI, n)).join('\n'), ctx); return ctx; };
 
 describe('f810 (1) the feed is where the reader looks', () => {
   const names = ['aiListFeed', 'aiFeedEl'];

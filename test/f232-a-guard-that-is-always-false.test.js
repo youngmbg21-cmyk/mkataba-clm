@@ -145,6 +145,8 @@ const BROWSER = new Set([
   'devicePixelRatio', 'onerror', 'onbeforeunload', 'getSelection', 'btoa', 'atob',
   'isSecureContext', 'visualViewport', 'speechSynthesis', 'indexedDB',
   'frameElement', 'closed', 'focus', 'blur', 'postMessage', 'showOpenFilePicker',
+  /* Document Picture-in-Picture (Chrome, Edge): Jambo's Pop out, js/ai.js aiPopOut, 21 Oct 2026 */
+  'documentPictureInPicture',
   /* CamelCase browser furniture, which only became visible when this sweep
      stopped starting its pattern at [a-z] — see readThroughWindow. */
   'CSS', 'MutationObserver', 'ResizeObserver', 'IntersectionObserver',
