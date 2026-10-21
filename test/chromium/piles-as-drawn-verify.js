@@ -11,7 +11,8 @@
      2 the column's head as drawn: "Redlines N" where N is the rows in sight,
        "Notes 2", "Here now" with the faces of who is on it, "Round 2 ·
        their asks came 4 days ago", "Send all · 1 not sent", "Ask for review"
-     3 each pile is a box with its head: "Waiting on you" first, "Lina
+     3 each pile with its head, UNBOXED since "The Brief" (owner, 21 Oct
+       2026: nothing boxed inside Jambo's panel): "Waiting on you" first, "Lina
        suggests", "Your drafts, not yet sent", "Settled in round 1" folded
      4 a row: the name and when ("Anna H. · 4 days ago", "You ·
        today"), "2 notes", the changed words cut around the edit with their
@@ -194,7 +195,7 @@ async function login(b, base, email, pass, errs){
     }));
     const order = piles.map(p => p.band);
     check('3a the piles in order: waiting on you, Lina suggests, our drafts, settled', order.slice(0, 4).join() === 'awaiting,suggest,drafts,accepted', order.join());
-    check('3b each pile a box with a line round it', piles.length >= 4 && piles.every(p => p.boxed), JSON.stringify(piles.map(p => [p.band, p.boxed])));
+    check('3b each pile drawn without a box (The Brief)', piles.length >= 4 && piles.every(p => !p.boxed), JSON.stringify(piles.map(p => [p.band, p.boxed])));
     const ph = Object.fromEntries(piles.map(p => [p.band, p.head]));
     check('3c the heads say it: "Waiting on you 2", "Lina suggests 1", "Your drafts, not yet sent 1", "Settled in round 1 6"',
       /^Waiting on you 2$/.test(ph.awaiting || '') && /^Lina suggests 1$/.test(ph.suggest || '') && /^Your drafts, not yet sent 1$/.test(ph.drafts || '') && /^Settled in round 1 6/.test(ph.accepted || ''), JSON.stringify(ph));
