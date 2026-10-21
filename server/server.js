@@ -11300,7 +11300,7 @@ function dealPageHtml(D, org) {
       + (i === 0 ? '' : '');
   const fact = (k, v) => `<td style="padding:0 28px 0 0;vertical-align:top">
     <div style="font-size:12px;font-weight:500;color:#5E5A51;margin-bottom:2px">${e(k)}</div>
-    <div style="font-size:15px;font-weight:600;color:#161512">${e(v)}</div></td>`;
+    <div style="font-size:15px;font-weight:600;color:#161512;white-space:nowrap">${e(v)}</div></td>`;
   const clauseOf = p => (p && p.clause) || 'a clause';
   /* THE SHARED SHEET (4 Oct 2026): one row of facts — the round, how much is
      settled, what waits on each party — in place of "Whose move — X for 0 days". */
