@@ -3724,6 +3724,9 @@ function pdKtFacts(c){
     }
     let cell = null; try { cell = (typeof ktFieldCell === 'function') ? ktFieldCell(c, k, false, null) : null; } catch (_){ cell = null; }
     if (!cell) return;
+    /* THE OTHER PARTY IS THE RECORD'S c.counterparty (its box data-kt, as Still owed asks it), never a
+       metadata copy: the sheet's box (data-ktm) opened empty over a recorded name and wrote beside it */
+    if (k === 'counterparty'){ rows.push({ key: k, kind: 'kt', label: String(cell[0] || '').replace(/<[^>]*>/g, ''), html: String(cell[1] || '').trim() || '—', value: c.counterparty || '' }); return; }
     rows.push({ key: k, kind: 'ktm', label: String(cell[0] || '').replace(/<[^>]*>/g, ''), html: String(cell[1] || '').trim() || '—' });
   });
   /* the paper's own answered questions, after the record's terms */
