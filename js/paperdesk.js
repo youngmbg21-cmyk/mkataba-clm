@@ -3275,7 +3275,9 @@ function dossierRead(c){
   const bd = (c && ((c._brief && c._brief.data) || (c._briefLite && c._briefLite.data))) || null;
   const brief = String((bd && bd.overview) || '').trim();
   let risks = null;
-  try { if (c.scan && typeof riskOpenOf === 'function') { const L = riskOpenOf(c); risks = { n: L.length, titles: L.slice(0, 3).map(it => (typeof riskTitleOf === 'function') ? riskTitleOf(it) : '').filter(Boolean) }; } } catch (_){ risks = null; }
+  /* THE BOARD'S COUNT, HERE TOO (21 Oct 2026): riskOpenOf holds the brief's watch-outs as well as the scan's
+     findings, so a brief that already names some is counted — never "not read yet" beside them */
+  try { if (typeof riskOpenOf === 'function') { const L = riskOpenOf(c); if (c.scan || L.length) risks = { n: L.length, titles: L.slice(0, 3).map(it => (typeof riskTitleOf === 'function') ? riskTitleOf(it) : '').filter(Boolean) }; } } catch (_){ risks = null; }
   let mayScan = false; try { mayScan = !c.scan && typeof runScanFor === 'function' && (typeof riskMayAct !== 'function' || riskMayAct(c, {})) && (typeof canEdit !== 'function' || canEdit()); } catch (_){ mayScan = false; }
   let std = null; try { std = (typeof deviationSummary === 'function') ? deviationSummary(c) : null; } catch (_){ std = null; }
   let found = []; try { found = (typeof triageHeldObligations === 'function') ? (triageHeldObligations(c) || []) : []; } catch (_){ found = []; }
@@ -3369,7 +3371,9 @@ function dossierReadHtml(c, D){
   if (R.std){ const s = R.std, off = s.dev + s.miss, met = Math.max(0, s.total - off);
     rows.push(s.ok && s.complete ? row('std', ok, _pdT('dos_k_std_all'), '', dossierGo('data-pd-ds-std', _pdT('dos_go_open')))
       : row('std', `<b>${met}/${s.total}</b>`, _pdT('dos_k_std'), off ? _pdTn('dos_std_off', off, { n: off }) : '', dossierGo('data-pd-ds-std', _pdT('dos_go_open')))); }
-  if (R.obl){ const o = R.obl;
+  /* nothing waiting in the reading but some on the record: the row counts the record's, never "0 found · N recorded" */
+  if (R.obl && !R.obl.found) rows.push(row('oblig', `<b>${R.obl.recorded}</b>`, _pdT('tab_obligations'), '', dossierGo('data-pd-glance-tab="oblig"', _pdT('dos_go_open'))));
+  else if (R.obl){ const o = R.obl;
     rows.push(row('oblig', `<b>${o.found}</b>`, _pdT('dos_k_obl'), o.recorded ? _pdT('dos_k_obl_rec', { r: o.recorded }) : _pdT('dos_k_obl_none'), o.left ? dossierGo('data-pd-ds-obl', _pdT('dos_go_review')) : dossierGo('data-pd-glance-tab="oblig"', _pdT('dos_go_open')))); }
   if (R.blanks){ const b = R.blanks;
     rows.push(row('blanks', `<b>${b.total}</b>`, _pdT('dos_k_blanks'), _pdT('dos_k_blanks_f', { f: b.filled }), b.filled < b.total ? dossierGo('data-pd-ds-fill=""', _pdT('dos_go_fill')) : '')); }

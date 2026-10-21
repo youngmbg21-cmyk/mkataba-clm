@@ -181,6 +181,18 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     check('2e the risks not read yet, in What Jambo read: "free" said before the press, and Read it (the owner\'s answer 6)',
       !!gl.scan && gl.scan.say === 'Risks to look at · not read yet · free' && gl.scan.btn === 'Read it' && gl.scan.tip === 'Reading is free: HaTi’s own rules, no Jambo call', JSON.stringify(gl.scan));
     check('2f Still owed: the signer, then their asks', gl.order.indexOf('sign') >= 0 && gl.order.indexOf('sign') < gl.order.indexOf('ask'), gl.order.join(','));
+    /* 2g WHAT JAMBO READ SAYS WHAT THE BOARD COUNTS (21 Oct 2026): a brief that already names watch-outs is
+       counted (never "not read yet" beside them); obligations on the record with none waiting in the reading
+       are counted as the record's, never "0 found · N recorded" */
+    const g2 = await page.evaluate(async () => { const c = getContract('MK-0382'); const keep = { b: c._brief, o: c.obligations, t: c.triage };
+      c._brief = { data: { overview: 'A logistics deal.', watchouts: [{ title: 'Uncapped liability', point: 'Liability is not capped.', wording: true }] } };
+      c.obligations = [{ id: 'ob1', desc: 'Pay within 30 days' }, { id: 'ob2', desc: 'Deliver monthly' }];
+      pdGlanceRepaint(); await new Promise(r => setTimeout(r, 300));
+      const rd = k => { const r = document.querySelector(`#pd-glance [data-pd-ds="${k}"]`); return r ? { fig: r.querySelector('.ds-fig').textContent.trim(), nm: r.querySelector('.ds-nm').textContent.replace(/\s+/g, ' ').trim() } : null; };
+      const out = { risks: rd('risks'), oblig: rd('oblig'), want: riskOpenOf(c).length };
+      Object.assign(c, { _brief: keep.b, obligations: keep.o, triage: keep.t }); pdGlanceRepaint(); return out; });
+    check('2g What Jambo read counts the brief\'s watch-outs as the Board does, and the record\'s obligations without a "0 found"',
+      !!g2.risks && g2.risks.fig === String(g2.want) && g2.want >= 1 && !/not read yet/.test(g2.risks.nm) && !!g2.oblig && g2.oblig.fig === '2' && g2.oblig.nm === 'Obligations', JSON.stringify(g2));
     await shot(page, '3-panel-beside-a-paper-1440x780');
 
     console.log('\n3 · Reply');
