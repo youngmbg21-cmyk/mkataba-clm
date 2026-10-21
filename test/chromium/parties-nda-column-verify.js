@@ -12,9 +12,10 @@
          its secrecy ran out          → grey  "Ended" / "<month year>"
          only a draft NDA             → grey  "Not signed yet"
          no NDA at all                → "None"
-     2 a labelled filter box "NDA" in the band: In force · Not confirmed ·
-       None in force, each leaving exactly its parties, the foot counting the
-       same; a refresh keeps it
+     2 a filter "NDA" (RE-POINTED 21 Oct 2026, Part 8, the list head the
+       Legora way: under "+ Filter", a chip once chosen): In force · Not
+       confirmed · None in force, each leaving exactly its parties, the lit
+       tab and the foot counting the same; a refresh keeps it
      3 the party's panel repeats it as a sentence, with the door to the NDA:
        pressing it brings up that NDA's life line on the Board, where its
        Secret until tile is confirmed; a signed NDA nobody confirmed says so
@@ -102,16 +103,26 @@ CONTRACTS.forEach(c => { if (!c.nda && c.id.startsWith('MK-')) c.expiry = day(40
     const gvBg = (R['givaudan east africa'] || {}).dot || '', saBg = (R['sap east africa'] || {}).dot || '';
     ok('1h the pills are painted, green and amber apart', !!gvBg && gvBg !== 'rgba(0, 0, 0, 0)' && !!saBg && saBg !== 'rgba(0, 0, 0, 0)' && gvBg !== saBg, gvBg + ' / ' + saBg);
 
-    console.log('\n2 · a labelled filter finds the gaps');
+    console.log('\n2 · a filter finds the gaps');
+    /* RE-POINTED 21 Oct 2026 (Part 8, the list head the Legora way): the NDA
+       filter waits under "+ Filter" beside Stream and Owner, each choice
+       counted; once chosen it is a chip whose own list re-chooses, its ×
+       returns it to rest */
     const box = await page.evaluate(() => {
-      const s = document.querySelector('select[data-cu-f="nda"]');
-      const lab = s && s.closest('.reg-f');
-      return s ? { label: ((lab && lab.querySelector('.reg-f-l')) || {}).textContent || '', opts: [...s.options].map(o => o.textContent.trim()) } : null;
+      const g = [...document.querySelectorAll('[data-lh-seat="customers"] select[data-lh-add] optgroup')];
+      const nda = g.find(x => x.getAttribute('label') === 'NDA');
+      return nda ? { groups: g.map(x => x.getAttribute('label')), opts: [...nda.querySelectorAll('option')].map(o => o.textContent.replace(/\s*\(\d+\)$/, '').trim()) } : null;
     });
-    ok('2a a box labelled NDA beside Stream and Owner: Any · In force · Not confirmed · None in force', !!box && box.label.trim() === 'NDA' && box.opts.join(' · ') === 'Any · In force · Not confirmed · None in force', JSON.stringify(box));
+    ok('2a "+ Filter" offers NDA beside Stream and Owner: In force · Not confirmed · None in force', !!box && box.groups.join(' · ') === 'Stream · Owner · NDA' && box.opts.join(' · ') === 'In force · Not confirmed · None in force', JSON.stringify(box));
     const pick = async v => {
-      const done = await page.evaluate(v => { const s = document.querySelector('select[data-cu-f="nda"]'); if (!s) return false; s.value = v; s.dispatchEvent(new Event('change', { bubbles: true })); return true; }, v);
-      if (done) await page.waitForFunction(v => { const s = document.querySelector('select[data-cu-f="nda"]'); return !!s && s.value === v; }, v, { timeout: 4000 }).catch(() => {});
+      const done = await page.evaluate(v => {
+        const chip = document.querySelector('[data-lh-seat="customers"] select[data-lh-f="nda"]');
+        if (v === 'all'){ const x = document.querySelector('[data-lh-seat="customers"] [data-lh-x="nda"]'); if (x) x.click(); return true; }
+        if (chip){ chip.value = v; chip.dispatchEvent(new Event('change', { bubbles: true })); return true; }
+        const add = document.querySelector('[data-lh-seat="customers"] select[data-lh-add]'); if (!add) return false;
+        const o = [...add.options].find(x => x.value === JSON.stringify(['nda', v])); if (!o) return false;
+        add.value = o.value; add.dispatchEvent(new Event('change', { bubbles: true })); return true; }, v);
+      if (done) await page.waitForFunction(v => { const s = document.querySelector('[data-lh-seat="customers"] select[data-lh-f="nda"]'); return v === 'all' ? !s : (!!s && s.value === v); }, v, { timeout: 4000 }).catch(() => {});
       return done;
     };
     const keys = async () => Object.keys((await readList()).rows).sort().join(', ');
@@ -121,8 +132,9 @@ CONTRACTS.forEach(c => { if (!c.nda && c.id.startsWith('MK-')) c.expiry = day(40
       /* RE-POINTED 19 Oct 2026 (lane A2, round 19 as drawn): the card's head
          counts the rows ("Parties 2"), the foot how many of them are drawn */
       /* RE-POINTED 21 Oct 2026 (Part 8): the foot is the list head's one foot, "1–2 of 2" */
-      ok('2c …and the list counts the same: "Parties 2", "1–2 of 2"', /^1–2 of 2/.test((await readList()).foot)
-        && await page.evaluate(() => (document.querySelector('.cu-card .ap-card-n') || {}).textContent) === '2', (await readList()).foot);
+      /* (Part 8) the list's count is the lit tab's number */
+      ok('2c …and the list counts the same: "Live 2", "1–2 of 2"', /^1–2 of 2/.test((await readList()).foot)
+        && await page.evaluate(() => (document.querySelector('[data-lh-seat="customers"] [role="tab"][aria-selected="true"] .n') || {}).textContent) === '2', (await readList()).foot);
       await pick('unconfirmed');
       ok('2d Not confirmed leaves SAP East Africa', (await keys()) === 'sap east africa', await keys());
       await pick('none');
@@ -131,7 +143,7 @@ CONTRACTS.forEach(c => { if (!c.nda && c.id.startsWith('MK-')) c.expiry = day(40
       await page.reload({ waitUntil: 'networkidle' });
       await page.waitForFunction(() => !!document.querySelector('[data-cu-screen="list"] tr[data-cu-cust]'), null, { timeout: 10000 }).catch(() => {});
       ok('2f a refresh keeps it', (await keys()) === 'carrefour kenya, kabras sugar, krones east africa'
-        && await page.evaluate(() => (document.querySelector('select[data-cu-f="nda"]') || {}).value) === 'none', await keys());
+        && await page.evaluate(() => (document.querySelector('[data-lh-seat="customers"] select[data-lh-f="nda"]') || {}).value) === 'none', await keys());
       await pick('all');
     } else ['2b', '2c', '2d', '2e', '2f'].forEach(n => ok(n + ' (no NDA filter to choose from)', false));
 
@@ -184,7 +196,8 @@ CONTRACTS.forEach(c => { if (!c.nda && c.id.startsWith('MK-')) c.expiry = day(40
       head: [...document.querySelectorAll('.cu-table thead th')].filter(th => th.scrollWidth > th.clientWidth + 1).map(th => th.textContent.trim()),
       pills: [...document.querySelectorAll('.cu-table .cu-nda, .cu-table .cu-nda-sub, .cu-table td:not(:first-child)')].filter(p => p.scrollWidth > p.clientWidth + 1).map(p => p.textContent.trim()),
       words: [...document.querySelectorAll('.cu-table .cu-nda')].map(p => p.textContent.trim()).sort().join(', '),
-      box: !!document.querySelector('select[data-cu-f="nda"]') }));
+      /* (Part 8) the NDA filter is still offered, under + Filter */
+      box: [...document.querySelectorAll('[data-lh-seat="customers"] select[data-lh-add] option')].some(o => o.value.indexOf('["nda"') === 0) }));
     ok('5 Swedish: no head and no NDA word cut, the box still there', sv.box && !sv.head.length && !sv.pills.length && /Ömsesidigt/.test(sv.words) && /Inte bekräftat/.test(sv.words), JSON.stringify(sv));
     if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/parties-sv-1536x730.png` });
     await page.evaluate(() => { if (typeof langSet === 'function') langSet('en'); });

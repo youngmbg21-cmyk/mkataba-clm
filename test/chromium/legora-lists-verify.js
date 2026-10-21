@@ -560,11 +560,15 @@ function pageKit(){
       await boxClear();
       await until(([c, n]) => window.__lh.total(c) === n ? true : null, [cfg, before.total], 4000);
     } else note(`${tag(d)} 7e no row here names Visa, so "Visa" is not tried`, JSON.stringify(visa));
-    /* a question does not narrow; Enter hands it to the page's own Jambo */
+    /* a question does not narrow; Enter hands it to the page's own Jambo.
+       Measured against the rows drawn at rest just before it is typed: words
+       typed and cleared above put a paged list back on its first page (Show
+       more pressed earlier is not kept), which is no narrowing by the question */
+    const rest = await ev(c => window.__lh.rows(c), cfg);
     await boxFocus(); await page.keyboard.type(QUESTION);
     const held = await until(([c, n, q]) => { const b = window.__lh.box(); return b && b.value === q && window.__lh.total(c) === n ? true : null; }, [cfg, before.total, QUESTION], 4000);
     const qn = await ev(c => ({ total: window.__lh.total(c), rows: window.__lh.rows(c), focus: document.activeElement === window.__lh.box() }), cfg);
-    check(`${tag(d)} 7f "${QUESTION}" does not narrow the list, the caret kept`, !!held && qn.rows === before.rows && qn.focus, JSON.stringify({ before: before.total, now: qn }));
+    check(`${tag(d)} 7f "${QUESTION}" does not narrow the list, the caret kept`, !!held && qn.rows === rest && qn.focus, JSON.stringify({ before: before.total, rest, now: qn }));
     const asked0 = await ev(q => window.__lh.asked(q), QUESTION);
     await page.keyboard.press('Enter');
     const went = await until(([q, n]) => window.__lh.asked(q) > n ? true : null, [QUESTION, asked0], 10000);

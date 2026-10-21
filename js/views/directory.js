@@ -321,6 +321,8 @@ function dirOpenParty(key){
   _dir.tab = 'all'; _dir.q = ''; _dir.hati = 'all'; _dir.stream = 'all'; _dir.shown = 0;
   _dir.party = key ? String(key) : 'all';
   if (typeof setView === 'function') setView('directory'); else renderDirectory();
+  /* the list head's box shows the words this door cleared (a question left in it goes) */
+  _dCall('lhBoxSet', DIR_SEAT);
   _dCall('placeSave');
 }
 /* ONE PERSON FROM ELSEWHERE (the Parties panel's "People at …"): the table
@@ -334,6 +336,7 @@ function dirOpenPerson(key){
   _dir.shown = at >= 0 ? Math.max(DIR_PAGE, at + 1) : 0;
   if (typeof insSelect === 'function') insSelect(DIR_SEAT, key);
   if (typeof state !== 'undefined' && state.view !== 'directory' && typeof setView === 'function') setView('directory'); else renderDirectory();
+  _dCall('lhBoxSet', DIR_SEAT);
   _dCall('placeSave');
   const q = (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(String(key)) : String(key).replace(/"/g, '\\"');
   if (typeof landOn === 'function') landOn(`#dir-tbody [data-dir-row="${q}"]`, { focus: false });
@@ -379,15 +382,15 @@ function dirAwayPillHtml(p){
   const ic = (typeof icon === 'function') ? icon('clock', 'ap-for-ic') : '';
   return ` <span class="dir-away">${ic}${_dE(i18t('jl_away_until', { day: (typeof jlDayWord === 'function') ? jlDayWord(aw.to, true) : aw.to }))}</span>`;
 }
-/* the table's columns after the name, in the drawing's order */
+/* the table's columns after the name, as drawn (Part 8, the owner's pick of
+   "The Legora way", 21 Oct 2026): Name · Party · Contracts. The side is the
+   tabs, the job title and the role here stand under the name, and the
+   address is the person's panel's (its Email row and Email button) — round
+   19's Side, Job title, In HaTi and Email columns went with the band. */
 function dirColDefs(){
   return [
-    { k: 'side', label: i18t('dir_col_side'), w: 66 },
-    { k: 'party', label: i18t('dir_col_party'), w: 160 },
-    { k: 'title', label: i18t('dir_col_title'), w: 144 },
-    { k: 'hati', label: i18t('dir_col_hati'), w: 114 },
+    { k: 'party', label: i18t('dir_col_party'), w: 220 },
     { k: 'contracts', label: i18t('dir_col_contracts'), r: 1, w: 92 },
-    { k: 'email', label: i18t('dir_col_email'), w: 168 },
   ];
 }
 function dirOurParty(){
@@ -399,23 +402,33 @@ function dirOurParty(){
    address each say so") */
 function dirNone(word){ return word ? `<span class="dir-none" title="${_dE(word)}" aria-label="${_dE(word)}">—</span>` : `<span class="dir-none">—</span>`; }
 function dirCellHtml(k, p){
-  if (k === 'side') return `<td class="dir-td-cut dir-td-wrap"><span class="dir-clamp">${_dE(p.side === 'ours' ? i18t('dir_side_ours') : p.side === 'theirs' ? i18t('dir_side_theirs') : i18t('dir_tab_none'))}</span></td>`;
   if (k === 'party'){ const v = p.side === 'ours' ? dirOurParty() : p.side === 'theirs' ? p.partyName : ''; return `<td class="dir-td-cut dir-td-wrap"${v ? ` title="${_dE(v)}"` : ''}>${v ? `<span class="dir-clamp">${_dE(v)}</span>` : dirNone(p.side === 'none' ? i18t('dir_imported') : '')}</td>`; }
-  if (k === 'title') return `<td class="dir-td-cut dir-td-wrap"${p.title ? ` title="${_dE(p.title)}"` : ''}>${p.title ? `<span class="dir-clamp">${_dE(p.title)}</span>` : dirNone(i18t('dir_no_title'))}</td>`;
-  /* the role, said where a colleague has one here (D-2: who is an admin is stated) */
-  if (k === 'hati') return `<td class="dir-role dir-td-cut dir-td-wrap">${p.side === 'ours' && p.hati ? `<span class="dir-clamp">${_dE(p.hati)}</span>` : dirNone('')}</td>`;
   if (k === 'contracts') return `<td class="n">${p.contracts.length ? p.contracts.length : dirNone(i18t('dir_no_contracts'))}</td>`;
-  if (k === 'email') return `<td class="dir-td-cut dir-td-wrap dir-mail">${p.email ? `<a class="dir-clamp" href="mailto:${_dE(p.email)}" title="${_dE(p.email)}">${_dE(p.email).replace('@', '@<wbr>')}</a>` : dirNone(i18t('dir_no_email'))}</td>`;
   return '<td></td>';
+}
+/* THE LINE UNDER THE NAME, AS DRAWN ("COO · Editor", "Supply Chain
+   Director"): the job title, and for a colleague their role here (D-2: who
+   is an admin is stated). A missing title says so in the one grey, in the
+   phone's own words, and the role still follows it (f202: an absence
+   describes one person alike on both shells). */
+function dirSubHtml(p){
+  const title = p.title ? `<span class="dir-title">${_dE(p.title)}</span>` : `<span class="dir-none dir-title">${_dE(i18t('dir_no_title'))}</span>`;
+  const role = p.side === 'ours' && p.hati ? ` · <span class="dir-role">${_dE(p.hati)}</span>` : '';
+  return `<span class="dir-sub">${title}${role}</span>`;
 }
 /* ONE PERSON, ONE ROW. The hooks the phone and the tests share are kept:
    [data-dir-row] is the person, .dir-name the name, .dir-you the reader's own
-   mark, .dir-mail the one link, .dir-none an absence. */
+   mark, .dir-role their role here, .dir-none an absence. The address is no
+   longer a column (the person's panel carries it, a link there); it rides
+   the name's hover, so the row still says whose it is. A space parts the
+   initials, the name and the line under it (flex draws none), so the row's
+   words read "AO Amina Okafor Head of Legal", never "AOAmina". */
 function dirRowHtml(p, keys){
   const ini = _dE(dirInitials(p.name || p.email));
   const you = p.you ? ` <span class="dir-you">${_dE(i18t('dir_you_paren'))}</span>` : '';
+  const hover = [p.name, p.email].filter(Boolean).join(' · ');
   return `<tr data-dir-row="${_dE(p.key)}" data-dir-letter="${_dE(dirLetterOf(p))}" tabindex="-1">
-    <td><span class="dir-nm"><span class="dir-tav" aria-hidden="true">${ini}</span><span class="dir-nm-w" title="${_dE(p.name || p.email || '')}"><span class="dir-name">${_dE(p.name || p.email || '—')}</span>${you}</span>${dirAwayPillHtml(p)}</span></td>
+    <td><span class="dir-nm"><span class="dir-tav" aria-hidden="true">${ini}</span> <span class="dir-nm-w" title="${_dE(hover)}"><span class="dir-nm-l"><span class="dir-name">${_dE(p.name || p.email || '—')}</span>${you}${dirAwayPillHtml(p)}</span> ${dirSubHtml(p)}</span></span></td>
     ${keys.map(k => dirCellHtml(k, p)).join('')}
   </tr>`;
 }
@@ -425,44 +438,44 @@ function dirPartNote(){
   const total = Number(state.serverStats.total), have = state.contracts.length;
   return total <= have ? '' : i18t('cu_part_book', { have, total });
 }
-/* THE BAND'S FILTERS AS DRAWN (round 19's People scene): each box's word
-   above it — Name, email or party · Side · Party · Role in HaTi · Stream — the
-   Parties page's own boxes (cuChip, cuFindHtml). A box lists only choices
-   that hold somebody. */
-function dirFilterBarHtml(book){
-  const chip = o => (typeof cuChip === 'function') ? cuChip(o) : '';
+/* THE LIST HEAD'S FILTERS (Part 8, the Legora way): Party, Role in HaTi and
+   Stream, each a chip once a reader adds it ("+ Filter"), each choice counted
+   with the rows it leaves behind the tab that is lit and every other chip
+   held (dirTabCount, the tabs' own reading) — a choice that leaves nobody is
+   not offered, so Party never is on Ours and Role in HaTi never on Theirs.
+   The side is the tabs, the find box the head's one box. */
+function dirHeadFilters(book){
   const loc = _dLoc();
-  const partyOpts = [...new Map(book.filter(p => p.partyKey).map(p => [p.partyKey, p.partyName])).entries()]
-    .sort((a, b) => a[1].localeCompare(b[1], loc, { sensitivity: 'base' }));
-  const sideOpts = DIR_TABS.filter(k => k === 'all' || k === _dir.tab || book.some(p => p.side === k)).map(k => [k, i18t('dir_tab_' + k)]);
+  const n = (k, v) => dirTabCount(book, _dir.tab, Object.assign({}, _dir, { [k]: v }));
+  const byName = (a, b) => a[1].localeCompare(b[1], loc, { sensitivity: 'base' });
+  const partyOpts = [...new Map(book.filter(p => p.partyKey).map(p => [p.partyKey, p.partyName])).entries()].sort(byName);
   const hatiOpts = ['admin', 'legal', 'viewer'].filter(k => k === _dir.hati || book.some(p => p.side === 'ours' && p.role === k)).map(k => [k, dirRoleName(k)]);
-  const streamOpts = [...new Set(book.flatMap(p => p.streams))].map(f => [f, dirStreamName(f)]).filter(x => x[1])
-    .sort((a, b) => a[1].localeCompare(b[1], loc, { sensitivity: 'base' }));
-  const find = (typeof cuFindHtml === 'function') ? cuFindHtml({ id: 'dir-q', label: i18t('dir_find_ph'), ph: i18t('dir_find_type'), q: _dir.q })
-    : `<label class="dir-find"><input id="dir-q" type="search" autocomplete="off" placeholder="${_dE(i18t('dir_find_ph'))}" value="${_dE(_dir.q)}"></label>`;
-  return `<div class="reg-filterbar reg-fb cu-fb">
-    ${find}
-    ${chip({ label: i18t('dir_f_side'), attr: 'data-dir-f', key: 'tab', cur: _dir.tab, def: 'all', opts: sideOpts })}
-    ${chip({ label: i18t('dir_f_party'), attr: 'data-dir-f', key: 'party', cur: _dir.party, def: 'all', opts: [['all', i18t('dir_all_parties')], ...partyOpts] })}
-    ${chip({ label: i18t('dir_f_hati'), attr: 'data-dir-f', key: 'hati', cur: _dir.hati, def: 'all', opts: [['all', i18t('dir_any_role')], ...hatiOpts] })}
-    ${chip({ label: i18t('reg_chip_stream'), title: i18t('reg_value_stream'), attr: 'data-dir-f', key: 'stream', cur: _dir.stream, def: 'all', opts: [['all', i18t('cu_all_streams')], ...streamOpts] })}
-  </div>`;
+  const streamOpts = [...new Set(book.flatMap(p => p.streams))].map(f => [f, dirStreamName(f)]).filter(x => x[1]).sort(byName);
+  return [
+    { k: 'party', label: i18t('dir_f_party'), cur: _dir.party, def: 'all', opts: partyOpts.map(([v, l]) => [v, l, n('party', v)]) },
+    { k: 'hati', label: i18t('dir_f_hati'), cur: _dir.hati, def: 'all', opts: hatiOpts.map(([v, l]) => [v, l, n('hati', v)]) },
+    { k: 'stream', label: i18t('reg_chip_stream'), title: i18t('reg_value_stream'), cur: _dir.stream, def: 'all', opts: streamOpts.map(([v, l]) => [v, l, n('stream', v)]) },
+  ];
 }
-/* The band: the page's name and its count, "9 of ours · 37 at 31 parties",
-   then the filters under a hairline — the Parties page's own head */
-function dirBandHtml(book){
+/* THE HEAD, THE LEGORA WAY (Part 8, the owner's pick, 21 Oct 2026): the page's
+   name and its count, "9 of ours · 37 at 31 parties", "Manage in Settings ›"
+   at its right for an admin; then the list head's one box, the sides as tabs
+   (Everyone · Ours · Theirs, and Not on a contract where somebody is) and the
+   filters a reader added as chips. Round 19's labelled band (each word above
+   its box: Name, email or party · Side · Party · Role in HaTi · Stream) and
+   the card's own head went with it. */
+function dirHeadHtml(book){
+  const admin = _dCall('isAdmin') === true;
+  const ic = n => (typeof icon === 'function') ? icon(n, 'w-3.5 h-3.5') : '';
   const ours = book.filter(p => p.side === 'ours').length, theirs = book.filter(p => p.side === 'theirs').length;
   const parties = new Set(book.map(p => p.partyKey).filter(Boolean)).size;
   const loc = (typeof jxLocale === 'function') ? jxLocale() : undefined;
   const sub = [i18t('dir_n_ours', { n: ours }), theirs ? i18tn('dir_head_theirs', parties, { n: theirs, p: parties }) : ''].filter(Boolean).join(' · ');
-  return `<div class="sap-band ph-card">
-    <div class="cu-head dir-head ph-top"><div class="cu-hl"><h1 class="cu-t dir-t">${_dE(i18t('nav_directory'))}<span class="cu-tn">${_dE(Number(book.length).toLocaleString(loc))}</span></h1><span class="cu-hs page-facts">${_dE(sub)}</span></div></div>
-    ${dirFilterBarHtml(book)}
-  </div>`;
+  const top = `<div class="cu-head dir-head ph-top"><div class="cu-hl"><h1 class="cu-t dir-t">${_dE(i18t('nav_directory'))}<span class="cu-tn">${_dE(Number(book.length).toLocaleString(loc))}</span></h1><span class="cu-hs page-facts">${_dE(sub)}</span></div>${
+    admin ? `<div class="cu-acts"><button type="button" id="dir-manage" class="ui-link">${_dE(i18t('dir_manage_settings'))}${ic('chevR')}</button></div>` : ''}</div>`;
+  return (typeof lhHtml === 'function') ? lhHtml(DIR_SEAT, { frame: 'card', top }) : `<div class="sap-band ph-card">${top}</div>`;
 }
 function dirCardHtml(rows, book){
-  const admin = _dCall('isAdmin') === true;
-  const ic = n => (typeof icon === 'function') ? icon(n, 'w-3.5 h-3.5') : '';
   /* "There is nothing here" wears the product's one shape (emptyStateHtml,
      f238); nobody matching a search is the same shape with the search's
      own sentence. */
@@ -477,27 +490,70 @@ function dirCardHtml(rows, book){
   const shown = Math.min(rows.length, Math.max(_dir.shown || DIR_PAGE, at + 1));
   const cols = dirColDefs(), byK = Object.fromEntries(cols.map(c => [c.k, c]));
   const keys = (typeof lcShown === 'function') ? lcShown(DIR_SEAT, cols.map(c => c.k)) : cols.map(c => c.k);
-  const head = [{ t: i18t('dir_col_name') }, ...keys.map(k => Object.assign({ t: byK[k].label }, byK[k]))];
+  /* how the list is sorted rides the Name column's head (round 19 said it on
+     the card's own head, which the list head the Legora way replaced) */
+  const head = [{ t: i18t('dir_col_name'), title: i18t('dir_list_sort') }, ...keys.map(k => Object.assign({ t: byK[k].label }, byK[k]))];
   const table = rows.length
     ? `<table class="ap-table ap-ins dir-table"><colgroup>${head.map(h => `<col${h.w ? ` style="width:${h.w}px"` : ''}>`).join('')}</colgroup><thead><tr>${
-      head.map(h => `<th${h.r ? ' class="n"' : ''}${h.k ? ` data-dir-col="${_dE(h.k)}"` : ''}>${_dE(h.t)}</th>`).join('')}</tr></thead><tbody id="dir-tbody">${rows.slice(0, shown).map(p => dirRowHtml(p, keys)).join('')}</tbody></table>`
+      head.map(h => `<th${h.r ? ' class="n"' : ''}${h.k ? ` data-dir-col="${_dE(h.k)}"` : ''}${h.title ? ` title="${_dE(h.title)}"` : ''}>${_dE(h.t)}</th>`).join('')}</tr></thead><tbody id="dir-tbody">${rows.slice(0, shown).map(p => dirRowHtml(p, keys)).join('')}</tbody></table>`
     : empty;
   const foot = [rows.length && typeof lhFootHtml === 'function' ? lhFootHtml(DIR_SEAT, shown, rows.length, DIR_PAGE) : '', dirPartNote() ? `<span>${_dE(dirPartNote())}</span>` : ''].filter(Boolean).join(' ');
-  const loc = (typeof jxLocale === 'function') ? jxLocale() : undefined;
+  /* THE LIST'S CARD, THE LEGORA WAY: the table and its foot alone — the
+     count is the lit tab's, Columns stands in the head's chip row */
   return `<section class="ap-card cu-card dir-card">
-    <div class="ap-card-h cu-card-h"><h2 class="ap-card-t">${_dE(i18t('nav_directory'))} <span class="ap-card-n is-pill">${_dE(Number(rows.length).toLocaleString(loc))}</span> <span class="ap-card-m">${_dE(i18t('dir_list_sort'))}</span></h2><span class="ap-card-sp"></span>
-      ${admin ? `<button type="button" id="dir-manage" class="ui-link">${_dE(i18t('dir_manage_settings'))}${ic('chevR')}</button>` : ''}${typeof lcBtnHtml === 'function' ? lcBtnHtml(DIR_SEAT) : ''}</div>
     <div class="cu-scroll dir-scroll" id="dir-scroll" data-lc-scroll="${DIR_SEAT}">${table}</div>
     ${foot ? `<div class="ap-foot cu-foot dir-cardfoot">${foot}</div>` : ''}
   </section>`;
 }
-/* Columns and Show more, the list head's own registries (js/views/listhead.js,
-   LC_PAGES and lhRegister): the page says, at its own render, what it draws
-   and how it draws again */
+/* Columns, Show more and the head, the list head's own registries
+   (js/views/listhead.js, LC_PAGES and lhRegister): the page says, at its own
+   render, what it draws, what it counts and how it draws again — every press
+   ends in this page's own state (_dir), its own repaint and its own place
+   store */
 function dirLcReg(){
   const L = (typeof window !== 'undefined') ? window.LC_PAGES : null;
   if (L && !L[DIR_SEAT]) L[DIR_SEAT] = { cols: () => dirColDefs().map(c => ({ k: c.k, label: c.label })), repaint: () => dirRepaint() };
-  if (typeof lhRegister === 'function') lhRegister(DIR_SEAT, { more: () => { _dir.shown = Math.max(_dir.shown || DIR_PAGE, DIR_PAGE) + DIR_PAGE; dirRepaint(); } });
+  if (typeof lhRegister !== 'function') return;
+  const save = () => _dCall('placeSave');
+  lhRegister(DIR_SEAT, {
+    noun: 'people',
+    total: () => dirBook().length,
+    q: () => _dir.q,
+    setQuery: w => { _dir.q = String(w == null ? '' : w); _dir.shown = 0; dirRowsRepaint(); },
+    boxId: 'dir-q',
+    /* THE SIDES ARE THE TABS (as drawn: Everyone · Ours · Theirs), each
+       counted with the rows its press shows, the words and chips held */
+    tabAttr: 'data-dir-tab', tabsLabel: i18t('dir_tabs_label'),
+    tabs: () => { const book = dirBook();
+      return DIR_TABS.map(k => ({ k, label: i18t('dir_tab_' + k), n: dirTabCount(book, k, _dir), keep: k === 'all' })); },
+    tabNow: () => _dir.tab,
+    tab: k => { _dir.tab = DIR_TABS.includes(k) ? k : 'all'; _dir.shown = 0; dirRepaint(); save(); },
+    filters: () => dirHeadFilters(dirBook()),
+    apply: patch => {
+      Object.keys(patch || {}).forEach(k => {
+        const v = String(patch[k] == null ? '' : patch[k]);
+        if (k === 'hati') _dir.hati = ['admin', 'legal', 'viewer'].includes(v) ? v : 'all';
+        else if (k === 'party' || k === 'stream') _dir[k] = v || 'all';
+      });
+      _dir.shown = 0; dirRepaint(); save();
+    },
+    more: () => { _dir.shown = Math.max(_dir.shown || DIR_PAGE, DIR_PAGE) + DIR_PAGE; dirRepaint(); },
+  });
+}
+/* the rows alone, drawn again under the head as the words are typed (the
+   list head's setQuery): the box, its caret and the tabs are not touched */
+function dirRowsRepaint(){
+  if (typeof document === 'undefined') return;
+  const page = document.getElementById('dir-page');
+  const old = page && page.querySelector('.dir-card');
+  if (!old || (typeof state !== 'undefined' && state.view !== 'directory')){ dirRepaint(); return; }
+  const book = dirBook(), rows = dirRows(book, _dir.tab);
+  const tmp = document.createElement('div');
+  tmp.innerHTML = dirCardHtml(rows, book);
+  const card = tmp.firstElementChild;
+  if (!card){ dirRepaint(); return; }
+  old.replaceWith(card);
+  dirWireList(document.getElementById('content') || page, page.getAttribute('data-ins') === '1', book);
 }
 
 /* ---- WHAT WAITS ON A PERSON (round 19, the People scene as drawn: "Waiting
@@ -746,6 +802,7 @@ function renderDirectory(){
   const host = document.getElementById('content'); if (!host) return;
   const INS = (typeof insFits === 'function') && insFits() && typeof insPaintPanel === 'function';
   const keep = (() => { const sc = document.getElementById('dir-scroll'); return sc ? sc.scrollTop : 0; })();
+  /* the list head's box keeps its id (dir-q), so a repaint while it is typed in puts the caret back */
   const typing = document.activeElement && document.activeElement.id === 'dir-q';
   const book = dirBook();
   const rows = dirRows(book, _dir.tab);
@@ -753,28 +810,28 @@ function renderDirectory(){
   const card = dirCardHtml(rows, book);
   host.innerHTML = `<style>${(typeof window !== 'undefined' && window.CU_WHO_CSS) || ''}${DIR_CSS}</style>
   <div id="dir-page" class="view-enter sap-page ap-page dir-page${INS ? ' is-ins' : ''}" data-ins-page="directory" data-ins="${INS ? '1' : '0'}">
-    ${dirBandHtml(book)}
+    ${dirHeadHtml(book)}
     ${INS ? `<div class="ap-body is-ins dir-body">${card}<aside id="ins-panel" class="ins-panel" aria-label="${_dE(i18t('dir_panel_label'))}"></aside></div>`
       : `<div class="dir-body">${card}</div>`}
   </div>`;
   const sc = document.getElementById('dir-scroll'); if (sc && keep) sc.scrollTop = keep;
-  dirWire(host, INS, book, rows);
+  dirWire(host, INS, book);
   if (typing){ const q = document.getElementById('dir-q'); if (q){ q.focus(); const len = q.value.length; try { q.setSelectionRange(len, len); } catch (_) {} } }
   if (typeof lcPlace === 'function') lcPlace(DIR_SEAT);
   if (INS && typeof insWatchWidth === 'function') insWatchWidth();
   if (typeof setActiveNav === 'function') setActiveNav('directory');
 }
 function dirRepaint(){ if (typeof state !== 'undefined' && state.view === 'directory') renderDirectory(); }
-function dirWire(host, INS, book, rows){
+/* the head's own presses (the box, the tabs, the chips, "+ Filter", Show
+   more) are the list head's, delegated once (js/views/listhead.js); the page
+   binds only what it draws itself */
+function dirWire(host, INS, book){
   const manage = host.querySelector('#dir-manage');
   if (manage) manage.addEventListener('click', () => { if (typeof openSettingsAt === 'function') openSettingsAt('people'); });
-  host.querySelectorAll('select[data-dir-f]').forEach(s => s.addEventListener('change', () => {
-    const k = s.getAttribute('data-dir-f'); if (!['tab', 'party', 'hati', 'stream'].includes(k)) return;
-    _dir[k] = (k === 'tab' && !DIR_TABS.includes(s.value)) ? 'all' : (s.value || 'all'); _dir.shown = 0;
-    renderDirectory(); _dCall('placeSave');
-  }));
-  const q = host.querySelector('#dir-q');
-  if (q) q.addEventListener('input', () => { _dir.q = q.value; _dir.shown = 0; renderDirectory(); });
+  dirWireList(host, INS, book);
+}
+/* the list's own hands: the next page at the scroller's end, the rows and the panel */
+function dirWireList(host, INS, book){
   if (typeof lcScrollWire === 'function') lcScrollWire(host, DIR_SEAT);
   const tb = host.querySelector('#dir-tbody');
   if (!tb){ if (INS) dirPaintPanel(null, book); return; }
@@ -820,14 +877,16 @@ const DIR_CSS = `
      rather than being cut (round 19 draws them whole) */
   .dir-table td.dir-td-cut.dir-td-wrap{white-space:normal;text-overflow:clip;}
   .dir-clamp{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:1.3;overflow-wrap:break-word;}
-  .dir-mail .dir-clamp{overflow-wrap:anywhere;}
   .ap-table.dir-table :is(td,th){padding-left:12px;padding-right:12px;}
-  .dir-nm{display:flex;align-items:center;gap:4px 8px;min-width:0;flex-wrap:wrap;}
-  .dir-nm-w{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .dir-tav{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:var(--w-strong);background:transparent;color:var(--color-neutral-600);border:1px solid var(--rule-strong);}  /* outlined (Chambers, 20 Oct 2026) */
-  .dir-table .dir-name{font-weight:var(--w-label);color:var(--color-text);}
-  .dir-table .dir-mail a{color:var(--color-neutral-600);text-decoration:none;font-size:var(--t-meta);}
-  .dir-table .dir-mail a:hover{color:var(--accent-ink);text-decoration:underline;}
+  /* THE NAME CELL AS DRAWN (Part 8, the Legora way): the initials in the outlined square every list draws
+     (Contracts' and Parties' .reg-av), the name — "(you)", an away pill beside it — over the job title and
+     the role here */
+  .dir-nm{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:nowrap;}
+  .dir-nm-w{display:flex;flex-direction:column;min-width:0;flex:1 1 auto;}
+  .dir-nm-l{display:flex;align-items:center;flex-wrap:wrap;gap:2px 6px;min-width:0;}
+  .dir-tav{flex:none;width:28px;height:28px;border-radius:var(--radius);display:grid;place-items:center;font-size:11px;font-weight:var(--w-label);letter-spacing:.02em;line-height:1;background:transparent;color:var(--color-neutral-600);border:1px solid var(--rule-strong);}  /* outlined (Chambers, 20 Oct 2026) */
+  .dir-table .dir-name{font-weight:var(--w-label);color:var(--color-text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .dir-table .dir-sub{display:block;margin-top:1px;font-size:var(--t-micro);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;}
   .dir-you{font-size:var(--t-body);color:var(--color-neutral-500);margin-left:2px;font-weight:var(--w-body);}
   .dir-away{flex:none;display:inline-flex;align-items:center;gap:3px;margin-left:2px;padding:1px 7px;border-radius:999px;background:var(--st-amber-bg);color:var(--st-amber-fg);
     font-size:var(--t-micro);font-weight:var(--w-label);vertical-align:1px;white-space:nowrap;}

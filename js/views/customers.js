@@ -38,12 +38,13 @@
 
    NOTHING HERE WRITES. Read RAW — no reading here creates a negotiation. */
 
-/* Per sitting: the list's own find and filters. A refresh puts them back
+/* Per sitting: the list's own words, tab and filters (the list head's box,
+   its tabs and its chips — Part 8, the Legora way). A refresh puts them back
    through PLACE_PARTS (cuPlace / cuPlacePut). */
-/* THE LIST OPENS ON LIVE PARTIES (round 19 as drawn: "Status · Live", "Parties
-   27 · live · sorted by name"): the head still counts every party. `shown` is
-   how many rows the list draws (CU_PAGE at a time, "Show more"); `edit` the
-   party whose own facts are being typed in the panel. */
+/* THE LIST OPENS ON LIVE PARTIES (round 19 as drawn; the Live tab since Part
+   8): the title still counts every party. `shown` is how many rows the list
+   draws (CU_PAGE at a time, "Show 10 more"); `edit` the party whose own facts
+   are being typed in the panel. */
 const _cu = { stream: 'all', owner: 'all', nda: 'all', status: 'live', q: '', shown: 0, edit: null };
 const CU_PAGE = 10;
 
@@ -446,6 +447,8 @@ function cuSelectParty(key){
   _cu.shown = at >= 0 ? Math.max(CU_PAGE, at + 1) : 0;
   if (typeof insSelect === 'function') insSelect('customers', key);
   if (typeof state !== 'undefined' && state.view !== 'customers' && typeof setView === 'function') setView('customers'); else renderCustomers();
+  /* the list head's box shows the words this door cleared (a question left in it goes) */
+  if (typeof lhBoxSet === 'function') lhBoxSet('customers');
   if (typeof placeSave === 'function') placeSave();
   const q = (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(String(key)) : String(key).replace(/"/g, '\\"');
   if (typeof landOn === 'function') landOn(`#cu-tbody [data-cu-cust="${q}"]`, { focus: false });
@@ -694,49 +697,23 @@ function cuStripeHtml(id){
 }
 /* One filter box in the register's own markup (its selFilter): the word, the
    value it holds, and an invisible <select> across it — so the band's clothes
-   ("Stream: All streams") and HaTi's own list (selectMenuSweep) dress it. */
+   ("Stream: All streams") and HaTi's own list (selectMenuSweep) dress it.
+   (My notes and Requests still draw their boxes with it; Parties and People
+   draw the list head's chips since Part 8.) */
 function cuChip(o){
   const on = String(o.cur) !== String(o.def);
   const pick = ((o.opts || []).find(x => String(x[0]) === String(o.cur)) || [])[1] || '';
   return `<label class="reg-f reg-chip${on ? ' on' : ''}" title="${_cuE(o.title || o.label)}"><span class="reg-f-l">${_cuE(o.label)}</span><span class="reg-f-v">${_cuE(pick)}</span><select class="reg-chip-sel" ${o.attr}="${_cuE(o.key)}" title="${_cuE(o.title || o.label)}">${
     (o.opts || []).map(([v, l]) => `<option value="${_cuE(v)}"${String(v) === String(o.cur) ? ' selected' : ''}>${_cuE(l)}</option>`).join('')}</select></label>`;
 }
-/* THE BAND'S FILTERS AS DRAWN (round 19, "The SAP way"; the owner's "build
-   all the gaps", 18 Oct 2026, reverses the 10 Oct label inside the box for
-   this band): each box's word ABOVE it — Party name · Status · Stream · Owner
-   · NDA — under a hairline, the find box first with its glass. The boxes are
-   the register's own (cuChip); outside .reg-tabbar the band's own rule
-   (.sap-page .reg-fb .reg-chip) draws the word over the box. */
-function cuFindHtml(o){
-  const ic = (typeof icon === 'function') ? icon('search', 'w-3.5 h-3.5') : '';
-  return `<label class="cu-find"><span class="cu-find-l">${_cuE(o.label)}</span><span class="cu-find-box">${ic}<input id="${_cuE(o.id)}" type="search" autocomplete="off" placeholder="${_cuE(o.ph)}" value="${_cuE(o.q)}" aria-label="${_cuE(o.label)}"></span></label>`;
-}
-function cuFilterBarHtml(items, ndaCounts, standing){
-  const streams = [...new Set((items || []).map(c => c.folder).filter(f => f && cuStreamName(f)))]
-    .sort((a, b) => cuStreamName(a).localeCompare(cuStreamName(b)));
-  const owners = [...new Set((items || []).map(c => (typeof contractOwnerName === 'function' && contractOwnerName(c)) || '').filter(Boolean))].sort();
-  const st = standing || { live: 1, ended: 1 };
-  return `<div class="reg-filterbar reg-fb cu-fb">
-    ${cuFindHtml({ id: 'cu-q', label: i18t('cu_find_ph'), ph: i18t('cu_find_city'), q: _cu.q })}
-    ${cuChip({ label: i18t('cu_status'), attr: 'data-cu-f', key: 'status', cur: _cu.status, def: 'live',
-      opts: [...['live', 'ended'].filter(k => st[k] || _cu.status === k).map(k => [k, i18t('cu_status_' + k)]), ['all', i18t('cu_status_all')]] })}
-    ${cuChip({ label: i18t('reg_chip_stream'), title: i18t('reg_value_stream'), attr: 'data-cu-f', key: 'stream', cur: _cu.stream, def: 'all',
-      opts: [['all', i18t('cu_all_streams')], ...streams.map(f => [f, cuStreamName(f)])] })}
-    ${cuChip({ label: i18t('cu_owner'), attr: 'data-cu-f', key: 'owner', cur: _cu.owner, def: 'all',
-      opts: [['all', i18t('cu_anyone')], ...owners.map(o => [o, o])] })}
-    ${ndaCounts ? cuChip({ label: i18t('cu_col_nda'), title: i18t('cu_nda_filter_title'), attr: 'data-cu-f', key: 'nda', cur: _cu.nda, def: 'all',
-      opts: [['all', i18t('cu_nda_any')], ...['inforce', 'unconfirmed', 'none'].filter(k => ndaCounts[k] || _cu.nda === k).map(k => [k, i18t('cu_nda_f_' + k)])] }) : ''}
-  </div>`;
-}
-/* THE LIST'S CARD AS DRAWN: its name, the count in a pill, what it holds and
-   how it is sorted, and Columns at the right; the foot says how many of how
-   many are shown, and Show more */
+/* THE LIST'S CARD, THE LEGORA WAY (Part 8, the owner's pick, 21 Oct 2026):
+   the list head above carries the count (the lit tab), the views and
+   Columns, so the card is the table alone and its foot — "1–10 of 27 · Show
+   10 more". (Round 19's card head, "Parties 27 · live · sorted by name" and
+   Columns at its right, went with the labelled band.) */
 function cuCardHtml(o){
-  const loc = (typeof jxLocale === 'function') ? jxLocale() : undefined;
-  const nn = Number(o.n || 0).toLocaleString(loc);
   return `<section class="ap-card cu-card">
-    <div class="ap-card-h cu-card-h"><h2 class="ap-card-t">${_cuE(o.title)} <span class="ap-card-n is-pill">${nn}</span>${o.meta ? ` <span class="ap-card-m">${_cuE(o.meta)}</span>` : ''}</h2><span class="ap-card-sp"></span>${o.right || ''}</div>
-    <div class="cu-scroll" data-lc-scroll="${_cuE(o.seat || '')}">${o.table}</div>
+    <div class="cu-scroll"${o.id ? ` id="${_cuE(o.id)}"` : ''} data-lc-scroll="${_cuE(o.seat || '')}">${o.table}</div>
     ${o.foot ? `<div class="ap-foot cu-foot">${o.foot}</div>` : ''}
   </section>`;
 }
@@ -747,10 +724,11 @@ function cuPartFoot(){
 /* ---- THE STYLE: the Approvals page's card and table (one look for every
    inspector list), plus the page's own few rules ---- */
 /* THE CLOTHES THE TWO "WHO" LISTS SHARE (round 19: Parties and People drawn
-   alike): the head row, the filters under a hairline with each word above its
-   box, the find box, the card and its scroller and the paged foot's line.
-   One string, put on both pages. Columns' own rules moved with Columns to
-   js/views/listhead.js (Part 8, 21 Oct 2026). */
+   alike): the head's title row, the card and its scroller and the paged
+   foot's line. One string, put on both pages. Columns' own rules moved with
+   Columns to js/views/listhead.js, and the labelled band and its find box
+   went with the list head the Legora way (Part 8, 21 Oct 2026): the box, the
+   tabs and the chips are the list head's own clothes (index.html). */
 const CU_WHO_CSS = `
   /* the title at the card's top, as every page head (.ph-card, 19 Oct 2026): the row starts its items there;
      it is the card's title row (.ph-top), so the 12px and the hairline under it are the one rule every head wears */
@@ -760,22 +738,10 @@ const CU_WHO_CSS = `
   .cu-t .cu-tn{margin-left:6px;font-size:var(--t-card);font-weight:var(--w-body);color:var(--color-neutral-600);font-variant-numeric:tabular-nums;}
   .cu-hs{font-size:var(--t-meta);color:var(--color-neutral-700);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .cu-acts{display:flex;align-items:center;gap:var(--s-2);flex:none;min-height:var(--ctl-h);}
-  /* the filters under the title row's hairline (.ph-top, the one line every head card draws), each word above its box */
-  .sap-band > .cu-fb{padding:var(--s-3) 0;gap:var(--s-2) var(--s-3);}
-  /* the find box's word stands on the line the other boxes' words do (19 Oct 2026, the head card's second
-     check: it stood 4px higher): built as the register's boxes are (cuChip) — the word inline on the label's
-     own line, the box straight under it — so the two can never part */
-  .cu-find{display:block;min-width:0;}
-  .cu-find-l{font-size:var(--t-meta);color:var(--color-neutral-600);}
-  .cu-find-box{display:flex;align-items:center;gap:6px;height:var(--ctl-h);min-width:200px;padding:0 var(--s-2);border:1px solid var(--chip-edge,var(--btn-edge));border-radius:var(--radius);background:var(--color-surface);color:var(--color-neutral-500);box-sizing:border-box;}
-  .cu-find-box:focus-within{border-color:var(--color-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 25%,transparent);}
-  .cu-find-box input{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;color:var(--color-text);font:inherit;font-size:var(--t-body);padding:0;}
-  .cu-find-box input:focus-visible{outline:none;box-shadow:none;}
   .cu-body{flex:1;min-height:0;}
   .cu-card{display:flex;flex-direction:column;min-height:0;}
   .is-ins .cu-card{overflow:hidden;}
   .cu-scroll{flex:1;min-height:0;overflow:auto;}
-  .cu-card-h{position:relative;}
   /* "1–10 of 27 · Show 10 more" reads as one line at the foot's start */
   .ap-foot.cu-foot{justify-content:flex-start;gap:4px;flex-wrap:wrap;}
   .ap-foot.cu-foot .lh-range{white-space:nowrap;}
@@ -793,6 +759,10 @@ const CU_CSS = `
   .cu-table tbody tr.is-sel td:first-child{box-shadow:inset 2px 0 0 var(--accent-solid);}
   .cu-table .cu-pn{display:block;font-weight:var(--w-label);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .cu-table .cu-ps{display:block;font-size:var(--t-micro);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* the first column as drawn (Part 8, the Legora way): the party's initials in the outlined square every list
+     draws (.reg-av), the name over its line */
+  .cu-table .cu-who{display:flex;align-items:center;gap:10px;min-width:0;}
+  .cu-table .cu-who-t{display:block;min-width:0;flex:1 1 auto;}
   .cu-table td.cu-city{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .cu-stripe{display:inline-block;width:4px;height:12px;border-radius:2px;vertical-align:-1px;margin-right:7px;}
   /* the inspector table's own rule (.ap-table.ap-ins :is(td,th)) keeps every
@@ -869,6 +839,19 @@ function cuRowsOf(all, ndas){
     .filter(r => cuStatusWants(r))
     .filter(r => cuNdaWants(cuNdaOf(r.key, ndas).state, _cu.nda));
 }
+/* THE NUMBER ON A DOOR IS THE LIST BEHIND IT (Part 8, the list head the
+   Legora way): a tab's number, and each choice "+ Filter" offers, is the rows
+   the list would show with that one choice made and every other held — the
+   list's own reading (cuRowsOf), never a second copy of its rules */
+function cuRowsWith(o, all, ndas){
+  const was = {};
+  Object.keys(o || {}).forEach(k => { was[k] = _cu[k]; _cu[k] = o[k]; });
+  try { return cuRowsOf(all || cuCustomers(), ndas || cuNdaMap()); } finally { Object.assign(_cu, was); }
+}
+/* the list's views, as the Status box offered them (round 19), now the tab
+   row: All · Live · Ended; the list still opens on Live */
+const CU_TABS = ['all', 'live', 'ended'];
+const CU_NDA_KEYS = ['inforce', 'unconfirmed', 'none'];
 function cuCellHtml(k, r, v, ndas){
   if (k === 'city'){ const city = partyCityOf(r.key); return `<td class="cu-city${city ? '' : ' quiet'}"${city ? ` title="${_cuE(city)}"` : ''}>${_cuE(city || '—')}</td>`; }
   if (k === 'live') return `<td class="n${v.active.length ? '' : ' quiet'}">${v.active.length || '—'}</td>`;
@@ -885,58 +868,120 @@ function cuCellHtml(k, r, v, ndas){
   if (k === 'nda') return `<td class="cu-nda-td">${cuNdaCellHtml(cuNdaOf(r.key, ndas))}</td>`;
   return '<td></td>';
 }
-function cuListHtml(INS){
-  const book = cuBook();
-  const all = cuCustomers(book);
-  const ndas = cuNdaMap();
-  const ndaCounts = { inforce: 0, unconfirmed: 0, none: 0 };
-  const standing = { live: 0, ended: 0 };
-  all.forEach(r => { const st = cuNdaOf(r.key, ndas).state; ['inforce', 'unconfirmed', 'none'].forEach(k => { if (cuNdaWants(st, k)) ndaCounts[k]++; });
-    standing[cuStanding(r)]++; });
-  /* a status that holds nobody is not offered; the list then shows them all */
-  if (_cu.status !== 'all' && !standing[_cu.status]) _cu.status = 'all';
+/* THE LIST, ITS CARD: the table of the parties the head's words, tab and
+   chips leave, ten at a time, and the foot */
+function cuCardOf(all, ndas){
   const rows = cuRowsOf(all, ndas);
-  const money = cuMoney();
-  const activeAll = book.filter(c => cuBucket(c) === 'active');
-  const loc = (typeof jxLocale === 'function') ? jxLocale() : undefined;
-  const headSub = money ? (v => v ? i18t('cu_head_on_paper', { v }) : '')(cuMoneyWords(activeAll)) : '';
-  /* ONE PAGE AT A TIME, the cap said (round 19: "10 of 27 shown · Show
-     more"); the party in the panel is always among the rows drawn */
+  /* ONE PAGE AT A TIME, the cap said ("1–10 of 27 · Show 10 more"); the
+     party in the panel is always among the rows drawn */
   const sel = (typeof insSelected === 'function') ? insSelected('customers') : null;
   const at = sel ? rows.findIndex(r => r.key === sel) : -1;
   const shown = Math.min(rows.length, Math.max(_cu.shown || CU_PAGE, at + 1));
   const cols = cuColDefs(), keys = lcShown('customers', cols.map(c => c.k)), byK = Object.fromEntries(cols.map(c => [c.k, c]));
-  const head = [{ t: i18t('cu_col_customer') }, ...keys.map(k => ({ t: byK[k].label, r: byK[k].r, w: byK[k].w, k }))];
+  /* how the list is sorted rides the first column's head (round 19 said it
+     on the card's own head, which the list head the Legora way replaced) */
+  const head = [{ t: i18t('cu_col_customer'), title: i18t('cu_list_sort') }, ...keys.map(k => ({ t: byK[k].label, r: byK[k].r, w: byK[k].w, k }))];
   const body = rows.slice(0, shown).map(r => {
     const v = cuView(r);
     const sub = [i18tn('cu_n_agreements', v.items.length, { n: v.items.length }), cuStreamsSay(v)].filter(Boolean).join(' · ');
     return `<tr data-cu-cust="${_cuE(r.key)}" tabindex="-1">
-      <td><span class="ap-name cu-pn" title="${_cuE(r.name)}">${_cuE(r.name)}</span><span class="ap-sub cu-ps" title="${_cuE(sub)}">${_cuE(sub)}</span></td>
+      <td><span class="cu-who">${cuAvHtml(r.name)} <span class="cu-who-t"><span class="ap-name cu-pn" title="${_cuE(r.name)}">${_cuE(r.name)}</span> <span class="ap-sub cu-ps" title="${_cuE(sub)}">${_cuE(sub)}</span></span></span></td>
       ${keys.map(k => cuCellHtml(k, r, v, ndas)).join('')}
     </tr>`;
   }).join('');
   const table = rows.length
     ? `<table class="ap-table ap-ins cu-table"><colgroup>${head.map(h => `<col${h.w ? ` style="width:${h.w}px"` : ''}>`).join('')}</colgroup><thead><tr>${
-      head.map(h => `<th${h.r ? ' class="n"' : ''}${h.k ? ` data-cu-col="${_cuE(h.k)}"` : ''}>${_cuE(h.t)}</th>`).join('')}</tr></thead><tbody id="cu-tbody">${body}</tbody></table>`
+      head.map(h => `<th${h.r ? ' class="n"' : ''}${h.k ? ` data-cu-col="${_cuE(h.k)}"` : ''}${h.title ? ` title="${_cuE(h.title)}"` : ''}>${_cuE(h.t)}</th>`).join('')}</tr></thead><tbody id="cu-tbody">${body}</tbody></table>`
     : `<div class="ap-empty">${_cuE(all.length ? i18t('cu_none_match') : i18t('cu_none_yet'))}</div>`;
   const foot = rows.length ? [lhFootHtml('customers', shown, rows.length, CU_PAGE), cuPartFoot()].filter(Boolean).join('') : cuPartFoot();
-  const meta = i18t(_cu.status === 'live' ? 'cu_list_live' : _cu.status === 'ended' ? 'cu_list_ended' : 'cu_list_sort');
-  const card = cuCardHtml({ seat: 'customers', title: i18t('nav_customers'), n: rows.length, meta, right: lcBtnHtml('customers'), table, foot });
-  return `<div class="sap-band ph-card">
-      <div class="cu-head ph-top">
+  return cuCardHtml({ seat: 'customers', id: 'cu-scroll', table, foot });
+}
+function cuListHtml(INS){
+  const book = cuBook();
+  const all = cuCustomers(book);
+  const ndas = cuNdaMap();
+  const standing = { live: 0, ended: 0 };
+  all.forEach(r => { standing[cuStanding(r)]++; });
+  /* a status that holds nobody is not offered; the list then shows them all */
+  if (_cu.status !== 'all' && !standing[_cu.status]) _cu.status = 'all';
+  const money = cuMoney();
+  const activeAll = book.filter(c => cuBucket(c) === 'active');
+  const loc = (typeof jxLocale === 'function') ? jxLocale() : undefined;
+  const headSub = money ? (v => v ? i18t('cu_head_on_paper', { v }) : '')(cuMoneyWords(activeAll)) : '';
+  const card = cuCardOf(all, ndas);
+  /* THE HEAD, THE LEGORA WAY (Part 8, the owner's pick, 21 Oct 2026): the
+     title row as it was (the name and every party counted, the money on
+     paper, "+ Draft new agreement" at its right), then the list head's one
+     box, the views as tabs and the filters a reader added as chips —
+     round 19's labelled band (each word above its box) is gone */
+  const top = `<div class="cu-head ph-top">
         <div class="cu-hl"><h1 class="cu-t">${_cuE(i18t('nav_customers'))}<span class="cu-tn">${_cuE(Number(all.length).toLocaleString(loc))}</span></h1>${headSub ? `<span class="cu-hs page-facts">${_cuE(headSub)}</span>` : ''}</div>
         <div class="cu-acts"><button type="button" class="hm-primary" data-cu-draft="">${(typeof icon === 'function') ? icon('plus', 'w-3.5 h-3.5', 2) : ''} ${_cuE(i18t('home_draft_new'))}</button></div>
-      </div>
-      ${cuFilterBarHtml(book, ndaCounts, standing)}
-    </div>
+      </div>`;
+  return `${lhHtml('customers', { frame: 'card', top })}
     ${INS ? `<div class="ap-body is-ins cu-body">${card}<aside id="ins-panel" class="ins-panel" aria-label="${_cuE(i18t('ins_panel_label'))}"></aside></div>`
       : `<div class="cu-body">${card}</div>`}`;
 }
-/* Columns and Show more, the list head's own registries (js/views/listhead.js):
-   the page says, at its own render, what it draws and how it draws again */
+/* THE LIST HEAD'S FILTERS (Part 8): Stream, Owner and NDA, each a chip once
+   a reader adds it ("+ Filter"), each choice counted with the rows it leaves
+   (cuRowsWith) — a choice that leaves nobody is not offered. The choices are
+   what the book holds: every stream and owner on a party's contract, the
+   NDA's three standings. */
+function cuHeadFilters(all, ndas){
+  const book = cuBook();
+  const n = (k, v) => cuRowsWith({ [k]: v }, all, ndas).length;
+  const streams = [...new Set(book.map(c => c.folder).filter(f => f && cuStreamName(f)))]
+    .sort((a, b) => cuStreamName(a).localeCompare(cuStreamName(b)));
+  const owners = [...new Set(book.map(c => (typeof contractOwnerName === 'function' && contractOwnerName(c)) || '').filter(Boolean))].sort();
+  return [
+    { k: 'stream', label: i18t('reg_chip_stream'), title: i18t('reg_value_stream'), cur: _cu.stream, def: 'all', opts: streams.map(f => [f, cuStreamName(f), n('stream', f)]) },
+    { k: 'owner', label: i18t('cu_owner'), cur: _cu.owner, def: 'all', opts: owners.map(o => [o, o, n('owner', o)]) },
+    { k: 'nda', label: i18t('cu_col_nda'), title: i18t('cu_nda_filter_title'), cur: _cu.nda, def: 'all', opts: CU_NDA_KEYS.map(k => [k, i18t('cu_nda_f_' + k), n('nda', k)]) },
+  ];
+}
+/* the rows alone, drawn again under the head as the words are typed (the
+   list head's setQuery): the box, its caret and the tabs are not touched */
+function cuRowsRepaint(){
+  const host = (typeof document !== 'undefined') ? document.getElementById('content') : null;
+  const page = host && host.querySelector('.cu-page');
+  const old = page && page.querySelector('.cu-card');
+  if (!old || (typeof state !== 'undefined' && state.view !== 'customers')){ cuRepaint(); return; }
+  const tmp = document.createElement('div');
+  tmp.innerHTML = cuCardOf(cuCustomers(), cuNdaMap());
+  const card = tmp.firstElementChild;
+  if (!card){ cuRepaint(); return; }
+  old.replaceWith(card);
+  cuWireList(host, page.getAttribute('data-ins') === '1');
+}
+/* Columns, Show more and the head, the list head's own registries
+   (js/views/listhead.js): the page says, at its own render, what it draws,
+   what it counts and how it draws again — every press ends in this page's
+   own state (_cu), its own repaint and its own place store */
 function cuLcReg(){
   LC_PAGES.customers = { cols: () => cuColDefs().map(c => ({ k: c.k, label: c.label })), repaint: () => cuRepaint() };
-  lhRegister('customers', { more: () => { _cu.shown = Math.max(_cu.shown || CU_PAGE, CU_PAGE) + CU_PAGE; cuRepaint(); } });
+  const save = () => { if (typeof placeSave === 'function') placeSave(); };
+  lhRegister('customers', {
+    noun: 'parties',
+    total: () => cuCustomers().length,
+    q: () => _cu.q,
+    setQuery: w => { _cu.q = String(w == null ? '' : w); _cu.shown = 0; cuRowsRepaint(); },
+    boxId: 'cu-q',
+    tabAttr: 'data-cu-status', tabsLabel: i18t('cu_status'),
+    tabs: () => { const all = cuCustomers(), ndas = cuNdaMap();
+      return CU_TABS.map(k => ({ k, label: i18t('cu_status_' + k), n: cuRowsWith({ status: k }, all, ndas).length, keep: k === 'all' })); },
+    tabNow: () => _cu.status,
+    tab: k => { _cu.status = CU_TABS.includes(k) ? k : 'live'; _cu.shown = 0; cuRepaint(); save(); },
+    filters: () => cuHeadFilters(cuCustomers(), cuNdaMap()),
+    apply: patch => {
+      Object.keys(patch || {}).forEach(k => {
+        const v = String(patch[k] == null ? '' : patch[k]);
+        if (k === 'nda') _cu.nda = CU_NDA_KEYS.includes(v) ? v : 'all';
+        else if (k === 'stream' || k === 'owner') _cu[k] = v || 'all';
+      });
+      _cu.shown = 0; cuRepaint(); save();
+    },
+    more: () => { _cu.shown = Math.max(_cu.shown || CU_PAGE, CU_PAGE) + CU_PAGE; cuRepaint(); },
+  });
 }
 
 /* ---- THE PANEL: THE PARTY AS DRAWN (round 19, on Jambo's panel) ----
@@ -965,9 +1010,10 @@ function cuNextSay(v){
   return [cuDay(v.next), c && c.name].filter(Boolean).join(' · ');
 }
 /* THE PAGE IN JAMBO'S WORDS (nothing chosen): the list's own count — the
-   number the card's head says — what waits on the reader and the live
-   parties without an NDA; each chip is one of the page's own boxes. Counted,
-   no Jambo call. */
+   number the lit tab says — what waits on the reader and the live parties
+   without an NDA; each chip is one of the list head's own choices ("no NDA"
+   stands as the NDA chip, "all parties" lights the All tab). Counted, no
+   Jambo call. */
 function cuSay(){
   const all = cuCustomers(), ndas = cuNdaMap();
   const rows = cuRowsOf(all, ndas);
@@ -988,8 +1034,10 @@ function cuSay(){
 function cuPaintCustomerPanel(tb){
   const seat = 'customers';
   const idOf = r => r.getAttribute('data-cu-cust');
-  const id = insPick(seat, [...tb.querySelectorAll('[data-cu-cust]')].map(idOf));
-  insMarkRow(tb, '[data-cu-cust]', idOf, id);
+  /* no row left (the words or a chip leave nobody): the panel says the page,
+     never a party the list no longer shows */
+  const id = tb ? insPick(seat, [...tb.querySelectorAll('[data-cu-cust]')].map(idOf)) : null;
+  if (tb) insMarkRow(tb, '[data-cu-cust]', idOf, id);
   const paint = key => {
     const r = key ? cuView(cuCustomerOf(key)) : null;
     if (!r){ _cu.edit = null; insPaintPanel({ seat, c: null, item: null, empty: i18t('cu_panel_none'), jlHome: i18t('nav_customers'), jlPh: i18t('jl_ph_any'), jlSay: cuSay }); return; }
@@ -1029,6 +1077,7 @@ function cuPaintCustomerPanel(tb){
         + (r.needs.some(x => x.it.kind === 'request') ? '' : `<div class="cu-draft-with"><button type="button" class="ui-btn" data-cu-draft-with="${_cuE(r.key)}">${_cuE(i18t('cu_draft_with', { party: short }))}</button></div>`) });
   };
   paint(id);
+  if (!tb) return;
   insListWire(tb, { rowSel: '[data-cu-cust]', idOf,
     onSelect: key => { insSelect(seat, key); insMarkRow(tb, '[data-cu-cust]', idOf, key); paint(key); },
     onOpen: key => cuOpenCustomer(key) });
@@ -1138,6 +1187,7 @@ function renderCustomers(){
   const host = document.getElementById('content'); if (!host) return;
   const INS = (typeof insFits === 'function') && insFits() && typeof insPaintPanel === 'function';
   const keep = (() => { const sc = document.querySelector('.cu-scroll'); return sc ? sc.scrollTop : 0; })();
+  /* the list head's box keeps its id (cu-q), so a repaint while it is typed in puts the caret back */
   const typing = document.activeElement && document.activeElement.id === 'cu-q';
   const editing = document.activeElement && document.activeElement.closest && document.activeElement.closest('#cu-pr-form') ? document.activeElement.id : '';
   cuLcReg();
@@ -1155,16 +1205,18 @@ function renderCustomers(){
   cuRequestsLoad();
 }
 function cuRepaint(){ if (typeof state !== 'undefined' && state.view === 'customers') renderCustomers(); }
+/* the head's own presses (the box, the tabs, the chips, "+ Filter", Show
+   more) are the list head's, delegated once (js/views/listhead.js); the page
+   binds only what it draws itself */
 function cuWire(host, INS){
   host.querySelector('[data-cu-draft]')?.addEventListener('click', e => cuDraftFor(e.currentTarget.getAttribute('data-cu-draft') || ''));
-  host.querySelectorAll('select[data-cu-f]').forEach(s => s.addEventListener('change', () => {
-    const k = s.getAttribute('data-cu-f'); if (!['stream', 'owner', 'nda', 'status'].includes(k)) return;
-    _cu[k] = s.value || (k === 'status' ? 'live' : 'all'); _cu.shown = 0; renderCustomers(); if (typeof placeSave === 'function') placeSave(); }));
-  const q = host.querySelector('#cu-q');
-  if (q) q.addEventListener('input', () => { _cu.q = q.value; _cu.shown = 0; renderCustomers(); });
+  cuWireList(host, INS);
+}
+/* the list's own hands: the next page at the scroller's end, the rows and the panel */
+function cuWireList(host, INS){
   lcScrollWire(host, 'customers');
   const tb = host.querySelector('#cu-tbody');
-  if (!tb) return;
+  if (!tb){ if (INS && host.querySelector('#ins-panel')) cuPaintCustomerPanel(null); return; }
   if (INS){ cuPaintCustomerPanel(tb); return; }
   /* Narrow window: no panel, so a press opens. */
   tb.addEventListener('click', e => {
@@ -1176,11 +1228,14 @@ function cuWire(host, INS){
 Object.assign(window, { cuNeedsOf, cuNeedTitle, cuNeedsSay, cuNeedGo, cuPanelNeedsHtml, CU_NEED_DOOR, CU_NEED_LINE, cuPanelAgreementsHtml, cuNameOf, cuKeyOf, cuBook, cuBucket, cuCustomers, cuCustomerOf, cuDoorCount, cuNextEnd, cuFilterItems, cuView, cuIdsOf,
   cuNdaMap, cuNdaOf, cuNdaWants, cuNdaShort, cuOpenNda,
   cuPlace, cuPlacePut, cuOpenCustomer, cuOpenExplorer, cuDraftFor, renderCustomers, cuRepaint,
-  /* the one filter-box builder the band's clothes dress; the Directory draws its boxes with it too (13 Oct 2026) */
+  /* the one filter-box builder the band's clothes dress; My notes and Requests draw their boxes with it */
   cuChip,
   /* round 19 as drawn: a party's own facts, the party's standing, the page's
-     find box and card, and the clothes People wears too (CU_WHO_CSS; Columns
-     and the paged foot are js/views/listhead.js's since Part 8) */
+     card, and the clothes People wears too (CU_WHO_CSS; Columns, the paged
+     foot and the head's box, tabs and chips are js/views/listhead.js's since
+     Part 8) */
   cuNeedShort, cuRequestsOf, cuStanding, cuSay, cuMoveRedlines, cuOpenAgreement, cuSelectParty, cuStatusWants, partyRecordOf, partyCityOf, partyOrgNoOf, partyRecordSet, partyRecordOpen, partyCitySuggest, cuCityFromAddress, cuAddrAfterName,
-  cuSinceOf, cuShortName, cuOwnerSay, cuAgreementSub, cuPanelPeopleHtml, cuFindHtml, cuCardHtml,
+  cuSinceOf, cuShortName, cuOwnerSay, cuAgreementSub, cuPanelPeopleHtml, cuCardHtml,
+  /* the list head the Legora way (Part 8): the one reading behind every tab's number and every choice's count */
+  cuRowsWith,
   CU_WHO_CSS, CU_PAGE });

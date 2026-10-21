@@ -23,6 +23,11 @@
          None said whole, the people at the party and what they do
      (6) a colleague's request about the party waits on the reader who may
          draft — never their own, never one somebody else holds
+   RE-POINTED 21 Oct 2026 (Part 8, the owner's pick of "The Legora way",
+   reverses (1) and the card's head in (2)): the band is the list head — the
+   one box to search or ask in ("Search, or ask across 14 parties"), Status
+   as the tabs All · Live · Ended (opening on Live), Stream · Owner · NDA
+   under "+ Filter" — and the list's count is the lit tab's.
    RED AT THE PARENT (gaps/A1): labels inside, no City, no paging, no Columns,
    Status on All, none of the readings.
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -79,23 +84,28 @@ function stage(o = {}){
   return { sb, doc: win.document };
 }
 
-describe('f739 (1) the band, each word above its box', () => {
+/* RE-POINTED 21 Oct 2026 (Part 8, the Legora way): round 19's labelled band
+   (each word above its box) is the list head — one box, the views as tabs,
+   a filter only once it is added */
+describe('f739 (1) the head, the Legora way', () => {
   const { sb, doc } = stage();
   sb.renderCustomers();
-  test('the five boxes, their words, outside the tab row so the word sits above', () => {
-    const fb = doc.querySelector('.cu-page .sap-band > .cu-fb');
-    assert.ok(fb, 'the filters are the band\'s own row (not inside .reg-tabbar, whose rule puts the word inside)');
-    assert.equal(doc.querySelector('.cu-page .reg-tabbar'), null);
-    const words = [...fb.children].map(el => (el.querySelector('.reg-f-l, .cu-find-l') || {}).textContent);
-    assert.deepEqual(words, ['Party name', 'Status', 'Stream', 'Owner', 'NDA']);
-    assert.equal(doc.getElementById('cu-q').getAttribute('placeholder'), 'Name or city');
-    assert.ok(fb.querySelector('.cu-find-box svg'), 'the find box wears its glass');
+  test('one box to search or ask in, under the title; no labelled band', () => {
+    const head = doc.querySelector('.cu-page .sap-band.ph-card[data-lh-seat="customers"]');
+    assert.ok(head, 'the list head is the page\'s one head card');
+    assert.equal(doc.querySelector('.cu-page .cu-fb, .cu-page .reg-tabbar, .cu-page .cu-find-l, .cu-page .reg-f-l'), null, 'no labelled band');
+    const q = doc.getElementById('cu-q');
+    assert.ok(q && q.hasAttribute('data-lh-q') && q.closest('[data-lh-seat="customers"]'), 'the box keeps the page\'s id');
+    assert.equal(q.getAttribute('placeholder'), 'Search, or ask across 14 parties');
+    assert.ok(q.closest('.lh-ask').querySelector('svg'), 'the box wears its glass');
   });
-  test('Status opens on Live and lists Live · Ended · All', () => {
-    const s = doc.querySelector('select[data-cu-f="status"]');
-    assert.equal(s.value, 'live');
-    assert.deepEqual([...s.options].map(x => x.value), ['live', 'ended', 'all']);
-    assert.ok(!s.closest('.reg-chip').classList.contains('on'), 'Live is the box at rest, not a narrowing');
+  test('Status is the tabs: All · Live · Ended, opening on Live; Stream · Owner · NDA wait under + Filter', () => {
+    const pg = sb.LH_PAGES.customers;
+    assert.equal(pg.tabAttr, 'data-cu-status');
+    assert.equal(pg.tabNow(), 'live');
+    assert.deepEqual(Array.from(pg.tabs(), t => t.k + ' ' + t.label + ' ' + t.n), ['all All 14', 'live Live 13', 'ended Ended 1']);
+    assert.equal(doc.querySelectorAll('.cu-page .lh-chip').length, 0, 'nothing narrows at rest, so no chip');
+    assert.deepEqual([...doc.querySelectorAll('.cu-page [data-lh-add] optgroup')].map(g => g.getAttribute('label')), ['Stream', 'Owner', 'NDA']);
   });
   test('the head counts every party, and says the money on paper with live parties', () => {
     assert.match(doc.querySelector('.cu-t').textContent, /^Parties\s*14$/, 'the twelve, Kenya Freight and the party everything with has ended');
@@ -107,11 +117,15 @@ describe('f739 (1) the band, each word above its box', () => {
 describe('f739 (2) the list as drawn', () => {
   const { sb, doc } = stage();
   sb.renderCustomers();
-  test('"Parties N · live · sorted by name" and Columns', () => {
-    const t = doc.querySelector('.cu-card .ap-card-t');
-    assert.equal(t.querySelector('.ap-card-n.is-pill').textContent, '13');
-    assert.equal(t.querySelector('.ap-card-m').textContent, 'live · sorted by name');
-    assert.ok(doc.querySelector('.cu-card [data-lc-btn="customers"]'));
+  /* RE-POINTED 21 Oct 2026 (Part 8, the Legora way): the card's own head
+     ("Parties 13 · live · sorted by name") went with the band — the count is
+     the lit tab's, how the list is sorted rides the Party column's hover, and
+     Columns stands at the end of the head's chip row */
+  test('the count is the lit tab\'s, the order the Party column\'s hover, Columns in the head', () => {
+    assert.equal(doc.querySelector('.cu-card .ap-card-h'), null, 'the card is the table and its foot');
+    assert.equal(sb.LH_PAGES.customers.tabs().find(t => t.k === 'live').n, 13);
+    assert.equal(doc.querySelector('.cu-table thead th').getAttribute('title'), 'sorted by name');
+    assert.ok(doc.querySelector('[data-lh-seat="customers"] .lh-chips [data-lc-btn="customers"]'));
   });
   test('the columns as drawn, City after the party', () => {
     assert.deepEqual([...doc.querySelectorAll('.cu-table thead th')].map(t => t.textContent), ['Party', 'City', 'Live', 'Ended', 'On paper', 'Next to end', 'Waiting on you', 'NDA']);
@@ -166,7 +180,9 @@ describe('f739 (3) a party\'s city, from the one home', () => {
     sb.cuPlacePut({ status: 'ended' });
     sb.renderCustomers();
     assert.deepEqual([...doc.querySelectorAll('#cu-tbody [data-cu-cust]')].map(r => r.getAttribute('data-cu-cust')), ['retired supplies ltd']);
-    assert.equal(doc.querySelector('.cu-card .ap-card-m').textContent, 'ended · sorted by name');
+    /* (Part 8) the lit tab says it, where the card's head did */
+    assert.equal(sb.LH_PAGES.customers.tabNow(), 'ended');
+    assert.equal(sb.LH_PAGES.customers.tabs().find(t => t.k === 'ended').n, 1);
     sb.cuPlacePut({});
     assert.equal(sb.cuPlace().status, 'live', 'a refresh that kept no status opens on Live');
   });
