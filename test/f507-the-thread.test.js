@@ -113,7 +113,17 @@ describe('f507 (2) — the line decides the open row', () => {
        and only while the clauses are on screen (the Drawer). */
     /* RE-POINTED 10 Oct 2026 (owner: "clauses in the documents tab Flickers"): a
        row the SCROLL opens opens in one step — {follow:true} — never animated. */
-    assert.match(arm, /if\(c&&docThreadLive\(\)\) docThreadOpen\(c,docThreadLineRow\(\),\{follow:true\}\)/);
+    /* RE-POINTED 21 Oct 2026 (the owner: "some clauses refuse to close once
+       you go past them"; they decided the judgement call — a clause you
+       deliberately close STAYS closed while you scroll): the follow stands
+       down while the reader's own close is latched, and nothing else about it
+       moves. The latch is the contract's id, and the next press lets it go. */
+    assert.match(arm, /if\(c&&docThreadLive\(\)&&!docThreadShutOn\(c\)\) docThreadOpen\(c,docThreadLineRow\(\),\{follow:true\}\)/);
+    const shut = region(CONTRACT, 'docThreadShut');
+    assert.match(shut, /_docThreadShut=String\(cur\.id\)/, 'the latch is this contract\'s own id');
+    assert.match(shut, /docThreadOpen\(cur,-1\)/, 'and -1 is a real answer: nothing open');
+    assert.match(region(CONTRACT, 'docThreadGoTo'), /docThreadShutClear\(\)/, 'the reader\'s next press lets the close go');
+    assert.match(region(CONTRACT, 'docThreadPaint'), /else if\(docThreadShutOn\(c\)\) _docThreadOn=-1;/, 'a repaint is not a press: the close holds through one');
     assert.match(region(CONTRACT, 'docThreadLineRow'), /docThreadNearest\(rows, docThreadAtLine\(\)\)/);
     const open = region(CONTRACT, 'docThreadOpen');
     assert.ok(!open.includes('docReadSheet('), 'a scroll never walks the sheet');
