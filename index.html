@@ -15889,6 +15889,40 @@
   /* the signer's three boxes: a small label over each, 8 between one box and the next label */
   #ig-dock #pd-og .pd-og-ml{display:block;margin-top:4px;font-size:var(--t-label);line-height:16px;font-weight:var(--w-label);color:var(--color-neutral-600)}
   #ig-dock #pd-og .pd-og-ml:first-child{margin-top:0}
+  /* ==== THE SIGNER ROW, THE SAP WAY (the owner picked it by name, 21 Oct 2026) ====
+     "adding signer should be next to the signers area not at the bottom … it should be possible
+     that you can add without being taken to a different page unless there is a pop up … I should
+     also be able to search within our directory." Each signer name box is a SEARCH box over the
+     directory; its quiet list FLOATS over the rows under it (it never pushes them down) in HaTi's
+     own list dress (.hati-selmenu's white, hairline and radius-lg), flipped above the box where
+     the panel has no room below. "Order the signing ›" sits under Confirm on the row's head line:
+     the row's one pop-up, and the only door left from here to the route editor. */
+  #ig-dock #pd-og tr[data-pd-og-kind="signer"] td.pd-og-a{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+  #ig-dock #pd-og tr[data-pd-og-kind="signer"] td.pd-og-v{overflow:visible}
+  #ig-dock #pd-og .pd-og-order{border:0;background:none;padding:0;font:inherit;font-size:var(--t-meta);line-height:16px;color:var(--color-neutral-600);cursor:pointer;white-space:nowrap}
+  #ig-dock #pd-og .pd-og-order:hover{color:var(--accent-ink);text-decoration:underline}
+  #ig-dock #pd-og td.pd-og-v > .pd-og-sb{position:relative;width:100%;min-width:0}
+  #ig-dock #pd-og .pd-og-sb > .pd-og-in{width:100%;margin-top:0;padding-right:26px}
+  #ig-dock #pd-og .pd-og-sb > .pd-og-in:not(textarea){height:var(--ctl-h-sm,28px)}
+  #ig-dock #pd-og .pd-og-sb-g{position:absolute;right:7px;top:50%;margin-top:-7px;color:var(--color-neutral-500);pointer-events:none}
+  #ig-dock #pd-og .pd-og-dd{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;
+    max-height:min(50vh,296px);overflow:auto;overscroll-behavior:contain;padding:4px;
+    background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);
+    box-shadow:0 10px 28px color-mix(in srgb,var(--color-text) 16%,transparent)}
+  #ig-dock #pd-og .pd-og-dd.is-up{top:auto;bottom:calc(100% + 4px)}
+  #ig-dock #pd-og .pd-og-dd-row{display:flex;align-items:center;gap:8px;width:100%;box-sizing:border-box;min-width:0;
+    padding:5px 8px;border:0;border-radius:var(--radius);background:none;font:inherit;font-size:var(--t-label);
+    line-height:16px;color:var(--color-text);text-align:left;cursor:pointer}
+  #ig-dock #pd-og .pd-og-dd-row + .pd-og-dd-row{margin-top:1px}
+  #ig-dock #pd-og .pd-og-dd-row:hover, #ig-dock #pd-og .pd-og-dd-row.on{background:var(--nav-well)}
+  #ig-dock #pd-og .pd-og-av{flex:none;width:24px;height:24px;display:inline-grid;place-items:center;border-radius:50%;
+    border:1px solid var(--rule-strong);background:transparent;color:var(--color-neutral-600);font-size:10.5px;font-weight:var(--w-title)}
+  #ig-dock #pd-og .pd-og-dd-t{display:flex;flex-direction:column;min-width:0;flex:1 1 auto}
+  #ig-dock #pd-og .pd-og-dd-n{min-width:0;overflow-wrap:anywhere}
+  #ig-dock #pd-og .pd-og-dd-n b{font-weight:var(--w-strong)}
+  #ig-dock #pd-og .pd-og-dd-sub{color:var(--color-neutral-600)}
+  #ig-dock #pd-og .pd-og-dd-e{font-size:var(--t-meta);line-height:15px;color:var(--color-neutral-600);overflow-wrap:anywhere}
+  #ig-dock #pd-og .pd-og-sg-add{align-self:flex-start;margin-top:2px}
   /* a saved row is ONE line: label · the chip, whole where it fits · "saved" */
   #ig-dock #pd-og tr.pd-og-row.is-saved, #ig-dock #pd-og-held tr.pd-og-row.is-saved{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"f v a";align-items:center}
   #ig-dock #pd-og tr.is-saved td.pd-og-v, #ig-dock #pd-og-held tr.is-saved td.pd-og-v{margin-top:0;flex-direction:row;justify-content:flex-end}

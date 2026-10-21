@@ -141,6 +141,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f148, f170, f442, f673, f676, f679, f710, f751, f754, fill-in-beside-the-paper, fill-the-document, details-as-a-form, create-lands-clean, owed-first verify.
 - still-owed-sap-way-verify (signer name, email and stream whole at all three screens, Confirm and Fill in › inside the panel, labels above, amber kept, Key terms keeps its table, Tab onto Confirm does not jump; 14 red at d7a320c2).
 
+- signer-row-as-drawn-verify (the bottom chip gone and no <select> left; a touch press opens one list; typing filters it with the counterparty's own people first; a pick fills name and email; the list floats, the rows under it do not move, and near the foot it opens above the box, whole, inside the panel at all three screens; "+ Add another signer" adds a box without leaving the page; "Order the signing" opens the route editor over the same page and closing it lands back on the row; 5 red at 3b601675).
+- RE-POINTED 21 Oct 2026 for that row: still-owed-sap-way-verify's labelOver reads the box's .pd-og-sb wrapper; f748 5a/5b and paper-panel-as-drawn-verify 5a now assert the chip is gone and "sign" is not offered while nobody is named (its 5b went with the chip); fill-the-document-verify scrolls to the "Fill the document" line before pressing it.
 ## THE MIDDLE — WHAT A DOSSIER LINE OPENS COMES TO YOU
 - the-middle-verify (See it brings Jambo's work to the middle, the Dossier beside it in sight and pressable, the page ending at its edge; "Showing in the middle"; "‹ Paper" first in the chips; the four ways back; the obligations review in the middle; Key terms one line, its table in the middle, Change and Done store; "paper" asked; the three screens). f705 (the jw row's door).
 
