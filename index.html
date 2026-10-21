@@ -15700,7 +15700,8 @@
   #ig-dock .pd-og-row.is-saved td{background:transparent}
   /* ==== STILL OWED, THE SAP WAY (owner picked it by name, 21 Oct 2026; spec-owed Option A) ====
      SAP's rule for a form under 600 wide: one column, the label ABOVE its box. Each owed fact is a row
-     with a hairline under it: the label (strong) with Confirm on its right, where Jambo read it under
+     16 below the one before (the drawing's hairline between rows is left out: The Brief draws no line
+     inside the body, 21 Oct 2026): the label (strong) with Confirm on its right, where Jambo read it under
      that, then its box(es) the full width, stacked; the signer's three boxes each carry a small label.
      A saved row is one line: label · the green chip · "saved". Beside the Board (#pd-og-held) the same
      anatomy reads only: the chip full width, "Fill in ›" on the label's line. The table stays a table
@@ -15708,8 +15709,8 @@
      Key terms (#pd-kt, the same .pd-og clothes) keeps its own look. */
   #ig-dock #pd-og, #ig-dock #pd-og-held{display:block;width:100%;table-layout:auto}
   #ig-dock #pd-og tbody, #ig-dock #pd-og-held tbody{display:block}
-  #ig-dock #pd-og tr.pd-og-row, #ig-dock #pd-og-held tr.pd-og-row{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"f a" "v v";column-gap:8px;padding:8px 0;border-bottom:1px solid var(--color-divider)}
-  #ig-dock #pd-og tr.pd-og-row:last-child, #ig-dock #pd-og-held tr.pd-og-row:last-child{border-bottom:0}
+  #ig-dock #pd-og tr.pd-og-row, #ig-dock #pd-og-held tr.pd-og-row{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"f a" "v v";column-gap:8px;padding:8px 0}
+  #ig-dock #pd-og tr.pd-og-row:first-child, #ig-dock #pd-og-held tr.pd-og-row:first-child{padding-top:0}
   #ig-dock #pd-og td, #ig-dock #pd-og-held td{display:block;width:auto;min-width:0;padding:0;border:0}
   #ig-dock #pd-og td.pd-og-f, #ig-dock #pd-og-held td.pd-og-f{grid-area:f}
   #ig-dock #pd-og td.pd-og-v, #ig-dock #pd-og-held td.pd-og-v{grid-area:v;display:flex;flex-direction:column;align-items:stretch;gap:4px;margin-top:6px}
