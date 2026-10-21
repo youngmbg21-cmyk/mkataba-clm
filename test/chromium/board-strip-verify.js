@@ -365,9 +365,12 @@ const OBS = [
     check('5b after the refresh the restored strip reads the whole record: its brief comes back, the waiting ring stops', briefBack && rb.loaded && !rb.spin, JSON.stringify(rb));
 
     /* ===== 6. DETAILS: THE OVERVIEW'S OWN SHEET, IN THE STRIP ===== */
-    await page.click(`${strip('MK-L1')} .bs-sec-h [data-bs-page="details"]`);
+    /* RE-POINTED 21 Oct 2026 (owner, THE REPORT SIMPLIFIED: Key terms' door is "Change beside the
+       paper ›" and the ⋯ keeps only Where we are · History · Show on the map): the Details page is
+       reached by its own door (roomOverviewOpen, THE OVERVIEW — READ DOWN, ONE SHEET) */
+    await page.evaluate(() => roomOverviewOpen(getContract('MK-L1')));
     const det = await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L1 [data-bs-host="details"] #kt-ov-terms #ov-ess'), 8000);
-    check('6a Key terms\' Edit opens the Overview\'s own sheet inside the strip (its Edit, its parties, its renewal)', det && !(await roomSeen()));
+    check('6a the Details door opens the Overview\'s own sheet inside the strip (its Edit, its parties, its renewal)', det && !(await roomSeen()));
     await page.evaluate(() => pdOpenOnHome('MK-L1', 'copilot'));
     /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the Menu tab's rows are the dossier's All acts fold */
     await waitFor(page, () => !!document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'), 8000);
@@ -409,21 +412,22 @@ const OBS = [
     const band = await waitFor(page, () => /Mombasa Pallets hires pallets/.test((document.querySelector('#bs-strip-MK-L2 .bs-brief') || {}).textContent || ''), 5000);
     check('10c the strip\'s own band then reads the brief written there', band);
     /* 10l READ THE BRIEF beside what Jambo read (owner, 15 Oct 2026): over a brief on file, it opens THAT
-       contract's brief — two strips standing, each its own — spends nothing, and pressed again shuts it */
+       contract's brief — two strips standing, each its own — spends nothing, and pressed again shuts it
+       RE-POINTED 21 Oct 2026 (the report simplified): the door sits in What Jambo read's foot, beside the note */
     await page.evaluate(() => bsStripPage('MK-L1', 'ov'));
     await allOnBoard();
-    const rbBoth = await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L1 .bs-jb .bs-sec-h [data-bs-go="brief"]') && !!document.querySelector('#bs-strip-MK-L2 .bs-jb .bs-sec-h [data-bs-go="brief"]'), 6000);
+    const rbBoth = await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L1 .bs-jb [data-bs-go="brief"]') && !!document.querySelector('#bs-strip-MK-L2 .bs-jb [data-bs-go="brief"]'), 6000);
     const aiR = h.ai.calls.length;
     const briefShows = src => waitFor(page, src => { const b = document.querySelector('#side-panel #brief-section'); if (!b) return false;
       const t = b.cloneNode(true); t.querySelectorAll('style').forEach(x => x.remove()); return new RegExp(src).test(t.textContent); }, 6000, src);
     let rb1 = false, rb2 = false, shut = false;
     if (rbBoth){
-      await page.click('#bs-strip-MK-L2 .bs-jb .bs-sec-h [data-bs-go="brief"]');
+      await page.click('#bs-strip-MK-L2 .bs-jb [data-bs-go="brief"]');
       rb2 = await briefShows('Mombasa Pallets hires pallets');
       /* the other strip's button moves the panel to ITS brief; pressed again, it shuts */
-      await page.click('#bs-strip-MK-L1 .bs-jb .bs-sec-h [data-bs-go="brief"]', { timeout: 4000 }).catch(() => {});
+      await page.click('#bs-strip-MK-L1 .bs-jb [data-bs-go="brief"]', { timeout: 4000 }).catch(() => {});
       rb1 = await briefShows('Nordfilm supplies packaging film');
-      await page.click('#bs-strip-MK-L1 .bs-jb .bs-sec-h [data-bs-go="brief"]', { timeout: 4000 }).catch(() => {});
+      await page.click('#bs-strip-MK-L1 .bs-jb [data-bs-go="brief"]', { timeout: 4000 }).catch(() => {});
       shut = await waitFor(page, () => !document.querySelector('#side-panel #brief-section'), 4000);
     }
     await page.evaluate(() => { try { closeModal(); } catch (_) {} });
@@ -434,9 +438,10 @@ const OBS = [
     let pbCalls = 0;
     await page.route('**/api/ai/playbook*', r => { pbCalls++; r.continue(); });
     const audit0 = await page.evaluate(() => (getContract('MK-L1').audit || []).length);
+    /* RE-POINTED 21 Oct 2026 (the report simplified): the four Jambo tiles that drew the "See the standards"
+       door are gone; its act stands (bsGo 'std') and is pressed here directly */
     await page.evaluate(() => bsStripPage('MK-L1', 'ov'));
-    await waitFor(page, () => !!document.querySelector('#bs-strip-MK-L1 [data-bs-go="std"]'), 6000);
-    await page.click('#bs-strip-MK-L1 [data-bs-go="std"]');
+    await page.evaluate(() => bsGo('std', 'MK-L1'));
     const stdPanel = await waitFor(page, () => { const p = document.getElementById('playbook-section'); return !!p && p.textContent.trim().length > 20; }, 6000);
     await pause(600);
     const audit1 = await page.evaluate(() => (getContract('MK-L1').audit || []).length);
