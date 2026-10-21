@@ -929,7 +929,8 @@ function pdChipsRepaint(){
   pdNeedsRepaint();
   pdGlanceRepaint();
   const chips = document.querySelector('#ig-dock [data-ig-chips]'); if (!chips) return;
-  if (pdChipsQuiet()){ chips.querySelectorAll('button').forEach(b => b.remove()); pdMidBackSync(); return; }
+  /* (quiet chips stand under a face — Fill in, Before you sign — whose row is hidden; nothing stands in the middle there) */
+  if (pdChipsQuiet()){ chips.querySelectorAll('button').forEach(b => b.remove()); return; }
   const h = caChipsHtml();
   if (h && h !== chips.innerHTML){
     chips.innerHTML = h;
