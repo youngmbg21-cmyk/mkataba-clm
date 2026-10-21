@@ -21332,3 +21332,6 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - 21 Oct 2026 · Noticed, not fixed (GitHub's newest main run 3822 at baa13c0, after PR #398 "the Clauses tab"): the jsdom suite is newly red — f278 (1) "the fact row has no second opinion about folding … opens a row and never touches the head" (green at 3813/3818); settings-as-drawn-verify is newly in the browser-shard failing list. Both arrived with the evening's Clauses-tab merge and are the freshest reds on main.
 - 21 Oct 2026 · Noticed, not fixed: document-wall-verify's harness TypeError (run 3813, and locally at 2ac747b) did not reproduce at 3822 — flaky, not a steady red.
 - 21 Oct 2026 · Noticed, not fixed: term-and-fields-verify at 3822 passes its drafting legs ("the drafted term states the dates that were entered") — the August fault has not returned; only the answer-the-term-blank-from-the-panel leg is blind (its box moved).
+
+## Noticed, not fixed — 21 Oct 2026 (overnight run)
+- "Who else is on this agreement" (adding a person to an existing contract) has no door on a computer since the Board's card Edit opens Key terms (20 Oct, the Legora way); only the drafting wizard still draws the people list. Needs the owner's pick of where it lives. uploaded-contract-fixed 4a/4b listed KNOWN_RED with this reason.

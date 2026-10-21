@@ -9915,14 +9915,15 @@
   #ig-dock .pd-held-dos{display:grid;gap:10px}
   #ig-dock .pd-held-dos .ds-nx{margin-top:0}
   .ds-spine{display:flex;align-items:flex-start;margin:2px 0 0}
-  .ds-st{flex:1;min-width:0;position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--color-neutral-600);text-align:center;white-space:nowrap}
-  .ds-st::before{content:"";position:absolute;top:8px;left:0;right:0;height:2px;background:var(--color-divider)}
-  .ds-st:first-child::before{left:50%}
-  .ds-st:last-child::before{right:50%}
-  .ds-st i{position:relative;display:flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 3px;border-radius:9px;border:2px solid var(--color-neutral-300);background:var(--color-surface);font-style:normal;font-size:10px;font-weight:var(--w-strong);line-height:1;color:var(--color-neutral-600)}
-  .ds-st.is-done i{border-color:var(--st-green-fg);background:var(--st-green-bg);color:var(--st-green-fg)}
-  .ds-st.is-on i,.ds-st.is-now i{border-color:var(--accent-fill);background:var(--accent-fill);color:#fff}
-  .ds-st.is-on,.ds-st.is-now{color:var(--color-text);font-weight:var(--w-strong)}
+  /* SCOPED TO THE SPINE (21 Oct 2026): the deal page's journey (dealstands.js) wears .ds-st too, and these centred the counterparty's steps off the page's starting line */
+  .ds-spine .ds-st{flex:1;min-width:0;position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--color-neutral-600);text-align:center;white-space:nowrap}
+  .ds-spine .ds-st::before{content:"";position:absolute;top:8px;left:0;right:0;height:2px;background:var(--color-divider)}
+  .ds-spine .ds-st:first-child::before{left:50%}
+  .ds-spine .ds-st:last-child::before{right:50%}
+  .ds-spine .ds-st i{position:relative;display:flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 3px;border-radius:9px;border:2px solid var(--color-neutral-300);background:var(--color-surface);font-style:normal;font-size:10px;font-weight:var(--w-strong);line-height:1;color:var(--color-neutral-600)}
+  .ds-spine .ds-st.is-done i{border-color:var(--st-green-fg);background:var(--st-green-bg);color:var(--st-green-fg)}
+  .ds-spine .ds-st.is-on i,.ds-spine .ds-st.is-now i{border-color:var(--accent-fill);background:var(--accent-fill);color:#fff}
+  .ds-spine .ds-st.is-on,.ds-spine .ds-st.is-now{color:var(--color-text);font-weight:var(--w-strong)}
   #ig-dock .ds-card{margin:0}
   #ig-dock .ds-card .pd-gl-h b{flex:none}
   #ig-dock .ds-when{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;color:var(--color-neutral-600)}
