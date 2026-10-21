@@ -360,12 +360,42 @@ const CONTRACTS = [
     ok('13f a value range is answered free, as the Blocks sized by value, with the count in the panel', await until(page, () =>
       /^q:/.test((hbS().path || []).slice(-1)[0] || '') && !!document.querySelector('#hb-focus .hb-blocks [data-hb-dig^="qg:"]') /* RE-POINTED 11 Oct 2026: Squarified, a block is a group */ && /between 2M and 40M/.test((intel.history.slice(-1)[0] || {}).text || '') && !intel.busy));
     await page.click('[data-hb-crumb="-1"]').catch(() => {});
+    /* long partner names on short bars (the owner's "MK-R90 · AIT Worldwide Logist…", 20 Oct 2026) */
+    await page.evaluate(() => { const iso = d => { const t = new Date(); t.setDate(t.getDate() + d); return t.toISOString().slice(0, 10); };
+      [[20, 60], [40, 85], [70, 120], [100, 150], [200, 330]].forEach(([a, b], i) => { if (state.contracts.some(c => c.id === 'MK-RL' + i)) return;
+        state.contracts.push({ id: 'MK-RL' + i, contractNo: 'MK-RL' + i, name: 'Freight services ' + i, counterparty: 'AIT Worldwide Logistics Kenya Limited ' + i, folder: 'proc', status: 'Signed', value: 1000000,
+          effectiveDate: iso(a), expiry: iso(b), metadata: { effectiveDate: iso(a), expiryDate: iso(b) }, fields: { effDate: iso(a) }, rounds: [], audit: [], changes: [], obligations: [] }); });
+      if (window.familyIndexDirty) familyIndexDirty(); });
     await ask(page, 'which contracts end in the next 12 months');
     ok('13g a date question is the Timeline: today marked, each month with an ending a door, each pill a contract', await until(page, () =>
       document.querySelectorAll('#hb-focus .hb-tl [data-hb-dig^="qm:"]').length >= 1 && document.querySelectorAll('#hb-focus .hb-tl [data-hb-dig^="c:"]').length >= 1 && !!document.querySelector('#hb-focus .hb-tl .hb-sv-today')));
+    /* 13g2 A NAME NEVER RUNS PAST THE CHART, nor a bar's name past its bar (21 Oct 2026) */
+    const tlFits = () => page.evaluate(() => { const svg = document.querySelector('#hb-focus .hb-tl'); if (!svg) return null; const R = svg.getBoundingClientRect();
+      const out = [...svg.querySelectorAll('text')].filter(t => t.getBoundingClientRect().right > R.right + 1).map(t => t.textContent);
+      const spill = [...svg.querySelectorAll('.hb-sv-pill')].filter(g => { const r = g.querySelector('rect'), t = g.querySelector('text'); return r && t && r.getAttribute('fill') !== 'transparent' && t.getBoundingClientRect().right > r.getBoundingClientRect().right + 1; }).map(g => g.querySelector('text').textContent);
+      return { out, spill, n: svg.querySelectorAll('text').length }; });
+    const fit1 = await tlFits();
+    ok('13g2 every word on the timeline stays inside it, and a bar\'s name inside its bar', !!fit1 && fit1.n > 0 && !fit1.out.length && !fit1.spill.length, JSON.stringify(fit1));
     const big = await page.evaluate(() => { const s = document.querySelector('#hb-focus .hb-svg'); return s ? s.getBoundingClientRect().width : 0; });
     await bigger();
     ok('13j expanded, the timeline grows with the room', await until(page, w => { const s = document.querySelector('#hb-focus .hb-dig.is-big .hb-svg'); return !!s && s.getBoundingClientRect().width > w + 100; }, big));
+    const fit2 = await tlFits();
+    ok('13j2 expanded too, every word stays inside the timeline and its bar', !!fit2 && !fit2.out.length && !fit2.spill.length, JSON.stringify(fit2));
+    /* 13j3 and in full screen, at the owner's laptop size: the chart stands inside its card, every word inside it */
+    await page.setViewportSize({ width: 1536, height: 730 });
+    await page.evaluate(() => { const b = document.querySelector('#hb-focus [data-hb-full]'); if (b) b.click(); else { _hbFull = true; hbPaintBoard(); } });
+    await page.waitForTimeout(600);
+    const fit3 = await page.evaluate(() => { const svg = document.querySelector('.hb-tl'); if (!svg) return null; const R = svg.getBoundingClientRect();
+      const card = svg.closest('.hb-dig, .hb-card, #hb-focus'); const C = card ? card.getBoundingClientRect() : R;
+      const out = [...svg.querySelectorAll('text')].filter(t => { const r = t.getBoundingClientRect(); return r.right > Math.min(R.right, C.right, innerWidth) + 1; }).map(t => t.textContent);
+      const spill = [...svg.querySelectorAll('.hb-sv-pill')].filter(g => { const r = g.querySelector('rect'), t = g.querySelector('text'); return r && t && r.getAttribute('fill') !== 'transparent' && t.getBoundingClientRect().right > r.getBoundingClientRect().right + 1; }).map(g => g.querySelector('text').textContent);
+      return { out, spill, svgR: Math.round(R.right), cardR: Math.round(C.right), full: !!window._hbFull || document.body.className }; });
+    ok('13j3 full screen at 1536x730: every word inside the chart, its card and its bar', !!fit3 && !fit3.out.length && !fit3.spill.length, JSON.stringify(fit3));
+    await page.screenshot({ path: path.join(OUT, '13j3-timeline-full-1536x730.png') });
+    await page.evaluate(() => { const b = document.querySelector('#hb-focus [data-hb-full]'); if (b) b.click(); });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    /* the long-named stand-ins were this check's alone: taken out again, so nothing after counts them */
+    await page.evaluate(() => { state.contracts = state.contracts.filter(c => !/^MK-RL\d$/.test(c.id)); if (window.familyIndexDirty) familyIndexDirty(); if (window.hbPaintBoard) hbPaintBoard(); });
     await bigger();
     await until(page, () => !document.querySelector('#hb-focus .hb-dig.is-big'));
 
