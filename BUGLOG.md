@@ -21266,3 +21266,10 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - The Dossier tab's number is the whole workspace's Needs you, not this contract's.
 - riskViewOpen still lands on the worst OLD mark, not the worst point.
 - The deep dive leaves its quote pinned on the paper after Back; its head band wears ten section hues outside Chambers.
+
+## Noticed, not fixed (21 Oct 2026, design round on the Import pop-up and the Dossier's folds)
+- Import their response: the pop-up changes size when you press the other tab (520x289.58 on Response code, 520x278.14 on Marked-up Word file, measured identically at 1440x780, 1536x730 and 1366x950); because it is centred, the frame and the Cancel button move about 6px under the hand. A third size (294.94) appears once a file is chosen and #imp-docx-note fills. The owner asked for one size; drawn only, nothing built.
+- Import their response: on the Marked-up Word file tab the Import button is not drawn at all, so the foot offers only Cancel.
+- Import their response: a chosen Word file is read, filed, logged and the pop-up closed the instant it is picked - no confirmation and no Undo.
+- Import their response: the response-code box carries a resize grip, a second way the frame's size changes.
+- Import their response: on an executed contract the refusal is a small grey line that appears in the Word pane only after a file has been chosen; the pop-up never says so beforehand.
