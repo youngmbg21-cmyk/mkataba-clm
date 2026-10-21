@@ -2005,7 +2005,9 @@ function pdRoadStops(c){
   stops.push({ k: 'ready', done: ready, t: _pdT('pd_rd_ready'),
     sub: ready ? [clear.length ? _pdTn('pd_rd_checks_clear', clear.length, { n: clear.length, names: pdRoadCheckNames(clear) }) : '',
         unclear.length ? _pdT('pd_rd_checks_unclear', { names: pdRoadCheckNames(unclear) }) : ''].filter(Boolean).join(' · ')
-      : `${_pdTn('sc_n_to_settle', checks.length, { n: checks.length })}: ${pdRoadCheckNames(open, checks.reduce((m, h) => { const k = pdRoadCheckOf(h.kind); m[k] = (m[k] || 0) + 1; return m; }, {}))}` });
+      /* THE HEAD'S NUMBER AND THIS ONE AGREE (21 Oct 2026): the head counts every hold (pdSignState), this
+         stop only its checks — the rest wait at their own stops — so where they differ it says "n of the N" */
+      : `${checks.length < s.holds ? _pdT('pd_rd_n_of_settle', { n: checks.length, all: s.holds }) : _pdTn('sc_n_to_settle', checks.length, { n: checks.length })}: ${pdRoadCheckNames(open, checks.reduce((m, h) => { const k = pdRoadCheckOf(h.kind); m[k] = (m[k] || 0) + 1; return m; }, {}))}` });
   /* EACH YES AT ITS OWN STOP (the gaps, round 10, the second check, 18 Oct
      2026): a rule's approval (one stop, the chain's next step — the one hold
      the list carries for it) and every named person's yes (one stop each, the
