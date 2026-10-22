@@ -8853,6 +8853,19 @@
   .na-closest .na-pick.na-close .na-pick-m{ grid-column:2 / -1; font-family:var(--font-body); font-size:var(--t-label); }
   .na-close .na-radio{ width:16px; height:16px; border-radius:50%; border:1.5px solid var(--rule-strong); background:var(--color-surface); flex:none; box-sizing:border-box; }
   .na-close.on .na-radio{ border-color:var(--accent-solid); background:var(--accent-solid); box-shadow:inset 0 0 0 3px var(--color-surface); }
+  /* ROUND 2 OF THE FIRST-TIMER ROUNDS: a card's "Use when" line, and the one deciding question (22 Oct 2026) */
+  .na-closest .na-pick.na-close{ align-content:start; }
+  .na-closest .na-pick.na-close .na-use{ grid-column:2 / -1; font-size:var(--t-label); line-height:1.4; color:var(--color-neutral-700); white-space:normal; margin-top:4px; text-align:left; }
+  .na-dq{ display:flex; align-items:center; flex-wrap:wrap; gap:8px 12px; margin:2px 0 10px; font-size:var(--t-body); }
+  .na-dq .na-seg{ display:inline-flex; }
+  /* WHO PAYS WHOM (round 3): three presses across the box's width, the meaning said under them */
+  .pw-field{ display:block; min-width:0; }
+  .pw .pw-seg{ display:flex; width:100%; }
+  .pw .pw-seg .na-seg-b{ flex:1 1 0; justify-content:center; min-width:0; }
+  .pw .na-seg-b[aria-checked="true"]{ background:var(--color-accent-50); color:var(--accent-ink); }
+  .pw-say{ display:block; margin-top:4px; font-size:var(--t-label); color:var(--accent-ink); line-height:1.4; }
+  .pw-say:empty{ display:none; }
+  .wz-help{ display:block; margin-top:4px; font-size:var(--t-label); color:var(--color-neutral-600); font-weight:var(--w-body); }
   .na-one .na-card-h h3{ flex:none; }
   .na-one .na-card-sub{ flex:1; text-align:left; max-width:none; }
   .na-from-words{ color:var(--accent-ink); font-weight:var(--w-label); margin-left:4px; }
@@ -9422,6 +9435,9 @@
   .ca-acts{display:flex;gap:8px;flex-wrap:wrap}
   .ca-foot{margin:10px 0 0;font-size:11.5px;color:var(--color-neutral-600)}
   .ca-why{margin:0 0 10px;padding:8px 10px;border-radius:var(--radius);background:var(--st-amber-bg);color:var(--color-text)}
+  /* A "NO" THAT HELPS: what is true in bold, then why and who lifts it; the ask's after-state in the accent (22 Oct 2026) */
+  .ca-why.ca-wall b{display:block;font-weight:var(--w-strong);margin-bottom:2px}
+  .ca-wall-asked{font-size:var(--t-label);color:var(--accent-ink);align-self:center}
   .ca-said{margin:6px 0 0;font-weight:var(--w-strong)}
   /* JAMBO'S NEW AGREEMENT CARD (the overnight work order, step 3): the stage pill on the head's right; a fact the form will ask in amber, the form's own question quiet */
   .ca-dr .ca-dr-sp{flex:1}
