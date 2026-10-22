@@ -2976,12 +2976,12 @@ function updateAiBrainPill(){
    streams, and prints the notice under its answer. */
 /* every answer's goto is noted for the ask waiting on it (aiGotoNote) */
 async function copilotAsk(messages, context, onEvent, opts){
-  const r=await copilotAskSend(messages, context, onEvent, opts); aiGotoNote(r); return r;
-}
-async function copilotAskSend(messages, context, onEvent, opts){
   /* EVERY CHAT CARRIES THE DAY (18 Oct 2026): the panel beside a paper and the
      Board send their own short context; the reader's day rides each one */
   if(!(context&&context.today)&&typeof todayISO==='function') context=Object.assign({},context||{},{ today:todayISO() });
+  const r=await copilotAskSend(messages, context, onEvent, opts); aiGotoNote(r); return r;
+}
+async function copilotAskSend(messages, context, onEvent, opts){
   if(typeof API_MODE==='function' && API_MODE() && state.aiConfigured){
     /* Streamed when the caller can render it (onEvent) — progress + tokens as
        the answer is written, then the same verified final shape. ANY stream
