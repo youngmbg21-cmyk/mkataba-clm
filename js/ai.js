@@ -2580,6 +2580,31 @@ function _localDetail(c){
        correctly, that it had no way to know. Same reducer the server uses. */
     negotiation:(typeof negoCopilotRecord==='function'?negoCopilotRecord(c):{active:false,changes:[]}) };
 }
+/* THE ONE SEARCH WITHOUT A SERVER (stage 1): the same words (js/hatisearch.js) over what this
+   browser holds — the contracts in state, their passages, obligations and notes; the server's
+   shape. Everything in state is already the reader's own. */
+function _localHatiSearch(a){
+  const terms=hsTerms(a.words||'').map(t=>/\s/.test(t)?t:hsRoot(t));
+  const want=Math.max(1,Math.min(HS_MAX,Number(a.limit)||8));
+  const kinds=Array.isArray(a.kinds)?a.kinds.filter(k=>HS_KINDS.includes(k)):[];
+  const none={ hits:[], total:0, shown:0, truncated:false, searched:terms, fixed:[] };
+  if(!terms.length) return none;
+  const score=t=>{ const w=hsFold(t); return terms.reduce((n,x)=>n+(w.includes(x)?1:0),0); };
+  const rows=[];
+  for(const c of (state.contracts||[])){
+    const at={ contractId:c.id, contractNo:c.contractNo||undefined, contractName:c.name||'' };
+    rows.push({ kind:'contract', ref:c.id, title:c.name||c.id, text:[c.name,c.id,c.contractNo,c.counterparty].filter(Boolean).join(' '), ...at });
+    if(c.counterparty) rows.push({ kind:'party', ref:String(c.counterparty).trim().toLowerCase(), title:c.counterparty, text:c.counterparty });
+    hsPassages(typeof contractPlainText==='function'?contractPlainText(c):'').forEach(p=>rows.push({ kind:'clause', ref:c.id+'#'+p.at, title:p.head, text:p.text, quote:p.text.replace(/\s+/g,' ').slice(0,120), at:p.at, ...at }));
+    (c.obligations||[]).forEach((o,i)=>o&&o.desc&&rows.push({ kind:'obligation', ref:String(o.id||i), title:o.desc, text:o.desc, due:o.due||undefined, ...at }));
+    [].concat(c.thread||[],...(c.changes||[]).map(ch=>(ch&&ch.thread)||[])).forEach(m=>m&&m.text&&rows.push({ kind:'note', ref:String(m.id||''), title:m.who||'', text:m.text, ...at }));
+  }
+  const seen=new Set();
+  const hits=rows.filter(r=>!kinds.length||kinds.includes(r.kind)).map(r=>({ r, n:score(r.title+' '+r.text) })).filter(x=>x.n)
+    .sort((x,y)=>y.n-x.n).filter(x=>{ const k=x.r.kind+':'+x.r.ref; if(seen.has(k)) return false; seen.add(k); return true; })
+    .map(({ r })=>{ const { text, ...h }=r; h.snippet=String(text).replace(/\s+/g,' ').slice(0,160); return h; });
+  return { hits:hits.slice(0,want), total:hits.length, shown:Math.min(want,hits.length), truncated:hits.length>want, searched:terms, fixed:[] };
+}
 function _localToolRun(name,a){
   a=a||{}; const cs=state.contracts||[];
   const byId=id=>aiContractByRef(id);
@@ -2591,6 +2616,7 @@ function _localToolRun(name,a){
       const want=Math.max(1,Math.min(40,Number(a.limit)||8));
       return { results:hits.slice(0,want).map(c=>({id:c.id,contractNo:c.contractNo||undefined,name:c.name,counterparty:c.counterparty||''})), total:hits.length, shown:Math.min(want,hits.length), truncated:hits.length>want };
     }
+    if(name==='search_hati') return _localHatiSearch(a);
     if(name==='get_contract') return _localDetail(byId(a.id));
     if(name==='get_scan_findings'){ const d=_localDetail(byId(a.id)); return d.found?{id:d.id,name:d.name,openFindings:d.openFindings}:{id:a.id,found:false}; }
     if(name==='list_portfolio'){
@@ -2728,6 +2754,7 @@ const AI_WHERE_SCHEMA={ type:'object', description:'A structured filter HaTi app
 const AI_OBLIGATIONS_TOOL_DESC='The obligations (promises, deliverables, payments) on one contract or across the whole book, read off the record: description, due date, state (open / overdue / done), band (overdue / waiting = held behind another step in a payment chain / thisMonth / later / done), whose (ours / theirs), the owner to chase, when it was completed or chased, and the amount where the reader may see values. Use for "what is overdue", "what do we owe", "what does X still have to deliver", "which payments are waiting", "what is due this month". Counts by band come back as "byBand"; the list is capped at 60 with "total" stated.';
 const AI_HISTORY_TOOL_DESC='The audit trail of one contract, newest first: who did what and when — filed, edited, shared, decided, signed, reviewed, re-filed. Use for "who changed this", "when was it sent", "what happened to X last week". Capped at 60 events with the total stated; lines about money are withheld from a reader who may not see values and counted as "redacted".';
 const LOCAL_AI_TOOLS=[
+  { name:'search_hati', description:'Search everything this reader may see by words: contracts, passages of their wording, obligations, notes, parties. Pass the person\'s words AND the likely words the book uses. Returns hits with kind, contract id, a passage\'s first words ("quote") and the TRUE "total".', input_schema:{type:'object',properties:{words:{type:'string'},kinds:{type:'array',items:{type:'string'}},limit:{type:'number',description:'How many hits, 1-40 (default 8).'}},required:['words']} },
   { name:'search_contracts', description:'Full-text search the workspace by keyword, counterparty or topic. Returns matches plus "total" (the true count) and "truncated" when cut at "limit"; raise "limit" (up to 40) when asked for all of them.', input_schema:{type:'object',properties:{query:{type:'string'},limit:{type:'number',description:'How many results, 1-40 (default 8).'}},required:['query']} },
   { name:'get_contract', description:'Fetch one contract in full by id (e.g. MK-103): metadata, dates, value, status, open findings, body text, AND its negotiation record — the round, whose turn it is, and every tracked change with who proposed it, its status, who decided it and any reason given. Use it for any question about edits, additions, rounds or versions.', input_schema:{type:'object',properties:{id:{type:'string'}},required:['id']} },
   { name:'get_scan_findings', description:'Open risk/missing/ambiguity findings for one contract id.', input_schema:{type:'object',properties:{id:{type:'string'}},required:['id']} },
