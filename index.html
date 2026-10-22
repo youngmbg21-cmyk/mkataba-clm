@@ -16172,6 +16172,8 @@
   #app-shell #ig-dock .pd-ck-ring{flex:none;width:16px;height:16px;box-sizing:border-box;border-radius:50%;border:1.5px solid var(--st-amber-dot);background:transparent}
   #app-shell #ig-dock .pd-ck-ring.is-read{border-color:var(--accent-ink);border-style:dashed}
   #app-shell #ig-dock .pd-ck-ring.is-done{border-color:var(--accent-ink);background:var(--accent-ink)}
+  /* who else: a line of the list that owes nothing, so its ring is only the space it keeps */
+  #app-shell #ig-dock .pd-ck-ring.is-none{border-color:transparent}
   /* a closed row shows its line only; its boxes stay in the page for Confirm N read */
   #app-shell #ig-dock #pd-og.is-ck tr.pd-og-row:not(.is-open) td.pd-og-v, #app-shell #ig-dock #pd-og.is-ck tr.pd-og-row:not(.is-open) td.pd-og-a{display:none}
   #app-shell #ig-dock #pd-og.is-ck tr.is-open{padding-bottom:12px}
@@ -16222,6 +16224,8 @@
   /* Key terms, the family and the people: rows of the same height under Next acts */
   #app-shell #ig-dock .pd-nx{gap:0;margin-top:0}
   #app-shell #ig-dock .pd-nx > .ds-fold:not(.is-ck-all){margin-top:0;border-bottom:0}
+  /* Key terms and the family lead the block under Jambo read (owner, 22 Oct 2026) */
+  #app-shell #ig-dock .pd-nx > .ds-fold:first-child{margin-top:24px}
   #app-shell #ig-dock .pd-nx > .ds-acts + .ds-fold:not(.is-ck-all), #app-shell #ig-dock .pd-nx > .is-ck-all + .ds-fold{margin-top:24px;border-top:0}
   #app-shell #ig-dock .pd-nx > .ds-fold:not(.is-ck-all) > summary{min-height:40px;padding:0;font-size:13px}
   /* ==== HISTORY, THE SAP WAY (owner picked it by name, 21 Oct 2026; reverses "Two sides", 17 Oct) ====
