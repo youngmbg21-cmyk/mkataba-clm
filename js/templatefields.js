@@ -703,7 +703,49 @@ function applyContractEssentials(c, values){
   if(em){ if(typeof window!=='undefined' && window.contactSet) window.contactSet(c,{ main:true, email:em }); else c.counterpartyEmail = em; }
   return true;
 }
-Object.assign(window,{CONTRACT_ESSENTIALS,essentialFields,fieldOpt,fieldOptHit,FIELD_GRID_CSS,openContractEssentials,ceWirePreview,applyContractEssentials});
+/* ---- WHO PAYS WHOM (round 3 of the first-timer rounds, owner picked "Who pays
+   whom", 22 Oct 2026) ----
+   "Which side are we on? We are the customer / the supplier" was read by a
+   first-timer the wrong way round ("customer" = the people who buy from us), and
+   the wrong answer quietly turned every payment reading the other way. The SAME
+   field (key side, maps category, values customer · supplier · nothing) is now
+   asked as three presses, and the answer's meaning is said under it. ONE builder
+   for every form that asks it (the New agreement form's wzFieldHtml, the company
+   template's fill form); the box the forms read stays an input with the field's
+   own id, so Create reads it as before. "No money" writes nothing, as "Not
+   recorded" did. */
+const PAY_WHO = [['customer', 'tf_pw_we_pay'], ['supplier', 'tf_pw_they_pay'], ['none', 'tf_pw_no_money']];
+function payWhoSay(k){ return k === 'customer' ? i18t('tf_pw_say_customer') : k === 'supplier' ? i18t('tf_pw_say_supplier') : k === 'none' ? i18t('tf_pw_say_none') : ''; }
+function payWhoHtml(id, def){
+  const v = (def === 'customer' || def === 'supplier') ? def : '';
+  const e = x => String(x == null ? '' : x).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+  return `<div class="pw" data-pw-for="${e(id)}" data-pw-now="${v}"><span class="na-seg pw-seg" role="radiogroup" aria-label="${e(i18t('tf_our_side'))}">${PAY_WHO.map(([k, w]) =>
+    `<button type="button" class="na-seg-b" role="radio" data-pw-v="${k}" aria-checked="${v === k}">${e(i18t(w))}</button>`).join('')}</span>`
+    + `<input id="${e(id)}" type="text" hidden value="${v}" data-pw-input><span class="pw-say" data-pw-say>${e(payWhoSay(v))}</span></div>`;
+}
+/* the press, and an answer written into the box from elsewhere (a carried answer, Jambo's fill): the presses follow the box */
+function payWhoSet(wrap, k){
+  if (!wrap) return;
+  const box = wrap.querySelector('[data-pw-input]'); if (box) box.value = (k === 'customer' || k === 'supplier') ? k : '';
+  wrap.setAttribute('data-pw-now', k || '');
+  wrap.querySelectorAll('[data-pw-v]').forEach(b => b.setAttribute('aria-checked', String(b.getAttribute('data-pw-v') === k)));
+  const say = wrap.querySelector('[data-pw-say]'); if (say) say.textContent = payWhoSay(k);
+}
+if (typeof document !== 'undefined' && document.addEventListener && !document._pwWired){
+  document._pwWired = true;
+  document.addEventListener('click', e => {
+    const b = e.target && e.target.closest ? e.target.closest('[data-pw-v]') : null; if (!b) return;
+    const wrap = b.closest('[data-pw-for]'); if (!wrap) return;
+    e.preventDefault(); payWhoSet(wrap, b.getAttribute('data-pw-v'));
+    const box = wrap.querySelector('[data-pw-input]'); if (box) try { box.dispatchEvent(new Event('change', { bubbles: true })); } catch (_){}
+  });
+  document.addEventListener('input', e => {
+    const box = e.target && e.target.matches && e.target.matches('[data-pw-input]') ? e.target : null; if (!box) return;
+    const wrap = box.closest('[data-pw-for]'); const v = String(box.value || '');
+    if (wrap && v !== (wrap.getAttribute('data-pw-now') === 'none' ? '' : wrap.getAttribute('data-pw-now'))) payWhoSet(wrap, (v === 'customer' || v === 'supplier') ? v : '');
+  });
+}
+Object.assign(window,{PAY_WHO,payWhoSay,payWhoHtml,payWhoSet,CONTRACT_ESSENTIALS,essentialFields,fieldOpt,fieldOptHit,FIELD_GRID_CSS,openContractEssentials,ceWirePreview,applyContractEssentials});
 
 /* ============================================================
    THE PAPER BESIDE THE QUESTIONS (the build plan's upgrade 2, 18 Sep 2026)

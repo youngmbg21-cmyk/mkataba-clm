@@ -2178,6 +2178,8 @@ function redlineLayoutCss(){
   .rl-card-read.is-ruby .rl-card-read-v i{background:var(--st-ruby-dot)}
   .rl-card-read.is-steel .rl-card-read-v i{background:var(--st-steel-dot)}
   .rl-card-read-w{min-width:0;flex:1 1 12em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  ${''/* THE PLAIN REASON IS READ WHOLE (round 5 of the first-timer rounds, as the picked drawing shows it): "Worth a look" rows only; the playbook's verdicts keep two lines */}
+  .rl-card-read[data-rl-row-read="look"] .rl-card-read-w{display:block;-webkit-line-clamp:unset;overflow:visible}
   .rl-card-read-ask{flex:none;appearance:none;border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);text-decoration:underline;text-decoration-color:var(--color-accent-200);text-underline-offset:3px;cursor:pointer}
   .rl-card-read-ask:hover{text-decoration-color:currentColor}
   .rl-sug-reject :is(ins,.nego-ins){text-decoration:line-through dashed var(--color-accent-600);text-decoration-thickness:2px;
@@ -2900,6 +2902,13 @@ function redlineLayoutCss(){
          way in is still there. Label size and the secondary ink: it is the
          quietest thing in this state, which is the SAP rung this fact earns. */}
   .redline-page .rl-empty-lead{font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-600)}
+  ${''/* NOTHING TO ANSWER YET (round 4 of the first-timer rounds): a paper not yet
+         sent leads with Send, set to Negotiate, as the column's ONE filled
+         button; Draft from our standards steps down to an outline beside it. */}
+  .redline-page .rl-empty-first{margin:0 0 8px;font-size:var(--t-body);line-height:1.5;color:var(--color-text)}
+  .redline-page .rl-empty-acts button.rl-empty-send{border:0;background:var(--accent-fill);color:#fff}
+  .redline-page .rl-empty-acts button.rl-empty-send:hover{filter:brightness(1.08)}
+  .redline-page .rl-empty-acts:has(.rl-empty-send) button[data-rl-prepare]{border:1px solid var(--btn-edge);background:transparent;color:var(--accent-ink)}
   /* ---- AN INDEX CARD, WITH A SPINE THAT SAYS WHOSE IT IS ----
      The cards were a plain bordered box each, so a column of six read as six
      identical rectangles and whose ask a change was could only be learned by

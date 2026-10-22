@@ -127,7 +127,9 @@ describe('f679 (2) the wall\'s two ways in are Jambo\'s words, in both books', (
     const { ctx, calls } = caStage({ editor: false });
     assert.deepEqual(J(ctx.caPaperChips().map(x => x.k)), ['draft', 'board', 'calendar']);
     const a = ctx.caActOf('upload');
-    assert.equal(ctx.caGoSay(a), BOOKS.en.ct_viewers_no_add);
+    /* RE-POINTED 22 Oct 2026 (round 1 of the first-timer rounds, owner picked "On the card"):
+       the refusal says what is true and who lifts it (draftWallSay), once */
+    assert.match(ctx.caGoSay(a), /^You can read contracts but not start one yet\. /);
     ctx.caGo(a);
     assert.deepEqual(J(calls), [], 'no picker, no pop-up');
   });

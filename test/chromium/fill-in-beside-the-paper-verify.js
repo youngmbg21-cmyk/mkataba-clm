@@ -53,8 +53,10 @@ const UPLOAD = (id, over) => Object.assign({ id, name: 'SaaS Agreement', counter
   comments: [], rounds: [], versions: [], signatures: [], metadata: {}, compliance: { consent: false }, audit: [] }, over || {});
 /* which screen stood in the window, frame by frame, until the face is up */
 const WATCH = () => { window._frames = []; let n = 0;
-  const tick = () => { const s = document.getElementById('na-root') ? 'na' : document.getElementById('pd-fillface') ? 'face' : document.getElementById('pd-glance') ? 'dossier' : ('other:' + state.view);
-    window._frames.push(s); if (s !== 'face' && s !== 'dossier' && n++ < 2000) requestAnimationFrame(tick); };
+  /* RE-POINTED 22 Oct 2026 (the first-timer rounds, "He speaks"): Jambo's first words beside the new paper ('jambo') are a landing too */
+  const tick = () => { const s = document.getElementById('na-root') ? 'na' : document.getElementById('pd-fillface') ? 'face' : document.getElementById('pd-glance') ? 'dossier'
+      : (state.view === 'dashboard' && document.querySelector('#ig-dock .pd-trail .pd-back') && document.querySelector('#ig-dock .jb-turn')) ? 'jambo' : ('other:' + state.view);
+    window._frames.push(s); if (s !== 'face' && s !== 'dossier' && s !== 'jambo' && n++ < 2000) requestAnimationFrame(tick); };
   requestAnimationFrame(tick); };
 /* RE-POINTED 20 Oct 2026 (the Legora way): what the grid holds and where the hand is */
 const FACE = () => {
@@ -66,6 +68,18 @@ const FACE = () => {
     rows: f ? f.querySelectorAll('tr.pd-og-row:not(.is-saved)').length : 0 };
 };
 
+/* RE-POINTED 22 Oct 2026 (the first-timer rounds, round 4 "He speaks"): a new draft's panel turns to
+   Jambo's first words once; the reader's own ‹ back (the trail's .pd-back) returns it to the Dossier */
+const pastFirstWords = async page => {
+  const end = Date.now() + 8000;
+  while (Date.now() < end){
+    const s = await page.evaluate(() => document.getElementById('pd-glance') ? 'cd' : document.querySelector('#ig-dock .jb-turn') ? 'jb' : '').catch(() => '');
+    if (s === 'cd') return true;
+    if (s === 'jb'){ await page.evaluate(() => { const b = document.querySelector('#ig-dock .pd-trail .pd-back'); if (b) b.click(); }).catch(() => {}); }
+    await new Promise(r => setTimeout(r, 120));
+  }
+  return false;
+};
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
@@ -160,13 +174,14 @@ const FACE = () => {
     await page.fill('#wz-counterparty', 'Kilima Foods Ltd');
     await page.evaluate(WATCH);
     await page.click('#na-create');
-    const up4 = await waitFor(page, () => !!document.getElementById('pd-glance') && !document.getElementById('na-root'), 10000);
+    const up4 = await waitFor(page, () => !!(document.getElementById('pd-glance') || document.querySelector('#ig-dock .jb-turn')) && !document.getElementById('na-root'), 10000);
     await pause(300);
     const frames4 = await page.evaluate(() => [...new Set(window._frames || [])]);
+    await pastFirstWords(page);
     f = await page.evaluate(FACE);
     const cdUp = await page.evaluate(() => !!document.getElementById('cd-page'));
     check('4 a HaTi template draft lands on Home\'s paper on its Dossier, no frame of another screen',
-      up4 && f.view === 'dashboard' && frames4.every(x => x === 'na' || x === 'dossier') && !cdUp, JSON.stringify(frames4) + ' ' + JSON.stringify(f));
+      up4 && f.view === 'dashboard' && frames4.every(x => x === 'na' || x === 'dossier' || x === 'jambo') && !cdUp, JSON.stringify(frames4) + ' ' + JSON.stringify(f));
 
     /* ===== 5. A COMPANY TEMPLATE: SHOWN AS TYPED, WRITTEN ON THE PRESS ===== */
     await page.evaluate(() => setView('register')); await pause(400);
@@ -174,6 +189,7 @@ const FACE = () => {
     await waitFor(page, () => !!document.getElementById('ce-counterparty'));
     await page.fill('#ce-counterparty', 'Nordic Bites AB');
     await page.click('#na-create');
+    await waitFor(page, () => !document.getElementById('na-root'), 10000); await pastFirstWords(page);
     const up5 = await waitFor(page, () => !!document.querySelector('#pd-og [data-tplf]') && !document.getElementById('na-root'), 10000);
     const site = await page.evaluate(() => getContract(intel.paper.id).templateForm.fields.findIndex(x => x.fieldKey === 'site'));
     await ckOpenRowOf(page, `#pd-og [data-tplf="${site}"]`); await page.click(`#pd-og [data-tplf="${site}"]`);

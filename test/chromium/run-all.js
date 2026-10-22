@@ -64,6 +64,9 @@ const KNOWN_RED = {
      it reads 93/93, also with four checks side by side. */
   'their-edit-page-verify.js':
     'RED ON GITHUB ONLY, 10 Oct 2026: section 4 — typing after a save on THEIR seat — never holds on GitHub\'s runner (the words typed are gone each time); it passes every time locally, even at a 10x CPU throttle. The foot\'s Discard claims (2b, 3a2, 6a2) were re-pointed 11 Oct to the one-panel foot and pass. Logged in BUGLOG (a repaint may be taking a person\'s typing). Take it off when section 4 holds on GitHub.',
+  /* THE TIDY SWEEP (tidy-sweep-verify.js) CAME ON 22 Oct 2026 and sat here
+     red by design for one afternoon, until its first four faults were fixed
+     the same day (the owner's yes). It is required to pass. */
   /* NOT LISTED, deliberately: analytics-verify.js. It was two faults wearing
      one symptom and ONE OF THEM IS NOW CLOSED BY CONSTRUCTION.
      Its check is `canvases > 0 || bars > 0`. The canvas half used to fail in a
@@ -94,6 +97,9 @@ const NOT_TESTS = new Set([
      that session's own scratchpad. Kept because the measurement is worth
      repeating and the numbers are in its head; it is not a test and never was. */
   '_edge.js',
+  /* THE JAMBO EXAM (22 Oct 2026): a measurement that spends real Jambo calls when a key is set;
+     run by hand, its scores reported to the owner (docs/PLAN-jambo-copilot.md). */
+  'jambo-exam-measure.js',
 ]);
 
 const argv = process.argv.slice(2);

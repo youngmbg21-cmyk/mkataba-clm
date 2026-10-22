@@ -45,7 +45,7 @@ const HATI_SAMPLES=[
    BOTH branches below, because a saved template with no blanks still asks the
    contract essentials and those are answers too. */
 function createFromCustomTemplate(tid, prefill, ho){
-  if(!canEdit()){ toast(i18t('lib_viewers_no_create'),'err'); return; }
+  if(!canEdit()){ if(typeof draftWallToast==='function') draftWallToast(); else toast(i18t('lib_viewers_no_create'),'err'); return; }
   const t=customTemplates().find(x=>x.id===tid);
   if(!t){ toast(i18t('lib_template_not_found'),'err'); return; }
   // A template with blanks goes through the same guided fill as the built-ins,
@@ -194,11 +194,10 @@ function openTemplateFillModal(t, prefill, ho){
   const sideF=(fs.some(f=>f.maps==='category'))?null
     :((typeof CONTRACT_ESSENTIALS!=='undefined'&&Array.isArray(CONTRACT_ESSENTIALS))
       ? CONTRACT_ESSENTIALS.find(f=>f.key==='side')||null : null);
-  const sideHtml=sideF?`<label style="display:block">
+  /* WHO PAYS WHOM: the same three presses as the New agreement form (payWhoHtml, round 3 of the first-timer rounds) */
+  const sideHtml=sideF?`<div class="pw-field">
         <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${_tplEsc(sideF.label)}</span>
-        <select id="tf-side" style="width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none">${
-          (sideF.opts||[]).map(o=>(typeof fieldOpt==='function'?fieldOpt(o):{v:String(o),l:String(o)})).map(o=>
-            `<option value="${_tplEsc(o.v).replace(/"/g,'&quot;')}"${String(sideF.def||'')===o.v?' selected':''}>${_tplEsc(o.l)}</option>`).join('')}</select></label>`:'';
+        ${(typeof payWhoHtml==='function')?payWhoHtml('tf-side', sideF.def||''):''}</div>`:'';
   const fieldsHtml=`
     <div class="field-grid" style="${(typeof FIELD_GRID_CSS==='string'?FIELD_GRID_CSS:'display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s-3)')}">
       ${''/* OUR SIDE, ASKED HERE TOO. A customer's own template may carry a
@@ -1338,7 +1337,7 @@ function tplMakeItOurs(bid){
    validated BEFORE anything is created — half a batch of employment letters is
    worse than none, because the half-done state is invisible in the register. */
 function openBulkCreateModal(t){
-  if(!canEdit()){ toast(i18t('lib_viewers_no_create'),'err'); return; }
+  if(!canEdit()){ if(typeof draftWallToast==='function') draftWallToast(); else toast(i18t('lib_viewers_no_create'),'err'); return; }
   const fs=templateFields(t);
   if(!fs.length){ toast(i18t('lb_no_blanks_add_first'),'err'); return; }
   openModal(`<div style="padding:20px 22px">
