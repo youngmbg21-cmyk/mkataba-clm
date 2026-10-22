@@ -1620,7 +1620,7 @@ function caPlaceStd(a, q){
   return a;
 }
 function caReadPlace(q){
-  const a = caPlaceStd(caPlaceOf(q), q); if (!a) return null;
+  const a0 = caPlaceOf(q); const a = (typeof caPlaceStd === 'function') ? caPlaceStd(a0, q) : a0; if (!a) return null;
   const p = CA_PLACES.find(x => x.k === a.place);
   if (!a.cid && p.need){ const c = caOpenContract(); if (c) a.cid = c.id; }
   if (p.need === 'one' && !a.cid) a.missing = true;
@@ -2151,7 +2151,7 @@ function caReadPlaceAnd(q){
     if (place && lead && rest.startsWith(lead[0].trim())) rest = rest.slice(lead[0].trim().length).trim();
   }
   if (!place || !rest) return null;
-  if (place === 'ourpaper' && CA_STD_WORD.test(s)) return caPlaceStd({ kind: 'go', place, state: 'ready' }, q);
+  if (place === 'ourpaper' && typeof caPlaceStd === 'function' && CA_STD_WORD.test(s)) return caPlaceStd({ kind: 'go', place, state: 'ready' }, q);
   const N = caNarrowOf(rest, place); if (!N) return null;
   /* every contract asked for at a place is that place at rest */
   if (N.all) return { kind: 'go', place, state: 'ready', all: true };
@@ -2163,7 +2163,7 @@ function caReadPlaceAnd(q){
 function caReadGoPlace(q){
   const s = caAndNorm(q); const lead = s.match(CA_GO_LEAD); if (!lead) return null;
   const after = s.slice(lead[0].length).replace(/(?:[\s,]+(?:please|now|for me|thanks|thank you|tack|snälla|nu))+\s*$/, '').trim();
-  const hit = caAndPlaceAt(after, true); if (hit) return caPlaceStd({ kind: 'go', place: hit.k, state: 'ready' }, q);
+  const hit = caAndPlaceAt(after, true); if (hit){ const a = { kind: 'go', place: hit.k, state: 'ready' }; return (typeof caPlaceStd === 'function') ? caPlaceStd(a, q) : a; }
   return null;
 }
 

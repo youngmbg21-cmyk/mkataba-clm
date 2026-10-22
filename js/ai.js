@@ -2974,7 +2974,11 @@ function updateAiBrainPill(){
    rides back on the answer; a quiet caller MUST print it where the reader is
    looking. The streaming path takes it too (27 Sep 2026): the main panel
    streams, and prints the notice under its answer. */
+/* every answer's goto is noted for the ask waiting on it (aiGotoNote) */
 async function copilotAsk(messages, context, onEvent, opts){
+  const r=await copilotAskSend(messages, context, onEvent, opts); aiGotoNote(r); return r;
+}
+async function copilotAskSend(messages, context, onEvent, opts){
   /* EVERY CHAT CARRIES THE DAY (18 Oct 2026): the panel beside a paper and the
      Board send their own short context; the reader's day rides each one */
   if(!(context&&context.today)&&typeof todayISO==='function') context=Object.assign({},context||{},{ today:todayISO() });
@@ -2985,13 +2989,13 @@ async function copilotAsk(messages, context, onEvent, opts){
        mid-stream) falls back to one plain /api/ai/chat call, transparently:
        the user still gets an answer, just un-streamed. */
     if(onEvent && typeof apiStream==='function'){
-      try{ const r=await apiStream('ai/chat/stream',{ messages, context }, onEvent, opts); aiGotoNote(r); return r; }
+      try{ return await apiStream('ai/chat/stream',{ messages, context }, onEvent, opts); }
       catch(e){ /* fall through to the request/response contract */ }
     }
-    const r=await api('ai/chat','POST',{ messages, context }, opts); aiGotoNote(r); return r;
+    return await api('ai/chat','POST',{ messages, context }, opts);
   }
-  if(!(typeof API_MODE==='function' && API_MODE()) && _localAiKey()){
-    const r=await aiLocalClaude(messages, context); aiGotoNote(r); return r; }
+  if(!(typeof API_MODE==='function' && API_MODE()) && _localAiKey())
+    return await aiLocalClaude(messages, context);
   const e=new Error('needsKey'); e.needsKey=true; throw e;
 }
 
@@ -5663,4 +5667,4 @@ Object.assign(window,{ aiMsgHtml,aiFeedWire,aiConvoClear,aiDoorFace,aiFaceHtml,a
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,aiDropRestatedHeading,
   aiParseProposal,copilotPropose,copilotProposeTemplate,AI_TEMPLATE_RULE,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
   aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,aiStepBackIfSummoned,
-  AI_SUGGESTIONS,AI_GOTO_RULE,AI_GOTO_OFF_RULE,aiNavigateLocalOn,aiGotoNote,aiGotoTake,aiGotoRun,localAiTools,buildAssistantContext,aiPortfolioSnapshot,aiPortfolioFigures,aiPortfolioSays,aiWholeBookAsk,aiDegrade,AI_CHAT_STEPS,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,AI_DEPENDENTS_TOOL_DESC,AI_COUNTERPARTY_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiAskWords,aiFeedEl,aiListFeed,aiUnreadIfAway,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiGraphSays, aiScreenContractId,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,briefMoved,briefMovedHtml,briefReadFootHtml,BRIEF_MOVED_MAX,runContractBrief,runFillBlanks,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,renewalStartPaper,renewalDecisionAct,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scanCanvas,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});
+  AI_SUGGESTIONS,AI_GOTO_RULE,AI_GOTO_OFF_RULE,aiNavigateLocalOn,aiGotoNote,aiGotoTake,aiGotoRun,localAiTools,copilotAskSend,buildAssistantContext,aiPortfolioSnapshot,aiPortfolioFigures,aiPortfolioSays,aiWholeBookAsk,aiDegrade,AI_CHAT_STEPS,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,AI_DEPENDENTS_TOOL_DESC,AI_COUNTERPARTY_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiAskWords,aiFeedEl,aiListFeed,aiUnreadIfAway,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiGraphSays, aiScreenContractId,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,briefMoved,briefMovedHtml,briefReadFootHtml,BRIEF_MOVED_MAX,runContractBrief,runFillBlanks,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,renewalStartPaper,renewalDecisionAct,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scanCanvas,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});
