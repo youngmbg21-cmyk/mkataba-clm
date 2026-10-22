@@ -2221,8 +2221,8 @@ async function intelMapLocal(q){
 let _igReadyAsk='';
 /* THE ONE WAY TO THE ASK BOX: on Home's Document the box stands on the
    Copilot tab only, so a door that puts words in it turns to that tab first. */
+/* the box stands under every tab (22 Oct 2026): words put in it stay on the tab in front */
 function igAskBox(){
-  if(window.pdShowsDesk&&pdShowsDesk()&&typeof window.pdSetTab==='function'){ pdSetTab('copilot'); renderIntelDock(); }
   return document.getElementById('igd-input');
 }
 function intelAskReady(q){
@@ -4372,7 +4372,12 @@ let _igFrames=0;
 /* how many frames of the map have been drawn — read by home-speed-verify to
    prove no frame is drawn while another side of Home shows */
 function igFramesDrawn(){ return _igFrames; }
-function igRender(){
+/* A RESTING FRAME MOVES ONLY THE DOTS (owner picked "Both", 22 Oct 2026): the
+   Still jiggle is drawn on the canvas alone; the names, cards and lines (the
+   SVG over it, igbPlace) hold where they were last placed, and are placed
+   again on the first woken frame. Moving them six times a second restyled
+   about 4,000 SVG pieces and kept a still map of 430 contracts busy ~25%. */
+function igRender(o){
   if(!IG) return;
   _igFrames++;
   const now=((typeof performance!=='undefined'&&performance.now)?performance.now():Date.now())/1000;
@@ -4384,7 +4389,7 @@ function igRender(){
   const w=igbCam().w; IG.pj=igbProjector(IG);
   IG.hubs.forEach(h=>{ h.q=IG.pj(igbHeart(h,w)); });
   IG.contracts.forEach(n=>{ n.q=IG.pj(igbMix(n,w)); });
-  igbShade(IG); igbDraw(IG,now); igbPlace(IG);
+  igbShade(IG); igbDraw(IG,now); if(!(o&&o.rest)) igbPlace(IG);
 }
 function igClamp(n,dx,dy){ const hw=n.w/2+2,hh=n.h/2+2,sx=dx?hw/Math.abs(dx):1e9,sy=dy?hh/Math.abs(dy):1e9,s=Math.min(sx,sy); return {x:n.x+dx*s,y:n.y+dy*s}; }
 
@@ -4433,10 +4438,10 @@ function igPaintGroupSelect(){
    drawing once nothing moves — no settling, no pointer on the map, no walk,
    no glide since IG_AWAKE_MS — and any press, drag, wheel, hover, view
    change, fold, lens or new answer wakes it (igWake). A map left Still
-   jiggles at IG_JIG_FPS (Wiring drifts at IG_SPIN_FPS); one the reader set Turning draws every frame
+   jiggles at IG_JIG_FPS, its dots only (Wiring drifts at IG_SPIN_FPS); one the reader set Turning draws every frame
    while it shows (igbSpinning; STILL UNTIL PRESSED). MEASURED ONCE: the stage's size is read on
    a ResizeObserver, never inside a frame after the canvas was written. */
-const IG_SETTLE_ROUNDS=220, IG_SETTLE_SLICE=20, IG_SETTLE_MS=10, IG_AWAKE_MS=2000, IG_SPIN_FPS=12, IG_JIG_FPS=6;
+const IG_SETTLE_ROUNDS=220, IG_SETTLE_SLICE=20, IG_SETTLE_MS=10, IG_AWAKE_MS=2000, IG_SPIN_FPS=12, IG_JIG_FPS=3;
 let _igKept={ key:'', nodes:null }, _igWokeAt=0, _igKick=null, _igTimer=0, _igSizeWatch=null;
 function igKeptKey(cs, groupBy, groups, lenses){
   const book=(cs||[]).map(c=>c&&(c.id+':'+(c.updatedAt||c.updated_at||c.version||''))).join('|');
@@ -4516,8 +4521,8 @@ function igLoopStart(myRAF){
       while(IG._settle>0&&n<IG_SETTLE_SLICE&&(n===0||performance.now()-t0<IG_SETTLE_MS)){ igTick(); IG._settle--; n++; }
       if(IG._settle<=0&&!IG._kept) igFitView(); }
     else if(wiring&&(f++%4===0)) igTick();
-    igRender();
     const awake=IG._settle>0||Date.now()-_igWokeAt<IG_AWAKE_MS||!!intel.walk||igbSpinning();
+    igRender({ rest:!awake&&!wiring });
     if(awake){ requestAnimationFrame(step); return; }
     _igKick=step;
     if(!igbReduced()||wiring) _igTimer=setTimeout(()=>{ _igTimer=0; if(_igKick===step){ _igKick=null; requestAnimationFrame(step); } }, 1000/(wiring?IG_SPIN_FPS:IG_JIG_FPS));
@@ -8150,12 +8155,12 @@ function renderIntelDock(){
       <button id="igd-cmp-clear" class="text-[10.5px] font-600 text-ink/50 hover:text-ink">${i18t('int_clear')}</button>
       <button id="igd-cmp-run" class="ui-btn ui-btn-sm${intel.compareSel.length<2?'':' ui-btn-primary'}" title="${intel.compareSel.length<2?'Tap “+ Compare” on one more node first':'Run the side-by-side comparison'}">${intel.compareSel.length<2?'Pick 1 more…':'Compare '+intel.compareSel.length}</button>
     </div>`:''}
-    ${''/* ONLY THE COPILOT TAB ASKS (owner, 12 Oct 2026: "only Copilot tab ...
-           should have a copilot field to Type in. The other tabs (overview,
-           clauses and obligations) should not have a copilot prompt entry
-           window"). A press elsewhere that puts words in the box goes through
-           igAskBox, which turns to the Copilot tab first. */}
-    ${!talk&&((window.pdShowsDesk&&pdShowsDesk())||igFindingsShows()||igGuideShows())?'':`<div class="igd-foot p-3 border-t border-hair shrink-0 relative">
+    ${''/* EVERY TAB ASKS (owner, 22 Oct 2026: "all side panels need to have
+           jambo entry field at the bottom"; reverses 12 Oct's "only the Copilot
+           tab asks"): Dossier, Clauses, Obligations, Findings and the Guide all
+           carry the box; words asked turn the panel to the conversation over
+           the tab (pdTalkSync), its back returns to the tab as it was left. */}
+    ${`<div class="igd-foot p-3 border-t border-hair shrink-0 relative">
       ${''/* THE BOX SAYS WHICH CONTRACT IT ASKS ABOUT (26 Sep 2026): the reader's
              own switch, read back on the control that carries it — never a
              line above it. The cost of a question rides the hover. */}
@@ -9661,9 +9666,8 @@ function igStrandPress(sp, b, i){
     clearTimeout(el._igFlash); el._igFlash=setTimeout(()=>el.classList.remove('ig-flash'),1700); }
   const row=_igStrandData[i]; if(!row) return;
   if(!intel.dockOpen){ intel.dockOpen=true; renderIntelDock(); igSyncDockWidth(); }
-  /* the Track's press puts a question ready in the box, which stands on the
-     Copilot tab only: from Overview or Obligations it turns there (igAskBox);
-     on Clauses it opens the clause in the list and asks nothing */
+  /* the Track's press puts a question ready in the box (under every tab since
+     22 Oct 2026); on Clauses it opens the clause in the list and asks nothing */
   const onClauses=typeof window.pdTab==='function'&&pdTab()==='doc'&&window.pdShowsDesk&&pdShowsDesk();
   const inp=onClauses?null:igAskBox(); if(!inp) return;
   const had=String(inp.value||'');

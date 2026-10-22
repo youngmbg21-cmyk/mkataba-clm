@@ -61,6 +61,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f193–f199, f331, f335, new-person-grants verify.
 
 ## THE SHELL — RAIL, BAR, PANELS
+- JAMBO'S BOX ON EVERY SIDE PANEL (22 Oct 2026): jambo-box-every-panel verify (Dossier, Clauses and Obligations at the three screens, asked from Clauses and back, the slide-out panel's Guide, Alerts and Activity, Notes keeps its own box; 5/17 at c5aa0c2). RE-POINTED with the owner's words: ask-box-on-copilot-only verify 2 and 3 (the box under every tab), home-first verify 3d, explorer-guide-tab verify 2a, f840 2e (the Guide keeps the box).
 - Words sent while Jambo is still answering wait their turn (22 Oct 2026): f862 (red at the parent), jambo-asks-in-turn verify (red at the parent 1a–1c, 2a–2b), f804 8b4 re-pointed.
 - 21 Oct 2026 (overnight): send-to-a-colleague-verify 1i ("write an email to X summarising the above" opens the send screen, no model); jambo-slides-in-verify 6c (Home's box answers "What am I looking at?" free); control-room-in-full-verify 7b/7c ("upload a contract" / "new contract" in Settings go to Home's Jambo).
 - ONE JAMBO CONVERSATION EVERYWHERE (21 Oct 2026): `test/chromium/jambo-one-conversation-verify.js` (red at cb1aa4ba: Home, Settings and the side panel kept three conversations); f840 2c re-pointed (another contract keeps the conversation). No light on arrival: f445 (5), `land-on-it-verify.js` 1b/2b/3b/5c re-pointed.
@@ -100,6 +101,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Jambo's own two rows (22 Oct 2026): f705 1a and the exam's jamboset/jambopts lines (red at the parent), draft-beside-jambo verify 4.
 ## STAKES — THE CLAUSES TAB CARRIES THE DEEP READ
 - A missing point inside its clause (22 Oct 2026): clauses-legora-way-verify 5/5b (red at the parent: 2, 5, 5b), stakes-verify 3/3h, clause-list-fixed-verify 4 (+ photos at the three screens).
+- Plain English first, the missing group's head a button (23 Oct 2026): clauses-legora-way-verify 5c, 5d (red at the parent); photographed at the three screens by hand (a resize inside that check redraws the panel under check 6).
 - stakes-verify, point-buttons-and-brief verify, jambo-pill-and-window 3a, f668, f671, f277.
 - clauses-legora-way-verify (merged twin counted once, worst-first order, the dive walks the same order, badge = need you, Mark reviewed persists through the server and drops the count, missing row in place; 1/12 at d7a320c2). stakes-verify and point-buttons-and-brief-verify re-pointed to the card anatomy.
 
@@ -302,6 +304,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f274, f322–f324, f344, f358, f390, f399, f400, f412, f413, f560, f564, f659, agents-page, brain-page, brain-lanes, brain-stack, no-link-to-sign verify.
 
 ## PERFORMANCE — THE BOOK IS WALKED ONCE
+- A STILL MAP MOVES ONLY ITS DOTS (22 Oct 2026): home-speed verify 3 (red at 234b2ef: 1,000–1,200 ms busy of 4000 here, 612–804 on GitHub; 263–296 after). RE-POINTED: explorer-magnitude verify 4a2 reads the dot where the canvas draws it (`n.q`), f425 the rest guard in `igRender`.
 - The Board → Paper switch (22 Oct 2026): home-speed-verify check 1 at a real 430 book (check 3 red on purpose, BUGLOG); every-door-lands-on-home, counter-as-drawn, page-jumps, legora-lists, board-keeps-your-place, keeps-your-place, refresh-keeps-your-spot, wall-of-papers, open-in-place.
 - f356, f357, f656, home-speed, long-contract-moves verify.
 

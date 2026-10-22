@@ -3533,6 +3533,30 @@ function closeNavDrawer(){ setNavDrawer(false); }
 /* THE GUIDE (owner picked "Journey", 19 Oct 2026): a fourth face, every page
    in the order a contract lives (guidePanelHtml) — the same shell, no new door */
 const PANEL_FACES = ['guide', 'alerts', 'notes', 'activity'];
+/* JAMBO'S BOX AT THE PANEL'S FOOT (owner, 22 Oct 2026: "all side panels need
+   to have jambo entry field at the bottom"): the one card on Guide, Alerts and
+   Activity; Notes keeps its own box for the note. Words asked put the panel
+   away and are asked in the ✦'s window (openAI {win}), the one conversation,
+   answered there — a press on Send asks, never only fills a box. Built once. */
+function panelAskPaint(face){
+  const f=document.getElementById('panel-ask'); if(!f) return;
+  const off=face==='notes';
+  f.hidden=off; if(off) return;
+  if(!f.dataset.built){
+    f.dataset.built='1';
+    const ph=i18t('jl_ph_any');
+    const card=(typeof window.jamboCardHtml==='function')?window.jamboCardHtml.bind(window):(o=>`${o.field||''}${o.send||''}`);
+    const send=(typeof window.jamboSendHtml==='function')?window.jamboSendHtml('data-panel-ask-go',i18t('int_ask'),{submit:true}):`<button type="submit" data-panel-ask-go>${esc(i18t('int_ask'))}</button>`;
+    f.innerHTML=card({ field:`<textarea id="panel-ask-in" rows="1" maxlength="600" spellcheck="false" data-jb-enter placeholder="${esc(ph)}" aria-label="${esc(ph)}"></textarea>`, send });
+    f.addEventListener('submit',e=>{
+      e.preventDefault();
+      const t=document.getElementById('panel-ask-in'); const q=String(t&&t.value||'').trim(); if(!q) return;
+      t.value='';
+      closeContextPanel();
+      if(typeof window.openAI==='function') window.openAI(q,{ win:!(typeof window.mPhone==='function'&&window.mPhone()) });
+    });
+  }
+}
 function panelFace(){ return PANEL_FACES.includes(state.panelFace)?state.panelFace:'activity'; }
 function setPanelFace(k){ state.panelFace=PANEL_FACES.includes(k)?k:'activity'; }
 /* THE ONE DOOR ONTO THE NOTES FACE. It needs a contract and a change where the
@@ -3632,6 +3656,7 @@ function renderContextPanel(){
   const guide=face==='guide';
   if(title) title.textContent=guide?i18t('gd_title'):_chat?i18t('ng_chat'):notes?i18t('ng_card_notes'):alerts?i18t('sh_alerts'):i18t('sh_activity');
   panelTabsPaint(face);
+  panelAskPaint(face);
   const close=document.getElementById('panel-close');
   if(close){ const t=(notes||guide)?i18t('act_close'):alerts?i18t('sh_close_alerts'):i18t('sh_close_activity');
     close.title=t; close.setAttribute('aria-label',t); }
