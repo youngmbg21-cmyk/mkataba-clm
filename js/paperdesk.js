@@ -474,8 +474,14 @@ function pdFillShowsRetired(){
    grid's row, its box in the hand — answered where it is asked */
 function pdFillOpen(id, opts){
   const o = opts || {};
+  /* LAND ON IT, past Jambo's words: a fill-in door pressed while his conversation stands in the panel
+     (his first words on a new paper) turns it back to the Dossier first, so the row is there to land on */
+  if (typeof pdTalkShows === 'function' && pdTalkShows() && typeof pdTalkBack === 'function') try { pdTalkBack(); } catch (_){}
+  if (typeof window.firstDraftDrop === 'function') window.firstDraftDrop(id);
   _pdFillFloor = null; _pdFillKey = null;
   const ok = pdOpenOnHome(id, 'plain');
+  /* and again once the paper is open: his conversation comes back with the paper it was said beside */
+  if (typeof pdTalkShows === 'function' && pdTalkShows() && typeof pdTalkBack === 'function') try { pdTalkBack(); } catch (_){}
   if (ok !== false) pdOgLand(id, o.key || '');
   return ok;
 }

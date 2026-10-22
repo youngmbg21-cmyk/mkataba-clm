@@ -1055,6 +1055,8 @@ function firstDraftOwe(c){
   return true;
 }
 function firstDraftOwed(c){ return !!c && _frDraftOwed.has(String(c.id)); }
+/* the reader already took the fill-in door his words would point to: they are no longer owed */
+function firstDraftDrop(id){ _frDraftOwed.delete(String(id)); }
 function firstDraftOf(c){
   if (!c) return null;
   let D = null; try { D = (typeof detailsOf === 'function') ? detailsOf(c) : null; } catch (_){ D = null; }
@@ -1169,7 +1171,7 @@ function firstReadPress(ch, m){
   return false;
 }
 
-Object.assign(window, { FIRST_READ_SHOW, firstReadOf, firstReadTurns, firstReadOwe, firstReadDue, firstReadPress, firstDraftOwe, firstDraftOwed, firstDraftOf, firstDraftList, firstDraftTurns, TRIAGE_STEPS, TRIAGE_HEADS, TRIAGE_STALE_KEYS, triageReadingStale, triageBusy, triageAbsent, triageNoText, triageApplies, triageOf, triageSeen, triageCards,
+Object.assign(window, { FIRST_READ_SHOW, firstReadOf, firstReadTurns, firstReadOwe, firstReadDue, firstReadPress, firstDraftOwe, firstDraftOwed, firstDraftDrop, firstDraftOf, firstDraftList, firstDraftTurns, TRIAGE_STEPS, TRIAGE_HEADS, TRIAGE_STALE_KEYS, triageReadingStale, triageBusy, triageAbsent, triageNoText, triageApplies, triageOf, triageSeen, triageCards,
   triageWordingHash, triageNeedsRead, contractArrived,
   triageTiles, triageFiledLine, triageLine, triageReadAnything, triageRun, triageBriefLine,
   triageWhy, triageFail,
