@@ -109,10 +109,12 @@ describe('f780 (5) the rows\' words as drawn', () => {
     const { q, text } = settingsStage();
     assert.match(text(rowOf(sec(q, 'lang'), S.en.st_you_lang_money)), /Numbers and money follow the market: Kenya, KES\./);
   });
-  test('5b How you\'re told: Daily brief, The bell, Email', () => {
+  /* RE-POINTED (22 Oct 2026, round 4 of Jambo's journey): the owner's yes to "Alerts on this device" in
+     Settings › You ("Yes, start round 4 with option 2") adds one row after the daily brief */
+  test('5b How you\'re told: Daily brief, Alerts on this device, The bell, Email', () => {
     const { q } = settingsStage();
     const labels = [...sec(q, 'told').querySelectorAll('.st-sl')].map(x => x.textContent);
-    assert.deepEqual(labels, [S.en.st_you_brief_row, S.en.st_you_bell_only, S.en.st_you_email_told]);
+    assert.deepEqual(labels, [S.en.st_you_brief_row, S.en.st_you_push_row, S.en.st_you_bell_only, S.en.st_you_email_told]);
   });
   test('5c Jambo\'s suggestions: the chips under his box', () => {
     const { q, text } = settingsStage();

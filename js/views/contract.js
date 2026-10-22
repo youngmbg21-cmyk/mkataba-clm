@@ -2240,7 +2240,12 @@ function triageAndPaint(c, opts){
          now may be a different contract's — asked of contractOnScreen, the
          one reading every slow result asks. */
       triageRepaintSurfaces(x);
-    }}); }catch(e){ /* the card says what happened */ return null; }
+    }}).then(t=>{
+      /* AN UPLOAD'S READING ENDS IN JAMBO'S FIRST WORDS (round 1 of Jambo's
+         journey, owner, 22 Oct 2026): said in his panel beside its paper */
+      if(t && opts && opts.arrival && window.firstReadOwe) try{ firstReadOwe(getContract(c.id)||c); }catch(_){}
+      return t;
+    }); }catch(e){ /* the card says what happened */ return null; }
   }).catch(()=>null);
 }
 /* EVERY SURFACE A READING MOVES, repainted where it is on screen. Lifted out

@@ -10,6 +10,8 @@
      those 13 already reads env() with an explicit 0px fallback, so they simply
      start returning a real number on the handsets that have one. -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<!-- ALERTS ON YOUR PHONE (round 4): lets an iPhone or iPad put HaTi on its Home Screen, the only way Apple gives a web app alerts -->
+<link rel="manifest" href="/manifest.webmanifest" />
 <!-- iPhone/iPad Safari must not turn names, addresses and emails into underlined links (owner, 9 Oct 2026) -->
 <meta name="format-detection" content="telephone=no,email=no,address=no,date=no" />
 <title>HaTi — Contract Lifecycle Management</title>
@@ -4037,6 +4039,8 @@
   .st-cr .st-sl{ color:var(--color-text); font-weight:var(--w-label); }
   .st-cr .st-sv{ min-width:0; display:flex; flex-wrap:wrap; align-items:center; gap:2px 10px; line-height:1.45; }
   .st-cr .st-sv > b + .st-you-sub{ flex-basis:100%; }
+  /* alerts on this device (round 4): the row's wrapper steps aside so its switch and words sit like Jambo's suggestions below */
+  .st-cr .st-push{ display:contents; }
   .st-cr .st-sa{ display:flex; gap:14px; align-items:center; justify-content:flex-end; white-space:nowrap; }
   .st-cr .st-sr-door{ font-size:var(--t-meta); }
   /* A QUIET BOX, AS DRAWN (round 24, the gaps' third pass): about 28px tall,
@@ -14140,6 +14144,17 @@
   .jl-bub{min-width:0;flex:1 1 auto;padding:10px 12px;border-radius:var(--radius-lg);background:var(--surface-2);color:var(--color-text);line-height:1.5;}
   .jl-bub b{font-weight:var(--w-strong);}
   .jl-bub .late{color:var(--st-ruby-fg);font-weight:var(--w-label);}
+  /* JAMBO SPEAKS FIRST (round 1 of Jambo's journey): his first words are short paragraphs and two short lists */
+  .jl-bub p{margin:0;}
+  .jl-bub p + p, .jl-bub .fr-list + p, .jl-bub .fr-more + p{margin-top:8px;}
+  .jl-bub .fr-list{margin:4px 0 0;padding-left:18px;list-style:disc;}
+  .jl-bub .fr-list li + li{margin-top:4px;}
+  .jl-bub .fr-more{margin-top:4px;color:var(--color-neutral-600);}
+  /* WHAT THE WEB SAYS ABOUT THEM (round 3): each fact's sources, small, after it; the pop-up reads like his turn */
+  .jl-bub .pw-src{font-size:12px;color:var(--accent);text-decoration:underline;text-underline-offset:2px;white-space:nowrap;}
+  .jl-bub .pw-src + .pw-src{margin-left:6px;}
+  .pw-dlg .jl-bub{max-height:min(60vh,520px);overflow:auto;}
+  .pw-dlg .pw-err{margin-top:8px;color:var(--danger);}
   .jl-src{margin:-2px 0 2px 34px;font-size:var(--t-micro);color:var(--color-neutral-600);}
   .jl-chips{display:flex;flex-wrap:wrap;gap:4px 12px;margin-left:34px;}
   /* a resting chip wears the ONE light edge every outlined control does

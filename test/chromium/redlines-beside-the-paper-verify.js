@@ -216,9 +216,13 @@ const bands = () => [...document.querySelectorAll('#pd-redface .rl-band')].map(b
     const s6 = await page.evaluate(() => ({ send: ((document.querySelector('#pd-redface .rl-unsent-go') || {}).textContent || '').trim(),
       bands: [...document.querySelectorAll('#pd-redface .rl-band')].map(b => b.textContent.replace(/\s+/g, ' ').trim()),
       top: (document.querySelector('#pd-redface #nego-cards') || {}).scrollTop,
+      /* as far as the column now scrolls: RE-POINTED 22 Oct 2026 (Jambo's journey, round 2) — their ask carried
+         Jambo's read line and the counter that takes its row does not, so the column may be a line shorter */
+      most: (el => el ? el.scrollHeight - el.clientHeight : 0)(document.querySelector('#pd-redface #nego-cards')),
       ours: getContract('MK-R1').changes.filter(x => x.authorSide === 'owner').map(x => x.newText || '') }));
-    check('6a the counter lands under "Your drafts", Send all · 1 not sent, at the same spot',
-      /Your drafts, not yet sent\s*1/.test(s6.bands.join('|')) && s6.send === 'Send all · 1 not sent' && s6.top === at6 && /nine months/.test(s6.ours[0] || ''), JSON.stringify(s6) + ' want ' + at6);
+    const spot6 = Math.min(at6, Math.max(0, s6.most));
+    check('6a the counter lands under "Your drafts", Send all · 1 not sent, at the same spot (as far as the column scrolls)',
+      /Your drafts, not yet sent\s*1/.test(s6.bands.join('|')) && s6.send === 'Send all · 1 not sent' && Math.abs(s6.top - spot6) <= 1 && /nine months/.test(s6.ours[0] || ''), JSON.stringify(s6) + ' want ' + spot6);
     await shot('6-drafted');
     /* RE-POINTED 18 Oct 2026 (round 11's gaps, "The letter": "Every way to
        send — Share on the paper's line, Send all on Redlines, Jambo's share —
