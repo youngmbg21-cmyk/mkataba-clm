@@ -21387,3 +21387,6 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Noticed, not fixed: from a list page a free Board reading can be a follow-up on the Board's open chart (hbFollowUpRead reads Board state the reader cannot see).
 - Noticed, not fixed: while Jambo answers, a watch sentence and the map's "which did you mean?" card still add turns before the pending answer (jlAsk steps 0 and 2).
 - Noticed, not fixed: CLAUDE.md grew by about 120 bytes with the three answers' MAP lines (84,629 → 84,748); still over the ~80 KB line and waiting on the owner's yes for a trim.
+- Noticed, not fixed (22 Oct 2026, Part 8 photos): asked on Approvals, "which ones are waiting on us?" is answered beside the list from the Board's book-wide reading (the negotiations waiting for our reply), not the approval on screen that waits on you; the same reading the Board gave before.
+- Noticed, not fixed (22 Oct 2026, Part 8 photos): with a Quick filter chosen the Contracts foot reads "1–2 of 2  (of 56 total)" with a wide gap before the bracket.
+- Noticed, not fixed (22 Oct 2026, Part 8 photos): Jambo's list panel's Overview tab read 28 in one photo and 30 in the next of the same sitting, with nothing changed.
