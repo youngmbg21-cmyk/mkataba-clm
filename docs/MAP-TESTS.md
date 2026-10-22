@@ -303,6 +303,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f274, f322–f324, f344, f358, f390, f399, f400, f412, f413, f560, f564, f659, agents-page, brain-page, brain-lanes, brain-stack, no-link-to-sign verify.
 
 ## PERFORMANCE — THE BOOK IS WALKED ONCE
+- A STILL MAP MOVES ONLY ITS DOTS (22 Oct 2026): home-speed verify 3 (red at 234b2ef: 1,000–1,200 ms busy of 4000 here, 612–804 on GitHub; 263–296 after). RE-POINTED: explorer-magnitude verify 4a2 reads the dot where the canvas draws it (`n.q`), f425 the rest guard in `igRender`.
 - The Board → Paper switch (22 Oct 2026): home-speed-verify check 1 at a real 430 book (check 3 red on purpose, BUGLOG); every-door-lands-on-home, counter-as-drawn, page-jumps, legora-lists, board-keeps-your-place, keeps-your-place, refresh-keeps-your-spot, wall-of-papers, open-in-place.
 - f356, f357, f656, home-speed, long-contract-moves verify.
 

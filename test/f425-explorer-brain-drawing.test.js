@@ -67,7 +67,8 @@ test('f425 (1) the drawing: a canvas under the nodes, the views and Fold all on 
   assert.match(IG, /const IGB_VIEWS=\['brain','wiring','floors','grid','timeline'\];/, 'five views since the view recipe (f426)');
   const f = code(region(IG, 'igRender'));
   assert.match(f, /igbStep\(IG,dt\); igbWiring\(IG\);/);
-  assert.match(f, /igbShade\(IG\); igbDraw\(IG,now\); igbPlace\(IG\);/);
+  /* RE-POINTED 22 Oct 2026 (owner picked "Both"): a resting frame draws the dots only; the SVG is placed on every other frame */
+  assert.match(f, /igbShade\(IG\); igbDraw\(IG,now\); if\(!\(o&&o\.rest\)\) igbPlace\(IG\);/);
   assert.match(code(region(IG, 'makeIntelGraph')), /igbLayout\(G\); G\.prev=null;/, 'the old graph is read once, never held');
   assert.match(HTML, /\.ig-brain #ig-cv\{[^}]*pointer-events:none/, 'the canvas takes no press');
 });

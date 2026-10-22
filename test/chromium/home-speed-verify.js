@@ -98,7 +98,10 @@ const check = (name, pass, detail) => {
     const sit = await act(() => 0, quiet(4000));
     /* 10 Oct 2026: a Still map jiggles its dots (owner-asked, "the contracts
        are just flickering"), drawn at IG_JIG_FPS — measured 283 ms of 4000 at
-       this book (7%), against 1 ms when it rested and ~100% before 8 Oct. */
+       this book (7%), against 1 ms when it rested and ~100% before 8 Oct.
+       22 Oct 2026: that figure was taken on the four-contract book (see the sign-in
+       wait above); at the real 430 the jiggle cost 600–1,200 ms, so a resting frame
+       now moves only the dots (`igRender({rest})`) at IG_JIG_FPS 3 — 263–296 ms. */
     check('3. a still, settled Explorer keeps the browser busy under 10% of the time', sit.busy < 400, `${sit.busy} ms busy of 4000`);
     const back = await act(() => hbSetFace('board'), onFace('board'));
     const onBoard = await act(() => 0, quiet(3000));
