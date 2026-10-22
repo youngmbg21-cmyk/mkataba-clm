@@ -218,16 +218,6 @@ const deal = () => ({ id: ID, contractNo: ID, name: 'Haulage Review', counterpar
       return { row: !!row, before: !!(body && card && (body.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING)) };
     });
     ok('5d in an open clause its Plain English stands above its cards', e5d.row && e5d.before, JSON.stringify(e5d));
-    /* PHOTOGRAPHED ON THE OWNER'S THREE SCREENS: clause 2 open, its reading above its cards, the button below */
-    const shotDir = process.env.SHOTS_OUT || require('node:path').join(__dirname, 'shots', 'clauses-legora-way');
-    fs.mkdirSync(shotDir, { recursive: true });
-    for (const [w, hh] of [[1440, 780], [1536, 730], [1366, 950]]){
-      await page.setViewportSize({ width: w, height: hh });
-      await page.evaluate(() => { const r = document.querySelector('#pd-thread .doc-th-row.is-open'); if (r) r.scrollIntoView({ block: 'start' }); });
-      await page.waitForTimeout(300);
-      await page.screenshot({ path: require('node:path').join(shotDir, `clause-open-${w}x${hh}.png`) });
-    }
-    await page.setViewportSize({ width: 1440, height: 780 });
     ok('5b pressing clause 2 closes its missing point with it and opens it again; the clause\'s word counts it',
       e5.clauseShut === true && e5.clauseOpen === true && /· 2$/.test(e5.word.trim()), JSON.stringify({ shut: e5.clauseShut, open: e5.clauseOpen, word: e5.word }));
 
