@@ -3079,15 +3079,23 @@ function priceUsage(model, usage) {
   const outT = Number(u.output_tokens || 0);
   const cw = Number(u.cache_creation_input_tokens || 0);
   const cr = Number(u.cache_read_input_tokens || 0);
-  const cost = (inT * r.in + cw * r.in * AI_CACHE_WRITE_MULT + cr * r.in * AI_CACHE_READ_MULT + outT * r.out) / 1e6;
-  return { cost, inT, outT, cw, cr };
+  /* AND THE WEB SEARCHES IT MADE (Jambo's journey, round 3): a search is billed per search, not in tokens,
+     so a call that searched books that too (AI_WEB_SEARCH_PRICE each) */
+  const searches = Number((u.server_tool_use && u.server_tool_use.web_search_requests) || 0);
+  const cost = (inT * r.in + cw * r.in * AI_CACHE_WRITE_MULT + cr * r.in * AI_CACHE_READ_MULT + outT * r.out) / 1e6
+    + searches * AI_WEB_SEARCH_PRICE;
+  return { cost, inT, outT, cw, cr, searches };
 }
+/* Anthropic's web search: $10 per 1,000 searches, on top of the tokens */
+const AI_WEB_SEARCH_PRICE = 0.01;
 
 /* Human-facing feature names for the breakdown in Team & Settings. */
 const AI_FEATURE_LABEL = {
   extract: 'Metadata extraction', ocr: 'OCR (scanned paper)', playbook: 'Clause review',
   obligations: 'Obligations', graph: 'Portfolio graph', search: 'Search',
   template: 'Template advisor', chat: 'Jambo', blanks: 'Template blanks', other: 'Other',
+  /* Jambo's plain internet search on the other side (Jambo's journey, round 3) */
+  lookup: 'Company lookup (web search)',
   /* Document conversion — the .docx and PDF upload routes. Missing from this
      map until now, and the omission was not cosmetic: recordAiCall() files any
      feature it does not recognise under 'other', so every conversion since
@@ -13790,9 +13798,12 @@ function prVisibleKeys(user) {
 const prShape = r => ({ name: r.name || '', city: r.city || '', orgNo: r.org_no || '', by: r.set_by || '', at: r.set_at || '' });
 function prRecordsFor(user) {
   const rows = db.prepare('SELECT * FROM party_records').all();
-  if (!rows.length) return {};
+  const webs = db.prepare('SELECT * FROM party_lookups').all();
+  if (!rows.length && !webs.length) return {};
   const see = prVisibleKeys(user), out = {};
   for (const r of rows) if (see.has(r.pkey)) out[r.pkey] = prShape(r);
+  /* what Jambo found on the web rides on the same record (round 3): one home for a party's facts */
+  for (const w of webs) if (see.has(w.pkey)) out[w.pkey] = Object.assign(out[w.pkey] || { name: w.name || '', city: '', orgNo: '', by: '', at: '' }, { web: plShape(w) });
   return out;
 }
 app.get('/api/party-records', auth, (req, res) => res.json({ records: prRecordsFor(req.user) }));
@@ -13818,6 +13829,122 @@ app.put('/api/party-records', auth, editor, (req, res) => {
     .run(at, String(req.user.id || ''), by, key, name, said.join('; '));
   const after = db.prepare('SELECT * FROM party_records WHERE pkey=?').get(key);
   res.json({ record: after ? prShape(after) : null });
+});
+
+/* ============================================================
+   JAMBO LOOKS THE OTHER SIDE UP ON THE WEB (round 3 of Jambo's journey,
+   docs/PLAN-jambo-journey.md; owner, 22 Oct 2026: "this should be simple
+   internet search to understand the company not the credit rating", and
+   "Yes" to a party's name leaving HaTi for it)
+   ============================================================
+   A PLAIN INTERNET SEARCH: what they do, where, how big, since when, recent
+   news — through Anthropic's own web search, on the key HaTi already uses.
+   No register account, no credit report.
+     · EVERY FACT CARRIES ITS SOURCE: only a sentence the answer cites is kept;
+       an uncited sentence is dropped and counted (`uncited`), never shown as
+       fact. What could not be found is said (`missing`), never guessed.
+     · THE WALL: a reader may search only a party they may know of
+       (prVisibleKeys, else 404), and NEVER a party named on a deal kept to its
+       list (a code name) — that name does not leave HaTi (403).
+     · A PRESS, AN EDITOR'S, THE COST SAID: one Jambo call and at most
+       PL_MAX_SEARCHES searches, booked as 'lookup' (the search fee too).
+     · KEPT, ONE HOME: on the party's record (party_lookups), dated and signed;
+       asked again within PL_KEEP_DAYS it answers what was kept, free, unless
+       a person asks `again`. Every search is an act in the party's trail. */
+db.exec(`CREATE TABLE IF NOT EXISTS party_lookups (pkey TEXT PRIMARY KEY, name TEXT NOT NULL,
+  facts TEXT, missing TEXT, uncited INTEGER, searches INTEGER, model TEXT, lang TEXT,
+  by_id TEXT, by_name TEXT, at TEXT)`);
+const PL_MAX_SEARCHES = 5, PL_KEEP_DAYS = 30, PL_FACTS_MAX = 8;
+function plShape(w) {
+  let facts = []; try { facts = JSON.parse(w.facts || '[]') || []; } catch (_) { facts = []; }
+  return { name: w.name || '', facts, missing: w.missing || '', uncited: Number(w.uncited || 0), searches: Number(w.searches || 0),
+    by: w.by_name || '', at: w.at || '', lang: w.lang || 'en' };
+}
+/* the web search tool the chosen model takes: the dynamic-filtering variant on current models, else the basic one */
+function plSearchTool(model) {
+  const now = /^claude-(fable|mythos|opus-(5|4-[678])|sonnet-(5|4-6))/i.test(String(model || ''));
+  return { type: now ? 'web_search_20260209' : 'web_search_20250305', name: 'web_search', max_uses: PL_MAX_SEARCHES };
+}
+/* is this party named on a deal kept to its list? its name never leaves HaTi */
+function plCodeNamed(key) {
+  const cm = cnMap(); if (!cm.size) return false;
+  const ids = [...cm.keys()];
+  const rows = db.prepare(`SELECT counterparty FROM contracts WHERE id IN (${ids.map(() => '?').join(',')})`).all(...ids);
+  return rows.some(r => prKeyOf(r.counterparty) === key);
+}
+/* THE ANSWER, READ: lines, each with the sources the answer cited inside it */
+function plRead(content) {
+  const lines = []; let cur = { text: '', src: [] };
+  const flush = () => { const t = cur.text.trim(); if (t) lines.push({ text: t, src: cur.src }); cur = { text: '', src: [] }; };
+  for (const b of (Array.isArray(content) ? content : [])) {
+    if (!b || b.type !== 'text') continue;
+    const cites = (Array.isArray(b.citations) ? b.citations : []).filter(x => x && x.url)
+      .map(x => ({ url: String(x.url).slice(0, 500), title: String(x.title || '').slice(0, 200) }));
+    const parts = String(b.text || '').split('\n');
+    /* a source belongs to the words it was cited on: never to the line a leading line break closes */
+    parts.forEach((part, i) => { cur.text += part; if (cites.length && part.trim()) cur.src.push(...cites); if (i < parts.length - 1) flush(); });
+  }
+  flush();
+  const facts = [], missing = []; let uncited = 0;
+  for (const l of lines) {
+    const t = l.text.replace(/^[-*•\s]+/, '');
+    const m = /^MISSING:\s*(.*)$/i.exec(t);
+    if (m) { const w = m[1].trim(); if (w && !/^(nothing|none|inget)\.?$/i.test(w)) missing.push(w); continue; }
+    const f = /^FACT:\s*(.*)$/i.exec(t); const text = (f ? f[1] : t).trim();
+    if (!text) continue;
+    const seen = new Set(), sources = l.src.filter(x => !seen.has(x.url) && seen.add(x.url)).slice(0, 3);
+    if (!sources.length) { if (f) uncited++; continue; }      // never a fact without its source
+    facts.push({ text: text.slice(0, 400), sources });
+  }
+  return { facts: facts.slice(0, PL_FACTS_MAX), missing: missing.join(' ').slice(0, 400), uncited };
+}
+app.post('/api/party-records/lookup', auth, editor, rlAiDeep, aiFeature('lookup'), aiBudgetGuard, async (req, res) => {
+  const b = req.body || {};
+  const name = prClean(b.name, 200), key = prKeyOf(name);
+  if (!key || !prVisibleKeys(req.user).has(key)) return res.status(404).json({ error: 'Party not found' });
+  if (plCodeNamed(key)) return res.status(403).json({ error: 'This party is on a deal kept to its list, so its name is never searched.', codeName: true });
+  const was = db.prepare('SELECT * FROM party_lookups WHERE pkey=?').get(key);
+  if (was && !b.again && Date.parse(was.at || '') > Date.now() - PL_KEEP_DAYS * 864e5) return res.json({ lookup: plShape(was), kept: true });
+  const k = aiKey();
+  if (!k) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
+  const lang = b.lang === 'sv' ? 'sv' : 'en';
+  const model = aiModelForTier('deep');
+  const system = [
+    'You look a company up on the web for a person who is about to sign a contract with it and wants to understand who they are dealing with.',
+    'Search for: what the company does, where it is based, roughly how big it is, when it was founded, and any notable news from the last two years.',
+    'This is NOT a credit check: do not look for credit ratings, credit scores or payment records.',
+    PLAIN_FOR_WHOM, PLAIN_TONE,
+    `Write in ${lang === 'sv' ? 'Swedish' : 'English'}.`,
+    'Answer ONLY in lines of this form, nothing else:',
+    'FACT: one short sentence of one fact, taken from a page you found.',
+    `(at most ${PL_FACTS_MAX} FACT lines)`,
+    'MISSING: in a few words, what you looked for and could not find (or "MISSING: nothing").',
+    'Never guess and never state anything you did not find. If several companies share this name and you cannot tell which is meant, say so in a FACT line about what you found, and say in MISSING that you could not tell them apart.',
+    AI_GOVERNANCE_RULE,
+  ].join('\n');
+  const messages = [{ role: 'user', content: `The company: ${name}` }];
+  try {
+    let out = null, content = [];
+    /* a long search may pause its turn; it is continued, twice at most */
+    for (let i = 0; i < 3; i++) {
+      out = await anthropicMessages(k, 'deep', { max_tokens: 2000, system, messages, tools: [plSearchTool(model)] },
+        { feature: 'lookup', model, who: aiWho(req) });
+      if (!out.ok) return res.status(502).json({ error: 'Jambo provider error (' + out.status + '): ' + String(out.error).slice(0, 300) });
+      content = content.concat(out.data.content || []);
+      if (out.data.stop_reason !== 'pause_turn') break;
+      messages.push({ role: 'assistant', content: out.data.content });
+    }
+    const searches = content.filter(x => x && x.type === 'server_tool_use' && x.name === 'web_search').length;
+    const read = plRead(content);
+    const at = now(), by = String(req.user.name || req.user.email || '');
+    db.prepare(`INSERT INTO party_lookups (pkey, name, facts, missing, uncited, searches, model, lang, by_id, by_name, at) VALUES (?,?,?,?,?,?,?,?,?,?,?)
+      ON CONFLICT(pkey) DO UPDATE SET name=excluded.name, facts=excluded.facts, missing=excluded.missing, uncited=excluded.uncited, searches=excluded.searches,
+      model=excluded.model, lang=excluded.lang, by_id=excluded.by_id, by_name=excluded.by_name, at=excluded.at`)
+      .run(key, name, JSON.stringify(read.facts), read.missing, read.uncited, searches, out.model || model, lang, String(req.user.id || ''), by, at);
+    db.prepare('INSERT INTO party_record_log (at, by_id, by_name, pkey, name, what) VALUES (?,?,?,?,?,?)')
+      .run(at, String(req.user.id || ''), by, key, name, `Jambo looked them up on the web: ${read.facts.length} facts with sources, ${searches} searches`);
+    res.json({ lookup: plShape(db.prepare('SELECT * FROM party_lookups WHERE pkey=?').get(key)), kept: false, ...aiNotice(req, out) });
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
 /* ============================================================

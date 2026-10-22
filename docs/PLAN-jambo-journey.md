@@ -48,7 +48,7 @@ to the other side on its own.
 
 | # | Tool | Round | Status |
 |---|---|---|---|
-| 1 | Counterparty lookup: a plain internet search | 3 | not built |
+| 1 | Counterparty lookup: a plain internet search | 3 | **built 22 Oct 2026, waiting for the owner's yes** |
 | 2 | The arrival turn: Jambo speaks first | 1 | **built 22 Oct 2026** |
 | 3 | The road reading: negotiate it or just send it | 1 | **built 22 Oct 2026** |
 | 4 | "I'd take it": a verdict on each of their changes | 2 | **built 22 Oct 2026** |
@@ -108,8 +108,24 @@ to the other side on its own.
   over an open face or while an answer is on its way (round 1's fix).
 - **Tests:** f863; test/chromium/jambo-round-two-verify.
 
-## 6. What comes next
+## 6. Round 3, as built (22 Oct 2026)
 
-Round 3 (tool 1, the internet search), then round 4 (tool 5, browser push). Each
+- **What it is (tool 1).** A plain web search on the other side's name: what
+  they do, where, how big, since when, recent news. Each fact shows the page it
+  came from as a link; what could not be found is said; anything the search
+  could not back with a source is left out and counted. Never a credit check.
+- **Where you press it.** In Jambo's first words after an upload ("Look them up
+  online · 1 Jambo call"), and on the Dossier's "On the web" line, which opens a
+  small window with what is kept and "Look up again".
+- **What it costs.** One Jambo call and up to 5 web searches (about one US cent
+  each), through the same Anthropic key HaTi already uses. Kept for 30 days on
+  the party's record, so a second press within that time is free.
+- **Walls.** Only the company's name leaves HaTi. A party you may not see is
+  never searched; a party on a code-named deal is never searched.
+- **Tests:** f864; test/chromium/jambo-looks-them-up-verify.
+
+## 7. What comes next
+
+Round 4 (tool 5, browser push). Each
 round is one change, photographed at the owner's three screens, with its
 tests, before it merges.

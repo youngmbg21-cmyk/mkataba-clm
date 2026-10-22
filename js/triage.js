@@ -1020,6 +1020,8 @@ function firstReadTurns(c, R){
   const partyChoices = R.party
     ? [{ label: _frT('fr_yes_them'), fr: 'yes', cid }, { label: _frT('fr_not_them'), fr: 'other', cid }]
     : [{ label: _frT('fr_name_them'), fr: 'other', cid }];
+  /* AND HE OFFERS TO LOOK THEM UP (round 3): a plain web search, its cost on the button (js/jambopress.js) */
+  if (R.party && typeof window.partyWebMayFor === 'function' && window.partyWebMayFor(c)) partyChoices.push(window.partyWebChoice(c));
   const turns = [{ role: 'assistant', text: one.map(x => `<p>${x}</p>`).join(''), choices: R.unread ? null : partyChoices, firstRead: cid }];
   if (R.unread) return turns;
   /* 2 · push back, read later, the road */
@@ -1075,8 +1077,12 @@ function firstReadPress(ch, m){
   if (!ch) return false;
   /* the after-signature answers have their own doors (js/jambopress.js) */
   if (['ics', 'cal', 'oblig', 'learn', 'later'].includes(ch.fr)) return (typeof window.signedTurnPress === 'function') ? window.signedTurnPress(ch, m) : false;
+  /* "Look them up online": his own door, the turn waits for the search (js/jambopress.js) */
+  if (ch.fr === 'web') return (typeof window.partyWebPress === 'function') ? window.partyWebPress(ch, m) : false;
   const c = (typeof getContract === 'function') ? getContract(ch.cid) : null;
-  if (m) m.choices = null;            /* an answer is spent once pressed */
+  /* an answer is spent once pressed; "Yes, that's them" leaves the offer to look them up standing */
+  if (m){ const keep = ch.fr === 'yes' && Array.isArray(m.choices) ? m.choices.filter(x => x && x.fr === 'web') : [];
+    m.choices = keep.length ? keep : null; }
   const say = text => { if (typeof intel === 'object' && intel && Array.isArray(intel.history)) intel.history.push({ role: 'assistant', text: _frE(text) }); };
   if (!c){ say(_frT('fr_gone')); return true; }
   if (ch.fr === 'yes'){ say(_frT('fr_said_yes', { who: String(c.counterparty || '').trim() })); return true; }

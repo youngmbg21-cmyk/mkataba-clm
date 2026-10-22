@@ -596,6 +596,106 @@ function signedTurnPress(ch, m){
   return false;
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   WHAT THE WEB SAYS ABOUT THEM (round 3 of Jambo's journey, 22 Oct 2026;
+   docs/PLAN-jambo-journey.md). The owner: "this should be simple internet
+   search to understand the company not the credit rating".
+   ONE DOOR, partyLookup (js/views/customers.js → POST /api/party-records/lookup):
+   pressed from Jambo's first words and from the Dossier's "On the web" line.
+   ONE BUILDER, partyWebHtml: his turn and the pop-up draw the same reading.
+   A press, its cost on the button; only the company's name leaves HaTi; a deal
+   kept to its list is never offered (and the server refuses it anyway). Every
+   failure says so where the reader looks.
+   ═══════════════════════════════════════════════════════════════════ */
+const PW_SAFE_URL = /^https?:\/\//i;
+const _pwHost = u => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (_){ return ''; } };
+/* may this contract's other side be looked up from here? */
+function partyWebMayFor(c){
+  const who = String((c && c.counterparty) || '').trim();
+  if (!c || !who || c._codeNamed || c.codeName) return false;
+  return typeof partyLookupMay === 'function' && !!partyLookupMay();
+}
+function partyWebKept(c){
+  const who = String((c && c.counterparty) || '').trim();
+  if (!who || typeof partyWebOf !== 'function' || typeof cuKeyOf !== 'function') return null;
+  return partyWebOf(cuKeyOf(who));
+}
+/* the button's words: free when it is already kept, else its cost */
+function partyWebChoice(c, extra){
+  const kept = partyWebKept(c);
+  return Object.assign({ label: _jpT(kept ? 'pw_go_seen' : 'pw_go_look'), fr: 'web', cid: c.id, title: _jpT('pw_cost') }, extra || {});
+}
+/* THE ONE BUILDER: facts with their sources, what could not be found, when and by whom */
+function partyWebHtml(who, w){
+  if (!w) return '';
+  const facts = Array.isArray(w.facts) ? w.facts : [];
+  const src = f => (Array.isArray(f.sources) ? f.sources : []).filter(s => s && PW_SAFE_URL.test(String(s.url || '')))
+    .map(s => `<a class="pw-src" href="${_jpE(s.url)}" target="_blank" rel="noopener noreferrer" title="${_jpE(s.title || s.url)}">${_jpE(_pwHost(s.url) || s.url)}</a>`).join(' ');
+  const parts = [`<p>${_jpE(_jpT(facts.length ? 'pw_head' : 'pw_none', { who }))}</p>`];
+  if (facts.length) parts.push(`<ul class="fr-list pw-list">${facts.map(f => `<li>${_jpE(f.text)} ${src(f)}</li>`).join('')}</ul>`);
+  if (w.missing) parts.push(`<p>${_jpE(_jpT('pw_missing', { what: w.missing }))}</p>`);
+  const n = Number(w.uncited || 0);
+  if (n > 0) parts.push(`<p class="fr-more">${_jpE(_jpTn('pw_uncited', n, { n }))}</p>`);
+  const day = w.at ? _stDay(String(w.at).slice(0, 10)) : '';
+  if (day) parts.push(`<p class="fr-more">${_jpE(w.by ? _jpT('pw_when_by', { day, by: w.by }) : _jpT('pw_when', { day }))}</p>`);
+  return parts.join('');
+}
+/* every way it can fail, said in plain words */
+function partyWebErrSay(e){
+  const d = (e && e.data) || {};
+  if (e && (e.needsKey || d.needsKey)) return _jpT('pw_err_key');
+  if (d.codeName) return _jpT('pw_err_code');
+  if (e && e.status === 404) return _jpT('pw_err_gone');
+  return _jpT('pw_err', { why: String((e && e.message) || '').trim() || '—' });
+}
+/* his answer to "Look them up online": a turn that waits, then says what he found */
+function partyWebPress(ch, m){
+  const c = (typeof getContract === 'function') ? getContract(ch && ch.cid) : null;
+  if (!c) return false;
+  if (m) m.choices = (m.choices || []).filter(x => x && x.fr !== 'web');
+  if (typeof intel !== 'object' || !intel || !Array.isArray(intel.history)) return false;
+  const who = String(c.counterparty || '').trim();
+  const turn = { role: 'assistant', text: (typeof busyHtml === 'function') ? busyHtml(_jpT('pw_busy', { who })) : _jpE(_jpT('pw_busy', { who })) };
+  intel.history.push(turn);
+  const said = () => { if (typeof renderIntelDock === 'function') try { renderIntelDock(); } catch (_){} };
+  Promise.resolve(typeof partyLookup === 'function' ? partyLookup(who) : null)
+    .then(r => { if (r && r.lookup) turn.text = partyWebHtml(who, r.lookup); else { turn.text = _jpE(_jpT('pw_err_off')); turn.err = true; } })
+    .catch(e => { turn.text = _jpE(partyWebErrSay(e)); turn.err = true; })
+    .then(said);
+  return true;
+}
+/* THE DOSSIER'S "ON THE WEB" LINE opens this: what is kept, and the press to look (again), cost on it */
+function partyWebOpen(id){
+  const c = (typeof getContract === 'function') ? getContract(id) : null;
+  if (!c || typeof openModal !== 'function') return false;
+  const who = String(c.counterparty || '').trim(); if (!who) return false;
+  let busy = false, err = '';
+  const paint = () => {
+    const host = document.getElementById('pw-dlg-b'); if (!host) return;
+    const kept = partyWebKept(c), may = partyWebMayFor(c);
+    host.innerHTML = (busy ? `<p>${(typeof busyHtml === 'function') ? busyHtml(_jpT('pw_busy', { who })) : _jpE(_jpT('pw_busy', { who }))}</p>`
+        : kept ? partyWebHtml(who, kept) : `<p>${_jpE(_jpT(may ? 'pw_not_yet' : 'pw_not_here', { who }))}</p>`)
+      + (err ? `<p class="pw-err" role="alert">${_jpE(err)}</p>` : '');
+    const go = document.querySelector('[data-pw-go]');
+    if (go){ go.hidden = !may; go.disabled = busy; go.textContent = _jpT(kept ? 'pw_again' : 'pw_go_look'); }
+  };
+  openModal(`<div class="p-6 pw-dlg"><h3 class="font-serif font-600 text-lg text-ink">${_jpE(_jpT('pw_title', { who }))}</h3>
+      <div id="pw-dlg-b" class="jl-bub"></div>
+      <div class="flex justify-end gap-2 mt-4"><button type="button" class="ui-btn" data-pw-go title="${_jpE(_jpT('pw_cost'))}"></button><button type="button" class="ui-btn ui-btn-primary" data-pw-done>${_jpE(_jpT('og_done'))}</button></div></div>`,
+    { label: _jpT('pw_title', { who }), onClose: () => { setTimeout(() => { if (typeof renderIntelDock === 'function') try { renderIntelDock(); } catch (_){} }, 0); } });
+  paint();
+  document.querySelector('[data-pw-done]')?.addEventListener('click', () => { if (typeof closeModal === 'function') closeModal(); });
+  document.querySelector('[data-pw-go]')?.addEventListener('click', () => {
+    if (busy) return; busy = true; err = ''; paint();
+    Promise.resolve(typeof partyLookup === 'function' ? partyLookup(who, { again: !!partyWebKept(c) }) : null)
+      .then(r => { if (!(r && r.lookup)) err = _jpT('pw_err_off'); })
+      .catch(e => { err = partyWebErrSay(e); })
+      .then(() => { busy = false; paint(); });
+  });
+  return true;
+}
+
+Object.assign(window, { PW_SAFE_URL, partyWebMayFor, partyWebKept, partyWebChoice, partyWebHtml, partyWebErrSay, partyWebPress, partyWebOpen });
 Object.assign(window, { SIGNED_TURN_DAYS, SIGNED_TURN_SHOW, signedTurnOf, signedTurnTurns, signedTurnDue, signedTurnPress, signedTurnDates, signedTurnLearn });
 Object.assign(window, { jpIdsOf, jpPressOf, jpShowOf, jpActOf, jpChaseOf, jpClauseIn, jpHtml, jpTurnOf, jpShowRun, jpActRun, jpShowContract, jpPress, jpWire, JP_PAPER_LINE,
   WT_KINDS, watchLoad, watchesAll, watchesLoaded, watchGet, watchesFired, watchCreate, watchPause, watchSeen, watchDelete, watchChanged,
