@@ -43,6 +43,8 @@ const JM_COVER = 0.6;        // the share of the sentence's own words one task m
 const JM_LEAD = 1.5;         // how far the first task must be ahead of the second to move at once
 const JM_NEAR = 0.6;         // a task this close to the first is offered beside it
 const JM_PICKS = 3;          // at most this many on the "which did you mean" card
+/* the sentence names Jambo himself ("jambo points", "settings for jambo", "Jambos poäng") */
+const JM_JAMBO_RE = /(?<!\p{L})jambo(?:'?s)?(?!\p{L})/iu;
 const JM_FUZZY_COUNTS = 7;   // a word matched only by a near spelling counts from this length (a typo, not another word)
 
 /* THE THIRTY-TWO TASKS (the 32nd, a contract's brief, 19 Oct 2026). `to` is the existing door:
@@ -178,6 +180,17 @@ const JM_TASKS = [
   { k: 'lang', to: { st: 'you:lang' }, w: {
     en: ['change language', 'switch to swedish', 'switch to english', 'language settings', 'in swedish please'],
     sv: ['byt språk', 'byta till engelska', 'byta till svenska', 'språkinställningar', 'på engelska tack'] } },
+  /* THE 35th AND 36th (owner, 22 Oct 2026: "take me to my settings for jambo" landed on Language,
+     "take me to jambo points" asked "Which contract?"): Jambo's own two rows of Settings › You.
+     `jambo` tasks are read ONLY when the sentence names him (JM_JAMBO_RE), and then lead (jmMatch):
+     "jambo" is a filler word everywhere else, so without his name "settings" and "points" stay
+     the language's and the brief's */
+  { k: 'jamboset', jambo: true, to: { st: 'you:work' }, w: {
+    en: ['jambo settings', 'my jambo settings', 'settings for jambo', 'how jambo works for me', 'what jambo does on his own'],
+    sv: ['jambos inställningar', 'mina inställningar för jambo', 'inställningar för jambo', 'hur jambo arbetar åt mig'] } },
+  { k: 'jambopts', jambo: true, to: { st: 'you:points' }, w: {
+    en: ['jambo points', "jambo's points", 'my points from jambo', 'points jambo earned', 'jambo score'],
+    sv: ['jambos poäng', 'poäng från jambo', 'mina jambopoäng', 'jambos poängtavla'] } },
   { k: 'away', to: { st: 'you:away' }, w: {
     en: ['out of office', 'going on holiday', 'on leave', 'a deputy while I am away', 'deputy', 'someone to cover for me', 'delegate my approvals', 'vacation'],
     sv: ['frånvaro', 'semester', 'ledig', 'ställföreträdare', 'ersättare', 'någon som täcker upp för mig', 'delegera mina godkännanden'] } },
@@ -299,7 +312,10 @@ function jmIndex(){
 function jmMatch(q, opts = {}){
   const t = String(q || '').trim();
   if (!t || t.length > JM_MAX || JM_FACT_RE.test(t) || JM_WINDOW_RE.test(t) || JM_COUNT_RE.test(t)) return null;
-  const skip = opts.skip || (() => false);
+  const skip0 = opts.skip || (() => false);
+  /* Jambo's own tasks only where the sentence names him */
+  const namesJambo = JM_JAMBO_RE.test(t);
+  const skip = k => skip0(k) || (!namesJambo && !!(jmTask(k) || {}).jambo);
   const n = jmNorm(t);
   const whole = JM_TASKS.find(T => !skip(T.k) && (T.whole || []).includes(n));
   if (whole) return { words: [], tasks: [{ k: whole.k, score: 1, cover: 1 }] };
@@ -328,7 +344,9 @@ function jmMatch(q, opts = {}){
      where the sentence has only soft ones */
   const strong = tagged.filter(x => !x.soft).map(x => x.w);
   const counted = strong.length ? new Set(strong) : new Set(words);
-  const tasks = [...by.values()].map(b => ({ k: b.k, score: b.score, cover: [...counted].filter(w => b.hit.has(w)).length / counted.size }))
+  /* named, Jambo's own task leads one that knows as much ("jambo points" is not a contract's key points) */
+  const lead = k => (namesJambo && (jmTask(k) || {}).jambo) ? JM_LEAD : 1;
+  const tasks = [...by.values()].map(b => ({ k: b.k, score: b.score * lead(b.k), cover: [...counted].filter(w => b.hit.has(w)).length / counted.size }))
     .sort((a, b) => (b.score - a.score) || (b.cover - a.cover));
   return { words, tasks };
 }
@@ -568,4 +586,4 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined'){
 if (typeof window !== 'undefined') Object.assign(window, { JM_LIB_SRC, JM_MAX, JM_COVER, JM_LEAD, JM_NEAR, JM_PICKS, JM_FUZZY_COUNTS, JM_TASKS, JM_STOP, JM_SOFT, JM_FACT_RE, JM_WINDOW_RE, JM_COUNT_RE, JM_LIST_RE,
   jmNorm, JM_STEM_MIN2, jmStem, jmTerms, jmLibNow, jmLib, jmIndex, jmMatch, jmPick, jmTask, jmActOf, jmBoardKeeps, JM_STARTS_WORK, jmOnlyNarrows, jmRead, jmCardHtml, jmCardPress,
   JM_PALETTE_MAX, jmPaletteRows, JM_CARD_PLACES, jmRunAct, jmRun,
-  JM_STD_SKIP, jmStems, jmStdBooks, jmStdBook, jmNameStems, jmStdGo, jmTaskOfAct, jmOverrules, jmGotoAct });
+  JM_JAMBO_RE, JM_STD_SKIP, jmStems, jmStdBooks, jmStdBook, jmNameStems, jmStdGo, jmTaskOfAct, jmOverrules, jmGotoAct });

@@ -59,4 +59,4 @@ Questions and the Nine Flow Rules still apply.
 | Run | Passed | Dead ends | Calls per ask |
 |---|---|---|---|
 | Before, no AI key (free readers alone), 22 Oct 2026 | 102 of 240 (43%) | 2 | 0 |
-| Before, live AI | waits for a key | | |
+| Before, live AI (the app as at 1881323), 22 Oct 2026 | 139 of 240 (58%) | 0 | 0.75 (180 calls) |

@@ -61,6 +61,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f193–f199, f331, f335, new-person-grants verify.
 
 ## THE SHELL — RAIL, BAR, PANELS
+- JAMBO'S BOX ON EVERY SIDE PANEL (22 Oct 2026): jambo-box-every-panel verify (Dossier, Clauses and Obligations at the three screens, asked from Clauses and back, the slide-out panel's Guide, Alerts and Activity, Notes keeps its own box; 5/17 at c5aa0c2). RE-POINTED with the owner's words: ask-box-on-copilot-only verify 2 and 3 (the box under every tab), home-first verify 3d, explorer-guide-tab verify 2a, f840 2e (the Guide keeps the box).
 - Words sent while Jambo is still answering wait their turn (22 Oct 2026): f862 (red at the parent), jambo-asks-in-turn verify (red at the parent 1a–1c, 2a–2b), f804 8b4 re-pointed.
 - 21 Oct 2026 (overnight): send-to-a-colleague-verify 1i ("write an email to X summarising the above" opens the send screen, no model); jambo-slides-in-verify 6c (Home's box answers "What am I looking at?" free); control-room-in-full-verify 7b/7c ("upload a contract" / "new contract" in Settings go to Home's Jambo).
 - ONE JAMBO CONVERSATION EVERYWHERE (21 Oct 2026): `test/chromium/jambo-one-conversation-verify.js` (red at cb1aa4ba: Home, Settings and the side panel kept three conversations); f840 2c re-pointed (another contract keeps the conversation). No light on arrival: f445 (5), `land-on-it-verify.js` 1b/2b/3b/5c re-pointed.
@@ -97,6 +98,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 - Jambo finds the way (22 Oct 2026): f738 (red at the parent 1b, 1c, (2)–(5)), f705 1a, jambo-finds-the-way verify.
 - Held-out sentences taught (22 Oct 2026): f738 (7) (7a red at the parent).
+- Jambo's own two rows (22 Oct 2026): f705 1a and the exam's jamboset/jambopts lines (red at the parent), draft-beside-jambo verify 4.
 ## STAKES — THE CLAUSES TAB CARRIES THE DEEP READ
 - A missing point inside its clause (22 Oct 2026): clauses-legora-way-verify 5/5b (red at the parent: 2, 5, 5b), stakes-verify 3/3h, clause-list-fixed-verify 4 (+ photos at the three screens).
 - stakes-verify, point-buttons-and-brief verify, jambo-pill-and-window 3a, f668, f671, f277.
@@ -251,6 +253,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## NEW AGREEMENT, DRAFT FROM A SENTENCE, THE FILL FORMS
 - f270, f340, f345, f360, f368, f679, f706, f750, f753, new-agreement, form-and-picker, draft-upload-glance verify.
+- Every door opens beside Jambo (22 Oct 2026): draft-beside-jambo verify 1–3 (red at the parent), requests-and-notes-as-drawn 3d.
 
 ## COPILOT READS A CONTRACT ON ARRIVAL, AND FILLS ITS BLANKS
 - f273, f327, f342, f343, f697, auto-triage, blanks-panel, upload-blanks, jambo-behind-the-wall verify.
@@ -300,6 +303,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f274, f322–f324, f344, f358, f390, f399, f400, f412, f413, f560, f564, f659, agents-page, brain-page, brain-lanes, brain-stack, no-link-to-sign verify.
 
 ## PERFORMANCE — THE BOOK IS WALKED ONCE
+- The Board → Paper switch (22 Oct 2026): home-speed-verify check 1 at a real 430 book (check 3 red on purpose, BUGLOG); every-door-lands-on-home, counter-as-drawn, page-jumps, legora-lists, board-keeps-your-place, keeps-your-place, refresh-keeps-your-spot, wall-of-papers, open-in-place.
 - f356, f357, f656, home-speed, long-contract-moves verify.
 
 ## THE OVERNIGHT CLEAN-UP RULES, THE OVERNIGHT RUN, THE OWNER'S OPEN ITEMS (26–28 Sep)
