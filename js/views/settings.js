@@ -529,7 +529,7 @@ function stWireDrawerOnce(){
     let hits=[]; try{ hits=stFind(q); }catch(_){ hits=[]; }
     /* a question about the company's RULES ("why can't Legal sign…") keeps its cost-first press (stJbAsk's why) */
     const rules=/\b(why|can'?t|cannot|allowed|may|limits?|rules?|approv\w*|access|permission\w*|sign\w*|review\w*|varför|får|gräns\w*|regel\w*|godkän\w*|behörighet\w*)\b/i.test(q);
-    const asks=!rules&&((window.CA_WH_Q&&window.CA_WH_Q.test(q))||/\b(contracts?|agreements?|deals?|leases?|avtal\w*|kontrakt\w*)\b/i.test(q));
+    const asks=!rules&&(ST_JB_ASK_RE.test(q)||/\b(contracts?|agreements?|deals?|leases?|avtal\w*|kontrakt\w*)\b/i.test(q));
     if(!hits.length&&asks&&typeof caAiFirst==='function'&&caAiFirst()&&typeof aiAskWords==='function'){ stJbAskJambo(q); return; }
     stJbAsk(q);
     /* …and goes there only when the words ask to be taken ("where do I set…", "take me to…"); a word typed
@@ -3340,6 +3340,8 @@ function stJamboHtml(){
 /* AN ASK IS ADDED WHERE IT IS READ — appended to the feed, the box keeps the
    reader's hand; the page underneath does not move. */
 const ST_JB_GO_RE=/^\s*(where (do|can|should) i|how (do|can) i|take me|go to|open|show me|var (kan|ställer|ändrar) jag|ta mig)\b/i;
+/* a question (not a setting to find): Jambo answers it, with the whole of HaTi */
+const ST_JB_ASK_RE=/^\s*(which|what|who|whom|whose|when|why|how (many|much|long|often|do|does|can)|does|do|did|is|are|can|could|should|vilk\w*|vad|vem|när|varför|hur)\b/i;
 /* a question for Jambo asked in Settings: answered in the one conversation (aiAskWords), drawn in this panel's */
 function stJbTalkNow(){
   const feed=document.getElementById('st-jb-feed'); if(!feed) return;
