@@ -1,12 +1,15 @@
-/* Chromium verification: ONLY THE COPILOT TAB ASKS (owner, 12 Oct 2026: "in
-   the document page, only Copilot tab ... should have a copilot field to Type
-   in. The other tabs (overview, clauses and obligations) should not have a
-   copilot prompt entry window").
+/* Chromium verification: THE ASK BOX UNDER EVERY TAB.
+   RE-POINTED 22 Oct 2026 (owner, with a screenshot of Clauses and Obligations:
+   "all side panels need to have jambo entry field and the bottom yet these two
+   panels are missing it"). This file pinned the opposite, the owner's 12 Oct
+   2026 ruling ("only Copilot tab ... should have a copilot field to Type in"),
+   which the new words reverse; checks 2 and 3 are turned round with it.
 
-   1 on Home's Document, the Copilot tab draws the ask box
-   2 Overview, Clauses and Obligations draw none
-   3 a door that puts words in the box from another tab (intelAskReady, the
-     paper highlight's Ask) turns to the Copilot tab, with the words in the box
+   1 on Home's Document, the Copilot (Dossier) tab draws the ask box
+   2 Clauses and Obligations draw it too
+   3 a door that puts words in the box from Clauses (intelAskReady, the paper
+     highlight's Ask) leaves the reader on Clauses, with the words in the box
+   The full sweep (three screens, the slide-out panel): jambo-box-every-panel-verify.
    Run: node test/chromium/ask-box-on-copilot-only-verify.js */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
@@ -64,14 +67,14 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     /* RE-POINTED 13 Oct 2026: the Overview tab is gone from Home's panel (owner) */
     for (const [t, name] of [['doc', 'Clauses'], ['oblig', 'Obligations']]) {
       const r = await onTab(t);
-      ok(`2 ${name} draws no ask box`, r.tab === t && !r.box && !r.go, JSON.stringify(r));
+      ok(`2 ${name} draws the ask box too`, r.tab === t && r.box && r.go, JSON.stringify(r));
     }
     await onTab('doc');
     const ready = await page.evaluate(() => { const done = intelAskReady('What does the term clause say?');
       return { done, tab: (document.querySelector('#ig-dock .pd-tab.on') || { getAttribute: () => null }).getAttribute('data-pd-tab'),
         val: (document.getElementById('igd-input') || {}).value || null }; });
-    ok('3 a door that fills the box from Clauses turns to the Copilot tab, words in the box',
-      ready.done && ready.tab === 'copilot' && ready.val === 'What does the term clause say?', JSON.stringify(ready));
+    ok('3 a door that fills the box from Clauses stays on Clauses, words in the box',
+      ready.done && ready.tab === 'doc' && ready.val === 'What does the term clause say?', JSON.stringify(ready));
     ok('4 no page errors', errs.length === 0, errs.join(' | ').slice(0, 300));
   } finally { await browser.close(); await h.stop(); }
   console.log(`${pass}/${pass + fail} checks passed`);

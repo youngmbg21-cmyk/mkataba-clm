@@ -33658,3 +33658,18 @@ THE OWNER'S QUESTION: "If I ask the question, 'show me the differences in the or
 
 ## STAKES — A MISSING POINT IS ITS CLAUSE'S (22 Oct 2026)
 The owner, off a screenshot of Clauses with "After §5 — not in the contract" open under 5. Limitation of Liability: "advise what these are … They also do not close when i click on the clause number above it and makes the flow annoying." Advised two ways; picked "build the first one": the missing point belongs to the clause it follows. Built (js/views/breakdown.js stkDecorate): `missByRow` gathers the missing points by `afterAt`; the group is drawn INSIDE that clause's row (after its own reading) instead of after it, hidden while the row is closed (index.html `.doc-th-row:not(.is-open) > .stk-miss`); the clause's word and dot count it; a filter keeps a row whose only kept point is its missing one. The group keeps its own head as a fold; points naming no clause stay at the end. Red at the parent: clauses-legora-way 2, 5, 5b. Re-pointed: stakes-verify 3/3h and clause-list-fixed 4 open the clause first; clauses-legora-way 2 counts "Needs you · 2" and the clause's own cards (`:scope > .stk-card`).
+
+## THE SHELL — RAIL, BAR, PANELS
+
+### JAMBO'S BOX ON EVERY SIDE PANEL (owner, 22 Oct 2026)
+
+The owner, with a screenshot of Home's panel beside a paper, the Clauses and Obligations tabs circled: *"i have continuously stated that all side panels need to have jambo entry field and the bottom yet these two panels are missing it. Address this and any other where it is missing."*
+
+WHY IT WAS MISSING: the 12 Oct 2026 overnight run (JOB 1, "THE ASK BOX IS THE COPILOT TAB'S") built the owner's words of that day — "only Copilot tab … should have a copilot field to Type in" — as `renderIntelDock` drawing the composer only when `pdShowsDesk()` was false (and not on Explorer's Findings and Guide tabs), with `igAskBox()` turning to the Copilot tab before putting words in the box. The new words reverse it; the old line is replaced, not kept beside.
+
+BUILT: the foot (`.igd-foot`, the one card) is drawn under every tab of Home's panel — Dossier, Clauses, Obligations, Findings, the Guide. Words asked from a tab turn the panel to the conversation over it (`pdTalkSync`, the tab's own talk key), and its back returns to the tab as it was left. `igAskBox()` no longer turns tabs: a door that puts words in the box (the paper highlight's Ask, `intelAskReady`) leaves the reader where they are. The Track's press on Clauses still opens the clause and asks nothing.
+
+"ANY OTHER WHERE IT IS MISSING": the slide-out panel (`#context-panel`: Guide, Alerts, Notes, Activity) had no Jambo box at all. It now carries the one card at its foot (`#panel-ask`, `panelAskPaint`) on Guide, Alerts and Activity; a question put there puts the panel away and is asked in the ✦'s window (`openAI(q,{win})`), the one conversation — a press on Send asks, never only fills a box (`openAI(q)` alone hands words to an embedded Jambo READY, unsent, which would have looked dead). NOTES keeps its own box (it writes a note to the contract's thread) and draws no second one beside it. Swept and found already carrying the box: Settings' side, the list panels, Import, the Calendar, the clause editor, the template builder, the ✦ window, Home's faces (Fill in, Redlines, Before you sign, an amendment, Before you send).
+
+Checks: jambo-box-every-panel-verify (17; 5/17 at c5aa0c2, the three Dossier rows and Notes' absence the only passes). Re-pointed with these words: ask-box-on-copilot-only-verify 2 and 3, explorer-guide-tab-verify 2a.
+
