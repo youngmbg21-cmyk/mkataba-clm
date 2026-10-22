@@ -13099,6 +13099,10 @@ const STRINGS = {
     kt_lg_set: 'Set',
     kt_lg_move_go: 'Move',
     kt_lg_moved: 'Moved to {to}',
+    /* KEY TERMS' HEAD, THE SAP WAY (owner picked it, 22 Oct 2026): the contract's name and its record */
+    kt_sap_rename: 'Rename',
+    kt_sap_changed: 'Last changed',
+    kt_sap_not_yet: 'Not yet',
     og_kt_n_one: '{n} term',
     og_kt_n_other: '{n} terms',
     og_kt_saved: '{what} saved',
@@ -32580,6 +32584,10 @@ const STRINGS = {
     kt_lg_set: 'Ange',
     kt_lg_move_go: 'Flytta',
     kt_lg_moved: 'Flyttat till {to}',
+    /* NYCKELVILLKORENS HUVUD PÅ SAP-SÄTTET (ägaren valde det, 22 okt 2026) */
+    kt_sap_rename: 'Byt namn',
+    kt_sap_changed: 'Senast ändrat',
+    kt_sap_not_yet: 'Inte än',
     og_kt_n_one: '{n} villkor',
     og_kt_n_other: '{n} villkor',
     og_kt_saved: '{what} sparat',

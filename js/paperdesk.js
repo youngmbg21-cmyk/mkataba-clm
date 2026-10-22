@@ -4068,6 +4068,55 @@ function pdKtFileHtml(c){
   const code = (cn || cnMay) ? `${sep}<span>${E(cn ? _pdT('kt_lg_cn', { code: cn.code }) : _pdT('kt_lg_cn_none'))}</span>${cnMay ? `<button type="button" class="ui-link" data-pd-kt-cn>${E(_pdT(cn ? 'og_change' : 'kt_lg_set'))}</button>` : ''}` : '';
   return `<span class="pd-kt-ref">${ref}</span>${sep}<span>${stream}</span>${move}${R.template ? sep + `<span>${R.template}</span>` : ''}${made ? sep + `<span>${made}</span>` : ''}${code}`;
 }
+/* ---- THE HEAD, THE SAP WAY (owner picked it by name, 22 Oct 2026; round 2 of retiring the Details
+   page): the page's title is the contract's NAME, Rename beside it (the Details' own name box, data-kt
+   "name", written by wireKeyTerms: never cleared, one "Renamed" line in the trail); the record as
+   labelled facts under the filing line: Status · Signed · Filed by · Last changed (ktRecordFactsHtml's
+   own readings). The trail above still says Key terms. ---- */
+let _pdKtRenaming = false;
+function pdKtMayEdit(){ return ((typeof canEdit !== 'function') || !!canEdit()) && !(typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE); }
+function pdKtTitleHtml(c){
+  const E = _pdE, name = String(c.name || '') || ((typeof contractRef === 'function') ? contractRef(c) : c.id);
+  if (_pdKtRenaming && pdKtMayEdit())
+    return `<input type="text" class="pd-kt-name-in" data-kt="name" value="${E(c.name || '')}" aria-label="${E(_pdT('ov_f_name'))}"><button type="button" class="ui-btn ui-btn-sm pd-kt-ren" data-pd-kt-renamed>${E(_pdT('og_done'))}</button>`;
+  return `<span class="pd-kt-name">${E(name)}</span>${pdKtMayEdit() ? `<button type="button" class="ui-btn ui-btn-sm pd-kt-ren" data-pd-kt-rename>${E(_pdT('kt_sap_rename'))}</button>` : ''}`;
+}
+function pdKtRecHtml(c){
+  const E = _pdE;
+  const day = iso => { const d = String(iso || '').slice(0, 10); return d ? ((typeof fmtDocDate === 'function' && fmtDocDate(d)) || d) : ''; };
+  let signed = ''; try { signed = (typeof contractSignedAt === 'function' ? contractSignedAt(c) : '') || ''; } catch (_){ signed = ''; }
+  const owner = (typeof contractOwnerName === 'function' ? contractOwnerName(c) : '') || '';
+  const filed = String((c.upload && c.upload.uploadedBy) || owner || '');
+  const changed = String(c._lastAuditAt || c.updatedAt || c.updated_at || '').slice(0, 10);
+  const st = (typeof contractStatusDotHtml === 'function') ? contractStatusDotHtml(c) : E((typeof statusLabel === 'function' ? statusLabel(c.status) : c.status) || '');
+  const f = (k, v) => `<div class="pd-kt-fact"><span>${E(_pdT(k))}</span><b>${v}</b></div>`;
+  return f('reg_col_status', st) + f('reg_col_signed', E(day(signed) || _pdT('kt_sap_not_yet'))) + f('ov_f_filedby', E(filed || '—')) + f('kt_sap_changed', E(day(changed) || '—'));
+}
+function pdKtHeadRepaint(c){
+  const id = String(c.id);
+  const t = document.querySelector('[data-pd-kt-title]');
+  if (t && t.getAttribute('data-pd-kt-title') === id){ const h = pdKtTitleHtml(c); if (t.innerHTML !== h) t.innerHTML = h; }
+  const r = document.querySelector('[data-pd-kt-rec]');
+  if (r && r.getAttribute('data-pd-kt-rec') === id){ const h = pdKtRecHtml(c); if (r.innerHTML !== h) r.innerHTML = h; }
+}
+function pdKtRenameSet(c, on){
+  if (!on){ const inp = document.querySelector('[data-pd-kt-title] input[data-kt="name"]');
+    /* the box writes on change: a value typed and not yet blurred is written before the title closes */
+    if (inp){ try { inp.dispatchEvent(new Event('change', { bubbles: true })); } catch (_){} } }
+  _pdKtRenaming = !!on && pdKtMayEdit();
+  const live = (typeof getContract === 'function' && getContract(c.id)) || c;
+  pdKtHeadRepaint(live);
+  if (_pdKtRenaming){
+    try { if (typeof wireKeyTerms === 'function') wireKeyTerms(live); } catch (_){}
+    const inp = document.querySelector('[data-pd-kt-title] input[data-kt="name"]');
+    if (inp){ inp.addEventListener('keydown', ev => { if (ev.key === 'Enter'){ ev.preventDefault(); pdKtRenameSet(live, false); } });
+      try { inp.focus(); inp.select(); } catch (_){} }
+  } else {
+    /* the new name everywhere it is drawn beside it: the Dossier and the bar */
+    try { if (typeof renderIntelDock === 'function') renderIntelDock(); } catch (_){}
+    try { if (typeof deskBarPaint === 'function') deskBarPaint(); } catch (_){}
+  }
+}
 /* "Read all from the paper": the Details' Fill from document, its cost said (a Jambo call where a key is set, else free) */
 function pdKtReadHtml(c){
   const may = ((typeof canEdit !== 'function') || !!canEdit()) && !(typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE) && typeof fillKeyTermsFromDocument === 'function';
@@ -4079,8 +4128,9 @@ function pdKtReadHtml(c){
 function pdKtMidHtml(c){
   const rows = pdKtFacts(c);
   return `<div class="pd-kt-mid is-lg" data-pd-mid-kt>
-    <h2 class="pd-kt-mid-h">${_pdE(_pdT('og_kt_title'))}</h2>${pdKtReadHtml(c)}
-    <div id="pd-kt-file" class="pd-kt-file" data-pd-kt-file="${_pdE(c.id)}">${pdKtFileHtml(c)}</div>
+    <h2 class="pd-kt-mid-h" data-pd-kt-title="${_pdE(c.id)}">${pdKtTitleHtml(c)}</h2>${pdKtReadHtml(c)}
+    <div id="pd-kt-under" class="pd-kt-under"><div class="pd-kt-file" data-pd-kt-file="${_pdE(c.id)}">${pdKtFileHtml(c)}</div>
+      <div class="pd-kt-rec" data-pd-kt-rec="${_pdE(c.id)}">${pdKtRecHtml(c)}</div></div>
     <div class="pd-kt-card"><div id="pd-kt" class="pd-kt" data-pd-og-for="${_pdE(c.id)}"><table class="pd-og pd-kt-t pd-kt-lg">${pdKtLgRowsHtml(c, rows)}</table></div>${pdKtAddPartyHtml(c)}</div>
   </div>`;
 }
@@ -4111,8 +4161,8 @@ function pdKtMid(id, key){
   _pdKtEdit = key ? { id: String(id), key: String(key) } : null;
   if (!pdMidUp(mk)){
     _pdKtMoving = false;
-    openModal(pdKtMidHtml(c), { maxWidth: 'none', label: _pdT('og_kt_title'), page: Object.assign(pdMidPage(_pdT('og_kt_title')), { acts: ['kt-fill', 'pd-kt-cost'], under: '#pd-kt-file' }),
-      onClose: () => { _pdKtEdit = null; _pdKtMoving = false; pdMidOff(); } });
+    openModal(pdKtMidHtml(c), { maxWidth: 'none', label: _pdT('og_kt_title'), page: Object.assign(pdMidPage(_pdT('og_kt_title')), { acts: ['kt-fill', 'pd-kt-cost'], under: '#pd-kt-under' }),
+      onClose: () => { _pdKtEdit = null; _pdKtMoving = false; _pdKtRenaming = false; pdMidOff(); } });
     pdMidOn(mk);
   } else pdKtMidRepaint(true);
   const host = document.getElementById('pd-kt'); if (host) pdOgPaint(host);
@@ -4132,6 +4182,7 @@ function pdKtMidRepaint(force){
   const a = document.activeElement;
   if (!force && a && host.contains(a)) return;
   const c = pdContract(); if (!c || String(c.id) !== host.getAttribute('data-pd-og-for')) return;
+  try { pdKtHeadRepaint(c); } catch (_){}
   const file = document.querySelector('[data-pd-kt-file]');
   if (file && file.getAttribute('data-pd-kt-file') === String(c.id)){ const fh = pdKtFileHtml(c); if (file.innerHTML !== fh){ file.innerHTML = fh; try { if (typeof popupControlsDress === 'function') popupControlsDress(file); } catch (_){} } }
   const html = `<table class="pd-og pd-kt-t pd-kt-lg">${pdKtLgRowsHtml(c, pdKtFacts(c))}</table>`;
@@ -4521,7 +4572,7 @@ if (typeof document !== 'undefined' && !document._pdOgWired){
     if (kt) pdKtDone(c, row.getAttribute('data-pd-og-row')); else pdOgConfirm(c, row.getAttribute('data-pd-og-row'));
   });
   document.addEventListener('click', e => {
-    const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('#ig-dock, [data-pd-mid-kt], [data-pd-kt-file], [data-pd-kt-read]')) return;
+    const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('#ig-dock, [data-pd-mid-kt], [data-pd-kt-file], [data-pd-kt-read], [data-pd-kt-title]')) return;
     /* Key terms' one line in the Dossier: the table comes to the middle (pressed again, the paper comes back) */
     const ppl = t.closest('[data-pd-people]');
     if (ppl){ e.preventDefault(); pdPeopleOpen(ppl.getAttribute('data-pd-people'), ppl.getAttribute('data-pd-people-from') || ''); return; }
@@ -4572,6 +4623,11 @@ if (typeof document !== 'undefined' && !document._pdOgWired){
       if (el && typeof landOn === 'function') landOn(el, { block: 'center', focus: false }); else pdOgSay(_pdT('og_not_on_paper'));
       return; }
     /* KEY TERMS IN THE MIDDLE, THE LEGORA WAY: each press an existing door, the middle back after a pop-up (pdKtAway) */
+    /* Rename: the name box in the title, written on change by wireKeyTerms; Done (or Rename again) puts the title back */
+    const ktn = t.closest('[data-pd-kt-title]');
+    const ktnc = ktn ? ((typeof getContract === 'function' && getContract(ktn.getAttribute('data-pd-kt-title'))) || null) : null;
+    if (ktnc && t.closest('[data-pd-kt-rename]')){ e.preventDefault(); pdKtRenameSet(ktnc, true); return; }
+    if (ktnc && t.closest('[data-pd-kt-renamed]')){ e.preventDefault(); pdKtRenameSet(ktnc, false); return; }
     const ktf = t.closest('[data-pd-kt-file]');
     const ktc = ktf ? ((typeof getContract === 'function' && getContract(ktf.getAttribute('data-pd-kt-file'))) || null) : null;
     if (ktc && t.closest('[data-pd-kt-move]')){ e.preventDefault(); _pdKtMoving = !_pdKtMoving; pdKtMidRepaint(true);
@@ -5737,7 +5793,7 @@ if (typeof document !== 'undefined' && !document._pdTrailEsc){
     if (pdTrailBack() || (typeof jamboTalkBack === 'function' && jamboTalkBack())) e.preventDefault();
   });
 }
-Object.assign(window, { pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
+Object.assign(window, { pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
   PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdTalkKey, pdTalkScope, pdTalkShows, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,

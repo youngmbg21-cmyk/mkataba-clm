@@ -20,7 +20,9 @@
        the other side opens both its boxes; Move shows the streams and moves
        through the one re-filer's question; Set opens the code-name dialog; +
        Add a party opens the party editor
-     5 a reader who may not edit sees no Change, Move, Add or Read
+     5 a reader who may not edit sees no Change, Move, Add, Read or Rename
+     6 round 2, the SAP way: the title is the contract's name with Rename beside it, the record
+       (Status · Signed · Filed by · Last changed) in the head; Rename writes through the name box
    Red at the parent (2a39d1b): the sheet has no "Where on the paper", no filing
    line, no Read all, no Add a party.
    Waits ask for the state, bounded; a missing part reports.
@@ -41,6 +43,7 @@ const check = (name, pass, detail) => {
   if (!pass) failures++;
 };
 const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
+const getName = 'Raw Milk Collection';
 const UPLOAD_TEXT = 'MASTER SERVICES AGREEMENT\n\nThis agreement is made between Highland Corporate Ltd and Kestrel Logistics AB.\n\n'
   + '1. Services\nThe Supplier shall provide warehousing services.\n\n2. Fees\nThe total contract value is SEK 4,800,000 payable in instalments.\n'
   + 'Invoices are payable within thirty (30) days of receipt.\n\n3. Term\nThis agreement shall remain in force until 30 September 2027.\n\n'
@@ -161,6 +164,34 @@ const UPLOAD_TEXT = 'MASTER SERVICES AGREEMENT\n\nThis agreement is made between
       check('4h closed, Key terms comes back', !!(await until(KT_UP)));
     });
 
+    /* ROUND 2, THE SAP WAY (owner picked it by name, 22 Oct 2026): the title is the contract's name with
+       Rename beside it; the record as labelled facts under the filing line (red at dc50204: the title
+       said "Key terms" and no record was drawn) */
+    await part('6 the head, the SAP way', async () => {
+      if (!(await page.evaluate(() => !!document.querySelector('[data-pd-mid-kt]')))) await openKt('MK-A2');
+      for (const [w, ht] of SCREENS) {
+        const at = `${w}×${ht}`;
+        await page.setViewportSize({ width: w, height: ht });
+        const T = await until(() => { const t = document.querySelector('[data-dlg-page][data-pd-mid] .dlg-pg-title [data-pd-kt-title]'); if (!t) return null;
+          const n = t.querySelector('.pd-kt-name'), r = document.querySelector('.dlg-pg-head [data-pd-kt-rec]');
+          return { name: n ? n.textContent.trim() : '', big: n ? parseFloat(getComputedStyle(n).fontSize) : 0, ren: !!t.querySelector('[data-pd-kt-rename]'),
+            facts: r ? [...r.querySelectorAll('.pd-kt-fact > span')].map(x => x.textContent.trim()) : [], crumb: (document.querySelector('[data-dlg-page][data-pd-mid] .dlg-pg-crumb') || {}).textContent || '' }; });
+        check(`6a ${at} the title is the contract's name, at the page title's size, Rename beside it; the trail still says Key terms`,
+          !!T && T.name === getName && T.big >= 18 && T.ren && /Key terms/.test(T.crumb), JSON.stringify(T));
+        check(`6b ${at} Status · Signed · Filed by · Last changed in the head`, !!T && T.facts.join('|') === 'Status|Signed|Filed by|Last changed', JSON.stringify(T && T.facts));
+        await shot(`kt-sap-head-${w}.png`);
+      }
+      await page.setViewportSize({ width: 1440, height: 780 });
+      await page.click('[data-pd-kt-rename]');
+      const box = await until(() => document.querySelector('[data-pd-kt-title] input[data-kt="name"]') ? true : null);
+      check('6c Rename turns the title into the name box', !!box);
+      if (box) { await page.fill('[data-pd-kt-title] input[data-kt="name"]', 'Raw Milk Collection 2027'); await page.keyboard.press('Enter'); }
+      const named = await until(() => getContract('MK-A2').name === 'Raw Milk Collection 2027' && (document.querySelector('[data-pd-kt-title] .pd-kt-name') || {}).textContent === 'Raw Milk Collection 2027' ? true : null);
+      check('6d Enter writes the name and the title shows it', !!named, await page.evaluate(() => getContract('MK-A2').name));
+      const stored = await page.evaluate(async () => { for (let i = 0; i < 30; i++){ const r = await fetch('/api/contracts/MK-A2', { credentials: 'include' }); const j = await r.json(); if (j.name === 'Raw Milk Collection 2027') return true; await new Promise(z => setTimeout(z, 200)); } return false; });
+      check('6e the server keeps the new name', stored);
+    });
+
     await part('5 a reader', async () => {
       await page.evaluate(() => { window.canEdit = () => false; window.mayReFile = () => false; });
       if (await page.evaluate(() => !!document.querySelector('[data-pd-mid-kt]'))) await page.evaluate(() => pdMidClose());
@@ -169,6 +200,7 @@ const UPLOAD_TEXT = 'MASTER SERVICES AGREEMENT\n\nThis agreement is made between
       const S = await until(SHEET);
       check('5a a reader who may not edit sees no Change, Move, Add or Read', !!S && S.changes === 0 && !S.move && !S.add && !S.read,
         JSON.stringify(S && { changes: S.changes, move: S.move, add: S.add, read: S.read }));
+      check('5b and no Rename', !(await page.evaluate(() => !!document.querySelector('[data-pd-kt-rename]'))));
     });
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }
   finally {
