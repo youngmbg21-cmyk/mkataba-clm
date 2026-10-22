@@ -21413,3 +21413,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Fixed: the send screen put away by the top bar (and by Cancel/Esc) lost a typed note without asking.
 - Fixed: on their page, revising an ask they had already sent was lost on the next repaint with no Send offered (28 Sep line).
 - Checked and already fixed before today (the lines are old): the dispute-hold guards on unsigned contracts (26 Sep); an untouched returned Word file filing phantom changes (f492); the converter's silent 60,000-character cut.
+
+## Noticed, not fixed — 22 Oct 2026 (Jambo finds the way)
+- Jambo's word reader still misreads a few never-seen phrasings (21 of 30 land right without the AI): "where are all the signed contracts?" opens Signing (the word "signed"), "things waiting for my sign-off" offers asking for an approval rather than the Approvals list, "who did what on this contract?" offers stream access, "colleague contact details" opens Fill in. The AI's "take me there" covers only questions the readers leave alone.
+- CLAUDE.md is about 82 KB after today's short Jambo section, past its ~80 KB line; a trim needs the owner's yes.

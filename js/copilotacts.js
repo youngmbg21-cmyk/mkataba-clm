@@ -403,7 +403,9 @@ function caActOf(q){
   /* a place word reads only what no older reading takes ("show obligations"
      stays the list card; "obligations" alone goes there) */
   const go = caReadPlace(t); if (go) return go;
-  const menu = caReadMenu(t); if (menu) return menu;
+  /* THE MAP OVERRULES ONE WORD (owner, 22 Oct 2026): a Menu row read off a
+     single word gives way where the map is sure of another task */
+  const menu = caReadMenu(t); if (menu) return (CA_MENU_LOOSE.includes(menu.menu) && typeof jmOverrules === 'function' && jmOverrules(t, menu)) || menu;
   if (typeof caReadDraft === 'function'){ const d = caReadDraft(t); if (d){ setTimeout(() => { caDraftRun(d); }, 0); return d; } }
   /* JAMBO'S MAP (18 Oct 2026, js/jambomap.js): last of all, a sentence in
      everyday words ("where are the contracts ending soon?") reaches the same
@@ -980,7 +982,7 @@ const CA_DOORS = [
   ['chase', /^\s*(?:please\s+)?chase\b/i],
   ['done', /\bmark\b[^.?!]*\b(?:done|paid|complete|completed|delivered)\b/i],
   ['hold', /\b(?:put|place)\b[^.?!]*\bon hold\b/i],
-  ['refile', /\b(?:move|re-?file)\b[^.?!]*\b(?:stream|folder)\b/i],
+  ['refile', /\b(?:move|re-?file)\b[^.?!]*\b(?:stream|folder)\b|^\s*(?:please\s+)?re-?file\b/i],
   ['amend', /\b(?:make|create|start|draft)\b[^.?!]*\bamendment\b|\bamend (?:it|this|the)\b|^\s*(?:please\s+)?(?:amend|an? amendment|amendments?|ändra avtalet|tillägg)\s*[.!?]?\s*$/i],
   ['memo', /\bstatus (?:note|update|memo|report)\b|\bnegotiation memo\b/i],
   ['open', /\bwhat(?:'s| is)? (?:still )?open\b|\bwhere (?:does|do) (?:the deal|we|it) stand\b/i],
@@ -998,6 +1000,8 @@ const CA_DOOR_NOT = {
 };
 function caReadDoor(q){
   const hit = CA_DOORS.find(([k, re]) => re.test(q) && !(CA_DOOR_NOT[k] && CA_DOOR_NOT[k](q))); if (!hit) return null;
+  /* "where does the deal stand?" IS its door; any other question of where is not a press */
+  if (hit[0] !== 'open' && (CA_WHERE_RE.test(q) || /^\s*where\b/i.test(q))) return null;
   const c = caFindContract(q); if (!c) return null;
   return { kind: 'door', door: hit[0], cid: c.id, state: 'ready' };
 }
@@ -1095,8 +1099,17 @@ const CA_MENU = [
   ['editclause', /\bedit (?:a |the |this )?clause\b|\bredigera (?:en )?klausul\b/i, ['[data-rl-edit-clause]']],
 ];
 const CA_MENU_MAX = 140;
+/* THE ROWS READ OFF ONE LOOSE WORD ("stream", "check", "hold", "compare"…):
+   where the map is sure the sentence means something else, it is not a
+   press (jmOverrules, 22 Oct 2026). The file rows read what the file is. */
+const CA_MENU_LOOSE = ['filing', 'playbook', 'compare', 'restore', 'release', 'end', 'reopen', 'delete', 'review', 'mynote'];
 /* a question about the thing ("who are the signers?") is for Jambo to answer, not a press */
 const CA_MENU_ASKS = /^\s*(?:what|who|whom|why|how|when|which|where|vad|vem|varför|hur|när|vilken|vilka)\b/i;   // a longer question is a question for the model, not a press
+/* A QUESTION OF WHERE IS NEVER A PRESS (owner, 22 Oct 2026: "show me where i
+   can edit our standards for the procurement stream" pressed the open
+   contract's Filing row): asking to be shown, taken or told where goes on to
+   the map and the model, whatever row word it carries */
+const CA_WHERE_RE = /^\s*(?:please\s+)?(?:(?:can|could) you\s+)?(?:(?:show|tell)\s+(?:me|us)\s+(?:where|how to (?:get|find))\b|(?:take|bring|point|guide|walk)\s+(?:me|us)\b|how (?:do|can) (?:i|we) (?:get|go) to\b|visa mig var\b|ta mig\b|var (?:kan|hittar|ändrar|finns)\b|hur hittar jag\b)/i;
 /* TWO ROWS THAT MISREAD A FILE COMING IN (owner, 18 Oct 2026: "Fix the Menu
    reader's pdf and import misreads"). The PDF row is a copy going OUT: "I want
    to upload a pdf", "add a signed pdf", "we got a pdf" bring a file in, so the
@@ -1116,7 +1129,7 @@ const CA_MENU_NOT = {
   wordx: t => CA_MENU_INBOUND.test(t) && !CA_FILE_OUT.test(t),
 };
 function caReadMenu(q){
-  const t = String(q || ''); if (t.length > CA_MENU_MAX || CA_MENU_ASKS.test(t)) return null;
+  const t = String(q || ''); if (t.length > CA_MENU_MAX || CA_MENU_ASKS.test(t) || CA_WHERE_RE.test(t)) return null;
   const hit = CA_MENU.find(([k, re]) => re.test(t) && !(CA_MENU_NOT[k] && CA_MENU_NOT[k](t))); if (!hit) return null;
   const c = caFindContract(t); if (!c) return null;
   return { kind: 'menu', menu: hit[0], sels: hit[2], cid: c.id, state: 'ready' };
@@ -1549,10 +1562,12 @@ const CA_PLACES = [
   { k: 'next', need: 'one', w: ['next', 'next step', 'next steps', "what's next", 'whats next', 'what is next', 'what next', 'what now', 'nästa', 'nästa steg', 'vad är nästa steg', 'vad händer nu', 'vad nu'] },
 ];
 /* "go to", "open", "show me", "take me back to", "gå till", "öppna", "visa" */
-const CA_PLACE_LEAD = /^(?:please\s+)?(?:(?:go|take me|bring me|jump|switch)\s+(?:back\s+)?to\s+|open\s+|show\s+(?:me\s+)?|gå\s+(?:tillbaka\s+)?till\s+|öppna\s+|visa\s+(?:mig\s+)?)/i;
+const CA_PLACE_LEAD = /^(?:please\s+)?(?:(?:go|take me|bring me|jump|switch)\s+(?:back\s+)?to\s+|(?:take|bring) me\s+(?:back\s+)?(?=home\b)|open\s+|show\s+(?:me\s+)?|gå\s+(?:tillbaka\s+)?till\s+|ta mig\s+(?:tillbaka\s+)?till\s+|öppna\s+|visa\s+(?:mig\s+)?)/i;
 const CA_PLACE_MAX = 60;          // longer than this is a sentence, never a word
 const CA_PLACE_MIN_TYPED = 3;     // letters the top bar's search waits for before a place leads
 function caPlaceOf(q){
+  /* "the people page", "kalendern sidan": the page's own word, not the place's (22 Oct 2026) */
+  const CA_PLACE_TAIL = /\s+(?:page|tab|view|screen|sidan|fliken|vyn)$/;
   let t = String(q || '').trim(); if (!t || t.length > CA_PLACE_MAX) return null;
   const slash = t[0] === '/'; if (slash) t = t.slice(1);
   /* THE ONE NORMALISER FIRST (19 Oct 2026): "open mk 345", "mk345" and
@@ -1570,8 +1585,8 @@ function caPlaceOf(q){
   /* "please", "now", "for me" at the end ask for nothing (19 Oct 2026: "go to explorer please") */
   t = t.replace(/(?:[\s,]+(?:please|now|for me|thanks|thank you|tack|snälla|nu))+\s*$/, '').trim();
   /* a place whose own name starts "our" or "the" ("our paper") is read before those are let go */
-  const whole = (t + ' ').replace(CA_PLACE_LEAD, '').replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
-  t = (t + ' ').replace(CA_PLACE_LEAD, '').replace(/^(?:the|my|our)\s+/, '').replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
+  const whole = (t + ' ').replace(CA_PLACE_LEAD, '').replace(/-/g, ' ').replace(/\s+/g, ' ').trim().replace(CA_PLACE_TAIL, '');
+  t = (t + ' ').replace(CA_PLACE_LEAD, '').replace(/^(?:the|my|our)\s+/, '').replace(/-/g, ' ').replace(/\s+/g, ' ').trim().replace(CA_PLACE_TAIL, '');
   /* ON THE BOARD ITS OWN READER KEEPS ITS WORDS: "obligations" is its
      obligations panel, "MK-458" the contract's card, a saved view its name.
      Only a move between faces ("board", "explorer") is the same either way. */
@@ -1585,8 +1600,27 @@ function caOnBoard(){ try { return typeof state !== 'undefined' && !!state && st
 /* The contract a word is about: the one it names, else the paper that is up.
    A word that needs one and has none is answered "which contract?" and the
    wall of paper is opened to choose from — never a guess. */
+/* the words that mean Our paper's standards tab, not its templates */
+const CA_STD_WORD = /(?<!\p{L})(?:standards?|playbook|standarder(?:na)?)(?!\p{L})/iu;
+function caOpenStandards(book){
+  setView('playbook');
+  if (!book) return;
+  /* the inspector's list selects the book; a narrow page turns to the books tab */
+  if (typeof sdGoBook === 'function' && (typeof document === 'undefined' || document.querySelector('.sd-ins'))) sdGoBook(book);
+  else if (typeof pbTabGo === 'function') pbTabGo('playbook');
+}
+/* ONE READING FOR EVERY PLACE READER (caReadPlace, caReadGoPlace,
+   caReadPlaceAnd): Our paper asked as standards is the standards tab, on the
+   book the words name (jmStdBook) */
+function caPlaceStd(a, q){
+  if (a && a.kind === 'go' && a.place === 'ourpaper' && CA_STD_WORD.test(String(q || '')) && typeof jmStdGo === 'function'){
+    for (const k of ['narrow', 'narrowOff', 'all']) delete a[k];
+    Object.assign(a, jmStdGo(typeof jmStdBook === 'function' ? jmStdBook(q) : null));
+  }
+  return a;
+}
 function caReadPlace(q){
-  const a = caPlaceOf(q); if (!a) return null;
+  const a = caPlaceStd(caPlaceOf(q), q); if (!a) return null;
   const p = CA_PLACES.find(x => x.k === a.place);
   if (!a.cid && p.need){ const c = caOpenContract(); if (c) a.cid = c.id; }
   if (p.need === 'one' && !a.cid) a.missing = true;
@@ -1744,7 +1778,8 @@ const CA_GO = {
   requests: () => setView('intake'),
   parties: () => setView('customers'),
   people: () => setView('directory'),
-  ourpaper: () => setView('templates'),
+  /* our standards (a.std) open the standards tab, on the book named (owner, 22 Oct 2026) */
+  ourpaper: (c, a) => { if (!(a && a.std)){ setView('templates'); return; } caOpenStandards(a.book); },
   import: () => !caMayAdd() ? false : setView('migration'),
   mynotes: () => setView('mynotes'),
   insights: () => setView('intel'),
@@ -1758,7 +1793,7 @@ function caGoSay(a){
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   if (a.missing) return _caT('ca_go_need', { word: _caT('ca_w_' + a.place) });
   /* a task of Jambo's map that lands on a narrowed list or a Settings section says where (js/jambomap.js) */
-  if (a.say) return _caT(a.say);
+  if (a.say) return _caT(a.say, a.sayVars);
   /* a place and a narrowing, a party's contracts (caUnderstand): what was read, counted as the place applies it */
   if (a.narrow) return caNarrowSay(a);
   /* a brief kept is shown free; none kept, its Write the brief says the cost */
@@ -1801,7 +1836,7 @@ function caGo(a){
     caGoRepaint(); return true;
   }
   const go = CA_GO[a.place]; if (typeof go !== 'function') return false;
-  try { go(c); } catch (e){ if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); return false; }
+  try { go(c, a); } catch (e){ if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); return false; }
   caGoRepaint();
   return true;
 }
@@ -2116,6 +2151,7 @@ function caReadPlaceAnd(q){
     if (place && lead && rest.startsWith(lead[0].trim())) rest = rest.slice(lead[0].trim().length).trim();
   }
   if (!place || !rest) return null;
+  if (place === 'ourpaper' && CA_STD_WORD.test(s)) return caPlaceStd({ kind: 'go', place, state: 'ready' }, q);
   const N = caNarrowOf(rest, place); if (!N) return null;
   /* every contract asked for at a place is that place at rest */
   if (N.all) return { kind: 'go', place, state: 'ready', all: true };
@@ -2127,7 +2163,7 @@ function caReadPlaceAnd(q){
 function caReadGoPlace(q){
   const s = caAndNorm(q); const lead = s.match(CA_GO_LEAD); if (!lead) return null;
   const after = s.slice(lead[0].length).replace(/(?:[\s,]+(?:please|now|for me|thanks|thank you|tack|snälla|nu))+\s*$/, '').trim();
-  const hit = caAndPlaceAt(after, true); if (hit) return { kind: 'go', place: hit.k, state: 'ready' };
+  const hit = caAndPlaceAt(after, true); if (hit) return caPlaceStd({ kind: 'go', place: hit.k, state: 'ready' }, q);
   return null;
 }
 
@@ -2694,3 +2730,6 @@ Object.assign(window, { CA_PLACES, CA_PLACE_LEAD, CA_PLACE_MAX, CA_PLACE_MIN_TYP
   caPlaceRows, caPlaceRun, CA_CARD_WORDS, caTakesWords, caHandHome, caAskAnywhere, CA_SL_MAX, CA_SL_TALL, caSlRead, caSlPaint, caSlClose, caSlTake, caGoCardHtml, caGoPress, CA_CHIPS, CA_CHIPS_WALL, CA_CHIP_WALL_WORD, caChipLead });
 /* ANSWER WHERE YOU STAND (the imports trial): published after its definitions */
 Object.assign(window, { CA_HERE_FACTS, CA_HERE_LIST, CA_HERE_PAGE_RE, CA_HERE_ACT_RE, CA_HERE_SEE_RE, CA_HERE_ALL_RE, CA_HERE_EXTRA_RE, CA_HERE_GROUP_PLACES, CA_HERE_OTHER_RE, CA_HERE_CONTRACT_RE, CA_HERE_MAX, caHereScreen, caHereFact, caHereRead, caHereOnList, caHereCardHtml, caHerePress });
+
+/* Jambo finds the way (22 Oct 2026) */
+Object.assign(window, { CA_WHERE_RE, CA_STD_WORD, caOpenStandards, CA_MENU_LOOSE, caPlaceStd });

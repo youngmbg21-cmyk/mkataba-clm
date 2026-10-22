@@ -317,6 +317,11 @@ LANGUAGE is the person's (js/i18n.js); MARKET is the company's (js/jurisdiction.
 `clauseSegment()` the ONE splitter; a HEADING's number may be Roman or a letter (`DOC_READ_HEAD_NUM`, `DOC_READ_ROMAN`), the paragraph rule `DOC_READ_NUM` stays digits; `CLAUSE_KINDS`; `clauseKind` reads the heading only; banners ride the next clause (`_clBanners`); `clauseCarryIds`; `applyNegoProposals` never drops what it cannot place; `redlineHangHtml` the one gutter walk.
 ## DOES MONEY PASS UNDER THIS CONTRACT
 `isMonetary(c)` the ONE answer: the record wins, the template answers silence, an upload is assumed to carry money.
+## JAMBO FINDS THE WAY (22 Oct 2026)
+- A question of where (`CA_WHERE_RE`) never presses a Menu row; a loose-word row (`CA_MENU_LOOSE`) gives way where the map is sure of another task (`jmOverrules`). Our standards is the map's 34th task (`to.std`), marked by every place reader (`caPlaceStd`), on the book named (`jmStdBook` → `caOpenStandards`/`sdGoBook`); stream and book names are soft (`jmNameStems`).
+- THE AI TAKES YOU THERE: `goto` on `deliver_answer` and `render_graph` (`AI_GOTO_SCHEMA`, tasks read off jambomap.js, `JM_TASK_KEYS`), cleaned by `aiGotoOf` (no admin task for others), run by `aiGotoRun` → `jmGotoAct`; admin switch `aiNavigate` (absent = on; off = no field, `AI_GOTO_OFF_RULE`), said in calls, never money; rules twinned in js/ai.js.
+Tests: f705, f738, jambo-finds-the-way verify.
+
 ## JAMBO'S AGENTS — THE HOUSE AND HIS POINTS (js/views/jambohouse.js)
 - View `jambo`, the office: one block (`jhDrawOffice`), each piece a trip through its agent's rooms (`JH_ROUTE`, `jhTripOf`), fits the window (`jhFitCanvas`), compact under 60 (`jhCompact`); the log the first tab (`#jh-log`); `jhSetRange` (`JH_DAYS_MAX` 120). Not on the phone.
 - EVERY AGENT RECORDS ITS WORK: `agent_pieces` (`agentPieceAdd`/`agentPieceDecide`); rebuild admin-only (`agentRebuild`, dry first); `agPointsTally`, `agPointsOf`. EACH PERSON CHOOSES, ONLY DOWN (`agentLevels` 'ask'·'mine', PUT /api/me/prefs, `agLevelOf`/`agentLevelFor`/`agentLevelMineSet`); Just do it is the admin's. Open → `hbOpenAgent()`. A piece one row (`hbAgPieceHtml`): Look · act · Put away LAST (`agPutAway`, Undo); a chase's Look is the letter (`chaseMailOf`); `hbLvAsk` → `stAskDirect`. `cnRows`, `CN_ROWS` 3; `counterWorkByAgent`.
