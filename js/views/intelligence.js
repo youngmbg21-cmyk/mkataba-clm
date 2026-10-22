@@ -4497,8 +4497,14 @@ function igTurnFace(){
     else { if(IG._model) renderIntelLegend(IG._model); updateIntelNote(); igWake(); }
     igLoopStart(myRAF); igWakeWire();
   }
-  igPaintPaper(); renderIntelDock();
+  /* THE PANEL FIRST, THEN THE CONTRACTS LIST (22 Oct 2026, the Board → Paper switch): the panel's
+     crossfade measures the page before it paints, so it measures it before the list's table is
+     written, and the browser lays the page out once, at the frame, instead of twice */
+  _igPlaceOwed=false; _igPlaceLater=true;
+  try { igPaintPaper(); renderIntelDock(); } finally { _igPlaceLater=false; }
+  if(_igPlaceOwed){ _igPlaceOwed=false; igPlacePaint(); }
 }
+let _igPlaceLater=false, _igPlaceOwed=false;
 /* THE FRAME LOOP, one per arrival (intelRAF retires the one before). */
 function igLoopStart(myRAF){
   let f=0;
@@ -9443,7 +9449,7 @@ function igPaintPaper(){
     /* the Contracts place (step 7): its frame, then the register draws the
        place into it (the head, the wall or the list) */
     if(homePaper){ if(host.dataset.for!=='__pick'||!document.getElementById('ct-place')){ host.innerHTML=igPickHtml(); host.dataset.for='__pick'; }
-      host.hidden=false; igPickWire(host); igPlacePaint(); return; }
+      host.hidden=false; igPickWire(host); if(_igPlaceLater) _igPlaceOwed=true; else igPlacePaint(); return; }
     if(homePaper===false) igPlaceNav(false);
     host.hidden=true; host.innerHTML=''; delete host.dataset.for;
     return;
