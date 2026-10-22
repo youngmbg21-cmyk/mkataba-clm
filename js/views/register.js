@@ -714,8 +714,13 @@ const REG_COL_W_HOME    = [34,17,15,14,14,6];
 const REG_COL_KEYS_HOME_NARROW = ['counterparty','stage','acts'];
 const REG_COL_W_HOME_NARROW    = [62,28,10];
 const REG_HOME_NARROW_W = 600;
+/* ONE READING PER PAINT (22 Oct 2026, the Board → Paper switch): the width is read once, before the
+   paint writes the table, and kept for the rest of that paint — read again after the write, it made
+   the browser lay the whole page out in the middle of drawing it */
+let _regNarrowPaint=null;
 function regHomeNarrow(){
   if(!regHome() || regScope()==='negotiations' || typeof document==='undefined') return false;
+  if(_regNarrowPaint!=null) return _regNarrowPaint;
   const el=document.getElementById((_regOpts&&_regOpts.hostId)||'');
   const w=el?el.clientWidth:0;
   return w>0 && w<REG_HOME_NARROW_W;
@@ -3011,12 +3016,27 @@ function regInsActs(c){
    the page. Every pill now sits in a slot as wide as the WIDEST pill drawn on
    this page, measured after the paint (so the reader's language is measured,
    never guessed), and the move words start after the slot. */
+/* THE STAGE COLUMN'S WIDTH, MEASURED ONCE PER WORD (22 Oct 2026, the Board → Paper switch): a
+   pill's width is its word's, so each word is measured once (in this language, at this size) and
+   kept; a paint whose words are all known sets the width without asking the browser to lay the
+   page out, and only a new word is measured — after the frame, never in the middle of drawing */
+const _regStgW=new Map();
+const regStgKey=p=>(document.documentElement.lang||'')+'|'+(document.documentElement.style.fontSize||'')+'|'+p.textContent;
+function regAfterPaint(fn){
+  if(typeof requestAnimationFrame==='function') requestAnimationFrame(()=>setTimeout(fn,0)); else fn();
+}
 function regStageSlotFit(){
   const tb=document.getElementById('reg-tbody'); if(!tb) return;
   const table=tb.closest('table'); if(!table) return;
-  table.style.removeProperty('--reg-stg-w');
-  let w=0; tb.querySelectorAll('.reg-stg-slot > .reg-stg').forEach(p=>{ w=Math.max(w,Math.ceil(p.getBoundingClientRect().width)); });
-  if(w>0) table.style.setProperty('--reg-stg-w',w+'px');
+  const pills=[...tb.querySelectorAll('.reg-stg-slot > .reg-stg')];
+  const set=()=>{ let w=0; for(const p of pills){ const k=regStgKey(p); if(_regStgW.has(k)) w=Math.max(w,_regStgW.get(k)); }
+    if(w>0) table.style.setProperty('--reg-stg-w',w+'px'); else table.style.removeProperty('--reg-stg-w'); };
+  const unknown=pills.filter(p=>!_regStgW.has(regStgKey(p)));
+  set();
+  if(!unknown.length) return;
+  regAfterPaint(()=>{ if(!table.isConnected) return;
+    for(const p of unknown){ if(!p.isConnected) continue; const r=p.getBoundingClientRect(); if(r.width>0) _regStgW.set(regStgKey(p),Math.ceil(r.width)); }
+    set(); });
 }
 function regInsPaint(){
   regStageSlotFit();
@@ -3267,6 +3287,8 @@ function renderRegister(opts){
   const again=!!opts&&opts===_regOpts;
   _regOpts={ scope:o.scope||null, head:o.head||null, nav:o.nav||'register', hostId:o.hostId||'content', home:!!o.home&&!o.scope };
   regSetScope(o.scope);
+  _regNarrowPaint=null; _regNarrowPaint=regHomeNarrow();
+  if(typeof queueMicrotask==='function') queueMicrotask(()=>{ _regNarrowPaint=null; }); else _regNarrowPaint=null;
   const HOME=regHome();
   const neg=regScope()==='negotiations';
   const R=regState();
@@ -4340,7 +4362,9 @@ function renderRegister(opts){
   regWireColResize();
   regPaintCohort();
   setActiveNav(_regOpts.nav);
-  if(HOME){ _regHomeSig=regBookSig(); regHomeWatch(hostEl); if(typeof placeSave==='function'){ try{ placeSave(); }catch(_){ /* the place is a convenience */ } }
+  /* the place is saved once the list is on screen: read straight after the write, the scrollers'
+     positions made the browser lay the page out mid-paint (22 Oct 2026) */
+  if(HOME){ _regHomeSig=regBookSig(); regHomeWatch(hostEl); regAfterPaint(()=>{ if(typeof placeSave==='function'){ try{ placeSave(); }catch(_){ /* the place is a convenience */ } } });
     /* ONE QUERY, TWO BOXES SAYING IT (Q1 "keep both boxes", 21 Oct 2026):
        the top bar's box shows the words the place is narrowed by — after a
        refresh too, where the query came back with the place and nothing put
