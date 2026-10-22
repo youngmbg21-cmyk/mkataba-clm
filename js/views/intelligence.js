@@ -7955,8 +7955,9 @@ function renderIntelDock(){
     const ff=ae&&ae.closest?ae.closest('#ig-dock #pd-fillface'):null;
     const ffMine=()=>{ const r=ff.querySelector('.pd-ff[data-pd-ff]'); return !!(r&&window.pdFillFor&&r.getAttribute('data-pd-ff')===pdFillFor()); };
     if(intel.dockOpen&&ae&&ae.closest&&(ff?(window.pdFillShows&&pdFillShows()&&ffMine()):ae.closest('#ig-dock #pd-fill'))){ if(window.pdTrailSync) pdTrailSync(); return; }
-    /* THE GRID (the Legora way, 20 Oct 2026): a hand in a Still owed box keeps it while the Dossier is still the tab */
-    const og=ae&&ae.closest?ae.closest('#ig-dock #pd-og'):null;
+    const box=!!(ae&&ae.closest&&ae.matches&&ae.matches('input,select,textarea,[contenteditable="true"]'));
+    /* THE GRID (the Legora way, 20 Oct 2026): a hand in a Still owed box (not a line's button) keeps it while the Dossier is still the tab */
+    const og=box?ae.closest('#ig-dock #pd-og'):null;
     if(og&&intel.dockOpen&&window.pdOgShows&&window.pdContract&&pdContract()&&String(pdContract().id)===og.getAttribute('data-pd-og-for')&&pdOgShows(pdContract())) return; }
   if(!intel.dockOpen){
     /* HIS FACE ON THE FOLDED STRIP (owner picked "Tabs and faces" by name,

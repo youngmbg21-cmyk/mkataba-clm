@@ -53,14 +53,18 @@ const ID = 'MK-WE1';
     await page.keyboard.press('Escape').catch(() => {});
     await page.evaluate(() => { if (typeof langId === 'function' && langId() !== 'en' && typeof langSet === 'function') langSet('en'); });
     await page.evaluate(id => pdOpenOnHome(id, 'copilot'), ID);
-    const fold = await waitFor(page, () => !!document.querySelector('#ig-dock [data-ds-fold="people"]'), 12000);
+    /* RE-POINTED 22 Oct 2026 (owner: "who else is in this agreement should be right after the signer line"):
+       a Checklist line in Needs you, its press the pop-up's door */
+    const PPL = '#ig-dock #pd-og tr[data-pd-og-row="people"]';
+    const fold = await waitFor(page, s => !!document.querySelector(s), 12000, PPL);
 
     console.log('\n1 · the Dossier line');
-    const line = await page.evaluate(() => { const f = document.querySelector('#ig-dock [data-ds-fold="people"]'); if (!f) return null; f.open = true;
-      return { head: f.querySelector('summary').textContent.replace(/\s+/g, ' ').trim(), btn: (f.querySelector('[data-pd-people]') || {}).textContent || '' }; });
-    check('1a the Dossier has a "Who else is on this agreement" line with its count', !!fold && !!line && /^Who else is on this agreement\s*\d+$/.test(line.head), JSON.stringify(line));
-    const n0 = line ? Number(line.head.replace(/\D+/g, '')) : -1;
-    const opened = (await click('#ig-dock [data-ds-fold="people"] [data-pd-people]')) && await waitFor(page, () => !!document.querySelector('[role="dialog"] #pd-ppl [data-pt-add]'), 5000);
+    const line = await page.evaluate(s => { const r = document.querySelector(s); if (!r) return null;
+      const prev = r.previousElementSibling;
+      return { head: r.textContent.replace(/\s+/g, ' ').trim(), after: prev ? prev.getAttribute('data-pd-og-kind') : null, btn: !!r.querySelector('button[data-pd-people]') }; }, PPL);
+    check('1a the Dossier has a "Who else is on this agreement" line, right after the signer line', !!fold && !!line && /^Who else is on this agreement/.test(line.head) && line.btn
+      && (line.after === 'signer' || line.after === 'signers-named'), JSON.stringify(line));
+    const opened = (await click(PPL + ' [data-pd-people]')) && await waitFor(page, () => !!document.querySelector('[role="dialog"] #pd-ppl [data-pt-add]'), 5000);
     check('1b its button opens the list in a pop-up over the page', !!opened);
     await page.screenshot({ path: path.join(OUT, 'from-dossier-1440x780.png') });
 
@@ -81,8 +85,8 @@ const ID = 'MK-WE1';
         const c2 = r && (r.contract || r); const p = c2 && (c2.participants || []).find(x => x && x.email === 'halima@mombasa-storage.example'); return p ? p.name : null; }, 8000, ID);
     }
     check('2a the person typed in is saved on the record (read back from the server)', saved === 'Halima Noor', String(saved));
-    const n1 = await waitFor(page, () => { const f = document.querySelector('#ig-dock [data-ds-fold="people"] summary'); return f ? Number(f.textContent.replace(/\D+/g, '')) : null; }, 4000);
-    check('2b the Dossier line counts them', n1 === n0 + 1, `${n0} → ${n1}`);
+    const n1 = await waitFor(page, s => { const r = document.querySelector(s); return r && /Halima Noor/.test(r.textContent) ? r.textContent.replace(/\s+/g, ' ').trim() : null; }, 4000, PPL);
+    check('2b the Dossier line names them', !!n1, String(n1));
 
     console.log('\n3 · Key terms');
     await page.evaluate(id => pdKtMid(id), ID);

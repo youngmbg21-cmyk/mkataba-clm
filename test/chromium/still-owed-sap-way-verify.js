@@ -113,24 +113,29 @@ const MEASURE = () => {
       await page.evaluate(id => regOpenContract(id), ID);
       await waitFor(page, id => !!document.querySelector(`#pd-glance[data-pd-glance-for="${id}"]`), 12000, ID);
       await page.evaluate(id => { if (typeof pdOpenOnHome === 'function') pdOpenOnHome(id, 'copilot'); }, ID);
-      return waitFor(page, () => !!document.querySelector('#ig-dock #pd-og tr[data-pd-og-row="signers"] [data-pd-og-sg="temail"]'), 10000);
+      return waitFor(page, () => !!document.querySelector('#ig-dock #pd-og tr[data-pd-og-row="signers"]'), 10000);
     };
     for (const [w, hh] of SCREENS) {
       await page.setViewportSize({ width: w, height: hh });
       const up = await open();
-      /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"): the Signer row is opened first, as a person would */
-      await ckOpenRowOf(page, '#ig-dock #pd-og tr[data-pd-og-row="signers"] [data-pd-og-sg="temail"]');
       await page.evaluate(() => { const r = document.querySelector('#ig-dock #pd-og tr[data-pd-og-row="signers"]'); if (r) r.scrollIntoView({ block: 'center' }); });
       await page.evaluate(() => document.fonts.ready); await pause(300);
       const m = up ? await page.evaluate(MEASURE) : { up: false };
       const at = `${w}x${hh}`;
       check(`1 ${at} the grid asks the signer beside the paper`, up && m.up, JSON.stringify({ up, m: m.up }));
       if (!m.up) continue;
-      check(`1a ${at} the signer's name is whole`, !!(m.tname && m.tname.whole && m.tname.text === NAME), JSON.stringify(m.tname));
-      check(`1b ${at} the signer's email is whole`, !!(m.temail && m.temail.whole && m.temail.text === MAIL), JSON.stringify(m.temail));
+      /* RE-POINTED 22 Oct 2026 (owner: "the highlighted feature should be deleted because the use for it is in
+         the pop up feature for signer"): the signer's name and email boxes went; the Signer line is one line whose
+         press opens the signing route, and what it says stands whole */
+      const sg = await page.evaluate(() => { const r = document.querySelector('#ig-dock #pd-og tr[data-pd-og-row="signers"]'); if (!r) return null;
+        const v = r.querySelector('.pd-ck-v'); return { boxes: r.querySelectorAll('input, select').length, door: !!r.querySelector('.pd-ck-hd[data-pd-og-route]'),
+          whole: !!v && v.scrollWidth <= v.clientWidth + 1, words: v ? v.textContent : '' }; });
+      check(`1a ${at} the Signer line carries no boxes and opens the signing route`, !!sg && sg.boxes === 0 && sg.door, JSON.stringify(sg));
+      check(`1b ${at} what the Signer line says stands whole`, !!sg && sg.whole, JSON.stringify(sg));
       check(`1c ${at} the stream's chip is whole`, !!(m.chip && m.chip.whole), JSON.stringify(m.chip));
       check(`1d ${at} every Confirm sits inside the panel`, m.actsIn, JSON.stringify({ edge: m.edge, acts: m.acts }));
-      check(`2 ${at} each signer box has its label above it`, m.labels[0] === 'Our signer' && /Siginon Group Logistics Ltd.s signer/.test(m.labels[1] || '') && m.labels[2] === 'Their email', JSON.stringify(m.labels));
+      /* RE-POINTED 22 Oct 2026: the signer's boxes (and their labels) went with the owner's ruling; none is left */
+      check(`2 ${at} no signer box is left in the row`, !!sg && sg.boxes === 0, JSON.stringify(sg));
       check(`2a ${at} the column names take no room on screen`, m.theadShown === false);
       check(`3 ${at} an empty owed box is amber`, m.amber === true);
       check(`4 ${at} nothing in Still owed falls past the panel's edge`, m.past.length === 0, JSON.stringify(m.past));
