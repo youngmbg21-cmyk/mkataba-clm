@@ -2225,6 +2225,12 @@ const ALERT_KINDS = [
      (detailsOf, the tab's own count); the press opens that tab. Amber: work
      owed, never late. After the approvals' run, which f461 keeps together. */
   { k:'details',     tone:'amber', ic:'&#9999;' },
+  /* ---- A DOCUMENT THAT ARRIVED BY EMAIL IS YOURS (owner, 22 Oct 2026: "Yes"
+     to telling the person the Mailroom gives it to) ----
+     Amber: work owed, ranked with the details still to fill, which is the
+     same work — reading it and confirming what it is. Clears when its details
+     are confirmed on the Import page (migration.needsReview goes false). */
+  { k:'mailroom',    tone:'amber', ic:'&#9993;' },
   /* ---- AN ANSWER THAT WILL NOT LAND (owner-asked 23 Aug 2026) ----
      A REGISTERED KIND, not a special case at the draw. It arrived as a warn
      toast and on a real workspace that meant four orange boxes stacked over the
@@ -2519,11 +2525,28 @@ function buildAlerts(){
   if(window.detailsOf && me && typeof contractOwnedBy==='function'){
     cs.forEach(c=>{
       if(!contractOwnedBy(c, me)) return;
+      /* a document the Mailroom gave them and nobody has confirmed yet says
+         it once, as its own line (3a4) — reading it IS filling these in */
+      if(c.migration && c.migration.batch==='mailroom' && c.migration.needsReview) return;
       let d=null; try{ d=detailsOf(c); }catch(_){ d=null; }
       if(!d||!d.left) return;
       push('details',c,i18tn('det_to_fill',d.left,{n:d.left}),
         /* beside the paper, Jambo's panel on Fill in (stage 2, 14 Oct 2026) */
         ()=>{ if(window.pdFillOpen){ pdFillOpen(c.id); return; } openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(getContract(c.id)||c,'details'); }catch(_){} });
+    });
+  }
+  /* 3a4. A document the Mailroom gave this reader, not yet read and
+         confirmed. The press opens the Import page with it chosen (its panel
+         says the file), and lands on its row. */
+  if(me && typeof contractOwnedBy==='function'){
+    cs.forEach(c=>{
+      const m=c.migration;
+      if(!m || m.batch!=='mailroom' || !m.needsReview || !contractOwnedBy(c, me)) return;
+      push('mailroom',c,i18t('al_mailroom'),()=>{
+        if(typeof setView==='function') setView('migration');
+        if(window.migPickSet) setTimeout(()=>{ try{ migPickSet(c.id); }catch(_){}
+          if(window.landOn) landOn(`.mig-table tbody tr[data-row="${CSS.escape(String(c.id))}"]`,{ block:'center', focus:false }); },0);
+      }, m.mailroom&&m.mailroom.from?{ sub:i18t('al_mailroom_from',{ who:m.mailroom.from }) }:null);
     });
   }
   /* 3b. Notes a colleague gave this reader. negoNotesForMe reads c.thread and

@@ -33415,3 +33415,15 @@ lanes' default already guarantees a person, and refusing a save would have
 been a dead end for nothing. The trail's "Received" line says who it went to
 and why. Not built (asked separately): a bell line telling the new owner.
 f859, red at the parent 1–6.
+
+**AND THEIR BELL SAYS SO, ONCE (same day).** Asked whether the new owner
+should be told, the owner said *"Yes"*. A bell line, kind `mailroom` (amber,
+ranked with `details`): "Arrived by email — confirm its details", "From …"
+under it, for the owner only, until its details are confirmed on the Import
+page (`migration.needsReview` false). The press opens Import with the file
+chosen (`migPickSet`) and lands on its row (`landOn`). Photographed, the
+bell then said the same document TWICE — an owner now existed, so the old
+"N details to fill" line appeared beside it. Flow rule 6 (tell the right
+person once): the `details` line stands aside for an unconfirmed Mailroom
+document, since reading it IS filling those in. Checked in a real browser:
+mailroom-bell-verify (red at the parent 1, 1b, 2, 5).
