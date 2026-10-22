@@ -64,6 +64,14 @@ const KNOWN_RED = {
      it reads 93/93, also with four checks side by side. */
   'their-edit-page-verify.js':
     'RED ON GITHUB ONLY, 10 Oct 2026: section 4 — typing after a save on THEIR seat — never holds on GitHub\'s runner (the words typed are gone each time); it passes every time locally, even at a 10x CPU throttle. The foot\'s Discard claims (2b, 3a2, 6a2) were re-pointed 11 Oct to the one-panel foot and pass. Logged in BUGLOG (a repaint may be taking a person\'s typing). Take it off when section 4 holds on GitHub.',
+  /* THE TIDY SWEEP, 22 Oct 2026: a new alarm that is red on purpose until
+     its first round of fixes lands. It found four faults (the owner's "the
+     closest" tag on two lines, the Board's side-list card 615px wider than
+     its panel, the Dossier's last row under the chips at 1536×730, Jambo's
+     house 3px wider than the page) and the fixes wait on the owner's yes.
+     Take it off the day the sweep is clean. */
+  'tidy-sweep-verify.js':
+    'RED BY DESIGN, 22 Oct 2026: four faults listed for the owner (see the file\'s head); fixes await their yes. Off the list when it is clean.',
   /* NOT LISTED, deliberately: analytics-verify.js. It was two faults wearing
      one symptom and ONE OF THEM IS NOW CLOSED BY CONSTRUCTION.
      Its check is `canvases > 0 || bars > 0`. The canvas half used to fail in a
