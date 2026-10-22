@@ -70,7 +70,8 @@ describe('f707 (1) one way in: the tray', () => {
   test('1b the tray is the Contracts place with Jambo open on his drop area, never on the phone, refused to a viewer', () => {
     const d = PD.slice(PD.indexOf('function pdDropDoor('), PD.indexOf('\n}', PD.indexOf('function pdDropDoor(')));
     assert.match(d, /window\.innerWidth < 768\)\) return false;/);
-    assert.match(d, /if \(!pdDropMay\(\)\)\{[^}]*ct_viewers_no_add/);
+    /* RE-POINTED 22 Oct 2026 (round 1 of the first-timer rounds): refused with the one wall's words and its Ask an admin */
+    assert.match(d, /if \(!pdDropMay\(\)\)\{[^}]*draftWallToast\(\)/);
     assert.match(d, /hbOpenContracts\(\);/); assert.match(d, /intel\.dockOpen = true/); assert.match(d, /pdSetTab\('copilot'\);/);
     /* RE-POINTED 18 Oct 2026 (LAND ON IT): lit by the house's one lander, Choose files ready */
     assert.match(d, /landOn\('#pd-drop', \{ focus: '\[data-pd-drop-pick\]' \}\)/, 'the drop area is lit where the door brings you');
