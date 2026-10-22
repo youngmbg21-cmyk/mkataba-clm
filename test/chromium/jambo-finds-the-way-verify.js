@@ -138,6 +138,8 @@ const hasGoto = b => !!(b && (b.tools || []).some(t => (t.name === 'deliver_answ
     await page.evaluate(() => { const d = document.getElementById('ai-advanced'); if (d) d.open = true; });
     const sw = await until(() => { const b = document.getElementById('ai-navigate'); if (!b) return null; const r = b.getBoundingClientRect();
       return (r.width > 0) ? { on: b.checked, says: b.closest('label').textContent.replace(/\s+/g, ' ').trim() } : null; }, null, 8000);
+    /* the server's own reading has arrived before the switch is pressed (GitHub's slower machine, 22 Oct 2026) */
+    await until(async () => { const r = await api('ai/config'); return r && r.limits ? true : null; }, null, 8000);
     check('4a Settings → Jambo engine carries the switch, on at first', !!sw && sw.on, sw && sw.says.slice(0, 120));
     check('4b it says what it adds in calls and words, never money', !!sw && /no extra Jambo calls/i.test(sw.says) && !/\$|USD|KES/.test(sw.says), sw && sw.says.slice(-120));
     await page.screenshot({ path: path.join(OUT, '4-the-switch-1440x780.png') });
