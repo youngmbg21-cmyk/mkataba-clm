@@ -58,5 +58,5 @@ Questions and the Nine Flow Rules still apply.
 
 | Run | Passed | Dead ends | Calls per ask |
 |---|---|---|---|
-| Before, no AI key (free readers alone) | see MAP-HISTORY | | 0 |
+| Before, no AI key (free readers alone), 22 Oct 2026 | 102 of 240 (43%) | 2 | 0 |
 | Before, live AI | waits for a key | | |
