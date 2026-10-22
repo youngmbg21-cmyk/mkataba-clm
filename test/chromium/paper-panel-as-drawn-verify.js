@@ -177,7 +177,7 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     check('2c one row per ask, in its own words — what the number is of, which way it moved · waits · Reply ›',
       gl.asks.length === 2 && gl.asks.some(a => a.say === 'Clause 7: they ask for 100% of the fees paid, up from 50%.') && gl.asks.some(a => a.say === 'Clause 11: they ask for 60 days to pay, up from 30.')
       && gl.asks.every(a => /^waits /.test(a.sub) && a.btn === 'Reply ›'), JSON.stringify(gl.asks));
-    check('2d nobody named to sign: the signer is one grid row, its boxes in it, and Order the signing ›', gl.sign.length === 1 && gl.sign[0].box && gl.sign[0].btn === 'Order the signing ›', JSON.stringify(gl.sign));
+    check('2d nobody named to sign: the signer is one grid row, its boxes in it, and Add or order signers ›', gl.sign.length === 1 && gl.sign[0].box && gl.sign[0].btn === 'Add or order signers ›', JSON.stringify(gl.sign));
     check('2e the risks not read yet, in What Jambo read: "free" said before the press, and Read it (the owner\'s answer 6)',
       !!gl.scan && gl.scan.say === 'Risks to look at · not read yet · free' && gl.scan.btn === 'Read it' && gl.scan.tip === 'Reading is free: HaTi’s own rules, no Jambo call', JSON.stringify(gl.scan));
     check('2f Still owed: the signer, then their asks', gl.order.indexOf('sign') >= 0 && gl.order.indexOf('sign') < gl.order.indexOf('ask'), gl.order.join(','));

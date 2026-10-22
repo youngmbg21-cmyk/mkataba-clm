@@ -12987,7 +12987,7 @@ const STRINGS = {
     og_kt_saved: '{what} saved',
     og_their_email_l: 'Their email',
     /* The signer row, the SAP way (21 Oct 2026) */
-    og_sg_order: 'Order the signing ›',
+    og_sg_order: 'Add or order signers ›',
     og_sg_add: '+ Add another signer',
     og_sg_list: 'People in your directory',
     og_sg_pick_ours: 'Pick our signer from your people, then Confirm.',
@@ -32333,7 +32333,7 @@ const STRINGS = {
     og_kt_saved: '{what} sparat',
     og_their_email_l: 'Deras e-post',
     /* The signer row, the SAP way (21 Oct 2026) */
-    og_sg_order: 'Ordna signeringen ›',
+    og_sg_order: 'Lägg till eller ordna undertecknare ›',
     og_sg_add: '+ Lägg till en undertecknare till',
     og_sg_list: 'Personer i er katalog',
     og_sg_pick_ours: 'Välj vår undertecknare bland era personer, sedan Bekräfta.',

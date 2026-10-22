@@ -16,8 +16,9 @@
         what the record holds (name · party, and the address)
      3  picking a row fills the NAME and the EMAIL together
      4  the list FLOATS: the rows under it do not move, and it covers them
-     5  "+ Add another signer" adds another name box, in the row
-     6  "Order the signing ›" opens the signing route editor over the same page,
+     5  ONE BUTTON FOR SIGNERS (owner, 22 Oct 2026): "+ Add another signer" and the
+        Acts' "Add signers" are gone — "Add or order signers ›" is the one door
+     6  "Add or order signers ›" opens the signing route editor over the same page,
         and closing it lands back on the row that opened it
      7  a box near the foot of the panel opens its list ABOVE itself, whole,
         inside the panel — at the owner's three screens
@@ -127,8 +128,8 @@ const MEASURE = () => {
     console.log('\n1 · the bottom chip went; the boxes are typing boxes');
     check('1a the bottom "name a signer" chip is gone', m0.up && m0.chips.length > 0 && !m0.chips.includes('signer'), JSON.stringify(m0.chips));
     check('1b no <select> is left in the row (one list per press, on an iPad too)', m0.selects === 0, String(m0.selects));
-    check('1c "Order the signing ›" stands on the row\'s head line', /Order the signing/.test(m0.order || ''), String(m0.order));
-    check('1d "+ Add another signer" stands under the last box', m0.add === true);
+    check('1c "Add or order signers ›" stands on the row\'s head line', /Add or order signers/.test(m0.order || ''), String(m0.order));
+    check('1d "+ Add another signer" is gone (one button for signers)', m0.add === false);
 
     console.log('\n2 · a TOUCH press opens HaTi\'s own list; typing filters it');
     await page.tap('#ig-dock #pd-og [data-pd-og-sb="theirs"]');
@@ -173,15 +174,15 @@ const MEASURE = () => {
     check('3d a touch pick fills the name and the address too', m2t.name === P1.name && m2t.mail === P1.mail,
       JSON.stringify({ name: m2t.name, mail: m2t.mail }));
 
-    console.log('\n5 · + Add another signer adds a box, in the row');
-    await page.click('#ig-dock #pd-og [data-pd-og-sg-add]');
-    await pause(200);
-    const m3 = await page.evaluate(MEASURE);
-    check('5a a second signer box stands in the row', m3.nameBoxes === m0.nameBoxes + 1, JSON.stringify({ was: m0.nameBoxes, now: m3.nameBoxes }));
-    check('5b nothing left the page for it', await page.evaluate(() => !document.querySelector('.modal-overlay, [role="dialog"]')
-      && !!document.querySelector('#ig-dock #pd-og tr[data-pd-og-row="signers"]')));
+    console.log('\n5 · one button for signers on the whole Dossier');
+    const doors = await page.evaluate(() => [...document.querySelectorAll('#ig-dock button')]
+      .filter(b => /signers?\b/i.test(b.textContent) && !b.closest('.pd-og-dd')).map(b => b.textContent.replace(/\s+/g, ' ').trim()));
+    check('5a the only signer button is "Add or order signers ›" (no "Add signers" act, no "+ Add another signer")',
+      doors.length === 1 && /Add or order signers/.test(doors[0]), JSON.stringify(doors));
+    check('5b the Acts and All acts carry no "Add signers" row',
+      await page.evaluate(() => !document.querySelector('#ig-dock #ws-m-signers, #ig-dock [data-pd-mn-go="#ws-m-signers"]')));
 
-    console.log('\n6 · Order the signing › is the row\'s one pop-up');
+    console.log('\n6 · Add or order signers › is the row\'s one pop-up');
     await page.click('#ig-dock #pd-og [data-pd-og-route]');
     const route = await waitFor(page, () => !!document.getElementById('sr-win'), 8000);
     check('6a it opens the signing route editor over the same page', route

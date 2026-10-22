@@ -378,8 +378,9 @@ const OBS = [
     await page.evaluate(() => { const f = document.querySelector('#ig-dock .ds-fold[data-ds-fold="acts"]'); if (f) f.open = true; });
     await waitFor(page, () => !!document.querySelector('#ig-dock .ds-fold .pd-mn-rows #ws-filing'), 4000);
     const rows = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .ds-fold .pd-mn-rows button')].map(b => b.id));
-    check('6b All acts carries the room\'s own acts: Start negotiating or Add signers, Create an amendment, Add a signed document',
-      rows.includes('ws-m-signers') && rows.includes('ws-m-amend') && rows.includes('ws-m-link') && rows.includes('ws-filing'), rows.join(' '));
+    /* ONE BUTTON FOR SIGNERS (owner, 22 Oct 2026): "Add signers" is the Signer row's "Add or order signers ›", not an act here */
+    check('6b All acts carries the room\'s own acts: Create an amendment, Add a signed document — and no second "Add signers"',
+      !rows.includes('ws-m-signers') && rows.includes('ws-m-amend') && rows.includes('ws-m-link') && rows.includes('ws-filing'), rows.join(' '));
     await page.evaluate(() => { const b = document.querySelector('#ig-dock .ds-fold .pd-mn-rows #ws-filing'); b.closest('details').open = true; b.click(); });
     const filing = await waitFor(page, () => state.view === 'dashboard' && hbFace() === 'board' && !!document.querySelector('#bs-strip-MK-L1 [data-bs-host="details"] #ov-record'), 8000);
     check('6c "Filing and stream" lands on the filing rows in the strip, never the room', filing && !(await roomSeen()));

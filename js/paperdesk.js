@@ -2629,11 +2629,14 @@ function pdDealHtml(c){
    suggestion and the row are one act. A row that cannot be used stays grey
    with its reason, as it did in the ⋯. */
 const PD_MENU_NEXT = {
-  Draft: ['[data-rl-prepare]', '[data-ig-review]', '#ws-m-signers'],
-  'Under Review': ['#ws-import', '[data-ig-memo]', '#ws-m-signers'],
+  Draft: ['[data-rl-prepare]', '[data-ig-review]'],
+  'Under Review': ['#ws-import', '[data-ig-memo]'],
   Signed: ['#ws-m-amend', '#ws-pdf', '#ws-end'],
   Declined: ['#ws-reopen', '#ws-pdf', '#ws-end']
 };
+/* rows of the ⋯ menu the Dossier does not draw: signers are added and ordered through the
+   Signer row's one door (owner, 22 Oct 2026), so "Add signers" is not a second door here */
+const PD_MENU_NOT = ['#ws-m-signers'];
 function pdMenuGroups(c){
   if (typeof document === 'undefined' || typeof roomMoreMenuHtml !== 'function') return [];
   const may = (typeof canEdit !== 'function') || canEdit();
@@ -2658,7 +2661,7 @@ function pdMenuGroups(c){
   [...menu.children].forEach(el => {
     if (el.tagName === 'HR'){ open(); return; }
     if (el.classList.contains('mgroup')){ g.key = head[el.textContent.trim()] || g.key; return; }
-    if (el.tagName === 'BUTTON') g.rows.push(el.outerHTML);
+    if (el.tagName === 'BUTTON' && !PD_MENU_NOT.includes('#' + el.id)) g.rows.push(el.outerHTML);
   });
   const out = [];
   groups.filter(x => x.rows.length).forEach(x => { const same = out.find(o => o.key === x.key); if (same) same.rows.push(...x.rows); else out.push(x); });
@@ -3666,16 +3669,17 @@ function pdOgBoxHtml(c, f){
     const tMail = (theirs && theirs.email) || (typeof contactEmail === 'function' ? contactEmail(c) : '') || them.email || '';
     /* THE SAP WAY (owner picked it by name, 21 Oct 2026): a label above each of the signer's boxes,
        in the box's own words (the box keeps its aria-label, so the label is not read twice); both
-       name boxes SEARCH the directory (pdSgPeople), and "+ Add another signer" adds the next one here
-       rather than at the bottom of the panel — the row answers its own question. */
+       name boxes SEARCH the directory (pdSgPeople). ONE BUTTON FOR SIGNERS (owner, 22 Oct 2026: "the
+       sequence ... should be the single button for adding signers and sequencing. The rest should be
+       deleted"): "+ Add another signer" went; more signers are added in the route editor the row's
+       "Add or order signers ›" opens. */
     const ml = w => `<span class="pd-og-ml" aria-hidden="true">${E(w)}</span>`;
     const u0 = members.find(u => String(u.id) === String(pick)) || members[0] || null;
     const ourWords = u0 ? ((u0.name || u0.email) + (me && String(u0.id) === String(me.id) ? ' · ' + _pdT('og_you') : '')) : '';
     return ml(_pdT('og_sg_ours'))
       + pdSgBoxHtml({ side: 'ours', name: 'ours', uid: u0 ? u0.id : '', value: ourWords,
         ph: _pdT('og_sg_ours'), label: _pdT('og_sg_ours') })
-      + pdSgTheirHtml(c, { name: tName, email: tMail })
-      + `<button type="button" class="jb-chip pd-og-sg-add" data-pd-og-sg-add>${E(_pdT('og_sg_add'))}</button>`;
+      + pdSgTheirHtml(c, { name: tName, email: tMail });
   }
   return '';
 }
@@ -3706,9 +3710,9 @@ function pdOgHtml(c, o){
   const E = _pdE;
   const tr = f => {
     const box = held || !may ? `<span class="pd-og-read${f.read ? '' : ' is-amb'}">${E(f.read ? f.read.words : _pdT('og_not_read'))}</span>` : pdOgBoxHtml(c, f);
-    /* THE ROW'S ONE POP-UP (owner, 21 Oct 2026): "Order the signing ›" under Confirm is the only
-       door left from here to the signing route editor — the bottom "name a signer" chip went, and
-       an owed fact is otherwise answered where it is asked */
+    /* THE ROW'S ONE POP-UP (owner, 21 Oct 2026): "Add or order signers ›" under Confirm is the only
+       door from the Dossier to the signing route editor — adding AND ordering (22 Oct 2026: the
+       bottom chip, "+ Add another signer" and the Acts' "Add signers" went) */
     const route = (!held && may && f.kind === 'signer' && typeof openSignerPlanEditor === 'function')
       ? `<button type="button" class="pd-og-order" data-pd-og-route="${E(c.id)}">${E(_pdT('og_sg_order'))}</button>` : '';
     const act = held ? `<button type="button" class="pd-go ds-go" data-pd-og-go="${E(f.key)}" title="${E(_pdT('og_fill_beside'))}">${E(_pdT('dos_go_fill_in'))}${PD_GO_TXT}</button>`
@@ -4268,13 +4272,6 @@ if (typeof document !== 'undefined' && !document._pdOgWired){
     /* ONE LIST PER PRESS, AND THE SAME PRESS TAKES IT DOWN (there is no system picker
        behind it any more: the box is a typing box, not a <select>) */
     if (sb){ if (pdSgListShowing(sb)) pdSgListClose(); else pdSgListOpen(sb); return; }
-    const addSg = t.closest('#pd-og [data-pd-og-sg-add]');
-    if (addSg){ e.preventDefault(); const c = pdOgContract(); const v = addSg.closest('td.pd-og-v'); if (!c || !v) return;
-      pdSgListClose();
-      addSg.insertAdjacentHTML('beforebegin', pdSgTheirHtml(c, {}));
-      const box = [...v.querySelectorAll('[data-pd-og-sg="tname"]')].pop();
-      if (box) try { box.focus({ preventScroll: true }); } catch (_){}
-      return; }
     /* THE ROW'S ONE POP-UP: the signing route, over this page, landing back on the row */
     const rt = t.closest('#pd-og [data-pd-og-route]');
     if (rt){ e.preventDefault(); const c = pdOgContract(); if (!c || typeof openSignerPlanEditor !== 'function') return;
@@ -5434,7 +5431,7 @@ if (typeof document !== 'undefined' && !document._pdTrailEsc){
   });
 }
 Object.assign(window, { pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
-  PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdTalkKey, pdTalkScope, pdTalkShows, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
+  PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdTalkKey, pdTalkScope, pdTalkShows, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, PD_RD_CHECKS, pdRoadCheckOf, pdRoadCheckNames, pdDayWord, pdBackDay, pdAwayOf, pdRoadRuleOf, pdRoadRuleTitle, pdRoadRuleSub, pdRoadRuleFramed, pdRoadRuleHtml, pdRoadMovedHtml, pdRoadYesOf, pdRoadYesTitle, pdRoadYesFramed, pdRoadYesFacts, pdRoadYesHtml, pdRoadPress, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,
