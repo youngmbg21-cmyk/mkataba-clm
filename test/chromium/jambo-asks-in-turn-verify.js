@@ -47,9 +47,15 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
     /* ---- 1 Home's panel ---- */
     try {
       await page.evaluate(() => { openRedlineWorkbench('MK-A2'); });
-      await until(() => !!document.getElementById('igd-input'), null, 12000);
-      await page.fill('#igd-input', 'what should I watch for in this contract?'); await page.keyboard.press('Enter');
-      const busy = await until(() => (window.intel && intel.busy) ? true : null, null, 8000);
+      await until(() => !!document.getElementById('igd-input') && !!(window.intel && intel.paper), null, 12000);
+      /* the panel settles before typing (22 Oct 2026: on arrival the panel can still be
+         drawing its first face; a question typed in that instant met a box being replaced) */
+      let busy = null;
+      for (let i = 0; i < 3 && !busy; i++){
+        await page.waitForTimeout(400);
+        await page.fill('#igd-input', 'what should I watch for in this contract?'); await page.keyboard.press('Enter');
+        busy = await until(() => (window.intel && intel.busy) ? true : null, null, 4000);
+      }
       check('1 · Jambo is answering the first question', !!busy);
       const t0 = toasts.length;
       await page.click('#igd-input'); await page.fill('#igd-input', 'open explorer'); await page.keyboard.press('Enter');
