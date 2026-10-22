@@ -40,7 +40,7 @@
    Run: node test/chromium/upload-blanks-verify.js */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
-const { startHati, seedWorkspace } = require('../helpers');
+const { startHati, seedWorkspace, ckOpenRowOf } = require('../helpers');
 
 const EXEC = process.env.CHROMIUM_BIN
   || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
@@ -66,6 +66,8 @@ const typeInto = async (page, sel, value, ev) => {
   /* an answered box sits in the "Show N filled" fold: opened first */
   await page.evaluate(x => { const d = document.querySelector(x).closest('details');
     if (d && !d.open) d.querySelector('summary').click(); }, sel);
+  /* THE CHECKLIST (22 Oct 2026): its row is opened first, as a person would */
+  await ckOpenRowOf(page, sel);
   await page.fill(sel, value);
   await page.dispatchEvent(sel, ev);
   await page.waitForTimeout(800);
@@ -155,7 +157,8 @@ const SEEN = () => {
     blankRows: host ? [...host.querySelectorAll('tr.pd-og-row[data-pd-og-kind="blank"]')].length : 0,
     boxKeys: boxes.map(b => b.getAttribute('data-blankf')),
     boxLabels: boxes.map(b => { const tr = b.closest('tr'); return ((tr && tr.querySelector('.pd-og-f b')) || {}).textContent || ''; }).map(t => t.trim()),
-    count: host && card ? ((card.querySelector('.pd-gl-h b') || {}).textContent || '').trim() : '',
+    /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"): the number stands beside "Needs you" */
+    count: host && card ? ((card.querySelector('.pd-gl-h .ds-ck-n') || {}).textContent || '').trim() : '',
     blocks,
     /* WHAT SITS ON THE CANVAS BUT OUTSIDE THE AGREEMENT — HaTi's own signature
        block and the seal card. The scope claim is about these. */
@@ -273,7 +276,7 @@ const CONTRACT = (id, over) => Object.assign({
       `panel x ${s.panelX}, paper ends ${s.canvasRight}`);
     /* RE-POINTED 21 Oct 2026: the card is Still owed (no "Blanks in this document" heading, no hover
        of its own); each blank is a row of the grid, one per question */
-    check('3c the card is Still owed, its rows the blanks', /still owed/i.test(s.panelHead) && s.blankRows === s.boxKeys.length, `${s.panelHead} · ${s.blankRows} rows`);
+    check('3c the card is Needs you, its rows the blanks', /needs you/i.test(s.panelHead) && s.blankRows === s.boxKeys.length, `${s.panelHead} · ${s.blankRows} rows`);
     check('3e one box per question', s.boxKeys.length >= 4, s.boxKeys.join(', '));
     check('3f a ruled line is labelled by the words in front of it',
       s.boxLabels.some(l => /Delivery address/i.test(l)), s.boxLabels.join(' | '));
@@ -292,7 +295,7 @@ const CONTRACT = (id, over) => Object.assign({
         filled: marks.filter(m => m.classList.contains('is-filled')).length,
         record: (c.fields || {}).up_insert_company_name,
         stored: c.redlineText,
-        count: ((document.querySelector('#pd-needs .pd-gl-h b') || {}).textContent || '').trim(),
+        count: ((document.querySelector('#pd-needs .pd-gl-h .ds-ck-n') || {}).textContent || '').trim(),
       };
     }) : null;
     check('4a the box was there to type in', drove, drove ? 'yes' : 'no box');

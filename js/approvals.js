@@ -1804,7 +1804,7 @@ function signerRouteWindow(c, plan, back){
     <div class="dlg-foot sr-foot"><span class="sr-say" id="sr-say" role="alert"></span>
       <button data-dlg-cancel id="sp-cancel" type="button" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="sp-save" type="button" class="ui-btn ui-btn-primary">${i18t('ap_save_route')}</button></div>
-  </div>`, { maxWidth: DLG_W.l, label: i18t('ap_signing_route') });
+  </div>`, { maxWidth: DLG_W.xl, label: i18t('ap_signing_route') });
   const win=document.getElementById('sr-win'); if(!win) return;
   const panel=win.closest('[role="dialog"]');
   const q=sel=>win.querySelector(sel);

@@ -346,7 +346,8 @@ describe('f679 (5) a contract at a glance', () => {
     assert.match(html, /class="ds-spine/, 'the stage is the spine');
     /* RE-POINTED 20 Oct 2026 (owner picked "The Legora way"): the owed facts
        are the grid's rows, answered there — the signers on one row */
-    assert.match(html, /dos_owed_title\[[^\]]*\][\s\S]*id="pd-og"/);
+    /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"): the head is "Needs you" */
+    assert.match(html, /dos_needs_title[\s\S]*id="pd-og"/);
     assert.match(html, /data-pd-og-row="signers"[\s\S]*data-pd-og-ok="signers"/);
     assert.match(html, /data-pd-ds="risks"[\s\S]*data-pd-gl-risks>dos_go_open/);
     assert.match(html, /pd_gl_unsent:1[\s\S]*data-pd-glance="share"/);

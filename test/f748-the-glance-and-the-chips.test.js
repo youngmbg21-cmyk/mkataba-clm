@@ -154,17 +154,19 @@ describe('f748 (2) who signs, and the risks not read yet', () => {
     const { ctx, c } = glance();
     /* RE-POINTED 20 Oct 2026 (the Legora way): nobody named is the grid's Signer row, both sides asked on it */
     /* no grey line under an owed fact since 21 Oct 2026: the amber box says it */
-    assert.match(ctx.pdGlanceHtml(c), /data-pd-og-row="signers"[^>]*><td class="pd-og-f"><b>Signer<\/b><\/td>[\s\S]*data-pd-og-sg="tname"[\s\S]*data-pd-og-ok="signers"/);
+    /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"): the row's line is a press that opens it */
+    assert.match(ctx.pdGlanceHtml(c), /data-pd-og-row="signers"[^>]*><td class="pd-og-f"><button type="button" class="pd-ck-hd" data-pd-ck-row="signers"[^>]*><i class="pd-ck-ring[^"]*" aria-hidden="true"><\/i><b>Signer<\/b>[\s\S]*data-pd-og-sg="tname"[\s\S]*data-pd-og-ok="signers"/);
   });
   /* RE-POINTED (pass 3, the owner's answer 6): the read is free, the rules scan */
   test('2b "Risks not read yet" · "Reading is free: HaTi\'s own rules, no Jambo call" · Read it', () => {
     const { ctx, c } = glance();
     /* RE-POINTED 20 Oct 2026 (the Dossier, #386): What Jambo read's risks row, the free read said on its button */
-    assert.match(ctx.pdGlanceHtml(c), /data-pd-ds="risks"><span class="ds-fig">·<\/span><span class="ds-nm">Risks to look at <small>· not read yet · free<\/small><\/span><button type="button" class="pd-go ds-go" data-pd-gl-scan title="Reading is free: HaTi’s own rules, no Jambo call">Read it</);
+    /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"): name · what stands · Read */
+    assert.match(ctx.pdGlanceHtml(c), /data-pd-ds="risks"><span class="ds-nm">Risks to look at<\/span><span class="ds-val">Not read · free<\/span><button type="button" class="pd-go ds-go" data-pd-gl-scan title="Reading is free: HaTi’s own rules, no Jambo call">Read</);
   });
   test('2b2 no key needed: the free read is offered either way', () => {
     const { ctx, c } = glance({ keyed: false });
-    assert.match(ctx.pdGlanceHtml(c), /data-pd-gl-scan[^>]*>Read it</);
+    assert.match(ctx.pdGlanceHtml(c), /data-pd-gl-scan[^>]*>Read</);
   });
   test('2c not offered once scanned, signed, or to someone who may not act on the wording', () => {
     for (const o of [{ scanned: true }, { status: 'Signed' }, { may: false }]){

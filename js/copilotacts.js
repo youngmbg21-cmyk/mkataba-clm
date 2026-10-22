@@ -1080,7 +1080,6 @@ const CA_MENU = [
   ['adviser', /\b(?:ask|consult|get|fråga)\b[^.?!]*\b(?:adviser|advisor|lawyer|counsel|rådgivare|jurist)\b|^\s*(?:an? )?(?:adviser|advisor|rådgivare)\s*$/i, ['#ws-advice']],
   ['import', /\bimport\b|\bimportera\b|\btheir (?:word )?(?:file|response|markup)\b/i, ['#ws-import']],
   ['compare', /\bcompare\b|\bjämför\b/i, ['#ws-compare']],
-  ['signers', /\bsigners?\b|\bsignerare\b/i, ['#ws-m-signers']],
   ['filing', /\bfiling\b|\barkivering\b|\bstream\b/i, ['#ws-filing']],
   ['mynote', /\bmy notes?\b|\bprivate note\b|\bmina anteckningar\b/i, ['#ws-mynote']],
   /* the way back keeps its own rows; ending or pausing is the one door (End or pause, 15 Oct 2026) */

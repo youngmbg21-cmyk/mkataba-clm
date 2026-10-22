@@ -34,7 +34,7 @@
    Run: node test/chromium/blanks-panel-verify.js */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
-const { startHati, seedWorkspace } = require('../helpers');
+const { startHati, seedWorkspace, ckOpenRowOf } = require('../helpers');
 
 const EXEC = process.env.CHROMIUM_BIN
   || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
@@ -83,6 +83,7 @@ const typeInto = async (page, sel, value, ev) => {
   await page.waitForTimeout(400);
   const box = `${where === 'og' ? '#pd-og' : '#pd-kt'} :is([data-blankf="${k}"],[data-kt="${k}"])`;
   if (!(await page.$(box))) return false;
+  await ckOpenRowOf(page, box);
   await page.fill(box, value);
   await page.dispatchEvent(box, 'input');
   await page.dispatchEvent(box, ev);
@@ -410,7 +411,7 @@ const CONTRACT = (id, over) => Object.assign({
       if (!low9.key){
         check('9f a cursor in a field low on the paper scrolls the contract to it', false, 'no box');
       } else {
-        await page.click(`:is(#pd-og, #pd-kt) [data-blankf="${low9.key}"]`); await pause(500);
+        await ckOpenRowOf(page, `:is(#pd-og, #pd-kt) [data-blankf="${low9.key}"]`); await page.click(`:is(#pd-og, #pd-kt) [data-blankf="${low9.key}"]`); await pause(500);
         const moved9 = await page.evaluate(() => {
           const sc = document.getElementById('ig-paper-scroll');
           const lit = document.querySelector('#ig-canvas .is-fieldlit');

@@ -23,7 +23,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
-const { startHati, seedWorkspace, fixtureContract } = require('../helpers');
+const { startHati, seedWorkspace, fixtureContract, ckOpenRowOf } = require('../helpers');
 
 const OUT = path.join(process.env.HATI_SHOT_DIR || path.join(__dirname, 'shots'), 'still-owed-sap-way');
 const EXEC = process.env.CHROMIUM_BIN
@@ -73,7 +73,8 @@ const MEASURE = () => {
   const probe = document.createElement('div'); probe.style.background = 'var(--st-amber-bg)'; document.body.appendChild(probe);
   const amber = getComputedStyle(probe).backgroundColor; probe.remove();
   const val = grid.querySelector('[data-kt="value"]');
-  const read = grid.querySelector('tr[data-pd-og-row="value"] .pd-og-read');
+  /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"): beside the Board what stands is on the row's one line */
+  const read = grid.querySelector('tr[data-pd-og-row="value"] .pd-ck-v');
   const kt = document.querySelector('#ig-dock #pd-kt table.pd-og');
   return { up: true, edge: Math.round(edge), held: grid.id === 'pd-og-held',
     tname: boxFits(sg('tname')), temail: boxFits(sg('temail')),
@@ -82,7 +83,7 @@ const MEASURE = () => {
     acts, actsIn: acts.length > 0 && acts.every(a => a.right <= edge + 1), past,
     amber: val ? getComputedStyle(val).backgroundColor === amber : null,
     theadShown: [...grid.querySelectorAll('thead th')].some(th => { const r = th.getBoundingClientRect(); return r.width > 2 && r.height > 2; }),
-    read: read ? { w: Math.round(read.getBoundingClientRect().width), grid: Math.round(grid.getBoundingClientRect().width) } : null,
+    read: read ? { w: Math.round(read.getBoundingClientRect().width), grid: Math.round(grid.getBoundingClientRect().width), whole: read.scrollWidth <= read.clientWidth + 1, line: !!read.closest('.pd-ck-hd') } : null,
     ktTable: kt ? getComputedStyle(kt).display : null };
 };
 
@@ -117,6 +118,8 @@ const MEASURE = () => {
     for (const [w, hh] of SCREENS) {
       await page.setViewportSize({ width: w, height: hh });
       const up = await open();
+      /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"): the Signer row is opened first, as a person would */
+      await ckOpenRowOf(page, '#ig-dock #pd-og tr[data-pd-og-row="signers"] [data-pd-og-sg="temail"]');
       await page.evaluate(() => { const r = document.querySelector('#ig-dock #pd-og tr[data-pd-og-row="signers"]'); if (r) r.scrollIntoView({ block: 'center' }); });
       await page.evaluate(() => document.fonts.ready); await pause(300);
       const m = up ? await page.evaluate(MEASURE) : { up: false };
@@ -137,7 +140,7 @@ const MEASURE = () => {
            brought back, so Tab onto Confirm does not jump the panel */
         const tuck = await page.evaluate(() => { const f = document.getElementById('igd-feed'), b = document.querySelector('#ig-dock #pd-og [data-kt="value"]');
           if (!f || !b) return null; f.scrollTop += b.getBoundingClientRect().top - f.getBoundingClientRect().top - 4; return Math.round(b.getBoundingClientRect().top); });
-        await page.click('#ig-dock #pd-og [data-kt="value"]');
+        await ckOpenRowOf(page, '#ig-dock #pd-og [data-kt="value"]'); await page.click('#ig-dock #pd-og [data-kt="value"]');
         const atClick = await page.evaluate(() => { const b = document.querySelector('#ig-dock #pd-og [data-kt="value"]'), t = b.closest('tr'), f = document.getElementById('igd-feed');
           return { box: Math.round(b.getBoundingClientRect().top), rowIn: t.getBoundingClientRect().top >= f.getBoundingClientRect().top - 1 }; });
         /* the value row: the box, its "No money passes" tick, then Confirm */
@@ -155,12 +158,13 @@ const MEASURE = () => {
     await page.evaluate(() => { setView('dashboard'); if (typeof hbSetFace === 'function') hbSetFace('board'); });
     await waitFor(page, () => !!document.getElementById('hb-board'), 8000);
     await page.evaluate(id => hbStripBring(id), ID);
-    const held = await waitFor(page, () => !!document.querySelector('#ig-dock #pd-og-held tr[data-pd-og-row="value"] .pd-og-read'), 12000);
+    /* RE-POINTED 22 Oct 2026 (the Checklist): beside the Board a row is its one line, what stands on it */
+    const held = await waitFor(page, () => !!document.querySelector('#ig-dock #pd-og-held tr[data-pd-og-row="value"] .pd-ck-v'), 12000);
     await pause(300);
     const mh = held ? await page.evaluate(MEASURE) : { up: false };
     check('5 beside the Board the held grid is drawn', held && mh.up && mh.held, JSON.stringify({ held, up: mh.up }));
     if (mh.up) {
-      check('5a its reading stands the full width under the label', !!(mh.read && mh.read.w >= mh.read.grid - 2), JSON.stringify(mh.read));
+      check('5a its reading stands whole on the row\'s line', !!(mh.read && mh.read.line && mh.read.whole), JSON.stringify(mh.read));
       check('5b its "Fill in ›" sits inside the panel; nothing past the edge', mh.actsIn && mh.past.length === 0, JSON.stringify({ acts: mh.acts, past: mh.past }));
       check('5c the stream\'s chip is whole there too', !!(mh.chip && mh.chip.whole), JSON.stringify(mh.chip));
       await page.screenshot({ path: path.join(OUT, 'held-1440x780.png') });
