@@ -4774,6 +4774,18 @@ async function aiSubmit(asked){
     /* a request the screen in front answers stays there: no place is said (caHereRead) */
     try{ if(go&&window.caHereRead&&caHereRead(q)) go=null; }catch(_){ }
     let said='';
+    /* THE PHONE OPENS A CONTRACT ON ITS OWN SCREEN (stage 3): a contract named to open ("pull up MK-D2") is not
+       handed to Home's panel, which the phone does not have — its contract screen opens, as a row's press does */
+    if(go&&go.cid&&!go.missing&&(go.kind==='hand'||(go.kind==='go'&&['document','open','nav'].includes(go.place)&&(!go.nav||go.nav.k==='cact')))
+      &&typeof window.mPhone==='function'&&mPhone()&&typeof window.mGo==='function'&&typeof getContract==='function'&&getContract(go.cid)){
+      state.activeId=go.cid; state.selId=go.cid;
+      aiPush('user',{text:esc(q), raw:q});
+      const oc=getContract(go.cid);
+      aiPush('assistant',{text:`<div>${_aiEsc(go.kind==='go'&&window.caGoSay?caGoSay(go):((window.contractRef?contractRef(oc):oc.id)+' · '+(oc.name||'')))}</div>`, cardIds:[oc.id]});
+      renderAIFeed();
+      mGo('contract',{ tab:'doc' });
+      return;
+    }
     /* the ✦'s window answers in itself: nothing is handed to another Jambo */
     const took=caAskAnywhere(q,{ box:'window', win:!!(ai.open&&ai.win), say:line=>{ said=String(line||''); } });
     if(took){
