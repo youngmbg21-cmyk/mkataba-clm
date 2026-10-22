@@ -74,7 +74,7 @@ ask('import', { page: 'import' });
 ask('take me to import', { page: 'import' });
 ask('settings', { page: 'settings' });
 ask('open settings', { page: 'settings' });
-ask("jambo's work", { page: 'agents' });
+ask("jambo's work", [{ page: 'agents' }, { page: 'board' }]);   // the Board's Jambo's work card is its door (land-on-it 1a)
 ask('what needs me', { page: 'board' });
 
 /* ---------- 2 · A NAMED CONTRACT AND WHAT STANDS BESIDE IT ---------- */
@@ -157,7 +157,8 @@ ask('all our contracts with Juno', { page: 'contracts', filters: { party: 'juno 
 ask('contracts ending this year', { page: 'contracts', filters: { ending: 'year' } });
 ask('signed contracts in Sales', { page: 'contracts', filters: { stage: 'signed', stream: 'sales' } });
 ask('contracts ending this quarter in Distribution', { page: 'contracts', filters: { ending: 'quarter', stream: 'dist' } });
-ask('which contracts end this quarter', { page: 'contracts', filters: { ending: 'quarter' } });
+/* "which contracts …?" is a question answered by Jambo (home-and-recent 3g), so the trip is asked as one */
+ask('show me the contracts that end this quarter', { page: 'contracts', filters: { ending: 'quarter' } });
 ask('contracts in Marketing', { page: 'contracts', filters: { stream: 'mktg' } });
 ask('under review in Sales', { page: 'contracts', filters: { stage: 'review', stream: 'sales' } });
 

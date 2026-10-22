@@ -148,11 +148,16 @@ function navRead(q, opts = {}){
   /* a yes-or-no or a why ("Can I send MK-A2 without the review?", "Why can't Legal sign the Naivas
      deal?") is answered where it is asked, never a trip */
   if (/^ (why|can|could|should|may|might|must|will|would|do|does|did|is|are|am|was|varför|kan|får|ska|måste|är) /.test(t) && !NAV_MOVE.test(t)) return null;
+  /* "which contracts end this year?" is a question for Jambo, answered beside the Board, never a trip */
+  if (/^ (which|what) /.test(t) && !NAV_MOVE.test(t) && !/^ what needs /.test(t)) return null;
   /* a count asked ("how many drafts do I have?") is answered, never a trip */
   if (NAV_COUNT_Q.test(t) && !NAV_MOVE.test(t)) return null;
   /* a planning question ("find me two hours this week for the lease") is the Calendar's, never a trip */
   if (NAV_PLAN.test(t) && !NAV_MOVE.test(t)) return null;
   if (!NAV_MOVE.test(t)){ let here = null; try { here = (typeof caHereRead === 'function') ? caHereRead(raw) : null; } catch (_){ here = null; } if (here) return null; }
+  /* ON EXPLORER the map reads its own words (groupings, timelines, "contracts that end by …"); only
+     "take me to …" leaves it */
+  try { if (!NAV_MOVE.test(t) && typeof caHereScreen === 'function' && caHereScreen() === 'explorer') return null; } catch (_){}
   /* ON THE BOARD a question of lists and numbers stays the Board's; "take me to …" always moves */
   let board = false; try { board = !NAV_MOVE.test(t) && typeof caOnBoard === 'function' && !!caOnBoard(); } catch (_){ board = false; }
   if (board){ const ca = navReadContractAct(raw, t); return navReadClause(raw, t) || (ca && ca.nav && ca.nav.act !== 'open' ? ca : null) || null; }
@@ -165,7 +170,8 @@ const NAV_PAGES = [
   ['oblig', / (all|every|our) (our )?(duties|obligations) |^ (show me )?(all )?(our )?duties $|^ alla (våra )?åtaganden $/],
   ['negotiations', /^ (take me to |open |go to |show me )?(the )?(negotiations|negotiation list|negotiations list|förhandlingar|förhandlingarna)( list| page)? $/],
   ['people', / (people directory|the directory|directory of people|personkatalog|katalogen) /],
-  ['house', / (jambo s work|jambos work|jambo work|jambo s house|jambos house|his work|jambos arbete) /],
+  /* "jambo's work" is the Board's card (land-on-it 1a, the owner's door); his house by its own name */
+  ['house', / (jambo s house|jambos house|jambo house|jambos hus) /],
   ['needs', /^ (what )?(needs me|needs you|is waiting on me|waits for me|väntar på mig) $/],
 ];
 function navReadPage(raw, t){
@@ -201,6 +207,8 @@ function navReadContractAct(raw, t){
   if (!hit) return null;
   /* the place readers already reach a contract they can name; only the faces they do not are taken here */
   if (shared && !NAV_ACT_OWN.has(act)) return null;
+  /* a send named with its purpose ("Send MK-J1 for signing") is the share reader's: it sets the letter's purpose */
+  if (act === 'send' && (/ (for signing|to sign|for signature|for review|to review|för underskrift|för granskning) /.test(t))) return null;
   if (hit.picks && hit.picks.length > 1) return navWhich(hit.picks.map(c => ({ c, nav: { k: 'cact', cid: c.id, act } })));
   const c = hit.c; if (!c) return null;
   if (act === 'amend'){
@@ -489,7 +497,7 @@ const NAV_COMPANY = [
   ['panel', 'review', / (internal review|review before sending|intern granskning) /],
   ['panel', 'desk', / (negotiation desk|the desk setting|förhandlingsdesk) /],
   ['page', 'team', / (add a person|add someone|invite (a|someone)|people in our workspace|our people|the team|lägg till en person) /],
-  ['page', 'streams', / (our (value )?streams|value streams|the streams|våra strömmar) /],
+  ['page', 'streams', /^ (open |show me |take me to )?(our |the )?(value )?streams( page| settings)? $|^ (våra )?strömmar $/],   // whole words only: on Explorer "value streams against …" is a grouping
 ];
 const NAV_ADMIN_SAYS = 'nav_walled_admin';
 function navIsAdmin(){ try { return typeof isAdmin === 'function' && !!isAdmin(); } catch (_){ return false; } }
