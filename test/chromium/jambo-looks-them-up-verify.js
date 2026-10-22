@@ -188,9 +188,13 @@ const TEXT = [
     const ids0 = await drive(() => state.contracts.map(c => c.id), null, []);
     await drive(t => { window._pwUp = uploadFromDrop(new File([t], 'Nordvik_SaaS_Agreement.txt', { type: 'text/plain' }), {}); }, TEXT, null);
     await until(P, was => state.contracts.some(c => !was.includes(c.id)), ids0, 15000);
+    /* through the page's own save (a save behind its back would rightly be met with "changed on the server") */
     const id = await drive(async was => { const c = state.contracts.find(x => !was.includes(x.id)); if (!c) return null;
-      const r = await api('contracts/' + encodeURIComponent(c.id)); const v = r._v; delete r._v; r.counterparty = 'Nordvik Logistik AB';
-      await api('contracts/' + encodeURIComponent(c.id), 'PUT', { contract: r, baseVersion: v }); c.counterparty = 'Nordvik Logistik AB'; return c.id; }, ids0, null);
+      c.counterparty = 'Nordvik Logistik AB'; persist(c); return c.id; }, ids0, null);
+    for (let i = 0; i < 30; i++){   /* the save has reached the server (bounded) */
+      if (await drive(async x => { try { const r = await api('contracts/' + encodeURIComponent(x)); return !!(r && r.counterparty === 'Nordvik Logistik AB'); } catch (_) { return false; } }, id, false)) break;
+      await until(P, () => false, null, 300);
+    }
     go();
     check(!!id, '3a an upload through Jambo\'s drop area', id);
     const spoke = await until(P, i => (intel.history || []).some(m => m && m.firstRead === i) && !!document.querySelector('#ig-dock [data-ig-choice]'), id, 60000);
@@ -206,8 +210,9 @@ const TEXT = [
     const after = await drive(() => { const t = [...document.querySelectorAll('#ig-dock .jb-turn')].find(x => /found about Nordvik/.test(x.innerText)); if (!t) return null;
       t.scrollIntoView({ block: 'nearest' }); const r = t.getBoundingClientRect(); const at = document.elementFromPoint(r.left + 30, r.top + 12);
       return { painted: !!(at && t.contains(at)), filled: document.querySelectorAll('#ig-dock .igd-choices .ui-btn-primary').length,
-        again: [...document.querySelectorAll('#ig-dock [data-ig-choice]')].filter(x => /Look them up online/.test(x.innerText)).length }; }, null, null);
-    check(!!(after && after.painted && after.filled === 1 && after.again === 0), '3e painted in his panel; the offer is spent; the road is still the one filled button', after);
+        again: [...document.querySelectorAll('#ig-dock [data-ig-choice]')].filter(x => /Look them up online/.test(x.innerText)).length,
+        clash: /just changed on the server/.test(document.body.innerText) }; }, null, null);
+    check(!!(after && after.painted && after.filled === 1 && after.again === 0 && !after.clash), '3e painted in his panel; the offer is spent; the road is still the one filled button', after);
     check(ai.searches.length === 1 && ai.searches[0].who === 'Nordvik Logistik AB', '3f one search, on their name', ai.searches.map(s => s.who));
     await still(P); await P.screenshot({ path: path.join(OUT, '1440x780-answer.png') });
 
