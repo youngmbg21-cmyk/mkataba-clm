@@ -652,7 +652,9 @@ const BRAIN_FILE_REGION = [
   [/^js\/(signgate|asks|sealtext)\.js$/, 'sign'],
   [/^js\/clashkeys\.js$/, 'wall'],
   [/^js\/(intakelanes|participants)\.js$/, 'in'],
-  [/^js\/(ai|aimd|aitrace|triage|playbook|metadata|metaclean|precedent|standards|draft|navmap|copilotacts|jambomap|hatisearch)\.js$/, 'ai'],
+  [/^js\/(ai|aimd|aitrace|triage|playbook|metadata|metaclean|precedent|standards|draft|navmap|copilotacts|jambomap)\.js$/, 'ai'],
+  /* the one search's words (Jambo works like Copilot, stage 1, 22 Oct 2026) */
+  [/^js\/hatisearch\.js$/, 'ai'],
   [/^js\/(docx|pdf|pdfrich|ocr|clausemodel|blanks|uploadblanks|richdoc|redline|templateform)\.js$/, 'read'],
   [/^js\/(signcheck|signapproval|approvals|signature|assurance|outside)\.js$|^js\/views\/(handover|approvalsview)\.js$/, 'sign'],
   /* alerts on your phone (round 4, 22 Oct 2026): what is due, told where you are */
