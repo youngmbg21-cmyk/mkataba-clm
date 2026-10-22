@@ -120,3 +120,29 @@ describe('f868 (4) the rules, both hosts', () => {
     assert.ok(call.body.tools.find(t => t.name === 'deliver_answer').input_schema.properties.choices);
   });
 });
+
+describe('f868 (5) the quote opens its clause; markup typed into an answer is read back', () => {
+  test('"where does it say…" with one verified quote opens the passage it stands in', async () => {
+    ai.reset();
+    ai.script(deliver({ answer: 'Article 3.', citations: [{ id: 'MK-A1', quote: 'Each party shall keep the terms of this agreement confidential.' }] }));
+    const r = await ask(W.admin, 'where does the sugar deal say the terms are secret');
+    assert.equal(r.goto && r.goto.door.kind, 'clause');
+    assert.equal(r.goto.door.contractId, 'MK-A1');
+    assert.match(r.goto.door.head, /Confidentiality/);
+  });
+  test('a plain question is answered where it was asked; a quote that is not in the contract opens nothing', async () => {
+    ai.reset();
+    ai.script(deliver({ answer: 'Thirty days.', citations: [{ id: 'MK-A1', quote: 'The total contract value is KES 48,000,000 payable within thirty days.' }] }));
+    assert.equal((await ask(W.admin, 'how fast do we pay Kabras')).goto, null);
+    ai.reset();
+    ai.script(deliver({ answer: 'There.', citations: [{ id: 'MK-A1', quote: 'Words this contract never had in it at all, anywhere.' }] }));
+    assert.equal((await ask(W.admin, 'show me the bit about penalties')).goto, null);
+  });
+  test('fields typed as text inside the answer are read back into their places', async () => {
+    ai.reset();
+    ai.script(deliver({ answer: 'In Article 1 of MK-A1.",\n<parameter name="citations">[{"id":"MK-A1"}]</parameter>' }));
+    const r = await ask(W.admin, 'what are the payment terms of MK-A1');
+    assert.equal(r.answer, 'In Article 1 of MK-A1.');
+    assert.deepEqual(r.cards.map(c => c.id), ['MK-A1']);
+  });
+});

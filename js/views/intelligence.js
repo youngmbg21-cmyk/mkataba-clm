@@ -8619,8 +8619,11 @@ function igAsksOtherThan(q, id){
     const P=(typeof window.navPartiesIn==='function')?navPartiesIn(n):[];
     const mine=String(c.counterparty||'').trim().toLowerCase();
     if(P.some(p=>String(p.name||'').trim().toLowerCase()!==mine)) return true;
-    const byName=(typeof window.navContractByName==='function')?navContractByName(t):null;
+    /* "the sugar deal": one strong word of another contract's name is enough where the sentence says it is a contract */
+    const loose=/ (contract|contracts|deal|deals|agreement|agreements|lease|nda|avtal|avtalet|avtalen|kontrakt|affär|affären) /.test(n);
+    const byName=(typeof window.navContractByName==='function')?navContractByName(t,{ loose }):null;
     if(byName&&byName.c&&byName.c.id!==c.id) return true;
+    if(byName&&Array.isArray(byName.picks)&&byName.picks.some(x=>x.id!==c.id)) return true;
   }catch(_){}
   return false;
 }

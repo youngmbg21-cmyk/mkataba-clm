@@ -12930,6 +12930,27 @@ function hsDoorOf(h) {
   if (h.kind === 'standard') return { kind: 'standard', book: h.book, row: h.title };
   return null;
 }
+/* THE QUOTE OPENS ITS CLAUSE (stage 3): an answer that rests on ONE contract's verified quote, asked as a
+   "show me / where does it say / the bit about", opens the passage the quote stands in when the model named
+   no place itself — resting on the quote the server has just checked, never on a guess. A plain question
+   ("how much…", "when…") is answered where it was asked. */
+const COPILOT_SHOW_RE = /\b(where|show|find|point me|take me|open|the (bit|part|clause|section|paragraph)|which (bit|part|clause|section))\b|\b(var (står|säger)|visa|hitta|klausul\w*)\b/i;
+const COPILOT_ASKS_RE = /^\s*(what|when|who|whom|how|which|why|is|are|does|do|did|can|could|should|will|would|has|have|vad|när|vem|hur|vilk\w*|varför|är|finns|kan|har)\b/i;
+function copilotQuoteDoor(cx, question, final) {
+  if (!final || final.goto || final.choices) return null;
+  /* the person's own words: a board note before them and the paper's wording after them are not theirs */
+  const q = String(question || '').replace(/^\[The reader is on the Home board[\s\S]*?\]\n\n/, '').split('\n\n')[0].slice(0, 400);
+  if (!COPILOT_SHOW_RE.test(q) && COPILOT_ASKS_RE.test(q)) return null;
+  const cited = (final.citations || []).filter(c => c && c.id && c.quote && !c.quoteDropped);
+  const ids = [...new Set((final.citations || []).map(c => c && c.id).filter(Boolean))];
+  if (ids.length !== 1 || !cited.length) return null;
+  const cj = copilotGetJson(cx, ids[0]); if (!cj) return null;
+  const nq = quoteNorm(cited[0].quote);
+  const p = hsPassages(hsWordingOf(cj)).find(x => quoteNorm(x.text).includes(nq));
+  if (!p) return null;
+  const door = aiDoorOf({ kind: 'clause', contractId: cj.id, quote: p.text.replace(/\s+/g, ' ').slice(0, 120), ...(p.head ? { head: p.head } : {}) }, cx);
+  return door ? { task: '', door } : null;
+}
 const COPILOT_WHY = {
   unfinished: 'I ran out of steps before I could finish that.',
   empty: 'No answer came back for that one.',
@@ -12964,8 +12985,23 @@ function quoteNorm(s) {
     .replace(/[\s ]+/g, ' ')
     .trim();
 }
+/* A TOOL CALL WRITTEN INTO ITS OWN ANSWER (live, 22 Oct 2026): the fast model sometimes ends "answer" with
+   `",\n<parameter name="citations">[…]` — the next fields typed as text. They are read back into their fields
+   and taken out of the words, so the reader never sees the markup and the sources still count. */
+function copilotParamsSalvage(inp) {
+  const a = inp && typeof inp.answer === 'string' ? inp.answer : '';
+  const at = a.search(/<parameter name="/);
+  if (at < 0) return inp;
+  const out = { ...inp, answer: a.slice(0, at).replace(/\\?["”]?\s*,?\s*$/, '').trim() };
+  for (const m of a.slice(at).matchAll(/<parameter name="(\w+)">([\s\S]*?)(?=<parameter name="|<\/invoke>|$)/g)) {
+    const k = m[1]; if (k === 'answer' || out[k] != null) continue;
+    const v = m[2].replace(/<\/parameter>\s*$/, '').trim();
+    try { out[k] = JSON.parse(v); } catch (_) { out[k] = v; }
+  }
+  return out;
+}
 function normalizeDeliver(input, cx) {
-  const inp = input || {};
+  const inp = copilotParamsSalvage(input || {});
   const answer = typeof inp.answer === 'string' && inp.answer.trim() ? inp.answer.trim() : COPILOT_EMPTY_ANSWER;
   const wholeBook = inp.wholeBook === true;
   /* the door through a rule, re-checked like a citation: a contract it names
@@ -13137,6 +13173,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
        caller that uses the words for something (a drafted note) never takes this
        sentence for an answer. The chat itself still prints it as before. */
     if (!final) final = copilotWayForward(cx, question, 'unfinished');
+    if (final && !final.goto && aiNavigateOn()) { const g = copilotQuoteDoor(cx, question, final); if (g) final.goto = g; }
     // Resolve cited ids (and any compare columns) into render-ready cards.
     const cardIds = [];
     final.citations.forEach(c => { if (!cardIds.includes(c.id)) cardIds.push(c.id); });
@@ -13476,6 +13513,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
        caller that uses the words for something (a drafted note) never takes this
        sentence for an answer. The chat itself still prints it as before. */
     if (!final) final = copilotWayForward(cx, question, 'unfinished');
+    if (final && !final.goto && aiNavigateOn()) { const g = copilotQuoteDoor(cx, question, final); if (g) final.goto = g; }
     const cardIds = [];
     final.citations.forEach(c => { if (!cardIds.includes(c.id)) cardIds.push(c.id); });
     if (final.compare) final.compare.columns.forEach(col => { if (!cardIds.includes(col.id)) cardIds.push(col.id); });
