@@ -74,6 +74,15 @@ function dkLeaveSend(k){
   if (dkSendWaiting() && k === 'c:' + now.slice(DK_SEND.length)) return;
   if (typeof closeModal === 'function') try { closeModal(); } catch (_){}
 }
+/* the same, through the screen's own guard (a typed note asks first, 22 Oct 2026): true while that question
+   is up, and `go` runs once the screen has closed */
+function dkLeaveSendThen(k, go){
+  const now = dkSendNow(); if (!now || k === now) return false;
+  if (dkSendWaiting() && k === 'c:' + now.slice(DK_SEND.length)) return false;
+  if (typeof window.closeModalGuarded !== 'function'){ dkLeaveSend(k); return false; }
+  Promise.resolve(window.closeModalGuarded()).then(ok => { if (ok !== false && !dkSendNow()) go(); });
+  return true;
+}
 /* A PAGE IN FRONT GOES BEFORE THE BAR MOVES (owner, 20 Oct 2026: New agreement
    stayed up over Home when the HA mark was pressed, Jambo's panel gone from
    beside it): Home and a Recent row first put away a page standing in front
@@ -316,7 +325,7 @@ function deskTabOpen(k){
     return !!dkSendNow();
   }
   if (dkLeavePageThen(() => deskTabOpen(k))) return true;
-  dkLeaveSend(k);
+  if (dkLeaveSendThen(k, () => deskTabOpen(k))) return true;
   if (k === 'home'){ deskGoCounter(); return true; }
   if (k.startsWith('home:')){
     const f = k.slice(5);
@@ -367,7 +376,7 @@ function deskTabClose(k){
   }
   deskBarPaint();
 }
-function deskGoCounter(){ _dkMenuOpen = false; if (dkLeavePageThen(deskGoCounter)) return; dkLeaveSend(null); if (typeof setView === 'function') setView('counter'); }
+function deskGoCounter(){ _dkMenuOpen = false; if (dkLeavePageThen(deskGoCounter)) return; if (dkLeaveSendThen(null, deskGoCounter)) return; if (typeof setView === 'function') setView('counter'); }
 
 /* ---------------- THE COUNTER ---------------- */
 /* THREE ROWS IN SIGHT, AS DRAWN (round 23: Jambo's work, then three owed
