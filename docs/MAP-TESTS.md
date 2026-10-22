@@ -309,3 +309,4 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## NAVIGABLE BY TYPING (owner, 22 Oct 2026; docs/PLAN-navigable-by-typing.md)
 - The exam: test/nav-exam.js (194 asks) over test/nav-world.js, typed by test/chromium/nav-exam-verify.js into the real boxes; a measurement with a ratchet (`NAV_EXAM_FLOOR`). Before anything was built: 81 of 194.
+- After stages 1–4 (js/navmap.js): 188 of 194; the ratchet stands at 180. Run one section with `NAV_EXAM_ONLY=<section>`. A change to how Jambo reads words also runs: answer-where-you-stand, board-says-it-plain, board-words, choices-when-unclear, every-door-lands-on-home, jambo-everywhere, jambo-finds-the-way, jambo-map, jambo-moves-and-opens, jambo-words, ref-in-my-question, show-it-here-first, held-contract-asks, jambo-follows-the-ask, home-board, jambo-chat-window, one-recipe-language, jambos-list-panel.

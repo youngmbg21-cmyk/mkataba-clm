@@ -31,7 +31,7 @@ const EXEC = process.env.CHROMIUM_BIN
 /* THE RATCHET: the score may not fall below this. Stage 0 measured 81 of 194 before anything was built
    (22 Oct 2026); a run moves by a sentence or two on timing, so the floor sits a little under. Each stage
    raises it and none lowers it. */
-const NAV_EXAM_FLOOR = 76;
+const NAV_EXAM_FLOOR = 180;
 const MIN = Number(process.env.NAV_EXAM_MIN || NAV_EXAM_FLOOR);
 const ONLY = process.env.NAV_EXAM_ONLY || '';   // a section's name, or its first words
 
@@ -102,7 +102,7 @@ function navWhereSrc(){
   }
   if (W.page === 'templates'){
     let n = ''; try { const ch = tplPfChosen(tplOverviewData()); n = (ch && (ch.name || ch.title)) || ''; } catch (_){}
-    W.item = n || ((typeof tplPlace === 'function' && tplPlace().pick) || null);
+    W.item = [n, (typeof tplPlace === 'function' && tplPlace().pick) || ''].filter(Boolean).join(' ') || null;   // its name or its key
   }
   if (W.page === 'settings'){
     const S = { tab: (typeof settingsTab === 'function') ? settingsTab() : null };
@@ -118,7 +118,7 @@ function navWhereSrc(){
     const L = document.querySelector('.is-landed');
     if (L){
       const card = L.closest('[data-st-you-card]'); if (card) S.row = card.getAttribute('data-st-you-card');
-      if (L.id === 'tm-cap' || L.closest('#tm-cap') || L.id === 'tm-cap-none') S.row = 'signcap';
+      if (L.id === 'tm-cap' || L.closest('#tm-cap') || L.id === 'tm-cap-none' || L.id === 'tm-cap-says') S.row = 'signcap';
     }
     const youCard = document.querySelector('[data-st-you-card].is-landed, [data-st-you-card] .is-landed');
     if (!S.row && youCard) S.row = (youCard.closest('[data-st-you-card]') || youCard).getAttribute('data-st-you-card');
@@ -137,7 +137,7 @@ function navWhereSrc(){
 
 /* DOES THE APP STAND WHERE THE SENTENCE SAID — every part of the spot */
 const PAGE_ALIAS = { people: ['team', 'directory'], streams: ['streams', 'folders'], approvals: ['approvals', 'rules'], ai: ['copilot', 'engine'],
-  links: ['linkcode'], review: ['review'], desk: ['desk'], fx: ['company', 'fx'], filing: ['company', 'filing'], keeping: ['streams', 'keeping'] };
+  links: ['linkcode'], review: ['review'], desk: ['desk'], fx: ['company', 'fx'], filing: ['company', 'filing', 'folders'], keeping: ['streams', 'keeping'] };
 function judge(spot, W, before){
   const why = [];
   if (spot.reply){

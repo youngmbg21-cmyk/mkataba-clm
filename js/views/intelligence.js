@@ -8270,6 +8270,8 @@ function renderIntelDock(){
     if(!c) return; intel.history.push({ role:'user', text:c.label });
     /* JAMBO'S FIRST WORDS: each answer is an existing door (firstReadPress, js/triage.js) */
     if(c.fr&&typeof window.firstReadPress==='function'){ firstReadPress(c,m); renderIntelDock(); return; }
+    /* "WHICH DID YOU MEAN?" (js/navmap.js): the choice is pressed through the one mover, and the question is spent */
+    if(c.nav&&typeof window.navChoicePress==='function'){ m.choices=null; navChoicePress(c); renderIntelDock(); return; }
     /* a choice on Home's board is that card's recipe, pressed through the board's one applier (work order Part 6) */
     if(Array.isArray(c.board)&&typeof window.hbChoicePress==='function'){ const out=hbChoicePress(c); if(out) intel.history.push(Object.assign({ role:'assistant', text:out.html }, out.undo?{ undo:out.undo }:{})); renderIntelDock(); return; }
     igRecipeRun({ acts:c.acts }); renderIntelDock(); updateIntelNote(); }));

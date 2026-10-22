@@ -206,7 +206,7 @@ ask('the standards for supply agreements', { page: 'standards', item: 'supply' }
 ask('the payment terms standard', { page: 'standards', item: '_default', row: 'paymentDays' });
 ask('our lease standards', { page: 'standards', item: 'lease' });
 ask('the confidentiality standard for services', { page: 'standards', item: 'services', row: 'Confidentiality' });
-ask('the NDA template', { page: 'templates', item: 'nda' });
+ask('the NDA template', { page: 'templates', item: 'nda|non-disclosure' });   // the built-in NDA is named Mutual Non-Disclosure Agreement
 ask('open the supply agreement template', { page: 'templates', item: 'supply' });
 ask('our lease template', { page: 'templates', item: 'lease' });
 
