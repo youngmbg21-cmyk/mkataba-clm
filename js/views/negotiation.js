@@ -20502,8 +20502,8 @@ function redlineChangeCardsHtml(c, opts = {}){
                   quiet, in the data face; the clause still leads. */}${
             who ? `<span class="rl-card-id">${_ne(ch.id)}</span>${rlRowByHtml(ch, _short)}` : ''}${
             rlCardNotesCountHtml(c, ch, opts, side)}</div>
-          ${(() => { const why = rlRowWhyHtml(ch), keeps = rlRowKeepsHtml(c, ch, side), lock = rlRowLockHtml(c, ch, side), line = rlRowLineHtml(ch, sub, fromRiskRow);
-            return (why || keeps || lock) ? `<div class="rl-card-sumw">${line}${why}${keeps}${lock}</div>` : line; })()}${pySub}${prepSub}
+          ${(() => { const why = rlRowWhyHtml(ch), keeps = rlRowKeepsHtml(c, ch, side), lock = rlRowLockHtml(c, ch, side), line = rlRowLineHtml(ch, sub, fromRiskRow), read = rlRowReadHtml(c, ch, side);
+            return (why || keeps || lock || read) ? `<div class="rl-card-sumw">${line}${why}${read}${keeps}${lock}</div>` : line; })()}${pySub}${prepSub}
         </div>
         ${''/* ---- AND THE OPEN BUTTON IS GONE WITH THE BODY IT UNFOLDED
                (Young ruled 15 Sep 2026) ----
@@ -21970,6 +21970,47 @@ function rlRowWhyHtml(ch){
   const w = String((typeof window.negoReasonOf === 'function') ? negoReasonOf(ch) : ((ch && ch.why) || '')).trim();
   return w ? `<div class="rl-card-whyq" title="${_nea(w)}">“${_ne(w)}”</div>` : '';
 }
+/* ---- JAMBO'S READ ON THE ROW (round 2 of Jambo's journey, 22 Oct 2026:
+   "I'd take it" — a verdict on each of their changes, where you decide) ----
+   THE ONE READING (rlpJudge: your playbook's range, else how you answered
+   this kind of ask before) said in one line under their ask: the verdict and
+   its first reason, and "Why?" handing the question to Jambo (one call, said
+   on the press). OUR SEAT ONLY: how far we have bent before is the most useful
+   thing an opponent could read, so their page never draws it. Only a pending
+   ask of theirs — advice over a settled change is worse than silence. */
+function rlRowReadHtml(c, ch, side){
+  if (side === 'counterparty' || PORTAL_MODE || !c || !ch) return '';
+  if (ch.authorSide !== 'counterparty' || ch.status !== 'pending' || ch.withdrawn || ch.superseded) return '';
+  if (typeof rlpJudge !== 'function' || typeof precedentTopicOf !== 'function') return '';
+  let j = null; try { j = rlpJudge(c, ch); } catch (_) { j = null; }
+  const V = (j && typeof RLP_VERDICTS === 'object' && RLP_VERDICTS) ? RLP_VERDICTS[j.verdict] : null;
+  if (!V) return '';
+  const why = String((j.why || [])[0] || '').trim();
+  const cost = i18t('rl_read_why_cost');
+  return `<div class="rl-card-read is-${_nea(V.tone)}" data-rl-row-read="${_nea(j.verdict)}"><span class="rl-card-read-v"><i aria-hidden="true"></i>${_ne(V.label)}</span>${
+    why ? `<span class="rl-card-read-w">${_ne(why)}</span>` : ''}<button type="button" class="rl-card-read-ask" data-rl-read-why="${_nea(ch.id)}" title="${_nea(cost)}">${_ne(i18t('rl_read_why'))}</button></div>`;
+}
+/* "Why?" asks Jambo in the conversation beside the paper: the words go through
+   his box's one door (intelAsk), which spends the one call the title says */
+function rlRowReadAsk(cid, chId){
+  const c = (typeof getContract === 'function') ? getContract(cid) : null;
+  const ch = c && Array.isArray(c.changes) ? c.changes.find(x => x && String(x.id) === String(chId)) : null;
+  if (!c || !ch || typeof window.intelAsk !== 'function') return false;
+  let j = null; try { j = rlpJudge(c, ch); } catch (_) { j = null; }
+  const V = j && RLP_VERDICTS[j.verdict];
+  const clause = String((typeof clauseNameShown === 'function' ? clauseNameShown(ch.clauseLabel || '') : '') || ch.clauseLabel || '').trim();
+  window.intelAsk(i18t('rl_read_why_q', { verdict: V ? V.label : '', clause }));
+  return true;
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._rlReadWhyWired){
+  document._rlReadWhyWired = true;
+  document.addEventListener('click', e => {
+    const b = e.target && e.target.closest ? e.target.closest('[data-rl-read-why]') : null; if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    const c = (typeof pdContract === 'function' && pdContract()) || ((typeof state === 'object' && state && state.activeId != null && typeof getContract === 'function') ? getContract(state.activeId) : null);
+    if (c) rlRowReadAsk(c.id, b.getAttribute('data-rl-read-why'));
+  }, true);
+}
 /* ---- THE CHANGED WORDS, CUT AROUND THE EDIT (round 9's gaps, 18 Oct 2026:
    "… capped at 50% 100% of the fees paid in that year") ----
    A READING over the change's STORED ops — the same ops the paper draws its
@@ -22889,7 +22930,7 @@ if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoT
      ending on every screen that draws a document — which is what the shared
      builder was for. */
   rlPaperFootHtml,
-  redlinePanesHtml, rlAgoWords, rlRowClauseName, rlClauseOrderOf, rlCardClausePos, rlRowIsMine, rlRowByHtml, rlRowWhyHtml, RL_EX_BEFORE, RL_EX_AFTER, RL_EX_MID, RL_EX_WHOLE, rlRowExcerptHtml, rlRowLineHtml, rlRowLockHtml, rlIsOpenSuggestion, rlSuggestPileLabel, rlReviewPileActsHtml, rlFaceLadderOpen, rlFaceLadderSet, rlFaceLadderHtml, rlLadderVerbHtml, rlSuggestFaceHtml, rlSettledAt, rlSettledPileLabel, rlHeadOurs, rlOpenCardCount, rlNotesTotal, rlClauseEl, rlLandOnClause, rlLandOnRow, rlFaceNotesOn, rlFaceNotesSet, rlFaceNotesChange, rlFaceNotesRoomFor, rlFaceNoteClause, rlFaceNoteHtml, rlFaceNotesHtml, rlFaceNotesWire, rlHeadNotesHtml, rlHeadHereHtml, rlHeadReviewHtml, rlHeadRepaint, rlPressContract, rlSettledToggle, rlColumnHtml, rlBenchOpts, rlBenchCatchUp, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, rlCardNotesHtml, negoWhen,
+  rlRowReadHtml, rlRowReadAsk, redlinePanesHtml, rlAgoWords, rlRowClauseName, rlClauseOrderOf, rlCardClausePos, rlRowIsMine, rlRowByHtml, rlRowWhyHtml, RL_EX_BEFORE, RL_EX_AFTER, RL_EX_MID, RL_EX_WHOLE, rlRowExcerptHtml, rlRowLineHtml, rlRowLockHtml, rlIsOpenSuggestion, rlSuggestPileLabel, rlReviewPileActsHtml, rlFaceLadderOpen, rlFaceLadderSet, rlFaceLadderHtml, rlLadderVerbHtml, rlSuggestFaceHtml, rlSettledAt, rlSettledPileLabel, rlHeadOurs, rlOpenCardCount, rlNotesTotal, rlClauseEl, rlLandOnClause, rlLandOnRow, rlFaceNotesOn, rlFaceNotesSet, rlFaceNotesChange, rlFaceNotesRoomFor, rlFaceNoteClause, rlFaceNoteHtml, rlFaceNotesHtml, rlFaceNotesWire, rlHeadNotesHtml, rlHeadHereHtml, rlHeadReviewHtml, rlHeadRepaint, rlPressContract, rlSettledToggle, rlColumnHtml, rlBenchOpts, rlBenchCatchUp, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, rlCardNotesHtml, negoWhen,
   NOTE_ROOMS, negoNoteRoom, negoRoomNotes, negoNoteCounts, notesMayWrite,
   negoNoteParty, negoNoteRoomKey, negoNoteRoomList, negoRoomIsExternal,
   negoRoomPartyId, negoRoomKey, rlNpRoomsHtml, rlNpRoomNow,

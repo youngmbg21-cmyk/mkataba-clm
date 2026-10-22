@@ -460,6 +460,143 @@ if (typeof window !== 'undefined' && typeof setInterval === 'function' && !windo
   window._wtPoll = setInterval(() => { try { if (wtServer() && _wt.loaded && !(typeof document !== 'undefined' && document.hidden)) watchLoad(true); } catch (_){} }, 5 * 60 * 1000);
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   JAMBO AFTER THE SIGNATURE (round 2 of Jambo's journey, 22 Oct 2026; the
+   journey's steps 5 and 8). HERE, beside his other prepared presses: every
+   answer is a person's press on an existing door (js/triage.js, the arrival
+   reader, never opens a dialog itself, f273). Once, beside the Dossier of a contract signed in
+   the last SIGNED_TURN_DAYS, he says what it now asks of each side and when,
+   offers those dates as a file for your own calendar (HaTi's Calendar already
+   draws every one of them), sends you to the duties he found in the wording
+   that are not on the record yet, and — where your own rounds keep settling a
+   topic of this contract somewhere your standard does not say — offers the
+   standards page's own proposal. Free: every line is a reading (the Calendar's
+   own calendarEvents, triageHeldObligations, stdLearned). Nothing is written
+   to the signed record: "said" is this browser's convenience, so a signed
+   contract's frozen record is never touched. Every answer is an existing door.
+   ═══════════════════════════════════════════════════════════════════ */
+const SIGNED_TURN_DAYS = 14;
+const SIGNED_TURN_SHOW = 5;
+const SIGNED_TURN_LS = 'hati.v1.jbSigned';
+const _stLs = () => { try { const v = JSON.parse(localStorage.getItem(SIGNED_TURN_LS)); return v && typeof v === 'object' ? v : {}; } catch (_){ return {}; } };
+const _stLsPut = (k, v) => { try { const m = _stLs(); m[k] = v; localStorage.setItem(SIGNED_TURN_LS, JSON.stringify(m)); } catch (_){} };
+const _stToday = () => (typeof todayISO === 'function') ? todayISO() : new Date().toISOString().slice(0, 10);
+const _stDay = d => { try { return (typeof fmtDocDate === 'function') ? fmtDocDate(d) : d; } catch (_){ return d; } };
+function signedTurnExecuted(c){
+  try { return !!c && (typeof negoExecuted === 'function' ? !!negoExecuted(c) : c.status === 'Signed'); } catch (_){ return false; }
+}
+/* the dated things ahead on this contract: the Calendar's own reading, narrowed */
+function signedTurnDates(c){
+  if (!c || typeof calendarEvents !== 'function') return [];
+  const today = _stToday();
+  let all = []; try { all = calendarEvents() || []; } catch (_){ all = []; }
+  return all.filter(e => e && String(e.cid) === String(c.id) && !e.done && String(e.date || '') >= today
+      && (e.type === 'obligation' || e.type === 'expiry' || e.type === 'renewal'))
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+}
+/* the standards page's proposals (stdLearned) on the topics this contract settled */
+function signedTurnLearn(c){
+  if (!c || typeof stdLearned !== 'function' || typeof precedentTopicOf !== 'function') return null;
+  const me = (typeof currentUser === 'function') ? currentUser() : null;
+  const may = (typeof isAdmin === 'function' && isAdmin()) || !!(me && me.role === 'legal');
+  if (!may) return null;
+  const keys = new Set((Array.isArray(c.changes) ? c.changes : [])
+    .filter(ch => ch && ch.status === 'accepted').map(ch => { try { const t = precedentTopicOf(ch); return t && t.key; } catch (_){ return null; } }).filter(Boolean));
+  if (!keys.size) return null;
+  let L = null; try { L = stdLearned(); } catch (_){ L = null; }
+  const gone = _stLs();
+  const p = ((L && L.proposals) || []).find(x => x && keys.has(x.key) && !gone['learn:' + x.key + ':' + x.figure]);
+  return p || null;
+}
+/* THE ONE READING of what he says after the signature, or null where nothing is owed */
+function signedTurnOf(c){
+  if (!c || !signedTurnExecuted(c)) return null;
+  let day = null; try { day = (typeof contractSignedAt === 'function') ? contractSignedAt(c) : null; } catch (_){ day = null; }
+  day = String(day || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
+  const since = (Date.parse(_stToday() + 'T00:00:00') - Date.parse(day + 'T00:00:00')) / 864e5;
+  if (!(since >= 0 && since <= SIGNED_TURN_DAYS)) return null;
+  let held = 0; try { held = (typeof triageHeldObligations === 'function') ? (triageHeldObligations(c) || []).length : 0; } catch (_){ held = 0; }
+  return { dates: signedTurnDates(c), held, learn: signedTurnLearn(c) };
+}
+function signedTurnTurns(c, R){
+  R = R || signedTurnOf(c); if (!R) return [];
+  const cid = c.id;
+  const line = e => {
+    const who = e.type === 'expiry' ? _jpT('st_ends') : e.type === 'renewal' ? _jpT('st_decide')
+      : (e.theirs ? _jpT('st_they') : _jpT('st_you'));
+    const what = e.type === 'obligation' ? String(e.note || '').trim() : '';
+    return `<li><b>${_jpE(_stDay(e.date))}</b> ${_jpE(who)}${what ? ': ' + _jpE(what) : ''}</li>`;
+  };
+  const shown = R.dates.slice(0, SIGNED_TURN_SHOW), more = R.dates.length - shown.length;
+  const parts = [`<p>${_jpE(_jpT(R.dates.length ? 'st_head' : 'st_head_none'))}</p>`];
+  if (shown.length) parts.push(`<ul class="fr-list">${shown.map(line).join('')}</ul>` + (more > 0 ? `<p class="fr-more">${_jpE(_jpTn('fr_more', more, { n: more }))}</p>` : ''));
+  if (R.held) parts.push(`<p>${_jpE(_jpTn('st_held', R.held, { n: R.held }))}</p>`);
+  if (shown.length) parts.push(`<p>${_jpE(_jpT('st_on_cal'))}</p>`);
+  const choices = [];
+  if (R.held) choices.push({ label: _jpT('st_go_oblig'), fr: 'oblig', cid, lead: true });
+  if (R.dates.length){ choices.push({ label: _jpT('st_go_ics'), fr: 'ics', cid, lead: !R.held }); choices.push({ label: _jpT('st_go_cal'), fr: 'cal', cid }); }
+  const turns = [{ role: 'assistant', text: parts.join(''), choices: choices.length ? choices : null, signedTurn: cid }];
+  const p = R.learn;
+  if (p){
+    const was = p.preferredFigure != null ? p.preferredFigure : p.fallbackFigure;
+    turns.push({ role: 'assistant', signedTurn: cid,
+      text: `<p>${_jpE(_jpT('st_learn', { category: p.category, figure: p.figure, unit: p.unit || '', seen: p.seen, settled: p.settled }))}${
+        was != null ? ' ' + _jpE(_jpT('st_learn_was', { was, unit: p.unit || '' })) : ''}</p>`,
+      /* one filled button in the panel: the first turn's, where it has one */
+      choices: [{ label: _jpT('st_go_learn'), fr: 'learn', cid, lead: !choices.some(x => x.lead), clause: p.clause || '', key: p.key, figure: p.figure },
+        { label: _jpT('st_go_later'), fr: 'later', cid, key: p.key, figure: p.figure }] });
+  }
+  return turns;
+}
+/* asked as Home's panel paints: a contract signed lately, on its Dossier, not yet spoken about here */
+function signedTurnDue(){
+  try {
+    if (typeof pdOnPaper !== 'function' || !pdOnPaper() || typeof pdContract !== 'function') return false;
+    if (typeof pdFaceNow === 'function' && pdFaceNow()) return false;          // a face is open (the receipt, say): never over it
+    if (typeof pdTab === 'function' && pdTab() !== 'copilot') return false;    // only beside the Dossier
+    if (typeof canEdit === 'function' && !canEdit()) return false;
+    const c = pdContract(); if (!c || _stLs()['said:' + c.id]) return false;
+    if (typeof window.pdHandIn === 'function' && window.pdHandIn(c)) return false;   // never snatch the panel from a hand in it (js/paperdesk.js)
+    if (typeof intel !== 'object' || !intel || !Array.isArray(intel.history) || intel.busy) return false;   // not while an answer is on its way (firstReadDue)
+    const R = signedTurnOf(c); if (!R) return false;
+    if (!R.dates.length && !R.held && !R.learn) return false;
+    _stLsPut('said:' + c.id, _stToday());
+    signedTurnTurns(c, R).forEach(m => intel.history.push(m));
+    return true;
+  } catch (_){ return false; }
+}
+/* a press on his after-signature answers: the existing door, nothing more */
+function signedTurnPress(ch, m){
+  if (!ch) return false;
+  const c = (typeof getContract === 'function') ? getContract(ch.cid) : null;
+  if (!c) return false;
+  if (ch.fr === 'ics'){
+    const evs = signedTurnDates(c);
+    if (!evs.length || typeof calIcsFor !== 'function' || typeof downloadFile !== 'function') return true;
+    const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
+    downloadFile(`hati-${String(ref).replace(/[^A-Za-z0-9_-]+/g, '-')}.ics`, calIcsFor(evs), 'text/calendar');
+    if (typeof toast === 'function') toast(_jpTn('cal_exported', evs.length, { n: evs.length }), 'ok');
+    return true;
+  }
+  if (ch.fr === 'cal'){ if (typeof CA_GO === 'object' && CA_GO && typeof CA_GO.calendar === 'function') CA_GO.calendar(); return true; }
+  if (ch.fr === 'oblig'){ if (m) m.choices = (m.choices || []).filter(x => x && x.fr !== 'oblig'); if (typeof runFindObligations === 'function') runFindObligations(c); return true; }
+  if (ch.fr === 'learn'){
+    if (m) m.choices = null;
+    if (typeof setView === 'function') setView('playbook');
+    if (ch.clause && typeof sdGoClause === 'function') try { sdGoClause(ch.clause); } catch (_){}
+    return true;
+  }
+  if (ch.fr === 'later'){
+    if (m) m.choices = null;
+    _stLsPut('learn:' + ch.key + ':' + ch.figure, _stToday());
+    if (typeof intel === 'object' && intel && Array.isArray(intel.history)) intel.history.push({ role: 'assistant', text: _jpE(_jpT('st_said_later')) });
+    return true;
+  }
+  return false;
+}
+
+Object.assign(window, { SIGNED_TURN_DAYS, SIGNED_TURN_SHOW, signedTurnOf, signedTurnTurns, signedTurnDue, signedTurnPress, signedTurnDates, signedTurnLearn });
 Object.assign(window, { jpIdsOf, jpPressOf, jpShowOf, jpActOf, jpChaseOf, jpClauseIn, jpHtml, jpTurnOf, jpShowRun, jpActRun, jpShowContract, jpPress, jpWire, JP_PAPER_LINE,
   WT_KINDS, watchLoad, watchesAll, watchesLoaded, watchGet, watchesFired, watchCreate, watchPause, watchSeen, watchDelete, watchChanged,
   watchAsks, watchRead, watchDayOf, watchContractOf, watchWords, watchFiredWords, watchGo, watchAskHtml, watchListHtml, watchListOpen, watchTurnFor, watchAskHere, watchStart });

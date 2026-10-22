@@ -51,10 +51,10 @@ to the other side on its own.
 | 1 | Counterparty lookup: a plain internet search | 3 | not built |
 | 2 | The arrival turn: Jambo speaks first | 1 | **built 22 Oct 2026** |
 | 3 | The road reading: negotiate it or just send it | 1 | **built 22 Oct 2026** |
-| 4 | "I'd take it": a verdict on each of their changes | 2 | not built |
+| 4 | "I'd take it": a verdict on each of their changes | 2 | **built 22 Oct 2026**, waiting for the owner's yes |
 | 5 | Your phone: browser push | 4 | not built |
-| 6 | Add all to my calendar | 2 | not built |
-| 7 | "Make it my standard", in his words | 2 | not built |
+| 6 | Add to my own calendar (changed: see section 5) | 2 | **built 22 Oct 2026**, waiting for the owner's yes |
+| 7 | "Make it my standard", in his words | 2 | **built 22 Oct 2026**, waiting for the owner's yes |
 | 8 | Your history with them, in one line | 1 | **built 22 Oct 2026** |
 
 ## 4. Round 1, as built (22 Oct 2026)
@@ -85,8 +85,30 @@ to the other side on its own.
   (a real file through Jambo's drop area, the real arrival reading, every
   press, once across a refresh, the owner's three screens).
 
-## 5. What comes next
+## 5. Round 2, as built (22 Oct 2026)
 
-Round 2 (tools 4, 7, 6), then round 3 (tool 1), then round 4 (tool 5). Each
+- **"I'd take it" (tool 4).** The verdict already existed but stood only in the
+  clause panel. Now one line under each of their asks in Jambo's Redlines
+  panel says it: Take it · Push back · Escalate · Read it, with the first
+  reason, and "Why?" asks Jambo (one call). Where the playbook is silent the
+  verdict reads how you answered this kind of ask before, from three answers
+  up (`rlRowReadHtml`, `rlpJudge` → `rlpPastJudge`).
+- **After the signature (tools 6 and 7).** Once, beside the Dossier of a
+  contract signed in the last 14 days, Jambo says what it now asks of each
+  side and when, the duties in the wording not yet on the record, and offers
+  "Add to my own calendar" (a file for Outlook or Google) and "Show my
+  calendar". Where your rounds keep settling a topic of this contract away
+  from your standard, he offers the standards page's own proposal; "Show me
+  the proposal" opens it there (`signedTurnOf`, js/jambopress.js).
+- **Tool 6 changed, asked before merging.** HaTi's Calendar already shows
+  every dated duty, so "put them in my calendar" inside HaTi would add
+  nothing; the file for your own calendar is what was built.
+- **He never snatches the panel** from someone working in it, never speaks
+  over an open face or while an answer is on its way (round 1's fix).
+- **Tests:** f863; test/chromium/jambo-round-two-verify.
+
+## 6. What comes next
+
+Round 3 (tool 1, the internet search), then round 4 (tool 5, browser push). Each
 round is one change, photographed at the owner's three screens, with its
 tests, before it merges.

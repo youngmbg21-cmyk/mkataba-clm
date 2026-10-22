@@ -1073,6 +1073,8 @@ function firstReadDue(){
 /* a press on one of his first answers: the existing door, nothing more */
 function firstReadPress(ch, m){
   if (!ch) return false;
+  /* the after-signature answers have their own doors (js/jambopress.js) */
+  if (['ics', 'cal', 'oblig', 'learn', 'later'].includes(ch.fr)) return (typeof window.signedTurnPress === 'function') ? window.signedTurnPress(ch, m) : false;
   const c = (typeof getContract === 'function') ? getContract(ch.cid) : null;
   if (m) m.choices = null;            /* an answer is spent once pressed */
   const say = text => { if (typeof intel === 'object' && intel && Array.isArray(intel.history)) intel.history.push({ role: 'assistant', text: _frE(text) }); };

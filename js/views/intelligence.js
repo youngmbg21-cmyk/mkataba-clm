@@ -7994,7 +7994,9 @@ function renderIntelDock(){
   /* JAMBO SPEAKS FIRST (round 1 of Jambo's journey): the contract on the paper owes its words. Said AFTER the
      talk has settled this paint (an answer landing now is filed as the late answer of the page that asked, and
      words said alongside it would be filed with it), then the talk looks again and turns the panel to them. */
-  if(typeof window.firstReadDue==='function'&&firstReadDue()&&typeof window.pdTalkSync==='function') talk=pdTalkSync(dock);
+  /* AND AFTER A SIGNATURE (round 2): what it now asks of each side, once, beside the Dossier, the same way */
+  const _jbOwed=(typeof window.firstReadDue==='function'&&firstReadDue())|(typeof window.signedTurnDue==='function'&&signedTurnDue());
+  if(_jbOwed&&typeof window.pdTalkSync==='function') talk=pdTalkSync(dock);
   /* ONE CONVERSATION EVERYWHERE (21 Oct 2026): every turn, each drawn by the
      builder of the host it was born in; popped out, the words are in Jambo's
      own window (popped out, or the ✦'s window open) and only there (one place at a time) */
