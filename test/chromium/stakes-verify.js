@@ -115,12 +115,13 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
         const rows = [...document.querySelectorAll('#pd-thread .doc-th-row')];
         const under = rows.find(r => r.querySelector('.stk-line'));
         const miss = document.querySelector('#pd-thread .stk-miss');
-        const prev = miss && miss.previousElementSibling;
-        return { underName: under ? under.querySelector('.doc-th-name').innerText : null, lines: document.querySelectorAll('#pd-thread .doc-th-row .stk-line').length,
+        const prev = miss && miss.closest('.doc-th-row');
+        return { underName: under ? under.querySelector('.doc-th-name').innerText : null, lines: document.querySelectorAll('#pd-thread .doc-th-row > .stk-line').length,
           missH: miss ? miss.querySelector('.stk-miss-h').innerText : null, after: prev && prev.classList.contains('doc-th-row') ? prev.querySelector('.doc-th-name').innerText : null,
           doors: document.querySelectorAll('#pd-thread [data-stk-dive]').length };
       });
       /* RE-POINTED 21 Oct 2026 ("the Legora way"): a missing point stands IN PLACE, after the clause it would follow */
+      /* RE-POINTED 22 Oct 2026 (owner: "build the first one"): it stands INSIDE that clause, opening and closing with it */
       ok('3 a point stands under its clause; a missing one in place after the clause it would follow', /^2\b/.test(e3.underName || '') && e3.lines === 2 && /After §2 — not in the contract/.test(e3.missH || '') && /^2\b/.test(e3.after || '') && e3.doors === 3, JSON.stringify(e3));
       /* 3b A FILTER NARROWS THE LIST: Found by → Our standards leaves the one
          standards point, on the Payment row; rows with nothing step aside; the
@@ -193,6 +194,9 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
          place with its card open, and its Deep dive is there to press */
       const f6 = await page.evaluate(async () => {
         const vis = el => !!el && el.getClientRects().length > 0;
+        /* RE-POINTED 22 Oct 2026: it stands inside its clause and shows while that clause is open */
+        const openIn = async el => { const r = el && el.closest('.doc-th-row'); if (r && !r.classList.contains('is-open')){ r.querySelector('[data-th-go]').click(); await new Promise(z => setTimeout(z, 900)); } };
+        await openIn(document.querySelector('#pd-thread .stk-miss'));
         const m = document.querySelector('#pd-thread .stk-miss'); if (!m) return { t: false };
         return { t: true, open: vis(m.querySelector('.stk-line')), dive: vis(m.querySelector('[data-stk-dive]')), fold: !!document.querySelector('#pd-thread [data-stk-mopen]') };
       });

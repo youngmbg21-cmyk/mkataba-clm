@@ -196,7 +196,11 @@ const READING = {
 
     /* ===== 4 the not-in-the-contract group folds ===== */
     const grp = await page.evaluate(async () => {
-      const m = [...document.querySelectorAll('#pd-thread .stk-miss')].find(x => /After §1/.test(x.textContent));
+      /* RE-POINTED 22 Oct 2026: the group stands inside §1 and shows while §1 is open */
+      const openIn = async el => { const r = el && el.closest('.doc-th-row'); if (r && !r.classList.contains('is-open')){ r.querySelector('[data-th-go]').click(); await new Promise(z => setTimeout(z, 900)); } };
+      const find = () => [...document.querySelectorAll('#pd-thread .stk-miss')].find(x => /After §1/.test(x.textContent));
+      await openIn(find());
+      const m = find();
       if (!m) return { there: false };
       const btn = m.querySelector('[data-stk-miss-go]');
       const body = m.querySelector('.stk-miss-body');
@@ -212,6 +216,14 @@ const READING = {
     ok('4 the group\'s own head opens and closes it; pressed again it comes back',
       grp.there && grp.control && grp.was.open && grp.was.tag === 'BUTTON' && grp.was.exp === 'true' && !grp.now.open && grp.now.exp === 'false' && grp.again.open && grp.again.exp === 'true',
       JSON.stringify(grp));
+    /* §1 open with its missing point inside it, at the owner's three screens (22 Oct 2026) */
+    for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
+      await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(300);
+      await page.evaluate(() => { const m = [...document.querySelectorAll('#pd-thread .stk-miss')].find(x => /After §1/.test(x.textContent)); if (m) m.scrollIntoView({ block: 'center' }); });
+      await page.waitForTimeout(200);
+      await page.screenshot({ path: path.join(OUT, `4-missing-inside-its-clause-${w}x${ht}.png`) });
+    }
+    await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(300);
 
     /* ===== 5 no dashed or dotted border; the card's coloured edge stands ===== */
     const lines = await page.evaluate(() => {
