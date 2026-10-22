@@ -805,7 +805,10 @@ describe('f246 (5) — the card opens instead of a menu', () => {
       'data-nego-redecide', 'data-nego-withdraw', 'data-rl-send', 'data-rl-sendcopy',
       'data-rl-retract', 'data-rl-edit', 'data-rl-cp-editor-row', 'data-rl-cp-open',
       'data-rl-ask-review', 'data-rv-cancel', 'data-rv-verdict', 'data-rl-reopen',
-      'data-rl-card-open', 'data-rl-np-room', 'data-rl-np-send', 'data-rl-note-more'];
+      'data-rl-card-open', 'data-rl-np-room', 'data-rl-np-send', 'data-rl-note-more',
+      /* ADDED 22 Oct 2026 (round 5 of the first-timer rounds, owner picked "Four doors"): Ask a colleague,
+         owned by rlAskColleague — the one send screen set to a colleague, the pass route */
+      'data-rl-ask-colleague'];
     const p = await bench();
     for (const ch of p.c.changes)
       for (const b of p.open(ch.id).querySelectorAll('button')){

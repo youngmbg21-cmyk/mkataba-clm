@@ -111,7 +111,7 @@ const SAY = 'NDA with Volvo Cars for a pilot';
         words: [...document.querySelectorAll('#na-words .na-w-c')].map(c => ({ t: t(c), owed: c.classList.contains('is-owed') })), fill: t(document.getElementById('dr-read')),
         step1: t(document.querySelector('#wz-pick .na-step')), cards: cards.map(c => ({ t: t(c), radio: !!c.querySelector('.na-radio'), checked: c.getAttribute('aria-checked') })),
         sub: t(document.getElementById('na-card-sub')), cardName: t(document.getElementById('na-card-name')),
-        cp: t([...document.querySelectorAll('#na-form label > span:first-child')].find(sp => /Counterparty/.test(sp.textContent))),
+        cp: t([...document.querySelectorAll('#na-form label > span:first-child')].find(sp => /^The other company/.test(sp.textContent.trim()))),
         people: t(document.querySelector('#na-people > summary')), file: (() => { const row = document.querySelector('#na-file .na-file-b'), cost = row && row.querySelector('.na-file-cost');
           return row && cost ? { cost: t(cost), inRow: cost.getBoundingClientRect().top < row.getBoundingClientRect().bottom && cost.getBoundingClientRect().top >= row.getBoundingClientRect().top - 1 } : null; })() }; };
 
@@ -175,19 +175,21 @@ const SAY = 'NDA with Volvo Cars for a pilot';
     check('5a the closest picked: its radio checked', S5.cards[0].checked === 'true', JSON.stringify(S5.cards[0]));
     /* RE-POINTED 21 Oct 2026: the stream is asked at every creation door and Create waits for it
        (naStreamBox, CLAUDE.md "STREAM ACCESS"), so it is needed now beside Counterparty */
-    check('5b its questions: "N questions · only Counterparty and Value stream are needed now"', /^\d+ questions · only Counterparty and Value stream are needed now$/.test(S5.sub) && /asks$/.test(S5.cardName), `${S5.cardName} · ${S5.sub}`);
-    check('5c the counterparty the sentence filled says so: "✦ from your words"', /^Counterparty \*? ?✦ from your words$/.test(S5.cp.replace(/\s+/g, ' ')), S5.cp);
+    /* RE-POINTED 22 Oct 2026 (round 3 of the first-timer rounds): the counterparty is "The other company" on the form */
+    check('5b its questions: "N questions · only The other company and Value stream are needed now"', /^\d+ questions · only The other company and Value stream are needed now$/.test(S5.sub) && /asks$/.test(S5.cardName), `${S5.cardName} · ${S5.sub}`);
+    check('5c the counterparty the sentence filled says so: "✦ from your words"', /^The other company \*? ?✦ from your words$/.test(S5.cp.replace(/\s+/g, ' ')), S5.cp);
     check('5d who else: "Who else is on this agreement · nobody is emailed until you send"', /^Who else is on this agreement · nobody is emailed until you send/.test(S5.people), S5.people);
     check('5e the cost of reading on the stream\'s own row', !!S5.file && S5.file.inRow && /^When it is created, Jambo reads it/.test(S5.file.cost), JSON.stringify(S5.file));
     check('5f the reason is now the stream\'s', S5.acts.join('|') === 'Choose a stream first|Create draft|Cancel', JSON.stringify(S5.acts));
     /* 11 step 2 in three columns, two rows; who else straight under */
-    const Q11 = await page.evaluate(() => { const ls = [...document.querySelectorAll('#na-form .field-grid > label')].filter(l => l.getClientRects().length && getComputedStyle(l).display !== 'none');
+    /* RE-POINTED 22 Oct 2026 (round 3 of the first-timer rounds): Who pays whom? is a group of presses, not a label */
+    const Q11 = await page.evaluate(() => { const ls = [...document.querySelectorAll('#na-form .field-grid > label, #na-form .field-grid > .pw-field')].filter(l => l.getClientRects().length && getComputedStyle(l).display !== 'none');
       const r = ls.map(l => l.getBoundingClientRect()), tops = [...new Set(r.map(x => Math.round(x.top)))];
       const names = ls.map(l => (l.querySelector('span') || l).textContent.replace(/\s+/g, ' ').trim());
       const sum = document.querySelector('#na-people > summary'), last = Math.max(...r.map(x => x.bottom));
       return { n: ls.length, tops: tops.length, widths: [...new Set(r.map(x => Math.round(x.width)))].length, first: names.slice(0, 3), gap: sum ? Math.round(sum.getBoundingClientRect().top - last) : null }; });
     check('11 step 2: three columns, two rows — who we are, the counterparty, their email first — and "Who else" straight under',
-      Q11.n === 6 && Q11.tops === 2 && Q11.widths === 1 && /^Our party/.test(Q11.first[0]) && /^Counterparty/.test(Q11.first[1]) && /^Their email/.test(Q11.first[2]) && Q11.gap != null && Q11.gap <= 30, JSON.stringify(Q11));
+      Q11.n === 6 && Q11.tops === 2 && Q11.widths === 1 && /^Our party/.test(Q11.first[0]) && /^The other company/.test(Q11.first[1]) && /^Their email/.test(Q11.first[2]) && Q11.gap != null && Q11.gap <= 30, JSON.stringify(Q11));
     /* 12 step 3 one row */
     const R12 = await page.evaluate(() => { const row = document.querySelector('#na-file .na-file-b'), seg = row && row.querySelector('.na-seg'), need = row && row.querySelector('.na-need'), cost = row && row.querySelector('.na-file-cost');
       const r = el => el.getBoundingClientRect();
@@ -214,7 +216,9 @@ const SAY = 'NDA with Volvo Cars for a pilot';
       check(`8 ${w}×${ht}: Create and its reason in view in the head, nothing sideways`, S.create && S.why && S.side, JSON.stringify(S));
       /* 13 the drawing's own measure of the page's scroll, once a paper is picked */
       const sc = await page.evaluate(() => { const b = document.querySelector('[data-dlg-page] .dlg-pg-body'); return b ? b.scrollHeight - b.clientHeight : null; });
-      const most = w === 1440 ? 32 : w === 1536 ? 82 : 0;
+      /* RE-POINTED 22 Oct 2026 (the first-timer rounds, as picked): each card's "Use when" line (+40) and the help under
+         the other company's name (+20) — measured 0 → 59 at 1440×780; 1536×730 and 1366×950 keep their measure */
+      const most = w === 1440 ? 64 : w === 1536 ? 82 : 0;
       check(`13 ${w}×${ht}: the page scrolls at most ${most}px to reach step 3's foot`, sc != null && sc <= most, String(sc));
       await shot(page, `4-one-sheet-${w}x${ht}`);
     }

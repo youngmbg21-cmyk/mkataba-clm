@@ -130,7 +130,7 @@ function forYouTemplates(tmpls){ return forYouPick(tmpls).list; }
    creation, same audit line. A key this template does not ask for is dropped
    by draftApplyPrefill rather than carried. */
 function openWizard(preTid, prefill){
-  if(!canEdit()){ toast(i18t('wz_viewers_no_create'),'err'); return; }
+  if(!canEdit()){ draftWallToast(); return; }
   const tmpls=myCreatableTemplates();
   if(!tmpls.length){ toast(i18t('wz_no_templates_role'),'err'); return; }
   let tid=preTid&&tmpls.some(t=>t.id===preTid)?preTid:null;
@@ -530,13 +530,18 @@ function wzFieldHtml(v){
      the page. */
   if(v.type==='stream') return `<label style="display:block;">${lbl}
     <select id="${id}" style="${WZ_ST}">${(typeof folderOptionsHtml==='function') ? folderOptionsHtml(v.def||null, false, { reach:true }) : ''}</select></label>`;
+  /* WHO PAYS WHOM: the side of the money as three presses, its meaning said under them (payWhoHtml) */
+  if(v.key==='side' && v.maps==='category' && typeof payWhoHtml==='function') return `<div class="pw-field">${lbl}${payWhoHtml(id, v.def)}</div>`;
   if(v.type==='select') return `<label style="display:block;">${lbl}
     <select id="${id}" style="${WZ_ST}"${(typeof needAttrs==='function'?needAttrs(v,v.def||((v.opts||[])[0]!=null&&typeof fieldOpt==='function'?fieldOpt(v.opts[0]).v:'')):'')}>
       ${(v.opts||[]).map(o=>(typeof fieldOpt==='function')?fieldOpt(o):{v:String(o),l:String(o)}).map(o=>
         `<option value="${String(o.v).replace(/"/g,'&quot;')}" ${String(v.def||'')===o.v?'selected':''}>${o.l}</option>`).join('')}</select></label>`;
   const it=v.type==='date'?'date':(v.type==='num'?'number':'text');
-  return `<label style="display:block;">${lbl}
-    <input id="${id}" type="${it}"${(typeof needAttrs==='function'?needAttrs(v,v.def):'')} value="${String(v.def||'').replace(/"/g,'&quot;')}" placeholder="${v.ph||''}" style="${WZ_ST}"/></label>`;
+  /* THE OTHER COMPANY, in a first-timer's words, with where its name is found (round 3 of the first-timer rounds) */
+  const cp=v.key==='counterparty'&&v.maps==='counterparty';
+  const lab=cp?lbl.replace(v.label, String(i18t('tf_cp_other')).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]))):lbl;
+  return `<label style="display:block;">${lab}
+    <input id="${id}" type="${it}"${(typeof needAttrs==='function'?needAttrs(v,v.def):'')} value="${String(v.def||'').replace(/"/g,'&quot;')}" placeholder="${v.ph||''}" style="${WZ_ST}"/>${cp?`<span class="wz-help">${i18t('tf_cp_other_help')}</span>`:''}</label>`;
 }
 /* ASKED HERE, WHERE YOU ARE ALREADY NAMING THEM, AND NOWHERE ELSE. The
    templates carry the counterparty's NAME; nothing carried the address, so it
@@ -734,7 +739,7 @@ function naCardTitle(r){
    ONE ACT EACH, NEVER A SECOND ONE: the drafting door is this function, the
    upload door is openUploadModal — the one dialog every upload already uses. */
 function openNewDoors(){
-  if(typeof canEdit==='function' && !canEdit()){ toast(i18t('wz_viewers_no_create'),'err'); return; }
+  if(typeof canEdit==='function' && !canEdit()){ draftWallToast(); return; }
   const esc=x=>String(x==null?'':x).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
   const ic=(n)=>(typeof icon==='function')?icon(n,'w-4 h-4'):'';
   const go=k=>{
@@ -805,7 +810,7 @@ function openNewDoors(){
 function openNewAgreement(o){
   if(o===undefined) return openNewDoors();
   o=o||{};
-  if(typeof canEdit==='function' && !canEdit()){ toast(i18t('wz_viewers_no_create'),'err'); return; }
+  if(typeof canEdit==='function' && !canEdit()){ draftWallToast(); return; }
   const esc=x=>String(x==null?'':x).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
   const tmpls=(typeof myCreatableTemplates==='function')?myCreatableTemplates():[];
   const mayEdit=(typeof canEdit!=='function')||canEdit();
@@ -874,10 +879,15 @@ function openNewAgreement(o){
      a radio, and the shelf's own facts — the gaps, round 4, 18 Oct 2026) */
   const pickRow=(r,best,card)=>{ const on=!!(sel&&sel.kind===r.kind&&String(sel.id)===String(r.id)), hint=naCardTitle(r);
     const used=card===true?usedOf(r):0;
+    /* WHAT IT SHARES WITH YOUR WORDS, in your spelling (round 2 of the first-timer rounds) */
+    const shares=(card===true&&asked&&typeof caDraftMatched==='function')?caDraftMatched(asked,{ name:r.name, blurb:r.sub||'' }):[];
     const meta=(card===true?(r.kind==='tid'?[shelfOf(r)]:[shelfOf(r), r.go||'', r.stream||'']).concat(used?[i18tn('na_used_n',used,{n:used})]:[])
+      .concat(shares.length?[i18t('na_shares',{ w:shares.slice(0,2).map(w=>'“'+w+'”').join(', ') })]:[])
       :[r.go||'', r.stream||'']).filter(Boolean).join(' · ');
+    /* WHEN TO USE IT, one everyday line: HaTi's own papers carry theirs (tpl_use_*), ours their description */
+    const use=card===true?naUseWhen(r):'';
     return `<button type="button" class="na-pick${card===true?' na-close':''}${on?' on':''}"${card===true?` role="radio" aria-checked="${on}"`:''} data-wz-${r.kind}="${esc(r.id)}"${hint?` title="${esc(hint)}"`:''}>
-      ${card===true?'<span class="na-radio" aria-hidden="true"></span>':''}<span class="na-pick-n">${esc(r.name)}</span>${best===true?`<span class="na-best">${esc(i18t('na_best'))}</span>`:''}${meta?`<span class="na-pick-m">${esc(meta)}</span>`:''}</button>`; };
+      ${card===true?'<span class="na-radio" aria-hidden="true"></span>':''}<span class="na-pick-n">${esc(r.name)}</span>${best===true?`<span class="na-best">${esc(i18t('na_best'))}</span>`:''}${meta?`<span class="na-pick-m">${esc(meta)}</span>`:''}${use?`<span class="na-use">${esc(use)}</span>`:''}</button>`; };
   /* ONE SHEET'S FIRST STEP: the closest rows, in the reading's order — drawn as
      cards (the gaps, round 4, 18 Oct 2026): a radio, the name, the best marked,
      and the shelf's own facts — "Company standard · v3 · Sales · used 14 times",
@@ -887,9 +897,25 @@ function openNewAgreement(o){
   const usedOf=r=>{ let n=0; try{ n=r.kind==='lib'?(Number((libOf().find(t=>t.id===r.id)||{}).contractsCreated)||0)
     :r.kind==='mine'?(Number((typeof templateUsage==='function'?templateUsage(r.id):{}).count)||0)
     :(typeof builtinUsageCount==='function'?builtinUsageCount(r.id):0); }catch(_){ n=0; } return n; };
-  const closestRows=()=>{ const all=rows(); return (o.closest||[]).map(k=>all.find(r=>r.kind===k.kind&&String(r.id)===String(k.id))).filter(Boolean); };
-  const closestHtml=()=>{ const b=o.best;
+  /* ONE QUESTION DECIDES (owner picked "One question", 22 Oct 2026): where two
+     papers easily confused both stand among the closest (caDraftPairOf), the
+     answer moves its paper first and marks it the closest. Nothing is picked:
+     the reader still presses the card. */
+  let dqAns='';
+  const dqPair=()=>(one&&typeof caDraftPairOf==='function')?caDraftPairOf(closestBase()):null;
+  const closestBase=()=>{ const all=rows(); return (o.closest||[]).map(k=>all.find(r=>r.kind===k.kind&&String(r.id)===String(k.id))).filter(Boolean); };
+  const dqId=()=>{ const P=dqPair(); const a=P&&dqAns?P.a.find(x=>x[0]===dqAns):null; return a?a[1]:''; };
+  const closestRows=()=>{ const L=closestBase(), id=dqId(); if(!id) return L;
+    const at=L.findIndex(r=>r.kind==='tid'&&String(r.id)===id); return at>0?[L[at]].concat(L.slice(0,at),L.slice(at+1)):L; };
+  const closestHtml=()=>{ const id=dqId(); const b=id?{ kind:'tid', id }:o.best;
     return closestRows().map(r=>pickRow(r, !!(b&&b.kind===r.kind&&String(b.id)===String(r.id)), true)).join(''); };
+  /* the question's row, and "No paper is called …" where none is (the words as asked) */
+  const dqHtml=()=>{ const P=dqPair(); if(!P) return '';
+    const party=String((o.words&&o.words.who)||'').trim();
+    return `<div class="na-dq" id="na-dq"><span class="na-dq-q">${esc(i18t(P.q+(party?'':'_none'),{ party }))}</span><span class="na-seg" role="group">${P.a.map(([k])=>
+      `<button type="button" class="na-seg-b" data-na-dq="${esc(k)}" aria-pressed="${dqAns===k}">${esc(i18t('na_dq_'+k))}</button>`).join('')}</span></div>`; };
+  const naNoneCalled=()=>{ const w=String((o.words&&o.words.what)||'').replace(/^(?:an?|the|en|ett)\s+/i,'').replace(/\s+(?:agreement|contract|avtal|avtalet|kontrakt)$/i,'').trim(); if(!w) return '';
+    const lw=w.toLowerCase(); return rows().some(r=>String(r.name||'').toLowerCase().includes(lw))?'':w; };
   /* FROM YOUR WORDS: the sentence, what was read from it without AI (What is
      the closest paper's own title, With the party it names — amber where
      Parties has none of that name yet), Change the ask, and the form's own Find
@@ -989,9 +1015,9 @@ function openNewAgreement(o){
                pop-up. MEASURED at the parent: the frame was already at its
                own ceiling (88vh) and opening the people panel pushed the body
                into scrolling at every window height tried. */}
-        ${one?`<div class="na-step"><span class="na-n">1</span><b>${esc(i18t('na_start'))}</b><span class="na-hint">${esc(i18t(closestRows().length===3?'na_start_sub_3':closestRows().length===2?'na_start_sub_2':'na_start_sub'))}</span>
-          <span class="na-more na-one-more"><button type="button" class="ui-link" id="na-all" aria-expanded="false">${esc(i18t('na_all_paper',{n:rows().length}))}</button><span>· ${esc(i18t('na_none_fits'))}</span>${typeof openIntakeForm==='function'?`<button type="button" class="ui-link" id="na-legal">${esc(i18t('na_ask_legal'))}</button>`:''}</span></div>
-        <div class="na-closest" id="na-closest" role="radiogroup" aria-label="${esc(i18t('na_start'))}">${closestHtml()}</div>
+        ${one?`<div class="na-step"><span class="na-n">1</span><b>${esc(i18t('na_start'))}</b><span class="na-hint">${esc((dqPair()&&naNoneCalled())?i18t('na_dq_none_called',{ w:naNoneCalled() }):i18t(closestRows().length===3?'na_start_sub_3':closestRows().length===2?'na_start_sub_2':'na_start_sub'))}</span>
+          <span class="na-more na-one-more"><button type="button" class="ui-link" id="na-all" aria-expanded="false">${esc(i18t('na_all_paper',{n:rows().length}))}</button><span>· ${esc(i18t('na_none_fits'))}</span>${typeof openIntakeForm==='function'?`<button type="button" class="ui-link" id="na-legal">${esc(i18t(naNoTeam()?'na_ask_admin_choose':'na_ask_legal'))}</button>`:''}</span></div>
+        ${dqHtml()}<div class="na-closest" id="na-closest" role="radiogroup" aria-label="${esc(i18t('na_start'))}">${closestHtml()}</div>
         <div id="na-search" hidden>`:''}
         <input id="na-q" class="na-inp na-q" type="search" autocomplete="off" placeholder="${esc(i18t('na_q_ph'))}" aria-label="${esc(i18t('na_q_ph'))}">
         <div id="na-lists" class="na-picks">${listsHtml('')}</div>${one?'</div>':''}
@@ -1133,7 +1159,8 @@ function openNewAgreement(o){
      rather than growing a fourth label renderer: one renderer per door, one
      dress per frame. The arrow's words survive on the label's hover. */
   const dress=host=>{
-    host.querySelectorAll('label > span:first-child').forEach(sp=>{
+    /* the who-pays field is a group, not a label (its three presses are buttons): its head is dressed the same */
+    host.querySelectorAll('label > span:first-child, .pw-field > span:first-child').forEach(sp=>{
       const arrow=sp.querySelector('span'); const star=sp.querySelector('span[style*="ruby"]');
       if(arrow && arrow!==star){ const t=arrow.textContent.replace(/^\s*→\s*/,'').trim(); if(t && !sp.title) sp.title=t; arrow.remove(); }
       sp.style.cssText='display:block;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600);margin-bottom:4px;font-family:var(--font-body);letter-spacing:0;text-transform:none';
@@ -1259,6 +1286,11 @@ function openNewAgreement(o){
     }
     light(); });
   root.querySelector('#wz-pick')?.addEventListener('click',e=>{
+    const q=e.target.closest('[data-na-dq]');
+    if(q&&root.contains(q)){ dqAns=q.getAttribute('data-na-dq');
+      root.querySelectorAll('[data-na-dq]').forEach(x=>x.setAttribute('aria-pressed', String(x===q)));
+      const box=document.getElementById('na-closest'); if(box){ box.innerHTML=closestHtml(); light(); }
+      return; }
     const b=e.target.closest('[data-wz-lib],[data-wz-mine],[data-wz-tid]'); if(!b||!root.contains(b)) return;
     if(b.hasAttribute('data-wz-lib')) pick('lib', b.getAttribute('data-wz-lib'), o.prefill);
     else if(b.hasAttribute('data-wz-mine')) pick('mine', b.getAttribute('data-wz-mine'), o.prefill);
@@ -1451,6 +1483,23 @@ function naCarryWrite(host, kept){
 /* THE FORM'S STREAM BOX: the one select drawn by folderOptionsHtml, which
    alone carries the "new stream" choice (__new__) — whichever of the three
    forms (wz- / ce- / tf-) is mounted */
+/* WHEN TO USE A PAPER, in one everyday line (round 2 of the first-timer rounds,
+   the owner's twelve lines, 22 Oct 2026): HaTi's own papers by their key, ours
+   by the description their owner wrote; none, nothing said */
+function naUseWhen(r){
+  if(!r) return '';
+  if(r.kind==='tid'){ const k='tpl_use_'+r.id; const t=i18t(k); return t&&t!==k?t:''; }
+  return String(r.sub||'').trim();
+}
+/* NO CONTRACTS TEAM: everyone else who could take a request is an admin, so
+   "Ask Legal" would name a team that does not exist (a request reaches every
+   non-viewer colleague; intakeRaisedRecipients) */
+function naNoTeam(){
+  try{ const me=(typeof currentUser==='function'&&currentUser())||{};
+    const others=((typeof getUsers==='function'&&getUsers())||[]).filter(u=>u&&u.id!==me.id&&u.role!=='viewer');
+    return others.length>0 && others.every(u=>u.role==='admin');
+  }catch(_){ return false; }
+}
 function naStreamBox(host){
   if(!host||typeof host.querySelectorAll!=='function') return null;
   for(const sel of host.querySelectorAll('select')) if(sel.querySelector('option[value="__new__"]')) return sel;
@@ -1467,4 +1516,4 @@ function naPickFromDraft(pick, prefill){
   return true;
 }
 
-Object.assign(window,{openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naStreamBox,naSheetUp,naSheetBack,naCarryRead,naCarryWrite,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_RAIL_W,NA_ROWS_MIN_H,NA_ROWS_FOOT,NA_FRAME_NARROW_W});
+Object.assign(window,{naUseWhen,naNoTeam,openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naStreamBox,naSheetUp,naSheetBack,naCarryRead,naCarryWrite,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_RAIL_W,NA_ROWS_MIN_H,NA_ROWS_FOOT,NA_FRAME_NARROW_W});

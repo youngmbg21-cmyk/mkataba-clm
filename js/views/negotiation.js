@@ -3970,7 +3970,11 @@ function wireNegotiationTab(c, opts = {}){
        clause, as every sentence about a change on this page does. */
     if (window.toast){
       const what = _neClause(ch.clauseLabel || '') || i18t('ng_a_clause');
-      if (status === 'accepted') toast(i18t('ng_decided_accepted', { what }), 'ok');
+      /* AN ASK OF THEIRS, ACCEPTED ON OUR SEAT, has not left yet (round 5 of the first-timer rounds):
+         said with when it goes and the row's own way back */
+      if (status === 'accepted' && side !== 'counterparty' && ch.authorSide === 'counterparty')
+        toast(i18t('ng_decided_accepted_unsent', { what, party: String(c.counterparty || '').trim() || i18t('fr_draft_them'), undo: i18t('ng_change_decision') }), 'ok');
+      else if (status === 'accepted') toast(i18t('ng_decided_accepted', { what }), 'ok');
       else if (status === 'rejected') toast(i18t('ng_decided_rejected', { what }), 'ok');
       else toast(i18t('ng_decided_reopened', { what }), 'ok');
     }
@@ -5033,8 +5037,12 @@ function wireNegotiationTab(c, opts = {}){
       /* a ROW's Counter or Edit lands on the editor as drawn from Redlines
          (round 9's gaps, second pass: ‹ Redlines, the act's title, this clause
          alone, the walk over their asks) — fromRow */
+      /* COUNTER ON A NUMBER: the editor opens with Jambo's line naming the two figures (round 5 of the first-timer rounds) */
+      const chId = btn.getAttribute('data-rl-cp-editor-change') || '';
+      const ch0 = chId && Array.isArray(c.changes) ? c.changes.find(x => x && String(x.id) === chId) : null;
+      const F = (ch0 && ch0.authorSide !== side && ch0.status === 'pending') ? rlPlainFigureOf(ch0) : null;
       openEditor(btn.getAttribute('data-rl-cp-editor-row'),
-        { changeId: btn.getAttribute('data-rl-cp-editor-change') || '', fromRow: !!btn.closest('[data-nego-card]') });
+        { changeId: chId, fromRow: !!btn.closest('[data-nego-card]'), ...(F ? { fact: i18t('rl_counter_fact', F) } : {}) });
     }));
     /* ---- THE PAPER'S OWN PENCIL, WIRED WHERE THE ROW'S DOOR IS WIRED ----
        (owner-reported 29 Aug 2026: "when i click on the pencil i would go
@@ -6483,7 +6491,7 @@ const RL_FACE_MARKS = [
   [/data-rl-retract=/, 'undo'],
   [/data-rl-send=|data-rl-sendcopy=/, 'out'],
   [/data-rl-ladder=/, 'ladder'],
-  [/data-rl-ask-review=/, 'people'],
+  [/data-rl-ask-review=|data-rl-ask-colleague=/, 'people'],
   [/data-nego-undo=|data-nego-redecide=|data-nego-withdraw=|data-rv-cancel=/, 'undo'],
   [/data-rl-cp-open=/, 'panel'],
   [/data-rl-cp-editor-row=|data-rl-edit=|rl-verb-ai is-locked/, 'edit'],
@@ -15192,7 +15200,9 @@ function rlPrepareRowHtml(c, preview){
      runner refuses in words if it really is empty. */
   const light = !!(c._light && !c._loaded);
   const readable = light || !window.playbookText || String(playbookText(c) || '').length >= (window.PB_TEXT_MIN || 120);
-  const dead = preview ? 'ng_preview_dead' : frozen ? 'ng_prepare_dead_frozen' : !readable ? 'ng_prepare_dead_unreadable' : null;
+  /* NO STANDARDS WRITTEN YET (round 4 of the first-timer rounds): nothing to draft from, greyed with why */
+  let none = false; try { const B = typeof window.pbStandardsFor === 'function' ? window.pbStandardsFor(c) : null; none = !!B && Array.isArray(B.standards) && !B.standards.length; } catch (_) { none = false; }
+  const dead = preview ? 'ng_preview_dead' : frozen ? 'ng_prepare_dead_frozen' : !readable ? 'ng_prepare_dead_unreadable' : none ? 'ng_prepare_dead_none' : null;
   return `<button type="button" data-rl-prepare${dead ? ' disabled aria-disabled="true" data-rl-dead="1"' : ''}
         title="${_nea(i18t(dead || 'ng_prepare_title'))}"
       ><span aria-hidden="true">${icon('pencil','w-3.5 h-3.5')}</span>${i18t('ng_prepare')}</button>`;
@@ -15237,8 +15247,45 @@ function rlEmptyColumnActsHtml(c, opts = {}, side = 'owner'){
   /* ONE LINE, UNDER THE BUTTONS, SAYING WHAT THE FIRST ONE SPENDS AND THAT
      NOTHING TRAVELS. It is not a band: it explains the control it sits under
      and it is drawn only on the one screen that has nothing else on it. */
-  return `<div class="rl-empty-acts">${prepare}${edit}${executed ? '' : rlAddClauseBtnHtml(c, opts, side, 'rl-empty-edit')}</div>
+  /* NOTHING TO ANSWER YET (round 4 of the first-timer rounds, 22 Oct 2026): a paper
+     still in Drafting has not been to them, so the column says what is true for
+     it and carries the one send door, set to Negotiate (openShareModal) */
+  const first = !executed && !preview && side !== 'counterparty' && !rlOnTheirPage() && String((c && c.status) || '') === 'Draft';
+  const who = String((c && c.counterparty) || '').trim() || i18t('fr_draft_them');
+  const send = first ? `<p class="rl-empty-first">${_ne(i18t('ng_empty_first', { party: who }))}</p>` : '';
+  const sendBtn = first ? `<button type="button" class="rl-empty-send" data-rl-empty-send="${_nea(c.id)}">${icon('send','w-3.5 h-3.5')}${_ne(i18t('ng_empty_send'))}</button>` : '';
+  return `${send}<div class="rl-empty-acts">${sendBtn}${prepare}${edit}${executed ? '' : rlAddClauseBtnHtml(c, opts, side, 'rl-empty-edit')}</div>
     <span class="rl-empty-lead">${i18t('ng_empty_lead')}</span>`;
+}
+/* ASK A COLLEAGUE about one ask of theirs: the send screen set to a colleague, the note naming the change */
+function rlAskColleague(cid, chId){
+  const c = (typeof getContract === 'function') ? getContract(cid) : null;
+  const ch = c && Array.isArray(c.changes) ? c.changes.find(x => x && String(x.id) === String(chId)) : null;
+  if (!c || !ch || typeof window.openShareModal !== 'function') return false;
+  const clause = String((typeof clauseNameShown === 'function' ? clauseNameShown(ch.clauseLabel || '') : '') || ch.clauseLabel || '').trim() || i18t('ng_a_clause');
+  const party = String(c.counterparty || '').trim() || i18t('fr_draft_them');
+  const what = rlPlainReasonOf(ch);
+  window.openShareModal(c, { purpose: 'colleague', note: i18t(what ? 'rl_ask_col_note' : 'rl_ask_col_note_bare', { party, clause, what }) });
+  return true;
+}
+if (typeof document !== 'undefined' && document.addEventListener && !document._rlAskColWired){
+  document._rlAskColWired = true;
+  document.addEventListener('click', e => {
+    const b = e.target && e.target.closest ? e.target.closest('[data-rl-ask-colleague]') : null; if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    const c = (typeof pdContract === 'function' && pdContract()) || null;
+    const live = c || ((typeof state === 'object' && state && state.activeId != null && typeof getContract === 'function') ? getContract(state.activeId) : null);
+    if (live) rlAskColleague(live.id, b.getAttribute('data-rl-ask-colleague'));
+  });
+}
+if (typeof document !== 'undefined' && document.addEventListener && !document._rlEmptySendWired){
+  document._rlEmptySendWired = true;
+  document.addEventListener('click', e => {
+    const b = e.target && e.target.closest ? e.target.closest('[data-rl-empty-send]') : null; if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    const c = (typeof getContract === 'function') ? getContract(b.getAttribute('data-rl-empty-send')) : null;
+    if (c && typeof window.openShareModal === 'function') window.openShareModal(c, { purpose: 'negotiate' });
+  });
 }
 /* ---- "ADD A CLAUSE" (the 9 Oct 2026 review: there was no plain door for a
    new clause on Negotiate) ---- Beside "Edit a clause" in the empty column
@@ -19537,6 +19584,9 @@ function redlineChangeCardsHtml(c, opts = {}){
          Counter, and the door wears the artifact's word because countering is
          what pressing it does to an ask still on the table. */
       out.push(acc, rej, relabel(door, i18t('ng_counter')));
+      /* ASK A COLLEAGUE (round 5 of the first-timer rounds): the one send screen, set to
+         a colleague, the change named in the note — the pass route, tracked until they answer */
+      if (side !== 'counterparty' && !rlOnTheirPage()) out.push(`<button type="button" class="rl-edit rl-ask-col" data-rl-ask-colleague="${_nea(ch.id)}" title="${_nea(i18t('rl_ask_col_title'))}">${_ne(i18t('rl_ask_col'))}</button>`);
     } else if (theirs){
       /* ---- A SETTLED ASK KEEPS THE FUNNEL'S OWN ORDER (15 Sep 2026) ----
          The artifact's three slots describe a row with a decision on it. On a
@@ -21982,12 +22032,51 @@ function rlRowWhyHtml(ch){
    on the press). OUR SEAT ONLY: how far we have bent before is the most useful
    thing an opponent could read, so their page never draws it. Only a pending
    ask of theirs — advice over a settled change is worse than silence. */
+/* ---- A PLAIN REASON WHEN NO RULE IS WRITTEN (round 5 of the first-timer rounds,
+   owner picked "Four doors", 22 Oct 2026) ----
+   Where the playbook says nothing and no past answers decide, "Read it" told a
+   first-timer nothing. The row now says what the ask DOES, read off the stored
+   wording alone: a figure that moved ("60 days instead of the 30 in your
+   paper") or words added. Never a fact the paper and the ask do not hold;
+   nothing found, the old line stands. RAW: reads ch.oldText / ch.newText only. */
+const RL_PLAIN_FIG = /\(?(\d[\d,.]*)\)?(?:\s*(%|per ?cent|procent|days?|weeks?|months?|years?|hours?|dagar|dag|veckor|månader|år|timmar))?/gi;
+function rlPlainFigs(t){
+  const out = []; String(t || '').replace(RL_PLAIN_FIG, (m, n, u) => { out.push({ n: n.replace(/[,.]$/, ''), u: (u || '').toLowerCase() }); return m; });
+  return out;
+}
+/* ONE FIGURE MOVED: { now: '60 days', was: '30' }, or null */
+function rlPlainFigureOf(ch){
+  if (!ch) return null;
+  const was = String(ch.oldText || ''), now = String(ch.newText || '');
+  if (!now.trim() || !was.trim()) return null;
+  const A = rlPlainFigs(was), B = rlPlainFigs(now);
+  const left = A.filter(a => !B.some(b => b.n === a.n)), came = B.filter(b => !A.some(a => a.n === b.n));
+  if (left.length !== 1 || came.length !== 1) return null;
+  const unit = came[0].u || left[0].u;
+  return { now: came[0].n + (unit ? (unit === '%' ? '%' : ' ' + unit) : ''), was: left[0].n };
+}
+function rlPlainReasonOf(ch){
+  if (!ch) return '';
+  const was = String(ch.oldText || '').replace(/\s+/g, ' ').trim(), now = String(ch.newText || '').replace(/\s+/g, ' ').trim();
+  if (!now) return '';
+  const F = rlPlainFigureOf(ch);
+  if (F) return i18t('rl_plain_figure', F);
+  if (!was || (now.length > was.length && now.startsWith(was))){
+    const add = (was ? now.slice(was.length) : now).trim().replace(/^[,.;:]\s*/, '').replace(/[.;:,]+$/, '');
+    if (add) return i18t('rl_plain_added', { words: add.length > 90 ? add.slice(0, 88).replace(/\s+\S*$/, '') + '…' : add });
+  }
+  return '';
+}
 function rlRowReadHtml(c, ch, side){
   if (side === 'counterparty' || PORTAL_MODE || !c || !ch) return '';
   if (ch.authorSide !== 'counterparty' || ch.status !== 'pending' || ch.withdrawn || ch.superseded) return '';
   if (typeof rlpJudge !== 'function' || typeof precedentTopicOf !== 'function') return '';
   let j = null; try { j = rlpJudge(c, ch); } catch (_) { j = null; }
-  const V = (j && typeof RLP_VERDICTS === 'object' && RLP_VERDICTS) ? RLP_VERDICTS[j.verdict] : null;
+  /* no rule and no past answers: "Worth a look", with what the ask does in plain words */
+  const plain = (j && j.verdict === 'review') ? rlPlainReasonOf(ch) : '';
+  if (plain) j = Object.assign({}, j, { verdict: 'look', why: [plain] });
+  const V = plain ? { key: 'look', tone: 'amber', label: i18t('rp_v_look') }
+    : (j && typeof RLP_VERDICTS === 'object' && RLP_VERDICTS) ? RLP_VERDICTS[j.verdict] : null;
   if (!V) return '';
   const why = String((j.why || [])[0] || '').trim();
   const cost = i18t('rl_read_why_cost');
@@ -22001,7 +22090,7 @@ function rlRowReadAsk(cid, chId){
   const ch = c && Array.isArray(c.changes) ? c.changes.find(x => x && String(x.id) === String(chId)) : null;
   if (!c || !ch || typeof window.intelAsk !== 'function') return false;
   let j = null; try { j = rlpJudge(c, ch); } catch (_) { j = null; }
-  const V = j && RLP_VERDICTS[j.verdict];
+  const V = j && (j.verdict === 'review' && rlPlainReasonOf(ch) ? { label: i18t('rp_v_look') } : RLP_VERDICTS[j.verdict]);
   const clause = String((typeof clauseNameShown === 'function' ? clauseNameShown(ch.clauseLabel || '') : '') || ch.clauseLabel || '').trim();
   window.intelAsk(i18t('rl_read_why_q', { verdict: V ? V.label : '', clause }));
   return true;
@@ -22863,7 +22952,7 @@ function redlineSyncProxies(host){
   });
 }
 
-if (typeof window !== 'undefined') Object.assign(window, { negoAfterPaint, negoTurnBannerHtml, rlLiveHere, rlLiveRepaint, rlStartLivePoll, rlHomeTakesIt, rlReviewDoor, rlReviewDoorState, rlLandWhenReady, RL_LAND_TRIES, RL_LAND_MS, paperZcFit, rlCameFrom, rlCameFromSet, rlBackToClauses, rlLandOn, rlRoundPrepLineHtml, rlUnsentList, rlAddClauseBtnHtml, rlAddClause, rlEditClauseBtnHtml, rlClauseInView, rlEditClausePress,
+if (typeof window !== 'undefined') Object.assign(window, { RL_PLAIN_FIG, rlPlainFigs, rlPlainFigureOf, rlPlainReasonOf, rlAskColleague, negoAfterPaint, negoTurnBannerHtml, rlLiveHere, rlLiveRepaint, rlStartLivePoll, rlHomeTakesIt, rlReviewDoor, rlReviewDoorState, rlLandWhenReady, RL_LAND_TRIES, RL_LAND_MS, paperZcFit, rlCameFrom, rlCameFromSet, rlBackToClauses, rlLandOn, rlRoundPrepLineHtml, rlUnsentList, rlAddClauseBtnHtml, rlAddClause, rlEditClauseBtnHtml, rlClauseInView, rlEditClausePress,
   rlInlineClick, rlInlineSave, rlInlineDirty, rlInlineOn, rlInlineEnd,
   renderRedline, redlineRoundLabel, redlineSyncProxies,
   rlToggleDiscussion, rlSideMode, rlSetSideMode, rlLayoutResizer, rlWireResizer, rlWireClauseTools,

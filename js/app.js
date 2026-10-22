@@ -1688,7 +1688,7 @@ function openWorkspace(id, opts){ if(typeof codeNameStop==='function'&&codeNameS
    back to find out what it just made. Every other door is byte-identical. */
 function createFromTemplate(tid, opts){
   const quiet = !!(opts && opts.quiet);
-  if(!canEdit()){ toast(i18t('ap_viewers_no_create'),'err'); return null; }
+  if(!canEdit()){ if(!quiet) draftWallToast(); return null; }
   const t=TEMPLATES[tid], u=currentUser();
   const c={ id:nextId(), name:t.name,   /* no "(Draft)": see createFromTemplate (the owner's list, 27 Sep 2026) */ counterparty:'', value:0, status:'Draft',
     template:tid, folder:t.folder,

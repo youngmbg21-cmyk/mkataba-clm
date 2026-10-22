@@ -313,3 +313,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## NAVIGABLE BY TYPING (owner, 22 Oct 2026; docs/PLAN-navigable-by-typing.md)
 - The exam: test/nav-exam.js (194 asks) over test/nav-world.js, typed by test/chromium/nav-exam-verify.js into the real boxes; a measurement with a ratchet (`NAV_EXAM_FLOOR`). Before anything was built: 81 of 194.
+## THE FIRST-TIMER ROUNDS (22 Oct 2026)
+- test/f866-first-timer-rounds.test.js (13 of 13 red at origin/main 2aba169; 23 green on the branch): the wall's words and press, stems and families, the one question, Use when, Who pays whom, Jambo's first words on a draft, the empty Redlines column, the plain reason, Ask a colleague, Accept unsent, Counter's figures, both books.
+- test/chromium/first-timer-rounds-verify.js (5 passed / 46 failed at 2aba169; 51 / 0 on the branch): the viewer's card and Ask at the three screens, the sentence's sheet, Who pays whom stored as customer, Jambo speaks once and Fill them in lands, the empty Redlines and its Send, their rows, Counter, Accept, Ask a colleague.
+- RE-POINTED (each green at the parent, red after the change, green again): f246 (8) adds data-rl-ask-colleague to the engine's verbs; f480 (1) the side field through payWhoHtml; f679 2a2 the wall's words; f707 1b draftWallToast; f756 7a Counter's options carry the figures.

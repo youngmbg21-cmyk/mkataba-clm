@@ -161,7 +161,7 @@ const DRAFT_SENTENCE_MAX = 2000;
 const draftAiReady = () => !!(typeof API_MODE==='function' && API_MODE() && typeof state!=='undefined' && state && state.aiConfigured);
 
 function openDraftFromSentence(){
-  if(typeof canEdit==='function' && !canEdit()){ toast(i18t('wz_viewers_no_create'),'err'); return; }
+  if(typeof canEdit==='function' && !canEdit()){ draftWallToast(); return; }
   /* ---- THE SENTENCE BOX LIVES ON THE NEW AGREEMENT POP-UP (Young, 21 Sep
      2026) ---- the artifact draws "Or describe what you need" ABOVE the
      paper you already have, on one screen, with the caret put in it here.
