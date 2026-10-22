@@ -392,8 +392,9 @@ function lhAsk(seat, words){
   if (here === 'list' && typeof jlAsk === 'function'){
     if (_lhAiBusy()) return _lhBusySay();
     if (typeof aiGoEmbedded === 'function') aiGoEmbedded('list');
-    jlAsk(t);
-    return 'list';
+    /* answered IN the panel beside the list (Part 8's question 3 = A); words
+       the panel could not take stay in the box, as it said */
+    return jlAsk(t) === false ? false : 'list';
   }
   if (here === 'home' && typeof intelAsk === 'function'){
     if (typeof intel === 'object' && intel && intel.busy) return _lhBusySay();

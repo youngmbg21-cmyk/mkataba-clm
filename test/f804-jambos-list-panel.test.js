@@ -149,8 +149,9 @@ describe('f804 (2) nothing chosen: the page in Jambo\'s words', () => {
 describe('f804 (3) the ask: the Counter\'s one reading, said in the panel', () => {
   test('3a a word for one contract takes the held row; then the one reader every box asks first; the map; the Board\'s free reading; then a question', () => {
     /* re-pointed (pass 4, check A1 #2): the ask now reads through main's
-       caAskAnywhere and hands what the Board reads free to the Board, as the
-       Counter's box does — the order is pinned, each step is driven in (8) */
+       caAskAnywhere; what the Board reads free is SAID IN THE PANEL since
+       22 Oct 2026 (Part 8's question 3 = A) — the order is pinned, each step
+       is driven in (8) */
     const f = code(fnOf(INS, 'jlAsk'));
     const at = s => f.indexOf(s);
     assert.ok(at('caReadPlace(t)') > 0 && at('caAskAnywhere(t)') > at('caReadPlace(t)') && at('jmRead(t)') > at('caAskAnywhere(t)')
@@ -300,8 +301,9 @@ describe('f804 (7) a party\'s rows read whole in Jambo\'s panel', () => {
    (8) THE ASK READS THE WAY THE COUNTER'S DOES: main's one reader first
        (caAskAnywhere — a page word, a draft from a sentence, a send, a job, a
        booking), then the map's card, then what the Board's own reader answers
-       free (a party's name, "contracts ending in 90 days") handed to the
-       Board as the Counter hands it (caHandHome) — never a Jambo call; only
+       free (a party's name, "contracts ending in 90 days") — SAID IN THE
+       PANEL from that same reading since 22 Oct 2026 (Part 8's question 3 =
+       A; was: handed to the Board, caHandHome) — never a Jambo call; only
        the rest is a question said in the panel.
    (9) THE BAR'S JAMBO DOOR NEVER LANDS IN A BOX NOBODY CAN SEE: a panel in a
        hidden tab (Our paper's Templates) is not on screen (jlOnScreen), so the
@@ -327,22 +329,77 @@ describe('f804 (8) the ask reads the way the Counter\'s does', () => {
     b.win.caHandHome = (t, a) => { got.push(['home', t, a]); return true; };
     b.win.aiAskWords = t => { got.push(['model', t]); };
     b.win.caGo = a => { got.push(['go', a.place, a.cid]); return true; };
+    b.win.caUnderstand = over.caUnderstand || (() => null);
+    /* the one reader's own line (js/copilotacts.js caUnderstandSay is not on this stage) */
+    if (typeof b.win.caUnderstandSay !== 'function') b.win.caUnderstandSay = u => b.win.i18t(u.kind === 'cpick' ? 'ca_cpick_title' : 'hb_no_ref', { ref: u.ref });
+    b.win.hbAskFound = over.hbAskFound || (() => null);
+    b.win.ai = { busy: !!over.busy, history: [] };
+    b.win.aiPush = (role, m) => { got.push(['said', role, String(m.raw || m.text || '').replace(/<[^>]+>/g, '')]); b.win.ai.history.push(Object.assign({ role }, m)); };
+    b.win.renderAIFeed = () => {};
+    const toasts = []; b.win.toast = (msg, kind) => { toasts.push({ msg: String(msg), kind }); };
     const r = b.win.jlAsk(q);
-    return { r, got };
+    return { r, got, b, toasts };
   };
   test('8a a draft from a sentence goes to the one reader (the One sheet form), never a call', () => {
     const { r, got } = drive('draft an NDA with Kabras Sugar', { caAskAnywhere: t => /^draft /.test(t) });
     assert.equal(r, 'go');
     assert.ok(!got.some(g => g[0] === 'model'), JSON.stringify(got));
   });
-  test('8b what the Board reads free goes to the Board, as the Counter\'s box hands it', () => {
+  /* RE-POINTED 22 Oct 2026 (the owner's answer to Part 8's question 3: "A —
+     Answer beside the list: Jambo answers in the panel on the right. You stay
+     on Approvals … Jambo's own box beside the list works the same way").
+     8b pinned the ruling this reverses: "what the Board reads free goes to
+     the Board, as the Counter's box hands it" (caHandHome, the reader moved
+     to Home). Now what that same reading finds is SAID IN THE PANEL — free,
+     no model, no move — and the Board is a door only a press opens. */
+  test('8b what the Board reads free is said in the panel from that same reading: no move, no call', () => {
     const seen = [];
-    for (const q of ['Nandi Dairy', 'contracts ending in 90 days']){
-      const { r, got } = drive(q, { hbAskReadingOf: (t, face) => { seen.push(face); return { road: 'free', kind: 'card' }; } });
-      assert.equal(r, 'board', q);
-      assert.deepEqual(got, [['home', q, null]], q);
+    for (const q of ['Nandi Dairy', 'contracts ending in 90 days', 'which ones are waiting on us?']){
+      const { r, got, b } = drive(q, { hbAskReadingOf: (t, face) => { seen.push(face); return { road: 'free', kind: 'dig', r: { act: 'dig', key: 'f:us' } }; },
+        hbAskFound: A => (A && A.road === 'free' ? { ids: ['MK-1'], say: '1 negotiation is waiting for our reply.' } : null) });
+      assert.equal(r, 'said', q);
+      assert.deepEqual(got.map(g => g.slice(0, 2)), [['said', 'user'], ['said', 'assistant']], q);
+      assert.equal(got[0][2], q, 'the question is the turn before');
+      assert.equal(got[1][2], '1 negotiation is waiting for our reply.', 'the answer says what the reading found');
+      const turn = b.win.ai.history[1];
+      assert.match(String(turn.read && turn.read.text), /no Jambo call/, 'it says it read the book, free');
+      assert.ok(!got.some(g => g[0] === 'home' || g[0] === 'model' || g[0] === 'go'), 'never handed to the Board, never a call');
     }
     assert.ok(seen.every(f => f === 'board'), 'read as on the Board\'s face, whatever Home last showed');
+  });
+  test('8b2 a question only the Board draws is said in the panel with its door; a Board act that is no question still goes there', () => {
+    const pack = { hbAskReadingOf: () => ({ road: 'free', kind: 'pack', pack: 'risks', q: 'x' }) };
+    const Q = drive('what are our biggest risks?', pack);
+    assert.equal(Q.r, 'said');
+    assert.ok(!Q.got.some(g => g[0] === 'home' || g[0] === 'model'), JSON.stringify(Q.got));
+    assert.match(String(Q.b.win.ai.history[1].cards), /data-jl-board="what are our biggest risks\?"/, 'the door onto the Board, pressed by the reader');
+    const A = drive('present', pack);
+    assert.equal(A.r, 'board', 'a Board act is a door, as before');
+    assert.deepEqual(A.got, [['home', 'present', null]]);
+  });
+  test('8b3 contracts asked to see with no place named are said in the panel, never a move to Contracts', () => {
+    const { r, got } = drive('which Kabras Sugar contracts do we have?', {
+      caUnderstand: () => ({ kind: 'go', place: 'contracts', narrow: { rest: 'x', what: 'Kabras Sugar', ids: ['MK-1'], n: 1, party: true }, here: true, state: 'ready' }),
+      caAskAnywhere: () => { throw new Error('the one reader\'s move must not run'); } });
+    assert.equal(r, 'said');
+    assert.match(got[1][2], /^Contracts with Kabras Sugar: /);
+    assert.ok(!got.some(g => g[0] === 'go' || g[0] === 'home' || g[0] === 'model'), JSON.stringify(got));
+    /* a question naming a contract by a name two share: "which did you mean?" asked here */
+    const P = drive('what about the Kabras deal?', { caUnderstand: () => ({ kind: 'cpick', picks: ['MK-1'], then: 'document', state: 'ready' }),
+      caAskAnywhere: () => { throw new Error('the one reader\'s hand-off must not run'); } });
+    assert.equal(P.r, 'said');
+    assert.equal(P.got[1][2], 'Which contract did you mean?');
+    assert.ok(!P.got.some(g => g[0] === 'go' || g[0] === 'home' || g[0] === 'model'), JSON.stringify(P.got));
+  });
+  test('8b4 a Jambo still answering takes nothing: it says so (warn) and the words stay', () => {
+    const { r, got, toasts } = drive('which ones are waiting on us?', { busy: true,
+      hbAskReadingOf: () => ({ road: 'free', kind: 'dig', r: { act: 'dig', key: 'f:us' } }), hbAskFound: () => ({ ids: [], say: 'x' }) });
+    assert.equal(r, false, 'false: the box keeps the words');
+    assert.ok(!got.length, JSON.stringify(got));
+    assert.ok(toasts.some(x => x.kind === 'warn' && /still answering/.test(x.msg)), JSON.stringify(toasts));
+    const m = drive('which clause worries you most?', { busy: true });
+    assert.equal(m.r, false, 'a question for the model, too');
+    assert.ok(!m.got.some(g => g[0] === 'model'));
   });
   test('8c a question nothing reads free is said in the panel: one call, the cost on the hover', () => {
     const { r, got } = drive('which clause worries you most?');
