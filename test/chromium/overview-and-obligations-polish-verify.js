@@ -98,7 +98,7 @@ const SIGNED = { ...H.fixtureContract('MK-P1', 'Warehousing Services', 'Apex Log
     console.log('\n3 · the Obligations head is Approvals & signing\'s height');
     const band = async v => { await page.evaluate(v => setView(v), v); await page.waitForTimeout(1200);
       return page.evaluate(() => { const b = document.querySelector('.sap-band'); const r = b && b.getBoundingClientRect();
-        return { bottom: r ? r.bottom : null, facts: ((document.getElementById('page-head-facts') || {}).textContent || '').trim(),
+        return { bottom: r ? r.bottom : null, seat: b ? b.getAttribute('data-lh-seat') : null, facts: ((document.getElementById('page-head-facts') || {}).textContent || '').trim(),
           tabs: [...document.querySelectorAll('.sap-band [data-obw-view]')].map(x => x.getAttribute('data-obw-view')) }; }); };
     const ap = await band('approvals');
     const ob = await band('obligations');
@@ -107,8 +107,12 @@ const SIGNED = { ...H.fixtureContract('MK-P1', 'Warehousing Services', 'Apex Log
        page head's line beside the title — so the two heads are no longer one
        height to compare; Obligations keeps its band, and Approvals says its
        counts where the drawing does */
-    ok('3a Approvals says its counts on the title\'s line (no band); Obligations keeps its band',
-      ap.bottom === null && /yours to answer|waiting on others|Nothing/i.test(ap.facts) && ob.bottom !== null, `${ob.bottom} · approvals "${ap.facts}"`);
+    /* RE-POINTED 21 Oct 2026 (Part 8, the list head the Legora way): the
+       head's lower half is Approvals' band now — the list head (box, tabs,
+       + Filter), [data-lh-seat="approvals"] — and its two counts stay on the
+       title's line; Obligations keeps its band */
+    ok('3a Approvals says its counts on the title\'s line, its band is the list head; Obligations keeps its band',
+      ap.bottom !== null && ap.seat === 'approvals' && /yours to answer|waiting on others|Nothing/i.test(ap.facts) && ob.bottom !== null, `${ob.bottom} · approvals ${ap.seat} "${ap.facts}"`);
     /* RE-POINTED 19 Oct 2026 (round 16 as drawn: "Obligations 11 outstanding ·
        1 overdue" — the owner's yes reversed 9 Oct's no-facts-line ruling): the
        title's line now carries the drawing's two counts, read off this

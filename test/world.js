@@ -146,6 +146,11 @@ const REGISTER_VIEW = 'js/views/register.js';
    test written before it asserts — a test about the panel forces the shape
    with insForce(true). */
 const INSPECTOR_VIEW = 'js/views/inspector.js';
+/* The list head (21 Oct 2026, Part 8 "the Legora way"): the one head every
+   list page draws — the box, the tabs, the chips, Columns and the foot. It
+   rides the register option and loads before the inspector and the register,
+   which ask it by name. */
+const LISTHEAD_VIEW = 'js/views/listhead.js';
 /* The contract family: a master agreement and its amendments, and — since
    14 Aug 2026 — writing a new amendment from blank paper
    (buildWorld({family:true})). */
@@ -764,6 +769,7 @@ function buildWorld(opts = {}) {
       renewalDecisionDate: win.renewalDecisionDate || (() => null),
       obState: win.obState || (() => 'open'),
     });
+    files.push(LISTHEAD_VIEW);
     files.push(INSPECTOR_VIEW);
     files.push(REGISTER_VIEW);
   }

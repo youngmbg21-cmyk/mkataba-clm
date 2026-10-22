@@ -3,8 +3,9 @@
    2026; js/views/customers.js cuNeedsOf, cuPanelNeedsHtml)
 
    WHAT THIS PINS, driven in a real browser on Parties
-     1 a Status box (All · Live · Ended) beside the others; Ended narrows the
-       list to the parties with an ended agreement
+     1 the Status tabs (All · Live · Ended; RE-POINTED 21 Oct 2026, Part 8,
+       the list head the Legora way: the Status box is the tab row); Ended
+       narrows the list to the parties everything with has ended
      2 "Waiting on you" says what waits, in words, on the list and the panel
      3 the panel lists what waits, each with its door (a detail to fill opens
        Fill in beside the paper), and the party's agreements, each a door onto
@@ -48,20 +49,23 @@ const check = (name, pass, detail) => {
     await page.evaluate(() => { state.contracts.push({ id: 'MK-0412', contractNo: 'MK-0412', name: 'Project Falcon', counterparty: 'Falcon AB', folder: state.contracts[0].folder, status: 'Under Review', _codeNamed: true, _light: true }); setView('customers'); });
     await until(() => document.querySelectorAll('#cu-tbody [data-cu-cust]').length >= 3, null, 10000);
 
-    /* ---- 1 the Status box ---- */
-    const S0 = await page.evaluate(() => ({ opts: [...document.querySelectorAll('select[data-cu-f="status"] option')].map(o => o.value), n: document.querySelectorAll('#cu-tbody [data-cu-cust]').length }));
+    /* ---- 1 the Status tabs ---- */
+    const TAB = '[data-lh-seat="customers"] [role="tab"][data-cu-status]';
+    const S0 = await page.evaluate(t => ({ opts: [...document.querySelectorAll(t)].map(o => o.getAttribute('data-cu-status')), lit: (document.querySelector(t + '[aria-selected="true"]') || { getAttribute: () => null }).getAttribute('data-cu-status'), n: document.querySelectorAll('#cu-tbody [data-cu-cust]').length }), TAB);
     let S1 = null;
-    if (S0.opts.length){
-      await page.selectOption('select[data-cu-f="status"]', 'ended');
-      S1 = await until(() => { const rows = [...document.querySelectorAll('#cu-tbody [data-cu-cust]')].map(r => r.getAttribute('data-cu-cust')); return rows.length ? rows : null; });
+    if (S0.opts.includes('ended')){
+      await page.click(TAB + '[data-cu-status="ended"]');
+      S1 = await until(() => { const on = document.querySelector('[data-lh-seat="customers"] [data-cu-status="ended"][aria-selected="true"]');
+        const rows = [...document.querySelectorAll('#cu-tbody [data-cu-cust]')].map(r => r.getAttribute('data-cu-cust')); return on && rows.length ? rows : null; });
     }
-    /* RE-POINTED 19 Oct 2026 (lane A2, round 19 as drawn): the box opens on
-       Live and lists Live · Ended · All; Ended is the parties everything with
-       has ended (the party's standing, cuStanding) */
-    check('1 a Status box (Live · Ended · All); Ended narrows to the parties everything with has ended',
-      JSON.stringify(S0.opts) === JSON.stringify(['live', 'ended', 'all']) && JSON.stringify(S1) === JSON.stringify(['retired supplies ab']), JSON.stringify({ S0, S1 }));
+    /* RE-POINTED 19 Oct 2026 (lane A2, round 19 as drawn): the list opens on
+       Live; Ended is the parties everything with has ended (the party's
+       standing, cuStanding). RE-POINTED 21 Oct 2026 (Part 8, the list head
+       the Legora way): the box is the tab row All · Live · Ended */
+    check('1 the Status tabs (All · Live · Ended), opening on Live; Ended narrows to the parties everything with has ended',
+      JSON.stringify(S0.opts) === JSON.stringify(['all', 'live', 'ended']) && S0.lit === 'live' && JSON.stringify(S1) === JSON.stringify(['retired supplies ab']), JSON.stringify({ S0, S1 }));
     if (S0.opts.length){
-      await page.selectOption('select[data-cu-f="status"]', 'all');
+      await page.click(TAB + '[data-cu-status="all"]');
       await until(n => document.querySelectorAll('#cu-tbody [data-cu-cust]').length === n, S0.n);
     }
 

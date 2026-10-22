@@ -710,13 +710,21 @@ function insChipHtml(o){
     (o.opts || []).map(([v, l]) => `<option value="${esc(v)}"${String(v) === String(o.cur) ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`;
 }
 /* ---- THE VIEW TABS, THE CONTRACTS PAGE'S OWN ROW ----
-   `.reg-views` / `.reg-vtab`, the count in its pill, a view with nothing in
-   it quiet and uncounted — one control on every page. */
+   `.reg-views` / `.reg-vtab`, the count after the word — one control on every
+   page. A VIEW WITH NOTHING IN IT IS LEFT OUT (the list head, the Legora way,
+   21 Oct 2026; was: drawn quiet and uncounted), unless it is the one lit or
+   the page keeps it (keep:true — "All"); a kept empty one stays quiet. A
+   view's `title` is its hover; `o.after` is the page's own html inside the
+   same tablist (the saved views and "+ Save this view"). */
 function insViewTabsHtml(o){
-  return `<div class="reg-views" role="tablist"${o.label ? ` aria-label="${esc(o.label)}"` : ''}>${(o.views || []).map(v => {
+  /* a tab's number as the foot and the facts line print it: grouped by the
+     market's locale ("3,000", "3 000"), never raw */
+  const num = n => { if (typeof n !== 'number' || !isFinite(n)) return String(n);
+    try { return n.toLocaleString((typeof jxLocale === 'function') ? jxLocale() : undefined); } catch (_){ return String(n); } };
+  return `<div class="reg-views" role="tablist"${o.label ? ` aria-label="${esc(o.label)}"` : ''}>${(o.views || []).filter(v => v && (v.n !== 0 || v.keep || String(v.k) === String(o.cur))).map(v => {
     const on = String(v.k) === String(o.cur);
-    return `<button type="button" role="tab" class="reg-vtab${on ? ' on' : ''}${!v.n && !on ? ' is-zero' : ''}" ${o.attr}="${esc(v.k)}" aria-selected="${on ? 'true' : 'false'}">${
-      esc(v.label)}${v.n ? `<span class="n">${esc(String(v.n))}</span>` : ''}</button>`; }).join('')}</div>`;
+    return `<button type="button" role="tab" class="reg-vtab${on ? ' on' : ''}${!v.n && !on ? ' is-zero' : ''}" ${o.attr}="${esc(v.k)}" aria-selected="${on ? 'true' : 'false'}"${v.title ? ` title="${esc(v.title)}"` : ''}>${
+      esc(v.label)}${v.n ? `<span class="n">${esc(num(v.n))}</span>` : ''}</button>`; }).join('')}${o.after || ''}</div>`;
 }
 /* A FACTS GRID FOR ANYTHING: label over value, an em-dash for silence, a
    `wide` fact takes the whole row and may wrap. The contract's own grid
@@ -1214,7 +1222,8 @@ const _jlJbSend = (a, l, o = {}) => (typeof jamboSendHtml === 'function') ? jamb
 function jlAskHtml(o){
   const opt = o || {};
   const ph = opt.placeholder || i18t('jl_ph_any');
-  const cost = i18t('jl_ask_cost');
+  /* the cost before the press: what is said free beside the list, and what is one call (jlAsk) */
+  const cost = i18t('jl_ask_cost_list');
   return `<div class="jl-foot">
     <form class="jl-ask" data-jl-ask autocomplete="off" title="${esc(cost)}">
       <div class="ca-pop jl-pop" data-jl-pop hidden></div>
@@ -1348,7 +1357,20 @@ function jlTalkLand(){
 }
 function jlTalkShows(){ return typeof jamboTalkShows === 'function' && jamboTalkShows(jlTalkKey()); }
 function jlTalkHtml(){
-  return `<div class="jl-talk" data-jt-talk hidden><div data-jl-trail></div><div class="jl-talk-sc" id="jl-talk-sc"><div id="jl-feed" class="jl-feed" aria-live="polite"></div></div></div>`;
+  return `<div class="jl-talk" data-jt-talk hidden><div data-jl-trail></div><div class="jl-talk-sc" id="jl-talk-sc"><p class="igd-popped" data-jl-popped hidden></p><div id="jl-feed" class="jl-feed" aria-live="polite"></div></div></div>`;
+}
+/* WHILE JAMBO'S WINDOW HOLDS THE CONVERSATION (popped out, or the ✦'s
+   window open) the feed here is empty by design (renderAIFeed: one copy on
+   the page at a time), so the talk view says where the words are, with the
+   way back — Home's dock and Settings say the same (jb_in_window). It stands
+   OUTSIDE #jl-feed, which renderAIFeed empties; the window's opening and
+   closing repaint it (aiHostsRepaint), and a paint of the feed here means
+   the window does not hold it (jlTalkSync). */
+function jlPoppedPaint(host, on){
+  const p = host && host.querySelector('[data-jl-popped]'); if (!p) return;
+  const held = !!on && !!(typeof aiConvoInWindow === 'function' ? aiConvoInWindow() : (typeof aiPopped === 'function' && aiPopped()));
+  p.hidden = !held;
+  p.innerHTML = held ? `${esc(i18t('jb_in_window'))} <button type="button" class="ui-link" data-jb-popback>${esc(i18t('jb_bring_back'))}</button>` : '';
 }
 /* the view the panel shows, drawn from the one record */
 function jlTalkPaint(host){
@@ -1361,6 +1383,7 @@ function jlTalkPaint(host){
     talk.hidden = !on;
     const tr = talk.querySelector('[data-jl-trail]');
     if (tr) tr.innerHTML = on && typeof jamboTalkTrailHtml === 'function' ? jamboTalkTrailHtml('list', i18t('pd_tab_overview')) : '';
+    jlPoppedPaint(talk, on);
   }
   host.classList.toggle('is-talk', on);
   /* THE WAY BACK TO THE CONVERSATION (owner picked "A Jambo tab", 19 Oct
@@ -1383,6 +1406,8 @@ function jlTalkOpen(){
    page's conversation begins at `from` */
 function jlTalkSync(typing){
   jlTalkLand();
+  /* the feed is painted here, so the window does not hold the words */
+  { const host = jlHost(); if (host) jlPoppedPaint(host, false); }
   const n = _jlAiLen();
   /* THE READER'S HAND WINS: an answer landing after they went back waits in
      the conversation for the next flip */
@@ -1475,24 +1500,83 @@ function jlHeldContract(){
   if (cur && cur.jlCid && typeof getContract === 'function') return getContract(cur.jlCid) || null;
   return null;
 }
-/* ---- THE ASK: ONE READING, THE COUNTER'S ----
+/* ---- THE ASK: ONE READING, ANSWERED BESIDE THE LIST (owner, 22 Oct 2026:
+   Part 8's question 3 = A, "Answer beside the list: Jambo answers in the
+   panel on the right. You stay on Approvals (or whichever list you were on),
+   with your tab and filters as they were. Jambo's own box beside the list
+   works the same way"; REVERSES check A1 #2's "handed to the Board").
+   The panel's own box and the list head's box (lhAsk) both end here:
    0 a word that needs one contract ("redline", "sign", "share"…) takes the
      row the panel holds;
-   1 THE ONE READER every Jambo box asks first (caAskAnywhere, MAIN 18 Oct
-     2026): a place word opens its page; a draft from a sentence opens the
-     one form; a send, a job, a booking go where they are done — all free;
+   1 THE ONE READER every Jambo box asks first (caUnderstand): contracts
+     asked to SEE with no place named ("which Nandi Dairy contracts do we
+     have?" — its `here`, answer where you stand), a number nobody here can
+     see, and a question naming a contract by a name several share ("which
+     contract did you mean?") are SAID HERE; the rest goes on through
+     caAskAnywhere as before
+     (MAIN 18 Oct 2026) — a place word opens its page, a draft from a
+     sentence the one form, a send, a job, a booking where they are done:
+     doors, all free;
    2 Jambo's map (jmRead): a page at once; "which did you mean?" is his card,
      said here; an act that waits for a press goes where his cards live;
-   3 THE COUNTER'S FREE READINGS (check A1 #2): what the Board's own reader
-     answers free — a figure, a party or contract by name, "ending in 90
-     days" — is handed to the Board, as the Counter's box hands it
-     (jlBoardReads → caHandHome), never a call;
+   3 THE BOARD'S FREE READINGS (jlBoardReads: hbAskReadingOf on the Board's
+     face): what that same reading finds — a figure, a set read off the
+     words, the book by side, one contract by name (hbAskFound) — is SAID
+     HERE, no call: the count in the Board's own words, the contracts as
+     cards, Show me › where it is one, "Open these in Contracts" where they
+     are several — doors only when pressed. A question only the Board draws
+     (a pack, a story, a change to its open chart) is said here with its
+     door onto the Board; a Board act that is no question ("present", "add
+     the renewals panel") is a door and goes there, as before;
    4 anything else is a question for Jambo, said here (aiAskWords, one call,
-     its cost on the box's hover before the press). */
+     its cost on the box's hover before the press).
+   A JAMBO STILL ANSWERING takes no new words into the conversation: that is
+   SAID ('warn', lh_busy) and the answer is false, so the box keeps them. */
 function jlBoardReads(t){
-  if (typeof hbAskReadingOf !== 'function') return false;
+  if (typeof hbAskReadingOf !== 'function') return null;
   let A = null; try { A = hbAskReadingOf(t, 'board'); } catch (_){ A = null; }
-  return !!(A && A.road === 'free');
+  return (A && A.road === 'free') ? A : null;
+}
+const _jlBusy = () => typeof ai === 'object' && !!ai && !!ai.busy;
+function jlBusySay(){
+  if (typeof toast === 'function') toast(i18t('lh_busy'), 'warn');
+  return false;
+}
+/* a question by the list head's strict test (lhIsQuestion): "Visa" and a
+   party's name are words, "which ones are waiting on us?" a question */
+function jlIsQuestion(t){
+  if (typeof lhIsQuestion === 'function'){ try { return !!lhIsQuestion(t); } catch (_){ return false; } }
+  return /[\p{L}\p{N}][^?]*\?\s*$/u.test(String(t || ''));
+}
+/* THE TURN SAID BESIDE THE LIST, from what a free reading found: the
+   question, then the found words, the contracts as cards (several carry the
+   worklist door, which narrows Contracts only when pressed) and Show me ›
+   where it is one (jpPressOf) — read from the book, no Jambo call */
+function jlSayFound(q, F){
+  if (typeof aiPush !== 'function' || typeof renderAIFeed !== 'function') return false;
+  jlTalkOpen();
+  const list = ((F && F.ids) || []).map(id => (typeof getContract === 'function') ? getContract(id) : null).filter(Boolean);
+  const say = String((F && F.say) || '');
+  let press = null; try { press = (typeof jpPressOf === 'function') ? jpPressOf({ ids: list.map(c => c.id), q, text: say }) : null; } catch (_){ press = null; }
+  let page = ''; try { page = (typeof deskPageName === 'function' && deskPageName()) || ''; } catch (_){ page = ''; }
+  aiPush('user', { text: esc(q), raw: q });
+  aiPush('assistant', Object.assign({ text: `<div>${esc(say)}</div>`, cards: (list.length && typeof aiCards === 'function') ? aiCards(list) : '',
+    read: { cid: null, page, text: i18t('jl_read_book_free') }, free: true }, press ? { press } : {}));
+  renderAIFeed();
+  return true;
+}
+/* a question only the Board draws: said here, its door onto the Board pressed by the reader */
+function jlSayBoard(q, A){
+  if (typeof aiPush !== 'function' || typeof renderAIFeed !== 'function') return false;
+  jlTalkOpen();
+  let what = ''; try { what = (typeof hbAskPreviewText === 'function') ? hbAskPreviewText(A) : ''; } catch (_){ what = ''; }
+  let page = ''; try { page = (typeof deskPageName === 'function' && deskPageName()) || ''; } catch (_){ page = ''; }
+  aiPush('user', { text: esc(q), raw: q });
+  aiPush('assistant', { text: `<div>${esc(what ? i18t('jl_on_board', { what }) : i18t('jl_on_board_plain'))}</div>`,
+    cards: `<div class="ca-acts"><button type="button" class="jb-chip" data-jl-board="${esc(q)}" title="${esc(i18t('jl_on_board_title'))}">${esc(i18t('jl_on_board_go'))}</button></div>`,
+    read: { cid: null, page, text: i18t('jl_read_book_free') }, free: true });
+  renderAIFeed();
+  return true;
 }
 function jlAsk(text){
   const t = String(text || '').trim(); if (!t) return false;
@@ -1508,6 +1592,26 @@ function jlAsk(text){
       if (typeof jmRunAct === 'function' && jmRunAct(a, t)) return 'card';
     }
   }
+  /* answer where you stand: contracts asked to see with no place named, and a
+     number nobody here can see, are said here — the list stays as it was */
+  let u = null; try { u = (typeof caUnderstand === 'function') ? caUnderstand(t, { box: 'list' }) : null; } catch (_){ u = null; }
+  if (u && u.kind === 'go' && u.here && u.narrow && Array.isArray(u.narrow.ids)){
+    if (_jlBusy()) return jlBusySay();
+    const N = u.narrow, ids = N.ids.slice(), n = ids.length;
+    const what = N.party ? i18t('hb_found_party', { who: String(N.what || '') }) : String(N.what || '');
+    const count = (typeof hbAnswerCount === 'function') ? hbAnswerCount({ n, ids }) : i18tn('hb_count_n', n, { n });
+    if (jlSayFound(t, { ids, say: n ? what + ': ' + count : i18t('jl_found_none', { what }) })) return 'said';
+  }
+  if (u && u.kind === 'noref' && typeof caUnderstandSay === 'function'){
+    if (_jlBusy()) return jlBusySay();
+    if (jlSayFound(t, { ids: [], say: caUnderstandSay(u) })) return 'said';
+  }
+  /* a question naming a contract by a name several share, asking nothing of
+     it: "which contract did you mean?" is asked here, the few as cards */
+  if (u && u.kind === 'cpick' && (u.then || 'document') === 'document' && Array.isArray(u.picks) && jlIsQuestion(t) && typeof caUnderstandSay === 'function'){
+    if (_jlBusy()) return jlBusySay();
+    if (jlSayFound(t, { ids: u.picks, say: caUnderstandSay(u) })) return 'said';
+  }
   let took = false; try { took = (typeof caAskAnywhere === 'function') ? caAskAnywhere(t) : false; } catch (_){ took = false; }
   if (took) return took === 'cal' ? 'cal' : 'go';
   if (!a){
@@ -1516,7 +1620,16 @@ function jlAsk(text){
     if (m && m.kind === 'go' && !m.missing && !cards.includes(m.place) && typeof caGo === 'function' && caGo(m)) return 'go';
     if (m && typeof jmRunAct === 'function' && jmRunAct(m, t)) return 'card';
   }
-  if (jlBoardReads(t) && typeof caHandHome === 'function' && caHandHome(t, null)) return 'board';
+  /* what the Board's own reader answers free is said HERE, from that reading */
+  const B = jlBoardReads(t);
+  if (B){
+    let F = null; try { F = (typeof hbAskFound === 'function') ? hbAskFound(B) : null; } catch (_){ F = null; }
+    if (F){ if (_jlBusy()) return jlBusySay(); if (jlSayFound(t, F)) return 'said'; }
+    else if (jlIsQuestion(t)){ if (_jlBusy()) return jlBusySay(); if (jlSayBoard(t, B)) return 'said'; }
+    else if (typeof caHandHome === 'function' && caHandHome(t, null)) return 'board';
+  }
+  /* a question for Jambo: a Jambo still answering takes nothing new, and says so */
+  if (_jlBusy()) return jlBusySay();
   /* the landing stays as it was (the row it holds); the panel turns to the
      conversation (19 Oct 2026; was: the row let go, his words above) */
   jlTalkOpen();
@@ -1584,6 +1697,8 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined' && !window.
       if (act && typeof jmRunAct === 'function') jmRunAct(act, q);
       return;
     }
+    /* a question only the Board draws, its door pressed (jlSayBoard): the Board asks it there */
+    if ((el = t.closest('[data-jl-board]'))){ const q = el.getAttribute('data-jl-board') || ''; if (q && typeof caHandHome === 'function') caHandHome(q, null); return; }
     const host = t.closest('.ins-panel.is-jambo');
     if (!host) return;
     if ((el = t.closest('[data-jl-fold]'))){ jlFoldSet(true); return; }
@@ -1607,7 +1722,8 @@ if (typeof document !== 'undefined' && typeof window !== 'undefined' && !window.
     const q = f.querySelector('#jl-q'); if (!q) return;
     if (_jlPop){ jlPopTake(_jlPop.on); return; }
     const v = q.value; if (!String(v || '').trim()) return;
-    q.value = ''; jlPopClose(); jlAsk(v);
+    /* words a busy Jambo could not take stay in the box (jlAsk said so) */
+    jlPopClose(); if (jlAsk(v) !== false) q.value = '';
   });
   document.addEventListener('input', e => { if (e.target && e.target.id === 'jl-q') jlPopRead(e.target); });
   document.addEventListener('keydown', e => {
@@ -1626,4 +1742,4 @@ Object.assign(window, { INS_MIN_W, INS_ASKS_MAX, INS_LATEST, INS_READ_TONE,
   insListOff, insWatchWidth, insActsHtml, insMoreHtml, insDoorActs, insNegoDoorState, insMenuItemHtml, insItemHeadHtml, INS_TONE, insKvHtml, insChipHtml, insViewTabsHtml,
   INS_PAGE_REPAINT, insLetGo, insLetGone, insActBtnHtml, insRowsHtml, JL_READ_ORDER, jlReadsHtml, jlReadSaid,
   JL_W, JL_FOLDED, JL_MIN, JL_LIST_MIN, JL_FLEX_MIN, JL_SPLIT_KEY, JL_SPLIT, jlListMin, jlWidthNow, jlFolded, jlFoldSet, jlHost, jlOnScreen, jlReserved, jlLayout, jlCount, jlAskHtml, jlFrame, jlHeadPaint, jlWordsHtml, jlNeedsHtml,
-  JL_LAND, jlLand, jlPageWord, jlToWords, jlTalkKey, jlTalkLand, jlTalkShows, jlTalkHtml, jlTalkPaint, jlTalkOpen, jlTalkSync, jlTalkBack, jlHeldContract, jlBoardReads, jlAsk, jlMapCard, jlFocus, jlPopRead, jlPopClose, jlPopTake, jlDayWord, jlDayRange, jlAwayOf });
+  JL_LAND, jlLand, jlPageWord, jlToWords, jlTalkKey, jlTalkLand, jlTalkShows, jlTalkHtml, jlTalkPaint, jlTalkOpen, jlTalkSync, jlTalkBack, jlHeldContract, jlBoardReads, jlIsQuestion, jlBusySay, jlSayFound, jlSayBoard, jlAsk, jlMapCard, jlFocus, jlPopRead, jlPopClose, jlPopTake, jlDayWord, jlDayRange, jlAwayOf });

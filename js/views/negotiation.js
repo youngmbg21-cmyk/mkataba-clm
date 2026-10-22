@@ -9994,21 +9994,16 @@ function openNegoMemoShare(c, m){
    AND THE ONE THING THAT DID NOT CHANGE: live negotiations only. That narrowing
    is a property of the page, applied above every filter and untouched by Clear
    — see regSetScope in js/views/register.js, which is where the reuse and the
-   lock both live. */
-function negoListHeadHtml(shown){
-  const live = negoLiveList().length;
-  const R = (window.regState ? window.regState() : null);
-  /* Is anything the READER chose narrowing this? Not the live-negotiations
-     scope, which is the page itself.
+   lock both live.
 
-     ASKED OF regNarrowed, THE ONE READING (10 Sep 2026). This copy counted a
-     QUERY, which regFiltered has never applied on this seat — so a stale value
-     left by the shell bar made this head claim the page was filtered while
-     nothing had narrowed. Read through window, as every cross-module call in
-     this app is; a stage without the register draws no Negotiations page at
-     all, so the fallback is the honest "nothing is narrowing". */
-  const filtered = !!(R && typeof window.regNarrowed === 'function' && window.regNarrowed(R));
-  const n = Array.isArray(shown) ? shown.length : live;
+   SINCE THEN (the dated rulings are in the code they moved): the locked chip
+   went (24 Aug), the last column became round · what is open · waiting · lead
+   (round 14), and with Part 8, the owner's pick "The Legora way" (21 Oct
+   2026), the three bands went too — the whose-move TABS in the shared list
+   head do their job, one plain table under them, "waiting on us" first under
+   All (regRowsHtml, negoBandViews). This function is the head's title row. */
+function negoListHeadHtml(){
+  const live = negoLiveList().length;
   /* THE RESTING SUBTITLE IS GONE (owner-asked 25 Aug 2026, off a screenshot
      with it boxed: "delete the added words highlighted"). It described the
      page — "every agreement being argued over right now, grouped by whose move
@@ -10016,13 +10011,14 @@ function negoListHeadHtml(shown){
      call the Contracts page's own note lost a day earlier. `ngl_sub` is STALE;
      it is left inert in the dictionary rather than deleted.
 
-     THE FILTERED SENTENCE STAYS, and it is not the same kind of thing. TWO
-     COUNTS ABOUT THE SAME THING ARE ON SCREEN AT ONCE and they measure
-     different units: the sidebar door counts CHANGES waiting on this person
-     across every negotiation; the bands count AGREEMENTS in the view they can
-     see. With a filter on, a band reading 1 under a door reading 3 is a
-     contradiction, and this line is the page resolving it — which is why it
-     draws only when there is a contradiction to resolve. */
+     THE FILTERED SENTENCE IS GONE TOO (Part 8, the owner's pick "The Legora
+     way", 21 Oct 2026). "Showing 2 of 7 live negotiations — the group counts
+     follow your filters …" read the reader's own narrowing back to them; the
+     list head under this title now says it where it is set — the chips
+     ("Stream Procurement ×"), the tab's number and the foot's "1–2 of 2" —
+     and the bands it reconciled are gone. Its second half had been false
+     since 10 Oct (the door counts negotiations, negoNeedsYouTotal, not
+     changes). `ngl_sub_filtered` is STALE, inert in both books. */
   /* ---- THE COUNT IS A SUB-LINE, NOT A CHIP (21 Sep 2026, Young: the four
      pages must look exactly like the artifact) ---- the reference draws
      "5 live · 3 waiting on you" as a quiet line under the page name, which is
@@ -10050,7 +10046,6 @@ function negoListHeadHtml(shown){
   return `<header class="ngl-head ngl-head-table ph-top"><div class="ngl-head-row"><div style="min-width:0">
     <div class="page-title-row ngl-title-row"><h2>${i18t('ng_door_title')}</h2>
     <div class="ngl-live page-facts">${facts.join(' · ')}</div></div>
-    ${filtered ? `<p>${_ne(i18t('ngl_sub_filtered', { n, live }))}</p>` : ''}
     </div>${ngStartDoorHtml(true)}</div>
   </header>`;
 }
@@ -10206,7 +10201,7 @@ function renderNegotiationsList(host){
      rather than a second, quietly different one. */
   if (typeof window.renderRegister !== 'function') return;
   window.renderRegister({ scope: 'negotiations', nav: 'redline',
-    hostId: (el.id || 'content'), head: cs => negoListHeadHtml(cs) });
+    hostId: (el.id || 'content'), head: () => negoListHeadHtml() });
 }
 
 /* ---- THE BENCH'S OPTIONS, ONE SET FOR EVERY OWNER HOST (the one-page Home

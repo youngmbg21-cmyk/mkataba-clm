@@ -635,8 +635,18 @@ describe('f272 — the tab row stays while the page scrolls', () => {
     assert.match(RULE[0], /position:sticky/, 'and it is what pins the row');
   });
   test('a tab press lands at the top, through the settings page\'s own reading', () => {
-    const h = /document\.querySelectorAll\('\[data-pb-tab\]'\)\.forEach\(b=>b\.addEventListener\('click'[\s\S]*?\}\)\);/.exec(LIB2);
-    assert.ok(h, 'the tab handler is still one binding');
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick of "the Legora way"):
+       where the inspector fits, the tab row is the list head's, whose ONE
+       delegated listener takes the press (a page drawing that head deletes
+       its own per-element binding for it), so the press's body moved into
+       ONE function both rows press, pbTabGo. The claim is asked of that
+       function, and the classic row's binding is asked to press it. */
+    assert.match(LIB2, /document\.querySelectorAll\('\[data-pb-tab\]'\)\.forEach\(b=>b\.addEventListener\('click',\(\)=>pbTabGo\(b\.getAttribute\('data-pb-tab'\)\)\)\);/,
+      'the classic row presses the one tab press');
+    const at = LIB2.indexOf('function pbTabGo(k){');
+    assert.ok(at > -1, 'one function for the tab press');
+    const h = [LIB2.slice(at, LIB2.indexOf('\n}\n', at) + 2)];
+    assert.ok(h[0].length > 200, 'the tab handler is still one binding');
     assert.match(h[0], /if\(typeof stLandTop==='function'\) stLandTop\(\);/,
       'one reading of "put the reader at the top", asked through window');
     assert.ok(!/scrollTop\s*=\s*0/.test(h[0]),

@@ -97,11 +97,15 @@ const check = (name, pass, detail) => {
     const first = await page.evaluate(() => {
       const want = regFiltered().map(c => contractRef(c)).slice(0, 12);
       const got = [...document.querySelectorAll('#ig-paper .igw-card')].map(b => b.querySelector('.igw-ref').textContent.trim());
-      return { got: got.length, same: JSON.stringify(want) === JSON.stringify(got), foot: ((document.querySelector('#ig-wall .igw-shown') || {}).textContent || '').trim() };
+      return { got: got.length, same: JSON.stringify(want) === JSON.stringify(got), foot: ((document.querySelector('#ig-wall [data-lh-foot="wall"] .lh-range') || {}).textContent || '').trim() };
     });
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way"): the
+       Wall's foot is the shared list foot — "1–12 of N · Show N more"
+       ([data-lh-foot="wall"] .lh-range, [data-lh-more="wall"]); it was "Showing 12
+       of N" (.igw-shown) and [data-ig-wall-more]. */
     check('1a the first twelve stand on the wall, in the List\'s own order (newest work first), the foot saying how many of all',
-      all.want > 12 && first.got === 12 && first.same && first.foot === `Showing 12 of ${all.want}` && !all.list, JSON.stringify({ all, first }));
-    while (await page.$('#ig-wall [data-ig-wall-more]')) { await page.click('#ig-wall [data-ig-wall-more]'); await page.waitForTimeout(250); }
+      all.want > 12 && first.got === 12 && first.same && first.foot === `1–12 of ${all.want}` && !all.list, JSON.stringify({ all, first }));
+    while (await page.$('#ig-wall [data-lh-more="wall"]')) { await page.click('#ig-wall [data-lh-more="wall"]'); await page.waitForTimeout(250); }
     const every = await page.evaluate(() => {
       const want = regFiltered().map(c => contractRef(c));
       const got = [...document.querySelectorAll('#ig-paper .igw-card')].map(b => b.querySelector('.igw-ref').textContent.trim());
@@ -161,30 +165,37 @@ const check = (name, pass, detail) => {
     });
     check('4b sorting by counterparty runs A to Z', byCp);
 
-    /* ================= 5. THE STAGE BOX (the place's, over the Wall and the List) ================= */
+    /* ================= 5. THE STAGE FILTER (the place's, over the Wall and the List) ================= */
     /* RE-POINTED 16 Oct 2026 (owner: "take the status choices and put them in
        a dropdown as well"): the stages are the Stage box's choices; a stage
        with nothing in it is not offered at all (a filter's choice that cannot
-       give results is not listed), every other carries its number. */
-    const chips = await page.evaluate(() => { const s = document.querySelector('#ig-paper [data-reg-home] #reg-stage-sel');
-      return s ? [...s.options].map(o => ({ k: o.value, n: Number((/\((\d+)\)\s*$/.exec(o.textContent) || [0, 0])[1]) })) : []; });
-    check('5a the Stage box offers each stage that holds a paper, with its number, and no empty one', chips.length >= 2 && chips[0].k === 'all' && chips.every(c => c.k === 'all' || c.n > 0), JSON.stringify(chips));
-    const stage = chips.find(c => c.k !== 'all' && c.k !== 'awaiting' && c.n > 0);
+       give results is not listed), every other carries its number.
+       RE-POINTED AGAIN 21 Oct 2026 (Part 8, the owner picked "the Legora way"):
+       the stages are a group under "+ Filter" and a chosen one is a chip; the
+       rule a choice obeys is unchanged. */
+    const ADD = '#ig-paper [data-reg-home] [data-lh-seat="contracts"] select[data-lh-add]';
+    const chips = await page.evaluate(A => { const s = document.querySelector(A);
+      const g = s ? [...s.querySelectorAll('optgroup')].find(x => x.label === i18t('reg_chip_stage')) : null;
+      return g ? [...g.querySelectorAll('option')].map(o => ({ k: JSON.parse(o.value)[1], v: o.value, n: Number((/\((\d+)\)\s*$/.exec(o.textContent) || [0, 0])[1]) })) : []; }, ADD);
+    check('5a + Filter offers each stage that holds a paper, with its number, and no empty one', chips.length >= 2 && chips.every(c => c.n > 0), JSON.stringify(chips));
+    const stage = chips.find(c => c.k !== 'awaiting' && c.n > 0);
     if (stage){
-      await page.selectOption('#ig-paper [data-reg-home] #reg-stage-sel', stage.k);
-      await page.waitForTimeout(400);
+      await page.selectOption(ADD, stage.v);
+      await page.waitForFunction(k => window.state && state.reg && state.reg.stage === k && !!document.querySelector('#ig-paper [data-lh-chip="stage"]'), stage.k, { timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(300);
       const on = await page.evaluate(k => {
         const ids = [...document.querySelectorAll('#ig-paper .igw-card')].map(b => b.getAttribute('data-ig-pick'));
         return { n: ids.length, all: ids.every(id => getContract(id).status === k),
-          pressed: (document.querySelector('#ig-paper #reg-stage-sel') || {}).value };
+          pressed: (document.querySelector('#ig-paper [data-lh-chip="stage"] select[data-lh-f="stage"]') || {}).value };
       }, stage.k);
-      check('5b a stage chosen shows only that stage, and its number matches the papers behind it',
-        on.all && on.n === stage.n && on.pressed === stage.k, JSON.stringify({ stage, on }));
-      await page.selectOption('#ig-paper [data-reg-home] #reg-stage-sel', 'all');
-      await page.waitForTimeout(400);
+      check('5b a stage chosen shows only that stage, its number matches the papers behind it, and its chip says it',
+        on.all && on.n === Math.min(12, stage.n) && on.pressed === stage.k, JSON.stringify({ stage, on }));
+      await page.click('#ig-paper [data-lh-x="stage"]').catch(() => {});
+      await page.waitForFunction(() => state.reg.stage === 'all', null, { timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(300);
       const back = await page.evaluate(() => ({ n: document.querySelectorAll('#ig-paper .igw-card').length, stage: state.reg.stage }));
       /* a new narrowing starts again at twelve (round 13 as drawn) */
-      check('5c All lets it go — the first twelve papers again', back.stage === 'all' && back.n === Math.min(12, all.want), JSON.stringify(back));
+      check('5c its x lets it go — the first twelve papers again', back.stage === 'all' && back.n === Math.min(12, all.want), JSON.stringify(back));
     } else check('5b a stage to choose', false, JSON.stringify(chips));
 
     /* ================= 6. A REFRESH KEEPS THE SORT ======================== */

@@ -2375,7 +2375,28 @@ function obwFilters(){
 function obwNarrowing(f){
   f = f || obwFilters();
   return Object.keys(OBW_DEF).filter(k => String(f[k]) !== String(OBW_DEF[k]))
-    .concat(obwOnly(f) ? ['only'] : []);
+    .concat(obwOnly(f) ? ['only'] : [])
+    .concat(obwWords(f) ? ['q'] : []);
+}
+/* ---- THE WORDS TYPED IN THE LIST HEAD'S BOX (Part 8, the Legora way, the
+   owner's pick, 21 Oct 2026) ----
+   ONE more cut in the one predicate, so the list, every tab's number, every
+   filter's choices and the head's "N outstanding" all ask the same question.
+   Held with the filters (`f.q`, per sitting, kept across a refresh by
+   obwPlace like the rest); at rest there are none, so the default above
+   stays the statement of what the page opens on, and a door that lands here
+   (obwGoFiltered) states the whole set and so starts without words. A row
+   matches on what it says — what is promised, the party, the reference,
+   whose it is on our side, who finished it — and on its contract's name,
+   which the row's second line carries on its hover. */
+const obwWords = f => String((f && f.q) || '').trim().toLowerCase();
+function obwSays(o, q){
+  const c = o._c || null;
+  let who = '';
+  if(!obligationIsTheirs(o)){ try{ const m = obligationReminderTo(o); who = (m && m.name) || ''; }catch(_){ who = ''; } }
+  const ref = (c && typeof window.contractRef === 'function') ? contractRef(c) : '';
+  return [o.desc, o.cname || (c && c.name), o.counterparty || (c && c.counterparty), ref, o.cid, c && c.contractNo, who, o.completedBy]
+    .map(x => String(x == null ? '' : x)).join(' ').toLowerCase().includes(q);
 }
 /* ---- A SET SENT HERE FROM ANOTHER SCREEN (28 Sep 2026) ----
    The Insights Reminder Line's figures are doors, and a door's number must
@@ -2427,6 +2448,16 @@ function obwOnlyChipHtml(f){
   if(!o) return '';
   const x = typeof icon === 'function' ? icon('x', 'w-3.5 h-3.5') : '';
   return `<span class="obw-only" id="obw-only" title="${_obEsc(i18t('ob_rl_only_title'))}"><span class="obw-only-t" title="${_obEsc(o.label || '')}">${_obEsc(o.label || '')} · ${o.keys.length}</span><button type="button" data-obw-only-clear title="${_obEsc(i18t('ob_rl_only_clear'))}" aria-label="${_obEsc(i18t('ob_rl_only_clear'))}">${x}</button></span>`;
+}
+/* THE WORDS, ON THE PAGE THAT DRAWS NO BOX (below INS_MIN_W, the full table
+   as before): words typed in the wide page's head keep narrowing here, so
+   they are said, as a chip with its own ×, never a cut nobody can see */
+function obwWordsChipHtml(f){
+  const q = String((f && f.q) || '').trim();
+  if(!q || !obwWords(f)) return '';
+  const x = typeof icon === 'function' ? icon('x', 'w-3.5 h-3.5') : '';
+  const what = '\u201c' + q + '\u201d', rm = i18t('lh_remove', { what });
+  return `<span class="obw-only obw-words" title="${_obEsc(i18t('lh_box_label'))}"><span class="obw-only-t">${_obEsc(what)}</span><button type="button" data-obw-q-clear title="${_obEsc(rm)}" aria-label="${_obEsc(rm)}">${x}</button></span>`;
 }
 const OBW_STATE = [['open','ob_f_state_open'],['overdue','ob_f_state_over'],['waiting','ob_f_state_waiting'],
   ['done','ob_f_state_done'],['all','ob_f_state_all']];
@@ -2515,6 +2546,8 @@ function obwPass(o, f){
        in the bell. */
     if(o.days == null || o.days > Number(f.due)) return false;
   }
+  /* the words typed in the list head's box (obwSays, above) */
+  if(f.q && obwWords(f) && !obwSays(o, obwWords(f))) return false;
   return true;
 }
 function obwRows(f){
@@ -2755,6 +2788,7 @@ function renderObligationsList(){
       </div>
       <div class="obw-filters">
         ${obwOnlyChipHtml(f)}
+        ${obwWordsChipHtml(f)}
         ${obwSelect('whose', OBW_WHOSE, f.whose)}
         ${obwSelect('state', OBW_STATE, f.state)}
         ${obwSelect('side', OBW_SIDE, f.side)}
@@ -2806,6 +2840,7 @@ function renderObligationsList(){
   }));
   host.querySelector('#obw-clear')?.addEventListener('click', () => { _obwF = null; obwRepaint(); });
   host.querySelector('[data-obw-only-clear]')?.addEventListener('click', () => { f.only = null; obwRepaint(); });
+  host.querySelector('[data-obw-q-clear]')?.addEventListener('click', () => { f.q = ''; obwRepaint(); obwPlaceKeep(); });
   /* WHERE THE READER ENDS UP: the contract, on the tab this row is about. A row
      that opened the Document tab would make them hunt for what they pressed. */
   const go = (cid, key) => obOpenContract(cid, key);
@@ -3846,15 +3881,18 @@ function obwWeekRowHtml(r, W){
   const sub = (!weekly || W.k === 'w0') ? due.sub : '';
   const cls = weekly ? '' : due.cls;
   const lock = obwRowPrivate(r) ? `<span class="obw-lock" title="${_obEsc(i18t('ob_wk_private'))}">${typeof icon === 'function' ? icon('lock', 'w-3 h-3') : ''}</span>` : '';
+  /* the second line's hover names the contract it sits on, so a row the box
+     found by that name says why (Part 8, obwSays) */
+  const on = _obEsc(r.cname || (c && c.name) || '');
   /* LATE, AS DRAWN: the row starts with who acts; its day and how late it is
      stand on the right, in the late ink, before its one act */
   if(W.k === 'overdue') return `<tr data-ins-row data-ob-key="${_obEsc(r._key)}" tabindex="-1" class="obw-late-row">
-      <td><span class="ob-id">${obwRowAvHtml(r, c)}<span class="ins-c2"><b title="${_obEsc(r.desc || '')}">${_obEsc(r.desc || '')}${lock}</b><span>${obwLine2(r, c)}</span></span></span></td>
+      <td><span class="ob-id">${obwRowAvHtml(r, c)}<span class="ins-c2"><b title="${_obEsc(r.desc || '')}">${_obEsc(r.desc || '')}${lock}</b><span${on ? ` title="${on}"` : ''}>${obwLine2(r, c)}</span></span></span></td>
       <td class="r obw-act-c"><span class="obw-late-act"><span class="ins-c2 obw-late-when"><b>${_obEsc(due.day)}</b>${sub ? `<span class="${cls}">${_obEsc(sub)}</span>` : ''}</span>${obwRowActHtml(r, c)}</span></td>
     </tr>`;
   return `<tr data-ins-row data-ob-key="${_obEsc(r._key)}" tabindex="-1"${r._dec ? ' data-obw-dec="1"' : ''}>
       <td><span class="ins-c2"><b>${_obEsc(due.day)}</b>${sub ? `<span class="${cls}">${_obEsc(sub)}</span>` : ''}</span></td>
-      <td><span class="ob-id">${obwRowAvHtml(r, c)}<span class="ins-c2"><b title="${_obEsc(r.desc || '')}">${_obEsc(r.desc || '')}${lock}</b><span>${obwLine2(r, c)}</span></span></span></td>
+      <td><span class="ob-id">${obwRowAvHtml(r, c)}<span class="ins-c2"><b title="${_obEsc(r.desc || '')}">${_obEsc(r.desc || '')}${lock}</b><span${on ? ` title="${on}"` : ''}>${obwLine2(r, c)}</span></span></span></td>
       <td class="r obw-act-c">${obwRowActHtml(r, c)}</td>
     </tr>`;
 }
@@ -4005,12 +4043,13 @@ const OBW_VIEWS = [['all','ob_v_all'],['open','ob_v_out'],['overdue','ob_v_over'
 const OBW_CHIPS = ['whose', 'side', 'folder', 'due'];
 /* THE HEAD'S FACTS LINE AND ITS ACTS (round 16 as drawn; the owner's yes of
    18 Oct 2026 reverses 9 Oct's "no facts line"): "11 outstanding · 1 overdue",
-   the same counts the tabs carry, and the list's verbs — Open every week,
-   Filter, + Add an obligation. Painted into the shared header's two slots
-   (PAGE_HEAD_PAINT), because both change on a repaint with no view change. */
+   the same counts the tabs carry, and the list's verbs — Open every week and
+   + Add an obligation. Painted into the shared header's two slots
+   (PAGE_HEAD_PAINT), because both change on a repaint with no view change.
+   THE FILTER FOLD WENT (Part 8, the Legora way, 21 Oct 2026): a filter is
+   added from the list head's "+ Filter" and stands as a chip there. */
 let _obwHeadFacts = '';
 let _obwHeadActs = '';
-let _obwFiltersOpen = false;
 function obwPaintHead(){
   const el = (typeof document !== 'undefined') ? document.getElementById('page-head-facts') : null;
   if(el) el.innerHTML = _obwHeadFacts;
@@ -4018,35 +4057,84 @@ function obwPaintHead(){
   if(!a) return;
   a.innerHTML = _obwHeadActs;
   a.querySelector('[data-obw-weeks]')?.addEventListener('click', () => { obwWeeksAll(!_obwWeeksAll); obwRepaint(); });
-  /* THE FILTERS FOLD BEHIND ONE BUTTON (SAP benchmark, 9 Oct 2026): open while
-     anything narrows the list, or once the reader opens them this sitting. */
-  a.querySelector('[data-obw-filters]')?.addEventListener('click', () => { _obwFiltersOpen = !_obwFiltersOpen; obwRepaint(); });
   a.querySelector('[data-obw-add]')?.addEventListener('click', () => obwAddOpen());
 }
-function renderObligationsInspector(host){
+/* ---- THE LIST HEAD, THE LEGORA WAY (Part 8, the owner's pick, 21 Oct 2026:
+   "every list page the Legora way") ----
+   Under the shared head's title: the one box (search, or ask Jambo), the
+   page's views as tabs (OBW_VIEWS, each counted with the rows its press
+   shows; a view with none is not drawn unless it is in front, All always),
+   then the chips: the set another screen sent (the `only` chip) and a filter
+   only once it is ADDED through "+ Filter". js/views/listhead.js draws it and
+   counts nothing: every number is this page's one predicate (obwPass) over
+   the book the last paint read, and every press ends in this page's own
+   writer and its one repaint (obwRepaint), whose panel paint keeps the place.
+   The week cards (round 16) stand under it as they were. Registered at this
+   page's own paint (this file loads before the head's). */
+let _obwPaintBook = null;
+let _obwPanelKey;
+const obwBookNow = () => _obwPaintBook || obwBook().concat(obwDecisions());
+function obwHeadReg(){
+  if(typeof window.lhRegister !== 'function') return null;
+  const F = () => obwFilters();
+  const n = patch => { const f = F(); return obwBookNow().filter(r => obwPass(r, { ...f, ...patch })).length; };
+  /* a choice counted with every other cut held; the rest value is never offered */
+  const opts = (k, list) => list.filter(([v]) => String(v) !== String(OBW_DEF[k])).map(([v, key]) => [v, i18t(key), n({ [k]: v })]);
+  return lhRegister('obligations', {
+    noun: 'obligations',
+    total: () => obwBookNow().length,
+    q: () => String(F().q || ''),
+    setQuery: w => { F().q = String(w == null ? '' : w); obwRepaintRows(); obwPlaceKeep(); },
+    tabAttr: 'data-obw-view',
+    tabsLabel: i18t('ob_views_label'),
+    tabs: () => OBW_VIEWS.map(([k, key]) => ({ k, label: i18t(key), n: n({ state: k }), keep: k === 'all' })),
+    tabNow: () => F().state,
+    tab: k => { if(!OBW_VIEWS.some(v => v[0] === k)) return; F().state = k; obwRepaint(); },
+    lead: () => obwOnlyChipHtml(F()),
+    filters: () => {
+      const f = F();
+      const folders = (window.visibleFolders ? visibleFolders() : Object.values(window.FOLDERS || {}));
+      return [
+        { k: 'whose', label: i18t('ob_f_whose'), cur: f.whose, def: OBW_DEF.whose, opts: opts('whose', OBW_WHOSE) },
+        { k: 'side', label: i18t('ob_f_side'), cur: f.side, def: OBW_DEF.side, opts: opts('side', OBW_SIDE) },
+        { k: 'folder', label: i18t('ob_f_folder'), cur: f.folder, def: OBW_DEF.folder,
+          opts: folders.map(x => [String(x.id), x.name, n({ folder: String(x.id) })]) },
+        { k: 'due', label: i18t('ob_f_due'), cur: f.due, def: OBW_DEF.due, opts: opts('due', OBW_DUE) },
+      ];
+    },
+    apply: patch => { const f = F(); Object.keys(patch || {}).forEach(k => { if(OBW_CHIPS.includes(k)) f[k] = String(patch[k]); }); obwRepaint(); },
+    /* the `only` chip's ×, where the head drew the chip afresh */
+    wire: (head, parts) => { if(parts.includes('lead')) obwOnlyWire(head); },
+  });
+}
+function obwOnlyWire(root){
+  const b = root && root.querySelector('[data-obw-only-clear]');
+  if(b) b.addEventListener('click', () => { obwFilters().only = null; obwRepaint(); });
+}
+/* WORDS TYPED IN THE BOX MOVE ONLY THE ROWS: the week cards and the foot
+   under them, the head's facts and, where the chosen row went, the panel.
+   The box is never drawn again under the reader's caret; the head recounts
+   its tabs and chips itself (lhHeadSync). */
+function obwRepaintRows(){
+  const host = (typeof document !== 'undefined') ? document.getElementById('content') : null;
+  if(!host || !host.querySelector('.obw-ins [data-lh-seat="obligations"]')){ obwRepaint(); return; }
+  renderObligationsInspector(host, { rows: true });
+}
+function renderObligationsInspector(host, o){
   const f = obwFilters();
+  obwHeadReg();
+  const rowsOnly = !!(o && o.rows) && !!host.querySelector('.obw-ins [data-lh-seat="obligations"]');
   /* the page's book: every promise, and each renewal decision still to make */
   const book = obwBook().concat(obwDecisions());
   book.forEach(r => { if(!r._key) r._key = obKeyOf(r.cid, r, r._i); });
+  _obwPaintBook = book;
   const rows0 = book.filter(r => obwPass(r, f)).sort(obByWhen);
   const narrowing = obwNarrowing(f).filter(k => k !== 'state');
   /* Jambo's finds are rows of this week while the list holds what is open */
   const finds = (f.state === 'open' || f.state === 'all') && !narrowing.length ? obwFindRows() : [];
   const rows = finds.concat(rows0).sort(obByWhen);   // his finds lead their day, as drawn
-  const folders = (window.visibleFolders ? visibleFolders() : Object.values(window.FOLDERS || {}));
-  const opt = (list) => list.map(([k, key]) => [k, i18t(key)]);
-  const chips = obwOnlyChipHtml(f) + [
-    insChipHtml({ attr:'data-obw-f', key:'whose', label: i18t('ob_f_whose'), cur: f.whose, def: OBW_DEF.whose, opts: opt(OBW_WHOSE) }),
-    insChipHtml({ attr:'data-obw-f', key:'side', label: i18t('ob_f_side'), cur: f.side, def: OBW_DEF.side, opts: opt(OBW_SIDE) }),
-    insChipHtml({ attr:'data-obw-f', key:'folder', label: i18t('ob_f_folder'), cur: f.folder, def: OBW_DEF.folder,
-      opts: [['all', i18t('ob_f_folder_all')], ...folders.map(x => [x.id, x.name])] }),
-    insChipHtml({ attr:'data-obw-f', key:'due', label: i18t('ob_f_due'), cur: f.due, def: OBW_DEF.due, opts: opt(OBW_DUE) }),
-  ].join('') + (narrowing.length ? `<button type="button" id="obw-clear" class="ui-link" data-obw-clear title="${_obEsc(i18tn('ob_clear_on', narrowing.length, { n: narrowing.length }))}">${
-    _obEsc(i18tn('ob_clear_n', narrowing.length, { n: narrowing.length }))}</button>` : '');
   const counts = {};
   OBW_VIEWS.forEach(([k]) => { counts[k] = book.filter(r => obwPass(r, { ...f, state: k })).length; });
-  const views = insViewTabsHtml({ attr:'data-obw-view', cur: f.state, label: i18t('ob_views_label'),
-    views: OBW_VIEWS.map(([k, key]) => ({ k, label: i18t(key), n: counts[k] })) });
   /* NOTHING IS CHOSEN ON ARRIVAL (round 16: Jambo's panel says "Your week");
      a row the reader chose stays chosen, and never hides in a folded week:
      its week opens */
@@ -4058,26 +4146,37 @@ function renderObligationsInspector(host){
   const { cols, html } = obListHtml(rows, 'page');
   const empty = `<section class="obw-wk obw-empty"><p>${_obEsc(i18t(narrowing.length ? 'ob_none_match_short' : 'ob_none_here'))}</p>${
     narrowing.length ? `<button type="button" class="ui-link" data-obw-clear>${_obEsc(i18t('ob_clear_filters'))}</button>` : ''}</section>`;
+  /* THE FOOT, UNDER THE LAST WEEK, COUNTS WHAT THE TAB COUNTS: every row
+     behind it, a folded week's too (its line says what it holds); Jambo's
+     finds are not promises and count nowhere. Every row is drawn, so it
+     offers no more. */
+  const foot = rows0.length && typeof window.lhFootHtml === 'function' ? lhFootHtml('obligations', rows0.length, rows0.length, 0) : '';
+  const list = rows.length ? html + foot : empty;
   const over = counts.overdue || 0, out = counts.open || 0;
   _obwHeadFacts = `<span class="obw-hf">${_obEsc(i18tn('ob_head_out', out, { n: out }))}${over ? ` · <span class="obw-hf-late">${_obEsc(i18tn('ob_head_over', over, { n: over }))}</span>` : ''}</span>`;
   _obwHeadActs = `${weeksFold ? `<button type="button" class="ui-btn obw-weeks-btn" data-obw-weeks aria-pressed="${_obwWeeksAll ? 'true' : 'false'}">${_obEsc(i18t(_obwWeeksAll ? 'ob_wk_fold_all' : 'ob_wk_open_all'))}</button>` : ''}`
-    + `<button type="button" class="ui-btn ui-btn-plain obw-filter-btn${narrowing.length ? ' on' : ''}" data-obw-filters aria-expanded="${_obwFiltersOpen || narrowing.length ? 'true' : 'false'}">${typeof icon === 'function' ? icon('filter', 'w-3.5 h-3.5') : ''}${_obEsc(i18t('ob_filter_btn'))}${narrowing.length ? ` <span class="obw-filter-n">${narrowing.length}</span>` : ''}</button>`
     + (((typeof canEdit !== 'function') || canEdit()) ? `<button type="button" class="ui-btn obw-add-btn" data-obw-add>${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '+'}${_obEsc(i18t('ob_add_btn'))}</button>` : '');
-  host.innerHTML = `<div class="view-enter sap-page ins-page obw-ins" data-ins-page="obligations" data-ins="1">
-    <div class="sap-band ph-foot">${views}</div>
+  if(rowsOnly){
+    const sc = host.querySelector('#obw-scroll');
+    if(sc){ sc.setAttribute('data-cols', String(cols.length)); sc.innerHTML = list; }
+  } else {
+    host.innerHTML = `<div class="view-enter sap-page ins-page obw-ins" data-ins-page="obligations" data-ins="1">
+    ${typeof window.lhHtml === 'function' ? lhHtml('obligations', { frame: 'foot' }) : ''}
     <div class="ins-body">
       <section class="ins-card obw-weeks" aria-label="${_obEsc(i18t('nav_obligations'))}">
-        <div class="ins-bar reg-filterbar"${_obwFiltersOpen || narrowing.length ? '' : ' hidden'}>${chips}</div>
-        <div class="ins-scroll obw-scroll" id="obw-scroll" data-cols="${cols.length}">${rows.length ? html : empty}</div>
+        <div class="ins-scroll obw-scroll" id="obw-scroll" data-cols="${cols.length}">${list}</div>
       </section>
       <aside id="ins-panel" class="ins-panel" aria-label="${_obEsc(i18t('ob_panel_label'))}"></aside>
     </div>
   </div>`;
+    /* the head's own presses (tabs, + Filter, a chip, ×, the box) are the
+       head's, delegated once (js/views/listhead.js); the `only` chip is this
+       page's */
+    obwOnlyWire(host);
+  }
   obwPaintHead();
-  host.querySelectorAll('[data-obw-view]').forEach(b => b.addEventListener('click', () => { f.state = b.getAttribute('data-obw-view'); obwRepaint(); }));
-  host.querySelectorAll('[data-obw-f]').forEach(sel => sel.addEventListener('change', () => { f[sel.getAttribute('data-obw-f')] = sel.value; obwRepaint(); }));
-  host.querySelectorAll('[data-obw-clear]').forEach(b => b.addEventListener('click', () => { OBW_CHIPS.forEach(k => { f[k] = OBW_DEF[k]; }); f.only = null; obwRepaint(); }));
-  host.querySelector('[data-obw-only-clear]')?.addEventListener('click', () => { f.only = null; obwRepaint(); });
+  /* "Clear the filters" under an empty list: every cut, the words too */
+  host.querySelectorAll('[data-obw-clear]').forEach(b => b.addEventListener('click', () => { OBW_CHIPS.forEach(k => { f[k] = OBW_DEF[k]; }); f.only = null; f.q = ''; obwRepaint(); }));
   host.querySelectorAll('[data-obw-week]').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); obwWeekToggle(b.getAttribute('data-obw-week')); obwRepaint(); obwPlaceKeep(); }));
   /* A FOLDED WEEK IS ONE LINE, pressed anywhere (round 16: "a folded week
      hides its rows until pressed — its line says what is inside") */
@@ -4091,13 +4190,16 @@ function renderObligationsInspector(host){
   const id = insPick('obligations', keys, { none: true });
   if(tb) insMarkRow(tb, '[data-ins-row]', idOf, id);
   const paint = k => { const r = byKey.get(k);
+    _obwPanelKey = k;
     if(r && r._dec){ obPaintDecision(r); return; }
     const hit = r ? obLocate(k) : null;
     obPaintPanel('ins-panel', hit ? hit.o : null, hit ? hit.c : null, hit ? hit.i : -1, 'page', i18t('ob_panel_none')); };
-  paint(id);
+  /* words typed leave the panel as it stands unless its row went */
+  if(!rowsOnly || id !== _obwPanelKey) paint(id);
   if(tb) insListWire(tb, { rowSel:'[data-ins-row]:not([hidden])', idOf,
     onSelect: k => { insSelect('obligations', k); insMarkRow(tb, '[data-ins-row]', idOf, k); paint(k); },
     onOpen: k => { const r = byKey.get(k); if(r && r._dec){ if(typeof window.needsYouGo === 'function') needsYouGo('renewal', r.cid); return; } if(r) obOpenContract(r.cid, k); } });
+  if(rowsOnly) return;
   if(typeof insWatchWidth === 'function') insWatchWidth();
   if(window.setActiveNav) setActiveNav('obligations');
 }

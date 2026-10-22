@@ -45,8 +45,11 @@
         Approval rules inside the head; every party's name reads whole
      10e a colleague's signature says how long it has waited
      10f an away signer: Jambo says the rule and the proper step, with its door
-     10g the list panel's ask reads as the Counter's: a party's name, "contracts
-        ending in 90 days", "draft an NDA with …" — no Jambo call
+     10g the list panel's ask reads as the Counter's: a party's name and
+        "contracts ending in 90 days" are answered IN the panel, the reader
+        stays on the list (RE-POINTED 22 Oct 2026, Part 8's question 3 = A;
+        was: handed to Home's Board); "draft an NDA with …" opens the one
+        form — no Jambo call
      10h Our paper: the bar's Jambo door opens the window (a hidden panel is
         not on screen)
      10i–j the person panel: "1 contract · 1 live"; Waiting on without dots,
@@ -217,12 +220,17 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       await until(() => document.querySelector('[data-ap-row="MK-AP1"]') && document.querySelector('#ins-panel.is-jambo'), null, 10000);
       const A0 = await page.evaluate(() => { const row = id => document.querySelector(`[data-ap-row="${id}"]`);
         const t = id => { const r = row(id); return r ? ((r.querySelector('.ap-turn') || {}).textContent || '').replace(/\s+/g, ' ').trim() : null; };
-        return { pill: (document.querySelector('.ap-card-n.is-pill') || {}).textContent || '', late: (document.querySelector('.ap-card-m') || {}).textContent || '',
-          foot: (document.querySelector('[data-ap-foot]') || {}).textContent || '', ap1: t('MK-AP1'), sg1: t('MK-SG1'), band: !!document.querySelector('.ap-band'),
+        /* RE-POINTED 21 Oct 2026 (Part 8, the list head the Legora way): the
+           card's head went (ruling 5) — its count is the All tab's number,
+           "late after 7 days" the All tab's hover — and the foot is the
+           head's own, "1–N of N" */
+        const all = document.querySelector('[data-lh-seat="approvals"] [data-ap-view="all"]');
+        return { pill: ((all && all.querySelector('.n')) || {}).textContent || '', late: all ? all.title : '',
+          foot: (document.querySelector('[data-lh-foot="approvals"]') || {}).textContent || '', ap1: t('MK-AP1'), sg1: t('MK-SG1'), band: !!document.querySelector('.ap-band'),
           rows: document.querySelectorAll('[data-ap-row]').length,
           words: [...document.querySelectorAll('#ins-panel [data-jl-words] .jl-bub')].map(b => b.textContent.trim()) }; });
-      check('5a the list head: the count in a pill, "late after 7 days"; the foot "Showing N of N"; no band',
-        /^\d+$/.test(A0.pill.trim()) && /late after 7 days/.test(A0.late) && A0.foot.trim() === `Showing ${A0.rows} of ${A0.rows}` && !A0.band, JSON.stringify(A0));
+      check('5a the list head: All counts the rows, "late after 7 days" on its hover; the foot "1–N of N"; no band',
+        Number(A0.pill.trim()) === A0.rows && /late after 7 days/.test(A0.late) && A0.foot.trim() === `1–${A0.rows} of ${A0.rows}` && !A0.band, JSON.stringify(A0));
       check('5b Whose turn: "You for Jonas"; a colleague\'s signature "Jonas signs · back …"', A0.ap1 === 'You for Jonas' && /^Jonas signs · back /.test(A0.sg1 || ''), JSON.stringify({ ap1: A0.ap1, sg1: A0.sg1 }));
       if (await page.evaluate(() => { const b = document.querySelector('#ins-panel [data-jl-back]'); return !!(b && !b.hidden); })) await page.click('#ins-panel [data-jl-back]');
       const A0w = await until(() => { const w = [...document.querySelectorAll('#ins-panel [data-jl-words] .jl-bub')].map(b => b.textContent.trim()); return w.length ? w : null; });
@@ -321,7 +329,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
           !!N && N.footUnder >= 0 && N.footUnder <= 12 && N.cardEnd <= 12 && N.ground >= 40, JSON.stringify(N));
         await page.evaluate(() => setView('approvals'));
         await until(() => document.querySelector('[data-ap-row="MK-AP1"]'), null, 8000); await page.waitForTimeout(300);
-        const A = await page.evaluate(CARD, { card: '#content .ap-card', rows: '.ap-table tbody tr', foot: '[data-ap-foot]' });
+        /* RE-POINTED 21 Oct 2026 (Part 8): the foot is the list head's own */
+        const A = await page.evaluate(CARD, { card: '#content .ap-card', rows: '.ap-table tbody tr', foot: '[data-lh-foot="approvals"]' });
         check(`10c Approvals ${w}×${ht}: the card ends after its rows; the white head, then grey ground, then the card; Approval rules inside the head`,
           !!A && A.footUnder >= 0 && A.footUnder <= 2 && A.cardEnd <= 2 && A.ground >= 40 && A.headGround >= 8 && A.rulesIn >= 6, JSON.stringify(A));
         const C = await page.evaluate(() => [...document.querySelectorAll('.ap-table .ap-id .ap-name')].filter(e => e.scrollWidth > e.clientWidth + 1 || /…$/.test(e.textContent)).map(e => e.textContent));
@@ -342,18 +351,30 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         !!R && /^If it cannot wait Only Jonas can sign it: a stand-in answers approvals and reviews, never a signature\. If it cannot wait until \S+, name another signer on Before you sign, before anyone has signed\. Open Before you sign$/.test(R.t) && R.door && !R.headDoor, JSON.stringify(R));
       await shot('r15-signature-away-1440x780.png');
     });
+    /* RE-POINTED 22 Oct 2026 (the owner's answer to Part 8's question 3: "A —
+       Answer beside the list … Jambo's own box beside the list works the same
+       way"). 10g pinned the ruling this reverses: a party's name and
+       "contracts ending in 90 days" typed in the list panel were handed to
+       Home's Board (the reader left Approvals). Now what the Board's own
+       reader finds is SAID IN THE PANEL, free, and the reader stays on
+       Approvals; a draft from a sentence is still a door (the one form). */
     await part('10g the ask reads the way the Counter\'s does: no Jambo call', async () => {
-      for (const [q, want] of [['Nandi Dairy', 'board'], ['contracts ending in 90 days', 'board'], ['draft an NDA with Kabras Sugar', 'form']]) {
+      for (const [q, want] of [['Nandi Dairy', 'panel'], ['contracts ending in 90 days', 'panel'], ['draft an NDA with Kabras Sugar', 'form']]) {
         await page.evaluate(() => setView('approvals'));
         await until(() => document.getElementById('jl-q') && document.querySelector('[data-ap-row]'), null, 8000);
         aiCalls.length = 0;
         await page.fill('#jl-q', q); await page.press('#jl-q', 'Enter');
-        const G = await until(w => { if (state.view !== 'dashboard') return null;
-          const dock = [...document.querySelectorAll('#ig-dock .igd-msg, #ig-dock [class*="msg"]')].map(e => e.textContent).join(' ');
-          if (w === 'form') return document.querySelector('#na-q, .na-one, #dr-say') ? { face: hbFace(), form: true } : null;
-          return /Free|free/.test(dock) ? { face: hbFace(), free: true } : null; }, want, 10000);
+        const G = await until(([w, said]) => {
+          if (w === 'form') return state.view === 'dashboard' && document.querySelector('#na-q, .na-one, #dr-say') ? { face: hbFace(), form: true } : null;
+          if (state.view !== 'approvals') return null;
+          const f = document.querySelector('#ins-panel #jl-feed'); if (!f) return null;
+          const T = [...f.querySelectorAll('.jb-turn')], wd = e => e.textContent.replace(/\s+/g, ' ').trim();
+          let i = -1; T.forEach((e, k) => { if (wd(e) === said) i = k; });
+          const a = i >= 0 ? T[i + 1] : null;
+          return a && /no Jambo call/.test(wd(a)) ? { view: state.view, answer: wd(a).slice(0, 120), box: document.getElementById('jl-q').value } : null; }, [want, q], 10000);
         await page.waitForTimeout(400);
-        check(`10g "${q}" in the list panel: answered as on the Counter (${want}), no Jambo call`, !!G && !aiCalls.length, JSON.stringify({ G, aiCalls }));
+        check(`10g "${q}" in the list panel: ${want === 'form' ? 'the one form opens (a door)' : 'answered IN the panel, the reader stays on Approvals'}, no Jambo call`,
+          !!G && !aiCalls.length && (want === 'form' || G.box === ''), JSON.stringify({ G, aiCalls }));
       }
       /* the draft form is a page over Home: put it away so the next parts can press */
       await page.evaluate(() => { try { if (typeof closeModal === 'function') closeModal(); } catch (_) {} });

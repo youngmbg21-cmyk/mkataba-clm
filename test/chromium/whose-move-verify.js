@@ -4,10 +4,13 @@
    regNegoLeadOf, negoBandTabsHtml)
 
    WHAT THIS PINS, driven in a real browser on the Negotiations page
-     1 the tabs say whose move it is from our side: All · Our move · Their
-       move; "For signature" and "Neither" only where something is in them
-     2 the first group is "Waiting on our side", and the facts line counts it
-       in the same words
+     1 the tabs say whose move it is from our side: All, then Our move ·
+       Their move · For signature · Neither only where something is in them
+       (RE-POINTED 21 Oct 2026, Part 8 "The Legora way": a tab with no rows
+       is left out, Their move included)
+     2 "Waiting on our side" is the Our move tab's own words (its hover — the
+       group headings between the rows went with Part 8, Q2 "A — tabs only"),
+       and the facts line counts it in the same words
      3 the columns: Ref · Counterparty and agreement · Round · What is open ·
        Waiting · Lead; Lead says "You" for the reader's own deal and a
        colleague's first name for theirs, the whole name on its hover
@@ -60,20 +63,24 @@ const check = (name, pass, detail) => {
     await until(() => document.querySelectorAll('#reg-tbody tr[data-row]').length >= 2, null, 10000);
     const READ = () => {
       const tabs = [...document.querySelectorAll('.reg-views [data-reg-band]')].map(x => x.textContent.replace(/\d+/g, '').trim());
+      const ourTab = (document.querySelector('.reg-views [data-reg-band="you"]') || {}).title || '';
       const bands = [...document.querySelectorAll('#reg-tbody .ngl-band-k')].map(x => x.textContent.trim());
       const heads = [...document.querySelectorAll('.reg-table thead th')].map(t => t.textContent.replace(/[▲▼↕]/g, '').trim());
       const rows = {}; document.querySelectorAll('#reg-tbody tr[data-row]').forEach(r => { const id = r.getAttribute('data-row') || r.getAttribute('data-id');
         const lead = r.querySelector('.reg-lead'); rows[id] = { lead: lead ? lead.textContent.trim() : null, hover: lead ? lead.getAttribute('title') : null }; });
       const all = (document.querySelector('.reg-views [data-reg-band=""] .n') || {}).textContent || '';
-      return { tabs, bands, heads, rows, all, facts: (document.getElementById('reg-head-facts') || document.querySelector('.ngl-facts') || document.querySelector('.reg-facts') || {}).textContent || '',
+      return { tabs, ourTab, bands, heads, rows, all, facts: (document.getElementById('reg-head-facts') || document.querySelector('.ngl-facts') || document.querySelector('.reg-facts') || {}).textContent || '',
         coded: !!document.querySelector('#reg-tbody tr[data-row="MK-0412"]') || [...document.querySelectorAll('#reg-tbody')].some(t => /Project Falcon/.test(t.textContent)) };
     };
     const A = await page.evaluate(READ);
     const me = await page.evaluate(() => currentUser().name);
-    check('1 the tabs from our side: All · Our move · Their move; nothing empty offered', JSON.stringify(A.tabs) === JSON.stringify(['All', 'Our move', 'Their move']), JSON.stringify(A.tabs));
+    /* both live deals wait on our side here, so Their move holds nothing and
+       is not offered (Part 8: a tab with no rows is left out) */
+    check('1 the tabs from our side: All · Our move; nothing empty offered', JSON.stringify(A.tabs) === JSON.stringify(['All', 'Our move']), JSON.stringify(A.tabs));
     const head = await page.evaluate(() => document.body.innerText);
     const facts = (head.match(/\d+ live[^\n]*/) || [''])[0];
-    check('2 the first group is "Waiting on our side", and the facts line counts it so', A.bands[0] === 'Waiting on our side' && /2 waiting on our side/.test(facts), JSON.stringify({ bands: A.bands, facts }));
+    check('2 "Waiting on our side" is the Our move tab\'s own words, no group heading between the rows, and the facts line counts it so',
+      A.ourTab === 'Waiting on our side' && !A.bands.length && /2 waiting on our side/.test(facts), JSON.stringify({ ourTab: A.ourTab, bands: A.bands, facts }));
     check('3a the columns: Ref · Counterparty and agreement · Round · What is open · Waiting · Lead',
       JSON.stringify(A.heads) === JSON.stringify(['Ref', 'Counterparty and agreement', 'Round', 'What is open', 'Waiting', 'Lead']), JSON.stringify(A.heads));
     const mine = A.rows['MK-A2'] || {}, theirs = A.rows['MK-B2'] || {};

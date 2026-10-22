@@ -25,6 +25,9 @@
        all-active customer shows one group
      5 a refresh on the Customers page keeps its filters
      6 Contracts and Negotiations draw their filters beside their tabs too
+   RE-POINTED 21 Oct 2026 (Part 8, the list head the Legora way): Parties'
+   Status box is the tab row (All · Live · Ended) and Stream · Owner · NDA are
+   added through "+ Filter" as chips; the presses below drive those controls.
 
    Run: node test/chromium/customers-verify.js */
 const fs = require('node:fs');
@@ -85,6 +88,16 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     /* the left menu's place is the desk tabs' since 17 Oct 2026 (Round 2): the page is asked of Jambo's box */ 
     const opened = await page.evaluate(() => { setView('counter'); return counterAsk('parties'); }).then(() => true, () => false);
     await page.waitForFunction(() => !!document.querySelector('[data-cu-screen="list"]'), null, { timeout: 8000 }).catch(() => {});
+    /* (Part 8) one press on the list head's own control: a Status tab, or a
+       filter added through "+ Filter" / re-chosen on its chip / × to rest */
+    const setF = (k, v) => page.evaluate(([k, v]) => {
+      const head = document.querySelector('[data-lh-seat="customers"]'); if (!head) return false;
+      if (k === 'status'){ const t = head.querySelector(`[role="tab"][data-cu-status="${v}"]`); if (t) t.click(); return !!t; }
+      if (v === 'all'){ const x = head.querySelector(`[data-lh-x="${k}"]`); if (x) x.click(); return true; }
+      const chip = head.querySelector(`select[data-lh-f="${k}"]`);
+      if (chip){ chip.value = v; chip.dispatchEvent(new Event('change', { bubbles: true })); return true; }
+      const add = head.querySelector('select[data-lh-add]'); const o = add && [...add.options].find(x => x.value === JSON.stringify([k, v]));
+      if (!o) return false; add.value = o.value; add.dispatchEvent(new Event('change', { bubbles: true })); return true; }, [k, v]);
     const readList = () => page.evaluate(() => [...document.querySelectorAll('tr[data-cu-cust]')].map(tr => ({
       key: tr.getAttribute('data-cu-cust'), sub: ((tr.querySelector('.ap-sub') || {}).textContent || '').trim(),
       cells: [...tr.querySelectorAll('td')].map(td => td.textContent.trim()) })));
@@ -94,7 +107,7 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
        party are City · Live · Ended · … (City first) */
     const live = await readList();
     ok('2a the rail door opens the list, on its live parties', opened && live.length === 2 && !live.some(r => r.key === 'siginon logistics'), `${live.length} rows`);
-    await page.evaluate(() => { const s = document.querySelector('select[data-cu-f="status"]'); s.value = 'all'; s.dispatchEvent(new Event('change', { bubbles: true })); });
+    await setF('status', 'all');
     await page.waitForFunction(() => document.querySelectorAll('tr[data-cu-cust]').length === 3, null, { timeout: 4000 }).catch(() => {});
     const list = await readList();
     const nv = list.find(r => r.key === 'naivas supermarkets');
@@ -105,7 +118,7 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     await page.waitForFunction(() => /Naivas/.test((document.querySelector('#ins-panel') || {}).textContent || ''), null, { timeout: 4000 }).catch(() => {});
     const panelText = () => page.evaluate(() => ((document.querySelector('#ins-panel') || {}).textContent || '').replace(/\s+/g, ' ').trim());
     ok('2d one press selects, and the side panel names the customer', /Naivas Supermarkets/.test(await panelText()));
-    await page.evaluate(() => { const s = document.querySelector('select[data-cu-f="owner"]'); s.value = 'Wanjiru Kamau'; s.dispatchEvent(new Event('change', { bubbles: true })); });
+    await setF('owner', 'Wanjiru Kamau');
     await page.waitForFunction(() => document.querySelectorAll('tr[data-cu-cust]').length === 1, null, { timeout: 4000 }).catch(() => {});
     const own = (await readList()).find(r => r.key === 'naivas supermarkets');
     await page.waitForFunction(() => /Naivas/.test((document.querySelector('#ins-panel') || {}).textContent || ''), null, { timeout: 4000 }).catch(() => {});
@@ -158,7 +171,7 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     const toExplorer = async key => {
       await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'parties');
       await page.waitForFunction(() => !!document.querySelector('[data-cu-screen="list"]'), null, { timeout: 8000 });
-      await page.evaluate(() => { const s = document.querySelector('select[data-cu-f="owner"]'); if (s && s.value !== 'all'){ s.value = 'all'; s.dispatchEvent(new Event('change', { bubbles: true })); } });
+      await setF('owner', 'all');
       await page.waitForFunction(k => !!document.querySelector(`tr[data-cu-cust="${k}"]`), key, { timeout: 4000 });
       await page.click(`tr[data-cu-cust="${key}"]`);
       await page.waitForFunction(() => [...document.querySelectorAll('#ins-panel button')].some(x => /Open on Explorer/.test(x.textContent)), null, { timeout: 4000 });
@@ -184,38 +197,39 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     console.log('\n5 · a refresh keeps the Customers page\'s filters');
     await page.evaluate(w => { setView('counter'); counterAsk(w); }, 'parties');
     await page.waitForFunction(() => !!document.querySelector('[data-cu-screen="list"]'), null, { timeout: 8000 });
-    await page.evaluate(id => { const s = document.querySelector('select[data-cu-f="stream"]'); s.value = id; s.dispatchEvent(new Event('change', { bubbles: true })); }, H.FOLDER_A);
-    await page.waitForTimeout(400);
+    await setF('stream', H.FOLDER_A);
+    await page.waitForFunction(id => (document.querySelector('[data-lh-seat="customers"] select[data-lh-f="stream"]') || {}).value === id, H.FOLDER_A, { timeout: 4000 }).catch(() => {});
     await page.reload({ waitUntil: 'networkidle' });
     await page.waitForFunction(() => !!document.querySelector('[data-cu-screen]'), null, { timeout: 15000 }).catch(() => {});
     const back = await page.evaluate(() => ({ screen: (document.querySelector('[data-cu-screen]') || {}).getAttribute?.('data-cu-screen'),
-      stream: (document.querySelector('select[data-cu-f="stream"]') || {}).value, rows: document.querySelectorAll('tr[data-cu-cust]').length }));
+      stream: (document.querySelector('[data-lh-seat="customers"] select[data-lh-f="stream"]') || {}).value, rows: document.querySelectorAll('tr[data-cu-cust]').length }));
     /* RE-POINTED 19 Oct 2026 (lane A2): the page opens on Live, so the stream's
        live party (Naivas) is listed and Siginon, whose one contract ended,
        waits under Status · All */
     ok('5a the list, with its stream filter still on', back.screen === 'list' && back.stream === H.FOLDER_A && back.rows === 1, JSON.stringify(back));
-    await page.evaluate(() => { const s = document.querySelector('select[data-cu-f="stream"]'); s.value = 'all'; s.dispatchEvent(new Event('change', { bubbles: true })); });
+    await setF('stream', 'all');
 
     console.log('\n6 · Contracts and Negotiations');
     for (const v of ['register', 'redline']){
       await page.evaluate(v => setView(v), v);
       await page.waitForTimeout(1200);
-      /* Contracts is Home's Contracts place since step 7: its filters sit on
-         the row under the name, just above the card (owner, 16 Oct 2026) */
+      /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way" for
+         both lists, which reverses the labelled boxes above the card and
+         beside the tabs): each page's filters are "+ Filter" and its chips,
+         on the chip row of the one list head, under the name row (and, on
+         Negotiations, under its tabs) */
       const r = await page.evaluate(() => {
-        const place = document.querySelector('[data-reg-home]');
-        if (place){ const top = place.querySelector('.ct-top'), bar = place.querySelector('.ct-filters .reg-fb');
-          const chip = bar && bar.querySelector('.reg-chip:not(.reg-chip-btn)');
-          const br = bar && bar.getBoundingClientRect(), tr = top && top.getBoundingClientRect();
-          return { one: !!(br && tr) && br.top >= tr.bottom - 1, face: chip ? chip.textContent.replace(/\s+/g, ' ').trim().slice(0, 40) : '' }; }
-        const row = document.querySelector('.reg-tabbar');
-        const tabs = row && row.querySelector('.reg-views'), bar = row && row.querySelector('.reg-fb');
-        const tr = tabs && tabs.getBoundingClientRect(), br = bar && bar.getBoundingClientRect();
-        const chip = bar && bar.querySelector('.reg-chip:not(.reg-chip-btn)');
-        return { one: !!(tr && br) && Math.abs((tr.top + tr.bottom) / 2 - (br.top + br.bottom) / 2) < 14 && br.left > tr.right,
-          face: chip ? chip.textContent.replace(/\s+/g, ' ').trim().slice(0, 40) : '' };
+        const head = document.querySelector('[data-lh-seat="contracts"], [data-lh-seat="negotiations"]');
+        const top = head && head.querySelector('.ph-top'), row = head && head.querySelector('.lh-chips');
+        const tabs = head && head.querySelector('.reg-views');
+        const add = row && row.querySelector('.lh-add');
+        const rr = row && row.getBoundingClientRect(), tr = top && top.getBoundingClientRect(), vr = tabs && tabs.getBoundingClientRect();
+        return { seat: head && head.getAttribute('data-lh-seat'), boxes: document.querySelectorAll('[data-reg-home] .reg-fb, .reg-tabbar .reg-fb').length,
+          one: !!(rr && tr) && rr.top >= tr.bottom - 1 && (!vr || rr.top >= vr.bottom - 1),
+          face: add ? add.textContent.replace(/\s+/g, ' ').trim().slice(0, 40) : '' };
       });
-      ok(`6 ${v === 'register' ? 'Contracts (the place): the filters sit on the row under the name, above the card' : 'Negotiations: the filters sit beside the tabs'}, label and value inside`, r.one && /:?\s*\S/.test(r.face), r.face);
+      ok(`6 ${v === 'register' ? 'Contracts (the place)' : 'Negotiations'}: the filters are "+ Filter" on the head's chip row, under the name${v === 'register' ? '' : ' and the tabs'}, no labelled box`,
+        r.seat === (v === 'register' ? 'contracts' : 'negotiations') && r.one && r.boxes === 0 && /\S/.test(r.face), JSON.stringify(r));
     }
     ok('no page errors', !errs.length, errs.join(' | '));
   } catch (e) {

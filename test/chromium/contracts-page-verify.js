@@ -17,6 +17,16 @@
      · a column that is gone has to be gone as PIXELS, not merely absent from
        one builder.
 
+   RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way" for
+   every list page): the Contracts place's head is the list head's white card
+   — its title row, the box to search or ask in, the views as tabs, "+ Filter"
+   and its chips (a filter appears only once it is added), Sort, Display and
+   the rest at the chip row's end — over the list's own card, whose foot is
+   "1–40 of N · Show 40 more". Sections 3c, 5, 8, 10, 12, 13, 15, 15b, 16, 17
+   and 18 asked the labelled boxes, the card head, the pager, the one search
+   box and the Ref column the pick takes away; each now asks what it
+   protected of the shape that replaced it, and says so where it stands.
+
    Run: node test/chromium/contracts-page-verify.js */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -149,9 +159,11 @@ const check = (name, ok, detail) => {
       heads: [...document.querySelectorAll('.reg-table thead th')]
         .map(t => t.textContent.replace(/[▲▼↕⇅]/g, '').trim()),
       tick: !!document.querySelector('tr[data-row] .reg-tick'),
-      streamChip: (() => { const s = document.getElementById('reg-type-sel');
-        const chip = s && s.closest('.reg-chip'); if (!chip) return null;
-        const r = chip.getBoundingClientRect(); return { w: Math.round(r.width), opts: s.options.length }; })(),
+      /* RE-POINTED 21 Oct 2026 (Part 8): the Stream filter is a "+ Filter"
+         choice now, its streams under its own heading */
+      streamChip: (() => { const g = document.querySelector('[data-lh-seat="contracts"] select[data-lh-add] optgroup[label="Stream"]');
+        const add = g && g.closest('.lh-add'); if (!g || !add) return null;
+        const r = add.getBoundingClientRect(); return { w: Math.round(r.width), opts: g.querySelectorAll('option').length }; })(),
       linkCells: document.querySelectorAll('tr[data-row] .share-dot, tr[data-row] [data-share-dot]').length,
     }));
     /* ---- 3a–3c REVERSED IN PLACE 24 Sep 2026 (Young: "Remove the value
@@ -162,8 +174,8 @@ const check = (name, ok, detail) => {
     check('3a the value stream is no longer a column',
       !cols.heads.some(x => /value stream|affärsområde|värdeflöde/i.test(x)), cols.heads.join(' · '));
     check('3b and no row draws its stream tick', !cols.tick);
-    check('3c CONTROL the Stream filter is still on the bar, with its streams to pick',
-      !!cols.streamChip && cols.streamChip.w > 0 && cols.streamChip.opts > 1, JSON.stringify(cols.streamChip));
+    check('3c CONTROL the Stream filter is still offered (under + Filter), with its streams to pick',
+      !!cols.streamChip && cols.streamChip.w > 0 && cols.streamChip.opts >= 1, JSON.stringify(cols.streamChip));
     check('3d the LINK column is gone from this table',
       !cols.heads.some(x => /^link$|^länk$/i.test(x)), cols.heads.join(' · '));
 
@@ -185,41 +197,44 @@ const check = (name, ok, detail) => {
     await page.keyboard.press('Escape');
     await page.waitForTimeout(300);
 
-    /* ============ 5. A FILTER SAYS WHAT IT FILTERS ============ */
-    const filters = await page.evaluate(() => {
-      const ls = [...document.querySelectorAll('.reg-f')];
-      return {
-        n: ls.length,
-        labelled: ls.filter(l => (l.querySelector('.reg-f-l') || {}).textContent).length,
-        /* THE LABEL'S TEXT, not any box. Two drafts measured boxes and both
-           reported the SEARCH filter's legitimate 300px column: .reg-f is the
-           control's width, and .reg-f-l is a block that FILLS it. A claim about
-           a label being a sentence is a claim about its words. */
-        widest: Math.max(...ls.map(l => {
-          const t = l.querySelector('.reg-f-l');
-          return t ? t.textContent.trim().length : 0; })),
-        texts: ls.map(l => (l.querySelector('.reg-f-l') || {}).textContent),
-        /* the bar must not have been pushed onto a second row by a long label */
-        /* RE-POINTED 9 Oct 2026 (SAP benchmark): the filters are the band's
-           labelled boxes; Sort is an icon on the list's own head. */
-        oneRow: new Set(ls.filter(l => l.closest('.reg-fb')).map(l => Math.round(l.getBoundingClientRect().top))).size,
-      };
+    /* ============ 5. A FILTER SAYS WHAT IT FILTERS ============
+       RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way"): a
+       filter is no longer a labelled box standing at rest — "+ Filter" offers
+       each one under its own heading, and a chosen one stands as a chip,
+       "Label value ×". The claims are the same ones: every filter says what
+       it is, no label is a sentence, and the chosen ones sit on one row. */
+    const filters = await page.evaluate(async () => {
+      const head = document.querySelector('[data-lh-seat="contracts"]');
+      const add = head && head.querySelector('select[data-lh-add]');
+      const groups = add ? [...add.querySelectorAll('optgroup')].map(g => g.label) : [];
+      /* two filters chosen through "+ Filter" itself: the first choice of the first two groups */
+      const firstOf = i => { const g = add && add.querySelectorAll('optgroup')[i]; const o = g && g.querySelector('option'); return o ? o.value : null; };
+      for (const i of [0, 1]){
+        const sel = document.querySelector('[data-lh-seat="contracts"] select[data-lh-add]');
+        const v = firstOf(i); if (!sel || !v) continue;
+        sel.value = v; sel.dispatchEvent(new Event('change', { bubbles: true }));
+        await new Promise(r => setTimeout(r, 400));
+      }
+      const chips = [...document.querySelectorAll('[data-lh-seat="contracts"] .lh-chip')];
+      const out = { n: groups.length, groups,
+        labelled: groups.filter(g => g && g.trim()).length,
+        widest: Math.max(0, ...groups.map(g => g.trim().length)),
+        chips: chips.map(c => c.querySelector('label').textContent.replace(/\s+/g, ' ').trim()),
+        oneRow: new Set(chips.map(c => Math.round(c.getBoundingClientRect().top))).size };
+      chips.forEach(() => { const x = document.querySelector('[data-lh-seat="contracts"] .lh-chip [data-lh-x]'); if (x) x.click(); });
+      await new Promise(r => setTimeout(r, 400));
+      return out;
     });
-    /* FOUR labelled controls since 20 Sep 2026 (the redesign order): the quick
-       filters became a tab row above the bar and the density a segmented
-       control, neither of which is a .reg-f. The claim — every labelled filter
-       really shows its label — is unchanged. */
-    check('5a every filter carries a visible label',
-      filters.n >= 4 && filters.labelled === filters.n, `${filters.labelled}/${filters.n}`);
+    check('5a every filter "+ Filter" offers carries its label',
+      filters.n >= 4 && filters.labelled === filters.n, `${filters.labelled}/${filters.n}: ${filters.groups.join(' | ')}`);
     /* The fault this guards: the quick-filter dropdown's own sentence — 57
        characters — used as a LABEL, which ran to 460px and pushed the bar off
-       its row. The sentence is the tooltip now. (That control read "Saved
-       views" until 9 Sep 2026 and is "Quick filters"; the claim is about
-       LENGTH, so it costs nothing when a label is renamed.) */
+       its row. The claim is about LENGTH, so it costs nothing when a label is
+       renamed. */
     check('5b no label is a sentence — the long one stays a tooltip',
       filters.widest <= 24, `longest label ${filters.widest} chars`);
-    check('5c and they sit on one row at 1440', filters.oneRow === 1,
-      `${filters.oneRow} rows: ${filters.texts.join(' | ')}`);
+    check('5c and the chosen filters stand as chips on one row at 1440', filters.chips.length === 2 && filters.oneRow === 1,
+      `${filters.oneRow} rows: ${filters.chips.join(' | ')}`);
 
     /* ============ 6. THE PAGE STILL WORKS ============ */
     /* A row press must still open the contract — the verb's whole job. */
@@ -260,67 +275,56 @@ const check = (name, ok, detail) => {
       check('7a with nothing live it draws its empty card, not a bare table', neg.empty);
     }
 
-    /* ============ 8. THE FILTERS SIT ON THE LIST'S OWN CARD ============
-       REVERSED IN PLACE 26 Sep 2026 (Young picked the list Inspector drawing,
-       option 3 of "Contract List Options"): the drawing puts the page's name,
-       its facts line and the views on the PAGE GROUND, and the filter bar
-       INSIDE the list's own white card as its top row — the tools that narrow
-       a table sit on that table. That reverses the white band of 24–25 Aug
-       ("make it one card"), whose four claims stood here. Its point survives
-       in the new shape and is what is asked now: the filters and the rows
-       they narrow are ONE card, with no seam between them, and the card sits
-       on the page's own inset, level with the page's name. */
+    /* ============ 8. THE FILTERS SIT ON THE LIST HEAD'S OWN CARD ============
+       RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way"): the
+       drawing puts the page's name, the box, the views and the filters in ONE
+       white card — the list head — and the rows in a second card under it,
+       the page's own gap between them. That reverses 26 Sep's "the filter bar
+       is the list card's top row". What it protected stands: the tools that
+       narrow the list sit together on one white card, the list's card follows
+       at the page's own gap with no seam of its own, and the two cards share
+       one edge, level with each other. */
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
     await page.waitForTimeout(1500);
     const band = await page.evaluate(() => {
       const box = s => { const e = document.querySelector(s); if (!e) return null;
         const r = e.getBoundingClientRect(), c = getComputedStyle(e);
         return { top: Math.round(r.top), bottom: Math.round(r.bottom),
-          left: Math.round(r.left), w: Math.round(r.width), bg: c.backgroundColor }; };
+          left: Math.round(r.left), right: Math.round(r.right), w: Math.round(r.width), bg: c.backgroundColor }; };
       const paint = v => { const d = document.createElement('div'); d.style.background = 'var(' + v + ')';
         document.body.appendChild(d); const c = getComputedStyle(d).backgroundColor; d.remove(); return c; };
-      const f = [...document.querySelectorAll('.reg-f')];
-      /* RE-POINTED 15 Oct 2026 (step 7): the Contracts page is Home's
-         Contracts place; its name is the place head's own (.ct-h) and the
-         page's white band is that head (.ct-head), not Home's #page-head. */
-      const h1 = document.querySelector('.ct-head .ct-h') || document.querySelector('#page-head h1');
-      const range = h1 ? (() => { const r = document.createRange(); r.selectNodeContents(h1); return r.getBoundingClientRect(); })() : null;
-      return { head: box('.ct-head') || box('#page-head'), band: box('.reg-band'), body: box('.reg-table'),
-        card: box('.reg-card'), bar: box('.reg-card > .reg-filterbar'),
+      const gap = (() => { const d = document.createElement('div'); d.style.height = 'var(--s-3)'; document.body.appendChild(d);
+        const h = Math.round(d.getBoundingClientRect().height); d.remove(); return h; })();
+      const chips = document.querySelector('[data-lh-seat="contracts"] .lh-chips');
+      const kids = chips ? [...chips.children].filter(e => e.getBoundingClientRect().width > 0) : [];
+      return { head: box('[data-reg-home] .ct-head'), card: box('.reg-card'), chips: box('[data-lh-seat="contracts"] .lh-chips'),
+        body: box('.reg-table'), gap,
+        inHead: !!(chips && chips.closest('.ct-head')),
         surface: paint('--color-surface'), ground: paint('--color-bg'),
-        titleLeft: range ? Math.round(range.left) : null,
-        first: f.length ? (f[0].querySelector('.reg-f-l') || {}).textContent : null,
-        tops: f.filter(x => x.closest('.reg-fb')).map(x => Math.round(x.getBoundingClientRect().top)),
-        search: !!document.querySelector('.reg-f #reg-search') };
+        box: !!document.querySelector('[data-lh-seat="contracts"] input[type="search"][data-lh-q]'),
+        search: !!document.querySelector('#reg-search'),
+        tops: kids.map(e => Math.round(e.getBoundingClientRect().top + e.getBoundingClientRect().height / 2)) };
     });
-    check('8a the filter bar is the top row of the list\'s own white card',
-      !!band.bar && !!band.card && Math.abs(band.bar.top - band.card.top) <= 1 && band.card.bg === band.surface,
-      band.card ? `card ${band.card.bg} (surface ${band.surface}) · bar at ${band.bar && band.bar.top}, card at ${band.card.top}` : 'no card');
-    const clear = c => c === 'rgba(0, 0, 0, 0)' || c === 'transparent' || c === band.ground;
-    /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner-approved): the page's name,
-       its filters and its views are ONE white band again, edge to edge. */
-    check('8b the page name, its filters and its views sit on one white band',
-      !!band.head && !!band.band && band.head.bg === band.surface && band.band.bg === band.surface,
-      `head ${band.head && band.head.bg} · band ${band.band && band.band.bg} · surface ${band.surface}`);
-    /* NO SEAM BETWEEN THE FILTERS AND THE ROWS THEY NARROW — the old band's
-       point, asked of the one card that now carries both. */
-    check('8c and there is no seam between the filters and the rows they narrow',
-      !!band.bar && !!band.body && band.body.top - band.bar.bottom <= 1,
-      band.bar && band.body ? `bar ends ${band.bar.bottom}, table starts ${band.body.top}` : 'missing');
-    check('8d the card sits on the page\'s own inset, level with the page\'s name',
-      !!band.card && band.titleLeft != null && Math.abs(band.card.left - band.titleLeft) <= 1,
-      `card ${band.card && band.card.left} · name ${band.titleLeft}`);
-
-    /* ---- REVERSED IN PLACE 31 Aug 2026 (N-3) ----
-       This asserted that search was the row's FIRST labelled filter rather than
-       a strip of its own, which was WO-4's correction. The owner has since
-       removed the box from this page as well as from Negotiations — the shell
-       bar carries the one search — so what is left to claim is that no strip
-       came back in its place and the row begins with a real filter. */
-    check('8e no search strip on the row — the shell bar carries the one search',
-      !band.search && !!band.first && !/search|sök/i.test(band.first || ''), band.first);
-    check('8f and every filter shares one row',
-      new Set(band.tops).size === 1, JSON.stringify(band.tops));
+    check('8a the filters sit on the list head\'s own white card',
+      !!band.head && !!band.chips && band.inHead && band.head.bg === band.surface,
+      band.head ? `head ${band.head.bg} (surface ${band.surface}) · chips in the head ${band.inHead}` : 'no head');
+    check('8b the page name, the box, its views and its filters sit on one white card',
+      !!band.head && band.head.bg === band.surface && band.head.bg !== band.ground,
+      `head ${band.head && band.head.bg} · surface ${band.surface} · ground ${band.ground}`);
+    check('8c and the list\'s own card follows at the page\'s gap, its table at its top',
+      !!band.head && !!band.card && !!band.body && Math.abs((band.card.top - band.head.bottom) - band.gap) <= 2 && band.body.top - band.card.top <= 2,
+      band.card ? `head ends ${band.head.bottom}, card starts ${band.card.top} (gap ${band.gap}), table at ${band.body.top}` : 'missing');
+    check('8d the two cards share one edge, level with each other',
+      !!band.card && !!band.head && Math.abs(band.card.left - band.head.left) <= 1 && Math.abs(band.card.right - band.head.right) <= 1,
+      `card ${band.card && band.card.left}–${band.card && band.card.right} · head ${band.head && band.head.left}–${band.head && band.head.right}`);
+    /* ---- RE-POINTED AGAIN 21 Oct 2026 (Q1, "keep both boxes"): the page
+       draws ONE box of its own again, under its title — the list head's, to
+       search or ask in — and the shell bar keeps its own; the old full-text
+       strip (#reg-search) does not come back. */
+    check('8e one box under the title, the list head\'s; no full-text strip on the row',
+      band.box && !band.search, JSON.stringify({ box: band.box, strip: band.search }));
+    check('8f and "+ Filter" and the tools at its end share one row',
+      band.tops.length > 0 && Math.max(...band.tops) - Math.min(...band.tops) <= 4, JSON.stringify(band.tops));
 
     /* ============ 9. THE BAND DOES NOT LEAK TO OTHER PAGES ============ */
     /* #page-head is the SHELL's element and is painted from this view's own
@@ -380,18 +384,24 @@ const check = (name, ok, detail) => {
         sideways: sc.scrollWidth - sc.clientWidth,
         first: ((document.querySelector('#reg-tbody tr td') || {}).textContent || '').trim() };
     })()`;
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way"): the
+       numbered pager is "Show 40 more" now, so the list does not turn, it
+       GROWS — forty rows, eighty, a hundred and twenty, then the rest, the
+       short names first and the long ones after. The claim is the owner's
+       one: the columns never move while the rows change. */
     const pages = [];
     for (const n of [1, 2, 3, 4]){
       if (n > 1){
-        await page.evaluate(k => { const b = [...document.querySelectorAll('#reg-pager button')]
-          .find(x => x.textContent.trim() === String(k)); b && b.click(); }, n);
+        await page.evaluate(() => { const b = document.querySelector('[data-lh-more="contracts"]'); b && b.click(); });
         await page.waitForTimeout(900);
       }
-      pages.push(await page.evaluate(READ));
+      pages.push(await page.evaluate(`(() => { const r = ${READ}; if (r) { r.rows = document.querySelectorAll('#reg-tbody tr[data-row]').length;
+        r.last = ((document.querySelector('#reg-tbody tr[data-row]:last-child td') || {}).textContent || '').trim(); } return r; })()`));
     }
-    check('10a the fixture really turns the page, so the claim can fail',
-      new Set(pages.map(p => p.first)).size === 4, pages.map(p => p.first).join(' · '));
-    check('10b every column is the same width on every page',
+    check('10a the fixture really grows the list, the long names drawn by the end, so the claim can fail',
+      new Set(pages.map(p => p.rows)).size === 4 && /Naivas Supermarkets Kenya Limited/.test(pages[3].last) && !/Naivas/.test(pages[0].last),
+      pages.map(p => p.rows + ':' + p.last.slice(0, 24)).join(' · '));
+    check('10b every column is the same width however many rows are drawn',
       pages.every(p => String(p.w) === String(pages[0].w)),
       pages.map(p => p.w.join(',')).join('  |  '));
     check('10c and it is a guarantee — the table lays out fixed',
@@ -446,60 +456,12 @@ const check = (name, ok, detail) => {
     else await page.evaluate(() => window.langSet('en'));
     await page.waitForTimeout(1200);
 
-    /* ---- 12 · THE FILTER OUTLINE IS THE REFERENCE'S (owner-asked 25 Aug 2026:
-       "Check the demo html and how the outline of the filters in the list of
-       contracts both in the contracts and negotiations pages look like. Apply
-       the same design.") ----
-       The reference draws a list report's filters on `--field-line`, a strong
-       neutral, and keeps the accent for the ACTIVE one alone. THIS REVERSES the
-       day before, when the filters were given the BUTTON'S accent edge on the
-       owner's earlier ask that the two look alike.
-       IN A BROWSER, and as RELATIONS rather than typed colours, because what is
-       being claimed is that three controls differ from each other in the right
-       directions — a literal would pass on a page where all three had drifted
-       together. */
-    const READ_EDGES = () => {
-      /* THE FILTER IS A CHIP (second pass, 21 Sep 2026): the edge is the
-         pill's, the ink and the weight are the control's own.
-
-         RE-POINTED IN PLACE 21 Sep 2026 — THE INK IS READ OFF THE FACE, NOT
-         OFF THE CONTROL. The <select> became an invisible overlay across the
-         whole chip that day, because a press on the word used to open nothing;
-         what a READER sees is the chip's own `.reg-f-l`. Asking the control
-         for its colour now answers rgba(0,0,0,0) — true, and about a box
-         nobody can see. The claim was always "the active filter says so in
-         ink", and the face is where that ink is. */
-      /* RE-POINTED 9 Oct 2026 (SAP benchmark): in the band a filter is a label
-         over a BOX (.reg-f-v); the box carries the edge, the corner, the ink
-         and the weight. The claims are the same ones, asked of the box. */
-      const g = e => { if (!e) return null;
-        const chip = e.closest && e.closest('.reg-chip');
-        const vbox = chip && chip.querySelector('.reg-f-v');
-        const shown = vbox && getComputedStyle(vbox).display !== 'none' ? vbox : null;
-        const cs = getComputedStyle(shown || chip || e);
-        /* RE-POINTED 10 Oct 2026 (owner: filters beside the tabs): beside the
-           tabs the label sits INSIDE the box, so the chip itself carries the
-           edge and the corner; the value inside still carries ink and weight. */
-        const es = (chip && chip.closest('.reg-tabbar')) ? getComputedStyle(chip) : cs;
-        const face = shown || (chip && chip.querySelector('.reg-f-l'));
-        const fs = getComputedStyle(face || chip || e);
-        return { bc: es.borderTopColor, fg: fs.color, fw: cs.fontWeight, r: es.borderTopLeftRadius }; };
-      const btn = [...document.querySelectorAll('.ui-btn')]
-        .filter(b => b.getBoundingClientRect().width > 0)
-        .find(b => !b.classList.contains('ui-btn-primary'));
-      const root = getComputedStyle(document.documentElement);
-      /* RE-POINTED 9 Oct 2026 (owner: stage tabs like Negotiations): the stage is
-         the tab row now, so the resting box asked is the quick-filters box. */
-      return { stage: g(document.getElementById('reg-view-sel')),
-        type: g(document.getElementById('reg-type-sel')),
-        search: g(document.getElementById('reg-search')),
-        button: btn ? g(btn) : null,
-        fieldLine: root.getPropertyValue('--field-line').trim(),
-        btnEdge: root.getPropertyValue('--btn-edge').trim() };
-    };
-    /* A resolved token vs a computed colour are different spellings of one
-       value, so the comparison is made by painting the token on a probe and
-       reading THAT back — the same trick panel-alerts uses for the body ink. */
+    /* ---- 12 · THE FILTER OUTLINE IS THE REFERENCE'S (owner-asked 25 Aug 2026)
+       RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way"): no
+       filter stands at rest any more. What is at rest is "+ Filter" — the
+       hairline, dashed, the accent ink, as drawn — and a filter chosen
+       stands as a chip in the hairline with its value at the strong weight.
+       Asked as RELATIONS against the tokens, as before. */
     const RESOLVE = tok => {
       const d = document.createElement('div');
       d.style.borderTop = '1px solid var(' + tok + ')';
@@ -507,135 +469,94 @@ const check = (name, ok, detail) => {
       const v = getComputedStyle(d).borderTopColor;
       d.remove(); return v;
     };
-    await page.evaluate(() => { const R = regState(); R.stage = 'all'; R.type = 'all'; regRepaint(); });
+    const INK = tok => { const d = document.createElement('div'); d.style.color = 'var(' + tok + ')'; document.body.appendChild(d);
+      const v = getComputedStyle(d).color; d.remove(); return v; };
+    await page.evaluate(() => { const R = regState(); R.stage = 'all'; R.type = 'all'; R.view = null; regRepaint(); });
     await page.waitForTimeout(900);
-    const rest = await page.evaluate(READ_EDGES);
-    const fieldLine = await page.evaluate(RESOLVE, '--field-line');
-    /* RE-POINTED 31 Aug 2026 (N-3): the search box was one of the three
-       controls this walked, and the page draws none now. The CLAIM is the one
-       it always made — every filter control on the row wears --field-line —
-       and it is asked of the controls that are still there. */
-    /* RE-POINTED (21 Sep 2026): a resting chip wears the redesign's hairline,
-       --rule-strong, and what tells it from a button is its PILL shape. */
-    /* RE-POINTED IN PLACE 26 Sep 2026 (the three button fixes, Young: "some
-       buttons have dark outlines when the common approach is a light grey
-       outline"): every outlined control reads ONE edge token, --btn-edge,
-       which is the light grey by day — the chips included. The variable
-       keeps its old name so 12d and 12e below read the same resting edge. */
-    /* RE-POINTED 12 Oct 2026 (the SAP way): buttons wear the accent edge
-       now, so a filter's RESTING hairline has its own token, --chip-edge —
-       the accent is what says a filter is in force. */
-    const ruleStrong = await page.evaluate(RESOLVE, '--chip-edge');
-    check('12a a resting filter wears the hairline, the redesign\'s own neutral',
-      rest.stage && rest.stage.bc === ruleStrong && rest.type.bc === ruleStrong,
-      `${rest.stage && rest.stage.bc} · token ${ruleStrong}`);
+    const ADD = () => { const a = document.querySelector('[data-lh-seat="contracts"] .lh-add'); if (!a) return null;
+      const c = getComputedStyle(a); return { bc: c.borderTopColor, bs: c.borderTopStyle, fg: c.color, r: c.borderTopLeftRadius }; };
+    const rest = await page.evaluate(ADD);
+    const ruleStrong = await page.evaluate(RESOLVE, '--rule-strong');
+    check('12a "+ Filter" at rest wears the hairline, dashed, as drawn',
+      !!rest && rest.bc === ruleStrong && rest.bs === 'dashed', rest ? `${rest.bc} ${rest.bs} · token ${ruleStrong}` : 'no + Filter');
     check('12a2 …and the search box it used to walk is gone from the row',
-      rest.search === null, rest.search ? 'still drawn' : 'not drawn');
-    /* COMPARED AGAINST THE TOKEN, NOT A LIVE BUTTON: this page draws only the
-       FILLED primary, which has an edge of its own, so a live comparison here
-       reads `null` and proves nothing. The tokens are what the two controls
-       actually read. */
+      !(await page.evaluate(() => !!document.getElementById('reg-search'))), 'not drawn');
     const btnEdge = await page.evaluate(RESOLVE, '--btn-edge');
-    /* RE-POINTED 7 Oct 2026 (Young, off the HaTi Platform mockup): the filter
-       chips took the mockup's soft corners — the control radius, --radius —
-       and the caret is what says it opens a list. */
     const ctlRadius = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--radius').trim());
     check('12b and it wears the soft control corner, as the mockup draws it',
-      parseFloat(rest.stage.r) === parseFloat(ctlRadius), `radius ${rest.stage.r} vs --radius ${ctlRadius}`);
+      !!rest && parseFloat(rest.r) === parseFloat(ctlRadius), `radius ${rest && rest.r} vs --radius ${ctlRadius}`);
     check('12c the button\'s own edge is a real colour',
       /^(rgba?|color)\(/.test(btnEdge), btnEdge);
-
-    /* THE ACTIVE ONE IS THE POINT OF THE CONTROL, and with the resting edge
-       neutral it is the only thing saying the list is narrowed. Three carriers,
-       so colour is never the only one. */
-    /* RE-POINTED 9 Oct 2026: the box asked is the quick filters, so it is that
-       box that is put in force (the stage is a tab row now). */
-    await page.evaluate(() => { const R = regState(); R.view = 'expiring90'; regRepaint(); });
+    /* A FILTER IN FORCE SAYS SO: a chip, its value at the strong weight beside
+       its label, its edge the chip's hairline */
+    await page.evaluate(() => { LH_PAGES.contracts.apply({ stage: 'Signed' }); });
     await page.waitForTimeout(900);
-    const act = await page.evaluate(READ_EDGES);
-    check('12d an active filter takes the accent border, a heavier weight and accent ink',
-      act.stage && act.stage.bc !== ruleStrong
-        && Number(act.stage.fw) > Number(rest.stage.fw)
-        && act.stage.fg !== rest.stage.fg,
-      JSON.stringify(act.stage));
-    check('12e and the filters beside it stay resting, so the narrowing is legible',
-      act.type && act.type.bc === ruleStrong, act.type && act.type.bc);
-
-    /* RE-POINTED 20 Oct 2026 (the owner picked "Chambers" and removed dark
-       mode: "Let's not implement the dark theme. Remove it from HaTi."). The
-       night pass is gone with the night; what it protected — the active
-       filter says so in the accent INK token, and a resting one in the
-       hairline — is asked of the one look HaTi has. */
-    const accentInk = await page.evaluate(RESOLVE, '--accent-ink');
-    check('12f the active filter\'s ink is the accent ink token, --accent-ink',
-      act.stage && act.stage.fg === accentInk,
-      `active ${act.stage && act.stage.fg} · token ${accentInk}`);
-    check('12f and a resting filter wears the hairline, --chip-edge reading --rule-strong',
-      act.type && act.type.bc === await page.evaluate(RESOLVE, '--chip-edge') && act.type.bc === await page.evaluate(RESOLVE, '--rule-strong'),
-      act.type && act.type.bc);
+    const act = await page.evaluate(() => { const c = document.querySelector('[data-lh-seat="contracts"] .lh-chip'); if (!c) return null;
+      const l = c.querySelector('label'), b = l && l.querySelector('b'), cs = getComputedStyle(c);
+      return { bc: cs.borderTopColor, lw: Number(getComputedStyle(l).fontWeight), bw: b ? Number(getComputedStyle(b).fontWeight) : null,
+        lfg: getComputedStyle(l).color, bfg: b ? getComputedStyle(b).color : null }; });
+    const actAdd = await page.evaluate(ADD);
+    const chipEdge = await page.evaluate(RESOLVE, '--chip-edge');
+    check('12d a filter in force stands as a chip, its value at a heavier weight and a darker ink than its label',
+      !!act && act.bw > act.lw && act.bfg !== act.lfg, JSON.stringify(act));
+    check('12e and "+ Filter" beside it stays resting, so the narrowing is legible',
+      !!actAdd && actAdd.bc === ruleStrong && actAdd.bs === 'dashed', actAdd && `${actAdd.bc} ${actAdd.bs}`);
+    /* RE-POINTED 20 Oct 2026 (Chambers, no dark mode) and 21 Oct 2026 (Part 8) */
+    const accentInk = await page.evaluate(INK, '--accent-ink');
+    check('12f "+ Filter"\'s ink is the accent ink token, --accent-ink, as drawn',
+      !!actAdd && actAdd.fg === accentInk, `+ Filter ${actAdd && actAdd.fg} · token ${accentInk}`);
+    check('12f and the chip wears the hairline, --chip-edge reading --rule-strong',
+      !!act && act.bc === chipEdge && chipEdge === ruleStrong, act && act.bc);
     const night = await page.evaluate(() => ({ dark: document.documentElement.classList.contains('dark'),
       fns: ['setTheme', 'setDark', 'toggleTheme', 'toggleDark'].filter(n => typeof window[n] === 'function') }));
     check('12g no night look is left to switch to', !night.dark && night.fns.length === 0, JSON.stringify(night));
     await page.evaluate(() => { const R = regState(); R.stage = 'all'; R.view = null; regRepaint(); });
     await page.waitForTimeout(1000);
 
-    /* ---- 13 · ALL SIX FILTERS ARE ONE SHAPE (owner-asked 25 Aug 2026: "stack
-       Sort's label like the other five") ----
-       Sort carried its word BESIDE the box while the other five carry theirs
-       ABOVE it. Word-plus-box on one line is wider than word-above-box, which
-       made Sort the widest item on the row and the first to drop to a second
-       line. It goes through selFilter now — the SAME builder as the other five,
-       rather than being restyled to match, because one builder is what stops
-       them drifting apart again.
-       EVERY CLAIM IS A RELATION between them, never a number: what is being
-       asserted is that they agree with each other, which is exactly what a
-       later type or spacing pass must not be allowed to break.
-
-       FIVE SINCE 31 Aug 2026 (N-3), not six: the search box was one of them and
-       the owner has taken it off this page too. The relations are unchanged and
-       the list is what moved, which is why this is re-pointed rather than
-       weakened — a control removed must leave the rest agreeing. */
-    const six = await page.evaluate(() => {
-      /* FOUR SINCE 20 Sep 2026 (the redesign order): the quick filters are a
-         tab row above the bar (.reg-views), not a labelled select on it. */
-      /* RE-POINTED 9 Oct 2026 (SAP benchmark): the three in the band share one
-         shape; Sort became an icon on the list's head and is asked below. */
-      /* RE-POINTED 9 Oct 2026 (owner's pick): the stages are the tab row and
-         the quick filters a box in the band. RE-POINTED 16 Oct 2026 (owner:
-         "take the status choices and put them in a dropdown as well"): on the
-         place the stages are the Stage box, the first of the four. */
-      const ids = ['reg-stage-sel', 'reg-type-sel', 'reg-category', 'reg-view-sel'];
-      return ids.map(id => {
-        const e = document.getElementById(id);
-        if (!e) return { id, absent: true };
-        const l = e.closest('label'), lab = l && l.querySelector('.reg-f-l');
-        const r = e.getBoundingClientRect(), lr = lab && lab.getBoundingClientRect();
-        const g = lab && getComputedStyle(lab);
-        return { id, stacked: !!(l && l.classList.contains('reg-f')),
-          label: lab ? lab.textContent.trim() : null,
-          boxTop: Math.round(r.top), labelTop: lr ? Math.round(lr.top) : null,
-          size: g ? g.fontSize : null, color: g ? g.color : null };
+    /* ---- 13 · EVERY FILTER IS ONE SHAPE (owner-asked 25 Aug 2026)
+       RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way"): a
+       filter is a chip once it is added — "Label value ×", from ONE builder
+       (lhChipHtml) — so the claims are asked of chips: the filters are all
+       offered, the stages are a filter and never a tab row, every chip says
+       its label before its value, and they share one row, one size and one
+       ink. EVERY CLAIM IS A RELATION between them, never a number. */
+    const six = await page.evaluate(async () => {
+      const add = document.querySelector('[data-lh-seat="contracts"] select[data-lh-add]');
+      const groups = add ? [...add.querySelectorAll('optgroup')].map(g => g.label) : [];
+      /* three chosen: Stage, Stream and Category's first choices */
+      for (const k of ['Stage', 'Stream', 'Category']){
+        const sel = document.querySelector('[data-lh-seat="contracts"] select[data-lh-add]');
+        const o = sel && sel.querySelector(`optgroup[label="${k}"] option`); if (!o) continue;
+        sel.value = o.value; sel.dispatchEvent(new Event('change', { bubbles: true }));
+        await new Promise(r => setTimeout(r, 400));
+      }
+      const chips = [...document.querySelectorAll('[data-lh-seat="contracts"] .lh-chip')].map(c => {
+        const l = c.querySelector('label'), b = l && l.querySelector('b');
+        const word = l ? [...l.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim() : '';
+        const r = c.getBoundingClientRect(), g = l && getComputedStyle(l);
+        return { word, value: b ? b.textContent.trim() : '', wordFirst: !!(l && b && l.textContent.indexOf(word) < l.textContent.indexOf(b.textContent)),
+          top: Math.round(r.top), h: Math.round(r.height), size: g ? g.fontSize : null, color: g ? g.color : null };
       });
+      return { groups, chips };
     });
-    check('13a all four filters are present, the stages a box and no tab row',
-      six.every(f => !f.absent) && (await page.evaluate(() => !document.querySelector('[data-reg-home] [data-reg-stage]'))),
-      six.filter(f => f.absent).map(f => f.id).join(',') || 'all four, no tabs');
+    check('13a every filter is offered under + Filter, the stages among them, and no stage tab row',
+      ['Stage', 'Stream', 'Category'].every(k => six.groups.includes(k)) && (await page.evaluate(() => !document.querySelector('[data-reg-home] [data-reg-stage]'))),
+      six.groups.join(' · '));
     check('13a2 and the search box is not among them any more',
-      !six.some(f => f.id === 'reg-search')
-        && !(await page.evaluate(() => !!document.getElementById('reg-search'))),
-      'not drawn');
-    check('13b every one of them stacks its label, Sort included',
-      six.every(f => f.stacked), six.filter(f => !f.stacked).map(f => f.id).join(','));
+      !(await page.evaluate(() => !!document.getElementById('reg-search'))), 'not drawn');
+    check('13b every chip says its label before its value',
+      six.chips.length === 3 && six.chips.every(c => c.wordFirst), JSON.stringify(six.chips.map(c => c.word + ' ' + c.value)));
     check('13c every one of them SAYS what it is — no filter named only by a tooltip',
-      six.every(f => f.label && f.label.length > 1),
-      six.map(f => f.id + ':' + f.label).join(' · '));
-    check('13d their labels sit on one line and their boxes on another — one row, not two treatments',
-      new Set(six.map(f => f.labelTop)).size === 1
-        && new Set(six.map(f => f.boxTop)).size === 1,
-      `labels ${[...new Set(six.map(f => f.labelTop))].join('/')} · boxes ${[...new Set(six.map(f => f.boxTop))].join('/')}`);
+      six.chips.every(c => c.word && c.word.length > 1),
+      six.chips.map(c => c.word).join(' · '));
+    check('13d they share one row and one height — one treatment',
+      six.chips.length > 0 && new Set(six.chips.map(c => c.top)).size === 1 && new Set(six.chips.map(c => c.h)).size === 1,
+      `tops ${[...new Set(six.chips.map(c => c.top))].join('/')} · heights ${[...new Set(six.chips.map(c => c.h))].join('/')}`);
     check('13e and the labels are one size and one ink',
-      new Set(six.map(f => f.size)).size === 1 && new Set(six.map(f => f.color)).size === 1,
-      `${[...new Set(six.map(f => f.size))].join('/')} · ${[...new Set(six.map(f => f.color))].join('/')}`);
+      new Set(six.chips.map(c => c.size)).size === 1 && new Set(six.chips.map(c => c.color)).size === 1,
+      `${[...new Set(six.chips.map(c => c.size))].join('/')} · ${[...new Set(six.chips.map(c => c.color))].join('/')}`);
+    await page.evaluate(() => { const R = regState(); R.stage = 'all'; R.type = 'all'; R.category = 'all'; regRepaint(); });
+    await page.waitForTimeout(700);
     /* AND IT STILL SORTS — a control restyled into silence is the worse fault. */
     const sortWorks = await page.evaluate(async () => {
       const before = [...document.querySelectorAll('#reg-tbody tr[data-row]')]
@@ -655,12 +576,14 @@ const check = (name, ok, detail) => {
        marks "this is narrowing your list", and sorting narrows nothing. */
     /* RE-POINTED 9 Oct 2026 (SAP benchmark): Sort is an icon on the list's
        own head, never a box among the filters — so it cannot be dressed as one. */
+    /* RE-POINTED 21 Oct 2026 (Part 8): the list's own card head is gone; Sort
+       stands at the list head's chip row's end, never a chip among the filters */
     const sortInk = await page.evaluate(() => {
       const s = document.getElementById('reg-sort');
-      return { inBand: !!(s && s.closest('.reg-fb')), onHead: !!(s && s.closest('.reg-cardhead')) };
+      return { inChip: !!(s && s.closest('.lh-chip')), atEnd: !!(s && s.closest('[data-lh-seat="contracts"] .lh-chips .ngl-tools')) };
     });
-    check('13g and Sort sits on the list\'s head, not among the filters',
-      !sortInk.inBand && sortInk.onHead, JSON.stringify(sortInk));
+    check('13g and Sort sits at the chip row\'s end, not among the filters',
+      !sortInk.inChip && sortInk.atEnd, JSON.stringify(sortInk));
     await page.evaluate(() => { const R = regState(); R.sort = 'updated'; regRepaint(); });
     await page.waitForTimeout(700);
 
@@ -879,10 +802,13 @@ const check = (name, ok, detail) => {
          place: its band runs to the place's own right edge, with no step.
          Negotiations is still a page that owns its height, so it keeps the
          gutter claim. */
+      /* RE-POINTED 21 Oct 2026 (Part 8): the place's head is the list head's
+         card on the ground, like every list page's; what "no step" asks of it
+         is that it and the list's card end at one edge */
       if (name === 'Contracts')
-        check(`15 ${name}: and its white band runs to the place's own right edge, with no step`,
-          !!e && e.placeRight != null && Math.abs(e.bandRight - e.placeRight) <= 1,
-          e ? `band ends ${e.bandRight} · place ends ${e.placeRight}` : '-');
+        check(`15 ${name}: and its head card and its list card end at one edge, with no step`,
+          !!e && e.cardRight != null && Math.abs(e.bandRight - e.cardRight) <= 1,
+          e ? `head card ends ${e.bandRight} · list card ends ${e.cardRight}` : '-');
       else
         check(`15 ${name}: because a page that cannot scroll reserves no gutter`,
           !!e && e.gutter === 0, e ? `${e.gutter}px reserved` : '-');
@@ -912,12 +838,15 @@ const check = (name, ok, detail) => {
         while (n && c === 'rgba(0, 0, 0, 0)'){ c = getComputedStyle(n).backgroundColor; n = n.parentElement; }
         return { c, own: t && t.closest('.reg-card') ? '.reg-card' : 'OTHER' }; };
       const r = s => { const e = document.querySelector(s); return e ? e.getBoundingClientRect() : null; };
-      const bar = r('.reg-card > .reg-filterbar'), thead = r('.reg-table thead');
+      /* RE-POINTED 21 Oct 2026 (Part 8): the filters are the head card's; the
+         list's card opens on its column heads, so the join asked is the
+         card's own top and its heads, with every row between them its own */
+      const bar = r('.reg-card'), thead = r('.reg-table thead');
       if (!bar || !thead) return null;
       const rows = [];
-      for (let y = Math.round(bar.bottom) - 3; y <= Math.round(thead.top) + 3; y++)
+      for (let y = Math.round(bar.top) + 1; y <= Math.round(thead.top) + 3; y++)
         rows.push(colAt(500, y));
-      return { gap: Math.round((thead.top - bar.bottom) * 10) / 10,
+      return { gap: Math.round((thead.top - bar.top - 1) * 10) / 10,
         padT: getComputedStyle(document.documentElement).getPropertyValue('--page-pad-t').trim(),
         strangers: rows.filter(x => x.own === 'OTHER').length, rows: rows.length };
     };
@@ -929,7 +858,7 @@ const check = (name, ok, detail) => {
       await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
       await page.waitForTimeout(1500);
       const j = await page.evaluate(JOIN);
-      check(`15b at ${H}px tall the filters and the rows meet with no gap, inside the list's one card`,
+      check(`15b at ${H}px tall the list's card opens on its column heads with no gap`,
         !!j && j.gap <= 0.5 && j.strangers === 0,
         j ? `--page-pad-t ${j.padT} · gap ${j.gap}px · ${j.strangers} of ${j.rows} rows painted by neither`
           : 'nothing to measure');
@@ -971,13 +900,18 @@ const check = (name, ok, detail) => {
       const shell = document.querySelector('#cmd-search, #shell-search, header input[type="text"], header input:not([type])');
       return { own: !!document.getElementById('reg-search'),
         ownShown: shown(document.getElementById('reg-search')),
+        head: shown(document.querySelector('[data-lh-seat="contracts"] input[data-lh-q]')),
         shell: shown(shell),
         shellPh: shell ? (shell.placeholder || '') : '' };
     });
-    check('16a the Contracts page draws no search box of its own',
-      boxes.own === false && boxes.ownShown === false,
-      boxes.own ? '#reg-search is still in the page' : 'not drawn');
-    check('16b …and the shell bar still carries one, which is why it could go',
+    /* RE-POINTED 21 Oct 2026 (Part 8; Q1 answered "keep both boxes"): the
+       place draws ONE box of its own again — the list head's, under its title
+       — and the shell bar keeps its own; both say the one query. The old
+       full-text box (#reg-search) stays gone. */
+    check('16a the Contracts place draws one box of its own, the list head\'s, and no old full-text box',
+      boxes.head === true && boxes.own === false && boxes.ownShown === false,
+      JSON.stringify({ head: boxes.head, old: boxes.own }));
+    check('16b …and the shell bar still carries one',
       boxes.shell === true, boxes.shell ? `"${boxes.shellPh.slice(0, 42)}"` : 'no box in the header');
 
     await page.evaluate(() => { if (window.regSetScope) regSetScope('negotiations');
@@ -996,17 +930,26 @@ const check = (name, ok, detail) => {
        and is the one the reader types into. The rule is unchanged and only its
        subject moved, so BOTH halves are pinned: the Negotiations seat draws no
        box on either shell and must still narrow nothing. */
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way"):
+       the computer's Negotiations page draws its own box now (the list
+       head), so there the words narrow; the seat with no box is the PHONE's
+       Negotiations screen, and there a query must still narrow nothing. */
     const staleNego = await page.evaluate(() => {
       if (window.regSetScope) regSetScope('negotiations');
-      const before = regFiltered().length;
-      regState().query = 'zzzz-no-such-contract';
-      const after = regFiltered().length;
-      regState().query = '';
-      return { before, after };
+      const keep = window.mPhone;
+      try {
+        window.mPhone = () => true;
+        const before = regFiltered().length;
+        regState().query = 'zzzz-no-such-contract';
+        const phone = regFiltered().length;
+        window.mPhone = () => false;
+        const computer = regFiltered().length;
+        return { before, phone, computer };
+      } finally { regState().query = ''; window.mPhone = keep; }
     });
-    check('16d a query narrows nothing on the seat with no box',
-      staleNego.before === staleNego.after,
-      `${staleNego.before} rows before, ${staleNego.after} after`);
+    check('16d a query narrows nothing on the seat with no box (the phone), and narrows the computer\'s, whose box says it',
+      staleNego.before === staleNego.phone && staleNego.computer < staleNego.before,
+      JSON.stringify(staleNego));
 
     /* ============ 17. THE SEARCH BOX ACTUALLY NARROWS THE TABLE ============
        DRIVEN WITH REAL KEYSTROKES, because this is the whole report and the
@@ -1022,9 +965,12 @@ const check = (name, ok, detail) => {
        the instrument and not in the search. The term comes off the row's own
        sub-line (the contract's name) and the match is judged against the same
        line, so the two halves ask about one thing. */
+    /* RE-POINTED 21 Oct 2026 (Part 8): the sub-line under the party is "kind ·
+       ref" now and the contract's name rides the agreement cell's hover, so
+       the term and the match are both read off that hover */
     const term = await page.evaluate(() => {
-      const t = document.querySelector('tr[data-row] .reg-sub');
-      return t ? (t.textContent.trim().split(/\s+/)[0] || '') : '';
+      const t = document.querySelector('tr[data-row] td.reg-cell-title');
+      return t ? (String(t.title || '').trim().split(/\s+/)[0] || '') : '';
     });
     const searched = await page.evaluate(async (q) => {
       const box = document.getElementById('cmd-search');
@@ -1032,9 +978,9 @@ const check = (name, ok, detail) => {
       box.focus(); box.value = q;
       box.dispatchEvent(new Event('input', { bubbles: true }));
       await new Promise(r => setTimeout(r, 500));
-      const rows = [...document.querySelectorAll('tr[data-row] .reg-sub')].map(e => e.textContent.trim());
-      return { before, after: rows.length, rows,
-        clear: !!document.getElementById('reg-clear-filters') };
+      const rows = [...document.querySelectorAll('tr[data-row] td.reg-cell-title')].map(e => String(e.title || '').trim());
+      const head = document.querySelector('[data-lh-seat="contracts"] input[data-lh-q]');
+      return { before, after: rows.length, rows, headBox: head ? head.value : null };
     }, term);
     check('17a a real query narrows the table',
       searched.before > 0 && searched.after > 0 && searched.after < searched.before,
@@ -1045,22 +991,26 @@ const check = (name, ok, detail) => {
     /* THE WAY BACK IS ON THE PAGE, not only in the box: a narrowing that draws
        no Clear leaves a reader who cannot see the shell bar with nothing to
        press — the exact fault the retirement was reasoning about. */
-    check('17c and the page says it is narrowed, with a way back on it',
-      searched.clear === true, searched.clear ? 'Clear is drawn' : 'no Clear');
+    /* RE-POINTED 21 Oct 2026 (Part 8; Q1 "keep both boxes"): the page says
+       it is narrowed in its own box — the list head's shows the words the bar
+       typed — and that box is the way back, as the bar's is (no Clear is
+       drawn on the place, as the pick draws none) */
+    check('17c and the page says it is narrowed, in its own box under the title',
+      searched.headBox === term, JSON.stringify({ term, headBox: searched.headBox }));
 
     /* EVERY DRIVEN HALF IS GUARDED, so a build without the fix REPORTS its
        failures rather than aborting on the first missing control — a probe
        that throws proves nothing about the checks after it. */
     const cleared = await page.evaluate(async () => {
-      const b = document.getElementById('reg-clear-filters');
-      if (!b) return { err: 'no Clear to press' };
-      b.click();
+      const b = document.querySelector('[data-lh-seat="contracts"] input[data-lh-q]');
+      if (!b) return { err: 'no list head box to empty' };
+      b.focus(); b.value = ''; b.dispatchEvent(new Event('input', { bubbles: true }));
       await new Promise(r => setTimeout(r, 500));
       return { rows: document.querySelectorAll('tr[data-row]').length,
         box: document.getElementById('cmd-search').value,
         q: regState().query };
     });
-    check('17d Clear widens the list AND empties the box that holds the query',
+    check('17d emptying the page\'s box widens the list AND empties the bar\'s box too',
       !cleared.err && cleared.rows === searched.before && cleared.box === '' && cleared.q === '',
       JSON.stringify(cleared));
 
@@ -1102,8 +1052,12 @@ const check = (name, ok, detail) => {
        seats (the owner's word, filter kept), so its head is gone with it; the
        sort by stream is still offered in the Sort dropdown — 18c2 below
        picks it there. */
-    check('18a the reference and counterparty heads sort, and no stream head is drawn',
-      ['ref', 'party'].every(k => heads.some(h => h.sort === k)) && !heads.some(h => h.sort === 'stream'),
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick): the reference rides
+       the agreement cell on the place, so it has no head of its own there; the
+       sort by reference is offered in the Sort box, and asked there below */
+    check('18a the agreement head sorts, the reference is in the Sort box, and no stream head is drawn',
+      heads.some(h => h.sort === 'party') && !heads.some(h => h.sort === 'stream')
+        && (await page.evaluate(() => !!document.querySelector('#reg-sort option[value="ref"]'))),
       JSON.stringify(heads.map(h => h.sort)));
     check('18b and the last column, which has no heading, still does not',
       heads.length > 0 && heads[heads.length - 1].sort === null,
@@ -1130,15 +1084,33 @@ const check = (name, ok, detail) => {
          over the contract's name, and textContent runs them together. Where a
          cell has a leading line, that line is what the column is ordered by
          and what is read back. */
-      const idx = k => (window.REG_COL_KEYS || []).indexOf(k);
+      /* RE-POINTED 21 Oct 2026 (Part 8): the paint's own keys (regColKeys),
+         and the reference read off its one dress in the agreement cell */
+      const idx = k => (typeof regColKeys === 'function' ? regColKeys() : []).indexOf(k);
       const cell = i => [...document.querySelectorAll('tr[data-row]')]
         .map(r => { const td = r.children[i]; if (!td) return '';
           const lead = td.querySelector('.reg-title');
           return (lead || td).textContent.trim(); })
         .filter(x => x && x !== '—');
+      const refs = () => [...document.querySelectorAll('tr[data-row] td.reg-cell-title .hati-ref')].map(e => e.textContent.trim()).filter(Boolean);
       const ordered = (xs, cmp, sign) => xs.every((_, i) => i === 0 || sign * cmp(xs[i - 1], xs[i]) <= 0);
       const out = {};
-      for (const [key, i, cmp] of [['ref', idx('mk'), cmpNat], ['party', idx('counterparty'), cmpTxt]]){
+      /* the reference: picked in the Sort box (it opens ascending), and the
+         other way through the state the box writes */
+      {
+        const sel = document.getElementById('reg-sort');
+        if (!sel || ![...sel.options].some(o => o.value === 'ref')) out.ref = { err: 'the Sort box offers no reference', n: 0 };
+        else {
+          sel.value = 'ref'; sel.dispatchEvent(new Event('change', { bubbles: true }));
+          await new Promise(r => setTimeout(r, 450));
+          const asc = refs(); const aria = regState().dir === 1 ? 'ascending' : 'descending';
+          regState().dir = -1; regRepaint();
+          await new Promise(r => setTimeout(r, 450));
+          const desc = refs();
+          out.ref = { n: asc.length, aria, head: [asc[0], desc[0]], up: ordered(asc, cmpNat, 1), down: ordered(desc, cmpNat, -1) };
+        }
+      }
+      for (const [key, i, cmp] of [['party', idx('counterparty'), cmpTxt]]){
         const head = () => document.querySelector(`[data-reg-sort="${key}"]`);
         if (!head()){ out[key] = { err: 'no head sorts ' + key, n: 0 }; continue; }
         head().click();

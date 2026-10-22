@@ -71,7 +71,12 @@ test('F379 — six off five images', async t => {
        regColKeys(), the paint's own column list — the seat's seven, or the
        inspector's four — which is still "the seat's own count, never a
        literal". */
-    assert.match(REG, /<tr class="ngl-band" role="presentation"><td role="presentation" colspan="\$\{regColKeys\(\)\.length\}">/);
+    /* RE-POINTED 21 Oct 2026 (Part 8, Q2 "A — tabs only"): the group heading
+       is gone with the bands — one plain table under the whose-move tabs —
+       and the one full-width row left, the empty state, still spans the
+       paint's own count. */
+    assert.ok(!/class="ngl-band"/.test(REG), 'no group heading row is drawn');
+    assert.match(REG, /<tr><td colspan="\$\{regColKeys\(\)\.length\}"/);
   });
 
   /* ═══════ 2 + 3. HOME — REVERTED THE SAME DAY ═══════

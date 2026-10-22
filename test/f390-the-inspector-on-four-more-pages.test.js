@@ -331,8 +331,14 @@ describe('f390 (4) — Our standards: who departs from what, each book once', ()
       'and so does the Inspector\'s panel');
   });
   test('4i a tab press is still class flips — never a rebuild — and it repaints the head', () => {
-    const h = /document\.querySelectorAll\('\[data-pb-tab\]'\)\.forEach\(b=>b\.addEventListener\('click'[\s\S]*?\}\)\);/.exec(LIB);
-    assert.ok(h, 'one handler');
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick of "the Legora way"):
+       the inspector's tab row is the list head's, whose one delegated
+       listener presses the page's tab (its own per-element binding deleted),
+       so the press is ONE function, pbTabGo, that the classic row's binding
+       presses too — the claim is asked of it */
+    assert.match(LIB, /forEach\(b=>b\.addEventListener\('click',\(\)=>pbTabGo\(b\.getAttribute\('data-pb-tab'\)\)\)\)/, 'the classic row presses it');
+    const h = [fnOf(LIB, 'pbTabGo')];
+    assert.ok(h[0], 'one handler');
     assert.ok(!/renderPlaybookPage\(\)/.test(h[0]));
     assert.match(h[0], /pbPaintHead\(\)/, 'and the head says what the new tab holds');
   });

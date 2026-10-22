@@ -98,9 +98,11 @@ function book(){
       return { view: document.querySelector('[data-reg-home]') ? 'contracts-place' : state.view,
         rows: [...document.querySelectorAll('tr[data-row]')].map(r => r.getAttribute('data-row')).sort(),
         /* RE-POINTED 9 Oct 2026: on Contracts the stage is a lit TAB, not a lit
-           box; and 16 Oct 2026, back to the Stage box on the place. */
-        tab: (document.getElementById('reg-stage-sel') || {}).value || null,
-        lit: [...document.querySelectorAll('.reg-chip.on')].map(c => ((c.querySelector('.reg-f-l') || c).textContent || '').replace(/\s+/g, ' ').trim()),
+           box; and 16 Oct 2026, back to the Stage box on the place; and 21 Oct
+           2026 (Part 8, the owner picked "the Legora way"): a chosen filter is
+           a CHIP in the list head, the stage's chip saying the stage */
+        tab: (document.querySelector('[data-lh-seat="contracts"] [data-lh-chip="stage"] select[data-lh-f="stage"]') || {}).value || null,
+        lit: [...document.querySelectorAll('[data-lh-seat="contracts"] [data-lh-chip]')].map(c => c.getAttribute('data-lh-chip')),
         only: (document.getElementById('reg-only-chip') || {}).textContent || '',
         stage: R.stage, type: R.type, query: R.query, onlyIds: R.only ? R.only.ids.slice().sort() : null,
         box: (document.getElementById('cmd-search') || {}).value };
@@ -153,8 +155,9 @@ function book(){
     /* ================ B. STALE PAGE FILTERS UNDER THE STAGE BAR ============ */
     /* What a reader leaves on the page: a stream picked from its chip, and a
        search typed into the shell bar while Contracts is on screen. */
-    await page.evaluate(f => { const s = document.getElementById('reg-type-sel');
-      if (s){ s.value = f; s.dispatchEvent(new Event('change', { bubbles: true })); } }, FOLDER_A);
+    /* the stream picked under "+ Filter" (Part 8), its own change event */
+    await page.evaluate(f => { const s = document.querySelector('[data-lh-seat="contracts"] select[data-lh-add]');
+      if (s){ s.value = JSON.stringify(['type', String(f)]); s.dispatchEvent(new Event('change', { bubbles: true })); } }, FOLDER_A);
     await page.waitForTimeout(600);
     await page.fill('#cmd-search', 'Raw');
     await page.waitForTimeout(700);
@@ -175,8 +178,8 @@ function book(){
       b1.view === 'contracts-place' && b1.stage === 'Signed' && b1.rows.length === signedN,
       `bar said ${signedN} · list shows ${b1.rows.length} (${b1.rows.join(', ') || 'nothing'})`);
     check('B2 and the stream, the search and the named set left behind are gone',
-      /* the Stage box lights for the stage the door chose (a box since 16 Oct 2026); no other box is lit */
-      b1.type === 'all' && b1.query === '' && b1.onlyIds === null && b1.lit.filter(l => !/^Stage\b/.test(l)).length === 0 && b1.tab === 'Signed',
+      /* the Stage chip stands for the stage the door chose (Part 8); no other chip stands */
+      b1.type === 'all' && b1.query === '' && b1.onlyIds === null && b1.lit.filter(l => l !== 'stage').length === 0 && b1.tab === 'Signed',
       `stream ${b1.type} · query "${b1.query}" · named set ${JSON.stringify(b1.onlyIds)} · lit ${JSON.stringify(b1.lit)} · tab ${b1.tab}`);
     check('B3 the shell bar\'s box no longer says "Raw" over a list it does not narrow',
       b1.box === '', `box "${b1.box}"`);
@@ -191,7 +194,7 @@ function book(){
       c1.view === 'contracts-place' && c1.stage === 'all' && c1.query === 'Naivas' && c1.rows.join(',') === 'MK-R2,MK-S3',
       `stage ${c1.stage} · query "${c1.query}" · ${c1.rows.join(', ') || 'nothing'}`);
 
-    await page.selectOption('#reg-stage-sel', 'Signed').catch(() => {});
+    await page.selectOption('[data-lh-seat="contracts"] select[data-lh-add]', JSON.stringify(['stage', 'Signed'])).catch(() => {});
     await page.waitForTimeout(600);
     await page.fill('#cmd-search', 'Naiv');
     await page.waitForTimeout(700);

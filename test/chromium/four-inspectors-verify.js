@@ -243,8 +243,10 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     const sd = await page.evaluate(() => ({ ins: !!document.querySelector('.sd-ins'),
       /* RE-POINTED 9 Oct 2026 (SAP benchmark, batch 2): the three tabs are each
          card's own top row (one copy per card, the visible card's read) and the
-         count is the row's `.n` */
-      tabs: [...document.querySelectorAll('.sd-ins [data-pb-sec]:not([hidden]) [data-pb-tab]')].map(b => ({ k: b.getAttribute('data-pb-tab'), n: (b.querySelector('.n, .st-tab-n') || {}).textContent || null })),
+         count is the row's `.n`. RE-POINTED AGAIN 21 Oct 2026 (Part 8, the
+         owner's pick of "the Legora way"): ONE tab row, the list head's under
+         the shared head ([data-lh-seat]), every press on it there */
+      tabs: [...document.querySelectorAll('.sd-ins [data-lh-seat] [data-pb-tab]')].map(b => ({ k: b.getAttribute('data-pb-tab'), n: (b.querySelector('.n, .st-tab-n') || {}).textContent || null })),
       rows: document.querySelectorAll('[data-pb-sec="clauses"] tbody [data-ins-row]').length, lib: clauseLibrary().length,
       title: (document.querySelector('#ins-panel h2') || {}).textContent || '' }));
     ok('3a three tabs, each carrying its count, and every standard is a row', sd.ins && sd.tabs.length === 3
@@ -252,20 +254,20 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     /* JAMBO'S PANEL ON OUR STANDARDS (owner, 19 Oct 2026): the three lists share the one list panel, dressed as his */
     ok('3a2 Our standards carries Jambo\'s panel, his box at its foot', await page.evaluate(() => { const q = document.querySelector('.sd-ins #ins-panel.is-jambo #jl-q'); return !!q && q.getClientRects().length > 0; }));
     await page.evaluate(() => { const r = document.querySelector('.sd-ins'); if (r) r._probe = 1; });
-    await page.click('.sd-ins [data-pb-sec]:not([hidden]) [data-pb-tab="playbook"]'); await page.waitForTimeout(400);
+    await page.click('.sd-ins [data-lh-seat] [data-pb-tab="playbook"]'); await page.waitForTimeout(400);
     ok('3b a tab press flips the tab — the page is not rebuilt under the reader',
       await page.evaluate(() => { const r = document.querySelector('.sd-ins'); return !!(r && r._probe === 1)
         && !document.querySelector('[data-pb-sec="playbook"]').hidden && document.querySelector('[data-pb-sec="clauses"]').hidden; }));
     await page.click('[data-sd-book="supply"]').catch(() => {}); await page.waitForTimeout(300);
     const caps = await page.evaluate(() => [...document.querySelectorAll('#ins-panel .ins-stdl li b')].filter(b => /^Liability cap/.test(b.textContent)).length);
     ok('3c a book lists each standard once — Liability cap is one line on the supply book', caps === 1, caps);
-    await page.click('.sd-ins [data-pb-sec]:not([hidden]) [data-pb-tab="clauses"]'); await page.waitForTimeout(300);
+    await page.click('.sd-ins [data-lh-seat] [data-pb-tab="clauses"]'); await page.waitForTimeout(300);
     await page.click('[data-sd-row="cl-pay"]').catch(() => {}); await page.waitForTimeout(300);
     await page.click('#ins-panel [data-ins-act="pos"]').catch(() => {}); await page.waitForTimeout(400);
     const pos = await page.evaluate(() => ({ tab: (document.querySelector('[data-pb-tab].on') || {}).getAttribute ? document.querySelector('[data-pb-tab].on').getAttribute('data-pb-tab') : null,
       book: (document.querySelector('#ins-panel h2') || {}).textContent || '' }));
     ok('3d "Change the position" lands on the book that holds it', pos.tab === 'playbook' && /baseline/i.test(pos.book), pos);
-    await page.click('.sd-ins [data-pb-sec]:not([hidden]) [data-pb-tab="clauses"]'); await page.waitForTimeout(300);
+    await page.click('.sd-ins [data-lh-seat] [data-pb-tab="clauses"]'); await page.waitForTimeout(300);
     const godev = await page.$('#ins-panel [data-sd-godev]');
     let gd = null;
     if (godev) {

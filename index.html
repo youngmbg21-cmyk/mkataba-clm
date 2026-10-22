@@ -2746,44 +2746,12 @@
   tr[data-nego-row]:hover .ngl-w{ text-decoration:underline; }
   .ngl-empty{ background:var(--color-surface); border:1px solid var(--color-divider);
     border-radius:var(--radius); padding:34px; text-align:center; box-shadow:var(--shadow-sm); }
-  /* ---- THE BAND ----
-     A full-width heading between rows: a coloured dot, the name in small caps,
-     the count. It is the thing a flat register cannot produce, and it is what
-     stops this page being mistaken for Contracts. NOT A ROW — no hover tint, no
-     pointer, no cell padding, and the markup carries role="presentation" so it
-     is never announced as one either. */
-  /* ---- THE BAND PINS TO THE HEADER, AND THE HEADER IS MEASURED (owner-
-     reported 22 Aug 2026: "when you scroll in the negotiations list of
-     contracts, it breaks") ----
-     It was `top:38px`, typed. MEASURED, the register's sticky header renders
-     35px tall, so there was a 3px slot between the two pinned things that
-     every row slid visibly through on the way past — the reported break. A
-     number that has to agree with another element's height is one that agrees
-     until somebody changes a padding or a type size, which this file did on
-     22 Aug and nothing said so. regFitBandOffset writes --reg-head-h off the
-     header's own box and re-reads it on a ResizeObserver, so the two cannot
-     come apart again. The fallback is today's measured 35px, for the one
-     reader that never runs script. */
-  .ngl-band > td{ padding:0!important; border-bottom:0!important;
-    background:var(--color-surface); position:sticky; top:var(--reg-head-h,35px); z-index:2; }
-  .reg-table tbody tr.ngl-band:hover{ background:none; }
-  .ngl-band-in{ display:flex; align-items:center; gap:8px; padding:9px var(--s-3) 7px;
-    border-bottom:1px solid var(--color-divider); }
-  .ngl-band-dot{ width:8px; height:8px; border-radius:50%; flex:none; }
-  /* ---- A GROUP IS NAMED IN ORDINARY WORDS (Young picked the Inspector
-     drawing, 26 Sep 2026) ---- "Waiting on you 6": the group's name in the
-     page's own ink at the row's size and the strong weight, and its count
-     beside it in the quiet ink. It REVERSES 21 Sep's small capitals the way
-     the column heads were reversed, on the owner's later drawing — a band is
-     a heading over rows, and the heads above it are words now. The band still
-     sits on the list's own white, pinned under the head, one rule below it. */
-  .ngl-band-k{ font-size:var(--t-body); font-weight:var(--w-strong); letter-spacing:0; text-transform:none;
-    color:var(--color-text); }
-  /* NO BOX (21 Sep 2026), and no middle dot since 26 Sep: the count reads
-     beside the words in the quiet ink, the mono numerals kept so a column of
-     bands lines up. */
-  .ngl-band-n{ font-family:var(--font-mono); font-size:var(--t-body); font-weight:var(--w-label);
-    letter-spacing:0; color:var(--color-neutral-600); }
+  /* ---- NO BAND BETWEEN THE ROWS (Part 8, the owner's pick "The Legora way",
+     21 Oct 2026; Q2 answered "A — tabs only") ---- the full-width group
+     headings ("Waiting on our side 2", pinned under the column heads) are
+     gone with their rules: the whose-move tabs in the list head do their job
+     over one plain table. Their history is in MAP-HISTORY under round 14 and
+     22 Aug's pinned-band report. */
   /* ---- ITS TITLE STARTS WHERE EVERY OTHER PAGE'S DOES (owner-asked 25 Aug
      2026: "the distance between the edge at the top and the header should be
      the same across all pages") ----
@@ -2801,7 +2769,6 @@
   /* .ngl-page carries no padding rule any more; the class stays as the hook
      that says which of the two pages this wrapper is drawing. */
   .ngl-head-table h2{ margin:0; display:flex; align-items:baseline; gap:9px; flex-wrap:wrap; }
-  .ngl-head-table p{ margin:2px 0 0; }
   /* THE PILL IS STALE (21 Sep 2026) and is kept whole: the head draws the
      count as a sub-line now, and putting the pill back is taking the scoped
      rule below away. */
@@ -2843,6 +2810,18 @@
   .ngl-empty h3{ margin:0 0 6px; font-size:16px; font-weight:var(--w-title); }
   .ngl-empty p{ margin:0 0 var(--s-4); font-size:var(--t-body); color:var(--color-neutral-600);
     max-width:46ch; margin-inline:auto; line-height:1.6; }
+  /* ---- SORT AND DISPLAY AT THE CHIP ROW'S END (Part 8, the owner's pick "The
+     Legora way", 21 Oct 2026) ---- the two small icons the list's own card
+     head carried ("Negotiations 7 ⇅ ⚙") stand at the list head's right end,
+     before Columns, in the same dress: an icon square, no edge, the accent
+     ink, the platform's caret off. Scoped to the two pages that draw them
+     there (one builder, regToolsHtml): Negotiations and the Contracts place. */
+  .sap-page:is(.ngl-page,.ct-page) .lh-chips > .ngl-tools{ display:inline-flex; align-items:center; gap:var(--s-1); flex:none; }
+  .sap-page:is(.ngl-page,.ct-page) .ngl-tools .reg-chip.reg-ico{ width:var(--ctl-h); min-width:var(--ctl-h); height:var(--ctl-h); padding:0;
+    justify-content:center; border:0; background:none; color:var(--accent-ink); }
+  .sap-page:is(.ngl-page,.ct-page) .ngl-tools .reg-chip.reg-ico::after{ display:none; }
+  .sap-page:is(.ngl-page,.ct-page) .ngl-tools .reg-chip.reg-ico:hover{ background:var(--surface-2); }
+  .sap-page:is(.ngl-page,.ct-page) .ngl-tools .reg-chip.reg-ico .reg-f-l{ display:inline-flex; }
   /* ---- THE NEGOTIATION DESK, IN THE HEADER AND NOWHERE ELSE ----
      Who leads a negotiation is a fact about the contract, so it rides with the
      contract's other facts. This is the whole visual cost of the feature: one
@@ -9346,12 +9325,25 @@
   .ct-top .ct-arch{align-self:flex-start;margin-left:auto;flex:none}
   .ct-top .ct-arch + .reg-seg.ct-seg{margin-left:0}
   .reg-seg.ct-seg button{display:inline-flex;align-items:center;gap:6px}
-  /* the filter row: the boxes from the left edge (wrapping within their own
-     block on a narrow place), Do this to these and Adapt filters at its end */
-  .sap-page .reg-tabbar.ct-filters{flex-wrap:nowrap;align-items:flex-start;gap:var(--s-3);padding:2px 0 9px}
-  .sap-page .reg-tabbar.ct-filters > .reg-fb:not(.ct-adapt){flex:1 1 auto;min-width:0;margin-left:0;flex-wrap:wrap;justify-content:flex-start;row-gap:6px;padding:0}
-  .ct-filters .ct-cohort{flex:none;align-self:center}
-  .sap-page .reg-tabbar.ct-filters > .reg-fb.ct-adapt{padding:0;flex:none;margin-left:0;align-self:center}
+  /* THE LEGORA WAY ON THE PLACE (Part 8, the owner's pick, 21 Oct 2026): the
+     head is the list head's white card (.ph-card, the one every list page
+     wears) set in on the ground — its title row, the line, the box, the tabs
+     and the chip row (js/views/listhead.js's own rules) — so the place takes
+     the page's top inset above it. The filter row's rules (.ct-filters,
+     .ct-adapt: the labelled boxes, Clear, Adapt filters) went with the row. */
+  .sap-page.ct-page{padding-top:var(--page-pad-t)}
+  .sap-page.ct-page .ct-head.ph-card.lh{flex:none}
+  .sap-page.ct-page .lh-chips > .ct-cohort{flex:none;display:inline-flex;align-items:center}
+  .sap-page.ct-page .lh-chips > .ct-cohort:empty{display:none}
+  /* the views wrap onto a second line where they do not fit, never cut off
+     sideways: the drawing's five, the four the Quick filters box offered
+     (each while it holds rows), the reader's saved views, Save this view */
+  .sap-page.ct-page .ct-head.lh > .reg-views{flex-wrap:wrap;overflow:visible}
+  /* "+ Save this view" (a shorter control than a tab) sits on the tabs' own
+     centre line, not on their underline (measured 8px low at the row's end) */
+  .sap-page.ct-page .ct-head.lh > .reg-views > .lh-save{align-self:center}
+  /* the agreement's line under the party: "kind · ref", the ref in its own face */
+  .ct-page .reg-table.is-home .reg-sub .hati-ref{font-size:inherit;color:inherit}
   .ct-place .ig-wall.ct-wall{flex:1;min-height:0;overflow:auto;padding:2px 2px 32px}
   /* A NARROW PLACE (an 820 tablet, a 1024 window): the name gives Wall |
      List room; the boxes wrap within their own row, never squeezed empty. */
@@ -9374,6 +9366,9 @@
   @container ctplace (max-width:540px){ .ct-wall .igw-grid{grid-template-columns:repeat(3,minmax(0,1fr))} }
   @container ctplace (max-width:400px){ .ct-wall .igw-grid{grid-template-columns:repeat(2,minmax(0,1fr))} }
   .igw-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 -16px;padding:10px 16px;border-top:1px solid var(--color-divider);font-size:var(--t-meta);color:var(--color-neutral-600)}
+  /* the Wall's foot is the list foot's own now (Part 8): "1–12 of 48 · Show
+     12 more" reads as one line from the left, as under the List */
+  .ct-wall .igw-foot.lh-foot{justify-content:flex-start;gap:var(--s-2)}
   /* the edge drawn inside the sheet, and the card a breath taller at its top:
      a paper's lift (hover, focus) and its edge are not clipped by the card's
      own paint containment (content-visibility) */
@@ -14070,9 +14065,12 @@
   #content .ap-body.is-ins:has(> #ins-panel.is-jambo) .ap-foot{margin-top:0;}
   /* round 15: the head card (title, counts, Approval rules), the grey ground,
      then the list's card. The head's own padding is the card's (.ph-card,
-     19 Oct 2026); the --s-3 below it is the page's. A bare :last-child
-     under body:has() made every element's style hang on the :has (home-speed-verify 1). */
-  #content .sap-page.ap-page{padding-top:var(--s-3);}
+     19 Oct 2026). PART 8 (the list head, the Legora way, 21 Oct 2026): the
+     list head is that card's lower half (.ph-foot), flush under it, so the
+     page starts at its top; the --s-3 ground is the page's gap above the
+     list. A bare :last-child under body:has() made every element's style
+     hang on the :has (home-speed-verify 1). */
+  #content .sap-page.ap-page{padding-top:0;}
   #content .ins-panel.is-jambo{position:fixed;right:0;top:var(--jl-top,88px);bottom:0;width:var(--jl-w,384px);z-index:20;display:flex;flex-direction:column;overflow:hidden;
     border:0;border-left:1px solid var(--color-neutral-300);border-radius:0;box-shadow:none;background:var(--color-surface);}
   #content .ins-panel.is-jambo.is-folded{width:46px;}
@@ -14261,11 +14259,8 @@
   .ap-band{display:flex;align-items:center;gap:12px;min-height:38px}
   .ap-facts{font-size:var(--t-meta);color:var(--color-neutral-600)}
   .ap-band-sp{flex:1}
-  .ap-table tr.ap-grp td{padding:6px 12px;background:var(--surface-2);font-size:var(--t-meta);color:var(--color-neutral-700);border-top:1px solid var(--color-divider);border-bottom:1px solid var(--color-divider)}
-  .ap-table tr.ap-grp i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;vertical-align:0;background:var(--color-neutral-400)}
-  .ap-table tr.ap-grp.is-yours i{background:var(--st-amber-dot)}
-  .ap-table tr.ap-grp b{font-weight:var(--w-strong);color:var(--color-text)}
-  .ap-table tr.ap-grp .n{margin-left:8px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
+  /* PART 8 ("tabs only", 21 Oct 2026): the group rows (.ap-grp) went with
+     their rules; the list head's tabs say who owes the next step */
   .ap-kind{display:inline-flex;align-items:center;height:20px;padding:0 8px;border:1px solid var(--color-divider);border-radius:var(--radius);font-size:11.5px;color:var(--color-text);background:var(--color-surface)}
   .ap-kind.is-sig{background:var(--surface-2)}
   .ap-table.ap-ins{table-layout:fixed;}
@@ -14283,6 +14278,14 @@
   .ap-table tbody tr.is-sel td{background:color-mix(in srgb,var(--color-accent) 8%,transparent);}
   .ap-table tbody tr.is-sel td:first-child{box-shadow:inset 2px 0 0 var(--accent-solid);}
   .ap-table tbody tr.is-sel td.mono{color:var(--accent-ink);}
+  /* PART 8: the sort moved from the list card's head to the right end of the
+     list head's chip row; it keeps the head's icon clothes (the card head's
+     .reg-cardhead rules), scoped to this page's chip row */
+  .sap-page.ap-page .lh-chips .reg-chip.reg-ico{position:relative;display:inline-flex;align-items:center;justify-content:center;width:var(--ctl-h);min-width:var(--ctl-h);height:var(--ctl-h);padding:0;
+    border:0;border-radius:var(--radius);background:none;color:var(--accent-ink);cursor:pointer;}
+  .sap-page.ap-page .lh-chips .reg-chip.reg-ico:is(:hover,:focus-within){background:var(--surface-2);}
+  .sap-page.ap-page .lh-chips .reg-chip.reg-ico .reg-f-l{display:inline-flex;pointer-events:none;}
+  .sap-page.ap-page .lh-chips .reg-chip.reg-ico .reg-chip-sel{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;opacity:0;cursor:pointer;}
 
   /* ═══ THE INSPECTOR ON FOUR MORE PAGES (Young ruled 26 Sep 2026: the
      Obligations page, the contract's Obligations tab, Our standards and
@@ -14339,7 +14342,6 @@
      (the day, who acts as a face, what and where, the row's one act). Scoped
      to the page (.obw-ins); the contract's tab keeps its table. */
   .obw-ins .ins-card.obw-weeks{background:none;border:0;box-shadow:none;overflow:visible;gap:var(--s-2);}
-  .obw-ins .ins-card.obw-weeks > .ins-bar{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);}
   .obw-ins .obw-scroll{display:flex;flex-direction:column;gap:var(--s-2);padding-bottom:var(--s-3);}
   .obw-wk{flex:none;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;}
   .obw-wk table.obw-wk-lt td{border-bottom:1px solid var(--rule);}
@@ -14396,6 +14398,10 @@
   .obw-add-btn{display:inline-flex;align-items:center;gap:6px;}
   .obw-empty{padding:28px 16px;text-align:center;color:var(--color-neutral-600);}
   .obw-empty p{margin:0 0 6px;}
+  /* THE LIST HEAD ON OBLIGATIONS (Part 8, the Legora way, 21 Oct 2026): the
+     foot under the last week's card, "1–12 of 12", on the ground, a little
+     in from the cards' edge; the filter fold and its chip bar went with it */
+  .obw-ins .obw-scroll > .lh-foot{flex:none;padding:0 var(--s-1);}
   /* + Add an obligation: which contract */
   .obw-pick .dlg-h p{margin:4px 0 0;color:var(--color-neutral-600);font-size:var(--t-meta);}
   .obw-pick-b{padding:12px 20px;display:flex;flex-direction:column;gap:8px;}
@@ -14452,8 +14458,6 @@
   .ins-cardhead{display:flex;align-items:center;gap:var(--s-2);padding:var(--s-3) var(--s-4);border-bottom:1px solid var(--color-divider);flex:none;}
   .ins-cardhead-t{margin:0;font-size:var(--t-card);font-weight:var(--w-strong);line-height:var(--lh-tight);color:var(--color-text);}
   .ins-cardhead-n{font-weight:var(--w-body);color:var(--color-neutral-600);font-variant-numeric:tabular-nums;}
-  .obw-filter-btn{color:var(--accent-ink);}
-  .obw-filter-n{font-variant-numeric:tabular-nums;}
   .ins-bar[hidden]{display:none;}
   .ob-id{display:flex;align-items:center;gap:var(--s-2);min-width:0;}
   .ob-id > .ins-c2{min-width:0;flex:1;}
@@ -14997,6 +15001,49 @@
   .ik-cp{display:inline-flex;align-items:center;gap:var(--s-2);min-width:0;}
   .ik-file-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;}
   .ik-file-list .ui-link{display:inline-flex;align-items:center;gap:6px;}
+  /* ═══ THE LIST HEAD, THE LEGORA WAY (the owner's pick, 21 Oct 2026, Part 8;
+     js/views/listhead.js) ════════════════════════════════════════════════
+     One head for every list page: the box to search or ask in under the
+     title, the views as tabs, then a row of chips — a filter only once it is
+     added ("+ Filter", dashed, in the accent ink), as "Label value x" — with
+     the page's own controls and Columns at its right end; under the list one
+     foot, "1–40 of 189 · Show 40 more". Scoped under .sap-page, which every
+     list root wears; new class names only, so nothing fights the old
+     labelled-box cascade (.reg-fb, .reg-chip), which the pages not yet on
+     this head still draw. Tokens only. */
+  .sap-page .lh{display:flex;flex-direction:column;gap:var(--s-2);}
+  .sap-page .sap-band.lh{row-gap:var(--s-2);}
+  .sap-page .sap-band.ph-card.lh{padding-bottom:var(--s-2);}
+  .sap-page .sap-band.ph-foot.lh{padding-top:var(--s-3);padding-bottom:var(--s-2);}
+  .sap-page .sap-band.ph-card.lh > .ph-top + .lh-ask{margin-top:var(--s-1);}
+  .sap-page .lh > .lh-top{display:flex;align-items:center;flex-wrap:wrap;gap:var(--s-3);}
+  .sap-page .lh > .lh-top > .lh-sp{flex:1 1 auto;}
+  .sap-page .lh-ask{display:flex;align-items:center;gap:var(--s-2);height:var(--ctl-h-lg);padding:0 var(--pad-ctl-x);border:1px solid var(--rule-strong);border-radius:var(--radius);background:var(--color-surface);cursor:text;}
+  .sap-page .lh-ask:focus-within{border-color:var(--accent-ink);}
+  .sap-page .lh-ask > svg{flex:none;width:14px;height:14px;color:var(--color-neutral-500);}
+  .sap-page .lh-ask input{flex:1 1 auto;min-width:0;height:100%;border:0;outline:0;background:transparent;font:inherit;font-size:var(--t-body);color:var(--color-neutral-800);}
+  .sap-page .lh-ask input:focus-visible{outline:none;box-shadow:none;}
+  .sap-page .lh-ask input::placeholder{color:var(--color-neutral-500);}
+  .sap-page .lh-ask input::-webkit-search-cancel-button{cursor:pointer;}
+  .sap-page .lh > .reg-views{margin:0;}
+  .sap-page .lh-chips{display:flex;align-items:center;flex-wrap:wrap;gap:var(--s-2);min-height:var(--ctl-h);}
+  .sap-page .lh-chips > .lh-sp{flex:1 1 auto;}
+  .sap-page .lh-chip{position:relative;display:inline-flex;align-items:center;height:var(--ctl-h);border:1px solid var(--chip-edge);border-radius:var(--radius);background:var(--color-surface);font-size:var(--t-body);white-space:nowrap;}
+  .sap-page .lh-chip > label{position:relative;display:inline-flex;align-items:center;gap:6px;height:100%;padding:0 4px 0 var(--pad-ctl-x);color:var(--color-neutral-500);font-weight:var(--w-label);cursor:pointer;}
+  .sap-page .lh-chip > label b{color:var(--color-neutral-900);font-weight:var(--w-strong);}
+  .sap-page :is(.lh-chip,.lh-add) .reg-chip-sel{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;}
+  .sap-page .lh-chip .lh-x{display:inline-flex;align-items:center;justify-content:center;width:var(--ctl-h-sm);height:var(--ctl-h-sm);margin-right:3px;padding:0;border:0;border-radius:var(--radius);background:none;color:var(--color-neutral-500);cursor:pointer;}
+  .sap-page .lh-chip .lh-x:hover,.sap-page .lh-chip .lh-x:focus-visible{background:var(--color-neutral-100);color:var(--color-neutral-900);}
+  .sap-page .lh-add{position:relative;display:inline-flex;align-items:center;gap:4px;height:var(--ctl-h);padding:0 var(--pad-ctl-x);border:1px dashed var(--rule-strong);border-radius:var(--radius);background:none;color:var(--accent-ink);font-size:var(--t-body);font-weight:var(--w-label);white-space:nowrap;cursor:pointer;}
+  .sap-page .lh-add:hover,.sap-page .lh-add:focus-within{border-color:var(--accent-ink);}
+  .sap-page .lh-chips .lc-wrap{flex:none;}
+  .sap-page .lh .lh-save{display:inline-flex;align-items:center;gap:4px;}
+  .lh-foot{display:flex;align-items:center;gap:var(--s-2);min-height:var(--ctl-h);font-size:var(--t-meta);color:var(--color-neutral-500);}
+  .lh-foot .lh-range{white-space:nowrap;}
+  .lh-foot .lh-more{font-size:var(--t-meta);}
+  /* the § chip in a Jambo answer cell (askColTdHtml) */
+  .reg-table td.ac-cell .ac-cite{display:inline-flex;align-items:center;height:18px;margin-left:6px;padding:0 4px;border:1px solid var(--rule);border-radius:var(--radius);background:var(--color-surface);color:var(--color-neutral-700);font:inherit;font-size:var(--t-meta);line-height:1;cursor:pointer;}
+  .reg-table td.ac-cell .ac-cite:hover,.reg-table td.ac-cell .ac-cite:focus-visible{border-color:var(--accent-ink);color:var(--accent-ink);}
   /* ═══ REQUESTS AND MY NOTES, AS DRAWN (round 20 of the redesign, owner
      picked "The SAP way"; every drawn part built on the owner's yes of 18 Oct
      2026; js/views/intake.js, js/views/mynotes.js) ═══
@@ -15239,31 +15286,37 @@
   .tpl-page > section[data-tpl-sec]:not([hidden]):has(> .tpl-ins){overflow:hidden;display:flex;flex-direction:column;}
   .tpl-ins{flex:1;min-height:0;}
   .tpl-ins .ins-panel{min-height:0;overflow:auto;}
-  .tpl-piles{padding:0 var(--s-4);border-bottom:1px solid var(--color-divider);flex:none;}
-  .tpl-ins-head{flex:none;}
-  .tpl-ins-note{font-size:var(--t-meta);color:var(--color-neutral-600);margin-left:var(--s-2);}
   .tpl-lt .tpl-code{font-family:var(--font-mono);font-size:var(--t-label);color:var(--color-neutral-600);}
   .tpl-lt .num,.tpl-lt th.num{text-align:right;font-variant-numeric:tabular-nums;}
   .tpl-draft-tag{font-size:var(--t-figure);font-weight:var(--w-title);padding:1px 6px;border-radius:var(--radius);background:var(--st-amber-bg);color:var(--st-amber-fg);margin-left:4px;}
-  .tpl-fb{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--s-3) var(--s-4);padding:0 0 var(--s-3);}
-  .tpl-fb .tpl-fb-q{display:flex;flex-direction:column;gap:0;}
-  .tpl-band [data-tpl-head="list"]{margin-bottom:var(--s-2);}
-  .tpl-fb .tpl-fb-q .reg-f-l{font-size:var(--t-meta);color:var(--color-neutral-600);}
-  .tpl-fb .tpl-fb-q .ik-search{width:240px;}
-  /* Our standards (SAP benchmark, batch 2): the same white band as the book,
-     this page's three tabs on each card's top, the offer an info strip. */
-  /* the head card's lower half (.ph-foot, 19 Oct 2026): its figures 12px under the title row's line, as every head's second row of boxes */
+  /* Our standards (SAP benchmark, batch 2): the offer an info strip. */
+  /* the head card's lower half (.ph-foot, 19 Oct 2026): its rows 12px under the title row's line, as every head's second row */
   .sd-ins.sap-page > .sap-band.sd-band{flex:none;margin-top:0;padding-top:var(--s-3);}
-  .sd-band .paper-tabs{border-bottom:0;}
-  .sd-subtabs{flex:none;padding:0 var(--s-4);border-bottom:1px solid var(--color-divider);}
   .sd-ins .ins-offer.sd-info{margin:var(--s-3) var(--s-4) 0;border:1px solid color-mix(in srgb,var(--color-accent) 30%,transparent);
     background:color-mix(in srgb,var(--color-accent) 7%,var(--color-surface));border-radius:var(--radius);display:flex;align-items:center;gap:var(--s-2);flex-wrap:nowrap;}
   .sd-ins .ins-offer.sd-info > span:not(.sp){flex:1 1 auto;min-width:0;}
   .sd-ins .ins-offer.sd-info > .sp{display:none;}
   .sd-ins .ins-offer.sd-info > svg{flex:none;color:var(--accent-ink);}
-  .sd-ins .ins-card > .ins-cardhead{border-bottom:1px solid var(--color-divider);}
   /* the one Jambo panel stands at the right edge (fixed): each list takes its section's width */
   #content .sd-ins:has(> #ins-panel.is-jambo) > .ins-body{grid-template-columns:minmax(0,1fr);column-gap:0;}
+  /* OUR PAPER THE LEGORA WAY (the owner's pick, 21 Oct 2026, Part 8;
+     js/views/library.js tplLhReg, sdLhReg, paperSegHtml): each tab's list
+     head under the title row, 12px under its line as every head's second
+     row; the page's switch at the head's right, as List | Wall; the
+     quiet table and its one foot in the list's card. Scoped to this page,
+     tokens only. The classic shape (below the inspector's width) keeps its
+     own tab row and rail. */
+  .tpl-page > .sap-band.tpl-band:has(> [data-tpl-head]){padding-bottom:var(--s-2);}
+  .tpl-band > [data-tpl-head] > .lh{padding-top:var(--s-3);}
+  /* the page's switch at the head's right, on the box's line (the title's
+     line keeps one height on every page); the tab and chip rows under both */
+  .sap-page .lh.lh-paper{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:var(--s-3);row-gap:var(--s-2);align-items:center;}
+  .sap-page .lh.lh-paper > .lh-ask{grid-column:1;grid-row:1;}
+  .sap-page .lh.lh-paper > .reg-seg.paper-seg{grid-column:2;grid-row:1;align-self:center;}
+  .sap-page .lh.lh-paper > :not(.lh-ask):not(.paper-seg){grid-column:1 / -1;}
+  .sap-page .lh.lh-paper > .reg-seg.paper-seg button{display:inline-flex;align-items:center;}
+  :is(.tpl-ins,.sd-ins) .ins-card > :is(.tpl-foot,.sd-foot){flex:none;}
+  :is(.tpl-ins,.sd-ins) .ins-card > :is(.tpl-foot,.sd-foot):empty{display:none;}
 
   /* ═══ COPILOT'S WORK — THE AGENTS (Young ruled 27 Sep 2026: "Build the
      agents idea", the "Work Board Options" artifact, option 2) ═════════════

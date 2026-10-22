@@ -442,7 +442,9 @@ describe('f756 (8) the third pass: the face as drawn', () => {
   });
   test('8e "Here now": filled circles, one colour per person (the house\'s avatar tone), overlapping, white initials', () => {
     assert.match(PZ, /const tone = r => \(typeof window\.regAvatarTone === 'function'\) \? window\.regAvatarTone\(r\.name \|\| r\.id \|\| ''\) : 0;/);
-    assert.match(R('js/views/register.js'), /negoBandTabsHtml,regAvatarHtml,regAvatarTone,/, 'the tone reading is published once');
+    /* RE-POINTED 21 Oct 2026 (Part 8): negoBandTabsHtml, the name this was
+       anchored beside, is retired (the list head draws the whose-move tabs) */
+    assert.match(R('js/views/register.js'), /regNegoNeedRows,regAvatarHtml,regAvatarTone,/, 'the tone reading is published once');
     assert.match(CSSN, /\.redline-page \.rl-head-here \.pz-face\{width:22px;height:22px;font-size:9\.5px;[^}]*color:#fff;\s*border:2px solid var\(--color-surface\);margin-left:-6px;/);
     for (let t = 1; t <= 4; t++) assert.match(CSSN, new RegExp('\\.rl-head-here \\.pz-face\\.pz-t-' + t + '\\{background:'), 'tone ' + t);
   });

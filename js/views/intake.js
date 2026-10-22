@@ -620,6 +620,8 @@ function intakeContractSent(c){
    on; the inspector lights it (insSelect). */
 function intakeGoTo(id){
   const f=ikFilters(); Object.assign(f, IK_DEF);
+  /* the list head's box says the words at rest too (a question typed there goes) */
+  if(typeof lhBoxSet==='function') lhBoxSet(IK_SEAT, '');
   try{ if(typeof window.insSelect==='function') window.insSelect('intake:team', String(id)); }catch(_){}
   if(typeof setView==='function') setView('intake');
 }
@@ -898,26 +900,47 @@ function requestsDoorCount(){ const n = rqKindCounts(); return n.contracts + n.a
    merge, not a data merge — f495), so its tab is a page change; every other
    tab is a view of the contracts queue and, from the Advice page, lands back
    on Requests at that view. `lit` is 'advice' or a view key; 'contracts'
-   means "the view the reader is on". Counts are the list each tab opens. */
-function rqKindTabsHtml(lit){
-  const n = rqKindCounts();
-  const may = (typeof canEdit==='function'&&canEdit());
-  const asker = !may;
-  const f = ikFilters();
+   means "the view the reader is on". Counts are the list each tab opens.
+
+   THE ROW'S ONE READING (Part 8, the Legora way, 21 Oct 2026): ikTabViews
+   is every tab with the rows its press shows and its hover — the words the
+   list's own card head used to say ("Open requests · oldest waiting first").
+   Requests draws it in the list head (lhTabsHtml); the Advice board and the
+   narrow page draw it here, with the kind each tab opens. A tab with no rows
+   is left out unless it is lit or All, on all three. */
+const IK_CARD_WORDS = { open:'ik_card_open', mine:'ik_card_mine', advice:'ik_card_advice', fin:'ik_card_fin', all:'ik_card_all' };
+function ikTabViews(asker, f){
+  const g = f || ikFilters();
+  const base = ikBase(g, asker);
   const V = asker?IK_V_ASKER:IK_V_TEAM;
-  const cur = lit==='advice' ? 'advice' : (lit && lit!=='contracts' ? lit : f.view);
-  const base = ikBase(f, asker);
+  /* the team's Open list leads with the longest wait (round 20); every other
+     list, and the asker's, newest first */
+  const hover = k => [i18t(IK_CARD_WORDS[k]||'ik_card_all'), i18t(!asker&&k==='open'?'ik_sort_oldest':'ik_sort_newest')].join(' · ');
   /* For the team the Advice tab is a cut of this list (IK_V_TEAM carries it,
      SAP batch 2), counted like every other tab from the list behind it. For
      somebody who only asks it stays the door onto the advice desk, and its
      number is the open advice requests, the door's half. */
   const tabs = V.map(([k,key])=>({ k, kind:'contracts', label:i18t(key),
-    n:base.filter(r=>ikPassView(r,k,asker)).length }));
-  if(asker) tabs.splice(1, 0, { k:'advice', kind:'advice', label:i18t('rq_kind_advice'), n:n.advice });
-  return `<div class="reg-views rq-kinds" role="tablist" aria-label="${esc(i18t('rq_kinds_label'))}">${tabs.map(t=>{
+    n:base.filter(r=>ikPassView(r,k,asker)).length, keep:k==='all', title:hover(k) }));
+  /* the asker's Advice tab is a DOOR to the advice desk's own page, not a
+     view of this list: kept at zero, so the page is never left without its
+     one way in */
+  if(asker) tabs.splice(1, 0, { k:'advice', kind:'advice', label:i18t('rq_kind_advice'), n:rqKindCounts().advice, keep:true, title:i18t('ik_card_advice') });
+  return tabs;
+}
+function rqKindTabsHtml(lit){
+  const may = (typeof canEdit==='function'&&canEdit());
+  const asker = !may;
+  const f = ikFilters();
+  const cur = lit==='advice' ? 'advice' : (lit && lit!=='contracts' ? lit : f.view);
+  const tabs = ikTabViews(asker, f).filter(t=>t.n||t.keep||t.k===cur);
+  /* the row says what it was drawn as (lit) and what it shows (sig), so the
+     door's beat draws it again where a number moved or a tab came or went */
+  const sig = tabs.map(t=>t.k+':'+t.n).join(',');
+  return `<div class="reg-views rq-kinds" role="tablist" aria-label="${esc(i18t('rq_kinds_label'))}" data-rq-lit="${esc(lit||'contracts')}" data-rq-sig="${esc(sig)}">${tabs.map(t=>{
     const on = t.k===cur;
     return `<button type="button" role="tab" class="reg-vtab${on?' on':''}${!t.n&&!on?' is-zero':''}" data-rq-kind="${t.kind}"${
-      t.kind==='contracts'?` data-ik-view="${esc(t.k)}"`:''} aria-selected="${on?'true':'false'}">${esc(t.label)}<span class="n"${
+      t.kind==='contracts'?` data-ik-view="${esc(t.k)}"`:''} aria-selected="${on?'true':'false'}"${t.title?` title="${esc(t.title)}"`:''}>${esc(t.label)}<span class="n"${
       t.k==='advice'?' data-rq-n="advice"':''}${t.n?'':' hidden'}>${t.n}</span></button>`; }).join('')}</div>`;
 }
 /* The numbers move on a load or a save with no repaint of the page (the
@@ -935,24 +958,51 @@ function rqPaintKindCounts(){
     if(typeof keepScroll === 'function') keepScroll(()=>renderIntake()); else renderIntake();
     return;
   }
-  const els = document.querySelectorAll('[data-rq-n]'); if(!els.length) return;
-  const n = rqKindCounts();
-  /* the team's Advice tab is a cut of the list: its number is the list's
-     own reading under the boxes, as every other tab's (ikBase) */
-  if(typeof canEdit === 'function' && canEdit()) n.advice = ikBase(ikFilters(), false).filter(r=>ikPassView(r,'advice',false)).length;
-  els.forEach(el=>{ const v = n[el.getAttribute('data-rq-n')] || 0; el.textContent = String(v); el.hidden = !v; });
+  /* the list head's tab row (Requests): counted again in place, and only
+     where a number moved — a recount closes a list left open on "+ Filter" */
+  if(ikHeadMoved() && typeof lhHeadSync === 'function') lhHeadSync(IK_SEAT);
+  /* the rows this file draws (the Advice board, the narrow page): drawn again
+     where what they show has moved, a tab that came or went included (the
+     team's Advice tab is a cut of the list, counted like every other tab) */
+  document.querySelectorAll('.rq-kinds[data-rq-sig]').forEach(row=>{
+    const box = document.createElement('div');
+    box.innerHTML = rqKindTabsHtml(row.getAttribute('data-rq-lit') || 'contracts');
+    const fresh = box.firstElementChild;
+    if(!fresh || fresh.getAttribute('data-rq-sig') === row.getAttribute('data-rq-sig')) return;
+    const host = row.parentElement;
+    row.replaceWith(fresh);
+    rqKindTabsWire(host);
+  });
+}
+/* WHETHER THE LIST HEAD'S TABS STILL SAY WHAT THE LIST HOLDS: the tabs drawn,
+   and their numbers, against the one reading. No head, nothing moved. */
+function ikHeadMoved(){
+  if(typeof document === 'undefined') return false;
+  const head = document.querySelector(`[data-lh-seat="${IK_SEAT}"]`); if(!head) return false;
+  const pg = (typeof LH_PAGES === 'object' && LH_PAGES) ? LH_PAGES[IK_SEAT] : null;
+  if(!pg || typeof pg.tabs !== 'function') return false;
+  const cur = String(typeof pg.tabNow === 'function' ? pg.tabNow() : '');
+  const want = pg.tabs().filter(t=>t.n||t.keep||String(t.k)===cur).map(t=>t.k+':'+(t.n||0)).join(',');
+  const drawn = [...head.querySelectorAll('[role="tab"][data-ik-view]')].map(b=>{
+    const n = b.querySelector('.n'); return b.getAttribute('data-ik-view')+':'+(n?(Number(n.textContent.replace(/\D/g,''))||0):0); }).join(',');
+  return want !== drawn;
 }
 /* A press on the other kind is a page change (the two are two views); a
-   press on the lit one does nothing. */
+   press on the lit one does nothing. Each tab is bound once: the door's beat
+   may draw a row again under the same host. */
 function rqKindTabsWire(root){
   const host = root || (typeof document !== 'undefined' ? document : null); if(!host) return;
-  host.querySelectorAll('[data-rq-kind]').forEach(b=>b.addEventListener('click',()=>{
-    const v = RQ_KIND_VIEW[b.getAttribute('data-rq-kind')];
-    if(!v || (typeof state !== 'undefined' && state.view === v)) return;
-    /* from the Advice page, a queue tab lands on Requests at that view */
-    const iv = b.getAttribute('data-ik-view'); if(iv) ikFilters().view = iv;
-    if(typeof setView === 'function') setView(v);
-  }));
+  host.querySelectorAll('[data-rq-kind]').forEach(b=>{
+    if(b.dataset.rqBound) return;
+    b.dataset.rqBound = '1';
+    b.addEventListener('click',()=>{
+      const v = RQ_KIND_VIEW[b.getAttribute('data-rq-kind')];
+      if(!v || (typeof state !== 'undefined' && state.view === v)) return;
+      /* from the Advice page, a queue tab lands on Requests at that view */
+      const iv = b.getAttribute('data-ik-view'); if(iv) ikFilters().view = iv;
+      if(typeof setView === 'function') setView(v);
+    });
+  });
 }
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -1593,25 +1643,75 @@ function ikAdvicePanelOpts(r){
       pills, moreBesidePills:true, acts },
     acts, body };
 }
-/* THE BAND'S BOXES (round 20 as drawn): beside the tabs, each with its label
-   before it — "Request [Words or a reference]" · "Stream [All streams]" ·
-   "With [Anyone]". The two choices are the band's own filter boxes (cuChip:
-   the word, the value, an invisible <select> HaTi's own list dresses), so a
-   press opens one list on a computer and on an iPad alike. The asker, who
-   sees only their own, has the find box alone. */
-function ikBandBoxesHtml(f, asker, narrowing){
-  const ph=i18t('ik_box_request_ph');
-  const find=`<label class="ik-fb-find"><span class="ik-fb-l">${esc(i18t('ik_box_request'))}</span><span class="ik-search">${typeof icon==='function'?icon('search','w-3.5 h-3.5'):''}<input type="search" data-ik-q value="${esc(f.q||'')}" placeholder="${esc(ph)}" aria-label="${esc(i18t('ik_box_request'))}"></span></label>`;
-  if(asker) return `<div class="reg-filterbar reg-fb ik-fb">${find}</div>`;
-  const chip=(typeof window.cuChip==='function')?window.cuChip:insChipHtml;
-  const folders=(typeof visibleFolders==='function')?visibleFolders():Object.values(window.FOLDERS||{});
-  const n=(narrowing||[]).length;
-  return `<div class="reg-filterbar reg-fb ik-fb">${find}${
-    chip({ attr:'data-ik-f', key:'folder', label:i18t('reg_chip_stream'), cur:f.folder, def:IK_DEF.folder,
-      opts:[['all',i18t('cu_all_streams')],...folders.map(x=>[x.id,x.name])] })}${
-    chip({ attr:'data-ik-f', key:'who', label:i18t('ik_f_with'), cur:f.who, def:IK_DEF.who,
-      opts:[['all',i18t('cu_anyone')],['me',i18t('ik_with_you')],['nobody',i18t('ik_c_who_nobody')],['other',i18t('ik_c_who_colleague')]] })}${
-    n?`<button type="button" class="ui-link ik-fb-clear" data-ik-clear>${esc(i18tn('ob_clear_n',n,{n}))}</button>`:''}</div>`;
+/* ════ THE LIST HEAD, THE LEGORA WAY (the owner's pick, 21 Oct 2026, Part 8;
+   js/views/listhead.js) ════════════════════════════════════════════════════
+   Under the page's own head (its name, "N open", Ask for a contract): the
+   box to search the requests or ask Jambo in, the views as tabs, then a chip
+   row — Stream and With appear only once ADDED ("+ Filter"), as "Stream
+   Sales ×", "With Nobody yet ×" — with Columns at its right end. It REVERSES
+   round 20's band, where the find box and the two boxes stood labelled
+   beside the tabs. The page keeps every reading and every kept value: the
+   view, the two filters and the words are ikFilters' own keys (ikPlace keeps
+   them across a refresh); each press ends in this page's writer and its own
+   repaint. A question typed in the box goes to Jambo's panel beside the list
+   (jlAsk, the panel's own door), never into the list. The asker, who sees
+   only their own, has the box, the tabs and Columns. */
+const IK_SEAT = 'intake';
+/* THE COLUMNS A READER MAY HIDE OR ORDER (Columns, round 19's one builder):
+   round 20's, at round 20's widths; Ref and Request always stand first */
+function ikColDefs(asker){
+  return asker
+    ? [{ k:'with', label:i18t('ik_f_with'), w:170 }, { k:'promised', label:i18t('ik_f_promised'), w:130 }]
+    : [{ k:'kind', label:i18t('ik_col_kind'), w:88 }, { k:'road', label:i18t('ik_f_road'), w:140 }, { k:'with', label:i18t('ik_f_with'), w:148 },
+      { k:'files', label:i18t('ik_col_files'), w:56 }, { k:'asked', label:i18t('ik_col_asked'), w:66 }, { k:'promised', label:i18t('ik_f_promised'), w:100 }];
+}
+function ikRepaint(){ if(typeof keepScroll==='function') keepScroll(()=>renderIntake()); else renderIntake(); }
+const ikPlaceKeep = () => { if(typeof window!=='undefined'&&typeof window.placeSave==='function') try{ placeSave(); }catch(_){} };
+/* the head's box keeps the reader's caret across a repaint of the whole page
+   (the list landing, the advice book landing, the ten-minute sweep) */
+function ikBoxKeep(){
+  if(typeof document==='undefined') return ()=>{};
+  const sel=`[data-lh-seat="${IK_SEAT}"] input[data-lh-q]`;
+  const a=document.activeElement;
+  if(!(a&&a.matches&&a.matches(sel))) return ()=>{};
+  const s=a.selectionStart, e=a.selectionEnd;
+  return ()=>{ const b=document.querySelector(sel); if(!b||b===a) return;
+    try{ b.focus({ preventScroll:true }); b.setSelectionRange(s,e); }catch(_){} };
+}
+function ikLhRegister(asker){
+  if(typeof LC_PAGES==='object'&&LC_PAGES)
+    LC_PAGES[IK_SEAT]={ cols:()=>ikColDefs(asker).map(c=>({ k:c.k, label:c.label })), repaint:()=>ikRepaint() };
+  if(typeof lhRegister!=='function') return null;
+  /* a choice's number: the rows it would leave, the view, the other filter
+     and the words held */
+  const count=patch=>{ const g=Object.assign({}, ikFilters(), patch); return ikBase(g, asker).filter(r=>ikPassView(r,g.view,asker)).length; };
+  return lhRegister(IK_SEAT, {
+    noun:'requests',
+    total:()=>(asker?intakeMine():((_intake&&_intake.list)||[]).concat(ikAdviceRows())).length,
+    q:()=>ikFilters().q||'',
+    setQuery:w=>{ ikFilters().q=String(w==null?'':w); ikPaintRows(); },
+    boxId:'ik-q', boxAttrs:{ 'data-ik-q':true },
+    tabAttr:'data-ik-view', tabsLabel:i18t('rq_kinds_label'),
+    tabs:()=>ikTabViews(asker),
+    tabNow:()=>ikFilters().view,
+    /* the asker's Advice tab is the advice desk's own page */
+    tab:k=>{ if(asker&&k==='advice'){ if(typeof setView==='function') setView('advice'); return; }
+      ikFilters().view=String(k); ikRepaint(); ikPlaceKeep(); },
+    filters:()=>{
+      if(asker) return [];
+      const f=ikFilters();
+      const folders=(typeof visibleFolders==='function')?visibleFolders():Object.values(window.FOLDERS||{});
+      return [
+        { k:'folder', label:i18t('reg_chip_stream'), cur:f.folder, def:IK_DEF.folder,
+          opts:folders.map(x=>[x.id, x.name, count({ folder:x.id })]) },
+        { k:'who', label:i18t('ik_f_with'), cur:f.who, def:IK_DEF.who,
+          opts:[['me',i18t('ik_with_you')],['nobody',i18t('ik_c_who_nobody')],['other',i18t('ik_c_who_colleague')]].map(o=>[o[0], o[1], count({ who:o[0] })]) },
+      ];
+    },
+    apply:patch=>{ const f=ikFilters();
+      Object.keys(patch||{}).forEach(k=>{ if(IK_CHIPS.includes(k)) f[k]=String(patch[k]); });
+      ikRepaint(); ikPlaceKeep(); },
+  });
 }
 /* THE LIST BEHIND THE TABS — ONE READING for every tab's number and the list
    under it (the number on a door matches the list behind it): the boxes,
@@ -1634,48 +1734,107 @@ function renderIntakeInspector(host){
   /* the road no longer narrows (no box for it): a value left from before rests */
   f.road=IK_DEF.road;
   const all=asker?intakeMine():((_intake&&_intake.list)||[]);
-  const narrowing=asker?[]:IK_CHIPS.filter(k=>String(f[k])!==String(IK_DEF[k]));
-  const base=ikBase(f, asker);
-  /* the whole book's open requests, the boxes at rest: the head's "N open"
-     and Jambo's words with nothing chosen */
+  /* the whole book's open requests, the boxes at rest: the head's "N open" */
   const openAll=(asker?all:all.concat(ikAdviceRows())).filter(r=>ikPassView(r,'open',asker));
-  /* THE DRAWING'S SEARCH BOX: the words a reader would use for a request —
-     its title, what was asked, who asked, the counterparty, its reference. */
-  const q=String(f.q||'').trim().toLowerCase();
-  /* OLDEST WAITING FIRST on the team's Open list (round 20 as drawn: "Open
-     requests 4 · oldest waiting first" — the longest wait leads); every other
-     list, and the asker's, newest first. A late request still says so in red
-     in its own Promised by cell. */
-  const oldest=!asker&&f.view==='open';
-  const rows=base.filter(r=>ikPassView(r,f.view,asker))
-    .sort((a,b)=>oldest?String(a.createdAt||'').localeCompare(String(b.createdAt||'')):String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
-  /* the list behind the tab, nothing narrowed — the foot's "of" */
-  const viewAll=(asker?all:all.concat(ikAdviceRows())).filter(r=>ikPassView(r,f.view,asker)).length;
   /* THE HEAD (round 20 as drawn): "Requests 4 open · what colleagues ask Legal
      for · advice too", and the one filled act */
   _ikHead.facts=asker?'':`<span class="ik-hf-n">${esc(i18tn('ik_hf_open',openAll.length,{ n:openAll.length }))}</span><span class="ik-hf-s">${esc(i18t('ik_hf_sub'))}</span>`;
   _ikHead.acts=`<button type="button" id="ik-new" class="ui-btn ui-btn-primary">${typeof icon==='function'?icon('plus','w-3.5 h-3.5'):''}${esc(i18t('ik_ask_btn'))}</button>`;
-  /* THE DRAWING'S COLUMNS. The asker keeps With in the list, because "who has
-     my request" is the asker's whole question; the team's eight are round 20's.
-     Ref is wide enough for HaTi's own references (REQ-37E60C) to read whole. */
-  const cols=asker
-    ? [{ t:i18t('ik_col_ref'), w:96 }, { t:i18t('ik_col_request') }, { t:i18t('ik_f_with'), w:170 }, { t:i18t('ik_f_promised'), w:130 }]
-    : [{ t:i18t('ik_col_ref'), w:108 }, { t:i18t('ik_col_request') }, { t:i18t('ik_col_kind'), w:88 }, { t:i18t('ik_f_road'), w:140 }, { t:i18t('ik_f_with'), w:148 }, { t:i18t('ik_col_files'), w:56 }, { t:i18t('ik_col_asked'), w:66 }, { t:i18t('ik_f_promised'), w:100 }];
+  /* THE LIST HEAD under the page's own (the box, the tabs, the chips and
+     Columns), the head card's lower half; the list and its foot are painted
+     by ikPaintRows, which is all the box's words repaint */
+  ikLhRegister(asker);
+  const keep=ikBoxKeep();
+  host.innerHTML=`<div class="view-enter sap-page ins-page ik-ins" data-ins-page="intake" data-ins="1">
+    ${typeof lhHtml==='function'?lhHtml(IK_SEAT,{ frame:'foot' }):''}
+    <div class="ins-body"${asker?'':` data-ik-adv="${ikAdviceRows().length}"`}>
+      <section class="ins-card" aria-label="${esc(i18t('nav_intake'))}">
+        <div class="ins-scroll" id="ik-scroll"></div>
+        <div class="ins-foot" data-ik-foot></div>
+      </section>
+      <aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ik_panel_label'))}"></aside>
+    </div>
+  </div>`;
+  ikPaintHead();
+  _ikPanelK=undefined;
+  ikPaintRows();
+  keep();
+  if(typeof insWatchWidth==='function') insWatchWidth();
+}
+/* THE LIST, ITS FOOT AND THE PANEL — what the box's words repaint, letter by
+   letter, the head and its box left standing (the caret stays). The panel is
+   painted again only when the row it shows changes. */
+let _ikPanelK;
+function ikPaintRows(){
+  if(typeof document==='undefined') return;
+  const host=document.querySelector('.ik-ins[data-ins="1"]'); if(!host) return;
+  const scroll=host.querySelector('#ik-scroll'); if(!scroll) return;
+  const may=(typeof canEdit==='function'&&canEdit());
+  const asker=!may;
+  const f=ikFilters();
+  const all=asker?intakeMine():((_intake&&_intake.list)||[]);
+  const narrowing=asker?[]:IK_CHIPS.filter(k=>String(f[k])!==String(IK_DEF[k]));
+  const base=ikBase(f, asker);
+  /* Jambo's words with nothing chosen read the whole book's open requests */
+  const openAll=(asker?all:all.concat(ikAdviceRows())).filter(r=>ikPassView(r,'open',asker));
+  /* THE DRAWING'S SEARCH BOX: the words a reader would use for a request —
+     its title, what was asked, who asked, the counterparty, its reference. */
+  const q=String(f.q||'').trim().toLowerCase();
+  /* OLDEST WAITING FIRST on the team's Open list (round 20 as drawn: the
+     longest wait leads; the Open tab's hover says so); every other list, and
+     the asker's, newest first. A late request still says so in red in its
+     own Promised by cell. */
+  const oldest=!asker&&f.view==='open';
+  const rows=base.filter(r=>ikPassView(r,f.view,asker))
+    .sort((a,b)=>oldest?String(a.createdAt||'').localeCompare(String(b.createdAt||'')):String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+  /* THE DRAWING'S COLUMNS, in the reader's own choice and order (Columns).
+     The asker keeps With in the list, because "who has my request" is the
+     asker's whole question; the team's eight are round 20's. Ref is wide
+     enough for HaTi's own references (REQ-37E60C) to read whole. */
+  const defs=ikColDefs(asker), byK=Object.fromEntries(defs.map(c=>[c.k,c]));
+  const keys=(typeof lcShown==='function')?lcShown(IK_SEAT, defs.map(c=>c.k)):defs.map(c=>c.k);
+  const cols=[{ t:i18t('ik_col_ref'), w:asker?96:108 }, { t:i18t('ik_col_request') }, ...keys.map(k=>({ t:byK[k].label, w:byK[k].w, k }))];
   /* the Kind, an outlined pill — round 15's own (ap-kind) */
   const kindPill=k=>`<span class="ap-kind ik-kind">${esc(i18t(k==='advice'?'ik_kind_advice':'ik_kind_contract'))}</span>`;
-  const advTr=r=>{
+  const advCells=r=>{
     const left=(window.adviceDaysLeft&&r.eta)?adviceDaysLeft(r.eta):null;
     const late=!IK_ADV_DONE.includes(r.status)&&left!=null&&left<=0;
+    return {
+      kind:()=>`<td>${kindPill('advice')}</td>`,
+      road:()=>`<td>${ikAdvRoadHtml()}</td>`,
+      with:()=>`<td class="ik-with">${r.holder?esc(r.holder):IK_ADV_DONE.includes(r.status)?`<span class="ins-quiet">—</span>`:`<span class="ins-nobody">${esc(i18t('ik_with_nobody'))}</span>`}</td>`,
+      files:()=>`<td><span class="ins-quiet">—</span></td>`,
+      asked:()=>`<td class="ik-ask">${esc(ikDay(r.createdAt))}</td>`,
+      promised:()=>`<td class="ik-pr">${r.eta?(left===0&&late?`<span class="ins-late">${esc(i18t('ik_pr_today_word'))}</span>`:`<span class="${late?'ins-late':''}">${esc(ikDay(r.eta,{ weekday:true }))}</span>`):`<span class="ins-quiet">—</span>`}</td>`,
+    };
+  };
+  const advTr=r=>{
+    const c=advCells(r);
     return `<tr data-ins-row data-ik-row="${esc('adv:'+r.id)}" tabindex="-1">
       <td><span class="ins-ref">${esc(r.id)}</span></td>
       <td><span class="ins-c2"><b title="${esc(r.title)}">${esc(r.title)}</b><span>${esc([r.by.name, r.company].filter(Boolean).join(' · '))}</span></span></td>
-      <td>${kindPill('advice')}</td>
-      <td>${ikAdvRoadHtml()}</td>
-      <td class="ik-with">${r.holder?esc(r.holder):IK_ADV_DONE.includes(r.status)?`<span class="ins-quiet">—</span>`:`<span class="ins-nobody">${esc(i18t('ik_with_nobody'))}</span>`}</td>
-      <td><span class="ins-quiet">—</span></td>
-      <td class="ik-ask">${esc(ikDay(r.createdAt))}</td>
-      <td class="ik-pr">${r.eta?(left===0&&late?`<span class="ins-late">${esc(i18t('ik_pr_today_word'))}</span>`:`<span class="${late?'ins-late':''}">${esc(ikDay(r.eta,{ weekday:true }))}</span>`):`<span class="ins-quiet">—</span>`}</td>
+      ${keys.map(k=>c[k]()).join('')}
     </tr>`;
+  };
+  const reqCells=r=>{
+    /* ONE LINE, the drawing's: the day, in red once it is today or past;
+       a finished request says the day it finished. */
+    const prHtml=()=>{
+      const pr=intakePromiseSay(r);
+      const d=(pr&&r.promisedAt&&!IK_STOPPED.includes(r.status)&&typeof daysUntil==='function')?daysUntil(String(r.promisedAt).slice(0,10)):null;
+      return !pr?`<span class="ins-quiet">—</span>`
+        : d===0?`<span class="ins-late">${esc(i18t('ik_pr_today_word'))}</span>`
+        : `<span class="${d!=null&&d<0?'ins-late':pr.cls==='ins-soon'?'ins-soon':''}"${pr.sub?` title="${esc(pr.sub)}"`:''}>${esc(pr.day)}</span>`;
+    };
+    return {
+      kind:()=>`<td>${kindPill('contract')}</td>`,
+      road:()=>`<td>${ikRoadHtml(r)}</td>`,
+      /* the asker's own cell, and the team's (the holder, then the lane that sent it) */
+      with:()=>asker?`<td>${ikWithCellHtml(r, asker)}</td>`:`<td class="ik-with">${ikWithListHtml(r)}</td>`,
+      files:()=>`<td>${ikFilesCellHtml(r)}</td>`,
+      asked:()=>`<td class="ik-ask">${esc(ikDay(r.createdAt))}</td>`,
+      promised:()=>`<td class="ik-pr">${prHtml()}</td>`,
+    };
   };
   const tr=r=>{
     if(r._adv) return advTr(r);
@@ -1683,20 +1842,11 @@ function renderIntakeInspector(host){
     const sub=asker
       ? [r.counterparty||'', i18t('ik_row_asked',{date:ikDay(r.createdAt)})].filter(Boolean).join(' · ')
       : [ikIsMine(r)?i18t('ik_with_you'):((r.by&&r.by.name)||''), stream].filter(Boolean).join(' · ');
-    /* ONE LINE, the drawing's: the day, in red once it is today or past;
-       a finished request says the day it finished. */
-    const pr=intakePromiseSay(r);
-    const d=(pr&&r.promisedAt&&!IK_STOPPED.includes(r.status)&&typeof daysUntil==='function')?daysUntil(String(r.promisedAt).slice(0,10)):null;
-    const prHtml=!pr?`<span class="ins-quiet">—</span>`
-      : d===0?`<span class="ins-late">${esc(i18t('ik_pr_today_word'))}</span>`
-      : `<span class="${d!=null&&d<0?'ins-late':pr.cls==='ins-soon'?'ins-soon':''}"${pr.sub?` title="${esc(pr.sub)}"`:''}>${esc(pr.day)}</span>`;
+    const c=reqCells(r);
     return `<tr data-ins-row data-ik-row="${esc(r.id)}" tabindex="-1">
       <td><span class="ins-ref">${esc(r.id)}</span></td>
       <td><span class="ins-c2"><b title="${esc(r.title||'')}">${esc(r.title||'')}</b><span>${esc(sub)}</span></span></td>
-      ${asker?'':`<td>${kindPill('contract')}</td>`}
-      <td>${asker?ikWithCellHtml(r, asker):ikRoadHtml(r)}</td>
-      ${asker?'':`<td class="ik-with">${ikWithListHtml(r)}</td><td>${ikFilesCellHtml(r)}</td><td class="ik-ask">${esc(ikDay(r.createdAt))}</td>`}
-      <td class="ik-pr">${prHtml}</td>
+      ${keys.map(k=>c[k]()).join('')}
     </tr>`;
   };
   /* ONE LIST, without a heading row per pile — the drawing's flat list; a
@@ -1706,37 +1856,25 @@ function renderIntakeInspector(host){
     const msg=asker?i18t('ik_mine_empty'):(narrowing.length||q)?i18t('ik_none_match'):(f.view==='open'?i18t('ik_queue_empty'):i18t('ob_none_here'));
     body=`<tr class="ins-empty"><td colspan="${cols.length}">${esc(msg)}${narrowing.length?`<br><button type="button" class="ui-link" data-ik-clear style="margin-top:8px">${esc(i18t('ob_clear_filters'))}</button>`:''}</td></tr>`;
   }
-  const table=`<table class="ins-lt ik-lt${asker?'':' is-team'}"><colgroup>${cols.map(c=>`<col${c.w?` style="width:${c.w}px"`:''}>`).join('')}</colgroup><thead><tr>${
-    cols.map(c=>`<th>${esc(c.t)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
-  const cardT={ open:'ik_card_open', mine:'ik_card_mine', advice:'ik_card_advice', fin:'ik_card_fin', all:'ik_card_all' }[f.view]||'ik_card_all';
-  /* THE LIST'S HEAD (round 20 as drawn): its name, its count in a pill, and
-     the order it is in; the foot under the last row says how many of the
-     tab's list are shown ("4 of 4 open") */
-  const foot=asker?i18t('ik_foot_asker'):i18t(f.view==='open'?'ik_foot_n_open':'ik_foot_n',{ n:rows.length, of:viewAll });
-  host.innerHTML=`<div class="view-enter sap-page ins-page ik-ins" data-ins-page="intake" data-ins="1">
-    <div class="sap-band ph-foot"><div class="reg-tabbar ik-tabbar">${rqKindTabsHtml('contracts')}${ikBandBoxesHtml(f, asker, narrowing)}</div></div>
-    <div class="ins-body"${asker?'':` data-ik-adv="${ikAdviceRows().length}"`}>
-      <section class="ins-card" aria-label="${esc(i18t('nav_intake'))}">
-        <div class="ins-cardhead"><h2 class="ins-cardhead-t">${esc(i18t(cardT))} <span class="ap-card-n is-pill ik-card-n">${rows.length}</span> <span class="ik-card-m">${esc(i18t(oldest?'ik_sort_oldest':'ik_sort_newest'))}</span></h2></div>
-        <div class="ins-scroll" id="ik-scroll">${table}</div>
-        <div class="ins-foot" data-ik-foot><span>${esc(foot)}</span></div>
-      </section>
-      <aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ik_panel_label'))}"></aside>
-    </div>
-  </div>`;
-  ikPaintHead();
-  const again=()=>{ if(typeof keepScroll==='function') keepScroll(()=>renderIntake()); else renderIntake(); };
-  host.querySelectorAll('[data-ik-view]').forEach(b=>b.addEventListener('click',()=>{ f.view=b.getAttribute('data-ik-view'); again(); }));
-  host.querySelectorAll('[data-ik-f]').forEach(s=>s.addEventListener('change',()=>{ f[s.getAttribute('data-ik-f')]=s.value; again(); }));
-  host.querySelectorAll('[data-ik-clear]').forEach(b=>b.addEventListener('click',()=>{ IK_CHIPS.forEach(k=>{ f[k]=IK_DEF[k]; }); f.q=''; again(); }));
-  /* The box is repainted with the list, so the caret is put back where the
-     reader was typing. */
-  host.querySelector('[data-ik-q]')?.addEventListener('input',e=>{
-    const at=e.target.selectionStart; f.q=e.target.value; again();
-    const box=document.querySelector('[data-ik-q]'); if(box){ box.focus({ preventScroll:true }); try{ box.setSelectionRange(at,at); }catch(_){} } });
-  rqKindTabsWire(host);
+  scroll.innerHTML=`<table class="ins-lt ik-lt${asker?'':' is-team'}"><colgroup>${cols.map(c=>`<col${c.w?` style="width:${c.w}px"`:''}>`).join('')}</colgroup><thead><tr>${
+    cols.map(c=>`<th${c.k?` data-ik-col="${esc(c.k)}"`:''}>${esc(c.t)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
+  /* THE FOOT (the list head's one foot): "1–4 of 4", every row drawn — the
+     rows behind the tab, the chips and the words. The asker's own sentence
+     stays after it. */
+  const foot=host.querySelector('[data-ik-foot]');
+  if(foot){ const html=(typeof lhFootHtml==='function')
+    ? lhFootHtml(IK_SEAT, rows.length, rows.length, 0, asker?{ extra:` · <span class="ik-foot-note">${esc(i18t('ik_foot_asker'))}</span>` }:undefined)
+    : '';
+    /* in place, so the live region is heard when the count moves (lhFootPut) */
+    const cur=foot.querySelector('[data-lh-foot]');
+    if(!(cur&&typeof lhFootPut==='function'&&lhFootPut(cur, html))) foot.innerHTML=html; }
+  /* the empty list's way forward: every filter and the words at rest */
+  scroll.querySelectorAll('[data-ik-clear]').forEach(b=>b.addEventListener('click',()=>{
+    IK_CHIPS.forEach(k=>{ f[k]=IK_DEF[k]; }); f.q='';
+    if(typeof lhBoxSet==='function') lhBoxSet(IK_SEAT, '');
+    ikRepaint(); ikPlaceKeep(); }));
   const seat=asker?'intake:asker':'intake:team';
-  const tb=host.querySelector('.ik-lt tbody');
+  const tb=scroll.querySelector('.ik-lt tbody');
   const idOf=t=>t.getAttribute('data-ik-row');
   const keyOf=r=>r._adv?'adv:'+r.id:r.id;
   const byId=new Map(rows.map(r=>[keyOf(r),r]));
@@ -1746,9 +1884,11 @@ function renderIntakeInspector(host){
   const id=insPick(seat, rows.map(keyOf));
   if(tb) insMarkRow(tb,'[data-ins-row]',idOf,id);
   /* Jambo's own words with nothing chosen; a chip narrows to what nobody
-     holds (Open, With: Nobody yet) and lands on its first row */
-  const go=k=>{ if(k==='nobody'){ f.view='open'; f.who='nobody'; again(); if(typeof jlLand==='function') jlLand('first'); } };
+     holds (Open, With: Nobody yet — the head draws it as its chip) and lands
+     on its first row */
+  const go=k=>{ if(k==='nobody'){ f.view='open'; f.who='nobody'; ikRepaint(); ikPlaceKeep(); if(typeof jlLand==='function') jlLand('first'); } };
   const paint=k=>{
+    _ikPanelK=k||null;
     const r=byId.get(k);
     /* Jambo's panel says what it holds: "Request" (round 20; advice is a request) */
     if(!r){ insPaintPanel({ seat, empty:asker?i18t('ik_panel_none_asker'):i18t('ik_panel_none'), jlSay:ikJlSay(openAll, asker, go) }); return; }
@@ -1760,13 +1900,12 @@ function renderIntakeInspector(host){
     pan.querySelectorAll('[data-ik-cp]').forEach(b=>b.addEventListener('click',()=>{
       if(typeof window.cuOpenCustomer==='function'){ cuOpenCustomer(b.getAttribute('data-ik-cp')); if(typeof jlLand==='function') jlLand('list'); } }));
   };
-  paint(id);
+  if(_ikPanelK===undefined||(id||null)!==_ikPanelK) paint(id);
   /* A SECOND PRESS OPENS THE CONTRACT THE REQUEST BECAME, where it became
      one; on anything else the verbs in the panel are the way on. */
   if(tb) insListWire(tb,{ rowSel:'[data-ins-row]', idOf,
     onSelect:k=>{ insSelect(seat,k); insMarkRow(tb,'[data-ins-row]',idOf,k); paint(k); },
     onOpen:k=>{ const r=byId.get(k); if(r&&r._adv){ if(window.openAdviceModal) openAdviceModal(r.id); } else if(r&&r.contractId) openWorkspace(r.contractId); } });
-  if(typeof insWatchWidth==='function') insWatchWidth();
 }
 
 /* ---- THE TWO ACTS, AND THE LINK ---- */
@@ -1850,6 +1989,7 @@ Object.assign(window,{ikPlace,ikPlacePut,ikWithListHtml,ikFilesCellHtml,INTAKE_S
   ikPaintHead,ikAfterRender,renderIntakeInspector,ikPanelOpts,ikAdvicePanelOpts,ikAdviceRows,ikFilesHtml,intakeFileGet,IK_FILES_MAX,IK_FILE_MAX_MB,ikActs,ikStatusSay,ikFilters,
   IK_V_TEAM,IK_V_ASKER,IK_DEF,IK_CHIPS,IK_GROUPS,ikPassView,ikPassChips,ikSort,ikAgeWords,ikTookWords,ikDay,
   openIntakeForm,intakeAnswerLine,openIntakeTracker,intakeDraft,intakeSetStatus,renderIntake,ikRowHtml,
-  ikFitOf,ikFitHtml,ikTeamPanelOpts,ikCpHtml,ikCpNdaWords,ikWithRowHtml,ikAskedHtml,ikHeadPillsHtml,ikJlSay,ikRoadShown,ikRoadHtml,ikLaneChipHtml,ikBandBoxesHtml,ikWithCellHtml,
+  ikFitOf,ikFitHtml,ikTeamPanelOpts,ikCpHtml,ikCpNdaWords,ikWithRowHtml,ikAskedHtml,ikHeadPillsHtml,ikJlSay,ikRoadShown,ikRoadHtml,ikLaneChipHtml,ikWithCellHtml,
+  IK_SEAT,IK_CARD_WORDS,ikTabViews,ikHeadMoved,ikColDefs,ikLhRegister,ikPaintRows,ikRepaint,
   RQ_KINDS,RQ_KIND_VIEW,rqKindCounts,requestsDoorCount,rqKindTabsHtml,rqPaintKindCounts,rqKindTabsWire,
   _intakeState:_intake});

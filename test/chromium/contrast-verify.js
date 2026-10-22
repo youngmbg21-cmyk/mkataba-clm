@@ -277,17 +277,19 @@ const SWEEP = KNOWN => {
   {
     const { ctx, page } = await open();
     await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register'))); await pause(700);
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way"): the
+       Contracts place's pager became the shared list foot ("1–40 of N · Show
+       40 more"); what this pins is the same — the foot's live words and its
+       way to the rest never stand on the 3.74:1 fill */
     const pager = await page.evaluate(() => {
-      const b = document.querySelector('[data-reg-page]:not([disabled])');
-      if (!b) return null;
-      const on = [...document.querySelectorAll('[data-reg-page]')]
-        .find(x => getComputedStyle(x).fontWeight === '700');
-      return on ? getComputedStyle(on).backgroundColor : null;
+      const f = document.querySelector('#reg-showing[data-lh-foot]') || document.querySelector('[data-reg-page]:not([disabled])');
+      if (!f) return null;
+      return [f, ...f.querySelectorAll('*')].map(x => getComputedStyle(x).backgroundColor).join(' | ');
     });
     const a600 = await page.evaluate(() =>
       getComputedStyle(document.documentElement).getPropertyValue('--color-accent-600').trim());
-    check('the pager draws at all, so the next check means something', pager != null, String(pager));
-    check('the pager\'s live page is not the 3.74:1 fill', pager != null && !pager.includes('148, 136'),
+    check('the list foot draws at all, so the next check means something', pager != null, String(pager));
+    check('the foot\'s words and its Show more are not on the 3.74:1 fill', pager != null && !pager.includes('148, 136'),
       `${pager} (accent-600 is ${a600})`);
 
     const cf = await page.evaluate(async () => {

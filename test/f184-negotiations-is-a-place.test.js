@@ -451,7 +451,14 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
     assert.equal(b.$$('#reg-tbody .reg-actlink').length, 0);
   });
 
-  test('three bands, in fixed order, counting the rows beneath them', () => {
+  test('ONE PLAIN TABLE: the whose-move tabs count the groups, and under All ours come first', () => {
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way", Q2
+       answered "A — tabs only"). This read "three bands, in fixed order,
+       counting the rows beneath them": full-width group headings between the
+       rows. They are gone; the TABS in the list head do their job — each
+       counted with the rows its press shows — and the ORDER the bands kept is
+       kept under All: waiting on us first, then the other side, then the
+       settled. */
     const b = world(['MK-1', 'MK-2', 'MK-3', 'MK-4']);
     theirAsk(b.byId('MK-1'), 'CHG-1');
     theirAsk(b.byId('MK-2'), 'CHG-2');
@@ -465,44 +472,31 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
     b.byId('MK-4').changes.push({ id: 'CHG-4', status: 'accepted', authorSide: 'owner',
       clauseId: 'c1', kind: 'edit', author: 'Us', seq: 1 });
     b.win.openNegotiations();
-    const bands = b.$$('#reg-tbody tr.ngl-band');
-    assert.equal(bands.length, 3, 'one per group, always — an empty group is information');
-    const k = bands.map(r => r.querySelector('.ngl-band-k').textContent.trim());
-    /* RE-POINTED 17 Oct 2026 (round 14, the owner picked "Whose move" and
-       said yes to "Our move"): the first group is our side's, whoever on it
-       leads (the Lead column says who). */
-    assert.deepEqual(k.join('|'), 'Waiting on our side|With the other side|Nothing outstanding');
-    /* RE-POINTED IN PLACE 21 Sep 2026 (Young: the four pages must look exactly
-       like the artifact) ---- the reference writes the count INTO the heading,
-       "WAITING ON YOU · 3", so the element carries a separator beside the
-       digits. The claim is and always was about the NUMBER; reading the whole
-       string as one was pinning the punctuation with it. */
-    const n = bands.map(r => Number((r.querySelector('.ngl-band-n').textContent.match(/\d+/) || [NaN])[0]));
-    assert.deepEqual(n.join(','), '2,1,1');
-    /* And each count matches what is actually underneath it. */
+    assert.equal(b.$$('#reg-tbody tr.ngl-band').length, 0, 'no group heading between the rows');
     const rows = b.$$('#reg-tbody tr');
-    let seen = [], at = -1;
-    rows.forEach(r => { if (r.classList.contains('ngl-band')) { at++; seen[at] = 0; }
-      else if (r.getAttribute('data-row')) seen[at]++; });
-    assert.deepEqual(seen.join(','), '2,1,1');
+    assert.ok(rows.length === 4 && rows.every(r => r.getAttribute('data-row')), 'every row of the table is a contract');
+    const band = id => b.byId(id)._ngBand;
+    assert.deepEqual(rows.map(r => band(r.getAttribute('data-row'))).join(','), 'you,you,them,clear',
+      'ours first, then theirs, then the settled');
+    const tabs = b.$$('[data-lh-seat="negotiations"] [role="tab"][data-reg-band]')
+      .map(t => [t.getAttribute('data-reg-band'), (t.querySelector('.n') || { textContent: '' }).textContent.trim()].join(':'));
+    assert.deepEqual(tabs.join('|'), ':4|you:2|them:1|clear:1', 'each tab counts its rows; a tab with none is not drawn');
+    assert.ok(b.$('[data-reg-band="you"]').getAttribute('title'), 'the group\'s own words ride the tab\'s hover');
   });
 
-  test('A BAND IS NOT A ROW', () => {
-    /* Not clickable, not selectable, not a tab stop, and not announced as a
-       table row either — the markup says presentation and carries a heading. */
+  test('THE FOOT COUNTS CONTRACT ROWS, AS A LIVE STATUS', () => {
+    /* RE-POINTED 21 Oct 2026 (Part 8): this was "A BAND IS NOT A ROW" — the
+       band went (above); what it guarded stays: the foot counts contract rows
+       and nothing else, and says so to a screen reader. */
     const b = world(['MK-1']);
     theirAsk(b.byId('MK-1'), 'CHG-1');
     b.win.openNegotiations();
-    const band = b.$('#reg-tbody tr.ngl-band');
-    assert.equal(band.getAttribute('role'), 'presentation');
-    assert.equal(band.querySelector('td').getAttribute('role'), 'presentation');
-    assert.equal(band.getAttribute('data-row'), null, 'the row click binds to [data-row]');
-    assert.equal(band.getAttribute('tabindex'), null);
-    assert.equal(band.querySelectorAll('button, a, input').length, 0);
-    assert.ok(band.querySelector('[role="heading"]'), 'it announces as a heading instead');
-    /* And the footer counts CONTRACT rows: a band must never be one of them. */
-    assert.match(b.$('#reg-showing').textContent, /1/);
-    assert.ok(!/of 4/.test(b.$('#reg-showing').textContent));
+    const foot = b.$('#reg-showing');
+    assert.ok(foot, 'the foot keeps the register\'s own id');
+    assert.equal(foot.getAttribute('role'), 'status');
+    assert.equal(foot.getAttribute('data-lh-foot'), 'negotiations', 'the shared list head\'s foot');
+    assert.match(foot.textContent, /1\s*[–-]\s*1\s+of\s+1/);
+    assert.equal(foot.querySelectorAll('[data-lh-more]').length, 0, 'every row is drawn, so no Show more');
   });
 
   test('CLEAR CANNOT WIDEN THIS PAGE', () => {
