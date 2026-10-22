@@ -104,7 +104,11 @@ const check = (name, pass, detail) => {
     /* the live book's first twelve again: a new narrowing starts at twelve (round 13 as drawn) */
     check('3c pressed again, the live book is back', !!A2 && A2.n === A2.want && A2.n >= Math.min(12, A0.live) && !A2.arch, JSON.stringify(A2));
 
-    /* 4 the owner's three screens */
+    /* 4 the owner's three screens. RE-POINTED 22 Oct 2026 (Part 8, the list
+       head the Legora way): on the 1536×730 laptop the taller head pushes the
+       Wall down, and the owner answered "A — leave it, you scroll a little to
+       see the second row". There the second row must START on the screen;
+       on the other two it still stands whole. */
     for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
       await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(400);
       const F = await page.evaluate(() => { const r = s => { const e = document.querySelector(s); return e ? e.getBoundingClientRect() : null; };
@@ -112,10 +116,12 @@ const check = (name, pass, detail) => {
         const cards = [...document.querySelectorAll('#ig-wall .igw-card')].map(x => x.getBoundingClientRect());
         const tops = [...new Set(cards.map(c => Math.round(c.top)))].sort((x, y) => x - y);
         const second = cards.filter(c => Math.round(c.top) === tops[1]);
-        return { head: !!a && !!seg && a.top >= 0 && seg.right <= innerWidth, rows2: tops.length >= 2 && second.length > 0 && second.every(c => c.bottom <= innerHeight),
+        const scrollOk = innerWidth === 1536 && innerHeight === 730;
+        return { head: !!a && !!seg && a.top >= 0 && seg.right <= innerWidth,
+          rows2: tops.length >= 2 && second.length > 0 && (scrollOk ? second.every(c => c.top < innerHeight) : second.every(c => c.bottom <= innerHeight)),
           short: second.length ? Math.round(Math.max(...second.map(c => c.bottom)) - innerHeight) : null,
           side: document.documentElement.scrollWidth <= innerWidth + 1 }; });
-      check(`4 ${w}×${ht}: Archive · Wall · List in view, two rows of papers on the screen, nothing sideways`, F.head && F.rows2 && F.side, JSON.stringify(F));
+      check(`4 ${w}×${ht}: Archive · Wall · List in view, two rows of papers on the screen${w === 1536 ? ' (the second starts on it: owner, scroll a little)' : ''}, nothing sideways`, F.head && F.rows2 && F.side, JSON.stringify(F));
       if (OUT) await page.screenshot({ path: path.join(OUT, `wall-of-papers-${w}x${ht}.png`) });
     }
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }
