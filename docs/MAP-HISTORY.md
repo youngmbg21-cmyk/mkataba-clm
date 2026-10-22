@@ -33683,8 +33683,6 @@ BUILT: the foot (`.igd-foot`, the one card) is drawn under every tab of Home's p
 "ANY OTHER WHERE IT IS MISSING": the slide-out panel (`#context-panel`: Guide, Alerts, Notes, Activity) had no Jambo box at all. It now carries the one card at its foot (`#panel-ask`, `panelAskPaint`) on Guide, Alerts and Activity; a question put there puts the panel away and is asked in the ✦'s window (`openAI(q,{win})`), the one conversation — a press on Send asks, never only fills a box (`openAI(q)` alone hands words to an embedded Jambo READY, unsent, which would have looked dead). NOTES keeps its own box (it writes a note to the contract's thread) and draws no second one beside it. Swept and found already carrying the box: Settings' side, the list panels, Import, the Calendar, the clause editor, the template builder, the ✦ window, Home's faces (Fill in, Redlines, Before you sign, an amendment, Before you send).
 
 Checks: jambo-box-every-panel-verify (17; 5/17 at c5aa0c2, the three Dossier rows and Notes' absence the only passes). Re-pointed with these words: ask-box-on-copilot-only-verify 2 and 3, home-first-verify 3d, explorer-guide-tab-verify 2a, f840 2e.
-## CLAUDE.MD TRIM, 22 Oct 2026 (third)
-
 ## PERFORMANCE — THE BOOK IS WALKED ONCE
 
 ### A STILL MAP MOVES ONLY ITS DOTS (owner, 22 Oct 2026)
@@ -33696,6 +33694,8 @@ WHY: #417 made the check measure the book its header names. Until then the page'
 THE OWNER'S PICK, "Both", out of four put to them (names and lines still; a slower jiggle; both; raise the limit): a frame the loop draws AT REST (`!awake && !wiring` in `igLoopStart`) is `igRender({ rest:true })`, which draws the canvas and skips `igbPlace` — names, cards, lines and press-targets hold where they were last placed and are placed again on the first woken frame (any pointer on the map wakes it, `igWake`). The jiggle is drawn at `IG_JIG_FPS` 3 (was 6). Measured: names-still alone 483–545 ms; 3 fps alone 568; both 263–296.
 
 Re-pointed: explorer-magnitude-verify 4a2 read the jiggle off the SVG press-target (`g circle`), which now holds still at rest; it reads the dot where the canvas draws it (`IG.nodes[j].q`). f425 pins the rest guard.
+## CLAUDE.MD TRIM, 22 Oct 2026 (third)
+
 Owner: "yes fix all four, build One door, and add the rule" (the tidy sweep's rule had to fit). 80,654 → 80,872 bytes. Four Jambo lines of THE SHELL condensed to two; cut verbatim:
 
     - JAMBO IS PLAIN AT ALL TIMES: no Plain | Legal (`ai_style_*` inert). "What am I looking at?" is free (`aiHereSays`); a pasted letter → read against the contract or start a request (`aiPasteNote`); a dropped file → `jamboAddFile` → `pdDropDoor` (`aiDropFile`).
