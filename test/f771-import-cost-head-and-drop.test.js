@@ -19,6 +19,10 @@
        the head; the page head paints through PAGE_HEAD_PAINT and a refresh
        keeps the page's place (PLACE_PARTS).
    AT THE PARENT (gaps/A1, d2a4eb4) every test here FAILS.
+   RE-POINTED 21 Oct 2026 (Part 8, "every list page the Legora way", the
+   owner's pick): the list head's box keeps its words across a refresh, so the
+   kept place carries them too (q) beside the door, Show more, the chosen file
+   and the check view.
    ═══════════════════════════════════════════════════════════════════════════ */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
@@ -87,7 +91,7 @@ function stage(o){
   vm.runInContext(take(['MIG_ST_ORDER', 'MIG_NEEDS', 'migLinkPending', 'migRefOf', 'MIG_K', 'MIG_FACT_WORD', 'migNoneWhy', 'migLinkWhy', 'migCheckWhy', 'migStateOf', 'MIG_DUP_WORD',
     'migDupeWhy', 'migQueueState', 'migRows', 'migFieldLabel', 'migDay', 'migSideFacts', 'migGuessPages', 'MIG_EST_FALLBACK', 'migAiRate', 'migEstimate', 'migCallsOf',
     'migAllowanceWords', 'migAllowanceLine', 'migConfirmEstimate', 'migCostLine', 'migDayWord', 'migHeadFacts', 'MIG_TAKE_RE', 'MIG_WALK_MAX', 'migFilesFromDrop', 'MIG_SHOWS', 'migPlace', 'migPlacePut'])
-    + '\nlet _migShow = "all", _migAll = false, _migPick = null, _migCheck = null;\nconst migCheckId = () => _migCheck ? (_migCheck.ids[_migCheck.i] || null) : null;'
+    + '\nlet _migShow = "all", _migAll = false, _migPick = null, _migCheck = null, _migQ = "";\nconst migCheckId = () => _migCheck ? (_migCheck.ids[_migCheck.i] || null) : null;'
     + '\nthis.api = { migCallsOf, migCostLine, migConfirmEstimate, migDayWord, migHeadFacts, migFilesFromDrop, migAllowanceWords, migAllowanceLine, migPlace, migPlacePut, get check(){ return _migCheck; } };', ctx);
   return ctx;
 }
@@ -169,12 +173,12 @@ describe('f771 (5) the strip, the boxes, the head, the place', () => {
     assert.match(f, /<span class="mig-opt-l">/);
     assert.match(fnBody(MIG, 'migPaintHead'), /id="mig-choose"/);
   });
-  test('5b the head paints through PAGE_HEAD_PAINT; a refresh keeps the door, the chosen file and the check view', () => {
+  test('5b the head paints through PAGE_HEAD_PAINT; a refresh keeps the door, the words, the chosen file and the check view', () => {
     assert.match(APP, /PAGE_HEAD_PAINT = \{[^}]*migration:'migPaintHead'/);
     assert.match(APP, /migration:\['migPlace','migPlacePut'\]/);
     const { api } = stage();
-    api.migPlacePut({ show:'check', all:true, pick:'MK-1', check:'MK-2' });
-    assert.deepEqual(JSON.parse(JSON.stringify(api.migPlace())), { show:'check', all:true, pick:'MK-1', check:'MK-2' });
+    api.migPlacePut({ show:'check', all:true, pick:'MK-1', check:'MK-2', q:'Nordkap' });
+    assert.deepEqual(JSON.parse(JSON.stringify(api.migPlace())), { show:'check', all:true, pick:'MK-1', check:'MK-2', q:'Nordkap' });
     api.migPlacePut({ show:'nonsense' });
     assert.equal(api.migPlace().show, 'check', 'an unknown door is not put back');
   });

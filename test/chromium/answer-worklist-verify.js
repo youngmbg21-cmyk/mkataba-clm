@@ -88,13 +88,25 @@ const answerNaming = ids => [{ type: 'tool_use', id: 'tu_wl', name: 'deliver_ans
     const labels = Array.from(document.querySelectorAll('.reg-f-l')).map(l => l.textContent.trim());
     const tabs = document.querySelector('.reg-views');
     if (tabs) labels.push(tabs.getAttribute('aria-label') || '');
+    /* RE-POINTED 22 Oct 2026 (the owner's answer to question 2, "B": "Move
+       those four under + Filter — exactly the five drawn tabs"): the quick
+       filters left the tab row (named "Views" now) for ONE filter under
+       "+ Filter", so its name is read off the live head's own filters — the
+       words + Filter draws as that group's heading and its chip's label */
+    const pg = window.LH_PAGES && window.LH_PAGES.contracts;
+    if (pg && typeof pg.filters === 'function') (pg.filters() || []).forEach(f => labels.push(String(f.label || '')));
     const sel = tabs;
     return { labels, first: sel ? ((sel.querySelector('[data-reg-view]') || {}).textContent || '').trim() : null,
       tip: sel ? (sel.getAttribute('title') || '') : '',
       /* RE-POINTED 9 Oct 2026 (SAP benchmark): the filters are the band's
          labelled boxes; Sort is an icon on the list's own head. */
-      rows: new Set(Array.from(document.querySelectorAll('.reg-fb .reg-f'))
-        .map(l => Math.round(l.getBoundingClientRect().top))).size };
+      /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way"):
+         the filters are "+ Filter" and its chips on the list head's chip row;
+         the row is counted off the centres of what it draws */
+      rows: Array.from(document.querySelectorAll('.reg-fb .reg-f, [data-lh-seat="contracts"] .lh-chips > *'))
+        .filter(l => { const r = l.getBoundingClientRect(); return r.width > 0 && r.height > 0; })
+        .map(l => { const r = l.getBoundingClientRect(); return r.top + r.height / 2; }).sort((a, b) => a - b)
+        .reduce((n, y, i, a) => n + (i && y - a[i - 1] > 6 ? 1 : 0), 1) };
   });
   check(bar.labels.some(t => /quick filters/i.test(t)),
     '1a the filter is called Quick filters', bar.labels.join(' | '));

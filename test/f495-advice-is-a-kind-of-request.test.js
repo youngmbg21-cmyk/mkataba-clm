@@ -95,9 +95,13 @@ describe('f495 (2) the kind is the page\'s first tab row', () => {
      "go"; the drawing is the target): the kind row and the views row under
      it became ONE row — Open · Mine · Advice · Finished this month · All.
      Advice is still its own view (a door merge, not a data merge); the other
-     four are views of the contracts queue. */
-  test('2b ONE row, the views and Advice third, lit where asked', () => {
-    const win = rqWorld();
+     four are views of the contracts queue.
+     RE-POINTED 21 Oct 2026 (Part 8, the Legora way: a tab with no rows is
+     left out unless it is lit or All, on every list): the book holds a row in
+     every view, so all five stand; a view with none is not drawn. */
+  test('2b ONE row, the views and Advice third, lit where asked; a view with no rows left out', () => {
+    const now = new Date().toISOString();
+    const win = rqWorld([REQ('R1'), { ...REQ('R2'), by: { id: 'u1', name: 'Young Mbagaya' } }, { ...REQ('R3', 'done'), decidedAt: now }], [AR('A1', 'Submitted')]);
     const host = win.document.createElement('div');
     host.innerHTML = win.rqKindTabsHtml('advice');
     const row = host.querySelector('.rq-kinds[role="tablist"]');
@@ -115,18 +119,25 @@ describe('f495 (2) the kind is the page\'s first tab row', () => {
     const lit = win.document.createElement('div');
     lit.innerHTML = win.rqKindTabsHtml('contracts');
     assert.equal(lit.querySelector('.on').getAttribute('data-ik-view'), 'open', 'on Requests, the view the reader is on');
+    const thin = rqWorld([REQ('R1')], []);
+    const t = thin.document.createElement('div');
+    t.innerHTML = thin.rqKindTabsHtml('contracts');
+    assert.deepEqual([...t.querySelectorAll('[role="tab"]')].map(b => b.getAttribute('data-ik-view')), ['open', 'all'], 'Mine, Advice and Finished hold nothing: left out');
   });
-  test('2c both shapes of the Requests page draw it lit on Contracts, first, and wire it', () => {
-    for (const name of ['renderIntake', 'renderIntakeInspector']){
-      const fn = strip(fnBody(IK, name));
-      assert.ok(fn, name + ' was found');
-      /* RE-POINTED 19 Oct 2026 (round 20 as drawn): on the wide page the tabs
-         share their band row with the labelled boxes beside them.
-         RE-POINTED 19 Oct 2026 (the picked drawings' head card, rounds 14-26):
-         the band is the head card's lower half (.ph-foot); still the row first */
-      assert.match(fn, /data-ins-page="intake" data-ins="[01]">\s*(<div class="sap-band(?: ph-foot)?">)?(<div class="reg-tabbar ik-tabbar">)?\$\{rqKindTabsHtml\('contracts'\)\}/, name + ' draws the row first (the wide page on its white band)');
-      assert.match(fn, /rqKindTabsWire\(host\)/, name + ' wires it');
-    }
+  /* RE-POINTED 21 Oct 2026 (Part 8, the Legora way): the wide page's band is
+     REVERSED — the list head stands under the page's head (the box, the tabs
+     from the same one reading, ikTabViews, then the chips) and its presses
+     are the head's own, delegated (no tab is bound one by one there); the
+     narrow page still draws this row first and wires it */
+  test('2c both shapes of the Requests page draw the tab row first (the wide one in its list head), and wire it', () => {
+    const narrow = strip(fnBody(IK, 'renderIntake'));
+    assert.match(narrow, /data-ins-page="intake" data-ins="0">\s*\$\{rqKindTabsHtml\('contracts'\)\}/, 'renderIntake draws the row first');
+    assert.match(narrow, /rqKindTabsWire\(host\)/, 'renderIntake wires it');
+    const wide = strip(fnBody(IK, 'renderIntakeInspector'));
+    assert.match(wide, /data-ins-page="intake" data-ins="1">\s*\$\{typeof lhHtml==='function'\?lhHtml\(IK_SEAT,\{ frame:'foot' \}\):''\}/, 'the wide page: its list head first');
+    assert.match(strip(fnBody(IK, 'ikLhRegister')), /tabAttr:'data-ik-view'[\s\S]*tabs:\(\)=>ikTabViews\(asker\)/, 'its tabs: the same one reading, the same attribute');
+    for (const name of ['renderIntakeInspector', 'ikPaintRows'])
+      assert.doesNotMatch(strip(fnBody(IK, name)), /\[data-ik-view\]'\)\.forEach|\[data-ik-f\]|rqKindTabsWire/, name + ' binds no tab or box of its own: the head\'s presses are delegated');
   });
   test('2d the Advice desk board draws it lit on Advice, before the board, and wires it', () => {
     const fn = strip(fnBody(ADV, 'renderAdviceDesk'));
@@ -137,9 +148,11 @@ describe('f495 (2) the kind is the page\'s first tab row', () => {
   /* RE-POINTED 9 Oct 2026 (the owner: build it the SAP way): for the team the
      Advice tab is a cut of the Requests list, so from the advice board it
      lands on Requests with the Advice cut chosen; on Requests itself every
-     tab is the page's own business. */
+     tab is the page's own business.
+     RE-POINTED 21 Oct 2026 (Part 8): the book holds an open advice request,
+     so the Advice tab stands (a tab with no rows is left out) */
   test('2e on Requests a tab is the page\'s own; from the advice board, Advice lands on the Advice cut', () => {
-    const win = rqWorld();
+    const win = rqWorld([], [AR('A1', 'Submitted')]);
     const went = [];
     win.setView = v => went.push(v);
     const host = win.document.createElement('div');
@@ -154,6 +167,9 @@ describe('f495 (2) the kind is the page\'s first tab row', () => {
     host.querySelector('[data-ik-view="advice"]').click();
     assert.deepEqual(went, ['intake'], 'from the board, it goes to Requests');
     assert.equal(win.ikFilters().view, 'advice', 'with the Advice cut chosen');
+    win.rqKindTabsWire(host);
+    host.querySelector('[data-ik-view="advice"]').click();
+    assert.deepEqual(went, ['intake', 'intake'], 'wired twice, a press still goes once');
   });
 });
 
@@ -188,7 +204,9 @@ describe('f495 (4) the door is the sum of the tabs it opens', () => {
     assert.equal(n.contracts, 2, '[control] a declined request is not waiting');
     assert.equal(n.advice, 3, '[control] delivered and closed advice is not open');
   });
-  test('4b the tabs print those numbers, and a zero prints nothing', () => {
+  /* RE-POINTED 21 Oct 2026 (Part 8, the Legora way): a zero tab is no
+     longer drawn with its number hidden — it is left out (unless lit or All) */
+  test('4b the tabs print those numbers, and a zero tab is left out', () => {
     const win = rqWorld([], advice);
     const host = win.document.createElement('div');
     host.innerHTML = win.rqKindTabsHtml('contracts');
@@ -198,24 +216,27 @@ describe('f495 (4) the door is the sum of the tabs it opens', () => {
        open advice requests too, so its tab counts them — the number is the
        list it opens; Mine (no request of the reader's) prints nothing */
     assert.equal(c.textContent, '3', 'the Open list\'s own count');
-    assert.equal(host.querySelector('[data-ik-view="mine"] .n').hidden, true, 'no queue of mine, no number');
+    assert.equal(host.querySelector('[data-ik-view="mine"]'), null, 'no queue of mine, no tab');
     assert.equal(a.hidden, false);
     assert.equal(a.textContent, '3');
   });
+  /* RE-POINTED 21 Oct 2026 (Part 8): the Advice tab is left out while it
+     holds nothing, so the beat draws the row again when the advice lands */
   test('4c the tabs move on the door\'s own beat, in place', () => {
     const win = rqWorld([REQ('R1')], []);
     /* Re-pointed 9 Oct 2026 (one row): the advice count is the one that moves
        on the door's beat with no page paint (the advice list lands after the
        first paint); the queue's counts are repainted with the queue. */
-    win.document.body.insertAdjacentHTML('beforeend', win.rqKindTabsHtml('contracts'));
+    win.document.body.insertAdjacentHTML('beforeend', `<div id="band">${win.rqKindTabsHtml('contracts')}</div>`);
     const a = () => win.document.querySelector('[data-rq-n="advice"]');
-    assert.equal(a().hidden, true);
+    assert.equal(a(), null, 'no advice yet: no Advice tab');
     win.adviceActiveCount = () => 2;
     /* re-pointed 19 Oct 2026: the advice book lands, the tab counts it */
     win.state.advice = [{ id: 'A1', status: 'Submitted' }, { id: 'A2', status: 'Scoping' }];
     win.rqPaintKindCounts();
     assert.equal(a().textContent, '2', 'repainted without a page paint');
     assert.equal(a().hidden, false);
+    assert.equal(win.document.querySelectorAll('#band .rq-kinds').length, 1, 'the row is drawn again in its place, once');
     const fn = strip(fnBody(APP, 'updateSidebarCounts'));
     assert.match(fn, /intake: \(typeof requestsDoorCount==='function'\)\?requestsDoorCount\(\)/, 'the door asks the one sum');
     assert.match(fn, /rqPaintKindCounts\(\)/, 'and the same paint writes the tabs');

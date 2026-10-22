@@ -88,8 +88,12 @@ const check = (name, ok, detail) => {
     /* WELL SPACED: the counterparty is the widest column on the table, because
        it carries two facts where the two columns it replaced carried one each. */
     const widest = l => l.slice().sort((a, b) => b.w - a.w)[0];
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way"): on
+       the Contracts place that column is headed in the drawing's word,
+       "Agreement" (the party over "kind · ref"); Negotiations keeps
+       "Counterparty and agreement" */
     check('1d and it is the widest column on the page — "the most of the counterparty name"',
-      !C.err && /counterparty/i.test(widest(C.ths).t), widest(C.ths) && `${widest(C.ths).t} ${widest(C.ths).w}px`);
+      !C.err && /counterparty|^agreement$/i.test(widest(C.ths).t), widest(C.ths) && `${widest(C.ths).t} ${widest(C.ths).w}px`);
     check('1e the kind and the round are still SAID, on that cell’s own hover',
       !!C.hover && /·/.test(C.hover), C.hover);
     check('1f and Contracts draws no Type column of its own', C.typeCell === null, String(C.typeCell));

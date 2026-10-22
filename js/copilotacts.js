@@ -1731,7 +1731,12 @@ const CA_GO = {
   /* the left menu's pages, each through the door the menu pressed (Round 2) */
   counter: () => typeof setView === 'function' && setView('counter'),
   work: () => typeof hbOpenAgent === 'function' && hbOpenAgent(),
-  negotiations: () => (typeof openNegotiations === 'function') ? openNegotiations({ list: true }) : setView('redline'),
+  /* THE NUMBER ON THE DOOR IS THE LIST BEHIND IT (Part 8: Negotiations'
+     typed words narrow its list on a computer now): the Guide's row, "/" and
+     his word land on fresh filters — the words, the chips and the whose-move
+     tab at rest — the way "contracts" does (regGoFiltered's rule) */
+  negotiations: () => (typeof regGoFiltered === 'function') ? regGoFiltered({ band: null }, { scope: 'negotiations' })
+    : (typeof openNegotiations === 'function') ? openNegotiations({ list: true }) : setView('redline'),
   approvals: () => setView('approvals'),
   guide: () => caPanelShow('guide'),
   alerts: () => caPanelShow('alerts'),

@@ -9100,7 +9100,7 @@ const IG_WALL_SCROLL_NEAR=96;
 let _igWallScrollAsked=false;
 function igWallScrollNear(sc){
   if(!sc||_igWallScrollAsked) return false;
-  const foot=document.querySelector('#ig-wall [data-ig-wall-more]'); if(!foot||!sc.contains(foot)) return false;
+  const foot=document.querySelector('#ig-wall [data-lh-more="wall"]'); if(!foot||!sc.contains(foot)) return false;
   const r=foot.getBoundingClientRect(), b=(sc===document.scrollingElement||sc===document.documentElement)?innerHeight:sc.getBoundingClientRect().bottom;
   if(r.top>b+IG_WALL_SCROLL_NEAR) return false;
   _igWallScrollAsked=true; igWallShowMore(); return true;
@@ -9135,7 +9135,13 @@ function igWallBodyHtml(rows,o){
   const order=igWallOrderWords();
   /* .reg-filterbar dresses the list's own Sort it is handed, as on the List's head */
   const cut=shown.length<list.length;
-  const foot=(S.n>IG_WALL_STEP||cut)?`<div class="igw-foot"><span class="igw-shown" role="status" aria-live="polite">${igEsc(i18t('igw_shown',{ k:S.k, n:S.n }))}</span>${cut?`<button type="button" class="ui-btn ui-btn-sm" data-ig-wall-more>${igEsc(i18t('igw_more'))}</button>`:''}</div>`:'';
+  /* THE LIST FOOT'S OWN WORDS (Part 8, the Legora way): "1–12 of 48 · Show
+     12 more" from the one foot builder (lhFootHtml), on the Wall's own seat
+     ('wall', registered by the place: its more is igWallShowMore); the
+     igw_shown / igw_more words are inert in both books */
+  const foot=(S.n>IG_WALL_STEP||cut)?((typeof lhFootHtml==='function')
+    ? lhFootHtml('wall', S.k, S.n, IG_WALL_STEP, { cls:'igw-foot' })
+    : `<div class="igw-foot"><span class="igw-shown" role="status" aria-live="polite">${igEsc(i18t('igw_shown',{ k:S.k, n:S.n }))}</span></div>`):'';
   return `<div class="igw-chips igw-line reg-filterbar"><span class="igw-count" role="status" aria-live="polite">${igEsc(igWallCountWords(list,opts))}</span>${order?`<span class="igw-order">${igEsc(order)}</span>`:''}${opts.tools||''}</div>
     ${list.length?`<div class="igw-grid" role="list">${shown.map(c=>igWallCardHtml(c,need.has(String(c.id)))).join('')}</div>${foot}`:`<p class="ig-pick-none">${igEsc(i18t('int_pick_none'))}</p>`}`;
 }
@@ -9218,7 +9224,8 @@ function igWallPress(id){
 function igPickWire(host){
   if(host.dataset.igPickBound) return; host.dataset.igPickBound='1';
   host.addEventListener('click',e=>{
-    if(e.target.closest&&e.target.closest('[data-ig-wall-more]')){ igWallShowMore(); return; }
+    /* Show more is the list foot's own press now ([data-lh-more="wall"],
+       js/views/listhead.js), heard once on the document */
     const b=e.target.closest&&e.target.closest('[data-ig-pick]'); if(!b) return;
     /* a paper on the wall is chosen first (round 13); the short list's rows open at once */
     if(b.classList.contains('igw-card')){ igWallPress(b.getAttribute('data-ig-pick')); return; }
@@ -9244,7 +9251,7 @@ if(typeof document!=='undefined'&&!document._igWallChoiceWired){
   document.addEventListener('click',e=>{
     if(!_igChosen) return;
     const t=e.target; if(!t||!t.closest||!t.isConnected) return;
-    if(t.closest('#ig-wall .igw-card, #ig-dock, [data-ig-wall-more], #modal-root, [data-top-overlay], [role="menu"], [role="listbox"], .sm-pop')) return;
+    if(t.closest('#ig-wall .igw-card, #ig-dock, [data-lh-more="wall"], #modal-root, [data-top-overlay], [role="menu"], [role="listbox"], .sm-pop')) return;
     igWallLetGo();
   },true);
   document.addEventListener('keydown',e=>{

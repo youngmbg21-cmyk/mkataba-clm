@@ -79,6 +79,7 @@ import './views/home.js';
    and Approvals lists (Young picked it 26 Sep 2026). Loaded before the three
    pages that draw it; it publishes its names and asks theirs through window. */
 import './views/inspector.js';
+import './views/listhead.js';      // the list head, the Legora way: one box, views as tabs, filters added as chips, Columns, the foot (21 Oct 2026)
 import './views/approvalsview.js'; // Approvals & signing: a door onto two readings Home already makes (20 Sep 2026)
 import './views/customers.js';     // Customer folders: a Customers page; Open customer → Contracts narrowed, Open on Explorer → Active | Expired (10 Oct 2026)
 import './brainmap.js';           // the Brain's catalogue and its reader of the code, one for both hosts (27 Sep 2026)
@@ -1538,6 +1539,8 @@ const PLACE_PARTS={
   dashboard:['hbPlace','hbPlacePut'],
   team:['settingsPlace','settingsPlacePut'],
   templates:['tplPlace','tplPlacePut'],
+  /* Our standards keeps its list, its filters and the box's words (Part 8, the Legora head) */
+  playbook:['sdPlace','sdPlacePut'],
   calendar:['calPlace','calPlacePut'],
   obligations:['obwPlace','obwPlacePut'],
   redline:['rlPlace','rlPlacePut'],
@@ -1554,6 +1557,8 @@ const PLACE_PARTS={
   mynotes:['mnPlace','mnPlacePut'],
   /* Import keeps its figure door, Show all, the chosen file and the check view (round 22, 18 Oct 2026) */
   migration:['migPlace','migPlacePut'],
+  /* Approvals & signing keeps its tab, filters, words and sort (Part 8, 21 Oct 2026) */
+  approvals:['apPlace','apPlacePut'],
 };
 const PLACE_ONE_CONTRACT=['workspace','doc','redline'];
 const PLACE_BACK_MS=6000, PLACE_BACK_EVERY=120, PLACE_SAVE_WAIT=250;
@@ -4041,6 +4046,10 @@ function wireShell(){
       if(!here){ setView('register'); }
       else if(window.renderRegisterBody){ renderRegisterBody(); }
       const rs=document.getElementById('reg-search'); if(rs&&rs!==search) rs.value=q;
+      /* ONE FACT, ONE BOX'S WORDS (the owner's Q1, 21 Oct 2026: keep both
+         boxes, never two disagreeing): the list head's box on screen shows
+         the query this box just wrote (js/views/listhead.js) */
+      if(window.lhBoxSet) lhBoxSet();
     });
     /* JAMBO'S MAP (owner, 18 Oct 2026: "wire the map into the top search
        bar"): words no contract matches are a request, not a search — Enter
@@ -4059,6 +4068,8 @@ function wireShell(){
       if(window.regSetScope) regSetScope(null);
       if(window.regState){ const R=regState(); R.query=''; R.page=1; }
       search.value=''; const rs=document.getElementById('reg-search'); if(rs&&rs!==search) rs.value='';
+      /* and the list head's box on the page says the same (Q1, "keep both boxes") */
+      if(window.lhBoxSet) lhBoxSet();
       if(window.regPlaceUp&&regPlaceUp()&&window.renderRegisterBody) try{ renderRegisterBody(); }catch(_){}
       if(u){ if(u.kind==='go'&&!u.missing&&!u.narrowOff&&!(window.CA_CARD_WORDS||[]).includes(u.place)&&window.caGo&&caGo(u)) return;
         if(window.caHandHome) caHandHome(q,u); return; }

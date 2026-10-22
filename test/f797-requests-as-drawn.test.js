@@ -5,8 +5,11 @@
    18 Oct 2026, "build all the gaps"; js/views/intake.js)
    (1) The band: the tabs, and BESIDE them the labelled boxes Request (words
        or a reference) · Stream · With — out of the list card's head.
+       RE-POINTED 21 Oct 2026 (Part 8, the Legora way): the list head — the
+       box, the tabs, + Filter's Stream and With, Columns.
    (2) The Open list oldest waiting first, as its head says; its count in a
-       pill; the foot "N of M open".
+       pill; the foot "N of M open". RE-POINTED (Part 8): the Open tab says it
+       on hover, counted; the foot "1–N of N".
    (3) The page head: "N open · what colleagues ask Legal for · advice too".
    (4) The request in Jambo's panel: reference · kind · who asked · stream,
        How it is handled and With as pills ("With you · by the NDA lane"),
@@ -67,51 +70,64 @@ function world(o){
 const rowIds = d => [...d.querySelectorAll('.ik-lt [data-ik-row]')].map(r => r.getAttribute('data-ik-row'));
 const txt = el => (el ? el.textContent.replace(/\s+/g, ' ').trim() : '');
 
-describe('f797 (1) the band: the tabs, and beside them the labelled boxes', () => {
-  test('1a Request · Stream · With beside the tabs, each label before its box; none in the card head', () => {
+/* RE-POINTED 21 Oct 2026 (Part 8: the owner picked "the Legora way" for every
+   list page). Round 20's band — the tabs with the labelled boxes Request ·
+   Stream · With beside them — and the list card's own head ("Open requests 3
+   oldest waiting first") are REVERSED: the list head stands under the page's
+   head (js/views/listhead.js), the box to search or ask in, the views as tabs,
+   then the chips (+ Filter offers Stream and With, a value only where it gives
+   rows) with Columns at the end; the card's words are the tabs' hovers; the
+   foot is "1–3 of 3". */
+describe('f797 (1) the list head: the box, the tabs, + Filter', () => {
+  test('1a the box under the page head, the tabs under it, Stream and With only under + Filter; no labelled band, no card head', () => {
     const { win, d } = world(); win.renderIntake();
-    const bar = d.querySelector('.sap-band .reg-tabbar.ik-tabbar');
-    assert.ok(bar, 'the band\'s one row');
-    assert.ok(bar.querySelector(':scope > .rq-kinds'), 'the tabs first');
-    const fb = bar.querySelector(':scope > .ik-fb');
-    assert.ok(fb, 'the boxes beside them');
-    const labels = [...fb.querySelectorAll('.ik-fb-l, .reg-f-l')].map(txt);
-    assert.deepEqual(labels, ['Request', 'Stream', 'With']);
-    assert.equal(fb.querySelector('[data-ik-q]').getAttribute('placeholder'), 'Words or a reference');
-    assert.deepEqual([...fb.querySelectorAll('select[data-ik-f]')].map(s => s.getAttribute('data-ik-f')), ['folder', 'who']);
-    assert.deepEqual([...fb.querySelectorAll('select[data-ik-f="who"] option')].map(txt), ['Anyone', 'You', 'Nobody yet', 'A colleague']);
-    const head = d.querySelector('.ins-cardhead');
-    assert.ok(!head.querySelector('[data-ik-q], [data-ik-filters]'), 'no find box or Filter fold left on the list\'s head');
-    assert.ok(!d.querySelector('select[data-ik-f="road"]'), 'How it is handled is a column, not a box');
+    const head = d.querySelector('.ik-ins > [data-lh-seat="intake"].sap-band.ph-foot');
+    assert.ok(head, 'the list head, the head card\'s lower half');
+    assert.deepEqual([...head.children].map(e => e.className.split(' ')[0]), ['lh-ask', 'reg-views', 'lh-chips'], 'the box, the tabs, the chips');
+    const box = head.querySelector('input#ik-q[type="search"][data-lh-q][data-ik-q]');
+    assert.ok(box, 'the box keeps the page\'s own id and attribute');
+    assert.equal(box.getAttribute('placeholder'), 'Search 3 requests, or ask Jambo');
+    const groups = [...head.querySelectorAll('[data-lh-add] optgroup')];
+    assert.deepEqual(groups.map(g => g.getAttribute('label')), ['Stream', 'With']);
+    assert.deepEqual([...groups[0].querySelectorAll('option')].map(txt), ['Sales (2)', 'Procurement (1)'], 'the streams that hold a request, counted');
+    assert.deepEqual([...groups[1].querySelectorAll('option')].map(txt), ['You (1)', 'Nobody yet (1)', 'A colleague (1)'], 'With: never "Anyone"');
+    assert.equal(head.querySelectorAll('.lh-chip').length, 0, 'a filter is drawn only once it is added');
+    assert.ok(!d.querySelector('.ik-tabbar, .ik-fb, .ik-fb-l, .ins-cardhead, select[data-ik-f]'), 'round 20\'s band and the list card\'s head are gone');
+    assert.ok(!groups.some(g => g.getAttribute('label') === 'How it is handled'), 'How it is handled is a column, not a filter');
+    assert.ok(head.querySelector('.lh-chips [data-lc-btn="intake"]'), 'Columns at the chip row\'s end');
   });
-  test('1b the tab says "Finished"; the asker has the find box alone', () => {
+  test('1b the tab says "Finished" (left out while it holds nothing); the asker has the box and no filter', () => {
     const { win, d } = world(); win.renderIntake();
-    assert.equal(d.querySelector('[data-ik-view="fin"]').firstChild.textContent, 'Finished');
+    assert.equal(win.ikTabViews(false).find(t => t.k === 'fin').label, 'Finished');
+    assert.equal(d.querySelector('[data-lh-seat="intake"] [data-ik-view="fin"]'), null, 'nothing finished this month: no tab');
+    win.ikFilters().view = 'fin'; win.renderIntake();
+    assert.equal(d.querySelector('[data-lh-seat="intake"] [data-ik-view="fin"]').firstChild.textContent, 'Finished', 'lit, it stands');
+    win.ikFilters().view = 'open';
     const a = world({ asker: true, list: [] }); a.win.renderIntake();
-    const fb = a.d.querySelector('.ik-fb');
-    assert.ok(fb && fb.querySelector('[data-ik-q]') && !fb.querySelector('select'), 'the asker: Request only');
+    const h = a.d.querySelector('[data-lh-seat="intake"]');
+    assert.ok(h && h.querySelector('input[data-lh-q][data-ik-q]') && !h.querySelector('[data-lh-add], select'), 'the asker: the box, no filter');
   });
 });
 
 describe('f797 (2) oldest waiting first', () => {
-  test('2a the Open list leads with the longest wait, and says so; its count in a pill', () => {
+  test('2a the Open list leads with the longest wait, and its tab says so on hover, counted', () => {
     const { win, d } = world(); win.renderIntake();
     assert.deepEqual(rowIds(d), ['REQ-1039', 'REQ-1037', 'REQ-1042']);
-    const h = d.querySelector('.ins-cardhead-t');
-    assert.match(txt(h), /^Open requests 3 oldest waiting first$/);
-    assert.ok(h.querySelector('.ap-card-n.is-pill'), 'the count in its pill');
+    const t = d.querySelector('[data-lh-seat="intake"] [data-ik-view="open"]');
+    assert.equal(t.getAttribute('title'), 'Open requests · oldest waiting first');
+    assert.equal(txt(t.querySelector('.n')), '3', 'the count on its tab');
   });
   test('2b every other list newest first', () => {
     const { win, d } = world(); win.ikFilters().view = 'all'; win.renderIntake();
     assert.deepEqual(rowIds(d), ['REQ-1042', 'REQ-1037', 'REQ-1039']);
-    assert.match(txt(d.querySelector('.ins-cardhead-t')), /newest first$/);
+    assert.match(d.querySelector('[data-lh-seat="intake"] [data-ik-view="all"]').getAttribute('title'), /newest first$/);
     win.ikFilters().view = 'open';
   });
-  test('2c the foot: "3 of 3 open", and a box that narrows says how many of the tab\'s list are shown', () => {
+  test('2c the foot: "1–3 of 3", a live status; a filter that narrows counts the rows behind it', () => {
     const { win, d } = world(); win.renderIntake();
-    assert.equal(txt(d.querySelector('[data-ik-foot]')), '3 of 3 open');
+    assert.equal(txt(d.querySelector('[data-ik-foot] [data-lh-foot="intake"][role="status"]')), '1–3 of 3');
     win.ikFilters().who = 'me'; win.renderIntake();
-    assert.equal(txt(d.querySelector('[data-ik-foot]')), '1 of 3 open');
+    assert.equal(txt(d.querySelector('[data-ik-foot]')), '1–1 of 1');
     win.ikFilters().who = 'all';
   });
 });
@@ -311,7 +327,9 @@ describe('f797 (10) a refresh lands at the same spot (PLACE_PARTS.intake)', () =
     b.win.renderIntake();
     assert.equal(b.win.ikFilters().view, 'all');
     assert.equal(b.win.ikFilters().folder, 'sales');
-    assert.ok(b.d.querySelector('.ik-tabbar [data-ik-view="all"].is-on, .ik-tabbar [data-ik-view="all"][aria-selected="true"], .ik-tabbar [data-ik-view="all"][aria-current]'), 'the All tab lit');
+    /* re-pointed 21 Oct 2026 (Part 8): the tabs stand in the list head, round 20's band is gone */
+    assert.ok(b.d.querySelector('[data-lh-seat="intake"] [data-ik-view="all"].is-on, [data-lh-seat="intake"] [data-ik-view="all"][aria-selected="true"], [data-lh-seat="intake"] [data-ik-view="all"][aria-current]'), 'the All tab lit');
+    assert.ok(b.d.querySelector('[data-lh-seat="intake"] .lh-chip[data-lh-chip="folder"]'), 'the Stream filter back as its chip');
     assert.match(txt(b.d.querySelector('#ins-panel .ins-eb')), /^REQ-1039 /, 'the chosen row is back');
   });
 });
@@ -325,7 +343,9 @@ describe('f797 (11) a tab\'s number is the list it opens; advice reads like a re
       { id: 'AR-102', service: 'review', name: 'Lina Ek', description: 'A question', status: 'Scoping', submittedAt: at(6), assignee: 'Wanjiru Kamau' }];
     return x;
   };
-  const tabN = (d, k) => { const n = d.querySelector(`.ik-tabbar [data-ik-view="${k}"] .n`); return n && !n.hidden ? Number(n.textContent) : 0; };
+  /* re-pointed 21 Oct 2026 (Part 8): the tabs stand in the list head; a tab
+     with no rows is left out, and reads as 0 here */
+  const tabN = (d, k) => { const n = d.querySelector(`[data-lh-seat="intake"] [data-ik-view="${k}"] .n`); return n && !n.hidden ? Number(n.textContent) : 0; };
   test('11a under a Stream box every tab counts what its list shows — advice has no stream', () => {
     const x = withAdv();
     x.win.ikFilters().folder = 'proc'; x.win.renderIntake();
@@ -428,5 +448,69 @@ describe('f797 (13) second check: a fit is said only where the ask names the pap
     assert.deepEqual([...p.querySelectorAll('.jl-pills > span')].map(txt).slice(0, 2), ['Standard', 'Nobody holds it yet'], 'as a request nobody holds says it');
     assert.equal(txt(p.querySelector('[data-ins-fact="stands"] dt')), 'Where it stands');
     assert.equal(txt(p.querySelector('[data-ins-fact="road"] dt')), 'How it is handled');
+  });
+});
+
+/* PART 8, THE LEGORA WAY (21 Oct 2026): the list head's presses end in this
+   page's own writers. At c70f4b09 (before Requests took the head) every test
+   here FAILS. */
+describe('f797 (14) the list head\'s presses are the page\'s own', () => {
+  const box = d => d.querySelector('[data-lh-seat="intake"] input[data-lh-q]');
+  const tabN = (d, k) => { const n = d.querySelector(`[data-lh-seat="intake"] [data-ik-view="${k}"] .n`); return n ? Number(n.textContent) : 0; };
+  test('14a words typed repaint the rows and the foot, never the box; the tabs follow on the recount', () => {
+    const { win, d } = world(); win.renderIntake();
+    const b = box(d);
+    win.LH_PAGES.intake.setQuery('uganda');
+    assert.equal(box(d), b, 'the same box stands (the caret stays in it)');
+    assert.deepEqual(rowIds(d), ['REQ-1039']);
+    assert.equal(txt(d.querySelector('[data-ik-foot]')), '1–1 of 1');
+    assert.equal(win.ikFilters().q, 'uganda', 'the page\'s own kept words');
+    win.lhHeadSync('intake');
+    assert.equal(tabN(d, 'open'), 1, 'the Open tab counts what it shows');
+    assert.equal(box(d), b, 'and the recount leaves the box too');
+  });
+  test('14b a tab, a filter added and its × write the page\'s own keys', () => {
+    const { win, d } = world(); win.renderIntake();
+    const pg = win.LH_PAGES.intake;
+    pg.tab('all');
+    assert.equal(win.ikFilters().view, 'all');
+    assert.ok(d.querySelector('[data-lh-seat="intake"] [data-ik-view="all"].on'));
+    pg.apply({ who: 'nobody' });
+    assert.equal(win.ikFilters().who, 'nobody');
+    assert.deepEqual(rowIds(d), ['REQ-1039']);
+    assert.equal(txt(d.querySelector('[data-lh-seat="intake"] .lh-chip[data-lh-chip="who"] label > b')), 'Nobody yet', 'the chip says the value');
+    pg.apply({ who: 'all' });
+    assert.equal(d.querySelector('[data-lh-seat="intake"] .lh-chip'), null, '× puts it back at rest');
+    assert.equal(rowIds(d).length, 3);
+  });
+  test('14c Columns hides a column, its head and its cells; Ref and Request always stand', () => {
+    const { win, d } = world(); win.renderIntake();
+    win.lcSave('intake', { order: ['kind', 'road', 'with', 'files', 'asked', 'promised'], hidden: ['kind'] });
+    win.renderIntake();
+    const heads = [...d.querySelectorAll('.ik-lt thead th')].map(txt);
+    assert.deepEqual(heads, ['Ref', 'Request', 'How it is handled', 'With', 'Files', 'Asked', 'Promised by']);
+    assert.equal(d.querySelector('.ik-lt [data-ik-row]').children.length, 7, 'one cell less a row');
+    assert.equal(d.querySelectorAll('.ik-lt colgroup col').length, 7);
+    win.lcSave('intake', null);
+  });
+  test('14d the asker\'s Advice tab is a door to the advice desk, kept at zero, and a press goes there', () => {
+    const a = world({ asker: true });
+    const went = [];
+    a.win.setView = v => went.push(v);
+    a.win.renderIntake();
+    const t = a.d.querySelector('[data-lh-seat="intake"] [data-ik-view="advice"]');
+    assert.ok(t, 'no advice open: the door still stands');
+    a.win.LH_PAGES.intake.tab('advice');
+    assert.deepEqual(went, ['advice']);
+    assert.equal(a.win.ikFilters().view, 'open', 'the list\'s own view is left as it was');
+  });
+  test('14e the door\'s beat counts the head again only where a number moved', () => {
+    const { win, d } = world(); win.renderIntake();
+    const row = d.querySelector('[data-lh-seat="intake"] [role="tablist"]');
+    win.rqPaintKindCounts();
+    assert.equal(d.querySelector('[data-lh-seat="intake"] [role="tablist"]'), row, 'nothing moved: the row stands');
+    win._intakeState.list.push({ id: 'REQ-2001', title: 'One more', need: 'x', folder: 'sales', status: 'open', createdAt: at(0), by: { id: 'u8', name: 'Achieng' } });
+    win.rqPaintKindCounts();
+    assert.equal(tabN(d, 'open'), 4, 'a new request: the Open tab counts it');
   });
 });

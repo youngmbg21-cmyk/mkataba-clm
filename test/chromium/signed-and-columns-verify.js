@@ -95,7 +95,11 @@ const check = (name, ok, detail) => {
        em-dash, the legacy string). What stays is asked below: the Signed
        SORT and the Signed FILTER, read off each row's own signed day
        (regSignedOn — the reading the column printed). */
-    const nKeys = await page.evaluate(() => REG_COL_KEYS_HOME.length);
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way"): the
+       seat's keys are the drawing's Agreement · Stage · Ends · Value and the
+       ⋯ — the reference rides under the party, and Owner waits under Columns
+       (LC_PAGES.contracts hides it until the reader shows it) */
+    const nKeys = await page.evaluate(() => REG_COL_KEYS_HOME.filter(k => !(LC_PAGES.contracts && (LC_PAGES.contracts.hide || []).includes(k))).length);
     check('the Contracts List head draws one column per key of its own seat', head.n === nKeys, JSON.stringify(head.text));
     check('and no Signed column, as the drawing has it', !head.text.some(t => /^Signed$/i.test(t)), JSON.stringify(head.text));
     /* each row's own signed day, by the reading the column printed */
@@ -136,21 +140,22 @@ const check = (name, ok, detail) => {
       dashAfter === -1 || dashAfter > lastDated, `first dash@${dashAfter} last date@${lastDated}`);
 
     /* ============ 5. THE FILTER: OFF BY DEFAULT, ON WHEN NARROWING ======== */
-    const bar0 = await page.evaluate(() => !!document.getElementById('reg-signed'));
+    /* RE-POINTED 21 Oct 2026 (Part 8): the Signed filter is a group under
+       "+ Filter" and, once chosen, a chip — never drawn at rest */
+    const SIGNED = '[data-lh-seat="contracts"] select[data-lh-f="signed"]';
+    const bar0 = await page.evaluate(S => !!document.getElementById('reg-signed') || !!document.querySelector(S), SIGNED);
     check('the Signed filter is ABSENT from a bar nobody has adapted', !bar0);
-    const narrowed = await page.evaluate(() => {
-      /* Turned on the way a reader turns it on — through the catalogue the
-         Adapt door writes to — then set to a year, and the page repainted. */
-      regBarSetChosen(regBarChosen().concat('signed'));
-      const R = regState(); R.signed = '2021'; R.page = 1;
-      regRepaint();
+    const narrowed = await page.evaluate(S => {
+      /* Turned on the way a reader turns it on — + Filter's own apply — set
+         to a year, and the page repainted. */
+      LH_PAGES.contracts.apply({ signed: '2021' });
       return {
-        drawn: !!document.getElementById('reg-signed'),
-        value: (document.getElementById('reg-signed') || {}).value,
-        years: [...document.querySelectorAll('#reg-signed option')].map(o => o.value),
+        drawn: !!document.querySelector(S),
+        value: (document.querySelector(S) || {}).value,
+        years: [...document.querySelectorAll(S + ' option')].map(o => o.value),
         rows: [...document.querySelectorAll('tr[data-row]')].length,
       };
-    });
+    }, SIGNED);
     await page.waitForTimeout(500);
     check('once it is narrowing, the control is on screen and set to the cut',
       narrowed.drawn && narrowed.value === '2021', JSON.stringify(narrowed.value));
@@ -169,14 +174,14 @@ const check = (name, ok, detail) => {
        its first, so the control would read "Any" over a narrowed, empty table.
        ASKED IN A BROWSER because that fallback is the BROWSER's behaviour: the
        markup would look perfectly correct either way. */
-    const stranded = await page.evaluate(() => {
+    const stranded = await page.evaluate(S => {
       const R = regState(); R.signed = '2019'; R.page = 1;   // nothing in this book
       regRepaint();
-      const el = document.getElementById('reg-signed');
+      const el = document.querySelector(S);
       return { value: el && el.value,
-               offered: [...document.querySelectorAll('#reg-signed option')].map(o => o.value),
+               offered: [...document.querySelectorAll(S + ' option')].map(o => o.value),
                rows: [...document.querySelectorAll('tr[data-row]')].length };
-    });
+    }, SIGNED);
     await page.waitForTimeout(400);
     check('a year that has left the book is still offered, so the control cannot lie',
       stranded.value === '2019' && stranded.offered.includes('2019'),
@@ -249,8 +254,9 @@ const check = (name, ok, detail) => {
 
     /* ============ 8. IT IS REMEMBERED, AND DOUBLE-CLICK PUTS IT BACK ==== */
     const remembered = await page.evaluate(() => {
-      /* the place keeps its own widths (regColStoreKey: '.home') */
-      const stored = JSON.parse(localStorage.getItem('hati.v1.regCols.home') || 'null');
+      /* the place keeps its own widths (regColStoreKey: '.home'), since Part 8
+         under the columns they were dragged on, in their order */
+      const stored = JSON.parse(localStorage.getItem('hati.v1.regCols.home.' + regColKeys().join(',')) || 'null');
       regRepaint();
       const w = [...document.querySelectorAll('.reg-table thead th')].map(t => Math.round(t.getBoundingClientRect().width));
       return { stored: !!stored, sum: stored ? Math.round(stored.reduce((a, b) => a + b, 0)) : null, w };
@@ -266,7 +272,7 @@ const check = (name, ok, detail) => {
     await page.mouse.dblclick(gb3.x, gb3.y);
     await page.waitForTimeout(300);
     const reset = await page.evaluate(() => ({
-      stored: localStorage.getItem('hati.v1.regCols.home'),
+      stored: localStorage.getItem('hati.v1.regCols.home.' + regColKeys().join(',')),
       w: [...document.querySelectorAll('.reg-table thead th')].map(t => Math.round(t.getBoundingClientRect().width)),
     }));
     check('DOUBLE-CLICK PUTS IT BACK, and "reset" means nobody has chosen',

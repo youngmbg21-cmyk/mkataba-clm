@@ -115,11 +115,15 @@ const inRound = (id, name, cp) => {
       openNegotiations({ list: true });
       await new Promise(r => setTimeout(r, 700));
       const out = {};
-      let band = '';
-      for (const tr of document.querySelectorAll('tr.ngl-band, tr[data-row]')) {
-        if (tr.classList.contains('ngl-band')) { band = (tr.querySelector('.ngl-band-k') || {}).textContent || ''; continue; }
-        const w = tr.querySelector('.ngl-w');
-        out[tr.getAttribute('data-row')] = { band: band.trim(), word: w ? w.textContent.trim() : null, say: w ? (w.getAttribute('title') || '') : null };
+      /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way", Q2
+         "A — tabs only"): no group heading between the rows any more — a
+         row's group is the whose-move tab it is counted under (the record's
+         own stamp, negoGroupByMove), and that tab's hover says the group's
+         words ("Waiting on our side") */
+      const tab = k => ((document.querySelector(`[data-lh-seat="negotiations"] [role="tab"][data-reg-band="${k}"]`) || {}).title || '');
+      for (const tr of document.querySelectorAll('tr[data-row]')) {
+        const w = tr.querySelector('.ngl-w'), c = getContract(tr.getAttribute('data-row'));
+        out[tr.getAttribute('data-row')] = { band: tab(c && c._ngBand), word: w ? w.textContent.trim() : null, say: w ? (w.getAttribute('title') || '') : null };
       }
       return out;
     });

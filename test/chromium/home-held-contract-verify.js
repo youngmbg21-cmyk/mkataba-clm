@@ -108,7 +108,7 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     /* a press on what is not there reports, never waits out a timeout */
     const press = async sel => { const el = await page.$(sel); if (!el) return false; await el.click(); return true; };
     /* the wall draws twelve at a time: Show more until a paper is on it (bounded) */
-    const bring = async id => { for (let i = 0; i < 6 && !(await page.$(`#ig-wall .igw-card[data-ig-pick="${id}"]`)); i++){ if (!(await press('#ig-wall [data-ig-wall-more]'))) break; await page.waitForTimeout(250); }
+    const bring = async id => { for (let i = 0; i < 6 && !(await page.$(`#ig-wall .igw-card[data-ig-pick="${id}"]`)); i++){ if (!(await press('#ig-wall [data-lh-more="wall"]'))) break; await page.waitForTimeout(250); }
       return !!(await page.$(`#ig-wall .igw-card[data-ig-pick="${id}"]`)); };
     const until = async (fn, arg, ms = 8000) => { let v; const t0 = Date.now();
       while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(120); }
@@ -150,18 +150,22 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
       amends: regFiltered().filter(c => c.parentId).length, leadsDrawn: [...document.querySelectorAll('#ig-wall .igw-card')].filter(b => { const c = getContract(b.getAttribute('data-ig-pick')); return c && !c.parentId; }).length,
       head: ((document.getElementById('reg-head-facts') || {}).textContent || '').trim(),
       count: ((document.querySelector('#ig-wall .igw-count') || {}).textContent || '').trim(), order: ((document.querySelector('#ig-wall .igw-order') || {}).textContent || '').trim(),
-      foot: ((document.querySelector('#ig-wall .igw-shown') || {}).textContent || '').trim(), more: !!document.querySelector('#ig-wall [data-ig-wall-more]'),
+      foot: ((document.querySelector('#ig-wall [data-lh-foot="wall"] .lh-range') || {}).textContent || '').trim(), more: !!document.querySelector('#ig-wall [data-lh-more="wall"]'),
       card: (() => { const w = document.getElementById('ig-wall'); if (!w) return null; const cs = getComputedStyle(w); return { bg: cs.backgroundColor, bw: cs.borderTopWidth, bs: cs.borderTopStyle }; })(),
       facts: (() => { const n = document.querySelector('.ct-name'), h = n && n.querySelector('.ct-h'), f = n && n.querySelector('.ct-facts'); return h && f ? Math.abs(h.getBoundingClientRect().bottom - f.getBoundingClientRect().bottom) < 8 && f.getBoundingClientRect().left > h.getBoundingClientRect().right : false; })() }));
     /* RE-POINTED (pass 4, round 13 as drawn: "48 contracts · newest first"): the count line says the agreements only, never "· N amendment" */
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way"): the
+       Wall's foot is the shared list foot — "1–12 of N · Show N more"
+       ([data-lh-foot="wall"] .lh-range, [data-lh-more="wall"]); it was "Showing 12
+       of N" (.igw-shown) and [data-ig-wall-more]. */
     check('1a the wall stands in one card: "N contracts · newest first", twelve papers, "Showing 12 of N · Show more"; the facts beside the name',
-      W0.leadsDrawn === 12 && W0.n > 12 && W0.count === `${W0.n} contracts` && !/amendment|closed/.test(W0.count) && W0.order === 'newest first' && W0.foot === `Showing 12 of ${W0.n}` && W0.more
+      W0.leadsDrawn === 12 && W0.n > 12 && W0.count === `${W0.n} contracts` && !/amendment|closed/.test(W0.count) && W0.order === 'newest first' && W0.foot === `1–12 of ${W0.n}` && W0.more
       && W0.head.startsWith(`${W0.n} live`)
       && !!W0.card && W0.card.bs === 'solid' && W0.facts, JSON.stringify(W0));
-    await press('#ig-wall [data-ig-wall-more]');
+    await press('#ig-wall [data-lh-more="wall"]');
     const more = await until(() => { const leads = [...document.querySelectorAll('#ig-wall .igw-card')].filter(b => { const c = getContract(b.getAttribute('data-ig-pick')); return c && !c.parentId; }).length;
-      return leads > 12 ? { n: leads, all: regFiltered().filter(c => !c.parentId).length, foot: ((document.querySelector('#ig-wall .igw-shown') || {}).textContent || '').trim(), btn: !!document.querySelector('#ig-wall [data-ig-wall-more]') } : null; }, null, 5000);
-    check('1a2 Show more brings the next papers, and the foot says how many are drawn', !!more && more.n === Math.min(24, more.all) && more.foot === `Showing ${more.n} of ${more.all}` && more.btn === (more.n < more.all), JSON.stringify(more));
+      return leads > 12 ? { n: leads, all: regFiltered().filter(c => !c.parentId).length, foot: ((document.querySelector('#ig-wall [data-lh-foot="wall"] .lh-range') || {}).textContent || '').trim(), btn: !!document.querySelector('#ig-wall [data-lh-more="wall"]') } : null; }, null, 5000);
+    check('1a2 Show more brings the next papers, and the foot says how many are drawn', !!more && more.n === Math.min(24, more.all) && more.foot === `1–${more.n} of ${more.all}` && more.btn === (more.n < more.all), JSON.stringify(more));
     const pick = 'MK-0382';
     await press(`#ig-wall .igw-card[data-ig-pick="${pick}"]`);
     const C1 = await until(() => { const p = (() => { const d = document.getElementById('ig-dock'); return d && d.querySelector('#pd-chosen'); })(); return p ? true : null; }, null, 5000) && await page.evaluate(PANEL);

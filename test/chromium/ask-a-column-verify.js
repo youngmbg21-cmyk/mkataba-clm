@@ -65,7 +65,10 @@ async function toList(page) {
     check('0 the Contracts list is up', await toList(page));
 
     /* ============ 1. THE DOOR ============ */
-    const btn = await page.evaluate(() => { const b = document.querySelector('.reg-cardhead [data-ac-open]'); return b ? { txt: b.textContent.trim(), dis: b.disabled } : null; });
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way"): the
+       list's own card head is gone; "Ask a column" stands at the list head's
+       chip row's end */
+    const btn = await page.evaluate(() => { const b = document.querySelector('.lh-chips [data-ac-open]'); return b ? { txt: b.textContent.trim(), dis: b.disabled } : null; });
     check('1a "Ask a column" stands in the list\'s own head', !!btn && /Ask a column/.test(btn.txt) && !btn.dis, JSON.stringify(btn));
     await page.click('[data-ac-open]');
     const opened = await until(page, () => !!document.querySelector('#ig-dock #ac-form #ac-q'));
@@ -127,7 +130,9 @@ async function toList(page) {
     const back = await until(page, () => document.querySelectorAll('td.ac-cell .ac-ans').length === 4, null, 10000);
     check('5a a refresh keeps the column and its answers, and spends nothing', back && h.ai.calls.length === spent, String(h.ai.calls.length - spent));
     await page.click('[data-ac-remove]');
-    check('5b Remove column takes it off the list', await until(page, () => !document.querySelector('td.ac-cell') && [...document.querySelectorAll('.reg-table thead th')].some(th => th.textContent.trim() === 'Owner')));
+    /* RE-POINTED 21 Oct 2026 (Part 8): Owner is hidden at rest under Columns
+       now, so the list comes back to the drawing's four, not to Owner */
+    check('5b Remove column takes it off the list', await until(page, () => !document.querySelector('td.ac-cell') && [...document.querySelectorAll('.reg-table thead th')].some(th => th.textContent.trim() === 'Value')));
     await page.click('[data-ac-open]'); await until(page, () => !!document.querySelector('[data-ac-chip]'));
     await page.click('[data-ac-chip]');
     const kept = await until(page, () => /4 answers are already kept and cost nothing/.test((document.querySelector('#ac-form') || {}).innerText || ''));

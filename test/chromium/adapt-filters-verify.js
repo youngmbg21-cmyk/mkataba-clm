@@ -10,7 +10,18 @@
    THE SAFETY PROPERTY IS THE POINT OF SECTION 4: a filter that is narrowing
    the list draws whether or not it was chosen. WO-15's own note says the
    control was removed "so the filter can never be quietly on"; a chooser that
-   let a reader hide an active filter would put that fault straight back. */
+   let a reader hide an active filter would put that fault straight back. 
+   RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way" for the
+   Contracts place): the labelled boxes and their chooser are not drawn on the
+   place any more — "+ Filter" offers every filter of the catalogue and a
+   chosen one is a chip. THE SAFETY PROPERTY STANDS, and is what this file
+   still pins: a filter that is narrowing the list always draws (a chip is
+   drawn exactly when its value is away from its rest), so it can never be
+   quietly on; and Renewal, which the owner twice asked off the bar, is not
+   drawn at rest — it is one of + Filter's groups. The full table outside
+   Home (no computer reaches it now: setView('register') lands on Home) keeps
+   the old chooser untouched. */
+
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
 const { startHati, seedWorkspace } = require('../helpers');
@@ -21,9 +32,7 @@ const EXEC = process.env.CHROMIUM_BIN
 let pass = 0, fail = 0;
 const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  FAIL ') + n + (d ? '  → ' + d : '')); };
 
-/* STEP 7 (the overnight work order): the Contracts page is Home's Contracts
-   place; this check reads its List (regPlaceSet({ show: 'list' }) before
-   setView('register'), which lands there). */
+const SEAT = '[data-reg-home] [data-lh-seat="contracts"]';
 (async () => {
   const h = await startHati();
   await seedWorkspace(h);
@@ -31,166 +40,95 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   const page = await b.newPage({ viewport: { width: 1440, height: 900 } });
   const errs = [];
   page.on('pageerror', e => errs.push(e.message));
+  const land = async () => {
+    await page.waitForFunction(() => typeof setView === 'function' && window.state && state.contracts && state.contracts.length > 0, null, { timeout: 20000 });
+    await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
+    await page.waitForFunction(S => !!document.querySelector(S) && !!document.querySelector('#reg-tbody [data-row]'), SEAT, { timeout: 10000 }).catch(() => {});
+  };
 
   await page.goto(h.base + '/', { waitUntil: 'networkidle' });
   await page.fill('#li-email', 'admin@example.co.ke');
   await page.fill('#li-pass', 'adminpassword1');
   await page.click('#li-go');
-  await page.waitForTimeout(1600);
-  await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
-  await page.waitForTimeout(900);
+  await land();
 
-  const onBar = () => page.evaluate(() => ({
-    /* RE-POINTED 9 Oct 2026 (owner: stage tabs like Negotiations), and again
-       16 Oct 2026 (owner: "take the status choices and put them in a dropdown
-       as well"): on the Contracts place the stage is the Stage box again. */
-    stage:    !!document.getElementById('reg-stage-sel'),
-    type:     !!document.getElementById('reg-type-sel'),
-    view:     !!document.getElementById('reg-view-sel'),
-    category: !!document.getElementById('reg-category'),
-    renewal:  !!document.getElementById('reg-renewal'),
-  }));
-  /* MEASURING "ONE LINE" IS NOT COUNTING EDGES, AND THIS CHECK WAS WRONG
-     TWICE BEFORE IT WAS RIGHT. The bar is align-items:flex-end, so counting
-     TOPS reported 3 rows on the shipped default; counting BOTTOMS reported 2,
-     because the Adapt link is a shorter control than a labelled select and
-     its baseline sits a few pixels up. MEASURED: the bar is 1344x50 with
-     every labelled filter at y=0 — one line.
-     So the honest question is whether the bar is TALLER THAN ONE ROW OF ITS
-     OWN CONTENT. If it wraps, its height is roughly a multiple of its tallest
-     child; if it does not, the two are the same. */
-  /* RE-POINTED IN PLACE 26 Sep 2026 (the list Inspector): the bar became the
-     top row of the list's own card and carries that card's inset (10px above
-     and below, a hairline under it), so its BOX is 49px round a 28px row and
-     the old division read 49/28 as two lines on a bar whose every chip sits at
-     one top (measured). The question this counter always meant is the
-     CONTENT's height against one row of it — the bar's own padding and
-     border are not a line. */
-  const barLines = () => page.evaluate(() => {
-    const bar = document.querySelector('.reg-filterbar');
-    if (!bar) return -1;
-    const kids = [...bar.children]
-      .map(c => c.getBoundingClientRect())
-      .filter(r => r.width > 0 && r.height > 0);
-    if (!kids.length) return -1;
-    const tallest = Math.max(...kids.map(r => r.height));
-    const cs = getComputedStyle(bar);
-    const inner = bar.getBoundingClientRect().height - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)
-      - parseFloat(cs.borderTopWidth) - parseFloat(cs.borderBottomWidth);
-    return Math.max(1, Math.round(inner / tallest));
-  });
+  /* what the head draws: the chips standing, + Filter's groups */
+  const onHead = () => page.evaluate(S => {
+    const head = document.querySelector(S);
+    const add = head && head.querySelector('select[data-lh-add]');
+    return {
+      head: !!head,
+      chips: head ? [...head.querySelectorAll('[data-lh-chip]')].map(c => c.getAttribute('data-lh-chip')) : [],
+      groups: add ? [...add.querySelectorAll('optgroup')].map(g => {
+        const o = g.querySelector('option'); return o ? JSON.parse(o.value)[0] : g.label; }) : [],
+      adapt: !!document.getElementById('reg-adapt'),
+      boxes: document.querySelectorAll('[data-reg-home] .reg-fb').length,
+    };
+  }, SEAT);
+  /* a chip, whole, inside the chip row, and the page not wider than the window */
+  const chipFits = k => page.evaluate(([S, k]) => {
+    const row = document.querySelector(S + ' .lh-chips'), el = document.querySelector(`${S} [data-lh-chip="${k}"]`);
+    if (!row || !el) return null;
+    const b = row.getBoundingClientRect(), r = el.getBoundingClientRect();
+    return { drawn: r.width > 0 && r.height > 0, inside: r.right <= b.right + 1 && r.bottom <= b.bottom + 1 && r.left >= b.left - 1,
+      wide: document.documentElement.scrollWidth <= window.innerWidth + 1 };
+  }, [SEAT, k]);
 
-  console.log('\n1 · the default bar is exactly what shipped before');
-  const d = await onBar();
-  ok('stage, stream, quick filter and category are on it',
-     d.stage && d.type && d.view && d.category, JSON.stringify(d));
-  ok('Renewal is NOT — the owner asked for that twice', d.renewal === false);
-  ok('the bar is one line', (await barLines()) === 1, (await barLines()) + ' line(s)');
-  ok('the door to the rest is drawn', await page.evaluate(() => !!document.getElementById('reg-adapt')));
+  console.log('\n1 · at rest nothing narrows, so no filter is drawn');
+  const d = await onHead();
+  ok('the list head stands, with no chip and no labelled box', d.head && d.chips.length === 0 && d.boxes === 0, JSON.stringify(d));
+  ok('Renewal is NOT drawn at rest — the owner asked for that twice', !d.chips.includes('renewal'));
+  ok('the old chooser (Adapt filters) is not drawn: + Filter is the one door to every filter', !d.adapt);
 
-  console.log('\n2 · the chooser');
-  await page.click('#reg-adapt');
-  await page.waitForTimeout(500);
-  const dlg = await page.evaluate(() => {
-    const m = document.querySelector('#modal-root [role="dialog"]');
-    return { open: !!m, named: !!(m && m.getAttribute('aria-label')),
-             boxes: document.querySelectorAll('[data-adapt]').length,
-             locked: document.querySelectorAll('[data-adapt][disabled]').length };
-  });
-  ok('it opens through openModal, so it is a real dialog', dlg.open && dlg.named);
-  /* ---- REVERSED IN PLACE 31 Aug 2026 (J-5.1) ---- It was five and is six:
-     Signed joined the catalogue, deliberately outside the default four, so it
-     costs the bar nothing until a reader asks for it. THE CLAIM IS PINNED AS A
-     RELATION rather than a number — the chooser offers exactly what the
-     catalogue holds — so the next filter costs no test edit, which is this
-     rulebook's own rule. */
-  /* On the Contracts place the stage is a box again (16 Oct 2026), so the
-     chooser offers it, ticked and locked like stream. */
-  const catalogue = await page.evaluate(() => REG_BAR_FILTERS.map(f => f.k));
-  ok('it offers every filter the catalogue holds, and no more',
-    dlg.boxes === catalogue.length, `${dlg.boxes} boxes for ${catalogue.length}: ${catalogue.join(', ')}`);
-  ok('and Signed is one of them, off by default',
-    catalogue.includes('signed') && !(await page.evaluate(() => REG_BAR_DEFAULT.includes('signed'))));
-  ok('the two boxes the register is always asked (stage and stream) are locked on', dlg.locked === 2, dlg.locked + ' locked');
+  console.log('\n2 · + Filter is the catalogue');
+  const catalogue = await page.evaluate(() => REG_CT_FILTERS.slice());
+  ok('every group it offers is a filter of the catalogue', d.groups.length > 0 && d.groups.every(k => catalogue.includes(k)), d.groups.join(', ') + ' of ' + catalogue.join(', '));
+  ok('and Stage and Stream, the two the register is always asked, are offered', d.groups.includes('stage') && d.groups.includes('type'), d.groups.join(', '));
+  /* the filters' own counts, read when the list is standing */
+  await page.waitForFunction(() => regFiltered().length > 0, null, { timeout: 8000 }).catch(() => {});
+  const withRows = await page.evaluate(() => regCtFilters().filter(f => (f.opts || []).some(o => o[2] == null || o[2] > 0)).map(f => f.k));
+  ok('it offers every filter that has a choice with rows, and no more', JSON.stringify(withRows.slice().sort()) === JSON.stringify(d.groups.slice().sort()),
+    `${d.groups.length} groups for ${withRows.length}: ${withRows.join(', ')}`);
 
-  await page.check('[data-adapt="renewal"]');
-  await page.click('#reg-adapt-done');
-  await page.waitForTimeout(700);
-  ok('ticking Renewal puts it on the bar', (await onBar()).renewal === true);
-  /* THIS PINNED THE COST — a sixth filter took a second line at 1440, which
-     was the honest claim when it was written and is the very constraint WO-15
-     was up against. It is REVERSED IN PLACE 26 Aug 2026, and by somebody
-     else's change rather than by this file: the register's rows came down a
-     rung (WO-16, owner-asked) and the bar's own controls with them, so six
-     filters now fit at 1440 where five barely did.
-     A COST THAT HAS GONE IS NOT A FAILURE, and pinning it would make the next
-     type change look like a regression. WHAT THE CLAIM PROTECTS IS UNCHANGED
-     and is asserted the other way up: whatever the reader chooses, the bar
-     never hides a filter and never scrolls the page sideways — it wraps if it
-     must. The DEFAULT staying on one line is section 1's claim and is the one
-     that carries the owner's ruling. */
-  const six = await page.evaluate(() => {
-    const bar = document.querySelector('.reg-filterbar');
-    const el  = document.getElementById('reg-renewal');
-    if (!bar || !el) return null;
-    const b = bar.getBoundingClientRect(), r = el.getBoundingClientRect();
-    return { drawn: r.width > 0 && r.height > 0,
-             inside: r.right <= b.right + 1 && r.bottom <= b.bottom + 1,
-             wide: document.documentElement.scrollWidth <= window.innerWidth + 1,
-             lines: 0 };
-  });
-  ok('the sixth filter the reader chose is drawn, whole, inside the bar',
-     !!six && six.drawn && six.inside, JSON.stringify(six));
-  ok('and choosing it never makes the page scroll sideways', !!six && six.wide);
-  for (const w of [1760, 1366]) {
-    await page.setViewportSize({ width: w, height: 900 });
-    await page.waitForTimeout(500);
-    const st = await page.evaluate(() => {
-      const bar = document.querySelector('.reg-filterbar');
-      const el  = document.getElementById('reg-renewal');
-      if (!bar || !el) return null;
-      const b = bar.getBoundingClientRect(), r = el.getBoundingClientRect();
-      return { drawn: r.width > 0, inside: r.right <= b.right + 1 && r.bottom <= b.bottom + 1,
-               wide: document.documentElement.scrollWidth <= window.innerWidth + 1 };
-    });
-    ok('and it still holds at ' + w, !!st && st.drawn && st.inside && st.wide, JSON.stringify(st));
+  console.log('\n3 · a filter the reader picks is a chip');
+  /* Renewal first (the filter the owner asked off the bar), else the first
+     other filter whose choice holds rows on this book */
+  const pick = await page.evaluate(() => { const fs = regCtFilters();
+    for (const k of ['renewal', 'signed', 'category', 'payterms', 'docs', 'hold']){
+      const f = fs.find(x => x.k === k), o = f && f.opts.find(x => x[2] == null || x[2] > 0);
+      if (o) return [k, String(o[0])]; }
+    return null; });
+  ok('the book has a filter beyond Stage and Stream with a choice to pick', !!pick, JSON.stringify(pick));
+  if (pick) {
+    await page.selectOption(SEAT + ' select[data-lh-add]', JSON.stringify(pick));
+    await page.waitForFunction(([S, k]) => !!document.querySelector(`${S} [data-lh-chip="${k}"]`), [SEAT, pick[0]], { timeout: 5000 }).catch(() => {});
+    const six = await chipFits(pick[0]);
+    ok('it is drawn, whole, inside the chip row', !!six && six.drawn && six.inside, JSON.stringify(six));
+    ok('and choosing it never makes the page scroll sideways', !!six && six.wide);
+    for (const w of [1760, 1366]) {
+      await page.setViewportSize({ width: w, height: 900 });
+      await page.waitForFunction(w => window.innerWidth === w, w, { timeout: 5000 }).catch(() => {});
+      await page.waitForFunction(([S, k]) => !!document.querySelector(`${S} [data-lh-chip="${k}"]`), [SEAT, pick[0]], { timeout: 5000 }).catch(() => {});
+      const st = await chipFits(pick[0]);
+      ok('and it still holds at ' + w, !!st && st.drawn && st.inside && st.wide, JSON.stringify(st));
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
+
+    console.log('\n4 · it is the reader\'s own, and it lasts');
+    await page.reload({ waitUntil: 'networkidle' });
+    await land();
+    await page.waitForFunction(([S, k]) => !!document.querySelector(`${S} [data-lh-chip="${k}"]`), [SEAT, pick[0]], { timeout: 8000 }).catch(() => {});
+    ok('remembered across a reload', (await onHead()).chips.includes(pick[0]), JSON.stringify((await onHead()).chips));
+
+    console.log('\n5 · a filter that is narrowing the list can never hide');
+    ok('the reading agrees it is active while its chip stands',
+      await page.evaluate(k => regFilterActive(k), pick[0]));
+    ok('and + Filter no longer offers it (one door per fact)', !(await onHead()).groups.includes(pick[0]));
+    await page.click(`${SEAT} [data-lh-x="${pick[0]}"]`).catch(() => {});
+    await page.waitForFunction(k => !regFilterActive(k), pick[0], { timeout: 5000 }).catch(() => {});
+    const back = await onHead();
+    ok('once it stops narrowing (its x), it goes away again, back under + Filter', !back.chips.includes(pick[0]) && back.groups.includes(pick[0]), JSON.stringify(back));
   }
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.waitForTimeout(400);
-
-  console.log('\n3 · it is the reader\'s own, and it lasts');
-  await page.reload({ waitUntil: 'networkidle' });
-  await page.waitForTimeout(1600);
-  await page.evaluate(() => (regPlaceSet({ show: 'list' }), setView('register')));
-  await page.waitForTimeout(900);
-  ok('remembered across a reload', (await onBar()).renewal === true);
-
-  console.log('\n4 · a filter that is narrowing the list can never hide');
-  /* Turn Renewal ON, then take it OFF the bar. It must still draw. */
-  await page.evaluate(() => { const R = regState(); R.renewal = 'auto-renew'; R.page = 1; regRepaint(); });
-  await page.waitForTimeout(600);
-  await page.evaluate(() => { regBarSetChosen(['stage', 'type', 'view', 'category']); regRepaint(); });
-  await page.waitForTimeout(600);
-  ok('it is NOT in the reader\'s chosen set',
-     await page.evaluate(() => !regBarChosen().includes('renewal')));
-  ok('but it draws anyway, because it is cutting the book',
-     (await onBar()).renewal === true);
-  ok('and the reading agrees it is active',
-     await page.evaluate(() => regFilterActive('renewal')));
-
-  /* clear it, and now it may hide */
-  await page.evaluate(() => { const R = regState(); R.renewal = 'all'; regRepaint(); });
-  await page.waitForTimeout(600);
-  ok('once it stops narrowing, it goes away again', (await onBar()).renewal === false);
-
-  console.log('\n5 · reset');
-  await page.click('#reg-adapt');
-  await page.waitForTimeout(450);
-  await page.click('#reg-adapt-reset');
-  await page.waitForTimeout(700);
-  const back = await onBar();
-  ok('reset restores the shipped default',
-     back.stage && back.type && back.view && back.category && !back.renewal, JSON.stringify(back));
 
   console.log('\n6 · nothing else moved');
   ok('no sideways scroll',
@@ -199,6 +137,7 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
      (await page.evaluate(() => document.querySelectorAll('#reg-tbody [data-row]').length)) > 0);
 
   console.log('\n' + (errs.length ? 'PAGE ERRORS: ' + errs.join(' | ') : 'no page errors'));
+  ok('no page errors', errs.length === 0, errs.join(' | '));
   console.log(pass + ' passed, ' + fail + ' failed');
   await b.close();
   await h.stop();

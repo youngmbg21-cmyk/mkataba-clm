@@ -119,7 +119,9 @@ describe('f387 (1) the panel file, and what it may and may not do', () => {
     assert.match(c, /const INS_MIN_W = 1040;/);
     assert.match(c, /return w >= INS_MIN_W;/);
     assert.match(c, /if \(_insForce !== null\) return _insForce;/);
-    assert.match(APP, /import '\.\/views\/inspector\.js';\s*\n\s*import '\.\/views\/approvalsview\.js';/,
+    /* RE-POINTED 21 Oct 2026 (Part 8): the list head (js/views/listhead.js) is
+       imported straight after the inspector, still before every page that draws it */
+    assert.match(APP, /import '\.\/views\/inspector\.js';\s*\n\s*import '\.\/views\/listhead\.js';[^\n]*\n\s*import '\.\/views\/approvalsview\.js';/,
       'loaded before the pages that draw it');
   });
 });
@@ -312,10 +314,13 @@ describe('f387 (3) the Negotiations list in the inspector’s shape', () => {
     /* RE-POINTED 18 Oct 2026 (round 14 as drawn, owner's "build all the
        gaps"): "What is open" says what is open — "1 redline to answer" */
     assert.ok(moves.length === 2 && moves.every(m => /^1 redline to answer$/.test(m)), moves.join('|'));
-    const bands = b.$$('#reg-tbody tr.ngl-band .ngl-band-k').map(x => x.textContent.trim());
-    assert.deepEqual(bands, ['Waiting on our side'], 'an empty group is not drawn');
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way", Q2
+       "A — tabs only"): no group headings between the rows; the whose-move
+       tabs in the list head say the groups, a tab with no rows not drawn. */
+    assert.equal(b.$$('#reg-tbody tr.ngl-band').length, 0, 'no group heading between the rows');
     assert.equal(b.$('[data-reg-view]'), null, 'the Contracts views are not drawn on this page');
-    assert.ok(b.$('.reg-views [data-reg-band="you"]'), 'whose move is a tab row');
+    assert.ok(b.$('[data-lh-seat="negotiations"] .reg-views [data-reg-band="you"]'), 'whose move is the list head\'s tab row');
+    assert.equal(b.$('[data-reg-band="them"]'), null, 'a whose-move tab with no rows is left out');
   });
 
   /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner-approved): the Negotiations

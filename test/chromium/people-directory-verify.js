@@ -27,6 +27,11 @@
    by name, there is no A to Z edge, and the Parties panel names its people
    ("People at <party>"), each row choosing that person here, lit.
 
+   RE-POINTED 21 Oct 2026 (Part 8, the owner's pick of "The Legora way"):
+   the sides are the list head's tabs (Everyone · Ours · Theirs), the role
+   here stands under the name, and the address left the row — it rides the
+   name's hover, and the person's panel carries it as the link.
+
    Run: node test/chromium/people-directory-verify.js */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
@@ -72,16 +77,19 @@ const PAGE = () => {
   const txt = (el, sel) => { const x = el.querySelector(sel); return x ? x.textContent.replace(/\s+/g, ' ').trim() : ''; };
   const heads = [...document.querySelectorAll('#dir-page thead th')].map(t => t.getAttribute('data-dir-col') || 'name');
   const col = (c, k) => { const i = heads.indexOf(k); const td = i >= 0 ? c.children[i] : null; return td ? td.textContent.replace(/\s+/g, ' ').trim() : ''; };
-  const side = document.querySelector('#dir-page select[data-dir-f="tab"]');
+  /* (Part 8) the side is the lit tab of the list head */
+  const side = document.querySelector('#dir-page [role="tab"][data-dir-tab][aria-selected="true"]');
   return {
     n: cards.length,
     names: cards.map(c => txt(c, '.dir-name')),
-    roles: cards.map(c => col(c, 'hati')),
+    roles: cards.map(c => txt(c, '.dir-sub .dir-role')),
     subs: cards.map(c => col(c, 'party')),
-    mails: cards.map(c => { const a = c.querySelector('.dir-mail a'); return a ? a.getAttribute('href') : null; }),
+    mails: cards.map(c => { const w = c.querySelector('.dir-nm-w'); return w ? w.getAttribute('title') : null; }),
+    rowLinks: cards.reduce((n, c) => n + c.querySelectorAll('a').length, 0),
+    panelMail: !!document.querySelector('#ins-panel a[href^="mailto:"]'),
     words: (document.getElementById('dir-page') || {}).textContent || '',
     manage: !!document.getElementById('dir-manage'),
-    tab: side ? side.value : null,
+    tab: side ? side.getAttribute('data-dir-tab') : null,
     tabs: (typeof dirTabCount === 'function') ? DIR_TABS.map(k => ({ k, n: dirTabCount(dirBook(), k) })) : [],
     links: [...document.querySelectorAll('#dir-page a')].map(a => a.getAttribute('href')),
     panel: { id: (document.getElementById('ins-panel') || {}).getAttribute ? document.getElementById('ins-panel').getAttribute('data-ins-id') : null,
@@ -138,20 +146,21 @@ const PAGE = () => {
 
     const all = await page.evaluate(PAGE);
     const boot = await W.restricted.json('/api/bootstrap');
-    check('the Side box opens on Everyone', all.tab === 'all', all.tab);
+    check('the tabs open on Everyone', all.tab === 'all', all.tab);
     const sum = all.tabs.filter(t => t.k !== 'all').reduce((s, t) => s + t.n, 0);
     check('the three sides add up to Everyone, and Everyone is the cards on the wall',
       sum === all.n && (all.tabs.find(t => t.k === 'all') || {}).n === all.n, JSON.stringify(all.tabs) + ' vs ' + all.n);
 
     /* ---- OUR PEOPLE: the roster, the reader first ---- */
-    await page.selectOption('#dir-page select[data-dir-f="tab"]', 'ours');
+    await page.click('#dir-page [role="tab"][data-dir-tab="ours"]');
     await page.waitForTimeout(700);
     const p = await page.evaluate(PAGE);
     check('Our people is every colleague', p.n === boot.users.length, `${p.n} rows for ${boot.users.length} people`);
     const ai = p.names.findIndex(n => /Amina Otieno/.test(n));
     check('the reader first, then by name; the admin\'s row says Admin', /Restricted Legal/.test(p.names[0]) && ai > 0 && /Admin/i.test(p.roles[ai]), `${p.names[0]} · ${p.names[ai]} ${p.roles[ai]}`);
-    check('each address is a mailto, so the wall can be acted on',
-      p.mails.filter(Boolean).length === p.n && p.mails.every(m => !m || m.startsWith('mailto:')), p.mails[0]);
+    /* (Part 8) the address rides the name's hover; the chosen person's panel carries it as the link */
+    check('each row carries its address, and the panel\'s address is a mailto, so the wall can be acted on',
+      p.mails.filter(m => /@/.test(m || '')).length === p.n && p.rowLinks === 0 && p.panelMail, JSON.stringify({ first: p.mails[0], rowLinks: p.rowLinks, panelMail: p.panelMail }));
     check('a job title an admin set is printed', /Commercial Counsel/.test(p.words));
     check('and the only links on the page are addresses', p.links.length > 0 && p.links.every(l => l.startsWith('mailto:')), `${p.links.length} links`);
 
@@ -161,7 +170,7 @@ const PAGE = () => {
     check('a non-admin is offered no door to Settings, because they have none', !p.manage);
 
     /* ---- THEIR PEOPLE: the other side, with their party ---- */
-    await page.selectOption('#dir-page select[data-dir-f="tab"]', 'theirs');
+    await page.click('#dir-page [role="tab"][data-dir-tab="theirs"]');
     await page.waitForTimeout(700);
     const t = await page.evaluate(PAGE);
     check('Their people names at least one outside person', t.n >= 1, `${t.n} rows`);
@@ -203,10 +212,11 @@ const PAGE = () => {
     /* RE-POINTED 19 Oct 2026: the drawing draws no A to Z edge; the table pages
        instead ("N of M shown · Show more") */
     const edge = await page.evaluate(() => ({ az: !!document.querySelector('#dir-page .dir-az'), foot: ((document.querySelector('#dir-page .dir-cardfoot') || {}).textContent || '').trim() }));
-    check('no A to Z edge; the foot says how many are shown', !edge.az && /^\d+ of \d+ shown/.test(edge.foot), JSON.stringify(edge));
+    /* RE-POINTED 21 Oct 2026 (Part 8): the list head's one foot, "1–12 of N" */
+    check('no A to Z edge; the foot says how many are shown', !edge.az && /^1–\d+ of \d+/.test(edge.foot), JSON.stringify(edge));
     await page.reload({ waitUntil: 'networkidle' });
     await page.waitForTimeout(2200);
-    const kept = await page.evaluate(() => ({ view: state.view, tab: (document.querySelector('#dir-page select[data-dir-f="tab"]') || {}).value || null }));
+    const kept = await page.evaluate(() => ({ view: state.view, tab: (document.querySelector('#dir-page [role="tab"][data-dir-tab][aria-selected="true"]') || { getAttribute: () => null }).getAttribute('data-dir-tab') }));
     check('a refresh lands on People, on the same side', kept.view === 'directory' && kept.tab === 'theirs', JSON.stringify(kept));
 
     await ctx.close();
@@ -220,7 +230,7 @@ const PAGE = () => {
     check('a Viewer has the place too', vDoor === 'people', String(vDoor));
     await pv.evaluate(w => { setView('counter'); counterAsk(w); }, 'people');
     await pv.waitForTimeout(1200);
-    await pv.selectOption('#dir-page select[data-dir-f="tab"]', 'ours');
+    await pv.click('#dir-page [role="tab"][data-dir-tab="ours"]');
     await pv.waitForTimeout(600);
     const vp = await pv.evaluate(PAGE);
     check('and gets the whole roster — reading who is here is their level of access', vp.n >= 5, `${vp.n} rows`);

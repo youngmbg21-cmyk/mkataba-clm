@@ -436,8 +436,11 @@ describe('f240 (5) — the rows read at one size and one weight', () => {
     assert.ok(tokenPx(th.match(/font-size:[^;}]+/)[0]) < rowSize, 'a head is set smaller than the row');
     assert.match(th, /color:var\(--color-neutral-600\)/, 'in the secondary ink');
     assert.doesNotMatch(th, /font-weight:var\(--w-body\)/, 'and never at the row’s own weight');
-    const k = IDX.match(/\.ngl-band-k\{[\s\S]*?\}/)[0];
-    assert.match(k, /font-weight:var\(--w-(strong|title)\)/, 'a group heading is heavier than a row');
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way", Q2
+       "A — tabs only"): the group headings between the rows are gone — the
+       whose-move tabs above the table do their job — and their rules with
+       them, so nothing between the rows is left to tell from a row. */
+    assert.ok(!/\.ngl-band-k\{/.test(IDX), 'no group heading is drawn between the rows');
   });
 });
 

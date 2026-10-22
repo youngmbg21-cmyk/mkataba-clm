@@ -410,9 +410,11 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
     await door(A, 'Contracts place, Wall | List: List', { start: toPlace('wall'), press: () => domClick('[data-reg-home] [data-ct-show="list"]'), expect: E.list(null), says: SAYS.list });
     await door(A, 'Contracts place, Wall | List: Wall', { start: toPlace('list'), press: () => domClick('[data-reg-home] [data-ct-show="wall"]'), expect: E.wall(null), says: SAYS.wall });
     /* RE-POINTED 16 Oct 2026: the place's stages are the Stage box (owner: "take
-       the status choices and put them in a dropdown"); In Review chosen in it */
-    await door(A, 'Contracts place, In Review in the Stage box (the Wall)', { start: toPlace('wall'),
-      press: () => page.selectOption('[data-reg-home] #reg-stage-sel', 'Under Review').then(() => true, () => false),
+       the status choices and put them in a dropdown"); In Review chosen in it.
+       RE-POINTED AGAIN 21 Oct 2026 (Part 8, the owner picked "the Legora way"):
+       the stages are a group under "+ Filter"; In Review chosen there */
+    await door(A, 'Contracts place, In Review under + Filter (the Wall)', { start: toPlace('wall'),
+      press: () => page.selectOption('[data-reg-home] [data-lh-seat="contracts"] select[data-lh-add]', JSON.stringify(['stage', 'Under Review'])).then(() => true, () => false),
       expect: L => E.wall(null)(L) && E.stageTab('Under Review')(L), says: SAYS.wall + ', on In Review' });
     /* THE BOARD'S NUMBERS land on the place: a set (regShowOnly) and a stage (regGoFiltered) */
     let boardN = -1;

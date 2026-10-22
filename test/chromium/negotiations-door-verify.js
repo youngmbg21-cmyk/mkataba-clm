@@ -321,8 +321,12 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
       sub: document.querySelectorAll('.ngl-head-table p').length,
       lock: eval(seen)('#reg-lock-chip'),
       lockOut: document.querySelectorAll('#reg-lock-chip button').length,
-      /* It IS the register now — the filter bar is the point, not the fault. */
-      filters: document.querySelectorAll('#reg-stage-sel, #reg-type-sel, #reg-sort').length,
+      /* It IS the register now — the filter bar is the point, not the fault.
+         RE-POINTED 21 Oct 2026 (Part 8, "The Legora way"): the bar is the
+         shared list head — its box, "+ Filter", and Sort at its right end. */
+      filters: document.querySelectorAll('[data-lh-seat="negotiations"] input[data-lh-q], [data-lh-seat="negotiations"] [data-lh-add], [data-lh-seat="negotiations"] #reg-sort').length,
+      ourTab: !!document.querySelector('[data-lh-seat="negotiations"] [role="tab"][data-reg-band="you"]'),
+      allRows: [...document.querySelectorAll('#reg-tbody tr')].every(r => r.hasAttribute('data-row')),
       showing: (document.querySelector('#reg-showing') || {}).textContent,
       keys: (window.REG_COL_KEYS_NEGO || []).length,
     }), SEEN);
@@ -351,17 +355,14 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
        fixed order and still a full-width row of its own. This stage has one
        live negotiation, waiting on this reader, so the one band is Waiting on
        you — asked of the ORDER the three always keep, never a count of three. */
-    const BAND_ORDER = [/Waiting on our side/i, /other side/i, /Nothing outstanding/i];
-    const bandAt = b => BAND_ORDER.findIndex(re => re.test(b.k || ''));
-    check('the bands with rows, in fixed order, each a full-width row of its own — and no empty one',
-      list.bands.length >= 1
-        && /Waiting on our side/i.test(list.bands[0].k || '')
-        && list.bands.every((b, i) => bandAt(b) >= 0 && (i === 0 || bandAt(b) > bandAt(list.bands[i - 1])))
-        && list.bands.every(b => b.w > 400 && Number(String(b.n || '').replace(/\D/g, '')) > 0),
-      list.bands.map(b => `${b.k} ${b.n} ${b.w}px`).join(' · '));
-    check('and a band is not a row — nothing to press, nothing to open',
-      list.bands.every(b => b.role === 'presentation' && b.press === 0 && !b.row),
-      list.bands.map(b => `${b.role}/${b.press}`).join(' '));
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way", Q2
+       "A — tabs only"): the group headings between the rows are gone — the
+       whose-move tabs above the table say the groups — so the table is one
+       plain list of contract rows, the one waiting on this reader under the
+       Our move tab. */
+    check('one plain table: no group heading between the rows, the group is the Our move tab',
+      list.bands.length === 0 && list.ourTab && list.allRows,
+      JSON.stringify({ bands: list.bands.map(b => b.k), ourTab: list.ourTab, allRows: list.allRows }));
     check('the live negotiation is a real, pressable row',
       list.rows.length === 1 && list.rows[0].id === cid && list.rows[0].w > 0,
       list.rows.map(r => `${r.id} ${r.w}px ${r.state}`).join(' · '));
@@ -376,7 +377,7 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
       (list.rows[0] || {}).state);
     check('with the count it replaced still readable on the hover',
       /needs you/i.test((list.rows[0] || {}).hover || ''), (list.rows[0] || {}).hover);
-    check('the filter bar is there — this page IS the register now',
+    check('the list head is there — its box, + Filter and Sort; this page IS the register now',
       list.filters === 3, list.filters + ' controls');
     /* REVERSED IN PLACE 24 Aug 2026 (WO-15, owner-asked: "delete the filters i
        have highlighted so all the filters can fit in one line"). The chip is
@@ -394,15 +395,20 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
     /* ---- 9b. CLEAR CANNOT WIDEN THE PAGE ---- */
     await page.evaluate(() => { const R = regState(); R.stage = 'Draft'; regRepaint(); });
     await page.waitForTimeout(700);
+    /* RE-POINTED 21 Oct 2026 (Part 8, "The Legora way"): the sentence that
+       read the narrowing back ("Showing 1 of 1 live negotiations — …") is
+       gone; the filter stands as a chip in the list head, its × the way back
+       (no Clear link is drawn). */
     const narrowed = await page.evaluate(() => {
       const h = document.querySelector('.ngl-head-table');
-      const p = h && h.querySelector('p');
-      return { n: h ? h.querySelectorAll('p').length : -1, txt: p ? p.textContent.trim() : '' };
+      const chip = document.querySelector('[data-lh-seat="negotiations"] .lh-chip[data-lh-chip="stage"]');
+      return { n: h ? h.querySelectorAll('p').length : -1, chip: chip ? chip.textContent.replace(/\s+/g, ' ').trim().slice(0, 40) : null,
+        x: !!(chip && chip.querySelector('[data-lh-x]')), clear: !!document.getElementById('reg-clear-filters') };
     });
-    check('but a filter brings back the sentence that explains the two counts',
-      narrowed.n === 1 && /\bdoor\b/i.test(narrowed.txt), `${narrowed.n}: ${narrowed.txt.slice(0, 90)}`);
+    check('a filter stands as a chip with its ×, and no sentence reads it back',
+      narrowed.n === 0 && !!narrowed.chip && narrowed.x && !narrowed.clear, JSON.stringify(narrowed));
     const cleared = await page.evaluate(() => {
-      const b = document.getElementById('reg-clear-filters');
+      const b = document.querySelector('[data-lh-seat="negotiations"] .lh-chip[data-lh-chip="stage"] [data-lh-x]');
       if (b) b.click();
       return null;
     });
@@ -413,7 +419,7 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
       rows: document.querySelectorAll('#reg-tbody tr[data-row]').length,
       total: state.contracts.length,
     }));
-    check('pressing Clear puts the reader\'s filters back and leaves the page alone',
+    check('pressing the chip\'s × puts the reader\'s filter back and leaves the page alone',
       after.scope === 'negotiations' && after.rows === 1 && after.rows < after.total,
       `${after.rows} of ${after.total} rows · scope ${after.scope}`);
 
@@ -771,20 +777,32 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
        AND THE ABSENCE IS ASSERTED TOO: a filter row that quietly kept its box
        would be the owner's report unfixed, and the same row is what carries the
        claim, so the two sit together. */
+    /* RE-POINTED 21 Oct 2026 (Part 8: the owner picked "the Legora way" for
+       every list page, which reverses M-5 on a computer): the Negotiations
+       list draws the list head's ONE box — exactly one, never the old
+       #reg-search beside it — and what is typed there is the page's OWN
+       query (state.regNego.query), never Contracts'. It used to look for
+       #reg-search only, so it passed while the page showed the new box. */
     await page.evaluate(() => openNegotiations({ list: true }));
     await page.waitForTimeout(1600);
     const box = await page.evaluate(() => {
       const s = document.getElementById('reg-search');
-      const sels = [...document.querySelectorAll('#reg-stage-sel,#reg-type-sel,#reg-category,#reg-renewal')];
-      const g = e => e ? getComputedStyle(e).backgroundColor : null;
-      return { drew: !!document.querySelector('.reg-table'), found: !!s,
+      const own = [...document.querySelectorAll('[data-lh-seat="negotiations"] input[data-lh-q]')].filter(e => e.getClientRects().length);
+      return { drew: !!document.querySelector('.reg-table'), found: !!s, boxes: own.length,
         note: !!document.getElementById('reg-sort-note'),
-        shell: !!document.getElementById('cmd-search'),
-        search: g(s), neighbours: [...new Set(sels.map(g))] };
+        shell: !!document.getElementById('cmd-search') };
     });
-    check('11 the list drew, and it draws NO search box of its own',
-      box.drew && box.found === false, JSON.stringify(box));
-    check('11 …because the shell bar above it already carries one',
+    if (box.boxes === 1) {
+      await page.fill('[data-lh-seat="negotiations"] input[data-lh-q]', 'Naiv').catch(() => {});
+      await page.waitForTimeout(400);
+    }
+    const typed = await page.evaluate(() => ({ nego: String((state.regNego && state.regNego.query) || ''), ct: String((state.reg && state.reg.query) || '') }));
+    if (box.boxes === 1) { await page.fill('[data-lh-seat="negotiations"] input[data-lh-q]', '').catch(() => {}); await page.waitForTimeout(300); }
+    check('11 the list drew, and it draws ONE list box of its own (the list head\'s), never #reg-search beside it',
+      box.drew && box.found === false && box.boxes === 1, JSON.stringify(box));
+    check('11 …and what is typed there is the page\'s own query, never Contracts\'',
+      typed.nego === 'Naiv' && typed.ct !== 'Naiv', JSON.stringify(typed));
+    check('11 …and the shell bar\'s box above it stays (Q1, "B — keep both boxes")',
       box.shell === true, `shell search ${box.shell}`);
     check('11 and no "sorts within each group" line under the controls',
       box.note === false, box.note ? '#reg-sort-note still drawn' : 'gone');
@@ -797,15 +815,25 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
        filter controls still reads as one convention. */
     await page.evaluate(() => { regSetScope(null); setView('register'); });
     await page.waitForTimeout(1400);
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way", and
+       answered Q1 "B — keep both boxes"): the Contracts place draws the list
+       head's ONE box, and it always says what the shell bar says — never a
+       second box of its own (#reg-search), never two boxes disagreeing; the
+       filters are "+ Filter" and its chips on one row of one dress */
+    await page.fill('#cmd-search', 'Naiv').catch(() => {});
+    await page.waitForTimeout(600);
     const cbox = await page.evaluate(() => {
-      const sels = [...document.querySelectorAll('#reg-stage-sel,#reg-type-sel,#reg-category,#reg-renewal')];
+      const sels = [...document.querySelectorAll('[data-lh-seat="contracts"] .lh-chips .lh-add, [data-lh-seat="contracts"] .lh-chips .lh-chip > label')];
       const g = e => e ? getComputedStyle(e).backgroundColor : null;
-      return { found: !!document.getElementById('reg-search'),
+      const boxes = [...document.querySelectorAll('[data-reg-home] input[data-lh-q]')];
+      return { found: !!document.getElementById('reg-search'), boxes: boxes.length,
+        same: boxes.length === 1 && boxes[0].value === (document.getElementById('cmd-search') || {}).value,
         shell: !!document.getElementById('cmd-search'),
         neighbours: [...new Set(sels.map(g))] };
     });
-    check('11 CONTRACTS DRAWS NO BOX EITHER — the shell bar is the one search',
-      cbox.found === false && cbox.shell === true, JSON.stringify(cbox));
+    await page.fill('#cmd-search', '').catch(() => {});
+    check('11 CONTRACTS DRAWS ONE LIST BOX, in step with the shell bar — never a box of its own beside it',
+      cbox.found === false && cbox.shell === true && cbox.boxes === 1 && cbox.same, JSON.stringify(cbox));
     check('11 …and the filter controls beside it still read as one row',
       cbox.neighbours.length === 1, JSON.stringify(cbox));
 

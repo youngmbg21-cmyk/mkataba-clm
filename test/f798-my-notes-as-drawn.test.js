@@ -6,11 +6,16 @@
    (1) The band: "My notes 5 · private to you · Jambo reads them only when you
        ask", + New note; the tabs All · Due today · Later · Reviewed with
        their counts; beside them "Note [Words in a note]" and "Contract [Any]"
-       — no chip per contract.
+       — no chip per contract. RE-POINTED (Part 8, the owner's pick of "The
+       Legora way", 21 Oct 2026): the band is the list head's ONE card — the
+       box to search or ask in under the title, the tabs, and Contract only
+       once it is added through "+ Filter" (js/views/listhead.js).
    (2) The review as the drawing says it: "Review today", "Review Tue 20
        Oct", "No review day", "Reviewed 14 Oct"; Due today is the bell's own
        reading (mineNotesDue).
    (3) The list due first, then newest, as its head says; "5 of 5" under it.
+       RE-POINTED (Part 8): the list card's own head goes (each tab says the
+       order on hover), and the foot is the list head's "1–5 of 5".
    (4) Where the width holds it, the note opens in Jambo's panel ("Note"):
        "My note · written …", its pills, Mark reviewed · Snooze a week · Open
        REF, its words, Contract and Review as rows ("Today, … · in your bell"),
@@ -44,6 +49,10 @@ function world(o){
   win.todayISO = () => iso(0);
   win.currentUser = () => ({ id: 'u1', name: 'Amina Otieno', role: 'admin' });
   win.API_MODE = () => false;
+  /* the page's own escaper (js/components.js esc) also escapes quotes; the
+     world's stand-in does not, and "+ Filter" carries its choice as JSON in
+     an attribute (js/views/listhead.js) */
+  win.esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   const notes = [
     { id: 'nt_1', kind: 'note', title: "Check Nandi Dairy's insurance broker", body: 'Check the broker before we accept a higher cap in clause 7.', contractId: 'MK-A2', reviewBy: iso(0), createdAt: stamp(-4) },
     { id: 'nt_2', kind: 'note', title: 'The NDA must cover shelf data', body: 'Shelf data too.', reviewBy: iso(1), createdAt: stamp(-1) },
@@ -70,15 +79,19 @@ describe('f798 (1) the band', () => {
     assert.ok(band.querySelector('.mn-hs svg'), 'with the lock');
     assert.equal(txt(band.querySelector('#mn-new')), 'New note');
   });
-  test('1b the tabs with their counts, and beside them Note and Contract — no chip per contract', async () => {
+  test('1b the tabs with their counts, the one box under the title, and Contract under + Filter — no chip per contract', async () => {
     const { d } = await painted();
-    const bar = d.querySelector('.mn-band .reg-tabbar');
-    const tabs = [...bar.querySelectorAll('.reg-views [data-mn-tab]')].map(b => [b.getAttribute('data-mn-tab'), b.firstChild.textContent, txt(b.querySelector('.n'))]);
+    const head = d.querySelector('.mn-band[data-lh-seat="mynotes"]');
+    assert.ok(head && head.classList.contains('ph-card') && !head.querySelector('.ph-card'), 'ONE head card, no card inside it');
+    const tabs = [...head.querySelectorAll('.reg-views [data-mn-tab]')].map(b => [b.getAttribute('data-mn-tab'), b.firstChild.textContent, txt(b.querySelector('.n'))]);
     assert.deepEqual(tabs, [['all', 'All', '5'], ['today', 'Due today', '1'], ['later', 'Later', '2'], ['done', 'Reviewed', '1']]);
-    const fb = bar.querySelector('.ik-fb');
-    assert.deepEqual([...fb.querySelectorAll('.ik-fb-l, .reg-f-l')].map(txt), ['Note', 'Contract']);
-    assert.equal(fb.querySelector('#mn-q').getAttribute('placeholder'), 'Words in a note');
-    assert.deepEqual([...fb.querySelectorAll('select[data-mn-f="ct"] option')].map(txt), ['Any', 'MK-A2 · Nandi Dairy', 'MK-A1 · Kabras Sugar', 'No contract']);
+    assert.ok(!head.querySelector('.ik-fb, .reg-fb'), 'no labelled boxes');
+    const box = head.querySelector('input[type="search"][data-lh-q]#mn-q');
+    assert.ok(box, 'the one box keeps its id');
+    assert.equal(box.getAttribute('placeholder'), 'Search your 5 notes, or ask Jambo');
+    assert.deepEqual([...head.querySelectorAll('select[data-lh-add] optgroup')].map(g => g.getAttribute('label')), ['Contract']);
+    assert.deepEqual([...head.querySelectorAll('select[data-lh-add] optgroup option')].map(txt), ['MK-A2 · Nandi Dairy (2)', 'MK-A1 · Kabras Sugar (2)', 'No contract (1)']);
+    assert.ok(!head.querySelector('.lh-chip'), 'no chip until one is added');
     assert.ok(!d.querySelector('[data-mn-filter^="c:"]'), 'the contract chips are gone');
   });
 });
@@ -101,13 +114,17 @@ describe('f798 (2) the review, as the drawing says it', () => {
 });
 
 describe('f798 (3) the list', () => {
-  test('3a due first, then newest — said on its head; "5 of 5" under it', async () => {
+  test('3a due first, then newest — said on each tab\'s hover; "1–5 of 5" under it', async () => {
     const { d } = await painted();
     assert.deepEqual([...d.querySelectorAll('.mn-t [data-mn-row]')].map(r => r.getAttribute('data-mn-row')), ['nt_1', 'nt_2', 'nt_3', 'nt_4', 'nt_5']);
-    assert.match(txt(d.querySelector('.ins-cardhead-t')), /^My notes 5 due first, then newest$/);
+    assert.ok(!d.querySelector('.ins-cardhead'), 'the list card carries no head of its own');
+    assert.deepEqual([...d.querySelectorAll('[data-mn-tab]')].map(b => b.getAttribute('title')), ['Due first, then newest', 'Due first, then newest', 'Due first, then newest', 'Due first, then newest']);
     assert.deepEqual([...d.querySelectorAll('.mn-t thead th')].map(txt), ['Note', 'Contract', 'Review', 'Written']);
     assert.deepEqual([...d.querySelectorAll('.mn-t [data-mn-row] .mn-pill')].map(p => p.className.replace('mn-pill is-', '')), ['today', 'later', 'later', 'none', 'done']);
-    assert.equal(txt(d.querySelector('[data-mn-foot]')), '5 of 5');
+    const foot = d.querySelector('.mn-card2 [data-lh-foot="mynotes"]');
+    assert.equal(txt(foot), '1–5 of 5');
+    assert.equal(foot.getAttribute('role'), 'status');
+    assert.ok(!foot.querySelector('[data-lh-more]'), 'every note is drawn: nothing more to show');
   });
 });
 
@@ -140,13 +157,16 @@ describe('f798 (4) the note in Jambo\'s panel', () => {
 describe('f798 (5) the boxes narrow; Jambo says the ledger', () => {
   test('5a Contract and the words', async () => {
     const x = await painted();
-    const sel = x.d.querySelector('select[data-mn-f="ct"]');
-    sel.value = 'MK-A1'; sel.dispatchEvent(new x.win.Event('change', { bubbles: true }));
+    const sel = x.d.querySelector('select[data-lh-add]');
+    sel.value = JSON.stringify(['ct', 'MK-A1']); sel.dispatchEvent(new x.win.Event('change', { bubbles: true }));
     assert.deepEqual([...x.d.querySelectorAll('.mn-t [data-mn-row]')].map(r => r.getAttribute('data-mn-row')), ['nt_3', 'nt_5']);
-    assert.equal(txt(x.d.querySelector('[data-mn-foot]')), '2 of 5');
-    const s2 = x.d.querySelector('select[data-mn-f="ct"]'); s2.value = ''; s2.dispatchEvent(new x.win.Event('change', { bubbles: true }));
+    assert.equal(txt(x.d.querySelector('[data-lh-foot="mynotes"]')), '1–2 of 2');
+    assert.match(txt(x.d.querySelector('.lh-chip[data-lh-chip="ct"] label')), /^Contract MK-A1 · Kabras Sugar/);
+    x.d.querySelector('.lh-chip [data-lh-x="ct"]').click();
+    assert.ok(!x.d.querySelector('.lh-chip'), '× takes the chip away');
     const q = x.d.getElementById('mn-q'); q.value = 'ugandan'; q.dispatchEvent(new x.win.Event('input', { bubbles: true }));
     assert.deepEqual([...x.d.querySelectorAll('.mn-t [data-mn-row]')].map(r => r.getAttribute('data-mn-row')), ['nt_4']);
+    assert.equal(x.d.getElementById('mn-q'), q, 'the words narrow the rows only: the box the reader types in stays');
   });
   test('5b with nothing chosen, his own words counted from the notes, and two doors', async () => {
     const x = await painted();
@@ -190,8 +210,8 @@ describe('f798 (7) a refresh lands at the same spot (PLACE_PARTS.mynotes)', () =
 describe('f798 (8) a tab\'s number is the list it opens (second pass)', () => {
   test('8a the Contract box narrows every tab\'s number with the list', async () => {
     const x = await painted();
-    const sel = x.d.querySelector('select[data-mn-f="ct"]');
-    sel.value = 'MK-A2'; sel.dispatchEvent(new x.win.Event('change', { bubbles: true }));
+    const sel = x.d.querySelector('select[data-lh-add]');
+    sel.value = JSON.stringify(['ct', 'MK-A2']); sel.dispatchEvent(new x.win.Event('change', { bubbles: true }));
     const n = k => { const e = x.d.querySelector(`[data-mn-tab="${k}"] .n`); return e && !e.hidden ? Number(e.textContent) : 0; };
     assert.equal(n('all'), x.d.querySelectorAll('.mn-t [data-mn-row]').length);
     assert.equal(n('all'), 2); assert.equal(n('today'), 1); assert.equal(n('later'), 0); assert.equal(n('done'), 0);
@@ -205,5 +225,61 @@ describe('f798 (9) second check: a reviewed note\'s verb says what it does', () 
     const verbs = [...x.d.querySelectorAll('#ins-panel .ins-h .ins-acts [data-ins-act]')].map(txt);
     assert.equal(verbs[0], 'Review again');
     assert.ok(!verbs.includes('Undo'));
+  });
+});
+
+/* PART 8 — THE LIST HEAD, THE LEGORA WAY (the owner's pick, 21 Oct 2026;
+   js/views/listhead.js). My notes' head is the list head's ONE card; the box
+   narrows the rows only, a question narrows nothing, the Contract filter
+   offers only what gives rows behind the tab and the words, Columns hides a
+   column, and the page's old per-element presses are gone (one press, one
+   repaint). At c70f4b09 (before the page adopted the head) 10a–10d FAIL,
+   and so do the re-pointed 1b, 3a, 5a and 8a; 10e holds there too — it pins
+   a promise the old box already kept (a door that opens a note empties it).
+   The browser half: test/chromium/legora-lists-verify.js (mynotes). */
+describe('f798 (10) the list head, the Legora way', () => {
+  test('10a the head\'s presses are the head\'s: myNotesWire binds no tab, box or Contract box of its own', () => {
+    const src = R('js/views/mynotes.js').replace(/\/\*[\s\S]*?\*\//g, '');
+    const wire = src.slice(src.indexOf('function myNotesWire'), src.indexOf('function paintMyNotesCount'));
+    assert.ok(wire.length > 200, 'myNotesWire found');
+    assert.doesNotMatch(wire, /data-mn-tab|data-mn-f|'mn-q'/, 'no per-element tab, box or Contract binding left');
+  });
+  test('10b plain words narrow the rows only; a question narrows nothing', async () => {
+    const x = await painted();
+    const box = x.d.getElementById('mn-q');
+    box.value = 'broker'; box.dispatchEvent(new x.win.Event('input', { bubbles: true }));
+    assert.deepEqual([...x.d.querySelectorAll('.mn-t [data-mn-row]')].map(r => r.getAttribute('data-mn-row')), ['nt_1']);
+    assert.equal(x.d.getElementById('mn-q'), box, 'the box is never redrawn under the reader');
+    assert.equal(txt(x.d.querySelector('[data-lh-foot="mynotes"]')), '1–1 of 1');
+    box.value = 'which notes are due this week?'; box.dispatchEvent(new x.win.Event('input', { bubbles: true }));
+    assert.equal(x.d.querySelectorAll('.mn-t [data-mn-row]').length, 5, 'a question leaves the list whole');
+    assert.equal(x.win.mnPlace().q, '', 'and keeps nothing as the page\'s words');
+  });
+  test('10c the Contract filter offers only what gives rows behind the tab and the words', async () => {
+    const x = await painted();
+    x.d.querySelector('[data-mn-tab="later"]').click();
+    assert.deepEqual([...x.d.querySelectorAll('select[data-lh-add] option')].filter(o => o.value).map(txt), ['MK-A1 · Kabras Sugar (1)', 'No contract (1)'], 'MK-A2 has no note under Later');
+    const box = x.d.getElementById('mn-q');
+    box.value = 'price'; box.dispatchEvent(new x.win.Event('input', { bubbles: true }));
+    x.win.lhHeadSync('mynotes');
+    assert.ok(!x.d.querySelector('[data-lh-add]'), 'one note left: a choice would narrow nothing, so + Filter is not drawn');
+  });
+  test('10d Columns: the note always leads; a column the reader hides goes with its cells', async () => {
+    const x = await painted();
+    assert.ok(x.win.LC_PAGES.mynotes, 'My notes names its columns');
+    assert.ok(x.d.querySelector('.mn-band .lh-chips [data-lc-btn="mynotes"]'), 'Columns at the chip row\'s end');
+    x.win.lcSave('mynotes', { order: ['written', 'contract', 'review'], hidden: ['contract'] });
+    x.win.renderMyNotes();
+    assert.deepEqual([...x.d.querySelectorAll('.mn-t thead th')].map(txt), ['Note', 'Written', 'Review']);
+    assert.equal(x.d.querySelectorAll('.mn-t colgroup col').length, 3);
+    assert.equal(x.d.querySelector('.mn-t [data-mn-row]').querySelectorAll('td').length, 3);
+  });
+  test('10e a door that opens a note clears a question left in the box', async () => {
+    const x = await painted();
+    const box = x.d.getElementById('mn-q');
+    box.value = 'which notes are due this week?'; box.dispatchEvent(new x.win.Event('input', { bubbles: true }));
+    x.win.myNotesOpen('nt_3');
+    assert.equal(x.d.getElementById('mn-q').value, '');
+    assert.equal(txt(x.d.querySelector('#ins-panel .ins-cp')), 'Is the price index right');
   });
 });

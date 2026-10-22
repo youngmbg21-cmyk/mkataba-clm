@@ -197,7 +197,11 @@ describe('f791 (6) the page', () => {
     assert.match(page, /i18tn\('ob_head_out', out, \{ n: out \}\)/);
     assert.match(page, /const over = counts\.overdue \|\| 0, out = counts\.open \|\| 0;/);
     assert.match(page, /data-obw-add/);
-    assert.match(page, /data-obw-filters/);
+    /* RE-POINTED (Part 8, the Legora way, the owner's pick of 21 Oct 2026):
+       the head's Filter fold went; a filter is added from the list head's
+       "+ Filter" (js/views/listhead.js), drawn under the shared head */
+    assert.doesNotMatch(page, /data-obw-filters/);
+    assert.match(page, /lhHtml\('obligations', \{ frame: 'foot' \}\)/);
     assert.match(page, /data-obw-weeks/);
     const m = /const PAGE_HEAD_PAINT = \{([^}]*)\}/.exec(APP);
     assert.match(m[1], /obligations:'obwPaintHead'/);

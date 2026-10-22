@@ -41,10 +41,19 @@ describe('f716 (1) our side\'s words, and only tabs that hold something', () => 
     assert.equal(BOOKS.en.ngl_col_changes, 'What is open');
     for (const k of ['ngl_col_lead', 'ngl_lead_you', 'ngl_tab_sign']) for (const lang of ['en', 'sv']) assert.ok(BOOKS[lang][k], k + ' ' + lang);
   });
-  test('1b "For signature" and "Neither" are tabs only where something is in them (or the reader stands on them)', () => {
-    const t = fnBody(REG, 'negoBandTabsHtml');
-    assert.match(t, /\.\.\.\(\(n\.out\|\|\(R\.band\|\|''\)==='out'\)\?\[\['out',i18t\('ngl_tab_sign'\),n\.out\]\]:\[\]\)/);
-    assert.match(t, /\.\.\.\(\(n\.clear\|\|\(R\.band\|\|''\)==='clear'\)\?\[\['clear',i18t\('ngl_tab_neither'\),n\.clear\]\]:\[\]\)/);
+  test('1b every whose-move tab is drawn only where something is in it (or the reader stands on it); All always', () => {
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way"):
+       the rule "a choice that gives nothing is not listed" held for For
+       signature and Neither; the shared list head's one tab builder now keeps
+       it for every tab (Our move and Their move were drawn greyed at zero).
+       The page hands it the five views with their counts (negoBandViews) and
+       All kept. */
+    const t = fnBody(REG, 'negoBandViews');
+    assert.match(t, /\{ k:'', label:i18t\('reg_tab_all'\), n:\(book\|\|\[\]\)\.length, keep:true \}/);
+    for (const [k, w] of [['you', 'reg_pill_your_move'], ['them', 'reg_pill_their_move'], ['out', 'ngl_tab_sign'], ['clear', 'ngl_tab_neither']])
+      assert.match(t, new RegExp(`\\{ k:'${k}', label:i18t\\('${w}'\\), n:n\\.${k}, `), k);
+    const INS = fs.readFileSync(path.join(__dirname, '..', 'js/views/inspector.js'), 'utf8');
+    assert.match(INS, /filter\(v => v && \(v\.n !== 0 \|\| v\.keep \|\| String\(v\.k\) === String\(o\.cur\)\)\)/, 'the one builder leaves a zero out unless kept or lit');
   });
 });
 

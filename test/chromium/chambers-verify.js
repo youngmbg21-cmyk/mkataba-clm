@@ -201,18 +201,22 @@ const check = (name, pass, detail) => {
        look; "Finish everything". Each is measured where it is drawn. */
     const tok = v => page.evaluate(v => { const p = document.createElement('i'); p.style.color = v; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; }, v);
     const NONE = /rgba\(0, 0, 0, 0\)|transparent/;
-    /* on Parties: a party is chosen on arrival, its agreements listed with their status in Jambo's panel */
+    /* on Parties: a party is chosen on arrival, its agreements listed with their status in Jambo's panel.
+       RE-POINTED 21 Oct 2026 (Part 8, the list head the Legora way): the list's
+       count is its lit tab's number (the card's own head and its pill went) */
+    const LIT_N = '[data-lh-seat="customers"] [role="tab"][aria-selected="true"] .n';
     await page.evaluate(() => setView('customers'));
-    await until(() => !!document.querySelector('.ap-card-n.is-pill') && !!document.querySelector('#ins-panel .reg-stg'), null, 10000);
-    const ap = await page.evaluate(() => { const n = document.querySelector('.ap-card-n.is-pill'), ns = n && getComputedStyle(n);
+    await until(s => !!document.querySelector(s) && !!document.querySelector('#ins-panel .reg-stg'), LIT_N, 10000);
+    const ap = await page.evaluate(s => { const n = document.querySelector(s), ns = n && getComputedStyle(n);
       const st = document.querySelector('#ins-panel .reg-stg'), d = st && st.querySelector(':scope > i'), dr = d && d.getBoundingClientRect();
       const pn = document.querySelector('#content .ins-panel.is-jambo');
       /* the Kind tag is drawn only where a list has approvals or requests; its rule is read off a probe of the class */
       const k = document.createElement('span'); k.className = 'ap-kind'; k.textContent = 'Approval'; document.body.appendChild(k);
       const kr = getComputedStyle(k).borderTopLeftRadius; k.remove();
-      return { nBg: ns && ns.backgroundColor, nPad: ns && ns.paddingLeft, dot: dr ? [Math.round(dr.width), Math.round(dr.height)] : null,
-        shadow: pn && getComputedStyle(pn).boxShadow, kind: kr }; });
-    check('11a a count beside a list\'s heading is a plain number: no bubble, no padding', !!ap.nBg && NONE.test(ap.nBg) && ap.nPad === '0px', JSON.stringify(ap));
+      return { nBg: ns && ns.backgroundColor, nPad: ns && ns.paddingLeft, nPadR: ns && ns.paddingRight, dot: dr ? [Math.round(dr.width), Math.round(dr.height)] : null,
+        shadow: pn && getComputedStyle(pn).boxShadow, kind: kr }; }, LIT_N);
+    /* a tab's number keeps its 2px from its word (the head card's one rule for a tab count); a bubble would pad both sides */
+    check('11a a count beside a list\'s heading is a plain number: no bubble, no padding', !!ap.nBg && NONE.test(ap.nBg) && ap.nPadR === '0px' && parseFloat(ap.nPad) <= 2, JSON.stringify(ap));
     check('11b a status in Jambo\'s panel carries its dot (8 × 8), not only its word', !!ap.dot && ap.dot[0] === 8 && ap.dot[1] === 8, JSON.stringify(ap.dot));
     check('11c Jambo\'s panel beside a list stands on its hairline, no shadow', ap.shadow === 'none', String(ap.shadow));
     check('11d a tag in a list (Kind) has the hairline corner, not a capsule', !!ap.kind && parseFloat(ap.kind) <= 3, String(ap.kind));

@@ -110,7 +110,11 @@ const ok = (name, good, detail) => {
       panel: !!document.getElementById('ins-panel'),
     }));
     ok('1a Contracts at 1440 is Home\'s Contracts place, the List, and no panel beside it', shape.place && !shape.panel && shape.ins === null, JSON.stringify(shape));
-    ok('1b the List is the drawing\'s six columns, in plain words, and the row\'s ⋯ unheaded', shape.heads.join('|') === 'Ref|Counterparty and agreement|Stage|Owner|Ends|Value|', shape.heads.join(' | '));
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way"): the
+       List is the new drawing's Agreement · Stage · Ends · Value — the
+       reference rides under the party ("kind · ref") and Owner waits under
+       Columns — and the row's ⋯ unheaded */
+    ok('1b the List is the drawing\'s four columns, in plain words, and the row\'s ⋯ unheaded', shape.heads.join('|') === 'Agreement|Stage|Ends|Value|', shape.heads.join(' | '));
     await page.screenshot({ path: path.join(OUT, '1-contracts-1440.png') });
 
     const rows = await page.$$('#reg-tbody tr[data-row]');
@@ -143,7 +147,8 @@ const ok = (name, good, detail) => {
     const floor = await page.evaluate(() => {
       const rowsText = [...document.querySelectorAll('#reg-tbody tr[data-row]')].map(r => r.innerText).join('\n');
       const heads = [...document.querySelectorAll('.reg-table thead th')].map(t => t.textContent);
-      const mk = document.querySelector('#reg-tbody tr .reg-mk');
+      /* the reference rides under the party now (Part 8): "kind · ref" */
+      const mk = document.querySelector('#reg-tbody tr .reg-mk') || document.querySelector('#reg-tbody tr .reg-sub .hati-ref');
       const tok = v => { const e = document.createElement('i'); e.style.cssText = 'position:absolute;color:var(' + v + ')'; document.body.appendChild(e); const c = getComputedStyle(e).color; e.remove(); return c; };
       /* the Wall | List switch's lit half is a STATE drawn the way the paper's
          Clean | Redline switch draws it, not an act: it is counted apart */
@@ -159,9 +164,14 @@ const ok = (name, good, detail) => {
         /* RE-POINTED 16 Oct 2026: the place's stages are the Stage box (owner:
            "take the status choices and put them in a dropdown"); a stage with
            nothing in it is not offered, and no choice prints "(0)" */
-        zeroCounts: [...document.querySelectorAll('#reg-stage-sel option, #reg-view-sel option')].filter(o => /\(0\)\s*$/.test(o.textContent)).length,
-        zeroTabs: [...document.querySelectorAll('#reg-stage-sel option')].filter(o => o.value !== 'all' && !o.selected && !/\(\d+\)\s*$/.test(o.textContent)).length,
-        stageOpts: [...document.querySelectorAll('#reg-stage-sel option')].length,
+        /* RE-POINTED AGAIN 21 Oct 2026 (Part 8, the Legora way): the stages
+           are a group under "+ Filter" and the views are tabs; no choice and
+           no tab prints a zero, and an empty stage is not offered */
+        zeroCounts: [...document.querySelectorAll('[data-lh-seat="contracts"] select[data-lh-add] option, [data-lh-seat="contracts"] select[data-lh-f] option')].filter(o => /\(0\)\s*$/.test(o.textContent)).length
+          + [...document.querySelectorAll('[data-lh-seat="contracts"] .reg-views [role="tab"] .n')].filter(n => n.textContent.trim() === '0').length,
+        zeroTabs: [...document.querySelectorAll('[data-lh-seat="contracts"] .reg-views [role="tab"].is-zero')].filter(t => t.getAttribute('data-reg-view') !== '').length,
+        stageOpts: (() => { const g = [...document.querySelectorAll('[data-lh-seat="contracts"] select[data-lh-add] optgroup')].find(x => x.label === i18t('reg_chip_stage'));
+          return g ? g.querySelectorAll('option').length : 0; })(),
         idle: heads.some(t => /↕/.test(t)),
         mkInk: mk ? getComputedStyle(mk).color : null,
         /* a button the reader can see (the Display cog's closed pop-up holds
@@ -172,9 +182,12 @@ const ok = (name, good, detail) => {
         litShow: [...document.querySelectorAll('[data-reg-home] [data-ct-show][aria-pressed="true"]')].map(b => b.getAttribute('data-ct-show')),
         accent: tok('--accent-ink'),
         filled: filled.map(b => b.innerText.trim()),
-        barInCard: !!document.querySelector('.reg-card > .reg-cardhead'),
-        filtersInBand: !!document.querySelector('.reg-band .reg-fb .reg-f'),
-        bandBg: document.querySelector('.reg-band') ? bgOf(document.querySelector('.reg-band')) : null,
+        /* RE-POINTED 21 Oct 2026 (Part 8): the list's own card head is gone;
+           the filters are chips in the head's white card, which stands over
+           the list */
+        barInCard: !document.querySelector('[data-reg-home] .reg-card > .reg-cardhead'),
+        filtersInBand: !!document.querySelector('.reg-band[data-lh-seat="contracts"] .lh-chips [data-lh-add], .reg-band[data-lh-seat="contracts"] .lh-chips [data-lh-chip]'),
+        bandBg: document.querySelector('.reg-band[data-lh-seat="contracts"]') ? bgOf(document.querySelector('.reg-band[data-lh-seat="contracts"]')) : null,
       };
     });
     ok('1i a name prints "&", never "&amp;"', !floor.amp);
@@ -194,8 +207,8 @@ const ok = (name, good, detail) => {
     /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner-approved): the filters sit in
        the page's white band; the list's own head (name, count, Sort, Display)
        is its card's top row. */
-    ok('1p the filters sit in the white band; the list\'s head is its card\'s top row', floor.barInCard && floor.filtersInBand && !/rgba\(0, 0, 0, 0\)|transparent/.test(String(floor.bandBg)),
-      `head in card ${floor.barInCard} · filters in band ${floor.filtersInBand} · band ${floor.bandBg}`);
+    ok('1p the filters sit in the white head card; the list draws no card head of its own', floor.barInCard && floor.filtersInBand && !/rgba\(0, 0, 0, 0\)|transparent/.test(String(floor.bandBg)),
+      `no card head ${floor.barInCard} · filters in the head ${floor.filtersInBand} · band ${floor.bandBg}`);
 
     /* the one line, at every laptop width, in both languages */
     const lineRep = [];
@@ -204,7 +217,9 @@ const ok = (name, good, detail) => {
       for (const W of [1104, 1280, 1440, 1920]) {
         await page.setViewportSize({ width: W, height: 900 }); await toContracts();
         const m = await page.evaluate(() => {
-          const bar = document.querySelector('.reg-card > .reg-filterbar'), sc = document.getElementById('reg-scroll');
+          /* the chip row of the list head (Part 8), where the card's own
+             filter bar stood */
+          const bar = document.querySelector('[data-lh-seat="contracts"] .lh-chips') || document.querySelector('.reg-card > .reg-filterbar'), sc = document.getElementById('reg-scroll');
           /* a line is counted off the CENTRES of the things a reader sees.
              The row's spacer is a zero-HEIGHT box with a width, centred on
              the line — counted by its top it read as a second line at every
@@ -386,7 +401,8 @@ const ok = (name, good, detail) => {
        it in the same sitting (regHomeWatch) — both ways, never panning */
     const listShape = () => page.evaluate(() => { const t = document.querySelector('[data-reg-home] .reg-table'), sc = document.querySelector('[data-reg-home] #reg-scroll');
       return { heads: document.querySelectorAll('[data-reg-home] .reg-table thead th').length, narrow: !!(t && t.classList.contains('is-hnarrow')),
-        wide: REG_COL_KEYS_HOME.length, few: REG_COL_KEYS_HOME_NARROW.length, pan: sc ? sc.scrollWidth - sc.clientWidth : -1,
+        /* Owner waits under Columns at rest (Part 8), so the wide shape draws the rest */
+        wide: REG_COL_KEYS_HOME.filter(k => k !== 'owner').length, few: REG_COL_KEYS_HOME_NARROW.length, pan: sc ? sc.scrollWidth - sc.clientWidth : -1,
         place: (document.getElementById('ct-place') || {}).clientWidth || 0 }; });
     const shapeIs = (want, ms = 5000) => (async () => { const t0 = Date.now(); let v;
       while (Date.now() - t0 < ms) { v = await listShape(); if (want(v)) return v; await page.waitForTimeout(150); } return v; })();

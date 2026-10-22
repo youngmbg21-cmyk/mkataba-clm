@@ -63,16 +63,20 @@ function mnHit(n, q){
   const c = _mnContract(n.contractId);
   return [n.title, n.body, n.quote, c && _mnRef(c), c && c.name, c && c.counterparty].some(x => String(x || '').toLowerCase().includes(q));
 }
-/* THE NOTES THE BOXES LEAVE (Note's words, Contract) — ONE READING for every
+/* the Contract filter's cut: '' any, '-' no contract, else that contract */
+const mnCtPass = (n, ct) => !ct || (ct === '-' ? !n.contractId : String(n.contractId || '') === String(ct));
+const mnWords = () => String(_mn.q || '').trim().toLowerCase();
+const mnTabNow = () => (MN_TABS.some(t => t[0] === _mn.filter) ? _mn.filter : 'all');
+/* THE NOTES THE BOX AND THE CONTRACT CHIP LEAVE — ONE READING for every
    tab's number and the list under it: the number on a tab is the list it
    opens (lane A3's second pass) */
 function mnBoxed(){
   const all = typeof mineList === 'function' ? mineList('note') : [];
-  const q = String(_mn.q || '').trim().toLowerCase();
-  return all.filter(n => (!_mn.ct || (_mn.ct === '-' ? !n.contractId : String(n.contractId || '') === _mn.ct)) && mnHit(n, q));
+  const q = mnWords();
+  return all.filter(n => mnCtPass(n, _mn.ct) && mnHit(n, q));
 }
 function myNotesShown(){
-  const f = MN_TABS.some(t => t[0] === _mn.filter) ? _mn.filter : 'all';
+  const f = mnTabNow();
   const list = mnBoxed().filter(n => mnInTab(n, f));
   /* DUE FIRST, THEN NEWEST (the list's own head says so) */
   const rank = n => ({ late:0, today:1, later:2, none:3, done:4 }[myNoteState(n).k]);
@@ -83,25 +87,67 @@ const _mnRef = c => c ? (c.contractNo || c.id) : '';
 function _mnCtName(c){ return c ? String(c.counterparty || c.name || '') : ''; }
 const _mnLock = () => (typeof icon === 'function') ? icon('lock', 'mn-lock') : '';
 
-/* THE BAND (round 20 as drawn): "My notes 5 · 🔒 private to you · Jambo reads
-   them only when you ask", + New note at its end; the tabs, and beside them
-   "Note [Words in a note]" and "Contract [Any]" — the Requests band's own
-   boxes (.ik-fb), the contract a filter box instead of a chip per contract */
+/* THE HEAD, THE LEGORA WAY (the owner's pick, 21 Oct 2026, Part 8: "every
+   list page the Legora way"; js/views/listhead.js). ONE white card: the title
+   row as round 20 drew it ("My notes 5 · 🔒 private to you · Jambo reads them
+   only when you ask", + New note at its end), then the one box to search or
+   ask in, the tabs All · Due today · Later · Reviewed (a tab with no notes is
+   left out unless it is lit; All always stands), then the chip row: the
+   Contract filter only once it is ADDED through "+ Filter", and Columns at
+   its end. The page keeps every reading and every kept value (_mn, mnPlace);
+   the head counts nothing and stores nothing. THE NOTES STAY PRIVATE: the
+   box narrows the list in this browser, and a question typed in it goes to
+   the panel's own Jambo door (jlAsk) exactly as if typed there — no note is
+   handed to him. REVERSES round 20's band (the tabs and the labelled boxes
+   "Note" and "Contract" on one row) and its list card's own head. */
+const MN_SEAT = 'mynotes';
+/* the Contract filter, its choices read off the notes the words and the tab
+   leave (every OTHER cut held), so no choice gives no rows; a choice that
+   would keep every row narrows nothing and is not offered either */
+function mnCtFilter(){
+  const all = typeof mineList === 'function' ? mineList('note') : [];
+  const q = mnWords(), tab = mnTabNow();
+  const base = all.filter(n => mnHit(n, q) && mnInTab(n, tab));
+  const count = v => base.filter(n => mnCtPass(n, v)).length;
+  const cts = [...new Set(all.map(n => String(n.contractId || '')).filter(Boolean))].map(id => _mnContract(id)).filter(Boolean);
+  const opts = [...cts.map(c => [String(c.id), `${_mnRef(c)} · ${_mnCtName(c)}`, count(String(c.id))]),
+    ...(all.some(n => !n.contractId) ? [['-', i18t('mn_no_contract'), count('-')]] : [])]
+    .filter(o => o[2] < base.length || String(o[0]) === String(_mn.ct || ''));
+  return { k:'ct', label:i18t('mn_box_contract'), cur:_mn.ct || '', def:'', opts };
+}
+/* the columns a reader may hide or move (Columns); the note itself always leads */
+const mnColDefs = () => [
+  { k:'contract', label:i18t('mn_col_contract'), w:'32%' },
+  { k:'review', label:i18t('mn_col_review2'), w:'184px' },
+  { k:'written', label:i18t('mn_col_written'), w:'84px' },
+];
+const mnColKeys = () => { const keys = mnColDefs().map(c => c.k); return typeof lcShown === 'function' ? lcShown(MN_SEAT, keys) : keys; };
+const mnKeep = () => { if (typeof placeSave === 'function'){ try{ placeSave(); }catch(_){ /* the place is a convenience */ } } };
+/* the page says, at its own render, what the head draws and how each press
+   ends in the page's own writer, repaint and place */
+function mnHeadReg(){
+  if (window.LC_PAGES) window.LC_PAGES[MN_SEAT] = { cols:() => mnColDefs().map(c => ({ k:c.k, label:c.label })), repaint:() => renderMyNotes() };
+  if (typeof lhRegister !== 'function') return null;
+  return lhRegister(MN_SEAT, {
+    noun:'notes',
+    total:() => (typeof mineList === 'function' ? mineList('note').length : 0),
+    q:() => _mn.q || '',
+    setQuery:w => { _mn.q = String(w == null ? '' : w); mnRowsPaint(); },
+    boxId:'mn-q', boxAttrs:{ 'data-mn-q':true },
+    tabAttr:'data-mn-tab', tabsLabel:i18t('mn_filter'), tabNow:mnTabNow,
+    /* the list card's head said the order ("due first, then newest"): each tab says it on hover */
+    tabs:() => { const boxed = mnBoxed();
+      return MN_TABS.map(([k, key]) => ({ k, label:i18t(key), n:boxed.filter(n => mnInTab(n, k)).length, keep:k === 'all', title:i18t('mn_order_title') })); },
+    tab:k => { _mn.filter = MN_TABS.some(t => t[0] === k) ? k : 'all'; renderMyNotes(); mnKeep(); },
+    filters:() => [mnCtFilter()],
+    apply:p => { if (p && Object.prototype.hasOwnProperty.call(p, 'ct')) _mn.ct = String(p.ct == null ? '' : p.ct); renderMyNotes(); mnKeep(); },
+  });
+}
 function myNotesBandHtml(){
   const all = typeof mineList === 'function' ? mineList('note') : [];
-  const tabs = (typeof insViewTabsHtml === 'function') ? insViewTabsHtml({ attr:'data-mn-tab', cur:_mn.filter, label:i18t('mn_filter'),
-    views:MN_TABS.map(([k, key]) => { const boxed = mnBoxed(); return { k, label:i18t(key), n:boxed.filter(n => mnInTab(n, k)).length }; }) }) : '';
-  const cts = [...new Set(all.map(n => String(n.contractId || '')).filter(Boolean))].map(id => _mnContract(id)).filter(Boolean);
-  const chip = (typeof window.cuChip === 'function') ? window.cuChip : (typeof insChipHtml === 'function' ? insChipHtml : null);
-  const ctBox = chip ? chip({ attr:'data-mn-f', key:'ct', label:i18t('mn_box_contract'), cur:_mn.ct || '', def:'',
-    opts:[['', i18t('mn_box_any')], ...cts.map(c => [c.id, `${_mnRef(c)} · ${_mnCtName(c)}`]), ...(all.some(n => !n.contractId) ? [['-', i18t('mn_no_contract')]] : [])] }) : '';
-  return `<div class="sap-band mn-band ph-card">
-    <div class="mn-head2 ph-top"><div class="mn-hl"><h1 class="mn-t1">${_mnE(i18t('nav_mynotes'))}</h1><span class="mn-hn">${all.length}</span><span class="mn-hs">${_mnLock()}${_mnE(i18t('mn_head_sub'))}</span></div>
-      <button type="button" class="ui-btn ui-btn-primary" id="mn-new">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : ''}${_mnE(i18t('mn_new_btn'))}</button></div>
-    <div class="reg-tabbar ik-tabbar mn-tabbar">${tabs}<div class="reg-filterbar reg-fb ik-fb">
-      <label class="ik-fb-find"><span class="ik-fb-l">${_mnE(i18t('mn_box_note'))}</span><span class="ik-search">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input type="search" id="mn-q" data-mn-q value="${_mnE(_mn.q || '')}" placeholder="${_mnE(i18t('mn_box_note_ph'))}" aria-label="${_mnE(i18t('mn_box_note'))}"></span></label>
-      ${ctBox}</div></div>
-  </div>`;
+  const top = `<div class="mn-head2 ph-top"><div class="mn-hl"><h1 class="mn-t1">${_mnE(i18t('nav_mynotes'))}</h1><span class="mn-hn">${all.length}</span><span class="mn-hs">${_mnLock()}${_mnE(i18t('mn_head_sub'))}</span></div>
+      <button type="button" class="ui-btn ui-btn-primary" id="mn-new">${typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : ''}${_mnE(i18t('mn_new_btn'))}</button></div>`;
+  return typeof lhHtml === 'function' ? lhHtml(MN_SEAT, { frame:'card', cls:'mn-band', top }) : `<div class="sap-band mn-band ph-card">${top}</div>`;
 }
 /* the review pill: today amber, a day ahead quiet, none grey, done green, late red */
 const mnPillHtml = st => `<span class="mn-pill is-${st.k}">${_mnE(st.word)}</span>`;
@@ -110,15 +156,21 @@ function myNotesTableHtml(list){
     const t = (typeof mineList === 'function' && mineList('note').length) ? i18t('mn_none_here') : i18t('mn_empty');
     return typeof emptyStateHtml === 'function' ? emptyStateHtml({ title:t, sub:i18t('mn_empty_sub') }) : `<p class="mn-empty">${_mnE(t)}</p>`;
   }
-  return `<table class="ins-lt mn-t"><colgroup><col><col style="width:32%"><col style="width:184px"><col style="width:84px"></colgroup><thead><tr><th>${_mnE(i18t('mn_col_note'))}</th><th>${_mnE(i18t('mn_col_contract'))}</th><th>${_mnE(i18t('mn_col_review2'))}</th><th>${_mnE(i18t('mn_col_written'))}</th></tr></thead><tbody>${
+  const byK = Object.fromEntries(mnColDefs().map(c => [c.k, c])), keys = mnColKeys().filter(k => byK[k]);
+  const cell = (k, n, st, c) => k === 'contract' ? `<td class="c">${c ? `${typeof refHtml === 'function' ? refHtml(c) : _mnE(_mnRef(c))} <span class="cp">${_mnE(_mnCtName(c))}</span>` : '<span class="cp">—</span>'}</td>`
+    : k === 'review' ? `<td>${mnPillHtml(st)}</td>`
+    : `<td class="w">${_mnE(_mnShort(String(n.createdAt || '').slice(0, 10)))}</td>`;
+  return `<table class="ins-lt mn-t"><colgroup><col>${keys.map(k => `<col style="width:${byK[k].w}">`).join('')}</colgroup><thead><tr><th>${_mnE(i18t('mn_col_note'))}</th>${keys.map(k => `<th data-mn-col="${k}">${_mnE(byK[k].label)}</th>`).join('')}</tr></thead><tbody>${
     list.map(n => { const st = myNoteState(n), c = _mnContract(n.contractId);
       return `<tr data-mn-row="${_mnE(n.id)}" data-ins-row="${_mnE(n.id)}" tabindex="0" class="${String(n.id) === String(_mn.sel) && _mn.mode === 'view' ? 'is-sel' : ''}${String(n.id) === String(_mn.fresh) ? ' is-fresh' : ''}"${String(n.id) === String(_mn.sel) && _mn.mode === 'view' ? ' aria-current="true"' : ''}>
         <td class="t"><span title="${_mnE(n.title)}">${_mnE(n.title)}</span></td>
-        <td class="c">${c ? `${typeof refHtml === 'function' ? refHtml(c) : _mnE(_mnRef(c))} <span class="cp">${_mnE(_mnCtName(c))}</span>` : '<span class="cp">—</span>'}</td>
-        <td>${mnPillHtml(st)}</td>
-        <td class="w">${_mnE(_mnShort(String(n.createdAt || '').slice(0, 10)))}</td></tr>`; }).join('')
+        ${keys.map(k => cell(k, n, st, c)).join('')}</tr>`; }).join('')
   }</tbody></table>`;
 }
+/* the foot: "1–5 of 5" — every note behind the tab, the box and the chip is
+   drawn, so nothing more is offered; no foot under an empty list (its own
+   words say it) */
+const mnFootHtml = list => (list.length && typeof lhFootHtml === 'function') ? lhFootHtml(MN_SEAT, list.length, list.length, 0, { cls:'ins-foot' }) : '';
 /* THE NOTE, AS DRAWN (round 20, scene "My notes"): "🔒 My note · written 15
    Oct", its title, the review pill and the contract's reference, Mark
    reviewed · Snooze a week · Open MK-…, its words, Contract and Review as
@@ -207,48 +259,86 @@ function myNoteFormHtml(f, o){
    panel (insFits, the lists' own rule) the note opens in HIS panel at the
    window's edge — the list inspector's (insPaintPanel), "Note" in its head,
    the ask box at its foot; narrower, in the card's own side as before. The
-   band, the table and the note's builder are one in both. */
+   head, the table and the note's builder are one in both. */
+/* WHICH NOTE IS CHOSEN once the list is read: wide, the lists' own rule
+   (insPick: the one chosen while it is still listed, else the first);
+   narrow, the same by hand */
+function mnChoose(list, wide){
+  if (_mn.mode !== 'view') return;
+  if (wide && typeof insPick === 'function'){ _mn.sel = insPick(MN_SEAT, list.map(n => String(n.id))); }
+  else if (!list.some(n => String(n.id) === String(_mn.sel))) _mn.sel = list[0] ? list[0].id : null;
+}
+/* the note (or the new note's form, or Jambo's own words) beside the list:
+   Jambo's panel when wide, the card's own side when narrow */
+function mnSidePaint(wide){
+  const n = _mn.sel ? (typeof mineGet === 'function' ? mineGet(_mn.sel) : null) : null;
+  if (!wide){
+    const side = document.querySelector('#mn-page .mn-split > #mn-side');
+    if (side) side.innerHTML = _mn.mode === 'new' ? myNoteFormHtml(_mn.form) : myNoteViewHtml(n);
+    return;
+  }
+  /* Jambo's panel: the note ("Note"), the new note's form ("New note"), or
+     his own words with nothing chosen */
+  const base = { seat:MN_SEAT, jlSay:mnJlSay, jlWord:i18t('jl_w_note') };
+  if (_mn.mode === 'new' && _mn.form) insPaintPanel(Object.assign(base, { jlWord:i18t('mn_new_title'), item:{ id:'new' },
+    head:{ eyebrow:`<span class="mn-eb">${_mnLock()}${_mnE(i18t('mn_eb_new'))}</span>`, title:i18t('mn_new_title') },
+    body:`<div class="mn-side mn-side-panel" id="mn-side">${myNoteFormHtml(_mn.form, { panel:true })}</div>` }));
+  else if (n){ const p = myNoteParts(n); insPaintPanel(Object.assign(base, { item:{ id:n.id }, head:p.head, acts:p.head.acts, body:`<div class="mn-side mn-side-panel" id="mn-side">${p.body}</div>` })); }
+  else insPaintPanel(Object.assign(base, { empty:i18t('mn_pick') }));
+}
+/* THE BOX'S WORDS NARROW THE ROWS ONLY (the head's setQuery): the table,
+   its foot and — only when the chosen note left the list — the note beside
+   it. The head is never redrawn here (its numbers follow through the head's
+   own lhHeadSync), so the caret stays where the reader is typing. */
+function mnRowsPaint(){
+  const page = document.getElementById('mn-page');
+  if (state.view !== 'mynotes' || !page){ if (state.view === 'mynotes') renderMyNotes(); return; }
+  const wide = page.getAttribute('data-ins') === '1';
+  const was = String(_mn.sel);
+  const list = myNotesShown();
+  mnChoose(list, wide);
+  const sc = document.getElementById('mn-scroll');
+  if (sc) sc.innerHTML = myNotesTableHtml(list);
+  if (wide){ const tb = page.querySelector('.mn-t tbody'); if (tb) tb.setAttribute('data-ins-on', '1'); }
+  const card = page.querySelector('.mn-card2');
+  if (card){
+    const old = card.querySelector(`[data-lh-foot="${MN_SEAT}"]`), html = mnFootHtml(list);
+    /* in place, so the live region is heard when the count moves (lhFootPut) */
+    if (old){ if (!(typeof lhFootPut === 'function' && lhFootPut(old, html))){ if (html) old.outerHTML = html; else old.remove(); } }
+    else if (html) card.insertAdjacentHTML('beforeend', html);
+  }
+  if (_mn.mode === 'view' && String(_mn.sel) !== was) mnSidePaint(wide);
+}
 function renderMyNotes(){
   const host = document.getElementById('content'); if (!host) return;
   if (typeof mineLoaded === 'function' && !mineLoaded() && typeof mineLoad === 'function')
     mineLoad().then(() => { if (state.view === 'mynotes') renderMyNotes(); });
   const wide = typeof window.insFits === 'function' && insFits() && typeof window.insPaintPanel === 'function';
   const list = myNotesShown();
-  const SEAT = 'mynotes';
   if (_mnBack && (typeof mineLoaded !== 'function' || mineLoaded())){
-    if (list.some(n => String(n.id) === _mnBack)){ _mn.mode = 'view'; _mn.sel = _mnBack; if (typeof insSelect === 'function') insSelect(SEAT, _mnBack); }
+    if (list.some(n => String(n.id) === _mnBack)){ _mn.mode = 'view'; _mn.sel = _mnBack; if (typeof insSelect === 'function') insSelect(MN_SEAT, _mnBack); }
     _mnBack = null;
   }
-  if (_mn.mode === 'view'){
-    if (wide && typeof insPick === 'function'){ _mn.sel = insPick(SEAT, list.map(n => String(n.id))); }
-    else if (!list.some(n => String(n.id) === String(_mn.sel))) _mn.sel = list[0] ? list[0].id : null;
-  }
+  mnChoose(list, wide);
   const n = _mn.sel ? (typeof mineGet === 'function' ? mineGet(_mn.sel) : null) : null;
   const keep = document.activeElement && document.activeElement.id && document.activeElement.closest && document.activeElement.closest('#mn-page') ? document.activeElement.id : '';
   const caret = keep ? document.activeElement.selectionStart : null;
-  const all = typeof mineList === 'function' ? mineList('note') : [];
-  const cardT = i18t({ today:'mn_card_today', later:'mn_card_later', done:'mn_card_done' }[_mn.filter] || 'mn_card');
+  /* the head says, at this render, what it draws (before it is drawn) */
+  mnHeadReg();
   const card = `<section class="ins-card mn-card2" aria-label="${_mnE(i18t('nav_mynotes'))}">
-      <div class="ins-cardhead"><h2 class="ins-cardhead-t">${_mnE(cardT)} <span class="ap-card-n is-pill ik-card-n">${list.length}</span> <span class="ik-card-m">${_mnE(i18t('mn_sort'))}</span></h2></div>
       ${wide ? `<div class="ins-scroll mn-wrap scroll-thin" id="mn-scroll">${myNotesTableHtml(list)}</div>`
         : `<div class="mn-split"><div class="mn-wrap scroll-thin" id="mn-scroll">${myNotesTableHtml(list)}</div>
           <aside class="mn-side scroll-thin" id="mn-side">${_mn.mode === 'new' ? myNoteFormHtml(_mn.form) : myNoteViewHtml(n)}</aside></div>`}
-      <div class="ins-foot" data-mn-foot><span>${_mnE(i18t('mn_foot', { n:list.length, of:all.length }))}</span></div>
+      ${mnFootHtml(list)}
     </section>`;
   host.innerHTML = `<div class="view-enter sap-page ins-page mn-page mn-ins${wide ? '' : ' is-narrow'}" id="mn-page" data-ins-page="mynotes" data-ins="${wide ? 1 : 0}"><style>${myNotesCss()}</style>
     ${myNotesBandHtml()}
     <div class="ins-body">${card}${wide ? `<aside id="ins-panel" class="ins-panel" aria-label="${_mnE(i18t('mn_panel_label'))}"></aside>` : ''}</div></div>`;
   if (wide){
     const tb = host.querySelector('.mn-t tbody'); if (tb) tb.setAttribute('data-ins-on', '1');
-    /* Jambo's panel: the note ("Note"), the new note's form ("New note"), or
-       his own words with nothing chosen */
-    const base = { seat:SEAT, jlSay:mnJlSay, jlWord:i18t('jl_w_note') };
-    if (_mn.mode === 'new' && _mn.form) insPaintPanel(Object.assign(base, { jlWord:i18t('mn_new_title'), item:{ id:'new' },
-      head:{ eyebrow:`<span class="mn-eb">${_mnLock()}${_mnE(i18t('mn_eb_new'))}</span>`, title:i18t('mn_new_title') },
-      body:`<div class="mn-side mn-side-panel" id="mn-side">${myNoteFormHtml(_mn.form, { panel:true })}</div>` }));
-    else if (n){ const p = myNoteParts(n); insPaintPanel(Object.assign(base, { item:{ id:n.id }, head:p.head, acts:p.head.acts, body:`<div class="mn-side mn-side-panel" id="mn-side">${p.body}</div>` })); }
-    else insPaintPanel(Object.assign(base, { empty:i18t('mn_pick') }));
+    mnSidePaint(true);
   }
+  if (typeof lcPlace === 'function') lcPlace(MN_SEAT);
   /* THE CARET GOES TO THE NOTE BOX when the form first draws (asked of the
      paint itself, not of a timer racing it); later repaints keep it where the
      reader had it. */
@@ -265,10 +355,14 @@ function myNotesNew(seed){
   _mn.mode = 'new';
   _mn.form = { body:'', title:'', contractId:s.contractId || '', quote:s.quote || '', clauseId:s.clauseId || '', when:'week', date:'', query:'', listOpen:false, focus:true };
   _mn.filter = 'all'; _mn.ct = ''; _mn.q = '';
+  /* a door that writes the box's words says so to the box (a question left
+     standing there goes) */
+  if (typeof lhBoxSet === 'function') lhBoxSet(MN_SEAT, '');
   if (state.view !== 'mynotes' && typeof setView === 'function') setView('mynotes'); else renderMyNotes();
 }
 function myNotesOpen(id){
   _mn.mode = 'view'; _mn.sel = id; _mn.filter = 'all'; _mn.ct = ''; _mn.q = ''; _mn.form = null;
+  if (typeof lhBoxSet === 'function') lhBoxSet(MN_SEAT, '');
   if (typeof insSelect === 'function') insSelect('mynotes', id);
   if (state.view !== 'mynotes' && typeof setView === 'function') setView('mynotes'); else renderMyNotes();
 }
@@ -310,7 +404,6 @@ function myNotesWire(){
     if ((el = hit('#mn-new'))){ if (_mn.mode === 'new' && _mn.form){ if (typeof insSelect === 'function') insSelect('mynotes', 'new'); renderMyNotes(); return; } myNotesNew(); return; }
     if ((el = hit('#mn-cancel'))){ _mn.mode = 'view'; _mn.form = null; renderMyNotes(); return; }
     if ((el = hit('#mn-save'))){ if (!el.disabled) myNoteSave(); return; }
-    if ((el = hit('[data-mn-tab]'))){ _mn.filter = el.getAttribute('data-mn-tab'); renderMyNotes(); return; }
     if ((el = hit('[data-mn-when]'))){ _mn.form.when = el.getAttribute('data-mn-when'); renderMyNotes(); if (_mn.form.when === 'pick'){ const d = document.getElementById('mn-date'); if (d) d.focus(); } return; }
     if ((el = hit('[data-mn-ct]'))){ _mn.form.contractId = el.getAttribute('data-mn-ct'); _mn.form.listOpen = false; renderMyNotes(); return; }
     if ((el = hit('[data-mn-act="ct-clear"]'))){ _mn.form.contractId = ''; _mn.form.query = ''; _mn.form.listOpen = true; renderMyNotes(); const i = document.getElementById('mn-ct'); if (i) i.focus(); return; }
@@ -323,16 +416,10 @@ function myNotesWire(){
       renderMyNotes(); return; }
     if (_mn.form && _mn.form.listOpen && !hit('.mn-picker')){ _mn.form.listOpen = false; renderMyNotes(); }
   });
-  /* the band's Contract box (HaTi's own list dresses its select) */
-  document.addEventListener('change', e => {
-    if (state.view !== 'mynotes') return;
-    const sel = e.target && e.target.closest ? e.target.closest('[data-mn-f]') : null;
-    if (!sel || !sel.closest('#mn-page')) return;
-    if (sel.getAttribute('data-mn-f') === 'ct'){ _mn.ct = sel.value || ''; renderMyNotes(); }
-  });
+  /* the tabs, the box and the Contract chip are the list head's own presses
+     (js/views/listhead.js): each ends in mnHeadReg's writers above */
   document.addEventListener('input', e => {
     if (state.view !== 'mynotes') return;
-    if (e.target && e.target.id === 'mn-q'){ _mn.q = e.target.value; renderMyNotes(); return; }
     if (!_mn.form) return;
     const id = e.target && e.target.id;
     if (id === 'mn-body'){ const had = !!String(_mn.form.body || '').trim(); _mn.form.body = e.target.value; if (had !== !!_mn.form.body.trim()) renderMyNotes(); }
@@ -358,8 +445,9 @@ function paintMyNotesCount(){
 }
 function myNotesCss(){ return `
   .mn-page{min-height:0}
-  /* THE BAND (round 20 as drawn): the page's name, its count and the private
-     line, + New note at the end; the tabs and the two labelled boxes */
+  /* THE HEAD CARD (round 20's title row, Part 8's rows under it): the page's
+     name, its count and the private line, + New note at the end; then the
+     list head's box, tabs and chips (js/views/listhead.js, index.html) */
   .mn-ins .sap-band{padding-top:var(--page-pad-t);display:flex;flex-direction:column;gap:var(--s-2)}
   .mn-head2{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s-3);flex-wrap:wrap}
   .mn-hl{display:flex;align-items:baseline;gap:6px 10px;flex-wrap:wrap;min-width:0}

@@ -337,53 +337,45 @@ const SEED = async () => {
       room.on.c === nego.on.c && room.on.fw === nego.on.fw && room.on.fs === nego.on.fs,
       { room: room.on, nego: nego.on });
 
-    /* ---- 4 · THE NEGOTIATIONS LIST HOLDS STILL WHEN YOU SCROLL IT ---- */
+    /* ---- 4 · THE NEGOTIATIONS LIST HOLDS STILL WHEN YOU SCROLL IT ----
+       RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way", Q2
+       "A — tabs only"): the group headings that pinned under the column
+       header are gone (the whose-move tabs say the groups), and with them
+       --reg-head-h, the measure they pinned at. What this always protected
+       stays: the column header holds at the scroller's top while the rows
+       scroll under it, with no row showing above it, and nothing else pins. */
     await page.evaluate(() => openNegotiations({ list: true }));
     await pause(1600);
     const band = await page.evaluate(async () => {
       const sc = document.getElementById('reg-scroll');
       if (!sc) return { err: 'the list drew no table' };
       const th = sc.querySelector('.reg-table thead th');
-      const bd = sc.querySelector('.ngl-band > td');
-      if (!th || !bd) return { err: 'no header or no band' };
-      const prop = getComputedStyle(sc).getPropertyValue('--reg-head-h').trim();
-      const thH = Math.round(th.getBoundingClientRect().height);
-      const top = getComputedStyle(bd).top;
+      if (!th) return { err: 'no header' };
       /* The seeded book yields a handful of live negotiations, which fit. What
          is being measured is sticky pinning, so the scroller is given a height
-         it cannot fit in — the state a full register puts it in every day. */
-      sc.style.height = '150px'; sc.style.flex = 'none';
+         it cannot fit in — the state a full register puts it in every day
+         (shorter than its rows now the group headings no longer add theirs,
+         and still taller than the header). */
+      const want = Math.max(Math.round(th.getBoundingClientRect().height) + 24, Math.min(150, sc.scrollHeight - 30));
+      sc.style.height = want + 'px'; sc.style.flex = 'none';
       await new Promise(r => requestAnimationFrame(r));
+      const scR = sc.getBoundingClientRect();
       sc.scrollTop = Math.min(300, sc.scrollHeight - sc.clientHeight);
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
       const thR = th.getBoundingClientRect();
-      /* A pinned band is one that has stopped moving with its rows and come to
-         rest near the top. Found by PROXIMITY, never by an exact match: an
-         exact match reports "nothing is pinned" for the very fault this is
-         about, and then the slot below is never measured. */
-      const pinned = [...sc.querySelectorAll('.ngl-band > td')].map(e => e.getBoundingClientRect())
-        .filter(r => r.height > 0 && r.top >= thR.top - 1 && r.top < thR.bottom + 14);
-      let leak = 0, slot = null;
-      if (pinned.length){
-        slot = +(pinned[0].top - thR.bottom).toFixed(2);
-        if (slot > 0.6) for (const tr of sc.querySelectorAll('tbody tr:not(.ngl-band)')){
-          const r = tr.getBoundingClientRect();
-          if (r.bottom > thR.bottom + 0.6 && r.top < pinned[0].top - 0.6) leak++;
-        }
+      let leak = 0;
+      for (const tr of sc.querySelectorAll('tbody tr')){
+        const r = tr.getBoundingClientRect();
+        if (r.bottom > scR.top + 0.6 && r.top < thR.top - 0.6) leak++;
       }
-      return { prop, thH, top, pinnedCount: pinned.length, slot, leak,
-        scrolled: Math.round(sc.scrollTop) };
+      return { held: +(thR.top - scR.top).toFixed(2), leak, bands: sc.querySelectorAll('.ngl-band').length,
+        prop: getComputedStyle(sc).getPropertyValue('--reg-head-h').trim(), scrolled: Math.round(sc.scrollTop) };
     });
     await page.screenshot({ path: path.join(OUT, '04-list-scrolled.png') });
-    check('4 --reg-head-h is the header\'s own measured height',
-      band.prop === band.thH + 'px', band);
-    check('4 the band pins at exactly that height, never a typed number',
-      band.top === band.thH + 'px', band);
     check('4 the list really scrolled', band.scrolled > 0, band);
-    check('4 a band really is pinned near the header', band.pinnedCount >= 1, band);
-    check('4 no slot between the header and the pinned band',
-      band.slot !== null && band.slot < 1, band);
-    check('4 and no row shows through between them', band.leak === 0, band);
+    check('4 the column header holds at the scroller\'s top while the rows scroll', band.held != null && Math.abs(band.held) < 1, band);
+    check('4 and no row shows above it', band.leak === 0, band);
+    check('4 no group heading pins between the rows, and no measure is kept for one', band.bands === 0 && band.prop === '', band);
 
     /* ---- 5 · EVERY BUTTON IN A HEAD ROW IS ONE HEIGHT ----
        Owner-reported 22 Aug 2026: "the height of the buttons for more,

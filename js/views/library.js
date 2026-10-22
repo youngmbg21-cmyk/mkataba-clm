@@ -1557,19 +1557,23 @@ function tplRowPile(r){
   return 'ready';
 }
 const tplRowWants=r=>!!(r&&_tplAttn[r.kind+':'+r.id]);
-function tplPageFiltered(rows){
-  const q=_tplPage.q.trim().toLowerCase();
-  const g=_tplPage.group;
+/* `over` reads the list as one cut held elsewhere would leave it (the list
+   head's counts: a tab's number with every other cut held, a filter's
+   choices with the rest held) — the one reading, never a second copy. */
+function tplPageFiltered(rows, over){
+  const F=over?Object.assign({}, _tplPage, over):_tplPage;
+  const q=String(F.q||'').trim().toLowerCase();
+  const g=F.group;
   const inGroup=r=>g==='all'||(g==='attention'?tplRowWants(r)
     :TPL_PILES.includes(g)?tplRowPile(r)===g
     :r.kind===g);
   /* `kind` is the wide page's "Where it came from" (SAP benchmark, batch 2),
      a filter of its own beside the piles; the narrow page's rail still
      carries a kind in `group`, which inGroup reads as it always did. */
-  const k=_tplPage.kind||'all';
+  const k=F.kind||'all';
   return rows.filter(r=>inGroup(r)
     &&(k==='all'||r.kind===k)
-    &&(!_tplPage.stream||r.stream===_tplPage.stream)
+    &&(!F.stream||r.stream===F.stream)
     &&(!q||`${r.name} ${r.sub} ${r.origin}`.toLowerCase().includes(q)));
 }
 /* Counted ONCE per render in renderTemplatesPage and read by the row builder —
@@ -1776,38 +1780,100 @@ function tplReadOf(r){
   _tplReads.set(key,out);
   return out;
 }
-function tplListHeadHtml(){
-  const folders=Object.values(FOLDERS||{});
-  const kinds=[['all',i18t('lib_f_all')],['company',TPL_GROUP_LABEL.company],['cp',TPL_GROUP_LABEL.cp],['builtin',TPL_GROUP_LABEL.builtin],['sample',TPL_GROUP_LABEL.sample]];
-  const streams=[['',i18t('lib_f_all')],...folders.map(f=>[f.id,tplShortStream(f.name)])];
-  const sel=(attr,label,opts,cur)=>{ const pick=(opts.find(o=>String(o[0])===String(cur))||opts[0]||[])[1]||'';
-    return `<label class="reg-f reg-chip${String(cur)!==String(opts[0][0])?' on':''}"><span class="reg-f-l">${_tplEsc(label)}</span><span class="reg-f-v">${_tplEsc(pick)}</span><select class="reg-chip-sel" ${attr}>${
-      opts.map(([v,l])=>`<option value="${_tplEsc(v)}"${String(v)===String(cur)?' selected':''}>${_tplEsc(l)}</option>`).join('')}</select></label>`; };
-  return `<div class="reg-filterbar reg-fb tpl-fb">
-    <label class="reg-f tpl-fb-q"><span class="reg-f-l">${_tplEsc(i18t('lib_f_search'))}</span><span class="ik-search">${icon('search','w-3.5 h-3.5')}<input id="tpl-search" type="search" placeholder="${_tplEsc(i18t('lib_f_search_ph'))}" autocomplete="off" value="${_tplEsc(_tplPage.q)}"/></span></label>
-    ${sel('data-tpl-kindsel',i18t('lib_f_came_from'),kinds,_tplPage.kind||'all')}
-    ${sel('data-tpl-streamsel',i18t('lib_value_stream'),streams,_tplPage.stream||'')}
-  </div>`;
+/* ════ OUR PAPER THE LEGORA WAY (the owner's pick, 21 Oct 2026, Part 8:
+   "every list page the Legora way") ════
+   Where the inspector fits, each tab of the page carries the ONE list head
+   (js/views/listhead.js) under the title row: the book a box that narrows
+   its index ("Paper first" otherwise as it was, round 21); the Templates list
+   the box, its piles as the tab row (All first, as drawn), Came from and
+   Value stream only once they are added ("+ Filter") and Columns at the
+   row's end; under the list one foot. The page itself — The book ·
+   Templates · Our standards, PAPER_TABS — is the switch at the head's right
+   (on the box's line, paperLhHtml), as Contracts carries List | Wall. Every reading here is the page's
+   own (tplPageRows, tplPageFiltered, tplRowPile, tplRowWants); a press ends
+   in the page's own writer and its own repaint. The classic shape below
+   INS_MIN_W is drawn exactly as before. */
+const TPL_LH_LIST='tpl-list', TPL_LH_BOOK='tpl-book';
+/* the list's columns after the template's own (which always stands first) */
+function tplColDefs(){
+  return [{ k:'origin', label:i18t('lib_f_came_from'), w:150 }, { k:'code', label:i18t('lib_col_code'), w:70 },
+    { k:'stream', label:i18t('lib_value_stream'), w:140 }, { k:'used', label:i18t('lib_col_used'), w:64, num:true }];
+}
+/* streams that hold a template, in the company's own order */
+function tplStreamsHeld(rows){
+  const held=new Set((rows||[]).map(r=>r.stream).filter(Boolean));
+  return Object.values(FOLDERS||{}).filter(f=>f&&held.has(f.id));
+}
+function tplLhReg(ov){
+  const KINDS=['company','cp','builtin','sample'];
+  const after=()=>{ tplPagePaintRows(); if(typeof lhHeadSync==='function') lhHeadSync(TPL_LH_LIST); if(typeof placeSave==='function') placeSave(); };
+  if(typeof LC_PAGES!=='undefined') LC_PAGES[TPL_LH_LIST]={ cols:()=>tplColDefs().map(c=>({ k:c.k, label:c.label })),
+    repaint:()=>{ tplPagePaintRows(); if(typeof lhHeadSync==='function') lhHeadSync(TPL_LH_LIST); } };
+  lhRegister(TPL_LH_LIST, {
+    noun:'templates', boxId:'tpl-search',
+    total:()=>tplPageRows().length,
+    q:()=>_tplPage.q,
+    setQuery:w=>{ _tplPage.q=String(w==null?'':w); _tplPage.showAll=false; tplPagePaintRows(); },
+    tabAttr:'data-tpl-group', tabsLabel:i18t('nav_templates'),
+    tabNow:()=>(TPL_PILES.includes(_tplPage.group)?_tplPage.group:'all'),
+    /* each pile's number is the rows its press shows, the words and the
+       chips held (it was a whole-book total, so a chip left a pile's number
+       saying more than its list) */
+    tabs:()=>{ const rs=tplPageFiltered(tplPageRows(), { group:'all' });
+      return ['all', ...TPL_PILES].map(k=>({ k, label:i18t(TPL_PILE_LABEL[k]), keep:k==='all', title:i18t('lib_order_note'),
+        n:k==='all'?rs.length:rs.filter(r=>k==='attention'?tplRowWants(r):tplRowPile(r)===k).length })); },
+    tab:k=>{ if(k!=='all'&&!TPL_PILES.includes(k)) return; _tplPage.group=k; _tplPage.showAll=false; after(); },
+    filters:()=>{ const all=tplPageRows();
+      const kindN=k=>tplPageFiltered(all, { kind:k }).length, streamN=s=>tplPageFiltered(all, { stream:s }).length;
+      return [
+        { k:'kind', label:i18t('lib_f_came_from'), cur:_tplPage.kind||'all', def:'all',
+          opts:KINDS.map(k=>[k, TPL_GROUP_LABEL[k], kindN(k)]) },
+        { k:'stream', label:i18t('lib_value_stream'), cur:_tplPage.stream||'', def:'',
+          opts:tplStreamsHeld(all).map(f=>[f.id, tplShortStream(f.name), streamN(f.id)]) },
+      ]; },
+    apply:p=>{ if(p&&'kind' in p) _tplPage.kind=KINDS.includes(p.kind)?p.kind:'all';
+      if(p&&'stream' in p) _tplPage.stream=p.stream?String(p.stream):null;
+      _tplPage.showAll=false; after(); },
+  });
+  /* the book: the box alone, narrowing the index by name (Paper first) */
+  const n=((ov&&ov.cards)||[]).length;
+  lhRegister(TPL_LH_BOOK, {
+    noun:'book', boxId:'tpl-pf-q', boxAttrs:{ 'data-tpl-pf-q':true },
+    total:()=>n,
+    q:()=>_tplPf.q,
+    setQuery:w=>{ _tplPf.q=String(w==null?'':w); tplBookRepaint(); },
+  });
 }
 function tplInsPaint(host){
   const all=tplPageRows();
   const rows=tplPageFiltered(all);
-  const g=TPL_PILES.includes(_tplPage.group)||_tplPage.group==='all'?_tplPage.group:'all';
-  const card=host.closest('.ins-card');
-  const head=card&&card.querySelector('.tpl-ins-head');
-  if(head) head.innerHTML=`<h2 class="ins-cardhead-t">${_tplEsc(i18t(TPL_PILE_LABEL[g]||'lib_pile_all'))} <span class="ins-cardhead-n">(${rows.length})</span></h2><span class="tpl-ins-note">${_tplEsc(i18t('lib_order_note'))}</span>`;
+  /* the card head ("Ready to use (N)" and the order note) went with the
+     Legora head: the lit tab says which pile and how many, and the order
+     note is every pile tab's hover */
   const dash='<span class="ins-quiet">—</span>';
+  const defs=tplColDefs(), byK=Object.fromEntries(defs.map(c=>[c.k,c]));
+  const keys=(typeof lcShown==='function')?lcShown(TPL_LH_LIST, defs.map(c=>c.k)):defs.map(c=>c.k);
+  const cell={
+    origin:r=>`<td><span class="reg-stg ins-pill">${_tplEsc(r.origin)}</span></td>`,
+    code:r=>`<td class="tpl-code">${r.mono?_tplEsc(r.version):dash}</td>`,
+    stream:r=>`<td>${r.stream&&FOLDERS[r.stream]?_tplEsc(tplShortStream(FOLDERS[r.stream].name)):dash}</td>`,
+    used:r=>`<td class="num">${r.used==null?dash:r.used}</td>`,
+  };
   const tr=r=>`<tr data-ins-row data-tpl-row="${_tplEsc(r.kind+':'+r.id)}" tabindex="-1">
       <td><span class="ins-c2"><b title="${_tplEsc(r.name)}">${_tplEsc(r.name)}${r.draft?` <span class="tpl-draft-tag">${_tplEsc(i18t('lib_draft_tag'))}</span>`:''}</b><span>${_tplEsc(r.sub||'')}</span></span></td>
-      <td><span class="reg-stg ins-pill">${_tplEsc(r.origin)}</span></td>
-      <td class="tpl-code">${r.mono?_tplEsc(r.version):dash}</td>
-      <td>${r.stream&&FOLDERS[r.stream]?_tplEsc(tplShortStream(FOLDERS[r.stream].name)):dash}</td>
-      <td class="num">${r.used==null?dash:r.used}</td>
+      ${keys.map(k=>cell[k](r)).join('')}
     </tr>`;
-  host.innerHTML=rows.length?`<table class="ins-lt tpl-lt"><colgroup><col><col style="width:150px"><col style="width:70px"><col style="width:140px"><col style="width:64px"></colgroup>
-      <thead><tr><th>${_tplEsc(i18t('lib_col_template'))}</th><th>${_tplEsc(i18t('lib_f_came_from'))}</th><th>${_tplEsc(i18t('lib_col_code'))}</th><th>${_tplEsc(i18t('lib_value_stream'))}</th><th class="num">${_tplEsc(i18t('lib_col_used'))}</th></tr></thead>
+  host.innerHTML=rows.length?`<table class="ins-lt tpl-lt"><colgroup><col>${keys.map(k=>`<col style="width:${byK[k].w}px">`).join('')}</colgroup>
+      <thead><tr><th>${_tplEsc(i18t('lib_col_template'))}</th>${keys.map(k=>`<th${byK[k].num?' class="num"':''}>${_tplEsc(byK[k].label)}</th>`).join('')}</tr></thead>
       <tbody>${rows.map(tr).join('')}</tbody></table>`
     :`<div class="ins-empty-p">${_tplEsc(i18t('lib_nothing_matches'))}</div>`;
+  /* ONE FOOT: every row is drawn, so "1–n of n" and nothing to show more */
+  const card=host.closest('.ins-card');
+  const foot=card&&card.querySelector('[data-tpl-foot]');
+  if(foot&&typeof lhFootHtml==='function'){ const html=lhFootHtml(TPL_LH_LIST, rows.length, rows.length, 0, { cls:'ins-foot' });
+    /* in place, so the live region is heard when the count moves (lhFootPut) */
+    const cur=foot.querySelector('[data-lh-foot]');
+    if(!(cur&&typeof lhFootPut==='function'&&lhFootPut(cur, html))) foot.innerHTML=html; }
   const tb=host.querySelector('tbody');
   const idOf=t=>t.getAttribute('data-tpl-row');
   const byId=new Map(rows.map(r=>[r.kind+':'+r.id,r]));
@@ -2600,6 +2666,9 @@ const TPL_SHELF_SUB = { company:'lib_shelf_sub_company', builtin:'lib_shelf_sub_
    nothing spent. The choice, the open shelves and the find box are per
    sitting (and kept through a refresh, tplPlace); nothing is written. */
 const _tplPf = { pick:null, q:'', open:{}, docs:{}, read:null, chips:[] };
+/* true while the page draws the Legora head (Part 8), whose box narrows the
+   index: the index then draws no find box of its own (one box, one query) */
+let _tplHeadBox = false;
 const TPL_PF_SHELVES = ['company', 'builtin', 'sample', 'cp'];
 /* the window every figure on the book counts over, said as "in 12 months" */
 const TPL_PF_DAYS = 365;
@@ -2848,7 +2917,7 @@ function tplPfHtml(d){
       <div class="tpl-pf-scroll" id="tpl-pf-scroll">${tplPfPaperHtml(card)}</div>`;
   }
   return `<div class="tpl-book tpl-pf">
-    <aside class="tpl-pf-idx"><label class="tpl-pf-find">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input type="search" data-tpl-pf-q value="${_tplEsc(_tplPf.q)}" placeholder="${_tplEsc(i18t('lib_pf_find'))}" aria-label="${_tplEsc(i18t('lib_pf_find'))}"></label><div class="tpl-pf-list" id="tpl-pf-list">${idx}</div></aside>
+    <aside class="tpl-pf-idx">${_tplHeadBox ? '' : `<label class="tpl-pf-find">${typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : ''}<input type="search" data-tpl-pf-q value="${_tplEsc(_tplPf.q)}" placeholder="${_tplEsc(i18t('lib_pf_find'))}" aria-label="${_tplEsc(i18t('lib_pf_find'))}"></label>`}<div class="tpl-pf-list" id="tpl-pf-list">${idx}</div></aside>
     <section class="tpl-pf-paper">${paper}</section>
   </div>`;
 }
@@ -3183,12 +3252,24 @@ let _tplPageTab=null;
 /* A REFRESH LANDS WHERE YOU WERE (Young, 28 Sep 2026): what this page keeps
    across a reload, read by placeSave and put back by placeResume (js/app.js)
    BEFORE the first paint. */
-function tplPlace(){ return { tab:tplPageTab(), pick:_tplPf.pick||null, open:Object.assign({}, _tplPf.open||{}) }; }
+/* …and, since the Legora head (Part 8), the words in each tab's box and the
+   list's pile and chips (a question being typed is not kept: it narrows
+   nothing, so the page's own query is empty while it stands) */
+function tplPlace(){ return { tab:tplPageTab(), pick:_tplPf.pick||null, open:Object.assign({}, _tplPf.open||{}),
+  bq:String(_tplPf.q||''), list:{ group:_tplPage.group, kind:_tplPage.kind||'all', stream:_tplPage.stream||null, q:String(_tplPage.q||'') } }; }
 /* A REFRESH LANDS AT THE SAME SPOT: the tab, and on the book the template
    that was up and the shelves the reader opened or folded */
 function tplPlacePut(p){ if(p&&TPL_PAGE_TABS.includes(p.tab)) _tplPageTab=p.tab;
   if(p&&typeof p.pick==='string') _tplPf.pick=p.pick;
-  if(p&&p.open&&typeof p.open==='object') _tplPf.open=Object.fromEntries(Object.entries(p.open).filter(([k])=>TPL_PF_SHELVES.includes(k)).map(([k,v])=>[k,!!v])); }
+  if(p&&p.open&&typeof p.open==='object') _tplPf.open=Object.fromEntries(Object.entries(p.open).filter(([k])=>TPL_PF_SHELVES.includes(k)).map(([k,v])=>[k,!!v]));
+  if(p&&typeof p.bq==='string') _tplPf.q=p.bq;
+  const L=p&&p.list;
+  if(L&&typeof L==='object'){
+    if(['all','company','cp','builtin','sample',...TPL_PILES].includes(L.group)) _tplPage.group=L.group;
+    if(['all','company','cp','builtin','sample'].includes(L.kind)) _tplPage.kind=L.kind;
+    if(L.stream==null||typeof L.stream==='string') _tplPage.stream=L.stream||null;
+    if(typeof L.q==='string') _tplPage.q=L.q;
+  } }
 function tplPageTab(){ return TPL_PAGE_TABS.includes(_tplPageTab)?_tplPageTab:TPL_PAGE_TABS[0]; }
 /* A tab press is CLASS AND HIDDEN FLIPS, never a re-render: the table holds a
    search box the reader may be typing into, and both doors below (a card, the
@@ -3196,12 +3277,18 @@ function tplPageTab(){ return TPL_PAGE_TABS.includes(_tplPageTab)?_tplPageTab:TP
 function tplPageSetTab(k){
   if(!TPL_PAGE_TABS.includes(k)) return;
   _tplPageTab=k;
+  /* a tab of the classic row says it is selected; a press of the page's
+     switch (the Legora head) says it is pressed, as List | Wall does */
   document.querySelectorAll('[data-tpl-tab]').forEach(t=>{
     const on=t.getAttribute('data-tpl-tab')===k;
-    t.classList.toggle('on',on); t.setAttribute('aria-selected',on?'true':'false');
+    t.classList.toggle('on',on); t.setAttribute(t.getAttribute('role')==='tab'?'aria-selected':'aria-pressed',on?'true':'false');
   });
   document.querySelectorAll('[data-tpl-sec]').forEach(s=>{ s.hidden=s.getAttribute('data-tpl-sec')!==k; });
   document.querySelectorAll('[data-tpl-head]').forEach(s=>{ s.hidden=s.getAttribute('data-tpl-head')!==k; });
+  /* the page's ONE switch goes with the head on show (moved, never drawn
+     twice: its listeners go with it) */
+  const seg=document.querySelector('.tpl-band .paper-seg'), seat=document.querySelector(`[data-tpl-head="${k}"] > [data-lh-seat]`);
+  if(seg&&seat&&seg.parentNode!==seat) seat.insertBefore(seg, seat.firstChild);
   /* ONE PANEL FOR THE PAGE: it says what the tab now showing holds — the
      book's chosen template, or the list's chosen row (its own painter) */
   if(document.getElementById('ins-panel')){
@@ -3220,6 +3307,10 @@ function tplGoList(name){
   const box=document.getElementById('tpl-search');
   if(box) box.value=_tplPage.q;
   tplPagePaintRows();
+  /* the list head shows the words a door wrote (lhBoxSet) and counts its
+     piles and chips again for the cuts it reset */
+  if(typeof lhBoxSet==='function') lhBoxSet(TPL_LH_LIST, _tplPage.q);
+  if(typeof lhHeadSync==='function') lhHeadSync(TPL_LH_LIST);
   try{ box?.focus(); }catch(_){}
 }
 
@@ -3276,6 +3367,11 @@ function renderTemplatesPage(){
   const INS=tplListIns();
   if(INS && !TPL_PILES.includes(_tplPage.group) && _tplPage.group!=='all'){ _tplPage.kind=_tplPage.group; _tplPage.group='all'; }
   _tplAttn=Object.fromEntries((ov.attention||[]).map(a=>[a.kind+':'+a.id,a.why]));
+  /* THE LEGORA HEAD (Part 8) where the inspector fits: the two tabs' heads
+     are registered before they are drawn, and the book's own find box gives
+     way to the head's (the classic shape keeps its own) */
+  _tplHeadBox=INS&&typeof lhHtml==='function'&&typeof lhRegister==='function';
+  if(_tplHeadBox) tplLhReg(ov);
   /* Counted off the SAME rows the table draws, so a pile's number and its
      list can never disagree. */
   const pile={ ready:0, writing:0, attention:0 };
@@ -3342,7 +3438,13 @@ function renderTemplatesPage(){
         ((typeof newPaperBlocked==='function'&&newPaperBlocked())?` disabled title="${esc(i18t('np_refused'))+' '+esc(i18t('np_refused_ask'))}"`:'')
       }>${(typeof window!=='undefined'&&window.plusLed?window.plusLed(i18t('lib_new_template')):i18t('lib_new_template'))}</button>`:''}
     </div>
-    ${INS?`<div data-tpl-head="list" ${tab==='list'?'':'hidden'}>${tplListHeadHtml()}</div>`:''}
+    ${''/* THE LIST HEAD UNDER THE TITLE ROW, one per tab and flipped with it
+           (tplPageSetTab flips [data-tpl-head]): the book's box; the list's
+           box, piles and chips; the page's switch at the box's right */}
+    ${_tplHeadBox?(()=>{ const seg=paperSegHtml(tab,'templates',{ book:hf.n, list:rows.length, standards:stdN });
+      /* ONE switch on the page, in the head on show (tplPageSetTab moves it) */
+      return `<div data-tpl-head="book"${tab==='book'?'':' hidden'}>${paperLhHtml(TPL_LH_BOOK,{ frame:'rows' },tab==='book'?seg:'')}</div>
+    <div data-tpl-head="list"${tab==='list'?'':' hidden'}>${paperLhHtml(TPL_LH_LIST,{ frame:'rows' },tab==='list'?seg:'')}</div>`; })():`
     <div class="st-tabs tpl-tabs" role="tablist">
       ${''/* "Templates overview" was HERE and is gone (19 Sep 2026). See the
              note on tplHealthData: the card it drew is kept, unreferenced. */}
@@ -3354,7 +3456,7 @@ function renderTemplatesPage(){
              paperTabsHtml — so every one of its own tabs, its inspector and
              its links are exactly what they were. */}
       <button class="st-tab" data-paper-tab="standards" role="tab" aria-selected="false">${i18t('nav_our_standards')}${stdN!=null?`<span class="st-tab-n">${stdN}</span>`:''}</button>
-    </div>
+    </div>`}
     </div>
 
     ${''/* TWO SECTIONS, NOT THREE. The health card (tplHealthHtml) and the
@@ -3370,11 +3472,11 @@ function renderTemplatesPage(){
     <section data-tpl-sec="list" ${tab==='list'?'':'hidden'}>
     ${INS?`<div class="ins-body tpl-ins">
       <section class="ins-card" aria-label="${_tplEsc(i18t('nav_templates'))}">
-        <div class="reg-views tpl-piles" role="tablist">${['ready','writing','attention','all'].map(k=>{
-          const n=k==='all'?total:pile[k]; const on=_tplPage.group===k;
-          return `<button type="button" role="tab" class="reg-vtab${on?' on':''}${!n&&!on?' is-zero':''}" data-tpl-group="${k}" aria-selected="${on?'true':'false'}">${_tplEsc(i18t(TPL_PILE_LABEL[k]))}<span class="n">${n}</span></button>`; }).join('')}</div>
-        <div class="ins-cardhead tpl-ins-head"></div>
+        ${''/* the piles are the list head's tab row now (Part 8), the card
+               head's "Ready to use (N)" with them; the card is the quiet
+               table and its foot */}
         <div class="ins-scroll" id="tpl-rows"></div>
+        <div class="tpl-foot" data-tpl-foot></div>
       </section>
     </div>`:`
     <div class="tpl-cols" style="display:grid;gap:var(--s-4);align-items:start">
@@ -3433,14 +3535,18 @@ function renderTemplatesPage(){
     const box=document.getElementById('tpl-search'); if(box) box.value='';
     tplPagePaintRows();
   });
+  /* THE CLASSIC SHAPE'S OWN PRESSES (its rail and its box). Where the Legora
+     head is drawn, its ONE delegated listener (js/views/listhead.js) takes
+     the piles, the chips and the box — each press ends in the spec
+     tplLhReg registered — so nothing is bound here a second time. */
+  if(!_tplHeadBox){
   document.querySelectorAll('[data-tpl-group]').forEach(b=>b.addEventListener('click',()=>{
     _tplPage.group=b.getAttribute('data-tpl-group'); _tplPage.showAll=false; tplPageRefilter(); }));
   document.querySelectorAll('[data-tpl-stream]').forEach(b=>b.addEventListener('click',()=>{
     const v=b.getAttribute('data-tpl-stream');
     _tplPage.stream=_tplPage.stream===v?null:v; tplPageRefilter(); }));
   document.getElementById('tpl-search')?.addEventListener('input',e=>{ _tplPage.q=e.target.value; tplPagePaintRows(); });
-  document.querySelector('[data-tpl-kindsel]')?.addEventListener('change',e=>{ _tplPage.kind=e.target.value||'all'; renderTemplatesPage(); });
-  document.querySelector('[data-tpl-streamsel]')?.addEventListener('change',e=>{ _tplPage.stream=e.target.value||null; renderTemplatesPage(); });
+  }
   if(INS && typeof insWatchWidth==='function') insWatchWidth();
   document.getElementById('tpl-new')?.addEventListener('click',tplNewMenu);
   /* Company templates come from the server cache; the first visit renders
@@ -3488,17 +3594,42 @@ function paperTabsHtml(lit, tight){
   return `<div class="st-tabs paper-tabs" role="tablist" style="${tight?'margin-bottom:0;flex:none':'margin-bottom:var(--s-2)'}">${PAPER_TABS.map(k=>
     `<button class="st-tab${k===lit?' on':''}" data-paper-tab="${k}" role="tab" aria-selected="${k===lit?'true':'false'}">${esc(lbl[k])}${n[k]!=null?`<span class="st-tab-n">${n[k]}</span>`:''}</button>`).join('')}</div>`;
 }
+/* THE PAGE'S SWITCH, THE LEGORA WAY (Part 8): the same three parts, drawn at
+   the head's right as Contracts draws List | Wall (.reg-seg, pressed rather
+   than selected), each with its count. ONE builder for both views: on the
+   Templates page its first two are that page's own flips (data-tpl-tab), on
+   Our standards all three change the view (data-paper-tab); all three are
+   always drawn, whatever they count. */
+function paperSegHtml(lit, here, counts){
+  const lbl={ book:i18t('lib_tab_book'), list:i18t('nav_templates'), standards:i18t('nav_our_standards') };
+  const n=counts||paperTabCounts();
+  return `<div class="reg-seg paper-seg" role="group" aria-label="${esc(i18t('nav_tpl_std'))}">${PAPER_TABS.map(k=>{
+    const on=k===lit, attr=(here==='templates'&&k!=='standards')?`data-tpl-tab="${k}"`:`data-paper-tab="${k}"`;
+    return `<button type="button" class="${on?'on':''}" ${attr} aria-pressed="${on?'true':'false'}">${esc(lbl[k])}${n[k]!=null?`<span class="n">${esc(String(n[k]))}</span>`:''}</button>`; }).join('')}</div>`;
+}
+/* THE HEAD WITH THE SWITCH AT THE BOX'S RIGHT: the ONE list head as
+   lhHtml draws it, the switch its first child (placed by CSS on the box's
+   line). Not on the title's line: there it pushed the page's facts onto a
+   second line, so this head's line sat lower than every other page's
+   (pages-read-alike 8). lhHeadSync redraws only the tab and chip rows, so the
+   switch and the listeners on it stand. */
+function paperLhHtml(seat, o, seg){
+  const h=lhHtml(seat, Object.assign({}, o||{}, { cls:[(o&&o.cls)||'', 'lh-paper'].join(' ').trim() }));
+  const i=h.indexOf('>')+1;
+  return h.slice(0,i)+(seg||'')+h.slice(i);
+}
 /* One handler for the row on both pages. A press on a tab of the OTHER view
    is a page change; on the Templates page the two of its own are the page's
-   own flips (data-tpl-tab), and this listens only for the third. */
+   own flips (data-tpl-tab), and this listens only for the third. Bound ONCE
+   per button, however often it is asked. */
 function paperTabsWire(){
-  document.querySelectorAll('[data-paper-tab]').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('[data-paper-tab]').forEach(b=>{ if(b.dataset.paperBound) return; b.dataset.paperBound='1'; b.addEventListener('click',()=>{
     const k=b.getAttribute('data-paper-tab');
     if(!PAPER_TABS.includes(k)) return;
     if(k==='standards'){ if(state.view!=='playbook') setView('playbook'); return; }
     _tplPageTab=k;
     setView('templates');
-  }));
+  }); });
 }
 
 /* ============================================================ PLAYBOOK PAGE */
@@ -3517,6 +3648,40 @@ const PB_TAB_LABEL={clauses:'lib_clause_library',playbook:'lib_negotiation_playb
 const PB_TAB_SUB={clauses:'lib_clause_library_sub',playbook:'lib_playbook_sub',deviations:'lib_deviations_sub'};
 let _pbPageTab=null;
 function pbPageTab(){ return PB_PAGE_TABS.includes(_pbPageTab)?_pbPageTab:'clauses'; }
+/* ONE TAB PRESS, whichever row drew the tab (the classic row, or the list
+   head's tab row where the inspector fits) and whichever door asks for it
+   (a tab, a link in the panel, sdGoTab): it lands whether or not that tab's
+   button is drawn (the head leaves out a list with nothing in it).
+   A tab press is CLASS AND HIDDEN FLIPS, never a re-render: the clause
+   library holds open editors and scroll the reader is in the middle of,
+   and the settings page's own rule is that a selection must not rebuild
+   the screen under the reader. */
+function pbTabGo(k){
+  if(!PB_PAGE_TABS.includes(k)) return;
+  _pbPageTab=k;
+  document.querySelectorAll('[data-pb-tab]').forEach(t=>{
+    const on=t.getAttribute('data-pb-tab')===k;
+    t.classList.toggle('on',on); t.setAttribute('aria-selected',on?'true':'false');
+  });
+  document.querySelectorAll('[data-pb-sec]').forEach(s=>{ s.hidden=s.getAttribute('data-pb-sec')!==k; });
+  const sub=document.getElementById('pb-tabsub'); if(sub) sub.textContent=i18t(PB_TAB_SUB[k]);
+  /* The Inspector's head says what THIS tab holds and carries its own act
+     (Add clause · Reset / Add contract type · none). Classic paints nothing. */
+  if(typeof pbPaintHead==='function') pbPaintHead();
+  /* THE ONE JAMBO PANEL (19 Oct 2026): the three lists share #ins-panel, so
+     the tab turned paints its own chosen row there */
+  if(document.querySelector('.sd-ins #ins-panel')&&typeof sdWireList==='function') sdWireList(k);
+  /* the list head draws the tab now lit, and the chips this list has (only
+     Portfolio deviations has any) */
+  if(typeof lhHeadSync==='function'&&document.querySelector('[data-lh-seat="'+SD_LH+'"]')){ lhHeadSync(SD_LH); if(typeof placeSave==='function') placeSave(); }
+  /* AND IT LANDS AT THE TOP OF THE TAB IT OPENED. Until the row was pinned
+     this came for free: reaching a tab meant already being at the top. Now a
+     tab can be pressed from the bottom of a long clause library, and a press
+     that NAVIGATES may land at the top — this is three different lists.
+     stLandTop is the settings page's own reading (js/views/settings.js),
+     asked through window because that module is not on every stage. */
+  if(typeof stLandTop==='function') stLandTop();
+}
 function renderPlaybookPage(){
   const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius-lg)';
   const canEditLib=isAdmin()||currentUser()?.role==='legal';
@@ -3564,9 +3729,14 @@ function renderPlaybookPage(){
 
   if(INS){
     _pbHead=sdHeads(sd, canEditLib);
-    /* THE FIGURES MOVE INTO THE PAGE'S WHITE BAND (SAP benchmark, batch 2),
-       over the tabs, as the book's do — the shared head keeps only the act. */
-    _pbHead.facts={};
+    /* THE LEGORA HEAD (Part 8): the band's three figures go back into the
+       head's facts line, the same on every tab; Our paper's switch stands in
+       the list head at the box's right, as on the book and the Templates list
+       (sdPageHtml). */
+    const figs=sdFigsLine(sd);
+    _pbHead.facts={ clauses:figs, playbook:figs, deviations:figs };
+    _sdData=sd;
+    if(typeof lhRegister==='function') sdLhReg(sd);
     document.getElementById('content').innerHTML=sdPageHtml(tabRow, tab, sd);
     sdWire(sd, canEditLib);
   } else {
@@ -3638,33 +3808,11 @@ function renderPlaybookPage(){
   /* the narrow drawing opens a departure's contract as the wide one does */
   document.querySelectorAll('[data-dev-open]').forEach(b=>b.addEventListener('click',()=>sdOpenContract(b.getAttribute('data-dev-open'))));
   }
-  /* A tab press is CLASS AND HIDDEN FLIPS, never a re-render: the clause
-     library holds open editors and scroll the reader is in the middle of,
-     and the settings page's own rule is that a selection must not rebuild
-     the screen under the reader. */
-  document.querySelectorAll('[data-pb-tab]').forEach(b=>b.addEventListener('click',()=>{
-    const k=b.getAttribute('data-pb-tab'); if(!PB_PAGE_TABS.includes(k)) return;
-    _pbPageTab=k;
-    document.querySelectorAll('[data-pb-tab]').forEach(t=>{
-      const on=t.getAttribute('data-pb-tab')===k;
-      t.classList.toggle('on',on); t.setAttribute('aria-selected',on?'true':'false');
-    });
-    document.querySelectorAll('[data-pb-sec]').forEach(s=>{ s.hidden=s.getAttribute('data-pb-sec')!==k; });
-    const sub=document.getElementById('pb-tabsub'); if(sub) sub.textContent=i18t(PB_TAB_SUB[k]);
-    /* The Inspector's head says what THIS tab holds and carries its own act
-       (Add clause · Reset / Add contract type · none). Classic paints nothing. */
-    if(typeof pbPaintHead==='function') pbPaintHead();
-    /* THE ONE JAMBO PANEL (19 Oct 2026): the three lists share #ins-panel, so
-       the tab turned paints its own chosen row there */
-    if(document.querySelector('.sd-ins #ins-panel')&&typeof sdWireList==='function') sdWireList(k);
-    /* AND IT LANDS AT THE TOP OF THE TAB IT OPENED. Until the row was pinned
-       this came for free: reaching a tab meant already being at the top. Now a
-       tab can be pressed from the bottom of a long clause library, and a press
-       that NAVIGATES may land at the top — this is three different lists.
-       stLandTop is the settings page's own reading (js/views/settings.js),
-       asked through window because that module is not on every stage. */
-    if(typeof stLandTop==='function') stLandTop();
-  }));
+  /* A tab press is pbTabGo (class and hidden flips, never a re-render). The
+     classic row's buttons are bound here; where the Legora head is drawn its
+     ONE delegated listener presses the same function (the spec's tab), so
+     the head's tabs are not bound a second time. */
+  if(!INS) document.querySelectorAll('[data-pb-tab]').forEach(b=>b.addEventListener('click',()=>pbTabGo(b.getAttribute('data-pb-tab'))));
   /* Either shape arms the watch: a width that crosses the line repaints the
      page in the other shape (INS_PAGE_REPAINT names this page). */
   if(typeof insWatchWidth==='function') insWatchWidth();
@@ -3694,12 +3842,73 @@ function renderPlaybookPage(){
    EVERY VERB IS THE ONE IT ALWAYS WAS: the clause editor, the book editor,
    stdOpenPreferred and precedentAdopt, pbRemoveType and pbResetPlaybook. The
    one new act is that removing a STANDARD asks first (stdRemoveClause).
-   THE TAB ROW AND ITS HANDLER ARE THE CLASSIC PAGE'S: a tab press is class and
-   hidden flips, never a rebuild, and every link below presses a tab button. */
+   ONE TAB PRESS FOR BOTH SHAPES (pbTabGo): class and hidden flips, never a
+   rebuild; every link below presses it (sdGoTab), drawn button or not. */
 const SD_DEV_DEF = { std:'all', book:'all', legal:'all' };
 const SD_DEV_CHIPS = ['std', 'book', 'legal'];
 let _sdDev = null;
 function sdDevFilters(){ if(!_sdDev) _sdDev = { ...SD_DEV_DEF }; return _sdDev; }
+/* ════ OUR STANDARDS THE LEGORA WAY (the owner's pick, 21 Oct 2026, Part 8)
+   The ONE list head (js/views/listhead.js) under the shared head: the box,
+   the three lists as its tab row (Clause library · Negotiation playbook ·
+   Portfolio deviations — three lists, not three views of one, drawn as the
+   tabs they always were), and on Portfolio deviations its three filters
+   only once added ("+ Filter"). The words in the box narrow each list by
+   what its rows SAY (sdQHit), so a tab's number is always the rows its press
+   shows (_sdShown, written by the list builders as they draw). */
+const SD_LH = 'standards';
+let _sdQ = '';
+const _sdShown = { clauses:[], playbook:[], deviations:[] };
+/* a row's words as the reader sees them: its markup without the tags */
+function sdRowText(html){
+  return String(html||'').replace(/<[^>]*>/g,' ').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&amp;/g,'&').replace(/\s+/g,' ').toLowerCase();
+}
+function sdQHit(html){ const q=String(_sdQ||'').trim().toLowerCase(); return !q || sdRowText(html).includes(q); }
+/* the band's three figures, said on the head's facts line (one line, every tab) */
+function sdFigsLine(d){
+  const n=d.book.length;
+  return [ i18tn('sd_h_standards',d.lib.length,{n:d.lib.length}), i18tn('sd_h_required',d.required,{n:d.required}),
+    n?i18tn('sd_h_checked',n,{n}):i18t('sd_h_checked_none') ].map(esc).join(' · ');
+}
+/* A REFRESH LANDS AT THE SAME SPOT (PLACE_PARTS.playbook): the list, its
+   filters and the box's words */
+function sdPlace(){ return { tab:pbPageTab(), dev:Object.assign({}, sdDevFilters()), q:String(_sdQ||'') }; }
+function sdPlacePut(p){
+  if(!p||typeof p!=='object') return;
+  if(PB_PAGE_TABS.includes(p.tab)) _pbPageTab=p.tab;
+  if(p.dev&&typeof p.dev==='object'){ const f=sdDevFilters(); SD_DEV_CHIPS.forEach(k=>{ if(typeof p.dev[k]==='string') f[k]=p.dev[k]; }); }
+  if(typeof p.q==='string') _sdQ=p.q;
+}
+function sdLhReg(d){
+  const after=()=>{ sdPaintSection('deviations'); if(typeof lhHeadSync==='function') lhHeadSync(SD_LH); if(typeof placeSave==='function') placeSave(); };
+  lhRegister(SD_LH, {
+    noun:'standards', boxId:'sd-q',
+    total:()=>d.lib.length,
+    q:()=>_sdQ,
+    setQuery:w=>{ _sdQ=String(w==null?'':w); PB_PAGE_TABS.forEach(k=>sdPaintSection(k, { rows:true })); },
+    tabAttr:'data-pb-tab', tabsLabel:i18t('nav_our_standards'),
+    tabNow:()=>pbPageTab(),
+    tabs:()=>PB_PAGE_TABS.map(k=>({ k, label:i18t(PB_TAB_LABEL[k]), n:(_sdShown[k]||[]).length })),
+    tab:k=>pbTabGo(k),
+    /* the three filters stand on Portfolio deviations only; each offers what
+       it would leave with the other two (and the words) held */
+    filters:()=>{
+      if(pbPageTab()!=='deviations'||!d.off.length) return [];
+      const f=sdDevFilters(), hit=new Map();
+      const said=c=>{ if(!hit.has(c)) hit.set(c, sdQHit(sdDevRowHtml(c))); return hit.get(c); };
+      const nOf=over=>sdDevRows(d, Object.assign({}, f, over)).filter(said).length;
+      const cats=[], seen=new Set();
+      d.off.forEach(c=>stdDepartures(c).forEach(v=>{ const k=String(v.category||'').trim().toLowerCase(); if(k&&!seen.has(k)){ seen.add(k); cats.push(v.category); } }));
+      const books=[...new Set(d.off.map(stdBookOf))];
+      return [
+        { k:'std', label:i18t('sd_c_std'), cur:f.std, def:'all', opts:cats.map(x=>[x, x, nOf({ std:x })]) },
+        { k:'book', label:i18t('sd_col_book'), cur:f.book, def:'all', opts:books.map(k=>[k, (d.pb[k]||{}).label||k, nOf({ book:k })]) },
+        /* "needs Legal's yes" is offered only where a departure needs it */
+        { k:'legal', label:i18t('sd_c_legal'), cur:f.legal, def:'all', opts:[['yes', i18t('sd_c_legal_yes'), nOf({ legal:'yes' })]] },
+      ]; },
+    apply:p=>{ const f=sdDevFilters(); SD_DEV_CHIPS.forEach(k=>{ if(p&&k in p) f[k]=String(p[k]||SD_DEV_DEF[k]); }); after(); },
+  });
+}
 /* "Leave them as they are" puts the offer away for this sitting — the fact it
    states is still true, so it is back on the next visit (the classic card's
    own rule). */
@@ -3826,14 +4035,16 @@ function sdClauseListHtml(d){
   /* THE ROW SAYS IT (7 Oct 2026, O-18): one small line where this standard's
      settled rounds propose a move — no band, no column of its own. */
   const learnTag=cl=>{ const p=sdLearnProposal(cl, LL); return p?`<span class="sd-learn-tag"><i aria-hidden="true"></i>${esc(i18t('sd_learn_tag',{figure:p.figure,unit:p.unit}))}</span>`:''; };
-  const body=d.lib.map(cl=>{
+  const rows=d.lib.map(cl=>{
     const f=sdFirm(cl), fb=sdFbShort(cl), off=stdDepartsFrom(cl.category, d.book);
-    return `<tr data-ins-row data-sd-row="${esc(String(cl.id))}" tabindex="-1">
+    return [String(cl.id), `<tr data-ins-row data-sd-row="${esc(String(cl.id))}" tabindex="-1">
       <td><span class="ins-c2"><b title="${esc(cl.name||'')}">${esc(cl.name||'')}</b><span>${esc(cl.category||'')}</span>${learnTag(cl)}</span></td>
       <td><span class="ins-c2"><b class="${f.req?'is-req':''}">${esc(f.word)}</b><span title="${esc(f.where)}">${esc(f.where)}</span></span></td>
       <td><span class="${fb.none?'ins-quiet':''}">${esc(fb.text)}</span></td>
-      <td>${d.book.length?sdCountCell(off):`<span class="ins-quiet">—</span>`}</td></tr>`;
-  }).join('')||`<tr class="ins-empty"><td colspan="4">${esc(i18t('set_no_clauses'))}</td></tr>`;
+      <td>${d.book.length?sdCountCell(off):`<span class="ins-quiet">—</span>`}</td></tr>`];
+  }).filter(r=>sdQHit(r[1]));
+  _sdShown.clauses=rows.map(r=>r[0]);
+  const body=rows.map(r=>r[1]).join('')||`<tr class="ins-empty"><td colspan="4">${esc(i18t(d.lib.length?'sd_none_q':'set_no_clauses'))}</td></tr>`;
   return sdTableHtml('sd-lt sd-lib', cols, body);
 }
 /* WHAT YOU HAVE SETTLED FOR — the learned card's own reading, for THIS
@@ -4030,16 +4241,18 @@ function sdClausePanelOpts(cl, d, mayEdit){
 /* ---- 2 · THE NEGOTIATION PLAYBOOK ---- */
 function sdBookListHtml(d){
   const cols=[{t:i18t('sd_col_book')},{t:i18t('sd_col_standards'),w:140},{t:i18t('sd_col_contracts'),w:120},{t:i18t('sd_col_depart'),w:120}];
-  const body=d.keys.map(k=>{
+  const rows=d.keys.map(k=>{
     const b=d.pb[k]||{}, base=k==='_default';
     const lines=stdBookLines(k), cs=stdBookContracts(k,d.book), off=cs.filter(c=>stdDepartures(c).length);
     const legalLines=lines.filter(l=>l.legal).length, offLegal=off.some(c=>stdDepartures(c).some(stdNeedsLegal));
-    return `<tr data-ins-row data-sd-book="${esc(k)}" tabindex="-1">
+    return [k, `<tr data-ins-row data-sd-book="${esc(k)}" tabindex="-1">
       <td><span class="ins-c2"><b title="${esc(b.label||k)}">${esc(b.label||k)}</b><span>${esc(i18t(base?'sd_book_base_sub':'sd_book_type_sub'))}</span></span></td>
       <td><span class="ins-c2"><b>${lines.length}</b><span${legalLines?' class="ins-legal"':''}>${esc(legalLines?i18tn('sd_n_need_legal',legalLines,{n:legalLines}):i18t('sd_none_legal'))}</span></span></td>
       <td><span class="ins-c2"><b>${esc(base?i18t('sd_all_n',{n:cs.length}):String(cs.length))}</b><span>${esc(i18t('sd_checked'))}</span></span></td>
-      <td>${off.length?`<span class="ins-c2"><b class="ins-cnt ${offLegal?'is-bad':'is-warn'}">${off.length}</b><span>${esc(i18t('sd_depart_word'))}</span></span>`:`<span class="ins-quiet">${esc(i18t('sd_none'))}</span>`}</td></tr>`;
-  }).join('');
+      <td>${off.length?`<span class="ins-c2"><b class="ins-cnt ${offLegal?'is-bad':'is-warn'}">${off.length}</b><span>${esc(i18t('sd_depart_word'))}</span></span>`:`<span class="ins-quiet">${esc(i18t('sd_none'))}</span>`}</td></tr>`];
+  }).filter(r=>sdQHit(r[1]));
+  _sdShown.playbook=rows.map(r=>r[0]);
+  const body=rows.map(r=>r[1]).join('')||(d.keys.length?`<tr class="ins-empty"><td colspan="4">${esc(i18t('sd_none_q'))}</td></tr>`:'');
   return sdTableHtml('sd-lt sd-books', cols, body);
 }
 function sdBookPanelOpts(key, d, mayEdit){
@@ -4098,39 +4311,38 @@ const sdLegalN=c=>stdDepartures(c).filter(stdNeedsLegal).length;
 const sdDevSort=(a,b)=>(sdLegalN(b)-sdLegalN(a))||(stdDepartures(b).length-stdDepartures(a).length)||sdIdCmp(b,a);
 const sdBookLabel=c=>(c.playbook&&c.playbook.label)||((playbook()[stdBookOf(c)]||{}).label)||stdBookOf(c);
 const sdByWord=c=>i18t((c.playbook&&c.playbook.source)==='ai'?'sd_by_copilot':'sd_by_rules');
-function sdDevChipsHtml(d, f){
-  const cats=[], seen=new Set();
-  d.off.forEach(c=>stdDepartures(c).forEach(v=>{ const k=String(v.category||'').trim().toLowerCase(); if(k&&!seen.has(k)){ seen.add(k); cats.push(v.category); } }));
-  const books=[...new Set(d.off.map(stdBookOf))];
-  const narrowing=SD_DEV_CHIPS.filter(k=>String(f[k])!==String(SD_DEV_DEF[k])).length;
-  return [
-    insChipHtml({ attr:'data-sd-f', key:'std', label:i18t('sd_c_std'), cur:f.std, def:'all', opts:[['all',i18t('sd_c_std_all')],...cats.map(x=>[x,x])] }),
-    insChipHtml({ attr:'data-sd-f', key:'book', label:i18t('sd_col_book'), cur:f.book, def:'all', opts:[['all',i18t('sd_c_book_all')],...books.map(k=>[k,(d.pb[k]||{}).label||k])] }),
-    insChipHtml({ attr:'data-sd-f', key:'legal', label:i18t('sd_c_legal'), cur:f.legal, def:'all', opts:[['all',i18t('sd_c_legal_all')],['yes',i18t('sd_c_legal_yes')]] }),
-  ].join('')+(narrowing?`<button type="button" class="ui-link" data-sd-clear>${esc(i18tn('ob_clear_n',narrowing,{n:narrowing}))}</button>`:'');
-}
-function sdDevListHtml(d, rows){
-  const cols=[{t:i18t('sd_col_contract')},{t:i18t('sd_col_departures'),w:160},{t:i18t('sd_col_book'),w:170},{t:i18t('sd_col_checked'),w:140}];
-  const tr=c=>{
-    const n=stdDepartures(c).length, legal=sdLegalN(c), acc=stdDepartures(c).some(v=>v.accepted);
-    let kind=''; try{ kind=(typeof cKind==='function')?cKind(c):''; }catch(_){ kind=''; }
-    const day=sdDay(c.playbook&&c.playbook.checkedAt);
-    return `<tr data-ins-row data-sd-dev="${esc(c.id)}" tabindex="-1">
+/* (the filters' labelled bar, sdDevChipsHtml, went with the Legora head:
+   Standard · Book · Needs Legal's yes are the list head's "+ Filter" chips,
+   each with its ×, registered in sdLhReg) */
+/* one departing contract's row (the list draws it, the box reads its words) */
+function sdDevRowHtml(c){
+  const n=stdDepartures(c).length, legal=sdLegalN(c), acc=stdDepartures(c).some(v=>v.accepted);
+  let kind=''; try{ kind=(typeof cKind==='function')?cKind(c):''; }catch(_){ kind=''; }
+  const day=sdDay(c.playbook&&c.playbook.checkedAt);
+  return `<tr data-ins-row data-sd-dev="${esc(c.id)}" tabindex="-1">
       <td><span class="ins-c2"><b title="${esc(c.name||'')}">${esc(c.name||'')}</b><span>${esc(sdRef(c)+' · '+(c.counterparty||'—'))}</span></span></td>
       <td><span class="ins-c2"><b class="ins-cnt ${legal?'is-bad':'is-warn'}">${n}</b><span>${legal?`<span class="ins-legal">${esc(i18tn('sd_n_legal_row',legal,{n:legal}))}</span>`:esc(i18t(acc?'sd_accepted_before':'sd_none_legal'))}</span></span></td>
       <td><span class="ins-c2"><b title="${esc(sdBookLabel(c))}">${esc(sdBookLabel(c))}</b><span>${esc(kind)}</span></span></td>
       <td><span class="ins-c2"><b>${esc(day||'—')}</b><span>${esc(sdByWord(c))}</span></span></td></tr>`;
-  };
+}
+function sdDevListHtml(d, rows){
+  const cols=[{t:i18t('sd_col_contract')},{t:i18t('sd_col_departures'),w:160},{t:i18t('sd_col_book'),w:170},{t:i18t('sd_col_checked'),w:140}];
+  /* the box's words narrow the rows by what each row says */
+  const html=new Map(rows.map(c=>[c, sdDevRowHtml(c)]));
+  const shown=rows.filter(c=>sdQHit(html.get(c)));
   let body='';
+  const order=[];
   [['open','sd_g_open','sd_g_open_r','amber'],['signed','sd_g_signed','sd_g_signed_r','gray']].forEach(([k,lab,right,tone])=>{
-    const g=rows.filter(c=>k==='open'?stdOpenToChange(c):!stdOpenToChange(c)).sort(sdDevSort);
+    const g=shown.filter(c=>k==='open'?stdOpenToChange(c):!stdOpenToChange(c)).sort(sdDevSort);
     if(!g.length) return;
-    body+=`<tr class="ins-grp" data-sd-grp="${k}"><td colspan="${cols.length}"><span class="ins-g"><i class="ins-dot2 is-${tone}" aria-hidden="true"></i>${esc(i18t(lab))}<span class="n">${g.length}</span><span class="ins-g-r">${esc(i18t(right))}</span></span></td></tr>`+g.map(tr).join('');
+    order.push(...g);
+    body+=`<tr class="ins-grp" data-sd-grp="${k}"><td colspan="${cols.length}"><span class="ins-g"><i class="ins-dot2 is-${tone}" aria-hidden="true"></i>${esc(i18t(lab))}<span class="n">${g.length}</span><span class="ins-g-r">${esc(i18t(right))}</span></span></td></tr>`+g.map(c=>html.get(c)).join('');
   });
-  if(!rows.length){
+  _sdShown.deviations=order.map(c=>c.id);
+  if(!shown.length){
     const f=sdDevFilters();
     const narrowing=SD_DEV_CHIPS.some(k=>String(f[k])!==String(SD_DEV_DEF[k]));
-    const msg=!d.book.length?i18t('sd_dev_unchecked'):narrowing?i18t('sd_none_match'):i18t('sd_dev_none');
+    const msg=!d.book.length?i18t('sd_dev_unchecked'):(rows.length&&String(_sdQ||'').trim())?i18t('sd_none_q'):narrowing?i18t('sd_none_match'):i18t('sd_dev_none');
     body=`<tr class="ins-empty"><td colspan="${cols.length}">${esc(msg)}${narrowing?`<br><button type="button" class="ui-link" data-sd-clear style="margin-top:8px">${esc(i18t('ob_clear_filters'))}</button>`:''}</td></tr>`;
   }
   return sdTableHtml('sd-lt sd-dev', cols, body);
@@ -4214,7 +4426,9 @@ async function sdCheckAgain(c){
    so keepScroll can put them back. */
 function sdRepaint(){ if(typeof keepScroll==='function') keepScroll(()=>renderPlaybookPage()); else renderPlaybookPage(); }
 /* ---- THE LINKS BETWEEN THE TABS — each one presses the tab's own button ---- */
-function sdGoTab(k){ document.querySelector(`[data-pb-tab="${k}"]`)?.click(); }
+/* the one tab press (pbTabGo), so a link lands on its list even where the
+   list head leaves that tab out for having nothing in it */
+function sdGoTab(k){ pbTabGo(k); }
 function sdSelectIn(tab, id){
   const seat={ clauses:'std:clauses', playbook:'std:books', deviations:'std:dev' }[tab];
   if(seat) insSelect(seat, id);
@@ -4233,8 +4447,10 @@ function sdGoDev(o){
   const f=sdDevFilters();
   Object.assign(f, SD_DEV_DEF, o&&o.filters||{});
   if(o&&o.id) sdSelectIn('deviations', o.id);
-  sdGoTab('deviations');
+  /* the list drawn with its filters first, so the tab the press lights (and
+     the head's chips) count what it shows */
   sdPaintSection('deviations');
+  sdGoTab('deviations');
 }
 /* ---- THE PAGE ---- */
 function sdPageHtml(tabRow, tab, d){
@@ -4244,47 +4460,29 @@ function sdPageHtml(tabRow, tab, d){
           <button type="button" class="ui-link" data-sd-draft-go title="${esc(i18tn('std_draft_go',n,{n}))}">${esc(i18t('sd_offer_go'))}</button>
           <button type="button" class="ui-btn ui-btn-plain ui-btn-icon" data-sd-draft-no title="${esc(i18t('std_draft_by_hand'))}" aria-label="${esc(i18t('std_draft_by_hand'))}">${typeof icon==='function'?icon('x','w-3.5 h-3.5'):'×'}</button></div>`; })()
     : '';
-  const f=sdDevFilters();
-  const rows=sdDevRows(d, f);
-  /* ---- THE SAP WAY (SAP benchmark, batch 2 — the owner's "go", 9 Oct 2026;
-     the drawing is the target) ---- One white band: the three figures and
-     Our paper's own tab row. This page's three tabs are the CARD's own row,
-     drawn in each tab's card with that tab lit (the one handler flips them
-     all). The offer is an info strip whose way forward is a link; the
-     sentences under the lists went. */
-  const subTabs=`<div class="reg-views sd-subtabs" role="tablist">${PB_PAGE_TABS.map(k=>
-    `<button type="button" class="reg-vtab${k===tab?' on':''}${!d.n[k]&&k!==tab?' is-zero':''}" data-pb-tab="${k}" role="tab" aria-selected="${k===tab?'true':'false'}">${esc(i18t(PB_TAB_LABEL[k]))}<span class="n">${d.n[k]}</span></button>`).join('')}</div>`;
-  const fig=(label, value, quiet)=>`<div class="tpl-gl"><p class="tpl-gl-l">${esc(label)}</p><p class="tpl-gl-v"${quiet?' style="color:var(--color-neutral-600);font-weight:var(--w-body)"':''}>${esc(value)}</p></div>`;
-  const band=`<div class="sap-band tpl-band sd-band ph-foot"><div class="tpl-glance">
-      ${fig(i18t('sd_g_standards'), String(d.lib.length))}
-      ${fig(i18t('sd_g_required'), String(d.required))}
-      ${fig(i18t('sd_g_checked'), d.book.length?String(d.book.length):i18t('sd_g_none_yet'), !d.book.length)}
-    </div>${paperTabsHtml('standards', true)}</div>`;
+  /* ---- THE LEGORA WAY (the owner's pick, 21 Oct 2026, Part 8) ---- The
+     shared head's lower half is the ONE list head: the box, the three lists
+     as its one tab row (they were drawn once per card), the filters of
+     Portfolio deviations only once added. The band's three figures are the
+     head's facts line (sdFigsLine) and Our paper's switch stands at the
+     box's right (paperLhHtml); the cards' own heads ("Clause library (6)" and its search
+     box) and the deviations' labelled filter bar went with them. The lists
+     are drawn FIRST, so the tab row counts what they show (_sdShown). The
+     offer is still an info strip whose way forward is a link. */
+  const lists={ clauses:sdClauseListHtml(d), playbook:sdBookListHtml(d), deviations:sdDevListHtml(d, sdDevRows(d, sdDevFilters())) };
+  const head=(typeof lhHtml==='function')?paperLhHtml(SD_LH,{ frame:'foot', cls:'sd-band' },paperSegHtml('standards','playbook')):'';
+  const sec=(k, label, id, extra)=>`<div class="ins-body" data-pb-sec="${k}"${tab===k?'':' hidden'}>
+      <section class="ins-card" aria-label="${esc(i18t(label))}">
+        ${extra||''}
+        <div class="ins-scroll" id="${id}">${lists[k]}</div>
+        <div class="sd-foot" data-sd-foot>${sdFootHtml(k)}</div>
+      </section>
+    </div>`;
   return `<div class="view-enter ins-page sd-ins sap-page" data-ins-page="playbook" data-ins="1">
-    ${band}
-    <div class="ins-body" data-pb-sec="clauses"${tab==='clauses'?'':' hidden'}>
-      <section class="ins-card" aria-label="${esc(i18t('lib_clause_library'))}">
-        ${subTabs}
-        ${offer}
-        <div class="ins-cardhead"><h2 class="ins-cardhead-t">${esc(i18t('lib_clause_library'))} <span class="ins-cardhead-n">(${d.lib.length})</span></h2><span style="flex:1"></span>
-          <label class="ik-search">${typeof icon==='function'?icon('search','w-3.5 h-3.5'):''}<input type="search" data-sd-q placeholder="${esc(i18t('sd_search_ph'))}" aria-label="${esc(i18t('sd_search_ph'))}"></label></div>
-        <div class="ins-scroll" id="sd-scroll-clauses">${sdClauseListHtml(d)}</div>
-      </section>
-    </div>
-    <div class="ins-body" data-pb-sec="playbook"${tab==='playbook'?'':' hidden'}>
-      <section class="ins-card" aria-label="${esc(i18t('lib_negotiation_playbook'))}">
-        ${subTabs}
-        <div class="ins-scroll" id="sd-scroll-books">${sdBookListHtml(d)}</div>
-      </section>
-    </div>
-    <div class="ins-body" data-pb-sec="deviations"${tab==='deviations'?'':' hidden'}>
-      <section class="ins-card" aria-label="${esc(i18t('lib_portfolio_deviations'))}">
-        ${subTabs}
-        ${d.off.length?`<div class="ins-bar reg-filterbar" data-sd-bar>${sdDevChipsHtml(d, f)}</div>`:''}
-        <div class="ins-scroll" id="sd-scroll-dev">${sdDevListHtml(d, rows)}</div>
-        <div class="ins-foot"><span data-sd-foot>${esc(i18t('sd_showing',{n:rows.length,of:d.off.length}))}</span></div>
-      </section>
-    </div>
+    ${head}
+    ${sec('clauses', 'lib_clause_library', 'sd-scroll-clauses', offer)}
+    ${sec('playbook', 'lib_negotiation_playbook', 'sd-scroll-books')}
+    ${sec('deviations', 'lib_portfolio_deviations', 'sd-scroll-dev')}
     ${''/* JAMBO'S PANEL ON OUR STANDARDS (owner, 19 Oct 2026: "our paper page in
            the our standards tab does not have jambo"): the three lists share the
            ONE list panel every list page draws (#ins-panel, jlFrame) — it was
@@ -4292,59 +4490,53 @@ function sdPageHtml(tabRow, tab, d){
     <aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('sd_panel_clause'))}"></aside>
   </div>`;
 }
+/* ONE FOOT under each list: every row is drawn, so "1–n of n" */
+function sdFootHtml(tab){
+  const n=(_sdShown[tab]||[]).length;
+  return (typeof lhFootHtml==='function')?lhFootHtml(SD_LH, n, n, 0, { cls:'ins-foot' }):'';
+}
 /* ONE TAB'S LIST AND PANEL, painted from the readings of THIS paint. A filter,
    a link from another tab or a save redraws the section it touched and
-   nothing else — a press that filters may not throw the reader's place. */
+   nothing else — a press that filters may not throw the reader's place.
+   Portfolio deviations' list is drawn again on every paint (its filters move
+   it); the words in the box draw every list again ({ rows:true }). */
 let _sdData = null;
 let _sdMayEdit = false;
-function sdPaintSection(tab){
+function sdPaintSection(tab, o){
   const d=_sdData; if(!d) return;
   const sec=document.querySelector(`.sd-ins [data-pb-sec="${tab}"]`); if(!sec) return;
-  if(tab==='deviations'){
-    const f=sdDevFilters();
-    const rows=sdDevRows(d, f);
-    const bar=sec.querySelector('[data-sd-bar]'); if(bar) bar.innerHTML=sdDevChipsHtml(d, f);
-    const sc=sec.querySelector('#sd-scroll-dev'); if(sc) sc.innerHTML=sdDevListHtml(d, rows);
-    const ft=sec.querySelector('[data-sd-foot]'); if(ft) ft.textContent=i18t('sd_showing',{n:rows.length,of:d.off.length});
-    sdWireDevControls(sec);
+  if(tab==='deviations'||(o&&o.rows)){
+    const sc=sec.querySelector('.ins-scroll');
+    if(sc) sc.innerHTML=tab==='clauses'?sdClauseListHtml(d):tab==='playbook'?sdBookListHtml(d):sdDevListHtml(d, sdDevRows(d, sdDevFilters()));
+    const ft=sec.querySelector('[data-sd-foot]'); if(ft) ft.innerHTML=sdFootHtml(tab);
+    if(tab==='deviations') sdWireDevControls(sec);
   }
   sdWireList(tab);
 }
+/* the empty list's own way back ("Clear filters", where the filters left
+   nothing); the filters themselves are the list head's chips */
 function sdWireDevControls(sec){
   const f=sdDevFilters();
-  sec.querySelectorAll('[data-sd-f]').forEach(s=>s.addEventListener('change',()=>{ f[s.getAttribute('data-sd-f')]=s.value; sdPaintSection('deviations'); }));
-  sec.querySelectorAll('[data-sd-clear]').forEach(b=>b.addEventListener('click',()=>{ Object.assign(f, SD_DEV_DEF); sdPaintSection('deviations'); }));
+  sec.querySelectorAll('[data-sd-clear]').forEach(b=>b.addEventListener('click',()=>{ Object.assign(f, SD_DEV_DEF); sdPaintSection('deviations');
+    if(typeof lhHeadSync==='function') lhHeadSync(SD_LH); }));
 }
 /* The list's hands and its panel, per tab: the ids a tab lists, how one row
    is named, what its panel says and what "open" means for it — the editor
    for a standard or a book, the contract for a departure. */
-/* THE CARD HEAD'S SEARCH (SAP benchmark, batch 2): rows hidden in place by
-   the standard's name and topic, never redrawn — the panel and the reader's
-   place stay. Bound once per element. */
-function sdWireSearch(){
-  const box=document.querySelector('.sd-ins [data-sd-q]');
-  if(!box||box.dataset.sdQBound) return;
-  box.dataset.sdQBound='1';
-  box.addEventListener('input',()=>{
-    const q=String(box.value||'').trim().toLowerCase();
-    document.querySelectorAll('.sd-ins tr[data-sd-row]').forEach(tr=>{
-      tr.hidden=!!q && !tr.textContent.toLowerCase().includes(q); });
-  });
-}
 function sdWireList(tab){
   const d=_sdData; if(!d) return;
-  if(tab==='clauses') sdWireSearch();
   const mayEdit=_sdMayEdit;
+  /* the ids each list SHOWS (the box's words held), in the order it draws them */
   const spec={
-    clauses:{ seat:'std:clauses', attr:'data-sd-row', ids:()=>d.lib.map(cl=>String(cl.id)),
+    clauses:{ seat:'std:clauses', attr:'data-sd-row', ids:()=>_sdShown.clauses.slice(),
       panel:id=>{ const cl=d.lib.find(x=>String(x.id)===id); return cl?sdClausePanelOpts(cl,d,mayEdit):null; },
       open:id=>{ if(!mayEdit) return; const i=clauseLibrary().findIndex(x=>String(x.id)===id); if(i>=0) openClauseEditor(i); },
       host:'ins-panel', empty:'sd_panel_none_clause' },
-    playbook:{ seat:'std:books', attr:'data-sd-book', ids:()=>d.keys.slice(),
+    playbook:{ seat:'std:books', attr:'data-sd-book', ids:()=>_sdShown.playbook.slice(),
       panel:id=>(d.pb[id]?sdBookPanelOpts(id,d,mayEdit):null),
       open:id=>{ if(mayEdit) openPlaybookEditor(id); },
       host:'ins-panel', empty:'sd_panel_none_book' },
-    deviations:{ seat:'std:dev', attr:'data-sd-dev', ids:()=>sdDevRows(d, sdDevFilters()).sort((a,b)=>(stdOpenToChange(b)-stdOpenToChange(a))||sdDevSort(a,b)).map(c=>c.id),
+    deviations:{ seat:'std:dev', attr:'data-sd-dev', ids:()=>_sdShown.deviations.slice(),
       panel:id=>{ const c=d.off.find(x=>x.id===id); return c?sdDevPanelOpts(c,d):null; },
       open:id=>sdOpenContract(id),
       host:'ins-panel', empty:'sd_panel_none_dev' },
@@ -4432,7 +4624,7 @@ function sdWire(d, mayEdit){
   PB_PAGE_TABS.forEach(sdWireList);
 }
 
-Object.assign(window,{sdSettledHtml,sdLearnApply,sdLearnProposal,sdLearnChartHtml,sdLearnNewText,sdPanelClauseId,tplPlace,tplPlacePut,pbInsMounted,pbPaintHead,sdData,sdHeads,sdFirm,sdLimitWords,sdLegalLine,sdClausePanelOpts,sdBookPanelOpts,sdDevPanelOpts,sdDevRows,sdDevFilters,SD_DEV_DEF,SD_DEV_CHIPS,SD_WHERE_MAX,sdPaintSection,sdGoTab,sdGoBook,sdGoClause,sdGoDev,sdCheckAgain,sdOpenDraftCompare,
+Object.assign(window,{sdPlace,sdPlacePut,pbTabGo,paperSegHtml,sdSettledHtml,sdLearnApply,sdLearnProposal,sdLearnChartHtml,sdLearnNewText,sdPanelClauseId,tplPlace,tplPlacePut,pbInsMounted,pbPaintHead,sdData,sdHeads,sdFirm,sdLimitWords,sdLegalLine,sdClausePanelOpts,sdBookPanelOpts,sdDevPanelOpts,sdDevRows,sdDevFilters,SD_DEV_DEF,SD_DEV_CHIPS,SD_WHERE_MAX,sdPaintSection,sdGoTab,sdGoBook,sdGoClause,sdGoDev,sdCheckAgain,sdOpenDraftCompare,
   tplOvFit,HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,_tplSourceLabel,_richSelection,_richReplaceRange,
   templateVersionNo,templateVersions,templateUsage,templateUsageLabel,saveTemplateVersion,
-  PAPER_TABS,paperTabsHtml,paperTabsWire,openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,tplBuiltinKey,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplBookHtml,tplBookShelvesHtml,tplPfHtml,tplPfGroups,tplPfChosen,tplPfPaperHtml,TPL_PF_SHELVES,_tplPf,TPL_PF_DAYS,tplPfShelfOpen,tplPfDocStamp,tplPfTally,tplPfStats,tplPfVersion,tplPfStream,tplPfBookKey,tplPfBlanksHtml,tplPfLabels,tplPfDocLoad,tplPfFacts,tplPfVerbs,tplDraftFrom,tplShortStream,TPL_PF_SIG_RE,tplPfSheetSections,tplPfMarkPlace,tplPfMarksPaint,tplPfTimes,tplPfSaid,tplPfChips,tplPfJamboHtml,tplPfPageSay,tplPfPanelPaint,tplPfHeadFacts,tplPfAfterPaint,paperStandardsCount,paperTabCounts,tplBookRepaint,tplBookWire,tplBookGlanceHtml,TPL_BOOK_SECS,tplOvCardHtml,tplOvPanelsHtml,tplOvRateInk,bucketStreamName,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,tplListIns,tplInsPaint,tplPanelOpts,tplPanelActs,tplReadOf,tplListHeadHtml,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});
+  PAPER_TABS,paperTabsHtml,paperTabsWire,openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,tplBuiltinKey,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplBookHtml,tplBookShelvesHtml,tplPfHtml,tplPfGroups,tplPfChosen,tplPfPaperHtml,TPL_PF_SHELVES,_tplPf,TPL_PF_DAYS,tplPfShelfOpen,tplPfDocStamp,tplPfTally,tplPfStats,tplPfVersion,tplPfStream,tplPfBookKey,tplPfBlanksHtml,tplPfLabels,tplPfDocLoad,tplPfFacts,tplPfVerbs,tplDraftFrom,tplShortStream,TPL_PF_SIG_RE,tplPfSheetSections,tplPfMarkPlace,tplPfMarksPaint,tplPfTimes,tplPfSaid,tplPfChips,tplPfJamboHtml,tplPfPageSay,tplPfPanelPaint,tplPfHeadFacts,tplPfAfterPaint,paperStandardsCount,paperTabCounts,tplBookRepaint,tplBookWire,tplBookGlanceHtml,TPL_BOOK_SECS,tplOvCardHtml,tplOvPanelsHtml,tplOvRateInk,bucketStreamName,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,tplListIns,tplInsPaint,tplPanelOpts,tplPanelActs,tplReadOf,tplColDefs,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});

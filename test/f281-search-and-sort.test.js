@@ -118,20 +118,26 @@ describe('f281 (1) — the search narrows again', () => {
 
   /* A CONTROL: true before this change and after it. Its job is to fail the
      day somebody widens the fix to a seat that has no box to say so. */
-  test('and the Negotiations seat, which draws no box anywhere, is untouched', () => {
-    /* M-5's rule and the reason for it are unchanged: that page has no search
-       control on either shell, and a page narrowed by a control nobody can see
-       is worse than the duplicate box ever was. The shell bar's own box always
-       navigates to Contracts, so it can never be the one narrowing here. */
+  test('and on Negotiations the words narrow where its own box says them — a computer, never the phone', () => {
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick "The Legora way": a
+       box under every list's title). It read "the Negotiations seat, which
+       draws no box anywhere, is untouched" — M-5's rule. The rule itself
+       stands (a query narrows where a box says it, and nowhere else); its
+       subject moved: the computer's Negotiations page now draws its own box
+       (the list head), the phone's still draws none. ONE reading, regQueryOf,
+       which regFiltered and regNarrowed both ask. */
     win.regSetScope('negotiations');
-    const R = seed();
-    /* This seat narrows to live negotiations before any filter runs, so the
-       claim is a COMPARISON rather than a count: whatever it holds, a query
-       must not change it. */
-    const before = win.regFiltered().length;
-    R.query = 'lease';
-    assert.equal(win.regFiltered().length, before, 'the query narrows nothing on this seat');
-    win.regSetScope(null);
+    const R = seed(); R.query = 'lease';
+    const keep = win.mPhone;
+    try {
+      win.mPhone = () => false;
+      assert.equal(win.regQueryOf(R), 'lease', 'on a computer the box\'s words are the query');
+      win.mPhone = () => true;
+      assert.equal(win.regQueryOf(R), '', 'on the phone, which draws no box, nothing narrows');
+      win.regSetScope(null);
+      assert.equal(win.regQueryOf(R), 'lease', 'and Contracts reads the words on either shell');
+    } finally { win.mPhone = keep; win.regSetScope(null); }
+    assert.match(REG, /const q=regQueryOf\(R\)\.trim\(\)\.toLowerCase\(\);/, 'regFiltered asks the one reading');
   });
 });
 
@@ -144,8 +150,12 @@ describe('f281 (2) — one reading of "is anything narrowing"', () => {
     const inline = REG.match(/R\.stage!=='all'\|\|R\.type!=='all'/g) || [];
     assert.equal(inline.length, 0,
       'no surface works it out again — ' + inline.length + ' left');
-    assert.ok(/regNarrowed\(/.test(NEGV),
-      'the Negotiations head asks the same reading rather than keeping its own');
+    /* RE-POINTED 21 Oct 2026 (Part 8): the Negotiations head no longer reads
+       the narrowing back in a sentence of its own ("Showing 2 of 7 …") — the
+       list head's chips, tab numbers and foot say it where it is set — so it
+       keeps no copy of the reading either. */
+    assert.ok(!/ngl_sub_filtered/.test(NEGV) && !/regNarrowed\(/.test(NEGV),
+      'the Negotiations head keeps no reading of its own');
   });
 
   test('the query counts as narrowing, and only where it narrows', () => {
@@ -164,11 +174,18 @@ describe('f281 (2) — one reading of "is anything narrowing"', () => {
 
   test('and on the seat with no box, a stale query is not called a filter', () => {
     /* Or the head would offer "Clear" over a list nothing had narrowed — the
-       control saying one thing and the table another. */
+       control saying one thing and the table another. RE-POINTED 21 Oct 2026
+       (Part 8): the seat with no box is the PHONE's Negotiations screen; the
+       computer's draws one now, and there the words are a narrowing. */
     win.regSetScope('negotiations');
     const R = seed(); R.query = 'lease';
-    assert.equal(win.regNarrowed(R), false);
-    win.regSetScope(null);
+    const keep = win.mPhone;
+    try {
+      win.mPhone = () => true;
+      assert.equal(win.regNarrowed(R), false, 'the phone: no box, no filter');
+      win.mPhone = () => false;
+      assert.equal(win.regNarrowed(R), true, 'a computer: its box says it, so it narrows');
+    } finally { win.mPhone = keep; win.regSetScope(null); }
   });
 });
 

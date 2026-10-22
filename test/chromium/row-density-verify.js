@@ -99,8 +99,12 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
   await set('compact');
   ok('padding travels with the height', (await page.evaluate(() =>
      getComputedStyle(document.querySelector('.reg-table tbody td')).paddingLeft)) === '12px');
+  /* RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way"): the
+     Contracts place has no Ref column now, so the row's first cell is the
+     identity cell, which keeps its own two-line leading; the row's leading is
+     read off a plain cell (Stage), as the Ref cell gave it before */
   ok('leading travels with it too', (await page.evaluate(() =>
-     getComputedStyle(document.querySelector('.reg-table tbody td')).lineHeight)) === '20px');
+     getComputedStyle(document.querySelector('.reg-table tbody td:not(.reg-cell-title)')).lineHeight)) === '20px');
 
   console.log('\n3 · it buys what it claims to buy');
   /* HEIGHT, NOT COUNT — a count cannot move on a book shorter than the page. */

@@ -17,6 +17,14 @@
        Done · State, a filed row's number opens its contract, rows carry no
        buttons (the panel holds the acts), no !important.
    AT THE PARENT (gaps/A1, d2a4eb4) every test here FAILS.
+   RE-POINTED 21 Oct 2026 (Part 8, "every list page the Legora way", the
+   owner's pick): the five figures are the list head's TAB ROW (All · To
+   check · Duplicate? · No readable text · Filed, each counted with the rows
+   its press shows, the box's words held; a tab with none left out unless lit
+   or All); a tab is a tab — pressed again it stays; the list card's own head
+   is gone (its words are the All tab's hover, its acts at the chip row's
+   right end, migHeadActsHtml) and its foot is the list head's "1–9 of 12 ·
+   Show 3 more" (lhFootHtml). The cap stands: every row that needs you shown.
    The browser half: test/chromium/import-as-drawn-verify.js.
    ═══════════════════════════════════════════════════════════════════════════ */
 const { test, describe } = require('node:test');
@@ -74,8 +82,9 @@ function stage(o){
   vm.createContext(ctx);
   vm.runInContext(take(['MIG_SHOWS', 'MIG_ROWS_SHOWN', 'MIG_ST_ORDER', 'MIG_NEEDS', 'migShowPass', 'migShowSet', 'migLinkPending', 'migRefOf', 'MIG_K', 'MIG_FACT_WORD',
     'migNoneWhy', 'migLinkWhy', 'migCheckWhy', 'migStateOf', 'MIG_DUP_WORD', 'migDupeWhy', 'migQueueState', 'migFolderFor', 'migRows', 'migRowByKey', 'migKpis',
-    'migShown', 'migGates', 'migComplete', 'migFieldLabel', 'migDay', 'migSideFacts'])
-    + '\nlet _migShow = "all", _migAll = false;\nthis.api = { migStateOf, migQueueState, migRows, migRowByKey, migKpis, migShown, migShowPass, migShowSet, get show(){ return _migShow; }, set all(v){ _migAll = v; }, get all(){ return _migAll; } };', ctx);
+    'migShown', 'migGates', 'migComplete', 'migFieldLabel', 'migDay', 'migSideFacts',
+    'MIG_TABS', 'migHit', 'migFound', 'migBatchCount', 'migTabViews', 'migWhatOf', 'migStreamOf', 'migStreamName', 'migParked'])
+    + '\nlet _migShow = "all", _migAll = false, _migQ = "";\nthis.api = { migStateOf, migQueueState, migRows, migRowByKey, migKpis, migShown, migShowPass, migShowSet, migTabViews, migFound, get show(){ return _migShow; }, set all(v){ _migAll = v; }, get all(){ return _migAll; }, set q(v){ _migQ = v; } };', ctx);
   return ctx;
 }
 const C = (id, mg, extra) => Object.assign({ id, name:id, counterparty:'Acme', value:5, folder:'proc', expiry:'2027-01-31', upload:{ fileName:id + '.pdf', fileHash:'h' + id },
@@ -133,8 +142,9 @@ describe('f770 (3) nine shown, the cap said', () => {
     assert.equal(s.list.filter(r => r.st.k === 'check').length, 4, 'every row that needs you is shown');
     api.migShowSet('filed');
     assert.equal(api.migShown(rows).list.length, 8, 'a door shows its kind whole');
-    api.migShowSet('filed'); api.all = true;
-    assert.equal(api.migShown(rows).list.length, 12, 'Show all lifts the cap');
+    assert.equal(api.migShown(rows).of, 8, 'the foot\'s "of" is the rows the door lets through');
+    api.migShowSet('all'); api.all = true;
+    assert.equal(api.migShown(rows).list.length, 12, 'Show more lifts the cap');
   });
   test('3b more rows need you than nine: none is hidden', () => {
     const cs = []; for (let i = 0; i < 12; i++) cs.push(C('N' + i, { needsReview:true }, { expiry:null }));
@@ -143,28 +153,43 @@ describe('f770 (3) nine shown, the cap said', () => {
   });
 });
 
-describe('f770 (4) the figures are doors', () => {
-  test('4a pressed again, or an unknown word, all — and the cap comes back', () => {
+describe('f770 (4) the tabs are doors', () => {
+  test('4a pressed again it stays (a tab, not a toggle); an unknown word, all — and the cap comes back', () => {
     const ctx = stage(); const { api } = ctx;
     api.migShowSet('check'); assert.equal(api.show, 'check');
-    api.migShowSet('check'); assert.equal(api.show, 'all');
+    api.migShowSet('check'); assert.equal(api.show, 'check', 'All is its own tab');
     api.all = true; api.migShowSet('nonsense'); assert.equal(api.show, 'all'); assert.equal(api.all, false);
     assert.equal(ctx.painted, 3);
     assert.equal(api.migShowPass({ st:{ k:'dupe' } }, 'dupe'), true);
     assert.equal(api.migShowPass({ st:{ k:'dupe' } }, 'none'), false);
   });
-  test('4b the five figures, a zero is not a door', () => {
-    const f = fnBody(MIG, 'migBandHtml');
-    for (const k of ["fig('all', i18t('mig_k_files')", "fig('filed', i18t('mig_k_filed')", "fig('check', i18t('mig_k_check')", "fig('dupe', i18t('mig_k_dupe')", "fig('none', i18t('mig_no_text')"]) assert.ok(f.includes(k), k);
-    assert.match(f, /const door = n > 0/);
+  test('4b the five readings are the tab row, each counted with the rows its press shows, the words held', () => {
+    const cs = [C('MK-1', {}, { upload:{ fileName:'lease.pdf' } }), C('MK-2', { needsReview:true }, { expiry:null, upload:{ fileName:'supply.pdf' } }), C('MK-3', { blocked:'no-text' }), C('MK-4', {}, { counterparty:'Nordkap AB' })];
+    const { api } = stage({ cs });
+    const tabs = () => Object.fromEntries(api.migTabViews().map(t => [t.k, t.n]));
+    assert.deepEqual(Array.from(api.migTabViews(), t => t.k), ['all', 'check', 'dupe', 'none', 'filed'], 'in the order the list puts its rows');
+    assert.deepEqual(tabs(), { all:4, check:1, dupe:0, none:1, filed:2 });
+    assert.equal(api.migTabViews().find(t => t.k === 'all').keep, true, 'All is kept; a tab with none is left out (insViewTabsHtml)');
+    api.q = 'nordkap';
+    assert.deepEqual(tabs(), { all:1, check:0, dupe:0, none:0, filed:1 }, 'the box\'s words narrow every count');
+    assert.deepEqual(Array.from(api.migFound(api.migRows()), r => r.key), ['MK-4']);
+    api.q = 'MK-1';
+    assert.deepEqual(Array.from(api.migFound(api.migRows()), r => r.key), ['MK-1'], 'a filed file\'s reference, as its row draws it');
+    api.q = 'MK-2';
+    assert.equal(api.migFound(api.migRows()).length, 0, 'a reference its row does not draw is not searched (the row says why it waits instead)');
   });
 });
 
 describe('f770 (5) the table as drawn', () => {
-  test('5a its head, columns and foot', () => {
+  test('5a its columns and foot; the card head\'s words and acts in the list head', () => {
     const f = fnBody(MIG, 'migListHtml');
-    for (const k of ['mig_list_sub', 'mig_sheet', 'mig_check_all', 'mig_col_file', 'mig_col_stream', 'mig_col_value', 'mig_col_ends', 'mig_col_done', 'mig_col_state', 'mig_shown_n', 'mig_show_all_n']) assert.ok(f.includes("'" + k + "'"), k);
-    assert.match(f, /data-mig-all/);
+    for (const k of ['mig_col_file', 'mig_col_stream', 'mig_col_value', 'mig_col_ends', 'mig_col_done', 'mig_col_state']) assert.ok(f.includes("'" + k + "'"), k);
+    assert.match(f, /lhFootHtml\(MIG_SEAT, /, 'the foot: "1–9 of 12 · Show 3 more"');
+    assert.ok(!/mig-lh|data-mig-all/.test(f), 'no card head of its own, no old foot');
+    const acts = fnBody(MIG, 'migHeadActsHtml');
+    for (const k of ['mig_sheet', 'mig_rerun_n', 'mig_check_all']) assert.ok(acts.includes("'" + k + "'"), k);
+    const tabs = fnBody(MIG, 'migTabViews');
+    for (const k of ['mig_list_h', 'mig_list_sub']) assert.ok(tabs.includes("'" + k + "'"), 'the card head\'s words are the All tab\'s hover: ' + k);
   });
   test('5b a filed row\'s number opens its contract; a row carries no button; no !important', () => {
     assert.match(fnBody(MIG, 'migStateCell'), /class="mig-ref" data-open=/);

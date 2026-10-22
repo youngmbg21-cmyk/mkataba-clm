@@ -127,8 +127,12 @@ async function SEED(){
     check('0b the book paints its paper, its marks and Jambo\'s panel', !!ready);
 
     /* 1 THE HEAD */
+    /* RE-POINTED 21 Oct 2026 (Part 8, the owner's pick of "the Legora way"):
+       the page's three parts are the switch at the head's right, drawn like
+       Contracts' List | Wall (.paper-seg), no longer a tab row; each still
+       carries its count */
     const A = await page.evaluate(() => ({ h1: (document.querySelector('.tpl-hd-row h1') || {}).textContent || '', sub: (document.querySelector('[data-tpl-hd-sub]') || {}).textContent || '',
-      tabs: [...document.querySelectorAll('.tpl-band .st-tabs .st-tab')].map(b => b.textContent.trim()) }));
+      tabs: [...document.querySelectorAll('.tpl-band .paper-seg button')].map(b => b.textContent.trim()) }));
     check('1a the head says the page\'s name with its count', /^Our paper\s*\d+ templates$/.test(A.h1.trim()), A.h1);
     check('1b one facts line: contracts drafted in 12 months · came back changed', /^\d+ contracts? drafted from them in 12 months · \d+ came back changed$/.test(A.sub.trim()) && /^5 |^[5-9]|^\d{2}/.test(A.sub.trim()), A.sub);
     check('1c a count on each of the three tabs', A.tabs.length === 3 && A.tabs.every(t => /\d+$/.test(t)), JSON.stringify(A.tabs));
