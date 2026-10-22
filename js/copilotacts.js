@@ -401,15 +401,19 @@ function caActOf(q){
   /* "the drafts in distribution" are contracts at the draft stage, never a new one to write */
   if (r && r.kind === 'go' && r.place === 'draft' && /\b(drafts|utkasten)\b/i.test(t)) return null;
   if (!r || !caAiFirst()) return r;
+  /* "the big one", "the draft": too little to act on — Jambo asks which (stage 3c) */
+  if (CA_VAGUE_RE.test(t)) return null;
   /* AI FIRST (stage 3b): a question ("which…", "how many…", "vilka…") is answered, not met with a door or a
      card read off one of its words; sending and drafting stay the readers' own */
-  if (CA_WH_Q.test(t) && !['send', 'draft'].includes(r.kind) && !(r.kind === 'go' && !r.cid && CA_WH_WORKLISTS.includes(r.place))) return null;
+  /* "how do I get them to sign?" asks for the way to do a thing: the task's own card answers it, free */
+  if (CA_WH_Q.test(t) && !/^\s*(how (do|can|should) (i|we)|hur (gör|kan) (jag|vi))\b/i.test(t) && !['send', 'draft'].includes(r.kind) && !(r.kind === 'go' && !r.cid && CA_WH_WORKLISTS.includes(r.place))) return null;
   /* …and an act read for the contract open beside the reader is not done when the words name ANOTHER one
      ("make an amendment to the Westlands lease" with the courier contract open) */
   if (r.cid && typeof igAsksOtherThan === 'function'){ let other = false; try { other = igAsksOtherThan(t, r.cid); } catch (_){ other = false; } if (other) return null; }
   return r;
 }
 /* a question whose answer IS a worklist ("what is waiting for my approval") still opens it: answered where the list is */
+const CA_VAGUE_RE = /^\s*(?:the|that|this)\s+(?:(?:big|biggest|small|new|old|latest|last|first|other|main|usual)\s+)?(?:one|draft|thing|deal|contract|agreement)\s*$/i;
 const CA_WH_WORKLISTS = ['approvals', 'needs', 'requests', 'oblig', 'expiring', 'contracts', 'negotiations', 'calendar'];
 const CA_WH_Q = /^\s*(which|what|who|whom|whose|when|why|how (many|much|long|often|do|does|can)|does|do|did|is|are|can|could|should|vilk\w*|vad|vem|när|varför|hur)\b/i;
 function caActRead(t){
@@ -574,8 +578,11 @@ const CA_DRAFT_OPTS = 3;
    question (a "?" or a question word first) is never a draft. */
 const CA_DRAFT_BARE = /^\s*(?!(?:the|this|that|these|those|our|their|my|its|den|det|dessa|vårt|vår|våra|deras|mitt|min)\s)(?:(?:an?|new|ett|en|nytt?)\s+)?(?:[\p{L}-]+\s+){0,2}?(?:agreement|contract|nda|non-?disclosure agreement|lease|licen[cs]e|mou|sow|statement of work|addendum|amendment|avtal|kontrakt|sekretessavtal|hyresavtal|licensavtal|tillägg)(?=[\s.,!:]|$)/iu;
 const CA_DRAFT_ASKING = /\?|^\s*(?:what|which|who|whom|whose|how|when|where|why|show|list|find|open|are|is|do|does|can|vad|vilka|vilket|vilken|vem|hur|när|var|varför|visa|lista|hitta|öppna|finns)(?=[\s.,!:]|$)/i;
+/* "start negotiating the milk contract", "start signing MK-B2": an act on a contract that exists, never new paper */
+const CA_DRAFT_NOT = /\b(negotiat\w*|redlin\w*|förhandl\w*|signing|signera\w*|reviewing|granska\w*)\b/i;
 function caIsDraftAsk(q){
   const t = String(q || '');
+  if (CA_DRAFT_NOT.test(t)) return false;
   if (CA_DRAFT_RE.test(t) && CA_DRAFT_NOUN.test(t)) return true;
   return !CA_DRAFT_ASKING.test(t) && CA_DRAFT_BARE.test(t) && !!caDraftWith(t);
 }
@@ -1516,7 +1523,7 @@ async function caDraftReply(prompt, cid){
     return (e && e.needsKey) ? { why: 'nokey' } : { why: 'failed', msg: (e && e.message) || '' };
   }
 }
-Object.assign(window, { caDraftReply, caAiFirst, caActRead, CA_WH_Q, CA_WH_WORKLISTS, caAnswerIds, CA_ANSWER_IDS_MAX });
+Object.assign(window, { CA_VAGUE_RE, caDraftReply, caAiFirst, caActRead, CA_WH_Q, CA_WH_WORKLISTS, caAnswerIds, CA_ANSWER_IDS_MAX });
 Object.assign(window, { caRefFix, CA_REF_RE, caRefLinkPaint, caRefOpen, CA_MENU, CA_MENU_INBOUND, CA_MENU_THEIR_FILE, CA_FILE_OUT, CA_FILE_KEEP, CA_MENU_NOT, caReadMenu, caMenuRows, caMenuCardHtml, caMenuPress, CA_DOORS, CA_DOOR_NOT, caReadDoor, caRoomSign, CA_DOOR_GO, CA_DOOR_SHUT, CA_DOOR_NEEDS, caDoorCardHtml, caDoorPress });
 Object.assign(window, { CA_SUMMARY_RE, CA_WRITE_MAIL_RE, caFindPersonNamed, caSummaryText, caSummaryOpen, caScreenSent, caPassSend, caPeopleFor, caPersonRowHtml, caScreenCardHtml });
 Object.assign(window, { CA_PICK_MAX, CA_NOTE_MAX, CA_SEND_RE, caPeople, caContracts, caOpenContract, caTokenAt, caMatches, caPopHtml, caPopClose, caPopRead, caChoose,
@@ -2365,6 +2372,13 @@ function caUnderstand(q, opts = {}){
      contract, a party's folder, Contracts narrowed by stream, stage, party and end — read first, as
      the most exact reading the words have; what it does not read falls through to the readers below */
   { let nv = null; try { nv = (typeof navRead === 'function') ? navRead(t, { box }) : null; } catch (_){ nv = null; } if (nv) return nv; }
+  /* SAID ANOTHER WAY (AI first, stage 3c): a place's name misspelt ("aprovals", "teh board") is put right to the
+     one place word a slip away, and an act said as a wish ("start negotiating the milk contract", "let's get
+     MK-B2 signed") as the act itself — read once more; only a move found that way is taken */
+  if (!opts.typo){
+    const fixed = caPhraseFix(caTypoFix(t));
+    if (fixed !== t){ let u = null; try { u = caUnderstand(fixed, Object.assign({}, opts, { typo: true })) || caReadPlace(fixed); } catch (_){ u = null; } if (u && u.kind === 'go') return u; }
+  }
   /* a place named with what to show there is read first: it is the most the words can say */
   const and = caReadPlaceAnd(t); if (and) return and;
   /* a send, a job, a door, a Menu row, a draft are read as they always were (caActOf's readers) */
@@ -2384,12 +2398,42 @@ function caUnderstand(q, opts = {}){
     return ct;
   }
   const go = caReadGoPlace(t); if (go) return go;
+  /* A PLACE'S NAME MISSPELT ("aprovals", "setings", "teh board"): a short ask nothing above read is read once
+     more with each word put right to the one place word a slip away (AI first, stage 3c) */
   /* A NARROWING THAT NAMES NO PLACE ("which contracts end this year", "draft",
      a party's name) is not the reader's: the box's own reader answers it as
      before (the Board, the map, the draft door, the chat). caReadNarrowOnly
      stays for a caller that asks for it by name. */
   return null;
 }
+const CA_TYPO_GLUE = ['the', 'my', 'our', 'open', 'show', 'take', 'me', 'to', 'go', 'öppna', 'visa', 'gå', 'till'];
+function caTypoFix(t){
+  const words = String(t || '').trim().split(/\s+/);
+  if (!words.length || words.length > 3 || typeof window.hsEdit !== 'function') return t;
+  const vocab = new Set(CA_TYPO_GLUE);
+  for (const p of CA_PLACES) for (const w of p.w || []) if (!/\s/.test(w) && w.length >= 4) vocab.add(w.toLowerCase());
+  let moved = false;
+  const out = words.map(w0 => {
+    const w = w0.toLowerCase();
+    if (vocab.has(w) || w.length < 3 || /\d/.test(w)) return w0;
+    const max = w.length >= 8 ? 2 : 1;
+    let best = null, bestD = max + 1, tie = false;
+    /* a word and its plural are two words, not a slip ("approval" is the map's own word) */
+    if ([...vocab].some(v => v === w + 's' || w === v + 's' || v === w + 'es')) return w0;
+    for (const v of vocab){ const d = window.hsEdit(w, v, max); if (d < bestD){ best = v; bestD = d; tie = false; } else if (d === bestD) tie = true; }
+    if (!best || bestD > max || tie) return w0;
+    moved = true; return best;
+  });
+  return moved ? out.join(' ') : t;
+}
+function caPhraseFix(t){
+  let x = String(t || '').trim();
+  x = x.replace(/^(?:let'?s|lets|start|begin|time to|we need to|i want to|i'd like to)\s+/i, '');
+  x = x.replace(/^(negotiat|redlin)ing\b/i, (m, a) => a.toLowerCase() === 'negotiat' ? 'negotiate' : 'redline');
+  x = x.replace(/^get\s+(.+?)\s+signed\s*$/i, 'sign $1');
+  return x;
+}
+Object.assign(window, { caTypoFix, CA_TYPO_GLUE, caPhraseFix });
 /* A PAGE THAT KEEPS WORK (the clause editor, the builder) is left only for a
    SURE place or contract: one named with "go to", "open", "take me to", or a
    contract's number — never a bare narrowing or a title alone, which are as

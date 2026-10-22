@@ -12937,7 +12937,7 @@ function copilotNudge(working, words) {
 /* the last step must answer (measured: making EVERY step use a tool sent a confused model searching to the
    eighth call, 22 Oct 2026; a question asked back in plain words is asked to come with its choices instead) */
 const copilotLastStep = step => (step === AI_CHAT_STEPS - 1 ? { tool_choice: { type: 'tool', name: 'deliver_answer' } } : {});
-const COPILOT_CHOICES_NUDGE = 'You asked the person which they meant. Call deliver_answer now with that short question as the answer and 2-4 choices, each the exact door it opens.';
+const COPILOT_CHOICES_NUDGE = 'Call deliver_answer now. If more than one thing could be meant, search, then give a short question as the answer with 2-4 choices, each the exact door it opens (name them; never "I haven\'t asked"). If you know what is meant, give the answer itself.';
 /* a reply in plain words that asks the person back ("which one…?") */
 const copilotAsksBack = txt => /\?\s*$|\?\s*\n/.test(String(txt || '')) && /\b(which|what|who|did you mean|do you mean|vilk|menade)\b/i.test(String(txt || ''));
 /* what each kind of hit opens, as a goto door (aiDoorOf checks it again) */
@@ -12974,8 +12974,12 @@ function copilotQuoteDoor(cx, question, final) {
   const ids = [...new Set((final.citations || []).map(c => c && c.id).filter(Boolean))];
   if (ids.length !== 1) return null;
   const cj = copilotGetJson(cx, ids[0]); if (!cj) return null;
-  if (cited.length){
-    const nq = quoteNorm(cited[0].quote);
+  /* no quote cited, but one written into the answer's own words ("> "The buyer shall pay…"") is tried the same way */
+  if (!cited.length){
+    for (const m of String(final.answer || '').matchAll(/["“]([^"“”]{25,300})["”]/g)) cited.push({ id: ids[0], quote: m[1] });
+  }
+  for (const cq of cited.slice(0, 4)){
+    const nq = quoteNorm(cq.quote);
     const p = hsPassages(hsWordingOf(cj)).find(x => quoteNorm(x.text).includes(nq));
     if (p && (!sharpen || g0.contractId === cj.id) && (COPILOT_SHOW_RE.test(q) || !COPILOT_ASKS_RE.test(q))){
       const door = aiDoorOf({ kind: 'clause', contractId: cj.id, quote: p.text.replace(/\s+/g, ' ').slice(0, 120), ...(p.head ? { head: p.head } : {}) }, cx);
@@ -13064,6 +13068,14 @@ function quoteNorm(s) {
    and taken out of the words, so the reader never sees the markup and the sources still count. */
 function copilotParamsSalvage(inp) {
   const a = inp && typeof inp.answer === 'string' ? inp.answer : '';
+  /* or the rest of the call written as JSON inside the answer: `…", "citations":[…], "goto":{…}}` */
+  const js = a.search(/\\?"\s*,\s*\\?"(citations|goto|choices|compare)\\?"\s*:/);
+  if (js >= 0){
+    for (const end of ['', '}', '}}', ']}']){
+      try { const o = JSON.parse('{"answer":"' + a + end); if (o && typeof o.answer === 'string') return { ...inp, ...o, answer: o.answer.trim() }; } catch (_) {}
+    }
+    return { ...inp, answer: a.slice(0, js).replace(/\\n/g, '\n').replace(/\\"/g, '"').trim() };
+  }
   const at = a.search(/<parameter name="/);
   if (at < 0) return inp;
   const out = { ...inp, answer: a.slice(0, at).replace(/\\?["”]?\s*,?\s*$/, '').trim() };

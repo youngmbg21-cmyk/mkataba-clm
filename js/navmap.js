@@ -171,9 +171,11 @@ function navRead(q, opts = {}){
 const NAV_PAGES = [
   ['oblig', / (all|every|our) (our )?(duties|obligations) |^ (show me )?(all )?(our )?duties $|^ alla (våra )?åtaganden $/],
   ['negotiations', /^ (take me to |open |go to |show me |where are |where is |where do i find |var är )?(the |all )?(negotiations|negotiation list|negotiations list|förhandlingar|förhandlingarna)( list| page)? $/],
-  ['people', / (people directory|the directory|directory of people|personkatalog|katalogen) /],
+  ['people', / (people directory|the directory|directory of people|personkatalog|katalogen) |^ (vilka|vem) (arbetar|jobbar) här $/],
+  ['parties', /^ (list|show|show me|open|see)( all)?( of)?( our| the)? (customers|suppliers|counterparties|parties)( and (customers|suppliers))? $|^ (visa|lista)( alla)?( våra)? (kunder|leverantörer|motparter)( och (kunder|leverantörer))? $/],
   /* "jambo's work" is the Board's card (land-on-it 1a, the owner's door); his house by its own name */
   ['house', / (jambo s house|jambos house|jambo house|jambos hus) /],
+  ['mynotes', / (my (private |own )?notes|mina (privata |egna )?anteckningar) /],
   ['needs', /^ (what )?(needs me|needs you|is waiting on me|waits for me|väntar på mig) $/],
 ];
 function navReadPage(raw, t){
@@ -307,13 +309,15 @@ function navReadContracts(raw, t, opts){
   if (/^ (where|how) (do|can|should) (i|we) /.test(t) || / (compare|comparison|versus|vs|jämför|jämfört) /.test(t)) return null;
   const stage = navStageOf(t), stream = navStreamOf(t), ending = navEndingOf(t);
   /* "drafts" is a list; "the cold chain haulage draft" is one contract */
-  const contractsWord = / (contracts|agreements|deals|avtal|avtalen|kontrakt) /.test(t) || (stage === 'Draft' && / (drafts|utkasten|alla utkast) /.test(t)) || /^ (drafts|utkast) $/.test(t);
+  /* "show only the marketing stream": a stream asked for by that word is its list (stage 3c) */
+  const streamWord = !!stream && / (stream|streams|ström|strömmen) /.test(t) && !/ (access|who can|rights|permissions?|members?|keep|keeping|settings?|åtkomst|behörighet\w*|medlemmar) /.test(t);
+  const contractsWord = streamWord || / (contracts|agreements|deals|avtal|avtalen|kontrakt) /.test(t) || (stage === 'Draft' && / (drafts|utkasten|alla utkast) /.test(t)) || /^ (drafts|utkast) $/.test(t);
   const parties = navPartiesIn(t);
   const party = parties.length === 1 ? parties[0] : null;
   if (!contractsWord && !(stage && stream) && !(ending && contractsWord)) return null;
   if (!stage && !stream && !ending && !party) return null;
   /* one contract named is the contract reader's ("the Kabras supply deal"), never a list */
-  if (!/ (contracts|agreements|deals|avtalen|drafts) /.test(t) && !stage && !ending) return null;
+  if (!/ (contracts|agreements|deals|avtalen|drafts) /.test(t) && !stage && !ending && !streamWord) return null;
   const f = { stage, stream: stream ? stream.fid : null, ending, party: party ? party.key : null };
   const span = ending ? navEndingSpan(ending) : null;
   const ids = navBook().filter(c => {
@@ -346,10 +350,11 @@ function navContractsLabel(f, stream, party){
 function navReadParty(raw, t){
   if (NAV_CONTRACT_WORDS.test(t)) return null;
   const P = navPartiesIn(t); if (!P.length) return null;
-  const folder = NAV_FOLDER_WORDS.test(t), lead = NAV_LEAD.test(t);
+  /* "everything we have with Naivas" asks for all of theirs: their folder (stage 3c) */
+  const folder = NAV_FOLDER_WORDS.test(t) || / (everything|all) (we have|we ve got) with | allt (vi har )?med /.test(t), lead = NAV_LEAD.test(t);
   /* only the name, or the name with a lead or "folder": never a sentence that only mentions them */
   const leftover = P.reduce((s, p) => s.replace(navNorm(p.name), ' ').replace(' ' + navNorm(p.name).trim().split(' ')[0] + ' ', ' '), t)
-    .replace(NAV_LEAD, ' ').replace(NAV_FOLDER_WORDS, ' ').replace(/ (the|their|our|a|of|me|to|for|please|now|then|show|open) /g, ' ').trim();
+    .replace(NAV_LEAD, ' ').replace(NAV_FOLDER_WORDS, ' ').replace(/(?<= )(everything|all|we have|we ve got|with|allt|vi har|med)(?= )/g, ' ').replace(/ (the|their|our|a|of|me|to|for|please|now|then|show|open) /g, ' ').trim();
   if (!folder && !lead && leftover) return null;
   if (P.length > 1) return navWhich(P.map(p => ({ label: p.name, nav: { k: 'party', key: p.key, name: p.name } })));
   const p = P[0];
@@ -589,7 +594,7 @@ function navReadSettings(raw, t){
 }
 
 /* OUR STANDARDS, a book and a row: "where do I change our liability standard for NDAs" */
-const NAV_STD_BOOKS = [['nda', / (nda|ndas|non disclosure|sekretessavtal) /], ['supply', / (supply|supplies|leverans) /], ['lease', / (lease|leases|hyresavtal) /], ['services', / (services|service agreements?|tjänster) /]];
+const NAV_STD_BOOKS = [['nda', / (nda|ndas|non[ -]?disclosure|sekretessavtal) /], ['supply', / (supply|supplies|leverans) /], ['lease', / (lease|leases|hyresavtal) /], ['services', / (services|service agreements?|tjänster) /]];
 const NAV_STD_ROWS = [['liability', / (liability|ansvar) /], ['payment', / (payment terms|payment|betalning) /], ['confidential', / (confidentiality|confidential|sekretess) /]];
 function navReadStandards(raw, t){
   const std = / (standard|standards|playbook|standarder) /.test(t), tpl = / (template|templates|mall|mallen) /.test(t);

@@ -2396,7 +2396,12 @@ async function intelAsk(qRaw, opts){
   }
   /* AI FIRST ON THE BOARD (stage 3b): a QUESTION ("what ends this quarter", "which customer is worth the most")
      is the Board's Jambo's (the graph route, with the Board's own actions); commands stay the free reader's */
-  const boardQ=!!(window.caAiFirst&&caAiFirst()&&window.CA_WH_Q&&CA_WH_Q.test(q)&&!/^\s*(can|could|would|will|kan|skulle) (you|du)\b/i.test(q)&&typeof window.hbBringOf==='function'&&!hbBringOf(q));
+  /* …but a question the Board's own reader knows by name ("how many contracts are waiting on us": its "waiting on
+     us" figure) is answered by the Board, free; a lens is no answer to "worth the most" (stage 3c) */
+  let boardKnows=false;
+  try{ const pz=(typeof window.hbParse==='function')?hbParse(q):null;
+    boardKnows=!!pz&&!(pz.act==='dig'&&/^q:/.test(String(pz.key||'')))&&!(pz.act==='lens'&&/\b(most|biggest|largest|highest|least|smallest|top|mest|störst|högst)\b/i.test(q)); }catch(_){ boardKnows=false; }
+  const boardQ=!boardKnows&&!!(window.caAiFirst&&caAiFirst()&&window.CA_WH_Q&&CA_WH_Q.test(q)&&!/^\s*(can|could|would|will|kan|skulle) (you|du)\b/i.test(q)&&typeof window.hbBringOf==='function'&&!hbBringOf(q));
   if(!heldId && state.view==='dashboard' && !onPaperSide && !tplAsk && !hereMap && !boardQ && typeof window.hbAsk==='function'){
     let said=null; try{ said=hbAsk(q); }catch(e){ said=null; }
     if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{}, rdOf(), typeof window.hbBoardReplyMeta==='function'?hbBoardReplyMeta():{})); renderIntelDock(); return; }
@@ -8639,6 +8644,11 @@ function igAsksOtherThan(q, id){
     /* a stream named that is not this contract's ("show only the marketing stream") */
     const st=(typeof window.navStreamOf==='function')?navStreamOf(n):null;
     if(st&&st.fid&&st.fid!==c.folder) return true;
+    /* A CONTRACT NAMED BY WHAT IT IS ("sockeravtalet", "the milk contract", "hyresavtalet"): a word that names a
+       kind of contract which this one's name and party do not hold is another contract's (stage 3c) */
+    { const own=String([c.name,c.counterparty,c.type].join(' ')).toLowerCase();
+      const kinds=[...n.matchAll(/(?:^|\s)(\p{L}{3,})(?:avtal(?:et|en)?|kontraktet)(?=\s|$)|(?:^|\s)(?:the|a|our|their) (\p{L}{3,}) (?:contract|deal|agreement|lease)(?=\s|$)/gu)].map(m=>m[1]||m[2]).filter(w=>!['this','that','same','current','open','other','first','last','new','signed'].includes(w));
+      if(kinds.some(w=>!own.includes(w.slice(0,Math.min(5,w.length))))) return true; }
     /* MISSPELT NAMES ("kabbras", "the nandi diary contract", "suger"): a word one slip from a word of ANOTHER
        contract's name or party, and not this contract's own (hsEdit, the one search's words) */
     if(typeof window.hsEdit==='function'){
