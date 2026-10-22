@@ -21447,3 +21447,5 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Fixed (22 Oct 2026): the-letter-as-drawn-verify check 3b now waits (bounded, 3 s) for the "Sent as" list to put itself away before reading it; still red when the list never closes (proved by removing the close in shareLetterAsWire).
 
 - Noticed, not fixed (22 Oct 2026, navigable by typing): a Settings side drawer (a person's details) stays open over the next page when the reader leaves Settings by a door other than the drawer's own close (seen going Settings → Home → Parties); Jambo's own moves now shut it, other doors still leave it standing.
+- Noticed, not fixed (22 Oct 2026): while the plain New agreement form is up the bar's page name says the page under it ("Board" or "Contracts"), where the one sheet says "New agreement" (deskSheetUp covers only the sheet).
+- Noticed, not fixed (22 Oct 2026): in the test world the ✦ chat window answers "draft a contract" with "I couldn't finish an answer to that one…" (no AI key there), so what it does on the live site could not be checked from here.
