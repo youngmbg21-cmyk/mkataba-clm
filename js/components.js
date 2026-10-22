@@ -701,6 +701,32 @@ function listGlideAround(scope, sel, attr, paint){
   listGlidePlay(scope, sel, attr, was);
   return out;
 }
+/* A QUESTION ASKED WHILE JAMBO IS STILL ANSWERING WAITS ITS TURN (owner,
+   22 Oct 2026: "fix the bug where Jambo drops questions while busy"). Every
+   Jambo box that would have taken nothing hands the words here: they leave the
+   box, a transient line says they are next, and they are asked through the
+   same door, in order, the moment that host is free. Nothing is stored. */
+const JB_LATER_TICK = 200;
+const _jbLater = [];
+function jamboAskLater(q, busy, run){
+  const w = String(q == null ? '' : q).trim();
+  if (!w || typeof busy !== 'function' || typeof run !== 'function') return false;
+  _jbLater.push({ q: w, busy, run });
+  if (typeof window.toast === 'function') window.toast(window.i18t ? window.i18t('jb_ask_later') : 'Jambo will answer that next.', 'ok');
+  if (_jbLater.length === 1) setTimeout(jamboLaterTick, JB_LATER_TICK);
+  return true;
+}
+function jamboLaterTick(){
+  const h = _jbLater[0]; if (!h) return;
+  let b = false; try { b = !!h.busy(); } catch (_){ b = false; }
+  if (b){ setTimeout(jamboLaterTick, JB_LATER_TICK); return; }
+  _jbLater.shift();
+  try { h.run(h.q); } catch (_){ /* the host says its own failures */ }
+  if (_jbLater.length) setTimeout(jamboLaterTick, JB_LATER_TICK);
+}
+function jamboLaterCount(){ return _jbLater.length; }
+Object.assign(window,{JB_LATER_TICK,jamboAskLater,jamboLaterTick,jamboLaterCount});
+
 Object.assign(window,{LIST_GLIDE_MS,LIST_GLIDE_EASE,listGlideOff,listGlideTake,listGlidePlay,listGlideAround});
 
 /* ════ A PANEL'S FACE CROSSFADES (owner picked "Crossfade", 22 Oct 2026) ════

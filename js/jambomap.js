@@ -56,21 +56,21 @@ const JM_FUZZY_COUNTS = 7;   // a word matched only by a near spelling counts fr
    never read back from the books (CLAUDE.md, two languages). */
 const JM_TASKS = [
   { k: 'needs', to: { place: 'needs' }, w: {
-    en: ['my tasks', 'my todo list', 'todo', 'what is waiting for me', 'tasks waiting for me', 'pending tasks', 'anything for me today', 'my work today', 'what is on my plate', 'outstanding items', 'action items', 'my inbox', 'things i should be doing'],
+    en: ['my tasks', 'my todo list', 'todo', 'what is waiting for me', 'tasks waiting for me', 'pending tasks', 'anything for me today', 'my work today', 'what is on my plate', 'outstanding items', 'action items', 'my inbox', 'things i should be doing', 'things i owe people', 'what i owe people'],
     sv: ['mina uppgifter', 'att göra-lista', 'vad väntar på mig', 'mitt arbete idag', 'vad ligger på mitt bord', 'min inkorg', 'mina ärenden', 'väntande uppgifter'] },
     /* sentences made only of the ask's frame, read whole */
     whole: ['what do i need to do', 'what do i have to do', 'what should i do', 'what should i do next', 'what do i do now', 'what do i need to do today',
       'what am i supposed to do', 'what am i supposed to do today',
       'vad behöver jag göra', 'vad måste jag göra', 'vad ska jag göra', 'vad ska jag göra nu', 'vad ska jag göra idag', 'vad behöver jag göra idag', 'har jag något att göra'] },
   { k: 'contracts', to: { place: 'contracts' }, w: {
-    en: ['contracts', 'agreements', 'all contracts', 'contract list', 'list of agreements', 'contract repository', 'browse the contracts', 'look up a contract', 'every agreement we have', 'the full list', 'contract register', 'the register'],
+    en: ['contracts', 'agreements', 'all contracts', 'contract list', 'list of agreements', 'contract repository', 'browse the contracts', 'look up a contract', 'every agreement we have', 'the full list', 'contract register', 'the register', 'all the signed contracts'],
     sv: ['avtal', 'alla avtal', 'avtalslista', 'lista över avtal', 'avtalsarkiv', 'slå upp ett avtal', 'kontrakt'] } },
   { k: 'expiring', to: { reg: { view: 'expiring90' } }, w: {
     en: ['contracts expiring soon', 'expiring contracts', 'ending soon', 'up for renewal', 'renewals', 'contracts that end soon', 'about to expire', 'due for renewal', 'expiry dates', 'renew a contract',
       'coming up for renewal', 'about to run out', 'running out', 'ending this year', 'end before', 'close to their end date', 'end date coming up'],
     sv: ['avtal som löper ut snart', 'går ut snart', 'förnyelser', 'förnya avtal', 'slutar snart', 'utgångsdatum', 'löper ut', 'ska förnyas'] } },
   { k: 'upload', to: { place: 'upload' }, w: {
-    en: ['upload a contract', 'upload a document', 'add an existing contract', 'add a contract we received', 'attach a file', 'scan a contract', 'add a pdf', 'add a word file', 'their paper', 'a contract i got by email', 'from my computer'],
+    en: ['upload a contract', 'upload a document', 'add an existing contract', 'add a contract we received', 'attach a file', 'scan a contract', 'add a pdf', 'add a word file', 'their paper', 'a contract i got by email', 'from my computer', 'put a pdf into the system', 'get a contract into the system', 'into the system'],
     sv: ['ladda upp ett avtal', 'ladda upp ett dokument', 'lägg till ett befintligt avtal', 'bifoga en fil', 'skanna ett avtal', 'lägg in en pdf', 'ett avtal vi fått', 'en fil från datorn'] } },
   { k: 'draft', to: { place: 'draft' }, w: {
     en: ['new contract', 'write a new contract', 'start a new agreement', 'a contract from a template', 'new nda', 'prepare a contract', 'our own paper',
@@ -78,7 +78,7 @@ const JM_TASKS = [
     sv: ['nytt avtal', 'skriv ett nytt avtal', 'starta ett nytt avtal', 'ett avtal från en mall', 'nytt sekretessavtal', 'nytt kontrakt',
       'nytt leverantörsavtal', 'nytt kundavtal', 'nytt anställningsavtal'] } },
   { k: 'fill', to: { place: 'fill' }, w: {
-    en: ['fill in the missing details', 'complete the details', 'missing information', 'enter the contract details', 'add the dates and value', 'fill in the blanks', 'metadata', 'missing end date', 'missing start date', 'empty fields'],
+    en: ['fill in the missing details', 'complete the details', 'missing information', 'enter the contract details', 'add the dates and value', 'fill in the blanks', 'metadata', 'missing end date', 'missing start date', 'empty fields', 'answer the missing questions', 'missing questions', 'the questions still open'],
     sv: ['fyll i det som saknas', 'saknade uppgifter', 'komplettera uppgifterna', 'ange avtalets uppgifter', 'fyll i luckorna', 'saknar slutdatum'] } },
   { k: 'redline', to: { place: 'redline' }, w: {
     en: ['negotiate', 'review their changes', 'mark up the contract', 'propose changes', 'edit the wording', 'their comments on the contract', 'markup', 'tracked changes',
@@ -97,13 +97,13 @@ const JM_TASKS = [
     en: ['get approval', 'ask for approval', 'ask my manager to approve', 'internal approval', 'get it signed off', 'request sign off', 'my boss must approve', 'send it for approval', 'who has to approve'],
     sv: ['be om godkännande', 'få godkännande', 'be chefen godkänna', 'internt godkännande', 'begär godkännande', 'chefen måste godkänna', 'skicka för godkännande'] } },
   { k: 'approvals', to: { place: 'approvals' }, w: {
-    en: ['things to approve', 'waiting for my approval', 'approval queue', 'pending approvals', 'approve contracts', 'my approvals'],
+    en: ['things to approve', 'waiting for my approval', 'approval queue', 'pending approvals', 'approve contracts', 'my approvals', 'waiting for my sign-off', 'my sign-offs', 'sign-offs waiting for me'],
     sv: ['att godkänna', 'väntar på mitt godkännande', 'godkännanden som väntar', 'mina godkännanden'] } },
   { k: 'oblig', to: { place: 'oblig' }, w: {
     en: ['what do we owe', 'our obligations', 'deliverables', 'payments due', 'commitments', 'what we promised', 'duties under the contract', 'what we committed to'],
     sv: ['våra åtaganden', 'vad är vi skyldiga', 'leveranser', 'betalningar som förfaller', 'vad vi har lovat', 'vad vi åtagit oss'] } },
   { k: 'history', to: { place: 'history' }, w: {
-    en: ['who changed what', 'audit trail', 'activity log', 'change log', 'what happened', 'version history', 'previous versions', 'latest changes', 'who edited it', 'timeline', 'the timeline of a contract'],
+    en: ['who changed what', 'audit trail', 'activity log', 'change log', 'what happened', 'version history', 'previous versions', 'latest changes', 'who edited it', 'timeline', 'the timeline of a contract', 'who did what', 'who did what on this contract'],
     sv: ['vem ändrade vad', 'historik', 'ändringslogg', 'tidigare versioner', 'vad har hänt', 'aktivitetslogg', 'senaste ändringarna', 'ändringshistorik'] } },
   { k: 'calendar', to: { place: 'calendar' }, w: {
     en: ['deadlines', 'due dates', 'what is coming up', 'upcoming dates', 'my schedule', 'my calendar', 'key dates', 'important dates', 'reminders'],
@@ -121,7 +121,7 @@ const JM_TASKS = [
     en: ['customers', 'suppliers', 'vendors', 'clients', 'counterparties', 'counterparty', 'companies we work with', 'business partners'],
     sv: ['kunder', 'leverantörer', 'motparter', 'företag vi arbetar med', 'affärspartner'] } },
   { k: 'people', to: { place: 'people' }, w: {
-    en: ['colleagues', 'contacts', 'phone number', 'email address', 'staff directory', 'team members', 'address book', 'coworkers', 'employee directory', 'who to contact', 'find a colleague', 'look up a colleague'],
+    en: ['colleagues', 'contacts', 'phone number', 'email address', 'staff directory', 'team members', 'address book', 'coworkers', 'employee directory', 'who to contact', 'find a colleague', 'look up a colleague', 'contact details', 'colleague contact details', 'a colleague\'s details'],
     sv: ['kollegor', 'kontakter', 'telefonnummer', 'mejladress', 'personalkatalog', 'medarbetare', 'adressbok', 'arbetskamrater', 'hitta en kollega'] } },
   { k: 'requests', to: { place: 'requests' }, w: {
     en: ['ask legal', 'request a contract from legal', 'legal request', 'ask the lawyers', 'intake', 'legal help', 'legal advice', 'submit a request', 'contract request', 'raise a request'],
@@ -135,7 +135,7 @@ const JM_TASKS = [
      a contract type is named, the book that judges it (jmStdBook) */
   { k: 'standards', to: { place: 'ourpaper', std: true }, w: {
     en: ['our standards', 'edit our standards', 'change our standards', 'negotiation playbook', 'playbook', 'our positions', 'negotiation positions', 'fallback positions',
-      'standard positions', 'what we accept in a negotiation', 'our red lines', 'clause standards', 'standards for a contract type'],
+      'standard positions', 'what we accept in a negotiation', 'our red lines', 'clause standards', 'standards for a contract type', 'where our standard is set', 'our standard for a clause', 'tweak our playbook'],
     sv: ['våra standarder', 'ändra våra standarder', 'förhandlingsplaybook', 'förhandlingsguide', 'playbook', 'våra positioner', 'reservpositioner', 'vad vi accepterar i en förhandling', 'standarder för en avtalstyp'] } },
   { k: 'import', to: { place: 'import' }, w: {
     en: ['import old contracts', 'bulk upload', 'migrate our contracts', 'upload many contracts at once', 'bring in our archive', 'load all our old agreements', 'from excel', 'from a spreadsheet'],
@@ -192,7 +192,7 @@ const JM_STOP = new Set(('a an the i me my mine we us our ours you your it its t
   + 'have has had how where what which when please want wanna need needs like show see view open find search look looking go get take bring let '
   + 'just some any all so and or then now up page screen tab hati jambo help thing things one use using already still also '
   + 'again really actually supposed first since last put make made making few several many lot lots couple bunch dozens hundreds thousands s m d t ll re ve im id ive dont '
-  + 'kept keep stored located live lives sit sits would '
+  + 'kept keep stored located live lives sit sits would anything everything every each '
   + 'en ett den det de jag mig min mitt mina vi oss vår vårt våra du dig din ditt dina han hon hen deras där här att och eller som '
   + 'i på av för med från om till är var vara har hade ha kan kunde ska skulle vill måste får behöver göra gör hur vad vilken vilka när visa '
   + 'visar se ser öppna öppnar hitta hittar sök söker leta letar finns gå ta lägga lägger tack snälla bara någon något några alla många '
@@ -405,6 +405,8 @@ function jmNameStems(){
   for (const id of Object.keys(F)) jmStems((F[id] && F[id].name) || '').slice(0, 1).forEach(w => out.add(w));
   for (const id of Object.keys(S)) jmStems(S[id]).forEach(w => out.add(w));
   for (const [key, b] of Object.entries(jmStdBooks())) if (key !== '_default'){ out.add(jmStem(key.toLowerCase())); jmStems((b || {}).label).forEach(w => out.add(w)); }
+  /* the kinds of contract the books judge ("leases", "SaaS") say WHAT, never which task (22 Oct 2026) */
+  for (const key of Object.keys(jmStdBooks())) if (key !== '_default') ((typeof pbTypeWords === 'function' && pbTypeWords(key)) || []).flatMap(jmStems).forEach(w => out.add(w));
   /* "NDAs" is the NDA book */
   for (const w of [...out]) out.add(w + 's');
   return out;

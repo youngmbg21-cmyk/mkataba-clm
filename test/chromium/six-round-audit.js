@@ -132,8 +132,15 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     /* BY NAME, 15 Oct 2026: Negotiate folded into Home's Redlines face on
        14 Oct (stage 5); this audit drives the page's own controls, so it opens
        the page by name, as every check that measures the page does. */
-    await owner.evaluate(id => { openRedlineWorkbench(id, { blanksAsked: true, page: true }); }, CID);
-    await owner.waitForSelector('#view-redline [id="rl-doc"]', { timeout: 10000 });
+    /* ONE MORE ASK, BOUNDED (22 Oct 2026): on GitHub's slower machine the first
+       open, straight after sign-in, timed out once. Measured at a CPU slowed
+       ten times: nothing takes the page back (one setView, the open's own), it
+       is only slow; the page is asked for again before giving up. */
+    for (let i = 0; i < 2; i++){
+      await owner.evaluate(id => { openRedlineWorkbench(id, { blanksAsked: true, page: true }); }, CID);
+      try { await owner.waitForSelector('#view-redline [id="rl-doc"]', { timeout: i ? 15000 : 10000 }); return; }
+      catch (e){ if (i) throw e; }
+    }
   };
   const ownerPoll = async () => {
     await owner.evaluate(() => pollNow('audit'));

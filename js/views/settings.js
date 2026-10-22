@@ -8189,7 +8189,7 @@ function stEngineBodyHtml(){
              turn it off if cost is an issue"; on by default): what it adds is
              said in calls and words, never money (the owner's answer (4), 19 Oct) */}
       <label style="display:flex;align-items:flex-start;gap:var(--s-2);margin-top:9px;font-size:var(--t-label);color:var(--color-neutral-700);line-height:1.45;cursor:pointer">
-        <input id="ai-navigate" type="checkbox" style="margin-top:2px;width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
+        <input id="ai-navigate" type="checkbox" checked style="margin-top:2px;width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
         <span><b>${i18t('set_ai_navigate')}</b> ${i18t('set_ai_navigate_body')} ${i18t('set_ai_navigate_cost')}</span></label>
       <button id="ai-limits-save" style="margin-top:9px;${ST_BTN_SM}">${i18t('set_save_limits')}</button>
     </div>

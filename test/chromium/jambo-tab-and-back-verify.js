@@ -159,6 +159,10 @@ const check = (name, pass, detail) => {
 
     /* ---- 3 a "go to" ask takes you there ---- */
     await part('3', async () => {
+      /* WAIT FOR 2b's ANSWER (22 Oct 2026): on GitHub's slower machine the last
+         question was still being answered, and words asked while Jambo is busy
+         are not taken (intelAsk) — "open explorer" went nowhere. Bounded. */
+      await until(() => !(window.intel && intel.busy) ? true : null, null, 15000);
       await page.evaluate(() => { const b = document.querySelector('#ig-dock > .pd-trail .pd-back'); if (b && document.getElementById('ig-dock').classList.contains('is-talk')) b.click(); });
       await ask('#igd-input', 'open explorer');
       const moved = await until(() => window.state && state.view === 'dashboard' && typeof hbFace === 'function' && hbFace() === 'explorer' ? true : null, null, 8000);

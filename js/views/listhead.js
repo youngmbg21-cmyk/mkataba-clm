@@ -383,6 +383,11 @@ function _lhBusySay(){
   return false;
 }
 const _lhAiBusy = () => typeof ai === 'object' && !!ai && !!ai.busy;
+/* still answering: the words wait their turn and are asked through this box's own door (jamboAskLater) */
+function _lhLater(seat, t, busy){
+  if (typeof jamboAskLater === 'function' && jamboAskLater(t, busy, w => lhAsk(seat, w))) return 'later';
+  return _lhBusySay();
+}
 function lhAsk(seat, words){
   const t = String(words == null ? '' : words).trim();
   if (!t) return false;
@@ -390,20 +395,20 @@ function lhAsk(seat, words){
   if (typeof pg.ask === 'function') return pg.ask(t) === false ? _lhBusySay() : 'page';
   const here = (typeof aiEmbeddedHere === 'function') ? aiEmbeddedHere() : null;
   if (here === 'list' && typeof jlAsk === 'function'){
-    if (_lhAiBusy()) return _lhBusySay();
+    if (_lhAiBusy()) return _lhLater(seat, t, _lhAiBusy);
     if (typeof aiGoEmbedded === 'function') aiGoEmbedded('list');
     /* answered IN the panel beside the list (Part 8's question 3 = A); words
        the panel could not take stay in the box, as it said */
     return jlAsk(t) === false ? false : 'list';
   }
   if (here === 'home' && typeof intelAsk === 'function'){
-    if (typeof intel === 'object' && intel && intel.busy) return _lhBusySay();
+    if (typeof intel === 'object' && intel && intel.busy) return _lhLater(seat, t, () => !!(intel && intel.busy));
     if (typeof aiGoEmbedded === 'function') aiGoEmbedded('home');
     intelAsk(t);
     return 'home';
   }
   if (typeof aiAskWords === 'function'){
-    if (_lhAiBusy()) return _lhBusySay();
+    if (_lhAiBusy()) return _lhLater(seat, t, _lhAiBusy);
     if (typeof openAI === 'function') openAI();
     aiAskWords(t);
     return 'panel';

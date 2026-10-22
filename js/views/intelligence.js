@@ -2238,7 +2238,9 @@ function intelAskReady(q){
 }
 async function intelAsk(qRaw, opts){
   const q=(qRaw||'').trim();
-  if(!q||intel.busy) return;
+  if(!q) return;
+  /* still answering: the question waits its turn (jamboAskLater), never dropped */
+  if(intel.busy){ if(typeof jamboAskLater==='function') jamboAskLater(q, ()=>intel.busy, w=>intelAsk(w, opts)); return; }
   intel.fdTab=false;
   if(!(opts&&opts.guide)) intel.gdTab=false;
   /* A QUESTION KEEPS THE FACE (owner, 19 Oct 2026: "you can go back to the
@@ -8217,10 +8219,11 @@ function renderIntelDock(){
      the one way to set its width (igWireSplit). */
   if(_keep){ const n=document.getElementById('igd-input'); if(n){ n.value=_keep; if(_focus){ try{ n.focus(); }catch(_){ } } } }
   if(window.chatFieldWire) chatFieldWire(dock);
-  /* A question is only taken out of the box when it is really asked: while an
-     answer is still coming it stays where it was typed (see above). */
+  /* A question asked while an answer is still coming leaves the box and waits
+     its turn (intelAsk → jamboAskLater, 22 Oct 2026; was: it stayed in the box
+     and Send did nothing). */
   const go=()=>{ const inp=document.getElementById('igd-input'); const v=inp.value;
-    if(!String(v||'').trim()||intel.busy) return;
+    if(!String(v||'').trim()) return;
     inp.value=''; if(window.chatFieldGrow) chatFieldGrow(inp); intelAsk(v); };
   document.getElementById('igd-go')?.addEventListener('click',go);
   document.getElementById('igd-input')?.addEventListener('keydown',e=>{

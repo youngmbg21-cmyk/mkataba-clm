@@ -292,17 +292,32 @@ function askColWhyHtml(ch){
     </dl>
     <div class="ac-acts ac-foot"><button type="button" class="ui-btn ui-btn-primary ui-btn-sm" data-ac-go>${_acE(go)}</button></div></div></div>`;
 }
-function askColPaintPanel(){ if (typeof renderIntelDock === 'function') renderIntelDock(); }
+/* A REPAINT KEEPS WHAT IS BEING TYPED (22 Oct 2026): the form paints again when
+   the team's questions arrive; the box being typed in keeps its words, its
+   focus and its caret, so a person mid-word loses nothing */
+function askColPaintPanel(){
+  if (typeof renderIntelDock !== 'function') return;
+  const a = (typeof document !== 'undefined') ? document.activeElement : null;
+  const typing = a && (a.id === 'ac-q' || a.id === 'ac-name') ? { id: a.id, v: a.value, s: a.selectionStart, e: a.selectionEnd } : null;
+  if (typing && AC.form){ if (typing.id === 'ac-q') AC.form.question = typing.v; else AC.form.name = typing.v; }
+  renderIntelDock();
+  if (!typing) return;
+  const b = document.getElementById(typing.id);
+  if (!b || b === a) return;
+  b.value = typing.v;
+  try { b.focus({ preventScroll: true }); b.setSelectionRange(typing.s, typing.e); } catch (_){}
+}
 
 /* ---- THE ACTS ---- */
 async function askColOpen(seed){
   const f = { question: '', name: '', askId: null, force: false, kept: 0, ...(seed || {}) };
   AC.form = f; AC.chosen = null;
   askColPaintPanel();
+  /* the question box is ready at once; never taken back from a box the reader has moved to */
+  setTimeout(() => { const q = document.getElementById('ac-q'), at = document.activeElement; if (q && !q.value && !(at && at.closest && at.closest('#ac-form'))) q.focus(); }, 0);
   /* the team's questions, fresh each time the form opens (a colleague's, or one asked a moment ago) */
   await askColTeam(); if (AC.form === f) askColPaintPanel();
   if (f.askId && !f.force) await askColKept(f);
-  setTimeout(() => { const q = document.getElementById('ac-q'); if (q && !q.value) q.focus(); }, 0);
 }
 /* the answers already kept for a question chosen from the team's: they cost nothing */
 async function askColKept(f){
