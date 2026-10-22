@@ -218,3 +218,31 @@ describe('f695 (8) a private contract arrives with who opened it, as transport o
     assert.ok(String(c._opens[0].at) <= String(c._opens[c._opens.length - 1].at), 'oldest first, as the trail reads');
   });
 });
+
+/* f695 (8) THE WORKSPACE DOWNLOAD KEEPS A PRIVATE STREAM'S FILES OUT (22 Oct 2026): its contracts were left out
+   of the admin's zip, but every uploaded file went in regardless — a named member's document reached an admin
+   the stream does not name. A file of a contract outside the scope stays out with it; the rest stay in. */
+describe('f695 (8) the workspace download keeps a private stream\'s files out', () => {
+  const unzip = buf => { const out = {};
+    for (let i = 0; i + 30 <= buf.length && buf.readUInt32LE(i) === 0x04034b50;) {
+      const size = buf.readUInt32LE(i + 18), nl = buf.readUInt16LE(i + 26), xl = buf.readUInt16LE(i + 28);
+      const name = buf.slice(i + 30, i + 30 + nl).toString('utf8'), start = i + 30 + nl + xl;
+      out[name] = true; i = start + size; }
+    return out; };
+  const attach = async (client, id, text) => {
+    const f = await client.json('/api/files', { method: 'POST', body: { name: id + '.txt', dataUrl: 'data:text/plain;base64,' + Buffer.from(text).toString('base64') } });
+    const c = await client.json('/api/contracts/' + id); const baseVersion = c._v; delete c._v;
+    c.upload = Object.assign({}, c.upload || {}, { fileId: f.id, fileName: id + '.txt' });
+    await client.json('/api/contracts/' + id, { method: 'PUT', body: { contract: c, baseVersion } });
+    return f.id; };
+  test('a named member\'s file stays out of an unnamed admin\'s zip; an ordinary contract\'s file is in it', async () => {
+    await setPrivate(true, [ids.restricted]);
+    const hidden = await attach(W.restricted, 'MK-B2', 'private stream document');
+    const open = await attach(W.admin, 'MK-A2', 'ordinary document');
+    const res = await fetch(h.base + '/api/export/workspace.zip', { headers: { Cookie: W.admin.cookie } });
+    assert.equal(res.status, 200);
+    const names = Object.keys(unzip(Buffer.from(await res.arrayBuffer())));
+    assert.ok(names.some(n => n.startsWith('files/' + open + '__')), 'the ordinary contract\'s file is in the zip');
+    assert.ok(!names.some(n => n.startsWith('files/' + hidden + '__')), 'the private stream\'s file is not');
+  });
+});

@@ -25,6 +25,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
 const H = require('../helpers');
+const { ckOpenRowOf } = H;
 
 const EXEC = process.env.CHROMIUM_BIN
   || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
@@ -108,7 +109,7 @@ const base = (id, name, extra) => Object.assign({ id, name, counterparty: 'Balti
     await shot(page, 'owed-first-1440x780');
 
     /* 2 a box answered stays put under the hand */
-    await page.click('#pd-og [data-blankf="up_notice_period"]');
+    await ckOpenRowOf(page, '#pd-og [data-blankf="up_notice_period"]'); await page.click('#pd-og [data-blankf="up_notice_period"]');
     const before = await page.evaluate(() => { const b = document.querySelector('#pd-og [data-blankf="up_notice_period"]'); return b ? Math.round(b.getBoundingClientRect().top) : null; });
     await page.keyboard.type('6 months');
     await page.keyboard.press('Tab');
@@ -134,8 +135,8 @@ const base = (id, name, extra) => Object.assign({ id, name, counterparty: 'Balti
     /* this upload carries no read text, so the grid says the wording was not read for it — never a guess */
     /* RE-POINTED 21 Oct 2026 (owner: no grey line under an owed fact): an unread row is amber instead of saying "not in the wording" */
     check('4b the wording\'s reading is in the box as a suggestion, else the row is amber', N.rows.every(r => /suggested by|read from/.test(r.t) || /is-amb/.test(r.cls)), JSON.stringify(N.rows));
-    await page.selectOption('#pd-og [data-pd-og-nda="dir"]', 'mutual');
-    await page.click('#pd-og [data-pd-og-ok="ndaDir"]');
+    await ckOpenRowOf(page, '#pd-og [data-pd-og-nda="dir"]'); await page.selectOption('#pd-og [data-pd-og-nda="dir"]', 'mutual');
+    await ckOpenRowOf(page, '#pd-og [data-pd-og-ok="ndaDir"]'); await page.click('#pd-og [data-pd-og-ok="ndaDir"]');
     const ed = await until(() => { const c = getContract('MK-0406'); return !!(c.nda && c.nda.dir === 'mutual'); }, null, 6000);
     check('4c Confirm is the facts\' own writer (ndaSet): who keeps it secret is stored', !!ed);
     const paid = await page.evaluate(async () => { const c = getContract('MK-0406'); const was = detailsOf(c).left;

@@ -220,9 +220,10 @@ const word = (lines) => Buffer.from(mkDocx(lines.map(t => para(t)).join('')));
     await page.evaluate(id => pdOpenOnHome(id, 'plain'), upId);
     await waitFor(page, () => !!document.querySelector('#pd-og [data-pd-og-row="stream"]'), 8000);
     const s0 = await page.evaluate(() => { const c = getContract(intel.paper.id); const r = document.querySelector('#pd-og [data-pd-og-row="stream"]');
-      return { folder: c.folder, name: (FOLDERS[c.folder] || {}).name, said: r ? r.textContent : '', box: !!(r && r.querySelector('input, select, button')) }; });
+      return { folder: c.folder, name: (FOLDERS[c.folder] || {}).name, said: r ? r.textContent : '', box: !!(r && r.querySelector('input, select, button')), ring: !!(r && r.querySelector('.pd-ck-ring.is-done')) }; });
     /* RE-POINTED 21 Oct 2026 (owner: the grey line under an owed fact was noise): the row names the stream and says Saved */
-    check('5a Still owed names the stream, saved', !!s0.name && s0.said.includes(s0.name) && /saved/i.test(s0.said) && !/set when/i.test(s0.said) && !s0.box, s0);
+    /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"): an answered row says so with its filled ring, not the word */
+    check('5a Still owed names the stream, saved', !!s0.name && s0.said.includes(s0.name) && s0.ring && !/set when/i.test(s0.said) && !s0.box, s0);
     check('5b and never counts it as owed', !(await page.evaluate(() => detailsOf(getContract(intel.paper.id)).items.some(x => /folder|stream/.test(x.key)))));
 
     /* ===== 6. AT A GLANCE ===== */
@@ -233,9 +234,10 @@ const word = (lines) => Buffer.from(mkDocx(lines.map(t => para(t)).join('')));
       /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the glance is the dossier — the spine for the stage, What Jambo read, Still owed */
       /* RE-POINTED 20 Oct 2026 (the Legora way): each owed detail is a row of Still owed's grid */
       const fillRows = [...el.querySelectorAll('#pd-og [data-pd-og-kind]')].filter(r => r.getAttribute('data-pd-og-kind') !== 'signer').map(() => 1);
-      const rk = el.querySelector('[data-pd-ds="risks"] b');
+      /* RE-POINTED 22 Oct 2026 (the Checklist): the number leads the risks row's grey value */
+      const rk = el.querySelector('[data-pd-ds="risks"] .ds-val');
       return { title: [...el.querySelectorAll('.pd-gl-h b')].map(b => b.textContent).join(' | '), pill: !!el.querySelector('.ds-spine .ds-st.is-on, .ds-spine .ds-st.is-now'), rows,
-        fillN: fillRows.reduce((a, b) => a + b, 0), riskN: rk ? Number(rk.textContent) : 0,
+        fillN: fillRows.reduce((a, b) => a + b, 0), riskN: rk ? Number((/^\d+/.exec(rk.textContent.trim()) || [0])[0]) : 0,
         left: detailsOf(c).left, risks: (c.scan && riskMayAct(c, {})) ? riskOpenOf(c).length : 0, nobody: signBlockers(c).some(b => b.key === 'signers'),
         unsent: c.negotiation ? rlUnsentCount(c, {}) : 0, nego: !!c.negotiation,
         ogSign: !!el.querySelector('#pd-og [data-pd-og-row="signers"]'),
@@ -244,7 +246,7 @@ const word = (lines) => Buffer.from(mkDocx(lines.map(t => para(t)).join('')));
         above: (() => { const chips = document.querySelector('#ig-dock [data-ig-chips]'); const sc = el.closest('.overflow-y-auto') || el;
           return !!chips && sc.getBoundingClientRect().bottom <= chips.getBoundingClientRect().top + 1; })() }; });
     const num = k => { const r = g.rows.find(x => x[0] === k); return r ? Number((/(\d+)/.exec(r[1]) || [])[1] || (k === 'sign' ? 1 : 0)) : 0; };
-    check('6a Jambo\'s tab opens on the dossier: the stage on the spine, What Jambo read, Still owed', gl && /^What Jambo read \| Still owed · \d+/.test(g.title) && g.pill, g.title);
+    check('6a Jambo\'s tab opens on the dossier: the stage on the spine, What Jambo read, Still owed', gl && /^Needs you \| Jambo read/.test(g.title) && g.pill, g.title);
     check('6b each count is the reading its own face uses', g.fillN === g.left && g.riskN === g.risks && num('share') === g.unsent && g.ogSign === g.nobody, g);
     check('6c reading it starts no negotiation', !g.nego);
     check('6d the card sits above the chips and the box', g.above);
@@ -265,7 +267,7 @@ const word = (lines) => Buffer.from(mkDocx(lines.map(t => para(t)).join('')));
     /* the risks row says what the Redlines face draws */
     await page.evaluate(id => pdOpenOnHome(id, 'plain'), upId);
     await waitFor(page, () => !!document.getElementById('pd-glance'), 6000);
-    const rkRow = await page.evaluate(() => { const r = document.querySelector('#pd-glance [data-pd-ds="risks"] b'); return r ? Number(r.textContent) : 0; });
+    const rkRow = await page.evaluate(() => { const r = document.querySelector('#pd-glance [data-pd-ds="risks"] .ds-val'); return r ? Number((/^\d+/.exec(r.textContent.trim()) || [0])[0]) : 0; });
     /* RE-POINTED AT THE INTEGRATION (19 Oct 2026; red on lane C2 alone): round
        9 as drawn leaves the Redlines face beside Home's paper with nothing
        under its piles, so the risks row's door is where the risks ARE listed —

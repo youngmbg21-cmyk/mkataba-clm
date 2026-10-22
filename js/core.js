@@ -7194,6 +7194,19 @@ async function reshareToLastRecipient(c, opts={}){
   /* Asked before anything is built, while the record still says what is about
      to leave — see roundTurnMail. */
   const turn=opts.handOver ? roundTurnMail(c, opts.handOver) : null;
+  /* THE "SENT TO YOU" COPY IS TAKEN BACK WHEN NOTHING WENT (the bug log, 22 Oct
+     2026: "a refused sign resend can leave a 'Sent to you' version"). It is
+     taken here, before the payload, because the payload carries it — their
+     page compares the last two sends (portal.js). A refusal below, or a send
+     the server refused, puts the list back as it was: a record that says
+     "sent" about a send that never left is the one thing it may not say. */
+  const vWas=Array.isArray(c.versions)?c.versions.length:null;
+  const vLast=vWas?{ ...c.versions[vWas-1] }:null;
+  const vBack=()=>{
+    if(vWas==null){ if(Array.isArray(c.versions)&&c.versions.length){ delete c.versions; persist(c); } return; }
+    if(c.versions.length===vWas && JSON.stringify(c.versions[vWas-1])===JSON.stringify(vLast)) return;
+    c.versions.length=vWas; if(vLast) c.versions[vWas-1]=vLast; persist(c);
+  };
   if(c.status!=='Signed'){ const v=captureVersion(c,'Sent to you',null,{auto:true}); if(v) persist(c); }
   const payload=buildSharePayload(c, docHash, null, { purpose:opts.purpose });
   /* A RESEND THAT READS AS SIGN IS A SIGNING LINK (4 Oct 2026). Two callers
@@ -7202,7 +7215,7 @@ async function reshareToLastRecipient(c, opts={}){
      one list. Thrown, like every refusal on this path. */
   if(payload && payload.purpose==='sign'){
     const no=signLinkRefusal(c);
-    if(no) throw new Error(no.why);
+    if(no){ vBack(); throw new Error(no.why); }
   }
   /* If this counterparty already has a standing link, refresh THAT rather than
      mint another one: the point of a standing link is that the other side keeps
@@ -7302,7 +7315,7 @@ async function reshareToLastRecipient(c, opts={}){
        before. The first send (the POST below) still delivers the link. */
     const r=await api('shares/'+live.token+'/payload','PUT', turn
       ? { payload, notify:'turn', turn }
-      : { payload, notify:false });
+      : { payload, notify:false }).catch(e=>{ vBack(); throw e; });
     reachTake(c, r);
     /* AND EVERY OTHER STANDING LINK ON THIS CONTRACT, quietly. The quiet
        catch-up already refreshes all of them on a decision, so leaving one
@@ -7322,7 +7335,7 @@ async function reshareToLastRecipient(c, opts={}){
   }
   const r=await api('shares','POST',{ payload, channel:last.channel||'email',
     message:opts.message||'', recipient:{ name:last.name, email:last.email, phone:last.phone },
-    expiryDays:opts.expiryDays||14, durable:opts.durable!==false, purpose:payload.purpose });
+    expiryDays:opts.expiryDays||14, durable:opts.durable!==false, purpose:payload.purpose }).catch(e=>{ vBack(); throw e; });
   reachTake(c, r);
   return record(r||{}, false);
 }
@@ -7829,7 +7842,13 @@ function shareFillModal(html){
   if(panel){ panel.innerHTML=html; return; }
   openModal(html);
 }
+/* a person's keys in the send screen's note (bound once, on the document): only a TRUSTED 'input' — the
+   screen's own fills (a prefill, Jambo's words) set the value or dispatch a synthetic event — raises it;
+   each opening lowers it (openShareModal) */
+let _shNoteTyped=false;
+if(typeof document!=='undefined') document.addEventListener('input',e=>{ if(e.isTrusted&&e.target&&e.target.id==='sh-summary') _shNoteTyped=true; });
 async function openShareModal(c, opts={}){
+  _shNoteTyped=false;
   // An uploaded document carries its file; that only fits through the server,
   // so static mode points the user at the original instead of a giant URL.
   if(isUpload(c) && !API_MODE()){
@@ -8095,7 +8114,16 @@ async function openShareModal(c, opts={}){
      with no panel — it stays the dialog it was. Same markup, ids and wiring. */
   const _onDesk=shareBesideJambo();
   let _shSent=null;   // what the last press sent, for the confirmation after Send
-  openModal(oneScreenHtml(_noPre, { opening:true }), { maxWidth:'64rem', onClose:()=>{ shareColAttr(false); if(_onDesk) shareLetterPageOff(c); } });
+  /* WHAT YOU TYPED IS ASKED ABOUT BEFORE IT GOES (22 Oct 2026, the bug log: a top-bar press closed the
+     screen and a typed note was lost without a word): Cancel, Esc and leaving by the bar ask first once the
+     note differs from what it opened with; a send closes as before */
+  /* typed means a person's keys in the note box (an 'input' event) — the screen's own fill of the note (a
+     prefill, Jambo's words, a purpose's default) sets the value without one, so it never counts */
+  _shNoteTyped=false;
+  const shTyped=()=>{ const t=document.getElementById('sh-summary'); return _shNoteTyped && !!t && !!t.value.trim(); };
+  openModal(oneScreenHtml(_noPre, { opening:true }), { maxWidth:'64rem', onClose:()=>{ _shNoteTyped=false; shareColAttr(false); if(_onDesk) shareLetterPageOff(c); },
+    onBeforeClose:async()=>!shTyped() || !!(await confirmDialog({ title:i18t('sh_leave_q'), message:i18t('sh_leave_body'),
+      confirmLabel:i18t('sh_leave_go'), cancelLabel:i18t('sh_leave_stay'), danger:true, leave:true })) });
   shareLetterChecksPlace();
   if(_onDesk) shareLetterPage(c);
   try{ shareLetterPaint(c, { purpose:purposeSel, ch:'email' }); }catch(_){}
@@ -8538,7 +8566,7 @@ async function openShareModal(c, opts={}){
      saying where the note goes has no markup default, so an unconditional
      first paint is what makes it present before anything is pressed. */
   setCh(ch);
-  document.getElementById('share-close').addEventListener('click',closeModal);
+  document.getElementById('share-close').addEventListener('click',()=>{ closeModalGuarded(); });
 
   /* Set when the send refreshed a link the recipient already had rather than
      minting another. It sits ABOVE whatever the channel reports, because "which

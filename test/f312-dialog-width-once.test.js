@@ -99,8 +99,10 @@ describe('f312 (2) — no dialog states a second width on its inner box', () => 
      reader (openModal's own `label`). The claim is unchanged — the rung is
      named ON THE FRAME, the large one — so it is asked with the label allowed
      beside it rather than pinning the old call byte for byte. */
+  /* RE-POINTED 22 Oct 2026: the signing route moved up a rung, to XL (owner: "the add signers pop up
+     should be wide enough that you do not have to scroll left or right") */
   test('the one dialog wider than a short form names its rung on the frame', () => {
-    assert.match(read('js/approvals.js'), /<\/div>`, \{ maxWidth: DLG_W\.l(?:, label: i18t\('ap_signing_route'\))? \}\);/);
+    assert.match(read('js/approvals.js'), /<\/div>`, \{ maxWidth: DLG_W\.xl(?:, label: i18t\('ap_signing_route'\))? \}\);/);
   });
 });
 

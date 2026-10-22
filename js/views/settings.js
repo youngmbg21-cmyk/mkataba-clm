@@ -5665,6 +5665,26 @@ const stOn=()=>i18t('st_b_on'), stOff=()=>i18t('st_b_off');
 const stApiOnly=()=>typeof API_MODE==='function' && API_MODE();
 const stLastBackup=()=>{ try{ return lsGet('hati.v1.lastBackup'); }catch(e){ return null; } };
 
+/* THE MAILROOM'S BACKUP PERSON (owner, 22 Oct 2026: "Documents email should
+   always have a person assigned to them directly"). A document belongs to the
+   colleague who sent it; this names who has it when the sender is not on
+   HaTi. Drawn like a lane's own "Its drafts belong to" box, and its default is
+   the same one reading the server asks (intakeLaneOwner): the admin who saved
+   the Mailroom, else the first admin — so the box always names somebody. */
+function stMailroomOwnerSel(m){
+  const users=((typeof getUsers==='function')?getUsers():[])||[];
+  const me=(typeof currentUser==='function')?currentUser():null;
+  /* asked of the stream it files under, unfiled included — the server's own
+     test (mailroomOwnerFor): a person who cannot open it is never offered */
+  const may=u=>typeof canAccessFolder!=='function' || canAccessFolder(m.folder||'',u);
+  const def=(typeof intakeLaneOwner==='function')
+    ? intakeLaneOwner({ savedById: m.savedById || (me&&me.id) }, users, may) : null;
+  const defWord=def ? i18t(def.how==='saver'?'set_mailroom_owner_saver':'set_mailroom_owner_first',{ name:def.name }) : '\u2014';
+  const people=users.filter(u=>u && u.role!=='viewer' && may(u));
+  const cur=(m.ownerId && people.some(u=>String(u.id)===String(m.ownerId))) ? String(m.ownerId) : '';
+  return `<select id="st-mr-owner" style="${window.RV_FLD||ST_INPUT}width:100%"><option value="">${esc(defWord)}</option>${
+    people.map(u=>`<option value="${esc(u.id)}"${cur===String(u.id)?' selected':''}>${esc(u.name||u.email||'')}</option>`).join('')}</select>`;
+}
 const SET_PANELS={
 
   /* ---- WHERE THE WORKSPACE OPERATES ----
@@ -6287,6 +6307,8 @@ const SET_PANELS={
       <label style="display:block;margin-bottom:var(--s-3)"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600)">${esc(i18t('set_mailroom_folder'))}</span>
         <select id="st-mr-folder" style="${window.RV_FLD||ST_INPUT}width:100%"><option value="">${esc(i18t('set_lane_any_stream'))}</option>${
           streams.map(f=>`<option value="${esc(f.id)}"${m.folder===f.id?' selected':''}>${esc(f.name)}</option>`).join('')}</select></label>
+      <label style="display:block;margin-bottom:var(--s-3)" title="${esc(i18t('set_mailroom_owner_tip'))}"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600)">${esc(i18t('set_mailroom_owner'))}</span>
+        ${stMailroomOwnerSel(m)}</label>
       <div style="display:flex;gap:var(--s-2)">
         <button id="st-mr-new" style="${ST_BTN_SM}">${esc(i18t('set_mailroom_rotate'))}</button>
         <button id="st-mr-save" style="${ST_BTN_SM}">${i18t('act_save')}</button>
@@ -6305,16 +6327,24 @@ const SET_PANELS={
         const el=document.getElementById('st-mr-key'); if(el) el.value=k;
         stDrawerClearRefusal();
       });
+      /* a different stream can change who may hold its documents */
+      document.getElementById('st-mr-folder')?.addEventListener('change',e=>{
+        const box=document.getElementById('st-mr-owner'); if(!box) return;
+        const m=(state.settings&&state.settings.mailroom)||{};
+        box.outerHTML=stMailroomOwnerSel({ ...m, folder:String(e.target.value||''), ownerId:box.value });
+      });
       document.getElementById('st-mr-save')?.addEventListener('click',async()=>{
         const key=String(document.getElementById('st-mr-key')?.value||'').trim();
         const folder=String(document.getElementById('st-mr-folder')?.value||'');
+        const ownerId=String(document.getElementById('st-mr-owner')?.value||'');
         /* A SHORT KEY IS REFUSED RATHER THAN SAVED. Stored, it would look like
            the feature was on while being guessable — the worst of both. */
         if(key && key.length<24){ stDrawerRefuse(i18t('set_mailroom_short')); return; }
         stDrawerClearRefusal();
         try{
           state.settings=state.settings||{};
-          state.settings.mailroom = key ? { key, folder } : {};
+          const was=state.settings.mailroom||{};
+          state.settings.mailroom = key ? { key, folder, ...(ownerId ? { ownerId } : {}), ...(was.savedById ? { savedById:was.savedById } : {}) } : {};
           await saveSettings();
           toast(key?i18t('set_mailroom_saved'):i18t('set_mailroom_stopped'),'ok');
           stRepaintRow('mailroom');

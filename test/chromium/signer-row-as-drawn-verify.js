@@ -16,8 +16,9 @@
         what the record holds (name · party, and the address)
      3  picking a row fills the NAME and the EMAIL together
      4  the list FLOATS: the rows under it do not move, and it covers them
-     5  "+ Add another signer" adds another name box, in the row
-     6  "Order the signing ›" opens the signing route editor over the same page,
+     5  ONE BUTTON FOR SIGNERS (owner, 22 Oct 2026): "+ Add another signer" and the
+        Acts' "Add signers" are gone — "Add or order signers ›" is the one door
+     6  "Add or order signers ›" opens the signing route editor over the same page,
         and closing it lands back on the row that opened it
      7  a box near the foot of the panel opens its list ABOVE itself, whole,
         inside the panel — at the owner's three screens
@@ -28,7 +29,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
-const { startHati, seedWorkspace, fixtureContract } = require('../helpers');
+const { startHati, seedWorkspace, fixtureContract, ckOpenRowOf } = require('../helpers');
 
 const OUT = path.join(process.env.HATI_SHOT_DIR || path.join(__dirname, 'shots'), 'signer-row-as-drawn');
 const EXEC = process.env.CHROMIUM_BIN
@@ -127,17 +128,17 @@ const MEASURE = () => {
     console.log('\n1 · the bottom chip went; the boxes are typing boxes');
     check('1a the bottom "name a signer" chip is gone', m0.up && m0.chips.length > 0 && !m0.chips.includes('signer'), JSON.stringify(m0.chips));
     check('1b no <select> is left in the row (one list per press, on an iPad too)', m0.selects === 0, String(m0.selects));
-    check('1c "Order the signing ›" stands on the row\'s head line', /Order the signing/.test(m0.order || ''), String(m0.order));
-    check('1d "+ Add another signer" stands under the last box', m0.add === true);
+    check('1c "Add or order signers ›" stands on the row\'s head line', /Add or order signers/.test(m0.order || ''), String(m0.order));
+    check('1d "+ Add another signer" is gone (one button for signers)', m0.add === false);
 
     console.log('\n2 · a TOUCH press opens HaTi\'s own list; typing filters it');
-    await page.tap('#ig-dock #pd-og [data-pd-og-sb="theirs"]');
+    await ckOpenRowOf(page, '#ig-dock #pd-og [data-pd-og-sb="theirs"]'); await page.tap('#ig-dock #pd-og [data-pd-og-sb="theirs"]');
     await pause(150);
     const mt = await page.evaluate(MEASURE);
     check('2a a touch press opens exactly one list', !!mt.list && mt.list.length > 0
       && (await page.evaluate(() => document.querySelectorAll('#ig-dock #pd-og .pd-og-dd').length)) === 1, JSON.stringify((mt.list || []).map(x => x.name)));
-    await page.fill('#ig-dock #pd-og [data-pd-og-sb="theirs"]', '');
-    await page.type('#ig-dock #pd-og [data-pd-og-sb="theirs"]', 'wan', { delay: 30 });
+    await ckOpenRowOf(page, '#ig-dock #pd-og [data-pd-og-sb="theirs"]'); await page.fill('#ig-dock #pd-og [data-pd-og-sb="theirs"]', '');
+    await ckOpenRowOf(page, '#ig-dock #pd-og [data-pd-og-sb="theirs"]'); await page.type('#ig-dock #pd-og [data-pd-og-sb="theirs"]', 'wan', { delay: 30 });
     await pause(200);
     const m1 = await page.evaluate(MEASURE);
     const names = (m1.list || []).map(x => x.name);
@@ -165,7 +166,7 @@ const MEASURE = () => {
     check('3b their address came with them', m2.mail === P2.mail, String(m2.mail));
     check('3c the list is down again', m2.list === null);
     /* ON AN iPAD TOO: a tap opens the list and a tap on a row picks from it */
-    await page.tap('#ig-dock #pd-og [data-pd-og-sb="theirs"]');
+    await ckOpenRowOf(page, '#ig-dock #pd-og [data-pd-og-sb="theirs"]'); await page.tap('#ig-dock #pd-og [data-pd-og-sb="theirs"]');
     await pause(150);
     await page.tap(`#ig-dock #pd-og .pd-og-dd-row[data-pd-og-pick="${P1.name}"]`).catch(() => {});
     await pause(200);
@@ -173,16 +174,16 @@ const MEASURE = () => {
     check('3d a touch pick fills the name and the address too', m2t.name === P1.name && m2t.mail === P1.mail,
       JSON.stringify({ name: m2t.name, mail: m2t.mail }));
 
-    console.log('\n5 · + Add another signer adds a box, in the row');
-    await page.click('#ig-dock #pd-og [data-pd-og-sg-add]');
-    await pause(200);
-    const m3 = await page.evaluate(MEASURE);
-    check('5a a second signer box stands in the row', m3.nameBoxes === m0.nameBoxes + 1, JSON.stringify({ was: m0.nameBoxes, now: m3.nameBoxes }));
-    check('5b nothing left the page for it', await page.evaluate(() => !document.querySelector('.modal-overlay, [role="dialog"]')
-      && !!document.querySelector('#ig-dock #pd-og tr[data-pd-og-row="signers"]')));
+    console.log('\n5 · one button for signers on the whole Dossier');
+    const doors = await page.evaluate(() => [...document.querySelectorAll('#ig-dock button')]
+      .filter(b => /signers?\b/i.test(b.textContent) && !b.closest('.pd-og-dd')).map(b => b.textContent.replace(/\s+/g, ' ').trim()));
+    check('5a the only signer button is "Add or order signers ›" (no "Add signers" act, no "+ Add another signer")',
+      doors.length === 1 && /Add or order signers/.test(doors[0]), JSON.stringify(doors));
+    check('5b the Acts and All acts carry no "Add signers" row',
+      await page.evaluate(() => !document.querySelector('#ig-dock #ws-m-signers, #ig-dock [data-pd-mn-go="#ws-m-signers"]')));
 
-    console.log('\n6 · Order the signing › is the row\'s one pop-up');
-    await page.click('#ig-dock #pd-og [data-pd-og-route]');
+    console.log('\n6 · Add or order signers › is the row\'s one pop-up');
+    await ckOpenRowOf(page, '#ig-dock #pd-og [data-pd-og-route]'); await page.click('#ig-dock #pd-og [data-pd-og-route]');
     const route = await waitFor(page, () => !!document.getElementById('sr-win'), 8000);
     check('6a it opens the signing route editor over the same page', route
       && await page.evaluate(() => !!document.querySelector('#ig-dock #pd-og tr[data-pd-og-row="signers"]')));
@@ -202,13 +203,16 @@ const MEASURE = () => {
         if (!f || !b) return; f.scrollTop += b.getBoundingClientRect().bottom - f.getBoundingClientRect().bottom + 24; });
       await pause(200);
       const was = await page.evaluate(MEASURE);
-      await page.click('#ig-dock #pd-og [data-pd-og-sb="theirs"]');
+      await ckOpenRowOf(page, '#ig-dock #pd-og [data-pd-og-sb="theirs"]'); await page.click('#ig-dock #pd-og [data-pd-og-sb="theirs"]');
       await pause(200);
       const now = await page.evaluate(MEASURE);
       const at = `${w}x${hh}`;
       check(`7 ${at} the list opens and is whole`, !!(now.list && now.list.length && now.listBox), JSON.stringify(now.listBox));
       if (!now.listBox) continue;
-      check(`7a ${at} it opened above the box`, now.up2 === true && now.listBox.bottom <= now.boxBox.top + 2,
+      /* RE-POINTED 22 Oct 2026 (the Checklist): the panel is shorter now, so on the tall iPad screen the box
+         cannot be scrolled down to the foot — there the list fits below and opens below; near the foot it opens above */
+      const roomBelow = now.feed.bottom - now.boxBox.bottom >= (now.listBox.bottom - now.listBox.top) + 4;
+      check(`7a ${at} it opened above the box where there is no room under it`, now.up2 === true ? now.listBox.bottom <= now.boxBox.top + 2 : (roomBelow && now.listBox.top >= now.boxBox.bottom - 2),
         JSON.stringify({ up: now.up2, list: now.listBox, box: now.boxBox }));
       check(`7b ${at} it stands inside the panel`, now.listBox.top >= now.feed.top - 1 && now.listBox.bottom <= now.feed.bottom + 1,
         JSON.stringify({ list: now.listBox, feed: now.feed }));

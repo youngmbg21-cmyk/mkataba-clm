@@ -23,8 +23,8 @@
      4. Keep puts "Your payment days…" on the board, the button says Kept, and
         the brief is told (PUT /api/home/kept);
      5. let go takes it off and it rests;
-     6. Read more opens the card's own reading IN the card (only that card
-        grows), with "What could explain this?" answering in its amber box
+     6. Read more opens the card's own reading IN the card (it grows, the
+        card on its row with it — one height a row, 22 Oct 2026), with "What could explain this?" answering in its amber box
         there; Show less folds it (re-pointed 6 Oct 2026: "Ask why" retired);
      7. a quiet day: nothing outside normal — the row says so, no filler, the
         usual pictures behind one press;
@@ -177,7 +177,13 @@ const check = (name, pass, detail) => {
     check('6a Read more opens the card\'s own reading inside the card, with What could explain this?, and spends nothing', !!s6 && s6.lines > 0 && s6.ask && s6.label === 'Show less' && s6.asked === 0 && !s6.ask2, JSON.stringify(s6));
     const grew = s6 && s6.others.map((hh, i) => hh - h0[i]);
     const at = await page.evaluate(() => [...document.querySelectorAll('.hb-shelf .hb-ins')].findIndex(x => x.getAttribute('data-hb-ins-card') === 'pay.mine'));
-    check('6b only the opened card grows', !!grew && grew.every((g, i) => i === at ? g > 0 : Math.abs(g) <= 1), JSON.stringify([h0, s6 && s6.others]));
+    /* RE-POINTED 22 Oct 2026 (the owner: "these cards should be the same size"):
+       a row stands one height, so the card beside the opened one grows WITH it
+       (the Board's balance rule); a card on another row does not move */
+    const rowOf = await page.evaluate(() => { const cs = [...document.querySelectorAll('.hb-shelf .hb-ins')], me = document.querySelector('[data-hb-ins-card="pay.mine"]');
+      const t = Math.round(me.getBoundingClientRect().top); return cs.map(x => Math.round(x.getBoundingClientRect().top) === t); });
+    check('6b the opened card grows, the card on its row matches it, the rest stand still', !!grew && grew[at] > 0
+      && grew.every((g, i) => i === at || (rowOf[i] ? s6.others[i] === s6.others[at] : Math.abs(g) <= 1)), JSON.stringify([h0, s6 && s6.others, rowOf]));
     await page.evaluate(() => document.querySelector('[data-hb-ins-card="pay.mine"] [data-hb-why]').click());
     const s6c = await until(() => { const b = document.querySelector('[data-hb-ins-card="pay.mine"] .hb-why .hb-why-b'); return b && /late payers/.test(b.textContent) ? window._shelfAsked : null; }, null, 4000);
     check('6c What could explain this? answers in the card\'s own amber box', s6c === 1, String(s6c));

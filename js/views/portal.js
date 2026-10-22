@@ -1575,6 +1575,13 @@ function portalDecisionSettled(ch){
   if(sent && sent.status===ch.status) return true;
   return PORTAL_NEGO_FILED[ch.id]===ch.status;
 }
+/* Does this ask's wording differ from that copy of it (none counts as differing)? Text and rich body both,
+   canonically, so serialisation noise is not a revision */
+function portalAskDiffers(a, b){
+  if(!a || !b) return true;
+  const canon=h=>{ try{ return window.canonicalRich?canonicalRich(String(h||'')):String(h||''); }catch(_){ return String(h||''); } };
+  return String(a.newText||'')!==String(b.newText||'') || canon(a.bodyHtml)!==canon(b.bodyHtml);
+}
 function portalNegoContract(p){
   /* A contract-shaped record for the component to read. The changes and the
      baseline come from the payload, so this page cannot show a fingerprint the
@@ -1640,8 +1647,17 @@ function portalNegoContract(p){
      filed a moment ago vanish on the room's next repaint. Sent ones stay too:
      they are answered from the owner's record on the next copy of the link. */
   for(const [id,src] of [...Object.entries(PORTAL_NEGO_PROPOSED_SENT).map(x=>[x[0],{...x[1],sentByMe:true}]),
-                         ...Object.entries(PORTAL_NEGO_PROPOSED)])
-    if(!c.changes.some(x=>x.id===id)) c.changes.push({ ...src, id });
+                         ...Object.entries(PORTAL_NEGO_PROPOSED)]){
+    const at=c.changes.findIndex(x=>x.id===id);
+    if(at<0){ c.changes.push({ ...src, id }); continue; }
+    /* A REVISION OF AN ASK THAT HAD ALREADY ARRIVED (22 Oct 2026, the bug log: "revising their own ask that
+       has ALREADY been sent revises it in place, and the revision is lost on the next repaint"): the
+       payload still carries the version that went; while it is still pending there, the revision held
+       here (or sent and not yet answered) is what this reader sees, under the same number */
+    const was=c.changes[at];
+    if(src.revises && was && was.status==='pending' && was.authorSide==='counterparty' && portalAskDiffers(was, src))
+      c.changes[at]={ ...was, ...src, id, thread:was.thread||[] };
+  }
   /* THE COUNTER HAS TO CLEAR WHAT IS ALREADY HELD, or the second ask collides
      with the first. negoNextId mints from negotiation.seq, and seq is rebuilt
      from the payload on every repaint — so a reader who asked for two changes
@@ -2737,6 +2753,7 @@ function wirePortalNego(c, p){
          first. */
       const arrived = new Set((((p||{}).contract||{}).changes||[])
         .map(x => x && x.id).filter(Boolean));
+      const arrivedById = new Map((((p||{}).contract||{}).changes||[]).filter(x => x && x.id).map(x => [x.id, x]));
       for(const ch of (rec.changes||[])){
         // a held decision is one that differs from what was sent — see the
         // history on portalDecisionSettled
@@ -2747,10 +2764,17 @@ function wirePortalNego(c, p){
         if(ch.authorSide==='counterparty' && ch.status==='pending'
           && !arrived.has(ch.id) && !PORTAL_NEGO_PROPOSED_SENT[ch.id])
           PORTAL_NEGO_PROPOSED[ch.id]={ ...ch, thread:[] };
-        /* And one that HAS arrived can never be held: a stale entry from before
+        /* …and an ask that HAS arrived, revised here since (22 Oct 2026): its wording now differs from the
+           version that went, so the revision is held too — unsent, offered for Send, kept across a repaint
+           (portalNegoContract puts it back over the payload's copy) — and travels as a new ask, which
+           supersedes the old one on our side */
+        else if(ch.authorSide==='counterparty' && ch.status==='pending' && arrived.has(ch.id)
+          && portalAskDiffers(arrivedById.get(ch.id), ch) && portalAskDiffers(PORTAL_NEGO_PROPOSED_SENT[ch.id], ch))
+          PORTAL_NEGO_PROPOSED[ch.id]={ ...ch, thread:[], revises:ch.id };
+        /* And one that HAS arrived unchanged can never be held: a stale entry from before
            this rule would otherwise sit in the store for the life of the
            browser, since nothing else ever removes it. */
-        if(arrived.has(ch.id) && PORTAL_NEGO_PROPOSED[ch.id]) delete PORTAL_NEGO_PROPOSED[ch.id];
+        else if(arrived.has(ch.id) && PORTAL_NEGO_PROPOSED[ch.id]) delete PORTAL_NEGO_PROPOSED[ch.id];
       }
       portalSaveHeld();
       const foot=document.getElementById('pt-nego-foot');
@@ -6221,6 +6245,6 @@ async function refreshStats(){
     if(window.updateSidebarCounts) updateSidebarCounts(); }catch(e){}
 }
 
-Object.assign(window,{portalOpenAsks,portalMyPartyName,portalWithNames,portalTurnWait,portalSignHold,portalSignedHere,portalSignedRecord,portalReceiptHtml,portalLiveSignatures,portalPaintSignMarks,portalCodeScreen,portalTicket,portalTicketPut,portalMaskAddress,portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
+Object.assign(window,{portalAskDiffers,portalOpenAsks,portalMyPartyName,portalWithNames,portalTurnWait,portalSignHold,portalSignedHere,portalSignedRecord,portalReceiptHtml,portalLiveSignatures,portalPaintSignMarks,portalCodeScreen,portalTicket,portalTicketPut,portalMaskAddress,portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
   portalAlertsOpen,portalAlertsClose,portalPaintAlerts,wirePortalAlerts,portalAlertsStyle,
   portalGoToChange,portalPressSend,PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,exportSignPagesHtml,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalEnsureResponderName,portalEditHtml,portalOpenEditor});

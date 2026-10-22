@@ -6585,6 +6585,11 @@ app.put('/api/settings', auth, admin, (req, res) => {
   /* WHO SAVED A LANE, AND WHO IT NAMES, ARE THE SERVER'S WORD — see
      srvLanesStamp. */
   if (Array.isArray(incoming.intakeLanes)) incoming.intakeLanes = srvLanesStamp(incoming.intakeLanes, stored.intakeLanes, req.user);
+  /* THE MAILROOM'S BACKUP PERSON, THE SAME WAY (owner, 22 Oct 2026: "Documents
+     email should always have a person assigned to them directly"): who it
+     names and who saved it are the server's word, by the lanes' own stamp. */
+  if (incoming.mailroom && typeof incoming.mailroom === 'object' && !Array.isArray(incoming.mailroom) && incoming.mailroom.key)
+    incoming.mailroom = srvMailroomStamp(incoming.mailroom, stored.mailroom, req.user);
   /* ---- A CODE NOBODY CAN MAIL LOCKS THE GUEST OUT (8 Oct 2026) ----
      Switching the link code ON while email is not set up is refused — as a
      DIFFERENCE against the stored rule, so a rule already on (or a save that
@@ -6621,6 +6626,11 @@ function srvLanesStamp(next, prev, user) {
     x.savedById = (was && was.savedById && _laneSig(was) === _laneSig(x)) ? was.savedById : user.id;
     return x;
   });
+}
+function srvMailroomStamp(next, prev, user) {
+  const one = srvLanesStamp([{ ...next, id: 'mailroom' }], prev && typeof prev === 'object' ? [{ ...prev, id: 'mailroom' }] : [], user)[0];
+  delete one.id;
+  return one;
 }
 /* W2-1: the one place the exchange rates change — read-modify-write of just
    that key. A rate is a CLAIM WITH A DATE: {code: {rate, at}}, rate being how
@@ -11170,6 +11180,26 @@ function mailroomName(filename, subject) {
   const s = String(subject || '').replace(/^(re|fw|fwd)\s*:\s*/i, '').trim();
   return (s || 'Received by email').slice(0, 160);
 }
+/* ---- EVERY DOCUMENT THAT ARRIVES BY EMAIL HAS A PERSON (owner, 22 Oct 2026:
+   "Documents email should always have a person assigned to them directly";
+   they picked "the person who sent it, else a backup chosen in Settings") ----
+   The SENDER first: a member whose address the email came from, who may draft
+   (not a Viewer) and who can open the stream it is filed under. Otherwise the
+   Mailroom's backup by the lanes' one reading (intakeLaneOwner): the person
+   named in Settings, else the admin who saved it, else the first admin — so
+   there is always somebody, never nobody. Stamped in contractOwnerStamp's
+   shape, { id, name }, so every reader of `c.owner` reads it as any other. */
+const MAILROOM_OWNER_WHY = { sender: 'they sent it', named: 'the Mailroom\'s named person',
+  saver: 'the admin who set up the Mailroom', first: 'the first admin' };
+function mailroomOwnerFor(from, folder) {
+  const users = db.prepare('SELECT * FROM users ORDER BY created_at').all();
+  const may = u => inScope(folderScopeFor(u), folder);
+  const m = String(from || '').match(/<\s*([^<>\s]+@[^<>\s]+)\s*>/) || String(from || '').match(/([^\s<>"',;]+@[^\s<>"',;]+)/);
+  const addr = m ? cleanEmail(m[1]) : '';
+  const sender = addr ? users.find(u => cleanEmail(u.email) === addr) : null;
+  if (sender && sender.role !== 'viewer' && may(sender)) return { id: sender.id, name: String(sender.name || ''), how: 'sender' };
+  return intakeLaneOwner((getSetting('appSettings') || {}).mailroom || {}, users, may);
+}
 const rlMailroom = rateLimit('mailroom', 120, 60 * 60 * 1000);
 app.post('/api/mailroom', rlMailroom, express.json({ limit: '32mb' }), (req, res) => {
   if (!mailroomOn()) return res.status(404).json({ error: 'Not found' });
@@ -11181,6 +11211,7 @@ app.post('/api/mailroom', rlMailroom, express.json({ limit: '32mb' }), (req, res
   if (!files.length) return res.json({ ok: true, filed: 0, skipped: [{ why: 'no attachment' }] });
   const filed = [], skipped = [];
   const folder = clean(((getSetting('appSettings') || {}).mailroom || {}).folder) || '';
+  const owner = mailroomOwnerFor(from, folder);
   for (const f of files.slice(0, MAILROOM_MAX_FILES)) {
     const name = clean(f && f.filename).slice(0, 200);
     const type = String((f && f.contentType) || '').split(';')[0].trim().toLowerCase();
@@ -11214,6 +11245,7 @@ app.post('/api/mailroom', rlMailroom, express.json({ limit: '32mb' }), (req, res
        already reads an upload's silence as money. */
     const c = {
       id, name: mailroomName(name, subject), counterparty: '', value: 0,
+      ...(owner ? { owner: { id: owner.id, name: owner.name } } : {}),
       status: 'Draft', template: null, source: 'upload', folder, lastAction: at.slice(0, 10),
       expiry: null, hash: null, signedAt: null, signatory: null, compliance: {},
       fields: {}, scan: null, comments: [], signatures: [], obligations: [],
@@ -11237,7 +11269,8 @@ app.post('/api/mailroom', rlMailroom, express.json({ limit: '32mb' }), (req, res
         mailroom: { from, subject, at } },
       audit: [{ at, user: 'Mailroom', action: 'Received',
         detail: `Arrived by email from ${from || 'an unnamed sender'}`
-          + (subject ? ` — "${subject}"` : '') + `, as "${name || 'document'}" (${Math.round(bytes.length / 1024)} KB). Nothing has been read yet.` }],
+          + (subject ? ` — "${subject}"` : '') + `, as "${name || 'document'}" (${Math.round(bytes.length / 1024)} KB). Nothing has been read yet.`
+          + (owner ? ` Given to ${owner.name || 'a colleague'} — ${MAILROOM_OWNER_WHY[owner.how] || 'the Mailroom\'s person'}.` : '') }],
     };
     upsertContract(c, 1);
     syncFts(c);
@@ -13272,14 +13305,25 @@ app.get('/api/export/workspace.zip', auth, admin, (req, res) => {
   const f = scopeFrag(scope);
   /* a confidential deal this admin is outside of stays out, with its files (piece 11) */
   const cnOut = cnOutsideFor(req.user), cnFiles = new Set();
+  const fileIdsOf = c => { if (c.upload && c.upload.fileId) cnFiles.add(c.upload.fileId);
+    for (const d of (Array.isArray(c.documents) ? c.documents : [])) if (d && d.fileId) cnFiles.add(d.fileId);
+    outsideFileIds(c).forEach(x => cnFiles.add(x)); };
   const contracts = db.prepare(`SELECT json FROM contracts ${whereOf(f.sql)} ORDER BY seq`).all(...f.args)
     .map(r => JSON.parse(r.json)).filter(c => {
       if (!cnOut.has(String(c.id))) return true;
-      if (c.upload && c.upload.fileId) cnFiles.add(c.upload.fileId);
-      for (const d of (Array.isArray(c.documents) ? c.documents : [])) if (d && d.fileId) cnFiles.add(d.fileId);
-      outsideFileIds(c).forEach(x => cnFiles.add(x));
+      fileIdsOf(c);
       return false; })
     .map(c => visibleContract(dropSittingKeys(c), req.user));
+  /* AND A PRIVATE STREAM THAT DOES NOT NAME THIS ADMIN KEEPS ITS FILES (22 Oct 2026): the scope above leaves
+     its contracts out, but every uploaded file went into the zip regardless — their documents left by the
+     back door. A file belonging to any contract outside the scope stays out with it. */
+  if (!scopeIsAll(scope)) {
+    const seen = new Set(contracts.map(c => String(c.id)));
+    for (const r of db.prepare('SELECT json FROM contracts').all()) {
+      let c = null; try { c = JSON.parse(r.json); } catch (_) { c = null; }
+      if (c && !seen.has(String(c.id)) && !cnOut.has(String(c.id))) fileIdsOf(c);
+    }
+  }
   const users = db.prepare('SELECT id,name,email,role,created_at FROM users').all();  // no salt/hash
   const settings = getSetting('appSettings') || {};
   const files = [
@@ -18171,7 +18215,22 @@ function srvLinkStrip(rvStored, payload, opts) {
   if (!withheld.size) return 0;
   const before = payload.contract.changes.length;
   payload.contract.changes = payload.contract.changes.filter(x => !(x && withheld.has(String(x.id))));
-  return before - payload.contract.changes.length;
+  /* WHAT THEY ALREADY HOLD STAYS WITH THEM (the bug log, 22 Oct 2026: "a sent
+     change revised later and put under review is withheld whole, so the other
+     side loses sight of the version they hold"). A withheld id is a REVISION
+     that has not left; the wording before it had. On a standing link the copy
+     they were last given (opts.holds, the row's stored payload) is the one
+     record of what they really hold, so that entry goes back exactly as it
+     went — never the revision, and never a version a send kept back (it is not
+     in their copy). A new link's reader holds nothing, so nothing goes back. */
+  const holds = (opts && Array.isArray(opts.holds)) ? opts.holds : [];
+  let back = 0;
+  for (const x of holds) {
+    if (!x || x.id == null || !withheld.has(String(x.id))) continue;
+    if (payload.contract.changes.some(y => y && String(y.id) === String(x.id))) continue;
+    payload.contract.changes.push(x); back++;
+  }
+  return before - (payload.contract.changes.length - back);
 }
 
 app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
@@ -19986,7 +20045,9 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
   if (linkStored) {
     const no = srvLinkRefusal(req, linkStored, sharePurposeOf(s), { payload, contractId: s.contract_id });
     if (no && !silent) return res.status(no.status).json(no.body);
-    linkStripped = srvLinkStrip(linkStored, payload, { unsent: !!no });
+    let holds = [];
+    try { const was = JSON.parse(s.payload || '{}'); holds = (was && was.contract && Array.isArray(was.contract.changes)) ? was.contract.changes : []; } catch (_) { holds = []; }
+    linkStripped = srvLinkStrip(linkStored, payload, { unsent: !!no, holds });
   }
   let oldText = '';
   try { oldText = String((JSON.parse(s.payload).contract || {}).docText || ''); } catch (_) {}

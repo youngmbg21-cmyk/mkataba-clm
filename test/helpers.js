@@ -491,6 +491,16 @@ const CAL_TODAY_ASIDE = () => {
     el.classList.remove('is-today');
 };
 
+/* THE DOSSIER IS A CHECKLIST (owner picked "1 · Checklist" by name, 22 Oct 2026): ONE owed row is open
+   at a time and only it shows its boxes. A browser check that types into a fact's box, or presses its
+   Confirm, first opens that fact's row — as a person would, with a press on the row's line. Nothing
+   happens where the selector names no row, or the row is already open. */
+const ckOpenRowOf = (page, sel) => page.evaluate(s => {
+  const el = document.querySelector(s); const tr = el && el.closest && el.closest('tr.pd-og-row');
+  const hd = tr && tr.querySelector('[data-pd-ck-row]');
+  if (hd && !tr.classList.contains('is-open')) hd.click();
+}, sel).catch(() => {});
+
 module.exports = { startHati, startAiStub, startScriptedAi, startMailStub, startHatiWithMail,
   seedWorkspace, fixtureContract, FIXTURE_BODY_A1,
-  FIXTURES, FOLDER_A, FOLDER_B, B_MARKERS, mentionsFolderB, nameASigner, Client, CAL_TODAY_ASIDE };
+  FIXTURES, FOLDER_A, FOLDER_B, B_MARKERS, mentionsFolderB, nameASigner, Client, CAL_TODAY_ASIDE, ckOpenRowOf };
