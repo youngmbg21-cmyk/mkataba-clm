@@ -510,6 +510,16 @@ function jamboCardGrow(t){
     t.style.height = 'auto';
     if (!t.scrollHeight) return;
   }
+  /* AN EMPTY BOX IS ONE LINE (owner, 22 Oct 2026): its height is never the
+     placeholder's — Chrome counts a wrapped placeholder in scrollHeight, so a
+     narrow panel's hint used to stand the empty box two or more lines tall */
+  if (!String(t.value || '').length){
+    const cs = getComputedStyle(t);
+    const one = (parseFloat(cs.lineHeight) || 21) + (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0)
+      + (parseFloat(cs.borderTopWidth) || 0) + (parseFloat(cs.borderBottomWidth) || 0);
+    t.style.height = Math.ceil(Math.max(one, parseFloat(cs.minHeight) || 0)) + 'px';
+    return;
+  }
   const max = parseFloat(getComputedStyle(t).maxHeight);
   t.style.height = Math.min(t.scrollHeight, max && isFinite(max) ? max : Infinity) + 'px';
 }

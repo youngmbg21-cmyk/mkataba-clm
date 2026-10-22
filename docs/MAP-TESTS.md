@@ -77,6 +77,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - jambo-chat-window-verify (the ✦ opens the floating window on Home, Approvals and Settings, typed words answered in it, the one conversation shown there and Home pointing to it, the edge tab still slides the side panel in, three screens; 12 red at db763d0); jambo-slides-in 3, 4, 10, jambo-pill-and-window 4a and 5d, jambos-list-panel 10h, every-jambo-box 1b re-pointed to the window; f735 (a booking still goes to the Calendar).
 - jambo-slides-in-verify (the side panel, the ✦ ask bar (now the window), plain only, conversation across pages, here chip, paste, ONE DOOR, Pop out with PiP stubbed and absent, touch; 22 red at d7a320c2); f107 (plain only), f88, f97, f631 re-pointed; jambo-pill-and-window 4–7, every-jambo-box 1b, jambos-list-panel 10h, phone (384) re-pointed.
 - jambo-watches-and-presses-verify (here names the page, Show me › lands and lights, the press sends nothing, a watch card stores only on Start watching, Your watches pause/delete; 8 red at e332b81b); f860 (watches: the wall, only mine, CRUD, the sweep fires once).
+- AN EMPTY JAMBO BOX IS ONE LINE (22 Oct 2026): every-jambo-box-verify's `oneLine` (each of the nine boxes, a hint far too long for it, three screens; 30 red at 2a39d1b). THE BRIEF IS BROUGHT, NEVER WRITTEN AGAIN (22 Oct 2026): f862 (a follow-up carries the last read act; "summarise this contract" is the brief place; AI_BRIEF_RULE twins; 8 red at 2a39d1b).
 
 ## THE PHONE
 - phone-verify, f630, f631, phone-fits-verify.

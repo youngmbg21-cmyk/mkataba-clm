@@ -14194,6 +14194,9 @@
   .jb-card > textarea::-webkit-scrollbar-thumb{background:var(--color-divider);border-radius:6px}
   .jb-card > textarea::-webkit-scrollbar-track{background:transparent}
   .jb-card > textarea::placeholder{color:var(--color-neutral-500)}
+  /* an empty box is one line: a hint too long for it ends in … (jamboCardGrow; owner, 22 Oct 2026) */
+  .jb-card > textarea:placeholder-shown{overflow:hidden}
+  .jb-card > textarea::placeholder{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .jb-card > textarea:focus,.jb-card > textarea:focus-visible{outline:none;box-shadow:none;border:0}
   .jb-card > textarea[disabled]{background:transparent;cursor:default}
   .jb-row{display:flex;align-items:center;gap:4px;min-width:0;margin:0 0 0 -4px}

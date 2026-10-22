@@ -12465,12 +12465,16 @@ const JM_TASKS_BODY = (() => { const i = JM_TASKS_SRC.indexOf('const JM_TASKS = 
 const JM_TASK_KEYS = [...JM_TASKS_BODY.matchAll(/\{ k: '([a-z]+)'/g)].map(m => m[1]);
 const JM_TASK_ADMIN = [...JM_TASKS_BODY.matchAll(/\{ k: '([a-z]+)', admin: true/g)].map(m => m[1]);
 const aiNavigateOn = () => getSetting('aiNavigate') !== false;
-const AI_GOTO_SCHEMA = { type: 'object', description: 'OPTIONAL — only when the person asks WHERE something is in HaTi, how to get to a page or setting, or to be taken somewhere. The ONE place to open for them; HaTi opens it and says so. Leave it out for a question about what contracts say.',
+const AI_GOTO_SCHEMA = { type: 'object', description: 'OPTIONAL — only when the person asks WHERE something is in HaTi, how to get to a page or setting, or to be taken somewhere. The ONE place to open for them; HaTi opens it and says so. Also when they ask for a contract\'s brief or summary (task brief). Leave it out for any other question about what contracts say.',
   properties: { task: { type: 'string', enum: JM_TASK_KEYS, description: 'The place: needs (what waits on me), contracts, expiring, upload, draft, fill (a contract\'s details), redline, sign, signlink, share, approval (ask for one), approvals (to decide), oblig, history, calendar, amend, export, end, parties, people, requests, ourpaper (templates), standards (our standards / the negotiation playbook), import, board, insights, askcol, explorer, brief, team, signcap, folders (who sees which stream), lang, away.' },
     book: { type: 'string', description: 'For task standards only, when a contract type or value stream is named: the playbook book key (e.g. supply, nda, services, lease). Leave out otherwise.' } },
   required: ['task'] };
 const AI_GOTO_RULE = 'TAKING THEM THERE: when the person asks where something is in HaTi, how to get to a page or setting, or asks to be taken somewhere, set deliver_answer\'s goto to the one place, and say in one short sentence where you are taking them. Our standards (the negotiation playbook, book by book) is task standards; HaTi picks the book from the words asked. Never set goto for a question about what a contract says.';
 const AI_GOTO_OFF_RULE = 'YOU CANNOT OPEN PAGES: when asked where something is in HaTi, name the page in words and say that the search box (⌘K) finds any page by name.';
+/* A CONTRACT'S BRIEF IS KEPT (owner, 22 Oct 2026): the chat opens the kept brief (goto task brief), never writes
+   one again; the browser's twins in js/ai.js, word for word (f862) */
+const AI_BRIEF_RULE = 'A CONTRACT\'S BRIEF IS KEPT: when the person asks for a contract\'s brief or summary, or what a contract is about, do not write one yourself. HaTi keeps each contract\'s brief and shows it in the panel beside the paper: set deliver_answer\'s goto to task brief and say in one short sentence that you are opening its brief.';
+const AI_BRIEF_OFF_RULE = 'A CONTRACT\'S BRIEF IS KEPT: when the person asks for a contract\'s brief or summary, or what a contract is about, do not write one yourself. HaTi keeps each contract\'s brief beside the paper: say in one short sentence that the words “brief” and the contract\'s reference (as in “brief MK-458”) open it.';
 function aiGotoOf(g, cx) {
   if (!aiNavigateOn() || !g || typeof g !== 'object') return null;
   const task = String(g.task || '');
@@ -12749,6 +12753,7 @@ SCOPE & SAFETY:
 - Be concise and direct. Reference specific numbers and clauses from the fetched data.
 - ${AI_GOVERNANCE_RULE} When a rule stops them and the proper next step is one of HaTi's own doors, name it in deliver_answer's ruleDoor.
 - ${aiNavigateOn() ? AI_GOTO_RULE : AI_GOTO_OFF_RULE}
+- ${aiNavigateOn() ? AI_BRIEF_RULE : AI_BRIEF_OFF_RULE}
 - ${AI_CALENDAR_RULE}`;
   /* ONE FIGURE, EVERY BRAIN (12 Sep 2026): the sentence the graph route
      carries, in the chat brain too — the same rows, the same conversion, the
