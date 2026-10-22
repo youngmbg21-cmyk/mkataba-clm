@@ -67,6 +67,7 @@ score; the exam is re-run live after stage 2 as well as at stage 4.
 | Before, live AI (the app as at 1881323), 22 Oct 2026 | 139 of 240 (58%) | 0 | 0.75 (180 calls) |
 | After stages 1–2, live AI, 22 Oct 2026 | 142 of 240 (59%) | 1 | 0.80 (193 calls) |
 | Stage 3 part-built (dcd407d), live AI, 22 Oct 2026 | 178 of 240 (74%) | 1 | 1.56 (374 calls) |
+| **After stage 3** (7c0d1c0, reader fixed), live AI, 22 Oct 2026 | **183 of 240 (76%)** | **0** | **1.20 (287 calls)** |
 
 THE READER'S OWN FAULT (found in stage 3, 22 Oct 2026): the exam's reader threw on
 an answer whose contract cards are drawn markup (the chat window's and the list
