@@ -33349,3 +33349,18 @@ Owner: "yes, trim the rules file". 84,992 → 80,334 bytes. The longest MAP line
 BUGLOG.md is never read whole (1.5 MB, denied); it was searched for harm words (leak, lost, overwrite, bypass, without the grant, private stream, phantom…) and each candidate checked against the code before anything was touched.
 - ALREADY FIXED, THE LOG LINE OLD: the dispute-hold guards outside the half-signed branch (26 Sep); a returned untouched Word file filing phantom changes (f492, 4 Oct); the converter's silent 60,000-character cut (said since 27 Sep).
 - FIXED: (1) the workspace download sent a private stream's FILES to an admin it does not name, though its contracts were already left out — files of any contract outside the scope now stay out (f695 8). (2) The send screen put away by the bar lost a typed note without a word, and its Cancel too — a TRUSTED input in the note now raises a flag (`_shNoteTyped`) and Cancel, Esc and the bar (`dkLeaveSendThen`) ask "Leave without sending?"; the screen's own fills never count (a synthetic input event made a first try ask on every opening, caught by the-letter-as-drawn 7). (3) On their page a revision of an ask that had already arrived was revised in place, called sent, and lost on the next rebuild — now held (`portalAskDiffers`, `revises`), put back over the payload's copy, counted busy, and sent; our side's one live ask takes the words (f856).
+
+## HOME — THE BOARD AND THE MAP — TODAY'S INSIGHTS, ONE HEIGHT A ROW (22 Oct 2026)
+
+The owner, with a screenshot of "4 contracts end this quarter" beside "Value
+by counterparty": *"review why the symmetry rule for cards on the board is
+broken. These attached cards should be the same size"*. MEASURED: the row's
+grid said `align-items:start`, so each picture card was only as tall as its
+own picture — 267 against 251 at 1440×780, 267 against 233 at 1536×730 —
+and the two Open · Keep · Ask why · Let it go lines sat at different heights.
+The Board's other cards already kept the rule (board-balance 4: a pair where
+one grows, the one beside grows with it); the insight shelf, drawn as its own
+cards on 18 Oct, never joined it. Fixed by the row itself (`stretch`; the foot
+was already pushed to the bottom by `.hb-ins-acts` margin-top:auto). One
+consequence, said: opening a card's "Ask why" reading now grows the card
+beside it too (insights-shelf 6b re-pointed), as every other Board pair does.

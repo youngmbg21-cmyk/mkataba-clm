@@ -80,6 +80,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - phone-verify, f630, f631, phone-fits-verify.
 
 ## HOME — THE BOARD AND THE MAP (js/views/homeboard.js)
+- Today's insights, ONE HEIGHT A ROW (22 Oct 2026): board-as-drawn 8b2 (two cards sharing a row the same height, their buttons on one line, at the three screens; red before); insights-shelf 6b re-pointed (the card beside an opened one grows with it).
 - 21 Oct 2026 (overnight): home-board-verify 13g2/13j2/13j3 (timeline words inside bars and chart, full screen 1536x730); board-agent-work-verify 3c (Put away not dressed as Look); paper-panel-as-drawn-verify 1b/2d/2f re-pointed to the grid, 2g (What Jambo read counts as the Board does); jambos-work-open-verify (Open lands on the card).
 - What Jambo read as four rows, no grey line under an owed fact (21 Oct 2026): f748 2b re-pointed; `owed-first-verify.js`, `nda-tail-verify.js`. The paper's line without the party: f708 1a, `paper-line-verify.js` 1a, `the-road-as-drawn-verify.js` 12d re-pointed. `piles-as-drawn-verify.js` 3b (piles unboxed). List before Wall: f687.
 - form-nextup-and-draft-chip verify (a card word asked again lands on its card)
