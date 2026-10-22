@@ -56,6 +56,11 @@ Questions and the Nine Flow Rules still apply.
 
 ## 4. The scores
 
+THE PASS MARK (owner, 22 Oct 2026, after the live "before" of 58%: "58% is a
+terrible score" — "95% target"): **at least 228 of 240 (95%), 0 dead ends, no
+more than 2 Jambo calls per ask.** No stage merges if it lowers the live
+score; the exam is re-run live after stage 2 as well as at stage 4.
+
 | Run | Passed | Dead ends | Calls per ask |
 |---|---|---|---|
 | Before, no AI key (free readers alone), 22 Oct 2026 | 102 of 240 (43%) | 2 | 0 |
