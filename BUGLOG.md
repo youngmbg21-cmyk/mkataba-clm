@@ -21417,3 +21417,6 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ## 22 Oct 2026 — Jambo's side panel beside the page, with the slider
 - Removed (owner's ask, said to the owner): the grey over the page while Jambo's slide-in side panel is open, the press outside it that closed it, and the "Jambo" edge strip standing beside the open panel (it now steps away and comes back when the panel is put away).
 - Noticed, not fixed: the other side panel (Guide · Alerts · Notes · Activity) still greys the page and has no slider; asked of the owner rather than changed.
+
+## Noticed, not fixed — 22 Oct 2026 (PR #407, Jambo's side panel)
+- home-speed-verify.js check 1 ("Board ⇄ Paper: a switch freezes under half of opening Home") is red on main ff908e4b (GitHub run 39752880092, shard 3/4; locally 4 of 4 at main): when opening Home measures no long task, the floor is 60 ms and the Paper switch's one long task sits at 52–73 ms, so it passes or fails by a few ms. Needs the Paper switch made cheaper (or its measure looked at) in its own change.
