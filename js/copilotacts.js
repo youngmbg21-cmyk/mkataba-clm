@@ -397,6 +397,22 @@ async function caPassSend(c, person, note, o){
    prepare from the words alone, or null (and the question goes on as before). */
 function caActOf(q){
   const t = caRefFix(String(q || '').trim()); if (!t) return null;
+  const r = caActRead(t);
+  /* "the drafts in distribution" are contracts at the draft stage, never a new one to write */
+  if (r && r.kind === 'go' && r.place === 'draft' && /\b(drafts|utkasten)\b/i.test(t)) return null;
+  if (!r || !caAiFirst()) return r;
+  /* AI FIRST (stage 3b): a question ("which…", "how many…", "vilka…") is answered, not met with a door or a
+     card read off one of its words; sending and drafting stay the readers' own */
+  if (CA_WH_Q.test(t) && !['send', 'draft'].includes(r.kind) && !(r.kind === 'go' && !r.cid && CA_WH_WORKLISTS.includes(r.place))) return null;
+  /* …and an act read for the contract open beside the reader is not done when the words name ANOTHER one
+     ("make an amendment to the Westlands lease" with the courier contract open) */
+  if (r.cid && typeof igAsksOtherThan === 'function'){ let other = false; try { other = igAsksOtherThan(t, r.cid); } catch (_){ other = false; } if (other) return null; }
+  return r;
+}
+/* a question whose answer IS a worklist ("what is waiting for my approval") still opens it: answered where the list is */
+const CA_WH_WORKLISTS = ['approvals', 'needs', 'requests', 'oblig', 'expiring', 'contracts', 'negotiations', 'calendar'];
+const CA_WH_Q = /^\s*(which|what|who|whom|whose|when|why|how (many|much|long|often|do|does|can)|does|do|did|is|are|can|could|should|vilk\w*|vad|vem|när|varför|hur)\b/i;
+function caActRead(t){
   const send = caReadSend(t); if (send) return send;
   const job = caReadJob(t); if (job) return job;
   const door = caReadDoor(t); if (door) return door;
@@ -412,6 +428,14 @@ function caActOf(q){
      doors as the exact words; what it does not know goes on to the model */
   if (typeof jmRead === 'function'){ const m = jmRead(t); if (m) return (m.kind === 'map' && caAiFirst()) ? null : m; }
   return null;
+}
+/* A COUNT SAYS WHICH (stage 3b): a short list a free reading counted ("with Naivas Supermarkets: 2") shows
+   those contracts under the line, as their source; a long one is its page's */
+const CA_ANSWER_IDS_MAX = 6;
+function caAnswerIds(a){
+  const ids = (a && a.nav && a.nav.k === 'contracts' && Array.isArray(a.nav.ids)) ? a.nav.ids
+    : (a && a.narrow && Array.isArray(a.narrow.ids)) ? a.narrow.ids : null;
+  return (ids && ids.length && ids.length <= CA_ANSWER_IDS_MAX) ? { cardIds: ids.slice() } : {};
 }
 /* AI FIRST (Jambo works like Copilot, stage 3, 22 Oct 2026): a free reading that is only a guess ("which of
    these did you mean", the map's close matches) gives way to Jambo wherever he can answer; with no engine
@@ -1489,7 +1513,7 @@ async function caDraftReply(prompt, cid){
     return (e && e.needsKey) ? { why: 'nokey' } : { why: 'failed', msg: (e && e.message) || '' };
   }
 }
-Object.assign(window, { caDraftReply, caAiFirst });
+Object.assign(window, { caDraftReply, caAiFirst, caActRead, CA_WH_Q, CA_WH_WORKLISTS, caAnswerIds, CA_ANSWER_IDS_MAX });
 Object.assign(window, { caRefFix, CA_REF_RE, caRefLinkPaint, caRefOpen, CA_MENU, CA_MENU_INBOUND, CA_MENU_THEIR_FILE, CA_FILE_OUT, CA_FILE_KEEP, CA_MENU_NOT, caReadMenu, caMenuRows, caMenuCardHtml, caMenuPress, CA_DOORS, CA_DOOR_NOT, caReadDoor, caRoomSign, CA_DOOR_GO, CA_DOOR_SHUT, CA_DOOR_NEEDS, caDoorCardHtml, caDoorPress });
 Object.assign(window, { CA_SUMMARY_RE, CA_WRITE_MAIL_RE, caFindPersonNamed, caSummaryText, caSummaryOpen, caScreenSent, caPassSend, caPeopleFor, caPersonRowHtml, caScreenCardHtml });
 Object.assign(window, { CA_PICK_MAX, CA_NOTE_MAX, CA_SEND_RE, caPeople, caContracts, caOpenContract, caTokenAt, caMatches, caPopHtml, caPopClose, caPopRead, caChoose,
@@ -2734,7 +2758,7 @@ function caHomeRun(q, a){
   }
   if (a.kind !== 'go') return false;
   const card = (CA_CARD_WORDS.includes(a.place) || !!a.narrowOff) && !a.missing;
-  intel.history.push({ role: 'user', text: q }, { role: 'assistant', text: _caE(caGoSay(a)), act: a });
+  intel.history.push({ role: 'user', text: q }, Object.assign({ role: 'assistant', text: _caE(caGoSay(a)), act: a }, caAnswerIds(a)));
   paint();
   caGo(a);
   if (card) land(intel.history.length - 1);

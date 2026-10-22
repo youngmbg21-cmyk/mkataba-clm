@@ -4794,7 +4794,10 @@ async function aiSubmit(asked){
         :took==='said'?said
         :(go&&go.kind==='go'&&!go.narrowOff&&!(window.CA_CARD_WORDS||[]).includes(go.place)&&window.caGoSay)?caGoSay(go):i18t('ai_handed_home');
       aiPush('user',{text:esc(q), raw:q});
-      aiPush('assistant',{text:`<div>${_aiEsc(say)}</div>`});
+      /* a short list counted says which, as cards (caAnswerIds, stage 3b) */
+      const ids=(go&&typeof window.caAnswerIds==='function')?(caAnswerIds(go).cardIds||[]):[];
+      const list=ids.map(id=>getContract(id)).filter(Boolean);
+      aiPush('assistant',Object.assign({text:`<div>${_aiEsc(say)}</div>`}, list.length?{ cards:aiCards(list), cardIds:ids }:{}));
       renderAIFeed();
       return;
     }

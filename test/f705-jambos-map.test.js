@@ -428,7 +428,8 @@ describe('f705 (7) the doors: the narrowed Contracts place and a Settings sectio
 describe('f705 (8) the wiring', () => {
   const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
   test('8a caActOf asks the map last, after every exact reader', () => {
-    const body = strip(ACTS).match(/function caActOf\(q\)\{([\s\S]*?)\n\}/)[1];
+    /* the readers live in caActRead since stage 3b (caActOf now guards what they read: AI first) */
+    const body = strip(ACTS).match(/function caActRead\(t\)\{([\s\S]*?)\n\}/)[1];
     const at = w => body.indexOf(w);
     for (const w of ['caReadSend', 'caReadJob', 'caReadDoor', 'caReadPlace', 'caReadMenu', 'caReadDraft']) assert.ok(at(w) >= 0 && at(w) < at('jmRead('), w);
   });

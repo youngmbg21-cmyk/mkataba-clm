@@ -12518,8 +12518,22 @@ function aiDoorOf(d, cx) {
   if (k === 'contract') { const cid = cidOf(d.contractId); return cid ? { kind: k, contractId: cid, tab: AI_DOOR_TABS.includes(d.tab) ? d.tab : 'open' } : null; }
   if (k === 'clause') {
     const cid = cidOf(d.contractId); if (!cid) return null;
-    const num = /^\d{1,3}(\.\d{1,3})?$/.test(String(d.num || '').trim()) ? String(d.num).trim() : '';
-    const quote = txt(d.quote, 160), head = txt(d.head, 120);
+    let num = /^\d{1,3}(\.\d{1,3})?$/.test(String(d.num || '').trim()) ? String(d.num).trim() : '';
+    let quote = txt(d.quote, 160), head = txt(d.head, 120);
+    /* WORDS FROM A CLAUSE NAME THE CLAUSE (stage 3b): the passage that holds them gives its heading and number,
+       which is what the paper and its Clauses rows are found by */
+    if (quote && !num) {
+      try {
+        const cj = JSON.parse(db.prepare('SELECT json FROM contracts WHERE id=?').get(cid).json);
+        const nq = quoteNorm(quote).slice(0, 80);
+        const p = nq.length >= 12 ? hsPassages(hsWordingOf(cj)).find(x => quoteNorm(x.text).includes(nq)) : null;
+        if (p) {
+          if (p.head && !head) head = txt(p.head, 120);
+          const lead = /^\s*(?:clause|section|article|§|klausul|artikel)?\s*(\d{1,3})(?:[.)]|\s)/i.exec(p.head || '');
+          if (lead) num = lead[1];
+        }
+      } catch (_) {}
+    }
     return (num || quote || head) ? Object.assign({ kind: k, contractId: cid }, num ? { num } : {}, quote ? { quote } : {}, head ? { head } : {}) : null;
   }
   if (k === 'contracts') {
@@ -12949,7 +12963,10 @@ function hsDoorOf(h) {
 const COPILOT_SHOW_RE = /\b(where|show|find|point me|take me|open|the (bit|part|clause|section|paragraph)|which (bit|part|clause|section))\b|\b(var (står|säger)|visa|hitta|klausul\w*)\b/i;
 const COPILOT_ASKS_RE = /^\s*(what|when|who|whom|how|which|why|is|are|does|do|did|can|could|should|will|would|has|have|vad|när|vem|hur|vilk\w*|varför|är|finns|kan|har)\b/i;
 function copilotQuoteDoor(cx, question, final) {
-  if (!final || final.goto || final.choices) return null;
+  /* a goto that only opens the contract the quote is from is sharpened to the clause (stage 3b) */
+  const g0 = final && final.goto && final.goto.door;
+  const sharpen = !!(g0 && g0.kind === 'contract' && (g0.tab || 'open') === 'open');
+  if (!final || (final.goto && !sharpen) || final.choices) return null;
   /* the person's own words: a board note before them and the paper's wording after them are not theirs */
   const q = String(question || '').replace(/^\[The reader is on the Home board[\s\S]*?\]\n\n/, '').split('\n\n')[0].slice(0, 400);
   if (!COPILOT_SHOW_RE.test(q) && COPILOT_ASKS_RE.test(q)) return null;
@@ -12960,11 +12977,12 @@ function copilotQuoteDoor(cx, question, final) {
   if (cited.length){
     const nq = quoteNorm(cited[0].quote);
     const p = hsPassages(hsWordingOf(cj)).find(x => quoteNorm(x.text).includes(nq));
-    if (p){
+    if (p && (!sharpen || g0.contractId === cj.id) && (COPILOT_SHOW_RE.test(q) || !COPILOT_ASKS_RE.test(q))){
       const door = aiDoorOf({ kind: 'clause', contractId: cj.id, quote: p.text.replace(/\s+/g, ' ').slice(0, 120), ...(p.head ? { head: p.head } : {}) }, cx);
       if (door) return { task: '', door };
     }
   }
+  if (sharpen) return null;
   /* NAMED AND NOT ASKED ("opne MK-A1", "the kabras suger deal"): an ask that only names one contract — by its
      number, or a word of its name or party written near enough — and whose answer rests on that contract alone,
      opens it */
@@ -12975,6 +12993,36 @@ function copilotQuoteDoor(cx, question, final) {
   const named = words.some(w => refs.includes(w)) || words.some(w => own.some(o => o === w || (w.length >= 5 && o.length >= 5 && o.slice(0, 5) === w.slice(0, 5))));
   if (!named) return null;
   const door = aiDoorOf({ kind: 'contract', contractId: cj.id, tab: 'open' }, cx);
+  return door ? { task: '', door } : null;
+}
+/* WHAT THE TURN READ, kept beside it (stage 3b): the contracts Jambo opened and the last list he was given */
+function copilotTurnNote(turn, name, out) {
+  try {
+    if (!turn || !out || typeof out !== 'object') return out;
+    const keep = r => { if (r && r.id && r.found !== false && !r.confidential) turn.read.set(String(r.id), r); };
+    if (name === 'get_contract') keep(out);
+    if (name === 'compare_contracts' && Array.isArray(out.contracts)) out.contracts.forEach(keep);
+    if (name === 'list_portfolio' && Array.isArray(out.contracts)) turn.list = { ids: out.contracts.map(r => String(r.id)), total: out.total, truncated: !!out.truncated };
+  } catch (_) {}
+  return out;
+}
+/* AN ANSWER NAMES ITS SOURCE (stage 3b): an answer that names a contract Jambo read this turn, by its number or
+   its name, and cites nothing, cites it — the reader is never left without the paper it rests on */
+function copilotTurnSources(cx, question, final, turn) {
+  if (!final || (final.citations && final.citations.length) || !turn || !turn.read.size || final.choices) return;
+  const a = String(final.answer || '').toLowerCase();
+  const hits = [...turn.read.values()].filter(r => [r.id, r.contractNo, r.name].filter(Boolean).some(x => String(x).length >= 4 && a.includes(String(x).toLowerCase())));
+  if (hits.length && hits.length <= 3) final.citations = hits.map(r => ({ id: String(r.id), quote: '' })).filter(c => idInScope(cx.scope, c.id));
+}
+/* A LIST ASKED FOR, NOT A QUESTION ("signed contracts", "undertecknade avtal"): the list Jambo was given opens
+   on Contracts, exactly those rows, when he named no place himself (stage 3b) */
+function copilotListDoor(cx, question, final, turn) {
+  if (!final || final.goto || final.choices || !turn || !turn.list || turn.list.truncated) return null;
+  const q = String(question || '').replace(/^\[The reader is on the Home board[\s\S]*?\]\n\n/, '').split('\n\n')[0].slice(0, 400);
+  if (COPILOT_ASKS_RE.test(q) && !COPILOT_SHOW_RE.test(q)) return null;
+  const ids = turn.list.ids.slice(0, 200);
+  if (ids.length < 2) return null;
+  const door = aiDoorOf({ kind: 'contracts', ids }, cx);
   return door ? { task: '', door } : null;
 }
 const COPILOT_WHY = {
@@ -13164,6 +13212,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
      Tracked across every turn, because the cut can happen on any of them. */
   let truncated = false;
   let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast'), nudged = false;
+  const turn = { read: new Map(), list: null };
   try {
     for (let step = 0; step < AI_CHAT_STEPS; step++) {
       steps = step + 1;
@@ -13194,14 +13243,15 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
       toolUses.forEach(t => { if (!toolsUsed.includes(t.name)) toolsUsed.push(t.name); });
       if (toolUses.some(t => t.name === 'compare_contracts')) compared = true;
       const results = await Promise.all(toolUses.map(async t =>
-        ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(await runCopilotTool(cx, t.name, t.input, { key, clientCtx: context, who: aiWho(req) })) })));
+        ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(copilotTurnNote(turn, t.name, await runCopilotTool(cx, t.name, t.input, { key, clientCtx: context, who: aiWho(req) }))) })));
       working.push({ role: 'user', content: results });
     }
     /* A NON-ANSWER SAYS SO (8 Oct 2026): `unfinished`/`empty` ride the reply so a
        caller that uses the words for something (a drafted note) never takes this
        sentence for an answer. The chat itself still prints it as before. */
     if (!final) final = copilotWayForward(cx, question, 'unfinished');
-    if (final && !final.goto && aiNavigateOn()) { const g = copilotQuoteDoor(cx, question, final); if (g) final.goto = g; }
+    if (final) copilotTurnSources(cx, question, final, turn);
+    if (final && aiNavigateOn()) { const g = copilotQuoteDoor(cx, question, final) || copilotListDoor(cx, question, final, turn); if (g) final.goto = g; }
     // Resolve cited ids (and any compare columns) into render-ready cards.
     const cardIds = [];
     final.citations.forEach(c => { if (!cardIds.includes(c.id)) cardIds.push(c.id); });
@@ -13499,6 +13549,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
      Tracked across every turn, because the cut can happen on any of them. */
   let truncated = false;
   let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast'), nudged = false;
+  const turn = { read: new Map(), list: null };
   try {
     for (let step = 0; step < AI_CHAT_STEPS; step++) {
       steps = step + 1;
@@ -13536,14 +13587,15 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
       if (toolUses.some(t => t.name === 'compare_contracts')) compared = true;
       for (const t of toolUses) send('progress', { step: steps, tool: t.name, label: copilotProgressLabel(t.name, t.input) });
       const results = await Promise.all(toolUses.map(async t =>
-        ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(await runCopilotTool(cx, t.name, t.input, { key, clientCtx: context, who: aiWho(req) })) })));
+        ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(copilotTurnNote(turn, t.name, await runCopilotTool(cx, t.name, t.input, { key, clientCtx: context, who: aiWho(req) }))) })));
       working.push({ role: 'user', content: results });
     }
     /* A NON-ANSWER SAYS SO (8 Oct 2026): `unfinished`/`empty` ride the reply so a
        caller that uses the words for something (a drafted note) never takes this
        sentence for an answer. The chat itself still prints it as before. */
     if (!final) final = copilotWayForward(cx, question, 'unfinished');
-    if (final && !final.goto && aiNavigateOn()) { const g = copilotQuoteDoor(cx, question, final); if (g) final.goto = g; }
+    if (final) copilotTurnSources(cx, question, final, turn);
+    if (final && aiNavigateOn()) { const g = copilotQuoteDoor(cx, question, final) || copilotListDoor(cx, question, final, turn); if (g) final.goto = g; }
     const cardIds = [];
     final.citations.forEach(c => { if (!cardIds.includes(c.id)) cardIds.push(c.id); });
     if (final.compare) final.compare.columns.forEach(col => { if (!cardIds.includes(col.id)) cardIds.push(col.id); });

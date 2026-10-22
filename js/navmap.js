@@ -170,7 +170,7 @@ function navRead(q, opts = {}){
    Obligations page, not this contract's; the place word's own door then moves (CA_GO) */
 const NAV_PAGES = [
   ['oblig', / (all|every|our) (our )?(duties|obligations) |^ (show me )?(all )?(our )?duties $|^ alla (våra )?åtaganden $/],
-  ['negotiations', /^ (take me to |open |go to |show me )?(the )?(negotiations|negotiation list|negotiations list|förhandlingar|förhandlingarna)( list| page)? $/],
+  ['negotiations', /^ (take me to |open |go to |show me |where are |where is |where do i find |var är )?(the |all )?(negotiations|negotiation list|negotiations list|förhandlingar|förhandlingarna)( list| page)? $/],
   ['people', / (people directory|the directory|directory of people|personkatalog|katalogen) /],
   /* "jambo's work" is the Board's card (land-on-it 1a, the owner's door); his house by its own name */
   ['house', / (jambo s house|jambos house|jambo house|jambos hus) /],
@@ -302,6 +302,9 @@ const navRef = c => (typeof contractRef === 'function') ? contractRef(c) : (c &&
    question about numbers stays the Board's; "take me to …" always moves. */
 function navReadContracts(raw, t, opts){
   if (/ (how long we keep|keeping|retention|bevara|gallring) /.test(t)) return null;     // a stream's Keeping, in Settings
+  /* "where do I bring in old signed contracts" asks how to DO something; "compare the two Naivas contracts" asks
+     for a comparison: neither is a list (AI first, stage 3b) */
+  if (/^ (where|how) (do|can|should) (i|we) /.test(t) || / (compare|comparison|versus|vs|jämför|jämfört) /.test(t)) return null;
   const stage = navStageOf(t), stream = navStreamOf(t), ending = navEndingOf(t);
   /* "drafts" is a list; "the cold chain haulage draft" is one contract */
   const contractsWord = / (contracts|agreements|deals|avtal|avtalen|kontrakt) /.test(t) || (stage === 'Draft' && / (drafts|utkasten|alla utkast) /.test(t)) || /^ (drafts|utkast) $/.test(t);
