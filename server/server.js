@@ -12475,9 +12475,10 @@ const JM_TASK_ADMIN = [...JM_TASKS_BODY.matchAll(/\{ k: '([a-z]+)', admin: true/
 const aiNavigateOn = () => getSetting('aiNavigate') !== false;
 const AI_GOTO_SCHEMA = { type: 'object', description: 'OPTIONAL — only when the person asks WHERE something is in HaTi, how to get to a page or setting, or to be taken somewhere. The ONE place to open for them; HaTi opens it and says so. Leave it out for a question about what contracts say.',
   properties: { task: { type: 'string', enum: JM_TASK_KEYS, description: 'The place: needs (what waits on me), contracts, expiring, upload, draft, fill (a contract\'s details), redline, sign, signlink, share, approval (ask for one), approvals (to decide), oblig, history, calendar, amend, export, end, parties, people, requests, ourpaper (templates), standards (our standards / the negotiation playbook), import, board, insights, askcol, explorer, brief, team, signcap, folders (who sees which stream), lang, away.' },
-    book: { type: 'string', description: 'For task standards only, when a contract type or value stream is named: the playbook book key (e.g. supply, nda, services, lease). Leave out otherwise.' } },
+    book: { type: 'string', description: 'For task standards only, when a contract type or value stream is named: the playbook book key (e.g. supply, nda, services, lease). Leave out otherwise.' },
+    spot: { type: 'string', description: 'OPTIONAL — when they name ONE thing inside a place (a contract, a clause, a party\'s folder, a person\'s setting, a duty, a request, a standard, a template): a short "take me to" phrase naming it in their words, e.g. "clause 7 of MK-A1", "Juno Logistics\'s folder", "Grace\'s signing limit". HaTi reads it with its own map and lands there; task is the fallback.' } },
   required: ['task'] };
-const AI_GOTO_RULE = 'TAKING THEM THERE: when the person asks where something is in HaTi, how to get to a page or setting, or asks to be taken somewhere, set deliver_answer\'s goto to the one place, and say in one short sentence where you are taking them. Our standards (the negotiation playbook, book by book) is task standards; HaTi picks the book from the words asked. Never set goto for a question about what a contract says.';
+const AI_GOTO_RULE = 'TAKING THEM THERE: when the person asks where something is in HaTi, how to get to a page or setting, or asks to be taken somewhere, set deliver_answer\'s goto to the one place, and say in one short sentence where you are taking them. Our standards (the negotiation playbook, book by book) is task standards; HaTi picks the book from the words asked. When they name one thing inside a place (a contract, a clause, a party\'s folder, a person\'s setting, a duty, a request), also set goto\'s spot to a short phrase naming it in their words. Never set goto for a question about what a contract says.';
 const AI_GOTO_OFF_RULE = 'YOU CANNOT OPEN PAGES: when asked where something is in HaTi, name the page in words and say that the search box (⌘K) finds any page by name.';
 function aiGotoOf(g, cx) {
   if (!aiNavigateOn() || !g || typeof g !== 'object') return null;
@@ -12485,7 +12486,9 @@ function aiGotoOf(g, cx) {
   if (!JM_TASK_KEYS.includes(task)) return null;
   if (JM_TASK_ADMIN.includes(task) && !(cx && cx.admin)) return null;
   const book = (task === 'standards' && typeof g.book === 'string') ? g.book.trim().toLowerCase().slice(0, 40) : '';
-  return book && /^[a-z0-9_-]+$/.test(book) ? { task, book } : { task };
+  /* the spot is words for the browser's own map (navRead) to read, never a route or an address */
+  const spot = typeof g.spot === 'string' ? g.spot.replace(/[\u0000-\u001f<>{}]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) : '';
+  return Object.assign(book && /^[a-z0-9_-]+$/.test(book) ? { task, book } : { task }, spot ? { spot } : {});
 }
 const RULE_DOOR_KINDS = ['ask_admin', 'ask_review', 'send_for_approval'];
 const RULE_DOOR_RULES = ['signcap', 'signfolder', 'signcheck', 'signroute', 'review', 'desk', 'linkcode', 'approvals', 'rules', 'folders'];

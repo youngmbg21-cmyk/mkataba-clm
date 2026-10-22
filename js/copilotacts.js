@@ -1939,6 +1939,8 @@ function caGo(a){
   if (a.narrowOff) return true;
   caTrailPush();
   if (a.missing){ caHomeWall(); caGoRepaint(); return true; }
+  /* A THING INSIDE A PLACE (js/navmap.js): its own door, through the doors that already exist */
+  if (a.place === 'nav'){ let ok = false; try { ok = typeof navGo === 'function' && navGo(a); } catch (e){ if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); return false; } caGoRepaint(); return ok; }
   /* A PLACE AND A NARROWING (19 Oct 2026): the place, then its own applier */
   if (a.narrow){ let ok = false; try { ok = caGoNarrowed(a); } catch (e){ if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); return false; } caGoRepaint(); return ok; }
   /* JAMBO'S MAP (js/jambomap.js) reaches two doors no single word had: the
@@ -2440,6 +2442,10 @@ function caUnderstand(q, opts = {}){
   /* booking or finding time is the Calendar's Jambo's (igBookAsk → calHandOff) */
   try { if (typeof igBookAsk === 'function' && igBookAsk(t)) return null; } catch (_){}
   const box = opts.box || '';
+  /* THE THINGS INSIDE THE PLACES (navigable by typing, 22 Oct 2026; js/navmap.js): a clause of a
+     contract, a party's folder, Contracts narrowed by stream, stage, party and end — read first, as
+     the most exact reading the words have; what it does not read falls through to the readers below */
+  { let nv = null; try { nv = (typeof navRead === 'function') ? navRead(t, { box }) : null; } catch (_){ nv = null; } if (nv) return nv; }
   /* a place named with what to show there is read first: it is the most the words can say */
   const and = caReadPlaceAnd(t); if (and) return and;
   /* a send, a job, a door, a Menu row, a draft are read as they always were (caActOf's readers) */
@@ -2607,6 +2613,8 @@ function caAskAnywhere(text, opts = {}){
   if (u){
     /* a number nobody here can see is said where it was asked, when the box can say it */
     if (u.kind === 'noref' && typeof opts.say === 'function'){ opts.say(caUnderstandSay(u)); return 'said'; }
+    /* a plain "it is not there" is said where it was asked; "which did you mean?" goes to Home's Jambo, where its choices are presses */
+    if (u.kind === 'navsay' && !u.choices && typeof opts.say === 'function'){ opts.say(u.text); return 'said'; }
     if (u.kind === 'go' && !u.missing && !u.narrowOff && !CA_CARD_WORDS.includes(u.place) && caGo(u)) return true;
     /* a card, a question asked of a contract, "which contract?": Jambo's, beside the Board */
     return win ? false : caHandHome(t, u);
@@ -2813,6 +2821,8 @@ function caHomeRun(q, a){
   const land = at => { if (typeof landOn === 'function') try { landOn(() => document.querySelector(`#ig-dock [data-ca-card="${at}"]`)); } catch (_){} };
   if (a.kind === 'hand') return false;
   if (a.kind === 'noref'){ intel.history.push({ role: 'user', text: q }, { role: 'assistant', text: _caE(caUnderstandSay(a)) }); paint(); return true; }
+  /* WHAT CANNOT BE MOVED TO IS SAID (js/navmap.js): a clause not there, which of two was meant (with the choices) */
+  if (a.kind === 'navsay'){ intel.history.push({ role: 'user', text: q }, Object.assign({ role: 'assistant', text: _caE(a.text) }, a.choices ? { choices: a.choices } : {})); paint(); return true; }
   if (a.kind === 'cpick' || a.kind === 'door'){
     intel.history.push({ role: 'user', text: q }, { role: 'assistant', text: a.kind === 'door' ? _caE(_caT('ca_intro_job')) : '', act: a });
     paint(); land(intel.history.length - 1); return true;

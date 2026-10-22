@@ -68,7 +68,7 @@ const M_SCREEN_FOR_VIEW = {
   dashboard:'home', register:'contracts', folder:'contracts', workspace:'contract',
   redline:'redline', doc:'contract', reports:'more', intel:'more', calendar:'more',
   templates:'more', templatelib:'more', playbook:'more', team:'more', advice:'more',
-  migration:'more', pipeline:'more', queue:'more', directory:'people',
+  migration:'more', pipeline:'more', queue:'more', directory:'people', obligations:'more',
 };
 const M_VIEW_FOR_SCREEN = {
   home:'dashboard', contracts:'register', contract:'workspace', redline:'redline',
@@ -91,6 +91,8 @@ const M_DESK = [
   { view:'migration',  get label(){ return i18t('m_import_contracts'); },get note(){ return i18t('m_import_sub'); } },
   { view:'team',       get label(){ return i18t('m_settings_rules'); },get note(){ return i18t('m_settings_sub'); } },
   { view:'advice',     get label(){ return i18t('m_advice_desk'); },     get note(){ return i18t('m_advice_sub'); } },
+  /* the Obligations page is the computer's (a contract's own duties are its Obligations tab here): asked on the phone, it says so */
+  { view:'obligations', get label(){ return i18t('m_obligations'); },    get note(){ return i18t('m_obligations_sub'); } },
 ];
 
 /* ------------------------------------------------------------------ CSS ----

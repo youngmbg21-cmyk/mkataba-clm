@@ -18,7 +18,7 @@
 /* global state, hbS, pdContract, pdTab, pdFaceNow, pdSendShows, hbCvNow, regPlaceUp, regFiltered, regScope, insSelected,
    settingsTab, settingsPlace, SET_PANELS, obwPlace, intel, ai, tplPlace, tplPfChosen, tplOverviewData, getContract,
    setView, pdSendFor, hbOpenHome, hbSetFace, hbOpenCalendar, settingsGoTab, rlOpenClauseEditor, negoClauseList, openTemplateBuilder,
-   api, aiWinToggle, openAI, mPhone, mS, bsCardId, bsStrip, closeModal, landOff, pdOpenOnHome, navLanding */
+   api, aiWinToggle, openAI, mPhone, mS, bsCardId, bsStrip, closeModal, landOff, pdOpenOnHome, navLanding, deskPageName */
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
@@ -31,7 +31,7 @@ const EXEC = process.env.CHROMIUM_BIN
 /* THE RATCHET: the score may not fall below this. Stage 0 measured 81 of 194 before anything was built
    (22 Oct 2026); a run moves by a sentence or two on timing, so the floor sits a little under. Each stage
    raises it and none lowers it. */
-const NAV_EXAM_FLOOR = 76;
+const NAV_EXAM_FLOOR = 194;
 const MIN = Number(process.env.NAV_EXAM_MIN || NAV_EXAM_FLOOR);
 const ONLY = process.env.NAV_EXAM_ONLY || '';   // a section's name, or its first words
 
@@ -70,15 +70,26 @@ function navWhereSrc(){
     W.page = 'paper'; W.cid = id; W.pane = ({ hist: 'hist', where: 'dossier', details: 'fill' })[(st && st.page) || ''] || 'dossier'; }
   else if ((v === 'dashboard' || v === 'counter') && face === 'board' && cv.c && cv.v !== 'book'){
     W.page = 'paper'; W.cid = cv.c.id; W.pane = ({ hist: 'hist', oblig: 'oblig', deal: 'dossier' })[cv.v] || 'dossier'; }
-  else if (v === 'dashboard' || v === 'counter'){
+  /* Home's first screen (the counter: the ask box and Needs you) is the Board's page, whatever paper is held behind it */
+  else if (v === 'counter') W.page = 'board';
+  else if (v === 'dashboard'){
     if (face === 'paper') W.page = pc ? 'paper' : ((typeof regPlaceUp === 'function' && regPlaceUp()) ? 'contracts' : 'paper');
     else W.page = face || 'board';
-  } else if (v === 'redline') W.page = (typeof regScope === 'function' && regScope() === 'negotiations') ? 'negotiations' : 'paper';
+  } else if (v === 'redline'){
+    /* the Negotiations list is the redline view with no contract's paper in it (its bar names the page) */
+    let name = ''; try { name = (typeof deskPageName === 'function') ? String(deskPageName() || '') : ''; } catch (_){ name = ''; }
+    W.page = ((typeof regScope === 'function' && regScope() === 'negotiations') || /^(negotiations|förhandlingar)$/i.test(name.trim())) ? 'negotiations' : 'paper';
+  }
   else W.page = VIEW_PAGE[v] || v;
   if (W.page === 'paper' && pc && !W.cid){
     W.cid = pc.id;
     const f = (typeof pdFaceNow === 'function') ? pdFaceNow() : '';
-    if (document.querySelector('#brief-section')) W.pane = 'brief';
+    /* Compare versions, open over the paper, set from the first version to the current wording */
+    const ca = document.getElementById('cmp-a'), cb = document.getElementById('cmp-b');
+    const one = !ca && document.getElementById('cmp-close') && /compare versions|jämför versioner/i.test(((document.getElementById('cmp-close').closest('[role="dialog"], .modal, #modal-root') || document.body).textContent) || '');
+    if (one) W.pane = 'compare-one';   // the screen's own "only one version so far"
+    else if (ca && cb) W.pane = (ca.value === '0' && /current|aktuell/i.test((cb.options[cb.selectedIndex] || {}).textContent || '')) ? 'compare' : 'compare-other';
+    else if (document.querySelector('#brief-section')) W.pane = 'brief';
     else if (typeof pdSendShows === 'function' && pdSendShows() && String(pdSendFor()) === String(pc.id)) W.pane = 'send';
     else if (f) W.pane = ({ fill: 'fill', red: 'redlines', signing: 'sign', amend: 'amend' })[f] || f;
     /* FILL IN IS THE CHECKLIST (owner picked "1 · Checklist", 22 Oct 2026): what is owed, landed on the Dossier */
@@ -102,7 +113,7 @@ function navWhereSrc(){
   }
   if (W.page === 'templates'){
     let n = ''; try { const ch = tplPfChosen(tplOverviewData()); n = (ch && (ch.name || ch.title)) || ''; } catch (_){}
-    W.item = n || ((typeof tplPlace === 'function' && tplPlace().pick) || null);
+    W.item = [n, (typeof tplPlace === 'function' && tplPlace().pick) || ''].filter(Boolean).join(' ') || null;   // its name or its key
   }
   if (W.page === 'settings'){
     const S = { tab: (typeof settingsTab === 'function') ? settingsTab() : null };
@@ -118,7 +129,7 @@ function navWhereSrc(){
     const L = document.querySelector('.is-landed');
     if (L){
       const card = L.closest('[data-st-you-card]'); if (card) S.row = card.getAttribute('data-st-you-card');
-      if (L.id === 'tm-cap' || L.closest('#tm-cap') || L.id === 'tm-cap-none') S.row = 'signcap';
+      if (L.id === 'tm-cap' || L.closest('#tm-cap') || L.id === 'tm-cap-none' || L.id === 'tm-cap-says') S.row = 'signcap';
     }
     const youCard = document.querySelector('[data-st-you-card].is-landed, [data-st-you-card] .is-landed');
     if (!S.row && youCard) S.row = (youCard.closest('[data-st-you-card]') || youCard).getAttribute('data-st-you-card');
@@ -137,7 +148,7 @@ function navWhereSrc(){
 
 /* DOES THE APP STAND WHERE THE SENTENCE SAID — every part of the spot */
 const PAGE_ALIAS = { people: ['team', 'directory'], streams: ['streams', 'folders'], approvals: ['approvals', 'rules'], ai: ['copilot', 'engine'],
-  links: ['linkcode'], review: ['review'], desk: ['desk'], fx: ['company', 'fx'], filing: ['company', 'filing'], keeping: ['streams', 'keeping'] };
+  links: ['linkcode'], review: ['review'], desk: ['desk'], fx: ['company', 'fx'], filing: ['company', 'filing', 'folders'], keeping: ['streams', 'keeping'] };
 function judge(spot, W, before){
   const why = [];
   if (spot.reply){

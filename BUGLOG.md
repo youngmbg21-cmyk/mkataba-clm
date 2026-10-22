@@ -21449,3 +21449,5 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Noticed 22 Oct 2026 (the first-timer rounds), not fixed: the phone's redline card shows neither the plain reason ("Worth a look") nor Ask a colleague; the phone draws its own card.
 - Noticed 22 Oct 2026 (the first-timer rounds), not fixed: the built-in Freight paper is "Freight & Distribution Agreement" by name and "Distribution Logistics" by kind; the New agreement sheet's cards show the kind, so the two names differ between the Templates page and the sheet.
 - Noticed 22 Oct 2026 (the first-timer rounds), not fixed: CLAUDE.md is 87 KB, past its 80 KB line (it was 85.6 KB before this change); a trim needs the owner's yes.
+
+- Noticed, not fixed (22 Oct 2026, navigable by typing): a Settings side drawer (a person's details) stays open over the next page when the reader leaves Settings by a door other than the drawer's own close (seen going Settings → Home → Parties); Jambo's own moves now shut it, other doors still leave it standing.
