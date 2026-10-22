@@ -21345,3 +21345,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Fixed: the send screen put away by the top bar (and by Cancel/Esc) lost a typed note without asking.
 - Fixed: on their page, revising an ask they had already sent was lost on the next repaint with no Send offered (28 Sep line).
 - Checked and already fixed before today (the lines are old): the dispute-hold guards on unsigned contracts (26 Sep); an untouched returned Word file filing phantom changes (f492); the converter's silent 60,000-character cut.
+- Noticed, not fixed (22 Oct 2026): home-speed-verify 1 (Board ⇄ Paper under 60 ms) sits on its floor and fails on main too (local 62 ms at 9861ad9); ask-a-column-verify 2a–2e went red once on CI (PR #403) but passes 27/27 locally on main and the branch. Both checks failed on PR #403's CI, and the owner said "merge anyway".
