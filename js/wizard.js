@@ -817,6 +817,9 @@ function openNewAgreement(o){
   const libOf=()=>(mayEdit && typeof tplLibPublished==='function')?tplLibPublished():[];
   const mineOf=()=>(mayEdit && typeof customTemplates==='function')?customTemplates():[];
   if(!tmpls.length && !libOf().length && !mineOf().length){ toast(i18t('wz_no_templates_role'),'err'); return; }
+  /* the page it was started on names the crumb, read before the form goes Home */
+  const fromView=(typeof state==='object'&&state)?state.view:'';
+  const naFrom=naHomeFirst();
   const ready=(typeof draftAiReady==='function')&&draftAiReady();
   const sName=k=>(k&&typeof FOLDERS==='object'&&FOLDERS[k]&&FOLDERS[k].name)||'';
   const verOf=t=>'v'+((typeof templateVersionNo==='function')?templateVersionNo(t):1);
@@ -1068,7 +1071,7 @@ function openNewAgreement(o){
         /* EVERY DOOR STANDS BESIDE JAMBO TOO (owner, 19 Oct 2026: the form opened
            from a button had no Jambo panel, unlike the drawn sheet): where his
            panel is up at the right edge the page ends at it; elsewhere nothing moves */
-        : { acts:['na-create','na-skip','wz-pick-cancel'], crumb:`${i18t((typeof state==='object'&&state&&(state.view==='templates'||state.view==='playbook'))?'nav_tpl_std':'nav_contracts')} › ${i18t('na_title')}`, back:o.backLabel||'', beside:'#ig-dock' },
+        : { acts:['na-create','na-skip','wz-pick-cancel'], crumb:`${i18t((fromView==='templates'||fromView==='playbook')?'nav_tpl_std':'nav_contracts')} › ${i18t('na_title')}`, back:o.backLabel||'', beside:'#ig-dock' },
       /* ESCAPE AND THE SCRIM ASK TOO (9 Oct 2026) — see naAskLeave below. */
       onBeforeClose: ()=>naAskLeave() });
   /* A STAGE WITHOUT REAL ELEMENTS (a sandbox that only records the markup)
@@ -1331,7 +1334,10 @@ function openNewAgreement(o){
     if(mr && typeof MutationObserver==='function'){
       const ob=new MutationObserver(()=>{
         if(document.getElementById('na-root')) return;
-        ob.disconnect(); dropHeld();
+        ob.disconnect();
+        /* left without a draft (Cancel, the crumb's ‹, ✕, Esc): back to the page it was started on */
+        if(!_naClaimed && naFrom) try{ naBackFrom(naFrom); }catch(_){ }
+        dropHeld();
       });
       ob.observe(mr,{childList:true,subtree:true});
     }
@@ -1452,6 +1458,28 @@ function openNewAgreement(o){
    their first option is a real answer, not an empty box. */
 /* THE ONE SHEET IS ON THE DESK (round 4): read by the panel beside it, which
    says what it holds and asks as drawn while it is up */
+/* EVERY DOOR OPENS BESIDE JAMBO (owner, 22 Oct 2026: started from Settings the form covered the whole
+   window with no Jambo — "Always open beside Jambo"): on a computer, where his panel is not on screen,
+   the form goes to Home first and stands beside it; the page it came from (deskSheetFrom) is where a
+   way out without a draft lands again (naBackFrom). The phone keeps its own screens. Returns that page, or null. */
+function naHomeFirst(){
+  if(typeof document==='undefined'||typeof setView!=='function') return null;
+  if(typeof mPhone==='function'&&mPhone()) return null;
+  const dock=document.getElementById('ig-dock');
+  /* his panel on screen (or a stand-in that cannot say): the form stays where it is */
+  if(dock&&(typeof dock.getClientRects!=='function'||dock.getClientRects().length)) return null;
+  /* the view it stands on, and the desk's own key for the page */
+  const from={ key:(typeof deskSheetFrom==='function')?deskSheetFrom():null, view:(typeof state==='object'&&state)?state.view:'' };
+  try{ setView('dashboard'); }catch(_){ return null; }
+  return from;
+}
+/* a way out without a draft lands on the page the form was started on */
+function naBackFrom(from){
+  if(!from) return;
+  /* the view it stood on is exact; the desk's key only for a place on Home (its trail keeps a page once settled) */
+  if(from.view&&from.view!=='dashboard'&&typeof setView==='function'){ setView(from.view); return; }
+  if(from.key&&typeof deskSheetBackTo==='function') deskSheetBackTo(from.key);
+}
 function naSheetUp(){ return typeof document!=='undefined' && !!document.querySelector('#na-root.na-one'); }
 /* the bar's ‹ while the one sheet is up: its own way out (asks, then goes back), set as it opens */
 let _naBack=null;
@@ -1516,4 +1544,4 @@ function naPickFromDraft(pick, prefill){
   return true;
 }
 
-Object.assign(window,{naUseWhen,naNoTeam,openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naStreamBox,naSheetUp,naSheetBack,naCarryRead,naCarryWrite,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_RAIL_W,NA_ROWS_MIN_H,NA_ROWS_FOOT,NA_FRAME_NARROW_W});
+Object.assign(window,{naUseWhen,naNoTeam,openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naStreamBox,naSheetUp,naSheetBack,naHomeFirst,naBackFrom,naCarryRead,naCarryWrite,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_RAIL_W,NA_ROWS_MIN_H,NA_ROWS_FOOT,NA_FRAME_NARROW_W});
