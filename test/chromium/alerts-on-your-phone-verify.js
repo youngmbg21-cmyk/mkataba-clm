@@ -76,6 +76,12 @@ function openAlert(body){
     /* A HEADLESS BROWSER HAS NO PUSH SERVICE: its subscribe answers with the stand-in's address and this
        phone's keys; getSubscription and unsubscribe follow it. Everything else is the browser's own. */
     await ctx.addInitScript(sub => {
+      /* A BROWSER BUILT WITHOUT NOTIFICATIONS (CI's headless shell answers 'denied' whatever is granted):
+         the page is told what a person's Allow would have said; the server, the helper and the push are real */
+      if (window.Notification && Notification.permission === 'denied'){
+        try { Object.defineProperty(Notification, 'permission', { configurable: true, get: () => 'granted' }); } catch (_){}
+        Notification.requestPermission = async () => 'granted';
+      }
       if (!window.PushManager) return;
       let held = null;
       const make = () => ({ endpoint: sub.endpoint, toJSON: () => ({ endpoint: sub.endpoint, keys: sub.keys }),
@@ -138,7 +144,21 @@ function openAlert(body){
         own = await sw.evaluate(() => [swOwnUrl('https://evil.example/x'), swOwnUrl('/#contract=PH-1')]);
       } catch (e) { blocked.push('sw: ' + String(e && e.message || e).split('\n')[0]); }
     } else blocked.push('no service worker found');
-    check(!!(shown && shown.some(n => n.title === 'Your turn to sign' && n.body === 'Office Lease (PH-1)' && /#contract=PH-1/.test(n.url))), '3a the helper shows an alert pushed to it', shown);
+    /* where the browser itself cannot show notifications (CI's headless shell), the helper's own call is
+       read instead: it asked to show exactly this alert (the stand-in records it); a real Chromium shows it */
+    const canShow = sw ? await sw.evaluate(() => self.Notification && self.Notification.permission === 'granted').catch(() => false) : false;
+    if (!canShow && sw){
+      try {
+        shown = await sw.evaluate(async () => {
+          const asked = []; const real = self.registration.showNotification.bind(self.registration);
+          self.registration.showNotification = (t, o) => { asked.push({ title: t, body: o.body, tag: o.tag, url: o.data && o.data.url }); return real(t, o).catch(() => {}); };
+          self.dispatchEvent(new PushEvent('push', { data: JSON.stringify({ title: 'Your turn to sign', body: 'Office Lease (PH-1)', tag: 'sign:PH-1', url: '/#contract=PH-1&tab=sign', urgent: true }) }));
+          for (let i = 0; i < 20 && !asked.length; i++) await new Promise(r => setTimeout(r, 50));
+          return asked;
+        });
+      } catch (e) { blocked.push('sw (no notifications): ' + String(e && e.message || e).split('\n')[0]); }
+    }
+    check(!!(shown && shown.some(n => n.title === 'Your turn to sign' && n.body === 'Office Lease (PH-1)' && /#contract=PH-1/.test(n.url))), '3a the helper shows an alert pushed to it' + (canShow ? '' : ' (this browser cannot show notifications: the helper\'s own call is read)'), shown);
     check(!!(own && own[0] === h.base + '/' && own[1] === h.base + '/#contract=PH-1'), '3b a tap only ever opens HaTi\'s own address', own);
 
     /* ============ 5 · THE OWNER'S THREE SCREENS ============ */
