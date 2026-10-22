@@ -63,11 +63,11 @@ const JM_TASKS = [
       'what am i supposed to do', 'what am i supposed to do today',
       'vad behöver jag göra', 'vad måste jag göra', 'vad ska jag göra', 'vad ska jag göra nu', 'vad ska jag göra idag', 'vad behöver jag göra idag', 'har jag något att göra'] },
   { k: 'contracts', to: { place: 'contracts' }, w: {
-    en: ['contracts', 'agreements', 'all contracts', 'contract list', 'list of agreements', 'contract repository', 'browse the contracts', 'look up a contract', 'every agreement we have', 'the full list'],
+    en: ['contracts', 'agreements', 'all contracts', 'contract list', 'list of agreements', 'contract repository', 'browse the contracts', 'look up a contract', 'every agreement we have', 'the full list', 'contract register', 'the register'],
     sv: ['avtal', 'alla avtal', 'avtalslista', 'lista över avtal', 'avtalsarkiv', 'slå upp ett avtal', 'kontrakt'] } },
   { k: 'expiring', to: { reg: { view: 'expiring90' } }, w: {
     en: ['contracts expiring soon', 'expiring contracts', 'ending soon', 'up for renewal', 'renewals', 'contracts that end soon', 'about to expire', 'due for renewal', 'expiry dates', 'renew a contract',
-      'coming up for renewal', 'about to run out', 'running out', 'ending this year', 'end before'],
+      'coming up for renewal', 'about to run out', 'running out', 'ending this year', 'end before', 'close to their end date', 'end date coming up'],
     sv: ['avtal som löper ut snart', 'går ut snart', 'förnyelser', 'förnya avtal', 'slutar snart', 'utgångsdatum', 'löper ut', 'ska förnyas'] } },
   { k: 'upload', to: { place: 'upload' }, w: {
     en: ['upload a contract', 'upload a document', 'add an existing contract', 'add a contract we received', 'attach a file', 'scan a contract', 'add a pdf', 'add a word file', 'their paper', 'a contract i got by email', 'from my computer'],
@@ -103,7 +103,7 @@ const JM_TASKS = [
     en: ['what do we owe', 'our obligations', 'deliverables', 'payments due', 'commitments', 'what we promised', 'duties under the contract', 'what we committed to'],
     sv: ['våra åtaganden', 'vad är vi skyldiga', 'leveranser', 'betalningar som förfaller', 'vad vi har lovat', 'vad vi åtagit oss'] } },
   { k: 'history', to: { place: 'history' }, w: {
-    en: ['who changed what', 'audit trail', 'activity log', 'change log', 'what happened', 'version history', 'previous versions', 'latest changes', 'who edited it'],
+    en: ['who changed what', 'audit trail', 'activity log', 'change log', 'what happened', 'version history', 'previous versions', 'latest changes', 'who edited it', 'timeline', 'the timeline of a contract'],
     sv: ['vem ändrade vad', 'historik', 'ändringslogg', 'tidigare versioner', 'vad har hänt', 'aktivitetslogg', 'senaste ändringarna', 'ändringshistorik'] } },
   { k: 'calendar', to: { place: 'calendar' }, w: {
     en: ['deadlines', 'due dates', 'what is coming up', 'upcoming dates', 'my schedule', 'my calendar', 'key dates', 'important dates', 'reminders'],
@@ -121,14 +121,22 @@ const JM_TASKS = [
     en: ['customers', 'suppliers', 'vendors', 'clients', 'counterparties', 'counterparty', 'companies we work with', 'business partners'],
     sv: ['kunder', 'leverantörer', 'motparter', 'företag vi arbetar med', 'affärspartner'] } },
   { k: 'people', to: { place: 'people' }, w: {
-    en: ['colleagues', 'contacts', 'phone number', 'email address', 'staff directory', 'team members', 'address book', 'coworkers', 'employee directory', 'who to contact'],
+    en: ['colleagues', 'contacts', 'phone number', 'email address', 'staff directory', 'team members', 'address book', 'coworkers', 'employee directory', 'who to contact', 'find a colleague', 'look up a colleague'],
     sv: ['kollegor', 'kontakter', 'telefonnummer', 'mejladress', 'personalkatalog', 'medarbetare', 'adressbok', 'arbetskamrater', 'hitta en kollega'] } },
   { k: 'requests', to: { place: 'requests' }, w: {
-    en: ['ask legal', 'request a contract from legal', 'legal request', 'ask the lawyers', 'intake', 'legal help', 'legal advice'],
+    en: ['ask legal', 'request a contract from legal', 'legal request', 'ask the lawyers', 'intake', 'legal help', 'legal advice', 'submit a request', 'contract request', 'raise a request'],
     sv: ['fråga juristen', 'begär ett avtal från juristerna', 'juridisk hjälp', 'förfrågan till juristerna', 'juridisk rådgivning'] } },
   { k: 'ourpaper', to: { place: 'ourpaper' }, w: {
-    en: ['templates', 'contract templates', 'standard contracts', 'clause library', 'our standard terms', 'playbook', 'our positions', 'model contracts'],
-    sv: ['mallar', 'avtalsmallar', 'standardavtal', 'klausulbibliotek', 'våra standardvillkor', 'våra positioner'] } },
+    en: ['templates', 'contract templates', 'template library', 'clause library', 'model agreements', 'model contracts'],
+    sv: ['mallar', 'avtalsmallar', 'standardavtal', 'klausulbibliotek', 'våra standardvillkor'] } },
+  /* OUR STANDARDS, ON THE RIGHT BOOK (owner, 22 Oct 2026: "show me where i
+     can edit our standards for the procurement stream" landed on the open
+     contract's Filing row): Our paper's standards tab, and where a stream or
+     a contract type is named, the book that judges it (jmStdBook) */
+  { k: 'standards', to: { place: 'ourpaper', std: true }, w: {
+    en: ['our standards', 'edit our standards', 'change our standards', 'negotiation playbook', 'playbook', 'our positions', 'negotiation positions', 'fallback positions',
+      'standard positions', 'what we accept in a negotiation', 'our red lines', 'clause standards', 'standards for a contract type'],
+    sv: ['våra standarder', 'ändra våra standarder', 'förhandlingsplaybook', 'förhandlingsguide', 'playbook', 'våra positioner', 'reservpositioner', 'vad vi accepterar i en förhandling', 'standarder för en avtalstyp'] } },
   { k: 'import', to: { place: 'import' }, w: {
     en: ['import old contracts', 'bulk upload', 'migrate our contracts', 'upload many contracts at once', 'bring in our archive', 'load all our old agreements', 'from excel', 'from a spreadsheet'],
     sv: ['importera gamla avtal', 'ladda upp många avtal', 'flytta in våra avtal', 'massuppladdning', 'ta in vårt arkiv'] } },
@@ -165,7 +173,7 @@ const JM_TASKS = [
     en: ['signing limits', 'who can sign', 'signing authority', 'limit on signing', 'cap on what someone can sign', 'authority to sign'],
     sv: ['signeringsgränser', 'vem får signera', 'firmateckning', 'beloppsgräns för signering', 'rätt att signera'] } },
   { k: 'folders', admin: true, to: { st: 'panel:folders' }, w: {
-    en: ['who can see what', 'permissions', 'access rights', 'folder access', 'make a folder private', 'confidential folder', 'restrict access', 'lock down a folder'],
+    en: ['who can see what', 'permissions', 'access rights', 'folder access', 'make a folder private', 'confidential folder', 'restrict access', 'lock down a folder', 'manage access', 'access to a stream', 'lock a stream', 'who sees a stream'],
     sv: ['vem ser vad', 'behörigheter', 'åtkomsträttigheter', 'privat mapp', 'begränsa åtkomst', 'konfidentiell mapp'] } },
   { k: 'lang', to: { st: 'you:lang' }, w: {
     en: ['change language', 'switch to swedish', 'switch to english', 'language settings', 'in swedish please'],
@@ -184,6 +192,7 @@ const JM_STOP = new Set(('a an the i me my mine we us our ours you your it its t
   + 'have has had how where what which when please want wanna need needs like show see view open find search look looking go get take bring let '
   + 'just some any all so and or then now up page screen tab hati jambo help thing things one use using already still also '
   + 'again really actually supposed first since last put make made making few several many lot lots couple bunch dozens hundreds thousands s m d t ll re ve im id ive dont '
+  + 'kept keep stored located live lives sit sits would '
   + 'en ett den det de jag mig min mitt mina vi oss vår vårt våra du dig din ditt dina han hon hen deras där här att och eller som '
   + 'i på av för med från om till är var vara har hade ha kan kunde ska skulle vill måste får behöver göra gör hur vad vilken vilka när visa '
   + 'visar se ser öppna öppnar hitta hittar sök söker leta letar finns gå ta lägga lägger tack snälla bara någon något några alla många '
@@ -200,6 +209,7 @@ const JM_SOFT = new Set(('contract contracts agreement agreements document docum
   + 'avtal avtalet avtalen kontrakt kontraktet dokument dokumentet affär affären lista listan klausul klausulen klausuler '
   + 'idag imorgon vecka veckan veckor månad månaden månader år året kvartal nästa '
   + 'ändra ändrar ställ uppdatera skapa starta ge spara '
+  + 'stream streams ström strömmen strömmar tweak adjust modify '
   + 'måndag tisdag onsdag torsdag fredag lördag söndag').split(/\s+/).filter(Boolean));
 /* the sentence asks for a fact, a count or a reading — the model's, not a
    door: "when does MK-4 expire?", "what is the value of…", "who signed it?" */
@@ -294,6 +304,7 @@ function jmMatch(q, opts = {}){
   const whole = JM_TASKS.find(T => !skip(T.k) && (T.whole || []).includes(n));
   if (whole) return { words: [], tasks: [{ k: whole.k, score: 1, cover: 1 }] };
   const tagged = jmWords(t); if (!tagged.length) return null;
+  const names = jmNameStems(); tagged.forEach(x => { if (names.has(x.w)) x.soft = true; });
   const words = tagged.map(x => x.w);
   const ix = jmIndex(); if (!ix) return null;
   /* a sentence of soft words alone ("take me to the contracts") is known only
@@ -342,6 +353,7 @@ function jmActOf(k, q){
   const T = jmTask(k); if (!T) return null;
   const to = T.to;
   const base = { state: 'ready', map: k };
+  if (to.std) return Object.assign({ kind: 'go', place: to.place, cid: null }, jmStdGo(jmStdBook(q)), base);
   if (to.place){
     const p = (typeof CA_PLACES !== 'undefined' ? CA_PLACES : []).find(x => x.k === to.place) || {};
     const c = p.need ? jmContractOf(q) : null;
@@ -358,6 +370,83 @@ function jmActOf(k, q){
   if (to.st) return Object.assign({ kind: 'go', place: 'settings', st: to.st, say: 'jm_go_' + k }, base);
   return null;
 }
+/* ---- WHICH BOOK OF OUR STANDARDS (owner, 22 Oct 2026) ----
+   A book named by its key or its label's words ("NDAs", "SaaS", "supply"),
+   else a value stream named ("procurement", "sales") and the book that
+   judges that stream's contracts — the same reading a contract filed there
+   gets (playbookKeyFor, stream fallback). Nothing named: null, the page. */
+const JM_STD_SKIP = new Set(['all', 'baseline', 'property', 'professional', 'raw', 'and']);
+function jmStems(text){ return String(text || '').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(w => w.length >= 3 && !JM_STOP.has(w) && !JM_SOFT.has(w) && !JM_STD_SKIP.has(w)).map(jmStem); }
+function jmStdBooks(){ try { return (typeof playbook === 'function') ? (playbook() || {}) : {}; } catch (_){ return {}; } }
+function jmStdBook(q){
+  const said = new Set(jmStems(q)); if (!said.size) return null;
+  const has = ws => ws.some(w => said.has(w) || said.has(w + 's') || (w.endsWith('s') && said.has(w.slice(0, -1))));
+  const pb = jmStdBooks();
+  for (const key of Object.keys(pb)){
+    if (key === '_default') continue;
+    const typeWords = (typeof pbTypeWords === 'function' && pbTypeWords(key)) || [];
+    if (has([jmStem(key.toLowerCase()), ...jmStems((pb[key] || {}).label), ...typeWords.flatMap(jmStems)])) return key;
+  }
+  const F = (typeof FOLDERS !== 'undefined' && FOLDERS) ? FOLDERS : {};
+  const S = (typeof STREAM_SHORT !== 'undefined' && STREAM_SHORT) ? STREAM_SHORT : {};
+  for (const id of new Set([...Object.keys(F), ...Object.keys(S)])){
+    const name = (F[id] && F[id].name) || '';
+    if (!has([jmStem(id), ...jmStems(name).slice(0, 1), ...jmStems(S[id])])) continue;
+    try { const k = (typeof playbookKeyFor === 'function') ? playbookKeyFor({ folder: id }) : null; if (k && pb[k]) return k; } catch (_){ /* the page */ }
+  }
+  return null;
+}
+/* the stream and book names are what the sentence is ABOUT, never which task:
+   matched, but they decide nothing ("standards for the procurement stream") */
+function jmNameStems(){
+  const out = new Set();
+  const F = (typeof FOLDERS !== 'undefined' && FOLDERS) ? FOLDERS : {};
+  const S = (typeof STREAM_SHORT !== 'undefined' && STREAM_SHORT) ? STREAM_SHORT : {};
+  for (const id of Object.keys(F)) jmStems((F[id] && F[id].name) || '').slice(0, 1).forEach(w => out.add(w));
+  for (const id of Object.keys(S)) jmStems(S[id]).forEach(w => out.add(w));
+  for (const [key, b] of Object.entries(jmStdBooks())) if (key !== '_default'){ out.add(jmStem(key.toLowerCase())); jmStems((b || {}).label).forEach(w => out.add(w)); }
+  /* "NDAs" is the NDA book */
+  for (const w of [...out]) out.add(w + 's');
+  return out;
+}
+function jmStdGo(book){
+  const B = book ? jmStdBooks()[book] : null;
+  return B ? { std: true, book, say: 'jm_go_standards_book', sayVars: { book: B.label || book } } : { std: true, say: 'jm_go_standards' };
+}
+
+/* ---- THE MAP OVERRULES ONE WORD (owner, 22 Oct 2026) ----
+   A Menu row is read off one word anywhere in the sentence ("stream" is the
+   Filing row). Where the map is SURE of a task that is not that row's, the
+   sentence was about something else, and the map's task is taken. */
+function jmTaskOfAct(a){
+  if (!a) return null;
+  if (a.map) return a.map;
+  if (a.kind === 'menu'){ if (['export', 'pdf', 'wordx', 'record'].includes(a.menu)) return 'export'; const t = JM_TASKS.find(x => x.to.menu === a.menu); return t ? t.k : null; }
+  if (a.kind === 'door'){ const t = JM_TASKS.find(x => x.to.door === a.door); return t ? t.k : null; }
+  return null;
+}
+function jmOverrules(q, read){
+  const m = jmRead(q);
+  if (!m || m.kind === 'map' || !m.map) return null;
+  return m.map === jmTaskOfAct(read) ? null : m;
+}
+
+/* ---- THE AI TAKES YOU THERE (owner, 22 Oct 2026: option 4, "a customer
+   can choose to turn it off if cost is an issue"; on by default) ----
+   The model's answer may name ONE of the map's tasks (deliver_answer.goto);
+   it is run through the task's own door, as the words would have been. An
+   admin's task is never a non-admin's; a book that does not exist is the page. */
+function jmGotoAct(g, q){
+  if (!g || typeof g !== 'object') return null;
+  const T = jmTask(String(g.task || '')); if (!T) return null;
+  if (T.admin && !jmIsAdmin()) return null;
+  const a = jmActOf(T.k, String(q || ''));
+  if (!a || !T.to.std) return a;
+  const pb = jmStdBooks();
+  const book = (typeof g.book === 'string' && g.book !== '_default' && pb[g.book]) ? g.book : (a.book || null);
+  return Object.assign(a, jmStdGo(book));
+}
+
 /* ON THE BOARD ITS OWN READER KEEPS ITS WORDS (as caPlaceOf): "show
    obligations by stream" is the Board's chart, not a page */
 /* AND ON THE BOARD OR EXPLORER A QUESTION FOR A LIST OF CONTRACTS IS THEIRS
@@ -476,4 +565,5 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined'){
 
 if (typeof window !== 'undefined') Object.assign(window, { JM_LIB_SRC, JM_MAX, JM_COVER, JM_LEAD, JM_NEAR, JM_PICKS, JM_FUZZY_COUNTS, JM_TASKS, JM_STOP, JM_SOFT, JM_FACT_RE, JM_WINDOW_RE, JM_COUNT_RE, JM_LIST_RE,
   jmNorm, JM_STEM_MIN2, jmStem, jmTerms, jmLibNow, jmLib, jmIndex, jmMatch, jmPick, jmTask, jmActOf, jmBoardKeeps, JM_STARTS_WORK, jmOnlyNarrows, jmRead, jmCardHtml, jmCardPress,
-  JM_PALETTE_MAX, jmPaletteRows, JM_CARD_PLACES, jmRunAct, jmRun });
+  JM_PALETTE_MAX, jmPaletteRows, JM_CARD_PLACES, jmRunAct, jmRun,
+  JM_STD_SKIP, jmStems, jmStdBooks, jmStdBook, jmNameStems, jmStdGo, jmTaskOfAct, jmOverrules, jmGotoAct });

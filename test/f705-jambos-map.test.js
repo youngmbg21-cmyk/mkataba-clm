@@ -120,9 +120,13 @@ describe('f705 (1) the map: thirty-one tasks, both languages, each on an existin
   /* RE-POINTED 19 Oct 2026 (owner: "I want hati to do what the user asks in
      plain language supported by Minisearch"): the 32nd task is a contract's
      brief ("briefing for contracts mk 345"), the paper's own Read the brief */
-  test('1a thirty-three tasks, each named once, the brief the 32nd, Ask a column the 33rd', () => {
-    assert.equal(T.length, 33);
-    assert.equal(new Set(T.map(x => x.k)).size, 33);
+  /* RE-POINTED 22 Oct 2026 (owner: "jambo is still very poor at navigating
+     across the platform"; f738): Our standards is the 34th task, its own
+     place apart from the templates (Our paper's standards tab, on a book) */
+  test('1a thirty-four tasks, each named once, the brief the 32nd, Ask a column the 33rd, Our standards the 34th', () => {
+    assert.equal(T.length, 34);
+    assert.equal(new Set(T.map(x => x.k)).size, 34);
+    assert.ok(T.some(x => x.k === 'standards' && x.to.place === 'ourpaper' && x.to.std === true));
     assert.ok(T.some(x => x.k === 'brief' && x.to.place === 'brief'));
     assert.ok(T.some(x => x.k === 'askcol' && x.to.reg && x.to.reg.askOpen === true));
   });
