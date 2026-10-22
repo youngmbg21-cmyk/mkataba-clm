@@ -573,7 +573,7 @@ async function intakeClaimDraft(c){
   return true;
 }
 async function intakeDraft(id){
-  if(!canEdit()){ draftWallToast(); return; }
+  if(!canEdit()){ if(typeof draftWallToast==='function') draftWallToast(); else toast(i18t('ap_viewers_no_create'),'err'); return; }
   const r=(_intake.list||[]).find(x=>x.id===id); if(!r) return;
   /* the paper Jambo's line names (ikFitOf) — read, never asked of a model */
   const pick=ikFitOf(r);

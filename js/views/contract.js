@@ -1541,7 +1541,7 @@ function findingsFromText(c, text){
    the same reason. */
 let _up=null;   // pipeline result carried from the drop to the confirm
 function openUploadModal(){
-  if(!canEdit()){ draftWallToast(); return; }
+  if(!canEdit()){ if(typeof draftWallToast==='function') draftWallToast(); else toast(i18t('ct_viewers_no_add'),'err'); return; }
   _up=null;
   openModal(`
     <div class="p-6">

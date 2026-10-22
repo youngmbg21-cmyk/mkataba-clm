@@ -45,7 +45,7 @@ const HATI_SAMPLES=[
    BOTH branches below, because a saved template with no blanks still asks the
    contract essentials and those are answers too. */
 function createFromCustomTemplate(tid, prefill, ho){
-  if(!canEdit()){ draftWallToast(); return; }
+  if(!canEdit()){ if(typeof draftWallToast==='function') draftWallToast(); else toast(i18t('lib_viewers_no_create'),'err'); return; }
   const t=customTemplates().find(x=>x.id===tid);
   if(!t){ toast(i18t('lib_template_not_found'),'err'); return; }
   // A template with blanks goes through the same guided fill as the built-ins,
@@ -1337,7 +1337,7 @@ function tplMakeItOurs(bid){
    validated BEFORE anything is created — half a batch of employment letters is
    worse than none, because the half-done state is invisible in the register. */
 function openBulkCreateModal(t){
-  if(!canEdit()){ draftWallToast(); return; }
+  if(!canEdit()){ if(typeof draftWallToast==='function') draftWallToast(); else toast(i18t('lib_viewers_no_create'),'err'); return; }
   const fs=templateFields(t);
   if(!fs.length){ toast(i18t('lb_no_blanks_add_first'),'err'); return; }
   openModal(`<div style="padding:20px 22px">

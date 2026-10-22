@@ -79,8 +79,9 @@ describe('f866 (1) a "no" that helps', () => {
     assert.ok((S.match(/draftWallWhyHtml\(\)/g) || []).length >= 2, 'both draft cards');
     assert.ok((S.match(/draftWallActHtml\(\)/g) || []).length >= 2);
     for (const f of ['js/wizard.js', 'js/draft.js', 'js/views/library.js', 'js/views/intake.js', 'js/app.js', 'js/paperdesk.js', 'js/copilotacts.js'])
-      assert.doesNotMatch(strip(read(f)), /toast\((?:i18t|_pdT|_caT)\('(?:wz_viewers_no_create|lib_viewers_no_create|ap_viewers_no_create|ct_viewers_no_add)'\)/, f);
-    assert.match(strip(read('js/views/contract.js')), /function openUploadModal\(\)\{\n  if\(!canEdit\(\)\)\{ draftWallToast\(\); return; \}/);
+      /* the old bare refusal survives only as the fallback where the wall is not loaded */
+      assert.doesNotMatch(strip(read(f)).replace(/if ?\(typeof draftWallToast ?=== ?'function'\) draftWallToast\(\); else (?:if \(typeof toast === 'function'\) )?toast\([^;]*;/g, ''), /toast\((?:i18t|_pdT|_caT)\('(?:wz_viewers_no_create|lib_viewers_no_create|ap_viewers_no_create|ct_viewers_no_add)'\)/, f);
+    assert.match(strip(read('js/views/contract.js')), /function openUploadModal\(\)\{\n  if\(!canEdit\(\)\)\{ if\(typeof draftWallToast==='function'\) draftWallToast\(\); else toast/);
   });
 });
 
@@ -158,8 +159,8 @@ describe('f866 (3) a form in plain words', () => {
   });
   test('3c the words: "Who pays whom?" and "The other company", with where its name is found', () => {
     assert.equal(word(EN, 'tf_our_side'), 'Who pays whom?');
-    assert.equal(word(EN, 'tf_cp_other'), 'The other company');
-    assert.equal(word(EN, 'tf_cp_other_help'), 'As on their invoices or letterhead');
+    assert.equal(word(EN, 'tf_cp_company'), 'The other company');
+    assert.equal(word(EN, 'tf_cp_company_help'), 'As on their invoices or letterhead');
     assert.match(strip(WZ), /const cp=v\.key==='counterparty'&&v\.maps==='counterparty';/);
   });
 });
@@ -185,13 +186,13 @@ describe('f866 (4) Jambo speaks first on a draft', () => {
     const x = stage([['value', 'Contract value'], ['site', 'Warehouse / site']]);
     const T2 = x.turns({ id: 'A', status: 'Draft', template: 'WH', counterparty: 'Kilifi Haulage' });
     assert.equal(T2.length, 2);
-    assert.match(T2[0].text, /fr_draft_one .*"paper":"Warehousing & Cold-Chain Agreement".*"party":"Kilifi Haulage".*"list":"contract value and warehouse \/ site"/);
-    assert.match(T2[1].text, /fr_draft_two/);
+    assert.match(T2[0].text, /fr_draft_open .*"paper":"Warehousing & Cold-Chain Agreement".*"party":"Kilifi Haulage".*"list":"contract value and warehouse \/ site"/);
+    assert.match(T2[1].text, /fr_draft_next/);
     assert.deepEqual(JSON.parse(JSON.stringify(T2[1].choices.map(c => [c.fr, !!c.lead, c.key || '']))), [['fill', true, 'value'], ['dsend', false, '']]);
   });
   test('4c nothing owed: it is complete, and Send leads', () => {
     const T2 = stage([]).turns({ id: 'A', status: 'Draft', template: 'WH', counterparty: 'Kilifi Haulage' });
-    assert.match(T2[0].text, /fr_draft_one_whole/); assert.match(T2[1].text, /fr_draft_done/);
+    assert.match(T2[0].text, /fr_draft_whole/); assert.match(T2[1].text, /fr_draft_done/);
     assert.deepEqual(JSON.parse(JSON.stringify(T2[1].choices.map(c => [c.fr, !!c.lead]))), [['dsend', true]]);
   });
   test('4d said once, at the upload\'s own moment and limits; nothing stored; the presses are existing doors', () => {
@@ -253,8 +254,8 @@ describe('f866 (6) both books', () => {
   test('6a every new word is in English and Swedish', () => {
     const keys = ['ca_wall_head', 'ca_wall_body', 'ca_wall_body_any', 'ca_wall_ask', 'ca_wall_ask_any', 'ca_wall_an_admin', 'ca_wall_asked', 'ca_wall_what',
       'na_ask_admin_choose', 'na_shares', 'na_dq_none_called', 'na_dq_store_move', 'na_dq_store_move_none', 'na_dq_store', 'na_dq_move', 'na_dq_both',
-      'tf_pw_we_pay', 'tf_pw_they_pay', 'tf_pw_no_money', 'tf_pw_say_customer', 'tf_pw_say_supplier', 'tf_pw_say_none', 'tf_cp_other', 'tf_cp_other_help',
-      'fr_draft_one', 'fr_draft_one_whole', 'fr_draft_two', 'fr_draft_done', 'fr_draft_fill', 'fr_draft_send', 'fr_draft_them',
+      'tf_pw_we_pay', 'tf_pw_they_pay', 'tf_pw_no_money', 'tf_pw_say_customer', 'tf_pw_say_supplier', 'tf_pw_say_none', 'tf_cp_company', 'tf_cp_company_help',
+      'fr_draft_open', 'fr_draft_whole', 'fr_draft_next', 'fr_draft_done', 'fr_draft_fill', 'fr_draft_send', 'fr_draft_them',
       'ng_prepare_dead_none', 'ng_empty_first', 'ng_empty_send',
       'rp_v_look', 'rl_plain_figure', 'rl_plain_added', 'rl_ask_col', 'rl_ask_col_title', 'rl_ask_col_note', 'rl_ask_col_note_bare', 'rl_counter_fact', 'ng_decided_accepted_unsent'];
     for (const k of keys){ assert.ok(word(EN, k), 'English ' + k); assert.ok(word(SV, k), 'Swedish ' + k); assert.notEqual(word(EN, k), word(SV, k), 'translated ' + k); }

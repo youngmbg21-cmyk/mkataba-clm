@@ -3063,7 +3063,7 @@ function pdDropImportHtml(){
 function pdDropDoor(){
   if (typeof window === 'undefined' || (window.innerWidth && window.innerWidth < 768)) return false;
   if (typeof hbOpenContracts !== 'function' || !(typeof deskShellOn !== 'function' || deskShellOn())) return false;
-  if (!pdDropMay()){ if (typeof draftWallToast === 'function') draftWallToast(); return true; }
+  if (!pdDropMay()){ if (typeof draftWallToast === 'function') draftWallToast(); else if (typeof toast === 'function') toast(_pdT('ct_viewers_no_add'), 'err'); return true; }
   if (typeof closeModal === 'function' && document.getElementById('modal-root') && document.getElementById('modal-root').children.length) try { closeModal(); } catch (_){}
   hbOpenContracts();
   if (typeof intel === 'object' && intel && !intel.dockOpen){ intel.dockOpen = true; if (typeof renderIntelDock === 'function') renderIntelDock(); if (typeof igSyncDockWidth === 'function') try { igSyncDockWidth(); } catch (_){} }
@@ -3122,7 +3122,7 @@ function pdDropInput(){
 }
 function pdDropBusyNow(){ return !!(_pdDrop && _pdDrop.state === 'reading') || ((typeof uploadDropBusy === 'function') && uploadDropBusy()); }
 function pdDropPick(){
-  if (!pdDropMay()){ if (typeof draftWallToast === 'function') draftWallToast(); return false; }
+  if (!pdDropMay()){ if (typeof draftWallToast === 'function') draftWallToast(); else if (typeof toast === 'function') toast(_pdT('ct_viewers_no_add'), 'err'); return false; }
   if (pdDropBusyNow()){ if (typeof toast === 'function') toast(_pdT('ca_drop_busy'), 'warn'); return false; }
   pdDropInput().click();
   return true;

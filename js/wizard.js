@@ -130,7 +130,7 @@ function forYouTemplates(tmpls){ return forYouPick(tmpls).list; }
    creation, same audit line. A key this template does not ask for is dropped
    by draftApplyPrefill rather than carried. */
 function openWizard(preTid, prefill){
-  if(!canEdit()){ draftWallToast(); return; }
+  if(!canEdit()){ if(typeof draftWallToast==='function') draftWallToast(); else toast(i18t('wz_viewers_no_create'),'err'); return; }
   const tmpls=myCreatableTemplates();
   if(!tmpls.length){ toast(i18t('wz_no_templates_role'),'err'); return; }
   let tid=preTid&&tmpls.some(t=>t.id===preTid)?preTid:null;
@@ -539,9 +539,9 @@ function wzFieldHtml(v){
   const it=v.type==='date'?'date':(v.type==='num'?'number':'text');
   /* THE OTHER COMPANY, in a first-timer's words, with where its name is found (round 3 of the first-timer rounds) */
   const cp=v.key==='counterparty'&&v.maps==='counterparty';
-  const lab=cp?lbl.replace(v.label, String(i18t('tf_cp_other')).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]))):lbl;
+  const lab=cp?lbl.replace(v.label, String(i18t('tf_cp_company')).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]))):lbl;
   return `<label style="display:block;">${lab}
-    <input id="${id}" type="${it}"${(typeof needAttrs==='function'?needAttrs(v,v.def):'')} value="${String(v.def||'').replace(/"/g,'&quot;')}" placeholder="${v.ph||''}" style="${WZ_ST}"/>${cp?`<span class="wz-help">${i18t('tf_cp_other_help')}</span>`:''}</label>`;
+    <input id="${id}" type="${it}"${(typeof needAttrs==='function'?needAttrs(v,v.def):'')} value="${String(v.def||'').replace(/"/g,'&quot;')}" placeholder="${v.ph||''}" style="${WZ_ST}"/>${cp?`<span class="wz-help">${i18t('tf_cp_company_help')}</span>`:''}</label>`;
 }
 /* ASKED HERE, WHERE YOU ARE ALREADY NAMING THEM, AND NOWHERE ELSE. The
    templates carry the counterparty's NAME; nothing carried the address, so it
@@ -739,7 +739,7 @@ function naCardTitle(r){
    ONE ACT EACH, NEVER A SECOND ONE: the drafting door is this function, the
    upload door is openUploadModal — the one dialog every upload already uses. */
 function openNewDoors(){
-  if(typeof canEdit==='function' && !canEdit()){ draftWallToast(); return; }
+  if(typeof canEdit==='function' && !canEdit()){ if(typeof draftWallToast==='function') draftWallToast(); else toast(i18t('wz_viewers_no_create'),'err'); return; }
   const esc=x=>String(x==null?'':x).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
   const ic=(n)=>(typeof icon==='function')?icon(n,'w-4 h-4'):'';
   const go=k=>{
@@ -810,7 +810,7 @@ function openNewDoors(){
 function openNewAgreement(o){
   if(o===undefined) return openNewDoors();
   o=o||{};
-  if(typeof canEdit==='function' && !canEdit()){ draftWallToast(); return; }
+  if(typeof canEdit==='function' && !canEdit()){ if(typeof draftWallToast==='function') draftWallToast(); else toast(i18t('wz_viewers_no_create'),'err'); return; }
   const esc=x=>String(x==null?'':x).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
   const tmpls=(typeof myCreatableTemplates==='function')?myCreatableTemplates():[];
   const mayEdit=(typeof canEdit!=='function')||canEdit();

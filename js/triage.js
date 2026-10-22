@@ -1071,9 +1071,9 @@ function firstDraftList(labels){
 function firstDraftTurns(c, R){
   R = R || firstDraftOf(c); if (!R) return [];
   const cid = c.id, party = R.party || _frT('fr_draft_them');
-  const one = R.owed.length ? _frT('fr_draft_one', { paper: R.paper, party, list: firstDraftList(R.owed.map(x => x.label)) })
-    : _frT('fr_draft_one_whole', { paper: R.paper, party });
-  const two = R.owed.length ? _frT('fr_draft_two', { party }) : _frT('fr_draft_done', { party });
+  const one = R.owed.length ? _frT('fr_draft_open', { paper: R.paper, party, list: firstDraftList(R.owed.map(x => x.label)) })
+    : _frT('fr_draft_whole', { paper: R.paper, party });
+  const two = R.owed.length ? _frT('fr_draft_next', { party }) : _frT('fr_draft_done', { party });
   const send = { label: _frT('fr_draft_send', { party }), fr: 'dsend', cid };
   const choices = R.owed.length ? [{ label: _frT('fr_draft_fill'), fr: 'fill', cid, key: R.owed[0].key, lead: true }, send] : [Object.assign({ lead: true }, send)];
   return [{ role: 'assistant', text: `<p>${_frE(one)}</p>`, firstRead: cid },
