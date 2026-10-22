@@ -289,6 +289,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE SLIDER ON EVERY JAMBO PANEL
 - f830, f394 (3).
+- The side panel beside the page (22 Oct 2026): test/chromium/jambo-slides-in-verify.js 1d–1l (nothing dimmed, the page's room ends where the panel starts, the edge tab steps away and comes back with the panel's minimise, THE SLIDER widens it and is kept, a double-click puts it back, the three screens); 1d/1e/1f/1h red at ff908e4b.
 
 ## OTHER PAGES AND SERVICES
 - The Mailroom gives every document a person (22 Oct 2026): f859 (red at the parent 1–6); Settings box photographed at the three screens. Their bell says it once: test/chromium/mailroom-bell-verify.js (red at the parent 1, 1b, 2, 5).
