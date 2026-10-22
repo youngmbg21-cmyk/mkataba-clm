@@ -21413,3 +21413,9 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Fixed: the send screen put away by the top bar (and by Cancel/Esc) lost a typed note without asking.
 - Fixed: on their page, revising an ask they had already sent was lost on the next repaint with no Send offered (28 Sep line).
 - Checked and already fixed before today (the lines are old): the dispute-hold guards on unsigned contracts (26 Sep); an untouched returned Word file filing phantom changes (f492); the converter's silent 60,000-character cut.
+
+## Noticed, not fixed — 22 Oct 2026 (Jambo speaks first, round 1)
+- A plain-text file dropped through Jambo's drop area does not read the other party even when the paper names it plainly ("between Highland Corporate Ltd and Nordvik Logistik AB"); the Dossier's Other party stays Missing and Jambo has to ask.
+- The risk scan does not flag "liable for all losses of any kind without limitation" or a termination right only the other side has; without the AI standards check, Jambo's first read then says "Nothing I'd push back on" on a paper that plainly needs it.
+- The stamp under a Jambo turn on Home's paper repeats the reference: "Read from MK-201 · Nordvik SaaS Agreement · MK-201".
+- After a page refresh Home's Jambo conversation starts empty (the turns said before the refresh are not drawn again).

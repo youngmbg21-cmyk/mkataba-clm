@@ -445,6 +445,9 @@ const BRAIN_PARTS = [
   /* JAMBO BEHIND THE WALL (owner picked "One press — the SAP way", 17 Oct
      2026): a private folder's contract is read only on a person's press */
   ['jbpress', 'jamboOnPress', 'read', 1],
+  /* Jambo speaks first on an upload (round 1 of Jambo's journey, owner, 22 Oct 2026): his first words in his panel beside the paper, read off the arrival reading and your own book, free */
+  ['firstread', 'firstReadOf', 'ai', 1],
+  ['partyhist', 'partyHistoryOf', 'read', 1],
   /* AN NDA'S TWO FACTS (owner picked "The tail on the life line", 17 Oct
      2026): read off the wording, confirmed by a person on the panel */
   ['ndatail', 'ndaEditOpen', 'see', 0],
@@ -532,7 +535,7 @@ const BRAIN_PARTS = [
    brn_step_<flow>_<n> in the dictionary. A flow is a STORY a person wrote;
    the reading only checks that every part it names is still in the code. */
 const BRAIN_FLOWS = [
-  { id: 'upload', steps: [['upload', 'dropin', 'book', 'draftcard'], ['docx', 'pdf'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed', 'jbpress'], ['brief', 'playbook', 'oblscan', 'obdesk', 'risk', 'datedwin', 'papermark', 'ndaread'], ['model'], ['details', 'fillface', 'refile', 'blanks', 'paysec', 'ndatail'], ['overview', 'constellation', 'glance', 'needshere', 'paperline', 'bell', 'strip', 'cardpage', 'pageglance', 'glanceasks', 'notehere']] },
+  { id: 'upload', steps: [['upload', 'dropin', 'book', 'draftcard'], ['docx', 'pdf'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed', 'jbpress'], ['brief', 'playbook', 'oblscan', 'obdesk', 'risk', 'datedwin', 'papermark', 'ndaread'], ['model'], ['details', 'fillface', 'refile', 'blanks', 'paysec', 'ndatail'], ['overview', 'constellation', 'glance', 'needshere', 'paperline', 'bell', 'strip', 'cardpage', 'pageglance', 'glanceasks', 'notehere'], ['firstread', 'partyhist']] },
   /* The new parts join STEPS THAT ALREADY EXIST rather than adding steps of
      their own: a step inserted in the middle renumbers every sentence after
      it in both books, and these are not new stages of the story — they are
@@ -573,7 +576,7 @@ const BRAIN_LANE_OF = {
     'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'askcol', 'askcolcells', 'contractsplace', 'customers', 'directory', 'partyrec', 'cellfold',
     'readchips', 'nextq', 'mapwalk', 'pointsay', 'thennow', 'mappicture', 'findings', 'newagr', 'essentials', 'tplform', 'details', 'fillface', 'outbyhand', 'amend', 'endpause', 'decline', 'reopen', 'archive', 'hold', 'served', 'obdone', 'inline', 'stackview', 'mynotes', 'breakdown', 'ptmark', 'jambohouse', 'onesearch', 'listask', 'totpcount', 'totpnew', 'onereader', 'contractfind', 'briefword', 'askbar', 'jambopop', 'jambohere', 'jbpresses', 'watchread', 'watchlist', 'listhead', 'listfoot'],
   /* HaTi itself: the readings, Copilot, the agents, the server's checks, the mail it sends */
-  hati: ['docx', 'clauses', 'putguard', 'db', 'tplskip', 'chasepreview', 'privwall', 'privsave', 'privlist', 'privseen', 'privopens', 'privmoney', 'trailsum', 'traillist', 'trailexport', 'trailrec', 'bzget', 'bzsave', 'bzholder', 'bzrec', 'arread', 'armark', 'ardone', 'arrec', 'clashseen', 'clashfind', 'awayget', 'awayset', 'awayend', 'awayreach', 'awaycovers', 'awayrec', 'awayans', 'keepread', 'keepset', 'keeprun', 'keepbook', 'keeprec', 'partyrecget', 'partyrecset', 'partyrecdb', 'partyreclog', 'cnset', 'cndoor', 'cnmask', 'cnrec', 'cnlog', 'payread', 'jbpress', 'ndaread', 'triage', 'arrivalowed', 'datedwin', 'brief', 'playbook', 'oblscan', 'risk', 'model', 'blanks', 'laneowner',
+  hati: ['docx', 'clauses', 'putguard', 'db', 'tplskip', 'chasepreview', 'privwall', 'privsave', 'privlist', 'privseen', 'privopens', 'privmoney', 'trailsum', 'traillist', 'trailexport', 'trailrec', 'bzget', 'bzsave', 'bzholder', 'bzrec', 'arread', 'armark', 'ardone', 'arrec', 'clashseen', 'clashfind', 'awayget', 'awayset', 'awayend', 'awayreach', 'awaycovers', 'awayrec', 'awayans', 'keepread', 'keepset', 'keeprun', 'keepbook', 'keeprec', 'partyrecget', 'partyrecset', 'partyrecdb', 'partyreclog', 'cnset', 'cndoor', 'cnmask', 'cnrec', 'cnlog', 'payread', 'jbpress', 'ndaread', 'triage', 'arrivalowed', 'firstread', 'partyhist', 'datedwin', 'brief', 'playbook', 'oblscan', 'risk', 'model', 'blanks', 'laneowner',
     'funnel', 'myemail', 'mycopy', 'acctrec', 'desk', 'ladder', 'kept', 'asks', 'payload', 'shares', 'linkcheck', 'email', 'sharemail', 'turnmail', 'wordmark', 'whosemove', 'roundauto',
     'mailkey', 'respond', 'audit', 'apply', 'wordback', 'paperdrop', 'stale', 'webhook', 'answeronpaper', 'readiness', 'signgate', 'approvals', 'paperjobs', 'rulestep', 'seal',
     'frozen', 'obligations', 'renewal', 'reminders', 'lanes', 'agentlevel', 'linkkeep', 'renewact', 'renewprep', 'boardjudge', 'bookread',
@@ -584,7 +587,7 @@ const BRAIN_LANE_OF = {
   them: ['cplink', 'guestcode', 'theirsign']
 };
 const BRAIN_FLOW_STAGES = {
-  upload: ['create', 'create', 'create', 'create', 'prepare', 'prepare', 'prepare', 'prepare', 'prepare'],
+  upload: ['create', 'create', 'create', 'create', 'prepare', 'prepare', 'prepare', 'prepare', 'prepare', 'prepare'],
   redline: ['nego', 'nego', 'nego', 'nego', 'nego', 'nego', 'nego', 'nego', 'nego', 'nego'],
   round: ['nego', 'nego', 'nego', 'nego', 'nego', 'nego', 'nego', 'nego'],
   sign: ['sign', 'sign', 'approve', 'approve', 'sign', 'sign', 'sign', 'keep', 'keep'],

@@ -246,6 +246,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## COPILOT READS A CONTRACT ON ARRIVAL, AND FILLS ITS BLANKS
 - f273, f327, f342, f343, f697, auto-triage, blanks-panel, upload-blanks, jambo-behind-the-wall verify.
+- Jambo speaks first on an upload (22 Oct 2026): f862 (red at the parent ff908e4, 18 of 18), test/chromium/jambo-speaks-first-verify (20 checks: a real drop, the real reading, every press, once across a refresh, the three screens).
 
 ## OVERVIEW 2 — THE TIME MACHINE (js/views/overview2.js)
 - f558.

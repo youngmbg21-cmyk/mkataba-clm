@@ -14126,6 +14126,12 @@
   .jl-bub{min-width:0;flex:1 1 auto;padding:10px 12px;border-radius:var(--radius-lg);background:var(--surface-2);color:var(--color-text);line-height:1.5;}
   .jl-bub b{font-weight:var(--w-strong);}
   .jl-bub .late{color:var(--st-ruby-fg);font-weight:var(--w-label);}
+  /* JAMBO SPEAKS FIRST (round 1 of Jambo's journey): his first words are short paragraphs and two short lists */
+  .jl-bub p{margin:0;}
+  .jl-bub p + p, .jl-bub .fr-list + p, .jl-bub .fr-more + p{margin-top:8px;}
+  .jl-bub .fr-list{margin:4px 0 0;padding-left:18px;list-style:disc;}
+  .jl-bub .fr-list li + li{margin-top:4px;}
+  .jl-bub .fr-more{margin-top:4px;color:var(--color-neutral-600);}
   .jl-src{margin:-2px 0 2px 34px;font-size:var(--t-micro);color:var(--color-neutral-600);}
   .jl-chips{display:flex;flex-wrap:wrap;gap:4px 12px;margin-left:34px;}
   /* a resting chip wears the ONE light edge every outlined control does

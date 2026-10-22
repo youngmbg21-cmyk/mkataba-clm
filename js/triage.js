@@ -864,7 +864,8 @@ function contractArrived(c, opts){
   if (!triageApplies(c)) return false;
   /* a ticked box (or the drop area, which reads by design and says its cost)
      is a person asking — the press a private folder's contract waits for */
-  try{ triageAndPaint(c, o.read === true ? { asked: true } : undefined); }catch(_){ return false; }
+  /* `arrival`: an upload's reading ends in Jambo's first words (firstReadOwe) */
+  try{ triageAndPaint(c, o.read === true ? { asked: true, arrival: true } : { arrival: true }); }catch(_){ return false; }
   return true;
 }
 
@@ -938,7 +939,158 @@ function triageAck(c){
   return true;
 }
 
-Object.assign(window, { TRIAGE_STEPS, TRIAGE_HEADS, TRIAGE_STALE_KEYS, triageReadingStale, triageBusy, triageAbsent, triageNoText, triageApplies, triageOf, triageSeen, triageCards,
+/* ═══════════════════════════════════════════════════════════════════
+   JAMBO SPEAKS FIRST ON AN UPLOAD (round 1 of Jambo's journey; owner,
+   22 Oct 2026: "First thing after uploading a contract, jambo pops up to
+   advise you IN VERY NATURAL AND PLAIN LANGUAGE" — and, asked "May Jambo
+   speak first on arrival?", "Yes").
+   ───────────────────────────────────────────────────────────────────
+   WHERE: only in his panel beside the paper on Home, as turns in the one
+   conversation — never a band, a strip or a window (the house rule). Two
+   turns: who the other side is (with your history with them) and the
+   contract in short; then what to push back on, what to read later, and the
+   road he recommends.
+   WHAT IT READS: only what the arrival reading already put on the record —
+   the brief's line, the risk list (riskOpenOf), the standards check
+   (stdDepartures) — and your own book (partyHistoryOf). NO NEW AI CALL, no
+   outside call. The road is arithmetic: anything to push back on means
+   negotiate; nothing means send.
+   WHAT IT WRITES: two stamps on the reading's own record, `sayOwed` (an
+   upload's reading finished) and `saidAt` (he said it), so he speaks ONCE
+   per reading, on the paper of THAT contract, whenever the reader is there.
+   A contract read before this existed carries no `sayOwed` and stays quiet.
+   WHAT IT PRESSES: nothing. Each answer is a person's press on an existing
+   door: the fill-in door on the other side's name, the Redlines face, the
+   share card. Typing never acts.
+   ═══════════════════════════════════════════════════════════════════ */
+const FIRST_READ_SHOW = 3;
+const _frT = (k, v) => (typeof i18t === 'function') ? i18t(k, v) : k;
+const _frTn = (k, n, v) => (typeof i18tn === 'function') ? i18tn(k, n, v) : k;
+const _frE = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+/* the first sentence of a longer line, so a point stays one line */
+const _frFirst = s => { const t = String(s || '').replace(/\s+/g, ' ').trim(); const m = t.match(/^[^.!?]+[.!?]/); return (m ? m[0] : t).trim(); };
+function firstReadFrozen(c){
+  try { return !!c && (c.status === 'Signed' || (typeof negoWordingFrozen === 'function' && !!negoWordingFrozen(c))); }
+  catch (_){ return !!c && c.status === 'Signed'; }
+}
+/* THE ONE READING of what he says first. Pure: reads the record, writes nothing. */
+function firstReadOf(c){
+  if (!c) return null;
+  const t = triageOf(c) || {};
+  const steps = t.steps || {};
+  const party = String(c.counterparty || '').trim();
+  const short = (steps.brief && steps.brief.ok && steps.brief.line) ? String(steps.brief.line) : '';
+  let hist = null; try { hist = (typeof partyHistoryOf === 'function') ? partyHistoryOf(c) : null; } catch (_){ hist = null; }
+  /* the risk list's open items: the worst ones are worth pushing back on now, the rest are for reading later */
+  let open = []; try { open = (typeof riskOpenOf === 'function') ? (riskOpenOf(c) || []) : []; } catch (_){ open = []; }
+  const word = it => {
+    const title = (typeof riskTitleOf === 'function') ? riskTitleOf(it) : String(it.title || '');
+    const why = _frFirst((typeof riskWhyOf === 'function' ? riskWhyOf(it) : '') || it.say || '');
+    return { title: String(title || '').trim(), why: why && why !== title ? why : '' };
+  };
+  const push = open.filter(it => it.sev === 'high').map(word);
+  const later = open.filter(it => it.sev !== 'high').map(word);
+  /* and where it departs from your own standards: a push-back, said in your words */
+  let dep = []; try { dep = (typeof stdDepartures === 'function') ? (stdDepartures(c) || []) : []; } catch (_){ dep = []; }
+  const seen = new Set(push.map(x => x.title.toLowerCase()));
+  dep.forEach(v => { const cat = String((v && v.category) || '').trim(); if (!cat || seen.has(cat.toLowerCase())) return; seen.add(cat.toLowerCase());
+    push.push({ title: cat, why: _frT('fr_std_off') }); });
+  const frozen = firstReadFrozen(c);
+  const road = frozen ? null : (push.length ? 'negotiate' : 'send');
+  return { party, short, hist, push: push.filter(x => x.title), later: later.filter(x => x.title), road, frozen,
+    unread: !!t.error };
+}
+/* the two turns, in his words */
+function firstReadTurns(c, R){
+  R = R || firstReadOf(c); if (!R) return [];
+  const cid = c.id;
+  const list = (L, cls) => {
+    const shown = L.slice(0, FIRST_READ_SHOW);
+    const more = L.length - shown.length;
+    return `<ul class="fr-list ${cls}">${shown.map(x => `<li><b>${_frE(x.title)}</b>${x.why ? ` ${_frE(x.why)}` : ''}</li>`).join('')}</ul>`
+      + (more > 0 ? `<p class="fr-more">${_frE(_frTn('fr_more', more, { n: more }))}</p>` : '');
+  };
+  /* 1 · who, in short, and your history with them */
+  const one = [];
+  if (R.unread) one.push(_frE(_frT('fr_unread')));
+  else one.push(_frE(R.party ? _frT('fr_party', { who: R.party }) : _frT('fr_party_none')));
+  let hs = ''; try { hs = (typeof partyHistorySay === 'function') ? partyHistorySay(R.hist) : ''; } catch (_){ hs = ''; }
+  if (hs) one.push(_frE(hs));
+  if (R.short) one.push(_frE(_frT('fr_short', { line: R.short })));
+  const partyChoices = R.party
+    ? [{ label: _frT('fr_yes_them'), fr: 'yes', cid }, { label: _frT('fr_not_them'), fr: 'other', cid }]
+    : [{ label: _frT('fr_name_them'), fr: 'other', cid }];
+  const turns = [{ role: 'assistant', text: one.map(x => `<p>${x}</p>`).join(''), choices: R.unread ? null : partyChoices, firstRead: cid }];
+  if (R.unread) return turns;
+  /* 2 · push back, read later, the road */
+  const two = [];
+  if (R.push.length){ two.push(`<p>${_frE(_frTn('fr_push_head', R.push.length, { n: R.push.length }))}</p>${list(R.push, 'is-push')}`); }
+  else if (!R.frozen) two.push(`<p>${_frE(_frT('fr_push_none'))}</p>`);
+  if (R.later.length) two.push(`<p>${_frE(_frT(R.frozen ? 'fr_know_head' : 'fr_later_head'))}</p>${list(R.later, 'is-later')}`);
+  if (R.road) two.push(`<p>${_frE(_frT(R.road === 'negotiate' ? 'fr_road_nego' : 'fr_road_send'))}</p>`);
+  if (!two.length) return turns;
+  const nego = { label: _frT('fr_go_nego'), fr: 'nego', cid }, send = { label: _frT('fr_go_send'), fr: 'send', cid };
+  const roadChoices = R.road === 'negotiate' ? [Object.assign({ lead: true }, nego), send] : R.road === 'send' ? [Object.assign({ lead: true }, send), nego] : null;
+  turns.push({ role: 'assistant', text: two.join(''), choices: roadChoices, firstRead: cid });
+  return turns;
+}
+/* the reading of an UPLOAD finished: he owes his first words (asked by triageAndPaint) */
+function firstReadOwe(c){
+  if (!c || !(typeof isUpload === 'function' && isUpload(c))) return false;
+  const t = triageOf(c); if (!t || t.saidAt || t.sayOwed) return false;
+  t.sayOwed = true;
+  if (typeof persist === 'function') try { persist(c); } catch (_){}
+  /* on Home's paper now: the panel opens and he speaks; elsewhere he waits for the paper */
+  if (typeof contractOnHome === 'function' && contractOnHome(c) && typeof intel === 'object' && intel){
+    intel.dockOpen = true;
+    if (typeof renderIntelDock === 'function') try { renderIntelDock(); } catch (_){}
+  }
+  return true;
+}
+/* asked as Home's panel paints, before it decides whether to turn to his
+   conversation: the contract on the paper owes its first words — say them */
+function firstReadDue(){
+  try {
+    if (typeof pdOnPaper !== 'function' || !pdOnPaper() || typeof pdContract !== 'function') return false;
+    const c = pdContract(); const t = c ? triageOf(c) : null;
+    if (!t || !t.sayOwed || t.saidAt || c._triaging) return false;
+    if (typeof intel !== 'object' || !intel || !Array.isArray(intel.history)) return false;
+    const turns = firstReadTurns(c); if (!turns.length) return false;
+    t.saidAt = (typeof nowISO === 'function') ? nowISO() : new Date().toISOString();
+    if (typeof persist === 'function') try { persist(c); } catch (_){}
+    turns.forEach(m => intel.history.push(m));
+    return true;
+  } catch (_){ return false; }
+}
+/* a press on one of his first answers: the existing door, nothing more */
+function firstReadPress(ch, m){
+  if (!ch) return false;
+  const c = (typeof getContract === 'function') ? getContract(ch.cid) : null;
+  if (m) m.choices = null;            /* an answer is spent once pressed */
+  const say = text => { if (typeof intel === 'object' && intel && Array.isArray(intel.history)) intel.history.push({ role: 'assistant', text: _frE(text) }); };
+  if (!c){ say(_frT('fr_gone')); return true; }
+  if (ch.fr === 'yes'){ say(_frT('fr_said_yes', { who: String(c.counterparty || '').trim() })); return true; }
+  if (ch.fr === 'other'){
+    /* LAND ON IT: the panel turns back from the talk to the Dossier and the one fill-in door lands on the
+       name (the owed row when blank, its Key terms line once it has one); no words that would pull the
+       panel back to the talk */
+    if (typeof pdTalkBack === 'function') try { pdTalkBack(); } catch (_){}
+    if (typeof pdFillOpen === 'function') try { pdFillOpen(c.id, { key: 'counterparty' }); } catch (_){}
+    return true;
+  }
+  if (ch.fr === 'nego'){
+    if (typeof CA_GO === 'object' && CA_GO && typeof CA_GO.redline === 'function') try { CA_GO.redline(c); } catch (_){}
+    return true;
+  }
+  if (ch.fr === 'send'){
+    /* the share card his word "share" answers with: Send to them · Share inside */
+    if (typeof intel === 'object' && intel && Array.isArray(intel.history)) intel.history.push({ role: 'assistant', text: '', act: { kind: 'go', place: 'share', cid: c.id } });
+    return true;
+  }
+  return false;
+}
+
+Object.assign(window, { FIRST_READ_SHOW, firstReadOf, firstReadTurns, firstReadOwe, firstReadDue, firstReadPress, TRIAGE_STEPS, TRIAGE_HEADS, TRIAGE_STALE_KEYS, triageReadingStale, triageBusy, triageAbsent, triageNoText, triageApplies, triageOf, triageSeen, triageCards,
   triageWordingHash, triageNeedsRead, contractArrived,
   triageTiles, triageFiledLine, triageLine, triageReadAnything, triageRun, triageBriefLine,
   triageWhy, triageFail,
