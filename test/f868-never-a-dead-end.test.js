@@ -146,3 +146,17 @@ describe('f868 (5) the quote opens its clause; markup typed into an answer is re
     assert.deepEqual(r.cards.map(c => c.id), ['MK-A1']);
   });
 });
+
+describe('f868 (6) a contract named and not asked about opens', () => {
+  test('"opne MK-A1" and "the kabras suger deal" open the one contract the answer rests on; a question does not', async () => {
+    for (const q of ['opne MK-A1', 'the kabras suger deal']){
+      ai.reset(); ai.script(deliver({ answer: 'MK-A1 · Refined Sugar Supply.', citations: [{ id: 'MK-A1' }] }));
+      const r = await ask(W.admin, q);
+      assert.deepEqual(r.goto && r.goto.door, { kind: 'contract', contractId: 'MK-A1', tab: 'open' }, q);
+    }
+    ai.reset(); ai.script(deliver({ answer: 'Signed.', citations: [{ id: 'MK-A1' }] }));
+    assert.equal((await ask(W.admin, 'what stage is the kabras deal at')).goto, null);
+    ai.reset(); ai.script(deliver({ answer: 'Here.', citations: [{ id: 'MK-A1' }] }));
+    assert.equal((await ask(W.admin, 'the coffee thing')).goto, null, 'a contract the words do not name is not opened');
+  });
+});

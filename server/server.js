@@ -12593,7 +12593,7 @@ const COPILOT_TOOLS = [
     input_schema: { type: 'object', properties: { query: { type: 'string', description: 'Keywords, counterparty name, or clause topic.' }, limit: { type: 'number', description: 'How many results to return, 1-40 (default 8).' } }, required: ['query'] } },
   { name: 'search_hati', description: HS_TOOL_DESC,
     input_schema: { type: 'object', properties: {
-      words: { type: 'string', description: 'The words to look for: the person\'s own words AND the likely words the book uses for the same thing (e.g. for "get out of the deal": termination terminate cancel exit notice). Several words are welcome; any of them may match.' },
+      words: { type: 'string', description: 'The words to look for: the person\'s own words AND the likely words the book uses for the same thing (e.g. for "get out of the deal": termination terminate cancel exit notice). Several words are welcome; any of them may match. May be empty when kinds is given: then every one of those kinds is listed (e.g. kinds ["request"] for all requests).' },
       kinds: { type: 'array', items: { type: 'string', enum: HS_KINDS }, description: 'Optional: only these kinds.' },
       limit: { type: 'number', description: 'How many hits, 1-40 (default 8).' } }, required: ['words'] } },
   { name: 'get_contract', description: 'Fetch one contract in full by its id (e.g. MK-103): metadata, dates, value, status, open Jambo-scan findings, body text, AND its negotiation record — the round, whose turn it is, and every tracked change with who proposed it, its status, who decided it and any reason given. Use before answering about, or quoting, a specific contract, and for any question about edits, additions, rounds or versions. ' + COPILOT_MONEY_NOTE,
@@ -12943,12 +12943,26 @@ function copilotQuoteDoor(cx, question, final) {
   if (!COPILOT_SHOW_RE.test(q) && COPILOT_ASKS_RE.test(q)) return null;
   const cited = (final.citations || []).filter(c => c && c.id && c.quote && !c.quoteDropped);
   const ids = [...new Set((final.citations || []).map(c => c && c.id).filter(Boolean))];
-  if (ids.length !== 1 || !cited.length) return null;
+  if (ids.length !== 1) return null;
   const cj = copilotGetJson(cx, ids[0]); if (!cj) return null;
-  const nq = quoteNorm(cited[0].quote);
-  const p = hsPassages(hsWordingOf(cj)).find(x => quoteNorm(x.text).includes(nq));
-  if (!p) return null;
-  const door = aiDoorOf({ kind: 'clause', contractId: cj.id, quote: p.text.replace(/\s+/g, ' ').slice(0, 120), ...(p.head ? { head: p.head } : {}) }, cx);
+  if (cited.length){
+    const nq = quoteNorm(cited[0].quote);
+    const p = hsPassages(hsWordingOf(cj)).find(x => quoteNorm(x.text).includes(nq));
+    if (p){
+      const door = aiDoorOf({ kind: 'clause', contractId: cj.id, quote: p.text.replace(/\s+/g, ' ').slice(0, 120), ...(p.head ? { head: p.head } : {}) }, cx);
+      if (door) return { task: '', door };
+    }
+  }
+  /* NAMED AND NOT ASKED ("opne MK-A1", "the kabras suger deal"): an ask that only names one contract — by its
+     number, or a word of its name or party written near enough — and whose answer rests on that contract alone,
+     opens it */
+  if (COPILOT_ASKS_RE.test(q)) return null;
+  const words = q.toLowerCase().split(/[^\p{L}\p{N}-]+/u).filter(w => w.length >= 4);
+  const refs = [cj.id, cj.contractNo].filter(Boolean).map(x => String(x).toLowerCase());
+  const own = String([cj.name, cj.counterparty].filter(Boolean).join(' ')).toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(w => w.length >= 4 && !['agreement', 'contract', 'services', 'supply', 'limited'].includes(w));
+  const named = words.some(w => refs.includes(w)) || words.some(w => own.some(o => o === w || (w.length >= 5 && o.length >= 5 && o.slice(0, 5) === w.slice(0, 5))));
+  if (!named) return null;
+  const door = aiDoorOf({ kind: 'contract', contractId: cj.id, tab: 'open' }, cx);
   return door ? { task: '', door } : null;
 }
 const COPILOT_WHY = {
@@ -25482,12 +25496,15 @@ const HS_SCAN = 800;   // candidate rows read past the wall at most; past it the
 const HS_CONTRACT_KINDS = ['contract', 'clause', 'obligation', 'note', 'history', 'party'];
 let hsOk = true;
 try {
+  /* an index built before the kind words (stage 1's) is rebuilt whole: it is a reading, never a record */
+  try { const cols = db.prepare('PRAGMA table_info(hs_docs)').all().map(c => c.name);
+    if (cols.length && !cols.includes('tags')) { db.exec('DROP TABLE IF EXISTS hati_search_v; DROP TABLE IF EXISTS hati_search; DROP TABLE IF EXISTS hs_docs;'); db.prepare("DELETE FROM settings WHERE key='hsBuilt'").run(); } } catch (_) {}
   db.exec(`CREATE TABLE IF NOT EXISTS hs_docs (rowid INTEGER PRIMARY KEY, kind TEXT NOT NULL, ref TEXT NOT NULL,
-      cid TEXT, owner TEXT, title TEXT, body TEXT, meta TEXT);
+      cid TEXT, owner TEXT, title TEXT, body TEXT, meta TEXT, tags TEXT);
     CREATE INDEX IF NOT EXISTS idx_hs_docs_cid ON hs_docs(cid);
     CREATE INDEX IF NOT EXISTS idx_hs_docs_kind ON hs_docs(kind);
     CREATE TABLE IF NOT EXISTS hs_dirty (what TEXT PRIMARY KEY);
-    CREATE VIRTUAL TABLE IF NOT EXISTS hati_search USING fts5(title, body, content='hs_docs', content_rowid='rowid', tokenize='unicode61 remove_diacritics 2');
+    CREATE VIRTUAL TABLE IF NOT EXISTS hati_search USING fts5(title, body, tags, content='hs_docs', content_rowid='rowid', tokenize='unicode61 remove_diacritics 2');
     CREATE VIRTUAL TABLE IF NOT EXISTS hati_search_v USING fts5vocab(hati_search, 'row');`);
   /* A MARK NEVER FAILS THE WRITE IT RIDES ON: "OR IGNORE" inside a trigger gives way to the
      outer statement's own conflict rule (an upsert's is ABORT), so the mark asks first instead */
@@ -25509,15 +25526,22 @@ try {
 } catch (e) { hsOk = false; }
 const hsText = (v, n) => String(v == null ? '' : v).replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
   .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/[ \t]+/g, ' ').trim().slice(0, n || 20000);
-function hsPut(kind, ref, cid, owner, title, body, meta) {
-  const r = db.prepare('INSERT INTO hs_docs (kind, ref, cid, owner, title, body, meta) VALUES (?,?,?,?,?,?,?)')
-    .run(kind, String(ref), cid || null, owner || null, hsText(title, 300), hsText(body), meta ? JSON.stringify(meta) : null);
-  db.prepare('INSERT INTO hati_search (rowid, title, body) VALUES (?,?,?)').run(r.lastInsertRowid, hsText(title, 300), hsText(body));
+/* A THING IS ALSO FOUND BY WHAT IT IS ("open requests", "our duties", "the templates"): the kind's own words,
+   both languages, ride in a third column the ranking weighs least */
+const HS_KIND_WORDS = { contract: 'contract agreement deal avtal', clause: 'clause section article klausul', obligation: 'obligation obligations duty duties due payment åtagande',
+  note: 'note notes anteckning', mine: 'note notes my anteckning', request: 'request requests intake förfrågan', person: 'person people colleague user kollega',
+  party: 'party counterparty customer supplier part motpart', partyrec: 'party counterparty part motpart', history: 'history trail audit historik',
+  template: 'template templates mall', standard: 'standard standards playbook standard' };
+function hsPut(kind, ref, cid, owner, title, body, meta, extra) {
+  const tags = [HS_KIND_WORDS[kind] || kind, extra || ''].join(' ').trim();
+  const r = db.prepare('INSERT INTO hs_docs (kind, ref, cid, owner, title, body, meta, tags) VALUES (?,?,?,?,?,?,?,?)')
+    .run(kind, String(ref), cid || null, owner || null, hsText(title, 300), hsText(body), meta ? JSON.stringify(meta) : null, tags);
+  db.prepare('INSERT INTO hati_search (rowid, title, body, tags) VALUES (?,?,?,?)').run(r.lastInsertRowid, hsText(title, 300), hsText(body), tags);
 }
 function hsDrop(sqlWhere, ...args) {
-  const rows = db.prepare(`SELECT rowid, title, body FROM hs_docs WHERE ${sqlWhere}`).all(...args);
-  const del = db.prepare("INSERT INTO hati_search (hati_search, rowid, title, body) VALUES ('delete', ?, ?, ?)");
-  for (const r of rows) del.run(r.rowid, r.title, r.body);
+  const rows = db.prepare(`SELECT rowid, title, body, tags FROM hs_docs WHERE ${sqlWhere}`).all(...args);
+  const del = db.prepare("INSERT INTO hati_search (hati_search, rowid, title, body, tags) VALUES ('delete', ?, ?, ?, ?)");
+  for (const r of rows) del.run(r.rowid, r.title, r.body, r.tags);
   db.prepare(`DELETE FROM hs_docs WHERE ${sqlWhere}`).run(...args);
 }
 /* the wording a contract's passages are cut from: the stored body, else the file's text (contractFullBody's rule) */
@@ -25539,7 +25563,7 @@ function hsIndexContract(id) {
   for (const p of hsPassages(hsWordingOf(c)))
     hsPut('clause', c.id + '#' + p.at, c.id, null, p.head, p.text, { at: p.at, quote: p.text.replace(/\s+/g, ' ').slice(0, 120) });
   (Array.isArray(c.obligations) ? c.obligations : []).forEach((o, i) => {
-    if (o && o.desc) hsPut('obligation', String(o.id || i), c.id, null, o.desc, [o.desc, o.who, o.kind].filter(Boolean).join('  '), { due: o.due || null });
+    if (o && o.desc) hsPut('obligation', String(o.id || i), c.id, null, o.desc, [o.desc, o.who, o.kind].filter(Boolean).join('  '), { due: o.due || null }, o.status || 'open');
   });
   /* notes: ours on the contract and on each change (negoNoteHome), and the channel's */
   const notes = [].concat(Array.isArray(c.thread) ? c.thread : [],
@@ -25554,7 +25578,7 @@ function hsIndexKind(k) {
   if (k === 'request') {
     hsDrop("kind = 'request'");
     for (const r of db.prepare('SELECT id, title, need, counterparty, by_name, status FROM intake_requests').all())
-      hsPut('request', r.id, null, null, r.title || '', [r.need, r.counterparty, r.by_name].filter(Boolean).join('  '), { status: r.status });
+      hsPut('request', r.id, null, null, r.title || '', [r.need, r.counterparty, r.by_name].filter(Boolean).join('  '), { status: r.status }, r.status || '');
   } else if (k === 'person') {
     hsDrop("kind = 'person'");
     for (const u of db.prepare('SELECT * FROM users').all())
@@ -25643,7 +25667,8 @@ function hatiSearch(ctx, q, opts) {
   if (!hsOk) return { ...none, error: 'search unavailable' };
   hsRefresh();
   const { terms, fixed, match } = hsMatchOf(q);
-  if (!match) return none;
+  /* NO WORDS BUT A KIND ("every open request", kinds:["request"]): that kind listed, newest first, walls the same */
+  if (!match && !kinds.length) return none;
   const user = ctx.user || null, out = ctx.cnOut || new Map();
   const folders = new Map(db.prepare('SELECT id, folder, contract_no, name FROM contracts WHERE org_id=?').all(ctx.org).map(r => [r.id, r]));
   const reqs = new Map(db.prepare('SELECT id, by_id, folder, status FROM intake_requests').all().map(r => [r.id, r]));
@@ -25662,8 +25687,12 @@ function hatiSearch(ctx, q, opts) {
   const asKind = r => (r.kind === 'mine' ? 'note' : r.kind === 'partyrec' ? 'party' : r.kind);
   let rows = [];
   try {
-    rows = db.prepare(`SELECT d.rowid, d.kind, d.ref, d.cid, d.owner, d.title, d.meta,
-        snippet(hati_search, 1, '[', ']', '…', 14) AS snip, bm25(hati_search, 4.0, 1.0) AS rank
+    if (!match) {
+      const raw = [...new Set(kinds.flatMap(k => k === 'note' ? ['note', 'mine'] : k === 'party' ? ['party', 'partyrec'] : [k]))];
+      rows = db.prepare(`SELECT rowid, kind, ref, cid, owner, title, meta, substr(body, 1, 160) AS snip FROM hs_docs
+        WHERE kind IN (${raw.map(() => '?').join(',')}) ORDER BY rowid DESC LIMIT ?`).all(...raw, HS_SCAN + 1);
+    } else rows = db.prepare(`SELECT d.rowid, d.kind, d.ref, d.cid, d.owner, d.title, d.meta,
+        snippet(hati_search, 1, '[', ']', '…', 14) AS snip, bm25(hati_search, 4.0, 1.0, 0.5) AS rank
       FROM hati_search JOIN hs_docs d ON d.rowid = hati_search.rowid WHERE hati_search MATCH ? ORDER BY rank LIMIT ?`).all(match, HS_SCAN + 1);
   } catch (e) { return { ...none, searched: terms, error: 'search parse' }; }
   const scanCapped = rows.length > HS_SCAN;

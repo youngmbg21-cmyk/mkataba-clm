@@ -8228,6 +8228,14 @@ async function hbBoardNoMap(res, retry, q){
   if (q != null) _hbAskQ = String(q);
   const s = hbS(); if (s.face !== 'board' || !res) return null;
   if (hbMapAsked(_hbAskQ)) return null;
+  /* A PLACE ASKED FOR ON THE BOARD ("take me to Grace in people"): Jambo's goto is run after the answer
+     (aiGotoRun), so his words are said and no chart is asked for again (stage 3: never a dead end) */
+  if (res.goto && typeof res.goto === 'object' && (res.goto.door || res.goto.task || res.goto.spot)){
+    _hbPendingRecipe = null;
+    const t = String(res.answer || '').trim();
+    /* with no words of his, the move's own line (caGoSay, said by aiGotoRun) is the answer: nothing is drawn here */
+    return t ? ((typeof aiRichText === 'function') ? aiRichText(t) : _hbE(t)) : '<span hidden></span>';
+  }
   const hasSet = (Array.isArray(res.visibleIds) && res.visibleIds.length) || (res.where && typeof res.where === 'object' && Object.keys(res.where).length) || !!res.top;
   if (hasSet){ HB_MAP_FIELDS.forEach(k => { delete res[k]; }); return null; }
   /* A QUESTION ABOUT WHAT THE BOARD SHOWS is answered in words, checked
