@@ -117,7 +117,7 @@ function loadViews(files, overrides = {}) {
      and a lapse rule that is absent FAILS CLOSED, so a sandbox without it
      reads every approval as lapsed rather than as the product would. A pure
      module that publishes only its own names. */
-  for (const f of ['js/i18n.js', 'js/jurisdiction.js', 'js/graphwhere.js',
+  for (const f of ['js/i18n.js', 'js/jurisdiction.js', 'js/graphwhere.js', 'js/hatisearch.js',
                    'js/section.js', 'js/asks.js'].concat(files)) {
     // compiled once per process, see test/vmcache.js
     runFileInContext(path.join(__dirname, '..', f), sandbox, f);

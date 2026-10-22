@@ -28,6 +28,7 @@ const { passMailOf, PASS_NOTE_MAX } = require('../js/sharemail.js');
 const { STRINGS: I18N_STRINGS, I18N_DEFAULT } = require('../js/i18n.js');
 /* The graph's `where` predicate, one for both hosts (Copilot audit phase 4). */
 const { graphWhereHit } = require('../js/graphwhere.js');
+const { HS_KINDS, HS_MAX, hsTerms, hsRoot, hsNearest, hsPassages } = require('../js/hatisearch.js');
 /* A request's lane and its answers (4 Oct 2026): ONE reading for both hosts —
    the Requests page says which lane a request would take, and the server's
    sweep clears it, off the same rule. */
@@ -4524,6 +4525,13 @@ app.get('/api/search', auth, (req, res) => {
     if (refRows.length) return res.json({ hits: refRows.map(r => ({ id: r.id, contractNo: r.contract_no || undefined, name: r.name, counterparty: r.counterparty, snippet: '' })), fts: true, snippets });
     res.status(200).json({ hits: [], fts: true, error: 'search parse' });
   }
+});
+
+/* THE ONE SEARCH OVER HaTi (stage 1 of docs/PLAN-jambo-copilot.md): everything the
+   reader may see, by words; the walls are hatiSearch's. kinds=a,b narrows; free, no AI. */
+app.get('/api/hati-search', auth, (req, res) => {
+  const kinds = String(req.query.kinds || '').split(',').map(s => s.trim()).filter(Boolean);
+  res.json(hatiSearch(copilotCtx(req), String(req.query.q || '').slice(0, 400), { kinds, limit: req.query.limit }));
 });
 
 // E6-T2: Copilot semantic search — answer a portfolio question with quoted evidence.
@@ -11742,6 +11750,8 @@ const copilotCtx = (req) => ({
   money: canViewValues(req.user),
   /* the confidential deals this reader is outside of: Jambo reads their stand-ins (piece 11) */
   cnOut: cnOutsideFor(req.user),
+  /* the reader, for the one search's walls that are not streams (requests, drafts, their own notes) */
+  user: req.user || null,
 });
 
 // Open (non-dismissed) scan findings stored on a contract's json, if it was
@@ -12499,9 +12509,16 @@ function ruleDoorOf(d, scope) {
   return id ? { kind: d.kind, contractId: id } : null;
 }
 
+/* THE ONE SEARCH, AS A TOOL (stage 1): what the reader may see, found by words */
+const HS_TOOL_DESC = 'Search EVERYTHING in HaTi this reader may see, by words: contracts, the passages of their wording (a clause), obligations, notes, history, parties, requests, people, templates and our standards. Each hit says its kind, where it sits (contract id, a passage\'s first words in "quote") and a snippet with the matched words in [brackets]. "fixed" lists a misspelt word and the words read for it. "total" is the TRUE number of hits; "truncated" when cut at "limit". Use it to FIND anything a person names in their own words — a clause by what it means, a note, a request, a person — before saying something does not exist. Search by meaning by passing the likely words the book uses as well as theirs.';
 const COPILOT_TOOLS = [
   { name: 'search_contracts', description: 'Full-text search the workspace by keyword, counterparty, or clause content. Returns matching contracts with a snippet, plus "total" — the TRUE number of matches in this reader\'s scope — and "truncated" when the list was cut at "limit". Use when the user names a party or topic rather than an exact id; raise "limit" (up to 40) when they ask for all of them.',
     input_schema: { type: 'object', properties: { query: { type: 'string', description: 'Keywords, counterparty name, or clause topic.' }, limit: { type: 'number', description: 'How many results to return, 1-40 (default 8).' } }, required: ['query'] } },
+  { name: 'search_hati', description: HS_TOOL_DESC,
+    input_schema: { type: 'object', properties: {
+      words: { type: 'string', description: 'The words to look for: the person\'s own words AND the likely words the book uses for the same thing (e.g. for "get out of the deal": termination terminate cancel exit notice). Several words are welcome; any of them may match.' },
+      kinds: { type: 'array', items: { type: 'string', enum: HS_KINDS }, description: 'Optional: only these kinds.' },
+      limit: { type: 'number', description: 'How many hits, 1-40 (default 8).' } }, required: ['words'] } },
   { name: 'get_contract', description: 'Fetch one contract in full by its id (e.g. MK-103): metadata, dates, value, status, open Jambo-scan findings, body text, AND its negotiation record — the round, whose turn it is, and every tracked change with who proposed it, its status, who decided it and any reason given. Use before answering about, or quoting, a specific contract, and for any question about edits, additions, rounds or versions. ' + COPILOT_MONEY_NOTE,
     input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Contract id, e.g. MK-103.' } }, required: ['id'] } },
   { name: 'get_scan_findings', description: 'Fetch just the open risk/missing/ambiguity findings for one contract id (from the deterministic local-practice scan). Empty if it has not been scanned.',
@@ -12563,6 +12580,7 @@ async function runCopilotTool(ctx, name, input, aux) {
   if (cnHit) { const e = ctx.cnOut.get(cnHit); return { ...cnStub(cnHit, e), confidential: true, note: `${e.code} is a confidential deal: only the people named on it see it. Say so; say nothing else about it.` }; }
   try {
     if (name === 'search_contracts') return copilotSearch(ctx, a.query, a.limit);
+    if (name === 'search_hati') return hatiSearch(ctx, a.words, { kinds: a.kinds, limit: a.limit });
     if (name === 'get_obligations') return copilotObligations(ctx, a);
     if (name === 'get_contract_history') return copilotHistory(ctx, a.id);
     if (name === 'get_contract') return copilotDetail(ctx, a.id);
@@ -12738,7 +12756,7 @@ ${guideRules}
 
 HOW TO WORK:
 - Use the tools to fetch real data before answering. Never state a value, date, party, clause or finding you have not fetched. If you cannot find something, say so plainly.
-- To answer about a specific contract, call get_contract first. For "compare X and Y", call compare_contracts. For portfolio-wide questions, use list_portfolio. When the user names a party or topic instead of an id, use search_contracts.
+- To answer about a specific contract, call get_contract first. For "compare X and Y", call compare_contracts. For portfolio-wide questions, use list_portfolio. When the user names a party or topic instead of an id, use search_contracts. To FIND anything a person describes in their own words — a clause by what it means, a note, a request, a person, a template, a standard — use search_hati with their words AND the likely words the book uses; never say something does not exist until search_hati has looked.
 - A REQUEST FOR THE WHOLE BOOK ("list all the contracts", "everything", "how many contracts do we have"): call list_portfolio ONCE, quote its "total" (or the VALUE UNDER MANAGEMENT figure for a money ask), cite at most the first page, set wholeBook to true on deliver_answer so the reader gets a door onto the Contracts page — which IS the full list, sorted and counted — and never page through the book to list it in chat.
 - QUESTIONS ABOUT OUR STANDARDS OR THE PLAYBOOK are answered from the review the workspace already holds. get_contract carries it as "standardsReview" — the playbook it was checked against, when, and every verdict — and it is the SAME review the reader has open in their Playbook review panel. Quote it, NAME THE PLAYBOOK, and say when it was run. Never re-judge a contract that has one, and never work out for yourself which playbook applies: if what you would have said differs from the review on the record, the review is what the reader is looking at. Where a contract has none, check_against_playbook runs one and says so — report it as a fresh check rather than as what their panel shows.
 - QUESTIONS ABOUT EDITS, ADDITIONS, ROUNDS OR VERSIONS are answered from get_contract's "negotiation" block — it carries every tracked change with its id, clause, who proposed it, its status, who decided it and any reason given, plus the round, whose turn it is and the version history. Count and quote from that rather than guessing, and say plainly if a contract has no negotiation on it. If "changesOmitted" is above zero the list was capped — say so rather than reporting the visible ones as the total.
@@ -13189,6 +13207,7 @@ function copilotProgressLabel(name, input) {
   const a = input || {};
   const id = String(a.id || '').slice(0, 40);
   if (name === 'search_contracts') return 'Searching the workspace…';
+  if (name === 'search_hati') return 'Searching HaTi…';
   if (name === 'get_contract') return `Reading ${id || 'the contract'}…`;
   if (name === 'get_scan_findings') return `Checking findings on ${id || 'the contract'}…`;
   if (name === 'list_portfolio') return 'Scanning the portfolio…';
@@ -25255,6 +25274,247 @@ db.exec(`
     org_id TEXT NOT NULL, field_key TEXT NOT NULL, value TEXT, updated_at TEXT,
     PRIMARY KEY (org_id, field_key));
 `);
+
+/* ============================================================
+   ONE SEARCH OVER HaTi (owner, 22 Oct 2026; docs/PLAN-jambo-copilot.md, stage 1)
+   ============================================================
+   "If they are allowed to see it, Jambo finds it." One index over contracts,
+   their passages, obligations, notes and history, the parties, requests,
+   people, templates and our standards. Settings are found by stFind, the ONE
+   settings finder, in the browser.
+
+   KEPT CURRENT BY THE DATABASE, NOT BY THE WRITERS. A contract is written by
+   some twenty routes, several straight to its json. Rather than ask each of
+   them to remember the index, triggers on the tables mark what moved
+   (hs_dirty), and every search first re-reads only what was marked
+   (hsRefresh). A writer added tomorrow is covered without knowing this exists.
+
+   THE WALL IS ASKED AT SEARCH TIME, OFF THE LIVE RECORD: a hit on a contract is
+   kept only while that contract's stream is in the reader's folderScopeFor
+   (private streams included) and it is not a code-named deal they are outside
+   of; a request as the Requests page lets them see it; a draft template for
+   template managers only; a person's own notes for that person only. Without
+   can_view_values a contract's hits carry no snippet (the /api/search rule).
+   What the model is handed has already passed all of it.
+
+   THE WORDS ARE js/hatisearch.js's, the same on both hosts: meaningless words
+   dropped, everyday endings forgiven (hsRoot), a misspelt word replaced by
+   the words the book holds one slip away (hsNearest over the index's own
+   vocabulary). Search by meaning is Jambo's: he hands several likely words. */
+const HS_SCAN = 800;   // candidate rows read past the wall at most; past it the total is said to be partial
+const HS_CONTRACT_KINDS = ['contract', 'clause', 'obligation', 'note', 'history', 'party'];
+let hsOk = true;
+try {
+  db.exec(`CREATE TABLE IF NOT EXISTS hs_docs (rowid INTEGER PRIMARY KEY, kind TEXT NOT NULL, ref TEXT NOT NULL,
+      cid TEXT, owner TEXT, title TEXT, body TEXT, meta TEXT);
+    CREATE INDEX IF NOT EXISTS idx_hs_docs_cid ON hs_docs(cid);
+    CREATE INDEX IF NOT EXISTS idx_hs_docs_kind ON hs_docs(kind);
+    CREATE TABLE IF NOT EXISTS hs_dirty (what TEXT PRIMARY KEY);
+    CREATE VIRTUAL TABLE IF NOT EXISTS hati_search USING fts5(title, body, content='hs_docs', content_rowid='rowid', tokenize='unicode61 remove_diacritics 2');
+    CREATE VIRTUAL TABLE IF NOT EXISTS hati_search_v USING fts5vocab(hati_search, 'row');`);
+  /* A MARK NEVER FAILS THE WRITE IT RIDES ON: "OR IGNORE" inside a trigger gives way to the
+     outer statement's own conflict rule (an upsert's is ABORT), so the mark asks first instead */
+  const hsMarkSql = x => `INSERT INTO hs_dirty(what) SELECT ${x} WHERE NOT EXISTS (SELECT 1 FROM hs_dirty WHERE what = ${x});`;
+  /* what marks what: a contract and its notes by id; the small lists whole */
+  const mark = (name, table, when, what) => ['INSERT', 'UPDATE', 'DELETE'].forEach(ev => {
+    const row = ev === 'DELETE' ? 'old' : 'new';
+    db.exec(`CREATE TRIGGER IF NOT EXISTS hs_${name}_${ev.toLowerCase()} AFTER ${ev} ON ${table}
+      ${when ? 'WHEN ' + when.replace(/@/g, row) : ''} BEGIN ${hsMarkSql(what.replace(/@/g, row))} END`);
+  });
+  mark('contracts', 'contracts', '', "'c:' || @.id");
+  mark('messages', 'share_messages', '', "'c:' || @.contract_id");
+  mark('intake', 'intake_requests', '', "'k:request'");
+  mark('users', 'users', '', "'k:person'");
+  mark('parties', 'party_records', '', "'k:party'");
+  mark('mine', 'my_items', '', "'k:mine'");
+  mark('settings', 'settings', "@.key = 'appSettings'", "'k:standard'");
+  for (const t of ['templates', 'template_versions', 'template_blocks']) mark(t, t, '', "'k:template'");
+} catch (e) { hsOk = false; }
+const hsText = (v, n) => String(v == null ? '' : v).replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
+  .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/[ \t]+/g, ' ').trim().slice(0, n || 20000);
+function hsPut(kind, ref, cid, owner, title, body, meta) {
+  const r = db.prepare('INSERT INTO hs_docs (kind, ref, cid, owner, title, body, meta) VALUES (?,?,?,?,?,?,?)')
+    .run(kind, String(ref), cid || null, owner || null, hsText(title, 300), hsText(body), meta ? JSON.stringify(meta) : null);
+  db.prepare('INSERT INTO hati_search (rowid, title, body) VALUES (?,?,?)').run(r.lastInsertRowid, hsText(title, 300), hsText(body));
+}
+function hsDrop(sqlWhere, ...args) {
+  const rows = db.prepare(`SELECT rowid, title, body FROM hs_docs WHERE ${sqlWhere}`).all(...args);
+  const del = db.prepare("INSERT INTO hati_search (hati_search, rowid, title, body) VALUES ('delete', ?, ?, ?)");
+  for (const r of rows) del.run(r.rowid, r.title, r.body);
+  db.prepare(`DELETE FROM hs_docs WHERE ${sqlWhere}`).run(...args);
+}
+/* the wording a contract's passages are cut from: the stored body, else the file's text (contractFullBody's rule) */
+function hsWordingOf(c) {
+  const body = c.redlineText && String(c.redlineText).trim() ? c.redlineText : '';
+  if (body) return c.format === 'rich' ? richBodyToSearchText(body) : String(body);
+  return (c.upload && c.upload.extractedText) || '';
+}
+function hsIndexContract(id) {
+  hsDrop('cid = ?', id);
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(id);
+  if (!row) return;
+  let c; try { c = JSON.parse(row.json); } catch (_) { return; }
+  const ref = c.contractNo || c.id;
+  hsPut('contract', c.id, c.id, null, c.name || ref,
+    [ref, c.id, c.counterparty, c.kind, c.fields ? Object.values(c.fields).join(' ') : '',
+      c.metadata ? Object.values(c.metadata).filter(v => typeof v === 'string').join(' ') : ''].filter(Boolean).join('  '));
+  if (c.counterparty) hsPut('party', prKeyOf(c.counterparty), c.id, null, c.counterparty, c.counterparty);
+  for (const p of hsPassages(hsWordingOf(c)))
+    hsPut('clause', c.id + '#' + p.at, c.id, null, p.head, p.text, { at: p.at, quote: p.text.replace(/\s+/g, ' ').slice(0, 120) });
+  (Array.isArray(c.obligations) ? c.obligations : []).forEach((o, i) => {
+    if (o && o.desc) hsPut('obligation', String(o.id || i), c.id, null, o.desc, [o.desc, o.who, o.kind].filter(Boolean).join('  '), { due: o.due || null });
+  });
+  /* notes: ours on the contract and on each change (negoNoteHome), and the channel's */
+  const notes = [].concat(Array.isArray(c.thread) ? c.thread : [],
+    ...(Array.isArray(c.changes) ? c.changes : []).map(ch => (ch && Array.isArray(ch.thread) ? ch.thread : [])));
+  for (const m of notes) if (m && m.text) hsPut('note', String(m.id || ''), c.id, null, m.who || '', m.text, { at: m.at || null });
+  for (const m of db.prepare('SELECT id, author, body, at FROM share_messages WHERE contract_id=?').all(c.id))
+    hsPut('note', 'msg:' + m.id, c.id, null, m.author || '', m.body, { at: m.at || null });
+  const trail = (Array.isArray(c.audit) ? c.audit : []).map(a => [a.at ? String(a.at).slice(0, 10) : '', a.user, a.action, a.detail].filter(Boolean).join(' · '));
+  if (trail.length) hsPut('history', c.id, c.id, null, c.name || ref, trail.join('\n'));
+}
+function hsIndexKind(k) {
+  if (k === 'request') {
+    hsDrop("kind = 'request'");
+    for (const r of db.prepare('SELECT id, title, need, counterparty, by_name, status FROM intake_requests').all())
+      hsPut('request', r.id, null, null, r.title || '', [r.need, r.counterparty, r.by_name].filter(Boolean).join('  '), { status: r.status });
+  } else if (k === 'person') {
+    hsDrop("kind = 'person'");
+    for (const u of db.prepare('SELECT * FROM users').all())
+      hsPut('person', u.id, null, null, u.name || '', [u.name, String(u.email || '').split('@')[0].replace(/[._-]+/g, ' '), u.title, u.role].filter(Boolean).join('  '));
+  } else if (k === 'party') {
+    /* a party's own facts ride on its rows: re-read every contract that names one */
+    for (const r of db.prepare("SELECT DISTINCT cid FROM hs_docs WHERE kind = 'party'").all()) db.prepare('INSERT OR IGNORE INTO hs_dirty(what) VALUES (?)').run('c:' + r.cid);
+    hsDrop("kind = 'partyrec'");
+    for (const r of db.prepare('SELECT pkey, name, city, org_no FROM party_records').all())
+      hsPut('partyrec', r.pkey, null, null, r.name || '', [r.name, r.city, r.org_no].filter(Boolean).join('  '));
+  } else if (k === 'mine') {
+    hsDrop("kind = 'mine'");
+    for (const r of db.prepare("SELECT id, user_id, json FROM my_items WHERE kind = 'note'").all()) {
+      let n; try { n = JSON.parse(r.json); } catch (_) { continue; }
+      hsPut('mine', r.id, null, r.user_id, n.title || '', [n.title, n.text, n.body].filter(Boolean).join('  '), { contractId: n.contractId || null });
+    }
+  } else if (k === 'template') {
+    hsDrop("kind = 'template'");
+    let tpls = [];
+    try { tpls = db.prepare('SELECT id, name, description, category FROM templates').all(); } catch (_) {}
+    for (const t of tpls) {
+      let words = '';
+      try {
+        const v = db.prepare('SELECT id FROM template_versions WHERE template_id=? ORDER BY version_number DESC LIMIT 1').get(t.id);
+        if (v) words = db.prepare('SELECT content FROM template_blocks WHERE template_version_id=? ORDER BY order_index').all(v.id).map(b => b.content || '').join('\n');
+      } catch (_) {}
+      hsPut('template', t.id, null, null, t.name || '', [t.description, t.category, words].filter(Boolean).join('\n'));
+    }
+  } else if (k === 'standard') {
+    hsDrop("kind = 'standard'");
+    for (const [book, b] of Object.entries(workspacePlaybook() || {})) {
+      if (!b || typeof b !== 'object') continue;
+      (Array.isArray(b.positions) ? b.positions : []).forEach((p, i) => p && hsPut('standard', book + ':p' + i, null, null, p.category || p.name || '',
+        [p.name, p.note, p.pos, b.label].filter(Boolean).join('  '), { book }));
+      (Array.isArray(b.ranges) ? b.ranges : []).forEach((r, i) => r && hsPut('standard', book + ':r' + i, null, null, r.label || r.key || '',
+        [r.note, b.label].filter(Boolean).join('  '), { book }));
+    }
+  }
+}
+/* RE-READ WHAT MOVED: the first search ever reads everything; afterwards only what the triggers marked */
+function hsRefresh() {
+  if (!hsOk) return;
+  if (!getSetting('hsBuilt')) {
+    txn(() => {
+      for (const r of db.prepare('SELECT id FROM contracts').all()) db.prepare('INSERT OR IGNORE INTO hs_dirty(what) VALUES (?)').run('c:' + r.id);
+      for (const k of ['request', 'person', 'party', 'mine', 'template', 'standard']) db.prepare('INSERT OR IGNORE INTO hs_dirty(what) VALUES (?)').run('k:' + k);
+    });
+    setSetting('hsBuilt', { at: now() });
+  }
+  for (let round = 0; round < 3; round++) {
+    const todo = db.prepare('SELECT what FROM hs_dirty').all().map(r => r.what);
+    if (!todo.length) return;
+    txn(() => {
+      for (const w of todo) {
+        db.prepare('DELETE FROM hs_dirty WHERE what=?').run(w);
+        if (w.startsWith('c:')) hsIndexContract(w.slice(2)); else hsIndexKind(w.slice(2));
+      }
+    });
+  }
+}
+/* the words to ask the index for, each with what it was taken to mean */
+function hsMatchOf(q) {
+  const terms = hsTerms(q), groups = [], fixed = [];
+  const has = db.prepare('SELECT term FROM hati_search_v WHERE term >= ? AND term < ? LIMIT 1');
+  const near = db.prepare('SELECT term, doc FROM hati_search_v WHERE term >= ? AND term < ?');
+  for (const t of terms) {
+    if (/\s/.test(t)) { groups.push('"' + t + '"'); continue; }
+    const root = hsRoot(t);
+    const alts = ['"' + root.replace(/"/g, '') + '"*'];
+    if (!has.get(root, root + '￿')) {
+      const vocab = near.all(t[0], t[0] + '￿').map(r => [r.term, r.doc]);
+      const best = hsNearest(t, vocab, 3);
+      if (best.length) { fixed.push({ asked: t, read: best }); best.forEach(b => alts.push('"' + b + '"')); }
+    }
+    groups.push(alts.length > 1 ? '(' + alts.join(' OR ') + ')' : alts[0]);
+  }
+  return { terms, fixed, match: groups.join(' OR ') };
+}
+/* ONE SEARCH: q the words (several likely words welcome), opts.kinds the kinds wanted, opts.limit hits.
+   ctx is copilotCtx's (org, scope, money, cnOut) plus ctx.user. */
+function hatiSearch(ctx, q, opts) {
+  const o = opts || {};
+  const want = Math.max(1, Math.min(HS_MAX, Number(o.limit) || 8));
+  const kinds = Array.isArray(o.kinds) ? o.kinds.filter(k => HS_KINDS.includes(k)) : [];
+  const none = { hits: [], total: 0, shown: 0, truncated: false, searched: [], fixed: [] };
+  if (!hsOk) return { ...none, error: 'search unavailable' };
+  hsRefresh();
+  const { terms, fixed, match } = hsMatchOf(q);
+  if (!match) return none;
+  const user = ctx.user || null, out = ctx.cnOut || new Map();
+  const folders = new Map(db.prepare('SELECT id, folder, contract_no, name FROM contracts WHERE org_id=?').all(ctx.org).map(r => [r.id, r]));
+  const reqs = new Map(db.prepare('SELECT id, by_id, folder, status FROM intake_requests').all().map(r => [r.id, r]));
+  let tplOf = new Map(); try { tplOf = new Map(db.prepare('SELECT id, status FROM templates').all().map(t => [t.id, t])); } catch (_) {}
+  const partyKeys = (kinds.length === 0 || kinds.includes('party')) && user ? prVisibleKeys(user) : new Set();
+  const editor = !!user && user.role !== 'viewer';
+  /* may this reader see this row (the wall, off the live record) */
+  const sees = r => {
+    if (r.cid) { const f = folders.get(r.cid); return !!f && inScope(ctx.scope, f.folder) && !out.has(String(r.cid)); }
+    if (r.kind === 'request') { const x = reqs.get(r.ref); return !!x && !!user && (x.by_id === user.id || (editor && (!x.folder || inScope(ctx.scope, x.folder)))); }
+    if (r.kind === 'mine') return !!user && r.owner === user.id;
+    if (r.kind === 'template') return tplVisibleTo(tplOf.get(r.ref), user);
+    if (r.kind === 'partyrec') return partyKeys.has(r.ref);
+    return r.kind === 'person' || r.kind === 'standard';
+  };
+  const asKind = r => (r.kind === 'mine' ? 'note' : r.kind === 'partyrec' ? 'party' : r.kind);
+  let rows = [];
+  try {
+    rows = db.prepare(`SELECT d.rowid, d.kind, d.ref, d.cid, d.owner, d.title, d.meta,
+        snippet(hati_search, 1, '[', ']', '…', 14) AS snip, bm25(hati_search, 4.0, 1.0) AS rank
+      FROM hati_search JOIN hs_docs d ON d.rowid = hati_search.rowid WHERE hati_search MATCH ? ORDER BY rank LIMIT ?`).all(match, HS_SCAN + 1);
+  } catch (e) { return { ...none, searched: terms, error: 'search parse' }; }
+  const scanCapped = rows.length > HS_SCAN;
+  const hits = [], seen = new Set();
+  let total = 0;
+  for (const r of rows.slice(0, HS_SCAN)) {
+    const kind = asKind(r);
+    if (kinds.length && !kinds.includes(kind)) continue;
+    if (!sees(r)) continue;
+    /* one party, one hit, however many contracts name it */
+    const key = kind === 'party' ? 'party:' + r.ref : r.kind + ':' + r.ref + ':' + (r.cid || '');
+    if (seen.has(key)) continue;
+    seen.add(key); total++;
+    if (hits.length >= want) continue;
+    const meta = (() => { try { return r.meta ? JSON.parse(r.meta) : {}; } catch (_) { return {}; } })();
+    const f = r.cid ? folders.get(r.cid) : null;
+    const hidden = !!r.cid && !ctx.money && kind !== 'party';
+    const h = { kind, ref: r.ref, title: hidden && kind === 'obligation' ? 'An obligation' : (r.title || ''), snippet: hidden ? '' : (r.snip || '') };
+    if (f) { h.contractId = r.cid; h.contractNo = f.contract_no || undefined; h.contractName = f.name || ''; }
+    if (kind === 'clause' && !hidden) { h.quote = meta.quote || ''; h.at = meta.at; }
+    if (kind === 'obligation' && meta.due) h.due = meta.due;
+    if (kind === 'standard') h.book = meta.book;
+    if (r.kind === 'mine') { h.mine = true; if (meta.contractId) h.contractId = meta.contractId; }
+    if (kind === 'request') h.status = reqs.get(r.ref).status;
+    hits.push(h);
+  }
+  return { hits, total, shown: hits.length, truncated: total > hits.length, scanCapped, searched: terms, fixed, ...(ctx.money ? {} : { snippets: false }) };
+}
 // Provenance: which template and which version a contract came from. Written
 // once at creation (COALESCE in upsertContract keeps them set-once at the SQL
 // layer), never overwritten — this is the audit trail that answers "which live

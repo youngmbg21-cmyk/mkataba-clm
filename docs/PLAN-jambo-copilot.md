@@ -49,7 +49,7 @@ Questions and the Nine Flow Rules still apply.
 | Stage | What | Status |
 |---|---|---|
 | 0 | THE EXAM: 240 held-out asks (test/jambo-exam.js) over test/jambo-world.js, typed into real boxes (test/chromium/jambo-exam-measure.js), dead ends and calls counted | built |
-| 1 | ONE SEARCH OVER HaTi: the permission-aware index | — |
+| 1 | ONE SEARCH OVER HaTi: the permission-aware index | built |
 | 2 | EVERY DOOR AS A TOOL | — |
 | 3 | AI FIRST IN EVERY BOX, NEVER A DEAD END | — |
 | 4 | MEASURE AGAIN: before/after, calls per ask, the three screens | — |
