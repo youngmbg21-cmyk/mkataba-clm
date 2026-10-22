@@ -11,6 +11,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - 7b: f694, jambo-guides-through verify. 9: f561. 9b: f564. 9c: f842.
 
 ## INTERNAL REVIEW (js/review.js)
+- What they already hold stays with them when a revision is kept back (22 Oct 2026): f857 (srvLinkStrip opts.holds; red at the parent 1, 2).
 - f17, f154–f159, f161, f162, f164, f174, f186, f190, f412, wall-standing.
 
 ## THE OVERVIEW — READ DOWN, ONE SHEET
@@ -32,6 +33,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f218, f696, settings-tabs, pay-section verify.
 
 ## "SENT" MUST MEAN SENT, AND NO CHANNEL BACK IS NOT READ-ONLY
+- A refused round send keeps no "Sent to you" copy (22 Oct 2026): f858 (red at the parent 1, 2).
 - f205, f206.
 
 ## ONE PROPOSAL ON THE TABLE
