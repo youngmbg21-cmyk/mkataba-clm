@@ -233,7 +233,7 @@ const DOC = ['WAREHOUSING AND TRANSPORT AGREEMENT', '', '1. SERVICES', 'The Prov
     const fact = await until(P, () => { const l = document.getElementById('ce-lane'); return !!(l && /They asked for 60 days; your paper says 30\./.test(l.innerText)); }, null, 10000);
     check(fact, '5f Counter on a number opens with Jambo naming the two figures');
     await shot(P, '1440x780-5-counter');
-    await drive(P, () => { if (typeof ceRowBack === 'function') ceRowBack(); else if (typeof clauseEditorClose === 'function') clauseEditorClose(); });
+    await drive(P, () => { if (typeof window.ceRowBack === 'function') window.ceRowBack(); else if (typeof window.clauseEditorClose === 'function') window.clauseEditorClose(); });
     await until(P, () => !document.body.classList.contains('ce-open'), null, 6000);
     await drive(P, () => { pdOpenOnHome('MW-K1', 'copilot'); pdRedOpen('MW-K1'); });
     await until(P, () => !!document.querySelector('#ig-dock [data-nego-accept="K2"]'), null, 10000);
