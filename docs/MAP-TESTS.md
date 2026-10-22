@@ -305,6 +305,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## PERFORMANCE — THE BOOK IS WALKED ONCE
 - The Board → Paper switch (22 Oct 2026): home-speed-verify check 1 at a real 430 book (check 3 red on purpose, BUGLOG); every-door-lands-on-home, counter-as-drawn, page-jumps, legora-lists, board-keeps-your-place, keeps-your-place, refresh-keeps-your-spot, wall-of-papers, open-in-place.
 - f356, f357, f656, home-speed, long-contract-moves verify.
+- A resting map redraws only its dots (22 Oct 2026): home-speed 3 (red at the parent, 25–40% busy), f425 (1), explorer-magnitude 4a2/4f (the painted dot, n.q), explorer-stage-one 8c (the stamped glow, data-igb-glow).
 
 ## THE OVERNIGHT CLEAN-UP RULES, THE OVERNIGHT RUN, THE OWNER'S OPEN ITEMS (26–28 Sep)
 - f393, f401–f421, their-markers, review-keeps-typed-terms, discard-keeps-sent, paper-terms-frozen, opening-keeps-your-edit, waiting-on-us-no-desk, narrow-pages verify.

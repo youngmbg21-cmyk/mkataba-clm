@@ -191,7 +191,10 @@ const check = (name, pass, detail) => {
     /* ONE dot followed through every sample: "the first drawn dot" can be a
        different dot from one sample to the next, and two dots apart read as a
        stray (15.8 on one GitHub run, 17 Oct 2026; 5–8 locally) */
-    const dotOf = i => page.evaluate(j => { const r = IG.nodes[j].g.querySelector('circle').getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top)]; }, i);
+    /* RE-POINTED 22 Oct 2026 (owner: "make the still map lighter"): the dot the reader sees is the one
+       the canvas paints, at its projected point (n.q); at rest the words and the dot's invisible hit
+       circle are placed once and hold still, so they no longer stand in for the jiggle */
+    const dotOf = i => page.evaluate(j => { const q = IG.nodes[j].q; return [Math.round(q[0]), Math.round(q[1])]; }, i);
     const stray = async (v, key) => { await view(v); const a = await page.evaluate(k => intel.cam[k] || 0, key);
       const at = await page.evaluate(() => IG.nodes.findIndex(x => x.kind === 'contract' && x.g.getBoundingClientRect().width)), d0 = await dotOf(at); let far = 0;
       for (let i = 0; i < 8; i++){ await page.waitForTimeout(200); const d = await dotOf(at); far = Math.max(far, Math.hypot(d[0] - d0[0], d[1] - d0[1])); }
