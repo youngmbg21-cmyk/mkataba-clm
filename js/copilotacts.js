@@ -410,7 +410,10 @@ function caActOf(q){
   /* JAMBO'S MAP (18 Oct 2026, js/jambomap.js): last of all, a sentence in
      everyday words ("where are the contracts ending soon?") reaches the same
      doors as the exact words; what it does not know goes on to the model */
-  if (typeof jmRead === 'function'){ const m = jmRead(t); if (m) return (m.kind === 'map' && caAiFirst()) ? null : m; }
+  /* a bare word or two ("approval") keeps its "which did you mean?" card; a sentence's close match is Jambo's */
+  /* …and a close match that STARTS WORK ("upload a contract") keeps its card, where it can be pressed (JM_STARTS_WORK) */
+  if (typeof jmRead === 'function'){ const m = jmRead(t); if (m) return (m.kind === 'map' && caAiFirst() && t.trim().split(/\s+/).length >= 3
+    && !((m.picks || []).some(k => typeof JM_STARTS_WORK !== 'undefined' && JM_STARTS_WORK.has(k)))) ? null : m; }
   return null;
 }
 /* AI FIRST (Jambo works like Copilot, stage 3, 22 Oct 2026): a free reading that is only a guess ("which of
