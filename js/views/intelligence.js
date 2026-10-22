@@ -3781,7 +3781,7 @@ function igbStep(G,dt){
 function igbWalkLit(id){ const wk=intel.walk; if(!wk) return -1; const k=wk.ids.indexOf(id); if(k<0) return -1; return wk.clock>=k*IGB_STEP_S+IGB_PULSE_S?k:-1; }
 /* THE CANVAS: floors, tissue, the glow round each group, the dots. Nothing
    here carries a word a reader must read except the floors' own names. */
-function igbDraw(G,t){
+function igbDraw(G,t,rest){
   const cv=G.cv, ctx=G.ctx; if(!cv||!ctx) return;
   const W=G.W, H=G.H, dpr=Math.min(2,window.devicePixelRatio||1);
   if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){ cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); }
@@ -3789,19 +3789,27 @@ function igbDraw(G,t){
   const w=igbCam().w, pj=G.pj, rm=igbReduced(), walking=!!intel.walk, zs=Math.sqrt(igbCam().zoom);
   /* The canvas's own words (floor and lane names, cell counts, the axis) are
      room: igbPlace keeps every contract's words clear of them. */
-  G.reserve=G.noteBox?[G.noteBox]:[];
+  /* AT REST THE BACKGROUND IS KEPT (owner, 22 Oct 2026: "make the still map lighter"): while the map
+     rests (igLoopStart's `rest`) nothing behind the dots moves but the tissue's sparkle, so the floors,
+     bubbles, bundles, cells and tissue are painted once (IG._bg) and stamped; only the dots jiggle.
+     Any wake (a press, a hover, a turn, a resize) paints it all again. */
+  const bgOk=!!(rest&&G._bg&&G._bg.width===cv.width&&G._bg.height===cv.height);
+  if(bgOk){ ctx.setTransform(1,0,0,1,0,0); ctx.drawImage(G._bg,0,0); ctx.setTransform(dpr,0,0,dpr,0,0); }
+  else G.reserve=G.noteBox?[G.noteBox]:[];
   const txt=(t,x,y,col,a,size,weight,align)=>{ const sz=size||10; ctx.font=(weight||600)+' '+sz+'px Geist, system-ui, sans-serif'; ctx.textAlign=align||'left'; ctx.fillStyle=igbHexA(col,a); ctx.fillText(t,x,y); ctx.textAlign='left';
     if(a>.3){ const w=ctx.measureText(t).width, x0=align==='right'?x-w:align==='center'?x-w/2:x; G.reserve.push({ x:x0-2, y:y-sz, w:w+4, h:sz+4 }); } };
   /* AN EDGE NAME IS DRAWN ONLY WHERE IT FITS, and a party's names only when
      asked (igEdgeNamesShow): the first of two that would sit on each other
      keeps its place, the second is not drawn. */
-  const edge=G._edge=[];
+  if(!bgOk) G._edge=[];
+  const edge=G._edge||(G._edge=[]);
   const edgeTxt=(key,t,x,y,col,a,size,weight,align)=>{ if(!igEdgeNamesShow(key)) return; const sz=size||10;
     ctx.font=(weight||600)+' '+sz+'px Geist, system-ui, sans-serif'; const tw=ctx.measureText(t).width, x0=align==='right'?x-tw:align==='center'?x-tw/2:x;
     const A={ x:x0-3, y:y-sz, w:tw+6, h:sz+4 }; if(edge.some(B=>A.x<B.x+B.w&&B.x<A.x+A.w&&A.y<B.y+B.h&&B.y<A.y+A.h)) return;
     A.t=t; edge.push(A); txt(t,x,y,col,a,size,weight,align); };
   /* money is printed only for a reader who may see it (the grid's own rule) */
   const moneyOk=(typeof canViewValues!=='function')||canViewValues(), fmtM=v=>(typeof fmtMoneyShort==='function')?fmtMoneyShort(v):String(Math.round(v));
+  if(!bgOk){
   G._doorAt=null;
   if(w[2]>.05){
     (G.floors||[]).forEach(f=>{ const y=f.y, a=pj([-1.7,y,-.5]), b=pj([1.7,y,-.5]), c=pj([1.7,y,.5]), d=pj([-1.7,y,.5]);
@@ -3934,11 +3942,20 @@ function igbDraw(G,t){
     h._bubR=r*f; });
   igbDrawBundles(G,ctx,bw,txt);
   igbDrawCells(G,ctx,w,txt);
+  /* the background, kept for the frames of rest that follow — with the dots' soft halos in it: a halo
+     moved a few pixels by the jiggle reads the same, so at rest only the dots themselves are redrawn */
+  if(rest) G.contracts.slice().sort((a,b)=>a.q[3]-b.q[3]).forEach(n=>{ if(n._fold>.95) return; const lit=n._lit;
+    igbGlow(ctx,n.q[0],n.q[1],n._r*(lit>=0?6:4.2),lit>=0?IGB_WALK:G.colourOf(n),(lit>=0?.75:.42)*n._a); });
+  if(rest&&typeof document!=='undefined'){ const bg=G._bg&&G._bg.width===cv.width&&G._bg.height===cv.height?G._bg:document.createElement('canvas');
+    bg.width=cv.width; bg.height=cv.height; const bx=bg.getContext&&bg.getContext('2d');
+    if(bx){ bx.drawImage(cv,0,0); G._bg=bg; } else G._bg=null; }
+  else G._bg=null;
+  }
   const P=G.contracts.slice().sort((a,b)=>a.q[3]-b.q[3]);
   P.forEach(n=>{
     if(n._fold>.95) return;
     const q=n.q, a=n._a, r=n._r, lit=n._lit, cl=n.g.classList, col=G.colourOf(n), tw=rm?1:.85+.15*Math.sin(t*2+(n._ph||0));
-    igbGlow(ctx,q[0],q[1],r*(lit>=0?6:4.2),lit>=0?IGB_WALK:col,(lit>=0?.75:.42)*a*tw);
+    if(!rest) igbGlow(ctx,q[0],q[1],r*(lit>=0?6:4.2),lit>=0?IGB_WALK:col,(lit>=0?.75:.42)*a*tw);
     ctx.fillStyle=igbHexA(lit>=0?'#FFFFFF':col,a); ctx.beginPath(); ctx.arc(q[0],q[1],r,0,6.283); ctx.fill();
     if(cl.contains('hi')||cl.contains('hit')||G.sel===n.id){ ctx.strokeStyle='rgba(230,242,239,'+(.9*Math.max(.4,a))+')'; ctx.lineWidth=1.3; ctx.beginPath(); ctx.arc(q[0],q[1],r+4,0,6.283); ctx.stroke(); }
     if(n.badge&&a>.2){ ctx.save(); ctx.setLineDash([3,3]); ctx.strokeStyle='rgba(242,178,76,.95)'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(q[0],q[1],r+6+(rm?0:Math.sin(t*3+(n._ph||0))),0,6.283); ctx.stroke(); ctx.restore(); } });
@@ -3964,7 +3981,29 @@ function igbShade(G){
     n._a=(walking&&lit<0?.3:1)*(cl.contains('dim')?.22:1)*(cl.contains('passed')?.3:1)*(cl.contains('mut')?.28:1)*(.45+front*.55)*(1-fold); });
 }
 function line2(a,b,col){ const ctx=IG&&IG.ctx; if(!ctx) return; ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.strokeStyle=col; ctx.lineWidth=1; ctx.stroke(); }
-function igbGlow(ctx,x,y,r,col,a){ if(!(r>0)||!(a>0)) return; const g=ctx.createRadialGradient(x,y,0,x,y,r); g.addColorStop(0,igbHexA(col,a)); g.addColorStop(1,igbHexA(col,0));
+/* A GLOW IS PAINTED ONCE PER COLOUR, THEN STAMPED (owner, 22 Oct 2026: "make the still map lighter"):
+   a radial fade worked out pixel by pixel for every dot on every frame kept a still 430-contract map
+   25–40% busy (home-speed-verify 3). The fade is drawn once per colour at IGB_GLOW_PX, kept, and
+   stamped at each glow's size with its alpha — the same look (the fade scales with its radius and its
+   strength with alpha), a fraction of the work. No canvas to paint on: the old way. */
+const IGB_GLOW_PX=64, IGB_GLOW_KEEP=48;
+const _igbGlowSprites=new Map();
+function igbGlowSprite(col){
+  let c=_igbGlowSprites.get(col); if(c) return c;
+  if(typeof document==='undefined') return null;
+  if(_igbGlowSprites.size>=IGB_GLOW_KEEP) _igbGlowSprites.clear();
+  c=document.createElement('canvas'); c.width=c.height=IGB_GLOW_PX*2;
+  const g=c.getContext&&c.getContext('2d'); if(!g) return null;
+  const gr=g.createRadialGradient(IGB_GLOW_PX,IGB_GLOW_PX,0,IGB_GLOW_PX,IGB_GLOW_PX,IGB_GLOW_PX); gr.addColorStop(0,igbHexA(col,1)); gr.addColorStop(1,igbHexA(col,0));
+  g.fillStyle=gr; g.beginPath(); g.arc(IGB_GLOW_PX,IGB_GLOW_PX,IGB_GLOW_PX,0,6.283); g.fill();
+  /* the kept glow says its colour, so a check can tell which glow was stamped where */
+  if(c.dataset) c.dataset.igbGlow=col;
+  _igbGlowSprites.set(col,c); return c;
+}
+function igbGlow(ctx,x,y,r,col,a){ if(!(r>0)||!(a>0)) return;
+  const sp=(typeof ctx.drawImage==='function')?igbGlowSprite(col):null;
+  if(sp){ const was=ctx.globalAlpha; ctx.globalAlpha=was*Math.min(1,a); ctx.drawImage(sp,x-r,y-r,r*2,r*2); ctx.globalAlpha=was; return; }
+  const g=ctx.createRadialGradient(x,y,0,x,y,r); g.addColorStop(0,igbHexA(col,a)); g.addColorStop(1,igbHexA(col,0));
   ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r,0,6.283); ctx.fill(); }
 /* THE WORDS: every group card where it faces the reader, then every contract's
    two small lines where they fit without covering another; where they do not,
@@ -4389,6 +4428,7 @@ function igFramesDrawn(){ return _igFrames; }
    about 4,000 SVG pieces and kept a still map of 430 contracts busy ~25%. */
 function igRender(o){
   if(!IG) return;
+  const rest=!!(o&&o.rest);
   _igFrames++;
   const now=((typeof performance!=='undefined'&&performance.now)?performance.now():Date.now())/1000;
   /* a step as long as a resting frame (IG_SPIN_FPS), so a map turning at rest
@@ -4399,7 +4439,10 @@ function igRender(o){
   const w=igbCam().w; IG.pj=igbProjector(IG);
   IG.hubs.forEach(h=>{ h.q=IG.pj(igbHeart(h,w)); });
   IG.contracts.forEach(n=>{ n.q=IG.pj(igbMix(n,w)); });
-  igbShade(IG); igbDraw(IG,now); if(!(o&&o.rest)) igbPlace(IG);
+  igbShade(IG); igbDraw(IG,now,rest);
+  /* at rest the words are placed once, as the map comes to rest: a jiggle of a few pixels does not move them */
+  if(!rest||!IG._restPlaced) igbPlace(IG);
+  IG._restPlaced=rest;
 }
 function igClamp(n,dx,dy){ const hw=n.w/2+2,hh=n.h/2+2,sx=dx?hw/Math.abs(dx):1e9,sy=dy?hh/Math.abs(dy):1e9,s=Math.min(sx,sy); return {x:n.x+dx*s,y:n.y+dy*s}; }
 

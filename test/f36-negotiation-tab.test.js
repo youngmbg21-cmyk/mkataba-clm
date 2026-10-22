@@ -379,7 +379,9 @@ describe('accept, reject and undo do what they say to the document', () => {
     assert.match(m.$('.nego-pane.working').textContent, /forty-five \(45\) days/);
     // and the toast says so, naming the CLAUSE (4 Oct 2026: it was a bare
     // toast, which prints nothing; the fingerprint is on the card and the trail)
-    assert.match(m.w.toastText(), /Payment Terms: accepted — now part of the agreed wording/);
+    /* RE-POINTED 22 Oct 2026 (round 5 of the first-timer rounds, owner picked "Four doors"): an ask of
+       theirs accepted on our seat says it has not gone yet, and the row's way back */
+    assert.match(m.w.toastText(), /^Accepted: 2\. Payment Terms\. It goes to .+ when you press Send all\. Changed your mind\? Press Reopen\./);
   });
 
   test('reject leaves the clause at the baseline, and says so in the document', async () => {

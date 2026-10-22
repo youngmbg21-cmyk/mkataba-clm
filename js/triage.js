@@ -854,6 +854,8 @@ function contractArrived(c, opts){
     try{ if (mintTemplateObligations(c) && typeof persist === 'function') persist(c); }catch(_){}
   }
   if (!c || o.bulk) return false;
+  /* A DRAFT FROM OUR PAPER: Jambo owes his first words too (round 4 of the first-timer rounds) */
+  if (!o.elsewhere) try { firstDraftOwe(c); } catch (_){}
   /* ---- THE UPLOAD'S TICK-BOX STILL GOVERNS ITS OWN READING (4 Oct 2026) ----
      The upload door now arrives through here like every other door — so the
      people it names, the address it carries and the promises it makes are
@@ -1036,6 +1038,49 @@ function firstReadTurns(c, R){
   turns.push({ role: 'assistant', text: two.join(''), choices: roadChoices, firstRead: cid });
   return turns;
 }
+/* ---- JAMBO SPEAKS FIRST ON A DRAFT (round 4 of the first-timer rounds; the
+   owner: "Yes to both asks", then picked "He speaks", 22 Oct 2026) ----
+   A contract drafted from our own paper arrived with nobody saying what comes
+   next. Now, once, beside its Dossier, he says what is still open (detailsOf,
+   the ONE reading of what is owed — no AI, nothing spent) and what comes after:
+   send it to them to mark up. The same moment and the same limits as an
+   upload's first words (firstReadDue: never over a face, a hand in the panel or
+   an answer on its way). NOTHING IS STORED: owed in this sitting, said once,
+   never again; an amendment, a renewal or a request's lane draft is not owed. */
+const _frDraftOwed = new Set();
+function firstDraftOwe(c){
+  if (!c || c.parentId || String(c.status || '') !== 'Draft') return false;
+  if (typeof isUpload === 'function' && isUpload(c)) return false;
+  _frDraftOwed.add(String(c.id));
+  return true;
+}
+function firstDraftOwed(c){ return !!c && _frDraftOwed.has(String(c.id)); }
+/* the reader already took the fill-in door his words would point to: they are no longer owed */
+function firstDraftDrop(id){ _frDraftOwed.delete(String(id)); }
+function firstDraftOf(c){
+  if (!c) return null;
+  let D = null; try { D = (typeof detailsOf === 'function') ? detailsOf(c) : null; } catch (_){ D = null; }
+  const open = ((D && D.items) || []).filter(x => x && x.open);
+  const T = (typeof TEMPLATES === 'object' && TEMPLATES && c.template) ? TEMPLATES[c.template] : null;
+  const paper = String((T && T.name) || c.templateName || c.name || '').trim();
+  return { party: String(c.counterparty || '').trim(), paper, owed: open.map(x => ({ key: x.key, label: String(x.label || '') })) };
+}
+function firstDraftList(labels){
+  const L = labels.map(l => l ? l.charAt(0).toLowerCase() + l.slice(1) : l).filter(Boolean);
+  try { return new Intl.ListFormat((typeof langLocale === 'function') ? langLocale() : undefined, { style: 'long', type: 'conjunction' }).format(L); }
+  catch (_){ return L.join(', '); }
+}
+function firstDraftTurns(c, R){
+  R = R || firstDraftOf(c); if (!R) return [];
+  const cid = c.id, party = R.party || _frT('fr_draft_them');
+  const one = R.owed.length ? _frT('fr_draft_open', { paper: R.paper, party, list: firstDraftList(R.owed.map(x => x.label)) })
+    : _frT('fr_draft_whole', { paper: R.paper, party });
+  const two = R.owed.length ? _frT('fr_draft_next', { party }) : _frT('fr_draft_done', { party });
+  const send = { label: _frT('fr_draft_send', { party }), fr: 'dsend', cid };
+  const choices = R.owed.length ? [{ label: _frT('fr_draft_fill'), fr: 'fill', cid, key: R.owed[0].key, lead: true }, send] : [Object.assign({ lead: true }, send)];
+  return [{ role: 'assistant', text: `<p>${_frE(one)}</p>`, firstRead: cid },
+    { role: 'assistant', text: `<p>${_frE(two)}</p>`, choices, firstRead: cid }];
+}
 /* the reading of an UPLOAD finished: he owes his first words (asked by triageAndPaint) */
 function firstReadOwe(c){
   if (!c || !(typeof isUpload === 'function' && isUpload(c))) return false;
@@ -1057,6 +1102,15 @@ function firstReadDue(){
     const c = pdContract(); const t = c ? triageOf(c) : null;
     /* never snatch the panel from a hand in it (pdHandIn, js/paperdesk.js) */
     if (!c || (typeof window.pdHandIn === 'function' && window.pdHandIn(c))) return false;
+    /* A DRAFT FROM OUR PAPER: the same moment and limits, said once, nothing stored */
+    if (firstDraftOwed(c)){
+      if (typeof pdFaceNow === 'function' && pdFaceNow()) return false;
+      if (typeof pdTab === 'function' && pdTab() !== 'copilot') return false;
+      if (typeof intel !== 'object' || !intel || !Array.isArray(intel.history) || intel.busy) return false;
+      const dt = firstDraftTurns(c); _frDraftOwed.delete(String(c.id)); if (!dt.length) return false;
+      dt.forEach(m => intel.history.push(m));
+      return true;
+    }
     if (!t || !t.sayOwed || t.saidAt || c._triaging) return false;
     /* only beside the Dossier, never over an open face */
     if (typeof pdFaceNow === 'function' && pdFaceNow()) return false;
@@ -1094,6 +1148,17 @@ function firstReadPress(ch, m){
     if (typeof pdFillOpen === 'function') try { pdFillOpen(c.id, { key: 'counterparty' }); } catch (_){}
     return true;
   }
+  /* a draft's first words: fill in what is open (the panel back to the Dossier, landed on the first owed line),
+     or the one send screen, set to Negotiate (they mark it up; nothing can be signed on that link) */
+  if (ch.fr === 'fill'){
+    if (typeof pdTalkBack === 'function') try { pdTalkBack(); } catch (_){}
+    if (typeof pdFillOpen === 'function') try { pdFillOpen(c.id, { key: ch.key || '' }); } catch (_){}
+    return true;
+  }
+  if (ch.fr === 'dsend'){
+    if (typeof openShareModal === 'function') try { openShareModal(c, { purpose: 'negotiate' }); } catch (_){}
+    return true;
+  }
   if (ch.fr === 'nego'){
     if (typeof CA_GO === 'object' && CA_GO && typeof CA_GO.redline === 'function') try { CA_GO.redline(c); } catch (_){}
     return true;
@@ -1106,7 +1171,7 @@ function firstReadPress(ch, m){
   return false;
 }
 
-Object.assign(window, { FIRST_READ_SHOW, firstReadOf, firstReadTurns, firstReadOwe, firstReadDue, firstReadPress, TRIAGE_STEPS, TRIAGE_HEADS, TRIAGE_STALE_KEYS, triageReadingStale, triageBusy, triageAbsent, triageNoText, triageApplies, triageOf, triageSeen, triageCards,
+Object.assign(window, { FIRST_READ_SHOW, firstReadOf, firstReadTurns, firstReadOwe, firstReadDue, firstReadPress, firstDraftOwe, firstDraftOwed, firstDraftDrop, firstDraftOf, firstDraftList, firstDraftTurns, TRIAGE_STEPS, TRIAGE_HEADS, TRIAGE_STALE_KEYS, triageReadingStale, triageBusy, triageAbsent, triageNoText, triageApplies, triageOf, triageSeen, triageCards,
   triageWordingHash, triageNeedsRead, contractArrived,
   triageTiles, triageFiledLine, triageLine, triageReadAnything, triageRun, triageBriefLine,
   triageWhy, triageFail,
