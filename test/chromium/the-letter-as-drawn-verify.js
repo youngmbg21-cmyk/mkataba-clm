@@ -174,8 +174,11 @@ async function mkUser(h, admin, name, email){
     check('3a a chip opens its own list of the screen\'s own controls; Esc puts it away and leaves the page; a press again closes it',
       c1.open && c1.seg && !c2.open && c2.page && !c3, JSON.stringify({ c1, c2, c3 }));
     await press('[data-sh-as-go="purpose"]'); await press('[data-sh-as="purpose"] [data-share-purpose="view"]');
-    const c4 = await page.evaluate(() => ({ w: document.querySelector('[data-sh-as-w="purpose"]').textContent, s: document.getElementById('sh-lt-subject').textContent,
-      open: document.querySelector('[data-sh-as="purpose"]').classList.contains('is-open') }));
+    /* the list puts itself away a beat after the choice (shareLetterAsWire's setTimeout 0): ask for that state, bounded */
+    const c4read = () => ({ w: document.querySelector('[data-sh-as-w="purpose"]').textContent, s: document.getElementById('sh-lt-subject').textContent,
+      open: document.querySelector('[data-sh-as="purpose"]').classList.contains('is-open') });
+    await waitFor(page, () => !document.querySelector('[data-sh-as="purpose"]').classList.contains('is-open'), 3000);
+    const c4 = await page.evaluate(c4read);
     check('3b a choice in a list is the screen\'s own choice: the chip and the letter follow it, the list goes', c4.w === 'a link to read' && /^The Master services agreement, from /.test(c4.s) && !c4.open, JSON.stringify(c4));
     await press('[data-sh-as-go="purpose"]'); await press('[data-sh-as="purpose"] [data-share-purpose="negotiate"]');
     await press('#sh-lt-change');
