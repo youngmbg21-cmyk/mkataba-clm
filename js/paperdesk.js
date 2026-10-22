@@ -3969,13 +3969,138 @@ function pdKtRowsHtml(c, rows){
   };
   return rows.map(tr).join('');
 }
-/* the table as the page in the middle (the same rows, the same presses: #pd-kt) */
+/* ---- KEY TERMS, THE LEGORA WAY, ON A WHITE CARD (owner picked it by name, 22 Oct 2026) ----
+   In the middle the sheet is one quiet list on a white card: each term, what it says, and WHERE ON
+   THE PAPER it was read — the words Jambo kept when he read an uploaded paper (metadata.sourceSpans,
+   § found on the paper, a press lights it there); a paper drafted from a template says "From the
+   template" (owner's answer, 22 Oct 2026: its paper is written from the terms, so nothing was read);
+   an empty term says "Not in the wording" once the paper was read, else "Not read yet". The parties
+   follow under "Who it is between" (the other side's name and email one row; + Add a party). The
+   head carries the filing as one line (reference · stream + Move · template · owner, raised · code
+   name + Set) and "Read all from the paper" with its cost. Every press is an existing door:
+   wireKeyTerms' boxes, fillKeyTermsFromDocument, ktFolderMove, cnEditOpen, openPartyEditor,
+   pdPeopleOpen. The fold (the phone, a page without the Dossier) keeps its table. */
+const PD_KT_SPAN_KEY = { effDate: 'effectiveDate', expiry: 'expiryDate', notice: 'noticePeriodDays' };
+const PD_KT_PARTY_KEYS = new Set(['party', 'counterparty', 'cpEmail']);
+function pdKtDrafted(c){ return !!(c && c.template && !(typeof isUpload === 'function' && isUpload(c))); }
+function pdKtWasRead(c){ const m = (c && c.metadata) || {}; return !!(m.sourceSpans || m.confirmedAt || m._source); }
+/* the clause a kept phrase stands under: the nearest numbered heading above the line holding it, else none (never guessed) */
+function pdKtSpanClause(c, q){
+  const norm = x => String(x || '').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, ' ').trim().toLowerCase();
+  const want = norm(q); if (want.length < 6) return '';
+  let lines = []; try { lines = String((typeof docPlainText === 'function' ? docPlainText(c) : '') || (c.upload && c.upload.extractedText) || '').split('\n'); } catch (_){ lines = []; }
+  const at = lines.findIndex(l => norm(l).includes(want.slice(0, 80))); if (at < 0) return '';
+  for (let i = at; i >= 0; i--){ const m = /^\s*(?:clause\s+|§\s*)?(\d+(?:\.\d+)*)[.)]?\s+\S/i.exec(lines[i]); if (m) return m[1]; }
+  return '';
+}
+/* where on the paper one term was read */
+function pdKtWhere(c, f){
+  if (f.kind === 'people') return '';
+  if (f.kind === 'nda' || f.kind === 'blank') return f.from ? pdOgFromHtml(c, f) : (f.kind === 'blank' ? pdOgFromHtml(c, Object.assign({}, f, { from: { spot: true } })) : '');
+  const none = k => `<span class="pd-og-src is-none">${_pdE(_pdT(k))}</span>`;
+  /* a drafted paper is written from its terms: what is set came from the template, what is not is not in the wording */
+  if (f.kind === 'tplf' || pdKtDrafted(c)) return none(f.html === '—' ? 'kt_lg_none' : 'kt_lg_tpl');
+  const spans = ((c.metadata || {}).sourceSpans) || {};
+  const q = spans[PD_KT_SPAN_KEY[f.key] || f.key];
+  if (q) return pdOgFromHtml(c, Object.assign({}, f, { from: { clause: pdKtSpanClause(c, q), quote: String(q) } }));
+  if (f.html === '—') return none(pdKtWasRead(c) ? 'kt_lg_none' : 'kt_lg_unread');
+  return '';
+}
+function pdKtLgRowsHtml(c, rows){
+  const may = ((typeof canEdit !== 'function') || !!canEdit()) && !(typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE);
+  const ed = (_pdKtEdit && _pdKtEdit.id === String(c.id)) ? _pdKtEdit.key : '';
+  const E = _pdE;
+  const actOf = (f, on) => f.kind === 'people' ? `<button type="button" class="pd-og-ok" data-pd-people="${E(c.id)}" data-pd-people-from="kt">${E(_pdT(may ? 'og_change' : 'pd_ppl_see'))}</button>`
+    : f.party ? (may ? `<button type="button" class="pd-og-ok" data-pd-kt-party="${E(f.party)}">${E(_pdT('og_change'))}</button>` : '')
+    : !may ? '' : on ? `<button type="button" class="pd-og-ok" data-pd-kt-done="${E(f.key)}">${E(_pdT('og_done'))}</button>`
+    : `<button type="button" class="pd-og-ok" data-pd-kt-change="${E(f.key)}">${E(_pdT('og_change'))}</button>`;
+  const tr = f => {
+    const on = ed === f.key && may && !f.party;
+    const box = on ? (f.boxes || [f]).map(b => pdKtBoxHtml(c, b)).join('') : `<span class="pd-kt-v">${f.html}</span>`;
+    return `<tr class="pd-og-row${on ? ' is-changing' : ''}" data-pd-og-row="${E(f.key)}" data-pd-og-kind="${E(f.kind)}"><td class="pd-og-f"><b>${E(f.label)}</b>${f.sub ? `<span class="pd-og-src is-none">${E(f.sub)}</span>` : ''}</td><td class="pd-og-v">${box}</td><td class="pd-kt-where">${pdKtWhere(c, f)}</td><td class="pd-og-a">${actOf(f, on)}</td></tr>`;
+  };
+  const terms = rows.filter(f => !PD_KT_PARTY_KEYS.has(f.key) && f.kind !== 'people');
+  const by = k => rows.find(f => f.key === k);
+  const ours = by('party'), cp = by('counterparty'), em = by('cpEmail'), ppl = by('people');
+  const who = [];
+  if (ours) who.push(ours);
+  if (cp){
+    /* the other side's name and address are one row (both its boxes on Change); an owed one stays in Still owed */
+    const mail = (typeof ctTheirEmail === 'function' ? ctTheirEmail(c) : '') || '';
+    who.push(Object.assign({}, cp, { label: c.counterparty || cp.label, html: E(_pdT('reg_col_counterparty') + ' · ' + (mail || _pdT('kt_lg_no_email'))), boxes: em ? [cp, em] : [cp] }));
+  } else if (em) who.push(em);
+  /* a third party and on: its own row, its Change the party's own editor */
+  let all = []; try { all = (typeof contractParties === 'function') ? (contractParties(c) || []) : []; } catch (_){ all = []; }
+  const firstOurs = all.find(p => p.side === (window.PARTY_SIDE_OURS || 'ours')), firstTheirs = all.find(p => p.side !== (window.PARTY_SIDE_OURS || 'ours'));
+  all.filter(p => p !== firstOurs && p !== firstTheirs).forEach(p => who.push({ key: 'py:' + p.id, kind: 'party', party: p.id, label: p.name || _pdT('kt_lg_party'),
+    html: E([p.role || _pdT('kt_lg_party'), p.email].filter(Boolean).join(' · ')) }));
+  if (ppl) who.push(ppl);
+  const head = `<tr class="pd-kt-lg-h"><th>${E(_pdT('kt_lg_term'))}</th><th>${E(_pdT('kt_lg_says'))}</th><th>${E(_pdT('kt_lg_where'))}</th><th></th></tr>`;
+  const sub = `<tr class="pd-kt-lg-sub"><th colspan="4">${E(_pdT('kt_lg_between'))}</th></tr>`;
+  return `<thead>${head}</thead><tbody>${terms.map(tr).join('')}</tbody><tbody>${sub}${who.map(tr).join('')}</tbody>`;
+}
+/* + Add a party, under the list: the party editor's own door, shut once anyone has signed */
+function pdKtAddPartyHtml(c){
+  const may = ((typeof canEdit !== 'function') || !!canEdit()) && !(typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE)
+    && !(typeof signingLocked === 'function' && signingLocked(c)) && typeof openPartyEditor === 'function';
+  return may ? `<button type="button" class="ui-link pd-kt-add" data-pd-kt-party="">${_pdE(_pdT('py_add'))}</button>` : '';
+}
+/* the filing, one line under the title: reference · stream + Move · template · owner, raised · code name + Set */
+let _pdKtMoving = false;
+function pdKtFileHtml(c){
+  const E = _pdE, sep = '<span class="pd-kt-sep">·</span>';
+  let R = {}; try { R = (typeof ktFactReads === 'function') ? ktFactReads(c) : {}; } catch (_){ R = {}; }
+  const ref = (typeof refHtml === 'function') ? refHtml(c) : E((typeof contractRef === 'function') ? contractRef(c) : c.id);
+  const mayMove = typeof mayReFile === 'function' && !!mayReFile() && !(typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE)
+    && typeof ktFolderMove === 'function' && typeof visibleFolders === 'function';
+  let stream = R.stream || E((typeof streamLabel === 'function' ? streamLabel(c) : '') || '—');
+  if (mayMove && _pdKtMoving){
+    const F = window.FOLDERS || {};
+    const opts = visibleFolders().slice(); if (c.folder && F[c.folder] && !opts.some(f => f.id === c.folder)) opts.unshift(F[c.folder]);
+    stream = `<select class="pd-kt-folder" data-pd-kt-folder aria-label="${E(_pdT('ov_move_stream'))}">${opts.map(f => `<option value="${E(f.id)}"${f.id === c.folder ? ' selected' : ''}>${E(f.name)}</option>`).join('')}</select>`;
+  }
+  const move = mayMove ? `<button type="button" class="ui-link" data-pd-kt-move aria-pressed="${_pdKtMoving}">${E(_pdT('kt_lg_move'))}</button>` : '';
+  const owner = (typeof contractOwnerName === 'function' ? contractOwnerName(c) : '') || '';
+  const raised = String(c._raisedAt || c.createdAt || '').slice(0, 10);
+  const day = raised ? ((typeof fmtDocDate === 'function' && fmtDocDate(raised)) || raised) : '';
+  const made = owner && day ? E(_pdT('kt_lg_raised', { who: owner, date: day })) : E(owner || day);
+  const cn = c._codeName, cnMay = typeof cnMaySet === 'function' && cnMaySet(c) && !(cn && cn.inherited) && typeof cnEditOpen === 'function';
+  const code = (cn || cnMay) ? `${sep}<span>${E(cn ? _pdT('kt_lg_cn', { code: cn.code }) : _pdT('kt_lg_cn_none'))}</span>${cnMay ? `<button type="button" class="ui-link" data-pd-kt-cn>${E(_pdT(cn ? 'og_change' : 'kt_lg_set'))}</button>` : ''}` : '';
+  return `<span class="pd-kt-ref">${ref}</span>${sep}<span>${stream}</span>${move}${R.template ? sep + `<span>${R.template}</span>` : ''}${made ? sep + `<span>${made}</span>` : ''}${code}`;
+}
+/* "Read all from the paper": the Details' Fill from document, its cost said (a Jambo call where a key is set, else free) */
+function pdKtReadHtml(c){
+  const may = ((typeof canEdit !== 'function') || !!canEdit()) && !(typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE) && typeof fillKeyTermsFromDocument === 'function';
+  if (!may) return '';
+  const ai = typeof API_MODE === 'function' && API_MODE() && typeof state !== 'undefined' && state && !!state.aiConfigured;
+  return `<button type="button" id="kt-fill" class="ui-btn ui-btn-sm pd-kt-read" data-pd-kt-read>${typeof icon === 'function' ? icon('sparkle', 'w-3 h-3') + ' ' : ''}${_pdE(_pdT('kt_lg_read'))}</button><span id="pd-kt-cost" class="pd-kt-cost">${_pdE(_pdT(ai ? 'kt_lg_cost_ai' : 'kt_lg_cost_free'))}</span>`;
+}
+/* the table as the page in the middle (the same presses: #pd-kt), on a white card */
 function pdKtMidHtml(c){
   const rows = pdKtFacts(c);
-  return `<div class="pd-kt-mid" data-pd-mid-kt>
-    <h2 class="pd-kt-mid-h">${_pdE(_pdT('og_kt_title'))} <span>${_pdE(String(rows.length))}</span></h2>
-    <div id="pd-kt" class="pd-kt" data-pd-og-for="${_pdE(c.id)}"><table class="pd-og pd-kt-t"><tbody>${pdKtRowsHtml(c, rows)}</tbody></table></div>
+  return `<div class="pd-kt-mid is-lg" data-pd-mid-kt>
+    <h2 class="pd-kt-mid-h">${_pdE(_pdT('og_kt_title'))}</h2>${pdKtReadHtml(c)}
+    <div id="pd-kt-file" class="pd-kt-file" data-pd-kt-file="${_pdE(c.id)}">${pdKtFileHtml(c)}</div>
+    <div class="pd-kt-card"><div id="pd-kt" class="pd-kt" data-pd-og-for="${_pdE(c.id)}"><table class="pd-og pd-kt-t pd-kt-lg">${pdKtLgRowsHtml(c, rows)}</table></div>${pdKtAddPartyHtml(c)}</div>
   </div>`;
+}
+/* A POP-UP OPENED FROM KEY TERMS COMES BACK TO IT (as Who else is on this agreement does): the
+   middle stands again once the last pop-up has closed, if the same paper is still up */
+function pdKtAway(id, open){
+  const root = document.getElementById('modal-root');
+  const back = () => { if (typeof pdKtMid === 'function' && !pdMidUp('kt:' + id)) pdKtMid(String(id)); };
+  const up = () => !!(root && root.querySelector('[role="dialog"]'));
+  let r = null; try { r = open(); } catch (_){ r = null; }
+  if (!root) return r;
+  /* the door opened nothing over Key terms: it is still up, nothing to bring back */
+  if (root.querySelector('[data-dlg-page][data-pd-mid]')) return r;
+  let done = false;
+  const end = () => { if (done || up()) return; done = true; if (mo) mo.disconnect(); setTimeout(back, 0); };
+  const mo = (typeof MutationObserver === 'function') ? new MutationObserver(end) : null;
+  if (mo) mo.observe(root, { childList: true, subtree: true });
+  Promise.resolve(r).then(end, end);
+  end();
+  return r;
 }
 /* open the table in the middle (pressed again: the paper comes back); false where the middle cannot stand */
 function pdKtMid(id, key){
@@ -3985,7 +4110,9 @@ function pdKtMid(id, key){
   const c = pdContract(); if (!c || String(c.id) !== String(id) || !pdOnPaper() || !pdMidMay()) return false;
   _pdKtEdit = key ? { id: String(id), key: String(key) } : null;
   if (!pdMidUp(mk)){
-    openModal(pdKtMidHtml(c), { maxWidth: 'none', label: _pdT('og_kt_title'), page: pdMidPage(_pdT('og_kt_title')), onClose: () => { _pdKtEdit = null; pdMidOff(); } });
+    _pdKtMoving = false;
+    openModal(pdKtMidHtml(c), { maxWidth: 'none', label: _pdT('og_kt_title'), page: Object.assign(pdMidPage(_pdT('og_kt_title')), { acts: ['kt-fill', 'pd-kt-cost'], under: '#pd-kt-file' }),
+      onClose: () => { _pdKtEdit = null; _pdKtMoving = false; pdMidOff(); } });
     pdMidOn(mk);
   } else pdKtMidRepaint(true);
   const host = document.getElementById('pd-kt'); if (host) pdOgPaint(host);
@@ -4005,7 +4132,9 @@ function pdKtMidRepaint(force){
   const a = document.activeElement;
   if (!force && a && host.contains(a)) return;
   const c = pdContract(); if (!c || String(c.id) !== host.getAttribute('data-pd-og-for')) return;
-  const html = `<table class="pd-og pd-kt-t"><tbody>${pdKtRowsHtml(c, pdKtFacts(c))}</tbody></table>`;
+  const file = document.querySelector('[data-pd-kt-file]');
+  if (file && file.getAttribute('data-pd-kt-file') === String(c.id)){ const fh = pdKtFileHtml(c); if (file.innerHTML !== fh){ file.innerHTML = fh; try { if (typeof popupControlsDress === 'function') popupControlsDress(file); } catch (_){} } }
+  const html = `<table class="pd-og pd-kt-t pd-kt-lg">${pdKtLgRowsHtml(c, pdKtFacts(c))}</table>`;
   if (host.innerHTML === html) return;
   host.innerHTML = html;
   /* new boxes: dressed and their writers bound again (each writer binds a box once) */
@@ -4392,7 +4521,7 @@ if (typeof document !== 'undefined' && !document._pdOgWired){
     if (kt) pdKtDone(c, row.getAttribute('data-pd-og-row')); else pdOgConfirm(c, row.getAttribute('data-pd-og-row'));
   });
   document.addEventListener('click', e => {
-    const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('#ig-dock, [data-pd-mid-kt]')) return;
+    const t = e.target && e.target.closest ? e.target : null; if (!t || !t.closest('#ig-dock, [data-pd-mid-kt], [data-pd-kt-file], [data-pd-kt-read]')) return;
     /* Key terms' one line in the Dossier: the table comes to the middle (pressed again, the paper comes back) */
     const ppl = t.closest('[data-pd-people]');
     if (ppl){ e.preventDefault(); pdPeopleOpen(ppl.getAttribute('data-pd-people'), ppl.getAttribute('data-pd-people-from') || ''); return; }
@@ -4442,6 +4571,20 @@ if (typeof document !== 'undefined' && !document._pdOgWired){
     if (sp){ e.preventDefault(); if (sp.closest('[data-pd-mid-kt]')) pdMidClose(); let el = null; try { el = (typeof contractFieldPeer === 'function') ? contractFieldPeer(sp.getAttribute('data-pd-og-spot'), 'paper') : null; } catch (_){ el = null; }
       if (el && typeof landOn === 'function') landOn(el, { block: 'center', focus: false }); else pdOgSay(_pdT('og_not_on_paper'));
       return; }
+    /* KEY TERMS IN THE MIDDLE, THE LEGORA WAY: each press an existing door, the middle back after a pop-up (pdKtAway) */
+    const ktf = t.closest('[data-pd-kt-file]');
+    const ktc = ktf ? ((typeof getContract === 'function' && getContract(ktf.getAttribute('data-pd-kt-file'))) || null) : null;
+    if (ktc && t.closest('[data-pd-kt-move]')){ e.preventDefault(); _pdKtMoving = !_pdKtMoving; pdKtMidRepaint(true);
+      if (_pdKtMoving){ const sel = document.querySelector('[data-pd-kt-file] [data-pd-kt-folder]'); if (sel && typeof fieldFocus === 'function') fieldFocus(sel); }
+      return; }
+    if (ktc && t.closest('[data-pd-kt-cn]')){ e.preventDefault(); pdKtAway(ktc.id, () => cnEditOpen(ktc)); return; }
+    const ktp = t.closest('[data-pd-mid-kt] [data-pd-kt-party]');
+    if (ktp){ e.preventDefault(); const c = pdOgContract(document.querySelector('[data-pd-mid-kt] #pd-kt')); if (!c || typeof openPartyEditor !== 'function') return;
+      pdKtAway(c.id, () => openPartyEditor(c, ktp.getAttribute('data-pd-kt-party') || '')); return; }
+    const ktr = t.closest('[data-pd-kt-read]');
+    if (ktr && !ktr.disabled){ e.preventDefault(); const c = pdContract(); if (!c || typeof fillKeyTermsFromDocument !== 'function') return;
+      const live = (typeof getContract === 'function' && getContract(c.id)) || c;
+      Promise.resolve(fillKeyTermsFromDocument(live)).then(() => { try { pdKtMidRepaint(true); } catch (_){} }, () => {}); return; }
     const ch = t.closest('#pd-kt [data-pd-kt-change]');
     if (ch){ e.preventDefault(); const c = pdOgContract(pdOgHostOf(ch)); if (!c) return;
       if (ch.closest('[data-pd-mid-kt]')){ pdKtMid(c.id, ch.getAttribute('data-pd-kt-change')); return; }
@@ -4851,6 +4994,15 @@ if (typeof document !== 'undefined' && !document._pdJamboTopWired){
     if (f && fl.length > 1 && !pdDropBusyNow() && typeof toast === 'function') toast(_pdT('pd_drop_single', { name: f.name }), 'warn');
     if (f) pdDropTake(f); });
   document.addEventListener('change', e => { const s = (e.target && e.target.closest) ? e.target.closest('[data-pd-drop-stream]') : null; if (s) _pdDropStream = s.value || ''; });
+  /* Move: the stream picked in Key terms' filing line goes through the one re-filer (ktFolderMove asks, writes, says) */
+  document.addEventListener('change', e => {
+    const sel = (e.target && e.target.closest) ? e.target.closest('[data-pd-kt-file] [data-pd-kt-folder]') : null; if (!sel) return;
+    const c = (typeof getContract === 'function') ? getContract(sel.closest('[data-pd-kt-file]').getAttribute('data-pd-kt-file')) : null;
+    if (!c || !sel.value || sel.value === c.folder || typeof ktFolderMove !== 'function') return;
+    _pdKtMoving = false;
+    /* moved or not, the line shows the stream it is filed under now (the picker shut) */
+    Promise.resolve(pdKtAway(c.id, () => ktFolderMove(c, sel.value))).then(() => { try { pdKtMidRepaint(true); } catch (_){} }, () => { try { pdKtMidRepaint(true); } catch (_){} });
+  });
   document.addEventListener('click', e => {
     const t = e.target && e.target.closest ? e.target : null; if (!t) return;
     if (t.closest('[data-pd-drop-pick]')){ e.preventDefault(); pdDropPick(); return; }
@@ -5585,7 +5737,7 @@ if (typeof document !== 'undefined' && !document._pdTrailEsc){
     if (pdTrailBack() || (typeof jamboTalkBack === 'function' && jamboTalkBack())) e.preventDefault();
   });
 }
-Object.assign(window, { pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
+Object.assign(window, { pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
   PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdTalkKey, pdTalkScope, pdTalkShows, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,

@@ -4892,7 +4892,7 @@ function roomOverviewOpen(c){
   return true;
 }
 /* published beside their definitions (the file's export list stays the one at its end) */
-Object.assign(window, { ovSheetPaint, ovRecordOpen, roomOverviewOpen, ovEssRestCells, ovEssKeys, uploadPartyOptions, cnEditOpen, cnRowPaint });
+Object.assign(window, { ovSheetPaint, ovRecordOpen, roomOverviewOpen, ovEssRestCells, ovEssKeys, uploadPartyOptions, cnEditOpen, cnRowPaint, cnMaySet, ktFactReads });
 /* ---- Document workspace right-panel: two tabs (Screening | Signing) --------
    Screening (default while a contract is in progress) stacks Playbook review →
    Insert clause → Copilot Contract Scan, with a "Next: Signing" button. Signing
@@ -16573,6 +16573,8 @@ async function fillKeyTermsFromDocument(c){
   const btn=document.getElementById('kt-fill');
   const text=(isUpload(c)?(c.upload&&c.upload.extractedText):(window.docPlainText?docPlainText(c):''))||'';
   if(text.length<200){ toast(i18t('ct_no_readable_text'),'err'); return; }
+  /* the button's own words come back after (the Details' "Fill from document", Key terms' "Read all from the paper") */
+  const was=btn?btn.innerHTML:'';
   if(btn){ btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">${i18t('ct_reading')}</span>`; }
   try{
     const meta=await extractMetadata(text, null);
@@ -16633,7 +16635,7 @@ async function fillKeyTermsFromDocument(c){
   }catch(e){
     toast(i18t('ct_could_not_read_doc')+(e.message||'try again'),'err');
   }finally{
-    if(btn&&document.body.contains(btn)){ btn.disabled=false; btn.innerHTML=`${icon('sparkle','w-3 h-3')} Fill from document`; }
+    if(btn&&document.body.contains(btn)){ btn.disabled=false; btn.innerHTML=was||`${icon('sparkle','w-3 h-3')} Fill from document`; }
   }
 }
 function updateStatusUI(c){
