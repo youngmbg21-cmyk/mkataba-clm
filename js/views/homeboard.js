@@ -8260,6 +8260,8 @@ async function hbBoardNoMap(res, retry, q){
       if (said) return said;
     }
   }
+  /* AI FIRST, NEVER A DEAD END (stage 3): words that asked for no picture at all go to Jambo's whole chat */
+  if (!R && typeof caAiFirst === 'function' && caAiFirst()) return { chat: true };
   return _hbE(i18t(R ? 'hb_no_map_pic' : 'hb_no_map_said'));
 }
 /* ============================================================

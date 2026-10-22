@@ -2631,6 +2631,7 @@ async function intelGraphAsk(q){
      asks for the map goes on to intelGraphApply. */
   if(res&&igBoardNow()&&typeof window.hbBoardNoMap==='function'){
     let said=null; try{ said=await hbBoardNoMap(res,retry,q); }catch(_){ said=null; }
+    if(said&&said.chat){ await intelChatAsk(q); return; }
     if(said){ intel.history.push(Object.assign({ role:'assistant', text:said+igNoticeHtml(res.notice) }, typeof window.hbTakeMeta==='function'?hbTakeMeta():{})); return; }
   }
   igRecipePush();

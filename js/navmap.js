@@ -864,7 +864,9 @@ function navDoorOf(d){
     if (d.kind === 'obligation') return go({ k: 'duty', cid: c.id, oid: d.obligationId }, 'nav_go_duty', { what: ((c.obligations || []).find(o => o && String(o.id) === String(d.obligationId)) || {}).desc || '', ref: v.ref });
     if (d.kind === 'clause'){
       const words = d.head ? [navNorm(d.head).trim()].filter(Boolean) : null;
-      return go({ k: 'clause', cid: c.id, num: d.num || null, quote: d.quote || null, head: d.head || null, topic: words ? words[0] : null, words }, d.num ? 'nav_go_clause' : 'nav_go_clause_topic',
+      /* a passage that begins with its clause's number ("6. Quality and rejection") lands as that number does */
+      const lead = /^\s*(?:clause|section|article|§|klausul|artikel)?\s*(\d{1,3})(?:[.)]|\s)/i.exec(String(d.head || d.quote || ''));
+      return go({ k: 'clause', cid: c.id, num: d.num || (lead ? lead[1] : null), quote: d.quote || null, head: d.head || null, topic: words ? words[0] : null, words }, d.num ? 'nav_go_clause' : 'nav_go_clause_topic',
         { n: d.num || '', topic: d.head || '', ...v }, c.id);
     }
     if (d.tab === 'compare') return go({ k: 'compare', cid: c.id }, 'nav_go_compare', v, c.id);
