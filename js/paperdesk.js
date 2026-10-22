@@ -474,8 +474,14 @@ function pdFillShowsRetired(){
    grid's row, its box in the hand — answered where it is asked */
 function pdFillOpen(id, opts){
   const o = opts || {};
+  /* LAND ON IT, past Jambo's words: a fill-in door pressed while his conversation stands in the panel
+     (his first words on a new paper) turns it back to the Dossier first, so the row is there to land on */
+  if (typeof pdTalkShows === 'function' && pdTalkShows() && typeof pdTalkBack === 'function') try { pdTalkBack(); } catch (_){}
+  if (typeof window.firstDraftDrop === 'function') window.firstDraftDrop(id);
   _pdFillFloor = null; _pdFillKey = null;
   const ok = pdOpenOnHome(id, 'plain');
+  /* and again once the paper is open: his conversation comes back with the paper it was said beside */
+  if (typeof pdTalkShows === 'function' && pdTalkShows() && typeof pdTalkBack === 'function') try { pdTalkBack(); } catch (_){}
   if (ok !== false) pdOgLand(id, o.key || '');
   return ok;
 }
@@ -3063,7 +3069,7 @@ function pdDropImportHtml(){
 function pdDropDoor(){
   if (typeof window === 'undefined' || (window.innerWidth && window.innerWidth < 768)) return false;
   if (typeof hbOpenContracts !== 'function' || !(typeof deskShellOn !== 'function' || deskShellOn())) return false;
-  if (!pdDropMay()){ if (typeof toast === 'function') toast(_pdT('ct_viewers_no_add'), 'err'); return true; }
+  if (!pdDropMay()){ if (typeof draftWallToast === 'function') draftWallToast(); else if (typeof toast === 'function') toast(_pdT('ct_viewers_no_add'), 'err'); return true; }
   if (typeof closeModal === 'function' && document.getElementById('modal-root') && document.getElementById('modal-root').children.length) try { closeModal(); } catch (_){}
   hbOpenContracts();
   if (typeof intel === 'object' && intel && !intel.dockOpen){ intel.dockOpen = true; if (typeof renderIntelDock === 'function') renderIntelDock(); if (typeof igSyncDockWidth === 'function') try { igSyncDockWidth(); } catch (_){} }
@@ -3122,7 +3128,7 @@ function pdDropInput(){
 }
 function pdDropBusyNow(){ return !!(_pdDrop && _pdDrop.state === 'reading') || ((typeof uploadDropBusy === 'function') && uploadDropBusy()); }
 function pdDropPick(){
-  if (!pdDropMay()){ if (typeof toast === 'function') toast(_pdT('ct_viewers_no_add'), 'err'); return false; }
+  if (!pdDropMay()){ if (typeof draftWallToast === 'function') draftWallToast(); else if (typeof toast === 'function') toast(_pdT('ct_viewers_no_add'), 'err'); return false; }
   if (pdDropBusyNow()){ if (typeof toast === 'function') toast(_pdT('ca_drop_busy'), 'warn'); return false; }
   pdDropInput().click();
   return true;

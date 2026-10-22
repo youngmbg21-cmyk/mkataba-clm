@@ -84,6 +84,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - phone-verify, f630, f631, phone-fits-verify.
 
 ## HOME — THE BOARD AND THE MAP (js/views/homeboard.js)
+- THE TIDY SWEEP (22 Oct 2026): `tidy-sweep-verify.js` — 29 places × three screens, nothing cut, squeezed, spilt, overlapping or sideways; `HATI_TIDY_ONLY=board-card,draft` for one place; its board-card place lands a side-list row on MK-400's Dossier (One door). f690 (4) re-pointed: a row → `hbSheetGo`, the sheet draws no card.
 - Today's insights, ONE HEIGHT A ROW (22 Oct 2026): board-as-drawn 8b2 (two cards sharing a row the same height, their buttons on one line, at the three screens; red before); insights-shelf 6b re-pointed (the card beside an opened one grows with it).
 - 21 Oct 2026 (overnight): home-board-verify 13g2/13j2/13j3 (timeline words inside bars and chart, full screen 1536x730); board-agent-work-verify 3c (Put away not dressed as Look); paper-panel-as-drawn-verify 1b/2d/2f re-pointed to the grid, 2g (What Jambo read counts as the Board does); jambos-work-open-verify (Open lands on the card).
 - What Jambo read as four rows, no grey line under an owed fact (21 Oct 2026): f748 2b re-pointed; `owed-first-verify.js`, `nda-tail-verify.js`. The paper's line without the party: f708 1a, `paper-line-verify.js` 1a, `the-road-as-drawn-verify.js` 12d re-pointed. `piles-as-drawn-verify.js` 3b (piles unboxed). List before Wall: f687.
@@ -253,6 +254,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f244, f306, f331, f336, f376, f722, f760–f764, templates-tabs, one-door, prompt-and-build, paper-first, our-paper-as-drawn verify.
 
 ## NEW AGREEMENT, DRAFT FROM A SENTENCE, THE FILL FORMS
+- "the closest" on one line, the name shortened (22 Oct 2026): `tidy-sweep-verify.js` draft place (owner-length standard names seeded; red at e05849a at 1440 and 1366).
 - f270, f340, f345, f360, f368, f679, f706, f750, f753, new-agreement, form-and-picker, draft-upload-glance verify.
 - Every door opens beside Jambo (22 Oct 2026): draft-beside-jambo verify 1–3 (red at the parent), requests-and-notes-as-drawn 3d.
 
@@ -292,6 +294,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - nda-carries-no-money-verify.
 
 ## JAMBO'S AGENTS — THE HOUSE AND HIS POINTS (js/views/jambohouse.js)
+- The house no wider than the page (22 Oct 2026): `tidy-sweep-verify.js` jambo place (the door's count badge; 3px sideways at e05849a).
 - jambos-work-open-verify (Home's Jambo's work · Open, and the house's door, land on the Board's Jambo's work card even when a contract's report was held there: bsCardLeave first; never "nothing prepared" over waiting work; three screens).
 - f667, f724, f790, f800–f803, jambo-agents, open-in-place, counter-as-drawn verify.
 
@@ -323,3 +326,9 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## ONE SEARCH OVER HaTi (Jambo works like Copilot, stage 1)
 - test/f866-one-search-over-hati.test.js (21): the words (both hosts), a passage found and where it sits, kept current by the triggers, the walls (stream, values, own notes, requests, private stream, code name), Jambo's tool. With the tool list touched also run f305 (the two hosts' tool names) and f561/f564 (the Brain).
+## THE FIRST-TIMER ROUNDS (22 Oct 2026)
+- test/f866-first-timer-rounds.test.js (13 of 13 red at origin/main 2aba169; 23 green on the branch): the wall's words and press, stems and families, the one question, Use when, Who pays whom, Jambo's first words on a draft, the empty Redlines column, the plain reason, Ask a colleague, Accept unsent, Counter's figures, both books.
+- test/chromium/first-timer-rounds-verify.js (5 passed / 46 failed at 2aba169; 51 / 0 on the branch): the viewer's card and Ask at the three screens, the sentence's sheet, Who pays whom stored as customer, Jambo speaks once and Fill them in lands, the empty Redlines and its Send, their rows, Counter, Accept, Ask a colleague.
+- RE-POINTED (each green at the parent, red after the change, green again): f246 (8) adds data-rl-ask-colleague to the engine's verbs; f480 (1) the side field through payWhoHtml; f679 2a2 the wall's words; f707 1b draftWallToast; f756 7a Counter's options carry the figures.
+- RE-POINTED after CI (22 Oct 2026): f36 "accept merges that clause" reads the new Accept message (an ask of theirs on our seat). CI's other three were faults of this change, fixed in the code: words named like plurals (f148; now fr_draft_open / fr_draft_whole / fr_draft_next, tf_cp_company), the refusal's fallback where the wall is not loaded (f270), the published list's head kept (f676).
+- RE-POINTED after CI's browser checks (22 Oct 2026): a new draft now opens on Jambo's first words, so create-lands-clean, newcontract, fill-in-beside-the-paper and draft-upload-glance count his words as a landing and press the trail's ‹ back to the Dossier (`pastFirstWords`); form-nextup-and-draft-chip 1b–1d read the Who pays whom buttons. Fixed in the code: a fill-in door (`pdFillOpen`) turns his conversation back to the Dossier and drops his still-owed words (`firstDraftDrop`) — term-and-fields and signing-without-the-facts 5c went green with no test change.
