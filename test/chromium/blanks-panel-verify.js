@@ -123,7 +123,7 @@ const PANEL = () => {
   const dock = document.querySelector('#ig-dock #pd-glance');
   if (!og && !kt) return { there: false };
   const r = dock.getBoundingClientRect();
-  const owedRows = og ? [...og.querySelectorAll('tr[data-pd-og-row]:not(.is-saved)')].filter(x => !['signers', 'stream'].includes(x.getAttribute('data-pd-og-row'))) : [];
+  const owedRows = og ? [...og.querySelectorAll('tr[data-pd-og-row]:not(.is-saved)')].filter(x => !['signers', 'stream', 'people'].includes(x.getAttribute('data-pd-og-row'))) : [];
   const ktRows = kt ? [...kt.querySelectorAll('tr[data-pd-og-row]')] : [];
   const gridBoxes = og ? [...og.querySelectorAll('tr:not(.is-saved) [data-blankf]')] : [];
   const boxes = gridBoxes.map(b => ({ key: b.getAttribute('data-blankf'), label: ((b.closest('tr').querySelector('.pd-og-f b') || {}).textContent || '').trim(),

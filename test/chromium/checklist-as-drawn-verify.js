@@ -152,7 +152,11 @@ const MEASURE = () => {
     check('6c pressed again it folds', (await page.evaluate(MEASURE)).allOpen === false);
 
     console.log('\n7 · one signer button');
-    check('7 the only signer button on the Dossier is "Add or order signers ›"', m0.signerBtns.length === 1 && /Add or order signers/.test(m0.signerBtns[0]), JSON.stringify(m0.signerBtns));
+    /* RE-POINTED 22 Oct 2026 (owner: the signer boxes and their buttons went; "the use for it is in the pop up"):
+       the one signer door is the Signer line itself, and no other button speaks of signers */
+    const sgDoor = await page.evaluate(() => ({ door: !!document.querySelector('#ig-dock #pd-og tr[data-pd-og-kind="signer"] .pd-ck-hd[data-pd-og-route]'),
+      boxes: document.querySelectorAll('#ig-dock #pd-og tr[data-pd-og-kind="signer"] input').length }));
+    check('7 the only signer door on the Dossier is the Signer line, with no boxes in it', sgDoor.door && sgDoor.boxes === 0 && m0.signerBtns.length === 0, JSON.stringify({ sgDoor, btns: m0.signerBtns }));
 
     console.log('\n4 · Confirm N read stores a closed row\'s reading');
     const readRow = m0.rows.find(r => /mutual|Both sides/i.test(r.words));

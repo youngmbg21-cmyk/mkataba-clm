@@ -233,7 +233,7 @@ const word = (lines) => Buffer.from(mkDocx(lines.map(t => para(t)).join('')));
       const rows = [...el.querySelectorAll('[data-pd-gl]')].map(r => [r.getAttribute('data-pd-gl'), r.querySelector('span').textContent]);
       /* RE-POINTED 20 Oct 2026 (owner picked "The Dossier"): the glance is the dossier — the spine for the stage, What Jambo read, Still owed */
       /* RE-POINTED 20 Oct 2026 (the Legora way): each owed detail is a row of Still owed's grid */
-      const fillRows = [...el.querySelectorAll('#pd-og [data-pd-og-kind]')].filter(r => r.getAttribute('data-pd-og-kind') !== 'signer').map(() => 1);
+      const fillRows = [...el.querySelectorAll('#pd-og [data-pd-og-kind]')].filter(r => !['signer', 'people'].includes(r.getAttribute('data-pd-og-kind'))).map(() => 1);
       /* RE-POINTED 22 Oct 2026 (the Checklist): the number leads the risks row's grey value */
       const rk = el.querySelector('[data-pd-ds="risks"] .ds-val');
       return { title: [...el.querySelectorAll('.pd-gl-h b')].map(b => b.textContent).join(' | '), pill: !!el.querySelector('.ds-spine .ds-st.is-on, .ds-spine .ds-st.is-now'), rows,
@@ -260,10 +260,11 @@ const word = (lines) => Buffer.from(mkDocx(lines.map(t => para(t)).join('')));
        signer is a search box over the directory, not a <select> (no <select> may be left in
        the row — one list per press, on an iPad too). The reading is the same: a box for our
        signer, boxes for their name and address, one Confirm. */
+    /* RE-POINTED 22 Oct 2026 (owner: the signer boxes went, "the use for it is in the pop up feature for
+       signer"): the row is one line whose press is the signing route editor's door — no boxes, no Confirm */
     const signRow = await page.evaluate(() => { const r = document.querySelector('#pd-og [data-pd-og-row="signers"]');
-      return r ? { ours: !!r.querySelector('[data-pd-og-sg="ours"]'), noSelect: !r.querySelector('select'),
-        theirs: r.querySelectorAll('input').length, ok: !!r.querySelector('[data-pd-og-ok]') } : null; });
-    check('6f nobody named to sign is a grid row: our signer, their name and email, one Confirm', g.nobody && !!signRow && signRow.ours && signRow.noSelect && signRow.theirs >= 2 && signRow.ok, { nobody: g.nobody, signRow });
+      return r ? { door: !!r.querySelector('.pd-ck-hd[data-pd-og-route]'), boxes: r.querySelectorAll('input, select').length, ok: !!r.querySelector('[data-pd-og-ok]') } : null; });
+    check('6f nobody named to sign is a grid row whose line opens the signing route', g.nobody && !!signRow && signRow.door && signRow.boxes === 0 && !signRow.ok, { nobody: g.nobody, signRow });
     /* the risks row says what the Redlines face draws */
     await page.evaluate(id => pdOpenOnHome(id, 'plain'), upId);
     await waitFor(page, () => !!document.getElementById('pd-glance'), 6000);
