@@ -56,7 +56,7 @@ describe('f868 (2) the last step delivers; no answer says why and offers the way
     await ask(W.admin, 'anything');
     assert.equal(ai.calls.length, 8);
     assert.deepEqual(ai.calls[7].body.tool_choice, { type: 'tool', name: 'deliver_answer' });
-    assert.deepEqual(ai.calls[6].body.tool_choice, { type: 'any' }, 'every other step uses some tool');
+    assert.equal(ai.calls[6].body.tool_choice, undefined, 'only the last');
   });
   test('two empty replies: the reason, choices the one search found (walled for the reader), Ask again', async () => {
     ai.reset();
@@ -160,3 +160,18 @@ describe('f868 (6) a contract named and not asked about opens', () => {
     assert.equal((await ask(W.admin, 'the coffee thing')).goto, null, 'a contract the words do not name is not opened');
   });
 });
+
+describe('f868 (7) a question asked back in plain words comes back with its choices', () => {
+  test('"which did you mean?" typed as text is asked once more, through deliver_answer', async () => {
+    ai.reset();
+    ai.script([{ type: 'text', text: 'Which Naivas contract did you mean?' }],
+      deliver({ answer: 'Which Naivas contract?', choices: [{ label: 'Modern Trade Listing', door: { kind: 'contract', contractId: 'MK-B1' } }, { label: 'Retail Supply — Coast', door: { kind: 'contract', contractId: 'MK-B2' } }] }));
+    const r = await ask(W.admin, 'the Naivas one');
+    assert.equal(r.choices.length, 2);
+    assert.match(JSON.stringify(ai.calls[1].body.messages.slice(-1)), /2-4 choices/);
+    ai.reset(); ai.script([{ type: 'text', text: 'It is worth KES 48,000,000.' }]);
+    assert.equal((await ask(W.admin, 'how much is the Kabras deal worth')).answer, 'It is worth KES 48,000,000.', 'a plain answer stands, no second call');
+    assert.equal(ai.calls.length, 1);
+  });
+});
+

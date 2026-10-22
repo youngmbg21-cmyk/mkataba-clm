@@ -91,7 +91,10 @@ function extraSrc(){
   if (last){
     const div = document.createElement('div'); div.innerHTML = String(last.text || last.html || '');
     X.text = (div.textContent || '').replace(/\s+/g, ' ').trim();
-    const cards = [].concat(last.cardIds || [], (last.cards || []).map(c => c && (c.id || c)), (last.citations || []).map(c => c && c.id));
+    /* the side panel and the window keep a turn's cards as their drawn markup, Home as a list (fixed 22 Oct
+       2026: a markup string made this reader throw, and every window and list answer read as none) */
+    const cardsOf = v => Array.isArray(v) ? v.map(c => c && (c.id || c)) : (typeof v === 'string' ? (v.match(/\b(?:MK|RL)-[A-Z0-9]+\b/g) || []) : []);
+    const cards = [].concat(last.cardIds || [], cardsOf(last.cards), (last.citations || []).map(c => c && c.id));
     X.cites = [...new Set(cards.filter(Boolean).map(String))];
     X.err = !!last.err;
     X.choices = Array.isArray(last.choices) ? last.choices.length : (last.act && Array.isArray(last.act.picks) ? last.act.picks.length : 0);

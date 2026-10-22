@@ -12911,17 +12911,21 @@ const COPILOT_EMPTY_ANSWER = "I couldn't finish an answer to that one. Try a sma
    there is still no answer, the reason is said and the nearest things the one
    search finds are offered as 2-4 doors, with a retry (copilotWayForward). */
 const COPILOT_NUDGE = 'Call deliver_answer now with your answer, in plain words, from what you have found. If you found nothing, say what you looked for.';
-function copilotNudge(working) {
+function copilotNudge(working, words) {
+  const say = words || COPILOT_NUDGE;
   /* an empty assistant turn is not sent back; the nudge rides the last user turn (a tool result) or stands alone */
   const last = working[working.length - 1];
   if (last && last.role === 'assistant' && (!Array.isArray(last.content) || !last.content.length)) working.pop();
   const prev = working[working.length - 1];
-  if (prev && prev.role === 'user' && Array.isArray(prev.content)) prev.content = prev.content.concat([{ type: 'text', text: COPILOT_NUDGE }]);
-  else working.push({ role: 'user', content: COPILOT_NUDGE });
+  if (prev && prev.role === 'user' && Array.isArray(prev.content)) prev.content = prev.content.concat([{ type: 'text', text: say }]);
+  else working.push({ role: 'user', content: say });
 }
-/* every step uses a tool (a search, a read, or the answer itself), so an answer always arrives through
-   deliver_answer — with its doors, its sources and its choices — never as loose text; the last step must answer */
-const copilotLastStep = step => ({ tool_choice: step === AI_CHAT_STEPS - 1 ? { type: 'tool', name: 'deliver_answer' } : { type: 'any' } });
+/* the last step must answer (measured: making EVERY step use a tool sent a confused model searching to the
+   eighth call, 22 Oct 2026; a question asked back in plain words is asked to come with its choices instead) */
+const copilotLastStep = step => (step === AI_CHAT_STEPS - 1 ? { tool_choice: { type: 'tool', name: 'deliver_answer' } } : {});
+const COPILOT_CHOICES_NUDGE = 'You asked the person which they meant. Call deliver_answer now with that short question as the answer and 2-4 choices, each the exact door it opens.';
+/* a reply in plain words that asks the person back ("which one…?") */
+const copilotAsksBack = txt => /\?\s*$|\?\s*\n/.test(String(txt || '')) && /\b(which|what|who|did you mean|do you mean|vilk|menade)\b/i.test(String(txt || ''));
 /* what each kind of hit opens, as a goto door (aiDoorOf checks it again) */
 function hsDoorOf(h) {
   if (!h) return null;
@@ -13179,6 +13183,8 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
         const txt = copilotTextAnswer(content.filter(b => b.type === 'text').map(b => b.text).join('').trim());
         /* no words and no tool: asked once more for its answer (never a dead end) */
         if (!txt && !nudged && step + 1 < AI_CHAT_STEPS) { nudged = true; copilotNudge(working); continue; }
+        /* asked back in plain words: once more, with its choices as presses */
+        if (txt && !nudged && step + 1 < AI_CHAT_STEPS && copilotAsksBack(txt)) { nudged = true; copilotNudge(working, COPILOT_CHOICES_NUDGE); continue; }
         final = txt ? { answer: txt, citations: [], compare: null } : copilotWayForward(cx, question, 'empty');
         break;
       }
@@ -13519,6 +13525,8 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
       if (!toolUses.length) {
         const txt = copilotTextAnswer(content.filter(b => b.type === 'text').map(b => b.text).join('').trim());
         if (!txt && !nudged && step + 1 < AI_CHAT_STEPS) { nudged = true; copilotNudge(working); continue; }
+        /* asked back in plain words: once more, with its choices as presses */
+        if (txt && !nudged && step + 1 < AI_CHAT_STEPS && copilotAsksBack(txt)) { nudged = true; copilotNudge(working, COPILOT_CHOICES_NUDGE); continue; }
         final = txt ? { answer: txt, citations: [], compare: null } : copilotWayForward(cx, question, 'empty');
         break;
       }

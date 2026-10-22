@@ -2972,7 +2972,7 @@ async function aiLocalClaude(messages, context){
          a legitimate answer, and the old ceiling was one page — the quiet
          reason "give me a report" could not be answered. */
       /* the last step must deliver (never a dead end; the server's copilotLastStep) */
-      body:JSON.stringify({model:LOCAL_AI_MODEL,max_tokens:4000,system:_localSystem(context),tools:localAiTools(),messages:msgs,tool_choice:last?{type:'tool',name:'deliver_answer'}:{type:'any'}}),
+      body:JSON.stringify({model:LOCAL_AI_MODEL,max_tokens:4000,system:_localSystem(context),tools:localAiTools(),messages:msgs,...(last?{tool_choice:{type:'tool',name:'deliver_answer'}}:{})}),
     });
     if(r.status===401) throw new Error('The saved Jambo key was rejected (401) — re-check it in Team & Settings.');
     if(r.status===429) throw new Error('Rate limited by Jambo provider — wait a moment and try again.');
