@@ -21336,3 +21336,9 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ## Noticed, not fixed — 21 Oct 2026 (overnight run)
 - "Who else is on this agreement" (adding a person to an existing contract) has no door on a computer since the Board's card Edit opens Key terms (20 Oct, the Legora way); only the drafting wizard still draws the people list. Needs the owner's pick of where it lives. uploaded-contract-fixed 4a/4b listed KNOWN_RED with this reason.
 - 21 Oct 2026 (later): the "Who else" line above is DONE — the owner chose "put it in Key terms and dossier"; both open one people pop-up (pdPeopleOpen). CLAUDE.md is about 85 KB, past its ~80 KB line, before any trim (a trim needs the owner's yes).
+
+## 22 Oct 2026 — the bug log, most serious first (owner's ask)
+- Fixed: the workspace download sent a private stream's uploaded files to an admin the stream does not name (its contracts were already left out).
+- Fixed: the send screen put away by the top bar (and by Cancel/Esc) lost a typed note without asking.
+- Fixed: on their page, revising an ask they had already sent was lost on the next repaint with no Send offered (28 Sep line).
+- Checked and already fixed before today (the lines are old): the dispute-hold guards on unsigned contracts (26 Sep); an untouched returned Word file filing phantom changes (f492); the converter's silent 60,000-character cut.
