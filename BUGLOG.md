@@ -21462,3 +21462,8 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - sap-lists-verify.js (22 Oct 2026, PR #417 run 39832864722, shard 1/4): 7/14 on CI with the Approvals panel steps 2a–2e reading null and two checks missing (the aged-row fixture never came up); passes 16/16 locally on the branch (three times) and on main. A wait that does not ask for the fixture's rows before reading the panel.
 - Fixed (22 Oct 2026): home-speed-verify check 3 (owner had said "Explorer later") — a still, settled Explorer now 5–6% busy at 430 contracts (was 25–50%): at rest only the dots are redrawn; the background and halos are kept and the words placed once.
 - Noticed, not fixed (22 Oct 2026, PR #416): home-speed-verify check 3 ("a still, settled Explorer keeps the browser busy under 10%") is red on main itself since PR #417 (main's run 39840314177: 612 ms busy of 4000; with document-wall-verify also red there). Not the first-timer rounds' change; left for its own fix.
+
+## Noticed, not fixed — 22 Oct 2026 (the one desk, Round A)
+- The Board's agent-work view below the card (hbDig 'ag:k' → hbAgentWorkHtml, HB_AG_WORK_MAX) is reached by nothing since the one desk: a press on a piece opens it in place. Its chase-many box is drawn on the card's Jambo tab instead (hbChaseManyHtml via hbNdOpts). The old path's code is left for the round that finishes the rest.
+- Jambo's greeting on the Board still says "What needs you is on Home: N things" (hb_jb_*): true (Home has it), but the whole list now stands on the Board under Your book too.
+- CLAUDE.md is 84.5 KB (over its ~80 KB rule) after this round's one-desk section; a trim needs the owner's yes.

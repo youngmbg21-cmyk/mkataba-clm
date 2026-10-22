@@ -12,6 +12,11 @@
         each count that agent's own; the head's count is the side menu's
      3  Review opens Copilot's work on that agent; the head's link opens the page
      4  nothing ready → no card at all
+   RE-POINTED 22 Oct 2026 (Round A, the one desk; the owner picked "The Legora
+   Way" and: "Why don't you just move them to board?"): the card under Your book
+   is Needs you — every piece Jambo prepared is a row of its own beside what
+   waits on you, one list (ndRead); Look opens a piece in place. Nothing waiting
+   still draws no card.
 */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -92,15 +97,15 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
            Copilot's name as it did before the morning, there is no divider to
            name, and NO waiting row may be drawn at all. Asked of the
            dictionary rather than typed here, so neither can drift. */
-        want: (window.i18t ? i18t('hm_ag_title') : ''),
+        want: (window.i18t ? i18t('hb_ny_title') : ''),
         needs: (card ? card.querySelectorAll('.hb-need, [data-hb-need]').length : 0),
         divider: (() => { const d = card && card.querySelector('.hb-done span');
           return d ? d.textContent.trim() : ''; })() };
     });
     ok('1a "Prepared for you" and "Needs your decision" are not drawn', !shape.desk && !shape.dd && !shape.needsyou, JSON.stringify(shape));
-    ok('1b the one work card is drawn, below Your book, titled Prepared by Copilot',
+    ok('1b the one work card is drawn, below Your book, titled Needs you',
       shape.card && shape.below && !!shape.want && shape.title === shape.want, JSON.stringify(shape));
-    ok('1b2 and nothing waiting on you is drawn in it, so it needs no divider',
+    ok('1b2 the 4 Oct merged card\'s rows and divider stay gone',
       shape.needs === 0 && !shape.divider,
       JSON.stringify([shape.needs, shape.divider]));
     await page.screenshot({ path: path.join(OUT, '1-home.png'), fullPage: true });
@@ -110,38 +115,34 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
       const D = agentsData();
       /* Our promises left the Board (owner, 16 Oct 2026): HB_OFF_BOARD */
       const want = AG_KEYS.filter(k => !HB_OFF_BOARD.includes(k) && D.agents[k].ready.length).map(k => k + ':' + D.agents[k].ready.length);
-      const got = [...document.querySelectorAll('[data-hm-agent-row]')].map(r => r.getAttribute('data-hm-agent-row') + ':'
-        + ((r.querySelector('.hb-pill') || {}).textContent || '').trim());
+      const tab = document.querySelector('#hm-agents [data-nd-tab="jambo"]'); if (tab) tab.click();
+      const by = {}; [...document.querySelectorAll('#hm-agents [data-nd-agent]')].forEach(r => { const k = r.getAttribute('data-nd-agent'); by[k] = (by[k] || 0) + 1; });
+      const got = AG_KEYS.filter(k => by[k]).map(k => k + ':' + by[k]);
       const sub = (document.querySelector('#hm-agents .hb-cs') || {}).textContent || '';
       const rail = ((document.querySelector('[data-count="agents"]') || {}).textContent || '').trim();
-      return { want, got, sub, ready: hbAgentsData(null).ready, rail };
+      return { want, got, sub, n: ndRead().n, rail };
     });
-    ok('2a one row per agent with work ready, in Copilot\'s work\'s order, each with that agent\'s count',
+    ok('2a one row per piece Jambo prepared, every agent with work ready, each with that agent\'s count',
       rows.want.length >= 2 && rows.got.join(',') === rows.want.join(','), JSON.stringify(rows));
     ok('2b the rows are the staged agents, and Our promises is not on the Board (owner, 16 Oct 2026)', ['round', 'late'].every(k => rows.got.some(g => g.startsWith(k + ':'))) && !rows.got.some(g => g.startsWith('ours:')), rows.got.join(','));
-    /* COPILOT'S WORK LIVES ON THE BOARD (Young, 7 Oct 2026): no rail door, so
-       the head's count is the one number.
-       RE-POINTED 19 Oct 2026 (round 23 as drawn: the head reads "· 5 prepared
-       · nothing sent or filed until you press", the same words as Home's
-       Jambo's work row): the count is still hbAgentsData's ready, now said
-       as "N prepared" instead of "N ready". */
-    ok('2c the head counts what Copilot\'s work counts, and there is no second door in the side menu',
-      new RegExp('^' + rows.ready + ' prepared · nothing sent or filed until you press').test(rows.sub.trim()) && rows.rail === ''
-        && !(await page.$('#sidebar [data-view="agents"], nav [data-view="agents"]')), JSON.stringify({ sub: rows.sub, rail: rows.rail, ready: rows.ready }));
-    const lateRow = await page.evaluate(() => { const r = document.querySelector('[data-hm-agent-row="late"]'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : ''; });
-    ok('2d a row says the agent and its first item', /Late promises/.test(lateRow) && lateRow.length > 20, lateRow);
+    /* RE-POINTED 22 Oct 2026 (Round A): the head counts the one list, "N things · …", the same number as Home's */
+    ok('2c the head counts the one list, and there is no second door in the side menu',
+      new RegExp('^' + rows.n + ' things?\\b').test(rows.sub.trim()) && rows.rail === ''
+        && !(await page.$('#sidebar [data-view="agents"], nav [data-view="agents"]')), JSON.stringify({ sub: rows.sub, rail: rows.rail, n: rows.n }));
+    const lateRow = await page.evaluate(() => { const r = document.querySelector('#hm-agents [data-nd-agent="late"]'); return r ? { what: r.querySelector('.nd-c-what').textContent.trim(), who: r.querySelector('.nd-c-who').textContent.trim() } : null; });
+    ok('2d a row says what the piece is and who prepared it, at which step', !!lateRow && lateRow.what.length > 5 && /^Jambo · step \d+ of \d+$/.test(lateRow.who), JSON.stringify(lateRow));
     await page.locator('#hm-agents').screenshot({ path: path.join(OUT, '2-card.png') });
 
     /* ===== 3. REVIEW OPENS THAT AGENT'S WORK BELOW THE CARD (Young, 7 Oct 2026) ===== */
-    await page.click('[data-hm-agent-row="late"] .hb-ag-w');
-    const shown = () => page.evaluate(() => ({ view: state.view,
-      want: agentsData().agents.late.ready.map(x => x.key).slice(0, 8),
-      got: [...document.querySelectorAll('#hb-focus [data-hb-ag-item]')].map(x => x.getAttribute('data-hb-ag-item')),
-      acts: document.querySelectorAll('#hb-focus [data-hb-ag-item] [data-ag-act]').length }));
-    await page.waitForFunction(() => !!document.querySelector('#hb-board [data-hb-ag-item]'), null, { timeout: 8000 }).catch(() => {});
+    /* RE-POINTED 22 Oct 2026 (Round A): Look opens the piece in place, under its row, with its own buttons */
+    await page.click('#hm-agents [data-nd-agent="late"] [data-hb-ag-look]');
+    const shown = () => page.evaluate(() => { const r = document.querySelector('#hm-agents [data-nd-agent="late"]');
+      return { view: state.view, open: !!(r && r.classList.contains('is-look')), acts: r ? r.querySelectorAll('.nd-body [data-ag-act]').length : 0,
+        away: r ? ((r.querySelector('.nd-body [data-ag-act]:last-child') || {}).textContent || '') : '' }; });
+    await page.waitForFunction(() => !!document.querySelector('#hm-agents .nd-br.is-look .nd-body'), null, { timeout: 8000 }).catch(() => {});
     const s3 = await shown();
-    ok('3 Review opens that agent\'s whole work below the card, on the Board, with its own buttons',
-      s3.view === 'dashboard' && s3.got.length > 0 && s3.got.join(',') === s3.want.join(',') && s3.acts > 0, JSON.stringify(s3));
+    ok('3 Look opens the piece in place, under its row, on the Board, with its own buttons, Put away last',
+      s3.view === 'dashboard' && s3.open && s3.acts > 1 && s3.away === 'Put away', JSON.stringify(s3));
     await page.evaluate(() => setView('agents'));
     await page.waitForFunction(() => !!document.querySelector('#hb-board [data-hb-ag-item]'), null, { timeout: 8000 }).catch(() => {});
     const s3b = await page.evaluate(() => state.view);
@@ -154,10 +155,11 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
       const keep = state.contracts; state.contracts = [];
       setView('dashboard');
       const drawn = !!document.getElementById('hm-agents');
+      const D = ndRead(), left = D.jambo.map(r => r.it.kind).concat(D.you.map(r => r.key));
       state.contracts = keep; setView('dashboard');
-      return drawn;
+      return { drawn, left };
     });
-    ok('4a with nothing ready the card is not drawn', empty === false);
+    ok('4a with nothing ready the card is not drawn', empty.drawn === false, JSON.stringify(empty));
 
     ok('no page errors', !errs.length, errs.join(' | '));
   } catch (e) {

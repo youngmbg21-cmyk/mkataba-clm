@@ -39,6 +39,13 @@
    strip, the card foot, the rules door, the Done-recently table, the rail
    count, the side panel's hover prefetch — is said retired where it stood.
 
+   RE-POINTED 22 Oct 2026 (Round A, the one desk; the owner picked "The Legora
+   Way"): there is no agent's work below the card — every piece is a row of
+   the Board's Needs you card, and its Look opens it IN PLACE under the row
+   with the same body and acts (agLookHtml / agPanelBody, agActsOf, agRunAct).
+   So "the agent's work" here is that agent's rows on the card's Jambo tab
+   (hbOpenAgent(k) opens it there), and a piece is read with its Look open.
+
    Run: node test/chromium/agents-page-verify.js */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -135,8 +142,10 @@ const ok = (name, good, detail) => {
     await page.evaluate(() => setView('agents')); await page.waitForTimeout(900);
     const atBoard = await page.evaluate(() => state.view);
     ok('1b the old address lands on the Board', atBoard === 'dashboard', atBoard);
-    const CARD = '.hb-ag-works .hb-ag-work';
-    const pick = async k => { const okk = await page.evaluate(k => { if (typeof hbOpenAgent !== 'function') return false; hbOpenAgent(k); return true; }, k); await page.waitForTimeout(900); return okk; };
+    /* the agent picked: its rows on the Board's Needs you card (window.__agSel, read inside the page too) */
+    let CARD = '#hm-agents .nd-br[data-hb-ag-item]';
+    const pick = async k => { CARD = `#hm-agents .nd-br[data-nd-agent="${k}"]`;
+      const okk = await page.evaluate(([k, sel]) => { window.__agSel = sel; if (typeof hbOpenAgent !== 'function') return false; hbOpenAgent(k); return true; }, [k, CARD]); await page.waitForTimeout(900); return okk; };
     /* RE-POINTED 19 Oct 2026 (the owner's answer (18), "Fold to one line"):
        each piece on the Board is one line until its Look is pressed, so what
        these sections read inside a piece is read with the piece OPEN — Look
@@ -150,20 +159,24 @@ const ok = (name, good, detail) => {
        work ready, in the agents' own order (approvals are off the Board,
        HB_OFF_BOARD), and its count is the number of things ready. */
     await back();
+    /* RE-POINTED 22 Oct 2026 (Round A): the card's Jambo tab lists every piece as a row; approvals stay off the
+       Board (HB_OFF_BOARD); the tab's number is the rows behind it */
     const head = await page.evaluate(() => {
-      const A = hbAgentsData(null);
-      /* RE-POINTED 11 Oct 2026 (owner's go: one row per item, as drawn): the agents in the order their rows come */
-      return { rows: [...new Set([...document.querySelectorAll('#hm-agents [data-hm-agent-row]')].map(b => b.getAttribute('data-hm-agent-row')))],
-        want: AG_KEYS.filter(k => !HB_OFF_BOARD.includes(k) && A.rows.some(r => r.k === k)),
-        ready: A.ready, sub: ((document.querySelector('#hm-agents .hb-cs') || {}).textContent || '').trim(),
+      const A = agentsData();
+      const tab = document.querySelector('#hm-agents [data-nd-tab="jambo"]'); if (tab) tab.click();
+      const rows = [...new Set([...document.querySelectorAll('#hm-agents [data-nd-agent]')].map(b => b.getAttribute('data-nd-agent')))];
+      return { rows, want: AG_KEYS.filter(k => !HB_OFF_BOARD.includes(k) && A.agents[k].ready.length),
+        jambo: ndRead().jambo.length, tabN: ((document.querySelector('#hm-agents [data-nd-tab="jambo"] .nd-tab-n') || {}).textContent || '').trim(),
+        drawn: document.querySelectorAll('#hm-agents [data-nd-agent]').length,
         over: document.documentElement.scrollWidth - innerWidth };
     });
-    ok('1d the Board lists the agents with work ready, in the agents\' own order, approvals off the Board',
-      head.rows.length >= 4 && head.rows.join(',') === head.want.join(',') && !head.rows.includes('approve'), head.rows.join(','));
-    ok('1e the number on the card is the number of things ready', head.ready > 0 && new RegExp('^' + head.ready + '\\b').test(head.sub), `ready ${head.ready} · "${head.sub}"`);
+    ok('1d the Board lists every agent with work ready, approvals off the Board',
+      head.rows.length >= 4 && head.rows.slice().sort().join(',') === head.want.slice().sort().join(',') && !head.rows.includes('approve'), head.rows.join(','));
+    ok('1e the number on Jambo\'s tab is the number of pieces ready, and the rows behind it', head.jambo > 0 && head.tabN === String(head.jambo) && head.drawn === Math.min(12, head.jambo), JSON.stringify(head));
     await pick('round');
-    const shown = await page.evaluate(() => ({ path: (hbS().path || []).join('|'), cards: [...document.querySelectorAll('.hb-ag-works .hb-ag-work')].map(c => c.getAttribute('data-hb-ag-item')) }));
-    ok('1f Review opens the agent asked for, its work below the card', shown.path === 'ag:round' && shown.cards.length >= 1 && shown.cards.every(k => /MK-149/.test(k)), JSON.stringify(shown));
+    const shown = await page.evaluate(() => ({ tab: ((document.querySelector('#hm-agents .nd-tab.on') || { getAttribute: () => '' }).getAttribute('data-nd-tab')),
+      cards: [...document.querySelectorAll('#hm-agents [data-nd-agent="round"]')].map(c => c.getAttribute('data-hb-ag-item')) }));
+    ok('1f the agent asked for opens on Jambo\'s tab, its pieces among the rows', shown.tab === 'jambo' && shown.cards.length >= 1 && shown.cards.every(k => /MK-149/.test(k)), JSON.stringify(shown));
     ok('1g no sideways scroll at 1440', head.over <= 0, head.over + 'px');
     await page.screenshot({ path: path.join(OUT, '1-round.png') });
     /* 1i (the card's foot: when it arrived) was the page's list card; the
@@ -175,14 +188,14 @@ const ok = (name, good, detail) => {
        with the page; the Board's card says the count (1e). */
     const roundPanel = await openFirst();
     const rp = await page.evaluate(() => {
-      const p = document.querySelector('.hb-ag-works .hb-ag-work');
+      const p = document.querySelector(window.__agSel);
       return p ? { chg: p.querySelectorAll('.ag-chg').length, tags: [...p.querySelectorAll('.ag-chg .ag-tag')].map(t => t.textContent.trim()),
         acts: [...p.querySelectorAll('[data-ag-act]')].map(b => b.getAttribute('data-ag-act')) } : null;
     });
     ok('2b the round\'s panel lists each ask with the co-pilot\'s answer', roundPanel && rp && rp.chg === 3 && rp.tags.length === 3, JSON.stringify(rp));
     const words = await page.evaluate(async () => {
-      const d = document.querySelector('.hb-ag-works .hb-ag-work details.ag-words'); if (!d) return null;
-      const n = document.querySelectorAll('.hb-ag-works .hb-ag-work details.ag-words').length;
+      const d = document.querySelector(window.__agSel + ' details.ag-words'); if (!d) return null;
+      const n = document.querySelectorAll(window.__agSel + ' details.ag-words').length;
       d.querySelector('summary').click(); await new Promise(r => setTimeout(r, 150));
       const b = d.querySelector('.ag-words-b');
       return { n, open: d.open, marks: b ? b.querySelectorAll('ins,del').length : 0, text: b ? b.textContent.trim().slice(0, 60) : '' };
@@ -198,7 +211,7 @@ const ok = (name, good, detail) => {
        wait asks for the face itself. */
     await page.waitForFunction(() => typeof pdRedFor === 'function' && pdRedFor() === 'MK-149' && !!document.querySelector('#pd-redface'), null, { timeout: 8000 }).catch(() => {});
     const landed = await page.evaluate(() => {
-      const w = document.querySelector('.hb-ag-works'); const r = w && w.getBoundingClientRect();
+      const w = document.getElementById('hm-agents'); const r = w && w.getBoundingClientRect();
       return { view: state.view, face: (typeof hbFace === 'function') ? hbFace() : null,
         red: (typeof pdRedFor === 'function') ? pdRedFor() : null, paper: (intel && intel.paper) ? String(intel.paper.id) : null,
         panel: !!(r && r.width > 0 && r.height > 0) };
@@ -210,7 +223,7 @@ const ok = (name, good, detail) => {
     await pick('renew');
     const renewPanel = await openFirst();
     ok('3a a notice is ready under Renewals', renewPanel);
-    const letterOn = await page.evaluate(() => { const l = document.querySelector('.hb-ag-works .hb-ag-work .ag-letter'); return l ? l.textContent.trim().slice(0, 40) : null; });
+    const letterOn = await page.evaluate(() => { const l = document.querySelector(window.__agSel + ' .ag-letter'); return l ? l.textContent.trim().slice(0, 40) : null; });
     ok('3a2 the notice\'s panel carries THE LETTER itself, written from the record (RED at faa8f95)', !!letterOn && /^NOTICE OF/.test(letterOn), String(letterOn));
     if (renewPanel) await act('notice');
     const letter = await page.evaluate(() => !!document.getElementById('nt-close'));
@@ -232,7 +245,7 @@ const ok = (name, good, detail) => {
         inWindow: !!(w && w.inWindow && !w.decided),
         stamped: !!(getContract('MK-143').desk && getContract('MK-143').desk.notice),
         here: agentsData().agents.renew.ready.filter(x => x.cid === 'MK-143').length,
-        drawn: document.querySelectorAll('.hb-ag-works [data-hb-ag-item^="desk:MK-143:"]').length,
+        drawn: document.querySelectorAll('#hm-agents [data-hb-ag-item^="desk:MK-143:"]').length,
         home: deskItems().filter(x => x.cid === 'MK-143').length };
     });
     ok('3c0 CONTROL — the renewal decision is still open on this contract', away.inWindow, JSON.stringify(away));
@@ -244,7 +257,7 @@ const ok = (name, good, detail) => {
     const paperPanel = await openFirst();
     /* RE-POINTED IN PLACE 27 Sep 2026: the five tiles are each OPENED now —
        a section under the tile's own head, carrying the reading itself. */
-    const tiles = await page.evaluate(() => [...document.querySelectorAll('.hb-ag-works .hb-ag-work [data-ag-tile]')].length);
+    const tiles = await page.evaluate(() => [...document.querySelectorAll(window.__agSel + ' [data-ag-tile]')].length);
     ok('4a what HaTi read on arrival is laid out reading by reading, under each tile\'s own head', paperPanel && tiles >= 3, tiles + ' sections');
     if (paperPanel) await act('seen');
     const seen = await page.evaluate(() => ({ seenAt: !!(getContract('MK-158').triage || {}).seenAt,
@@ -256,12 +269,12 @@ const ok = (name, good, detail) => {
     /* ---- 5. late promises: the chase asks before it sends ---- */
     await pick('late');
     const latePanel = await openFirst();
-    ok('5a a late promise is ready, with the address it will go to', latePanel && /ops@kabras\.example/.test(await page.evaluate(() => (document.querySelector('.hb-ag-works .hb-ag-work') || {}).textContent || '')));
-    const mail = await page.evaluate(() => { const m = document.querySelector('.hb-ag-works .hb-ag-work .ag-mail'); return m ? m.textContent.replace(/\s+/g, ' ').trim() : null; });
+    ok('5a a late promise is ready, with the address it will go to', latePanel && /ops@kabras\.example/.test(await page.evaluate(() => (document.querySelector(window.__agSel) || {}).textContent || '')));
+    const mail = await page.evaluate(() => { const m = document.querySelector(window.__agSel + ' .ag-mail'); return m ? m.textContent.replace(/\s+/g, ' ').trim() : null; });
     ok('5a2 the chase\'s panel carries THE MESSAGE it will send — its subject and its words (RED at faa8f95)',
       !!mail && /A reminder about Deliver the Q3 stock report/.test(mail) && /Could you let us know where it stands\?/.test(mail), String(mail).slice(0, 160));
     if (latePanel) {
-      const b = await page.$('.hb-ag-works .hb-ag-work [data-ag-act="chase"]');
+      const b = await page.$(CARD + ' [data-ag-act="chase"]');
       if (b) { await b.click(); await page.waitForTimeout(500); }
     }
     const asked = await page.evaluate(() => !!document.getElementById('confirm-overlay'));
@@ -276,9 +289,9 @@ const ok = (name, good, detail) => {
     /* ---- 6. archive import ---- */
     await pick('import');
     const impPanel = await openFirst();
-    const impText = await page.evaluate(() => (document.querySelector('.hb-ag-works .hb-ag-work') || {}).textContent || '');
+    const impText = await page.evaluate(() => (document.querySelector(window.__agSel) || {}).textContent || '');
     ok('6a the batch says how many there are, how many to check, how many could not be read', impPanel && /Contracts\s*3/i.test(impText) && /To check\s*2/i.test(impText), impText.replace(/\s+/g, ' ').slice(0, 160));
-    const named = await page.evaluate(() => [...document.querySelectorAll('.hb-ag-works .hb-ag-work .ag-names li b')].map(b => b.textContent.trim()));
+    const named = await page.evaluate(() => [...document.querySelectorAll(window.__agSel + ' .ag-names li b')].map(b => b.textContent.trim()));
     ok('6a2 the batch\'s panel NAMES the contracts — the one that could not be read and the ones to check (RED at faa8f95)', named.length >= 2, named.join(' | '));
     if (impPanel) await act('import');
     ok('6b "Open the import queue" lands on the import page', (await page.evaluate(() => state.view)) === 'migration');
@@ -290,8 +303,8 @@ const ok = (name, good, detail) => {
     /* RE-POINTED 11 Oct 2026: there is no rail door; the count that must
        agree is the Board card's own. */
     await back();
-    const after = await page.evaluate(() => ({ sub: ((document.querySelector('#hm-agents .hb-cs') || {}).textContent || '').trim(), ready: hbAgentsData(null).ready }));
-    ok('8a with work done, the count went down and the Board\'s card still agrees', after.ready < head.ready && new RegExp('^' + after.ready + '\\b').test(after.sub), JSON.stringify({ ...after, before: head.ready }));
+    const after = await page.evaluate(() => ({ tabN: ((document.querySelector('#hm-agents [data-nd-tab="jambo"] .nd-tab-n') || {}).textContent || '').trim(), jambo: ndRead().jambo.length }));
+    ok('8a with work done, the count went down and the Board\'s card still agrees', after.jambo < head.jambo && after.tabN === String(after.jambo), JSON.stringify({ ...after, before: head.jambo }));
 
     /* ---- 8b–8e. a step held back in a payment chain is not chased (27 Sep 2026) ----
        Young: "fix the two problems you found". The desk asked the chain
@@ -317,7 +330,7 @@ const ok = (name, good, detail) => {
     await pick('late');
     const heldHere = await page.evaluate(() => ({
       ready: agentsData().agents.late.ready.filter(x => x.ob && x.ob.id === 'ob_held').length,
-      drawn: document.querySelectorAll('.hb-ag-works [data-hb-ag-item="desk:MK-131:chase:ob_held"]').length }));
+      drawn: document.querySelectorAll('#hm-agents [data-hb-ag-item="desk:MK-131:chase:ob_held"]').length }));
     ok('8c Copilot\'s work does not offer to chase a step nobody could have done yet', heldHere.ready === 0 && heldHere.drawn === 0, JSON.stringify(heldHere));
     await page.evaluate(() => setView('dashboard')); await page.waitForTimeout(900);
     const heldHome = await page.evaluate(() => ({
@@ -329,7 +342,7 @@ const ok = (name, good, detail) => {
     await pick('late');
     const freed = await page.evaluate(() => ({
       ready: agentsData().agents.late.ready.filter(x => x.ob && x.ob.id === 'ob_held').length,
-      drawn: document.querySelectorAll('.hb-ag-works [data-hb-ag-item="desk:MK-131:chase:ob_held"]').length }));
+      drawn: document.querySelectorAll('#hm-agents [data-hb-ag-item="desk:MK-131:chase:ob_held"]').length }));
     ok('8e CONTROL — once our deposit is marked paid, the same step IS offered, on the page', freed.ready === 1 && freed.drawn === 1, JSON.stringify(freed));
 
     /* ---- 9. a narrow window, and no dark theme ----
@@ -344,7 +357,7 @@ const ok = (name, good, detail) => {
     ok('9a no sideways scroll at 1024', narrow <= 0, narrow + 'px');
     await page.screenshot({ path: path.join(OUT, '9-narrow.png') });
     const lightOnly = await page.evaluate(() => {
-      const card = document.querySelector('.hb-ag-works .hb-ag-work') || document.getElementById('hm-agents'); if (!card) return null;
+      const card = document.querySelector(window.__agSel) || document.getElementById('hm-agents'); if (!card) return null;
       const pg = document.getElementById('ig-page') || document.getElementById('hb-page');
       const ink = (getComputedStyle(card).color.match(/\d+/g) || []).slice(0, 3).map(Number);
       return { setDark: typeof window.setDark, toggleDark: typeof window.toggleDark, darkClass: document.documentElement.classList.contains('dark'),
@@ -399,7 +412,7 @@ const ok = (name, good, detail) => {
       ok('10 GATE — after the reload the contract is a LIGHT row that knows a brief exists and does not carry it', !!light && light.light && !light.loaded && light.hasBrief && !light.brief, JSON.stringify(light));
       /* ON THE BOARD the card is open as drawn — no press; the Board loads
          each shown card's whole record itself (hbAgentWorkHtml → agLoadWhole). */
-      const CA = `.hb-ag-work[data-hb-ag-item="read:${fresh.a}"]`;
+      const CA = `#hm-agents .nd-br[data-hb-ag-item="read:${fresh.a}"]`;
       await pick('paper');
       await lookAt(CA);
       await page.waitForFunction(sel => { const b = document.querySelector(sel + ' [data-ag-tile="brief"]'); return !!b && /FY2026 external audit/.test(b.textContent); }, CA, { timeout: 8000 }).catch(() => {});
@@ -466,7 +479,7 @@ const ok = (name, good, detail) => {
         if (r.request().method() === 'GET') await new Promise(res => setTimeout(res, 900));
         await r.continue();
       });
-      const CA2 = `.hb-ag-work[data-hb-ag-item="read:${fresh.a}"]`;
+      const CA2 = `#hm-agents .nd-br[data-hb-ag-item="read:${fresh.a}"]`;
       await page.evaluate(() => hbOpenAgent('paper'));
       await page.waitForSelector(CA2, { timeout: 5000 }).catch(() => {});
       await lookAt(CA2);

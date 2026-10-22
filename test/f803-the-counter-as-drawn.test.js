@@ -84,15 +84,18 @@ function counter(rows, extra){
     hbNyWhat: x => x.it.title || '', hbNyDays: n => n + ' days', hbNyWhen: () => '',
     contractRef: c => c.id, streamIsPrivate: () => false, FOLDERS: {}, fmtMoneyShortOf: () => 'KES 8.10M', canViewValues: () => true, isMonetary: () => true, fxIsPay: c => c.category === 'employment',
     INS_NEED_VERB: { renewal: 'home_verb_decide' }, getContract: () => null, agPoss: n => (/s$/i.test(n) && /\s/.test(n)) ? n + '’' : n + '’s',
-    cnRows: () => rows, cnWork: () => ({ ready: 0, rows: [] }), cnCompany: () => [], cnSetup: () => 0, cnJwRowHtml: () => '', cnSig: () => '', dkTabs: () => [], deskTabLabel: () => '',
-    currentUser: () => ({ name: 'Maria Lindgren' }), jamboFaceHtml: () => '',
+    cnRows: () => rows, cnWork: () => ({ ready: 0, rows: [] }), cnCompany: () => [], cnSetup: () => 0, dkTabs: () => [], deskTabLabel: () => '',
+    currentUser: () => ({ name: 'Maria Lindgren' }), jamboFaceHtml: () => '', setTimeout: () => 0,
     ...(extra || {}),
   };
   ctx.window = ctx;
   vm.createContext(ctx);
-  const names = ['cnDayWords', 'cnMayMoney', 'cnNeedVerb', 'cnNeedTitle', 'cnWhenWords', 'cnNeedSub', 'cnNeedRowHtml', 'cnNoteRowHtml', 'cnReqRowHtml', 'cnReqWhat', 'cnNeedShort', 'cnNeedDoorAttrs', 'cnChipsHtml', 'cnFace', 'counterHtml'];
-  vm.runInContext(['_cnE', '_cnT', '_cnTn', '_cnFirst', '_cnWho', '_cnToday', '_cnPill', '_cnJbCard', '_cnJbSend', 'CN_ROWS', 'CN_PICK_UP', 'CN_REQ_WHAT_RE'].map(n => constLine(CN, n)).join('\n') + '\nlet _cnAll = false, _cnSig = "";\n'
-    + constBlock(CN, 'CN_NEED_GO') + '\n' + names.map(n => fnBody(CN, n)).join('\n'), ctx);
+  /* THE ONE DESK (Round A, 22 Oct 2026): Home's card is drawn from ndRead, so its parts load beside Home's */
+  const names = ['cnDayWords', 'cnMayMoney', 'cnNeedTitle', 'cnReqWhat', 'cnNeedShort', 'cnNeedDoorAttrs', 'cnChipsHtml', 'cnFace', 'counterHtml',
+    'ndPieces', 'ndAgeOf', 'ndPieceAge', 'ndKindOf', 'ndRead', 'ndSumWords', 'ndStepOf', 'ndParts', 'ndHomeRowHtml', 'ndHomeHtml', 'ndSig'];
+  vm.runInContext(['_cnE', '_cnT', '_cnTn', '_cnFirst', '_cnWho', '_cnToday', '_cnPill', '_cnJbCard', '_cnJbSend', 'CN_ROWS', 'CN_PICK_UP', 'CN_REQ_WHAT_RE',
+    'ND_PAGE', 'ND_BUNDLE_MIN', 'ND_MERGE', 'ND_KIND_OF', 'ND_KINDS', 'ND_BTN', 'ND_NOT_WAITED', '_ndAge', 'ndThings', '_ndCall', '_ndText', '_ndBtnHtml', '_ndStepHtml', '_ndTagHtml'].map(n => constLine(CN, n)).join('\n')
+    + '\nlet _cnSig = "", _ndMemo = null, _nd = { tab: "all", kind: "any", q: "", more: 0 };\n' + names.map(n => fnBody(CN, n)).join('\n'), ctx);
   return ctx;
 }
 const C = (id, name, cp, extra) => ({ id, name, counterparty: cp, value: 8.1e6, ...(extra || {}) });
@@ -120,21 +123,24 @@ describe('f803 (1) the chips', () => {
 });
 
 describe('f803 (2) the rows', () => {
-  test('2a "Answer an approval for Jonas" · "for Jonas · away until <day>" · name · party · value · Open approval', () => {
-    const html = counter([]).cnNeedRowHtml(approval);
-    assert.match(html, /<b>Answer an approval for Jonas <span class="cn-pill"><svg data-ic="users"><\/svg>for Jonas · away until [A-Z][a-z]+day<\/span><\/b>/);
+  /* RE-POINTED 22 Oct 2026 (Round A, "The Legora Way"): a row is the one desk's (ndParts → ndHomeRowHtml):
+     the act, then the agreement; how long it waited in its own column; ONE word on the button */
+  const row = (w, y) => w.ndHomeRowHtml({ g: 'you', key: 'k', kind: w.ndKindOf(y), y, n: 1, late: y.urgent ? 1 : 0, age: w.ndAgeOf(y) });
+  test('2a "Answer an approval for Jonas" · "for Jonas · away until <day>" · name · party · value · Decide', () => {
+    const html = row(counter([]), approval);
+    assert.match(html, /<b><span class="nd-t">Answer an approval for Jonas<\/span> <span class="cn-pill"><svg data-ic="users"><\/svg>for Jonas · away until [A-Z][a-z]+day<\/span><\/b>/);
     assert.match(html, /<span>Power purchase agreement · Helio Energy AB · KES 8\.10M<\/span>/);
-    assert.match(html, />Open approval<\/button>/);
-    assert.match(html, /title="MK-1 · Power purchase agreement"/, 'the reference rides the hover');
+    assert.match(html, /data-cn-need="approval" data-cn-id="MK-1">Decide<\/button>/);
+    assert.match(html, /title="MK-1 · Power purchase agreement · Helio Energy AB · KES 8\.10M"/, 'the reference rides the hover');
   });
-  test('2b their redlines: the party is in the title, so the line does not repeat it; waiting in red', () => {
-    const html = counter([]).cnNeedRowHtml(redlines);
-    assert.match(html, /<span>Master services agreement · <span class="cn-late">waiting 4 days<\/span><\/span>/);
-    assert.match(html, />Open redlines<\/button>/);
+  test('2b their redlines: the party is in the title, so the line does not repeat it; how long, in red', () => {
+    const html = row(counter([]), redlines);
+    assert.match(html, /<span>Master services agreement<\/span><\/div><span class="nd-when cn-late">4 days<\/span>/);
+    assert.match(html, />Review<\/button>/);
   });
   test('2c "Fill in 2 details", a salary\'s job title in place of the person', () => {
-    const html = counter([]).cnNeedRowHtml(pay);
-    assert.match(html, /<b>Fill in 2 details<\/b><span>Employment agreement · Chief financial officer<\/span>/);
+    const html = row(counter([]), pay);
+    assert.match(html, /<b><span class="nd-t">Fill in 2 details<\/span><\/b><span>Employment agreement · Chief financial officer<\/span>/);
     assert.match(html, />Fill in<\/button>/);
   });
   test('2d whom an approval is answered for: the step\'s own approver, read through the away rule', () => {
@@ -151,26 +157,29 @@ describe('f803 (2) the rows', () => {
 });
 
 describe('f803 (3) Needs you whole', () => {
-  test('3a a note of yours that is due, only you, Open note', () => {
-    const html = counter([]).cnNeedRowHtml(note);
-    assert.match(html, /<b>A note of yours is due today<\/b><span>“Ask about the Kettle insurance” · only you<\/span>/);
-    assert.match(html, /data-cn-note="nt_1">Open note</);
+  /* RE-POINTED 22 Oct 2026 (Round A): the one desk's words; who asked is the Board's column */
+  test('3a a note of yours that is due, only you, Open', () => {
+    const P = counter([]).ndParts({ g: 'you', y: note, n: 1, late: 0, age: null });
+    assert.equal([P.title, P.deal, P.who, P.btn].join('|'), 'A note of yours is due today|“Ask about the Kettle insurance”|only you|open');
+    assert.equal(P.attrs, 'data-cn-note="nt_1"');
   });
-  test('3b a request nobody holds, Open request', () => {
-    const html = counter([]).cnNeedRowHtml(req);
-    assert.match(html, /<b>Sara’s request: NDA with Kettle &amp; Co<\/b><span>Kettle &amp; Co<\/span>/);
-    assert.match(html, /data-cn-req="REQ-1">Open request</);
+  test('3b a request nobody holds, Answer', () => {
+    const P = counter([]).ndParts({ g: 'you', y: req, n: 1, late: 0, age: 0 });
+    assert.equal([P.title, P.deal, P.who, P.btn].join('|'), 'Sara’s request: NDA with Kettle & Co|Kettle & Co|Sara Lind|answer');
+    assert.equal(P.attrs, 'data-cn-req="REQ-1"');
   });
   test('3c the list reads both, the bell\'s own readings, and the number counts them', () => {
     const rows = fnBody(CN, 'cnRows');
     assert.match(rows, /mineNotesDue\(\)/);
     assert.match(rows, /intakeAlertRows\(\)/);
     assert.match(rows, /approvalAnswersFor\(x\.c\)/);
-    assert.match(fnBody(CN, 'counterNeedsCount'), /cnRows\(\)\.length/);
+    assert.match(fnBody(CN, 'counterNeedsCount'), /ndRead\(\)\.n/);
+    assert.match(fnBody(CN, 'ndRead'), /const rows = cnRows\(\);/, 'the one desk reads Home\'s rows');
   });
   test('3d what arrives after the first paint is drawn when it comes', () => {
     assert.match(fnBody(APP, 'updateSidebarCounts'), /if\(typeof counterFollow==='function'\) counterFollow\(\);/);
     assert.match(fnBody(CN, 'renderCounter'), /mineLoad\(\)\.then\(counterFollow/);
+    assert.match(fnBody(CN, 'counterFollow'), /sig = ndSig\(ndRead\(\)\)/);
     assert.match(fnBody(CN, 'counterFollow'), /if \(sig !== _cnSig\) counterRepaint\(\);/);
   });
 });
@@ -194,36 +203,60 @@ describe('f803 (3b) a note\'s and a request\'s door LANDS ON its row (LAND ON IT
 });
 
 describe('f803 (4) the foot', () => {
-  /* RE-POINTED 19 Oct 2026 (third pass): THREE rows in sight, as drawn — the
-     drawing's own list: Jambo's work, three owed rows, then "Show 3 more · a
-     note due today · Baltic Freight's 3 details · Sara's NDA request" */
-  test('4a "Show N more" and the names of what waits behind it', () => {
+  /* RE-POINTED 22 Oct 2026 (Round A, "The Legora Way"; the owner: "Why don't you just move them to board?"):
+     THREE rows of each group in sight; a group holding more says "Show all N", which lands on the Board's
+     card on that group's tab — no "Show N more" on Home, nothing grows past the screen */
+  test('4a "Show all N" on the group, three rows in sight', () => {
     const rows = [approval, redlines, pay, note, details(1), req];
     const html = counter(rows).counterHtml();
-    assert.match(html, /data-cn-all aria-expanded="false">Show 3 more<\/button><span class="cn-foot-said">a note due today · Baltic Freight’s 3 details · Sara’s NDA request<\/span>/);
-    assert.equal((html.match(/<div class="cn-r"/g) || []).length, 3, 'three rows in sight');
+    assert.match(html, /<div class="nd-g" data-nd-g="you"><span class="nd-g-t">Your move<\/span><span class="cn-n">· 6<\/span><button type="button" class="ui-link nd-all" data-nd-all="you">Show all 6<\/button><\/div>/);
+    assert.equal((html.match(/<div class="cn-r nd-r"/g) || []).length, 3, 'three rows in sight');
+    assert.doesNotMatch(html, /data-cn-all|cn-foot-said/, 'the old foot is gone');
   });
-  test('4b more than three behind it: three names and the rest counted', () => {
-    const rows = [approval, redlines, pay, note, details(1), req, details(6)];
-    assert.match(counter(rows).counterHtml(), /<span class="cn-foot-said">a note due today · Baltic Freight’s 3 details · Sara’s NDA request · and 1 more<\/span>/);
+  test('4b more than three contracts owing details read as ONE row, counted', () => {
+    const w = counter([details(1), details(2), details(3), details(4), approval]);
+    const D = w.ndRead();
+    assert.equal(D.you.length, 2, 'the bundle and the approval');
+    assert.equal(D.n, 5, 'every thing is counted');
+    const P = w.ndParts(D.you.find(r => r.bundle));
+    assert.equal([P.title, P.tag, P.btn, P.attrs].join('|'), 'Fill in details on 4 contracts|4 in one row|fill|data-nd-bundle="details"');
+    assert.equal(counter([details(1), details(2), details(3), approval]).ndRead().you.length, 4, 'three stay rows of their own');
   });
 });
 
-describe('f803 (5) Jambo\'s work\'s head, and the words', () => {
-  test('5a its head says what the drawing says, and its Open lands on the Board\'s card', () => {
-    assert.equal(BOOKS.en.cn_jw_said, 'nothing sent or filed until you press');
-    const ctx = { i18t: (k, v) => fill(BOOKS.en[k] || k, v), i18tn: (k, n, v) => fill(BOOKS.en[k + (n === 1 ? '_one' : '_other')] || BOOKS.en[k] || k, { n, ...(v || {}) }), jamboFaceHtml: () => '' };
-    ctx.window = ctx; vm.createContext(ctx);
-    vm.runInContext(['_cnE', '_cnT', '_cnTn'].map(n => constLine(CN, n)).join('\n') + '\n' + fnBody(CN, 'cnFace') + fnBody(CN, 'cnJwRowHtml'), ctx);
-    const row = ctx.cnJwRowHtml({ ready: 5, rows: [{ who: 'Nordvik Logistik' }, { who: 'Baltic Freight' }] });
-    assert.match(row, /Jambo’s work <span class="cn-n">· 5 prepared · nothing sent or filed until you press<\/span><\/b><span>Nordvik Logistik · Baltic Freight<\/span>/);
-    assert.match(row, /data-cn-jw>Open</);
-    assert.doesNotMatch(ctx.cnJwRowHtml({ ready: 0, rows: [] }), /nothing sent or filed/, 'nothing waiting says so, not the promise');
+describe('f803 (5) Jambo\'s rows, and the words', () => {
+  /* RE-POINTED 22 Oct 2026 (Round A): no "Jambo's work · N prepared" row; each piece he prepared is a row
+     of its own under "Jambo prepared it · your look is next": what it is, its step, what he read, Look */
+  const piece = { key: 'round:MK-2', kind: 'answer', agent: 'round', c: C('MK-2', 'Master services agreement', 'Nordvik Logistik'), days: 2, tone: 'amber' };
+  const world = rows => counter(rows, {
+    AG_KEYS: ['round'], AG_DEF: { round: { review: 4, steps: [1, 2, 3, 4, 5, 6] } },
+    agentsData: () => ({ agents: { round: { ready: [piece] } } }),
+    agPieceTitle: () => 'Nordvik Logistik’s answer', agPieceLine: () => 'Two changes: take one, push back on one.', agPieceRefHtml: it => '<span class="hati-ref">' + it.c.id + '</span>', agCardParts: () => ({ urg: 'Waiting 2 days' }) });
+  test('5a a piece is a row: its step, what Jambo read, Look', () => {
+    const w = world([]);
+    const html = w.ndHomeRowHtml(w.ndRead().jambo[0]);
+    assert.match(html, /<span class="nd-t">Nordvik Logistik’s answer<\/span><span class="nd-step" title="Step 5 of 6 · yours">5 of 6<\/span>/);
+    assert.match(html, /<i class="nd-read">Jambo read<\/i> their changes, your standards and past deals · <span class="hati-ref">MK-2<\/span>/);
+    assert.match(html, /data-nd-look="round:MK-2">Look<\/button>/);
+    assert.match(html, /title="Two changes: take one, push back on one\."/, 'what he found rides the hover');
+  });
+  test('5a2 the waiting thing and the piece prepared for it are ONE row, the piece\'s, and it keeps the wait and the red', () => {
+    const w = world([redlines, approval]);
+    const D = w.ndRead();
+    assert.equal(D.you.map(r => r.y.x.c.id).join(','), 'MK-1', 'their redlines are not a row of their own');
+    assert.equal(D.jambo.length, 1);
+    assert.equal(D.jambo[0].late + '|' + D.jambo[0].age, '1|4', 'the redlines\' 4 days, late');
+    assert.equal(D.n, 2);
+    const html = w.counterHtml();
+    assert.ok(html.indexOf('data-nd-g="jambo"') < html.indexOf('data-nd-g="you"'), 'Jambo\'s work first');
+    assert.match(html, /<span class="cn-cnt">2<\/span><span class="nd-sum">1 late · the oldest has waited 4 days<\/span>/);
   });
   test('5b the words, in both books', () => {
-    for (const k of ['cn_need_approval', 'cn_need_approval_for', 'cn_need_details_one', 'cn_need_details_other', 'cn_need_away', 'cn_need_for', 'cn_need_go_approval', 'cn_need_go_redlines',
-      'cn_need_go_note', 'cn_need_go_request', 'cn_waiting', 'cn_need_note', 'cn_need_note_late', 'cn_need_note_only', 'cn_need_request', 'cn_sh_mynote', 'cn_sh_request', 'cn_sh_approval_for',
-      'cn_sh_approval', 'cn_sh_redlines_other', 'cn_sh_details_other', 'cn_sh_renewal', 'cn_show_more_one', 'cn_show_more_other', 'cn_and_more'])
+    for (const k of ['cn_need_approval', 'cn_need_approval_for', 'cn_need_details_one', 'cn_need_details_other', 'cn_need_away', 'cn_need_for',
+      'cn_need_note', 'cn_need_note_late', 'cn_need_note_only', 'cn_need_request', 'cn_sh_mynote', 'cn_sh_request', 'cn_sh_approval_for',
+      'cn_sh_approval', 'cn_sh_redlines_other', 'cn_sh_details_other', 'cn_sh_renewal', 'cn_show_all', 'cn_show_more_one', 'cn_show_more_other',
+      'nd_g_jambo', 'nd_g_you', 'nd_late_one', 'nd_late_other', 'nd_oldest', 'nd_step', 'nd_step_title', 'nd_read', 'nd_bundle_details_one', 'nd_bundle_details_other', 'nd_bundle_tag',
+      'nd_btn_look', 'nd_btn_decide', 'nd_btn_sign', 'nd_btn_review', 'nd_btn_fill', 'nd_btn_answer', 'nd_btn_open'])
       for (const lang of ['en', 'sv']) assert.ok(BOOKS[lang][k], k + ' ' + lang);
   });
 });
@@ -233,9 +266,8 @@ describe('f803 (6) second pass: the Counter as drawn', () => {
     const HB = R('js/views/homeboard.js');
     const pub = HB.slice(HB.lastIndexOf('Object.assign(window, { hbThenDay'));
     assert.match(pub, /\bhbNyDays\b/, 'published, so the row is not a bare number');
-    /* RE-POINTED 19 Oct 2026: the row's time is said by cnWhenWords, which the line asks */
-    assert.match(fnBody(CN, 'cnNeedSub'), /const when = cnWhenWords\(x\);/);
-    assert.match(fnBody(CN, 'cnWhenWords'), /hbNyDays\(x\.age\)/);
+    /* RE-POINTED 22 Oct 2026 (Round A): the row's time is the one desk's, in its own column */
+    assert.match(fnBody(CN, 'ndParts'), /if \(x\.age != null\) P\.when = days\(x\.age\);/);
   });
   test('6b a request says whose and what it is for; a title that names no agreement says only whose', () => {
     const w = counter([]);
@@ -245,14 +277,11 @@ describe('f803 (6) second pass: the Counter as drawn', () => {
     assert.equal(w.cnNeedShort(r('Help with the Kettle deal')), 'Sara’s request');
     assert.equal(w.cnNeedShort(r('Review the NDA')), 'Sara’s request', 'a verb first is not what it is for');
   });
-  test('6c the admin\'s own row comes before "Show N more", the card\'s last line', () => {
-    const rows = [approval, redlines, pay, note, details(1), req];
-    const w = counter(rows, { cnCompany: () => [{ text: 'A rule clashes' }] });
-    vm.runInContext(fnBody(CN, 'cnCompanyRowHtml'), w);
-    const html = w.counterHtml();
-    const co = html.indexOf('data-cn-co'), more = html.indexOf('data-cn-all');
-    assert.ok(co > 0 && more > co, 'company row, then Show N more');
-    assert.match(html, /<\/span><\/div><\/section>\s*<\/div><\/div>$/, 'nothing after the foot');
+  test('6c the admin\'s own row is the last of your move', () => {
+    /* RE-POINTED 22 Oct 2026 (Round A): there is no foot; the admin's row ends Your move, counted as one */
+    const D = counter([approval, redlines], { cnCompany: () => [{ text: 'A rule clashes' }] }).ndRead();
+    assert.equal(D.you[D.you.length - 1].key, 'company');
+    assert.equal(D.n, 3);
   });
   test('6d the four chips wear one dress: no louder lead in the sheet', () => {
     assert.doesNotMatch(R('index.html'), /\.cn-chip\.is-lead\{/);
@@ -265,7 +294,8 @@ describe('f803 (6) second pass: the Counter as drawn', () => {
 describe('f803 (7) Jambo\'s house says the Board card\'s count', () => {
   const JH = R('js/views/jambohouse.js');
   test('7a one reading: what the Counter lists, by agent', () => {
-    const ctx = { cnWork: () => ({ ready: 5, rows: [{ k: 'round', pill: 1 }, { k: 'paper', pill: 1 }, { k: 'renew', pill: 1 }, { k: 'late', pill: 1 }, { k: 'import', pill: 1 }] }) };
+    /* RE-POINTED 22 Oct 2026 (Round A): the Jambo rows of the one desk, one per piece — what the Board's "Jambo prepared" tab lists */
+    const ctx = { ndRead: () => ({ jambo: ['round', 'paper', 'renew', 'late', 'import'].map(agent => ({ agent })) }) };
     vm.createContext(ctx);
     vm.runInContext(fnBody(CN, 'counterWorkByAgent'), ctx);
     const W = ctx.counterWorkByAgent();
@@ -325,20 +355,24 @@ describe('f803 (8) third pass: Home as drawn', () => {
   test('8c time in words: "in 40 days", never "in 40d"; a day the way a person says it', () => {
     const w = counter([]);
     const ren = { k: 'c', kind: 'renewal', urgent: false, x: { c: C('MK-7', 'Supply agreement', 'Brightwater Foods'), it: { kind: 'renewal', d: 40 }, age: null } };
-    const html = w.cnNeedRowHtml(ren);
-    assert.match(html, /<b>Decide the renewal<\/b><span>Supply agreement · Brightwater Foods · in 40 days<\/span>/, 'the act, the agreement, the time in words');
-    assert.doesNotMatch(html, /\b40 ?d\b/);
-    assert.equal(w.cnWhenWords({ it: { kind: 'renewal', d: 1 }, age: null }), 'in 1 day');
-    assert.equal(w.cnWhenWords({ it: { kind: 'renewal', d: 0 }, age: null }), 'today');
-    assert.match(w.cnWhenWords({ it: { kind: 'sign', due: plus(2) }, age: null }), /^due [A-Z][a-z]+day$/);
+    /* RE-POINTED 22 Oct 2026 (Round A): the one desk says the time in its own column */
+    const one = y => w.ndParts({ g: 'you', y, n: 1, late: 0, age: w.ndAgeOf(y) });
+    const P = one(ren);
+    assert.equal([P.title, P.deal, P.when, P.btn].join('|'), 'Decide the renewal|Supply agreement · Brightwater Foods|in 40 days|decide', 'the act, the agreement, the time in words');
+    assert.doesNotMatch(w.ndHomeRowHtml({ g: 'you', key: 'k', kind: 'renewal', y: ren, n: 1, late: 0, age: null }), /\b40 ?d\b/);
+    const at = it => one({ k: 'c', kind: it.kind, urgent: false, x: { c: C('MK-7', 'Supply agreement', 'Brightwater Foods'), it, age: null } }).when;
+    assert.equal(at({ kind: 'renewal', d: 1 }), 'in 1 day');
+    assert.equal(at({ kind: 'renewal', d: 0 }), 'today');
+    assert.match(at({ kind: 'sign', due: plus(2) }), /^due [A-Z][a-z]+day$/);
     assert.equal(BOOKS.sv.cn_due, 'senast {day}');
   });
-  test('8d the greeting large, in the title serif, and Jambo\'s work\'s tail small, as drawn', () => {
+  test('8d the greeting large, in the title serif; every button of Needs you one width', () => {
     const css = R('index.html');
     /* RE-POINTED 20 Oct 2026 (Chambers): Home's question is a page title — the
        serif title face at 28px, its own weight (was Geist 26px strong) */
     assert.match(css, /\.cn-ask h1\{font-family:var\(--font-title\);font-size:28px;font-weight:var\(--w-title-serif\);/);
-    assert.match(css, /\.cn-jw \.cn-w b \.cn-n\{font-size:var\(--t-meta\)\}/);
+    /* RE-POINTED 22 Oct 2026 (Round A, the owner: "make all of the buttons the same size") */
+    assert.match(css, /\.nd-btn\{flex:none;width:76px;justify-content:center\}/);
   });
   test('8e "Open approval" and the lead chip LAND ON the approval they open, lit (LAND ON IT)', () => {
     const HOME = R('js/views/home.js');

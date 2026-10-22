@@ -135,12 +135,14 @@ describe('f801 (3) the line', () => {
     assert.match(HB, /if \(on\('\[data-hb-lv-ask\]'\)\)\{ hbLvAsk\(\); return; \}/);
     assert.match(HB, /if \(on\('\[data-hb-lv-change\]'\)\)\{ if \(typeof openSettingsAt === 'function'\) openSettingsAt\('company', 'agents'\); return; \}/);
   });
-  test('3h it is drawn under the agents\' rows on the Board\'s card (none folded, none without rows), and no longer on Home', () => {
-    const prep = fnBody(HB, 'hbPrepHtml');
-    assert.match(prep, /\$\{rows \? `<div class="hb-ags">\$\{rows\}<\/div>\$\{hbAgLevelsHtml\(\)\}` : ''\}<\/section>/, 'under the rows; none on a folded card (rows are none there)');
-    assert.match(prep, /const rows = folded \? '' :/);
+  test('3h it is drawn at the foot of the Board\'s Needs you card, beside the house\'s door, and not on Home', () => {
+    /* RE-POINTED 22 Oct 2026 (Round A, the one desk): the agents' rows are rows of Needs you now; the line
+       stands at the card's foot (hbNdOpts), where the card always stands — it never folds */
+    const opts = fnBody(HB, 'hbNdOpts');
+    assert.match(opts, /const levels = hbAgLevelsHtml\(\);/);
+    assert.match(opts, /<div class="nd-foot-r">\$\{levels \|\| '<span class="hb-grow"><\/span>'\}\$\{house\}<\/div>/);
     const CN = R('js/views/counter.js');
-    assert.doesNotMatch(CN, /cnJwLevelsHtml|data-cn-lv-|cnLvAsk/, 'Home draws no list of pieces, so no line under one');
+    assert.doesNotMatch(CN, /cnJwLevelsHtml|data-cn-lv-|cnLvAsk/, 'Home draws no line under its rows');
   });
   test('3g the words, in both books', () => {
     for (const k of ['cn_lv_all7', 'cn_lv_all', 'cn_lv_agent', 'cn_lv_n_one', 'cn_lv_n_other', 'cn_lv_you', 'cn_lv_start', 'cn_lv_by', 'cn_lv_mine_k', 'cn_lv_mine_one', 'cn_lv_mine_other', 'cn_lv_ask', 'cn_lv_change', 'cn_lv_ask_words'])
