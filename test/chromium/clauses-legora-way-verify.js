@@ -131,17 +131,18 @@ const deal = () => ({ id: ID, contractNo: ID, name: 'Haulage Review', counterpar
     await openRow(2);
     const e2 = await page.evaluate(() => {
       const row = document.querySelector('#pd-thread .doc-th-row.is-open');
-      const cards = row ? [...row.querySelectorAll('.stk-card')] : [];
+      const cards = row ? [...row.querySelectorAll(':scope > .stk-card')] : [];   /* the clause's OWN cards; its missing point stands in it under its own head (22 Oct 2026) */
       return { name: row ? row.querySelector('.doc-th-name').innerText : null, n: cards.length,
         verd: cards.map(c => (c.querySelector('.stk-verd') || {}).textContent), by: cards.map(c => (c.querySelector('.stk-by') || {}).textContent),
         std: cards.map(c => (c.querySelector('.stk-std') || {}).textContent || ''), state: (row && row.querySelector('[data-th-state]') || {}).textContent || '' };
     });
+    /* RE-POINTED 22 Oct 2026: the clause's word counts its missing point too ("Needs you · 2": the twin and the price-rise notice) */
     ok('2 the twin is ONE card: worst verdict, both finders, our standard beside it', /^2\b/.test(e2.name || '') && e2.n === 1 && e2.verd[0] === 'Needs you'
-      && e2.by[0] === 'Found by Jambo · Our standards' && /Our standard: Paid within 14 days/.test(e2.std[0]) && /^Needs you · 1$/.test(e2.state.trim()), JSON.stringify(e2));
+      && e2.by[0] === 'Found by Jambo · Our standards' && /Our standard: Paid within 14 days/.test(e2.std[0]) && /^Needs you · 2$/.test(e2.state.trim()), JSON.stringify(e2));
     await openRow(3);
     const e3 = await page.evaluate(() => {
       const row = document.querySelector('#pd-thread .doc-th-row.is-open');
-      const cards = row ? [...row.querySelectorAll('.stk-card')] : [];
+      const cards = row ? [...row.querySelectorAll(':scope > .stk-card')] : [];   /* the clause's OWN cards; its missing point stands in it under its own head (22 Oct 2026) */
       const all = [...document.querySelectorAll('#pd-thread .doc-th-rows [data-stk-dive]')].map(b => Number(b.getAttribute('data-stk-dive')));
       const titles = [...document.querySelectorAll('#pd-thread .doc-th-rows .stk-card')].map(c => (c.querySelector('.stk-ct') || {}).textContent);
       return { titles: cards.map(c => (c.querySelector('.stk-ct') || {}).textContent), verd: cards.map(c => (c.querySelector('.stk-verd') || {}).textContent),
@@ -173,10 +174,11 @@ const deal = () => ({ id: ID, contractNo: ID, name: 'Haulage Review', counterpar
     const b0 = await badge();
     ok('4 the Clauses tab carries the "need you" count', b0 === '2', JSON.stringify({ badge: b0, tally: await tally() }));
 
-    /* 5 missing in place */
+    /* 5 missing in place: INSIDE its clause, opening and closing with it (owner, 22 Oct 2026) */
+    await openRow(2);
     const e5 = await page.evaluate(async () => {
       const m = document.querySelector('#pd-thread .doc-th-rows .stk-miss');
-      const prev = m && m.previousElementSibling;
+      const prev = m && m.closest('.doc-th-row');
       const cs = m && getComputedStyle(m);
       const btn = m && m.querySelector('[data-stk-miss-go]');
       const body = m && m.querySelector('.stk-miss-body');
@@ -186,14 +188,23 @@ const deal = () => ({ id: ID, contractNo: ID, name: 'Haulage Review', counterpar
         border: cs ? cs.borderTopStyle + '/' + cs.borderTopWidth : '', indent: cs ? cs.marginLeft : '', fold: !!document.querySelector('#pd-thread [data-stk-mopen]'), close: !!btn };
       if (btn){ btn.click(); await new Promise(r => setTimeout(r, 150)); out.shut = !seen();
         btn.click(); await new Promise(r => setTimeout(r, 150)); out.reopened = seen(); }
+      /* ONE PRESS: the clause's own head closes the missing point with it, and opens it again;
+         its word counts it (clause 2 has one point of its own and this one) */
+      const go = prev && prev.querySelector('[data-th-go]');
+      const mShown = () => { const x = document.querySelector('#pd-thread .doc-th-rows .stk-miss'); return !!(x && x.getClientRects().length); };
+      out.word = prev ? ((prev.querySelector('[data-th-state] .stk-n') || {}).textContent || '') : '';
+      if (go){ go.click(); await new Promise(r => setTimeout(r, 600)); out.clauseShut = !mShown();
+        go.click(); await new Promise(r => setTimeout(r, 600)); out.clauseOpen = mShown(); }
       return out;
     });
     /* RE-POINTED 21 Oct 2026 (the owner: "no dotted lines in the clauses", and
        nothing in the list may be uncloseable): no dashed box — the indent and
        the grey label carry the group — and its head is its own open/close. */
-    ok('5 a point the contract lacks stands right after clause 2, no dashed border, its own close, no bottom fold',
+    ok('5 a point the contract lacks stands inside clause 2, no dashed border, its own close, no bottom fold',
       e5.h === 'After §2 — not in the contract' && /^2\b/.test(e5.prev || '') && /price rise/.test(e5.card) && e5.shows
       && /\/0px$/.test(e5.border) && parseFloat(e5.indent) >= 20 && e5.close && e5.shut && e5.reopened && !e5.fold, JSON.stringify(e5));
+    ok('5b pressing clause 2 closes its missing point with it and opens it again; the clause\'s word counts it',
+      e5.clauseShut === true && e5.clauseOpen === true && /· 2$/.test(e5.word.trim()), JSON.stringify({ shut: e5.clauseShut, open: e5.clauseOpen, word: e5.word }));
 
     /* 6 Mark reviewed (the walk above moved the paper, so clause 3 is opened again) */
     await openRow(3);

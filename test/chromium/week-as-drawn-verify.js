@@ -239,9 +239,15 @@ const weekOf = () => {
       C.firstDay.some(t => /^Late: Check the September invoice/.test(t)) && C.chips.some(c => c.k === 'theirs' && /^Nandi: /.test(c.t)) && C.chips.some(c => c.k === 'decide' && /^Decide: Office Lease/.test(c.t)), { firstDay: C.firstDay, chips: C.chips.slice(0, 8) });
     check('4c a later week says "N due"; the hours read "09"', C.labels.some(l => /^\d+ due$/.test(l)) && C.hours.every(h => /^\d\d$/.test(h)), { labels: C.labels, hours: C.hours });
     check('4d Jambo\'s panel beside the Calendar says "Your week" in the same words', C.panel === 'Your week' && C.bub === Y.bubs[0] && C.lv === 3, { panel: C.panel, lv: C.lv });
-    const slot = await page.$('#cal-wk-body .cal-wk-col:nth-of-type(3) .cal-wk-slot:nth-child(4)');
-    if (slot) await slot.hover();
-    const hint = slot ? await slot.evaluate(s => getComputedStyle(s, '::after').content) : '';
+    /* ASK FOR THE STATE (22 Oct 2026): the week may be drawn again after it first shows, which took a
+       held handle off the page ("Element is not attached to the DOM"); a locator finds the hour afresh
+       at each act, and the hover is tried again (bounded) if a repaint came between it and the read */
+    const slot = page.locator('#cal-wk-body .cal-wk-col:nth-of-type(3) .cal-wk-slot:nth-child(4)');
+    let hint = '';
+    for (let i = 0; i < 3 && !/\+ Add your own/.test(hint) && await slot.count(); i++){
+      await slot.hover({ timeout: 3000 }).catch(() => {});
+      hint = await slot.evaluate(s => getComputedStyle(s, '::after').content, null, { timeout: 3000 }).catch(() => '');
+    }
     check('4e an empty hour says "+ Add your own" under the hand', /\+ Add your own/.test(hint), hint);
     if (OUT) await page.screenshot({ path: path.join(OUT, '16-calendar-1440x780.png') });
 

@@ -11684,6 +11684,8 @@
   .pd-th .stk-miss .stk-miss-h:hover{text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--rule-strong)}
   .pd-th .stk-miss .stk-miss-h:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:2px}
   .pd-th .stk-miss:not(.is-open) .stk-miss-body{display:none}
+  /* a point missing after §N is §N's: hidden while §N is closed (breakdown.js, owner 22 Oct 2026) */
+  .doc-th-row:not(.is-open) > .stk-miss{display:none}
   .pd-th .stk-miss:not(.is-open){padding-bottom:8px}
   /* A POINT'S BOX SHOWS ONLY UNDER THE OPEN CLAUSE (owner, 13 Oct 2026: "only … once you click on the clause header") */
   .pd-th .doc-th-row:not(.is-open) > .stk-line, .pd-th .stk-miss-row:not(.is-open) .stk-line{display:none}

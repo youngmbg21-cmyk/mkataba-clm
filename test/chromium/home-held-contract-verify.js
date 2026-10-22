@@ -106,7 +106,10 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     const asks = [];
     page.on('request', r => { if (/\/api\/ai\/chat\b/.test(r.url()) && r.method() === 'POST') { try { asks.push(JSON.parse(r.postData() || '{}')); } catch (_) {} } });
     /* a press on what is not there reports, never waits out a timeout */
-    const press = async sel => { const el = await page.$(sel); if (!el) return false; await el.click(); return true; };
+    /* a list that repaints between the find and the press (GitHub's slower machine,
+       22 Oct 2026: "Element is not attached") is found again, at most three times */
+    const press = async sel => { for (let i = 0; i < 3; i++){ const el = await page.$(sel); if (!el) return false;
+      try { await el.click(); return true; } catch (e){ if (!/not attached/i.test(String(e && e.message)) || i === 2) throw e; } } return false; };
     /* the wall draws twelve at a time: Show more until a paper is on it (bounded) */
     const bring = async id => { for (let i = 0; i < 6 && !(await page.$(`#ig-wall .igw-card[data-ig-pick="${id}"]`)); i++){ if (!(await press('#ig-wall [data-lh-more="wall"]'))) break; await page.waitForTimeout(250); }
       return !!(await page.$(`#ig-wall .igw-card[data-ig-pick="${id}"]`)); };

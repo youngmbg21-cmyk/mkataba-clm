@@ -5494,7 +5494,9 @@ async function ceAsk(question, opts = {}){
      that reached this anyway still asks no model on their behalf. */
   if (ceNoAi()) return;
   const q = String(question == null ? '' : question).trim();
-  if (!q || _ceBusy) return;
+  if (!q) return;
+  /* still answering: the question waits its turn (jamboAskLater), never dropped */
+  if (_ceBusy){ if (typeof jamboAskLater === 'function') jamboAskLater(q, () => _ceBusy, w => ceAsk(w, opts)); return; }
   /* JAMBO, THE SAME ON EVERY PAGE (owner, 18 Oct 2026): a page's name typed
      here moves there as it does on Home — after this page's own question
      when a draft is unfiled (ceLeaveGuard); anything else is a question about
