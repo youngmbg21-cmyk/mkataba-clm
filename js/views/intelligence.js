@@ -2221,8 +2221,8 @@ async function intelMapLocal(q){
 let _igReadyAsk='';
 /* THE ONE WAY TO THE ASK BOX: on Home's Document the box stands on the
    Copilot tab only, so a door that puts words in it turns to that tab first. */
+/* the box stands under every tab (22 Oct 2026): words put in it stay on the tab in front */
 function igAskBox(){
-  if(window.pdShowsDesk&&pdShowsDesk()&&typeof window.pdSetTab==='function'){ pdSetTab('copilot'); renderIntelDock(); }
   return document.getElementById('igd-input');
 }
 function intelAskReady(q){
@@ -8150,12 +8150,12 @@ function renderIntelDock(){
       <button id="igd-cmp-clear" class="text-[10.5px] font-600 text-ink/50 hover:text-ink">${i18t('int_clear')}</button>
       <button id="igd-cmp-run" class="ui-btn ui-btn-sm${intel.compareSel.length<2?'':' ui-btn-primary'}" title="${intel.compareSel.length<2?'Tap “+ Compare” on one more node first':'Run the side-by-side comparison'}">${intel.compareSel.length<2?'Pick 1 more…':'Compare '+intel.compareSel.length}</button>
     </div>`:''}
-    ${''/* ONLY THE COPILOT TAB ASKS (owner, 12 Oct 2026: "only Copilot tab ...
-           should have a copilot field to Type in. The other tabs (overview,
-           clauses and obligations) should not have a copilot prompt entry
-           window"). A press elsewhere that puts words in the box goes through
-           igAskBox, which turns to the Copilot tab first. */}
-    ${!talk&&((window.pdShowsDesk&&pdShowsDesk())||igFindingsShows()||igGuideShows())?'':`<div class="igd-foot p-3 border-t border-hair shrink-0 relative">
+    ${''/* EVERY TAB ASKS (owner, 22 Oct 2026: "all side panels need to have
+           jambo entry field at the bottom"; reverses 12 Oct's "only the Copilot
+           tab asks"): Dossier, Clauses, Obligations, Findings and the Guide all
+           carry the box; words asked turn the panel to the conversation over
+           the tab (pdTalkSync), its back returns to the tab as it was left. */}
+    ${`<div class="igd-foot p-3 border-t border-hair shrink-0 relative">
       ${''/* THE BOX SAYS WHICH CONTRACT IT ASKS ABOUT (26 Sep 2026): the reader's
              own switch, read back on the control that carries it — never a
              line above it. The cost of a question rides the hover. */}
@@ -9661,9 +9661,8 @@ function igStrandPress(sp, b, i){
     clearTimeout(el._igFlash); el._igFlash=setTimeout(()=>el.classList.remove('ig-flash'),1700); }
   const row=_igStrandData[i]; if(!row) return;
   if(!intel.dockOpen){ intel.dockOpen=true; renderIntelDock(); igSyncDockWidth(); }
-  /* the Track's press puts a question ready in the box, which stands on the
-     Copilot tab only: from Overview or Obligations it turns there (igAskBox);
-     on Clauses it opens the clause in the list and asks nothing */
+  /* the Track's press puts a question ready in the box (under every tab since
+     22 Oct 2026); on Clauses it opens the clause in the list and asks nothing */
   const onClauses=typeof window.pdTab==='function'&&pdTab()==='doc'&&window.pdShowsDesk&&pdShowsDesk();
   const inp=onClauses?null:igAskBox(); if(!inp) return;
   const had=String(inp.value||'');

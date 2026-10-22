@@ -85,7 +85,8 @@ const check = (name, ok, detail) => { ok ? pass++ : fail++;
       const up = await until(() => !!document.getElementById('ig-gd'));
       const bare = await page.evaluate(() => ({ box: !!document.getElementById('igd-input'), chips: !!document.querySelector('#ig-dock [data-ig-chips]'),
         lit: document.querySelector('#ig-dock [data-pd-tab="guide"]')?.getAttribute('aria-selected') }));
-      check(`2a-${lang} pressing Guide shows the guide, lit, with no ask box and no chips`, pressed && !!up && !bare.box && !bare.chips && bare.lit === 'true', JSON.stringify(bare));
+      /* RE-POINTED 22 Oct 2026 (owner: "all side panels need to have jambo entry field at the bottom"): the Guide keeps Jambo's box at its foot, still no chips */
+      check(`2a-${lang} pressing Guide shows the guide, lit, Jambo's box at its foot and no chips`, pressed && !!up && bare.box && !bare.chips && bare.lit === 'true', JSON.stringify(bare));
       await pressTab('guide');
       const back = await until(() => !document.getElementById('ig-gd') && !!document.getElementById('igd-input'));
       check(`2b-${lang} pressing Guide again brings Jambo back with his box`, !!back);

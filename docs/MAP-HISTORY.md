@@ -33669,3 +33669,18 @@ The owner: "what is this screen that does not have jambo. I had requested to dra
 
 ## PERFORMANCE — THE BOARD → PAPER SWITCH (22 Oct 2026)
 The owner: "make the Board to Paper switch faster" (after picking "(a)" over leaving it). home-speed-verify had measured a Home already open on the 4-contract book (its sign-in wait passed on the sample book; the sign-in then reopened Home), so it was made honest: wait for the workspace's book, leave Home for Obligations. At 430 contracts the switch was a ~270 ms long task: three forced layouts mid-paint — regHomeNarrow read after the table write (90 ms), placeSave's scroll reads (50 ms), regStageSlotFit's measure — and then renderIntelDock's faceSwap measuring after the write. Built: one width reading per paint taken before the write (`_regNarrowPaint`), placeSave after the frame (`regAfterPaint`), stage widths measured once per word and kept (`_regStgW`), and igTurnFace draws the panel before the list (`_igPlaceLater`/`_igPlaceOwed`). Measured after: 59–77 ms against Home's 238–305 (check 1 passes 5 of 5). The honest set-up shows check 3 red (a still Explorer 25–28% busy at 430); the owner: ship now, "Explorer later" (BUGLOG).
+
+## THE SHELL — RAIL, BAR, PANELS
+
+### JAMBO'S BOX ON EVERY SIDE PANEL (owner, 22 Oct 2026)
+
+The owner, with a screenshot of Home's panel beside a paper, the Clauses and Obligations tabs circled: *"i have continuously stated that all side panels need to have jambo entry field and the bottom yet these two panels are missing it. Address this and any other where it is missing."*
+
+WHY IT WAS MISSING: the 12 Oct 2026 overnight run (JOB 1, "THE ASK BOX IS THE COPILOT TAB'S") built the owner's words of that day — "only Copilot tab … should have a copilot field to Type in" — as `renderIntelDock` drawing the composer only when `pdShowsDesk()` was false (and not on Explorer's Findings and Guide tabs), with `igAskBox()` turning to the Copilot tab before putting words in the box. The new words reverse it; the old line is replaced, not kept beside.
+
+BUILT: the foot (`.igd-foot`, the one card) is drawn under every tab of Home's panel — Dossier, Clauses, Obligations, Findings, the Guide. Words asked from a tab turn the panel to the conversation over it (`pdTalkSync`, the tab's own talk key), and its back returns to the tab as it was left. `igAskBox()` no longer turns tabs: a door that puts words in the box (the paper highlight's Ask, `intelAskReady`) leaves the reader where they are. The Track's press on Clauses still opens the clause and asks nothing.
+
+"ANY OTHER WHERE IT IS MISSING": the slide-out panel (`#context-panel`: Guide, Alerts, Notes, Activity) had no Jambo box at all. It now carries the one card at its foot (`#panel-ask`, `panelAskPaint`) on Guide, Alerts and Activity; a question put there puts the panel away and is asked in the ✦'s window (`openAI(q,{win})`), the one conversation — a press on Send asks, never only fills a box (`openAI(q)` alone hands words to an embedded Jambo READY, unsent, which would have looked dead). NOTES keeps its own box (it writes a note to the contract's thread) and draws no second one beside it. Swept and found already carrying the box: Settings' side, the list panels, Import, the Calendar, the clause editor, the template builder, the ✦ window, Home's faces (Fill in, Redlines, Before you sign, an amendment, Before you send).
+
+Checks: jambo-box-every-panel-verify (17; 5/17 at c5aa0c2, the three Dossier rows and Notes' absence the only passes). Re-pointed with these words: ask-box-on-copilot-only-verify 2 and 3, home-first-verify 3d, explorer-guide-tab-verify 2a, f840 2e.
+
