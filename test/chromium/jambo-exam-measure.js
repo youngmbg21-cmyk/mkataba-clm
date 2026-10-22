@@ -147,7 +147,9 @@ function judgeAll(spot, W, X, before){
 
 (async () => {
   const relay = LIVE ? await startRelay() : null;
-  const h = await startHati(Object.assign({ AI_RATE_DEEP: '5000', AI_RATE_LIGHT: '5000' },
+  /* the exam's own server: the per-minute ceilings raised (f128's reason) and the daily spend ceiling too — a
+     live run of 240 asks passed the default and starved its last fifty (22 Oct 2026, stage 3's first run) */
+  const h = await startHati(Object.assign({ AI_RATE_DEEP: '5000', AI_RATE_LIGHT: '5000', AI_DAILY_SPEND_LIMIT: '1000' },
     LIVE ? { ANTHROPIC_BASE_URL: relay.base, ANTHROPIC_API_KEY: KEY } : { ANTHROPIC_API_KEY: '' }));
   await seedJamboWorld(h);
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
