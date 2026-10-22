@@ -84,8 +84,10 @@ const SEAT = '[data-reg-home] [data-lh-seat="contracts"]';
   const catalogue = await page.evaluate(() => REG_CT_FILTERS.slice());
   ok('every group it offers is a filter of the catalogue', d.groups.length > 0 && d.groups.every(k => catalogue.includes(k)), d.groups.join(', ') + ' of ' + catalogue.join(', '));
   ok('and Stage and Stream, the two the register is always asked, are offered', d.groups.includes('stage') && d.groups.includes('type'), d.groups.join(', '));
-  /* the filters' own counts, read when the list is standing */
-  await page.waitForFunction(() => regFiltered().length > 0, null, { timeout: 8000 }).catch(() => {});
+  /* the filters' own counts, read when the list is standing — AND its filters can count (22 Oct 2026:
+     on CI they were read once in the beat the book was swapped, "7 groups for 0"); bounded */
+  await page.waitForFunction(() => regFiltered().length > 0
+    && regCtFilters().some(f => (f.opts || []).some(o => o[2] == null || o[2] > 0)), null, { timeout: 8000 }).catch(() => {});
   const withRows = await page.evaluate(() => regCtFilters().filter(f => (f.opts || []).some(o => o[2] == null || o[2] > 0)).map(f => f.k));
   ok('it offers every filter that has a choice with rows, and no more', JSON.stringify(withRows.slice().sort()) === JSON.stringify(d.groups.slice().sort()),
     `${d.groups.length} groups for ${withRows.length}: ${withRows.join(', ')}`);
