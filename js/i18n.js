@@ -13103,6 +13103,8 @@ const STRINGS = {
     kt_sap_rename: 'Rename',
     kt_sap_changed: 'Last changed',
     kt_sap_not_yet: 'Not yet',
+    /* the Obligations tab's sides (owner picked the Legora way, 22 Oct 2026) */
+    pd_obs_all: 'All',
     og_kt_n_one: '{n} term',
     og_kt_n_other: '{n} terms',
     og_kt_saved: '{what} saved',
@@ -32588,6 +32590,7 @@ const STRINGS = {
     kt_sap_rename: 'Byt namn',
     kt_sap_changed: 'Senast ändrat',
     kt_sap_not_yet: 'Inte än',
+    pd_obs_all: 'Alla',
     og_kt_n_one: '{n} villkor',
     og_kt_n_other: '{n} villkor',
     og_kt_saved: '{what} sparat',

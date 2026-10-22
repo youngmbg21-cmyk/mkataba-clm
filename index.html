@@ -10196,6 +10196,22 @@
   .pd-fill .pd-fill-done summary::-webkit-details-marker{display:none}
   .pd-acts-c{justify-content:center}
   .pd-ob .pd-acts{margin-top:8px}
+  /* THE RENEWAL AND THE SIDES, THE LEGORA WAY (owner, 22 Oct 2026): quiet lines, nothing boxed; the words quoted with §; tabs with counts */
+  .pd-rn{margin:2px 0 12px}
+  .pd-rn-row{display:grid;grid-template-columns:96px minmax(0,1fr);gap:8px;padding:8px 0;border-bottom:1px solid var(--color-neutral-200);font-size:13px}
+  .pd-rn-row > span{color:var(--color-neutral-600);font-size:12.5px}
+  .pd-rn-row > b{font-weight:var(--w-label);color:var(--color-text);min-width:0}
+  .pd-rn-by.is-a{color:var(--st-amber-fg)} .pd-rn-by.is-r{color:var(--st-ruby-fg,#b3261e)}
+  .pd-rn-q{padding-top:8px}
+  .pd-rn-q .pd-og-src{display:block;font-size:12.5px;line-height:1.45;color:var(--color-neutral-600)}
+  .pd-rn-q .pd-og-src q{font-style:italic;color:var(--color-text);quotes:none}
+  .pd-rn-q .pd-og-cl{border:0;border-radius:3px;padding:0 4px;background:var(--accent-wash,var(--surface-2));font:inherit;font-size:12px;font-weight:var(--w-strong);color:var(--accent-ink);cursor:pointer;white-space:nowrap}
+  .pd-rn-decide{margin-top:10px}
+  .pd-obs-tabs{display:flex;gap:16px;border-bottom:1px solid var(--color-neutral-200);margin:0 0 8px}
+  .pd-obs-tab{border:0;background:none;padding:6px 0;font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--color-neutral-600);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .pd-obs-tab[aria-selected="true"]{color:var(--color-text);border-bottom-color:var(--color-text)}
+  .pd-obs-tab > span{margin-left:5px;color:var(--accent-ink)}
+  .pd-obs-tab:focus-visible{outline:2px solid var(--accent-fill);outline-offset:2px}
   .pd-note{font-size:11.5px;color:var(--cap-ink);margin:12px 0 0}
   .pd-empty{padding:14px 8px 4px}
   .pd-deal{font-size:12.5px}

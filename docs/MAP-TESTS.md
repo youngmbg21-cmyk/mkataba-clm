@@ -108,6 +108,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## OBLIGATIONS
 - f253–f255, f259, f260, f262, f263, f308 (7), f390, f554, f678, f718, f791, f792, obligations-tab, four-inspectors, review-desk, amount-and-window, week-by-week, week-as-drawn verify.
 
+- THE TAB BESIDE THE PAPER, THE LEGORA WAY (22 Oct 2026): `test/chromium/obligations-renewal-legora-way-verify.js` (renewal lines and quote, the tabs, the decision card while due, three screens; 13 red at 6fb5d85).
 ## THE LIST INSPECTOR
 - f387, f390, f391, f395, f664, f678, f804, f810, inspector, inspector-checklist, jambos-list-panel verify.
 - Answered beside the list (22 Oct 2026, Part 8 question 3 = A): f804 8b–8b4 (red at e10e3af6); jambos-list-panel-verify 10g re-pointed (answered in the panel, the draft form still a door).

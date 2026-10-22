@@ -223,6 +223,34 @@ function pdFactsHtml(c){
     + pdNote(_pdT('pd_facts_foot'));
 }
 
+/* ---- THE RENEWAL AND THE SIDES, THE LEGORA WAY (owner picked it by name, 22 Oct 2026; round 3 of
+   retiring the Details page) ----
+   The Details' Renewal card comes to the top of the Obligations tab as quiet lines, read off the ONE
+   reading (ovMapRenewal): Ends · Notice by (with how far off, in the renewal's own tone) · Renewal (how
+   it renews), and the words it was read from quoted with the clause they stand under (§, a press shows
+   them on the paper). While a decision is due the renewal's own decision card stands under them
+   (renderRenewalSection, compact: the one door to the decision). The duties picture is not drawn again.
+   Tabs All · We owe · They owe over the list, each with its count; the choice is the sitting's. */
+let _pdObSide = null;   // { id, k: 'ours' | 'theirs' } — the list's side for this contract; none = All
+function pdObSideOf(c){ return (_pdObSide && _pdObSide.id === String(c.id)) ? _pdObSide.k : 'all'; }
+function pdObRenewHtml(c){
+  let R = null; try { R = (typeof ovMapRenewal === 'function') ? ovMapRenewal(c) : null; } catch (_){ R = null; }
+  if (!R || (!R.end && !R.by && !R.type && !R.quote)) return '';
+  const E = _pdE, day = d => (typeof regDotDate === 'function' ? regDotDate(d) : d);
+  const row = (k, v) => `<div class="pd-rn-row"><span>${E(_pdT(k))}</span><b>${v}</b></div>`;
+  let far = ''; try { const s0 = (typeof obligationDueSay === 'function' && R.by) ? obligationDueSay({ due: R.by }, c) : null; far = s0 && typeof s0 === 'object' ? (s0.sub || '') : ''; } catch (_){ far = ''; }
+  const typeWord = R.type ? ((typeof metaOptLabel === 'function' ? metaOptLabel(R.type) : R.type) || R.type) : '';
+  const quote = R.quote ? pdOgFromHtml(c, { key: 'renewalType', from: { clause: pdKtSpanClause(c, R.quote), quote: R.quote } }) : '';
+  return `<div class="pd-rn" data-pd-rn="${E(c.id)}">${R.end ? row('ov_map_rn_ends_k', E(day(R.end))) : ''}${
+    R.by ? row('ov_map_rn_notice_k', `<span class="pd-rn-by is-${E(R.byTone)}">${E(day(R.by))}${far ? ' · ' + E(far) : ''}</span>`) : ''}${
+    typeWord ? row('ov_map_rn_type_k', E(typeWord)) : ''}${quote ? `<div class="pd-rn-q">${quote}</div>` : ''}<div id="renewal-host" class="empty:hidden pd-rn-decide" data-bare="1" data-compact="1"></div></div>`;
+}
+function pdObSidesHtml(c, obs){
+  const ours = obs.filter(o => o && !((typeof obligationIsTheirs === 'function') ? obligationIsTheirs(o) : o.party === 'theirs')).length;
+  const all = obs.filter(Boolean).length, now = pdObSideOf(c);
+  const tab = (k, w, n) => `<button type="button" role="tab" class="pd-obs-tab" aria-selected="${now === k}" data-pd-act="${pdAct(() => { _pdObSide = k === 'all' ? null : { id: String(c.id), k }; try { pdPaint(pdContract()); } catch (_){} })}">${_pdE(_pdT(w))}<span>${n}</span></button>`;
+  return `<div class="pd-obs-tabs" role="tablist">${tab('all', 'pd_obs_all', all)}${tab('ours', 'ov_map_tab_ours', ours)}${tab('theirs', 'ov_map_tab_theirs', all - ours)}</div>`;
+}
 /* ---- OBLIGATIONS: each duty, whose, when; its words on the paper; the
    Obligations tab's own acts (obPanelActs: chase, mark done, edit) ---- */
 function pdObligHtml(c){
@@ -232,8 +260,10 @@ function pdObligHtml(c){
      view went; an obligation's row on the list lands here): the list's own
      choice for this contract (insSelected, set by obOpenContract) is marked */
   const chosen = (typeof insSelected === 'function') ? insSelected('oblig:' + c.id) : null;
+  const side = pdObSideOf(c);
   const rows = obs.map((o, i) => {
     if (!o) return '';
+    if (side !== 'all' && (((typeof obligationIsTheirs === 'function') ? obligationIsTheirs(o) : o.party === 'theirs') ? 'theirs' : 'ours') !== side) return '';
     let key = ''; try { key = (typeof obKeyOf === 'function') ? String(obKeyOf(c.id, o, i)) : ''; } catch (_){ key = ''; }
     let due = '';
     try { const d = (typeof obligationDueSay === 'function') ? obligationDueSay(o, c) : null; due = d && typeof d === 'object' ? [d.day, d.sub].filter(Boolean).join(' · ') : String(o.due || ''); } catch (_){ due = String(o.due || ''); }
@@ -247,7 +277,10 @@ function pdObligHtml(c){
   const n = obs.filter(Boolean).length;
   const head = pdTop('oblig', n ? pdPill('quiet', _pdTn('pd_obs_n', n, { n })) : '') + (n ? '' : pdEmpty(_pdT('pd_obs_none'), 'flag'));
   const add = may ? `<div class="pd-acts">${typeof openObligationForm === 'function' ? pdBtn(_pdT('pd_ob_add'), () => openObligationForm(getContract(c.id) || c)) : ''}${typeof runFindObligations === 'function' ? pdBtn(_pdT('pd_ob_find'), () => runFindObligations(getContract(c.id) || c)) : ''}</div>` : '';
-  return head + pdList(rows) + add;
+  /* the renewal's decision card is drawn into its holder once the tab is on the page */
+  const rn = pdObRenewHtml(c);
+  if (rn && typeof renderRenewalSection === 'function') setTimeout(() => { try { if (document.querySelector('[data-pd-rn] #renewal-host')) renderRenewalSection(getContract(c.id) || c); } catch (_){} }, 0);
+  return head + rn + (n ? pdObSidesHtml(c, obs) : '') + pdList(rows) + add;
 }
 
 /* ---- DOCUMENT: THE CLAUSE LIST (owner, 10 Oct 2026: "When i migrate the
@@ -5794,7 +5827,7 @@ if (typeof document !== 'undefined' && !document._pdTrailEsc){
   });
 }
 Object.assign(window, { pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtLgRowsHtml, pdKtWhere, pdKtFileHtml, pdKtAway, pdKtTitleHtml, pdKtRecHtml, pdKtRenameSet, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
-  PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdTalkKey, pdTalkScope, pdTalkShows, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
+  PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdTalkKey, pdTalkScope, pdTalkShows, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, pdObRenewHtml, pdObSidesHtml, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, PD_RD_CHECKS, pdRoadCheckOf, pdRoadCheckNames, pdDayWord, pdBackDay, pdAwayOf, pdRoadRuleOf, pdRoadRuleTitle, pdRoadRuleSub, pdRoadRuleFramed, pdRoadRuleHtml, pdRoadMovedHtml, pdRoadYesOf, pdRoadYesTitle, pdRoadYesFramed, pdRoadYesFacts, pdRoadYesHtml, pdRoadPress, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,
