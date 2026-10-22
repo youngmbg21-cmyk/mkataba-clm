@@ -95,6 +95,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f705, jambo-map-verify.
 
 - Jambo finds the way (22 Oct 2026): f738 (red at the parent 1b, 1c, (2)–(5)), f705 1a, jambo-finds-the-way verify.
+- Held-out sentences taught (22 Oct 2026): f738 (7) (7a red at the parent).
 ## STAKES — THE CLAUSES TAB CARRIES THE DEEP READ
 - stakes-verify, point-buttons-and-brief verify, jambo-pill-and-window 3a, f668, f671, f277.
 - clauses-legora-way-verify (merged twin counted once, worst-first order, the dive walks the same order, badge = need you, Mark reviewed persists through the server and drops the count, missing row in place; 1/12 at d7a320c2). stakes-verify and point-buttons-and-brief-verify re-pointed to the card anatomy.
@@ -135,6 +136,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## ASK A COLUMN (js/views/askcolumn.js)
 - f843, ask-a-column verify.
+- Typing while the team's questions arrive (22 Oct 2026): ask-a-column verify 10 (red at the parent: the caret went to the question box, "Notice ").
 
 ## CONTRACTS AND NEGOTIATIONS ARE ONE TABLE (renderRegister)
 - f97, f240, f258, f281–f283, f324, f346, f350, f378, f379, f397, f687, f693, f715, f740, f741; contracts-page, contracts-stage-tabs, counterparty-leads, every-door-lands-on-home, wall-of-papers, home-held-contract verify.

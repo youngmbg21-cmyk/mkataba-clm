@@ -279,3 +279,31 @@ describe('f738 (5) the AI takes you there', () => {
     assert.equal(b.book || null, null);
   });
 });
+
+/* (7) TAUGHT FROM THE HELD-OUT SENTENCES (22 Oct 2026). Thirty sentences
+   written after the exam missed nine; each is now a way of asking, and three
+   earlier readers stopped taking sentences that were not theirs: "show the
+   tracked changes" is the Redlines (only "with tracked changes" sends a Word
+   copy), "show me the audit trail" is History (the sealed record is a file
+   asked for as one), and "anything", "every" and "each" are filler. Red at
+   the parent: every line below but the two kept pins. */
+describe('f738 (7) the held-out sentences, taught', () => {
+  const TAUGHT = [
+    ['where is the list of things I owe people?', 'needs'], ['where are all the signed contracts?', 'contracts'],
+    ['how can I put a pdf contract into the system?', 'upload'], ['where do I answer the missing questions on this contract?', 'fill'],
+    ['things waiting for my sign-off', 'approvals'], ['who did what on this contract?', 'history'], ['colleague contact details', 'people'],
+    ['show the tracked changes', 'redline'], ['show me the audit trail', 'history'], ['anything about to expire?', 'expiring'],
+    ['list every contract we have', 'contracts'], ['where can I sign this agreement?', 'sign'],
+  ];
+  test('7a each lands where it was asked', () => {
+    const { ctx } = stage();
+    const misses = TAUGHT.map(([q, k]) => [q, k, landsOrFirst(ctx, ctx.caActOf(q))]).filter(([, k, got]) => got !== k);
+    assert.deepEqual(misses, []);
+  });
+  test('7b the readers narrowed still take their own sentences', () => {
+    const { ctx } = stage();
+    const a = ctx.caActOf('send it with tracked changes'); assert.equal(a && a.kind, 'door'); assert.equal(a.door, 'word');
+    const r = ctx.caActOf('save the audit trail'); assert.equal(r && r.kind, 'menu'); assert.equal(r.menu, 'record');
+    const s = ctx.caActOf('attach the signed copy'); assert.equal(s && s.kind, 'menu'); assert.equal(s.menu, 'signed');
+  });
+});

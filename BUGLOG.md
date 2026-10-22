@@ -21419,3 +21419,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - CLAUDE.md is about 82 KB after today's short Jambo section, past its ~80 KB line; a trim needs the owner's yes.
 - Noticed, not fixed (22 Oct 2026): home-speed-verify 1 (Board ⇄ Paper under 60 ms) sits on its floor and fails on main too (local 62 ms at 9861ad9); ask-a-column-verify 2a–2e went red once on CI (PR #403) but passes 27/27 locally on main and the branch. Both checks failed on PR #403's CI, and the owner said "merge anyway".
 - Noticed, not fixed (22 Oct 2026): the-letter-as-drawn-verify check 3b fails now and then on PR #405's CI and locally (the "Sent as" list closes on a setTimeout 0 after the click in shareLetterAsWire, and the check reads it on the next evaluate); passed 3 of 3 on a rerun and on main. Wants a bounded wait for the list to close.
+
+## Noticed, not fixed — 22 Oct 2026 (steadier checks)
+- Jambo's side panel: words typed and sent while he is still answering the last question are dropped without a word (intelAsk returns on intel.busy) — even a free "open explorer". Found steadying jambo-tab-and-back-verify 3a; the check now waits; the product still drops them silently.
+- six-round-audit's first openRedlineWorkbench(id,{page:true}) straight after sign-in timed out once on GitHub (10 s). Suspect: the start-up's own landing (placeResume / Home) settling after the open and taking the view back. Not proved; the audit now asks twice, bounded.

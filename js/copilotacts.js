@@ -977,7 +977,8 @@ const CA_DOORS = [
   ['signlink', /\b(?:send|share|issue)\b[^.?!]*\bfor sign(?:ing|ature)\b|\bsigning link\b/i],
   ['resend', /\b(?:re-?send|send again)\b[^.?!]*\blink\b|\bfresh link\b|\blink\b[^.?!]*\bexpired\b/i],
   ['adviser', /\b(?:share|send|show)\b[^.?!]*\b(?:lawyer|adviser|advisor|counsel)\b/i],
-  ['word', /\bword (?:version|file|copy|document)\b|\btracked changes\b/i],
+  /* "with tracked changes" sends a Word copy; "show the tracked changes" is the Redlines (22 Oct 2026) */
+  ['word', /\bword (?:version|file|copy|document)\b|\bwith tracked changes\b/i],
   ['approval', /\b(?:ask|request|get)\b[^.?!]*\bapproval\b|\bremind\b[^.?!]*\bapprov/i],
   ['chase', /^\s*(?:please\s+)?chase\b/i],
   ['done', /\bmark\b[^.?!]*\b(?:done|paid|complete|completed|delivered)\b/i],
@@ -1079,7 +1080,8 @@ const CA_MENU = [
   ['export', /^\s*(?:please\s+)?(?:export|download|print|exportera|ladda ner|skriv ut)\b(?![^.?!]*\b(?:pdf|word)\b)/i, ['#ws-pdf', '#ws-word', '#ws-pdf-record']],
   ['pdf', /\bpdf\b|\bclean copy\b|\bren kopia\b/i, ['#ws-pdf']],
   ['wordx', /\b(?:export|download|save|exportera|ladda ner|spara)\b[^.?!]*\bword\b|\b(?:as|in|to|till|som) (?:an? |en )?word\b/i, ['#ws-word']],
-  ['record', /\b(?:sealed|audit)\s+(?:record|copy|trail)\b/i, ['#ws-pdf-record']],
+  /* the sealed record as a FILE; "show me the audit trail" is History (22 Oct 2026) */
+  ['record', /\b(?:sealed|audit)\s+(?:record|copy)\b|\bsealed\s+trail\b|\b(?:download|export|print|pdf|save)\b[^.?!]*\baudit\s+trail\b|\baudit\s+trail\b[^.?!]*\b(?:pdf|download|export|file)\b/i, ['#ws-pdf-record']],
   ['signed', /\b(?:add|attach|link|upload|lägg till|bifoga)\b[^.?!]*\b(?:signed|undertecknat)\b|\bsigned (?:document|copy|agreement)\b/i, ['#ws-m-link']],
   ['adviser', /\b(?:ask|consult|get|fråga)\b[^.?!]*\b(?:adviser|advisor|lawyer|counsel|rådgivare|jurist)\b|^\s*(?:an? )?(?:adviser|advisor|rådgivare)\s*$/i, ['#ws-advice']],
   ['import', /\bimport\b|\bimportera\b|\btheir (?:word )?(?:file|response|markup)\b/i, ['#ws-import']],
@@ -1127,6 +1129,8 @@ const CA_MENU_NOT = {
   import: t => !CA_MENU_THEIR_FILE.test(t),
   /* the Word download is a copy going out too: "upload it as word" is not it (18 Oct 2026) */
   wordx: t => CA_MENU_INBOUND.test(t) && !CA_FILE_OUT.test(t),
+  /* changing a signed agreement is an amendment, not linking its signed copy (22 Oct 2026) */
+  signed: t => /(?<!\p{L})(?:change|changing|amend|amending|modify|alter|update|updating|ändra|ändring)(?!\p{L})/iu.test(t),
 };
 function caReadMenu(q){
   const t = String(q || ''); if (t.length > CA_MENU_MAX || CA_MENU_ASKS.test(t) || CA_WHERE_RE.test(t)) return null;
