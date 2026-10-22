@@ -88,6 +88,13 @@ const answerNaming = ids => [{ type: 'tool_use', id: 'tu_wl', name: 'deliver_ans
     const labels = Array.from(document.querySelectorAll('.reg-f-l')).map(l => l.textContent.trim());
     const tabs = document.querySelector('.reg-views');
     if (tabs) labels.push(tabs.getAttribute('aria-label') || '');
+    /* RE-POINTED 22 Oct 2026 (the owner's answer to question 2, "B": "Move
+       those four under + Filter — exactly the five drawn tabs"): the quick
+       filters left the tab row (named "Views" now) for ONE filter under
+       "+ Filter", so its name is read off the live head's own filters — the
+       words + Filter draws as that group's heading and its chip's label */
+    const pg = window.LH_PAGES && window.LH_PAGES.contracts;
+    if (pg && typeof pg.filters === 'function') (pg.filters() || []).forEach(f => labels.push(String(f.label || '')));
     const sel = tabs;
     return { labels, first: sel ? ((sel.querySelector('[data-reg-view]') || {}).textContent || '').trim() : null,
       tip: sel ? (sel.getAttribute('title') || '') : '',

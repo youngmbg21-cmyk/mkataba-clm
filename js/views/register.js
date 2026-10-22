@@ -1695,8 +1695,8 @@ function regNegoColWidths(keys, own){
    the Archive button (owner: keep it) and List | Wall — in the shared head's
    card (js/views/listhead.js), over its rows: the box to search or ask in,
    the views as tabs (All · Needs you · In negotiation · Ending in 90 days ·
-   Drafts, the rest only where they hold rows, then the reader's saved views
-   and "+ Save this view"), "+ Filter" and its chips, and at the chip row's
+   Drafts, then the reader's saved views and "+ Save this view"), "+ Filter"
+   and its chips (the old Quick filters one of them), and at the chip row's
    end Sort, Display, "Do this to these N", "✦ Ask a column" and Columns (the
    last two on the List only). EVERY READING AND KEPT VALUE IS THIS PAGE'S
    OWN: state.reg (hbPlace keeps it across a refresh); regFiltered the one
@@ -1706,13 +1706,23 @@ function regNegoColWidths(keys, own){
    place any more; the full table renderRegister draws where Home is not
    (the phone's hidden desktop shell) keeps them. */
 const REG_CT_SEAT='contracts';
-/* the views in the drawing's order, then the rest the Quick filters box
-   offered — each drawn only where it holds rows; the archive is its own
-   button beside List | Wall */
-const REG_CT_VIEWS=['needs','nego','expiring90','drafts','expired','autosoon','overdueob','details'];
-/* the filters "+ Filter" offers: every one the bar knew, less Quick filters
-   (they are the tabs now) */
-const REG_CT_FILTERS=['stage','type','category','renewal','signed','payterms','docs','hold'];
+/* the views in the drawing's order, EXACTLY THE FIVE DRAWN TABS (owner, 22
+   Oct 2026, question 2 "B": "Move those four under + Filter — exactly the
+   five drawn tabs. The four views are still one press away under + Filter";
+   reverses 21 Oct's four more tabs while they held rows, which wrapped the
+   row onto a second line); the archive is its own button beside List | Wall */
+const REG_CT_VIEWS=['needs','nego','expiring90','drafts'];
+/* THE OLD QUICK FILTERS, ONE FILTER UNDER "+ Filter" (the same answer):
+   Term already ended · Auto-renewing soon · Overdue obligations · Details to
+   fill. ONE FACT, ONE WRITER: it reads and writes R.view, the very key the
+   tabs write — so choosing one puts the tab row's view back to All (lit),
+   its chip stands, and its × returns R.view to rest (REG_FILTER_REST: null).
+   No new kept key: hbPlace keeps R.view as it always has. */
+const REG_CT_QUICK=['expired','autosoon','overdueob','details'];
+const regCtQuickOf=R=>{ const v=R&&R.view!=null?String(R.view):''; return REG_CT_QUICK.includes(v)?v:null; };
+/* the filters "+ Filter" offers: every one the bar knew, Quick filters (the
+   four above, 'view') where the bar drew it — after Category */
+const REG_CT_FILTERS=['stage','type','category','view','renewal','signed','payterms','docs','hold'];
 /* the Contracts seat's own reading, whatever seat the register was last asked for */
 function regOnCt(fn){
   const was=REG_SCOPE; REG_SCOPE=null;
@@ -1751,12 +1761,16 @@ function regCutCount(k, values){
   finally{ R[k]=was; }
   return out;
 }
-/* THE TABS: All, then the views, each counted with the rows its press shows */
+/* THE TABS: All, then the views, each counted with the rows its press shows.
+   While one of the Quick filters stands, All is the lit tab and its press
+   keeps that chip (a lit tab pressed changes nothing), so All counts the
+   rows on screen; a view's press replaces it (one fact), so it counts its own. */
 function regCtViews(){
-  return regOnCt(()=>{
-    const by=regCutCount('view',[null].concat(REG_CT_VIEWS));
+  return regOnCt(R=>{
+    const q=regCtQuickOf(R);
+    const by=regCutCount('view',[q].concat(REG_CT_VIEWS));
     const n=k=>by?(by.get(k)||0):null;
-    return [{ k:'', label:i18t('reg_tab_all'), n:n(''), keep:true }].concat(REG_CT_VIEWS.map(k=>{
+    return [{ k:'', label:i18t('reg_tab_all'), n:n(q||''), keep:true }].concat(REG_CT_VIEWS.map(k=>{
       const v=REG_VIEWS.find(x=>x.k===k)||{};
       return { k, label:v.label||k, n:n(k), title:v.title||'' }; }));
   });
@@ -1777,6 +1791,7 @@ function regCtFilterLists(R){
     stage:[i18t('reg_chip_stage'),i18t('reg_lifecycle_stage'),REG_STAGE_TABS.filter(k=>k!=='all').map(k=>[k,regStageWord(k)])],
     type:[i18t('reg_chip_stream'),i18t('reg_value_stream'),regTypes().filter(t=>t.k!=='all').map(t=>[t.k,t.label])],
     category:[i18t('me_category'),i18t('me_category'),regCategories().map(k=>[k,regCatLabel(k)]).concat([['none',i18t('reg_uncategorised')]])],
+    view:[i18t('reg_quick_filters'),i18t('reg_quick_filters'),REG_CT_QUICK.map(k=>[k,(REG_VIEWS.find(x=>x.k===k)||{}).label||k])],
     renewal:[i18t('reg_renewal'),i18t('reg_renewal'),[['auto-renew',i18t('reg_renew_auto')],['fixed',i18t('reg_fixed')],['evergreen',i18t('reg_evergreen')]]],
     signed:[i18t('reg_signed'),i18t('reg_signed_title'),signed],
     payterms:[i18t('reg_payterms'),i18t('reg_payterms_title'),pay.map(b=>[b,`${b} ${i18t('pt_days')}`]).concat([['none',i18t('reg_payterms_none')]])],
@@ -1790,7 +1805,8 @@ function regCtFilters(){
     return REG_CT_FILTERS.map(k=>{
       const [label,title,list]=L[k];
       const by=regCutCount(k, list.map(x=>x[0]));
-      return { k, label, title, cur:(R[k]==null||R[k]==='')?'all':String(R[k]), def:'all',
+      const cur=k==='view'?(regCtQuickOf(R)||'all'):(R[k]==null||R[k]==='')?'all':String(R[k]);
+      return { k, label, title, cur, def:'all',
         opts:list.map(([v,l])=>[v,l,by?(by.get(String(v))||0):null]) };
     });
   });
@@ -1846,10 +1862,12 @@ function regCtHeadReg(){
       regSetScope(null); renderRegisterBody();
       const bar=document.getElementById('cmd-search'); if(bar&&bar.value!==w) bar.value=w;
       if(typeof window.placeSave==='function'){ try{ placeSave(); }catch(_){ /* a convenience */ } } },
-    tabAttr:'data-reg-view', tabsLabel:i18t('reg_quick_filters'),
+    /* the tab row is the views ("Views"); "Quick filters" is the + Filter group now */
+    tabAttr:'data-reg-view', tabsLabel:i18t('reg_qf_acts'),
     tabs:()=>regCtViews(),
-    tabNow:()=>String((state.reg&&state.reg.view)||''),
-    tab:k=>{ regOnCt(R=>{ R.view=k||null; R.page=1; }); regCtRepaint(); },
+    /* a Quick filter in force lights All (its chip says which) */
+    tabNow:()=>regOnCt(R=>regCtQuickOf(R)?'':String(R.view||'')),
+    tab:k=>{ regOnCt(R=>{ if(!k&&regCtQuickOf(R)) return; R.view=k||null; R.page=1; }); regCtRepaint(); },
     saved:()=>regOnCt(R=>regSavedViews().map(v=>({ id:v.name, label:v.name, on:regSavedMatches(v,R) }))),
     useSaved:id=>{ if(regOnCt(()=>regApplySaved(id))) regCtRepaint(); },
     unsave:id=>regForgetViewAsk(id).then(ok=>{ if(ok) regCtRepaint(); }),
@@ -1857,7 +1875,10 @@ function regCtHeadReg(){
     lead:()=>regOnCt(R=>regOnlyChipHtml(R)),
     filters:()=>regCtFilters(),
     apply:patch=>{ regOnCt(R=>{
-      Object.keys(patch||{}).forEach(k=>{ if(REG_CT_FILTERS.includes(k)){ const v=patch[k]; R[k]=(v==null||v==='')?'all':String(v); } });
+      Object.keys(patch||{}).forEach(k=>{ if(!REG_CT_FILTERS.includes(k)) return; const v=patch[k];
+        /* Quick filters write the tabs' own key: one of the four, else its rest */
+        if(k==='view'){ R.view=REG_CT_QUICK.includes(String(v))?String(v):REG_FILTER_REST.view; return; }
+        R[k]=(v==null||v==='')?'all':String(v); });
       R.page=1; }); regCtRepaint(); },
     right:()=>regOnCt(R=>regCtToolsHtml(R)),
     lcSeat:onList?REG_CT_SEAT:'contracts-wall',
@@ -4426,7 +4447,7 @@ Object.assign(window,{regOpenContract,regPlace,regPlacePut,regSignedOn,regSigned
   negoBandViews,REG_NEGO_SEAT,REG_NEGO_FILTERS,regNegoState,regOnNego,regBookWhole,regNegoOptN,regNegoFilters,regNegoHeadReg,regNegoHeadHtml,regNegoFootHtml,regNegoToolsHtml,regNegoRepaint,
   REG_NEGO_FIXED,regNegoShapeKeys,regNegoColDefs,regNegoColsShown,regNegoColsChosen,regNegoColWidths,regQueryOf,regOnlyChipHtml,regSortOptsHtml,
   /* the Contracts place's list head, the Legora way (Part 8, 21 Oct 2026) */
-  REG_CT_SEAT,REG_CT_VIEWS,REG_CT_FILTERS,regOnCt,regNeedsIds,regRowsCount,regCutCount,regCtViews,regCtFilterLists,regCtFilters,regCtRepaint,regCtToolsHtml,
+  REG_CT_SEAT,REG_CT_VIEWS,REG_CT_QUICK,regCtQuickOf,REG_CT_FILTERS,regOnCt,regNeedsIds,regRowsCount,regCutCount,regCtViews,regCtFilterLists,regCtFilters,regCtRepaint,regCtToolsHtml,
   REG_CT_FIXED,REG_CT_COL_WORD,regCtShapeKeys,regCtColDefs,regCtHeadReg,regCtFootHtml,regHomeColW,regToolsWire,regToolsHtml,regWallRepaint,
   /* the Contracts place on Home (the overnight work order, step 7) */
   REG_SHOWS,REG_COL_KEYS_HOME,REG_COL_W_HOME,REG_COL_KEYS_HOME_NARROW,REG_COL_W_HOME_NARROW,REG_HOME_NARROW_W,regHomeNarrow,regHomeWatch,regPlaceSet,regPlaceUp,regHome,regRestBase,regHomeHeadHtml,regHomeWallHtml,regBookSig,regHomeStale});

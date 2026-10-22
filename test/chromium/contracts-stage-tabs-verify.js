@@ -15,10 +15,17 @@
    RE-POINTED 21 Oct 2026 (Part 8, the owner picked "the Legora way" for the
    Contracts place, which reverses the four boxes above the card): the views
    are TABS in the shared list head — All · Needs you · In negotiation ·
-   Ending in 90 days · Drafts, the rest where they hold rows, then the saved
-   views and "+ Save this view" in the same row — and the stage is a group
-   under "+ Filter", each choice printing the rows it shows; a chosen stage is
-   a chip. No labelled box is drawn on the place.
+   Ending in 90 days · Drafts, then the saved views and "+ Save this view" in
+   the same row — and the stage is a group under "+ Filter", each choice
+   printing the rows it shows; a chosen stage is a chip. No labelled box is
+   drawn on the place.
+
+   RE-POINTED 22 Oct 2026 (the owner's answer to question 2, "B": "Move those
+   four under + Filter — exactly the five drawn tabs"): Term already ended,
+   Auto-renewing soon, Overdue obligations and Details to fill are no longer
+   tabs where they hold rows; they are one "Quick filters" group under
+   + Filter (legora-lists-verify C8 drives it). So 1e asks that none of the
+   four is a tab, and 3a presses one of the five drawn views.
 
    WHAT THIS PINS, driven in a real browser
      1 the stages are a group under + Filter, each printing its number; the
@@ -92,9 +99,10 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
       JSON.stringify(held) + ' · ' + r0.stages.map(t => t.k + ':' + t.n).join(','));
     ok('1c no stage tabs on the place — one door per fact', r0.stageTabs === 0, String(r0.stageTabs));
     ok('1d no labelled filter box and no Stage or Quick filters box on the place', r0.boxes === 0 && !r0.stageSel, `${r0.boxes} boxes · select ${r0.stageSel}`);
-    ok('1e the views are tabs in the drawing\'s order, each one that is drawn holding rows',
+    ok('1e the views are tabs in the drawing\'s order, each one that is drawn holding rows, and only the five drawn',
       (() => { const order = ['', 'needs', 'nego', 'expiring90', 'drafts']; const ks = r0.tabs.map(t => t.k).filter(k => order.includes(k));
-        return JSON.stringify(ks) === JSON.stringify(order.filter(k => ks.includes(k))) && r0.tabs.every(t => t.k === '' || t.on || t.n > 0); })(),
+        return JSON.stringify(ks) === JSON.stringify(order.filter(k => ks.includes(k))) && r0.tabs.every(t => t.k === '' || t.on || t.n > 0)
+          && r0.tabs.every(t => order.includes(t.k)); })(),
       r0.tabs.map(t => (t.k || 'all') + ':' + t.n).join(' · '));
     ok('1f the tab row sits under the name row', r0.under);
     ok('1g a stage that holds nothing is not offered', r0.stages.every(t => t.n > 0), JSON.stringify(r0.stages));
@@ -120,7 +128,7 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
 
     console.log('\n3 · the views are tabs');
     const tabWith = k => (r0.tabs.find(t => t.k === k) || {}).n || 0;
-    const pick = ['nego', 'expired', 'expiring90', 'drafts', 'needs', 'details'].find(k => tabWith(k) > 0);
+    const pick = ['nego', 'expiring90', 'drafts', 'needs'].find(k => tabWith(k) > 0);
     ok('3a a view with rows is a tab to press', !!pick, r0.tabs.map(t => t.k).join(','));
     if (pick) {
       await page.click(`${SEAT} [data-reg-view="${pick}"]`);

@@ -39,7 +39,12 @@
      8  A REFRESH LANDS AT THE SAME SPOT: a tab lit, a chip added and words
         typed come back after a reload, with the same rows
    CONTRACTS ONLY: the Archive button still stands beside List | Wall; the
-   views All · Needs you · In negotiation · Ending in 90 days · Drafts; the
+   views EXACTLY All · Needs you · In negotiation · Ending in 90 days · Drafts
+   (then the saved views; owner, 22 Oct 2026, question 2 "B"), and the four
+   old Quick filters (Term already ended, Auto-renewing soon, Overdue
+   obligations, Details to fill) one "Quick filters" group under + Filter: a
+   finger's choice shows ONE chip and the rows that view reads, × brings the
+   list back, and the tab row is ONE line at all three screens; the
    first column shows initials, the party, and "kind · ref" under it; the
    columns at rest are Agreement · Stage · Ends · Value (Owner under
    Columns); no "Ask a column" on the Wall; with an Ask-a-column answer kept
@@ -652,8 +657,13 @@ function pageKit(){
     check('contracts C1 the Archive button still stands beside List | Wall', C.arch && C.seg.join() === 'list,wall' && C.beside, JSON.stringify({ arch: C.arch, seg: C.seg, beside: C.beside }));
     const T = await ev(() => window.__lh.seat() ? window.__lh.tabs().filter(t => !t.saved).map(t => t.label) : null);
     const VIEWS = ['All', 'Needs you', 'In negotiation', 'Ending in 90 days', 'Drafts'];
-    check('contracts C2 the views: All · Needs you · In negotiation · Ending in 90 days · Drafts (each holds rows on this book)',
-      Array.isArray(T) && VIEWS.every((v, i) => T[i] === v), JSON.stringify(T));
+    /* TIGHTENED 22 Oct 2026 (the owner's answer to question 2, "B": "Move
+       those four under + Filter — exactly the five drawn tabs"): EXACTLY these
+       five (the saved views apart), though Term already ended, Overdue
+       obligations and Details to fill hold rows on this book. Red at
+       e10e3af6, where the four stood as tabs after Drafts. */
+    check('contracts C2 the views: exactly All · Needs you · In negotiation · Ending in 90 days · Drafts (each holds rows on this book), then only saved views',
+      Array.isArray(T) && T.length === VIEWS.length && VIEWS.every((v, i) => T[i] === v), JSON.stringify(T));
     const f = C.first;
     const kr = f && f.subs.find(s => new RegExp('^\\S.* · ' + f.ref.replace(/[-.]/g, '\\$&') + '$').test(s));
     check('contracts C3 the first column: initials, the party, and "kind · ref" under it (the title on hover)',
@@ -670,6 +680,103 @@ function pageKit(){
     check('contracts C6 the Wall carries no "Ask a column"', !!wall && acW === 0, JSON.stringify({ wall: !!wall, ac: acW }));
     await ev(() => { regPlaceSet({ show: 'list' }); setView('register'); });
     await until(c => window.__lh.rows(c) > 0 ? true : null, cfgOf(d), 6000);
+  }
+  /* ===== CONTRACTS: THE FOUR OLD QUICK FILTERS UNDER + FILTER (22 Oct 2026) =====
+     The owner's answer to question 2, "B": "Move those four under + Filter —
+     exactly the five drawn tabs. The four views are still one press away
+     under + Filter." A finger on + Filter opens HaTi's own list; its Quick
+     filters group (the 'view' key, the very R.view the tabs write) holds the
+     four that have rows; a choice shows ONE chip and exactly the rows that
+     view reads, All lit with their number; × brings the list back. Then the
+     tab row is ONE line at each of the owner's three screens. Red at
+     e10e3af6: there was no Quick filters group (the four were tabs), and
+     the tab row took two lines. */
+  async function gQuick(d){
+    await arrive(d);
+    await until(c => window.__lh.rows(c) > 0 ? true : null, cfgOf(d), 6000);
+    const before = await ev(c => window.__lh.total(c), cfgOf(d));
+    const Q = await ev(() => { const sel = window.__lh.addSel(); if (!sel) return { nosel: true };
+      const opts = [...sel.options].map((o, i) => { let kv = null; try { kv = JSON.parse(o.value); } catch (_){ kv = null; }
+        return { i, kv, t: window.__lh.words(o), g: o.parentElement && o.parentElement.tagName === 'OPTGROUP' ? o.parentElement.label : '' }; })
+        .filter(o => Array.isArray(o.kv) && o.kv[0] === 'view');
+      return { opts }; });
+    const four = ['expired', 'autosoon', 'overdueob', 'details'];
+    const okOpts = !!Q && Array.isArray(Q.opts) && Q.opts.length > 0 && Q.opts.every(o => four.includes(o.kv[1]) && /\((\d+)\)\s*$/.test(o.t) && !/\(0\)\s*$/.test(o.t))
+      && new Set(Q.opts.map(o => o.g)).size === 1;
+    check('contracts C8a + Filter holds ONE Quick filters group: only the four old views, each with rows and counted',
+      okOpts, JSON.stringify(Q && Array.isArray(Q.opts) ? Q.opts.map(o => (o.g ? o.g + ': ' : '') + o.t) : Q));
+    if (!okOpts){ check('contracts C8b choosing one of the four under + Filter shows one chip and the rows that view reads', false, 'no Quick filters choice under + Filter to press'); }
+    else {
+      const pick = Q.opts[0], k = pick.kv[1], said = Number(pick.t.match(/\((\d+)\)\s*$/)[1]);
+      /* the rows that view reads, asked of the page's own reading with only the view swapped (as regViewCount does) */
+      const want = await ev(v => { const R = regState(), was = R.view; R.view = v; let ids = [];
+        try { ids = regFiltered().map(c => 'data-row=' + c.id); } finally { R.view = was; } return ids; }, k);
+      const T = await ev(async i => {
+        const sel = window.__lh.addSel(); if (!sel) return { gone: true };
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        const r = sel.getBoundingClientRect();
+        sel.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerType: 'touch', isPrimary: true, clientX: r.x + 5, clientY: r.y + 5 }));
+        const t0 = Date.now();
+        while (Date.now() - t0 < 2000 && !document.querySelector('.hati-selmenu')) await new Promise(z => requestAnimationFrame(z));
+        const menus = document.querySelectorAll('.hati-selmenu').length, a = document.activeElement;
+        const row = document.querySelector(`.hati-selmenu [data-sm="${i}"]`);
+        if (row) row.click();
+        return { menus, focusedSelect: !!(a && a.tagName === 'SELECT'), row: !!row };
+      }, pick.i);
+      const chips = await until(() => { const c = window.__lh.chips(); return c.length ? c : null; }, null, 4000);
+      const got = await until(([c, n]) => window.__lh.total(c) === n ? true : null, [cfgOf(d), said], 4000);
+      const S = await ev(c => ({ view: regState().view, total: window.__lh.total(c), ids: window.__lh.ids(c),
+        lit: window.__lh.tabs().filter(t => t.lit && !t.saved).map(t => ({ label: t.label, n: t.n })) }), cfgOf(d));
+      const word = pick.t.replace(/\s*\(\d+\)\s*$/, '').trim();
+      const inSet = !!S && Array.isArray(S.ids) && S.ids.length > 0 && S.ids.every(x => want.includes(x));
+      check('contracts C8b a finger on + Filter opens HaTi\'s one list; choosing a Quick filter shows ONE chip and exactly the rows that view reads, All lit with their number',
+        !!T && T.menus === 1 && !T.focusedSelect && T.row && !!chips && chips.length === 1 && chips[0].x && chips[0].t.includes(word)
+          && !!got && S.view === k && S.total === said && S.total === want.length && inSet && S.lit.length === 1 && S.lit[0].label === 'All' && S.lit[0].n === said,
+        JSON.stringify({ chose: pick.t, k, press: T, chips, view: S && S.view, total: S && S.total, said, reads: want.length, inSet, lit: S && S.lit }));
+      const x = await ev(() => { const s = window.__lh.seat(); const b = s && s.querySelector('.lh-chip [data-lh-x="view"]'); if (!b) return false; b.click(); return true; });
+      const back = await until(([c, n]) => !window.__lh.chips().length && window.__lh.total(c) === n ? true : null, [cfgOf(d), before], 4000);
+      const after = await ev(() => regState().view);
+      check('contracts C8c its × takes the chip away, the view back to rest, and the whole list back',
+        x === true && !!back && (after == null || after === ''), JSON.stringify({ pressed: x, before, view: after, now: await ev(c => window.__lh.total(c), cfgOf(d)) }));
+    }
+    /* THE TAB ROW IS ONE LINE, at each of the owner's three screens — at
+       rest and with a Quick filter's chip standing; and the four are one
+       press away (the open list's Quick filters heading), photographed */
+    const tabLines = () => ev(() => { const s = window.__lh.seat(), tl = s && s.querySelector('[role="tablist"]'); if (!tl) return null;
+      const kids = [...tl.children].filter(window.__lh.vis).map(e => ({ t: window.__lh.words(e).slice(0, 30), r: window.__lh.rect(e) }));
+      /* a line is the band the pieces overlap in: a smaller control centred on the row (+ Save this view) is the same line */
+      const lines = []; kids.forEach(x => { const ln = lines.find(l => x.r.t < l.b - 2 && x.r.b > l.t + 2);
+        if (ln){ ln.t = Math.min(ln.t, x.r.t); ln.b = Math.max(ln.b, x.r.b); } else lines.push({ t: x.r.t, b: x.r.b }); });
+      return { lines: lines.length, n: kids.length, h: window.__lh.rect(tl).h, kids: kids.map(x => x.t + '@' + x.r.t + '-' + x.r.b) }; });
+    for (const [wd, ht] of SCREENS){
+      await page.setViewportSize({ width: wd, height: ht });
+      await arrive(d);
+      await until(c => window.__lh.rows(c) > 0 ? true : null, cfgOf(d), 4000);
+      const L = await tabLines();
+      await shot(`contracts-tabs-${wd}x${ht}`);
+      check(`contracts C8d ${wd}×${ht}: the tab row is ONE line`, !!L && L.n >= 5 && L.lines === 1, JSON.stringify(L));
+      const M = await ev(async () => { const sel = window.__lh.addSel(); if (!sel) return null;
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        const r = sel.getBoundingClientRect();
+        sel.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerType: 'touch', isPrimary: true, clientX: r.x + 5, clientY: r.y + 5 }));
+        const t0 = Date.now();
+        while (Date.now() - t0 < 2000 && !document.querySelector('.hati-selmenu')) await new Promise(z => requestAnimationFrame(z));
+        const g = [...document.querySelectorAll('.hati-selmenu .hati-selmenu-g')].find(x => window.__lh.words(x) === 'Quick filters');
+        if (g) g.scrollIntoView({ block: 'nearest' });
+        return { heads: [...document.querySelectorAll('.hati-selmenu .hati-selmenu-g')].map(window.__lh.words), quick: !!g }; });
+      await shot(`contracts-filter-menu-${wd}x${ht}`);
+      await ev(() => { if (window.selectMenuClose) selectMenuClose(); });
+      const v = await ev(() => { const s = window.__lh.addSel(); const o = s && [...s.options].find(x => { try { return JSON.parse(x.value)[0] === 'view'; } catch (_){ return false; } });
+        if (!o) return null; s.value = o.value; s.dispatchEvent(new Event('change', { bubbles: true })); return o.value; });
+      const chip = v && await until(() => document.querySelector('[data-lh-seat="contracts"] .lh-chip[data-lh-chip="view"]') ? true : null, null, 4000);
+      const L2 = chip ? await tabLines() : null;
+      await shot(`contracts-quick-chip-${wd}x${ht}`);
+      check(`contracts C8e ${wd}×${ht}: the Quick filters are one press away under + Filter, and with one chosen the tab row is still ONE line`,
+        !!M && M.quick && !!chip && !!L2 && L2.lines === 1, JSON.stringify({ menu: M, chip: !!chip, lines: L2 && L2.lines }));
+      await ev(() => { const b = document.querySelector('[data-lh-seat="contracts"] .lh-chip [data-lh-x="view"]'); if (b) b.click(); });
+      await until(() => !document.querySelector('[data-lh-seat="contracts"] .lh-chip[data-lh-chip="view"]') ? true : null, null, 4000);
+    }
+    await page.setViewportSize({ width: 1440, height: 780 });
   }
   /* the § chip on a kept answer opens the contract on Home's paper */
   async function gCite(d){
@@ -760,6 +867,7 @@ function pageKit(){
         await gHead(d);
         await gBand(d);
         if (d.key === 'contracts') await gContracts(d);
+        if (d.key === 'contracts') await gQuick(d);
         if (d.key === 'people') await gPeople(d);
         await gTabs(d);
         await gFilter(d);
