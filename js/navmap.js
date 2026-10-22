@@ -140,6 +140,8 @@ function navClauseTopicOf(t){
 function navRead(q, opts = {}){
   const raw = String(q || '').trim(); if (!raw) return null;
   const t = navNorm(raw);
+  /* one contract's versions, compared: its own screen, ahead of every guard below */
+  { const cmp = navReadCompare(raw, t); if (cmp) return cmp; }
   /* ANSWER WHERE YOU STAND: when the screen in front reads every word (Explorer's map, the Contracts
      place) it answers there; only "take me to …" moves past it */
   /* a new paper asked for ("draft an NDA with Volvo") is the one form's, never a trip to an old one */
@@ -374,6 +376,7 @@ function navGo(a){
   }
   if (n.k === 'clause') return navGoClause(n);
   if (n.k === 'cact') return navGoAct(n);
+  if (n.k === 'compare') return navGoCompare(n);
   return navGoStage2(n) || navGoStage3(n);
 }
 /* the contract on Home's paper, then its clause found on the paper as drawn and landed. A paper drawn
@@ -744,8 +747,66 @@ function navReadNone(raw, t){
   return { kind: 'navsay', text: _nvT(folder ? 'nav_no_party' : 'nav_no_contract', { name }) };
 }
 
+/* ---------- COMPARE A CONTRACT WITH ITS ORIGINAL (owner, 22 Oct 2026: "The screen you shared is perfect as
+   the answer for comparison") ---------- */
+/* "show me the differences in the original contract compared to the current approved contract", "what changed
+   in the Kabras deal since the original", "jämför MK-A1 med originalet": the contract's own Compare versions
+   screen (openCompareModal), opened from its first version to the current wording. Read before every
+   question guard: a "what changed …" is this screen's, not a chart's and not the model's. */
+const NAV_COMPARE_WORDS = / (differences?|diff|what changed|what has changed|what s changed|changes since|changed since|compared? (to|with|against)|compare|comparison|versus|vs|skillnad|skillnader|skillnaderna|vad har ändrats|ändrats sedan|jämför|jämfört med) /;
+const NAV_COMPARE_SIDES = / (original|originalet|originalversionen|first version|first draft|current|latest|approved|signed|now|version|versions|ursprungliga|första versionen|nuvarande|aktuella|godkända) /;
+function navReadCompare(raw, t){
+  if (!NAV_COMPARE_WORDS.test(t) || !NAV_COMPARE_SIDES.test(t)) return null;
+  if (/ (contracts|agreements|deals|avtalen) /.test(t)) return null;          // two or more contracts: not one contract's versions
+  if (/ (week|month|quarter|year|vecka|veckan|månad|månaden|kvartal|kvartalet|år|året|today|yesterday|idag|igår) /.test(t)) return null;   // a span of time is a timeline's (Explorer's "what changed since the start of the year")
+  let rest = raw.replace(/\b(show me|take me to|open|the|differences?|diff|what|has|changed|changes|since|compared?|comparison|to|with|against|between|versus|vs|in|of|and|original|first|version|versions|draft|start|current|latest|approved|signed|now|contract|agreement|deal|one|its|jämför|jämfört|med|skillnad\w*|vad|har|ändrats|sedan|originalet|ursprungliga|nuvarande|aktuella|godkända|i|mellan)\b/ig, ' ').replace(/[?.!]/g, ' ').replace(/\s+/g, ' ').trim();
+  let c = null;
+  if (rest){
+    let hit = null; try { hit = (typeof caContractOf === 'function') ? caContractOf(rest) : null; } catch (_){ hit = null; }
+    if (!hit || hit.miss || (!hit.c && !hit.picks)) hit = navContractByName(rest, { loose: true });
+    if (hit && hit.picks && hit.picks.length > 1) return navWhich(hit.picks.map(x => ({ c: x, nav: { k: 'compare', cid: x.id } })));
+    c = hit && hit.c ? hit.c : null;
+    /* "the current Kabras contract": a party named, and its one contract (several are offered) */
+    if (!c){
+      const P = navPartiesIn(navNorm(rest));
+      if (P.length === 1){
+        const own = navBook().filter(x => ((typeof cuKeyOf === 'function') ? cuKeyOf(x.counterparty) : String(x.counterparty || '').toLowerCase()) === P[0].key);
+        if (own.length > 1) return navWhich(own.map(x => ({ c: x, nav: { k: 'compare', cid: x.id } })));
+        c = own[0] || null;
+      }
+    }
+  }
+  if (!c){ try { c = (typeof pdContract === 'function') ? pdContract() : null; } catch (_){ c = null; } }
+  if (!c) return { kind: 'navsay', text: _nvT('nav_compare_which') };
+  return { kind: 'go', place: 'nav', nav: { k: 'compare', cid: c.id }, say: 'nav_go_compare', sayVars: { ref: navRef(c), name: c.name || '' } };
+}
+/* the contract on Home's paper, then its own Compare versions screen, set from its first version to the
+   current wording (the screen's own pickers; nothing filed, nothing snapshotted) */
+function navGoCompare(n){
+  const c0 = (typeof getContract === 'function') ? getContract(n.cid) : null; if (!c0 || typeof openCompareModal !== 'function') return false;
+  _navLanding = true;
+  if (typeof pdOpenOnHome === 'function') pdOpenOnHome(c0.id, 'copilot');
+  const open = () => {
+    const c = getContract(n.cid) || c0;
+    try { openCompareModal(c); } catch (_){ _navLanding = false; return; }
+    try {
+      const a = document.getElementById('cmp-a'), b = document.getElementById('cmp-b'), go = document.getElementById('cmp-go');
+      if (a && b && go){
+        const cur = _nvT('ve_current_live');
+        const ib = [...b.options].findIndex(o => o.textContent.trim() === cur);
+        a.value = '0'; if (ib > 0) b.value = String(ib);
+        go.click();
+      }
+    } catch (_){}
+    setTimeout(() => { _navLanding = false; }, 300);
+  };
+  if (typeof ensureFull === 'function') Promise.resolve(ensureFull(c0)).then(open, open); else open();
+  return true;
+}
+
 Object.assign(window, { navNorm, navBook, navStreamWords, navStreamOf, navStageOf, navEndingOf, navEndingSpan, navParties, navPartiesIn,
   navClauseTopicOf, navRead, navReadClause, navClauseCount, navReadContracts, navContractsLabel, navReadParty, navWhich, navGo, navGoClause,
   navContractByName, navLanding, NAV_PAGES, navReadPage, NAV_ACTS, NAV_ACT_OWN, navReadContractAct, navGoAct, navClauseEl, navClauseRow, navPaperMarked, NAV_PAPER_TRIES, navSayLate, navChoicePress, NAV_STREAM_EXTRA, NAV_CLAUSE_TOPICS, NAV_LAND_TRIES,
   NAV_YOU, NAV_COMPANY, navReadSettings, navReadStandards, navUsersIn, navLandWhen, navGoStage2, NAV_STD_BOOKS, NAV_STD_ROWS,
-  navReadDuty, navReadRequest, navReadPerson, navGoStage3, navWords, navWordHits, navReadNone, navUnknownNames, NAV_HOLD_BEATS });
+  navReadDuty, navReadRequest, navReadPerson, navGoStage3, navWords, navWordHits, navReadNone, navUnknownNames, NAV_HOLD_BEATS,
+  navReadCompare, navGoCompare, NAV_COMPARE_WORDS, NAV_COMPARE_SIDES });

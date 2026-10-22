@@ -38,7 +38,9 @@ function navContracts(){
   const duty = (id, desc, due, assignee) => ({ id, desc, due, party: 'ours', assignee, status: 'open' });
   return [
     C('MK-A1', 'Refined Sugar Supply', 'Kabras Sugar', 'proc', 48000000, 'Signed',
-      { type: 'Supply agreement', expiry: quarterEnd(), obligations: [duty('ob-dep', 'Deposit payment to Kabras', inDays(5), 'admin@example.co.ke')] }, SUPPLY_BODY),
+      { type: 'Supply agreement', expiry: quarterEnd(), obligations: [duty('ob-dep', 'Deposit payment to Kabras', inDays(5), 'admin@example.co.ke')],
+        /* the wording as first uploaded, so its Compare versions screen has two things to set side by side */
+        versions: [{ n: 1, label: 'Original upload', text: SUPPLY_BODY.replace('twelve months', 'six months'), listed: true, kind: 'named', by: 'Amina Otieno', at: inDays(-60) }] }, SUPPLY_BODY),
     C('MK-A2', 'Raw Milk Collection', 'Nandi Dairy', 'proc', 36000000, 'Under Review', { type: 'Supply agreement', expiry: nextYear() }),
     C('MK-B1', 'Modern Trade Listing', 'Naivas Supermarkets', 'sales', 85000000, 'Signed', { type: 'Retail listing', expiry: nextYear() }),
     C('MK-B2', 'Retail Supply — Coast', 'Naivas Supermarkets', 'sales', 78000000, 'Under Review', { type: 'Retail supply', expiry: nextYear() }),

@@ -136,3 +136,13 @@ Score after: 193 of 194 (the Settings box's "take me to the board" lands on one 
 Still open: notes by name ("my note about the lease").
 - The exam's one judgement change: the built-in NDA template is named "Mutual
   Non-Disclosure Agreement", so its line accepts that name.
+
+## 7. One contract against its original (owner, 22 Oct 2026)
+Asked "show me the differences in the original contract compared to the current approved contract?" and
+shown the Compare versions screen, the owner said: "The screen you shared is perfect as the answer for
+comparison". So everyday words for a difference, a change since, or a comparison, with an original or
+current side, open that contract's own Compare versions (`navReadCompare` → `navGoCompare` →
+`openCompareModal`), set from its first version to the current wording; the contract in front when none is
+named, a named party's one contract, "which did you mean" for several; a contract with one version gets the
+screen's own "only one version so far". Exam section "compare", 8 sentences: 8 of 8. Whole exam: 201 of 202.
+

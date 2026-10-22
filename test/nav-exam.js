@@ -178,6 +178,19 @@ ask('my name and job title', { page: 'settings', settings: { tab: 'you', row: 'w
 ask('download a copy of my data', { page: 'settings', settings: { tab: 'you', row: 'data' } });
 ask("jambo's suggestions under his box", { page: 'settings', settings: { tab: 'you', row: 'work' } });
 
+/* ---------- 6b · ONE CONTRACT AGAINST ITS ORIGINAL (owner, 22 Oct 2026: "The screen you shared is perfect as the
+   answer for comparison") — its Compare versions screen, first version against the current wording ---------- */
+section('compare');
+/* the contract in front (MK-Z9) has one version so far: its own screen says so */
+ask('show me the differences in the original contract compared to the current approved contract?', { page: 'paper', cid: 'MK-Z9', pane: 'compare-one' });
+ask('show me the differences in MK-A1 compared to the original', { page: 'paper', cid: 'MK-A1', pane: 'compare' });
+ask('what changed in the Kabras supply deal since the original?', { page: 'paper', cid: 'MK-A1', pane: 'compare' });
+ask('compare MK-A1 with its original version', { page: 'paper', cid: 'MK-A1', pane: 'compare' });
+ask('differences between the original and the current Kabras contract', { page: 'paper', cid: 'MK-A1', pane: 'compare' });
+ask('the refined sugar supply: current versus original', { page: 'paper', cid: 'MK-A1', pane: 'compare' });
+ask('jämför MK-A1 med originalet', { page: 'paper', cid: 'MK-A1', pane: 'compare' });
+ask('vad har ändrats i MK-A1 sedan originalet?', { page: 'paper', cid: 'MK-A1', pane: 'compare' });
+
 /* ---------- 7 · SETTINGS: THE COMPANY, A PERSON, A STREAM ---------- */
 section('settings: company');
 ask('the signing limit for Amina', { page: 'settings', settings: { tab: 'company', person: 'Amina Otieno', row: 'signcap' } });

@@ -31,7 +31,7 @@ const EXEC = process.env.CHROMIUM_BIN
 /* THE RATCHET: the score may not fall below this. Stage 0 measured 81 of 194 before anything was built
    (22 Oct 2026); a run moves by a sentence or two on timing, so the floor sits a little under. Each stage
    raises it and none lowers it. */
-const NAV_EXAM_FLOOR = 186;
+const NAV_EXAM_FLOOR = 194;
 const MIN = Number(process.env.NAV_EXAM_MIN || NAV_EXAM_FLOOR);
 const ONLY = process.env.NAV_EXAM_ONLY || '';   // a section's name, or its first words
 
@@ -84,7 +84,12 @@ function navWhereSrc(){
   if (W.page === 'paper' && pc && !W.cid){
     W.cid = pc.id;
     const f = (typeof pdFaceNow === 'function') ? pdFaceNow() : '';
-    if (document.querySelector('#brief-section')) W.pane = 'brief';
+    /* Compare versions, open over the paper, set from the first version to the current wording */
+    const ca = document.getElementById('cmp-a'), cb = document.getElementById('cmp-b');
+    const one = !ca && document.getElementById('cmp-close') && /compare versions|jämför versioner/i.test(((document.getElementById('cmp-close').closest('[role="dialog"], .modal, #modal-root') || document.body).textContent) || '');
+    if (one) W.pane = 'compare-one';   // the screen's own "only one version so far"
+    else if (ca && cb) W.pane = (ca.value === '0' && /current|aktuell/i.test((cb.options[cb.selectedIndex] || {}).textContent || '')) ? 'compare' : 'compare-other';
+    else if (document.querySelector('#brief-section')) W.pane = 'brief';
     else if (typeof pdSendShows === 'function' && pdSendShows() && String(pdSendFor()) === String(pc.id)) W.pane = 'send';
     else if (f) W.pane = ({ fill: 'fill', red: 'redlines', signing: 'sign', amend: 'amend' })[f] || f;
     /* FILL IN IS THE CHECKLIST (owner picked "1 · Checklist", 22 Oct 2026): what is owed, landed on the Dossier */
