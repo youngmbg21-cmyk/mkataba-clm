@@ -390,10 +390,14 @@ function stkDecorate(c, card, rows){
     const nums = _stk.nums;
     const byRow = {};
     shown.forEach((p, i) => { if (p.at >= 0) (byRow[p.at] = byRow[p.at] || []).push(i); });
+    /* WHAT A CLAUSE LEAVES OUT IS THAT CLAUSE'S (owner, 22 Oct 2026: "build the first one"): a point
+       missing after §N counts in §N's word and dot, and opens and closes with §N */
+    const missByRow = {};
+    shown.forEach((p, i) => { if (p.at < 0 && p.missing && p.afterAt >= 0) (missByRow[p.afterAt] = missByRow[p.afterAt] || []).push(i); });
     const redWhy = stkRedlineWhy(c);
     nums.forEach((n, at) => {
       const row = list.querySelector(`[data-th-row="${at}"]`); if (!row || !n) return;
-      const mine = (byRow[at] || []).map(i => shown[i]);
+      const mine = (byRow[at] || []).concat(missByRow[at] || []).map(i => shown[i]);
       /* THE DOT WEARS ITS CLAUSE'S WORST POINT STILL OPEN; none, or every one
          reviewed, is an empty ring (the old marks are points now, so the
          paper's own tone no longer outranks the reading) */
@@ -421,7 +425,9 @@ function stkDecorate(c, card, rows){
        NO DASHED BOX (the owner, 21 Oct 2026: "no dotted lines in the
        clauses") — the indent and the grey label carry it.
        AND IT FOLDS: the head is the group's own open/close, so nothing in the
-       list is uncloseable; open unless the reader shut it this sitting. */
+       list is uncloseable; open unless the reader shut it this sitting.
+       ONE PRESS (owner, 22 Oct 2026): a group after §N stands INSIDE §N's row and
+       shows only while §N is open, so pressing the clause closes it too. */
     const groups = new Map();
     shown.forEach((p, i) => { if (p.at >= 0) return;
       const g = p.missing ? (p.afterAt >= 0 ? 'a' + p.afterAt : 'm') : 'o';
@@ -434,7 +440,8 @@ function stkDecorate(c, card, rows){
         aria-expanded="${open ? 'true' : 'false'}" title="${_bdE(i18t(open ? 'stk_miss_fold' : 'stk_miss_unfold'))}">${_bdE(h)}</button>
         <div class="stk-miss-body">${ids.map(i => stkCardHtml(c, shown[i], i, redWhy)).join('')}</div></div>`;
       const row = at >= 0 ? list.querySelector(`.doc-th-row[data-th-row="${at}"]`) : null;
-      if (row) row.insertAdjacentHTML('afterend', html); else list.insertAdjacentHTML('beforeend', html);
+      /* inside its clause, after the clause's own reading: shown only while the clause is open */
+      if (row) row.insertAdjacentHTML('beforeend', html); else list.insertAdjacentHTML('beforeend', html);
     });
     /* A FILTER NARROWS THE LIST: a row with nothing the filters keep steps
        aside, AN OPEN ONE TOO (owner, 13 Oct 2026: an open clause stayed in a
@@ -442,7 +449,8 @@ function stkDecorate(c, card, rows){
        track is untouched */
     if (stkFiltering()){
       list.querySelectorAll('.doc-th-row, .doc-th-sec').forEach(el => {
-        if (el.classList.contains('doc-th-row') && byRow[Number(el.getAttribute('data-th-row'))]) return;
+        const at = Number(el.getAttribute('data-th-row'));
+        if (el.classList.contains('doc-th-row') && (byRow[at] || missByRow[at])) return;
         el.classList.add('stk-hide');
       });
       if (!shown.length) list.insertAdjacentHTML('beforeend', `<p class="stk-nomatch" role="status">${_bdE(i18t('stk_f_none'))}</p>`);
