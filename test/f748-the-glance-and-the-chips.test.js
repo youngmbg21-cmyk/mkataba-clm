@@ -155,7 +155,11 @@ describe('f748 (2) who signs, and the risks not read yet', () => {
     /* RE-POINTED 20 Oct 2026 (the Legora way): nobody named is the grid's Signer row, both sides asked on it */
     /* no grey line under an owed fact since 21 Oct 2026: the amber box says it */
     /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"): the row's line is a press that opens it */
-    assert.match(ctx.pdGlanceHtml(c), /data-pd-og-row="signers"[^>]*><td class="pd-og-f"><button type="button" class="pd-ck-hd" data-pd-ck-row="signers"[^>]*><i class="pd-ck-ring[^"]*" aria-hidden="true"><\/i><b>Signer<\/b>[\s\S]*data-pd-og-sg="tname"[\s\S]*data-pd-og-ok="signers"/);
+    /* RE-POINTED 22 Oct 2026 (owner: "the highlighted feature should be deleted because the use for it is in the
+       pop up feature for signer"): the Signer line is the signing route editor's door; no boxes, no Confirm */
+    const h = ctx.pdGlanceHtml(c);
+    assert.match(h, /data-pd-og-row="signers"[^>]*><td class="pd-og-f">(?:<button type="button" class="pd-ck-hd" data-pd-og-route="[^"]+"[^>]*>|<div class="pd-ck-hd">)<i class="pd-ck-ring[^"]*" aria-hidden="true"><\/i><b>Signer<\/b>/);
+    assert.ok(!/data-pd-og-sg="tname"|data-pd-og-ok="signers"/.test(h), 'no signer boxes and no Confirm on the row');
   });
   /* RE-POINTED (pass 3, the owner's answer 6): the read is free, the rules scan */
   test('2b "Risks not read yet" · "Reading is free: HaTi\'s own rules, no Jambo call" · Read it', () => {

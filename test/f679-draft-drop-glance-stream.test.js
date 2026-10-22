@@ -348,7 +348,9 @@ describe('f679 (5) a contract at a glance', () => {
        are the grid's rows, answered there — the signers on one row */
     /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"): the head is "Needs you" */
     assert.match(html, /dos_needs_title[\s\S]*id="pd-og"/);
-    assert.match(html, /data-pd-og-row="signers"[\s\S]*data-pd-og-ok="signers"/);
+    /* RE-POINTED 22 Oct 2026 (owner: the signer boxes went; the signer line is the pop-up's door) */
+    assert.match(html, /data-pd-og-row="signers" data-pd-og-kind="signer"/);
+    assert.ok(!/data-pd-og-ok="signers"/.test(html), 'the signer row carries no Confirm');
     assert.match(html, /data-pd-ds="risks"[\s\S]*data-pd-gl-risks>dos_go_open/);
     assert.match(html, /pd_gl_unsent:1[\s\S]*data-pd-glance="share"/);
   });
