@@ -321,3 +321,4 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## ONE SEARCH OVER HaTi (Jambo works like Copilot, stage 1)
 - test/f866-one-search-over-hati.test.js (21): the words (both hosts), a passage found and where it sits, kept current by the triggers, the walls (stream, values, own notes, requests, private stream, code name), Jambo's tool. With the tool list touched also run f305 (the two hosts' tool names) and f561/f564 (the Brain).
+- Stage 2, every door as a tool: test/f867-every-door-as-a-tool.test.js (12: the door offered, cleaned, and walled — another stream, a code name, an admin's setting, a request) and test/chromium/jambo-doors-verify.js (21 doors, each landed in a real browser through aiGotoRun, judged by test/nav-read.js). With navmap.js touched also run test/chromium/nav-exam-verify.js (its ratchet) and f738.

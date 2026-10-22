@@ -12483,22 +12483,97 @@ const JM_TASKS_BODY = (() => { const i = JM_TASKS_SRC.indexOf('const JM_TASKS = 
 const JM_TASK_KEYS = [...JM_TASKS_BODY.matchAll(/\{ k: '([a-z]+)'/g)].map(m => m[1]);
 const JM_TASK_ADMIN = [...JM_TASKS_BODY.matchAll(/\{ k: '([a-z]+)', admin: true/g)].map(m => m[1]);
 const aiNavigateOn = () => getSetting('aiNavigate') !== false;
-const AI_GOTO_SCHEMA = { type: 'object', description: 'OPTIONAL — only when the person asks WHERE something is in HaTi, how to get to a page or setting, or to be taken somewhere. The ONE place to open for them; HaTi opens it and says so. Leave it out for a question about what contracts say.',
+/* ---- EVERY DOOR AS A TOOL (Jambo works like Copilot, stage 2, 22 Oct 2026) ----
+   The EXACT spot, named by the ids the tools returned, for the browser's ONE mover
+   (navGo, js/navmap.js) to land on through the doors it already has. No new door, and
+   never a final act: it opens, chooses and lands; it sends, signs, approves and deletes
+   nothing. Every id is checked here against what this reader may see (aiDoorOf) before
+   the browser is handed it, and the browser asks its own book again. */
+const AI_DOOR_KINDS = ['contract', 'clause', 'contracts', 'party', 'you', 'company', 'person', 'stream', 'standard', 'template', 'obligation', 'request', 'duties'];
+const AI_DOOR_TABS = ['open', 'dossier', 'fill', 'send', 'sign', 'redlines', 'brief', 'clauses', 'amend', 'oblig', 'hist', 'compare'];
+const AI_DOOR_YOU = ['lang', 'told', 'safety', 'away', 'who', 'data', 'work', 'password'];
+const AI_DOOR_COMPANY_PAGES = ['team', 'streams', 'sheet', 'roles'];
+const AI_DOOR_COMPANY = [...new Set(Object.keys((I18N_STRINGS && I18N_STRINGS.en) || {}).filter(k => /^st_syn_[a-z]+$/.test(k)).map(k => k.slice(7)))].filter(k => !AI_DOOR_COMPANY_PAGES.includes(k));
+const AI_DOOR_STAGES = ['Draft', 'Under Review', 'Signed', 'Declined'];
+const AI_DOOR_ENDINGS = ['month', 'quarter', 'year'];
+const AI_DOOR_SCHEMA = { type: 'object', description: 'OPTIONAL, and BEST when you know it: the EXACT thing to open, named by the ids your tools returned. HaTi lands on it through its own doors (it opens and chooses, it never sends, signs, approves or deletes). kind and its fields: contract {contractId, tab: open|dossier|fill|send|sign|redlines|brief|clauses|amend|oblig|hist|compare (send and sign only open the letter and the signing column; nothing is sent or signed)} · clause {contractId, num (its number, when known), quote (the first words of the passage, from search_hati), head (its heading)} · contracts {stage, stream (stream id), party (counterparty name), ending (month|quarter|year: ending this one), ids (when a list is exactly these)} · party {name} · you {key: ' + AI_DOOR_YOU.join('|') + '} (the person\'s own settings) · company {key} (an admin\'s company setting or page: ' + AI_DOOR_COMPANY.concat(AI_DOOR_COMPANY_PAGES).join('|') + ') · person {userId, row: profile|cap|access} · stream {streamId, keep} · standard {book, row (the standard\'s words)} · template {templateId} · obligation {contractId, obligationId} · request {requestId} · duties {due: "7" for this week}.',
+  properties: { kind: { type: 'string', enum: AI_DOOR_KINDS }, contractId: { type: 'string' }, tab: { type: 'string', enum: AI_DOOR_TABS },
+    num: { type: 'string' }, quote: { type: 'string' }, head: { type: 'string' },
+    stage: { type: 'string', enum: AI_DOOR_STAGES }, stream: { type: 'string' }, party: { type: 'string' }, ending: { type: 'string', enum: AI_DOOR_ENDINGS },
+    ids: { type: 'array', items: { type: 'string' } }, name: { type: 'string' }, key: { type: 'string' }, userId: { type: 'string' },
+    row: { type: 'string' }, streamId: { type: 'string' }, keep: { type: 'boolean' }, book: { type: 'string' }, templateId: { type: 'string' },
+    obligationId: { type: 'string' }, requestId: { type: 'string' }, due: { type: 'string' } },
+  required: ['kind'] };
+/* the door the model named, kept only where this reader may stand: an id they cannot see is no door (null) */
+function aiDoorOf(d, cx) {
+  if (!d || typeof d !== 'object' || !AI_DOOR_KINDS.includes(d.kind)) return null;
+  const txt = (v, n) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f<>{}]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n || 80) : '');
+  const scope = cx ? cx.scope : [], out = (cx && cx.cnOut) || new Map(), admin = !!(cx && cx.admin);
+  const cidOf = v => {
+    const id = txt(v, 40); if (!id) return '';
+    const r = db.prepare('SELECT id, folder FROM contracts WHERE id=? OR id=? OR contract_no=?').get(id, id.toUpperCase(), id.toUpperCase());
+    return r && inScope(scope, r.folder) && !out.has(String(r.id)) ? String(r.id) : '';
+  };
+  const k = d.kind;
+  if (k === 'contract') { const cid = cidOf(d.contractId); return cid ? { kind: k, contractId: cid, tab: AI_DOOR_TABS.includes(d.tab) ? d.tab : 'open' } : null; }
+  if (k === 'clause') {
+    const cid = cidOf(d.contractId); if (!cid) return null;
+    const num = /^\d{1,3}(\.\d{1,3})?$/.test(String(d.num || '').trim()) ? String(d.num).trim() : '';
+    const quote = txt(d.quote, 160), head = txt(d.head, 120);
+    return (num || quote || head) ? Object.assign({ kind: k, contractId: cid }, num ? { num } : {}, quote ? { quote } : {}, head ? { head } : {}) : null;
+  }
+  if (k === 'contracts') {
+    const o = { kind: k };
+    if (AI_DOOR_STAGES.includes(d.stage)) o.stage = d.stage;
+    if (AI_DOOR_ENDINGS.includes(d.ending)) o.ending = d.ending;
+    const st = txt(d.stream, 40); if (st && inScope(scope, st)) o.stream = st;
+    const p = txt(d.party, 120); if (p) o.party = p;
+    if (Array.isArray(d.ids)) { const ids = d.ids.slice(0, 200).map(cidOf).filter(Boolean); if (ids.length) o.ids = [...new Set(ids)]; }
+    return Object.keys(o).length > 1 ? o : null;
+  }
+  if (k === 'party') { const n = txt(d.name, 120); return n ? { kind: k, name: n } : null; }
+  if (k === 'you') return AI_DOOR_YOU.includes(d.key) ? { kind: k, key: d.key } : null;
+  if (k === 'company') return admin && (AI_DOOR_COMPANY.includes(d.key) || AI_DOOR_COMPANY_PAGES.includes(d.key)) ? { kind: k, key: d.key } : null;
+  if (k === 'person') {
+    const row = ['profile', 'cap', 'access'].includes(d.row) ? d.row : 'profile';
+    if (row !== 'profile' && !admin) return null;
+    const u = db.prepare('SELECT id FROM users WHERE id=?').get(txt(d.userId, 60));
+    return u ? { kind: k, userId: String(u.id), row } : null;
+  }
+  if (k === 'stream') { const id = txt(d.streamId, 40); return admin && id ? { kind: k, streamId: id, keep: !!d.keep } : null; }
+  if (k === 'standard') { const book = txt(d.book, 40).toLowerCase(); const row = txt(d.row, 60); return /^[a-z0-9_-]*$/.test(book) && (book || row) ? Object.assign({ kind: k }, book ? { book } : {}, row ? { row } : {}) : null; }
+  if (k === 'template') {
+    let t = null; try { t = db.prepare('SELECT * FROM templates WHERE id=?').get(txt(d.templateId, 60)); } catch (_) {}
+    return t && tplVisibleTo(t, cx && cx.user) ? { kind: k, templateId: String(t.id) } : null;
+  }
+  if (k === 'obligation') { const cid = cidOf(d.contractId), oid = txt(d.obligationId, 60); return cid && oid ? { kind: k, contractId: cid, obligationId: oid } : null; }
+  if (k === 'request') {
+    const r = db.prepare('SELECT id, by_id, folder FROM intake_requests WHERE id=?').get(txt(d.requestId, 60));
+    const u = cx && cx.user;
+    return r && u && (r.by_id === u.id || (u.role !== 'viewer' && (!r.folder || inScope(scope, r.folder)))) ? { kind: k, requestId: String(r.id) } : null;
+  }
+  if (k === 'duties') return { kind: k, due: d.due === '7' ? '7' : 'all' };
+  return null;
+}
+const AI_GOTO_SCHEMA = { type: 'object', description: 'OPTIONAL — when the person asks WHERE something is in HaTi, to be taken somewhere, or to see, show, open or find one thing. The ONE place to open for them (task), and the exact thing in it (door) when your tools named it; HaTi opens it and says so. Leave it out for a question only about what contracts say.',
   properties: { task: { type: 'string', enum: JM_TASK_KEYS, description: 'The place: needs (what waits on me), contracts, expiring, upload, draft, fill (a contract\'s details), redline, sign, signlink, share, approval (ask for one), approvals (to decide), oblig, history, calendar, amend, export, end, parties, people, requests, ourpaper (templates), standards (our standards / the negotiation playbook), import, board, insights, askcol, explorer, brief, team, signcap, folders (who sees which stream), lang, away, jamboset (my own Jambo settings), jambopts (my Jambo points).' },
     book: { type: 'string', description: 'For task standards only, when a contract type or value stream is named: the playbook book key (e.g. supply, nda, services, lease). Leave out otherwise.' },
+    door: AI_DOOR_SCHEMA,
     spot: { type: 'string', description: 'OPTIONAL — when they name ONE thing inside a place (a contract, a clause, a party\'s folder, a person\'s setting, a duty, a request, a standard, a template): a short "take me to" phrase naming it in their words, e.g. "clause 7 of MK-A1", "Juno Logistics\'s folder", "Grace\'s signing limit". HaTi reads it with its own map and lands there; task is the fallback.' } },
-  required: ['task'] };
-const AI_GOTO_RULE = 'TAKING THEM THERE: when the person asks where something is in HaTi, how to get to a page or setting, or asks to be taken somewhere, set deliver_answer\'s goto to the one place, and say in one short sentence where you are taking them. Our standards (the negotiation playbook, book by book) is task standards; HaTi picks the book from the words asked. When they name one thing inside a place (a contract, a clause, a party\'s folder, a person\'s setting, a duty, a request), also set goto\'s spot to a short phrase naming it in their words. Never set goto for a question about what a contract says.';
+  required: [] };
+const AI_GOTO_RULE = 'TAKING THEM THERE: when the person asks where something is in HaTi, how to get to a page or setting, asks to be taken somewhere, or asks to see, show, open or find ONE thing (a contract or one of its tabs, a clause, a list of contracts, a party\'s folder, a setting, a person, a template, a standard, a duty, a request), set deliver_answer\'s goto and say in one short sentence where you are taking them. Name the EXACT thing in goto\'s door with the ids your tools returned (a clause: its contract id and the passage\'s quote from search_hati, or its number), and set task to the place it sits in. Our standards (the negotiation playbook, book by book) is task standards. When you cannot name the door, set goto\'s spot to a short phrase naming the thing in their words. A question about what a contract says is answered in words with its source; when it asks WHERE the contract says it (“where does it say…”, “show me the bit about…”, “find the clause…”), also open that clause with goto.';
 const AI_GOTO_OFF_RULE = 'YOU CANNOT OPEN PAGES: when asked where something is in HaTi, name the page in words and say that the search box (⌘K) finds any page by name.';
 function aiGotoOf(g, cx) {
   if (!aiNavigateOn() || !g || typeof g !== 'object') return null;
   const task = String(g.task || '');
-  if (!JM_TASK_KEYS.includes(task)) return null;
-  if (JM_TASK_ADMIN.includes(task) && !(cx && cx.admin)) return null;
+  /* an exact door may stand without a task: the task is only its fallback */
+  const door = g.door ? aiDoorOf(g.door, cx) : null;
+  if (!JM_TASK_KEYS.includes(task)) return door ? { task: '', door } : null;
+  if (JM_TASK_ADMIN.includes(task) && !(cx && cx.admin)) return door ? { task: '', door } : null;
   const book = (task === 'standards' && typeof g.book === 'string') ? g.book.trim().toLowerCase().slice(0, 40) : '';
   /* the spot is words for the browser's own map (navRead) to read, never a route or an address */
   const spot = typeof g.spot === 'string' ? g.spot.replace(/[\u0000-\u001f<>{}]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) : '';
-  return Object.assign(book && /^[a-z0-9_-]+$/.test(book) ? { task, book } : { task }, spot ? { spot } : {});
+  return Object.assign(book && /^[a-z0-9_-]+$/.test(book) ? { task, book } : { task }, spot ? { spot } : {}, door ? { door } : {});
 }
 const RULE_DOOR_KINDS = ['ask_admin', 'ask_review', 'send_for_approval'];
 const RULE_DOOR_RULES = ['signcap', 'signfolder', 'signcheck', 'signroute', 'review', 'desk', 'linkcode', 'approvals', 'rules', 'folders'];
