@@ -96,6 +96,16 @@ function extraSrc(){
     X.err = !!last.err;
     X.choices = Array.isArray(last.choices) ? last.choices.length : (last.act && Array.isArray(last.act.picks) ? last.act.picks.length : 0);
   }
+  /* A BOX THAT ANSWERS IN ITS OWN PANEL (22 Oct 2026, stage 3's reading of the boxes): the Calendar's planner
+     and the clause editor say their answer beside their own box, not in the one conversation; read there,
+     where the reader sees it, when the conversation holds none */
+  if (!X.answers){
+    let own = '';
+    try { const p = (typeof _calPlanState === 'function') ? _calPlanState() : null;
+      if (p && p.say && document.getElementById('cal-plan-in')) own = [p.say].concat(p.points || []).join(' '); } catch (_){}
+    try { const L = [...document.querySelectorAll('#ce-lane .ce-ai')].pop(); if (L) own = L.innerText; } catch (_){}
+    if (own){ X.answers = 1; X.text = own.replace(/\s+/g, ' ').trim(); X.cites = [...new Set(X.text.match(/\b(?:MK|RL)-[A-Z0-9]+\b/g) || [])]; }
+  }
   return X;
 }
 
@@ -161,7 +171,8 @@ function judgeAll(spot, W, X, before){
   const settle = async P => {
     let prev = '';
     for (let i = 0; i < (LIVE ? 160 : 24); i++){
-      const now = await P.evaluate(([a, b]) => { const busy = (window.intel && intel.busy) || (window.ai && ai.busy) || (typeof navLanding === 'function' && navLanding());
+      const now = await P.evaluate(([a, b]) => { const busy = (window.intel && intel.busy) || (window.ai && ai.busy) || (typeof navLanding === 'function' && navLanding())
+          || (typeof _calPlanState === 'function' && _calPlanState().busy) || !!document.querySelector('#ce-lane .ce-work');
         return JSON.stringify([busy, new Function('return (' + a + ')()')(), new Function('return (' + b + ')()')()]); }, [navWhereSrc.toString(), extraSrc.toString()]).catch(() => '');
       if (now && now === prev && !JSON.parse(now)[0]) return;
       prev = now;

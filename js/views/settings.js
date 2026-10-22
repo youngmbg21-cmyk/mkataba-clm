@@ -524,7 +524,12 @@ function stWireDrawerOnce(){
        leave Settings like any box; a Settings section asked here stays the
        finder's (box 'settings'); a number nobody can see is said here */
     if(typeof caAskAnywhere==='function'&&caAskAnywhere(q,{ box:'settings', say:line=>stJbSayLine(q,line) })) return;
+    /* AI FIRST (Jambo works like Copilot, stage 3): the finder sure of ONE setting goes there as it says so;
+       words that are no setting at all ("what law governs the Kabras contract") are Jambo's to answer, here */
+    let hits=[]; try{ hits=stFind(q); }catch(_){ hits=[]; }
+    if(!hits.length&&typeof caAiFirst==='function'&&caAiFirst()&&typeof aiAskWords==='function'){ stJbAskJambo(q); return; }
     stJbAsk(q);
+    if(hits.length===1){ const row=stFindRows(q)[0]; if(row&&row.id) stFindGo(row.id); }
   });
   /* A dialog opened from inside the drawer owns Escape while it is up: one
      key closes the top layer only, never the drawer underneath as well. */
@@ -3329,6 +3334,19 @@ function stJamboHtml(){
 }
 /* AN ASK IS ADDED WHERE IT IS READ — appended to the feed, the box keeps the
    reader's hand; the page underneath does not move. */
+/* a question for Jambo asked in Settings: answered in the one conversation (aiAskWords), drawn in this panel's */
+function stJbTalkNow(){
+  const feed=document.getElementById('st-jb-feed'); if(!feed) return;
+  stTalkLand();
+  if(typeof jamboTalkOpen==='function') jamboTalkOpen(stTalkKey(), feed);
+  stJbTalkRepaint(stJbTalkWrap(feed)); stJbTalkPaint(); stJbLand(feed);
+}
+async function stJbAskJambo(q){
+  const asked=aiAskWords(q);
+  stJbTalkNow();
+  try{ await asked; }catch(_){}
+  stJbTalkNow();
+}
 function stJbAsk(q){
   q=String(q||'').trim(); if(!q) return;
   /* the stream shown stays the landing, as left (19 Oct 2026; was round 26's
@@ -9783,7 +9801,7 @@ Object.assign(window,{stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsP
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
   stRulesRows,stPaintRules,stPaintSignFolders,
   openMyAccount,openSettingsAt,settingsGoTab,stUnfinishedCount,stPeopleWire,settingsTab,stLandTop,SET_PANELS,ST_TABS,SET_CLOSURES,ST_GROUPS,ST_ATTENTION_MAX,
-  ST_FACES,stPushHtml,stPushPaint,stPushRefresh,ST_GOV_LADDER,stGovRungs,stGovNext,stYouItems,stYouHtml,stYouCardHtml,stYouSheetItems,ST_YOU_SHEET,stChipsSet,stOpensSet,stBriefSet,stMenuHits,stFind,stFindRows,stFindGo,stNeedsAll,settingsGoPage,stYouGo,stPrefSet,stAsksLoad,stAsksOpen,stAsksAnswered,stAskSeen,stAskFrom,stAskDirect,stAskOpenOn,stAdminsSaid,stDay,stJbAnswer,stJbAmount,stJbAsk,stJamboFocus,stSideSet,stSideFit,ST_SIDE_MIN,ST_BOARD_MIN,ST_SPLIT_KEY,ST_SPLIT,stSplitFit,
+  ST_FACES,stPushHtml,stPushPaint,stPushRefresh,ST_GOV_LADDER,stGovRungs,stGovNext,stYouItems,stYouHtml,stYouCardHtml,stYouSheetItems,ST_YOU_SHEET,stChipsSet,stOpensSet,stBriefSet,stMenuHits,stFind,stFindRows,stFindGo,stNeedsAll,settingsGoPage,stYouGo,stPrefSet,stAsksLoad,stAsksOpen,stAsksAnswered,stAskSeen,stAskFrom,stAskDirect,stAskOpenOn,stAdminsSaid,stDay,stJbAnswer,stJbAmount,stJbAsk,stJbAskJambo,stJbTalkNow,stJamboFocus,stSideSet,stSideFit,ST_SIDE_MIN,ST_BOARD_MIN,ST_SPLIT_KEY,ST_SPLIT,stSplitFit,
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
   settingsWriteFolderAccess,settingsExportBackup,stGoLive,stLoadAiCfgOnce,stSampleContracts,stClearSamples,stRunIntegrity,
   stPersonMissing,stPersonSays,stPersonSumHtml,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,
