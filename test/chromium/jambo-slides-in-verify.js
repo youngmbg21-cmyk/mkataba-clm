@@ -111,10 +111,11 @@ const LETTER = 'Dear Ann,\nFurther to our call, Nandi Dairy asks that the delive
     /* BESIDE THE PAGE (owner, 22 Oct 2026): nothing dimmed, the page's room ends where the panel starts */
     const ROOM = () => { const cs = document.getElementById('content-scroll'), p = document.getElementById('ai-panel'), tab = document.querySelector('[data-jh-jambo]');
       const tr = tab && tab.getBoundingClientRect(); const hit = tr && tr.width ? document.elementFromPoint(tr.left + tr.width / 2, tr.top + 40) : null;
-      return { pageRight: Math.round(cs.getBoundingClientRect().right), panelLeft: Math.round(p.getBoundingClientRect().left), panelW: Math.round(p.getBoundingClientRect().width),
+      const ph = document.getElementById('page-head');
+      return { pageRight: Math.round(cs.getBoundingClientRect().right), headRight: ph ? Math.round(ph.getBoundingClientRect().right) : 0, panelLeft: Math.round(p.getBoundingClientRect().left), panelW: Math.round(p.getBoundingClientRect().width),
         tabShown: !!(tr && tr.width && hit && hit.closest('[data-jh-jambo]')), side: document.documentElement.scrollWidth <= innerWidth + 1 }; };
     const R1 = await page.evaluate(ROOM);
-    check('1d nothing is dimmed: the page makes room beside the panel, its right edge where the panel starts', !!P1 && !P1.scrim && Math.abs(R1.pageRight - R1.panelLeft) <= 1, JSON.stringify({ scrim: P1 && P1.scrim, ...R1 }));
+    check('1d nothing is dimmed: the page and its head card make room beside the panel, their right edge where the panel starts', !!P1 && !P1.scrim && Math.abs(R1.pageRight - R1.panelLeft) <= 1 && R1.headRight <= R1.panelLeft + 1, JSON.stringify({ scrim: P1 && P1.scrim, ...R1 }));
     check('1e the edge "Jambo" tab steps away while the panel is in (as Home\'s folded strip does)', !R1.tabShown, JSON.stringify(R1));
     await shot('1-side-panel-1440x780');
     /* THE SLIDER: the one every Jambo panel has, on the panel's left edge */
@@ -142,7 +143,7 @@ const LETTER = 'Dear Ann,\nFurther to our call, Nandi Dairy asks that the delive
       for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
         await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(350);
         const R3 = await page.evaluate(ROOM);
-        check(`1l ${w}×${ht}: beside the page, nothing dimmed, nothing sideways`, Math.abs(R3.pageRight - R3.panelLeft) <= 1 && R3.side && !R3.tabShown, JSON.stringify(R3));
+        check(`1l ${w}×${ht}: beside the page, nothing dimmed, nothing sideways`, Math.abs(R3.pageRight - R3.panelLeft) <= 1 && R3.headRight <= R3.panelLeft + 1 && R3.side && !R3.tabShown, JSON.stringify(R3));
         await shot(`1-side-panel-${w}x${ht}`);
       }
       await page.setViewportSize({ width: 1440, height: 780 }); await page.waitForTimeout(300);

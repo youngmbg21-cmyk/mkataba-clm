@@ -12757,7 +12757,7 @@
      aiSideSync, aiPopOut) ====
      On a computer the window is a side panel wearing THE BRIEF: 384 wide under the top bar, the head
      and the foot 56, its tab a word (the ✦ and "Jambo", the live tab's rule under them), nothing boxed;
-     the page beside it dimmed by the scrim under the bar (the ONE PANEL convention), never reflowed.
+     the page and its head card make room beside it, nothing dimmed (owner, 22 Oct 2026).
      The ✦ opens the movable chat window instead (below; the one-line ✦ bar is gone). Popped out,
      the same nodes stand in a window of their own (.is-popped). Scoped by id and class, never !important. */
   @media (min-width:768px){
@@ -12765,7 +12765,7 @@
     #ai-panel.is-side{top:var(--shell-head-h,48px);height:auto;width:var(--ai-side-w,384px);max-width:none;border-left:1px solid var(--color-divider);box-shadow:none}
     /* BESIDE THE PAGE, AS EVERY JAMBO PANEL (owner, 22 Oct 2026): the page makes room, nothing dimmed;
        THE SLIDER on its left edge (splitHtml, ai.js AI_SIDE_SPLIT) pulls it wider */
-    body.ai-side-open #content-scroll{margin-right:var(--ai-side-w,384px)}
+    body.ai-side-open #content-scroll, body.ai-side-open #page-head{margin-right:var(--ai-side-w,384px)}
     #ai-panel.is-side > .ig-resizer{left:-1px}
     #ai-panel.is-side.is-dragging{transition:none}
     #ai-panel.is-side.ai-stepaside{visibility:hidden;pointer-events:none}
