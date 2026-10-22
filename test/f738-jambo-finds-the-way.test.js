@@ -286,9 +286,10 @@ describe('f738 (5) the AI takes you there', () => {
    turns them into a route. */
 describe('f738 (6) the AI names the exact spot, the map reads it', () => {
   const SRV = R('server/server.js'), AI = R('js/ai.js');
-  test('6a the schema offers spot beside task, task still required', () => {
+  test('6a the schema offers spot and the exact door beside task; a door may stand without a task (stage 2 of Jambo works like Copilot)', () => {
     assert.match(SRV, /spot: \{ type: 'string', description: 'OPTIONAL — when they name ONE thing inside a place/);
-    assert.match(SRV, /required: \['task'\] \};/);
+    assert.match(SRV, /door: AI_DOOR_SCHEMA,/);
+    assert.match(SRV, /required: \[\] \};/);
   });
   test('6b aiGotoOf keeps a short clean spot and still refuses an unknown task', () => {
     const src = SRV.slice(SRV.indexOf('function aiGotoOf('), SRV.indexOf('const RULE_DOOR_KINDS'));

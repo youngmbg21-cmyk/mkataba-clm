@@ -50,7 +50,7 @@ Questions and the Nine Flow Rules still apply.
 |---|---|---|
 | 0 | THE EXAM: 240 held-out asks (test/jambo-exam.js) over test/jambo-world.js, typed into real boxes (test/chromium/jambo-exam-measure.js), dead ends and calls counted | built |
 | 1 | ONE SEARCH OVER HaTi: the permission-aware index | built |
-| 2 | EVERY DOOR AS A TOOL | — |
+| 2 | EVERY DOOR AS A TOOL | built |
 | 3 | AI FIRST IN EVERY BOX, NEVER A DEAD END | — |
 | 4 | MEASURE AGAIN: before/after, calls per ask, the three screens | — |
 
@@ -65,3 +65,4 @@ score; the exam is re-run live after stage 2 as well as at stage 4.
 |---|---|---|---|
 | Before, no AI key (free readers alone), 22 Oct 2026 | 102 of 240 (43%) | 2 | 0 |
 | Before, live AI (the app as at 1881323), 22 Oct 2026 | 139 of 240 (58%) | 0 | 0.75 (180 calls) |
+| After stages 1–2, live AI, 22 Oct 2026 | 142 of 240 (59%) | 1 | 0.80 (193 calls) |
