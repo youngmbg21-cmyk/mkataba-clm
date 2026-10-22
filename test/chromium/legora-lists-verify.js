@@ -33,9 +33,13 @@
         numbers follow; the caret stays in the box at every keystroke; "Visa"
         or a party name is never a question; "which ones are waiting on us?"
         does not narrow; Enter hands it to the page's OWN Jambo (on Contracts
-        Home's dock conversation grows by it, on a list page the list's
-        panel shows it), the reader stays on the page and the box is empty
-        afterwards; Enter on plain words stays a search (no Jambo turn)
+        Home's dock conversation grows by it); on a list page it is ANSWERED
+        IN the list's own panel (owner, 22 Oct 2026: Part 8's question 3 =
+        A, "Answer beside the list"): the reader stays on the page with the
+        tab, chips and rows as they were, the box is empty, the panel shows
+        the question and Jambo's answer after it, and the AI stand-in is
+        asked nothing (the Board's own reader answers it free); Enter on
+        plain words stays a search (no Jambo turn)
      8  A REFRESH LANDS AT THE SAME SPOT: a tab lit, a chip added and words
         typed come back after a reload, with the same rows
    CONTRACTS ONLY: the Archive button still stands beside List | Wall; the
@@ -65,8 +69,12 @@
    there too: the list panel's own box (jlAsk) sends "which ones are waiting
    on us?" to Home's Board and the reader leaves the page. The head's box
    hands a question to that SAME door (typing it in the box is typing it in
-   Jambo's panel), so 7g asks only that the one conversation gained it and
-   the box is empty; where the door goes on from there is the door's own.
+   Jambo's panel). TIGHTENED 22 Oct 2026 (the owner's answer to question 3,
+   "A — Answer beside the list"): 7g now asks that the reader STAYS — same
+   view, the tabs, chips and rows unchanged, the box empty, the question and
+   Jambo's answer in the panel, no request to the AI stand-in. Run in a
+   throwaway worktree at e10e3af6 (before the answer was built), 7g FAILS on
+   every list page: the view becomes 'dashboard' (Home's Board).
 
    Every driven half is guarded: a missing part prints FAIL with its reason
    instead of waiting. Every wait asks for the state and is bounded.
@@ -577,16 +585,42 @@ function pageKit(){
     const qn = await ev(c => ({ total: window.__lh.total(c), rows: window.__lh.rows(c), focus: document.activeElement === window.__lh.box() }), cfg);
     check(`${tag(d)} 7f "${QUESTION}" does not narrow the list, the caret kept`, !!held && qn.rows === rest && qn.focus, JSON.stringify({ before: before.total, rest, now: qn }));
     const asked0 = await ev(q => window.__lh.asked(q), QUESTION);
+    const home = d.key === 'contracts';
+    /* ANSWERED BESIDE THE LIST (owner, 22 Oct 2026: Part 8's question 3 =
+       A): what the list shows is read just before Enter — the tabs with their
+       numbers and the lit one, the chips, the rows — and must be the same
+       after; the model is asked nothing for a question the Board's own
+       reader answers free (the AI stand-in's requests are counted) */
+    const spotOf = c => ({ tabs: window.__lh.tabs().filter(t => !t.saved).map(t => `${t.label} ${t.n}${t.lit ? '*' : ''}`), chips: window.__lh.chips().map(x => x.t), ids: window.__lh.ids(c) });
+    /* the head counts again once the typing pauses (lhHeadSyncSoon): read it settled */
+    if (!home) await until(() => window.__lh.synced() ? true : null, null, 3000);
+    const spot0 = home ? null : await ev(spotOf, cfg);
+    const calls0 = h.ai.calls.length;
     await page.keyboard.press('Enter');
     const went = await until(([q, n]) => window.__lh.asked(q) > n ? true : null, [QUESTION, asked0], 10000);
     await quiet();
+    /* the panel's conversation: the question's turn, then Jambo's answer after it */
+    const said = ([p, q]) => { const pn = document.querySelector(p); const f = pn && pn.querySelector('#jl-feed'); if (!f) return null;
+      const T = [...f.querySelectorAll('.jb-turn')], w = e => e.textContent.replace(/\s+/g, ' ').trim();
+      let i = -1; T.forEach((e, k) => { if (w(e) === q) i = k; });
+      const a = i >= 0 ? T[i + 1] : null;
+      return a && w(a) && w(a) !== q ? { q: true, answer: w(a).slice(0, 160) } : null; };
+    const ans = home ? null : await until(said, [d.panel, QUESTION], 6000);
     const after2 = await ev(([c, p, q]) => { const pn = document.querySelector(p); const b = window.__lh.box();
       return { view: state.view, head: !!window.__lh.seat(), box: b ? b.value : null, total: window.__lh.total(c),
         panel: !!(pn && pn.textContent.includes(q)), intel: !!(window.intel && Array.isArray(intel.history) && intel.history.some(m => m && m.role === 'user' && String(m.text || '').trim() === q)) }; }, [cfg, d.panel, QUESTION]);
-    const home = d.key === 'contracts';
-    check(`${tag(d)} 7g Enter hands the question to ${home ? 'Home\'s dock (intel.history grew by it)' : 'the list\'s own Jambo door, as if typed in its panel'}, the box is empty`,
-      !!went && (after2.view !== before.view || (after2.head && after2.box === '')) && (!home || after2.intel),
+    const calls = h.ai.calls.length - calls0;
+    if (home) check(`${tag(d)} 7g Enter hands the question to Home's dock (intel.history grew by it), the box is empty`,
+      !!went && (after2.view !== before.view || (after2.head && after2.box === '')) && after2.intel,
       JSON.stringify({ asked: !!went, ...after2, wasView: before.view, before: before.total }));
+    else {
+      const spot1 = await ev(spotOf, cfg);
+      const same = !!spot0 && !!spot1 && JSON.stringify(spot0) === JSON.stringify(spot1);
+      check(`${tag(d)} 7g Enter on "${QUESTION}" is answered IN the list's own panel: the reader stays on the page, the tab, chips and rows as they were, the box empty, the question and Jambo's answer in the panel, no Jambo call`,
+        !!went && after2.view === before.view && after2.head && after2.box === '' && same && !!ans && calls === 0,
+        JSON.stringify({ asked: !!went, view: after2.view, wasView: before.view, head: after2.head, box: after2.box, same, was: spot0 && { tabs: spot0.tabs, chips: spot0.chips, rows: spot0.ids.length },
+          now: spot1 && { tabs: spot1.tabs, chips: spot1.chips, rows: spot1.ids.length }, answer: ans, calls }));
+    }
     /* leave the box empty for what follows */
     if (await ev(() => !!(window.__lh.box() && window.__lh.box().value)) === true) await boxClear();
   }
