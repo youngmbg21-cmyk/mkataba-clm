@@ -2709,7 +2709,8 @@ function pdNextUpHtml(c, o){
   const allFold = all ? `<details class="ds-fold is-ck-all" data-ds-fold="acts"><summary><span>${_pdE(_pdT('dos_next_acts'))}</span><span class="pd-mn-n">${all}</span></summary>
     ${groups.map(g => `<div class="pd-mn-g"><div class="ds-fold-h">${_pdE(g.title)}</div><div class="pd-mn-rows room-menu">${g.rows.join('')}</div></div>`).join('')}</details>` : '';
   const kt = (o && o.kt) ? pdKtHtml(c) : '';
-  return `<div class="pd-menu pd-nx ds-nx" data-pd-menu="${_pdE(c.id)}">${actsCard}${allFold}${kt}${dossierFamilyFoldHtml(c)}${dossierPeopleFoldHtml(c)}</div>`;
+  /* KEY TERMS AND THE FAMILY ABOVE NEXT ACTS; who else stands after the signer line (owner, 22 Oct 2026) */
+  return `<div class="pd-menu pd-nx ds-nx" data-pd-menu="${_pdE(c.id)}">${kt}${dossierFamilyFoldHtml(c)}${actsCard}${allFold}</div>`;
 }
 /* ---- WHO ELSE IS ON THIS AGREEMENT (owner, 21 Oct 2026: "put it in Key terms and dossier") ----
    Since the Board's card reads (20 Oct) the people list had no door on a computer. ONE DOOR, pdPeopleOpen:
@@ -3731,7 +3732,9 @@ function pdOgFromHtml(c, f){
 const _pdCkOpen = new Map();
 function pdCkOpenKey(c, rows){
   const k = _pdCkOpen.get(String(c.id));
-  if (k === undefined) return rows.length ? String(rows[0].key) : '';
+  /* the signer row has nothing to open: its line is the route editor's door (owner, 22 Oct 2026) */
+  const first = rows.find(r => r && r.kind !== 'signer');
+  if (k === undefined) return first ? String(first.key) : '';
   return k;
 }
 function pdCkOpenSet(id, key){ _pdCkOpen.set(String(id), key ? String(key) : '-'); }
@@ -3792,6 +3795,12 @@ function pdCkSignersRowHtml(c, o){
   return `<tr class="pd-og-row is-named${open ? ' is-open' : ''}" data-pd-og-row="signers" data-pd-og-kind="signers-named"><td class="pd-og-f">${hd}</td>`
     + `<td class="pd-og-v">${held ? '' : `<span class="pd-ck-note">${E(_pdT('og_sg_runs'))}</span><ol class="pd-ck-sgs">${lines}</ol>`}</td><td class="pd-og-a">${held ? '' : `<span></span>${route}`}</td></tr>`;
 }
+function pdCkPeopleRowHtml(c){
+  if (!c || typeof participantsDirHtml !== 'function') return '';
+  const E = _pdE, n = pdPeopleItems(c).length;
+  return `<tr class="pd-og-row is-named is-people" data-pd-og-row="people" data-pd-og-kind="people"><td class="pd-og-f"><button type="button" class="pd-ck-hd" data-pd-people="${E(c.id)}" data-pd-people-from="dossier">`
+    + `<i class="pd-ck-ring is-none" aria-hidden="true"></i><b>${E(_pdT('ppl_title'))}</b><span class="pd-ck-v">${E(n ? pdPeopleSay(c) : _pdT('ppl_none'))}</span><span class="pd-ck-chev" aria-hidden="true"></span></button></td><td class="pd-og-v"></td><td class="pd-og-a"></td></tr>`;
+}
 /* the grid; held (beside the Board) it reads only, each row a door to the paper */
 function pdOgHtml(c, o){
   const held = !!(o && o.held);
@@ -3808,6 +3817,16 @@ function pdOgHtml(c, o){
     return E(String(f.read.words || '') + cl);
   };
   const tr = f => {
+    /* THE SIGNER LINE IS THE POP-UP'S DOOR (owner, 22 Oct 2026: "the highlighted feature should be deleted
+       because the use for it is in the pop up feature for signer"): no boxes, no Confirm on the row; a press
+       on its line opens the signing route editor, where signers are added and ordered */
+    if (f.kind === 'signer' && !held){
+      const door = may && typeof openSignerPlanEditor === 'function';
+      const inner = `${pdCkRing('miss')}<b>${E(f.label)}</b><span class="pd-ck-v">${val(f)}</span><span class="pd-ck-chev" aria-hidden="true"></span>`;
+      return `<tr class="pd-og-row is-amb is-door" data-pd-og-row="${E(f.key)}" data-pd-og-kind="signer"><td class="pd-og-f">${door
+        ? `<button type="button" class="pd-ck-hd" data-pd-og-route="${E(c.id)}" title="${E(_pdT('og_sg_order'))}">${inner}</button>`
+        : `<div class="pd-ck-hd">${inner}</div>`}</td><td class="pd-og-v"></td><td class="pd-og-a"></td></tr>`;
+    }
     const open = !held && openKey === String(f.key);
     const ring = pdCkRing(f.read ? 'read' : 'miss');
     const hd = held
@@ -3827,8 +3846,12 @@ function pdOgHtml(c, o){
   const stream = (() => { const F = (typeof FOLDERS === 'object' && FOLDERS) || {}; const n = c.folder && F[c.folder] ? F[c.folder].name : '';
     return n ? one('stream', _pdT('ct_value_stream'), n) : ''; })();
   const done = saved.map(x => one(x.key, x.label, x.words)).join('');
-  if (!rows.length && !done && !named) return '';
-  return `<table id="${held ? 'pd-og-held' : 'pd-og'}" class="pd-og is-ck" data-pd-og-for="${E(c.id)}"><thead class="sr-only"><tr><th>${E(_pdT('og_col_fact'))}</th><th>${E(_pdT('og_col_read'))}</th><th><span class="sr-only">${E(_pdT('og_confirm'))}</span></th></tr></thead><tbody>${rows.map(tr).join('')}${done}${named}${stream}</tbody></table>`;
+  /* WHO ELSE IS ON THIS AGREEMENT, RIGHT AFTER THE SIGNER LINE (owner, 22 Oct 2026): one line of the
+     same height, its press the one door (pdPeopleOpen); it owes nothing, so it is counted nowhere */
+  const ppl = pdCkPeopleRowHtml(c);
+  const facts = rows.filter(r => r.kind !== 'signer').map(tr).join(''), sgn = rows.filter(r => r.kind === 'signer').map(tr).join('');
+  if (!rows.length && !done && !named && !ppl) return '';
+  return `<table id="${held ? 'pd-og-held' : 'pd-og'}" class="pd-og is-ck" data-pd-og-for="${E(c.id)}"><thead class="sr-only"><tr><th>${E(_pdT('og_col_fact'))}</th><th>${E(_pdT('og_col_read'))}</th><th><span class="sr-only">${E(_pdT('og_confirm'))}</span></th></tr></thead><tbody>${facts}${done}${sgn}${named}${ppl}${stream}</tbody></table>`;
 }
 /* the grid is up for this contract: its Dossier is the tab, beside its paper, no face over it */
 function pdOgShows(c){
@@ -4072,7 +4095,7 @@ function pdOgRepaint(){
 /* the next row still owed takes the hand (EVERY STEP STARTS THE NEXT) */
 function pdOgNext(after){
   const host = pdOgHost(); if (!host) return;
-  const rows = [...host.querySelectorAll('tr.pd-og-row:not(.is-saved):not(.is-named)')];
+  const rows = [...host.querySelectorAll('tr.pd-og-row:not(.is-saved):not(.is-named):not(.is-door)')];
   const r = rows.find(x => x.getAttribute('data-pd-og-row') !== after) || null;
   /* the Checklist opens the next owed row (or none, once nothing is owed) */
   const c = pdOgContract(host);
@@ -4452,7 +4475,8 @@ function pdOgLand(id, key){
       /* the Checklist: the row landed on is the one open */
       pdCkOpenSet(want.id, row.getAttribute('data-pd-og-row')); pdCkShow(host, row.getAttribute('data-pd-og-row'));
       if (typeof landOn === 'function') landOn(row, { block: 'center', focus: false });
-      const box = row.querySelector('input:not([type=checkbox]):not([disabled]), select, textarea');
+      /* a row with no box (the Signer line) takes the hand on its own line */
+      const box = row.querySelector('input:not([type=checkbox]):not([disabled]), select, textarea') || row.querySelector('button.pd-ck-hd');
       if (box) try { box.focus({ preventScroll: true }); } catch (_){}
       return;
     }
@@ -5561,7 +5585,7 @@ if (typeof document !== 'undefined' && !document._pdTrailEsc){
     if (pdTrailBack() || (typeof jamboTalkBack === 'function' && jamboTalkBack())) e.preventDefault();
   });
 }
-Object.assign(window, { pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
+Object.assign(window, { pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
   PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdTalkKey, pdTalkScope, pdTalkShows, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,

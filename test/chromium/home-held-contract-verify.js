@@ -462,7 +462,8 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     const P6 = await until(() => { const st = document.getElementById('bs-strip-MK-0399'), g = document.querySelector('#ig-dock .pd-held-dos[data-pd-held-for="MK-0399"]'); if (!st || !g) return null;
       return { head: ((st.querySelector('.bs-head .bs-lockp') || {}).textContent || '').trim(), glHead: ((g.querySelector('[data-pd-ds-card="private"] .pd-gl-row span') || {}).textContent || '').trim(),
         rows: [...g.querySelectorAll('[data-pd-ds-card="private"] .pd-gl-row, [data-pd-ds-card="owed"] .pd-gl-row')].map(r => ({ k: r.getAttribute('data-pd-cg') || r.getAttribute('data-pd-gl'), t: ((r.querySelector('span') || {}).textContent || '').replace(/\s+/g, ' ').trim(), b: ((r.querySelector('button') || {}).textContent || '').trim() })),
-        og: [...g.querySelectorAll('#pd-og-held tr.pd-og-row:not(.is-saved)')].map(r => ({ k: r.getAttribute('data-pd-og-kind'), key: r.getAttribute('data-pd-og-row'), b: ((r.querySelector('[data-pd-og-go]') || {}).textContent || '').trim() })),
+        /* RE-POINTED 22 Oct 2026: "Who else is on this agreement" is a line of the grid that owes nothing (.is-named) */
+        og: [...g.querySelectorAll('#pd-og-held tr.pd-og-row:not(.is-saved):not(.is-named)')].map(r => ({ k: r.getAttribute('data-pd-og-kind'), key: r.getAttribute('data-pd-og-row'), b: ((r.querySelector('[data-pd-og-go]') || {}).textContent || '').trim() })),
         chips: [...document.querySelectorAll('#ig-dock [data-pd-held-chips] button')].map(b => ({ w: b.textContent.trim(), k: b.getAttribute('data-pd-held-chip') })) }; }, null, 12000);
     check('6p a private contract wears "Private · <stream>" on its head, and its dossier opens saying so', !!P6 && /^Private · .+/.test(P6.head) && P6.glHead.indexOf(P6.head) === 0, JSON.stringify(P6 && { head: P6.head, glHead: P6.glHead }));
     const pk = P6 ? P6.rows.map(r => r.k) : [];
