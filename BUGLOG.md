@@ -21413,3 +21413,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Fixed: the send screen put away by the top bar (and by Cancel/Esc) lost a typed note without asking.
 - Fixed: on their page, revising an ask they had already sent was lost on the next repaint with no Send offered (28 Sep line).
 - Checked and already fixed before today (the lines are old): the dispute-hold guards on unsigned contracts (26 Sep); an untouched returned Word file filing phantom changes (f492); the converter's silent 60,000-character cut.
+
+## 22 Oct 2026 — Jambo's side panel beside the page, with the slider
+- Removed (owner's ask, said to the owner): the grey over the page while Jambo's slide-in side panel is open, the press outside it that closed it, and the "Jambo" edge strip standing beside the open panel (it now steps away and comes back when the panel is put away).
+- Noticed, not fixed: the other side panel (Guide · Alerts · Notes · Activity) still greys the page and has no slider; asked of the owner rather than changed.
