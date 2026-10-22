@@ -2394,6 +2394,9 @@ async function intelAsk(qRaw, opts){
     if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{}, rdOf(), typeof window.hbBoardReplyMeta==='function'?hbBoardReplyMeta():{})); renderIntelDock(); return; }
   }
   const h0=intel.history.length;
+  /* THE AI TAKES YOU THERE (owner, 22 Oct 2026): an answer that names a place
+     opens it after the answer is drawn (aiGotoRun, js/ai.js) */
+  const goSince=Date.now();
   /* A TYPED QUESTION ON THE BOARD STARTS AFRESH (the honest reply, 5 Oct
      2026): a set an earlier question left on the map no longer narrows the
      next one ("Top 10 by value" drawing 2) — the board's own count stays */
@@ -2441,6 +2444,7 @@ async function intelAsk(qRaw, opts){
     intel.history.push({role:'assistant', text:'Something went wrong: '+igEsc(e.message), err:true});
   }
   intel.busy=false;
+  { const g=(typeof window.aiGotoTake==='function')?aiGotoTake(goSince):null; if(g&&typeof window.aiGotoRun==='function') try{ aiGotoRun(g, q); }catch(_){} }
   /* THE ONE PREPARED PRESS under an answer about one contract (js/jambopress.js):
      its Show me is the answer's own Open on Paper (igDoorsHtml, THE ONE DOOR),
      and the paper on screen carries its next steps as chips already */
@@ -2583,6 +2587,7 @@ async function intelGraphAsk(q){
         activeIds: act.ids?[...act.ids]:null,
         screen: graphAskScreen() };
       res=await api('ai/graph','POST',payload);
+      if(typeof window.aiGotoNote==='function') aiGotoNote(res);
     }catch(e){
       intel.history.push({role:'assistant', err:true,
         text:(/key|configure|401|model/i.test(e.message)?'Jambo engine needs an API key — using the built-in interpreter instead.':'Jambo error: '+igEsc(e.message)+' — using the built-in interpreter instead.')});
