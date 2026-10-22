@@ -1,27 +1,19 @@
 /* ============================================================
-   THE SIGNER ROW IN STILL OWED, THE SAP WAY — AS DRAWN
+   THE SIGNER LINE IS THE POP-UP'S DOOR
    ============================================================
-   The owner, 21 Oct 2026: "adding signer should be next to the signers area not
-   at the bottom. Also when i click on add signers it takes me to a different
-   location. Propose a rule where it should be possible that you can add without
-   being taken to a different page unless there is a pop up. Also, I should also
-   be able to search within our directory to enter the right person and their
-   respective email."  They picked "The SAP way" by name; this is what it drew.
+   The owner, 21 Oct 2026, picked "The SAP way" for the Signer row (search boxes
+   over the directory in the row). The owner, 22 Oct 2026, after the Checklist:
+   "the highlighted feature should be deleted because the use for it is in the
+   pop up feature for signer." RE-POINTED that day: the row's boxes, its Confirm
+   and its "Add or order signers ›" went; the Signer line itself opens the
+   signing route editor.
 
-     1  the bottom "name a signer" chip is GONE (the row asks it now), and the
-        row's name boxes are typing boxes — no <select>, so a touch press opens
-        HaTi's own list and never also the system picker
-     2  typing in the counterparty's signer box opens the directory list, the
-        counterparty's own people FIRST and then the rest, each row carrying
-        what the record holds (name · party, and the address)
-     3  picking a row fills the NAME and the EMAIL together
-     4  the list FLOATS: the rows under it do not move, and it covers them
-     5  ONE BUTTON FOR SIGNERS (owner, 22 Oct 2026): "+ Add another signer" and the
-        Acts' "Add signers" are gone — "Add or order signers ›" is the one door
-     6  "Add or order signers ›" opens the signing route editor over the same page,
-        and closing it lands back on the row that opened it
-     7  a box near the foot of the panel opens its list ABOVE itself, whole,
-        inside the panel — at the owner's three screens
+     1  the Signer row carries no box, no <select>, no Confirm
+     2  a press on its line opens the signing route editor over the same page;
+        a TOUCH press does too (one press, on an iPad as well)
+     3  closing it lands back on the Signer line
+     4  "Who else is on this agreement" stands right after the signer line
+     5  the owner's three screens: the line stands whole, nothing past the panel
 
      node test/chromium/signer-row-as-drawn-verify.js
    ============================================================ */
@@ -29,7 +21,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
-const { startHati, seedWorkspace, fixtureContract, ckOpenRowOf } = require('../helpers');
+const { startHati, seedWorkspace, fixtureContract } = require('../helpers');
 
 const OUT = path.join(process.env.HATI_SHOT_DIR || path.join(__dirname, 'shots'), 'signer-row-as-drawn');
 const EXEC = process.env.CHROMIUM_BIN
@@ -53,31 +45,6 @@ const TEXT = ['MUTUAL NON-DISCLOSURE AGREEMENT', '',
   'Each party shall keep the other party\'s confidential information secret.', '',
   '2. Term', '', 'This agreement runs for two years from the date of signature.'].join('\n');
 
-/* what the row draws, measured in the page */
-const MEASURE = () => {
-  const row = document.querySelector('#ig-dock #pd-og tr[data-pd-og-row="signers"]');
-  const dock = document.getElementById('ig-dock'), feed = document.getElementById('igd-feed');
-  if (!row || !dock) return { up: false };
-  const box = row.querySelector('[data-pd-og-sb="theirs"]');
-  const dd = row.querySelector('.pd-og-dd');
-  const top = sel => { const el = row.querySelector(sel) || document.querySelector(sel); return el ? Math.round(el.getBoundingClientRect().top) : null; };
-  const r = el => { if (!el) return null; const q = el.getBoundingClientRect();
-    return { top: Math.round(q.top), bottom: Math.round(q.bottom), left: Math.round(q.left), right: Math.round(q.right) }; };
-  return { up: true,
-    chips: [...document.querySelectorAll('#ig-dock [data-ca-chip]')].map(b => b.getAttribute('data-ca-chip')),
-    selects: row.querySelectorAll('select').length,
-    nameBoxes: row.querySelectorAll('[data-pd-og-sg="tname"]').length,
-    order: row.querySelector('[data-pd-og-route]') ? row.querySelector('[data-pd-og-route]').textContent.trim() : null,
-    add: !!row.querySelector('[data-pd-og-sg-add]'),
-    list: dd ? [...dd.querySelectorAll('.pd-og-dd-row')].map(b => ({
-      name: b.getAttribute('data-pd-og-pick'), mail: b.getAttribute('data-og-mail'),
-      words: b.textContent.replace(/\s+/g, ' ').trim() })) : null,
-    listBox: r(dd), up2: dd ? dd.classList.contains('is-up') : null,
-    boxBox: r(box), mailBox: r(row.querySelector('[data-pd-og-sg="temail"]')),
-    addTop: top('[data-pd-og-sg-add]'), ktTop: top('#pd-kt'),
-    name: box ? box.value : null, mail: (row.querySelector('[data-pd-og-sg="temail"]') || {}).value,
-    feed: r(feed) };
-};
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
@@ -115,110 +82,47 @@ const MEASURE = () => {
       await page.evaluate(id => regOpenContract(id), ID);
       await waitFor(page, id => !!document.querySelector(`#pd-glance[data-pd-glance-for="${id}"]`), 12000, ID);
       await page.evaluate(id => { if (typeof pdOpenOnHome === 'function') pdOpenOnHome(id, 'copilot'); }, ID);
-      const up = await waitFor(page, () => !!document.querySelector('#ig-dock #pd-og tr[data-pd-og-row="signers"] [data-pd-og-sg="temail"]'), 12000);
+      const up = await waitFor(page, () => !!document.querySelector('#ig-dock #pd-og tr[data-pd-og-row="signers"]'), 12000);
       await page.evaluate(() => { const r = document.querySelector('#ig-dock #pd-og tr[data-pd-og-row="signers"]'); if (r) r.scrollIntoView({ block: 'center' }); });
       await page.evaluate(() => document.fonts.ready); await pause(250);
       return up;
     };
-    const up0 = await open();
-    check('1 the Signer row is up beside the paper', up0);
-    await waitFor(page, () => !!document.querySelector('#ig-dock [data-ca-chip]'), 8000);
-    const m0 = await page.evaluate(MEASURE);
-
-    console.log('\n1 · the bottom chip went; the boxes are typing boxes');
-    check('1a the bottom "name a signer" chip is gone', m0.up && m0.chips.length > 0 && !m0.chips.includes('signer'), JSON.stringify(m0.chips));
-    check('1b no <select> is left in the row (one list per press, on an iPad too)', m0.selects === 0, String(m0.selects));
-    check('1c "Add or order signers ›" stands on the row\'s head line', /Add or order signers/.test(m0.order || ''), String(m0.order));
-    check('1d "+ Add another signer" is gone (one button for signers)', m0.add === false);
-
-    console.log('\n2 · a TOUCH press opens HaTi\'s own list; typing filters it');
-    await ckOpenRowOf(page, '#ig-dock #pd-og [data-pd-og-sb="theirs"]'); await page.tap('#ig-dock #pd-og [data-pd-og-sb="theirs"]');
-    await pause(150);
-    const mt = await page.evaluate(MEASURE);
-    check('2a a touch press opens exactly one list', !!mt.list && mt.list.length > 0
-      && (await page.evaluate(() => document.querySelectorAll('#ig-dock #pd-og .pd-og-dd').length)) === 1, JSON.stringify((mt.list || []).map(x => x.name)));
-    await ckOpenRowOf(page, '#ig-dock #pd-og [data-pd-og-sb="theirs"]'); await page.fill('#ig-dock #pd-og [data-pd-og-sb="theirs"]', '');
-    await ckOpenRowOf(page, '#ig-dock #pd-og [data-pd-og-sb="theirs"]'); await page.type('#ig-dock #pd-og [data-pd-og-sb="theirs"]', 'wan', { delay: 30 });
-    await pause(200);
-    const m1 = await page.evaluate(MEASURE);
-    const names = (m1.list || []).map(x => x.name);
-    check('2b typing opens the directory list', !!m1.list && m1.list.length >= 3, JSON.stringify(names));
-    const atThem = [P1.name, P2.name];
-    check('2c the counterparty\'s own people come first, the rest after them',
-      names.length >= 3 && atThem.includes(names[0]) && atThem.includes(names[1]) && names[0] !== names[1]
-      && names.indexOf(P3.name) > 1, JSON.stringify(names));
-    check('2d each row says what the record holds — the party and the address',
-      !!m1.list && m1.list.slice(0, 2).every(x => x.words.includes(THEM) && x.words.includes(x.mail)), JSON.stringify(m1.list && m1.list.slice(0, 2)));
-
-    console.log('\n4 · the list floats over the rows under it');
-    check('4a the rows under the box did not move', m1.addTop === m0.addTop && m1.ktTop === m0.ktTop,
-      JSON.stringify({ was: { add: m0.addTop, kt: m0.ktTop }, now: { add: m1.addTop, kt: m1.ktTop } }));
-    check('4b the list covers what is under the box rather than pushing it down',
-      !!(m1.listBox && m1.mailBox && m1.listBox.top <= m1.mailBox.top + 2 && m1.listBox.bottom > m1.mailBox.top),
-      JSON.stringify({ list: m1.listBox, mail: m1.mailBox }));
-    await page.screenshot({ path: path.join(OUT, 'list-open-1440x780.png') });
-
-    console.log('\n3 · a pick fills the name and the address together');
-    await page.click(`#ig-dock #pd-og .pd-og-dd-row[data-pd-og-pick="${P2.name}"]`);
-    await pause(200);
-    const m2 = await page.evaluate(MEASURE);
-    check('3a the name box holds the person picked', m2.name === P2.name, String(m2.name));
-    check('3b their address came with them', m2.mail === P2.mail, String(m2.mail));
-    check('3c the list is down again', m2.list === null);
-    /* ON AN iPAD TOO: a tap opens the list and a tap on a row picks from it */
-    await ckOpenRowOf(page, '#ig-dock #pd-og [data-pd-og-sb="theirs"]'); await page.tap('#ig-dock #pd-og [data-pd-og-sb="theirs"]');
-    await pause(150);
-    await page.tap(`#ig-dock #pd-og .pd-og-dd-row[data-pd-og-pick="${P1.name}"]`).catch(() => {});
-    await pause(200);
-    const m2t = await page.evaluate(MEASURE);
-    check('3d a touch pick fills the name and the address too', m2t.name === P1.name && m2t.mail === P1.mail,
-      JSON.stringify({ name: m2t.name, mail: m2t.mail }));
-
-    console.log('\n5 · one button for signers on the whole Dossier');
-    const doors = await page.evaluate(() => [...document.querySelectorAll('#ig-dock button')]
-      .filter(b => /signers?\b/i.test(b.textContent) && !b.closest('.pd-og-dd')).map(b => b.textContent.replace(/\s+/g, ' ').trim()));
-    check('5a the only signer button is "Add or order signers ›" (no "Add signers" act, no "+ Add another signer")',
-      doors.length === 1 && /Add or order signers/.test(doors[0]), JSON.stringify(doors));
-    check('5b the Acts and All acts carry no "Add signers" row',
-      await page.evaluate(() => !document.querySelector('#ig-dock #ws-m-signers, #ig-dock [data-pd-mn-go="#ws-m-signers"]')));
-
-    console.log('\n6 · Add or order signers › is the row\'s one pop-up');
-    await ckOpenRowOf(page, '#ig-dock #pd-og [data-pd-og-route]'); await page.click('#ig-dock #pd-og [data-pd-og-route]');
+    const ROW = () => { const r = document.querySelector('#ig-dock #pd-og tr[data-pd-og-row="signers"]'); if (!r) return null;
+      const v = r.querySelector('.pd-ck-v'), dock = document.getElementById('igd-feed'), q = r.getBoundingClientRect();
+      const next = r.nextElementSibling;
+      return { boxes: r.querySelectorAll('input, textarea').length, selects: r.querySelectorAll('select').length, ok: !!r.querySelector('[data-pd-og-ok]'),
+        door: !!r.querySelector('.pd-ck-hd[data-pd-og-route]'), words: (r.querySelector('.pd-ck-hd') || {}).textContent || '',
+        whole: !!v && v.scrollWidth <= v.clientWidth + 1, inside: !!dock && q.right <= dock.getBoundingClientRect().right + 1,
+        next: next ? next.getAttribute('data-pd-og-row') : null }; };
+    check('0b the Signer row is up beside the paper', await open());
+    const r0 = await page.evaluate(ROW);
+    console.log('\n1 · no boxes on the row');
+    check('1 the Signer row carries no box, no <select>, no Confirm', !!r0 && r0.boxes === 0 && r0.selects === 0 && !r0.ok, JSON.stringify(r0));
+    console.log('\n2 · its line opens the signing route');
+    check('2a its line is the signing route\'s door', !!r0 && r0.door, JSON.stringify(r0));
+    await page.click('#ig-dock #pd-og tr[data-pd-og-row="signers"] .pd-ck-hd');
     const route = await waitFor(page, () => !!document.getElementById('sr-win'), 8000);
-    check('6a it opens the signing route editor over the same page', route
+    check('2b a press opens the signing route editor over the same page', route
       && await page.evaluate(() => !!document.querySelector('#ig-dock #pd-og tr[data-pd-og-row="signers"]')));
+    console.log('\n3 · closing it lands back on the line');
     await page.click('#sp-cancel').catch(() => {});
-    const back = await waitFor(page, () => !document.getElementById('sr-win')
-      && !!document.activeElement && !!document.activeElement.closest
+    const back = await waitFor(page, () => !document.getElementById('sr-win') && !!document.activeElement && !!document.activeElement.closest
       && !!document.activeElement.closest('#ig-dock #pd-og tr[data-pd-og-row="signers"]'), 8000);
-    check('6b closing it lands back on the row it came from', back,
-      await page.evaluate(() => (document.activeElement && document.activeElement.getAttribute('data-pd-og-sg')) || String(document.activeElement && document.activeElement.tagName)));
-
-    console.log('\n7 · near the foot of the panel the list opens upward — at the three screens');
+    check('3 closing it lands back on the Signer line', back, await page.evaluate(() => String(document.activeElement && (document.activeElement.className || document.activeElement.tagName))));
+    await page.tap('#ig-dock #pd-og tr[data-pd-og-row="signers"] .pd-ck-hd');
+    const tapped = await waitFor(page, () => !!document.getElementById('sr-win'), 8000);
+    check('2c a touch press opens it too', tapped);
+    await page.click('#sp-cancel').catch(() => {});
+    await waitFor(page, () => !document.getElementById('sr-win'), 6000);
+    console.log('\n4 · who else, right after the signer line');
+    check('4 "Who else is on this agreement" stands right after the signer line', !!r0 && r0.next === 'people', JSON.stringify(r0 && r0.next));
+    console.log('\n5 · the owner\'s three screens');
     for (const [w, hh] of SCREENS) {
       await page.setViewportSize({ width: w, height: hh });
       await open();
-      /* put the box near the foot of the panel's scroller, then press it */
-      await page.evaluate(() => { const f = document.getElementById('igd-feed'), b = document.querySelector('#ig-dock #pd-og [data-pd-og-sb="theirs"]');
-        if (!f || !b) return; f.scrollTop += b.getBoundingClientRect().bottom - f.getBoundingClientRect().bottom + 24; });
-      await pause(200);
-      const was = await page.evaluate(MEASURE);
-      await ckOpenRowOf(page, '#ig-dock #pd-og [data-pd-og-sb="theirs"]'); await page.click('#ig-dock #pd-og [data-pd-og-sb="theirs"]');
-      await pause(200);
-      const now = await page.evaluate(MEASURE);
-      const at = `${w}x${hh}`;
-      check(`7 ${at} the list opens and is whole`, !!(now.list && now.list.length && now.listBox), JSON.stringify(now.listBox));
-      if (!now.listBox) continue;
-      /* RE-POINTED 22 Oct 2026 (the Checklist): the panel is shorter now, so on the tall iPad screen the box
-         cannot be scrolled down to the foot — there the list fits below and opens below; near the foot it opens above */
-      const roomBelow = now.feed.bottom - now.boxBox.bottom >= (now.listBox.bottom - now.listBox.top) + 4;
-      check(`7a ${at} it opened above the box where there is no room under it`, now.up2 === true ? now.listBox.bottom <= now.boxBox.top + 2 : (roomBelow && now.listBox.top >= now.boxBox.bottom - 2),
-        JSON.stringify({ up: now.up2, list: now.listBox, box: now.boxBox }));
-      check(`7b ${at} it stands inside the panel`, now.listBox.top >= now.feed.top - 1 && now.listBox.bottom <= now.feed.bottom + 1,
-        JSON.stringify({ list: now.listBox, feed: now.feed }));
-      check(`7c ${at} the rows under it still did not move`, now.addTop === was.addTop, JSON.stringify({ was: was.addTop, now: now.addTop }));
-      await page.screenshot({ path: path.join(OUT, `flip-${at}.png`) });
-      await page.keyboard.press('Escape').catch(() => {});
+      const r = await page.evaluate(ROW);
+      check(`5 ${w}x${hh} the Signer line stands whole inside the panel`, !!r && r.whole && r.inside, JSON.stringify(r));
+      await page.screenshot({ path: path.join(OUT, `signer-line-${w}x${hh}.png`) });
     }
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {
