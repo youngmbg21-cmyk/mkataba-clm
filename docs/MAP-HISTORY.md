@@ -33392,3 +33392,38 @@ signing list, or the server refusing the copy) left a record saying "sent"
 about a send that never left. Now the version list is put back exactly as it
 was on any refusal or failed request (`vBack`); a send that goes keeps its
 copy. f858, red at the parent 1 and 2.
+
+## OTHER PAGES AND SERVICES — THE MAILROOM GIVES EVERY DOCUMENT A PERSON (22 Oct 2026)
+
+The bug log said "mailroom drafts (POST /api/mailroom) have no owner": a
+document that arrived by email sat on nobody's list. Asked, the owner said:
+*"Documents email should always have a person assigned to them directly"*,
+and of the two ways offered picked **A**: the person who sent it, if they are
+on HaTi, else a backup chosen in Settings. Built on the lanes' precedent
+(f485) rather than a second rule: `mailroomOwnerFor` takes the SENDER (a
+member whose address the mail came from, not a Viewer, who can open the
+stream it files under), else the Mailroom setting by `intakeLaneOwner` — the
+named person, else the admin who saved it, else the first admin — so there is
+never nobody. The settings save stamps the Mailroom the lanes' way
+(`srvMailroomStamp` over `srvLanesStamp`: a Viewer or unknown id is dropped,
+`savedById` is the server's word). Settings › The Mailroom gains one box,
+"When the sender is not on HaTi, it belongs to" (`stMailroomOwnerSel`, the
+lane box's twin), offering only people who can open the chosen stream and
+redrawn when the stream changes; its default names the person it will be.
+"Blocked until a backup is chosen" was offered in the chat and not built: the
+lanes' default already guarantees a person, and refusing a save would have
+been a dead end for nothing. The trail's "Received" line says who it went to
+and why. Not built (asked separately): a bell line telling the new owner.
+f859, red at the parent 1–6.
+
+**AND THEIR BELL SAYS SO, ONCE (same day).** Asked whether the new owner
+should be told, the owner said *"Yes"*. A bell line, kind `mailroom` (amber,
+ranked with `details`): "Arrived by email — confirm its details", "From …"
+under it, for the owner only, until its details are confirmed on the Import
+page (`migration.needsReview` false). The press opens Import with the file
+chosen (`migPickSet`) and lands on its row (`landOn`). Photographed, the
+bell then said the same document TWICE — an owner now existed, so the old
+"N details to fill" line appeared beside it. Flow rule 6 (tell the right
+person once): the `details` line stands aside for an unconfirmed Mailroom
+document, since reading it IS filling those in. Checked in a real browser:
+mailroom-bell-verify (red at the parent 1, 1b, 2, 5).

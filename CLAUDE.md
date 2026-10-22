@@ -320,7 +320,7 @@ LANGUAGE is the person's (js/i18n.js); MARKET is the company's (js/jurisdiction.
 ## THE SLIDER ON EVERY JAMBO PANEL
 ONE builder `splitHtml`/`splitFit`/`splitWire`/`splitClamp` (js/components.js), Home's own mechanism; clients Home (`IG_SPLIT`, `hati.v1.igDockW`), the list panel and Import (`JL_SPLIT`, `--jl-w`, `hati.v1.jlW`, list floor `jlListMin`), Settings (`ST_SPLIT`, `--st-side-w`, `hati.v1.stSideW`, board floor 780).
 ## OTHER PAGES AND SERVICES
-- APPROVALS & SIGNING decides through `approvalDecidableNow`/`approvalDecideAsk` (f344, f466). NOTICE DESK `noticeDraft`; MAILROOM files, does not read; MEMO `negoMemo` (no model).
+- APPROVALS & SIGNING decides through `approvalDecidableNow`/`approvalDecideAsk` (f344, f466). NOTICE DESK `noticeDraft`; MAILROOM files, does not read, and every document has a person (`mailroomOwnerFor`: the sender, else the backup by `intakeLaneOwner`; `stMailroomOwnerSel`), told once on their bell (kind `mailroom`, in place of `details`) until confirmed; MEMO `negoMemo` (no model).
 - COPILOT'S WORK on the Board (`hbOpenAgent`, `hbAgentWorkHtml` → `agRunAct`); LADDER `auto`·`ask`·`mine`, all start `ask` (`agentLevel`, `AGENT_AUTO_OK` = link only); every run via `runAgent` into `agent_runs`; `HATI_AGENTS_AUTO=off` in tests; NO AGENT SENDS TO THE OTHER SIDE (f413 7c).
 - OUR PROMISES `runOurPromises`. THE BRAIN (js/views/brain.js, js/brainmap.js): `BRAIN_PARTS`, `BRAIN_FILE_REGION`, `brLanesHtml`; STACK view (`brStackPaint`, GET /api/brain `stack` via `brainStackRead`).
 ## THE OVERNIGHT RUN (9 Oct)

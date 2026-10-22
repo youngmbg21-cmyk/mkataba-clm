@@ -270,6 +270,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f830, f394 (3).
 
 ## OTHER PAGES AND SERVICES
+- The Mailroom gives every document a person (22 Oct 2026): f859 (red at the parent 1–6); Settings box photographed at the three screens. Their bell says it once: test/chromium/mailroom-bell-verify.js (red at the parent 1, 1b, 2, 5).
 - f274, f322–f324, f344, f358, f390, f399, f400, f412, f413, f560, f564, f659, agents-page, brain-page, brain-lanes, brain-stack, no-link-to-sign verify.
 
 ## PERFORMANCE — THE BOOK IS WALKED ONCE
