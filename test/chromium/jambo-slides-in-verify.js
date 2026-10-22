@@ -11,9 +11,14 @@
    Driven in a real browser, as an admin, on Jambo's agents (the page of the
    owner's screenshot) and the Brain (no Jambo panel of their own):
      1  the edge "Jambo" tab slides in a DOCKED side panel — the right edge,
-        under the top bar, 384 wide, head 56, foot ≥ 56, no floating window,
-        the page beside it dimmed; the same tab pressed again takes it out;
-        Esc takes it out
+        under the top bar, 384 wide, head 56, foot ≥ 56, no floating window;
+        RE-POINTED 22 Oct 2026 (owner: "make it same as the others so that the
+        highlighted area is not visible when expanded and you should also have
+        a slider to pull jambo further to the left"): nothing dimmed, the page
+        makes room beside it, the edge tab steps away while it is in and its
+        own minimise brings the tab back; THE SLIDER on its left edge pulls it
+        wider and the page follows, kept on the next opening, a double-click
+        puts it back; at the three screens nothing sideways; Esc takes it out
      2  no Plain | Legal anywhere: no toggle, no setter, nothing stored
      3  RE-POINTED 21 Oct 2026 ("The old chat window"): the top bar's ✦ opens
         the floating chat window under the bar, over the open side panel; Esc
@@ -103,14 +108,48 @@ const LETTER = 'Dear Ann,\nFurther to our call, Nandi Dairy asks that the delive
     check('1a the edge tab opens Jambo as a side panel, not a floating window', !!P1 && P1.open && P1.side && !P1.floating, JSON.stringify(P1));
     check('1b docked on the right edge, under the top bar, 384 wide, full height below the bar', !!P1 && P1.right === P1.vw && P1.w === 384 && P1.top === P1.barH && P1.bottom === P1.vh, JSON.stringify(P1));
     check('1c THE BRIEF: head 56, foot at least 56, square corners', !!P1 && P1.headH === 56 && P1.footH >= 56 && /^0/.test(P1.radius), JSON.stringify(P1 && { headH: P1.headH, footH: P1.footH, radius: P1.radius }));
-    check('1d the page beside it is dimmed below the bar (the ONE PANEL convention)', !!P1 && P1.scrim && P1.scrimTop === P1.barH, JSON.stringify(P1 && { scrim: P1.scrim, scrimTop: P1.scrimTop }));
-    const tab = await page.evaluate(() => { const b = document.querySelector('[data-jh-jambo]'); const r = b.getBoundingClientRect(); const el = document.elementFromPoint(r.left + r.width / 2, r.top + 40);
-      return { hit: !!(el && el.closest('[data-jh-jambo]')), right: Math.round(r.right) }; });
-    check('1e the edge tab stands at the panel\'s edge, pressable', tab.hit && tab.right === 1440 - 384, JSON.stringify(tab));
+    /* BESIDE THE PAGE (owner, 22 Oct 2026): nothing dimmed, the page's room ends where the panel starts */
+    const ROOM = () => { const cs = document.getElementById('content-scroll'), p = document.getElementById('ai-panel'), tab = document.querySelector('[data-jh-jambo]');
+      const tr = tab && tab.getBoundingClientRect(); const hit = tr && tr.width ? document.elementFromPoint(tr.left + tr.width / 2, tr.top + 40) : null;
+      const ph = document.getElementById('page-head');
+      return { pageRight: Math.round(cs.getBoundingClientRect().right), headRight: ph ? Math.round(ph.getBoundingClientRect().right) : 0, panelLeft: Math.round(p.getBoundingClientRect().left), panelW: Math.round(p.getBoundingClientRect().width),
+        tabShown: !!(tr && tr.width && hit && hit.closest('[data-jh-jambo]')), side: document.documentElement.scrollWidth <= innerWidth + 1 }; };
+    const R1 = await page.evaluate(ROOM);
+    check('1d nothing is dimmed: the page and its head card make room beside the panel, their right edge where the panel starts', !!P1 && !P1.scrim && Math.abs(R1.pageRight - R1.panelLeft) <= 1 && R1.headRight <= R1.panelLeft + 1, JSON.stringify({ scrim: P1 && P1.scrim, ...R1 }));
+    check('1e the edge "Jambo" tab steps away while the panel is in (as Home\'s folded strip does)', !R1.tabShown, JSON.stringify(R1));
     await shot('1-side-panel-1440x780');
-    await press('[data-jh-jambo]');
+    /* THE SLIDER: the one every Jambo panel has, on the panel's left edge */
+    const G = await page.evaluate(() => { const g = document.getElementById('ai-side-rez'); if (!g) return null; const r = g.getBoundingClientRect(), p = document.getElementById('ai-panel').getBoundingClientRect();
+      const el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return { shown: !g.hidden && r.width > 0, atEdge: Math.abs(r.left - p.left) <= 2, painted: !!(el && el.closest('#ai-side-rez')), x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+    check('1h the panel has THE SLIDER on its left edge, painted where it stands', !!G && G.shown && G.atEdge && G.painted, JSON.stringify(G));
+    if (G && G.shown) {
+      await page.mouse.move(G.x, G.y); await page.mouse.down(); await page.mouse.move(G.x - 120, G.y, { steps: 6 }); await page.mouse.move(G.x - 200, G.y, { steps: 6 }); await page.mouse.up();
+      const R2 = await until(() => { const p = document.getElementById('ai-panel').getBoundingClientRect(), cs = document.getElementById('content-scroll').getBoundingClientRect();
+        return p.width >= 560 ? { panelW: Math.round(p.width), pageRight: Math.round(cs.right), panelLeft: Math.round(p.left) } : null; }, null, 3000);
+      check('1i pulled 200px to the left, Jambo is that much wider and the page follows', !!R2 && Math.abs(R2.panelW - 584) <= 4 && Math.abs(R2.pageRight - R2.panelLeft) <= 1, JSON.stringify(R2));
+      await shot('1-side-panel-wider-1440x780');
+      await page.click('#ai-min');
+      const back = await until(() => { const p = document.getElementById('ai-panel'), t = document.querySelector('[data-jh-jambo]');
+        return !p.classList.contains('open') && t && t.getBoundingClientRect().width > 0 ? true : null; }, null, 3000);
+      check('1f its own minimise puts it away and the edge tab is back', !!back);
+      await press('[data-jh-jambo]');
+      const kept = await until(() => { const p = document.getElementById('ai-panel'); return p.classList.contains('open') ? Math.round(p.getBoundingClientRect().width) : null; }, null, 3000);
+      await page.waitForTimeout(450);
+      const keptW = await page.evaluate(() => Math.round(document.getElementById('ai-panel').getBoundingClientRect().width));
+      check('1j opened again, it keeps the width the reader chose', !!kept && Math.abs(keptW - 584) <= 4, JSON.stringify({ keptW }));
+      await page.dblclick('#ai-side-rez');
+      const rest = await until(() => Math.round(document.getElementById('ai-panel').getBoundingClientRect().width) === 384 ? true : null, null, 3000);
+      check('1k a double-click on the slider puts the resting width back', !!rest);
+      for (const [w, ht] of [[1440, 780], [1536, 730], [1366, 950]]) {
+        await page.setViewportSize({ width: w, height: ht }); await page.waitForTimeout(350);
+        const R3 = await page.evaluate(ROOM);
+        check(`1l ${w}×${ht}: beside the page, nothing dimmed, nothing sideways`, Math.abs(R3.pageRight - R3.panelLeft) <= 1 && R3.headRight <= R3.panelLeft + 1 && R3.side && !R3.tabShown, JSON.stringify(R3));
+        await shot(`1-side-panel-${w}x${ht}`);
+      }
+      await page.setViewportSize({ width: 1440, height: 780 }); await page.waitForTimeout(300);
+      await page.click('#ai-min');
+    } else check('1f its own minimise puts it away and the edge tab is back', false, 'no slider to drive the rest');
     const shut = await until(() => !document.getElementById('ai-panel').classList.contains('open') ? true : null, null, 3000);
-    check('1f pressed again, it goes out (PRESS IT AGAIN AND IT CLOSES)', !!shut);
     await press('[data-jh-jambo]');
     await until(() => document.getElementById('ai-panel').classList.contains('open') ? true : null, null, 3000);
     await page.keyboard.press('Escape');

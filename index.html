@@ -10330,6 +10330,7 @@
   .ig-resizer{position:absolute;top:0;bottom:0;width:14px;z-index:6;cursor:col-resize;
     display:flex;align-items:center;justify-content:center;touch-action:none}
   .ig-resizer[hidden]{display:none}
+  #ai-panel:not(.is-side) > .ig-resizer{display:none}
   .ig-resizer span{width:4px;height:72px;border-radius:var(--radius);background:var(--color-neutral-300);transition:background var(--dur-1)}
   .ig-resizer[data-at-limit] span{background:var(--st-amber-dot)}
   .ig-resizer:hover span,.ig-resizer[data-drag] span,.ig-resizer:focus-visible span{background:var(--color-accent)}
@@ -12764,12 +12765,17 @@
      aiSideSync, aiPopOut) ====
      On a computer the window is a side panel wearing THE BRIEF: 384 wide under the top bar, the head
      and the foot 56, its tab a word (the ✦ and "Jambo", the live tab's rule under them), nothing boxed;
-     the page beside it dimmed by the scrim under the bar (the ONE PANEL convention), never reflowed.
+     the page and its head card make room beside it, nothing dimmed (owner, 22 Oct 2026).
      The ✦ opens the movable chat window instead (below; the one-line ✦ bar is gone). Popped out,
      the same nodes stand in a window of their own (.is-popped). Scoped by id and class, never !important. */
   @media (min-width:768px){
     #ai-scrim{top:var(--shell-head-h,48px)}
-    #ai-panel.is-side{top:var(--shell-head-h,48px);height:auto;width:384px;max-width:none;border-left:1px solid var(--color-divider);box-shadow:none}
+    #ai-panel.is-side{top:var(--shell-head-h,48px);height:auto;width:var(--ai-side-w,384px);max-width:none;border-left:1px solid var(--color-divider);box-shadow:none}
+    /* BESIDE THE PAGE, AS EVERY JAMBO PANEL (owner, 22 Oct 2026): the page makes room, nothing dimmed;
+       THE SLIDER on its left edge (splitHtml, ai.js AI_SIDE_SPLIT) pulls it wider */
+    body.ai-side-open #content-scroll, body.ai-side-open #page-head{margin-right:var(--ai-side-w,384px)}
+    #ai-panel.is-side > .ig-resizer{left:-1px}
+    #ai-panel.is-side.is-dragging{transition:none}
     #ai-panel.is-side.ai-stepaside{visibility:hidden;pointer-events:none}
     #ai-panel.is-side > header{box-sizing:border-box;height:56px;min-height:56px;padding:0 12px 0 16px;gap:0;align-items:stretch}
     #ai-panel.is-side > header > *{align-self:center}
@@ -12785,9 +12791,9 @@
     #ai-panel.is-side > footer{box-sizing:border-box;min-height:56px;padding:7px 16px 8px;display:flex;flex-direction:column;justify-content:center}
     #ai-panel.is-side > footer .jb-card:not(.is-tall){box-sizing:border-box;min-height:40px}
     #ai-panel.is-side.is-drop{outline:2px dashed var(--accent-ink);outline-offset:-6px}
-    /* the edge tab rides the panel's edge while it is in, so the same press takes it out */
-    body.ai-side-open #jh-jambo .igd-door{position:fixed;top:var(--shell-head-h,48px);right:384px;bottom:0;width:46px;height:auto;z-index:51}
-    body.ai-side-open:has(#jh-jambo) #ai-scrim{right:430px}
+    /* the edge tab steps away while the panel is in, as Home's folded strip does when its panel opens;
+       the panel's own minimise and × put it back */
+    body.ai-side-open #jh-jambo{display:none}
   }
   /* each answer says what it read (aiReadFrom) */
   #ai-feed .ai-read{font-size:var(--t-label);line-height:16px;color:var(--color-neutral-600)}
