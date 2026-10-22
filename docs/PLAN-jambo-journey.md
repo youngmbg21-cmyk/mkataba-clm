@@ -52,7 +52,7 @@ to the other side on its own.
 | 2 | The arrival turn: Jambo speaks first | 1 | **built 22 Oct 2026** |
 | 3 | The road reading: negotiate it or just send it | 1 | **built 22 Oct 2026** |
 | 4 | "I'd take it": a verdict on each of their changes | 2 | **built 22 Oct 2026** |
-| 5 | Your phone: browser push | 4 | **built 22 Oct 2026, waiting for the owner's yes** |
+| 5 | Your phone: browser push | 4 | **built 22 Oct 2026** |
 | 6 | Add to my own calendar (changed: see section 5) | 2 | **built 22 Oct 2026** |
 | 7 | "Make it my standard", in his words | 2 | **built 22 Oct 2026** |
 | 8 | Your history with them, in one line | 1 | **built 22 Oct 2026** |
@@ -142,6 +142,7 @@ to the other side on its own.
   never a code-named deal. Only the known push services are sent to. A tap
   opens HaTi on the contract and presses nothing. No outside service is paid.
 - **Tests:** f865; test/chromium/alerts-on-your-phone-verify.
+- **Agreed:** the owner said "yes to round 4, merge anyway" (past the checks that fail on timing alone), 22 Oct 2026.
 
 ## 8. What comes next
 
