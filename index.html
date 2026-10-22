@@ -10352,9 +10352,9 @@
      step 2): a sliding width re-wrapped the contract beside it on every frame
      (14 frames, page-jumps-verify D). The width snaps once; what arrives fades
      in (igDockArrive), so the paper re-wraps one time and nothing stutters. */
-  #ig-dock.ig-arrive > *{animation:igArrive var(--dur-2) var(--ease) both}
-  @keyframes igArrive{from{opacity:0}to{opacity:1}}
-  @media (prefers-reduced-motion:reduce){ #ig-dock.ig-arrive > *{animation:none} }
+  #ig-dock.ig-dock-in > *{animation:igDockIn var(--dur-2) var(--ease) both}
+  @keyframes igDockIn{from{opacity:0}to{opacity:1}}
+  @media (prefers-reduced-motion:reduce){ #ig-dock.ig-dock-in > *{animation:none} }
   .ig-lens{transition:background var(--dur-1),border-color var(--dur-1),color var(--dur-1)}
   /* ---- EXPLORER — THE BRAIN DRAWING (28 Sep 2026, owner-approved) ----
      The stage is one dark scene, like the Brain page's; every rule below is

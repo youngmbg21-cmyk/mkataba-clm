@@ -7710,10 +7710,10 @@ function igSyncDockWidth(){
   /* The divider's own pass: the width, and the handle shown or stood down. */
   if(document.getElementById('ig-row')) igFitSplit(); else dock.style.width=igDockWidth()+'px';
   /* the width snaps once (no sliding width re-wrapping the paper); a panel that
-     opened wider fades its contents in (igArrive) */
+     opened wider fades its contents in (igDockIn) */
   if(intel.dockOpen&&dock.getBoundingClientRect().width>was+40){
-    dock.classList.remove('ig-arrive'); void dock.offsetWidth; dock.classList.add('ig-arrive');
-    setTimeout(()=>dock.classList.remove('ig-arrive'),400); }
+    dock.classList.remove('ig-dock-in'); void dock.offsetWidth; dock.classList.add('ig-dock-in');
+    setTimeout(()=>dock.classList.remove('ig-dock-in'),400); }
   // the canvas flexes — re-measure and re-settle once the width transition lands
   setTimeout(()=>{ if(igMapUp()) rebuildIntelGraph(); },280);
 }
