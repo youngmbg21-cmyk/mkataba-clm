@@ -3079,15 +3079,23 @@ function priceUsage(model, usage) {
   const outT = Number(u.output_tokens || 0);
   const cw = Number(u.cache_creation_input_tokens || 0);
   const cr = Number(u.cache_read_input_tokens || 0);
-  const cost = (inT * r.in + cw * r.in * AI_CACHE_WRITE_MULT + cr * r.in * AI_CACHE_READ_MULT + outT * r.out) / 1e6;
-  return { cost, inT, outT, cw, cr };
+  /* AND THE WEB SEARCHES IT MADE (Jambo's journey, round 3): a search is billed per search, not in tokens,
+     so a call that searched books that too (AI_WEB_SEARCH_PRICE each) */
+  const searches = Number((u.server_tool_use && u.server_tool_use.web_search_requests) || 0);
+  const cost = (inT * r.in + cw * r.in * AI_CACHE_WRITE_MULT + cr * r.in * AI_CACHE_READ_MULT + outT * r.out) / 1e6
+    + searches * AI_WEB_SEARCH_PRICE;
+  return { cost, inT, outT, cw, cr, searches };
 }
+/* Anthropic's web search: $10 per 1,000 searches, on top of the tokens */
+const AI_WEB_SEARCH_PRICE = 0.01;
 
 /* Human-facing feature names for the breakdown in Team & Settings. */
 const AI_FEATURE_LABEL = {
   extract: 'Metadata extraction', ocr: 'OCR (scanned paper)', playbook: 'Clause review',
   obligations: 'Obligations', graph: 'Portfolio graph', search: 'Search',
   template: 'Template advisor', chat: 'Jambo', blanks: 'Template blanks', other: 'Other',
+  /* Jambo's plain internet search on the other side (Jambo's journey, round 3) */
+  lookup: 'Company lookup (web search)',
   /* Document conversion — the .docx and PDF upload routes. Missing from this
      map until now, and the omission was not cosmetic: recordAiCall() files any
      feature it does not recognise under 'other', so every conversion since
@@ -13832,9 +13840,12 @@ function prVisibleKeys(user) {
 const prShape = r => ({ name: r.name || '', city: r.city || '', orgNo: r.org_no || '', by: r.set_by || '', at: r.set_at || '' });
 function prRecordsFor(user) {
   const rows = db.prepare('SELECT * FROM party_records').all();
-  if (!rows.length) return {};
+  const webs = db.prepare('SELECT * FROM party_lookups').all();
+  if (!rows.length && !webs.length) return {};
   const see = prVisibleKeys(user), out = {};
   for (const r of rows) if (see.has(r.pkey)) out[r.pkey] = prShape(r);
+  /* what Jambo found on the web rides on the same record (round 3): one home for a party's facts */
+  for (const w of webs) if (see.has(w.pkey)) out[w.pkey] = Object.assign(out[w.pkey] || { name: w.name || '', city: '', orgNo: '', by: '', at: '' }, { web: plShape(w) });
   return out;
 }
 app.get('/api/party-records', auth, (req, res) => res.json({ records: prRecordsFor(req.user) }));
@@ -13860,6 +13871,122 @@ app.put('/api/party-records', auth, editor, (req, res) => {
     .run(at, String(req.user.id || ''), by, key, name, said.join('; '));
   const after = db.prepare('SELECT * FROM party_records WHERE pkey=?').get(key);
   res.json({ record: after ? prShape(after) : null });
+});
+
+/* ============================================================
+   JAMBO LOOKS THE OTHER SIDE UP ON THE WEB (round 3 of Jambo's journey,
+   docs/PLAN-jambo-journey.md; owner, 22 Oct 2026: "this should be simple
+   internet search to understand the company not the credit rating", and
+   "Yes" to a party's name leaving HaTi for it)
+   ============================================================
+   A PLAIN INTERNET SEARCH: what they do, where, how big, since when, recent
+   news — through Anthropic's own web search, on the key HaTi already uses.
+   No register account, no credit report.
+     · EVERY FACT CARRIES ITS SOURCE: only a sentence the answer cites is kept;
+       an uncited sentence is dropped and counted (`uncited`), never shown as
+       fact. What could not be found is said (`missing`), never guessed.
+     · THE WALL: a reader may search only a party they may know of
+       (prVisibleKeys, else 404), and NEVER a party named on a deal kept to its
+       list (a code name) — that name does not leave HaTi (403).
+     · A PRESS, AN EDITOR'S, THE COST SAID: one Jambo call and at most
+       PL_MAX_SEARCHES searches, booked as 'lookup' (the search fee too).
+     · KEPT, ONE HOME: on the party's record (party_lookups), dated and signed;
+       asked again within PL_KEEP_DAYS it answers what was kept, free, unless
+       a person asks `again`. Every search is an act in the party's trail. */
+db.exec(`CREATE TABLE IF NOT EXISTS party_lookups (pkey TEXT PRIMARY KEY, name TEXT NOT NULL,
+  facts TEXT, missing TEXT, uncited INTEGER, searches INTEGER, model TEXT, lang TEXT,
+  by_id TEXT, by_name TEXT, at TEXT)`);
+const PL_MAX_SEARCHES = 5, PL_KEEP_DAYS = 30, PL_FACTS_MAX = 8;
+function plShape(w) {
+  let facts = []; try { facts = JSON.parse(w.facts || '[]') || []; } catch (_) { facts = []; }
+  return { name: w.name || '', facts, missing: w.missing || '', uncited: Number(w.uncited || 0), searches: Number(w.searches || 0),
+    by: w.by_name || '', at: w.at || '', lang: w.lang || 'en' };
+}
+/* the web search tool the chosen model takes: the dynamic-filtering variant on current models, else the basic one */
+function plSearchTool(model) {
+  const now = /^claude-(fable|mythos|opus-(5|4-[678])|sonnet-(5|4-6))/i.test(String(model || ''));
+  return { type: now ? 'web_search_20260209' : 'web_search_20250305', name: 'web_search', max_uses: PL_MAX_SEARCHES };
+}
+/* is this party named on a deal kept to its list? its name never leaves HaTi */
+function plCodeNamed(key) {
+  const cm = cnMap(); if (!cm.size) return false;
+  const ids = [...cm.keys()];
+  const rows = db.prepare(`SELECT counterparty FROM contracts WHERE id IN (${ids.map(() => '?').join(',')})`).all(...ids);
+  return rows.some(r => prKeyOf(r.counterparty) === key);
+}
+/* THE ANSWER, READ: lines, each with the sources the answer cited inside it */
+function plRead(content) {
+  const lines = []; let cur = { text: '', src: [] };
+  const flush = () => { const t = cur.text.trim(); if (t) lines.push({ text: t, src: cur.src }); cur = { text: '', src: [] }; };
+  for (const b of (Array.isArray(content) ? content : [])) {
+    if (!b || b.type !== 'text') continue;
+    const cites = (Array.isArray(b.citations) ? b.citations : []).filter(x => x && x.url)
+      .map(x => ({ url: String(x.url).slice(0, 500), title: String(x.title || '').slice(0, 200) }));
+    const parts = String(b.text || '').split('\n');
+    /* a source belongs to the words it was cited on: never to the line a leading line break closes */
+    parts.forEach((part, i) => { cur.text += part; if (cites.length && part.trim()) cur.src.push(...cites); if (i < parts.length - 1) flush(); });
+  }
+  flush();
+  const facts = [], missing = []; let uncited = 0;
+  for (const l of lines) {
+    const t = l.text.replace(/^[-*•\s]+/, '');
+    const m = /^MISSING:\s*(.*)$/i.exec(t);
+    if (m) { const w = m[1].trim(); if (w && !/^(nothing|none|inget)\.?$/i.test(w)) missing.push(w); continue; }
+    const f = /^FACT:\s*(.*)$/i.exec(t); const text = (f ? f[1] : t).trim();
+    if (!text) continue;
+    const seen = new Set(), sources = l.src.filter(x => !seen.has(x.url) && seen.add(x.url)).slice(0, 3);
+    if (!sources.length) { if (f) uncited++; continue; }      // never a fact without its source
+    facts.push({ text: text.slice(0, 400), sources });
+  }
+  return { facts: facts.slice(0, PL_FACTS_MAX), missing: missing.join(' ').slice(0, 400), uncited };
+}
+app.post('/api/party-records/lookup', auth, editor, rlAiDeep, aiFeature('lookup'), aiBudgetGuard, async (req, res) => {
+  const b = req.body || {};
+  const name = prClean(b.name, 200), key = prKeyOf(name);
+  if (!key || !prVisibleKeys(req.user).has(key)) return res.status(404).json({ error: 'Party not found' });
+  if (plCodeNamed(key)) return res.status(403).json({ error: 'This party is on a deal kept to its list, so its name is never searched.', codeName: true });
+  const was = db.prepare('SELECT * FROM party_lookups WHERE pkey=?').get(key);
+  if (was && !b.again && Date.parse(was.at || '') > Date.now() - PL_KEEP_DAYS * 864e5) return res.json({ lookup: plShape(was), kept: true });
+  const k = aiKey();
+  if (!k) return res.status(400).json({ error: 'Jambo engine not configured', needsKey: true, kind: 'noKey' });
+  const lang = b.lang === 'sv' ? 'sv' : 'en';
+  const model = aiModelForTier('deep');
+  const system = [
+    'You look a company up on the web for a person who is about to sign a contract with it and wants to understand who they are dealing with.',
+    'Search for: what the company does, where it is based, roughly how big it is, when it was founded, and any notable news from the last two years.',
+    'This is NOT a credit check: do not look for credit ratings, credit scores or payment records.',
+    PLAIN_FOR_WHOM, PLAIN_TONE,
+    `Write in ${lang === 'sv' ? 'Swedish' : 'English'}.`,
+    'Answer ONLY in lines of this form, nothing else:',
+    'FACT: one short sentence of one fact, taken from a page you found.',
+    `(at most ${PL_FACTS_MAX} FACT lines)`,
+    'MISSING: in a few words, what you looked for and could not find (or "MISSING: nothing").',
+    'Never guess and never state anything you did not find. If several companies share this name and you cannot tell which is meant, say so in a FACT line about what you found, and say in MISSING that you could not tell them apart.',
+    AI_GOVERNANCE_RULE,
+  ].join('\n');
+  const messages = [{ role: 'user', content: `The company: ${name}` }];
+  try {
+    let out = null, content = [];
+    /* a long search may pause its turn; it is continued, twice at most */
+    for (let i = 0; i < 3; i++) {
+      out = await anthropicMessages(k, 'deep', { max_tokens: 2000, system, messages, tools: [plSearchTool(model)] },
+        { feature: 'lookup', model, who: aiWho(req) });
+      if (!out.ok) return res.status(502).json({ error: 'Jambo provider error (' + out.status + '): ' + String(out.error).slice(0, 300) });
+      content = content.concat(out.data.content || []);
+      if (out.data.stop_reason !== 'pause_turn') break;
+      messages.push({ role: 'assistant', content: out.data.content });
+    }
+    const searches = content.filter(x => x && x.type === 'server_tool_use' && x.name === 'web_search').length;
+    const read = plRead(content);
+    const at = now(), by = String(req.user.name || req.user.email || '');
+    db.prepare(`INSERT INTO party_lookups (pkey, name, facts, missing, uncited, searches, model, lang, by_id, by_name, at) VALUES (?,?,?,?,?,?,?,?,?,?,?)
+      ON CONFLICT(pkey) DO UPDATE SET name=excluded.name, facts=excluded.facts, missing=excluded.missing, uncited=excluded.uncited, searches=excluded.searches,
+      model=excluded.model, lang=excluded.lang, by_id=excluded.by_id, by_name=excluded.by_name, at=excluded.at`)
+      .run(key, name, JSON.stringify(read.facts), read.missing, read.uncited, searches, out.model || model, lang, String(req.user.id || ''), by, at);
+    db.prepare('INSERT INTO party_record_log (at, by_id, by_name, pkey, name, what) VALUES (?,?,?,?,?,?)')
+      .run(at, String(req.user.id || ''), by, key, name, `Jambo looked them up on the web: ${read.facts.length} facts with sources, ${searches} searches`);
+    res.json({ lookup: plShape(db.prepare('SELECT * FROM party_lookups WHERE pkey=?').get(key)), kept: false, ...aiNotice(req, out) });
+  } catch (e) { res.status(502).json({ error: 'Jambo request failed: ' + e.message }); }
 });
 
 /* ============================================================
@@ -14048,7 +14175,9 @@ app.post('/api/keeping/:fid/run', auth, admin, (req, res) => {
    recorded BEFORE the file leaves, as the trail's own download is. */
 db.exec(`CREATE TABLE IF NOT EXISTS account_acts (id INTEGER PRIMARY KEY AUTOINCREMENT,
   at TEXT NOT NULL, by_id TEXT, by_name TEXT, user_id TEXT, user_name TEXT, kind TEXT NOT NULL, detail TEXT)`);
-const ACCT_KINDS = { name: 'Name changed', email: 'Email changed', copy: 'Took a copy of what they can see' };
+const ACCT_KINDS = { name: 'Name changed', email: 'Email changed', copy: 'Took a copy of what they can see',
+  /* ALERTS ON YOUR PHONE (round 4): a device turned on or off, or dropped by its push service */
+  push: 'Phone alerts turned on', pushoff: 'Phone alerts turned off', pushgone: 'Phone alerts stopped by the device' };
 function acctRecord(by, user, kind, detail) {
   if (!ACCT_KINDS[kind]) return;
   db.prepare('INSERT INTO account_acts (at, by_id, by_name, user_id, user_name, kind, detail) VALUES (?,?,?,?,?,?,?)')
@@ -16185,8 +16314,10 @@ async function saSendApprovalMail(req, c, r, kind, recipients, extra) {
     const L = langForEmail(u.email);
     const asker = (r.askedBy && r.askedBy.name) || '';
     const decider = (r.decidedBy && r.decidedBy.name) || '';
-    let subject = '', lines = [];
+    let subject = '', lines = [], pushTo = null;
     if (kind === 'ask') {
+      /* an approval asked of you is urgent on the phone too (round 4); reminders wait for the morning */
+      pushTo = decideLink;
       subject = tFor(L, 'mail_sa_ask_subject', { name: cName, id: contractRef(c) });
       lines = [tFor(L, 'mail_sa_ask_line', { who: asker }), '', `${cName} (${contractRef(c)})`, saMailFacts(c, u),
         ...(r.note ? ['', tFor(L, 'mail_sa_note', { who: asker, note: r.note })] : []),
@@ -16208,6 +16339,7 @@ async function saSendApprovalMail(req, c, r, kind, recipients, extra) {
     }
     const body = `${tFor(L, 'mail_hello')} ${u.name || ''},\n\n${lines.join('\n')}\n\n${tFor(L, 'mail_automated_notice')}`;
     const sent = await sendEmail(u.email, subject, body, `sign approval ${kind}: ${c.id} -> ${u.email}`);
+    if (pushTo) pushUrgent(u.id != null ? u : pushUserByEmail(u.email), 'approve', c, pushTo);
     if (!first) first = { u, sent };
     if (sent && sent.sent) n++;
   }
@@ -16379,6 +16511,7 @@ async function ruleStepTell(req, c, step, kind, extra) {
         `${cName} (${contractRef(c)})`, saMailFacts(c, u), '', tFor(L, 'mail_ar_open'), link];
       const body = `${tFor(L, 'mail_hello')} ${u.name || ''},\n\n${lines.join('\n')}\n\n${tFor(L, 'mail_automated_notice')}`;
       const sent = await sendEmail(u.email, subject, body, `approval rule ${kind}: ${c.id} -> ${u.email}`);
+      if (kind === 'due') pushUrgent(u.id != null ? u : pushUserByEmail(u.email), 'approve', c, link);   // round 4: urgent
       if (!first) first = { u, sent: mailReport(sent) };
       if (sent && sent.sent) n++;
     }
@@ -18024,6 +18157,8 @@ async function notifyInternalSignerTurn(req, contractId, opts = {}) {
     const mail = internalTurnEmail({ signer: row, plan: rt.plan, contractName: cName,
       url: contractSignUrl(req, contractId), L });
     const r = await sendEmail(to.email, mail.subject, mail.body, `sign turn (internal): ${contractId}`);
+    /* AND ON THEIR PHONE, if they turned alerts on (round 4): urgent */
+    pushUrgent(pushUserByEmail(to.email), 'sign', rt.contract || { id: contractId, name: cName }, contractSignUrl(req, contractId));
     const detail = r.sent ? null
       : String(r.detail || (EMAIL_ON() ? 'The email provider refused the message.'
         : 'Email is not configured on this server — the message is in the outbox.')).slice(0, 300);
@@ -21710,6 +21845,8 @@ function runReminders() {
         if (od === 7 && fireTo(`${c.id}:ob:${okey}:soon`, [who.email], oMail('soon'), `obligation soon: ${c.name}`)) queued++;
         if (od === 0 && fireTo(`${c.id}:ob:${okey}:today`, [who.email], oMail('today'), `obligation today: ${c.name}`)) {
           queued++;
+          /* a duty of yours due today is urgent on the phone (round 4), riding the mail's own dedupe */
+          pushUrgent(pushUserByEmail(who.email), 'due', full.id ? full : c, link);
           // W2-3: rides the mail's OWN dedupe, so an outside system is told
           // exactly as often as the person is — once
           webhookQueue('obligation.due', () => ({ contractId: c.id, obligationId: String(okey).slice(0, 64), due }));
@@ -21756,6 +21893,168 @@ app.post('/api/reminders/run', auth, admin, async (req, res) => {
    switch is prefs.dailyBrief (absent = on; PUT /api/me/prefs writes it, the
    account page draws it). Sends are fire-and-forget like every sweep mail; a
    dead provider leaves honest rows in the outbox and the sweep alive. */
+/* ============================================================
+   ALERTS ON YOUR PHONE (round 4 of Jambo's journey, docs/PLAN-jambo-journey.md;
+   the owner, 22 Oct 2026: browser push, "option 2" — the urgent ones as they
+   happen, the rest in ONE morning summary)
+   ============================================================
+   WEB PUSH, THE STANDARD, WRITTEN ON NODE'S OWN CRYPTO (no new dependency):
+   the payload is encrypted to the browser's own key (RFC 8291, aes128gcm) and
+   the request is signed with this server's key (RFC 8292, VAPID, ES256). The
+   server's key pair is made once and kept in settings (`pushVapid`), unless
+   VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY are given.
+     · A DEVICE IS A PERSON'S OWN CHOICE: a row in push_subs is written only by
+       that person's own press (POST /api/push/subscribe, their session, never
+       a body naming someone), and taken off by Turn off or by the push service
+       saying the device is gone (404/410). Each is a line in account_acts.
+     · ONLY THE PUSH SERVICES: an endpoint is a web address the browser hands
+       us and the server will POST to it, so only the known push services are
+       accepted (PUSH_HOSTS), https only — never an address of our own network.
+     · WHAT AN ALERT SAYS: what is waiting and which contract (its ref and
+       name) — never wording, never a figure, never a code-named deal at all
+       (pushTell drops it). A tap opens HaTi on it (contractUrl); nothing is
+       pressed by the alert.
+     · THE URGENT ONES ride the email of the same moment, after it: your turn
+       to sign (notifyInternalSignerTurn), an approval asked of you (sign
+       approval ask, a rule step due), a duty of yours due today. THE REST is
+       the morning summary, read off the daily brief's own reading, once a
+       day (`pushday:` in reminders), whatever the email brief is set to. */
+db.exec(`CREATE TABLE IF NOT EXISTS push_subs (endpoint TEXT PRIMARY KEY, user_id TEXT NOT NULL,
+  p256dh TEXT NOT NULL, auth TEXT NOT NULL, ua TEXT, created_at TEXT, last_ok TEXT, last_err TEXT)`);
+const PUSH_HOSTS = [/(^|\.)fcm\.googleapis\.com$/i, /(^|\.)push\.services\.mozilla\.com$/i, /(^|\.)push\.apple\.com$/i, /(^|\.)notify\.windows\.com$/i];
+const PUSH_TTL_S = 24 * 3600, PUSH_TIMEOUT_MS = 10000, PUSH_DEVICES_MAX = 10;
+const pushB64u = b => Buffer.from(b).toString('base64url');
+const pushUnB64u = s => Buffer.from(String(s || ''), 'base64url');
+/* tests point at a stand-in push service: an explicit prefix, never in production */
+function pushEndpointOk(endpoint) {
+  let u; try { u = new URL(String(endpoint || '')); } catch (_) { return false; }
+  const test = String(process.env.PUSH_ENDPOINT_TEST_PREFIX || '');
+  if (test && process.env.NODE_ENV !== 'production' && String(endpoint).startsWith(test)) return true;
+  return u.protocol === 'https:' && !u.port && PUSH_HOSTS.some(re => re.test(u.hostname));
+}
+function pushKeys() {
+  const ep = process.env.VAPID_PUBLIC_KEY, ek = process.env.VAPID_PRIVATE_KEY;
+  if (ep && ek) return { pub: ep, priv: ek };
+  let k = getSetting('pushVapid');
+  if (!k || !k.pub || !k.priv) {
+    const ec = crypto.createECDH('prime256v1'); ec.generateKeys();
+    k = { pub: pushB64u(ec.getPublicKey()), priv: pushB64u(ec.getPrivateKey()) };
+    setSetting('pushVapid', k);
+  }
+  return k;
+}
+/* the signed claim that this server sends it (RFC 8292): to the push service's origin, for 12 hours */
+function pushJwt(aud, k) {
+  const pub = pushUnB64u(k.pub);
+  const key = crypto.createPrivateKey({ format: 'jwk', key: { kty: 'EC', crv: 'P-256', d: k.priv,
+    x: pushB64u(pub.subarray(1, 33)), y: pushB64u(pub.subarray(33, 65)) } });
+  const sub = String(process.env.VAPID_SUBJECT || '') || (APP_URL() ? APP_URL() : 'mailto:no-reply@hati.invalid');
+  const head = pushB64u(JSON.stringify({ typ: 'JWT', alg: 'ES256' }));
+  const body = pushB64u(JSON.stringify({ aud, exp: Math.floor(Date.now() / 1000) + 12 * 3600, sub }));
+  const sig = crypto.sign('sha256', Buffer.from(head + '.' + body), { key, dsaEncoding: 'ieee-p1363' });
+  return head + '.' + body + '.' + pushB64u(sig);
+}
+/* the payload, encrypted to the browser's own key (RFC 8291, one aes128gcm record) */
+function pushEncrypt(p256dh, auth, text) {
+  const ua = pushUnB64u(p256dh), secret = pushUnB64u(auth);
+  if (ua.length !== 65 || secret.length < 16) throw new Error('bad subscription keys');
+  const as = crypto.createECDH('prime256v1'); as.generateKeys();
+  const asPub = as.getPublicKey(), shared = as.computeSecret(ua);
+  const hmac = (k, d) => crypto.createHmac('sha256', k).update(d).digest();
+  const ikm = hmac(hmac(secret, shared), Buffer.concat([Buffer.from('WebPush: info\0'), ua, asPub, Buffer.from([1])]));
+  const salt = crypto.randomBytes(16), prk = hmac(salt, ikm);
+  const cek = hmac(prk, Buffer.from('Content-Encoding: aes128gcm\0\x01')).subarray(0, 16);
+  const nonce = hmac(prk, Buffer.from('Content-Encoding: nonce\0\x01')).subarray(0, 12);
+  const c = crypto.createCipheriv('aes-128-gcm', cek, nonce);
+  const sealed = Buffer.concat([c.update(Buffer.concat([Buffer.from(String(text), 'utf8'), Buffer.from([2])])), c.final(), c.getAuthTag()]);
+  const rs = Buffer.alloc(4); rs.writeUInt32BE(4096);
+  return Buffer.concat([salt, rs, Buffer.from([65]), asPub, sealed]);
+}
+/* one device: sent, or why not; a device the service says is gone is taken off */
+async function pushSendOne(sub, msg) {
+  if (!pushEndpointOk(sub.endpoint)) return { ok: false, why: 'endpoint' };
+  try {
+    const k = pushKeys();
+    const r = await fetch(sub.endpoint, { method: 'POST',
+      headers: { 'Content-Encoding': 'aes128gcm', 'Content-Type': 'application/octet-stream', TTL: String(PUSH_TTL_S),
+        Urgency: msg.urgent ? 'high' : 'normal', Authorization: `vapid t=${pushJwt(new URL(sub.endpoint).origin, k)}, k=${k.pub}` },
+      body: pushEncrypt(sub.p256dh, sub.auth, JSON.stringify(msg)),
+      signal: (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) ? AbortSignal.timeout(PUSH_TIMEOUT_MS) : undefined });
+    if (r.status === 404 || r.status === 410) {
+      db.prepare('DELETE FROM push_subs WHERE endpoint=?').run(sub.endpoint);
+      const u = db.prepare('SELECT id, name, email FROM users WHERE id=?').get(sub.user_id);
+      if (u) acctRecord({ id: '', name: 'HaTi' }, u, 'pushgone', 'The push service said this device no longer takes alerts');
+      return { ok: false, why: 'gone' };
+    }
+    if (!r.ok) { db.prepare('UPDATE push_subs SET last_err=? WHERE endpoint=?').run(`${now()} ${r.status}`, sub.endpoint); return { ok: false, why: 'status ' + r.status }; }
+    db.prepare('UPDATE push_subs SET last_ok=?, last_err=NULL WHERE endpoint=?').run(now(), sub.endpoint);
+    return { ok: true };
+  } catch (e) {
+    try { db.prepare('UPDATE push_subs SET last_err=? WHERE endpoint=?').run(`${now()} ${String((e && e.message) || e).slice(0, 120)}`, sub.endpoint); } catch (_) {}
+    return { ok: false, why: 'error' };
+  }
+}
+const pushDevicesOf = userId => db.prepare('SELECT * FROM push_subs WHERE user_id=?').all(String(userId));
+/* ONE DOOR FOR EVERY ALERT: to a person, in their language, never about a code-named deal */
+async function pushTell(user, make) {
+  try {
+    if (!user || user.id == null) return { sent: 0 };
+    const subs = pushDevicesOf(user.id); if (!subs.length) return { sent: 0 };
+    const L = (user.lang && I18N_STRINGS[user.lang]) ? user.lang : I18N_DEFAULT;
+    const msg = make(L); if (!msg) return { sent: 0 };
+    if (msg.cid != null && cnMap().has(String(msg.cid))) return { sent: 0, walled: true };
+    let sent = 0;
+    for (const s of subs) if ((await pushSendOne(s, msg)).ok) sent++;
+    return { sent };
+  } catch (_) { return { sent: 0 }; }
+}
+const pushUserByEmail = email => email ? db.prepare('SELECT * FROM users WHERE lower(email)=lower(?)').get(String(email)) : null;
+/* the contract as an alert names it: its printed ref and its name, nothing of its wording */
+function pushAbout(c) { return `${String((c && c.name) || '').slice(0, 80)} (${contractRef(c || {})})`; }
+function pushUrgent(user, kind, c, url) {
+  return pushTell(user, L => ({ kind, urgent: true, cid: c && c.id, tag: `${kind}:${c && c.id}`, url,
+    title: tFor(L, `push_${kind}_title`), body: pushAbout(c) }));
+}
+app.get('/api/push/key', auth, (req, res) => res.json({ key: pushKeys().pub, devices: pushDevicesOf(req.user.id).length }));
+app.post('/api/push/subscribe', auth, async (req, res) => {
+  const b = req.body || {}, keys = b.keys || {};
+  const endpoint = String(b.endpoint || '').slice(0, 1000);
+  if (!pushEndpointOk(endpoint)) return res.status(400).json({ error: 'That is not a push service HaTi sends to.' });
+  if (pushUnB64u(keys.p256dh).length !== 65 || pushUnB64u(keys.auth).length < 16) return res.status(400).json({ error: 'The browser did not give a usable key.' });
+  const had = db.prepare('SELECT user_id FROM push_subs WHERE endpoint=?').get(endpoint);
+  if (!had && pushDevicesOf(req.user.id).length >= PUSH_DEVICES_MAX) return res.status(409).json({ error: `Alerts already go to ${PUSH_DEVICES_MAX} devices. Turn one off first.` });
+  db.prepare(`INSERT INTO push_subs (endpoint, user_id, p256dh, auth, ua, created_at) VALUES (?,?,?,?,?,?)
+    ON CONFLICT(endpoint) DO UPDATE SET user_id=excluded.user_id, p256dh=excluded.p256dh, auth=excluded.auth, ua=excluded.ua, created_at=excluded.created_at, last_err=NULL`)
+    .run(endpoint, String(req.user.id), String(keys.p256dh), String(keys.auth), String(req.get('user-agent') || '').slice(0, 200), now());
+  acctRecord(req.user, req.user, 'push', String(req.get('user-agent') || '').slice(0, 120));
+  /* "ON" MEANS IT ARRIVED: the first alert goes now, and the answer says whether it was taken */
+  const sub = db.prepare('SELECT * FROM push_subs WHERE endpoint=?').get(endpoint);
+  const L = (req.user.lang && I18N_STRINGS[req.user.lang]) ? req.user.lang : I18N_DEFAULT;
+  const hello = await pushSendOne(sub, { kind: 'hello', tag: 'hello', url: (APP_URL() || `${req.protocol}://${req.get('host')}`) + '/',
+    title: tFor(L, 'push_hello_title'), body: tFor(L, 'push_hello_body') });
+  res.json({ ok: true, delivered: !!hello.ok, devices: pushDevicesOf(req.user.id).length });
+});
+app.post('/api/push/unsubscribe', auth, (req, res) => {
+  const endpoint = String((req.body || {}).endpoint || '');
+  const r = db.prepare('DELETE FROM push_subs WHERE endpoint=? AND user_id=?').run(endpoint, String(req.user.id));
+  if (r.changes) acctRecord(req.user, req.user, 'pushoff', String(req.get('user-agent') || '').slice(0, 120));
+  res.json({ ok: true, removed: r.changes, devices: pushDevicesOf(req.user.id).length });
+});
+/* THE MORNING SUMMARY: the daily brief's own sections, counted, once a day per person with a device */
+function pushMorning(u, S, day) {
+  const rkey = `pushday:${u.id}:${day}`;
+  if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(rkey)) return false;
+  const parts = [['sign', S.sign], ['rv', S.rv], ['ob', S.ob], ['exp', S.exp], ['notice', S.notice], ['link', S.link]]
+    .filter(([, a]) => a.length).map(([k, a]) => [k, a.length]);
+  if (!parts.length) return false;
+  db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(rkey, now());
+  const total = parts.reduce((n, [, x]) => n + x, 0);
+  pushTell(u, L => ({ kind: 'morning', tag: 'morning', url: (APP_URL() || `http://localhost:${PORT}`) + '/',
+    title: tFor(L, 'push_morning_title', { n: total }),
+    body: parts.map(([k, x]) => tFor(L, `push_m_${k}`, { n: x })).join(' · ') }));
+  return true;
+}
+
 /* HOW OFTEN THIS PERSON IS BRIEFED — the ONE reading, and the only place
    the three answers are decided. ABSENT MEANS DAILY, exactly as it always
    has, and an account carrying the old dailyBrief:false still reads 'off':
@@ -21841,7 +22140,9 @@ function runDailyBriefs() {
   let sent = 0;
   for (const u of members) {
     const every = briefCadence(u);
-    if (every === 'off') continue;                            // the off switch
+    /* A PHONE WITH ALERTS ON gets the morning summary whatever the email is set to (round 4) */
+    const phones = pushDevicesOf(u.id).length > 0;
+    if (every === 'off' && !phones) continue;                 // the off switch
     /* THE DAILY KEY KEEPS ITS HISTORIC SHAPE, so upgrading re-sends nothing.
        The weekly one is keyed on the week's MONDAY rather than on the day it
        goes out: it normally leaves on Monday morning, and where a server was
@@ -21849,7 +22150,8 @@ function runDailyBriefs() {
        being lost. Somebody who has just asked for a weekly brief gets this
        week's — which is what asking for it means. */
     const rkey = every === 'weekly' ? `weekly:${u.id}:${briefWeekOf(day)}` : `daily:${u.id}:${day}`;
-    if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(rkey)) continue;  // once a day / once a week
+    const mailed = every === 'off' || !!db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(rkey);   // once a day / once a week
+    if (mailed && !(phones && !db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(`pushday:${u.id}:${day}`))) continue;
     const scope = folderScopeFor(u);
     const L = (u.lang && I18N_STRINGS[u.lang]) ? u.lang : I18N_DEFAULT;
     const isAdminU = u.role === 'admin';
@@ -21900,6 +22202,8 @@ function runDailyBriefs() {
     }
     const total = S.ob.length + S.rv.length + S.sign.length + S.exp.length + S.notice.length + S.link.length;
     if (!total) continue;                                     // quiet days say nothing
+    if (phones) pushMorning(u, S, day);                       // the phone's one summary of the day
+    if (mailed) continue;
     db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(rkey, now());
     const sec = (title, items) => items.length
       ? `${title}\n` + items.map(i => `  • ${i.line}\n    ${contractUrl(null, i.id)}`).join('\n') + '\n\n' : '';
@@ -22409,6 +22713,8 @@ async function runOurPromises() {
         // W2-3: rides the mail's OWN dedupe, so an outside system is told
         // exactly as often as the person is — once
         webhookQueue('obligation.due', () => ({ contractId: c.id, obligationId: String(okey).slice(0, 64), due }));
+        /* a duty of ours due today is urgent on that person's phone (round 4), on the same dedupe */
+        pushUrgent(pushUserByEmail(who.email), 'due', Object.assign({ contractNo: full.contractNo }, c), link);
       }
     }
   }
@@ -26552,6 +26858,16 @@ const INDEX = path.join(__dirname, '..', 'index.html');
 const NO_CACHE = { 'Cache-Control': 'no-cache' };
 app.get('/', (req, res) => res.sendFile(INDEX, { headers: NO_CACHE }));
 app.get('/index.html', (req, res) => res.sendFile(INDEX, { headers: NO_CACHE }));
+/* ALERTS ON YOUR PHONE (round 4): the service worker answers at the root so it covers the whole app
+   (js/push-sw.js), and the manifest lets an iPhone or iPad put HaTi on its Home Screen, which is the
+   only way Apple gives a web app alerts. Neither caches anything nor changes how the page loads. */
+app.get('/sw.js', (req, res) => res.sendFile(path.join(__dirname, '..', 'js', 'push-sw.js'),
+  { headers: { ...NO_CACHE, 'Content-Type': 'text/javascript; charset=utf-8', 'Service-Worker-Allowed': '/' } }));
+app.get('/manifest.webmanifest', (req, res) => {
+  res.set({ ...NO_CACHE, 'Content-Type': 'application/manifest+json' });
+  res.send(JSON.stringify({ name: 'HaTi', short_name: 'HaTi', start_url: '/', scope: '/', display: 'standalone',
+    background_color: '#F4F1EA', theme_color: '#161512' }));
+});
 // Serve exactly the static trees the frontend loads — the native ES modules
 // (js/), the design's two typefaces (fonts/) and the bundled sample PDFs
 // (importable from the template library). Never the repo root, which would

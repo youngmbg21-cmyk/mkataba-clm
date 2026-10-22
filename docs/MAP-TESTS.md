@@ -253,6 +253,10 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## COPILOT READS A CONTRACT ON ARRIVAL, AND FILLS ITS BLANKS
 - f273, f327, f342, f343, f697, auto-triage, blanks-panel, upload-blanks, jambo-behind-the-wall verify.
+- Round 2 of Jambo's journey (22 Oct 2026): f863 (red at the parent ff39067, 17 of 17 but the kept playbook-range rule), test/chromium/jambo-round-two-verify (19 checks: the row's read and Why?, after the signature, the calendar file, the standards proposal, once, the three screens); f711 (1c) and f733 (4) re-pointed.
+- Round 3 of Jambo's journey (22 Oct 2026), the web search on the other side: f864 (red at the parent 3e97026, every test; three that first passed there vacuously now prove the route, the record and the offer exist first), test/chromium/jambo-looks-them-up-verify (25 checks: the Dossier's On the web line and its pop-up, the press waiting, facts with their source links, the uncited line left out and counted, only the name sent, his first words' offer and answer, the owner's three screens).
+- Round 4 of Jambo's journey (22 Oct 2026), alerts on your phone: f865 (red at the parent b60d16c, every test), test/chromium/alerts-on-your-phone-verify (15 checks: the Settings row and switch, the helper registered at /sw.js, the first alert received by a stand-in push service and opened with the device's key, the helper showing an alert and opening only HaTi's own address, the phone's sheet turning it off, the three screens); f780 5b re-pointed (the new row).
+- Jambo speaks first on an upload (22 Oct 2026): f862 (red at the parent ff908e4, 18 of 18), test/chromium/jambo-speaks-first-verify (20 checks: a real drop, the real reading, every press, once across a refresh, the three screens).
 
 ## OVERVIEW 2 — THE TIME MACHINE (js/views/overview2.js)
 - f558.
@@ -288,6 +292,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE SLIDER ON EVERY JAMBO PANEL
 - f830, f394 (3).
+- The side panel beside the page (22 Oct 2026): test/chromium/jambo-slides-in-verify.js 1d–1l (nothing dimmed, the page's room ends where the panel starts, the edge tab steps away and comes back with the panel's minimise, THE SLIDER widens it and is kept, a double-click puts it back, the three screens); 1d/1e/1f/1h red at ff908e4b.
 
 ## OTHER PAGES AND SERVICES
 - The Mailroom gives every document a person (22 Oct 2026): f859 (red at the parent 1–6); Settings box photographed at the three screens. Their bell says it once: test/chromium/mailroom-bell-verify.js (red at the parent 1, 1b, 2, 5).

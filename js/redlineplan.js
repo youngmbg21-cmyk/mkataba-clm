@@ -97,10 +97,31 @@ function rlpJudge(c, ch){
     if(seats.some(s=>new RegExp('laws?\\s+of\\s+'+String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i').test(t)))
       return { verdict:'escalate', topic:topic.key, why:[i18t('rp_why_foreign_law')] };
   }
+  /* NOTHING IN THE PLAYBOOK TO MEASURE IT BY: HOW YOU ANSWERED IT BEFORE
+     (round 2 of Jambo's journey, 22 Oct 2026). With them where there are
+     PRECEDENT_MIN of their asks on this topic settled, else with everybody;
+     two in three either way decides it, anything less stays "Read it" and says
+     both. Fewer than PRECEDENT_MIN answers is nothing to compare. */
+  const past=rlpPastJudge(c, ch);
+  if(past) return Object.assign({ topic:topic.key }, past);
   if(pos)
     return { verdict:'review', topic:topic.key,
       why:[i18t('rp_why_no_figure',{category:topic.category})] };
   return { verdict:'review', topic:topic.key, why:[i18t('rp_why_no_standard')] };
+}
+function rlpPastJudge(c, ch){
+  let p=null; try{ p=(typeof precedentForChange==='function')?precedentForChange(c,ch):null; }catch(_){ p=null; }
+  if(!p) return null;
+  const min=(typeof PRECEDENT_MIN==='number')?PRECEDENT_MIN:3;
+  const n=s=>s?(s.theirs.accepted+s.theirs.refused):0;
+  const src=(p.withThem&&n(p.withThem)>=min)?p.withThem:(p.everyone&&n(p.everyone)>=min)?p.everyone:null;
+  if(!src) return null;
+  const a=src.theirs.accepted, r=src.theirs.refused, all=a+r;
+  const who=src===p.withThem?p.withThem.counterparty:'';
+  const v={ a, r, n:all, who, category:p.category };
+  if(a*3>=all*2) return { verdict:'accept', past:true, why:[i18t(who?'rp_why_past_yes_them':'rp_why_past_yes',v)] };
+  if(r*3>=all*2) return { verdict:'push', past:true, why:[i18t(who?'rp_why_past_no_them':'rp_why_past_no',v)] };
+  return { verdict:'review', past:true, why:[i18t('rp_why_past_both',v)] };
 }
 /* THE PLAN: their pending asks, each with a recommendation, the reason, and
    what our own history says about that standard. Ordered worst-first, so
@@ -213,5 +234,5 @@ function rlpWordsCut(ch){
 
 const rlpCounts = plan => plan.reduce((m,r)=>{ m[r.verdict]=(m[r.verdict]||0)+1; return m; },{});
 
-Object.assign(window,{RLP_VERDICTS,RLP_ORDER,RLP_CUT_MAX,RLP_CUT_CHARS,
+Object.assign(window,{rlpPastJudge,RLP_VERDICTS,RLP_ORDER,RLP_CUT_MAX,RLP_CUT_CHARS,
   rlpRangeFor,rlpPositionFor,rlpJudge,rlpWordsCut,redlinePlan,rlpCounts});

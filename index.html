@@ -10,6 +10,8 @@
      those 13 already reads env() with an explicit 0px fallback, so they simply
      start returning a real number on the handsets that have one. -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<!-- ALERTS ON YOUR PHONE (round 4): lets an iPhone or iPad put HaTi on its Home Screen, the only way Apple gives a web app alerts -->
+<link rel="manifest" href="/manifest.webmanifest" />
 <!-- iPhone/iPad Safari must not turn names, addresses and emails into underlined links (owner, 9 Oct 2026) -->
 <meta name="format-detection" content="telephone=no,email=no,address=no,date=no" />
 <title>HaTi — Contract Lifecycle Management</title>
@@ -4037,6 +4039,8 @@
   .st-cr .st-sl{ color:var(--color-text); font-weight:var(--w-label); }
   .st-cr .st-sv{ min-width:0; display:flex; flex-wrap:wrap; align-items:center; gap:2px 10px; line-height:1.45; }
   .st-cr .st-sv > b + .st-you-sub{ flex-basis:100%; }
+  /* alerts on this device (round 4): the row's wrapper steps aside so its switch and words sit like Jambo's suggestions below */
+  .st-cr .st-push{ display:contents; }
   .st-cr .st-sa{ display:flex; gap:14px; align-items:center; justify-content:flex-end; white-space:nowrap; }
   .st-cr .st-sr-door{ font-size:var(--t-meta); }
   /* A QUIET BOX, AS DRAWN (round 24, the gaps' third pass): about 28px tall,
@@ -10330,6 +10334,7 @@
   .ig-resizer{position:absolute;top:0;bottom:0;width:14px;z-index:6;cursor:col-resize;
     display:flex;align-items:center;justify-content:center;touch-action:none}
   .ig-resizer[hidden]{display:none}
+  #ai-panel:not(.is-side) > .ig-resizer{display:none}
   .ig-resizer span{width:4px;height:72px;border-radius:var(--radius);background:var(--color-neutral-300);transition:background var(--dur-1)}
   .ig-resizer[data-at-limit] span{background:var(--st-amber-dot)}
   .ig-resizer:hover span,.ig-resizer[data-drag] span,.ig-resizer:focus-visible span{background:var(--color-accent)}
@@ -12764,12 +12769,17 @@
      aiSideSync, aiPopOut) ====
      On a computer the window is a side panel wearing THE BRIEF: 384 wide under the top bar, the head
      and the foot 56, its tab a word (the ✦ and "Jambo", the live tab's rule under them), nothing boxed;
-     the page beside it dimmed by the scrim under the bar (the ONE PANEL convention), never reflowed.
+     the page and its head card make room beside it, nothing dimmed (owner, 22 Oct 2026).
      The ✦ opens the movable chat window instead (below; the one-line ✦ bar is gone). Popped out,
      the same nodes stand in a window of their own (.is-popped). Scoped by id and class, never !important. */
   @media (min-width:768px){
     #ai-scrim{top:var(--shell-head-h,48px)}
-    #ai-panel.is-side{top:var(--shell-head-h,48px);height:auto;width:384px;max-width:none;border-left:1px solid var(--color-divider);box-shadow:none}
+    #ai-panel.is-side{top:var(--shell-head-h,48px);height:auto;width:var(--ai-side-w,384px);max-width:none;border-left:1px solid var(--color-divider);box-shadow:none}
+    /* BESIDE THE PAGE, AS EVERY JAMBO PANEL (owner, 22 Oct 2026): the page makes room, nothing dimmed;
+       THE SLIDER on its left edge (splitHtml, ai.js AI_SIDE_SPLIT) pulls it wider */
+    body.ai-side-open #content-scroll, body.ai-side-open #page-head{margin-right:var(--ai-side-w,384px)}
+    #ai-panel.is-side > .ig-resizer{left:-1px}
+    #ai-panel.is-side.is-dragging{transition:none}
     #ai-panel.is-side.ai-stepaside{visibility:hidden;pointer-events:none}
     #ai-panel.is-side > header{box-sizing:border-box;height:56px;min-height:56px;padding:0 12px 0 16px;gap:0;align-items:stretch}
     #ai-panel.is-side > header > *{align-self:center}
@@ -12785,9 +12795,9 @@
     #ai-panel.is-side > footer{box-sizing:border-box;min-height:56px;padding:7px 16px 8px;display:flex;flex-direction:column;justify-content:center}
     #ai-panel.is-side > footer .jb-card:not(.is-tall){box-sizing:border-box;min-height:40px}
     #ai-panel.is-side.is-drop{outline:2px dashed var(--accent-ink);outline-offset:-6px}
-    /* the edge tab rides the panel's edge while it is in, so the same press takes it out */
-    body.ai-side-open #jh-jambo .igd-door{position:fixed;top:var(--shell-head-h,48px);right:384px;bottom:0;width:46px;height:auto;z-index:51}
-    body.ai-side-open:has(#jh-jambo) #ai-scrim{right:430px}
+    /* the edge tab steps away while the panel is in, as Home's folded strip does when its panel opens;
+       the panel's own minimise and × put it back */
+    body.ai-side-open #jh-jambo{display:none}
   }
   /* each answer says what it read (aiReadFrom) */
   #ai-feed .ai-read{font-size:var(--t-label);line-height:16px;color:var(--color-neutral-600)}
@@ -14134,6 +14144,17 @@
   .jl-bub{min-width:0;flex:1 1 auto;padding:10px 12px;border-radius:var(--radius-lg);background:var(--surface-2);color:var(--color-text);line-height:1.5;}
   .jl-bub b{font-weight:var(--w-strong);}
   .jl-bub .late{color:var(--st-ruby-fg);font-weight:var(--w-label);}
+  /* JAMBO SPEAKS FIRST (round 1 of Jambo's journey): his first words are short paragraphs and two short lists */
+  .jl-bub p{margin:0;}
+  .jl-bub p + p, .jl-bub .fr-list + p, .jl-bub .fr-more + p{margin-top:8px;}
+  .jl-bub .fr-list{margin:4px 0 0;padding-left:18px;list-style:disc;}
+  .jl-bub .fr-list li + li{margin-top:4px;}
+  .jl-bub .fr-more{margin-top:4px;color:var(--color-neutral-600);}
+  /* WHAT THE WEB SAYS ABOUT THEM (round 3): each fact's sources, small, after it; the pop-up reads like his turn */
+  .jl-bub .pw-src{font-size:12px;color:var(--accent);text-decoration:underline;text-underline-offset:2px;white-space:nowrap;}
+  .jl-bub .pw-src + .pw-src{margin-left:6px;}
+  .pw-dlg .jl-bub{max-height:min(60vh,520px);overflow:auto;}
+  .pw-dlg .pw-err{margin-top:8px;color:var(--danger);}
   .jl-src{margin:-2px 0 2px 34px;font-size:var(--t-micro);color:var(--color-neutral-600);}
   .jl-chips{display:flex;flex-wrap:wrap;gap:4px 12px;margin-left:34px;}
   /* a resting chip wears the ONE light edge every outlined control does

@@ -175,6 +175,13 @@ const word = (lines) => Buffer.from(mkDocx(lines.map(t => para(t)).join('')));
     check('4a0 the drop area asks the stream, as the pop-up did: the first chosen until another is', !!asks && asks.n >= 2 && asks.v === asks.first, asks);
     const streamed = await choose('#pd-drop-stream', 'sales');
     await drop(b64, 'Courier Services Agreement.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    /* RE-POINTED 22 Oct 2026 (Jambo's journey, round 1: he speaks first on an upload, in his panel): once the
+       arrival reading has landed he may have turned the panel to his words; the reader goes back to the
+       Dossier with its ‹ Dossier, as a person would */
+    await waitFor(page, ids => { const p = intel.paper && intel.paper.id; return !!p && !ids.includes(p); }, 20000, ids4);
+    await page.waitForFunction(() => { const c = intel.paper && getContract(intel.paper.id); return !!(c && c.triage && c.triage.hash !== undefined && !c._triaging); }, null, { timeout: 20000 }).catch(() => {});
+    await pause(300);
+    await page.evaluate(() => { const d = document.getElementById('ig-dock'); const b = d && d.classList.contains('is-talk') ? d.querySelector('[data-pd-back]') : null; if (b) b.click(); });
     const landed = await waitFor(page, ids => { const p = intel.paper && intel.paper.id; return !!p && !ids.includes(p) && !!document.getElementById('pd-glance') && !document.querySelector('#pd-fillface .pd-ff'); }, 20000, ids4);
     const up = await page.evaluate(() => { const c = getContract(intel.paper.id); return { id: c.id, name: c.name, src: c.source, folder: c.folder, audit: (c.audit || []).map(a => a.action),
       popup: window._seen.popup, room: window._seen.room, face: hbFace(), view: state.view, owner: !!c.owner }; });

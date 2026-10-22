@@ -2169,6 +2169,17 @@ function redlineLayoutCss(){
   ${''/* A COUNTER THAT KEEPS PART OF THEIR ASK, AND A LAW AND SEAT THAT DISAGREE
          (owner, 18 Oct 2026): said on our row, in amber, a line each */}
   .rl-card-keeps{display:flex;flex-direction:column;gap:2px;margin-top:3px;font-size:var(--t-meta);color:var(--st-amber-fg)}
+  ${''/* JAMBO'S READ ON THEIR ROW (round 2 of Jambo's journey): the verdict as a dot and a word, its first reason, and Why? as a quiet link; two lines at most */}
+  .rl-card-read{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 6px;margin-top:3px;font-size:var(--t-meta);line-height:1.45;color:var(--color-neutral-600)}
+  .rl-card-read-v{display:inline-flex;align-items:center;gap:5px;flex:none;font-weight:var(--w-label);color:var(--color-text)}
+  .rl-card-read-v i{width:7px;height:7px;border-radius:50%;background:var(--st-gray-dot)}
+  .rl-card-read.is-green .rl-card-read-v i{background:var(--st-green-dot)}
+  .rl-card-read.is-amber .rl-card-read-v i{background:var(--st-amber-dot)}
+  .rl-card-read.is-ruby .rl-card-read-v i{background:var(--st-ruby-dot)}
+  .rl-card-read.is-steel .rl-card-read-v i{background:var(--st-steel-dot)}
+  .rl-card-read-w{min-width:0;flex:1 1 12em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .rl-card-read-ask{flex:none;appearance:none;border:0;background:none;padding:0;font:inherit;color:var(--accent-ink);text-decoration:underline;text-decoration-color:var(--color-accent-200);text-underline-offset:3px;cursor:pointer}
+  .rl-card-read-ask:hover{text-decoration-color:currentColor}
   .rl-sug-reject :is(ins,.nego-ins){text-decoration:line-through dashed var(--color-accent-600);text-decoration-thickness:2px;
     outline:1.5px dashed var(--color-accent-600);outline-offset:2px}
   .rl-sug-reject.rl-sug-whole{outline:1.5px dashed var(--color-accent-600);outline-offset:6px}

@@ -7823,7 +7823,7 @@ function igMsgHTML(m,i){
       ${(Number.isInteger(i)&&m.preview&&typeof window.hbPreviewHtml==='function')?hbPreviewHtml(m.preview):''}
       ${''/* a choice sits right under the sentence that offers it; then how the
              question was read, with the next questions; then Undo (Part 4) */}
-      ${(Number.isInteger(i)&&Array.isArray(m.choices)&&m.choices.length)?`<div class="igd-choices" style="display:flex;gap:6px;flex-wrap:wrap">${m.choices.map((c,j)=>`<button type="button" class="ui-btn ui-btn-sm" data-ig-choice="${i}:${j}">${igEsc(c.label)}</button>`).join('')}</div>`:''}
+      ${(Number.isInteger(i)&&Array.isArray(m.choices)&&m.choices.length)?`<div class="igd-choices" style="display:flex;gap:6px;flex-wrap:wrap">${m.choices.map((c,j)=>`<button type="button" class="ui-btn ui-btn-sm${c.lead?' ui-btn-primary':''}" data-ig-choice="${i}:${j}"${c.title?` title="${igEsc(c.title)}"`:''}>${igEsc(c.label)}</button>`).join('')}</div>`:''}
       ${(Number.isInteger(i)&&m.reading&&typeof window.hbReadingHtml==='function')?hbReadingHtml(m.reading,hbReadingLive(i)):''}
       ${(Number.isInteger(i)&&m.undo&&typeof window.hbUndoHtml==='function')?hbUndoHtml(m.undo):''}
       ${(Number.isInteger(i)&&m.boardReply&&typeof window.hbMarksHtml==='function')?hbMarksHtml(i,m):''}
@@ -8021,7 +8021,13 @@ function renderIntelDock(){
      on its own face; words asked turn it to the conversation (pdTalkSync), a
      trail over it back to the landing as it was left. A page arrived at begins
      its conversation fresh (pdTalkFrom): what was said on another is not drawn. */
-  const talk=(typeof window.pdTalkSync==='function')?pdTalkSync(dock):false;
+  let talk=(typeof window.pdTalkSync==='function')?pdTalkSync(dock):false;
+  /* JAMBO SPEAKS FIRST (round 1 of Jambo's journey): the contract on the paper owes its words. Said AFTER the
+     talk has settled this paint (an answer landing now is filed as the late answer of the page that asked, and
+     words said alongside it would be filed with it), then the talk looks again and turns the panel to them. */
+  /* AND AFTER A SIGNATURE (round 2): what it now asks of each side, once, beside the Dossier, the same way */
+  const _jbOwed=(typeof window.firstReadDue==='function'&&firstReadDue())|(typeof window.signedTurnDue==='function'&&signedTurnDue());
+  if(_jbOwed&&typeof window.pdTalkSync==='function') talk=pdTalkSync(dock);
   /* ONE CONVERSATION EVERYWHERE (21 Oct 2026): every turn, each drawn by the
      builder of the host it was born in; popped out, the words are in Jambo's
      own window (popped out, or the ✦'s window open) and only there (one place at a time) */
@@ -8265,6 +8271,8 @@ function renderIntelDock(){
   dock.querySelectorAll('[data-ig-choice]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
     const [t,k]=String(b.getAttribute('data-ig-choice')||'').split(':').map(Number); const m=intel.history[t], c=m&&m.choices&&m.choices[k];
     if(!c) return; intel.history.push({ role:'user', text:c.label });
+    /* JAMBO'S FIRST WORDS: each answer is an existing door (firstReadPress, js/triage.js) */
+    if(c.fr&&typeof window.firstReadPress==='function'){ firstReadPress(c,m); renderIntelDock(); return; }
     /* a choice on Home's board is that card's recipe, pressed through the board's one applier (work order Part 6) */
     if(Array.isArray(c.board)&&typeof window.hbChoicePress==='function'){ const out=hbChoicePress(c); if(out) intel.history.push(Object.assign({ role:'assistant', text:out.html }, out.undo?{ undo:out.undo }:{})); renderIntelDock(); return; }
     igRecipeRun({ acts:c.acts }); renderIntelDock(); updateIntelNote(); }));

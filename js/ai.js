@@ -812,12 +812,56 @@ function aiSideSync(){
   const aside = !!(on && ai.open && !win && aiEmbeddedHere());
   panel.classList.toggle('ai-stepaside', aside);
   const scrim = document.getElementById('ai-scrim');
-  if(scrim && scrim.classList) scrim.classList.toggle('open', !!(ai.open && !ai.docked && !aside && !win));
+  /* BESIDE THE PAGE, NEVER OVER A DIMMED ONE (owner, 22 Oct 2026): the scrim is the phone's drawer's only */
+  if(scrim && scrim.classList) scrim.classList.toggle('open', !!(ai.open && !ai.docked && !aside && !win && !on));
   if(document.body && document.body.classList) document.body.classList.toggle('ai-side-open', !!(on && ai.open && !aside && !win));
+  aiSideFit();
+  const shown = aiSideShown();
+  if(shown !== _aiSideWas){ _aiSideWas = shown; setTimeout(aiSideReflow, 0); }
   const star = document.getElementById('cmd-ai'); if(star && star.setAttribute) star.setAttribute('aria-expanded', String(!!(win && ai.open)));
   /* POP OUT is drawn only where it can be done: a computer with a mouse */
   const pop = document.getElementById('ai-popout');
   if(pop) pop.hidden = !aiPopMay();
+}
+/* THE SIDE PANEL STANDS BESIDE THE PAGE, AS EVERY JAMBO PANEL DOES, WITH THE SLIDER
+   (owner, 22 Oct 2026: "why is the side panel here look different from other
+   jambo side panels? make it same as the others so that the highlighted area is
+   not visible when expanded and you should also have a slider to pull jambo
+   further to the left"). REVERSES "it dims the page beside it": the page makes
+   room for it (#content-scroll's margin, as beside the lists), nothing is
+   dimmed and a press outside closes nothing; the edge tab steps away while it
+   is in (its own minimise and × put it back), and THE SLIDER (components.js
+   splitWire, the one every Jambo panel is a client of) pulls it wider. */
+const AI_SIDE_SPLIT_KEY = 'hati.v1.aiSideW';
+const AI_SIDE_MIN = 340, AI_SIDE_PAGE_MIN = 480;
+let _aiSideWas = false;
+function aiSideShown(){
+  const p = (typeof document !== 'undefined') ? document.getElementById('ai-panel') : null;
+  return !!(p && p.classList && p.classList.contains('is-side') && ai.open && !p.classList.contains('ai-stepaside'));
+}
+const AI_SIDE_SPLIT = {
+  key: AI_SIDE_SPLIT_KEY, w0: AI_SIDE_W, min: AI_SIDE_MIN, restMin: AI_SIDE_PAGE_MIN, foldedW: 0,
+  folded: () => !aiSideShown(),
+  off: () => !aiSideShown(),
+  /* the room the page and the panel share: from the page's left edge to the window's */
+  avail: () => { const cs = document.getElementById('content-scroll'); let left = 0;
+    try { left = cs ? Math.max(0, Math.round(cs.getBoundingClientRect().left)) : 0; } catch (_){ left = 0; }
+    return Math.max(0, (window.innerWidth || 0) - left); },
+  edge: () => window.innerWidth || 0,
+  /* THE ONE WRITER of the width: the panel and the page's room both read --ai-side-w */
+  apply: w => { if (!aiSideShown()) return; document.documentElement.style.setProperty('--ai-side-w', Math.round(w) + 'px'); },
+  dragging: on => { const p = document.getElementById('ai-panel'); if (p) p.classList.toggle('is-dragging', !!on); },
+  settle: () => aiSideReflow(),
+  resize: () => aiSideFit()
+};
+/* the pages that measure themselves (the house's canvas, Home's split) measure again */
+function aiSideReflow(){ try { globalThis.dispatchEvent(new Event('resize')); } catch (_){} }
+function aiSideFit(){
+  const p = (typeof document !== 'undefined') ? document.getElementById('ai-panel') : null;
+  if (!p || typeof splitWire !== 'function' || typeof p.insertAdjacentHTML !== 'function') return;
+  let rez = document.getElementById('ai-side-rez');
+  if (!rez && typeof splitHtml === 'function'){ p.insertAdjacentHTML('afterbegin', splitHtml({ id: 'ai-side-rez', min: AI_SIDE_MIN })); rez = document.getElementById('ai-side-rez'); }
+  if (rez) splitWire(rez, AI_SIDE_SPLIT);
 }
 /* THE EDGE TAB'S PRESS: in, and out again on the same press */
 function aiSideToggle(){
@@ -5658,7 +5702,7 @@ function aiDoorFace(){
 }
 try{ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',aiDoorFace); else setTimeout(aiDoorFace,0); }catch(_){}
 Object.assign(window,{ AI_GOVERNANCE_RULE,aiRuleDoorOf,aiRuleDoorHtml,aiRuleDoorGo,AI_CALENDAR_RULE,chatTodayLine,aiAsksPastCard,aiOpenCardSays });
-Object.assign(window,{ aiMsgHtml,aiFeedWire,aiConvoClear,aiDoorFace,aiFaceHtml,aiSideSync,aiSideOn,aiSideToggle,AI_SIDE_W,aiPopOut,aiPopBack,aiPopped,aiPopMay,aiEl,aiWinToggle,aiConvoInWindow,aiConvoBack,aiFloatOn,aiFloatClamp,aiFloatMaxBox,aiFloatHome,AI_FLOAT_MIN,aiHereSays,aiHereAsked,aiHereExplain,aiReadFrom,aiPasteNote,aiPasteAct,aiPasteLooksLong,aiDropFile,aiOnScreenContract,aiEmbeddedHere,aiGoEmbedded,scanGoTo,aiContractByRef,aiWorkingNotes,aiExplainOf,aiExplainSet,aiJsonObjects,
+Object.assign(window,{ aiMsgHtml,aiFeedWire,aiConvoClear,aiDoorFace,aiFaceHtml,aiSideSync,aiSideOn,aiSideToggle,AI_SIDE_W,AI_SIDE_SPLIT,aiSideFit,aiSideShown,aiPopOut,aiPopBack,aiPopped,aiPopMay,aiEl,aiWinToggle,aiConvoInWindow,aiConvoBack,aiFloatOn,aiFloatClamp,aiFloatMaxBox,aiFloatHome,AI_FLOAT_MIN,aiHereSays,aiHereAsked,aiHereExplain,aiReadFrom,aiPasteNote,aiPasteAct,aiPasteLooksLong,aiDropFile,aiOnScreenContract,aiEmbeddedHere,aiGoEmbedded,scanGoTo,aiContractByRef,aiWorkingNotes,aiExplainOf,aiExplainSet,aiJsonObjects,
   AI_PROPOSAL_FORMAT,AI_EDIT_FORMAT,AI_LIST_RULE,aiListLines,aiListLine,AI_ADVICE_FIELD,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,
   AI_PLACEMENTS,AI_PLACEMENT_LABEL,AI_PLACEMENT_SHORT,aiNormalizePlacement,aiIsInsert,
   aiProposalAnchorHtml,aiProposalPlacementHtml,aiProposalSetPlacement,aiCleanAddedWording,
