@@ -48,7 +48,7 @@ to the other side on its own.
 
 | # | Tool | Round | Status |
 |---|---|---|---|
-| 1 | Counterparty lookup: a plain internet search | 3 | **built 22 Oct 2026, waiting for the owner's yes** |
+| 1 | Counterparty lookup: a plain internet search | 3 | **built 22 Oct 2026** |
 | 2 | The arrival turn: Jambo speaks first | 1 | **built 22 Oct 2026** |
 | 3 | The road reading: negotiate it or just send it | 1 | **built 22 Oct 2026** |
 | 4 | "I'd take it": a verdict on each of their changes | 2 | **built 22 Oct 2026** |
@@ -123,6 +123,7 @@ to the other side on its own.
 - **Walls.** Only the company's name leaves HaTi. A party you may not see is
   never searched; a party on a code-named deal is never searched.
 - **Tests:** f864; test/chromium/jambo-looks-them-up-verify.
+- **Agreed:** the owner said yes to Anthropic's web search on the existing key (about one cent a search) and to merging rounds 1 to 3 together, 22 Oct 2026.
 
 ## 7. What comes next
 
