@@ -8166,6 +8166,12 @@ function stEngineBodyHtml(){
       <label style="display:flex;align-items:flex-start;gap:var(--s-2);margin-top:9px;font-size:var(--t-label);color:var(--color-neutral-700);line-height:1.45;cursor:pointer">
         <input id="ai-renewal-prep" type="checkbox" style="margin-top:2px;width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
         <span><b>${i18t('set_renewal_prep')}</b> ${i18t('set_renewal_prep_body')}</span></label>
+      ${''/* JAMBO TAKES YOU THERE (owner, 22 Oct 2026: "a customer can choose to
+             turn it off if cost is an issue"; on by default): what it adds is
+             said in calls and words, never money (the owner's answer (4), 19 Oct) */}
+      <label style="display:flex;align-items:flex-start;gap:var(--s-2);margin-top:9px;font-size:var(--t-label);color:var(--color-neutral-700);line-height:1.45;cursor:pointer">
+        <input id="ai-navigate" type="checkbox" style="margin-top:2px;width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
+        <span><b>${i18t('set_ai_navigate')}</b> ${i18t('set_ai_navigate_body')} ${i18t('set_ai_navigate_cost')}</span></label>
       <button id="ai-limits-save" style="margin-top:9px;${ST_BTN_SM}">${i18t('set_save_limits')}</button>
     </div>
 
@@ -8321,6 +8327,8 @@ function stWireEngine(){
       fillN('ai-renewal-max',lim.renewalPrepMax);
       const rp=document.getElementById('ai-renewal-prep');
       if(rp&&document.activeElement!==rp) rp.checked=lim.renewalPrep!==false;
+      const nv=document.getElementById('ai-navigate');
+      if(nv&&document.activeElement!==nv) nv.checked=lim.navigate!==false;
       renderAllowancePanel(c.allowance||{});
       renderRateTable(c.rates||{}, c.ratesMeta||{});
     }catch(e){ el.textContent='Could not read Jambo config.'; stPaintKeyClear(undefined); } };
@@ -8366,7 +8374,8 @@ function stWireEngine(){
     const cash={ dailySpendLimit:num('ai-daily-spend'), estimateConfirmAt:num('ai-estimate-confirm') };
     for(const [k,v] of Object.entries(cash)) if(v!==undefined&&(!Number.isFinite(v)||v<0)){ stDrawerRefuse(i18t('set_t_non_negative',{k})); return; }
     const body={ ...whole, ...cash, thoroughExtract: !!document.getElementById('ai-thorough')?.checked,
-      renewalPrep: !!document.getElementById('ai-renewal-prep')?.checked };
+      renewalPrep: !!document.getElementById('ai-renewal-prep')?.checked,
+      navigate: !!document.getElementById('ai-navigate')?.checked };
     try{ await api('ai/config','PUT',body); stDrawerClearRefusal(); toast(i18t('set_limits_saved'),'ok'); refreshAiCfg(); }
     catch(e){ stDrawerRefuse(e.message); }
   });
