@@ -18182,7 +18182,22 @@ function srvLinkStrip(rvStored, payload, opts) {
   if (!withheld.size) return 0;
   const before = payload.contract.changes.length;
   payload.contract.changes = payload.contract.changes.filter(x => !(x && withheld.has(String(x.id))));
-  return before - payload.contract.changes.length;
+  /* WHAT THEY ALREADY HOLD STAYS WITH THEM (the bug log, 22 Oct 2026: "a sent
+     change revised later and put under review is withheld whole, so the other
+     side loses sight of the version they hold"). A withheld id is a REVISION
+     that has not left; the wording before it had. On a standing link the copy
+     they were last given (opts.holds, the row's stored payload) is the one
+     record of what they really hold, so that entry goes back exactly as it
+     went — never the revision, and never a version a send kept back (it is not
+     in their copy). A new link's reader holds nothing, so nothing goes back. */
+  const holds = (opts && Array.isArray(opts.holds)) ? opts.holds : [];
+  let back = 0;
+  for (const x of holds) {
+    if (!x || x.id == null || !withheld.has(String(x.id))) continue;
+    if (payload.contract.changes.some(y => y && String(y.id) === String(x.id))) continue;
+    payload.contract.changes.push(x); back++;
+  }
+  return before - (payload.contract.changes.length - back);
 }
 
 app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
@@ -19997,7 +20012,9 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
   if (linkStored) {
     const no = srvLinkRefusal(req, linkStored, sharePurposeOf(s), { payload, contractId: s.contract_id });
     if (no && !silent) return res.status(no.status).json(no.body);
-    linkStripped = srvLinkStrip(linkStored, payload, { unsent: !!no });
+    let holds = [];
+    try { const was = JSON.parse(s.payload || '{}'); holds = (was && was.contract && Array.isArray(was.contract.changes)) ? was.contract.changes : []; } catch (_) { holds = []; }
+    linkStripped = srvLinkStrip(linkStored, payload, { unsent: !!no, holds });
   }
   let oldText = '';
   try { oldText = String((JSON.parse(s.payload).contract || {}).docText || ''); } catch (_) {}

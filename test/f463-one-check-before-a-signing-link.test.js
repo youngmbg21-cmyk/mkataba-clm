@@ -126,7 +126,8 @@ describe('f463 (3) one issuing check, every door', () => {
     assert.match(CORE, /function signLinkRefusal\(c, opts=\{\}\)\{/);
     assert.match(CORE, /async function issueSigningRouteLinks\(c\)\{[\s\S]{0,300}signLinkRefusal\(c\)/, 'the route links');
     assert.match(CORE, /if\(purposeSel==='sign'\)\{\s*const no=signLinkRefusal\(c,\{ signerId:signerSel, email \}\);/, 'the send screen');
-    assert.match(CORE, /if\(payload && payload\.purpose==='sign'\)\{\s*const no=signLinkRefusal\(c\);\s*if\(no\) throw/, 'the resend that reads as sign');
+    /* re-pointed 22 Oct 2026 (f858): a refusal first puts the "Sent to you" copy back (vBack) */
+    assert.match(CORE, /if\(payload && payload\.purpose==='sign'\)\{\s*const no=signLinkRefusal\(c\);\s*if\(no\)\{ vBack\(\); throw/, 'the resend that reads as sign');
     const CV = strip(read('js/views/contract.js'));
     assert.match(CV, /async function issueSigningAct\(c\)\{[\s\S]{0,600}signLinkRefusal\(c\)/, 'the room head, Negotiate, agents, phone');
     const AP = strip(read('js/approvals.js'));

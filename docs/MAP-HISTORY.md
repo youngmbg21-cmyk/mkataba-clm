@@ -33364,3 +33364,31 @@ cards on 18 Oct, never joined it. Fixed by the row itself (`stretch`; the foot
 was already pushed to the bottom by `.hb-ins-acts` margin-top:auto). One
 consequence, said: opening a card's "Ask why" reading now grows the card
 beside it too (insights-shelf 6b re-pointed), as every other Board pair does.
+
+## INTERNAL REVIEW — WHAT THEY ALREADY HOLD STAYS WITH THEM (22 Oct 2026)
+
+From the bug log (28 Sep): "a sent change revised later and put under review
+is withheld whole, so the other side loses sight of the version they hold".
+A revision keeps its change's number, so every set that keeps an unsent ask
+behind (review held or still being read, a colleague's suggestion, a hold's
+quiet catch-up) named the number and the route's one strip (`srvLinkStrip`)
+took the change out WHOLE — the wording they had been answering vanished
+from their page. The fix lives on the server, which keeps the one true record
+of what they hold: the standing link's stored copy. On a refresh
+(PUT /api/shares/:token/payload) the strip is handed that copy's changes
+(`opts.holds`) and puts back exactly the entry it held for any id it took
+out — never the revision, and never a version a send kept back, because that
+is not in their copy. A new link's reader holds nothing, so nothing goes back
+there. Staged in f857 on a hold's catch-up, because a review's record is only
+written through its own steps; both go through the one strip. Red at the
+parent: 1 and 2.
+
+## "SENT" MUST MEAN SENT — A REFUSED SEND KEEPS NO "SENT TO YOU" COPY (22 Oct 2026)
+
+From the bug log: `reshareToLastRecipient` took its "Sent to you" version
+before the payload — it must, because the payload carries it and their page
+compares the last two sends (portal.js) — so a send refused afterwards (the
+signing list, or the server refusing the copy) left a record saying "sent"
+about a send that never left. Now the version list is put back exactly as it
+was on any refusal or failed request (`vBack`); a send that goes keeps its
+copy. f858, red at the parent 1 and 2.

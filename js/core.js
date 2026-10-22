@@ -7186,6 +7186,19 @@ async function reshareToLastRecipient(c, opts={}){
   /* Asked before anything is built, while the record still says what is about
      to leave — see roundTurnMail. */
   const turn=opts.handOver ? roundTurnMail(c, opts.handOver) : null;
+  /* THE "SENT TO YOU" COPY IS TAKEN BACK WHEN NOTHING WENT (the bug log, 22 Oct
+     2026: "a refused sign resend can leave a 'Sent to you' version"). It is
+     taken here, before the payload, because the payload carries it — their
+     page compares the last two sends (portal.js). A refusal below, or a send
+     the server refused, puts the list back as it was: a record that says
+     "sent" about a send that never left is the one thing it may not say. */
+  const vWas=Array.isArray(c.versions)?c.versions.length:null;
+  const vLast=vWas?{ ...c.versions[vWas-1] }:null;
+  const vBack=()=>{
+    if(vWas==null){ if(Array.isArray(c.versions)&&c.versions.length){ delete c.versions; persist(c); } return; }
+    if(c.versions.length===vWas && JSON.stringify(c.versions[vWas-1])===JSON.stringify(vLast)) return;
+    c.versions.length=vWas; if(vLast) c.versions[vWas-1]=vLast; persist(c);
+  };
   if(c.status!=='Signed'){ const v=captureVersion(c,'Sent to you',null,{auto:true}); if(v) persist(c); }
   const payload=buildSharePayload(c, docHash, null, { purpose:opts.purpose });
   /* A RESEND THAT READS AS SIGN IS A SIGNING LINK (4 Oct 2026). Two callers
@@ -7194,7 +7207,7 @@ async function reshareToLastRecipient(c, opts={}){
      one list. Thrown, like every refusal on this path. */
   if(payload && payload.purpose==='sign'){
     const no=signLinkRefusal(c);
-    if(no) throw new Error(no.why);
+    if(no){ vBack(); throw new Error(no.why); }
   }
   /* If this counterparty already has a standing link, refresh THAT rather than
      mint another one: the point of a standing link is that the other side keeps
@@ -7294,7 +7307,7 @@ async function reshareToLastRecipient(c, opts={}){
        before. The first send (the POST below) still delivers the link. */
     const r=await api('shares/'+live.token+'/payload','PUT', turn
       ? { payload, notify:'turn', turn }
-      : { payload, notify:false });
+      : { payload, notify:false }).catch(e=>{ vBack(); throw e; });
     reachTake(c, r);
     /* AND EVERY OTHER STANDING LINK ON THIS CONTRACT, quietly. The quiet
        catch-up already refreshes all of them on a decision, so leaving one
@@ -7314,7 +7327,7 @@ async function reshareToLastRecipient(c, opts={}){
   }
   const r=await api('shares','POST',{ payload, channel:last.channel||'email',
     message:opts.message||'', recipient:{ name:last.name, email:last.email, phone:last.phone },
-    expiryDays:opts.expiryDays||14, durable:opts.durable!==false, purpose:payload.purpose });
+    expiryDays:opts.expiryDays||14, durable:opts.durable!==false, purpose:payload.purpose }).catch(e=>{ vBack(); throw e; });
   reachTake(c, r);
   return record(r||{}, false);
 }
