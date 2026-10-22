@@ -33684,3 +33684,15 @@ BUILT: the foot (`.igd-foot`, the one card) is drawn under every tab of Home's p
 
 Checks: jambo-box-every-panel-verify (17; 5/17 at c5aa0c2, the three Dossier rows and Notes' absence the only passes). Re-pointed with these words: ask-box-on-copilot-only-verify 2 and 3, home-first-verify 3d, explorer-guide-tab-verify 2a, f840 2e.
 
+## PERFORMANCE — THE BOOK IS WALKED ONCE
+
+### A STILL MAP MOVES ONLY ITS DOTS (owner, 22 Oct 2026)
+
+The owner: "fix the Explorer speed check on main". home-speed-verify 3 ("a still, settled Explorer keeps the browser busy under 10% of the time") went red on main with #417 and on every pull request after it (612–804 ms of 4000 on GitHub; 1,000–1,200 here).
+
+WHY: #417 made the check measure the book its header names. Until then the page's 30-contract sample was copied up to 430 and the sign-in then swapped in the workspace's four, so check 3 was timed on FOUR contracts. The 10 Oct figure (270–283 ms at 6 fps, HOME — STILL UNTIL PRESSED) was that four-contract book. With the old code and the corrected check the step is red the same way (979 and 1,183 ms at c5aa0c2), so nothing in #417's code caused it. Traced at 430: each Still jiggle frame moved every contract's SVG group and its line (`igbPlace`: about 4,250 SVG pieces restyled, ~10 ms a frame of style recalculation alone), plus the canvas.
+
+THE OWNER'S PICK, "Both", out of four put to them (names and lines still; a slower jiggle; both; raise the limit): a frame the loop draws AT REST (`!awake && !wiring` in `igLoopStart`) is `igRender({ rest:true })`, which draws the canvas and skips `igbPlace` — names, cards, lines and press-targets hold where they were last placed and are placed again on the first woken frame (any pointer on the map wakes it, `igWake`). The jiggle is drawn at `IG_JIG_FPS` 3 (was 6). Measured: names-still alone 483–545 ms; 3 fps alone 568; both 263–296.
+
+Re-pointed: explorer-magnitude-verify 4a2 read the jiggle off the SVG press-target (`g circle`), which now holds still at rest; it reads the dot where the canvas draws it (`IG.nodes[j].q`). f425 pins the rest guard.
+
