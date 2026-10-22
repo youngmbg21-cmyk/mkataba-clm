@@ -36233,7 +36233,7 @@ const STRINGS = {
     nav_go_act_dossier: "Dossiern för {ref}.",
     nav_go_act_oblig: "Åtagandena i {ref}.",
     nav_go_act_hist: "Historiken för {ref}.",
-    nav_go_act_open: "{ref} · {name}.",
+    nav_go_act_open: "Öppnar {ref} · {name}.",
     brn_p_navread: "Jambo tar dig till saken, inte bara sidan",
     brn_pd_navread: "En läsning som frågas först i varje Jambo-ruta: en klausul i ett avtal efter nummer eller namn, en parts mapp, Avtal avgränsade efter ström, steg, part och slut. Den landar genom dörrarna som redan finns, säger rakt ut vad som inte finns och frågar vilken som menades när ett namn passar två. Gratis; den trycker inte på något.",
     st_you_push_row: 'Aviseringar på den här enheten',
