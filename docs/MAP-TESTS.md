@@ -176,6 +176,9 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - 21 Oct 2026 (overnight): where-we-are-verify 10a (the journey on the page's line; .ds-st spine rules scoped to .ds-spine).
 - f451, f459 (B), deal-stands, status-link, where-we-are verify.
 
+## HOW THINGS MOVE (22 Oct 2026; owner picked "Glide over" and "Crossfade")
+- page-jumps-verify (A–I, three screens; D red at the parent: 14 frames).
+
 ## ONE PAPER EVERYWHERE — THE HOME PAPER (8 Oct)
 - one-zoom, one-paper-everywhere verify.
 

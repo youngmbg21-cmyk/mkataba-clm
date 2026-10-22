@@ -10240,8 +10240,12 @@ function rlBenchCatchUp(c, again){
 function rlBenchOpts(c, o = {}){
   const side = o.side === 'counterparty' ? 'counterparty' : 'owner';
   const previewing = side === 'counterparty';
-  const again = typeof o.again === 'function' ? o.again : () => renderRedline();
+  const again0 = typeof o.again === 'function' ? o.again : () => renderRedline();
   const scope = o.scope || '#view-redline';
+  /* ONE GLIDE FOR LISTS (22 Oct 2026): after a press the column is drawn
+     again and its cards glide to their new places (listGlideAround,
+     js/components.js) — on the page and on Jambo's Redlines face alike */
+  const again = () => (typeof listGlideAround === 'function' ? listGlideAround(scope, '[data-nego-card]', 'data-nego-card', again0) : again0());
   const opts = { hostId: o.hostId || 'redline-host', side, preview: previewing,
     /* ---------- A SEALED CONTRACT SHOWS NO VERBS ----------
        The closed banner at negoBannerHtml has fired on 'Signed' for a long

@@ -659,6 +659,110 @@ function splitWire(rez, h){
 }
 Object.assign(window,{SPLIT_GRIP,splitHtml,splitPref,splitSave,splitClamp,splitWidth,splitFit,splitWire});
 
+/* ════ ONE GLIDE FOR LISTS (owner, 22 Oct 2026, the motion plan step 3) ════
+   A list drawn again after a press (a card accepted moves to its pile) used
+   to jump. Its rows now GLIDE from where they were to where they are: each
+   row's place is read before the repaint (by its key) and, after it, the row
+   is sent back there with a transform and let go — the browser's own motion
+   on the compositor, never a layout property. A row that is new fades in. The
+   Board's chart glide (hbGlideTake/hbGlidePlay) is the same idea for SVG
+   pieces. Nothing moves for a reader who asked for less motion. */
+const LIST_GLIDE_MS = 240;
+const LIST_GLIDE_EASE = 'cubic-bezier(.2,.7,.3,1)';   /* --ease */
+function listGlideOff(){ try { return typeof matchMedia !== 'function' || matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_){ return true; } }
+function listGlideTake(scope, sel, attr){
+  if (typeof document === 'undefined' || listGlideOff()) return null;
+  const host = typeof scope === 'string' ? document.querySelector(scope) : scope; if (!host) return null;
+  const was = new Map();
+  host.querySelectorAll(sel).forEach(el => { const k = el.getAttribute(attr); if (k == null || !el.getClientRects().length) return;
+    const r = el.getBoundingClientRect(); was.set(k, { x: r.left, y: r.top }); });
+  return was.size ? was : null;
+}
+function listGlidePlay(scope, sel, attr, was){
+  if (!was || typeof document === 'undefined') return 0;
+  const host = typeof scope === 'string' ? document.querySelector(scope) : scope; if (!host) return 0;
+  let n = 0;
+  host.querySelectorAll(sel).forEach(el => {
+    if (typeof el.animate !== 'function' || !el.getClientRects().length) return;
+    const k = el.getAttribute(attr), o = was.get(k), r = el.getBoundingClientRect();
+    if (!o){ el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: LIST_GLIDE_MS, easing: LIST_GLIDE_EASE }); n++; return; }
+    const dx = Math.round(o.x - r.left), dy = Math.round(o.y - r.top);
+    if (!dx && !dy) return;
+    el.animate([{ transform: `translate(${dx}px,${dy}px)` }, { transform: 'none' }], { duration: LIST_GLIDE_MS, easing: LIST_GLIDE_EASE }); n++;
+  });
+  return n;
+}
+/* the one way a repaint is wrapped: read, repaint, glide (a repaint that
+   answers later glides when it lands) */
+function listGlideAround(scope, sel, attr, paint){
+  const was = listGlideTake(scope, sel, attr);
+  const out = paint();
+  if (out && typeof out.then === 'function') return out.then(v => { listGlidePlay(scope, sel, attr, was); return v; });
+  listGlidePlay(scope, sel, attr, was);
+  return out;
+}
+Object.assign(window,{LIST_GLIDE_MS,LIST_GLIDE_EASE,listGlideOff,listGlideTake,listGlidePlay,listGlideAround});
+
+/* ════ A PANEL'S FACE CROSSFADES (owner picked "Crossfade", 22 Oct 2026) ════
+   When what a panel shows CHANGES (a tab, a face — said by `keyOf`), the
+   face going away fades out over the face arriving, which fades in; the
+   lit tab's underline glides to the tab pressed. Any other repaint of the
+   same face (a typed letter, an answer arriving) is drawn as before. The
+   going face is a picture of it laid over the panel — nothing pressable, no
+   ids — so the repaint itself stays immediate and every caller that reads
+   the new panel straight after still finds it. Nothing moves for a reader
+   who asked for less motion; the panel's size is never animated. */
+const FACE_SWAP_OUT_MS = 110, FACE_SWAP_IN_MS = 180, FACE_SWAP_INK_MS = 200;
+const FACE_SWAP_GHOST_MAX = 4000;   /* a panel bigger than this many elements only fades in */
+function faceSwapGhost(host, keep){
+  if (host.getElementsByTagName('*').length > FACE_SWAP_GHOST_MAX) return null;
+  const r = host.getBoundingClientRect(); if (!r.width || !r.height) return null;
+  const g = host.cloneNode(true);
+  /* a picture, not a second panel: no ids, names, roles or data- markers, so
+     no reader, press or check can find the old face in it */
+  for (const n of [g, ...g.querySelectorAll('*')]){
+    for (const at of [...n.attributes]) if (at.name === 'id' || at.name === 'name' || at.name === 'role' || at.name === 'for'
+      || at.name.startsWith('data-') || (at.name.startsWith('aria-') && at.name !== 'aria-hidden')) n.removeAttribute(at.name);
+  }
+  if (keep) g.querySelectorAll(':scope > ' + keep).forEach(n => { n.style.visibility = 'hidden'; });
+  Object.assign(g.style, { position: 'fixed', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px',
+    margin: '0', zIndex: '30', pointerEvents: 'none', transition: 'none', background: 'transparent' });
+  g.setAttribute('aria-hidden', 'true'); g.setAttribute('inert', ''); g.classList.add('face-ghost');
+  document.body.appendChild(g);
+  /* the lists the reader had scrolled stay where they were in the picture */
+  const a = host.querySelectorAll('*'), b = g.querySelectorAll('*');
+  for (let i = 0; i < a.length && i < b.length; i++) if (a[i].scrollTop) b[i].scrollTop = a[i].scrollTop;
+  return g;
+}
+function faceSwap(host, keyOf, paint, o = {}){
+  host = typeof host === 'string' ? document.querySelector(host) : host;
+  const before = host ? host._faceKey : null;
+  let key = null; try { key = keyOf(); } catch (_){ key = null; }
+  const go = !!(host && before != null && key != null && key !== before && !listGlideOff() && typeof host.animate === 'function' && host.getClientRects().length);
+  const ink0 = go && o.ink ? host.querySelector(o.ink) : null;
+  const inkWas = ink0 ? { k: ink0.getAttribute(o.inkKey || 'data-key'), r: ink0.getBoundingClientRect() } : null;
+  const ghost = go ? faceSwapGhost(host, o.keep) : null;
+  const out = paint();
+  if (host){ try { host._faceKey = keyOf(); } catch (_){ host._faceKey = null; } }
+  if (!go) return out;
+  if (ghost) ghost.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FACE_SWAP_OUT_MS, easing: 'linear', fill: 'forwards' })
+    .finished.then(() => ghost.remove(), () => ghost.remove());
+  [...host.children].filter(n => !(o.keep && n.matches(o.keep))).forEach(n => {
+    if (typeof n.animate === 'function') n.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FACE_SWAP_IN_MS, easing: 'linear' }); });
+  /* the underline glides from the tab it was under to the tab pressed */
+  const ink1 = inkWas && o.ink ? host.querySelector(o.ink) : null;
+  if (ink1 && ink1.getAttribute(o.inkKey || 'data-key') !== inkWas.k && typeof ink1.animate === 'function'){
+    const r1 = ink1.getBoundingClientRect(), r0 = inkWas.r;
+    if (r1.width && r0.width){
+      const dx = Math.round(r0.left - r1.left), sx = Math.max(0.2, Math.min(5, r0.width / r1.width));
+      try { ink1.animate([{ transform: `translateX(${dx}px) scaleX(${sx})`, transformOrigin: 'left center' }, { transform: 'none', transformOrigin: 'left center' }],
+        { duration: FACE_SWAP_INK_MS, easing: LIST_GLIDE_EASE, pseudoElement: '::after' }); } catch (_){ /* a browser without pseudo-element motion: the line is simply there */ }
+    }
+  }
+  return out;
+}
+Object.assign(window,{FACE_SWAP_OUT_MS,FACE_SWAP_IN_MS,FACE_SWAP_INK_MS,FACE_SWAP_GHOST_MAX,faceSwapGhost,faceSwap});
+
 /* ---- JAMBO AS A TAB YOU FLIP TO, AND BACK (owner, 19 Oct 2026: "when you
    jump on a page they should be as is, with the panel on the right and an
    entry field for Jambo at the bottom. When you type on the entry field …
