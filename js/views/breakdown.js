@@ -413,8 +413,9 @@ function stkDecorate(c, card, rows){
         const parts = (words ? [`<span class="stk-n is-${words.worst}">${words.html}</span>`] : []).concat(rest.map(el => el.outerHTML));
         st.innerHTML = parts.join('<span class="doc-th-dot"> · </span>');
       }
-      /* the open clause's cards, in the one order (stkReview), drawn once */
-      if (mine.length){ const h = row.querySelector('.doc-th-head');
+      /* the open clause's cards, in the one order (stkReview), drawn once — UNDER its Plain English
+         (owner, 23 Oct 2026: the reading "should be at the top before needs you and worth a look") */
+      if (mine.length){ const h = row.querySelector('.doc-th-body') || row.querySelector('.doc-th-head');
         if (h) h.insertAdjacentHTML('afterend', (byRow[at] || []).map(i => stkCardHtml(c, shown[i], i, redWhy)).join('')); }
     });
     /* ---- WHAT THE CONTRACT DOES NOT SAY STANDS WHERE IT WOULD GO (owner
@@ -437,7 +438,7 @@ function stkDecorate(c, card, rows){
       const h = at >= 0 ? i18t('stk_missing_after', { n: nums[at] || '' }) : g === 'm' ? i18t('stk_missing_end') : i18t('stk_other_h', { n: ids.length });
       const open = !_stk.missShut.has(g);
       const html = `<div class="stk-miss${g === 'o' ? ' is-other' : ''}${open ? ' is-open' : ''}" role="listitem"><button type="button" class="stk-miss-h" data-stk-miss-go="${_bdE(g)}"
-        aria-expanded="${open ? 'true' : 'false'}" title="${_bdE(i18t(open ? 'stk_miss_fold' : 'stk_miss_unfold'))}">${_bdE(h)}</button>
+        aria-expanded="${open ? 'true' : 'false'}" title="${_bdE(i18t(open ? 'stk_miss_fold' : 'stk_miss_unfold'))}"><span class="stk-miss-hw">${_bdE(h)}</span><span class="stk-miss-hn">${ids.length}</span>${typeof icon === 'function' ? icon('chevR', 'w-3.5 h-3.5 stk-miss-chev') : ''}</button>
         <div class="stk-miss-body">${ids.map(i => stkCardHtml(c, shown[i], i, redWhy)).join('')}</div></div>`;
       const row = at >= 0 ? list.querySelector(`.doc-th-row[data-th-row="${at}"]`) : null;
       /* inside its clause, after the clause's own reading: shown only while the clause is open */
