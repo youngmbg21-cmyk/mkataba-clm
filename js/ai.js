@@ -4609,7 +4609,9 @@ async function aiSubmit(asked){
   /* the words handed in (a chip, a paste's offer), else the box's */
   const inp=aiEl('ai-input');
   const given=typeof asked==='string';
-  const q=(given?asked:(inp?inp.value:'')).trim(); if(!q||ai.busy) return;
+  const q=(given?asked:(inp?inp.value:'')).trim(); if(!q) return;
+  /* still answering: the words leave the box and wait their turn (jamboAskLater) */
+  if(ai.busy){ if(!given&&inp){ if(window.chatFieldReset) chatFieldReset(inp); else inp.value=''; } if(typeof jamboAskLater==='function') jamboAskLater(q, ()=>ai.busy, w=>aiSubmit(w)); return; }
   /* Back to one line, or the next question is typed into the hole the last one
      grew to. */
   if(!given&&inp){ if(window.chatFieldReset) chatFieldReset(inp); else inp.value=''; }
@@ -4653,7 +4655,8 @@ async function aiSubmit(asked){
    (jlAsk, js/views/inspector.js): asked once, said where the feed is
    (aiFeedEl). The caller has already taken the words out of its box. */
 async function aiAskWords(qRaw){
-  const q=String(qRaw||'').trim(); if(!q||ai.busy) return;
+  const q=String(qRaw||'').trim(); if(!q) return;
+  if(ai.busy){ if(typeof jamboAskLater==='function') jamboAskLater(q, ()=>ai.busy, w=>aiAskWords(w)); return; }
   /* the same reading aiSubmit makes: an open rewrite owns the sentence only
      when it is not a question or a booking (aiAsksPastCard) */
   const cardOwns=!!(aiActiveProposal()||aiActiveRephrase()) && !aiAsksPastCard(q);

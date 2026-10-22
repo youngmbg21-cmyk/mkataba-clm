@@ -61,6 +61,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f193–f199, f331, f335, new-person-grants verify.
 
 ## THE SHELL — RAIL, BAR, PANELS
+- Words sent while Jambo is still answering wait their turn (22 Oct 2026): f862 (red at the parent), jambo-asks-in-turn verify (red at the parent 1a–1c, 2a–2b), f804 8b4 re-pointed.
 - 21 Oct 2026 (overnight): send-to-a-colleague-verify 1i ("write an email to X summarising the above" opens the send screen, no model); jambo-slides-in-verify 6c (Home's box answers "What am I looking at?" free); control-room-in-full-verify 7b/7c ("upload a contract" / "new contract" in Settings go to Home's Jambo).
 - ONE JAMBO CONVERSATION EVERYWHERE (21 Oct 2026): `test/chromium/jambo-one-conversation-verify.js` (red at cb1aa4ba: Home, Settings and the side panel kept three conversations); f840 2c re-pointed (another contract keeps the conversation). No light on arrival: f445 (5), `land-on-it-verify.js` 1b/2b/3b/5c re-pointed.
 - the-brief-and-sap-history verify (Jambo's panel as "The Brief" and History "the SAP way", 21 Oct 2026: 25 checks, 19 red at 0392ded7; its controls are the paper strip's line, every entry drawn, the three screens, no page errors); f804, f830, f394, f840 (the 384 width and the named foot).

@@ -1538,7 +1538,9 @@ function jlBoardReads(t){
   return (A && A.road === 'free') ? A : null;
 }
 const _jlBusy = () => typeof ai === 'object' && !!ai && !!ai.busy;
-function jlBusySay(){
+function jlBusySay(t){
+  /* still answering: the question waits its turn and is asked here again (jamboAskLater) */
+  if (t && typeof jamboAskLater === 'function' && jamboAskLater(t, _jlBusy, w => jlAsk(w))) return 'later';
   if (typeof toast === 'function') toast(i18t('lh_busy'), 'warn');
   return false;
 }
@@ -1596,20 +1598,20 @@ function jlAsk(text){
      number nobody here can see, are said here — the list stays as it was */
   let u = null; try { u = (typeof caUnderstand === 'function') ? caUnderstand(t, { box: 'list' }) : null; } catch (_){ u = null; }
   if (u && u.kind === 'go' && u.here && u.narrow && Array.isArray(u.narrow.ids)){
-    if (_jlBusy()) return jlBusySay();
+    if (_jlBusy()) return jlBusySay(t);
     const N = u.narrow, ids = N.ids.slice(), n = ids.length;
     const what = N.party ? i18t('hb_found_party', { who: String(N.what || '') }) : String(N.what || '');
     const count = (typeof hbAnswerCount === 'function') ? hbAnswerCount({ n, ids }) : i18tn('hb_count_n', n, { n });
     if (jlSayFound(t, { ids, say: n ? what + ': ' + count : i18t('jl_found_none', { what }) })) return 'said';
   }
   if (u && u.kind === 'noref' && typeof caUnderstandSay === 'function'){
-    if (_jlBusy()) return jlBusySay();
+    if (_jlBusy()) return jlBusySay(t);
     if (jlSayFound(t, { ids: [], say: caUnderstandSay(u) })) return 'said';
   }
   /* a question naming a contract by a name several share, asking nothing of
      it: "which contract did you mean?" is asked here, the few as cards */
   if (u && u.kind === 'cpick' && (u.then || 'document') === 'document' && Array.isArray(u.picks) && jlIsQuestion(t) && typeof caUnderstandSay === 'function'){
-    if (_jlBusy()) return jlBusySay();
+    if (_jlBusy()) return jlBusySay(t);
     if (jlSayFound(t, { ids: u.picks, say: caUnderstandSay(u) })) return 'said';
   }
   let took = false; try { took = (typeof caAskAnywhere === 'function') ? caAskAnywhere(t) : false; } catch (_){ took = false; }
@@ -1624,12 +1626,12 @@ function jlAsk(text){
   const B = jlBoardReads(t);
   if (B){
     let F = null; try { F = (typeof hbAskFound === 'function') ? hbAskFound(B) : null; } catch (_){ F = null; }
-    if (F){ if (_jlBusy()) return jlBusySay(); if (jlSayFound(t, F)) return 'said'; }
-    else if (jlIsQuestion(t)){ if (_jlBusy()) return jlBusySay(); if (jlSayBoard(t, B)) return 'said'; }
+    if (F){ if (_jlBusy()) return jlBusySay(t); if (jlSayFound(t, F)) return 'said'; }
+    else if (jlIsQuestion(t)){ if (_jlBusy()) return jlBusySay(t); if (jlSayBoard(t, B)) return 'said'; }
     else if (typeof caHandHome === 'function' && caHandHome(t, null)) return 'board';
   }
   /* a question for Jambo: a Jambo still answering takes nothing new, and says so */
-  if (_jlBusy()) return jlBusySay();
+  if (_jlBusy()) return jlBusySay(t);
   /* the landing stays as it was (the row it holds); the panel turns to the
      conversation (19 Oct 2026; was: the row let go, his words above) */
   jlTalkOpen();

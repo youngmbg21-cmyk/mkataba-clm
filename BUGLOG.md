@@ -21423,3 +21423,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ## Noticed, not fixed — 22 Oct 2026 (steadier checks)
 - Jambo's side panel: words typed and sent while he is still answering the last question are dropped without a word (intelAsk returns on intel.busy) — even a free "open explorer". Found steadying jambo-tab-and-back-verify 3a; the check now waits; the product still drops them silently.
 - six-round-audit's first openRedlineWorkbench(id,{page:true}) straight after sign-in timed out once on GitHub (10 s). Suspect: the start-up's own landing (placeResume / Home) settling after the open and taking the view back. Not proved; the audit now asks twice, bounded.
+- FIXED 22 Oct 2026 (owner asked): words sent while Jambo is still answering now wait their turn (jamboAskLater) in every Jambo box, instead of being dropped.
