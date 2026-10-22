@@ -21447,3 +21447,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Fixed (22 Oct 2026): the-letter-as-drawn-verify check 3b now waits (bounded, 3 s) for the "Sent as" list to put itself away before reading it; still red when the list never closes (proved by removing the close in shareLetterAsWire).
 
 - Noticed, not fixed (22 Oct 2026, navigable by typing): a Settings side drawer (a person's details) stays open over the next page when the reader leaves Settings by a door other than the drawer's own close (seen going Settings → Home → Parties); Jambo's own moves now shut it, other doors still leave it standing.
+
+## Noticed, not fixed — the tidy sweep, 22 Oct 2026
+- The Dossier's feed (#igd-feed) ends flush against the chip row (fill in · answer the redlines · share · history) with no rule or breathing room, so at 1536×730 its last row ("Answer Nordvane Consumer Brands AB's 4 redlines") is cut mid-line by the chips and reads as a collision. It is the scroller's clip, not an overlap, and the sweep measures it as such; a gap or a rule under the feed would say "more below". Not in the request.
+- Explorer's door (hbSetFace('explorer') / hbOpenExplorer) lands on the Insights view (state.view 'intel') when driven from a script in the sweep; opened by hand it draws the map. The sweep measures where the door lands.

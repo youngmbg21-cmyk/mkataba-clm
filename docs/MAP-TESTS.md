@@ -83,6 +83,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - phone-verify, f630, f631, phone-fits-verify.
 
 ## HOME — THE BOARD AND THE MAP (js/views/homeboard.js)
+- THE TIDY SWEEP (22 Oct 2026): `tidy-sweep-verify.js` — 29 places × three screens, nothing cut, squeezed, spilt, overlapping or sideways; `HATI_TIDY_ONLY=board-card,draft` for one place; its board-card place lands a side-list row on MK-400's Dossier (One door). f690 (4) re-pointed: a row → `hbSheetGo`, the sheet draws no card.
 - Today's insights, ONE HEIGHT A ROW (22 Oct 2026): board-as-drawn 8b2 (two cards sharing a row the same height, their buttons on one line, at the three screens; red before); insights-shelf 6b re-pointed (the card beside an opened one grows with it).
 - 21 Oct 2026 (overnight): home-board-verify 13g2/13j2/13j3 (timeline words inside bars and chart, full screen 1536x730); board-agent-work-verify 3c (Put away not dressed as Look); paper-panel-as-drawn-verify 1b/2d/2f re-pointed to the grid, 2g (What Jambo read counts as the Board does); jambos-work-open-verify (Open lands on the card).
 - What Jambo read as four rows, no grey line under an owed fact (21 Oct 2026): f748 2b re-pointed; `owed-first-verify.js`, `nda-tail-verify.js`. The paper's line without the party: f708 1a, `paper-line-verify.js` 1a, `the-road-as-drawn-verify.js` 12d re-pointed. `piles-as-drawn-verify.js` 3b (piles unboxed). List before Wall: f687.
@@ -250,6 +251,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f244, f306, f331, f336, f376, f722, f760–f764, templates-tabs, one-door, prompt-and-build, paper-first, our-paper-as-drawn verify.
 
 ## NEW AGREEMENT, DRAFT FROM A SENTENCE, THE FILL FORMS
+- "the closest" on one line, the name shortened (22 Oct 2026): `tidy-sweep-verify.js` draft place (owner-length standard names seeded; red at e05849a at 1440 and 1366).
 - f270, f340, f345, f360, f368, f679, f706, f750, f753, new-agreement, form-and-picker, draft-upload-glance verify.
 
 ## COPILOT READS A CONTRACT ON ARRIVAL, AND FILLS ITS BLANKS
@@ -288,6 +290,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - nda-carries-no-money-verify.
 
 ## JAMBO'S AGENTS — THE HOUSE AND HIS POINTS (js/views/jambohouse.js)
+- The house no wider than the page (22 Oct 2026): `tidy-sweep-verify.js` jambo place (the door's count badge; 3px sideways at e05849a).
 - jambos-work-open-verify (Home's Jambo's work · Open, and the house's door, land on the Board's Jambo's work card even when a contract's report was held there: bsCardLeave first; never "nothing prepared" over waiting work; three screens).
 - f667, f724, f790, f800–f803, jambo-agents, open-in-place, counter-as-drawn verify.
 

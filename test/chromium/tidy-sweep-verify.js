@@ -24,10 +24,12 @@
    A pane that scrolls DOWN is not a fault (a long list is allowed to run on);
    sideways is. Shortening with "…" is a choice, not a cut, and is only counted.
 
-   MEASURED AT THE PARENT (f5b3b0f, before any of this round's fixes): the
-   owner's two faults reproduce — na-best on two lines at every screen, and the
-   Board's side list card 574px wide inside a 560px panel with a sideways
-   scrollbar — see shots/tidy-sweep/report.json for the whole list.
+   MEASURED AT THE PARENT (e05849a, before the fixes): "the closest" on two
+   lines at 1440 and on the iPad (13px past its card there); the Board's side
+   list card 615px wider than its 560px panel, its action row 633px and a
+   clause link 246px past their boxes; Jambo's house 3px wider than the page.
+   One alarm was the check's own: the Dossier's rows below the feed's bottom
+   are carried by a scroller and never painted (now `clipped`).
 
    Run: node test/chromium/tidy-sweep-verify.js
         HATI_TIDY_ONLY=board,draft node test/chromium/tidy-sweep-verify.js */
@@ -85,7 +87,9 @@ const MEASURE = `(() => {
   const shown = every.filter(el => !hidden(el));
   const all = shown.filter(el => !covered(el));
   const whyHidden = el => { for (let p = el; p && p !== document.body; p = p.parentElement) { if (!vis(p)) { const cs = getComputedStyle(p), r = R(p); return who(p) + ' display=' + cs.display + ' vis=' + cs.visibility + ' op=' + cs.opacity + ' rect=' + [r.left, r.top, r.width, r.height].map(Math.round).join(','); } } return 'shown'; };
-  const tally = { vw, vh, every: every.length, shown: shown.length, seen: all.length, naBest: document.querySelector('.na-best') ? whyHidden(document.querySelector('.na-best')) : 'none', sampleCovered: shown.filter(el => covered(el)).slice(0, 6).map(el => { const r = R(el); const top = document.elementFromPoint(Math.min(vw - 1, Math.max(0, r.left + r.width / 2)), Math.min(vh - 1, Math.max(0, r.top + Math.min(r.height / 2, 8)))); return who(el) + ' under ' + (top ? who(top) : 'nothing'); }) };
+  const feed = document.getElementById('igd-feed');
+  const tally = { vw, vh, every: every.length, shown: shown.length, seen: all.length, feed: feed ? [feed.getBoundingClientRect().top, feed.getBoundingClientRect().bottom, getComputedStyle(feed).overflowY, feed.scrollTop].map(x => typeof x === 'number' ? Math.round(x) : x).join(',') : 'none',
+    best: (() => { const t = document.querySelector('.na-best'); if (!t) return 'none'; const c = t.closest('.na-pick'), n = c && c.querySelector('.na-pick-n'); const rr = r => [r.left, r.right, r.width].map(Math.round).join(','); return 'tag ' + rr(t.getBoundingClientRect()) + ' name ' + rr(n.getBoundingClientRect()) + ' card ' + rr(c.getBoundingClientRect()) + ' cols ' + getComputedStyle(c).gridTemplateColumns; })(), naBest: document.querySelector('.na-best') ? whyHidden(document.querySelector('.na-best')) : 'none', sampleCovered: shown.filter(el => covered(el)).slice(0, 6).map(el => { const r = R(el); const top = document.elementFromPoint(Math.min(vw - 1, Math.max(0, r.left + r.width / 2)), Math.min(vh - 1, Math.max(0, r.top + Math.min(r.height / 2, 8)))); return who(el) + ' under ' + (top ? who(top) : 'nothing'); }) };
   const out = { spill: [], cut: [], squeeze: [], overlap: [], scrollX: [], ellipsis: 0, counted: all.length, tally };
   const line = el => parseFloat(getComputedStyle(el).lineHeight) || parseFloat(getComputedStyle(el).fontSize) * 1.3;
 
@@ -150,8 +154,12 @@ const MEASURE = `(() => {
   const best = {}; for (const s of out.spill) { if (!best[s.in] || best[s.in].by < s.by) best[s.in] = s; } out.spill = Object.values(best);
 
   /* OVERLAP: two text leaves painted on each other (neither inside the other). */
-  const leaves = all.filter(el => { if (!el.childNodes.length) return false; let t = false; for (const n of el.childNodes) if (n.nodeType === 3 && n.textContent.trim()) t = true; return t; })
-    .map(el => ({ el, r: R(el), w: words(el) })).filter(x => x.w && x.r.width > 4 && x.r.height > 4);
+  /* NOT PAINTED: a thing carried past the box of a scroller it sits in (the Dossier's rows below the feed's bottom) — its rect still intersects, its pixels do not */
+  const clipped = el => { const r = R(el); for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) { const cs = getComputedStyle(p); if (!/(auto|scroll|hidden|clip)/.test(cs.overflowY + cs.overflowX)) continue; const b = p.getBoundingClientRect(); if (r.bottom <= b.top + 1 || r.top >= b.bottom - 1 || r.right <= b.left + 1 || r.left >= b.right - 1) return true; } return false; };
+  /* WHAT IS PAINTED OF IT: the rect cut down to every scroller it sits in — the last row of a feed, half under its foot, overlaps nothing with the half that shows */
+  const visRect = el => { let r = R(el), l = r.left, t = r.top, rt = r.right, bt = r.bottom; for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) { const cs = getComputedStyle(p); if (!/(auto|scroll|hidden|clip)/.test(cs.overflowY + cs.overflowX)) continue; const b = p.getBoundingClientRect(); l = Math.max(l, b.left); t = Math.max(t, b.top); rt = Math.min(rt, b.right); bt = Math.min(bt, b.bottom); } return { left: l, top: t, right: rt, bottom: bt, width: rt - l, height: bt - t }; };
+  const leaves = all.filter(el => !clipped(el)).filter(el => { if (!el.childNodes.length) return false; let t = false; for (const n of el.childNodes) if (n.nodeType === 3 && n.textContent.trim()) t = true; return t; })
+    .map(el => ({ el, r: visRect(el), w: words(el) })).filter(x => x.w && x.r.width > 4 && x.r.height > 4);
   const seen = new Set();
   for (let i = 0; i < leaves.length; i++) for (let j = i + 1; j < leaves.length; j++) {
     const a = leaves[i], b = leaves[j];
@@ -167,7 +175,8 @@ const MEASURE = `(() => {
     const hit = x => top === x.el || x.el.contains(top) || top.contains(x.el);
     if (!(hit(a) && hit(b)) && !(hit(a) || hit(b))) continue;
     const key = a.w.slice(0, 20) + '|' + b.w.slice(0, 20); if (seen.has(key)) continue; seen.add(key);
-    out.overlap.push({ a: a.w.slice(0, 40), b: b.w.slice(0, 40), who: who(a.el) + ' × ' + who(b.el), in: inside(a.el), ox: Math.round(ox), oy: Math.round(oy) });
+    const rr = r => [r.left, r.top, r.right, r.bottom].map(Math.round).join(',');
+    out.overlap.push({ a: a.w.slice(0, 40), b: b.w.slice(0, 40), who: who(a.el) + ' × ' + who(b.el), in: inside(a.el), ox: Math.round(ox), oy: Math.round(oy), ar: rr(a.r), br: rr(b.r), top: who(top) });
   }
   return out;
 })()`;
@@ -180,14 +189,15 @@ const PLACES = [
   { k: 'home', name: 'Home', go: `setView('counter')`, wait: `document.querySelector('#cn-needs, #cn-q')` },
   { k: 'board', name: 'Board', go: `setView('dashboard')`, wait: `document.querySelector('#hb-board .hb-card')` },
   { k: 'board-sheet', name: 'Board · side list', go: `setView('dashboard'); setTimeout(() => { const el = [...document.querySelectorAll('svg.hb-svg [data-hb-dig], .hb-chart [data-hb-dig], .hb-chart-bars [data-hb-dig], .hb-ctab [data-hb-dig], .hb-small [data-hb-dig], .hb-stagebar [data-hb-dig], .hb-stagekey [data-hb-dig]')].find(e => !e.disabled); if (el) el.dispatchEvent(new MouseEvent('click', { bubbles: true })); }, 600)`, wait: `document.querySelector('.hb-sheet tr[data-hb-sheet-c]')` },
-  { k: 'board-card', name: 'Board · contract card in the side list', go: `setView('dashboard'); let t1 = 0; const w1 = setInterval(() => { const el = document.querySelector('.hb-stagekey [data-hb-dig="st:Under Review"]'); if (!el && ++t1 < 25) return; clearInterval(w1); if (!el) return; el.dispatchEvent(new MouseEvent('click', { bubbles: true })); let t2 = 0; const w2 = setInterval(() => { const tr = document.querySelector('.hb-sheet tr[data-hb-sheet-c="MK-400"]'); if (!tr && ++t2 < 25) return; clearInterval(w2); if (tr) tr.click(); }, 200); }, 200)`, wait: `document.querySelector('.hb-sheet .hb-cfigs') && /MK-400/.test(document.querySelector('.hb-sheet-h').textContent)` },
+  { k: 'board-card', name: 'Board · a row of the side list, landed on its Dossier', go: `setView('dashboard'); let t1 = 0; const w1 = setInterval(() => { const el = document.querySelector('.hb-stagekey [data-hb-dig="st:Under Review"]'); if (!el && ++t1 < 25) return; clearInterval(w1); if (!el) return; el.dispatchEvent(new MouseEvent('click', { bubbles: true })); let t2 = 0; const w2 = setInterval(() => { const tr = document.querySelector('.hb-sheet tr[data-hb-sheet-c="MK-400"]'); if (!tr && ++t2 < 25) return; clearInterval(w2); if (tr) tr.click(); }, 200); }, 200)`, wait: `document.querySelector('#pd-glance') && /MK-400/.test((document.querySelector('#dk-page') || document.body).textContent) && !document.querySelector('.hb-sheet')` },
   { k: 'contracts', name: 'Contracts', go: `setView('register')`, wait: `document.querySelector('#ct-place table, .reg-table, #ct-place')` },
   { k: 'paper', name: 'Workspace · a paper with its Dossier', go: `(() => { const c = state.contracts.find(c => c.status === 'Under Review') || state.contracts[0]; pdOpenOnHome(c.id, 'copilot'); })()`, wait: `document.querySelector('#ig-paper') && document.querySelector('#pd-glance')` },
   { k: 'checklist', name: 'Workspace · the Checklist', go: `(() => { const c = state.contracts.find(c => c.status === 'Under Review') || state.contracts[0]; pdOpenOnHome(c.id, 'doc'); })()`, wait: `document.querySelector('#pd-thread, #ig-dock [data-pd-tab]')` },
   { k: 'redlines', name: 'Workspace · Redlines', go: `(() => { const c = state.contracts.find(c => c.status === 'Under Review' && (c.changes || []).length) || state.contracts.find(c => c.status === 'Under Review') || state.contracts[0]; openRedlineWorkbench(c.id); })()`, wait: `document.querySelector('.rl-column, .rl-idx, #nego-send, .rl-card')` },
   { k: 'negotiations', name: 'Negotiations', go: `openNegotiations()`, wait: `document.querySelector('.ngl-page, #ngl-root, .ngl-head')` },
   { k: 'calendar', name: 'Calendar', go: `setView('calendar')`, wait: `document.querySelector('#hb-cal .cal-week, #hb-cal')` },
-  { k: 'explorer', name: 'Explorer', go: `setView('intel')`, wait: `document.querySelector('#ig-page svg, #ig-page canvas, .ig-brain, #ig-gwrap')` },
+  /* Explorer's door (hbSetFace('explorer')) lands on the Insights view in this build; measured as it lands */
+  { k: 'explorer', name: 'Explorer · where its door lands', go: `setView('dashboard'); setTimeout(() => { try { hbSetFace('explorer'); } catch (e) { hbOpenExplorer(); } }, 500)`, wait: `document.querySelector('#ig-page[data-hb-side="explorer"] svg, #ig-page[data-hb-side="explorer"] canvas, .igx-card, #ig-gwrap svg')` },
   { k: 'obligations', name: 'Obligations', go: `setView('obligations')`, wait: `document.querySelector('.obw-wk, #obw-root, .ob-list')` },
   { k: 'approvals', name: 'Approvals', go: `setView('approvals')`, wait: `document.querySelector('.ap-page, #ap-root, .sap-page')` },
   { k: 'requests', name: 'Requests', go: `setView('intake')`, wait: `document.querySelector('.ik-page, #ik-root, .sap-page')` },
@@ -265,7 +275,8 @@ const only = (process.env.HATI_TIDY_ONLY || '').split(',').map(s => s.trim()).fi
         const m = await drive(page, MEASURE, undefined, null);
         const row = { screen: S.k, w: S.w, h: S.h, place: P.k, name: P.name, there, opened: opened !== 'threw', shot, m };
         report.push(row);
-        if (!there) { check(`${S.k} · ${P.name} — the door opened`, false, opened === 'threw' ? 'the door threw: ' + blocked[blocked.length - 1] : 'the page did not paint what the probe waits for'); continue; }
+        if (!there) { const st = await drive(page, () => ({ sheet: !!document.querySelector('.hb-sheet'), page: (document.querySelector('#dk-page') || {}).textContent, glance: !!document.querySelector('#pd-glance'), view: state.view }), undefined, null);
+          check(`${S.k} · ${P.name} — the door opened`, false, (opened === 'threw' ? 'the door threw: ' + blocked[blocked.length - 1] : 'the page did not paint what the probe waits for') + ' · ' + JSON.stringify(st)); continue; }
         if (!m) { check(`${S.k} · ${P.name} — measured`, false, 'the probe threw'); continue; }
         if (process.env.HATI_TIDY_DEBUG) console.log('      tally', JSON.stringify(m.tally));
         const n = m.spill.length + m.cut.length + m.squeeze.length + m.overlap.length + m.scrollX.length;
@@ -274,7 +285,7 @@ const only = (process.env.HATI_TIDY_ONLY || '').split(',').map(s => s.trim()).fi
         for (const x of m.cut) console.log(`      CUT       "${x.text}" ${x.who} in ${x.in} · ${x.by}px lost`);
         for (const x of m.squeeze) console.log(`      SQUEEZED  "${x.text}" ${x.who} in ${x.in} · on ${x.lines} lines in a ${x.h}px box`);
         for (const x of m.spill) console.log(`      SPILT     "${x.text}" ${x.who} past ${x.in} by ${x.by}px`);
-        for (const x of m.overlap) console.log(`      OVERLAP   "${x.a}" × "${x.b}" (${x.who}) in ${x.in}`);
+        for (const x of m.overlap) console.log(`      OVERLAP   "${x.a}" × "${x.b}" (${x.who}) in ${x.in}${process.env.HATI_TIDY_DEBUG ? ' · a=' + x.ar + ' b=' + x.br + ' top=' + x.top : ''}`);
       }
     }
     fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify(report, null, 1));
