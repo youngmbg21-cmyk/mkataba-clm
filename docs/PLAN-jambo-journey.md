@@ -52,7 +52,7 @@ to the other side on its own.
 | 2 | The arrival turn: Jambo speaks first | 1 | **built 22 Oct 2026** |
 | 3 | The road reading: negotiate it or just send it | 1 | **built 22 Oct 2026** |
 | 4 | "I'd take it": a verdict on each of their changes | 2 | **built 22 Oct 2026** |
-| 5 | Your phone: browser push | 4 | not built |
+| 5 | Your phone: browser push | 4 | **built 22 Oct 2026, waiting for the owner's yes** |
 | 6 | Add to my own calendar (changed: see section 5) | 2 | **built 22 Oct 2026** |
 | 7 | "Make it my standard", in his words | 2 | **built 22 Oct 2026** |
 | 8 | Your history with them, in one line | 1 | **built 22 Oct 2026** |
@@ -125,8 +125,26 @@ to the other side on its own.
 - **Tests:** f864; test/chromium/jambo-looks-them-up-verify.
 - **Agreed:** the owner said yes to Anthropic's web search on the existing key (about one cent a search) and to merging rounds 1 to 3 together, 22 Oct 2026.
 
-## 7. What comes next
+## 7. Round 4, as built (22 Oct 2026)
 
-Round 4 (tool 5, browser push). Each
+- **What it is (tool 5).** Alerts on your phone or computer through the
+  browser, no app and no SMS. The owner picked "option 2": urgent things as
+  they happen, the rest in one summary each morning.
+- **Urgent, as it happens:** your turn to sign, an approval asked of you, a
+  duty of yours due today. Each rides the email of the same moment.
+- **Each morning:** one alert counting what waits (to sign, to review, duties
+  due, ending soon, notice dates, no link to sign), read off the daily brief's
+  own reading, even when the email brief is off.
+- **Turning it on:** Settings, You, How you're told, "Alerts on this device",
+  or the phone's account sheet. On an iPhone or iPad HaTi must first be added
+  to the Home Screen (Apple's rule); the row says so.
+- **Walls:** an alert names the contract, never its wording or a figure, and
+  never a code-named deal. Only the known push services are sent to. A tap
+  opens HaTi on the contract and presses nothing. No outside service is paid.
+- **Tests:** f865; test/chromium/alerts-on-your-phone-verify.
+
+## 8. What comes next
+
+All eight tools are built. Next is whatever the owner picks. Each
 round is one change, photographed at the owner's three screens, with its
 tests, before it merges.
