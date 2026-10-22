@@ -99,6 +99,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Held-out sentences taught (22 Oct 2026): f738 (7) (7a red at the parent).
 ## STAKES — THE CLAUSES TAB CARRIES THE DEEP READ
 - A missing point inside its clause (22 Oct 2026): clauses-legora-way-verify 5/5b (red at the parent: 2, 5, 5b), stakes-verify 3/3h, clause-list-fixed-verify 4 (+ photos at the three screens).
+- Plain English first, the missing group's head a button (23 Oct 2026): clauses-legora-way-verify 5c, 5d (red at the parent), photos at the three screens (SHOTS_OUT).
 - stakes-verify, point-buttons-and-brief verify, jambo-pill-and-window 3a, f668, f671, f277.
 - clauses-legora-way-verify (merged twin counted once, worst-first order, the dive walks the same order, badge = need you, Mark reviewed persists through the server and drops the count, missing row in place; 1/12 at d7a320c2). stakes-verify and point-buttons-and-brief-verify re-pointed to the card anatomy.
 

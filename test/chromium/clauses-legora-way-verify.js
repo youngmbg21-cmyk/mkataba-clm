@@ -183,7 +183,12 @@ const deal = () => ({ id: ID, contractNo: ID, name: 'Haulage Review', counterpar
       const btn = m && m.querySelector('[data-stk-miss-go]');
       const body = m && m.querySelector('.stk-miss-body');
       const seen = () => !!(body && body.getClientRects().length);
-      const out = { h: m ? (m.querySelector('.stk-miss-h') || {}).textContent : null, prev: prev && prev.classList.contains('doc-th-row') ? prev.querySelector('.doc-th-name').innerText : null,
+      /* RE-POINTED 23 Oct 2026 (the owner: "it is absolutely not clear that not in the contract is a button.
+         Make it a clear press feature"): the head is an outlined button carrying its words, its count and an
+         arrow; its words are read from their own span */
+      const hb = m && m.querySelector('.stk-miss-h'), hcs = hb && getComputedStyle(hb);
+      const out = { h: m ? (m.querySelector('.stk-miss-hw') || {}).textContent : null, hn: m ? (m.querySelector('.stk-miss-hn') || {}).textContent : null,
+        hEdge: hcs ? hcs.borderTopWidth + ' ' + hcs.borderTopStyle : '', hArrow: !!(hb && hb.querySelector('svg')), prev: prev && prev.classList.contains('doc-th-row') ? prev.querySelector('.doc-th-name').innerText : null,
         card: m ? ((m.querySelector('.stk-ct') || {}).textContent || '') : '', shows: !!(m && m.querySelector('.stk-card') && m.querySelector('.stk-card').getClientRects().length),
         border: cs ? cs.borderTopStyle + '/' + cs.borderTopWidth : '', indent: cs ? cs.marginLeft : '', fold: !!document.querySelector('#pd-thread [data-stk-mopen]'), close: !!btn };
       if (btn){ btn.click(); await new Promise(r => setTimeout(r, 150)); out.shut = !seen();
@@ -203,6 +208,26 @@ const deal = () => ({ id: ID, contractNo: ID, name: 'Haulage Review', counterpar
     ok('5 a point the contract lacks stands inside clause 2, no dashed border, its own close, no bottom fold',
       e5.h === 'After §2 — not in the contract' && /^2\b/.test(e5.prev || '') && /price rise/.test(e5.card) && e5.shows
       && /\/0px$/.test(e5.border) && parseFloat(e5.indent) >= 20 && e5.close && e5.shut && e5.reopened && !e5.fold, JSON.stringify(e5));
+    ok('5c the group\'s head is a clear press: an outlined button with its count and an arrow',
+      e5.hEdge === '1px solid' && e5.hn === '1' && e5.hArrow, JSON.stringify({ edge: e5.hEdge, n: e5.hn, arrow: e5.hArrow }));
+    /* 5d PLAIN ENGLISH FIRST (owner, 23 Oct 2026: it "should be at the top before needs you and worth a look"):
+       in the open clause its reading comes before its cards */
+    const e5d = await page.evaluate(() => {
+      const row = [...document.querySelectorAll('#pd-thread .doc-th-row.is-open')].find(r => r.querySelector(':scope > .stk-card'));
+      const body = row && row.querySelector(':scope > .doc-th-body'), card = row && row.querySelector(':scope > .stk-card');
+      return { row: !!row, before: !!(body && card && (body.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING)) };
+    });
+    ok('5d in an open clause its Plain English stands above its cards', e5d.row && e5d.before, JSON.stringify(e5d));
+    /* PHOTOGRAPHED ON THE OWNER'S THREE SCREENS: clause 2 open, its reading above its cards, the button below */
+    const shotDir = process.env.SHOTS_OUT || require('node:path').join(__dirname, 'shots', 'clauses-legora-way');
+    fs.mkdirSync(shotDir, { recursive: true });
+    for (const [w, hh] of [[1440, 780], [1536, 730], [1366, 950]]){
+      await page.setViewportSize({ width: w, height: hh });
+      await page.evaluate(() => { const r = document.querySelector('#pd-thread .doc-th-row.is-open'); if (r) r.scrollIntoView({ block: 'start' }); });
+      await page.waitForTimeout(300);
+      await page.screenshot({ path: require('node:path').join(shotDir, `clause-open-${w}x${hh}.png`) });
+    }
+    await page.setViewportSize({ width: 1440, height: 780 });
     ok('5b pressing clause 2 closes its missing point with it and opens it again; the clause\'s word counts it',
       e5.clauseShut === true && e5.clauseOpen === true && /· 2$/.test(e5.word.trim()), JSON.stringify({ shut: e5.clauseShut, open: e5.clauseOpen, word: e5.word }));
 
