@@ -2396,7 +2396,7 @@ async function intelAsk(qRaw, opts){
   }
   /* AI FIRST ON THE BOARD (stage 3b): a QUESTION ("what ends this quarter", "which customer is worth the most")
      is the Board's Jambo's (the graph route, with the Board's own actions); commands stay the free reader's */
-  const boardQ=!!(window.caAiFirst&&caAiFirst()&&window.CA_WH_Q&&CA_WH_Q.test(q)&&typeof window.hbBringOf==='function'&&!hbBringOf(q));
+  const boardQ=!!(window.caAiFirst&&caAiFirst()&&window.CA_WH_Q&&CA_WH_Q.test(q)&&!/^\s*(can|could|would|will|kan|skulle) (you|du)\b/i.test(q)&&typeof window.hbBringOf==='function'&&!hbBringOf(q));
   if(!heldId && state.view==='dashboard' && !onPaperSide && !tplAsk && !hereMap && !boardQ && typeof window.hbAsk==='function'){
     let said=null; try{ said=hbAsk(q); }catch(e){ said=null; }
     if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{}, rdOf(), typeof window.hbBoardReplyMeta==='function'?hbBoardReplyMeta():{})); renderIntelDock(); return; }
