@@ -5472,7 +5472,7 @@ function renderIntel(){
           <div id="hb-tools" class="hb-tools"></div><canvas id="hb-ink" class="hb-ink" aria-hidden="true"></canvas>
           ${''/* the red dot lives on the pointer's veil (hbVeilPaint) */}`:''}
       </div>
-      <aside id="ig-dock" class="shrink-0 flex flex-col min-h-0 overflow-hidden" style="width:${igDockWidth()}px;transition:width var(--dur-3) cubic-bezier(.22,.61,.36,1)"></aside>
+      <aside id="ig-dock" class="shrink-0 flex flex-col min-h-0 overflow-hidden" style="width:${igDockWidth()}px"></aside>
       ${''/* THE ONE SLIDER's grip (splitHtml, 19 Oct 2026): role=separator,
              reachable by keyboard, named int_drag_width, hidden while folded */}${typeof splitHtml==='function'?splitHtml({ id:'ig-resizer', min:IG_DOCK_MIN, hidden:!intel.dockOpen }):''}
     </div>
@@ -7706,8 +7706,14 @@ function intelGoTab(k){
 /* ---- right-hand Copilot dock ---- */
 function igSyncDockWidth(){
   const dock=document.getElementById('ig-dock'); if(!dock) return;
+  const was=dock.getBoundingClientRect().width;
   /* The divider's own pass: the width, and the handle shown or stood down. */
   if(document.getElementById('ig-row')) igFitSplit(); else dock.style.width=igDockWidth()+'px';
+  /* the width snaps once (no sliding width re-wrapping the paper); a panel that
+     opened wider fades its contents in (igArrive) */
+  if(intel.dockOpen&&dock.getBoundingClientRect().width>was+40){
+    dock.classList.remove('ig-arrive'); void dock.offsetWidth; dock.classList.add('ig-arrive');
+    setTimeout(()=>dock.classList.remove('ig-arrive'),400); }
   // the canvas flexes — re-measure and re-settle once the width transition lands
   setTimeout(()=>{ if(igMapUp()) rebuildIntelGraph(); },280);
 }
@@ -7935,8 +7941,25 @@ function igFaceHtml(mood){
 const _igJbCard = o => (typeof jamboCardHtml === 'function') ? jamboCardHtml(o) : `${o.field || ''}${o.ctx || ''}${o.send || ''}${o.tail || ''}`;
 const _igJbSend = (a, l, o = {}) => (typeof jamboSendHtml === 'function') ? jamboSendHtml(a, l, o) : `<button type="${o.submit ? 'submit' : 'button'}" ${a || ''} aria-label="${l}" title="${o.title || l}"></button>`;
 
+/* THE PANEL'S FACE CROSSFADES (owner picked "Crossfade", 22 Oct 2026): a
+   repaint that changes what the panel shows — a tab, a face, the
+   conversation, another paper — fades the old face out over the new one and
+   glides the tab's underline (faceSwap, js/components.js); every other
+   repaint is drawn exactly as before. The head (the tabs) never fades. */
+function igDockFaceKey(){
+  try{ if(!intel.dockOpen) return null;
+    return [window.pdTab?pdTab():'', window.pdFaceNow?String(pdFaceNow()||''):'', window.pdTalkShows&&pdTalkShows()?'talk':'',
+      intel.fdTab?'fd':'', intel.gdTab?'gd':'', intel.paper?String(intel.paper.id):''].join('|'); }catch(_){ return null; }
+}
+let _igDockSwap=false;
 function renderIntelDock(){
   const dock=document.getElementById('ig-dock'); if(!dock) return;
+  /* the crossfade wraps this very paint once (faceSwap calls back in here) */
+  if(!_igDockSwap&&typeof window.faceSwap==='function'){
+    _igDockSwap=true;
+    try{ return faceSwap(dock, igDockFaceKey, renderIntelDock, { keep:'.igd-head', ink:'.pd-tab.on', inkKey:'data-pd-tab' }); }
+    finally{ _igDockSwap=false; }
+  }
   /* A BOX IN THE OVERVIEW TAB'S FILL FORM UNDER THE READER'S HAND IS NEVER
      REDRAWN (owner, 11 Oct 2026): a save after an answer repaints Home, and the
      next box must keep the cursor the Tab key just gave it. */
@@ -9879,7 +9902,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
 }
 
 Object.assign(window,{igLineRound,igLineIdHtml,igZoomCornerHtml,igStripActsHtml,igStripActsWire,igNegoRowsHtml,igSignOn,igTheirsOn,igPickAgain,igOpenNewer,igOpenSeqNow,igOpeningPaint,igOpeningClear,igPaperHold,igPaperRefresh,igRedOn,igCleanOnRed,igPaperKey,igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,igPlacePaint,igPlaceNav,igWallCountWords,igWallStage,igWallStageWord,igWallNeed,igWallSheetHtml,igWallCardHtml,igWallBodyHtml,igWallPlace,igWallPlacePut,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igApplyZoom,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk,igWallValue,IG_WALL_STEP,igWallLeadOf,igWallShown,igWallMoreReset,igWallKeyOf,igWallShowMore,IG_WALL_SCROLL_NEAR,igWallScrollNear,igWallOrderWords,igWallChosenId,igWallChosen,igWallChosenPaint,igWallChoose,igWallLetGo,igWallOpen,igWallPress,igHeldAskId,IG_HELD_TIME_RE,IG_HELD_THIS_RE,IG_HELD_BOOK_RE,igHeldAsksBook,igPaperClauseMarks,igSignCopyHtml});
-Object.assign(window,{IG,IG_SUGGESTIONS,igViewSuggestions,igSugRepaint,IG_ATTN,igAttn,IGB_ATTN_RGB,igLinkHoverShow,igAsOfRead,igAsOfData,igPictureBlob,igPictureSvg,igPictureCopy,igFindingsLoad,igFindingsOwed,igFindingsTabOn,igFindingsShows,igFindingsCount,igFindingGo,igFindingOpen,igPartsNow,igFinding,igDateRead,igDayWord,igUntilRead,igUntilIds,igSoleRead,igSoleData,igObOpenOf,IG_TEMPLATE_RE,IG_BOOK_RE,IG_BOOK_NOT_RE,IG_MYCAL_RE,igBookAsk,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,igCountsDrawn,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand,igGuideTabOn,igGuideShows,igGuideRows,igGuideRepaint});
+Object.assign(window,{IG,IG_SUGGESTIONS,igViewSuggestions,igSugRepaint,IG_ATTN,igAttn,IGB_ATTN_RGB,igLinkHoverShow,igAsOfRead,igAsOfData,igPictureBlob,igPictureSvg,igPictureCopy,igFindingsLoad,igFindingsOwed,igFindingsTabOn,igFindingsShows,igFindingsCount,igFindingGo,igFindingOpen,igPartsNow,igFinding,igDateRead,igDayWord,igUntilRead,igUntilIds,igSoleRead,igSoleData,igObOpenOf,IG_TEMPLATE_RE,IG_BOOK_RE,IG_BOOK_NOT_RE,IG_MYCAL_RE,igBookAsk,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,igCountsDrawn,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,igAskBox,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,igDockFaceKey,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand,igGuideTabOn,igGuideShows,igGuideRows,igGuideRepaint});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp,IG_PRE_MS,igPreOn,igPrePaint});
