@@ -21377,3 +21377,13 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Noticed, not fixed (left alone by the owner's scope ruling): Jambo's agents page still has its old labelled band.
 - Noticed, not fixed (left alone by the owner's scope ruling): Settings' lists Value streams, Data trail and People still have their old labelled bands.
 - Noticed, not fixed (left alone by the owner's scope ruling): a contract's History table still has its old labelled band.
+
+## 22 Oct 2026 — Part 8: the owner's three answers (A, B, A)
+- Changed (owner's pick, said to the owner): Contracts keeps exactly the five drawn tabs; Term already ended, Auto-renewing soon, Overdue obligations and Details to fill moved under + Filter as one "Quick filters" group (the same R.view). A question typed in a list page's box, or in Jambo's box beside the list, is answered in the panel and never leaves the page (was: handed to Home's Board). The Wall on the 1536×730 laptop shows its second row only after a little scroll.
+- Noticed, not fixed: reg_quick_filters_title does not name Details to fill, so the Quick filters chip's hover uses the label instead.
+- Noticed, not fixed: test/world.js stands in contractExpired as () => false and obState as () => 'open', so a jsdom test of Term already ended or Overdue obligations sees no rows without its own stand-ins.
+- Noticed, not fixed: in a list box "show me suppliers" counts as a question but reads as the Parties place word and opens Parties (kept as a door).
+- Noticed, not fixed: a question naming an act on a contract several share a name with ("what is the brief of Deal Nordkap?") still goes to Home's Board to pick one.
+- Noticed, not fixed: from a list page a free Board reading can be a follow-up on the Board's open chart (hbFollowUpRead reads Board state the reader cannot see).
+- Noticed, not fixed: while Jambo answers, a watch sentence and the map's "which did you mean?" card still add turns before the pending answer (jlAsk steps 0 and 2).
+- Noticed, not fixed: CLAUDE.md grew by about 120 bytes with the three answers' MAP lines (84,629 → 84,748); still over the ~80 KB line and waiting on the owner's yes for a trim.

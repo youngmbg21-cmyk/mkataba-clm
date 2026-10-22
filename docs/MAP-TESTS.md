@@ -103,6 +103,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE LIST INSPECTOR
 - f387, f390, f391, f395, f664, f678, f804, f810, inspector, inspector-checklist, jambos-list-panel verify.
+- Answered beside the list (22 Oct 2026, Part 8 question 3 = A): f804 8b–8b4 (red at e10e3af6); jambos-list-panel-verify 10g re-pointed (answered in the panel, the draft form still a door).
 
 ## THE LIST HEAD (js/views/listhead.js)
 - Part 8, every list page the Legora way (21 Oct 2026): `test/f861-the-list-head.test.js` (25 of 25 red at db763d0a; (10)–(13) the review fixes: a page's own parts keep their nodes, a question lives only in the live box, a menu on a removed select closes, one recount per typing pause) and `test/chromium/legora-lists-verify.js` (22 passed, 208 failed at db763d0a). One page: `LH_PAGES=<seat> node test/chromium/legora-lists-verify.js`, seats contracts, negotiations, approvals, obligations, requests, mynotes, parties, people, paper (book · templates · standards), import; left empty, all ten (about 5 minutes).
@@ -110,6 +111,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Re-pointed for Part 8, each only where it pinned a ruling the pick reverses. Negotiations: f184, f240 (5), f263 (3), f281 (1)(2), f379 (1d), f387 3a, f716 1b, f756 8e, f806 3b, f97; whose-move 1/2, negotiations-door (11 to the box the page draws), flat-rows-and-alerts 5g, six-off-five-images 1d/1e, contracts-page 16d, no-link-to-sign 1a, pages-read-alike 4 verify. Approvals: f717 2b/4b, f804 12c, f807 3c (new f807 (11)–(15)); one-worklist 2/3b, jambos-list-panel 5a/10c, sap-lists 2a, overview-and-obligations-polish 3a verify. Obligations: f791 6c; week-as-drawn 1a verify.
 - Requests: f797 (1)(2)(10)(11) (new (14)), f495 2b/2c/2e/4b/4c, f721 1a; requests-and-notes-as-drawn 1/5/7/8a, advice-is-a-request 2a/4a verify. My notes: f798 1b/3a/5a/8a (new (10)); requests-and-notes-as-drawn 6a/7 verify. Parties and People: f202 D-1, f669, f720 3a, f739 (1)(2)(3), f795 (1)(2)(3)(6); parties-and-people 1/2a/6/7/8a, parties-sap-way 1, parties-nda-column 2/5, customers, people-directory, chambers 11a verify. Our paper: f272, f390 4i; four-inspectors 3, templates-tabs 1f, our-paper-as-drawn 1c verify. Import: f723 1a/1b, f770 3a/4a/4b/5a, f771 5b; import-as-drawn 3a–3e/4b/11a/13, import-sap-way 1/2/4, import-contracts 1a/3e verify.
 - Contracts: f678, f687, f693, f740, f806; contracts-stage-tabs (2d), adapt-filters, register-category, payment-terms §13, five-images §2, nine-off-five-images §3, thirteen-screenshots §1, six-off 1b, fresh-filters, every-door (In Review), document-wall 1a/§5, answer-worklist 1d, inspector 1b/1l/1n/1p/1q/4d/4f, customers §6, sap-lists 1a, register-foot 1d/1g, contrast (pager), wall-of-papers 2b, home-held-contract 1a/1a2, late-open-stays-put, signed-and-columns, counterparty-leads 1d, row-density, flat-rows (REF), blue-landing N-2, import-contracts 7b, redline-here-sign-there 2a/2b/6f verify. Ask a column's § chip: legora-lists C7.
+- Part 8 question 3 = A (22 Oct 2026): legora-lists-verify 7g tightened (same view, tab/chips/rows unchanged, box empty, question + answer in #ins-panel/#mig-side, no AI stand-in request; 11 of 11 list sections red at e10e3af6). Re-pointed: f804 8b, jambos-list-panel 10g.
+- Part 8 question 1 = A (22 Oct 2026): wall-of-papers-verify 4 at 1536×730 re-pointed — the second row of papers starts on the screen and the reader scrolls a little.
 
 ## THE SAP BENCHMARK, BATCH 1 — THE LISTS (9 Oct)
 - f716, f717, f806–f809, sap-lists, whose-move, one-worklist, negotiations-door 12 verify.
@@ -129,6 +132,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## CONTRACTS AND NEGOTIATIONS ARE ONE TABLE (renderRegister)
 - f97, f240, f258, f281–f283, f324, f346, f350, f378, f379, f397, f687, f693, f715, f740, f741; contracts-page, contracts-stage-tabs, counterparty-leads, every-door-lands-on-home, wall-of-papers, home-held-contract verify.
+- THE FIVE DRAWN TABS (22 Oct 2026, question 2 "B"): f693 (4); legora-lists-verify C2 (exactly the five) and C8a–C8e (the Quick filters group under + Filter by a touch press, one chip and the rows the view reads, ×, the tab row one line at all three screens); contracts-stage-tabs-verify 1e/3a and answer-worklist-verify 1a re-pointed.
 
 ## CALENDAR
 - f80, f83, f261, f458, f641, f694, f732, f793, f794, calendar-on-home, calendar-day, calendar-redesign, calendar-holds-still, my-calendar, jambo-follows-the-ask, week-as-drawn verify.
