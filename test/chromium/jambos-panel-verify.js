@@ -100,7 +100,8 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     check('1d its number is its rows', !!nd && Number(nd.n) === nd.rows, nd && (nd.n + ' / ' + nd.rows));
     /* RE-POINTED 20 Oct 2026: Still owed's head says "everything, one list" where "all N" stood (the dossier as drawn) */
     check('1e Still owed\'s head carries no "all N" of its own', !!nd && !nd.all, nd && nd.all);
-    check('1f his tab carries the same number', !!nd && Number(nd.badge) === nd.counter, nd && nd.badge);
+    /* RE-POINTED 22 Oct 2026 (owner: "1, drawing"): the tab beside a paper carries this contract's Needs you number */
+    check('1f his tab carries the same number', !!nd && Number(nd.badge) === Number(nd.n), nd && (nd.badge + ' / ' + nd.n));
     await shot(page, 'jambos-panel-1440x780');
 
     console.log('\n2 · the two cards do not say it twice');
@@ -158,9 +159,10 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
     if (await press('#igd-collapse', '5a the fold')) {
       await settled();
       const st = await until(() => { const d = document.getElementById('igd-expand'); if (!d) return null;
-        return { face: !!d.querySelector('svg.jambo-mark.igd-door-face'), n: (d.querySelector('.pd-tab-n') || {}).textContent || '', counter: counterNeedsCount(),
+        return { face: !!d.querySelector('svg.jambo-mark.igd-door-face'), n: (d.querySelector('.pd-tab-n') || {}).textContent || '', counter: (pdTabCount('copilot', pdContract()) || {}).n || 0,
           words: (d.querySelector('.igd-door-w') || {}).textContent || '' }; }, null, 6000);
       /* RE-POINTED 20 Oct 2026 (Chambers): his face on a computer is the ✦ mark, not the bird */
+      /* RE-POINTED 22 Oct 2026 (owner: "1, drawing"): the count is his tab's own, this contract's Needs you */
       check('5a the strip carries his face (the ✦ mark) and the count his tab carries', !!st && st.face && Number(st.n) === st.counter, JSON.stringify(st));
       await shot(page, 'jambos-panel-folded-1440x780');
       if (await press('#igd-expand', '5b the strip')) {

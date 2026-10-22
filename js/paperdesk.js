@@ -146,9 +146,11 @@ function pdTabCount(t, c){
   /* WITH A PAPER UP HIS FACE CARRIES THE COUNTER'S OWN NUMBER (owner picked
      "Tabs and faces" by name, round 3, 17 Oct 2026): the "All N" that Needs
      you here opens, read once per paint (the list is kept for the task) */
+  /* THE NUMBER ON THE DOOR IS THE LIST'S (owner, 22 Oct 2026, the Checklist as drawn; reverses
+     "Tabs and faces", 17 Oct): beside a paper the Dossier tab carries this contract's "Needs you N" */
   if (t === 'copilot'){
     const onPaper = typeof igHomePaperFace === 'function' && igHomePaperFace() === true;
-    let n = 0; try { n = (onPaper && typeof counterNeedsCount === 'function') ? counterNeedsCount() : 0; } catch (_){ n = 0; }
+    let n = 0; try { n = onPaper ? ((dossierOf(c) || {}).owedN || 0) : 0; } catch (_){ n = 0; }
     return n ? { n, tone: 'warn' } : null;
   }
   try {

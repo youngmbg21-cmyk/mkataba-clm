@@ -16068,8 +16068,8 @@
   #app-shell .pd-glance .ds-row.ds-rr>.ds-nm>small{display:inline;font-size:inherit;color:var(--color-neutral-600)}
   /* ==== THE CHECKLIST (owner picked "1 · Checklist" by name, 22 Oct 2026) ====
      One left edge, one right edge, one row height (40). Sections — Stage, Needs you, Jambo read,
-     Next acts — under a strong 13px head, a hairline between sections and a faint one under each
-     row. An owed fact is one line (ring · name · what stands · chevron); only the open row shows
+     Next acts — under a strong 13px head, parted by space; no line between sections or rows (the
+     owner kept The Brief, 22 Oct 2026). An owed fact is one line (ring · name · what stands · chevron); only the open row shows
      its box, where Jambo read it, and Confirm, 26 in from the ring. Key terms, the family and the
      people are rows of the same height under Next acts. Scoped by #app-shell #ig-dock so it is
      drawn over the earlier Still owed and Brief rules by scope, never !important. */
@@ -16089,14 +16089,15 @@
   #app-shell #ig-dock .ds-ck-bar .ds-st.is-ck-cur i{background:var(--color-text)}
   #app-shell #ig-dock .ds-ck-bar .ds-st.is-ck-cur{color:var(--color-text);font-weight:var(--w-label)}
   /* the sections: a hairline over each, its head strong */
-  #app-shell #ig-dock #pd-glance > .ds-owed, #app-shell #ig-dock #pd-glance > .ds-read, #app-shell #ig-dock .pd-nx > .ds-acts{margin-top:16px;padding-top:16px;border-top:1px solid var(--color-divider)}
+  /* NO LINES INSIDE THE PANEL (owner, 22 Oct 2026, keeping The Brief): sections are parted by space only */
+  #app-shell #ig-dock #pd-glance > .ds-owed, #app-shell #ig-dock #pd-glance > .ds-read, #app-shell #ig-dock .pd-nx > .ds-acts{margin-top:24px;padding-top:0;border-top:0}
   #app-shell #ig-dock #pd-glance .pd-gl-h, #app-shell #ig-dock .pd-nx .ds-acts .pd-gl-h{margin:0 0 8px;min-height:24px;align-items:center;gap:6px}
   #app-shell #ig-dock #pd-glance .pd-gl-h>b, #app-shell #ig-dock .pd-nx .ds-acts .pd-gl-h>b{font-size:13px;line-height:20px;font-weight:var(--w-strong);color:var(--color-text)}
   #app-shell #ig-dock #pd-glance .ds-ck-n{font-size:13px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
   #app-shell #ig-dock #pd-glance .pd-gl-h .ds-go, #app-shell #ig-dock .pd-nx .ds-acts .pd-gl-h .ds-go{font-size:var(--t-label)}
   /* an owed fact: one line of 40 */
   #app-shell #ig-dock #pd-og.is-ck, #app-shell #ig-dock #pd-og-held.is-ck{display:block;width:100%}
-  #app-shell #ig-dock .pd-og.is-ck tr.pd-og-row{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"f a" "v v";column-gap:8px;padding:0;border-bottom:1px solid var(--color-neutral-100)}
+  #app-shell #ig-dock .pd-og.is-ck tr.pd-og-row{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"f a" "v v";column-gap:8px;padding:0;border-bottom:0}
   #app-shell #ig-dock #pd-og.is-ck tr.pd-og-row{grid-template-columns:minmax(0,1fr);grid-template-areas:"f" "v" "a"}
   #app-shell #ig-dock .pd-og.is-ck tr.pd-og-row:first-child{padding-top:0}
   #app-shell #ig-dock .pd-og.is-ck td{display:block;padding:0;border:0;min-width:0;width:auto}
@@ -16152,7 +16153,7 @@
   #app-shell #ig-dock #pd-og.is-ck tr.is-named.is-open td.pd-og-a{justify-content:flex-end}
   /* Jambo read: name · what stands · its door, one line of 40 */
   #app-shell #ig-dock .ds-read .pd-gl-b{gap:0}
-  #app-shell #ig-dock .pd-glance .ds-row.ds-rr{grid-template-columns:minmax(0,1fr) auto auto;column-gap:10px;min-height:40px;border-bottom:1px solid var(--color-neutral-100)}
+  #app-shell #ig-dock .pd-glance .ds-row.ds-rr{grid-template-columns:minmax(0,1fr) auto auto;column-gap:10px;min-height:40px;border-bottom:0}
   #app-shell #ig-dock .pd-glance .ds-row.ds-rr>.ds-nm{font-size:13px;color:var(--color-text)}
   #app-shell #ig-dock .pd-glance .ds-row.ds-rr>.ds-val{font-size:12px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
   /* Next acts: the stage's acts as equal buttons on one line */
@@ -16165,8 +16166,8 @@
   #app-shell #ig-dock .ds-fold.is-ck-all{margin-top:8px}
   /* Key terms, the family and the people: rows of the same height under Next acts */
   #app-shell #ig-dock .pd-nx{gap:0;margin-top:0}
-  #app-shell #ig-dock .pd-nx > .ds-fold:not(.is-ck-all){margin-top:0;border-bottom:1px solid var(--color-neutral-100)}
-  #app-shell #ig-dock .pd-nx > .ds-acts + .ds-fold:not(.is-ck-all), #app-shell #ig-dock .pd-nx > .is-ck-all + .ds-fold{margin-top:16px;border-top:1px solid var(--color-divider)}
+  #app-shell #ig-dock .pd-nx > .ds-fold:not(.is-ck-all){margin-top:0;border-bottom:0}
+  #app-shell #ig-dock .pd-nx > .ds-acts + .ds-fold:not(.is-ck-all), #app-shell #ig-dock .pd-nx > .is-ck-all + .ds-fold{margin-top:24px;border-top:0}
   #app-shell #ig-dock .pd-nx > .ds-fold:not(.is-ck-all) > summary{min-height:40px;padding:0;font-size:13px}
   /* ==== HISTORY, THE SAP WAY (owner picked it by name, 21 Oct 2026; reverses "Two sides", 17 Oct) ====
      The serif "History" and its facts, Show the wording and ⋯ on the right; one band of the search and

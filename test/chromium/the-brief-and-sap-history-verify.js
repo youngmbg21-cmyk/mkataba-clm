@@ -115,14 +115,12 @@ const BOXES = sel => {
       check('1c the foot is 56 with a 40 ask box', D.footH === 56 && D.boxH === 40, `foot ${D.footH} · box ${D.boxH}`);
       check('1d the tabs are words: no glyph over them but Jambo\'s mark, and a count stands after its word', D.tabs.length >= 3 && D.tabs.every(t => (t.glyph ? t.mark : true) && t.sameLine && t.nAfter !== false) && D.tabs.some(t => t.nAfter === true), JSON.stringify(D.tabs));
       const B = await page.evaluate(BOXES, '#igd-feed');
-      /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist" by name; ASKED of the owner the same day, as it
-         departs from The Brief's "nothing boxed"): the drawing rules a hairline over each section and a faint
-         one under each row, rings mark a fact's state and a "Missing" tag is amber. Those, and only those, are
-         allowed; no fill, band or shadow anywhere else */
-      const CK_DRAWN = /^(div\.pd-glance\.ds-card edge|tr\.pd-og-row\.[\w-]+ edge|tr\.pd-og-row edge|div\.pd-gl-row\.ds-row edge|details\.ds-fold\.[\w-]+ edge|details\.ds-fold edge|i\.pd-ck-ring[\w.-]* edge( fill)?|span\.pd-ck-pill fill)$/;
+      /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"; asked about its lines, the owner said "no lines",
+         keeping The Brief): no edge, band or shadow anywhere — only a fact's state ring and its amber "Missing" tag */
+      const CK_DRAWN = /^(i\.pd-ck-ring[\w.-]* edge( fill)?|span\.pd-ck-pill fill)$/;
       const B2 = Array.isArray(B) ? B.filter(x => !CK_DRAWN.test(x)) : B;
-      check('1e nothing is boxed inside the Dossier but the Checklist\'s drawn hairlines', Array.isArray(B2) && B2.length === 0, JSON.stringify(B2 && B2.slice(0, 8)));
-      check('1f a section is a strong 13 label 16 in from the edge, in sentence case, under its hairline', D.labels >= 2 && D.labLeft === 16 && D.labCase === 'none' && D.labSize === '13px', JSON.stringify(D));
+      check('1e nothing is boxed inside the Dossier: no edge, band or shadow on a section, row or table cell', Array.isArray(B2) && B2.length === 0, JSON.stringify(B2 && B2.slice(0, 8)));
+      check('1f a section is a strong 13 label 16 in from the edge, in sentence case', D.labels >= 2 && D.labLeft === 16 && D.labCase === 'none' && D.labSize === '13px', JSON.stringify(D));
       check('1g Still owed\'s head row takes no room (no band over the grid)', D.thH === 0, D.thH);
       if (OUT) await page.screenshot({ path: path.join(OUT, 'brief-dossier-1440x780.png') });
     }

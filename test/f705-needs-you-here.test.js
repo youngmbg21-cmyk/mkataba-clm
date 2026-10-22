@@ -202,10 +202,14 @@ describe('f705 (3) the way back to Jambo on every face', () => {
 });
 
 describe('f705 (4) his face and his count', () => {
-  test('4a beside a paper his tab carries the Counter\'s number; off the paper, the Board\'s rule stands', () => {
-    const { ctx, c } = pdStage({ all: 7 });
-    assert.deepEqual(J(ctx.pdTabCount('copilot', c)), { n: 7, tone: 'warn' });
-    assert.equal(pdStage({ all: 0 }).ctx.pdTabCount('copilot', c), null, 'nothing waiting: no count');
+  /* RE-POINTED 22 Oct 2026 (owner: "1, drawing" — the Checklist as drawn): beside a paper the tab carries
+     this contract's own "Needs you N" (dossierOf), never the Counter's whole number */
+  test('4a beside a paper his tab carries this contract\'s Needs you number; off the paper, the Board\'s rule stands', () => {
+    const { ctx, c } = pdStage({ all: 7, needs: [{ kind: 'quiet', urgent: true, n: 2 }, { kind: 'note', urgent: false, n: 1 }] });
+    const want = ctx.dossierOf(c).owedN;
+    assert.ok(want > 0 && want !== 7, 'the fixture owes some, not the Counter\'s 7: ' + want);
+    assert.deepEqual(J(ctx.pdTabCount('copilot', c)), { n: want, tone: 'warn' });
+    assert.equal(pdStage({ all: 7 }).ctx.pdTabCount('copilot', c), null, 'nothing owed on this contract: no count, whatever the Counter holds');
     const off = pdStage({ paper: null, all: 7 });
     assert.equal(off.ctx.pdTabCount('copilot', off.c), null, 'not on Home\'s paper: no count from here');
   });

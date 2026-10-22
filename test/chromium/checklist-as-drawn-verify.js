@@ -113,6 +113,11 @@ const MEASURE = () => {
 
     console.log('\n2 · Needs you, one line a fact, one open');
     check('2a the head says "Needs you" with its number', /^Needs you\s*\d+/.test(m0.head), m0.head);
+    /* the owner, 22 Oct 2026 ("1, drawing"): the Dossier tab's number is this list's */
+    const tabN = await page.evaluate(() => ((document.querySelector('#ig-dock [data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || '').trim());
+    check('2a2 the Dossier tab carries the same number', tabN !== '' && tabN === (/\d+/.exec(m0.head) || [''])[0], JSON.stringify({ tab: tabN, head: m0.head }));
+    check('2a3 no line between sections or rows (the owner kept The Brief)', await page.evaluate(() => [...document.querySelectorAll('#ig-dock #pd-glance > *, #ig-dock .pd-nx > *, #ig-dock #pd-og tr, #ig-dock .ds-rr')]
+      .every(e => { const s = getComputedStyle(e); return ['Top', 'Bottom'].every(k => !(parseFloat(s['border' + k + 'Width']) > 0 && s['border' + k + 'Style'] !== 'none')); })));
     const owed = m0.rows.filter(r => r.key !== 'stream');
     check('2b every row\'s line is one height (40)', owed.length >= 4 && owed.every(r => r.h === 40), JSON.stringify(owed.map(r => [r.key, r.h])));
     check('2c exactly one row is open and only it shows its box', owed.filter(r => r.open).length === 1 && owed.every(r => r.box === r.open), JSON.stringify(owed.map(r => [r.key, r.open, r.box])));
