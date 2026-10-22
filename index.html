@@ -11700,8 +11700,18 @@
      Its head IS the control, so nothing in the Clauses list is uncloseable:
      a button wearing the label's own clothes (the head was a div), underlined
      on hover like every other word-door in this panel. */
-  .pd-th .stk-miss .stk-miss-h{display:block;width:100%;text-align:left;border:0;background:none;font-family:inherit;cursor:pointer}
-  .pd-th .stk-miss .stk-miss-h:hover{text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--rule-strong)}
+  /* A CLEAR PRESS (owner, 23 Oct 2026: "it is absolutely not clear that not in the contract is a button"):
+     an outlined button in the Clauses tab's own button clothes (.stk-go), its count, and an arrow that
+     turns down while the group is open */
+  .pd-th .stk-miss .stk-miss-h{display:inline-flex;align-items:center;gap:6px;min-height:var(--ctl-h-sm,28px);padding:0 10px;text-align:left;
+    border:1px solid var(--btn-edge,var(--field-line));border-radius:6px;background:var(--color-surface);color:var(--accent-ink);
+    font-family:inherit;font-weight:var(--w-label);cursor:pointer}
+  .pd-th .stk-miss .stk-miss-h:hover{background:color-mix(in srgb,var(--accent-fill) 8%,var(--color-surface))}
+  .pd-th .stk-miss .stk-miss-hn{color:var(--color-neutral-600);font-weight:400}
+  .pd-th .stk-miss .stk-miss-chev{flex:none;transition:transform .15s ease}
+  .pd-th .stk-miss.is-open .stk-miss-chev{transform:rotate(90deg)}
+  .pd-th .stk-miss.is-open .stk-miss-h{margin-bottom:6px}
+  @media (prefers-reduced-motion: reduce){ .pd-th .stk-miss .stk-miss-chev{transition:none} }
   .pd-th .stk-miss .stk-miss-h:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:2px}
   .pd-th .stk-miss:not(.is-open) .stk-miss-body{display:none}
   /* a point missing after §N is §N's: hidden while §N is closed (breakdown.js, owner 22 Oct 2026) */
