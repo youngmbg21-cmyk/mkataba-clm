@@ -762,6 +762,10 @@ function navGoStage3(n){
     setTimeout(pick, 0);
     return true;
   }
+  if (n.k === 'mynote'){
+    if (n.id && typeof myNotesOpen === 'function'){ myNotesOpen(n.id); return navLandWhen(() => document.querySelector(`[data-ins-key="${String(n.id).replace(/"/g, '')}"], [data-mn-row="${String(n.id).replace(/"/g, '')}"]`)); }
+    if (typeof setView !== 'function') return false; setView('mynotes'); return true;
+  }
   if (n.k === 'requestid'){
     if (typeof setView !== 'function' || typeof intakeGoTo !== 'function') return false;
     intakeGoTo(n.id);
@@ -922,6 +926,8 @@ function navDoorOf(d){
   if (d.kind === 'template') return go({ k: 'template', id: d.templateId }, 'nav_go_template');
   if (d.kind === 'request') return go({ k: 'requestid', id: d.requestId }, 'nav_go_request');
   if (d.kind === 'duties') return d.due === '7' ? go({ k: 'duties', due: '7' }, 'nav_go_duties_week') : { kind: 'go', place: 'oblig' };
+  /* My notes, or one of them: its own page's door (myNotesOpen); private, so only ever the reader's own */
+  if (d.kind === 'mynote') return go({ k: 'mynote', id: d.noteId || null }, 'nav_go_mynote');
   return null;
 }
 

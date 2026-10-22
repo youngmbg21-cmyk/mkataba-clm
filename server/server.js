@@ -12489,20 +12489,20 @@ const aiNavigateOn = () => getSetting('aiNavigate') !== false;
    never a final act: it opens, chooses and lands; it sends, signs, approves and deletes
    nothing. Every id is checked here against what this reader may see (aiDoorOf) before
    the browser is handed it, and the browser asks its own book again. */
-const AI_DOOR_KINDS = ['contract', 'clause', 'contracts', 'party', 'you', 'company', 'person', 'stream', 'standard', 'template', 'obligation', 'request', 'duties'];
+const AI_DOOR_KINDS = ['contract', 'clause', 'contracts', 'party', 'you', 'company', 'person', 'stream', 'standard', 'template', 'obligation', 'request', 'duties', 'mynote'];
 const AI_DOOR_TABS = ['open', 'dossier', 'fill', 'send', 'sign', 'redlines', 'brief', 'clauses', 'amend', 'oblig', 'hist', 'compare'];
 const AI_DOOR_YOU = ['lang', 'told', 'safety', 'away', 'who', 'data', 'work', 'password'];
 const AI_DOOR_COMPANY_PAGES = ['team', 'streams', 'sheet', 'roles'];
 const AI_DOOR_COMPANY = [...new Set(Object.keys((I18N_STRINGS && I18N_STRINGS.en) || {}).filter(k => /^st_syn_[a-z]+$/.test(k)).map(k => k.slice(7)))].filter(k => !AI_DOOR_COMPANY_PAGES.includes(k));
 const AI_DOOR_STAGES = ['Draft', 'Under Review', 'Signed', 'Declined'];
 const AI_DOOR_ENDINGS = ['month', 'quarter', 'year'];
-const AI_DOOR_SCHEMA = { type: 'object', description: 'OPTIONAL, and BEST when you know it: the EXACT thing to open, named by the ids your tools returned. HaTi lands on it through its own doors (it opens and chooses, it never sends, signs, approves or deletes). kind and its fields: contract {contractId, tab: open|dossier|fill|send|sign|redlines|brief|clauses|amend|oblig|hist|compare (send and sign only open the letter and the signing column; nothing is sent or signed)} · clause {contractId, num (its number, when known), quote (the first words of the passage, from search_hati), head (its heading)} · contracts {stage, stream (stream id), party (counterparty name), ending (month|quarter|year: ending this one), ids (when a list is exactly these)} · party {name} · you {key: ' + AI_DOOR_YOU.join('|') + '} (the person\'s own settings) · company {key} (an admin\'s company setting or page: ' + AI_DOOR_COMPANY.concat(AI_DOOR_COMPANY_PAGES).join('|') + ') · person {userId, row: profile|cap|access} · stream {streamId, keep} · standard {book, row (the standard\'s words)} · template {templateId} · obligation {contractId, obligationId} · request {requestId} · duties {due: "7" for this week}.',
+const AI_DOOR_SCHEMA = { type: 'object', description: 'OPTIONAL, and BEST when you know it: the EXACT thing to open, named by the ids your tools returned. HaTi lands on it through its own doors (it opens and chooses, it never sends, signs, approves or deletes). kind and its fields: contract {contractId, tab: open|dossier|fill|send|sign|redlines|brief|clauses|amend|oblig|hist|compare (send and sign only open the letter and the signing column; nothing is sent or signed)} · clause {contractId, num (its number, when known), quote (the first words of the passage, from search_hati), head (its heading)} · contracts {stage, stream (stream id), party (counterparty name), ending (month|quarter|year: ending this one), ids (when a list is exactly these)} · party {name} · you {key: ' + AI_DOOR_YOU.join('|') + '} (the person\'s own settings) · company {key} (an admin\'s company setting or page: ' + AI_DOOR_COMPANY.concat(AI_DOOR_COMPANY_PAGES).join('|') + ') · person {userId, row: profile|cap|access} · stream {streamId, keep} · standard {book, row (the standard\'s words)} · template {templateId} · obligation {contractId, obligationId} · request {requestId} · duties {due: "7" for this week} · mynote {noteId} (the person\'s own private note, from search_hati; no noteId = My notes).',
   properties: { kind: { type: 'string', enum: AI_DOOR_KINDS }, contractId: { type: 'string' }, tab: { type: 'string', enum: AI_DOOR_TABS },
     num: { type: 'string' }, quote: { type: 'string' }, head: { type: 'string' },
     stage: { type: 'string', enum: AI_DOOR_STAGES }, stream: { type: 'string' }, party: { type: 'string' }, ending: { type: 'string', enum: AI_DOOR_ENDINGS },
     ids: { type: 'array', items: { type: 'string' } }, name: { type: 'string' }, key: { type: 'string' }, userId: { type: 'string' },
     row: { type: 'string' }, streamId: { type: 'string' }, keep: { type: 'boolean' }, book: { type: 'string' }, templateId: { type: 'string' },
-    obligationId: { type: 'string' }, requestId: { type: 'string' }, due: { type: 'string' } },
+    obligationId: { type: 'string' }, requestId: { type: 'string' }, due: { type: 'string' }, noteId: { type: 'string' } },
   required: ['kind'] };
 /* the door the model named, kept only where this reader may stand: an id they cannot see is no door (null) */
 function aiDoorOf(d, cx) {
@@ -12553,6 +12553,13 @@ function aiDoorOf(d, cx) {
     return r && u && (r.by_id === u.id || (u.role !== 'viewer' && (!r.folder || inScope(scope, r.folder)))) ? { kind: k, requestId: String(r.id) } : null;
   }
   if (k === 'duties') return { kind: k, due: d.due === '7' ? '7' : 'all' };
+  /* a private note is its writer's alone (my_items, user_id): another's id is no door */
+  if (k === 'mynote') {
+    const id = txt(d.noteId, 60), u = cx && cx.user;
+    if (!id) return u ? { kind: k } : null;
+    const r = u ? db.prepare("SELECT id FROM my_items WHERE id=? AND user_id=? AND kind='note'").get(id, String(u.id)) : null;
+    return r ? { kind: k, noteId: String(r.id) } : null;
+  }
   return null;
 }
 const AI_GOTO_SCHEMA = { type: 'object', description: 'OPTIONAL — when the person asks WHERE something is in HaTi, to be taken somewhere, or to see, show, open or find one thing. The ONE place to open for them (task), and the exact thing in it (door) when your tools named it; HaTi opens it and says so. Leave it out for a question only about what contracts say.',
@@ -12921,6 +12928,7 @@ function hsDoorOf(h) {
   if (h.kind === 'clause') return { kind: 'clause', contractId: h.contractId, ...(h.quote ? { quote: h.quote } : {}), ...(h.title ? { head: h.title } : {}) };
   if (h.kind === 'obligation') return { kind: 'obligation', contractId: h.contractId, obligationId: h.ref };
   if (h.kind === 'history') return { kind: 'contract', contractId: h.contractId, tab: 'hist' };
+  if (h.kind === 'note' && h.mine) return { kind: 'mynote', noteId: h.ref };
   if (h.kind === 'note' && !h.mine) return { kind: 'contract', contractId: h.contractId, tab: 'dossier' };
   if (h.kind === 'contract') return { kind: 'contract', contractId: h.contractId };
   if (h.kind === 'party') return { kind: 'party', name: h.title };
