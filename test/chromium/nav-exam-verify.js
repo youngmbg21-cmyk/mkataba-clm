@@ -18,7 +18,7 @@
 /* global state, hbS, pdContract, pdTab, pdFaceNow, pdSendShows, hbCvNow, regPlaceUp, regFiltered, regScope, insSelected,
    settingsTab, settingsPlace, SET_PANELS, obwPlace, intel, ai, tplPlace, tplPfChosen, tplOverviewData, getContract,
    setView, pdSendFor, hbOpenHome, hbSetFace, hbOpenCalendar, settingsGoTab, rlOpenClauseEditor, negoClauseList, openTemplateBuilder,
-   api, aiWinToggle, openAI, mPhone, mS, bsCardId, bsStrip, closeModal, landOff, pdOpenOnHome */
+   api, aiWinToggle, openAI, mPhone, mS, bsCardId, bsStrip, closeModal, landOff, pdOpenOnHome, navLanding */
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
