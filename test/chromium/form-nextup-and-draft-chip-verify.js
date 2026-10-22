@@ -61,13 +61,16 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     const form = await until(page, () => {
       const sels = [...document.querySelectorAll('#na-root select')];
       const st = sels.find(s => s.querySelector('option[value="__new__"]'));
-      const side = sels.find(s => s.querySelector('option[value="supplier"]'));
-      return st && side ? { streams: [...st.options].filter(o => o.value && o.value !== '__new__').map(o => o.value), at: st.value,
-        side: [...side.options].map(o => o.textContent.trim()),
+      /* RE-POINTED 22 Oct 2026 (round 3 of the first-timer rounds, owner picked "Who pays whom"): the side is three presses */
+      const side = [...document.querySelectorAll('#na-root [data-pw-for] [data-pw-v]')];
+      return st && side.length ? { streams: [...st.options].filter(o => o.value && o.value !== '__new__').map(o => o.value), at: st.value,
+        side: side.map(o => o.textContent.trim()), picked: side.some(o => o.getAttribute('aria-checked') === 'true'),
         create: (document.getElementById('na-create') || {}).disabled } : null; }, null, 10000);
     check('1b the stream box offers only the streams they can open', !!form && form.streams.every(f => mine.includes(f)) && !form.streams.includes('corp'), form && JSON.stringify({ offered: form.streams, mine }));
     check('1c … and starts on none, Create greyed until one is chosen', !!form && form.at === '' && form.create === true, form && JSON.stringify({ at: form.at, create: form.create }));
-    check('1d the side\'s answers name no payment', !!form && form.side.length === 3 && !form.side.some(t => /pay/i.test(t)), form && form.side.join(' | '));
+    /* RE-POINTED 22 Oct 2026: the owner's picked words say who pays whom (round 3 of the first-timer rounds); nothing is chosen for the reader */
+    check('1d the side\'s answers say who pays whom, none chosen', !!form && form.side.join(' | ') === 'We pay them | They pay us | No money'
+      && !form.picked, form && form.side.join(' | '));
     await shot(page, '1-form');
     await page.context().close();
 

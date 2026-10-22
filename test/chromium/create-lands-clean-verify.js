@@ -55,11 +55,25 @@ const TONES = sels => {
 /* Every animation frame from the press until Home's paper stands with the
    Dossier beside it: which screen stood in the window ('fill' = Fill in
    opened unasked). */
+/* RE-POINTED 22 Oct 2026 (the first-timer rounds, "He speaks"): Jambo's first words beside the new paper ('jb') are a landing too */
 const WATCH = () => { window._frames = []; let n = 0;
-  const tick = () => { const s = document.getElementById('na-root') ? 'na' : document.getElementById('pd-fillface') ? 'fill' : document.getElementById('pd-glance') ? 'cd' : ('other:' + state.view);
-    window._frames.push(s); if (s !== 'cd' && n++ < 2000) requestAnimationFrame(tick); };
+  const tick = () => { const s = document.getElementById('na-root') ? 'na' : document.getElementById('pd-fillface') ? 'fill' : document.getElementById('pd-glance') ? 'cd'
+      : (state.view === 'dashboard' && document.querySelector('#ig-dock .pd-trail .pd-back') && document.querySelector('#ig-dock .jb-turn')) ? 'jb' : ('other:' + state.view);
+    window._frames.push(s); if (s !== 'cd' && s !== 'jb' && n++ < 2000) requestAnimationFrame(tick); };
   requestAnimationFrame(tick); };
 
+/* RE-POINTED 22 Oct 2026 (the first-timer rounds, round 4 "He speaks"): a new draft's panel turns to
+   Jambo's first words once; the reader's own ‹ back (the trail's .pd-back) returns it to the Dossier */
+const pastFirstWords = async page => {
+  const end = Date.now() + 8000;
+  while (Date.now() < end){
+    const s = await page.evaluate(() => document.getElementById('pd-glance') ? 'cd' : document.querySelector('#ig-dock .jb-turn') ? 'jb' : '').catch(() => '');
+    if (s === 'cd') return true;
+    if (s === 'jb'){ await page.evaluate(() => { const b = document.querySelector('#ig-dock .pd-trail .pd-back'); if (b) b.click(); }).catch(() => {}); }
+    await new Promise(r => setTimeout(r, 120));
+  }
+  return false;
+};
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati();
@@ -108,13 +122,14 @@ const WATCH = () => { window._frames = []; let n = 0;
       return { up: !!document.getElementById('na-root'), disabled: !!(b && b.disabled), ring: !!(b && b.querySelector('.ob-spin')) }; });
     check('3a while the server makes it, the page stays and the pressed button turns',
       busy.up && busy.disabled && busy.ring, JSON.stringify(busy));
-    const cd1 = await waitFor(page, () => !!document.getElementById('pd-glance') && !document.getElementById('na-root'), 10000);
+    const cd1 = await waitFor(page, () => !!(document.getElementById('pd-glance') || document.querySelector('#ig-dock .jb-turn')) && !document.getElementById('na-root'), 10000);
     await pause(200);
     let frames = await page.evaluate(() => window._frames || []);
-    const others1 = frames.filter(f => f !== 'na' && f !== 'cd');
+    const others1 = frames.filter(f => f !== 'na' && f !== 'cd' && f !== 'jb');
     check('3b New agreement hands straight over to Home\'s paper, Jambo\'s Dossier beside it, Fill in not opened — no frame of another screen',
       cd1 && others1.length === 0 && frames.includes('na'), `${frames.length} frames · others ${JSON.stringify([...new Set(others1)])} · landed ${cd1}`);
     await page.screenshot({ path: path.join(OUT, '02-complete.png') });
+    await pastFirstWords(page);
 
     /* ===== 5. IN STILL OWED'S GRID, AN OWED DATE IS AMBER TOO ===== */
     await waitFor(page, () => !!document.querySelector('#pd-og .pd-og-row.is-amb .dp-face'), 5000);
@@ -141,10 +156,10 @@ const WATCH = () => { window._frames = []; let n = 0;
     await page.fill('#wz-counterparty', 'Popup Test Ltd');
     await page.evaluate(WATCH);
     await page.click('#na-create');
-    const cd2 = await waitFor(page, () => !!document.getElementById('pd-glance') && !document.getElementById('na-root'), 10000);
+    const cd2 = await waitFor(page, () => !!(document.getElementById('pd-glance') || document.querySelector('#ig-dock .jb-turn')) && !document.getElementById('na-root'), 10000);
     await pause(200);
     frames = await page.evaluate(() => window._frames || []);
-    const others2 = frames.filter(f => f !== 'na' && f !== 'cd');
+    const others2 = frames.filter(f => f !== 'na' && f !== 'cd' && f !== 'jb');
     const left2 = await page.evaluate(() => { const c = getContract(intel.paper && intel.paper.id); return c ? detailsOf(c).left : -1; });
     check('4a a HaTi template hands straight over too', cd2 && others2.length === 0,
       `${frames.length} frames · others ${JSON.stringify([...new Set(others2)])} · landed ${cd2} · details left ${left2}`);

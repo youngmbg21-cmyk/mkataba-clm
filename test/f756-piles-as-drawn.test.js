@@ -305,7 +305,9 @@ describe('f756 (6) the column and the paper as drawn', () => {
 
 describe('f756 (7) where Edit lands from a row, as drawn', () => {
   test('7a a row\'s Counter or Edit says it came from a row; the editor dresses itself for it, our seat with Jambo only', () => {
-    assert.match(NV, /\{ changeId: btn\.getAttribute\('data-rl-cp-editor-change'\) \|\| '', fromRow: !!btn\.closest\('\[data-nego-card\]'\) \}/);
+    /* RE-POINTED 22 Oct 2026 (round 5 of the first-timer rounds): the same two facts, and a number's two figures for Jambo's first line */
+    assert.match(NV, /const chId = btn\.getAttribute\('data-rl-cp-editor-change'\) \|\| '';/);
+    assert.match(NV, /\{ changeId: chId, fromRow: !!btn\.closest\('\[data-nego-card\]'\), \.\.\.\(F \? \{ fact: i18t\('rl_counter_fact', F\) \} : \{\}\) \}/);
     assert.match(CE, /const ceRowMode = \(\) => !!\(_ceOpts && _ceOpts\.fromRow\) && ceSide\(\) === 'owner' && !ceNoAi\(\);/);
     assert.match(CE, /page\.classList\.toggle\('ce-rowmode', ceRowMode\(\)\);/);
   });

@@ -61,6 +61,18 @@ const WATCH = () => {
 };
 const word = (lines) => Buffer.from(mkDocx(lines.map(t => para(t)).join('')));
 
+/* RE-POINTED 22 Oct 2026 (the first-timer rounds, round 4 "He speaks"): a new draft's panel turns to
+   Jambo's first words once; the reader's own ‹ back (the trail's .pd-back) returns it to the Dossier */
+const pastFirstWords = async page => {
+  const end = Date.now() + 8000;
+  while (Date.now() < end){
+    const s = await page.evaluate(() => document.getElementById('pd-glance') ? 'cd' : document.querySelector('#ig-dock .jb-turn') ? 'jb' : '').catch(() => '');
+    if (s === 'cd') return true;
+    if (s === 'jb'){ await page.evaluate(() => { const b = document.querySelector('#ig-dock .pd-trail .pd-back'); if (b) b.click(); }).catch(() => {}); }
+    await new Promise(r => setTimeout(r, 120));
+  }
+  return false;
+};
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati({ HATI_AGENTS_AUTO: 'off' });
@@ -146,6 +158,8 @@ const word = (lines) => Buffer.from(mkDocx(lines.map(t => para(t)).join('')));
     await page.click('#na-create');
     /* the Dossier beside it, owed or not; Fill in only on the reader's press
        (owner, 20 Oct 2026: "it pushes me to fill without my asking") */
+    await waitFor(page, ids => { const p = intel.paper && intel.paper.id; return !!p && !ids.includes(p); }, 15000, before);
+    await pastFirstWords(page);
     const made = await waitFor(page, ids => { const p = intel.paper && intel.paper.id; if (!p || ids.includes(p)) return false;
       return !!document.getElementById('pd-glance') && !document.querySelector('#pd-fillface .pd-ff'); }, 15000, before);
     const nv = await page.evaluate(() => { const c = getContract(intel.paper.id); return { id: c.id, cp: c.counterparty, folder: c.folder, view: state.view, room: window._seen.room, left: detailsOf(c).left,
