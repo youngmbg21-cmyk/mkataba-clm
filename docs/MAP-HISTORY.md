@@ -33512,3 +33512,5 @@ WHY IT LIVES IN js/jambopress.js: f273 (3) holds that js/triage.js never names r
 FOUND IN THE BROWSER: words said while an answer was on its way (the Why? press) were filed by pdTalkSync as that answer's late words and never turned the panel; and words said in the same paint as a landing answer were filed with it. Fixed in round 1's fix (said after the talk settles, not while busy).
 RE-POINTED: f711 (1c) and f733 (4) pinned the row's line builder; Jambo's read now rides between the reason and the keeps line.
 RED AT THE PARENT ff39067: f863 failed 16 of 17; the one that passes is the kept rule that the playbook's range decides first.
+
+THE OWNER'S ANSWER (22 Oct 2026): "yes to the calendar file, merge round 2".

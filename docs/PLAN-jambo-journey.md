@@ -51,10 +51,10 @@ to the other side on its own.
 | 1 | Counterparty lookup: a plain internet search | 3 | not built |
 | 2 | The arrival turn: Jambo speaks first | 1 | **built 22 Oct 2026** |
 | 3 | The road reading: negotiate it or just send it | 1 | **built 22 Oct 2026** |
-| 4 | "I'd take it": a verdict on each of their changes | 2 | **built 22 Oct 2026**, waiting for the owner's yes |
+| 4 | "I'd take it": a verdict on each of their changes | 2 | **built 22 Oct 2026** |
 | 5 | Your phone: browser push | 4 | not built |
-| 6 | Add to my own calendar (changed: see section 5) | 2 | **built 22 Oct 2026**, waiting for the owner's yes |
-| 7 | "Make it my standard", in his words | 2 | **built 22 Oct 2026**, waiting for the owner's yes |
+| 6 | Add to my own calendar (changed: see section 5) | 2 | **built 22 Oct 2026** |
+| 7 | "Make it my standard", in his words | 2 | **built 22 Oct 2026** |
 | 8 | Your history with them, in one line | 1 | **built 22 Oct 2026** |
 
 ## 4. Round 1, as built (22 Oct 2026)
@@ -100,9 +100,10 @@ to the other side on its own.
   calendar". Where your rounds keep settling a topic of this contract away
   from your standard, he offers the standards page's own proposal; "Show me
   the proposal" opens it there (`signedTurnOf`, js/jambopress.js).
-- **Tool 6 changed, asked before merging.** HaTi's Calendar already shows
-  every dated duty, so "put them in my calendar" inside HaTi would add
-  nothing; the file for your own calendar is what was built.
+- **Tool 6 changed, and the owner agreed** ("yes to the calendar file, merge
+  round 2", 22 Oct 2026). HaTi's Calendar already shows every dated duty, so
+  "put them in my calendar" inside HaTi would add nothing; the file for your
+  own calendar is what was built.
 - **He never snatches the panel** from someone working in it, never speaks
   over an open face or while an answer is on its way (round 1's fix).
 - **Tests:** f863; test/chromium/jambo-round-two-verify.
