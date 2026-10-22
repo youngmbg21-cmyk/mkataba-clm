@@ -57,7 +57,8 @@ test('f297 (2) …and every one of them prints the notice where the reader is lo
      commentary keeps its own html. Each path goes through igNoticeHtml, the ONE
      line, so a caller cannot print the sentence its own way or not at all. */
   assert.match(INTEL, /function igNoticeHtml\(notice\)/);
-  const inPush = /function intelPushChatResult\(res\)\{[\s\S]*?igNoticeHtml\(res\.notice\)[\s\S]*?\n\}/.test(INTEL);
+  /* (res, q) since stage 3 of Jambo works like Copilot: the words travel for Ask again */
+  const inPush = /function intelPushChatResult\(res(, q)?\)\{[\s\S]*?igNoticeHtml\(res\.notice\)[\s\S]*?\n\}/.test(INTEL);
   assert.ok(inPush, 'intelPushChatResult prints the notice through igNoticeHtml');
   assert.match(INTEL, /frictionAI=\{busy:false,key,html:rich\.html\+igNoticeHtml\(res\.notice\)/,
     'the friction commentary prints it too — it does not go through intelPushChatResult');

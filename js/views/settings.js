@@ -527,9 +527,14 @@ function stWireDrawerOnce(){
     /* AI FIRST (Jambo works like Copilot, stage 3): the finder sure of ONE setting goes there as it says so;
        words that are no setting at all ("what law governs the Kabras contract") are Jambo's to answer, here */
     let hits=[]; try{ hits=stFind(q); }catch(_){ hits=[]; }
-    if(!hits.length&&typeof caAiFirst==='function'&&caAiFirst()&&typeof aiAskWords==='function'){ stJbAskJambo(q); return; }
+    /* a question about the company's RULES ("why can't Legal sign…") keeps its cost-first press (stJbAsk's why) */
+    const rules=/\b(why|can'?t|cannot|allowed|may|limits?|rules?|approv\w*|access|permission\w*|sign\w*|review\w*|varför|får|gräns\w*|regel\w*|godkän\w*|behörighet\w*)\b/i.test(q);
+    const asks=!rules&&((window.CA_WH_Q&&window.CA_WH_Q.test(q))||/\b(contracts?|agreements?|deals?|leases?|avtal\w*|kontrakt\w*)\b/i.test(q));
+    if(!hits.length&&asks&&typeof caAiFirst==='function'&&caAiFirst()&&typeof aiAskWords==='function'){ stJbAskJambo(q); return; }
     stJbAsk(q);
-    if(hits.length===1){ const row=stFindRows(q)[0]; if(row&&row.id) stFindGo(row.id); }
+    /* …and goes there only when the words ask to be taken ("where do I set…", "take me to…"); a word typed
+       to find a setting leaves the finder's rows to press (Settings lands, never presses) */
+    if(hits.length===1&&ST_JB_GO_RE.test(q)){ const row=stFindRows(q)[0]; if(row&&row.id) stFindGo(row.id); }
   });
   /* A dialog opened from inside the drawer owns Escape while it is up: one
      key closes the top layer only, never the drawer underneath as well. */
@@ -3334,6 +3339,7 @@ function stJamboHtml(){
 }
 /* AN ASK IS ADDED WHERE IT IS READ — appended to the feed, the box keeps the
    reader's hand; the page underneath does not move. */
+const ST_JB_GO_RE=/^\s*(where (do|can|should) i|how (do|can) i|take me|go to|open|show me|var (kan|ställer|ändrar) jag|ta mig)\b/i;
 /* a question for Jambo asked in Settings: answered in the one conversation (aiAskWords), drawn in this panel's */
 function stJbTalkNow(){
   const feed=document.getElementById('st-jb-feed'); if(!feed) return;
