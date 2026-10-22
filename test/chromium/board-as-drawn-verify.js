@@ -208,6 +208,21 @@ DRIFT.forEach(c => { const m = Number(c.id.split('-')[1].slice(1)); const sd = n
     check('8a the head is its own slim card: the count OF THE CARDS UNDER IT, "what moved most since <month> · worked out this morning from your book", and Hide',
       !!shelf && !!ins && new RegExp(`^Today’s insights\\s*${ins.n}\\s*what moved most since ${ins.month} · worked out this morning from your book\\s*Hide$`).test(ins.head) && ins.hide && !ins.headHasPics, JSON.stringify(ins));
     check('8b each picture its own card, two to a row, each with Open · Keep · Ask why · Let it go', !!ins && ins.n >= 2 && ins.n <= 4 && ins.perRow === 2 && ins.edge === 'solid 1px' && ins.acts, JSON.stringify(ins));
+    /* 8b2 THE SYMMETRY RULE (owner, 22 Oct 2026: "These attached cards should
+       be the same size"): two cards sharing a row stand the same height, their
+       Open · Keep · Ask why · Let it go on one line. Red before: the row lined
+       the cards up at the top, so each was only as tall as its own picture. */
+    for (const [w, hh] of [[1440, 780], [1536, 730], [1366, 950]]) {
+      await page.setViewportSize({ width: w, height: hh });
+      const pair = await until(() => { const cards = [...document.querySelectorAll('#hb-board .hb-shelf-cards > .hb-ins')];
+        if (cards.length < 2) return null;
+        const rows = new Map(); cards.forEach(c => { const t = Math.round(c.getBoundingClientRect().top); rows.set(t, (rows.get(t) || []).concat(c)); });
+        return [...rows.values()].filter(r => r.length > 1).map(r => ({ h: r.map(c => Math.round(c.getBoundingClientRect().height)),
+          foot: r.map(c => Math.round((c.querySelector('.hb-ins-acts') || c).getBoundingClientRect().bottom)) })); }, null, 6000);
+      check(`8b2 ${w}x${hh}: cards sharing a row are the same height, their buttons on one line`, !!pair && pair.length >= 1
+        && pair.every(r => Math.max(...r.h) - Math.min(...r.h) <= 1 && Math.max(...r.foot) - Math.min(...r.foot) <= 1), JSON.stringify(pair));
+    }
+    await page.setViewportSize({ width: 1440, height: 780 });
     await page.evaluate(() => { const b = document.querySelector('#hb-board [data-hb-ins-fold]'); if (b) b.click(); });
     const fold = await until(() => { const hd = document.querySelector('#hb-board .hb-ins-head'); return hd && hd.classList.contains('is-folded') && !document.querySelector('#hb-board .hb-shelf-cards')
       ? (hd.querySelector('[data-hb-ins-fold]') || {}).textContent : null; }, null, 6000);

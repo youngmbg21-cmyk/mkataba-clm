@@ -244,6 +244,9 @@ async function mkUser(h, admin, name, email){
       await openLetter();
       if (/dk-recent/.test(sel)){ await press('#dk-page'); await waitFor(page, s => !!document.querySelector(s), 3000, sel); }
       await press(sel);
+      /* 22 Oct 2026: a note typed above (6b) is asked about before it goes — "Discard the note" answers it */
+      await waitFor(page, () => { const b = [...document.querySelectorAll('button')].find(x => x.textContent.trim() === 'Discard the note' && x.getClientRects().length);
+        if (b) { b.click(); return true; } return !document.querySelector('#modal-root .modal-in'); }, 3000);
       const back = await waitFor(page, () => !document.querySelector('#modal-root .modal-in') && !document.getElementById('pd-sendface'), 6000);
       check(`6b ${how} puts the page and the face away together`, !!back);
     }

@@ -125,7 +125,9 @@ describe('F178 — the share dialog arrives once, at its final size', () => {
        its onClose gives the panel's face back */
     /* RE-POINTED 20 Oct 2026 ("Sent as: a colleague"): the close also lifts the
        colleague attribute, then gives the panel's face back on the desk */
-    assert.match(fn, /openModal\(oneScreenHtml\(_noPre, \{ opening:true \}\), \{ maxWidth:'64rem', onClose:\(\)=>\{ shareColAttr\(false\); if\(_onDesk\) shareLetterPageOff\(c\); \} \}\)/,
+    /* RE-POINTED 22 Oct 2026 (a typed note asks before it goes): the close lowers the typed flag, and the
+       frame carries the guard (onBeforeClose) after it */
+    assert.match(fn, /openModal\(oneScreenHtml\(_noPre, \{ opening:true \}\), \{ maxWidth:'64rem', onClose:\(\)=>\{ _shNoteTyped=false; shareColAttr\(false\); if\(_onDesk\) shareLetterPageOff\(c\); \},\s*onBeforeClose:/,
       'the first frame IS the one screen, at the width the settled dialog keeps');
     assert.match(fn, /shareFillModal\(oneScreenHtml\(pre\)\)/, 'and the fill draws the same builder with the prefill');
     assert.match(fn, /shareKindStepHtml\(c, purposeSel, \{ hidden:true \}\)/, 'the kind question is folded from the first frame');

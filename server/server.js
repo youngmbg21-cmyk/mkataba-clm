@@ -13272,14 +13272,25 @@ app.get('/api/export/workspace.zip', auth, admin, (req, res) => {
   const f = scopeFrag(scope);
   /* a confidential deal this admin is outside of stays out, with its files (piece 11) */
   const cnOut = cnOutsideFor(req.user), cnFiles = new Set();
+  const fileIdsOf = c => { if (c.upload && c.upload.fileId) cnFiles.add(c.upload.fileId);
+    for (const d of (Array.isArray(c.documents) ? c.documents : [])) if (d && d.fileId) cnFiles.add(d.fileId);
+    outsideFileIds(c).forEach(x => cnFiles.add(x)); };
   const contracts = db.prepare(`SELECT json FROM contracts ${whereOf(f.sql)} ORDER BY seq`).all(...f.args)
     .map(r => JSON.parse(r.json)).filter(c => {
       if (!cnOut.has(String(c.id))) return true;
-      if (c.upload && c.upload.fileId) cnFiles.add(c.upload.fileId);
-      for (const d of (Array.isArray(c.documents) ? c.documents : [])) if (d && d.fileId) cnFiles.add(d.fileId);
-      outsideFileIds(c).forEach(x => cnFiles.add(x));
+      fileIdsOf(c);
       return false; })
     .map(c => visibleContract(dropSittingKeys(c), req.user));
+  /* AND A PRIVATE STREAM THAT DOES NOT NAME THIS ADMIN KEEPS ITS FILES (22 Oct 2026): the scope above leaves
+     its contracts out, but every uploaded file went into the zip regardless — their documents left by the
+     back door. A file belonging to any contract outside the scope stays out with it. */
+  if (!scopeIsAll(scope)) {
+    const seen = new Set(contracts.map(c => String(c.id)));
+    for (const r of db.prepare('SELECT json FROM contracts').all()) {
+      let c = null; try { c = JSON.parse(r.json); } catch (_) { c = null; }
+      if (c && !seen.has(String(c.id)) && !cnOut.has(String(c.id))) fileIdsOf(c);
+    }
+  }
   const users = db.prepare('SELECT id,name,email,role,created_at FROM users').all();  // no salt/hash
   const settings = getSetting('appSettings') || {};
   const files = [
@@ -18171,7 +18182,22 @@ function srvLinkStrip(rvStored, payload, opts) {
   if (!withheld.size) return 0;
   const before = payload.contract.changes.length;
   payload.contract.changes = payload.contract.changes.filter(x => !(x && withheld.has(String(x.id))));
-  return before - payload.contract.changes.length;
+  /* WHAT THEY ALREADY HOLD STAYS WITH THEM (the bug log, 22 Oct 2026: "a sent
+     change revised later and put under review is withheld whole, so the other
+     side loses sight of the version they hold"). A withheld id is a REVISION
+     that has not left; the wording before it had. On a standing link the copy
+     they were last given (opts.holds, the row's stored payload) is the one
+     record of what they really hold, so that entry goes back exactly as it
+     went — never the revision, and never a version a send kept back (it is not
+     in their copy). A new link's reader holds nothing, so nothing goes back. */
+  const holds = (opts && Array.isArray(opts.holds)) ? opts.holds : [];
+  let back = 0;
+  for (const x of holds) {
+    if (!x || x.id == null || !withheld.has(String(x.id))) continue;
+    if (payload.contract.changes.some(y => y && String(y.id) === String(x.id))) continue;
+    payload.contract.changes.push(x); back++;
+  }
+  return before - (payload.contract.changes.length - back);
 }
 
 app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
@@ -19986,7 +20012,9 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
   if (linkStored) {
     const no = srvLinkRefusal(req, linkStored, sharePurposeOf(s), { payload, contractId: s.contract_id });
     if (no && !silent) return res.status(no.status).json(no.body);
-    linkStripped = srvLinkStrip(linkStored, payload, { unsent: !!no });
+    let holds = [];
+    try { const was = JSON.parse(s.payload || '{}'); holds = (was && was.contract && Array.isArray(was.contract.changes)) ? was.contract.changes : []; } catch (_) { holds = []; }
+    linkStripped = srvLinkStrip(linkStored, payload, { unsent: !!no, holds });
   }
   let oldText = '';
   try { oldText = String((JSON.parse(s.payload).contract || {}).docText || ''); } catch (_) {}

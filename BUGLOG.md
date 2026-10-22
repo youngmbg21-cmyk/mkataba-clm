@@ -21339,3 +21339,9 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - 22 Oct 2026 · Dossier signer buttons (owner asked): removed "+ Add another signer" (Signer row) and "Add signers" (Acts and All acts) from the Dossier; "Order the signing ›" is now "Add or order signers ›", the one signer door there. Jambo's "add signers" menu card went with it (the words now offer Before you sign / Amend). Once signers are named the Signer row leaves Still owed, so from then on the route is changed in Before you sign. The room menu and the phone keep their own "Add signers".
 - Noticed, not fixed (22 Oct 2026): on an NDA with no signer named, the Dossier tab says 4 while its Still owed says 5 (the signer row is counted in one and not the other), and the stage line shows two "current" stages at once (Fill with a 5, Negotiate with a dot).
 - 22 Oct 2026 · Dossier Checklist built (owner picked "1 · Checklist"): the signing route window is now the XL rung (760) and its step box no longer clips a person's ⋯ menu (only "Remove" showed when it opened upward). Correction to my earlier line today: the Dossier tab's number is deliberately the whole Counter's "Needs you" (owner, 17 Oct), not a fault — asked whether it should be this contract's.
+
+## 22 Oct 2026 — the bug log, most serious first (owner's ask)
+- Fixed: the workspace download sent a private stream's uploaded files to an admin the stream does not name (its contracts were already left out).
+- Fixed: the send screen put away by the top bar (and by Cancel/Esc) lost a typed note without asking.
+- Fixed: on their page, revising an ask they had already sent was lost on the next repaint with no Send offered (28 Sep line).
+- Checked and already fixed before today (the lines are old): the dispute-hold guards on unsigned contracts (26 Sep); an untouched returned Word file filing phantom changes (f492); the converter's silent 60,000-character cut.

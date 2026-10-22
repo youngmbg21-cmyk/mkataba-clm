@@ -58,17 +58,20 @@ const refsOn = (page, scope) => page.evaluate(([scope, refs]) => {
    and five more; a Saturday or a Sunday opens the working week ahead). The
    15th of the month stopped being on it from the third week of a month on
    (red 18 Oct 2026, a Sunday). The Wednesday of the working week the
-   Calendar opens on is always on it, whatever day this runs. */
-const openWeekWed = () => { const n = new Date(); const d = n.getDay();
+   Calendar opens on is always on it, whatever day this runs.
+   …AND THE FRIDAY, not the Wednesday (CI, Thursday 22 Oct 2026, on main too):
+   Horizon draws only what has not ended, so a Wednesday made it red Thursday
+   and Friday. The Friday of the open week is on the Calendar and never past. */
+const openWeekFri = () => { const n = new Date(); const d = n.getDay();
   const mon = new Date(n.getFullYear(), n.getMonth(), n.getDate() + (d === 6 ? 2 : d === 0 ? 1 : 1 - d));
-  const w = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 2);
+  const w = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 4);
   return `${w.getFullYear()}-${String(w.getMonth() + 1).padStart(2, '0')}-${String(w.getDate()).padStart(2, '0')}`; };
 const geist = f => /^"?Geist Mono"?/.test(f || '');
 
 (async () => {
   const h = await startHati({});
   const extra = [
-    { ...FIXTURES[0], id: 'MK-RF1', name: 'Rail freight', counterparty: 'Coast Rail Ltd', status: 'Signed', expiry: openWeekWed(),
+    { ...FIXTURES[0], id: 'MK-RF1', name: 'Rail freight', counterparty: 'Coast Rail Ltd', status: 'Signed', expiry: openWeekFri(),
       obligations: [{ id: 'o-rf1', desc: 'Send the quarterly report', party: 'ours', due: iso(-3), status: 'open' }] },
     { ...FIXTURES[1], id: 'MK-RF2', name: 'Port handling', counterparty: 'Mombasa Port Services', status: 'Under Review', expiry: iso(45), value: 90000000, folder: FOLDER_A },
   ];

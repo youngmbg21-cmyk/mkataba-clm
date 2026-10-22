@@ -11,6 +11,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - 7b: f694, jambo-guides-through verify. 9: f561. 9b: f564. 9c: f842.
 
 ## INTERNAL REVIEW (js/review.js)
+- What they already hold stays with them when a revision is kept back (22 Oct 2026): f857 (srvLinkStrip opts.holds; red at the parent 1, 2).
 - f17, f154–f159, f161, f162, f164, f174, f186, f190, f412, wall-standing.
 
 ## THE OVERVIEW — READ DOWN, ONE SHEET
@@ -32,6 +33,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f218, f696, settings-tabs, pay-section verify.
 
 ## "SENT" MUST MEAN SENT, AND NO CHANNEL BACK IS NOT READ-ONLY
+- A refused round send keeps no "Sent to you" copy (22 Oct 2026): f858 (red at the parent 1, 2).
 - f205, f206.
 
 ## ONE PROPOSAL ON THE TABLE
@@ -80,6 +82,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - phone-verify, f630, f631, phone-fits-verify.
 
 ## HOME — THE BOARD AND THE MAP (js/views/homeboard.js)
+- Today's insights, ONE HEIGHT A ROW (22 Oct 2026): board-as-drawn 8b2 (two cards sharing a row the same height, their buttons on one line, at the three screens; red before); insights-shelf 6b re-pointed (the card beside an opened one grows with it).
 - 21 Oct 2026 (overnight): home-board-verify 13g2/13j2/13j3 (timeline words inside bars and chart, full screen 1536x730); board-agent-work-verify 3c (Put away not dressed as Look); paper-panel-as-drawn-verify 1b/2d/2f re-pointed to the grid, 2g (What Jambo read counts as the Board does); jambos-work-open-verify (Open lands on the card).
 - What Jambo read as four rows, no grey line under an owed fact (21 Oct 2026): f748 2b re-pointed; `owed-first-verify.js`, `nda-tail-verify.js`. The paper's line without the party: f708 1a, `paper-line-verify.js` 1a, `the-road-as-drawn-verify.js` 12d re-pointed. `piles-as-drawn-verify.js` 3b (piles unboxed). List before Wall: f687.
 - form-nextup-and-draft-chip verify (a card word asked again lands on its card)
@@ -133,6 +136,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f641, f798, my-notes, requests-and-notes-as-drawn verify.
 
 ## SETTINGS & RULES — THE CONTROL ROOM (owner picked it 16 Oct 2026)
+- 22 Oct 2026: f695 (8) the workspace download keeps a private stream's files out of an unnamed admin's zip.
 - 21 Oct 2026 (overnight): settings-as-drawn-2-verify 4f, settings-as-drawn-3-verify 6b (a held contract's Open lands on Release hold in the Dossier's All acts).
 - f193, f195, f201, f203, f276, f350, f691, f692, f699–f704, f725–f727, f729, f780–f788; settings-tabs, settings-groups, settings-as-drawn(-2/-3/-4), control-room-in-full, company-control-room, one-sheet, streams-and-data, trail-export, business-roles, clashes, access-review, when-youre-away, keeping, keeping-no-admin, code-names verify.
 
@@ -208,6 +212,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f248, f264, f266, f302–f304, f309, f443, f444, f446, round-two-comments, notes-two-rooms verify.
 
 ## THE COUNTERPARTY'S PAGE (js/views/portal.js)
+- 22 Oct 2026: f856 their revision of an ask already sent is held, kept across a rebuild, counted busy, and sent.
 - f180, f181, f189, f191, f237, f422, f423, f426, f439, f440, counterparty-bell, portal-header-verbs, their-side, their-edit-page, where-we-are verify.
 
 ## THE SPELL CHECK (js/spell.js)
@@ -217,6 +222,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f452, named-guest-verify.
 
 ## THE SEND SCREEN
+- 22 Oct 2026: send-screen-asks-before-losing-verify (a typed note asks before the bar, Cancel or Esc puts the screen away; nothing typed, nothing asked); f758 3b, f178 re-pointed.
 - f17, f42, f307, f310, f333, f713, f755, f757, f758, share-recipient, the-letter, the-letter-as-drawn verify.
 - A colleague: f843, f562, send-to-a-colleague verify, a-pass-is-a-hand-off verify.
 
