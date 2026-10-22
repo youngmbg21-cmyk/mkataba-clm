@@ -94,6 +94,9 @@ const NOT_TESTS = new Set([
      that session's own scratchpad. Kept because the measurement is worth
      repeating and the numbers are in its head; it is not a test and never was. */
   '_edge.js',
+  /* THE JAMBO EXAM (22 Oct 2026): a measurement that spends real Jambo calls when a key is set;
+     run by hand, its scores reported to the owner (docs/PLAN-jambo-copilot.md). */
+  'jambo-exam-measure.js',
 ]);
 
 const argv = process.argv.slice(2);
