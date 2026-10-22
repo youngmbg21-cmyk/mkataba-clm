@@ -134,8 +134,11 @@ describe('f764 (5) the signatures stand apart', () => {
 });
 
 describe('f764 (6) the New agreement crumb names where it came from', () => {
+  /* RE-POINTED 22 Oct 2026 (owner: "Always open beside Jambo"): the form now goes Home first
+     (naHomeFirst), so the crumb reads the page it was STARTED on, kept before the move (fromView) */
   test('6a from Our paper: "Our paper › New agreement"', () => {
-    assert.match(WZ, /crumb:`\$\{i18t\(\(typeof state==='object'&&state&&\(state\.view==='templates'\|\|state\.view==='playbook'\)\)\?'nav_tpl_std':'nav_contracts'\)\} › \$\{i18t\('na_title'\)\}`/);
+    assert.match(WZ, /const fromView=\(typeof state==='object'&&state\)\?state\.view:'';\n  const naFrom=naHomeFirst\(\);/);
+    assert.match(WZ, /crumb:`\$\{i18t\(\(fromView==='templates'\|\|fromView==='playbook'\)\?'nav_tpl_std':'nav_contracts'\)\} › \$\{i18t\('na_title'\)\}`/);
   });
 });
 
