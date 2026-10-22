@@ -242,7 +242,8 @@ ask('take me to MK-A2', { page: 'paper', cid: 'MK-A2' }, { box: 'builder' });
 ask('go to our standards', { page: 'standards' }, { box: 'builder' });
 ask('open MK-A1', { page: 'paper', cid: 'MK-A1' }, { box: 'phone' });
 ask('take me to obligations', { page: 'obligations' }, { box: 'phone' });
-ask("Juno's folder", { page: 'parties', party: 'juno logistics' }, { box: 'phone' });
+/* the phone has no Parties page: a party's folder there is its Contracts list narrowed to them */
+ask("Juno's folder", [{ page: 'parties', party: 'juno logistics' }, { page: 'contracts', filters: { party: 'juno logistics' } }], { box: 'phone' });
 
 /* ---------- 11 · ON THE BOARD, "TAKE ME TO" MOVES ---------- */
 section('board moves');

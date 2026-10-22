@@ -2460,7 +2460,7 @@ const AI_GOVERNANCE_RULE="THE COMPANY'S RULES ARE GONE THROUGH, NEVER AROUND. Ha
 /* THE AI TAKES YOU THERE (owner, 22 Oct 2026; on by default, an admin's
    switch in Settings → Jambo engine): the browser twin of the server's
    AI_GOTO_RULE / AI_GOTO_OFF_RULE, word for word (f738 pins them equal) */
-const AI_GOTO_RULE="TAKING THEM THERE: when the person asks where something is in HaTi, how to get to a page or setting, or asks to be taken somewhere, set deliver_answer's goto to the one place, and say in one short sentence where you are taking them. Our standards (the negotiation playbook, book by book) is task standards; HaTi picks the book from the words asked. Never set goto for a question about what a contract says.";
+const AI_GOTO_RULE="TAKING THEM THERE: when the person asks where something is in HaTi, how to get to a page or setting, or asks to be taken somewhere, set deliver_answer's goto to the one place, and say in one short sentence where you are taking them. Our standards (the negotiation playbook, book by book) is task standards; HaTi picks the book from the words asked. When they name one thing inside a place (a contract, a clause, a party's folder, a person's setting, a duty, a request), also set goto's spot to a short phrase naming it in their words. Never set goto for a question about what a contract says.";
 const AI_GOTO_OFF_RULE="YOU CANNOT OPEN PAGES: when asked where something is in HaTi, name the page in words and say that the search box (⌘K) finds any page by name.";
 const aiNavigateLocalOn=()=>!(typeof state!=='undefined'&&state&&state.settings&&state.settings.aiNavigate===false);
 /* the answer's goto, kept for the one ask that is waiting on it (aiGotoTake) */
@@ -2470,8 +2470,20 @@ function aiGotoTake(since){ const g=_aiGoto; _aiGoto=null; return (g&&g.at>=(sin
 /* run it through the map's own door: a page opens, an act that waits for a
    press is Jambo's card; said in his conversation (jmGotoAct, js/jambomap.js) */
 function aiGotoRun(g, q){
-  if(!g||typeof window.jmGotoAct!=='function') return false;
-  const a=jmGotoAct(g, q); if(!a) return false;
+  if(!g) return false;
+  /* THE EXACT SPOT (navigable by typing, stage 4): the AI's words for the one thing are read by the same
+     free map a typed ask is (navRead) — its walls, its "which did you mean", its "there is no such" — and
+     the task is the fallback when the map cannot place them */
+  let a=null;
+  if(typeof g.spot==='string'&&g.spot&&typeof window.navRead==='function'){ try{ a=navRead(g.spot); }catch(_){ a=null; } }
+  if(a&&a.kind==='navsay'){
+    const onH=typeof state!=='undefined'&&state&&state.view==='dashboard'&&typeof intel!=='undefined';
+    if(onH){ try{ intel.history.push(Object.assign({ role:'assistant', text:_aiEsc(a.text) }, a.choices?{ choices:a.choices }:{})); }catch(_){} if(typeof window.renderIntelDock==='function') try{ renderIntelDock(); }catch(_){} return true; }
+    if(typeof window.toast==='function') toast(a.text, 'warn');
+    return true;
+  }
+  if(!(a&&a.kind==='go')){ if(typeof window.jmGotoAct!=='function') return false; a=jmGotoAct(g, q); }
+  if(!a) return false;
   const card=a.kind!=='go'||!!a.missing||(Array.isArray(window.JM_CARD_PLACES)&&JM_CARD_PLACES.includes(a.place));
   const onHome=typeof state!=='undefined'&&state&&state.view==='dashboard'&&typeof intel!=='undefined';
   if(onHome){

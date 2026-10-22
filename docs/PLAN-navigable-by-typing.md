@@ -123,16 +123,16 @@ exact row. It never presses a final act. In order:
 | which / none / walled | 2 / 8 | 8 / 8 |
 | Swedish | 6 / 10 | 10 / 10 |
 
-Still open, for the owner:
-- "negotiations" asked with a contract open lands on THAT contract's Redlines (the existing
-  door's rule), not the Negotiations list; "what needs me" with a contract open stays on it.
-  Changing either reverses an existing door's behaviour — asked, not done.
-- The phone: "take me to obligations" and "Juno's folder" do not move on the phone yet.
-- Settings' own box: "take me to the board" does not leave Settings.
-- Claude as the backstop: an ask the free map cannot place already goes to Jambo's AI, which
-  can take you to one of the map's 34 tasks and says it in calls (THE AI TAKES YOU THERE,
-  built on main the same day). Teaching the AI the new places (a clause, a party, a Settings
-  row) is the next step.
-- Notes by name ("my note about the lease") are not read yet.
+The owner's five yeses (22 Oct 2026), and what came of each:
+1. "negotiations" with a contract open: it already opened the Negotiations list; the exam had misread
+   that page (fixed in its reader).
+2. "what needs me": it already landed on Home's Needs you; the exam misread Home's first screen (fixed).
+3. The phone: a party's folder is its Contracts list narrowed to them (the phone has no Parties page);
+   Obligations says it is the computer's, the phone's own hand-off screen (M_DESK).
+4. The AI may name the exact spot (`goto.spot`); the browser reads it with `navRead` first, the task
+   its fallback; the cost stays one Jambo call.
+5. The rules file trimmed under 80 KB (logged in MAP-HISTORY, "CLAUDE.MD TRIM, 22 Oct 2026 (second)").
+Score after: 193 of 194 (the Settings box's "take me to the board" lands on one run in two).
+Still open: notes by name ("my note about the lease").
 - The exam's one judgement change: the built-in NDA template is named "Mutual
   Non-Disclosure Agreement", so its line accepts that name.

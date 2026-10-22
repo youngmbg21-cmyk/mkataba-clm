@@ -356,7 +356,15 @@ function navGo(a){
   if (!['you', 'company', 'person', 'stream'].includes(n.k) && typeof document !== 'undefined' && document.querySelector('#st-drawer.open') && typeof stDrawerClose === 'function'){
     try { stDrawerClose(); } catch (_){}
   }
-  if (n.k === 'party') return (typeof cuSelectParty === 'function') ? (cuSelectParty(n.key), true) : false;
+  if (n.k === 'party'){
+    /* THE PHONE has no Parties page: a party's folder there is its Contracts list, narrowed to them */
+    if (typeof mPhone === 'function' && mPhone() && typeof regShowOnly === 'function'){
+      const ids = navBook().filter(c => ((typeof cuKeyOf === 'function') ? cuKeyOf(c.counterparty) : String(c.counterparty || '').toLowerCase()) === n.key).map(c => c.id);
+      regShowOnly(ids, n.name || n.key);
+      return true;
+    }
+    return (typeof cuSelectParty === 'function') ? (cuSelectParty(n.key), true) : false;
+  }
   if (n.k === 'contracts'){
     if (typeof regShowOnly !== 'function') return false;
     /* an empty list is still shown, so "none" is seen and not guessed */
