@@ -8817,11 +8817,19 @@
   .na-w-ai{ margin-left:auto; }
   .na-w-ai em{ font-style:normal; color:var(--color-neutral-600); font-weight:400; }
   .na-closest{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
-  .na-closest .na-pick{ display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; column-gap:8px; border:1px solid var(--rule-strong); border-left-width:3px; padding:8px 10px; background:var(--color-surface); }
-  .na-closest .na-pick .na-best{ justify-self:start; }
-  .na-closest .na-pick .na-pick-m{ grid-column:1 / -1; }
+  /* THE TAG NEVER WRAPS, THE NAME GIVES WAY (the tidy sweep, 22 Oct 2026: the
+     owner's picture had "the closest" folded onto two lines inside its 18px
+     box, over "Warehousing Logistics Agreement"): the row is a flex row — the
+     name shrinks (flex 1, min-width 0) and shortens with "…", the tag keeps
+     its width and never wraps. It was a grid, and inside a <button> Chrome
+     sized the grid's 1fr column to the name's full words, so the tag was
+     squeezed into what was left. */
+  .na-closest .na-pick{ display:flex; flex-wrap:wrap; flex-direction:row; align-items:center; gap:0 8px; border:1px solid var(--rule-strong); border-left-width:3px; padding:8px 10px; background:var(--color-surface); }
+  .na-closest .na-pick .na-pick-n{ flex:1 1 0; min-width:0; }
+  .na-closest .na-pick .na-best{ flex:none; }
+  .na-closest .na-pick .na-pick-m{ flex-basis:100%; }
   .na-closest .na-pick.on{ border-color:var(--accent-solid); }
-  .na-best{ display:inline-flex; align-items:center; height:18px; padding:0 7px; border-radius:999px; background:var(--st-green-bg); color:var(--st-green-fg); font-size:11px; font-weight:var(--w-label); vertical-align:1px; }
+  .na-best{ display:inline-flex; align-items:center; white-space:nowrap; flex:none; height:18px; padding:0 7px; border-radius:999px; background:var(--st-green-bg); color:var(--st-green-fg); font-size:11px; font-weight:var(--w-label); vertical-align:1px; }
   .na-one-more{ border-top:0; padding-top:0; margin-top:0; }
   .na-file-b{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
   .na-seg{ display:inline-flex; flex-wrap:wrap; border:1px solid var(--rule-strong); border-radius:var(--radius); overflow:hidden; }
@@ -9408,6 +9416,11 @@
   :is(#ig-dock,#jh-jambo) .igd-door-i{position:relative;display:grid;place-items:center;width:28px;height:28px}
   :is(#ig-dock,#jh-jambo) .igd-door-face{width:28px;height:28px;border-radius:50%}
   :is(#ig-dock,#jh-jambo) .igd-door-i .pd-tab-n{left:16px}
+  /* on Jambo's house the door stands at the window's right edge: a count
+     hung 16px in from the icon's left reached 5px past the page and gave the
+     whole page a sideways scrollbar (the tidy sweep, 22 Oct 2026) — there it
+     hangs from the icon's right edge instead */
+  #jh-jambo .igd-door-i .pd-tab-n{left:auto;right:0}
   :is(#ig-dock,#jh-jambo) .igd-door-o{flex:none;opacity:.8}
   .ca-pop{position:absolute;left:12px;right:12px;z-index:30;background:var(--color-surface);border:1px solid var(--color-neutral-300);border-radius:var(--radius-lg);box-shadow:0 10px 28px rgba(0,0,0,.16);padding:6px;max-height:60%;overflow:auto}
   .ca-pop h5{margin:4px 8px 6px;font-size:11px;color:var(--cap-ink);font-weight:400}
@@ -11458,6 +11471,13 @@
   .hb-csec{border:1px solid rgba(var(--hb-ln),.16);border-radius:var(--radius);padding:var(--s-2) var(--s-3);display:flex;flex-direction:column;gap:6px;background:var(--hb-fig);min-width:0;transition:box-shadow .3s}
   .hb-csec.is-lit{box-shadow:0 0 0 1px rgba(var(--hb-gw),.7)}
   .hb-crow{display:grid;grid-template-columns:130px minmax(0,1fr);gap:4px var(--s-3);font-size:var(--t-meta);align-items:baseline}
+  /* NOTHING WIDER THAN THE CARD (the tidy sweep, 22 Oct 2026: with a long
+     party name the card's "Ask Jambo: Why is …" button was 1,156px on its
+     own and the panel grew a sideways scrollbar; a clause's name in capitals
+     ran 246px past its box): a button or a clause link is at most as wide as
+     its row and shortens with "…". */
+  .hb-chead .hb-acts>.hb-btn{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  .hb-crow .hb-link{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
   .hb-crow>span:first-child{color:var(--hb-mute)}
   .hb-crow>span:last-child{color:var(--hb-ink)}
   .hb-crisk{display:flex;align-items:center;gap:8px;font-size:var(--t-meta);color:var(--hb-ink)}
