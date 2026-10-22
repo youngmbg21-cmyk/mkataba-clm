@@ -1618,7 +1618,7 @@ function jlAsk(text){
   if (took) return took === 'cal' ? 'cal' : 'go';
   if (!a){
     let m = null; try { m = (typeof jmRead === 'function') ? jmRead(t) : null; } catch (_){ m = null; }
-    if (m && m.kind === 'map'){ jlMapCard(t, m); return 'card'; }
+    if (m && m.kind === 'map' && !(typeof caAiFirst === 'function' && caAiFirst())){ jlMapCard(t, m); return 'card'; }
     if (m && m.kind === 'go' && !m.missing && !cards.includes(m.place) && typeof caGo === 'function' && caGo(m)) return 'go';
     if (m && typeof jmRunAct === 'function' && jmRunAct(m, t)) return 'card';
   }

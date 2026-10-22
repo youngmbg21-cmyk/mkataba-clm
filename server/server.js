@@ -12562,6 +12562,8 @@ const AI_GOTO_SCHEMA = { type: 'object', description: 'OPTIONAL — when the per
     spot: { type: 'string', description: 'OPTIONAL — when they name ONE thing inside a place (a contract, a clause, a party\'s folder, a person\'s setting, a duty, a request, a standard, a template): a short "take me to" phrase naming it in their words, e.g. "clause 7 of MK-A1", "Juno Logistics\'s folder", "Grace\'s signing limit". HaTi reads it with its own map and lands there; task is the fallback.' } },
   required: [] };
 const AI_GOTO_RULE = 'TAKING THEM THERE: when the person asks where something is in HaTi, how to get to a page or setting, asks to be taken somewhere, or asks to see, show, open or find ONE thing (a contract or one of its tabs, a clause, a list of contracts, a party\'s folder, a setting, a person, a template, a standard, a duty, a request), set deliver_answer\'s goto and say in one short sentence where you are taking them. Name the EXACT thing in goto\'s door with the ids your tools returned (a clause: its contract id and the passage\'s quote from search_hati, or its number), and set task to the place it sits in. Our standards (the negotiation playbook, book by book) is task standards. When you cannot name the door, set goto\'s spot to a short phrase naming the thing in their words. A question about what a contract says is answered in words with its source; when it asks WHERE the contract says it (“where does it say…”, “show me the bit about…”, “find the clause…”), also open that clause with goto.';
+/* NEVER A GUESS BETWEEN TWO (stage 3); the browser twin is word for word (js/ai.js) */
+const AI_CLARIFY_RULE = 'UNSURE WHICH ONE: when the person\'s words fit two or more contracts, parties, people or places and nothing on screen settles it, do not guess: ask ONE short question in the answer and give 2-4 choices in deliver_answer\'s choices, each the exact door it opens. When their words fit one thing, answer or open it.';
 const AI_GOTO_OFF_RULE = 'YOU CANNOT OPEN PAGES: when asked where something is in HaTi, name the page in words and say that the search box (⌘K) finds any page by name.';
 function aiGotoOf(g, cx) {
   if (!aiNavigateOn() || !g || typeof g !== 'object') return null;
@@ -12629,6 +12631,7 @@ const COPILOT_TOOLS = [
       citations: { type: 'array', description: 'The contracts your answer relies on.', items: { type: 'object', properties: {
         id: { type: 'string', description: 'Contract id you used.' },
         quote: { type: 'string', description: 'Optional short verbatim snippet from that contract supporting the point.' } }, required: ['id'] } },
+      choices: { type: 'array', description: 'OPTIONAL — only when you cannot tell WHICH thing the person means (two or more contracts, parties, people or places fit their words): ask ONE short question in answer and give 2-4 choices here, each a short label and the exact door it opens. HaTi draws them as presses. Never guess between them.', items: { type: 'object', properties: { label: { type: 'string' }, door: AI_DOOR_SCHEMA }, required: ['label', 'door'] } },
       compare: { type: 'object', description: 'OPTIONAL — include ONLY when comparing 2+ contracts. A side-by-side table.', properties: {
         columns: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, label: { type: 'string' } }, required: ['id', 'label'] }, description: 'One column per contract, in display order.' },
         rows: { type: 'array', items: { type: 'object', properties: { label: { type: 'string', description: 'Row label, e.g. "Value", "Payment terms", "Governing law".' }, cells: { type: 'array', items: { type: 'string' }, description: 'One cell per column, same order as columns.' } }, required: ['label', 'cells'] } },
@@ -12853,6 +12856,7 @@ SCOPE & SAFETY:
 - Be concise and direct. Reference specific numbers and clauses from the fetched data.
 - ${AI_GOVERNANCE_RULE} When a rule stops them and the proper next step is one of HaTi's own doors, name it in deliver_answer's ruleDoor.
 - ${aiNavigateOn() ? AI_GOTO_RULE : AI_GOTO_OFF_RULE}
+- ${AI_CLARIFY_RULE}
 - ${AI_CALENDAR_RULE}`;
   /* ONE FIGURE, EVERY BRAIN (12 Sep 2026): the sentence the graph route
      carries, in the chat brain too — the same rows, the same conversion, the
@@ -12892,6 +12896,59 @@ function copilotTextAnswer(txt) {
   return s.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\').trim();
 }
 const COPILOT_EMPTY_ANSWER = "I couldn't finish an answer to that one. Try a smaller piece of it — one contract, one date range, one counterparty — or say “portfolio health report” and I'll build the full picture as a document instead.";
+
+/* ---- NEVER A DEAD END (Jambo works like Copilot, stage 3, 22 Oct 2026) ----
+   "I wasn't able to finish that" told the reader nothing they could do. Now:
+   (1) a reply with no words and no tool is asked once more for its answer
+   (copilotNudge); (2) the last step must deliver (copilotLastStep); (3) where
+   there is still no answer, the reason is said and the nearest things the one
+   search finds are offered as 2-4 doors, with a retry (copilotWayForward). */
+const COPILOT_NUDGE = 'Call deliver_answer now with your answer, in plain words, from what you have found. If you found nothing, say what you looked for.';
+function copilotNudge(working) {
+  /* an empty assistant turn is not sent back; the nudge rides the last user turn (a tool result) or stands alone */
+  const last = working[working.length - 1];
+  if (last && last.role === 'assistant' && (!Array.isArray(last.content) || !last.content.length)) working.pop();
+  const prev = working[working.length - 1];
+  if (prev && prev.role === 'user' && Array.isArray(prev.content)) prev.content = prev.content.concat([{ type: 'text', text: COPILOT_NUDGE }]);
+  else working.push({ role: 'user', content: COPILOT_NUDGE });
+}
+/* every step uses a tool (a search, a read, or the answer itself), so an answer always arrives through
+   deliver_answer — with its doors, its sources and its choices — never as loose text; the last step must answer */
+const copilotLastStep = step => ({ tool_choice: step === AI_CHAT_STEPS - 1 ? { type: 'tool', name: 'deliver_answer' } : { type: 'any' } });
+/* what each kind of hit opens, as a goto door (aiDoorOf checks it again) */
+function hsDoorOf(h) {
+  if (!h) return null;
+  if (h.kind === 'clause') return { kind: 'clause', contractId: h.contractId, ...(h.quote ? { quote: h.quote } : {}), ...(h.title ? { head: h.title } : {}) };
+  if (h.kind === 'obligation') return { kind: 'obligation', contractId: h.contractId, obligationId: h.ref };
+  if (h.kind === 'history') return { kind: 'contract', contractId: h.contractId, tab: 'hist' };
+  if (h.kind === 'note' && !h.mine) return { kind: 'contract', contractId: h.contractId, tab: 'dossier' };
+  if (h.kind === 'contract') return { kind: 'contract', contractId: h.contractId };
+  if (h.kind === 'party') return { kind: 'party', name: h.title };
+  if (h.kind === 'request') return { kind: 'request', requestId: h.ref };
+  if (h.kind === 'person') return { kind: 'person', userId: h.ref };
+  if (h.kind === 'template') return { kind: 'template', templateId: h.ref };
+  if (h.kind === 'standard') return { kind: 'standard', book: h.book, row: h.title };
+  return null;
+}
+const COPILOT_WHY = {
+  unfinished: 'I ran out of steps before I could finish that.',
+  empty: 'No answer came back for that one.',
+};
+function copilotWayForward(cx, question, why) {
+  let hits = [];
+  try { hits = (hatiSearch(cx, question, { limit: 8 }).hits || []); } catch (_) { hits = []; }
+  const choices = [], seen = new Set();
+  for (const h of hits) {
+    const door = aiDoorOf(hsDoorOf(h), cx);
+    if (!door) continue;
+    const label = [h.title || h.contractName || '', h.contractId && h.kind !== 'contract' ? (h.contractNo || h.contractId) : ''].filter(Boolean).join(' · ').slice(0, 80);
+    if (!label || seen.has(label)) continue;
+    seen.add(label); choices.push({ label, door });
+    if (choices.length >= 4) break;
+  }
+  const answer = COPILOT_WHY[why] + ' ' + (choices.length >= 2 ? 'Did you mean one of these? Or ask again in other words.' : choices.length ? 'Did you mean this? Or ask again in other words.' : 'Ask again, or name the contract, party or page you mean.');
+  return { answer, citations: [], compare: null, choices, retry: true, [why]: true };
+}
 
 /* One text, one shape, both sides. Lowercase; smart quotes to straight;
    en/em dashes to hyphen; the ellipsis char to three dots; every whitespace
@@ -12955,7 +13012,11 @@ function normalizeDeliver(input, cx) {
     };
     if (!compare.columns.length) compare = null;
   }
-  return { answer, citations, compare, quoteDrops, wholeBook, ruleDoor, goto };
+  /* "WHICH DID YOU MEAN?" (stage 3): 2-4 choices, each a door this reader may stand at (aiDoorOf); fewer than two is no question */
+  const choices = (Array.isArray(inp.choices) ? inp.choices : []).slice(0, 6)
+    .map(c => ({ label: typeof (c && c.label) === 'string' ? c.label.replace(/[\u0000-\u001f<>{}]/g, ' ').trim().slice(0, 80) : '', door: aiDoorOf(c && c.door, cx) }))
+    .filter(c => c.label && c.door).slice(0, 4);
+  return { answer, citations, compare, quoteDrops, wholeBook, ruleDoor, goto, ...(choices.length >= 2 ? { choices } : {}) };
 }
 
 /* One row per completed Copilot chat turn — including the failure paths, so
@@ -13040,11 +13101,11 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
      branch, and the reader was served half a thought with nothing saying so.
      Tracked across every turn, because the cut can happen on any of them. */
   let truncated = false;
-  let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast');
+  let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast'), nudged = false;
   try {
     for (let step = 0; step < AI_CHAT_STEPS; step++) {
       steps = step + 1;
-      const resp = await anthropicMessages(key, compared ? 'deep' : 'fast', { max_tokens: 4000, system, tools: copilotToolsNow(), messages: working }, { feature: 'chat', who: aiWho(req) });
+      const resp = await anthropicMessages(key, compared ? 'deep' : 'fast', { max_tokens: 4000, system, tools: copilotToolsNow(), messages: working, ...copilotLastStep(step) }, { feature: 'chat', who: aiWho(req) });
       if (!resp.ok) {
         const err = 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300);
         logCopilotTurn(req, { question, answer: err, toolsUsed, model: resp.model || usedModel, steps });
@@ -13058,7 +13119,9 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
       working.push({ role: 'assistant', content });
       if (!toolUses.length) { // model replied as plain text without the tool — accept it
         const txt = copilotTextAnswer(content.filter(b => b.type === 'text').map(b => b.text).join('').trim());
-        final = { answer: txt || COPILOT_EMPTY_ANSWER, citations: [], compare: null, empty: !txt };
+        /* no words and no tool: asked once more for its answer (never a dead end) */
+        if (!txt && !nudged && step + 1 < AI_CHAT_STEPS) { nudged = true; copilotNudge(working); continue; }
+        final = txt ? { answer: txt, citations: [], compare: null } : copilotWayForward(cx, question, 'empty');
         break;
       }
       const deliver = toolUses.find(t => t.name === 'deliver_answer');
@@ -13073,7 +13136,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
     /* A NON-ANSWER SAYS SO (8 Oct 2026): `unfinished`/`empty` ride the reply so a
        caller that uses the words for something (a drafted note) never takes this
        sentence for an answer. The chat itself still prints it as before. */
-    if (!final) final = { answer: "I wasn't able to finish that — try narrowing the question or naming a specific contract.", citations: [], compare: null, unfinished: true };
+    if (!final) final = copilotWayForward(cx, question, 'unfinished');
     // Resolve cited ids (and any compare columns) into render-ready cards.
     const cardIds = [];
     final.citations.forEach(c => { if (!cardIds.includes(c.id)) cardIds.push(c.id); });
@@ -13088,7 +13151,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
     }
     logCopilotTurn(req, { question, answer: final.answer, citedIds: cardIds, toolsUsed,
       quoteDrops: final.quoteDrops || 0, model: usedModel, steps });
-    res.json({ answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.unfinished ? { unfinished: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...notice });
+    res.json({ answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...notice });
   } catch (e) {
     logCopilotTurn(req, { question, answer: 'Jambo request failed: ' + e.message, toolsUsed, model: usedModel, steps });
     res.status(502).json({ error: 'Jambo request failed: ' + e.message });
@@ -13370,7 +13433,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
      branch, and the reader was served half a thought with nothing saying so.
      Tracked across every turn, because the cut can happen on any of them. */
   let truncated = false;
-  let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast');
+  let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast'), nudged = false;
   try {
     for (let step = 0; step < AI_CHAT_STEPS; step++) {
       steps = step + 1;
@@ -13379,7 +13442,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
          whole in `final`. To re-enable, pass
          onToken: text => { if (text) send('token', { text }); } */
       const resp = await anthropicMessagesStream(key, compared ? 'deep' : 'fast',
-        { max_tokens: 4000, system, tools: copilotToolsNow(), messages: working },
+        { max_tokens: 4000, system, tools: copilotToolsNow(), messages: working, ...copilotLastStep(step) },
         { feature: 'chat', who: aiWho(req) },
         { signal: ac.signal });
       if (!resp.ok) {
@@ -13396,7 +13459,8 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
       working.push({ role: 'assistant', content });
       if (!toolUses.length) {
         const txt = copilotTextAnswer(content.filter(b => b.type === 'text').map(b => b.text).join('').trim());
-        final = { answer: txt || COPILOT_EMPTY_ANSWER, citations: [], compare: null, empty: !txt };
+        if (!txt && !nudged && step + 1 < AI_CHAT_STEPS) { nudged = true; copilotNudge(working); continue; }
+        final = txt ? { answer: txt, citations: [], compare: null } : copilotWayForward(cx, question, 'empty');
         break;
       }
       const deliver = toolUses.find(t => t.name === 'deliver_answer');
@@ -13411,7 +13475,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
     /* A NON-ANSWER SAYS SO (8 Oct 2026): `unfinished`/`empty` ride the reply so a
        caller that uses the words for something (a drafted note) never takes this
        sentence for an answer. The chat itself still prints it as before. */
-    if (!final) final = { answer: "I wasn't able to finish that — try narrowing the question or naming a specific contract.", citations: [], compare: null, unfinished: true };
+    if (!final) final = copilotWayForward(cx, question, 'unfinished');
     const cardIds = [];
     final.citations.forEach(c => { if (!cardIds.includes(c.id)) cardIds.push(c.id); });
     if (final.compare) final.compare.columns.forEach(col => { if (!cardIds.includes(col.id)) cardIds.push(col.id); });
@@ -13425,7 +13489,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
     }
     logCopilotTurn(req, { question, answer: final.answer, citedIds: cardIds, toolsUsed,
       quoteDrops: final.quoteDrops || 0, model: usedModel, steps });
-    send('final', { answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.unfinished ? { unfinished: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...notice });
+    send('final', { answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...notice });
     res.end();
   } catch (e) {
     if (clientGone || e.name === 'AbortError') {

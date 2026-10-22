@@ -213,6 +213,9 @@ function navReadContractAct(raw, t){
   if (act === 'send' && (/ (for signing|to sign|for signature|for review|to review|för underskrift|för granskning) /.test(t))) return null;
   if (hit.picks && hit.picks.length > 1) return navWhich(hit.picks.map(c => ({ c, nav: { k: 'cact', cid: c.id, act } })));
   const c = hit.c; if (!c) return null;
+  /* AI FIRST (stage 3): "open" is sure only when the sentence names the contract and nothing more — "when does
+     the Westlands lease end", "cap on damages in the sugar deal" ask something OF it, and go to Jambo */
+  if (act === 'open' && navLeftover(rest, c).length) return null;
   if (act === 'amend'){
     let shut = ''; try { shut = (typeof amendmentShutWhy === 'function') ? amendmentShutWhy(c) : ''; } catch (_){ shut = ''; }
     if (shut) return { kind: 'navsay', text: shut };
@@ -220,6 +223,15 @@ function navReadContractAct(raw, t){
   return { kind: 'go', place: 'nav', cid: c.id, nav: { k: 'cact', cid: c.id, act }, say: 'nav_go_act_' + act, sayVars: { ref: navRef(c), name: c.name || '' } };
 }
 
+/* what a sentence says beyond the contract it names: the words left once the contract's own name, its party,
+   the words of opening and the small words are taken out */
+const NAV_OPEN_SKIP = new Set(['the', 'a', 'an', 'and', 'of', 'for', 'with', 'to', 'me', 'my', 'our', 'up', 'pull', 'bring', 'open', 'show', 'see', 'take', 'go', 'please', 'now',
+  'contract', 'contracts', 'agreement', 'deal', 'one', 'file', 'paper', 'document', 'draft', 'signed', 'avtal', 'utkast', 'avtalet', 'kontrakt', 'kontraktet', 'öppna', 'visa', 'det', 'den', 'med']);
+function navLeftover(rest, c){
+  const own = new Set(navNorm([c.name, c.counterparty, c.id, c.contractNo, c.type].filter(Boolean).join(' ')).trim().split(' '));
+  return navNorm(rest).trim().split(' ').filter(w => w && w.length > 1 && !NAV_OPEN_SKIP.has(w) && !own.has(w) && !NAV_NAME_SKIP.has(w)
+    && ![...own].some(o => o.length >= 4 && (w.startsWith(o) || o.startsWith(w))));
+}
 /* A CLAUSE OF A CONTRACT: "clause 7 of the Kabras supply deal", "the payment
    clause in MK-A1", "governing law in MK-A1", "where does MK-A1 talk about
    rejection", "klausul 7 i MK-A1" */
@@ -911,7 +923,7 @@ function navDoorOf(d){
   return null;
 }
 
-Object.assign(window, { navDoorOf, navNorm, navBook, navStreamWords, navStreamOf, navStageOf, navEndingOf, navEndingSpan, navParties, navPartiesIn,
+Object.assign(window, { navDoorOf, navLeftover, navNorm, navBook, navStreamWords, navStreamOf, navStageOf, navEndingOf, navEndingSpan, navParties, navPartiesIn,
   navClauseTopicOf, navRead, navReadClause, navClauseCount, navReadContracts, navContractsLabel, navReadParty, navWhich, navGo, navGoClause,
   navContractByName, navLanding, NAV_PAGES, navReadPage, NAV_ACTS, NAV_ACT_OWN, navReadContractAct, navGoAct, navClauseEl, navClauseRow, navPaperMarked, NAV_PAPER_TRIES, navSayLate, navChoicePress, NAV_STREAM_EXTRA, NAV_CLAUSE_TOPICS, NAV_LAND_TRIES,
   NAV_YOU, NAV_COMPANY, navReadSettings, navReadStandards, navUsersIn, navLandWhen, navGoStage2, NAV_STD_BOOKS, NAV_STD_ROWS,
