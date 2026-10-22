@@ -152,8 +152,13 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     check('4b the note right after the count; no dot before a name', !!sw && sw.gap != null && sw.gap >= 0 && sw.gap < 24 && sw.dots === 0, sw && `gap ${sw.gap} · dots ${sw.dots}`);
     check('4c the closed filter boxes wear HaTi\'s clothes', !!sw && sw.face === 'none', sw && sw.face);
     if (await press('.st-sw-row[data-st-sw-pick="sales"]', '4d Sales')) {
-      const acts = await until(() => { const a = document.querySelector('#st-jb-feed .st-swp-acts'), f = document.getElementById('st-jb-feed'); if (!a || !f) return null;
-        const ar = a.getBoundingClientRect(), fr = f.getBoundingClientRect(); return { inside: ar.bottom <= fr.bottom + 1 && ar.top >= fr.top - 1, del: !!a.querySelector('[data-st-swp-run]') }; });
+      /* ASK FOR THE STATE (22 Oct 2026): the acts row is drawn while the keeping book is still being
+         read, its Delete button only once it has been, so the wait asks for the button; on time-out
+         the row as it stands reports */
+      const actsNow = () => { const a = document.querySelector('#st-jb-feed .st-swp-acts'), f = document.getElementById('st-jb-feed'); if (!a || !f) return null;
+        const ar = a.getBoundingClientRect(), fr = f.getBoundingClientRect(); return { inside: ar.bottom <= fr.bottom + 1 && ar.top >= fr.top - 1, del: !!a.querySelector('[data-st-swp-run]') }; };
+      const acts = await until(() => document.querySelector('#st-jb-feed .st-swp-acts [data-st-swp-run]') ? true : null)
+        .then(() => page.evaluate(actsNow));
       check('4d the stream\'s acts in reach inside the panel', !!acts && acts.inside && acts.del, acts && JSON.stringify(acts));
       await shot(page, '26-streams-sales-1440x780');
     }

@@ -252,7 +252,11 @@ const FILES = {
         check('12b2 Jambo asks only the one question until it is answered — no instruction its read-only boxes cannot follow', !!J && /call it a draft/.test(J.t) && !/write the date|made between/.test(J.t) && !J.use, JSON.stringify(J));
         await shot(page, 'import-drawn-unsigned-1440x780');
         if (N && await press('#mig-ck-facts [data-mig-unsigned="draft"]', '12c Import as a draft')){
-          const D = await until(() => { const c = migContracts().find(x => /NDA_Acme/.test((x.upload || {}).fileName || '')); return c ? { id: c.id, status: c.status, hash: c.hash || null, out: !!(c.migration && c.migration.executedOutside), on: migCheckId() } : null; }, null, 10000);
+          /* ASK FOR THE STATE (22 Oct 2026): the draft exists a beat before the walk's id moves from the
+             queue key ("q:2") to it, so the wait asks for both together; on time-out the last state reports */
+          const draftNow = () => { const c = migContracts().find(x => /NDA_Acme/.test((x.upload || {}).fileName || '')); return c ? { id: c.id, status: c.status, hash: c.hash || null, out: !!(c.migration && c.migration.executedOutside), on: migCheckId() } : null; };
+          const D = await until(() => { const c = migContracts().find(x => /NDA_Acme/.test((x.upload || {}).fileName || '')); return c && migCheckId() === c.id ? true : null; }, null, 10000)
+            .then(() => page.evaluate(draftNow));
           check('12c Import as a draft makes a draft — nothing sealed, not signed outside HaTi — and the walk stays on it', !!D && D.status === 'Draft' && !D.hash && !D.out && D.on === D.id, JSON.stringify(D));
           const U = await until(() => { const b = document.querySelector('#mig-side [data-mig-use="party"]'); return b ? b.textContent : null; }, null, 5000);
           check('12d no party marked: Jambo offers the one the file is made with — "Use: Acme Ltd"', U === 'Use: Acme Ltd', String(U));

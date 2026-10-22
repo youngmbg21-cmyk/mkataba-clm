@@ -112,6 +112,13 @@ const WATCH = () => { window._walk = {}; const tick = () => {
     /* RE-POINTED 20 Oct 2026 (the Legora way): it lands on the Dossier, Still owed's grid asking what is owed */
     check('1b the file is filed and lands on Home\'s paper, Still owed\'s grid beside it', landed && await page.evaluate(() => state.view === 'dashboard' && hbFace() === 'paper'), id);
     await shot('1-uploaded');
+    /* RE-POINTED 22 Oct 2026 (Jambo's journey, round 1: he speaks first on an upload, in his panel): once the
+       arrival reading has landed he may have turned the panel to his words; the reader goes back to the
+       Dossier with its ‹ Dossier, as a person would, before filling it in */
+    await page.waitForFunction(i => { const c = getContract(i); return !!(c && c.triage && c.triage.hash !== undefined && !c._triaging); }, id, { timeout: 20000 }).catch(() => {});
+    await page.waitForTimeout(300);
+    await page.evaluate(() => { const d = document.getElementById('ig-dock'); const b = d && d.classList.contains('is-talk') ? d.querySelector('[data-pd-back]') : null; if (b) b.click(); });
+    await page.waitForFunction(() => !!document.querySelector('#ig-dock #pd-glance'), null, { timeout: 5000 }).catch(() => {});
 
     /* ===== 2. FILL IN ===== */
     const left0 = id ? await page.evaluate(i => detailsOf(getContract(i)).left, id) : 0;

@@ -68,7 +68,7 @@ const M_SCREEN_FOR_VIEW = {
   dashboard:'home', register:'contracts', folder:'contracts', workspace:'contract',
   redline:'redline', doc:'contract', reports:'more', intel:'more', calendar:'more',
   templates:'more', templatelib:'more', playbook:'more', team:'more', advice:'more',
-  migration:'more', pipeline:'more', queue:'more', directory:'people',
+  migration:'more', pipeline:'more', queue:'more', directory:'people', obligations:'more',
 };
 const M_VIEW_FOR_SCREEN = {
   home:'dashboard', contracts:'register', contract:'workspace', redline:'redline',
@@ -91,6 +91,8 @@ const M_DESK = [
   { view:'migration',  get label(){ return i18t('m_import_contracts'); },get note(){ return i18t('m_import_sub'); } },
   { view:'team',       get label(){ return i18t('m_settings_rules'); },get note(){ return i18t('m_settings_sub'); } },
   { view:'advice',     get label(){ return i18t('m_advice_desk'); },     get note(){ return i18t('m_advice_sub'); } },
+  /* the Obligations page is the computer's (a contract's own duties are its Obligations tab here): asked on the phone, it says so */
+  { view:'obligations', get label(){ return i18t('m_obligations'); },    get note(){ return i18t('m_obligations_sub'); } },
 ];
 
 /* ------------------------------------------------------------------ CSS ----
@@ -756,6 +758,20 @@ function mHeadHtml(){
     </div>`;
 }
 
+/* ALERTS ON THIS PHONE (round 4 of Jambo's journey): the same reading and presses as the computer's
+   Settings › You (js/push.js); a row to press only where it can be used, otherwise the words say why */
+let _mPush=null;
+function mPushRowHtml(){
+  const st=_mPush;
+  if(!st) return `<div class="m-row"><span class="m-row-sub">${window.busyHtml?busyHtml(i18t('push_checking')):mEsc(i18t('push_checking'))}</span></div>`;
+  const said=`<span class="m-row-sub">${mEsc(typeof pushStateSaid==='function'?pushStateSaid(st):st)}</span>`;
+  if(st!=='on'&&st!=='off') return `<div class="m-row"><span style="flex:1;min-width:0">${said}</span></div>`;
+  return `<button class="m-row" data-m-act="push-toggle" aria-pressed="${st==='on'}">
+    <span style="flex:1;min-width:0"><span class="m-row-name">${mEsc(i18t(st==='on'?'push_turn_off':'push_turn_on'))}</span>${said}</span></button>`;
+}
+/* the sheet is drawn again, so its row is wired again (the sheet wires its presses as it draws) */
+function mPushPaint(){ if(document.querySelector('[data-m-push]')) mRender(); }
+function mPushRefresh(){ if(typeof pushState!=='function') return; pushState().then(st=>{ if(st!==_mPush){ _mPush=st; mPushPaint(); } }).catch(()=>{}); }
 /* The account sheet: who you are, which jurisdiction is in force, and the way
    out. Three things with nowhere else to live on a phone. */
 function mAccountSheetHtml(){
@@ -833,6 +849,9 @@ function mAccountSheetHtml(){
 
     ${''/* The honest read-only statement, kept exactly as it is on the laptop.
            The checkboxes it replaced were wired to nothing. */}
+    <div class="m-capline" style="margin:14px 0 6px">${i18t('st_you_push_row')}</div>
+    <div class="m-card m-list" data-m-push>${mPushRowHtml()}</div>${(setTimeout(mPushRefresh,0),'')}
+
     <div class="m-capline" style="margin:14px 0 6px">${i18t('st_acct_email')}</div>
     <div class="m-card" style="padding:var(--s-3)">
       <div style="font-size:var(--t-body);font-weight:var(--w-strong)">${i18t('set_still_emailed')}</div>
@@ -1333,6 +1352,10 @@ function mWire(){
       }
       mRender(); return;
     }
+    if(k==='push-toggle'){
+      if(typeof pushToggle==='function'){ b.disabled=true; pushToggle(_mPush!=='on').then(r=>{ _mPush=r.state; mPushPaint(); }); }
+      return;
+    }
     if(k==='acct-backup'){ if(window.settingsExportBackup) settingsExportBackup(); return; }
     if(k==='leave-redline'){ if(window.setView) setView('workspace'); else mGo('contract'); return; }
     mScreenAct(k, b, e);
@@ -1509,6 +1532,6 @@ if(typeof window!=='undefined' && typeof document!=='undefined' && document.addE
 /* mEsc and M_CHEV go on window with the rest: these files are ES modules, so a
    top-level const in one is invisible to the next, and the phone's own screens
    live in three of them. */
-Object.assign(window,{ M_QUERY, mPhone, mS, mRender, mSync, mGo, mBack, mBoot, mAppActive,
+Object.assign(window,{ M_QUERY, mPushRowHtml, mPushPaint, mPushRefresh, mPhone, mS, mRender, mSync, mGo, mBack, mBoot, mAppActive,
   mOpenSheet, mCloseSheet, mPill, mMoney, mExpiry, mEsc, M_CHEV, mHeadHtml, mTabsHtml,
   M_DESK, M_SCREEN_FOR_VIEW, M_VIEW_FOR_SCREEN });

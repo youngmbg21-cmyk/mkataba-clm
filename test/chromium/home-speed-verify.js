@@ -20,7 +20,7 @@
    Run: node test/chromium/home-speed-verify.js */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
-const { startHati, seedWorkspace } = require('../helpers');
+const { startHati, seedWorkspace, FIXTURES } = require('../helpers');
 
 const EXEC = process.env.CHROMIUM_BIN
   || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
@@ -46,7 +46,14 @@ const check = (name, pass, detail) => {
     await page.fill('#li-email', 'admin@example.co.ke');
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
-    await page.waitForFunction(() => window.state && state.contracts && state.contracts.length > 3 && typeof hbS === 'function', null, { timeout: 20000 });
+    /* SIGNED IN MEANS THE WORKSPACE'S BOOK AND THE SIGN-IN'S LANDING (22 Oct
+       2026): the page holds a 30-contract sample book until the sign-in
+       lands, so "more than three contracts" was met by it; the copy below
+       then copied the sample, the sign-in swapped in the workspace's four and
+       opened Home itself, and "opening Home" measured a repaint (0 ms). */
+    await page.waitForFunction(ids => window.state && state.contracts && state.contracts.length === ids.length
+      && ids.every(id => state.contracts.some(c => c && c.id === id)) && state.view === 'counter' && typeof hbS === 'function',
+    FIXTURES.map(c => c.id), { timeout: 20000 });
     const hasKept = await page.evaluate(() => typeof igFramesDrawn === 'function' && typeof igTurnFace === 'function');
     check('0. this build keeps the map and counts its frames', hasKept);
     const cdp = await page.context().newCDPSession(page); await cdp.send('Performance.enable');
@@ -56,8 +63,12 @@ const check = (name, pass, detail) => {
       while (state.contracts.length < N){ const c = JSON.parse(JSON.stringify(base[k % base.length])); c.id = c.id + '-X' + k; c.contractNo = (c.contractNo || c.id) + '-' + k; state.contracts.push(c); k++; }
       if (typeof familyIndexDirty === 'function') familyIndexDirty();
       window.__lt = []; new window.PerformanceObserver(l => { for (const e of l.getEntries()) window.__lt.push(e.duration); }).observe({ type: 'longtask', buffered: false });
-      const s = hbS(); s.face = 'board'; s.prep = 'closed'; hbSave(); setView('contracts');
+      const s = hbS(); s.face = 'board'; s.prep = 'closed'; hbSave(); setView('obligations');
     }, BOOK);
+    /* LEAVING HOME LEAVES IT: "contracts" names no page any more (Contracts
+       is a place ON Home since 14 Oct 2026), so Home is left for a list page
+       of its own and is gone from the screen before it is opened again */
+    const leftHome = !!await until(() => state.view === 'obligations' && !document.getElementById('ig-page') && !document.getElementById('hb-board'));
     await page.waitForTimeout(1000);
     /* one act: its longest freeze, the time the main thread was busy, and
        the map's frames drawn, over a bounded settle */
@@ -75,8 +86,10 @@ const check = (name, pass, detail) => {
     const home1 = await act(() => setView('dashboard'), () => until(() => !!document.querySelector('#hb-board .hb-note')).then(() => page.waitForTimeout(600)));
     const toPaper = await act(() => hbSetFace('paper'), onFace('paper'));
     const toBoard = await act(() => hbSetFace('board'), onFace('board'));
+    const bookNow = await page.evaluate(() => state.contracts.length);
     check('1. Board ⇄ Paper: a switch freezes under half of opening Home',
-      Math.max(toPaper.max, toBoard.max) < Math.max(60, home1.max / 2), `paper ${toPaper.max} · board ${toBoard.max} · Home ${home1.max} ms`);
+      leftHome && Math.max(toPaper.max, toBoard.max) < Math.max(60, home1.max / 2),
+      `${leftHome ? '' : 'Home was never left · '}paper ${toPaper.max} · board ${toBoard.max} · Home ${home1.max} ms, ${bookNow} contracts`);
     const ex1 = await act(() => hbSetFace('explorer'), onFace('explorer'));
     /* settle: the layout finishes off the press, then the loop rests */
     await page.waitForTimeout(4000);

@@ -2124,7 +2124,7 @@ function stYouItems(){
     { key:'lang', t:'st_you_lang', w:['st_acct_lang_note','st_you_lang_words'], focus:'#st-you-lang .st-yseg', state:stLangName },
     /* told and work change IN THEIR ROWS on the sheet (round 24): no drawer
        door; their drawers stay for the avatar's account drawer */
-    api && { key:'told', t:'st_you_told', w:['st_acct_email','set_brief_how_often','set_brief_daily','set_brief_weekly','set_brief_off','st_you_told_words'], focus:'[data-st-brief]',
+    api && { key:'told', t:'st_you_told', w:['st_acct_email','set_brief_how_often','set_brief_daily','set_brief_weekly','set_brief_off','st_you_told_words','st_you_push_row','push_find_words'], focus:'[data-st-brief]',
       state:()=>i18t('st_you_brief_'+briefCadenceOf(u)) },
     { key:'work', t:'st_you_work', w:['st_you_chips','st_you_opens','st_you_work_words'], focus:'[data-st-sw="chips"]',
       state:stOpensWord },
@@ -2156,6 +2156,21 @@ const ST_YOU_OFF_SHEET=['password','design'];
 /* a row: label · value · act. `row` names the form that opens UNDER it (round
    24 as drawn: "Opens in place") — data-st-row, the anchor stRowFormOpen uses */
 const stSrHtml=(label,value,act,cls,row)=>`<div class="st-sr${cls?' '+cls:''}"${row?` data-st-row="${row}"`:''}><div class="st-sl">${label}</div><div class="st-sv">${value}</div><div class="st-sa">${act||''}</div></div>`;
+/* ALERTS ON THIS DEVICE (round 4 of Jambo's journey): one row under What you're told. The browser is
+   asked where this device stands (pushState, js/push.js) and the row redrawn when it answers; a switch
+   is drawn only where it can be used, otherwise the words say why and what to do. */
+let _stPush=null;
+function stPushHtml(){
+  const st=_stPush;
+  if(!st) return `<span data-st-push>${(typeof busyHtml==='function')?busyHtml(i18t('push_checking')):esc(i18t('push_checking'))}</span>`;
+  const sw=(st==='on'||st==='off')?stSwHtml('push',st==='on',i18t('st_you_push_row')):'';
+  return `<span data-st-push class="st-push">${sw}<span class="st-you-sub">${esc(typeof pushStateSaid==='function'?pushStateSaid(st):st)}</span></span>`;
+}
+function stPushPaint(){ document.querySelectorAll('#set-page [data-st-push]').forEach(el=>{ el.outerHTML=stPushHtml(); }); }
+function stPushRefresh(){
+  if(typeof pushState!=='function') return;
+  pushState().then(st=>{ if(st!==_stPush){ _stPush=st; stPushPaint(); } }).catch(()=>{});
+}
 const stSwHtml=(key,on,label)=>`<button type="button" role="switch" class="st-swt${on?' on':''}" aria-checked="${on?'true':'false'}" aria-label="${esc(label)}" data-st-sw="${key}"><i aria-hidden="true"></i></button>`;
 /* THE DEVICES ROW IN WORDS (round 24: "2 signed in — this laptop and an
    iPad"), read off each session's own browser line; the session this page
@@ -2228,7 +2243,9 @@ function stYouCardHtml(it){
       +stSrHtml(esc(i18t('st_you_lang_money')), sub(esc(stMarketSaid())), '');
   } else if(it.key==='told'){
     const cad=briefCadenceOf(u);
+    setTimeout(stPushRefresh,0);   /* the browser answers where this device stands; the row follows */
     rows=stSrHtml(esc(i18t('st_you_brief_row')), `<select data-st-brief aria-label="${esc(i18t('st_you_brief_row'))}">${['daily','weekly','off'].map(v=>`<option value="${v}"${v===cad?' selected':''}>${esc(i18t('set_brief_'+v))}</option>`).join('')}</select>`, '')
+      +stSrHtml(esc(i18t('st_you_push_row')), stPushHtml(), '', 'is-sw', 'push')
       +stSrHtml(esc(i18t('st_you_bell_only')), sub(esc(i18t('st_you_bell_says'))), '')
       +stSrHtml(esc(i18t('st_you_email_told')), sub(esc(i18t('st_you_email_says'))), '');
   } else if(it.key==='work'){
@@ -2372,6 +2389,8 @@ if(typeof document!=='undefined' && !window._stSheetWired){
     if((el=t.closest('[data-st-sw]'))){ const k=el.getAttribute('data-st-sw'), on=el.getAttribute('aria-checked')!=='true';
       el.setAttribute('aria-checked',String(on)); el.classList.toggle('on',on);
       if(k==='chips') stChipsSet(on);
+      if(k==='push' && typeof pushToggle==='function'){ el.disabled=true;
+        pushToggle(on).then(r=>{ _stPush=r.state; stPushPaint(); }); }
       return; }
   });
   document.addEventListener('change',e=>{
@@ -8170,7 +8189,7 @@ function stEngineBodyHtml(){
              turn it off if cost is an issue"; on by default): what it adds is
              said in calls and words, never money (the owner's answer (4), 19 Oct) */}
       <label style="display:flex;align-items:flex-start;gap:var(--s-2);margin-top:9px;font-size:var(--t-label);color:var(--color-neutral-700);line-height:1.45;cursor:pointer">
-        <input id="ai-navigate" type="checkbox" style="margin-top:2px;width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
+        <input id="ai-navigate" type="checkbox" checked style="margin-top:2px;width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
         <span><b>${i18t('set_ai_navigate')}</b> ${i18t('set_ai_navigate_body')} ${i18t('set_ai_navigate_cost')}</span></label>
       <button id="ai-limits-save" style="margin-top:9px;${ST_BTN_SM}">${i18t('set_save_limits')}</button>
     </div>
@@ -9764,7 +9783,7 @@ Object.assign(window,{stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsP
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
   stRulesRows,stPaintRules,stPaintSignFolders,
   openMyAccount,openSettingsAt,settingsGoTab,stUnfinishedCount,stPeopleWire,settingsTab,stLandTop,SET_PANELS,ST_TABS,SET_CLOSURES,ST_GROUPS,ST_ATTENTION_MAX,
-  ST_FACES,ST_GOV_LADDER,stGovRungs,stGovNext,stYouItems,stYouHtml,stYouCardHtml,stYouSheetItems,ST_YOU_SHEET,stChipsSet,stOpensSet,stBriefSet,stMenuHits,stFind,stFindRows,stFindGo,stNeedsAll,settingsGoPage,stYouGo,stPrefSet,stAsksLoad,stAsksOpen,stAsksAnswered,stAskSeen,stAskFrom,stAskDirect,stAskOpenOn,stAdminsSaid,stDay,stJbAnswer,stJbAmount,stJbAsk,stJamboFocus,stSideSet,stSideFit,ST_SIDE_MIN,ST_BOARD_MIN,ST_SPLIT_KEY,ST_SPLIT,stSplitFit,
+  ST_FACES,stPushHtml,stPushPaint,stPushRefresh,ST_GOV_LADDER,stGovRungs,stGovNext,stYouItems,stYouHtml,stYouCardHtml,stYouSheetItems,ST_YOU_SHEET,stChipsSet,stOpensSet,stBriefSet,stMenuHits,stFind,stFindRows,stFindGo,stNeedsAll,settingsGoPage,stYouGo,stPrefSet,stAsksLoad,stAsksOpen,stAsksAnswered,stAskSeen,stAskFrom,stAskDirect,stAskOpenOn,stAdminsSaid,stDay,stJbAnswer,stJbAmount,stJbAsk,stJamboFocus,stSideSet,stSideFit,ST_SIDE_MIN,ST_BOARD_MIN,ST_SPLIT_KEY,ST_SPLIT,stSplitFit,
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
   settingsWriteFolderAccess,settingsExportBackup,stGoLive,stLoadAiCfgOnce,stSampleContracts,stClearSamples,stRunIntegrity,
   stPersonMissing,stPersonSays,stPersonSumHtml,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,

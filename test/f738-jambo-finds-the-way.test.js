@@ -279,3 +279,57 @@ describe('f738 (5) the AI takes you there', () => {
     assert.equal(b.book || null, null);
   });
 });
+
+/* (6) THE EXACT SPOT (navigable by typing, stage 4; owner's yes, 22 Oct 2026): the AI may also name the
+   one thing inside the place in words (goto.spot), which the browser reads with the same free map a typed
+   ask is (navRead), the task the fallback. The server keeps the words short and markup-free; it never
+   turns them into a route. */
+describe('f738 (6) the AI names the exact spot, the map reads it', () => {
+  const SRV = R('server/server.js'), AI = R('js/ai.js');
+  test('6a the schema offers spot beside task, task still required', () => {
+    assert.match(SRV, /spot: \{ type: 'string', description: 'OPTIONAL — when they name ONE thing inside a place/);
+    assert.match(SRV, /required: \['task'\] \};/);
+  });
+  test('6b aiGotoOf keeps a short clean spot and still refuses an unknown task', () => {
+    const src = SRV.slice(SRV.indexOf('function aiGotoOf('), SRV.indexOf('const RULE_DOOR_KINDS'));
+    const ctx = { aiNavigateOn: () => true, JM_TASK_KEYS: ['contracts', 'team'], JM_TASK_ADMIN: ['team'] };
+    vm.createContext(ctx); vm.runInContext(src + ';this.aiGotoOf=aiGotoOf;', ctx);
+    assert.deepEqual(JSON.parse(JSON.stringify(ctx.aiGotoOf({ task: 'contracts', spot: '  clause 7 of <b>MK-A1</b>\n' }, {}))), { task: 'contracts', spot: 'clause 7 of b MK-A1 /b' });
+    assert.equal(ctx.aiGotoOf({ task: 'contracts', spot: 'x'.repeat(300) }, {}).spot.length, 120);
+    assert.equal(ctx.aiGotoOf({ task: 'nowhere', spot: 'clause 7 of MK-A1' }, {}), null);
+    assert.equal(ctx.aiGotoOf({ task: 'team', spot: "Grace's signing limit" }, { admin: false }), null, 'an admin task stays an admin\'s');
+  });
+  test('6c the browser reads the spot with navRead first, the task its fallback', () => {
+    const run = AI.slice(AI.indexOf('function aiGotoRun('), AI.indexOf('const AI_CALENDAR_RULE'));
+    assert.match(run, /a=navRead\(g\.spot\)/);
+    assert.ok(run.indexOf('navRead(g.spot)') < run.indexOf('jmGotoAct(g, q)'), 'the spot is read before the task');
+  });
+});
+
+/* (7) TAUGHT FROM THE HELD-OUT SENTENCES (22 Oct 2026). Thirty sentences
+   written after the exam missed nine; each is now a way of asking, and three
+   earlier readers stopped taking sentences that were not theirs: "show the
+   tracked changes" is the Redlines (only "with tracked changes" sends a Word
+   copy), "show me the audit trail" is History (the sealed record is a file
+   asked for as one), and "anything", "every" and "each" are filler. Red at
+   the parent: every line below but the two kept pins. */
+describe('f738 (7) the held-out sentences, taught', () => {
+  const TAUGHT = [
+    ['where is the list of things I owe people?', 'needs'], ['where are all the signed contracts?', 'contracts'],
+    ['how can I put a pdf contract into the system?', 'upload'], ['where do I answer the missing questions on this contract?', 'fill'],
+    ['things waiting for my sign-off', 'approvals'], ['who did what on this contract?', 'history'], ['colleague contact details', 'people'],
+    ['show the tracked changes', 'redline'], ['show me the audit trail', 'history'], ['anything about to expire?', 'expiring'],
+    ['list every contract we have', 'contracts'], ['where can I sign this agreement?', 'sign'],
+  ];
+  test('7a each lands where it was asked', () => {
+    const { ctx } = stage();
+    const misses = TAUGHT.map(([q, k]) => [q, k, landsOrFirst(ctx, ctx.caActOf(q))]).filter(([, k, got]) => got !== k);
+    assert.deepEqual(misses, []);
+  });
+  test('7b the readers narrowed still take their own sentences', () => {
+    const { ctx } = stage();
+    const a = ctx.caActOf('send it with tracked changes'); assert.equal(a && a.kind, 'door'); assert.equal(a.door, 'word');
+    const r = ctx.caActOf('save the audit trail'); assert.equal(r && r.kind, 'menu'); assert.equal(r.menu, 'record');
+    const s = ctx.caActOf('attach the signed copy'); assert.equal(s && s.kind, 'menu'); assert.equal(s.menu, 'signed');
+  });
+});

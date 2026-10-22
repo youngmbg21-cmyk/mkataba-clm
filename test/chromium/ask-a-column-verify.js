@@ -173,6 +173,28 @@ async function toList(page) {
       await page.click('td.ac-cell[data-ac-cid="MK-A2"] .ac-a').catch(() => {});
     }
 
+    /* ============ 10. TYPING WHILE THE TEAM'S QUESTIONS ARRIVE ============
+       (22 Oct 2026) The form paints, then paints again when the team's questions
+       come back. A person typing in between lost the caret, and every key after
+       it; on GitHub's slower machine the name went missing (2a, twice). The
+       team's answer is held back here so it lands mid-typing. */
+    await page.setViewportSize({ width: 1440, height: 780 });
+    await toList(page);
+    if (await page.$('#ac-form')) await page.click('[data-ac-cancel]').catch(() => {});
+    let release; const held = new Promise(r => { release = r; });
+    await page.route('**/api/columns', async route => { await held; await route.continue(); });
+    await page.click('[data-ac-open]');
+    await until(page, () => !!document.querySelector('#ac-name'));
+    await page.click('#ac-name');
+    await page.keyboard.type('Notice', { delay: 20 });
+    release();
+    await until(page, () => !!document.querySelector('#ac-form .ac-chip, [data-ac-chip]'), null, 3000);
+    await page.keyboard.type(' to end', { delay: 20 });
+    const typed = await page.evaluate(() => { const n = document.querySelector('#ac-name'); return { v: n ? n.value : null, focus: document.activeElement && document.activeElement.id }; });
+    check('10 typing while the team\'s questions arrive keeps every letter and the caret', typed.v === 'Notice to end' && typed.focus === 'ac-name', JSON.stringify(typed));
+    await page.unroute('**/api/columns');
+    await page.click('[data-ac-cancel]').catch(() => {});
+
     /* ============ 8. A VIEWER ============ */
     const vp = await browser.newPage({ viewport: { width: 1440, height: 780 } });
     vp.on('pageerror', e => errors.push(String(e)));

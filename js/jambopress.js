@@ -460,6 +460,243 @@ if (typeof window !== 'undefined' && typeof setInterval === 'function' && !windo
   window._wtPoll = setInterval(() => { try { if (wtServer() && _wt.loaded && !(typeof document !== 'undefined' && document.hidden)) watchLoad(true); } catch (_){} }, 5 * 60 * 1000);
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   JAMBO AFTER THE SIGNATURE (round 2 of Jambo's journey, 22 Oct 2026; the
+   journey's steps 5 and 8). HERE, beside his other prepared presses: every
+   answer is a person's press on an existing door (js/triage.js, the arrival
+   reader, never opens a dialog itself, f273). Once, beside the Dossier of a contract signed in
+   the last SIGNED_TURN_DAYS, he says what it now asks of each side and when,
+   offers those dates as a file for your own calendar (HaTi's Calendar already
+   draws every one of them), sends you to the duties he found in the wording
+   that are not on the record yet, and — where your own rounds keep settling a
+   topic of this contract somewhere your standard does not say — offers the
+   standards page's own proposal. Free: every line is a reading (the Calendar's
+   own calendarEvents, triageHeldObligations, stdLearned). Nothing is written
+   to the signed record: "said" is this browser's convenience, so a signed
+   contract's frozen record is never touched. Every answer is an existing door.
+   ═══════════════════════════════════════════════════════════════════ */
+const SIGNED_TURN_DAYS = 14;
+const SIGNED_TURN_SHOW = 5;
+const SIGNED_TURN_LS = 'hati.v1.jbSigned';
+const _stLs = () => { try { const v = JSON.parse(localStorage.getItem(SIGNED_TURN_LS)); return v && typeof v === 'object' ? v : {}; } catch (_){ return {}; } };
+const _stLsPut = (k, v) => { try { const m = _stLs(); m[k] = v; localStorage.setItem(SIGNED_TURN_LS, JSON.stringify(m)); } catch (_){} };
+const _stToday = () => (typeof todayISO === 'function') ? todayISO() : new Date().toISOString().slice(0, 10);
+const _stDay = d => { try { return (typeof fmtDocDate === 'function') ? fmtDocDate(d) : d; } catch (_){ return d; } };
+function signedTurnExecuted(c){
+  try { return !!c && (typeof negoExecuted === 'function' ? !!negoExecuted(c) : c.status === 'Signed'); } catch (_){ return false; }
+}
+/* the dated things ahead on this contract: the Calendar's own reading, narrowed */
+function signedTurnDates(c){
+  if (!c || typeof calendarEvents !== 'function') return [];
+  const today = _stToday();
+  let all = []; try { all = calendarEvents() || []; } catch (_){ all = []; }
+  return all.filter(e => e && String(e.cid) === String(c.id) && !e.done && String(e.date || '') >= today
+      && (e.type === 'obligation' || e.type === 'expiry' || e.type === 'renewal'))
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+}
+/* the standards page's proposals (stdLearned) on the topics this contract settled */
+function signedTurnLearn(c){
+  if (!c || typeof stdLearned !== 'function' || typeof precedentTopicOf !== 'function') return null;
+  const me = (typeof currentUser === 'function') ? currentUser() : null;
+  const may = (typeof isAdmin === 'function' && isAdmin()) || !!(me && me.role === 'legal');
+  if (!may) return null;
+  const keys = new Set((Array.isArray(c.changes) ? c.changes : [])
+    .filter(ch => ch && ch.status === 'accepted').map(ch => { try { const t = precedentTopicOf(ch); return t && t.key; } catch (_){ return null; } }).filter(Boolean));
+  if (!keys.size) return null;
+  let L = null; try { L = stdLearned(); } catch (_){ L = null; }
+  const gone = _stLs();
+  const p = ((L && L.proposals) || []).find(x => x && keys.has(x.key) && !gone['learn:' + x.key + ':' + x.figure]);
+  return p || null;
+}
+/* THE ONE READING of what he says after the signature, or null where nothing is owed */
+function signedTurnOf(c){
+  if (!c || !signedTurnExecuted(c)) return null;
+  let day = null; try { day = (typeof contractSignedAt === 'function') ? contractSignedAt(c) : null; } catch (_){ day = null; }
+  day = String(day || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
+  const since = (Date.parse(_stToday() + 'T00:00:00') - Date.parse(day + 'T00:00:00')) / 864e5;
+  if (!(since >= 0 && since <= SIGNED_TURN_DAYS)) return null;
+  let held = 0; try { held = (typeof triageHeldObligations === 'function') ? (triageHeldObligations(c) || []).length : 0; } catch (_){ held = 0; }
+  return { dates: signedTurnDates(c), held, learn: signedTurnLearn(c) };
+}
+function signedTurnTurns(c, R){
+  R = R || signedTurnOf(c); if (!R) return [];
+  const cid = c.id;
+  const line = e => {
+    const who = e.type === 'expiry' ? _jpT('st_ends') : e.type === 'renewal' ? _jpT('st_decide')
+      : (e.theirs ? _jpT('st_they') : _jpT('st_you'));
+    const what = e.type === 'obligation' ? String(e.note || '').trim() : '';
+    return `<li><b>${_jpE(_stDay(e.date))}</b> ${_jpE(who)}${what ? ': ' + _jpE(what) : ''}</li>`;
+  };
+  const shown = R.dates.slice(0, SIGNED_TURN_SHOW), more = R.dates.length - shown.length;
+  const parts = [`<p>${_jpE(_jpT(R.dates.length ? 'st_head' : 'st_head_none'))}</p>`];
+  if (shown.length) parts.push(`<ul class="fr-list">${shown.map(line).join('')}</ul>` + (more > 0 ? `<p class="fr-more">${_jpE(_jpTn('fr_more', more, { n: more }))}</p>` : ''));
+  if (R.held) parts.push(`<p>${_jpE(_jpTn('st_held', R.held, { n: R.held }))}</p>`);
+  if (shown.length) parts.push(`<p>${_jpE(_jpT('st_on_cal'))}</p>`);
+  const choices = [];
+  if (R.held) choices.push({ label: _jpT('st_go_oblig'), fr: 'oblig', cid, lead: true });
+  if (R.dates.length){ choices.push({ label: _jpT('st_go_ics'), fr: 'ics', cid, lead: !R.held }); choices.push({ label: _jpT('st_go_cal'), fr: 'cal', cid }); }
+  const turns = [{ role: 'assistant', text: parts.join(''), choices: choices.length ? choices : null, signedTurn: cid }];
+  const p = R.learn;
+  if (p){
+    const was = p.preferredFigure != null ? p.preferredFigure : p.fallbackFigure;
+    turns.push({ role: 'assistant', signedTurn: cid,
+      text: `<p>${_jpE(_jpT('st_learn', { category: p.category, figure: p.figure, unit: p.unit || '', seen: p.seen, settled: p.settled }))}${
+        was != null ? ' ' + _jpE(_jpT('st_learn_was', { was, unit: p.unit || '' })) : ''}</p>`,
+      /* one filled button in the panel: the first turn's, where it has one */
+      choices: [{ label: _jpT('st_go_learn'), fr: 'learn', cid, lead: !choices.some(x => x.lead), clause: p.clause || '', key: p.key, figure: p.figure },
+        { label: _jpT('st_go_later'), fr: 'later', cid, key: p.key, figure: p.figure }] });
+  }
+  return turns;
+}
+/* asked as Home's panel paints: a contract signed lately, on its Dossier, not yet spoken about here */
+function signedTurnDue(){
+  try {
+    if (typeof pdOnPaper !== 'function' || !pdOnPaper() || typeof pdContract !== 'function') return false;
+    if (typeof pdFaceNow === 'function' && pdFaceNow()) return false;          // a face is open (the receipt, say): never over it
+    if (typeof pdTab === 'function' && pdTab() !== 'copilot') return false;    // only beside the Dossier
+    if (typeof canEdit === 'function' && !canEdit()) return false;
+    const c = pdContract(); if (!c || _stLs()['said:' + c.id]) return false;
+    if (typeof window.pdHandIn === 'function' && window.pdHandIn(c)) return false;   // never snatch the panel from a hand in it (js/paperdesk.js)
+    if (typeof intel !== 'object' || !intel || !Array.isArray(intel.history) || intel.busy) return false;   // not while an answer is on its way (firstReadDue)
+    const R = signedTurnOf(c); if (!R) return false;
+    if (!R.dates.length && !R.held && !R.learn) return false;
+    _stLsPut('said:' + c.id, _stToday());
+    signedTurnTurns(c, R).forEach(m => intel.history.push(m));
+    return true;
+  } catch (_){ return false; }
+}
+/* a press on his after-signature answers: the existing door, nothing more */
+function signedTurnPress(ch, m){
+  if (!ch) return false;
+  const c = (typeof getContract === 'function') ? getContract(ch.cid) : null;
+  if (!c) return false;
+  if (ch.fr === 'ics'){
+    const evs = signedTurnDates(c);
+    if (!evs.length || typeof calIcsFor !== 'function' || typeof downloadFile !== 'function') return true;
+    const ref = (typeof contractRef === 'function') ? contractRef(c) : c.id;
+    downloadFile(`hati-${String(ref).replace(/[^A-Za-z0-9_-]+/g, '-')}.ics`, calIcsFor(evs), 'text/calendar');
+    if (typeof toast === 'function') toast(_jpTn('cal_exported', evs.length, { n: evs.length }), 'ok');
+    return true;
+  }
+  if (ch.fr === 'cal'){ if (typeof CA_GO === 'object' && CA_GO && typeof CA_GO.calendar === 'function') CA_GO.calendar(); return true; }
+  if (ch.fr === 'oblig'){ if (m) m.choices = (m.choices || []).filter(x => x && x.fr !== 'oblig'); if (typeof runFindObligations === 'function') runFindObligations(c); return true; }
+  if (ch.fr === 'learn'){
+    if (m) m.choices = null;
+    if (typeof setView === 'function') setView('playbook');
+    if (ch.clause && typeof sdGoClause === 'function') try { sdGoClause(ch.clause); } catch (_){}
+    return true;
+  }
+  if (ch.fr === 'later'){
+    if (m) m.choices = null;
+    _stLsPut('learn:' + ch.key + ':' + ch.figure, _stToday());
+    if (typeof intel === 'object' && intel && Array.isArray(intel.history)) intel.history.push({ role: 'assistant', text: _jpE(_jpT('st_said_later')) });
+    return true;
+  }
+  return false;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   WHAT THE WEB SAYS ABOUT THEM (round 3 of Jambo's journey, 22 Oct 2026;
+   docs/PLAN-jambo-journey.md). The owner: "this should be simple internet
+   search to understand the company not the credit rating".
+   ONE DOOR, partyLookup (js/views/customers.js → POST /api/party-records/lookup):
+   pressed from Jambo's first words and from the Dossier's "On the web" line.
+   ONE BUILDER, partyWebHtml: his turn and the pop-up draw the same reading.
+   A press, its cost on the button; only the company's name leaves HaTi; a deal
+   kept to its list is never offered (and the server refuses it anyway). Every
+   failure says so where the reader looks.
+   ═══════════════════════════════════════════════════════════════════ */
+const PW_SAFE_URL = /^https?:\/\//i;
+const _pwHost = u => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (_){ return ''; } };
+/* may this contract's other side be looked up from here? */
+function partyWebMayFor(c){
+  const who = String((c && c.counterparty) || '').trim();
+  if (!c || !who || c._codeNamed || c.codeName) return false;
+  return typeof partyLookupMay === 'function' && !!partyLookupMay();
+}
+function partyWebKept(c){
+  const who = String((c && c.counterparty) || '').trim();
+  if (!who || typeof partyWebOf !== 'function' || typeof cuKeyOf !== 'function') return null;
+  return partyWebOf(cuKeyOf(who));
+}
+/* the button's words: free when it is already kept, else its cost */
+function partyWebChoice(c, extra){
+  const kept = partyWebKept(c);
+  return Object.assign({ label: _jpT(kept ? 'pw_go_seen' : 'pw_go_look'), fr: 'web', cid: c.id, title: _jpT('pw_cost') }, extra || {});
+}
+/* THE ONE BUILDER: facts with their sources, what could not be found, when and by whom */
+function partyWebHtml(who, w){
+  if (!w) return '';
+  const facts = Array.isArray(w.facts) ? w.facts : [];
+  const src = f => (Array.isArray(f.sources) ? f.sources : []).filter(s => s && PW_SAFE_URL.test(String(s.url || '')))
+    .map(s => `<a class="pw-src" href="${_jpE(s.url)}" target="_blank" rel="noopener noreferrer" title="${_jpE(s.title || s.url)}">${_jpE(_pwHost(s.url) || s.url)}</a>`).join(' ');
+  const parts = [`<p>${_jpE(_jpT(facts.length ? 'pw_head' : 'pw_none', { who }))}</p>`];
+  if (facts.length) parts.push(`<ul class="fr-list pw-list">${facts.map(f => `<li>${_jpE(f.text)} ${src(f)}</li>`).join('')}</ul>`);
+  if (w.missing) parts.push(`<p>${_jpE(_jpT('pw_missing', { what: w.missing }))}</p>`);
+  const n = Number(w.uncited || 0);
+  if (n > 0) parts.push(`<p class="fr-more">${_jpE(_jpTn('pw_uncited', n, { n }))}</p>`);
+  const day = w.at ? _stDay(String(w.at).slice(0, 10)) : '';
+  if (day) parts.push(`<p class="fr-more">${_jpE(w.by ? _jpT('pw_when_by', { day, by: w.by }) : _jpT('pw_when', { day }))}</p>`);
+  return parts.join('');
+}
+/* every way it can fail, said in plain words */
+function partyWebErrSay(e){
+  const d = (e && e.data) || {};
+  if (e && (e.needsKey || d.needsKey)) return _jpT('pw_err_key');
+  if (d.codeName) return _jpT('pw_err_code');
+  if (e && e.status === 404) return _jpT('pw_err_gone');
+  return _jpT('pw_err', { why: String((e && e.message) || '').trim() || '—' });
+}
+/* his answer to "Look them up online": a turn that waits, then says what he found */
+function partyWebPress(ch, m){
+  const c = (typeof getContract === 'function') ? getContract(ch && ch.cid) : null;
+  if (!c) return false;
+  if (m) m.choices = (m.choices || []).filter(x => x && x.fr !== 'web');
+  if (typeof intel !== 'object' || !intel || !Array.isArray(intel.history)) return false;
+  const who = String(c.counterparty || '').trim();
+  const turn = { role: 'assistant', text: (typeof busyHtml === 'function') ? busyHtml(_jpT('pw_busy', { who })) : _jpE(_jpT('pw_busy', { who })) };
+  intel.history.push(turn);
+  const said = () => { if (typeof renderIntelDock === 'function') try { renderIntelDock(); } catch (_){} };
+  Promise.resolve(typeof partyLookup === 'function' ? partyLookup(who) : null)
+    .then(r => { if (r && r.lookup) turn.text = partyWebHtml(who, r.lookup); else { turn.text = _jpE(_jpT('pw_err_off')); turn.err = true; } })
+    .catch(e => { turn.text = _jpE(partyWebErrSay(e)); turn.err = true; })
+    .then(said);
+  return true;
+}
+/* THE DOSSIER'S "ON THE WEB" LINE opens this: what is kept, and the press to look (again), cost on it */
+function partyWebOpen(id){
+  const c = (typeof getContract === 'function') ? getContract(id) : null;
+  if (!c || typeof openModal !== 'function') return false;
+  const who = String(c.counterparty || '').trim(); if (!who) return false;
+  let busy = false, err = '';
+  const paint = () => {
+    const host = document.getElementById('pw-dlg-b'); if (!host) return;
+    const kept = partyWebKept(c), may = partyWebMayFor(c);
+    host.innerHTML = (busy ? `<p>${(typeof busyHtml === 'function') ? busyHtml(_jpT('pw_busy', { who })) : _jpE(_jpT('pw_busy', { who }))}</p>`
+        : kept ? partyWebHtml(who, kept) : `<p>${_jpE(_jpT(may ? 'pw_not_yet' : 'pw_not_here', { who }))}</p>`)
+      + (err ? `<p class="pw-err" role="alert">${_jpE(err)}</p>` : '');
+    const go = document.querySelector('[data-pw-go]');
+    if (go){ go.hidden = !may; go.disabled = busy; go.textContent = _jpT(kept ? 'pw_again' : 'pw_go_look'); }
+  };
+  openModal(`<div class="p-6 pw-dlg"><h3 class="font-serif font-600 text-lg text-ink">${_jpE(_jpT('pw_title', { who }))}</h3>
+      <div id="pw-dlg-b" class="jl-bub"></div>
+      <div class="flex justify-end gap-2 mt-4"><button type="button" class="ui-btn" data-pw-go title="${_jpE(_jpT('pw_cost'))}"></button><button type="button" class="ui-btn ui-btn-primary" data-pw-done>${_jpE(_jpT('og_done'))}</button></div></div>`,
+    { label: _jpT('pw_title', { who }), onClose: () => { setTimeout(() => { if (typeof renderIntelDock === 'function') try { renderIntelDock(); } catch (_){} }, 0); } });
+  paint();
+  document.querySelector('[data-pw-done]')?.addEventListener('click', () => { if (typeof closeModal === 'function') closeModal(); });
+  document.querySelector('[data-pw-go]')?.addEventListener('click', () => {
+    if (busy) return; busy = true; err = ''; paint();
+    Promise.resolve(typeof partyLookup === 'function' ? partyLookup(who, { again: !!partyWebKept(c) }) : null)
+      .then(r => { if (!(r && r.lookup)) err = _jpT('pw_err_off'); })
+      .catch(e => { err = partyWebErrSay(e); })
+      .then(() => { busy = false; paint(); });
+  });
+  return true;
+}
+
+Object.assign(window, { PW_SAFE_URL, partyWebMayFor, partyWebKept, partyWebChoice, partyWebHtml, partyWebErrSay, partyWebPress, partyWebOpen });
+Object.assign(window, { SIGNED_TURN_DAYS, SIGNED_TURN_SHOW, signedTurnOf, signedTurnTurns, signedTurnDue, signedTurnPress, signedTurnDates, signedTurnLearn });
 Object.assign(window, { jpIdsOf, jpPressOf, jpShowOf, jpActOf, jpChaseOf, jpClauseIn, jpHtml, jpTurnOf, jpShowRun, jpActRun, jpShowContract, jpPress, jpWire, JP_PAPER_LINE,
   WT_KINDS, watchLoad, watchesAll, watchesLoaded, watchGet, watchesFired, watchCreate, watchPause, watchSeen, watchDelete, watchChanged,
   watchAsks, watchRead, watchDayOf, watchContractOf, watchWords, watchFiredWords, watchGo, watchAskHtml, watchListHtml, watchListOpen, watchTurnFor, watchAskHere, watchStart });

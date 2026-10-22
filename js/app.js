@@ -67,6 +67,8 @@ import './draft.js';    // draft from a sentence: it picks from your own paper a
 import './adviserlink.js';   // send two clauses to an outside adviser: a fifth link purpose (upgrade 9)
 import './mine.js';             // a person's own calendar events and private notes: one store, private to them (10 Oct 2026)
 import './jambopress.js';       // Jambo's Show me ›, the one prepared press under an answer, and his standing watches (21 Oct 2026)
+import './push.js';            // alerts on your phone: the switch's one reading and its presses (round 4 of Jambo's journey, 22 Oct 2026)
+import './navmap.js';          // navigable by typing: the things inside the places, read and landed (22 Oct 2026)
 import './views/calendar.js';
 import './views/mynotes.js';
 import './views/breakdown.js';   // Home's Breakdown face: the whole contract in regions (11 Oct 2026)     // My notes: the private ledger (10 Oct 2026)

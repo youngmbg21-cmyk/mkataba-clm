@@ -91,7 +91,9 @@ describe('f733 (4) a line on our row, nothing more', () => {
        changed words where the change carries its ops (rlRowLineHtml) and a
        held clause's lock line follows; the keeps line still sits under the
        summary and its reason, above the verbs */
-    assert.match(NEGO, /keeps = rlRowKeepsHtml\(c, ch, side\), lock = rlRowLockHtml\(c, ch, side\), line = rlRowLineHtml\(ch, sub, fromRiskRow\);\s*return \(why \|\| keeps \|\| lock\) \? `<div class="rl-card-sumw">\$\{line\}\$\{why\}\$\{keeps\}\$\{lock\}<\/div>`/,
+    /* RE-POINTED 22 Oct 2026 (round 2 of Jambo's journey): Jambo's read on
+       their ask (rlRowReadHtml) rides between the reason and the keeps line */
+    assert.match(NEGO, /keeps = rlRowKeepsHtml\(c, ch, side\), lock = rlRowLockHtml\(c, ch, side\), line = rlRowLineHtml\(ch, sub, fromRiskRow\), read = rlRowReadHtml\(c, ch, side\);\s*return \(why \|\| keeps \|\| lock \|\| read\) \? `<div class="rl-card-sumw">\$\{line\}\$\{why\}\$\{read\}\$\{keeps\}\$\{lock\}<\/div>`/,
       'under the summary and its reason, above the verbs');
     const f = NEGO.slice(NEGO.indexOf('function negoKeepsTheirs('), NEGO.indexOf('function rlRowWhyHtml('));
     assert.doesNotMatch(f, /negoFileChange|changes\.push|toast\(|confirmDialog|api\(/);

@@ -69,7 +69,8 @@ describe('f711 (1) the row', () => {
        clause's lock line rides with the reason, still above the buttons;
        RE-POINTED 18 Oct 2026: a half-undone counter's lines (f733) ride in
        the same block */
-    assert.match(NV, /const why = rlRowWhyHtml\(ch\), keeps = rlRowKeepsHtml\(c, ch, side\), lock = rlRowLockHtml\(c, ch, side\), line = rlRowLineHtml\(ch, sub, fromRiskRow\);\s*return \(why \|\| keeps \|\| lock\) \? `<div class="rl-card-sumw">\$\{line\}\$\{why\}\$\{keeps\}\$\{lock\}<\/div>` : line;/);
+    /* RE-POINTED 22 Oct 2026 (round 2 of Jambo's journey): Jambo's read on their ask rides in the same block */
+    assert.match(NV, /const why = rlRowWhyHtml\(ch\), keeps = rlRowKeepsHtml\(c, ch, side\), lock = rlRowLockHtml\(c, ch, side\), line = rlRowLineHtml\(ch, sub, fromRiskRow\), read = rlRowReadHtml\(c, ch, side\);\s*return \(why \|\| keeps \|\| lock \|\| read\) \? `<div class="rl-card-sumw">\$\{line\}\$\{why\}\$\{read\}\$\{keeps\}\$\{lock\}<\/div>` : line;/);
     assert.match(CSS, /\.redline-page \.rl-card-d \.rl-card-id\{display:none\}/);
     assert.match(CSS, /\.redline-page \.rl-card-d \.rl-card-sumw\{grid-column:1 \/ -1;grid-row:2;min-width:0\}/);
   });

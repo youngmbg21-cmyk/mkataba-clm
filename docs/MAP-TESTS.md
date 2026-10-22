@@ -62,6 +62,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f193–f199, f331, f335, new-person-grants verify.
 
 ## THE SHELL — RAIL, BAR, PANELS
+- Words sent while Jambo is still answering wait their turn (22 Oct 2026): f862 (red at the parent), jambo-asks-in-turn verify (red at the parent 1a–1c, 2a–2b), f804 8b4 re-pointed.
 - 21 Oct 2026 (overnight): send-to-a-colleague-verify 1i ("write an email to X summarising the above" opens the send screen, no model); jambo-slides-in-verify 6c (Home's box answers "What am I looking at?" free); control-room-in-full-verify 7b/7c ("upload a contract" / "new contract" in Settings go to Home's Jambo).
 - ONE JAMBO CONVERSATION EVERYWHERE (21 Oct 2026): `test/chromium/jambo-one-conversation-verify.js` (red at cb1aa4ba: Home, Settings and the side panel kept three conversations); f840 2c re-pointed (another contract keeps the conversation). No light on arrival: f445 (5), `land-on-it-verify.js` 1b/2b/3b/5c re-pointed.
 - the-brief-and-sap-history verify (Jambo's panel as "The Brief" and History "the SAP way", 21 Oct 2026: 25 checks, 19 red at 0392ded7; its controls are the paper strip's line, every entry drawn, the three screens, no page errors); f804, f830, f394, f840 (the 384 width and the named foot).
@@ -97,7 +98,9 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f705, jambo-map-verify.
 
 - Jambo finds the way (22 Oct 2026): f738 (red at the parent 1b, 1c, (2)–(5)), f705 1a, jambo-finds-the-way verify.
+- Held-out sentences taught (22 Oct 2026): f738 (7) (7a red at the parent).
 ## STAKES — THE CLAUSES TAB CARRIES THE DEEP READ
+- A missing point inside its clause (22 Oct 2026): clauses-legora-way-verify 5/5b (red at the parent: 2, 5, 5b), stakes-verify 3/3h, clause-list-fixed-verify 4 (+ photos at the three screens).
 - stakes-verify, point-buttons-and-brief verify, jambo-pill-and-window 3a, f668, f671, f277.
 - clauses-legora-way-verify (merged twin counted once, worst-first order, the dive walks the same order, badge = need you, Mark reviewed persists through the server and drops the count, missing row in place; 1/12 at d7a320c2). stakes-verify and point-buttons-and-brief-verify re-pointed to the card anatomy.
 
@@ -138,6 +141,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## ASK A COLUMN (js/views/askcolumn.js)
 - f843, ask-a-column verify.
+- Typing while the team's questions arrive (22 Oct 2026): ask-a-column verify 10 (red at the parent: the caret went to the question box, "Notice ").
 
 ## CONTRACTS AND NEGOTIATIONS ARE ONE TABLE (renderRegister)
 - f97, f240, f258, f281–f283, f324, f346, f350, f378, f379, f397, f687, f693, f715, f740, f741; contracts-page, contracts-stage-tabs, counterparty-leads, every-door-lands-on-home, wall-of-papers, home-held-contract verify.
@@ -254,6 +258,10 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## COPILOT READS A CONTRACT ON ARRIVAL, AND FILLS ITS BLANKS
 - f273, f327, f342, f343, f697, auto-triage, blanks-panel, upload-blanks, jambo-behind-the-wall verify.
+- Round 2 of Jambo's journey (22 Oct 2026): f863 (red at the parent ff39067, 17 of 17 but the kept playbook-range rule), test/chromium/jambo-round-two-verify (19 checks: the row's read and Why?, after the signature, the calendar file, the standards proposal, once, the three screens); f711 (1c) and f733 (4) re-pointed.
+- Round 3 of Jambo's journey (22 Oct 2026), the web search on the other side: f864 (red at the parent 3e97026, every test; three that first passed there vacuously now prove the route, the record and the offer exist first), test/chromium/jambo-looks-them-up-verify (25 checks: the Dossier's On the web line and its pop-up, the press waiting, facts with their source links, the uncited line left out and counted, only the name sent, his first words' offer and answer, the owner's three screens).
+- Round 4 of Jambo's journey (22 Oct 2026), alerts on your phone: f865 (red at the parent b60d16c, every test), test/chromium/alerts-on-your-phone-verify (15 checks: the Settings row and switch, the helper registered at /sw.js, the first alert received by a stand-in push service and opened with the device's key, the helper showing an alert and opening only HaTi's own address, the phone's sheet turning it off, the three screens); f780 5b re-pointed (the new row).
+- Jambo speaks first on an upload (22 Oct 2026): f862 (red at the parent ff908e4, 18 of 18), test/chromium/jambo-speaks-first-verify (20 checks: a real drop, the real reading, every press, once across a refresh, the three screens).
 
 ## OVERVIEW 2 — THE TIME MACHINE (js/views/overview2.js)
 - f558.
@@ -296,6 +304,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f274, f322–f324, f344, f358, f390, f399, f400, f412, f413, f560, f564, f659, agents-page, brain-page, brain-lanes, brain-stack, no-link-to-sign verify.
 
 ## PERFORMANCE — THE BOOK IS WALKED ONCE
+- The Board → Paper switch (22 Oct 2026): home-speed-verify check 1 at a real 430 book (check 3 red on purpose, BUGLOG); every-door-lands-on-home, counter-as-drawn, page-jumps, legora-lists, board-keeps-your-place, keeps-your-place, refresh-keeps-your-spot, wall-of-papers, open-in-place.
 - f356, f357, f656, home-speed, long-contract-moves verify.
 
 ## THE OVERNIGHT CLEAN-UP RULES, THE OVERNIGHT RUN, THE OWNER'S OPEN ITEMS (26–28 Sep)
@@ -306,3 +315,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE WORD FILE WE WRITE, AND THE PAGE MEASURE
 - f252, f288, keeps-your-place-verify.
+
+## NAVIGABLE BY TYPING (owner, 22 Oct 2026; docs/PLAN-navigable-by-typing.md)
+- The exam: test/nav-exam.js (194 asks) over test/nav-world.js, typed by test/chromium/nav-exam-verify.js into the real boxes; a measurement with a ratchet (`NAV_EXAM_FLOOR`). Before anything was built: 81 of 194.
+- After stages 1–4 (js/navmap.js): 188 of 194; the ratchet stands at 194 (201 of 202 with the compare section); after a change to the compare reader also run sap-popups, grey-not-dead, counterparty-reading-and-more. Run one section with `NAV_EXAM_ONLY=<section>`. A change to how Jambo reads words also runs: answer-where-you-stand, board-says-it-plain, board-words, choices-when-unclear, every-door-lands-on-home, jambo-everywhere, jambo-finds-the-way, jambo-map, jambo-moves-and-opens, jambo-words, ref-in-my-question, show-it-here-first, held-contract-asks, jambo-follows-the-ask, home-board, jambo-chat-window, one-recipe-language, jambos-list-panel.

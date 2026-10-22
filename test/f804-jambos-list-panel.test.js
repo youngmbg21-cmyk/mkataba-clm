@@ -319,7 +319,7 @@ describe('f804 (7) a party\'s rows read whole in Jambo\'s panel', () => {
    ═══════════════════════════════════════════════════════════════════════════ */
 describe('f804 (8) the ask reads the way the Counter\'s does', () => {
   const drive = (q, over = {}) => {
-    const b = world([fixture('MK-1')]);
+    const b = over.pre || world([fixture('MK-1')]);
     b.win.renderRegister();
     const got = [];
     b.win.caReadPlace = over.caReadPlace || (() => null);
@@ -391,15 +391,24 @@ describe('f804 (8) the ask reads the way the Counter\'s does', () => {
     assert.equal(P.got[1][2], 'Which contract did you mean?');
     assert.ok(!P.got.some(g => g[0] === 'go' || g[0] === 'home' || g[0] === 'model'), JSON.stringify(P.got));
   });
-  test('8b4 a Jambo still answering takes nothing: it says so (warn) and the words stay', () => {
-    const { r, got, toasts } = drive('which ones are waiting on us?', { busy: true,
+  /* RE-POINTED 22 Oct 2026 (owner: "fix the bug where Jambo drops questions
+     while busy"; was "a Jambo still answering takes nothing: it says so"): the
+     question waits its turn (jamboAskLater) and is asked here again once he is free */
+  test('8b4 a Jambo still answering takes the question for later, asked here again', () => {
+    const later = [];
+    const hold = b => { b.win.jamboAskLater = (q, busy, run) => { later.push({ q, busy, run }); return true; }; };
+    const one = (q, over) => { const b0 = world([fixture('MK-1')]); hold(b0); return drive(q, Object.assign({ pre: b0 }, over)); };
+    const { r, got } = one('which ones are waiting on us?', { busy: true,
       hbAskReadingOf: () => ({ road: 'free', kind: 'dig', r: { act: 'dig', key: 'f:us' } }), hbAskFound: () => ({ ids: [], say: 'x' }) });
-    assert.equal(r, false, 'false: the box keeps the words');
+    assert.equal(r, 'later', 'the box lets the words go: they wait');
     assert.ok(!got.length, JSON.stringify(got));
-    assert.ok(toasts.some(x => x.kind === 'warn' && /still answering/.test(x.msg)), JSON.stringify(toasts));
-    const m = drive('which clause worries you most?', { busy: true });
-    assert.equal(m.r, false, 'a question for the model, too');
+    assert.equal(later.length, 1); assert.equal(later[0].q, 'which ones are waiting on us?');
+    assert.equal(later[0].busy(), true, 'it waits on the same Jambo');
+    const m = one('which clause worries you most?', { busy: true });
+    assert.equal(m.r, 'later', 'a question for the model, too');
     assert.ok(!m.got.some(g => g[0] === 'model'));
+    m.b.win.ai.busy = false; later[1].run(later[1].q);
+    assert.ok(m.got.some(g => g[0] === 'model' && g[1] === 'which clause worries you most?'), 'free again, it is asked: ' + JSON.stringify(m.got));
   });
   test('8c a question nothing reads free is said in the panel: one call, the cost on the hover', () => {
     const { r, got } = drive('which clause worries you most?');
