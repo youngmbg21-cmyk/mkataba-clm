@@ -74,7 +74,7 @@ ask('import', { page: 'import' });
 ask('take me to import', { page: 'import' });
 ask('settings', { page: 'settings' });
 ask('open settings', { page: 'settings' });
-ask("jambo's work", { page: 'agents' });
+ask("jambo's work", [{ page: 'agents' }, { page: 'board' }]);   // the Board's Jambo's work card is its door (land-on-it 1a)
 ask('what needs me', { page: 'board' });
 
 /* ---------- 2 · A NAMED CONTRACT AND WHAT STANDS BESIDE IT ---------- */
@@ -157,7 +157,8 @@ ask('all our contracts with Juno', { page: 'contracts', filters: { party: 'juno 
 ask('contracts ending this year', { page: 'contracts', filters: { ending: 'year' } });
 ask('signed contracts in Sales', { page: 'contracts', filters: { stage: 'signed', stream: 'sales' } });
 ask('contracts ending this quarter in Distribution', { page: 'contracts', filters: { ending: 'quarter', stream: 'dist' } });
-ask('which contracts end this quarter', { page: 'contracts', filters: { ending: 'quarter' } });
+/* "which contracts …?" is a question answered by Jambo (home-and-recent 3g), so the trip is asked as one */
+ask('show me the contracts that end this quarter', { page: 'contracts', filters: { ending: 'quarter' } });
 ask('contracts in Marketing', { page: 'contracts', filters: { stream: 'mktg' } });
 ask('under review in Sales', { page: 'contracts', filters: { stage: 'review', stream: 'sales' } });
 
@@ -176,6 +177,19 @@ ask('set someone to cover for me', { page: 'settings', settings: { tab: 'you', r
 ask('my name and job title', { page: 'settings', settings: { tab: 'you', row: 'who' } });
 ask('download a copy of my data', { page: 'settings', settings: { tab: 'you', row: 'data' } });
 ask("jambo's suggestions under his box", { page: 'settings', settings: { tab: 'you', row: 'work' } });
+
+/* ---------- 6b · ONE CONTRACT AGAINST ITS ORIGINAL (owner, 22 Oct 2026: "The screen you shared is perfect as the
+   answer for comparison") — its Compare versions screen, first version against the current wording ---------- */
+section('compare');
+/* the contract in front (MK-Z9) has one version so far: its own screen says so */
+ask('show me the differences in the original contract compared to the current approved contract?', { page: 'paper', cid: 'MK-Z9', pane: 'compare-one' });
+ask('show me the differences in MK-A1 compared to the original', { page: 'paper', cid: 'MK-A1', pane: 'compare' });
+ask('what changed in the Kabras supply deal since the original?', { page: 'paper', cid: 'MK-A1', pane: 'compare' });
+ask('compare MK-A1 with its original version', { page: 'paper', cid: 'MK-A1', pane: 'compare' });
+ask('differences between the original and the current Kabras contract', { page: 'paper', cid: 'MK-A1', pane: 'compare' });
+ask('the refined sugar supply: current versus original', { page: 'paper', cid: 'MK-A1', pane: 'compare' });
+ask('jämför MK-A1 med originalet', { page: 'paper', cid: 'MK-A1', pane: 'compare' });
+ask('vad har ändrats i MK-A1 sedan originalet?', { page: 'paper', cid: 'MK-A1', pane: 'compare' });
 
 /* ---------- 7 · SETTINGS: THE COMPANY, A PERSON, A STREAM ---------- */
 section('settings: company');
@@ -206,7 +220,7 @@ ask('the standards for supply agreements', { page: 'standards', item: 'supply' }
 ask('the payment terms standard', { page: 'standards', item: '_default', row: 'paymentDays' });
 ask('our lease standards', { page: 'standards', item: 'lease' });
 ask('the confidentiality standard for services', { page: 'standards', item: 'services', row: 'Confidentiality' });
-ask('the NDA template', { page: 'templates', item: 'nda' });
+ask('the NDA template', { page: 'templates', item: 'nda|non-disclosure' });   // the built-in NDA is named Mutual Non-Disclosure Agreement
 ask('open the supply agreement template', { page: 'templates', item: 'supply' });
 ask('our lease template', { page: 'templates', item: 'lease' });
 
@@ -241,7 +255,8 @@ ask('take me to MK-A2', { page: 'paper', cid: 'MK-A2' }, { box: 'builder' });
 ask('go to our standards', { page: 'standards' }, { box: 'builder' });
 ask('open MK-A1', { page: 'paper', cid: 'MK-A1' }, { box: 'phone' });
 ask('take me to obligations', { page: 'obligations' }, { box: 'phone' });
-ask("Juno's folder", { page: 'parties', party: 'juno logistics' }, { box: 'phone' });
+/* the phone has no Parties page: a party's folder there is its Contracts list narrowed to them */
+ask("Juno's folder", [{ page: 'parties', party: 'juno logistics' }, { page: 'contracts', filters: { party: 'juno logistics' } }], { box: 'phone' });
 
 /* ---------- 11 · ON THE BOARD, "TAKE ME TO" MOVES ---------- */
 section('board moves');
