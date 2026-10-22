@@ -168,12 +168,15 @@ const LAND = () => {
     /* the contract's Lifeline strip on top of the Board (step 8), and its page */
     strip: (() => { const n = document.querySelector('#bs-strips > .bs-strip'); return n ? n.getAttribute('data-bs-id') : null; })(),
     stripPage: (() => { const n = document.querySelector('#bs-strips > .bs-strip'); return n ? n.getAttribute('data-bs-on') : null; })(),
+    /* Key terms standing in the middle (since the Details page retired, 22 Oct 2026), and its Move open */
+    kt: !!document.querySelector('[data-pd-mid-kt]'),
+    ktMove: !!document.querySelector('[data-pd-kt-move][aria-pressed="true"]'),
   };
 };
-const KEY = L => [L.view, L.room, L.negPage, L.face, L.paper, L.pd, L.tab, L.og, L.cv, L.wall, L.only, L.place, L.show, L.stage, L.strip, L.stripPage, L.obCid, L.obSel, L.ceRisks].join('|');
+const KEY = L => [L.view, L.room, L.negPage, L.face, L.paper, L.pd, L.tab, L.og, L.cv, L.wall, L.only, L.place, L.show, L.stage, L.strip, L.stripPage, L.obCid, L.obSel, L.ceRisks, L.kt, L.ktMove].join('|');
 const SAY = L => `${L.view}${L.face && L.view === 'dashboard' ? '/' + L.face : ''}${L.paper ? ' paper ' + L.paper : ''}${L.pd ? ' face ' + L.pd : ''}`
   + `${L.view === 'dashboard' && L.face === 'paper' && L.paper && !L.pd ? ' tab ' + L.tab : ''}${L.cv && L.face === 'board' ? ' view ' + L.cv : ''}`
-  + `${L.view === 'obligations' && L.obCid ? ' narrowed to ' + L.obCid + (L.obSel ? ' row ' + L.obSel : '') : ''}${L.place && !L.paper && L.face === 'paper' ? ' Contracts ' + (L.show || '?') + (L.stage && L.stage !== 'all' ? ' tab ' + L.stage : '') + (L.only ? ' (' + L.only + ' sent' + (L.wall ? ', "' + L.count + '"' : '') + ')' : '') : ''}${L.obSel && L.face === 'board' ? ' row ' + L.obSel : ''}${L.strip && L.face === 'board' && L.view === 'dashboard' && (!L.cv || /^book:/.test(L.cv)) ? ' strip ' + L.strip + ' (' + L.stripPage + ')' : ''}${L.room ? ' ROOM' : ''}${L.negPage ? ' NEGOTIATE-PAGE' : ''}`;
+  + `${L.view === 'obligations' && L.obCid ? ' narrowed to ' + L.obCid + (L.obSel ? ' row ' + L.obSel : '') : ''}${L.place && !L.paper && L.face === 'paper' ? ' Contracts ' + (L.show || '?') + (L.stage && L.stage !== 'all' ? ' tab ' + L.stage : '') + (L.only ? ' (' + L.only + ' sent' + (L.wall ? ', "' + L.count + '"' : '') + ')' : '') : ''}${L.obSel && L.face === 'board' ? ' row ' + L.obSel : ''}${L.strip && L.face === 'board' && L.view === 'dashboard' && (!L.cv || /^book:/.test(L.cv)) ? ' strip ' + L.strip + ' (' + L.stripPage + ')' : ''}${L.kt ? ' KEY-TERMS' + (L.ktMove ? ' (Move open)' : '') : ''}${L.room ? ' ROOM' : ''}${L.negPage ? ' NEGOTIATE-PAGE' : ''}`;
 /* the room and the Negotiate page drawn on any frame between the press and the landing */
 const WATCH = () => {
   window._door = { room: false, neg: false };
@@ -199,6 +202,8 @@ const E = {
   red: id => L => E.paper(id)(L) && L.pd === 'red',
   signing: id => L => E.paper(id)(L) && L.pd === 'signing',
   obTab: id => L => E.paper(id)(L) && L.pd === '' && L.tab === 'oblig',
+  /* RE-POINTED 22 Oct 2026 (the Details page RETIRED): Key terms in the middle beside the paper */
+  kt: (id, move) => L => E.paper(id)(L) && L.kt && (!move || L.ktMove),
   /* RE-POINTED 15 Oct 2026 (owner: the contract's views went): a door that
      opened the Board's view lands on its home — Obligations on the panel's
      tab, History on the strip's History page, the rest on Where we are */
@@ -223,7 +228,7 @@ const E = {
 const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'the Dossier beside the paper, Still owed\'s row in the hand', red: 'Redlines beside the paper',
   signing: 'Before you sign beside the paper', obTab: 'the paper, Jambo\'s Obligations tab', obPage: 'the Obligations page, narrowed to the contract', board: 'its home (the Obligations page or the strip)', wall: 'Home\'s Contracts place, the Wall',
   list: 'Home\'s Contracts place, the List',
-  strip: 'its strip on the Board', stripWhere: 'its strip on the Board, on Where we are', stripDetails: 'its strip on the Board, on Details (the Overview\'s sheet)' };
+  strip: 'its strip on the Board', stripWhere: 'its strip on the Board, on Where we are', stripDetails: 'its strip on the Board, on Details (the Overview\'s sheet)', obTab: 'its paper on Home, on the Obligations tab', kt: 'its paper on Home, Key terms in the middle' };
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
@@ -499,7 +504,7 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
       refused: id => ({ expect: E.signing(id), says: SAYS.signing }), sign: id => ({ expect: E.signing(id), says: SAYS.signing }),
       quiet: id => ({ expect: E.red(id), says: SAYS.red }), review: id => ({ expect: E.red(id), says: SAYS.red }), suggest: id => ({ expect: E.red(id), says: SAYS.red }),
       look: (id, view) => ({ expect: L => L.view === view && !L.room, says: 'answered where it stands (Done)', same: true }),
-      renewal: id => ({ expect: E.strip(id, 'details'), says: SAYS.stripDetails + ', its renewal card' }),
+      renewal: id => ({ expect: E.obTab(id), says: SAYS.obTab + ', where the renewal is decided' }),
       note: id => ({ expect: E.paper(id), says: 'beside Home\'s paper, the notes drawer open' }),
       join: id => ({ expect: E.strip(id), says: SAYS.strip + ', the desk sheet over it' }),
     };
@@ -592,7 +597,7 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
        draft) opens its strip too */
     const BELL_ROOM = ['cp-ready', 'look', 'cert-lapsed', 'desk-join', 'renewal'];
     const roomRow = a => BELL_ROOM.includes(a.kind) || (a.kind === 'request' && !!a.id);
-    const stripRow = a => a.kind === 'renewal' ? E.strip(a.id, 'details') : E.strip(a.id);
+    const stripRow = a => a.kind === 'renewal' ? E.obTab(a.id) : E.strip(a.id);
     /* one row of every kind the bell draws on this book, and every approval row (step 2's own door) */
     const alerts = await page.evaluate(() => buildAlerts().map((a, i) => ({ i, kind: a.kind, id: a.id })));
     const seen = new Set();
@@ -607,7 +612,7 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
             const b = i >= 0 ? document.querySelector(`#context-panel [data-alert-i="${i}"]`) : null; if (!b) return false; b.click(); return true; }, a);
         },
         expect: roomRow(a) ? stripRow(a) : (want || (L => !L.room && !L.negPage)),
-        says: roomRow(a) ? (a.kind === 'renewal' ? SAYS.stripDetails : SAYS.strip) : want ? 'its place on Home' : 'anywhere but the room' });
+        says: roomRow(a) ? (a.kind === 'renewal' ? SAYS.obTab : SAYS.strip) : want ? 'its place on Home' : 'anywhere but the room' });
     }
     if (!alerts.some(a => a.kind === 'approval')) record(C, 'approval row present', false, 'no approval row on this book', 'the fixture lost its approval');
     /* EVERY ROOM-BOUND KIND IS DRAWN AND PRESSED (step 8 seeded the three
@@ -800,7 +805,7 @@ const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 't
       await page.evaluate(() => document.querySelectorAll('#ig-dock .ds-fold').forEach(d => { d.open = true; })); };
     const items = await (async () => { await menuOpen('MK-A2')(); return page.evaluate(m => [...document.querySelectorAll(m + ' button')].map(b => b.id).filter(Boolean), MN); })();
     console.log(`  the dossier's All acts on Home's paper holds: ${items.join(' ')}`);
-    await door(EM, 'Filing and stream (MK-A2)', { start: menuOpen('MK-A2'), press: () => domClick(MN + ' #ws-filing'), expect: E.strip('MK-A2', 'details'), says: SAYS.stripDetails + ', its filing rows' });
+    await door(EM, 'Filing and stream (MK-A2)', { start: menuOpen('MK-A2'), press: () => domClick(MN + ' #ws-filing'), expect: E.kt('MK-A2', true), says: SAYS.kt + ', its filing line with Move open' });
     await door(EM, 'Delete (MK-DEL)', { start: menuOpen('MK-DEL'),
       press: async () => { if (!(await domClick(MN + ' #ws-delete'))) return false;
         const conf = await waitFor(page, () => [...document.querySelectorAll('button')].some(b => /^Delete/.test(b.textContent.trim()) && b.closest('.modal-overlay, #confirm-overlay, [role="dialog"]')), 4000);

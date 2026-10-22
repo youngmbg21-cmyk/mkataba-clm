@@ -21430,3 +21430,8 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 
 ## Noticed, not fixed (22 Oct 2026, Key terms the Legora way)
 - ktFolderMove ends with a bare `toast(i18t('ct_refile_done',…))` (no kind), so "Moved to …" prints nothing after a re-file (A BARE toast(msg) PRINTS NOTHING); the move itself is written and audited.
+
+## The Details page retired (22 Oct 2026)
+- Removed (owner's yes, "yes to both"): the Lifeline strip's Details page on a computer; its doors now open Key terms in the middle, the Obligations tab, or the Dossier. The sheet still draws in the room opened by name and on the phone.
+- Noticed, not fixed: home-held-contract-verify 1a's "Show more" press failed once with "Element is not attached to the DOM" (the wall repainted under the click) and passed on the next run.
+- Noticed, not fixed: CLAUDE.md is about 84.6 KB, above its "about 80 KB" limit (it was 84.2 KB before this change); a trim needs the owner's yes.

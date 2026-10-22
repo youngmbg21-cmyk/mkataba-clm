@@ -1710,6 +1710,9 @@ function needsYouGo(kind, id){
      card, which is the contract strip's Details page on Home's Board now
      (roomOverviewOpen: the room only on the phone); a given note opens beside
      Home's paper, where the notes drawer lives (the paper's Notes door). */
+  /* THE DETAILS PAGE IS RETIRED (owner, 22 Oct 2026): the renewal and its decision card stand at the top
+     of the Obligations tab beside the paper (the Legora way); the phone keeps the room's own */
+  if(kind==='renewal' && window.pdOpenOnHome && !(window.innerWidth&&window.innerWidth<768) && pdOpenOnHome(c.id,'oblig')!==false) return true;
   if(kind==='renewal' && window.roomOverviewOpen){
     roomOverviewOpen(c);
     return true;

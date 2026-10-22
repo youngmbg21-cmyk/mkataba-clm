@@ -16,6 +16,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE OVERVIEW — READ DOWN, ONE SHEET
 - f176, f178, f280, f325, f351, f352, f359 (10), f361, f362, f442, duties-map, edit-keeps-the-card, overview-as-drawn, refile-a-contract, overview-and-obligations-polish verify.
+- THE DETAILS PAGE RETIRED (22 Oct 2026): key-terms-legora-way-verify parts 7 (Category on the filing line) and 8 (every old door: Overview, name, an unnamed term, filing, a renewal, a kept 'details' page) — red at 81d5988. Re-pointed to the room by name: duties-map, edit-keeps-the-card (Edit keeps the card's height), details-owes-overview-edits 4, signing-without-the-facts 2, uploaded-contract-fixed 4; to Key terms: code-names 1–4, contract-page 5, pay-section 4, nda-tail 4, home-held-contract 6l–6u, fill-the-document 6; board-strip 6a–10c; inspector-checklist 3d, 8f, 8h (the Obligations tab).
 
 ## AN AMENDMENT IS WRITTEN HERE (js/family.js)
 - f170, f176, f193, f544, amendment-journey, amendment-blanks-and-clauses, menu-and-amend verify.

@@ -21,6 +21,8 @@
        through the one re-filer's question; Set opens the code-name dialog; +
        Add a party opens the party editor
      5 a reader who may not edit sees no Change, Move, Add, Read or Rename
+     7 Category in the filing line, its Change the company's list (owner's yes, 22 Oct 2026)
+     8 the Details page retired: every door that went there lands on its new home
      6 round 2, the SAP way: the title is the contract's name with Rename beside it, the record
        (Status · Signed · Filed by · Last changed) in the head; Rename writes through the name box
    Red at the parent (2a39d1b): the sheet has no "Where on the paper", no filing
@@ -115,8 +117,9 @@ const UPLOAD_TEXT = 'MASTER SERVICES AGREEMENT\n\nThis agreement is made between
         check(`2a ${at} a drafted paper: a set term says "From the template", an empty one "Not in the wording"`,
           !!ct && ct.cells[2] === 'From the template' && !!law && law.cells[1] === '—' && law.cells[2] === 'Not in the wording',
           JSON.stringify({ ct: ct && ct.cells, law: law && law.cells }));
-        check(`3a ${at} the filing is one line in the head: reference · stream Move · template · owner, raised · code name Set`,
-          !!S && S.fileInHead && /^MK-A2 · .+ Move · Raw Material Supply Agreement · Amina Otieno, raised .+ · No code name Set$/.test(S.file) && S.move && S.set,
+        /* RE-POINTED 22 Oct 2026 (owner's yes): the category joins the line, after the template */
+        check(`3a ${at} the filing is one line in the head: reference · stream Move · template · category Change · owner, raised · code name Set`,
+          !!S && S.fileInHead && /^MK-A2 · .+ Move · Raw Material Supply Agreement · Category .+ Change · Amina Otieno, raised .+ · No code name Set$/.test(S.file) && S.move && S.set,
           S && S.file);
         check(`3b ${at} "Read all from the paper" in the head, its cost beside it`,
           !!S && S.read === 'Read all from the paper' && /Jambo call|Free/.test(S.cost), JSON.stringify(S && { read: S.read, cost: S.cost }));
@@ -190,6 +193,50 @@ const UPLOAD_TEXT = 'MASTER SERVICES AGREEMENT\n\nThis agreement is made between
       check('6d Enter writes the name and the title shows it', !!named, await page.evaluate(() => getContract('MK-A2').name));
       const stored = await page.evaluate(async () => { for (let i = 0; i < 30; i++){ const r = await fetch('/api/contracts/MK-A2', { credentials: 'include' }); const j = await r.json(); if (j.name === 'Raw Milk Collection 2027') return true; await new Promise(z => setTimeout(z, 200)); } return false; });
       check('6e the server keeps the new name', stored);
+    });
+
+    /* CATEGORY (owner's yes, 22 Oct 2026) and THE DETAILS PAGE RETIRED: the last filing fact is in the line;
+       every door that went to the Details page lands on its new home (red at 81d5988) */
+    await part('7 category', async () => {
+      await page.evaluate(() => { if (typeof pdMidClose === 'function') pdMidClose(); }); await page.waitForTimeout(300);
+      await openKt('MK-A2');
+      const line = await until(() => { const f = document.querySelector('[data-pd-kt-file]'); const t0 = f ? f.innerText.replace(/\s+/g, ' ') : ''; return /Category /.test(t0) ? t0 : null; });
+      check('7a the filing line names the category, with Change', !!line && /Category Not set Change/.test(line), line || await page.evaluate(() => { const f = document.querySelector('[data-pd-kt-file]'); return f ? f.innerText : 'no line; mid=' + !!document.querySelector('[data-pd-mid-kt]') + ' paper=' + (window.intel && intel.paper && intel.paper.id); }));
+      await page.click('[data-pd-kt-cat]');
+      const box = await until(() => document.querySelector('[data-pd-kt-file] [data-ktm="category"]') ? true : null);
+      check('7b Change draws the company\'s list in the line', !!box);
+      if (box) await page.evaluate(() => { const s0 = document.querySelector('[data-pd-kt-file] [data-ktm="category"]'); s0.value = 'supplier'; s0.dispatchEvent(new Event('change', { bubbles: true })); });
+      const said = await until(() => getContract('MK-A2').metadata && getContract('MK-A2').metadata.category === 'supplier' && !document.querySelector('[data-pd-kt-file] [data-ktm="category"]') && /Category Supplier/.test(document.querySelector('[data-pd-kt-file]').innerText.replace(/\s+/g, ' ')) ? true : null);
+      check('7c chosen, it is written and the line says it', !!said);
+    });
+    await part('8 the doors that went to the Details page', async () => {
+      const state0 = () => page.evaluate(() => ({ mid: !!document.querySelector('[data-dlg-page][data-pd-mid] [data-pd-mid-kt]'), details: !!document.querySelector('[data-bs-host="details"]'),
+        renaming: !!document.querySelector('[data-pd-kt-title] input'), moving: !!document.querySelector('[data-pd-kt-folder]'),
+        changing: (document.querySelector('[data-pd-mid-kt] tr.is-changing') || { getAttribute: () => '' }).getAttribute('data-pd-og-row'), tab: typeof pdTab === 'function' ? pdTab() : '' }));
+      const shut = () => page.evaluate(() => { if (typeof pdMidClose === 'function') pdMidClose(); });
+      await shut(); await page.waitForTimeout(300);
+      await page.evaluate(() => roomOverviewOpen(getContract('MK-A2')));
+      let S = await until(() => document.querySelector('[data-dlg-page][data-pd-mid] [data-pd-mid-kt]') ? true : null) && await state0();
+      check('8a the Overview\'s door is Key terms in the middle; no Details page is drawn', !!S && S.mid && !S.details, JSON.stringify(S));
+      await shut(); await page.waitForTimeout(300);
+      await page.evaluate(() => focusKeyTerms(getContract('MK-A2'), 'name'));
+      S = await until(() => document.querySelector('[data-pd-kt-title] input') ? true : null) && await state0();
+      check('8b "fill in the name" opens Rename', !!S && S.renaming, JSON.stringify(S));
+      await shut(); await page.waitForTimeout(300);
+      await page.evaluate(() => focusKeyTerms(getContract('MK-A2'), 'governingLaw'));
+      S = await until(() => document.querySelector('[data-pd-mid-kt] tr.is-changing') ? true : null) && await state0();
+      check('8c a term the old table did not name opens its own row', !!S && S.changing === 'governingLaw', JSON.stringify(S));
+      await shut(); await page.waitForTimeout(300);
+      await page.evaluate(() => ovOpenFiling(getContract('MK-A2')));
+      S = await until(() => document.querySelector('[data-pd-kt-folder]') ? true : null) && await state0();
+      check('8d "Filing and stream" opens Key terms with Move open', !!S && S.moving, JSON.stringify(S));
+      await shut(); await page.waitForTimeout(300);
+      await page.evaluate(() => needsYouGo('renewal', 'MK-B1'));
+      S = await until(() => (typeof pdTab === 'function' && pdTab() === 'oblig' && window.intel && intel.paper && intel.paper.id === 'MK-B1') ? true : null) && await state0();
+      check('8e a renewal in Needs you opens the Obligations tab beside the paper', !!S && S.tab === 'oblig', JSON.stringify(S));
+      const pages = await page.evaluate(() => { hbS().strips = [{ id: 'MK-A2', page: 'details' }]; return (typeof hbStripBring === 'function' && hbStripBring('MK-A2', 'details')) ? 'brought' : 'refused'; });
+      const kept = await page.evaluate(() => (hbS().strips || []).map(x => x.page));
+      check('8f no strip page called Details: one kept there opens on its Overview, and it cannot be asked for', !kept.includes('details') && !(await page.evaluate(() => !!document.querySelector('[data-bs-host="details"]'))), JSON.stringify({ pages, kept }));
     });
 
     await part('5 a reader', async () => {

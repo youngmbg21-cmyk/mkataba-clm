@@ -436,26 +436,31 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
     const landedOb = await until(() => { const e = document.querySelector('#obw-one-host'); return e && (e.classList.contains('is-landed') || e.classList.contains('is-landed-held')) ? true : null; }, null, 10000);
     check('6k a chip lands on what it opens, lit (obligations → this contract\'s own table)', !!landedOb);
 
-    /* 6l Details: the value as amended with the signed figure, whole; the renewal whole; Filing; People; Related agreements */
-    await page.evaluate(() => { intel.paper = null; hbStripBring('MK-0377', 'details'); });
-    const D6 = await until(() => { const st = document.querySelector('#bs-strips .bs-details'); if (!st || !st.querySelector('#ov-ess') || !st.querySelector('#ov-filing-rest')) return null;
-      const cutUp = el => { for (let e = el, i = 0; e && i < 3; e = e.parentElement, i++) if (e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).overflowX !== 'visible') return true; return false; };
-      const sg = st.querySelector('.ov-amd-signed'), rn = st.querySelector('.ov-rn-by');
-      const fam = st.querySelector('.fam-drawn-wrap');
-      return { value: sg ? sg.parentElement.textContent.replace(/\s+/g, ' ').trim() : null, valueCut: sg ? cutUp(sg) : null, renew: rn ? rn.parentElement.textContent.replace(/\s+/g, ' ').trim() : null, renewCut: rn ? cutUp(rn) : null,
-        filing: [...st.querySelectorAll('#ov-filing-rest .ov-fk')].map(x => x.textContent.trim()), refile: ((st.querySelector('#ov-filing-rest [data-ov-fil-refile]') || {}).textContent || '').trim(),
-        people: !!st.querySelector('#ov-people-rest'),
-        fam: fam ? { rows: [...fam.querySelectorAll('.fam-drow')].map(r => r.textContent.replace(/\s+/g, ' ').trim()), btns: fam.querySelectorAll('button').length, bring: fam.querySelectorAll('[data-fam-bring]').length } : null }; }, null, 12000);
-    check('6l Details reads the value as amended with the signed figure beside it, whole; the renewal whole',
-      !!D6 && /^KES 7\.10M as amended ?KES 6\.40M signed$/.test(D6.value || '') && D6.valueCut === false && !!D6.renew && D6.renewCut === false, JSON.stringify(D6 && { value: D6.value, valueCut: D6.valueCut, renew: D6.renew, renewCut: D6.renewCut }));
-    check('6m Details has a Filing section (Stream with Re-file, Category) and a People section',
-      !!D6 && D6.filing[0] === 'Stream' && D6.filing.includes('Category') && D6.refile === 'Re-file' && D6.people, JSON.stringify(D6 && { filing: D6.filing, refile: D6.refile, people: D6.people }));
-    check('6n Related agreements are rows — ref, what it is, when signed — each with Bring it up and no other door',
-      !!D6 && !!D6.fam && D6.fam.rows.length === 1 && /^MK-0377-A1Amendment No\. 1 · signed .+Bring it up$/.test(D6.fam.rows[0]) && D6.fam.btns === D6.fam.bring && D6.fam.bring === 1, JSON.stringify(D6 && D6.fam));
-    if (OUT){ await page.evaluate(() => { const e = document.querySelector('#ov-filing-rest'); if (e) e.scrollIntoView({ block: 'center' }); }); await page.waitForTimeout(250); await page.screenshot({ path: path.join(OUT, 'pass4-7-details-1440x780.png') }); }
-    await press('#bs-strips .fam-drawn-wrap [data-fam-bring="MK-0377-A1"]');
+    /* 6l–6o RE-POINTED 22 Oct 2026 (owner's yes: the Details page RETIRED on a computer): the value as amended and
+       the filing are Key terms' (in the middle), the people its "Who else" row, the renewal the Obligations tab's,
+       the related agreements the Dossier's Family fold */
+    await page.evaluate(() => { intel.paper = null; pdKtOpen('MK-0377'); });
+    const D6 = await until(() => { const k = document.querySelector('[data-pd-mid-kt] #pd-kt'), f = document.querySelector('[data-pd-kt-file="MK-0377"]'); if (!k || !f) return null;
+      const v = k.querySelector('tr[data-pd-og-row="value"]');
+      return { value: v ? v.textContent.replace(/\s+/g, ' ').trim() : null, file: f.textContent.replace(/\s+/g, ' ').trim(),
+        move: !!f.querySelector('[data-pd-kt-move]'), cat: !!f.querySelector('[data-pd-kt-cat]'), people: !!document.querySelector('[data-pd-mid-kt] [data-pd-people="MK-0377"]') }; }, null, 12000);
+    check('6l Key terms reads the value as amended with the signed figure beside it',
+      !!D6 && /KES 7\.10M/.test(D6.value || '') && /KES 6\.40M/.test(D6.value || ''), JSON.stringify(D6 && D6.value));
+    check('6m Key terms\' filing line has the stream with Move and Category, and a "Who else is on this agreement" row',
+      !!D6 && D6.move && D6.cat && /Category/.test(D6.file) && D6.people, JSON.stringify(D6));
+    if (OUT){ await page.screenshot({ path: path.join(OUT, 'pass4-7-details-1440x780.png') }); }
+    await page.evaluate(() => { if (window.pdMidClose) pdMidClose(); pdOpenOnHome('MK-0377', 'oblig'); });
+    const RN6 = await until(() => { const r = document.querySelector('#pd-body [data-pd-rn]'); return r ? [...r.querySelectorAll('.pd-rn-row')].map(x => x.textContent.replace(/\s+/g, ' ').trim()) : null; }, null, 10000);
+    check('6l2 the renewal is the Obligations tab\'s lines, whole', Array.isArray(RN6) && RN6.length >= 2 && /^Ends/.test(RN6[0]), JSON.stringify(RN6));
+    await page.evaluate(() => pdOpenOnHome('MK-0377'));
+    const FAM6 = await until(() => { const f = document.querySelector('#ig-dock [data-ds-fold="family"]'); if (!f) return null;
+      return { line: f.querySelector('summary').textContent.replace(/\s+/g, ' ').trim(), kin: [...f.querySelectorAll('[data-pd-ds-fam]')].map(b => b.textContent.replace(/\s+/g, ' ').trim()) }; }, null, 10000);
+    check('6n the related agreement is a row of the Dossier\'s Family fold — its ref and what it is — a door to its page',
+      !!FAM6 && FAM6.kin.length === 1 && /^MK-0377-A1 · /.test(FAM6.kin[0]), JSON.stringify(FAM6));
+    await page.evaluate(() => { const f = document.querySelector('#ig-dock [data-ds-fold="family"]'); if (f) f.open = true; });
+    await press('#ig-dock [data-ds-fold="family"] [data-pd-ds-fam="MK-0377-A1"]');
     const famLand = await until(() => { const e = document.getElementById('bs-strip-MK-0377-A1'); return window.bsCardId && bsCardId() === 'MK-0377-A1' && e && (e.classList.contains('is-landed') || e.classList.contains('is-landed-held')) ? true : null; }, null, 10000);
-    check('6o Bring it up brings the amendment\'s page and lands on it, lit', !!famLand);
+    check('6o its press brings the amendment\'s page and lands on it, lit', !!famLand);
 
     /* 6p a private contract: the CFO's employment agreement, its stream made private (admin and one colleague named) */
     await page.evaluate(async () => { const me = currentUser(); const other = (getUsers() || []).find(u => String(u.id) !== String(me.id));
@@ -493,14 +498,15 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
       !!PH && PH.rows[0] && PH.rows[0].k === 'private' && /every open is in this History\./.test(PH.rows[0].t) && PH.rows.some(r => r.k === 'unshared' && r.t === 'Nothing has been shared with Annika Holm yet.')
       && !!PHf && PHf.opens === (PH.opened > 0), JSON.stringify({ PH, PHf }));
     if (OUT) await page.screenshot({ path: path.join(OUT, 'pass4-12-history-private-1440x780.png') });
-    /* its Details' Filing: the stream, private, and for an admin the door to who may open it */
-    await page.evaluate(() => hbStripBring('MK-0399', 'details'));
-    const PF = await until(() => { const f = document.querySelector('#bs-strips #ov-filing-rest'); if (!f) return null;
-      return { lock: ((f.querySelector('.bs-lockp') || {}).textContent || '').trim(), door: ((f.querySelector('[data-ov-fil-access]') || {}).textContent || '').trim(), refile: !!f.querySelector('[data-ov-fil-refile]'),
-        sub: ((f.querySelector('.ov-fs') || {}).textContent || '').trim() }; }, null, 10000);
-    check('6t a private contract\'s Filing says "Private", who is named, and gives an admin "Who may open it" in Re-file\'s place',
-      !!PF && PF.lock === 'Private' && PF.door === 'Who may open it' && !PF.refile && !!PF.sub, JSON.stringify(PF));
-    await press('#bs-strips #ov-filing-rest [data-ov-fil-access]');
+    /* RE-POINTED 22 Oct 2026 (the Details page RETIRED): the private filing is Key terms' line — the stream
+       with its lock, no Move, and for an admin "Who may open it" in Move's place */
+    await page.evaluate(() => { if (window.intel) intel.paper = null; pdKtOpen('MK-0399'); });
+    const PF = await until(() => { const f = document.querySelector('[data-pd-kt-file="MK-0399"]'); if (!f) return null;
+      return { lock: ((f.querySelector('.bs-lockp') || {}).textContent || '').trim(), door: ((f.querySelector('[data-pd-kt-access]') || {}).textContent || '').trim(), move: !!f.querySelector('[data-pd-kt-move]'),
+        sub: ((f.querySelector('.pd-kt-priv') || {}).getAttribute ? f.querySelector('.pd-kt-priv').getAttribute('title') : '') || '' }; }, null, 10000);
+    check('6t a private contract\'s filing line says "Private", who is named, and gives an admin "Who may open it" in Move\'s place',
+      !!PF && /Private/.test(PF.lock) && PF.door === 'Who may open it' && !PF.move && !!PF.sub, JSON.stringify(PF));
+    await press('[data-pd-kt-file="MK-0399"] [data-pd-kt-access]');
     const stLand = await until(() => { const e = document.querySelector('#st-ps'); return e && (e.classList.contains('is-landed') || e.classList.contains('is-landed-held')) ? true : null; }, null, 12000);
     check('6u Who may open it lands on the stream\'s own access list, lit', !!stLand);
     await page.keyboard.press('Escape').catch(() => {});
@@ -515,8 +521,7 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
       ['12-history-panel', async () => { await page.evaluate(() => hbStripBring('MK-0382', 'hist')); await until(() => !!document.querySelector('#ig-dock #pd-histglance') && !!document.querySelector('#bs-strips .hist-ev'), null, 8000); return '#ig-dock #pd-histglance'; }],
       /* pass 4: the private contract's page and History, the signed one's Details, a second round's History */
       ['pass4-7-page-private', async () => { await page.evaluate(() => hbStripBring('MK-0399')); await until(() => !!document.querySelector('#ig-dock .pd-held-dos[data-pd-held-for="MK-0399"]') && !!document.querySelector('#bs-strip-MK-0399'), null, 8000); return '#ig-dock .pd-held-dos .ds-spine'; }],
-      ['pass4-7-details', async () => { await page.evaluate(() => hbStripBring('MK-0377', 'details')); await until(() => !!document.querySelector('#bs-strips #ov-filing-rest'), null, 10000);
-        await page.evaluate(() => { const e = document.querySelector('#ov-filing-rest'); if (e) e.scrollIntoView({ block: 'center' }); }); return '#ig-dock .pd-held-dos .ds-spine'; }],
+      /* 'pass4-7-details' RETIRED 22 Oct 2026 with the Details page: Key terms in the middle is photographed at the three screens by key-terms-legora-way-verify */
       ['pass4-12-history-two-rounds', async () => { await page.evaluate(() => hbStripBring('MK-0390', 'hist')); await until(() => !!document.querySelector('#ig-dock #pd-histglance[data-pd-held-for="MK-0390"]') && !!document.querySelector('#bs-strips .hist-ev'), null, 8000); return '#ig-dock #pd-histglance'; }],
       ['pass4-12-history-private', async () => { await page.evaluate(() => hbStripBring('MK-0399', 'hist')); await until(() => !!document.querySelector('#ig-dock #pd-histglance[data-pd-held-for="MK-0399"]') && !!document.querySelector('#bs-strips .hist-ev'), null, 8000); return '#ig-dock #pd-histglance'; }],
     ];

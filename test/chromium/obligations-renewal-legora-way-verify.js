@@ -119,6 +119,10 @@ const dayFrom = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10)
       await openOb('MK-B1');
       const D = await until(() => { const h0 = document.querySelector('#pd-body [data-pd-rn] #renewal-host'); return h0 && /What did you decide\?/.test(h0.innerText) ? h0.innerText.replace(/\s+/g, ' ').slice(0, 120) : null; });
       check('3a while a decision is due, the renewal\'s own decision card is on the tab', !!D, D);
+      /* no duties recorded yet: the renewal still stands at the top, the "none yet" under it */
+      const O = await page.evaluate(() => { const b = document.getElementById('pd-body'), rn = b && b.querySelector('[data-pd-rn]'), none = b && [...b.querySelectorAll('*')].find(e => e.children.length === 0 && /No obligations are recorded yet/.test(e.textContent));
+        return { rn: !!rn, none: !!none, first: !!(rn && none && (rn.compareDocumentPosition(none) & Node.DOCUMENT_POSITION_FOLLOWING)) }; });
+      check('3b with no duties recorded, the renewal lines come first and "No obligations are recorded yet" under them', O.rn && O.none && O.first, JSON.stringify(O));
       await shot('oblig-legora-decide.png');
     });
 

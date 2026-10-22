@@ -140,10 +140,12 @@ const readRow = page => page.evaluate(() => {
     /* RE-POINTED 15 Oct 2026 (step 8, the room retired): the Overview's
        sheet is the contract strip's Details page on Home's Board, opened by
        its one door (roomOverviewOpen) — where the reader edits it now */
-    await page.evaluate(() => { roomOverviewOpen(getContract('MK-A2')); });
-    await page.waitForFunction(() => state.view === 'dashboard' && !!document.querySelector('[data-bs-host="details"][data-bs-cid="MK-A2"] .sec-fields .sec-f'), null, { timeout: 8000 }).catch(() => {});
+    /* RE-POINTED 22 Oct 2026 (owner's yes: the Details page RETIRED on a computer): the Overview's sheet still
+       stands in the room opened by name (openWorkspace(id,{room:true})), and its mark is read there */
+    await page.evaluate(() => { openWorkspace('MK-A2', { room: true }); roomOverviewOpen(getContract('MK-A2')); });
+    await page.waitForFunction(() => state.view === 'workspace' && !!document.querySelector('#kt-ov-terms .sec-fields .sec-f'), null, { timeout: 8000 }).catch(() => {});
     const ov = await page.evaluate(() => {
-      const cells = [...document.querySelectorAll('[data-bs-host="details"][data-bs-cid="MK-A2"] .sec-fields .sec-f')];
+      const cells = [...document.querySelectorAll('#kt-ov-terms .sec-fields .sec-f')];
       /* The eight-terms Overview (8 Oct 2026) carries the start date in the
          Term cell; an Effective cell is read where a page still draws one. */
       const eff = cells.find(f => /effective/i.test((f.querySelector('.sec-f-l') || {}).textContent || ''))
@@ -155,7 +157,7 @@ const readRow = page => page.evaluate(() => {
     await page.screenshot({ path: path.join(OUT, '2-overview-mark.png') });
     check('2a the Overview\'s Effective cell says it is needed to sign', ov.eff && ov.hold && /needed to sign/i.test(ov.note), JSON.stringify(ov));
     check('2b and its hover names the boxes the signature waits on', /Start date/.test(ov.title), ov.title);
-    await page.evaluate(() => { const b = document.querySelector('[data-bs-host="details"] .sec-f-n.is-hold[data-ov-fix="effDate"]'); if (b) b.click(); });
+    await page.evaluate(() => { const b = document.querySelector('#kt-ov-terms .sec-f-n.is-hold[data-ov-fix="effDate"]'); if (b) b.click(); });
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): a box the Fill
        in face asks is landed on THERE, beside Home's paper (focusKeyTerms →
        pdFillOpen), and its date box wears HaTi's own date face (datePickDress:
