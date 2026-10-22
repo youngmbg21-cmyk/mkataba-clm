@@ -183,7 +183,9 @@ describe('f840 (2) Home\'s panel', () => {
   });
   test('2e the dock: the landing carries no conversation; the conversation view carries the box, no chips', () => {
     const f = code(fnOf(IG, 'renderIntelDock'));
-    assert.match(f, /const talk=\(typeof window\.pdTalkSync==='function'\)\?pdTalkSync\(dock\):false;/);
+    /* RE-POINTED 22 Oct 2026 (Jambo's journey, round 1): `let`, because Jambo's own unasked words are said after
+       the talk settles and the talk then looks again (firstReadDue → pdTalkSync, f862) */
+    assert.match(f, /let talk=\(typeof window\.pdTalkSync==='function'\)\?pdTalkSync\(dock\):false;/);
     assert.match(f, /\$\{talk\?`<div id="igd-feed" class="igd-talk /, 'the conversation in its own view');
     assert.match(f, /return top\|\|`<div class="ig-welcome/, 'the landing: its own words only');
     assert.match(f, /return !talk&&!\(window\.pdShowsDesk&&pdShowsDesk\(\)\)/, 'chips only on the landing');

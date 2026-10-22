@@ -1437,6 +1437,29 @@ function pdLandWord(){
 }
 /* the page Home's panel is for: the paper (its contract, face or tab), else
    the Home face and what it holds; null off Home */
+/* ---- A HAND IN THE PANEL (Jambo's journey, round 1's review, 22 Oct 2026) ----
+   NEVER SNATCH THE PANEL FROM A HAND IN IT: a press or a key inside the panel after this contract's paper
+   landed means the reader is working there, and Jambo's unasked words (firstReadDue, signedTurnDue) wait
+   for the next time the paper is opened. A landing is counted, never timed (a press and a landing in one
+   millisecond are told apart). Per sitting, nothing stored. */
+let _pdLand = { id: null, n: 0 }, _pdHand = { id: null, n: -1 };
+function pdHandLanded(c){ if (c && _pdLand.id !== String(c.id)) _pdLand = { id: String(c.id), n: _pdLand.n + 1 }; }
+function pdHandIn(c){
+  if (!c) return false;
+  pdHandLanded(c);
+  return _pdHand.id === String(c.id) && _pdHand.n === _pdLand.n;
+}
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function' && !document._pdHandWired){
+  document._pdHandWired = true;
+  const mark = e => {
+    const dock = e && e.target && e.target.closest ? e.target.closest('#ig-dock') : null; if (!dock) return;
+    const c = pdContract(); if (!c) return;
+    pdHandLanded(c);
+    _pdHand = { id: String(c.id), n: _pdLand.n };
+  };
+  document.addEventListener('pointerdown', mark, true);
+  document.addEventListener('keydown', mark, true);
+}
 function pdTalkKey(){
   try {
     if (typeof state === 'undefined' || !state || state.view !== 'dashboard') return null;
@@ -3801,6 +3824,17 @@ function pdCkPeopleRowHtml(c){
   return `<tr class="pd-og-row is-named is-people" data-pd-og-row="people" data-pd-og-kind="people"><td class="pd-og-f"><button type="button" class="pd-ck-hd" data-pd-people="${E(c.id)}" data-pd-people-from="dossier">`
     + `<i class="pd-ck-ring is-none" aria-hidden="true"></i><b>${E(_pdT('ppl_title'))}</b><span class="pd-ck-v">${E(n ? pdPeopleSay(c) : _pdT('ppl_none'))}</span><span class="pd-ck-chev" aria-hidden="true"></span></button></td><td class="pd-og-v"></td><td class="pd-og-a"></td></tr>`;
 }
+/* WHAT THE WEB SAYS ABOUT THEM (round 3 of Jambo's journey): one line of the same height after Who else,
+   its press the one pop-up (partyWebOpen, js/jambopress.js); it owes nothing, so it is counted nowhere */
+function pdCkWebRowHtml(c){
+  if (!c || typeof window.partyWebKept !== 'function') return '';
+  const kept = window.partyWebKept(c), may = window.partyWebMayFor(c);
+  if (!kept && !may) return '';
+  const E = _pdE, n = kept ? kept.facts.length : 0;
+  const v = kept ? _pdTn('pw_row_n', n, { n, day: (d => { try { return (typeof fmtDocDate === 'function') ? fmtDocDate(d) : d; } catch (_){ return d; } })(String(kept.at || '').slice(0, 10)) }) : _pdT('pw_row_none');
+  return `<tr class="pd-og-row is-named is-web" data-pd-og-row="web" data-pd-og-kind="web"><td class="pd-og-f"><button type="button" class="pd-ck-hd" data-pd-web="${E(c.id)}">`
+    + `<i class="pd-ck-ring is-none" aria-hidden="true"></i><b>${E(_pdT('pw_row'))}</b><span class="pd-ck-v">${E(v)}</span><span class="pd-ck-chev" aria-hidden="true"></span></button></td><td class="pd-og-v"></td><td class="pd-og-a"></td></tr>`;
+}
 /* the grid; held (beside the Board) it reads only, each row a door to the paper */
 function pdOgHtml(c, o){
   const held = !!(o && o.held);
@@ -3848,7 +3882,7 @@ function pdOgHtml(c, o){
   const done = saved.map(x => one(x.key, x.label, x.words)).join('');
   /* WHO ELSE IS ON THIS AGREEMENT, RIGHT AFTER THE SIGNER LINE (owner, 22 Oct 2026): one line of the
      same height, its press the one door (pdPeopleOpen); it owes nothing, so it is counted nowhere */
-  const ppl = pdCkPeopleRowHtml(c);
+  const ppl = pdCkPeopleRowHtml(c) + (held ? '' : pdCkWebRowHtml(c));
   const facts = rows.filter(r => r.kind !== 'signer').map(tr).join(''), sgn = rows.filter(r => r.kind === 'signer').map(tr).join('');
   if (!rows.length && !done && !named && !ppl) return '';
   return `<table id="${held ? 'pd-og-held' : 'pd-og'}" class="pd-og is-ck" data-pd-og-for="${E(c.id)}"><thead class="sr-only"><tr><th>${E(_pdT('og_col_fact'))}</th><th>${E(_pdT('og_col_read'))}</th><th><span class="sr-only">${E(_pdT('og_confirm'))}</span></th></tr></thead><tbody>${facts}${done}${sgn}${named}${ppl}${stream}</tbody></table>`;
@@ -4396,6 +4430,8 @@ if (typeof document !== 'undefined' && !document._pdOgWired){
     /* Key terms' one line in the Dossier: the table comes to the middle (pressed again, the paper comes back) */
     const ppl = t.closest('[data-pd-people]');
     if (ppl){ e.preventDefault(); pdPeopleOpen(ppl.getAttribute('data-pd-people'), ppl.getAttribute('data-pd-people-from') || ''); return; }
+    const web = t.closest('[data-pd-web]');
+    if (web){ e.preventDefault(); if (typeof window.partyWebOpen === 'function') window.partyWebOpen(web.getAttribute('data-pd-web')); return; }
     const ktl = t.closest('#ig-dock [data-pd-kt-mid] > summary');
     if (ktl){ e.preventDefault(); pdKtMid(ktl.parentElement.getAttribute('data-pd-kt-mid')); return; }
     /* ---- THE SIGNER ROW'S OWN PRESSES (21 Oct 2026) ---- */
@@ -5585,8 +5621,8 @@ if (typeof document !== 'undefined' && !document._pdTrailEsc){
     if (pdTrailBack() || (typeof jamboTalkBack === 'function' && jamboTalkBack())) e.preventDefault();
   });
 }
-Object.assign(window, { pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
-  PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdTalkKey, pdTalkScope, pdTalkShows, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
+Object.assign(window, { pdPeopleOpen, pdPeopleSay, dossierPeopleFoldHtml, pdMidMay, pdMidUp, pdMidStale, pdMidPage, pdMidOn, pdMidOff, pdMidClose, pdMidSync, pdMidBackSync, pdMidWork, pdKtMidShell, pdKtRowsHtml, pdKtMidHtml, pdKtMid, pdKtMidRepaint, pdKtLineSync, pdOgShows, pdKtOpen, pdKtFacts, pdKtHtml, pdOgPaint, pdOgFacts, pdOgHtml, pdCkPeopleRowHtml, pdCkWebRowHtml, pdOgConfirm, pdOgLand, pdOgHolds, pdOgReadN, pdCardDossierHtml, DOSSIER_STAGES, DOSSIER_STAGE_OF, dossierOf, dossierNowStage, dossierRead, dossierOwed, dossierSpineHtml, dossierActsPick, dossierFamilyFoldHtml, pdLandName,
+  pdHandIn, pdHandLanded, PD_TRAIL_IN_HEAD, pdTrail, pdTrailHtml, pdTrailSync, pdTrailBack, pdFaceWordOf, pdLandWord, pdTalkKey, pdTalkScope, pdTalkShows, pdTalkHas, pdTalkReopen, pdTalkTabHtml, pdTalkSync, pdTalkFrom, pdTalkClose, pdTalkBack, pdAmendFor, pdAmendShows, pdAmendMay, pdAmendOpen, pdAmendSeen, pdAmendAway, pdAmendClose, pdAmendClauseOf, pdAmendAdd, pdAmendFaceHtml, pdAmendRepaint, pdAmendPaperPaint, pdAmendCreate, pdAmendFacePaint, PD_AMEND_ITEMS_MAX, pdMenuHtml, pdNextUpHtml, pdMenuWire, pdMenuPress, PD_MENU_PRESS_TRIES, pdMenuGroups, PD_MENU_NEXT, PD_MENU_NOT, pdCkOpenKey, pdCkOpenSet, pdCkShow, pdCkSignerSay, pdCkSignersNamed, pdCkSignersRowHtml, PD_ACT_SHORT, pdPresenceOn, pdPresenceOff, pdPresenceLeft, pdFaceNow, PD_FACE_WORDS, PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdOpenTabOf, PD_TAB_ICON, PD_TAB_GLYPH, PD_TAB_NAME, PD_TABS, pdTabCount, pdTabCountPaint, pdChipsQuiet, PD_FF_NDA_KEYS, pdFillCardOf, pdFillPrivateHtml, pdFillWaitHtml, pdFillPayHtml, pdFillStdKind, pdFillPaperMarks, pdTabGlyphHtml, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml, PD_FACE_WORD, PD_FACE_ROW, pdFaceUp, pdSendFor, pdSendIsWaiting, pdSendWaitSet, pdSendHeld, pdSendShows, pdSendAway, pdSendBack, pdSendKeepHtml, pdSendOpen, pdSendClose, pdSendFaceHtml, pdSendFacePaint,
   pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint, pdFillPaint,
   pdRedFor, pdRedShows, pdRedOpen, pdRedLand, pdRedSeen, pdRedAway, pdRedClose, pdRedPaper, pdRedOpts, pdRedFaceHtml, pdRedFootHtml, pdRedScrollOf, pdRedRepaint, pdRedFacePaint, pdRedWire, pdRedPaperWire,
   pdSignFor, pdSignShows, pdSignOpen, pdSignSeen, pdSignAway, pdSignClose, pdSignPaper, pdSignPaperSig, pdSignState, pdSignPillHtml, pdSignHeadHtml, pdSignNextHtml, PD_RD_YES, PD_RD_SIGN, pdSignMine, PD_RD_CHECKS, pdRoadCheckOf, pdRoadCheckNames, pdDayWord, pdBackDay, pdAwayOf, pdRoadRuleOf, pdRoadRuleTitle, pdRoadRuleSub, pdRoadRuleFramed, pdRoadRuleHtml, pdRoadMovedHtml, pdRoadYesOf, pdRoadYesTitle, pdRoadYesFramed, pdRoadYesFacts, pdRoadYesHtml, pdRoadPress, pdRoadStops, pdRoadPaint, pdSignFaceHtml, pdSignCounts, pdSignWire, pdSignFacePaint, pdSignPaperPaint,

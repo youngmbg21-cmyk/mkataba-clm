@@ -523,9 +523,30 @@ async function partyRecordSet(name, facts){
     const me = (typeof currentUser === 'function') ? currentUser() : null;
     rec = (city || orgNo) ? { name, city, orgNo, by: (me && me.name) || '', at: new Date().toISOString() } : null;
   }
-  if (rec) book[key] = rec; else delete book[key];
+  /* what Jambo found on the web is kept on the same record (round 3); a save of the city never drops it */
+  const web = book[key] && book[key].web;
+  if (rec) book[key] = web ? Object.assign({}, rec, { web }) : rec;
+  else if (web) book[key] = { name, city: '', orgNo: '', by: '', at: '', web };
+  else delete book[key];
   if (!((typeof API_MODE === 'function') && API_MODE())){ try { localStorage.setItem(CU_PR_LS, JSON.stringify(book)); } catch (_){} }
   return rec;
+}
+/* ---- WHAT THE WEB SAYS ABOUT THEM (round 3 of Jambo's journey, 22 Oct 2026) ----
+   A plain internet search the server runs (POST /api/party-records/lookup):
+   each fact with its sources, what could not be found, when and by whom. Kept
+   on the party's record, so every screen reads one copy. A person's press, an
+   editor's, on HaTi's server only (a browser alone cannot search). */
+function partyWebOf(key){ const r = partyRecordOf(key); return r && r.web && Array.isArray(r.web.facts) ? r.web : null; }
+function partyLookupMay(){ return partyRecordMay() && (typeof API_MODE === 'function') && API_MODE(); }
+async function partyLookup(name, opts){
+  const o = opts || {}, key = cuKeyOf(name);
+  if (!key || !partyLookupMay()) return null;
+  const lang = (typeof langId === 'function') ? langId() : 'en';
+  const r = await api('party-records/lookup', 'POST', { name, lang, again: !!o.again });
+  if (!r || !r.lookup) return null;
+  const book = cuRecords();
+  book[key] = Object.assign(book[key] || { name, city: '', orgNo: '', by: '', at: '' }, { web: r.lookup });
+  return { lookup: r.lookup, kept: !!r.kept };
 }
 /* WHAT A CONTRACT'S PARTIES CLAUSE SAYS OF WHERE THEY ARE — a suggestion,
    never a fact. The address their own parties row carries on a contract, else
@@ -1225,7 +1246,57 @@ function cuWireList(host, INS){
   });
 }
 
-Object.assign(window, { cuNeedsOf, cuNeedTitle, cuNeedsSay, cuNeedGo, cuPanelNeedsHtml, CU_NEED_DOOR, CU_NEED_LINE, cuPanelAgreementsHtml, cuNameOf, cuKeyOf, cuBook, cuBucket, cuCustomers, cuCustomerOf, cuDoorCount, cuNextEnd, cuFilterItems, cuView, cuIdsOf,
+/* ---- YOUR HISTORY WITH THEM, IN ONE READING (round 1 of Jambo's journey,
+   owner, 22 Oct 2026: "Your history with them, in one line") ----
+   What your own book knows about the other side of a contract: how many
+   agreements you have with them, how many are signed and since when, whether
+   they kept their dated duties, and what they pushed on before. READ ONLY,
+   from the shelf's own book (cuBook: no archive, no amendment, no code-named
+   deal) and the precedent's own mining — no AI, no outside call, nothing
+   stored. null where there is no other side named or nothing else with them. */
+function partyHistoryOf(c){
+  if (!c || c._codeNamed) return null;
+  const who = cuNameOf(c); if (!who) return null;
+  const key = cuKeyOf(who);
+  const others = cuBook().filter(x => x && String(x.id) !== String(c.id) && cuKeyOf(cuNameOf(x)) === key);
+  if (!others.length) return { who, n: 0, signed: 0, since: null, late: 0, kept: 0, pushed: '' };
+  const day = x => { try { return (typeof contractSignedAt === 'function') ? contractSignedAt(x) : null; } catch (_){ return null; } };
+  const signedDays = others.map(day).filter(d => /^\d{4}-\d{2}-\d{2}/.test(String(d || ''))).sort();
+  /* THEIR dated duties: kept = done on or before the day; late = done after it, or still open past it */
+  const today = (typeof todayISO === 'function') ? todayISO() : new Date().toISOString().slice(0, 10);
+  let kept = 0, late = 0;
+  others.forEach(x => (Array.isArray(x.obligations) ? x.obligations : []).forEach(o => {
+    if (!o || o.party !== 'theirs') return;
+    const due = String(o.due || '').slice(0, 10); if (!/^\d{4}-\d{2}-\d{2}$/.test(due)) return;
+    if (o.status === 'done'){ const at = String(o.completedAt || '').slice(0, 10); if (at && at > due) late++; else kept++; }
+    else if (due < today) late++;
+  }));
+  /* what they pushed on most, said by the precedent's own sentence */
+  let pushed = '';
+  try {
+    if (typeof precedentMine === 'function' && typeof precedentLine === 'function'){
+      const rows = Object.values(precedentMine({ counterparty: who }) || {})
+        .filter(r => r && (r.theirs.accepted + r.theirs.refused) > 0)
+        .sort((a, b) => (b.theirs.accepted + b.theirs.refused) - (a.theirs.accepted + a.theirs.refused));
+      if (rows[0]) pushed = precedentLine({ withThem: Object.assign({ counterparty: who }, rows[0]), category: rows[0].category, unit: rows[0].unit }) || '';
+    }
+  } catch (_){ pushed = ''; }
+  return { who, n: others.length, signed: signedDays.length, since: signedDays.length ? signedDays[0].slice(0, 4) : null, late, kept, pushed };
+}
+/* the reading in Jambo's words: one or two sentences, or '' */
+function partyHistorySay(h){
+  if (!h) return '';
+  const T = (k, v) => i18t(k, v), Tn = (k, n, v) => i18tn(k, n, v);
+  if (!h.n) return T('ph_first_time', { who: h.who });
+  const out = [h.signed
+    ? (h.since ? Tn('ph_signed_since', h.signed, { who: h.who, n: h.signed, year: h.since }) : Tn('ph_signed', h.signed, { who: h.who, n: h.signed }))
+    : Tn('ph_none_signed', h.n, { who: h.who, n: h.n })];
+  if (h.late) out.push(Tn('ph_late', h.late, { n: h.late }));
+  else if (h.kept) out.push(T('ph_kept'));
+  if (h.pushed) out.push(String(h.pushed));
+  return out.join(' ');
+}
+Object.assign(window, { partyWebOf, partyLookupMay, partyLookup, partyHistoryOf, partyHistorySay, cuNeedsOf, cuNeedTitle, cuNeedsSay, cuNeedGo, cuPanelNeedsHtml, CU_NEED_DOOR, CU_NEED_LINE, cuPanelAgreementsHtml, cuNameOf, cuKeyOf, cuBook, cuBucket, cuCustomers, cuCustomerOf, cuDoorCount, cuNextEnd, cuFilterItems, cuView, cuIdsOf,
   cuNdaMap, cuNdaOf, cuNdaWants, cuNdaShort, cuOpenNda,
   cuPlace, cuPlacePut, cuOpenCustomer, cuOpenExplorer, cuDraftFor, renderCustomers, cuRepaint,
   /* the one filter-box builder the band's clothes dress; My notes and Requests draw their boxes with it */
