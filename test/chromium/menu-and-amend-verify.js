@@ -106,9 +106,9 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     await toJambo();
     await ask('filing');
     await page.evaluate(() => { const cs = document.querySelectorAll('#igd-feed [data-ca-menu]'); const b = cs[cs.length - 1].querySelector('button:not([disabled])'); b.click(); });
-    /* the row's own act: Filing and stream opens the contract's Details sheet at its filing rows */
-    const landed = await until(page, () => !!document.getElementById('ov-record'), null, 6000);
-    ok('2e the press presses the Menu\'s own row (Filing and stream lands on the filing rows)', landed);
+    /* RE-POINTED 22 Oct 2026 (the strip's Details page RETIRED): the row's own act opens Key terms in the middle, its filing line with Move open */
+    const landed = await until(page, () => !!document.querySelector('[data-pd-mid-kt]') && !!document.querySelector('[data-pd-kt-file="MK-B2"] [data-pd-kt-move][aria-pressed="true"]'), null, 6000);
+    ok('2e the press presses the Menu\'s own row (Filing and stream opens Key terms, Move open on its filing line)', landed);
     /* back to Jambo beside the paper (the Details sheet left his panel on another tab, as step 3 knows) */
     ok('2i · Jambo beside the paper again', await toJambo());
     await ask('import from excel');

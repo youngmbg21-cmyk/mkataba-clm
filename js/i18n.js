@@ -17394,7 +17394,7 @@ const STRINGS = {
        people: it is one line however many came from the same colleague. */
     ins_need_note_one: '{who} gave you a note',
     ins_need_note_other: '{who} and others gave you {n} notes',
-    ins_need_go_terms: 'Opens Details and has Jambo read the contract again, so you decide on a fresh reading',
+    ins_need_go_terms: 'Opens the Obligations tab and has Jambo read the contract again, so you decide on a fresh reading',
     ins_need_go_desk: 'Opens who works on this negotiation, where you answer the request',
     reg_col_ref: 'Ref',
     reg_col_party: 'Counterparty and agreement',
@@ -36716,7 +36716,7 @@ const STRINGS = {
     ins_need_go_notes: 'Öppnar anteckningslådan, där anteckningen finns',
     ins_need_note_one: '{who} gav dig en anteckning',
     ins_need_note_other: '{who} med flera gav dig {n} anteckningar',
-    ins_need_go_terms: 'Öppnar Uppgifter och låter Jambo läsa avtalet igen, så att du beslutar på en färsk läsning',
+    ins_need_go_terms: 'Öppnar fliken Åtaganden och låter Jambo läsa avtalet igen, så att du beslutar på en färsk läsning',
     ins_need_go_desk: 'Öppnar vilka som arbetar med förhandlingen, där du svarar på förfrågan',
     reg_col_ref: 'Referens',
     reg_col_party: 'Motpart och avtal',

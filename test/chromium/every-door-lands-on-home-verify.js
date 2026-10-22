@@ -228,7 +228,7 @@ const E = {
 const SAYS = { paper: 'Home\'s paper', copilot: 'Home\'s paper, Jambo', fill: 'the Dossier beside the paper, Still owed\'s row in the hand', red: 'Redlines beside the paper',
   signing: 'Before you sign beside the paper', obTab: 'the paper, Jambo\'s Obligations tab', obPage: 'the Obligations page, narrowed to the contract', board: 'its home (the Obligations page or the strip)', wall: 'Home\'s Contracts place, the Wall',
   list: 'Home\'s Contracts place, the List',
-  strip: 'its strip on the Board', stripWhere: 'its strip on the Board, on Where we are', stripDetails: 'its strip on the Board, on Details (the Overview\'s sheet)', obTab: 'its paper on Home, on the Obligations tab', kt: 'its paper on Home, Key terms in the middle' };
+  strip: 'its strip on the Board', stripWhere: 'its strip on the Board, on Where we are', stripDetails: 'its strip on the Board, on Details (the Overview\'s sheet)', kt: 'its paper on Home, Key terms in the middle' };
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
