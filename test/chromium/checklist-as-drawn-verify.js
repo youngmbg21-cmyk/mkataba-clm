@@ -1,0 +1,217 @@
+/* ============================================================
+   THE DOSSIER AS A CHECKLIST — AS DRAWN
+   ============================================================
+   The owner, 22 Oct 2026: "Implement checklist. The add signers pop up should
+   be wide enough that you do not have to scroll left or right which is
+   annoying." They picked "1 · Checklist" by name (with 1a · 4 signers,
+   1b · Signers open, 1c · Ordering them); this is what it drew.
+
+     1  the stage line: "Stage · 4 of 6", the stage's name, six bars, ONE current
+     2  "Needs you N": every owed fact is one line of one height (ring · name ·
+        Missing or what Jambo read · chevron), ONE row open, the rest closed
+     3  a press on a closed row opens it and closes the one open; pressed again
+        it closes; nothing leaves the page
+     4  "Confirm N read" stores what Jambo read even though its row is closed
+     5  Jambo read under Needs you: Brief and Risks, each "Not read …" and Read
+     6  Next acts: the stage's acts as equal buttons on one line; "All acts N ›"
+        opens the room's whole list under them and folds it again
+     7  the ONLY signer button on the Dossier is "Add or order signers ›"
+     8  four signers named: the row is green, "4 named · 4 steps"; opened, the
+        route in order (1–4) and the one button; it opens the signing route,
+        which is the XL rung and shows no sideways scroll, and a person's ⋯
+        menu shows whole (Move up · Move down · Sign at the same time …)
+     9  the owner's three screens: nothing past the panel's edge
+
+     node test/chromium/checklist-as-drawn-verify.js
+   ============================================================ */
+'use strict';
+const fs = require('node:fs');
+const path = require('node:path');
+const { chromium } = require('playwright-core');
+const { startHati, seedWorkspace, fixtureContract } = require('../helpers');
+
+const OUT = path.join(process.env.HATI_SHOT_DIR || path.join(__dirname, 'shots'), 'checklist-as-drawn');
+const EXEC = process.env.CHROMIUM_BIN
+  || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
+const pause = ms => new Promise(r => setTimeout(r, ms));
+let pass = 0, fail = 0;
+const check = (name, ok, detail) => { ok ? pass++ : fail++;
+  console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail != null ? ' — ' + detail : ''}`); };
+const waitFor = async (page, fn, ms = 8000, arg) => { const end = Date.now() + ms;
+  while (Date.now() < end) { if (await page.evaluate(fn, arg).catch(() => false)) return true; await pause(100); } return false; };
+
+const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
+const ID = 'MK-CKL1', THEM = 'Bamburi Cement PLC';
+const TEXT = ['MUTUAL NON-DISCLOSURE AGREEMENT', '',
+  `This agreement is made between Highland Corporate Ltd and ${THEM}.`, '',
+  '1. Confidential information', '',
+  'Each party shall keep the other party\'s confidential information secret.', '',
+  '2. Term', '', 'This agreement runs for two years from the date of signature.'].join('\n');
+
+const MEASURE = () => {
+  const dock = document.getElementById('ig-dock'); if (!dock) return { up: false };
+  const og = dock.querySelector('#pd-og');
+  const rows = og ? [...og.querySelectorAll('tr.pd-og-row')] : [];
+  const vis = el => !!el && el.getClientRects().length > 0 && getComputedStyle(el).display !== 'none';
+  const feed = document.getElementById('igd-feed'), fr = feed ? feed.getBoundingClientRect() : null;
+  return { up: !!og,
+    stage: (() => { const s = dock.querySelector('.ds-spine.is-ck'); if (!s) return null;
+      return { head: (s.querySelector('.ds-ck-sh') || {}).textContent, now: (s.querySelector('.ds-ck-now') || {}).textContent,
+        bars: s.querySelectorAll('.ds-st').length, cur: s.querySelectorAll('.ds-st.is-ck-cur').length }; })(),
+    head: ((dock.querySelector('#pd-needs .pd-gl-h') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+    rows: rows.map(r => ({ key: r.getAttribute('data-pd-og-row'), open: r.classList.contains('is-open'),
+      h: Math.round((r.querySelector('.pd-ck-hd') || r).getBoundingClientRect().height),
+      box: vis(r.querySelector('td.pd-og-v')), ok: vis(r.querySelector('[data-pd-og-ok]')),
+      words: ((r.querySelector('.pd-ck-hd') || {}).textContent || '').replace(/\s+/g, ' ').trim() })),
+    order: [...dock.querySelectorAll('#pd-glance > *, .pd-nx > *')].map(e => e.getAttribute('data-pd-ds-card') || e.getAttribute('data-ds-fold') || (e.classList.contains('ds-spine') ? 'stage' : e.id || e.className.split(' ')[0])),
+    read: [...dock.querySelectorAll('.ds-read .ds-rr')].map(r => r.textContent.replace(/\s+/g, ' ').trim()),
+    acts: [...dock.querySelectorAll('.ds-acts-b.is-ck > button')].map(b => { const q = b.getBoundingClientRect(); return { w: Math.round(q.width), top: Math.round(q.top), t: b.textContent.trim() }; }),
+    allOpen: !!(dock.querySelector('[data-ds-fold="acts"]') || {}).open,
+    signerBtns: [...dock.querySelectorAll('#pd-glance button, .pd-nx button')]
+      .map(b => b.textContent.replace(/\s+/g, ' ').trim()).filter(t => /signers?\b/i.test(t)),
+    past: [...dock.querySelectorAll('#pd-glance *, .pd-nx > :not(details) *')].filter(e => fr && vis(e) && e.getBoundingClientRect().right > fr.right + 1).length };
+};
+
+(async () => {
+  fs.mkdirSync(OUT, { recursive: true });
+  const h = await startHati();
+  const W = await seedWorkspace(h, { approvalRules: [] });
+  const me = (await W.admin.json('/api/bootstrap')).me;
+  const c0 = Object.assign(fixtureContract(ID, 'Mutual Non-Disclosure Agreement', THEM, 'legal', 0, 'Under Review', TEXT), {
+    template: null, owner: { id: me.id, name: me.name }, fields: { value: '' },
+    metadata: { value: 0, currency: 'KES', contractType: 'NDA' },
+    counterpartyName: 'Wanjiru Achieng', counterpartyEmail: 'wanjiru@bamburicement.co.ke' });
+  const put = await W.admin.json('/api/contracts/' + ID, { method: 'PUT', body: { contract: c0, baseVersion: 0 } });
+  const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 780 } });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  try {
+    check('0 the contract is staged', !!(put && put.ok));
+    await page.goto(h.base + '/', { waitUntil: 'networkidle' });
+    await page.fill('#li-email', 'admin@example.co.ke'); await page.fill('#li-pass', 'adminpassword1'); await page.click('#li-go');
+    await waitFor(page, id => window.state && Array.isArray(state.contracts) && state.contracts.some(x => x.id === id), 15000, ID);
+    await page.keyboard.press('Escape').catch(() => {});
+    await page.evaluate(() => { if (typeof langId === 'function' && langId() !== 'en' && typeof langSet === 'function') langSet('en'); });
+    const open = async () => {
+      await page.evaluate(() => { if (typeof regPlaceSet === 'function') regPlaceSet({ show: 'list' }); setView('register'); });
+      await waitFor(page, () => !!document.querySelector('#ct-place, #reg-root, .reg-card'), 6000);
+      await page.evaluate(id => regOpenContract(id), ID);
+      await waitFor(page, id => !!document.querySelector(`#pd-glance[data-pd-glance-for="${id}"]`), 12000, ID);
+      await page.evaluate(id => { if (typeof pdOpenOnHome === 'function') pdOpenOnHome(id, 'copilot'); }, ID);
+      const up = await waitFor(page, () => !!document.querySelector('#ig-dock #pd-og tr.pd-og-row'), 12000);
+      await page.evaluate(() => document.fonts.ready); await pause(250);
+      return up;
+    };
+    check('0b the Dossier is up beside the paper', await open());
+    const m0 = await page.evaluate(MEASURE);
+
+    console.log('\n1 · the stage line');
+    check('1a "Stage · 4 of 6" over "Negotiate", six bars, ONE current', !!m0.stage && /Stage\s*4 of 6/.test(m0.stage.head) && m0.stage.now === 'Negotiate'
+      && m0.stage.bars === 6 && m0.stage.cur === 1, JSON.stringify(m0.stage));
+
+    console.log('\n2 · Needs you, one line a fact, one open');
+    check('2a the head says "Needs you" with its number', /^Needs you\s*\d+/.test(m0.head), m0.head);
+    const owed = m0.rows.filter(r => r.key !== 'stream');
+    check('2b every row\'s line is one height (40)', owed.length >= 4 && owed.every(r => r.h === 40), JSON.stringify(owed.map(r => [r.key, r.h])));
+    check('2c exactly one row is open and only it shows its box', owed.filter(r => r.open).length === 1 && owed.every(r => r.box === r.open), JSON.stringify(owed.map(r => [r.key, r.open, r.box])));
+    check('2d a missing fact says "Missing" on its line', owed.some(r => /Missing/.test(r.words)), JSON.stringify(owed.map(r => r.words)));
+    check('2e the order: stage, Needs you, Jambo read, Next acts, then Key terms and the folds',
+      m0.order.indexOf('stage') < m0.order.indexOf('owed') && m0.order.indexOf('owed') < m0.order.indexOf('read')
+      && m0.order.indexOf('read') < m0.order.indexOf('acts') && m0.order.indexOf('acts') < m0.order.indexOf('pd-kt') + (m0.order.includes('pd-kt') ? 0 : 999),
+      JSON.stringify(m0.order));
+
+    console.log('\n3 · a press opens a row, again closes it');
+    const first = owed.find(r => r.open), other = owed.find(r => !r.open && r.key !== 'signers');
+    await page.click(`#ig-dock #pd-og [data-pd-ck-row="${other.key}"]`); await pause(150);
+    const m1 = await page.evaluate(MEASURE);
+    const r1 = k => m1.rows.find(r => r.key === k) || {};
+    check('3a the row pressed is open, the one open before is closed', r1(other.key).open && r1(other.key).box && !r1(first.key).open, JSON.stringify({ was: first.key, now: other.key }));
+    check('3b its Confirm stands with it', r1(other.key).ok === true);
+    await page.click(`#ig-dock #pd-og [data-pd-ck-row="${other.key}"]`); await pause(150);
+    const m2 = await page.evaluate(MEASURE);
+    check('3c pressed again it closes, and none is open', m2.rows.every(r => !r.open), JSON.stringify(m2.rows.map(r => [r.key, r.open])));
+    check('3d nothing left the page for it', await page.evaluate(() => !document.querySelector('.modal-overlay, [role="dialog"]')));
+
+    console.log('\n5 · Jambo read');
+    check('5a Brief and Risks, each "Not read …" and Read', m0.read.length >= 2 && /^Brief\s*Not read yet\s*Read$/.test(m0.read[0])
+      && /^Risks to look at\s*Not read · free\s*Read$/.test(m0.read[1]), JSON.stringify(m0.read));
+
+    console.log('\n6 · Next acts');
+    check('6a the stage\'s acts are equal buttons on one line', m0.acts.length >= 2 && new Set(m0.acts.map(a => a.w)).size === 1 && new Set(m0.acts.map(a => a.top)).size === 1, JSON.stringify(m0.acts));
+    await page.click('#ig-dock [data-pd-acts-all]'); await pause(150);
+    const m3 = await page.evaluate(MEASURE);
+    check('6b "All acts N ›" opens the room\'s whole list', m3.allOpen === true);
+    await page.click('#ig-dock [data-pd-acts-all]'); await pause(150);
+    check('6c pressed again it folds', (await page.evaluate(MEASURE)).allOpen === false);
+
+    console.log('\n7 · one signer button');
+    check('7 the only signer button on the Dossier is "Add or order signers ›"', m0.signerBtns.length === 1 && /Add or order signers/.test(m0.signerBtns[0]), JSON.stringify(m0.signerBtns));
+
+    console.log('\n4 · Confirm N read stores a closed row\'s reading');
+    const readRow = m0.rows.find(r => /mutual|Both sides/i.test(r.words));
+    if (readRow){
+      await page.evaluate(() => { const r = document.querySelector('#ig-dock #pd-og tr.is-open .pd-ck-hd'); if (r) r.click(); });
+      await page.click('#ig-dock [data-pd-og-all]');
+      const done = await waitFor(page, k => { const r = document.querySelector(`#ig-dock #pd-og tr[data-pd-og-row="${k}"]`); return !r || r.classList.contains('is-saved'); }, 8000, readRow.key);
+      check('4 the read row is stored though it was closed', done, readRow.key);
+    } else check('4 a row read from the wording is there to confirm', false, JSON.stringify(m0.rows.map(r => r.words)));
+
+    console.log('\n8 · four signers, in order, and the one door');
+    const named = await page.evaluate(async id => {
+      const c = getContract(id); const me = currentUser() || {};
+      const why = saveSignerPlan(c, [
+        { party: 'internal', name: me.name, email: me.email, role: 'Legal Counsel', memberId: me.id, order: 1 },
+        { party: 'internal', name: 'Peter Kamau', email: 'peter.kamau@highlandcorporate.co.ke', role: 'Chief Executive Officer', order: 2 },
+        { party: 'counterparty', name: 'Wanjiru Achieng', email: 'wanjiru@bamburicement.co.ke', role: 'Legal', order: 3 },
+        { party: 'counterparty', name: 'David Mwangi', email: 'david.mwangi.managingdirector@bamburicement.co.ke', role: 'Managing Director', order: 4 }]);
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      if (typeof pdGlanceRepaint === 'function') pdGlanceRepaint();
+      return why || 'ok';
+    }, ID);
+    check('8 the route names four', named === 'ok', String(named));
+    await waitFor(page, () => !!document.querySelector('#ig-dock #pd-og tr.is-named'), 8000);
+    const sg = await page.evaluate(() => { const r = document.querySelector('#ig-dock #pd-og tr.is-named'); return r ? (r.querySelector('.pd-ck-hd') || {}).textContent.replace(/\s+/g, ' ').trim() : null; });
+    check('8a the Signers row is green and says "4 named · 4 steps"', /Signers\s*4 named · 4 steps/.test(sg || '')
+      && await page.evaluate(() => !!document.querySelector('#ig-dock #pd-og tr.is-named .pd-ck-ring.is-done')), String(sg));
+    await page.click('#ig-dock #pd-og [data-pd-ck-row="signers"]'); await pause(150);
+    const list = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .pd-ck-sg')].map(li => li.textContent.replace(/\s+/g, ' ').trim()));
+    check('8b opened: the route in order, 1 to 4', list.length === 4 && list.every((t, i) => t.startsWith(String(i + 1))), JSON.stringify(list));
+    check('8c the one door stands under it', await page.evaluate(() => /Add or order signers/.test((document.querySelector('#ig-dock tr.is-named [data-pd-og-route]') || {}).textContent || '')));
+    await page.screenshot({ path: path.join(OUT, 'signers-open-1440x780.png') });
+    await page.click('#ig-dock tr.is-named [data-pd-og-route]');
+    const win = await waitFor(page, () => !!document.getElementById('sr-win'), 8000);
+    const sr = await page.evaluate(() => { const w = document.getElementById('sr-win'); const sc = w && w.closest('.modal-in');
+      return w ? { w: Math.round(w.getBoundingClientRect().width), side: sc ? sc.scrollWidth - sc.clientWidth : -1 } : null; });
+    check('8d it opens the signing route, the XL rung, with no sideways scroll', win && sr && sr.w >= 740 && sr.side <= 0, JSON.stringify(sr));
+    await page.evaluate(() => { const b = document.querySelectorAll('#sr-win [data-sp-menu]')[2]; if (b) b.click(); }); await pause(250);
+    const menu = await page.evaluate(() => { const m = document.querySelector('#sr-win .sr-menu'); if (!m) return null;
+      const items = [...m.querySelectorAll('button')].filter(b => { const q = b.getBoundingClientRect(); const at = document.elementFromPoint(q.left + q.width / 2, q.top + q.height / 2); return at && b.contains(at); });
+      return items.map(b => b.textContent.replace(/\s+/g, ' ').trim()); });
+    check('8e a person\'s ⋯ menu shows whole: Move up, Move down, Sign at the same time', !!menu && menu.some(t => /Move up/.test(t)) && menu.some(t => /Move down/.test(t)) && menu.some(t => /same time/.test(t)), JSON.stringify(menu));
+    await page.screenshot({ path: path.join(OUT, 'route-menu-1440x780.png') });
+    await page.keyboard.press('Escape').catch(() => {}); await pause(100);
+    await page.click('#sp-cancel').catch(() => {});
+    await waitFor(page, () => !document.getElementById('sr-win'), 6000);
+
+    console.log('\n9 · the owner\'s three screens');
+    for (const [w, hh] of SCREENS) {
+      await page.setViewportSize({ width: w, height: hh });
+      await open();
+      const m = await page.evaluate(MEASURE);
+      check(`9 ${w}x${hh} nothing past the panel's edge`, m.up && m.past === 0, String(m.past));
+      await page.screenshot({ path: path.join(OUT, `dossier-${w}x${hh}.png`) });
+      await page.evaluate(() => { const f = document.getElementById('igd-feed'); if (f) f.scrollTop = f.scrollHeight; }); await pause(150);
+      await page.screenshot({ path: path.join(OUT, `dossier-foot-${w}x${hh}.png`) });
+    }
+    check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
+  } catch (e) {
+    check('the run finished', false, e && e.stack);
+  } finally {
+    await browser.close().catch(() => {});
+    await h.stop().catch(() => {});
+  }
+  console.log(`\n${pass} passed, ${fail} failed`);
+  process.exit(fail ? 1 : 0);
+})();

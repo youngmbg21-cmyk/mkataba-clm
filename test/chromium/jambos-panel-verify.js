@@ -86,14 +86,15 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
       const rows = [...el.querySelectorAll('.pd-gl-row:not(.is-done)')];
       const jw = rows.find(r => r.classList.contains('is-jw'));
       const read = gl.querySelector('[data-pd-ds-card="read"]');
-      return { before: gl.contains(el) && !!read && !!(read.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING),
-        title: el.querySelector('.pd-gl-h b').textContent.trim(), n: (el.querySelector('.pd-gl-h b').textContent.match(/\d+/) || [''])[0],
+      /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"): "Needs you N" ABOVE Jambo read, its number beside the words */
+      return { before: gl.contains(el) && !!read && !!(el.compareDocumentPosition(read) & Node.DOCUMENT_POSITION_FOLLOWING),
+        title: (el.querySelector('.pd-gl-h b').textContent + ' ' + ((el.querySelector('.pd-gl-h .ds-ck-n') || {}).textContent || '')).trim(), n: ((el.querySelector('.pd-gl-h .ds-ck-n') || {}).textContent || '').trim(),
         /* RE-POINTED 20 Oct 2026 (the Legora way): the owed facts are the grid's rows */
-        rows: rows.reduce((a, r) => a + Number((/(\d+) more/.exec(r.textContent) || [])[1] || 1), 0) + el.querySelectorAll('#pd-og tr.pd-og-row:not(.is-saved)').length, firstJw: !!jw, jwFace: !!(jw && jw.querySelector('svg.jambo-mark.jambo-face')),
+        rows: rows.reduce((a, r) => a + Number((/(\d+) more/.exec(r.textContent) || [])[1] || 1), 0) + el.querySelectorAll('#pd-og tr.pd-og-row:not(.is-saved):not(.is-named)').length, firstJw: !!jw, jwFace: !!(jw && jw.querySelector('svg.jambo-mark.jambo-face')),
         kinds: rows.map(r => r.getAttribute('data-pd-nd-kind') || 'jw'),
         all: (el.querySelector('[data-pd-nd-all]') || {}).textContent || '', counter: counterNeedsCount(),
         badge: (document.querySelector('#ig-dock [data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || '' }; }, null, 10000);
-    check('1a Still owed is the dossier\'s card under What Jambo read', !!nd && nd.before && /^Still owed · \d+$/.test(nd.title), JSON.stringify(nd));
+    check('1a Needs you is the dossier\'s card above Jambo read', !!nd && nd.before && /^Needs you \d+$/.test(nd.title), JSON.stringify(nd));
     /* RE-POINTED 20 Oct 2026 (Chambers): on a computer his face is the ✦ mark (jamboFaceHtml's svg.jambo-mark), not the bird */
     check('1b Jambo\'s prepared work on this contract is one of its rows, with his face (the ✦ mark)', !!nd && nd.firstJw && nd.jwFace, nd && nd.kinds.join(','));
     check('1d its number is its rows', !!nd && Number(nd.n) === nd.rows, nd && (nd.n + ' / ' + nd.rows));

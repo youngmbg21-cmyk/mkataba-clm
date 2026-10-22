@@ -270,7 +270,7 @@ const SIG = n => [{ party: 'first', name: 'Amina Otieno', at: new Date(Date.now(
         value: ((st.querySelector('[data-bs-kpi="value"] span') || {}).textContent || ''),
         /* RE-POINTED 20 Oct 2026 (4b): Open stands in the head as "Open in Workspace ›" */
         sfoot: ((st.querySelector('.bs-head [data-bs-open]') || {}).textContent || '').trim() }; }, null, 15000);
-    check('2a Life line and details brings up its page, and Jambo says "MK-0377 · Dossier" beside it, its spine at Live', !!P7 && P7.card === 'MK-0377' && P7.word === 'MK-0377 · Dossier' && /^What Jambo read \| Still owed · \d+/.test(P7.head) && P7.pill, JSON.stringify(P7 && { card: P7.card, word: P7.word, head: P7.head }));
+    check('2a Life line and details brings up its page, and Jambo says "MK-0377 · Dossier" beside it, its spine at Live', !!P7 && P7.card === 'MK-0377' && P7.word === 'MK-0377 · Dossier' && /^Needs you \| Jambo read/.test(P7.head) && P7.pill, JSON.stringify(P7 && { card: P7.card, word: P7.word, head: P7.head }));
     const rk = P7 ? P7.rows.map(r => r.k) : [];
     check('2b Still owed: the obligation late (→ Open ›); the signed amendment in the Family fold',
       rk.includes('late') && /^1 obligation is late: Check the September invoice, 7 days$/.test(P7.rows[rk.indexOf('late')].t) && P7.rows[rk.indexOf('late')].b === 'Open ›'

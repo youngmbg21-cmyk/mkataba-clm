@@ -87,7 +87,12 @@ const check = (name, pass, detail) => {
       const probe = document.createElement('i'); probe.style.background = 'var(--st-amber-bg)'; document.body.appendChild(probe);
       const amber = getComputedStyle(probe).backgroundColor; probe.remove();
       const count = k => document.querySelectorAll(`#pd-og[data-pd-og-for="MK-DF1"] [data-kt="${k}"]`).length;
-      return { qOn: vis(firstQ), cpOn: vis(cp), edge: cs.borderTopStyle !== 'none' && parseFloat(cs.borderTopWidth) > 0,
+      /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"): ONE row is open at a time — the first
+         owed one, its box on screen; the other party's row is its one line, a press away */
+      const cpLine = cp.closest('tr') && cp.closest('tr').querySelector('.pd-ck-hd');
+      const qRow = q0 && q0.closest('tr'), cpRow = cp.closest('tr');
+      return { qOn: vis(firstQ) || (!!qRow && !qRow.classList.contains('is-open') && vis(qRow.querySelector('.pd-ck-hd'))),
+        cpOn: cpRow && cpRow.classList.contains('is-open') ? vis(cp) : vis(cpLine), edge: cs.borderTopStyle !== 'none' && parseFloat(cs.borderTopWidth) > 0,
         cpAmber: cs.backgroundColor === amber, amber, cpBg: cs.backgroundColor, inner: inner.map(e => e.id || e.className).slice(0, 4),
         twice: ['counterparty', 'value', 'effDate'].filter(k => count(k) !== 1).concat(count('expiry') ? ['expiry'] : []) };
     });
@@ -101,14 +106,17 @@ const check = (name, pass, detail) => {
         law: !!(col && col.querySelector('[data-ktm="governingLaw"]')) }; });
     check('5 only what the paper owes: no folds, no parties, people or filing, no other terms', p.folds === 0 && !p.parties && !p.law, JSON.stringify(p));
 
-    const before = await page.evaluate(() => (document.querySelector('#pd-needs .pd-gl-h b') || {}).textContent || '');
+    /* RE-POINTED 22 Oct 2026 (the Checklist): the count stands beside "Needs you"; the row is opened first */
+    const headOf = () => ((document.querySelector('#pd-needs .pd-gl-h b') || {}).textContent || '') + ' ' + ((document.querySelector('#pd-needs .pd-gl-h .ds-ck-n') || {}).textContent || '');
+    const before = await page.evaluate(headOf);
     if (await page.evaluate(() => !!document.querySelector('#pd-og [data-kt="counterparty"]'))){
+      await page.evaluate(() => { const b = document.querySelector('#pd-og [data-pd-ck-row="counterparty"]'); if (b && b.getAttribute('aria-expanded') !== 'true') b.click(); });
       await page.fill('#pd-og [data-kt="counterparty"]', 'Juno Foods Ltd');
       await page.click('#pd-og [data-pd-og-ok="counterparty"]'); }
     await page.waitForTimeout(500);
-    const after = await page.evaluate(() => ({ tab: (document.querySelector('#pd-needs .pd-gl-h b') || {}).textContent || '',
+    const after = await page.evaluate(h => ({ tab: (new Function('return (' + h + ')()'))(),
       open: !document.querySelector('#pd-og tr.is-saved[data-pd-og-row="counterparty"]'),
-      stored: getContract('MK-DF1').counterparty }));
+      stored: getContract('MK-DF1').counterparty }), headOf.toString());
     check('6 typing the other party is stored, clears its amber and moves the tab\'s count',
       after.stored === 'Juno Foods Ltd' && !after.open && after.tab !== before, `${before} → ${after.tab} · ${JSON.stringify(after)}`);
     check('7 no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));

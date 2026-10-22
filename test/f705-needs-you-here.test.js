@@ -116,7 +116,8 @@ describe('f705 (1) needs you here, on Jambo\'s tab beside a paper', () => {
     assert.equal(ctx.pdJamboPinHtml(), '', 'nothing is pinned above the dossier');
     const top = ctx.pdJamboTopHtml();
     assert.match(top, /id="pd-glance"/);
-    assert.ok(top.indexOf('class="ds-spine') < top.indexOf('data-pd-ds-card="read"') && top.indexOf('data-pd-ds-card="read"') < top.indexOf('id="pd-needs"'), 'spine, then What Jambo read, then Still owed');
+    /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"): the stage, then Needs you, then Jambo read */
+    assert.ok(top.indexOf('class="ds-spine') < top.indexOf('id="pd-needs"') && top.indexOf('id="pd-needs"') < top.indexOf('data-pd-ds-card="read"'), 'stage, then Needs you, then Jambo read');
     const wall = pdStage({ paper: null, needs: [{ kind: 'note', n: 1 }] });
     assert.ok(!/id="pd-needs"/.test(wall.ctx.pdJamboTopHtml()), 'the wall draws no contract\'s card');
   });

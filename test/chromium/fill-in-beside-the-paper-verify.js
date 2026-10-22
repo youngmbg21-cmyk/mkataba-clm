@@ -27,7 +27,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
-const { startHati, seedWorkspace } = require('../helpers');
+const { startHati, seedWorkspace, ckOpenRowOf } = require('../helpers');
 
 const OUT = path.join(process.env.HATI_SHOT_DIR || path.join(__dirname, 'shots'), 'fill-in-beside-the-paper');
 const EXEC = process.env.CHROMIUM_BIN
@@ -129,12 +129,12 @@ const FACE = () => {
     /* ===== 2. TYPING SHOWS ON THE PAPER; CONFIRM STORES IT ===== */
     const left0 = await page.evaluate(() => detailsOf(getContract('MK-F1')).left);
     const rows0 = (await page.evaluate(FACE)).rows;
-    await page.click('#pd-og [data-blankf="up_supplier_address"]');
+    await ckOpenRowOf(page, '#pd-og [data-blankf="up_supplier_address"]'); await page.click('#pd-og [data-blankf="up_supplier_address"]');
     await page.keyboard.type('Strandvejen 70, Hellerup', { delay: 10 });
     const echo = await page.evaluate(() => [...document.querySelectorAll('#ig-canvas span.up-blank[data-upblank="up_supplier_address"]')].map(x => x.textContent));
     check('2a the words show on the paper while typing', echo.length > 0 && echo.every(t => t === 'Strandvejen 70, Hellerup'), JSON.stringify(echo));
     await page.screenshot({ path: path.join(OUT, '2-typing.png') });
-    await page.click('#pd-og [data-pd-og-ok="up_supplier_address"]');
+    await ckOpenRowOf(page, '#pd-og [data-pd-og-ok="up_supplier_address"]'); await page.click('#pd-og [data-pd-og-ok="up_supplier_address"]');
     await waitFor(page, n => detailsOf(getContract('MK-F1')).left === n - 1, 3000, left0);
     await waitFor(page, () => !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#pd-og')), 2000);
     f = await page.evaluate(FACE);
@@ -176,9 +176,9 @@ const FACE = () => {
     await page.click('#na-create');
     const up5 = await waitFor(page, () => !!document.querySelector('#pd-og [data-tplf]') && !document.getElementById('na-root'), 10000);
     const site = await page.evaluate(() => getContract(intel.paper.id).templateForm.fields.findIndex(x => x.fieldKey === 'site'));
-    await page.click(`#pd-og [data-tplf="${site}"]`);
+    await ckOpenRowOf(page, `#pd-og [data-tplf="${site}"]`); await page.click(`#pd-og [data-tplf="${site}"]`);
     await page.keyboard.type('Avenyn 12, Gothenburg', { delay: 10 });
-    await page.click(`#pd-og [data-pd-og-ok="site"]`);
+    await ckOpenRowOf(page, `#pd-og [data-pd-og-ok="site"]`); await page.click(`#pd-og [data-pd-og-ok="site"]`);
     await waitFor(page, () => /Avenyn 12/.test((document.getElementById('ig-canvas') || {}).textContent || ''), 3000);
     const pre = await page.evaluate(() => { const c = getContract(intel.paper.id); return { paper: /Avenyn 12/.test(document.getElementById('ig-canvas').textContent), stored: /Avenyn 12/.test(c.redlineText || ''), owed: tplFormPending(c) }; });
     check('5a the answer shows on the paper while the stored wording waits for the press', up5 && pre.paper && !pre.stored && pre.owed, JSON.stringify(pre));
@@ -200,7 +200,7 @@ const FACE = () => {
       const sel = '#pd-og ' + next.sel;
       if (next.type === 'date') await page.$eval(sel, el => { el.value = '2026-11-01'; el.dispatchEvent(new Event('change', { bubbles: true })); });
       else { await page.click(sel); await page.keyboard.type(/value/.test(next.sel) ? '180000' : /counterparty/.test(next.sel) ? 'Parcelway ApS' : 'Answered', { delay: 5 }); }
-      await page.click(`#pd-og [data-pd-og-ok="${next.key}"]`).catch(() => {});
+      await ckOpenRowOf(page, `#pd-og [data-pd-og-ok="${next.key}"]`); await page.click(`#pd-og [data-pd-og-ok="${next.key}"]`).catch(() => {});
       await pause(300);
     }
     await waitFor(page, () => !detailsOf(getContract('MK-F1')).left, 4000);

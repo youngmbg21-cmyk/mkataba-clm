@@ -23,7 +23,7 @@
    Run: node test/chromium/fill-the-document-verify.js */
 const fs = require('node:fs');
 const { chromium } = require('playwright-core');
-const { startHati, seedWorkspace } = require('../helpers');
+const { startHati, seedWorkspace, ckOpenRowOf } = require('../helpers');
 
 const EXEC = process.env.CHROMIUM_BIN
   || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
@@ -119,10 +119,12 @@ const owed = (page, id) => page.evaluate(x => {
     await openDocs(page, 'MK-FD1');
     const b0 = '#pd-og [data-tplf="0"]', b1 = '#pd-og [data-tplf="1"]';
     const there = await page.evaluate(s => !!document.querySelector(s), b1);
+    /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"): the next box's row is one line; a press on
+       it opens the row with its box in the hand — still one press to the next box */
     if (there) {
-      await page.click(b0);
+      await ckOpenRowOf(page, b0); await page.click(b0);
       await page.keyboard.type('Wanjiru Catering Ltd');
-      await page.click(b1);
+      await page.click('#pd-og tr:has([data-tplf="1"]) [data-pd-ck-row]');
       await page.waitForTimeout(400);
     }
     const focus1 = await page.evaluate(() => (document.activeElement || {}).getAttribute?.('data-tplf'));
@@ -172,7 +174,7 @@ const owed = (page, id) => page.evaluate(x => {
     await page.evaluate(() => { const i = state.contracts.findIndex(k => k.id === 'MK-FD1');
       if (i >= 0) state.contracts[i] = JSON.parse(JSON.stringify(state.contracts[i])); });
     if (await page.evaluate(s => !!document.querySelector(s), '#pd-og [data-tplf="1"]')) {
-      await page.click('#pd-og [data-tplf="1"]');
+      await ckOpenRowOf(page, '#pd-og [data-tplf="1"]'); await page.click('#pd-og [data-tplf="1"]');
       await page.keyboard.type('Juno Limited');
       /* WHAT THE PRESS MET, said in 4a's detail when it fails (8 Oct 2026):
          CI failed this step on runs that pass locally, so the reading is
@@ -227,9 +229,12 @@ const owed = (page, id) => page.evaluate(x => {
     if (keys.length >= 2) {
       const from = keys.find(k => k.startsWith('blankf:')) || keys[0], to = keys.find(k => k !== from);
       keys.splice(0, keys.length, null, from, to);
-      await page.click(sel5(from));
+      /* RE-POINTED 22 Oct 2026 (the Checklist): a box in another row is reached by that row's line, which hands it the caret */
+      await ckOpenRowOf(page, sel5(from)); await page.click(sel5(from));
       await page.keyboard.type('11');
-      await page.click(sel5(to));
+      const sameRow = await page.evaluate(([a, b]) => { const x = document.querySelector(a), y = document.querySelector(b); return !!(x && y && x.closest('tr') === y.closest('tr')); }, [sel5(from), sel5(to)]);
+      if (sameRow) await page.click(sel5(to));
+      else await page.evaluate(sel => { const b = document.querySelector(sel); const hd = b && b.closest('tr').querySelector('[data-pd-ck-row]'); if (hd) hd.click(); }, sel5(to));
       await page.waitForTimeout(400);
       focus5 = await page.evaluate(() => { const a = document.activeElement || {}; return a.getAttribute ? (a.getAttribute('data-blankf') ? 'blankf:' + a.getAttribute('data-blankf') : 'kt:' + a.getAttribute('data-kt')) : null; });
     }

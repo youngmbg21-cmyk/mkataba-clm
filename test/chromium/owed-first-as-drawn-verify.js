@@ -36,6 +36,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
 const H = require('../helpers');
+const { ckOpenRowOf } = H;
 const TF = require('../../js/templateform.js');
 
 const EXEC = process.env.CHROMIUM_BIN
@@ -109,9 +110,10 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
     await openFill('MK-0405');
     const G = await page.evaluate(GRID);
     const row = k => G.rows.find(r => r.k === k) || {};
-    check('1a the head "Still owed · N"; the columns "Fact · where Jambo read it" · "Jambo read" · Confirm', /^Still owed · \d+/.test(G.head) && G.cols[0] === 'FACT · WHERE JAMBO READ IT' && G.cols[1] === 'JAMBO READ', JSON.stringify({ head: G.head, cols: G.cols }));
+    /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"): the head is "Needs you N" */
+    check('1a the head "Needs you N"; the columns "Fact · where Jambo read it" · "Jambo read" · Confirm', /^Needs you \d+/.test(G.head) && G.cols[0] === 'FACT · WHERE JAMBO READ IT' && G.cols[1] === 'JAMBO READ', JSON.stringify({ head: G.head, cols: G.cols }));
     check('1c each blank says where it lands on the paper', row('up_start_date').chip === '§3' && /on the paper/.test(row('up_start_date').src) && row('up_expected_yearly_value').chip === '§4', JSON.stringify(G.rows));
-    await page.click('#pd-og [data-pd-og-spot="up_start_date"]');
+    await ckOpenRowOf(page, '#pd-og [data-pd-og-spot="up_start_date"]'); await page.click('#pd-og [data-pd-og-spot="up_start_date"]');
     const atPress = await until(() => !!document.querySelector('#ig-canvas .is-landed[data-upblank="up_start_date"]'), null, 4000);
     check('1e pressed, "§3" lands on its spot on the paper through the one lander', !!atPress);
     await shot(page, '8-owed-first-1440x780');
@@ -121,7 +123,7 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
       box: (document.querySelector('#pd-og [data-blankf="up_notice_period"]') || {}).value, kind: pdFillStdKind(getContract('MK-0405')), cls: (document.querySelector('#pd-og tr[data-pd-og-row="up_notice_period"]') || {}).className }));
     check('2a the owed notice period: "Our standard for <the kind of contract>: 90 days", in the box as the reading', !!N.kind && N.kind !== 'termination' && N.std.trim() === `Our standard for ${N.kind}: 90 days` && N.box === '90 days' && /is-read/.test(N.cls), JSON.stringify(N));
     check('2b a box no standard names is offered nothing', !/Our standard/.test(row('up_start_date').src) && !row('up_start_date').box);
-    await page.click('#pd-og [data-pd-og-ok="up_notice_period"]');
+    await ckOpenRowOf(page, '#pd-og [data-pd-og-ok="up_notice_period"]'); await page.click('#pd-og [data-pd-og-ok="up_notice_period"]');
     const used = await until(() => { const c = getContract('MK-0405');
       return c.fields && c.fields.up_notice_period === '90 days' ? { paper: /90 days/.test(document.getElementById('ig-canvas').textContent), saved: !!document.querySelector('#pd-og tr.is-saved[data-pd-og-row="up_notice_period"]') } : null; }, null, 6000);
     check('2c Confirm: the box\'s own writer stored it, the paper shows it, the row says saved', !!used && used.paper && used.saved, JSON.stringify(used));
@@ -183,7 +185,8 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
       return { head: t(document.querySelector('#pd-needs .pd-gl-h')), all: !!document.querySelector('#pd-needs [data-pd-og-all]'),
         rows: ['ndaDir', 'ndaEnds'].map(k => ({ k, chip: t(r(k) && r(k).querySelector('.pd-og-cl')), q: t(r(k) && r(k).querySelector('q')), cls: r(k) && r(k).className,
           box: k === 'ndaDir' ? (r(k).querySelector('[data-pd-og-nda="dir"]') || {}).value : (r(k).querySelector('[data-pd-og-nda="ends"]') || {}).value })) }; });
-    check('8a an NDA: "· N read from the wording · Confirm all N" in Still owed\'s head', /· \d read from the wording/.test(N8.head) && N8.all, N8.head);
+    /* RE-POINTED 22 Oct 2026 (the Checklist): "Confirm N read" in the head, the count of readings on its hover */
+    check('8a an NDA: "Confirm N read" in Needs you\'s head', /Confirm \d read/.test(N8.head) && N8.all, N8.head);
     /* the wording counts secrecy from the agreement's end, which this record does not hold yet: quoted, the day asked (amber) */
     check('8b each fact "§5", the passage quoted; who keeps it secret read into its box, the day asked where the end is not on the record', N8.rows.every(r => r.chip === '§5' && r.q.length > 10)
       && /is-read/.test(N8.rows[0].cls) && N8.rows[0].box === 'mutual' && /is-amb/.test(N8.rows[1].cls) && !N8.rows[1].box, JSON.stringify(N8.rows));
@@ -195,10 +198,11 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
     const P9 = await pa.evaluate(() => { const t = el => (el ? el.innerText : '').replace(/\s+/g, ' ').trim();
       const v = document.querySelector('#pd-og tr[data-pd-og-row="value"]');
       return { priv: t(document.querySelector('#pd-glance [data-pd-ds-card="private"]')), pay: !!(v && v.querySelector('[data-pd-og-pay]')), payWord: t(v && v.querySelector('.pd-og-f b')),
-        wait: t(document.querySelector('#pd-glance [data-pd-ds-card="read"] .pd-gl-h')), cost: (document.querySelector('#pd-glance [data-pd-ds-read]') || {}).title || '' }; });
+        wait: t(document.querySelector('#pd-glance [data-pd-ds-card="read"] .pd-gl-h')), cost: (document.querySelector('#pd-glance [data-pd-ds-read]') || {}).title || '', door: ((document.querySelector('#pd-glance [data-pd-ds-read]') || {}).textContent || '').trim() }; });
     check('9a a private stream: the Dossier says who may open it', P9.priv.length > 0 && /Private|private/.test(P9.priv), P9.priv);
     check('9b base pay owed: its row reads as pay, its door Edit pay', P9.pay && /pay/i.test(P9.payWord), JSON.stringify(P9));
-    check('9c What Jambo read waits for the press, its cost said in calls', /Read it now/.test(P9.wait) && /Jambo call/.test(P9.cost), JSON.stringify(P9));
+    /* RE-POINTED 22 Oct 2026 (the Checklist): the brief's own row carries the press, "Read" */
+    check('9c What Jambo read waits for the press, its cost said in calls', /^Read$/.test(P9.door) && /Jambo call/.test(P9.cost), JSON.stringify(P9));
     /* 10 nothing of Jambo sits over the grid.
        RE-POINTED 21 Oct 2026 (Chambers, the owner picked it by name; it
        reverses "JAMBO, ALIVE", 16 Oct): the perch is gone (jamboPerchMount,
