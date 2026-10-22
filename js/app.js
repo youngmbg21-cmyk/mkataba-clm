@@ -3439,6 +3439,45 @@ function closeContextPanel(){
   if(!state.panelOpen) return;
   state.panelOpen=false; applyPanelLayout();
 }
+/* ---- A SWIPE TO THE RIGHT PUTS THE PANEL AWAY (owner picked "Glide over",
+   22 Oct 2026) ---- A finger or pen dragged right across the panel carries it
+   with the hand; let go past a third of its width, or flicked, and it goes
+   the way it came (closeContextPanel, its own slide); short of that it
+   settles back. A mouse is left to select text, and a press that starts on
+   something typed into or pressed is never a drag. Armed once, on the
+   document, and it reads the live panel at press time. */
+const PANEL_SWIPE_SHUT=1/3, PANEL_SWIPE_FLICK=0.5, PANEL_SWIPE_START=8;
+if(typeof document!=='undefined'&&!document._panelSwipe){
+  document._panelSwipe=true;
+  let sw=null;
+  document.addEventListener('pointerdown',e=>{
+    const panel=e.target&&e.target.closest?e.target.closest('#context-panel.open'):null;
+    if(!panel||(e.pointerType!=='touch'&&e.pointerType!=='pen')) return;
+    if(e.target.closest('input,textarea,select,button,a,[contenteditable="true"],[role="slider"]')) return;
+    sw={ panel, id:e.pointerId, x0:e.clientX, y0:e.clientY, t0:performance.now(), dx:0, on:false };
+  },true);
+  document.addEventListener('pointermove',e=>{
+    if(!sw||e.pointerId!==sw.id) return;
+    const dx=e.clientX-sw.x0, dy=e.clientY-sw.y0;
+    if(!sw.on){
+      if(Math.abs(dy)>PANEL_SWIPE_START&&Math.abs(dy)>Math.abs(dx)){ sw=null; return; }   /* a scroll, not a swipe */
+      if(dx<PANEL_SWIPE_START) return;
+      sw.on=true; sw.panel.style.transition='none';
+    }
+    sw.dx=Math.max(0,dx); sw.panel.style.transform=`translateX(${sw.dx}px)`;
+  },true);
+  const let_go=e=>{
+    if(!sw||e.pointerId!==sw.id) return;
+    const s=sw; sw=null; if(!s.on) return;
+    const w=s.panel.getBoundingClientRect().width||1, v=s.dx/Math.max(1,performance.now()-s.t0);
+    s.panel.style.transition='';
+    /* the inline place is let go in the same frame as the class, so the slide starts from the hand */
+    s.panel.style.transform='';
+    if(s.dx>w*PANEL_SWIPE_SHUT||(s.dx>30&&v>PANEL_SWIPE_FLICK)) closeContextPanel();
+  };
+  document.addEventListener('pointerup',let_go,true);
+  document.addEventListener('pointercancel',let_go,true);
+}
 /* ---- TWO ICONS, TWO QUESTIONS, ONE PANEL ----
    The bell used to literally press the activity button (`document
    .getElementById('cmd-panel')?.click()`), so the two header icons did the same
