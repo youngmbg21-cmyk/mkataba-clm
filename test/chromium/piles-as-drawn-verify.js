@@ -160,10 +160,11 @@ async function login(b, base, email, pass, errs){
       return { tabs, word: word ? word.textContent.trim() : null, back: back ? back.textContent.trim() : null, backFace: back && back.getAttribute('data-pd-back'),
         x, chips: chips ? getComputedStyle(chips).display : 'none' };
     });
-    check('1a the tabs stay; the trail line names the face "Redlines"', row.tabs.join() === 'copilot,doc,oblig,menu' && row.word === 'Redlines', JSON.stringify(row));
+    /* RE-POINTED 21 Oct 2026 (owner picked "The Dossier", 20 Oct 2026: it reverses the Menu tab, folded into the Dossier's All acts; the first tab beside a paper is "Dossier"): */
+    check('1a the tabs stay; the trail line names the face "Redlines"', row.tabs.join() === 'copilot,doc,oblig' && row.word === 'Redlines', JSON.stringify(row));
     /* RE-POINTED 19 Oct 2026 — JAMBO AS A TAB YOU FLIP TO (owner: "the first tab
        beside a contract is renamed Overview"): the faces' back says "‹ Overview" */
-    check('1b "‹ Overview" opens the trail line, for this face', /Overview/.test(row.back || '') && row.backFace === 'red', row.back);
+    check('1b "‹ Dossier" opens the trail line, for this face', /Dossier/.test(row.back || '') && row.backFace === 'red', row.back);
     check('1c the face\'s head draws no ×', row.x === 0, String(row.x));
     check('1d no chips under the face', row.chips === 'none', row.chips);
 

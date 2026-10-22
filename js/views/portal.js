@@ -163,7 +163,7 @@ function openPortalCompare(p){
           </div>
           <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:7px 0 0">+${st.add} added · −${st.del} removed ·
             <span style="background:var(--st-green-bg);color:var(--st-green-fg);padding:0 var(--s-1);border-radius:var(--radius)">added</span>
-            <span style="background:var(--st-ruby-bg);color:var(--st-ruby-dot);text-decoration:line-through;padding:0 var(--s-1);border-radius:var(--radius)">removed</span></p>
+            <span style="background:var(--st-ruby-bg);color:var(--st-ruby-fg);text-decoration:line-through;padding:0 var(--s-1);border-radius:var(--radius)">removed</span></p>
         </div>
       </div>
       <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:22px 26px;background:var(--color-bg)">
@@ -699,7 +699,7 @@ function openPortalVersionCompare(p){
     const st=(window.diffStats?diffStats(aText,bText):{add:0,del:0});
     document.getElementById('pv-legend').innerHTML=`+${st.add} added · −${st.del} removed ·
       <span style="background:var(--st-green-bg);color:var(--st-green-fg);padding:0 var(--s-1);border-radius:var(--radius)">added</span>
-      <span style="background:var(--st-ruby-bg);color:var(--st-ruby-dot);text-decoration:line-through;padding:0 var(--s-1);border-radius:var(--radius)">removed</span>`;
+      <span style="background:var(--st-ruby-bg);color:var(--st-ruby-fg);text-decoration:line-through;padding:0 var(--s-1);border-radius:var(--radius)">removed</span>`;
     document.getElementById('pv-out').innerHTML=`<div style="background:var(--color-doc-surface);box-shadow:var(--shadow-md);border-radius:0;padding:30px 36px;font-size:var(--t-card);line-height:1.95;color:var(--color-doc-text);white-space:pre-wrap;font-family:var(--font-body)">${diffHtml(aText,bText)}</div>`;
   };
   document.getElementById('pv-go').addEventListener('click',run);

@@ -51,7 +51,9 @@ describe('f712 (1) the stops are a reading', () => {
     const R0 = J(ctx.pdRoadStops(c));
     assert.deepEqual(R0.stops.map(x => x.k), ['ready', 'who', 'sealed']);
     /* RE-POINTED 18 Oct 2026 (the gaps, f752): the count is followed by the checks it names, as drawn */
-    assert.equal(R0.stops[0].sub, 'sc_n_to_settle:1: pd_rd_ck_standards', 'the checks count leaves the signing holds out');
+    /* RE-POINTED 21 Oct 2026 (the head and the road agree): the signers hold waits at its own stop, so this
+       stop names its part of the head's two — "1 of the 2 to settle" */
+    assert.equal(R0.stops[0].sub, 'pd_rd_n_of_settle[1,2]: pd_rd_ck_standards', 'the checks count leaves the signing holds out, and says it is a part');
     assert.equal(R0.cur, 0);
     assert.equal(R0.mineAt, -1);
   });

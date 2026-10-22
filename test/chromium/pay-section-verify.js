@@ -177,12 +177,16 @@ const untilServer = async (page, ok, ms = 8000) => {
     const cells = await P.evaluate(() => (document.querySelector('#bs-strip-MK-E1 .bs-details') || {}).innerText || '');
     check(det && /KES 450,000 · Monthly/.test(cells), '4a the terms say Pay: base pay and how often', '');
     check(/Role/.test(cells) && /Probation \(months\)/.test(cells) && !/Payment terms/.test(cells) && !/Liability capped/i.test(cells), '4b Role and Probation stand in for payment terms and the liability cap; still eight');
+    /* RE-POINTED 21 Oct 2026 (THE BOARD READS, owner 20 Oct 2026, the Legora way): the card's Edit brings
+       Key terms to the middle beside the paper (pdKtOpen); the Pay row there is no box, its door Edit pay */
     await P.click('#bs-strip-MK-E1 [data-ov-edit="all"]').catch(() => {});
-    const door = await until(P, () => !!document.querySelector('#bs-strip-MK-E1 [data-ov-pay-edit="MK-E1"]'), null, 6000);
-    const noBox = await P.evaluate(() => !document.querySelector('#bs-strip-MK-E1 .bs-details [data-kt="value"]'));
-    check(door && noBox, '4c in Edit, the Pay cell is not a box: its door is Edit pay');
-    if (door) await P.click('#bs-strip-MK-E1 [data-ov-pay-edit="MK-E1"]');
-    const landed = await until(P, () => !!document.querySelector('#bs-strip-MK-E1[data-bs-on="ov"] .bs-pay-ed'), null, 6000);
+    await until(P, () => !!document.querySelector('[data-pd-mid-kt] #pd-kt [data-pd-kt-change="value"]'), null, 6000);
+    await P.click('[data-pd-mid-kt] #pd-kt [data-pd-kt-change="value"]').catch(() => {});
+    const door = await until(P, () => !!document.querySelector('[data-pd-mid-kt] #pd-kt [data-ov-pay-edit="MK-E1"]'), null, 6000);
+    const noBox = await P.evaluate(() => !document.querySelector('[data-pd-mid-kt] #pd-kt input[data-kt="value"], [data-pd-mid-kt] #pd-kt [data-ktm="value"]'));
+    check(door && noBox, '4c in Key terms, Change on Pay is not a box: its door is Edit pay');
+    if (door) await P.click('[data-pd-mid-kt] #pd-kt [data-ov-pay-edit="MK-E1"]');
+    const landed = await until(P, () => !!document.querySelector('.bs-pay-ed'), null, 6000);
     check(landed, '4d the door lands on the panel with the Pay boxes open');
     await P.evaluate(() => { const b = document.querySelector('[data-bs-pay-cancel="MK-E1"]'); if (b) b.click(); });
 

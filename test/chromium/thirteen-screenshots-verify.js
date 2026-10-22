@@ -207,6 +207,18 @@ const check = (name, ok, detail) => {
     check('6d and the caret is in it', fill.focused, String(fill.focused));
     check('6e no refusal toast', !/no editable/i.test(fill.toast), JSON.stringify(fill.toast.slice(0, 60)));
     await page.screenshot({ path: path.join(OUT, '06-fill-it-in.png') });
+    /* 6k THE BOX IS THE RECORD'S (21 Oct 2026): Key terms' Counterparty row opened an EMPTY metadata box
+       over a recorded name and wrote beside it; it is c.counterparty's own box now, holding the name */
+    const own = await page.evaluate(async (id) => {
+      const box = document.querySelector('[data-pd-mid-kt] [data-kt="counterparty"]'); if (!box) return { box: false };
+      const held = box.value; box.value = 'Naivas Supermarkets Ltd'; box.dispatchEvent(new Event('input', { bubbles: true })); box.dispatchEvent(new Event('change', { bubbles: true }));
+      const dn = document.querySelector('[data-pd-mid-kt] [data-pd-kt-done="counterparty"]'); if (dn) dn.click();
+      await new Promise(r => setTimeout(r, 600));
+      return { box: true, held, now: getContract(id).counterparty, meta: (getContract(id).metadata || {}).counterparty || '' };
+    }, cid);
+    check('6k Key terms\' Counterparty box holds the recorded name and a change writes the record\'s own field',
+      own.box && own.held === 'Naivas Supermarkets' && own.now === 'Naivas Supermarkets Ltd' && !own.meta, JSON.stringify(own));
+    await page.evaluate(id => { const c = getContract(id); c.counterparty = 'Naivas Supermarkets'; if (window.closeModal) closeModal(); }, cid);
 
     /* AND THE FIELD IS HONOURED. The second half of that report: every one of
        these rows landed on counterparty, so "Value is blank" put the caret in

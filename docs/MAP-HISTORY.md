@@ -33274,6 +33274,19 @@ THE LINES. The dashed box around a missing group is gone, and the "Other points"
 
 Built from the approved drawing design-r3/clauses-fix3.js (shots-clauses/clauses-fix3-panel-*.png). Photographed at 1440x780, 1536x730 and 1366x950; the first line of wording sits at exactly the same place as at 826e87cb on all three.
 
+## JAMBO'S AGENTS — THE HOUSE AND HIS POINTS · OPEN LANDS ON THE CARD (21 Oct 2026, the overnight bug run)
+The owner, off a screenshot of Home's Needs you: "review why when i press jambos work it does not take me to the correct location", then "fix it". Measured: hbOpenAgent set the Board's face and path but never put away a contract card held on the Board (hbS().card from any hbStripBring), so the card stayed the page on top, #hm-agents was never drawn, and landOn's missing line said "Jambo has nothing prepared right now" over a row counting 47. Fixed in the ONE door (Home's row, the house, "work" asked): `bsCardLeave()` first, as deskTabOpen's Board row already did. Red at the parent: jambos-work-open-verify 5 passed, 5 failed at baa13c0; 10/10 on the branch.
+
+## THE OVERNIGHT RUN, 21 OCT 2026 (owner: "Do all the steps as an autonomous run tonight then merge and summarize")
+Seven steps from the bug review. What was found and done, measured each time against the unmodified parent:
+- STALE CHECKS (about twenty browser files) re-pointed to October's rulings: the Legora way (owed facts are Still owed's grid #pd-og; Key terms in the middle; the Board's card Edit opens Key terms), the Dossier (tabs Dossier · Clauses · Obligations; the Menu folded into All acts), the report simplified (the brief door in What Jambo read's foot; the four tiles gone), a colleague as a send purpose.
+- REAL FAULTS FOUND WHILE RE-POINTING: Key terms' Counterparty row opened an empty metadata box over a recorded name (now c.counterparty's own box); contractFieldPeer still looked for Fill in's #pd-fill (a paper blank found no box); a held contract's Open (stHeldOpen) and the Ask-for-review glow still looked for #pd-body .pd-menu; the Dossier spine's .ds-st rules were unscoped and centred the counterparty's journey on Where we are.
+- COUNTS: Still owed's "6 vs 4" was the check's (the pill counts the grid's fact rows too); the road's first stop now says "n of the N to settle" where the head counts holds waiting at later stops; What Jambo read counts the brief's watch-outs (riskOpenOf) and the record's obligations without "0 found".
+- JAMBO: both chat rules say never claim an email, message or document was drafted, sent or saved unless its text is in the answer; "write an email to X summarising the above" opens the send screen (CA_WRITE_MAIL_RE, caFindPersonNamed); Home's box answers "What am I looking at?" free (aiHereSays); work words in any box (a which-did-you-mean for work, a card word) hand to Home's Jambo (caHandHome).
+- VISUALS: the deletion ink is --st-ruby-fg (4.14:1 → about 7:1); the Calendar's hours stay whole at 1536x730 (the five weeks give way); Put away no longer wears Look's dress; a timeline name never runs past its bar or the chart.
+- "WHO ELSE IS ON THIS AGREEMENT" had no door on a computer since the card's Edit opens Key terms. Asked, the owner said: "put it in Key terms and dossier" — both, onto ONE door (pdPeopleOpen, a pop-up), so the one-door refusal is lifted by the owner's own words for this act. uploaded-contract-fixed came off KNOWN_RED.
+- A SLIP CAUGHT BY GITHUB: the timeline fix first redeclared `xs` inside its own block ("Cannot access 'xs' before initialization" for any undated contract); f447 caught it, home-board 13g3 now draws undated ones directly.
+
 ## THE LIST HEAD (js/views/listhead.js)
 ### EVERY LIST PAGE THE LEGORA WAY — PART 8 (21 Oct 2026)
 

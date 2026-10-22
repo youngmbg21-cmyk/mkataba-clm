@@ -133,7 +133,7 @@ describe('f800 (3) Put away on every piece, on the Board\'s card', () => {
     assert.equal((html.match(/data-hb-ag-item="/g) || []).length, late.length);
     /* RE-POINTED 19 Oct 2026 (answer (18)): the folded row draws Put away
        itself, last, beside Look and the one act — still one per piece */
-    assert.equal((html.match(/<button type="button" class="ui-link" data-ag-act="away">Put away<\/button>/g) || []).length, late.length);
+    assert.equal((html.match(/<button type="button" class="ui-link hb-pc-away" data-ag-act="away">Put away<\/button>/g) || []).length, late.length);
     assert.match(html, /data-ag-act="away">Put away<\/button><\/div><\/div>/, 'the last of the row\'s acts');
   });
 });
@@ -214,7 +214,7 @@ describe('f800 (8) each piece folded to one line (the owner\'s answer (18), 19 O
     const ans = row('answer', 'round');
     assert.match(ans, /<span class="hb-pc-tag" style="--hb-pc-c:#6d28d9"><i aria-hidden="true"><\/i>Their round came back<\/span><span class="hb-pc-name">Nordvik Logistik’s answer<\/span><span class="hb-pc-ref"><span class="hati-ref">MK-PR-2<\/span><\/span>/);
     assert.match(ans, /<span class="hb-pc-line" title="Answers to their 2 redlines, read against our standards: [^"]+">/);
-    assert.match(ans, /data-hb-ag-look="answer:MK-PR-2"[^>]*>Look<\/button><button type="button" class="ui-btn ui-btn-sm" data-ag-act="nego">Answer on Redlines<\/button><button type="button" class="ui-link" data-ag-act="away">Put away<\/button>/);
+    assert.match(ans, /data-hb-ag-look="answer:MK-PR-2"[^>]*>Look<\/button><button type="button" class="ui-btn ui-btn-sm" data-ag-act="nego">Answer on Redlines<\/button><button type="button" class="ui-link hb-pc-away" data-ag-act="away">Put away<\/button>/);
     assert.doesNotMatch(ans, /hb-pc-body|ag-p-body|ag-p-head/, 'folded: one line, no body');
     const chase = row('chase', 'late');
     assert.match(chase, /<span class="hb-pc-name">A chase to Kettle &amp; Co<\/span>/);

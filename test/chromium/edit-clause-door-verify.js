@@ -200,10 +200,12 @@ const endOf = (page, sel) => page.evaluate(sel => {
          "Form"): the press opens Jambo's Fill in face beside the paper and
          lands on the box (12 Oct 2026: the room's Details tab). A date's box
          is focused through HaTi's date face, the button after it. */
-      const s7b = await until(page, () => { let a = document.activeElement; if (!(a && a.closest && a.closest('#pd-fillface'))) return null;
+      /* RE-POINTED 21 Oct 2026 — THE LEGORA WAY (20 Oct 2026; no Fill in face): the press lands on its box
+         in Still owed's grid beside the paper (an answered one: Key terms in the middle) */
+      const s7b = await until(page, () => { let a = document.activeElement; if (!(a && a.closest && a.closest('#pd-og, [data-pd-mid-kt]'))) return null;
         if (a.classList.contains('dp-face') && a.previousElementSibling) a = a.previousElementSibling;
         return a.getAttribute('data-blankf') || a.getAttribute('data-kt') || a.getAttribute('data-tplf') || a.tagName; }, null, 4000);
-      ok('6b a press on one opens the Fill in face beside the paper on its box', !!s7b && s7b === s7.key, `${s7b} vs ${s7.key}`);
+      ok('6b a press on one lands on its box in Still owed beside the paper', !!s7b && s7b === s7.key, `${s7b} vs ${s7.key}`);
     } else ok('6b a press on one goes to its box in the side panel\'s form', false, 'no blanks');
     await page.screenshot({ path: path.join(OUT, '7-document.png') });
 

@@ -2258,8 +2258,11 @@ function hbTimelineSvg(D, cs, money){
     placed.filter(p => p[0] === l).forEach(([, ri, it, s, e]) => { const yy = top + ri * rowH; const xs = X(s), past = it.end && it.end < today && it.status === 'Signed', xe = it.end ? X(e) : xs + 8; const fill = past ? 'var(--hb-ruby)' : hue;
       const ttl = hbRef(it.c) + ' · ' + String(it.c.name || '') + (it.c.counterparty ? ' · ' + it.c.counterparty : '') + (money ? ': ' + _hbM(hbValueOfOne(it.c)) : '') + ' · ' + (it.end ? i18t('hb_tl_ends', { d: hbMonthLabel(it.end.slice(0, 7), false) }) : i18t('hb_c_no_end'));
       if (past) anyPast = true;
-      if (it.end) out += `<g class="hb-sv-pill hb-in" style="animation-delay:${Math.min(ri, 12) * 40}ms" ${_hbSvgDoor('c:' + it.c.id, ttl)}><rect x="${xs.toFixed(1)}" y="${yy + 3}" width="${Math.max(6, xe - xs).toFixed(1)}" height="${rowH - 7}" rx="${rowH > 16 ? 6 : 4}" style="fill:${fill}" opacity="${it.status === 'Declined' ? '.4' : '.9'}"/>${xe - xs > 120 ? `<text x="${(xs + 8).toFixed(1)}" y="${(yy + ty).toFixed(1)}" font-size="${fs}" font-weight="600" fill="${HB_TILE_INK}">${_hbE(hbRef(it.c) + (it.c.counterparty ? ' · ' + it.c.counterparty : ''))}</text>` : xe - xs > 52 ? `<text x="${(xs + 7).toFixed(1)}" y="${(yy + ty).toFixed(1)}" font-size="${fs}" font-weight="600" fill="${HB_TILE_INK}">${_hbE(hbRef(it.c))}</text>` : ''}</g>`;
-      else out += `<g class="hb-sv-pill hb-in" style="animation-delay:${Math.min(ri, 12) * 40}ms" ${_hbSvgDoor(it.summary ? 'q2:' + D.key + HB_KEY_SEP + 'status' + HB_KEY_SEP + l.s + HB_KEY_SEP + 'd.m.end' + HB_KEY_SEP + 'none' : 'c:' + it.c.id, it.summary ? l.label + ' · ' + noEndWord(it) : ttl)}><rect x="${xs.toFixed(1)}" y="${yy + 2}" width="200" height="${rowH - 4}" fill="transparent"/><circle cx="${(xs + 4).toFixed(1)}" cy="${yy + rowH / 2 - 0.5}" r="${rowH > 16 ? 5 : 4}" style="fill:${fill}"/><line x1="${(xs + 12).toFixed(1)}" y1="${yy + rowH / 2 - 0.5}" x2="${(xs + 60).toFixed(1)}" y2="${yy + rowH / 2 - 0.5}" style="stroke:${fill}" stroke-dasharray="2 4"/><text x="${(xs + 66).toFixed(1)}" y="${(yy + ty).toFixed(1)}" font-size="${fs}" class="hb-sv-ink2">${_hbE(noEndWord(it))}</text></g>`; });
+      if (it.end) out += `<g class="hb-sv-pill hb-in" style="animation-delay:${Math.min(ri, 12) * 40}ms" ${_hbSvgDoor('c:' + it.c.id, ttl)}><rect x="${xs.toFixed(1)}" y="${yy + 3}" width="${Math.max(6, xe - xs).toFixed(1)}" height="${rowH - 7}" rx="${rowH > 16 ? 6 : 4}" style="fill:${fill}" opacity="${it.status === 'Declined' ? '.4' : '.9'}"/>${xe - xs > 120 && _hbTextW(hbRef(it.c) + (it.c.counterparty ? ' · ' + it.c.counterparty : ''), fs) + 14 <= xe - xs ? `<text x="${(xs + 8).toFixed(1)}" y="${(yy + ty).toFixed(1)}" font-size="${fs}" font-weight="600" fill="${HB_TILE_INK}">${_hbE(hbRef(it.c) + (it.c.counterparty ? ' · ' + it.c.counterparty : ''))}</text>` : xe - xs > 52 && _hbTextW(hbRef(it.c), fs) + 12 <= xe - xs ? `<text x="${(xs + 7).toFixed(1)}" y="${(yy + ty).toFixed(1)}" font-size="${fs}" font-weight="600" fill="${HB_TILE_INK}">${_hbE(hbRef(it.c))}</text>` : ''}</g>`;
+      /* A NAME NEVER RUNS PAST THE CARD (21 Oct 2026, the full-screen timeline): a bar's words are drawn only
+         where they fit inside it (above); an undated contract's dot and words start early enough to end in the chart */
+      else { const xu = Math.max(L, Math.min(xs, W - Rm - (66 + _hbTextW(noEndWord(it), fs))));
+      out += `<g class="hb-sv-pill hb-in" style="animation-delay:${Math.min(ri, 12) * 40}ms" ${_hbSvgDoor(it.summary ? 'q2:' + D.key + HB_KEY_SEP + 'status' + HB_KEY_SEP + l.s + HB_KEY_SEP + 'd.m.end' + HB_KEY_SEP + 'none' : 'c:' + it.c.id, it.summary ? l.label + ' · ' + noEndWord(it) : ttl)}><rect x="${xu.toFixed(1)}" y="${yy + 2}" width="200" height="${rowH - 4}" fill="transparent"/><circle cx="${(xu + 4).toFixed(1)}" cy="${yy + rowH / 2 - 0.5}" r="${rowH > 16 ? 5 : 4}" style="fill:${fill}"/><line x1="${(xu + 12).toFixed(1)}" y1="${yy + rowH / 2 - 0.5}" x2="${(xu + 60).toFixed(1)}" y2="${yy + rowH / 2 - 0.5}" style="stroke:${fill}" stroke-dasharray="2 4"/><text x="${(xu + 66).toFixed(1)}" y="${(yy + ty).toFixed(1)}" font-size="${fs}" class="hb-sv-ink2">${_hbE(noEndWord(it))}</text></g>`; } });
     y += l.n * rowH + laneGap; });
   const tx = X(mIdx(today));
   if (anyPast) out += `<rect x="12" y="${H - 24}" width="10" height="10" rx="2" class="hb-sv-ruby"/><text x="27" y="${H - 15}" font-size="11" class="hb-sv-ink2">${_hbE(i18t('hb_tl_past'))}</text>`;
@@ -5423,7 +5426,7 @@ function hbAgPieceHtml(it){
   const mail = look && (it.kind === 'chase' || it.kind === 'chase-firm');
   return `<div class="hb-ag-work is-line${look ? ' is-look' : ''}" data-hb-ag-item="${_hbE(it.key)}"><div class="hb-pc-r">
       <div class="hb-pc-w"><b class="hb-pc-t">${tag}<span class="hb-pc-name">${_hbE(title)}</span>${ref ? `<span class="hb-pc-ref">${ref}</span>` : ''}</b><span class="hb-pc-line"${look ? '' : ` title="${_hbE(line)}"`}>${_hbE(line)}</span></div>
-      <div class="hb-pc-acts"><button type="button" class="ui-link hb-pc-look${look ? ' is-on' : ''}" data-hb-ag-look="${_hbE(it.key)}" aria-pressed="${look}" aria-expanded="${look}">${_hbE(i18t('cn_jw_look'))}</button>${actBtn}<button type="button" class="ui-link" data-ag-act="away">${_hbE(i18t('desk_discard'))}</button></div></div>
+      <div class="hb-pc-acts"><button type="button" class="ui-link hb-pc-look${look ? ' is-on' : ''}" data-hb-ag-look="${_hbE(it.key)}" aria-pressed="${look}" aria-expanded="${look}">${_hbE(i18t('cn_jw_look'))}</button>${actBtn}<button type="button" class="ui-link hb-pc-away" data-ag-act="away">${_hbE(i18t('desk_discard'))}</button></div></div>
     ${look ? `<div class="hb-pc-body${mail ? ' is-mail' : ''}">${body}${restHtml}</div>` : ''}</div>`;
 }
 /* Look, pressed: open this piece under its row, or fold it again */
@@ -5509,6 +5512,13 @@ function hbAgentWorkPress(el){
 function hbOpenAgent(k, itemKey){
   const s = hbS();
   s.face = 'board';
+  /* THE BOARD, NOT A CONTRACT'S PAGE ON IT (owner, 21 Oct 2026: "Open" landed
+     on a stale contract card and said "nothing prepared" over 47 pieces): a
+     card brought up earlier is put away first, as every other door onto the
+     Board's own page puts it away (bsCardLeave) — else the card stays the
+     page on top, the Jambo's work card is never drawn and landOn's missing
+     line is untrue. One door: Home's row, the house and "work" asked. */
+  if (typeof window.bsCardLeave === 'function') try { window.bsCardLeave(); } catch (_){}
   if (s.prep === 'closed') s.prep = 'open';
   const keys = Array.isArray(window.AG_KEYS) ? AG_KEYS : [];
   s.path = (k && keys.includes(k) && hbAgentsData(null).rows.some(r => r.k === k)) ? ['ag:' + k] : [];

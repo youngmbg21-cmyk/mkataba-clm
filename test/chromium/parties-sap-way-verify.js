@@ -90,8 +90,9 @@ const check = (name, pass, detail) => {
 
     /* ---- 3 the doors ---- */
     await page.click('#ins-panel [data-cu-need]');
-    const landed = await until(k => (k === 'details' ? !!document.querySelector('#pd-fillface, #pd-fill') : state.view !== 'customers') ? (state.view || 'x') : null, P && P.kind, 12000);
-    check('3b a waiting row\'s door lands on its work (a detail to fill: Fill in beside the paper)', !!landed, String(landed));
+    /* RE-POINTED 21 Oct 2026 — THE LEGORA WAY (20 Oct 2026): a detail to fill lands on Still owed's grid beside the paper */
+    const landed = await until(k => (k === 'details' ? !!document.querySelector('#ig-dock #pd-og') && state.view === 'dashboard' : state.view !== 'customers') ? (state.view || 'x') : null, P && P.kind, 12000);
+    check('3b a waiting row\'s door lands on its work (a detail to fill: Still owed beside the paper)', !!landed, String(landed));
     await page.evaluate(() => setView('customers'));
     await until(k => !!document.querySelector(`#cu-tbody [data-cu-cust="${k}"]`), key);
     await page.click(`#cu-tbody [data-cu-cust="${key}"]`);

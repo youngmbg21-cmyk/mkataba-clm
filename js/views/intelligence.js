@@ -2258,6 +2258,12 @@ async function intelAsk(qRaw, opts){
      Siginon replies", "remind me Friday about the NDA" — read without AI and
      proposed here as a card the person presses; before the Calendar's hand-off,
      which would read "remind me Friday" as a booking */
+  /* "WHAT AM I LOOKING AT?" TYPED HERE (21 Oct 2026): the side panel's own free reading of the page in front
+     (aiHereSays), answered in this conversation — never a model call that has to guess the screen */
+  if(typeof window.aiHereAsked==='function'&&aiHereAsked(q)&&typeof window.aiHereSays==='function'){
+    const lines=aiHereSays();
+    intel.history.push({role:'user', text:q}, {role:'assistant', text:lines.map(l=>`<div>${igEsc(l)}</div>`).join(''), free:true});
+    renderIntelDock(); return; }
   { const turn=(typeof window.watchTurnFor==='function')?watchTurnFor(q):null;
     if(turn){ intel.history.push({role:'user', text:q}, {role:'assistant', ...turn}); renderIntelDock(); return; } }
   if(igBookAsk(q)&&typeof window.calHandOff==='function'&&calHandOff(q)){

@@ -221,11 +221,12 @@ describe('f786 (8) the third pass: Review lists what is due, a held Open lands o
       sb.landOn = (t, o) => { landed.push({ t, o }); return Promise.resolve(null); }; } });
     pick(g, 'sales');
     g.click(g.q('#st-jb-feed [data-st-swp-open="MK-S3"]'));
-    assert.deepEqual(asked, [['MK-S3', 'menu']]);
+    /* RE-POINTED 21 Oct 2026 (the Dossier, 20 Oct): the Menu tab folded into the Dossier's All acts */
+    assert.deepEqual(asked, [['MK-S3', 'copilot']]);
     assert.equal(landed.length, 1); assert.equal(landed[0].o.focus, false, 'a hold is never released by a stray Enter');
     /* the target: that contract's Menu row, its group opened */
-    const box = g.win.document.createElement('div'); box.id = 'pd-body';
-    box.innerHTML = '<div class="pd-menu" data-pd-menu="MK-S3"><details class="pd-mn-g"><summary>x</summary><div class="pd-mn-rows"><button id="ws-hold">Release the hold</button></div></details></div>';
+    const box = g.win.document.createElement('div'); box.id = 'ig-dock';
+    box.innerHTML = '<div class="pd-menu pd-nx" data-pd-menu="MK-S3"><details class="ds-fold" data-ds-fold="acts"><summary>x</summary><div class="pd-mn-g"><div class="pd-mn-rows"><button id="ws-hold">Release the hold</button></div></div></details></div>';
     g.win.document.body.appendChild(box);
     const el = landed[0].t();
     assert.equal(el && el.id, 'ws-hold'); assert.ok(el.closest('details').open, 'its group opened');

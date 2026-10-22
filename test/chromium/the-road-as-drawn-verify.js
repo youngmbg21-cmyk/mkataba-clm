@@ -339,9 +339,25 @@ const dayAfter = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCD
     await page.evaluate(() => pdSignOpen('MK-0391'));
     const R14 = await untilOn(page, () => { const s = document.querySelector('#pd-signface [data-pd-road-stop="ready"] small'); const t = s ? s.textContent.replace(/\s*·\s*(Show|Hide)$/, '').trim() : '';
       return /to settle/.test(t) ? t : null; }, null, 10000);
-    const m14 = /^(\d+) to settle: (.+)$/.exec(R14 || '');
+    /* 21 Oct 2026: where the head counts more holds than this stop's checks, the stop says "n of the N" */
+    const m14 = /^(\d+)(?: of the \d+)? to settle: (.+)$/.exec(R14 || '');
     const named = m14 ? m14[2].split(', ').reduce((n, x) => { const k = /\((\d+)\)$/.exec(x); return n + (k ? Number(k[1]) : 1); }, 0) : -1;
     check('14 the gate holding: "N to settle: …" counts exactly what it names', !!m14 && Number(m14[1]) === named, JSON.stringify({ R14, named }));
+    /* 14b THE HEAD AND THE ROAD AGREE (21 Oct 2026): the pill's "N to settle" and the stop's number are
+       the same N, or the stop says plainly it is a part of it ("n of the N") */
+    const P14 = await page.evaluate(() => ((document.querySelector('#pd-signface [data-pd-sf-pill]') || {}).textContent || '').trim());
+    const pN = Number((/^(\d+) to settle$/.exec(P14) || [])[1]), whole = /^\d+ of the (\d+) to settle/.exec(R14 || '');
+    check('14b the pill and the road\'s first stop never give two different totals', !!m14 && (Number(m14[1]) === pN ? !whole : !!whole && Number(whole[1]) === pN), JSON.stringify({ P14, R14 }));
+    /* 14c and where they differ — a yes still owed beside the checks, which waits at its own stop — the
+       stop names its part of the head's total (the reading signReadiness gives, one approval added) */
+    const R14c = await page.evaluate(async () => { const real = window.signReadiness;
+      window.signReadiness = c => { const r = real(c); return Object.assign({}, r, { holds: (r.holds || []).concat([{ kind: 'approval', text: 'Approval needed' }]) }); };
+      try { pdSignOpen('MK-0391'); await new Promise(r => setTimeout(r, 400));
+        const s = document.querySelector('#pd-signface [data-pd-road-stop="ready"] small');
+        return { pill: ((document.querySelector('#pd-signface [data-pd-sf-pill]') || {}).textContent || '').trim(), stop: s ? s.textContent.replace(/\s*·\s*(Show|Hide)$/, '').trim() : '' };
+      } finally { window.signReadiness = real; pdSignOpen('MK-0391'); } });
+    const pc = Number((/^(\d+) to settle$/.exec(R14c.pill) || [])[1]), sc = /^(\d+) of the (\d+) to settle: /.exec(R14c.stop);
+    check('14c a yes owed beside the checks: the stop says "n of the N", N the pill\'s own', !!sc && Number(sc[2]) === pc && Number(sc[1]) === pc - 1, JSON.stringify(R14c));
     await shot(page, '10-the-road-gate-1440x780');
   } catch (e) { check('the stage ran to the end', false, e && e.stack); }
   finally {

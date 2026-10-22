@@ -143,8 +143,9 @@ describe('f794 (3) the week', () => {
     assert.equal(BOOKS.en.cal_wk_n_due_other, '{n} due');
   });
   test('3e the five weeks close up under the hours', () => {
-    assert.match(CAL, /\.cal-wk-body\{flex:0 1 auto\}/);
-    assert.match(CAL, /\.cal-wkm\{flex:1 0 auto;display:flex;flex-direction:column\}/);
+    /* RE-POINTED 21 Oct 2026 (the hours stay whole at 1536x730): the week's hours never shrink; the five weeks give way */
+    assert.match(CAL, /\.cal-wk-body\{flex:none\}/);
+    assert.match(CAL, /\.cal-wkm\{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column\}/);
   });
 });
 

@@ -178,6 +178,15 @@ const LETTER = 'Dear Ann,\nFurther to our call, Nandi Dairy asks that the delive
       check('6b he says the screen in front from its own counts, and spends nothing', !!W && /Brain/.test(W) && !ai.length, JSON.stringify({ W, ai }));
     }
 
+    /* 6c THE SAME QUESTION IN HOME'S OWN BOX (21 Oct 2026): beside a paper, typed into Jambo's panel, it is
+       the same free reading in the one conversation — no model call guessing the screen */
+    await page.evaluate(() => { if (window.closeAI) try { closeAI(); } catch (_) {} pdOpenOnHome('MK-S1', 'copilot'); });
+    const box = await until(() => !!document.getElementById('igd-input') && window.intel && intel.paper && intel.paper.id === 'MK-S1' && !!document.getElementById('ig-canvas'), null, 10000);
+    ai.length = 0;
+    if (box) { await page.fill('#igd-input', 'What am I looking at?'); await page.press('#igd-input', 'Enter'); }
+    const HW = await until(() => { const t = (document.getElementById('igd-feed') || {}).textContent || ''; return /no Jambo call/i.test(t) ? t.replace(/\s+/g, ' ').slice(-220) : null; }, null, 4000);
+    check('6c typed into Home\'s box beside a paper: the same free reading of the page, the contract named, nothing spent', !!HW && /MK-S1/.test(HW) && !ai.length, JSON.stringify({ HW, ai }));
+
     /* ===== 7 · A PASTED LETTER ===== */
     await page.evaluate(t => { const inp = document.getElementById('ai-input'); inp.focus(); const dt = new window.DataTransfer(); dt.setData('text/plain', t);
       inp.dispatchEvent(new window.ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true })); }, LETTER);

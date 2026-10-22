@@ -1633,9 +1633,12 @@ function calStyleCss(){ return `
   .cal-wk-slot:hover{background:none}
   .cal-wk-slot:hover::after{content:'+ ' attr(data-cal-hint);position:absolute;inset:3px 4px;display:flex;align-items:center;padding:0 8px;border:1px dashed var(--color-accent-300, var(--color-accent-100));
     border-radius:4px;background:var(--color-surface);color:var(--accent-ink);font-size:var(--t-micro);pointer-events:none;white-space:nowrap;overflow:hidden}
-  .cal-wk-body{flex:0 1 auto}
-  .cal-wkm{flex:1 0 auto;display:flex;flex-direction:column}
-  .cal-wkm-row{flex:1 0 auto;height:auto;min-height:var(--cal-wkm-h,44px)}
+  /* THE HOURS STAY WHOLE (21 Oct 2026: at 1536×730 the 16:00 row was squeezed to a sliver): the week's
+     own hours never shrink; the five weeks after give way — their rows down to 38px, then scrolling
+     inside their own band on a shorter screen still */
+  .cal-wk-body{flex:none}
+  .cal-wkm{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column}
+  .cal-wkm-row{flex:1 0 auto;height:auto;min-height:38px}
   .cal-cop .cal-plan-head.jl-head{padding:6px 10px 6px 8px;flex-wrap:nowrap;justify-content:flex-start}
   .cal-plan-tab{cursor:default}
   .cal-cop .cal-plan-body{padding:0;gap:0}

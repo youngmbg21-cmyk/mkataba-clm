@@ -195,6 +195,18 @@ const signIn = async (page, base, email, pass) => {
     });
     check('7. where review holds a send, an admin\'s row carries "Who is checked ›"', !door.review || door.door, JSON.stringify(door));
 
+    /* ---- 7b. WORK ASKED IN SETTINGS' BOX (21 Oct 2026): "upload a contract" found a mail-in setting and
+       "new contract" the sample contracts; both are work, so they go to Home's Jambo, who acts on them ---- */
+    const inSettings = () => until(() => { if (window.closeModal) try { closeModal(); } catch (_) {}
+      if (!document.getElementById('st-jb-q')) { setView('team'); return null; } return true; }, null, 15000);
+    const askIn = async q => { await inSettings(); await page.fill('#st-jb-q', q); await page.press('#st-jb-q', 'Enter');
+      return until(q => { const f = document.getElementById('igd-feed'); const t = f ? f.textContent.replace(/\s+/g, ' ') : '';
+        return state.view === 'dashboard' && t.includes(q) ? t.slice(t.lastIndexOf(q)) : null; }, q, 8000); };
+    const up = await askIn('upload a contract');
+    check('7b. "upload a contract" in Settings\' box goes to Home\'s Jambo, who offers Upload a document', !!up && /Upload a document/.test(up), up);
+    const nw = await askIn('new contract');
+    check('7c. "new contract" in Settings\' box goes to Home\'s Jambo, who starts the new agreement', !!nw && /paper/i.test(nw), nw);
+
     check('8. no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'clean');
   } catch (e) {
     check('the run completed', false, e && e.message);
