@@ -1053,8 +1053,16 @@ function firstReadDue(){
   try {
     if (typeof pdOnPaper !== 'function' || !pdOnPaper() || typeof pdContract !== 'function') return false;
     const c = pdContract(); const t = c ? triageOf(c) : null;
+    /* never snatch the panel from a hand in it (pdHandIn, js/paperdesk.js) */
+    if (!c || (typeof window.pdHandIn === 'function' && window.pdHandIn(c))) return false;
     if (!t || !t.sayOwed || t.saidAt || c._triaging) return false;
+    /* only beside the Dossier, never over an open face */
+    if (typeof pdFaceNow === 'function' && pdFaceNow()) return false;
+    if (typeof pdTab === 'function' && pdTab() !== 'copilot') return false;
     if (typeof intel !== 'object' || !intel || !Array.isArray(intel.history)) return false;
+    /* NOT WHILE AN ANSWER IS ON ITS WAY: the panel counts words that arrive then as the late answer of the
+       page that asked and does not turn to them; the paint after the answer lands says these */
+    if (intel.busy) return false;
     const turns = firstReadTurns(c); if (!turns.length) return false;
     t.saidAt = (typeof nowISO === 'function') ? nowISO() : new Date().toISOString();
     if (typeof persist === 'function') try { persist(c); } catch (_){}

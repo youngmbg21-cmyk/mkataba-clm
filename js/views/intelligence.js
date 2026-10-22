@@ -7990,9 +7990,11 @@ function renderIntelDock(){
      on its own face; words asked turn it to the conversation (pdTalkSync), a
      trail over it back to the landing as it was left. A page arrived at begins
      its conversation fresh (pdTalkFrom): what was said on another is not drawn. */
-  /* JAMBO SPEAKS FIRST (round 1 of Jambo's journey): the contract on the paper owes its first words — they go in before the talk decides, so the panel turns to them */
-  if(typeof window.firstReadDue==='function') firstReadDue();
-  const talk=(typeof window.pdTalkSync==='function')?pdTalkSync(dock):false;
+  let talk=(typeof window.pdTalkSync==='function')?pdTalkSync(dock):false;
+  /* JAMBO SPEAKS FIRST (round 1 of Jambo's journey): the contract on the paper owes its words. Said AFTER the
+     talk has settled this paint (an answer landing now is filed as the late answer of the page that asked, and
+     words said alongside it would be filed with it), then the talk looks again and turns the panel to them. */
+  if(typeof window.firstReadDue==='function'&&firstReadDue()&&typeof window.pdTalkSync==='function') talk=pdTalkSync(dock);
   /* ONE CONVERSATION EVERYWHERE (21 Oct 2026): every turn, each drawn by the
      builder of the host it was born in; popped out, the words are in Jambo's
      own window (popped out, or the ✦'s window open) and only there (one place at a time) */

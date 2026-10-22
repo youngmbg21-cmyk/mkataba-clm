@@ -131,6 +131,33 @@ describe('f862 (3) — he speaks once, and only for an upload', () => {
     assert.equal(win.intel.history.length, 2); assert.ok(c.triage.saidAt);
     assert.equal(win.firstReadDue(), false); assert.equal(win.intel.history.length, 2, 'once');
   });
+  test('never over an open face or another tab, never while an answer is on its way', () => {
+    const { win } = stage({});
+    const c = upload(); c.triage.sayOwed = true;
+    win.pdOnPaper = () => true; win.pdContract = () => c;
+    win.pdFaceNow = () => 'red'; assert.equal(win.firstReadDue(), false, 'not over the Redlines face');
+    win.pdFaceNow = () => ''; win.pdTab = () => 'doc'; assert.equal(win.firstReadDue(), false, 'only beside the Dossier');
+    win.pdTab = () => 'copilot'; win.intel.busy = true; assert.equal(win.firstReadDue(), false, 'not while an answer is on its way');
+    win.intel.busy = false; assert.equal(win.firstReadDue(), true);
+  });
+  test('never snatches the panel from a hand in it: a press inside it after the paper landed holds his words', () => {
+    const { win } = stage({});
+    /* the panel's own reading (js/paperdesk.js), taken whole: the world does not carry that file */
+    const pd = read('js/paperdesk.js');
+    const from = pd.indexOf('let _pdLand = '), to = pd.indexOf('function pdTalkKey(){');
+    assert.ok(from > 0 && to > from, 'pdHandIn is there');
+    win.eval(pd.slice(from, to).replace(/^function (\w+)/gm, 'window.$1 = function $1').replace(/^let _pdLand/m, 'var _pdLand').replace('document._pdHandWired', 'document._pdHandWired862'));
+    const c = upload({ id: 'MK-H' }); c.triage.sayOwed = true;
+    win.pdOnPaper = () => true; win.pdContract = () => c;
+    assert.equal(win.pdHandIn(c), false, 'the paper landed, nobody has touched the panel');
+    const dock = win.document.createElement('div'); dock.id = 'ig-dock'; const b = win.document.createElement('button'); dock.appendChild(b); win.document.body.appendChild(dock);
+    b.dispatchEvent(new win.Event('pointerdown', { bubbles: true }));
+    assert.equal(win.pdHandIn(c), true, 'a hand in the panel');
+    assert.equal(win.firstReadDue(), false); assert.equal(win.intel.history.length, 0);
+    const other = upload({ id: 'MK-O' }); win.pdHandIn(other);
+    assert.equal(win.pdHandIn(c), false, 'the paper opened again: he may speak');
+    assert.equal(win.firstReadDue(), true);
+  });
   test('a contract read before this existed stays quiet; nothing is said off the paper or mid-reading', () => {
     const { win } = stage({});
     const old = upload(); win.pdContract = () => old;
@@ -208,8 +235,10 @@ describe('f862 (6) — the wiring', () => {
     assert.match(fnOf(ct, 'function triageAndPaint('), /opts && opts\.arrival && window\.firstReadOwe\) try\{ firstReadOwe\(/);
     const ig = bare(read('js/views/intelligence.js'));
     const dock = fnOf(ig, 'function renderIntelDock(');
-    const due = dock.indexOf('firstReadDue()'), talk = dock.indexOf('pdTalkSync(dock)');
-    assert.ok(due > 0 && due < talk, 'said before the panel decides whether to turn to the talk');
+    /* RE-POINTED 22 Oct 2026: said AFTER the talk settles this paint, then the talk looks again
+       (words said alongside a landing answer were filed as that answer's and never turned the panel) */
+    const talk = dock.indexOf('pdTalkSync(dock)'), due = dock.indexOf('firstReadDue()'), again = dock.indexOf('pdTalkSync(dock)', due);
+    assert.ok(talk > 0 && due > talk && again > due, 'said after the talk settles, and the talk looks again');
     assert.match(ig, /if\(c\.fr&&typeof window\.firstReadPress==='function'\)\{ firstReadPress\(c,m\); renderIntelDock\(\); return; \}/);
     assert.match(ig, /class="ui-btn ui-btn-sm\$\{c\.lead\?' ui-btn-primary':''\}" data-ig-choice=/);
   });

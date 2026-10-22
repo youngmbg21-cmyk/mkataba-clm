@@ -141,6 +141,13 @@ const AGREED = [
     await page.waitForFunction(() => !!document.querySelector('#ig-dock #pd-glance') || !!document.getElementById('cd-page'), null, { timeout: 4000 }).catch(() => {});
     await page.evaluate(() => { const b = document.getElementById('cd-later'); if (b) b.click(); });
     await page.waitForTimeout(400);
+    /* RE-POINTED 22 Oct 2026 (Jambo's journey, round 1: he speaks first on an upload, in his panel): once the
+       arrival reading has landed he may have turned the panel to his words; the reader goes back to the
+       Dossier with its ‹ Dossier, as a person would, before filling it in */
+    await page.waitForFunction(i => { const c = getContract(i); return !!(c && c.triage && c.triage.hash !== undefined && !c._triaging); }, await page.evaluate(() => state.activeId), { timeout: 20000 }).catch(() => {});
+    await page.waitForTimeout(300);
+    await page.evaluate(() => { const d = document.getElementById('ig-dock'); const b = d && d.classList.contains('is-talk') ? d.querySelector('[data-pd-back]') : null; if (b) b.click(); });
+    await page.waitForFunction(() => !!document.querySelector('#ig-dock #pd-glance'), null, { timeout: 5000 }).catch(() => {});
     const made = await page.evaluate(() => { const c = getContract(state.activeId);
       return c ? { id: c.id, route: c.signRoute || '', no: c.contractNo || '', view: state.view, dossier: !!document.querySelector('#ig-dock #pd-glance') } : null; });
     check('1c it opens a working file with a working reference and no contract number yet',
