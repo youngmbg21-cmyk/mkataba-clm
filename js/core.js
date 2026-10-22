@@ -7821,7 +7821,13 @@ function shareFillModal(html){
   if(panel){ panel.innerHTML=html; return; }
   openModal(html);
 }
+/* a person's keys in the send screen's note (bound once, on the document): only a TRUSTED 'input' — the
+   screen's own fills (a prefill, Jambo's words) set the value or dispatch a synthetic event — raises it;
+   each opening lowers it (openShareModal) */
+let _shNoteTyped=false;
+if(typeof document!=='undefined') document.addEventListener('input',e=>{ if(e.isTrusted&&e.target&&e.target.id==='sh-summary') _shNoteTyped=true; });
 async function openShareModal(c, opts={}){
+  _shNoteTyped=false;
   // An uploaded document carries its file; that only fits through the server,
   // so static mode points the user at the original instead of a giant URL.
   if(isUpload(c) && !API_MODE()){
@@ -8087,7 +8093,16 @@ async function openShareModal(c, opts={}){
      with no panel — it stays the dialog it was. Same markup, ids and wiring. */
   const _onDesk=shareBesideJambo();
   let _shSent=null;   // what the last press sent, for the confirmation after Send
-  openModal(oneScreenHtml(_noPre, { opening:true }), { maxWidth:'64rem', onClose:()=>{ shareColAttr(false); if(_onDesk) shareLetterPageOff(c); } });
+  /* WHAT YOU TYPED IS ASKED ABOUT BEFORE IT GOES (22 Oct 2026, the bug log: a top-bar press closed the
+     screen and a typed note was lost without a word): Cancel, Esc and leaving by the bar ask first once the
+     note differs from what it opened with; a send closes as before */
+  /* typed means a person's keys in the note box (an 'input' event) — the screen's own fill of the note (a
+     prefill, Jambo's words, a purpose's default) sets the value without one, so it never counts */
+  _shNoteTyped=false;
+  const shTyped=()=>{ const t=document.getElementById('sh-summary'); return _shNoteTyped && !!t && !!t.value.trim(); };
+  openModal(oneScreenHtml(_noPre, { opening:true }), { maxWidth:'64rem', onClose:()=>{ _shNoteTyped=false; shareColAttr(false); if(_onDesk) shareLetterPageOff(c); },
+    onBeforeClose:async()=>!shTyped() || !!(await confirmDialog({ title:i18t('sh_leave_q'), message:i18t('sh_leave_body'),
+      confirmLabel:i18t('sh_leave_go'), cancelLabel:i18t('sh_leave_stay'), danger:true, leave:true })) });
   shareLetterChecksPlace();
   if(_onDesk) shareLetterPage(c);
   try{ shareLetterPaint(c, { purpose:purposeSel, ch:'email' }); }catch(_){}
@@ -8530,7 +8545,7 @@ async function openShareModal(c, opts={}){
      saying where the note goes has no markup default, so an unconditional
      first paint is what makes it present before anything is pressed. */
   setCh(ch);
-  document.getElementById('share-close').addEventListener('click',closeModal);
+  document.getElementById('share-close').addEventListener('click',()=>{ closeModalGuarded(); });
 
   /* Set when the send refreshed a link the recipient already had rather than
      minting another. It sits ABOVE whatever the channel reports, because "which

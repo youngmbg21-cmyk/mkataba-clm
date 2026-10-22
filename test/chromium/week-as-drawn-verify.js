@@ -208,12 +208,19 @@ const weekOf = () => {
     /* ---- 4 the Calendar as drawn ---- */
     await until(() => !!document.querySelector('#cal-wk-more'), null, 10000);
     await page.waitForTimeout(500);
-    const C = await page.evaluate(() => {
+    const C = await page.evaluate(lateDay => {
       const chips = [...document.querySelectorAll('#cal-week .cal-chip')].map(c => ({ t: c.textContent.trim(), k: (c.className.match(/is-ck-(\w+)/) || [])[1] || '' }));
       /* LATE WORK STANDS ON TODAY (on a weekend, this week's Monday): the
          column under the head marked today, else the first — reading only
          the first made this check red Tuesday to Friday */
-      const heads = [...document.querySelectorAll('.cal-wk-h')], at = heads.findIndex(x => x.classList.contains('is-today'));
+      const heads = [...document.querySelectorAll('.cal-wk-h')];
+      /* …AND ONLY WHEN ITS OWN DAY IS NOT IN THIS WEEK (calWeekHtml's own
+         rule): a late day inside the week stands on that day. The fixture's
+         late day is three days back, so on a Wednesday to Friday it falls in
+         the week — reading only today made this check red those days (CI,
+         Thursday 22 Oct 2026, on main too) */
+      const days = Array.from({ length: heads.length }, (_, i) => { const d = new Date(calWeekStart()); d.setDate(d.getDate() + i); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; });
+      const own = days.indexOf(lateDay), at = own >= 0 ? own : heads.findIndex(x => x.classList.contains('is-today'));
       const first = document.querySelectorAll('.cal-wk-alls .cal-wk-all')[at > 0 ? at : 0];
       return { facts: (document.getElementById('cal-head-sub') || {}).textContent || '', more: !!document.querySelector('.cal-head #cal-more'),
         title: (document.getElementById('cal-title') || {}).textContent || '', key: [...document.querySelectorAll('.cal-key span')].map(s => s.textContent.trim()),
@@ -222,10 +229,10 @@ const weekOf = () => {
         hours: [...document.querySelectorAll('.cal-wk-t')].map(t => t.textContent.trim()).slice(0, 3),
         panel: (document.querySelector('#cal-plan .jl-word') || {}).textContent || '', bub: (document.querySelector('#cal-plan .jl-bub') || {}).textContent || '',
         lv: document.querySelectorAll('#cal-plan [data-cal-lv]').length };
-    });
+    }, D.b3);
     check('4a the head: the six weeks, the ⋯ in it; the card: "This week, then five more" and the key as drawn',
       /· six weeks$/.test(C.facts) && C.more && C.title === 'This week, then five more' && JSON.stringify(C.key) === JSON.stringify(['Ours', 'Theirs', 'Contract date', 'Mine', 'Jambo’s plan']), C);
-    check('4b late work stands on today (a weekend: this week\'s first day); their chips carry their name first; a decision in its week',
+    check('4b late work stands on today (a weekend: this week\'s first day), or on its own day where that is this week; their chips carry their name first; a decision in its week',
       C.firstDay.some(t => /^Late: Check the September invoice/.test(t)) && C.chips.some(c => c.k === 'theirs' && /^Nandi: /.test(c.t)) && C.chips.some(c => c.k === 'decide' && /^Decide: Office Lease/.test(c.t)), { firstDay: C.firstDay, chips: C.chips.slice(0, 8) });
     check('4c a later week says "N due"; the hours read "09"', C.labels.some(l => /^\d+ due$/.test(l)) && C.hours.every(h => /^\d\d$/.test(h)), { labels: C.labels, hours: C.hours });
     check('4d Jambo\'s panel beside the Calendar says "Your week" in the same words', C.panel === 'Your week' && C.bub === Y.bubs[0] && C.lv === 3, { panel: C.panel, lv: C.lv });

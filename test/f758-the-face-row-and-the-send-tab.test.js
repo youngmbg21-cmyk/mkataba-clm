@@ -123,7 +123,8 @@ describe('f758 (2) "Before you send" owns no builder and no writer', () => {
     assert.match(map, /send: \(\) => pdSendAway\(\)/);
     const core = R('js/core.js');
     /* RE-POINTED 20 Oct 2026 ("Sent as: a colleague"): the close lifts the colleague attribute too */
-    assert.match(core, /onClose:\(\)=>\{ shareColAttr\(false\); if\(_onDesk\) shareLetterPageOff\(c\); \}/, 'the screen\'s close gives the column back');
+    /* 22 Oct 2026: the close also lowers the "a note was typed" flag first */
+    assert.match(core, /onClose:\(\)=>\{ _shNoteTyped=false; shareColAttr\(false\); if\(_onDesk\) shareLetterPageOff\(c\); \}/, 'the screen\'s close gives the column back');
     assert.match(core, /function closeModalGuarded\(/);
     assert.match(core, /Object\.assign\(window,\s*\{[^}]*closeModalGuarded/, 'published, so the face and the tab can ask it');
   });
@@ -160,7 +161,11 @@ describe('f758 (3) the desk\'s tab for the send screen', () => {
     assert.deepEqual(did, ['guarded', 'close'], 'pressing the paper\'s tab puts the screen away');
     const same = cnStage(); same.ctx.dkLeaveSend('send:MK-1');
     assert.deepEqual(same.did, [], 'its own tab leaves it up');
-    assert.match(fnBody(CN, 'deskGoCounter'), /dkLeaveSend\(null\)/, 'the Counter puts it away too');
+    /* RE-POINTED 22 Oct 2026 (a typed note asks first): the bar and the Counter put it away through its guard */
+    const g = cnStage(); assert.equal(g.ctx.dkLeaveSendThen('c:MK-1', () => {}), true);
+    assert.deepEqual(g.did, ['guarded'], 'another door asks the screen\'s own guard, never a bare close');
+    assert.match(fnBody(CN, 'deskGoCounter'), /dkLeaveSendThen\(null, deskGoCounter\)/, 'the Counter puts it away too');
+    assert.match(fnBody(CN, 'deskTabOpen'), /dkLeaveSendThen\(k, \(\) => deskTabOpen\(k\)\)/, 'and every Recent row');
   });
 });
 
