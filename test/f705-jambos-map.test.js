@@ -123,9 +123,13 @@ describe('f705 (1) the map: thirty-one tasks, both languages, each on an existin
   /* RE-POINTED 22 Oct 2026 (owner: "jambo is still very poor at navigating
      across the platform"; f738): Our standards is the 34th task, its own
      place apart from the templates (Our paper's standards tab, on a book) */
-  test('1a thirty-four tasks, each named once, the brief the 32nd, Ask a column the 33rd, Our standards the 34th', () => {
-    assert.equal(T.length, 34);
-    assert.equal(new Set(T.map(x => x.k)).size, 34);
+  /* RE-POINTED 22 Oct 2026 (owner: "take me to my settings for jambo", "take me to jambo points"):
+     Jambo's own two rows of Settings › You are the 35th and 36th, read only where he is named */
+  test('1a thirty-six tasks, each named once, the brief the 32nd, Ask a column the 33rd, Our standards the 34th, Jambo\'s two the 35th and 36th', () => {
+    assert.equal(T.length, 36);
+    assert.equal(new Set(T.map(x => x.k)).size, 36);
+    assert.ok(T.some(x => x.k === 'jamboset' && x.jambo === true && x.to.st === 'you:work'));
+    assert.ok(T.some(x => x.k === 'jambopts' && x.jambo === true && x.to.st === 'you:points'));
     assert.ok(T.some(x => x.k === 'standards' && x.to.place === 'ourpaper' && x.to.std === true));
     assert.ok(T.some(x => x.k === 'brief' && x.to.place === 'brief'));
     assert.ok(T.some(x => x.k === 'askcol' && x.to.reg && x.to.reg.askOpen === true));
@@ -211,6 +215,12 @@ const EXAM = [
   ['how do I make a folder private?', 'folders'], ['change who has access', 'folders'], ['begränsa åtkomst till en mapp', 'folders'],
   ['can I use HaTi in Swedish?', 'lang'], ['change the language to English', 'lang'], ['byt språk till engelska', 'lang'],
   ["I'm going on holiday next week", 'away'], ['who covers for me while I am away?', 'away'], ['jag ska på semester', 'away'],
+  /* 22 Oct 2026 (owner: "take me to my settings for jambo" landed on Language, "take me to jambo points"
+     asked "Which contract?"): Jambo's own two rows, read only where he is named */
+  ['take me to my settings for jambo', 'jamboset'], ['where do I change how jambo works?', 'jamboset'], ['öppna jambos inställningar', 'jamboset'],
+  ['take me to jambo points', 'jambopts'], ["show me jambo's points", 'jambopts'], ['var ser jag jambos poäng?', 'jambopts'],
+  /* without his name the same words stay the language's and the brief's */
+  ['take me to the language settings', 'lang'], ['the key points of this contract', 'brief'],
 ];
 /* typed with no contract on the paper (the Counter, the wall) */
 const EXAM_NO_PAPER = [
