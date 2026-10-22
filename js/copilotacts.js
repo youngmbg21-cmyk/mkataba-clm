@@ -553,21 +553,69 @@ function caReadDraft(q){
   if (typeof draftCandidates !== 'function') return null;
   return { kind: 'draft', sentence: String(q).slice(0, (typeof DRAFT_SENTENCE_MAX === 'number') ? DRAFT_SENTENCE_MAX : 2000), state: 'reading', options: null, prefill: {}, why: '', ai: false };
 }
+/* ---- A WORD AND ITS FAMILY (round 2 of the first-timer rounds, owner picked
+   "One question", 22 Oct 2026) ----
+   "warehouse" never matched "Warehousing", and "haulage" or "trucks" matched no
+   paper at all, so a first-timer's sentence found three unrelated papers. A word
+   is read by its STEM (the ending taken off once: -ing, -es, -ed, -s, -e), and a
+   short list of everyday words stands for the paper's own word (CA_DRAFT_SAME).
+   Still a reading of words, never a guess and never a model. */
+/* the words that count, each as its stem or its family's word; `raw` true gives them as
+   typed, 'stem' their stems alone (what a person can be quoted as saying — a family word never is).
+   ONE function, everything inside it, so the readers that lift it whole keep working. */
+function caDraftWords(s, raw){
+  const STOP = ['the', 'and', 'for', 'with', 'from', 'agreement', 'contract', 'och', 'med', 'för', 'från', 'avtal', 'avtalet', 'kontrakt'];
+  const words = String(s || '').toLowerCase().split(/[^a-z0-9à-ÿ]+/).filter(w => w.length > 2 && !STOP.includes(w));
+  if (raw) return words;
+  const stem = w => { for (const end of ['ing', 'es', 'ed', 's', 'e']) if (w.length - end.length >= 4 && w.endsWith(end)) return w.slice(0, -end.length); return w; };
+  /* everyday words → the paper's own word, both languages */
+  const SAME = {
+    warehouse: ['warehousing', 'storage', 'store', 'stores', 'storing', 'godown', 'lager', 'lagring', 'lagerhållning'],
+    logistics: ['haulage', 'haulier', 'transport', 'transporter', 'trucks', 'truck', 'trucking', 'lorry', 'lorries', 'freight', 'delivery', 'deliveries', 'carriage', 'shipping', 'courier', 'frakt', 'åkeri', 'leverans'],
+    equipment: ['forklift', 'forklifts', 'machine', 'machines', 'machinery', 'racking', 'utrustning', 'maskin', 'maskiner', 'truckar'],
+    packaging: ['bottles', 'cartons', 'labels', 'förpackning', 'förpackningar'],
+    disclosure: ['nda', 'confidential', 'confidentiality', 'secret', 'secrets', 'sekretess'],
+    premises: ['office', 'offices', 'depot', 'rent', 'lokal', 'lokaler', 'hyra'],
+  };
+  const map = {};
+  if (raw === 'stem') return words.map(stem);
+  for (const to of Object.keys(SAME)) for (const w of SAME[to]) map[stem(w)] = stem(to);
+  return words.map(w => map[stem(w)] || stem(w));
+}
 /* How many of the sentence's words a candidate's name and purpose share. */
-const caDraftWords = s => String(s || '').toLowerCase().split(/[^a-z0-9à-ÿ]+/).filter(w => w.length > 2 && !['the', 'and', 'for', 'with', 'from', 'agreement', 'contract'].includes(w));
 function caDraftScore(sentence, cand){
   const said = new Set(caDraftWords(sentence));
   return caDraftWords(cand.name + ' ' + cand.blurb).reduce((n, w) => n + (said.has(w) ? 1 : 0), 0);
+}
+/* WHICH OF THE READER'S OWN WORDS a paper answers to, in their spelling ("warehouse", "haulage") — what its card says it shares */
+function caDraftMatched(sentence, cand){
+  const has = new Set(caDraftWords(((cand && cand.name) || '') + ' ' + ((cand && cand.blurb) || '')));
+  const out = [], seen = new Set();
+  for (const w of caDraftWords(sentence, true)){ const k = caDraftWords(w)[0]; if (k && has.has(k) && !seen.has(k)){ seen.add(k); out.push(w); } }
+  return out;
+}
+/* ---- TWO PAPERS EASILY CONFUSED, AND THE ONE QUESTION THAT DECIDES ----
+   When both stand among the closest, the sheet asks the question and moves the
+   answer's paper first, marked the closest. Nothing is picked: the reader still
+   presses the card. One pair today (store or move); a new pair is a line here
+   and its words in both books. */
+const CA_DRAFT_PAIRS = [
+  { key: 'store_move', ids: ['WH', 'FF'], q: 'na_dq_store_move', a: [['store', 'WH'], ['move', 'FF'], ['both', 'WH']] },
+];
+function caDraftPairOf(rows){
+  const ids = new Set((rows || []).filter(r => r && (r.kind === 'tid' || r.kind === 'builtin')).map(r => String(r.id)));
+  return CA_DRAFT_PAIRS.find(p => p.ids.every(id => ids.has(id))) || null;
 }
 /* WHICH WORDS THEY SHARE — the same reading as the score, said once each in
    the candidate's own spelling ("NDA", not "nda"): what a request's panel
    names when it says why a paper fits (round 20, Requests as drawn) */
 function caDraftShared(sentence, cand){
-  const said = new Set(caDraftWords(sentence));
+  /* QUOTED AS THE ASKER'S OWN WORD, so matched by stem alone: a word only its family shares is never said to be asked for */
+  const said = new Set(caDraftWords(sentence, 'stem'));
   const out = [], seen = new Set();
   for (const raw of String((cand && cand.name) || '' ).concat(' ', (cand && cand.blurb) || '').split(/[^A-Za-z0-9À-ÿ]+/)){
-    const w = raw.toLowerCase();
-    if (!w || seen.has(w) || !said.has(w) || !caDraftWords(raw).length) continue;
+    const k = caDraftWords(raw, 'stem')[0], w = raw.toLowerCase();
+    if (!k || seen.has(w) || !said.has(k)) continue;
     seen.add(w); out.push(raw);
   }
   return out;
@@ -752,6 +800,70 @@ function caDraftForm(a){
     words: { what: caDraftKindOf(a.sentence) || (best ? (caDraftTitleOf(best) || best.name) : ''), who, known, purpose } });
   return true;
 }
+/* ---- A "NO" THAT HELPS (owner picked "On the card", 22 Oct 2026) ----
+   A read-only account may not start a contract. Every door that refuses says so
+   in plain words, names the admin, and carries the ONE way forward: the existing
+   Ask an admin record about the person's role (stAskDirect, panel 'me:role' —
+   the admin's Needs you and bell, reminded, the answer back on the asker's bell;
+   one open ask per person, the server answering `again` for a second press).
+   ONE reading (draftWallSay), ONE act (draftWallSend), ONE toast for the doors
+   that have no card (draftWallToast). The server still refuses on its own. */
+const DRAFT_WALL_PANEL = 'me:role';
+function draftWallAdmins(){
+  try { return ((typeof getUsers === 'function' && getUsers()) || []).filter(u => u && u.role === 'admin' && (u.name || u.email)); } catch (_){ return []; }
+}
+/* the reader's own ask still waiting, or null */
+function draftWallAsked(){
+  try { return (typeof window.stAskOpenOn === 'function') ? window.stAskOpenOn(DRAFT_WALL_PANEL) : null; } catch (_){ return null; }
+}
+function draftWallSay(){
+  const A = draftWallAdmins();
+  const one = A.length === 1 ? String(A[0].name || A[0].email) : '';
+  const first = one ? one.split(/\s+/)[0] : '';
+  return { head: _caT('ca_wall_head'), body: one ? _caT('ca_wall_body', { who: one }) : _caT('ca_wall_body_any'),
+    ask: first ? _caT('ca_wall_ask', { name: first }) : _caT('ca_wall_ask_any'), who: one || _caT('ca_wall_an_admin') };
+}
+function draftWallWhen(iso){
+  const t = Date.parse(iso || ''); if (!t) return '';
+  const d = new Date(t), loc = (typeof langLocale === 'function') ? langLocale() : undefined;
+  const same = (typeof todayISO === 'function') && String(iso).slice(0, 10) === todayISO();
+  try { return same ? d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString(loc, { day: 'numeric', month: 'short' }); } catch (_){ return ''; }
+}
+/* the card's reason: what is true, in plain words */
+function draftWallWhyHtml(){
+  const W = draftWallSay();
+  return `<p class="ca-why ca-wall"><b>${_caE(W.head)}</b>${_caE(W.body)}</p>`;
+}
+/* the card's one way forward: the ask, or that it was asked and where it waits */
+function draftWallActHtml(){
+  const W = draftWallSay(), a = draftWallAsked();
+  if (a) return `<span class="ca-wall-asked" data-ca-wall-act>${_caE(_caT('ca_wall_asked', { who: W.who, when: draftWallWhen(a.createdAt) }))}</span>`;
+  return `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-ca-wall-act data-ca-wall-ask>${_caE(W.ask)}</button>`;
+}
+let _draftWallBusy = false;
+async function draftWallSend(){
+  if (_draftWallBusy || typeof window.stAskDirect !== 'function') return null;
+  _draftWallBusy = true;
+  try {
+    const r = await window.stAskDirect(DRAFT_WALL_PANEL, _caT('ca_wall_what'), '');
+    if (typeof document !== 'undefined') document.querySelectorAll('[data-ca-wall-act]').forEach(el => { el.outerHTML = draftWallActHtml(); });
+    return r;
+  } finally { _draftWallBusy = false; }
+}
+/* a door with no card of its own (the Guide's row, the form, an upload): the same words and the same press */
+function draftWallToast(){
+  if (typeof toast !== 'function') return;
+  const W = draftWallSay(), a = draftWallAsked();
+  if (a) { toast(_caT('ca_wall_asked', { who: W.who, when: draftWallWhen(a.createdAt) }), 'warn'); return; }
+  toast(W.head + ' ' + W.body, 'warn', { action: { label: W.ask, onClick(){ draftWallSend(); } } });
+}
+if (typeof document !== 'undefined' && document.addEventListener && !document._caWallWired){
+  document._caWallWired = true;
+  document.addEventListener('click', e => {
+    const b = e.target && e.target.closest ? e.target.closest('[data-ca-wall-ask]') : null; if (!b) return;
+    e.preventDefault(); e.stopPropagation(); b.disabled = true; draftWallSend();
+  }, true);
+}
 function caDraftCardHtml(a, i){
   const B = (act, label, lead, extra) => `<button type="button" class="ui-btn ui-btn-sm${lead ? ' ui-btn-primary' : ''}" data-ca-act="${act}" data-ca-turn="${i}"${extra || ''}>${_caE(label)}</button>`;
   if (a.state === 'reading') return `<div class="ca-card"><p class="ca-foot" style="margin:0">${(typeof busyHtml === 'function') ? busyHtml(_caT('ca_draft_reading')) : _caE(_caT('ca_draft_reading'))}</p></div>`;
@@ -791,13 +903,13 @@ function caDraftCardHtml(a, i){
   ];
   const dl = `<dl class="ca-dl">${rows.map(([k, v]) => `<dt>${_caE(k)}</dt><dd>${v}</dd>`).join('')}</dl>`;
   /* A DEAD BUTTON SAYS WHY: a viewer may not create, and the card says so where HaTi knows it */
-  const no = _caT('wz_viewers_no_create');
+  const no = _caT('ca_wall_head');
   const open = may ? B('form', _caT('ca_dr_open'), true)
-    : `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" disabled aria-disabled="true" title="${_caE(no)}">${_caE(_caT('ca_dr_open'))}</button>`;
+    : `${draftWallActHtml()}<button type="button" class="ui-btn ui-btn-sm" disabled aria-disabled="true" title="${_caE(no)}">${_caE(_caT('ca_dr_open'))}</button>`;
   /* NO SILENT FAILURE: with no model, or a model that failed, the card says how it matched */
   const note = a.aiError ? `<p class="ca-foot">${_caE(a.aiError)}</p>` : !a.ai ? `<p class="ca-foot">${_caE(_caT('ca_dr_no_ai'))}</p>` : '';
   return `<div class="ca-card ca-dr" data-ca-card="${i}"><div class="ca-ct">${_caE(_caT('ca_dr_new'))}<span class="ca-dr-sp"></span><span class="pd-pill is-quiet"><i></i>${_caE(_caT('ca_dr_not_yet'))}</span></div>
-    ${dl}${may ? '' : `<p class="ca-why">${_caE(no)}</p>`}<div class="ca-acts">${open}${B('ask', _caT('ca_dr_change'), false)}</div>${note}</div>`;
+    ${dl}${may ? '' : draftWallWhyHtml()}<div class="ca-acts">${open}${B('ask', _caT('ca_dr_change'), false)}</div>${note}</div>`;
 }
 function caDraftPress(i, act, btn){
   const m = caTurn(i); const a = m && m.act; if (!a) return;
@@ -1485,12 +1597,12 @@ async function caDraftReply(prompt, cid){
     return (e && e.needsKey) ? { why: 'nokey' } : { why: 'failed', msg: (e && e.message) || '' };
   }
 }
-Object.assign(window, { caDraftReply });
+Object.assign(window, { caDraftReply, DRAFT_WALL_PANEL, draftWallAdmins, draftWallAsked, draftWallSay, draftWallWhen, draftWallWhyHtml, draftWallActHtml, draftWallSend, draftWallToast });
 Object.assign(window, { caRefFix, CA_REF_RE, caRefLinkPaint, caRefOpen, CA_MENU, CA_MENU_INBOUND, CA_MENU_THEIR_FILE, CA_FILE_OUT, CA_FILE_KEEP, CA_MENU_NOT, caReadMenu, caMenuRows, caMenuCardHtml, caMenuPress, CA_DOORS, CA_DOOR_NOT, caReadDoor, caRoomSign, CA_DOOR_GO, CA_DOOR_SHUT, CA_DOOR_NEEDS, caDoorCardHtml, caDoorPress });
 Object.assign(window, { CA_SUMMARY_RE, CA_WRITE_MAIL_RE, caFindPersonNamed, caSummaryText, caSummaryOpen, caScreenSent, caPassSend, caPeopleFor, caPersonRowHtml, caScreenCardHtml });
 Object.assign(window, { CA_PICK_MAX, CA_NOTE_MAX, CA_SEND_RE, caPeople, caContracts, caOpenContract, caTokenAt, caMatches, caPopHtml, caPopClose, caPopRead, caChoose,
   caFindContract, caFindPerson, caNoteOf, caReadSend, caActOf, caSendBlock, caCardHtml, caCardPress,
-  CA_DRAFT_RE, CA_DRAFT_NOUN, CA_DRAFT_OPTS, CA_DRAFT_BARE, CA_DRAFT_ASKING, caIsDraftAsk, caReadDraft, caDraftWords, caDraftScore, caDraftShared, caDraftRank, caDraftRun, caDraftCardHtml, caDraftPress, CA_DRAFT_WITH, CA_DRAFT_WITH_MAX, caDraftWith, CA_DRAFT_NOT_PARTY, CA_DRAFT_TERM_WORD, caDraftBest, caDraftTitleOf, caDraftWho, caDraftForm, CA_DRAFT_WHAT_MAX, caDraftWhatRaw, caDraftWhatOf, CA_DRAFT_KINDS, caDraftKindOf, CA_DRAFT_FOR, CA_DRAFT_FOR_MAX, caDraftForOf, caDraftOneExchange,
+  CA_DRAFT_RE, CA_DRAFT_NOUN, CA_DRAFT_OPTS, CA_DRAFT_BARE, CA_DRAFT_ASKING, caIsDraftAsk, caReadDraft, caDraftWords, caDraftScore, caDraftMatched, CA_DRAFT_PAIRS, caDraftPairOf, caDraftShared, caDraftRank, caDraftRun, caDraftCardHtml, caDraftPress, CA_DRAFT_WITH, CA_DRAFT_WITH_MAX, caDraftWith, CA_DRAFT_NOT_PARTY, CA_DRAFT_TERM_WORD, caDraftBest, caDraftTitleOf, caDraftWho, caDraftForm, CA_DRAFT_WHAT_MAX, caDraftWhatRaw, caDraftWhatOf, CA_DRAFT_KINDS, caDraftKindOf, CA_DRAFT_FOR, CA_DRAFT_FOR_MAX, caDraftForOf, caDraftOneExchange,
   CA_JOBS, CA_JOB_RE, caReadJob, caNamedOrUp, caRowsWithQuotes, caRiskList, caObligList, caListCardHtml, caReadyDoor, caJobCardHtml, caJobPress, caMayAdd, caPaperChips, caChipsHtml, caNextSteps, caNextRun, caChipShut, caNextLabel, caEditChipBtn, CA_NEXT_FACE, CA_NEXT_MAX, CA_NEXT_GO, caOwedSteps, caSignerOwed, CA_OWED_FOR,
   CA_SEL_ACTIONS, caSelKill, caSelClauseId, caSelOpen, caSelPick, CA_RISK_MAX, caRiskMark });
 
@@ -1811,7 +1923,7 @@ function caGoSay(a){
   if (a.place === 'brief' && c) return _caT(caBriefKept(c) ? 'ca_go_brief' : 'ca_go_brief_none', { ref: caRef(c) });
   if (a.place === 'back'){ const p = caTrailTop(); return p ? _caT('ca_go_back', { where: caTrailLabel(p) }) : _caT('ca_go_back_none'); }
   /* a viewer's "upload" is answered with the refusal, once, where they look — not a toast beside it */
-  if ((a.place === 'upload' || a.place === 'import') && !caMayAdd()) return _caT('ct_viewers_no_add');
+  if ((a.place === 'upload' || a.place === 'import') && !caMayAdd()){ const W = draftWallSay(); return W.head + ' ' + W.body; }
   const p = CA_PLACES.find(x => x.k === a.place) || {};
   return _caT('ca_go_' + a.place + (p.need === 'any' && !c ? '_all' : ''), { ref: c ? caRef(c) : '' });
 }
@@ -2658,12 +2770,13 @@ function caGoCardHtml(a, i){
      which, and each answer is the existing door — the form (caDraftForm) or
      the file picker the wall's "upload" uses (CA_GO.upload) */
   if (a.place === 'draft'){
-    const may = (typeof canEdit !== 'function') || canEdit(), no = _caT('wz_viewers_no_create');
+    const may = (typeof canEdit !== 'function') || canEdit(), no = _caT('ca_wall_head');
+    /* A "NO" THAT HELPS: greyed, the reason under the words and the ask as the one filled button (draftWallActHtml) */
     const B = (act, label, lead) => may ? `<button type="button" class="ui-btn ui-btn-sm${lead ? ' ui-btn-primary' : ''}" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`
-      : `<button type="button" class="ui-btn ui-btn-sm${lead ? ' ui-btn-primary' : ''}" disabled aria-disabled="true" title="${_caE(no)}">${_caE(label)}</button>`;
+      : `<button type="button" class="ui-btn ui-btn-sm" disabled aria-disabled="true" title="${_caE(no)}">${_caE(label)}</button>`;
     return `<div class="ca-card ca-dr" data-ca-card="${i}"><div class="ca-ct">${_caE(_caT('ca_dr_title'))}</div>
-      <p class="ca-foot" style="margin-top:0">${_caE(_caT('ca_dr_says'))}</p>${may ? '' : `<p class="ca-why">${_caE(no)}</p>`}
-      <div class="ca-acts">${B('draftform', _caT('ca_dr_ours'), true)}${B('draftupload', _caT('ca_dr_theirs'), false)}</div></div>`;
+      <p class="ca-foot" style="margin-top:0">${_caE(_caT('ca_dr_says'))}</p>${may ? '' : draftWallWhyHtml()}
+      <div class="ca-acts">${may ? '' : draftWallActHtml()}${B('draftform', _caT('ca_dr_ours'), true)}${B('draftupload', _caT('ca_dr_theirs'), false)}</div></div>`;
   }
   /* WHAT COMES NEXT: the chips' own steps, each the chip's own press; with none, said */
   if (a.place === 'next' && c && !a.missing){

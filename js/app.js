@@ -6,6 +6,7 @@ import './templates.js';
 import './jurisdiction.js'; // where this workspace operates: law, money, which statute checks apply
 import './outside.js';     // redline here, sign there: the working reference, the contract number and the word check (26 Sep 2026)
 import './graphwhere.js';   // the graph's structured filter, one predicate for both hosts (Copilot audit phase 4)
+import './hatisearch.js';   // the one search over HaTi: its words, both hosts (Jambo works like Copilot, stage 1, 22 Oct 2026)
 import './roundprep.js';    // Their round came back: one key for an ask of theirs, both hosts (27 Sep 2026)
 import './migread.js';      // Archive import: what an imported contract's reading decides, both hosts (27 Sep 2026)
 import './sealtext.js';     // the frozen copy's text, one reading: the server seals with it, Verify reads it (9 Oct 2026)
@@ -1689,7 +1690,7 @@ function openWorkspace(id, opts){ if(typeof codeNameStop==='function'&&codeNameS
    back to find out what it just made. Every other door is byte-identical. */
 function createFromTemplate(tid, opts){
   const quiet = !!(opts && opts.quiet);
-  if(!canEdit()){ toast(i18t('ap_viewers_no_create'),'err'); return null; }
+  if(!canEdit()){ if(!quiet){ if(typeof draftWallToast==='function') draftWallToast(); else toast(i18t('ap_viewers_no_create'),'err'); } return null; }
   const t=TEMPLATES[tid], u=currentUser();
   const c={ id:nextId(), name:t.name,   /* no "(Draft)": see createFromTemplate (the owner's list, 27 Sep 2026) */ counterparty:'', value:0, status:'Draft',
     template:tid, folder:t.folder,
@@ -3533,6 +3534,30 @@ function closeNavDrawer(){ setNavDrawer(false); }
 /* THE GUIDE (owner picked "Journey", 19 Oct 2026): a fourth face, every page
    in the order a contract lives (guidePanelHtml) — the same shell, no new door */
 const PANEL_FACES = ['guide', 'alerts', 'notes', 'activity'];
+/* JAMBO'S BOX AT THE PANEL'S FOOT (owner, 22 Oct 2026: "all side panels need
+   to have jambo entry field at the bottom"): the one card on Guide, Alerts and
+   Activity; Notes keeps its own box for the note. Words asked put the panel
+   away and are asked in the ✦'s window (openAI {win}), the one conversation,
+   answered there — a press on Send asks, never only fills a box. Built once. */
+function panelAskPaint(face){
+  const f=document.getElementById('panel-ask'); if(!f) return;
+  const off=face==='notes';
+  f.hidden=off; if(off) return;
+  if(!f.dataset.built){
+    f.dataset.built='1';
+    const ph=i18t('jl_ph_any');
+    const card=(typeof window.jamboCardHtml==='function')?window.jamboCardHtml.bind(window):(o=>`${o.field||''}${o.send||''}`);
+    const send=(typeof window.jamboSendHtml==='function')?window.jamboSendHtml('data-panel-ask-go',i18t('int_ask'),{submit:true}):`<button type="submit" data-panel-ask-go>${esc(i18t('int_ask'))}</button>`;
+    f.innerHTML=card({ field:`<textarea id="panel-ask-in" rows="1" maxlength="600" spellcheck="false" data-jb-enter placeholder="${esc(ph)}" aria-label="${esc(ph)}"></textarea>`, send });
+    f.addEventListener('submit',e=>{
+      e.preventDefault();
+      const t=document.getElementById('panel-ask-in'); const q=String(t&&t.value||'').trim(); if(!q) return;
+      t.value='';
+      closeContextPanel();
+      if(typeof window.openAI==='function') window.openAI(q,{ win:!(typeof window.mPhone==='function'&&window.mPhone()) });
+    });
+  }
+}
 function panelFace(){ return PANEL_FACES.includes(state.panelFace)?state.panelFace:'activity'; }
 function setPanelFace(k){ state.panelFace=PANEL_FACES.includes(k)?k:'activity'; }
 /* THE ONE DOOR ONTO THE NOTES FACE. It needs a contract and a change where the
@@ -3632,6 +3657,7 @@ function renderContextPanel(){
   const guide=face==='guide';
   if(title) title.textContent=guide?i18t('gd_title'):_chat?i18t('ng_chat'):notes?i18t('ng_card_notes'):alerts?i18t('sh_alerts'):i18t('sh_activity');
   panelTabsPaint(face);
+  panelAskPaint(face);
   const close=document.getElementById('panel-close');
   if(close){ const t=(notes||guide)?i18t('act_close'):alerts?i18t('sh_close_alerts'):i18t('sh_close_activity');
     close.title=t; close.setAttribute('aria-label',t); }

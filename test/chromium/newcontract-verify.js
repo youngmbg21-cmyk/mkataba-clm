@@ -38,6 +38,18 @@ const FORM = () => {
     fields: ['ce-counterparty', 'ce-cpemail', 'ce-value', 'ce-effDate', 'ce-expiry'].filter(has) };
 };
 
+/* RE-POINTED 22 Oct 2026 (the first-timer rounds, round 4 "He speaks"): a new draft's panel turns to
+   Jambo's first words once; the reader's own ‹ back (the trail's .pd-back) returns it to the Dossier */
+const pastFirstWords = async page => {
+  const end = Date.now() + 8000;
+  while (Date.now() < end){
+    const s = await page.evaluate(() => document.getElementById('pd-glance') ? 'cd' : document.querySelector('#ig-dock .jb-turn') ? 'jb' : '').catch(() => '');
+    if (s === 'cd') return true;
+    if (s === 'jb'){ await page.evaluate(() => { const b = document.querySelector('#ig-dock .pd-trail .pd-back'); if (b) b.click(); }).catch(() => {}); }
+    await new Promise(r => setTimeout(r, 120));
+  }
+  return false;
+};
 (async () => {
   const h = await startHati();
   const W = await seedWorkspace(h);
@@ -139,6 +151,7 @@ const FORM = () => {
      document, which is a template full of blanks you have not filled in — it
      should land on the terms those blanks are filled FROM. Read off the tab row
      the reader is actually looking at, not off the module's variable. */
+  await pastFirstWords(page);
   const landed = await page.evaluate(() => ({ view: window.state.view, paper: window.intel && intel.paper && intel.paper.id,
     face: !!document.getElementById('pd-fillface'), grid: !!document.querySelector('#ig-dock #pd-glance #pd-og') }));
   /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 2, owner picked

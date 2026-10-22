@@ -8817,11 +8817,19 @@
   .na-w-ai{ margin-left:auto; }
   .na-w-ai em{ font-style:normal; color:var(--color-neutral-600); font-weight:400; }
   .na-closest{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
-  .na-closest .na-pick{ display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; column-gap:8px; border:1px solid var(--rule-strong); border-left-width:3px; padding:8px 10px; background:var(--color-surface); }
-  .na-closest .na-pick .na-best{ justify-self:start; }
-  .na-closest .na-pick .na-pick-m{ grid-column:1 / -1; }
+  /* THE TAG NEVER WRAPS, THE NAME GIVES WAY (the tidy sweep, 22 Oct 2026: the
+     owner's picture had "the closest" folded onto two lines inside its 18px
+     box, over "Warehousing Logistics Agreement"): the row is a flex row — the
+     name shrinks (flex 1, min-width 0) and shortens with "…", the tag keeps
+     its width and never wraps. It was a grid, and inside a <button> Chrome
+     sized the grid's 1fr column to the name's full words, so the tag was
+     squeezed into what was left. */
+  .na-closest .na-pick{ display:flex; flex-wrap:wrap; flex-direction:row; align-items:center; gap:0 8px; border:1px solid var(--rule-strong); border-left-width:3px; padding:8px 10px; background:var(--color-surface); }
+  .na-closest .na-pick .na-pick-n{ flex:1 1 0; min-width:0; }
+  .na-closest .na-pick .na-best{ flex:none; }
+  .na-closest .na-pick .na-pick-m{ flex-basis:100%; }
   .na-closest .na-pick.on{ border-color:var(--accent-solid); }
-  .na-best{ display:inline-flex; align-items:center; height:18px; padding:0 7px; border-radius:999px; background:var(--st-green-bg); color:var(--st-green-fg); font-size:11px; font-weight:var(--w-label); vertical-align:1px; }
+  .na-best{ display:inline-flex; align-items:center; white-space:nowrap; flex:none; height:18px; padding:0 7px; border-radius:999px; background:var(--st-green-bg); color:var(--st-green-fg); font-size:11px; font-weight:var(--w-label); vertical-align:1px; }
   .na-one-more{ border-top:0; padding-top:0; margin-top:0; }
   .na-file-b{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
   .na-seg{ display:inline-flex; flex-wrap:wrap; border:1px solid var(--rule-strong); border-radius:var(--radius); overflow:hidden; }
@@ -8853,6 +8861,19 @@
   .na-closest .na-pick.na-close .na-pick-m{ grid-column:2 / -1; font-family:var(--font-body); font-size:var(--t-label); }
   .na-close .na-radio{ width:16px; height:16px; border-radius:50%; border:1.5px solid var(--rule-strong); background:var(--color-surface); flex:none; box-sizing:border-box; }
   .na-close.on .na-radio{ border-color:var(--accent-solid); background:var(--accent-solid); box-shadow:inset 0 0 0 3px var(--color-surface); }
+  /* ROUND 2 OF THE FIRST-TIMER ROUNDS: a card's "Use when" line, and the one deciding question (22 Oct 2026) */
+  .na-closest .na-pick.na-close{ align-content:start; }
+  .na-closest .na-pick.na-close .na-use{ grid-column:2 / -1; font-size:var(--t-label); line-height:1.4; color:var(--color-neutral-700); white-space:normal; margin-top:4px; text-align:left; }
+  .na-dq{ display:flex; align-items:center; flex-wrap:wrap; gap:8px 12px; margin:2px 0 10px; font-size:var(--t-body); }
+  .na-dq .na-seg{ display:inline-flex; }
+  /* WHO PAYS WHOM (round 3): three presses across the box's width, the meaning said under them */
+  .pw-field{ display:block; min-width:0; }
+  .pw .pw-seg{ display:flex; width:100%; }
+  .pw .pw-seg .na-seg-b{ flex:1 1 0; justify-content:center; min-width:0; }
+  .pw .na-seg-b[aria-checked="true"]{ background:var(--color-accent-50); color:var(--accent-ink); }
+  .pw-say{ display:block; margin-top:4px; font-size:var(--t-label); color:var(--accent-ink); line-height:1.4; }
+  .pw-say:empty{ display:none; }
+  .wz-help{ display:block; margin-top:4px; font-size:var(--t-label); color:var(--color-neutral-600); font-weight:var(--w-body); }
   .na-one .na-card-h h3{ flex:none; }
   .na-one .na-card-sub{ flex:1; text-align:left; max-width:none; }
   .na-from-words{ color:var(--accent-ink); font-weight:var(--w-label); margin-left:4px; }
@@ -9395,6 +9416,11 @@
   :is(#ig-dock,#jh-jambo) .igd-door-i{position:relative;display:grid;place-items:center;width:28px;height:28px}
   :is(#ig-dock,#jh-jambo) .igd-door-face{width:28px;height:28px;border-radius:50%}
   :is(#ig-dock,#jh-jambo) .igd-door-i .pd-tab-n{left:16px}
+  /* on Jambo's house the door stands at the window's right edge: a count
+     hung 16px in from the icon's left reached 5px past the page and gave the
+     whole page a sideways scrollbar (the tidy sweep, 22 Oct 2026) — there it
+     hangs from the icon's right edge instead */
+  #jh-jambo .igd-door-i .pd-tab-n{left:auto;right:0}
   :is(#ig-dock,#jh-jambo) .igd-door-o{flex:none;opacity:.8}
   .ca-pop{position:absolute;left:12px;right:12px;z-index:30;background:var(--color-surface);border:1px solid var(--color-neutral-300);border-radius:var(--radius-lg);box-shadow:0 10px 28px rgba(0,0,0,.16);padding:6px;max-height:60%;overflow:auto}
   .ca-pop h5{margin:4px 8px 6px;font-size:11px;color:var(--cap-ink);font-weight:400}
@@ -9422,6 +9448,9 @@
   .ca-acts{display:flex;gap:8px;flex-wrap:wrap}
   .ca-foot{margin:10px 0 0;font-size:11.5px;color:var(--color-neutral-600)}
   .ca-why{margin:0 0 10px;padding:8px 10px;border-radius:var(--radius);background:var(--st-amber-bg);color:var(--color-text)}
+  /* A "NO" THAT HELPS: what is true in bold, then why and who lifts it; the ask's after-state in the accent (22 Oct 2026) */
+  .ca-why.ca-wall b{display:block;font-weight:var(--w-strong);margin-bottom:2px}
+  .ca-wall-asked{font-size:var(--t-label);color:var(--accent-ink);align-self:center}
   .ca-said{margin:6px 0 0;font-weight:var(--w-strong)}
   /* JAMBO'S NEW AGREEMENT CARD (the overnight work order, step 3): the stage pill on the head's right; a fact the form will ask in amber, the form's own question quiet */
   .ca-dr .ca-dr-sp{flex:1}
@@ -11487,6 +11516,13 @@
   .hb-csec{border:1px solid rgba(var(--hb-ln),.16);border-radius:var(--radius);padding:var(--s-2) var(--s-3);display:flex;flex-direction:column;gap:6px;background:var(--hb-fig);min-width:0;transition:box-shadow .3s}
   .hb-csec.is-lit{box-shadow:0 0 0 1px rgba(var(--hb-gw),.7)}
   .hb-crow{display:grid;grid-template-columns:130px minmax(0,1fr);gap:4px var(--s-3);font-size:var(--t-meta);align-items:baseline}
+  /* NOTHING WIDER THAN THE CARD (the tidy sweep, 22 Oct 2026: with a long
+     party name the card's "Ask Jambo: Why is …" button was 1,156px on its
+     own and the panel grew a sideways scrollbar; a clause's name in capitals
+     ran 246px past its box): a button or a clause link is at most as wide as
+     its row and shortens with "…". */
+  .hb-chead .hb-acts>.hb-btn{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  .hb-crow .hb-link{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
   .hb-crow>span:first-child{color:var(--hb-mute)}
   .hb-crow>span:last-child{color:var(--hb-ink)}
   .hb-crisk{display:flex;align-items:center;gap:8px;font-size:var(--t-meta);color:var(--hb-ink)}
@@ -11725,8 +11761,18 @@
      Its head IS the control, so nothing in the Clauses list is uncloseable:
      a button wearing the label's own clothes (the head was a div), underlined
      on hover like every other word-door in this panel. */
-  .pd-th .stk-miss .stk-miss-h{display:block;width:100%;text-align:left;border:0;background:none;font-family:inherit;cursor:pointer}
-  .pd-th .stk-miss .stk-miss-h:hover{text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--rule-strong)}
+  /* A CLEAR PRESS (owner, 23 Oct 2026: "it is absolutely not clear that not in the contract is a button"):
+     an outlined button in the Clauses tab's own button clothes (.stk-go), its count, and an arrow that
+     turns down while the group is open */
+  .pd-th .stk-miss .stk-miss-h{display:inline-flex;align-items:center;gap:6px;min-height:var(--ctl-h-sm,28px);padding:0 10px;text-align:left;
+    border:1px solid var(--btn-edge,var(--field-line));border-radius:6px;background:var(--color-surface);color:var(--accent-ink);
+    font-family:inherit;font-weight:var(--w-label);cursor:pointer}
+  .pd-th .stk-miss .stk-miss-h:hover{background:color-mix(in srgb,var(--accent-fill) 8%,var(--color-surface))}
+  .pd-th .stk-miss .stk-miss-hn{color:var(--color-neutral-600);font-weight:400}
+  .pd-th .stk-miss .stk-miss-chev{flex:none;transition:transform .15s ease}
+  .pd-th .stk-miss.is-open .stk-miss-chev{transform:rotate(90deg)}
+  .pd-th .stk-miss.is-open .stk-miss-h{margin-bottom:6px}
+  @media (prefers-reduced-motion: reduce){ .pd-th .stk-miss .stk-miss-chev{transition:none} }
   .pd-th .stk-miss .stk-miss-h:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:2px}
   .pd-th .stk-miss:not(.is-open) .stk-miss-body{display:none}
   /* a point missing after §N is §N's: hidden while §N is closed (breakdown.js, owner 22 Oct 2026) */
@@ -12271,6 +12317,9 @@
      rule's (1,0,0), so it wins by WEIGHT and not by order or !important —
      and a face with no rule of its own simply keeps --shell-panel-w. */
   #context-panel[data-face="notes"]{ width:min(var(--shell-panel-notes-w,330px),88vw); }
+  /* JAMBO'S BOX AT THE FOOT (owner, 22 Oct 2026): the one card (.jb-card), 16 in like The Brief's foot */
+  #context-panel #panel-ask{ flex:none; padding:12px var(--s-4); border-top:1px solid var(--color-divider); background:var(--color-surface); }
+  #context-panel #panel-ask[hidden]{ display:none; }
   /* THE PANEL'S TABS AND THE GUIDE (owner picked "Journey", 19 Oct 2026) */
   #context-panel .pt-tabs{ flex:none; display:flex; gap:16px; padding:0 var(--s-4); border-bottom:1px solid var(--color-divider); }
   #context-panel .pt-tab{ border:0; background:none; font:inherit; font-size:var(--t-meta); color:var(--color-neutral-600); padding:8px 0; border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; }
@@ -16968,6 +17017,8 @@
   <!-- THE PANEL'S TABS (the Journey drawing, 19 Oct 2026): painted by panelTabsPaint, a computer only -->
   <nav id="panel-tabs" class="pt-tabs" role="tablist" aria-label="Panel" hidden></nav>
   <div id="panel-body" class="scroll-thin" style="flex:1;overflow-y:auto;"></div>
+  <!-- JAMBO'S BOX AT THE FOOT (owner, 22 Oct 2026: "all side panels need to have jambo entry field at the bottom"): painted by panelAskPaint; the Notes face keeps its own box -->
+  <form id="panel-ask" class="panel-ask" autocomplete="off" hidden></form>
 </aside>
 
 <!-- ================= Copilot ASSISTANT (slide-over) ================= -->
