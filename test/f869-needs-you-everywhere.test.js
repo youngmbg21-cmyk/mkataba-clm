@@ -197,6 +197,7 @@ describe('f869 (4) nobody named to sign is a detail owed, on Home as on the Doss
     assert.match(rows, /ND_MERGE\[r\.it\.kind\]/);
     const owed = fnBody(PD, 'dossierOwed');
     assert.match(owed, /if \(asks\.length && !quiet\)/, 'their asks one by one stay (pass 3 as drawn)');
+    assert.match(owed, /r\.jw && r\.pk === 'answer' && r\.nd && r\.nd\.late/, 'past the standard, Jambo\'s answer is the one row for them');
     assert.match(owed, /if \(late\.length > chased\)/);
   });
 });

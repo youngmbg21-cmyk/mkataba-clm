@@ -3432,7 +3432,8 @@ function dossierOwed(c){
   const nobody = signerOwed(c);
   if (nobody) out.push({ k: 'signer', kind: 'signer' });
   const needs = (pdNeedsRows(c) || []).concat(pdNoteRows(c) || []);
-  const quiet = needs.some(r => r && r.it && r.it.kind === 'quiet');
+  /* past the standard their asks are one row — the quiet row, or Jambo's answer standing for it (ND_MERGE) */
+  const quiet = needs.some(r => r && ((r.it && r.it.kind === 'quiet') || (r.jw && r.pk === 'answer' && r.nd && r.nd.late)));
   const asks = pdTheirAsks(c);
   if (asks.length && !quiet){
     asks.slice(0, DOSSIER_ASKS_MAX).forEach(ch => out.push({ k: 'ask:' + ch.id, kind: 'ask', ch }));
