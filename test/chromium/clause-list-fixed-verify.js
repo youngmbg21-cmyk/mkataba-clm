@@ -248,25 +248,24 @@ const READING = {
     ok('5c the point card\'s 2px coloured left edge is untouched',
       !!lines.edge && lines.edge.w === '2px' && lines.edge.bg !== 'rgba(0, 0, 0, 0)' && lines.edge.c !== 'none', JSON.stringify(lines.edge));
 
-    /* ===== 6 no count line; the filters still do the work ===== */
+    /* ===== 6 no count line; the tabs do the filters' work =====
+       RE-POINTED 23 Oct 2026 (owner picked "Marquee"): a headline and the clauses as tabs with counts in place of
+       the three boxes; "Needs you" narrows to the same points and All lets go */
     const head = await page.evaluate(() => ({
       tally: !!document.querySelector('#pd-thread .stk-tally, #pd-thread [data-stk-sev]'),
-      title: ((document.querySelector('#pd-thread .stk-view b') || {}).textContent || '').trim(),
-      sub: ((document.querySelector('#pd-thread .stk-view-sub') || {}).textContent || '').trim(),
-      boxes: [...document.querySelectorAll('#pd-thread .stk-flt')].map(l => (l.querySelector('span') || {}).textContent),
-      sevs: [...document.querySelectorAll('#pd-thread [data-stk-f="sev"] option')].map(o => o.value).join(',') }));
-    ok('6a the three-count line is gone; the title, its grey sub and the three filter boxes stand',
-      !head.tally && head.title === 'Clause review' && /one view for the whole company/.test(head.sub)
-      && head.boxes.join('|') === 'Section|Severity|Found by' && head.sevs === ',need,look', JSON.stringify(head));
-    const pick = v => page.evaluate(v => { const el = document.querySelector('#pd-thread [data-stk-f="sev"]'); el.focus(); el.value = v;
-      el.dispatchEvent(new Event('change', { bubbles: true })); }, v);
+      title: ((document.querySelector('#pd-thread .stk-mq-t') || {}).textContent || '').trim(),
+      boxes: document.querySelectorAll('#pd-thread .stk-flt').length,
+      tabs: [...document.querySelectorAll('#pd-thread .stk-tab')].map(b => b.getAttribute('data-stk-tab')).join(',') }));
+    ok('6a the three-count line is gone; a headline and the tabs stand, no boxes',
+      !head.tally && /clauses? needs? you/i.test(head.title) && head.boxes === 0 && /^,need/.test(head.tabs), JSON.stringify(head));
+    const pick = v => page.evaluate(v => { const el = document.querySelector(`#pd-thread [data-stk-tab="${v}"]`); if (el) el.click(); }, v);
     await pick('need');
     await page.waitForTimeout(400);
     const narrowed = await page.evaluate(() => document.querySelectorAll('#pd-thread .stk-card').length);
     await pick('');
     await page.waitForTimeout(400);
     const back = await page.evaluate(() => document.querySelectorAll('#pd-thread .stk-card').length);
-    ok('6b Severity still filters by the same three, and lets go', narrowed === 2 && back === 4, JSON.stringify({ narrowed, back }));
+    ok('6b the "Needs you" tab narrows to the same points, and All lets go', narrowed === 2 && back === 4, JSON.stringify({ narrowed, back }));
     await page.screenshot({ path: path.join(OUT, '6-head-without-the-count-line.png') });
 
     ok('7 no page errors', errs.length === 0, errs.join(' | ').slice(0, 300));

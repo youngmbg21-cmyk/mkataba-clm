@@ -87,8 +87,10 @@ const dayFrom = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10)
       await part(`1 ${at}`, async () => {
         await openOb('MK-UP2');
         const T = await until(TAB);
-        check(`1a ${at} the renewal is lines at the top of the tab: Ends · Notice by · Renewal`,
-          !!T && T.rows.length === 3 && /^Ends /.test(T.rows[0]) && /^Notice by .+ · in /.test(T.rows[1]) && /^Renewal /.test(T.rows[2]), JSON.stringify(T && T.rows));
+        /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): three small columns, a label in small capitals over its
+           value; how far off the notice day is moves to the date's hover */
+        check(`1a ${at} the renewal is three columns at the top of the tab: Ends · Notice by · Renewal`,
+          !!T && T.rows.length === 3 && /^Ends\s/i.test(T.rows[0]) && /^Notice by\s+\d/i.test(T.rows[1]) && /^Renewal\s/i.test(T.rows[2]), JSON.stringify(T && T.rows));
         check(`1b ${at} the words it was read from, quoted with the clause they stand under`,
           !!T && /^§4 .Any extension must be agreed/.test(T.quote), T && T.quote);
         check(`1c ${at} the picture is not drawn on the tab; nothing sideways`, !!T && !T.map && T.side);

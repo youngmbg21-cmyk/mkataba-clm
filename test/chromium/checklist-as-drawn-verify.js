@@ -57,6 +57,7 @@ const MEASURE = () => {
   return { up: !!og,
     stage: (() => { const s = dock.querySelector('.ds-spine.is-ck'); if (!s) return null;
       return { head: (s.querySelector('.ds-ck-sh') || {}).textContent, now: (s.querySelector('.ds-ck-now') || {}).textContent,
+        t: ((s.querySelector('.ds-mq-t') || {}).textContent || '').trim(), s: ((s.querySelector('.ds-mq-s') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
         bars: s.querySelectorAll('.ds-st').length, cur: s.querySelectorAll('.ds-st.is-ck-cur').length }; })(),
     head: ((dock.querySelector('#pd-needs .pd-gl-h') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
     rows: rows.map(r => ({ key: r.getAttribute('data-pd-og-row'), open: r.classList.contains('is-open'),
@@ -108,7 +109,10 @@ const MEASURE = () => {
     const m0 = await page.evaluate(MEASURE);
 
     console.log('\n1 · the stage line');
-    check('1a "Stage · 4 of 6" over "Negotiate", six bars, ONE current', !!m0.stage && /Stage\s*4 of 6/.test(m0.stage.head) && m0.stage.now === 'Negotiate'
+    /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): the stage is the headline, the sentence says who with,
+       which stage and how many things need you, then six bars with ONE current */
+    check('1a "Negotiating" over "With Bamburi Cement PLC · stage 4 of 6. N things need you.", six bars, ONE current', !!m0.stage && m0.stage.t === 'Negotiating'
+      && /^With Bamburi Cement PLC · stage 4 of 6\. \d+ things? needs? you\.$/.test(m0.stage.s)
       && m0.stage.bars === 6 && m0.stage.cur === 1, JSON.stringify(m0.stage));
 
     console.log('\n2 · Needs you, one line a fact, one open');
@@ -119,7 +123,8 @@ const MEASURE = () => {
     check('2a3 no line between sections or rows (the owner kept The Brief)', await page.evaluate(() => [...document.querySelectorAll('#ig-dock #pd-glance > *, #ig-dock .pd-nx > *, #ig-dock #pd-og tr, #ig-dock .ds-rr')]
       .every(e => { const s = getComputedStyle(e); return ['Top', 'Bottom'].every(k => !(parseFloat(s['border' + k + 'Width']) > 0 && s['border' + k + 'Style'] !== 'none')); })));
     const owed = m0.rows.filter(r => r.key !== 'stream');
-    check('2b every row\'s line is one height (40)', owed.length >= 4 && owed.every(r => r.h === 40), JSON.stringify(owed.map(r => [r.key, r.h])));
+    /* RE-POINTED 23 Oct 2026 (Marquee): one height, 44 */
+    check('2b every row\'s line is one height (44)', owed.length >= 4 && owed.every(r => r.h === 44), JSON.stringify(owed.map(r => [r.key, r.h])));
     check('2c exactly one row is open and only it shows its box', owed.filter(r => r.open).length === 1 && owed.every(r => r.box === r.open), JSON.stringify(owed.map(r => [r.key, r.open, r.box])));
     check('2d a missing fact says "Missing" on its line', owed.some(r => /Missing/.test(r.words)), JSON.stringify(owed.map(r => r.words)));
     check('2e the order: stage, Needs you, Jambo read, Next acts, then Key terms and the folds',
@@ -140,11 +145,16 @@ const MEASURE = () => {
     check('3d nothing left the page for it', await page.evaluate(() => !document.querySelector('.modal-overlay, [role="dialog"]')));
 
     console.log('\n5 · Jambo read');
-    check('5a Brief and Risks, each "Not read …" and Read', m0.read.length >= 2 && /^Brief\s*Not read yet\s*Read$/.test(m0.read[0])
+    /* RE-POINTED 23 Oct 2026 (Marquee): the brief's row says its cost */
+    check('5a Brief and Risks, each "Not read …" and Read', m0.read.length >= 2 && /^Brief\s*Not read yet · about 3 calls\s*Read$/.test(m0.read[0])
       && /^Risks to look at\s*Not read · free\s*Read$/.test(m0.read[1]), JSON.stringify(m0.read));
 
     console.log('\n6 · Next acts');
-    check('6a the stage\'s acts are equal buttons on one line', m0.acts.length >= 2 && new Set(m0.acts.map(a => a.w)).size === 1 && new Set(m0.acts.map(a => a.top)).size === 1, JSON.stringify(m0.acts));
+    /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): the first act filled in its whole name, the next in its short
+       word, "All N ›" at the end of the same line */
+    const a0 = m0.acts;
+    check('6a the stage\'s acts: the first in its whole name, the next, and All N at the end, on one line',
+      a0.length === 3 && /^Import their Word file$/.test(a0[0].t) && /^All \d+ ›$/.test(a0[2].t) && Math.abs(a0[0].top - a0[2].top) <= 4, JSON.stringify(a0));
     await page.click('#ig-dock [data-pd-acts-all]'); await pause(150);
     const m3 = await page.evaluate(MEASURE);
     check('6b "All acts N ›" opens the room\'s whole list', m3.allOpen === true);

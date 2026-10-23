@@ -107,9 +107,12 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
         boxes: [...document.querySelectorAll('#pd-thread .stk-flt')].map(l => (l.querySelector('span') || {}).innerText),
         gone: !document.querySelector('#pd-thread .stk-ribbon, #pd-thread .stk-legend, #pd-thread .stk-sum') }));
       const o2 = await page.evaluate(() => Object.fromEntries(['reg', 'sev', 'by'].map(k => [k, [...document.querySelectorAll(`#pd-thread [data-stk-f="${k}"] option`)].map(o => o.value).join(',')])));
-      ok('2 the head says the points and draws three filters, no summary, ribbon or key',
-        /^Clause review/.test(e2.count) && e2.tally === false && e2.boxes.join('|') === 'Section|Severity|Found by' && e2.gone
-        && o2.reg === ',1,2' && o2.sev === ',need,look' && o2.by === ',jambo,std', JSON.stringify({ e2, o2 }));
+      /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): a serif headline counting the clauses that need you, one
+         sentence, and the clauses as tabs with counts in place of the three filter boxes; still no ribbon or key */
+      const e2m = await page.evaluate(() => ({ t: ((document.querySelector('#pd-thread .stk-mq-t') || {}).textContent || '').trim(),
+        tabs: [...document.querySelectorAll('#pd-thread .stk-tab')].map(b => b.getAttribute('data-stk-tab')), boxes: document.querySelectorAll('#pd-thread .stk-flt').length }));
+      ok('2 the head is a headline, a sentence and tabs, no filter boxes, summary, ribbon or key',
+        /clauses? needs? you|No clause needs you/i.test(e2m.t) && e2m.tabs[0] === '' && e2m.boxes === 0 && e2.tally === false && e2.gone, JSON.stringify({ e2m, e2 }));
 
       const e3 = await page.evaluate(() => {
         const rows = [...document.querySelectorAll('#pd-thread .doc-th-row')];
@@ -130,24 +133,30 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       const openRowOf = i => page.evaluate(async i => { const b = document.querySelector(`#pd-thread .doc-th-row [data-stk-dive="${i}"]`);
         const r = b && b.closest('.doc-th-row'); if (r && !r.classList.contains('is-open')){ r.querySelector('[data-th-go]').click(); await new Promise(z => setTimeout(z, 900)); } }, i);
       const pick = (k, v) => page.evaluate(([k, v]) => { const el = document.querySelector(`#pd-thread [data-stk-f="${k}"]`); el.focus(); el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); }, [k, v]);
+      /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): Section and Found by stand behind the tabs' "Filter" */
+      await page.evaluate(() => { const m = document.querySelector('#pd-thread [data-stk-more]'); if (m && m.getAttribute('aria-expanded') !== 'true') m.click(); });
+      await page.waitForTimeout(300);
       await pick('by', 'std');
       const f1 = await page.evaluate(() => {
         const rows = [...document.querySelectorAll('#pd-thread .doc-th-row')].filter(r => r.offsetParent !== null);
-        return { count: (document.querySelector('#pd-thread .stk-view') || {}).innerText || '', lines: [...document.querySelectorAll('#pd-thread .stk-line .stk-st')].map(l => l.textContent),
+        return { count: (document.querySelector('#pd-thread .stk-mq-t') || {}).innerText || '', lines: [...document.querySelectorAll('#pd-thread .stk-line .stk-st')].map(l => l.textContent),
           shown: rows.length, onlyKept: rows.every(r => r.classList.contains('is-open') || !!r.querySelector('.stk-line')), focus: document.activeElement && document.activeElement.getAttribute('data-stk-f') };
       });
       /* RE-POINTED 21 Oct 2026: the head's counts are the whole contract's (they are the Severity doors); the filter narrows the list */
-      ok('3b Found by: Our standards keeps the one standards point and hides rows with none', /^Clause review/.test(f1.count) && f1.lines.length === 1 && /Payment terms/.test(f1.lines[0])
+      ok('3b Found by: Our standards keeps the one standards point and hides rows with none', /clauses? needs? you/i.test(f1.count) && f1.lines.length === 1 && /Payment terms/.test(f1.lines[0])
         && f1.onlyKept && f1.shown <= 2 && f1.focus === 'by', JSON.stringify(f1));
       await pick('by', '');
-      await pick('sev', 'need');
-      const f2 = await page.evaluate(() => { const b = document.querySelector('#pd-thread [data-stk-f="sev"]');
-        return { box: b ? b.value : null, lines: document.querySelectorAll('#pd-thread .stk-line').length }; });
+      /* RE-POINTED 23 Oct 2026 (Marquee): Severity is the tabs */
+      await page.evaluate(() => { const t = document.querySelector('#pd-thread [data-stk-tab="need"]'); if (t) t.click(); });
+      await page.waitForTimeout(300);
+      const f2 = await page.evaluate(() => { const b = document.querySelector('#pd-thread [data-stk-tab][aria-selected="true"]');
+        return { box: b ? b.getAttribute('data-stk-tab') : null, lines: document.querySelectorAll('#pd-thread .stk-line').length }; });
       /* RE-POINTED 21 Oct 2026 (the count line removed on the owner's word):
          the filter's choice shows on the Severity box itself, which is now the
          one door onto the three. */
       ok('3c Severity: Needs you keeps only what needs us', f2.box === 'need' && f2.lines === 1, JSON.stringify(f2));
-      await pick('sev', '');
+      await page.evaluate(() => { const t = document.querySelector('#pd-thread [data-stk-tab=""]'); if (t) t.click(); });
+      await page.waitForTimeout(300);
       /* 3d A POINT'S SECTION IS READ OFF ITS CLAUSE when Jambo named none (owner,
          13 Oct 2026: "the Region which we should call Section"): the standards
          point names no section, yet stands on clause 2, which the reading puts
@@ -214,32 +223,37 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
         if (!row) return { row: false };
         const at = row.getAttribute('data-th-row');
         if (!row.classList.contains('is-open')){ row.querySelector('[data-th-go]').click(); await new Promise(z => setTimeout(z, 900)); }
-        const el = document.querySelector('#pd-thread [data-stk-f="sev"]'); el.value = 'need'; el.dispatchEvent(new Event('change', { bubbles: true }));
+        /* RE-POINTED 23 Oct 2026 (Marquee): Severity is the tabs */
+        document.querySelector('#pd-thread [data-stk-tab="need"]').click();
         const r2 = document.querySelector(`#pd-thread .doc-th-row[data-th-row="${at}"]`);
         const out = { row: true, open: r2.classList.contains('is-open'), shown: r2.getClientRects().length > 0 };
-        const el2 = document.querySelector('#pd-thread [data-stk-f="sev"]'); el2.value = ''; el2.dispatchEvent(new Event('change', { bubbles: true }));
+        document.querySelector('#pd-thread [data-stk-tab=""]').click();
         return out;
       });
       ok('3k an open clause with nothing the filter keeps leaves the filtered list', f9.row && f9.open && !f9.shown, JSON.stringify(f9));
       /* 3l ONE DROPDOWN PER PRESS, ON AN iPAD TOO (owner, 3 Oct and again 13 Oct
          2026): a finger opens HaTi's list, picks from it, and the box is NOT
          focused afterwards — on iPadOS a focused select IS the system picker */
+      /* RE-POINTED 23 Oct 2026 (Marquee): Severity is the tabs; the rule is held on Found by, behind "Filter" */
       const f10 = await page.evaluate(async () => {
-        const sel = document.querySelector('#pd-thread [data-stk-f="sev"]');
+        const more = document.querySelector('#pd-thread [data-stk-more]'); if (more && more.getAttribute('aria-expanded') !== 'true') more.click();
+        await new Promise(z => setTimeout(z, 300));
+        const sel = document.querySelector('#pd-thread [data-stk-f="by"]');
         if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
         const tap = el => { const r = el.getBoundingClientRect();
           el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerType: 'touch', clientX: r.x + 5, clientY: r.y + 5 })); };
         tap(sel);
         const menu = document.querySelector('.hati-selmenu');
-        const row = menu && [...menu.querySelectorAll('[data-sm]')].find(b => /look/i.test(b.textContent));
+        const row = menu && [...menu.querySelectorAll('[data-sm]')].find(b => /standards/i.test(b.textContent));
         if (row){ tap(row); row.click(); }
         await new Promise(z => setTimeout(z, 300));
         const a = document.activeElement;
-        const out = { menu: !!menu, picked: (document.querySelector('#pd-thread [data-stk-f="sev"]') || {}).value, focusedSelect: !!(a && a.tagName === 'SELECT') };
-        const s2 = document.querySelector('#pd-thread [data-stk-f="sev"]'); s2.value = ''; s2.dispatchEvent(new Event('change', { bubbles: true }));
+        const out = { menu: !!menu, picked: (document.querySelector('#pd-thread [data-stk-f="by"]') || {}).value, focusedSelect: !!(a && a.tagName === 'SELECT') };
+        const s2 = document.querySelector('#pd-thread [data-stk-f="by"]'); if (s2){ s2.value = ''; s2.dispatchEvent(new Event('change', { bubbles: true })); }
+        const m2 = document.querySelector('#pd-thread [data-stk-more]'); if (m2 && m2.getAttribute('aria-expanded') === 'true') m2.click();
         return out;
       });
-      ok('3l a finger picks from HaTi\'s list and the box is not focused (no iPad picker over it)', f10.menu && f10.picked === 'look' && !f10.focusedSelect, JSON.stringify(f10));
+      ok('3l a finger picks from HaTi\'s list and the box is not focused (no iPad picker over it)', f10.menu && f10.picked === 'std' && !f10.focusedSelect, JSON.stringify(f10));
       if (process.env.STK_SHOT) await page.screenshot({ path: process.env.STK_SHOT + '-list.png' });
       /* RE-POINTED 21 Oct 2026 ("the Legora way"): the list and the dive walk
          the PAPER's order now (the standards point on clause 2 comes first), so
@@ -302,7 +316,7 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       const j1 = await page.evaluate(async () => {
         const c = getContract('MK-S1'); const before = (c.changes || []).length;
         await new Promise(r => { const t = setInterval(() => { if (document.querySelector('#pd-thread .doc-th-row')){ clearInterval(t); r(); } }, 100); setTimeout(r, 4000); });
-        const el = document.querySelector('#pd-thread [data-stk-f="sev"]'); el.value = 'need'; el.dispatchEvent(new Event('change', { bubbles: true }));
+        document.querySelector('#pd-thread [data-stk-tab="need"]').click();   /* RE-POINTED 23 Oct 2026: Severity is the tabs */
         stkDiveOpen(c, 0); await new Promise(r => setTimeout(r, 300));
         const title = (document.querySelector('#pd-thread .stk-dv h3') || {}).innerText || '';
         document.querySelector('#pd-thread .stk-dv [data-stk-redline]').click();   /* the dive's own (a card carries one too, 21 Oct 2026) */
@@ -346,11 +360,11 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
         await new Promise(r => setTimeout(r, 2500));
         if (document.getElementById('confirm-overlay')){ const go = document.querySelector('#confirm-overlay #cf-ok'); if (go) go.click(); await new Promise(r => setTimeout(r, 2000)); }
         return { view: state.view, title: (document.querySelector('#pd-thread .stk-dv h3') || {}).innerText || '',
-          sev: (document.querySelector('#pd-thread [data-stk-f="sev"]') || {}).value, crumbGone: !document.querySelector('[data-rl-back-clauses]'),
+          sev: ((document.querySelector('#pd-thread [data-stk-tab][aria-selected="true"]') || { getAttribute: () => null }).getAttribute('data-stk-tab')), crumbGone: !document.querySelector('[data-rl-back-clauses]'),
           via: link ? 'the bar\'s link' : 'rlBackToClauses (no link in the bar)' };
       });
       ok('5e the way back lands on the Clauses tab, the same point open, the same filter', j2.view === 'dashboard' && j2.title === j1.title && j2.sev === 'need' && j2.crumbGone, JSON.stringify(j2));
-      await page.evaluate(() => { const c = getContract('MK-S1'); stkDiveClose(c); const el = document.querySelector('#pd-thread [data-stk-f="sev"]'); if (el){ el.value = ''; el.dispatchEvent(new Event('change', { bubbles: true })); } });
+      await page.evaluate(() => { const c = getContract('MK-S1'); stkDiveClose(c); const t = document.querySelector('#pd-thread [data-stk-tab=""]'); if (t) t.click(); });
       /* 5f ANOTHER DOOR ONTO NEGOTIATE FORGETS THE TRIP: no way back offered */
       /* RE-POINTED 14 Oct 2026 (stage 5): another door lands on the face,
          which draws no bar link at all, so "offers no way back" is also asked
@@ -413,6 +427,8 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
       window.__bd.refuse = false;
       pdOpenOnHome('MK-S3', 'doc');
       for (let i = 0; i < 40 && !document.querySelector('#pd-thread .stk-line'); i++) await new Promise(r => setTimeout(r, 250));
+      /* RE-POINTED 23 Oct 2026 (Marquee): Found by stands behind the tabs' "Filter" */
+      const more = document.querySelector('#pd-thread [data-stk-more]'); if (more && more.getAttribute('aria-expanded') !== 'true'){ more.click(); await new Promise(r => setTimeout(r, 300)); }
       const by = [...document.querySelectorAll('#pd-thread [data-stk-f="by"] option')].map(o => o.value);
       const row = [...document.querySelectorAll('#pd-thread .doc-th-row')].find(r => /^4\b/.test((r.querySelector('.doc-th-name') || {}).innerText || ''));
       if (!row) return { row: false, by };

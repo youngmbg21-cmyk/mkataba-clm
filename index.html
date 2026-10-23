@@ -10244,6 +10244,49 @@
   .pd-rn-q .pd-og-src q{font-style:italic;color:var(--color-text);quotes:none}
   .pd-rn-q .pd-og-cl{border:0;border-radius:3px;padding:0 4px;background:var(--accent-wash,var(--surface-2));font:inherit;font-size:12px;font-weight:var(--w-strong);color:var(--accent-ink);cursor:pointer;white-space:nowrap}
   .pd-rn-decide{margin-top:10px}
+  /* ==== OBLIGATIONS, MARQUEE (owner picked it by name, 23 Oct 2026) ====
+     A serif head and one sentence; the renewal's facts in small columns, a label over its value, its words
+     quoted under them; the tabs; then groups by when under small capitals, each duty one line of 44:
+     ring · the duty · who and when · one green word or a chevron. Nothing boxed, no filled buttons. */
+  #pd-body .pd-obm-tab{padding-top:2px}
+  #pd-body .pd-obm-t{margin:2px 0 4px;font-family:var(--font-title);font-size:24px;line-height:28px;font-weight:var(--w-strong);letter-spacing:-.005em;color:var(--color-text);text-wrap:balance}
+  #pd-body .pd-obm-s{margin:0 0 14px;font-size:13px;line-height:19px;color:var(--color-neutral-600)}
+  #pd-body .pd-obm-s b{font-weight:var(--w-strong);color:var(--color-text)}
+  #pd-body .pd-rn.is-mq{margin:0 0 18px}
+  #pd-body .pd-rn.is-mq .pd-rn-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px}
+  #pd-body .pd-rn.is-mq .pd-rn-row{display:block;padding:0;border:0;min-width:0}
+  #pd-body .pd-rn.is-mq .pd-rn-row > span{display:block;font-size:11px;line-height:16px;letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-600)}
+  #pd-body .pd-rn.is-mq .pd-rn-row > b{display:block;font-size:13.5px;font-weight:var(--w-strong);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #pd-body .pd-rn.is-mq .pd-rn-q{padding-top:10px}
+  #pd-body .pd-obm-tab .pd-obs-tabs{gap:18px;margin:0 0 6px;border-bottom-color:var(--color-divider)}
+  #pd-body .pd-obm-tab .pd-obs-tab{padding:0 0 8px}
+  #pd-body .pd-obm-tab .pd-obs-tab[aria-selected="true"]{color:var(--color-text);font-weight:var(--w-strong);border-bottom-color:var(--color-text)}
+  #pd-body .pd-obg{margin-top:16px}
+  #pd-body .pd-obg .ds-eb{display:flex;align-items:baseline;min-height:20px;margin:0 0 2px;font-size:11px;line-height:16px;letter-spacing:.07em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-neutral-600)}
+  #pd-body .pd-obg .pd-obg-n{margin-left:auto;letter-spacing:0;font-size:12px;font-weight:var(--w-strong);color:var(--color-text);font-variant-numeric:tabular-nums}
+  #pd-body .pd-ob.is-mq{padding:0;border-bottom:1px solid var(--rule-faint)}
+  #pd-body .pd-ob.is-mq .pd-ob-line{display:flex;align-items:center;gap:10px;min-height:44px}
+  #pd-body .pd-ob.is-mq .pd-ob-hd{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:10px;height:44px;padding:0;border:0;background:none;font:inherit;text-align:left;color:var(--color-text);cursor:pointer}
+  #pd-body .pd-ob.is-mq .pd-ob-hd:focus-visible{outline:2px solid var(--accent-fill);outline-offset:-2px}
+  #pd-body .pd-ob.is-mq .pd-ob-t{flex:1 1 auto;min-width:0;font-size:13.5px;line-height:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #pd-body .pd-ob.is-mq.is-open .pd-ob-t{font-weight:var(--w-strong)}
+  #pd-body .pd-ob.is-mq .pd-ob-v{flex:none;min-width:0;max-width:none;font-size:12.5px;color:var(--color-neutral-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
+  #pd-body .pd-ob.is-mq .pd-ob-v b{font-weight:var(--w-label);color:var(--color-text)}
+  #pd-body .pd-ob.is-mq .pd-ck-ring{flex:none;width:16px;height:16px;box-sizing:border-box;border-radius:50%;border:1.5px solid transparent}
+  #pd-body .pd-ob.is-mq .pd-ck-ring.is-late{border-color:var(--st-ruby-dot)}
+  #pd-body .pd-ob.is-mq .pd-ck-ring.is-soon{border-color:var(--st-amber-dot)}
+  #pd-body .pd-ob.is-mq .pd-ck-ring.is-done{border-color:var(--accent-ink);background:var(--accent-ink)}
+  #pd-body .pd-ob.is-mq .pd-ck-chev{flex:none;width:12px;text-align:right;color:var(--color-neutral-400)}
+  #pd-body .pd-ob.is-mq .pd-ck-chev::before{content:'\203A'}
+  #pd-body .pd-ob.is-mq.is-open .pd-ck-chev::before{content:'\2304'}
+  #pd-body .pd-ob.is-mq .pd-ob-word{flex:none;min-width:40px;justify-content:flex-end;font-size:12.5px;font-weight:var(--w-strong)}
+  #pd-body .pd-ob.is-mq .pd-ob-b{padding:0 0 12px 26px}
+  #pd-body .pd-ob.is-mq .pd-ob-b small{display:block;margin:0 0 6px;font-size:12px;color:var(--color-neutral-600)}
+  #pd-body .pd-ob.is-mq .pd-ob-acts{display:flex;flex-wrap:wrap;gap:4px 16px}
+  #pd-body .pd-ob.is-mq .pd-ob-acts .pd-go{font-size:12.5px;font-weight:var(--w-label);color:var(--color-text)}
+  #pd-body .pd-ob.is-mq .pd-ob-acts .pd-go.is-lead{color:var(--accent-ink);font-weight:var(--w-strong)}
+  #pd-body .pd-ob-foot{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:16px}
+  #pd-body .pd-ob-foot .pd-go{font-size:12.5px;font-weight:var(--w-strong)}
   .pd-obs-tabs{display:flex;gap:16px;border-bottom:1px solid var(--color-neutral-200);margin:0 0 8px}
   .pd-obs-tab{border:0;background:none;padding:6px 0;font:inherit;font-size:13px;font-weight:var(--w-label);color:var(--color-neutral-600);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
   .pd-obs-tab[aria-selected="true"]{color:var(--color-text);border-bottom-color:var(--color-text)}
@@ -11745,6 +11788,42 @@
   .pd-th .stk-a:disabled{color:var(--color-neutral-500);cursor:not-allowed}
   .pd-th .stk-a:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:2px}
   .pd-th .stk-mks{margin-left:auto;display:inline-flex;align-items:center;gap:12px}
+  /* ==== CLAUSES, MARQUEE (owner picked it by name, 23 Oct 2026; "the navigation has to stay as today with a
+     spine line linking the clauses and clicking on the clause to open it up", and Plain English stays a press) ====
+     The head: a serif headline, one sentence, the clauses as tabs with counts — the Obligations tab's own tabs.
+     A point: its verdict's dot, the title, why it matters, the sentence it was read from with its §, then
+     Start redlining (the one green word), Deep dive, Mark reviewed at the right. Nothing boxed. */
+  .pd-th .stk-head.is-mq{display:block;padding:14px 16px 0;border-bottom:0}
+  .pd-th .stk-head.is-mq .stk-mq-t{margin:2px 0 4px;font-family:var(--font-title);font-size:24px;line-height:28px;font-weight:var(--w-strong);letter-spacing:-.005em;color:var(--color-text);text-wrap:balance}
+  .pd-th .stk-head.is-mq .stk-busy{display:inline-flex;margin:0 0 4px}
+  .pd-th .stk-head.is-mq .stk-mq-s{margin:0 0 14px;font-size:13px;line-height:19px;color:var(--color-neutral-600)}
+  .pd-th .stk-head.is-mq .stk-mq-s b{font-weight:var(--w-strong);color:var(--color-text)}
+  .pd-th .stk-tabs{display:flex;gap:18px;border-bottom:1px solid var(--color-divider);margin:0}
+  .pd-th .stk-tab{position:relative;display:inline-flex;align-items:baseline;gap:4px;padding:0 0 8px;border:0;background:none;font:inherit;font-size:13px;color:var(--color-neutral-600);white-space:nowrap;cursor:pointer}
+  .pd-th .stk-tab > span{font-weight:var(--w-strong);color:var(--color-text);font-variant-numeric:tabular-nums}
+  .pd-th .stk-tab[aria-selected="true"]{color:var(--color-text);font-weight:var(--w-strong)}
+  .pd-th .stk-tab[aria-selected="true"]::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--color-text)}
+  .pd-th .stk-tab:hover{color:var(--color-text)}
+  .pd-th .stk-tab:focus-visible{outline:2px solid var(--accent-fill);outline-offset:2px}
+  .pd-th .doc-th-state .stk-n.is-fine{color:var(--color-neutral-600)}
+  .pd-th .stk-more{margin-left:auto;align-self:baseline;padding:0 0 8px;border:0;background:none;font:inherit;font-size:12.5px;font-weight:var(--w-strong);color:var(--accent-ink);white-space:nowrap;cursor:pointer}
+  .pd-th .stk-more > span{color:var(--color-text);font-variant-numeric:tabular-nums}
+  .pd-th .stk-more:focus-visible{outline:2px solid var(--accent-fill);outline-offset:2px}
+  .pd-th .stk-flts.is-mq{grid-template-columns:repeat(2,minmax(0,1fr));margin:10px 0 0}
+  /* THE 2PX COLOURED EDGE STANDS (the owner, 21 Oct 2026: "not the edge line that is colored"); the drawing's dot waits on their answer */
+  .pd-th .stk-line.stk-card.is-mq{padding:10px 0 10px 12px}
+  .pd-th .stk-card.is-mq + .stk-card.is-mq{border-top:0}
+  .pd-th .stk-card.is-mq .stk-ct{display:flex;align-items:baseline;gap:10px;margin-top:0;font-size:13px;line-height:19px}
+  .pd-th .stk-card.is-mq .stk-ct > .stk-d8{display:none}
+  .pd-th .stk-card.is-mq .stk-st{font-size:12.5px;line-height:18px;color:var(--color-text)}
+  .pd-th .stk-card.is-mq .stk-q q{quotes:"\201C" "\201D"}
+  .pd-th .stk-card.is-mq .stk-q{display:block;margin-top:6px;padding-left:10px;border-left:2px solid var(--color-divider);font-family:var(--font-doc);font-size:12.5px;line-height:18px;color:var(--color-text)}
+  .pd-th .stk-card.is-mq .stk-q em{margin-left:6px;font-style:normal;font-family:var(--font-heading);font-size:11.5px;color:var(--color-neutral-600)}
+  .pd-th .stk-card.is-mq .stk-cacts{gap:4px 14px;font-size:12.5px}
+  .pd-th .stk-card.is-mq .stk-a{font-size:12.5px}
+  .pd-th .stk-card.is-mq .stk-a.is-go{font-weight:var(--w-strong)}
+  .pd-th .stk-card.is-mq .stk-mks .stk-a, .pd-th .stk-card.is-mq .stk-mks .stk-mk{color:var(--color-neutral-600);font-weight:400}
+  .pd-th .stk-card.is-mq.is-done .stk-ct > span{color:var(--color-neutral-500);text-decoration:line-through}
   .pd-th .stk-mk{font-size:var(--t-meta);font-weight:var(--w-body);color:var(--color-neutral-600);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
   .pd-th .stk-mk.is-done{color:var(--st-green-fg);font-weight:var(--w-label)}
   .pd-th .stk-ring{display:inline-block;flex:none;width:12px;height:12px;box-sizing:border-box;border-radius:50%;border:1px solid var(--rule-strong);background:var(--color-surface)}
@@ -16408,6 +16487,96 @@
   #app-shell #ig-dock .pd-nx > .ds-fold:first-child{margin-top:24px}
   #app-shell #ig-dock .pd-nx > .ds-acts + .ds-fold:not(.is-ck-all), #app-shell #ig-dock .pd-nx > .is-ck-all + .ds-fold{margin-top:24px;border-top:0}
   #app-shell #ig-dock .pd-nx > .ds-fold:not(.is-ck-all) > summary{min-height:40px;padding:0;font-size:13px}
+  /* ==== MARQUEE (owner picked it by name, 23 Oct 2026: "Marque is great", then "Build all three tabs together") ====
+     Apple's large title over Legora's one list. The Dossier reads down: the stage as a serif headline and one
+     sentence, the six stages as one thin ink track, the stage's acts, then ONE list in rows of 44 — Needs you
+     (about the deal · on the paper), Jambo read, This agreement — under small-capital headings, nothing boxed.
+     The two holders (#pd-glance, repainted in place, and the menu, wired once) stand aside (display:contents)
+     so the acts can stand under the head without moving a holder's wiring; each part says its place by order. */
+  #app-shell #ig-dock #igd-feed:has(> #pd-glance.pd-dossier), #app-shell #ig-dock .pd-held-dos{display:flex;flex-direction:column}
+  #app-shell #ig-dock #igd-feed > #pd-glance.pd-dossier, #app-shell #ig-dock #igd-feed > .pd-nx.is-mq,
+  #app-shell #ig-dock .pd-held-dos > #pd-glance, #app-shell #ig-dock .pd-held-dos > .ds-nx.is-mq{display:contents}
+  /* every part keeps its own height: the panel scrolls, it never squeezes one part over the next */
+  #app-shell #ig-dock #igd-feed > #pd-glance.pd-dossier > *, #app-shell #ig-dock #igd-feed > .pd-nx.is-mq > *,
+  #app-shell #ig-dock .pd-held-dos > *, #app-shell #ig-dock .pd-held-dos > #pd-glance > *, #app-shell #ig-dock .pd-held-dos > .ds-nx.is-mq > *{flex:none;min-width:0}
+  #app-shell #ig-dock .pd-dossier > .ds-private{order:-10;margin:0 0 16px}
+  #app-shell #ig-dock .pd-dossier > .ds-spine.is-mq{order:-9}
+  #app-shell #ig-dock .ds-nx.is-mq > .ds-acts.is-mq{order:-8}
+  #app-shell #ig-dock .ds-nx.is-mq > .is-ck-all{order:-7}
+  #app-shell #ig-dock .pd-dossier > .ds-owed{order:-6}
+  #app-shell #ig-dock .pd-dossier > .ds-read{order:-5}
+  #app-shell #ig-dock .ds-nx.is-mq > .ds-this{order:-4}
+  /* the head */
+  #app-shell #ig-dock .ds-spine.is-mq{display:block;margin:0}
+  #app-shell #ig-dock .ds-mq-t{margin:2px 0 4px;font-family:var(--font-title);font-size:24px;line-height:28px;font-weight:var(--w-strong);letter-spacing:-.005em;color:var(--color-text);text-wrap:balance}
+  #app-shell #ig-dock .ds-mq-s{margin:0 0 14px;font-size:13px;line-height:19px;color:var(--color-neutral-600)}
+  #app-shell #ig-dock .ds-mq-s b{font-weight:var(--w-strong);color:var(--color-text)}
+  #app-shell #ig-dock .ds-spine.is-mq .ds-ck-bar{margin:0 0 20px}
+  #app-shell #ig-dock .ds-spine.is-mq .ds-ck-bar .ds-st{font-size:10.5px;color:var(--color-neutral-600);font-weight:400}
+  #app-shell #ig-dock .ds-spine.is-mq .ds-ck-bar .ds-st i{height:3px;background:var(--color-divider)}
+  #app-shell #ig-dock .ds-spine.is-mq .ds-ck-bar .ds-st.is-ck-done i, #app-shell #ig-dock .ds-spine.is-mq .ds-ck-bar .ds-st.is-ck-cur i,
+  #app-shell #ig-dock .ds-spine.is-mq .ds-ck-bar .ds-st.is-done i, #app-shell #ig-dock .ds-spine.is-mq .ds-ck-bar .ds-st.is-ck-on.is-done i{background:var(--color-text)}
+  #app-shell #ig-dock .ds-spine.is-mq .ds-ck-bar .ds-st.is-ck-cur{color:var(--color-text);font-weight:var(--w-strong)}
+  /* the stage's acts: the first filled in its whole name, the next in a word, All N at the end */
+  #app-shell #ig-dock .pd-nx > .ds-acts.is-mq{display:block;margin:0 0 22px;padding:0;border:0;background:none}
+  #app-shell #ig-dock .ds-acts-b.is-ck.is-mq{display:flex;align-items:center;gap:8px;padding:0}
+  #app-shell #ig-dock .ds-acts-b.is-ck.is-mq > .ui-btn{width:auto;height:var(--ctl-h);padding:0 12px;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #app-shell #ig-dock .ds-acts-b.is-mq > .ds-acts-all{margin-left:auto;flex:none}
+  #app-shell #ig-dock .ds-nx.is-mq > .is-ck-all{margin:0}
+  /* closed, its rows take no box at all (a closed fold standing as a flex item kept its rows' boxes, unseen but measurable) */
+  #app-shell #ig-dock .ds-nx.is-mq > .is-ck-all:not([open]) > :not(summary){display:none}
+  #app-shell #ig-dock .ds-nx.is-mq > .is-ck-all[open]{margin:-10px 0 22px}
+  /* the headings: small capitals, the count at the right */
+  #app-shell #ig-dock #pd-glance > .ds-owed, #app-shell #ig-dock #pd-glance > .ds-read{margin:0;padding:0;border:0}
+  #app-shell #ig-dock #pd-glance > .ds-read, #app-shell #ig-dock .ds-nx.is-mq > .ds-this{margin-top:22px}
+  #app-shell #ig-dock #pd-glance > .ds-owed > .pd-gl-h, #app-shell #ig-dock #pd-glance > .ds-read > .pd-gl-h, #app-shell #ig-dock .ds-this > .ds-eb{display:flex;align-items:baseline;gap:8px;min-height:20px;margin:0 0 2px;padding:0;border:0}
+  #app-shell #ig-dock #pd-glance > .ds-owed > .pd-gl-h > b, #app-shell #ig-dock #pd-glance > .ds-read > .pd-gl-h > b, #app-shell #ig-dock .ds-this > .ds-eb > span{font-size:11px;line-height:16px;letter-spacing:.07em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-neutral-600)}
+  #app-shell #ig-dock #pd-glance > .ds-owed > .pd-gl-h > .ds-ck-n{order:2;margin-left:auto;font-size:12px;font-weight:var(--w-strong);color:var(--color-text)}
+  #app-shell #ig-dock #pd-glance > .ds-owed > .pd-gl-h > .pd-gl-sp{display:none}
+  #app-shell #ig-dock #pd-glance > .ds-owed > .pd-gl-h > .pd-og-all{order:1;margin-left:auto;font-size:12px}
+  #app-shell #ig-dock #pd-glance > .ds-owed > .pd-gl-h > .pd-og-all + .ds-ck-n, #app-shell #ig-dock #pd-glance > .ds-owed > .pd-gl-h > .ds-ck-n:has(~ .pd-og-all){margin-left:12px}
+  /* the rows: 44 tall; NO LINE between them (the owner's 22 Oct ruling stands until they say otherwise — the drawing drew a faint rule) */
+  #app-shell #ig-dock .pd-og.is-ck .pd-ck-hd{height:44px}
+  #app-shell #ig-dock .pd-og.is-ck .pd-ck-hd>b{font-size:13.5px}
+  #app-shell #ig-dock .pd-og.is-ck .pd-ck-v{font-size:12.5px}
+  #app-shell #ig-dock .pd-og.is-ck .pd-ck-pill{padding:0;border-radius:0;background:none;color:var(--st-amber-fg);font-size:12.5px;line-height:inherit}
+  #app-shell #ig-dock .pd-og.is-ck .pd-ck-w{flex:none;font-size:12px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
+  #app-shell #ig-dock #pd-og.is-ck tr.is-open{padding-bottom:0}
+  #app-shell #ig-dock #pd-og.is-ck tr.is-open td.pd-og-a{padding-bottom:14px}
+  #app-shell #ig-dock #pd-og.is-ck tr.is-open td.pd-og-v{padding-top:2px}
+  #app-shell #ig-dock #pd-og.is-ck .pd-og-ok.ui-btn-primary{width:max-content;min-width:max-content;flex:none;height:auto;padding:0;border:0;background:none;color:var(--accent-ink);font-size:12.5px;font-weight:var(--w-strong)}
+  #app-shell #ig-dock #pd-og.is-ck .pd-og-ok.ui-btn-primary:hover{filter:none;text-decoration:underline;text-underline-offset:3px}
+  #app-shell #ig-dock #pd-og.is-ck .pd-og-ok.ui-btn-primary::after{inset:-2px 0}
+  #app-shell #ig-dock #pd-og.is-ck .pd-ck-src .pd-ck-step{display:block;margin-top:2px;font-size:12px;color:var(--color-neutral-600);-webkit-line-clamp:1}
+  /* the two groups' heads (only where the paper owes something) */
+  #app-shell #ig-dock #pd-og.is-ck tr.pd-og-sub{display:block;padding:0}
+  #app-shell #ig-dock #pd-og.is-ck tr.pd-og-sub > td{display:flex;align-items:baseline;gap:8px;height:30px;padding:10px 0 0;border:0;font-size:12px;font-weight:var(--w-label);color:var(--color-neutral-600)}
+  #app-shell #ig-dock #pd-og.is-ck tr.pd-og-sub + tr.pd-og-row{padding-top:0}
+  #app-shell #ig-dock #pd-og.is-ck tr.pd-og-sub[data-pd-og-sub="paper"] > td{height:42px;padding-top:22px}
+  #app-shell #ig-dock #pd-og.is-ck .pd-og-sub-n{margin-left:auto;font-variant-numeric:tabular-nums}
+  #app-shell #ig-dock #pd-og.is-ck .pd-og-walk{font-size:12px;margin-left:4px}
+  /* Jambo read: the same rows, the name under the rings' column */
+  #app-shell #ig-dock .pd-glance .ds-row.ds-rr{grid-template-columns:16px minmax(0,1fr) auto auto;column-gap:10px;min-height:44px}
+  #app-shell #ig-dock .pd-glance .ds-row.ds-rr>.ds-nm{font-size:13.5px}
+  #app-shell #ig-dock .pd-glance .ds-row.ds-rr>.ds-val{font-size:12.5px;max-width:200px}
+  #app-shell #ig-dock .ds-read .pd-gl-b > .pd-gl-row + .pd-gl-row{padding-top:0;border-top:0}
+  /* This agreement: rows of the same height */
+  #app-shell #ig-dock .ds-this{display:block}
+  #app-shell #ig-dock .ds-this-r, #app-shell #ig-dock .ds-this > .ds-fold > summary{display:flex;align-items:center;gap:10px;width:100%;height:44px;min-height:44px;padding:0;border:0;background:none;font:inherit;font-size:13.5px;color:var(--color-text);text-align:left;cursor:pointer;list-style:none}
+  #app-shell #ig-dock .ds-this-r > b, #app-shell #ig-dock .ds-this > .ds-fold > summary > b{flex:1 1 auto;min-width:0;font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #app-shell #ig-dock .ds-this-v{flex:0 1 auto;min-width:0;max-width:55%;font-size:12.5px;color:var(--color-neutral-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #app-shell #ig-dock .ds-this-r .pd-ck-chev{flex:none;width:16px;display:inline-flex;justify-content:center;color:var(--color-neutral-400)}
+  #app-shell #ig-dock .ds-this-r .pd-ck-chev::before{content:'\203A'}
+  #app-shell #ig-dock .ds-this-r:hover > b, #app-shell #ig-dock .ds-this > .ds-fold > summary:hover > b, #app-shell #ig-dock .ds-this > .ds-fold > summary:hover > span:first-child{text-decoration:underline;text-decoration-color:var(--rule-strong);text-underline-offset:3px}
+  #app-shell #ig-dock .ds-this-r:focus-visible, #app-shell #ig-dock .ds-this > .ds-fold > summary:focus-visible{outline:2px solid var(--accent-fill);outline-offset:-2px}
+  #app-shell #ig-dock .ds-this > .ds-fold{margin:0;border:0;border-radius:0;background:none}
+  #app-shell #ig-dock .ds-this > .ds-fold > summary::after{flex:none;width:16px;text-align:center;font-weight:400;color:var(--color-neutral-400)}
+  #app-shell #ig-dock .ds-this > .pd-kt-line > summary{padding-left:26px}
+  #app-shell #ig-dock .ds-this > .pd-kt-line > summary > span:first-child{flex:1 1 auto}
+  #app-shell #ig-dock .ds-this > .pd-kt-line > summary > .ds-when{flex:none;font-size:12.5px}
+  #app-shell #ig-dock .ds-this > .ds-fold[open] > .ds-fam{border-top:0;padding:10px 0 0 26px}
+  #app-shell #ig-dock .ds-this > .ds-fold[open] > .ds-acts-b{border-top:0;padding:10px 0 14px 26px}
+  #app-shell #ig-dock .ds-this > #pd-kt[open] > .pd-kt-t{margin:4px 0 10px}
   /* ==== HISTORY, THE SAP WAY (owner picked it by name, 21 Oct 2026; reverses "Two sides", 17 Oct) ====
      The serif "History" and its facts, Show the wording and ⋯ on the right; one band of the search and
      the five filters as labelled boxes; then ONE TABLE — Time 64 · Who 200 · Side 80 · What happened ·

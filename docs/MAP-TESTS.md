@@ -107,6 +107,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - Held-out sentences taught (22 Oct 2026): f738 (7) (7a red at the parent).
 - Jambo's own two rows (22 Oct 2026): f705 1a and the exam's jamboset/jambopts lines (red at the parent), draft-beside-jambo verify 4.
 ## STAKES — THE CLAUSES TAB CARRIES THE DEEP READ
+- MARQUEE (23 Oct 2026): clauses-legora-way-verify 1/1b (headline, sentence, tabs with counts; Worth a look narrows, All lets go), clause-list-fixed-verify 6a/6b (Needs you tab), stakes-verify 2, 3b–3d, 3k, 3l (Found by behind Filter, one dropdown per touch), 5c/5e (the tab survives the editor trip), 9 — all re-pointed from the three boxes.
 - A missing point inside its clause (22 Oct 2026): clauses-legora-way-verify 5/5b (red at the parent: 2, 5, 5b), stakes-verify 3/3h, clause-list-fixed-verify 4 (+ photos at the three screens).
 - Plain English first, the missing group's head a button (23 Oct 2026): clauses-legora-way-verify 5c, 5d (red at the parent); photographed at the three screens by hand (a resize inside that check redraws the panel under check 6).
 - stakes-verify, point-buttons-and-brief verify, jambo-pill-and-window 3a, f668, f671, f277.
@@ -118,6 +119,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f151, f183, f247, f267, f290–f299, f305, f321, f338, f392, f394, f424–f438, f441, f457, f459 (A), f539, f730; insights-*, portfolio-frame, obligations-report, friction-fits-the-screen, explorer-*, imported-on-the-map, analyze-on-the-graph, map-asked-bubbles, owners-fifteen, fold-every-view verify.
 
 ## OBLIGATIONS
+- MARQUEE (23 Oct 2026): obligations-renewal-legora-way-verify 1a re-pointed (three columns, labels in small capitals; how far off on the date's hover); obligations-tab-verify green.
 - f253–f255, f259, f260, f262, f263, f308 (7), f390, f554, f678, f718, f791, f792, obligations-tab, four-inspectors, review-desk, amount-and-window, week-by-week, week-as-drawn verify.
 
 - THE TAB BESIDE THE PAPER, THE LEGORA WAY (22 Oct 2026): `test/chromium/obligations-renewal-legora-way-verify.js` (renewal lines and quote, the tabs, the decision card while due, three screens; 13 red at 6fb5d85).
@@ -175,6 +177,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f91, f148, f170, f184, f198, f241, f273, f278, f301, f335, f380, f442, f698, f709, f741, f742, f744; board-strip, agreement-family, every-door-lands-on-home, edit-keeps-the-card, details-owes-overview-edits, keeps-your-page, room-head-fold, history-timeline, contract-page, nda-tail verify.
 
 ## THE DETAILS TAB — THE ONE PLACE A CONTRACT IS FILLED IN
+- MARQUEE (23 Oct 2026): checklist-as-drawn-verify 1a (headline + sentence), 2b (rows 44), 5a (the brief's cost), 6a (first act's whole name, All N on the line) re-pointed; owed-first-as-drawn 1a (head in small capitals, /i); blanks-panel PANEL measures #pd-needs (the holder #pd-glance takes no box); f748 2b (the ring's space before a Jambo read name). fill-in-beside-the-paper 9 (nothing sideways) caught the Confirm word's press area: inset sideways to 0.
 - 21 Oct 2026: who-else-doors-verify (the Dossier's line and Key terms' row open one people list; a person added is saved and counted; Done brings Key terms back; three screens); uploaded-contract-fixed 4a/4b re-pointed to the pop-up.
 - 21 Oct 2026 (overnight): thirteen-screenshots-verify 6b–6d, 6k (Key terms' Counterparty box is c.counterparty's); term-and-fields-verify (a blank pressed on the paper finds its box: contractFieldPeer → #pd-kt / #pd-og); upload-blanks-verify re-pointed to Still owed's grid.
 - f148, f170, f442, f673, f676, f679, f710, f751, f754, fill-in-beside-the-paper, fill-the-document, details-as-a-form, create-lands-clean, owed-first verify.
