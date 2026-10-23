@@ -524,7 +524,11 @@ describe('F272 — the standards page', () => {
       assert.match(tabs, /playbook/);
     });
     test('and the row points AT that tab rather than growing a second door', () => {
-      assert.match(SET, /data-pb-tab="playbook"\]'\)\?\.click\(\)/,
+      /* RE-POINTED 23 Oct 2026 (owner: "make the button open straight onto the
+         rule you clicked, ready to change"): the row opens the book's OWN
+         editor — the same door the book's Edit opens — with the standard lit */
+      assert.match(SET, /\[data-std-pos\][\s\S]{0,200}stdPositionOpen\(cl\.category\)/, 'the row asks the one opener');
+      assert.match(SET, /function stdPositionOpen\([\s\S]{0,600}openPlaybookEditor\(key, \{ focus:cat \}\)/,
         'a proxy onto the door that exists, never a second one');
     });
   });

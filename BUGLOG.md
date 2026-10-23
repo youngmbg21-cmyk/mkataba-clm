@@ -21496,3 +21496,5 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - The fast tier's default model id `claude-haiku-4-5-20251001` (AI_TIER_DEFAULTS) is not a key in AI_RATE_DEFAULTS (which has `claude-haiku-4-5`), and `priceUsage` looks the model up exactly. So every fast-tier call is booked at the 'default' rate ($10/$50 per million): about ten times its list price on the spend ledger and the daily cap.
 - FIXED 23 Oct 2026 with the owner's yes (f871): the line above about `claude-haiku-4-5-20251001` being priced at the 'default' rate. `aiRateFor` now prices a dated id as its model. Spend already booked is left as recorded.
 - Noticed, not fixed (23 Oct 2026, Spine round): chambers-verify 3d "the bell's count is the ink, not amber" reads null — red at unmodified main too (no bell count drawn in its stage); left red.
+
+- 23 Oct 2026 — Noticed, not fixed: the playbook editor's Save (openPlaybookEditor, js/views/settings.js) ends with a bare `toast(i18t('set_t_playbook_saved'))`, which prints nothing (TOAST_KINDS) — a saved book says nothing on screen.
