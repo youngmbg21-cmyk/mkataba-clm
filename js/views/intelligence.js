@@ -3049,36 +3049,73 @@ function intelAIExplain(id){
       text:'Couldn’t generate an insight for '+igEsc(c.name)+' — '+igEsc(e.message||String(e))}); renderIntelDock(); });
 }
 
-// Node-driven comparison tray: toggle a contract in/out of the selection.
+/* COMPARE IN TWO PRESSES (owner, 23 Oct 2026: "it's awkward to pick two contracts"):
+   nothing picked → "+ Compare" picks this one; one picked → another card's button
+   reads "Compare with MK-…" and runs at once; the picked card's own button puts
+   it back. Three or four contracts are asked in Jambo's box ("compare MK-1, MK-2, MK-3"). */
+function igCmpBtnHtml(c){
+  const sel=intel.compareSel, on=sel.includes(c.id), other=!on&&sel.length?getContract(sel[0]):null;
+  const ref=x=>window.contractRef?contractRef(x):x.id;
+  const label=on?`${icon('check2')}${igEsc(i18t('int_cmp_picked'))}`
+    : other?`${icon('plus')}${igEsc(i18t('int_cmp_with',{ ref:ref(other) }))}`
+    : `${icon('plus')}${igEsc(i18t('int_cmp_add'))}`;
+  const title=on?i18t('int_cmp_picked_title'):other?i18t('int_cmp_with_title',{ ref:ref(other) }):i18t('int_stage_for_compare');
+  return `<button data-ig-cmp="${c.id}" class="ui-btn ui-btn-sm${on?' ui-btn-accent':''}" aria-pressed="${on?'true':'false'}" title="${igEsc(title)}">${label}</button>`;
+}
+// The card's Compare: pick, put back, or — with one already picked — compare now.
 function intelToggleCompare(id){
   if(!getContract(id)) return;
   const i=intel.compareSel.indexOf(id);
-  if(i>=0) intel.compareSel.splice(i,1); else intel.compareSel.push(id);
-  intel.compareSel=intel.compareSel.slice(0,4);   // cap matches the server tool
-  igPaintIds(intel.compareSel);
+  if(i>=0) intel.compareSel.splice(i,1);
+  else if(intel.compareSel.length){ intel.compareSel=[intel.compareSel[0], id]; intelRunCompare(); return; }
+  else intel.compareSel=[id];
+  igPaintIds(intel.compareSel.length?intel.compareSel:null);
   renderIntelDock();
 }
-// Run the comparison over the staged nodes. With no Copilot key (or on Copilot failure)
-// it still delivers the deterministic local table, so Compare ALWAYS works.
-async function intelRunCompare(){
-  const ids=intel.compareSel.slice();
+/* THE TABLE FIRST, FREE; THE WORDING ON A PRESS (owner, 23 Oct 2026: "it only compares
+   basic facts", "it doesn't always show the side-by-side table", "it doesn't show the
+   cost before you press"). The side-by-side from the record is drawn at once, every
+   time, at no cost. Under it, where Jambo can be asked, ONE press compares what the
+   contracts SAY, its cost said on the button's line before anything is spent
+   (igCmpAskHtml → intelCompareWording). */
+function intelRunCompare(ids){
+  ids=(Array.isArray(ids)?ids:intel.compareSel).filter(id=>getContract(id)).slice(0,4);
   if(ids.length<2){ if(typeof toast==='function') toast(i18t('int_stage_two'),'err'); return; }
-  const names=ids.map(id=>getContract(id)?.name||(window.contractRef?contractRef(getContract(id)||{id}):id));
-  intel.history.push({role:'user', text:'Compare '+names.join(', ')});
-  intel.compareSel=[]; intel.busy=true; renderIntelDock();
-  const localFallback=(prefix)=>{
-    const cmp=(typeof localCompareData==='function')?localCompareData(ids):null;
-    if(cmp) intel.history.push({role:'assistant', text:(prefix||'Side-by-side from your live contract data.')+(cmp.verdict?' '+igEsc(cmp.verdict):''), compare:cmp, cardIds:ids});
-    else intel.history.push({role:'assistant', err:true, text:'Could not build the comparison.'});
-  };
+  const ref=id=>{ const x=getContract(id); return window.contractRef?contractRef(x):id; };
+  intel.history.push({ role:'user', text:i18t('int_cmp_asked',{ refs:ids.map(ref).join(', ') }) });
+  intel.compareSel=[];
+  const cmp=(typeof localCompareData==='function')?localCompareData(ids):null;
+  if(cmp) intel.history.push({ role:'assistant', text:igEsc(i18t('int_cmp_table_said')), compare:cmp, cardIds:ids, cmpIds:ids });
+  else intel.history.push({ role:'assistant', err:true, text:igEsc(i18t('int_cmp_failed')) });
+  rebuildIntelGraph(); renderIntelDock(); igPaintIds(ids);
+}
+/* the press under the table: what it does and what it sends, said before it is pressed */
+function igCmpAskHtml(m,i){
+  if(!Array.isArray(m.cmpIds)||m.cmpIds.length<2||m.cmpAsked) return '';
+  if(!(typeof copilotAvailable==='function'&&copilotAvailable()))
+    return `<div class="text-[11.5px] text-ink/55 px-1">${igEsc(i18t('int_add_key'))}</div>`;
+  const cs=m.cmpIds.map(id=>getContract(id)).filter(Boolean);
+  const words=cs.map(c=>igPaperWords(c)), known=words.every(n=>n>0), n=words.reduce((a,b)=>a+b,0);
+  const refs=cs.map(c=>window.contractRef?contractRef(c):c.id).join(', ');
+  const cost=known?i18t('int_cmp_cost_words',{ refs, n:n.toLocaleString() }):i18t('int_cmp_cost',{ refs });
+  return `<div class="flex items-center gap-2 flex-wrap px-1"><button type="button" class="ui-btn ui-btn-sm" data-ig-cmp-ask="${i}">${icon('readpaper','w-3.5 h-3.5')}${igEsc(i18t('int_cmp_wording'))}</button>
+    <span class="text-[11.5px] text-ink/55">${igEsc(cost)}</span></div>`;
+}
+async function intelCompareWording(i){
+  const m=intel.history[i]; if(!m||!Array.isArray(m.cmpIds)||m.cmpAsked||intel.busy) return;
+  const ids=m.cmpIds.filter(id=>getContract(id)); if(ids.length<2) return;
+  m.cmpAsked=true;
+  const ref=id=>{ const x=getContract(id); return x&&x.contractNo?x.contractNo+' (worked as '+id+')':id; };
+  intel.history.push({ role:'user', text:i18t('int_cmp_wording') });
+  intel.busy=true; renderIntelDock();
   try{
-    if(typeof copilotAvailable==='function' && copilotAvailable()){
-      const res=await copilotAsk([{role:'user', content:'Compare these contracts side by side: '+ids.map(id=>{ const x=getContract(id); return x&&x.contractNo?x.contractNo+' (worked as '+id+')':id; }).join(', ')+'. Cover value, term/expiry, payment terms, key risks and open findings.'}], { view:'intel' }, null, IG_QUIET);
-      intelPushChatResult(res);
-    } else {
-      localFallback(`Side-by-side from your live contract data. <span class="text-[11px] text-amber-700">${i18t('int_add_key')}</span>`);
-    }
-  }catch(e){ localFallback('Jambo engine was unavailable ('+igEsc(e.message||'error')+'), so here is a side-by-side from your live data instead.'); }
+    const res=await copilotAsk([{ role:'user', content:'Compare what these contracts actually SAY, side by side: '+ids.map(ref).join(', ')
+      +'. Use compare_contracts to read their wording. Fill the compare table with one row per topic — payment terms, term and renewal, termination, liability and caps, indemnities, confidentiality, governing law and disputes, and anything else where they differ — each cell the contract\'s own position in a few plain words, "Not stated" where it is silent. Then say in two or three sentences which differences matter most and why.' }],
+      { view:'intel' }, null, IG_QUIET);
+    intelPushChatResult(res);
+  }catch(e){
+    intel.history.push({ role:'assistant', err:true, text:igEsc(i18t('int_cmp_wording_failed',{ why:(e&&e.message)||'error' })) });
+  }
   intel.busy=false; rebuildIntelGraph(); renderIntelDock(); igPaintIds(ids);
 }
 
@@ -7878,14 +7915,13 @@ function igExplainCard(id){
     ${row('Group',igEsc(groupLabelOf(c,intel.groupBy,intel.groups)))}
     ${igFactRowsHtml(c)}
     ${igDependentsHtml(c.id)}
-    ${''/* THREE DOORS (Young ruled 26 Sep 2026): Analyze contract leads, because
-           reading is what this panel is for; Open workspace is the door to
-           work; Compare is untouched. The fill moved from Open workspace to
-           Analyze — one filled button per card. */}
+    ${''/* ONE DOOR AND COMPARE (owner, 23 Oct 2026: "Analyze contract and Workspace seem
+           to have the same function" — they landed on the same paper on Home): ONE
+           filled Open, the Workspace door (roomHomeLand). Compare is two presses:
+           pick this one, then "Compare with …" on another runs it (igCmpBtnHtml). */}
     <div class="mt-2 flex items-center gap-1.5" style="flex-wrap:wrap">
-      <button data-ig-analyze="${c.id}" class="ui-btn ui-btn-sm ui-btn-primary" style="flex:1 1 auto" title="${i18t('int_analyze_title')}">${icon('readpaper','w-3.5 h-3.5')}${i18t('int_analyze')}</button>
-      <button data-ig-ws="${c.id}" class="ui-btn ui-btn-sm" style="flex:1 1 auto">${icon('folderOpen','w-3.5 h-3.5')}${i18t('int_open_workspace')}</button>
-      <button data-ig-cmp="${c.id}" class="ui-btn ui-btn-sm${intel.compareSel.includes(c.id)?' ui-btn-accent':''}" aria-pressed="${intel.compareSel.includes(c.id)?'true':'false'}" title="${i18t('int_stage_for_compare')}">${intel.compareSel.includes(c.id)?`${icon('check2')}Comparing`:`${icon('plus')}Compare`}</button>
+      <button data-ig-ws="${c.id}" class="ui-btn ui-btn-sm ui-btn-primary" style="flex:1 1 auto" title="${igEsc(i18t('int_open_contract_title'))}">${icon('folderOpen','w-3.5 h-3.5')}${igEsc(i18t('int_open_contract'))}</button>
+      ${igCmpBtnHtml(c)}
     </div>
   </div>`;
 }
@@ -7914,7 +7950,7 @@ function igMsgHTML(m,i){
   // the graph (igPaintIds), but we no longer append a card list under the answer.
   const body = m.ranked ? m.ranked.map((r,i)=>igRankCard(r,i)).join('')
     : m.explainId ? igExplainCard(m.explainId)
-    : (m.compare && typeof aiCompareTable==='function' ? aiCompareTable(m.compare) : '');
+    : (m.compare && typeof aiCompareTable==='function' ? aiCompareTable(m.compare)+(Number.isInteger(i)?igCmpAskHtml(m,i):'') : '');
   /* AN ANSWER ABOUT THE PAPER CARRIES ITS PASSAGES AS PRESSES (26 Sep 2026):
      one chip per verbatim quote the server kept, numbered by its pin on the
      paper; an answer that rests on no passage says so under its text, so a
@@ -8255,9 +8291,9 @@ function renderIntelDock(){
     </div>`:''; })()}
     ${intel.compareSel.length?`
     <div class="px-3.5 py-2 border-t border-hair shrink-0 flex items-center gap-2 bg-brand-50/40">
-      <span class="text-[11px] text-brand-800/70 flex-1 min-w-0 truncate">${i18t('int_comparing')} <b class="text-brand-900">${intel.compareSel.length}</b>: ${intel.compareSel.map(id=>igEsc(getContract(id)?.name||(window.contractRef?contractRef(getContract(id)||{id}):id))).join(', ')}</span>
+      <span class="text-[11px] text-brand-800/70 flex-1 min-w-0 truncate">${(()=>{ const x=getContract(intel.compareSel[0]); const r=x?(window.contractRef?contractRef(x):x.id):intel.compareSel[0];
+        return igEsc(i18t('int_cmp_tray',{ ref:r, name:(x&&x.name)||'' })); })()}</span>
       <button id="igd-cmp-clear" class="text-[10.5px] font-600 text-ink/50 hover:text-ink">${i18t('int_clear')}</button>
-      <button id="igd-cmp-run" class="ui-btn ui-btn-sm${intel.compareSel.length<2?'':' ui-btn-primary'}" title="${intel.compareSel.length<2?'Tap “+ Compare” on one more node first':'Run the side-by-side comparison'}">${intel.compareSel.length<2?'Pick 1 more…':'Compare '+intel.compareSel.length}</button>
     </div>`:''}
     ${''/* EVERY TAB ASKS (owner, 22 Oct 2026: "all side panels need to have
            jambo entry field at the bottom"; reverses 12 Oct's "only the Copilot
@@ -8375,10 +8411,6 @@ function renderIntelDock(){
   });
   /* "Workspace" opens Home, never the room (step 2, 14 Oct 2026; roomHomeLand) */
   dock.querySelectorAll('[data-ig-ws]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); const id=b.getAttribute('data-ig-ws'); if(!(window.roomHomeLand&&roomHomeLand(id))) openWorkspace(id); }));
-  /* Analyze contract — the card's first door (26 Sep 2026) — and the passages
-     under an answer, each a press that puts those words in front of the
-     reader. */
-  dock.querySelectorAll('[data-ig-analyze]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); igAnalyze(b.getAttribute('data-ig-analyze')); }));
   /* ONE CONVERSATION EVERYWHERE: said here, taken off the other hosts; the side panel's turns bound here too */
   { const T=dock.querySelector('[data-jb-turns]');
     if(T&&typeof window.jamboTurnsTake==='function'){ jamboTurnsTake(T); if(typeof window.jamboTurnsAfter==='function') jamboTurnsAfter(T); }
@@ -8426,7 +8458,7 @@ function renderIntelDock(){
   // node-driven comparison: stage/unstage a contract, run or clear the tray
   dock.querySelectorAll('[data-ig-cmp]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); intelToggleCompare(b.getAttribute('data-ig-cmp')); }));
   document.getElementById('igd-cmp-clear')?.addEventListener('click',()=>{ intel.compareSel=[]; igPaintIds(null); renderIntelDock(); });
-  document.getElementById('igd-cmp-run')?.addEventListener('click',()=>intelRunCompare());
+  dock.querySelectorAll('[data-ig-cmp-ask]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); intelCompareWording(Number(b.getAttribute('data-ig-cmp-ask'))); }));
   // clear the dock conversation (lenses are separate and survive on purpose)
   document.getElementById('igd-history-clear')?.addEventListener('click',()=>{
     // cleared immediately — no confirm prompt (lenses are separate and survive)
