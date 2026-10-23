@@ -21469,3 +21469,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - The Board's agent-work view below the card (hbDig 'ag:k' → hbAgentWorkHtml, HB_AG_WORK_MAX) is reached by nothing since the one desk: a press on a piece opens it in place. Its chase-many box is drawn on the card's Jambo tab instead (hbChaseManyHtml via hbNdOpts). The old path's code is left for the round that finishes the rest.
 - Jambo's greeting on the Board still says "What needs you is on Home: N things" (hb_jb_*): true (Home has it), but the whole list now stands on the Board under Your book too.
 - CLAUDE.md is 84.5 KB (over its ~80 KB rule) after this round's one-desk section; a trim needs the owner's yes.
+- Noticed, not fixed (23 Oct 2026, the one desk): every-door-lands-on-home's "Obligations row, a later one (MK-A1)" times out on its double-click on unmodified main too (run at main 68680ec); the row is not pressable when the check reaches it.
