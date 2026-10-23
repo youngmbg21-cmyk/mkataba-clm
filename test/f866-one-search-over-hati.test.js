@@ -155,3 +155,14 @@ describe('f866 (5) Jambo\'s tool', () => {
     assert.deepEqual(mentionsFolderB(JSON.stringify(s)), [], 'the wall stands before the model reads');
   });
 });
+
+describe('f866 (6) found by what it is, and listed by kind', () => {
+  test('"open requests" finds a request by its kind and status; no words with a kind lists that kind', async () => {
+    const r = await find(W.admin, 'open requests');
+    assert.ok(r.hits.some(x => x.kind === 'request'), JSON.stringify(r.hits.map(x => x.kind)));
+    const all = await find(W.admin, '', '&kinds=request');
+    assert.ok(all.hits.length >= 1 && all.hits.every(x => x.kind === 'request'));
+    const none = await find(W.restricted, '', '&kinds=contract');
+    assert.deepEqual(mentionsFolderB(JSON.stringify(none)), [], 'a listing keeps the walls');
+  });
+});

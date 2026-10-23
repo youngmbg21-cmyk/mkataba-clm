@@ -524,7 +524,17 @@ function stWireDrawerOnce(){
        leave Settings like any box; a Settings section asked here stays the
        finder's (box 'settings'); a number nobody can see is said here */
     if(typeof caAskAnywhere==='function'&&caAskAnywhere(q,{ box:'settings', say:line=>stJbSayLine(q,line) })) return;
+    /* AI FIRST (Jambo works like Copilot, stage 3): the finder sure of ONE setting goes there as it says so;
+       words that are no setting at all ("what law governs the Kabras contract") are Jambo's to answer, here */
+    let hits=[]; try{ hits=stFind(q); }catch(_){ hits=[]; }
+    /* a question about the company's RULES ("why can't Legal sign…") keeps its cost-first press (stJbAsk's why) */
+    const rules=/\b(why|can'?t|cannot|allowed|may|limits?|rules?|approv\w*|access|permission\w*|sign\w*|review\w*|varför|får|gräns\w*|regel\w*|godkän\w*|behörighet\w*)\b/i.test(q);
+    const asks=!rules&&(ST_JB_ASK_RE.test(q)||/\b(contracts?|agreements?|deals?|leases?|avtal\w*|kontrakt\w*)\b/i.test(q));
+    if(!hits.length&&asks&&typeof caAiFirst==='function'&&caAiFirst()&&typeof aiAskWords==='function'){ stJbAskJambo(q); return; }
     stJbAsk(q);
+    /* …and goes there only when the words ask to be taken ("where do I set…", "take me to…"); a word typed
+       to find a setting leaves the finder's rows to press (Settings lands, never presses) */
+    if(hits.length===1&&ST_JB_GO_RE.test(q)){ const row=stFindRows(q)[0]; if(row&&row.id) stFindGo(row.id); }
   });
   /* A dialog opened from inside the drawer owns Escape while it is up: one
      key closes the top layer only, never the drawer underneath as well. */
@@ -3329,6 +3339,22 @@ function stJamboHtml(){
 }
 /* AN ASK IS ADDED WHERE IT IS READ — appended to the feed, the box keeps the
    reader's hand; the page underneath does not move. */
+const ST_JB_GO_RE=/^\s*(where (do|can|should) i|how (do|can) i|take me|go to|open|show me|var (kan|ställer|ändrar) jag|ta mig)\b/i;
+/* a question (not a setting to find): Jambo answers it, with the whole of HaTi */
+const ST_JB_ASK_RE=/^\s*(which|what|who|whom|whose|when|why|how (many|much|long|often|do|does|can)|does|do|did|is|are|can|could|should|vilk\w*|vad|vem|när|varför|hur)\b/i;
+/* a question for Jambo asked in Settings: answered in the one conversation (aiAskWords), drawn in this panel's */
+function stJbTalkNow(){
+  const feed=document.getElementById('st-jb-feed'); if(!feed) return;
+  stTalkLand();
+  if(typeof jamboTalkOpen==='function') jamboTalkOpen(stTalkKey(), feed);
+  stJbTalkRepaint(stJbTalkWrap(feed)); stJbTalkPaint(); stJbLand(feed);
+}
+async function stJbAskJambo(q){
+  const asked=aiAskWords(q);
+  stJbTalkNow();
+  try{ await asked; }catch(_){}
+  stJbTalkNow();
+}
 function stJbAsk(q){
   q=String(q||'').trim(); if(!q) return;
   /* the stream shown stays the landing, as left (19 Oct 2026; was round 26's
@@ -9783,7 +9809,7 @@ Object.assign(window,{stClashes,stArDue,stArLabel,stArCount,renderTeam,settingsP
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
   stRulesRows,stPaintRules,stPaintSignFolders,
   openMyAccount,openSettingsAt,settingsGoTab,stUnfinishedCount,stPeopleWire,settingsTab,stLandTop,SET_PANELS,ST_TABS,SET_CLOSURES,ST_GROUPS,ST_ATTENTION_MAX,
-  ST_FACES,stPushHtml,stPushPaint,stPushRefresh,ST_GOV_LADDER,stGovRungs,stGovNext,stYouItems,stYouHtml,stYouCardHtml,stYouSheetItems,ST_YOU_SHEET,stChipsSet,stOpensSet,stBriefSet,stMenuHits,stFind,stFindRows,stFindGo,stNeedsAll,settingsGoPage,stYouGo,stPrefSet,stAsksLoad,stAsksOpen,stAsksAnswered,stAskSeen,stAskFrom,stAskDirect,stAskOpenOn,stAdminsSaid,stDay,stJbAnswer,stJbAmount,stJbAsk,stJamboFocus,stSideSet,stSideFit,ST_SIDE_MIN,ST_BOARD_MIN,ST_SPLIT_KEY,ST_SPLIT,stSplitFit,
+  ST_FACES,stPushHtml,stPushPaint,stPushRefresh,ST_GOV_LADDER,stGovRungs,stGovNext,stYouItems,stYouHtml,stYouCardHtml,stYouSheetItems,ST_YOU_SHEET,stChipsSet,stOpensSet,stBriefSet,stMenuHits,stFind,stFindRows,stFindGo,stNeedsAll,settingsGoPage,stYouGo,stPrefSet,stAsksLoad,stAsksOpen,stAsksAnswered,stAskSeen,stAskFrom,stAskDirect,stAskOpenOn,stAdminsSaid,stDay,stJbAnswer,stJbAmount,stJbAsk,stJbAskJambo,stJbTalkNow,stJamboFocus,stSideSet,stSideFit,ST_SIDE_MIN,ST_BOARD_MIN,ST_SPLIT_KEY,ST_SPLIT,stSplitFit,
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
   settingsWriteFolderAccess,settingsExportBackup,stGoLive,stLoadAiCfgOnce,stSampleContracts,stClearSamples,stRunIntegrity,
   stPersonMissing,stPersonSays,stPersonSumHtml,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,
