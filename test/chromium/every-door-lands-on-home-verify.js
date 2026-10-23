@@ -94,6 +94,15 @@ const waitFor = async (page, fn, ms = 8000, arg) => { const end = Date.now() + m
 /* ---- THE BOOK ---- dates are offsets from the day the run happens */
 const day = off => { const t = new Date(); t.setDate(t.getDate() + off);
   return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; };
+/* NEXT WEEK'S WEDNESDAY, whatever day the run happens (23 Oct 2026): the Obligations page folds
+   every week after Next week to one line (obwWeekShut), so a "later one" written as day(10) sat
+   in Next week Monday to Wednesday and in a folded week Thursday to Sunday — a check whose answer
+   depended on the weekday. The working week is the page's own (obThisMonday: a Saturday or a
+   Sunday opens the week ahead); its Wednesday after next is always in the open Next week. */
+const nextWeekWed = () => { const t = new Date(); t.setHours(12, 0, 0, 0);
+  if (t.getDay() === 6) t.setDate(t.getDate() + 2); else if (t.getDay() === 0) t.setDate(t.getDate() + 1);
+  t.setDate(t.getDate() - ((t.getDay() + 6) % 7) + 9);
+  return Math.round((t - new Date(new Date().setHours(12, 0, 0, 0))) / 864e5); };
 const BODY_A1 = ['SUPPLY AGREEMENT', '', 'This agreement is made between Highland Corporate Ltd and Kabras Sugar.', '',
   'Article 1 Payment', '', 'The total contract value is KES 48,000,000 payable within thirty days.', '',
   'Article 2 Term', '', 'This agreement expires on 2027-06-30.'].join('\n');
@@ -109,7 +118,7 @@ const BOOK = [
     obligations: [
       { id: 'ob-a1-1', desc: 'Send the monthly supply report', due: day(3), party: 'ours', status: 'open', quote: QUOTE_A1 },
       { id: 'ob-a1-2', desc: 'Deliver the first batch', due: day(-5), party: 'ours', status: 'done' },
-      { id: 'ob-a1-3', desc: 'Pay the deposit', due: day(10), party: 'ours', status: 'open' },
+      { id: 'ob-a1-3', desc: 'Pay the deposit', due: day(nextWeekWed()), party: 'ours', status: 'open' },
       { id: 'ob-a1-4', desc: 'Return the pallets', due: day(-2), party: 'ours', status: 'open' }] },
   fixtureContract('MK-A2', 'Raw Milk Collection', 'Nandi Dairy', FOLDER_A, 36000000, 'Under Review'),
   fixtureContract('MK-B1', 'Modern Trade Listing', 'Naivas Supermarkets', FOLDER_B, 85000000, 'Signed'),
