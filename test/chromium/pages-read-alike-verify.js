@@ -415,8 +415,12 @@ const SEED = async () => {
                transparent" would call every button on the row filled. The
                claim — the row speaks with one voice, no act leads by a fill —
                is unchanged; a face that is the surface colour is flat. */
-            filled: c.backgroundColor !== 'rgba(0, 0, 0, 0)' && c.backgroundColor !== surface }; });
+            /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): the plain face is the
+               control grey pill (--surface-2) product-wide; that is flat too. */
+            filled: c.backgroundColor !== 'rgba(0, 0, 0, 0)' && c.backgroundColor !== surface && c.backgroundColor !== plain }; });
       const surface = (() => { const e = document.createElement('i'); e.style.background = 'var(--color-surface)';
+        document.body.appendChild(e); const v = getComputedStyle(e).backgroundColor; e.remove(); return v; })();
+      const plain = (() => { const e = document.createElement('i'); e.style.background = 'var(--surface-2)';
         document.body.appendChild(e); const v = getComputedStyle(e).backgroundColor; e.remove(); return v; })();
       return { nego: read('#view-redline #ws-head .room-acts button') };
     });
@@ -550,8 +554,13 @@ const SEED = async () => {
        button is not one (re-pointed 20 Sep 2026, the redesign order). */
     const surfaceBg = await page.evaluate(() => { const e = document.createElement('i'); e.style.background = 'var(--color-surface)';
       document.body.appendChild(e); const v = getComputedStyle(e).backgroundColor; e.remove(); return v; });
-    check('7 none of them is shaded inside',
-      oNego.every(b => b.bg === 'rgba(0, 0, 0, 0)' || b.bg === surfaceBg), oNego.map(b => `${b.t}:${b.bg}`));
+    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): every control is the grey pill
+       (--surface-2), so that grey is the row's one plain face; a TINT is still
+       anything else, and they must all be one face. */
+    const plainBg = await page.evaluate(() => { const e = document.createElement('i'); e.style.background = 'var(--surface-2)';
+      document.body.appendChild(e); const v = getComputedStyle(e).backgroundColor; e.remove(); return v; });
+    check('7 none of them is shaded inside — one plain face across the row',
+      oNego.every(b => b.bg === plainBg) || oNego.every(b => b.bg === 'rgba(0, 0, 0, 0)' || b.bg === surfaceBg), oNego.map(b => `${b.t}:${b.bg}`));
 
     await page.evaluate(id => openWorkspace(id, { room: true }), cid);
     await pause(1800);

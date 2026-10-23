@@ -201,7 +201,8 @@ const PAPER = `(() => {
           return { t: (b.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 18),
             bg: c.backgroundColor, bd: c.borderTopColor, bw: c.borderTopWidth }; });
       const res = v => { const p = document.createElement('span'); p.style.color = v; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; };
-      return { verbs: read('.pw-id-verb'), deal: read('#pt-nego-foot button'), edge: res('var(--btn-edge)') };
+      return { verbs: read('.pw-id-verb'), deal: read('#pt-nego-foot button'), edge: res('var(--btn-edge)'),
+        fill: (() => { const p = document.createElement('span'); p.style.backgroundColor = 'var(--surface-2)'; document.body.appendChild(p); const c = getComputedStyle(p).backgroundColor; p.remove(); return c; })() };
     });
     /* RE-POINTED 21 Sep 2026 (the redesign): every .ui-btn is the white face
        with the hairline edge now, product-wide, so "no fill" stopped being the
@@ -215,9 +216,12 @@ const PAPER = `(() => {
       JSON.stringify(dress.verbs));
     check('1c and it is the face the deal verbs beside them wear, as asked',
       dress.deal.length >= 1 && dress.deal.some(d => one(d, dress.verbs[0])), JSON.stringify(dress.deal));
-    check('1c but they are still plainly buttons — an edge, in the product\'s own button-edge token',
-      dress.verbs.every(b => parseFloat(b.bw) > 0 && b.bd === dress.edge),
-      JSON.stringify(dress.verbs.map(b => `${b.t}:${b.bd}`)) + ' edge ' + dress.edge);
+    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): a control is the grey pill with
+       no edge, product-wide; "still plainly buttons" is now its fill, in the
+       product's own control grey (--surface-2). */
+    check('1c but they are still plainly buttons — filled in the product\'s own control grey',
+      dress.verbs.every(b => b.bg === dress.fill),
+      JSON.stringify(dress.verbs.map(b => `${b.t}:${b.bg}`)) + ' fill ' + dress.fill);
 
     /* ---- 2 & 3. THE REDLINES TAB DRAWS THE MARKS ----
        RE-POINTED 11 Oct 2026. As agreed and With changes were deleted

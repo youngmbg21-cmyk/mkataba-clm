@@ -325,17 +325,19 @@ function portalVerbStyle(){
        pt-more and pt-bell — every button that wears this class — because a row
        where three lose the tint and one keeps it is the report coming straight
        back. */
-    .ui-btn.pt-verb{color:var(--color-text);background:var(--color-surface);
-      border-color:var(--btn-edge);}
-    .ui-btn.pt-verb:hover{background:color-mix(in srgb,var(--accent-solid) 8%,var(--color-surface));
-      border-color:var(--accent-solid);}
+    .ui-btn.pt-verb{color:var(--color-text);background:var(--surface-2);
+      border-color:transparent;}
+    .ui-btn.pt-verb:hover{background:var(--color-neutral-200);
+      border-color:transparent;}
     /* SINCE THE REDESIGN (21 Sep 2026) THE ROW WEARS ONE FACE: every .ui-btn is
        the white face with the hairline edge and the page ink, so the reading
        controls, the bell, More and the deal verbs beside them are one set of
        controls again. The note above is kept because its RELATION still
        holds — nothing here is louder than the acts — only the clothes moved
        with the rest of the product; counterparty-reading-and-more-verify 1c
-       measures the row as a relation against the deal verbs. */
+       measures the row as a relation against the deal verbs. THE LEGORA LOOK
+       (owner, 23 Oct 2026): the one face is now the grey pill with no edge,
+       the same as every .ui-btn. */
     .ui-btn.pt-verb svg{flex:none;}`;
   document.head.appendChild(el);
 }
@@ -3658,10 +3660,10 @@ function portalAlertsStyle(){
     .pt-bell-dot{position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;padding:0 var(--s-1);
       border-radius:var(--radius);background:var(--color-text);color:var(--color-surface);
       font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-title);line-height:16px;text-align:center;}
-    .pt-alerts-scrim{position:fixed;inset:0;background:rgba(22,21,18,.38);z-index:70;}
+    .pt-alerts-scrim{position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:70;}
     .pt-alerts{position:fixed;top:0;right:0;bottom:0;width:min(360px,88vw);z-index:71;
       background:var(--color-surface);border-left:1px solid var(--color-divider);
-      box-shadow:-14px 0 40px rgba(22,21,18,.18);display:flex;flex-direction:column;
+      box-shadow:-14px 0 40px rgba(0,0,0,.18);display:flex;flex-direction:column;
       transform:translateX(102%);transition:transform var(--dur-3) ease,visibility 0s linear var(--dur-3);
       visibility:hidden;}
     .pt-alerts.open{transform:none;visibility:visible;transition:transform var(--dur-3) ease;}

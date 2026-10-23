@@ -83,7 +83,8 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
         dark: document.documentElement.classList.contains('dark'), brand: document.documentElement.getAttribute('data-brand') };
     });
     check('N-3b no brand swatches and no theme button in the bar', shell.swatches.length === 0, JSON.stringify(shell.swatches));
-    check('N-3c the bar is white, standing off the page\'s ground', shell.bar === 'rgb(255, 255, 255)' && shell.ground !== shell.bar && !shell.dark && shell.brand === null, JSON.stringify(shell));
+    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): the bar is the drawing's translucent white */
+    check('N-3c the bar is white, standing off the page\'s ground', /^rgba?\(255, 255, 255(, 0\.78)?\)$/.test(shell.bar) && shell.ground !== shell.bar && !shell.dark && shell.brand === null, JSON.stringify(shell));
 
     /* ============ N-4 RE-POINTED 20 Oct 2026: the Board wears Chambers ============
        The Board face is always the light screen now, its glow the accent's
@@ -102,7 +103,7 @@ const waitFor = async (page, fn, arg, ms = 8000) => {
     /* RE-POINTED 21 Oct 2026 (Chambers): the Board's LINE is warm — a card's edge
        (the line channel at .18 over white) IS the house's divider; the glow stays the accent. */
     const edgeOf = ln => { const v = String(ln || '').split(',').map(Number); return v.length === 3 ? 'rgb(' + v.map(x => Math.round(255 - (255 - x) * .18)).join(', ') + ')' : null; };
-    check('N-4a the Board is the light screen, its glow the accent\'s deep green, its card edge the house\'s warm divider', !!boardT && boardT.light && !boardT.dark
+    check('N-4a the Board is the light screen, its glow the accent\'s deep green, its card edge the house\'s divider', !!boardT && boardT.light && !boardT.dark
       && same(boardT.glow, boardT.accent) && edgeOf(boardT.ln) === boardT.divider, JSON.stringify(boardT).slice(0, 240) + ' edge ' + edgeOf(boardT && boardT.ln));
     check('N-4b and its ground carries no teal', !!boardT && !!boardT.stage && !/38CDB8|56,\s*205|0E2B2A|04191A|14,95,88|0E5F58/i.test(boardT.stage), boardT && String(boardT.stage).slice(0, 120));
     await page.screenshot({ path: path.join(OUT, '01-board-chambers.png') });
