@@ -3136,7 +3136,11 @@ const IGB_TWIST=.006;
 const IGB_PITCH_MAX=.16, IGB_TL_DX=.035, IGB_TL_RING=9, IGB_TL_ZS=1.8;
 /* the spots around a date, nearest first: the timeline's crowd packing */
 const IGB_TL_SPOTS=(()=>{ const s=[]; for(let i=-IGB_TL_RING+1;i<IGB_TL_RING;i++) for(let j=-IGB_TL_RING+1;j<IGB_TL_RING;j++) s.push([i,j]); return s.sort((a,b)=>Math.hypot(a[0],a[1])-Math.hypot(b[0],b[1])||Math.abs(a[1])-Math.abs(b[1])); })();
-const IGB_TILT=[.2,.02,.36,.95,.9], IGB_SCALE=[1.3,1.05,.74,1,1], IGB_CY=[.52,.5,.47,.5,.5];
+/* THE GRID STANDS UP (Young, 23 Oct 2026: "standing up just like a contract
+   paper is up and facing the screen"): its tilt is a quarter turn, so the
+   table is seen straight on, flat to the screen. A drag may lean it back,
+   never past upright (igTurnBy). */
+const IGB_TILT=[.2,.02,.36,Math.PI/2,.9], IGB_SCALE=[1.3,1.05,.74,1,1], IGB_CY=[.52,.5,.47,.5,.5];
 const IGB_NV=5;   // the views; every weight list carries one per view
 const igbDot=(w,a)=>a.reduce((s,v,i)=>s+v*w[i],0);
 const IGB_RX=.78, IGB_RY=.64, IGB_RZ=1.08, IGB_GOLD=2.39996;
@@ -4209,7 +4213,7 @@ function igTurnBy(dx,dy){
   /* the grid and the timeline lie on the table: a sideways drag spins the
      table, an up-down drag tips it between looking straight down and
      looking along it */
-  else if(cam.view===3){ cam.rotG-=dx*.006; cam.tiltG=Math.max(-.75,Math.min(.6,cam.tiltG+dy*.004)); }
+  else if(cam.view===3){ cam.rotG-=dx*.006; cam.tiltG=Math.max(-.75,Math.min(0,cam.tiltG+dy*.004)); }
   else { cam.rotT-=dx*.006; cam.tiltT=Math.max(-.7,Math.min(.65,cam.tiltT+dy*.004)); }
 }
 

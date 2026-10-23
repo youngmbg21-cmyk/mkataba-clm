@@ -237,6 +237,17 @@ const check = (name, pass, detail) => {
     check('4d the Grid stands still even while Turning — no turn, no swing — and the button is greyed with why', !mG.moved && !mG.dot && gBtn.off && /stands still/.test(gBtn.why), JSON.stringify({ mG, gBtn }));
     const tBtn = await page.evaluate(() => { igSetView(4); const b = document.getElementById('ig-spin'); return { off: !!b && b.disabled, why: b ? b.title : '' }; });
     check('4d1 off the Grid the button is live again', !tBtn.off && !tBtn.why, JSON.stringify(tBtn));
+    /* THE GRID STANDS UP (Young, 23 Oct 2026: "standing up just like a contract paper is up
+       and facing the screen"): the table's four corners project to a true rectangle — top and
+       bottom edges level and the same width, no lean — and a drag may lean it back, never past upright */
+    await view(3); await until(() => intel.cam.w[3] > 0.99999);
+    const face = await page.evaluate(() => { const cam = intel.cam; cam.rotG = 0; cam.tiltG = 0; const P = igbProjector(IG);
+      const [a, b, c, d] = [[-1, 0, -1], [1, 0, -1], [-1, 0, 1], [1, 0, 1]].map(P);
+      igTurnBy(0, 400); const lean = cam.tiltG; cam.tiltG = 0;
+      return { level: Math.abs(a[1] - b[1]) < 0.5 && Math.abs(c[1] - d[1]) < 0.5, sameW: Math.abs((b[0] - a[0]) - (d[0] - c[0])) < 0.5, tall: Math.abs(c[1] - a[1]) > 50, lean: +lean.toFixed(3),
+        a: a.slice(0, 2).map(Math.round), b: b.slice(0, 2).map(Math.round), c: c.slice(0, 2).map(Math.round), d: d.slice(0, 2).map(Math.round) }; });
+    check('4d3 the Grid faces the screen like a page — a true rectangle — and a drag never tips it past upright', face.level && face.sameW && face.tall && face.lean <= 0, JSON.stringify(face));
+    await view(4);   /* back off the Grid, where Turning is live, for the presses below */
     check('4e the Timeline swings by itself without turning round', swings(mT), JSON.stringify(mT));
     const arc = await page.evaluate(async () => { let max = 0; for (let i = 0; i < 12; i++) { max = Math.max(max, Math.abs(intel.cam.sway || 0)); await new Promise(r => setTimeout(r, 120)); } return { max: +max.toFixed(3) }; });
     check('4d2 and not far at all: a small arc, slow, both ways round the set angle',
