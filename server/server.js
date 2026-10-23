@@ -3071,10 +3071,20 @@ function aiRates() {
   return out;
 }
 const aiRatesEdited = () => !!getSetting('aiRates');
+/* A DATED MODEL ID IS PRICED AS ITS MODEL (owner, 23 Oct 2026: "yes" to fixing the meter). The fast
+   tier's default is `claude-haiku-4-5-20251001` while the table names `claude-haiku-4-5`; an exact-only
+   lookup fell through to 'default' ($10/$50), so every fast call was booked at about ten times its price.
+   An exact row still wins (an admin may price a dated id on its own); else the id without its date. The
+   browser's twin is migAiRate (js/views/migration.js). */
+const AI_MODEL_DATE_RE = /-\d{8}$/;
+function aiRateFor(rates, model) {
+  const m = String(model || '');
+  return rates[m] || rates[m.replace(AI_MODEL_DATE_RE, '')] || rates['default'] || AI_RATE_DEFAULTS['default'];
+}
 // Price one Anthropic response's usage block. Returns USD.
 function priceUsage(model, usage) {
   const rates = aiRates();
-  const r = rates[model] || rates['default'] || AI_RATE_DEFAULTS['default'];
+  const r = aiRateFor(rates, model);
   const u = usage || {};
   const inT = Number(u.input_tokens || 0);
   const outT = Number(u.output_tokens || 0);
