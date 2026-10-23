@@ -45,6 +45,7 @@ const MODULES = [
   'js/nda.js',
   'js/sharemail.js',
   'js/graphwhere.js',   // the graph's `where` predicate, one for both hosts (Copilot audit phase 4)
+  'js/hatisearch.js',   // the one search's words, both hosts (Jambo works like Copilot, stage 1)
   'js/section.js',      // the section grammar: a pure builder, read by five views
   'js/richdoc.js',
   'js/aimd.js',      // the markdown/tone renderer: pure, no DOM beyond escaping
