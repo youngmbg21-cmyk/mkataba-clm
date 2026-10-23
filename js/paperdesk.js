@@ -3567,7 +3567,9 @@ function dossierStagesHtml(D, o){
     const cur = s.k === D.now;
     const tone = cur ? 'cur' : s.n ? 'owed' : s.state === 'done' ? 'done' : 'later';
     let v = '', amb = false, go = '';
-    if (s.k === 'arrive'){ const at = c.createdAt || c._raisedAt || ''; v = at ? dossierDay(at) : ''; }
+    /* the drawing's "12 Oct · uploaded by Amina Odhiambo": the file's own record, where it came as a file */
+    if (s.k === 'arrive'){ const up = c.upload || {}, at = up.uploadedAt || c.createdAt || c._raisedAt || '', who = String(up.uploadedBy || '').trim();
+      v = [at ? dossierDay(at) : '', who && who !== 'System' ? _pdT('dos_sp_up', { who }) : ''].filter(Boolean).join(' · '); }
     else if (s.k === 'read'){
       /* not read yet is the Brief row's own word under it, said once */
       v = R.read ? (R.at ? _pdT('dos_read_on', { when: dossierDay(R.at) }) : _pdT('dos_st_done')) : '';
