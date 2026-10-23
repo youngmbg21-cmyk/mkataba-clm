@@ -16868,19 +16868,19 @@
      100 wide). The TEXT keeps HaTi's own sizes (owner, 23 Oct 2026: "13px"). Scoped to #cn-page: the Board's own Needs you keeps its table. */
   #cn-page .cn-in{width:880px}
   #cn-page .cn-card{border-radius:22px}
-  #cn-page .cn-ask{padding:40px 38px 30px;gap:0}
+  #cn-page .cn-ask{padding:24px 30px 20px;gap:0}
   #cn-page .cn-ask > svg.jambo-mark, #cn-page .cn-ask .cn-face{display:block;flex:none;width:28px;height:28px;padding:7px;box-sizing:border-box;border-radius:50%;color:#fff;
     background:linear-gradient(135deg,#0A7C6B,#6D5DFC,#FF7A59);margin:0}
-  #cn-page .cn-ask h1{margin-top:14px}
-  #cn-page .cn-ask .cn-wrap{margin-top:18px}
+  #cn-page .cn-ask h1{margin-top:12px}
+  #cn-page .cn-ask .cn-wrap{margin-top:14px}
   #cn-page .cn-ask .jb-card:not(.is-tall){min-height:52px;padding:7px 7px 7px 10px}
   #cn-page .cn-ask .jb-card .jb-plus{width:34px;height:34px}
   #cn-page .cn-ask .jb-card .jb-send{width:36px;height:36px}
-  #cn-page .cn-chips{gap:6px 18px;margin-top:18px}
-  #cn-page .cn-needs .cn-h{padding:18px 22px 14px;border-bottom:0;align-items:baseline;gap:10px}
-  #cn-page .cn-needs .nd-g{margin:0 10px;padding:10px 12px;border:0;border-radius:12px;background:var(--color-bg);align-items:center;gap:8px}
+  #cn-page .cn-chips{gap:6px 18px;margin-top:14px}
+  #cn-page .cn-needs .cn-h{padding:14px 22px 10px;border-bottom:0;align-items:baseline;gap:10px}
+  #cn-page .cn-needs .nd-g{margin:0 10px;padding:8px 12px;border:0;border-radius:12px;background:var(--color-bg);align-items:center;gap:8px}
   #cn-page .cn-needs .nd-g .nd-all{font-weight:var(--w-strong)}
-  #cn-page .cn-needs .nd-r{margin:0 10px;padding:11px 12px;border-bottom:0;border-radius:12px;gap:16px}
+  #cn-page .cn-needs .nd-r{margin:0 10px;padding:6px 12px;border-bottom:0;border-radius:12px;gap:16px}
   #cn-page .cn-needs .nd-g + .nd-r{margin-top:4px}
   #cn-page .cn-needs .nd-r:last-child{margin-bottom:8px}
   #cn-page .cn-needs .nd-r:hover{background:#FAFAFC}
@@ -16903,16 +16903,21 @@
   :is(#ig-dock, .jt-trail, .jl-head) .pd-back:hover, .redline-page :is(.rl-head-notes, .rl-head-review):hover:not(:disabled){border-color:transparent;background:var(--color-neutral-200)}
   /* EACH CHANGE IN THE COLUMN IS ITS OWN SOFT GREY CARD (the drawing's Redlines: #F5F5F7, 16px corners), on
      both hosts of the one builder; ONE SHADE still darkens the card under the pointer and the pressed one */
-  :is(#ig-dock, body) .redline-page .rl-card-d, :is(#ig-dock, body) .redline-page .rl-pile :is(.rl-card-d, .rl-band + .rl-card-d){background:var(--color-bg);border-radius:16px;padding:12px 14px;margin-bottom:8px;border-bottom:0}
+  :is(#ig-dock, body) .redline-page .rl-card-d, :is(#ig-dock, body) .redline-page .rl-pile :is(.rl-card-d, .rl-band + .rl-card-d){background:var(--color-bg);border-radius:16px;padding:0 14px 12px;margin-bottom:8px;border-bottom:0}
+  /* the card's top room belongs to its head, which is what a press lands on (it takes the paper to the clause) */
+  :is(#ig-dock, body) .redline-page .rl-card-d .rl-card-head{padding-top:12px}
+  :is(#ig-dock, body) .redline-page:has(:is(.rl-card-d, .rk-row):hover) .rl-card-d.is-linked:not(:hover){background:var(--color-bg)}
+  /* on the grey card the ONE SHADE is one step deeper, so the lit card still reads at a glance */
+  :is(#ig-dock, body) .redline-page .rl-card-d:is(:hover, .is-linked){background:var(--color-neutral-200)}
   :is(#ig-dock, body) .redline-page:has(:is(.rl-card-d, .rk-row):hover) .rl-card-d.is-linked:not(:hover){background:var(--color-bg)}
   /* THE LISTS' TABLE, AS DRAWN (Contracts): the column heads on a faint grey band (#FAFAFC), the foot the same,
      a party's initials a rounded square on white. The row height stays the reader's own density choice. */
   #app-shell .reg-card .reg-table thead th{background:#FAFAFC}
   #app-shell .reg-card > :has(> .lh-foot){background:#FAFAFC}
-  #app-shell .reg-table .reg-av{border-radius:8px;background:var(--color-surface)}
+  #app-shell .reg-table .reg-av{border-radius:8px}
   /* A PAGE'S HEAD IS A FLOATING WHITE CARD (the drawn New agreement: "Contracts › New agreement", its title and
      its acts on a card set in on the grey), on every page-shaped pop-up */
-  #modal-root [data-dlg-page] .dlg-pg-head{margin:10px 12px 0;border:0;border-radius:20px;box-shadow:var(--shadow-sm)}
+  #modal-root [data-dlg-page] .dlg-pg-head{margin:4px 12px 0;padding-top:8px;border:0;border-radius:20px;box-shadow:var(--shadow-sm)}
   /* Company · HaTi over the templates: the drawn grey track, the chosen one a white pill */
   #modal-root [data-dlg-page] .na-head{border-bottom:0}   /* the drawn subtitle stands on the grey with no rule under it */
   #modal-root .na-tabs{gap:2px;padding:3px;border:0;border-radius:999px;background:var(--surface-2)}
