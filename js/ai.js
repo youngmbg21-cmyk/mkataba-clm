@@ -2990,7 +2990,9 @@ async function aiLocalClaude(messages, context){
     const content=d.content||[];
     const toolUses=content.filter(b=>b.type==='tool_use');
     working.push({role:'assistant',content});
-    if(!toolUses.length){
+    /* a deliver_answer call typed as plain text is read as the call (the server's copilotTextDeliver) */
+    const writ=toolUses.length?null:aiTextDeliver(content.filter(b=>b.type==='text').map(b=>b.text).join(''));
+    if(!toolUses.length&&!writ){
       const txt=content.filter(b=>b.type==='text').map(b=>b.text).join('').trim();
       /* NEVER a bare "could not produce an answer": say what to try instead.
          The blank version taught a real user that reports were impossible. */
@@ -3001,7 +3003,7 @@ async function aiLocalClaude(messages, context){
         continue; }
       final={answer:txt||AI_EMPTY_ANSWER,citations:[],compare:null,empty:!txt,retry:!txt}; break;
     }
-    const deliver=toolUses.find(t=>t.name==='deliver_answer');
+    const deliver=writ?{ input:writ }:toolUses.find(t=>t.name==='deliver_answer');
     if(deliver){
       const inp=deliver.input||{};
       final={ answer:String(inp.answer||'').trim()||AI_EMPTY_ANSWER,
@@ -3184,6 +3186,21 @@ function aiContractByRef(ref){
   const r=String(ref||'').toUpperCase().trim();
   if(!r) return null;
   return getContract(r)||((state.contracts||[]).find(x=>x&&x.contractNo&&String(x.contractNo).toUpperCase()===r)||null);
+}
+/* A TOOL CALL WRITTEN AS PLAIN TEXT (23 Oct 2026; twin of the server's copilotTextDeliver): the model typed
+   `<parameter name="answer">…</parameter><parameter name="citations">[…]` as words instead of calling
+   deliver_answer. Its fields are read back so the reader never sees the markup. Null when it is not such a call. */
+function aiTextDeliver(txt){
+  const t=String(txt||'');
+  if(!/<parameter name="answer">/.test(t)) return null;
+  const out={};
+  for(const m of t.matchAll(/<parameter name="(\w+)">([\s\S]*?)(?:<\/parameter>|(?=<parameter name="|<\/invoke>|<\/deliver_answer>|$))/g)){
+    const k=m[1]; if(out[k]!=null) continue;
+    const v=m[2].trim();
+    if(k==='answer'){ out.answer=v.replace(/<\/?(?:parameter|invoke|deliver_answer|function_calls|antml:[a-z_]+)\b[^>]*>/g,'').trim(); continue; }
+    try{ out[k]=JSON.parse(v); }catch(_){ out[k]=v; }
+  }
+  return out.answer?out:null;
 }
 /* Deterministic side-by-side from live fields — works with NO Copilot at all, so
    "compare" always does something. The Copilot path layers judgement on top. */
