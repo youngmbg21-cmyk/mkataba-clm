@@ -95,31 +95,30 @@ const deal = () => ({ id: ID, contractNo: ID, name: 'Haulage Review', counterpar
        highlighted area as it is redundant"): the line and its doors are gone;
        the title, its grey sub and the three filter boxes stand, and the
        counts themselves live on where the number is read (stkNeedCount, 4). */
-    const e1 = await page.evaluate(id => {
-      const v = document.querySelector('#pd-thread .stk-view');
-      return { title: v ? (v.querySelector('b') || {}).textContent : null, sub: v ? ((v.querySelector('.stk-view-sub') || {}).textContent || '') : '',
-        line: !!document.querySelector('#pd-thread .stk-tally, #pd-thread [data-stk-sev]'),
-        boxes: [...document.querySelectorAll('#pd-thread .stk-flt')].map(l => (l.querySelector('span') || {}).textContent).join('|'),
-        need: stkNeedCount(getContract(id)) };
-    }, ID);
-    ok('1 the head is "Clause review", its grey sub, and no count line', read && e1.title === 'Clause review' && /one view for the whole company/.test(e1.sub)
-      && !e1.line && e1.boxes === 'Section|Severity|Found by' && e1.need === 2, JSON.stringify(e1));
-    /* 1b THE SEVERITY FILTER IS THE ONE DOOR onto the same three: it narrows
-       the list and lets go — the act the count line carried is not lost. */
+    /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): the head is a serif headline counting the clauses that need
+       you, one sentence naming where to start, and the clauses as tabs with counts; still no count line, no boxes */
+    const e1 = await page.evaluate(id => ({ title: ((document.querySelector('#pd-thread .stk-mq-t') || {}).textContent || '').trim(),
+      sub: ((document.querySelector('#pd-thread .stk-mq-s') || {}).textContent || '').trim(),
+      line: !!document.querySelector('#pd-thread .stk-tally, #pd-thread [data-stk-sev]'),
+      boxes: document.querySelectorAll('#pd-thread .stk-flt').length,
+      tabs: [...document.querySelectorAll('#pd-thread .stk-tab')].map(b => b.textContent.replace(/\s+/g, ' ').trim()).join('|'),
+      need: stkNeedCount(getContract(id)) }), ID);
+    ok('1 the head is a headline, a sentence and tabs with counts, and no count line', read && /^2 clauses need you$/.test(e1.title)
+      && /^Jambo read all 4 clauses\. Start with Payment:/.test(e1.sub) && !e1.line && e1.boxes === 0
+      && e1.tabs === 'All4|Needs you2|Worth a look2|Fine2' && e1.need === 2, JSON.stringify(e1));
+    /* 1b THE "WORTH A LOOK" TAB narrows the list and lets go (the Severity box's act, kept) */
     const e1b = await page.evaluate(async () => {
-      const el = document.querySelector('#pd-thread [data-stk-f="sev"]'); if (!el) return { box: false };
-      const set = v => { el.focus(); el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); };
+      const tab = k => document.querySelector(`#pd-thread [data-stk-tab="${k}"]`);
+      if (!tab('look')) return { box: false };
       const cards = () => document.querySelectorAll('#pd-thread .stk-card').length;
       const all = cards();
-      set('look'); await new Promise(r => setTimeout(r, 250));
-      const look = cards();
-      document.querySelector('#pd-thread [data-stk-f="sev"]').value = '';
-      document.querySelector('#pd-thread [data-stk-f="sev"]').dispatchEvent(new Event('change', { bubbles: true }));
-      await new Promise(r => setTimeout(r, 250));
-      return { box: true, offers: [...document.querySelectorAll('#pd-thread [data-stk-f="sev"] option')].map(o => o.value).join(','), all, look, back: cards() };
+      tab('look').click(); await new Promise(r => setTimeout(r, 250));
+      const look = cards(), lit = (tab('look') || {}).getAttribute && tab('look').getAttribute('aria-selected');
+      tab('').click(); await new Promise(r => setTimeout(r, 250));
+      return { box: true, all, look, lit, back: cards() };
     });
-    ok('1b the Severity filter is the one door onto the same three, and it lets go',
-      e1b.box && e1b.offers === ',need,look' && e1b.look === 2 && e1b.back === e1b.all && e1b.all === 4, JSON.stringify(e1b));
+    ok('1b the "Worth a look" tab narrows to the same points, and All lets go',
+      e1b.box && e1b.lit === 'true' && e1b.look === 2 && e1b.back === e1b.all && e1b.all === 4, JSON.stringify(e1b));
 
     /* 2 + 3: open clause 2, then clause 3 */
     const openRow = n => page.evaluate(async n => {
