@@ -223,9 +223,10 @@ const ON_FACE = id => String(window.state && state.view) === 'dashboard' && !!(w
     await page.click('#view-redline [data-rl-open-doc]');
     await page.waitForTimeout(1500);
     const out = await page.evaluate(() => ({ view: state.view, id: (window.intel && intel.paper) ? intel.paper.id : null,
-      tab: (document.querySelector('#ig-dock [data-pd-tab][aria-selected="true"]') || {}).getAttribute?.('data-pd-tab') }));
+      tab: (document.querySelector('#ig-dock [data-pd-tab][aria-selected="true"]') || {}).getAttribute?.('data-pd-tab'), face: window.pdFaceNow ? pdFaceNow() : '' }));
     check('Open document opens the agreement on Home\'s Document', out.view === 'dashboard' && !!out.id, JSON.stringify(out));
-    check('on the Copilot tab', out.tab === 'copilot', out.tab);
+    /* RE-POINTED 23 Oct 2026 (Spine): while the Redlines face is up its own tab is the lit one */
+    check('on the Dossier tab, or on Redlines while its face is up', out.tab === (out.face === 'red' ? 'red' : 'copilot'), out.tab + ' · face ' + out.face);
     /* the room itself, opened the way a reader still reaches it */
     await page.evaluate(id => openWorkspace(id, { room: true }), out.id);
     await page.waitForTimeout(1200);

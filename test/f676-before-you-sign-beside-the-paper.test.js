@@ -358,7 +358,8 @@ describe('f676 (10) what the Negotiate page did, the Redlines face does too (fou
   test('10f the paper follows the face that is SHOWING, and a tab press gives it back', () => {
     assert.match(strip(fnBody(IG, 'igSignOn')), /pdSignShows\(\)/);
     assert.match(strip(fnBody(IG, 'igRedOn')), /pdRedShows\(\)&&pdRedFor\(\)===String\(p\.id\)/);
-    assert.match(strip(PD), /pdSetTab\(tab\.getAttribute\('data-pd-tab'\)\);[\s\S]{0,260}igPaintPaper\(\)/);
+    /* RE-POINTED 23 Oct 2026 (Spine): the tab's key is read first (Redlines is the face's door), then set */
+    assert.match(strip(PD), /pdSetTab\(k\);[\s\S]{0,260}igPaintPaper\(\)/);
   });
   test('10g the way back to the Clauses tab stands in Home\'s bar on that trip', () => {
     const h = strip(fnBody(APPJ, 'shellCrumbHome'));

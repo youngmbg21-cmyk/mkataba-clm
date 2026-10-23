@@ -246,7 +246,8 @@ const OBS = [
         foot: [...el.querySelectorAll('.bs-foot button')].map(b => b.textContent.trim()),
       };
     });
-    check('2a the head: the title, then "party · role · ref", the stage, ⋯; Open in Workspace the one filled button', R.head.title === 'Packaging Film Supply Agreement' && R.head.ref === 'Nordfilm Packaging AB · supplier · MK-L1' && /^In Review( · round \d+)?$/.test(R.head.pill) && R.head.dots && !R.head.x && R.head.openFilled && !R.head.actFilled, JSON.stringify(R.head));
+    /* RE-POINTED 23 Oct 2026 (owner: the other side's name is the bar's): the line under the title keeps the ref alone */
+    check('2a the head: the title, then the ref, the stage, ⋯; Open in Workspace the one filled button', R.head.title === 'Packaging Film Supply Agreement' && R.head.ref === 'MK-L1' && /^In Review( · round \d+)?$/.test(R.head.pill) && R.head.dots && !R.head.x && R.head.openFilled && !R.head.actFilled, JSON.stringify(R.head));
     check('2b gone from the card: the stage bar, the id line, the five tiles, the tall chart, the obligations table, the four Jambo tiles', !R.gone.spine && !R.gone.idline && !R.gone.tiles && !R.gone.chart && !R.gone.obTable && !R.gone.cells, JSON.stringify(R.gone));
     const nd = k => R.needs.rows.find(r => r.k === k) || {};
     check('2c Needs you leads: their asks as one row with the round, nobody named, the late obligation, the rest of the Dossier — each with its door',

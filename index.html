@@ -9497,6 +9497,8 @@
   .pd-tab-i{position:relative;display:grid;place-items:center;width:22px;height:22px}
   .pd-tab-w{font-size:10px;letter-spacing:-.01em;font-weight:var(--w-label);line-height:1.15;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .pd-tab.on .pd-tab-w{font-weight:var(--w-strong)}
+  /* Redlines on a contract nobody may negotiate: grey, its reason on hover (Spine round, 23 Oct 2026) */
+  #ig-dock .pd-tab.is-shut{color:var(--color-neutral-400);cursor:default}
   .pd-tab-n{position:absolute;top:-6px;left:13px;min-width:16px;height:16px;padding:0 4px;border-radius:9px;font-size:10px;font-weight:700;line-height:16px;text-align:center;border:2px solid var(--color-surface)}
   .pd-tab-n.is-warn{background:var(--st-amber-dot);color:#2A1B04}   /* the bell's own count dress: white on amber read 2.17:1 */
   .pd-tab-n.is-quiet{background:var(--color-neutral-200);color:var(--color-neutral-700)}
@@ -16578,12 +16580,12 @@
   #app-shell #ig-dock #pd-og.is-ck .pd-og-ok.is-word::after{inset:-2px 0}
   #app-shell #ig-dock #pd-og.is-ck .pd-ck-src .pd-ck-step{display:block;margin-top:2px;font-size:12px;color:var(--color-neutral-600);-webkit-line-clamp:1}
   /* the two groups' heads (only where the paper owes something) */
-  #app-shell #ig-dock #pd-og.is-ck tr.pd-og-sub{display:block;padding:0}
-  #app-shell #ig-dock #pd-og.is-ck tr.pd-og-sub > td{display:flex;align-items:baseline;gap:8px;height:30px;padding:10px 0 0;border:0;font-size:12px;font-weight:var(--w-label);color:var(--color-neutral-600)}
-  #app-shell #ig-dock #pd-og.is-ck tr.pd-og-sub + tr.pd-og-row{padding-top:0}
-  #app-shell #ig-dock #pd-og.is-ck tr.pd-og-sub[data-pd-og-sub="paper"] > td{height:42px;padding-top:22px}
-  #app-shell #ig-dock #pd-og.is-ck .pd-og-sub-n{margin-left:auto;font-variant-numeric:tabular-nums}
-  #app-shell #ig-dock #pd-og.is-ck .pd-og-walk{font-size:12px;margin-left:4px}
+  #app-shell #ig-dock :is(#pd-og, #pd-og-held).is-ck tr.pd-og-sub{display:block;padding:0}
+  #app-shell #ig-dock :is(#pd-og, #pd-og-held).is-ck tr.pd-og-sub > td{display:flex;align-items:baseline;gap:8px;height:30px;padding:10px 0 0;border:0;font-size:12px;font-weight:var(--w-label);color:var(--color-neutral-600)}
+  #app-shell #ig-dock :is(#pd-og, #pd-og-held).is-ck tr.pd-og-sub + tr.pd-og-row{padding-top:0}
+  #app-shell #ig-dock :is(#pd-og, #pd-og-held).is-ck tr.pd-og-sub[data-pd-og-sub="paper"] > td{height:42px;padding-top:22px}
+  #app-shell #ig-dock :is(#pd-og, #pd-og-held).is-ck .pd-og-sub-n{margin-left:auto;font-variant-numeric:tabular-nums}
+  #app-shell #ig-dock :is(#pd-og, #pd-og-held).is-ck .pd-og-walk{font-size:12px;margin-left:4px}
   /* Jambo read: the same rows, the name under the rings' column */
   #app-shell #ig-dock .pd-glance .ds-row.ds-rr{grid-template-columns:16px minmax(0,1fr) auto auto;column-gap:10px;min-height:44px}
   #app-shell #ig-dock .pd-glance .ds-row.ds-rr>.ds-nm{font-size:13.5px}
@@ -16606,6 +16608,79 @@
   #app-shell #ig-dock .ds-this > .ds-fold[open] > .ds-fam{border-top:0;padding:10px 0 0 26px}
   #app-shell #ig-dock .ds-this > .ds-fold[open] > .ds-acts-b{border-top:0;padding:10px 0 14px 26px}
   #app-shell #ig-dock .ds-this > #pd-kt[open] > .pd-kt-t{margin:4px 0 10px}
+  /* ==== SPINE (owner picked it by name, 23 Oct 2026: "i want to change the dossier panel to Spine as it is more clean";
+     replaces Marquee's headline, sentence and track) ====
+     The six stages down one thin line, each a dot, its name and what stands; a stage's work stands under it, 28 in.
+     The holders stand aside (display:contents) down to the rows, so each part takes its stage's place by order:
+     a stage's line at (n+1)·10, its work one after, the acts of the stage we are in five after (set on the card),
+     the Obligations line after Sign's work, the links last. No heading, no sentence, no line across the panel. */
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) .ds-spine.is-sp,
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) #pd-glance > .ds-owed,
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) #pd-glance > .ds-owed > .pd-gl-b,
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) #pd-glance > .ds-owed > .pd-gl-b > :is(#pd-og, #pd-og-held).is-ck,
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) #pd-glance > .ds-owed > .pd-gl-b > :is(#pd-og, #pd-og-held).is-ck > tbody{display:contents}
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) #pd-glance > .ds-owed > .pd-gl-h,
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) #pd-glance > .ds-read > .pd-gl-h{display:none}
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) :is(.ds-sp-st, [data-ds-at]){flex:none;min-width:0}
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) .ds-sp-st[data-ds-sp="arrive"]{order:10}
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) [data-ds-at="arrive"]{order:11}
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) .ds-sp-st[data-ds-sp="read"]{order:20}
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) [data-ds-at="read"]{order:21}
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) .ds-sp-st[data-ds-sp="fill"]{order:30}
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) [data-ds-at="fill"]{order:31}
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) .ds-sp-st[data-ds-sp="nego"]{order:40}
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) [data-ds-at="nego"]{order:41}
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) .ds-sp-st[data-ds-sp="sign"]{order:50}
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) [data-ds-at="sign"]{order:51}
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) [data-ds-at="ob"]{order:58}
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) .ds-sp-st[data-ds-sp="live"]{order:60}
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) [data-ds-at="live"]{order:61}
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) .ds-nx.is-mq > .ds-this.is-links[data-ds-at]{order:90}
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) .pd-dossier > .ds-read[data-ds-at]{order:21;margin:0}
+  /* the line: drawn at 7px in every part between the first dot and the last; a part under Live draws none */
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) :is(.ds-sp-st, [data-ds-at]:not([data-ds-at="links"]):not([data-ds-at="live"]), .ds-acts[data-ds-at-now], .ds-nx.is-mq > .is-ck-all){padding-left:28px;background:linear-gradient(var(--color-divider), var(--color-divider)) 7px 0/2px 100% no-repeat}
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) .ds-sp-st[data-ds-sp="arrive"]{background-position:7px 50%;background-size:2px 50%;background-position-y:100%}
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) .ds-sp-st[data-ds-sp="live"]{background-size:2px 50%;background-position-y:0}
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) [data-ds-at="live"]{padding-left:28px}
+  /* a stage's line: dot · name · what stands · its one door */
+  #app-shell #ig-dock .ds-sp-st{position:relative;display:flex;align-items:center;gap:8px;min-height:40px;margin:0}
+  #app-shell #ig-dock .ds-sp-dot{position:absolute;left:0;top:50%;width:16px;height:16px;margin-top:-8px;box-sizing:border-box;border-radius:50%;border:2px solid var(--rule-strong);background:var(--color-surface)}
+  #app-shell #ig-dock .ds-sp-st.is-done .ds-sp-dot{border-color:var(--color-text);background:var(--color-text)}
+  #app-shell #ig-dock .ds-sp-st.is-owed .ds-sp-dot{border-color:var(--st-amber-dot)}
+  #app-shell #ig-dock .ds-sp-st.is-cur .ds-sp-dot{border-color:var(--color-text);background:var(--color-text);box-shadow:inset 0 0 0 3px var(--color-surface)}
+  #app-shell #ig-dock .ds-sp-st.is-later .ds-sp-dot{border-color:var(--color-divider)}
+  #app-shell #ig-dock .ds-sp-st > b{flex:none;font-size:13.5px;line-height:20px;font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap}
+  #app-shell #ig-dock .ds-sp-st:is(.is-done, .is-later) > b{font-weight:var(--w-label);color:var(--color-neutral-600)}
+  #app-shell #ig-dock .ds-sp-st.is-cur{min-height:48px}
+  #app-shell #ig-dock .ds-sp-st.is-cur > b{font-family:var(--font-title);font-size:18px;line-height:24px;font-weight:var(--w-title-serif,var(--w-strong))}
+  #app-shell #ig-dock .ds-sp-v{flex:0 1 auto;min-width:0;font-size:12.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #app-shell #ig-dock .ds-sp-v.is-amb{color:var(--st-amber-fg)}
+  #app-shell #ig-dock .ds-sp-st > .ds-go{margin-left:auto;flex:none;font-size:12.5px;white-space:nowrap}
+  /* the stage's acts under its line; All N under them when opened */
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) .pd-nx > .ds-acts.is-mq[data-ds-at-now], #app-shell #ig-dock .pd-held-dos .ds-nx > .ds-acts.is-mq[data-ds-at-now]{margin:0;padding-top:2px;padding-bottom:12px}
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) .ds-nx.is-mq > .is-ck-all[open]{margin:0;padding-bottom:12px}
+  /* their asks, our changes not sent, the one desk's rows: under their stage, the rows' own height */
+  #app-shell #ig-dock :is(#igd-feed, .pd-held-dos) #pd-glance .pd-gl-row[data-ds-at]{border-top:0;border-bottom:0}
+  /* THE OBLIGATIONS LINE, under Sign: a row of 44 like the rest, its press the list's own panel */
+  #app-shell #ig-dock .ds-ob-line{display:flex;align-items:center;gap:10px;width:100%;height:44px;border:0;font:inherit;font-size:13.5px;color:var(--color-text);text-align:left;cursor:pointer}
+  #app-shell #ig-dock .ds-ob-line > b{flex:1 1 auto;min-width:0;font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #app-shell #ig-dock .ds-ob-line.is-late .ds-this-v{color:var(--st-amber-fg)}
+  #app-shell #ig-dock .ds-ob-line .pd-ck-chev{flex:none;width:16px;display:inline-flex;justify-content:center;color:var(--color-neutral-400)}
+  #app-shell #ig-dock .ds-ob-line .pd-ck-chev::before{content:'\203A'}
+  #app-shell #ig-dock .ds-ob-line:hover > b{text-decoration:underline;text-decoration-color:var(--rule-strong);text-underline-offset:3px}
+  #app-shell #ig-dock .ds-ob-line:focus-visible{outline:2px solid var(--accent-fill);outline-offset:-2px}
+  /* THE LINKS: Key terms · Family · Where we are · History, one row under the line, words in the accent, a count grey */
+  #app-shell #ig-dock .ds-nx.is-mq > .ds-this.is-links{display:flex;flex-wrap:wrap;align-items:center;gap:2px 16px;margin:20px 0 0;padding:0}
+  #app-shell #ig-dock .ds-this.is-links > .ds-this-r, #app-shell #ig-dock .ds-this.is-links > .ds-fold > summary{width:auto;height:28px;min-height:28px;gap:4px;font-size:12.5px}
+  #app-shell #ig-dock .ds-this.is-links > .ds-this-r > b, #app-shell #ig-dock .ds-this.is-links > .ds-fold > summary > b,
+  #app-shell #ig-dock .ds-this.is-links > .pd-kt-line > summary > span:first-child{flex:none;font-weight:var(--w-strong);color:var(--accent-ink);font-size:12.5px}
+  #app-shell #ig-dock .ds-this.is-links .ds-this-v, #app-shell #ig-dock .ds-this.is-links > .pd-kt-line > summary > .ds-when{flex:none;max-width:none;font-size:12.5px;color:var(--color-neutral-600)}
+  #app-shell #ig-dock .ds-this.is-links :is(.pd-ck-ring, .pd-ck-chev){display:none}
+  #app-shell #ig-dock .ds-this.is-links > .ds-fold > summary::after{content:none}
+  #app-shell #ig-dock .ds-this.is-links > .pd-kt-line > summary{padding-left:0}
+  #app-shell #ig-dock .ds-this.is-links > .ds-fold{flex:none}
+  #app-shell #ig-dock .ds-this.is-links > .ds-fold[open]{flex:1 0 100%;order:9}
+  #app-shell #ig-dock .ds-this.is-links > .ds-fold[open] > :is(.ds-fam, .ds-acts-b){padding-left:0}
   /* ==== HISTORY, THE SAP WAY (owner picked it by name, 21 Oct 2026; reverses "Two sides", 17 Oct) ====
      The serif "History" and its facts, Show the wording and ⋯ on the right; one band of the search and
      the five filters as labelled boxes; then ONE TABLE — Time 64 · Who 200 · Side 80 · What happened ·

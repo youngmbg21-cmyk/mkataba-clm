@@ -58,7 +58,12 @@ const MEASURE = () => {
     stage: (() => { const s = dock.querySelector('.ds-spine.is-ck'); if (!s) return null;
       return { head: (s.querySelector('.ds-ck-sh') || {}).textContent, now: (s.querySelector('.ds-ck-now') || {}).textContent,
         t: ((s.querySelector('.ds-mq-t') || {}).textContent || '').trim(), s: ((s.querySelector('.ds-mq-s') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
-        bars: s.querySelectorAll('.ds-st').length, cur: s.querySelectorAll('.ds-st.is-ck-cur').length }; })(),
+        bars: s.querySelectorAll('.ds-st').length, cur: s.querySelectorAll('.ds-st.is-ck-cur').length,
+        /* SPINE (23 Oct 2026): the six stage lines, the one we are in, nothing written under a head */
+        lines: [...s.querySelectorAll('.ds-sp-st')].filter(vis).map(x => ((x.querySelector('b') || {}).textContent || '').trim()),
+        spCur: [...s.querySelectorAll('.ds-sp-st.is-cur')].map(x => ((x.querySelector('b') || {}).textContent || '').trim()),
+        words: !!dock.querySelector('.ds-mq-t, .ds-mq-s'), party: /Bamburi/.test(s.textContent || ''),
+        needsHead: vis(dock.querySelector('#pd-needs > .pd-gl-h')) }; })(),
     head: ((dock.querySelector('#pd-needs .pd-gl-h') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
     rows: rows.map(r => ({ key: r.getAttribute('data-pd-og-row'), open: r.classList.contains('is-open'),
       h: Math.round((r.querySelector('.pd-ck-hd') || r).getBoundingClientRect().height),
@@ -111,9 +116,11 @@ const MEASURE = () => {
     console.log('\n1 · the stage line');
     /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): the stage is the headline, the sentence says who with,
        which stage and how many things need you, then six bars with ONE current */
-    check('1a "Negotiating" over "With Bamburi Cement PLC · stage 4 of 6. N things need you.", six bars, ONE current', !!m0.stage && m0.stage.t === 'Negotiating'
-      && /^With Bamburi Cement PLC · stage 4 of 6\. \d+ things? needs? you\.$/.test(m0.stage.s)
-      && m0.stage.bars === 6 && m0.stage.cur === 1, JSON.stringify(m0.stage));
+    /* RE-POINTED 23 Oct 2026 (owner picked "Spine"): no headline, no sentence, no name of the other side; the six
+       stages down the line, ONE current (Negotiate), and no "Needs you" head over the rows */
+    check('1a six stage lines down the spine, ONE current (Negotiate), no headline, sentence or party, no Needs you head', !!m0.stage
+      && m0.stage.lines.join('|') === 'Arrived|Read|Fill in|Negotiate|Sign|Live' && m0.stage.spCur.join('|') === 'Negotiate'
+      && !m0.stage.words && !m0.stage.party && !m0.stage.needsHead, JSON.stringify(m0.stage));
 
     console.log('\n2 · Needs you, one line a fact, one open');
     check('2a the head says "Needs you" with its number', /^Needs you\s*\d+/.test(m0.head), m0.head);

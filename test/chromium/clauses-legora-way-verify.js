@@ -103,8 +103,9 @@ const deal = () => ({ id: ID, contractNo: ID, name: 'Haulage Review', counterpar
       boxes: document.querySelectorAll('#pd-thread .stk-flt').length,
       tabs: [...document.querySelectorAll('#pd-thread .stk-tab')].map(b => b.textContent.replace(/\s+/g, ' ').trim()).join('|'),
       need: stkNeedCount(getContract(id)) }), ID);
-    ok('1 the head is a headline, a sentence and tabs with counts, and no count line', read && /^2 clauses need you$/.test(e1.title)
-      && /^Jambo read all 4 clauses\. Start with Payment:/.test(e1.sub) && !e1.line && e1.boxes === 0
+    /* RE-POINTED 23 Oct 2026 (owner: "below '3 clauses need you', remove all the other supporting words"): no sentence */
+    ok('1 the head is a headline and tabs with counts, no sentence and no count line', read && /^2 clauses need you$/.test(e1.title)
+      && !e1.sub && !e1.line && e1.boxes === 0
       && e1.tabs === 'All4|Needs you2|Worth a look2|Fine2' && e1.need === 2, JSON.stringify(e1));
     /* 1b THE "WORTH A LOOK" TAB narrows the list and lets go (the Severity box's act, kept) */
     const e1b = await page.evaluate(async () => {

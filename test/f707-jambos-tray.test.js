@@ -94,7 +94,8 @@ describe('f707 (2) what Jambo found, at a glance', () => {
     /* RE-POINTED 20 Oct 2026 (the Dossier, #386): the glance is the dossier;
        the obligations Jambo found are its What Jambo read row, with its door */
     const html = ctx.pdGlanceHtml(c);
-    assert.match(html, /data-pd-ds-card="read"[\s\S]*data-pd-ds="oblig"[\s\S]*ds-go/);
+    /* RE-POINTED 23 Oct 2026 (Spine): the duties on the record are the Obligations line under Sign, its press the list's own panel */
+    assert.match(html, /<button type="button" class="ds-ob-line[^"]*" data-ds-at="ob" data-pd-glance-tab="oblig">[\s\S]*?pd_ob_line_n:4/);
     for (const status of ['Signed', 'Declined'])
       assert.deepEqual(J(pdStage({ status, playbook: PB, obligations: OBS }).ctx.pdGlanceRows(pdStage({ status, playbook: PB, obligations: OBS }).c)), [], status + ': no findings rows');
     assert.deepEqual(J(pdStage({ playbook: null, obligations: [] }).ctx.pdGlanceRows(pdStage().c)), [], 'a check not run, no obligations: nothing said');
@@ -138,5 +139,32 @@ describe('f707 (2) what Jambo found, at a glance', () => {
 describe('f707 (3) a private stream\'s drop is read at once, as today (the owner kept it)', () => {
   test('3a [control] the drop still asks the reading: contractArrived passes asked for the drop area', () => {
     assert.match(CT, /submitUpload\(\{ drop:true, folder:uploadDropFolder\(h\.folder\), route:uploadRouteDefault\(\), read:true \}\)/);
+  });
+});
+
+/* SPINE (owner picked it by name, 23 Oct 2026): the tab row beside a paper is Dossier · Clauses · Redlines;
+   Redlines is grey with the Negotiate door's own reason where nobody may negotiate, and live where they may
+   (asserted both ways); the Obligations list is a panel of its own with one back to the Dossier */
+describe('f707 (9) Spine: the Redlines tab and the Obligations panel', () => {
+  test('9a Redlines is grey with its reason only where the Negotiate door is shut', () => {
+    const { ctx } = pdStage({ status: 'Signed' });
+    ctx.negoMayStart = () => ({ ok: false }); ctx.negoMayStartLine = () => 'Signed: the wording is final.';
+    const shut = ctx.pdHeadHtml('');
+    assert.match(shut, /class="pd-tab is-shut" data-pd-tab="red" aria-selected="false" aria-disabled="true"[^>]*title="Signed: the wording is final\."/);
+    ctx.negoMayStart = () => ({ ok: true });
+    const live = ctx.pdHeadHtml('');
+    assert.match(live, /class="pd-tab" data-pd-tab="red" aria-selected="false" aria-label/);
+    assert.ok(!/aria-disabled/.test(live), 'live where the door is open');
+    assert.deepEqual([...live.matchAll(/data-pd-tab="(\w+)"/g)].map(m => m[1]), ['copilot', 'doc', 'red'], 'no Obligations tab');
+  });
+  test('9b the Obligations list: its own panel, the Dossier tab lit, one back to the Dossier', () => {
+    const { ctx } = pdStage({ obligations: OBS });
+    ctx.pdObOpen();
+    assert.equal(ctx.pdTab(), 'oblig');
+    assert.match(ctx.pdHeadHtml(''), /class="pd-tab on" data-pd-tab="copilot"/);
+    const t = ctx.pdTrail();
+    assert.equal(t.back, 'oblig'); assert.deepEqual([...t.path], ['pd_tab_dossier', 'tab_obligations']);
+    assert.equal(ctx.pdTrailBack(), true);
+    assert.equal(ctx.pdTab(), 'copilot');
   });
 });
