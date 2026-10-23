@@ -3182,6 +3182,12 @@ const IGB_SPIN_KEY=['rot',null,'rotL',null,null];   // which angle each view tur
    where it is when Still is pressed. A drag still turns them as far as the
    hand takes them. */
 const IGB_SWAY=.12, IGB_SWAY_S=36;
+/* THE GRID STANDS STILL (Young, 23 Oct 2026: "make the grid just a straight
+   grid that does not move left to right or spin ... if you want to move it
+   around with your mouse then you can do so"). No sway, no turn, no jiggle;
+   a drag still turns and tips it. Turning is greyed there with the reason. */
+const IGB_STILL_VIEW=3;
+function igbMoves(){ return igbSpinning()&&igbCam().view!==IGB_STILL_VIEW; }
 /* STILL UNTIL PRESSED (Young, 10 Oct 2026: "clicking play when on screen
    otherwise it is dormant and the contracts are just flickering like in the
    Wiring screen" — for Brain, Floors, Grid and Timeline, "always open still").
@@ -3720,7 +3726,7 @@ const IG_EDGE_PARTY_KEYS=['counterparty'];
 function igEdgeNamesShow(key){ return !IG_EDGE_PARTY_KEYS.includes(key)||intel.edgeNames===true; }
 function igHubNamed(h,R){ if(!R) return true; if(R.none) return false; return (h.kids||[]).some(n=>igNameShows(n.id,R)); }
 function igbJig(n,w){
-  const j=(igbCam().jig||0)*(1-w[1]); if(j<=.001) return null;
+  const j=(igbCam().jig||0)*(1-w[1]-w[IGB_STILL_VIEW]); if(j<=.001) return null;
   if(!n._jp){ const h=igbHash(n.id); n._jp=[h%628/100,(h>>>10)%628/100,(h>>>20)%628/100,.75+(h%50)/100]; }
   const t=(IG&&IG._jt||0)*2*Math.PI/IGB_JIG_S*n._jp[3], a=IGB_JIG*j;
   return [a*Math.sin(t+n._jp[0]),a*Math.sin(t*1.3+n._jp[1]),a*Math.sin(t*.8+n._jp[2])];
@@ -3736,7 +3742,7 @@ function igbMix(n,w){
 /* THE PROJECTION — the Brain page's own: turn, tilt, a gentle perspective. */
 function igbProjector(G){
   const cam=igbCam(), w=cam.w;
-  const rot=igbDot(w,[cam.rot,cam.rotW,cam.rotL-.2,cam.rotG+(cam.sway||0),cam.rotT+(cam.sway||0)]);
+  const rot=igbDot(w,[cam.rot,cam.rotW,cam.rotL-.2,cam.rotG,cam.rotT+(cam.sway||0)]);
   const tilt=igbDot(w,[IGB_TILT[0]+cam.tiltOff,IGB_TILT[1]+cam.tiltW,IGB_TILT[2]+cam.tiltL,IGB_TILT[3]+cam.tiltG,IGB_TILT[4]+cam.tiltT]);
   /* the flat views fill the stage's width, the turning ones its height */
   const base=Math.max(1,Math.min(G.W,G.H))*.36, flat=Math.max(1,Math.min(G.W/3.6,G.H/2.1));
@@ -3764,9 +3770,9 @@ function igbStep(G,dt){
   const spin=!!cam.spin;
   cam.jig=(cam.jig||0)+(((spin||rm)?0:1)-(cam.jig||0))*(rm?1:Math.min(1,dt*2));
   G._jt=(G._jt||0)+dt;
-  if(spin&&!G.turning&&!G.hover){ const k=IGB_SPIN_KEY[cam.view]; if(k) cam[k]+=dt*IGB_TURN_RATE; else if(cam.view>=3) cam.swayT=(cam.swayT||0)+dt; }
+  if(spin&&!G.turning&&!G.hover){ const k=IGB_SPIN_KEY[cam.view]; if(k) cam[k]+=dt*IGB_TURN_RATE; else if(cam.view===4) cam.swayT=(cam.swayT||0)+dt; }
   /* Still holds the swing where it is (a pressed Still is still at once) */
-  if(spin){ const swayTo=cam.view>=3?IGB_SWAY*Math.sin((cam.swayT||0)*2*Math.PI/IGB_SWAY_S):0;
+  if(spin){ const swayTo=cam.view===4?IGB_SWAY*Math.sin((cam.swayT||0)*2*Math.PI/IGB_SWAY_S):0;
     cam.sway=(cam.sway||0)+(swayTo-(cam.sway||0))*(rm?1:Math.min(1,dt*2)); }
   const wrap=a=>Math.atan2(Math.sin(a),Math.cos(a)); ['rot','rotW','rotL','rotG','rotT'].forEach(k=>{ cam[k]=wrap(cam[k]); });
   const wk=intel.walk;
@@ -4160,7 +4166,7 @@ function igPaintFoldAll(){
 function igSetView(v){ igWake(); if(intel.tour&&intel.tour.view!==v) intel.tour=null;
   const cam=igbCam(), was=cam.view; cam.view=Math.max(0,Math.min(IGB_NV-1,Number(v)||0));
   document.querySelectorAll('[data-ig-view]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.getAttribute('data-ig-view'))===cam.view)));
-  igPaintFoldAll();
+  igPaintFoldAll(); igSpinPaint();
   /* the legend's grid and timeline rows belong to their view (stage 1) */
   if(was!==cam.view&&IG&&IG._model) renderIntelLegend(IG._model);
   /* and so do Jambo's suggestions (19 Oct 2026) */
@@ -4178,8 +4184,14 @@ function igbSpinning(){ return !!igbCam().spin; }
 function igSpinLabel(){ return IG_IC_TURN+igEsc(i18t(igbSpinning()?'int_turning':'int_still')); }
 function igSetSpin(on){
   igbCam().spin=!!on;
-  const b=document.getElementById('ig-spin'); if(b){ b.innerHTML=igSpinLabel(); b.setAttribute('aria-pressed',String(!!on)); }
+  igSpinPaint();
   igWake();
+}
+function igSpinPaint(){
+  const b=document.getElementById('ig-spin'); if(!b) return;
+  const still=igbCam().view===IGB_STILL_VIEW;
+  b.innerHTML=igSpinLabel(); b.setAttribute('aria-pressed',String(igbSpinning()));
+  b.disabled=still; if(still) b.title=i18t('int_grid_still'); else b.removeAttribute('title');
 }
 function igFaceAgain(){
   const cam=igbCam();
@@ -4574,7 +4586,7 @@ function igLoopStart(myRAF){
       while(IG._settle>0&&n<IG_SETTLE_SLICE&&(n===0||performance.now()-t0<IG_SETTLE_MS)){ igTick(); IG._settle--; n++; }
       if(IG._settle<=0&&!IG._kept) igFitView(); }
     else if(wiring&&(f++%4===0)) igTick();
-    const awake=IG._settle>0||Date.now()-_igWokeAt<IG_AWAKE_MS||!!intel.walk||igbSpinning();
+    const awake=IG._settle>0||Date.now()-_igWokeAt<IG_AWAKE_MS||!!intel.walk||igbMoves();
     igRender({ rest:!awake&&!wiring });
     if(awake){ requestAnimationFrame(step); return; }
     _igKick=step;
@@ -5533,7 +5545,7 @@ function renderIntel(){
         <div class="ig-viewbar" title="${igEsc(i18t('int_drag_nodes'))}">
           <div class="ig-seg" role="group" aria-label="${igEsc(i18t('int_view_label'))}">${IGB_VIEWS.map((v,i)=>`<button type="button" data-ig-view="${i}" aria-pressed="${igbCam().view===i}">${i18t(IGB_VIEW_WORD[v])}</button>`).join('')}</div>
           <div class="ig-seg"><button type="button" data-ig-zoom="out" aria-label="${igEsc(i18t('int_zoom_out'))}">${icon('minus','w-3.5 h-3.5')}</button><span id="ig-zv" class="ig-zv">${Math.round(igbCam().zoom*100)}%</span><button type="button" data-ig-zoom="in" aria-label="${igEsc(i18t('int_zoom_in'))}">${icon('plus','w-3.5 h-3.5')}</button></div>
-          <div class="ig-seg"><button type="button" id="ig-spin" aria-pressed="${igbSpinning()}">${igSpinLabel()}</button></div>
+          <div class="ig-seg"><button type="button" id="ig-spin" aria-pressed="${igbSpinning()}"${igbCam().view===IGB_STILL_VIEW?` disabled title="${igEsc(i18t('int_grid_still'))}"`:''}>${igSpinLabel()}</button></div>
           <div class="ig-seg"><button type="button" id="ig-foldall">${i18t('int_fold_all')}</button></div>
         </div>
         <div id="ig-paper" class="ig-paper" hidden></div>
@@ -10014,7 +10026,7 @@ Object.assign(window,{IG,IG_SUGGESTIONS,igViewSuggestions,igSugRepaint,IG_ATTN,i
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp,IG_PRE_MS,igPreOn,igPrePaint});
-Object.assign(window,{igCellFolded,igHubCellsOpen,igCellRadius,igCellsFolded,igCellOpen,igbDrawCells,igAllFolded,igFoldSaid,igFoldUnknownSaid,IG_FOLD_BUBBLE,igHubBubbles,IG_BUNDLES_MAX,igBundleSets,igBundleOf,IG_EDGE_PARTY_KEYS,igEdgeNamesShow,igbDrawBundles,igLandingSet,igLookActs,IG_CLAIM_RE,IG_RECIPE_V,IG_WHOSE_RE,IG_EDGE_RE,igSpanWords,igDecideText,igNamesRule,igNameShows,igHubNamed,igBubbleRadius,igLookRead,igDotScaleClamp,IG_DOT_SCALE_MIN,IG_DOT_SCALE_MAX,graphPartyLabel,igTapCoarse,IG_TAP_R_TOUCH,IG_TAP_SLOP_TOUCH,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igShownOf,igRecipeShown,igPaperGoClause,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
+Object.assign(window,{igCellFolded,igHubCellsOpen,igCellRadius,igCellsFolded,igCellOpen,igbDrawCells,igAllFolded,igFoldSaid,igFoldUnknownSaid,IG_FOLD_BUBBLE,igHubBubbles,IG_BUNDLES_MAX,igBundleSets,igBundleOf,IG_EDGE_PARTY_KEYS,igEdgeNamesShow,igbDrawBundles,igLandingSet,igLookActs,IG_CLAIM_RE,IG_RECIPE_V,IG_WHOSE_RE,IG_EDGE_RE,igSpanWords,igDecideText,igNamesRule,igNameShows,igHubNamed,igBubbleRadius,igLookRead,igDotScaleClamp,IG_DOT_SCALE_MIN,IG_DOT_SCALE_MAX,graphPartyLabel,igTapCoarse,IG_TAP_R_TOUCH,IG_TAP_SLOP_TOUCH,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,IGB_STILL_VIEW,igbMoves,igSpinPaint,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igShownOf,igRecipeShown,igPaperGoClause,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
 
 /* The Reminder Line (28 Sep 2026): the one reminder predicate, its first
    milestone, and the tab's press wiring. */
