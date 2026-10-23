@@ -3358,7 +3358,10 @@ function pdSignAhead(c){
    Dossier's rows, its glance, its Fill in checklist and Home's "Fill in
    details" (needsYouOf; owner, 23 Oct 2026: "count signer in both") */
 function signerOwed(c){
-  try { return pdSignAhead(c) && (typeof signBlockers === 'function') && signBlockers(c).some(b => b && b.key === 'signers'); } catch (_){ return false; }
+  /* the signing list's own condition for its "signers" row (signBlockers: not a file they sign, and
+     signingRouteMissing), asked alone — the whole list is too dear to ask of every contract in the book */
+  try { return pdSignAhead(c) && !(typeof signRouteOf === 'function' && signRouteOf(c) === 'outside')
+    && typeof signingRouteMissing === 'function' && !!signingRouteMissing(c); } catch (_){ return false; }
 }
 /* ---- THE DOSSIER (owner picked "The Dossier" by name, with 4b, the Board's
    card as its mirror, 20 Oct 2026: "build the dossier and the 4b") ----
@@ -4907,11 +4910,10 @@ function pdNeedsRows(c, o){
      2026): a piece and the rows it stands for are ONE row here as on Home —
      their redlines and his answer, a renewal and its memo (ND_MERGE) — and
      the row carries their wait and their lateness (the one desk's own row) */
-  let D = null; try { D = (typeof ndRead === 'function') ? ndRead() : null; } catch (_){ D = null; }
-  const mine = ((D && D.jambo) || []).filter(r => r && r.it && String(r.it.cid || (r.it.c && r.it.c.id) || '') === String(c.id));
+  let L = []; try { L = (typeof needsYouOf === 'function') ? (needsYouOf(c) || []) : []; } catch (_){ L = []; }
+  let mine = []; try { mine = (typeof ndJamboFor === 'function') ? (ndJamboFor(c, L) || []) : []; } catch (_){ mine = []; }
   mine.forEach(r => rows.push({ jw: true, k: r.agent, key: r.it.key, pk: r.it.kind, nd: r }));
   const merged = new Set(mine.flatMap(r => (typeof ND_MERGE !== 'undefined' && ND_MERGE[r.it.kind]) || []));
-  let L = []; try { L = (typeof needsYouOf === 'function') ? (needsYouOf(c) || []) : []; } catch (_){ L = []; }
   L = L.filter(it => it && (keepDetails || it.kind !== 'details') && !(merged.has(it.kind) && it.kind !== 'details'));
   /* THEIR REDLINES are owed after the desk's quiet standard (the owner's
      answer of 18 Oct 2026: "after 5 quiet days, unchanged"): needsYouOf's own

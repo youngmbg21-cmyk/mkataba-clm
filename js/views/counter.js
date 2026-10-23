@@ -655,6 +655,18 @@ function ndRead(){
   return D;
 }
 const ndThings = L => (L || []).reduce((s, r) => s + r.n, 0);
+/* THE ONE DESK'S JAMBO ROWS FOR ONE CONTRACT (the Dossier, beside its paper): the same pieces and the
+   same merge as ndRead (ND_MERGE: a piece carries the wait and the red of the rows it stands for), read
+   off that contract's own checklist (L, needsYouOf) — never the whole book on a paper's paint */
+function ndJamboFor(c, L){
+  const cid = String((c && c.id) || ''); if (!cid) return [];
+  const age = it => (typeof hbNyAge === 'function') ? hbNyAge(it) : null;
+  return ndPieces().filter(p => String(_ndCid(p.it)) === cid).map((p, i) => {
+    const ks = ND_MERGE[p.it.kind] || [], cov = (L || []).filter(it => it && ks.includes(it.kind));
+    const a = [ndPieceAge(p.it)].concat(cov.map(age)).filter(x => x != null);
+    return { g: 'jambo', key: 'p:' + p.it.key, kind: 'jambo', it: p.it, agent: p.agent, n: 1, late: (p.it.tone === 'ruby' || cov.some(it => it.urgent)) ? 1 : 0, age: a.length ? Math.max(...a) : null, i };
+  });
+}
 /* "2 late · the oldest has waited 8 days" — said only where there is something to say */
 function ndSumWords(D){
   const days = n => (typeof hbNyDays === 'function') ? hbNyDays(n) : String(n);
@@ -1102,5 +1114,5 @@ if (typeof document !== 'undefined' && !window._cnWired){
 
 Object.assign(window, { deskStepBack, counterWorkByAgent, cnRows, cnNeedShort, cnReqWhat, CN_REQ_WHAT_RE, counterFollow, cnLand,
   deskShellOn, DK_KEY, DK_RECENT, DK_SETTLE_MS, deskKeyNow, deskTabLabel, deskPageName, deskSheetUp, deskSheetFrom, deskSheetBackTo, deskTabsSync, deskRecentRows, deskRecentHtml, deskBarPaint, deskRecentToggle, deskBackTarget, deskGoBack, deskTabOpen, deskTabClose, deskGoCounter,
-  ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndRead, ndOnBoard, ndParts, ndSumWords, ndHomeHtml, ndPanelHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo,
+  ND_PAGE, ND_BUNDLE_MIN, ND_MERGE, ND_KINDS, ND_NEWS, ndIsNews, ndAlerts, ndAlCovered, ndPieces, ndJamboFor, ndRead, ndOnBoard, ndParts, ndSumWords, ndHomeHtml, ndPanelHtml, ndBoardHtml, ndBoardRowsHtml, ndRowsRepaint, ndShow, ndOpenBoard, ndPlace, ndPlacePut, ndBundleGo,
   CN_ROWS, renderCounter, counterHtml, counterRepaint, counterAsk, counterNeedsCount, counterPopRead, counterPopClose });

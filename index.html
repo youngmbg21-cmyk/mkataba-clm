@@ -9841,8 +9841,9 @@
   /* a row's line is read whole, wrapped (round 3 as drawn: "Prepared overnight: a counter on each redline" on two lines) */
   #ig-dock .pd-needs .pd-nd-row small{font-size:11.5px;line-height:1.4;color:var(--color-neutral-600);white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
   #ig-dock .pd-nd-row small .late{color:var(--st-amber-fg);font-weight:var(--w-label)}
-  /* the one desk's row on the Dossier (23 Oct 2026): its step tag stands off the title */
-  #ig-dock .pd-nd-row.is-jw b .nd-step{margin-left:6px}
+  /* the one desk's row on the Dossier (23 Oct 2026): its step stands off the title, UNBOXED — nothing is boxed
+     inside Jambo's panel (THE BRIEF); Home and the Board keep the tag */
+  #ig-dock .pd-nd-row.is-jw b .nd-step{margin-left:8px;border:0;padding:0;height:auto;font-weight:var(--w-label)}
   #ig-dock .pd-nd-row.is-jw{margin:-4px -8px;padding:6px 8px;border-radius:var(--radius);background:var(--color-accent-50)}
   /* ROWS RULED APART, as rounds 3 and 6 draw both cards (18 Oct 2026): a hairline between one owed thing and the next */
   #ig-dock .pd-glance .pd-gl-b>.pd-gl-row+.pd-gl-row{border-top:1px solid var(--color-divider);padding-top:8px}

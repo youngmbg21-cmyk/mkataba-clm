@@ -185,7 +185,8 @@ describe('f869 (3) the bell\'s panel, the Legora way', () => {
 
 describe('f869 (4) nobody named to sign is a detail owed, on Home as on the Dossier', () => {
   test('4a one reading, signerOwed, asked by the Dossier and by Home\'s checklist', () => {
-    assert.match(fnBody(PD, 'signerOwed'), /pdSignAhead\(c\)[\s\S]*signBlockers\(c\)\.some\(b => b && b\.key === 'signers'\)/);
+    assert.match(fnBody(PD, 'signerOwed'), /pdSignAhead\(c\)[\s\S]*signRouteOf\(c\) === 'outside'[\s\S]*signingRouteMissing\(c\)/, 'the signing list\'s own condition, asked alone');
+    assert.match(R('js/views/contract.js'), /if\(!outside\) try\{\s*if\(window\.signingRouteMissing && signingRouteMissing\(c\)\)\s*add\('signers'/, 'the same condition the signing list asks');
     assert.equal((PD.match(/const nobody = signerOwed\(c\);/g) || []).length, 3, 'the Dossier\'s three readers');
     assert.ok(!/signBlockers\(c\)\.some\(b => b && b\.key === 'signers'\)/.test(PD.replace(fnBody(PD, 'signerOwed'), '')), 'no second copy in the Dossier');
     const n = fnBody(HOME, 'needsYouOf');
@@ -193,7 +194,8 @@ describe('f869 (4) nobody named to sign is a detail owed, on Home as on the Doss
   });
   test('4b the Dossier: a piece stands for the rows it covers and the late duty it chases', () => {
     const rows = fnBody(PD, 'pdNeedsRows');
-    assert.match(rows, /ndRead\(\)/);
+    assert.match(rows, /ndJamboFor\(c, L\)/, 'its own contract\'s pieces, never the whole book on a paper\'s paint');
+    assert.match(fnBody(CN, 'ndJamboFor'), /ND_MERGE\[p\.it\.kind\]/);
     assert.match(rows, /ND_MERGE\[r\.it\.kind\]/);
     const owed = fnBody(PD, 'dossierOwed');
     assert.match(owed, /if \(asks\.length && !quiet\)/, 'their asks one by one stay (pass 3 as drawn)');

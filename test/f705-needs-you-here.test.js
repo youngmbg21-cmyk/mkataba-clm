@@ -60,7 +60,7 @@ function pdStage({ work = [], needs = [], left = 0, all = 7, paper = 'MK-1', cou
     signBlockers: () => [], negoMayStartLine: () => '', contractStatusTextHtml: () => '<span class="room-stat">In review</span>',
     /* RE-POINTED 23 Oct 2026 (the rest of Round A, the owner's pick as drawn): Jambo's pieces
        here are the one desk's (ndRead), each worded by its one builder (ndParts) */
-    ndRead: () => ({ jambo: work.map(w => ({ g: 'jambo', agent: 'round', it: { key: w.key, kind: w.kind || 'answer', cid: w.cid }, n: 1, late: 0, age: null })), you: [] }),
+    ndJamboFor: cc => work.filter(w => w.cid === cc.id).map(w => ({ g: 'jambo', agent: 'round', it: { key: w.key, kind: w.kind || 'answer', cid: w.cid }, n: 1, late: 0, age: null })),
     ND_MERGE: { answer: ['quiet'], renewal: ['renewal'], notice: ['renewal'], read: ['details'] },
     ndParts: r => ({ title: 'Piece ' + r.it.key, read: 'their changes', when: '', late: false, step: null }),
     needsYouOf: () => needs.slice(),

@@ -60,7 +60,7 @@ function stage({ notes = [], loaded = true, needs = [], asks = [], fresh = null,
     detailsOf: () => ({ left: 0, all: 4, live: true, items: [] }), signBlockers: () => [], negoMayStartLine: () => '',
     contractStatusTextHtml: () => '<span class="room-stat">In review</span>',
     /* RE-POINTED 23 Oct 2026 (the rest of Round A): Jambo's pieces here are the one desk's, worded by its one builder */
-    ndRead: () => ({ jambo: round ? [{ g: 'jambo', agent: 'round', it: { key: 'answer:MK-1', kind: 'answer', cid: 'MK-1' }, n: 1, late: 1, age: 4 }] : [], you: [] }),
+    ndJamboFor: () => round ? [{ g: 'jambo', agent: 'round', it: { key: 'answer:MK-1', kind: 'answer', cid: 'MK-1' }, n: 1, late: 1, age: 4 }] : [],
     ND_MERGE: { answer: ['quiet'], renewal: ['renewal'], notice: ['renewal'], read: ['details'] },
     ndParts: () => ({ title: 'Nordvik Logistik’s answer', step: { n: 5, of: 6 }, read: 'their changes, your standards and past deals', when: '4 days', late: true,
       line: 'Answers to their 2 redlines, read against our standards.' }),
