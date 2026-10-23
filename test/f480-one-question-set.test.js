@@ -37,7 +37,9 @@ describe('f480 (1) the saved-template fill asks which side of the money', () => 
   test('the field is the essentials\' own, not a copy', () => {
     const fill = strip(fnBody(LIB, 'openTemplateFillModal'));
     assert.match(fill, /CONTRACT_ESSENTIALS\.find\(f=>f\.key==='side'\)/);
-    assert.match(fill, /id="tf-side"/);
+    /* RE-POINTED 22 Oct 2026 (round 3 of the first-timer rounds, owner picked "Who pays whom"):
+       the same field, asked as three presses by the one builder; its box keeps the id */
+    assert.match(fill, /payWhoHtml\('tf-side', sideF\.def\|\|''\)/);
     assert.match(fill, /fs\.some\(f=>f\.maps==='category'\)/, 'and a template that asks it itself is not asked twice');
   });
   test('the answer is carried to the record through the same field', () => {

@@ -186,11 +186,17 @@ const check = (name, pass, detail) => {
     const cardsOk = g8.hubs.every(h => h.card === `${h.n} of ${h.t} uncapped · ${Math.round(h.n / Math.max(1, h.t) * 100)}%`);
     check('8b every group\'s card says how many of its contracts are uncapped, and its share', g8.hubs.length >= 3 && cardsOk && g8.hubs.some(h => h.n > 0), JSON.stringify(g8.hubs.map(h => h.label + ': ' + h.card)));
     const glow = await page.evaluate(() => new Promise(res => {
-      const ctx = IG.ctx, crg = ctx.createRadialGradient, recs = [];
+      const ctx = IG.ctx, crg = ctx.createRadialGradient, dri = ctx.drawImage, recs = [];
       ctx.createRadialGradient = function (x0, y0, r0, x1, y1, r1) { const gr = crg.apply(this, arguments), rec = { x: x0, y: y0, r: r1, cols: [] }; recs.push(rec);
         const as = gr.addColorStop.bind(gr); gr.addColorStop = (o, c) => { rec.cols.push(String(c)); return as(o, c); }; return gr; };
+      /* RE-POINTED 22 Oct 2026 (owner: "make the still map lighter"): a glow is painted once per colour
+         and stamped (igbGlowSprite), the stamp saying its colour (data-igb-glow); read as the gradient was */
+      ctx.drawImage = function (img, x, y, w, h) { const col = img && img.dataset && img.dataset.igbGlow;
+        if (col && arguments.length === 5){ const n = parseInt(col.slice(1), 16);
+          recs.push({ x: x + w / 2, y: y + h / 2, r: w / 2, cols: [`rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${this.globalAlpha})`] }); }
+        return dri.apply(this, arguments); };
       try { igWake(); } catch (_) {}
-      setTimeout(() => { ctx.createRadialGradient = crg;
+      setTimeout(() => { ctx.createRadialGradient = crg; ctx.drawImage = dri;
         /* a lobe's glow is wide and sits on the lobe's own point; amber is also the "In review" stage's
            colour, so a dot's own glow is amber too — the glow is matched to each lobe's point */
         const amberAt = h => recs.some(r => r.r >= 60 && Math.hypot(h.q[0] - r.x, h.q[1] - r.y) < 2 && /^rgba\(242,\s*178,\s*76,/.test(r.cols[0] || '') && Number((/,\s*([\d.]+)\)$/.exec(r.cols[0]) || [])[1]) >= .02);

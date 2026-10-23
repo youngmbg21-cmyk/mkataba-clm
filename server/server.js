@@ -12962,6 +12962,7 @@ function hsDoorOf(h) {
    ("how much…", "when…") is answered where it was asked. */
 const COPILOT_SHOW_RE = /\b(where|show|find|point me|take me|open|the (bit|part|clause|section|paragraph)|which (bit|part|clause|section))\b|\b(var (står|säger)|visa|hitta|klausul\w*)\b/i;
 const COPILOT_ASKS_RE = /^\s*(what|when|who|whom|how|which|why|is|are|does|do|did|can|could|should|will|would|has|have|vad|när|vem|hur|vilk\w*|varför|är|finns|kan|har)\b/i;
+const COPILOT_TELL_RE = /^\s*(?:please\s+|can you\s+|could you\s+)?(summari[sz]e|explain|describe|list|tell|compare|outline|sammanfatta|förklara|beskriv|lista|jämför|berätta)\b/i;
 function copilotQuoteDoor(cx, question, final) {
   /* a goto that only opens the contract the quote is from is sharpened to the clause (stage 3b) */
   const g0 = final && final.goto && final.goto.door;
@@ -12970,6 +12971,8 @@ function copilotQuoteDoor(cx, question, final) {
   /* the person's own words: a board note before them and the paper's wording after them are not theirs */
   const q = String(question || '').replace(/^\[The reader is on the Home board[\s\S]*?\]\n\n/, '').split('\n\n')[0].slice(0, 400);
   if (!COPILOT_SHOW_RE.test(q) && COPILOT_ASKS_RE.test(q)) return null;
+  /* a summary, an explanation or a list asked for is answered where it was asked, never a trip */
+  if (COPILOT_TELL_RE.test(q)) return null;
   const cited = (final.citations || []).filter(c => c && c.id && c.quote && !c.quoteDropped);
   const ids = [...new Set((final.citations || []).map(c => c && c.id).filter(Boolean))];
   if (ids.length !== 1) return null;

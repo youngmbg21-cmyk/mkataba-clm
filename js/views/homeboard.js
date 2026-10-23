@@ -5702,11 +5702,11 @@ function hbGiveFormHtml(p){
    ============================================================
    A press on a piece of a chart, a row of its table or a figure opens the
    contracts behind it on the RIGHT, over the page: the same list the number
-   was counted from (its ids, hbDigData), one row each. A press on a row reads
-   that contract in the same place (the contract card, hbCardHtml) with a way
-   back to the list. × or Esc closes it. Reading never writes. */
+   was counted from (its ids, hbDigData), one row each. A press on a row lands
+   on that contract's Dossier on Home (hbSheetGo — ONE DOOR, 22 Oct 2026; the
+   card it used to draw here is gone). × or Esc closes it. Reading never writes. */
 let _hbSheet = null;
-function hbSheetOpen(key, within, from){ _hbSheet = { key, cid: null, within: !!within, from: from || null }; try { hbTipHide(true); } catch (_){} hbPaintBoard(); hbSheetFocus(); }
+function hbSheetOpen(key, within, from){ _hbSheet = { key, within: !!within, from: from || null }; try { hbTipHide(true); } catch (_){} hbPaintBoard(); hbSheetFocus(); }
 /* the keyboard follows the side list in, and goes back to the door it came from */
 function hbSheetFocus(){ const a = document.querySelector('.hb-sheet'); if (a) try { a.focus({ preventScroll: true }); } catch (_){} }
 function hbSheetClose(){ const from = _hbSheet && _hbSheet.from; _hbSheet = null; hbPaintBoard();
@@ -5717,13 +5717,21 @@ function hbSheetClose(){ const from = _hbSheet && _hbSheet.from; _hbSheet = null
    drawn inside the board ended at the board's edge, under the panel and the
    page head. It lives in its own host on the page, beside the board, and
    lies on top of everything as on a laptop. */
-/* a contract read in the side list loads its whole record (the light list's
-   rule), as the board's own card always did: "Loading the whole record…"
-   never stays there for good */
-function hbSheetLoadFull(){
-  const cid = _hbSheet && _hbSheet.cid; const c = cid ? hbContract(cid) : null;
-  if (!c || !c._light || c._loaded || typeof ensureFull !== 'function') return;
-  Promise.resolve(ensureFull(c)).then(() => { if (state.view === 'dashboard' && _hbSheet && _hbSheet.cid === cid) hbPaintBoard(); }).catch(() => {});
+/* ONE DOOR (owner picked "One door" by name, 22 Oct 2026, over the side
+   list's card: "showing me a cut off card and you have to scroll to have
+   visibility"): the list no longer draws a contract card of its own — a copy
+   of the Dossier by a second builder, 615px wider than the panel with a long
+   party name. A row pressed lands on the contract's own page, Home's Dossier
+   beside the paper, through the door the card's Workspace button already
+   used; the list is put away, and the bar's ‹ brings the Board back. */
+function hbSheetGo(id){
+  if (!id) return false;
+  /* the list is put away first: Home's paper is drawn on the same page, and a
+     list left lying over it would cover the Dossier it just opened */
+  if (_hbSheet) hbSheetClose();
+  if (window.roomHomeLand && roomHomeLand(id)) return true;
+  if (typeof openWorkspace === 'function'){ openWorkspace(id); return true; }
+  return false;
 }
 function hbSheetPaint(){
   const pg = hbPage(); if (!pg) return;
@@ -5736,12 +5744,6 @@ function hbSheetHtml(){
   const s = hbS(), lens = s.lens;
   const wrap = (title, sub, body) => `<aside class="hb-sheet" role="dialog" tabindex="-1" aria-label="${_hbE(title)}"><header class="hb-sheet-h"><div><h3>${_hbE(title)}</h3>${sub ? `<p>${_hbE(sub)}</p>` : ''}</div>`
     + `<button type="button" class="hb-ib hb-sheet-x" data-hb-sheet-x title="${_hbE(i18t('hb_close_dig'))}" aria-label="${_hbE(i18t('hb_close_dig'))}">${_hbX}</button></header><div class="hb-sheet-b">${body}</div></aside>`;
-  if (_hbSheet.cid){
-    const D = hbDigData('c:' + _hbSheet.cid, lens);
-    if (D && D.card) return wrap(D.card.ref + ' · ' + D.card.name, D.card.cp || '',
-      `<button type="button" class="hb-link hb-sheet-back" data-hb-sheet-back>${_hbBack}${_hbE(i18t('hb_sheet_back'))}</button>${hbCardHtml(D.card)}`);
-    _hbSheet.cid = null;
-  }
   const D = hbDigData(_hbSheet.key, lens);
   if (!D || !Array.isArray(D.ids)){ _hbSheet = null; return ''; }
   const money = hbMoneyOk();
@@ -10274,13 +10276,12 @@ function hbOnClick(e){
   if ((el = on('[data-hm-agent]'))){ e.stopPropagation(); hbOpenAgent(el.getAttribute('data-hm-agent')); return; }
   if (on('[data-hb-sheet-x]')){ hbSheetClose(); return; }
   if (on('[data-hb-sheet-dig]')){ const S = _hbSheet; _hbSheet = null; if (S) hbDig(S.key, S.within, true); return; }
-  if (on('[data-hb-sheet-back]')){ if (_hbSheet) _hbSheet.cid = null; hbPaintBoard(); return; }
   if ((el = on('[data-hb-ag-more]'))){ const k = el.getAttribute('data-hb-ag-more'); _hbAgMore.set(k, (_hbAgMore.get(k) || 0) + HB_AG_WORK_MAX); hbPaintBoard(); return; }
-  if ((el = on('[data-hb-sheet-c]'))){ if (_hbSheet){ _hbSheet.cid = el.getAttribute('data-hb-sheet-c'); hbPaintBoard(); hbSheetLoadFull(); } return; }
+  if ((el = on('[data-hb-sheet-c]'))){ hbSheetGo(el.getAttribute('data-hb-sheet-c')); return; }
   /* a figure of Your book: the list behind it, on its own page (round 17 as drawn, hbFigDoor) */
   if ((el = on('#hb-book .hb-fig-main[data-hb-dig]')) && !el.disabled && hbFigDoor(el.getAttribute('data-hb-dig'))) return;
   /* a piece of a chart, a table row or a figure: its contracts in the side list (as drawn) */
-  if ((el = on('.hb-sheet [data-hb-dig^="c:"]')) && _hbSheet){ _hbSheet.cid = el.getAttribute('data-hb-dig').slice(2); hbPaintBoard(); hbSheetLoadFull(); return; }
+  if ((el = on('.hb-sheet [data-hb-dig^="c:"]')) && _hbSheet){ hbSheetGo(el.getAttribute('data-hb-dig').slice(2)); return; }
   if ((el = on('[data-hb-dig]')) && !el.disabled){ const sk = hbSheetKeyOf(el); if (sk){
     /* PRESS IT AGAIN AND IT CLOSES: the door that opened the side list puts it away */
     if (_hbSheet && !el.closest('.hb-sheet') && _hbSheet.from === el.getAttribute('data-hb-dig') && document.querySelector('.hb-sheet')){ hbSheetClose(); return; }
@@ -10365,7 +10366,7 @@ function hbOnKey(e){
   }
   if (e.key === 'Escape' && _hbCvShare){ _hbCvShare = false; hbPaintBoard();
     const b = document.querySelector('[data-hb-cv-act="share"]'); if (b) try { b.focus({ preventScroll: true }); } catch (_){} return; }
-  if (e.key === 'Escape' && _hbSheet && document.querySelector('.hb-sheet')){ if (_hbSheet.cid){ _hbSheet.cid = null; hbPaintBoard(); hbSheetFocus(); } else hbSheetClose(); return; }
+  if (e.key === 'Escape' && _hbSheet && document.querySelector('.hb-sheet')){ hbSheetClose(); return; }
   if (e.key === 'Escape' && _hbFigPick){ _hbFigPick = false; hbPaintBoard(); const b = document.querySelector('[data-hb-figpick]'); if (b) try { b.focus({ preventScroll: true }); } catch (_){} return; }
   if (e.key === 'Escape' && (_hbDrawnOpen || _hbToolsMenu)){
     /* the keyboard goes back to the button that opened it */
@@ -10842,7 +10843,7 @@ Object.assign(window, { hbThenDay, hbThenWord, HB_STAGE_FIG, hbStageThen, HB_FIG
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbOpenRef, HB_OPEN_REF_LEAD, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,
-  hbOblRowsHtml, hbDigBodyHtml, hbFocusHtml, hbCrumbOf, hbCardHtml, hbBarsHtml, hbPanelBodyHtml, hbPanelHtml,
+  hbOblRowsHtml, hbDigBodyHtml, hbFocusHtml, hbCrumbOf, hbCardHtml, hbSheetGo, hbBarsHtml, hbPanelBodyHtml, hbPanelHtml,
   hbBoardHtml, hbWatchFormHtml, hbWatchFired, hbGiveFormHtml, hbPaintBoard, hbPaintHead, hbApplyScreen,
   hbApplyFace, hbMount, hbAfterMount, hbRender, hbOpenExplorer, hbSetFace, hbSetLens, hbLensOnMap, hbShowOnMap, hbDig, hbAddPanel,
   hbAsk, hbFigSay, hbPanelSay, hbSuggestions, hbPlaceholder, hbWatchAlerts, hbGiftsFor, hbGiftsLoad, hbGive,

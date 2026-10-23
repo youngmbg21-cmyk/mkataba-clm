@@ -2453,6 +2453,9 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   _ceEditing = !ceUnderDeletion()
     && (wantTyping || (_ceText === _ceBase && _ceHead === _ceHeadBase));
   _ceThread = []; _ceBusy = false; _ceSel = null; _ceWhole = false;
+  /* COUNTER ON A NUMBER (round 5 of the first-timer rounds): Jambo's first line says the two
+     figures, read off the stored wording (rlPlainFigureOf); the reader types the offer — no wording proposed */
+  if (opts && opts.fact) _ceThread.push({ who: 'ai', text: String(opts.fact), read: [] });
   _ceRiskCard = null;
   _ceScan = null;
   _ceSpellList = []; _ceSpellFor = null;
