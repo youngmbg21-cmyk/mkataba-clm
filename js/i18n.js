@@ -12747,7 +12747,7 @@ const STRINGS = {
     ca_go_history: 'Opening the history of {ref}.',
     ca_go_history_all: 'Everything that happened lately, newest first.',
     ca_go_board: 'Here is the Board.',
-    ca_go_board_one: 'Here is {ref} on the Board, on its Overview.',
+    ca_go_board_for: 'Here is {ref} on the Board, on its Overview.',
     /* Needs you — Jambo's note (owner picked it by name, 15 Oct 2026) */
     ca_w_needs: 'needs me',
     ca_sl_needs: 'Needs you: what is waiting on you, oldest first',
@@ -32683,7 +32683,7 @@ const STRINGS = {
     ca_go_history: 'Öppnar historiken för {ref}.',
     ca_go_history_all: 'Allt som hänt nyligen, senaste först.',
     ca_go_board: 'Här är tavlan.',
-    ca_go_board_one: 'Här är {ref} på tavlan, på dess översikt.',
+    ca_go_board_for: 'Här är {ref} på tavlan, på dess översikt.',
     /* Behöver dig — Jambos lapp (ägaren valde den vid namn, 15 okt 2026) */
     ca_w_needs: 'väntar på mig',
     ca_sl_needs: 'Behöver dig: det som väntar på dig, äldst först',

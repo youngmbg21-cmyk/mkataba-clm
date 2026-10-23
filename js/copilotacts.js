@@ -1973,7 +1973,7 @@ function caGoSay(a){
   if (a.place === 'back'){ const p = caTrailTop(); return p ? _caT('ca_go_back', { where: caTrailLabel(p) }) : _caT('ca_go_back_none'); }
   /* a viewer's "upload" is answered with the refusal, once, where they look — not a toast beside it */
   if ((a.place === 'upload' || a.place === 'import') && !caMayAdd()){ const W = draftWallSay(); return W.head + ' ' + W.body; }
-  if (a.place === 'board' && c) return _caT('ca_go_board_one', { ref: caRef(c) });
+  if (a.place === 'board' && c) return _caT('ca_go_board_for', { ref: caRef(c) });
   const p = CA_PLACES.find(x => x.k === a.place) || {};
   return _caT('ca_go_' + a.place + (p.need === 'any' && !c ? '_all' : ''), { ref: c ? caRef(c) : '' });
 }
