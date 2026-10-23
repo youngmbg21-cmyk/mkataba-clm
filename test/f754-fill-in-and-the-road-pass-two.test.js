@@ -428,7 +428,7 @@ describe('f754 (9) the road, the third pass', () => {
   });
   test('9j beside the signing copy the name stays whole: Notes and Share keep their word in their hover on a short line', () => {
     assert.match(IX, /#ig-strip\{container:igline \/ inline-size\}/);
-    assert.match(IX, /@container igline \(max-width: 1000px\)\{\s*#ig-strip \.ig-sc ~ \.ig-acts :is\(\.ig-notes-w, \.ig-share-w\)\{display:none\}/);
+    assert.match(IX, /@container igline \(max-width: 1000px\)\{\s*#ig-strip \.ig-sc ~ \.ig-acts :is\(\.ig-notes-w, \.ig-share-w, \.ig-actions-w\)\{display:none\}/, 'Actions (23 Oct 2026) gives its word up with them');
     assert.match(IG, /<span class="ig-share-w">\$\{igEsc\(i18t\('ct_share'\)\)\}<\/span>/);
   });
 });
