@@ -302,7 +302,7 @@ function riskDismiss(c, key, back){
    What the list and the walk are showing is a fact about this sitting, never
    about the record; a refresh starts fresh, which costs nothing because
    nothing here was filed. */
-const _rk = { showDismissed: {}, showCovered: {}, opts: null, walk: null, words: {}, advice: {}, explain: {}, busy: '', err: {}, say: {}, spent: {}, whyOpen: {} };
+const _rk = { showDismissed: {}, showCovered: {}, opts: null, walk: null, words: {}, advice: {}, explain: {}, busy: '', err: {}, say: {}, spent: {} };
 
 /* WHERE A RISK'S WORDING WOULD GO, asked at the PRESS (negoClauseList may
    start a negotiation; a draw never calls this). A finding whose words are on
@@ -780,11 +780,12 @@ function _rkRowHtml(c, it){
      line, and the whole sentence is read when the card opens. */
   const full = _rkTopicText(it), shown = riskTitleOf(it);
   const long = full.trim() !== shown;
-  /* WHY FIRST (the owner's pick, 21 Oct 2026): the reason is open on landing
-     and sits under the name; a press on it goes to the clause, as the head
-     does; Hide why sits UNDER it, on the verbs' line, where Why stays when it
-     is shut. The source line is gone; its word rides the name's hover. */
-  const open = _rk.whyOpen[it.key] !== false;
+  /* WHY FIRST (the owner's pick, 21 Oct 2026): the reason is open and sits
+     under the name; a press on it goes to the clause, as the head does. The
+     source line is gone; its word rides the name's hover. NO HIDE WHY (owner,
+     23 Oct 2026: "delete the hide why feature from worth a look"): the reason
+     is always shown. */
+  const open = true;
   const hasMore = !!(why || long);
   const src = _rkT(RK_SRC_KEY[it.src]);
   const whyIn = `${long ? `<span class="rk-why-full">${_rkE(full)}</span>` : ''}${why ? `<span>${_rkE(why)}</span>` : ''}`;
@@ -795,7 +796,6 @@ function _rkRowHtml(c, it){
       <button type="button" class="rk-verb" data-rk-act="note">${_rkMark('chat')}${_rkE(_rkT('rk_note'))}</button>
       <button type="button" class="rk-verb is-no" data-rk-act="dismiss">${_rkMark('bin')}${_rkE(_rkT('ng_discard'))}</button>
       <button type="button" class="rk-verb is-ai" data-rk-act="edit-ce" title="${_rkE(_rkT('rk_edit_ce_title'))}">${_rkMark('edit')}${_rkE(_rkT('rk_edit_ce'))}</button>
-      ${hasMore ? `<button type="button" class="rk-why-btn" data-rk-act="why" aria-expanded="${open}" title="${_rkE(_rkT('rk_why_title'))}">${_rkE(_rkT(open ? 'rk_why_hide' : 'rk_why_open'))}<svg class="rk-why-i" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>` : ''}
     </div>
   </div>`;
 }
@@ -1000,24 +1000,15 @@ function rkEnsureStyle(){
   .rk-row .rk-acts .ui-link{margin-right:auto}
   .rk-head{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;min-width:0;border-radius:var(--radius)}
   .rk-head.is-door{cursor:pointer}
-  .rk-head.is-door:hover .rk-t{text-decoration:underline;text-underline-offset:2px}
   .rk-head.is-door:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
-  /* the redline card's own faint ring (.rl-card.is-linked), and no line on the paper */
-  .rk-row.is-linked{box-shadow:0 0 0 1px color-mix(in srgb, var(--accent-solid) 34%, transparent)}
+  /* ONE SHADE, ONE CARD AT A TIME (owner, 23 Oct 2026): a pressed card is shaded, never ringed — the
+     shade is index.html's "ONE SHADE" rule, shared with the redline rows */
   .rk-verbs{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:2px}
   /* EVERY CARD ONE SIZE (Young, 5 Oct 2026): the title on ONE line, its whole
      text on the hover and in the opened card; "Why" at the bottom right,
      under the severity, opens a short plain "Why it matters". */
   .rk-row .rk-top .rk-t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .rk-why-btn{margin-left:auto;display:inline-flex;align-items:center;gap:3px;height:var(--ctl-h-sm);
-    padding:0 var(--pad-ctl-x-sm);border:0;border-radius:var(--radius);background:transparent;font:inherit;
-    font-size:var(--t-meta);font-weight:var(--w-label);line-height:1;color:var(--color-neutral-600);cursor:pointer;white-space:nowrap}
-  .rk-why-btn:hover{background:var(--color-neutral-100);color:var(--color-text)}
-  .rk-why-i{flex:none;transition:transform var(--dur-1, .15s)}
-  .rk-why-btn[aria-expanded="true"] .rk-why-i{transform:rotate(180deg)}
-  @media (prefers-reduced-motion:reduce){ .rk-why-i{transition:none} }
   .rk-why.is-door{cursor:pointer}
-  .rk-why.is-door:hover span{text-decoration:underline;text-underline-offset:2px;text-decoration-color:var(--color-neutral-400)}
   .rk-why.is-door:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
   .rk-why{display:grid;gap:2px;margin-top:2px;padding:7px 9px;border-radius:var(--radius);
     background:var(--color-neutral-100);font-size:var(--t-meta);line-height:1.5;color:var(--color-text)}
@@ -1089,6 +1080,9 @@ function riskGoClause(c, key){
     return false;
   }
   page.querySelectorAll('.is-linked').forEach(n => n.classList.remove('is-linked'));
+  /* ONE CARD LIT AT A TIME (owner, 23 Oct 2026): beside Home's paper the column is not inside the paper,
+     so a redline row pressed before lets go here too */
+  document.querySelectorAll('.redline-page :is(.rl-card, .rk-row).is-linked').forEach(n => n.classList.remove('is-linked'));
   const row = document.querySelector('#rl-risks [data-rk-key="' + q(key) + '"]');
   if (row) row.classList.add('is-linked');
   let found = false;
@@ -1156,7 +1150,6 @@ if (typeof document !== 'undefined' && document.addEventListener && !document._r
     if (act === 'cov-go'){ if (typeof rlJumpToClause === 'function') rlJumpToClause(b.getAttribute('data-rk-clause')); return; }
     if (!key) return;
     if (act === 'go'){ riskGoClause(c, key); return; }
-    if (act === 'why'){ _rk.whyOpen[key] = _rk.whyOpen[key] === false; rkRepaint(c); return; }
     if (act === 'dismiss'){ riskDismiss(c, key); rkRepaint(c); return; }
     if (act === 'back'){ riskDismiss(c, key, true); rkRepaint(c); return; }
     if (act === 'note'){ riskNote(c, key); return; }
