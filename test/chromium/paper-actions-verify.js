@@ -107,6 +107,34 @@ const ID = 'MK-PA1';
       check(`6 ${w}x${hh}: Actions on the line, right of Share, one row, inside, painted, nothing sideways`, m.actions && m.rightOfShare && m.oneRow && m.inside && m.painted && m.oneLine && !side, JSON.stringify(m));
       await page.screenshot({ path: path.join(OUT, `line-${w}x${hh}.png`) });
     }
+    /* 7 THE LIST'S CLAUSE ROWS WORK FROM HERE (owner, 23 Oct 2026: "edit clause or add a clause features
+       are not working"): pressed from the list with no Redlines face opened in this sitting, both did
+       nothing at all — the editor's door is set by the Redlines mount. Now the face is opened first. */
+    console.log('\n7 · Edit clause and Add a clause, from the list');
+    await page.setViewportSize({ width: 1440, height: 780 });
+    for (const [sel, want] of [['[data-rl-edit-clause]', /1\. Term/], ['[data-rl-add-clause]', /New clause/]]) {
+      /* a refresh brings back the face that was open (pdFaceNow): put it away first, so each press starts with no Redlines mounted */
+      for (let k = 0; k < 2; k++){
+        await page.reload({ waitUntil: 'networkidle' });
+        await waitFor(page, id => typeof getContract === 'function' && !!getContract(id), 15000, ID);
+        await pause(600);
+        if (!(await page.evaluate(() => !!(window.pdRedShows && pdRedShows())))) break;
+        await page.evaluate(() => { try { pdRedClose(); } catch (_){} });
+        await pause(400);
+      }
+      await page.evaluate(id => pdOpenOnHome(id, 'copilot'), ID);
+      await waitFor(page, () => !!document.getElementById('ig-actions'), 8000);
+      const fresh = await page.evaluate(() => !(window.pdRedShows && pdRedShows()));
+      await click('#ig-actions');
+      await waitFor(page, id => { const f = pdActsFold(id); return f && f.open; }, 5000, ID);
+      await page.evaluate(s => document.querySelector('#ig-dock [data-ds-fold="acts"] ' + s)?.scrollIntoView({ block: 'center' }), sel);
+      const pressed = await click('#ig-dock [data-ds-fold="acts"] ' + sel);
+      const ed = await waitFor(page, () => { const e = document.getElementById('clause-editor'); if (!e || !e.getClientRects().length) return null;
+        const pick = e.querySelector('select'); return pick ? pick.options[pick.selectedIndex].textContent.trim() : 'open'; }, 8000);
+      check(`7 ${sel === '[data-rl-add-clause]' ? 'Add a clause' : 'Edit clause'}, pressed from the list with no Redlines open first, opens the clause editor on ${want.source.replace(/\\/g, '')}`,
+        fresh && pressed && !!ed && want.test(ed), JSON.stringify({ fresh, pressed, ed }));
+      await page.screenshot({ path: path.join(OUT, `7-${sel.replace(/\W/g, '')}.png`) });
+    }
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {
     check('the run finished', false, e && e.stack);

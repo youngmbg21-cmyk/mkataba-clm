@@ -15339,10 +15339,7 @@ function rlEditClausePress(c, btn){
   const paper = (scope.classList && scope.classList.contains('rl-face') && document.getElementById('ig-paper')) || scope;
   const id = rlClauseInView(paper) || rlFirstClauseId(c);
   if (!id){ if (window.toast) toast(i18t('ng_empty_none'), 'warn'); return false; }
-  if (btn.getAttribute('data-rl-edit-clause') === 'editor'){
-    if (!_rlEditorDoor || _rlEditorDoor.id !== c.id || typeof _rlEditorDoor.open !== 'function') return false;
-    return _rlEditorDoor.open(id);
-  }
+  if (btn.getAttribute('data-rl-edit-clause') === 'editor') return rlWithEditorDoor(c, door => door.open(id));
   if (window.rlCpSetShown) rlCpSetShown(scope, id);
   return true;
 }
@@ -15350,10 +15347,41 @@ function rlEditClausePress(c, btn){
    editor is decided (f245) — the latest wiring of this contract's page. */
 let _rlEditorDoor = null;
 function rlAddClause(c){
-  if (!c || !_rlEditorDoor || _rlEditorDoor.id !== c.id || typeof _rlEditorDoor.open !== 'function') return false;
-  const list = (typeof negoClauseList === 'function') ? negoClauseList(c) : [];
-  const last = (list || []).filter(x => x && x.clauseId).pop();
-  return _rlEditorDoor.open(null, { newClause: { afterClauseId: last ? String(last.clauseId) : '', heading: '' } });
+  if (!c) return false;
+  return rlWithEditorDoor(c, door => {
+    const list = (typeof negoClauseList === 'function') ? negoClauseList(c) : [];
+    const last = (list || []).filter(x => x && x.clauseId).pop();
+    return door.open(null, { newClause: { afterClauseId: last ? String(last.clauseId) : '', heading: '' } });
+  });
+}
+/* ---- THE EDITOR'S DOOR, FETCHED WHEN IT IS NOT YET SET (owner, 23 Oct 2026: "edit clause or
+   add a clause features are not working") ----
+   The door is set by the Redlines mount (the Negotiate page or Jambo's Redlines face). Pressed
+   from the Dossier's list of acts, or the paper line's Actions, nothing had mounted it in this
+   sitting, so both presses returned false and nothing was said. Now the face is opened through
+   its own walls (pdRedOpen → openRedlineWorkbench), the door is waited for — bounded, and
+   patient while a question of those walls is on screen — and then pressed; a door that never
+   comes says so. */
+const RL_DOOR_TRIES = 60, RL_DOOR_MS = 100, RL_DOOR_WAIT_MAX = 1200;
+function rlEditorDoorFor(c){
+  return (_rlEditorDoor && c && _rlEditorDoor.id === c.id && typeof _rlEditorDoor.open === 'function') ? _rlEditorDoor : null;
+}
+function rlWithEditorDoor(c, go){
+  const now = rlEditorDoorFor(c);
+  if (now) return go(now);
+  if (!(window.pdRedOpen && pdRedOpen(c.id))){ if (window.toast) toast(i18t('ng_editor_not_here'), 'warn'); return false; }
+  let n = 0, all = 0;
+  const wait = () => {
+    const d = rlEditorDoorFor(c);
+    if (d && window.pdRedShows && pdRedShows()){ go(d); return; }
+    /* a question the walls ask (blanks first, the review) is answered at the reader's pace */
+    const asking = !!document.querySelector('#modal-root [role="dialog"]');
+    if (!asking) n++;
+    if (n < RL_DOOR_TRIES && ++all < RL_DOOR_WAIT_MAX){ setTimeout(wait, RL_DOOR_MS); return; }
+    if (!asking && window.toast) toast(i18t('ng_editor_not_here'), 'warn');
+  };
+  setTimeout(wait, 0);
+  return true;
 }
 /* THE FIRST CLAUSE OF THE AGREEMENT, asked at the press and never at the draw.
    negoClauseList initialises the negotiation and stamps the ids, which is
