@@ -23,7 +23,13 @@ const check = (ok, what, detail) => { console.log((ok ? '  ok  ' : '  FAIL') + '
 const answer = text => [{ type: 'tool_use', id: 'tu_j', name: 'deliver_answer', input: { answer: text, citations: [] } }];
 
 /* the line, read off the painted page: present, painted (the top pixel is it), one line, inside its answer */
-const lineIn = (page, host) => page.evaluate(h => {
+/* asked for the painted state, bounded: a panel still crossfading in (faceSwap) covers the line for a beat */
+const lineIn = async (page, host) => {
+  let L = null;
+  for (let i = 0; i < 12; i++){ L = await lineOnce(page, host); if (!L.found || L.painted) return L; await page.waitForTimeout(150); }
+  return L;
+};
+const lineOnce = (page, host) => page.evaluate(h => {
   const all = [...document.querySelectorAll(h + ' [data-ai-deep]')];
   const el = all[all.length - 1];
   if (!el) return { found: false, n: 0 };
