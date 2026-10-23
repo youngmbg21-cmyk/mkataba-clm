@@ -207,12 +207,19 @@ function navRead(q, opts = {}){
     /* a Settings page asked by its exact title is sure: the Board's own guess at those words gives way */
     if (pl.nav && pl.nav.k === 'stfind' && pl.exact) return pl;
     let own = null; try { own = (typeof hbAskReadingOf === 'function') ? hbAskReadingOf(raw, 'board') : null; } catch (_){ own = null; }
-    return (own && own.road === 'free') ? null : pl;
+    if (own && own.road === 'free') return null;
+    /* the saved views ARE the Board's chips: asked there, the Board lists them with their counts, free
+       (HB_VIEWS_ASK_RE); from any other box the words take you to them */
+    if (pl.nav && pl.nav.k === 'place' && pl.nav.key === 'savedviews') return null;
+    return pl;
   }
   /* SETTINGS' BOX: a setting found by the finder is the finder's answer there; what it does not find
      ("daily brief", "my profile") is read as every box reads it */
+  /* …and an admin's page asked there by somebody who is not one is the finder's too: its card carries Ask an
+     admin (the record), where "only an admin can open that" would carry nothing */
+  const stWall = r => (opts.box === 'settings' && r && r.kind === 'navsay') ? null : r;
   let stOwn = false; if (opts.box === 'settings'){ try { stOwn = typeof stFind === 'function' && (stFind(raw) || []).length > 0; } catch (_){ stOwn = false; } }
-  return navReadPage(raw, t) || navReadStandards(raw, t) || navReadClause(raw, t) || navReadContracts(raw, t, opts) || navReadContractAct(raw, t) || (stOwn && navPlaceIsSetting(t) ? null : navReadPlace(raw, t)) || navReadParty(raw, t) || navReadPerson(raw, t) || (stOwn ? null : navReadSettings(raw, t)) || (opts.box === 'settings' ? null : navReadStTitle(raw, t)) || navReadRequest(raw, t) || navReadDuty(raw, t) || navReadNone(raw, t) || null;
+  return navReadPage(raw, t) || navReadStandards(raw, t) || navReadClause(raw, t) || navReadContracts(raw, t, opts) || navReadContractAct(raw, t) || (stOwn && navPlaceIsSetting(t) ? null : stWall(navReadPlace(raw, t))) || navReadParty(raw, t) || navReadPerson(raw, t) || (stOwn ? null : stWall(navReadSettings(raw, t))) || (opts.box === 'settings' ? null : navReadStTitle(raw, t)) || navReadRequest(raw, t) || navReadDuty(raw, t) || navReadNone(raw, t) || null;
 }
 
 /* A PAGE BY ITS EVERYDAY NAME, even with a contract open beside the reader: "all our duties" is the
@@ -342,7 +349,8 @@ function navReadStTitle(raw, t){
   }
   try { if (typeof caReadPlace === 'function' && caReadPlace(raw)) return null; } catch (_){}
   const words = t.trim().split(' ').filter(w => w && !NAV_ST_SKIP.has(w));
-  if (!words.length || words.length > 5) return null;
+  /* one loose word ("approval") is too little to choose a page by: Jambo's map asks which was meant */
+  if (words.length < 2 || words.length > 5) return null;
   let hits = []; try { hits = stFind(words.join(' ')) || []; } catch (_){ hits = []; }
   const top = hits[0]; if (!top) return null;
   /* the name itself answers every word (3 a word of its name), and nothing else answers as well */
