@@ -21503,3 +21503,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - 23 Oct 2026 — Noticed, not fixed: the playbook editor's Save (openPlaybookEditor, js/views/settings.js) ends with a bare `toast(i18t('set_t_playbook_saved'))`, which prints nothing (TOAST_KINDS) — a saved book says nothing on screen.
 - 23 Oct 2026 — Noticed, not fixed: paper-actions-verify 2a fails on main too — pressing Actions on the paper's line opens the Dossier's list of acts but the list is not brought into view ({"open":true,"inView":false,"n":19}).
 - Noticed, not fixed (23 Oct 2026, the Legora look PR #447): paper-actions-verify.js is red on GitHub at main 4733092 (shard 1/4) and passes locally on both main and the branch; and home-held-contract-verify.js is red on GitHub at main (shard 3/4). Neither is this change's.
+
+## Noticed, not fixed — 23 Oct 2026 (the Board's own helpers stay on the Board)
+- Doubtful face checks left alone (homeboard.js): with a contract brought up on the Board face, the typed readers in `hbAskReadingOf` (verified views, answer packs, stories, `hbOpenOne`) and `hbBoardReplyMeta` still read as if the charts were in front; `hbSuggestions` may offer the Board's chips; `hbShowFound` and the three AI-answer appliers beside it may draw on the Board behind the contract. Not measured as a fault; each would ask `hbBoardInFront()` if it is one.
+- CLAUDE.md grew by one MAP line (84,816 → 85,146 bytes), further past its "about 80 KB" line; a trim needs the owner's yes.
