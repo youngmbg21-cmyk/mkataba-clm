@@ -415,7 +415,7 @@ function caActOf(q){
 /* a question whose answer IS a worklist ("what is waiting for my approval") still opens it: answered where the list is */
 const CA_VAGUE_RE = /^\s*(?:the|that|this)\s+(?:(?:big|biggest|small|new|old|latest|last|first|other|main|usual)\s+)?(?:one|draft|thing|deal|contract|agreement)\s*$/i;
 const CA_WH_WORKLISTS = ['approvals', 'needs', 'requests', 'oblig', 'expiring', 'contracts', 'negotiations', 'calendar'];
-const CA_WH_Q = /^\s*(which|what|who|whom|whose|when|why|how (many|much|long|often|do|does|can)|does|do|did|is|are|can|could|should|vilk\w*|vad|vem|när|varför|hur)\b/i;
+const CA_WH_Q = /^\s*(which|what|whats|who|whos|whom|whose|when|why|how (many|much|long|often|do|does|can)|does|do|did|is|are|can|could|should|vilk\w*|vad|vem|när|varför|hur)\b/i;
 function caActRead(t){
   const send = caReadSend(t); if (send) return send;
   const job = caReadJob(t); if (job) return job;
@@ -579,7 +579,8 @@ const CA_DRAFT_OPTS = 3;
 const CA_DRAFT_BARE = /^\s*(?!(?:the|this|that|these|those|our|their|my|its|den|det|dessa|vårt|vår|våra|deras|mitt|min)\s)(?:(?:an?|new|ett|en|nytt?)\s+)?(?:[\p{L}-]+\s+){0,2}?(?:agreement|contract|nda|non-?disclosure agreement|lease|licen[cs]e|mou|sow|statement of work|addendum|amendment|avtal|kontrakt|sekretessavtal|hyresavtal|licensavtal|tillägg)(?=[\s.,!:]|$)/iu;
 const CA_DRAFT_ASKING = /\?|^\s*(?:what|which|who|whom|whose|how|when|where|why|show|list|find|open|are|is|do|does|can|vad|vilka|vilket|vilken|vem|hur|när|var|varför|visa|lista|hitta|öppna|finns)(?=[\s.,!:]|$)/i;
 /* "start negotiating the milk contract", "start signing MK-B2": an act on a contract that exists, never new paper */
-const CA_DRAFT_NOT = /\b(negotiat\w*|redlin\w*|förhandl\w*|signing|signera\w*|reviewing|granska\w*)\b/i;
+/* …and an amendment is made TO a contract that exists (its own Amend door), never new paper (stage 3d) */
+const CA_DRAFT_NOT = /\b(negotiat\w*|redlin\w*|förhandl\w*|signing|signera\w*|reviewing|granska\w*|amend\w*|ändring\w*)\b/i;
 function caIsDraftAsk(q){
   const t = String(q || '');
   if (CA_DRAFT_NOT.test(t)) return false;
@@ -2403,7 +2404,17 @@ function caContractOf(q, opts = {}){
   /* a title or a party, said in a sentence that asks for a contract */
   const asks = CA_GO_LEAD.test(t) || CA_FIND_LEAD.test(t) || CA_FIND_NOUN.test(t) || !!caContractActOf(t);
   if (!asks) return null;
-  const terms = caFindTerms(t);
+  let terms = caFindTerms(t);
+  /* THE OTHER SIDE DESCRIBED, NOT NAMED ("the contract with the retailer", stage 3d): a word after "with the" that
+     is no party's name says who they are, not what the contract is called — Jambo reads it, never a name guessed
+     off it ("retailer" found "Retail Supply"); with no engine the free reading stays */
+  if (caAiFirst()){
+    const described = [...t.toLowerCase().matchAll(/(?<!\p{L})(?:with|med)\s+(?:the|our|a|an|that|this|vår|vårt|den|det)\s+(\p{L}+)/gu)].map(x => x[1]);
+    if (described.length){
+      const partyWords = new Set(book.flatMap(c => String(c.counterparty || '').toLowerCase().split(/[^\p{L}\p{N}]+/u)));
+      terms = terms.filter(w => !(described.includes(w) && !partyWords.has(w)));
+    }
+  }
   if (!terms.length || terms.length > CA_FIND_TERMS_MAX) return null;
   const ix = caBookIndex(); if (!ix) return null;
   let hits = []; try { hits = ix.search(terms.join(' ')); } catch (_){ hits = []; }

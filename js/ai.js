@@ -2490,7 +2490,7 @@ const _localAiKey=()=>{ try{ return (typeof lsGet==='function' && lsGet('hati.v1
    that sentence tells the reader nothing they can act on. Mirrored on the
    server (same wording), so both brains fail the same way. */
 /* the server's COPILOT_NUDGE, word for word */
-const AI_NUDGE='Call deliver_answer now with your answer, in plain words, from what you have found. If you found nothing, say what you looked for.';
+const AI_NUDGE='[From HaTi, not the person] Answer the person\'s question above. Call deliver_answer now with your answer, in plain words, from what you have found. If you found nothing, say what you looked for.';
 const AI_EMPTY_ANSWER="I couldn't finish an answer to that one. Try a smaller piece of it — one contract, one date range, one counterparty — or say “portfolio health report” and I'll build the full picture as a document instead.";
 /* THE COMPANY'S RULES ARE GONE THROUGH, NEVER AROUND (owner, 17 Oct 2026):
    the browser twin of the server's AI_GOVERNANCE_RULE, word for word (f694
@@ -2539,6 +2539,15 @@ function aiGotoRun(g, q){
   const onHome=typeof state!=='undefined'&&state&&state.view==='dashboard'&&typeof intel!=='undefined';
   if(onHome){
     const line=a.kind==='go'&&typeof window.caGoSay==='function'?caGoSay(a):i18t('ca_intro_job');
+    /* ONE ASK, ONE TURN (stage 3d): a plain move made after his answer is said UNDER that answer, never as a
+       second turn that pushes the answer up out of sight; a card that waits for a press keeps its own turn */
+    const last=intel.history[intel.history.length-1];
+    if(!card&&last&&last.role==='assistant'&&!last.err&&!last.act&&String(last.text||'').trim()){
+      last.text=String(last.text)+'<div class="ig-go-said">'+line+'</div>';
+      if(typeof window.renderIntelDock==='function') try{ renderIntelDock(); }catch(_){}
+      if(typeof window.caGo==='function') caGo(a);
+      return true;
+    }
     try{ intel.history.push({ role:'assistant', text:line, act:a }); }catch(_){}
     if(typeof window.renderIntelDock==='function') try{ renderIntelDock(); }catch(_){}
     if(!card&&typeof window.caGo==='function') caGo(a);
@@ -2551,7 +2560,12 @@ const CHAT_WEEKDAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday'
 function chatTodayLine(day){
   const v=String(day||'');
   const d=(/^\d{4}-\d{2}-\d{2}$/.test(v)&&!isNaN(Date.parse(v+'T12:00:00Z')))?v:(typeof todayISO==='function'?todayISO():new Date().toISOString().slice(0,10));
-  return `TODAY: ${CHAT_WEEKDAYS[new Date(d+'T12:00:00Z').getUTCDay()]} ${d}. Read "today", "this week", "next month" and every other relative date from this day; a date before it is in the past.`;
+  /* the days left, counted here (the server's twin, word for word: stage 3d) */
+  const t0=Date.parse(d+'T12:00:00Z'), y=Number(d.slice(0,4)), m=Number(d.slice(5,7));
+  const end=(yy,mm)=>new Date(Date.UTC(yy,mm,0)).toISOString().slice(0,10);
+  const left=e=>Math.round((Date.parse(e+'T12:00:00Z')-t0)/86400000);
+  const me=end(y,m), qe=end(y,Math.ceil(m/3)*3), ye=y+'-12-31';
+  return `TODAY: ${CHAT_WEEKDAYS[new Date(d+'T12:00:00Z').getUTCDay()]} ${d}. Read "today", "this week", "next month" and every other relative date from this day; a date before it is in the past. This month ends ${me} (${left(me)} days from today), this quarter ${qe} (${left(qe)} days), this year ${ye} (${left(ye)} days): use these counts, never your own.`;
 }
 /* THE DOOR THROUGH A RULE (17 Oct 2026, the governance rule): the server's
    RULE_DOOR_KINDS / RULE_DOOR_RULES / ruleDoorOf, mirrored for local mode and

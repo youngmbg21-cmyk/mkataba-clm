@@ -1205,6 +1205,7 @@ const IG_TIME_KEYS=['decision','expiry','signed','created'];
    the map CAN do in that role (ask back, step 4). */
 const IG_NEAREST={ group:['folder','counterparty','status'], floors:['status','payterms','valueBand'], columns:['folder','counterparty','kind'], colour:['status','risk','payterms'], size:['value','obligations','same'], label:['counterparty','owner','payterms'], time:['decision','expiry','signed'] };
 const IG_UNDO_MAX=30, IG_VIEWS_KEY='hati.v1.igViews', IG_VIEWS_MAX=12, IG_TOP_DEFAULT=10;
+const IG_TOP_ONE_RE=/\b(?:biggest|largest|highest|smallest|lowest|most valuable|least valuable|största|minsta|högsta|lägsta)(?:\s+(?:one|dot|contract|deal|agreement|customer|supplier|party|counterparty|avtalet|kontraktet|affären|kunden|leverantören|pricken))?\s*\??\s*$/;
 const IG_NUM_WORDS={ one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8, nine:9, ten:10, eleven:11, twelve:12,
   en:1, ett:1, 'två':2, tre:3, fyra:4, fem:5, sex:6, sju:7, 'åtta':8, nio:9, tio:10, elva:11, tolv:12 };
 function igRecipeNow(){
@@ -1851,7 +1852,9 @@ function igRecipeParse(qRaw){
     /* a number in words counts too: "the top two by value" (bug log, 5 Oct 2026) */
     const nw=rest.match(/\b(?:top|topp|de|bottom|biggest|largest|highest|smallest|lowest|största|högsta|minsta|lägsta)\s+(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|en|ett|två|tre|fyra|fem|sex|sju|åtta|nio|tio|elva|tolv)(?![\wåäö])/);
     const nw2=nw||rest.match(/(?:^|\s)(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|en|ett|två|tre|fyra|fem|sex|sju|åtta|nio|tio|elva|tolv)\s+(?:biggest|largest|highest|smallest|lowest|least valuable|slowest|största|högsta|minsta|lägsta|långsammaste)\b/);
-    const n=Number((rest.match(/\b(\d+)\b/)||[])[1]||(nw2?IG_NUM_WORDS[nw2[1]]:0)||IG_TOP_DEFAULT);
+    /* "what is the biggest dot", "the largest deal": ONE asked for, said by name (stage 3d) — a plural or a number keeps the top ten */
+    const one=!/\b\d+\b/.test(rest)&&!nw2&&IG_TOP_ONE_RE.test(rest);
+    const n=one?1:Number((rest.match(/\b(\d+)\b/)||[])[1]||(nw2?IG_NUM_WORDS[nw2[1]]:0)||IG_TOP_DEFAULT);
     const by=/slow|pay|betal|långsam/.test(rest)?'payterms':/obligation|åtagand/.test(rest)?'obligations':/renew|förny|soonest/.test(rest)?'renewal':'value';
     const perM=rest.match(/\b(?:in each|per|for each|within each|by each|i varje|för varje|per)\s+(.+)$/); const per=perM?igFactFind(perM[1]):null;
     acts.push({ top:Object.assign({ n:Math.max(1,Math.min(200,n)), by, per:per?per.key:null }, up&&by==='value'?{ dir:'up' }:{}) });
@@ -2115,6 +2118,8 @@ function igRecipeRun(parsed, opts){
       const ids=igTopIds(t.n,t.by,t.per,base,t.dir), label=i18t(t.dir==='up'?'int_bottom_label':'int_top_label',{ n:t.n, x:igSortWord(t.by) })+(t.per?' · '+i18t('int_top_per',{ x:graphGroupingWord(t.per) }):'');
       intel.lenses=intel.lenses.filter(l=>l.action!=='filter'||l.kind==='top'?false:true); addLens({ label, ids, action:'filter' });
       intel.sortBy=t.by; lensNote=i18t('int_did_showing',{ n:ids.length, t:igBookTotal() })+' · '+label; list=ids; listTitle=label; changed=true;
+      /* one asked for is named: the dot left is said by its name and number, not only counted */
+      if(t.n===1&&ids.length===1){ const c1=getContract(ids[0]); if(c1) lensNote+=': '+[c1.name,c1.counterparty].filter(Boolean).join(' · ')+' ('+((typeof caRef==='function'&&caRef(c1))||c1.id)+')'; }
       /* CHART FIRST on the board (Young, 3 Oct 2026): the list arrives in its
          ranked order, so the List picture reads biggest (or smallest) first */
       continue; }
@@ -2400,7 +2405,10 @@ async function intelAsk(qRaw, opts){
      us" figure) is answered by the Board, free; a lens is no answer to "worth the most" (stage 3c) */
   let boardKnows=false;
   try{ const pz=(typeof window.hbParse==='function')?hbParse(q):null;
-    boardKnows=!!pz&&!(pz.act==='dig'&&/^q:/.test(String(pz.key||'')))&&!(pz.act==='lens'&&/\b(most|biggest|largest|highest|least|smallest|top|mest|störst|högst)\b/i.test(q)); }catch(_){ boardKnows=false; }
+    /* …and an AMOUNT it reads whole ("how much is signed", "how much is in drafts") is drawn by value and said with
+       its money, free (board-answers-the-question 3; stage 3d) */
+    const amount=!!(window.HB_AMOUNT_Q&&HB_AMOUNT_Q.test(q));
+    boardKnows=!!pz&&!(pz.act==='dig'&&/^q:/.test(String(pz.key||''))&&!amount)&&!(pz.act==='lens'&&/\b(most|biggest|largest|highest|least|smallest|top|mest|störst|högst)\b/i.test(q)); }catch(_){ boardKnows=false; }
   const boardQ=!boardKnows&&!!(window.caAiFirst&&caAiFirst()&&window.CA_WH_Q&&CA_WH_Q.test(q)&&!/^\s*(can|could|would|will|kan|skulle) (you|du)\b/i.test(q)&&typeof window.hbBringOf==='function'&&!hbBringOf(q));
   if(!heldId && state.view==='dashboard' && !onPaperSide && !tplAsk && !hereMap && !boardQ && typeof window.hbAsk==='function'){
     let said=null; try{ said=hbAsk(q); }catch(e){ said=null; }
@@ -2437,7 +2445,9 @@ async function intelAsk(qRaw, opts){
        board — or, with no key, to the map's filter reader, whose list the
        board draws */
     let mapListy=false;
-    if(igBoardNow()){ try{ const pz=igRecipeParse(q); mapListy=!!(pz&&pz.acts.some(x=>x.top||x.narrow||x.compare||x.linked||x.linkedParty||x.families||x.sort)); }catch(_){ mapListy=false; } }
+    /* …but a QUESTION handed to the Board's Jambo (boardQ, AI first) is his: the map's word reader read "which
+       customer is worth the most" as a lens and lit nothing (stage 3d) */
+    if(igBoardNow()&&!boardQ){ try{ const pz=igRecipeParse(q); mapListy=!!(pz&&pz.acts.some(x=>x.top||x.narrow||x.compare||x.linked||x.linkedParty||x.families||x.sort)); }catch(_){ mapListy=false; } }
     /* …and beside a page brought up on the desk (heldId) the Board is up too:
        its question goes with that contract's wording, never to the map */
     const boardUp=(!!igBoardNow()&&!IG_WALK_RE.test(q)&&!IG_OUTLIER_RE.test(q)&&!mapListy)||!!heldId;
@@ -2483,7 +2493,7 @@ async function intelAsk(qRaw, opts){
     const m=intel.history.slice(h0).reverse().find(x=>x&&x.role==='assistant'&&Array.isArray(x.listIds)&&x.listIds.length);
     if(m){ try{ hbShowFound(m.listIds, m.listTitle||'', m.listChart||null);
       /* the reply is written from what the board now draws (the honest reply) */
-      if(igBoardNow()&&typeof window.hbFoundSay==='function'){ const say=hbFoundSay(); if(say){ m.text=say; renderIntelDock(); } } }catch(_){} }
+      if(igBoardNow()&&typeof window.hbFoundSay==='function'){ const say=hbFoundSay(q); if(say){ m.text=say; renderIntelDock(); } } }catch(_){} }
     /* the Copilot reply that drew or changed the open chart carries its reading too */
     const last=intel.history.slice(h0).reverse().find(x=>x&&x.role==='assistant'&&!x.err);
     if(last&&!last.reading){ const r=rdOf(); if(r.reading){ last.reading=r.reading; renderIntelDock(); } }
@@ -2796,6 +2806,10 @@ function intelGraphApply(q, res, opts){
   if(!line&&lookDid){ if(!ownHtml||!graphSaysMore(own,res.note,'')) return { refused:false, groupBy, ids, look:true }; line=ownHtml; }
   /* asked on the Board, the map is not the screen: "Nothing changed on the
      map" is not said over an answer about the board */
+  /* A COUNT ASKED OF THE MAP AS IT STANDS ("how many contracts are on the map", stage 3d) is answered with
+     HaTi's own count of what it shows — never "Nothing changed on the map" over a question that asked no change */
+  else if(!line&&!didHere&&!onBoard&&/^\s*(?:how many|hur många)\b/i.test(String(q||''))){ const act=intelActive(); const shown=act.ids&&act.action==='filter'?act.ids.size:total;
+    line=igEsc(i18t('int_did_showing',{ n:shown, t:total })+'.')+(ownHtml?(rich?'':'<br>')+ownHtml:''); }
   else if(!line) line=didHere?(ownHtml||igEsc(res.note||'Done.')):(ownHtml&&onBoard?ownHtml:igEsc(i18t('int_did_nothing'))+(ownHtml?(rich?'':'<br>')+ownHtml:''));
   /* THE ANSWER FIRST (Young, 8 Oct 2026, "Home first"): where Copilot wrote a
      sentence that says more than the counts, the sentence IS the answer and
@@ -8654,6 +8668,9 @@ function igHeldAskId(){
 const IG_HELD_TIME_RE=/\b(?:this|next|last|denna|nästa|förra|det här|den här)\s+(?:week|month|quarter|year|vecka|veckan|månad|månaden|kvartal|kvartalet|år|året)\b|\bi\s+(?:år|dag)\b|\b(?:in|within|inom)\s+\d+\s*\p{L}+/giu;
 const IG_HELD_THIS_RE=/(?<!\p{L})(?:this|it|its|it's|denna|detta|dess|det)(?!\p{L})/iu;
 const IG_HELD_BOOK_RE=/(?<!\p{L})(?:contracts|agreements|deals|drafts|negotiations|renewals|counterparties|suppliers|customers|vendors|portfolio|board|top\s+\d+|(?:alla|vilka|våra|visa)\s+avtal|avtal\s+som|avtalen|utkasten|förhandlingar|förhandlingarna|förnyelser|motparter|motparterna|leverantörer|leverantörerna|kunder|kunderna|portföljen|tavlan)(?!\p{L})/iu;
+/* "search for…", "look for…": a search is of everything, not the paper in front (stage 3d) */
+const IG_SEARCH_ASK_RE=/^\s*(?:please\s+)?(?:search|look)\s+(?:for|up|through)\b|^\s*(?:sök|leta)\s+(?:efter|upp)?/i;
+const IG_BOOK_OURS_RE=/(?<!\p{L})(?:our|all|every|any|all of our|våra|alla)\s+(?:duties|obligations|requests|notes|templates|standards|colleagues|people|åtaganden|förfrågningar|anteckningar|mallar|kollegor)(?!\p{L})/iu;
 function igHeldAsksBook(q, heldId){
   const t=String(q||'');
   const refs=t.match(/\b(?:mk|rl)[- ]?\d+\b/gi)||[];
@@ -8675,6 +8692,9 @@ function igAsksOtherThan(q, id){
   if(refs.some(r=>!me.has(r))) return true;
   if(!refs.length&&IG_HELD_BOOK_RE.test(t.replace(IG_HELD_TIME_RE,' '))){ IG_HELD_TIME_RE.lastIndex=0; return true; }
   IG_HELD_TIME_RE.lastIndex=0;
+  /* "which of OUR duties are due soon", "all our requests": the whole of ours, unless it says "this" (stage 3d) */
+  { const u=t.replace(IG_HELD_TIME_RE,' '); IG_HELD_TIME_RE.lastIndex=0;
+    if(!refs.length&&(IG_BOOK_OURS_RE.test(u)||IG_SEARCH_ASK_RE.test(u))&&!IG_HELD_THIS_RE.test(u)) return true; }
   try{ const n=(typeof window.navNorm==='function')?navNorm(t):' '+t.toLowerCase()+' ';
     const P=(typeof window.navPartiesIn==='function')?navPartiesIn(n):[];
     const mine=String(c.counterparty||'').trim().toLowerCase();
