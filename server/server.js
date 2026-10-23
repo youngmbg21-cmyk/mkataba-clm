@@ -12518,8 +12518,22 @@ function aiDoorOf(d, cx) {
   if (k === 'contract') { const cid = cidOf(d.contractId); return cid ? { kind: k, contractId: cid, tab: AI_DOOR_TABS.includes(d.tab) ? d.tab : 'open' } : null; }
   if (k === 'clause') {
     const cid = cidOf(d.contractId); if (!cid) return null;
-    const num = /^\d{1,3}(\.\d{1,3})?$/.test(String(d.num || '').trim()) ? String(d.num).trim() : '';
-    const quote = txt(d.quote, 160), head = txt(d.head, 120);
+    let num = /^\d{1,3}(\.\d{1,3})?$/.test(String(d.num || '').trim()) ? String(d.num).trim() : '';
+    let quote = txt(d.quote, 160), head = txt(d.head, 120);
+    /* WORDS FROM A CLAUSE NAME THE CLAUSE (stage 3b): the passage that holds them gives its heading and number,
+       which is what the paper and its Clauses rows are found by */
+    if (quote && !num) {
+      try {
+        const cj = JSON.parse(db.prepare('SELECT json FROM contracts WHERE id=?').get(cid).json);
+        const nq = quoteNorm(quote).slice(0, 80);
+        const p = nq.length >= 12 ? hsPassages(hsWordingOf(cj)).find(x => quoteNorm(x.text).includes(nq)) : null;
+        if (p) {
+          if (p.head && !head) head = txt(p.head, 120);
+          const lead = /^\s*(?:clause|section|article|§|klausul|artikel)?\s*(\d{1,3})(?:[.)]|\s)/i.exec(p.head || '');
+          if (lead) num = lead[1];
+        }
+      } catch (_) {}
+    }
     return (num || quote || head) ? Object.assign({ kind: k, contractId: cid }, num ? { num } : {}, quote ? { quote } : {}, head ? { head } : {}) : null;
   }
   if (k === 'contracts') {
@@ -12537,12 +12551,23 @@ function aiDoorOf(d, cx) {
   if (k === 'person') {
     const row = ['profile', 'cap', 'access'].includes(d.row) ? d.row : 'profile';
     if (row !== 'profile' && !admin) return null;
-    const u = db.prepare('SELECT id FROM users WHERE id=?').get(txt(d.userId, 60));
+    const want = txt(d.userId, 60);
+    let u = db.prepare('SELECT id FROM users WHERE id=?').get(want);
+    /* a person named, not numbered ("grace" for Grace Wanjiru, stage 3d): the ONE colleague whose name or first
+       name it is; two who share it are no door (never a guess between them) */
+    if (!u && want) {
+      const w = want.toLowerCase();
+      const by = db.prepare('SELECT id, name FROM users').all().filter(x => { const n = String(x.name || '').trim().toLowerCase(); return n && (n === w || n.split(/\s+/)[0] === w); });
+      if (by.length === 1) u = by[0];
+    }
     return u ? { kind: k, userId: String(u.id), row } : null;
   }
   if (k === 'stream') { const id = txt(d.streamId, 40); return admin && id ? { kind: k, streamId: id, keep: !!d.keep } : null; }
   if (k === 'standard') { const book = txt(d.book, 40).toLowerCase(); const row = txt(d.row, 60); return /^[a-z0-9_-]*$/.test(book) && (book || row) ? Object.assign({ kind: k }, book ? { book } : {}, row ? { row } : {}) : null; }
   if (k === 'template') {
+    /* one of HaTi's own: its key, as its card on the shelf is keyed ("builtin:ND" → ND) */
+    const bk = txt(d.templateId, 60).replace(/^builtin:/, '');
+    if (/^[A-Z]{2,4}$/.test(bk) && SRV_TEMPLATES[bk]) return { kind: k, templateId: bk };
     let t = null; try { t = db.prepare('SELECT * FROM templates WHERE id=?').get(txt(d.templateId, 60)); } catch (_) {}
     return t && tplVisibleTo(t, cx && cx.user) ? { kind: k, templateId: String(t.id) } : null;
   }
@@ -12576,11 +12601,15 @@ const AI_GOTO_OFF_RULE = 'YOU CANNOT OPEN PAGES: when asked where something is i
    one again; the browser's twins in js/ai.js, word for word (f862) */
 const AI_BRIEF_RULE = 'A CONTRACT\'S BRIEF IS KEPT: when the person asks for a contract\'s brief or summary, or what a contract is about, do not write one yourself. HaTi keeps each contract\'s brief and shows it in the panel beside the paper: set deliver_answer\'s goto to task brief and say in one short sentence that you are opening its brief.';
 const AI_BRIEF_OFF_RULE = 'A CONTRACT\'S BRIEF IS KEPT: when the person asks for a contract\'s brief or summary, or what a contract is about, do not write one yourself. HaTi keeps each contract\'s brief beside the paper: say in one short sentence that the words “brief” and the contract\'s reference (as in “brief MK-458”) open it.';
+const AI_TASK_TAB = { amend: 'amend', sign: 'sign', redline: 'redlines', history: 'hist', fill: 'fill', oblig: 'oblig', brief: 'brief', share: 'send' };
 function aiGotoOf(g, cx) {
   if (!aiNavigateOn() || !g || typeof g !== 'object') return null;
   const task = String(g.task || '');
   /* an exact door may stand without a task: the task is only its fallback */
   const door = g.door ? aiDoorOf(g.door, cx) : null;
+  /* a contract opened with a task that is one of its own tabs ("amend" with the Westlands lease) opens THAT tab:
+     the task said where, the door said which (stage 3d) */
+  if (door && door.kind === 'contract' && (!door.tab || door.tab === 'open') && AI_TASK_TAB[task]) door.tab = AI_TASK_TAB[task];
   if (!JM_TASK_KEYS.includes(task)) return door ? { task: '', door } : null;
   if (JM_TASK_ADMIN.includes(task) && !(cx && cx.admin)) return door ? { task: '', door } : null;
   const book = (task === 'standards' && typeof g.book === 'string') ? g.book.trim().toLowerCase().slice(0, 40) : '';
@@ -12598,7 +12627,7 @@ function ruleDoorOf(d, scope) {
 }
 
 /* THE ONE SEARCH, AS A TOOL (stage 1): what the reader may see, found by words */
-const HS_TOOL_DESC = 'Search EVERYTHING in HaTi this reader may see, by words: contracts, the passages of their wording (a clause), obligations, notes, history, parties, requests, people, templates and our standards. Each hit says its kind, where it sits (contract id, a passage\'s first words in "quote") and a snippet with the matched words in [brackets]. "fixed" lists a misspelt word and the words read for it. "total" is the TRUE number of hits; "truncated" when cut at "limit". Use it to FIND anything a person names in their own words — a clause by what it means, a note, a request, a person — before saying something does not exist. Search by meaning by passing the likely words the book uses as well as theirs.';
+const HS_TOOL_DESC = 'Search EVERYTHING in HaTi this reader may see, by words: contracts, the passages of their wording (a clause), obligations, notes, history, parties, requests (what a colleague or a party has asked legal for), people (each colleague\'s name, job title and HaTi role: admin, editor or viewer), templates and our standards. Each hit says its kind, where it sits (contract id, a passage\'s first words in "quote") and a snippet with the matched words in [brackets]. "fixed" lists a misspelt word and the words read for it. "total" is the TRUE number of hits; "truncated" when cut at "limit". Use it to FIND anything a person names in their own words — a clause by what it means, a note, a request, a person, who holds a role — before saying something does not exist or that you have no tool for it; kinds with empty words lists every one of those kinds (e.g. ["person"] for every colleague). Search by meaning by passing the likely words the book uses as well as theirs.';
 const COPILOT_TOOLS = [
   { name: 'search_contracts', description: 'Full-text search the workspace by keyword, counterparty, or clause content. Returns matching contracts with a snippet, plus "total" — the TRUE number of matches in this reader\'s scope — and "truncated" when the list was cut at "limit". Use when the user names a party or topic rather than an exact id; raise "limit" (up to 40) when they ask for all of them.',
     input_schema: { type: 'object', properties: { query: { type: 'string', description: 'Keywords, counterparty name, or clause topic.' }, limit: { type: 'number', description: 'How many results to return, 1-40 (default 8).' } }, required: ['query'] } },
@@ -12668,7 +12697,18 @@ async function runCopilotTool(ctx, name, input, aux) {
   const cnHit = [a.id].concat(Array.isArray(a.ids) ? a.ids : []).map(String).find(id => ctx && ctx.cnOut && ctx.cnOut.has(id));
   if (cnHit) { const e = ctx.cnOut.get(cnHit); return { ...cnStub(cnHit, e), confidential: true, note: `${e.code} is a confidential deal: only the people named on it see it. Say so; say nothing else about it.` }; }
   try {
-    if (name === 'search_contracts') return copilotSearch(ctx, a.query, a.limit);
+    if (name === 'search_contracts') {
+      const r = copilotSearch(ctx, a.query, a.limit);
+      /* WHAT ELSE THE SAME WORDS FIND (stage 3d): a request, a person, a note, a template or a standard the
+         contract search cannot see is named beside its hits, through the one search and its walls — "the
+         distributor who wants an NDA" was answered from contracts alone while the request sat unseen */
+      try {
+        const o = hatiSearch(ctx, a.query, { kinds: ['request', 'person', 'note', 'template', 'standard'], limit: 4 });
+        if (o && o.hits && o.hits.length) r.alsoFound = { note: 'Not contracts, found by the same words: requests (asks still waiting on legal), people, notes, templates, standards. When the question is about someone who asked for, wants or needs something, the answer is usually one of these; search_hati reads more.',
+          hits: o.hits.map(h => ({ kind: h.kind, ref: h.ref, title: h.title, snippet: h.snippet, ...(h.status ? { status: h.status } : {}) })) };
+      } catch (_) { /* the contract hits stand alone */ }
+      return r;
+    }
     if (name === 'search_hati') return hatiSearch(ctx, a.words, { kinds: a.kinds, limit: a.limit });
     if (name === 'get_obligations') return copilotObligations(ctx, a);
     if (name === 'get_contract_history') return copilotHistory(ctx, a.id);
@@ -12780,7 +12820,13 @@ function chatTodayLine(day) {
   const n = new Date();
   const d = (/^\d{4}-\d{2}-\d{2}$/.test(v) && !isNaN(Date.parse(v + 'T12:00:00Z'))) ? v
     : `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
-  return `TODAY: ${CHAT_WEEKDAYS[new Date(d + 'T12:00:00Z').getUTCDay()]} ${d}. Read "today", "this week", "next month" and every other relative date from this day; a date before it is in the past.`;
+  /* THE DAYS LEFT, COUNTED HERE (stage 3d): the fast model counted 67 days to the quarter's end where there were 69,
+     and "which contracts end this quarter" found none — the ends and the days to them are said, never counted by it */
+  const t0 = Date.parse(d + 'T12:00:00Z'), y = Number(d.slice(0, 4)), m = Number(d.slice(5, 7));
+  const end = (yy, mm) => new Date(Date.UTC(yy, mm, 0)).toISOString().slice(0, 10);
+  const left = e => Math.round((Date.parse(e + 'T12:00:00Z') - t0) / 86400000);
+  const me = end(y, m), qe = end(y, Math.ceil(m / 3) * 3), ye = y + '-12-31';
+  return `TODAY: ${CHAT_WEEKDAYS[new Date(d + 'T12:00:00Z').getUTCDay()]} ${d}. Read "today", "this week", "next month" and every other relative date from this day; a date before it is in the past. This month ends ${me} (${left(me)} days from today), this quarter ${qe} (${left(qe)} days), this year ${ye} (${left(ye)} days): use these counts, never your own.`;
 }
 /* WHAT THE CHAT CANNOT DO WITH SOMEBODY'S CALENDAR, said rather than guessed
    (owner, 18 Oct 2026): it has no tool onto a person's own events and books
@@ -12845,7 +12891,7 @@ ${guideRules}
 
 HOW TO WORK:
 - Use the tools to fetch real data before answering. Never state a value, date, party, clause or finding you have not fetched. If you cannot find something, say so plainly.
-- To answer about a specific contract, call get_contract first. For "compare X and Y", call compare_contracts. For portfolio-wide questions, use list_portfolio. When the user names a party or topic instead of an id, use search_contracts. To FIND anything a person describes in their own words — a clause by what it means, a note, a request, a person, a template, a standard — use search_hati with their words AND the likely words the book uses; never say something does not exist until search_hati has looked.
+- To answer about a specific contract, call get_contract first. For "compare X and Y", call compare_contracts. For portfolio-wide questions, use list_portfolio. When the user names a party or topic instead of an id, use search_contracts. To FIND anything a person describes in their own words — a clause by what it means, a note, a request, a person (and who holds a role: an admin, an editor), a template, a standard — use search_hati with their words AND the likely words the book uses; never say something does not exist until search_hati has looked, and never that you have no tool for it. The book's wording, names and parties are mostly in English: when the person writes in another language, search with the English words too (e.g. "leveransavtalet" → supply agreement, "uppsägning" → termination).
 - A REQUEST FOR THE WHOLE BOOK ("list all the contracts", "everything", "how many contracts do we have"): call list_portfolio ONCE, quote its "total" (or the VALUE UNDER MANAGEMENT figure for a money ask), cite at most the first page, set wholeBook to true on deliver_answer so the reader gets a door onto the Contracts page — which IS the full list, sorted and counted — and never page through the book to list it in chat.
 - QUESTIONS ABOUT OUR STANDARDS OR THE PLAYBOOK are answered from the review the workspace already holds. get_contract carries it as "standardsReview" — the playbook it was checked against, when, and every verdict — and it is the SAME review the reader has open in their Playbook review panel. Quote it, NAME THE PLAYBOOK, and say when it was run. Never re-judge a contract that has one, and never work out for yourself which playbook applies: if what you would have said differs from the review on the record, the review is what the reader is looking at. Where a contract has none, check_against_playbook runs one and says so — report it as a fresh check rather than as what their panel shows.
 - QUESTIONS ABOUT EDITS, ADDITIONS, ROUNDS OR VERSIONS are answered from get_contract's "negotiation" block — it carries every tracked change with its id, clause, who proposed it, its status, who decided it and any reason given, plus the round, whose turn it is and the version history. Count and quote from that rather than guessing, and say plainly if a contract has no negotiation on it. If "changesOmitted" is above zero the list was capped — say so rather than reporting the visible ones as the total.
@@ -12931,7 +12977,8 @@ const COPILOT_EMPTY_ANSWER = "I couldn't finish an answer to that one. Try a sma
    (copilotNudge); (2) the last step must deliver (copilotLastStep); (3) where
    there is still no answer, the reason is said and the nearest things the one
    search finds are offered as 2-4 doors, with a retry (copilotWayForward). */
-const COPILOT_NUDGE = 'Call deliver_answer now with your answer, in plain words, from what you have found. If you found nothing, say what you looked for.';
+/* said as HaTi's, never the person's: a bare "Call deliver_answer now" after their question was read as their words ("You've asked me to call deliver_answer, but there's no question", stage 3d) */
+const COPILOT_NUDGE = '[From HaTi, not the person] Answer the person\'s question above. Call deliver_answer now with your answer, in plain words, from what you have found. If you found nothing, say what you looked for.';
 function copilotNudge(working, words) {
   const say = words || COPILOT_NUDGE;
   /* an empty assistant turn is not sent back; the nudge rides the last user turn (a tool result) or stands alone */
@@ -12944,9 +12991,12 @@ function copilotNudge(working, words) {
 /* the last step must answer (measured: making EVERY step use a tool sent a confused model searching to the
    eighth call, 22 Oct 2026; a question asked back in plain words is asked to come with its choices instead) */
 const copilotLastStep = step => (step === AI_CHAT_STEPS - 1 ? { tool_choice: { type: 'tool', name: 'deliver_answer' } } : {});
-const COPILOT_CHOICES_NUDGE = 'You asked the person which they meant. Call deliver_answer now with that short question as the answer and 2-4 choices, each the exact door it opens.';
+const COPILOT_CHOICES_NUDGE = '[From HaTi, not the person] Call deliver_answer now. If more than one thing could be meant, search, then give a short question as the answer with 2-4 choices, each the exact door it opens (name them; never "I haven\'t asked"). If you know what is meant, give the answer itself.';
 /* a reply in plain words that asks the person back ("which one…?") */
-const copilotAsksBack = txt => /\?\s*$|\?\s*\n/.test(String(txt || '')) && /\b(which|what|who|did you mean|do you mean|vilk|menade)\b/i.test(String(txt || ''));
+/* …or offers what it could do next ("Would you like me to: 1 … 2 …", "Vill du att jag …"), with or without its "?" (stage 3d) */
+const copilotAsksBack = txt => { const t = String(txt || '');
+  return (/\?\s*$|\?\s*\n/.test(t) && /\b(which|what|who|did you mean|do you mean|vilk|menade)\b/i.test(t))
+    || ((/\?/.test(t) || /\n\s*\d+[.)]\s/.test(t)) && /\b(would you like|do you want|shall i|should i|vill du|ska jag)\b/i.test(t)); };
 /* what each kind of hit opens, as a goto door (aiDoorOf checks it again) */
 function hsDoorOf(h) {
   if (!h) return null;
@@ -12968,10 +13018,13 @@ function hsDoorOf(h) {
    no place itself — resting on the quote the server has just checked, never on a guess. A plain question
    ("how much…", "when…") is answered where it was asked. */
 const COPILOT_SHOW_RE = /\b(where|show|find|point me|take me|open|the (bit|part|clause|section|paragraph)|which (bit|part|clause|section))\b|\b(var (står|säger)|visa|hitta|klausul\w*)\b/i;
-const COPILOT_ASKS_RE = /^\s*(what|when|who|whom|how|which|why|is|are|does|do|did|can|could|should|will|would|has|have|vad|när|vem|hur|vilk\w*|varför|är|finns|kan|har)\b/i;
+const COPILOT_ASKS_RE = /^\s*(what|whats|when|who|whos|whom|how|which|why|is|are|does|do|did|can|could|should|will|would|has|have|vad|när|vem|hur|vilk\w*|varför|är|finns|kan|har)\b/i;
 const COPILOT_TELL_RE = /^\s*(?:please\s+|can you\s+|could you\s+)?(summari[sz]e|explain|describe|list|tell|compare|outline|sammanfatta|förklara|beskriv|lista|jämför|berätta)\b/i;
 function copilotQuoteDoor(cx, question, final) {
-  if (!final || final.goto || final.choices) return null;
+  /* a goto that only opens the contract the quote is from is sharpened to the clause (stage 3b) */
+  const g0 = final && final.goto && final.goto.door;
+  const sharpen = !!(g0 && g0.kind === 'contract' && ['open', 'dossier', 'clauses'].includes(g0.tab || 'open'));
+  if (!final || (final.goto && !sharpen) || final.choices) return null;
   /* the person's own words: a board note before them and the paper's wording after them are not theirs */
   const q = String(question || '').replace(/^\[The reader is on the Home board[\s\S]*?\]\n\n/, '').split('\n\n')[0].slice(0, 400);
   if (!COPILOT_SHOW_RE.test(q) && COPILOT_ASKS_RE.test(q)) return null;
@@ -12981,14 +13034,29 @@ function copilotQuoteDoor(cx, question, final) {
   const ids = [...new Set((final.citations || []).map(c => c && c.id).filter(Boolean))];
   if (ids.length !== 1) return null;
   const cj = copilotGetJson(cx, ids[0]); if (!cj) return null;
-  if (cited.length){
-    const nq = quoteNorm(cited[0].quote);
+  /* no quote cited, but one written into the answer's own words ("> "The buyer shall pay…"") is tried the same way */
+  if (!cited.length){
+    for (const m of String(final.answer || '').matchAll(/["“]([^"“”]{25,300})["”]/g)) cited.push({ id: ids[0], quote: m[1] });
+  }
+  for (const cq of cited.slice(0, 4)){
+    const nq = quoteNorm(cq.quote);
     const p = hsPassages(hsWordingOf(cj)).find(x => quoteNorm(x.text).includes(nq));
-    if (p){
+    if (p && (!sharpen || g0.contractId === cj.id) && (COPILOT_SHOW_RE.test(q) || !COPILOT_ASKS_RE.test(q))){
       const door = aiDoorOf({ kind: 'clause', contractId: cj.id, quote: p.text.replace(/\s+/g, ' ').slice(0, 120), ...(p.head ? { head: p.head } : {}) }, cx);
       if (door) return { task: '', door };
     }
   }
+  /* NO QUOTE THAT PLACES IT ("how long does it run, show me" answered "two years from signature", nothing quoted):
+     asked to SHOW, the passage the answer's own words stand in opens — only the one passage that holds clearly
+     more of the answer's rarer words than any other; a tie or nothing opens nothing (stage 3d) */
+  if (COPILOT_SHOW_RE.test(q) && (!sharpen || g0.contractId === cj.id)) {
+    const p = copilotPassageOf(cj, String(final.answer || '') + ' ' + q);
+    if (p) {
+      const door = aiDoorOf({ kind: 'clause', contractId: cj.id, quote: p.text.replace(/\s+/g, ' ').slice(0, 120), ...(p.head ? { head: p.head } : {}) }, cx);
+      if (door) return { task: '', door };
+    }
+  }
+  if (sharpen) return null;
   /* NAMED AND NOT ASKED ("opne MK-A1", "the kabras suger deal"): an ask that only names one contract — by its
      number, or a word of its name or party written near enough — and whose answer rests on that contract alone,
      opens it */
@@ -13001,6 +13069,121 @@ function copilotQuoteDoor(cx, question, final) {
   const door = aiDoorOf({ kind: 'contract', contractId: cj.id, tab: 'open' }, cx);
   return door ? { task: '', door } : null;
 }
+const COPILOT_PASSAGE_STOP = new Set(('this that with from have will shall each into also than then them they your what when where does show says said about here there which would could should '
+  + 'agreement contract party parties clause section article page these those their under other only been being were within upon such hereby').split(' '));
+function copilotPassageOf(cj, text) {
+  const P = hsPassages(hsWordingOf(cj)); if (P.length < 2) return null;
+  const own = new Set(String([cj.id, cj.contractNo, cj.name, cj.counterparty].filter(Boolean).join(' ')).toLowerCase().split(/[^\p{L}\p{N}]+/u));
+  const words = [...new Set(String(text || '').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(w => w.length >= 4 && !COPILOT_PASSAGE_STOP.has(w) && !own.has(w)))].map(w => hsRoot(w));
+  if (!words.length) return null;
+  const texts = P.map(p => ' ' + String(p.text || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ') + ' ');
+  const has = (tx, w) => tx.includes(' ' + w);
+  const weight = w => { const df = texts.filter(tx => has(tx, w)).length; return df ? Math.log(1 + P.length / df) : 0; };
+  const W = new Map(words.map(w => [w, weight(w)]));
+  const scored = texts.map((tx, i) => ({ i, s: words.reduce((a, w) => a + (has(tx, w) ? W.get(w) : 0), 0) })).sort((a, b) => b.s - a.s);
+  if (!scored[0].s || (scored[1] && scored[1].s * 1.5 > scored[0].s)) return null;
+  return P[scored[0].i];
+}
+/* WHAT THE TURN READ, kept beside it (stage 3b): the contracts Jambo opened and the last list he was given */
+function copilotTurnNote(turn, name, out) {
+  try {
+    if (!turn || !out || typeof out !== 'object') return out;
+    const keep = r => { if (r && r.id && r.found !== false && !r.confidential) turn.read.set(String(r.id), r); };
+    if (name === 'get_contract') keep(out);
+    if (name === 'compare_contracts' && Array.isArray(out.contracts)) out.contracts.forEach(keep);
+    if (name === 'list_portfolio' && Array.isArray(out.contracts)) turn.list = { ids: out.contracts.map(r => String(r.id)), total: out.total, truncated: !!out.truncated };
+  } catch (_) {}
+  return out;
+}
+/* AN ANSWER NAMES ITS SOURCE (stage 3b): an answer that names a contract Jambo read this turn, by its number or
+   its name, and cites nothing, cites it — the reader is never left without the paper it rests on */
+function copilotTurnSources(cx, question, final, turn) {
+  if (!final || (final.citations && final.citations.length) || !turn || !turn.read.size || final.choices) return;
+  const a = String(final.answer || '').toLowerCase();
+  const hits = [...turn.read.values()].filter(r => [r.id, r.contractNo, r.name].filter(Boolean).some(x => String(x).length >= 4 && a.includes(String(x).toLowerCase())));
+  if (hits.length && hits.length <= 3) final.citations = hits.map(r => ({ id: String(r.id), quote: '' })).filter(c => idInScope(cx.scope, c.id));
+}
+/* A LIST ASKED FOR, NOT A QUESTION ("signed contracts", "undertecknade avtal"): the list Jambo was given opens
+   on Contracts, exactly those rows, when he named no place himself (stage 3b) */
+function copilotListDoor(cx, question, final, turn) {
+  if (!final || final.goto || final.choices || !turn || !turn.list || turn.list.truncated) return null;
+  const q = String(question || '').replace(/^\[The reader is on the Home board[\s\S]*?\]\n\n/, '').split('\n\n')[0].slice(0, 400);
+  if (COPILOT_ASKS_RE.test(q) && !COPILOT_SHOW_RE.test(q)) return null;
+  const ids = turn.list.ids.slice(0, 200);
+  if (ids.length < 2) return null;
+  /* ONE THING ASKED, SEVERAL FOUND (stage 3d): "the draft", "something about Naivas" ask for one, not a list —
+     two to four are offered as "which did you mean", each its own contract (AI_CLARIFY_RULE kept on the server) */
+  if (!COPILOT_LIST_ASK_RE.test(q)) {
+    if (ids.length <= 4) { const choices = copilotChoicesOf(cx, ids); if (choices.length >= 2) final.choices = choices; }
+    /* …and a list nobody asked for ("the big one" read the whole book) is never opened as the answer */
+    return null;
+  }
+  const door = aiDoorOf({ kind: 'contracts', ids }, cx);
+  return door ? { task: '', door } : null;
+}
+/* each contract its own choice: its name and number, the door the wall lets this reader stand at */
+function copilotChoicesOf(cx, ids) {
+  return ids.map(id => { const cj = copilotGetJson(cx, id); const door = cj ? aiDoorOf({ kind: 'contract', contractId: String(cj.id), tab: 'open' }, cx) : null;
+    return door ? { label: [cj.name, cj.contractNo || cj.id].filter(Boolean).join(' · ').replace(/[\u0000-\u001f<>{}]/g, ' ').slice(0, 80), door } : null; }).filter(Boolean);
+}
+/* ONE THING ASKED, SEVERAL GIVEN (stage 3d): an ask that is no question and no list ("the draft", "something
+   about Naivas") answered with a list door, or with words naming two to four contracts and no door, becomes
+   "which did you mean" with each as a choice — the model's own guess of a list is not what was asked */
+function copilotOneOfMany(cx, question, final) {
+  if (!final || final.choices || final.retry || final.unfinished || final.empty) return;
+  const q = String(question || '').replace(/^\[The reader is on the Home board[\s\S]*?\]\n\n/, '').split('\n\n')[0].slice(0, 400);
+  if (COPILOT_LIST_ASK_RE.test(q) || COPILOT_ASKS_RE.test(q) || COPILOT_TELL_RE.test(q)) return;
+  const d = final.goto && final.goto.door;
+  let ids = null;
+  if (d && d.kind === 'contracts' && !d.ending) {
+    ids = Array.isArray(d.ids) ? d.ids : copilotRows(cx).filter(c => (!d.stage || c.status === d.stage) && (!d.stream || c.folder === d.stream)
+      && (!d.party || String(c.counterparty || '').trim().toLowerCase() === String(d.party).trim().toLowerCase()) && !c.archived).map(c => String(c.id));
+  } else if (!final.goto) {
+    ids = [...new Set((final.citations || []).map(c => c.id).concat(String(final.answer || '').match(/\b[A-Z]{2,4}-[A-Z0-9]*\d[A-Z0-9]*\b/g) || []))]
+      .map(id => { const cj = copilotGetJson(cx, id); return cj ? String(cj.id) : null; }).filter(Boolean);
+    ids = [...new Set(ids)];
+  }
+  if (!ids || ids.length < 2 || ids.length > 4) return;
+  const choices = copilotChoicesOf(cx, ids);
+  if (choices.length < 2) return;
+  final.choices = choices;
+  if (d) delete final.goto;
+}
+/* A QUESTION STAYS AN ANSWER (AI_GOTO_RULE, kept on the server; stage 3d): a plain question ("when does the
+   Westlands lease end", "när löper hyresavtalet ut") answered in words is not also a trip to the contract or one
+   of its clauses — the answer's card is the way there, and the trip's line would stand over the answer; a tab
+   asked about (its history, signing, compare …) still opens, and "where / show me" still goes */
+/* THE TEMPLATE HE NAMED (stage 3d): a trip to our paper (task ourpaper) with no door, whose answer names one of
+   our templates by its whole name, opens on that template — the first one named — never the shelf's first card */
+function copilotTemplateDoor(cx, final) {
+  const g = final && final.goto; if (!g || g.task !== 'ourpaper' || g.door) return;
+  const said = String(final.answer || '').toLowerCase(); if (!said) return;
+  const names = Object.entries(SRV_TEMPLATES || {}).map(([k, t]) => ({ id: 'builtin:' + k, name: String((t && t.name) || '') }));
+  try { db.prepare('SELECT id, name FROM templates').all().forEach(t => names.push({ id: String(t.id), name: String(t.name || '') })); } catch (_) {}
+  const hit = names.filter(x => x.name.length >= 6 && said.includes(x.name.toLowerCase())).sort((a, b) => said.indexOf(a.name.toLowerCase()) - said.indexOf(b.name.toLowerCase()))[0];
+  const door = hit ? aiDoorOf({ kind: 'template', templateId: hit.id }, cx) : null;
+  if (door) g.door = door;
+}
+/* "THE draft" IS ONE THAT EXISTS (stage 3d): an ask that begins "the / this / our …" names paper already in the book,
+   so a trip to the new-paper form (task draft) is no answer to it — the same reading the free reader makes
+   (CA_DRAFT_BARE refuses "the …") */
+function copilotNotNewPaper(question, final) {
+  const g = final && final.goto; if (!g || g.task !== 'draft' || g.door) return;
+  const q = String(question || '').replace(/^\[The reader is on the Home board[\s\S]*?\]\n\n/, '').split('\n\n')[0].slice(0, 400);
+  if (/^\s*(?:the|this|that|these|those|our|their|my|its|den|det|dessa|vårt|vår|våra|mitt|min)\s/i.test(q)) delete final.goto;
+}
+function copilotQuestionStays(question, final) {
+  const d = final && final.goto && final.goto.door; if (!d) return;
+  const q = String(question || '').replace(/^\[The reader is on the Home board[\s\S]*?\]\n\n/, '').split('\n\n')[0].slice(0, 400);
+  if (!COPILOT_ASKS_RE.test(q) || COPILOT_SHOW_RE.test(q)) return;
+  const said = String(final.answer || '').trim();
+  if (!said || said === COPILOT_EMPTY_ANSWER || final.choices) return;
+  if (!(d.kind === 'clause' || (d.kind === 'contract' && (!d.tab || d.tab === 'open' || d.tab === 'dossier')))) return;
+  if (d.contractId && !(final.citations || []).some(c => c && c.id === d.contractId)) final.citations = (final.citations || []).concat([{ id: d.contractId, quote: '' }]);
+  delete final.goto;
+}
+/* the words of an ask for a LIST, not one thing: a plural, "all", "list", "show" (Swedish "avtal" is both, so it counts) */
+const COPILOT_LIST_ASK_RE = /\b(contracts|agreements|deals|drafts|leases|ndas|documents|list|all|every|each|show|avtal|avtalen|kontrakten|utkasten|utkast|alla|lista|visa)\b/i;
 const COPILOT_WHY = {
   unfinished: 'I ran out of steps before I could finish that.',
   empty: 'No answer came back for that one.',
@@ -13040,6 +13223,14 @@ function quoteNorm(s) {
    and taken out of the words, so the reader never sees the markup and the sources still count. */
 function copilotParamsSalvage(inp) {
   const a = inp && typeof inp.answer === 'string' ? inp.answer : '';
+  /* or the rest of the call written as JSON inside the answer: `…", "citations":[…], "goto":{…}}` */
+  const js = a.search(/\\?"\s*,\s*\\?"(citations|goto|choices|compare)\\?"\s*:/);
+  if (js >= 0){
+    for (const end of ['', '}', '}}', ']}']){
+      try { const o = JSON.parse('{"answer":"' + a + end); if (o && typeof o.answer === 'string') return { ...inp, ...o, answer: o.answer.trim() }; } catch (_) {}
+    }
+    return { ...inp, answer: a.slice(0, js).replace(/\\n/g, '\n').replace(/\\"/g, '"').trim() };
+  }
   const at = a.search(/<parameter name="/);
   if (at < 0) return inp;
   const out = { ...inp, answer: a.slice(0, at).replace(/\\?["”]?\s*,?\s*$/, '').trim() };
@@ -13188,6 +13379,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
      Tracked across every turn, because the cut can happen on any of them. */
   let truncated = false;
   let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast'), nudged = false;
+  const turn = { read: new Map(), list: null };
   try {
     for (let step = 0; step < AI_CHAT_STEPS; step++) {
       steps = step + 1;
@@ -13220,14 +13412,15 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
       toolUses.forEach(t => { if (!toolsUsed.includes(t.name)) toolsUsed.push(t.name); });
       if (toolUses.some(t => t.name === 'compare_contracts')) compared = true;
       const results = await Promise.all(toolUses.map(async t =>
-        ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(await runCopilotTool(cx, t.name, t.input, { key, clientCtx: context, who: aiWho(req) })) })));
+        ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(copilotTurnNote(turn, t.name, await runCopilotTool(cx, t.name, t.input, { key, clientCtx: context, who: aiWho(req) }))) })));
       working.push({ role: 'user', content: results });
     }
     /* A NON-ANSWER SAYS SO (8 Oct 2026): `unfinished`/`empty` ride the reply so a
        caller that uses the words for something (a drafted note) never takes this
        sentence for an answer. The chat itself still prints it as before. */
     if (!final) final = copilotWayForward(cx, question, 'unfinished');
-    if (final && !final.goto && aiNavigateOn()) { const g = copilotQuoteDoor(cx, question, final); if (g) final.goto = g; }
+    if (final) copilotTurnSources(cx, question, final, turn);
+    if (final && aiNavigateOn()) { const g = copilotQuoteDoor(cx, question, final) || copilotListDoor(cx, question, final, turn); if (g) final.goto = g; copilotNotNewPaper(question, final); copilotTemplateDoor(cx, final); copilotOneOfMany(cx, question, final); copilotQuestionStays(question, final); }
     // Resolve cited ids (and any compare columns) into render-ready cards.
     const cardIds = [];
     final.citations.forEach(c => { if (!cardIds.includes(c.id)) cardIds.push(c.id); });
@@ -13525,6 +13718,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
      Tracked across every turn, because the cut can happen on any of them. */
   let truncated = false;
   let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast'), nudged = false;
+  const turn = { read: new Map(), list: null };
   try {
     for (let step = 0; step < AI_CHAT_STEPS; step++) {
       steps = step + 1;
@@ -13564,14 +13758,15 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
       if (toolUses.some(t => t.name === 'compare_contracts')) compared = true;
       for (const t of toolUses) send('progress', { step: steps, tool: t.name, label: copilotProgressLabel(t.name, t.input) });
       const results = await Promise.all(toolUses.map(async t =>
-        ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(await runCopilotTool(cx, t.name, t.input, { key, clientCtx: context, who: aiWho(req) })) })));
+        ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(copilotTurnNote(turn, t.name, await runCopilotTool(cx, t.name, t.input, { key, clientCtx: context, who: aiWho(req) }))) })));
       working.push({ role: 'user', content: results });
     }
     /* A NON-ANSWER SAYS SO (8 Oct 2026): `unfinished`/`empty` ride the reply so a
        caller that uses the words for something (a drafted note) never takes this
        sentence for an answer. The chat itself still prints it as before. */
     if (!final) final = copilotWayForward(cx, question, 'unfinished');
-    if (final && !final.goto && aiNavigateOn()) { const g = copilotQuoteDoor(cx, question, final); if (g) final.goto = g; }
+    if (final) copilotTurnSources(cx, question, final, turn);
+    if (final && aiNavigateOn()) { const g = copilotQuoteDoor(cx, question, final) || copilotListDoor(cx, question, final, turn); if (g) final.goto = g; copilotNotNewPaper(question, final); copilotTemplateDoor(cx, final); copilotOneOfMany(cx, question, final); copilotQuestionStays(question, final); }
     const cardIds = [];
     final.citations.forEach(c => { if (!cardIds.includes(c.id)) cardIds.push(c.id); });
     if (final.compare) final.compare.columns.forEach(col => { if (!cardIds.includes(col.id)) cardIds.push(col.id); });
@@ -25567,6 +25762,8 @@ try {
   mark('mine', 'my_items', '', "'k:mine'");
   mark('settings', 'settings', "@.key = 'appSettings'", "'k:standard'");
   for (const t of ['templates', 'template_versions', 'template_blocks']) mark(t, t, '', "'k:template'");
+  /* HaTi's own templates ride with the code, not a table: read again once each start (stage 3d) */
+  db.exec(hsMarkSql("'k:template'"));
 } catch (e) { hsOk = false; }
 const hsText = (v, n) => String(v == null ? '' : v).replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
   .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/[ \t]+/g, ' ').trim().slice(0, n || 20000);
@@ -25651,6 +25848,12 @@ function hsIndexKind(k) {
       } catch (_) {}
       hsPut('template', t.id, null, null, t.name || '', [t.description, t.category, words].filter(Boolean).join('\n'));
     }
+    /* HaTi'S OWN TEMPLATES (the built-in shelf, js/templates.js read as SRV_TEMPLATES): found like a saved one —
+       "no templates are stored" was said with twelve of them on the shelf (stage 3d) */
+    for (const [key, t] of Object.entries(SRV_TEMPLATES || {})) {
+      if (!t || !t.name) continue;
+      hsPut('template', 'builtin:' + key, null, null, t.name, [t.kind, t.blurb, 'HaTi template'].filter(Boolean).join('  '));
+    }
   } else if (k === 'standard') {
     hsDrop("kind = 'standard'");
     for (const [book, b] of Object.entries(workspacePlaybook() || {})) {
@@ -25724,7 +25927,7 @@ function hatiSearch(ctx, q, opts) {
     if (r.cid) { const f = folders.get(r.cid); return !!f && inScope(ctx.scope, f.folder) && !out.has(String(r.cid)); }
     if (r.kind === 'request') { const x = reqs.get(r.ref); return !!x && !!user && (x.by_id === user.id || (editor && (!x.folder || inScope(ctx.scope, x.folder)))); }
     if (r.kind === 'mine') return !!user && r.owner === user.id;
-    if (r.kind === 'template') return tplVisibleTo(tplOf.get(r.ref), user);
+    if (r.kind === 'template') return String(r.ref).startsWith('builtin:') ? !!SRV_TEMPLATES[String(r.ref).slice(8)] : tplVisibleTo(tplOf.get(r.ref), user);
     if (r.kind === 'partyrec') return partyKeys.has(r.ref);
     return r.kind === 'person' || r.kind === 'standard';
   };

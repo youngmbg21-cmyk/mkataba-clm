@@ -21480,3 +21480,14 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Jambo's greeting on the Board still says "What needs you is on Home: N things" (hb_jb_*): true (Home has it), but the whole list now stands on the Board under Your book too.
 - CLAUDE.md is 84.5 KB (over its ~80 KB rule) after this round's one-desk section; a trim needs the owner's yes.
 - Noticed, not fixed (23 Oct 2026, the one desk): every-door-lands-on-home's "Obligations row, a later one (MK-A1)" times out on its double-click on unmodified main too (run at main 68680ec); the row is not pressable when the check reaches it.
+- Noticed, not fixed (23 Oct 2026, Marquee PR #437): alerts-on-your-phone-verify 1a ("Alerts on this device" painted) failed once on GitHub (browser checks 2/4, run 39937451593) with the row present but measured unpainted; the same file passed on the previous run and 15/15 twice locally. It reads the paint before Settings has finished drawing — its wait should ask for the painted state, bounded.
+
+## Noticed, not fixed — 23 Oct 2026 (Jambo works like Copilot, stage 3d)
+- The server has no copy of HaTi's default playbook (DEFAULT_PLAYBOOK lives only in js/playbook.js): until a workspace saves its own, check_against_playbook says "No playbook is configured" and the one search finds no standards, while Our standards shows the built-in books. Asked "the standard we use for how many days to pay", the AI said there was none.
+- The clause editor's Jambo, asked about another contract ("what are the payment terms in MK-A1" from MK-A2's clause), answers about the clause in front and does not name the contract it read.
+- CLAUDE.md is 87.7 KB, over its ~80 KB rule (it was 87.3 KB at the start of this round); a trim needs the owner's yes.
+
+## Noticed, not fixed — 23 Oct 2026 (stage 3d, making the pull request green)
+- `caReadSend` (and `caReadDraft`) start their act from inside the reader (a setTimeout to `caSummaryOpen` / `caDraftRun`), so when `caActOf` later drops the reading (another contract named, a question), the send screen or the form still opens while the ask also goes to the AI.
+- "what now" and "vad nu" are listed as the next-steps card's own phrases, but `caPlaceOf` strips a trailing "now"/"nu" first, so they never match the card.
+- `home-speed-verify` 2 (the second Explorer arrival's longest freeze under half of the first's) has a thin margin on GitHub's runner. There the first arrival is ~270 ms, so the second must be under ~135 ms, while main's second arrival measures 128–209 ms with GitHub's headless shell. The longest task is a forced layout of the whole page: `igTurnFace` → `updateIntelNote` → `igNoteMeasure` → `getBoundingClientRect` straight after the face's writes. It went red twice on youngmbg21-cmyk/mkataba-clm#434 (52cc4e1), with identical timings on main.

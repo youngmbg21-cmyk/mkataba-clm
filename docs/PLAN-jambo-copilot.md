@@ -51,7 +51,7 @@ Questions and the Nine Flow Rules still apply.
 | 0 | THE EXAM: 240 held-out asks (test/jambo-exam.js) over test/jambo-world.js, typed into real boxes (test/chromium/jambo-exam-measure.js), dead ends and calls counted | built |
 | 1 | ONE SEARCH OVER HaTi: the permission-aware index | built |
 | 2 | EVERY DOOR AS A TOOL | built |
-| 3 | AI FIRST IN EVERY BOX, NEVER A DEAD END | built |
+| 3 | AI FIRST IN EVERY BOX, NEVER A DEAD END (3, then 3b–3d: the live exam's misses read by what they mean) | built |
 | 4 | MEASURE AGAIN: before/after, calls per ask, the three screens | — |
 
 ## 4. The scores
@@ -68,6 +68,19 @@ score; the exam is re-run live after stage 2 as well as at stage 4.
 | After stages 1–2, live AI, 22 Oct 2026 | 142 of 240 (59%) | 1 | 0.80 (193 calls) |
 | Stage 3 part-built (dcd407d), live AI, 22 Oct 2026 | 178 of 240 (74%) | 1 | 1.56 (374 calls) |
 | **After stage 3** (7c0d1c0, reader fixed), live AI, 22 Oct 2026 | **183 of 240 (76%)** | **0** | **1.20 (287 calls)** |
+| After stages 3b–3c, merged with main, live AI, 23 Oct 2026 | 215 of 240 (90%) | 0 | 1.26 (302 calls) |
+| Stage 3d, runs 2–6 as the misses were fixed, live AI, 23 Oct 2026 | 225 · 228 · 228 · 233 · 234 (of 238 read) | 0 | 1.21 · 1.16 · 1.11 · 1.13 · 1.11 |
+| **After stage 3d** (run 7, the code as committed), live AI, 23 Oct 2026 | **234 of 240 (98%)** | **0** | **1.08 (260 calls)** |
+
+THE PASS MARK IS MET (228 of 240, 0 dead ends, no more than 2 calls per ask): run 7, on the code as committed,
+234 of 240. By section: go 40/40 · clause by meaning 25/25 · questions 45/45 · board 18/20 · explorer 15/15 ·
+typos 24/25 · vague 20/20 · svenska 24/25 · none/walled 12/12 · every box 11/13.
+
+THE SCORE MOVES BETWEEN RUNS (stage 3d, 23 Oct 2026): the fast model does not answer the same ask the same way
+twice — a door one run, words the next — so an ask missed once often passes when run again, and the other way
+round; runs of nearly the same code moved by up to six asks. What a free reader reads is the same every run, so
+every miss whose meaning a reader could read was moved there. Run 6 was disturbed (a file was edited while it
+ran, and the phone's two asks were not read); run 7 is the clean one.
 
 THE READER'S OWN FAULT (found in stage 3, 22 Oct 2026): the exam's reader threw on
 an answer whose contract cards are drawn markup (the chat window's and the list

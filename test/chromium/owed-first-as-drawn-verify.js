@@ -111,7 +111,8 @@ const upload = { id: 'MK-0405', name: 'Framework agreement', counterparty: 'Balt
     const G = await page.evaluate(GRID);
     const row = k => G.rows.find(r => r.k === k) || {};
     /* RE-POINTED 22 Oct 2026 (owner picked "1 · Checklist"): the head is "Needs you N" */
-    check('1a the head "Needs you N"; the columns "Fact · where Jambo read it" · "Jambo read" · Confirm', /^Needs you \d+/.test(G.head) && G.cols[0] === 'FACT · WHERE JAMBO READ IT' && G.cols[1] === 'JAMBO READ', JSON.stringify({ head: G.head, cols: G.cols }));
+    /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): the head is in small capitals, so its read words are capitals */
+    check('1a the head "Needs you N"; the columns "Fact · where Jambo read it" · "Jambo read" · Confirm', /^Needs you \d+/i.test(G.head) && G.cols[0] === 'FACT · WHERE JAMBO READ IT' && G.cols[1] === 'JAMBO READ', JSON.stringify({ head: G.head, cols: G.cols }));
     check('1c each blank says where it lands on the paper', row('up_start_date').chip === '§3' && /on the paper/.test(row('up_start_date').src) && row('up_expected_yearly_value').chip === '§4', JSON.stringify(G.rows));
     await ckOpenRowOf(page, '#pd-og [data-pd-og-spot="up_start_date"]'); await page.click('#pd-og [data-pd-og-spot="up_start_date"]');
     const atPress = await until(() => !!document.querySelector('#ig-canvas .is-landed[data-upblank="up_start_date"]'), null, 4000);

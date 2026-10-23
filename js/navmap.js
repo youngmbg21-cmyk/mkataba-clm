@@ -64,7 +64,7 @@ function navStreamOf(t){
 }
 /* the stage a sentence names, as the register spells it */
 function navStageOf(t){
-  if (/ (signed|executed|signerade|signerat) /.test(t)) return 'Signed';
+  if (/ (signed|executed|signerade|signerat|signerad|undertecknade|undertecknat|undertecknad) /.test(t)) return 'Signed';
   if (/ (drafts?|utkast) /.test(t)) return 'Draft';
   if (/ (under review|in review|being reviewed|granskas|under granskning) /.test(t)) return 'Under Review';
   return null;
@@ -110,7 +110,14 @@ function navPartiesIn(t){
     if (first && first.length >= 4 && !NAV_PARTY_SKIP.has(first) && (t.includes(' ' + first + ' ') || t.includes(' ' + first + 's '))) hits.push({ p, full: false });
   }
   /* a whole name beats a first word */
-  const whole = hits.filter(h => h.full); return (whole.length ? whole : hits).map(h => h.p);
+  const whole = hits.filter(h => h.full); if (hits.length) return (whole.length ? whole : hits).map(h => h.p);
+  /* A NAME ONE SLIP AWAY ("kabbras", "naivass"; stage 3d): a word of six letters or more one slip from the first
+     word of exactly one party's name (the one search's own measure) */
+  if (typeof hsEdit !== 'function') return [];
+  const said = t.trim().split(' ').filter(w => w.length >= 6);
+  const near = P.filter(p => { const f = navNorm(p.name).trim().split(' ')[0];
+    return f.length >= 5 && !NAV_PARTY_SKIP.has(f) && said.some(w => w !== f && [w, w.replace(/s$/, '')].some(x => hsEdit(x, f, f.length < 8 ? 1 : 2) <= (f.length < 8 ? 1 : 2))); });
+  return near.length === 1 ? near : [];
 }
 
 /* ---------- WORDS THAT TELL WHAT IS ASKED FOR ---------- */
@@ -128,11 +135,27 @@ const NAV_CLAUSE_TOPICS = [
   ['termination', ['termination', 'terminate', 'uppsägning']], ['definition', ['definitions', 'definition', 'definitioner']],
   ['supply', ['supply', 'leverans']], ['quality', ['quality', 'rejection', 'kvalitet']], ['rejection', ['rejection', 'reject', 'kvalitet']],
   ['notice', ['notices', 'notice', 'meddelanden']], ['force majeure', ['force majeure']], ['indemnit', ['indemnity', 'indemnification', 'skadeslöshet']],
-  ['warrant', ['warranty', 'warranties', 'garanti']], ['fees', ['fees', 'price', 'pris', 'avgift']], ['delivery', ['delivery', 'leverans']],
+  ['warrant', ['warranty', 'warranties', 'garanti']], ['fees', ['fees', 'price', 'pris', 'avgift']], ['delivery', ['delivery', 'leverans', 'supply']],
   ['intellectual property', ['intellectual property', 'ip', 'immateriella']], ['data protection', ['data protection', 'personal data', 'dataskydd']],
 ];
 function navClauseTopicOf(t){
   for (const [topic, words] of NAV_CLAUSE_TOPICS) for (const w of words) if (t.includes(' ' + w + ' ')) return { topic, words };
+  /* SAID ANOTHER WAY (Jambo works like Copilot, stage 3d): a topic word with another everyday ending ("defines" is
+     definitions: the one search's roots), one slip away ("liabilty"), or opening a Swedish compound
+     ("ansvarsbegränsningen" holds ansvar) — only words of five letters or more, never a short one guessed */
+  const said = t.trim().split(' ').filter(w => w.length >= 5);
+  if (!said.length || typeof hsRoot !== 'function' || typeof hsEdit !== 'function') return null;
+  const near = (x, w) => {
+    const rx = hsRoot(x), rw = hsRoot(w), short = Math.min(rx.length, rw.length);
+    if (short >= 5 && (rx.startsWith(rw) || rw.startsWith(rx))) return true;
+    if (x.length >= 6 && hsEdit(x, w, x.length < 8 ? 1 : 2) <= (x.length < 8 ? 1 : 2)) return true;
+    return x.length >= w.length + 4 && x.startsWith(w);
+  };
+  for (const [topic, words] of NAV_CLAUSE_TOPICS) for (const w of words){
+    if (w.length < 5 || /\s/.test(w)) continue;
+    const hit = said.find(x => near(x, w));
+    if (hit) return { topic, words: [w].concat(words.filter(v => v !== w)), said: hit };
+  }
   return null;
 }
 
@@ -142,16 +165,25 @@ function navRead(q, opts = {}){
   const t = navNorm(raw);
   /* one contract's versions, compared: its own screen, ahead of every guard below */
   { const cmp = navReadCompare(raw, t); if (cmp) return cmp; }
+  /* WHAT JAMBO COSTS IS AN ADMIN'S FACT (stage 3d): asked in any form ("how much has the AI cost us"), it is the
+     Jambo engine's page, ahead of the question guards below — an admin lands where the spend is, anyone else is
+     told who can see it; never a search of the contracts for a party called Jambo */
+  if (NAV_SPEND_Q.test(t)){
+    if (!navIsAdmin()) return { kind: 'navsay', text: _nvT(NAV_ADMIN_SAYS) };
+    return { kind: 'go', place: 'nav', nav: { k: 'company', kind: 'panel', key: 'engine' }, say: 'nav_go_setting' };
+  }
   /* ANSWER WHERE YOU STAND: when the screen in front reads every word (Explorer's map, the Contracts
      place) it answers there; only "take me to …" moves past it */
   /* a new paper asked for ("draft an NDA with Volvo") is the one form's, never a trip to an old one */
   try { if (!NAV_MOVE.test(t) && typeof caIsDraftAsk === 'function' && caIsDraftAsk(raw)) return null; } catch (_){}
+  /* (an amendment asked for — "make an amendment to …" — is the amend card's, which waits for a press: caReadDoor) */
   if (/^ (draft|write|create|make|prepare|skriv|skapa|gör|upprätta) /.test(t) && !NAV_MOVE.test(t)) return null;
   /* a yes-or-no or a why ("Can I send MK-A2 without the review?", "Why can't Legal sign the Naivas
      deal?") is answered where it is asked, never a trip */
   if (/^ (why|can|could|should|may|might|must|will|would|do|does|did|is|are|am|was|varför|kan|får|ska|måste|är) /.test(t) && !NAV_MOVE.test(t)) return null;
   /* "which contracts end this year?" is a question for Jambo, answered beside the Board, never a trip */
-  if (/^ (which|what) /.test(t) && !NAV_MOVE.test(t) && !/^ what needs /.test(t)) return null;
+  /* …written without its apostrophe too ("whats the payment terms", "whos our admin"), and in Swedish ("vad är…", "när…") */
+  if (/^ (which|what|whats|whos|hows|vad|när|vilken|vilket) /.test(t) && !NAV_MOVE.test(t) && !/^ what needs /.test(t)) return null;
   /* a count asked ("how many drafts do I have?") is answered, never a trip */
   if (NAV_COUNT_Q.test(t) && !NAV_MOVE.test(t)) return null;
   /* a planning question ("find me two hours this week for the lease") is the Calendar's, never a trip */
@@ -170,10 +202,13 @@ function navRead(q, opts = {}){
    Obligations page, not this contract's; the place word's own door then moves (CA_GO) */
 const NAV_PAGES = [
   ['oblig', / (all|every|our) (our )?(duties|obligations) |^ (show me )?(all )?(our )?duties $|^ alla (våra )?åtaganden $/],
-  ['negotiations', /^ (take me to |open |go to |show me )?(the )?(negotiations|negotiation list|negotiations list|förhandlingar|förhandlingarna)( list| page)? $/],
-  ['people', / (people directory|the directory|directory of people|personkatalog|katalogen) /],
+  ['negotiations', /^ (take me to |open |go to |show me |where are |where is |where do i find |var är )?(the |all )?(negotiations|negotiation list|negotiations list|förhandlingar|förhandlingarna)( list| page)? $/],
+  /* who works with us, asked any way (stage 3d; "vilka arbetar här" stage 3c): the people directory */
+  ['people', / (people directory|the directory|directory of people|personkatalog|katalogen) |^ (vilka|vem) (arbetar|jobbar) (här|hos oss) $|^ who (works|work|is working) (here|with us|for us|in this company|at our company) $|^ who (is|are) (on|in) (the|our) team $|^ (list|show)( me)?( all)?( of)? (our|the) (colleagues|staff|employees|team members) $/],
+  ['parties', /^ (list|show|show me|open|see)( all)?( of)?( our| the)? (customers|suppliers|counterparties|parties)( and (customers|suppliers))? $|^ (visa|lista)( alla)?( våra)? (kunder|leverantörer|motparter)( och (kunder|leverantörer))? $/],
   /* "jambo's work" is the Board's card (land-on-it 1a, the owner's door); his house by its own name */
   ['house', / (jambo s house|jambos house|jambo house|jambos hus) /],
+  ['mynotes', / (my (private |own )?notes|mina (privata |egna )?anteckningar) /],
   ['needs', /^ (what )?(needs me|needs you|is waiting on me|waits for me|väntar på mig) $/],
 ];
 function navReadPage(raw, t){
@@ -204,6 +239,14 @@ function navReadContractAct(raw, t){
   rest = rest.replace(/ (take me to|go to|open|show me|show|the|to them|to the other side|of|for|in|on|with|its|me|please) /g, ' ').trim();
   let hit = null, shared = false;
   try { hit = (typeof caContractOf === 'function') ? caContractOf(rest) : null; } catch (_){ hit = null; }
+  /* a number in the book's own letters that nobody here can see ("open MK-Q7") is said so, never a guess (stage 3d) */
+  if (hit && hit.miss && !hit.c) return { kind: 'navsay', text: _nvT('nav_no_contract', { name: hit.miss }) };
+  if (!(hit && hit.c)){
+    const ref = /(?<![\p{L}\p{N}])#?([a-z]{2,4})-([a-z0-9]*\d[a-z0-9]*)(?![\p{L}\p{N}])/iu.exec(rest);
+    const refs = navBook().flatMap(c => [c.id, c.contractNo]).filter(Boolean).map(x => String(x).toLowerCase());
+    if (ref && refs.some(x => x.startsWith(ref[1].toLowerCase() + '-')) && !refs.includes((ref[1] + '-' + ref[2]).toLowerCase()))
+      return { kind: 'navsay', text: _nvT('nav_no_contract', { name: (ref[1] + '-' + ref[2]).toUpperCase() }) };
+  }
   if (hit && hit.c) shared = true;
   else hit = navContractByName(rest, { loose: NAV_CONTRACT_WORDS.test(t) });
   if (!hit) return null;
@@ -229,7 +272,8 @@ const NAV_OPEN_SKIP = new Set(['the', 'a', 'an', 'and', 'of', 'for', 'with', 'to
   'contract', 'contracts', 'agreement', 'deal', 'one', 'file', 'paper', 'document', 'draft', 'signed', 'avtal', 'utkast', 'avtalet', 'kontrakt', 'kontraktet', 'öppna', 'visa', 'det', 'den', 'med']);
 function navLeftover(rest, c){
   const own = new Set(navNorm([c.name, c.counterparty, c.id, c.contractNo, c.type].filter(Boolean).join(' ')).trim().split(' '));
-  return navNorm(rest).trim().split(' ').filter(w => w && w.length > 1 && !NAV_OPEN_SKIP.has(w) && !own.has(w) && !NAV_NAME_SKIP.has(w)
+  /* a Swedish compound that only says what kind of contract it is ("hyresavtalet", the lease) is a contract word (stage 3d) */
+  return navNorm(rest).trim().split(' ').filter(w => w && w.length > 1 && !NAV_OPEN_SKIP.has(w) && !own.has(w) && !NAV_NAME_SKIP.has(w) && !/^\p{L}{3,}(?:avtal|avtalet|avtalen|kontrakt|kontraktet)$/u.test(w)
     && ![...own].some(o => o.length >= 4 && (w.startsWith(o) || o.startsWith(w))));
 }
 /* A CLAUSE OF A CONTRACT: "clause 7 of the Kabras supply deal", "the payment
@@ -241,16 +285,22 @@ function navReadClause(raw, t){
   const talks = / (talk about|talks about|say about|says about|mention|mentions|deal with|deals with|cover|covers) /.test(t);
   const topic = navClauseTopicOf(t);
   if (!num && !(clauseWord && topic) && !(talks && topic)){
-    /* "governing law in MK-A1": a topic and a contract's number, nothing else */
-    if (!(topic && /#?\b[a-z]{2,4}-[a-z0-9]*\d/i.test(raw) && / (in|of|i) /.test(t))) return null;
+    /* "governing law in MK-A1": a topic and a contract's number, nothing else; "the delivery promise in the sugar
+       contract": a topic and a contract named by its words (stage 3d) */
+    if (!(topic && (/#?\b[a-z]{2,4}-[a-z0-9]*\d/i.test(raw) || / (in|of|under) (the|our|this) .*(contract|agreement|deal|lease|nda) /.test(t)) && / (in|of|i|under) /.test(t))) return null;
   }
   if (clauseWord && !num && !topic && / (clauses) /.test(t)) return null;     // "clauses of X" is the Clauses tab, the place reader's
   /* the contract named in the rest of the sentence */
   let rest = raw.replace(/\b(?:clause|section|article|klausul|klausulen|avsnitt|paragraf|punkt)\s*\d{1,3}(?:\.\d+)?\b/ig, ' ').replace(/§\s*\d+/g, ' ');
   if (topic) for (const w of topic.words) rest = rest.replace(new RegExp('\\b' + w.replace(/\s+/g, '\\s+') + '\\b', 'ig'), ' ');
+  if (topic && topic.said) rest = navNorm(rest).replace(' ' + topic.said + ' ', ' ').trim();
   rest = rest.replace(/\b(?:take me to|go to|open|show me|show|the|clause|where does|talk about|talks about|say about|says about|in|of|i|on|for|what)\b/ig, ' ').replace(/\s+/g, ' ').trim();
   let hit = null; try { hit = (typeof caContractOf === 'function') ? caContractOf(rest) : null; } catch (_){ hit = null; }
-  if (!hit || hit.miss || (!hit.c && !hit.picks)) hit = navContractByName(rest);
+  /* one strong word of a name is enough where the sentence says it is a contract ("in the sugar contract") */
+  if (!hit || hit.miss || (!hit.c && !hit.picks)) hit = navContractByName(rest, { loose: NAV_CONTRACT_WORDS.test(t) });
+  /* "clause 7 of Kabras": a party named, and its one contract (several are offered) — stage 3d */
+  if (!hit){ const P = navPartiesIn(navNorm(rest)); if (P.length === 1){ const cs = navBook().filter(c => navNorm(c.counterparty).trim() === navNorm(P[0].name).trim());
+    if (cs.length === 1) hit = { c: cs[0] }; else if (cs.length > 1) hit = { picks: cs }; } }
   if (!hit) return null;                                                     // no contract named: not a clause ask
   if (hit.picks && hit.picks.length > 1) return navWhich(hit.picks.map(c => ({ c, nav: { k: 'clause', cid: c.id, num, topic: topic && topic.topic } })));
   const c = hit.c; if (!c) return null;
@@ -302,15 +352,22 @@ const navRef = c => (typeof contractRef === 'function') ? contractRef(c) : (c &&
    question about numbers stays the Board's; "take me to …" always moves. */
 function navReadContracts(raw, t, opts){
   if (/ (how long we keep|keeping|retention|bevara|gallring) /.test(t)) return null;     // a stream's Keeping, in Settings
+  /* "where do I bring in old signed contracts" asks how to DO something; "compare the two Naivas contracts" asks
+     for a comparison: neither is a list (AI first, stage 3b) */
+  if (/^ (where|how) (do|can|should) (i|we) /.test(t) || / (compare|comparison|versus|vs|jämför|jämfört) /.test(t)) return null;
   const stage = navStageOf(t), stream = navStreamOf(t), ending = navEndingOf(t);
   /* "drafts" is a list; "the cold chain haulage draft" is one contract */
-  const contractsWord = / (contracts|agreements|deals|avtal|avtalen|kontrakt) /.test(t) || (stage === 'Draft' && / (drafts|utkasten|alla utkast) /.test(t)) || /^ (drafts|utkast) $/.test(t);
+  /* "show only the marketing stream": a stream asked for by that word is its list (stage 3c) */
+  /* …never where another place is named for it ("our standards for the procurement stream" is that book; stage 3d) */
+  const streamWord = !!stream && / (stream|streams|ström|strömmen) /.test(t) && !/ (access|who can|rights|permissions?|members?|keep|keeping|settings?|åtkomst|behörighet\w*|medlemmar) /.test(t)
+    && !/ (standards?|playbook|templates?|obligations|duties|requests|approvals|standarder|mallar|mallarna|åtaganden|förfrågningar) /.test(t);
+  const contractsWord = streamWord || / (contracts|agreements|deals|avtal|avtalen|kontrakt) /.test(t) || (stage === 'Draft' && / (drafts|utkasten|alla utkast) /.test(t)) || /^ (drafts|utkast) $/.test(t);
   const parties = navPartiesIn(t);
   const party = parties.length === 1 ? parties[0] : null;
   if (!contractsWord && !(stage && stream) && !(ending && contractsWord)) return null;
   if (!stage && !stream && !ending && !party) return null;
   /* one contract named is the contract reader's ("the Kabras supply deal"), never a list */
-  if (!/ (contracts|agreements|deals|avtalen|drafts) /.test(t) && !stage && !ending) return null;
+  if (!/ (contracts|agreements|deals|avtalen|drafts) /.test(t) && !stage && !ending && !streamWord) return null;
   const f = { stage, stream: stream ? stream.fid : null, ending, party: party ? party.key : null };
   const span = ending ? navEndingSpan(ending) : null;
   const ids = navBook().filter(c => {
@@ -343,10 +400,13 @@ function navContractsLabel(f, stream, party){
 function navReadParty(raw, t){
   if (NAV_CONTRACT_WORDS.test(t)) return null;
   const P = navPartiesIn(t); if (!P.length) return null;
-  const folder = NAV_FOLDER_WORDS.test(t), lead = NAV_LEAD.test(t);
+  /* "everything we have with Naivas" asks for all of theirs: their folder (stage 3c) */
+  /* …and "Kabras Sugar, all their paperwork": all of a party's papers is their folder (stage 3d) */
+  const theirs = / (all )?(of )?(their|its) (paperwork|papers|documents|files|contracts|agreements|deals) | (deras|dess) (papper|dokument|avtal) /;
+  const folder = NAV_FOLDER_WORDS.test(t) || / (everything|all) (we have|we ve got) with | allt (vi har )?med /.test(t) || theirs.test(t), lead = NAV_LEAD.test(t);
   /* only the name, or the name with a lead or "folder": never a sentence that only mentions them */
   const leftover = P.reduce((s, p) => s.replace(navNorm(p.name), ' ').replace(' ' + navNorm(p.name).trim().split(' ')[0] + ' ', ' '), t)
-    .replace(NAV_LEAD, ' ').replace(NAV_FOLDER_WORDS, ' ').replace(/ (the|their|our|a|of|me|to|for|please|now|then|show|open) /g, ' ').trim();
+    .replace(NAV_LEAD, ' ').replace(NAV_FOLDER_WORDS, ' ').replace(theirs, ' ').replace(/(?<= )(everything|all|we have|we ve got|with|allt|vi har|med)(?= )/g, ' ').replace(/ (the|their|our|a|of|me|to|for|please|now|then|show|open) /g, ' ').trim();
   if (!folder && !lead && leftover) return null;
   if (P.length > 1) return navWhich(P.map(p => ({ label: p.name, nav: { k: 'party', key: p.key, name: p.name } })));
   const p = P[0];
@@ -399,8 +459,35 @@ const NAV_PAPER_TRIES = 15;
    so a page or a check waiting for the screen to stand still can ask (navLanding) */
 let _navLanding = false;
 const navLanding = () => _navLanding;
+/* A TOPIC THE HEADINGS DO NOT NAME ("the delivery promise": the clause headed "Supply" that says "delivered") is read
+   in the wording — its numbered heading lines, the heading first, then the words under it by their root — and
+   landed by its number (stage 3d); none found, the paper's own search goes on as before */
+function navTopicNum(c, words){
+  const text = String((c && (c.redlineText || (c.negotiation && c.negotiation.baselineBody))) || '').replace(/<[^>]+>/g, '\n');
+  if (!text.trim()) return null;
+  const secs = []; let cur = null;
+  for (const l of text.split('\n')){
+    const m = /^\s*(\d{1,3})[.)]\s+(.*)$/.exec(l);
+    if (m){ cur = { num: m[1], head: m[2].toLowerCase(), body: '' }; secs.push(cur); } else if (cur) cur.body += ' ' + l.toLowerCase();
+  }
+  if (secs.length < 2) return null;
+  const W = (words || []).filter(Boolean).map(w => String(w).toLowerCase());
+  const roots = W.map(w => (typeof hsRoot === 'function' ? hsRoot(w) : w)).filter(r => r.length >= 4);
+  const flat = x => ' ' + x.replace(/[^\p{L}\p{N}]+/gu, ' ') + ' ';
+  const hit = secs.find(x => W.some(w => x.head.includes(w))) || secs.find(x => roots.some(r => flat(x.head + ' ' + x.body).includes(' ' + r)));
+  return hit ? hit.num : null;
+}
 function navGoClause(n){
   const c = (typeof getContract === 'function') ? getContract(n.cid) : null; if (!c) return false;
+  if (!n.num && !n.quote && (n.words || n.topic) && !n.topicRead){
+    const read = x => { const num = navTopicNum(x, n.words || [n.topic]); return navGoClause(Object.assign({}, n, num ? { num } : {}, { topicRead: true })); };
+    if (!(c.redlineText || (c.negotiation && c.negotiation.baselineBody)) && typeof ensureFull === 'function'){
+      _navLanding = true;
+      Promise.resolve(ensureFull(c)).then(full => read(full || getContract(n.cid) || c), () => read(c));
+      return true;
+    }
+    return read(c);
+  }
   /* THE LIGHT LIST carries no wording: a number asked of a contract whose clauses are not counted yet
      is counted off the full record first, and one past its last clause is said, not moved to */
   if (n.num && !n.counted && navClauseCount(c) == null && typeof ensureFull === 'function'){
@@ -452,7 +539,11 @@ function navClauseEl(n){
   const words = n.words || [n.topic];
   if (!words || !words[0]) return null;
   const inHead = el => { const h = head(el).slice(0, 48); return words.some(w => h.includes(w)); };
-  return els.find(inHead) || els.find(el => words.some(w => head(el).includes(w))) || null;
+  /* …else the first clause whose whole wording holds the word by its root ("the delivery promise": the clause that
+     says "delivered", stage 3d) */
+  const roots = words.filter(Boolean).map(w => (typeof hsRoot === 'function' ? hsRoot(String(w)) : String(w)).toLowerCase()).filter(r => r.length >= 4);
+  const inWords = el => { const all = ' ' + String(el.textContent || '').replace(/\s+/g, ' ').toLowerCase(); return roots.some(r => all.includes(' ' + r)); };
+  return els.find(inHead) || els.find(el => words.some(w => head(el).includes(w))) || (roots.length ? els.find(inWords) : null) || null;
 }
 /* the words of a passage to look for on the paper: letters and digits, spaced once, its first forty-odd characters */
 function navQuoteKey(s){
@@ -499,7 +590,9 @@ function navClauseRow(n){
   }
   const words = n.words || [n.topic];
   if (!words || !words[0]) return null;
-  return rows.find(el => words.some(w => head(el).slice(0, 48).includes(w))) || rows.find(el => words.some(w => head(el).includes(w))) || null;
+  const roots = words.filter(Boolean).map(w => (typeof hsRoot === 'function' ? hsRoot(String(w)) : String(w)).toLowerCase()).filter(r => r.length >= 4);
+  const inWords = el => { const all = ' ' + String(el.textContent || '').replace(/\s+/g, ' ').toLowerCase(); return roots.some(r => all.includes(' ' + r)); };
+  return rows.find(el => words.some(w => head(el).slice(0, 48).includes(w))) || rows.find(el => words.some(w => head(el).includes(w))) || (roots.length ? rows.find(inWords) : null) || null;
 }
 /* a line said after the move, where the last turn is (Home's panel) */
 function navSayLate(text){
@@ -538,10 +631,11 @@ const NAV_COMPANY = [
   ['panel', 'linkcode', / (codes? on links|link codes?|code on the link|koder på länkar) /],
   ['panel', 'review', / (internal review|review before sending|intern granskning) /],
   ['panel', 'desk', / (negotiation desk|the desk setting|förhandlingsdesk) /],
-  ['page', 'team', / (add a person|add someone|invite (a|someone)|people in our workspace|our people|the team|lägg till en person) /],
+  ['page', 'team', / (add a person|add someone|invite (a|someone)|people in our workspace|our people|the team|lägg till en person|add (a |an )?(new )?(user|member|colleague|team member)|new (user|member)|lägg till en (ny )?(användare|kollega)) /],
   ['page', 'streams', /^ (open |show me |take me to )?(our |the )?(value )?streams( page| settings)? $|^ (våra )?strömmar $/],   // whole words only: on Explorer "value streams against …" is a grouping
 ];
 const NAV_ADMIN_SAYS = 'nav_walled_admin';
+const NAV_SPEND_Q = / (jambo|jambos|the ai|ai|copilot) (has |have |did |does )?(cost|costs|costed|spent|spend|spending|bill|billed)( |$)| (cost|costs|spend|spent|spending|bill) (of|on|for) (jambo|the ai|ai|copilot) | (jambo|ai) (har )?(kostat|kostar) | (kostnaden|kostnad) för (jambo|ai) /;
 function navIsAdmin(){ try { return typeof isAdmin === 'function' && !!isAdmin(); } catch (_){ return false; } }
 function navUsersIn(t){
   let U = []; try { U = (typeof getUsers === 'function' && getUsers()) || []; } catch (_){ U = []; }
@@ -586,14 +680,26 @@ function navReadSettings(raw, t){
 }
 
 /* OUR STANDARDS, a book and a row: "where do I change our liability standard for NDAs" */
-const NAV_STD_BOOKS = [['nda', / (nda|ndas|non disclosure|sekretessavtal) /], ['supply', / (supply|supplies|leverans) /], ['lease', / (lease|leases|hyresavtal) /], ['services', / (services|service agreements?|tjänster) /]];
-const NAV_STD_ROWS = [['liability', / (liability|ansvar) /], ['payment', / (payment terms|payment|betalning) /], ['confidential', / (confidentiality|confidential|sekretess) /]];
+const NAV_TPL_GENERIC = new Set(['right', 'best', 'good', 'new', 'other', 'same', 'standard', 'company', 'default', 'latest', 'last', 'first', 'next', 'usual', 'saved', 'built']);
+const NAV_STD_BOOKS = [['nda', / (nda|ndas|non[ -]?disclosure|sekretessavtal) /], ['supply', / (supply|supplies|leverans) /], ['lease', / (lease|leases|hyresavtal) /], ['services', / (services|service agreements?|tjänster) /]];
+/* a row by any everyday form of its word ("how many days to pay", "what we are liable for"; stage 3d) */
+const NAV_STD_ROWS = [['liability', / (liability|liable|ansvar\S*) /], ['payment', / (payment terms|payment|payments|pay|paying|paid|betalning\S*|betala) /], ['confidential', / (confidentiality|confidential|secret|secrecy|sekretess) /]];
 function navReadStandards(raw, t){
   const std = / (standard|standards|playbook|standarder) /.test(t), tpl = / (template|templates|mall|mallen) /.test(t);
   if (!std && !tpl) return null;
   const book = (NAV_STD_BOOKS.find(([, re]) => re.test(t)) || [null])[0];
   if (tpl){
-    if (!book) return null;                                                  // "our templates" is the place word's
+    /* "the franchise template": a kind no template on our shelves is called is said so, never the shelf opened
+       as if it held one (stage 3d) */
+    if (!book){
+      const m = / (?:the|a|an|our) ([\p{L}-]{4,}) (?:template|mall|mallen) /u.exec(t);
+      if (m && !NAV_TPL_GENERIC.has(m[1]) && typeof tplPageRows === 'function'){
+        let rows = []; try { rows = tplPageRows() || []; } catch (_){ rows = []; }
+        const words = rows.map(r => navNorm([r.name, r.sub, r.category].filter(Boolean).join(' '))).join(' ');
+        if (rows.length && !words.includes(' ' + m[1].slice(0, 5))) return { kind: 'navsay', text: _nvT('nav_no_template') };
+      }
+      return null;                                                           // "our templates" is the place word's
+    }
     return { kind: 'go', place: 'nav', nav: { k: 'template', key: book }, say: 'nav_go_template' };
   }
   const row = (NAV_STD_ROWS.find(([, re]) => re.test(t)) || [null])[0];
@@ -729,7 +835,11 @@ function navReadRequest(raw, t){
 }
 /* A PERSON BY NAME ("Grace's profile", "find Grace Wanjiru", "who is Amina") — the People page's own row */
 function navReadPerson(raw, t){
-  if (!/ (profile|who is|find|vem är|hitta|contact|kontakt) /.test(t) && !/^ \S+ \S+ $/.test(t)) return null;
+  /* a colleague's name alone ("Grace"), or with the place they are kept in ("take me to Grace in people", stage 3d) */
+  const inPeople = NAV_MOVE.test(t) && / (people|directory|colleagues|team|personkatalog|katalogen|kollegor) /.test(t);
+  if (!/ (profile|who is|find|vem är|hitta|contact|kontakt) /.test(t) && !/^ \S+( \S+)? $/.test(t) && !inPeople) return null;
+  /* one word that is also a party's is theirs (the party reader came first), never a guess at a colleague */
+  if (/^ \S+ $/.test(t) && navPartiesIn(t).length) return null;
   if (NAV_CONTRACT_WORDS.test(t) || / (limit|access|signing) /.test(t)) return null;
   const U = navUsersIn(t); if (!U.length) return null;
   if (U.length > 1) return navWhich(U.map(u => ({ label: u.name || u.email, nav: { k: 'personrow', id: u.id } })));

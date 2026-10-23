@@ -91,7 +91,8 @@ describe('F511 (C) — a set Copilot chose', () => {
     const src = strip(read('js/views/intelligence.js'));
     assert.match(src, /addLens\(\{ label:igBoardTitle\(q,res\)\|\|res\.note/);
     assert.match(src, /listTitle:igBoardTitle\(q,res\)\|\|/);
-    assert.match(src, /if\(igBoardNow\(\)&&typeof window\.hbFoundSay==='function'\)\{ const say=hbFoundSay\(\); if\(say\)\{ m\.text=say;/);
+    /* the question rides along (stage 3d): "how much is in drafts" is answered with the set's value */
+    assert.match(src, /if\(igBoardNow\(\)&&typeof window\.hbFoundSay==='function'\)\{ const say=hbFoundSay\(q\); if\(say\)\{ m\.text=say;/);
     assert.match(src, /if\(igBoardNow\(\)\) intel\.lenses=\(intel\.lenses\|\|\[\]\)\.filter\(l=>l\.hb\|\|l\.action!=='filter'\);/, 'a typed question on the board starts afresh');
     assert.match(src, /hbBoardTakesChecked\(res,retry,q\)/);
   });

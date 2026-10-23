@@ -185,3 +185,20 @@ describe('f868 (7) a question asked back in plain words comes back with its choi
   });
 });
 
+
+describe('f868 (8) what the turn read: its source, and its list', () => {
+  const call = (name, input) => [{ type: 'tool_use', id: 'tu_x', name, input }];
+  test('an answer naming a contract Jambo read, citing nothing, cites it', async () => {
+    ai.reset(); ai.script(call('get_contract', { id: 'MK-A1' }), deliver({ answer: 'MK-A1 ends on 30 June 2027.' }));
+    const r = await ask(W.admin, 'when does the sugar deal end');
+    assert.deepEqual(r.cards.map(c => c.id), ['MK-A1']);
+  });
+  test('a list asked for in plain words opens on Contracts with exactly the rows Jambo was given; a question does not', async () => {
+    ai.reset(); ai.script(call('list_portfolio', { where: { status: ['Signed'] } }), deliver({ answer: 'Two signed contracts.' }));
+    const r = await ask(W.admin, 'signd contracts');
+    assert.equal(r.goto.door.kind, 'contracts');
+    assert.deepEqual(r.goto.door.ids.slice().sort(), ['MK-A1', 'MK-B1']);
+    ai.reset(); ai.script(call('list_portfolio', { where: { status: ['Signed'] } }), deliver({ answer: 'Two.' }));
+    assert.equal((await ask(W.admin, 'how many signed contracts do we have')).goto, null);
+  });
+});

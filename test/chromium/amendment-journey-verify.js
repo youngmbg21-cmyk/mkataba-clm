@@ -394,7 +394,8 @@ const VISIBLE = `(el) => {
         null, { timeout: 8000 }).catch(() => {});
       return page.evaluate(`(() => {
         const vis = ${VISIBLE};
-        const want = i18t('pd_ob_find');
+        /* RE-POINTED 23 Oct 2026 (owner picked "Marquee"): the link says "Find more in the wording" */
+        const want = i18t('pd_ob_find_mq');
         const b = [...document.querySelectorAll('#ig-dock button')].find(x => x.textContent.trim() === want);
         const tab = document.querySelector('#ig-dock [data-pd-tab="oblig"]');
         return { find: vis(b), live: !!(b && !b.disabled), tab: tab ? tab.textContent.replace(/\\s+/g, ' ').trim() : '' };
