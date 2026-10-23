@@ -57,9 +57,10 @@ const EIGHT = ['contractType', 'governingLaw', 'disputes', 'value', 'effDate', '
       /* RE-POINTED 15 Oct 2026 (step 8, the room retired): the Overview's
          sheet is the contract strip's Details page on Home's Board — where the
          reader edits it now — opened by its one door (roomOverviewOpen) */
-      await page.evaluate(() => { roomOverviewOpen(getContract('MK-EK1')); });
-      const up = await until(() => !!document.querySelector('[data-bs-host="details"][data-bs-cid="MK-EK1"] #ov-ess [data-ov-edit="all"], [data-bs-host="details"][data-bs-cid="MK-EK1"] #kt-overview [data-ov-edit="all"]'));
-      if (!up) { check(`0. ${tag}: the Overview and its Edit are drawn`, false); await page.close(); continue; }
+      /* RE-POINTED 22 Oct 2026 (owner's yes: the Details page RETIRED on a computer): the Overview's sheet still stands in the room opened by name (openWorkspace(id,{room:true})) and is checked there */
+      await page.evaluate(() => { openWorkspace('MK-EK1', { room: true }); roomOverviewOpen(getContract('MK-EK1')); });
+      const up = await until(() => !!document.querySelector('#kt-ov-terms [data-ov-edit="all"]') && !!document.getElementById('ov-ess'));
+      if (!up) { check(`0. ${tag}: the Overview and its Edit are drawn`, false, await page.evaluate(() => state.view + ' ' + state.activeId + ' ' + !!document.querySelector('#kt-ov-terms') + ' ' + [...document.querySelectorAll('[data-ov-edit]')].map(e => e.getAttribute('data-ov-edit') + '<' + (e.parentElement.closest('[id]') || {}).id).join(','))); await page.close(); continue; }
       const H = () => page.evaluate(() => document.getElementById('ov-ess').getBoundingClientRect().height);
       check(`1. ${tag}: no sentence beside Read the brief`, await page.evaluate(() => !document.querySelector('.ov-top-note')
         && !document.querySelector('.ov-top').textContent.includes(i18t('ov_top_note').slice(0, 30))));
@@ -67,12 +68,15 @@ const EIGHT = ['contractType', 'governingLaw', 'disputes', 'value', 'effDate', '
          Board's card no longer turns into boxes — its Edit brings the paper up with Key terms standing in
          the middle (pdKtOpen → pdKtMid), so the card cannot grow; checks 3–5 (the eight boxes, the soft
          fill, the Directory inside the card) had no card left to measure and are retired with it */
+      /* RE-POINTED 22 Oct 2026 (the Details page RETIRED on a computer; the Board's card is gone): the
+         sheet is measured where it still stands, the room opened by name — its Edit turns the terms into
+         boxes and the essentials card keeps its height (the owner's "the card should not expand") */
       const rest = await H();
-      await page.click('[data-ov-edit="all"]');
-      const mid = await until(() => document.querySelector('[data-pd-mid-kt] #pd-kt tr') ? true : null);
-      check(`2. ${tag}: Edit on the Board's card brings Key terms to the middle beside the paper`, !!mid);
-      const boxes = await page.evaluate(() => document.querySelectorAll('[data-bs-host="details"] #ov-facts [data-kt], [data-bs-host="details"] #ov-facts [data-ktm]').length);
-      check(`2a. ${tag}: the card itself draws no boxes (it only reads)`, boxes === 0, `${boxes} boxes; card was ${rest.toFixed(1)}px`);
+      await page.click('#kt-ov-terms [data-ov-edit="all"]');
+      const boxes = await until(() => { const n = document.querySelectorAll('#ov-ess [data-kt], #ov-ess [data-ktm]').length; return n ? n : null; });
+      check(`2. ${tag}: Edit turns the essentials into boxes`, !!boxes, `${boxes} boxes`);
+      const edit = await H();
+      check(`2a. ${tag}: the essentials card is exactly as tall in Edit as at rest`, Math.abs(edit - rest) <= 1, `${rest.toFixed(1)} → ${edit.toFixed(1)}`);
       await page.close();
     }
     check('6. no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));

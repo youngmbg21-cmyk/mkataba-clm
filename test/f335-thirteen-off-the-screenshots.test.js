@@ -226,7 +226,10 @@ describe('f335 (6) — Fill it in opens the box it is looking for', () => {
     const tab = body.indexOf("roomOverviewOpen(c)");
     assert.ok(open > 0 && tab > open, 'posture first, so ONE render does it');
     const door = fnBody(CONTRACT, 'roomOverviewOpen');
-    assert.match(door, /roomRetiredLand\(c\.id,'details'\)/, 'the Overview\'s sheet is the strip\'s Details page');
+    /* RE-POINTED 22 Oct 2026 (owner's yes: the Details page RETIRED after its three rounds): on a computer
+       the door is Key terms in the middle (pdKtOpen), and a field the table does not name is its own row */
+    assert.match(door, /pdKtOpen\(c\.id\)/, 'on a computer the contract\'s details are Key terms in the middle');
+    assert.match(body, /pdKtFocus\(c\.id,home\.kt\)/, 'a box Fill in does not ask is Key terms, ready on it');
     assert.match(door, /roomGoTab\(c,'terms'\)/, 'and the room\'s Overview where the room is open by name or on the phone');
     assert.match(body, /pdFillOpen\(c\.id,\{ key:home\.kt \}\)/, 'a box Fill in asks is landed on beside the paper');
   });
