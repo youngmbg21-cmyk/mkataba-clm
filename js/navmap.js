@@ -212,7 +212,7 @@ function navRead(q, opts = {}){
   /* SETTINGS' BOX: a setting found by the finder is the finder's answer there; what it does not find
      ("daily brief", "my profile") is read as every box reads it */
   let stOwn = false; if (opts.box === 'settings'){ try { stOwn = typeof stFind === 'function' && (stFind(raw) || []).length > 0; } catch (_){ stOwn = false; } }
-  return navReadPage(raw, t) || navReadStandards(raw, t) || navReadClause(raw, t) || navReadContracts(raw, t, opts) || navReadContractAct(raw, t) || navReadPlace(raw, t) || navReadParty(raw, t) || navReadPerson(raw, t) || (stOwn ? null : navReadSettings(raw, t)) || (opts.box === 'settings' ? null : navReadStTitle(raw, t)) || navReadRequest(raw, t) || navReadDuty(raw, t) || navReadNone(raw, t) || null;
+  return navReadPage(raw, t) || navReadStandards(raw, t) || navReadClause(raw, t) || navReadContracts(raw, t, opts) || navReadContractAct(raw, t) || (stOwn && navPlaceIsSetting(t) ? null : navReadPlace(raw, t)) || navReadParty(raw, t) || navReadPerson(raw, t) || (stOwn ? null : navReadSettings(raw, t)) || (opts.box === 'settings' ? null : navReadStTitle(raw, t)) || navReadRequest(raw, t) || navReadDuty(raw, t) || navReadNone(raw, t) || null;
 }
 
 /* A PAGE BY ITS EVERYDAY NAME, even with a contract open beside the reader: "all our duties" is the
@@ -263,6 +263,12 @@ const NAV_PLACES = [
 ];
 /* the Company's places are an admin's: anyone else is told who can open them */
 const NAV_PLACES_ADMIN = new Set(['company', 'access', 'keeping', 'privstreams', 'budget', 'roles', 'webhooks']);
+/* a Settings page asked in Settings' own box is the finder's answer there (Settings lands, never presses):
+   the place words that ARE Settings pages step aside for it, as navReadSettings does */
+function navPlaceIsSetting(t){
+  const hit = NAV_PLACES.find(([, re]) => re.test(t));
+  return !!hit && (hit[0] === 'profile' || NAV_PLACES_ADMIN.has(hit[0]));
+}
 function navReadPlace(raw, t){
   const hit = NAV_PLACES.find(([, re]) => re.test(t)); if (!hit) return null;
   const k = hit[0];
