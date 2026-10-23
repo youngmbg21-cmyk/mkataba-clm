@@ -3188,8 +3188,11 @@ const IGB_SPIN_KEY=['rot',null,'rotL',null,null];   // which angle each view tur
 const IGB_SWAY=.12, IGB_SWAY_S=36;
 /* THE GRID STANDS STILL (Young, 23 Oct 2026: "make the grid just a straight
    grid that does not move left to right or spin ... if you want to move it
-   around with your mouse then you can do so"). No sway, no turn, no jiggle;
-   a drag still turns and tips it. Turning is greyed there with the reason. */
+   around with your mouse then you can do so"). No sway, no turn; a drag still
+   turns and tips it. Turning is greyed there with the reason. ITS DOTS STILL
+   JIGGLE (Young, 23 Oct 2026: "the stars should not be static ... the grid is
+   the one that should stop moving") — even when Turning was left on in
+   another view (igbMoves, not cam.spin, stills the jiggle). */
 const IGB_STILL_VIEW=3;
 function igbMoves(){ return igbSpinning()&&igbCam().view!==IGB_STILL_VIEW; }
 /* STILL UNTIL PRESSED (Young, 10 Oct 2026: "clicking play when on screen
@@ -3730,7 +3733,7 @@ const IG_EDGE_PARTY_KEYS=['counterparty'];
 function igEdgeNamesShow(key){ return !IG_EDGE_PARTY_KEYS.includes(key)||intel.edgeNames===true; }
 function igHubNamed(h,R){ if(!R) return true; if(R.none) return false; return (h.kids||[]).some(n=>igNameShows(n.id,R)); }
 function igbJig(n,w){
-  const j=(igbCam().jig||0)*(1-w[1]-w[IGB_STILL_VIEW]); if(j<=.001) return null;
+  const j=(igbCam().jig||0)*(1-w[1]); if(j<=.001) return null;
   if(!n._jp){ const h=igbHash(n.id); n._jp=[h%628/100,(h>>>10)%628/100,(h>>>20)%628/100,.75+(h%50)/100]; }
   const t=(IG&&IG._jt||0)*2*Math.PI/IGB_JIG_S*n._jp[3], a=IGB_JIG*j;
   return [a*Math.sin(t+n._jp[0]),a*Math.sin(t*1.3+n._jp[1]),a*Math.sin(t*.8+n._jp[2])];
@@ -3772,7 +3775,7 @@ function igbStep(G,dt){
   /* Turning / Still (the bar's own button, `cam.spin`; a reader who asked for
      less motion starts Still). Holding or pointing at the map holds it. */
   const spin=!!cam.spin;
-  cam.jig=(cam.jig||0)+(((spin||rm)?0:1)-(cam.jig||0))*(rm?1:Math.min(1,dt*2));
+  cam.jig=(cam.jig||0)+(((igbMoves()||rm)?0:1)-(cam.jig||0))*(rm?1:Math.min(1,dt*2));
   G._jt=(G._jt||0)+dt;
   if(spin&&!G.turning&&!G.hover){ const k=IGB_SPIN_KEY[cam.view]; if(k) cam[k]+=dt*IGB_TURN_RATE; else if(cam.view===4) cam.swayT=(cam.swayT||0)+dt; }
   /* Still holds the swing where it is (a pressed Still is still at once) */
