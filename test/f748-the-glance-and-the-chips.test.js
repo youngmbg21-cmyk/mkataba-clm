@@ -187,7 +187,8 @@ describe('f748 (3) the stage pill carries its round', () => {
   test('3 "In Review · round 2", as the paper\'s line says it', () => {
     const { ctx, c } = glance();
     /* RE-POINTED 20 Oct 2026 (the Dossier, #386): the stage is the spine's lit Negotiate */
-    assert.match(ctx.pdGlanceHtml(c), /class="ds-st is-(?:now|on)[^"]*" role="listitem" data-ds-st="nego"/);
+    /* RE-POINTED 23 Oct 2026 (Spine): the stage we are in is the spine's current line */
+    assert.match(ctx.pdGlanceHtml(c), /class="ds-sp-st is-cur[^"]*" data-ds-sp="nego"/);
   });
 });
 

@@ -213,7 +213,8 @@ const CONTRACTS = [
       const line = document.elementFromPoint(300, Math.round(bar.bottom) + 6);
       return { headShown: hd.getBoundingClientRect().height > 0, line: line ? (line.closest('#ig-page') ? 'page' : line.tagName) : null, lineText: line ? (line.closest('[class]') || line).textContent.slice(0, 80) : '' };
     }, null, 10000);
-    check('5a on the paper Home draws no head row: the paper\'s own line is right under the bar', !!pap && !pap.headShown && pap.line === 'page' && /MK-CN2/.test(pap.lineText), JSON.stringify(pap));
+    check('5a on the paper Home draws no head row: the paper\'s own line is right under the bar', !!pap && !pap.headShown && pap.line === 'page' && /Cold chain logistics/.test(pap.lineText) && !/MK-CN2/.test(pap.lineText), JSON.stringify(pap));
+    /* RE-POINTED 23 Oct 2026 (owner: "yes" — the bar names MK-CN2, the paper's line keeps the kind of contract alone) */
     await shot(page, 'paper-1440x780');
     await openRecent();
     if (await press('#dk-recent [data-dk-present]', '5b Present this page')) {

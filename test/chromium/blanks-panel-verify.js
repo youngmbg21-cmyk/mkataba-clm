@@ -122,7 +122,9 @@ const PANEL = () => {
     if (!ci || typeof pdKtRowsHtml !== 'function') return null; const t = document.createElement('tbody'); t.innerHTML = pdKtRowsHtml(ci, pdKtFacts(ci)); return t; })();
   /* RE-POINTED 23 Oct 2026 (Marquee): the Dossier's holder takes no box of its own (its parts stand in order in the
      panel), so the panel is measured by its Needs you list */
-  const dock = document.querySelector('#ig-dock #pd-needs') || document.querySelector('#ig-dock');
+  /* RE-POINTED 23 Oct 2026 (Spine): Needs you takes no box either now (its rows stand under their stages); the panel
+     is measured by the Fill in stage's own line */
+  const dock = document.querySelector('#ig-dock .ds-sp-st[data-ds-sp="fill"]') || document.querySelector('#ig-dock');
   if (!og && !kt) return { there: false };
   const r = dock.getBoundingClientRect();
   const owedRows = og ? [...og.querySelectorAll('tr[data-pd-og-row]:not(.is-saved)')].filter(x => !['signers', 'stream', 'people'].includes(x.getAttribute('data-pd-og-row'))) : [];

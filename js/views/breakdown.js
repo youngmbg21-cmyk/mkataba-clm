@@ -348,17 +348,11 @@ function stkClauseName(at){
 function stkMarqueeHtml(c, all, busy){
   const T = stkClauseTally(all), E = _bdE;
   const title = T.need ? i18tn('stk_mq_title', T.need, { n: T.need }) : i18t('stk_mq_title_none');
-  /* where to start: the first point that needs you, in the list's own order */
-  const first = (all || []).find(p => !p.done && p.status === 'need') || null;
-  const fAt = first ? (first.at >= 0 ? first.at : first.afterAt) : -1;
-  const what = first ? String(first.title || first.stake || '').trim().replace(/[.\s]+$/, '') : '';
-  const lc = what && /^[A-Z][a-z]/.test(what) ? what.charAt(0).toLowerCase() + what.slice(1) : what;
-  const start = (first && fAt >= 0 && lc) ? ' ' + E(i18t('stk_mq_start', { clause: '\u0001', what: lc })).replace('\u0001', `<b>${E(stkClauseName(fAt))}</b>`) : '';
-  const read = T.all ? E(i18tn('stk_mq_read', T.all, { n: T.all })) : '';
+  /* SPINE ROUND (owner, 23 Oct 2026: "below '3 clauses need you', remove all the other supporting words"):
+     the headline alone, then the tabs; stk_mq_read and stk_mq_start are inert */
   const tab = (k, word, n) => (n || k === '' || _stk.f.sev === k)
     ? `<button type="button" role="tab" class="stk-tab" data-stk-tab="${k}" aria-selected="${_stk.f.sev === k}">${E(word)}<span>${n}</span></button>` : '';
   return `<h3 class="stk-mq-t">${E(title)}</h3>${busy ? `<span class="stk-busy" role="status">${bdBusyHtml()}</span>` : ''}`
-    + ((read || start) ? `<p class="stk-mq-s">${read}${start}</p>` : '')
     + `<div class="stk-tabs" role="tablist">${tab('', i18t('stk_f_all'), T.all)}${tab('need', i18t('bd_st_need'), T.need)}${tab('look', i18t('bd_st_look'), T.look)}${tab('fine', i18t('stk_tab_fine'), T.fine)}${stkMoreHtml(all)}</div>`
     + (stkMoreOpen() ? stkMoreBoxesHtml(all) : '');
 }

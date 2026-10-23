@@ -819,10 +819,9 @@ function bsShortName(c){
   return n;
 }
 function bsHeadSubHtml(c, ref){
-  const side = (typeof hbSideOf === 'function') ? hbSideOf(c) : null;
+  /* THE OTHER SIDE'S NAME ONCE (owner, 23 Oct 2026: "the name of the counterparty is already at the top of
+     the page"): the head's line keeps the ref and the day it was signed; the party and its role are the bar's */
   const bits = [];
-  if (c.counterparty) bits.push(bsE(c.counterparty));
-  if (c.counterparty && side) bits.push(bsE(bsT('bs_role_' + side)));
   bits.push((typeof refHtml === 'function') ? refHtml(c) : ref);
   /* A SIGNED CONTRACT SAYS WHEN IT WAS SIGNED (round 7 as drawn), kept in the one head */
   const signedOn = (typeof window.contractSignedAt === 'function') ? contractSignedAt(c) : null;
