@@ -245,8 +245,11 @@ const READING = {
     ok('5a nothing in the list paints a dashed or dotted border', lines.bad.length === 0, JSON.stringify(lines.bad));
     ok('5b the not-in-the-contract group keeps its indent and its label, with no border',
       !!lines.miss && (lines.miss.style === 'none' || lines.miss.w === '0px') && parseFloat(lines.miss.ml) >= 20, JSON.stringify(lines.miss));
-    ok('5c the point card\'s 2px coloured left edge is untouched',
-      !!lines.edge && lines.edge.w === '2px' && lines.edge.bg !== 'rgba(0, 0, 0, 0)' && lines.edge.c !== 'none', JSON.stringify(lines.edge));
+    /* RE-POINTED 23 Oct 2026 (owner: "Build the dot but without the quote"): the verdict is a coloured dot before the title, no edge */
+    const dot = await page.evaluate(() => { const d = document.querySelector('#pd-thread .stk-card .stk-ct > .stk-d8'); const s = d && getComputedStyle(d);
+      return s ? { w: s.width, bg: s.backgroundColor, shown: d.getClientRects().length > 0 } : null; });
+    ok('5c the point card shows its verdict as a coloured dot, and no edge',
+      !!dot && dot.shown && dot.w === '8px' && dot.bg !== 'rgba(0, 0, 0, 0)' && !!lines.edge && lines.edge.c === 'none', JSON.stringify({ dot, edge: lines.edge }));
 
     /* ===== 6 no count line; the tabs do the filters' work =====
        RE-POINTED 23 Oct 2026 (owner picked "Marquee"): a headline and the clauses as tabs with counts in place of

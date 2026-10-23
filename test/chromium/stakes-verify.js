@@ -177,9 +177,11 @@ const deal = (id, name) => ({ id, contractNo: id, name, counterparty: 'Juno Limi
         return { needBg: bg(need), lookBg: bg(look), needEdge: edge(need), lookEdge: edge(look), ruby: tok('--st-ruby-dot'), amber: tok('--st-amber-dot'), box: box(need),
           verd: need ? (need.querySelector('.stk-verd') || {}).textContent : null, needInk: ink(need), lookInk: ink(look), text: tok('--color-text') };
       });
-      ok('3e each point is an unboxed card: no wash, an edge in its verdict\'s colour, the verdict in words, its words dark',
-        f4.needBg === 'rgba(0, 0, 0, 0)' && f4.lookBg === 'rgba(0, 0, 0, 0)' && f4.needEdge === f4.ruby && f4.lookEdge === f4.amber && f4.box === 'none/none'
-        && f4.verd === 'Needs you' && f4.needInk === f4.text && f4.lookInk === f4.text, JSON.stringify(f4));
+      /* RE-POINTED 23 Oct 2026 (owner: "Build the dot but without the quote"): the verdict's colour is the dot before the title */
+      const dots = await page.evaluate(() => { const c = s => { const d = document.querySelector(`#pd-thread .stk-line.${s} .stk-ct > .stk-d8`); return d ? getComputedStyle(d).backgroundColor : null; }; return { need: c('is-need'), look: c('is-look') }; });
+      ok('3e each point is an unboxed card: no wash, a dot in its verdict\'s colour, the verdict in words, its words dark',
+        f4.needBg === 'rgba(0, 0, 0, 0)' && f4.lookBg === 'rgba(0, 0, 0, 0)' && dots.need === f4.ruby && dots.look === f4.amber && f4.box === 'none/none'
+        && f4.verd === 'Needs you' && f4.needInk === f4.text && f4.lookInk === f4.text, JSON.stringify({ f4, dots }));
       /* 3f A POINT'S BOX SHOWS ONLY UNDER THE OPEN CLAUSE (owner, 13 Oct 2026:
          "you should only be able to see this once you click on the clause
          header"): closed, the row says "1 to review" and no box shows; pressed,

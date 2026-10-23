@@ -402,9 +402,9 @@ function stkCardHtml(c, p, i, redWhy){
     ? `<span class="stk-mk is-done"><i class="stk-ring is-on" aria-hidden="true"></i>${_bdE(i18t('stk_reviewed_by', { who: String(p.done.name || '').trim().split(/\s+/)[0] || i18t('stk_someone') }))}</span><button type="button" class="stk-a stk-undo" data-stk-unreview="${i}"${dis(markWhy)}${busy ? ' disabled' : ''}>${_bdE(i18t('stk_review_undo'))}</button>`
     : `<button type="button" class="stk-a stk-mk" data-stk-review="${i}"${dis(markWhy)}${busy ? ' disabled' : ''}><i class="stk-ring" aria-hidden="true"></i>${_bdE(i18t('stk_mark_reviewed'))}</button>`;
   const stake = String(p.stake || '').trim();
-  /* MARQUEE (23 Oct 2026): the verdict is the edge's colour (its word and who found it are read aloud, not
-     drawn). The drawing quoted the sentence under the point; NO WORDING IN THE PANEL (igQuoteGo) stands
-     until the owner says otherwise */
+  /* MARQUEE (23 Oct 2026): the verdict is the dot's colour (its word and who found it are read aloud, not
+     drawn). No quoted sentence under the point (owner, 23 Oct 2026: "Build the dot but without the quote"):
+     NO WORDING IN THE PANEL (igQuoteGo) stands */
   return `<div class="stk-line stk-card is-mq is-${p.status}${p.done ? ' is-done' : ''}" data-stk-key="${_bdE(p.key)}">
     <div class="stk-c1 sr-only"><span class="stk-verd">${_bdE(i18t('bd_st_' + p.status))}</span><span class="stk-by">${_bdE(i18t('stk_found_by', { who: by }))}</span></div>
     <div class="stk-ct"><i class="stk-d8 is-${p.status}" aria-hidden="true"></i><span>${_bdE(p.title || stake)}</span></div>

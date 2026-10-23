@@ -11812,11 +11812,13 @@
   .pd-th .stk-more > span{color:var(--color-text);font-variant-numeric:tabular-nums}
   .pd-th .stk-more:focus-visible{outline:2px solid var(--accent-fill);outline-offset:2px}
   .pd-th .stk-flts.is-mq{grid-template-columns:repeat(2,minmax(0,1fr));margin:10px 0 0}
-  /* THE 2PX COLOURED EDGE STANDS (the owner, 21 Oct 2026: "not the edge line that is colored"); the drawing's dot waits on their answer */
-  .pd-th .stk-line.stk-card.is-mq{padding:10px 0 10px 12px}
+  /* THE DOT, NOT THE EDGE (owner, 23 Oct 2026: "Build the dot but without the quote"; replaces the 21 Oct edge): the verdict is an 8px dot before the title */
+  .pd-th .stk-line.stk-card.is-mq{padding:10px 0}
+  .pd-th .stk-line.stk-card.is-mq::before{content:none}
   .pd-th .stk-card.is-mq + .stk-card.is-mq{border-top:0}
   .pd-th .stk-card.is-mq .stk-ct{display:flex;align-items:baseline;gap:10px;margin-top:0;font-size:13px;line-height:19px}
-  .pd-th .stk-card.is-mq .stk-ct > .stk-d8{display:none}
+  .pd-th .stk-card.is-mq .stk-ct > .stk-d8{position:relative;top:-1px}
+  .pd-th .stk-card.is-mq .stk-st, .pd-th .stk-card.is-mq .stk-std, .pd-th .stk-card.is-mq .stk-cacts{margin-left:18px}
   .pd-th .stk-card.is-mq .stk-st{font-size:12.5px;line-height:18px;color:var(--color-text)}
   .pd-th .stk-card.is-mq .stk-q q{quotes:"\201C" "\201D"}
   .pd-th .stk-card.is-mq .stk-q{display:block;margin-top:6px;padding-left:10px;border-left:2px solid var(--color-divider);font-family:var(--font-doc);font-size:12.5px;line-height:18px;color:var(--color-text)}
