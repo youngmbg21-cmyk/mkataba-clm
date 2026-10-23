@@ -15990,6 +15990,18 @@
   .nd-more span{min-width:0;color:var(--color-neutral-600);font-size:var(--t-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .nd-foot-r{display:flex;align-items:center;gap:12px;padding:8px 16px}
   .nd-foot-r .hb-ag-lv{flex:1;min-width:0;border:0;padding:0}
+  /* A NARROW BOARD (a small tablet with Jambo's panel open): the box drops under the tabs, and the row keeps
+     what waits, how long, and its button — as the Contracts list keeps its loudest columns; nothing pans sideways */
+  .nd-card{container:ndcard / inline-size}
+  .nd-bar{flex-wrap:wrap}
+  .nd-tabs{flex:none}
+  @container ndcard (max-width:640px){
+    .nd-bar{padding-bottom:8px}
+    .nd-find{flex:1 1 100%;width:auto;max-width:none;margin-left:0}
+    .nd-cols,.nd-br{grid-template-columns:minmax(0,1fr) 88px 76px}
+    .nd-cols > :nth-child(2),.nd-cols > :nth-child(3),.nd-br > .nd-c-deal,.nd-br > .nd-c-who{display:none}
+    .nd-card .nd-home-shows{display:none}
+  }
   .cn-pill{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:10px;font-size:var(--t-micro);font-weight:400;background:var(--surface-2);color:var(--color-neutral-600);border:1px solid var(--color-divider)}
   .cn-pill-ic{width:11px;height:11px}
   .cn-co-ic{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--color-accent-100);color:var(--accent-ink);flex:none}
