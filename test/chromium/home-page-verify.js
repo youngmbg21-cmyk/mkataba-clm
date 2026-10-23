@@ -119,8 +119,10 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       const b = getComputedStyle(bar); o.barEdge = b.borderBottomColor; o.barEdgeW = b.borderBottomWidth;
       return o;
     });
-    check('1 the bar is 48px, WHITE in its own --bar-bg, the text ink on it, a hairline under it',
-      shell.bar.h === 48 && !!barTok && shell.bar.bg === barTok.bg && barTok.bg === 'rgb(255, 255, 255)' && shell.bar.ink === barTok.ink
+    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): white at the drawing's 78%, its edge
+       the --bar-edge token (transparent: the line under it is a soft shadow) */
+    check('1 the bar is 48px, WHITE in its own --bar-bg, the text ink on it, its edge its own token',
+      shell.bar.h === 48 && !!barTok && shell.bar.bg === barTok.bg && /^rgba?\(255, 255, 255(, 0\.78)?\)$/.test(barTok.bg) && shell.bar.ink === barTok.ink
       && barTok.barEdge === barTok.edge && barTok.barEdgeW === '1px',
       `${shell.bar.h}px · bar ${shell.bar.bg} · --bar-bg ${barTok && barTok.bg} · ink ${shell.bar.ink}/${barTok && barTok.ink} · edge ${barTok && barTok.barEdgeW} ${barTok && barTok.barEdge} · (--nav-bg ${barGround})`);
     /* REVISED 25 Aug 2026. This ran at 1440 and asserted the column rests OPEN

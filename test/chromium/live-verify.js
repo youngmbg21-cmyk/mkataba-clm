@@ -128,6 +128,8 @@ const READ = () => {
 
     INK = await page.evaluate(() => { const e = document.createElement('i'); e.style.color = 'var(--accent-ink)';
       document.body.appendChild(e); const c = getComputedStyle(e).color; e.remove(); return c; });
+    const CONTROL_GREY = await page.evaluate(() => { const e = document.createElement('i'); e.style.background = 'var(--surface-2)';
+      document.body.appendChild(e); const c = getComputedStyle(e).backgroundColor; e.remove(); return c; });
     const PAGE_INK = await page.evaluate(() => { const e = document.createElement('i'); e.style.color = 'var(--color-text)';
       document.body.appendChild(e); const c = getComputedStyle(e).color; e.remove(); return c; });
     const m = await page.evaluate(READ);
@@ -142,8 +144,10 @@ const READ = () => {
            edge, the page ink — exactly as More beside them (see
            counterparty-reading-and-more-verify 1c). What this always guarded
            is kept: a real edge, never the surface's own white. */
+        /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): the row's one face is the control grey pill
+           (--surface-2), as every .ui-btn and More beside them */
         check(`${purpose}: #${id} wears the row's face`,
-          v.bg === SURFACE_WHITE || v.bg === TRANSPARENT, v.bg);
+          v.bg === CONTROL_GREY, v.bg + ' (grey ' + CONTROL_GREY + ')');
         check(`${purpose}: #${id} still reads as a button — a real edge, never the surface's own white`,
           parseFloat(v.bw) > 0 && v.bd !== SURFACE_WHITE,
           `${v.bw} ${v.bd}${v.bd === SURFACE_WHITE ? ' — this is the bug it always guarded' : ''}`);

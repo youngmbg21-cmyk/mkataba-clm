@@ -550,6 +550,7 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
         /* a line is painted only when its style draws one AND its ink shows */
         lines: faces.map(f => { const cs = getComputedStyle(f), ink = !/rgba\(\d+, \d+, \d+, 0\)|transparent/.test(cs.borderBottomColor) && cs.borderBottomStyle !== 'none' && parseFloat(cs.borderBottomWidth) > 0;
           return (f.getAttribute('aria-selected') === 'true' ? 'live:' : 'other:') + (ink ? cs.borderBottomStyle + ' ' + cs.borderBottomWidth : 'none'); }),
+        fills: faces.map(f => (f.getAttribute('aria-selected') === 'true' ? 'live:' : 'other:') + getComputedStyle(f).backgroundColor),
         inParsedSheet: (() => {
           for (const sheet of document.styleSheets){
             let rules; try { rules = sheet.cssRules; } catch (_) { continue; }
@@ -566,9 +567,11 @@ const READ_TYPE = ({ sel, props }) => [...document.querySelectorAll(sel)].map(e 
        yes reversing the 16 Oct pill): You · Company are UNDERLINED TABS, each
        as wide as its word — a painted line under the live one, no sliding
        pill */
-    check('6b the two tabs, a painted line under the live one only',
-      stBox && stBox.widths.length === 2 && stBox.lines.some(l => l === 'live:solid 2px') && stBox.lines.filter(l => /^other:/.test(l)).every(l => l === 'other:none'),
-      stBox && stBox.lines);
+    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): a chosen tab is a filled grey
+       pill — the live one filled, the other bare, and no line under either */
+    check('6b the two tabs, the live one a filled pill, the other bare, no line under either',
+      stBox && stBox.widths.length === 2 && stBox.fills.some(l => l === 'live:rgb(240, 240, 243)') && stBox.fills.filter(l => /^other:/.test(l)).every(l => /rgba\(0, 0, 0, 0\)|transparent/.test(l)) && stBox.lines.every(l => /:none$/.test(l)),
+      stBox && { lines: stBox.lines, fills: stBox.fills });
     check('6c and no sliding pill',
       stBox && !stBox.thumbShown, stBox && stBox.thumbShown);
 

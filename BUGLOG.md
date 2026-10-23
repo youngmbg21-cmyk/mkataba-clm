@@ -21499,3 +21499,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 
 - 23 Oct 2026 — Noticed, not fixed: the playbook editor's Save (openPlaybookEditor, js/views/settings.js) ends with a bare `toast(i18t('set_t_playbook_saved'))`, which prints nothing (TOAST_KINDS) — a saved book says nothing on screen.
 - 23 Oct 2026 — Noticed, not fixed: paper-actions-verify 2a fails on main too — pressing Actions on the paper's line opens the Dossier's list of acts but the list is not brought into view ({"open":true,"inView":false,"n":19}).
+- Noticed, not fixed (23 Oct 2026, the Legora look PR #447): paper-actions-verify.js is red on GitHub at main 4733092 (shard 1/4) and passes locally on both main and the branch; and home-held-contract-verify.js is red on GitHub at main (shard 3/4). Neither is this change's.

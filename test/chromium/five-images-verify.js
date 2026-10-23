@@ -264,11 +264,15 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
       }, v);
       segSweep.push(...got);
     }
-    const bad = segSweep.filter(s => s.gap > 0.6 || s.gapB > 0.6);
+    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): the drawing's switch is a grey
+       pill holding pills, 3px inside it (padding:3px in the owner's drawing), so
+       the lit half sits EVENLY inside it — the same inset top and bottom, never
+       more than the drawn 3px — rather than flush with an edge it no longer has. */
+    const bad = segSweep.filter(s => s.gap > 3.6 || s.gapB > 3.6 || Math.abs(s.gap - s.gapB) > 0.6);
     /* RE-POINTED 21 Oct 2026 (Chambers): the bar's two groups (.sh-grp — the
        Blue/Green and theme switch, and the language switch) were twelve of the
        fifteen measured on main; both left the bar, so three remain to sweep. */
-    ok('4 every segmented control’s lit half fills its button',
+    ok('4 every segmented control’s lit half sits evenly inside its pill',
       segSweep.length >= 3 && bad.length === 0,
       bad.length ? bad.map(b => `${b.v}/${b.cls} ${b.gap}/${b.gapB}`).join(' · ')
                  : segSweep.length + ' measured, none leaking');

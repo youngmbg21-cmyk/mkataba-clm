@@ -233,9 +233,14 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
          — so that colour is flat, not a fill. */
       const surface = (() => { const e = document.createElement('i'); e.style.background = 'var(--color-surface)';
         document.body.appendChild(e); const v = getComputedStyle(e).backgroundColor; e.remove(); return v; })();
+      /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): the plain face is the control
+         grey pill (--surface-2) product-wide, so that colour is flat too; a FILL
+         is still anything else (the ink, a tint). */
+      const plain = (() => { const e = document.createElement('i'); e.style.background = 'var(--surface-2)';
+        document.body.appendChild(e); const v = getComputedStyle(e).backgroundColor; e.remove(); return v; })();
       const filled = btns.filter(b => {
         const bg = getComputedStyle(b).backgroundColor;
-        return bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent' && bg !== surface;
+        return bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent' && bg !== surface && bg !== plain;
       });
       return { n: btns.length, filled: filled.map(b => b.textContent.replace(/\s+/g, ' ').trim()),
         onRow: btns.map(b => b.textContent.replace(/\s+/g, ' ').trim().slice(0, 20)),

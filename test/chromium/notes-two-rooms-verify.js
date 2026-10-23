@@ -912,13 +912,17 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
       const o = getComputedStyle(open), h = getComputedStyle(head);
       return { open: true, head: true, edge: o.borderTopColor, headEdge: h.borderTopColor,
         ink: o.color, headInk: h.color,
+        accent: (() => { const e = document.createElement('i'); e.style.color = 'var(--accent-ink)'; document.body.appendChild(e); const c = getComputedStyle(e).color; e.remove(); return c; })(),
         noEdge: parseFloat(o.borderTopWidth) === 0 || /rgba\(0, 0, 0, 0\)|transparent/.test(o.borderTopColor) };
     });
     check('the row’s verbs are bare words on the face — no edge of their own',
       openEdge.open && openEdge.head && openEdge.noEdge, JSON.stringify(openEdge));
-    check('and the quiet one reads in the head buttons’ own ink',
-      openEdge.open && openEdge.head && openEdge.ink === openEdge.headInk,
-      `${openEdge.ink} vs ${openEdge.headInk}`);
+    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): the head's buttons are grey pills in the page's ink;
+       a redline row's verbs are the drawing's quiet coloured words (Edit · Send · Review · Ladder),
+       the accent ink — one ink for every verb on the rows */
+    check('and the quiet one reads in the verbs\' accent ink, as drawn',
+      openEdge.open && openEdge.head && openEdge.ink === openEdge.accent,
+      `${openEdge.ink} vs ${openEdge.accent} (head ${openEdge.headInk})`);
 
     check('no page errors along the way', errors.length === 0, errors.join(' | ') || 'none');
   } catch (e) {
