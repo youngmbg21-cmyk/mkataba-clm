@@ -195,7 +195,8 @@ const check = (name, pass, detail) => {
        drawn on the canvas; the SVG press-target over each dot holds still until the map
        wakes): the dot is read where the canvas draws it, its projected point `q` */
     const dotOf = i => page.evaluate(j => { const q = IG.nodes[j].q || [0, 0]; return [Math.round(q[0]), Math.round(q[1])]; }, i);
-    const stray = async (v, key) => { await view(v); const a = await page.evaluate(k => intel.cam[k] || 0, key);
+    /* the Grid is measured once its glide in has finished: the last of the glide is not motion of the Grid's own */
+    const stray = async (v, key) => { await view(v); if (v === 3) await until(k => intel.cam.w[k] > 0.99999, v); const a = await page.evaluate(k => intel.cam[k] || 0, key);
       const at = await page.evaluate(() => IG.nodes.findIndex(x => x.kind === 'contract' && x.g.getBoundingClientRect().width)), d0 = await dotOf(at); let far = 0;
       for (let i = 0; i < 8; i++){ await page.waitForTimeout(200); const d = await dotOf(at); far = Math.max(far, Math.hypot(d[0] - d0[0], d[1] - d0[1])); }
       const b = await page.evaluate(k => intel.cam[k] || 0, key); return { moved: Math.abs(b - a) > 0.02, far: Math.round(far * 10) / 10, a: +a.toFixed(3), b: +b.toFixed(3) }; };
@@ -208,7 +209,9 @@ const check = (name, pass, detail) => {
     const jig = m => !m.moved && m.far >= 1 && m.far < JIG_MAX;
     const sw0 = await page.evaluate(() => intel.cam.sway || 0);
     const qB = await stray(0, 'rot'), qF = await stray(2, 'rotL'), qG = await stray(3, 'rotG'), qT = await stray(4, 'rotT');
-    check('4a2 Still: Brain, Floors, Grid and Timeline do not turn or swing — their dots only jiggle a little', jig(qB) && jig(qF) && jig(qG) && jig(qT) && (await page.evaluate(() => intel.cam.sway || 0)) === sw0, JSON.stringify({ qB, qF, qG, qT, sw0, max: Math.round(JIG_MAX * 10) / 10 }));
+    /* THE GRID STANDS STILL (Young, 23 Oct 2026: "a static grid"): its dots do not even jiggle */
+    const still = m => !m.moved && m.far < 1;
+    check('4a2 Still: Brain, Floors and Timeline do not turn or swing — their dots only jiggle a little; the Grid holds dead still', jig(qB) && jig(qF) && still(qG) && jig(qT) && (await page.evaluate(() => intel.cam.sway || 0)) === sw0, JSON.stringify({ qB, qF, qG, qT, sw0, max: Math.round(JIG_MAX * 10) / 10 }));
     const fps = () => page.evaluate(() => new Promise(r => { const f0 = igFramesDrawn(); setTimeout(() => r(igFramesDrawn() - f0), 1000); }));
     await page.waitForTimeout(2600);
     const fStill = await fps();
@@ -227,7 +230,24 @@ const check = (name, pass, detail) => {
        dots do, and the swing stays inside a small arc. */
     const sw = await page.evaluate(() => ({ amp: window.IGB_SWAY, s: window.IGB_SWAY_S }));
     const swings = m => !m.moved && (m.dot || Math.abs((m.sb || 0) - (m.sa || 0)) > 0.003);
-    check('4d the Grid swings by itself without turning round — its set angle stays, its dots move', swings(mG), JSON.stringify(mG));
+    /* THE GRID STANDS STILL (Young, 23 Oct 2026: "a straight grid that does not move left
+       to right or spin"): pressed Turning, the Grid neither turns nor swings, and on the
+       Grid the button is greyed with its reason */
+    const gBtn = await page.evaluate(() => { igSetView(3); const b = document.getElementById('ig-spin'); return { off: !!b && b.disabled, why: b ? b.title : '' }; });
+    check('4d the Grid stands still even while Turning — no turn, no swing — and the button is greyed with why', !mG.moved && !mG.dot && gBtn.off && /stands still/.test(gBtn.why), JSON.stringify({ mG, gBtn }));
+    const tBtn = await page.evaluate(() => { igSetView(4); const b = document.getElementById('ig-spin'); return { off: !!b && b.disabled, why: b ? b.title : '' }; });
+    check('4d1 off the Grid the button is live again', !tBtn.off && !tBtn.why, JSON.stringify(tBtn));
+    /* THE GRID STANDS UP (Young, 23 Oct 2026: "standing up just like a contract paper is up
+       and facing the screen"): the table's four corners project to a true rectangle — top and
+       bottom edges level and the same width, no lean — and a drag may lean it back, never past upright */
+    await view(3); await until(() => intel.cam.w[3] > 0.99999);
+    const face = await page.evaluate(() => { const cam = intel.cam; cam.rotG = 0; cam.tiltG = 0; const P = igbProjector(IG);
+      const [a, b, c, d] = [[-1, 0, -1], [1, 0, -1], [-1, 0, 1], [1, 0, 1]].map(P);
+      igTurnBy(0, 400); const lean = cam.tiltG; cam.tiltG = 0;
+      return { level: Math.abs(a[1] - b[1]) < 0.5 && Math.abs(c[1] - d[1]) < 0.5, sameW: Math.abs((b[0] - a[0]) - (d[0] - c[0])) < 0.5, tall: Math.abs(c[1] - a[1]) > 50, lean: +lean.toFixed(3),
+        a: a.slice(0, 2).map(Math.round), b: b.slice(0, 2).map(Math.round), c: c.slice(0, 2).map(Math.round), d: d.slice(0, 2).map(Math.round) }; });
+    check('4d3 the Grid faces the screen like a page — a true rectangle — and a drag never tips it past upright', face.level && face.sameW && face.tall && face.lean <= 0, JSON.stringify(face));
+    await view(4);   /* back off the Grid, where Turning is live, for the presses below */
     check('4e the Timeline swings by itself without turning round', swings(mT), JSON.stringify(mT));
     const arc = await page.evaluate(async () => { let max = 0; for (let i = 0; i < 12; i++) { max = Math.max(max, Math.abs(intel.cam.sway || 0)); await new Promise(r => setTimeout(r, 120)); } return { max: +max.toFixed(3) }; });
     check('4d2 and not far at all: a small arc, slow, both ways round the set angle',
