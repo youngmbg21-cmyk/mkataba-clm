@@ -9176,7 +9176,7 @@ function igStripHtml(c,p){
        row's twin, while the signing copy is up (signWalkHtml) */''}${up&&onHome&&igSignOn(c)&&window.signWalkHtml?signWalkHtml(c,{ home:true }).replace('class="ui-btn"','class="ui-btn ui-btn-sm"'):''}
     ${up&&onHome&&!igSignOn(c)&&window.pdRedOk&&pdRedOk(c)?(()=>{ const n=c.changes.filter(x=>x&&x.status==='pending').length, red=igRedOn(c);
       const theirs=igTheirsOn(c);
-      return `<span class="ig-red" role="group" aria-label="${igEsc(i18t('int_red_label'))}"><button type="button" data-ig-red="0" aria-pressed="${red?'false':'true'}">${igEsc(i18t('int_red_clean'))}</button><button type="button" data-ig-red="1" aria-pressed="${red&&!theirs?'true':'false'}">${igEsc(i18t('int_red_marked',{ n }))}</button><button type="button" data-ig-red="theirs" aria-pressed="${theirs?'true':'false'}" title="${igEsc(i18t('int_red_theirs_title'))}">${igEsc(i18t('int_red_theirs'))}</button></span>`; })():''}
+      return `<span class="ig-red" role="group" aria-label="${igEsc(i18t('int_red_label'))}"><i class="ig-red-th" aria-hidden="true"></i><button type="button" data-ig-red="0" aria-pressed="${red?'false':'true'}">${igEsc(i18t('int_red_clean'))}</button><button type="button" data-ig-red="1" aria-pressed="${red&&!theirs?'true':'false'}">${igEsc(i18t('int_red_marked',{ n }))}</button><button type="button" data-ig-red="theirs" aria-pressed="${theirs?'true':'false'}" title="${igEsc(i18t('int_red_theirs_title'))}">${igEsc(i18t('int_red_theirs'))}</button></span>`; })():''}
     ${/* NO FOCUS ON HOME'S PAPER (owner, 8 Oct 2026: "the removal of the focus
        button from the paper tab"); the map's own paper keeps it */''}${up&&igHomePaperFace()!==true?`<button type="button" class="ui-btn ui-btn-sm" data-ig-focus aria-pressed="${p.focus?'true':'false'}" title="${igEsc(i18t(p.focus?'int_focus_exit_title':'int_focus_title'))}">${icon(p.focus?'x':'scan','w-3.5 h-3.5')}${igEsc(i18t(p.focus?'int_focus_exit':'int_focus'))}</button>`:''}
     ${/* THE ZOOM LEFT THIS STRIP for the paper's own ground (owner, 11 Oct
@@ -9525,6 +9525,27 @@ if(typeof document!=='undefined'&&!document._igWallChoiceWired){
     igWallLetGo();
   });
 }
+/* THE VIEW SWITCH'S PILL SLIDES (owner, 23 Oct 2026, off their drawing: "they need to look like the pill
+   is sliding in a grey background"): Clean · Redline · Their view sit on a grey track and ONE white pill
+   stands under the chosen word. The line is repainted on a press, so the pill is placed after the paint
+   (igRedThumb) and, when a press moved it, glides from where it stood (transform only, through the
+   browser's own animate; "less motion" asked = it simply stands there). */
+let _igRedFrom=null;
+function igRedThumbAt(){
+  const t=document.querySelector('#ig-strip .ig-red-th'); if(!t||!t.offsetWidth) return null;
+  return { x: t.offsetLeft, w: t.offsetWidth };
+}
+function igRedThumb(){
+  const from=_igRedFrom; _igRedFrom=null;
+  const wrap=document.querySelector('#ig-strip .ig-red'), t=wrap&&wrap.querySelector('.ig-red-th');
+  const on=wrap&&wrap.querySelector('button[aria-pressed="true"]');
+  if(!t||!on){ if(t) t.style.width='0px'; return; }
+  t.style.left=on.offsetLeft+'px'; t.style.width=on.offsetWidth+'px';
+  const still=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!from||still||typeof t.animate!=='function'||(from.x===on.offsetLeft&&from.w===on.offsetWidth)) return;
+  t.animate([{ transform:`translateX(${from.x-on.offsetLeft}px) scaleX(${from.w/on.offsetWidth})` },{ transform:'none' }],
+    { duration:220, easing:'cubic-bezier(.2,.7,.3,1)' });
+}
 function igStripWire(){
   const strip=document.getElementById('ig-strip'); if(!strip||strip.dataset.igBound) return;
   strip.dataset.igBound='1';
@@ -9536,7 +9557,7 @@ function igStripWire(){
     if(e.target.closest('[data-ig-pick-again]')){ igPickAgain(); return; }
     const wk=e.target.closest('[data-ig-walk]'); if(wk){ igWalkStep(Number(wk.getAttribute('data-ig-walk'))); return; }
     if(e.target.closest('[data-ig-focus]')){ p.focus=!p.focus; igPaintPaper(); return; }
-    const red=e.target.closest('[data-ig-red]'); if(red){ const v=red.getAttribute('data-ig-red'); p.red=v==='theirs'?'theirs':v==='1'; igPaintPaper(); return; }
+    const red=e.target.closest('[data-ig-red]'); if(red){ const v=red.getAttribute('data-ig-red'); p.red=v==='theirs'?'theirs':v==='1'; _igRedFrom=igRedThumbAt(); igPaintPaper(); return; }
     const ws=e.target.closest('[data-ig-ws]'); if(ws){ const id=ws.getAttribute('data-ig-ws'); if(!(window.roomHomeLand&&roomHomeLand(id))) openWorkspace(id); }
   });
 }
@@ -9675,7 +9696,7 @@ function igPaintPaper(){
   if(homePaper===true){ p.mode='paper'; p.focus=false; }
   else if(homePaper===false){ p.mode='graph'; p.focus=false; }
   if(homePaper===false){ strip.hidden=true; strip.innerHTML=''; host.hidden=true; if(page) page.classList.remove('ig-focus'); return; }
-  strip.hidden=false; strip.innerHTML=igStripHtml(c,p); igStripWire();
+  strip.hidden=false; strip.innerHTML=igStripHtml(c,p); igStripWire(); igRedThumb();
   if(igHomePaperFace()!==null) igStripActsWire(c);
   /* the faces on the line (round 6): the beat runs while the paper is up on
      Home (pdPresenceOn keeps a running one; pdPresenceLeft ends it when the

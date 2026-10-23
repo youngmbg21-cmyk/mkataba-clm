@@ -16851,6 +16851,58 @@
      and the sheet its 40px under the line, as on every other paper (one-zoom 6, one-paper-everywhere 1) */
   #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):has(#ig-paper-scroll){--ig-bar-h:39px}
   body:has(#ig-dock > .igd-head[data-pd-head="paper"]) #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark) #ig-paper-scroll{padding-top:9px}
+  /* ==== THE LEGORA LOOK, STAGE 2 (owner, 23 Oct 2026: "start stage 2" — the six drawn pages matched) ====
+     A CARD HAS NO OUTLINE: it floats on the grey by its lift alone, as drawn (the 1px edge stays, transparent,
+     so nothing moves by a pixel). Explorer's dark stage is not reached. */
+  #app-shell :is(.ph-card, .ap-card, .cn-card, .reg-card, .ins-card, .obw-wk, .st-grp.st-you-card, .st-toc, .tpl-pf-idx, .tpl-pf-paper),
+  #app-shell #ig-page:not(.hb-dark) :is(.hb-card, .hb-ins.is-plain),
+  #modal-root :is(.na-field, .na-rows, .na-card){border-color:transparent;box-shadow:var(--shadow-sm)}
+  /* A SEARCH BOX IS THE DRAWN GREY PILL, no outline (owner, 23 Oct 2026: "Search pills only"); a box you
+     type real content into keeps its soft outline (WCAG 1.4.11). Typing in it: white, with the field's edge. */
+  #app-shell .sap-page .lh-ask, #app-shell .nd-find, #modal-root .na-inp.na-q, #app-shell .hist-q{border-color:transparent;background:#F2F2F5;border-radius:999px}
+  #app-shell .sap-page .lh-ask:focus-within, #app-shell .nd-find:focus, #modal-root .na-inp.na-q:focus, #app-shell .hist-q:focus-within{background:var(--color-surface);border-color:var(--field-line)}
+  #app-shell .sap-page .lh-ask input, #app-shell .hist-q input{background:transparent}
+  /* HOME AS DRAWN (the owner's Home drawing): 880 wide, 22px corners, the serif question at 34px under the
+     round coloured ✦, the box 52 tall, the links 15px; Needs you's head with its count and its late line, each
+     group a soft grey ROUNDED row inset 10px carrying "Show all N", each row roomy (title 15.5, wait 110 in the
+     ruby, ONE act 100 × 34). Scoped to #cn-page: the Board's own Needs you keeps its table. */
+  #cn-page .cn-in{width:880px}
+  #cn-page .cn-card{border-radius:22px}
+  #cn-page .cn-ask{padding:40px 38px 30px;gap:0}
+  #cn-page .cn-ask > svg.jambo-mark, #cn-page .cn-ask .cn-face{display:block;flex:none;width:28px;height:28px;padding:7px;box-sizing:border-box;border-radius:50%;color:#fff;
+    background:linear-gradient(135deg,#0A7C6B,#6D5DFC,#FF7A59);margin:0}
+  #cn-page .cn-ask h1{font-size:34px;letter-spacing:-.015em;line-height:1.2;margin-top:14px}
+  #cn-page .cn-ask .cn-wrap{margin-top:18px}
+  #cn-page .cn-ask .jb-card:not(.is-tall){min-height:52px;padding:7px 7px 7px 10px}
+  #cn-page .cn-ask .jb-card > textarea{font-size:16px}
+  #cn-page .cn-ask .jb-card .jb-plus{width:34px;height:34px}
+  #cn-page .cn-ask .jb-card .jb-send{width:36px;height:36px}
+  #cn-page .cn-chips{gap:6px 18px;margin-top:18px}
+  #cn-page .cn-chip{font-size:15px}
+  #cn-page .cn-needs .cn-h{padding:18px 22px 14px;border-bottom:0;align-items:baseline;gap:10px}
+  #cn-page .cn-needs .cn-t{font-size:16px}
+  #cn-page .cn-needs .cn-cnt{font-size:15px}
+  #cn-page .cn-needs .nd-g{margin:0 10px;padding:10px 12px;border:0;border-radius:12px;background:var(--color-bg);font-size:14.5px;align-items:center;gap:8px}
+  #cn-page .cn-needs .nd-g .nd-all{font-size:14.5px;font-weight:var(--w-strong)}
+  #cn-page .cn-needs .nd-r{margin:0 10px;padding:11px 12px;border-bottom:0;border-radius:12px;gap:16px}
+  #cn-page .cn-needs .nd-g + .nd-r{margin-top:4px}
+  #cn-page .cn-needs .nd-r:last-child{margin-bottom:8px}
+  #cn-page .cn-needs .nd-r:hover{background:#FAFAFC}
+  #cn-page .cn-needs .nd-r .cn-w b{font-size:15.5px}
+  #cn-page .cn-needs .nd-r .nd-t{font-size:15.5px}
+  #cn-page .cn-needs .nd-r .cn-w > span{font-size:14px;margin-top:2px}
+  #cn-page .cn-needs .nd-when{width:110px;font-size:14.5px}
+  #cn-page .cn-needs .nd-btn{width:100px;height:34px;min-height:34px;font-size:14.5px;font-weight:var(--w-strong)}
+  #cn-page .cn-needs .nd-btn:hover{background:var(--accent-fill);color:#fff}
+  /* THE VIEW SWITCH, AS DRAWN: Clean · Redline · Their view on a grey track, the chosen one a WHITE pill
+     with a soft shadow that slides (igRedThumb); the words sit over it, the chosen one in the ink */
+  #ig-strip .ig-red{position:relative;align-items:center;gap:2px;padding:3px;border:0;border-radius:999px;background:var(--surface-2);overflow:visible}
+  #ig-strip .ig-red > .ig-red-th{position:absolute;top:3px;bottom:3px;left:3px;width:0;border-radius:999px;background:var(--color-surface);
+    box-shadow:0 1px 2px rgba(0,0,0,.10);transform-origin:0 50%;pointer-events:none;z-index:0}
+  #ig-strip .ig-red button{position:relative;z-index:1;height:24px;padding:0 12px;border:0;border-radius:999px;background:transparent;color:var(--color-neutral-600)}
+  #ig-strip .ig-red button + button{border-left:0}
+  #ig-strip .ig-red button:hover{color:var(--color-text)}
+  #ig-strip .ig-red button[aria-pressed="true"]{background:transparent;color:var(--color-text);font-weight:var(--w-strong)}
   /* -- below 1100px wide (narrower than any of the owner's three screens) the two halves stand docked
      as they did: there every pixel is the page's (swedish-verify caught the Calendar cut by 7px at 800) -- */
   @media (max-width:1100px){
