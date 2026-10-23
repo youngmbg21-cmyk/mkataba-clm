@@ -1698,6 +1698,8 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      rather than two, and no second mark beside it. The colour is deliberately
      NOT pinned to a literal — accent is what says "this and that are one thing
      shown twice", and that must survive a palette pass. */
+  /* the pointer off every card, so the shade read is the selection's, not the hover's (23 Oct 2026) */
+  await page.mouse.move(1, 1);
   const ring = await page.evaluate(() => {
     const el = document.querySelector('#rl-changes .rl-card.is-linked');
     if (!el) return null;
@@ -1708,7 +1710,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
        carry different edges. Comparing an element with itself is the only
        reading of "selecting it changes nothing but the ring". */
     const read = () => { const s = getComputedStyle(el);
-      return { shadow: s.boxShadow, top: s.borderTopWidth, bottom: s.borderBottomWidth,
+      return { shadow: s.boxShadow, bg: s.backgroundColor, top: s.borderTopWidth, bottom: s.borderBottomWidth,
         left: s.borderLeftWidth, right: s.borderRightWidth, col: s.borderTopColor }; };
     const on = read();
     el.classList.remove('is-linked');
@@ -1719,12 +1721,14 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     const lens = (on.shadow.match(/(-?\d+(?:\.\d+)?)px/g) || []).map(parseFloat);
     return { on, off, spread: lens.length >= 4 ? lens[3] : null };
   });
-  check('18d the selected card is marked at all',
-    ring && ring.on.shadow !== 'none' && ring.off.shadow !== ring.on.shadow,
+  /* RE-POINTED 23 Oct 2026 (owner: "remove the outline around the card … only highlight one at a time"): the selected
+     card is marked by the row's shade, never a ring */
+  check('18d the selected card is marked at all — by its shade',
+    ring && ring.on.bg !== ring.off.bg,
+    ring && `${ring.off.bg} → ${ring.on.bg}`);
+  check('18d and never by a ring',
+    ring && ring.on.shadow === 'none',
     ring && ring.on.shadow);
-  check('18d but faintly — one pixel of ring, not two',
-    ring && ring.spread !== null && ring.spread > 0 && ring.spread <= 1,
-    ring && `spread ${ring.spread}px`);
   check('18d and the ring is the ONLY mark — selecting moves no border',
     ring && ['top', 'bottom', 'left', 'right', 'col'].every(k => ring.on[k] === ring.off[k]),
     ring && `borders ${ring.on.top}/${ring.on.bottom} unchanged, colour ${ring.on.col}`);
