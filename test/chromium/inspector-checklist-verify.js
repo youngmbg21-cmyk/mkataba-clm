@@ -215,12 +215,16 @@ const ok = (name, good, detail) => {
       if (!b) return null;
       const tok = (prop, v) => { const e = document.createElement('i'); e.style.cssText = 'position:absolute;' + prop + ':var(' + v + ')'; document.body.appendChild(e); const c = getComputedStyle(e)[prop === 'color' ? 'color' : 'borderTopColor']; e.remove(); return c; };
       const cs = getComputedStyle(b);
-      return { edge: cs.borderTopColor, btnEdge: tok('border-top:1px solid;border-top-color', '--btn-edge'), ink: cs.color, accent: tok('color', '--accent-ink'), h: b.getBoundingClientRect().height, sm: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ctl-h-sm')) };
+      return { edge: cs.borderTopColor, btnEdge: tok('border-top:1px solid;border-top-color', '--btn-edge'), ink: cs.color, accent: tok('color', '--accent-ink'), h: b.getBoundingClientRect().height,
+        fill: cs.backgroundColor, grey: (() => { const e = document.createElement('i'); e.style.background = 'var(--surface-2)'; document.body.appendChild(e); const c = getComputedStyle(e).backgroundColor; e.remove(); return c; })(),
+        text: tok('color', '--color-text'), sm: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ctl-h-sm')) };
     });
     /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner-approved): the callout's door
        is a white button in the accent's ink, as the drawing draws "Decide". */
-    ok('1i a row\'s button wears the platform\'s one light edge, the accent ink on its word, and the row rung\'s height',
-      !!edge && edge.edge === edge.btnEdge && edge.ink === edge.accent && Math.abs(edge.h - edge.sm) <= 1, JSON.stringify(edge));
+    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK, the owner's drawing: a row's "Look" / "Sign"): the
+       platform's one face is the grey pill with no edge and the ink's word; the row rung's height stays */
+    ok('1i a row\'s button wears the platform\'s one face (the grey pill, no edge, the ink\'s word) and the row rung\'s height',
+      !!edge && /rgba\(0, 0, 0, 0\)|transparent/.test(edge.edge) && edge.fill === edge.grey && (edge.ink === edge.text || edge.ink === edge.accent) && Math.abs(edge.h - edge.sm) <= 1, JSON.stringify(edge));
     await page.screenshot({ path: path.join(OUT, '1-contracts-carrefour.png') });
 
     /* ================= 2 · THE SIGNATURE AND THE RENEWAL =================

@@ -1555,7 +1555,7 @@ function calStyleCss(){ return `
   .cal-main{min-width:0;display:flex;flex-direction:column}
   .cal-bar1{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:12px 16px;border-bottom:1px solid var(--color-divider)}
   .cal-nav{display:inline-flex;gap:4px;flex:none}
-  .cal-nav .ui-btn{border-color:var(--btn-edge, var(--color-divider))}
+  .cal-nav .ui-btn{border-color:transparent}   /* the Legora look (23 Oct 2026): an act is the grey pill, no edge */
   .cal-nav .cal-nb{padding:0 9px}
   .cal-nav .ui-btn:disabled{opacity:.45;cursor:default}
   .cal-title{font-size:17px;font-weight:var(--w-title);margin-right:auto;color:var(--color-text);white-space:nowrap;font-variant-numeric:tabular-nums}

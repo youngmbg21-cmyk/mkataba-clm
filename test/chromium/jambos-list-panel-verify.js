@@ -143,7 +143,8 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
         ph: q ? q.getAttribute('placeholder') : null, hint: hint ? hint.textContent.replace(/\s+/g, ' ').trim() : null,
         text: p.innerText.replace(/\s+/g, ' ') }; };
     const N0 = await page.evaluate(PANEL);
-    check('1a the panel is Jambo\'s, at the right edge, Home\'s panel\'s width, with his tab', !!N0 && N0.jambo && N0.tab && N0.w === 384 && Math.abs(N0.right - 1440) <= 1, JSON.stringify(N0 && { w: N0.w, right: N0.right, tab: N0.tab }));
+    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): Jambo's panel FLOATS, a white card 8px in from the window's edge, its top and its foot (the owner's drawing) */
+    check('1a the panel is Jambo\'s, 8px in from the right edge, Home\'s panel\'s width, with his tab', !!N0 && N0.jambo && N0.tab && N0.w === 384 && Math.abs(N0.right - (1440 - 8)) <= 1, JSON.stringify(N0 && { w: N0.w, right: N0.right, tab: N0.tab }));
     /* RE-POINTED 20 Oct 2026 (Chambers): no hint line under any Jambo box */
     check('1c the box asks in its words, and no hint line under it', !!N0 && N0.ph === 'Ask for a contract, a number or a list…' && N0.hint === null, JSON.stringify(N0 && { ph: N0.ph, hint: N0.hint }));
 
@@ -203,7 +204,7 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       const F = await until(() => { const p = document.getElementById('ins-panel'); const cs = document.getElementById('content-scroll');
         return p && p.classList.contains('is-folded') ? { w: Math.round(p.getBoundingClientRect().width), door: !!p.querySelector('[data-jl-door] .igd-door-face, [data-jl-door] img'),
           page: cs ? Math.round(cs.getBoundingClientRect().right) : 0 } : null; });
-      check('4a folded: a strip with his face, the page takes the room', !!F && F.w === 46 && F.door && F.page >= 1440 - 46 - 2, JSON.stringify(F));
+      check('4a folded: a strip with his face, the page takes the room', !!F && F.w === 46 && F.door && F.page >= 1440 - 46 - 8 - 2, JSON.stringify(F));
       await page.click('#ins-panel [data-jl-door]');
       const F2 = await until(() => { const p = document.getElementById('ins-panel'); return p && !p.classList.contains('is-folded') ? Math.round(p.getBoundingClientRect().width) : null; });
       check('4b the strip opens it again', F2 === 384, String(F2));

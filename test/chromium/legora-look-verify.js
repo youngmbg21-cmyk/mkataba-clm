@@ -1,5 +1,18 @@
-/* Chromium verification: CHAMBERS — HaTi'S ONE LOOK, AND NO DARK MODE
+/* Chromium verification: THE LEGORA LOOK — HaTi'S ONE LOOK, AND NO DARK MODE
    ============================================================
+   THE LEGORA LOOK (owner, 23 Oct 2026: "i want to apply this across all the
+   pages in hati", off their own drawing "Hati concept inspired by Legora";
+   "1, yes" to replacing Chambers; Explorer "stay dark"). Was chambers-verify.js:
+   the claims Chambers and the new look share are kept (no dark mode, the serif
+   question and titles, a status as a dot and a word, outlined initials, links
+   for suggestions, Explorer and the Brain dark, the language door, the phone's
+   bird); the ones the new look reverses are re-pointed and marked LEGORA; and
+   12 measures what the new look adds (pills, filled tabs, the frosted bar,
+   Jambo's coloured edge, the two halves floating as white cards).
+   RED AT THE PARENT (4733092, Chambers): 3a, 3d, 5c, 7d, 11c, 11d, 11i, 11j
+   and all of 12 — what the new look changed. The rest hold there: they are the
+   claims the two looks share, and the controls.
+   ---- what follows is Chambers' own header, kept for the record ----
    The owner picked the Chambers design by name (20 Oct 2026; "Let's go within
    chambers") and then: "Let's not implement the dark theme. Remove it from
    HaTi. Only dark theme will be on the explorer and brain as designed today."
@@ -38,13 +51,13 @@
    the phone's bird).
 
    Screenshots at the owner's three screens go to test/chromium/shots/chambers/
-   (or HATI_SHOT_DIR). Run: node test/chromium/chambers-verify.js */
+   (or HATI_SHOT_DIR). Run: node test/chromium/legora-look-verify.js */
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
 const { startHati, seedWorkspace } = require('../helpers');
 
-const OUT = process.env.HATI_SHOT_DIR || path.join(__dirname, 'shots', 'chambers');
+const OUT = process.env.HATI_SHOT_DIR || path.join(__dirname, 'shots', 'legora-look');
 const EXEC = process.env.CHROMIUM_BIN
   || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 const SCREENS = [[1440, 780], [1536, 730], [1366, 950]];
@@ -102,10 +115,13 @@ const check = (name, pass, detail) => {
         bell: (() => { const d = document.getElementById('hdr-notify-dot'); return d && !d.hidden ? getComputedStyle(d).backgroundColor : null; })(),
         theme: !!document.getElementById('theme-btn'), swatches: document.querySelectorAll('[data-brand-pick]').length, lang: !!document.getElementById('lang-switch') || document.querySelectorAll('.lang-btn').length };
     });
-    check('3a the bar is white with one hairline under it', bar.bg === 'rgb(255, 255, 255)' && bar.edgeW === '1px', JSON.stringify(bar));
+    /* LEGORA: the bar is frosted white, its edge a soft line drawn as a shadow, not a border */
+    const barSh = await page.evaluate(() => { const t = getComputedStyle(document.getElementById('top-header')); return { sh: t.boxShadow, blur: t.backdropFilter || t.webkitBackdropFilter }; });
+    /* no blur: nothing scrolls under the bar, and a filter would trap its menus (Recent) under the page */
+    check('3a the bar is the drawing\'s translucent white with a soft line under it, no hairline border, no filter', bar.bg === 'rgba(255, 255, 255, 0.78)' && (bar.edgeW === '0px' || /rgba\(0, 0, 0, 0\)|transparent/.test(bar.edge)) && (!barSh.blur || barSh.blur === 'none') && /0px 1px 0px/.test(barSh.sh), JSON.stringify({ ...bar, ...barSh }));
     check('3b the mark is the word "HaTi" in the title serif, no tile', bar.markShown && bar.mark === 'HaTi' && /^"?Source Serif 4/.test(bar.markFace) && /rgba\(0, 0, 0, 0\)|transparent/.test(bar.markBg), JSON.stringify(bar));
     check('3c no theme button, no Blue/Green swatches and no language switch in the bar', !bar.theme && bar.swatches === 0 && !bar.lang, JSON.stringify(bar));
-    check('3d the bell\'s count is the ink, not amber', bar.bell === 'rgb(22, 21, 18)' || bar.bell === 'rgb(31, 77, 59)', String(bar.bell));
+    check('3d the bell\'s count is the ink, not amber', bar.bell === 'rgb(29, 29, 31)', String(bar.bell));
 
     /* ================= 4. HOME'S QUESTION =================================== */
     const home = await page.evaluate(() => {
@@ -152,7 +168,7 @@ const check = (name, pass, detail) => {
     });
     check('5a the paper you read is set in Source Serif 4, and the face is loaded at 500', /^"?Source Serif 4/.test(paper.face || '') && paper.serif === true, JSON.stringify(paper));
     check('5b Jambo\'s tab beside the paper carries the ✦ mark, not the bird', paper.mark && !paper.tabBird, JSON.stringify(paper));
-    check('5c a filled button is the ink', /^#161512$/i.test(paper.fill) && (!paper.btnBg || paper.btnBg === 'rgb(22, 21, 18)'), JSON.stringify(paper));
+    check('5c a filled button is the ink (LEGORA: #1D1D1F)', /^#1D1D1F$/i.test(paper.fill) && (!paper.btnBg || paper.btnBg === 'rgb(29, 29, 31)'), JSON.stringify(paper));
     /* ================= 2. NO DARK RULE ANYWHERE ============================= */
     check('2a no rule in any stylesheet the browser holds asks for the dark class (Home, the list and the paper loaded)', paper.darkRules === 0, paper.darkRules);
     for (const [w, hh] of SCREENS){ await page.setViewportSize({ width: w, height: hh }); await page.waitForTimeout(500); await page.screenshot({ path: path.join(OUT, `paper-${w}x${hh}.png`) }); }
@@ -177,7 +193,7 @@ const check = (name, pass, detail) => {
         paperR: pp && getComputedStyle(pp).getPropertyValue('--radius').trim() }; });
     check('7b Explorer is dark as designed: its stage\'s gradient, the Blue glow and ink it had', ex.dark && /gradient/.test(ex.bg || '') && /^#6F9BEA$/i.test(ex.glow) && /^#E6EDF8$/i.test(ex.ink), JSON.stringify(ex));
     check('7c Explorer\'s map keeps its own corners (4px, 8px) — the hairline corners stop at its edge', ex.r === '4px' && ex.rl === '8px', JSON.stringify(ex));
-    check('7d … and only the map: the paper side in the same wrapper (Home\'s paper, the Contracts place) wears Chambers\' 2px', ex.paperR === '2px', JSON.stringify(ex));
+    check('7d … and only the map: the paper side in the same wrapper (Home\'s paper, the Contracts place) wears the new look\'s 10px', ex.paperR === '10px', JSON.stringify(ex));
     await page.screenshot({ path: path.join(OUT, 'explorer-1440x780.png') });
 
     /* ================= 8. THE BRAIN ========================================= */
@@ -218,8 +234,9 @@ const check = (name, pass, detail) => {
     /* a tab's number keeps its 2px from its word (the head card's one rule for a tab count); a bubble would pad both sides */
     check('11a a count beside a list\'s heading is a plain number: no bubble, no padding', !!ap.nBg && NONE.test(ap.nBg) && ap.nPadR === '0px' && parseFloat(ap.nPad) <= 2, JSON.stringify(ap));
     check('11b a status in Jambo\'s panel carries its dot (8 × 8), not only its word', !!ap.dot && ap.dot[0] === 8 && ap.dot[1] === 8, JSON.stringify(ap.dot));
-    check('11c Jambo\'s panel beside a list stands on its hairline, no shadow', ap.shadow === 'none', String(ap.shadow));
-    check('11d a tag in a list (Kind) has the hairline corner, not a capsule', !!ap.kind && parseFloat(ap.kind) <= 3, String(ap.kind));
+    /* LEGORA: the panel beside a list floats, a white card with the faint lift; a tag has the soft corner */
+    check('11c Jambo\'s panel beside a list floats: a card with the faint lift', !!ap.shadow && ap.shadow !== 'none' && /0px 8px 28px/.test(ap.shadow), String(ap.shadow));
+    check('11d a tag in a list (Kind) has the soft corner of the new look', !!ap.kind && parseFloat(ap.kind) >= 8, String(ap.kind));
     await page.evaluate(() => { setView('dashboard'); if (window.hbSetFace) hbSetFace('board'); });
     await until(() => !!document.querySelector('#hb-board .hb-card') && !!document.querySelector('.hb-jb-hello .ai-bub'), null, 10000);
     const div = await tok('var(--color-divider)'), s2 = await tok('var(--surface-2)');
@@ -260,17 +277,59 @@ const check = (name, pass, detail) => {
           mark: bd && bd.textContent.trim(), pch: pch ? getComputedStyle(pch).backgroundColor + ' ' + getComputedStyle(pch).borderTopLeftRadius : 'none drawn' }; });
       check('11h the other side\'s page: the title in the serif, the status with its dot, whose turn unboxed, the word HaTi for the mark',
         /^"?Source Serif 4/.test(pt.face || '') && pt.dot === 7 && (pt.turnBg === 'none drawn' || NONE.test(pt.turnBg)) && pt.mark === 'HaTi', JSON.stringify(pt));
-      check('11i … and the parties on the deal card are hairline tags, ours untinted', pt.pch === 'none drawn' || /^(rgba\(0, 0, 0, 0\)|transparent) 2px$/.test(pt.pch), String(pt.pch));
+      check('11i … and the parties on the deal card are soft tags, ours untinted', pt.pch === 'none drawn' || /^(rgba\(0, 0, 0, 0\)|transparent) 10px$/.test(pt.pch), String(pt.pch));
     } else check('11h the other side\'s page could be opened', false, JSON.stringify(links));
     if (links.status){
       const res = await them.goto(h.base + '/deal/' + links.status, { waitUntil: 'load' });
       const html = res ? await res.text() : '';
       const sp = await them.evaluate(() => ({ ground: getComputedStyle(document.body).backgroundColor, band: getComputedStyle(document.body.firstElementChild).backgroundColor,
         caps: [...document.querySelectorAll('*')].filter(e => getComputedStyle(e).textTransform === 'uppercase' && e.textContent.trim()).length }));
-      check('11j the public status page wears the one look: the warm ground, a white band, no old blue, no capitals',
-        sp.ground === 'rgb(244, 242, 237)' && sp.band === 'rgb(255, 255, 255)' && !/#264C9E|#EDF1F2|#EEF2F8|#2A4A86/i.test(html) && sp.caps === 0, JSON.stringify(sp));
+      check('11j the public status page wears the one look: the soft grey ground, a white band, no old blue, no capitals',
+        sp.ground === 'rgb(245, 245, 247)' && sp.band === 'rgb(255, 255, 255)' && !/#264C9E|#EDF1F2|#EEF2F8|#2A4A86/i.test(html) && sp.caps === 0, JSON.stringify(sp));
     } else check('11j the status page could be opened', false, JSON.stringify(links));
     await them.close();
+
+    /* ================= 12. WHAT THE LEGORA LOOK ADDS (23 Oct 2026) =========
+       Every claim off the real page. RED AT THE PARENT: all of them. */
+    const GREY = 'rgb(240, 240, 243)', INK = 'rgb(29, 29, 31)';
+    const pill = r => parseFloat(r) >= 100;
+    await page.evaluate(() => { if (typeof deskGoCounter === 'function') deskGoCounter(); else setView('counter'); });
+    await until(() => !!document.querySelector('#cn-page .cn-ask .jb-card'));
+    const hm = await page.evaluate(() => { const b = [...document.querySelectorAll('#cn-page .ui-btn')].find(x => !x.classList.contains('ui-btn-primary') && !x.classList.contains('ui-btn-plain') && x.getBoundingClientRect().width);
+      const bs = b && getComputedStyle(b), jb = document.querySelector('#cn-page .cn-ask .jb-card'), js = jb && getComputedStyle(jb);
+      return { ground: getComputedStyle(document.getElementById('app-shell')).backgroundColor, btn: bs ? { r: bs.borderTopLeftRadius, bg: bs.backgroundColor, edge: bs.borderTopColor } : null,
+        jb: js ? { r: js.borderTopLeftRadius, img: js.backgroundImage.slice(0, 240) } : null }; });
+    check('12a the page\'s ground is the soft cool grey #F5F5F7', hm.ground === 'rgb(245, 245, 247)', hm.ground);
+    check('12b a button is a pill filled in the soft grey, with no edge', !!hm.btn && pill(hm.btn.r) && hm.btn.bg === GREY && /rgba\(0, 0, 0, 0\)|transparent/.test(hm.btn.edge), JSON.stringify(hm.btn));
+    check('12c Jambo\'s box is a pill wearing the one coloured edge (teal → violet → coral)', !!hm.jb && pill(hm.jb.r) && /linear-gradient/.test(hm.jb.img) && /10, 124, 107/.test(hm.jb.img), JSON.stringify(hm.jb));
+    await page.evaluate(() => { regPlaceSet({ show: 'list' }); setView('register'); });
+    await until(() => !!document.querySelector('#reg-tbody tr[data-row]'));
+    const ls = await page.evaluate(() => { const t = document.querySelector('.reg-vtab.on'), ts = t && getComputedStyle(t);
+      const sg = document.querySelector('.reg-seg.ct-seg'), ss = sg && getComputedStyle(sg), on = sg && sg.querySelector('button.on, button[aria-pressed="true"]'), os = on && getComputedStyle(on);
+      return { tab: ts ? { bg: ts.backgroundColor, bb: ts.borderBottomWidth, r: ts.borderTopLeftRadius } : null, seg: ss ? { bg: ss.backgroundColor, r: ss.borderTopLeftRadius, b: ss.borderTopWidth } : null, on: os ? { bg: os.backgroundColor, r: os.borderTopLeftRadius } : null }; });
+    check('12d a list\'s chosen tab is a filled grey pill, never an underline', !!ls.tab && ls.tab.bg === GREY && ls.tab.bb === '0px' && pill(ls.tab.r), JSON.stringify(ls.tab));
+    check('12e a switch (List | Wall) is a grey pill holding pills, the chosen one the ink', !!ls.seg && ls.seg.bg === GREY && pill(ls.seg.r) && ls.seg.b === '0px' && !!ls.on && ls.on.bg === INK && pill(ls.on.r), JSON.stringify(ls));
+    await page.evaluate(() => regOpenContract('MK-B2'));
+    await until(() => !!document.querySelector('#ig-paper .doc-surface') && !!document.querySelector('#ig-dock .pd-tab.on'), null, 12000);
+    const fl = await page.evaluate(() => { const g = id => { const e = document.getElementById(id); if (!e) return null; const c = getComputedStyle(e);
+        return { r: c.borderTopLeftRadius, bg: c.backgroundColor, sh: c.boxShadow, m: c.marginTop + ' ' + c.marginRight + ' ' + c.marginBottom }; };
+      const t = document.querySelector('#ig-dock .pd-tab.on'), tc = t && getComputedStyle(t), ta = t && getComputedStyle(t, '::after');
+      /* the sheet = every white page-sized box the wording sits on, whichever paper class draws it (the plain
+         paper's .pg-sheet, the redline paper's own) — each keeps a square corner */
+      const sheets = [...document.querySelectorAll('#ig-paper-scroll *')].filter(e => { const r = e.getBoundingClientRect(), c = getComputedStyle(e);
+        return r.width >= 500 && r.height >= 300 && c.backgroundColor === 'rgb(255, 255, 255)'; });
+      const shr = sheets.length ? [...new Set(sheets.map(e => getComputedStyle(e).borderTopLeftRadius))].join(',') : null;
+      const diag = sheets.map(e => e.tagName + '.' + String(e.className).slice(0, 30)).join(' | ');
+      return { dock: g('ig-dock'), col: g('hb-col'), paper: g('ig-paper'), tab: tc ? { bg: tc.backgroundColor, r: tc.borderTopLeftRadius, h: Math.round(t.getBoundingClientRect().height), after: ta.content } : null, sheetR: shr, diag }; });
+    check('12f beside a paper Jambo\'s panel floats: an 8px margin, 20px corners, the faint lift, white', !!fl.dock && fl.dock.m === '8px 8px 8px' && fl.dock.r === '20px' && /0px 8px 28px/.test(fl.dock.sh) && fl.dock.bg === 'rgb(255, 255, 255)', JSON.stringify(fl.dock));
+    check('12g … and so does the paper\'s half: a white card, its canvas inset with 16px corners', !!fl.col && fl.col.r === '20px' && fl.col.bg === 'rgb(255, 255, 255)' && !!fl.paper && fl.paper.r === '16px', JSON.stringify({ col: fl.col, paper: fl.paper }));
+    check('12h the panel\'s chosen tab is a slim filled pill (no underline mark)', !!fl.tab && fl.tab.bg === GREY && pill(fl.tab.r) && fl.tab.h <= 32 && (fl.tab.after === 'none' || fl.tab.after === 'normal'), JSON.stringify(fl.tab));
+    check('12i the paper itself keeps its square corners — it reads as a document, not a card', fl.sheetR === '0px', String(fl.sheetR) + ' ' + fl.diag);
+    await page.evaluate(() => { setView('dashboard'); if (window.hbSetFace) hbSetFace('explorer'); });
+    await until(() => !!document.querySelector('#ig-page.hb-dark'), null, 10000);
+    const exd = await page.evaluate(() => { const d = document.getElementById('ig-dock'), c = d && getComputedStyle(d); return c ? { m: c.marginTop, r: c.borderTopLeftRadius } : null; });
+    check('12j Explorer stays as it was: its panel does not float (owner: "stay dark")', !!exd && exd.m === '0px' && exd.r === '0px', JSON.stringify(exd));
+    await page.evaluate(() => { if (window.hbSetFace) hbSetFace('board'); });
 
     check('page errors: none', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {

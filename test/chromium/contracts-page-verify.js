@@ -744,7 +744,10 @@ const check = (name, ok, detail) => {
       const cr = card ? card.getBoundingClientRect() : null;
       const hb = thead ? thead.getBoundingClientRect().bottom : null;
       const cols = [], owners = [];
-      if (cr && hb) for (let y = cr.top + 2; y < hb - 2; y += 4){
+      /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): the card's corners are rounded (--radius-lg), so the
+         walk starts below the curve — the ground showing OUTSIDE a rounded corner is the corner, not a gap */
+      const rTop = card ? Math.max(2, parseFloat(getComputedStyle(card).borderTopRightRadius) || 0) : 2;
+      if (cr && hb) for (let y = cr.top + rTop; y < hb - 2; y += 2){   /* every 2px: the walk is shorter below the curve */
         const top = document.elementFromPoint(cr.right - 3, y);
         let n = top, c = 'rgba(0, 0, 0, 0)';
         while (n && c === 'rgba(0, 0, 0, 0)'){ c = getComputedStyle(n).backgroundColor; n = n.parentElement; }

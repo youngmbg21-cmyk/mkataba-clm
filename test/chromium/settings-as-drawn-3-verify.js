@@ -111,13 +111,14 @@ const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.to
       const tabs = await p.evaluate(() => [...document.querySelectorAll('#st-headcard .st-faces [data-st-tab]')].map(t => t.getAttribute('data-st-tab')).join(','));
       check(`1a ${W}×${HH}: the head is a card in the left column, its tabs inside`, !!f0.head && !!f0.side && f0.head.r <= f0.side.l && tabs === 'you,company' && f0.winHead === 'none',
         JSON.stringify({ head: f0.head, side: f0.side && f0.side.l, tabs, win: f0.winHead }));
-      check(`1b ${W}×${HH}: Jambo's panel is the whole right column, from under the bar to the foot`, !!f0.side && !!f0.head && Math.abs(f0.side.t - f0.scTop) <= 1 && Math.abs(f0.side.b - f0.H) <= 1 && f0.side.t <= f0.head.t,
+      /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): Jambo's panel FLOATS, a white card 8px in from the window's edge, its top and its foot (the owner's drawing) */
+      check(`1b ${W}×${HH}: Jambo's panel is the whole right column, 8px under the bar to 8px above the foot`, !!f0.side && !!f0.head && Math.abs(f0.side.t - (f0.scTop + 8)) <= 1 && Math.abs(f0.side.b - (f0.H - 8)) <= 1 && f0.side.t <= f0.head.t,
         f0.side && `${Math.round(f0.side.t)}→${Math.round(f0.side.b)} (bar ${f0.scTop}, window ${f0.H}, head ${f0.head ? Math.round(f0.head.t) : 'none'})`);
       check(`1c ${W}×${HH}: his ask box whole and seen at the top`, !!f0.ask && f0.ask.b <= f0.H + 0.5 && f0.askSeen && f0.headSeen, f0.ask && `ask ${Math.round(f0.ask.t)}→${Math.round(f0.ask.b)} seen ${f0.askSeen} head ${f0.headSeen}`);
       await shot(p, `25-company-frame-${W}x${HH}`);
       await p.evaluate(() => { document.getElementById('content-scroll').scrollTop = 1e6; }); await p.waitForTimeout(400);
       const f1 = await frame(p);
-      check(`1d ${W}×${HH}: scrolled to the end, the panel stays whole and uncovered`, !!f1.side && !!f1.ask && Math.abs(f1.side.t - f1.scTop) <= 1 && f1.ask.b <= f1.H + 0.5 && f1.askSeen && f1.headSeen,
+      check(`1d ${W}×${HH}: scrolled to the end, the panel stays whole and uncovered`, !!f1.side && !!f1.ask && Math.abs(f1.side.t - (f1.scTop + 8)) <= 1 && f1.ask.b <= f1.H + 0.5 && f1.askSeen && f1.headSeen,
         f1.side && `side ${Math.round(f1.side.t)}→${Math.round(f1.side.b)} ask ${f1.askSeen} head ${f1.headSeen}`);
       check(`1e ${W}×${HH}: no sideways scroll`, !f0.sideways && !f1.sideways);
       await p.context().close();
