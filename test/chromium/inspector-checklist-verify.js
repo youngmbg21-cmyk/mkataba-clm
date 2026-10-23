@@ -191,9 +191,11 @@ const ok = (name, good, detail) => {
        beside the name, so the head has no status row of its own. */
     ok('1a the head is the reference and the agreement, the party and the doors; Needs you is its own section after the facts, before what Jambo read',
       a.drawn && a.head.join(' > ') === 'ins-eb > ins-cp > ins-acts' && a.order.join(' > ') === 'ins-h > ins-facts > jl-needs > ins-reads', a.head.join(' > ') + ' · ' + a.order.join(' > '));
-    ok('1b the section is named "Needs you" and holds a row for each thing owed', a.drawn && a.name === 'Needs you' && a.count === 2, `${a.name} · ${a.count}`);
+    /* RE-POINTED 23 Oct 2026 (the owner's "count signer in both"): nobody named to sign on their side
+       is a detail owed on the checklist too (needsYouOf → signerOwed), so a third row, "Fill in", stands last */
+    ok('1b the section is named "Needs you" and holds a row for each thing owed', a.drawn && a.name === 'Needs you' && a.count === 3, `${a.name} · ${a.count}`);
     ok('1c the late item leads and is ruby; the card itself stays quiet (the dot carries the tone)',
-      a.drawn && a.rows.map(r => r.kind + ':' + r.tone).join(',') === 'quiet:ruby,review:amber' && !/is-ruby|is-amber/.test(a.frame || ''),
+      a.drawn && a.rows.map(r => r.kind + ':' + r.tone).join(',') === 'quiet:ruby,review:amber,details:amber' && !/is-ruby|is-amber/.test(a.frame || ''),
       a.rows.map(r => r.kind + ':' + r.tone).join(',') + ' · ' + a.frame);
     const quiet = (a.rows || []).find(r => r.kind === 'quiet');
     const oldest = (a.table.match(/from [^·\n]+· (\d+) days?/) || [])[1];
@@ -205,7 +207,7 @@ const ok = (name, good, detail) => {
     const rev = (a.rows || []).find(r => r.kind === 'review');
     ok('1f the review names who asked, how many, and by when', !!rev && /Review 2 changes for Amina Otieno/.test(rev.title) && /^Due /.test(rev.sub),
       rev ? `${rev.title} / ${rev.sub}` : 'no row');
-    ok('1g every row\'s title is one line, its line under it at most two, with its own verb', a.drawn && a.rows.every(r => r.oneLine && r.verb) && a.rows.map(r => r.verb).join(',') === 'Answer,Review',
+    ok('1g every row\'s title is one line, its line under it at most two, with its own verb', a.drawn && a.rows.every(r => r.oneLine && r.verb) && a.rows.map(r => r.verb).join(',') === 'Answer,Review,Fill in',
       a.rows.map(r => `${r.kind}:${r.oneLine ? 'fits' : 'WRAPS'}:${r.verb}`).join(' · '));
     ok('1h the panel does not grow sideways', a.drawn && a.over <= 1, `${a.over}px${a.drawn ? '' : ' (no checklist drawn)'}`);
     const edge = await page.evaluate(() => {
@@ -299,7 +301,7 @@ const ok = (name, good, detail) => {
     await toContracts();
     const j = (await pick('MK-149')) ? await read() : { rows: [] };
     ok('4a a join request is a third row, after the two older kinds, with the reason in their own words',
-      j.drawn && j.count === 3 && j.rows.map(x => x.kind).join(',') === 'quiet,review,join'
+      j.drawn && j.count === 4 && j.rows.map(x => x.kind).join(',') === 'quiet,review,join,details'
       && /Peter Kamau wants to join this negotiation/.test(j.rows[2] && j.rows[2].title) && /I handle the Carrefour account/.test(j.rows[2] && j.rows[2].sub),
       j.rows ? j.rows.map(x => `${x.kind}: ${x.title} / ${x.sub}`).join(' · ') : 'none');
     await page.screenshot({ path: path.join(OUT, '4-three-things.png') });
@@ -318,8 +320,8 @@ const ok = (name, good, detail) => {
     /* RE-POINTED AT STEP 7: section 1 reads this same page now, so 5a asks the
        one reading (needsYouOf) rather than the retired Contracts panel */
     const kinds149 = await page.evaluate(() => needsYouOf(getContract('MK-149')).map(x => x.kind).join(','));
-    ok('5a the Negotiations page draws the checklist the one reading gives for the same contract', n.drawn && n.rows.map(x => x.kind).join(',') === 'quiet,review'
-      && kinds149 === 'quiet,review' && n.rows[0] && quiet && n.rows[0].title === quiet.title, n.rows.map(x => x.kind + ': ' + x.title).join(' · ') + ' · reading ' + kinds149);
+    ok('5a the Negotiations page draws the checklist the one reading gives for the same contract', n.drawn && n.rows.map(x => x.kind).join(',') === 'quiet,review,details'
+      && kinds149 === 'quiet,review,details' && n.rows[0] && quiet && n.rows[0].title === quiet.title, n.rows.map(x => x.kind + ': ' + x.title).join(' · ') + ' · reading ' + kinds149);
     await page.evaluate(() => { apSetTab('signatures'); setView('approvals'); }); await page.waitForTimeout(1000);
     const arow = await page.$('.ap-table tbody tr[data-ap-row="MK-158"]');
     if (arow) { await arow.click(); await page.waitForTimeout(450); }
@@ -427,19 +429,23 @@ const ok = (name, good, detail) => {
 
     /* 8f–8h: THE BELL. Its renewal row rings inside thirty days, so the Sendy
        decision is brought to ten days out; the join request comes back. */
+    /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the panel draws the one desk's rows — the
+       checklist's own row (its button), the bell's own row, or for a renewal Jambo's piece, whose Look
+       opens it on the Board and whose "Decide the renewal" presses the same one door */
     const pressBell = async (kind, ref) => {
       await elsewhere();
       await page.click('#hdr-notify'); await page.waitForTimeout(700);
-      const rows = await page.$$('#context-panel [data-alert-i]');
-      let hit = null;
-      for (const r of rows) {
-        const k = await r.getAttribute('data-alert-kind');
-        const t = (await r.innerText()).replace(/\s+/g, ' ');
-        if (k === kind && t.includes(ref)) { hit = { el: r, text: t.trim().slice(0, 90) }; break; }
+      const need = kind === 'desk-join' ? 'join' : kind;
+      let el = await page.$(`#context-panel .nd-pan [data-cn-need="${need}"][data-cn-id="${ref}"], #context-panel .nd-pan [data-nd-al^="al:${kind}:${ref}:"]`);
+      const say = h => h.evaluate(b => { const r = b.closest('.nd-r, .nd-br'); return ((r ? r.innerText : b.innerText) || '').replace(/\s+/g, ' ').trim().slice(0, 140); });
+      let row = el ? await say(el) : null;
+      if (!el && kind === 'renewal'){
+        const look = await page.$(`#context-panel .nd-pan [data-nd-look*="${ref}"]`);
+        if (look){ row = await say(look); await look.click(); await page.waitForTimeout(1200); el = await page.$('#hm-agents .nd-br.is-look [data-ag-act="renewal"]'); }
       }
-      if (!hit) return { row: null, g: null };
-      await hit.el.click(); await page.waitForTimeout(1300);
-      return { row: hit.text, g: await landing() };
+      if (!el) return { row: null, g: null };
+      await el.click(); await page.waitForTimeout(1300);
+      return { row, g: await landing() };
     };
     await page.evaluate(() => {
       const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);

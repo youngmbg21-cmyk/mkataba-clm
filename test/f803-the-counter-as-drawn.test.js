@@ -91,9 +91,9 @@ function counter(rows, extra){
   vm.createContext(ctx);
   /* THE ONE DESK (Round A, 22 Oct 2026): Home's card is drawn from ndRead, so its parts load beside Home's */
   const names = ['cnDayWords', 'cnMayMoney', 'cnNeedTitle', 'cnReqWhat', 'cnNeedShort', 'cnNeedDoorAttrs', 'cnChipsHtml', 'cnFace', 'counterHtml',
-    'ndPieces', 'ndAgeOf', 'ndPieceAge', 'ndKindOf', 'ndRead', 'ndSumWords', 'ndStepOf', 'ndParts', 'ndHomeRowHtml', 'ndHomeHtml', 'ndSig'];
+    'ndIsNews', 'ndAlerts', 'ndAlCovered', 'ndPieces', 'ndAgeOf', 'ndPieceAge', 'ndKindOf', 'ndRead', 'ndSumWords', 'ndStepOf', 'ndParts', 'ndHomeRowHtml', 'ndHomeHtml', 'ndSig'];
   vm.runInContext(['_cnE', '_cnT', '_cnTn', '_cnFirst', '_cnWho', '_cnToday', '_cnPill', '_cnJbCard', '_cnJbSend', 'CN_ROWS', 'CN_PICK_UP', 'CN_REQ_WHAT_RE',
-    'ND_PAGE', 'ND_BUNDLE_MIN', 'ND_MERGE', 'ND_KIND_OF', 'ND_KINDS', 'ND_BTN', 'ND_NOT_WAITED', '_ndAge', 'ndThings', '_ndCall', '_ndText', '_ndBtnHtml', '_ndStepHtml', '_ndTagHtml'].map(n => constLine(CN, n)).join('\n')
+    'ND_PAGE', 'ND_BUNDLE_MIN', 'ND_MERGE', 'ND_KIND_OF', 'ND_KINDS', 'ND_BTN', 'ND_NOT_WAITED', 'ND_NEWS', 'ND_AL_ROWS', 'ND_AL_PIECES', 'ND_AL_ADMIN', 'ND_AL_KIND', 'ND_AL_BTN', '_ndCid', '_ndHash', 'ndAlKey', '_ndAge', 'ndThings', '_ndCall', '_ndText', '_ndBtnHtml', '_ndStepHtml', '_ndTagHtml'].map(n => constLine(CN, n)).join('\n')
     + '\nlet _cnSig = "", _ndMemo = null, _nd = { tab: "all", kind: "any", q: "", more: 0 };\n' + names.map(n => fnBody(CN, n)).join('\n'), ctx);
   return ctx;
 }
@@ -128,18 +128,18 @@ describe('f803 (2) the rows', () => {
   test('2a "Answer an approval for Jonas" · "for Jonas · away until <day>" · name · party · value · Decide', () => {
     const html = row(counter([]), approval);
     assert.match(html, /<b><span class="nd-t">Answer an approval for Jonas<\/span> <span class="cn-pill"><svg data-ic="users"><\/svg>for Jonas · away until [A-Z][a-z]+day<\/span><\/b>/);
-    assert.match(html, /<span>Power purchase agreement · Helio Energy AB · KES 8\.10M<\/span>/);
+    assert.match(html, /<span>MK-1 · Power purchase agreement · Helio Energy AB · KES 8\.10M<\/span>/);
     assert.match(html, /data-cn-need="approval" data-cn-id="MK-1">Decide<\/button>/);
     assert.match(html, /title="MK-1 · Power purchase agreement · Helio Energy AB · KES 8\.10M"/, 'the reference rides the hover');
   });
   test('2b their redlines: the party is in the title, so the line does not repeat it; how long, in red', () => {
     const html = row(counter([]), redlines);
-    assert.match(html, /<span>Master services agreement<\/span><\/div><span class="nd-when cn-late">4 days<\/span>/);
+    assert.match(html, /<span>MK-2 · Master services agreement<\/span><\/div><span class="nd-when cn-late">4 days<\/span>/);
     assert.match(html, />Review<\/button>/);
   });
   test('2c "Fill in 2 details", a salary\'s job title in place of the person', () => {
     const html = row(counter([]), pay);
-    assert.match(html, /<b><span class="nd-t">Fill in 2 details<\/span><\/b><span>Employment agreement · Chief financial officer<\/span>/);
+    assert.match(html, /<b><span class="nd-t">Fill in 2 details<\/span><\/b><span>MK-3 · Employment agreement · Chief financial officer<\/span>/);
     assert.match(html, />Fill in<\/button>/);
   });
   test('2d whom an approval is answered for: the step\'s own approver, read through the away rule', () => {
@@ -235,7 +235,7 @@ describe('f803 (5) Jambo\'s rows, and the words', () => {
     const w = world([]);
     const html = w.ndHomeRowHtml(w.ndRead().jambo[0]);
     assert.match(html, /<span class="nd-t">Nordvik Logistik’s answer<\/span><span class="nd-step" title="Step 5 of 6 · yours">5 of 6<\/span>/);
-    assert.match(html, /<i class="nd-read">Jambo read<\/i> their changes, your standards and past deals · <span class="hati-ref">MK-2<\/span>/);
+    assert.match(html, /<span class="hati-ref">MK-2<\/span> · <i class="nd-read">Jambo read<\/i> their changes, your standards and past deals<\/span>/);
     assert.match(html, /data-nd-look="round:MK-2">Look<\/button>/);
     assert.match(html, /title="Two changes: take one, push back on one\."/, 'what he found rides the hover');
   });

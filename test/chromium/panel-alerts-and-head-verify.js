@@ -210,13 +210,14 @@ const px = v => Number(String(v || '').replace('px', ''));
 
     await page.click('#hdr-notify');
     await page.waitForTimeout(900);
+    /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the panel draws the one desk; a stuck answer
+       is the bell's own row there (data-nd-row "al:answer-stuck:…"), never green */
     const panel = await page.evaluate(() => {
-      const rows = [...document.querySelectorAll('#context-panel [data-alert-i]')];
-      const mine = rows.filter(r => r.getAttribute('data-alert-kind') === 'answer-stuck');
+      const mine = [...document.querySelectorAll('#context-panel .nd-pan .nd-r[data-nd-row^="al:answer-stuck:"]')];
       return { n: mine.length,
         vis: mine.map(r => Math.round(r.getBoundingClientRect().height)),
         text: mine[0] ? (mine[0].innerText || '').replace(/\s+/g, ' ').trim() : '',
-        good: mine.some(r => r.classList.contains('al-good')) };
+        good: mine.some(r => r.classList.contains('nd-good')) };
     });
     check('they draw in the panel as visible pixels',
       panel.n === 2 && panel.vis.every(v => v > 8), JSON.stringify(panel.vis));

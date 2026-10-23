@@ -90,12 +90,13 @@ const DOC = ['MASTER SERVICES AGREEMENT', '',
       return { before: gl.contains(el) && !!read && !!(el.compareDocumentPosition(read) & Node.DOCUMENT_POSITION_FOLLOWING),
         title: (el.querySelector('.pd-gl-h b').textContent + ' ' + ((el.querySelector('.pd-gl-h .ds-ck-n') || {}).textContent || '')).trim(), n: ((el.querySelector('.pd-gl-h .ds-ck-n') || {}).textContent || '').trim(),
         /* RE-POINTED 20 Oct 2026 (the Legora way): the owed facts are the grid's rows */
-        rows: rows.reduce((a, r) => a + Number((/(\d+) more/.exec(r.textContent) || [])[1] || 1), 0) + el.querySelectorAll('#pd-og tr.pd-og-row:not(.is-saved):not(.is-named)').length, firstJw: !!jw, jwFace: !!(jw && jw.querySelector('svg.jambo-mark.jambo-face')),
+        rows: rows.reduce((a, r) => a + Number((/(\d+) more/.exec(r.textContent) || [])[1] || 1), 0) + el.querySelectorAll('#pd-og tr.pd-og-row:not(.is-saved):not(.is-named)').length, firstJw: !!jw, jwFace: !!(jw && jw.querySelector('.nd-read')),
         kinds: rows.map(r => r.getAttribute('data-pd-nd-kind') || 'jw'),
         all: (el.querySelector('[data-pd-nd-all]') || {}).textContent || '', counter: counterNeedsCount(),
         badge: (document.querySelector('#ig-dock [data-pd-tab="copilot"] .pd-tab-n') || {}).textContent || '' }; }, null, 10000);
     check('1a Needs you is the dossier\'s card above Jambo read', !!nd && nd.before && /^Needs you \d+$/.test(nd.title), JSON.stringify(nd));
     /* RE-POINTED 20 Oct 2026 (Chambers): on a computer his face is the ✦ mark (jamboFaceHtml's svg.jambo-mark), not the bird */
+    /* RE-POINTED 23 Oct 2026 (the rest of Round A, as drawn): the one desk's own row — "Jambo read …" says whose it is, no face */
     check('1b Jambo\'s prepared work on this contract is one of its rows, with his face (the ✦ mark)', !!nd && nd.firstJw && nd.jwFace, nd && nd.kinds.join(','));
     check('1d its number is its rows', !!nd && Number(nd.n) === nd.rows, nd && (nd.n + ' / ' + nd.rows));
     /* RE-POINTED 20 Oct 2026: Still owed's head says "everything, one list" where "all N" stood (the dossier as drawn) */

@@ -103,9 +103,13 @@ async function login(browser, email, pass, errors) {
       home.row && !/led by\s*(·|$)/.test(home.text), home.text.slice(0, 200) || 'no row');
     await O.page.click('#hdr-notify');
     await O.page.waitForTimeout(700);
+    /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the bell's panel draws the one desk's own
+       rows, so it says what the Board says — Jambo's answer to their round, one row (the quiet desk
+       it stands for is not said twice) */
     const bell = await O.page.evaluate(() => {
-      const t = ((document.getElementById('context-panel') || {}).textContent || '').replace(/\s+/g, ' ');
-      return { says: /Nandi Dairy has been waiting on us/.test(t), line: /nobody on our side has taken it yet/.test(t) };
+      const r = [...document.querySelectorAll('#context-panel .nd-pan .nd-r')].find(x => /MK-A2|Nandi Dairy/.test(x.textContent + (x.title || '')));
+      const b = document.querySelector('#hm-agents [data-nd-agent="round"] .nd-c-what b');
+      return { says: !!r && !!b && r.querySelector('.nd-t').textContent.trim() === b.textContent.trim(), line: !!r && !!r.querySelector('[data-nd-look]') };
     });
     check('2c the bell says it too, with the same line', bell.says && bell.line, JSON.stringify(bell));
     await O.page.keyboard.press('Escape');

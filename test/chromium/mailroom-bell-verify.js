@@ -64,10 +64,12 @@ const KEY = 'k'.repeat(32);
     check('1b and says it once: no "details to fill" line beside it for the same document', JSON.stringify(once) === '["mailroom"]', once);
 
     console.log('\n2 · the press');
+    /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the panel draws the one desk's rows; the
+       Mailroom's line is a row of its own, its button the bell's own door */
     await page.evaluate(() => openPanel('alerts'));
-    const row = await waitFor(page, id => !!document.querySelector(`[data-alert-kind="mailroom"]`), 5000, ID);
+    const row = await waitFor(page, id => !!document.querySelector(`.nd-pan [data-nd-al^="al:mailroom:${id}:"]`), 5000, ID);
     await page.screenshot({ path: path.join(OUT, 'bell-1440x780.png') });
-    if (row) await page.click('[data-alert-kind="mailroom"]');
+    if (row) await page.click(`.nd-pan [data-nd-al^="al:mailroom:${ID}:"]`);
     const landed = await waitFor(page, id => { const tr = document.querySelector(`.mig-table tbody tr[data-row="${id}"]`);
       return state.view === 'migration' && tr && tr.classList.contains('is-picked') ? true : null; }, 8000, ID);
     check('2 the press opens the Import page with that document chosen', !!row && !!landed,
@@ -93,10 +95,10 @@ const KEY = 'k'.repeat(32);
          it, and measure once it has come to rest in the window */
       await page.keyboard.press('Escape').catch(() => {}); await pause(300);
       await page.evaluate(() => openPanel('alerts'));
-      const m = await waitFor(page, () => { const r = document.querySelector('[data-alert-kind="mailroom"]'); if (!r) return null;
-        const b = r.getBoundingClientRect(), t = r.querySelector('.al-t');
+      const m = await waitFor(page, id => { const r = document.querySelector(`.nd-pan .nd-r[data-nd-row^="al:mailroom:${id}:"]`); if (!r) return null;
+        const b = r.getBoundingClientRect(), t = r.querySelector('.nd-t');
         if (b.right > innerWidth + 1) return null;
-        return { whole: b.left >= 0 && b.right <= innerWidth + 1 && b.height > 0, oneLine: !!t, side: document.documentElement.scrollWidth > innerWidth + 1, l: Math.round(b.left), r: Math.round(b.right), w: innerWidth }; }, 5000);
+        return { whole: b.left >= 0 && b.right <= innerWidth + 1 && b.height > 0, oneLine: !!t, side: document.documentElement.scrollWidth > innerWidth + 1, l: Math.round(b.left), r: Math.round(b.right), w: innerWidth }; }, 5000, ID);
       check(`5 ${w}x${hh}: the line stands whole, nothing sideways`, !!m && m.whole && !m.side, m);
       await page.screenshot({ path: path.join(OUT, `bell-${w}x${hh}.png`) });
     }

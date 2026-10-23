@@ -170,8 +170,14 @@ describe('f187 (2) — the alerts are borrowed counts, never new ones', () => {
        calls it for each. */
     const row = app.slice(app.indexOf('function alertRowHtml'));
     assert.match(row.slice(0, row.indexOf('\n}')), /data-alert-i=/);
+    /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the grouped list is alertsListHtml,
+       drawn by the News tab and for a known set handed in; it calls alertRowHtml for each row.
+       The Needs you tab is the one desk's own rows (ndPanelHtml), each its one door. */
+    const list = app.slice(app.indexOf('function alertsListHtml'));
+    assert.match(list.slice(0, list.indexOf('\n}')), /alertRowHtml\(/);
     const panel = app.slice(app.indexOf('function alertsPanelHtml'));
-    assert.match(panel.slice(0, panel.indexOf('\n}')), /alertRowHtml\(/);
+    assert.match(panel.slice(0, panel.indexOf('\n}')), /alertsListHtml\(/);
+    assert.match(panel.slice(0, panel.indexOf('\n}')), /ndPanelHtml\(/);
     const render = app.slice(app.indexOf('function renderContextPanel'));
     assert.match(render.slice(0, render.indexOf('\n}')), /closeContextPanel\(\);/,
       'and the panel gets out of the way when the door is taken');
