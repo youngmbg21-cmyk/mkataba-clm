@@ -16905,6 +16905,19 @@
      both hosts of the one builder; ONE SHADE still darkens the card under the pointer and the pressed one */
   :is(#ig-dock, body) .redline-page .rl-card-d, :is(#ig-dock, body) .redline-page .rl-pile :is(.rl-card-d, .rl-band + .rl-card-d){background:var(--color-bg);border-radius:16px;padding:12px 14px;margin-bottom:8px;border-bottom:0}
   :is(#ig-dock, body) .redline-page:has(:is(.rl-card-d, .rk-row):hover) .rl-card-d.is-linked:not(:hover){background:var(--color-bg)}
+  /* THE LISTS' TABLE, AS DRAWN (Contracts): the column heads on a faint grey band (#FAFAFC), the foot the same,
+     a party's initials a rounded square on white. The row height stays the reader's own density choice. */
+  #app-shell .reg-card .reg-table thead th{background:#FAFAFC}
+  #app-shell .reg-card > :has(> .lh-foot){background:#FAFAFC}
+  #app-shell .reg-table .reg-av{border-radius:8px;background:var(--color-surface)}
+  /* A PAGE'S HEAD IS A FLOATING WHITE CARD (the drawn New agreement: "Contracts › New agreement", its title and
+     its acts on a card set in on the grey), on every page-shaped pop-up */
+  #modal-root [data-dlg-page] .dlg-pg-head{margin:10px 12px 0;border:0;border-radius:20px;box-shadow:var(--shadow-sm)}
+  /* Company · HaTi over the templates: the drawn grey track, the chosen one a white pill */
+  #modal-root [data-dlg-page] .na-head{border-bottom:0}   /* the drawn subtitle stands on the grey with no rule under it */
+  #modal-root .na-tabs{gap:2px;padding:3px;border:0;border-radius:999px;background:var(--surface-2)}
+  #modal-root .na-tab{border:0;border-radius:999px;background:transparent;color:var(--color-neutral-600)}
+  #modal-root .na-tab[aria-selected="true"]{background:var(--color-surface);color:var(--accent-ink);box-shadow:0 1px 2px rgba(0,0,0,.10);font-weight:var(--w-strong)}
   /* -- below 1100px wide (narrower than any of the owner's three screens) the two halves stand docked
      as they did: there every pixel is the page's (swedish-verify caught the Calendar cut by 7px at 800) -- */
   @media (max-width:1100px){
