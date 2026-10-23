@@ -691,7 +691,8 @@ function ndParts(r){
     ? _cnPill('lock', _cnT('cn_private', { stream: ((typeof FOLDERS !== 'undefined' && FOLDERS[c.folder]) || {}).name || '' })) : '';
   const away = y.fw ? _cnPill('users', y.fw.until ? _cnT('cn_need_away', { who: _cnFirst(y.fw.name), day: cnDayWords(y.fw.until) }) : _cnT('cn_need_for', { who: _cnFirst(y.fw.name) })) : '';
   P.pills = away + priv; P.priv = priv;
-  P.ref = (typeof contractRef === 'function') ? _cnE(contractRef(c)) : _cnE(c.id);
+  /* the contract's number in its one dress (refHtml) — the owner's "there is no contract number in the card", 8 Oct 2026 */
+  P.ref = (typeof refHtml === 'function') ? refHtml(c) : _cnE((typeof contractRef === 'function') ? contractRef(c) : c.id);
   return P;
 }
 const _ndBtnHtml = (P, attrs) => `<button type="button" class="ui-btn ui-btn-sm nd-btn" ${attrs != null ? attrs : P.attrs}>${_cnE(_cnT('nd_btn_' + P.btn))}</button>`;
@@ -751,7 +752,7 @@ function ndBoardRowHtml(r, opts){
     : _ndBtnHtml(P);
   return `<div class="nd-br${look ? ' is-look' : ''}" data-nd-row="${_cnE(r.key)}"${piece ? ` data-hb-ag-item="${_cnE(r.it.key)}" data-nd-agent="${_cnE(r.agent)}"` : ''}>`
     + `<span class="nd-c nd-c-what"${piece && P.line ? ` title="${_cnE(P.line)}"` : ''}><b>${_cnE(P.title)}</b>${_ndTagHtml(P)}${P.priv}</span>`
-    + `<span class="nd-c nd-c-deal" title="${_cnE(P.deal)}">${_cnE(P.deal)}</span><span class="nd-c nd-c-who">${_cnE(P.who)}</span>`
+    + `<span class="nd-c nd-c-deal" title="${_cnE([P.deal, _ndText(P.ref)].filter(Boolean).join(' · '))}">${_cnE(P.deal)}${P.ref ? (P.deal ? ' · ' : '') + P.ref : ''}</span><span class="nd-c nd-c-who">${_cnE(P.who)}</span>`
     + `<span class="nd-c nd-c-when${P.late ? ' cn-late' : ''}">${_cnE(P.when)}</span><span class="nd-c nd-c-next">${btn}</span>${look}</div>`;
 }
 function ndBoardRowsHtml(D, opts){
@@ -870,7 +871,8 @@ function counterBoxFit(q){
   q.style.height = q.value ? Math.min(q.scrollHeight, 120) + 'px' : '';
 }
 function ndSig(D){
-  return D.jambo.concat(D.you).map(r => r.key + ':' + r.n + ':' + r.late).join(',');
+  /* the admin's row carries its own number (how much is left to set up, what the company needs): a change in it redraws */
+  return D.jambo.concat(D.you).map(r => r.key + ':' + r.n + ':' + r.late + ':' + (r.setup || (r.company ? r.company.length : ''))).join(',');
 }
 function renderCounter(){
   const host = document.getElementById('content'); if (!host) return;

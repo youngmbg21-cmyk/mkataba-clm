@@ -41,18 +41,6 @@ const BOOKS = (() => {
 })();
 const fill = (s, v) => String(s || '').replace(/\{(\w+)\}/g, (_, k) => (v && k in v) ? v[k] : '{' + k + '}');
 
-function counter(){
-  const ctx = {
-    i18t: (k, v) => fill(BOOKS.en[k] || k, v), i18tn: (k, n, v) => fill(BOOKS.en[k] || k, v),
-    jamboFaceHtml: () => '<i class="face"></i>',
-  };
-  vm.createContext(ctx);
-  const src = ['_cnE', '_cnT', '_cnTn'].map(n => constLine(CN, n)).join('\n') + '\n'
-    + fnBody(CN, 'cnFace') + fnBody(CN, 'cnJwRowHtml');
-  vm.runInContext(src, ctx);
-  return ctx;
-}
-const A = n => ({ ready: n, rows: [{ who: 'Nandi Dairy', items: Array.from({ length: n }, (_, i) => ({ key: 'k' + i })) }] });
 const HB = R('js/views/homeboard.js');
 
 describe('f724 (1) Jambo\'s work lands on the Board\'s card (LAND ON IT, reverses Open in place)', () => {

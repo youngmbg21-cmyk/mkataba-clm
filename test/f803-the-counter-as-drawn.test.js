@@ -64,7 +64,6 @@ const APP = R('js/app.js');
 const I18N = R('js/i18n.js');
 const fnBody = (src, name) => { const i = src.search(new RegExp('(async )?function ' + name + '\\(')); if (i < 0) return ''; return src.slice(i, src.indexOf('\n}', i) + 2); };
 const constLine = (src, name) => { const m = src.match(new RegExp('^(const|let) ' + name + '\\b[^\\n]*$', 'm')); return m ? m[0] : ''; };
-const constBlock = (src, name) => { const i = src.search(new RegExp('^const ' + name + '\\b', 'm')); if (i < 0) return ''; return src.slice(i, src.indexOf('};', i) + 2); };
 const BOOKS = (() => {
   const en = {}, sv = {};
   for (const m of I18N.matchAll(/^\s+([a-z][a-z0-9_]*): ["']((?:[^"'\\]|\\.)*)["'],?\s*$/gm)){
