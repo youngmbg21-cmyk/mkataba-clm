@@ -81,12 +81,14 @@ const geist = f => /^"?Geist Mono"?/.test(f || '');
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   const shot = n => page.screenshot({ path: path.join(OUT, n) }).catch(() => {});
-  const pageCheck = async (name, go, ready, scope) => {
+  const pageCheck = async (name, go, ready, scope, o) => {
     try{ await page.evaluate(go); }catch(e){ check(false, name + ' opens', e.message); return; }
     await until(page, ready, null, 10000);
     await page.waitForTimeout(400);
     const R = await refsOn(page, scope);
     await shot(name.replace(/\W+/g, '-').toLowerCase() + '.png');
+    /* a page whose bar carries the reference prints none of its own (o.none) */
+    if (o && o.none){ check(!R || !R.length, name + ': no reference of its own on the page (the bar carries it)', R && R.length ? JSON.stringify(R.slice(0, 2)) : 'none'); return; }
     if (!R || !R.length){ check(false, name + ' prints a reference to measure', 'none found'); return; }
     const bad = R.filter(x => !geist(x.face));
     check(!bad.length, `${name}: every printed reference wears Geist Mono (${R.length})`, bad.length ? JSON.stringify(bad.slice(0, 3)) : R[0].face.slice(0, 30));
@@ -145,7 +147,8 @@ const geist = f => /^"?Geist Mono"?/.test(f || '');
       try { await page.evaluate(() => calSetView('week')); } catch (_){ /* the next stage opens its own page */ }
     }
     await pageCheck('the room head', () => openWorkspace('MK-RF2', { room: true }), () => !!document.querySelector('.room-head'), '.room-head');
-    await pageCheck('Negotiate', () => roomGoTab(getContract('MK-RF2'), 'redline'), () => !!document.querySelector('.redline-page'), '#content');
+    /* RE-POINTED 23 Oct 2026 (owner: "yes" — the paper's line drops the ref; the bar names it) */
+    await pageCheck('Negotiate', () => roomGoTab(getContract('MK-RF2'), 'redline'), () => !!document.querySelector('.redline-page'), '#content', { none: true });
     await pageCheck('the search palette', () => { setView('contracts'); if (typeof window.openPalette === 'function') window.openPalette('MK-RF'); else document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true })); },
       () => /MK-RF/.test(document.body.textContent), null);
   } catch (e){

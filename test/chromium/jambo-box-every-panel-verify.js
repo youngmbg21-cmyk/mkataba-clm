@@ -55,8 +55,12 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
     const onTab = async t => {
       for (let i = 0; i < 3; i++) {
         await openPaper();
-        await page.evaluate(tab => { const b = document.querySelector(`#ig-dock [data-pd-tab="${tab}"]`); if (b) b.click(); }, t);
-        const on = await page.waitForFunction(tab => { const b = document.querySelector('#ig-dock .pd-tab.on');
+        /* RE-POINTED 23 Oct 2026 (Spine): Obligations is no tab — its panel opens from the Dossier's line under Sign */
+        if (t === 'oblig'){ await page.evaluate(() => { const b = document.querySelector('#ig-dock [data-pd-tab="copilot"]'); if (b) b.click(); });
+          await page.waitForSelector('#ig-dock .ds-ob-line', { timeout: 4000 }).catch(() => {}); }
+        await page.evaluate(tab => { const b = document.querySelector(tab === 'oblig' ? '#ig-dock .ds-ob-line' : `#ig-dock [data-pd-tab="${tab}"]`); if (b) b.click(); }, t);
+        const on = await page.waitForFunction(tab => { if (tab === 'oblig') return window.pdTab && pdTab() === 'oblig' && !!document.querySelector('#ig-dock .pd-trail');
+          const b = document.querySelector('#ig-dock .pd-tab.on');
           return !!b && b.getAttribute('data-pd-tab') === tab; }, t, { timeout: 4000 }).then(() => true, () => false);
         if (on) break;
       }
@@ -67,7 +71,7 @@ const ok = (name, good, detail) => { good ? pass++ : fail++;
         const r = card ? card.getBoundingClientRect() : null, d = dock ? dock.getBoundingClientRect() : null;
         /* painted: the point at the card's middle is the card or inside it */
         const hit = r ? document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) : null;
-        return { tab: (document.querySelector('#ig-dock .pd-tab.on') || { getAttribute: () => null }).getAttribute('data-pd-tab'),
+        return { tab: (window.pdTab && pdTab() === 'oblig') ? 'oblig' : (document.querySelector('#ig-dock .pd-tab.on') || { getAttribute: () => null }).getAttribute('data-pd-tab'),
           box: !!box, send: !!(dock && dock.querySelector('#igd-go')),
           inView: !!(r && r.height > 0 && r.bottom <= window.innerHeight + 1 && r.top >= 0),
           atFoot: !!(r && d && d.bottom - r.bottom < 40),
