@@ -146,7 +146,11 @@ const book = page => page.evaluate(() => state.contracts.map(c => c.id).sort().j
 
     const R = await login(browser, 'restricted@example.co.ke', 'their-own-pass-9');
     check((await book(R.page)).includes('MK-B1'), '5c the named person reads the folder\'s contracts — naming is the grant');
+    /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): being named on a stream asks nothing of
+       you, so it stands under the bell's News tab, its row the same door as before */
     await R.page.evaluate(() => openPanel('alerts'));
+    await until(R.page, () => !!document.querySelector('[data-al-tab="news"]'));
+    await R.page.click('[data-al-tab="news"]').catch(() => {});
     await until(R.page, () => !!document.querySelector('[data-alert-i]'));
     const lineText = await R.page.evaluate(n => { const el = [...document.querySelectorAll('[data-alert-i]')].find(x => x.textContent.includes(n)); return el ? el.textContent.replace(/\s+/g, ' ').trim() : ''; }, name);
     check(/Amina Otieno/.test(lineText), '5d their bell says the admin added themself', lineText.slice(0, 120));

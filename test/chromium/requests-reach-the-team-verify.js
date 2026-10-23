@@ -60,10 +60,15 @@ const until = async (page, fn, arg, ms = 8000) => {
     const bell = await page.evaluate(id => buildAlerts().filter(a => a.kind === 'request').map(a => ({ text: a.text, sub: a.sub })), rid);
     ok('1a the request is a row in the editor\'s bell', bell.length === 1 && /Cold-chain storage/.test(bell[0].text), bell);
     ok('1b the row says who asked', bell[0] && /Faith Njeri/.test(bell[0].sub || ''), bell[0] && bell[0].sub);
+    /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the panel draws the one desk — a request
+       nobody holds is your row (Answer) or, where Jambo found its paper, his piece (Look), whose
+       "Open the request" is the same door onto Requests */
     await page.evaluate(() => openPanel('alerts')); await page.waitForTimeout(500);
-    const row = await page.$('[data-alert-kind="request"]');
-    ok('1c it is drawn in the panel', !!row);
+    let row = await page.$(`.nd-pan [data-cn-req="${rid}"]`);
+    const look = row ? null : await page.$(`.nd-pan [data-nd-look="request:${rid}"]`);
+    ok('1c it is drawn in the panel', !!(row || look));
     await page.screenshot({ path: path.join(OUT, '1-bell.png') });
+    if (look){ await look.click(); await page.waitForTimeout(1200); row = await page.$('#hm-agents .nd-br.is-look [data-ag-act="ikopen"]'); }
     if (row) { await row.click(); }
     const landed = await until(page, id => state.view === 'intake' && /Cold-chain storage/.test((document.getElementById('ins-panel') || {}).textContent || ''), rid);
     ok('1d the press lands on Requests with that request lit', landed,

@@ -189,13 +189,17 @@ const SEED_UNSENT = async () => {
     await page.click('#hdr-notify');
     await pause(700);
     await page.screenshot({ path: path.join(OUT, '01b-alerts-ordered.png') });
+    /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the panel draws the one desk — Jambo's
+       prepared work first, then Your move, which your own signature leads */
     const firstRow = await page.evaluate(() => {
-      const r = document.querySelector('[data-alert-i]');
-      return r ? { kind: r.getAttribute('data-alert-kind'),
+      const g = document.querySelector('#context-panel .nd-pan [data-nd-g="you"]');
+      let r = g && g.nextElementSibling; while (r && !r.classList.contains('nd-r')) r = r.nextElementSibling;
+      const b = r && r.querySelector('[data-cn-need],[data-nd-al]');
+      return r ? { kind: b ? (b.getAttribute('data-cn-need') || (b.getAttribute('data-nd-al') || '').split(':')[1]) : null,
         text: (r.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 60) } : null;
     });
     check('4f and the panel really draws it first',
-      !!firstRow && firstRow.kind === 'signature', firstRow);
+      !!firstRow && (firstRow.kind === 'sign' || firstRow.kind === 'signature'), firstRow);
 
     await page.keyboard.press('Escape');
     await pause(400);

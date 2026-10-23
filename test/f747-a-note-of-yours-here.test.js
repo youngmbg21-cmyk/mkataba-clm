@@ -59,7 +59,11 @@ function stage({ notes = [], loaded = true, needs = [], asks = [], fresh = null,
     igHomePaperFace: () => true, hbFace: () => 'paper', canEdit: () => true, PORTAL_MODE: false,
     detailsOf: () => ({ left: 0, all: 4, live: true, items: [] }), signBlockers: () => [], negoMayStartLine: () => '',
     contractStatusTextHtml: () => '<span class="room-stat">In review</span>',
-    hbAgentsData: () => (round ? { ready: 1, rows: [{ k: 'round', n: 1, items: [{ key: 'answer:MK-1', cid: 'MK-1', sum: '2 changes', urg: 'Waiting today' }] }] } : { ready: 0, rows: [] }),
+    /* RE-POINTED 23 Oct 2026 (the rest of Round A): Jambo's pieces here are the one desk's, worded by its one builder */
+    ndJamboFor: () => round ? [{ g: 'jambo', agent: 'round', it: { key: 'answer:MK-1', kind: 'answer', cid: 'MK-1' }, n: 1, late: 1, age: 4 }] : [],
+    ND_MERGE: { answer: ['quiet'], renewal: ['renewal'], notice: ['renewal'], read: ['details'] },
+    ndParts: () => ({ title: 'Nordvik Logistik’s answer', step: { n: 5, of: 6 }, read: 'their changes, your standards and past deals', when: '4 days', late: true,
+      line: 'Answers to their 2 redlines, read against our standards.' }),
     agentsData: () => ({ agents: { round: { ready: round ? [Object.assign({ agent: 'round', kind: 'answer', key: 'answer:MK-1', cid: 'MK-1' }, round)] : [] } } }),
     langLocale: () => 'en-GB', landOn: (t, o) => { calls.push(['land', typeof t === 'function' ? 'fn' : t]); return Promise.resolve(null); },
     hbNeedsOpen: () => calls.push(['home-needs']), CSS: { escape: x => x },
@@ -179,25 +183,21 @@ describe('f747 (5) their redlines are owed after the quiet standard, unchanged (
 });
 
 describe('f747 (6) Jambo\'s work here, in the drawing\'s words', () => {
-  const ago = d => new Date(Date.now() - d * 864e5).toISOString();
-  test('6a "Jambo\'s work · Nordvik\'s answer", prepared: an answer to each redline', () => {
-    const night = new Date(); night.setDate(night.getDate() - 1); night.setHours(22, 0, 0, 0);
-    const { ctx, c } = stage({ round: { n: 2, prepared: 2, tally: { escalate: 1, review: 1 }, since: night.toISOString() } });
+  /* RE-POINTED 23 Oct 2026 (the rest of Round A; the owner picked the Legora way, drawn as
+     "Nordvik Logistik's answer · 5 of 6 / Jambo read … · waiting 8 days · Look"): the row is the
+     one desk's row, in its words; his whole line rides its hover; their redlines are not a second row */
+  test('6a "Nordvik Logistik\'s answer", its step, what Jambo read, how long it waited, Look', () => {
+    const { ctx, c } = stage({ round: {}, needs: [{ kind: 'quiet', urgent: true, n: 2 }] });
     const html = ctx.pdNeedsHtml(c);
-    assert.match(html, /<b>Jambo’s work · Nordvik’s answer<\/b><small title="Prepared overnight: an answer to each redline">Prepared overnight: an answer to each redline<\/small>/);
-    assert.match(html, /data-pd-nd-jw="round" data-pd-nd-key="answer:MK-1">See it</);
+    assert.match(html, /<b>Nordvik Logistik’s answer<span class="nd-step"[^>]*>5 of 6<\/span><\/b><small title="Answers to their 2 redlines, read against our standards.">/);
+    assert.match(html, /<i class="nd-read">Jambo read<\/i> their changes, your standards and past deals · <span class="late">waiting 4 days<\/span>/);
+    assert.match(html, /data-pd-nd-jw="round" data-pd-nd-key="answer:MK-1">Look</);
   });
-  test('6b where Jambo answered none, the quick reading\'s tally, said whole', () => {
-    /* fixed hours of today, never "now": the word reads the hour it was
-       read (before 06:00 is the night), so a check built on Date.now() went
-       red whenever it ran after midnight */
-    const at = h => { const d = new Date(); d.setHours(h, 0, 0, 0); return d.toISOString(); };
-    const { ctx, c } = stage({ round: { n: 2, prepared: 0, tally: { escalate: 1, review: 1 }, since: at(12) } });
-    assert.match(ctx.pdNeedsHtml(c), /<small title="Read today: 1 to escalate · 1 to read yourself">/);
-    const s0 = stage({ round: { n: 2, prepared: 0, tally: { escalate: 1, review: 1 }, since: at(3) } });
-    assert.match(s0.ctx.pdNeedsHtml(s0.c), /<small title="Read overnight: 1 to escalate · 1 to read yourself">/);
-    const s1 = stage({ round: { n: 3, prepared: 1, tally: {}, since: ago(3) } });
-    assert.match(s1.ctx.pdNeedsHtml(s1.c), /Prepared on [^:]+: answers to 1 of the 3 redlines/);
+  test('6b their redlines are the piece\'s: no second row for them', () => {
+    const { ctx, c } = stage({ round: {}, needs: [{ kind: 'quiet', urgent: true, n: 2 }] });
+    assert.ok(!/data-pd-nd="quiet"/.test(ctx.pdNeedsHtml(c)));
+    const bare = stage({ needs: [{ kind: 'quiet', urgent: true, n: 2 }] });
+    assert.match(bare.ctx.pdNeedsHtml(bare.c), /data-pd-nd="quiet"/, 'with no piece, the redlines are their own row');
   });
   test('6c its line is read whole, wrapped — never cut with an ellipsis', () => {
     const CSS = R('index.html');

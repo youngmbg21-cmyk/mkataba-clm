@@ -2072,11 +2072,14 @@ function agLinkBody(it){
    it is about, which stays where it is owed. */
 function agActsOf(it){
   const L = [];
-  const B = (act, label, cls) => { L.push({ act, label, cls: cls || '' }); };
+  const B = (act, label, cls, tip) => { L.push({ act, label, cls: cls || '', tip: tip || '' }); };
   const ed = !(typeof canEdit === 'function' && !canEdit());
   if (it.kind === 'answer'){ B('nego', _agT('ag_a_answer'), 'lead'); B('overview', _agT('ag_a_overview')); }
-  else if (it.kind === 'notice'){ B('notice', _agT('desk_nt_read'), 'lead'); B('overview', _agT('ag_a_renewal')); }
-  else if (it.kind === 'renewal') B('overview', _agT('ag_a_renewal'), 'lead');
+  /* Decide the renewal presses the renewal's ONE door (needsYouGo 'renewal': the contract read again, then
+     its Obligations tab, where it is decided), with that door's own hover — the bell's renewal row now
+     IS this piece (the rest of Round A, 23 Oct 2026) */
+  else if (it.kind === 'notice'){ B('notice', _agT('desk_nt_read'), 'lead'); B('renewal', _agT('ag_a_renewal'), '', _agT('ins_need_go_terms')); }
+  else if (it.kind === 'renewal') B('renewal', _agT('ag_a_renewal'), 'lead', _agT('ins_need_go_terms'));
   else if (it.kind === 'read'){
     const hasBrief = !!(it.c && (it.c._brief || it.c._hasBrief));
     /* THE OBLIGATIONS FOUND have one door onto being added — the review dialog
@@ -2137,7 +2140,7 @@ function agActsOf(it){
 }
 function agPanelActs(it, o){
   const skip = (o && o.skip) || [];
-  return agActsOf(it).filter(a => !skip.includes(a.act)).map(a => `<button type="button" class="${a.cls === 'lead' ? 'ui-btn ui-btn-primary' : a.cls === 'link' ? 'ui-link' : 'ui-btn'}" data-ag-act="${a.act}">${_agE(a.label)}</button>`).join('');
+  return agActsOf(it).filter(a => !skip.includes(a.act)).map(a => `<button type="button" class="${a.cls === 'lead' ? 'ui-btn ui-btn-primary' : a.cls === 'link' ? 'ui-link' : 'ui-btn'}" data-ag-act="${a.act}"${a.tip ? ` title="${_agE(a.tip)}"` : ''}>${_agE(a.label)}</button>`).join('');
 }
 /* THE ONE ACT A FOLDED PIECE OFFERS (the owner's answer (18), 19 Oct 2026,
    "Fold to one line" — round 23's "Look · its own act · Put away"): the act
@@ -2521,6 +2524,7 @@ async function agRunAct(key, act){
   }
   if (act === 'nego') return agGo('nego', it.cid);
   if (act === 'overview') return agGo('terms', it.cid);
+  if (act === 'renewal'){ if (typeof needsYouGo === 'function' && needsYouGo('renewal', it.cid)) return; return agGo('terms', it.cid); }
   if (act === 'contract') return agGo('contract', it.cid);
   if (act === 'oblig') return agGo('oblig', it.cid);
   if (act === 'import') return agGo('import');
