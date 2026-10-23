@@ -2849,7 +2849,9 @@ function stFindRows(q){
 function stFindGo(id){
   const [kind,...rest]=String(id||'').split(':'); const k=rest.join(':');
   if(kind==='you'){ if(typeof setView==='function' && (typeof state==='undefined'||state.view!=='team')) setView('team'); stYouGo(k); return; }
-  if(kind==='page'){ _stPage=ST_PAGES.includes(k)?k:null; openSettingsAt('company'); return; }
+  /* a page lands ON that page: openSettingsAt lands on the company board, so the page is gone to after it
+     (it was set before, and openSettingsAt put it back to the board — "add a user" stopped one step short) */
+  if(kind==='page'){ openSettingsAt('company'); if(ST_PAGES.includes(k)&&k!=='panel'&&!(typeof isAdmin==='function'&&!isAdmin())) settingsGoPage(k); return; }
   if(kind==='panel') { openSettingsAt('company', k); return; }
   if(kind==='person') { openSettingsAt('company', 'person:'+k); return; }
 }

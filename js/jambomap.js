@@ -456,11 +456,27 @@ function jmOverrules(q, read){
    The model's answer may name ONE of the map's tasks (deliver_answer.goto);
    it is run through the task's own door, as the words would have been. An
    admin's task is never a non-admin's; a book that does not exist is the page. */
+/* does the ask name this contract — its number, a word of its name or party, or "this"/"it" — rather than only
+   happen to be asked beside it ("what do we owe this week" with the courier contract open: the book's) */
+function jmNamesContract(q, id){
+  const c = (typeof getContract === 'function') ? getContract(id) : null; if (!c) return false;
+  const t = String(q || '').toLowerCase();
+  if ([c.id, c.contractNo].filter(Boolean).some(r => t.includes(String(r).toLowerCase()))) return true;
+  if (/(?<!\p{L})(?:this|it|its|denna|detta|det|dess)(?!\p{L})/iu.test(t.replace(/\b(?:this|next|last)\s+(?:week|month|quarter|year)\b/g, ' '))) return true;
+  const own = String([c.name, c.counterparty].join(' ')).toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(w => w.length >= 4 && !['agreement', 'contract', 'services', 'supply', 'limited'].includes(w));
+  return own.some(w => t.includes(w));
+}
 function jmGotoAct(g, q){
   if (!g || typeof g !== 'object') return null;
   const T = jmTask(String(g.task || '')); if (!T) return null;
   if (T.admin && !jmIsAdmin()) return null;
   const a = jmActOf(T.k, String(q || ''));
+  /* THE AI'S PLACE FOR A QUESTION OF THE WHOLE BOOK ("which of our duties are due soon") is the page, never the
+     tab of the paper that happens to be open beside it (stage 3d); a place that needs one contract keeps it */
+  if (a && a.cid && a.kind === 'go'){
+    const p = (typeof CA_PLACES !== 'undefined' ? CA_PLACES : []).find(x => x.k === a.place) || {};
+    if (p.need !== 'one' && !jmNamesContract(String(q || ''), a.cid)) a.cid = null;
+  }
   if (!a || !T.to.std) return a;
   const pb = jmStdBooks();
   const book = (typeof g.book === 'string' && g.book !== '_default' && pb[g.book]) ? g.book : (a.book || null);

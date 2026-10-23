@@ -164,7 +164,8 @@ describe('f744 (3) the box asks about what is held', () => {
     assert.match(A, /if\(heldId&&igHeldAsksBook\(q,heldId\)\)\{[\s\S]*?bsCardLeave\(\)[\s\S]*?heldId=null;\s*\}/);
     assert.match(A, /if\(state\.view==='dashboard' && \(onPaperSide\|\|heldId\) && typeof window\.hbBringOf==='function'/);
     /* main's template ask (tplAsk) and ANSWER WHERE YOU STAND (hereMap) kept beside it */
-    assert.match(A, /if\(!heldId && state\.view==='dashboard' && !onPaperSide && !tplAsk && !hereMap && typeof window\.hbAsk==='function'\)/);
+    /* …and a Board question handed to its Jambo (boardQ, AI first, Jambo works like Copilot stage 3b) */
+    assert.match(A, /if\(!heldId && state\.view==='dashboard' && !onPaperSide && !tplAsk && !hereMap && !boardQ && typeof window\.hbAsk==='function'\)/);
     assert.match(A, /const boardUp=\(!!igBoardNow\(\)&&!IG_WALK_RE\.test\(q\)&&!IG_OUTLIER_RE\.test\(q\)&&!mapListy\)\|\|!!heldId;/);
     assert.match(A, /const mapRest=\(igPaperUp\(\)\|\|boardUp\|\|tplAsk\)\?null:await intelMapLocal\(q\);/);
     /* JAMBO, THE SAME ON EVERY PAGE (main, 18 Oct 2026): the screen in front
