@@ -210,7 +210,7 @@ describe('F461 (C) — then ask: Copilot\'s answer in its own box', () => {
     card(w, true);
     live(w, new Error('Daily Jambo budget reached'));
     await w.hbDdOnPress(KEY);
-    html = card(w, true).html;
+    const html = card(w, true).html;
     assert.match(html, /class="hb-why is-err"/);
     assert.match(text(html), /Jambo could not answer: Daily Jambo budget reached/);
     assert.match(text(html), /Try again/);
