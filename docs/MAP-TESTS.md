@@ -94,7 +94,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - THE NUMBER LEADS THE ROW (23 Oct 2026): f868 3c2 (new; the Board's Agreement cell is number · name, the name in `.nd-deal-t` gives way, the number never cut); f803 2a–2c/5a and f868 2b re-pointed (Home's line leads with the number); counter-as-drawn 11b re-pointed.
 
 ## HOME — THE BOARD AND THE MAP (js/views/homeboard.js)
-- ONE ASK ON A CARD, DIG DEEPER (23 Oct 2026): f461 (C)/(D), f538, f527, f528, f665; browser read-then-ask-verify 4a–4i (answer inside the card under the chart, the menu has Dig deeper once and no "What could explain this?"), charts-that-explain-verify 1/3, chart-headline-verify 3c, insights-shelf-verify 6a/6c.
+- ONE ASK ON A CARD, TWO DEPTHS (23 Oct 2026): f461 (C)/(D), f538, f527, f528, f665; browser read-then-ask-verify 4a–4i (answer inside the card under the chart, the menu has Dig deeper once and no "What could explain this?"), charts-that-explain-verify 1/3, chart-headline-verify 3c, insights-shelf-verify 6a/6c.
 - THE TIDY SWEEP (22 Oct 2026): `tidy-sweep-verify.js` — 29 places × three screens, nothing cut, squeezed, spilt, overlapping or sideways; `HATI_TIDY_ONLY=board-card,draft` for one place; its board-card place lands a side-list row on MK-400's Dossier (One door). f690 (4) re-pointed: a row → `hbSheetGo`, the sheet draws no card.
 - Today's insights, ONE HEIGHT A ROW (22 Oct 2026): board-as-drawn 8b2 (two cards sharing a row the same height, their buttons on one line, at the three screens; red before); insights-shelf 6b re-pointed (the card beside an opened one grows with it).
 - 21 Oct 2026 (overnight): home-board-verify 13g2/13j2/13j3 (timeline words inside bars and chart, full screen 1536x730); board-agent-work-verify 3c (Put away not dressed as Look); paper-panel-as-drawn-verify 1b/2d/2f re-pointed to the grid, 2g (What Jambo read counts as the Board does); jambos-work-open-verify (Open lands on the card).
@@ -125,6 +125,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f151, f183, f247, f267, f290–f299, f305, f321, f338, f392, f394, f424–f438, f441, f457, f459 (A), f539, f730; insights-*, portfolio-frame, obligations-report, friction-fits-the-screen, explorer-*, imported-on-the-map, analyze-on-the-graph, map-asked-bubbles, owners-fifteen, fold-every-view verify.
 
 ## OBLIGATIONS
+- Every act in the week list one width (23 Oct 2026): week-as-drawn-verify 5 ("every act in the week list is one width…", red at the parent).
 - MARQUEE (23 Oct 2026): obligations-renewal-legora-way-verify 1a re-pointed (three columns, labels in small capitals; how far off on the date's hover); obligations-tab-verify green.
 - f253–f255, f259, f260, f262, f263, f308 (7), f390, f554, f678, f718, f791, f792, obligations-tab, four-inspectors, review-desk, amount-and-window, week-by-week, week-as-drawn verify.
 

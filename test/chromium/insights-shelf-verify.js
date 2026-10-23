@@ -167,9 +167,9 @@ const check = (name, pass, detail) => {
 
     /* ================= 6. READ MORE (before the let-go, while yours is up) ================= */
     const h0 = await page.evaluate(() => [...document.querySelectorAll('.hb-shelf .hb-ins')].map(x => Math.round(x.getBoundingClientRect().height)));
-    /* RE-POINTED 23 Oct 2026 (owner: "make them one"): the card's press is Dig deeper, the analyst played back */
-    await page.evaluate(() => { state.aiConfigured = true; window._shelfAsked = 0; const real = window.api; window._apiBack = real;
-      window.api = async (p, m, body) => { if (p !== 'board/analyst') return real(p, m, body); window._shelfAsked++; return { step: { name: 'finish', input: { summary: 'Two late payers explain most of it.' } } }; };
+    /* RE-POINTED 23 Oct 2026 (owner: two depths): the card's press is Dig deeper; its first answer is the quick read */
+    await page.evaluate(() => { state.aiConfigured = true; window._shelfAsked = 0;
+      window.copilotAsk = async () => { window._shelfAsked++; return { answer: 'Two late payers explain most of it.' }; };
       document.querySelector('[data-hb-ins-card="pay.mine"] [data-hb-read-more]').click(); });
     const s6 = await until(() => { const card = document.querySelector('[data-hb-ins-card="pay.mine"]'); const r = card && card.querySelector('.hb-read');
       return r ? { lines: r.querySelectorAll('li, p').length, ask: !!card.querySelector('.hb-why-ask [data-hb-dd-on]'), label: card.querySelector('[data-hb-read-more]').textContent.trim(),
@@ -186,9 +186,8 @@ const check = (name, pass, detail) => {
     check('6b the opened card grows, the card on its row matches it, the rest stand still', !!grew && grew[at] > 0
       && grew.every((g, i) => i === at || (rowOf[i] ? s6.others[i] === s6.others[at] : Math.abs(g) <= 1)), JSON.stringify([h0, s6 && s6.others, rowOf]));
     await page.evaluate(() => document.querySelector('[data-hb-ins-card="pay.mine"] .hb-why-ask [data-hb-dd-on]').click());
-    const s6c = await until(() => { const b = document.querySelector('[data-hb-ins-card="pay.mine"] .hb-dd.is-on .hb-why .hb-why-b'); return b && /late payers/.test(b.textContent) ? window._shelfAsked : null; }, null, 4000);
-    check('6c Dig deeper answers in the card\'s own amber box', s6c === 1, String(s6c));
-    await page.evaluate(() => { window.api = window._apiBack; });
+    const s6c = await until(() => { const b = document.querySelector('[data-hb-ins-card="pay.mine"] .hb-why .hb-why-b'); return b && /late payers/.test(b.textContent) ? window._shelfAsked : null; }, null, 4000);
+    check('6c Dig deeper answers in the card\'s own amber box, Go further under it', s6c === 1 && await page.evaluate(() => !!document.querySelector('[data-hb-ins-card="pay.mine"] [data-hb-dd-far]')), String(s6c));
     await page.screenshot({ path: path.join(OUT, '6-read-more.png') });
     await page.evaluate(() => document.querySelector('[data-hb-ins-card="pay.mine"] [data-hb-read-more]').click());
     const s6d = await until(() => { const card = document.querySelector('[data-hb-ins-card="pay.mine"]'); return card && !card.querySelector('.hb-read') ? card.querySelector('[data-hb-read-more]').textContent.trim() : null; }, null, 3000);

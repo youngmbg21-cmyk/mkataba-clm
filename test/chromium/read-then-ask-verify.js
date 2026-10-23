@@ -145,31 +145,43 @@ const check = (name, pass, detail) => {
     await page.evaluate(() => { const s = hbS(); s.path = s.path.slice(0, 1); hbSave(); hbPaintBoard(); });
     await until(() => !!document.querySelector('#hb-focus .hb-read'));
 
-    /* ================= 4. THEN ASK: DIG DEEPER, IN THE CARD ================= */
+    /* ================= 4. THEN ASK: DIG DEEPER, IN THE CARD =================
+       RE-POINTED 23 Oct 2026 (owner: "make them one", then "build it" — two
+       depths): Dig deeper first gives the quick read; Go further under it
+       runs the analyst's steps in the same place */
     const ASK = '#hb-focus .hb-why-ask [data-hb-dd-on]';
     const ask = await page.evaluate(sel => { const b = document.querySelector(sel); return b ? { word: b.textContent.trim(), cost: (b.parentElement.querySelector('.hb-quiet') || {}).textContent } : null; }, ASK);
-    check('4a one press, Dig deeper, its cost said beside it', !!ask && ask.word === 'Dig deeper' && /up to 5 steps/.test(ask.cost || ''), JSON.stringify(ask));
+    check('4a one press, Dig deeper, its cost said beside it', !!ask && ask.word === 'Dig deeper' && /Nothing is spent until you press/.test(ask.cost || ''), JSON.stringify(ask));
     if (ask) await page.click(ASK);
-    const busy = await until(() => document.querySelector('#hb-focus .hb-dd.is-on') ? true : null, null, 3000);
-    check('4b while Jambo works, the card says so in place', !!busy);
-    const s4 = await until(() => { const w = document.querySelector('#hb-focus .hb-dd.is-on .hb-why:not(.is-err)'); if (!w || !w.querySelector('.hb-why-b')) return null;
+    const busy = await until(() => { const w = document.querySelector('#hb-focus .hb-why'); return w && /Jambo is reading this chart/.test(w.textContent) ? true : null; }, null, 3000);
+    check('4b while Jambo reads, the box says so', !!busy);
+    const s4 = await until(() => { const w = document.querySelector('#hb-focus .hb-why:not(.is-err)'); if (!w || !w.querySelector('.hb-why-b')) return null;
       const r = document.querySelector('#hb-focus .hb-read'), chart = document.querySelector('#hb-focus .hb-dig svg');
       return { t: w.textContent.replace(/\s+/g, ' '), border: getComputedStyle(w).borderTopColor, readBorder: getComputedStyle(r).borderTopColor,
-        again: !!document.querySelector('#hb-focus .hb-why-ask [data-hb-dd-on]'), below: !!(r.compareDocumentPosition(w) & Node.DOCUMENT_POSITION_FOLLOWING),
-        belowChart: !!chart && w.getBoundingClientRect().top >= chart.getBoundingClientRect().bottom - 1, path: (hbS().path || []).length, asked: window._asked.length, prompt: window._asked[0] || '' }; });
-    check('4c the answer lands inside the card, under the chart and its reading', !!s4 && s4.below && s4.belowChart && /What the steps show/.test(s4.t) && /late burst: 25 contracts landed in two months/.test(s4.t), s4 && s4.t.slice(0, 200));
+        again: !!document.querySelector(`#hb-focus .hb-why-ask [data-hb-dd-on]`), far: !!document.querySelector('#hb-focus [data-hb-dd-far]'), follow: !!w.querySelector('[data-hb-why-follow]'),
+        below: !!(r.compareDocumentPosition(w) & Node.DOCUMENT_POSITION_FOLLOWING), belowChart: !!chart && w.getBoundingClientRect().top >= chart.getBoundingClientRect().bottom - 1,
+        asked: window._asked.length, prompt: window._asked[0] || '' }; });
+    check('4c the quick read lands inside the card, under the chart and its reading', !!s4 && s4.below && s4.belowChart && /Jambo’s read/.test(s4.t) && /late burst: 25 contracts landed in two months/.test(s4.t), s4 && s4.t.slice(0, 200));
     check('4d it wears amber, not the reading\'s teal', !!s4 && s4.border !== s4.readBorder && isAmber(s4.border), s4 && `${s4.border} vs ${s4.readBorder}`);
-    check('4e a number on no fact sheet is left out, and the box says so', !!s4 && !/37 contracts were imported/.test(s4.t) && /1 sentence was left out: its number was not on HaTi’s fact sheet\./.test(s4.t), s4 && s4.t.slice(-160));
-    check('4f asked once, not offered again, and no second card opened', !!s4 && s4.asked === 1 && !s4.again && s4.path === 1, JSON.stringify({ asked: s4 && s4.asked, again: s4 && s4.again, path: s4 && s4.path }));
-    check('4g Jambo was shown the card\'s columns and the contracts behind them', !!s4 && /Columns \(label: value, contracts\):/.test(s4.prompt) && /MK-J0/.test(s4.prompt), s4 && s4.prompt.slice(0, 120));
+    check('4e a count this chart does not hold is left out, and the box says so', !!s4 && !/22 contracts were imported/.test(s4.t) && /1 sentence was left out: its number was not on HaTi’s fact sheet\./.test(s4.t), s4 && s4.t.slice(-160));
+    check('4f asked once, not offered again; Go further and a follow-up are under it', !!s4 && s4.asked === 1 && !s4.again && s4.far && s4.follow, JSON.stringify({ asked: s4 && s4.asked, again: s4 && s4.again, far: s4 && s4.far }));
+    check('4g Jambo was shown the columns and the contracts behind them', !!s4 && /Columns \(label: value, contracts\):/.test(s4.prompt) && /MK-J0/.test(s4.prompt), s4 && s4.prompt.slice(0, 120));
     await page.screenshot({ path: path.join(OUT, '4-asked.png') });
-    const kept = await page.evaluate(() => { hbPaintBoard(); return !!document.querySelector('#hb-focus .hb-dd.is-on .hb-why-b') && window._asked.length === 1; });
-    check('4h kept with its chart: a repaint shows it again without asking', kept);
-    /* the menu has ONE of them: Dig deeper, and no "What could explain this?" */
+    /* Go further: the steps, in the same card, under the quick read */
+    const far = await page.evaluate(() => { const b = document.querySelector('#hb-focus [data-hb-dd-far]'); return b ? { word: b.textContent.trim(), cost: (b.parentElement.querySelector('.hb-quiet') || {}).textContent } : null; });
+    check('4h Go further says what it costs before the press', !!far && far.word === 'Go further' && /up to 5 steps/.test(far.cost || ''), JSON.stringify(far));
+    if (far) await page.click('#hb-focus [data-hb-dd-far]');
+    const s4f = await until(() => { const d = document.querySelector('#hb-focus .hb-dd.is-on .hb-why:not(.is-err)'); if (!d || !d.querySelector('.hb-why-b')) return null;
+      const q = document.querySelector('#hb-focus .hb-why');
+      return { t: d.textContent.replace(/\s+/g, ' '), under: !!(q.compareDocumentPosition(d) & Node.DOCUMENT_POSITION_FOLLOWING), far: !!document.querySelector('#hb-focus [data-hb-dd-far]'), path: (hbS().path || []).length, prompt: window._asked[1] || '' }; });
+    check('4i Go further answers under the quick read, in the same card, nothing new opened', !!s4f && s4f.under && /What the steps show/.test(s4f.t) && !/37 contracts were imported/.test(s4f.t) && !s4f.far && s4f.path === 1 && /^FACT SHEET — /.test(s4f.prompt), s4f && JSON.stringify({ t: s4f.t.slice(0, 120), path: s4f.path }));
+    await page.screenshot({ path: path.join(OUT, '4-further.png') });
+    const kept = await page.evaluate(() => { hbPaintBoard(); return !!document.querySelector('#hb-focus .hb-dd.is-on .hb-why-b') && !!document.querySelector('#hb-focus .hb-why .hb-why-b') && window._asked.length === 2; });
+    check('4j both kept with their chart: a repaint shows them again without asking', kept);
     await page.click('#hb-focus [data-hb-tools-more]');
     const m4 = await until(() => { const m = document.querySelector('#hb-focus .hb-tools-menu'); return m ? m.textContent : null; });
     await page.keyboard.press('Escape');
-    check('4i the ⋯ menu offers Dig deeper once, and not "What could explain this?"', !!m4 && (m4.match(/Dig deeper/g) || []).length === 1 && !/What could explain this/.test(m4), m4 && m4.slice(0, 200));
+    check('4k the ⋯ menu offers Dig deeper once, and not "What could explain this?"', !!m4 && (m4.match(/Dig deeper/g) || []).length === 1 && !/What could explain this/.test(m4), m4 && m4.slice(0, 200));
 
     /* ================= 5. MAKE SMALLER ================= */
     await pressBig('#hb-focus');
@@ -227,7 +239,7 @@ const check = (name, pass, detail) => {
     const s8c = await until(() => { const P = document.querySelector('.hb-panel.is-big[data-hb-pid="p8"]'); const r = P && P.querySelector('.hb-read'); return r ? { lines: [...r.querySelectorAll('li')].map(li => li.textContent.replace(/\s+/g, ' ').trim()), ask: !!P.querySelector('.hb-why-ask [data-hb-dd-on="hp:ren"]') } : null; });
     check('8c a ready-made panel: nothing extra at normal size; made bigger, it reads and offers the ask', !!p0 && !p0.read && !!s8c && s8c.ask && s8c.lines.some(l => /^The first to end is MK-S0 \(Nordkraft AB\), in \d+ days/.test(l)), JSON.stringify({ p0, s8c }));
     if (s8c) await page.click('.hb-panel[data-hb-pid="p8"] .hb-why-ask [data-hb-dd-on="hp:ren"]');
-    const s8d = await until(() => { const P = document.querySelector('.hb-panel[data-hb-pid="p8"]'); const w = P && P.querySelector('.hb-dd.is-on .hb-why:not(.is-err) .hb-why-b'); const r = P && P.querySelector('.hb-read');
+    const s8d = await until(() => { const P = document.querySelector('.hb-panel[data-hb-pid="p8"]'); const w = P && P.querySelector('.hb-why:not(.is-err) .hb-why-b'); const r = P && P.querySelector('.hb-read');
       return w ? { t: w.textContent.replace(/\s+/g, ' ').trim(), border: getComputedStyle(w.parentElement).borderTopColor, readBorder: r ? getComputedStyle(r).borderTopColor : '', prompt: window._asked[0] || '' } : null; });
     check('8d asked from the panel, the answer lands in the panel\'s own amber box', !!s8d && /Worth checking which of the open ones/.test(s8d.t) && isAmber(s8d.border) && s8d.border !== s8d.readBorder && /^FACT SHEET — Ending in the next 90 days\nA panel on the HaTi Home board: "Ending in the next 90 days"\./.test(s8d.prompt), JSON.stringify(s8d && { t: s8d.t, border: s8d.border, p: s8d.prompt.slice(0, 90) }));
     await page.waitForTimeout(600);

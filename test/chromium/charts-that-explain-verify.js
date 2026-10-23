@@ -93,16 +93,10 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
 
     /* 3 — the pack's summary */
     await page.evaluate(q => hbAsk(q), Q.risks);
-    /* RE-POINTED 23 Oct 2026 (owner: "make them one"): the pack's press is
-       Dig deeper, answering inside the pack; the analyst is played back */
-    await page.evaluate(() => { const real = window.api; state.aiConfigured = true;
-      window.api = async (p, m, body) => { if (p !== 'board/analyst') return real(p, m, body); window._asked.push(String((body && body.chart) || ''));
-        return { step: { name: 'finish', input: { summary: 'Nordkemi AB and Baltic Freight lead the risk. Prices rose 37% last year. Fix those two first.' } } }; };
-      window._apiBack = real; });
-    await until(() => !!document.querySelector('#hb-focus .hb-why-ask [data-hb-dd-on="pk:risks"]:not([disabled])'));
+    /* RE-POINTED 23 Oct 2026 (owner: two depths): the pack's press is Dig deeper; its first answer is the quick read */
+    await until(() => !!document.querySelector('#hb-focus .hb-why-ask [data-hb-dd-on="pk:risks"]'));
     await page.evaluate(() => document.querySelector('#hb-focus .hb-why-ask [data-hb-dd-on="pk:risks"]').click());
-    const sum = await until(() => { const b = document.querySelector('#hb-focus .hb-pack .hb-dd.is-on .hb-why .hb-why-b'); return b ? b.textContent.replace(/\s+/g, ' ').trim() : null; });
-    await page.evaluate(() => { window.api = window._apiBack; });
+    const sum = await until(() => { const b = document.querySelector('#hb-focus .hb-pack .hb-why .hb-why-b'); return b ? b.textContent.replace(/\s+/g, ' ').trim() : null; });
     const sent = await page.evaluate(() => window._asked.slice(-1)[0] || '');
     check('3a the summary is written from the pack\'s fact sheet', /^FACT SHEET — /.test(sent) && /- Coverage: /.test(sent), sent.slice(0, 80));
     check('3b a number not on the sheet never reaches the screen', !!sum && /Nordkemi AB/.test(sum) && !/37%/.test(sum), sum);

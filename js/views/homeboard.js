@@ -5241,14 +5241,15 @@ function hbReadBlockHtml(key, reading, n, sig){
   if (!reading) return '';
   const read = `<div class="hb-read"><div class="hb-read-h"><span>${_hbE(i18t('hb_read_title'))}</span><span class="hb-grow"></span><span class="hb-read-src">${_hbE(i18t('hb_read_src'))}</span></div>
     <ul>${reading.lines.map(l => `<li>${l}</li>`).join('')}</ul></div>`;
-  /* ONE PRESS, DIG DEEPER (owner, 23 Oct 2026: "what is the difference
-     between dig deeper and what could explain this? … make them one", picked
-     "One: Dig deeper"): every card's reading carries Dig deeper, and its
-     answer lands HERE, inside the card under the chart — never a second card */
-  if (key !== HB_BOARD_KEY) return read + hbDdOnHtml(key, sig);
+  /* ONE PRESS, TWO DEPTHS (owner, 23 Oct 2026: "make them one", then "build
+     it" — the quick read first, Go further under it): every card's reading
+     carries Dig deeper; its first answer is the quick read (one call), and
+     under it Go further runs the analyst's steps in the same place — inside
+     the card, under the chart, never a second card */
+  const card = key !== HB_BOARD_KEY;
   const kept = hbWhyKept(key, sig), busy = _hbWhyBusy.has(key), err = _hbWhyErr.get(key);
   const live = typeof copilotAvailable === 'function' && copilotAvailable();
-  const ask = kept && !err ? '' : `<div class="hb-why-ask"><button type="button" class="hb-btn" data-hb-why="${_hbE(key)}"${busy ? ' disabled' : ''}${live ? '' : ` disabled title="${_hbE(i18t('hb_cx_nokey'))}"`}>${_hbStar}${_hbE(i18t(err ? 'hb_cx_again' : 'hb_cx_btn'))}</button>
+  const ask = kept && !err ? '' : `<div class="hb-why-ask"><button type="button" class="hb-btn" ${card ? 'data-hb-dd-on' : 'data-hb-why'}="${_hbE(key)}"${busy ? ' disabled' : ''}${live ? '' : ` disabled title="${_hbE(i18t('hb_cx_nokey'))}"`}>${_hbStar}${_hbE(i18t(err ? 'hb_cx_again' : card ? 'hb_dd_btn' : 'hb_cx_btn'))}</button>
     <span class="hb-quiet">${_hbE(live ? i18tn('hb_cx_cost', n, { n: _hbN(n) }) : i18t('hb_cx_nokey'))}</span></div>`;
   let box = '';
   /* C8: WHILE IT WORKS, THE STEPS; WHEN IT STOPS, WHY — and HaTi's own
@@ -5261,7 +5262,7 @@ function hbReadBlockHtml(key, reading, n, sig){
     <div class="hb-why-b">${(key !== HB_BOARD_KEY && hbWhy3Html(kept.text)) || hbSay(kept.text)}</div>
     <div class="hb-why-f"><span class="${kept.dropped ? 'hb-why-cut' : 'hb-why-ok'}">${_hbE(kept.dropped ? i18tn('hb_cx_dropped', kept.dropped, { n: kept.dropped }) : i18t('hb_cx_ok'))}</span>${kept.notice ? `<span>${_hbE(kept.notice)}</span>` : ''}<span class="hb-grow"></span>
       <button type="button" class="hb-link" data-hb-why-follow="${_hbE(key)}">${_hbE(i18t('hb_cx_follow'))}</button></div></div>`;
-  return read + ask + box;
+  return read + ask + box + (card ? hbDdOnHtml(key, sig, !!kept && !err) : '');
 }
 /* a chart: drawn with the columns it already worked out */
 function hbReadHtml(D, cs, P, R){
@@ -6446,10 +6447,12 @@ function hbDdOn(key, sig){
   const an = hbS().an || {};
   return Object.values(an).reverse().find(r => r && r.on === key && (!sig || !r.sig || r.sig === sig)) || null;
 }
-function hbDdOnHtml(key, sig){
+/* GO FURTHER: under the card's quick read, the analyst's steps */
+function hbDdOnHtml(key, sig, quickDone){
   const run = hbDdOn(key, sig), busy = !!(run && _hbDdBusy.has(run.id)), live = hbDdLive();
+  if (!run && !quickDone) return '';
   const again = run && !busy && run.state !== 'done';
-  const ask = run && !again ? '' : `<div class="hb-why-ask"><button type="button" class="hb-btn" data-hb-dd-on="${_hbE(key)}"${live ? '' : ` disabled title="${_hbE(i18t('hb_cx_nokey'))}"`}>${_hbStar}${_hbE(i18t(again ? 'hb_cx_again' : 'hb_dd_btn'))}</button>
+  const ask = run && !again ? '' : `<div class="hb-why-ask hb-dd-far"><button type="button" class="hb-btn" data-hb-dd-far="${_hbE(key)}"${live ? '' : ` disabled title="${_hbE(i18t('hb_cx_nokey'))}"`}>${_hbStar}${_hbE(i18t(again ? 'hb_cx_again' : 'hb_dd_far'))}</button>
     <span class="hb-quiet">${_hbE(live ? i18t('hb_dd_cost', { n: HB_DD_STEPS, m: HB_DD_STEPS + 1 }) : i18t('hb_cx_nokey'))}</span></div>`;
   return ask + (run ? `<div class="hb-dd is-on" data-hb-dd="${_hbE(run.id)}">${hbDdBodyHtml(run)}</div>` : '');
 }
@@ -10312,7 +10315,8 @@ function hbOnClick(e){
   if ((el = on('[data-hb-howon]'))){ const k = el.getAttribute('data-hb-howon'); if (_hbHowOn.has(k)) _hbHowOn.delete(k); else _hbHowOn.add(k); hbPaintBoard(); return; }
   /* ⋯ → Full screen on a kept chart: it opens, filling the screen */
   if ((el = on('[data-hb-fullkey]'))){ hbDig(el.getAttribute('data-hb-fullkey')); _hbFull = true; hbPaintBoard(); return; }
-  if ((el = on('[data-hb-dd-on]'))){ if (!el.disabled){ _hbToolsMenu = null; hbDdOnPress(el.getAttribute('data-hb-dd-on')); } return; }
+  if ((el = on('[data-hb-dd-on]'))){ if (!el.disabled){ const k = el.getAttribute('data-hb-dd-on'); _hbToolsMenu = null; _hbReadOpen.add(k); hbPaintBoard(); hbWhyAsk(k); } return; }
+  if ((el = on('[data-hb-dd-far]'))){ if (!el.disabled) hbDdOnPress(el.getAttribute('data-hb-dd-far')); return; }
   if ((el = on('[data-hb-deeper]'))){ if (!el.disabled){ _hbToolsMenu = null; hbDigDeeper(el.getAttribute('data-hb-deeper')); } return; }
   if ((el = on('[data-hb-sy-deeper]'))){ if (!el.disabled) hbStoryDeeper(el.getAttribute('data-hb-sy-deeper')); return; }
   if ((el = on('[data-hb-sy-stop]'))){ hbStoryStop(el.getAttribute('data-hb-sy-stop')); return; }

@@ -128,13 +128,60 @@ describe('F461 (B) — HaTi\'s reading on an enlarged chart', () => {
 });
 
 describe('F461 (C) — then ask: Copilot\'s answer in its own box', () => {
+  /* RE-POINTED 23 Oct 2026 (owner: "build it" — two depths): Dig deeper first gives the quick read */
+  test('Dig deeper, first the quick read: the prompt carries the columns and the contracts; the answer is kept for the day', async () => {
+    const w = world();
+    const { D, cs } = card(w, true);
+    let sent = null;
+    w.copilotAvailable = () => true;
+    w.copilotAsk = async (msgs) => { sent = msgs[0].content; return { answer: 'Signing jumped late: 25 contracts landed in two months. 22 contracts were imported. Worth checking the 20 still open.' }; };
+    await w.hbWhyAsk(KEY);
+    assert.match(sent, /Columns \(label: value, contracts\):/);
+    assert.match(sent, /C0, C1, C2/);
+    const html = w.hbChartHtml(D, cs, true);
+    assert.match(html, /class="hb-why"/);
+    assert.match(text(html), /Jambo’s read/);
+    assert.match(text(html), /25 contracts landed in two months/);
+    assert.ok(!/22 contracts were imported/.test(text(html)), 'a count this chart does not hold is left out');
+    assert.match(text(html), /1 sentence was left out: its number was not on HaTi’s fact sheet\./);
+    assert.ok(!/data-hb-dd-on="/.test(html), 'kept: no second quick press offered');
+    assert.match(html, /data-hb-dd-far="/, 'Go further is offered under it');
+    assert.match(html, /data-hb-why-follow=/);
+  });
+  test('a different count is a different chart', async () => {
+    const w = world();
+    card(w, true);
+    w.copilotAvailable = () => true;
+    w.copilotAsk = async () => ({ answer: 'A late burst.' });
+    await w.hbWhyAsk(KEY);
+    w.state.contracts.push({ id: 'X1', name: 'X', counterparty: 'Juno AB', status: 'Signed', signedAt: mon(-2, 20), value: 1, folder: 'proc', audit: [], metadata: {} });
+    const { html } = card(w, true);
+    assert.ok(/data-hb-dd-on="/.test(html) && !/class="hb-why"/.test(html), 'asked again for the new count');
+  });
+  test('a failure and a missing key are said where the reader looks', async () => {
+    const w = world();
+    card(w, true);
+    w.copilotAvailable = () => false;
+    let html = card(w, true).html;
+    assert.match(html, /data-hb-dd-on="[^"]*" disabled title="Asking Jambo needs a Jambo key/);
+    w.copilotAvailable = () => true;
+    w.copilotAsk = async () => { throw new Error('Daily Jambo budget reached'); };
+    await w.hbWhyAsk(KEY);
+    html = card(w, true).html;
+    assert.match(html, /class="hb-why is-err"/);
+    assert.match(text(html), /Jambo could not answer: Daily Jambo budget reached/);
+    assert.match(text(html), /Try again/);
+  });
   /* a Dig deeper world: the analyst answers in one finish */
   const live = (w, fin) => { const calls = []; w.API_MODE = () => true; w.copilotAvailable = () => true; w.hbS().face = 'board';
     w.api = async (p, m, body) => { calls.push({ p, body: JSON.parse(JSON.stringify(body)) }); if (fin instanceof Error) throw fin; return { step: { name: 'finish', input: fin } }; };
     return calls; };
-  test('one press: Dig deeper sends the card\'s columns and contracts; the answer lands inside the card, under the chart', async () => {
+  test('Go further: the steps run under the quick read, the card\'s columns and contracts sent; inside the card, under the chart', async () => {
     const w = world();
     const { D, cs } = card(w, true);
+    w.copilotAvailable = () => true; w.copilotAsk = async () => ({ answer: 'A late burst.' });
+    await w.hbWhyAsk(KEY);
+    assert.match(w.hbChartHtml(D, cs, true), /data-hb-dd-far="/);
     const calls = live(w, { summary: 'Signing jumped late: 25 contracts landed in two months. Worth checking the 20 still open.', next: ['Who signed them?'] });
     await w.hbDdOnPress(KEY);
     assert.equal(calls[0].p, 'board/analyst');
@@ -145,10 +192,11 @@ describe('F461 (C) — then ask: Copilot\'s answer in its own box', () => {
     assert.match(text(html), /What the steps show/);
     assert.match(text(html), /25 contracts landed in two months/);
     assert.ok(html.indexOf('class="hb-read"') < html.indexOf('class="hb-dd is-on"'), 'under the chart\'s reading');
-    assert.ok(!/data-hb-dd-on="/.test(html), 'done: no second press offered');
+    assert.ok(!/data-hb-dd-on="|data-hb-dd-far="/.test(html), 'done: no second press offered');
+    assert.ok(html.indexOf('class="hb-why"') < html.indexOf('class="hb-dd is-on"'), 'under the quick read');
     assert.equal(w.hbS().path.length, 0, 'no second card opened');
   });
-  test('a different count is a different chart', async () => {
+  test('Go further: a different count is a different chart', async () => {
     const w = world();
     card(w, true);
     live(w, { summary: 'A late burst.' });
@@ -157,12 +205,9 @@ describe('F461 (C) — then ask: Copilot\'s answer in its own box', () => {
     const { html } = card(w, true);
     assert.ok(/data-hb-dd-on="/.test(html) && !/class="hb-dd is-on"/.test(html), 'asked again for the new count');
   });
-  test('a failure and a missing key are said where the reader looks', async () => {
+  test('Go further: a failure is said where the reader looks', async () => {
     const w = world();
     card(w, true);
-    w.copilotAvailable = () => false;
-    let html = card(w, true).html;
-    assert.match(html, /data-hb-dd-on="[^"]*" disabled title="Asking Jambo needs a Jambo key/);
     live(w, new Error('Daily Jambo budget reached'));
     await w.hbDdOnPress(KEY);
     html = card(w, true).html;
@@ -170,7 +215,7 @@ describe('F461 (C) — then ask: Copilot\'s answer in its own box', () => {
     assert.match(text(html), /Jambo could not answer: Daily Jambo budget reached/);
     assert.match(text(html), /Try again/);
   });
-  test('the kept answer survives a reload of the board record', async () => {
+  test('Go further: the kept run survives a reload of the board record', async () => {
     const w = world();
     card(w, true);
     live(w, { summary: 'A late burst.' });
@@ -291,6 +336,8 @@ describe('F461 (D) — every enlarged card reads', () => {
     let sent = null;
     w.API_MODE = () => true; w.copilotAvailable = () => true; w.hbS().face = 'board';
     w.api = async (p, m, body) => { sent = body; return { step: { name: 'finish', input: { summary: 'Executed holds the money. 37 contracts were renewed last week.' } } }; };
+    w.copilotAsk = async () => ({ answer: 'Executed holds the money.' });
+    await w.hbWhyAsk('hp:val');
     await w.hbDdOnPress('hp:val');
     assert.match(sent.chart, /A panel on the HaTi Home board: "Value by stage"\./);
     assert.match(sent.chart, /Its numbers:/);
@@ -306,10 +353,11 @@ describe('F461 (D) — every enlarged card reads', () => {
     const HB = strip(read('js/views/homeboard.js'));
     /* RE-POINTED 5 Oct 2026 (Charts That Explain, rec 6): every card's ask is
        drawn in one place; the board's own "Summarise my board" is the second */
-    assert.equal((HB.match(/data-hb-why="\$\{/g) || []).length, 2, 'the board summary (its kept old path) and hbBoardSumHtml');
+    assert.match(region(HB, 'hbReadBlockHtml'), /card \? 'data-hb-dd-on' : 'data-hb-why'/, 'the card ask and the board summary share the one quick press');
+    assert.match(region(HB, 'hbBoardSumHtml'), /data-hb-why="\$\{_hbE\(key\)\}"/);
     /* RE-POINTED 23 Oct 2026: every card's ask is Dig deeper, drawn in one place */
-    assert.match(region(HB, 'hbDdOnHtml'), /data-hb-dd-on="\$\{_hbE\(key\)\}"/);
-    assert.match(region(HB, 'hbReadBlockHtml'), /hbDdOnHtml\(key, sig\)/);
+    assert.match(region(HB, 'hbDdOnHtml'), /data-hb-dd-far="\$\{_hbE\(key\)\}"/);
+    assert.match(region(HB, 'hbReadBlockHtml'), /hbDdOnHtml\(key, sig, /);
     assert.match(region(HB, 'hbBoardSumHtml'), /data-hb-why="\$\{_hbE\(key\)\}"/);
     assert.match(region(HB, 'hbReadBlockHtml'), /class="hb-read"/);
     assert.match(region(HB, 'hbPanelHtml'), /hbReadSrcHtml\('hp:' \+ p\.kind\)/);
