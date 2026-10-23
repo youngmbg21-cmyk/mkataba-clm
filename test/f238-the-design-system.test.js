@@ -215,9 +215,13 @@ describe('f238 — the design system has its other half', () => {
        implement the dark theme. Remove it from HaTi."), so the night inks this
        pinned are now asserted ABSENT: no html.dark block survives. Same claim:
        the inks are the design's literals. */
-    for (const decl of ['--color-text:#161512', '--color-neutral-600:#5E5A51',
-                        '--color-neutral-500:#5E5A51', '--color-neutral-400:#6F6A5E',
-                        '--color-neutral-700:#161512', '--color-doc-text:#1C1A16',
+    /* RE-PINNED 23 Oct 2026 to THE LEGORA LOOK (owner: "i want to apply this
+       across all the pages in hati"): the inks are the drawing's #1D1D1F and
+       its cool greys one step deeper (#66666B / #6A6A6F, so a grey word on the
+       grey pill clears AA); the paper's own ink is unchanged. */
+    for (const decl of ['--color-text:#1D1D1F', '--color-neutral-600:#66666B',
+                        '--color-neutral-500:#66666B', '--color-neutral-400:#6A6A6F',
+                        '--color-neutral-700:#1D1D1F', '--color-doc-text:#1C1A16',
                         '--color-doc-muted:#3B4A48'])
       assert.ok(has(root, decl), `light theme is missing ${decl}`);
     assert.equal(/html\.dark\{/.test(SHEET), false,
@@ -249,9 +253,13 @@ describe('f238 — the design system has its other half', () => {
     /* RE-POINTED 20 Oct 2026: dark mode was removed, so the token no longer
        owes a night answer. What it still owes is to READ: it names a rung of
        the accent ramp that clears AA as text on white (Chambers' #1F4D3B). */
+    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): a link is the drawing's teal
+       one step deeper, #087363, a literal off the deep-green ramp, so the token is read as
+       written. The claim is unchanged: it reads on white at AA. */
+    const lit = /--accent-ink:(#[0-9A-Fa-f]{6})/.exec(SHEET);
     const rung = /--accent-ink:var\(--color-accent-(\d+)\)/.exec(SHEET);
-    assert.ok(rung, '--accent-ink names a rung of the accent ramp');
-    const hex = rootVal('--color-accent-' + rung[1]);
+    assert.ok(lit || rung, '--accent-ink is a colour or a rung of the accent ramp');
+    const hex = lit ? lit[1] : rootVal('--color-accent-' + rung[1]);
     assert.ok(hex && onWhite(hex) >= 4.5,
       `--accent-ink (${hex}) reads at ${hex && onWhite(hex).toFixed(2)}:1 on white, under AA`);
     assert.doesNotMatch(SHEET, /html\.dark\{/, 'and no dark answer is left — there is no dark theme');
@@ -308,10 +316,11 @@ describe('f238 — the design system has its other half', () => {
     for (const t of ['--accent-ink', '--accent-ink-700'])
       assert.doesNotMatch(SHEET, new RegExp('html\\.dark\\{[^}]*\\' + t + ':', 's'),
         t + ' has a night answer again — there is no dark theme');
-    assert.match(SHEET, /--accent-ink-700:var\(--color-accent-700\)/,
-      '--accent-ink-700 is accent-700');
-    const a = /--accent-ink:var\(--color-accent-(\d+)\)/.exec(SHEET);
-    assert.ok(a && a[1] !== '700', '--accent-ink names its own rung, not accent-700');
+    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): the two are the drawing's link
+       teal and its hover, two literals; they must still be two colours. */
+    const a = /--accent-ink:(#[0-9A-Fa-f]{6})/.exec(SHEET), b = /--accent-ink-700:(#[0-9A-Fa-f]{6})/.exec(SHEET);
+    assert.ok(a && b, 'both inks are stated');
+    assert.notEqual(a[1].toLowerCase(), b[1].toLowerCase(), 'the two inks are two colours, not one');
   });
 
   test('--accent-fill is the token for white-on-fill, and white on it clears AA', () => {

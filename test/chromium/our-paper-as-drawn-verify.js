@@ -174,14 +174,15 @@ async function SEED(){
       return { word: (p.querySelector('[data-jl-word]') || {}).textContent || '', back: !!(p.querySelector('[data-jl-back]') && !p.querySelector('[data-jl-back]').hidden),
         said: (p.querySelector('.tpl-pf-jl .jl-bub') || {}).textContent || '', chips: [...p.querySelectorAll('[data-tpl-pf-chip]')].map(b => b.textContent.trim()),
         next: (p.querySelector('.jl-next-h') || {}).textContent || '', ph: (p.querySelector('#jl-q') || {}).placeholder || '', hints: p.querySelectorAll('.jb-hint, .jb-keys, .jb-kbd').length,
-        fixed: getComputedStyle(p).position, right: Math.round(p.getBoundingClientRect().right) === innerWidth }; });
+        fixed: getComputedStyle(p).position, right: (d => d >= 0 && d <= 9)(innerWidth - Math.round(p.getBoundingClientRect().right)) }; });
     check('5a the head says the template; ‹ Jambo is there', E.word === 'Master services agreement' && E.back, JSON.stringify({ w: E.word, b: E.back }));
     check('5b his words, from the record — nothing spent, with where it came back changed and what it meets',
       /Master services agreement v1, from the record — nothing spent\./.test(E.said) && /Used 5 times in 12 months\. 2 came back changed: clause 2 Liability twice, clause 3 Payment once\. It meets (all \d+|\d+ of (the )?\d+)( of Our standards| standards every contract is read against| standards Our standards set for [^.;]+)[.;]/.test(E.said), E.said);
     check('5c Next steps: open it in the builder · draft a contract from it · where it came back changed', E.next === 'Next steps'
       && JSON.stringify(E.chips) === JSON.stringify(['open it in the builder', 'draft a contract from it', 'where it came back changed']), JSON.stringify(E.chips));
     /* RE-POINTED 21 Oct 2026 (Chambers, owner's pick 20 Oct 2026): no hint line under any Jambo box */
-    check('5d the ask box at the panel\'s foot, no hint line under it; the panel at the window\'s edge', E.ph === 'Ask for anything, or type /' && E.hints === 0 && E.right, JSON.stringify({ ph: E.ph, hints: E.hints, right: E.right }));
+    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): Jambo's panel FLOATS, a white card 8px in from the window's edge, its top and its foot (the owner's drawing) */
+    check('5d the ask box at the panel\'s foot, no hint line under it; the panel 8px in from the window\'s edge', E.ph === 'Ask for anything, or type /' && E.hints === 0 && E.right, JSON.stringify({ ph: E.ph, hints: E.hints, right: E.right }));
     await press('#ins-panel [data-jl-back]');
     const E2 = await until(() => { const p = document.getElementById('ins-panel'); return p && !p.querySelector('.tpl-pf-jl') && p.querySelector('[data-jl-words]') ? p.querySelector('[data-jl-words]').textContent.replace(/\s+/g, ' ').trim() : null; });
     check('5e ‹ Jambo lets the template go: his words say the book', !!E2 && /Our paper holds \d+ templates/.test(E2) && /contracts were drafted from them in 12 months; 2 came back changed/.test(E2), E2);

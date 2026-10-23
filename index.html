@@ -219,7 +219,7 @@
        exactly). #f8fafc is slate-50 — a BLUE near-white, the last of the blue
        family left behind by the ink retune. The design's page is #F4F6F6, a
        neutral grey, and it is what every white panel sits on. */
-    --color-bg:#F4F2ED;   /* CHAMBERS (owner picked it by name, 20 Oct 2026): the warm paper ground. Was #F4F8F7 (Ink Wash, 9 Oct). */
+    --color-bg:#F5F5F7;   /* THE LEGORA LOOK (owner, 23 Oct 2026; replaces Chambers' warm #F4F2ED): the soft cool grey every white card floats on. */
     --color-surface:#ffffff;
     /* ---- TWO SURFACES BETWEEN THE PAGE AND WHITE ---- (25 Aug 2026)
        The audit's "boxes separated by borders instead of shade" complaint has
@@ -234,9 +234,9 @@
        DEFINED HERE AND ADOPTED DELIBERATELY, never swept: every adoption
        changes a colour on screen, so each one is a decision somebody has to
        look at. */
-    --surface-2:#EFECE5;
+    --surface-2:#F0F0F3;   /* the Legora look: a filled grey control, a raised strip */
     /* the ground the Paper's lifted panel stands on (Lifted, 8 Oct 2026) */
-    --desk-ground:var(--surface-2);
+    --desk-ground:#EFEEEB;   /* the Legora look: the paper's own canvas, a touch warmer than the controls */
     --surface-3:#ffffff;
     /* THE COPILOT'S CONVERSATION AREA IS ITS OWN SURFACE. It was --color-bg,
        which is the PAGE's background — so the panel's feed was painted the
@@ -245,7 +245,7 @@
        apart from the page it floats over and apart from the white cards and
        the panel's own header and footer, so the conversation reads as a
        surface rather than as a hole. */
-    --color-chat-bg:#F8F6F1;
+    --color-chat-bg:#FAFAFC;   /* the Legora look: apart from the page's #F5F5F7 and the white panel */
     /* ---- THE INK IS THE DESIGN'S, NOT SLATE (owner-asked 22 Aug 2026: "the
        colors of the fonts") ----
        Every text colour was a blue-leaning slate (#1e293b and the slate-400..900
@@ -271,7 +271,7 @@
        BOTH themes, re-measured with the WCAG formula rather than carried over:
        light 8.21->9.30 (doc muted), 5.40->6.31 (label), 2.71->2.96 (quiet);
        dark, on the panel, 14.35->15.39, 11.43->11.53, 6.52->7.79, 3.26->4.29. */
-    --color-text:#161512;
+    --color-text:#1D1D1F;   /* the Legora look's ink (was Chambers' #161512) */
     /* The one-word accent IS step 600 of the ramp — the two were the same
        colour typed twice, which is how a theme moves one and forgets the other. */
     --color-accent:var(--color-accent-600);
@@ -279,9 +279,9 @@
        --line:#DFE4E3 for a rule inside one. HaTi has a single divider and it
        was the blue #e2e8f0; it takes the design's stronger of the two, because
        this token draws card edges as well as inner rules. */
-    --color-divider:#E4E0D7;
+    --color-divider:#E6E6EA;
 
-    --color-neutral-100:#F0EDE6; --color-neutral-200:#E4E0D7; --color-neutral-300:#CFC9BC;
+    --color-neutral-100:#F0F0F3; --color-neutral-200:#E6E6EA; --color-neutral-300:#D1D1D6;
     /* FOUR SHADES CARRY ALL READING TEXT, and this ramp is how (22 Aug 2026,
        from the design's own typography note, owner-reported twice as "still
        not meeting the dark sharp fonts"). The note is explicit: #1B2A28
@@ -309,8 +309,8 @@
        against 39 text uses, so it is the one step in this ramp that is not a
        type token, and the rulebook's "re-hueing the neutrals is safe" argument
        does not cover it. */
-    --color-neutral-400:#6F6A5E; --color-neutral-500:#5E5A51; --color-neutral-600:#5E5A51;
-    --color-neutral-700:#161512; --color-neutral-800:#161512; --color-neutral-900:#161512;
+    --color-neutral-400:#6A6A6F; --color-neutral-500:#66666B; --color-neutral-600:#66666B;   /* the Legora look's cool ramp (23 Oct 2026), one step darker than the drawing's #6E6E73 so a grey word on the grey pill clears AA (contrast-verify: 4.46 → 5.02) */
+    --color-neutral-700:#1D1D1F; --color-neutral-800:#1D1D1F; --color-neutral-900:#1D1D1F;
 
     --color-accent-100:#DCE7E1; --color-accent-200:#B5CDC1; --color-accent-300:#8DB2A2;
     --color-accent-400:#5E8E7A; --color-accent-500:#3A6B57; --color-accent-600:#1F4D3B;
@@ -331,7 +331,7 @@
 
     /* solid brand fills that must NOT flip with the theme (nav active, primary
        buttons, the Copilot header) — always teal, always white-on-top */
-    --accent-solid:#161512; --accent-solid-hover:#000000;  /* Chambers: what is filled is the ink, black (20 Oct 2026) */
+    --accent-solid:#1D1D1F; --accent-solid-hover:#000000;  /* the Legora look: what is filled is the ink (23 Oct 2026; Chambers' was #161512) */
     /* The gradient's second colour is a cyan that is not on the accent ramp —
        it is the brand's companion hue, so it gets a name of its own rather than
        being hidden inside a gradient nobody can find. */
@@ -740,9 +740,9 @@
        structural hairline colours across the product, three of them the same
        rule asked at 6%, 7% and 8%. */
     --rule:var(--color-divider);
-    --rule-strong:#CFC9BC;   /* where one REGION ends: head band, tab baseline */
-    --rule-faint:#F0EDE6;    /* repeated rules inside one dense table */
-    --field-line:#8E887B;    /* WCAG 1.4.11 wants 3:1 on a control's boundary */
+    --rule-strong:#D1D1D6;   /* where one REGION ends: head band, tab baseline */
+    --rule-faint:#F0F0F3;    /* repeated rules inside one dense table */
+    --field-line:#8E8E93;    /* WCAG 1.4.11 wants 3:1 on a control's boundary */
     --border-w:1px; --border-w-strong:2px;
 
     /* ═══ LAYERS ═══ 78 hand-typed z-index values and no ladder, which is how
@@ -801,11 +801,11 @@
 
        True circles use border-radius:50% (or .rounded-full) and are not this
        token: a circle is not a corner. */
-    --radius:2px; --radius-sm:2px; --radius-md:2px; --radius-lg:3px;  /* Chambers: hairline corners (20 Oct 2026) */
+    --radius:10px; --radius-sm:8px; --radius-md:12px; --radius-lg:18px;  /* THE LEGORA LOOK (owner, 23 Oct 2026; replaces Chambers' 2px/3px): soft corners; a card is --radius-lg, a control a pill (.ui-btn) */
 
-    --shadow-sm:none;   /* Chambers: a card is a hairline, never a lift (20 Oct 2026) */
-    --shadow-md:0 8px 24px rgba(22,21,18,.08);
-    --shadow-lg:0 16px 40px rgba(22,21,18,.12);
+    --shadow-sm:0 1px 2px rgba(0,0,0,.04),0 8px 28px rgba(0,0,0,.05);   /* the Legora look: a card floats, the faintest lift (23 Oct 2026) */
+    --shadow-md:0 8px 24px rgba(0,0,0,.08);
+    --shadow-lg:0 16px 40px rgba(0,0,0,.12);
 
     /* Elevation aliases. --sh1..4 and --ring had ZERO consumers and are gone;
        --shadow-sm/md/lg are the ladder and are used 109 times between them. */
@@ -878,7 +878,7 @@
        composited pair, and "Your turn — propose changes" tripped it). #A24E07
        and #1A6F45 are the nearest steps that clear it (5.06 and 5.29) and are
        still the reference's hues. The washes, dots and lines are untouched. */
-    --st-gray-bg:#F0EDE6;  --st-gray-fg:#5E5A51;  --st-gray-dot:#A8A295;  --st-gray-line:#CFC9BC;
+    --st-gray-bg:#F0F0F3;  --st-gray-fg:#66666B;  --st-gray-dot:#AEAEB2;  --st-gray-line:#D1D1D6;
     --st-amber-bg:#FBEEDB; --st-amber-fg:#8A5A0A; --st-amber-dot:#C98A14; --st-amber-line:#EBCB8E;
     --st-green-bg:#DFF2E7; --st-green-fg:#1F4D3B; --st-green-dot:#3A8A62; --st-green-line:#A9D6BC;
     --st-ruby-bg:#FBE5E3;  --st-ruby-fg:#8F2A22;  --st-ruby-dot:#C2453B;  --st-ruby-line:#ECBAB5;
@@ -2169,7 +2169,7 @@
   /* CHAMBERS (20 Oct 2026): the bar is white (its own --bar-bg); what still
      reads --nav-bg — the lit tab's underline, the history dot's ring — reads
      the ink. */
-  :root{ --nav-bg:#161512; --nav-line:#E4E0D7; --nav-ink:#5E5A51; --nav-ink-strong:#161512;
+  :root{ --nav-bg:#1D1D1F; --nav-line:#E6E6EA; --nav-ink:#66666B; --nav-ink-strong:#1D1D1F;
          --nav-deep:#0A1C15; }
 
   /* Accent text that stays READABLE in both themes. The deep teal that reads
@@ -2236,7 +2236,7 @@
      a brand colour this rulebook records as one that must not flip. This is a
      second token for a second job, not a redefinition of the first. */
   :root{ --accent-fill:var(--accent-solid); } /* CHAMBERS (20 Oct 2026): a filled control is the ink, black (18.3:1 under white); was accent-600 (7 Oct). See .ui-btn-primary */
-  :root{ --accent-ink:var(--color-accent-600); --accent-ink-700:var(--color-accent-700); }  /* Chambers: the deep green, 9.6:1 on white */
+  :root{ --accent-ink:#087363; --accent-ink-700:#065A4D; }  /* the Legora look: a link is the drawing's teal one step deeper (#0A7C6B measured 4.49:1 on the grey pill): 5.8:1 on white, 5.1 on the pill (23 Oct 2026; Chambers' was the deep green) */
 
   /* ═══ AND THE TWO PALE RUNGS, WHICH CARRY A SURFACE ══════════════════════
      (owner-reported 4 Oct 2026, off two screenshots: "when in dark mode you
@@ -10672,14 +10672,14 @@
      the Calendar faces sit on the warm paper ground, ink near-black, the deep
      green for lines and glow. */
   #ig-page.hb-light,#hb-page.hb-light{
-    --hb-stage:radial-gradient(circle,rgba(31,77,59,.09) 1px,transparent 1.2px) 0 0/26px 26px,radial-gradient(ellipse at 50% 30%,#FFFFFF 0%,#F4F2ED 48%,#E9E5DC 100%);
-    --hb-ink:#161512;--hb-ink-2:#5E5A51;--hb-mute:#5E5A51;--hb-glow:#1F4D3B;
+    --hb-stage:radial-gradient(circle,rgba(31,77,59,.09) 1px,transparent 1.2px) 0 0/26px 26px,radial-gradient(ellipse at 50% 30%,#FFFFFF 0%,#F5F5F7 48%,#E9E9ED 100%);
+    --hb-ink:#1D1D1F;--hb-ink-2:#66666B;--hb-mute:#66666B;--hb-glow:#1F4D3B;
     --hb-amber:#8A5A0A;--hb-ruby:#8F2A22;--hb-green:#1F4D3B;
-    /* the LINE channel is warm (Chambers, 21 Oct 2026): a card's edge rgba(ln,.18) over white is exactly
-       --color-divider #E4E0D7; the inside rules at .12 / .16 land between --rule-faint and the divider */
-    --hb-ln:105,83,33;--hb-gw:58,107,87;
+    /* the LINE channel (Chambers, 21 Oct 2026; cool since the Legora look, 23 Oct): a card's edge rgba(ln,.18) over white is exactly
+       --color-divider #E6E6EA; the inside rules at .12 / .16 land between --rule-faint and the divider */
+    --hb-ln:116,116,138;--hb-gw:58,107,87;   /* the Legora look (23 Oct 2026): the line channel at .18 over white IS the cool divider #E6E6EA */
     --hb-card:rgba(255,255,255,.62);--hb-fig:rgba(255,255,255,.74);--hb-menu:#FFFFFF;--hb-blur:10px;
-    --hb-shadow:0 16px 34px -24px rgba(22,21,18,.35);--hb-on-glow:#FFFFFF}
+    --hb-shadow:0 16px 34px -24px rgba(0,0,0,.25);--hb-on-glow:#FFFFFF}
   /* Light also lightens the map's stage, its corner panels and its words; the
      dots keep their colours, which carry the meaning. LITERAL VALUES, like
      Dark's: the platform's tokens flip with the platform's theme, and this
@@ -11983,7 +11983,7 @@
      own (its strip is). Copilot's work reads kind · who and what · when · act.
      Cards carry no coloured top edge; a card's headline is its first line,
      not a band. Dark keeps Explorer's stage. */
-  #ig-page.hb-light .hb-board,#hb-page.hb-light .hb-board{background:#F4F2ED;--hb-card:#FFFFFF;--hb-fig:#FFFFFF;--hb-blur:0px;--hb-shadow:none}
+  #ig-page.hb-light .hb-board,#hb-page.hb-light .hb-board{background:#F5F5F7;--hb-card:#FFFFFF;--hb-fig:#FFFFFF;--hb-blur:0px;--hb-shadow:none}
   .hb-board{gap:var(--s-4)}
   .hb-book.hb-card{background:none;border:0;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
   .hb-book>.hb-ch{border-bottom:0;padding:0 2px var(--s-2);min-height:0}
@@ -12892,7 +12892,7 @@
      ground a hovered or live door sits on. */
   /* the menu is 244 since 7 Oct 2026 (Young: "there should be no text wrap in the
      nav panel so extend the nav panel") — "Approvals & signing" and its count fit one line */
-  :root{ --shell-head-h:48px; --nav-w:244px; --nav-well:#EFECE5; }
+  :root{ --shell-head-h:48px; --nav-w:244px; --nav-well:#F0F0F3; }
   #panel-scrim{
     position:fixed;left:0;right:0;bottom:0;top:var(--shell-head-h,64px);z-index:45;
     background:color-mix(in srgb,#020617 45%,transparent);
@@ -13509,10 +13509,10 @@
      stop at its edge — the desk stays dark, the document does not. */
   .pg-zoomwrap{position:relative;margin:0 auto}
   .pg-sheet.pg-sign{width:794px;max-width:none;box-sizing:border-box;border-radius:0;
-    background:#fff;border:1px solid #E4E0D7;box-shadow:0 2px 4px rgba(22,21,18,.06),0 16px 36px -18px rgba(22,21,18,.3);
+    background:#fff;border:1px solid #E6E6EA;box-shadow:0 2px 4px rgba(0,0,0,.06),0 16px 36px -18px rgba(0,0,0,.3);
     transform-origin:0 0;--doc-scale:1;
     --color-doc-text:#1B2A28;--color-doc-muted:#43524F;--color-doc-rule:#c9ccd1;--color-doc-surface:#fff;
-    --color-doc-warm:#fff;--color-doc-warm-line:#e2e8f0;--color-page:#fff;--color-page-line:#E4E0D7;
+    --color-doc-warm:#fff;--color-doc-warm-line:#e2e8f0;--color-page:#fff;--color-page-line:#E6E6EA;
     --color-text:#1B2A28;--color-divider:#e2e8f0;
     --color-neutral-100:#f1f5f9;--color-neutral-200:#e2e8f0;--color-neutral-300:#cbd5e1;
     --color-neutral-400:#93A09E;--color-neutral-500:#5F6D6B;--color-neutral-600:#5F6D6B;
@@ -13921,7 +13921,7 @@
      page ink at (0,1,0) and a rule above it would lose while looking correct. */
   .ui-btn.ui-btn-danger:not(.ui-btn-primary){color:var(--st-ruby-fg);border-color:var(--st-ruby-line);}
   .ui-btn.ui-btn-danger:not(.ui-btn-primary):hover{border-color:var(--st-ruby-fg);background:color-mix(in srgb,var(--st-ruby-fg) 8%,var(--color-surface));}
-  .ui-btn.ui-btn-danger:disabled{color:var(--color-neutral-400);border-color:var(--btn-edge);}
+  .ui-btn.ui-btn-danger:disabled{color:var(--color-neutral-400);border-color:transparent;}
   /* ---- THE SAP WAY (the owner picked it by name, 12 Oct 2026, from four
      button proposals: Pearl · Lacquer · Keycap · The SAP way) ----
      Flat, rounded 8px; the ordinary button wears the accent as its border and
@@ -15214,7 +15214,7 @@
   .sap-page .ins-need-t,.sap-page .ins-need-s{display:inline;white-space:normal;font-size:var(--t-body);color:var(--color-text);}
   .sap-page .ins-need-t::after{content:" ";}
   .sap-page .ins-need-b{white-space:normal;line-height:1.45;}
-  .sap-page .ins-need .ui-btn.ins-need-go{background:var(--color-surface);color:var(--accent-ink);}
+  .sap-page .ins-need .ui-btn.ins-need-go{background:var(--surface-2);color:var(--accent-ink);}
   /* SAP benchmark (owner-approved 9 Oct 2026): the table's title and count,
      initials beside the counterparty, a decision just made in green. */
   .ap-card-h{display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);padding:var(--s-3) 14px;border-bottom:1px solid var(--color-divider);}
@@ -16531,7 +16531,7 @@
   #app-shell #ig-dock #pd-og.is-ck .pd-ck-acts{flex:none;display:flex;gap:8px;align-items:center}
   #app-shell #ig-dock #pd-og.is-ck .pd-ck-acts .ui-btn, #app-shell #ig-dock #pd-og.is-ck td.pd-og-a>.pd-og-order{height:var(--ctl-h-sm,28px);padding:0 12px;font-size:12px;text-decoration:none}
   /* the row's buttons wear HaTi's own (the older link dress of .pd-og-ok and .pd-og-order is put back by scope) */
-  #app-shell #ig-dock #pd-og.is-ck .pd-og-order.ui-btn{border:1px solid var(--btn-edge,var(--rule-strong));background:var(--color-surface);color:var(--accent-ink);font-weight:var(--w-strong);line-height:normal;white-space:nowrap}
+  #app-shell #ig-dock #pd-og.is-ck .pd-og-order.ui-btn{border:1px solid transparent;background:var(--surface-2);color:var(--accent-ink);font-weight:var(--w-strong);line-height:normal;white-space:nowrap}
   #app-shell #ig-dock #pd-og.is-ck .pd-og-order.ui-btn:hover{text-decoration:none;background:var(--accent-wash,var(--surface-2))}
   #app-shell #ig-dock #pd-og.is-ck .pd-og-ok.ui-btn-primary{border:1px solid var(--accent-fill);background:var(--accent-fill);color:#fff}
   #app-shell #ig-dock #pd-og.is-ck .pd-og-ok.ui-btn-primary:hover{text-decoration:none;filter:brightness(1.15)}
@@ -16791,6 +16791,107 @@
     .hist-trail.is-table > .hist-tr{grid-template-columns:56px minmax(0,1fr) auto;row-gap:2px}
     .hist-trail.is-table > .hist-tr > .hist-c-who, .hist-trail.is-table > .hist-tr > .hist-c-side{grid-column:2}
     .hist-trail.is-table > .hist-tr > .hist-c-what{grid-column:2}
+  }
+  /* ==== THE LEGORA LOOK (owner, 23 Oct 2026: "i want to apply this across all the pages in hati";
+     replaces Chambers, 20 Oct) ====
+     The owner's own drawing (Hati concept inspired by Legora: Home, Contracts, the contract and its
+     Redlines, the Board, New agreement) is the agreement. The tokens in :root carry the colours,
+     corners and the card's lift; this block carries what a token cannot: a control is a PILL filled
+     in the soft grey, a chosen tab is a filled pill (no underline), the bar is frosted, Jambo's box
+     wears the one coloured edge, and the page's two halves FLOAT as white cards on the grey ground.
+     Explorer's stage stays dark (owner, 23 Oct 2026), so nothing here reaches `.hb-dark`.
+     The paper and the marks on it keep their square corners (see --radius's note). */
+  /* -- the bar: the drawing's translucent white, a soft line under it, the search a filled pill.
+     NO backdrop-filter: nothing scrolls under this bar, so the blur would show nothing, and a
+     filter makes the bar a stacking context that traps its own menus (Recent went under the
+     page; blue-landing-and-board-tones-verify caught it) -- */
+  #top-header{--bar-bg:rgba(255,255,255,.78);--bar-edge:transparent;--bar-well:#F2F2F5;--bar-hover:rgba(0,0,0,.06);
+    background:var(--bar-bg);border-bottom-color:transparent;box-shadow:0 1px 0 rgba(0,0,0,.05)}
+  #top-header .hdr-icon-btn, #top-header #cmd-ai{border-radius:999px}
+  #top-header .cmd-search{border-radius:999px;border-color:transparent;background:var(--bar-well)}
+  #top-header #cmd-k-hint{border-radius:999px;border-color:transparent;background:#fff;box-shadow:0 1px 1px rgba(0,0,0,.05)}
+  /* -- every button is a pill: the soft grey filled, the ink's words; the main one black -- */
+  .ui-btn, .hb-btn{border-radius:999px;border-color:transparent;background:var(--surface-2);color:var(--color-text)}
+  .ui-btn:hover, .hb-btn:hover{background:var(--color-neutral-200)}
+  .ui-btn-primary{background:var(--accent-fill);border-color:var(--accent-fill);color:#fff;font-weight:var(--w-label)}
+  .ui-btn-primary:hover{background:var(--accent-solid-hover);border-color:var(--accent-solid-hover)}
+  .ui-btn-plain{background:transparent;border-color:transparent;color:var(--accent-ink)}
+  .ui-btn-plain:hover{background:var(--surface-2)}
+  .ui-btn:disabled, .ui-btn[aria-disabled="true"]{color:var(--color-text);background:var(--surface-2);border-color:transparent}
+  .ui-btn-plain:disabled, .ui-btn-plain[aria-disabled="true"]{background:transparent}
+  .ui-btn-primary:disabled, .ui-btn-primary[aria-disabled="true"]{color:#fff;background:var(--accent-fill)}
+  /* -- the paper heads' row speaks with one voice: every act the grey pill, the one filled act the ink -- */
+  .redline-page #ws-head .room-acts button:not(.ui-btn-primary), .room-head .room-acts button:not(.ui-btn-primary){border-color:transparent;background:var(--surface-2);border-radius:999px}
+  .redline-page #ws-head .room-acts button:not(.ui-btn-primary):hover, .room-head .room-acts button:not(.ui-btn-primary):hover{background:var(--color-neutral-200)}
+  /* -- a chosen tab is a filled pill, never an underline -- */
+  .reg-vtab{height:32px;margin-bottom:0;border-bottom:0;border-radius:999px}
+  .reg-vtab.on{background:var(--surface-2)}
+  .reg-vtab .n, .reg-vtab.on .n{background:none;padding:0;font-family:inherit;color:var(--accent-ink)}
+  .pd-tab.on::after, .jl-head .pd-tab.on::after, #ig-dock:has(> .igd-head[data-pd-head="paper"]) .pd-tab.on::after{content:none;display:none}
+  .st-tab, .room-tab{border-radius:999px;border-bottom-color:transparent}
+  .st-tab.on, .room-tab.on{background:var(--surface-2);border-bottom-color:transparent}
+  #app-shell .pd-tab{border-radius:999px;height:30px;align-self:center;padding:0 8px;max-width:96px}
+  /* the pill's 8px each side comes out of the 24px between tabs, so every word stands where it stood
+     and the head never grows (inspector-checklist 1h caught the fold button pushed 4px past the panel) */
+  #ig-dock > .igd-head.igd-head > .pd-tab + .pd-tab, #app-shell .jl-head.jl-head > .pd-tab + .pd-tab{margin-left:8px}
+  #ig-dock > .igd-head.igd-head > .pd-tab:first-child, #app-shell .jl-head.jl-head > .pd-tab:first-child{margin-left:-8px}
+  #app-shell .pd-tab.on{background:var(--surface-2)}
+  .st-cr .st-face{border-bottom:0;margin-bottom:6px;border-radius:999px;padding-left:12px;padding-right:12px}
+  .st-cr .st-face[aria-selected="true"]{background:var(--surface-2)}
+  .st-cr .st-side-head.st-side-head > .st-side-tab{border-bottom:0;border-radius:999px;height:30px;align-self:center;padding:0 10px}
+  .st-cr .st-side-head.st-side-head > .st-side-tab:not(.is-off){background:var(--surface-2);color:var(--color-text)}
+  #context-panel .pt-tab{border-bottom:0;border-radius:999px;padding:5px 12px}
+  #context-panel .pt-tab.on{background:var(--surface-2)}
+  .nd-tab{border-bottom:0;border-radius:999px;padding:4px 10px}
+  .nd-tab.on{background:var(--surface-2)}
+  .pd-obs-tab, #pd-body .pd-obm-tab .pd-obs-tab{border-bottom:0;margin-bottom:0;border-radius:999px;padding:4px 10px}
+  .pd-obs-tab[aria-selected="true"], #pd-body .pd-obm-tab .pd-obs-tab[aria-selected="true"]{background:var(--surface-2)}
+  .pd-th .stk-tab{border-radius:999px;padding:4px 10px}
+  .pd-th .stk-tab[aria-selected="true"]{background:var(--surface-2)}
+  .pd-th .stk-tab[aria-selected="true"]::after{content:none}
+  /* -- a switch is a grey pill holding pills; the chosen one is the ink -- */
+  .reg-seg, .hb-seg:not(.hb-faces), .cal-seg, .cal-lv-seg, .st-cr .st-yseg, .modal-in[data-dlg-sap] .sap-seg{border:0;border-radius:999px;background:var(--surface-2);padding:3px;gap:2px}
+  :is(.reg-seg, .hb-seg:not(.hb-faces), .cal-seg, .cal-lv-seg, .st-cr .st-yseg, .modal-in[data-dlg-sap] .sap-seg) > button{border:0;border-radius:999px;background:transparent}
+  :is(.reg-seg, .hb-seg:not(.hb-faces), .cal-seg, .cal-lv-seg, .st-cr .st-yseg, .modal-in[data-dlg-sap] .sap-seg) > button:is(.on, [aria-pressed="true"], [aria-selected="true"]){background:var(--accent-fill);color:#fff}
+  /* -- Jambo's box: the one coloured edge on the page, a pill at rest -- */
+  .jb-card{border:1.5px solid transparent;border-radius:999px;
+    background:linear-gradient(var(--color-surface),var(--color-surface)) padding-box,linear-gradient(120deg,#0A7C6B,#6D5DFC,#FF7A59) border-box}
+  .jb-card.is-tall{border-radius:20px}
+  .jb-card:focus-within{border-color:transparent;box-shadow:0 0 0 3px rgba(10,124,107,.12)}
+  /* -- a small tag or chip is a pill (the drawing's "5 of 6", "In Review · round 1"); bars, swatches and focus rings keep their small corners -- */
+  #ig-page:not(.hb-dark) :is(.hb-src, .hb-chip, .hb-fd, .hb-given, .hb-vb, .hb-ins-scope), .bs-nx, .bs-late, .bs-done, #context-panel .pt-new,
+  #ig-dock .pd-og-cl, [data-pd-mid-kt] .pd-og-cl, .pd-rn-q .pd-og-cl{border-radius:999px}
+  /* a blank or fact marked on the paper keeps a small corner: it is the wording, not a chip over it */
+  .doc-surface .field-frozen{border-radius:3px}
+  /* -- the two halves float: white cards on the grey ground (Home beside a paper, and every list) -- */
+  #content .ins-panel.is-jambo{right:8px;top:calc(var(--jl-top,88px) + 8px);bottom:8px;border:0;border-radius:20px;box-shadow:var(--shadow-sm)}
+  /* the panel floats 8px in, still 384 wide (JL_W): a page that never scrolls as a whole (.view-fixed,
+     most lists) lets it stand over its own empty 16px right margin, so the list keeps every pixel (the
+     Parties column kept its 186 at 1366, parties-nda-column 4); a page with a scrollbar steps 8px aside
+     so the panel never covers it */
+  #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll:not(.view-fixed){margin-right:calc(var(--jl-w,384px) + 8px);}
+  #app-shell:has(#content .ins-panel.is-jambo.is-folded):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll:not(.view-fixed){margin-right:54px;}
+  @media (min-width:981px){
+    .st-cr .st-side{top:8px;margin:calc(8px - var(--page-pad-t)) calc(8px - var(--page-pad-x)) 0 0;height:calc(var(--st-side-h,560px) - 16px);border:0;border-radius:20px;box-shadow:var(--shadow-sm)}
+  }
+  #context-panel .pt-tabs{border-bottom:0}
+  #app-shell #ig-page:not(.hb-dark) #ig-dock{margin:8px 8px 8px 0;border:0;border-radius:20px;box-shadow:var(--shadow-sm);background:var(--color-surface)}
+  #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):has(#ig-paper-scroll) #hb-col{margin:8px 12px 8px 8px;border-radius:20px;background:var(--color-surface);box-shadow:var(--shadow-sm);overflow:hidden;flex-direction:column}
+  #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):has(#ig-paper-scroll) #ig-strip{background:transparent;border-bottom:0}
+  #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):has(#ig-paper-scroll) #ig-paper{margin:0 8px 8px;border-radius:16px;overflow:hidden}
+  /* THE WORDING DOES NOT MOVE (THE CONTRACT'S PIXELS): the card's 8px inset is taken back from the paper's
+     line, 47px → 39px (its buttons are 28), never from the room above the sheet, so the zoom keeps its 6px
+     and the sheet its 40px under the line, as on every other paper (one-zoom 6, one-paper-everywhere 1) */
+  #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):has(#ig-paper-scroll){--ig-bar-h:39px}
+  body:has(#ig-dock > .igd-head[data-pd-head="paper"]) #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark) #ig-paper-scroll{padding-top:9px}
+  /* -- below 1100px wide (narrower than any of the owner's three screens) the two halves stand docked
+     as they did: there every pixel is the page's (swedish-verify caught the Calendar cut by 7px at 800) -- */
+  @media (max-width:1100px){
+    #app-shell #ig-page:not(.hb-dark) #ig-dock{margin:0;border-radius:0;box-shadow:none;border-left:1px solid var(--color-neutral-300)}
+    #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):has(#ig-paper-scroll) #hb-col{margin:0;border-radius:0;box-shadow:none}
+    #app-shell #ig-page[data-hb-side="paper"]:not(.hb-dark):has(#ig-paper-scroll){--ig-bar-h:47px}
+    #content .ins-panel.is-jambo{right:0;top:var(--jl-top,88px);bottom:0;border-radius:0;box-shadow:none;border-left:1px solid var(--color-neutral-300)}
+    #app-shell:has(#content .ins-panel.is-jambo):not(:has(#content [hidden] .ins-panel.is-jambo)) #content-scroll:not(.view-fixed){margin-right:var(--jl-w,384px)}
   }
 </style>
 

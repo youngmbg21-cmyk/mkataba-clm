@@ -4223,11 +4223,10 @@ function sdClausePanelOpts(cl, d, mayEdit){
   const acts=[];
   if(mayEdit) acts.push({ k:'edit', kind:'accent', label:i18t('std_edit_wording'),
     run:()=>{ const i=clauseLibrary().findIndex(x=>String(x.id)===String(cl.id)); if(i>=0) openClauseEditor(i); } });
-  /* A PROXY ONTO THE TAB THAT ALREADY EXISTS, never a second door: the
-     position lives on the Negotiation playbook tab — this lands there with the
-     book that holds it chosen. Open to every reader: it moves them, it writes
-     nothing. */
-  acts.push({ k:'pos', label:i18t('std_change_position'), run:()=>sdGoBook(stdBookFor(cl.category)) });
+  /* ONTO THE STANDARD'S OWN ROW (owner, 20 Oct 2026): an editor lands in its
+     book's editor with the row lit (stdPositionOpen); a reader, who may not
+     change it, is taken to the book that holds it, as before. */
+  acts.push({ k:'pos', label:i18t('std_change_position'), run:()=>mayEdit&&typeof stdPositionOpen==='function'?stdPositionOpen(cl.category):sdGoBook(stdBookFor(cl.category)) });
   const menu=mayEdit?insMenuItemHtml({ k:'remove', label:i18t('sd_remove'), ruby:true, icon:'trash', says:i18t('sd_remove_says') }):'';
   return {
     item:{ id:String(cl.id) },

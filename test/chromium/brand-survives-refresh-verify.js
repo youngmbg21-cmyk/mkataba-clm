@@ -83,8 +83,9 @@ const check = (name, pass, detail) => {
     check('1a CONTROL — a fresh browser opens on the one look: no brand, no dark, no old key stored',
       rest.brand === null && rest.dark === false && Object.keys(rest.held).length === 0,
       `brand=${rest.brand} dark=${rest.dark} held=${JSON.stringify(rest.held)}`);
+    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): the drawing's translucent white */
     check('1b and the bar is painted white',
-      rest.navBg === 'rgb(255, 255, 255)', rest.navBg);
+      /^rgba?\(255, 255, 255(, 0\.78)?\)$/.test(rest.navBg), rest.navBg);
     const gone = await page.evaluate(() => ['setBrand', 'setDark', 'toggleDark', 'brandNow', 'darkNow', 'applyAppearance', 'setTheme', 'toggleTheme']
       .filter(n => typeof window[n] === 'function'));
     check('1c the old switches are gone — nothing left in the app that sets a brand or the dark',

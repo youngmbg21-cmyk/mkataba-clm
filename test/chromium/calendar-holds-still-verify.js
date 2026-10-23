@@ -218,23 +218,25 @@ const OFFSETS = [3, 6, 9, 12, 20, 26, 35, 44, 52, 61, 70, 78, 85, 88];
          the calendar card's own buttons, and what must match is the OUTLINE */
       const peers = [...document.querySelectorAll('#cal-today, #cal-new')].map(p => {
         const c = getComputedStyle(p);
-        return { id: p.id || p.className, edge: c.borderTopColor, w: c.borderTopWidth, st: c.borderTopStyle,
+        return { id: p.id || p.className, edge: c.borderTopColor, w: c.borderTopWidth, st: c.borderTopStyle, bg: c.backgroundColor,
           h: Math.round(p.getBoundingClientRect().height) };
       });
-      return { more: { edge: cs.borderTopColor, w: cs.borderTopWidth, st: cs.borderTopStyle,
+      return { more: { edge: cs.borderTopColor, w: cs.borderTopWidth, st: cs.borderTopStyle, bg: cs.backgroundColor,
         h: Math.round(b.getBoundingClientRect().height) }, peers };
     });
     /* A WIDTH AND A STYLE ARE NOT A LINE. .ui-btn-plain kept both and declared
        the colour transparent, so a check reading width and style alone passed
        against the very button the owner was looking at. The colour is the
        third question. */
-    ok('4a More has an outline that is really drawn',
-      !!row && row.more.st !== 'none' && parseFloat(row.more.w) > 0
-        && !/rgba\([^)]*,\s*0\s*\)|transparent/.test(row.more.edge),
+    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): a button is a grey pill with NO edge, product-wide;
+       "really drawn" is now its FILL (a transparent fill would be the bare word this caught before),
+       and it is the same face its neighbours wear — fill and edge alike. */
+    ok('4a More is really drawn as a button — a filled face, not a bare word',
+      !!row && !/rgba\([^)]*,\s*0\s*\)|transparent/.test(row.more.bg),
       row && JSON.stringify(row.more));
-    ok('4b the same one its neighbours wear',
+    ok('4b the same face its neighbours wear',
       !!row && row.peers.length > 0 && row.peers.every(p =>
-        p.edge === row.more.edge && p.w === row.more.w && p.st === row.more.st),
+        p.edge === row.more.edge && p.w === row.more.w && p.st === row.more.st && p.bg === row.more.bg),
       row && JSON.stringify(row));
 
     await page.screenshot({ path: path.join(OUT, '1-month.png') });

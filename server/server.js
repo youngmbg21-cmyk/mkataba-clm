@@ -11348,27 +11348,27 @@ const TRACK_STAGE = {
   drafted:   { word: 'Drafted, not yet sent',   tone: '#1F4D3B', dot: '#1F4D3B' },
   done:      { word: 'Drafted and sent',        tone: '#1F4D3B', dot: '#3A8A62' },
   declined:  { word: 'Declined',                tone: '#8F2A22', dot: '#C2453B' },
-  withdrawn: { word: 'Withdrawn',               tone: '#5E5A51', dot: '#A8A295' },
+  withdrawn: { word: 'Withdrawn',               tone: '#6E6E73', dot: '#AEAEB2' },
 };
 function trackPageHtml(r) {
   const e = s => String(s == null ? '' : s).replace(/[&<>"]/g, x => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[x]));
   const st = TRACK_STAGE[(r.status === 'open' && r.assignee_id) ? 'held' : r.status] || TRACK_STAGE.open;
   const day = d => { if (!d) return ''; try { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); } catch (_) { return String(d).slice(0, 10); } };
-  const row = (k, v) => v ? `<tr><td style="padding:5px 18px 5px 0;color:#5E5A51;white-space:nowrap">${e(k)}</td><td style="padding:5px 0;color:#161512">${e(v)}</td></tr>` : '';
+  const row = (k, v) => v ? `<tr><td style="padding:5px 18px 5px 0;color:#6E6E73;white-space:nowrap">${e(k)}</td><td style="padding:5px 0;color:#1D1D1F">${e(v)}</td></tr>` : '';
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="format-detection" content="telephone=no,email=no,address=no,date=no">
   <meta name="robots" content="noindex,nofollow">
   <link rel="stylesheet" href="/fonts/geist.css"><link rel="stylesheet" href="/fonts/source-serif-4.css">
   <title>Where is my contract?</title></head>
-  <body style="margin:0;background:#F4F2ED;font:15px 'Geist','IBM Plex Sans',-apple-system,Segoe UI,Arial,sans-serif;color:#161512">
+  <body style="margin:0;background:#F5F5F7;font:15px 'Geist','IBM Plex Sans',-apple-system,Segoe UI,Arial,sans-serif;color:#1D1D1F">
     <div style="max-width:620px;margin:0 auto;padding:40px 22px 60px">
-      <p style="margin:0 0 22px;font:600 19px 'Source Serif 4','Iowan Old Style',Georgia,serif;color:#161512">HaTi</p>
-      <div style="background:#fff;border:1px solid #E4E0D7;border-radius:3px;padding:26px 24px">
-        <p style="margin:0 0 4px;font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace;color:#6F6A5E">${e(r.id)}</p>
+      <p style="margin:0 0 22px;font:600 19px 'Source Serif 4','Iowan Old Style',Georgia,serif;color:#1D1D1F">HaTi</p>
+      <div style="background:#fff;border:1px solid #E6E6EA;border-radius:18px;padding:26px 24px">
+        <p style="margin:0 0 4px;font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace;color:#737378">${e(r.id)}</p>
         <h1 style="margin:0 0 14px;font:500 22px/1.3 'Source Serif 4','Iowan Old Style',Georgia,serif">${e(r.title)}</h1>
         <p style="display:flex;align-items:center;gap:7px;margin:0 0 18px;font-size:13px;font-weight:500;color:${st.tone}"><i style="width:8px;height:8px;border-radius:50%;flex:none;background:${st.dot}"></i>${e(st.word)}</p>
-        <p style="margin:0 0 18px;font-size:14px;line-height:1.6;color:#161512;white-space:pre-wrap">${e(r.need)}</p>
+        <p style="margin:0 0 18px;font-size:14px;line-height:1.6;color:#1D1D1F;white-space:pre-wrap">${e(r.need)}</p>
         <table style="border-collapse:collapse;font-size:14px">
           ${row('Asked by', r.by_name)}
           ${row('Asked on', day(r.created_at))}
@@ -11378,7 +11378,7 @@ function trackPageHtml(r) {
           ${row('Last moved', day(r.updated_at))}
         </table>
       </div>
-      <p style="margin:18px 0 0;font-size:13px;line-height:1.6;color:#5E5A51">This page shows where your request has got to. It is not the contract, and it cannot be replied to &mdash; if something here looks wrong, speak to whoever is holding it.</p>
+      <p style="margin:18px 0 0;font-size:13px;line-height:1.6;color:#6E6E73">This page shows where your request has got to. It is not the contract, and it cannot be replied to &mdash; if something here looks wrong, speak to whoever is holding it.</p>
     </div></body></html>`;
 }
 /* PUBLIC, and deliberately outside /api: it is a page a person opens, not a
@@ -11390,7 +11390,7 @@ app.get('/track/:token', (req, res) => {
     ? db.prepare('SELECT * FROM intake_requests WHERE track_token=?').get(tok) : null;
   res.set('Cache-Control', 'no-store');
   if (!r) return res.status(404).type('html').send(
-    `<!doctype html><body style="margin:0;background:#F4F2ED;font:15px 'Geist','IBM Plex Sans',Arial,sans-serif;color:#161512">
+    `<!doctype html><body style="margin:0;background:#F5F5F7;font:15px 'Geist','IBM Plex Sans',Arial,sans-serif;color:#1D1D1F">
      <div style="max-width:620px;margin:0 auto;padding:60px 22px"><p style="font-size:16px">This tracking link is not valid. Ask whoever sent it to you for a new one.</p></div></body>`);
   res.type('html').send(trackPageHtml(r));
 });
@@ -11419,14 +11419,14 @@ function dealPageHtml(D, org) {
           : `${x.party || 'A party'} asked about ${clauseOf(x)}`;
   const role = p => [p.negotiates ? 'negotiates' : '', p.signs ? 'signs' : ''].filter(Boolean).join(' · ');
   const step = (s, i) => `<td style="padding:0 10px 0 0;vertical-align:top;width:25%">
-    <div style="height:2px;background:${s.done ? '#1F4D3B' : '#E4E0D7'};margin:5px 0 9px"></div>
-    <div style="font-size:14px;font-weight:600;color:${s.now ? '#8A5A0A' : '#161512'}">${e(DEAL_WORDS[s.key])}</div>
-    <div style="font-size:12px;color:#5E5A51;margin-top:1px">${e(s.now && s.key === 'negotiating'
+    <div style="height:2px;background:${s.done ? '#1F4D3B' : '#E6E6EA'};margin:5px 0 9px"></div>
+    <div style="font-size:14px;font-weight:600;color:${s.now ? '#8A5A0A' : '#1D1D1F'}">${e(DEAL_WORDS[s.key])}</div>
+    <div style="font-size:12px;color:#6E6E73;margin-top:1px">${e(s.now && s.key === 'negotiating'
       ? `Round ${D.round}` : s.done ? '' : 'Not yet')}</div></td>`
       + (i === 0 ? '' : '');
   const fact = (k, v) => `<td style="padding:0 28px 0 0;vertical-align:top">
-    <div style="font-size:12px;font-weight:500;color:#5E5A51;margin-bottom:2px">${e(k)}</div>
-    <div style="font-size:15px;font-weight:600;color:#161512;white-space:nowrap">${e(v)}</div></td>`;
+    <div style="font-size:12px;font-weight:500;color:#6E6E73;margin-bottom:2px">${e(k)}</div>
+    <div style="font-size:15px;font-weight:600;color:#1D1D1F;white-space:nowrap">${e(v)}</div></td>`;
   const clauseOf = p => (p && p.clause) || 'a clause';
   /* THE SHARED SHEET (4 Oct 2026): one row of facts — the round, how much is
      settled, what waits on each party — in place of "Whose move — X for 0 days". */
@@ -11437,28 +11437,29 @@ function dealPageHtml(D, org) {
      card, Still open as a table (clause and who proposed it — this page
      carries no wording, so there is no "what is proposed" column), Settled
      and Lately as two cards beside it. */
-  /* CHAMBERS (21 Oct 2026): HaTi's one look in literal values — warm ground,
-     white cards on a warm hairline, 3px corners, no shadow, ink #161512, the
-     deep green for links, statuses in their own tones, sentence-case labels. */
-  const card = 'background:#fff;border:1px solid #E4E0D7;border-radius:3px';
-  const ch = (t, r) => `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid #E4E0D7"><b style="font-size:14px;font-weight:600">${t}</b>${r ? `<span style="margin-left:auto;font-size:12.5px;color:#5E5A51">${r}</span>` : ''}</div>`;
+  /* THE LEGORA LOOK (owner, 23 Oct 2026; was Chambers, 21 Oct): HaTi's one look
+     in literal values — the soft grey ground, white cards with 18px corners on
+     the cool hairline, tags as pills, ink #1D1D1F, statuses in their own tones,
+     sentence-case labels. */
+  const card = 'background:#fff;border:1px solid #E6E6EA;border-radius:18px';
+  const ch = (t, r) => `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid #E6E6EA"><b style="font-size:14px;font-weight:600">${t}</b>${r ? `<span style="margin-left:auto;font-size:12.5px;color:#6E6E73">${r}</span>` : ''}</div>`;
   const initials = n => String(n || '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
-  const av = n => `<span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;box-sizing:border-box;border-radius:2px;background:transparent;border:1px solid #CFC9BC;color:#5E5A51;font-size:10.5px;font-weight:500;flex:none">${e(initials(n))}</span>`;
-  const quiet = t => `<div style="font-size:14px;color:#6F6A5E;padding:10px 16px">${t}</div>`;
+  const av = n => `<span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;box-sizing:border-box;border-radius:999px;background:transparent;border:1px solid #D1D1D6;color:#6E6E73;font-size:10.5px;font-weight:500;flex:none">${e(initials(n))}</span>`;
+  const quiet = t => `<div style="font-size:14px;color:#737378;padding:10px 16px">${t}</div>`;
   const openTable = D.points.length
-    ? `<table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr>${['Clause', 'Proposed by'].map(h => `<th style="text-align:left;font-size:12px;font-weight:500;color:#5E5A51;padding:8px 16px;border-bottom:1px solid #E4E0D7;background:#F4F2ED">${h}</th>`).join('')}</tr></thead><tbody>${
-        D.points.map(p => `<tr><td style="padding:10px 16px;border-bottom:1px solid #F0EDE6;color:#1F4D3B">${e(clauseOf(p))}</td><td style="padding:10px 16px;border-bottom:1px solid #F0EDE6">${p.by ? `<span style="display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:#5E5A51">${av(p.by)}${e(p.by)}</span>` : ''}</td></tr>`).join('')}</tbody></table>`
+    ? `<table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr>${['Clause', 'Proposed by'].map(h => `<th style="text-align:left;font-size:12px;font-weight:500;color:#6E6E73;padding:8px 16px;border-bottom:1px solid #E6E6EA;background:#F5F5F7">${h}</th>`).join('')}</tr></thead><tbody>${
+        D.points.map(p => `<tr><td style="padding:10px 16px;border-bottom:1px solid #F0F0F3;color:#1F4D3B">${e(clauseOf(p))}</td><td style="padding:10px 16px;border-bottom:1px solid #F0F0F3">${p.by ? `<span style="display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:#6E6E73">${av(p.by)}${e(p.by)}</span>` : ''}</td></tr>`).join('')}</tbody></table>`
       + (D.open > D.points.length ? quiet(`and ${D.open - D.points.length} more`) : '')
     : quiet('Nothing is open');
   const settledList = D.settledPoints.length
-    ? D.settledPoints.map(p => `<div style="display:flex;gap:10px;padding:10px 16px;border-bottom:1px solid #F0EDE6;font-size:14px">
+    ? D.settledPoints.map(p => `<div style="display:flex;gap:10px;padding:10px 16px;border-bottom:1px solid #F0F0F3;font-size:14px">
         <span style="flex:none;color:${p.settled ? '#1F4D3B' : '#8F2A22'}">${p.settled ? '✓' : '✕'}</span>
-        <span style="flex:1"><b style="font-weight:600">${e(clauseOf(p))}</b>${p.settled ? '' : '<i style="font-style:normal;display:block;color:#5E5A51;font-size:12.5px">not taken</i>'}</span>
-        ${p.at ? `<span style="flex:none;font-size:12.5px;color:#5E5A51">${e(day(p.at))}</span>` : ''}</div>`).join('')
+        <span style="flex:1"><b style="font-weight:600">${e(clauseOf(p))}</b>${p.settled ? '' : '<i style="font-style:normal;display:block;color:#6E6E73;font-size:12.5px">not taken</i>'}</span>
+        ${p.at ? `<span style="flex:none;font-size:12.5px;color:#6E6E73">${e(day(p.at))}</span>` : ''}</div>`).join('')
       + (D.settled > D.settledPoints.length ? quiet(`and ${D.settled - D.settledPoints.length} more`) : '')
     : quiet('Nothing has been settled yet');
   const latelyList = D.lately.length
-    ? D.lately.map(x => `<div style="display:flex;align-items:center;gap:12px;font-size:12.5px;padding:8px 16px;border-bottom:1px solid #F0EDE6"><span style="color:#6F6A5E;flex:none;width:80px">${e(day(x.at))}</span><div style="flex:1">${e(evText(x))}</div>${x.round ? `<span style="flex:none;font:11px monospace;border:1px solid #E4E0D7;color:#5E5A51;border-radius:2px;padding:0 5px">R${e(x.round)}</span>` : ''}</div>`).join('')
+    ? D.lately.map(x => `<div style="display:flex;align-items:center;gap:12px;font-size:12.5px;padding:8px 16px;border-bottom:1px solid #F0F0F3"><span style="color:#737378;flex:none;width:80px">${e(day(x.at))}</span><div style="flex:1">${e(evText(x))}</div>${x.round ? `<span style="flex:none;font:11px monospace;border:1px solid #E6E6EA;color:#6E6E73;border-radius:999px;padding:0 5px">R${e(x.round)}</span>` : ''}</div>`).join('')
     : quiet('Nothing has happened yet');
   const waitOn = (!D.executed && D.move && D.move.party) ? `waiting on ${e(D.move.party)}` : '';
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
@@ -11467,21 +11468,21 @@ function dealPageHtml(D, org) {
   <meta name="robots" content="noindex,nofollow">
   <link rel="stylesheet" href="/fonts/geist.css"><link rel="stylesheet" href="/fonts/source-serif-4.css">
   <title>Where the deal stands</title></head>
-  <body style="margin:0;background:#F4F2ED;font:15px 'Geist','IBM Plex Sans',-apple-system,Segoe UI,Arial,sans-serif;color:#161512">
-    <div style="background:#fff;color:#161512;border-bottom:1px solid #E4E0D7;padding:0 26px;height:48px;display:flex;align-items:center;gap:12px;font-size:12.5px">
+  <body style="margin:0;background:#F5F5F7;font:15px 'Geist','IBM Plex Sans',-apple-system,Segoe UI,Arial,sans-serif;color:#1D1D1F">
+    <div style="background:#fff;color:#1D1D1F;border-bottom:1px solid #E6E6EA;padding:0 26px;height:48px;display:flex;align-items:center;gap:12px;font-size:12.5px">
       <b style="font:600 19px 'Source Serif 4','Iowan Old Style',Georgia,serif">HaTi</b>
-      <span style="border:1px solid #CFC9BC;border-radius:2px;padding:0 7px;font-size:11.5px;font-weight:500;color:#5E5A51">Read only</span>
+      <span style="border:1px solid #D1D1D6;border-radius:999px;padding:0 7px;font-size:11.5px;font-weight:500;color:#6E6E73">Read only</span>
       <span style="flex:1"></span>
-      <span style="color:#5E5A51">${e(D.name)} &middot; ${e(D.ref)}</span></div>
+      <span style="color:#6E6E73">${e(D.name)} &middot; ${e(D.ref)}</span></div>
     <div style="padding:22px 20px 40px;max-width:1120px;margin:0 auto">
     <div style="${card};padding:12px 16px 0">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <h1 style="font:500 18px/1.25 'Source Serif 4','Iowan Old Style',Georgia,serif;margin:0">Where the deal stands</h1>
-        <span style="font-size:12px;color:#5E5A51;background:#EFECE5;border-radius:2px;padding:1px 8px">Seen by every party</span>
-        ${D.updatedAt ? `<span style="font-size:12.5px;color:#5E5A51">&middot; last moved ${e(day(D.updatedAt))}</span>` : ''}</div>
-      <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;margin:12px -16px 0;padding:12px 16px 0;border-top:1px solid #E4E0D7">
+        <span style="font-size:12px;color:#6E6E73;background:#F0F0F3;border-radius:999px;padding:1px 8px">Seen by every party</span>
+        ${D.updatedAt ? `<span style="font-size:12.5px;color:#6E6E73">&middot; last moved ${e(day(D.updatedAt))}</span>` : ''}</div>
+      <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;margin:12px -16px 0;padding:12px 16px 0;border-top:1px solid #E6E6EA">
         <table style="border-collapse:collapse;flex:1"><tr style="vertical-align:top">${facts.join('')}</tr></table>
-        <div>${D.parties.map(p => `<span style="display:inline-flex;align-items:center;gap:8px;font-size:12px;border:1px solid ${p.ours ? '#CFC9BC' : '#E4E0D7'};background:transparent;border-radius:2px;padding:3px 12px 3px 4px;margin:0 0 6px 6px;color:#5E5A51">${av(p.name)}<b style="font-weight:600;color:#161512">${e(p.name)}</b>${role(p) ? e(role(p)) : ''}</span>`).join('')}</div></div>
+        <div>${D.parties.map(p => `<span style="display:inline-flex;align-items:center;gap:8px;font-size:12px;border:1px solid ${p.ours ? '#D1D1D6' : '#E6E6EA'};background:transparent;border-radius:999px;padding:3px 12px 3px 4px;margin:0 0 6px 6px;color:#6E6E73">${av(p.name)}<b style="font-weight:600;color:#1D1D1F">${e(p.name)}</b>${role(p) ? e(role(p)) : ''}</span>`).join('')}</div></div>
       <table style="width:100%;border-collapse:collapse;margin:16px 0 18px"><tr>${D.steps.map(step).join('')}</tr></table>
     </div>
     <table style="width:100%;border-collapse:separate;border-spacing:0;margin-top:16px"><tr style="vertical-align:top">
@@ -11489,7 +11490,7 @@ function dealPageHtml(D, org) {
       <td style="width:42%"><div style="${card}">${ch(`Settled (${D.settled})`, '')}${settledList}</div>
         <div style="${card};margin-top:16px">${ch('Lately', '')}${latelyList}</div></td>
     </tr></table>
-    <p style="margin:16px 0 0;font-size:12px;color:#6F6A5E;line-height:1.6">${org ? 'Shared by ' + e(org) + ' &middot; ' : ''}read-only; whoever switched it on can switch it off.</p>
+    <p style="margin:16px 0 0;font-size:12px;color:#737378;line-height:1.6">${org ? 'Shared by ' + e(org) + ' &middot; ' : ''}read-only; whoever switched it on can switch it off.</p>
     </div>
   </body></html>`;
 }
@@ -11499,14 +11500,14 @@ app.get('/deal/:token', (req, res) => {
   const gone = m => res.status(410).type('html').send(
     `<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><title>Where the deal stands</title>`
     + `<link rel="stylesheet" href="/fonts/geist.css"><link rel="stylesheet" href="/fonts/source-serif-4.css">`
-    + `<body style="margin:0;background:#F4F2ED;font:15px 'Geist','IBM Plex Sans',-apple-system,Segoe UI,Arial,sans-serif;color:#161512">`
-    + `<div style="max-width:560px;margin:0 auto;padding:60px 22px"><p style="font:600 19px 'Source Serif 4','Iowan Old Style',Georgia,serif;color:#161512;margin:0 0 12px">HaTi</p>`
+    + `<body style="margin:0;background:#F5F5F7;font:15px 'Geist','IBM Plex Sans',-apple-system,Segoe UI,Arial,sans-serif;color:#1D1D1F">`
+    + `<div style="max-width:560px;margin:0 auto;padding:60px 22px"><p style="font:600 19px 'Source Serif 4','Iowan Old Style',Georgia,serif;color:#1D1D1F;margin:0 0 12px">HaTi</p>`
     + `<p style="font-size:16px;line-height:1.6">${m}</p></div></body>`);
   if (!s || !shareIsStatus(s)) return res.status(404).type('html').send(
     `<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><title>Where the deal stands</title>`
     + `<link rel="stylesheet" href="/fonts/geist.css"><link rel="stylesheet" href="/fonts/source-serif-4.css">`
-    + `<body style="margin:0;background:#F4F2ED;font:15px 'Geist','IBM Plex Sans',-apple-system,Segoe UI,Arial,sans-serif;color:#161512">`
-    + `<div style="max-width:560px;margin:0 auto;padding:60px 22px"><p style="font:600 19px 'Source Serif 4','Iowan Old Style',Georgia,serif;color:#161512;margin:0 0 12px">HaTi</p>`
+    + `<body style="margin:0;background:#F5F5F7;font:15px 'Geist','IBM Plex Sans',-apple-system,Segoe UI,Arial,sans-serif;color:#1D1D1F">`
+    + `<div style="max-width:560px;margin:0 auto;padding:60px 22px"><p style="font:600 19px 'Source Serif 4','Iowan Old Style',Georgia,serif;color:#1D1D1F;margin:0 0 12px">HaTi</p>`
     + `<p style="font-size:16px;line-height:1.6">There is no status page at this address.</p></div></body>`);
   if (s.revoked_at) return gone('This status page was switched off by the company that shared it.');
   if (shareExpired(s)) return gone('This status page has expired. Ask the company that shared it for a new link.');
@@ -27637,7 +27638,7 @@ app.get('/sw.js', (req, res) => res.sendFile(path.join(__dirname, '..', 'js', 'p
 app.get('/manifest.webmanifest', (req, res) => {
   res.set({ ...NO_CACHE, 'Content-Type': 'application/manifest+json' });
   res.send(JSON.stringify({ name: 'HaTi', short_name: 'HaTi', start_url: '/', scope: '/', display: 'standalone',
-    background_color: '#F4F1EA', theme_color: '#161512' }));
+    background_color: '#F5F5F7', theme_color: '#1D1D1F' }));
 });
 // Serve exactly the static trees the frontend loads — the native ES modules
 // (js/), the design's two typefaces (fonts/) and the bundled sample PDFs

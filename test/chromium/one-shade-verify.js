@@ -157,9 +157,11 @@ async function login(b, base, email, pass, errs){
     const fold = await page.evaluate(() => { const b = document.querySelector('#pd-redface button.rl-band-fold'), cv = document.querySelector('#pd-redface .rk-cov-t');
       if (!b) return null; const s = getComputedStyle(b), n = b.querySelector('b'), i = b.querySelector('i');
       return { color: s.color, size: s.fontSize, weight: s.fontWeight, open: n ? getComputedStyle(n, '::before').content : '', arrow: i ? getComputedStyle(i).display : '',
-        cv: cv ? { color: getComputedStyle(cv).color, size: getComputedStyle(cv).fontSize, weight: getComputedStyle(cv).fontWeight } : null }; });
+        cv: cv ? { color: getComputedStyle(cv).color, size: getComputedStyle(cv).fontSize, weight: getComputedStyle(cv).fontWeight } : null,
+        /* the accent ink as the page resolves it (re-pointed 23 Oct 2026, THE LEGORA LOOK: the RELATION, not Chambers' literal green) */
+        ink: (() => { const p = document.createElement('i'); p.style.color = 'var(--accent-ink)'; document.body.appendChild(p); const c = getComputedStyle(p).color; p.remove(); return c; })() }; });
     check('5  the settled fold wears the Covered fold\'s dress: accent ink, same size and weight, "(N)" and its arrow',
-      !!fold && (!fold.cv || (fold.color === fold.cv.color && fold.size === fold.cv.size && fold.weight === fold.cv.weight)) && fold.color === 'rgb(31, 77, 59)' && /\(/.test(fold.open) && fold.arrow !== 'none', JSON.stringify(fold));
+      !!fold && (!fold.cv || (fold.color === fold.cv.color && fold.size === fold.cv.size && fold.weight === fold.cv.weight)) && fold.color === fold.ink && /\(/.test(fold.open) && fold.arrow !== 'none', JSON.stringify(fold));
     await shot(page, 'one-shade-1440x780');
     check('no page errors', !errs.length, errs.join(' | '));
   } finally { await b.close(); await h.stop(); }

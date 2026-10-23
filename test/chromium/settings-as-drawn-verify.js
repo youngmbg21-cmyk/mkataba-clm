@@ -74,10 +74,11 @@ const shot = async (page, name) => { if (!OUT) return; try { await page.screensh
     const head = await until(() => { const f = document.querySelector('#st-headcard [data-st-head-sub]'); const sel = document.querySelector('#set-page .st-face[aria-selected="true"]');
       if (!f || !sel || !f.textContent.trim()) return null;
       const cs = getComputedStyle(sel), n = document.querySelector('#set-page .st-face[data-st-tab="company"] .st-face-n');
-      return { facts: f.textContent.trim(), line: cs.borderBottomStyle + ' ' + cs.borderBottomWidth, thumb: (() => { const t = document.querySelector('#set-page .st-thumb'); return t ? getComputedStyle(t).display : 'none'; })(),
+      return { facts: f.textContent.trim(), line: cs.borderBottomStyle + ' ' + cs.borderBottomWidth, fill: cs.backgroundColor, r: cs.borderTopLeftRadius, thumb: (() => { const t = document.querySelector('#set-page .st-thumb'); return t ? getComputedStyle(t).display : 'none'; })(),
         n: n ? n.textContent.trim() : '', needs: stNeedsAll().length, word: (document.getElementById('st-side-word') || {}).textContent || '' }; });
     check('1a the head says the company', !!head && head.facts === 'Highland Corporate Ltd', JSON.stringify(head && head.facts));
-    check('1b the chosen tab is underlined, no sliding thumb', !!head && head.line === 'solid 2px' && head.thumb === 'none', head && (head.line + ' · ' + head.thumb));
+    /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): a chosen tab is a filled grey pill, never an underline */
+    check('1b the chosen tab is a filled grey pill (no underline), no sliding thumb', !!head && head.fill === 'rgb(240, 240, 243)' && parseFloat(head.r) >= 100 && !/solid [1-9]/.test(head.line) && head.thumb === 'none', head && (head.line + ' · ' + head.fill + ' · ' + head.r + ' · ' + head.thumb));
     check('1c Company counts Needs your attention', !!head && head.n === String(head.needs) && head.needs > 0, head && (head.n + ' / ' + head.needs));
     check('1d Jambo\'s head says "Company settings"', !!head && head.word === 'Company settings', head && head.word);
     await shot(page, 'settings-as-drawn-company-1440x780');

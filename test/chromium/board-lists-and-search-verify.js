@@ -118,8 +118,10 @@ const PANELS = [['pa', 'q:contracts by status'], ['pb', 'q:contracts by counterp
         const probe = document.createElement('i'); probe.style.color = 'var(--bar-line)'; document.getElementById('top-header').appendChild(probe);
         const line = getComputedStyle(probe).color; probe.remove();
         return { edge: cs.borderTopColor, w: cs.borderTopWidth, shadow: cs.boxShadow, line }; });
-      check(`4. ${screen}: the search field at rest has no thick boundary — one hairline, the bar's own line, no glow`,
-        rest.w === '1px' && rest.edge === rest.line && rest.shadow === 'none', JSON.stringify(rest));
+      /* RE-POINTED 23 Oct 2026 (THE LEGORA LOOK): the field at rest is a filled grey pill with no
+         edge at all (the drawing's search); still no thick boundary and no glow */
+      check(`4. ${screen}: the search field at rest has no thick boundary — no drawn edge, no glow`,
+        parseFloat(rest.w) <= 1 && /rgba\(0, 0, 0, 0\)|transparent/.test(rest.edge) && rest.shadow === 'none', JSON.stringify(rest));
       await page.click('#cmd-search');
       /* the field eases its edge in (a short transition): ask until it has
          settled, bounded, then read it whatever it says */
