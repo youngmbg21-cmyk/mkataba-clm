@@ -420,7 +420,10 @@ function cnRows(){
   /* a watch Jambo kept for you that has fired (the bell's 'watch' rows, js/jambopress.js) */
   let wts = []; try { wts = (typeof watchesFired === 'function') ? (watchesFired() || []) : []; } catch (_){ wts = []; }
   wts.forEach(w => out.push({ k: 'watch', kind: 'watch', urgent: false, w }));
-  return out.map((y, i) => ({ y, i })).sort((a, b) => (Number(!!b.y.fw) - Number(!!a.y.fw)) || (Number(b.y.urgent) - Number(a.y.urgent)) || (a.i - b.i)).map(o => o.y);
+  /* your own signature leads Your move, under only a colleague's approval held while they are away
+     (the bell's own order, owner-reported: "your own signature ranks first of all") */
+  const sig = y => Number(y.k === 'c' && y.kind === 'sign');
+  return out.map((y, i) => ({ y, i })).sort((a, b) => (Number(!!b.y.fw) - Number(!!a.y.fw)) || (sig(b.y) - sig(a.y)) || (Number(b.y.urgent) - Number(a.y.urgent)) || (a.i - b.i)).map(o => o.y);
 }
 /* WHAT WAITS FOR YOU, BY AGENT — the Jambo rows of the one desk (ndRead),
    counted by agent: one per piece, the rows the Board's "Jambo prepared" tab
@@ -557,7 +560,8 @@ function ndPieces(){
 const ND_NEWS = ['review-out', 'ap-cleared', 'gift', 'settings-answer', 'finding-sent', 'finding-answer', 'stream-self'];
 const ND_AL_ROWS = { 'review-mine': ['review'], suggest: ['suggest'], look: ['look'], details: ['details'], 'note-mine': ['note'], approval: ['approval', 'refused'], 'ap-refused': ['refused'], 'desk-quiet': ['quiet'], 'desk-join': ['join'], negotiation: ['quiet'], renewal: ['renewal'], signature: ['sign'] };
 const ND_AL_PIECES = { negotiation: ['answer'], 'desk-quiet': ['answer'], renewal: ['renewal', 'notice'], details: ['read'] };
-/* the admin's own list (stNeedsAll) already holds these three: the setup or company row stands for them */
+/* the admin's own list (stNeedsAll) already holds these: the setup or company row stands for them, last of
+   Your move. The mail warning (the owner moved it off the page onto the bell) leads that row's line */
 const ND_AL_ADMIN = ['settings-ask', 'access-review', 'email-off'];
 const ND_AL_KIND = { negotiation: 'review', 'review-back': 'review', 'suggest-back': 'review', 'cp-ready': 'sign', 'cp-accepted': 'sign', handover: 'sign', signature: 'sign', link: 'sign', mailroom: 'details', renewal: 'renewal', obligation: 'duty', 'cert-lapsed': 'duty', approval: 'approval', 'ap-refused': 'approval', 'desk-quiet': 'review', 'review-mine': 'review', details: 'details' };
 const ND_AL_BTN = { negotiation: 'review', 'review-back': 'review', 'suggest-back': 'review', 'desk-quiet': 'review', 'review-mine': 'review', 'cp-ready': 'sign', 'cp-accepted': 'sign', signature: 'sign', approval: 'decide', 'ap-refused': 'decide', renewal: 'decide', mailroom: 'look', details: 'fill', 'finding-ask': 'answer', 'settings-ask': 'answer', 'desk-join': 'answer' };
@@ -574,7 +578,10 @@ function ndAlCovered(a, rows, P, admin){
   const cid = String(a.id || '');
   if (a.kind === 'request' && a.lane) return P.some(p => p.it.kind === 'lane' && p.it.r && String(p.it.r.id) === String(a.rid));
   if (!cid) return false;
-  const kinds = ND_AL_ROWS[a.kind] || [], pk = ND_AL_PIECES[a.kind] || [];
+  /* an ending is not the decision: it keeps ringing after the decision (the bell's two renewal rows), so only
+     the week's own date stands for it */
+  const ends = a.kind === 'renewal' && !!a.ends;
+  const kinds = ends ? [] : (ND_AL_ROWS[a.kind] || []), pk = ends ? [] : (ND_AL_PIECES[a.kind] || []);
   if (rows.some(y => y.k === 'c' && String(y.x.c.id) === cid && kinds.includes(y.x.it.kind))) return true;
   if (P.some(p => String(_ndCid(p.it)) === cid && (pk.includes(p.it.kind) || (a.kind === 'link' && p.agent === 'link')))) return true;
   /* a duty or an ending this week is in the week's piece (agWeekItems, the Calendar's own reading) */
@@ -608,7 +615,9 @@ function ndRead(){
   };
   P.forEach(p => { p.cov = coverOf(p.it); });
   const covered = new Set(P.flatMap(p => p.cov));
-  const Y = rows.filter(y => !covered.has(y));
+  /* a document the Mailroom gave you says it once, as its own line: reading it IS filling its details in (the bell's own rule) */
+  const AL = ndAlerts(), mail = new Set(AL.work.filter(a => a.kind === 'mailroom').map(a => String(a.id)));
+  const Y = rows.filter(y => !covered.has(y) && !(y.k === 'c' && y.x.it.kind === 'details' && mail.has(String(y.x.c.id))));
   const det = Y.filter(y => y.k === 'c' && y.x.it.kind === 'details');
   const bundle = det.length >= ND_BUNDLE_MIN;
   const ages = L => L.map(ndAgeOf).filter(a => a != null);
@@ -624,13 +633,15 @@ function ndRead(){
     const id = y.k === 'c' ? y.x.c.id + ':' + y.x.it.kind : y.k === 'note' ? y.n.id : y.k === 'req' ? (y.r && y.r.id) : (y.w && y.w.id);
     you.push({ g: 'you', key: y.k + ':' + id, kind: ndKindOf(y), y, n: 1, late: y.urgent ? 1 : 0, age: ndAgeOf(y) });
   });
-  const S = cnSetup(), R = cnCompany();
-  const AL = ndAlerts(), seen = new Set();
-  AL.work.forEach(a => { if (ndAlCovered(a, rows, P, !!(S || R.length))) return;
+  const S = cnSetup(), R0 = cnCompany();
+  const seen = new Set();
+  AL.work.forEach(a => { if (ndAlCovered(a, rows, P, !!(S || R0.length))) return;
     const key = ndAlKey(a); if (seen.has(key)) return; seen.add(key);
     you.push({ g: 'you', key, kind: ND_AL_KIND[a.kind] || 'ask', al: a, n: 1, late: a.late ? 1 : 0, age: null }); });
+  const mailOff = AL.work.find(a => a.kind === 'email-off') || null;
+  const R = mailOff ? R0.filter(x => !(x && x.key === 'panel:mail')) : R0;
   if (S) you.push({ g: 'you', key: 'setup', kind: 'ask', setup: S, n: 1, late: 0, age: null });
-  else if (R.length) you.push({ g: 'you', key: 'company', kind: 'ask', company: R, n: 1, late: 0, age: null });
+  else if (R0.length) you.push({ g: 'you', key: 'company', kind: 'ask', company: R, mail: mailOff, n: 1, late: 0, age: null });
   const tone = it => it.tone === 'ruby' ? 2 : it.tone === 'amber' ? 1 : 0;
   const jambo = P.map(({ it, agent, cov }, i) => {
     const a = [ndPieceAge(it)].concat(ages(cov)).filter(x => x != null);
@@ -694,8 +705,11 @@ function ndParts(r){
     /* a bell signal of its own: its words, its contract, its own door (a.go) */
     const a = r.al, c = (a.id && typeof getContract === 'function') ? getContract(a.id) : null;
     P.title = String(a.text || '');
-    P.deal = c ? [c.name, c.counterparty].filter(Boolean).join(' · ') : String(a.sub || a.name || '');
-    P.who = c ? String(a.sub || '') : '';
+    /* its own line first — what came back, who asked, the note (owner, 13 Sep 2026: "what the other side did, in one line") — then the agreement */
+    P.deal = [String(a.sub || ''), c ? [c.name, c.counterparty].filter(Boolean).join(' · ') : [a.name, a.ref].filter(Boolean).join(' · ')].filter(Boolean).join(' · ');
+    /* good news stays green and flashes once on the sitting it is first seen (owner, 23 Aug 2026; the bell's own `news`) */
+    P.good = a.tone === 'green'; P.news = !!a.news;
+    if (a.hint) P.tip = String(a.hint);
     P.ref = (c && typeof refHtml === 'function') ? refHtml(c) : '';
     P.btn = ND_AL_BTN[a.kind] || 'open';
     P.attrs = `data-nd-al="${_cnE(r.key)}"`;
@@ -703,8 +717,8 @@ function ndParts(r){
   }
   if (r.setup){ P.title = _cnTn('hb_setup_left', r.setup, { n: r.setup }); P.attrs = 'data-cn-setup'; return P; }
   if (r.company){
-    P.title = _cnT('cn_company') + ' · ' + r.company.length;
-    P.deal = r.company.slice(0, 3).map(x => String(x.text || '').trim()).filter(Boolean).join(' · ');
+    P.title = _cnT('cn_company') + ' · ' + (r.company.length + (r.mail ? 1 : 0));
+    P.deal = [r.mail ? String(r.mail.text || '').trim() : ''].concat(r.company.slice(0, r.mail ? 2 : 3).map(x => String(x.text || '').trim())).filter(Boolean).join(' · ');
     P.attrs = 'data-cn-co'; return P;
   }
   const y = r.y;
@@ -744,6 +758,8 @@ function ndParts(r){
   else if (it.kind === 'renewal' && it.d != null) P.when = it.d <= 0 ? _cnT('ins_days_today') : _cnTn('ins_need_in', it.d, { n: it.d });
   else { const due = String(it.due || '').slice(0, 10); P.when = /^\d{4}-\d{2}-\d{2}$/.test(due) ? _cnT('cn_due', { day: cnDayWords(due) }) : ''; }
   P.btn = ND_BTN[it.kind] || 'open';
+  /* a renewal's Decide says it reads the contract again (the renewal's one door, needsYouGo) */
+  if (it.kind === 'renewal') P.tip = _cnT('ins_need_go_terms');
   const priv = c.folder && typeof streamIsPrivate === 'function' && streamIsPrivate(c.folder)
     ? _cnPill('lock', _cnT('cn_private', { stream: ((typeof FOLDERS !== 'undefined' && FOLDERS[c.folder]) || {}).name || '' })) : '';
   const away = y.fw ? _cnPill('users', y.fw.until ? _cnT('cn_need_away', { who: _cnFirst(y.fw.name), day: cnDayWords(y.fw.until) }) : _cnT('cn_need_for', { who: _cnFirst(y.fw.name) })) : '';
@@ -752,7 +768,7 @@ function ndParts(r){
   P.ref = (typeof refHtml === 'function') ? refHtml(c) : _cnE((typeof contractRef === 'function') ? contractRef(c) : c.id);
   return P;
 }
-const _ndBtnHtml = (P, attrs) => `<button type="button" class="ui-btn ui-btn-sm nd-btn" ${attrs != null ? attrs : P.attrs}>${_cnE(_cnT('nd_btn_' + P.btn))}</button>`;
+const _ndBtnHtml = (P, attrs) => `<button type="button" class="ui-btn ui-btn-sm nd-btn" ${attrs != null ? attrs : P.attrs}${P.tip ? ` title="${_cnE(P.tip)}"` : ''}>${_cnE(_cnT('nd_btn_' + P.btn))}</button>`;
 const _ndStepHtml = P => P.step ? `<span class="nd-step" title="${_cnE(_cnT('nd_step_title', P.step))}">${_cnE(_cnT('nd_step', P.step))}</span>` : '';
 const _ndTagHtml = P => P.tag ? `<span class="nd-tag">${_cnE(P.tag)}</span>` : '';
 
@@ -765,7 +781,7 @@ function ndHomeRowHtml(r){
     ? `<i class="nd-read">${_cnE(_cnT('nd_read'))}</i> ${_cnE(P.read)}${P.ref ? ' · ' + P.ref : ''}`
     : _cnE(P.deal);
   const hover = r.g === 'jambo' ? P.line : [_ndText(P.ref), P.deal].filter(Boolean).join(' · ');
-  return `<div class="cn-r nd-r" data-nd-row="${_cnE(r.key)}"${hover ? ` title="${_cnE(hover)}"` : ''}><div class="cn-w"><b><span class="nd-t">${_cnE(P.title)}</span>${_ndStepHtml(P)}${_ndTagHtml(P)}${P.pills}</b><span>${sub}</span></div>`
+  return `<div class="cn-r nd-r${P.good ? ' nd-good' : ''}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}"${hover ? ` title="${_cnE(hover)}"` : ''}><div class="cn-w"><b><span class="nd-t">${_cnE(P.title)}</span>${_ndStepHtml(P)}${_ndTagHtml(P)}${P.pills}</b><span>${sub}</span></div>`
     + `<span class="nd-when${P.late ? ' cn-late' : ''}">${_cnE(P.when)}</span>${_ndBtnHtml(P)}</div>`;
 }
 function ndHomeHtml(D){
@@ -817,7 +833,7 @@ function ndBoardRowHtml(r, opts){
   const btn = piece
     ? `<button type="button" class="ui-btn ui-btn-sm nd-btn${look ? ' is-on' : ''}" data-hb-ag-look="${_cnE(r.it.key)}" aria-expanded="${!!look}">${_cnE(_cnT('nd_btn_look'))}</button>`
     : _ndBtnHtml(P);
-  return `<div class="nd-br${look ? ' is-look' : ''}" data-nd-row="${_cnE(r.key)}"${piece ? ` data-hb-ag-item="${_cnE(r.it.key)}" data-nd-agent="${_cnE(r.agent)}"` : ''}>`
+  return `<div class="nd-br${look ? ' is-look' : ''}${P.good ? ' nd-good' : ''}${P.news ? ' nd-news' : ''}" data-nd-row="${_cnE(r.key)}"${piece ? ` data-hb-ag-item="${_cnE(r.it.key)}" data-nd-agent="${_cnE(r.agent)}"` : ''}>`
     + `<span class="nd-c nd-c-what"${piece && P.line ? ` title="${_cnE(P.line)}"` : ''}><b>${_cnE(P.title)}</b>${_ndTagHtml(P)}${P.priv}</span>`
     + `<span class="nd-c nd-c-deal" title="${_cnE([P.deal, _ndText(P.ref)].filter(Boolean).join(' · '))}">${_cnE(P.deal)}${P.ref ? (P.deal ? ' · ' : '') + P.ref : ''}</span><span class="nd-c nd-c-who">${_cnE(P.who)}</span>`
     + `<span class="nd-c nd-c-when${P.late ? ' cn-late' : ''}">${_cnE(P.when)}</span><span class="nd-c nd-c-next">${btn}</span>${look}</div>`;

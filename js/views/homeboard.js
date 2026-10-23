@@ -1635,8 +1635,8 @@ function hbNdLookHtml(it){
   const T = (fn, d) => { try { return (typeof window[fn] === 'function') ? window[fn](it) : d; } catch (_){ return d; } };
   const act = T('agRowActOf', null);
   const rest = typeof agActsOf === 'function' ? agActsOf(it).filter(a => a.act !== 'away' && !(act && a.act === act.act)) : [];
-  const acts = (act ? `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-ag-act="${_hbE(act.act)}">${_hbE(act.label)}</button>` : '')
-    + rest.map(a => `<button type="button" class="${a.cls === 'link' ? 'ui-link' : 'ui-btn ui-btn-sm'}" data-ag-act="${_hbE(a.act)}">${_hbE(a.label)}</button>`).join('')
+  const acts = (act ? `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-ag-act="${_hbE(act.act)}"${act.tip ? ` title="${_hbE(act.tip)}"` : ''}>${_hbE(act.label)}</button>` : '')
+    + rest.map(a => `<button type="button" class="${a.cls === 'link' ? 'ui-link' : 'ui-btn ui-btn-sm'}" data-ag-act="${_hbE(a.act)}"${a.tip ? ` title="${_hbE(a.tip)}"` : ''}>${_hbE(a.label)}</button>`).join('')
     + `<button type="button" class="ui-link hb-pc-away" data-ag-act="away">${_hbE(i18t('desk_discard'))}</button>`;
   const body = T('agLookHtml', '') || T('agPanelBody', '');
   const mail = it.kind === 'chase' || it.kind === 'chase-firm';
@@ -5421,10 +5421,10 @@ function hbAgPieceHtml(it){
   const act = T('agRowActOf', null);
   const col = (typeof jhAgentColour === 'function') ? jhAgentColour(it.agent) : '';
   const tag = `<span class="hb-pc-tag"${col ? ` style="--hb-pc-c:${_hbE(col)}"` : ''}><i aria-hidden="true"></i>${_hbE(i18t('ag_' + it.agent))}</span>`;
-  const actBtn = act ? `<button type="button" class="ui-btn ui-btn-sm${look ? ' ui-btn-primary' : ''}" data-ag-act="${_hbE(act.act)}">${_hbE(act.label)}</button>` : '';
+  const actBtn = act ? `<button type="button" class="ui-btn ui-btn-sm${look ? ' ui-btn-primary' : ''}" data-ag-act="${_hbE(act.act)}"${act.tip ? ` title="${_hbE(act.tip)}"` : ''}>${_hbE(act.label)}</button>` : '';
   /* the piece's other acts, under it while it is open: none is lost by folding */
   const rest = look && typeof agActsOf === 'function' ? agActsOf(it).filter(a => a.act !== 'away' && !(act && a.act === act.act)) : [];
-  const restHtml = rest.length ? `<div class="ag-p-acts hb-pc-more">${rest.map(a => `<button type="button" class="${a.cls === 'link' ? 'ui-link' : 'ui-btn ui-btn-sm'}" data-ag-act="${_hbE(a.act)}">${_hbE(a.label)}</button>`).join('')}</div>` : '';
+  const restHtml = rest.length ? `<div class="ag-p-acts hb-pc-more">${rest.map(a => `<button type="button" class="${a.cls === 'link' ? 'ui-link' : 'ui-btn ui-btn-sm'}" data-ag-act="${_hbE(a.act)}"${a.tip ? ` title="${_hbE(a.tip)}"` : ''}>${_hbE(a.label)}</button>`).join('')}</div>` : '';
   const body = look ? (T('agLookHtml', '') || T('agPanelBody', '')) : '';
   const mail = look && (it.kind === 'chase' || it.kind === 'chase-firm');
   return `<div class="hb-ag-work is-line${look ? ' is-look' : ''}" data-hb-ag-item="${_hbE(it.key)}"><div class="hb-pc-r">

@@ -16020,6 +16020,11 @@
   .nd-pan .nd-t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .nd-pan .cn-pill{flex:0 1 auto;min-width:0;max-width:104px;display:inline-block;vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .nd-pan .cn-pill .cn-pill-ic{display:none}
+  /* GOOD NEWS STAYS GREEN on the one desk's rows (the bell's al-good, owner 23 Aug 2026), and flashes once */
+  .nd-r.nd-good,.nd-br.nd-good{box-shadow:inset 3px 0 0 var(--st-green-dot)}
+  .nd-r.nd-good .nd-t,.nd-br.nd-good .nd-c-what b{color:var(--st-green-fg)}
+  .nd-r.nd-news,.nd-br.nd-news{animation:al-row-news 1s ease-in-out 0s 3}
+  @media (prefers-reduced-motion:reduce){ .nd-r.nd-news,.nd-br.nd-news{animation:none;background:var(--st-green-bg)} }
   .nd-read{font-style:normal;font-weight:var(--w-strong);color:var(--accent-ink)}
   .nd-step,.nd-tag{flex:none;display:inline-flex;align-items:center;height:18px;padding:0 5px;border:1px solid currentColor;border-radius:var(--radius);font-size:var(--t-micro);font-weight:var(--w-strong);line-height:1;white-space:nowrap}
   .nd-step{color:var(--accent-ink)}

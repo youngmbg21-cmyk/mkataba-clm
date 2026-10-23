@@ -402,7 +402,8 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       const txt = el ? el.innerText : '';
       /* It ranks LAST: every row above it is work with somebody's name on it,
          and this is a setting nobody is blocked on this minute. */
-      const rows = [...document.querySelectorAll('[data-alert-i]')].map(r => r.innerText);
+      /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the panel's rows are the one desk's; the mail warning stays its own row, last */
+      const rows = [...document.querySelectorAll('#context-panel .nd-pan .nd-r')].map(r => r.innerText);
       return { has: /email/i.test(txt), last: rows.length ? /email/i.test(rows[rows.length - 1]) : false,
         n: rows.length };
     });

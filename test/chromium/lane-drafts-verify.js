@@ -118,9 +118,13 @@ const until = async (page, fn, arg, ms = 8000) => {
     ok('3d and names the lane and who asked', !!mine && /Routine NDA/.test(mine.sub) && /Faith Njeri/.test(mine.sub), mine && mine.sub);
     await p2.evaluate(() => openPanel('alerts')); await p2.waitForTimeout(500);
     await p2.screenshot({ path: path.join(OUT, '3-bell.png') });
-    const row = await p2.evaluateHandle(() => [...document.querySelectorAll('[data-alert-kind="request"]')].find(e => /site visit/.test(e.textContent)) || null);
-    const el = row.asElement();
-    ok('3e the row is drawn in the panel', !!el);
+    /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the panel draws the one desk — the draft
+       made for him is Jambo's lane piece (Look), whose "Open the draft" opens it; or, where no piece
+       stands for it, the bell's own row */
+    let el = await p2.$('.nd-pan .nd-r[data-nd-row^="al:request:"] [data-nd-al]');
+    const look = el ? null : await p2.$('.nd-pan [data-nd-look^="lane:"]');
+    ok('3e the row is drawn in the panel', !!(el || look));
+    if (look){ await look.click(); await p2.waitForTimeout(1200); el = await p2.$('#hm-agents .nd-br.is-look [data-ag-act="overview"]'); }
     if (el) await el.click();
     /* RE-POINTED 15 Oct 2026 (the overnight work order, step 8): the room
        retired — the row opens the draft's Lifeline strip on Home's Board, and

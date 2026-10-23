@@ -139,10 +139,15 @@ const BOX = `(sel => { const el = document.querySelector(sel); if (!el) return n
 
     /* ---- 4. AN ALERT IS A DOOR ---- */
     /* the negotiation's row: the bell's own (its door) or, once the desk has gone quiet, the checklist's */
-    await page.evaluate(id => {
+    const via = await page.evaluate(id => {
       const b = document.querySelector(`#panel-body [data-nd-al^="al:negotiation:${id}:"], #panel-body [data-cn-need="quiet"][data-cn-id="${id}"]`);
-      if (b) b.click();
+      if (b){ b.click(); return 'row'; }
+      /* or Jambo's answer to it: Look opens the piece on the Board, its "Answer on Redlines" the face */
+      const l = document.querySelector(`#panel-body [data-nd-look="answer:${id}"]`);
+      if (l){ l.click(); return 'look'; }
+      return null;
     }, cid);
+    if (via === 'look'){ await page.waitForTimeout(1200); await page.click('#hm-agents .nd-br.is-look [data-ag-act="nego"]').catch(() => {}); }
     await page.waitForTimeout(1600);
     /* ---- WALKING PAST THE FIELDS QUESTION (17 Sep 2026) ----
        An alert row is a door onto the negotiation, so since the owner's

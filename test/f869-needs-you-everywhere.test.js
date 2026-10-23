@@ -20,6 +20,9 @@
      (4) nobody named to sign is a detail owed on Home as on the Dossier (one
          reading, signerOwed)
      (5) both books
+     earlier rulings kept on the new rows: good news green, flashing once
+     (23 Aug 2026); what came back leads the row's line (13 Sep 2026); a
+     colleague's hand-off carries its note
    AT THE PARENT (a873c4b) every test here FAILS: there is no ndAlerts, the
    bell counts buildAlerts, and the panel has no tabs (run, 23 Oct 2026).
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -96,8 +99,13 @@ describe('f869 (2) the bell\'s signals: news apart, work never lost, never twice
     assert.equal(D.you.filter(r => r.al).map(r => r.al.kind).join(','), 'handover', 'nothing of the bell\'s is a second row; the one it alone holds joins');
     assert.equal(D.n, 4, 'the answer, the approval, the review, the handover');
   });
-  test('2c a duty or an ending this week is the week\'s piece; the admin\'s three are the company row', () => {
+  test('2c a duty or an ending this week is the week\'s piece; the admin\'s own are the company row, the mail warning leading its line', () => {
     const week = { key: 'week:1', kind: 'week', agent: 'week', cid: null, evs: [{ type: 'obligation', obId: 'ob-1', cid: 'MK-2' }, { type: 'expiry', cid: 'MK-3' }] };
+    const w2 = world({ company: [{ key: 'ask:1', text: 'Answer Sara' }, { key: 'panel:mail', text: 'Email' }], alerts: [al('email-off', '', 'Email isn\'t set up')] });
+    const D2 = w2.ndRead();
+    assert.equal(D2.you.map(r => r.key).join(','), 'company', 'one row, the admin\'s own, last');
+    const C2 = w2.ndParts(D2.you[0]);
+    assert.match(C2.title, / · 2$/, 'the mail warning counted once'); assert.match(C2.deal, /^Email isn’t set up · Answer Sara$|^Email isn't set up · Answer Sara$/);
     const w = world({ pieces: [week], company: [{ key: 'ask:1', text: 'Answer Sara' }],
       alerts: [al('obligation', 'MK-2', 'Due in 2 days', { obId: 'ob-1' }), al('renewal', 'MK-3', 'Ends in 20 days', { ends: true }),
         al('settings-ask'), al('access-review'), al('email-off'), al('obligation', 'MK-1', 'Overdue: the report', { obId: 'ob-7', late: true })] });
@@ -117,10 +125,20 @@ describe('f869 (2) the bell\'s signals: news apart, work never lost, never twice
     const P = w.ndParts(A[0]);
     assert.equal(P.title, 'They said they are ready to sign');
     assert.equal(P.deal, 'Agreement MK-1 · Nordvik Logistik');
+    const sub = w.ndParts({ g: 'you', key: 'k', al: al('negotiation', 'MK-3', '2 changes', { sub: 'They asked for 2 changes' }) });
+    assert.equal(sub.deal, 'They asked for 2 changes · Agreement MK-3 · Helio Energy AB', 'what came back leads its line');
+    const good = w.ndParts({ g: 'you', key: 'k', al: al('cp-ready', 'MK-1', 'Ready', { tone: 'green', news: true }) });
+    assert.ok(good.good && good.news, 'good news is green and flashes');
+    assert.match(w.ndHomeRowHtml({ g: 'you', key: 'k', al: al('cp-ready', 'MK-1', 'Ready', { tone: 'green', news: true }) }), /class="cn-r nd-r nd-good nd-news"/);
     assert.equal(P.btn, 'sign');
     assert.match(P.attrs, /^data-nd-al="al:cp-ready:MK-1:[a-z0-9]+"$/);
     assert.equal(w.ndParts(A[2]).btn, 'review');
     assert.match(w.ndHomeRowHtml(A[1]), /data-nd-al="al:obligation:MK-2:[a-z0-9]+">Open</);
+  });
+  test('2d2 an ending is not the decision: the renewal\'s row and piece never stand for it', () => {
+    const memo = { key: 'renew:MK-3', kind: 'renewal', agent: 'round', cid: 'MK-3', c: BOOK['MK-3'] };
+    const w = world({ rows: [row('MK-3', 'renewal')], pieces: [memo], alerts: [al('renewal', 'MK-3', 'Ends in 20 days', { ends: true }), al('renewal', 'MK-3', 'Decide the renewal')] });
+    assert.equal(w.ndRead().you.filter(r => r.al).map(r => r.al.text).join(','), 'Ends in 20 days');
   });
   test('2e the same signal twice is one row', () => {
     const w = world({ alerts: [al('cp-ready', 'MK-1', 'Ready'), al('cp-ready', 'MK-1', 'Ready')] });
@@ -173,13 +191,12 @@ describe('f869 (4) nobody named to sign is a detail owed, on Home as on the Doss
     const n = fnBody(HOME, 'needsYouOf');
     assert.match(n, /const sg=\(window\.signerOwed&&signerOwed\(c\)\)\?1:0;[\s\S]*const n=\(\(d&&d\.left\)\|\|0\)\+sg;[\s\S]*if\(n\) out\.push\(\{ kind:'details', urgent:false, n \}\)/);
   });
-  test('4b the Dossier: a piece stands for the rows it covers, their asks and the late duty it chases', () => {
+  test('4b the Dossier: a piece stands for the rows it covers and the late duty it chases', () => {
     const rows = fnBody(PD, 'pdNeedsRows');
     assert.match(rows, /ndRead\(\)/);
     assert.match(rows, /ND_MERGE\[r\.it\.kind\]/);
     const owed = fnBody(PD, 'dossierOwed');
-    assert.match(owed, /const answered = needs\.some\(r => r && r\.jw && r\.pk === 'answer'\);/);
-    assert.match(owed, /if \(asks\.length && !quiet && !answered\)/);
+    assert.match(owed, /if \(asks\.length && !quiet\)/, 'their asks one by one stay (pass 3 as drawn)');
     assert.match(owed, /if \(late\.length > chased\)/);
   });
 });

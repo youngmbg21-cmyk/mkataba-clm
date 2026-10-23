@@ -3434,8 +3434,7 @@ function dossierOwed(c){
   const needs = (pdNeedsRows(c) || []).concat(pdNoteRows(c) || []);
   const quiet = needs.some(r => r && r.it && r.it.kind === 'quiet');
   const asks = pdTheirAsks(c);
-  const answered = needs.some(r => r && r.jw && r.pk === 'answer');
-  if (asks.length && !quiet && !answered){
+  if (asks.length && !quiet){
     asks.slice(0, DOSSIER_ASKS_MAX).forEach(ch => out.push({ k: 'ask:' + ch.id, kind: 'ask', ch }));
     if (asks.length > DOSSIER_ASKS_MAX) out.push({ k: 'asks-more', kind: 'ask', more: asks.length - DOSSIER_ASKS_MAX, n: asks.length - DOSSIER_ASKS_MAX });
   }

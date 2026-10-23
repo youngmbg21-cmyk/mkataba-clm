@@ -145,17 +145,18 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
     ok('1b their agreement reached our record', !!got, JSON.stringify(got));
     await own.evaluate(() => setView('dashboard')); await pause(900);
     await own.click('#hdr-notify'); await pause(700);
+    /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the panel draws the one desk's rows; the
+       bell's own signal is a row of its own (data-nd-row "al:<kind>:<contract>:…"), still green */
     const row = await own.evaluate(() => {
-      const r = [...document.querySelectorAll('#context-panel [data-alert-kind="cp-accepted"]')]
-        .find(b => b.innerText.includes('MK-A2'));
-      return r ? { text: r.innerText.replace(/\s+/g, ' ').trim(), good: r.classList.contains('al-good'),
-        kinds: [...document.querySelectorAll('#context-panel [data-alert-kind]')].map(b => b.getAttribute('data-alert-kind')) } : null;
+      const r = document.querySelector('#context-panel .nd-pan .nd-r[data-nd-row^="al:cp-accepted:MK-A2:"]');
+      return r ? { text: r.innerText.replace(/\s+/g, ' ').trim(), good: r.classList.contains('nd-good'),
+        kinds: [...document.querySelectorAll('#context-panel .nd-pan .nd-r')].map(b => b.getAttribute('data-nd-row')) } : null;
     });
     ok('1c our alerts bell says so, in green, naming who agreed and that nothing is signed yet',
       !!got && !!row && /agreed to the wording/i.test(row.text) && /Grace Njeri/.test(row.text) && /not signed yet/i.test(row.text) && row.good,
       JSON.stringify(row));
     await own.screenshot({ path: path.join(OUT, '1-bell-agreed.png') });
-    const pressed = await own.$('#context-panel [data-alert-kind="cp-accepted"]');
+    const pressed = await own.$('#context-panel .nd-pan [data-nd-al^="al:cp-accepted:MK-A2:"]');
     if (pressed) { await pressed.click({ timeout: 5000 }).catch(() => {}); await pause(1600); }
     /* RE-POINTED 14 Oct 2026 (the one-page Home plan, stage 5): the room's
        Signing tab went home — its door opens Jambo's Before you sign face
@@ -218,8 +219,15 @@ const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
     await own.evaluate(() => { regSetScope(null); (regPlaceSet({ show: 'list' }), setView('register')); }); await pause(1200);
     const r1 = await own.$('#reg-tbody tr[data-row="MK-R9"]');
     await own.click('#hdr-notify').catch(() => {}); await pause(700);
-    const decide = await (async () => { for (const r of await own.$$('#context-panel [data-alert-i]')){
-      if ((await r.getAttribute('data-alert-kind')) === 'renewal' && /MK-R9/.test(await r.innerText())) return r; } return null; })();
+    /* RE-POINTED 23 Oct 2026 (the bell, the Legora way): the bell's renewal is the one desk's row — the
+       checklist's own Decide, or Jambo's renewal piece, whose Look opens it on the Board's card and whose
+       "Decide the renewal" presses the same one door (needsYouGo 'renewal') with the same hover */
+    let decide = await own.$('#context-panel .nd-pan [data-cn-need="renewal"][data-cn-id="MK-R9"], #context-panel .nd-pan [data-nd-al^="al:renewal:MK-R9:"]');
+    if (!decide){
+      const look = await own.$('#context-panel .nd-pan [data-nd-look*="MK-R9"]');
+      if (look){ await look.click().catch(() => {}); await pause(1200);
+        decide = await own.$('#hm-agents .nd-br.is-look [data-ag-act="renewal"]'); }
+    }
     const hover = decide ? await decide.getAttribute('title') : null;
     ok('3a the stage: the renewal is on the bell, with its door, and the contract is still a light list row',
       !!decide && before.light && !!r1, JSON.stringify({ decide: !!decide, row: !!r1, before }));
