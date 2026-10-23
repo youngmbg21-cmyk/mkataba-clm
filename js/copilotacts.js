@@ -397,6 +397,35 @@ async function caPassSend(c, person, note, o){
    prepare from the words alone, or null (and the question goes on as before). */
 function caActOf(q){
   const t = caRefFix(String(q || '').trim()); if (!t) return null;
+  const r = caActRead(t);
+  /* "the drafts in distribution" are contracts at the draft stage, never a new one to write */
+  if (r && r.kind === 'go' && r.place === 'draft' && /\b(drafts|utkasten)\b/i.test(t)) return null;
+  if (!r || !caAiFirst()) return r;
+  /* "the big one", "the draft": too little to act on — Jambo asks which (stage 3c) */
+  if (CA_VAGUE_RE.test(t)) return null;
+  /* AI FIRST (stage 3b): a question ("which…", "how many…", "vilka…") is answered, not met with a door or a
+     card read off one of its words; sending and drafting stay the readers' own */
+  /* "how do I get them to sign?" asks for the way to do a thing: the task's own card answers it, free */
+  /* …and a named door that is itself a question ("what is still open on MK-J2": the deal's open points) is that door,
+     never a guess (stage 3d; copilot-jobs 2a) */
+  /* …and a question that IS one of a place's own phrases, read word for word ("what's next", "what can you do",
+     "vad nu"), is that card: nothing in it is guessed (next-step-chips 2) */
+  const ownPhrase = () => { try { const p = caPlaceOf(t); return !!(p && r.kind === 'go' && p.place === r.place); } catch (_){ return false; } };
+  if (CA_WH_Q.test(t) && !/^\s*(how (do|can|should) (i|we)|hur (gör|kan) (jag|vi))\b/i.test(t) && !['send', 'draft', 'door'].includes(r.kind) && !(r.kind === 'go' && !r.cid && CA_WH_WORKLISTS.includes(r.place)) && !ownPhrase()) return null;
+  /* …and an act read for the contract open beside the reader is not done when the words name ANOTHER one
+     ("make an amendment to the Westlands lease" with the courier contract open) */
+  /* (a colleague picked with @ is a person, never another contract's name: "@Unrestricted Legal" holds "legal") */
+  if (r.cid && typeof igAsksOtherThan === 'function'){ let other = false;
+    const pn = (r.person && r.person.name) ? String(r.person.name) : '';
+    const tw = pn ? t.replace(new RegExp('@?' + pn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), ' ') : t;
+    try { other = igAsksOtherThan(tw, r.cid); } catch (_){ other = false; } if (other) return null; }
+  return r;
+}
+/* a question whose answer IS a worklist ("what is waiting for my approval") still opens it: answered where the list is */
+const CA_VAGUE_RE = /^\s*(?:the|that|this)\s+(?:(?:big|biggest|small|new|old|latest|last|first|other|main|usual)\s+)?(?:one|draft|thing|deal|contract|agreement)\s*$/i;
+const CA_WH_WORKLISTS = ['approvals', 'needs', 'requests', 'oblig', 'expiring', 'contracts', 'negotiations', 'calendar'];
+const CA_WH_Q = /^\s*(which|what|whats|who|whos|whom|whose|when|why|how (many|much|long|often|do|does|can)|does|do|did|is|are|can|could|should|vilk\w*|vad|vem|när|varför|hur)\b/i;
+function caActRead(t){
   const send = caReadSend(t); if (send) return send;
   const job = caReadJob(t); if (job) return job;
   const door = caReadDoor(t); if (door) return door;
@@ -415,6 +444,14 @@ function caActOf(q){
   if (typeof jmRead === 'function'){ const m = jmRead(t); if (m) return (m.kind === 'map' && caAiFirst() && t.trim().split(/\s+/).length >= 3
     && !((m.picks || []).some(k => typeof JM_STARTS_WORK !== 'undefined' && JM_STARTS_WORK.has(k)))) ? null : m; }
   return null;
+}
+/* A COUNT SAYS WHICH (stage 3b): a short list a free reading counted ("with Naivas Supermarkets: 2") shows
+   those contracts under the line, as their source; a long one is its page's */
+const CA_ANSWER_IDS_MAX = 6;
+function caAnswerIds(a){
+  const ids = (a && a.nav && a.nav.k === 'contracts' && Array.isArray(a.nav.ids)) ? a.nav.ids
+    : (a && a.narrow && Array.isArray(a.narrow.ids)) ? a.narrow.ids : null;
+  return (ids && ids.length && ids.length <= CA_ANSWER_IDS_MAX) ? { cardIds: ids.slice() } : {};
 }
 /* AI FIRST (Jambo works like Copilot, stage 3, 22 Oct 2026): a free reading that is only a guess ("which of
    these did you mean", the map's close matches) gives way to Jambo wherever he can answer; with no engine
@@ -550,8 +587,12 @@ const CA_DRAFT_OPTS = 3;
    question (a "?" or a question word first) is never a draft. */
 const CA_DRAFT_BARE = /^\s*(?!(?:the|this|that|these|those|our|their|my|its|den|det|dessa|vårt|vår|våra|deras|mitt|min)\s)(?:(?:an?|new|ett|en|nytt?)\s+)?(?:[\p{L}-]+\s+){0,2}?(?:agreement|contract|nda|non-?disclosure agreement|lease|licen[cs]e|mou|sow|statement of work|addendum|amendment|avtal|kontrakt|sekretessavtal|hyresavtal|licensavtal|tillägg)(?=[\s.,!:]|$)/iu;
 const CA_DRAFT_ASKING = /\?|^\s*(?:what|which|who|whom|whose|how|when|where|why|show|list|find|open|are|is|do|does|can|vad|vilka|vilket|vilken|vem|hur|när|var|varför|visa|lista|hitta|öppna|finns)(?=[\s.,!:]|$)/i;
+/* "start negotiating the milk contract", "start signing MK-B2": an act on a contract that exists, never new paper */
+/* …and an amendment is made TO a contract that exists (its own Amend door), never new paper (stage 3d) */
+const CA_DRAFT_NOT = /\b(negotiat\w*|redlin\w*|förhandl\w*|signing|signera\w*|reviewing|granska\w*|amend\w*|ändring\w*)\b/i;
 function caIsDraftAsk(q){
   const t = String(q || '');
+  if (CA_DRAFT_NOT.test(t)) return false;
   if (CA_DRAFT_RE.test(t) && CA_DRAFT_NOUN.test(t)) return true;
   return !CA_DRAFT_ASKING.test(t) && CA_DRAFT_BARE.test(t) && !!caDraftWith(t);
 }
@@ -1604,7 +1645,7 @@ async function caDraftReply(prompt, cid){
     return (e && e.needsKey) ? { why: 'nokey' } : { why: 'failed', msg: (e && e.message) || '' };
   }
 }
-Object.assign(window, { caDraftReply, caAiFirst, DRAFT_WALL_PANEL, draftWallAdmins, draftWallAsked, draftWallSay, draftWallWhen, draftWallWhyHtml, draftWallActHtml, draftWallSend, draftWallToast });
+Object.assign(window, { CA_VAGUE_RE, caDraftReply, caAiFirst, caActRead, CA_WH_Q, CA_WH_WORKLISTS, caAnswerIds, CA_ANSWER_IDS_MAX, DRAFT_WALL_PANEL, draftWallAdmins, draftWallAsked, draftWallSay, draftWallWhen, draftWallWhyHtml, draftWallActHtml, draftWallSend, draftWallToast });
 Object.assign(window, { caRefFix, CA_REF_RE, caRefLinkPaint, caRefOpen, CA_MENU, CA_MENU_INBOUND, CA_MENU_THEIR_FILE, CA_FILE_OUT, CA_FILE_KEEP, CA_MENU_NOT, caReadMenu, caMenuRows, caMenuCardHtml, caMenuPress, CA_DOORS, CA_DOOR_NOT, caReadDoor, caRoomSign, CA_DOOR_GO, CA_DOOR_SHUT, CA_DOOR_NEEDS, caDoorCardHtml, caDoorPress });
 Object.assign(window, { CA_SUMMARY_RE, CA_WRITE_MAIL_RE, caFindPersonNamed, caSummaryText, caSummaryOpen, caScreenSent, caPassSend, caPeopleFor, caPersonRowHtml, caScreenCardHtml });
 Object.assign(window, { CA_PICK_MAX, CA_NOTE_MAX, CA_SEND_RE, caPeople, caContracts, caOpenContract, caTokenAt, caMatches, caPopHtml, caPopClose, caPopRead, caChoose,
@@ -2372,7 +2413,17 @@ function caContractOf(q, opts = {}){
   /* a title or a party, said in a sentence that asks for a contract */
   const asks = CA_GO_LEAD.test(t) || CA_FIND_LEAD.test(t) || CA_FIND_NOUN.test(t) || !!caContractActOf(t);
   if (!asks) return null;
-  const terms = caFindTerms(t);
+  let terms = caFindTerms(t);
+  /* THE OTHER SIDE DESCRIBED, NOT NAMED ("the contract with the retailer", stage 3d): a word after "with the" that
+     is no party's name says who they are, not what the contract is called — Jambo reads it, never a name guessed
+     off it ("retailer" found "Retail Supply"); with no engine the free reading stays */
+  if (caAiFirst()){
+    const described = [...t.toLowerCase().matchAll(/(?<!\p{L})(?:with|med)\s+(?:the|our|a|an|that|this|vår|vårt|den|det)\s+(\p{L}+)/gu)].map(x => x[1]);
+    if (described.length){
+      const partyWords = new Set(book.flatMap(c => String(c.counterparty || '').toLowerCase().split(/[^\p{L}\p{N}]+/u)));
+      terms = terms.filter(w => !(described.includes(w) && !partyWords.has(w)));
+    }
+  }
   if (!terms.length || terms.length > CA_FIND_TERMS_MAX) return null;
   const ix = caBookIndex(); if (!ix) return null;
   let hits = []; try { hits = ix.search(terms.join(' ')); } catch (_){ hits = []; }
@@ -2492,6 +2543,13 @@ function caUnderstand(q, opts = {}){
      contract, a party's folder, Contracts narrowed by stream, stage, party and end — read first, as
      the most exact reading the words have; what it does not read falls through to the readers below */
   { let nv = null; try { nv = (typeof navRead === 'function') ? navRead(t, { box }) : null; } catch (_){ nv = null; } if (nv) return nv; }
+  /* SAID ANOTHER WAY (AI first, stage 3c): a place's name misspelt ("aprovals", "teh board") is put right to the
+     one place word a slip away, and an act said as a wish ("start negotiating the milk contract", "let's get
+     MK-B2 signed") as the act itself — read once more; only a move found that way is taken */
+  if (!opts.typo){
+    const fixed = caPhraseFix(caTypoFix(t));
+    if (fixed !== t){ let u = null; try { u = caUnderstand(fixed, Object.assign({}, opts, { typo: true })) || caReadPlace(fixed); } catch (_){ u = null; } if (u && u.kind === 'go') return u; }
+  }
   /* a place named with what to show there is read first: it is the most the words can say */
   const and = caReadPlaceAnd(t); if (and) return and;
   /* a send, a job, a door, a Menu row, a draft are read as they always were (caActOf's readers) */
@@ -2511,12 +2569,42 @@ function caUnderstand(q, opts = {}){
     return ct;
   }
   const go = caReadGoPlace(t); if (go) return go;
+  /* A PLACE'S NAME MISSPELT ("aprovals", "setings", "teh board"): a short ask nothing above read is read once
+     more with each word put right to the one place word a slip away (AI first, stage 3c) */
   /* A NARROWING THAT NAMES NO PLACE ("which contracts end this year", "draft",
      a party's name) is not the reader's: the box's own reader answers it as
      before (the Board, the map, the draft door, the chat). caReadNarrowOnly
      stays for a caller that asks for it by name. */
   return null;
 }
+const CA_TYPO_GLUE = ['the', 'my', 'our', 'open', 'show', 'take', 'me', 'to', 'go', 'öppna', 'visa', 'gå', 'till'];
+function caTypoFix(t){
+  const words = String(t || '').trim().split(/\s+/);
+  if (!words.length || words.length > 3 || typeof window.hsEdit !== 'function') return t;
+  const vocab = new Set(CA_TYPO_GLUE);
+  for (const p of CA_PLACES) for (const w of p.w || []) if (!/\s/.test(w) && w.length >= 4) vocab.add(w.toLowerCase());
+  let moved = false;
+  const out = words.map(w0 => {
+    const w = w0.toLowerCase();
+    if (vocab.has(w) || w.length < 3 || /\d/.test(w)) return w0;
+    const max = w.length >= 8 ? 2 : 1;
+    let best = null, bestD = max + 1, tie = false;
+    /* a word and its plural are two words, not a slip ("approval" is the map's own word) */
+    if ([...vocab].some(v => v === w + 's' || w === v + 's' || v === w + 'es')) return w0;
+    for (const v of vocab){ const d = window.hsEdit(w, v, max); if (d < bestD){ best = v; bestD = d; tie = false; } else if (d === bestD) tie = true; }
+    if (!best || bestD > max || tie) return w0;
+    moved = true; return best;
+  });
+  return moved ? out.join(' ') : t;
+}
+function caPhraseFix(t){
+  let x = String(t || '').trim();
+  x = x.replace(/^(?:let'?s|lets|start|begin|time to|we need to|i want to|i'd like to)\s+/i, '');
+  x = x.replace(/^(negotiat|redlin)ing\b/i, (m, a) => a.toLowerCase() === 'negotiat' ? 'negotiate' : 'redline');
+  x = x.replace(/^get\s+(.+?)\s+signed\s*$/i, 'sign $1');
+  return x;
+}
+Object.assign(window, { caTypoFix, CA_TYPO_GLUE, caPhraseFix });
 /* A PAGE THAT KEEPS WORK (the clause editor, the builder) is left only for a
    SURE place or contract: one named with "go to", "open", "take me to", or a
    contract's number — never a bare narrowing or a title alone, which are as
@@ -2889,7 +2977,7 @@ function caHomeRun(q, a){
   }
   if (a.kind !== 'go') return false;
   const card = (CA_CARD_WORDS.includes(a.place) || !!a.narrowOff) && !a.missing;
-  intel.history.push({ role: 'user', text: q }, { role: 'assistant', text: _caE(caGoSay(a)), act: a });
+  intel.history.push({ role: 'user', text: q }, Object.assign({ role: 'assistant', text: _caE(caGoSay(a)), act: a }, caAnswerIds(a)));
   paint();
   caGo(a);
   if (card) land(intel.history.length - 1);

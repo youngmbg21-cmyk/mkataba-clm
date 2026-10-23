@@ -72,7 +72,7 @@ describe('f732 (2) the order the box asks them in', () => {
     assert.ok(/igBookAsk\(q\)&&typeof window\.calHandOff==='function'&&calHandOff\(q\)/.test(ask), 'through the Calendar\'s one door');
   });
   test('a template request skips the Board\'s reader and the map\'s word reader', () => {
-    assert.ok(/!onPaperSide && !tplAsk && !hereMap && typeof window\.hbAsk/.test(ask), 'the Board\'s reader stands aside');
+    assert.ok(/!onPaperSide && !tplAsk && !hereMap && !boardQ && typeof window\.hbAsk/.test(ask), 'the Board\'s reader stands aside');
     assert.ok(/\(igPaperUp\(\)\|\|boardUp\|\|tplAsk\)\?null:await intelMapLocal\(q\)/.test(ask), 'the map\'s word reader stands aside');
     assert.ok(/else if\(tplAsk&&!igPaperUp\(\)\)\s+await intelTemplateAsk\(q\)/.test(ask), 'and the adviser takes it');
     assert.equal((ask.match(/intelTemplateAsk\(/g) || []).length, 1, 'one way to the adviser');

@@ -209,9 +209,9 @@ const check = (name, pass, detail) => {
     const jig = m => !m.moved && m.far >= 1 && m.far < JIG_MAX;
     const sw0 = await page.evaluate(() => intel.cam.sway || 0);
     const qB = await stray(0, 'rot'), qF = await stray(2, 'rotL'), qG = await stray(3, 'rotG'), qT = await stray(4, 'rotT');
-    /* THE GRID STANDS STILL (Young, 23 Oct 2026: "a static grid"): its dots do not even jiggle */
-    const still = m => !m.moved && m.far < 1;
-    check('4a2 Still: Brain, Floors and Timeline do not turn or swing — their dots only jiggle a little; the Grid holds dead still', jig(qB) && jig(qF) && still(qG) && jig(qT) && (await page.evaluate(() => intel.cam.sway || 0)) === sw0, JSON.stringify({ qB, qF, qG, qT, sw0, max: Math.round(JIG_MAX * 10) / 10 }));
+    /* THE GRID STANDS STILL BUT ITS DOTS STILL JIGGLE (Young, 23 Oct 2026: "the stars should
+       not be static ... the grid is the one that should stop moving") */
+    check('4a2 Still: Brain, Floors, Grid and Timeline do not turn or swing — their dots only jiggle a little', jig(qB) && jig(qF) && jig(qG) && jig(qT) && (await page.evaluate(() => intel.cam.sway || 0)) === sw0, JSON.stringify({ qB, qF, qG, qT, sw0, max: Math.round(JIG_MAX * 10) / 10 }));
     const fps = () => page.evaluate(() => new Promise(r => { const f0 = igFramesDrawn(); setTimeout(() => r(igFramesDrawn() - f0), 1000); }));
     await page.waitForTimeout(2600);
     const fStill = await fps();
@@ -234,7 +234,9 @@ const check = (name, pass, detail) => {
        to right or spin"): pressed Turning, the Grid neither turns nor swings, and on the
        Grid the button is greyed with its reason */
     const gBtn = await page.evaluate(() => { igSetView(3); const b = document.getElementById('ig-spin'); return { off: !!b && b.disabled, why: b ? b.title : '' }; });
-    check('4d the Grid stands still even while Turning — no turn, no swing — and the button is greyed with why', !mG.moved && !mG.dot && gBtn.off && /stands still/.test(gBtn.why), JSON.stringify({ mG, gBtn }));
+    /* and with Turning left on, the Grid's dots still jiggle (the stars keep moving, the grid does not) */
+    const gJ = await stray(3, 'rotG');
+    check('4d the Grid stands still even while Turning — no turn, no swing — its dots still jiggle, and the button is greyed with why', !mG.moved && mG.sa === mG.sb && jig(gJ) && gBtn.off && /stands still/.test(gBtn.why), JSON.stringify({ mG, gJ, gBtn }));
     const tBtn = await page.evaluate(() => { igSetView(4); const b = document.getElementById('ig-spin'); return { off: !!b && b.disabled, why: b ? b.title : '' }; });
     check('4d1 off the Grid the button is live again', !tBtn.off && !tBtn.why, JSON.stringify(tBtn));
     /* THE GRID STANDS UP (Young, 23 Oct 2026: "standing up just like a contract paper is up

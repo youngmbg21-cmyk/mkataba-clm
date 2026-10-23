@@ -108,3 +108,19 @@ describe('f867 (4) a private note is its writer\'s door alone', () => {
   });
 });
 
+
+describe('f867 (5) words from a clause name the clause', () => {
+  test('a clause door with only a sentence from it is given that passage\'s heading and number', async () => {
+    const g = await gotoOf(W.admin, { door: { kind: 'clause', contractId: 'MK-A1', quote: 'Each party shall keep the terms of this agreement confidential.' } });
+    assert.equal(g.door.head, 'Article 3 Confidentiality');
+    assert.equal(g.door.num, '3');
+  });
+  test('a goto that only opens the contract a verified quote is from is sharpened to its clause on a "show me"', async () => {
+    ai.reset();
+    ai.script([{ type: 'tool_use', id: 'tu_d', name: 'deliver_answer', input: { answer: 'Article 3.', goto: { door: { kind: 'contract', contractId: 'MK-A1' } },
+      citations: [{ id: 'MK-A1', quote: 'Each party shall keep the terms of this agreement confidential.' }] } }]);
+    const r = await W.admin.json('/api/ai/chat', { method: 'POST', body: { messages: [{ role: 'user', content: 'show me where the sugar deal says the terms are secret' }] } });
+    assert.equal(r.goto.door.kind, 'clause');
+    assert.equal(r.goto.door.num, '3');
+  });
+});
