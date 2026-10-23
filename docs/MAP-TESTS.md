@@ -296,6 +296,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 
 ## THE AI'S READING RULES
 - f47, f53, f135, f229–f235, f305, f328, f367, f459 (E), f661, copilot-reads-every-change, copilot-keeps-lists verify.
+- f870 (judgement on the stronger model: the reader's exam, both chat routes, admin-only dollars, one pinned model says nothing; f133/f134's compare-escalation tests re-worded as lookups), judgement-line-verify (the line painted under the answer in the Jambo window and Home's panel, one line, at the three screens; a lookup draws none).
+- f871 (the meter prices a dated model id as its model: a fast call booked at Haiku's price, an admin's exact row still wins, the import estimate the same; 2 of 3 red at the parent).
 
 ## THE POP-UPS, THE SAP WAY
 - sap-popups, negotiate-as-drawn, new-agreement, end-or-pause verify, f390 1h, f358 (6).
@@ -341,6 +343,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f252, f288, keeps-your-place-verify.
 
 ## NAVIGABLE BY TYPING (owner, 22 Oct 2026; docs/PLAN-navigable-by-typing.md)
+- THE DOOR EXAM (23 Oct 2026; owner: "do what is necessary for jambo to get things right"): test/door-exam.js + test/chromium/door-exam-verify.js — reads HaTi's own lists off the running app (NAV_ACTS, NAV_PLACES, CA_MENU, CA_PLACES, every Settings page and card by its title via `navStTitles`) and FAILS when a door has no sentence; every sentence typed into the Board's, a list's and Settings' box and landed (test/nav-read.js reads dialog, panel, Key terms, folds, strip page, archive, Present, Recent, Findings, watches, new tabs). Required green, no ratchet. One list: `DOOR_EXAM_ONLY=act|place|menu|ca|st`. Red at the parent: every new act and place, 42 Settings titles.
+- THE OVERVIEW OR THE BOARD WITH A CONTRACT NAMED (23 Oct 2026): f811 B4b (new; "take me to the board and show me the overview of contact mk 345" from Settings, a list or the window → its strip on the Board, on Overview; "contact" before the number read as "contract"; a named page keeps its own) and C6b (Settings hands a contract named, or "take me" no setting answers, to Jambo). nav-exam 201/202.
 - The exam: test/nav-exam.js (194 asks) over test/nav-world.js, typed by test/chromium/nav-exam-verify.js into the real boxes; a measurement with a ratchet (`NAV_EXAM_FLOOR`). Before anything was built: 81 of 194.
 - After stages 1–4 (js/navmap.js): 188 of 194; the ratchet stands at 194 (201 of 202 with the compare section); after a change to the compare reader also run sap-popups, grey-not-dead, counterparty-reading-and-more. Run one section with `NAV_EXAM_ONLY=<section>`. A change to how Jambo reads words also runs: answer-where-you-stand, board-says-it-plain, board-words, choices-when-unclear, every-door-lands-on-home, jambo-everywhere, jambo-finds-the-way, jambo-map, jambo-moves-and-opens, jambo-words, ref-in-my-question, show-it-here-first, held-contract-asks, jambo-follows-the-ask, home-board, jambo-chat-window, one-recipe-language, jambos-list-panel.
 

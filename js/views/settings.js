@@ -529,7 +529,10 @@ function stWireDrawerOnce(){
     let hits=[]; try{ hits=stFind(q); }catch(_){ hits=[]; }
     /* a question about the company's RULES ("why can't Legal sign…") keeps its cost-first press (stJbAsk's why) */
     const rules=/\b(why|can'?t|cannot|allowed|may|limits?|rules?|approv\w*|access|permission\w*|sign\w*|review\w*|varför|får|gräns\w*|regel\w*|godkän\w*|behörighet\w*)\b/i.test(q);
-    const asks=!rules&&(ST_JB_ASK_RE.test(q)||/\b(contracts?|agreements?|deals?|leases?|avtal\w*|kontrakt\w*)\b/i.test(q));
+    /* words that name a contract ("…the overview of contact mk 382") or ask to be taken somewhere are no
+       setting either (owner, 23 Oct 2026): Jambo's, never "I could not find a setting" */
+    let named=false; try{ named=typeof caContractOf==='function'&&!!caContractOf(q); }catch(_){ named=false; }
+    const asks=!rules&&(ST_JB_ASK_RE.test(q)||named||(!hits.length&&ST_JB_GO_RE.test(q))||/\b(contracts?|agreements?|deals?|leases?|avtal\w*|kontrakt\w*)\b/i.test(q));
     if(!hits.length&&asks&&typeof caAiFirst==='function'&&caAiFirst()&&typeof aiAskWords==='function'){ stJbAskJambo(q); return; }
     stJbAsk(q);
     /* …and goes there only when the words ask to be taken ("where do I set…", "take me to…"); a word typed

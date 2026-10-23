@@ -59,6 +59,8 @@ function navStreamWords(){
   });
 }
 function navStreamOf(t){
+  /* "legal hold" is the hold, never the Legal stream (owner, 23 Oct 2026: "put mk 382 on legal hold") */
+  t = String(t || '').replace(/ legal hold(s)? /g, ' hold ');
   for (const s of navStreamWords()) for (const w of s.words) if (t.includes(' ' + w + ' ')) return s;
   return null;
 }
@@ -194,8 +196,30 @@ function navRead(q, opts = {}){
   try { if (!NAV_MOVE.test(t) && typeof caHereScreen === 'function' && caHereScreen() === 'explorer') return null; } catch (_){}
   /* ON THE BOARD a question of lists and numbers stays the Board's; "take me to …" always moves */
   let board = false; try { board = !NAV_MOVE.test(t) && typeof caOnBoard === 'function' && !!caOnBoard(); } catch (_){ board = false; }
-  if (board){ const ca = navReadContractAct(raw, t); return navReadClause(raw, t) || (ca && ca.nav && ca.nav.act !== 'open' ? ca : null) || null; }
-  return navReadPage(raw, t) || navReadStandards(raw, t) || navReadClause(raw, t) || navReadContracts(raw, t, opts) || navReadContractAct(raw, t) || navReadParty(raw, t) || navReadPerson(raw, t) || (opts.box === 'settings' ? null : navReadSettings(raw, t)) || navReadRequest(raw, t) || navReadDuty(raw, t) || navReadNone(raw, t) || null;
+  if (board){
+    const ca = navReadContractAct(raw, t);
+    const one = navReadClause(raw, t) || (ca && ca.nav && ca.nav.act !== 'open' ? ca : null);
+    if (one) return one;
+    /* A PLACE BY NAME ON THE BOARD (23 Oct 2026): "news", "the archive", "access review" are no question of
+       the Board's lists; they move unless the Board reads the words itself, free */
+    const pl = navReadPage(raw, t) || navReadPlace(raw, t) || navReadSettings(raw, t) || navReadStTitle(raw, t);
+    if (!pl) return null;
+    /* a Settings page asked by its exact title is sure: the Board's own guess at those words gives way */
+    if (pl.nav && pl.nav.k === 'stfind' && pl.exact) return pl;
+    let own = null; try { own = (typeof hbAskReadingOf === 'function') ? hbAskReadingOf(raw, 'board') : null; } catch (_){ own = null; }
+    if (own && own.road === 'free') return null;
+    /* the saved views ARE the Board's chips: asked there, the Board lists them with their counts, free
+       (HB_VIEWS_ASK_RE); from any other box the words take you to them */
+    if (pl.nav && pl.nav.k === 'place' && pl.nav.key === 'savedviews') return null;
+    return pl;
+  }
+  /* SETTINGS' BOX: a setting found by the finder is the finder's answer there; what it does not find
+     ("daily brief", "my profile") is read as every box reads it */
+  /* …and an admin's page asked there by somebody who is not one is the finder's too: its card carries Ask an
+     admin (the record), where "only an admin can open that" would carry nothing */
+  const stWall = r => (opts.box === 'settings' && r && r.kind === 'navsay') ? null : r;
+  let stOwn = false; if (opts.box === 'settings'){ try { stOwn = typeof stFind === 'function' && (stFind(raw) || []).length > 0; } catch (_){ stOwn = false; } }
+  return navReadPage(raw, t) || navReadStandards(raw, t) || navReadClause(raw, t) || navReadContracts(raw, t, opts) || navReadContractAct(raw, t) || (stOwn && navPlaceIsSetting(t) ? null : stWall(navReadPlace(raw, t))) || navReadParty(raw, t) || navReadPerson(raw, t) || (stOwn ? null : stWall(navReadSettings(raw, t))) || (opts.box === 'settings' ? null : navReadStTitle(raw, t)) || navReadRequest(raw, t) || navReadDuty(raw, t) || navReadNone(raw, t) || null;
 }
 
 /* A PAGE BY ITS EVERYDAY NAME, even with a contract open beside the reader: "all our duties" is the
@@ -216,20 +240,162 @@ function navReadPage(raw, t){
   return null;
 }
 
+/* EVERY PLACE BY ITS EVERYDAY NAME (owner, 23 Oct 2026: "do what is necessary for jambo to get things
+   right"): the places no place word reached — the bell's News, Recent, Present, the two reports, Explorer's
+   Findings, the Board's saved views, the archive, your week, and the Company pages by the words people use.
+   Each is the whole sentence (a lead and "the/my/our" before, "page/tab" after), never a word inside another
+   ask; each lands through the door that already opens it (navGoPlace). */
+const NAV_PLACE_PRE = '(?:(?:take me to|go to|open|show me|show|where is|where are|where do i find|where can i find|jump to|bring up|ta mig till|gå till|öppna|visa|var är|var hittar jag) )?(?:the |my |our |all |all the |min |mitt |mina |våra |alla )?';
+const NAV_PLACE_POST = '(?: page| panel| tab| list| view| report| please| sida| sidan| fliken| listan)?';
+const navPlaceRe = words => new RegExp('^ ' + NAV_PLACE_PRE + '(?:' + words.join('|') + ')' + NAV_PLACE_POST + ' $');
+const NAV_PLACES = [
+  ['news', navPlaceRe(['news', 'whats new', 'nyheter', 'nyheterna'])],
+  ['recent', navPlaceRe(['recent', 'recents', 'recently opened', 'recently viewed', 'recent pages', 'recent contracts', 'senaste', 'nyligen öppnade'])],
+  ['present', navPlaceRe(['present', 'presentation', 'presentation mode', 'present mode', 'presentera', 'presentationsläge', 'presentationsläget'])],
+  ['health', navPlaceRe(['health report', 'portfolio health', 'portfolio health report', 'hälsorapport', 'hälsorapporten'])],
+  ['weekly', navPlaceRe(['weekly report', 'weekly review', 'week in review', 'veckorapport', 'veckorapporten', 'veckogenomgång', 'veckogenomgången'])],
+  ['findings', navPlaceRe(['findings', 'map findings', 'fynd', 'fynden'])],
+  ['savedviews', navPlaceRe(['saved views', 'views i saved', 'sparade vyer', 'sparade vyerna'])],
+  ['archived', navPlaceRe(['archive', 'archived', 'archived contracts', 'archived agreements', 'arkiv', 'arkivet', 'arkiverade', 'arkiverade avtal'])],
+  ['week', navPlaceRe(['week', 'week ahead', 'this week', 'vecka', 'veckan', 'denna vecka'])],
+  ['profile', navPlaceRe(['profile', 'account', 'details', 'profil', 'profilen', 'konto', 'kontot'])],
+  ['company', navPlaceRe(['company settings', 'settings for the company', 'workspace settings', 'företagsinställningar', 'företagets inställningar'])],
+  ['access', navPlaceRe(['access review', 'access reviews', 'review of access', 'who holds what', 'behörighetsgranskning', 'behörighetsgranskningen', 'vem har vad'])],
+  ['keeping', navPlaceRe(['keeping', 'retention', 'retention period', 'retention rules', 'how long we keep contracts', 'gallring', 'bevarande'])],
+  ['privstreams', navPlaceRe(['private streams', 'private stream', 'privata strömmar'])],
+  ['budget', navPlaceRe(['jambo budget', 'ai budget', 'jambo spending limit', 'budget for jambo', 'jambos budget'])],
+  ['roles', navPlaceRe(['business roles', 'roles', 'job roles', 'affärsroller', 'roller', 'rollerna'])],
+  ['webhooks', navPlaceRe(['webhooks', 'webhook', 'events out', 'outgoing events', 'utgående händelser'])],
+  ['watches', navPlaceRe(['watches', 'watch list', 'watchlist', 'what i am watching', 'what im watching', 'bevakningar', 'bevakningarna'])],
+];
+/* the Company's places are an admin's: anyone else is told who can open them */
+const NAV_PLACES_ADMIN = new Set(['company', 'access', 'keeping', 'privstreams', 'budget', 'roles', 'webhooks']);
+/* a Settings page asked in Settings' own box is the finder's answer there (Settings lands, never presses):
+   the place words that ARE Settings pages step aside for it, as navReadSettings does */
+function navPlaceIsSetting(t){
+  const hit = NAV_PLACES.find(([, re]) => re.test(t));
+  return !!hit && (hit[0] === 'profile' || NAV_PLACES_ADMIN.has(hit[0]));
+}
+function navReadPlace(raw, t){
+  const hit = NAV_PLACES.find(([, re]) => re.test(t)); if (!hit) return null;
+  const k = hit[0];
+  if (k === 'week') return { kind: 'go', place: 'calendar' };                       // "your week" is the Calendar's name in "/"
+  if (k === 'profile') return { kind: 'go', place: 'nav', nav: { k: 'you', key: 'who' }, say: 'nav_go_you' };
+  if (NAV_PLACES_ADMIN.has(k)){
+    if (!navIsAdmin()) return { kind: 'navsay', text: _nvT(NAV_ADMIN_SAYS) };
+    const nav = k === 'company' ? { k: 'company', kind: 'board' } : k === 'access' ? { k: 'company', kind: 'page', key: 'sheet' }
+      : k === 'budget' ? { k: 'company', kind: 'panel', key: 'engine' } : k === 'webhooks' ? { k: 'company', kind: 'panel', key: 'webhooks' }
+      : k === 'roles' ? { k: 'company', kind: 'page', key: 'roles' } : { k: 'company', kind: 'page', key: 'streams' };
+    return { kind: 'go', place: 'nav', nav, say: 'nav_go_setting' };
+  }
+  return { kind: 'go', place: 'nav', nav: { k: 'place', key: k }, say: 'nav_go_place_' + k };
+}
+function navGoPlace(n){
+  const k = n.key;
+  if (k === 'news') return (typeof alertsShowTab === 'function') ? alertsShowTab('news') : false;
+  if (k === 'recent') return (typeof deskRecentToggle === 'function') ? (deskRecentToggle(true), true) : false;
+  if (k === 'present'){
+    if (typeof hbPresent !== 'function') return false;
+    if (typeof state !== 'undefined' && state && state.view !== 'dashboard' && typeof setView === 'function') setView('dashboard');
+    hbPresent(true); return true;
+  }
+  if (k === 'health') return (typeof openHealthReport === 'function') ? openHealthReport() !== false : false;
+  if (k === 'weekly') return (typeof openWeeklyReview === 'function') ? openWeeklyReview() !== false : false;
+  if (k === 'findings') return (typeof igFindingsShow === 'function') ? igFindingsShow() : false;
+  if (k === 'watches') return (typeof watchListOpen === 'function') ? watchListOpen() : false;
+  if (k === 'savedviews'){
+    if (typeof caHomeFace === 'function') caHomeFace('board');
+    return navLandWhen(() => document.querySelector('.hb-bh-views'), _nvT('nav_no_savedviews'));
+  }
+  if (k === 'archived'){
+    if (typeof regPlaceSet !== 'function' || typeof caHomeWall !== 'function') return false;
+    regPlaceSet({ view: 'archived', page: 1, only: null }); return caHomeWall();
+  }
+  return false;
+}
+
+/* A SETTINGS PAGE BY ITS OWN NAME, from any box (owner, 23 Oct 2026): every Company page and card, and
+   every row of You — read off the app (SET_PANELS, the Company pages, stYouItems), so a new one joins by
+   itself. Asked by its EXACT title it moves; a title that is also an everyday place word ("Jambo",
+   "Signing in") moves only with "settings" said too, so the place keeps its word. A partial name moves
+   only when the Settings finder's answer has every word typed in its own name and nothing else answers as
+   well, so a word that merely appears in a description ("keeping" in Company design) never moves anyone. */
+const NAV_ST_SKIP = new Set(['take', 'me', 'to', 'go', 'open', 'show', 'the', 'my', 'our', 'page', 'settings', 'setting', 'card', 'panel', 'please', 'where', 'is', 'are', 'ta', 'mig', 'till', 'öppna', 'visa', 'inställningar', 'inställning', 'sidan', 'min', 'mitt', 'mina', 'våra']);
+const NAV_ST_WORD = / (settings|setting|inställningar|inställning) /;
+const navStNorm = s => navNorm(s).trim().split(' ').filter(w => w && w !== '&' && !NAV_ST_SKIP.has(w)).join(' ');
+/* every Settings page and card by its title: the id the finder's door opens, and whether the title is
+   also a place's word (then "settings" is said with it) */
+function navStTitles(){
+  const T = k => { try { return _nvT(k); } catch (_){ return ''; } };
+  const out = [];
+  if (typeof SET_PANELS === 'object' && SET_PANELS) Object.keys(SET_PANELS).forEach(k => { let t = ''; try { t = SET_PANELS[k].title(); } catch (_){ t = ''; } if (t) out.push({ id: 'panel:' + k, title: t, admin: true }); });
+  [['team', 'st_pg_team'], ['sheet', 'st_pg_sheet'], ['roles', 'st_pg_roles'], ['streams', 'st_sw_title']].forEach(([k, key]) => out.push({ id: 'page:' + k, title: T(key), admin: true }));
+  if (typeof stYouItems === 'function'){ try { stYouItems().forEach(it => out.push({ id: 'you:' + it.key, title: T(it.t), admin: false })); } catch (_){} }
+  return out.filter(x => x.title && x.title !== x.id).map(x => {
+    const tt = navNorm(x.title); let place = / jambo /.test(tt) && tt.trim().split(' ').length === 1;
+    try { place = place || !!((typeof caReadPlace === 'function' && caReadPlace(x.title)) || navReadPage(x.title, tt) || navReadPlace(x.title, tt)); } catch (_){}
+    return Object.assign(x, { norm: navStNorm(x.title), place });
+  });
+}
+function navReadStTitle(raw, t){
+  if (typeof stFind !== 'function' || typeof stFindRows !== 'function') return null;
+  const said = navStNorm(raw);
+  if (said){
+    const exact = navStTitles().find(x => x.norm === said);
+    if (exact && (!exact.place || NAV_ST_WORD.test(t))){
+      if (exact.admin && !navIsAdmin()) return { kind: 'navsay', text: _nvT(NAV_ADMIN_SAYS) };
+      return { kind: 'go', place: 'nav', nav: { k: 'stfind', id: exact.id }, say: 'nav_go_setting', exact: true };
+    }
+  }
+  try { if (typeof caReadPlace === 'function' && caReadPlace(raw)) return null; } catch (_){}
+  const words = t.trim().split(' ').filter(w => w && !NAV_ST_SKIP.has(w));
+  /* one loose word ("approval") is too little to choose a page by: Jambo's map asks which was meant */
+  if (words.length < 2 || words.length > 5) return null;
+  let hits = []; try { hits = stFind(words.join(' ')) || []; } catch (_){ hits = []; }
+  const top = hits[0]; if (!top) return null;
+  /* the name itself answers every word (3 a word of its name), and nothing else answers as well */
+  if (top.s < 3 * words.length || (hits[1] && hits[1].s >= top.s)) return null;
+  const id = top.panel ? 'panel:' + top.panel : top.page ? 'page:' + top.page : top.you ? 'you:' + top.you : top.person ? 'person:' + top.person : '';
+  if (!id || top.person) return null;                                         // a colleague is the people reader's
+  return { kind: 'go', place: 'nav', nav: { k: 'stfind', id }, say: 'nav_go_setting' };
+}
+
 /* A CONTRACT AND WHAT TO OPEN BESIDE IT, where the place readers do not reach it: a contract named by
    its name's own words ("the brand campaign"), or an act whose face the reader asks for by name —
    Fill in (the checklist of what is owed), the letter Before you send (it sends nothing), the Clauses
    tab, an amendment, the Dossier. Every one through the face's own door; nothing is pressed. */
+/* EVERY PART OF A CONTRACT BY ITS EVERYDAY NAME (owner, 23 Oct 2026: "stop taking short cuts and do what is
+   necessary for jambo to get things right"): each lands on the door that already holds it (navGoAct); the more
+   particular words first, so "who else is on it" is the people and "its amendments" the family */
 const NAV_ACTS = [
+  ['people', / (who else is on|who else is in|who s on|who is on|people on|people in|people involved|participants|vilka är med|personer på) /],
+  ['signers', / (signers|signatories|signing route|signing order|who signs|who has to sign|who must sign|who needs to sign|who will sign|undertecknare|undertecknarna|vem skriver under|signeringsordning(en)?) /],
+  ['opened', / (who opened|who has opened|who looked at|who viewed|who has seen|who has looked at|opens of|vem har öppnat) /],
+  ['codename', / (code name|codename|kodnamn|kodnamnet) /],
+  ['rename', / (rename|change (the|its) name|byt namn på|döp om) /],
+  ['stream', / (move|moving|re file|refile|re-file|change (the|its) stream|which stream|its stream|flytta) /],
+  ['category', / (category|kategori|kategorin) /],
+  ['counterparty', / (counterparty|other party|other side s name|motpart|motparten) /],
+  ['value', / (value|worth|värde|värdet) /],
+  ['nda', / (nda details|nda facts|nda terms|nda record|who is bound|sekretessvillkor(en)?) /],
+  ['terms', / (key terms|the terms|its terms|nyckelvillkor(en)?|villkoren) /],
+  ['family', / (family|amendments|its amendments|the amendments|amendment history|parent contract|related contracts|familj|familjen|tilläggen) /],
+  ['renewal', / (renewal|renew|renews|expiry|expires|expiring|end date|when it ends|notice period|förnyelse(n)?|förnyas|löper ut|slutdatum(et)?|uppsägningstid(en)?) /],
+  ['where', / (where we are|where it stands|where things stand|where are we|status|läget) /],
+  ['notes', / (notes|comments|anteckningar(na)?|kommentarer(na)?) /],
+  ['risks', / (risks|risk scan|risky|risker(na)?) /],
+  ['ladder', / (ladder|the ladder|stegen) /],
+  ['paper', / (the paper|its paper|the document|the wording|its wording|the text|papperet|pappret|dokumentet) /],
   ['fill', / (fill in|fill out|the details|details for|details of|its details|fyll i|uppgifterna|uppgifter för) /],
   ['send', / (send|share|dela|skicka) /],
-  ['clauses', / (clauses|klausuler|klausulerna) /],
+  ['clauses', / (clauses|klausuler|klausulerna|plain english|in plain words|plain words|stakes|klartext) /],
   ['amend', / (amend|amendment|ändra|tillägg) /],
   ['dossier', / (dossier|dossiern) /],
   ['oblig', / (obligations|duties|åtaganden) /],
   ['hist', / (history|historik|historiken) /],
 ];
-const NAV_ACT_OWN = new Set(['fill', 'send', 'clauses', 'amend', 'dossier']);
+const NAV_ACT_OWN = new Set(['fill', 'send', 'clauses', 'amend', 'dossier', 'people', 'signers', 'opened', 'codename', 'rename', 'stream', 'category', 'counterparty',
+  'value', 'nda', 'terms', 'family', 'renewal', 'where', 'notes', 'risks', 'ladder', 'paper']);
 function navReadContractAct(raw, t){
   if (/ (contracts|agreements|deals|avtalen|kontrakten) /.test(t)) return null;    // a list asked for is never one contract
   if (NAV_FOLDER_WORDS.test(t) || / (request|requests|förfrågan|förfrågningar) /.test(t)) return null;   // a party's folder, a request: their own readers'
@@ -253,7 +419,7 @@ function navReadContractAct(raw, t){
   /* the place readers already reach a contract they can name; only the faces they do not are taken here */
   if (shared && !NAV_ACT_OWN.has(act)) return null;
   /* a send named with its purpose ("Send MK-J1 for signing") is the share reader's: it sets the letter's purpose */
-  if (act === 'send' && (/ (for signing|to sign|for signature|for review|to review|för underskrift|för granskning) /.test(t))) return null;
+  if (act === 'send' && (/ (for signing|to sign|for signature|för underskrift) /.test(t))) return null;
   if (hit.picks && hit.picks.length > 1) return navWhich(hit.picks.map(c => ({ c, nav: { k: 'cact', cid: c.id, act } })));
   const c = hit.c; if (!c) return null;
   /* AI FIRST (stage 3): "open" is sure only when the sentence names the contract and nothing more — "when does
@@ -449,6 +615,8 @@ function navGo(a){
   if (n.k === 'clause') return navGoClause(n);
   if (n.k === 'cact') return navGoAct(n);
   if (n.k === 'compare') return navGoCompare(n);
+  if (n.k === 'place') return navGoPlace(n);
+  if (n.k === 'stfind') return (typeof stFindGo === 'function') ? (stFindGo(n.id), true) : false;
   return navGoStage2(n) || navGoStage3(n);
 }
 /* the contract on Home's paper, then its clause found on the paper as drawn and landed. A paper drawn
@@ -551,6 +719,7 @@ function navQuoteKey(s){
   return t.length < 12 ? '' : t.slice(0, 48).replace(/\s\S*$/, '');
 }
 /* a contract and its face, each through its own door */
+const navC = id => (typeof getContract === 'function') ? getContract(id) : null;
 function navGoAct(n){
   const id = n.cid;
   const go = {
@@ -566,8 +735,46 @@ function navGoAct(n){
     redlines: () => (typeof pdRedOpen === 'function') ? pdRedOpen(id) : false,
     brief: () => (typeof caBriefOpen === 'function' && typeof getContract === 'function') ? caBriefOpen(getContract(id)) : false,
     open: () => pdOpenOnHome(id, 'open'),
+    paper: () => pdOpenOnHome(id, 'open'),
+    /* Key terms in the middle, on the row asked for (pdKtFocus: a fact's row, Move, Category, Rename) */
+    terms: () => (typeof pdKtOpen === 'function') ? pdKtOpen(id) : false,
+    value: () => (typeof pdKtFocus === 'function') ? pdKtFocus(id, 'value') : false,
+    counterparty: () => (typeof pdKtFocus === 'function') ? pdKtFocus(id, 'counterparty') : false,
+    category: () => (typeof pdKtFocus === 'function') ? pdKtFocus(id, 'category') : false,
+    stream: () => (typeof pdKtFocus === 'function') ? pdKtFocus(id, 'stream') : false,
+    rename: () => (typeof pdKtFocus === 'function') ? pdKtFocus(id, 'name') : false,
+    /* the code name's one writer's door; one who may not set it is told why where they asked */
+    codename: () => { const c = navC(id); if (!c) return false;
+      if (typeof cnMaySet === 'function' && !cnMaySet(c)){ navSayLate(_nvT('nav_no_codename', { ref: navRef(c) })); return true; }
+      return (typeof cnEditOpen === 'function') ? cnEditOpen(c) !== false : false; },
+    /* an NDA's two facts (ndaEditOpen); another kind of contract has none, and says so */
+    nda: () => { const ok = (typeof ndaEditOpen === 'function') ? ndaEditOpen(id) : false;
+      if (ok === false){ const c = navC(id); navSayLate(_nvT('nav_no_nda', { ref: c ? navRef(c) : id })); }
+      return true; },
+    /* the ONE signer door (openSignerPlanEditor) */
+    signers: () => { const c = navC(id); return (c && typeof openSignerPlanEditor === 'function') ? openSignerPlanEditor(c) !== false : false; },
+    people: () => (typeof pdPeopleOpen === 'function') ? pdPeopleOpen(id) : false,
+    /* the Dossier's Family line, opened and landed */
+    family: () => { if (pdOpenOnHome(id, 'copilot') === false) return false;
+      return navLandWhen(() => { const f = document.querySelector('#ig-dock [data-ds-fold="family"]'); if (f && !f.open) f.open = true; return f; }); },
+    /* the Obligations tab, where the renewal stands as its lines (Ends · Notice by · Renewal) */
+    renewal: () => { if (pdOpenOnHome(id, 'oblig') === false) return false;
+      return navLandWhen(() => document.querySelector('#ig-dock [data-pd-rn]')); },
+    where: () => (typeof hbStripBring === 'function') ? hbStripBring(id, 'where') !== false : false,
+    /* the contract's notes: its paper, then the panel's Notes face (a contract in front) */
+    notes: () => { if (pdOpenOnHome(id, 'copilot') === false || typeof openPanel !== 'function') return false;
+      if (!(state.panelOpen && typeof panelFace === 'function' && panelFace() === 'notes')) openPanel('notes');
+      return true; },
+    /* "Risks to look at" in what Jambo read, its own Read or See */
+    risks: () => { if (pdOpenOnHome(id, 'copilot') === false) return false; return navLandWhen(() => document.querySelector('#ig-dock [data-pd-ds="risks"]')); },
+    ladder: () => (typeof pdRedOpen === 'function') ? pdRedOpen(id) : false,
+    /* who opened it is on its History (the trail keeps the opens) */
+    opened: () => (typeof hbOpenView === 'function') ? hbOpenView(id, 'hist') : pdOpenOnHome(id, 'copilot'),
   }[n.act];
   if (typeof go !== 'function' || typeof pdOpenOnHome !== 'function') return false;
+  /* THE LETTER WAITS (as a clause asked for does, navGoClause): another part of a contract asked for while the
+     letter is up steps the letter one tab away, kept; it never stands in front of what was asked */
+  if (n.act !== 'send'){ try { if (typeof pdSendShows === 'function' && pdSendShows() && typeof pdSendAway === 'function') pdSendAway(); } catch (_){} }
   const ok = go();
   return ok !== false;
 }
@@ -669,7 +876,7 @@ function navReadSettings(raw, t){
       return { kind: 'go', place: 'nav', nav: { k: 'stream', fid: s.fid, keep }, say: keep ? 'nav_go_keep' : 'nav_go_stream', sayVars: { stream: s.name } };
     }
   }
-  if (NAV_CONTRACT_WORDS.test(t)) return null;
+  if (NAV_CONTRACT_WORDS.test(t) || NAV_REF_IN.test(t)) return null;
   if (/ (password|lösenord) /.test(t) && / (my|change|reset|mitt|byt) /.test(t)) return { kind: 'go', place: 'nav', nav: { k: 'you', key: 'password', card: 'safety' }, say: 'nav_go_you' };
   for (const [key, re] of NAV_YOU) if (re.test(t)) return { kind: 'go', place: 'nav', nav: Object.assign({ k: 'you', key }, key === 'safety' ? { card: 'safety' } : {}), say: 'nav_go_you' };
   for (const [kind, key, re] of NAV_COMPANY) if (re.test(t)){
@@ -715,13 +922,15 @@ function navLandWhen(find, missing){
   const look = () => {
     let el = null; try { el = find(); } catch (_){ el = null; }
     if (el){
-      if (typeof landOn === 'function') landOn(el, { block: 'center', focus: false }); else el.scrollIntoView({ block: 'center' });
+      /* the lander is handed the FINDER, not the element: it follows the target through every redraw of the
+         page under it (landOn's own watch), so Jambo's panel drawing again after the move keeps the landing */
+      if (typeof landOn === 'function') landOn(find, { block: 'center', focus: false }); else el.scrollIntoView({ block: 'center' });
       /* A PAGE THAT REDRAWS ITSELF AS IT ARRIVES (Settings does) drops the mark with the old element:
          asked again for a few beats, the live element is landed on */
       let held = 0;
       const hold = () => {
         let now = null; try { now = find(); } catch (_){ now = null; }
-        if (now && !now.classList.contains('is-landed') && typeof landOn === 'function') landOn(now, { block: 'nearest', focus: false });
+        if (now && !now.classList.contains('is-landed') && typeof landOn === 'function') landOn(find, { block: 'nearest', focus: false });
         if (++held < NAV_HOLD_BEATS) setTimeout(hold, NAV_LAND_BEAT_MS * 2); else _navLanding = false;
       };
       setTimeout(hold, NAV_LAND_BEAT_MS * 2);
@@ -752,6 +961,7 @@ function navGoStage2(n){
   }
   if (n.k === 'company'){
     if (typeof openSettingsAt !== 'function') return false;
+    if (n.kind === 'board'){ openSettingsAt('company'); return true; }                 // the Company board itself
     if (n.kind === 'page'){ openSettingsAt('company'); if (typeof settingsGoPage === 'function') settingsGoPage(n.key); return true; }
     openSettingsAt('company', n.key); return true;
   }
@@ -828,8 +1038,12 @@ function navReadDuty(raw, t){
   return { kind: 'go', place: 'nav', nav: { k: 'duty', cid: best.c.id, oid: best.o.id }, say: 'nav_go_duty', sayVars: { what: best.o.desc, ref: navRef(best.c) } };
 }
 /* A REQUEST BY ITS WORDS ("the request for a distributor NDA") — the Requests page's own row */
+/* a sentence that names a contract by its number asks about THAT contract ("internal review of MK-0382",
+   "request review for MK-0382"): never a Settings page, never a request found by its words */
+const NAV_REF_IN = / #?[a-z]{2,4}-[a-z0-9]*\d[a-z0-9]* /;
 function navReadRequest(raw, t){
   if (!/ (request|requests|förfrågan|förfrågningar) /.test(t)) return null;
+  if (NAV_REF_IN.test(t) && / (review|granskning) /.test(t)) return null;
   if (navWords(raw).length === 0) return null;                              // "requests" alone is the place word's
   return { kind: 'go', place: 'nav', nav: { k: 'request', q: raw }, say: 'nav_go_request' };
 }
@@ -1041,7 +1255,7 @@ function navDoorOf(d){
   return null;
 }
 
-Object.assign(window, { navDoorOf, navLeftover, navNorm, navBook, navStreamWords, navStreamOf, navStageOf, navEndingOf, navEndingSpan, navParties, navPartiesIn,
+Object.assign(window, { NAV_PLACES, navReadPlace, navGoPlace, navReadStTitle, navStTitles, navDoorOf, navLeftover, navNorm, navBook, navStreamWords, navStreamOf, navStageOf, navEndingOf, navEndingSpan, navParties, navPartiesIn,
   navClauseTopicOf, navRead, navReadClause, navClauseCount, navReadContracts, navContractsLabel, navReadParty, navWhich, navGo, navGoClause,
   navContractByName, navLanding, NAV_PAGES, navReadPage, NAV_ACTS, NAV_ACT_OWN, navReadContractAct, navGoAct, navClauseEl, navClauseRow, navPaperMarked, NAV_PAPER_TRIES, navSayLate, navChoicePress, NAV_STREAM_EXTRA, NAV_CLAUSE_TOPICS, NAV_LAND_TRIES,
   NAV_YOU, NAV_COMPANY, navReadSettings, navReadStandards, navUsersIn, navLandWhen, navGoStage2, NAV_STD_BOOKS, NAV_STD_ROWS,
