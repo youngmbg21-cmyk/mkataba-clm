@@ -12953,6 +12953,22 @@ function copilotTextAnswer(txt) {
   s = s.replace(/"\s*,\s*"(?:citations|compare|chart|cards)"\s*:[\s\S]*$/, '').replace(/"\s*\}?\s*$/, '');
   return s.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\').trim();
 }
+/* A TOOL CALL WRITTEN AS PLAIN TEXT (owner's screenshot, 23 Oct 2026): the model sometimes types the whole
+   deliver_answer call as words — `<deliver_answer> <parameter name="answer">… </parameter> <parameter name="citations">[…]`
+   — instead of calling it. Its fields are read back and go through normalizeDeliver like a real call, so the
+   reader never sees the markup and the citations are still checked. Null when the text is not such a call. */
+function copilotTextDeliver(txt) {
+  const t = String(txt || '');
+  if (!/<parameter name="answer">/.test(t)) return null;
+  const out = {};
+  for (const m of t.matchAll(/<parameter name="(\w+)">([\s\S]*?)(?:<\/parameter>|(?=<parameter name="|<\/invoke>|<\/deliver_answer>|$))/g)) {
+    const k = m[1]; if (out[k] != null) continue;
+    const v = m[2].trim();
+    if (k === 'answer') { out.answer = v.replace(/<\/?(?:parameter|invoke|deliver_answer|function_calls|antml:[a-z_]+)\b[^>]*>/g, '').trim(); continue; }
+    try { out[k] = JSON.parse(v); } catch (_) { out[k] = v; }
+  }
+  return out.answer ? out : null;
+}
 const COPILOT_EMPTY_ANSWER = "I couldn't finish an answer to that one. Try a smaller piece of it — one contract, one date range, one counterparty — or say “portfolio health report” and I'll build the full picture as a document instead.";
 
 /* ---- NEVER A DEAD END (Jambo works like Copilot, stage 3, 22 Oct 2026) ----
@@ -13380,6 +13396,8 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
       const toolUses = content.filter(b => b.type === 'tool_use');
       working.push({ role: 'assistant', content });
       if (!toolUses.length) { // model replied as plain text without the tool — accept it
+        const writ = copilotTextDeliver(content.filter(b => b.type === 'text').map(b => b.text).join(''));
+        if (writ) { final = normalizeDeliver(writ, cx); break; }
         const txt = copilotTextAnswer(content.filter(b => b.type === 'text').map(b => b.text).join('').trim());
         /* no words and no tool: asked once more for its answer (never a dead end) */
         if (!txt && !nudged && step + 1 < AI_CHAT_STEPS) { nudged = true; copilotNudge(working); continue; }
@@ -13725,6 +13743,8 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
       const toolUses = content.filter(b => b.type === 'tool_use');
       working.push({ role: 'assistant', content });
       if (!toolUses.length) {
+        const writ = copilotTextDeliver(content.filter(b => b.type === 'text').map(b => b.text).join(''));
+        if (writ) { final = normalizeDeliver(writ, cx); break; }
         const txt = copilotTextAnswer(content.filter(b => b.type === 'text').map(b => b.text).join('').trim());
         if (!txt && !nudged && step + 1 < AI_CHAT_STEPS) { nudged = true; copilotNudge(working); continue; }
         /* asked back in plain words: once more, with its choices as presses */

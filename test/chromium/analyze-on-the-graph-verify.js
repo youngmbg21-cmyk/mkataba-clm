@@ -114,23 +114,20 @@ const deliver = (id, answer, citations) => ({ content: [{ type: 'tool_use', id, 
     await page.evaluate(() => igExplain('MK-A2'));
     await settled();
     await page.waitForTimeout(400);
+    /* ONE DOOR (owner, 23 Oct 2026): Analyze contract and Workspace merged into Open */
     const card = await page.evaluate(() => {
       const a = document.querySelector('#ig-dock [data-ig-analyze]');
       const ws = document.querySelector('#ig-dock [data-ig-ws]');
       const cmp = document.querySelector('#ig-dock [data-ig-cmp]');
-      const box = a && a.closest('[data-ig-hoverid]'); const br = box && box.getBoundingClientRect();
-      const inside = [a, ws, cmp].every(b => { if (!b || !br) return false; const r = b.getBoundingClientRect(); return r.right <= br.right + 1 && r.left >= br.left - 1; });
-      return { analyze: !!a, filled: !!(a && a.classList.contains('ui-btn-primary')),
-        wsFilled: !!(ws && ws.classList.contains('ui-btn-primary')), cmp: !!cmp,
-        first: !!(a && ws && (a.compareDocumentPosition(ws) & Node.DOCUMENT_POSITION_FOLLOWING)),
-        inside, nodes: IG.nodes.length, word: a && a.textContent.trim() };
+      const box = ws && ws.closest('[data-ig-hoverid]'); const br = box && box.getBoundingClientRect();
+      const inside = [ws, cmp].every(b => { if (!b || !br) return false; const r = b.getBoundingClientRect(); return r.right <= br.right + 1 && r.left >= br.left - 1; });
+      return { analyze: !!a, wsFilled: !!(ws && ws.classList.contains('ui-btn-primary')), cmp: !!cmp, inside, nodes: IG.nodes.length, word: ws && ws.textContent.trim() };
     });
-    check('1a the card carries three doors: Analyze contract first and filled, Open workspace unfilled, Compare kept',
-      card.analyze && card.filled && !card.wsFilled && card.cmp && card.first, JSON.stringify(card));
-    check('1a2 all three doors sit inside the card — none is cut off at the panel\'s width', card.inside, `inside ${card.inside}`);
+    check('1a the card carries Open, filled, and Compare; no Analyze contract', !card.analyze && card.wsFilled && card.word === 'Open' && card.cmp, JSON.stringify(card));
+    check('1a2 both doors sit inside the card — none is cut off at the panel\'s width', card.inside, `inside ${card.inside}`);
     await page.screenshot({ path: path.join(OUT, '01-card.png') });
 
-    await page.click('#ig-dock [data-ig-analyze]');
+    await page.evaluate(() => igAnalyze('MK-A2'));   /* the map's paper, now opened by name */
     await page.waitForTimeout(900);
     const up = await page.evaluate(n0 => {
       const paper = document.getElementById('ig-paper'), svg = document.getElementById('ig-svg');

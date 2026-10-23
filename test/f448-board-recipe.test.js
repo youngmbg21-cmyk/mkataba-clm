@@ -341,11 +341,11 @@ describe('F448 (7) — read it with me: one contract\'s paper, asked for in word
     const j = w.hbParse('let me ask questions about Juno');   /* three Juno contracts: not a guess */
     assert.ok(!j || j.act !== 'analyze', JSON.stringify(j));
   });
-  test('the card\'s own button is the same door (data-hb-analyze, the map\'s own words)', () => {
+  test('the card has ONE door, Open (owner, 23 Oct 2026: Analyze contract merged into it)', () => {
     const src = read('js/views/homeboard.js');
     const card = src.slice(src.indexOf('function hbCardHtml('), src.indexOf('function hbCardHtml(') + 4000);
-    assert.match(card, /data-hb-analyze="\$\{_hbE\(K\.id\)\}"/);
-    assert.match(card, /i18t\('int_analyze'\)/, 'one label for one act: the map card says "Analyze contract" too');
+    assert.ok(!/data-hb-analyze="/.test(card), 'no Analyze contract button on the card');
+    assert.match(card, /data-hb-room="\$\{_hbE\(K\.id\)\}"[^>]*>\$\{_hbE\(i18t\('int_open_contract'\)\)\}/, 'Open, the same word as the map card');
     assert.match(src, /function hbAnalyze\(id\)\{[\s\S]*?igAnalyze\(id\)/, 'Explorer\'s igAnalyze stays the one door');
   });
 });

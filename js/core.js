@@ -4043,8 +4043,11 @@ function dlgSapFrame(panel){
       if(e.getBoundingClientRect().width < bodyW-4) return;
     }
     const pr=panel.getBoundingClientRect(), fr=foot.getBoundingClientRect();
-    const bl=parseFloat(getComputedStyle(panel).borderLeftWidth)||0, br=parseFloat(getComputedStyle(panel).borderRightWidth)||0;
-    const offL=Math.max(0, Math.round(fr.left-pr.left-bl)), offR=Math.max(0, Math.round(pr.right-br-fr.right));
+    const bl=parseFloat(getComputedStyle(panel).borderLeftWidth)||0;
+    /* THE RIGHT EDGE IS THE INSIDE OF THE SCROLLBAR (owner, 23 Oct 2026: "pop ups should never be narrow that you
+       have to scroll left or right"): where scrollbars take room (Windows), the panel's border edge lies beyond its
+       up-down bar; a foot stretched to it was that bar's width too wide and the pop-up scrolled sideways. */
+    const offL=Math.max(0, Math.round(fr.left-pr.left-bl)), offR=Math.max(0, Math.round(pr.left+bl+panel.clientWidth-fr.right));
     const below=Math.max(0, Math.round(panel.scrollHeight-(fr.bottom-pr.top+panel.scrollTop)));
     foot.style.marginLeft=`${-offL}px`; foot.style.marginRight=`${-offR}px`; foot.style.marginBottom=`${-below}px`;
   }

@@ -214,7 +214,7 @@ const check = (name, pass, detail) => {
     /* ================= 5. THE DIVIDER WITH THE PAPER UP ==================== */
     await page.evaluate(() => { igExplain('MK-A2'); });
     await page.waitForTimeout(600);
-    await page.evaluate(() => { const b = document.querySelector('#ig-dock [data-ig-analyze]'); if (b) b.click(); });
+    await page.evaluate(() => igAnalyze('MK-A2'));   /* the card's Analyze left it (23 Oct 2026); the map's paper is igAnalyze's */
     await page.waitForTimeout(1000);
     const p0 = await page.evaluate(() => { const s = document.querySelector('#ig-paper .pg-sheet'); const z = document.getElementById('ig-resizer').getBoundingClientRect();
       const at = document.elementFromPoint(z.left + z.width / 2, (z.top + z.bottom) / 2);
