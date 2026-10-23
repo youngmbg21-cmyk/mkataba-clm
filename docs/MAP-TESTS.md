@@ -338,6 +338,7 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 - f252, f288, keeps-your-place-verify.
 
 ## NAVIGABLE BY TYPING (owner, 22 Oct 2026; docs/PLAN-navigable-by-typing.md)
+- THE OVERVIEW OR THE BOARD WITH A CONTRACT NAMED (23 Oct 2026): f811 B4b (new; "take me to the board and show me the overview of contact mk 345" from Settings, a list or the window → its strip on the Board, on Overview; "contact" before the number read as "contract"; a named page keeps its own) and C6b (Settings hands a contract named, or "take me" no setting answers, to Jambo). nav-exam 201/202.
 - The exam: test/nav-exam.js (194 asks) over test/nav-world.js, typed by test/chromium/nav-exam-verify.js into the real boxes; a measurement with a ratchet (`NAV_EXAM_FLOOR`). Before anything was built: 81 of 194.
 - After stages 1–4 (js/navmap.js): 188 of 194; the ratchet stands at 194 (201 of 202 with the compare section); after a change to the compare reader also run sap-popups, grey-not-dead, counterparty-reading-and-more. Run one section with `NAV_EXAM_ONLY=<section>`. A change to how Jambo reads words also runs: answer-where-you-stand, board-says-it-plain, board-words, choices-when-unclear, every-door-lands-on-home, jambo-everywhere, jambo-finds-the-way, jambo-map, jambo-moves-and-opens, jambo-words, ref-in-my-question, show-it-here-first, held-contract-asks, jambo-follows-the-ask, home-board, jambo-chat-window, one-recipe-language, jambos-list-panel.
 
