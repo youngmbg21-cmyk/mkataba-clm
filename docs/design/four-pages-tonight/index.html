@@ -1,0 +1,469 @@
+<title>Four Pages Tonight</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: a slim switcher, then ONE frame at the owner's laptop size (1440×780) scaled to fit, then the words for that option. */
+:root{--bg:#FBFAF7;--fg:#161512;--mut:#5E5A51;--rule:#E4E0D7;--card:#ffffff;--acc:#1F4D3B;--acc-soft:#EEF3F0;--amber:#B07A1E;
+  --sans:'Geist',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;--serif:'Source Serif 4','IBM Plex Serif',Georgia,serif}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#1C1B18;--fg:#EDE9E0;--mut:#A9A397;--rule:#36332D;--card:#242320;--acc:#8FC1A9;--acc-soft:#263A31;--amber:#D9A24A;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1C1B18;--fg:#EDE9E0;--mut:#A9A397;--rule:#36332D;--card:#242320;--acc:#8FC1A9;--acc-soft:#263A31;--amber:#D9A24A;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:14px/1.5 var(--sans);margin:0;padding-block:0 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font:500 26px/1.2 var(--serif);margin:28px 0 4px;text-wrap:balance}
+.lede{color:var(--mut);max-width:70ch;margin:0 0 18px}
+.sw{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;margin:0 0 14px}
+.sw .grp{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.sw .lbl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-right:4px}
+.sw button{font:500 13px var(--sans);color:var(--fg);background:var(--card);border:1px solid var(--rule);border-radius:3px;padding:6px 12px;cursor:pointer}
+.sw button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.sw button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.stage{border:1px solid var(--rule);background:var(--card);border-radius:3px;overflow:hidden;width:100%}
+.stage-in{position:relative;width:1440px;height:780px;transform-origin:0 0}
+.stage img{display:block;width:1440px;height:780px}
+.words{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:24px 40px;margin-top:20px}
+@media (max-width:860px){.words{grid-template-columns:1fr}}
+.words h2{font:500 20px/1.25 var(--serif);margin:0 0 6px}
+.words h3{font:600 12px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:18px 0 6px}
+.words p{margin:0 0 10px;max-width:68ch}
+.words ul{margin:0 0 10px;padding-left:18px}
+.words li{margin:0 0 4px}
+table.cmp{border-collapse:collapse;width:100%;font-size:13px}
+table.cmp th,table.cmp td{text-align:left;vertical-align:top;padding:8px 10px 8px 0;border-bottom:1px solid var(--rule)}
+table.cmp th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);font-weight:600}
+table.cmp tr.rec td:first-child{color:var(--acc);font-weight:600}
+.rec{border-left:3px solid var(--acc);padding:2px 0 2px 12px;margin:8px 0 0}
+.note{font-size:12.5px;color:var(--mut)}
+.foot{margin-top:32px;color:var(--mut);font-size:12.5px;border-top:1px solid var(--rule);padding-top:12px;max-width:80ch}
+
+/* ===== THE FRAME: HaTi's own look, fixed light (Chambers has one appearance) ===== */
+.fr{--ink:#161512;--m:#5E5A51;--m2:#6F6A5E;--r:#E4E0D7;--r2:#CFC9BC;--gnd:#EFECE5;--soft:#F0EDE6;--ac:#1F4D3B;--ac50:#EEF3F0;--am:#B07A1E;--rd:#B3261E;--ok:#2E6B4F;
+  width:1440px;height:780px;background:#fff;color:var(--ink);font:13px/1.4 var(--sans);display:flex;flex-direction:column;overflow:hidden;text-align:left}
+.fr *{box-sizing:border-box}
+.fr b{font-weight:600}
+.fr .g{color:var(--m)}.fr .g2{color:var(--m2)}.fr .am{color:var(--am)}.fr .rd{color:var(--rd)}.fr .ac{color:var(--ac)}
+.fr .num{font-variant-numeric:tabular-nums}
+.fr .bar{height:48px;border-bottom:1px solid var(--r);display:flex;align-items:center;gap:18px;padding:0 18px;flex:none}
+.fr .bar .bk{font-size:20px;color:var(--ink);width:14px}
+.fr .bar .logo{font:600 20px var(--serif);letter-spacing:-.01em}
+.fr .bar .pg{font-weight:500}
+.fr .bar .pg i{font-style:normal;color:var(--m);font-size:10px;margin-left:4px}
+.fr .srch{margin-left:auto;margin-right:auto;width:360px;height:28px;background:var(--soft);border:1px solid var(--r);border-radius:2px;display:flex;align-items:center;gap:8px;padding:0 10px;color:var(--m);font-size:12.5px}
+.fr .srch kbd{margin-left:auto;font:11px var(--sans);border:1px solid var(--r2);border-radius:2px;padding:0 4px;background:#fff}
+.fr .ic{display:flex;gap:18px;align-items:center;color:var(--ink)}
+.fr .ic .bell{background:var(--ink);color:#fff;font-size:10px;font-weight:600;padding:1px 4px;border-radius:2px}
+.fr .ic .av{width:26px;height:26px;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-size:11px;font-weight:600}
+.fr .fb{flex:1;display:flex;min-height:0}
+.fr .main{flex:1;min-width:0;display:flex;flex-direction:column}
+.fr .dock{width:384px;flex:none;border-left:1px solid var(--r);display:flex;flex-direction:column;min-height:0}
+.fr .ptop{height:46px;border-bottom:1px solid var(--r);display:flex;align-items:center;gap:14px;padding:0 14px;flex:none}
+.fr .ptop .t{font-weight:600;font-size:14px}
+.fr .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:currentColor;margin-right:6px;vertical-align:1px}
+.fr .seg{display:inline-flex;border:1px solid var(--r2);border-radius:2px;overflow:hidden;height:26px}
+.fr .seg span{padding:0 10px;display:flex;align-items:center;font-weight:500;font-size:12.5px;border-left:1px solid var(--r2)}
+.fr .seg span:first-child{border-left:0}
+.fr .seg span.on{background:var(--ac50);color:var(--ac)}
+.fr .b{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border:1px solid var(--r2);border-radius:2px;background:#fff;font:500 12.5px var(--sans);color:var(--ink);white-space:nowrap}
+.fr .b.fill{background:var(--ink);color:#fff;border-color:var(--ink)}
+.fr .b.sm{height:22px;padding:0 8px;font-size:12px}
+.fr .b.off{color:var(--m2);border-color:var(--r)}
+.fr .lnk{color:var(--ac);font-weight:500;white-space:nowrap}
+.fr .gnd{flex:1;background:var(--gnd);position:relative;overflow:hidden;padding-top:40px}
+.fr .zoom{position:absolute;top:8px;right:18px;height:26px;border:1px solid var(--r2);background:#fff;border-radius:2px;display:flex;align-items:center;gap:12px;padding:0 10px;font-size:12.5px}
+.fr .sheet{width:720px;margin:0 auto;background:#fff;padding:52px 50px 40px;font:15px/1.65 var(--serif);min-height:720px;box-shadow:0 0 0 1px var(--r)}
+.fr .sheet h1{font:500 21px/1.35 var(--serif);text-align:center;margin:0 0 6px;letter-spacing:0}
+.fr .sheet .sub{text-align:center;color:var(--m);font-size:14px;margin:0 0 10px}
+.fr .sheet hr{width:48px;border:0;border-top:1px solid var(--r2);margin:0 auto 36px}
+.fr .sheet h4{font:600 14.5px var(--serif);margin:22px 0 2px}
+.fr .sheet p{margin:0}
+.fr ins{text-decoration:none;color:var(--ok);border-bottom:1.5px solid var(--ok);background:#EEF3F0}
+.fr del{color:var(--rd);text-decoration:line-through;text-decoration-thickness:1.5px}
+.fr .tabs{height:46px;border-bottom:1px solid var(--r);display:flex;align-items:stretch;gap:24px;padding:0 16px;flex:none}
+.fr .tabs span{display:flex;align-items:center;gap:6px;font-weight:500;position:relative;color:var(--ink)}
+.fr .tabs span em{font-style:normal;color:var(--ac);font-weight:500;font-size:12px}
+.fr .tabs span.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--ink)}
+.fr .tabs .more{margin-left:auto;color:var(--m)}
+.fr .body{flex:1;min-height:0;overflow:hidden;padding:14px 16px 0}
+.fr .foot{flex:none;padding:10px 16px 14px;border-top:1px solid var(--r)}
+.fr .foot .links{display:flex;gap:14px;margin-bottom:10px;font-size:12.5px}
+.fr .foot .links span{text-decoration:underline;text-decoration-color:var(--r2);text-underline-offset:3px}
+.fr .ask{height:40px;border:1px solid var(--r2);border-radius:3px;display:flex;align-items:center;gap:12px;padding:0 10px 0 12px;color:var(--m);font-size:13px}
+.fr .ask .plus{font-size:18px;color:var(--ink);line-height:1}
+.fr .ask .go{margin-left:auto;width:24px;height:24px;border-radius:50%;background:var(--r);display:grid;place-items:center;color:var(--m);font-size:12px}
+.fr .ask.big{height:46px;font-size:14px}
+.fr .ask.big .go{width:28px;height:28px;background:var(--ac);color:#fff}
+.fr .ask.big.on{border-color:var(--ac);box-shadow:0 0 0 2px rgba(31,77,59,.18)}
+.fr .ask.off{color:var(--m2)}
+.fr .ask.off .go{background:var(--soft)}
+/* reused row grammars */
+.fr .row{display:flex;align-items:center;gap:10px;min-height:40px;padding:0 2px}
+.fr .row .l{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fr .row .v{color:var(--m);white-space:nowrap}
+.fr .row .ch{color:var(--m2);font-size:14px;min-width:10px;text-align:right;white-space:nowrap}
+.fr .row .l > div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fr table.nw td{white-space:nowrap}
+.fr .dotm{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--r2);flex:none;display:inline-block}
+.fr .dotm.am{border-color:var(--am);background:#fff}
+.fr .dotm.ok{border-color:var(--ac);background:var(--ac)}
+.fr .dotm.ink{border-color:var(--ink);background:var(--ink)}
+.fr .field{height:30px;border:1px solid var(--r2);border-radius:2px;background:#FFFBEF;display:flex;align-items:center;padding:0 10px;color:var(--m);font-size:12.5px;justify-content:space-between}
+.fr table{border-collapse:collapse;width:100%}
+.fr .cell{padding:0 8px}
+/* page head (lists) */
+.fr .page{flex:1;min-width:0;background:var(--gnd);padding:14px 18px;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+.fr .card{background:#fff;border:1px solid var(--r);border-radius:3px}
+.fr .ph{padding:12px 18px;display:flex;align-items:center;gap:14px}
+.fr .ph .t{font:600 20px var(--sans);letter-spacing:-.01em}
+.fr .ph .t.serif{font:500 24px var(--serif)}
+.fr .lt{display:flex;gap:22px;align-items:stretch;height:36px;padding:0 18px;border-bottom:1px solid var(--r)}
+.fr .lt span{display:flex;align-items:center;gap:6px;position:relative;font-weight:500}
+.fr .lt span em{font-style:normal;color:var(--m);font-weight:400;font-size:12px}
+.fr .lt span.on{color:var(--ink)}
+.fr .lt span.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--ink)}
+.fr .th{display:flex;align-items:center;height:32px;padding:0 18px;font-size:12px;color:var(--m);border-bottom:1px solid var(--r)}
+.fr .tr{display:flex;align-items:center;height:42px;padding:0 18px;border-bottom:1px solid var(--r)}
+.fr .tr:last-child{border-bottom:0}
+.fr .mono{width:28px;height:28px;border:1px solid var(--r2);border-radius:2px;display:grid;place-items:center;font-size:10.5px;font-weight:600;color:var(--m);flex:none;margin-right:12px;background:#fff}
+.fr .mono.rnd{border-radius:50%}
+.fr .c-ag{flex:1;min-width:0}.fr .c-st{width:170px}.fr .c-en{width:150px}.fr .c-va{width:120px;text-align:right}.fr .c-mo{width:40px;text-align:right;color:var(--m2)}.fr .c-ny{width:230px;color:var(--m)}
+.fr .two{font-size:12px;color:var(--m)}
+.fr .pill{flex:none;display:inline-flex;border:1px solid var(--r2);border-radius:14px;height:26px;overflow:hidden;background:var(--soft)}
+.fr .pill span{white-space:nowrap;padding:0 12px;display:flex;align-items:center;font-weight:500;font-size:12.5px;color:var(--m)}
+.fr .pill span.on{background:#fff;color:var(--ink);border-radius:13px;margin:2px;padding:0 10px;box-shadow:0 0 0 1px var(--r2)}
+.fr .grph{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--m);font-weight:600;padding:16px 0 6px}
+.fr .grph:first-child{padding-top:4px}
+.fr .grph em{font-style:normal;color:var(--m2);font-weight:500;letter-spacing:0;margin-left:6px}
+.fr .hair{border-top:1px solid var(--r)}
+.fr .cite{font:13px/1.4 var(--serif);color:var(--m);font-style:italic}
+.fr .cite b{font:600 11px var(--sans);font-style:normal;color:var(--m);margin-right:6px;letter-spacing:.02em}
+</style>
+
+<h1>Four pages, three ways each</h1>
+<p class="lede">The Dossier first, then Home, Contracts and Redlines. Every option is drawn full size on its real page at the laptop's 1440×780, in HaTi's own ink, type and corners. "Today" is a photograph of the page as it stands this evening. Pick one by name per page; only that one gets built.</p>
+
+<div class="sw">
+  <div class="grp" id="pages"><span class="lbl">Page</span></div>
+  <div class="grp" id="opts"><span class="lbl">Option</span></div>
+</div>
+<div class="stage"><div class="stage-in" id="stage"></div></div>
+<div class="words" id="words"></div>
+<p class="foot">What stays the same on every option: HaTi's ink and warm greys, Geist for the product and Source Serif 4 for the paper, 2px corners, no new bands, the ask box at the foot of every panel, one filled button per area, nothing that writes without a person's press. Each option is a different way of ordering the same readings the page already has; none needs a new fact stored.</p>
+
+<script>
+/* ---------- shared chrome ---------- */
+const MAG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.5-4.5"/></svg>';
+const bar = (name, ref) => `<div class="bar"><span class="bk">‹</span><span class="logo">HaTi</span><span class="pg">${name}${ref ? ' · ' + ref : ''}<i>▾</i></span><div class="srch">${MAG} Search contracts, clauses, counterparties…<kbd>⌘K</kbd></div><div class="ic"><span>✦</span><span class="bell">9+</span><span>◷</span><span class="av">AO</span><span>⇥</span></div></div>`;
+const PAPER_BODY = `<h1>Master Supply and Distribution Agreement — Nordvane Consumer Brands AB</h1><p class="sub">Mutual Non-Disclosure Agreement</p><hr>
+<h4>1. Purpose</h4><p>The Parties wish to explore a potential business relationship and, in connection therewith, may disclose confidential and proprietary information. No monetary consideration passes under this Agreement; the mutual exchange of Confidential Information constitutes sufficient consideration.</p>
+<h4>2. Confidential Information</h4><p>"Confidential Information" means all non-public information disclosed by one Party to the other, including recipes, specifications, commercial terms, pricing and customer data.</p>
+<h4>3. Term</h4><p>This Agreement shall remain in force for 3 years from the effective date, unless terminated earlier by written notice to the other Party's registered office.</p>
+<h4>4. Termination</h4><p>Either party may terminate for material breach not remedied within thirty (30) days of notice, or for convenience on ninety (90) days' written notice.</p>`;
+const paper = (redline) => `<div class="main"><div class="ptop"><span class="t">Master Supply and Distribution Agreement</span><span class="am"><i class="dot"></i>In Review · round 1</span>
+  <span style="margin-left:auto" class="seg"><span class="${redline ? '' : 'on'}">Clean</span><span class="${redline ? 'on' : ''}">Redline · 4</span><span>Their view</span></span><span class="b">Notes</span><span class="b">Share</span></div>
+  <div class="gnd"><div class="zoom"><span>−</span><span>100%</span><span>+</span></div><div class="sheet">${redline ? PAPER_BODY.replace('ninety (90) days', '<del>ninety (90)</del> <ins>one hundred and eighty (180)</ins> days') : PAPER_BODY}</div></div></div>`;
+const dock = (tabs, body, foot) => `<div class="dock"><div class="tabs">${tabs}<span class="more">›</span></div><div class="body">${body}</div><div class="foot">${foot || ''}<div class="ask"><span class="plus">+</span>Ask about MK-400…<span class="go">↑</span></div></div></div>`;
+const TABS_D = (on) => `<span class="${on === 'd' ? 'on' : ''}">Dossier <em>6</em></span><span class="${on === 'c' ? 'on' : ''}">Clauses</span><span class="${on === 'r' ? 'on' : ''}">Redlines${on === 'r' ? ' <em>4</em>' : ''}</span><span>✦ Jambo</span>`;
+const frame = (inner) => `<div class="fr">${inner}</div>`;
+const row = (dot, l, v, ch, extra) => `<div class="row">${dot ? `<i class="dotm ${dot}"></i>` : ''}<span class="l">${l}</span><span class="v">${v || ''}</span>${ch === false ? '' : `<span class="ch">${ch || '›'}</span>`}</div>${extra || ''}`;
+
+/* ---------- DOSSIER ---------- */
+const DOS_SAP = frame(bar('Nordvane Consumer Brands AB', 'MK-400') + '<div class="fb">' + paper() + dock(TABS_D('d'), `
+<div style="display:grid;grid-template-columns:1fr 1fr 60px;gap:10px;padding:2px 0 12px;border-bottom:1px solid var(--r);margin-bottom:6px">
+  <div><div class="g" style="font-size:11px;letter-spacing:.05em;text-transform:uppercase">Stage</div><b>Negotiate</b> <span class="g">· 3 of 6</span></div>
+  <div><div class="g" style="font-size:11px;letter-spacing:.05em;text-transform:uppercase">Next act</div><b>Answer 4 redlines</b></div>
+  <div><div class="g" style="font-size:11px;letter-spacing:.05em;text-transform:uppercase">Owed</div><b class="am">6</b></div>
+</div>
+<div class="grph">Needs you <em>6</em></div>
+<table class="nw" style="font-size:12.5px">
+<tr class="g" style="font-size:11px;height:24px"><td class="cell">Item</td><td class="cell">Standing</td><td class="cell" style="width:74px"></td></tr>
+<tr style="height:32px;border-top:1px solid var(--r)"><td class="cell">Effective date</td><td class="cell am">Missing</td><td class="cell" style="text-align:right"><span class="b sm">Fill</span></td></tr>
+<tr style="height:32px;border-top:1px solid var(--r)"><td class="cell">Secret until</td><td class="cell am">Missing</td><td class="cell" style="text-align:right"><span class="b sm">Fill</span></td></tr>
+<tr style="height:32px;border-top:1px solid var(--r)"><td class="cell">Their answer</td><td class="cell">5 of 6 · <span class="rd">7 days</span></td><td class="cell" style="text-align:right"><span class="b sm">Look</span></td></tr>
+<tr style="height:32px;border-top:1px solid var(--r)"><td class="cell">Your approval</td><td class="cell">Asked</td><td class="cell" style="text-align:right"><span class="b sm">Decide</span></td></tr>
+<tr style="height:32px;border-top:1px solid var(--r)"><td class="cell">Signer</td><td class="cell">Amina O.</td><td class="cell" style="text-align:right"><span class="b sm">Edit</span></td></tr>
+<tr style="height:32px;border-top:1px solid var(--r);border-bottom:1px solid var(--r)"><td class="cell">Who else</td><td class="cell g">Nobody named</td><td class="cell" style="text-align:right"><span class="b sm">Add</span></td></tr>
+</table>
+<div class="grph">Jambo read</div>
+<table class="nw" style="font-size:12.5px">
+<tr style="height:32px"><td class="cell">Brief</td><td class="cell g">Not read · 3 calls</td><td class="cell" style="text-align:right;width:74px"><span class="lnk">Read</span></td></tr>
+<tr style="height:32px;border-top:1px solid var(--r)"><td class="cell">Risks to look at</td><td class="cell g">Not read · free</td><td class="cell" style="text-align:right"><span class="lnk">Read</span></td></tr>
+<tr style="height:32px;border-top:1px solid var(--r)"><td class="cell">Blanks found</td><td class="cell g">3 · 2 filled</td><td class="cell" style="text-align:right"><span class="lnk">Fill ›</span></td></tr>
+<tr style="height:32px;border-top:1px solid var(--r)"><td class="cell">Who keeps it secret</td><td class="cell g">Both sides · §2</td><td class="cell" style="text-align:right"><span class="lnk">Confirm</span></td></tr>
+<tr style="height:32px;border-top:1px solid var(--r);border-bottom:1px solid var(--r)"><td class="cell">Value stream</td><td class="cell g">Corporate &amp; Compliance</td><td class="cell"></td></tr>
+</table>
+<div class="grph">Acts</div>
+<div style="display:flex;gap:6px;flex-wrap:wrap"><span class="b fill">Answer the redlines</span><span class="b">Import their Word file</span><span class="b">Memo</span><span class="b">All 18 ▾</span></div>
+<div class="grph">Also</div>
+<div style="display:flex;gap:16px;font-size:12.5px"><span class="lnk">Obligations · none</span><span class="lnk">Key terms · 10</span><span class="lnk">Family</span><span class="lnk">History · 5</span></div>
+`) + '</div>');
+
+const DOS_LEG = frame(bar('Nordvane Consumer Brands AB', 'MK-400') + '<div class="fb">' + paper() + dock(TABS_D('d'), `
+<div class="g" style="display:flex;gap:10px;font-size:12.5px;padding:2px 0 14px"><span>Arrived</span><span>·</span><span>Read</span><span>·</span><span>Fill in</span><span>·</span><b style="color:var(--ink)">Negotiate</b><span>·</span><span>Sign</span><span>·</span><span>Live</span></div>
+<div style="display:flex;gap:6px;padding-bottom:12px"><span class="b sm fill">Needs you · 6</span><span class="b sm">Read · 5</span><span class="b sm">Acts · 18</span></div>
+<div style="display:flex;flex-direction:column;gap:14px;font-size:13px">
+  <div><div style="display:flex;justify-content:space-between"><b>Effective date</b><span class="am">Missing</span></div><div class="cite"><b>NOT ON THE PAPER</b>no date is written; the term runs 3 years from it (§3)</div>
+    <div style="display:flex;gap:8px;margin-top:8px;align-items:center"><div class="field" style="flex:1">Pick a date <span>▦</span></div><span class="lnk">Confirm</span></div></div>
+  <div><div style="display:flex;justify-content:space-between"><b>Secret until</b><span class="am">Missing</span></div><div class="cite"><b>§3</b>"shall remain in force for 3 years from the effective date"</div></div>
+  <div><div style="display:flex;justify-content:space-between"><b>Their answer</b><span>5 of 6 · <span class="rd">7 days</span> · <span class="lnk">Look</span></span></div><div class="cite"><b>JAMBO READ</b>their changes, your standards and past deals</div></div>
+  <div><div style="display:flex;justify-content:space-between"><b>Your approval</b><span class="lnk">Decide</span></div><div class="cite"><b>BEFORE YOU SIGN</b>the pack stands beside the paper</div></div>
+  <div><div style="display:flex;justify-content:space-between"><b>Signer</b><span class="g">Amina O.</span></div><div class="cite"><b>WHO ELSE</b>nobody else is named yet · <span class="lnk" style="font-style:normal;font-family:var(--sans);font-size:12px">Add</span></div></div>
+  <div><div style="display:flex;justify-content:space-between"><b>Who keeps it secret</b><span class="g">Both sides · <span class="lnk">Confirm</span></span></div><div class="cite"><b>§2</b>"all non-public information disclosed by one Party to the other"</div></div>
+</div>
+`, `<div class="links"><span>fill in</span><span>answer the redlines</span><span>share</span><span>history</span></div>`) + '</div>');
+
+const DOS_CUP = frame(bar('Nordvane Consumer Brands AB', 'MK-400') + '<div class="fb">' + paper() + dock(TABS_D('d'), `
+<div style="padding:4px 0 14px;border-bottom:1px solid var(--r)">
+  <div style="display:flex;gap:4px;margin-bottom:10px"><i style="flex:1;height:3px;background:var(--ink);border-radius:2px"></i><i style="flex:1;height:3px;background:var(--ink);border-radius:2px"></i><i style="flex:1;height:3px;background:var(--ink);border-radius:2px"></i><i style="flex:1;height:3px;background:var(--r);border-radius:2px"></i><i style="flex:1;height:3px;background:var(--r);border-radius:2px"></i><i style="flex:1;height:3px;background:var(--r);border-radius:2px"></i></div>
+  <div style="display:flex;align-items:center;gap:12px"><div style="flex:1"><div class="g" style="font-size:11.5px">Stage 3 of 6 · round 1</div><div style="font:500 17px var(--serif);margin-top:1px">Negotiate</div></div><span class="b fill">Answer 4 redlines</span></div>
+</div>
+<div class="grph">Needs you <em>6</em></div>
+${row('am', 'Effective date', '<span class="am">Missing</span>', '⌄', `<div style="display:flex;gap:8px;padding:0 2px 10px 18px;align-items:center"><div class="field" style="flex:1">Pick a date <span>▦</span></div><span class="b sm fill">Confirm</span></div>`)}
+<div class="hair"></div>${row('am', 'Secret until', '<span class="am">Missing</span>')}
+<div class="hair"></div>${row('ink', 'Their answer', '5 of 6 · <span class="rd">7 days</span>')}
+<div class="hair"></div>${row('ink', 'Your approval', 'Decide')}
+<div class="hair"></div>${row('', 'Signer', 'Amina O.')}
+<div class="hair"></div>${row('', 'Who else', 'Nobody yet')}
+<div class="grph">Jambo read</div>
+${row('', 'Brief', 'Not read · 3 calls', '<span class="lnk">Read</span>')}
+<div class="hair"></div>${row('', 'Risks to look at', 'Not read · free', '<span class="lnk">Read</span>')}
+<div class="hair"></div>${row('', 'Blanks found', '3 · 2 filled')}
+<div class="hair"></div>${row('ok', 'Who keeps it secret', 'Both sides · §2')}
+<div class="grph">Then</div>
+${row('', 'Obligations', 'none recorded')}
+<div class="hair"></div>${row('', 'Key terms', '10')}
+<div class="hair"></div>${row('', 'All acts', '18')}
+`) + '</div>');
+
+/* ---------- HOME ---------- */
+const needRows = (cls) => [
+  ['Nordvane Consumer Brands AB’s answer', 'MK-400 · Jambo read their changes, your standards and past deals', '<span class="rd">7 days</span>', 'Look', 'NC'],
+  ['Answer an approval', 'MK-400 · Master Supply and Distribution Agreement', '', 'Decide', 'NC'],
+  ['Answer an approval', 'MK-158 · External Audit Engagement — FY2026 · PwC Kenya · KES 7.20M', '', 'Decide', 'PK'],
+  ['Answer an approval', 'MK-154 · Digital &amp; Influencer Campaign · Aleph Group · KES 5.40M', '', 'Decide', 'AG'],
+  ['Fill in the details', 'MK-149 · Retail Listing · Carrefour Kenya · 2 owed', '', 'Fill', 'CK'],
+  ['Sign', 'MK-133 · Raw Material Supply · Wilmar East Africa Ltd · your turn', '', 'Sign', 'WE'],
+];
+const HOME_SAP = frame(bar('Home') + '<div class="fb"><div class="page">' + `
+<div class="card"><div class="ph"><span class="t">Home</span><span class="g">36 need you · 1 late · the oldest has waited 7 days</span><div class="ask" style="margin-left:auto;width:440px"><span class="plus">+</span>A contract, a party, a place, a draft… or /<span class="go">↑</span></div></div>
+<div class="lt"><span class="on">Needs you <em>36</em></span><span>Jambo prepared <em>1</em></span><span>Your move <em>35</em></span><span>Late <em>1</em></span><span style="margin-left:auto;font-weight:400;color:var(--ac)">+ Filter</span></div></div>
+<div class="card" style="flex:1;overflow:hidden"><div class="th"><span class="c-ag">What</span><span style="width:160px">Waiting</span><span style="width:90px"></span></div>
+${needRows().map(r => `<div class="tr"><span class="mono">${r[4]}</span><span class="c-ag"><b>${r[0]}</b><div class="two">${r[1]}</div></span><span style="width:160px">${r[2] || '<span class="g2">—</span>'}</span><span style="width:90px;text-align:right"><span class="b sm">${r[3]}</span></span></div>`).join('')}
+<div class="tr g" style="font-size:12px">1–6 of 36 · <span class="lnk" style="margin-left:6px">Show all</span></div></div>` + '</div>' + dock(`<span class="on">Overview <em>36</em></span><span>✦ Jambo</span>`, `
+<div class="grph">Your book</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;padding:4px 0 8px"><div><div style="font:500 22px var(--serif)" class="num">30</div><div class="g">live</div></div><div><div style="font:500 22px var(--serif)" class="num">KES 817.70M</div><div class="g">on paper</div></div><div><div style="font:500 22px var(--serif)" class="num">18</div><div class="g">need you</div></div><div><div style="font:500 22px var(--serif)" class="num">5</div><div class="g">drafts</div></div></div>
+<div class="grph">What Jambo read</div>
+<div class="g" style="font-size:12.5px;line-height:1.5">The Nordvane answer against your standards and 3 past supply deals. Nothing else read today; the book's figures are counted, not read.</div>
+<div class="grph">Setup left <em>2</em></div>${row('', 'Add a signing cap', '', '›')}<div class="hair"></div>${row('', 'Connect email', '', '›')}
+`, `<div class="links"><span>the Nordvane approval</span><span>contracts</span><span>calendar</span></div>`) + '</div>');
+
+const HOME_LEG = frame(bar('Home') + `<div class="fb"><div style="flex:1;overflow:hidden;padding:56px 0 0"><div style="width:800px;margin:0 auto">
+<div class="g" style="font-size:13px">Good afternoon, Amina.</div>
+<div style="font:500 30px/1.2 var(--serif);margin:4px 0 18px">What do you need?</div>
+<div class="ask big on"><span class="plus">+</span>A contract, a party, a place, a draft, a question… or /<span class="go">↑</span></div>
+<div style="display:flex;gap:18px;margin:12px 0 30px;font-size:12.5px"><span class="lnk">needs you · 36</span><span class="lnk">late · 1</span><span class="lnk">the Nordvane approval</span><span class="lnk">contracts</span><span class="lnk">calendar</span><span class="lnk">draft a new agreement</span></div>
+<div class="grph">Jambo prepared <em>1</em></div>
+<div style="display:flex;gap:14px;align-items:baseline;padding:6px 0"><div style="flex:1"><b>Nordvane Consumer Brands AB’s answer</b> <span class="g">5 of 6</span><div class="cite" style="margin-top:2px"><b>JAMBO READ</b>their changes, your standards and 3 past supply deals · waiting <span class="rd">7 days</span></div></div><span class="lnk">Look</span></div>
+<div class="grph">Your move <em>35</em></div>
+${needRows().slice(1).map(r => `<div style="display:flex;gap:14px;align-items:baseline;padding:7px 0"><div style="flex:1"><b>${r[0]}</b><div class="g" style="font-size:12.5px">${r[1]}</div></div><span class="lnk">${r[3]}</span></div>`).join('')}
+<div class="g" style="font-size:12.5px;padding:8px 0"><span class="lnk">Show all 35</span></div>
+</div></div></div>`);
+
+const HOME_CUP = frame(bar('Home') + `<div class="fb"><div style="flex:1;overflow:hidden;padding:34px 0 0;background:#fff"><div style="width:1120px;margin:0 auto">
+<div class="ask big" style="width:640px;margin:0 auto 34px;border-radius:4px"><span class="plus">+</span>Ask or go anywhere… or /<span class="go">↑</span></div>
+<div style="display:grid;grid-template-columns:1fr 300px;gap:56px">
+<div>
+  <div style="display:flex;align-items:flex-end;gap:14px;margin-bottom:12px"><div><div class="g" style="font-size:12px">Thursday 23 October</div><div style="font:500 28px/1.15 var(--serif)">Needs you</div></div><span class="g" style="padding-bottom:5px">36 · <span class="rd">1 late</span></span><span class="pill" style="margin-left:auto"><span class="on">All 36</span><span>Jambo 1</span><span>Your move 35</span></span></div>
+  <div class="grph">Jambo prepared <em>1</em></div>
+  <div class="hair"></div>
+  ${needRows().map((r, i) => (i === 1 ? '<div class="grph">Your move <em>35</em></div><div class="hair"></div>' : '') + `<div class="row" style="min-height:52px;gap:14px"><span class="mono" style="margin:0">${r[4]}</span><span class="l"><b>${r[0]}</b><div class="two">${r[1]}</div></span><span class="v">${r[2]}</span><span class="b sm">${r[3]}</span></div><div class="hair"></div>`).join('')}
+</div>
+<div>
+  <div class="grph">Your book</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 12px;padding:6px 0 4px">
+    <div><div style="font:500 24px var(--serif)" class="num">30</div><div class="g">live</div></div><div><div style="font:500 24px var(--serif)" class="num">817.70M</div><div class="g">KES on paper</div></div>
+    <div><div style="font:500 24px var(--serif)" class="num">18</div><div class="g">need you</div></div><div><div style="font:500 24px var(--serif)" class="num">5</div><div class="g">drafts</div></div></div>
+  <div class="grph">Recent</div>
+  ${row('', 'Nordvane · MK-400', 'In Review')}<div class="hair"></div>${row('', 'Carrefour Kenya · MK-149', 'In Review')}<div class="hair"></div>${row('', 'Wilmar East Africa · MK-133', 'Signing')}
+  <div class="grph">This week</div>
+  ${row('', 'Mon · Nordvane round 1 due back', '')}<div class="hair"></div>${row('', 'Thu · PwC engagement renews', '')}
+</div></div></div></div></div>`);
+
+/* ---------- CONTRACTS ---------- */
+const CT = [
+  ['AG', 'Aleph Group', 'Marketing Services · MK-154', 'Drafting', 'g2', '—', 'KES 5.40M', 'approval asked'],
+  ['W', 'Wasoko', 'Distribution Logistics · MK-145', 'Drafting', 'g2', '—', 'KES 6.40M', ''],
+  ['SI', 'Statpack Industries Ltd', 'Packaging Supply · MK-135', 'Drafting', 'g2', '—', 'KES 14.50M', ''],
+  ['CG', 'Copia Global', 'Distributor · MK-150', 'Drafting', 'g2', '—', 'KES 12M', ''],
+  ['CE', 'CFAO Equipment Kenya', 'Equipment Lease · MK-140', 'Drafting', 'g2', '—', 'KES 3.60M', ''],
+  ['NC', 'Nordvane Consumer Brands AB', 'Master Supply and Distribution · MK-400', 'In Review', 'am', '31 Dec 2028', 'SEK 185M', 'their answer · 7 days'],
+  ['PK', 'PwC Kenya', 'Professional Services · MK-158', 'In Review', 'am', '—', 'KES 7.20M', 'approval asked'],
+  ['CK', 'Carrefour Kenya', 'Retail Listing · MK-149', 'In Review', 'am', '31 Mar 2027', 'KES 78M', '2 details owed'],
+  ['WE', 'Wilmar East Africa Ltd', 'Raw Material Supply · MK-133', 'In Review', 'am', '31 Mar 2027', 'KES 95M', 'your signature'],
+  ['RM', 'Royal Media Services', 'Marketing Services · MK-152', 'In Review', 'am', '30 Jun 2027', 'KES 30M', ''],
+];
+const ctRow = (r, sel) => `<div class="tr" style="${sel ? 'background:var(--ac50)' : ''}"><span class="mono">${r[0]}</span><span class="c-ag"><b>${r[1]}</b><div class="two">${r[2]}</div></span><span class="c-st ${r[4]}"><i class="dot"></i><span style="color:var(--ink)">${r[3]}</span></span><span class="c-en num">${r[5]}</span><span class="c-va num">${r[6]}</span><span class="c-mo">⋯</span></div>`;
+const ctPanel = (cite) => dock(`<span class="on">Overview</span><span>✦ Jambo</span>`, `
+<div style="display:flex;gap:12px;align-items:center;padding:2px 0 12px"><span class="mono" style="width:40px;height:40px;font-size:14px;margin:0">CK</span><div style="flex:1;min-width:0"><b style="font-size:14px">Carrefour Kenya</b><div class="g">Retail Listing · MK-149</div></div><span class="b fill">Open</span></div>
+<div class="grph">The deal</div>
+${row('', 'Stage', '<span class="am"><i class="dot"></i></span>In Review · round 2', false)}${cite ? '<div class="cite" style="padding:0 2px 6px"><b>HISTORY</b>their counter came 3 days ago</div>' : ''}
+<div class="hair"></div>${row('', 'Ends', '31 Mar 2027 · 17 months', false)}${cite ? '<div class="cite" style="padding:0 2px 6px"><b>§3</b>"an initial term of three (3) years from the Commencement Date"</div>' : ''}
+<div class="hair"></div>${row('', 'Value', 'KES 78M', false)}${cite ? '<div class="cite" style="padding:0 2px 6px"><b>§7</b>"listing fees of KES 26,000,000 per Contract Year"</div>' : ''}
+<div class="hair"></div>${row('', 'Party', 'Carrefour Kenya · Majid Al Futtaim', false)}
+<div class="grph">Needs you <em>2</em></div>
+${row('am', 'Effective date', '<span class="am">Missing</span>')}<div class="hair"></div>${row('am', 'Signer', 'Not named')}
+<div class="grph">What Jambo read</div>
+<div class="g" style="font-size:12.5px;line-height:1.5">Their round-2 counter against your standards; the brief is 4 days old.</div>
+`, `<div class="links"><span>upload a document</span><span>draft a new agreement</span><span>board</span></div>`);
+
+const CT_SAP = frame(bar('Contracts') + '<div class="fb"><div class="page">' + `
+<div class="card"><div class="ph" style="padding-bottom:0;border-bottom:1px solid var(--r);height:52px"><span class="t">Contracts</span><span class="g">30 live · KES 817.70M on paper</span>
+  <div class="lt" style="margin-left:24px;border:0;height:52px;padding:0"><span class="on">All <em>31</em></span><span>Needs you <em>18</em></span><span>In negotiation <em>1</em></span><span>Drafts <em>5</em></span><span>Signed <em>7</em></span></div>
+  <span style="margin-left:auto" class="b">Archive</span><span class="seg"><span class="on">List</span><span>Wall</span></span></div>
+  <div class="ph" style="padding:8px 18px;gap:8px"><div class="ask" style="width:360px;height:30px"><span>${MAG}</span>Search, or ask across 31 contracts</div><span class="b">+ Filter</span><span class="b">Stage ▾</span><span class="b">Stream ▾</span><span style="margin-left:auto" class="b">Ask a column</span><span class="b">Columns</span></div></div>
+<div class="card" style="flex:1;overflow:hidden"><div class="th"><span class="c-ag" style="padding-left:40px">Agreement ↑</span><span class="c-st">Stage</span><span class="c-en">Ends</span><span class="c-va">Value</span><span class="c-mo"></span></div>
+${CT.map(r => ctRow(r, r[0] === 'CK')).join('')}
+<div class="tr g" style="font-size:12px;height:36px">1–10 of 31</div></div>` + '</div>' + ctPanel(false) + '</div>');
+
+const CT_LEG = frame(bar('Contracts') + `<div class="fb"><div style="flex:1;min-width:0;overflow:hidden;padding:22px 32px;background:#fff">
+<div style="display:flex;align-items:baseline;gap:12px"><span style="font:500 24px var(--serif)">Contracts</span><span class="g">30 live · KES 817.70M on paper</span><span style="margin-left:auto" class="seg"><span class="on">List</span><span>Wall</span></span></div>
+<div class="ask big" style="width:720px;margin:14px 0 10px"><span>${MAG}</span>Search, or ask across 31 contracts… "which end before June", "who owes us a signature"<span class="go">↑</span></div>
+<div style="display:flex;gap:18px;font-size:12.5px;margin-bottom:18px"><span class="lnk">all · 31</span><span class="lnk">needs you · 18</span><span class="lnk">in negotiation · 1</span><span class="lnk">drafts · 5</span><span class="lnk">signed · 7</span><span class="lnk">ending this year · 3</span><span class="g" style="margin-left:auto">+ Filter · Columns</span></div>
+<div class="th" style="padding:0;border:0;height:24px"><span class="c-ag">Agreement</span><span class="c-st">Stage</span><span class="c-ny">Needs you</span><span class="c-en">Ends</span><span class="c-va">Value</span></div>
+${CT.map(r => `<div class="tr" style="padding:0;border:0;height:46px"><span class="c-ag" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:12px"><b>${r[1]}</b> <span class="g">· ${r[2]}</span></span><span class="c-st ${r[4]}"><i class="dot"></i><span style="color:var(--ink)">${r[3]}</span></span><span class="c-ny">${r[7] ? r[7] : '<span class="g2">—</span>'}</span><span class="c-en num g">${r[5]}</span><span class="c-va num">${r[6]}</span></div>`).join('')}
+</div>` + ctPanel(true) + '</div>');
+
+const CT_CUP = frame(bar('Contracts') + '<div class="fb"><div class="page" style="background:#fff;padding:22px 32px 0;gap:0">' + `
+<div style="display:flex;align-items:flex-end;gap:14px;margin-bottom:14px"><div style="white-space:nowrap"><div style="font:500 28px/1.15 var(--serif)">Contracts</div><div class="g">30 live · KES 817.70M on paper</div></div>
+  <span class="pill" style="margin-left:28px;margin-bottom:3px"><span class="on">All 31</span><span>Needs you 18</span><span>Negotiating 1</span><span>Drafts 5</span><span>Signed 7</span></span>
+  <div class="ask" style="margin-left:auto;width:220px;height:32px;margin-bottom:1px"><span>${MAG}</span>Search or ask</div><span class="b" style="margin-bottom:3px">+ Filter</span><span class="seg" style="margin-bottom:3px"><span class="on">List</span><span>Wall</span></span></div>
+<div style="flex:1;overflow:hidden">
+<div class="grph">In review <em>18</em></div><div class="hair"></div>
+${CT.filter(r => r[3] === 'In Review').map(r => `<div class="row" style="min-height:48px;gap:0;padding:0"><span class="mono rnd">${r[0]}</span><span class="c-ag"><b>${r[1]}</b><div class="two">${r[2]}</div></span><span class="c-ny">${r[7]}</span><span class="c-en num g">${r[5]}</span><span class="c-va num">${r[6]}</span><span class="c-mo">›</span></div><div class="hair"></div>`).join('')}
+<div class="grph">Drafting <em>5</em></div><div class="hair"></div>
+${CT.filter(r => r[3] === 'Drafting').slice(0, 3).map(r => `<div class="row" style="min-height:48px;gap:0;padding:0"><span class="mono rnd">${r[0]}</span><span class="c-ag"><b>${r[1]}</b><div class="two">${r[2]}</div></span><span class="c-ny">${r[7] || '<span class="g2">—</span>'}</span><span class="c-en num g">${r[5]}</span><span class="c-va num">${r[6]}</span><span class="c-mo">›</span></div><div class="hair"></div>`).join('')}
+</div>` + '</div>' + ctPanel(false) + '</div>');
+
+/* ---------- REDLINES ---------- */
+const RL = [
+  ['20', 'Limitation of liability and indemnification', '4 days ago', `Each party's aggregate liability is capped at <del>the total fees paid in the twelve (12) months</del> <ins>fifty per cent (50%) of the fees paid in the six (6) months</ins> preceding the claim.`, 'Your playbook says nothing about this one'],
+  ['7', 'Invoicing and payment terms', '5 days ago', `Invoices are payable within <del>thirty (30)</del> <ins>sixty (60)</ins> days of receipt.`, 'Past deals settled at 45 days, 2 of 3'],
+  ['12', 'Termination for convenience', '6 days ago', `Either party may terminate for convenience on <del>ninety (90)</del> <ins>one hundred and eighty (180)</ins> days' written notice.`, 'Your standard is 90 days'],
+  ['3', 'Exclusivity and minimum purchase', '7 days ago', `The Distributor shall purchase not less than <del>KES 40,000,000</del> <ins>KES 25,000,000</ins> of Products in each Contract Year.`, 'Worth a look · no rule decides it'],
+];
+const RL_SAP = frame(bar('Nordvane Consumer Brands AB', 'MK-400') + '<div class="fb">' + paper(true) + dock(TABS_D('r'), `
+<div style="display:flex;align-items:center;gap:10px;padding:0 0 10px"><b style="font-size:14px">Redlines</b><span class="g">Round 1 · 4 days ago</span><span style="margin-left:auto" class="b sm">Ask for review</span><span class="b sm">Notes</span></div>
+<div class="lt" style="padding:0;height:32px"><span class="on">Waiting on you <em>4</em></span><span>Sent <em>0</em></span><span>Settled <em>0</em></span></div>
+<table style="font-size:12.5px;margin-top:4px">
+<tr class="g" style="font-size:11px;height:26px"><td class="cell">Clause · Jambo's read</td><td class="cell" style="width:68px"></td></tr>
+${RL.map((r, i) => `<tr style="height:44px;border-top:1px solid var(--r);${i === 0 ? 'background:var(--ac50)' : ''}"><td class="cell" style="white-space:nowrap;overflow:hidden;max-width:270px"><b>${r[0]}</b> ${r[1]}<div class="two" style="overflow:hidden;text-overflow:ellipsis">${r[4].split(' · ')[0]}</div></td><td class="cell" style="text-align:right"><span class="b sm">Decide ▾</span></td></tr>`).join('')}
+</table>
+<div class="grph">20 · Limitation of liability</div>
+<div class="cite" style="font-style:normal;font-size:13.5px;line-height:1.5;color:var(--ink)">${RL[0][3]}</div>
+<div class="g" style="font-size:12.5px;margin:8px 0 10px">Step 1 · theirs · ${RL[0][4]} · <span class="lnk">Why?</span></div>
+<div style="display:flex;gap:6px"><span class="b sm fill">Accept</span><span class="b sm">Counter</span><span class="b sm">Reject</span><span class="b sm">Ask a colleague</span><span class="b sm">Ladder</span></div>
+`, `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span class="g" style="font-size:12.5px">0 answered · nothing to send</span><span class="b sm off">Send all</span></div>`) + '</div>');
+
+const RL_LEG = frame(bar('Nordvane Consumer Brands AB', 'MK-400') + '<div class="fb">' + paper(true) + dock(TABS_D('r'), `
+<div style="display:flex;gap:8px;align-items:center;padding-bottom:12px;font-size:12.5px"><span class="b sm">‹ Dossier</span><span class="g">Round 1 · their 4 asks came 4 days ago</span></div>
+<div style="display:flex;flex-direction:column;gap:18px">
+${RL.slice(0, 3).map(r => `<div><div style="display:flex;justify-content:space-between;align-items:baseline"><b>${r[0]} · ${r[1]}</b><span class="g" style="font-size:12px">${r[2]}</span></div>
+<div class="cite" style="font-style:normal;color:var(--ink);font-size:13.5px;line-height:1.5;margin:4px 0"><b>§${r[0]}</b>${r[3]}</div>
+<div class="cite"><b>JAMBO</b>${r[4]} · <span class="lnk" style="font-style:normal;font-family:var(--sans);font-size:12px">Why?</span></div>
+<div style="display:flex;gap:16px;margin-top:6px;font-size:12.5px"><span class="lnk">Accept</span><span class="lnk">Reject</span><span class="lnk">Counter</span><span class="g">·</span><span class="lnk">Ask a colleague</span><span class="lnk">Ladder</span></div></div>`).join('')}
+</div>
+`, `<div class="links"><span>send all · 0</span><span>ask for review</span><span>notes</span></div>`) + '</div>');
+
+const RL_CUP = frame(bar('Nordvane Consumer Brands AB', 'MK-400') + '<div class="fb">' + paper(true) + dock(TABS_D('r'), `
+<div style="padding:2px 0 12px;border-bottom:1px solid var(--r)">
+  <div style="display:flex;align-items:flex-end;gap:12px"><div style="flex:1"><div style="font:500 19px var(--serif)">4 waiting on you</div><div class="g" style="font-size:12px;margin-top:2px">Round 1 · theirs came 4 days ago</div></div><span class="b sm">‹ Dossier</span></div>
+  <div style="display:flex;gap:4px;margin-top:10px"><i style="flex:1;height:3px;background:var(--r);border-radius:2px"></i><i style="flex:1;height:3px;background:var(--r);border-radius:2px"></i><i style="flex:1;height:3px;background:var(--r);border-radius:2px"></i><i style="flex:1;height:3px;background:var(--r);border-radius:2px"></i></div>
+</div>
+<div style="padding:12px 0 14px;border-bottom:1px solid var(--r)">
+  <div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:13.5px">${RL[0][0]} · ${RL[0][1]}</b><span class="g" style="font-size:12px">${RL[0][2]}</span></div>
+  <div style="font:14px/1.55 var(--serif);margin:8px 0 8px">${RL[0][3]}</div>
+  <div class="g" style="font-size:12.5px">✦ ${RL[0][4]} · <span class="lnk">Why?</span></div>
+  <div style="display:flex;align-items:center;gap:8px;margin-top:12px"><span class="pill"><span class="on">Accept</span><span>Counter</span><span>Reject</span></span><span class="g" style="margin-left:auto;font-size:12.5px">Ask a colleague · Ladder</span></div>
+</div>
+${RL.slice(1).map(r => `<div class="row" style="min-height:50px;gap:12px"><span class="l"><b>${r[0]} · ${r[1]}</b><div class="two" style="font-family:var(--serif);font-size:12.5px">${r[3].replace(/<[^>]+>/g, '')}</div></span><span class="v" style="font-size:12px">${r[2]}</span><span class="ch">›</span></div><div class="hair"></div>`).join('')}
+`, `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span class="g" style="font-size:12.5px">0 of 4 answered</span><span class="b sm off">Send all</span></div>`) + '</div>');
+
+/* ---------- the words ---------- */
+const CHECK = `<h3>The page checklist</h3><ul><li><b>Most important thing easiest to see?</b> {a}</li><li><b>Related things grouped?</b> {b}</li><li><b>Each label says what is behind it?</b> {c}</li><li><b>Always know where you are and how to get back?</b> {d}</li></ul>`;
+const PAGES = {
+  dossier: { name: 'Dossier', today: 'today-dossier.png',
+    todayWords: `<h2>Today</h2><p>Six stages run down one thin line, which is right. But three rhythms share the column: stage lines, fact rows with values at different right edges, an open date form, a boxed card with a Look button, a filled button in the middle of the list, then a menu of 18 acts and a row of underlined links above the ask box. The current stage is drawn larger but sits below work that is open above it, so the eye lands on "Fill in" first. Numbers are in two colours. Nothing says what to do first.</p>`,
+    opts: {
+      sap: { html: DOS_SAP, title: 'The SAP Way', words: `<p>A labelled header states the three facts a manager asks for (stage, next act, owed), then three labelled tables: Needs you, Jambo read, Acts. Every value is a cell, every act a small outlined button in the same column. Dense, nothing hidden, no scrolling to find an act.</p>` + CHECK.replace('{a}', 'Yes, the header names the next act.').replace('{b}', 'Yes, by table.').replace('{c}', 'Yes, column heads.').replace('{d}', 'The tabs stay; nothing opens in place, so no trail is needed.') },
+      legora: { html: DOS_LEG, title: 'The Legora Way', words: `<p>Nothing boxed, one quiet list. The six stages are one grey line of words with the current one in ink. Three chips narrow the list (Needs you · Read · Acts). Every row shows where on the paper the fact was read, § and the words quoted, and the work is answered in the row itself (the date picker opens under "Effective date"). Jambo's reading sits as a citation line, never as a card.</p>` + CHECK.replace('{a}', 'Mostly; the chips put Needs you first but no act is lit.').replace('{b}', 'Yes, by chip.').replace('{c}', 'Yes.').replace('{d}', 'Yes, the tabs and the trail stay.') },
+      cupertino: { html: DOS_CUP, title: 'Cupertino', words: `<p>Legora's reading with Apple's structure. One progress line of six segments at the top says where the deal stands, with a small label (Stage 3 of 6) and ONE filled button for the stage's act. Under it, three plain groups with small-caps headers, no boxes: Needs you, Jambo read, Then. Every row is the same height, label left, value right in grey, a chevron that opens the row in place. The owed rows carry an amber dot; a settled fact a filled one. Citations (§2) stay on the value and the quote appears only when the row opens.</p><p>This is what Apple's Settings and Legora's review panel have in common: one row grammar, one right edge, one action lit, everything else quiet until pressed.</p>` + CHECK.replace('{a}', 'Yes: the stage line and the one filled button.').replace('{b}', 'Yes, three groups.').replace('{c}', 'Yes.').replace('{d}', 'Yes; a row opens in place and closes on a second press.') },
+    },
+    table: [['The SAP Way', 'Legal ops teams who want every fact labelled and on one screen', 'Densest; more words; the acts row grows with the menu'], ['The Legora Way', 'Readers who verify facts against the paper all day', 'Citation lines make rows taller; no act is lit, so "what now" is quieter'], ['Cupertino', 'Everyone who opens a contract and wants to know where it stands and what to press', 'Group headers add three short labels; the stage label under the line must not read as a page title']],
+    rec: `<b>Cupertino.</b> It fixes the three faults at once: one row grammar gives balance, the three groups give structure, the progress line and the single filled button give clarity. It keeps the Spine ruling (six stages, no headline sentence, no other side's name) and the Legora ruling (facts cite the paper).`,
+    bites: `<ul><li><b>Rulings it touches:</b> the Spine's "current stage named larger (serif)" becomes a small label under the line, not a headline. "Nothing boxed in the body" holds: groups are headers and hairlines, no borders. The Confirm button in the open row stays the only filled one besides the stage act.</li><li><b>Six Questions:</b> the cheapest channel is the row itself (no band); the contract's pixels do not move (the paper is untouched); the one door stays (every row opens the door that exists today).</li><li><b>Not drawn, so ask:</b> whether the stage's filled button should read the stage's first act (today's "All 18" menu lists them in order) or a fixed verb per stage.</li></ul>`
+  },
+  home: { name: 'Home', today: 'today-home.png',
+    todayWords: `<h2>Today</h2><p>A large white card holds the greeting and the box, floating in a lot of empty ground. Under it the list has grey group bands inside a bordered card, so three frames nest. The red "7 days" and the outlined buttons sit at different right edges. Your book's numbers are not here at all, so Home says what is owed but not what you have.</p>`,
+    opts: {
+      sap: { html: HOME_SAP, title: 'The SAP Way', words: `<p>Home becomes a list page like Contracts: one white head card with the title, the count line and the ask box on the same row; labelled tabs (Needs you · Jambo prepared · Your move · Late); a quiet table with column heads. Jambo's panel on the right carries Your book's four figures, What Jambo read and the admin's setup rows.</p>` + CHECK.replace('{a}', 'The count line; the box is now one control among several.').replace('{b}', 'Yes, by tab and panel.').replace('{c}', 'Yes.').replace('{d}', 'Yes.') },
+      legora: { html: HOME_LEG, title: 'The Legora Way', words: `<p>One centred column, nothing boxed. A quiet greeting, the question in serif, the ask box as the only drawn control, a row of word-chips that are doors (needs you · 36, late · 1, contracts…). Then the list as plain rows under small-caps group names, each row saying what Jambo read in a citation line, and the act as a word at the right.</p>` + CHECK.replace('{a}', 'Yes, the box.').replace('{b}', 'Yes.').replace('{c}', 'Yes.').replace('{d}', 'Yes.') },
+      cupertino: { html: HOME_CUP, title: 'Cupertino', words: `<p>The ask box stands alone at the top like a Spotlight bar, 640 wide, no card. Under it two columns: the work on the left under a serif "Needs you" with the day and a segmented control (All · Jambo · Your move), rows of one height with a monogram; on the right Your book's four figures in serif, Recent, and This week. The page reads top to bottom: ask, then do, then know.</p>` + CHECK.replace('{a}', 'Yes: the box, then the first row.').replace('{b}', 'Yes: do on the left, know on the right.').replace('{c}', 'Yes.').replace('{d}', 'Yes, the bar’s ‹ and the page word.') },
+    },
+    table: [['The SAP Way', 'A team that lives in worklists and wants Home to look like the other lists', 'The greeting goes; the box is smaller'], ['The Legora Way', 'A reader who wants one calm column and words as doors', 'No figures on Home; a long list runs down one column'], ['Cupertino', 'The owner opening HaTi in the morning: what to do and what the book holds, one screen', 'A second column to keep tidy at 1366; Recent and This week are two more readings to draw']],
+    rec: `<b>Cupertino.</b> Home should be the welcoming page the owner describes: ask anything, see the day's work, see the book. The two-column shape gives it a front page's balance without a card around anything.`,
+    bites: `<ul><li><b>Rulings it touches:</b> "Needs you = the one desk's top three per group" holds (the left column is that list). Your book's figures already exist on the Board's head card; drawing them here is a second host of one reading, not a copy. "This week" reads the Calendar's own rows.</li><li><b>Six Questions:</b> no new band; the pixels: the box sits 34px from the bar, higher than today's card.</li></ul>`
+  },
+  contracts: { name: 'Contracts', today: 'today-contracts.png',
+    todayWords: `<h2>Today</h2><p>Already close to the SAP way: a head card, a search box, tabs, Filter, a table. What is missing is structure inside the list (31 rows in one run, stages mixed by sort), balance (Ends shows a dash on most rows while Value is right-aligned and strong), and a right panel that talks to nobody until a row is pressed, so a third of the screen is an upload box.</p>`,
+    opts: {
+      sap: { html: CT_SAP, title: 'The SAP Way', words: `<p>The head card tightens to one row (title, counts, tabs, Archive, List|Wall) and one tool row (search, Filter, two quick filters, Ask a column, Columns). The table gains sortable column heads and a selected row that fills the panel with the deal's four facts, Needs you and What Jambo read. Nothing moves; the page simply stops wasting its head.</p>` + CHECK.replace('{a}', 'Yes.').replace('{b}', 'Yes.').replace('{c}', 'Yes, column heads.').replace('{d}', 'Yes.') },
+      legora: { html: CT_LEG, title: 'The Legora Way', words: `<p>No card around the list. The search box becomes the one ask box, wide, with example questions as its hint. Chips, not tabs, narrow the list. Rows carry a Needs you column in words ("their answer · 7 days", "your signature") so the list says why a row matters without a colour. The panel's four facts each cite the paper: § and the words quoted.</p>` + CHECK.replace('{a}', 'Yes, the box and the Needs you words.').replace('{b}', 'Yes.').replace('{c}', 'Yes.').replace('{d}', 'Yes.') },
+      cupertino: { html: CT_CUP, title: 'Cupertino', words: `<p>A serif title with the book's line under it, a segmented control for the five views, and the list grouped by stage under small-caps headers with counts (In review 18, Drafting 5, Signed 7), the way Mail groups by day. Rows are one height, with a round monogram and a chevron; Needs you is a words column. The panel shows the chosen deal as a sheet: monogram, name, one filled Open, the facts, Needs you.</p>` + CHECK.replace('{a}', 'Yes: the group you are in and its count.').replace('{b}', 'Yes, by stage.').replace('{c}', 'Yes.').replace('{d}', 'Yes.') },
+    },
+    table: [['The SAP Way', 'Daily sorting and filtering across a large book', 'Still a card inside a card; the dash column stays'], ['The Legora Way', 'Asking the book questions and verifying answers against the paper', 'Chips over tabs loses the lit tab; wide box costs a row'], ['Cupertino', 'Seeing the book\'s shape at a glance and the deal that needs you', 'Grouping fights the sort: sorting by value re-orders inside groups only; 31 rows become 4 groups to scroll']],
+    rec: `<b>Cupertino</b>, with the SAP head's tool row kept (Filter, Ask a column, Columns). The grouped list is the single change that makes the book legible; the panel's sheet makes the right third earn its place.`,
+    bites: `<ul><li><b>Rulings it touches:</b> THE LIST HEAD stays the one head (box · tabs · chips); the segmented control is the tabs drawn as a pill, the same reading. The Wall stays as it is. The round monogram departs from "initials outlined (square)"; ask, or keep the square.</li><li><b>Six Questions:</b> grouping by stage is what SAP's own worklists do (group by status); no band; one door per row (its Dossier).</li></ul>`
+  },
+  redlines: { name: 'Redlines', today: 'today-redlines.png',
+    todayWords: `<h2>Today</h2><p>Each change is a card with the same six lines: title, "Step 1 · theirs", a two-line sentence from Jambo repeated four times, then eight verbs on two rows with icons. Everything weighs the same, so four changes fill the column and the fourth is cut at the foot. The words that changed on the paper are not in the column at all.</p>`,
+    opts: {
+      sap: { html: RL_SAP, title: 'The SAP Way', words: `<p>A worklist: tabs (Waiting on you · Sent · Settled), a four-row table (Clause · Jambo's read · Decide ▾), and the selected row's detail under it with the moved words, Jambo's line and the verbs as buttons on one row. The foot says what is answered and greys Send all until something is.</p>` + CHECK.replace('{a}', 'Yes, the table.').replace('{b}', 'Yes.').replace('{c}', 'Yes.').replace('{d}', 'Yes, tabs and the Dossier tab.') },
+      legora: { html: RL_LEG, title: 'The Legora Way', words: `<p>No boxes. Every change in paper order: its clause, the moved words quoted with § and the marks in HaTi's green and red, Jambo's read as one citation line with Why?, and the five verbs as plain words on one line. The words that changed are the row; everything else is a line under them.</p>` + CHECK.replace('{a}', 'Yes, the moved words.').replace('{b}', 'Yes.').replace('{c}', 'Yes.').replace('{d}', 'Yes, ‹ Dossier.') },
+      cupertino: { html: RL_CUP, title: 'Cupertino', words: `<p>A serif head says the one thing that matters ("4 waiting on you") with a four-segment progress line that fills as you answer. One change is open at a time: its moved words in the paper's serif, Jambo's read in one line, and a segmented Accept · Counter · Reject; Ask a colleague and Ladder as quiet words. The other three fold to one line each: clause, the moved words in grey, the age, a chevron. The foot counts answers and greys Send all.</p>` + CHECK.replace('{a}', 'Yes: the open change and its three verbs.').replace('{b}', 'Yes.').replace('{c}', 'Yes.').replace('{d}', 'Yes: ‹ Dossier, and the next row opens as this one closes.') },
+    },
+    table: [['The SAP Way', 'A lead working through a long round, many clauses, deciding in order', 'The table hides the moved words until a row is chosen'], ['The Legora Way', 'Reading every change against the paper before deciding', 'Four open changes take the whole column; no sense of progress'], ['Cupertino', 'Deciding one change at a time with the paper beside it', 'Folding hides three changes\' verbs; a second press is needed to act on them']],
+    rec: `<b>Cupertino.</b> It carries the serious-for-business signal the owner wants: the moved words are shown in the paper's own type, one decision is lit, progress is visible, and nothing repeats. The rows' verbs stay the same five; only one set is open at a time.`,
+    bites: `<ul><li><b>Rulings it touches:</b> "THE ROW IS THE WHOLE OF IT" holds for the open row; a folded row is a door to it (press it again and it closes). The piles (Waiting on you first, settled folded) stay as groups. Reject stays red when drawn as a button.</li><li><b>Six Questions:</b> the paper's pixels do not move; the one door stays (Counter opens the editor as today); the Why? is a press with its cost said.</li></ul>`
+  },
+};
+const ORDER = ['dossier', 'home', 'contracts', 'redlines'];
+const OPTS = ['today', 'sap', 'legora', 'cupertino'];
+let page = 'dossier', opt = 'today';
+try { const h = (location.hash || '').slice(1); if (ORDER.includes(h)) page = h; } catch (_) {}
+const $ = s => document.querySelector(s);
+function paintSwitch() {
+  $('#pages').innerHTML = '<span class="lbl">Page</span>' + ORDER.map(k => `<button type="button" data-page="${k}" aria-pressed="${k === page}">${PAGES[k].name}</button>`).join('');
+  const P = PAGES[page];
+  $('#opts').innerHTML = '<span class="lbl">Option</span>' + OPTS.map(k => `<button type="button" data-opt="${k}" aria-pressed="${k === opt}">${k === 'today' ? 'Today' : P.opts[k].title}</button>`).join('');
+}
+function paint() {
+  paintSwitch();
+  const P = PAGES[page];
+  const st = $('#stage');
+  st.innerHTML = opt === 'today' ? `<img src="${P.today}" alt="${P.name} as it stands today, 1440 by 780">` : P.opts[opt].html;
+  const o = opt === 'today' ? null : P.opts[opt];
+  $('#words').innerHTML = `<div>${o ? `<h2>${o.title}</h2>${o.words}` : P.todayWords}</div>
+    <div><h3>${P.name}: the three ideas</h3><table class="cmp"><tr><th>Idea</th><th>When it wins</th><th>Cost</th></tr>${P.table.map(r => `<tr class="${r[0] === 'Cupertino' ? 'rec' : ''}"><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</table>
+    <p class="rec">${P.rec}</p><h3>What the checks changed, and what to ask the owner</h3>${P.bites}</div>`;
+  fit();
+}
+function fit() {
+  const w = $('.stage').clientWidth; const s = Math.min(1, w / 1440);
+  const st = $('#stage'); st.style.transform = `scale(${s})`; $('.stage').style.height = Math.round(780 * s) + 'px';
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('button[data-page],button[data-opt]'); if (!b) return;
+  if (b.dataset.page) { page = b.dataset.page; try { history.replaceState(null, '', '#' + page); } catch (_) {} }
+  if (b.dataset.opt) opt = b.dataset.opt;
+  paint();
+});
+addEventListener('resize', fit);
+paint();
+</script>
