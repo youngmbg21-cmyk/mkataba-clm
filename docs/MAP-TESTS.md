@@ -85,6 +85,10 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## THE PHONE
 - phone-verify, f630, f631, phone-fits-verify.
 
+## THE ONE DESK — NEEDS YOU, ONE READING
+- f868 (new, red at the parent df2a3e3: no ndRead) — one reading, the merge keeping the wait and the red, the bundle, Home's groups, the Board's tabs/kinds/find/twelve, one button width, both books.
+- Re-pointed 22 Oct 2026: f803 (2)–(8) to ndParts/ndHomeRowHtml; f450 (1), f724 (1), f745 (3), f800 (10), f801 3h, f458 (11), f603 D12. Browser: counter-as-drawn (2, 3, 7, 8, 10a, 10h), agents-page (a piece read with its Look open), board-as-drawn 3, board-strip 1a, board-walkthrough-fixes 2/3, button-consistency 2, desk-comes-back, five-images 1, name-tag-horizon 1, waiting-on-us-no-desk 2, jambos-work-open, open-in-place, home-one-list, home-prepared-by-copilot, board-agent-work, copilot-jobs 4, home-and-recent 2a, home-first 5, needs-you-card 1b/4b/4c, settings-overnight-fixes D12, tidy-sweep (its "Jambo's work" place waits for `#hm-agents .nd-br`).
+
 ## HOME — THE BOARD AND THE MAP (js/views/homeboard.js)
 - THE TIDY SWEEP (22 Oct 2026): `tidy-sweep-verify.js` — 29 places × three screens, nothing cut, squeezed, spilt, overlapping or sideways; `HATI_TIDY_ONLY=board-card,draft` for one place; its board-card place lands a side-list row on MK-400's Dossier (One door). f690 (4) re-pointed: a row → `hbSheetGo`, the sheet draws no card.
 - Today's insights, ONE HEIGHT A ROW (22 Oct 2026): board-as-drawn 8b2 (two cards sharing a row the same height, their buttons on one line, at the three screens; red before); insights-shelf 6b re-pointed (the card beside an opened one grows with it).
@@ -332,6 +336,8 @@ Same headings as CLAUDE.md's THE MAP. Before changing an area, run its tests her
 ## ONE SEARCH OVER HaTi (Jambo works like Copilot, stage 1)
 - test/f866-one-search-over-hati.test.js (21): the words (both hosts), a passage found and where it sits, kept current by the triggers, the walls (stream, values, own notes, requests, private stream, code name), Jambo's tool. With the tool list touched also run f305 (the two hosts' tool names) and f561/f564 (the Brain).
 - Stage 2, every door as a tool: test/f867-every-door-as-a-tool.test.js (12: the door offered, cleaned, and walled — another stream, a code name, an admin's setting, a request) and test/chromium/jambo-doors-verify.js (21 doors, each landed in a real browser through aiGotoRun, judged by test/nav-read.js). With navmap.js touched also run test/chromium/nav-exam-verify.js (its ratchet) and f738.
+- Stage 3, AI first and never a dead end: test/f868-never-a-dead-end.test.js (the nudge, the last step, the way on, the choices walled, the quote's clause, the named contract, the rules twinned). Touched there and re-pinned: f132 (the gave-up row says "I ran out of steps"), test/chromium/board-says-it-plain-verify.js A3e (words asking for no picture are answered by Jambo). With the Settings box touched run every-jambo-box-verify and settings-as-drawn-3-verify; with the window, phone-verify and jambo-chat-window-verify.
+
 
 ## THE FIRST-TIMER ROUNDS (22 Oct 2026)
 - test/f866-first-timer-rounds.test.js (13 of 13 red at origin/main 2aba169; 23 green on the branch): the wall's words and press, stems and families, the one question, Use when, Who pays whom, Jambo's first words on a draft, the empty Redlines column, the plain reason, Ask a colleague, Accept unsent, Counter's figures, both books.

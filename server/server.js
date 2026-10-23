@@ -12489,20 +12489,20 @@ const aiNavigateOn = () => getSetting('aiNavigate') !== false;
    never a final act: it opens, chooses and lands; it sends, signs, approves and deletes
    nothing. Every id is checked here against what this reader may see (aiDoorOf) before
    the browser is handed it, and the browser asks its own book again. */
-const AI_DOOR_KINDS = ['contract', 'clause', 'contracts', 'party', 'you', 'company', 'person', 'stream', 'standard', 'template', 'obligation', 'request', 'duties'];
+const AI_DOOR_KINDS = ['contract', 'clause', 'contracts', 'party', 'you', 'company', 'person', 'stream', 'standard', 'template', 'obligation', 'request', 'duties', 'mynote'];
 const AI_DOOR_TABS = ['open', 'dossier', 'fill', 'send', 'sign', 'redlines', 'brief', 'clauses', 'amend', 'oblig', 'hist', 'compare'];
 const AI_DOOR_YOU = ['lang', 'told', 'safety', 'away', 'who', 'data', 'work', 'password'];
 const AI_DOOR_COMPANY_PAGES = ['team', 'streams', 'sheet', 'roles'];
 const AI_DOOR_COMPANY = [...new Set(Object.keys((I18N_STRINGS && I18N_STRINGS.en) || {}).filter(k => /^st_syn_[a-z]+$/.test(k)).map(k => k.slice(7)))].filter(k => !AI_DOOR_COMPANY_PAGES.includes(k));
 const AI_DOOR_STAGES = ['Draft', 'Under Review', 'Signed', 'Declined'];
 const AI_DOOR_ENDINGS = ['month', 'quarter', 'year'];
-const AI_DOOR_SCHEMA = { type: 'object', description: 'OPTIONAL, and BEST when you know it: the EXACT thing to open, named by the ids your tools returned. HaTi lands on it through its own doors (it opens and chooses, it never sends, signs, approves or deletes). kind and its fields: contract {contractId, tab: open|dossier|fill|send|sign|redlines|brief|clauses|amend|oblig|hist|compare (send and sign only open the letter and the signing column; nothing is sent or signed)} · clause {contractId, num (its number, when known), quote (the first words of the passage, from search_hati), head (its heading)} · contracts {stage, stream (stream id), party (counterparty name), ending (month|quarter|year: ending this one), ids (when a list is exactly these)} · party {name} · you {key: ' + AI_DOOR_YOU.join('|') + '} (the person\'s own settings) · company {key} (an admin\'s company setting or page: ' + AI_DOOR_COMPANY.concat(AI_DOOR_COMPANY_PAGES).join('|') + ') · person {userId, row: profile|cap|access} · stream {streamId, keep} · standard {book, row (the standard\'s words)} · template {templateId} · obligation {contractId, obligationId} · request {requestId} · duties {due: "7" for this week}.',
+const AI_DOOR_SCHEMA = { type: 'object', description: 'OPTIONAL, and BEST when you know it: the EXACT thing to open, named by the ids your tools returned. HaTi lands on it through its own doors (it opens and chooses, it never sends, signs, approves or deletes). kind and its fields: contract {contractId, tab: open|dossier|fill|send|sign|redlines|brief|clauses|amend|oblig|hist|compare (send and sign only open the letter and the signing column; nothing is sent or signed)} · clause {contractId, num (its number, when known), quote (the first words of the passage, from search_hati), head (its heading)} · contracts {stage, stream (stream id), party (counterparty name), ending (month|quarter|year: ending this one), ids (when a list is exactly these)} · party {name} · you {key: ' + AI_DOOR_YOU.join('|') + '} (the person\'s own settings) · company {key} (an admin\'s company setting or page: ' + AI_DOOR_COMPANY.concat(AI_DOOR_COMPANY_PAGES).join('|') + ') · person {userId, row: profile|cap|access} · stream {streamId, keep} · standard {book, row (the standard\'s words)} · template {templateId} · obligation {contractId, obligationId} · request {requestId} · duties {due: "7" for this week} · mynote {noteId} (the person\'s own private note, from search_hati; no noteId = My notes).',
   properties: { kind: { type: 'string', enum: AI_DOOR_KINDS }, contractId: { type: 'string' }, tab: { type: 'string', enum: AI_DOOR_TABS },
     num: { type: 'string' }, quote: { type: 'string' }, head: { type: 'string' },
     stage: { type: 'string', enum: AI_DOOR_STAGES }, stream: { type: 'string' }, party: { type: 'string' }, ending: { type: 'string', enum: AI_DOOR_ENDINGS },
     ids: { type: 'array', items: { type: 'string' } }, name: { type: 'string' }, key: { type: 'string' }, userId: { type: 'string' },
     row: { type: 'string' }, streamId: { type: 'string' }, keep: { type: 'boolean' }, book: { type: 'string' }, templateId: { type: 'string' },
-    obligationId: { type: 'string' }, requestId: { type: 'string' }, due: { type: 'string' } },
+    obligationId: { type: 'string' }, requestId: { type: 'string' }, due: { type: 'string' }, noteId: { type: 'string' } },
   required: ['kind'] };
 /* the door the model named, kept only where this reader may stand: an id they cannot see is no door (null) */
 function aiDoorOf(d, cx) {
@@ -12553,6 +12553,13 @@ function aiDoorOf(d, cx) {
     return r && u && (r.by_id === u.id || (u.role !== 'viewer' && (!r.folder || inScope(scope, r.folder)))) ? { kind: k, requestId: String(r.id) } : null;
   }
   if (k === 'duties') return { kind: k, due: d.due === '7' ? '7' : 'all' };
+  /* a private note is its writer's alone (my_items, user_id): another's id is no door */
+  if (k === 'mynote') {
+    const id = txt(d.noteId, 60), u = cx && cx.user;
+    if (!id) return u ? { kind: k } : null;
+    const r = u ? db.prepare("SELECT id FROM my_items WHERE id=? AND user_id=? AND kind='note'").get(id, String(u.id)) : null;
+    return r ? { kind: k, noteId: String(r.id) } : null;
+  }
   return null;
 }
 const AI_GOTO_SCHEMA = { type: 'object', description: 'OPTIONAL — when the person asks WHERE something is in HaTi, to be taken somewhere, or to see, show, open or find one thing. The ONE place to open for them (task), and the exact thing in it (door) when your tools named it; HaTi opens it and says so. Also when they ask for a contract\'s brief or summary (task brief). Leave it out for any other question only about what contracts say.',
@@ -12562,6 +12569,8 @@ const AI_GOTO_SCHEMA = { type: 'object', description: 'OPTIONAL — when the per
     spot: { type: 'string', description: 'OPTIONAL — when they name ONE thing inside a place (a contract, a clause, a party\'s folder, a person\'s setting, a duty, a request, a standard, a template): a short "take me to" phrase naming it in their words, e.g. "clause 7 of MK-A1", "Juno Logistics\'s folder", "Grace\'s signing limit". HaTi reads it with its own map and lands there; task is the fallback.' } },
   required: [] };
 const AI_GOTO_RULE = 'TAKING THEM THERE: when the person asks where something is in HaTi, how to get to a page or setting, asks to be taken somewhere, or asks to see, show, open or find ONE thing (a contract or one of its tabs, a clause, a list of contracts, a party\'s folder, a setting, a person, a template, a standard, a duty, a request), set deliver_answer\'s goto and say in one short sentence where you are taking them. Name the EXACT thing in goto\'s door with the ids your tools returned (a clause: its contract id and the passage\'s quote from search_hati, or its number), and set task to the place it sits in. Our standards (the negotiation playbook, book by book) is task standards. When you cannot name the door, set goto\'s spot to a short phrase naming the thing in their words. A question about what a contract says is answered in words with its source; when it asks WHERE the contract says it (“where does it say…”, “show me the bit about…”, “find the clause…”), also open that clause with goto.';
+/* NEVER A GUESS BETWEEN TWO (stage 3); the browser twin is word for word (js/ai.js) */
+const AI_CLARIFY_RULE = 'UNSURE WHICH ONE: when the person\'s words fit two or more contracts, parties, people or places and nothing on screen settles it, do not guess: ask ONE short question in the answer and give 2-4 choices in deliver_answer\'s choices, each the exact door it opens. When their words fit one thing, answer or open it.';
 const AI_GOTO_OFF_RULE = 'YOU CANNOT OPEN PAGES: when asked where something is in HaTi, name the page in words and say that the search box (⌘K) finds any page by name.';
 /* A CONTRACT'S BRIEF IS KEPT (owner, 22 Oct 2026): the chat opens the kept brief (goto task brief), never writes
    one again; the browser's twins in js/ai.js, word for word (f862) */
@@ -12595,7 +12604,7 @@ const COPILOT_TOOLS = [
     input_schema: { type: 'object', properties: { query: { type: 'string', description: 'Keywords, counterparty name, or clause topic.' }, limit: { type: 'number', description: 'How many results to return, 1-40 (default 8).' } }, required: ['query'] } },
   { name: 'search_hati', description: HS_TOOL_DESC,
     input_schema: { type: 'object', properties: {
-      words: { type: 'string', description: 'The words to look for: the person\'s own words AND the likely words the book uses for the same thing (e.g. for "get out of the deal": termination terminate cancel exit notice). Several words are welcome; any of them may match.' },
+      words: { type: 'string', description: 'The words to look for: the person\'s own words AND the likely words the book uses for the same thing (e.g. for "get out of the deal": termination terminate cancel exit notice). Several words are welcome; any of them may match. May be empty when kinds is given: then every one of those kinds is listed (e.g. kinds ["request"] for all requests).' },
       kinds: { type: 'array', items: { type: 'string', enum: HS_KINDS }, description: 'Optional: only these kinds.' },
       limit: { type: 'number', description: 'How many hits, 1-40 (default 8).' } }, required: ['words'] } },
   { name: 'get_contract', description: 'Fetch one contract in full by its id (e.g. MK-103): metadata, dates, value, status, open Jambo-scan findings, body text, AND its negotiation record — the round, whose turn it is, and every tracked change with who proposed it, its status, who decided it and any reason given. Use before answering about, or quoting, a specific contract, and for any question about edits, additions, rounds or versions. ' + COPILOT_MONEY_NOTE,
@@ -12633,6 +12642,7 @@ const COPILOT_TOOLS = [
       citations: { type: 'array', description: 'The contracts your answer relies on.', items: { type: 'object', properties: {
         id: { type: 'string', description: 'Contract id you used.' },
         quote: { type: 'string', description: 'Optional short verbatim snippet from that contract supporting the point.' } }, required: ['id'] } },
+      choices: { type: 'array', description: 'OPTIONAL — only when you cannot tell WHICH thing the person means (two or more contracts, parties, people or places fit their words): ask ONE short question in answer and give 2-4 choices here, each a short label and the exact door it opens. HaTi draws them as presses. Never guess between them.', items: { type: 'object', properties: { label: { type: 'string' }, door: AI_DOOR_SCHEMA }, required: ['label', 'door'] } },
       compare: { type: 'object', description: 'OPTIONAL — include ONLY when comparing 2+ contracts. A side-by-side table.', properties: {
         columns: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, label: { type: 'string' } }, required: ['id', 'label'] }, description: 'One column per contract, in display order.' },
         rows: { type: 'array', items: { type: 'object', properties: { label: { type: 'string', description: 'Row label, e.g. "Value", "Payment terms", "Governing law".' }, cells: { type: 'array', items: { type: 'string' }, description: 'One cell per column, same order as columns.' } }, required: ['label', 'cells'] } },
@@ -12858,6 +12868,7 @@ SCOPE & SAFETY:
 - ${AI_GOVERNANCE_RULE} When a rule stops them and the proper next step is one of HaTi's own doors, name it in deliver_answer's ruleDoor.
 - ${aiNavigateOn() ? AI_GOTO_RULE : AI_GOTO_OFF_RULE}
 - ${aiNavigateOn() ? AI_BRIEF_RULE : AI_BRIEF_OFF_RULE}
+- ${AI_CLARIFY_RULE}
 - ${AI_CALENDAR_RULE}`;
   /* ONE FIGURE, EVERY BRAIN (12 Sep 2026): the sentence the graph route
      carries, in the chat brain too — the same rows, the same conversion, the
@@ -12898,6 +12909,102 @@ function copilotTextAnswer(txt) {
 }
 const COPILOT_EMPTY_ANSWER = "I couldn't finish an answer to that one. Try a smaller piece of it — one contract, one date range, one counterparty — or say “portfolio health report” and I'll build the full picture as a document instead.";
 
+/* ---- NEVER A DEAD END (Jambo works like Copilot, stage 3, 22 Oct 2026) ----
+   "I wasn't able to finish that" told the reader nothing they could do. Now:
+   (1) a reply with no words and no tool is asked once more for its answer
+   (copilotNudge); (2) the last step must deliver (copilotLastStep); (3) where
+   there is still no answer, the reason is said and the nearest things the one
+   search finds are offered as 2-4 doors, with a retry (copilotWayForward). */
+const COPILOT_NUDGE = 'Call deliver_answer now with your answer, in plain words, from what you have found. If you found nothing, say what you looked for.';
+function copilotNudge(working, words) {
+  const say = words || COPILOT_NUDGE;
+  /* an empty assistant turn is not sent back; the nudge rides the last user turn (a tool result) or stands alone */
+  const last = working[working.length - 1];
+  if (last && last.role === 'assistant' && (!Array.isArray(last.content) || !last.content.length)) working.pop();
+  const prev = working[working.length - 1];
+  if (prev && prev.role === 'user' && Array.isArray(prev.content)) prev.content = prev.content.concat([{ type: 'text', text: say }]);
+  else working.push({ role: 'user', content: say });
+}
+/* the last step must answer (measured: making EVERY step use a tool sent a confused model searching to the
+   eighth call, 22 Oct 2026; a question asked back in plain words is asked to come with its choices instead) */
+const copilotLastStep = step => (step === AI_CHAT_STEPS - 1 ? { tool_choice: { type: 'tool', name: 'deliver_answer' } } : {});
+const COPILOT_CHOICES_NUDGE = 'You asked the person which they meant. Call deliver_answer now with that short question as the answer and 2-4 choices, each the exact door it opens.';
+/* a reply in plain words that asks the person back ("which one…?") */
+const copilotAsksBack = txt => /\?\s*$|\?\s*\n/.test(String(txt || '')) && /\b(which|what|who|did you mean|do you mean|vilk|menade)\b/i.test(String(txt || ''));
+/* what each kind of hit opens, as a goto door (aiDoorOf checks it again) */
+function hsDoorOf(h) {
+  if (!h) return null;
+  if (h.kind === 'clause') return { kind: 'clause', contractId: h.contractId, ...(h.quote ? { quote: h.quote } : {}), ...(h.title ? { head: h.title } : {}) };
+  if (h.kind === 'obligation') return { kind: 'obligation', contractId: h.contractId, obligationId: h.ref };
+  if (h.kind === 'history') return { kind: 'contract', contractId: h.contractId, tab: 'hist' };
+  if (h.kind === 'note' && h.mine) return { kind: 'mynote', noteId: h.ref };
+  if (h.kind === 'note' && !h.mine) return { kind: 'contract', contractId: h.contractId, tab: 'dossier' };
+  if (h.kind === 'contract') return { kind: 'contract', contractId: h.contractId };
+  if (h.kind === 'party') return { kind: 'party', name: h.title };
+  if (h.kind === 'request') return { kind: 'request', requestId: h.ref };
+  if (h.kind === 'person') return { kind: 'person', userId: h.ref };
+  if (h.kind === 'template') return { kind: 'template', templateId: h.ref };
+  if (h.kind === 'standard') return { kind: 'standard', book: h.book, row: h.title };
+  return null;
+}
+/* THE QUOTE OPENS ITS CLAUSE (stage 3): an answer that rests on ONE contract's verified quote, asked as a
+   "show me / where does it say / the bit about", opens the passage the quote stands in when the model named
+   no place itself — resting on the quote the server has just checked, never on a guess. A plain question
+   ("how much…", "when…") is answered where it was asked. */
+const COPILOT_SHOW_RE = /\b(where|show|find|point me|take me|open|the (bit|part|clause|section|paragraph)|which (bit|part|clause|section))\b|\b(var (står|säger)|visa|hitta|klausul\w*)\b/i;
+const COPILOT_ASKS_RE = /^\s*(what|when|who|whom|how|which|why|is|are|does|do|did|can|could|should|will|would|has|have|vad|när|vem|hur|vilk\w*|varför|är|finns|kan|har)\b/i;
+const COPILOT_TELL_RE = /^\s*(?:please\s+|can you\s+|could you\s+)?(summari[sz]e|explain|describe|list|tell|compare|outline|sammanfatta|förklara|beskriv|lista|jämför|berätta)\b/i;
+function copilotQuoteDoor(cx, question, final) {
+  if (!final || final.goto || final.choices) return null;
+  /* the person's own words: a board note before them and the paper's wording after them are not theirs */
+  const q = String(question || '').replace(/^\[The reader is on the Home board[\s\S]*?\]\n\n/, '').split('\n\n')[0].slice(0, 400);
+  if (!COPILOT_SHOW_RE.test(q) && COPILOT_ASKS_RE.test(q)) return null;
+  /* a summary, an explanation or a list asked for is answered where it was asked, never a trip */
+  if (COPILOT_TELL_RE.test(q)) return null;
+  const cited = (final.citations || []).filter(c => c && c.id && c.quote && !c.quoteDropped);
+  const ids = [...new Set((final.citations || []).map(c => c && c.id).filter(Boolean))];
+  if (ids.length !== 1) return null;
+  const cj = copilotGetJson(cx, ids[0]); if (!cj) return null;
+  if (cited.length){
+    const nq = quoteNorm(cited[0].quote);
+    const p = hsPassages(hsWordingOf(cj)).find(x => quoteNorm(x.text).includes(nq));
+    if (p){
+      const door = aiDoorOf({ kind: 'clause', contractId: cj.id, quote: p.text.replace(/\s+/g, ' ').slice(0, 120), ...(p.head ? { head: p.head } : {}) }, cx);
+      if (door) return { task: '', door };
+    }
+  }
+  /* NAMED AND NOT ASKED ("opne MK-A1", "the kabras suger deal"): an ask that only names one contract — by its
+     number, or a word of its name or party written near enough — and whose answer rests on that contract alone,
+     opens it */
+  if (COPILOT_ASKS_RE.test(q)) return null;
+  const words = q.toLowerCase().split(/[^\p{L}\p{N}-]+/u).filter(w => w.length >= 4);
+  const refs = [cj.id, cj.contractNo].filter(Boolean).map(x => String(x).toLowerCase());
+  const own = String([cj.name, cj.counterparty].filter(Boolean).join(' ')).toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(w => w.length >= 4 && !['agreement', 'contract', 'services', 'supply', 'limited'].includes(w));
+  const named = words.some(w => refs.includes(w)) || words.some(w => own.some(o => o === w || (w.length >= 5 && o.length >= 5 && o.slice(0, 5) === w.slice(0, 5))));
+  if (!named) return null;
+  const door = aiDoorOf({ kind: 'contract', contractId: cj.id, tab: 'open' }, cx);
+  return door ? { task: '', door } : null;
+}
+const COPILOT_WHY = {
+  unfinished: 'I ran out of steps before I could finish that.',
+  empty: 'No answer came back for that one.',
+};
+function copilotWayForward(cx, question, why) {
+  let hits = [];
+  try { hits = (hatiSearch(cx, question, { limit: 8 }).hits || []); } catch (_) { hits = []; }
+  const choices = [], seen = new Set();
+  for (const h of hits) {
+    const door = aiDoorOf(hsDoorOf(h), cx);
+    if (!door) continue;
+    const label = [h.title || h.contractName || '', h.contractId && h.kind !== 'contract' ? (h.contractNo || h.contractId) : ''].filter(Boolean).join(' · ').slice(0, 80);
+    if (!label || seen.has(label)) continue;
+    seen.add(label); choices.push({ label, door });
+    if (choices.length >= 4) break;
+  }
+  const answer = COPILOT_WHY[why] + ' ' + (choices.length >= 2 ? 'Did you mean one of these? Or ask again in other words.' : choices.length ? 'Did you mean this? Or ask again in other words.' : 'Ask again, or name the contract, party or page you mean.');
+  return { answer, citations: [], compare: null, choices, retry: true, [why]: true };
+}
+
 /* One text, one shape, both sides. Lowercase; smart quotes to straight;
    en/em dashes to hyphen; the ellipsis char to three dots; every whitespace
    run (incl. NBSP) to one space. This is the anti-false-reject step: spacing
@@ -12912,8 +13019,23 @@ function quoteNorm(s) {
     .replace(/[\s ]+/g, ' ')
     .trim();
 }
+/* A TOOL CALL WRITTEN INTO ITS OWN ANSWER (live, 22 Oct 2026): the fast model sometimes ends "answer" with
+   `",\n<parameter name="citations">[…]` — the next fields typed as text. They are read back into their fields
+   and taken out of the words, so the reader never sees the markup and the sources still count. */
+function copilotParamsSalvage(inp) {
+  const a = inp && typeof inp.answer === 'string' ? inp.answer : '';
+  const at = a.search(/<parameter name="/);
+  if (at < 0) return inp;
+  const out = { ...inp, answer: a.slice(0, at).replace(/\\?["”]?\s*,?\s*$/, '').trim() };
+  for (const m of a.slice(at).matchAll(/<parameter name="(\w+)">([\s\S]*?)(?=<parameter name="|<\/invoke>|$)/g)) {
+    const k = m[1]; if (k === 'answer' || out[k] != null) continue;
+    const v = m[2].replace(/<\/parameter>\s*$/, '').trim();
+    try { out[k] = JSON.parse(v); } catch (_) { out[k] = v; }
+  }
+  return out;
+}
 function normalizeDeliver(input, cx) {
-  const inp = input || {};
+  const inp = copilotParamsSalvage(input || {});
   const answer = typeof inp.answer === 'string' && inp.answer.trim() ? inp.answer.trim() : COPILOT_EMPTY_ANSWER;
   const wholeBook = inp.wholeBook === true;
   /* the door through a rule, re-checked like a citation: a contract it names
@@ -12960,7 +13082,11 @@ function normalizeDeliver(input, cx) {
     };
     if (!compare.columns.length) compare = null;
   }
-  return { answer, citations, compare, quoteDrops, wholeBook, ruleDoor, goto };
+  /* "WHICH DID YOU MEAN?" (stage 3): 2-4 choices, each a door this reader may stand at (aiDoorOf); fewer than two is no question */
+  const choices = (Array.isArray(inp.choices) ? inp.choices : []).slice(0, 6)
+    .map(c => ({ label: typeof (c && c.label) === 'string' ? c.label.replace(/[\u0000-\u001f<>{}]/g, ' ').trim().slice(0, 80) : '', door: aiDoorOf(c && c.door, cx) }))
+    .filter(c => c.label && c.door).slice(0, 4);
+  return { answer, citations, compare, quoteDrops, wholeBook, ruleDoor, goto, ...(choices.length >= 2 ? { choices } : {}) };
 }
 
 /* One row per completed Copilot chat turn — including the failure paths, so
@@ -13045,11 +13171,11 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
      branch, and the reader was served half a thought with nothing saying so.
      Tracked across every turn, because the cut can happen on any of them. */
   let truncated = false;
-  let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast');
+  let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast'), nudged = false;
   try {
     for (let step = 0; step < AI_CHAT_STEPS; step++) {
       steps = step + 1;
-      const resp = await anthropicMessages(key, compared ? 'deep' : 'fast', { max_tokens: 4000, system, tools: copilotToolsNow(), messages: working }, { feature: 'chat', who: aiWho(req) });
+      const resp = await anthropicMessages(key, compared ? 'deep' : 'fast', { max_tokens: 4000, system, tools: copilotToolsNow(), messages: working, ...copilotLastStep(step) }, { feature: 'chat', who: aiWho(req) });
       if (!resp.ok) {
         const err = 'Jambo provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300);
         logCopilotTurn(req, { question, answer: err, toolsUsed, model: resp.model || usedModel, steps });
@@ -13063,7 +13189,11 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
       working.push({ role: 'assistant', content });
       if (!toolUses.length) { // model replied as plain text without the tool — accept it
         const txt = copilotTextAnswer(content.filter(b => b.type === 'text').map(b => b.text).join('').trim());
-        final = { answer: txt || COPILOT_EMPTY_ANSWER, citations: [], compare: null, empty: !txt };
+        /* no words and no tool: asked once more for its answer (never a dead end) */
+        if (!txt && !nudged && step + 1 < AI_CHAT_STEPS) { nudged = true; copilotNudge(working); continue; }
+        /* asked back in plain words: once more, with its choices as presses */
+        if (txt && !nudged && step + 1 < AI_CHAT_STEPS && copilotAsksBack(txt)) { nudged = true; copilotNudge(working, COPILOT_CHOICES_NUDGE); continue; }
+        final = txt ? { answer: txt, citations: [], compare: null } : copilotWayForward(cx, question, 'empty');
         break;
       }
       const deliver = toolUses.find(t => t.name === 'deliver_answer');
@@ -13078,7 +13208,8 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
     /* A NON-ANSWER SAYS SO (8 Oct 2026): `unfinished`/`empty` ride the reply so a
        caller that uses the words for something (a drafted note) never takes this
        sentence for an answer. The chat itself still prints it as before. */
-    if (!final) final = { answer: "I wasn't able to finish that — try narrowing the question or naming a specific contract.", citations: [], compare: null, unfinished: true };
+    if (!final) final = copilotWayForward(cx, question, 'unfinished');
+    if (final && !final.goto && aiNavigateOn()) { const g = copilotQuoteDoor(cx, question, final); if (g) final.goto = g; }
     // Resolve cited ids (and any compare columns) into render-ready cards.
     const cardIds = [];
     final.citations.forEach(c => { if (!cardIds.includes(c.id)) cardIds.push(c.id); });
@@ -13093,7 +13224,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
     }
     logCopilotTurn(req, { question, answer: final.answer, citedIds: cardIds, toolsUsed,
       quoteDrops: final.quoteDrops || 0, model: usedModel, steps });
-    res.json({ answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.unfinished ? { unfinished: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...notice });
+    res.json({ answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...notice });
   } catch (e) {
     logCopilotTurn(req, { question, answer: 'Jambo request failed: ' + e.message, toolsUsed, model: usedModel, steps });
     res.status(502).json({ error: 'Jambo request failed: ' + e.message });
@@ -13375,7 +13506,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
      branch, and the reader was served half a thought with nothing saying so.
      Tracked across every turn, because the cut can happen on any of them. */
   let truncated = false;
-  let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast');
+  let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast'), nudged = false;
   try {
     for (let step = 0; step < AI_CHAT_STEPS; step++) {
       steps = step + 1;
@@ -13384,7 +13515,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
          whole in `final`. To re-enable, pass
          onToken: text => { if (text) send('token', { text }); } */
       const resp = await anthropicMessagesStream(key, compared ? 'deep' : 'fast',
-        { max_tokens: 4000, system, tools: copilotToolsNow(), messages: working },
+        { max_tokens: 4000, system, tools: copilotToolsNow(), messages: working, ...copilotLastStep(step) },
         { feature: 'chat', who: aiWho(req) },
         { signal: ac.signal });
       if (!resp.ok) {
@@ -13401,7 +13532,10 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
       working.push({ role: 'assistant', content });
       if (!toolUses.length) {
         const txt = copilotTextAnswer(content.filter(b => b.type === 'text').map(b => b.text).join('').trim());
-        final = { answer: txt || COPILOT_EMPTY_ANSWER, citations: [], compare: null, empty: !txt };
+        if (!txt && !nudged && step + 1 < AI_CHAT_STEPS) { nudged = true; copilotNudge(working); continue; }
+        /* asked back in plain words: once more, with its choices as presses */
+        if (txt && !nudged && step + 1 < AI_CHAT_STEPS && copilotAsksBack(txt)) { nudged = true; copilotNudge(working, COPILOT_CHOICES_NUDGE); continue; }
+        final = txt ? { answer: txt, citations: [], compare: null } : copilotWayForward(cx, question, 'empty');
         break;
       }
       const deliver = toolUses.find(t => t.name === 'deliver_answer');
@@ -13416,7 +13550,8 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
     /* A NON-ANSWER SAYS SO (8 Oct 2026): `unfinished`/`empty` ride the reply so a
        caller that uses the words for something (a drafted note) never takes this
        sentence for an answer. The chat itself still prints it as before. */
-    if (!final) final = { answer: "I wasn't able to finish that — try narrowing the question or naming a specific contract.", citations: [], compare: null, unfinished: true };
+    if (!final) final = copilotWayForward(cx, question, 'unfinished');
+    if (final && !final.goto && aiNavigateOn()) { const g = copilotQuoteDoor(cx, question, final); if (g) final.goto = g; }
     const cardIds = [];
     final.citations.forEach(c => { if (!cardIds.includes(c.id)) cardIds.push(c.id); });
     if (final.compare) final.compare.columns.forEach(col => { if (!cardIds.includes(col.id)) cardIds.push(col.id); });
@@ -13430,7 +13565,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
     }
     logCopilotTurn(req, { question, answer: final.answer, citedIds: cardIds, toolsUsed,
       quoteDrops: final.quoteDrops || 0, model: usedModel, steps });
-    send('final', { answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.unfinished ? { unfinished: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...notice });
+    send('final', { answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ruleDoor: final.ruleDoor || null, goto: final.goto || null, ...(final.choices && final.choices.length ? { choices: final.choices } : {}), ...(final.retry ? { retry: true } : {}), ...(final.unfinished ? { unfinished: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...notice });
     res.end();
   } catch (e) {
     if (clientGone || e.name === 'AbortError') {
@@ -25385,12 +25520,15 @@ const HS_SCAN = 800;   // candidate rows read past the wall at most; past it the
 const HS_CONTRACT_KINDS = ['contract', 'clause', 'obligation', 'note', 'history', 'party'];
 let hsOk = true;
 try {
+  /* an index built before the kind words (stage 1's) is rebuilt whole: it is a reading, never a record */
+  try { const cols = db.prepare('PRAGMA table_info(hs_docs)').all().map(c => c.name);
+    if (cols.length && !cols.includes('tags')) { db.exec('DROP TABLE IF EXISTS hati_search_v; DROP TABLE IF EXISTS hati_search; DROP TABLE IF EXISTS hs_docs;'); db.prepare("DELETE FROM settings WHERE key='hsBuilt'").run(); } } catch (_) {}
   db.exec(`CREATE TABLE IF NOT EXISTS hs_docs (rowid INTEGER PRIMARY KEY, kind TEXT NOT NULL, ref TEXT NOT NULL,
-      cid TEXT, owner TEXT, title TEXT, body TEXT, meta TEXT);
+      cid TEXT, owner TEXT, title TEXT, body TEXT, meta TEXT, tags TEXT);
     CREATE INDEX IF NOT EXISTS idx_hs_docs_cid ON hs_docs(cid);
     CREATE INDEX IF NOT EXISTS idx_hs_docs_kind ON hs_docs(kind);
     CREATE TABLE IF NOT EXISTS hs_dirty (what TEXT PRIMARY KEY);
-    CREATE VIRTUAL TABLE IF NOT EXISTS hati_search USING fts5(title, body, content='hs_docs', content_rowid='rowid', tokenize='unicode61 remove_diacritics 2');
+    CREATE VIRTUAL TABLE IF NOT EXISTS hati_search USING fts5(title, body, tags, content='hs_docs', content_rowid='rowid', tokenize='unicode61 remove_diacritics 2');
     CREATE VIRTUAL TABLE IF NOT EXISTS hati_search_v USING fts5vocab(hati_search, 'row');`);
   /* A MARK NEVER FAILS THE WRITE IT RIDES ON: "OR IGNORE" inside a trigger gives way to the
      outer statement's own conflict rule (an upsert's is ABORT), so the mark asks first instead */
@@ -25412,15 +25550,22 @@ try {
 } catch (e) { hsOk = false; }
 const hsText = (v, n) => String(v == null ? '' : v).replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
   .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/[ \t]+/g, ' ').trim().slice(0, n || 20000);
-function hsPut(kind, ref, cid, owner, title, body, meta) {
-  const r = db.prepare('INSERT INTO hs_docs (kind, ref, cid, owner, title, body, meta) VALUES (?,?,?,?,?,?,?)')
-    .run(kind, String(ref), cid || null, owner || null, hsText(title, 300), hsText(body), meta ? JSON.stringify(meta) : null);
-  db.prepare('INSERT INTO hati_search (rowid, title, body) VALUES (?,?,?)').run(r.lastInsertRowid, hsText(title, 300), hsText(body));
+/* A THING IS ALSO FOUND BY WHAT IT IS ("open requests", "our duties", "the templates"): the kind's own words,
+   both languages, ride in a third column the ranking weighs least */
+const HS_KIND_WORDS = { contract: 'contract agreement deal avtal', clause: 'clause section article klausul', obligation: 'obligation obligations duty duties due payment åtagande',
+  note: 'note notes anteckning', mine: 'note notes my anteckning', request: 'request requests intake förfrågan', person: 'person people colleague user kollega',
+  party: 'party counterparty customer supplier part motpart', partyrec: 'party counterparty part motpart', history: 'history trail audit historik',
+  template: 'template templates mall', standard: 'standard standards playbook standard' };
+function hsPut(kind, ref, cid, owner, title, body, meta, extra) {
+  const tags = [HS_KIND_WORDS[kind] || kind, extra || ''].join(' ').trim();
+  const r = db.prepare('INSERT INTO hs_docs (kind, ref, cid, owner, title, body, meta, tags) VALUES (?,?,?,?,?,?,?,?)')
+    .run(kind, String(ref), cid || null, owner || null, hsText(title, 300), hsText(body), meta ? JSON.stringify(meta) : null, tags);
+  db.prepare('INSERT INTO hati_search (rowid, title, body, tags) VALUES (?,?,?,?)').run(r.lastInsertRowid, hsText(title, 300), hsText(body), tags);
 }
 function hsDrop(sqlWhere, ...args) {
-  const rows = db.prepare(`SELECT rowid, title, body FROM hs_docs WHERE ${sqlWhere}`).all(...args);
-  const del = db.prepare("INSERT INTO hati_search (hati_search, rowid, title, body) VALUES ('delete', ?, ?, ?)");
-  for (const r of rows) del.run(r.rowid, r.title, r.body);
+  const rows = db.prepare(`SELECT rowid, title, body, tags FROM hs_docs WHERE ${sqlWhere}`).all(...args);
+  const del = db.prepare("INSERT INTO hati_search (hati_search, rowid, title, body, tags) VALUES ('delete', ?, ?, ?, ?)");
+  for (const r of rows) del.run(r.rowid, r.title, r.body, r.tags);
   db.prepare(`DELETE FROM hs_docs WHERE ${sqlWhere}`).run(...args);
 }
 /* the wording a contract's passages are cut from: the stored body, else the file's text (contractFullBody's rule) */
@@ -25442,7 +25587,7 @@ function hsIndexContract(id) {
   for (const p of hsPassages(hsWordingOf(c)))
     hsPut('clause', c.id + '#' + p.at, c.id, null, p.head, p.text, { at: p.at, quote: p.text.replace(/\s+/g, ' ').slice(0, 120) });
   (Array.isArray(c.obligations) ? c.obligations : []).forEach((o, i) => {
-    if (o && o.desc) hsPut('obligation', String(o.id || i), c.id, null, o.desc, [o.desc, o.who, o.kind].filter(Boolean).join('  '), { due: o.due || null });
+    if (o && o.desc) hsPut('obligation', String(o.id || i), c.id, null, o.desc, [o.desc, o.who, o.kind].filter(Boolean).join('  '), { due: o.due || null }, o.status || 'open');
   });
   /* notes: ours on the contract and on each change (negoNoteHome), and the channel's */
   const notes = [].concat(Array.isArray(c.thread) ? c.thread : [],
@@ -25457,7 +25602,7 @@ function hsIndexKind(k) {
   if (k === 'request') {
     hsDrop("kind = 'request'");
     for (const r of db.prepare('SELECT id, title, need, counterparty, by_name, status FROM intake_requests').all())
-      hsPut('request', r.id, null, null, r.title || '', [r.need, r.counterparty, r.by_name].filter(Boolean).join('  '), { status: r.status });
+      hsPut('request', r.id, null, null, r.title || '', [r.need, r.counterparty, r.by_name].filter(Boolean).join('  '), { status: r.status }, r.status || '');
   } else if (k === 'person') {
     hsDrop("kind = 'person'");
     for (const u of db.prepare('SELECT * FROM users').all())
@@ -25546,7 +25691,8 @@ function hatiSearch(ctx, q, opts) {
   if (!hsOk) return { ...none, error: 'search unavailable' };
   hsRefresh();
   const { terms, fixed, match } = hsMatchOf(q);
-  if (!match) return none;
+  /* NO WORDS BUT A KIND ("every open request", kinds:["request"]): that kind listed, newest first, walls the same */
+  if (!match && !kinds.length) return none;
   const user = ctx.user || null, out = ctx.cnOut || new Map();
   const folders = new Map(db.prepare('SELECT id, folder, contract_no, name FROM contracts WHERE org_id=?').all(ctx.org).map(r => [r.id, r]));
   const reqs = new Map(db.prepare('SELECT id, by_id, folder, status FROM intake_requests').all().map(r => [r.id, r]));
@@ -25565,8 +25711,12 @@ function hatiSearch(ctx, q, opts) {
   const asKind = r => (r.kind === 'mine' ? 'note' : r.kind === 'partyrec' ? 'party' : r.kind);
   let rows = [];
   try {
-    rows = db.prepare(`SELECT d.rowid, d.kind, d.ref, d.cid, d.owner, d.title, d.meta,
-        snippet(hati_search, 1, '[', ']', '…', 14) AS snip, bm25(hati_search, 4.0, 1.0) AS rank
+    if (!match) {
+      const raw = [...new Set(kinds.flatMap(k => k === 'note' ? ['note', 'mine'] : k === 'party' ? ['party', 'partyrec'] : [k]))];
+      rows = db.prepare(`SELECT rowid, kind, ref, cid, owner, title, meta, substr(body, 1, 160) AS snip FROM hs_docs
+        WHERE kind IN (${raw.map(() => '?').join(',')}) ORDER BY rowid DESC LIMIT ?`).all(...raw, HS_SCAN + 1);
+    } else rows = db.prepare(`SELECT d.rowid, d.kind, d.ref, d.cid, d.owner, d.title, d.meta,
+        snippet(hati_search, 1, '[', ']', '…', 14) AS snip, bm25(hati_search, 4.0, 1.0, 0.5) AS rank
       FROM hati_search JOIN hs_docs d ON d.rowid = hati_search.rowid WHERE hati_search MATCH ? ORDER BY rank LIMIT ?`).all(match, HS_SCAN + 1);
   } catch (e) { return { ...none, searched: terms, error: 'search parse' }; }
   const scanCapped = rows.length > HS_SCAN;

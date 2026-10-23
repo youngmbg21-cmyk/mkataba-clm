@@ -96,3 +96,15 @@ describe('f867 (3) the walls', () => {
     assert.equal(await gotoOf(W.restricted, { door: { kind: 'request', requestId: 'ik_nope' } }), null);
   });
 });
+
+describe('f867 (4) a private note is its writer\'s door alone', () => {
+  test('my own note opens; another person\'s note is no door, even for an admin', async () => {
+    const r = await W.unrestricted.json('/api/me/items', { method: 'POST', body: { kind: 'note', item: { body: 'Call Kabras about the rebate' } } });
+    const id = (r.item || r).id;
+    assert.ok(id, JSON.stringify(r));
+    assert.deepEqual((await gotoOf(W.unrestricted, { door: { kind: 'mynote', noteId: id } })).door, { kind: 'mynote', noteId: id });
+    assert.equal(await gotoOf(W.admin, { door: { kind: 'mynote', noteId: id } }), null);
+    assert.deepEqual((await gotoOf(W.admin, { door: { kind: 'mynote' } })).door, { kind: 'mynote' }, 'My notes, the page');
+  });
+});
+

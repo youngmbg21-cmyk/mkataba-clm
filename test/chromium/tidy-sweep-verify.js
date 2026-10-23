@@ -208,7 +208,8 @@ const PLACES = [
   { k: 'customers', name: 'Customers', go: `setView('customers')`, wait: `document.querySelector('.cu-page, .cu-table, .sap-page')` },
   { k: 'mynotes', name: 'My notes', go: `setView('mynotes')`, wait: `document.querySelector('.mn-page, #mn-root, .sap-page')` },
   { k: 'jambo', name: "Jambo's house", go: `setView('jambo')`, wait: `document.querySelector('#jh-log, #jh-office')` },
-  { k: 'agents', name: "Jambo's work", go: `hbOpenAgent()`, wait: `document.querySelector('.hb-ag, #hb-agents')` },
+  /* RE-POINTED 22 Oct 2026 (Round A, the one desk): Jambo's work is the Board's Needs you card, its rows .nd-br */
+  { k: 'agents', name: "Jambo's work", go: `hbOpenAgent()`, wait: `document.querySelector('#hm-agents .nd-br')` },
   { k: 'settings', name: 'Settings · You', go: `openSettingsAt('you')`, wait: `document.querySelector('#st-side')` },
   { k: 'company', name: 'Settings · Company', go: `openSettingsAt('company')`, wait: `document.querySelector('#st-side')` },
   { k: 'draft', name: 'New agreement · from a sentence', go: `setView('dashboard'); setTimeout(() => caDraftRun(caReadDraft("draft a warehousing contract with Lisa's Baby Care")), 600)`, wait: `document.querySelector('#na-root.na-one .na-closest .na-pick')` },

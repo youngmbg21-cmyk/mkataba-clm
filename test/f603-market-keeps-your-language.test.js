@@ -139,7 +139,8 @@ describe('f603 (D12) — a brand-new Home has one door to finish setting up', ()
   test('where signing in lands, the Counter offers the same door: the same reading, the same act', () => {
     const CN = fs.readFileSync(path.join(ROOT, 'js/views/counter.js'), 'utf8');
     assert.match(CN, /function cnSetup\(\)\{[^\n]*hbSetupLeft\(\)/);
-    assert.match(CN, /_cnTn\('hb_setup_left', n, \{ n \}\)/);
+    /* RE-POINTED 22 Oct 2026 (Round A): the row is the one desk's (ndParts) */
+    assert.match(CN, /_cnTn\('hb_setup_left', r\.setup, \{ n: r\.setup \}\)/);
     assert.match(CN, /closest\('\[data-cn-setup\]'\)\)\{ if \(typeof hbSetupGo === 'function'\) hbSetupGo\(\); return; \}/);
   });
   test('both books carry the words', () => {
